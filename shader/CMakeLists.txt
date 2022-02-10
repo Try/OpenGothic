@@ -103,6 +103,12 @@ add_shader(copy.frag            copy.frag "")
 add_shader(ssao.vert            ssao.vert "")
 add_shader(ssao.frag            ssao.frag "")
 
+add_shader(bilateral.vert       copy.vert "")
+add_shader(bilateral.frag       bilateral.frag "")
+
+add_shader(ssao_compose.vert    copy.vert "")
+add_shader(ssao_compose.frag    ssao_compose.frag "")
+
 add_custom_command(
   OUTPUT     ${HEADER} ${CPP}
   DEPENDS    ${OPENGOTHIC_SHADERS_SPRV}

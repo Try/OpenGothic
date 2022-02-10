@@ -43,6 +43,7 @@ class Renderer final {
     Tempest::Swapchain&       swapchain;
     Tempest::Matrix4x4        view, proj, viewProj;
     Tempest::Matrix4x4        shadow[Resources::ShadowLayers];
+    Tempest::Vec3             clipInfo;
 
     Tempest::Attachment       shadowMap[Resources::ShadowLayers];
     Tempest::ZBuffer          zbuffer, zbufferItem, shadowZ[Resources::ShadowLayers];
@@ -52,9 +53,16 @@ class Renderer final {
     Tempest::Attachment       gbufNormal;
     Tempest::Attachment       gbufDepth;
 
-    Tempest::TextureFormat    shadowFormat =Tempest::TextureFormat::RGBA8;
-    Tempest::TextureFormat    zBufferFormat=Tempest::TextureFormat::Depth16;
+    struct SSAO {
+      Tempest::TextureFormat  aoFormat      = Tempest::TextureFormat::R8;
+      Tempest::Attachment     ssaoBuf;
+      Tempest::Attachment     blurBuf;
+      Tempest::DescriptorSet  uboSsao, uboBlur[2], uboCompose;
+    } ssao;
 
-    Tempest::DescriptorSet    uboCopy, uboSsao;
+    Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::RGBA8;
+    Tempest::TextureFormat    zBufferFormat = Tempest::TextureFormat::Depth16;
+
+    Tempest::DescriptorSet    uboCopy;
     Shaders                   stor;
   };

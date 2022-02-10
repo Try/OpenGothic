@@ -75,35 +75,10 @@ Shaders::Shaders() {
   shadow  .load(device,"shadow");
   shadowAt.load(device,"shadow_at");
 
-  RenderState stateFsq;
-  stateFsq.setCullFaceMode(RenderState::CullMode::Front);
-  stateFsq.setZTestMode   (RenderState::ZTestMode::LEqual);
-  stateFsq.setZWriteEnabled(false);
-
-  {
-  auto sh = GothicShader::get("copy.vert.sprv");
-  auto vs = device.shader(sh.data,sh.len);
-  sh      = GothicShader::get("copy.frag.sprv");
-  auto fs = device.shader(sh.data,sh.len);
-  copy    = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,vs,fs);
-  }
-
-  {
-  RenderState stateAo;
-  stateAo.setCullFaceMode(RenderState::CullMode::Front);
-  stateAo.setZTestMode   (RenderState::ZTestMode::LEqual);
-  //stateAo.setBlendSource (RenderState::BlendMode::One);
-  //stateAo.setBlendDest   (RenderState::BlendMode::One);
-  //stateAo.setBlendOp     (RenderState::BlendOp::Subtract);
-  stateAo.setZWriteEnabled(false);
-
-  auto sh = GothicShader::get("ssao.vert.sprv");
-  auto vs = device.shader(sh.data,sh.len);
-  sh      = GothicShader::get("ssao.frag.sprv");
-  auto fs = device.shader(sh.data,sh.len);
-  ssao    = device.pipeline<Resources::VertexFsq>(Triangles,stateAo,vs,fs);
-  //ssao    = device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,vs,fs);
-  }
+  copy          = postEffect("copy");
+  ssao          = postEffect("ssao");
+  ssaoCompose   = postEffect("ssao_compose");
+  bilateralBlur = postEffect("bilateral");
 
   {
   RenderState state;
@@ -137,17 +112,9 @@ Shaders::Shaders() {
   }
 
   if(Gothic::inst().version().game==1) {
-    auto sh    = GothicShader::get("sky_g1.vert.sprv");
-    auto vsSky = device.shader(sh.data,sh.len);
-    sh         = GothicShader::get("sky_g1.frag.sprv");
-    auto fsSky = device.shader(sh.data,sh.len);
-    sky        = device.pipeline<Resources::VertexFsq>(Triangles, stateFsq, vsSky,  fsSky);
+    sky = postEffect("sky_g1");
     } else {
-    auto sh    = GothicShader::get("sky_g2.vert.sprv");
-    auto vsSky = device.shader(sh.data,sh.len);
-    sh         = GothicShader::get("sky_g2.frag.sprv");
-    auto fsSky = device.shader(sh.data,sh.len);
-    sky        = device.pipeline<Resources::VertexFsq>(Triangles, stateFsq, vsSky,  fsSky);
+    sky = postEffect("sky_g2");
     }
   }
 
@@ -262,6 +229,25 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
     }
 
   return &b.pipeline;
+  }
+
+RenderPipeline Shaders::postEffect(std::string_view name) {
+  auto& device = Resources::device();
+
+  RenderState stateFsq;
+  stateFsq.setCullFaceMode(RenderState::CullMode::Front);
+  stateFsq.setZTestMode   (RenderState::ZTestMode::LEqual);
+  stateFsq.setZWriteEnabled(false);
+
+  char buf[256] = {};
+  std::snprintf(buf,sizeof(buf),"%.*s.vert.sprv",int(name.size()),name.data());
+  auto sh = GothicShader::get(buf);
+  auto vs = device.shader(sh.data,sh.len);
+
+  std::snprintf(buf,sizeof(buf),"%.*s.frag.sprv",int(name.size()),name.data());
+  sh      = GothicShader::get(buf);
+  auto fs = device.shader(sh.data,sh.len);
+  return device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,vs,fs);
   }
 
 template<class Vertex>

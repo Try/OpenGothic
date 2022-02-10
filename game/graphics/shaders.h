@@ -19,7 +19,8 @@ class Shaders {
     Tempest::RenderPipeline fog;
     Tempest::RenderPipeline lights;
     Tempest::RenderPipeline copy;
-    Tempest::RenderPipeline ssao;
+    Tempest::RenderPipeline bilateralBlur;
+    Tempest::RenderPipeline ssao, ssaoCompose;
 
     enum PipelineType: uint8_t {
       T_Forward,
@@ -52,6 +53,8 @@ class Shaders {
 
     template<class Vertex>
     Tempest::RenderPipeline pipeline(Tempest::RenderState& st, const ShaderPair &fs) const;
+
+    Tempest::RenderPipeline postEffect(std::string_view name);
 
     static Shaders* instance;
 

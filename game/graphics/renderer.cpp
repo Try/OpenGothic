@@ -44,8 +44,6 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
 
   Log::i("GPU = ",device.properties().name);
   Log::i("Depth format = ",int(zBufferFormat)," Shadow format = ",int(shadowFormat));
-  uboCopy = device.descriptors(Shaders::inst().copy);
-  uboSsao = device.descriptors(Shaders::inst().ssao);
 
   Gothic::inst().onSettingsChanged.bind(this,&Renderer::initSettings);
   initSettings();
@@ -80,18 +78,36 @@ void Renderer::resetSwapchain() {
     wview->setGbuffer(Resources::fallbackBlack(),Resources::fallbackBlack(),Resources::fallbackBlack(),Resources::fallbackBlack());
     }
 
-  uboCopy.set(0,lightingBuf,Sampler2d::nearest());
-
   auto smp = Sampler2d::nearest();
   smp.setClamping(ClampMode::ClampToEdge);
 
   auto smpB = Sampler2d::bilinear();
   smpB.setClamping(ClampMode::ClampToEdge);
 
-  uboSsao.set(0,lightingBuf,smp);
-  uboSsao.set(1,gbufDiffuse,smp);
-  uboSsao.set(2,gbufNormal, smp);
-  uboSsao.set(3,gbufDepth,  smpB);
+  uboCopy = device.descriptors(Shaders::inst().copy);
+  uboCopy.set(0,lightingBuf,Sampler2d::nearest());
+
+  ssao.ssaoBuf = device.attachment(ssao.aoFormat, (swapchain.w()+1)/2,(swapchain.h()+1)/2);
+  ssao.blurBuf = device.attachment(ssao.aoFormat, (swapchain.w()+1)/2,(swapchain.h()+1)/2);
+
+  ssao.uboSsao = device.descriptors(Shaders::inst().ssao);
+  ssao.uboSsao.set(0,lightingBuf,smp);
+  ssao.uboSsao.set(1,gbufDiffuse,smp);
+  ssao.uboSsao.set(2,gbufNormal, smp);
+  ssao.uboSsao.set(3,gbufDepth,  smpB);
+
+  ssao.uboCompose = device.descriptors(Shaders::inst().ssaoCompose);
+  ssao.uboCompose.set(0,lightingBuf, smpB);
+  ssao.uboCompose.set(1,gbufDiffuse, smpB);
+  ssao.uboCompose.set(2,ssao.ssaoBuf,smpB);
+
+  ssao.uboBlur[0] = device.descriptors(Shaders::inst().bilateralBlur);
+  ssao.uboBlur[0].set(0,ssao.ssaoBuf,smp);
+  ssao.uboBlur[0].set(1,gbufDepth,   smpB);
+
+  ssao.uboBlur[1] = device.descriptors(Shaders::inst().bilateralBlur);
+  ssao.uboBlur[1].set(0,ssao.blurBuf,smp);
+  ssao.uboBlur[1].set(1,gbufDepth,   smpB);
   }
 
 void Renderer::initSettings() {
@@ -110,6 +126,12 @@ void Renderer::setCameraView(const Camera& camera) {
     for(size_t i=0; i<Resources::ShadowLayers; ++i)
       shadow[i] = camera.viewShadow(wview->mainLight().dir(),i);
     }
+
+  const float zNear = camera.zNear();
+  const float zFar  = camera.zFar();
+  clipInfo.x = zNear*zFar;
+  clipInfo.y = zNear-zFar;
+  clipInfo.z = zFar;
   }
 
 void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
@@ -175,24 +197,56 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   }
 
 void Renderer::drawSSAO(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, const WorldView& view) {
-  static bool ssao = true;
+  static bool useSsao = true;
 
-  cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
-  if(!ssao || !settings.zCloudShadowScale) {
+  if(!useSsao || !settings.zCloudShadowScale) {
+    cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
     cmd.setUniforms(Shaders::inst().copy,uboCopy);
     cmd.draw(Resources::fsqVbo());
     return;
     }
 
-  struct Push {
+  {
+  // ssao
+  struct PushSsao {
     Matrix4x4 mvp;
-    Vec3      ambient;
   } push;
-  push.mvp     = viewProj;
-  push.ambient = view.ambientLight();
+  push.mvp = viewProj;
 
-  cmd.setUniforms(Shaders::inst().ssao,uboSsao,&push,sizeof(push));
+  cmd.setFramebuffer({{ssao.ssaoBuf, Tempest::Discard, Tempest::Preserve}});
+  cmd.setUniforms(Shaders::inst().ssao,ssao.uboSsao,&push,sizeof(push));
   cmd.draw(Resources::fsqVbo());
+  }
+
+  for(int i=0; i<2; ++i) {
+    struct PushSsao {
+      Vec3  clipInfo;
+      float sharpness;
+      Vec2  invResolutionDirection;
+    } push;
+    push.clipInfo               = clipInfo;
+    push.sharpness              = 1.f;
+    push.invResolutionDirection = Vec2(1.f/float(ssao.ssaoBuf.w()), 1.f/float(ssao.ssaoBuf.h()));
+    if(i==0)
+      push.invResolutionDirection.y = 0; else
+      push.invResolutionDirection.x = 0;
+
+    if(i==0)
+      cmd.setFramebuffer({{ssao.blurBuf, Tempest::Discard, Tempest::Preserve}}); else
+      cmd.setFramebuffer({{ssao.ssaoBuf, Tempest::Discard, Tempest::Preserve}});
+    cmd.setUniforms(Shaders::inst().bilateralBlur,ssao.uboBlur[i],&push,sizeof(push));
+    cmd.draw(Resources::fsqVbo());
+    }
+
+  {
+  struct PushSsao {
+    Vec3 ambient;
+  } push;
+  push.ambient = view.ambientLight();
+  cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
+  cmd.setUniforms(Shaders::inst().ssaoCompose,ssao.uboCompose,&push,sizeof(push));
+  cmd.draw(Resources::fsqVbo());
+  }
   }
 
 Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {

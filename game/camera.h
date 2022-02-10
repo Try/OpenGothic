@@ -77,6 +77,9 @@ class Camera final {
     Tempest::Matrix4x4 viewProj() const;
     Tempest::Matrix4x4 viewShadow(const Tempest::Vec3& ldir, size_t layer) const;
 
+    float              zNear() const;
+    float              zFar()  const;
+
   private:
     struct State {
       float               range  = 3.f;

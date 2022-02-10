@@ -70,7 +70,7 @@ void Camera::changeZoom(int delta) {
   }
 
 void Camera::setViewport(uint32_t w, uint32_t h) {
-  proj.perspective(65.f, float(w)/float(h), 0.01f, 85.0f);
+  proj.perspective(65.f, float(w)/float(h), zNear(), zFar());
   vpWidth  = w;
   vpHeight = h;
   }
@@ -246,6 +246,14 @@ Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
 
   proj.mul(view);
   return proj;
+  }
+
+float Camera::zNear() const {
+  return 0.01f;
+  }
+
+float Camera::zFar() const {
+  return 85.0f;
   }
 
 const Daedalus::GEngineClasses::CCamSys &Camera::cameraDef() const {

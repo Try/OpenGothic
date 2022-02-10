@@ -3,15 +3,14 @@
 
 const float M_PI  = 3.1415926535897932384626433832795;
 
+layout(push_constant, std140) uniform PushConstant {
+  mat4 mvp;
+  } ubo;
+
 layout(binding  = 0) uniform sampler2D lightingBuf;
 layout(binding  = 1) uniform sampler2D diffuse;
 layout(binding  = 2) uniform sampler2D normals;
 layout(binding  = 3) uniform sampler2D depth;
-
-layout(push_constant, std140) uniform PushConstant {
-  mat4 mvp;
-  vec3 ambient;
-  } ubo;
 
 layout(location = 0) in  vec2 uv;
 layout(location = 1) in  vec2 inPos;
@@ -19,7 +18,7 @@ layout(location = 2) in  mat4 mvpInv;
 
 layout(location = 0) out vec4 outColor;
 
-const uint  numSamples = 16;
+const uint  numSamples = 16*4;
 const float sphereLen  = 100;
 
 uint hash(uint x) {
@@ -133,9 +132,6 @@ void main() {
   vec3 clr  = textureLod(diffuse,uv,0).rgb;
   vec4 lbuf = textureLod(lightingBuf,uv,0);
 
-  float occ     = calcOcclussion();
-  vec3  ambient = ubo.ambient;
-
-  outColor  = vec4(lbuf.rgb-clr*ambient*occ, lbuf.a);
-  // outColor  = vec4(1-occ);
+  float occ = calcOcclussion();
+  outColor  = vec4(occ);
   }
