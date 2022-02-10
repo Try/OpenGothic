@@ -9,7 +9,7 @@ class Frustrum {
 
     bool testPoint(float x, float y, float z) const;
     bool testPoint(float x, float y, float z, float R) const;
-    bool testPoint(const Tempest::Vec3 p, float R) const;
+    bool testPoint(const Tempest::Vec3& p, float R, float& dist) const;
 
     float              f[6][4] = {};
     Tempest::Matrix4x4 mat;

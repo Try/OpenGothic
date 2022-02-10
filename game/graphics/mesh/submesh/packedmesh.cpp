@@ -9,7 +9,6 @@
 using namespace Tempest;
 
 PackedMesh::PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type) {
-  mesh.getBoundingBox(bbox[0],bbox[1]);
   if(type==PK_Visual || type==PK_VisualLnd) {
     subMeshes.resize(mesh.getMaterials().size());
     for(size_t i=0;i<subMeshes.size();++i)
@@ -43,7 +42,7 @@ PackedMesh::PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type) {
     }
   }
 
-void PackedMesh::pack(const ZenLoad::zCMesh& mesh,PkgType type) {
+void PackedMesh::pack(const ZenLoad::zCMesh& mesh, PkgType type) {
   auto& vbo = mesh.getVertices();
   auto& uv  = mesh.getFeatureIndices();
   auto& ibo = mesh.getIndices();
@@ -261,4 +260,27 @@ void PackedMesh::debug(std::ostream &out) const {
       }
     }
 
+  }
+
+std::pair<Vec3, Vec3> PackedMesh::bbox() const {
+  Vec3 bbox[2] = {};
+  if(vertices.size()==0)
+    return std::make_pair(bbox[0],bbox[1]);
+
+  bbox[0].x = vertices[0].Position.x;
+  bbox[0].y = vertices[0].Position.y;
+  bbox[0].z = vertices[0].Position.z;
+  bbox[1] = bbox[0];
+
+  for(size_t i=1; i<vertices.size(); ++i) {
+    bbox[0].x = std::min(bbox[0].x, vertices[i].Position.x);
+    bbox[0].y = std::min(bbox[0].y, vertices[i].Position.y);
+    bbox[0].z = std::min(bbox[0].z, vertices[i].Position.z);
+
+    bbox[1].x = std::max(bbox[1].x, vertices[i].Position.x);
+    bbox[1].y = std::max(bbox[1].y, vertices[i].Position.y);
+    bbox[1].z = std::max(bbox[1].z, vertices[i].Position.z);
+    }
+
+  return std::make_pair(bbox[0],bbox[1]);
   }

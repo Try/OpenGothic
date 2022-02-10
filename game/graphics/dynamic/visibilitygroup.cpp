@@ -60,7 +60,7 @@ const Bounds& VisibilityGroup::Token::bounds() const {
   return owner->tokens[id].bbox;
   }
 
-VisibilityGroup::VisibilityGroup() {
+VisibilityGroup::VisibilityGroup(const std::pair<Vec3, Vec3>& bbox) {
   freeList.reserve(4);
   }
 
@@ -72,10 +72,6 @@ VisibilityGroup::Token VisibilityGroup::get() {
     } else {
     tokens.emplace_back();
     }
-  // auto& t = tokens[id];
-  // t.pos  = at;
-  // t.bbox = bbox;
-  // t.bbox.setObjMatrix(at);
   return Token(*this,id);
   }
 
@@ -100,15 +96,19 @@ void VisibilityGroup::pass(const Frustrum f[]) {
       t.vSet->push(t.id,SceneGlobals::V_Shadow1);
       t.vSet->push(t.id,SceneGlobals::V_Main);
       } else {
-      bool visible[SceneGlobals::V_Count] = {};
-      visible[SceneGlobals::V_Shadow0] = f[SceneGlobals::V_Shadow0].testPoint(b.midTr, b.r);
-      visible[SceneGlobals::V_Shadow1] = f[SceneGlobals::V_Shadow1].testPoint(b.midTr, b.r);
-      visible[SceneGlobals::V_Main]    = f[SceneGlobals::V_Main   ].testPoint(b.midTr, b.r);
+      bool  visible[SceneGlobals::V_Count] = {};
+      float dist   [SceneGlobals::V_Count] = {};
+      visible[SceneGlobals::V_Shadow0] = f[SceneGlobals::V_Shadow0].testPoint(b.midTr, b.r, dist[SceneGlobals::V_Shadow0]);
+      visible[SceneGlobals::V_Shadow1] = f[SceneGlobals::V_Shadow1].testPoint(b.midTr, b.r, dist[SceneGlobals::V_Shadow1]);
+      visible[SceneGlobals::V_Main]    = f[SceneGlobals::V_Main   ].testPoint(b.midTr, b.r, dist[SceneGlobals::V_Main   ]);
 
-      if(visible[SceneGlobals::V_Shadow1])
-        visible[SceneGlobals::V_Shadow1] = subpixelMeshTest(t,f[SceneGlobals::V_Shadow1],sh1X,sh1Y);
-      if(visible[SceneGlobals::V_Main])
-        visible[SceneGlobals::V_Main] = subpixelMeshTest(t,f[SceneGlobals::V_Main],mX,mY);
+      if(b.r<1.f*100.f) {
+        static const float farDist = 50*100; // 50 meters
+        if(visible[SceneGlobals::V_Shadow1] && dist[SceneGlobals::V_Shadow1]>b.r+farDist)
+          visible[SceneGlobals::V_Shadow1] = subpixelMeshTest(t,f[SceneGlobals::V_Shadow1],sh1X,sh1Y);
+        if(visible[SceneGlobals::V_Main] && dist[SceneGlobals::V_Main]>b.r+farDist)
+          visible[SceneGlobals::V_Main] = subpixelMeshTest(t,f[SceneGlobals::V_Main],mX,mY);
+        }
 
       if(visible[SceneGlobals::V_Shadow0])
         t.vSet->push(t.id,SceneGlobals::V_Shadow0);
@@ -122,8 +122,6 @@ void VisibilityGroup::pass(const Frustrum f[]) {
   }
 
 bool VisibilityGroup::subpixelMeshTest(const Tok& t, const Frustrum& f, float edgeX, float edgeY) {
-  return true;
-  /*
   auto& b = t.bbox.bbox;
   Vec3 pt[8] = {
     {b[0].x,b[0].y,b[0].z},
@@ -155,5 +153,4 @@ bool VisibilityGroup::subpixelMeshTest(const Tok& t, const Frustrum& f, float ed
   float w = (bboxSh[1].x-bboxSh[0].x);
   float h = (bboxSh[1].y-bboxSh[0].y);
   return (w>edgeX && h>edgeY);
-  */
   }

@@ -6,6 +6,7 @@
 #include <Tempest/Vec>
 #include <unordered_map>
 #include <map>
+#include <utility>
 
 class Bounds;
 
@@ -28,10 +29,11 @@ class PackedMesh {
 
     std::vector<WorldVertex>   vertices;
     std::vector<SubMesh>       subMeshes;
-    ZMath::float3              bbox[2] = {};
 
     PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type);
     void debug(std::ostream &out) const;
+
+    std::pair<Tempest::Vec3,Tempest::Vec3> bbox() const;
 
   private:
     void   pack(const ZenLoad::zCMesh& mesh,PkgType type);

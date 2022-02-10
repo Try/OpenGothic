@@ -8,7 +8,7 @@
 using namespace Tempest;
 
 InventoryRenderer::InventoryRenderer()
-  :visual(scene),itmGroup(visual) {
+  :visual(scene,std::pair<Vec3,Vec3>()),itmGroup(visual) {
   LightSource light;
   light.setColor(Vec3(0.f,0.f,0.f));
   scene.ambient = Vec3(1.f,1.f,1.f);

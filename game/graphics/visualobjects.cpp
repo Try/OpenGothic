@@ -7,8 +7,8 @@
 
 using namespace Tempest;
 
-VisualObjects::VisualObjects(const SceneGlobals& globals)
-  :globals(globals) {
+VisualObjects::VisualObjects(const SceneGlobals& globals, const std::pair<Vec3, Vec3>& bbox)
+  :globals(globals), visGroup(bbox) {
   }
 
 VisualObjects::~VisualObjects() {
@@ -16,8 +16,9 @@ VisualObjects::~VisualObjects() {
 
 ObjectsBucket& VisualObjects::getBucket(const Material& mat, const ProtoMesh* anim, ObjectsBucket::Type type) {
   const std::vector<ProtoMesh::Animation>* a = nullptr;
-  if(anim!=nullptr && anim->morph.size()>0)
+  if(anim!=nullptr && anim->morph.size()>0) {
     a = &anim->morph;
+    }
 
   for(auto& i:buckets)
     if(i.material()==mat && i.morph()==a && i.type()==type && i.size()<ObjectsBucket::CAPACITY)
@@ -37,7 +38,11 @@ ObjectsBucket::Item VisualObjects::get(const StaticMesh &mesh, const Material& m
     Log::e("no texture?!");
     return ObjectsBucket::Item();
     }
-  auto&        bucket = getBucket(mat,anim,staticDraw ? ObjectsBucket::Static : ObjectsBucket::Movable);
+  ObjectsBucket::Type type = (staticDraw ? ObjectsBucket::Static : ObjectsBucket::Movable);
+  if(anim!=nullptr && anim->morph.size()>0) {
+    type = ObjectsBucket::Morph;
+    }
+  auto&        bucket = getBucket(mat,anim,type);
   const size_t id     = bucket.alloc(mesh.vbo,mesh.ibo,iboOffset,iboLen,mesh.bbox);
   return ObjectsBucket::Item(bucket,id);
   }

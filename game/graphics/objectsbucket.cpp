@@ -22,11 +22,11 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
 
   auto m = owner->mat;
   m.isGhost = g;
-  auto&  bucket = owner->owner.getBucket(m,{},owner->shaderType);
+  auto&  bucket = owner->owner.getBucket(m,{},owner->objType);
 
   auto&  v      = owner->val[id];
   size_t idNext = size_t(-1);
-  switch(v.vboType) {
+  switch(owner->vboType) {
     case NoVbo:
       break;
     case VboVertex:{
@@ -41,7 +41,7 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
       idNext = bucket.alloc(v.vboM,v.visibility.bounds());
       break;
       }
-    case VboMorpthGpu:{
+    case VboMorphGpu:{
       idNext = bucket.alloc(*v.vbo,*v.ibo,v.iboOffset,v.iboLength,v.visibility.bounds());
       break;
       }
@@ -106,13 +106,34 @@ void ObjectsBucket::Descriptors::alloc(ObjectsBucket& owner) {
   }
 
 
+ObjectsBucket::VboType ObjectsBucket::toVboType(const Type type) {
+  switch(type) {
+    case Type::Landscape:
+    case Type::Static:
+    case Type::Movable:
+      return VboType::VboVertex;
+
+    case Type::Animated:
+      return VboType::VboVertexA;
+
+    case Type::Pfx:
+      return VboType::VboMorph;
+
+    case Type::Morph:
+      return VboType::VboMorphGpu;
+    }
+  return VboType::NoVbo;
+  }
+
 ObjectsBucket::ObjectsBucket(const Material& mat, const ProtoMesh* anim,
-                             VisualObjects& owner, const SceneGlobals& scene, Storage& storage, const Type type)
-  :owner(owner), scene(scene), storage(storage), mat(mat), shaderType(type) {
+                             VisualObjects& owner, const SceneGlobals& scene, Storage& storage,
+                             const Type type)
+  :owner(owner), scene(scene), storage(storage), mat(mat), objType(type), vboType(toVboType(type)) {
   static_assert(sizeof(UboPush)<=128, "UboPush is way too big");
   auto& device = Resources::device();
 
-  auto st = shaderType;
+
+  auto st = objType;
   if(anim!=nullptr && anim->morph.size()>0) {
     morphAnim = anim;
     st        = Morph;
@@ -151,7 +172,7 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds
   Object* v = nullptr;
   for(size_t i=0; i<CAPACITY; ++i) {
     auto& vx = val[i];
-    if(vx.isValid())
+    if(vx.isValid)
       continue;
     v = &vx;
     break;
@@ -161,7 +182,6 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds
     owner.resetIndex();
 
   ++valSz;
-  v->vboType    = type;
   v->vbo        = nullptr;
   v->vboA       = nullptr;
   v->ibo        = nullptr;
@@ -169,6 +189,7 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds
   v->visibility = owner.visGroup.get();
   v->visibility.setBounds(bounds);
   v->visibility.setObject(&visSet,size_t(std::distance(val,v)));
+  v->isValid    = true;
 
   if(!useSharedUbo) {
     v->ubo.invalidate();
@@ -190,7 +211,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
       ubo.set(L_Shadow0, *scene.shadowMap[0],Resources::shadowSampler());
       ubo.set(L_Shadow1, *scene.shadowMap[1],Resources::shadowSampler());
       ubo.set(L_Scene,   scene.uboGlobalPf[i][SceneGlobals::V_Main]);
-      if(shaderType!=ObjectsBucket::Pfx)
+      if(objType!=ObjectsBucket::Pfx)
         ubo.set(L_Material,uboMat[i]);
       if(isSceneInfoRequired()) {
         ubo.set(L_GDiffuse, *scene.lightingBuf,Sampler2d::nearest());
@@ -210,7 +231,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
       if(textureInShadowPass)
         uboSh.set(L_Diffuse, t);
       uboSh.set(L_Scene,    scene.uboGlobalPf[i][lay]);
-      if(shaderType!=ObjectsBucket::Pfx)
+      if(objType!=ObjectsBucket::Pfx)
         uboSh.set(L_Material, uboMat[i]);
       if(morphAnim!=nullptr) {
         uboSh.set(L_MorphId, morphAnim->morphIndex  );
@@ -332,7 +353,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<ObjectsBucket::Vertex>* 
 void ObjectsBucket::free(const size_t objId) {
   auto& v = val[objId];
   v.visibility = VisibilityGroup::Token();
-  v.vboType    = VboType::NoVbo;
+  v.isValid    = false;
   v.vbo        = nullptr;
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i)
     v.vboM[i] = nullptr;
@@ -364,41 +385,37 @@ void ObjectsBucket::drawShadow(Encoder<CommandBuffer>& cmd, uint8_t fId, int lay
 
 void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId,
                                const RenderPipeline& shader, SceneGlobals::VisCamera c) {
-  UboPush pushBlock  = {};
-  bool    sharedSet  = false;
-  bool    sharedPush = false;
-
-  size_t pushSz = (morphAnim!=nullptr) ? sizeof(UboPush) : sizeof(UboPushBase);
-  if(shaderType==Pfx)
-    pushSz = 0;
-
   const size_t  indSz = visSet.count(c);
   const size_t* index = visSet.index(c);
+  if(indSz==0)
+    return;
+
+  UboPush pushBlock  = {};
+  size_t pushSz = (morphAnim!=nullptr) ? sizeof(UboPush) : sizeof(UboPushBase);
+  if(objType==Pfx)
+    pushSz = 0;
+
+  if(useSharedUbo && objType==Landscape) {
+    pushBlock.pos.identity();
+    cmd.setUniforms(shader, uboShared.ubo[fId][c], &pushBlock, pushSz);
+    }
+  else if(useSharedUbo) {
+    cmd.setUniforms(shader, uboShared.ubo[fId][c]);
+    }
+
   for(size_t i=0; i<indSz; ++i) {
     auto& v = val[index[i]];
-    if(v.vboType==NoVbo)
-      continue;
 
     updatePushBlock(pushBlock,v);
     if(!useSharedUbo) {
       uboSetDynamic(v,fId);
       cmd.setUniforms(shader, v.ubo.ubo[fId][c], &pushBlock, pushSz);
       }
-    else if(shaderType==Landscape) {
-      if(!sharedPush) {
-        sharedPush = true;
-        cmd.setUniforms(shader, uboShared.ubo[fId][c], &pushBlock, pushSz);
-        }
-      }
-    else if(!sharedSet) {
-      sharedSet = true;
-      cmd.setUniforms(shader, uboShared.ubo[fId][c], &pushBlock, pushSz);
-      }
-    else {
+    else if(objType!=Landscape) {
       cmd.setUniforms(shader, &pushBlock, pushSz);
       }
 
-    switch(v.vboType) {
+    switch(vboType) {
       case VboType::NoVbo:
         break;
       case VboType::VboVertex:
@@ -410,7 +427,7 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId,
       case VboType::VboMorph:
         cmd.draw(*v.vboM[fId]);
         break;
-      case VboType::VboMorpthGpu:
+      case VboType::VboMorphGpu:
         cmd.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength);
         break;
       }
@@ -437,11 +454,11 @@ void ObjectsBucket::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p,
     }
 
   size_t pushSz = (morphAnim!=nullptr) ? sizeof(UboPush) : sizeof(UboPushBase);
-  if(shaderType==Pfx)
+  if(objType==Pfx)
     pushSz = 0;
 
   p.setUniforms(*pMain,ubo,&pushBlock,pushSz);
-  switch(v.vboType) {
+  switch(vboType) {
     case VboType::NoVbo:
       break;
     case VboType::VboVertex:
@@ -453,7 +470,7 @@ void ObjectsBucket::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p,
     case VboType::VboMorph:
       p.draw(*v.vboM[fId]);
       break;
-    case VboType::VboMorpthGpu:
+    case VboType::VboMorphGpu:
       p.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength);
       break;
     }

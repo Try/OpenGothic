@@ -8,7 +8,7 @@ class Sky;
 
 class VisualObjects final {
   public:
-    VisualObjects(const SceneGlobals& globals);
+    VisualObjects(const SceneGlobals& globals, const std::pair<Tempest::Vec3, Tempest::Vec3>& bbox);
     ~VisualObjects();
 
     ObjectsBucket::Item get(const StaticMesh& mesh, const Material& mat, size_t iboOffset, size_t iboLen,

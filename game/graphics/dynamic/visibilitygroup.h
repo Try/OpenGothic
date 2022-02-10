@@ -11,7 +11,7 @@ class VisibleSet;
 
 class VisibilityGroup {
   public:
-    VisibilityGroup();
+    VisibilityGroup(const std::pair<Tempest::Vec3, Tempest::Vec3>& bbox);
 
     class Token {
       public:

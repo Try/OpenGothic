@@ -116,10 +116,15 @@ bool Frustrum::testPoint(float x, float y, float z, float R) const {
   return true;
   }
 
-bool Frustrum::testPoint(const Vec3 p, float R) const {
-  for(size_t i=0; i<6; i++) {
+bool Frustrum::testPoint(const Vec3& p, float R, float& dist) const {
+  for(size_t i=0; i<5; i++) {
     if(f[i][0]*p.x+f[i][1]*p.y+f[i][2]*p.z+f[i][3]<=-R)
       return false;
     }
+
+  dist = f[5][0]*p.x+f[5][1]*p.y+f[5][2]*p.z+f[5][3];
+  if(dist<-R)
+    return false;
+
   return true;
   }

@@ -36,16 +36,8 @@ class ObjectsBucket final {
       Static,
       Movable,
       Animated,
-      Morph,
       Pfx,
-      };
-
-    enum VboType : uint8_t {
-      NoVbo,
-      VboVertex,
-      VboVertexA,
-      VboMorph,
-      VboMorpthGpu,
+      Morph,
       };
 
     class Item final {
@@ -94,10 +86,11 @@ class ObjectsBucket final {
     ~ObjectsBucket();
 
     const Material&           material()  const;
-    Type                      type()      const { return shaderType; }
-    size_t                    size()      const { return valSz;      }
     const std::vector<ProtoMesh::Animation>* morph() const { return morphAnim==nullptr ? nullptr : &morphAnim->morph;  }
 
+    Type                      type()      const { return objType;    }
+
+    size_t                    size()      const { return valSz;      }
     size_t                    alloc(const Tempest::VertexBuffer<Vertex>  &vbo,
                                     const Tempest::IndexBuffer<uint32_t> &ibo,
                                     size_t iboOffset, size_t iboLen,
@@ -123,6 +116,14 @@ class ObjectsBucket final {
     void                      draw       (size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId);
 
   private:
+    enum VboType : uint8_t {
+      NoVbo,
+      VboVertex,
+      VboVertexA,
+      VboMorph,
+      VboMorphGpu,
+      };
+
     enum UboLinkpackage : uint8_t {
       L_Diffuse  = 0,
       L_Shadow0  = 1,
@@ -182,7 +183,6 @@ class ObjectsBucket final {
       };
 
     struct Object final {
-      VboType                               vboType = VboType::NoVbo;
       const Tempest::VertexBuffer<Vertex>*  vbo     = nullptr;
       const Tempest::VertexBuffer<Vertex>*  vboM[Resources::MaxFramesInFlight] = {};
       const Tempest::VertexBuffer<VertexA>* vboA    = nullptr;
@@ -201,7 +201,8 @@ class ObjectsBucket final {
       const SkeletalStorage::AnimationId*   skiningAni = nullptr;
       MorphAnim                             morphAnim[Resources::MAX_MORPH_LAYERS];
 
-      bool                                  isValid() const { return vboType!=VboType::NoVbo; }
+      //bool                                  isValid() const { return vboType!=VboType::NoVbo; }
+      bool                                  isValid = false;
       };
 
     Object& implAlloc(const VboType type, const Bounds& bounds);
@@ -221,6 +222,8 @@ class ObjectsBucket final {
 
     const Bounds& bounds(size_t i) const;
 
+    static VboType toVboType(const Type t);
+
     VisualObjects&            owner;
     Descriptors               uboShared;
 
@@ -236,9 +239,11 @@ class ObjectsBucket final {
 
     Tempest::UniformBuffer<UboMaterial> uboMat[Resources::MaxFramesInFlight];
 
-    const Type                shaderType;
-    bool                      useSharedUbo=false;
-    bool                      textureInShadowPass=false;
+    const Type                objType = Type::Landscape;
+    const VboType             vboType = VboType::NoVbo;
+
+    bool                      useSharedUbo        = false;
+    bool                      textureInShadowPass = false;
 
     const Tempest::RenderPipeline* pMain    = nullptr;
     const Tempest::RenderPipeline* pGbuffer = nullptr;
