@@ -58,9 +58,13 @@ class SceneGlobals final {
     Tempest::Vec3                     ambient;
     LightGroup                        lights;
 
+    bool                              zWindEnabled = false;
     Tempest::Vec2                     windDir = {0,1};
+    uint64_t                          windPeriod = 6000;
 
   private:
+    void                              initSettings();
+
     UboGlobal                         uboGlobal;
   };
 

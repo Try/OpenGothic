@@ -1,12 +1,16 @@
 #include "sceneglobals.h"
 
 #include "objectsbucket.h"
+#include "gothic.h"
 
 #include <cassert>
 
 SceneGlobals::SceneGlobals()
   :lights(*this) {
   auto& device = Resources::device();
+
+  Gothic::inst().onSettingsChanged.bind(this,&SceneGlobals::initSettings);
+  initSettings();
 
   uboGlobal.lightDir={1,1,-1};
   uboGlobal.lightDir/=uboGlobal.lightDir.length();
@@ -28,6 +32,19 @@ SceneGlobals::SceneGlobals()
   }
 
 SceneGlobals::~SceneGlobals() {
+  Gothic::inst().onSettingsChanged.ubind(this,&SceneGlobals::initSettings);
+  }
+
+void SceneGlobals::initSettings() {
+  zWindEnabled = Gothic::inst().settingsGetI("ENGINE","zWindEnabled")!=0;
+
+  float peroid  = Gothic::inst().settingsGetF("ENGINE","zWindCycleTime");
+  float peroidV = Gothic::inst().settingsGetF("ENGINE","zWindCycleTimeVar");
+  windPeriod = uint64_t((peroid+peroidV)*1000.f);
+  if(windPeriod<=0) {
+    windPeriod   = 1;
+    zWindEnabled = false;
+    }
   }
 
 void SceneGlobals::setViewProject(const Tempest::Matrix4x4& v, const Tempest::Matrix4x4& p) {
@@ -48,6 +65,10 @@ void SceneGlobals::setModelView(const Tempest::Matrix4x4& m, const Tempest::Matr
 void SceneGlobals::setTime(uint64_t time) {
   uboGlobal.secondFrac = float(time%1000)/1000.f;
   tickCount            = time;
+
+  if(zWindEnabled)
+    windDir = Tempest::Vec2(0.f,1.f)*1.f; else
+    windDir = Tempest::Vec2(0,0);
   }
 
 void SceneGlobals::commitUbo(uint8_t fId) {

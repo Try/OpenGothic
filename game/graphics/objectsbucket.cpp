@@ -557,11 +557,10 @@ bool ObjectsBucket::isSceneInfoRequired() const {
 void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket::Object& v) {
   push.pos     = v.pos;
   push.fatness = v.fatness*0.5f;
-  if(v.wind!=ZenLoad::AnimMode::NONE) {
+  if(v.wind!=ZenLoad::AnimMode::NONE && scene.zWindEnabled) {
     float shift = push.pos[3][0]*scene.windDir.x + push.pos[3][2]*scene.windDir.y;
 
-    // original game has period of 3sec, but it doesn'tlook as good with high view range
-    static const uint64_t preiod = 6000;
+    static const uint64_t preiod = scene.windPeriod;
     float a = float(scene.tickCount%preiod)/float(preiod);
     a = a*2.f-1.f;
     a = std::cos(float(a*M_PI) + shift*0.0001f);
@@ -569,13 +568,13 @@ void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket:
     switch(v.wind) {
       case ZenLoad::AnimMode::WIND:
         // tree
-        a *= v.windIntensity;
-        a *= 0.1f;
+        // a *= v.windIntensity;
+        a *= 0.03f;
         break;
       case ZenLoad::AnimMode::WIND2:
         // grass
-        a *= v.windIntensity;
-        a *= 5.f;
+        // a *= v.windIntensity;
+        a *= 0.0005f;
         break;
       case ZenLoad::AnimMode::NONE:
       default:
@@ -586,6 +585,7 @@ void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket:
     push.pos[1][0] += scene.windDir.x*a;
     push.pos[1][2] += scene.windDir.y*a;
     }
+
   if(morphAnim!=nullptr) {
     for(size_t i=0; i<Resources::MAX_MORPH_LAYERS; ++i) {
       auto&    ani  = v.morphAnim[i];
