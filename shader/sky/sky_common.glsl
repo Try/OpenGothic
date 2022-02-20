@@ -10,7 +10,7 @@ const int   jSteps = 16;
 //Environment
 const float RPlanet  = 6360e3;       // Radius of the planet in meters
 const float RClouds  = RPlanet+3000; // Clouds height in meters
-const float RAtmos   = 6380e3;       // Radius of the atmosphere in meters
+const float RAtmos   = 6460e3;       // Radius of the atmosphere in meters
 // Rayleigh scattering coefficient
 const vec3  RSC = vec3(0.0000038,
                        0.0000135,
@@ -18,7 +18,7 @@ const vec3  RSC = vec3(0.0000038,
 const float Hr       = 8000.0; // Reyleight scattering top
 const float Hm       = 1000.0; // Mie scattering top
 const float kMie     = 21e-6;  // Mie scattering coefficient
-const float g        = 0.46;   // light concentration .76 //.45 //.6  .45 is normaL
+const float g        = 0.8;    // light concentration .76 //.45 //.6  .45 is normaL
 const float g2       = g * g;
 const float sunPower = 10.0;   // sun light power, 10.0 is normal
 

@@ -10,7 +10,12 @@ file(GLOB SOURCES
   "${CMAKE_SOURCE_DIR}/shader/*.tesc"
   "${CMAKE_SOURCE_DIR}/shader/*.tese"
   "${CMAKE_SOURCE_DIR}/shader/*.frag"
-  "${CMAKE_SOURCE_DIR}/shader/*.glsl")
+  "${CMAKE_SOURCE_DIR}/shader/*.glsl"
+  "${CMAKE_SOURCE_DIR}/shader/**/*.vert"
+  "${CMAKE_SOURCE_DIR}/shader/**/*.tesc"
+  "${CMAKE_SOURCE_DIR}/shader/**/*.tese"
+  "${CMAKE_SOURCE_DIR}/shader/**/*.frag"
+  "${CMAKE_SOURCE_DIR}/shader/**/*.glsl")
 
 file(GLOB GLSL_SOURCES "${CMAKE_SOURCE_DIR}/shader/*.glsl")
 
@@ -90,12 +95,12 @@ add_uber_shader(mph -DMORPH)
 add_shader(light.vert           light.vert "")
 add_shader(light.frag           light.frag "")
 
-add_shader(fog.vert             sky.vert -DFOG)
-add_shader(fog.frag             sky.frag -DFOG)
-add_shader(sky_g2.vert          sky.vert -DG2)
-add_shader(sky_g2.frag          sky.frag -DG2)
-add_shader(sky_g1.vert          sky.vert -DG1)
-add_shader(sky_g1.frag          sky.frag -DG1)
+add_shader(fog.vert             sky/sky.vert         -DFOG)
+add_shader(fog.frag             sky/sky_nishita.frag -DFOG)
+add_shader(sky_g2.vert          sky/sky.vert         -DG2)
+add_shader(sky_g2.frag          sky/sky_nishita.frag -DG2)
+add_shader(sky_g1.vert          sky/sky.vert         -DG1)
+add_shader(sky_g1.frag          sky/sky_nishita.frag -DG1)
 
 add_shader(copy.vert            copy.vert "")
 add_shader(copy.frag            copy.frag "")
