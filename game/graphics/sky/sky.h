@@ -19,6 +19,7 @@ class Sky final {
     void setWorld   (const World& world);
     void setDayNight(float dayF);
 
+    void prepareSky (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
     void drawSky    (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
     void drawFog    (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
 
@@ -46,15 +47,22 @@ class Sky final {
       };
 
     struct PerFrame {
-      Tempest::UniformBuffer<UboSky> uboSkyGpu;
-      Tempest::DescriptorSet         uboSky;
-      Tempest::DescriptorSet         uboFog;
+      Tempest::DescriptorSet uboSky;
+      Tempest::DescriptorSet uboFog;
       };
 
+    struct {
+      Tempest::TextureFormat  lutFormat = Tempest::TextureFormat::RGBA32F;
+      Tempest::Attachment     transLut, multiScatLut, viewLut;
+      Tempest::DescriptorSet  uboMultiScatLut, uboSkyViewLut, uboFinal, uboFog;
+    } sky;
+
+    UboSky                        mkPush();
     static std::array<float,3>    mkColor(uint8_t r,uint8_t g,uint8_t b);
     const Tempest::Texture2d*     skyTexture(std::string_view name, bool day, size_t id);
     const Tempest::Texture2d*     implSkyTexture(std::string_view name, bool day, size_t id);
 
+    int                           ver = 2;
     const SceneGlobals&           scene;
     float                         nightFlt = 0.f;
     PerFrame                      perFrame[Resources::MaxFramesInFlight];

@@ -95,12 +95,28 @@ add_uber_shader(mph -DMORPH)
 add_shader(light.vert           light.vert "")
 add_shader(light.frag           light.frag "")
 
+# Old nishita sky model
 add_shader(fog.vert             sky/sky.vert         -DFOG)
 add_shader(fog.frag             sky/sky_nishita.frag -DFOG)
 add_shader(sky_g2.vert          sky/sky.vert         -DG2)
 add_shader(sky_g2.frag          sky/sky_nishita.frag -DG2)
 add_shader(sky_g1.vert          sky/sky.vert         -DG1)
 add_shader(sky_g1.frag          sky/sky_nishita.frag -DG1)
+
+# Based on Scalable and Production Ready Sky and Atmosphere
+# https://sebh.github.io/publications/egsr2020.pdf
+# https://www.shadertoy.com/view/slSXRW
+add_shader(sky_transmittance.vert    sky/sky.vert                  "")
+add_shader(sky_transmittance.frag    sky/sky_transmittance.frag    "")
+add_shader(sky_multi_scattering.vert sky/sky.vert                  "")
+add_shader(sky_multi_scattering.frag sky/sky_multi_scattering.frag "")
+add_shader(sky_view_lut.vert         sky/sky.vert                  "")
+add_shader(sky_view_lut.frag         sky/sky_view_lut.frag         "")
+
+add_shader(fog_prsr.vert             sky/sky.vert         -DFOG2)
+add_shader(fog_prsr.frag             sky/sky_prsr.frag    -DFOG2)
+add_shader(sky_prsr_g2.vert          sky/sky.vert         -DG2)
+add_shader(sky_prsr_g2.frag          sky/sky_prsr.frag    -DG2)
 
 add_shader(copy.vert            copy.vert "")
 add_shader(copy.frag            copy.frag "")

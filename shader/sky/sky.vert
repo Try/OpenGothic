@@ -16,8 +16,8 @@ layout(location = 1) out vec3 skyColor;
 
 void main() {
 #if defined(FOG)
-  vec3  pos   = vec3(0,RPlanet+ubo.plPosY,0);
-  skyColor    = atmosphere(pos,vec3(0,1,0),ubo.sunDir);
+  vec3  pos   = vec3(0,RPlanet+push.plPosY,0);
+  skyColor    = atmosphere(pos,vec3(0,1,0),push.sunDir);
 #else
   skyColor    = vec3(1,0,0);
 #endif

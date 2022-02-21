@@ -102,6 +102,10 @@ void WorldView::dbgLights(DbgPainter& p) const {
   sGlobal.lights.dbgLights(p);
   }
 
+void WorldView::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId) {
+  sky.prepareSky(cmd,frameId);
+  }
+
 void WorldView::visibilityPass(const Frustrum fr[]) {
   visuals.visibilityPass(fr);
   }

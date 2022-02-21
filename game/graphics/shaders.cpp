@@ -80,6 +80,12 @@ Shaders::Shaders() {
   ssaoCompose   = postEffect("ssao_compose");
   bilateralBlur = postEffect("bilateral");
 
+  skyTransmittance   = postEffect("sky_transmittance");
+  skyMultiScattering = postEffect("sky_multi_scattering");
+  skyViewLut         = postEffect("sky_view_lut");
+  skyPrsr            = postEffect("sky_prsr_g2");
+  fogPrsr            = fogShader ("fog_prsr");
+
   {
   RenderState state;
   state.setCullFaceMode (RenderState::CullMode::Front);
@@ -96,21 +102,7 @@ Shaders::Shaders() {
   lights       = device.pipeline<Vec3>(Triangles, state, vsLight, fsLight);
   }
 
-  {
-  RenderState state;
-  state.setCullFaceMode (RenderState::CullMode::Front);
-  state.setBlendSource  (RenderState::BlendMode::One);
-  state.setBlendDest    (RenderState::BlendMode::OneMinusSrcAlpha);
-  state.setZTestMode    (RenderState::ZTestMode::Greater);
-  state.setZWriteEnabled(false);
-
-  auto sh      = GothicShader::get("fog.vert.sprv");
-  auto vsFog   = device.shader(sh.data,sh.len);
-  sh           = GothicShader::get("fog.frag.sprv");
-  auto fsFog   = device.shader(sh.data,sh.len);
-  fog          = device.pipeline<Resources::VertexFsq>(Triangles, state, vsFog, fsFog);
-  }
-
+  fog = fogShader("fog");
   if(Gothic::inst().version().game==1) {
     sky = postEffect("sky_g1");
     } else {
@@ -248,6 +240,27 @@ RenderPipeline Shaders::postEffect(std::string_view name) {
   sh      = GothicShader::get(buf);
   auto fs = device.shader(sh.data,sh.len);
   return device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,vs,fs);
+  }
+
+RenderPipeline Shaders::fogShader(std::string_view name) {
+  auto& device = Resources::device();
+
+  RenderState state;
+  state.setCullFaceMode (RenderState::CullMode::Front);
+  state.setBlendSource  (RenderState::BlendMode::One);
+  state.setBlendDest    (RenderState::BlendMode::OneMinusSrcAlpha);
+  state.setZTestMode    (RenderState::ZTestMode::Greater);
+  state.setZWriteEnabled(false);
+
+  char buf[256] = {};
+  std::snprintf(buf,sizeof(buf),"%.*s.vert.sprv",int(name.size()),name.data());
+  auto sh = GothicShader::get(buf);
+  auto vs = device.shader(sh.data,sh.len);
+
+  std::snprintf(buf,sizeof(buf),"%.*s.frag.sprv",int(name.size()),name.data());
+  sh      = GothicShader::get(buf);
+  auto fs = device.shader(sh.data,sh.len);
+  return device.pipeline<Resources::VertexFsq>(Triangles,state,vs,fs);
   }
 
 template<class Vertex>
