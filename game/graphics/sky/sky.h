@@ -17,7 +17,6 @@ class Sky final {
 
     void setupUbo();
     void setWorld   (const World& world);
-    void setDayNight(float dayF);
 
     void prepareSky (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
     void drawSky    (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
@@ -64,7 +63,6 @@ class Sky final {
 
     int                           ver = 2;
     const SceneGlobals&           scene;
-    float                         nightFlt = 0.f;
     PerFrame                      perFrame[Resources::MaxFramesInFlight];
     Tempest::VertexBuffer<Vertex> vbo;
 

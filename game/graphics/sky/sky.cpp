@@ -163,13 +163,10 @@ Sky::UboSky Sky::mkPush() {
   ubo.dxy0[0] = t0;
   ubo.dxy1[0] = t1;
   ubo.sunDir  = scene.sun.dir();
-  ubo.night   = std::min(std::max(-ubo.sunDir.y*3.f,0.f),1.f);//nightFlt;
+  ubo.night   = -ubo.sunDir.y;//nightFlt;
+  ubo.night   = 1.f-std::min(std::max(5.f*ubo.sunDir.y,0.f),1.f);
 
   return ubo;
-  }
-
-void Sky::setDayNight(float dayF) {
-  nightFlt = 1.f-dayF;
   }
 
 std::array<float,3> Sky::mkColor(uint8_t r, uint8_t g, uint8_t b) {

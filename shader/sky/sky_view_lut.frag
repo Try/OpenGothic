@@ -83,7 +83,7 @@ void main() {
   // vec3  pos1        = inverse(vec3(inPos,1));
   // vec3  pos0        = inverse(vec3(inPos,0));
   // float tMax        = distance(pos0,pos1);
-  float tMax        = 10000;
+  float tMax        = 5000;
 #else
   float atmoDist    = rayIntersect(viewPos, rayDir, RAtmos);
   float groundDist  = rayIntersect(viewPos, rayDir, RPlanet);

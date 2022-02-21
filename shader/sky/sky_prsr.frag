@@ -21,42 +21,39 @@ layout(location = 0) in  vec2 inPos;
 layout(location = 0) out vec4 outColor;
 
 #if !defined(FOG2)
-vec4 cloudsDay(vec2 texc){
-  vec4 cloudDL1 = texture(textureDayL1,texc*0.3+push.dxy1);
-  vec4 cloudDL0 = texture(textureDayL0,texc*0.3+push.dxy0);
-
-#ifdef G1
-  vec4 color = mix(cloudDL0,cloudDL1,cloudDL1.a);
-#else
-  vec4 color = (cloudDL0+cloudDL1);
-#endif
-  // Clouds (LDR textures from original game)
-  color.rgb = srgbDecode(color.rgb)*5.0;
-  return color;
-  }
-
-vec4 cloudsNight(vec2 texc){
-  vec4 cloudNL1 = texture(textureNightL1,texc*0.3+push.dxy1);
-  vec4 cloudNL0 = texture(textureNightL0,texc*0.6);
-  //cloudNL0.a    = push.night;
-#ifdef G1
-  vec4 color    = mix(cloudNL0,cloudNL1,cloudNL1.a);
-#else
-  vec4 color    = cloudNL0+cloudNL1;
-#endif
-  // Clouds (LDR textures from original game)
-  color.rgb = srgbDecode(color.rgb)*0.25;
-  //color.a  *= push.night;
-  return color;
+vec4 mixClr(vec4 s, vec4 d) {
+  float a  =  (1-s.a)*d.a + s.a;
+  if(a<=0.0)
+    return vec4(0);
+  vec3  c  = ((1-s.a)*d.a*d.rgb+s.a*s.rgb)/a;
+  return vec4(c,a);
   }
 
 vec4 clouds(vec3 at) {
   vec3  cloudsAt = normalize(at);
   vec2  texc     = 2000.0*vec2(atan(cloudsAt.z,cloudsAt.y), atan(cloudsAt.x,cloudsAt.y));
-  vec4  day      = cloudsDay  (texc);
-  vec4  night    = cloudsNight(texc);
 
-  vec4  color    = mix(day,night,push.night);
+  vec4  cloudDL1 = texture(textureDayL1,  texc*0.3+push.dxy1);
+  vec4  cloudDL0 = texture(textureDayL0,  texc*0.3+push.dxy0);
+  vec4  cloudNL1 = texture(textureNightL1,texc*0.3+push.dxy1);
+  vec4  cloudNL0 = texture(textureNightL0,texc*0.6+vec2(0.5)); // stars
+
+#ifdef G1
+  vec4 color    = mix(cloudDL0,cloudDL1,cloudDL1.a);
+  vec4 night    = mix(cloudNL0,cloudNL1,cloudNL1.a);
+#else
+  vec4 day      = (cloudDL0+cloudDL1);
+  vec4 night    = mix(cloudNL0,cloudNL1,cloudNL1.a);
+#endif
+
+  // Clouds (LDR textures from original game) - need to adjust
+  day.rgb   = srgbDecode(day.rgb)*5.0;
+  day.a     = day.a*(1.0-push.night);
+
+  night.rgb = srgbDecode(night.rgb);
+  night.a   = night.a*(push.night);
+
+  vec4 color = mixClr(day,night);
   return color;
   }
 #endif
@@ -121,7 +118,6 @@ void main() {
   vec3 view      = normalize(inverse(vec3(inPos,1.0)));
   vec3 sunDir    = push.sunDir;
   vec3 pos       = vec3(0,RPlanet+push.plPosY,0);
-  // view.y         = max(0.0,view.y);
 
 #if defined(FOG2)
   float z        = texture(depth,uv).r;
@@ -154,7 +150,7 @@ void main() {
   // Clouds
   vec4  cloud = clouds(pos + view*L);
   // Fog
-  float fogDens  = volumetricFog(pos, view*L);
+  float fogDens = volumetricFog(pos, view*L);
   lum         = mix(lum,cloud.rgb,min(1.0,cloud.a*(1.0-fogDens)));
 
   lum = finalizeColor(lum,sunDir);

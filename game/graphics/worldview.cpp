@@ -208,7 +208,6 @@ void WorldView::updateLight() {
 
   sGlobal.sun.setDir(-std::sin(ax)*shadowLength, pulse, std::cos(ax)*shadowLength);
   sGlobal.sun.setColor(clr);
-  sky.setDayNight(std::min(std::max(pulse*3.f,0.f),1.f));
   }
 
 void WorldView::setupUbo() {
