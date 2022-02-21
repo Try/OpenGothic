@@ -53,8 +53,8 @@ class Sky final {
 
     struct {
       Tempest::TextureFormat  lutFormat = Tempest::TextureFormat::RGBA32F;
-      Tempest::Attachment     transLut, multiScatLut, viewLut;
-      Tempest::DescriptorSet  uboMultiScatLut, uboSkyViewLut, uboFinal, uboFog;
+      Tempest::Attachment     transLut, multiScatLut, viewLut, fogLut;
+      Tempest::DescriptorSet  uboMultiScatLut, uboSkyViewLut, uboFogViewLut, uboFinal, uboFog;
     } sky;
 
     UboSky                        mkPush();

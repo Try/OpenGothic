@@ -61,11 +61,6 @@ vec4 clouds(vec3 at) {
   }
 #endif
 
-vec3 inverse(vec3 pos) {
-  vec4 ret = push.viewProjectInv*vec4(pos,1.0);
-  return (ret.xyz/ret.w)/100.f;
-  }
-
 /*
  * Final output basically looks up the value from the skyLUT, and then adds a sun on top,
  * does some tonemapping.
@@ -95,7 +90,7 @@ vec3 textureSkyLUT(vec3 rayDir, vec3 sunDir) {
   float v  = 0.5 + 0.5*sign(altitudeAngle)*sqrt(abs(altitudeAngle)*2.0/PI);
   vec2  uv = vec2(azimuthAngle / (2.0*PI), v);
 
-  return texture(skyLUT, uv).rgb;
+  return textureLod(skyLUT, uv, 0).rgb;
   }
 
 vec3 sunWithBloom(vec3 view, vec3 sunDir) {
@@ -122,11 +117,11 @@ vec3 finalizeColor(vec3 color, vec3 sunDir) {
   }
 
 void main() {
-  vec2 uv      = inPos*vec2(0.5)+vec2(0.5);
-  vec3 view    = normalize(inverse(vec3(inPos,1.0)));
-  vec3 sunDir  = push.sunDir;
-  vec3 pos     = vec3(0,RPlanet+push.plPosY,0);
-  view.y         = max(0.0,view.y);
+  vec2 uv        = inPos*vec2(0.5)+vec2(0.5);
+  vec3 view      = normalize(inverse(vec3(inPos,1.0)));
+  vec3 sunDir    = push.sunDir;
+  vec3 pos       = vec3(0,RPlanet+push.plPosY,0);
+  // view.y         = max(0.0,view.y);
 
 #if defined(FOG2)
   float z        = texture(depth,uv).r;
@@ -136,15 +131,15 @@ void main() {
   float dist     = length(pos1-pos0);
   float fogDens  = volumetricFog(pos0,pos1-pos0);
 
-  vec3  lum       = textureSkyLUT(view, sunDir);
+  vec3  lum      = textureSkyLUT(view, sunDir);
   lum *= 20.0;
   lum = finalizeColor(lum,sunDir);
 
   vec3  fogColor = lum*fogDens;
   outColor       = vec4(fogColor,fogDens);
 #else
-  vec3 lum     = textureSkyLUT(view, sunDir);
-  vec3 sunLum  = sunWithBloom (view, sunDir);
+  vec3 lum       = textureSkyLUT(view, sunDir);
+  vec3 sunLum    = sunWithBloom (view, sunDir);
 
   // Use smoothstep to limit the effect, so it drops off to actual zero.
   sunLum = smoothstep(0.002, 1.0, sunLum);
@@ -157,12 +152,10 @@ void main() {
 
   float L     = rayIntersect(pos, view, RClouds);
   // Clouds
-#if !defined(FOG2)
   vec4  cloud = clouds(pos + view*L);
   // Fog
   float fogDens  = volumetricFog(pos, view*L);
   lum         = mix(lum,cloud.rgb,min(1.0,cloud.a*(1.0-fogDens)));
-#endif
 
   lum = finalizeColor(lum,sunDir);
 

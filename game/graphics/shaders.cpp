@@ -83,6 +83,7 @@ Shaders::Shaders() {
   skyTransmittance   = postEffect("sky_transmittance");
   skyMultiScattering = postEffect("sky_multi_scattering");
   skyViewLut         = postEffect("sky_view_lut");
+  fogViewLut         = postEffect("fog_view_lut");
   skyPrsr            = postEffect("sky_prsr_g2");
   fogPrsr            = fogShader ("fog_prsr");
 

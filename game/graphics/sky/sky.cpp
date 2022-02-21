@@ -63,6 +63,7 @@ void Sky::setupUbo() {
   sky.transLut        = device.attachment(sky.lutFormat,256, 64);
   sky.multiScatLut    = device.attachment(sky.lutFormat, 32, 32);
   sky.viewLut         = device.attachment(sky.lutFormat,256,128);
+  sky.fogLut          = device.attachment(sky.lutFormat,128,64);
 
   sky.uboMultiScatLut = device.descriptors(Shaders::inst().skyMultiScattering);
   sky.uboMultiScatLut.set(0, sky.transLut, smpB);
@@ -70,6 +71,10 @@ void Sky::setupUbo() {
   sky.uboSkyViewLut   = device.descriptors(Shaders::inst().skyViewLut);
   sky.uboSkyViewLut.set(0, sky.transLut,     smpB);
   sky.uboSkyViewLut.set(1, sky.multiScatLut, smpB);
+
+  sky.uboFogViewLut   = device.descriptors(Shaders::inst().fogViewLut);
+  sky.uboFogViewLut.set(0, sky.transLut,     smpB);
+  sky.uboFogViewLut.set(1, sky.multiScatLut, smpB);
 
   sky.uboFinal        = device.descriptors(Shaders::inst().skyPrsr);
   sky.uboFinal.set(0, sky.transLut,     smpB);
@@ -80,10 +85,10 @@ void Sky::setupUbo() {
   sky.uboFinal.set(5,*night.lay[0].texture,smp);
   sky.uboFinal.set(6,*night.lay[1].texture,smp);
 
-  sky.uboFog = device.descriptors(Shaders::inst().fogPrsr);
+  sky.uboFog          = device.descriptors(Shaders::inst().fogPrsr);
   sky.uboFog.set(0, sky.transLut,     smpB);
   sky.uboFog.set(1, sky.multiScatLut, smpB);
-  sky.uboFog.set(2, sky.viewLut,      smpB);
+  sky.uboFog.set(2, sky.fogLut,       smpB);
   sky.uboFog.set(3, *scene.gbufDepth, Sampler2d::nearest());
   }
 
@@ -100,6 +105,10 @@ void Sky::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
 
   cmd.setFramebuffer({{sky.viewLut, Tempest::Discard, Tempest::Preserve}});
   cmd.setUniforms(Shaders::inst().skyViewLut, sky.uboSkyViewLut, &ubo, sizeof(ubo));
+  cmd.draw(Resources::fsqVbo());
+
+  cmd.setFramebuffer({{sky.fogLut, Tempest::Discard, Tempest::Preserve}});
+  cmd.setUniforms(Shaders::inst().fogViewLut, sky.uboFogViewLut, &ubo, sizeof(ubo));
   cmd.draw(Resources::fsqVbo());
   }
 

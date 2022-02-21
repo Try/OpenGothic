@@ -112,6 +112,8 @@ add_shader(sky_multi_scattering.vert sky/sky.vert                  "")
 add_shader(sky_multi_scattering.frag sky/sky_multi_scattering.frag "")
 add_shader(sky_view_lut.vert         sky/sky.vert                  "")
 add_shader(sky_view_lut.frag         sky/sky_view_lut.frag         "")
+add_shader(fog_view_lut.vert         sky/sky.vert                  -DFOG)
+add_shader(fog_view_lut.frag         sky/sky_view_lut.frag         -DFOG)
 
 add_shader(fog_prsr.vert             sky/sky.vert         -DFOG2)
 add_shader(fog_prsr.frag             sky/sky_prsr.frag    -DFOG2)

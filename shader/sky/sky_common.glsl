@@ -44,6 +44,11 @@ layout(push_constant, std140) uniform UboPush {
   float plPosY;
   } push;
 
+vec3 inverse(vec3 pos) {
+  vec4 ret = push.viewProjectInv*vec4(pos,1.0);
+  return (ret.xyz/ret.w)/100.f;
+  }
+
 float safeacos(const float x) {
   return acos(clamp(x, -1.0, 1.0));
   }
@@ -216,7 +221,8 @@ void scatteringValues(vec3 pos,
   mieScattering = mieScatteringBase*mieDensity;
   float mieAbsorption = mieAbsorptionBase*mieDensity;
 
-  vec3 ozoneAbsorption = ozoneAbsorptionBase*max(0.0, 1.0 - abs(altitudeKM-25.0)/15.0);
+  float ozoneDistribution = max(0.0, 1.0 - abs(altitudeKM-25.0)/15.0);
+  vec3  ozoneAbsorption   = ozoneAbsorptionBase*ozoneDistribution;
 
   extinction = rayleighScattering + rayleighAbsorption +
                mieScattering + mieAbsorption +

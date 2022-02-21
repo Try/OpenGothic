@@ -74,15 +74,22 @@ void main() {
   const float altitudeAngle = adjV*0.5*PI - horizonAngle;
 
   float cosAltitude = cos(altitudeAngle);
-  vec3  rayDir = vec3(cosAltitude*sin(azimuthAngle), sin(altitudeAngle), -cosAltitude*cos(azimuthAngle));
+  vec3  rayDir      = vec3(cosAltitude*sin(azimuthAngle), sin(altitudeAngle), -cosAltitude*cos(azimuthAngle));
 
   float sunAltitude = (0.5*PI) - acos(dot(push.sunDir, up));
-  vec3  sunDir = vec3(0.0, sin(sunAltitude), -cos(sunAltitude));
+  vec3  sunDir      = vec3(0.0, sin(sunAltitude), -cos(sunAltitude));
 
-  float atmoDist   = rayIntersect(viewPos, rayDir, RAtmos);
-  float groundDist = rayIntersect(viewPos, rayDir, RPlanet);
-  float tMax       = (groundDist < 0.0) ? atmoDist : groundDist;
-  vec3  lum        = raymarchScattering(viewPos, rayDir, sunDir, tMax, float(numScatteringSteps));
+#if defined(FOG)
+  // vec3  pos1        = inverse(vec3(inPos,1));
+  // vec3  pos0        = inverse(vec3(inPos,0));
+  // float tMax        = distance(pos0,pos1);
+  float tMax        = 10000;
+#else
+  float atmoDist    = rayIntersect(viewPos, rayDir, RAtmos);
+  float groundDist  = rayIntersect(viewPos, rayDir, RPlanet);
+  float tMax        = (groundDist < 0.0) ? atmoDist : groundDist;
+#endif
+  vec3  lum         = raymarchScattering(viewPos, rayDir, sunDir, tMax, float(numScatteringSteps));
 
   outColor = vec4(lum, 1.0);
   }

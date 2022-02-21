@@ -19,8 +19,13 @@ class Shaders {
     Tempest::RenderPipeline copy;
     Tempest::RenderPipeline bilateralBlur;
     Tempest::RenderPipeline ssao, ssaoCompose;
+
+    // Nishita
     Tempest::RenderPipeline sky, fog;
-    Tempest::RenderPipeline skyTransmittance, skyMultiScattering, skyViewLut, skyPrsr, fogPrsr;
+
+    // Scalable and Production Ready Sky and Atmosphere
+    Tempest::RenderPipeline skyTransmittance, skyMultiScattering, skyViewLut, skyPrsr;
+    Tempest::RenderPipeline fogViewLut, fogPrsr;
 
     enum PipelineType: uint8_t {
       T_Forward,
