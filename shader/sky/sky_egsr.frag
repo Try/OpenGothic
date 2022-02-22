@@ -8,7 +8,7 @@ layout(binding = 0) uniform sampler2D tLUT;
 layout(binding = 1) uniform sampler2D mLUT;
 layout(binding = 2) uniform sampler2D skyLUT;
 
-#if defined(FOG2)
+#if defined(FOG)
 layout(binding = 3) uniform sampler2D depth;
 #else
 layout(binding = 3) uniform sampler2D textureDayL0;
@@ -20,15 +20,7 @@ layout(binding = 6) uniform sampler2D textureNightL1;
 layout(location = 0) in  vec2 inPos;
 layout(location = 0) out vec4 outColor;
 
-#if !defined(FOG2)
-vec4 mixClr(vec4 s, vec4 d) {
-  float a  =  (1-s.a)*d.a + s.a;
-  if(a<=0.0)
-    return vec4(0);
-  vec3  c  = ((1-s.a)*d.a*d.rgb+s.a*s.rgb)/a;
-  return vec4(c,a);
-  }
-
+#if !defined(FOG)
 vec4 clouds(vec3 at) {
   vec3  cloudsAt = normalize(at);
   vec2  texc     = 2000.0*vec2(atan(cloudsAt.z,cloudsAt.y), atan(cloudsAt.x,cloudsAt.y));
@@ -90,18 +82,15 @@ vec3 textureSkyLUT(vec3 rayDir, vec3 sunDir) {
   return textureLod(skyLUT, uv, 0).rgb;
   }
 
-vec3 sunWithBloom(vec3 view, vec3 sunDir) {
-  const float sunSolidAngle  = 2.0*PI/180.0;
-  const float minSunCosTheta = cos(sunSolidAngle);
-
-  float cosTheta = dot(view, sunDir);
-  if(cosTheta >= minSunCosTheta)
-    return vec3(1.0);
-
-  float offset        = minSunCosTheta - cosTheta;
-  float gaussianBloom = exp(-offset*50000.0)*0.5;
-  float invBloom      = 1.0/(0.02 + offset*300.0)*0.01;
-  return vec3(gaussianBloom+invBloom);
+vec3 atmosphere(vec3 view, vec3 sunDir) {
+  // moon
+  float att = 1.0;
+  if(sunDir.y < -0.0) {
+    sunDir.y = -sunDir.y;
+    att = 0.25;
+    }
+  view.y = abs(view.y);
+  return textureSkyLUT(view, sunDir);
   }
 
 vec3 finalizeColor(vec3 color, vec3 sunDir) {
@@ -119,22 +108,22 @@ void main() {
   vec3 sunDir    = push.sunDir;
   vec3 pos       = vec3(0,RPlanet+push.plPosY,0);
 
-#if defined(FOG2)
+#if defined(FOG)
   float z        = texture(depth,uv).r;
-  vec3 pos1      = inverse(vec3(inPos,z));
-  vec3 pos0      = inverse(vec3(inPos,0));
+  vec3  pos1     = inverse(vec3(inPos,z));
+  vec3  pos0     = inverse(vec3(inPos,0));
 
   float dist     = length(pos1-pos0);
   float fogDens  = volumetricFog(pos0,pos1-pos0);
 
-  vec3  lum      = textureSkyLUT(view, sunDir);
+  vec3  lum      = atmosphere(view, sunDir);
   lum *= 20.0;
   lum = finalizeColor(lum,sunDir);
 
   vec3  fogColor = lum*fogDens;
   outColor       = vec4(fogColor,fogDens);
 #else
-  vec3 lum       = textureSkyLUT(view, sunDir);
+  vec3 lum       = atmosphere(view, sunDir);
   vec3 sunLum    = sunWithBloom (view, sunDir);
 
   // Use smoothstep to limit the effect, so it drops off to actual zero.
@@ -146,12 +135,12 @@ void main() {
   lum += sunLum;
   lum *= 20.0;
 
-  float L     = rayIntersect(pos, view, RClouds);
+  float L       = rayIntersect(pos, view, RClouds);
   // Clouds
-  vec4  cloud = clouds(pos + view*L);
+  vec4  cloud   = clouds(pos + view*L);
   // Fog
   float fogDens = volumetricFog(pos, view*L);
-  lum         = mix(lum,cloud.rgb,min(1.0,cloud.a*(1.0-fogDens)));
+  lum           = mix(lum,cloud.rgb,min(1.0,cloud.a*(1.0-fogDens)));
 
   lum = finalizeColor(lum,sunDir);
 

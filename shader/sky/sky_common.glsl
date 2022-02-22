@@ -1,26 +1,11 @@
 const float PI = 3.14159265358979323846;
-#if defined(FOG)
-const int   iSteps = 8;
-const int   jSteps = 8;
-#else
-const int   iSteps = 8;
-const int   jSteps = 16;
-#endif
 
 //Environment
 const float RPlanet  = 6360e3;       // Radius of the planet in meters
 const float RClouds  = RPlanet+3000; // Clouds height in meters
 const float RAtmos   = 6460e3;       // Radius of the atmosphere in meters
-// Rayleigh scattering coefficient
-const vec3  RSC = vec3(0.0000038,
-                       0.0000135,
-                       0.0000331);
-const float Hr       = 8000.0; // Reyleight scattering top
-const float Hm       = 1000.0; // Mie scattering top
-const float kMie     = 21e-6;  // Mie scattering coefficient
-const float g        = 0.8;    // light concentration .76 //.45 //.6  .45 is normaL
-const float g2       = g * g;
-const float sunPower = 10.0;   // sun light power, 10.0 is normal
+
+const float g        = 0.8;          // light concentration .76 //.45 //.6  .45 is normaL
 
 // Table 1: Coefficients of the different participating media compo-nents constituting the Earth’s atmosphere
 // These are per megameter.
@@ -33,6 +18,7 @@ const float mieAbsorptionBase      = 4.40  / 1e6;
 // NOTE: Ozone does not contribute to scattering; it only absorbs light.
 const vec3  ozoneAbsorptionBase    = vec3(0.650, 1.881, .085) / 1e6;
 
+const float fogFarDistance         = 10000.0;
 const vec3  groundAlbedo           = vec3(0.1);
 
 layout(push_constant, std140) uniform UboPush {
@@ -68,9 +54,12 @@ vec3 jodieReinhardTonemap(vec3 c){
   return mix(c / (l + 1.0), tc, tc);
   }
 
-vec3 exposure(vec3 color) {
-  float env = 1.0;
-  return vec3(env * pow(color, vec3(.7)));
+vec4 mixClr(vec4 s, vec4 d) {
+  float a  =  (1-s.a)*d.a + s.a;
+  if(a<=0.0)
+    return vec4(0);
+  vec3  c  = ((1-s.a)*d.a*d.rgb+s.a*s.rgb)/a;
+  return vec4(c,a);
   }
 
 // based on: https://developer.amd.com/wordpress/media/2012/10/Wenzel-Real-time_Atmospheric_Effects_in_Games.pdf
@@ -103,25 +92,6 @@ float rayleighPhase(float cosTheta) {
   return k*(1.0+cosTheta*cosTheta);
   }
 
-float phase(float alpha, float g) {
-  float a = 3.0*(1.0-g*g);
-  float b = 2.0*(2.0+g*g);
-  float c = 1.0+alpha*alpha;
-  float d = pow(1.0+g*g-2.0*g*alpha, 1.5);
-  d = max(d, 0.00001);
-  return (a/b)*(c/d);
-  }
-
-vec2 densities(in vec3 pos) {
-  const float haze = 0.2;
-
-  float h        = length(pos) - RPlanet;
-  float rayleigh = exp(-h/Hr);
-  float cld      = 0.;
-  float mie = exp(-h/Hm) + cld + haze;
-  return vec2(rayleigh,mie);
-  }
-
 // From https://gamedev.stackexchange.com/questions/96459/fast-ray-sphere-collision-code.
 float rayIntersect(vec3 v, vec3 d, float R) {
   float b = dot(v, d);
@@ -137,72 +107,18 @@ float rayIntersect(vec3 v, vec3 d, float R) {
   return -b - sqrt(discr);
   }
 
-// based on: http://www.scratchapixel.com/lessons/3d-advanced-lessons/simulating-the-colors-of-the-sky/atmospheric-scattering/
-// https://www.shadertoy.com/view/ltlSWB
-vec3 scatter(vec3 pos, vec3 view, in vec3 sunDir, float rayLength, out float outScat) {
-  // pos = vec3(0,RPlanet,0);
-  float mu     = dot(view, sunDir);
-  float opmu2  = 1.0 + mu*mu;
-  float phaseR = 3.0/(16.0*PI) * opmu2;
-  float phaseM = 3.0/(8.0 *PI) * ((1.0 - g2) * opmu2) / ((2.0 + g2) * pow(1.0 + g2 - 2.0*g*mu, 1.5));
+vec3 sunWithBloom(vec3 view, vec3 sunDir) {
+  const float sunSolidAngle  = 2.0*PI/180.0;
+  const float minSunCosTheta = cos(sunSolidAngle);
 
-  float depthR = 0.0, depthM = 0.0;
-  vec3  R = vec3(0.0), M = vec3(0.0);
+  float cosTheta = dot(view, sunDir);
+  if(cosTheta >= minSunCosTheta)
+    return vec3(1.0);
 
-  vec2 depth = vec2(0);
-  float dl = rayLength / float(iSteps);
-  for (int i=0; i<iSteps; ++i) {
-    float l = (float(i)+0.5)*dl;
-    vec3  p = pos + view * l;
-
-    vec2 dens = densities(p)*dl;
-    depth += dens;
-
-    float Ls = rayIntersect(p, sunDir, RAtmos);
-    if(Ls>0.0) {
-      float dls = Ls/float(jSteps);
-      vec2 depthS = vec2(0);
-      for(int j=0; j<jSteps; ++j) {
-        float ls = float(j) * dls;
-        vec3  ps = p + sunDir * ls;
-        depthS  += densities(ps)*dls;
-        }
-
-      vec3 A = exp(-(RSC * (depthS.x + depth.x) + kMie * (depthS.y + depth.y)));
-      R += A * dens.x;
-      M += A * dens.y;
-      }
-  }
-
-  outScat = 1.0 - clamp(depthM*1e-5,0.,1.);
-  return sunPower * (R * RSC * phaseR + M * kMie * phaseM);
-  }
-
-vec3 atmosphere(in vec3 pos, vec3 view, vec3 sunDir) {
-  // moon
-  float att = 1.0;
-  if(sunDir.y < -0.0) {
-    sunDir.y = -sunDir.y;
-    att = 0.25;
-    }
-  view.y = abs(view.y);
-  float scatt     = 0;
-  float rayLength = rayIntersect(pos, view, RAtmos);
-  return scatter(pos, view, sunDir, rayLength, scatt) * att;
-  }
-
-vec3 fogMie(in vec3 pos, vec3 view, vec3 sunDir, float rayLength) {
-  // moon
-  float att = 1.0;
-  if(sunDir.y < -0.0) {
-    sunDir.y = -sunDir.y;
-    att = 0.25;
-    }
-  if(view.y <= -0.0)
-    view.y = -view.y;
-  float scatt = 0;
-  vec3  color = scatter(pos, view, sunDir, rayLength, scatt) * att;
-  return vec3(color);
+  float offset        = minSunCosTheta - cosTheta;
+  float gaussianBloom = exp(-offset*50000.0)*0.5;
+  float invBloom      = 1.0/(0.02 + offset*300.0)*0.01;
+  return vec3(gaussianBloom+invBloom);
   }
 
 // 4. Atmospheric model
@@ -210,19 +126,25 @@ void scatteringValues(vec3 pos,
                       out vec3 rayleighScattering,
                       out float mieScattering,
                       out vec3 extinction) {
-  float altitudeKM      = (length(pos)-RPlanet) / 1000.0;
+  float altitudeKM          = (length(pos)-RPlanet) / 1000.0;
   // Note: Paper gets these switched up. See SkyAtmosphereCommon.cpp:SetupEarthAtmosphere in demo app
-  float rayleighDensity = exp(-altitudeKM/8.0);
-  float mieDensity      = exp(-altitudeKM/1.2);
+  float rayleighDensity    = exp(-altitudeKM/8.0);
+  float mieDensity         = exp(-altitudeKM/1.2);
+  float ozoneDistribution  = max(0.0, 1.0 - abs(altitudeKM-25.0)/15.0);
+
+  float cld = 0;
+  if(5e3 < altitudeKM && altitudeKM < 8e3) {
+    // cld = 1.0;//cloud(pos+vec3(23175.7, 0.,-t*3e3), t);
+    // cld *= sin(3.1415*(h-5e3)/5e3);// * cloudy;
+    }
 
   rayleighScattering       = rayleighScatteringBase*rayleighDensity;
   float rayleighAbsorption = rayleighAbsorptionBase*rayleighDensity;
 
-  mieScattering = mieScatteringBase*mieDensity;
-  float mieAbsorption = mieAbsorptionBase*mieDensity;
+  mieScattering            = mieScatteringBase*mieDensity;
+  float mieAbsorption      = mieAbsorptionBase*mieDensity;
 
-  float ozoneDistribution = max(0.0, 1.0 - abs(altitudeKM-25.0)/15.0);
-  vec3  ozoneAbsorption   = ozoneAbsorptionBase*ozoneDistribution;
+  vec3  ozoneAbsorption    = ozoneAbsorptionBase*ozoneDistribution;
 
   extinction = rayleighScattering + rayleighAbsorption +
                mieScattering + mieAbsorption +

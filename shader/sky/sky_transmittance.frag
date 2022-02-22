@@ -18,8 +18,8 @@ vec3 sunTransmittance(vec3 pos, vec3 sunDir) {
   float t = 0.0;
 
   vec3 transmittance = vec3(1.0);
-  for(int i=0; i<sunTransmittanceSteps; ++i) {
-    float t  = ((float(i) + 0.3)/sunTransmittanceSteps)*atmoDist;
+  for(int i=1; i<=sunTransmittanceSteps; ++i) {
+    float t  = (float(i)/sunTransmittanceSteps)*atmoDist;
     float dt = atmoDist/sunTransmittanceSteps;
 
     vec3 newPos = pos + t*sunDir;

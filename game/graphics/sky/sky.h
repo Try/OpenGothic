@@ -23,6 +23,11 @@ class Sky final {
     void drawFog    (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
 
   private:
+    enum Algo : uint8_t {
+      Nishita,
+      EGSR,
+      };
+
     struct Layer final {
       const Tempest::Texture2d* texture=nullptr;
       };
@@ -45,25 +50,25 @@ class Sky final {
       Tempest::Matrix4x4 mvpInv;
       };
 
-    struct PerFrame {
+    struct {
       Tempest::DescriptorSet uboSky;
       Tempest::DescriptorSet uboFog;
-      };
+    } nishita;
 
     struct {
       Tempest::TextureFormat  lutFormat = Tempest::TextureFormat::RGBA32F;
       Tempest::Attachment     transLut, multiScatLut, viewLut, fogLut;
       Tempest::DescriptorSet  uboMultiScatLut, uboSkyViewLut, uboFogViewLut, uboFinal, uboFog;
-    } sky;
+    } egsr;
 
     UboSky                        mkPush();
     static std::array<float,3>    mkColor(uint8_t r,uint8_t g,uint8_t b);
     const Tempest::Texture2d*     skyTexture(std::string_view name, bool day, size_t id);
     const Tempest::Texture2d*     implSkyTexture(std::string_view name, bool day, size_t id);
 
-    int                           ver = 2;
+    Algo                          algo = Nishita;
     const SceneGlobals&           scene;
-    PerFrame                      perFrame[Resources::MaxFramesInFlight];
+    //PerFrame                      perFrame[Resources::MaxFramesInFlight];
     Tempest::VertexBuffer<Vertex> vbo;
 
     State                         day, night;

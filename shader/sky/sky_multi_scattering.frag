@@ -45,8 +45,8 @@ void mulScattValues(vec3 pos, vec3 sunDir, out vec3 lumTotal, out vec3 fms) {
       float rayleighPhaseValue = rayleighPhase(-cosTheta);
 
       vec3 lum = vec3(0.0), lumFactor = vec3(0.0), transmittance = vec3(1.0);
-      for(int stepI = 0; stepI<mulScattSteps; ++stepI) {
-        float t = ((stepI + 0.3)/mulScattSteps)*tMax;
+      for(int stepI = 1; stepI<=mulScattSteps; ++stepI) {
+        float t = (float(stepI)/mulScattSteps)*tMax;
         float dt = tMax/mulScattSteps;
 
         vec3 newPos = pos + t*rayDir;

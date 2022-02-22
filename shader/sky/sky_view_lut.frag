@@ -23,8 +23,8 @@ vec3 raymarchScattering(vec3 pos,
   vec3  lum                = vec3(0.0);
   vec3  transmittance      = vec3(1.0);
 
-  for(int i=0; i<numSteps; ++i) {
-    float t  = ((float(i) + 0.3)/numSteps)*tMax;
+  for(int i=1; i<=numSteps; ++i) {
+    float t  = (float(i)/numSteps)*tMax;
     float dt = tMax/numSteps;
 
     vec3 newPos = pos + t*rayDir;
@@ -80,10 +80,7 @@ void main() {
   vec3  sunDir      = vec3(0.0, sin(sunAltitude), -cos(sunAltitude));
 
 #if defined(FOG)
-  // vec3  pos1        = inverse(vec3(inPos,1));
-  // vec3  pos0        = inverse(vec3(inPos,0));
-  // float tMax        = distance(pos0,pos1);
-  float tMax        = 5000;
+  float tMax        = fogFarDistance;
 #else
   float atmoDist    = rayIntersect(viewPos, rayDir, RAtmos);
   float groundDist  = rayIntersect(viewPos, rayDir, RPlanet);

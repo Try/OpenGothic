@@ -17,7 +17,9 @@ file(GLOB SOURCES
   "${CMAKE_SOURCE_DIR}/shader/**/*.frag"
   "${CMAKE_SOURCE_DIR}/shader/**/*.glsl")
 
-file(GLOB GLSL_SOURCES "${CMAKE_SOURCE_DIR}/shader/*.glsl")
+file(GLOB GLSL_SOURCES
+  "${CMAKE_SOURCE_DIR}/shader/*.glsl"
+  "${CMAKE_SOURCE_DIR}/shader/**/*.glsl")
 
 # GLSL to SPIRV compiler
 find_program(GLSLANGVALIDATOR glslangValidator "/opt/homebrew/bin")
@@ -115,10 +117,10 @@ add_shader(sky_view_lut.frag         sky/sky_view_lut.frag         "")
 add_shader(fog_view_lut.vert         sky/sky.vert                  -DFOG)
 add_shader(fog_view_lut.frag         sky/sky_view_lut.frag         -DFOG)
 
-add_shader(fog_prsr.vert             sky/sky.vert         -DFOG2)
-add_shader(fog_prsr.frag             sky/sky_prsr.frag    -DFOG2)
-add_shader(sky_prsr_g2.vert          sky/sky.vert         -DG2)
-add_shader(sky_prsr_g2.frag          sky/sky_prsr.frag    -DG2)
+add_shader(fog_egsr.vert             sky/sky.vert         -DFOG)
+add_shader(fog_egsr.frag             sky/sky_egsr.frag    -DFOG)
+add_shader(sky_egsr_g2.vert          sky/sky.vert         -DG2)
+add_shader(sky_egsr_g2.frag          sky/sky_egsr.frag    -DG2)
 
 add_shader(copy.vert            copy.vert "")
 add_shader(copy.frag            copy.frag "")

@@ -24,8 +24,8 @@ class Shaders {
     Tempest::RenderPipeline sky, fog;
 
     // Scalable and Production Ready Sky and Atmosphere
-    Tempest::RenderPipeline skyTransmittance, skyMultiScattering, skyViewLut, skyPrsr;
-    Tempest::RenderPipeline fogViewLut, fogPrsr;
+    Tempest::RenderPipeline skyTransmittance, skyMultiScattering, skyViewLut, skyEGSR;
+    Tempest::RenderPipeline fogViewLut, fogEGSR;
 
     enum PipelineType: uint8_t {
       T_Forward,
