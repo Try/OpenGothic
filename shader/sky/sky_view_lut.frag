@@ -12,9 +12,7 @@ layout(location = 0) out vec4 outColor;
 
 const int numScatteringSteps = 32;
 
-vec3 raymarchScattering(vec3 pos,
-                        vec3 rayDir, vec3 sunDir,
-                        float tMax, float numSteps) {
+vec3 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax) {
   float cosTheta = dot(rayDir, sunDir);
 
   float miePhaseValue      = miePhase(cosTheta);
@@ -23,9 +21,9 @@ vec3 raymarchScattering(vec3 pos,
   vec3  lum                = vec3(0.0);
   vec3  transmittance      = vec3(1.0);
 
-  for(int i=1; i<=numSteps; ++i) {
-    float t  = (float(i)/numSteps)*tMax;
-    float dt = tMax/numSteps;
+  for(int i=1; i<=numScatteringSteps; ++i) {
+    float t  = (float(i)/numScatteringSteps)*tMax;
+    float dt = tMax/numScatteringSteps;
 
     vec3 newPos = pos + t*rayDir;
 
@@ -86,7 +84,8 @@ void main() {
   float groundDist  = rayIntersect(viewPos, rayDir, RPlanet);
   float tMax        = (groundDist < 0.0) ? atmoDist : groundDist;
 #endif
-  vec3  lum         = raymarchScattering(viewPos, rayDir, sunDir, tMax, float(numScatteringSteps));
+  vec3  sun         = raymarchScattering(viewPos, rayDir, sunDir, tMax);
+  vec3  moon        = raymarchScattering(viewPos, rayDir, normalize(vec3(0,4,1)), tMax)*0.005;
 
-  outColor = vec4(lum, 1.0);
+  outColor = vec4(sun+moon, 1.0);
   }

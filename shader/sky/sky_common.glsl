@@ -20,6 +20,7 @@ const vec3  ozoneAbsorptionBase    = vec3(0.650, 1.881, .085) / 1e6;
 
 const float fogFarDistance         = 10000.0;
 const vec3  groundAlbedo           = vec3(0.1);
+const float sunIntensity           = 20.0;
 
 layout(push_constant, std140) uniform UboPush {
   mat4  viewProjectInv;
@@ -132,16 +133,19 @@ void scatteringValues(vec3 pos,
   float mieDensity         = exp(-altitudeKM/1.2);
   float ozoneDistribution  = max(0.0, 1.0 - abs(altitudeKM-25.0)/15.0);
 
+  /*
   float cld = 0;
-  if(5e3 < altitudeKM && altitudeKM < 8e3) {
-    // cld = 1.0;//cloud(pos+vec3(23175.7, 0.,-t*3e3), t);
-    // cld *= sin(3.1415*(h-5e3)/5e3);// * cloudy;
+  if(5.0 < altitudeKM && altitudeKM < 8.0) {
+    cld = 1.0;//cloud(pos+vec3(23175.7, 0.,-t*3e3), t);
+    cld *= sin(3.1415*(altitudeKM-5.0)/5.0);// * cloudy;
+    mieDensity += cld;
     }
+  */
 
   rayleighScattering       = rayleighScatteringBase*rayleighDensity;
   float rayleighAbsorption = rayleighAbsorptionBase*rayleighDensity;
 
-  mieScattering            = mieScatteringBase*mieDensity;
+  mieScattering            = (mieScatteringBase/*+0.02*/)*mieDensity;
   float mieAbsorption      = mieAbsorptionBase*mieDensity;
 
   vec3  ozoneAbsorption    = ozoneAbsorptionBase*ozoneDistribution;

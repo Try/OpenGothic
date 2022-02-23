@@ -41,12 +41,12 @@ vec4 clouds(vec3 at) {
   vec4 day       = mix(cloudDL0,cloudDL1,cloudDL1.a);
   vec4 night     = mix(cloudNL0,cloudNL1,cloudNL1.a);
 #else
-  vec4 day       = (cloudDL0+cloudDL1);
-  vec4 night     = (cloudNL0+cloudNL1);
+  vec4 day       = (cloudDL0+cloudDL1)*0.5;
+  vec4 night     = (cloudNL0+cloudNL1)*0.5;
 #endif
 
   // Clouds (LDR textures from original game) - need to adjust
-  day.rgb   = srgbDecode(day.rgb)*5.0;
+  day.rgb   = srgbDecode(day.rgb)*sunIntensity;
   day.a     = day.a*(1.0-push.night);
 
   night.rgb = srgbDecode(night.rgb);
@@ -112,10 +112,9 @@ vec3 atmosphere(in vec3 pos, vec3 view, vec3 sunDir, float rayLength) {
   float att = 1.0;
   if(sunDir.y < -0.0) {
     sunDir.y = -sunDir.y;
-    att = 0.25;
+    att = 0.15;
     }
   view.y = abs(view.y);
-  // float rayLength = rayIntersect(pos, view, RAtmos);
   float scatt     = 0;
   return scatter(pos, view, sunDir, rayLength, scatt) * att;
   }
@@ -144,7 +143,7 @@ void main() {
   float fogDens  = volumetricFog(pos0,pos1-pos0);
 
   vec3  lum      = atmosphere(pos,view,sunDir,fogFarDistance);
-  lum *= 20.0;
+  lum *= sunIntensity;
   lum = finalizeColor(lum,sunDir);
 
   vec3  fogColor = lum*fogDens;
@@ -161,7 +160,7 @@ void main() {
     sunLum = vec3(0.0);
     }
   lum += sunLum;
-  lum *= 20.0;
+  lum *= sunIntensity;
 
   float L       = rayIntersect(pos, view, RClouds);
   // Clouds

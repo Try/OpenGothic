@@ -31,15 +31,15 @@ vec4 clouds(vec3 at) {
   vec4  cloudNL0 = texture(textureNightL0,texc*0.6+vec2(0.5)); // stars
 
 #ifdef G1
-  vec4 color    = mix(cloudDL0,cloudDL1,cloudDL1.a);
+  vec4 day      = mix(cloudDL0,cloudDL1,cloudDL1.a);
   vec4 night    = mix(cloudNL0,cloudNL1,cloudNL1.a);
 #else
-  vec4 day      = (cloudDL0+cloudDL1);
-  vec4 night    = mix(cloudNL0,cloudNL1,cloudNL1.a);
+  vec4 day       = (cloudDL0+cloudDL1)*0.5;
+  vec4 night     = (cloudNL0+cloudNL1)*0.5;
 #endif
 
   // Clouds (LDR textures from original game) - need to adjust
-  day.rgb   = srgbDecode(day.rgb)*5.0;
+  day.rgb   = srgbDecode(day.rgb)*sunIntensity;
   day.a     = day.a*(1.0-push.night);
 
   night.rgb = srgbDecode(night.rgb);
@@ -83,13 +83,6 @@ vec3 textureSkyLUT(vec3 rayDir, vec3 sunDir) {
   }
 
 vec3 atmosphere(vec3 view, vec3 sunDir) {
-  // moon
-  float att = 1.0;
-  if(sunDir.y < -0.0) {
-    sunDir.y = -sunDir.y;
-    att = 0.25;
-    }
-  view.y = abs(view.y);
   return textureSkyLUT(view, sunDir);
   }
 
@@ -117,7 +110,7 @@ void main() {
   float fogDens  = volumetricFog(pos0,pos1-pos0);
 
   vec3  lum      = atmosphere(view, sunDir);
-  lum *= 20.0;
+  lum *= sunIntensity;
   lum = finalizeColor(lum,sunDir);
 
   vec3  fogColor = lum*fogDens;
@@ -133,7 +126,7 @@ void main() {
     sunLum = vec3(0.0);
     }
   lum += sunLum;
-  lum *= 20.0;
+  lum *= sunIntensity;
 
   float L       = rayIntersect(pos, view, RClouds);
   // Clouds

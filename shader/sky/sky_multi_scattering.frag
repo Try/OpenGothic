@@ -98,7 +98,7 @@ void main() {
   float sunTheta    = safeacos(sunCosTheta);
   float height      = mix(RPlanet, RAtmos, uv.y);
 
-  vec3 pos = vec3(0.0, height, 0.0);
+  vec3 pos    = vec3(0.0, height, 0.0);
   vec3 sunDir = normalize(vec3(0.0, sunCosTheta, -sin(sunTheta)));
 
   vec3 lum, f_ms;
