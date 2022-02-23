@@ -212,7 +212,6 @@ std::unique_ptr<World> GameSession::clearWorld() {
     if(!isWorldKnown(wrld->name())) {
       visitedWorlds.emplace_back(*wrld);
       }
-    wrld->view()->setupUbo();
     }
   return std::move(wrld);
   }
