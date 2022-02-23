@@ -2,6 +2,7 @@
 
 #include <Tempest/Application>
 #include <Tempest/CommandBuffer>
+#include <Tempest/Fence>
 
 #include <cctype>
 
@@ -93,13 +94,12 @@ void Sky::setupUbo() {
     egsr.uboFog.set(1, egsr.multiScatLut, smpB);
     egsr.uboFog.set(2, egsr.fogLut,       smpB);
     egsr.uboFog.set(3, *scene.gbufDepth, Sampler2d::nearest());
-    }
-  }
 
-void Sky::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t frameId) {
-  if(algo==EGSR) {
+    {
     UboSky ubo = mkPush();
-
+    Tempest::CommandBuffer buf;
+    {
+    auto cmd = buf.startEncoding(device);
     cmd.setFramebuffer({{egsr.transLut, Tempest::Discard, Tempest::Preserve}});
     cmd.setUniforms(Shaders::inst().skyTransmittance, &ubo, sizeof(ubo));
     cmd.draw(Resources::fsqVbo());
@@ -107,6 +107,28 @@ void Sky::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
     cmd.setFramebuffer({{egsr.multiScatLut, Tempest::Discard, Tempest::Preserve}});
     cmd.setUniforms(Shaders::inst().skyMultiScattering, egsr.uboMultiScatLut, &ubo, sizeof(ubo));
     cmd.draw(Resources::fsqVbo());
+    }
+
+    auto sync = device.fence();
+    device.submit(buf,sync);
+    sync.wait();
+    }
+    }
+  }
+
+void Sky::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t frameId) {
+  if(algo==EGSR) {
+    UboSky ubo = mkPush();
+
+    if(0) {
+      cmd.setFramebuffer({{egsr.transLut, Tempest::Discard, Tempest::Preserve}});
+      cmd.setUniforms(Shaders::inst().skyTransmittance, &ubo, sizeof(ubo));
+      cmd.draw(Resources::fsqVbo());
+
+      cmd.setFramebuffer({{egsr.multiScatLut, Tempest::Discard, Tempest::Preserve}});
+      cmd.setUniforms(Shaders::inst().skyMultiScattering, egsr.uboMultiScatLut, &ubo, sizeof(ubo));
+      cmd.draw(Resources::fsqVbo());
+      }
 
     cmd.setFramebuffer({{egsr.viewLut, Tempest::Discard, Tempest::Preserve}});
     cmd.setUniforms(Shaders::inst().skyViewLut, egsr.uboSkyViewLut, &ubo, sizeof(ubo));
