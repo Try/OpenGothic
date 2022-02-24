@@ -40,6 +40,7 @@ class WorldView {
     void setupUbo();
 
     void dbgLights    (DbgPainter& p) const;
+    void prepareSky   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
 
     void visibilityPass(const Frustrum fr[]);
     void drawShadow    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, uint8_t layer);

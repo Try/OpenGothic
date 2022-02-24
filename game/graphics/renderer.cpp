@@ -63,7 +63,7 @@ void Renderer::resetSwapchain() {
   zbuffer        = device.zbuffer(zBufferFormat,w,h);
   zbufferItem    = device.zbuffer(zBufferFormat,w,h);
 
-  for(int i=0; i<2; ++i){
+  for(int i=0; i<2; ++i) {
     shadowMap[i] = device.attachment (shadowFormat, smSize,smSize);
     shadowZ[i]   = device.zbuffer    (zBufferFormat,smSize,smSize);
     }
@@ -179,6 +179,8 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     cmd.setFramebuffer({{shadowMap[i], Vec4(), Tempest::Preserve}}, {shadowZ[i], 0.f, Tempest::Preserve});
     wview->drawShadow(cmd,cmdId,i);
     }
+
+  wview->prepareSky(cmd,cmdId);
 
   cmd.setFramebuffer({{lightingBuf, Vec4(),           Tempest::Preserve},
                       {gbufDiffuse, Tempest::Discard, Tempest::Preserve},

@@ -15,12 +15,17 @@ class Shaders {
 
     static Shaders& inst();
 
-    Tempest::RenderPipeline sky;
-    Tempest::RenderPipeline fog;
     Tempest::RenderPipeline lights;
     Tempest::RenderPipeline copy;
     Tempest::RenderPipeline bilateralBlur;
     Tempest::RenderPipeline ssao, ssaoCompose;
+
+    // Nishita
+    Tempest::RenderPipeline sky, fog;
+
+    // Scalable and Production Ready Sky and Atmosphere
+    Tempest::RenderPipeline skyTransmittance, skyMultiScattering, skyViewLut, skyEGSR;
+    Tempest::RenderPipeline fogViewLut, fogEGSR;
 
     enum PipelineType: uint8_t {
       T_Forward,
@@ -55,6 +60,7 @@ class Shaders {
     Tempest::RenderPipeline pipeline(Tempest::RenderState& st, const ShaderPair &fs) const;
 
     Tempest::RenderPipeline postEffect(std::string_view name);
+    Tempest::RenderPipeline fogShader (std::string_view name);
 
     static Shaders* instance;
 

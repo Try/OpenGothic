@@ -13,7 +13,7 @@ using namespace Tempest;
 WorldView::WorldView(const World& world, const PackedMesh& wmesh)
   : owner(world),sky(sGlobal),visuals(sGlobal,wmesh.bbox()),
     objGroup(visuals),pfxGroup(*this,sGlobal,visuals),land(visuals,wmesh) {
-  sky.setWorld(owner);
+  sky.setWorld(owner,wmesh.bbox());
   pfxGroup.resetTicks();
   }
 
@@ -100,6 +100,10 @@ void WorldView::setGbuffer(const Texture2d& lightingBuf, const Texture2d& diffus
 
 void WorldView::dbgLights(DbgPainter& p) const {
   sGlobal.lights.dbgLights(p);
+  }
+
+void WorldView::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId) {
+  sky.prepareSky(cmd,frameId);
   }
 
 void WorldView::visibilityPass(const Frustrum fr[]) {
@@ -204,7 +208,6 @@ void WorldView::updateLight() {
 
   sGlobal.sun.setDir(-std::sin(ax)*shadowLength, pulse, std::cos(ax)*shadowLength);
   sGlobal.sun.setColor(clr);
-  sky.setDayNight(std::min(std::max(pulse*3.f,0.f),1.f));
   }
 
 void WorldView::setupUbo() {
