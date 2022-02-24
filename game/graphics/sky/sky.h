@@ -16,7 +16,7 @@ class Sky final {
     Sky(const SceneGlobals& scene);
 
     void setupUbo();
-    void setWorld   (const World& world);
+    void setWorld   (const World& world, const std::pair<Tempest::Vec3, Tempest::Vec3>& bbox);
 
     void prepareSky (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
     void drawSky    (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
@@ -45,11 +45,6 @@ class Sky final {
       float              plPosY   = 0.0;
       };
 
-    struct UboFog {
-      Tempest::Matrix4x4 mvp;
-      Tempest::Matrix4x4 mvpInv;
-      };
-
     struct {
       Tempest::DescriptorSet uboSky;
       Tempest::DescriptorSet uboFog;
@@ -59,6 +54,7 @@ class Sky final {
       Tempest::TextureFormat  lutFormat = Tempest::TextureFormat::RGBA32F;
       Tempest::Attachment     transLut, multiScatLut, viewLut, fogLut;
       Tempest::DescriptorSet  uboMultiScatLut, uboSkyViewLut, uboFogViewLut, uboFinal, uboFog;
+      bool                    lutIsInitialized = false;
     } egsr;
 
     UboSky                        mkPush();
@@ -68,9 +64,10 @@ class Sky final {
 
     Algo                          algo = Nishita;
     const SceneGlobals&           scene;
-    //PerFrame                      perFrame[Resources::MaxFramesInFlight];
     Tempest::VertexBuffer<Vertex> vbo;
 
     State                         day, night;
     const Tempest::Texture2d*     sun = &Resources::fallbackBlack();
+
+    float                         minZ = 0;
   };

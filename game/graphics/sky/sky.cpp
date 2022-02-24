@@ -22,9 +22,16 @@ Sky::Sky(const SceneGlobals& scene)
   if(!device.properties().hasAttachFormat(Tempest::TextureFormat::RGBA32F)) {
     algo = Nishita;
     }
+
+  if(algo==EGSR) {
+    egsr.transLut     = device.attachment(egsr.lutFormat,256, 64);
+    egsr.multiScatLut = device.attachment(egsr.lutFormat, 32, 32);
+    egsr.viewLut      = device.attachment(egsr.lutFormat,256,128);
+    egsr.fogLut       = device.attachment(egsr.lutFormat,128, 64); // TODO: use propper 3d texture
+    }
   }
 
-void Sky::setWorld(const World &world) {
+void Sky::setWorld(const World& world, const std::pair<Vec3, Vec3>& bbox) {
   auto& wname  = world.name();
   auto  dot    = wname.rfind('.');
   auto  name   = dot==std::string::npos ? wname : wname.substr(0,dot);
@@ -45,6 +52,7 @@ void Sky::setWorld(const World &world) {
   sun          = Resources::loadTexture(Gothic::settingsGetS("SKY_OUTDOOR","zSunName"));
   // auto& moon   = gothic.settingsGetS("SKY_OUTDOOR","zMoonName");
 
+  minZ = bbox.first.z;
   setupUbo();
   }
 
@@ -64,11 +72,6 @@ void Sky::setupUbo() {
     nishita.uboFog = device.descriptors(Shaders::inst().fog);
     nishita.uboFog.set(1,*scene.gbufDepth,Sampler2d::nearest());
     } else {
-    egsr.transLut     = device.attachment(egsr.lutFormat,256, 64);
-    egsr.multiScatLut = device.attachment(egsr.lutFormat, 32, 32);
-    egsr.viewLut      = device.attachment(egsr.lutFormat,256,128);
-    egsr.fogLut       = device.attachment(egsr.lutFormat,128, 64); // TODO: use propper 3d texture
-
     egsr.uboMultiScatLut = device.descriptors(Shaders::inst().skyMultiScattering);
     egsr.uboMultiScatLut.set(0, egsr.transLut, smpB);
 
@@ -94,25 +97,6 @@ void Sky::setupUbo() {
     egsr.uboFog.set(1, egsr.multiScatLut, smpB);
     egsr.uboFog.set(2, egsr.fogLut,       smpB);
     egsr.uboFog.set(3, *scene.gbufDepth, Sampler2d::nearest());
-
-    {
-    UboSky ubo = mkPush();
-    Tempest::CommandBuffer buf;
-    {
-    auto cmd = buf.startEncoding(device);
-    cmd.setFramebuffer({{egsr.transLut, Tempest::Discard, Tempest::Preserve}});
-    cmd.setUniforms(Shaders::inst().skyTransmittance, &ubo, sizeof(ubo));
-    cmd.draw(Resources::fsqVbo());
-
-    cmd.setFramebuffer({{egsr.multiScatLut, Tempest::Discard, Tempest::Preserve}});
-    cmd.setUniforms(Shaders::inst().skyMultiScattering, egsr.uboMultiScatLut, &ubo, sizeof(ubo));
-    cmd.draw(Resources::fsqVbo());
-    }
-
-    auto sync = device.fence();
-    device.submit(buf,sync);
-    sync.wait();
-    }
     }
   }
 
@@ -120,7 +104,7 @@ void Sky::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
   if(algo==EGSR) {
     UboSky ubo = mkPush();
 
-    if(0) {
+    if(!egsr.lutIsInitialized) {
       cmd.setFramebuffer({{egsr.transLut, Tempest::Discard, Tempest::Preserve}});
       cmd.setUniforms(Shaders::inst().skyTransmittance, &ubo, sizeof(ubo));
       cmd.draw(Resources::fsqVbo());
@@ -128,6 +112,8 @@ void Sky::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
       cmd.setFramebuffer({{egsr.multiScatLut, Tempest::Discard, Tempest::Preserve}});
       cmd.setUniforms(Shaders::inst().skyMultiScattering, egsr.uboMultiScatLut, &ubo, sizeof(ubo));
       cmd.draw(Resources::fsqVbo());
+
+      egsr.lutIsInitialized = true;
       }
 
     cmd.setFramebuffer({{egsr.viewLut, Tempest::Discard, Tempest::Preserve}});
@@ -147,7 +133,6 @@ void Sky::drawSky(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
     cmd.setUniforms(Shaders::inst().skyEGSR, egsr.uboFinal, &ubo, sizeof(ubo));
     cmd.draw(Resources::fsqVbo());
     } else {
-    // auto& pf = perFrame[fId];
     cmd.setUniforms(Shaders::inst().sky, nishita.uboSky, &ubo, sizeof(ubo));
     cmd.draw(Resources::fsqVbo());
     }
@@ -172,7 +157,7 @@ Sky::UboSky Sky::mkPush() {
   ubo.plPosY = plPos.y/100.f; //meters
   v.translate(Vec3(plPos.x,0,plPos.z));
 
-  ubo.plPosY += 1000; // TODO: need to add minZ of map-mesh
+  ubo.plPosY += (-minZ)/100.f;
 
   ubo.viewProjectInv = scene.proj;
   ubo.viewProjectInv.mul(v);
