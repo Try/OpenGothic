@@ -148,6 +148,8 @@ void Interactive::resetPositionToTA(int32_t state) {
     if(i.user!=nullptr && i.user->isPlayer())
       return;
 
+  loopState = false;
+
   char buf[256]={};
   std::snprintf(buf,sizeof(buf),"S_S%d",state);
   visual.startAnimAndGet(buf,world.tickCount(),true);
@@ -200,7 +202,9 @@ void Interactive::tick(uint64_t dt) {
     if(destSt!=state && (vobType==ZenLoad::zCVobData::VT_oCMobInter || rewind)) {
       if(!setAnim(nullptr,Anim::Out))
         return;
+      auto prev = state;
       setState(state-1);
+      loopState = (prev==state);
       }    
     return;
     }
@@ -613,7 +617,7 @@ bool Interactive::canQuitAtState(Npc& npc, int32_t state) const {
   return state==stateNum && reverseState;
   }
 
-bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
+bool Interactive::attach(Npc& npc, Interactive::Pos& to) {
   assert(to.user==nullptr);
 
   auto mat = nodeTranform(npc,to);
@@ -653,12 +657,12 @@ bool Interactive::attach(Npc &npc, Interactive::Pos &to) {
     reverseState = (state>0);
     } else {
     reverseState = false;
-    state = 0;
+    state        = -1;
     }
 
   to.user       = &npc;
-  to.attachMode = true;
   to.started    = false;
+  to.attachMode = true;
   return true;
   }
 
@@ -700,8 +704,6 @@ bool Interactive::dettach(Npc &npc, bool quick) {
         i.user       = nullptr;
         i.attachMode = false;
         npc.quitIneraction();
-        if(!quick)
-          npc.setAnim(Npc::Anim::Idle);
         }
       else {
         i.attachMode = false;
