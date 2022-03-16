@@ -43,6 +43,8 @@ class Renderer final {
     Tempest::Swapchain&       swapchain;
     Tempest::Matrix4x4        view, proj, viewProj;
     Tempest::Matrix4x4        shadow[Resources::ShadowLayers];
+    float                     zNear = 0;
+    float                     zFar  = 0;
     Tempest::Vec3             clipInfo;
 
     Tempest::Attachment       shadowMap[Resources::ShadowLayers];

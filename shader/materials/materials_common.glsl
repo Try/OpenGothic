@@ -1,3 +1,5 @@
+#include "../common.glsl"
+
 #define MAX_NUM_SKELETAL_NODES 96
 #define MAX_MORPH_LAYERS       3
 
@@ -19,8 +21,6 @@
 #if (defined(VERTEX) || defined(TESSELATION)) && (defined(LVL_OBJECT) || defined(WATER))
 #define MAT_ANIM 1
 #endif
-
-const float M_PI = 3.1415926535897932384626433832795;
 
 struct Varyings {
   vec4 scr;
@@ -80,6 +80,8 @@ layout(binding = L_Scene, std140) uniform UboScene {
   mat4  shadow[2];
   vec3  ambient;
   vec4  sunCl;
+  vec3  clipInfo;
+  vec3  camPos;
   } scene;
 
 #if defined(SKINING) && defined(VERTEX)

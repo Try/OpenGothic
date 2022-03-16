@@ -132,7 +132,6 @@ ObjectsBucket::ObjectsBucket(const Material& mat, const ProtoMesh* anim,
   static_assert(sizeof(UboPush)<=128, "UboPush is way too big");
   auto& device = Resources::device();
 
-
   auto st = objType;
   if(anim!=nullptr && anim->morph.size()>0) {
     morphAnim = anim;

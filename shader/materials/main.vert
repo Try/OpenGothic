@@ -3,7 +3,7 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #define VERTEX
-#include "shader_common.glsl"
+#include "materials_common.glsl"
 
 out gl_PerVertex {
   vec4 gl_Position;

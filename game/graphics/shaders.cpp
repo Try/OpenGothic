@@ -75,10 +75,10 @@ Shaders::Shaders() {
   shadow  .load(device,"shadow");
   shadowAt.load(device,"shadow_at");
 
-  copy          = postEffect("copy");
-  ssao          = postEffect("ssao");
-  ssaoCompose   = postEffect("ssao_compose");
-  bilateralBlur = postEffect("bilateral");
+  copy               = postEffect("copy");
+  ssao               = postEffect("ssao");
+  ssaoCompose        = postEffect("ssao_compose");
+  bilateralBlur      = postEffect("bilateral");
 
   skyTransmittance   = postEffect("sky_transmittance");
   skyMultiScattering = postEffect("sky_multi_scattering");

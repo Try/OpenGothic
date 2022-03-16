@@ -31,8 +31,8 @@ vec4 clouds(vec3 at) {
   vec4  cloudNL0 = texture(textureNightL0,texc*0.6+vec2(0.5)); // stars
 
 #ifdef G1
-  vec4 day      = mix(cloudDL0,cloudDL1,cloudDL1.a);
-  vec4 night    = mix(cloudNL0,cloudNL1,cloudNL1.a);
+  vec4 day       = mix(cloudDL0,cloudDL1,cloudDL1.a);
+  vec4 night     = mix(cloudNL0,cloudNL1,cloudNL1.a);
 #else
   vec4 day       = (cloudDL0+cloudDL1)*0.5;
   vec4 night     = (cloudNL0+cloudNL1)*0.5;

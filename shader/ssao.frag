@@ -1,7 +1,8 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_GOOGLE_include_directive : enable
 
-const float M_PI  = 3.1415926535897932384626433832795;
+#include "common.glsl"
 
 layout(push_constant, std140) uniform PushConstant {
   mat4 mvp;

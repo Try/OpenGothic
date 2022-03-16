@@ -5,7 +5,7 @@
 layout(vertices = 3) out;
 
 #define TESSELATION
-#include "shader_common.glsl"
+#include "materials_common.glsl"
 
 in gl_PerVertex {
   vec4 gl_Position;

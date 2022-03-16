@@ -127,8 +127,8 @@ void Renderer::setCameraView(const Camera& camera) {
       shadow[i] = camera.viewShadow(wview->mainLight().dir(),i);
     }
 
-  const float zNear = camera.zNear();
-  const float zFar  = camera.zFar();
+  zNear      = camera.zNear();
+  zFar       = camera.zFar();
   clipInfo.x = zNear*zFar;
   clipInfo.y = zNear-zFar;
   clipInfo.z = zFar;
@@ -159,8 +159,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     return;
     }
 
-  wview->setViewProject(view,proj);
-  wview->setModelView(viewProj,shadow,Resources::ShadowLayers);
+  wview->setViewProject(view,proj,zNear,zFar,shadow,Resources::ShadowLayers);
   const Texture2d* sh[Resources::ShadowLayers];
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
     sh[i] = &textureCast(shadowMap[i]);
@@ -169,15 +168,18 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
 
   {
   Frustrum f[SceneGlobals::V_Count];
-  f[SceneGlobals::V_Shadow0].make(shadow[0],shadowMap[0].w(),shadowMap[0].h());
-  f[SceneGlobals::V_Shadow1].make(shadow[1],shadowMap[1].w(),shadowMap[1].h());
+  if(wview->mainLight().dir().y>0) {
+    f[SceneGlobals::V_Shadow0].make(shadow[0],shadowMap[0].w(),shadowMap[0].h());
+    f[SceneGlobals::V_Shadow1].make(shadow[1],shadowMap[1].w(),shadowMap[1].h());
+    }
   f[SceneGlobals::V_Main   ].make(viewProj,zbuffer.w(),zbuffer.h());
   wview->visibilityPass(f);
   }
 
   for(uint8_t i=0; i<Resources::ShadowLayers; ++i) {
     cmd.setFramebuffer({{shadowMap[i], Vec4(), Tempest::Preserve}}, {shadowZ[i], 0.f, Tempest::Preserve});
-    wview->drawShadow(cmd,cmdId,i);
+    if(wview->mainLight().dir().y>0)
+      wview->drawShadow(cmd,cmdId,i);
     }
 
   wview->prepareSky(cmd,cmdId);

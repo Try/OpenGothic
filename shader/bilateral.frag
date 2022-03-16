@@ -1,5 +1,8 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_GOOGLE_include_directive : enable
+
+#include "common.glsl"
 
 const float KERNEL_RADIUS = 3;
 
@@ -14,11 +17,6 @@ layout(push_constant, std140) uniform PushConstant {
   float sharpness;
   vec2  invResolutionDirection;
   } ubo;
-
-float reconstructCSZ(float d, vec3 clipInfo) {
-  // z_n * z_f,  z_n - z_f, z_f
-  return (clipInfo[0] / (clipInfo[1] * d + clipInfo[2]));
-  }
 
 float texLinearDepth(vec2 uv) {
   float d = texture(depth, uv).x;

@@ -47,23 +47,32 @@ void SceneGlobals::initSettings() {
     }
   }
 
-void SceneGlobals::setViewProject(const Tempest::Matrix4x4& v, const Tempest::Matrix4x4& p) {
-  view = v;
-  proj = p;
-  }
-
-void SceneGlobals::setModelView(const Tempest::Matrix4x4& m, const Tempest::Matrix4x4* sh, size_t shCount) {
+void SceneGlobals::setViewProject(const Tempest::Matrix4x4& v, const Tempest::Matrix4x4& p,
+                                  float zNear, float zFar,
+                                  const Tempest::Matrix4x4* sh, size_t shCount) {
   assert(shCount==2);
 
-  uboGlobal.viewProject    = m;
-  uboGlobal.viewProjectInv = m;
+  view = v;
+  proj = p;
+
+  auto vp = p;
+  vp.mul(v);
+
+  uboGlobal.viewProject    = vp;
+  uboGlobal.viewProjectInv = vp;
   uboGlobal.viewProjectInv.inverse();
   uboGlobal.shadowView[0]  = sh[0];
   uboGlobal.shadowView[1]  = sh[1];
+
+  uboGlobal.clipInfo.x = zNear*zFar;
+  uboGlobal.clipInfo.y = zNear-zFar;
+  uboGlobal.clipInfo.z = zFar;
+
+  uboGlobal.camPos = Tempest::Vec3(0,0,1);
+  uboGlobal.viewProjectInv.project(uboGlobal.camPos);
   }
 
 void SceneGlobals::setTime(uint64_t time) {
-  uboGlobal.secondFrac = float(time%1000)/1000.f;
   tickCount            = time;
 
   if(zWindEnabled)

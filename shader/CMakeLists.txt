@@ -55,34 +55,34 @@ endfunction(add_shader)
 #   G1         - hint for gothic1 shader
 function(add_uber_shader OUTPUT)
   list(SUBLIST ARGV 1 -1 VARS)
-  add_shader(${OUTPUT}_shadow.vert      main.vert ${VARS} -DSHADOW_MAP)
-  add_shader(${OUTPUT}_shadow.frag      main.frag ${VARS} -DSHADOW_MAP)
+  add_shader(${OUTPUT}_shadow.vert      materials/main.vert ${VARS} -DSHADOW_MAP)
+  add_shader(${OUTPUT}_shadow.frag      materials/main.frag ${VARS} -DSHADOW_MAP)
 
-  add_shader(${OUTPUT}_shadow_at.vert   main.vert ${VARS} -DSHADOW_MAP -DATEST)
-  add_shader(${OUTPUT}_shadow_at.frag   main.frag ${VARS} -DSHADOW_MAP -DATEST)
+  add_shader(${OUTPUT}_shadow_at.vert   materials/main.vert ${VARS} -DSHADOW_MAP -DATEST)
+  add_shader(${OUTPUT}_shadow_at.frag   materials/main.frag ${VARS} -DSHADOW_MAP -DATEST)
 
-  add_shader(${OUTPUT}.vert             main.vert ${VARS} -DLIGHT)
-  add_shader(${OUTPUT}.frag             main.frag ${VARS} -DLIGHT)
+  add_shader(${OUTPUT}.vert             materials/main.vert ${VARS} -DLIGHT)
+  add_shader(${OUTPUT}.frag             materials/main.frag ${VARS} -DLIGHT)
 
-  add_shader(${OUTPUT}_at.vert          main.vert ${VARS} -DLIGHT -DATEST)
-  add_shader(${OUTPUT}_at.frag          main.frag ${VARS} -DLIGHT -DATEST)
+  add_shader(${OUTPUT}_at.vert          materials/main.vert ${VARS} -DLIGHT -DATEST)
+  add_shader(${OUTPUT}_at.frag          materials/main.frag ${VARS} -DLIGHT -DATEST)
 
-  add_shader(${OUTPUT}_emi.vert         main.vert ${VARS})
-  add_shader(${OUTPUT}_emi.frag         main.frag ${VARS})
+  add_shader(${OUTPUT}_emi.vert         materials/main.vert ${VARS})
+  add_shader(${OUTPUT}_emi.frag         materials/main.frag ${VARS})
 
-  add_shader(${OUTPUT}_gbuffer.vert     main.vert ${VARS} -DLIGHT -DGBUFFER)
-  add_shader(${OUTPUT}_gbuffer.frag     main.frag ${VARS} -DLIGHT -DGBUFFER)
+  add_shader(${OUTPUT}_gbuffer.vert     materials/main.vert ${VARS} -DLIGHT -DGBUFFER)
+  add_shader(${OUTPUT}_gbuffer.frag     materials/main.frag ${VARS} -DLIGHT -DGBUFFER)
 
-  add_shader(${OUTPUT}_gbuffer_at.vert  main.vert ${VARS} -DLIGHT -DGBUFFER -DATEST)
-  add_shader(${OUTPUT}_gbuffer_at.frag  main.frag ${VARS} -DLIGHT -DGBUFFER -DATEST)
+  add_shader(${OUTPUT}_gbuffer_at.vert  materials/main.vert ${VARS} -DLIGHT -DGBUFFER -DATEST)
+  add_shader(${OUTPUT}_gbuffer_at.frag  materials/main.frag ${VARS} -DLIGHT -DGBUFFER -DATEST)
 
-  add_shader(${OUTPUT}_water.vert       main.vert ${VARS} -DLIGHT -DWATER)
-  add_shader(${OUTPUT}_water.tesc       main.tesc ${VARS} -DLIGHT -DWATER)
-  add_shader(${OUTPUT}_water.tese       main.tese ${VARS} -DLIGHT -DWATER)
-  add_shader(${OUTPUT}_water.frag       main.frag ${VARS} -DLIGHT -DWATER)
+  add_shader(${OUTPUT}_water.vert       materials/main.vert ${VARS} -DLIGHT -DWATER)
+  add_shader(${OUTPUT}_water.tesc       materials/main.tesc ${VARS} -DLIGHT -DWATER)
+  add_shader(${OUTPUT}_water.tese       materials/main.tese ${VARS} -DLIGHT -DWATER)
+  add_shader(${OUTPUT}_water.frag       materials/main.frag ${VARS} -DLIGHT -DWATER)
 
-  add_shader(${OUTPUT}_ghost.vert       main.vert ${VARS} -DLIGHT -DGHOST)
-  add_shader(${OUTPUT}_ghost.frag       main.frag ${VARS} -DLIGHT -DGHOST)
+  add_shader(${OUTPUT}_ghost.vert       materials/main.vert ${VARS} -DLIGHT -DGHOST)
+  add_shader(${OUTPUT}_ghost.frag       materials/main.frag ${VARS} -DLIGHT -DGHOST)
 
   set(OPENGOTHIC_SHADERS      ${OPENGOTHIC_SHADERS}      PARENT_SCOPE)
   set(OPENGOTHIC_SHADERS_SPRV ${OPENGOTHIC_SHADERS_SPRV} PARENT_SCOPE)
@@ -94,16 +94,16 @@ add_uber_shader(obj -DOBJ)
 add_uber_shader(ani -DSKINING)
 add_uber_shader(mph -DMORPH)
 
-add_shader(light.vert           light.vert "")
-add_shader(light.frag           light.frag "")
+add_shader(light.vert                light.vert "")
+add_shader(light.frag                light.frag "")
 
 # Old nishita sky model
-add_shader(fog.vert             sky/sky.vert         -DFOG)
-add_shader(fog.frag             sky/sky_nishita.frag -DFOG)
-add_shader(sky_g2.vert          sky/sky.vert         -DG2)
-add_shader(sky_g2.frag          sky/sky_nishita.frag -DG2)
-add_shader(sky_g1.vert          sky/sky.vert         -DG1)
-add_shader(sky_g1.frag          sky/sky_nishita.frag -DG1)
+add_shader(fog.vert                  sky/sky.vert         -DFOG)
+add_shader(fog.frag                  sky/sky_nishita.frag -DFOG)
+add_shader(sky_g2.vert               sky/sky.vert         -DG2)
+add_shader(sky_g2.frag               sky/sky_nishita.frag -DG2)
+add_shader(sky_g1.vert               sky/sky.vert         -DG1)
+add_shader(sky_g1.frag               sky/sky_nishita.frag -DG1)
 
 # Based on Scalable and Production Ready Sky and Atmosphere
 # https://sebh.github.io/publications/egsr2020.pdf
@@ -122,17 +122,17 @@ add_shader(fog_egsr.frag             sky/sky_egsr.frag    -DFOG)
 add_shader(sky_egsr_g2.vert          sky/sky.vert         -DG2)
 add_shader(sky_egsr_g2.frag          sky/sky_egsr.frag    -DG2)
 
-add_shader(copy.vert            copy.vert "")
-add_shader(copy.frag            copy.frag "")
+add_shader(copy.vert                 copy.vert "")
+add_shader(copy.frag                 copy.frag "")
 
-add_shader(ssao.vert            ssao.vert "")
-add_shader(ssao.frag            ssao.frag "")
+add_shader(ssao.vert                 ssao.vert "")
+add_shader(ssao.frag                 ssao.frag "")
 
-add_shader(bilateral.vert       copy.vert "")
-add_shader(bilateral.frag       bilateral.frag "")
+add_shader(bilateral.vert            copy.vert "")
+add_shader(bilateral.frag            bilateral.frag "")
 
-add_shader(ssao_compose.vert    copy.vert "")
-add_shader(ssao_compose.frag    ssao_compose.frag "")
+add_shader(ssao_compose.vert         copy.vert "")
+add_shader(ssao_compose.frag         ssao_compose.frag "")
 
 add_custom_command(
   OUTPUT     ${HEADER} ${CPP}

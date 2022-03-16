@@ -3,7 +3,7 @@
 #extension GL_GOOGLE_include_directive : enable
 
 #define FRAGMENT
-#include "shader_common.glsl"
+#include "materials_common.glsl"
 
 layout(location = 0) in Varyings shInp;
 
@@ -13,31 +13,6 @@ layout(location = 1) out vec4 outDiffuse;
 layout(location = 2) out vec4 outNormal;
 layout(location = 3) out vec4 outDepth;
 #endif
-
-float cookTorrance(vec3 normal, vec3 light, vec3 view, float roughness) {
-  if(roughness<=0)
-    return 0;
-
-  vec3  hVec     = normalize(view+light );
-
-  float NdotL    = max( dot(normal, light), 0.0 );
-  float NdotV    = max( dot(normal, view ), 0.0 );
-  float NdotH    = max( dot(normal, hVec ), 1.0e-7 );
-  float VdotH    = max( dot(view,   hVec ), 0.0 );
-
-  float geometric = 2.0 * NdotH / VdotH;
-  geometric = min( 1.0, geometric * min(NdotV, NdotL) );
-
-  float r_sq          = roughness * roughness;
-  float NdotH_sq      = NdotH * NdotH;
-  float NdotH_sq_r    = 1.0 / (NdotH_sq * r_sq);
-  float roughness_exp = (NdotH_sq - 1.0) * ( NdotH_sq_r );
-  float r     = exp(roughness_exp) * NdotH_sq_r / (4.0 * NdotH_sq );
-
-  float fresnel       = 1.0/(1.0+NdotV);
-
-  return min(1.0, (fresnel * geometric * r) / (NdotV * NdotL + 1.0e-7));
-  }
 
 #if !defined(SHADOW_MAP)
 vec4 shadowSample(in sampler2D shadowMap, vec2 shPos) {
@@ -108,12 +83,17 @@ vec3 waterColor(vec3 selfColor) {
   vec4  back   = texture(gbufferDiffuse,p);
   float depth  = texture(gbufferDepth,  p).r;
 
-  vec4  ground = scene.viewProjectInv*vec4(scr.xy,depth,1.0);
-  vec4  water  = scene.viewProjectInv*vec4(scr,1.0);
+  float ground   = reconstructCSZ(depth, scene.clipInfo);
+  float water    = reconstructCSZ(scr.z, scene.clipInfo);
+  /*
+  float ratio   = 1.00 / 1.52; // air / water
+  vec3  view    = normalize(shInp.pos - scene.camPos);
+  vec3  refract = refract(view, shInp.normal, ratio);
+  */
 
-  float dist  = distance(water.xyz/water.w, ground.xyz/ground.w)/100.0;
-  dist = pow(dist,2);
-  float a     = min(dist,0.8);
+  float dist     = abs(water-ground)*10.0;
+  float a        = min(1.0 - exp(-0.95 * dist), 0.95);
+
   return mix(back.rgb,selfColor,a);
   }
 #endif
@@ -161,14 +141,19 @@ void main() {
 #endif
 
 #if defined(WATER)
+
   {
-    vec4  cam   = scene.viewProjectInv[3];
-    vec3  view  = normalize(shInp.pos - cam.xyz/cam.w);
-    float rs    = cookTorrance(shInp.normal,scene.ldir,-view,0.01);
-    color = waterColor(color) + vec3(rs);
-    //color = vec3(shInp.pos/1000.f);
-    alpha = 1;
+    float f     = 0.02;
+    vec3  view  = normalize(shInp.pos - scene.camPos);
+    float rs    = cookTorrance(f, shInp.normal,scene.ldir,view, 0.01);
+
+    vec4  wclr  = vec4(waterColor(color) + vec3(rs),1);
+
+    //wclr   = vec4(rs,rs,rs,1);
+    color  = wclr.rgb;
+    alpha  = wclr.a;
   }
+
 #endif
 
   outColor      = vec4(color,alpha);

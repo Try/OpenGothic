@@ -14,10 +14,11 @@ InventoryRenderer::InventoryRenderer()
   scene.ambient = Vec3(1.f,1.f,1.f);
   scene.sun     = light;
 
-  Tempest::Matrix4x4 mv, shMv[2];
+  Tempest::Matrix4x4 p, mv, shMv[2];
+  p.identity();
   mv.identity();
   mv.scale(0.8f,1.f,1.f);
-  scene.setModelView(mv,shMv,2);
+  scene.setViewProject(mv,p,0,1,shMv,2);
   }
 
 void InventoryRenderer::draw(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {

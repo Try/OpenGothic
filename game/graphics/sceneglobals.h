@@ -20,8 +20,9 @@ class SceneGlobals final {
       V_Count
       };
 
-    void setViewProject(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& proj);
-    void setModelView  (const Tempest::Matrix4x4& m, const Tempest::Matrix4x4 *sh, size_t shCount);
+    void setViewProject(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& proj,
+                        float zNear, float zFar,
+                        const Tempest::Matrix4x4 *sh, size_t shCount);
 
     void setTime(uint64_t time);
     void commitUbo(uint8_t fId);
@@ -49,7 +50,9 @@ class SceneGlobals final {
       Tempest::Matrix4x4              shadowView[2];
       Tempest::Vec4                   lightAmb   = {0,0,0,0};
       Tempest::Vec4                   lightCl    = {1,1,1,0};
-      float                           secondFrac;
+      Tempest::Vec3                   clipInfo;
+      float                           padd0 = 0;
+      Tempest::Vec3                   camPos;
       };
 
     Tempest::UniformBuffer<UboGlobal> uboGlobalPf[Resources::MaxFramesInFlight][V_Count];

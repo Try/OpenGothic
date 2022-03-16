@@ -41,13 +41,11 @@ void WorldView::tick(uint64_t /*dt*/) {
     }
   }
 
-void WorldView::setViewProject(const Matrix4x4& view, const Matrix4x4& proj) {
-  sGlobal.setViewProject(view,proj);
-  }
-
-void WorldView::setModelView(const Matrix4x4& viewProj, const Tempest::Matrix4x4* shadow, size_t shCount) {
+void WorldView::setViewProject(const Matrix4x4& view, const Matrix4x4& proj,
+                               float zNear, float zFar,
+                               const Tempest::Matrix4x4* shadow, size_t shCount) {
   updateLight();
-  sGlobal.setModelView(viewProj,shadow,shCount);
+  sGlobal.setViewProject(view,proj,zNear,zFar,shadow,shCount);
   }
 
 void WorldView::setFrameGlobals(const Texture2d* shadow[], uint64_t tickCount, uint8_t fId) {
