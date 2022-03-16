@@ -39,6 +39,7 @@ class Mixer final {
       int64_t nextOn =std::numeric_limits<int64_t>::max();
       int64_t nextOff=std::numeric_limits<int64_t>::max();
       int64_t samples=0;
+      bool    isValid() const { return !(nextOn==std::numeric_limits<int64_t>::max() && nextOn==nextOff && samples==0); }
       };
 
     struct Instr {

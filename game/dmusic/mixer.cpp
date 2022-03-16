@@ -36,9 +36,6 @@ void Mixer::setMusic(const Music& m,DMUS_EMBELLISHT_TYPES e) {
 
   nextMus = m.impl;
   embellishment.store(e);
-  //current = m.impl;
-  //grooveCounter.store(0);
-  //variationCounter.store(0);
   }
 
 void Mixer::setMusicVolume(float v) {
@@ -150,7 +147,12 @@ void Mixer::nextPattern() {
     }
 
   auto prev = pattern;
-  pattern   = std::shared_ptr<PatternInternal>(mus,mus->pptn[0].get());
+  for(size_t i=0;i<mus->pptn.size();++i) {
+    if(mus->pptn[i]->timeTotal==0)
+      continue;
+    pattern = std::shared_ptr<PatternInternal>(mus,mus->pptn[i].get());
+    break;
+    }
   size_t nextOff=0;
   for(size_t i=0;i<mus->pptn.size();++i){
     if(mus->pptn[i].get()==prev.get()) {
@@ -169,7 +171,7 @@ void Mixer::nextPattern() {
     nextOff=0;
     }
 
-  for(size_t i=0;i<mus->pptn.size();++i){
+  for(size_t i=0;i<mus->pptn.size();++i) {
     auto& ptr = mus->pptn[(i+nextOff)%mus->pptn.size()];
     if(ptr->timeTotal==0)
       continue;
@@ -268,7 +270,7 @@ void Mixer::mix(int16_t *out, size_t samples) {
   size_t samplesRemain = samples;
   while(samplesRemain>0) {
     if(pat==nullptr)
-      return;
+      break;
     const int64_t remain = std::min(patEnd-sampleCursor,int64_t(samplesRemain));
     const int64_t b      = (sampleCursor       );
     const int64_t e      = (sampleCursor+remain);
@@ -288,6 +290,8 @@ void Mixer::mix(int16_t *out, size_t samples) {
 
     if(sampleCursor==patEnd || nextMus!=nullptr) {
       nextPattern();
+      if(!stp.isValid())
+        break;
       }
     }
 
