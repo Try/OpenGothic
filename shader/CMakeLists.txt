@@ -89,10 +89,10 @@ function(add_uber_shader OUTPUT)
 endfunction(add_uber_shader)
 
 # shaders
-add_uber_shader(clr -DVCOLOR)
-add_uber_shader(obj -DOBJ)
-add_uber_shader(ani -DSKINING)
-add_uber_shader(mph -DMORPH)
+add_uber_shader(obj -DOBJ     "-DMESH_TYPE=1")
+add_uber_shader(ani -DSKINING "-DMESH_TYPE=2")
+add_uber_shader(mph -DMORPH   "-DMESH_TYPE=3")
+add_uber_shader(clr -DVCOLOR  "-DMESH_TYPE=4")
 
 add_shader(light.vert                light.vert "")
 add_shader(light.frag                light.frag "")

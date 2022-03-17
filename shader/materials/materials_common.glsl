@@ -3,6 +3,12 @@
 #define MAX_NUM_SKELETAL_NODES 96
 #define MAX_MORPH_LAYERS       3
 
+#define T_LANDSCAPE 0
+#define T_OBJ       1
+#define T_SKINING   2
+#define T_MORPH     3
+#define T_PFX       4
+
 #define L_Diffuse  0
 #define L_Shadow0  1
 #define L_Shadow1  2
@@ -14,7 +20,7 @@
 #define L_MorphId  8
 #define L_Morph    9
 
-#if (defined(OBJ) || defined(SKINING) || defined(MORPH))
+#if (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING || MESH_TYPE==T_MORPH)
 #define LVL_OBJECT 1
 #endif
 
@@ -35,7 +41,7 @@ struct Varyings {
   vec3 pos;
 #endif
 
-#if defined(VCOLOR) && !defined(SHADOW_MAP)
+#if !defined(SHADOW_MAP) && (MESH_TYPE==T_PFX)
   vec4 color;
 #endif
   };
@@ -53,11 +59,11 @@ struct MorphDesc {
   float alpha;
   };
 
-#if defined(OBJ) || defined(SKINING) || defined(MORPH)
+#if defined(LVL_OBJECT)
 layout(push_constant, std140) uniform UboPush {
   mat4      obj;
   float     fatness;
-#if defined(MORPH)
+#if MESH_TYPE==T_MORPH
   MorphDesc morph[MAX_MORPH_LAYERS];
 #endif
   } push;
@@ -84,7 +90,7 @@ layout(binding = L_Scene, std140) uniform UboScene {
   vec3  camPos;
   } scene;
 
-#if defined(SKINING) && defined(VERTEX)
+#if (MESH_TYPE==T_SKINING) && defined(VERTEX)
 layout(binding = L_Skinning, std140) uniform UboAnim {
   mat4 skel[MAX_NUM_SKELETAL_NODES];
   } anim;
@@ -103,7 +109,7 @@ layout(binding = L_GDiffuse) uniform sampler2D gbufferDiffuse;
 layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
 #endif
 
-#if defined(VERTEX) && defined(MORPH)
+#if (MESH_TYPE==T_MORPH) && defined(VERTEX)
 layout(binding = L_MorphId, std430) readonly buffer SsboMorphId {
   int  index[];
   } morphId;

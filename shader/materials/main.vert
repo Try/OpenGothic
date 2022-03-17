@@ -9,7 +9,7 @@ out gl_PerVertex {
   vec4 gl_Position;
   };
 
-#ifdef SKINING
+#if (MESH_TYPE==T_SKINING)
 layout(location = 0) in vec3 inNormal;
 layout(location = 1) in vec2 inUV;
 layout(location = 2) in uint inColor;
@@ -28,11 +28,11 @@ layout(location = 3) in uint inColor;
 
 layout(location = 0) out Varyings shOut;
 
-#ifdef SKINING
+#if (MESH_TYPE==T_SKINING)
 vec4 boneId;
 #endif
 
-#if defined(MORPH)
+#if (MESH_TYPE==T_MORPH)
 vec3 morphOffset(int i) {
   float intensity = floor(push.morph[i].alpha)/255.0;
   if(intensity<=0)
@@ -54,7 +54,7 @@ vec3 morphOffset(int i) {
 #endif
 
 vec4 vertexPosMesh() {
-#if defined(SKINING)
+#if (MESH_TYPE==T_SKINING)
   vec4 pos0 = vec4(inPos0,1.0);
   vec4 pos1 = vec4(inPos1,1.0);
   vec4 pos2 = vec4(inPos2,1.0);
@@ -64,7 +64,7 @@ vec4 vertexPosMesh() {
   vec4 t2   = anim.skel[int(boneId.z*255.0)]*pos2;
   vec4 t3   = anim.skel[int(boneId.w*255.0)]*pos3;
   return t0*inWeight.x + t1*inWeight.y + t2*inWeight.z + t3*inWeight.w;
-#elif defined(MORPH)
+#elif (MESH_TYPE==T_MORPH)
   vec3 v = inPos;
   for(int i=0; i<3; ++i)
     v += morphOffset(i);
@@ -75,7 +75,7 @@ vec4 vertexPosMesh() {
   }
 
 vec4 vertexNormalMesh() {
-#if defined(SKINING)
+#if (MESH_TYPE==T_SKINING)
   vec4 norm = vec4(inNormal,0.0);
   vec4 n0   = anim.skel[int(boneId.x)]*norm;
   vec4 n1   = anim.skel[int(boneId.y)]*norm;
@@ -90,7 +90,7 @@ vec4 vertexNormalMesh() {
 
 vec3 vertexNormal() {
   vec4 norm = vertexNormalMesh();
-#if defined(OBJ) || defined(SKINING) || defined(MORPH)
+#if defined(LVL_OBJECT)
   return (push.obj*norm).xyz;
 #else
   return norm.xyz;
@@ -99,7 +99,7 @@ vec3 vertexNormal() {
 
 vec4 vertexPos() {
   vec4 pos = vertexPosMesh();
-#if defined(OBJ) || defined(SKINING) || defined(MORPH)
+#if defined(LVL_OBJECT)
   return push.obj*pos;
 #else
   return pos;
@@ -107,7 +107,7 @@ vec4 vertexPos() {
   }
 
 void main() {
-#if defined(SKINING)
+#if (MESH_TYPE==T_SKINING)
   boneId   = unpackUnorm4x8(inId);
 #endif
 
@@ -144,7 +144,7 @@ void main() {
   shOut.pos          = pos.xyz;
 #endif
 
-#if !defined(SHADOW_MAP) && defined(VCOLOR)
+#if !defined(SHADOW_MAP) && (MESH_TYPE==T_PFX)
   shOut.color = unpackUnorm4x8(inColor);
 #endif
 
