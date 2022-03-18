@@ -8,6 +8,7 @@
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
 #if defined(__OSX__)
 #pragma GCC diagnostic ignored "-Wargument-outside-range"
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 #endif
 #endif
 
