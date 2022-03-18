@@ -20,6 +20,7 @@ bin/crash.log
 bin/dbg.bin
 bin/*.sav
 bin/Gothic.ini
+out/*
 
 # internal
 .vs/
