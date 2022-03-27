@@ -709,9 +709,11 @@ bool Interactive::dettach(Npc &npc, bool quick) {
         i.attachMode = false;
         return true;
         }
+      return false;
       }
     }
-  return true;
+
+  return npc.interactive()==nullptr;
   }
 
 bool Interactive::isAttached(const Npc& to) {
