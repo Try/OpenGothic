@@ -216,6 +216,7 @@ void Npc::save(Serialize &fout, size_t id) {
   fghAlgo.save(fout);
   fout.write(lastEventTime,angleY,runAng);
   fout.write(invTorch);
+  fout.write(isUsingTorch());
 
   Vec3 phyPos = physic.position();
   fout.write(phyPos);
@@ -266,8 +267,12 @@ void Npc::load(Serialize &fin, size_t id) {
   mvAlgo.load(fin);
   fghAlgo.load(fin);
   fin.read(lastEventTime,angleY,runAng);
-  if(fin.version()>36)
+
+  bool isUsingTorch = false;
+  if(fin.version()>36) {
     fin.read(invTorch);
+    fin.read(isUsingTorch);
+    }
 
   Vec3 phyPos = {};
   fin.read(phyPos);
@@ -283,7 +288,7 @@ void Npc::load(Serialize &fin, size_t id) {
 
   // post-alignment
   visual.syncAttaches();
-  if(isUsingTorch())
+  if(isUsingTorch)
     visual.setTorch(true,owner);
   if(isDead())
     physic.setEnable(false);
