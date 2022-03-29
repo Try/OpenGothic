@@ -55,6 +55,7 @@ Renderer::~Renderer() {
 
 void Renderer::resetSwapchain() {
   auto& device = Resources::device();
+  device.waitIdle();
 
   const uint32_t w      = swapchain.w();
   const uint32_t h      = swapchain.h();
@@ -72,11 +73,6 @@ void Renderer::resetSwapchain() {
   gbufDiffuse = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
   gbufNormal  = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
   gbufDepth   = device.attachment(TextureFormat::R32F, swapchain.w(),swapchain.h());
-
-  if(auto wview=Gothic::inst().worldView()) {
-    wview->setFrameGlobals(nullptr,0,0);
-    wview->setGbuffer(Resources::fallbackBlack(),Resources::fallbackBlack(),Resources::fallbackBlack(),Resources::fallbackBlack());
-    }
 
   auto smp = Sampler2d::nearest();
   smp.setClamping(ClampMode::ClampToEdge);
@@ -108,6 +104,8 @@ void Renderer::resetSwapchain() {
   ssao.uboBlur[1] = device.descriptors(Shaders::inst().bilateralBlur);
   ssao.uboBlur[1].set(0,ssao.blurBuf,smp);
   ssao.uboBlur[1].set(1,gbufDepth,   smpB);
+
+  prepareUniforms();
   }
 
 void Renderer::initSettings() {
@@ -116,6 +114,20 @@ void Renderer::initSettings() {
   }
 
 void Renderer::onWorldChanged() {
+  prepareUniforms();
+  }
+
+void Renderer::prepareUniforms() {
+  auto wview = Gothic::inst().worldView();
+  if(wview==nullptr)
+    return;
+
+  const Texture2d* sh[Resources::ShadowLayers] = {};
+  for(size_t i=0; i<Resources::ShadowLayers; ++i)
+    sh[i] = &textureCast(shadowMap[i]);
+  wview->setGbuffer(textureCast(lightingBuf),textureCast(gbufDiffuse),
+                    textureCast(gbufNormal),textureCast(gbufDepth),
+                    sh);
   }
 
 void Renderer::setCameraView(const Camera& camera) {
@@ -159,12 +171,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     return;
     }
 
-  wview->setViewProject(view,proj,zNear,zFar,shadow,Resources::ShadowLayers);
-  const Texture2d* sh[Resources::ShadowLayers];
-  for(size_t i=0; i<Resources::ShadowLayers; ++i)
-    sh[i] = &textureCast(shadowMap[i]);
-  wview->setFrameGlobals(sh,Gothic::inst().world()->tickCount(),cmdId);
-  wview->setGbuffer(textureCast(lightingBuf),textureCast(gbufDiffuse),textureCast(gbufNormal),textureCast(gbufDepth));
+  wview->preFrameUpdate(view,proj,zNear,zFar,shadow,Gothic::inst().world()->tickCount(),cmdId);
 
   {
   Frustrum f[SceneGlobals::V_Count];
@@ -261,9 +268,6 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   uint32_t h    = uint32_t(zbuffer.h());
   auto     img  = device.attachment(Tempest::TextureFormat::RGBA8,w,h);
 
-  if(auto wview = Gothic::inst().worldView())
-    wview->setupUbo();
-
   CommandBuffer cmd;
   {
   auto enc = cmd.startEncoding(device);
@@ -273,9 +277,6 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   Fence sync = device.fence();
   device.submit(cmd,sync);
   sync.wait();
-
-  if(auto wview = Gothic::inst().worldView())
-    wview->setupUbo();
 
   return img;
   }

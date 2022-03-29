@@ -22,7 +22,7 @@ class SceneGlobals final {
 
     void setViewProject(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& proj,
                         float zNear, float zFar,
-                        const Tempest::Matrix4x4 *sh, size_t shCount);
+                        const Tempest::Matrix4x4 *sh);
 
     void setTime(uint64_t time);
     void commitUbo(uint8_t fId);
@@ -47,7 +47,7 @@ class SceneGlobals final {
       float                           shadowSize = 2048;
       Tempest::Matrix4x4              viewProject;
       Tempest::Matrix4x4              viewProjectInv;
-      Tempest::Matrix4x4              shadowView[2];
+      Tempest::Matrix4x4              shadowView[Resources::ShadowLayers];
       Tempest::Vec4                   lightAmb   = {0,0,0,0};
       Tempest::Vec4                   lightCl    = {1,1,1,0};
       Tempest::Vec3                   clipInfo;

@@ -31,6 +31,7 @@ class Renderer final {
     Tempest::Attachment       screenshoot(uint8_t frameId);
 
   private:
+    void prepareUniforms();
     void drawSSAO(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void draw    (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t cmdId);
     void initSettings();

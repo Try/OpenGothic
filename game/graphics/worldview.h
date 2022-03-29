@@ -32,12 +32,14 @@ class WorldView {
     void updateCmd (uint8_t frameId, const World &world,
                     const Tempest::Attachment& main, const Tempest::Attachment& shadow,
                     const Tempest::FrameBufferLayout &mainLay, const Tempest::FrameBufferLayout &shadowLay);
-    void setViewProject(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& proj,
+    void preFrameUpdate(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& proj,
                         float zNear, float zFar,
-                        const Tempest::Matrix4x4* shadow, size_t shCount);
+                        const Tempest::Matrix4x4* shadow,
+                        uint64_t tickCount, uint8_t fId);
 
-    void setFrameGlobals(const Tempest::Texture2d* shadow[], uint64_t tickCount, uint8_t fId);
-    void setGbuffer     (const Tempest::Texture2d& lightingBuf, const Tempest::Texture2d& diffuse, const Tempest::Texture2d& norm, const Tempest::Texture2d& depth);
+    void setGbuffer     (const Tempest::Texture2d& lightingBuf, const Tempest::Texture2d& diffuse,
+                         const Tempest::Texture2d& norm, const Tempest::Texture2d& depth,
+                         const Tempest::Texture2d* shadow[]);
     void setupUbo();
 
     void dbgLights    (DbgPainter& p) const;

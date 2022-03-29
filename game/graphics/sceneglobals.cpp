@@ -49,9 +49,7 @@ void SceneGlobals::initSettings() {
 
 void SceneGlobals::setViewProject(const Tempest::Matrix4x4& v, const Tempest::Matrix4x4& p,
                                   float zNear, float zFar,
-                                  const Tempest::Matrix4x4* sh, size_t shCount) {
-  assert(shCount==2);
-
+                                  const Tempest::Matrix4x4* sh) {
   view = v;
   proj = p;
 
@@ -61,8 +59,8 @@ void SceneGlobals::setViewProject(const Tempest::Matrix4x4& v, const Tempest::Ma
   uboGlobal.viewProject    = vp;
   uboGlobal.viewProjectInv = vp;
   uboGlobal.viewProjectInv.inverse();
-  uboGlobal.shadowView[0]  = sh[0];
-  uboGlobal.shadowView[1]  = sh[1];
+  for(size_t i=0; i<Resources::ShadowLayers; ++i)
+    uboGlobal.shadowView[i] = sh[i];
 
   uboGlobal.clipInfo.x = zNear*zFar;
   uboGlobal.clipInfo.y = zNear-zFar;

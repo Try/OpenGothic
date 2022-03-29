@@ -41,35 +41,13 @@ void WorldView::tick(uint64_t /*dt*/) {
     }
   }
 
-void WorldView::setViewProject(const Matrix4x4& view, const Matrix4x4& proj,
+void WorldView::preFrameUpdate(const Matrix4x4& view, const Matrix4x4& proj,
                                float zNear, float zFar,
-                               const Tempest::Matrix4x4* shadow, size_t shCount) {
+                               const Tempest::Matrix4x4* shadow,
+                               uint64_t tickCount, uint8_t fId) {
   updateLight();
-  sGlobal.setViewProject(view,proj,zNear,zFar,shadow,shCount);
-  }
+  sGlobal.setViewProject(view,proj,zNear,zFar,shadow);
 
-void WorldView::setFrameGlobals(const Texture2d* shadow[], uint64_t tickCount, uint8_t fId) {
-  auto& device = Resources::device();
-
-  const Texture2d* shNull[Resources::ShadowLayers];
-  if(shadow==nullptr) {
-    for(size_t i=0; i<Resources::ShadowLayers; ++i)
-      shNull[i] = &Resources::fallbackBlack();
-    shadow = shNull;
-    }
-
-  for(size_t i=0; i<Resources::ShadowLayers; ++i)
-    if(sGlobal.shadowMap[i]!=shadow[i])
-      needToUpdateUbo = true;
-
-  if(needToUpdateUbo) {
-    needToUpdateUbo = false;
-    // wait before update all descriptors
-    device.waitIdle();
-    sGlobal.setShadowMap(shadow);
-    sky.setupUbo();
-    visuals.setupUbo();
-    }
   pfxGroup.tick(tickCount);
   sGlobal.lights.tick(tickCount);
   sGlobal .setTime(tickCount);
@@ -80,19 +58,25 @@ void WorldView::setFrameGlobals(const Texture2d* shadow[], uint64_t tickCount, u
   pfxGroup.preFrameUpdate(fId);
   }
 
-void WorldView::setGbuffer(const Texture2d& lightingBuf, const Texture2d& diffuse, const Texture2d& norm, const Texture2d& depth) {
-  if(sGlobal.lightingBuf == &lightingBuf &&
-     sGlobal.gbufDiffuse == &diffuse &&
-     sGlobal.gbufNormals == &norm    &&
-     sGlobal.gbufDepth   == &depth)
-    return;
+void WorldView::setGbuffer(const Texture2d& lightingBuf, const Texture2d& diffuse,
+                           const Texture2d& norm, const Texture2d& depth,
+                           const Texture2d* shadow[]) {
+  const Texture2d* shNull[Resources::ShadowLayers] = {};
+  if(shadow==nullptr) {
+    for(size_t i=0; i<Resources::ShadowLayers; ++i)
+      shNull[i] = &Resources::fallbackBlack();
+    shadow = shNull;
+    }
+
+  needToUpdateUbo = false;
+
+  // wait before update all descriptors
+  Resources::device().waitIdle();
   sGlobal.lightingBuf = &lightingBuf;
   sGlobal.gbufDiffuse = &diffuse;
   sGlobal.gbufNormals = &norm;
   sGlobal.gbufDepth   = &depth;
-
-  // wait before update all descriptors
-  Resources::device().waitIdle();
+  sGlobal.setShadowMap(shadow);
   setupUbo();
   }
 
