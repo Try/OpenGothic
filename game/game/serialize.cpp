@@ -149,7 +149,7 @@ void Serialize::writeBytes(const void* buf, size_t sz) {
   }
 
 void Serialize::readBytes(void* buf, size_t sz) {
-  if(readOffset+sz>entryBuf.size())
+  if(fin==nullptr || readOffset+sz>entryBuf.size())
     throw std::runtime_error("unable to read save-game file");
   std::memcpy(buf,&entryBuf[size_t(readOffset)],sz);
   readOffset+=sz;

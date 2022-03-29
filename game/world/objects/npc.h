@@ -141,6 +141,7 @@ class Npc final {
     void       delOverlay   (const Skeleton*  sk);
 
     bool       toogleTorch();
+    void       setTorch(bool use);
     bool       isUsingTorch() const;
 
     void       setVisualBody (int32_t headTexNr, int32_t teethTexNr,
@@ -282,6 +283,7 @@ class Npc final {
     auto      interactive() const -> Interactive* { return currentInteract; }
     bool      setInteraction(Interactive* id, bool quick=false);
     void      quitIneraction();
+    void      processDefInvTorch();
 
     auto      detectedMob() const -> Interactive*;
     void      setDetectedMob(Interactive* id);
@@ -528,6 +530,7 @@ class Npc final {
 
     // inventory
     Inventory                      invent;
+    bool                           invTorch = false;
 
     // last hit
     Npc*                           lastHit          = nullptr;

@@ -40,7 +40,7 @@ struct C_Npc;
 class Serialize {
   public:
     enum Version : uint16_t {
-      Current = 36
+      Current = 37
       };
     Serialize(Tempest::ODevice& fout);
     Serialize(Tempest::IDevice&  fin);

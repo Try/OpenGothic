@@ -70,6 +70,7 @@ class MdlVisual final {
     void                           updateWeaponSkeleton(const Item *sword, const Item *bow);
 
     void                           setTorch(bool t, World& owner);
+    bool                           isUsingTorch() const;
 
     const Pose&                    pose() const { return *skInst; }
     bool                           updateAnimation(Npc* npc, World& world, uint64_t dt);

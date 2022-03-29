@@ -24,6 +24,8 @@
 
 using namespace Tempest;
 
+static std::string_view humansTorchOverlay = "HUMANS_TORCH.MDS";
+
 void Npc::GoTo::save(Serialize& fout) const {
   fout.write(npc, uint8_t(flag), wp, pos);
   }
@@ -213,6 +215,7 @@ void Npc::save(Serialize &fout, size_t id) {
   mvAlgo.save(fout);
   fghAlgo.save(fout);
   fout.write(lastEventTime,angleY,runAng);
+  fout.write(invTorch);
 
   Vec3 phyPos = physic.position();
   fout.write(phyPos);
@@ -263,6 +266,8 @@ void Npc::load(Serialize &fin, size_t id) {
   mvAlgo.load(fin);
   fghAlgo.load(fin);
   fin.read(lastEventTime,angleY,runAng);
+  if(fin.version()>36)
+    fin.read(invTorch);
 
   Vec3 phyPos = {};
   fin.read(phyPos);
@@ -762,20 +767,30 @@ void Npc::delOverlay(const Skeleton *sk) {
   }
 
 bool Npc::toogleTorch() {
-  std::string_view overlay = "HUMANS_TORCH.MDS";
   if(isUsingTorch()) {
     visual.setTorch(false,owner);
-    delOverlay(overlay);
+    delOverlay(humansTorchOverlay);
     return false;
     }
   visual.setTorch(true,owner);
-  addOverlay(overlay,0);
+  addOverlay(humansTorchOverlay,0);
   return true;
   }
 
+void Npc::setTorch(bool use) {
+  if(isUsingTorch()==use)
+    return;
+
+  visual.setTorch(use,owner);
+  if(use) {
+    addOverlay(humansTorchOverlay,0);
+    } else {
+    delOverlay(humansTorchOverlay);
+    }
+  }
+
 bool Npc::isUsingTorch() const {
-  std::string_view overlay = "HUMANS_TORCH.MDS";
-  return hasOverlay(overlay);
+  return visual.isUsingTorch();
   }
 
 void Npc::dropTorch(bool burnout) {
@@ -783,12 +798,11 @@ void Npc::dropTorch(bool burnout) {
   if(sk==nullptr)
     return;
 
-  std::string_view overlay = "HUMANS_TORCH.MDS";
   if(!isUsingTorch())
     return;
 
   visual.setTorch(false,owner);
-  delOverlay(overlay);
+  delOverlay(humansTorchOverlay);
 
   size_t torchId = 0;
   if(burnout)
@@ -1824,10 +1838,10 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
         break;
 
       case ZenLoad::DEF_DRAWTORCH:
-        visual.setTorch(true,owner);
+        setTorch(true);
         break;
       case ZenLoad::DEF_INV_TORCH:
-        // toogleTorch();
+        processDefInvTorch();
         break;
       case ZenLoad::DEF_DROP_TORCH:
         dropTorch();
@@ -3472,7 +3486,18 @@ bool Npc::setInteraction(Interactive *id, bool quick) {
   }
 
 void Npc::quitIneraction() {
+  if(currentInteract==nullptr)
+    return;
+  if(invTorch)
+    processDefInvTorch();
   currentInteract=nullptr;
+  }
+
+void Npc::processDefInvTorch() {
+  if(invTorch || isUsingTorch()) {
+    visual.setTorch(invTorch,owner);
+    invTorch = !invTorch;
+    }
   }
 
 void Npc::setDetectedMob(Interactive* id) {

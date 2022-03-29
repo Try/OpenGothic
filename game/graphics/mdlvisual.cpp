@@ -459,6 +459,10 @@ void MdlVisual::setTorch(bool t, World& owner) {
   torch.boneId = (skeleton==nullptr ? size_t(-1) : skeleton->findNode("ZS_LEFTHAND"));
   }
 
+bool MdlVisual::isUsingTorch() const {
+  return torch.view!=nullptr;
+  }
+
 bool MdlVisual::updateAnimation(Npc* npc, World& world, uint64_t dt) {
   Pose&    pose      = *skInst;
   uint64_t tickCount = world.tickCount();

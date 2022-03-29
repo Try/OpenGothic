@@ -227,6 +227,7 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
     uint64_t t = sq==nullptr ? 0 : uint64_t(sq->totalTime());
     waitAnim   = world.tickCount()+t;
     p.started  = sq!=nullptr;
+    setState(std::min(stateNum,state+1));
     return;
     }
 
