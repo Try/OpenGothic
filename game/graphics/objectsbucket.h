@@ -201,7 +201,6 @@ class ObjectsBucket final {
       const SkeletalStorage::AnimationId*   skiningAni = nullptr;
       MorphAnim                             morphAnim[Resources::MAX_MORPH_LAYERS];
 
-      //bool                                  isValid() const { return vboType!=VboType::NoVbo; }
       bool                                  isValid = false;
       };
 

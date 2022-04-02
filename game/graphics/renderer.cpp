@@ -59,14 +59,16 @@ void Renderer::resetSwapchain() {
 
   const uint32_t w      = swapchain.w();
   const uint32_t h      = swapchain.h();
-  const uint32_t smSize = 2048;
+  const uint32_t smSize = settings.shadowResolution;
 
   zbuffer        = device.zbuffer(zBufferFormat,w,h);
   zbufferItem    = device.zbuffer(zBufferFormat,w,h);
 
-  for(int i=0; i<2; ++i) {
-    shadowMap[i] = device.attachment (shadowFormat, smSize,smSize);
-    shadowZ[i]   = device.zbuffer    (zBufferFormat,smSize,smSize);
+  if(smSize>0) {
+    for(int i=0; i<Resources::ShadowLayers; ++i) {
+      shadowMap[i] = device.attachment(shadowFormat, smSize,smSize);
+      shadowZ[i]   = device.zbuffer   (zBufferFormat,smSize,smSize);
+      }
     }
 
   lightingBuf = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
@@ -184,6 +186,8 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   }
 
   for(uint8_t i=0; i<Resources::ShadowLayers; ++i) {
+    if(shadowMap[i].isEmpty())
+      continue;
     cmd.setFramebuffer({{shadowMap[i], Vec4(), Tempest::Preserve}}, {shadowZ[i], 0.f, Tempest::Preserve});
     if(wview->mainLight().dir().y>0)
       wview->drawShadow(cmd,cmdId,i);

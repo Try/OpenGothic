@@ -161,7 +161,7 @@ const char* Resources::renderer() {
 
 static Sampler2d implShadowSampler() {
   Tempest::Sampler2d smp;
-  smp.setClamping(Tempest::ClampMode::ClampToBorder);
+  smp.setClamping(Tempest::ClampMode::ClampToEdge);
   smp.anisotropic = false;
   return smp;
   }

@@ -37,8 +37,9 @@ class Renderer final {
     void initSettings();
 
     struct Settings {
-      bool zEnvMappingEnabled = false;
-      bool zCloudShadowScale  = false;
+      const uint32_t shadowResolution   = 2048;
+      bool           zEnvMappingEnabled = false;
+      bool           zCloudShadowScale  = false;
       } settings;
 
     Tempest::Swapchain&       swapchain;
