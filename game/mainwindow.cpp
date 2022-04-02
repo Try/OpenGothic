@@ -75,6 +75,24 @@ MainWindow::MainWindow(Device& device)
   else {
     rootMenu.processMusicTheme();
     }
+
+  funcKey[2] = Shortcut(*this,Event::M_NoModifier,Event::K_F2);
+  funcKey[2].onActivated.bind(this, &MainWindow::onMarvinKey<Event::K_F2>);
+
+  funcKey[3] = Shortcut(*this,Event::M_NoModifier,Event::K_F3);
+  funcKey[3].onActivated.bind(this, &MainWindow::onMarvinKey<Event::K_F3>);
+
+  funcKey[5] = Shortcut(*this,Event::M_NoModifier,Event::K_F5);
+  funcKey[5].onActivated.bind(this, &MainWindow::onMarvinKey<Event::K_F5>);
+
+  funcKey[9] = Shortcut(*this,Event::M_NoModifier,Event::K_F9);
+  funcKey[9].onActivated.bind(this, &MainWindow::onMarvinKey<Event::K_F9>);
+
+  funcKey[10] = Shortcut(*this,Event::M_NoModifier,Event::K_F10);
+  funcKey[10].onActivated.bind(this, &MainWindow::onMarvinKey<Event::K_F10>);
+
+  displayPos = Shortcut(*this,Event::M_Alt,Event::K_P);
+  displayPos.onActivated.bind(this, &MainWindow::onMarvinKey<Event::K_P>);
   }
 
 MainWindow::~MainWindow() {
@@ -411,21 +429,6 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
       return;
     }
 
-  if(Gothic::inst().isMarvinEnabled()) {
-    if(event.key==KeyEvent::K_F2) {
-      console.resize(w(),h());
-      console.setFocus(true);
-      console.exec();
-      }
-    }
-
-  if(event.key==KeyEvent::K_F3) {
-    setFullscreen(!SystemApi::isFullscreen(hwnd()));
-    }
-  else if(event.key==KeyEvent::K_F5) {
-    Gothic::inst().quickSave();
-    }
-
   const char* menuEv=nullptr;
 
   auto act = keycodec.tr(event);
@@ -638,6 +641,60 @@ void MainWindow::isDialogClosed(bool& ret) {
   ret = !(dialogs.isActive() || document.isActive());
   }
 
+template<Tempest::KeyEvent::KeyType k>
+void MainWindow::onMarvinKey() {
+  switch(k) {
+    case Event::K_F2:
+      if(Gothic::inst().isMarvinEnabled()) {
+        console.resize(w(),h());
+        console.setFocus(true);
+        console.exec();
+        }
+      break;
+    case Event::K_F3:
+      setFullscreen(!SystemApi::isFullscreen(hwnd()));
+      break;
+    case Event::K_F4:
+      break;
+    case Event::K_F5:
+      Gothic::inst().quickSave();
+      // note: camera lock
+      break;
+
+    case Event::K_F6:
+      // free camera mode
+      break;
+    case Event::K_F7:
+      break;
+    case Event::K_F8:
+      //player.marvinF8();
+      break;
+
+    case Event::K_F9:
+      if(Gothic::inst().isMarvinEnabled()) {
+        // note: quick load?
+        if(runtimeMode==R_Normal)
+          runtimeMode = R_Suspended; else
+          runtimeMode = R_Normal;
+        }
+      break;
+    case Event::K_F10:
+      if(runtimeMode==R_Suspended)
+        runtimeMode = R_Step;
+      break;
+    case Event::K_P:
+      if(Gothic::inst().isMarvinEnabled()) {
+        if(auto p = Gothic::inst().player()) {
+          auto pos = p->position();
+          char buf[256] = {};
+          std::snprintf(buf, sizeof(buf), "Position: %f/%f/%f", pos.x,pos.y,pos.z);
+          Gothic::inst().onPrint(buf);
+          }
+        }
+      break;
+    }
+  }
+
 uint64_t MainWindow::tick() {
   auto time = Application::tickCount();
   auto dt   = time-lastTick;
@@ -664,10 +721,18 @@ uint64_t MainWindow::tick() {
 
   if(dt>50)
     dt=50;
+
+  if(runtimeMode==R_Step) {
+    runtimeMode = R_Suspended;
+    dt = 1000/60; //60 fps
+    }
+  else if(runtimeMode==R_Suspended) {
+    return 0;
+    }
+
   dialogs.tick(dt);
   inventory.tick(dt);
   Gothic::inst().tick(dt);
-
   player.tickFocus();
 
   if(dialogs.isActive())

@@ -94,7 +94,16 @@ class MainWindow : public Tempest::Window {
     void     tickCamera(uint64_t dt);
     void     isDialogClosed(bool& ret);
 
+    template<Tempest::KeyEvent::KeyType k>
+    void     onMarvinKey();
+
     Camera::Mode solveCameraMode() const;
+
+    enum RuntimeMode : uint8_t {
+      R_Normal,
+      R_Suspended,
+      R_Step,
+      };
 
     Tempest::Device&      device;
     Tempest::Swapchain    swapchain;
@@ -135,11 +144,15 @@ class MainWindow : public Tempest::Window {
     DocumentMenu              document;
     ChapterScreen             chapter;
     ConsoleWidget             console;
+    RuntimeMode               runtimeMode = R_Normal;
 
     Tempest::Widget*          uiKeyUp=nullptr;
     Tempest::Point            dMouse;
     PlayerControl             player;
     uint64_t                  lastTick=0;
+
+    Tempest::Shortcut         funcKey[11];
+    Tempest::Shortcut         displayPos;
 
     struct Fps {
       uint64_t dt[10]={};
