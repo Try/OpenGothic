@@ -29,6 +29,7 @@ class VisualObjects final {
     void drawShadow    (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer=0);
 
     void resetIndex();
+    void recycle(Tempest::DescriptorSet&& del);
 
   private:
     ObjectsBucket&                  getBucket(const Material& mat, const ProtoMesh* anim, ObjectsBucket::Type type);
@@ -39,12 +40,12 @@ class VisualObjects final {
     VisibilityGroup                 visGroup;
     SkeletalStorage                 skinedAnim;
 
-    ObjectsBucket::Storage          uboStatic;
-    ObjectsBucket::Storage          uboDyn;
+    std::vector<std::unique_ptr<ObjectsBucket>> buckets;
+    std::vector<ObjectsBucket*>                 index;
+    size_t                                      lastSolidBucket = 0;
 
-    std::list<ObjectsBucket>        buckets;
-    std::vector<ObjectsBucket*>     index;
-    size_t                          lastSolidBucket = 0;
+    std::vector<Tempest::DescriptorSet> recycled[Resources::MaxFramesInFlight];
+    uint8_t                             recycledId = 0;
 
   friend class ObjectsBucket;
   friend class ObjectsBucket::Item;

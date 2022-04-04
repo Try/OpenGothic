@@ -21,13 +21,13 @@ ObjectsBucket& VisualObjects::getBucket(const Material& mat, const ProtoMesh* an
     }
 
   for(auto& i:buckets)
-    if(i.material()==mat && i.morph()==a && i.type()==type && i.size()<ObjectsBucket::CAPACITY)
-      return i;
+    if(i->material()==mat && i->morph()==a && i->type()==type && i->size()<ObjectsBucket::CAPACITY)
+      return *i;
 
   if(type==ObjectsBucket::Type::Static)
-    buckets.emplace_back(mat,anim,*this,globals,uboStatic,type); else
-    buckets.emplace_back(mat,anim,*this,globals,uboDyn,   type);
-  return buckets.back();
+    buckets.emplace_back(ObjectsBucket::mkBucket(mat,anim,*this,globals,type)); else
+    buckets.emplace_back(ObjectsBucket::mkBucket(mat,anim,*this,globals,type));
+  return *buckets.back();
   }
 
 ObjectsBucket::Item VisualObjects::get(const StaticMesh &mesh, const Material& mat,
@@ -87,24 +87,26 @@ SkeletalStorage::AnimationId VisualObjects::getAnim(size_t boneCnt) {
 
 void VisualObjects::setupUbo() {
   for(auto& c:buckets)
-    c.setupUbo();
+    c->setupUbo();
   }
 
 void VisualObjects::preFrameUpdate(uint8_t fId) {
+  recycledId = fId;
+  recycled[fId].clear();
+
+  mkIndex();
+  commitUbo(fId);
   for(auto& c:buckets)
-    c.preFrameUpdate(fId);
+    c->preFrameUpdate(fId);
   }
 
 void VisualObjects::visibilityPass(const Frustrum fr[]) {
   for(auto& i:buckets)
-    i.resetVis();
+    i->resetVis();
   visGroup.pass(fr);
   }
 
 void VisualObjects::draw(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {
-  mkIndex();
-  commitUbo(fId);
-
   for(size_t i=lastSolidBucket;i<index.size();++i) {
     auto c = index[i];
     c->draw(enc,fId);
@@ -112,9 +114,6 @@ void VisualObjects::draw(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t 
   }
 
 void VisualObjects::drawGBuffer(Tempest::Encoder<CommandBuffer>& enc, uint8_t fId) {
-  mkIndex();
-  commitUbo(fId);
-
   for(size_t i=0;i<lastSolidBucket;++i) {
     auto c = index[i];
     c->drawGBuffer(enc,fId);
@@ -122,11 +121,6 @@ void VisualObjects::drawGBuffer(Tempest::Encoder<CommandBuffer>& enc, uint8_t fI
   }
 
 void VisualObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer) {
-  if(layer==0) {
-    mkIndex();
-    commitUbo(fId);
-    }
-
   for(size_t i=0;i<lastSolidBucket;++i) {
     auto c = index[i];
     c->drawShadow(enc,fId,layer);
@@ -137,6 +131,12 @@ void VisualObjects::resetIndex() {
   index.clear();
   }
 
+void VisualObjects::recycle(Tempest::DescriptorSet&& del) {
+  if(del.isEmpty())
+    return;
+  recycled[recycledId].emplace_back(std::move(del));
+  }
+
 void VisualObjects::mkIndex() {
   if(index.size()!=0)
     return;
@@ -144,9 +144,9 @@ void VisualObjects::mkIndex() {
   index.resize(buckets.size());
   size_t id=0;
   for(auto& i:buckets) {
-    if(i.size()==0)
+    if(i->size()==0)
       continue;
-    index[id] = &i;
+    index[id] = i.get();
     ++id;
     }
   index.resize(id);
@@ -180,14 +180,11 @@ void VisualObjects::mkIndex() {
   }
 
 void VisualObjects::commitUbo(uint8_t fId) {
-  bool  sk = skinedAnim.commitUbo(fId);
-  bool  st = uboStatic .commitUbo(fId);
-  bool  dn = uboDyn    .commitUbo(fId);
-
-  if(!st && !dn && !sk)
+  bool sk = skinedAnim.commitUbo(fId);
+  if(!sk)
     return;
 
   for(auto& c:buckets)
-    c.invalidateUbo();
+    c->invalidateUbo();
   }
 

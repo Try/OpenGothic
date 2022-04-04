@@ -54,8 +54,8 @@ void WorldView::preFrameUpdate(const Matrix4x4& view, const Matrix4x4& proj,
   sGlobal .commitUbo(fId);
 
   sGlobal.lights.preFrameUpdate(fId);
-  visuals .preFrameUpdate(fId);
   pfxGroup.preFrameUpdate(fId);
+  visuals .preFrameUpdate(fId);
   }
 
 void WorldView::setGbuffer(const Texture2d& lightingBuf, const Texture2d& diffuse,

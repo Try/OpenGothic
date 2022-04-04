@@ -173,17 +173,17 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     return;
     }
 
-  wview->preFrameUpdate(view,proj,zNear,zFar,shadow,Gothic::inst().world()->tickCount(),cmdId);
-
   {
   Frustrum f[SceneGlobals::V_Count];
   if(wview->mainLight().dir().y>0) {
     f[SceneGlobals::V_Shadow0].make(shadow[0],shadowMap[0].w(),shadowMap[0].h());
     f[SceneGlobals::V_Shadow1].make(shadow[1],shadowMap[1].w(),shadowMap[1].h());
     }
-  f[SceneGlobals::V_Main   ].make(viewProj,zbuffer.w(),zbuffer.h());
+  f[SceneGlobals::V_Main].make(viewProj,zbuffer.w(),zbuffer.h());
   wview->visibilityPass(f);
   }
+
+  wview->preFrameUpdate(view,proj,zNear,zFar,shadow,Gothic::inst().world()->tickCount(),cmdId);
 
   for(uint8_t i=0; i<Resources::ShadowLayers; ++i) {
     if(shadowMap[i].isEmpty())

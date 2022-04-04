@@ -19,8 +19,8 @@
 class Pose;
 class VisualObjects;
 
-class ObjectsBucket final {
-  private:
+class ObjectsBucket {
+  protected:
     struct UboMaterial;
 
     using Vertex  = Resources::Vertex;
@@ -76,14 +76,11 @@ class ObjectsBucket final {
         size_t         id=0;
       };
 
-    class Storage final {
-      public:
-        UboStorage<UboMaterial> mat;
-        bool                    commitUbo(uint8_t fId);
-      };
+    ObjectsBucket(const Material& mat, const ProtoMesh* anim, VisualObjects& owner, const SceneGlobals& scene, const Type type);
+    virtual ~ObjectsBucket();
 
-    ObjectsBucket(const Material& mat, const ProtoMesh* anim, VisualObjects& owner, const SceneGlobals& scene, Storage& storage, const Type type);
-    ~ObjectsBucket();
+    static std::unique_ptr<ObjectsBucket> mkBucket(const Material& mat, const ProtoMesh* anim, VisualObjects& owner,
+                                                   const SceneGlobals& scene, const Type type);
 
     const Material&           material()  const;
     const std::vector<ProtoMesh::Animation>* morph() const { return morphAnim==nullptr ? nullptr : &morphAnim->morph;  }
@@ -104,18 +101,17 @@ class ObjectsBucket final {
                                     const Bounds& bounds);
     void                      free(const size_t objId);
 
-    void                      setupUbo();
+    virtual void              setupUbo();
     void                      invalidateUbo();
     void                      resetVis();
 
-    void                      preFrameUpdate(uint8_t fId);
+    virtual void              preFrameUpdate(uint8_t fId);
     void                      draw       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void                      drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void                      drawShadow (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer=0);
-
     void                      draw       (size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId);
 
-  private:
+  protected:
     enum VboType : uint8_t {
       NoVbo,
       VboVertex,
@@ -168,10 +164,7 @@ class ObjectsBucket final {
       };
 
     struct Descriptors final {
-      Tempest::DescriptorSet  ubo       [Resources::MaxFramesInFlight][SceneGlobals::V_Count];
-      bool                    uboIsReady[Resources::MaxFramesInFlight] = {};
-
-      void                    invalidate();
+      Tempest::DescriptorSet  ubo[Resources::MaxFramesInFlight][SceneGlobals::V_Count];
       void                    alloc(ObjectsBucket& owner);
       };
 
@@ -194,8 +187,6 @@ class ObjectsBucket final {
       float                                 fatness = 0;
       ZenLoad::AnimMode                     wind = ZenLoad::AnimMode::NONE;
       float                                 windIntensity = 0;
-
-      Descriptors                           ubo;
       uint64_t                              timeShift=0;
 
       const SkeletalStorage::AnimationId*   skiningAni = nullptr;
@@ -204,42 +195,44 @@ class ObjectsBucket final {
       bool                                  isValid = false;
       };
 
-    Object& implAlloc(const VboType type, const Bounds& bounds);
-    void    uboSetCommon (Descriptors& v);
-    void    uboSetDynamic(Object& v, uint8_t fId);
+    virtual Object& implAlloc(const VboType type, const Bounds& bounds, const SkeletalStorage::AnimationId* anim);
+    virtual void    implFree(const size_t objId);
 
-    void    setObjMatrix(size_t i, const Tempest::Matrix4x4& m);
-    void    setBounds   (size_t i, const Bounds& b);
-    void    startMMAnim (size_t i, std::string_view anim, float intensity, uint64_t timeUntil);
-    void    setFatness  (size_t i, float f);
-    void    setWind     (size_t i, ZenLoad::AnimMode m, float intensity);
+    void            uboSetCommon (Descriptors& v);
+    void            uboSetDynamic(Descriptors& v, Object& obj, uint8_t fId);
 
-    bool    isSceneInfoRequired() const;
-    void    updatePushBlock(UboPush& push, Object& v);
+    void            setObjMatrix(size_t i, const Tempest::Matrix4x4& m);
+    void            setBounds   (size_t i, const Bounds& b);
+    void            startMMAnim (size_t i, std::string_view anim, float intensity, uint64_t timeUntil);
+    void            setFatness  (size_t i, float f);
+    void            setWind     (size_t i, ZenLoad::AnimMode m, float intensity);
 
-    void    drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c);
+    bool            isSceneInfoRequired() const;
+    void            updatePushBlock(UboPush& push, Object& v);
+
+    virtual Descriptors& objUbo(size_t objId);
+    virtual void         drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c);
 
     const Bounds& bounds(size_t i) const;
 
     static VboType toVboType(const Type t);
 
+    const Type                objType   = Type::Landscape;
+    const VboType             vboType   = VboType::NoVbo;
+    const ProtoMesh*          morphAnim = nullptr;
+
     VisualObjects&            owner;
     Descriptors               uboShared;
+    VisibleSet                visSet;
 
     Object                    val[CAPACITY];
     size_t                    valSz = 0;
 
-    VisibleSet                visSet;
-
+  private:
     const SceneGlobals&       scene;
-    Storage&                  storage;
     Material                  mat;
-    const ProtoMesh*          morphAnim = nullptr;
 
     Tempest::UniformBuffer<UboMaterial> uboMat[Resources::MaxFramesInFlight];
-
-    const Type                objType = Type::Landscape;
-    const VboType             vboType = VboType::NoVbo;
 
     bool                      useSharedUbo        = false;
     bool                      textureInShadowPass = false;
@@ -249,3 +242,36 @@ class ObjectsBucket final {
     const Tempest::RenderPipeline* pShadow  = nullptr;
   };
 
+
+class ObjectsBucketLnd : public ObjectsBucket {
+  public:
+    ObjectsBucketLnd(const Material& mat, const ProtoMesh* anim, VisualObjects& owner, const SceneGlobals& scene, const Type type)
+      :ObjectsBucket(mat,anim,owner,scene,type) {
+      }
+
+  private:
+    void    drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
+                       const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c) override;
+  };
+
+class ObjectsBucketDyn : public ObjectsBucket {
+  public:
+    ObjectsBucketDyn(const Material& mat, const ProtoMesh* anim, VisualObjects& owner, const SceneGlobals& scene, const Type type)
+      :ObjectsBucket(mat,anim,owner,scene,type) {
+      }
+
+    void preFrameUpdate(uint8_t fId) override;
+
+  private:
+    Object& implAlloc(const VboType type, const Bounds& bounds, const SkeletalStorage::AnimationId* anim) override;
+    void    implFree (const size_t objId) override;
+
+    Descriptors& objUbo(size_t objId) override;
+
+    void    setupUbo() override;
+
+    void    drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
+                       const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c) override;
+
+    Descriptors uboObj[CAPACITY];
+  };
