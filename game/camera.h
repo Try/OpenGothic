@@ -122,6 +122,7 @@ class Camera final {
     void                  implMove(Tempest::KeyEvent::KeyType t);
     Tempest::Matrix4x4    mkView    (const Tempest::Vec3& pos, const Tempest::Vec3& spin) const;
     Tempest::Matrix4x4    mkRotation(const Tempest::Vec3& spin) const;
+    void                  resetDst();
 
     void                  clampRotation(Tempest::Vec3& spin);
 

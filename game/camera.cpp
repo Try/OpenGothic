@@ -106,11 +106,9 @@ void Camera::setMode(Camera::Mode m) {
   const bool reset = (m==Inventory || camMod==Inventory);
   camMod = m;
 
-  const auto& def = cameraDef();
-  if(reset) {
-    dst.spin.x = def.bestElevation;
-    dst.range  = def.bestRange;
-    }
+  if(reset)
+    resetDst();
+
   if(auto pl = Gothic::inst().player())
     dst.spin.y = pl->rotation();
   }
@@ -132,7 +130,10 @@ bool Camera::isFirstPerson() const {
   }
 
 void Camera::setLookBack(bool lb) {
+  if(lbEnable==lb)
+    return;
   lbEnable = lb;
+  resetDst();
   }
 
 void Camera::toogleDebug() {
@@ -193,10 +194,12 @@ Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
 
   smWidthInv = 1.f/smWidth;
 
+  float rotation = (180+src.spin.y-rotOffset.y);
+
   Matrix4x4 view;
   view.identity();
   view.rotate(-90, 1, 0, 0);     // +Y -> -Z
-  view.rotate(180+src.spin.y, 0, 1, 0);
+  view.rotate(rotation, 0, 1, 0);
   view.scale(smWidthInv, zScale, smWidthInv);
   view.translate(cameraPos);
   view.scale(-1,-1,-1);
@@ -205,7 +208,7 @@ Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
     float lx = ldir.x/ldir.y;
     float lz = ldir.z/ldir.y;
 
-    const float ang = -(180+src.spin.y)*float(M_PI)/180.f;
+    const float ang = -rotation*float(M_PI)/180.f;
     const float c   = std::cos(ang), s = std::sin(ang);
 
     float dx = lx*c-lz*s;
@@ -231,7 +234,7 @@ Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
   inv.project(mid);
   view.translate(mid-cameraPos);
 
-  Tempest::Matrix4x4 proj;
+  Matrix4x4 proj;
   proj.identity();
 
   switch(layer) {
@@ -460,10 +463,6 @@ void Camera::calcControlPoints(float dtF) {
   rotOffsetMat.rotateOX(src.spin.x);
   rotOffsetMat.project(targetOffset);
 
-  rotOffsetMat.rotateOX(rotOffset.x);
-  rotOffsetMat.rotateOY(rotOffset.y);
-  rotOffsetMat.rotateOZ(rotOffset.z);
-
   Vec3 dir = {0,0,1};
   rotOffsetMat.project(dir);
 
@@ -587,10 +586,16 @@ Matrix4x4 Camera::mkView(const Vec3& pos, const Vec3& spin) const {
 Matrix4x4 Camera::mkRotation(const Vec3& spin) const {
   Matrix4x4 view;
   view.identity();
-  view.rotateOX(spin.x);
-  view.rotateOY(spin.y);
-  view.rotateOZ(spin.z);
+  view.rotateOX(spin.x-rotOffset.x);
+  view.rotateOY(spin.y-rotOffset.y);
+  view.rotateOZ(spin.z-rotOffset.z);
   return view;
+  }
+
+void Camera::resetDst() {
+  const auto& def = cameraDef();
+  dst.spin.x = def.bestElevation;
+  dst.range  = def.bestRange;
   }
 
 void Camera::debugDraw(DbgPainter& p) {
