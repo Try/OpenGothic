@@ -103,7 +103,7 @@ void Camera::setMode(Camera::Mode m) {
   if(camMod==m)
     return;
 
-  const bool reset = (m==Inventory || camMod==Inventory);
+  const bool reset = (m==Inventory || camMod==Inventory || camMod==Dialog);
   camMod = m;
 
   if(reset)
