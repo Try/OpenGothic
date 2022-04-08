@@ -213,7 +213,8 @@ void MainWindow::paintEvent(PaintEvent& event) {
       world->marchPoints(dbg);
       world->marchInteractives(dbg);
       }
-    // world->view()->dbgLights(p);
+
+    // world->view()->dbgLights(dbg);
     }
 
   if(Gothic::inst().doFrate()) {

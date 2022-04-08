@@ -173,7 +173,7 @@ LightGroup::LightGroup(const SceneGlobals& scene)
   for(auto b:bucket) {
     for(int i=0;i<Resources::MaxFramesInFlight;++i) {
       auto& u = b->ubo[i];
-      u = device.descriptors(Shaders::inst().lights.layout());
+      u = device.descriptors(shader().layout());
       }
     }
 
@@ -308,6 +308,12 @@ LightSource& LightGroup::getL(size_t id) {
   return bucketDyn.light[id];
   }
 
+RenderPipeline& LightGroup::shader() const {
+  if(Gothic::inst().doRayQuery())
+    return Shaders::inst().lightsRq;
+  return Shaders::inst().lights;
+  }
+
 const ZenLoad::zCVobData& LightGroup::findPreset(std::string_view preset) const {
   for(auto& i:presets) {
     if(i.zCVobLight.lightPresetInUse!=preset)
@@ -365,7 +371,7 @@ void LightGroup::draw(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   static bool light = true;
   if(!light)
     return;
-  auto& p = Shaders::inst().lights;
+  auto& p = shader();
   if(bucketSt.data.size()>0) {
     cmd.setUniforms(p,bucketSt.ubo[fId]);
     cmd.draw(vbo,ibo, 0,ibo.size(), 0,bucketSt.data.size());
@@ -385,6 +391,9 @@ void LightGroup::setupUbo() {
       u.set(1,*scene.gbufNormals,Sampler2d::nearest());
       u.set(2,*scene.gbufDepth,  Sampler2d::nearest());
       u.set(3,uboBuf[i]);
+      if(Gothic::inst().doRayQuery() && scene.tlas!=nullptr) {
+        u.set(5,*scene.tlas);
+        }
       }
     }
   }

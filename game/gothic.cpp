@@ -277,6 +277,12 @@ void Gothic::setMarvinEnabled(bool m) {
   isMarvin = m;
   }
 
+bool Gothic::doRayQuery() const {
+  if(!Resources::device().properties().raytracing.rayQuery)
+    return false;
+  return CommandLine::inst().isRayQuery();
+  }
+
 Gothic::LoadState Gothic::checkLoading() const {
   return loadingFlag.load();
   }

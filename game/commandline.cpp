@@ -65,6 +65,9 @@ CommandLine::CommandLine(int argc, const char** argv) {
     else if(arg=="-validation" || arg=="-v") {
       isDebug  = true;
       }
+    else if(arg=="-rt") {
+      isRQuery = true;
+      }
     }
 
   if(gpath.empty()) {

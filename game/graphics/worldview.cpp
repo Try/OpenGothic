@@ -7,6 +7,7 @@
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "utils/gthfont.h"
+#include "gothic.h"
 
 using namespace Tempest;
 
@@ -15,6 +16,8 @@ WorldView::WorldView(const World& world, const PackedMesh& wmesh)
     objGroup(visuals),pfxGroup(*this,sGlobal,visuals),land(visuals,wmesh) {
   sky.setWorld(owner,wmesh.bbox());
   pfxGroup.resetTicks();
+  if(Gothic::inst().doRayQuery())
+    tlas = Resources::device().tlas(&land.blas,1);
   }
 
 WorldView::~WorldView() {
@@ -73,6 +76,7 @@ void WorldView::setGbuffer(const Texture2d& lightingBuf, const Texture2d& diffus
   sGlobal.gbufDiffuse = &diffuse;
   sGlobal.gbufNormals = &norm;
   sGlobal.gbufDepth   = &depth;
+  sGlobal.tlas        = &tlas;
   sGlobal.setShadowMap(shadow);
   setupUbo();
   }

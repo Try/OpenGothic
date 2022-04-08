@@ -96,6 +96,7 @@ add_uber_shader(clr -DVCOLOR  "-DMESH_TYPE=4")
 
 add_shader(light.vert                light.vert "")
 add_shader(light.frag                light.frag "")
+add_shader(light_rq.frag             light.frag -DRAY_QUERY)
 
 # Old nishita sky model
 add_shader(fog.vert                  sky/sky.vert         -DFOG)

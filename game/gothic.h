@@ -89,6 +89,8 @@ class Gothic final {
     bool         doFrate() const { return !noFrate; }
     void         setFRate(bool f) { noFrate = !f; }
 
+    bool         doRayQuery() const;
+
     LoadState    checkLoading() const;
     bool         finishLoading();
     void         startLoad(std::string_view banner, const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);

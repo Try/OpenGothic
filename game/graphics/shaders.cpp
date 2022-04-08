@@ -101,6 +101,11 @@ Shaders::Shaders() {
   sh           = GothicShader::get("light.frag.sprv");
   auto fsLight = device.shader(sh.data,sh.len);
   lights       = device.pipeline<Vec3>(Triangles, state, vsLight, fsLight);
+  if(Gothic::inst().doRayQuery()) {
+    sh           = GothicShader::get("light_rq.frag.sprv");
+    auto fsLight = device.shader(sh.data,sh.len);
+    lightsRq     = device.pipeline<Vec3>(Triangles, state, vsLight, fsLight);
+    }
   }
 
   fog = fogShader("fog");

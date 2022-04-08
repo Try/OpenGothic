@@ -89,13 +89,15 @@ class LightGroup final {
       void                     free(size_t id);
       };
 
-    size_t                           alloc(bool dynamic);
-    void                             free(size_t id);
+    size_t                            alloc(bool dynamic);
+    void                              free(size_t id);
 
-    LightSsbo&                       get (size_t id);
-    LightSource&                     getL(size_t id);
+    LightSsbo&                        get (size_t id);
+    LightSource&                      getL(size_t id);
 
-    const ZenLoad::zCVobData&        findPreset(std::string_view preset) const;
+    Tempest::RenderPipeline&          shader() const;
+
+    const ZenLoad::zCVobData&         findPreset(std::string_view preset) const;
 
     const SceneGlobals&               scene;
     std::vector<ZenLoad::zCVobData>   presets;

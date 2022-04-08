@@ -69,6 +69,8 @@ class WorldView {
     PfxObjects    pfxGroup;
     Landscape     land;
 
+    Tempest::AccelerationStructure tlas;
+
     bool needToUpdateCmd(uint8_t frameId) const;
     void invalidateCmd();
 

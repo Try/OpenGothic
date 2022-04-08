@@ -21,6 +21,8 @@ class Landscape final {
   public:
     Landscape(VisualObjects& visual, const PackedMesh& wmesh);
 
+    Tempest::AccelerationStructure blas;
+
   private:
     using Item = ObjectsBucket::Item;
 
@@ -30,5 +32,6 @@ class Landscape final {
       };
 
     Tempest::VertexBuffer<Resources::Vertex> vbo;
+    Tempest::IndexBuffer<uint32_t>           iboAll;
     std::list<Block>                         blocks;
   };
