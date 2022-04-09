@@ -209,6 +209,7 @@ void ObjectsBucket::implFree(const size_t objId) {
   v.vboA    = nullptr;
   v.ibo     = nullptr;
   valSz--;
+  visSet.erase(objId);
 
   if(valSz==0)
     owner.resetIndex();
@@ -256,8 +257,6 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
 
 void ObjectsBucket::uboSetDynamic(Descriptors& v, Object& obj, uint8_t fId) {
   auto& ubo = v.ubo[fId][SceneGlobals::V_Main];
-  if(ubo.isEmpty())
-    return;
 
   if(mat.frames.size()!=0) {
     auto frame = size_t((obj.timeShift+scene.tickCount)/mat.texAniFPSInv);

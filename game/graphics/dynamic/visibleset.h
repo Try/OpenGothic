@@ -19,6 +19,8 @@ class VisibleSet {
     size_t        count(SceneGlobals::VisCamera v) const { return size_t(cnt[v].load()); }
     const size_t* index(SceneGlobals::VisCamera v) const { return id[v];                 }
 
+    void          erase(size_t id);
+
   private:
     std::atomic_int cnt[SceneGlobals::V_Count]           = {};
     size_t          id [SceneGlobals::V_Count][CAPACITY] = {};
