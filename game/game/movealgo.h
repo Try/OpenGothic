@@ -23,8 +23,9 @@ class MoveAlgo final {
     MoveAlgo(Npc& unit);
 
     struct JumpStatus {
-      AnimationSolver::Anim anim = AnimationSolver::Anim::Jump;
-      float                 height = 0;
+      AnimationSolver::Anim anim    = AnimationSolver::Anim::Jump;
+      float                 height  = 0;
+      bool                  noClimb = false;
       };
 
     enum MvFlags {

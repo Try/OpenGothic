@@ -3617,7 +3617,8 @@ Npc::JumpStatus Npc::tryJump() {
   DynamicWorld::CollisionTest info;
   if(!isInAir() && physic.testMove(pos0+dp,info)) {
     // jump forward
-    ret.anim = Anim::Jump;
+    ret.anim   = Anim::Jump;
+    ret.noClimb = true;
     return ret;
     }
 
@@ -3630,15 +3631,17 @@ Npc::JumpStatus Npc::tryJump() {
 
   if(dY<=0.f ||
      !physic.testMove(pos2,pos1,info)) {
-    ret.anim   = Anim::JumpUp;
-    ret.height = y + jumpUp;
+    ret.anim    = Anim::JumpUp;
+    ret.height  = y + jumpUp;
+    ret.noClimb = true;
     return ret;
     }
 
   if(!physic.testMove(pos1,pos0,info) ||
      !physic.testMove(pos2,pos1,info)) {
     // check approximate path of climb failed
-    ret.anim = Anim::Jump;
+    ret.anim    = Anim::Jump;
+    ret.noClimb = true;
     return ret;
     }
 
@@ -3652,7 +3655,8 @@ Npc::JumpStatus Npc::tryJump() {
   DynamicWorld::CollisionTest out;
   if(mvAlgo.testSlide(Vec3{pos0.x,jumpY,pos0.z}+dp,out)) {
     // cannot climb to non angled surface
-    ret.anim = Anim::Jump;
+    ret.anim    = Anim::Jump;
+    ret.noClimb = true;
     return ret;
     }
 
@@ -3664,7 +3668,8 @@ Npc::JumpStatus Npc::tryJump() {
     }
 
   if(isInAir()) {
-    ret.anim   = Anim::Idle;
+    ret.anim    = Anim::Idle;
+    ret.noClimb = true;
     return ret;
     }
 
