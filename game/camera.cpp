@@ -33,7 +33,6 @@ float Camera::baseSpeeed     = 200;
 float Camera::offsetAngleMul = 0.2f;
 
 Camera::Camera() {
-  (void)inertiaTarget;
   }
 
 void Camera::reset() {
@@ -44,6 +43,11 @@ void Camera::reset(const Npc* pl) {
   const auto& def = cameraDef();
   dst.range  = userRange*(def.maxRange-def.minRange)+def.minRange;
   dst.target = pl ? pl->cameraBone() : Vec3();
+
+  dst.spin.x = def.bestElevation;
+  dst.spin.y = pl ? pl->rotation() : 0;
+
+  src.spin = dst.spin;
   calcControlPoints(-1.f);
   }
 
