@@ -113,19 +113,19 @@ void ObjVisual::setType(Type t) {
   type = t;
   }
 
-void ObjVisual::setVisual(const Daedalus::GEngineClasses::C_Item& hitem, World& world) {
+void ObjVisual::setVisual(const Daedalus::GEngineClasses::C_Item& hitem, World& world, bool staticDraw) {
   cleanup();
 
   if(FileExt::hasExt(hitem.visual.c_str(),"ZEN")) {
     setType(M_Bundle);
-    bundle = VobBundle(world,hitem.visual.c_str());
+    bundle = VobBundle(world,hitem.visual.c_str(),staticDraw);
     } else {
     setType(M_Mesh);
     mesh.view = world.addView(hitem);
     }
   }
 
-void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world) {
+void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world, bool staticDraw) {
   cleanup();
 
   // *.ZEN; *.PFX; *.TGA; *.3DS; *.MDS; *.ASC; *.MMS
@@ -151,7 +151,7 @@ void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world) {
     setType(M_Mesh);
     mesh.proto = view;
     if(vob.showVisual) {
-      mesh.view = world.addStaticView(view);
+      mesh.view = world.addStaticView(view,staticDraw);
       mesh.view.setWind(vob.visualAniMode,vob.visualAniModeStrength);
       }
     if(vob.showVisual && (vob.cdDyn || vob.cdStatic) && vob.visualAniMode!=ZenLoad::AnimMode::WIND2) {

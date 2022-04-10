@@ -100,7 +100,7 @@ class World final {
     MeshObjects::Mesh    addView(const Daedalus::GEngineClasses::C_Item& itm);
     MeshObjects::Mesh    addView(const ProtoMesh* visual);
     MeshObjects::Mesh    addAtachView (const ProtoMesh::Attach& visual, const int32_t version);
-    MeshObjects::Mesh    addStaticView(const ProtoMesh* visual);
+    MeshObjects::Mesh    addStaticView(const ProtoMesh* visual, bool staticDraw);
     MeshObjects::Mesh    addStaticView(const char* visual);
     MeshObjects::Mesh    addDecalView (const ZenLoad::zCVobData& vob);
 

@@ -16,8 +16,9 @@ WorldView::WorldView(const World& world, const PackedMesh& wmesh)
     objGroup(visuals),pfxGroup(*this,sGlobal,visuals),land(visuals,wmesh) {
   sky.setWorld(owner,wmesh.bbox());
   pfxGroup.resetTicks();
-  if(Gothic::inst().doRayQuery())
-    tlas = Resources::device().tlas(&land.blas,1);
+  // if(Gothic::inst().doRayQuery())
+  //   tlas = Resources::device().tlas({{Matrix4x4::mkIdentity(),&land.blas}});
+  visuals.onTlasChanged.bind(this,&WorldView::setupTlas);
   }
 
 WorldView::~WorldView() {
@@ -76,7 +77,7 @@ void WorldView::setGbuffer(const Texture2d& lightingBuf, const Texture2d& diffus
   sGlobal.gbufDiffuse = &diffuse;
   sGlobal.gbufNormals = &norm;
   sGlobal.gbufDepth   = &depth;
-  sGlobal.tlas        = &tlas;
+  //sGlobal.tlas        = &tlas;
   sGlobal.setShadowMap(shadow);
   setupUbo();
   }
@@ -139,9 +140,9 @@ MeshObjects::Mesh WorldView::addAtachView(const ProtoMesh::Attach& visual, const
   return MeshObjects::Mesh(objGroup,visual,version,false);
   }
 
-MeshObjects::Mesh WorldView::addStaticView(const ProtoMesh* mesh) {
+MeshObjects::Mesh WorldView::addStaticView(const ProtoMesh* mesh, bool staticDraw) {
   if(mesh!=nullptr)
-    return MeshObjects::Mesh(objGroup,*mesh,0,0,0,true);
+    return MeshObjects::Mesh(objGroup,*mesh,0,0,0,staticDraw);
   return MeshObjects::Mesh();
   }
 
@@ -198,4 +199,9 @@ void WorldView::setupUbo() {
   sGlobal.lights.setupUbo();
   sky.setupUbo();
   visuals.setupUbo();
+  }
+
+void WorldView::setupTlas(const Tempest::AccelerationStructure* tlas) {
+  sGlobal.tlas = tlas;
+  setupUbo();
   }

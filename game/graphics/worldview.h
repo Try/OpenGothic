@@ -38,6 +38,7 @@ class WorldView {
                     const Tempest::Texture2d& norm, const Tempest::Texture2d& depth,
                     const Tempest::Texture2d* shadow[]);
     void setupUbo();
+    void setupTlas(const Tempest::AccelerationStructure* tlas);
 
     void dbgLights    (DbgPainter& p) const;
     void prepareSky   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
@@ -54,7 +55,7 @@ class WorldView {
     MeshObjects::Mesh   addView      (const ProtoMesh* visual);
     MeshObjects::Mesh   addItmView   (std::string_view visual, int32_t material);
     MeshObjects::Mesh   addAtachView (const ProtoMesh::Attach& visual, const int32_t version);
-    MeshObjects::Mesh   addStaticView(const ProtoMesh* visual);
+    MeshObjects::Mesh   addStaticView(const ProtoMesh* visual, bool staticDraw = false);
     MeshObjects::Mesh   addStaticView(std::string_view visual);
     MeshObjects::Mesh   addDecalView (const ZenLoad::zCVobData& vob);
 

@@ -1,7 +1,7 @@
 #include "fireplace.h"
 
 FirePlace::FirePlace(Vob* parent, World& world, ZenLoad::zCVobData& vob, bool startup)
-  :Interactive(parent,world,vob,startup){
+  :Interactive(parent,world,vob,startup,false){
   fireVobtreeName = std::move(vob.oCMobFire.fireVobtreeName);
   fireSlot        = std::move(vob.oCMobFire.fireSlot);
   }

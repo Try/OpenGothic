@@ -7,7 +7,7 @@
 class VobBundle {
   public:
     VobBundle() = default;
-    VobBundle(World& owner, std::string_view filename);
+    VobBundle(World& owner, std::string_view filename, bool staticDraw = false);
 
     void setObjMatrix(const Tempest::Matrix4x4& obj);
 

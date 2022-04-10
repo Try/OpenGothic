@@ -29,9 +29,10 @@ class Landscape final {
     struct Block {
       Tempest::IndexBuffer<uint32_t> ibo;
       Item                           mesh;
+      Tempest::AccelerationStructure blas;
       };
 
     Tempest::VertexBuffer<Resources::Vertex> vbo;
-    Tempest::IndexBuffer<uint32_t>           iboAll;
+    // Tempest::IndexBuffer<uint32_t>           iboAll;
     std::list<Block>                         blocks;
   };

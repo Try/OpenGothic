@@ -371,6 +371,9 @@ void LightGroup::draw(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   static bool light = true;
   if(!light)
     return;
+  if(Gothic::inst().doRayQuery() && scene.tlas==nullptr)
+    return;
+
   auto& p = shader();
   if(bucketSt.data.size()>0) {
     cmd.setUniforms(p,bucketSt.ubo[fId]);

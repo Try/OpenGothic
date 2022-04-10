@@ -11,8 +11,8 @@
 #include "utils/fileext.h"
 #include "utils/dbgpainter.h"
 
-Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData& vob, bool startup)
-  : Vob(parent,world,vob,startup) {
+Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData& vob, bool startup, bool staticDraw)
+  : Vob(parent,world,vob,startup,staticDraw) {
   vobName       = std::move(vob.vobName);
   focName       = std::move(vob.oCMOB.focusName);
   bbox[0]       = vob.bbox[0];
@@ -157,7 +157,7 @@ void Interactive::resetPositionToTA(int32_t state) {
   }
 
 void Interactive::setVisual(ZenLoad::zCVobData& vob) {
-  visual.setVisual(vob,world);
+  visual.setVisual(vob,world,false);
   visual.setObjMatrix(transform());
   visual.setInteractive(this);
   animChanged = true;

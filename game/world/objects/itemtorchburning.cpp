@@ -8,7 +8,7 @@ ItemTorchBurning::ItemTorchBurning(World& owner, size_t inst, Item::Type type)
   Daedalus::GEngineClasses::C_Item  hitem={};
   sc.initializeInstance(hitem,inst);
   sc.clearReferences(hitem);
-  view.setVisual(hitem,owner);
+  view.setVisual(hitem,owner,false);
 
   size_t torchId = sc.getSymbolIndex("ItLsTorchburned");
   if(torchId!=size_t(-1)) {

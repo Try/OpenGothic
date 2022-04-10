@@ -7,9 +7,9 @@
 
 using namespace Tempest;
 
-StaticObj::StaticObj(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool startup)
-  : Vob(parent, world, vob, startup) {
-  visual.setVisual(vob,world);
+StaticObj::StaticObj(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool startup, bool staticDraw)
+  : Vob(parent, world, vob, startup, staticDraw) {
+  visual.setVisual(vob,world,staticDraw);
   visual.setObjMatrix(transform());
 
   scheme = std::move(vob.visual);

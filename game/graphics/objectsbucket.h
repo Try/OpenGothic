@@ -90,6 +90,7 @@ class ObjectsBucket {
     size_t                    size()      const { return valSz;      }
     size_t                    alloc(const Tempest::VertexBuffer<Vertex>  &vbo,
                                     const Tempest::IndexBuffer<uint32_t> &ibo,
+                                    const Tempest::AccelerationStructure* blas,
                                     size_t iboOffset, size_t iboLen,
                                     const Bounds& bounds);
     size_t                    alloc(const Tempest::VertexBuffer<VertexA> &vbo,
@@ -104,6 +105,7 @@ class ObjectsBucket {
     virtual void              setupUbo();
     void                      invalidateUbo();
     void                      resetVis();
+    void                      fillTlas(std::vector<Tempest::RtInstance>& inst);
 
     virtual void              preFrameUpdate(uint8_t fId);
     void                      draw       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
@@ -191,6 +193,7 @@ class ObjectsBucket {
 
       const SkeletalStorage::AnimationId*   skiningAni = nullptr;
       MorphAnim                             morphAnim[Resources::MAX_MORPH_LAYERS];
+      const Tempest::AccelerationStructure* blas = nullptr;
 
       bool                                  isValid = false;
       };

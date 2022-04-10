@@ -1,5 +1,7 @@
 #include "staticmesh.h"
 
+#include "gothic.h"
+
 StaticMesh::StaticMesh(const ZenLoad::PackedMesh &mesh) {
   static_assert(sizeof(Vertex)==sizeof(ZenLoad::WorldVertex),"invalid landscape vertex format");
   const Vertex* vert=reinterpret_cast<const Vertex*>(mesh.vertices.data());
@@ -14,6 +16,9 @@ StaticMesh::StaticMesh(const ZenLoad::PackedMesh &mesh) {
     sub[i].iboSize   = mesh.subMeshes[i].indexSize;
     }
   bbox.assign(mesh.bbox);
+
+  if(Gothic::inst().doRayQuery())
+    blas = Resources::device().blas(vbo,ibo);
   }
 
 StaticMesh::StaticMesh(const ZenLoad::PackedSkeletalMesh &mesh) {

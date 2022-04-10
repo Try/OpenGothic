@@ -27,6 +27,7 @@ class StaticMesh {
 
     Tempest::VertexBuffer<Vertex>  vbo;
     Tempest::IndexBuffer<uint32_t> ibo;
+    Tempest::AccelerationStructure blas;
 
     std::vector<SubMesh>           sub;
     Bounds                         bbox;

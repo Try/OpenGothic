@@ -625,7 +625,7 @@ void WorldObjects::addStatic(StaticObj* obj) {
   }
 
 void WorldObjects::addRoot(ZenLoad::zCVobData&& vob, bool startup) {
-  auto p = Vob::load(nullptr,owner,std::move(vob),startup);
+  auto p = Vob::load(nullptr,owner,std::move(vob),startup,true);
   if(p==nullptr)
     return;
   rootVobs.emplace_back(std::move(p));

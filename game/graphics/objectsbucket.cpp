@@ -30,7 +30,7 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
     case NoVbo:
       break;
     case VboVertex:{
-      idNext = bucket.alloc(*v.vbo,*v.ibo,v.iboOffset,v.iboLength,v.visibility.bounds());
+      idNext = bucket.alloc(*v.vbo,*v.ibo,v.blas,v.iboOffset,v.iboLength,v.visibility.bounds());
       break;
       }
     case VboVertexA:{
@@ -42,7 +42,7 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
       break;
       }
     case VboMorphGpu:{
-      idNext = bucket.alloc(*v.vbo,*v.ibo,v.iboOffset,v.iboLength,v.visibility.bounds());
+      idNext = bucket.alloc(*v.vbo,*v.ibo,v.blas,v.iboOffset,v.iboLength,v.visibility.bounds());
       break;
       }
     }
@@ -201,6 +201,9 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds
 
 void ObjectsBucket::implFree(const size_t objId) {
   auto& v = val[objId];
+  if(v.blas!=nullptr)
+    owner.resetTlas();
+
   v.visibility = VisibilityGroup::Token();
   v.isValid    = false;
   v.vbo        = nullptr;
@@ -208,6 +211,7 @@ void ObjectsBucket::implFree(const size_t objId) {
     v.vboM[i] = nullptr;
   v.vboA    = nullptr;
   v.ibo     = nullptr;
+  v.blas = nullptr;
   valSz--;
   visSet.erase(objId);
 
@@ -302,6 +306,18 @@ void ObjectsBucket::resetVis() {
   visSet.reset();
   }
 
+void ObjectsBucket::fillTlas(std::vector<RtInstance>& inst) {
+  for(size_t i=0; i<valSz; ++i) {
+    auto& v = val[i];
+    if(v.blas==nullptr)
+      continue;
+    RtInstance ix;
+    ix.mat  = v.pos;
+    ix.blas = v.blas;
+    inst.push_back(ix);
+    }
+  }
+
 void ObjectsBucket::preFrameUpdate(uint8_t fId) {
   if(mat.texAniMapDirPeriod.x==0 && mat.texAniMapDirPeriod.y==0 && mat.alpha!=Material::Water)
     return;
@@ -323,6 +339,7 @@ void ObjectsBucket::preFrameUpdate(uint8_t fId) {
 
 size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<Vertex>&  vbo,
                             const Tempest::IndexBuffer<uint32_t>& ibo,
+                            const Tempest::AccelerationStructure* blas,
                             size_t iboOffset, size_t iboLen,
                             const Bounds& bounds) {
   Object* v = &implAlloc(VboType::VboVertex,bounds,nullptr);
@@ -330,6 +347,11 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<Vertex>&  vbo,
   v->ibo       = &ibo;
   v->iboOffset = iboOffset;
   v->iboLength = iboLen;
+  if(blas!=nullptr && !blas->isEmpty() && !mat.isGhost && mat.alpha==Material::Solid &&
+     (objType==Type::Landscape || objType==Type::Static)) {
+    v->blas = blas;
+    owner.resetTlas();
+    }
   return size_t(std::distance(val,v));
   }
 
@@ -454,6 +476,9 @@ void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
   auto& v = val[i];
   v.visibility.setObjMatrix(m);
   v.pos = m;
+  if(v.blas!=nullptr) {
+    owner.resetTlas();
+    }
   }
 
 void ObjectsBucket::setBounds(size_t i, const Bounds& b) {

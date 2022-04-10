@@ -11,9 +11,9 @@ class Serialize;
 class Vob {
   public:
     Vob(World& owner);
-    Vob(Vob* parent, World& owner, ZenLoad::zCVobData& vob, bool startup);
+    Vob(Vob* parent, World& owner, ZenLoad::zCVobData& vob, bool startup, bool staticDraw);
     virtual ~Vob();
-    static std::unique_ptr<Vob> load(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool startup);
+    static std::unique_ptr<Vob> load(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool startup, bool staticDraw);
 
     void          saveVobTree(Serialize& fin) const;
     virtual void  save(Serialize& fout) const;

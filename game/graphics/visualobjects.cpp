@@ -3,12 +3,14 @@
 #include <Tempest/Log>
 
 #include "graphics/mesh/submesh/animmesh.h"
+#include "worldview.h"
 #include "utils/workers.h"
+#include "gothic.h"
 
 using namespace Tempest;
 
 VisualObjects::VisualObjects(const SceneGlobals& globals, const std::pair<Vec3, Vec3>& bbox)
-  :globals(globals), visGroup(bbox) {
+  : globals(globals), visGroup(bbox) {
   }
 
 VisualObjects::~VisualObjects() {
@@ -43,7 +45,7 @@ ObjectsBucket::Item VisualObjects::get(const StaticMesh &mesh, const Material& m
     type = ObjectsBucket::Morph;
     }
   auto&        bucket = getBucket(mat,anim,type);
-  const size_t id     = bucket.alloc(mesh.vbo,mesh.ibo,iboOffset,iboLen,mesh.bbox);
+  const size_t id     = bucket.alloc(mesh.vbo,mesh.ibo,&mesh.blas,iboOffset,iboLen,mesh.bbox);
   return ObjectsBucket::Item(bucket,id);
   }
 
@@ -57,14 +59,16 @@ ObjectsBucket::Item VisualObjects::get(const AnimMesh &mesh, const Material& mat
   return ObjectsBucket::Item(bucket,id);
   }
 
-ObjectsBucket::Item VisualObjects::get(Tempest::VertexBuffer<Resources::Vertex>& vbo, Tempest::IndexBuffer<uint32_t>& ibo,
+ObjectsBucket::Item VisualObjects::get(const Tempest::VertexBuffer<Resources::Vertex>& vbo,
+                                       const Tempest::IndexBuffer<uint32_t>& ibo,
+                                       const Tempest::AccelerationStructure* blas,
                                        const Material& mat, const Bounds& bbox, ObjectsBucket::Type type) {
   if(mat.tex==nullptr) {
     Tempest::Log::e("no texture?!");
     return ObjectsBucket::Item();
     }
   auto&        bucket = getBucket(mat,nullptr,type);
-  const size_t id     = bucket.alloc(vbo,ibo,0,ibo.size(),bbox);
+  const size_t id     = bucket.alloc(vbo,ibo,blas,0,ibo.size(),bbox);
   return ObjectsBucket::Item(bucket,id);
   }
 
@@ -94,6 +98,7 @@ void VisualObjects::preFrameUpdate(uint8_t fId) {
   recycledId = fId;
   recycled[fId].clear();
 
+  mkTlas(fId);
   mkIndex();
   commitUbo(fId);
   for(auto& c:buckets)
@@ -129,6 +134,10 @@ void VisualObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& enc, ui
 
 void VisualObjects::resetIndex() {
   index.clear();
+  }
+
+void VisualObjects::resetTlas() {
+  needtoInvalidateTlas = true;
   }
 
 void VisualObjects::recycle(Tempest::DescriptorSet&& del) {
@@ -186,5 +195,22 @@ void VisualObjects::commitUbo(uint8_t fId) {
 
   for(auto& c:buckets)
     c->invalidateUbo();
+  }
+
+void VisualObjects::mkTlas(uint8_t fId) {
+  auto& device = Resources::device();
+  if(!needtoInvalidateTlas)
+    return;
+  needtoInvalidateTlas = false;
+
+  if(!Gothic::inst().doRayQuery())
+    return;
+  device.waitIdle();
+
+  std::vector<Tempest::RtInstance> inst;
+  for(auto& c:buckets)
+    c->fillTlas(inst);
+  tlas = device.tlas(inst);
+  onTlasChanged(&tlas);
   }
 

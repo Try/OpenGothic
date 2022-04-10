@@ -455,7 +455,7 @@ void MdlVisual::setTorch(bool t, World& owner) {
   owner.script().initializeInstance(hitem,torchId);
   owner.script().clearReferences(hitem);
   torch.view.reset(new ObjVisual());
-  torch.view->setVisual(hitem,owner);
+  torch.view->setVisual(hitem,owner,false);
   torch.boneId = (skeleton==nullptr ? size_t(-1) : skeleton->findNode("ZS_LEFTHAND"));
   }
 
