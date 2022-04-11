@@ -18,7 +18,7 @@ class Shaders {
     Tempest::RenderPipeline lights, lightsRq;
     Tempest::RenderPipeline copy;
     Tempest::RenderPipeline bilateralBlur;
-    Tempest::RenderPipeline ssao, ssaoCompose;
+    Tempest::RenderPipeline ssao, ssaoRq, ssaoCompose;
 
     // Nishita
     Tempest::RenderPipeline sky, fog;
@@ -60,6 +60,7 @@ class Shaders {
     Tempest::RenderPipeline pipeline(Tempest::RenderState& st, const ShaderPair &fs) const;
 
     Tempest::RenderPipeline postEffect(std::string_view name);
+    Tempest::RenderPipeline postEffect(std::string_view vs, std::string_view fs);
     Tempest::RenderPipeline fogShader (std::string_view name);
 
     static Shaders* instance;

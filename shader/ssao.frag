@@ -1,6 +1,10 @@
-#version 450
+#version 460
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : enable
+
+#if defined(RAY_QUERY)
+#extension GL_EXT_ray_query : enable
+#endif
 
 #include "common.glsl"
 
@@ -12,6 +16,11 @@ layout(binding  = 0) uniform sampler2D lightingBuf;
 layout(binding  = 1) uniform sampler2D diffuse;
 layout(binding  = 2) uniform sampler2D normals;
 layout(binding  = 3) uniform sampler2D depth;
+
+#if defined(RAY_QUERY)
+layout(binding  = 5) uniform accelerationStructureEXT topLevelAS;
+#endif
+
 
 layout(location = 0) in  vec2 uv;
 layout(location = 1) in  vec2 inPos;
@@ -84,6 +93,30 @@ float sampleRadius(uint i, uint maxSmp) {
   return 0.5+float(i)/float(2*maxSmp);
   }
 
+#if defined(RAY_QUERY)
+bool rayTest(vec3 pos0, vec3 dp, float tMin, inout float len) {
+  float rayDistance  = len;
+  vec3  rayDirection = normalize(dp);
+  if(rayDistance<=tMin)
+    return true;
+
+  //uint flags = gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsCullNoOpaqueEXT;
+  uint flags = gl_RayFlagsOpaqueEXT;
+  rayQueryEXT rayQuery;
+  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
+                        pos0, tMin, rayDirection, rayDistance);
+
+  while(rayQueryProceedEXT(rayQuery))
+    ;
+
+  if(rayQueryGetIntersectionTypeEXT(rayQuery, true)==gl_RayQueryCommittedIntersectionNoneEXT)
+    return false;
+
+  len = rayQueryGetIntersectionTEXT(rayQuery, true);
+  return true;
+  }
+#endif
+
 float calcOcclussion() {
   vec3 norm = normalize(textureLod(normals,uv,0).xyz*2.0-vec3(1.0));
   // Compute a tangent frame and rotate the half vector to world space
@@ -93,8 +126,8 @@ float calcOcclussion() {
   tangent[1] = cross(norm, tangent[0]);
   tangent[2] = norm;
 
-  const vec3 at0   = vec3(inPos.xy,readZ(inPos.xy));
-  const vec3 pos0  = inverse(at0);
+  const vec3 at0  = vec3(inPos.xy,readZ(inPos.xy));
+  const vec3 pos0 = inverse(at0);
 
   if(at0.z>=0.998)
     return 0; // sky
@@ -110,17 +143,32 @@ float calcOcclussion() {
 
     vec3  v      = tangent * h;
     vec3  at1    = project(pos0 + v*sphereLen*r);
-    float z      = readZ(at1.xy);
+    if(abs(at1.x)>1.0 || abs(at1.y)>1.0) {
+#if defined(RAY_QUERY)
+      vec3  pos1   = pos0 + v*sphereLen*r;
+      vec3  dp     = (pos1-pos0);
+      float len    = sphereLen*r;
+      bool  isHit  = (rayTest(pos0,v,sphereLen*0.1,len));
 
+      float lenQ   = len*len;
+      float angW   = h.z;                                   // angle attenuation.
+      float distW  = 1.0-min(lenQ/(sphereLen*sphereLen),1); // distance attenuation
+      if(isHit)
+        occlusion += angW*distW;
+      weightAll += distW;
+#endif
+      continue;
+      }
+    float z      = readZ(at1.xy);
     vec3  at2    = vec3(at1.xy,z);
     vec3  pos2   = inverse(at2);
     vec3  dp     = (pos2-pos0);
+    bool  isHit  = (z<at1.z);
 
     float lenQ   = dot(dp,dp);
-
     float angW   = h.z;                                   // angle attenuation.
     float distW  = 1.0-min(lenQ/(sphereLen*sphereLen),1); // distance attenuation
-    if(z<at1.z)
+    if(isHit)
       occlusion += angW*distW;
     weightAll += distW;
     }

@@ -87,6 +87,9 @@ Shaders::Shaders() {
   skyEGSR            = postEffect("sky_egsr_g2");
   fogEGSR            = fogShader ("fog_egsr");
 
+  if(Gothic::inst().doRayQuery())
+    ssaoRq = postEffect("ssao","ssao_rq");
+
   {
   RenderState state;
   state.setCullFaceMode (RenderState::CullMode::Front);
@@ -230,6 +233,10 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
   }
 
 RenderPipeline Shaders::postEffect(std::string_view name) {
+  return postEffect(name,name);
+  }
+
+RenderPipeline Shaders::postEffect(std::string_view vsName, std::string_view fsName) {
   auto& device = Resources::device();
 
   RenderState stateFsq;
@@ -238,11 +245,11 @@ RenderPipeline Shaders::postEffect(std::string_view name) {
   stateFsq.setZWriteEnabled(false);
 
   char buf[256] = {};
-  std::snprintf(buf,sizeof(buf),"%.*s.vert.sprv",int(name.size()),name.data());
+  std::snprintf(buf,sizeof(buf),"%.*s.vert.sprv",int(vsName.size()),vsName.data());
   auto sh = GothicShader::get(buf);
   auto vs = device.shader(sh.data,sh.len);
 
-  std::snprintf(buf,sizeof(buf),"%.*s.frag.sprv",int(name.size()),name.data());
+  std::snprintf(buf,sizeof(buf),"%.*s.frag.sprv",int(fsName.size()),fsName.data());
   sh      = GothicShader::get(buf);
   auto fs = device.shader(sh.data,sh.len);
   return device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,vs,fs);
