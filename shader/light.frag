@@ -29,12 +29,14 @@ bool isShadow(vec3 rayOrigin, vec3 direction) {
 #if defined(RAY_QUERY)
   vec3  rayDirection = normalize(direction);
   float rayDistance  = length(direction)-3.0;
-  float tMin         = 3;
+  float tMin         = 30;
   if(rayDistance<=tMin)
     return false;
 
+  //uint flags = gl_RayFlagsCullBackFacingTrianglesEXT | gl_RayFlagsTerminateOnFirstHitEXT;
+  uint flags = gl_RayFlagsTerminateOnFirstHitEXT;
   rayQueryEXT rayQuery;
-  rayQueryInitializeEXT(rayQuery, topLevelAS, gl_RayFlagsTerminateOnFirstHitEXT, 0xFF,
+  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
                         rayOrigin, tMin, rayDirection, rayDistance);
 
   while(rayQueryProceedEXT(rayQuery))

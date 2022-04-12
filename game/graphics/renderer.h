@@ -58,10 +58,11 @@ class Renderer final {
     Tempest::Attachment       gbufDepth;
 
     struct SSAO {
-      Tempest::TextureFormat  aoFormat = Tempest::TextureFormat::R8;
-      Tempest::Attachment     ssaoBuf;
-      Tempest::Attachment     blurBuf;
-      Tempest::DescriptorSet  uboSsao, uboBlur[2], uboCompose;
+      Tempest::TextureFormat   aoFormat = Tempest::TextureFormat::R8;
+      Tempest::Attachment      ssaoBuf;
+      Tempest::Attachment      blurBuf;
+      Tempest::RenderPipeline* ssaoPso = nullptr;
+      Tempest::DescriptorSet   uboSsao, uboBlur[2], uboCompose;
     } ssao;
 
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::RGBA8;

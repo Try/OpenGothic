@@ -67,6 +67,8 @@ class SceneGlobals final {
     Tempest::Vec2                     windDir = {0,1};
     uint64_t                          windPeriod = 6000;
 
+    bool                              tlasEnabled = true;
+
   private:
     void                              initSettings();
 

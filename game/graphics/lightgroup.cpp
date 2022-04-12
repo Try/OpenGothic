@@ -221,12 +221,18 @@ LightGroup::LightGroup(const SceneGlobals& scene)
 
 void LightGroup::dbgLights(DbgPainter& p) const {
   int cnt = 0;
-  p.setBrush(Color(1,0,0,0.01f));
-  //p.setBrush(Color(1,0,0,1.f));
+  //p.setBrush(Color(1,0,0,0.01f));
+  p.setBrush(Color(1,0,0,1.f));
 
   const LightBucket* bucket[2] = {&bucketSt, &bucketDyn};
   for(auto b:bucket) {
     for(auto& i:b->light) {
+      auto pt = i.position();
+      float l = 10;
+      p.drawLine(pt-Vec3(l,0,0),pt+Vec3(l,0,0));
+      p.drawLine(pt-Vec3(0,l,0),pt+Vec3(0,l,0));
+      p.drawLine(pt-Vec3(0,0,l),pt+Vec3(0,0,l));
+      /*
       float r  = i.range();
       auto  pt = i.position();
       Vec3 px[9] = {};
@@ -274,6 +280,7 @@ void LightGroup::dbgLights(DbgPainter& p) const {
       cnt++;
       p.painter.drawRect(x0,y0,x1-x0,y1-y0);
       p.painter.drawRect(x0,y0,3,3);
+      */
       }
     }
 

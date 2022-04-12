@@ -5,6 +5,7 @@
 #include "world/world.h"
 #include "game/serialize.h"
 #include "graphics/mesh/pose.h"
+#include "graphics/mesh/skeleton.h"
 #include "utils/fileext.h"
 #include "gothic.h"
 
@@ -128,6 +129,8 @@ void ObjVisual::setVisual(const Daedalus::GEngineClasses::C_Item& hitem, World& 
 void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world, bool staticDraw) {
   cleanup();
 
+  const bool enableCollision = (vob.cdDyn || vob.cdStatic);
+
   // *.ZEN; *.PFX; *.TGA; *.3DS; *.MDS; *.ASC; *.MMS
   if(FileExt::hasExt(vob.visual,"ZEN")) {
     setType(M_Bundle);
@@ -154,7 +157,7 @@ void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world, bool stat
       mesh.view = world.addStaticView(view,staticDraw);
       mesh.view.setWind(vob.visualAniMode,vob.visualAniModeStrength);
       }
-    if(vob.showVisual && (vob.cdDyn || vob.cdStatic) && vob.visualAniMode!=ZenLoad::AnimMode::WIND2) {
+    if(vob.showVisual && enableCollision && vob.visualAniMode!=ZenLoad::AnimMode::WIND2) {
       mesh.physic = PhysicMesh(*view,*world.physic(),false);
       }
     }
@@ -171,10 +174,14 @@ void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world, bool stat
     mdl.proto = view;
     mdl.view.setYTranslationEnable(false);
     mdl.view.setVisual(view->skeleton.get());
-    if(vob.showVisual)
-      mdl.view.setVisualBody(world,world.addView(view));
 
-    if(vob.showVisual && (vob.cdDyn || vob.cdStatic)) {
+    if(vob.showVisual) {
+      if((view->skeleton==nullptr || view->skeleton->animation()==nullptr) && enableCollision)
+        mdl.view.setVisualBody(world,world.addStaticView(view,true)); else
+        mdl.view.setVisualBody(world,world.addView(view));
+      }
+
+    if(vob.showVisual && enableCollision) {
       mdl.physic = PhysicMesh(*view,*world.physic(),true);
       mdl.physic.setSkeleton(view->skeleton.get());
       }

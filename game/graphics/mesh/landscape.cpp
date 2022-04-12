@@ -15,7 +15,7 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &mesh) {
   auto& device = Resources::device();
 
   Bounds bbox;
-  //std::vector<uint32_t> ibo;
+  std::vector<uint32_t> ibo;
 
   for(auto& i:mesh.subMeshes) {
     auto material = Resources::loadMaterial(i.material,true);
@@ -29,17 +29,16 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &mesh) {
     blocks.emplace_back();
     auto& b = blocks.back();
     b.ibo  = Resources::ibo(i.indices.data(),i.indices.size());
-    if(Gothic::inst().doRayQuery())
-      b.blas = device.blas(vbo,b.ibo);
+
+    if(Gothic::inst().doRayQuery() && material.alpha!=Material::Solid)
+      b.blas = device.blas(vbo,b.ibo); else
+      ibo.insert(ibo.end(), i.indices.begin(),i.indices.end());
     b.mesh = visual.get(vbo,b.ibo,&b.blas,material,bbox,ObjectsBucket::Landscape);
     b.mesh.setObjMatrix(Matrix4x4::mkIdentity());
-
-    // if(Gothic::inst().doRayQuery())
-    //   ibo.insert(ibo.end(), i.indices.begin(),i.indices.end());
     }
-  /*
+
   if(Gothic::inst().doRayQuery()) {
-    iboAll = Resources::ibo(ibo.data(),ibo.size());
-    blas   = device.blas(vbo,iboAll);
-    }*/
+    iboSolid  = Resources::ibo(ibo.data(),ibo.size());
+    blasSolid = device.blas(vbo,iboSolid);
+    }
   }

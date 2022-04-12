@@ -16,8 +16,9 @@ WorldView::WorldView(const World& world, const PackedMesh& wmesh)
     objGroup(visuals),pfxGroup(*this,sGlobal,visuals),land(visuals,wmesh) {
   sky.setWorld(owner,wmesh.bbox());
   pfxGroup.resetTicks();
-  // if(Gothic::inst().doRayQuery())
-  //   tlas = Resources::device().tlas({{Matrix4x4::mkIdentity(),&land.blas}});
+  if(Gothic::inst().doRayQuery())
+    tlasLand = Resources::device().tlas({{Matrix4x4::mkIdentity(),&land.blasSolid}});
+  visuals.setLandscapeBlas(&land.blasSolid);
   visuals.onTlasChanged.bind(this,&WorldView::setupTlas);
   }
 
@@ -125,8 +126,10 @@ MeshObjects::Mesh WorldView::addView(std::string_view visual, int32_t headTex, i
   }
 
 MeshObjects::Mesh WorldView::addView(const ProtoMesh* mesh) {
-  if(mesh!=nullptr)
-    return MeshObjects::Mesh(objGroup,*mesh,0,0,0,false);
+  if(mesh!=nullptr) {
+    bool staticDraw = false;
+    return MeshObjects::Mesh(objGroup,*mesh,0,0,0,staticDraw);
+    }
   return MeshObjects::Mesh();
   }
 
@@ -156,6 +159,10 @@ MeshObjects::Mesh WorldView::addDecalView(const ZenLoad::zCVobData& vob) {
   if(auto mesh=Resources::decalMesh(vob))
     return MeshObjects::Mesh(objGroup,*mesh,0,0,0,true);
   return MeshObjects::Mesh();
+  }
+
+const AccelerationStructure& WorldView::landscapeTlas() {
+  return tlasLand;
   }
 
 void WorldView::updateLight() {
@@ -203,5 +210,6 @@ void WorldView::setupUbo() {
 
 void WorldView::setupTlas(const Tempest::AccelerationStructure* tlas) {
   sGlobal.tlas = tlas;
+  //sGlobal.tlas = &tlasLand;
   setupUbo();
   }

@@ -348,7 +348,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<Vertex>&  vbo,
   v->iboOffset = iboOffset;
   v->iboLength = iboLen;
   if(blas!=nullptr && !blas->isEmpty() && !mat.isGhost && mat.alpha==Material::Solid &&
-     (objType==Type::Landscape || objType==Type::Static)) {
+     (/*objType==Type::Landscape ||*/ objType==Type::Static)) {
     v->blas = blas;
     owner.resetTlas();
     }

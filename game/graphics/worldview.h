@@ -59,6 +59,8 @@ class WorldView {
     MeshObjects::Mesh   addStaticView(std::string_view visual);
     MeshObjects::Mesh   addDecalView (const ZenLoad::zCVobData& vob);
 
+    const Tempest::AccelerationStructure& landscapeTlas();
+
   private:
     const World&  owner;
 
@@ -70,7 +72,7 @@ class WorldView {
     PfxObjects    pfxGroup;
     Landscape     land;
 
-    Tempest::AccelerationStructure tlas;
+    Tempest::AccelerationStructure tlasLand;
 
     bool needToUpdateCmd(uint8_t frameId) const;
     void invalidateCmd();

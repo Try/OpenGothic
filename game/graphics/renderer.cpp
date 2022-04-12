@@ -88,7 +88,10 @@ void Renderer::resetSwapchain() {
   ssao.ssaoBuf = device.attachment(ssao.aoFormat, (swapchain.w()+1)/2,(swapchain.h()+1)/2);
   ssao.blurBuf = device.attachment(ssao.aoFormat, (swapchain.w()+1)/2,(swapchain.h()+1)/2);
 
-  ssao.uboSsao = device.descriptors(Shaders::inst().ssao);
+  if(Gothic::inst().doRayQuery())
+    ssao.ssaoPso = &Shaders::inst().ssaoRq; else
+    ssao.ssaoPso = &Shaders::inst().ssao;
+  ssao.uboSsao = device.descriptors(*ssao.ssaoPso);
   ssao.uboSsao.set(0,lightingBuf,smp);
   ssao.uboSsao.set(1,gbufDiffuse,smp);
   ssao.uboSsao.set(2,gbufNormal, smp);
@@ -123,6 +126,9 @@ void Renderer::prepareUniforms() {
   auto wview = Gothic::inst().worldView();
   if(wview==nullptr)
     return;
+
+  if(ssao.ssaoPso==&Shaders::inst().ssaoRq)
+    ssao.uboSsao.set(5,wview->landscapeTlas());
 
   const Texture2d* sh[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
@@ -229,7 +235,7 @@ void Renderer::drawSSAO(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd
   push.mvp = viewProj;
 
   cmd.setFramebuffer({{ssao.ssaoBuf, Tempest::Discard, Tempest::Preserve}});
-  cmd.setUniforms(Shaders::inst().ssao,ssao.uboSsao,&push,sizeof(push));
+  cmd.setUniforms(*ssao.ssaoPso,ssao.uboSsao,&push,sizeof(push));
   cmd.draw(Resources::fsqVbo());
   }
 

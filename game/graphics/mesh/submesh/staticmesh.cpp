@@ -9,7 +9,7 @@ StaticMesh::StaticMesh(const ZenLoad::PackedMesh &mesh) {
   ibo = Resources::ibo<uint32_t>(mesh.indices.data(),mesh.indices.size());
 
   sub.resize(mesh.subMeshes.size());
-  for(size_t i=0;i<mesh.subMeshes.size();++i){
+  for(size_t i=0;i<mesh.subMeshes.size();++i) {
     sub[i].texName   = mesh.subMeshes[i].material.texture;
     sub[i].material  = Resources::loadMaterial(mesh.subMeshes[i].material,mesh.isUsingAlphaTest);
     sub[i].iboOffset = mesh.subMeshes[i].indexOffset;
@@ -17,8 +17,15 @@ StaticMesh::StaticMesh(const ZenLoad::PackedMesh &mesh) {
     }
   bbox.assign(mesh.bbox);
 
-  if(Gothic::inst().doRayQuery())
-    blas = Resources::device().blas(vbo,ibo);
+  if(Gothic::inst().doRayQuery()) {
+    // bool mergedBlas = true;
+    // for(size_t i=0; i<mesh.subMeshes.size(); ++i)
+    //   mergedBlas &= (sub[i].material.alpha==Material::Solid);
+
+    for(size_t i=0;i<mesh.subMeshes.size();++i) {
+      sub[i].blas = Resources::device().blas(vbo,ibo, sub[i].iboOffset, sub[i].iboSize);
+      }
+    }
   }
 
 StaticMesh::StaticMesh(const ZenLoad::PackedSkeletalMesh &mesh) {
@@ -58,6 +65,8 @@ StaticMesh::StaticMesh(const Material& mat, std::vector<Resources::Vertex> cvbo,
     sub[i].texName        = "";
     sub[i].material       = mat;
     sub[i].iboSize        = ibo.size();
+    if(Gothic::inst().doRayQuery())
+      sub[i].blas = Resources::device().blas(vbo,ibo);
     }
   bbox.assign(cvbo);
   }

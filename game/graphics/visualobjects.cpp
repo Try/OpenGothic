@@ -33,7 +33,7 @@ ObjectsBucket& VisualObjects::getBucket(const Material& mat, const ProtoMesh* an
   }
 
 ObjectsBucket::Item VisualObjects::get(const StaticMesh &mesh, const Material& mat,
-                                       size_t iboOffset, size_t iboLen,
+                                       size_t iboOffset, size_t iboSize,
                                        const ProtoMesh* anim,
                                        bool staticDraw) {
   if(mat.tex==nullptr) {
@@ -44,8 +44,14 @@ ObjectsBucket::Item VisualObjects::get(const StaticMesh &mesh, const Material& m
   if(anim!=nullptr && anim->morph.size()>0) {
     type = ObjectsBucket::Morph;
     }
+
+  const Tempest::AccelerationStructure* blas = nullptr;
+  for(auto& i:mesh.sub)
+    if(i.iboOffset==iboOffset && i.iboSize==iboSize)
+      blas = &i.blas;
+
   auto&        bucket = getBucket(mat,anim,type);
-  const size_t id     = bucket.alloc(mesh.vbo,mesh.ibo,&mesh.blas,iboOffset,iboLen,mesh.bbox);
+  const size_t id     = bucket.alloc(mesh.vbo,mesh.ibo,blas,iboOffset,iboSize,mesh.bbox);
   return ObjectsBucket::Item(bucket,id);
   }
 
@@ -146,6 +152,11 @@ void VisualObjects::recycle(Tempest::DescriptorSet&& del) {
   recycled[recycledId].emplace_back(std::move(del));
   }
 
+void VisualObjects::setLandscapeBlas(const Tempest::AccelerationStructure* blas) {
+  landBlas             = blas;
+  needtoInvalidateTlas = true;
+  }
+
 void VisualObjects::mkIndex() {
   if(index.size()!=0)
     return;
@@ -199,7 +210,7 @@ void VisualObjects::commitUbo(uint8_t fId) {
 
 void VisualObjects::mkTlas(uint8_t fId) {
   auto& device = Resources::device();
-  if(!needtoInvalidateTlas)
+  if(!needtoInvalidateTlas || !globals.tlasEnabled)
     return;
   needtoInvalidateTlas = false;
 
@@ -210,6 +221,12 @@ void VisualObjects::mkTlas(uint8_t fId) {
   std::vector<Tempest::RtInstance> inst;
   for(auto& c:buckets)
     c->fillTlas(inst);
+  if(landBlas!=nullptr) {
+    Tempest::RtInstance ix;
+    ix.mat  = Matrix4x4::mkIdentity();
+    ix.blas = landBlas;
+    inst.push_back(ix);
+    }
   tlas = device.tlas(inst);
   onTlasChanged(&tlas);
   }

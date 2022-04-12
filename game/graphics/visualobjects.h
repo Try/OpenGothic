@@ -34,6 +34,7 @@ class VisualObjects final {
     void resetTlas();
     void recycle(Tempest::DescriptorSet&& del);
 
+    void setLandscapeBlas(const Tempest::AccelerationStructure* blas);
     Tempest::Signal<void(const Tempest::AccelerationStructure* tlas)> onTlasChanged;
 
   private:
@@ -50,11 +51,12 @@ class VisualObjects final {
     std::vector<ObjectsBucket*>                 index;
     size_t                                      lastSolidBucket = 0;
 
-    std::vector<Tempest::DescriptorSet> recycled[Resources::MaxFramesInFlight];
-    uint8_t                             recycledId = 0;
+    std::vector<Tempest::DescriptorSet>   recycled[Resources::MaxFramesInFlight];
+    uint8_t                               recycledId = 0;
 
-    bool                           needtoInvalidateTlas = false;
-    Tempest::AccelerationStructure tlas;
+    bool                                  needtoInvalidateTlas = false;
+    Tempest::AccelerationStructure        tlas;
+    const Tempest::AccelerationStructure* landBlas = nullptr;
 
   friend class ObjectsBucket;
   friend class ObjectsBucket::Item;
