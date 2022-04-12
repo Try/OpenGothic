@@ -117,6 +117,16 @@ class Resources final {
 
     static Tempest::StorageBuffer    ssbo(const void* data, size_t size) { return inst->dev.ssbo(data,size); }
 
+    template<class V, class I>
+    static Tempest::AccelerationStructure
+                                     blas(const Tempest::VertexBuffer<V>& b,
+                                          const Tempest::IndexBuffer<I>&  i,
+                                          size_t offset, size_t size){
+      if(!inst->dev.properties().raytracing.rayQuery)
+        return Tempest::AccelerationStructure();
+      return inst->dev.blas(b,i,offset,size);
+      }
+
     static std::vector<uint8_t>      getFileData(std::string_view name);
     static bool                      getFileData(std::string_view name, std::vector<uint8_t>& dat);
     static bool                      hasFile    (std::string_view fname);

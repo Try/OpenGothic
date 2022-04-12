@@ -17,14 +17,8 @@ StaticMesh::StaticMesh(const ZenLoad::PackedMesh &mesh) {
     }
   bbox.assign(mesh.bbox);
 
-  if(Gothic::inst().doRayQuery()) {
-    // bool mergedBlas = true;
-    // for(size_t i=0; i<mesh.subMeshes.size(); ++i)
-    //   mergedBlas &= (sub[i].material.alpha==Material::Solid);
-
-    for(size_t i=0;i<mesh.subMeshes.size();++i) {
-      sub[i].blas = Resources::device().blas(vbo,ibo, sub[i].iboOffset, sub[i].iboSize);
-      }
+  for(size_t i=0;i<mesh.subMeshes.size();++i) {
+    sub[i].blas = Resources::blas(vbo,ibo, sub[i].iboOffset, sub[i].iboSize);
     }
   }
 
@@ -62,11 +56,10 @@ StaticMesh::StaticMesh(const Material& mat, std::vector<Resources::Vertex> cvbo,
   ibo = Resources::ibo(cibo.data(),cibo.size());
   sub.resize(1);
   for(size_t i=0;i<1;++i) {
-    sub[i].texName        = "";
-    sub[i].material       = mat;
-    sub[i].iboSize        = ibo.size();
-    if(Gothic::inst().doRayQuery())
-      sub[i].blas = Resources::device().blas(vbo,ibo);
+    sub[i].texName  = "";
+    sub[i].material = mat;
+    sub[i].iboSize  = ibo.size();
+    sub[i].blas     = Resources::blas(vbo,ibo,0,ibo.size());
     }
   bbox.assign(cvbo);
   }
