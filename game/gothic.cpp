@@ -38,6 +38,58 @@ Gothic::Gothic() {
 
   baseIniFile.reset(new IniFile(nestedPath({u"system",u"Gothic.ini"},Dir::FT_File)));
   iniFile    .reset(new IniFile(u"Gothic.ini"));
+  {
+  defaults.reset(new IniFile());
+  defaults->set("GAME", "enableMouse",         1);
+  defaults->set("GAME", "mouseSensitivity",    0.5f);
+  defaults->set("GAME", "invCatOrder",         "COMBAT,POTION,FOOD,ARMOR,MAGIC,RUNE,DOCS,OTHER,NONE");
+  defaults->set("GAME", "invMaxColumns",       5);
+  defaults->set("GAME", "animatedWindows",     1);
+  defaults->set("GAME", "useGothic1Controls",  0);
+  defaults->set("GAME", "highlightMeleeFocus", 0);
+
+  defaults->set("SKY_OUTDOOR", "zSunName",   "unsun5.tga");
+  defaults->set("SKY_OUTDOOR", "zSunSize",   200);
+  defaults->set("SKY_OUTDOOR", "zSunAlpha",  230);
+  defaults->set("SKY_OUTDOOR", "zMoonName",  "moon.tga");
+  defaults->set("SKY_OUTDOOR", "zMoonSize",  400);
+  defaults->set("SKY_OUTDOOR", "zMoonAlpha", 255);
+
+  defaults->set("SOUND", "musicEnabled",  1);
+  defaults->set("SOUND", "musicVolume",   0.5f);
+  defaults->set("SOUND", "soundVolume",   0.5f);
+
+  defaults->set("ENGINE", "zEnvMappingEnabled", 0);
+  defaults->set("ENGINE", "zCloudShadowScale",  0);
+  defaults->set("ENGINE", "zWindEnabled",       1);
+  defaults->set("ENGINE", "zWindCycleTime",     4);
+  defaults->set("ENGINE", "zWindCycleTimeVar",  6);
+
+  defaults->set("KEYS", "keyEnd",         "0100");
+  defaults->set("KEYS", "keyHeal",        "2300");
+  defaults->set("KEYS", "keyPotion",      "1900");
+  defaults->set("KEYS", "keyLockTarget",  "4f00");
+  defaults->set("KEYS", "keyParade",      "cf000d02");
+  defaults->set("KEYS", "keyActionRight", "d100");
+  defaults->set("KEYS", "keyActionLeft",  "d300");
+  defaults->set("KEYS", "keyUp",          "c8001100");
+  defaults->set("KEYS", "keyDown",        "d0001f00");
+  defaults->set("KEYS", "keyLeft",        "cb001000");
+  defaults->set("KEYS", "keyRight",       "cd001200");
+  defaults->set("KEYS", "keyStrafeLeft",  "d3001e00");
+  defaults->set("KEYS", "keyStrafeRight", "d1002000");
+  defaults->set("KEYS", "keyAction",      "1d000c02");
+  defaults->set("KEYS", "keySlow",        "2a003600");
+  defaults->set("KEYS", "keySMove",       "38009d00");
+  defaults->set("KEYS", "keyWeapon",      "39000e02");
+  defaults->set("KEYS", "keySneak",       "2d00");
+  defaults->set("KEYS", "keyLook",        "13005200");
+  defaults->set("KEYS", "keyLookFP",      "21005300");
+  defaults->set("KEYS", "keyInventory",   "0f000e00");
+  defaults->set("KEYS", "keyShowStatus",  "30002e00");
+  defaults->set("KEYS", "keyShowLog",     "31002600");
+  defaults->set("KEYS", "keyShowMap",     "3200");
+  }
 
   detectGothicVersion();
 
@@ -504,9 +556,15 @@ std::vector<uint8_t> Gothic::loadScriptCode(std::string_view datFile) {
   }
 
 int Gothic::settingsGetI(std::string_view sec, std::string_view name) {
+  if(name.empty())
+    return 0;
   if(instance->iniFile->has(sec,name))
     return instance->iniFile->getI(sec,name);
-  return instance->baseIniFile->getI(sec,name);
+  if(instance->baseIniFile->has(sec,name))
+    return instance->baseIniFile->getI(sec,name);
+  if(instance->defaults->has(sec,name))
+    return instance->defaults->getI(sec,name);
+  return 0;
   }
 
 void Gothic::settingsSetI(std::string_view sec, std::string_view name, int val) {
@@ -514,21 +572,33 @@ void Gothic::settingsSetI(std::string_view sec, std::string_view name, int val) 
   instance->onSettingsChanged();
   }
 
-const std::string& Gothic::settingsGetS(std::string_view sec, std::string_view name) {
+std::string_view Gothic::settingsGetS(std::string_view sec, std::string_view name) {
+  if(name.empty())
+    return "";
   if(instance->iniFile->has(sec,name))
     return instance->iniFile->getS(sec,name);
-  return instance->baseIniFile->getS(sec,name);
+  if(instance->baseIniFile->has(sec,name))
+    return instance->baseIniFile->getS(sec,name);
+  if(instance->defaults->has(sec,name))
+    return instance->defaults->getS(sec,name);
+  return "";
   }
 
-void Gothic::settingsSetS(std::string_view sec, std::string_view name, const char* val) {
+void Gothic::settingsSetS(std::string_view sec, std::string_view name, std::string_view val) {
   instance->iniFile->set(sec,name,val);
   instance->onSettingsChanged();
   }
 
 float Gothic::settingsGetF(std::string_view sec, std::string_view name) {
+  if(name.empty())
+    return 0;
   if(instance->iniFile->has(sec,name))
     return instance->iniFile->getF(sec,name);
-  return instance->baseIniFile->getF(sec,name);
+  if(instance->baseIniFile->has(sec,name))
+    return instance->baseIniFile->getF(sec,name);
+  if(instance->defaults->has(sec,name))
+    return instance->defaults->getF(sec,name);
+  return 0;
   }
 
 void Gothic::settingsSetF(std::string_view sec, std::string_view name, float val) {
@@ -604,7 +674,7 @@ void Gothic::setupSettings() {
   const float soundVolume = settingsGetF("SOUND","soundVolume");
   sndDev.setGlobalVolume(soundVolume);
 
-  auto        ord  = Gothic::settingsGetS("GAME","invCatOrder");
+  auto        ord  = std::string(Gothic::settingsGetS("GAME","invCatOrder"));
   const char* name = ord.c_str();
   for(size_t i=0; i<=ord.size(); ++i) {
     if(i<ord.size() && ord[i]==',')

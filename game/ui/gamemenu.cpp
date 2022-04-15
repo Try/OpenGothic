@@ -251,8 +251,7 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
     char textBuf[256]={};
 
     if(item.onChgSetOptionSection=="KEYS") {
-      auto& keys = Gothic::settingsGetS(item.onChgSetOptionSection.c_str(),
-                                        item.onChgSetOption.c_str());
+      auto keys = Gothic::settingsGetS(item.onChgSetOptionSection.c_str(), item.onChgSetOption.c_str());
       if(&hItem==ctrlInput)
         std::snprintf(textBuf,sizeof(textBuf),"_"); else
         KeyCodec::keysStr(keys,textBuf,sizeof(textBuf));

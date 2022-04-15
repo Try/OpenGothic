@@ -58,7 +58,7 @@ class KeyCodec final {
       Last
       };
 
-    static void   keysStr(const std::string& keys, char buf[], size_t bufSz);
+    static void   keysStr(std::string_view keys, char buf[], size_t bufSz);
     Action        tr(Tempest::KeyEvent&   e) const;
     Action        tr(Tempest::MouseEvent& e) const;
     void          set(const char* section, const char* key, int32_t code);
@@ -88,14 +88,14 @@ class KeyCodec final {
       };
 
     Action      implTr(int32_t code) const;
-    static int  fetch(const std::string& keys,size_t s,size_t e);
+    static int  fetch(std::string_view keys, size_t s, size_t e);
     static bool keyToStr(int32_t k, char* buf, size_t bufSz);
     static void keyToStr(Tempest::Event::KeyType k, char* buf, size_t bufSz);
     static void keyToStr(Tempest::Event::MouseButton k, char* buf, size_t bufSz);
 
     void        setupSettings();
     KeyPair     setup(const char* kp);
-    static auto parse(const std::string& kp) -> KeyPair;
+    static auto parse(std::string_view kp) -> KeyPair;
 
     KeyPair     keyEnd;
     KeyPair     keyHeal;

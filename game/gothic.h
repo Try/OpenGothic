@@ -145,8 +145,8 @@ class Gothic final {
 
     static int                            settingsGetI(std::string_view sec, std::string_view name);
     static void                           settingsSetI(std::string_view sec, std::string_view name, int val);
-    static const std::string&             settingsGetS(std::string_view sec, std::string_view name);
-    static void                           settingsSetS(std::string_view sec, std::string_view name, const char* val);
+    static std::string_view               settingsGetS(std::string_view sec, std::string_view name);
+    static void                           settingsSetS(std::string_view sec, std::string_view name, std::string_view val);
     static float                          settingsGetF(std::string_view sec, std::string_view name);
     static void                           settingsSetF(std::string_view sec, std::string_view name, float val);
     static void                           flushSettings();
@@ -163,6 +163,7 @@ class Gothic final {
     bool                                    noFrate  = false;
     std::string                             wrldDef, plDef;
 
+    std::unique_ptr<IniFile>                defaults;
     std::unique_ptr<IniFile>                baseIniFile;
     std::unique_ptr<IniFile>                iniFile;
     std::unique_ptr<IniFile>                modFile;

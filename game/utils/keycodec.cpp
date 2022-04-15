@@ -142,21 +142,21 @@ void KeyCodec::set(const char* sec, const char* opt, int32_t code) {
       for(auto r:i->k)
         if(r!=0)
           s += toCode(r);
-      Gothic::settingsSetS("KEYS",i->key,s.c_str());
+      Gothic::settingsSetS("KEYS",i->key,s);
       }
     }
 
-  std::string val = Gothic::settingsGetS(sec, opt);
+  auto val = std::string(Gothic::settingsGetS(sec, opt));
   if(val.size()>4)
     val = val.substr(val.size()-4,4);
   val += toCode(code);
-  Gothic::settingsSetS(sec, opt, val.c_str());
+  Gothic::settingsSetS(sec, opt, val);
   }
 
 void KeyCodec::setDefaultKeys(const char* preset) {
   for(auto i:allKeys) {
     auto s = Gothic::settingsGetS(preset,i->key);
-    Gothic::settingsSetS("KEYS",i->key,s.c_str());
+    Gothic::settingsSetS("KEYS",i->key,s);
     *i = setup(i->key);
     }
   }
@@ -222,7 +222,7 @@ KeyCodec::Action KeyCodec::implTr(int32_t code) const {
   return Idle;
   }
 
-void KeyCodec::keysStr(const std::string& keys, char buf[], size_t bufSz) {
+void KeyCodec::keysStr(std::string_view keys, char buf[], size_t bufSz) {
   int32_t k0 = fetch(keys,0,4);
   int32_t k1 = fetch(keys,4,8);
 
@@ -407,14 +407,14 @@ KeyCodec::KeyPair KeyCodec::setup(const char* kp) {
   return k;
   }
 
-KeyCodec::KeyPair KeyCodec::parse(const std::string& kp) {
+KeyCodec::KeyPair KeyCodec::parse(std::string_view kp) {
   KeyPair p;
   p.k[0] = fetch(kp,0,4);
   p.k[1] = fetch(kp,4,8);
   return p;
   }
 
-int KeyCodec::fetch(const std::string& keys, size_t s, size_t e) {
+int KeyCodec::fetch(std::string_view keys, size_t s, size_t e) {
   if(s<keys.size() && e<=keys.size() && s<e) {
     int val=0;
     for(size_t i=s;i<e;++i) {

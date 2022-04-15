@@ -5,20 +5,21 @@
 
 class IniFile final {
   public:
+    IniFile() = default;
     IniFile(std::u16string_view file);
     IniFile(Tempest::RFile&     fin);
 
-    void flush();
+    void  flush();
 
-    bool               has (std::string_view sec);
-    bool               has (std::string_view sec, std::string_view name);
-    int                getI(std::string_view sec, std::string_view name);
-    void               set (std::string_view sec, std::string_view name, int ival);
-    float              getF(std::string_view sec, std::string_view name);
-    void               set (std::string_view sec, std::string_view name, float fval);
+    bool  has (std::string_view sec);
+    bool  has (std::string_view sec, std::string_view name);
+    int   getI(std::string_view sec, std::string_view name);
+    void  set (std::string_view sec, std::string_view name, int ival);
+    float getF(std::string_view sec, std::string_view name);
+    void  set (std::string_view sec, std::string_view name, float fval);
 
-    const std::string& getS(std::string_view sec, std::string_view name);
-    void               set (std::string_view sec, std::string_view name, std::string_view sval);
+    auto  getS(std::string_view sec, std::string_view name) -> std::string_view;
+    void  set (std::string_view sec, std::string_view name, std::string_view sval);
 
   private:
     struct Value final {

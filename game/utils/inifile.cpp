@@ -108,11 +108,10 @@ void IniFile::set(std::string_view sec, std::string_view name, float fval) {
   changeFlag = true;
   }
 
-const std::string& IniFile::getS(std::string_view s, std::string_view name) {
+std::string_view IniFile::getS(std::string_view s, std::string_view name) {
   if(auto* val = find(s,name,false))
     return val->val;
-  static std::string empty;
-  return empty;
+  return "";
   }
 
 void IniFile::set(std::string_view sec, std::string_view name, std::string_view sval) {
