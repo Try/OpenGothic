@@ -32,6 +32,7 @@ class Renderer final {
 
   private:
     void prepareUniforms();
+    void drawDSM (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void drawSSAO(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void draw    (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t cmdId);
     void initSettings();
@@ -62,6 +63,7 @@ class Renderer final {
       Tempest::Attachment      ssaoBuf;
       Tempest::Attachment      blurBuf;
       Tempest::RenderPipeline* ssaoPso = nullptr;
+      Tempest::RenderPipeline* ssaoComposePso = nullptr;
       Tempest::DescriptorSet   uboSsao, uboBlur[2], uboCompose;
     } ssao;
 

@@ -88,19 +88,25 @@ void Renderer::resetSwapchain() {
   ssao.ssaoBuf = device.attachment(ssao.aoFormat, (swapchain.w()+1)/2,(swapchain.h()+1)/2);
   ssao.blurBuf = device.attachment(ssao.aoFormat, (swapchain.w()+1)/2,(swapchain.h()+1)/2);
 
-  if(Gothic::inst().doRayQuery())
-    ssao.ssaoPso = &Shaders::inst().ssaoRq; else
-    ssao.ssaoPso = &Shaders::inst().ssao;
+  if(Gothic::inst().doRayQuery()) {
+    ssao.ssaoPso        = &Shaders::inst().ssaoRq;
+    //ssao.ssaoComposePso = &Shaders::inst().ssaoComposeRq;
+    ssao.ssaoComposePso = &Shaders::inst().ssaoCompose;
+    } else {
+    ssao.ssaoPso        = &Shaders::inst().ssao;
+    ssao.ssaoComposePso = &Shaders::inst().ssaoCompose;
+    }
   ssao.uboSsao = device.descriptors(*ssao.ssaoPso);
   ssao.uboSsao.set(0,lightingBuf,smp);
   ssao.uboSsao.set(1,gbufDiffuse,smp);
   ssao.uboSsao.set(2,gbufNormal, smp);
   ssao.uboSsao.set(3,gbufDepth,  smpB);
 
-  ssao.uboCompose = device.descriptors(Shaders::inst().ssaoCompose);
+  ssao.uboCompose = device.descriptors(*ssao.ssaoComposePso);
   ssao.uboCompose.set(0,lightingBuf, smpB);
   ssao.uboCompose.set(1,gbufDiffuse, smpB);
   ssao.uboCompose.set(2,ssao.ssaoBuf,smpB);
+  ssao.uboCompose.set(3,gbufDepth,   smpB);
 
   ssao.uboBlur[0] = device.descriptors(Shaders::inst().bilateralBlur);
   ssao.uboBlur[0].set(0,ssao.ssaoBuf,smp);
@@ -122,22 +128,6 @@ void Renderer::onWorldChanged() {
   prepareUniforms();
   }
 
-void Renderer::prepareUniforms() {
-  auto wview = Gothic::inst().worldView();
-  if(wview==nullptr)
-    return;
-
-  if(ssao.ssaoPso==&Shaders::inst().ssaoRq)
-    ssao.uboSsao.set(5,wview->landscapeTlas());
-
-  const Texture2d* sh[Resources::ShadowLayers] = {};
-  for(size_t i=0; i<Resources::ShadowLayers; ++i)
-    sh[i] = &textureCast(shadowMap[i]);
-  wview->setGbuffer(textureCast(lightingBuf),textureCast(gbufDiffuse),
-                    textureCast(gbufNormal),textureCast(gbufDepth),
-                    sh);
-  }
-
 void Renderer::setCameraView(const Camera& camera) {
   view     = camera.view();
   proj     = camera.projective();
@@ -152,6 +142,25 @@ void Renderer::setCameraView(const Camera& camera) {
   clipInfo.x = zNear*zFar;
   clipInfo.y = zNear-zFar;
   clipInfo.z = zFar;
+  }
+
+void Renderer::prepareUniforms() {
+  auto wview = Gothic::inst().worldView();
+  if(wview==nullptr)
+    return;
+
+  if(ssao.ssaoPso==&Shaders::inst().ssaoRq)
+    ssao.uboSsao   .set(5,wview->landscapeTlas());
+  if(ssao.ssaoComposePso==&Shaders::inst().ssaoComposeRq)
+    ssao.uboCompose.set(5,wview->landscapeTlas());
+
+
+  const Texture2d* sh[Resources::ShadowLayers] = {};
+  for(size_t i=0; i<Resources::ShadowLayers; ++i)
+    sh[i] = &textureCast(shadowMap[i]);
+  wview->setGbuffer(textureCast(lightingBuf),textureCast(gbufDiffuse),
+                    textureCast(gbufNormal),textureCast(gbufDepth),
+                    sh);
   }
 
 void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
@@ -217,6 +226,17 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   wview->drawFog    (cmd,cmdId);
   }
 
+void Renderer::drawDSM(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view) {
+  static bool useDsm = true;
+
+  if(!useDsm || !Gothic::inst().doRayQuery()) {
+    cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
+    cmd.setUniforms(Shaders::inst().copy,uboCopy);
+    cmd.draw(Resources::fsqVbo());
+    return;
+    }
+  }
+
 void Renderer::drawSSAO(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, const WorldView& view) {
   static bool useSsao = true;
 
@@ -261,11 +281,18 @@ void Renderer::drawSSAO(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd
 
   {
   struct PushSsao {
-    Vec3 ambient;
+    Matrix4x4 mvpInv;
+    Vec3      ambient;
+    float     padd0 = 0;
+    Vec3      ldir;
   } push;
+  push.mvpInv  = viewProj;
+  push.mvpInv.inverse();
   push.ambient = view.ambientLight();
+  push.ldir    = view.mainLight().dir();
+
   cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
-  cmd.setUniforms(Shaders::inst().ssaoCompose,ssao.uboCompose,&push,sizeof(push));
+  cmd.setUniforms(*ssao.ssaoComposePso,ssao.uboCompose,&push,sizeof(push));
   cmd.draw(Resources::fsqVbo());
   }
   }

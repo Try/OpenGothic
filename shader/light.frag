@@ -51,9 +51,7 @@ bool isShadow(vec3 rayOrigin, vec3 direction) {
 void main(void) {
   vec2 scr = scrPosition.xy/scrPosition.w;
   vec2 uv  = scr*0.5+vec2(0.5);
-  vec4 z   = texture(depth,  uv);
-  vec4 d   = texture(diffuse,uv);
-  vec4 n   = texture(normals,uv);
+  vec4 z   = textureLod(depth,  uv,0);
 
   vec4 pos = ubo.mvpInv*vec4(scr.x,scr.y,z.x,1.0);
   pos.xyz/=pos.w;
@@ -62,6 +60,9 @@ void main(void) {
 
   if(qDist>1.0)
     discard;
+
+  vec4 d   = textureLod(diffuse,uv,0);
+  vec4 n   = textureLod(normals,uv,0);
 
   vec3  normal  = normalize(n.xyz*2.0-vec3(1.0));
   float lambert = max(0.0,-dot(normalize(ldir),normal));

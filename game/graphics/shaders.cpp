@@ -87,8 +87,10 @@ Shaders::Shaders() {
   skyEGSR            = postEffect("sky_egsr_g2");
   fogEGSR            = fogShader ("fog_egsr");
 
-  if(Gothic::inst().doRayQuery())
-    ssaoRq = postEffect("ssao","ssao_rq");
+  if(Gothic::inst().doRayQuery()) {
+    ssaoRq        = postEffect("ssao",        "ssao_rq");
+    ssaoComposeRq = postEffect("ssao_compose","ssao_compose_rq");
+    }
 
   {
   RenderState state;

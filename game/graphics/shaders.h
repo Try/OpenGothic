@@ -18,7 +18,8 @@ class Shaders {
     Tempest::RenderPipeline lights, lightsRq;
     Tempest::RenderPipeline copy;
     Tempest::RenderPipeline bilateralBlur;
-    Tempest::RenderPipeline ssao, ssaoRq, ssaoCompose;
+    Tempest::RenderPipeline ssao, ssaoCompose;
+    Tempest::RenderPipeline ssaoRq, ssaoComposeRq;
 
     // Nishita
     Tempest::RenderPipeline sky, fog;
