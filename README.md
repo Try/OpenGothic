@@ -26,9 +26,14 @@ Common Gothic installation paths:
 ##### Build it for Linux
 ```bash
 # 1. Install dependencies
-# 1.1 Ubuntu 20.04:
+# 1.1 Latest vulkan SDK
+wget -qO - http://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
+sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-focal.list http://packages.lunarg.com/vulkan/lunarg-vulkan-focal.list
+sudo apt update
+sudo apt install vulkan-sdk
+# 1.2 Ubuntu 20.04:
 sudo apt install git cmake g++ glslang-tools libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
-# 1.2 Arch:
+# 1.3 Arch:
 sudo pacman -S git cmake gcc glslang vulkan-devel alsa-lib libx11 libxcursor vulkan-icd-loader libglvnd
 # 2. Clone this repo, including submodules:
 git clone --recurse-submodules https://github.com/Try/OpenGothic.git
