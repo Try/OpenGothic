@@ -59,14 +59,19 @@ struct MorphDesc {
   float alpha;
   };
 
-#if defined(LVL_OBJECT)
+#if (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING)
 layout(push_constant, std140) uniform UboPush {
   mat4      obj;
   float     fatness;
-#if MESH_TYPE==T_MORPH
-  MorphDesc morph[MAX_MORPH_LAYERS];
-#endif
   } push;
+#elif (MESH_TYPE==T_MORPH)
+layout(push_constant, std140) uniform UboPush {
+  mat4      obj;
+  float     fatness;
+  MorphDesc morph[MAX_MORPH_LAYERS];
+  } push;
+#else
+// no push
 #endif
 
 #if defined(FRAGMENT) && !(defined(SHADOW_MAP) && !defined(ATEST))
