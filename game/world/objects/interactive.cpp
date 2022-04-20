@@ -11,8 +11,8 @@
 #include "utils/fileext.h"
 #include "utils/dbgpainter.h"
 
-Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData& vob, bool startup, bool staticDraw)
-  : Vob(parent,world,vob,startup,staticDraw) {
+Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData& vob, Flags flags)
+  : Vob(parent,world,vob,flags) {
   vobName       = std::move(vob.vobName);
   focName       = std::move(vob.oCMOB.focusName);
   bbox[0]       = vob.bbox[0];

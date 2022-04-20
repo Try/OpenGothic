@@ -5,7 +5,7 @@
 
 class WorldLight : public Vob {
   public:
-    WorldLight(Vob* parent, World& world, ZenLoad::zCVobData &&vob, bool startup);
+    WorldLight(Vob* parent, World& world, ZenLoad::zCVobData &&vob, Flags flags);
 
   private:
     void  moveEvent() override;

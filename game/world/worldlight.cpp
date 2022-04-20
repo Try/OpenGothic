@@ -2,8 +2,8 @@
 
 #include "world.h"
 
-WorldLight::WorldLight(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool startup)
-  : Vob(parent,world,vob,startup,true) {
+WorldLight::WorldLight(Vob* parent, World& world, ZenLoad::zCVobData&& vob, Flags flags)
+  : Vob(parent,world,vob,flags) {
   light = LightGroup::Light(world,vob);
   }
 

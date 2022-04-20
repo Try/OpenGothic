@@ -6,7 +6,7 @@
 
 class MoveTrigger : public AbstractTrigger {
   public:
-    MoveTrigger(Vob* parent, World &world, ZenLoad::zCVobData&& data, bool startup);
+    MoveTrigger(Vob* parent, World &world, ZenLoad::zCVobData&& data, Flags flags);
 
     void save(Serialize& fout) const override;
     void load(Serialize &fin) override;

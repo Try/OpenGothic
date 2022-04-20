@@ -7,8 +7,8 @@
 
 using namespace Tempest;
 
-TriggerList::TriggerList(Vob* parent, World &world, ZenLoad::zCVobData &&d, bool startup)
-  :AbstractTrigger(parent,world,std::move(d),startup) {
+TriggerList::TriggerList(Vob* parent, World &world, ZenLoad::zCVobData &&d, Flags flags)
+  :AbstractTrigger(parent,world,std::move(d),flags) {
   }
 
 void TriggerList::onTrigger(const TriggerEvent&) {

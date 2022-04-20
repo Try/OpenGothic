@@ -4,7 +4,7 @@
 
 class ZoneTrigger : public AbstractTrigger {
   public:
-    ZoneTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& data, bool startup);
+    ZoneTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& data, Flags flags);
 
     void onIntersect(Npc& n) override;
   };

@@ -2,8 +2,8 @@
 
 #include "world/world.h"
 
-MoverControler::MoverControler(Vob* parent, World &world, ZenLoad::zCVobData &&d, bool startup)
-  :AbstractTrigger(parent,world,std::move(d),startup) {
+MoverControler::MoverControler(Vob* parent, World &world, ZenLoad::zCVobData &&d, Flags flags)
+  :AbstractTrigger(parent,world,std::move(d),flags) {
   }
 
 void MoverControler::onUntrigger(const TriggerEvent&) {

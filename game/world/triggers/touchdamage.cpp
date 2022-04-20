@@ -6,8 +6,8 @@
 #include "world/world.h"
 #include "game/serialize.h"
 
-TouchDamage::TouchDamage(Vob* parent, World &world, ZenLoad::zCVobData&& d, bool startup)
-  :AbstractTrigger(parent,world,std::move(d),startup) {
+TouchDamage::TouchDamage(Vob* parent, World &world, ZenLoad::zCVobData&& d, Flags flags)
+  :AbstractTrigger(parent,world,std::move(d),flags) {
   }
 
 void TouchDamage::onTrigger(const TriggerEvent&/*evt*/) {

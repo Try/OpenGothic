@@ -3,8 +3,8 @@
 #include "world/world.h"
 #include "game/serialize.h"
 
-CodeMaster::CodeMaster(Vob* parent, World &world, ZenLoad::zCVobData&& d, bool startup)
-  :AbstractTrigger(parent,world,std::move(d),startup), keys(data.zCCodeMaster.slaveVobName.size()) {
+CodeMaster::CodeMaster(Vob* parent, World &world, ZenLoad::zCVobData&& d, Flags flags)
+  :AbstractTrigger(parent,world,std::move(d),flags), keys(data.zCCodeMaster.slaveVobName.size()) {
   }
 
 void CodeMaster::onTrigger(const TriggerEvent &evt) {

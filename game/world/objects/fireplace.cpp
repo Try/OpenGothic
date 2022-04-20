@@ -1,7 +1,7 @@
 #include "fireplace.h"
 
-FirePlace::FirePlace(Vob* parent, World& world, ZenLoad::zCVobData& vob, bool startup)
-  :Interactive(parent,world,vob,startup,false){
+FirePlace::FirePlace(Vob* parent, World& world, ZenLoad::zCVobData& vob, Flags flags)
+  :Interactive(parent,world,vob,flags){
   fireVobtreeName = std::move(vob.oCMobFire.fireVobtreeName);
   fireSlot        = std::move(vob.oCMobFire.fireSlot);
   }
@@ -21,7 +21,7 @@ void FirePlace::moveEvent() {
 void FirePlace::onStateChanged() {
   if(stateId()!=0) {
     auto at = this->nodeTranform(fireSlot.c_str());
-    fireVobtree = VobBundle(world,fireVobtreeName);
+    fireVobtree = VobBundle(world,fireVobtreeName,Vob::Startup);
     fireVobtree.setObjMatrix(at);
     } else {
     fireVobtree = VobBundle();

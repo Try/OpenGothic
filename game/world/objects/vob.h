@@ -10,10 +10,19 @@ class Serialize;
 
 class Vob {
   public:
+    enum Flags:uint8_t {
+      None    = 0,
+      Startup = 0x1 << 0,
+      Static  = 0x1 << 1,
+      };
+    friend Flags operator | (Flags a, Flags b) { return Flags(uint8_t(a) | uint8_t(b)); }
+    friend Flags operator & (Flags a, Flags b) { return Flags(uint8_t(a) & uint8_t(b)); }
+    friend Flags operator ~ (Flags a)          { return Flags(~uint8_t(a));             }
+
     Vob(World& owner);
-    Vob(Vob* parent, World& owner, ZenLoad::zCVobData& vob, bool startup, bool staticDraw);
+    Vob(Vob* parent, World& owner, ZenLoad::zCVobData& vob, Flags flags);
     virtual ~Vob();
-    static std::unique_ptr<Vob> load(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool startup, bool staticDraw);
+    static std::unique_ptr<Vob> load(Vob* parent, World& world, ZenLoad::zCVobData&& vob, Flags flags);
 
     void          saveVobTree(Serialize& fin) const;
     virtual void  save(Serialize& fout) const;

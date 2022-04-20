@@ -119,7 +119,7 @@ void ObjVisual::setVisual(const Daedalus::GEngineClasses::C_Item& hitem, World& 
 
   if(FileExt::hasExt(hitem.visual.c_str(),"ZEN")) {
     setType(M_Bundle);
-    bundle = VobBundle(world,hitem.visual.c_str(),staticDraw);
+    bundle = VobBundle(world,hitem.visual.c_str(),(staticDraw ? Vob::Static : Vob::None));
     } else {
     setType(M_Mesh);
     mesh.view = world.addView(hitem);
@@ -134,7 +134,7 @@ void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world, bool stat
   // *.ZEN; *.PFX; *.TGA; *.3DS; *.MDS; *.ASC; *.MMS
   if(FileExt::hasExt(vob.visual,"ZEN")) {
     setType(M_Bundle);
-    bundle = VobBundle(world,vob.visual);
+    bundle = VobBundle(world,vob.visual,(staticDraw ? Vob::Static : Vob::None));
     }
   else if(FileExt::hasExt(vob.visual,"PFX") || FileExt::hasExt(vob.visual,"TGA")) {
     if(vob.visualCamAlign==0 && FileExt::hasExt(vob.visual,"TGA")) {

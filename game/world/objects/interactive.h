@@ -24,7 +24,7 @@ class Interactive : public Vob {
       FromStand = 11,
       };
 
-    Interactive(Vob* parent, World& world, ZenLoad::zCVobData& vob, bool startup, bool staticDraw);
+    Interactive(Vob* parent, World& world, ZenLoad::zCVobData& vob, Flags flags);
 
     void                load(Serialize& fin) override;
     void                save(Serialize& fout) const override;

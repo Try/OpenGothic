@@ -3,8 +3,8 @@
 #include <Tempest/Log>
 #include "world/world.h"
 
-TriggerScript::TriggerScript(Vob* parent, World &world, ZenLoad::zCVobData&& data, bool startup)
-  :AbstractTrigger(parent,world,std::move(data),startup) {
+TriggerScript::TriggerScript(Vob* parent, World &world, ZenLoad::zCVobData&& data, Flags flags)
+  :AbstractTrigger(parent,world,std::move(data),flags) {
   }
 
 void TriggerScript::onTrigger(const TriggerEvent &) {

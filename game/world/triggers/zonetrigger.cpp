@@ -3,8 +3,8 @@
 #include "world/objects/npc.h"
 #include "world/world.h"
 
-ZoneTrigger::ZoneTrigger(Vob* parent, World &world, ZenLoad::zCVobData &&d, bool startup)
-  :AbstractTrigger(parent,world,std::move(d),startup){
+ZoneTrigger::ZoneTrigger(Vob* parent, World &world, ZenLoad::zCVobData &&d, Flags flags)
+  :AbstractTrigger(parent,world,std::move(d),flags){
   }
 
 void ZoneTrigger::onIntersect(Npc &n) {

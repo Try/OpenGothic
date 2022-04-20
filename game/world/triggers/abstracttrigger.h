@@ -44,7 +44,7 @@ class TriggerEvent final {
 
 class AbstractTrigger : public Vob {
   public:
-    AbstractTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& data, bool startup);
+    AbstractTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& data, Flags flags);
     virtual ~AbstractTrigger();
 
     ZenLoad::zCVobData::EVobType vobType() const;

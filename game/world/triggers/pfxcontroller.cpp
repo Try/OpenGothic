@@ -5,8 +5,8 @@
 #include "game/serialize.h"
 #include "gothic.h"
 
-PfxController::PfxController(Vob* parent, World& world, ZenLoad::zCVobData&& d, bool startup)
-  :AbstractTrigger(parent,world,std::move(d),startup) {
+PfxController::PfxController(Vob* parent, World& world, ZenLoad::zCVobData&& d, Flags flags)
+  :AbstractTrigger(parent,world,std::move(d),flags) {
   auto& name = data.zCPFXControler.pfxName;
   const ParticleFx* view = Gothic::inst().loadParticleFx(name);
   if(view==nullptr)

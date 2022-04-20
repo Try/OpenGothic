@@ -8,8 +8,8 @@
 
 using namespace Tempest;
 
-MoveTrigger::MoveTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& d, bool startup)
-  :AbstractTrigger(parent,world,std::move(d),startup) {
+MoveTrigger::MoveTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& d, Flags flags)
+  :AbstractTrigger(parent,world,std::move(d),flags) {
   auto& mover = data.zCMover;
   setView(world.addView(data.visual));
   if(data.cdDyn || data.cdStatic) {

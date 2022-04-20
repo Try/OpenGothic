@@ -7,7 +7,7 @@ class World;
 
 class PfxController : public AbstractTrigger {
   public:
-    PfxController(Vob* parent, World& world, ZenLoad::zCVobData&& data, bool startup);
+    PfxController(Vob* parent, World& world, ZenLoad::zCVobData&& data, Flags flags);
 
     void save(Serialize &fout) const override;
     void load(Serialize &fin) override;

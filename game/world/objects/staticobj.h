@@ -6,7 +6,7 @@
 
 class StaticObj : public Vob {
   public:
-    StaticObj(Vob* parent, World& world, ZenLoad::zCVobData&& vob, bool startup, bool staticDraw);
+    StaticObj(Vob* parent, World& world, ZenLoad::zCVobData&& vob, Flags flags);
 
   private:
     void  moveEvent() override;

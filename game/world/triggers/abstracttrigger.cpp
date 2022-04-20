@@ -8,8 +8,8 @@
 
 using namespace Tempest;
 
-AbstractTrigger::AbstractTrigger(Vob* parent, World &world, ZenLoad::zCVobData &&data, bool startup)
-  : Vob(parent,world,data,startup,false), data(std::move(data)), callback(this) {
+AbstractTrigger::AbstractTrigger(Vob* parent, World &world, ZenLoad::zCVobData &&data, Flags flags)
+  : Vob(parent,world,data,flags & (~Flags::Static)), data(std::move(data)), callback(this) {
   if(!hasFlag(StartEnabled))
     ;//disabled = true;
   bboxSize   = Vec3(data.bbox[1].x-data.bbox[0].x,data.bbox[1].y-data.bbox[0].y,data.bbox[1].z-data.bbox[0].z)*0.5f;
