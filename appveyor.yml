@@ -7,7 +7,7 @@ environment:
       GENERATOR: "Ninja"
 
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-      GENERATOR: "Visual Studio 16 2019"
+      GENERATOR: "Ninja"
       VCVARSALL: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build/vcvarsall.bat"
       PLATFORM:  x64
 
