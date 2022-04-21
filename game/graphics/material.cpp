@@ -24,9 +24,11 @@ Material::Material(const ZenLoad::zCMaterialData& m, bool enableAlphaTest) {
       texAniMapDirPeriod.y = int(1.f/texAniMapDir.y);
     }
 
-  if(m.waveMode!=0) {
+  if(m.waveMode!=0)
     waveMaxAmplitude = m.waveMaxAmplitude;
-    }
+
+  if(m.environmentMapping!=0)
+    envMapping = m.environmentalMappingStrength;
   }
 
 Material::Material(const ZenLoad::zCVobData& vob) {
