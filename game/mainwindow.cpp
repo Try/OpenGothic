@@ -15,6 +15,7 @@
 #include "ui/stacklayout.h"
 #include "ui/videowidget.h"
 
+#include "utils/mouseutil.h"
 #include "world/objects/npc.h"
 #include "game/serialize.h"
 #include "game/globaleffects.h"
@@ -280,7 +281,7 @@ void MainWindow::tickMouse() {
     return;
     }
 
-  const float mouseSensitivity = Gothic::inst().settingsGetF("GAME","mouseSensitivity");
+  const float mouseSensitivity = Gothic::inst().settingsGetF("GAME","mouseSensitivity")/MouseUtil::mouseSysSpeed();
   PointF dpScaled = PointF(float(dMouse.x)*mouseSensitivity,float(dMouse.y)*mouseSensitivity);
   dpScaled.x/=float(w());
   dpScaled.y/=float(h());
