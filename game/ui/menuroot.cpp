@@ -98,9 +98,15 @@ bool MenuRoot::hasVersionLine() const {
   }
 
 void MenuRoot::mouseDownEvent(MouseEvent& event) {
-  if(current!=nullptr)
-    current->onSelect(); else
+  if(current!=nullptr) {
+    if(event.button==Event::ButtonRight) {
+      popMenu();
+      } else {
+      current->onSelect();
+      }
+    } else {
     event.ignore();
+    }
   }
 
 void MenuRoot::mouseUpEvent(MouseEvent&) {
@@ -118,8 +124,6 @@ void MenuRoot::mouseWheelEvent(MouseEvent &event) {
   }
 
 void MenuRoot::keyDownEvent(KeyEvent &e) {
-  //if(current->)
-  //  ;
   size_t sz = std::extent_v<decltype(cheatCode)>;
   for(size_t i=1; i<sz; ++i)
     cheatCode[i-1] = cheatCode[i];

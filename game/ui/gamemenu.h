@@ -37,6 +37,15 @@ class GameMenu : public Tempest::Widget {
     void resizeEvent(Tempest::SizeEvent&  event) override;
 
   private:
+    enum class QuestStat : uint8_t {
+      Current   = uint8_t(QuestLog::Status::Running),
+      Old       = uint8_t(QuestLog::Status::Failed),
+      Failed    = uint8_t(QuestLog::Status::Success),
+      Log       = uint8_t(5),
+      };
+
+    struct ListContentDialog;
+    struct ListViewDialog;
     struct KeyEditDialog;
     struct SavNameDialog;
     struct Item {
@@ -45,14 +54,17 @@ class GameMenu : public Tempest::Widget {
       const Tempest::Texture2d*             img=nullptr;
       SaveGameHeader                        savHdr;
       Tempest::Pixmap                       savPriview;
-      bool                                  visible=true;
-      int                                   value=0;
+      int32_t                               value   = 0;
+      int32_t                               scroll  = 0;
+      bool                                  visible = true;
       };
 
     MenuRoot&                             owner;
     KeyCodec&                             keyCodec;
     Daedalus::DaedalusVM&                 vm;
     Tempest::Timer                        timer;
+    const Tempest::Texture2d*             up   = nullptr;
+    const Tempest::Texture2d*             down = nullptr;
 
     Daedalus::GEngineClasses::C_Menu      menu={};
     const Tempest::Texture2d*             back=nullptr;
@@ -70,14 +82,17 @@ class GameMenu : public Tempest::Widget {
 
     void                                  drawItem(Tempest::Painter& p, Item& it);
     void                                  drawSlider(Tempest::Painter& p, Item& it, int x, int y, int w, int h);
-    void                                  drawQuestList(Tempest::Painter& p, int x, int y, int w, int h, const GthFont& fnt, const QuestLog& log, QuestLog::Status st, bool isNote);
+    void                                  drawQuestList(Tempest::Painter& p, Item& it, int x, int y, int w, int h,
+                                                        const QuestLog& log, QuestStat st);
 
     Item*                                 selectedItem();
     Item*                                 selectedNextItem(Item* cur);
+    Item*                                 selectedContentItem(Item* it);
     void                                  setSelection(int cur, int seek=1);
     void                                  initItems();
     void                                  getText(const Item &it, std::vector<char>& out);
     const GthFont&                        getTextFont(const Item &it);
+    bool                                  isSelectable(const Daedalus::GEngineClasses::C_Menu_Item& item);
     bool                                  isEnabled(const Daedalus::GEngineClasses::C_Menu_Item& item);
 
     void                                  exec         (Item &item, int slideDx);
@@ -85,7 +100,7 @@ class GameMenu : public Tempest::Widget {
     void                                  execChgOption(Item &item, int slideDx);
     void                                  execSaveGame (Item &item);
     void                                  execLoadGame (Item &item);
-    void                                  execCommands (Item &it, const Daedalus::ZString str);
+    void                                  execCommands (const Daedalus::ZString str, bool isClick);
 
     bool                                  implUpdateSavThumb(Item& sel);
     size_t                                saveSlotId(const Item& sel);
@@ -101,6 +116,9 @@ class GameMenu : public Tempest::Widget {
     void                                  setDefaultKeys(const char* preset);
 
     bool                                  isInGameAndAlive() const;
+    static QuestStat                      toStatus(const Daedalus::ZString& str);
+    static bool                           isCompatible(const QuestLog::Quest& q, QuestStat st);
+    static int32_t                        numQuests(const QuestLog* q, QuestStat st);
 
     void                                  set(std::string_view item, const Tempest::Texture2d* value);
     void                                  set(std::string_view item, const uint32_t value);

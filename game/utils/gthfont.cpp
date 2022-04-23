@@ -144,7 +144,7 @@ Size GthFont::textSize(const uint8_t* b, const uint8_t* e) const {
   return Size(totalW,y);
   }
 
-Size GthFont::textSize(int bw, const char* txt) const {
+Size GthFont::textSize(int bw, std::string_view txt) const {
   return processText(nullptr,0,0,bw,0,txt,NoAlign);
   }
 

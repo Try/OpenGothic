@@ -22,6 +22,127 @@ using namespace Tempest;
 
 static const float scriptDiv=8192.0f;
 
+struct GameMenu::ListContentDialog : Dialog {
+  ListContentDialog(){
+    setFocusPolicy(ClickFocus);
+    setCursorShape(CursorShape::Hidden);
+    setFocus(true);
+    }
+  void mouseDownEvent(MouseEvent& e) override {
+    if(e.button==Event::ButtonRight) {
+      close();
+      }
+    }
+  void paintEvent (PaintEvent&) override {}
+  void paintShadow(PaintEvent&) override {}
+  };
+
+struct GameMenu::ListViewDialog : Dialog {
+  ListViewDialog(GameMenu& owner, Item& list):owner(owner),list(list){
+    setFocusPolicy(ClickFocus);
+    setCursorShape(CursorShape::Hidden);
+    setFocus(true);
+    status = toStatus(list.handle.userString[0]);
+    }
+
+  void mouseDownEvent(MouseEvent& e) override {
+    if(e.button==Event::ButtonLeft) {
+      showQuest();
+      }
+    if(e.button==Event::ButtonRight) {
+      close();
+      }
+    }
+
+  void showQuest() {
+    auto  prev = owner.curItem;
+    auto* next = owner.selectedContentItem(&list);
+    if(next==nullptr)
+      return;
+
+    auto vis = next->visible;
+    next->visible = true;
+    if(auto ql = selectedQuest()) {
+      std::string text;
+      for(size_t i=0; i<ql->entry.size(); ++i) {
+        text += ql->entry[i];
+        if(i+1<ql->entry.size())
+          text+="\n---\n";
+        }
+      next->handle.text[0] = text.c_str();
+      }
+
+    for(uint32_t i=0;i<Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS;++i)
+      if(&owner.hItems[i]==next) {
+        owner.curItem = i;
+        break;
+        }
+
+    ListContentDialog dlg;
+    dlg.resize(owner.owner.size());
+    dlg.exec();
+    next->visible = vis;
+    owner.curItem = prev;
+    }
+
+  void keyDownEvent(KeyEvent &e) override { e.accept(); }
+  void keyUpEvent  (KeyEvent &e) override {
+    if(e.key==Event::K_ESCAPE) {
+      close();
+      return;
+      }
+    if(e.key==Event::K_W || e.key==Event::K_Up) {
+      onMove(-1);
+      update();
+      }
+    if(e.key==Event::K_S || e.key==Event::K_Down) {
+      onMove(+1);
+      update();
+      }
+    }
+
+  void mouseWheelEvent(Tempest::MouseEvent& event) override {
+    onMove(-event.delta);
+    }
+
+  void onMove(int dy) {
+    if(dy<0) {
+      if(list.value>0)
+        list.value--;
+      }
+    if(dy>0) {
+      const size_t num = numQuests();
+      if(list.value+1<int(num))
+        list.value++;
+      }
+    }
+
+  void paintEvent (PaintEvent&) override {}
+  void paintShadow(PaintEvent&) override {}
+
+  size_t numQuests() {
+    return size_t(GameMenu::numQuests(Gothic::inst().questLog(),status));
+    }
+
+  const QuestLog::Quest* selectedQuest() const {
+    int32_t num = 0;
+    if(auto ql=Gothic::inst().questLog()) {
+      for(size_t i=0; i<ql->questCount(); ++i) {
+        if(!isCompatible(ql->quest(i),status))
+          continue;
+        if(num==list.value)
+          return &ql->quest(i);
+        ++num;
+        }
+      }
+    return nullptr;
+    }
+
+  GameMenu& owner;
+  Item&     list;
+  QuestStat status = QuestStat::Log;
+  };
+
 struct GameMenu::KeyEditDialog : Dialog {
   KeyEditDialog(){
     setFocusPolicy(ClickFocus);
@@ -129,6 +250,9 @@ GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, Daedalus::DaedalusVM &vm
   updateValues();
   slider = Resources::loadTexture("MENU_SLIDER_POS.TGA");
 
+  up   = Resources::loadTexture("O.TGA");
+  down = Resources::loadTexture("U.TGA");
+
   Gothic::inst().pushPause();
   }
 
@@ -140,6 +264,34 @@ GameMenu::~GameMenu() {
   Gothic::flushSettings();
   Gothic::inst().popPause();
   Resources::device().waitIdle(); // safe-delete savethumb
+  }
+
+GameMenu::QuestStat GameMenu::toStatus(const Daedalus::ZString& str) {
+  if(str=="CURRENTMISSIONS")
+    return QuestStat::Current;
+  if(str=="OLDMISSIONS")
+    return QuestStat::Old;
+  if(str=="FAILEDMISSIONS")
+    return QuestStat::Failed;
+  if(str=="LOG")
+    return QuestStat::Log;
+  return QuestStat::Log;
+  }
+
+bool GameMenu::isCompatible(const QuestLog::Quest& q, QuestStat st) {
+  if(q.section==QuestLog::Section::Note && st==QuestStat::Log)
+    return true;
+  return (uint8_t(q.status)==uint8_t(st) && q.section!=QuestLog::Section::Note);
+  }
+
+int32_t GameMenu::numQuests(const QuestLog* ql, QuestStat st) {
+  if(ql==nullptr)
+    return 0;
+  int32_t num = 0;
+  for(size_t i=0; i<ql->questCount(); ++i)
+    if(isCompatible(ql->quest(i),st))
+      ++num;
+  return num;
   }
 
 void GameMenu::initItems() {
@@ -222,11 +374,18 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
 
   //p.setBrush(Color(1,1,1,1));
   //p.drawRect(x,y,szX,szY);
+  {
+  int padd = 0;
+  if((flags & Daedalus::GEngineClasses::C_Menu_Item::IT_MULTILINE) &&
+     std::min(tw,th)>100*2+fnt.pixelSize()) {
+    padd = 100; // TODO: find out exact padding formula
+    }
   fnt.drawText(p,
-               x,y+fnt.pixelSize(),
-               tw, th,
+               x+padd,y+fnt.pixelSize()+padd,
+               tw-2*padd, th-2*padd,
                textBuf.data(),
                txtAlign);
+  }
 
   if(item.type==MENU_ITEM_SLIDER && slider!=nullptr) {
     drawSlider(p,hItem,x,y,szX,szY);
@@ -236,14 +395,8 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
       const int px = int(float(w()*item.frameSizeX)/scriptDiv);
       const int py = int(float(h()*item.frameSizeY)/scriptDiv);
 
-      if(item.userString[0]=="CURRENTMISSIONS")
-        drawQuestList(p, x+px,y+py, szX-2*px,szY-2*py, fnt,*ql,QuestLog::Status::Running,false);
-      else if(item.userString[0]=="OLDMISSIONS")
-        drawQuestList(p, x+px,y+py, szX-2*px,szY-2*py, fnt,*ql,QuestLog::Status::Failed,false);
-      else if(item.userString[0]=="FAILEDMISSIONS")
-        drawQuestList(p, x+px,y+py, szX-2*px,szY-2*py, fnt,*ql,QuestLog::Status::Success,false);
-      else if(item.userString[0]=="LOG")
-        drawQuestList(p, x+px,y+py, szX-2*px,szY-2*py, fnt,*ql,QuestLog::Status::Running,true);
+      auto st = toStatus(item.userString[0]);
+      drawQuestList(p, hItem, x+px,y+py, szX-2*px,szY-2*py, *ql,st);
       }
     }
   else if(item.type==MENU_ITEM_INPUT) {
@@ -279,7 +432,6 @@ void GameMenu::drawSlider(Painter& p, Item& it, int x, int y, int sw, int sh) {
   int h = int(float(slider->h())*k);
   p.setBrush(*slider);
 
-
   auto& sec = it.handle.onChgSetOptionSection;
   auto& opt = it.handle.onChgSetOption;
   if(sec.empty() || opt.empty())
@@ -291,19 +443,55 @@ void GameMenu::drawSlider(Painter& p, Item& it, int x, int y, int sw, int sh) {
              0,0,p.brush().w(),p.brush().h());
   }
 
-void GameMenu::drawQuestList(Painter& p, int x, int y, int w, int h, const GthFont& fnt,
-                             const QuestLog& log, QuestLog::Status st,bool isNote) {
-  int itY = y;
-  for(size_t i=0;i<log.questCount();i++) {
+void GameMenu::drawQuestList(Painter& p, Item& it, int x, int y, int w, int h,
+                             const QuestLog& log, QuestStat st) {
+  int     itY        = y;
+  int32_t listId     = -1;
+  int32_t listLen    = numQuests(&log,st);
+  int32_t listBegin  = it.scroll;
+  int32_t listEnd    = listLen;
+
+  for(size_t i=0; i<log.questCount(); i++) {
     auto& quest = log.quest(i);
-    if(quest.status!=st || (quest.section==QuestLog::Section::Note)!=isNote)
+    if(!isCompatible(quest,st))
+      continue;
+    ++listId;
+    if(listId<listBegin)
       continue;
 
-    itY+=fnt.pixelSize();
-    if(itY>h+y)
-      return;
+    auto ft = Resources::FontType::Normal;
+    if(listId==it.value && selectedItem()==&it)
+      ft = Resources::FontType::Hi;
 
-    fnt.drawText(p,x,itY,w,fnt.pixelSize(),quest.name.c_str(),Tempest::AlignLeft);
+    auto& fnt = Resources::font(it.handle.fontName.c_str(),ft);
+    auto  sz  = fnt.textSize(w,quest.name);
+    if(itY+sz.h>h+y) {
+      listEnd = listId;
+      break;
+      }
+
+    fnt.drawText(p,x,itY+int(fnt.pixelSize()),w,fnt.pixelSize(),quest.name,Tempest::AlignLeft);
+    itY+=sz.h;
+    }
+
+  if(listBegin>it.value) {
+    it.scroll = std::max(it.scroll-1,0);
+    update();
+    }
+  if(listEnd<=it.value) {
+    it.scroll = std::min(it.scroll+1,listLen);
+    update();
+    }
+
+  if(listEnd<listLen && down!=nullptr) {
+    p.setBrush(*down);
+    p.drawRect(x+w-down->w(),y+h-down->h(),
+               down->w(),down->h());
+    }
+  if(listBegin>0 && up!=nullptr) {
+    p.setBrush(*up);
+    p.drawRect(x+w-up->w(),y,
+               up->w(),up->h());
     }
   }
 
@@ -363,7 +551,7 @@ GameMenu::Item *GameMenu::selectedItem() {
   return nullptr;
   }
 
-GameMenu::Item *GameMenu::selectedNextItem(Item *it) {
+GameMenu::Item* GameMenu::selectedNextItem(Item *it) {
   uint32_t cur=curItem+1;
   for(uint32_t i=0;i<Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS;++i)
     if(&hItems[i]==it) {
@@ -375,20 +563,41 @@ GameMenu::Item *GameMenu::selectedNextItem(Item *it) {
     cur%=Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS;
 
     auto& it=hItems[cur].handle;
-    if(isEnabled(it))
+    if(isSelectable(it) && isEnabled(it))
       return &hItems[cur];
     }
   return nullptr;
   }
 
-void GameMenu::setSelection(int desired,int seek) {
+GameMenu::Item* GameMenu::selectedContentItem(Item *it) {
+  uint32_t cur=curItem+1;
+  for(uint32_t i=0;i<Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS;++i)
+    if(&hItems[i]==it) {
+      cur=i+1;
+      break;
+      }
+
+  for(int i=0;i<Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS;++i,cur++) {
+    cur%=Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS;
+
+    auto& it=hItems[cur].handle;
+    if(isEnabled(it) && it.type==MENU_ITEM_TEXT)
+      return &hItems[cur];
+    }
+  return nullptr;
+  }
+
+void GameMenu::setSelection(int desired, int seek) {
   uint32_t cur=uint32_t(desired);
   for(int i=0; i<Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS; ++i,cur+=uint32_t(seek)) {
     cur%=Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS;
 
     auto& it=hItems[cur].handle;
-    if((it.flags&Daedalus::GEngineClasses::C_Menu_Item::EFlags::IT_SELECTABLE) && isEnabled(it)){
+    if(isSelectable(it) && isEnabled(it)){
       curItem=cur;
+      for(size_t i=0;i<Daedalus::GEngineClasses::MenuConstants::MAX_SEL_ACTIONS;++i)
+        if(it.onSelAction[i]==Daedalus::GEngineClasses::MenuConstants::SEL_ACTION_EXECCOMMANDS)
+          execCommands(it.onSelAction_S[i],false);
       return;
       }
     }
@@ -420,6 +629,10 @@ const GthFont &GameMenu::getTextFont(const GameMenu::Item &it) {
   if(&it==selectedItem())
     return Resources::font(it.handle.fontName.c_str(),Resources::FontType::Hi);
   return Resources::font(it.handle.fontName.c_str());
+  }
+
+bool GameMenu::isSelectable(const Daedalus::GEngineClasses::C_Menu_Item& item) {
+  return (item.flags & Daedalus::GEngineClasses::C_Menu_Item::EFlags::IT_SELECTABLE);
   }
 
 bool GameMenu::isEnabled(const Daedalus::GEngineClasses::C_Menu_Item &item) {
@@ -486,7 +699,7 @@ void GameMenu::execSingle(Item &it, int slideDx) {
       }
     }
 
-  for(size_t i=0;i<Daedalus::GEngineClasses::MenuConstants::MAX_SEL_ACTIONS;++i) {
+  for(size_t i=0; i<Daedalus::GEngineClasses::MenuConstants::MAX_SEL_ACTIONS; ++i) {
     auto action = onSelAction[i];
     switch(action) {
       case SEL_ACTION_UNDEF:
@@ -520,7 +733,7 @@ void GameMenu::execSingle(Item &it, int slideDx) {
         Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx(onSelAction_S[i].c_str()));
         break;
       case SEL_ACTION_EXECCOMMANDS:
-        execCommands(it,onSelAction_S[i]);
+        execCommands(onSelAction_S[i],true);
         break;
       }
     }
@@ -576,9 +789,30 @@ void GameMenu::execLoadGame(GameMenu::Item &item) {
   Gothic::inst().load(fname);
   }
 
-void GameMenu::execCommands(GameMenu::Item& /*it*/,const Daedalus::ZString str) {
+void GameMenu::execCommands(const Daedalus::ZString str, bool isClick) {
   using namespace Daedalus::GEngineClasses::MenuConstants;
 
+  if(str.find("EFFECTS ")==0) {
+    // menu log
+    const char* arg0 = str.c_str()+std::strlen("EFFECTS ");
+    for(uint32_t id=0; id<Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS; ++id) {
+      auto& i = hItems[id];
+      if(i.handle.type==MENU_ITEM_LISTBOX) {
+        i.visible = (i.name==arg0);
+        if(i.visible && isClick) {
+          const uint32_t prev = curItem;
+          curItem = id;
+          ListViewDialog dlg(*this,i);
+          dlg.resize(owner.size());
+          dlg.exec();
+          curItem = prev;
+          }
+        }
+      }
+    }
+
+  if(!isClick)
+    return;
   if(str.find("RUN ")==0) {
     const char* what = str.c_str()+4;
     while(*what==' ')
@@ -586,14 +820,6 @@ void GameMenu::execCommands(GameMenu::Item& /*it*/,const Daedalus::ZString str) 
     for(auto& i:hItems)
       if(i.name==what)
         execSingle(i,0);
-    }
-  if(str.find("EFFECTS ")==0) {
-    // menu log
-    const char* arg0 = str.c_str()+std::strlen("EFFECTS ");
-    for(auto& i:hItems) {
-      if(i.handle.type==MENU_ITEM_LISTBOX)
-        i.visible = (i.name==arg0);
-      }
     }
   if(str=="SETDEFAULT") {
     setDefaultKeys("KEYSDEFAULT0");
