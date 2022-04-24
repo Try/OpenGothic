@@ -92,8 +92,8 @@ class GameMenu : public Tempest::Widget {
     void                                  initItems();
     void                                  getText(const Item &it, std::vector<char>& out);
     const GthFont&                        getTextFont(const Item &it);
-    bool                                  isSelectable(const Daedalus::GEngineClasses::C_Menu_Item& item);
-    bool                                  isEnabled(const Daedalus::GEngineClasses::C_Menu_Item& item);
+    static bool                           isSelectable(const Daedalus::GEngineClasses::C_Menu_Item& item);
+    static bool                           isEnabled(const Daedalus::GEngineClasses::C_Menu_Item& item);
 
     void                                  exec         (Item &item, int slideDx);
     void                                  execSingle   (Item &it,   int slideDx);
@@ -115,7 +115,7 @@ class GameMenu : public Tempest::Widget {
     void                                  updateVideo();
     void                                  setDefaultKeys(const char* preset);
 
-    bool                                  isInGameAndAlive() const;
+    static bool                           isInGameAndAlive();
     static QuestStat                      toStatus(const Daedalus::ZString& str);
     static bool                           isCompatible(const QuestLog::Quest& q, QuestStat st);
     static int32_t                        numQuests(const QuestLog* q, QuestStat st);

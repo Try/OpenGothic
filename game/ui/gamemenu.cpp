@@ -23,18 +23,53 @@ using namespace Tempest;
 static const float scriptDiv=8192.0f;
 
 struct GameMenu::ListContentDialog : Dialog {
-  ListContentDialog(){
+  ListContentDialog(Item& textView):textView(textView) {
     setFocusPolicy(ClickFocus);
     setCursorShape(CursorShape::Hidden);
     setFocus(true);
     }
+
   void mouseDownEvent(MouseEvent& e) override {
     if(e.button==Event::ButtonRight) {
       close();
       }
     }
+
+  void mouseWheelEvent(Tempest::MouseEvent& event) override {
+    onMove(-event.delta);
+    }
+
+  void keyDownEvent(KeyEvent &e) override { e.accept(); }
+  void keyUpEvent  (KeyEvent &e) override {
+    if(e.key==Event::K_ESCAPE) {
+      close();
+      return;
+      }
+    if(e.key==Event::K_W || e.key==Event::K_Up) {
+      onMove(-1);
+      update();
+      }
+    if(e.key==Event::K_S || e.key==Event::K_Down) {
+      onMove(+1);
+      update();
+      }
+    }
+
+  void onMove(int dy) {
+    if(dy<0) {
+      if(textView.scroll>0)
+        textView.scroll--;
+      }
+    if(dy>0) {
+      // will be clamped at draw
+      textView.scroll++;
+      }
+    }
+
   void paintEvent (PaintEvent&) override {}
   void paintShadow(PaintEvent&) override {}
+
+  Item& textView;
   };
 
 struct GameMenu::ListViewDialog : Dialog {
@@ -69,6 +104,7 @@ struct GameMenu::ListViewDialog : Dialog {
         if(i+1<ql->entry.size())
           text+="\n---\n";
         }
+      next->scroll         = 0;
       next->handle.text[0] = text.c_str();
       }
 
@@ -78,7 +114,7 @@ struct GameMenu::ListViewDialog : Dialog {
         break;
         }
 
-    ListContentDialog dlg;
+    ListContentDialog dlg(*next);
     dlg.resize(owner.owner.size());
     dlg.exec();
     next->visible = vis;
@@ -120,7 +156,7 @@ struct GameMenu::ListViewDialog : Dialog {
   void paintEvent (PaintEvent&) override {}
   void paintShadow(PaintEvent&) override {}
 
-  size_t numQuests() {
+  size_t numQuests() const {
     return size_t(GameMenu::numQuests(Gothic::inst().questLog(),status));
     }
 
@@ -128,10 +164,11 @@ struct GameMenu::ListViewDialog : Dialog {
     int32_t num = 0;
     if(auto ql=Gothic::inst().questLog()) {
       for(size_t i=0; i<ql->questCount(); ++i) {
-        if(!isCompatible(ql->quest(i),status))
+        auto& quest = ql->quest(ql->questCount()-i-1);
+        if(!isCompatible(quest,status))
           continue;
         if(num==list.value)
-          return &ql->quest(i);
+          return &quest;
         ++num;
         }
       }
@@ -380,11 +417,29 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
      std::min(tw,th)>100*2+fnt.pixelSize()) {
     padd = 100; // TODO: find out exact padding formula
     }
-  fnt.drawText(p,
-               x+padd,y+fnt.pixelSize()+padd,
-               tw-2*padd, th-2*padd,
-               textBuf.data(),
-               txtAlign);
+  auto tRect   = Rect(x+padd,y+fnt.pixelSize()+padd,
+                      tw-2*padd, th-2*padd);
+
+  if(flags & Daedalus::GEngineClasses::C_Menu_Item::IT_MULTILINE) {
+    int lineCnt     = fnt.lineCount(tRect.w,textBuf.data());
+    int linesInView = tRect.h/fnt.pixelSize();
+
+    hItem.scroll = std::min(hItem.scroll, std::max(lineCnt-linesInView,0));
+    hItem.scroll = std::max(hItem.scroll, 0);
+    if(lineCnt>linesInView+hItem.scroll) {
+      p.setBrush(*down);
+      p.drawRect(x+(tw-down->w())/2, y+th-padd,
+                 down->w(), down->h());
+      }
+    if(hItem.scroll>0) {
+      p.setBrush(*up);
+      p.drawRect(x+(tw-up->w())/2, y+padd-up->h(),
+                 up->w(), up->h());
+      }
+    }
+
+  fnt.drawText(p, tRect.x,tRect.y, tRect.w, tRect.h,
+               textBuf.data(), txtAlign, hItem.scroll);
   }
 
   if(item.type==MENU_ITEM_SLIDER && slider!=nullptr) {
@@ -420,7 +475,7 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
 
     fnt.drawText(p,
                  x,y+fnt.pixelSize(),
-                 szX, szY,
+                 szX, std::max(szY,fnt.pixelSize()),
                  textBuf,
                  txtAlign);
     }
@@ -452,7 +507,7 @@ void GameMenu::drawQuestList(Painter& p, Item& it, int x, int y, int w, int h,
   int32_t listEnd    = listLen;
 
   for(size_t i=0; i<log.questCount(); i++) {
-    auto& quest = log.quest(i);
+    auto& quest = log.quest(log.questCount()-i-1);
     if(!isCompatible(quest,st))
       continue;
     ++listId;
@@ -470,7 +525,7 @@ void GameMenu::drawQuestList(Painter& p, Item& it, int x, int y, int w, int h,
       break;
       }
 
-    fnt.drawText(p,x,itY+int(fnt.pixelSize()),w,fnt.pixelSize(),quest.name,Tempest::AlignLeft);
+    fnt.drawText(p,x,itY+int(fnt.pixelSize()),w,sz.h,quest.name,Tempest::AlignLeft);
     itY+=sz.h;
     }
 
@@ -623,7 +678,7 @@ void GameMenu::getText(const Item& it, std::vector<char> &out) {
     }
   }
 
-const GthFont &GameMenu::getTextFont(const GameMenu::Item &it) {
+const GthFont& GameMenu::getTextFont(const GameMenu::Item &it) {
   if(!isEnabled(it.handle))
     return Resources::font(it.handle.fontName.c_str(),Resources::FontType::Disabled);
   if(&it==selectedItem())
@@ -898,7 +953,7 @@ void GameMenu::setDefaultKeys(const char* preset) {
   keyCodec.setDefaultKeys(preset);
   }
 
-bool GameMenu::isInGameAndAlive() const {
+bool GameMenu::isInGameAndAlive() {
   auto pl = Gothic::inst().player();
   if(pl==nullptr || pl->isDead())
     return false;

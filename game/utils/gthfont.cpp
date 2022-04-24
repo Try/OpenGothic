@@ -15,18 +15,18 @@ int GthFont::pixelSize() const {
   }
 
 void GthFont::drawText(Painter &p, int bx, int by, int bw, int bh,
-                       std::string_view txt, Tempest::AlignFlag align) const {
+                       std::string_view txt, Tempest::AlignFlag align, int firstLine) const {
   if(tex==nullptr || txt.empty())
     return;
 
   auto b = p.brush();
   p.setBrush(Brush(*tex,color));
-  processText(&p,bx,by,bw,bh,txt,align);
+  processText(&p,bx,by,bw,bh,txt,align,firstLine);
   p.setBrush(b);
   }
 
-Size GthFont::processText(Painter* p, int bx, int by, int bw, int /*bh*/,
-                          std::string_view txtView, AlignFlag align) const {
+Size GthFont::processText(Painter* p, int bx, int by, int bw, int bh,
+                          std::string_view txtView, AlignFlag align, int firstLine) const {
   const uint8_t* txt = reinterpret_cast<const uint8_t*>(txtView.data());
 
   int   h  = pixelSize();
@@ -38,9 +38,24 @@ Size GthFont::processText(Painter* p, int bx, int by, int bw, int /*bh*/,
 
   Size ret = {0,0};
   while(*txt) {
-    auto t  = getLine(txt,bw,lwidth);
+    auto t    = getLine(txt,bw,lwidth);
+    auto sz   = textSize(txt,t);
+    auto next = t;
 
-    auto sz = textSize(txt,t);
+    if(*next=='\n')
+      ++next;
+    while(*next==' ')
+      ++next; // lead spaces of next line
+
+    if(firstLine>0) {
+      txt = next;
+      --firstLine;
+      continue;
+      }
+    if(ret.h+sz.h>bh && bh>0) {
+      break;
+      }
+
     ret.w  = std::max(ret.w,sz.w);
     ret.h += sz.h;
 
@@ -53,7 +68,7 @@ Size GthFont::processText(Painter* p, int bx, int by, int bw, int /*bh*/,
       x = x1;
       }
 
-    for(auto i=txt;i!=t;++i) {
+    for(auto i=txt; i!=t; ++i) {
       uint8_t id  = *i;
       auto&   uv1 = fnt.getFontInfo().fontUV1[id];
       auto&   uv2 = fnt.getFontInfo().fontUV2[id];
@@ -66,12 +81,9 @@ Size GthFont::processText(Painter* p, int bx, int by, int bw, int /*bh*/,
       x += w;
       }
 
-    while(*t==' ')
-      ++t;
-
-    txt = t;
-    x = bx;
-    y+= h;
+    txt = next;
+    x   = bx;
+    y  += sz.h;
     }
 
   return ret;
@@ -134,7 +146,8 @@ Size GthFont::textSize(const uint8_t* b, const uint8_t* e) const {
         ++i;
       y+=h;
       x=0;
-      } else {
+      }
+    else {
       int w = fnt.getFontInfo().glyphWidth[id];
       x += w;
       ++i;
@@ -145,7 +158,16 @@ Size GthFont::textSize(const uint8_t* b, const uint8_t* e) const {
   }
 
 Size GthFont::textSize(int bw, std::string_view txt) const {
-  return processText(nullptr,0,0,bw,0,txt,NoAlign);
+  if(tex==nullptr || txt.empty())
+    return Size();
+  return processText(nullptr,0,0,bw,0,txt,NoAlign,0);
+  }
+
+int32_t GthFont::lineCount(int bw, std::string_view txt) const {
+  if(tex==nullptr || txt.empty())
+    return 0;
+  auto ret = processText(nullptr,0,0,bw,0,txt,NoAlign,0);
+  return ret.h/pixelSize();
   }
 
 const uint8_t* GthFont::getLine(const uint8_t *txt, int bw, int& width) const {
@@ -166,9 +188,10 @@ const uint8_t* GthFont::getLine(const uint8_t *txt, int bw, int& width) const {
     txt   = t;
     }
 
-  if(*txt=='\0')
-    return txt;
-  return txt+1;
+  // if(*txt=='\0')
+  //   return txt;
+  // return txt+1;
+  return txt;
   }
 
 const uint8_t* GthFont::getWord(const uint8_t *txt, int& width, int& space) const {
