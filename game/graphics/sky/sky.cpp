@@ -37,8 +37,8 @@ void Sky::setWorld(const World& world, const std::pair<Vec3, Vec3>& bbox) {
   auto  name   = dot==std::string::npos ? wname : wname.substr(0,dot);
 
   for(size_t i=0;i<2;++i) {
-    day  .lay[i].texture = skyTexture(name.c_str(),true, i);
-    night.lay[i].texture = skyTexture(name.c_str(),false,i);
+    day  .lay[i].texture = skyTexture(name,true, i);
+    night.lay[i].texture = skyTexture(name,false,i);
     }
 
   /*

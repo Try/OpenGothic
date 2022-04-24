@@ -758,7 +758,7 @@ void Pose::setAnimRotate(const AnimationSolver &solver, Npc &npc, WeaponState fi
   const Animation::Sequence *sq = nullptr;
   if(dir==0) {
     if(rotation!=nullptr) {
-      if(stopAnim(rotation->name.c_str()))
+      if(stopAnim(rotation->name))
         rotation = nullptr;
       }
     return;
@@ -773,7 +773,7 @@ void Pose::setAnimRotate(const AnimationSolver &solver, Npc &npc, WeaponState fi
   if(rotation!=nullptr) {
     if(sq!=nullptr && rotation->name==sq->name)
       return;
-    if(!stopAnim(rotation->name.c_str()))
+    if(!stopAnim(rotation->name))
       return;
     }
   if(sq==nullptr)

@@ -93,7 +93,7 @@ Bounds MeshObjects::Mesh::bounds() const {
 
 const PfxEmitterMesh* MeshObjects::Mesh::toMeshEmitter() const {
   if(auto p = proto)
-    return Resources::loadEmiterMesh(p->fname.c_str());
+    return Resources::loadEmiterMesh(p->fname);
   return nullptr;
   }
 
@@ -170,7 +170,7 @@ MeshObjects::Mesh::Mesh(MeshObjects& owner, const ProtoMesh& mesh,
     }
 
   if(mesh.morph.size()>0) {
-    startMMAnim(mesh.morph[0].name.c_str(),1,uint64_t(-1));
+    startMMAnim(mesh.morph[0].name,1,uint64_t(-1));
     }
   }
 
