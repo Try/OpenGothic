@@ -68,12 +68,14 @@ Animation::Animation(ZenLoad::MdsParser &p, std::string_view name, const bool ig
             auto d = i.data;
             sequences.emplace_back();
             Animation::Sequence& ani = sequences.back();
-            ani.name    = p.comb.m_Name;
-            ani.askName = p.comb.m_Asc;
-            ani.layer   = p.comb.m_Layer;
-            ani.flags   = Flags(p.comb.m_Flags);
-            ani.next    = std::move(p.comb.m_Next);
-            ani.data    = d; // set first as default
+            ani.name     = p.comb.m_Name;
+            ani.askName  = p.comb.m_Asc;
+            ani.layer    = p.comb.m_Layer;
+            ani.flags    = Flags(p.comb.m_Flags);
+            ani.blendIn  = uint64_t(1000*p.comb.m_BlendIn);
+            ani.blendOut = uint64_t(1000*p.comb.m_BlendOut);
+            ani.next     = std::move(p.comb.m_Next);
+            ani.data     = d; // set first as default
             ani.comb.resize(p.comb.m_LastFrame);
             found=true;
             break;
@@ -246,11 +248,13 @@ void Animation::setupIndex() {
       continue;
       }
 
-    ani.name    = r.m_Name;
-    ani.layer   = r.m_Layer;
-    ani.flags   = Flags(r.m_Flags);
-    ani.reverse = r.m_Dir!=ZenLoad::MSB_FORWARD;
-    ani.next    = r.m_Next;
+    ani.name     = r.m_Name;
+    ani.layer    = r.m_Layer;
+    ani.flags    = Flags(r.m_Flags);
+    ani.blendIn  = uint64_t(1000*r.m_BlendIn);
+    ani.blendOut = uint64_t(1000*r.m_BlendOut);
+    ani.reverse  = r.m_Dir!=ZenLoad::MSB_FORWARD;
+    ani.next     = r.m_Next;
     sequences.emplace_back(std::move(ani));
     }
   ref.clear();

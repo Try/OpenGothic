@@ -466,6 +466,9 @@ const Animation::Sequence* Pose::solveNext(const AnimationSolver &solver, const 
     return ret;
     }
 
+  if(sq==rotation)
+    return sq;
+
   return solver.solveNext(*sq);
   }
 
