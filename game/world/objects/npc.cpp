@@ -3476,7 +3476,7 @@ bool Npc::setInteraction(Interactive *id, bool quick) {
     }
 
   if(id==nullptr)
-    return true;
+    return (currentInteract==nullptr);
 
   if(id->attach(*this)) {
     currentInteract = id;

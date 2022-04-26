@@ -305,7 +305,7 @@ void Interactive::implQuitInteract(Interactive::Pos &p) {
       // S0 -> STAND
       sq = npc.setAnimAngGet(Npc::Anim::InteractToStand);
       }
-    if(sq==nullptr && !npc.setAnim(Npc::Anim::Idle))
+    if(sq==nullptr && !(npc.isDown() || npc.setAnim(Npc::Anim::Idle)))
       return;
     npc.quitIneraction();
     p.user      = nullptr;
@@ -705,10 +705,11 @@ bool Interactive::dettach(Npc &npc, bool quick) {
         i.user       = nullptr;
         i.attachMode = false;
         npc.quitIneraction();
+        return true;
         }
       else {
         i.attachMode = false;
-        return true;
+        return false;
         }
       return false;
       }
