@@ -828,8 +828,8 @@ const Animation::Sequence* Interactive::setAnim(Interactive::Anim t) {
   return visual.startAnimAndGet(buf,world.tickCount());
   }
 
-bool Interactive::setAnim(Npc* npc,Anim dir) {
-  Npc::Anim                  dest = dir==Anim::Out ? Npc::Anim::InteractOut : Npc::Anim::InteractIn;
+bool Interactive::setAnim(Npc* npc, Anim dir) {
+  const Npc::Anim            dest = dir==Anim::Out ? Npc::Anim::InteractOut : Npc::Anim::InteractIn;
   const Animation::Sequence* sqNpc=nullptr;
   const Animation::Sequence* sqMob=nullptr;
   if(npc!=nullptr) {
@@ -841,10 +841,17 @@ bool Interactive::setAnim(Npc* npc,Anim dir) {
   if(sqMob==nullptr && sqNpc==nullptr && dir!=Anim::Out)
     return false;
 
-  uint64_t t0 = sqNpc==nullptr ? 0 : uint64_t(sqNpc->totalTime());
-  uint64_t t1 = sqMob==nullptr ? 0 : uint64_t(sqMob->totalTime());
+  uint64_t aniT = sqNpc==nullptr ? 0 : uint64_t(sqNpc->totalTime());
+  if(aniT==0) {
+    /* Note: testing shows that in vanilla only npc animation maters.
+     * testcase: chest animation
+     * modsi timings only here for completness
+     */
+    aniT = sqMob==nullptr ? 0 : uint64_t(sqMob->totalTime());
+    }
+
   if(dir!=Anim::Active)
-    waitAnim = world.tickCount()+std::max(t0,t1);
+    waitAnim = world.tickCount()+aniT;
   return true;
   }
 
