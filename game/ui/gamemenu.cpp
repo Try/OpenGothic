@@ -436,6 +436,8 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
       p.drawRect(x+(tw-up->w())/2, y+padd-up->h(),
                  up->w(), up->h());
       }
+    } else {
+    tRect.h = std::max(tRect.h, fnt.pixelSize());
     }
 
   fnt.drawText(p, tRect.x,tRect.y, tRect.w, tRect.h,
@@ -618,7 +620,7 @@ GameMenu::Item* GameMenu::selectedNextItem(Item *it) {
     cur%=Daedalus::GEngineClasses::MenuConstants::MAX_ITEMS;
 
     auto& it=hItems[cur].handle;
-    if(isSelectable(it) && isEnabled(it))
+    if(isEnabled(it))
       return &hItems[cur];
     }
   return nullptr;
