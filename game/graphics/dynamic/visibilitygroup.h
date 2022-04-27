@@ -10,8 +10,17 @@ class Frustrum;
 class VisibleSet;
 
 class VisibilityGroup {
+  private:
+    struct TokList;
+
   public:
     VisibilityGroup(const std::pair<Tempest::Vec3, Tempest::Vec3>& bbox);
+
+    enum Group : uint8_t {
+      G_Default,
+      G_Static,
+      G_AlwaysVis,
+      };
 
     class Token {
       public:
@@ -22,20 +31,21 @@ class VisibilityGroup {
 
         void   setObject   (VisibleSet* b, size_t id);
         void   setObjMatrix(const Tempest::Matrix4x4& at);
-        void   setAlwaysVis(bool v);
+        void   setGroup    (Group gr);
         void   setBounds   (const Bounds& bbox);
 
         const Bounds& bounds() const;
 
       private:
-        Token(VisibilityGroup& ow, size_t id);
+        Token(VisibilityGroup& owner, TokList& group, size_t id);
 
         VisibilityGroup* owner = nullptr;
+        TokList*         group = nullptr;
         size_t           id    = 0;
       friend class VisibilityGroup;
       };
 
-    Token get();
+    Token get(Group g);
     void  pass(const Frustrum f[]);
 
   private:
@@ -45,12 +55,15 @@ class VisibilityGroup {
       VisibleSet*        vSet = nullptr;
       size_t             id     = 0;
       bool               updateBbox = false;
-      bool               alwaysVis = false;
       };
 
-    std::vector<Tok>    tokens;
-    std::vector<size_t> freeList;
+    struct TokList {
+      std::vector<Tok>    tokens;
+      std::vector<size_t> freeList;
+      };
+    TokList def, alwaysVis;
 
+    TokList& group(Group gr);
     static bool subpixelMeshTest(const Tok& t, const Frustrum& f, float edgeX, float edgeY);
   };
 

@@ -6,73 +6,92 @@
 
 using namespace Tempest;
 
-VisibilityGroup::Token::Token(VisibilityGroup& ow, size_t id)
-  :owner(&ow), id(id) {
+VisibilityGroup::Token::Token(VisibilityGroup& owner, TokList& group, size_t id)
+  :owner(&owner), group(&group), id(id) {
   }
 
 VisibilityGroup::Token::Token(VisibilityGroup::Token&& other)
-  :owner(other.owner),id(other.id) {
+  :owner(other.owner),group(other.group),id(other.id) {
   other.owner = nullptr;
+  other.group = nullptr;
   }
 
 VisibilityGroup::Token& VisibilityGroup::Token::operator =(VisibilityGroup::Token&& t) {
   std::swap(owner,t.owner);
+  std::swap(group,t.group);
   std::swap(id,   t.id);
   return *this;
   }
 
 VisibilityGroup::Token::~Token() {
-  if(owner==nullptr)
+  if(group==nullptr)
     return;
-  auto& t = owner->tokens[id];
+  auto& t = group->tokens[id];
   t.vSet = nullptr;
-  owner->freeList.push_back(id);
+  group->freeList.push_back(id);
   }
 
 void VisibilityGroup::Token::setObject(VisibleSet* b, size_t i) {
-  auto& t = owner->tokens[id];
+  auto& t = group->tokens[id];
   t.vSet = b;
   t.id   = i;
   }
 
 void VisibilityGroup::Token::setObjMatrix(const Matrix4x4& at) {
-  if(owner==nullptr)
+  if(group==nullptr)
     return;
-  auto& t = owner->tokens[id];
+  auto& t = group->tokens[id];
   t.pos        = at;
   t.updateBbox = true;
   }
 
-void VisibilityGroup::Token::setAlwaysVis(bool v) {
-  auto& t = owner->tokens[id];
-  t.alwaysVis = v;
+void VisibilityGroup::Token::setGroup(Group gr) {
+  if(owner==nullptr)
+    return;
+  auto& g = owner->group(gr);
+  if(&g==group)
+    return;
+
+  auto prevId = id;
+  if(g.freeList.size()>0) {
+    size_t id2 = g.freeList.back();
+    g.tokens[id2] = group->tokens[id];
+    id = id2;
+    } else {
+    g.tokens.push_back(group->tokens[id]);
+    id = g.tokens.size()-1;
+    }
+  group->tokens[prevId] = Tok();
+  group->freeList.push_back(prevId);
+  group = &g;
   }
 
 void VisibilityGroup::Token::setBounds(const Bounds& bbox) {
-  if(owner==nullptr)
+  if(group==nullptr)
     return;
-  auto& t = owner->tokens[id];
+  auto& t = group->tokens[id];
   t.bbox       = bbox;
   t.updateBbox = true;
   }
 
 const Bounds& VisibilityGroup::Token::bounds() const {
-  return owner->tokens[id].bbox;
+  return group->tokens[id].bbox;
   }
 
 VisibilityGroup::VisibilityGroup(const std::pair<Vec3, Vec3>& bbox) {
-  freeList.reserve(4);
+  def.freeList.reserve(4);
   }
 
-VisibilityGroup::Token VisibilityGroup::get() {
-  size_t id = tokens.size();
-  if(freeList.size()>0) {
-    id = freeList.back();
-    freeList.pop_back();
+VisibilityGroup::Token VisibilityGroup::get(Group g) {
+  auto& gr = group(g);
+  size_t id = gr.tokens.size();
+  if(gr.freeList.size()>0) {
+    id = gr.freeList.back();
+    gr.freeList.pop_back();
     } else {
-    tokens.emplace_back();
+    gr.tokens.emplace_back();
     }
-  return Token(*this,id);
+  return Token(*this, gr,id);
   }
 
 void VisibilityGroup::pass(const Frustrum f[]) {
@@ -82,7 +101,15 @@ void VisibilityGroup::pass(const Frustrum f[]) {
   float sh1X = 2.f/float(f[SceneGlobals::V_Shadow1].width );
   float sh1Y = 2.f/float(f[SceneGlobals::V_Shadow1].height);
 
-  Workers::parallelFor(tokens,[&f,sh1X,sh1Y,mX,mY](Tok& t) {
+  for(auto& t:alwaysVis.tokens) {
+    if(t.vSet==nullptr)
+      continue;
+    t.vSet->push(t.id,SceneGlobals::V_Shadow0);
+    t.vSet->push(t.id,SceneGlobals::V_Shadow1);
+    t.vSet->push(t.id,SceneGlobals::V_Main);
+    }
+
+  Workers::parallelFor(def.tokens,[&f,sh1X,sh1Y,mX,mY](Tok& t) {
     auto& b = t.bbox;
     if(t.vSet==nullptr)
       return;
@@ -91,34 +118,36 @@ void VisibilityGroup::pass(const Frustrum f[]) {
       t.updateBbox = false;
       }
 
-    if(t.alwaysVis) {
-      t.vSet->push(t.id,SceneGlobals::V_Shadow0);
-      t.vSet->push(t.id,SceneGlobals::V_Shadow1);
-      t.vSet->push(t.id,SceneGlobals::V_Main);
-      } else {
-      bool  visible[SceneGlobals::V_Count] = {};
-      float dist   [SceneGlobals::V_Count] = {};
-      visible[SceneGlobals::V_Shadow0] = f[SceneGlobals::V_Shadow0].testPoint(b.midTr, b.r, dist[SceneGlobals::V_Shadow0]);
-      visible[SceneGlobals::V_Shadow1] = f[SceneGlobals::V_Shadow1].testPoint(b.midTr, b.r, dist[SceneGlobals::V_Shadow1]);
-      visible[SceneGlobals::V_Main]    = f[SceneGlobals::V_Main   ].testPoint(b.midTr, b.r, dist[SceneGlobals::V_Main   ]);
+    bool  visible[SceneGlobals::V_Count] = {};
+    float dist   [SceneGlobals::V_Count] = {};
+    visible[SceneGlobals::V_Shadow0] = f[SceneGlobals::V_Shadow0].testPoint(b.midTr, b.r, dist[SceneGlobals::V_Shadow0]);
+    visible[SceneGlobals::V_Shadow1] = f[SceneGlobals::V_Shadow1].testPoint(b.midTr, b.r, dist[SceneGlobals::V_Shadow1]);
+    visible[SceneGlobals::V_Main]    = f[SceneGlobals::V_Main   ].testPoint(b.midTr, b.r, dist[SceneGlobals::V_Main   ]);
 
-      if(b.r<1.f*100.f) {
-        static const float farDist = 50*100; // 50 meters
-        if(visible[SceneGlobals::V_Shadow1] && dist[SceneGlobals::V_Shadow1]>b.r+farDist)
-          visible[SceneGlobals::V_Shadow1] = subpixelMeshTest(t,f[SceneGlobals::V_Shadow1],sh1X,sh1Y);
-        if(visible[SceneGlobals::V_Main] && dist[SceneGlobals::V_Main]>b.r+farDist)
-          visible[SceneGlobals::V_Main] = subpixelMeshTest(t,f[SceneGlobals::V_Main],mX,mY);
-        }
-
-      if(visible[SceneGlobals::V_Shadow0])
-        t.vSet->push(t.id,SceneGlobals::V_Shadow0);
-      if(visible[SceneGlobals::V_Shadow1])
-        t.vSet->push(t.id,SceneGlobals::V_Shadow1);
-      if(visible[SceneGlobals::V_Main])
-        t.vSet->push(t.id,SceneGlobals::V_Main);
+    if(b.r<1.f*100.f) {
+      static const float farDist = 50*100; // 50 meters
+      if(visible[SceneGlobals::V_Shadow1] && dist[SceneGlobals::V_Shadow1]>b.r+farDist)
+        visible[SceneGlobals::V_Shadow1] = subpixelMeshTest(t,f[SceneGlobals::V_Shadow1],sh1X,sh1Y);
+      if(visible[SceneGlobals::V_Main] && dist[SceneGlobals::V_Main]>b.r+farDist)
+        visible[SceneGlobals::V_Main] = subpixelMeshTest(t,f[SceneGlobals::V_Main],mX,mY);
       }
 
+    if(visible[SceneGlobals::V_Shadow0])
+      t.vSet->push(t.id,SceneGlobals::V_Shadow0);
+    if(visible[SceneGlobals::V_Shadow1])
+      t.vSet->push(t.id,SceneGlobals::V_Shadow1);
+    if(visible[SceneGlobals::V_Main])
+      t.vSet->push(t.id,SceneGlobals::V_Main);
     });
+  }
+
+VisibilityGroup::TokList& VisibilityGroup::group(Group gr) {
+  switch(gr) {
+    case G_Default:   return def;
+    case G_Static:    return def;
+    case G_AlwaysVis: return alwaysVis;
+    }
+  return def;
   }
 
 bool VisibilityGroup::subpixelMeshTest(const Tok& t, const Frustrum& f, float edgeX, float edgeY) {

@@ -190,7 +190,9 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds
   v->vboA       = nullptr;
   v->ibo        = nullptr;
   v->timeShift  = uint64_t(0-scene.tickCount);
-  v->visibility = owner.visGroup.get();
+  if(objType==Type::Landscape || objType==Type::Static)
+    v->visibility = owner.visGroup.get(VisibilityGroup::G_Static); else
+    v->visibility = owner.visGroup.get(VisibilityGroup::G_Default);
   v->visibility.setBounds(bounds);
   v->visibility.setObject(&visSet,size_t(std::distance(val,v)));
   v->skiningAni = anim;
@@ -372,7 +374,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<ObjectsBucket::Vertex>* 
   Object* v = &implAlloc(VboType::VboMorph,bounds,nullptr);
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
     v->vboM[i] = vbo[i];
-  v->visibility.setAlwaysVis(true);
+  v->visibility.setGroup(VisibilityGroup::G_AlwaysVis);
   return size_t(std::distance(val,v));
   }
 
