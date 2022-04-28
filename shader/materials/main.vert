@@ -29,12 +29,14 @@ layout(location = 3) in uint inColor;
 layout(location = 0) out Varyings shOut;
 
 #if (MESH_TYPE==T_SKINING)
-vec4 boneId;
+uvec4 boneId;
 #endif
 
 #if (MESH_TYPE==T_MORPH)
 vec3 morphOffset(int i) {
-  float intensity = floor(push.morph[i].alpha)/255.0;
+  vec2  ai        = unpackUnorm2x16(push.morph[i].alpha16_intensity16);
+  float alpha     = ai.x;
+  float intensity = ai.y;
   if(intensity<=0)
     return vec3(0);
 
@@ -43,7 +45,6 @@ vec3 morphOffset(int i) {
   if(index<0)
     return vec3(0);
 
-  float alpha = fract(push.morph[i].alpha);
   uint  f0 = push.morph[i].sample0;
   uint  f1 = push.morph[i].sample1;
   vec3  a  = morph.samples[f0 + index].xyz;
@@ -59,10 +60,10 @@ vec4 vertexPosMesh() {
   vec4 pos1 = vec4(inPos1,1.0);
   vec4 pos2 = vec4(inPos2,1.0);
   vec4 pos3 = vec4(inPos3,1.0);
-  vec4 t0   = anim.skel[int(boneId.x*255.0)]*pos0;
-  vec4 t1   = anim.skel[int(boneId.y*255.0)]*pos1;
-  vec4 t2   = anim.skel[int(boneId.z*255.0)]*pos2;
-  vec4 t3   = anim.skel[int(boneId.w*255.0)]*pos3;
+  vec4 t0   = anim.skel[boneId.x]*pos0;
+  vec4 t1   = anim.skel[boneId.y]*pos1;
+  vec4 t2   = anim.skel[boneId.z]*pos2;
+  vec4 t3   = anim.skel[boneId.w]*pos3;
   return t0*inWeight.x + t1*inWeight.y + t2*inWeight.z + t3*inWeight.w;
 #elif (MESH_TYPE==T_MORPH)
   vec3 v = inPos;
@@ -76,12 +77,13 @@ vec4 vertexPosMesh() {
 
 vec4 vertexNormalMesh() {
 #if (MESH_TYPE==T_SKINING)
-  vec4 norm = vec4(inNormal,0.0);
-  vec4 n0   = anim.skel[int(boneId.x)]*norm;
-  vec4 n1   = anim.skel[int(boneId.y)]*norm;
-  vec4 n2   = anim.skel[int(boneId.z)]*norm;
-  vec4 n3   = anim.skel[int(boneId.w)]*norm;
-  vec4 n    = (n0*inWeight.x + n1*inWeight.y + n2*inWeight.z + n3*inWeight.w);
+  // vec4 norm = vec4(inNormal.xzy,0.0);
+  // vec4 n0   = anim.skel[boneId.x]*norm;
+  // vec4 n1   = anim.skel[boneId.y]*norm;
+  // vec4 n2   = anim.skel[boneId.z]*norm;
+  // vec4 n3   = anim.skel[boneId.w]*norm;
+  // vec4 n    = (n0*inWeight.x + n1*inWeight.y + n2*inWeight.z + n3*inWeight.w);
+  vec4 n = anim.skel[0]*vec4(inNormal,0.0);
   return vec4(n.z,n.y,-n.x,0.0);
 #else
   return vec4(inNormal,0.0);
@@ -108,7 +110,7 @@ vec4 vertexPos() {
 
 void main() {
 #if (MESH_TYPE==T_SKINING)
-  boneId   = unpackUnorm4x8(inId);
+  boneId   = uvec4(unpackUnorm4x8(inId)*255.0);
 #endif
 
 #if defined(MAT_ANIM)
@@ -141,7 +143,7 @@ void main() {
 #endif
 
 #if !defined(SHADOW_MAP) || defined(WATER)
-  shOut.pos          = pos.xyz;
+  shOut.pos   = pos.xyz;
 #endif
 
 #if !defined(SHADOW_MAP) && (MESH_TYPE==T_PFX)

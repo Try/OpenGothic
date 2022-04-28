@@ -603,7 +603,8 @@ void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket:
       push.morph[i].indexOffset = uint32_t(anim.index);
       push.morph[i].sample0     = uint32_t((time/anim.tickPerFrame+0)%anim.numFrames)*samplesPerFrame;
       push.morph[i].sample1     = uint32_t((time/anim.tickPerFrame+1)%anim.numFrames)*samplesPerFrame;
-      push.morph[i].alpha       = alpha + std::floor(intensity*255);
+      push.morph[i].alpha       = uint16_t(alpha*uint16_t(-1));
+      push.morph[i].intensity   = uint16_t(intensity*uint16_t(-1));
       }
     }
   }

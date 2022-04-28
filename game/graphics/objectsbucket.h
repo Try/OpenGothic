@@ -146,7 +146,8 @@ class ObjectsBucket {
       uint32_t indexOffset;
       uint32_t sample0;
       uint32_t sample1;
-      float    alpha;
+      uint16_t alpha;
+      uint16_t intensity;
       };
 
     struct UboPushBase {

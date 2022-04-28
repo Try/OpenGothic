@@ -49,6 +49,12 @@ float calcShadow() {
 #endif
 
 #if !defined(SHADOW_MAP)
+vec4 dbgLambert() {
+  vec3  normal  = normalize(shInp.normal);
+  float lambert = max(0.0,dot(scene.ldir,normal));
+  return vec4(lambert,lambert,lambert,1.0);
+  }
+
 vec3 calcLight() {
   vec3  normal  = normalize(shInp.normal);
   float lambert = max(0.0,dot(scene.ldir,normal));
@@ -170,5 +176,6 @@ void main() {
   //outColor = vec4(vec3(calcShadow()),1.0);
   //vec3 shPos0  = (shInp.shadowPos[0].xyz)/shInp.shadowPos[0].w;
   //outColor   = vec4(vec3(shPos0.xy,0),1.0);
+  //outColor = dbgLambert();
 #endif
   }

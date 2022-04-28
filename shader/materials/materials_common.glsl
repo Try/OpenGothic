@@ -56,7 +56,7 @@ struct MorphDesc {
   uint  indexOffset;
   uint  sample0;
   uint  sample1;
-  float alpha;
+  uint  alpha16_intensity16;
   };
 
 #if (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING)
@@ -96,8 +96,8 @@ layout(binding = L_Scene, std140) uniform UboScene {
   } scene;
 
 #if (MESH_TYPE==T_SKINING) && defined(VERTEX)
-layout(binding = L_Skinning, std140) uniform UboAnim {
-  mat4 skel[MAX_NUM_SKELETAL_NODES];
+layout(binding = L_Skinning, std140) readonly buffer UboAnim {
+  mat4 skel[];
   } anim;
 #endif
 
