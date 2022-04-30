@@ -27,6 +27,11 @@ void MatrixStorage::Id::set(const Tempest::Matrix4x4& obj, const Tempest::Matrix
     owner->set(rgn,obj,anim);
   }
 
+void MatrixStorage::Id::set(const Tempest::Matrix4x4& obj, size_t offset) {
+  if(owner!=nullptr)
+    owner->set(rgn,obj,offset);
+  }
+
 const Tempest::StorageBuffer& MatrixStorage::ssbo(uint8_t fId) const {
   return gpu[fId];
   }
@@ -40,6 +45,12 @@ bool MatrixStorage::commitUbo(uint8_t fId) {
     }
   obj = Resources::ssbo(data.data(),sz);
   return true;
+  }
+
+MatrixStorage::MatrixStorage() {
+  data.reserve(2048);
+  data.resize(1);
+  data[0].identity();
   }
 
 MatrixStorage::Id MatrixStorage::alloc(size_t nbones) {
@@ -88,13 +99,17 @@ void MatrixStorage::free(const Range& r) {
   }
 
 void MatrixStorage::set(const Range& rgn, const Matrix4x4& obj, const Tempest::Matrix4x4* mat) {
-  std::memcpy(data.data()+rgn.begin, mat, rgn.size*sizeof(Tempest::Matrix4x4));
-  /*
+  //std::memcpy(data.data()+rgn.begin, mat, rgn.size*sizeof(Tempest::Matrix4x4));
+
   Tempest::Matrix4x4 m[Resources::MAX_NUM_SKELETAL_NODES];
   for(size_t i=0; i<rgn.size; ++i) {
     m[i] = obj;
     m[i].mul(mat[i]);
     }
   std::memcpy(data.data()+rgn.begin, m, rgn.size*sizeof(Tempest::Matrix4x4));
-  */
+
+  }
+
+void MatrixStorage::set(const Range& rgn, const Tempest::Matrix4x4& obj, size_t offset) {
+  data[rgn.begin+offset] = obj;
   }

@@ -152,6 +152,8 @@ ObjectsBucket::ObjectsBucket(const Material& mat, const ProtoMesh* anim,
     uboShared.alloc(*this);
     uboSetCommon(uboShared);
     }
+
+  usePositionsSsbo = (type!=Type::Animated && type!=Type::Pfx);
   }
 
 ObjectsBucket::~ObjectsBucket() {
@@ -196,6 +198,13 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds
   v->visibility.setObject(&visSet,size_t(std::distance(val,v)));
   v->skiningAni = nullptr;
   v->isValid    = true;
+
+  if(usePositionsSsbo) {
+    auto sz = CAPACITY;//nextPot(valSz);
+    if(objPositions.size()!=sz) {
+      objPositions = owner.getAnim(sz);
+      }
+    }
 
   return *v;
   }
@@ -264,7 +273,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
 
 void ObjectsBucket::uboSetSkeleton(Descriptors& v, uint8_t fId) {
   auto& ssbo = owner.animationSsbo(fId);
-  if(ssbo.size()==0 || objType!=Type::Animated)
+  if(ssbo.size()==0 || objType==Type::Pfx)
     return;
 
   for(size_t lay=SceneGlobals::V_Shadow0; lay<SceneGlobals::V_Count; ++lay) {
@@ -417,7 +426,7 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId,
   for(size_t i=0; i<indSz; ++i) {
     auto& v = val[index[i]];
 
-    updatePushBlock(pushBlock,v);
+    updatePushBlock(pushBlock,v,index[i]);
     cmd.setUniforms(shader, &pushBlock, pushSz);
 
     switch(vboType) {
@@ -446,7 +455,7 @@ void ObjectsBucket::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p,
     return;
 
   UboPush pushBlock = {};
-  updatePushBlock(pushBlock,v);
+  updatePushBlock(pushBlock,v,id);
 
   auto& ubo = objUbo(id);
   uboSetDynamic(ubo,v,fId);
@@ -478,9 +487,12 @@ void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
   auto& v = val[i];
   v.visibility.setObjMatrix(m);
   v.pos = m;
-  if(v.blas!=nullptr) {
+
+  if(v.skiningAni==nullptr)
+    objPositions.set(m,i);
+
+  if(v.blas!=nullptr)
     owner.resetTlas();
-    }
   }
 
 void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
@@ -555,13 +567,18 @@ bool ObjectsBucket::isSceneInfoRequired() const {
   return mat.isGhost || mat.alpha==Material::Water || mat.alpha==Material::Ghost;
   }
 
-void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket::Object& v) {
-  push.pos     = v.pos;
+void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket::Object& v, size_t i) {
   push.fatness = v.fatness*0.5f;
-  push.id      = v.skiningAni==nullptr ? 0 : v.skiningAni->offsetId();
+
+  if(v.skiningAni!=nullptr) {
+    push.id = v.skiningAni->offsetId();
+    } else {
+    push.id = objPositions.offsetId()+uint32_t(i);
+    }
 
   if(v.wind!=ZenLoad::AnimMode::NONE && scene.zWindEnabled) {
-    float shift = push.pos[3][0]*scene.windDir.x + push.pos[3][2]*scene.windDir.y;
+    auto pos = v.pos;
+    float shift = v.pos[3][0]*scene.windDir.x + v.pos[3][2]*scene.windDir.y;
 
     static const uint64_t preiod = scene.windPeriod;
     float a = float(scene.tickCount%preiod)/float(preiod);
@@ -585,8 +602,9 @@ void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket:
         a *= 0.f;
         break;
       }
-    push.pos[1][0] += scene.windDir.x*a;
-    push.pos[1][2] += scene.windDir.y*a;
+    pos[1][0] += scene.windDir.x*a;
+    pos[1][2] += scene.windDir.y*a;
+    objPositions.set(pos,i); // Issue: position will be updated only in next frame
     }
 
   if(morphAnim!=nullptr) {
@@ -624,7 +642,6 @@ void ObjectsBucketLnd::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
     return;
 
   UboPushBase pushBlock  = {};
-  pushBlock.pos.identity();
   cmd.setUniforms(shader, uboShared.ubo[fId][c], &pushBlock, sizeof(UboPushBase));
 
   for(size_t i=0; i<indSz; ++i) {
@@ -701,7 +718,7 @@ void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
   for(size_t i=0; i<indSz; ++i) {
     auto& v = val[index[i]];
 
-    updatePushBlock(pushBlock,v);
+    updatePushBlock(pushBlock,v,index[i]);
     cmd.setUniforms(shader, uboObj[index[i]].ubo[fId][c], &pushBlock, pushSz);
 
     switch(vboType) {

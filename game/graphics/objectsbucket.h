@@ -151,14 +151,13 @@ class ObjectsBucket {
       };
 
     struct UboPushBase {
-      Tempest::Matrix4x4 pos;
-      float              fatness = 0;
-      uint32_t           id = 0;
+      uint32_t  id      = 0;
+      float     fatness = 0;
       };
 
     struct UboPush : UboPushBase {
-      float              padd[2] = {};
-      MorphDesc          morph[Resources::MAX_MORPH_LAYERS];
+      float     pass[2] = {};
+      MorphDesc morph[Resources::MAX_MORPH_LAYERS];
       };
 
     struct UboMaterial final {
@@ -214,7 +213,7 @@ class ObjectsBucket {
     void            setWind     (size_t i, ZenLoad::AnimMode m, float intensity);
 
     bool            isSceneInfoRequired() const;
-    void            updatePushBlock(UboPush& push, Object& v);
+    void            updatePushBlock(UboPush& push, Object& v, size_t i);
 
     virtual Descriptors& objUbo(size_t objId);
     virtual void         drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c);
@@ -242,6 +241,8 @@ class ObjectsBucket {
 
     bool                      useSharedUbo        = false;
     bool                      textureInShadowPass = false;
+    bool                      usePositionsSsbo    = false;
+    MatrixStorage::Id         objPositions;
 
     const Tempest::RenderPipeline* pMain    = nullptr;
     const Tempest::RenderPipeline* pGbuffer = nullptr;

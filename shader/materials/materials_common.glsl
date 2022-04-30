@@ -60,16 +60,15 @@ struct MorphDesc {
   };
 
 #if (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING)
-layout(push_constant, std140) uniform UboPush {
-  mat4      obj;
+layout(push_constant, std430) uniform UboPush {
+  uint      matrixId;
   float     fatness;
-  uint      animSsboOffset;
   } push;
 #elif (MESH_TYPE==T_MORPH)
-layout(push_constant, std140) uniform UboPush {
-  mat4      obj;
+layout(push_constant, std430) uniform UboPush {
+  uint      matrixId;
   float     fatness;
-  uint      animSsboOffset;
+  float     padd[2];
   MorphDesc morph[MAX_MORPH_LAYERS];
   } push;
 #else
@@ -97,7 +96,7 @@ layout(binding = L_Scene, std140) uniform UboScene {
   vec3  camPos;
   } scene;
 
-#if (MESH_TYPE==T_SKINING) && defined(VERTEX)
+#if defined(LVL_OBJECT) && defined(VERTEX)
 layout(binding = L_Skinning, std140) readonly buffer UboAnim {
   mat4 skel[];
   } anim;
