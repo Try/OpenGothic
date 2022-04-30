@@ -9,12 +9,11 @@
 #include "material.h"
 #include "resources.h"
 #include "sceneglobals.h"
-#include "skeletalstorage.h"
+#include "matrixstorage.h"
 #include "ubostorage.h"
 #include "graphics/mesh/protomesh.h"
 #include "graphics/dynamic/visibilitygroup.h"
 #include "graphics/dynamic/visibleset.h"
-#include "graphics/skeletalstorage.h"
 
 class Pose;
 class VisualObjects;
@@ -96,14 +95,15 @@ class ObjectsBucket {
     size_t                    alloc(const Tempest::VertexBuffer<VertexA> &vbo,
                                     const Tempest::IndexBuffer<uint32_t> &ibo,
                                     size_t iboOffset, size_t iboLen,
-                                    const SkeletalStorage::AnimationId& anim,
+                                    const MatrixStorage::Id& anim,
                                     const Bounds& bounds);
     size_t                    alloc(const Tempest::VertexBuffer<Vertex>* vbo[],
                                     const Bounds& bounds);
     void                      free(const size_t objId);
 
     virtual void              setupUbo();
-    void                      invalidateUbo();
+    virtual void              invalidateUbo(uint8_t fId);
+
     void                      resetVis();
     void                      fillTlas(std::vector<Tempest::RtInstance>& inst);
 
@@ -153,10 +153,11 @@ class ObjectsBucket {
     struct UboPushBase {
       Tempest::Matrix4x4 pos;
       float              fatness = 0;
+      uint32_t           id = 0;
       };
 
     struct UboPush : UboPushBase {
-      float              padd[3] = {};
+      float              padd[2] = {};
       MorphDesc          morph[Resources::MAX_MORPH_LAYERS];
       };
 
@@ -192,18 +193,19 @@ class ObjectsBucket {
       float                                 windIntensity = 0;
       uint64_t                              timeShift=0;
 
-      const SkeletalStorage::AnimationId*   skiningAni = nullptr;
+      const MatrixStorage::Id*              skiningAni = nullptr;
       MorphAnim                             morphAnim[Resources::MAX_MORPH_LAYERS];
       const Tempest::AccelerationStructure* blas = nullptr;
 
       bool                                  isValid = false;
       };
 
-    virtual Object& implAlloc(const VboType type, const Bounds& bounds, const SkeletalStorage::AnimationId* anim);
+    virtual Object& implAlloc(const VboType type, const Bounds& bounds);
     virtual void    implFree(const size_t objId);
 
-    void            uboSetCommon (Descriptors& v);
-    void            uboSetDynamic(Descriptors& v, Object& obj, uint8_t fId);
+    void            uboSetCommon  (Descriptors& v);
+    void            uboSetSkeleton(Descriptors& v, uint8_t fId);
+    void            uboSetDynamic (Descriptors& v, Object& obj, uint8_t fId);
 
     void            setObjMatrix(size_t i, const Tempest::Matrix4x4& m);
     void            setBounds   (size_t i, const Bounds& b);
@@ -217,9 +219,9 @@ class ObjectsBucket {
     virtual Descriptors& objUbo(size_t objId);
     virtual void         drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c);
 
-    const Bounds& bounds(size_t i) const;
+    const Bounds&   bounds(size_t i) const;
 
-    static VboType toVboType(const Type t);
+    static VboType  toVboType(const Type t);
 
     const Type                objType   = Type::Landscape;
     const VboType             vboType   = VboType::NoVbo;
@@ -267,12 +269,13 @@ class ObjectsBucketDyn : public ObjectsBucket {
     void preFrameUpdate(uint8_t fId) override;
 
   private:
-    Object& implAlloc(const VboType type, const Bounds& bounds, const SkeletalStorage::AnimationId* anim) override;
+    Object& implAlloc(const VboType type, const Bounds& bounds) override;
     void    implFree (const size_t objId) override;
 
     Descriptors& objUbo(size_t objId) override;
 
     void    setupUbo() override;
+    void    invalidateUbo(uint8_t fId) override;
 
     void    drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
                        const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c) override;

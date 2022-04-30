@@ -77,12 +77,6 @@ vec4 vertexPosMesh() {
 
 vec4 vertexNormalMesh() {
 #if (MESH_TYPE==T_SKINING)
-  // vec4 norm = vec4(inNormal.xzy,0.0);
-  // vec4 n0   = anim.skel[boneId.x]*norm;
-  // vec4 n1   = anim.skel[boneId.y]*norm;
-  // vec4 n2   = anim.skel[boneId.z]*norm;
-  // vec4 n3   = anim.skel[boneId.w]*norm;
-  // vec4 n    = (n0*inWeight.x + n1*inWeight.y + n2*inWeight.z + n3*inWeight.w);
   vec4 n = anim.skel[0]*vec4(inNormal,0.0);
   return vec4(n.z,n.y,-n.x,0.0);
 #else
@@ -103,6 +97,7 @@ vec4 vertexPos() {
   vec4 pos = vertexPosMesh();
 #if defined(LVL_OBJECT)
   return push.obj*pos;
+  //return pos;
 #else
   return pos;
 #endif
@@ -111,6 +106,7 @@ vec4 vertexPos() {
 void main() {
 #if (MESH_TYPE==T_SKINING)
   boneId   = uvec4(unpackUnorm4x8(inId)*255.0);
+  boneId  += uvec4(push.animSsboOffset);
 #endif
 
 #if defined(MAT_ANIM)

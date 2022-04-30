@@ -26,9 +26,7 @@ ObjectsBucket& VisualObjects::getBucket(const Material& mat, const ProtoMesh* an
     if(i->material()==mat && i->morph()==a && i->type()==type && i->size()<ObjectsBucket::CAPACITY)
       return *i;
 
-  if(type==ObjectsBucket::Type::Static)
-    buckets.emplace_back(ObjectsBucket::mkBucket(mat,anim,*this,globals,type)); else
-    buckets.emplace_back(ObjectsBucket::mkBucket(mat,anim,*this,globals,type));
+  buckets.emplace_back(ObjectsBucket::mkBucket(mat,anim,*this,globals,type));
   return *buckets.back();
   }
 
@@ -55,7 +53,9 @@ ObjectsBucket::Item VisualObjects::get(const StaticMesh &mesh, const Material& m
   return ObjectsBucket::Item(bucket,id);
   }
 
-ObjectsBucket::Item VisualObjects::get(const AnimMesh &mesh, const Material& mat, const SkeletalStorage::AnimationId& anim, size_t ibo, size_t iboLen) {
+ObjectsBucket::Item VisualObjects::get(const AnimMesh &mesh, const Material& mat,
+                                       const MatrixStorage::Id& anim,
+                                       size_t ibo, size_t iboLen) {
   if(mat.tex==nullptr) {
     Tempest::Log::e("no texture?!");
     return ObjectsBucket::Item();
@@ -88,11 +88,12 @@ ObjectsBucket::Item VisualObjects::get(const Tempest::VertexBuffer<Resources::Ve
   return ObjectsBucket::Item(bucket,id);
   }
 
-SkeletalStorage::AnimationId VisualObjects::getAnim(size_t boneCnt) {
-  if(boneCnt==0)
-    return SkeletalStorage::AnimationId();
-  auto id = skinedAnim.alloc(boneCnt);
-  return SkeletalStorage::AnimationId(skinedAnim,id,boneCnt);
+MatrixStorage::Id VisualObjects::getAnim(size_t boneCnt) {
+  return anim.alloc(boneCnt);
+  }
+
+const StorageBuffer& VisualObjects::animationSsbo(uint8_t fId) {
+  return anim.ssbo(fId);
   }
 
 void VisualObjects::setupUbo() {
@@ -200,12 +201,12 @@ void VisualObjects::mkIndex() {
   }
 
 void VisualObjects::commitUbo(uint8_t fId) {
-  bool sk = skinedAnim.commitUbo(fId);
+  bool sk = anim.commitUbo(fId);
   if(!sk)
     return;
 
   for(auto& c:buckets)
-    c->invalidateUbo();
+    c->invalidateUbo(fId);
   }
 
 void VisualObjects::mkTlas(uint8_t fId) {

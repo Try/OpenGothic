@@ -58,7 +58,7 @@ void MeshObjects::Mesh::setSkeleton(const Skeleton *sk) {
 
 void MeshObjects::Mesh::setPose(const Tempest::Matrix4x4& obj, const Pose &p) {
   if(anim!=nullptr)
-    anim->setPose(p);
+    anim->set(obj,p.transform());
   implSetObjMatrix(obj,p.transform());
   }
 
@@ -153,7 +153,8 @@ MeshObjects::Mesh::Mesh(MeshObjects& owner, const ProtoMesh& mesh,
     bonesCount = std::max(bonesCount,mesh.skined[i].bonesCount);
 
   if(bonesCount>0)
-    anim.reset(new SkeletalStorage::AnimationId(owner.parent.getAnim(bonesCount)));
+    anim.reset(new MatrixStorage::Id(owner.parent.getAnim(bonesCount)));
+
   for(size_t i=0; i<mesh.skined.size(); ++i) {
     auto& skin = mesh.skined[i];
     for(auto& m:skin.sub) {

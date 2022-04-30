@@ -15,13 +15,17 @@ class VisualObjects final {
 
     ObjectsBucket::Item get(const StaticMesh& mesh, const Material& mat, size_t iboOffset, size_t iboLen,
                             const ProtoMesh* anim, bool staticDraw);
-    ObjectsBucket::Item get(const AnimMesh&   mesh, const Material& mat, const SkeletalStorage::AnimationId& anim, size_t ibo, size_t iboLen);
+    ObjectsBucket::Item get(const AnimMesh&   mesh, const Material& mat,
+                            const MatrixStorage::Id& anim,
+                            size_t ibo, size_t iboLen);
     ObjectsBucket::Item get(const Tempest::VertexBuffer<Resources::Vertex>& vbo, const Tempest::IndexBuffer<uint32_t>& ibo, const Tempest::AccelerationStructure* blas,
                             const Material& mat, const Bounds& bbox, ObjectsBucket::Type bucket);
     ObjectsBucket::Item get(const Tempest::VertexBuffer<Resources::Vertex>* vbo[],
                             const Material& mat, const Bounds& bbox);
 
-    SkeletalStorage::AnimationId getAnim(size_t boneCnt);
+    MatrixStorage::Id   getAnim(size_t boneCnt);
+
+    const Tempest::StorageBuffer& animationSsbo(uint8_t fId);
 
     void setupUbo();
     void preFrameUpdate(uint8_t fId);
@@ -45,7 +49,7 @@ class VisualObjects final {
 
     const SceneGlobals&             globals;
     VisibilityGroup                 visGroup;
-    SkeletalStorage                 skinedAnim;
+    MatrixStorage                   anim;
 
     std::vector<std::unique_ptr<ObjectsBucket>> buckets;
     std::vector<ObjectsBucket*>                 index;
