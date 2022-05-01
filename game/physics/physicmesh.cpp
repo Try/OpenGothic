@@ -33,8 +33,8 @@ void PhysicMesh::setSkeleton(const Skeleton* sk) {
     binder=Resources::bindMesh(*ani,*skeleton);
   }
 
-void PhysicMesh::setPose(const Pose& p, const Tempest::Matrix4x4& obj) {
-  implSetObjMatrix(obj,p.transform());
+void PhysicMesh::setPose(const Pose& p) {
+  implSetObjMatrix(Tempest::Matrix4x4::mkIdentity(),p.transform());
   }
 
 void PhysicMesh::implSetObjMatrix(const Tempest::Matrix4x4 &mt, const Tempest::Matrix4x4* tr) {
@@ -45,7 +45,7 @@ void PhysicMesh::implSetObjMatrix(const Tempest::Matrix4x4 &mt, const Tempest::M
     auto id  = binder->bind[i];
     auto mat = mt;
     if(id<skeleton->tr.size())
-      mat.mul(tr[id]);
+      mat = tr[id];
     sub[ani->submeshId[i].id].setObjMatrix(mat);
     }
   for(size_t i=binds; i<sub.size(); ++i)

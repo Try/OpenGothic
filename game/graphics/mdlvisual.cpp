@@ -276,7 +276,7 @@ void MdlVisual::dropWeapon(Npc& npc) {
 
   auto p = pos;
   if(att->boneId<pose.boneCount())
-    p.mul(pose.bone(att->boneId));
+    p = pose.bone(att->boneId);
 
   Item* itm = nullptr;
   if(fgtMode==WeaponState::W1H || fgtMode==WeaponState::W2H)
@@ -384,7 +384,7 @@ void MdlVisual::emitBlockEffect(Npc& dest, Npc& source) {
   auto& pose  = *skInst;
   auto  p     = pos;
   if(sword.boneId<pose.boneCount())
-    p.mul(pose.bone(sword.boneId));
+    p = pose.bone(sword.boneId);
 
   auto src = source.inventory().activeWeapon();
   auto dst = dest  .inventory().activeWeapon();
@@ -405,8 +405,8 @@ bool MdlVisual::setToFightMode(const WeaponState f) {
 
 void MdlVisual::setObjMatrix(const Tempest::Matrix4x4 &m, bool syncAttach) {
   pos = m;
-  // view.setObjMatrix(pos);
-  view.setPose(pos,*skInst);
+  skInst->setObjectMatrix(m);
+  view.setPose(m,*skInst);
   if(syncAttach)
     syncAttaches();
   }
@@ -484,6 +484,7 @@ bool MdlVisual::updateAnimation(Npc* npc, World& world, uint64_t dt) {
     }
 
   solver.update(tickCount);
+  pose.setObjectMatrix(pos);
   const bool changed = pose.update(tickCount);
 
   if(changed)
@@ -506,14 +507,10 @@ bool MdlVisual::processEvents(World& world, uint64_t &barrier, Animation::EvCoun
 Vec3 MdlVisual::mapBone(const size_t boneId) const {
   Pose&  pose = *skInst;
   if(boneId==size_t(-1))
-    return {0,0,0};
+    return {pos.at(3,0), pos.at(3,1), pos.at(3,2)};
 
-  auto mat = pos;
-  mat.mul(pose.bone(boneId));
-
-  return {mat.at(3,0) - pos.at(3,0),
-          mat.at(3,1) - pos.at(3,1),
-          mat.at(3,2) - pos.at(3,2)};
+  auto mat = pose.bone(boneId);
+  return {mat.at(3,0), mat.at(3,1), mat.at(3,2)};
   }
 
 Vec3 MdlVisual::mapWeaponBone() const {
@@ -521,7 +518,7 @@ Vec3 MdlVisual::mapWeaponBone() const {
     return mapBone(ammunition.boneId);
   if(fgtMode==WeaponState::Mage && skeleton!=nullptr)
     return mapBone(skeleton->findNode("ZS_RIGHTHAND"));
-  return {0,0,0};
+  return {pos.at(3,0), pos.at(3,1), pos.at(3,2)};
   }
 
 void MdlVisual::stopAnim(Npc& npc, std::string_view anim) {
@@ -742,7 +739,7 @@ float MdlVisual::viewDirection() const {
   if(nullptr!=skeleton) {
     size_t nodeId = skeleton->findNode("BIP01");
     if(nodeId!=size_t(-1))
-      p.mul(pose().bone(nodeId));
+      p = pose().bone(nodeId);
     }
   float rx = p.at(2,0);
   float rz = p.at(2,2);
@@ -830,7 +827,7 @@ void MdlVisual::syncAttaches() {
     auto& pose = *skInst;
     auto  p    = pos;
     if(torch.boneId<pose.boneCount())
-      p.mul(pose.bone(torch.boneId));
+      p = pose.bone(torch.boneId);
     torch.view->setObjMatrix(p);
     }
   }
@@ -846,7 +843,7 @@ void MdlVisual::syncAttaches(Attach<View>& att) {
   auto& pose = *skInst;
   auto  p    = pos;
   if(att.boneId<pose.boneCount())
-    p.mul(pose.bone(att.boneId));
+    p = pose.bone(att.boneId);
   att.view.setObjMatrix(p);
   }
 

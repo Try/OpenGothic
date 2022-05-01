@@ -58,7 +58,7 @@ void MeshObjects::Mesh::setSkeleton(const Skeleton *sk) {
 
 void MeshObjects::Mesh::setPose(const Tempest::Matrix4x4& obj, const Pose &p) {
   if(anim!=nullptr)
-    anim->set(obj,p.transform());
+    anim->set(p.transform());
   implSetObjMatrix(obj,p.transform());
   }
 
@@ -189,30 +189,14 @@ void MeshObjects::Mesh::setObjMatrix(const Tempest::Matrix4x4 &mt) {
   implSetObjMatrix(mt,skeleton==nullptr ? nullptr : skeleton->tr.data());
   }
 
-void MeshObjects::Mesh::implSetObjMatrix(const Tempest::Matrix4x4 &mt, const Tempest::Matrix4x4* tr) {
+void MeshObjects::Mesh::implSetObjMatrix(const Tempest::Matrix4x4& mt, const Tempest::Matrix4x4* tr) {
   const size_t binds = (binder==nullptr ? 0 : binder->bind.size());
   for(size_t i=0; i<binds; ++i) {
-    auto id  = binder->bind[i];
-    auto mat = mt;
-    if(id<skeleton->tr.size())
-      mat.mul(tr[id]);
-    sub[i].setObjMatrix(mat);
+    auto id = binder->bind[i];
+    sub[i].setObjMatrix(tr[id]);
     }
   for(size_t i=binds; i<subCount; ++i)
     sub[i].setObjMatrix(mt);
-  }
-
-void MeshObjects::Mesh::implSetObjMatrix(const ProtoMesh &ani, const Tempest::Matrix4x4 &mt, size_t parent) {
-  for(size_t i=0;i<ani.nodes.size();++i)
-    if(ani.nodes[i].parentId==parent) {
-      auto mat=mt;
-      mat.mul(ani.nodes[i].transform);
-      auto& node=ani.nodes[i];
-      for(size_t r=node.submeshIdB;r<node.submeshIdE;++r)
-        sub[r].setObjMatrix(mat);
-      if(ani.nodes[i].hasChild)
-        implSetObjMatrix(ani,mat,i);
-      }
   }
 
 void MeshObjects::Node::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) const {

@@ -179,10 +179,12 @@ void Effect::syncAttachesSingle(const Matrix4x4& inPos) {
     p = target->transform();
     } else {
     if(pose!=nullptr && boneId<pose->boneCount())
-      p.mul(pose->bone(boneId));
+      p = pose->bone(boneId); else
+      p = inPos;
     }
 
-  if(selfRotation!=Vec3()) {
+  if(selfRotation!=Vec3() && false) {
+    // FIXME
     Matrix4x4 m;
     m.rotateOX(selfRotation.x);
     m.rotateOY(selfRotation.y);

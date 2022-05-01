@@ -22,9 +22,9 @@ MatrixStorage::Id::~Id() {
     owner->free(rgn);
   }
 
-void MatrixStorage::Id::set(const Tempest::Matrix4x4& obj, const Tempest::Matrix4x4* anim) {
+void MatrixStorage::Id::set(const Tempest::Matrix4x4* anim) {
   if(owner!=nullptr)
-    owner->set(rgn,obj,anim);
+    owner->set(rgn,anim);
   }
 
 void MatrixStorage::Id::set(const Tempest::Matrix4x4& obj, size_t offset) {
@@ -43,7 +43,8 @@ bool MatrixStorage::commitUbo(uint8_t fId) {
     obj.update(data);
     return false;
     }
-  obj = Resources::ssbo(data.data(),sz);
+  auto& device = Resources::device();
+  obj = device.ssbo(BufferHeap::Upload,data.data(),sz);
   return true;
   }
 
@@ -64,14 +65,18 @@ MatrixStorage::Id MatrixStorage::alloc(size_t nbones) {
       return Id(*this,ret);
       }
     }
+  size_t retId = size_t(-1);
   for(size_t i=0; i<rgn.size(); ++i) {
-    if(rgn[i].size>nbones) {
-      auto ret = rgn[i];
-      ret.size = nbones;
-      rgn[i].begin += nbones;
-      rgn[i].size  -= nbones;
-      return Id(*this,ret);
+    if(rgn[i].size>nbones && (retId==size_t(-1) || rgn[i].size<rgn[retId].size)) {
+      retId = i;
       }
+    }
+  if(retId!=size_t(-1)) {
+    auto ret = rgn[retId];
+    ret.size = nbones;
+    rgn[retId].begin += nbones;
+    rgn[retId].size  -= nbones;
+    return Id(*this,ret);
     }
   Range r;
   r.begin = data.size();
@@ -98,16 +103,8 @@ void MatrixStorage::free(const Range& r) {
   rgn.insert(at,r);
   }
 
-void MatrixStorage::set(const Range& rgn, const Matrix4x4& obj, const Tempest::Matrix4x4* mat) {
-  //std::memcpy(data.data()+rgn.begin, mat, rgn.size*sizeof(Tempest::Matrix4x4));
-
-  Tempest::Matrix4x4 m[Resources::MAX_NUM_SKELETAL_NODES];
-  for(size_t i=0; i<rgn.size; ++i) {
-    m[i] = obj;
-    m[i].mul(mat[i]);
-    }
-  std::memcpy(data.data()+rgn.begin, m, rgn.size*sizeof(Tempest::Matrix4x4));
-
+void MatrixStorage::set(const Range& rgn, const Tempest::Matrix4x4* mat) {
+  std::memcpy(data.data()+rgn.begin, mat, rgn.size*sizeof(Tempest::Matrix4x4));
   }
 
 void MatrixStorage::set(const Range& rgn, const Tempest::Matrix4x4& obj, size_t offset) {

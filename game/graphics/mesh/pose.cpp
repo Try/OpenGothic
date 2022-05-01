@@ -143,7 +143,7 @@ void Pose::setSkeleton(const Skeleton* sk) {
   lay.clear();
 
   if(skeleton!=nullptr)
-    mkSkeleton();
+    mkSkeleton(Matrix4x4::mkIdentity());
   }
 
 bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *sq, uint8_t comb, BodyState bs,
@@ -293,6 +293,7 @@ bool Pose::update(uint64_t tickCount) {
     const bool ret = needToUpdate;
     needToUpdate = false;
     lastUpdate   = tickCount;
+    mkSkeleton(pos);
     return ret;
     }
 
@@ -309,7 +310,7 @@ bool Pose::update(uint64_t tickCount) {
     }
 
   if(needToUpdate) {
-    mkSkeleton();
+    mkSkeleton(pos);
     needToUpdate = false;
     return true;
     }
@@ -387,18 +388,17 @@ bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs,
   return true;
   }
 
-void Pose::mkSkeleton() {
+void Pose::mkSkeleton(const Tempest::Matrix4x4& mt) {
   if(skeleton==nullptr)
     return;
-  Matrix4x4 m;
-  m.identity();
+  Matrix4x4 m = mt;
   m.translate(mkBaseTranslation());
   if(skeleton->ordered)
-    mkSkeleton(m); else
-    mkSkeleton(m,size_t(-1));
+    implMkSkeleton(m); else
+    implMkSkeleton(m,size_t(-1));
   }
 
-void Pose::mkSkeleton(const Matrix4x4 &mt) {
+void Pose::implMkSkeleton(const Matrix4x4 &mt) {
   if(skeleton==nullptr)
     return;
   auto& nodes      = skeleton->nodes;
@@ -419,7 +419,7 @@ void Pose::mkSkeleton(const Matrix4x4 &mt) {
     }
   }
 
-void Pose::mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent) {
+void Pose::implMkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent) {
   if(skeleton==nullptr)
     return;
   auto& nodes = skeleton->nodes;
@@ -428,7 +428,7 @@ void Pose::mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent) {
       continue;
     auto mat = hasSamples[i] ? mkMatrix(base[i]) : nodes[i].tr;
     tr[i] = mt*mat;
-    mkSkeleton(tr[i],i);
+    implMkSkeleton(tr[i],i);
     }
   }
 
@@ -534,6 +534,14 @@ bool Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev
     }
   barrier=now;
   return hasEvents>0;
+  }
+
+void Pose::setObjectMatrix(const Tempest::Matrix4x4& obj) {
+  if(pos==obj)
+    return;
+  needToUpdate = true;
+  pos          = obj;
+  mkSkeleton(pos);
   }
 
 Tempest::Vec3 Pose::animMoveSpeed(uint64_t tickCount,uint64_t dt) const {
@@ -838,19 +846,6 @@ Vec3 Pose::mkBaseTranslation() {
     dy = b0.at(3,1);
 
   return Vec3(-dx,-dy,-dz);
-  }
-
-void Pose::zeroSkeleton() {
-  if(skeleton==nullptr)
-    return;
-  Matrix4x4 m;
-  m.identity();
-  m.translate(mkBaseTranslation());
-
-  auto& nodes = skeleton->tr;
-  for(size_t i=0;i<nodes.size();++i){
-    tr[i] = m * nodes[i];
-    }
   }
 
 template<class T, class F>

@@ -12,6 +12,17 @@
 
 using namespace Tempest;
 
+static uint32_t nextPot(uint32_t v) {
+  v--;
+  v |= v >> 1;
+  v |= v >> 2;
+  v |= v >> 4;
+  v |= v >> 8;
+  v |= v >> 16;
+  v++;
+  return v;
+  }
+
 void ObjectsBucket::Item::setObjMatrix(const Tempest::Matrix4x4 &mt) {
   owner->setObjMatrix(id,mt);
   }
@@ -173,7 +184,7 @@ const Material& ObjectsBucket::material() const {
   return mat;
   }
 
-ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds& bounds) {
+ObjectsBucket::Object& ObjectsBucket::implAlloc(const Bounds& bounds) {
   Object* v = nullptr;
   for(size_t i=0; i<CAPACITY; ++i) {
     auto& vx = val[i];
@@ -192,7 +203,10 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds
   v->ibo        = nullptr;
   v->timeShift  = uint64_t(0-scene.tickCount);
   if(objType==Type::Landscape || objType==Type::Static)
-    v->visibility = owner.visGroup.get(VisibilityGroup::G_Static); else
+    v->visibility = owner.visGroup.get(VisibilityGroup::G_Static);
+  else if(objType==Type::Pfx)
+    v->visibility = owner.visGroup.get(VisibilityGroup::G_AlwaysVis);
+  else
     v->visibility = owner.visGroup.get(VisibilityGroup::G_Default);
   v->visibility.setBounds(bounds);
   v->visibility.setObject(&visSet,size_t(std::distance(val,v)));
@@ -200,9 +214,17 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const VboType type, const Bounds
   v->isValid    = true;
 
   if(usePositionsSsbo) {
-    auto sz = CAPACITY;//nextPot(valSz);
+    size_t valLen = 1;
+    for(size_t i=CAPACITY; i>1; --i)
+      if(val[i-1].isValid) {
+        valLen = i;
+        break;
+        }
+    auto sz = nextPot(uint32_t(valLen));
     if(objPositions.size()!=sz) {
       objPositions = owner.getAnim(sz);
+      for(size_t i=0; i<valLen; ++i)
+        objPositions.set(val[i].pos,i);
       }
     }
 
@@ -225,8 +247,10 @@ void ObjectsBucket::implFree(const size_t objId) {
   valSz--;
   visSet.erase(objId);
 
-  if(valSz==0)
+  if(valSz==0) {
     owner.resetIndex();
+    objPositions = MatrixStorage::Id();
+    }
   }
 
 void ObjectsBucket::uboSetCommon(Descriptors& v) {
@@ -352,7 +376,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<Vertex>&  vbo,
                             const Tempest::AccelerationStructure* blas,
                             size_t iboOffset, size_t iboLen,
                             const Bounds& bounds) {
-  Object* v = &implAlloc(VboType::VboVertex,bounds);
+  Object* v = &implAlloc(bounds);
   v->vbo       = &vbo;
   v->ibo       = &ibo;
   v->iboOffset = iboOffset;
@@ -370,7 +394,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<VertexA>& vbo,
                             size_t iboOffset, size_t iboLen,
                             const MatrixStorage::Id& anim,
                             const Bounds& bounds) {
-  Object* v = &implAlloc(VboType::VboVertexA,bounds);
+  Object* v = &implAlloc(bounds);
   v->vboA       = &vbo;
   v->ibo        = &ibo;
   v->iboOffset  = iboOffset;
@@ -380,7 +404,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<VertexA>& vbo,
   }
 
 size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<ObjectsBucket::Vertex>* vbo[], const Bounds& bounds) {
-  Object* v = &implAlloc(VboType::VboMorph,bounds);
+  Object* v = &implAlloc(bounds);
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
     v->vboM[i] = vbo[i];
   v->visibility.setGroup(VisibilityGroup::G_AlwaysVis);
@@ -439,7 +463,7 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId,
         cmd.draw(*v.vboA,*v.ibo, v.iboOffset, v.iboLength);
         break;
       case VboType::VboMorph:
-        if(v.vboM[fId]!=nullptr)
+        if(v.vboM[fId]!=nullptr && v.vboM[fId]->size()>0)
           cmd.draw(*v.vboM[fId]);
         break;
       case VboType::VboMorphGpu:
@@ -488,7 +512,7 @@ void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
   v.visibility.setObjMatrix(m);
   v.pos = m;
 
-  if(v.skiningAni==nullptr)
+  if(objPositions.size()>0)
     objPositions.set(m,i);
 
   if(v.blas!=nullptr)
@@ -665,8 +689,8 @@ void ObjectsBucketDyn::preFrameUpdate(uint8_t fId) {
     }
   }
 
-ObjectsBucket::Object& ObjectsBucketDyn::implAlloc(const VboType type, const Bounds& bounds) {
-  auto& obj = ObjectsBucket::implAlloc(type,bounds);
+ObjectsBucket::Object& ObjectsBucketDyn::implAlloc(const Bounds& bounds) {
+  auto& obj = ObjectsBucket::implAlloc(bounds);
 
   const size_t id = size_t(std::distance(val,&obj));
   uboObj[id].alloc(*this);

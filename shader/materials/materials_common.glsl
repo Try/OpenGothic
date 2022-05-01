@@ -71,8 +71,10 @@ layout(push_constant, std430) uniform UboPush {
   float     padd[2];
   MorphDesc morph[MAX_MORPH_LAYERS];
   } push;
-#else
+#elif (MESH_TYPE==T_PFX || MESH_TYPE==T_LANDSCAPE)
 // no push
+#else
+#error "unknown MESH_TYPE"
 #endif
 
 #if defined(FRAGMENT) && !(defined(SHADOW_MAP) && !defined(ATEST))

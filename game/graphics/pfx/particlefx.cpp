@@ -104,6 +104,8 @@ ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, std::s
   m_bIsAmbientPFX     = src.m_bIsAmbientPFX!=0;
 
   prefferedTime       = calcPrefferedTimeSingle();
+
+  // visMaterial.alpha = Material::Solid;
   }
 
 ParticleFx::ParticleFx(const ParticleFx& proto, const VisualFx::Key& key)

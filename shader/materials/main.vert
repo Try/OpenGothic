@@ -85,7 +85,7 @@ vec3 vertexPos() {
   vec4 t1   = anim.skel[boneId.y]*pos1;
   vec4 t2   = anim.skel[boneId.z]*pos2;
   vec4 t3   = anim.skel[boneId.w]*pos3;
-  vec4 pos  =  t0*inWeight.x + t1*inWeight.y + t2*inWeight.z + t3*inWeight.w;
+  vec4 pos  = t0*inWeight.x + t1*inWeight.y + t2*inWeight.z + t3*inWeight.w;
   return pos.xyz;
 #elif (MESH_TYPE==T_OBJ || MESH_TYPE==T_MORPH)
   vec4 pos  = anim.skel[boneId.x]*vec4(inPos+dpos,1.0);

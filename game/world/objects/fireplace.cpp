@@ -20,7 +20,7 @@ void FirePlace::moveEvent() {
 
 void FirePlace::onStateChanged() {
   if(stateId()!=0) {
-    auto at = this->nodeTranform(fireSlot.c_str());
+    auto at = this->nodeTranform(fireSlot);
     fireVobtree = VobBundle(world,fireVobtreeName,Vob::Startup);
     fireVobtree.setObjMatrix(at);
     } else {

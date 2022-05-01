@@ -199,7 +199,7 @@ class ObjectsBucket {
       bool                                  isValid = false;
       };
 
-    virtual Object& implAlloc(const VboType type, const Bounds& bounds);
+    virtual Object& implAlloc(const Bounds& bounds);
     virtual void    implFree(const size_t objId);
 
     void            uboSetCommon  (Descriptors& v);
@@ -267,10 +267,10 @@ class ObjectsBucketDyn : public ObjectsBucket {
       :ObjectsBucket(mat,anim,owner,scene,type) {
       }
 
-    void preFrameUpdate(uint8_t fId) override;
+    void    preFrameUpdate(uint8_t fId) override;
 
   private:
-    Object& implAlloc(const VboType type, const Bounds& bounds) override;
+    Object& implAlloc(const Bounds& bounds) override;
     void    implFree (const size_t objId) override;
 
     Descriptors& objUbo(size_t objId) override;

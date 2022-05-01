@@ -79,7 +79,7 @@ class Interactive : public Vob {
     void                nextState(Npc& owner);
 
   protected:
-    Tempest::Matrix4x4  nodeTranform(const char* nodeName) const;
+    Tempest::Matrix4x4  nodeTranform(std::string_view nodeName) const;
     void                moveEvent() override;
     virtual void        onStateChanged(){}
 

@@ -16,7 +16,7 @@ class PhysicMesh final {
 
     void   setObjMatrix  (const Tempest::Matrix4x4& m);
     void   setSkeleton   (const Skeleton* sk);
-    void   setPose       (const Pose&      p,const Tempest::Matrix4x4& obj);
+    void   setPose       (const Pose&      p);
     void   setInteractive(Interactive* it);
 
   private:

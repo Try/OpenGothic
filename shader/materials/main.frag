@@ -147,7 +147,6 @@ void main() {
 #endif
 
 #if defined(WATER)
-
   {
     float f     = 0.02;
     vec3  view  = normalize(shInp.pos - scene.camPos);
@@ -159,7 +158,6 @@ void main() {
     color  = wclr.rgb;
     alpha  = wclr.a;
   }
-
 #endif
 
   outColor      = vec4(color,alpha);

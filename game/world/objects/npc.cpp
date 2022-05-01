@@ -624,7 +624,7 @@ Vec3 Npc::cameraBone(bool isFirstPerson) const {
 
   Vec3 r = {};
   if(isFirstPerson && head!=size_t(-1)) {
-    r = visual.mapBone(head) + position();
+    r = visual.mapBone(head);// + position();
     } else {
     if(!mvAlgo.isSwim())
       r.y = visual.pose().translateY();
@@ -709,12 +709,15 @@ uint8_t Npc::calcAniComb() const {
   }
 
 void Npc::updateAnimation(uint64_t dt) {
-  bool syncAtt = visual.updateAnimation(this,owner,dt);
+  bool syncAtt = false;
+
   if(durtyTranform) {
     updatePos();
     syncAtt = true;
     durtyTranform=0;
     }
+
+  syncAtt |= visual.updateAnimation(this,owner,dt);
 
   if(syncAtt)
     visual.syncAttaches();
@@ -819,7 +822,7 @@ void Npc::dropTorch(bool burnout) {
 
     auto mat = visual.transform();
     if(leftHand<visual.pose().boneCount())
-      mat.mul(visual.pose().bone(leftHand));
+      mat = visual.pose().bone(leftHand);
 
     owner.addItemDyn(torchId,mat,hnpc.instanceSymbol);
     }
@@ -2802,7 +2805,7 @@ void Npc::dropItem(size_t id, size_t count) {
 
   auto mat = visual.transform();
   if(leftHand<visual.pose().boneCount())
-    mat.mul(visual.pose().bone(leftHand));
+    mat = visual.pose().bone(leftHand);
 
   auto it = owner.addItemDyn(id,mat,hnpc.instanceSymbol);
   it->setCount(count);
@@ -2838,7 +2841,7 @@ Vec3 Npc::mapBone(std::string_view bone) const {
 
   Vec3 ret = {};
   ret.y = centerY()-y;
-  return ret;
+  return ret+position();
   }
 
 bool Npc::turnTo(float dx, float dz, bool anim, uint64_t dt) {

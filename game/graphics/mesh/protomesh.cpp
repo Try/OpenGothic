@@ -216,6 +216,12 @@ Tempest::Matrix4x4 ProtoMesh::mapToRoot(size_t n) const {
   return m;
   }
 
+size_t ProtoMesh::findNode(std::string_view name, size_t def) const {
+  if(skeleton==nullptr)
+    return def;
+  return skeleton->findNode(name,def);
+  }
+
 void ProtoMesh::setupScheme(const std::string &s) {
   auto sep = s.find("_");
   if(sep!=std::string::npos) {

@@ -749,22 +749,22 @@ Tempest::Matrix4x4 Interactive::nodeTranform(const Npc &npc, const Pos& p) const
   if(mesh==nullptr)
     return Tempest::Matrix4x4();
 
-  Tempest::Matrix4x4 npos;
-  npos.identity();
-  if(mesh->skeleton!=nullptr) {
-    auto id   = mesh->skeleton->findNode(p.name);
-    if(id!=size_t(-1))
-      npos = visual.bone(id);
-    }
-
+  auto nodeId = mesh->findNode(p.name);
   if(p.isDistPos()) {
-    float nodeX = npos.at(3,0);
-    float nodeY = npos.at(3,1);
-    float nodeZ = npos.at(3,2);
+    auto pos = position();
+    Tempest::Matrix4x4 npos;
+    if(nodeId!=size_t(-1)) {
+      npos = visual.bone(nodeId);
+      } else {
+      npos.identity();
+      }
+    float nodeX = npos.at(3,0) - pos.x;
+    float nodeY = npos.at(3,1) - pos.y;
+    float nodeZ = npos.at(3,2) - pos.z;
     float dist  = std::sqrt(nodeX*nodeX + nodeZ*nodeZ);
 
-    float npcX  = npc.position().x - position().x;
-    float npcZ  = npc.position().z - position().z;
+    float npcX  = npc.position().x - pos.x;
+    float npcZ  = npc.position().z - pos.z;
     float npcA  = 180.f*std::atan2(npcZ,npcX)/float(M_PI);
 
     npos.identity();
@@ -772,18 +772,19 @@ Tempest::Matrix4x4 Interactive::nodeTranform(const Npc &npc, const Pos& p) const
     npos.translate(dist,nodeY,0);
     npos.rotateOY(-90);
 
-    float x = position().x+npos.at(3,0);
-    float y = position().y+npos.at(3,1);
-    float z = position().z+npos.at(3,2);
+    float x = pos.x+npos.at(3,0);
+    float y = pos.y+npos.at(3,1);
+    float z = pos.z+npos.at(3,2);
     npos.set(3,0,x);
     npos.set(3,1,y);
     npos.set(3,2,z);
     return npos;
     }
 
-  auto mat = transform();
-  mat.mul(npos);
-  return mat;
+  if(nodeId!=size_t(-1))
+    return visual.bone(nodeId);
+
+  return transform();
   }
 
 Tempest::Vec3 Interactive::nodePosition(const Npc &npc, const Pos &p) const {
@@ -794,7 +795,7 @@ Tempest::Vec3 Interactive::nodePosition(const Npc &npc, const Pos &p) const {
   return {x,y,z};
   }
 
-Tempest::Matrix4x4 Interactive::nodeTranform(const char* nodeName) const {
+Tempest::Matrix4x4 Interactive::nodeTranform(std::string_view nodeName) const {
   auto mesh = visual.protoMesh();
   if(mesh==nullptr || mesh->skeleton==nullptr)
     return Tempest::Matrix4x4();
@@ -802,7 +803,7 @@ Tempest::Matrix4x4 Interactive::nodeTranform(const char* nodeName) const {
   auto id  = mesh->skeleton->findNode(nodeName);
   auto ret = transform();
   if(id!=size_t(-1))
-    ret.mul(visual.bone(id));
+    ret = visual.bone(id);
   return ret;
   }
 

@@ -45,6 +45,8 @@ class Pose final {
     bool               stopWalkAnim();
     void               interrupt();
     void               stopAllAnim();
+
+    void               setObjectMatrix(const Tempest::Matrix4x4& obj);
     bool               update(uint64_t tickCount);
 
     void               processLayers(AnimationSolver &solver, uint64_t tickCount);
@@ -107,10 +109,9 @@ class Pose final {
       };
 
     auto mkBaseTranslation() -> Tempest::Vec3;
-    void mkSkeleton();
     void mkSkeleton(const Tempest::Matrix4x4 &mt);
-    void mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent);
-    void zeroSkeleton();
+    void implMkSkeleton(const Tempest::Matrix4x4 &mt);
+    void implMkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent);
 
     bool updateFrame(const Animation::Sequence &s, BodyState bs, uint64_t barrier, uint64_t sTime, uint64_t now);
 
@@ -145,4 +146,5 @@ class Pose final {
     ZenLoad::zCModelAniSample       base      [Resources::MAX_NUM_SKELETAL_NODES] = {};
     ZenLoad::zCModelAniSample       prev      [Resources::MAX_NUM_SKELETAL_NODES] = {};
     Tempest::Matrix4x4              tr        [Resources::MAX_NUM_SKELETAL_NODES] = {};
+    Tempest::Matrix4x4              pos;
   };

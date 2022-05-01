@@ -26,7 +26,7 @@ class MatrixStorage {
 
         const size_t   size() const     { return rgn.size;            }
         const uint32_t offsetId() const { return uint32_t(rgn.begin); }
-        void           set(const Tempest::Matrix4x4& obj, const Tempest::Matrix4x4* anim);
+        void           set(const Tempest::Matrix4x4* anim);
         void           set(const Tempest::Matrix4x4& obj, size_t offset);
 
       private:
@@ -42,7 +42,7 @@ class MatrixStorage {
 
   private:
     void free(const Range& r);
-    void set (const Range& rgn, const Tempest::Matrix4x4& obj, const Tempest::Matrix4x4* mat);
+    void set (const Range& rgn, const Tempest::Matrix4x4* mat);
     void set (const Range& rgn, const Tempest::Matrix4x4& obj, size_t offset);
 
     std::vector<Range>              rgn;

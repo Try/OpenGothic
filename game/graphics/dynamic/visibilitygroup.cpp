@@ -55,6 +55,7 @@ void VisibilityGroup::Token::setGroup(Group gr) {
   auto prevId = id;
   if(g.freeList.size()>0) {
     size_t id2 = g.freeList.back();
+    g.freeList.pop_back();
     g.tokens[id2] = group->tokens[id];
     id = id2;
     } else {

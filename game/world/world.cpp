@@ -572,15 +572,15 @@ Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
   if(target!=nullptr) {
     auto  tgPos = target->position();
     if(vfx!=nullptr) {
-      pos   += npc.mapBone(vfx->emTrjOriginNode);
-      tgPos += target->mapBone(vfx->emTrjTargetNode);
+      pos   = npc.mapBone(vfx->emTrjOriginNode);
+      tgPos = target->mapBone(vfx->emTrjTargetNode);
       }
     dir = tgPos-pos;
     } else {
     float a = npc.rotationRad()-float(M_PI/2);
     dir.x = std::cos(a);
     dir.z = std::sin(a);
-    pos   += npc.mapWeaponBone();
+    pos  = npc.mapWeaponBone();
     }
 
   auto& b = wobj.shootBullet(itm, pos, dir, tgRange, DynamicWorld::spellSpeed);
@@ -590,9 +590,7 @@ Bullet& World::shootSpell(const Item &itm, const Npc &npc, const Npc *target) {
 
 Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target, const Interactive* inter) {
   Tempest::Vec3 dir = {1.f,0.f,0.f};
-  auto          pos = npc.position();
-  auto          bn  = npc.mapWeaponBone();
-  pos+=bn;
+  auto          pos = npc.mapWeaponBone();
 
   if(target!=nullptr) {
     auto  tgPos = target->position();
