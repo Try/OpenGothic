@@ -37,10 +37,7 @@ struct TrlObjects::Bucket {
     mat.tex = decl.trlTexture;
 
     item = visual.get(vbo,mat,Bounds());
-
-    Matrix4x4 ident;
-    ident.identity();
-    item.setObjMatrix(ident);
+    item.setObjMatrix(Matrix4x4::mkIdentity());
     }
 
   size_t alloc() {
@@ -206,15 +203,12 @@ void TrlObjects::Trail::tick(uint64_t dt, Bucket& bucket) {
       pt.back().time = 0;
     }
 
-  size_t rm = 0;
-  for(; rm<pt.size(); ++rm)
-    if(pt[rm].time<bucket.maxTime) {
-      if(rm>1) {
-        --rm;
-        pt.erase(pt.begin(),pt.begin()+int(rm));
-        }
+  for(size_t rm=0; rm<=pt.size(); ++rm) {
+    if(rm==pt.size() || pt[rm].time<bucket.maxTime) {
+      pt.erase(pt.begin(),pt.begin()+int(rm));
       break;
       }
+    }
 
   if(st==S_Fade && pt.size()<=1) {
     st = S_Free;
