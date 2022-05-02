@@ -55,10 +55,10 @@ vec3 morphOffset(int i) {
 
 vec3 vertexNormal() {
 #if (MESH_TYPE==T_SKINING)
-  vec4 n = anim.skel[objId]*vec4(inNormal,0.0);
+  vec4 n = matrix.pos[objId]*vec4(inNormal,0.0);
   return vec3(n.z,n.y,-n.x);
 #elif (MESH_TYPE==T_OBJ || MESH_TYPE==T_MORPH)
-  vec4 n = anim.skel[objId]*vec4(inNormal,0.0);
+  vec4 n = matrix.pos[objId]*vec4(inNormal,0.0);
   return vec3(n.xyz);
 #else
   return inNormal;
@@ -81,14 +81,14 @@ vec3 vertexPos() {
   vec4 pos1 = vec4(inPos1+dpos,1.0);
   vec4 pos2 = vec4(inPos2+dpos,1.0);
   vec4 pos3 = vec4(inPos3+dpos,1.0);
-  vec4 t0   = anim.skel[boneId.x]*pos0;
-  vec4 t1   = anim.skel[boneId.y]*pos1;
-  vec4 t2   = anim.skel[boneId.z]*pos2;
-  vec4 t3   = anim.skel[boneId.w]*pos3;
+  vec4 t0   = matrix.pos[boneId.x]*pos0;
+  vec4 t1   = matrix.pos[boneId.y]*pos1;
+  vec4 t2   = matrix.pos[boneId.z]*pos2;
+  vec4 t3   = matrix.pos[boneId.w]*pos3;
   vec4 pos  = t0*inWeight.x + t1*inWeight.y + t2*inWeight.z + t3*inWeight.w;
   return pos.xyz;
 #elif (MESH_TYPE==T_OBJ || MESH_TYPE==T_MORPH)
-  vec4 pos  = anim.skel[boneId.x]*vec4(inPos+dpos,1.0);
+  vec4 pos  = matrix.pos[boneId.x]*vec4(inPos+dpos,1.0);
   return pos.xyz;
 #else
   return inPos;

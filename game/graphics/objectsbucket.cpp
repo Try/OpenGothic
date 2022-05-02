@@ -131,6 +131,15 @@ ObjectsBucket::VboType ObjectsBucket::toVboType(const Type type) {
   return VboType::NoVbo;
   }
 
+BufferHeap ObjectsBucket::ssboHeap() const {
+  if(windAnim)
+    return BufferHeap::Upload;
+  auto heap = BufferHeap::Upload;
+  if(objType==Type::Landscape || objType==Type::Static)
+    heap = BufferHeap::Device;
+  return heap;
+  }
+
 ObjectsBucket::ObjectsBucket(const Material& mat, const ProtoMesh* anim,
                              VisualObjects& owner, const SceneGlobals& scene,
                              const Type type)
@@ -164,7 +173,7 @@ ObjectsBucket::ObjectsBucket(const Material& mat, const ProtoMesh* anim,
     uboSetCommon(uboShared);
     }
 
-  usePositionsSsbo = (type!=Type::Animated && type!=Type::Pfx);
+  usePositionsSsbo = (type!=Type::Landscape && type!=Type::Animated && type!=Type::Pfx);
   }
 
 ObjectsBucket::~ObjectsBucket() {
@@ -212,21 +221,7 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const Bounds& bounds) {
   v->visibility.setObject(&visSet,size_t(std::distance(val,v)));
   v->skiningAni = nullptr;
   v->isValid    = true;
-
-  if(usePositionsSsbo) {
-    size_t valLen = 1;
-    for(size_t i=CAPACITY; i>1; --i)
-      if(val[i-1].isValid) {
-        valLen = i;
-        break;
-        }
-    auto sz = nextPot(uint32_t(valLen));
-    if(objPositions.size()!=sz) {
-      objPositions = owner.getAnim(sz);
-      for(size_t i=0; i<valLen; ++i)
-        objPositions.set(val[i].pos,i);
-      }
-    }
+  reallocObjPositions();
 
   return *v;
   }
@@ -296,7 +291,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
   }
 
 void ObjectsBucket::uboSetSkeleton(Descriptors& v, uint8_t fId) {
-  auto& ssbo = owner.animationSsbo(fId);
+  auto& ssbo = owner.matrixSsbo(ssboHeap(),fId);
   if(ssbo.size()==0 || objType==Type::Pfx)
     return;
 
@@ -585,6 +580,7 @@ void ObjectsBucket::setWind(size_t i, ZenLoad::AnimMode m, float intensity) {
   auto& v = val[i];
   v.wind          = m;
   v.windIntensity = intensity;
+  reallocObjPositions();
   }
 
 bool ObjectsBucket::isSceneInfoRequired() const {
@@ -596,8 +592,12 @@ void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket:
 
   if(v.skiningAni!=nullptr) {
     push.id = v.skiningAni->offsetId();
-    } else {
+    }
+  else if(objPositions.size()>0) {
     push.id = objPositions.offsetId()+uint32_t(i);
+    }
+  else {
+    push.id = 0;
     }
 
   if(v.wind!=ZenLoad::AnimMode::NONE && scene.zWindEnabled) {
@@ -653,10 +653,38 @@ void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket:
     }
   }
 
+void ObjectsBucket::reallocObjPositions() {
+  if(!usePositionsSsbo)
+    return;
+
+  windAnim = false;
+  for(size_t i=0; i<CAPACITY; ++i) {
+    auto& vx = val[i];
+    if(!vx.isValid || vx.wind==ZenLoad::AnimMode::NONE)
+      continue;
+    windAnim = true;
+    break;
+    }
+
+  size_t valLen = 1;
+  for(size_t i=CAPACITY; i>1; --i)
+    if(val[i-1].isValid) {
+      valLen = i;
+      break;
+      }
+
+  auto sz   = nextPot(uint32_t(valLen));
+  auto heap = ssboHeap();
+  if(objPositions.size()!=sz || heap!=objPositions.heap()) {
+    objPositions = owner.getMatrixes(heap, sz);
+    for(size_t i=0; i<valLen; ++i)
+      objPositions.set(val[i].pos,i);
+    }
+  }
+
 const Bounds& ObjectsBucket::bounds(size_t i) const {
   return val[i].visibility.bounds();
   }
-
 
 void ObjectsBucketLnd::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
                                   const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c) {

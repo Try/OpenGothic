@@ -23,9 +23,8 @@ class VisualObjects final {
     ObjectsBucket::Item get(const Tempest::VertexBuffer<Resources::Vertex>* vbo[],
                             const Material& mat, const Bounds& bbox);
 
-    MatrixStorage::Id   getAnim(size_t boneCnt);
-
-    const Tempest::StorageBuffer& animationSsbo(uint8_t fId);
+    MatrixStorage::Id   getMatrixes(Tempest::BufferHeap heap, size_t boneCnt);
+    auto                matrixSsbo (Tempest::BufferHeap heap, uint8_t fId) const -> const Tempest::StorageBuffer&;
 
     void setupUbo();
     void preFrameUpdate(uint8_t fId);
@@ -49,7 +48,7 @@ class VisualObjects final {
 
     const SceneGlobals&             globals;
     VisibilityGroup                 visGroup;
-    MatrixStorage                   anim;
+    MatrixStorage                   matrix;
 
     std::vector<std::unique_ptr<ObjectsBucket>> buckets;
     std::vector<ObjectsBucket*>                 index;

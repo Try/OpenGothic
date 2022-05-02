@@ -88,12 +88,12 @@ ObjectsBucket::Item VisualObjects::get(const Tempest::VertexBuffer<Resources::Ve
   return ObjectsBucket::Item(bucket,id);
   }
 
-MatrixStorage::Id VisualObjects::getAnim(size_t boneCnt) {
-  return anim.alloc(boneCnt);
+MatrixStorage::Id VisualObjects::getMatrixes(BufferHeap heap, size_t boneCnt) {
+  return matrix.alloc(heap, boneCnt);
   }
 
-const StorageBuffer& VisualObjects::animationSsbo(uint8_t fId) {
-  return anim.ssbo(fId);
+const Tempest::StorageBuffer& VisualObjects::matrixSsbo(Tempest::BufferHeap heap, uint8_t fId) const {
+  return matrix.ssbo(heap, fId);
   }
 
 void VisualObjects::setupUbo() {
@@ -201,10 +201,9 @@ void VisualObjects::mkIndex() {
   }
 
 void VisualObjects::commitUbo(uint8_t fId) {
-  bool sk = anim.commitUbo(fId);
+  bool sk = matrix.commit(fId);
   if(!sk)
     return;
-
   for(auto& c:buckets)
     c->invalidateUbo(fId);
   }

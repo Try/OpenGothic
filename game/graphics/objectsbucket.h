@@ -214,13 +214,15 @@ class ObjectsBucket {
 
     bool            isSceneInfoRequired() const;
     void            updatePushBlock(UboPush& push, Object& v, size_t i);
+    void            reallocObjPositions();
 
     virtual Descriptors& objUbo(size_t objId);
     virtual void         drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c);
 
-    const Bounds&   bounds(size_t i) const;
+    const Bounds&             bounds(size_t i) const;
 
-    static VboType  toVboType(const Type t);
+    static VboType            toVboType(const Type t);
+    Tempest::BufferHeap       ssboHeap() const;
 
     const Type                objType   = Type::Landscape;
     const VboType             vboType   = VboType::NoVbo;
@@ -239,10 +241,11 @@ class ObjectsBucket {
 
     Tempest::UniformBuffer<UboMaterial> uboMat[Resources::MaxFramesInFlight];
 
-    bool                      useSharedUbo        = false;
-    bool                      textureInShadowPass = false;
-    bool                      usePositionsSsbo    = false;
     MatrixStorage::Id         objPositions;
+    bool                      useSharedUbo        = false;
+    bool                      usePositionsSsbo    = false;
+    bool                      textureInShadowPass = false;
+    bool                      windAnim            = false;
 
     const Tempest::RenderPipeline* pMain    = nullptr;
     const Tempest::RenderPipeline* pGbuffer = nullptr;

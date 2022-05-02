@@ -60,6 +60,17 @@ std::unique_ptr<Tempest::AbstractGraphicsApi> mkApi(const CommandLine& g) {
   }
 
 int main(int argc,const char** argv) {
+  try {
+    static Tempest::WFile logFile("log.txt");
+    Tempest::Log::setOutputCallback([](Tempest::Log::Mode mode, const char* text) {
+      logFile.write(text,std::strlen(text));
+      logFile.write("\n",1);
+      logFile.flush();
+      });
+    }
+  catch(...) {
+    Tempest::Log::e("unable to setup logfile - fallback to console log");
+    }
   CrashLog::setup();
   VDFS::FileIndex::initVDFS(argv[0]);
 

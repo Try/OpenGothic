@@ -14,12 +14,13 @@ class MatrixStorage {
       size_t begin = 0;
       size_t size  = 0;
       };
+    struct Heap;
 
   public:
     class Id {
       public:
         Id() = default;
-        Id(MatrixStorage& owner, Range rgn):owner(&owner), rgn(rgn){}
+        Id(Heap& heap, Range rgn):heapPtr(&heap), rgn(rgn){}
         Id(Id&& other);
         Id& operator = (Id&& other);
         ~Id();
@@ -29,24 +30,30 @@ class MatrixStorage {
         void           set(const Tempest::Matrix4x4* anim);
         void           set(const Tempest::Matrix4x4& obj, size_t offset);
 
+        const Tempest::StorageBuffer& ssbo(uint8_t fId) const;
+        Tempest::BufferHeap           heap() const;
+
       private:
-        MatrixStorage* owner = nullptr;
-        Range          rgn;
+        Heap* heapPtr = nullptr;
+        Range rgn;
       };
 
     MatrixStorage();
 
-    Id                            alloc(size_t nbones);
-    const Tempest::StorageBuffer& ssbo(uint8_t fId) const;
-    bool                          commitUbo(uint8_t fId);
+    Id   alloc(Tempest::BufferHeap heap, size_t nbones);
+    auto ssbo (Tempest::BufferHeap heap, uint8_t fId) const -> const Tempest::StorageBuffer&;
+    bool commit(uint8_t fId);
 
   private:
-    void free(const Range& r);
-    void set (const Range& rgn, const Tempest::Matrix4x4* mat);
-    void set (const Range& rgn, const Tempest::Matrix4x4& obj, size_t offset);
+    bool commit(Heap& heap, uint8_t fId);
+    void free(Heap& heap, const Range& r);
 
-    std::vector<Range>              rgn;
-    std::vector<Tempest::Matrix4x4> data;
-
-    Tempest::StorageBuffer          gpu[Resources::MaxFramesInFlight];
+    struct Heap {
+      MatrixStorage*                  owner = nullptr;
+      std::vector<Range>              rgn;
+      std::vector<Tempest::Matrix4x4> data;
+      Tempest::StorageBuffer          gpu[Resources::MaxFramesInFlight];
+      std::atomic_bool                durty[Resources::MaxFramesInFlight] = {};
+      };
+    Heap upload, device;
   };

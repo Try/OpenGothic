@@ -100,8 +100,8 @@ layout(binding = L_Scene, std140) uniform UboScene {
 
 #if defined(LVL_OBJECT) && defined(VERTEX)
 layout(binding = L_Skinning, std140) readonly buffer UboAnim {
-  mat4 skel[];
-  } anim;
+  mat4 pos[];
+  } matrix;
 #endif
 
 #if defined(MAT_ANIM)
