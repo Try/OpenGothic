@@ -348,22 +348,68 @@ void ObjectsBucket::fillTlas(std::vector<RtInstance>& inst) {
   }
 
 void ObjectsBucket::preFrameUpdate(uint8_t fId) {
-  if(mat.texAniMapDirPeriod.x==0 && mat.texAniMapDirPeriod.y==0 && mat.alpha!=Material::Water)
-    return;
+  if(mat.texAniMapDirPeriod.x!=0 || mat.texAniMapDirPeriod.y!=0 || mat.alpha==Material::Water) {
+    UboMaterial ubo;
+    if(mat.texAniMapDirPeriod.x!=0) {
+      uint64_t fract = scene.tickCount%uint64_t(std::abs(mat.texAniMapDirPeriod.x));
+      ubo.texAniMapDir.x = float(fract)/float(mat.texAniMapDirPeriod.x);
+      }
+    if(mat.texAniMapDirPeriod.y!=0) {
+      uint64_t fract = scene.tickCount%uint64_t(std::abs(mat.texAniMapDirPeriod.y));
+      ubo.texAniMapDir.y = float(fract)/float(mat.texAniMapDirPeriod.y);
+      }
 
-  UboMaterial ubo;
-  if(mat.texAniMapDirPeriod.x!=0) {
-    uint64_t fract = scene.tickCount%uint64_t(std::abs(mat.texAniMapDirPeriod.x));
-    ubo.texAniMapDir.x = float(fract)/float(mat.texAniMapDirPeriod.x);
-    }
-  if(mat.texAniMapDirPeriod.y!=0) {
-    uint64_t fract = scene.tickCount%uint64_t(std::abs(mat.texAniMapDirPeriod.y));
-    ubo.texAniMapDir.y = float(fract)/float(mat.texAniMapDirPeriod.y);
+    ubo.waveAnim = 2.f*float(M_PI)*float(scene.tickCount%3000)/3000.f;
+    ubo.waveMaxAmplitude = mat.waveMaxAmplitude;
+    uboMat[fId].update(&ubo,0,1);
     }
 
-  ubo.waveAnim = 2.f*float(M_PI)*float(scene.tickCount%3000)/3000.f;
-  ubo.waveMaxAmplitude = mat.waveMaxAmplitude;
-  uboMat[fId].update(&ubo,0,1);
+  if(windAnim && scene.zWindEnabled) {
+    size_t maxIndex= 0;
+    bool   upd[CAPACITY] = {};
+    for(uint8_t ic=0; ic<SceneGlobals::V_Count; ++ic) {
+      const auto    c     = SceneGlobals::VisCamera(ic);
+      const size_t  indSz = visSet.count(c);
+      const size_t* index = visSet.index(c);
+      for(size_t i=0; i<indSz; ++i)
+        upd[index[i]] = true;
+      maxIndex = std::max(indSz,maxIndex);
+      }
+
+    for(size_t i=0; i<maxIndex; ++i) {
+      auto& v = val[i];
+      if(upd[i] && v.wind!=ZenLoad::AnimMode::NONE) {
+        auto pos = v.pos;
+        float shift = v.pos[3][0]*scene.windDir.x + v.pos[3][2]*scene.windDir.y;
+
+        static const uint64_t preiod = scene.windPeriod;
+        float a = float(scene.tickCount%preiod)/float(preiod);
+        a = a*2.f-1.f;
+        a = std::cos(float(a*M_PI) + shift*0.0001f);
+
+        switch(v.wind) {
+          case ZenLoad::AnimMode::WIND:
+            // tree
+            // a *= v.windIntensity;
+            a *= 0.03f;
+            break;
+          case ZenLoad::AnimMode::WIND2:
+            // grass
+            // a *= v.windIntensity;
+            a *= 0.0005f;
+            break;
+          case ZenLoad::AnimMode::NONE:
+          default:
+            // error
+            a *= 0.f;
+            break;
+          }
+        pos[1][0] += scene.windDir.x*a;
+        pos[1][2] += scene.windDir.y*a;
+        objPositions.set(pos,i); // Issue: position will be updated only in next frame
+        }
+      }
+    }
   }
 
 size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<Vertex>&  vbo,
@@ -443,9 +489,10 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId,
   cmd.setUniforms(shader, uboShared.ubo[fId][c]);
 
   for(size_t i=0; i<indSz; ++i) {
-    auto& v = val[index[i]];
+    auto  id = index[i];
+    auto& v  = val[id];
 
-    updatePushBlock(pushBlock,v,index[i]);
+    updatePushBlock(pushBlock,v,id);
     cmd.setUniforms(shader, &pushBlock, pushSz);
 
     switch(vboType) {
@@ -458,8 +505,7 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId,
         cmd.draw(*v.vboA,*v.ibo, v.iboOffset, v.iboLength);
         break;
       case VboType::VboMorph:
-        if(v.vboM[fId]!=nullptr && v.vboM[fId]->size()>0)
-          cmd.draw(*v.vboM[fId]);
+        cmd.draw(*v.vboM[fId]);
         break;
       case VboType::VboMorphGpu:
         cmd.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength);
@@ -600,37 +646,6 @@ void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket:
     push.id = 0;
     }
 
-  if(v.wind!=ZenLoad::AnimMode::NONE && scene.zWindEnabled) {
-    auto pos = v.pos;
-    float shift = v.pos[3][0]*scene.windDir.x + v.pos[3][2]*scene.windDir.y;
-
-    static const uint64_t preiod = scene.windPeriod;
-    float a = float(scene.tickCount%preiod)/float(preiod);
-    a = a*2.f-1.f;
-    a = std::cos(float(a*M_PI) + shift*0.0001f);
-
-    switch(v.wind) {
-      case ZenLoad::AnimMode::WIND:
-        // tree
-        // a *= v.windIntensity;
-        a *= 0.03f;
-        break;
-      case ZenLoad::AnimMode::WIND2:
-        // grass
-        // a *= v.windIntensity;
-        a *= 0.0005f;
-        break;
-      case ZenLoad::AnimMode::NONE:
-      default:
-        // error
-        a *= 0.f;
-        break;
-      }
-    pos[1][0] += scene.windDir.x*a;
-    pos[1][2] += scene.windDir.y*a;
-    objPositions.set(pos,i); // Issue: position will be updated only in next frame
-    }
-
   if(morphAnim!=nullptr) {
     for(size_t i=0; i<Resources::MAX_MORPH_LAYERS; ++i) {
       auto&    ani  = v.morphAnim[i];
@@ -768,10 +783,11 @@ void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
     pushSz = 0;
 
   for(size_t i=0; i<indSz; ++i) {
-    auto& v = val[index[i]];
+    auto  id = index[i];
+    auto& v  = val[id];
 
-    updatePushBlock(pushBlock,v,index[i]);
-    cmd.setUniforms(shader, uboObj[index[i]].ubo[fId][c], &pushBlock, pushSz);
+    updatePushBlock(pushBlock,v,id);
+    cmd.setUniforms(shader, uboObj[id].ubo[fId][c], &pushBlock, pushSz);
 
     switch(vboType) {
       case VboType::NoVbo:

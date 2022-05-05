@@ -68,7 +68,8 @@ layout(push_constant, std430) uniform UboPush {
 layout(push_constant, std430) uniform UboPush {
   uint      matrixId;
   float     fatness;
-  float     padd[2];
+  float     padd0;
+  float     padd1;
   MorphDesc morph[MAX_MORPH_LAYERS];
   } push;
 #elif (MESH_TYPE==T_PFX || MESH_TYPE==T_LANDSCAPE)

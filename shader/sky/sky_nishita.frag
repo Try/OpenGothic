@@ -75,8 +75,7 @@ vec3 scatter(vec3 pos, vec3 view, vec3 sunDir, float rayLength, out float scat) 
   float miePhaseValue      = miePhase(cosTheta);
   float rayleighPhaseValue = rayleighPhase(-cosTheta);
 
-  float depthR = 0.0, depthM = 0.0;
-  vec3  R = vec3(0.0), M = vec3(0.0);
+  vec3 R = vec3(0.0), M = vec3(0.0);
 
   vec2 depth = vec2(0);
   float dl = rayLength / float(iSteps);
@@ -129,12 +128,12 @@ vec3 finalizeColor(vec3 color, vec3 sunDir) {
   }
 
 void main() {
-  vec2 uv        = inPos*vec2(0.5)+vec2(0.5);
   vec3 view      = normalize(inverse(vec3(inPos,1.0)));
   vec3 sunDir    = push.sunDir;
   vec3 pos       = vec3(0,RPlanet+push.plPosY,0);
 
 #if defined(FOG)
+  vec2 uv        = inPos*vec2(0.5)+vec2(0.5);
   float z        = texture(depth,uv).r;
   vec3  pos1     = inverse(vec3(inPos,z));
   vec3  pos0     = inverse(vec3(inPos,0));
