@@ -143,11 +143,12 @@ class ObjectsBucket {
       };
 
     struct UboPushBase {
-      float     fatness = 0;
+      uint32_t  baseInstance = 0;
+      float     fatness      = 0;
       };
 
     struct UboPush : UboPushBase {
-      float     pass[3] = {};
+      float     pass[2] = {};
       MorphDesc morph[Resources::MAX_MORPH_LAYERS];
       };
 
@@ -204,7 +205,7 @@ class ObjectsBucket {
     void            setWind     (size_t i, ZenLoad::AnimMode m, float intensity);
 
     bool            isSceneInfoRequired() const;
-    void            updatePushBlock(UboPush& push, Object& v);
+    void            updatePushBlock(UboPush& push, Object& v, uint32_t baseInstance);
     void            reallocObjPositions();
     void            invalidateInstancing();
     uint32_t        applyInstancing(size_t& i, const size_t* index, size_t indSz) const;

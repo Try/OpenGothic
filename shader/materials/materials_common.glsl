@@ -65,12 +65,13 @@ struct MorphDesc {
 
 #if (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING)
 layout(push_constant, std430) uniform UboPush {
+  uint      baseInstance;
   float     fatness;
   } push;
 #elif (MESH_TYPE==T_MORPH)
 layout(push_constant, std430) uniform UboPush {
+  uint      baseInstance;
   float     fatness;
-  float     padd0;
   float     padd1;
   float     padd2;
   MorphDesc morph[MAX_MORPH_LAYERS];

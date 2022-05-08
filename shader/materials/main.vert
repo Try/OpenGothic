@@ -108,7 +108,7 @@ void main() {
   boneId   = uvec4(unpackUnorm4x8(inId)*255.0);
 #endif
 #if defined(LVL_OBJECT)
-  objId    = gl_InstanceIndex;
+  objId    = push.baseInstance + gl_InstanceIndex;
   boneId  += uvec4(objId);
 #endif
 
