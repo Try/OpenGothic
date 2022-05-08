@@ -114,14 +114,6 @@ class ObjectsBucket {
     void                      draw       (size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId);
 
   protected:
-    enum VboType : uint8_t {
-      NoVbo,
-      VboVertex,
-      VboVertexA,
-      VboMorph,
-      VboMorphGpu,
-      };
-
     enum UboLinkpackage : uint8_t {
       L_Diffuse  = 0,
       L_Shadow0  = 1,
@@ -151,12 +143,11 @@ class ObjectsBucket {
       };
 
     struct UboPushBase {
-      uint32_t  id      = 0;
       float     fatness = 0;
       };
 
     struct UboPush : UboPushBase {
-      float     pass[2] = {};
+      float     pass[3] = {};
       MorphDesc morph[Resources::MAX_MORPH_LAYERS];
       };
 
@@ -213,7 +204,7 @@ class ObjectsBucket {
     void            setWind     (size_t i, ZenLoad::AnimMode m, float intensity);
 
     bool            isSceneInfoRequired() const;
-    void            updatePushBlock(UboPush& push, Object& v, size_t i);
+    void            updatePushBlock(UboPush& push, Object& v);
     void            reallocObjPositions();
 
     virtual Descriptors& objUbo(size_t objId);
@@ -221,11 +212,9 @@ class ObjectsBucket {
 
     const Bounds&             bounds(size_t i) const;
 
-    static VboType            toVboType(const Type t);
     Tempest::BufferHeap       ssboHeap() const;
 
     const Type                objType   = Type::Landscape;
-    const VboType             vboType   = VboType::NoVbo;
     const ProtoMesh*          morphAnim = nullptr;
 
     VisualObjects&            owner;
@@ -234,6 +223,7 @@ class ObjectsBucket {
 
     Object                    val[CAPACITY];
     size_t                    valSz = 0;
+    MatrixStorage::Id         objPositions;
 
   private:
     const SceneGlobals&       scene;
@@ -241,9 +231,9 @@ class ObjectsBucket {
 
     Tempest::UniformBuffer<UboMaterial> uboMat[Resources::MaxFramesInFlight];
 
-    MatrixStorage::Id         objPositions;
     bool                      useSharedUbo        = false;
     bool                      usePositionsSsbo    = false;
+    bool                      enableInstancing    = false;
     bool                      textureInShadowPass = false;
     bool                      windAnim            = false;
 

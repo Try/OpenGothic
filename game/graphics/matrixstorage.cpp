@@ -31,11 +31,14 @@ void MatrixStorage::Id::set(const Tempest::Matrix4x4* mat) {
   }
 
 void MatrixStorage::Id::set(const Tempest::Matrix4x4& obj, size_t offset) {
-  if(heapPtr!=nullptr) {
-    heapPtr->data[rgn.begin+offset] = obj;
-    for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i)
-      heapPtr->durty[i].store(true);
-    }
+  if(heapPtr==nullptr)
+    return;
+  heapPtr->data[rgn.begin+offset] = obj;
+
+  if(heapPtr==&heapPtr->owner->upload)
+    return;
+  for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i)
+    heapPtr->durty[i].store(true);
   }
 
 const StorageBuffer& MatrixStorage::Id::ssbo(uint8_t fId) const {

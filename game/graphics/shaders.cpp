@@ -53,10 +53,11 @@ void Shaders::MaterialTemplate::load(Device &device, const char *tag, bool hasTe
     std::snprintf(fmph,sizeof(fmph),"mph_%s",tag);
     std::snprintf(fclr,sizeof(fclr),"clr_%s",tag);
     }
+  lnd.load(device,fobj,"%s.%s.sprv",hasTesselation);
   obj.load(device,fobj,"%s.%s.sprv",hasTesselation);
   ani.load(device,fani,"%s.%s.sprv",hasTesselation);
   mph.load(device,fmph,"%s.%s.sprv",hasTesselation);
-  clr.load(device,fclr,"%s.%s.sprv",hasTesselation);
+  pfx.load(device,fclr,"%s.%s.sprv",hasTesselation);
   }
 
 Shaders::Shaders() {
@@ -216,6 +217,8 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
   b.pipelineType = pt;
   switch(t) {
     case ObjectsBucket::Landscape:
+      b.pipeline = pipeline<Resources::Vertex> (state,temp->lnd);
+      break;
     case ObjectsBucket::Static:
     case ObjectsBucket::Movable:
       b.pipeline = pipeline<Resources::Vertex> (state,temp->obj);
@@ -227,7 +230,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
       b.pipeline = pipeline<Resources::VertexA>(state,temp->ani);
       break;
     case ObjectsBucket::Pfx:
-      b.pipeline = pipeline<Resources::Vertex>(state,temp->clr);
+      b.pipeline = pipeline<Resources::Vertex>(state,temp->pfx);
       break;
     }
 

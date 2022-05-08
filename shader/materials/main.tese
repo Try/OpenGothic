@@ -44,7 +44,7 @@ void main() {
   shOut.normal       = interpolate(shInp[0].normal,       shInp[1].normal,       shInp[2].normal);
   shOut.pos          = interpolate(shInp[0].pos,          shInp[1].pos,          shInp[2].pos);
 #endif
-#if defined(VCOLOR) && !defined(SHADOW_MAP)
+#if defined(MAT_COLOR)
   shOut.color        = interpolate(shInp[0].color,        shInp[1].color,        shInp[2].color);
 #endif
 

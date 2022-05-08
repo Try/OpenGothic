@@ -43,15 +43,12 @@ function(add_shader OUTPUT SOURCE)
 endfunction(add_shader)
 
 # Ubershader flags:
-#   OBJ        - static object
-#   SKINING    - skeleton animation
-#   MORPH      - morphing animation
-#   VCOLOR     - enable vertex color
+#   MESH_TYPE  - type of mesh enum{landscape, object, skinned, morph, pfx}
 #   SHADOW_MAP - output is shadowmap
+#   LIGHT      - compute lambert lighting
 #   ATEST      - use alpha test
-#   PFX        - use color modulation
 #   WATER      - water material
-#   MORPH      - morphing animation
+#   GHOST      - ghost material
 #   G1         - hint for gothic1 shader
 function(add_uber_shader OUTPUT)
   list(SUBLIST ARGV 1 -1 VARS)
@@ -89,10 +86,11 @@ function(add_uber_shader OUTPUT)
 endfunction(add_uber_shader)
 
 # shaders
-add_uber_shader(obj -DOBJ     "-DMESH_TYPE=1")
-add_uber_shader(ani -DSKINING "-DMESH_TYPE=2")
-add_uber_shader(mph -DMORPH   "-DMESH_TYPE=3")
-add_uber_shader(clr -DVCOLOR  "-DMESH_TYPE=4")
+add_uber_shader(lnd "-DMESH_TYPE=0")
+add_uber_shader(obj "-DMESH_TYPE=1")
+add_uber_shader(ani "-DMESH_TYPE=2")
+add_uber_shader(mph "-DMESH_TYPE=3")
+add_uber_shader(clr "-DMESH_TYPE=4")
 
 add_shader(light.vert                light.vert "")
 add_shader(light.frag                light.frag "")

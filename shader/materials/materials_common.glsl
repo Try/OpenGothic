@@ -28,6 +28,10 @@
 #define MAT_ANIM 1
 #endif
 
+#if !defined(SHADOW_MAP) && (MESH_TYPE==T_PFX)
+#define MAT_COLOR 1
+#endif
+
 struct Varyings {
   vec4 scr;
   vec2 uv;
@@ -41,7 +45,7 @@ struct Varyings {
   vec3 pos;
 #endif
 
-#if !defined(SHADOW_MAP) && (MESH_TYPE==T_PFX)
+#if defined(MAT_COLOR)
   vec4 color;
 #endif
   };
@@ -61,15 +65,14 @@ struct MorphDesc {
 
 #if (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING)
 layout(push_constant, std430) uniform UboPush {
-  uint      matrixId;
   float     fatness;
   } push;
 #elif (MESH_TYPE==T_MORPH)
 layout(push_constant, std430) uniform UboPush {
-  uint      matrixId;
   float     fatness;
   float     padd0;
   float     padd1;
+  float     padd2;
   MorphDesc morph[MAX_MORPH_LAYERS];
   } push;
 #elif (MESH_TYPE==T_PFX || MESH_TYPE==T_LANDSCAPE)

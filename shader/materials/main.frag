@@ -137,7 +137,7 @@ void main() {
   alpha = t.a;
 #endif
 
-#if defined(VCOLOR)
+#if defined(MAT_COLOR)
   color *= shInp.color.rgb;
   alpha *= shInp.color.a;
 #endif

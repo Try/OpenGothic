@@ -37,7 +37,7 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &mesh) {
     b.mesh.setObjMatrix(Matrix4x4::mkIdentity());
     }
 
-  if(Gothic::inst().doRayQuery()) {
+  if(Gothic::inst().doRayQuery() && ibo.size()>0) {
     iboSolid  = Resources::ibo(ibo.data(),ibo.size());
     blasSolid = device.blas(vbo,iboSolid);
     }

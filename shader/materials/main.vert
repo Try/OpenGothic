@@ -108,7 +108,7 @@ void main() {
   boneId   = uvec4(unpackUnorm4x8(inId)*255.0);
 #endif
 #if defined(LVL_OBJECT)
-  objId   = push.matrixId;
+  objId    = gl_InstanceIndex;
   boneId  += uvec4(objId);
 #endif
 
@@ -126,7 +126,7 @@ void main() {
   shOut.pos   = pos;
 #endif
 
-#if !defined(SHADOW_MAP) && (MESH_TYPE==T_PFX)
+#if defined(MAT_COLOR)
   shOut.color = unpackUnorm4x8(inColor);
 #endif
 

@@ -107,9 +107,9 @@ void VisualObjects::preFrameUpdate(uint8_t fId) {
 
   mkTlas(fId);
   mkIndex();
-  commitUbo(fId);
   for(auto& c:buckets)
     c->preFrameUpdate(fId);
+  commitUbo(fId);
   }
 
 void VisualObjects::visibilityPass(const Frustrum fr[]) {

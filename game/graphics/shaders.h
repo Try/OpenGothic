@@ -46,7 +46,7 @@ class Shaders {
       };
 
     struct MaterialTemplate {
-      ShaderPair obj, ani, mph, clr;
+      ShaderPair lnd, obj, ani, mph, pfx;
       void load(Tempest::Device& device, const char* tag, bool hasTesselation=false);
       };
 
