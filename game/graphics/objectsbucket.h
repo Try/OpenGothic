@@ -206,6 +206,8 @@ class ObjectsBucket {
     bool            isSceneInfoRequired() const;
     void            updatePushBlock(UboPush& push, Object& v);
     void            reallocObjPositions();
+    void            invalidateInstancing();
+    uint32_t        applyInstancing(size_t& i, const size_t* index, size_t indSz) const;
 
     virtual Descriptors& objUbo(size_t objId);
     virtual void         drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c);

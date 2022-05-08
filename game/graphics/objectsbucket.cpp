@@ -224,6 +224,7 @@ void ObjectsBucket::implFree(const size_t objId) {
     owner.resetIndex();
     objPositions = MatrixStorage::Id();
     }
+  invalidateInstancing();
   }
 
 void ObjectsBucket::uboSetCommon(Descriptors& v) {
@@ -403,6 +404,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<Vertex>&  vbo,
     v->blas = blas;
     owner.resetTlas();
     }
+  invalidateInstancing();
   return size_t(std::distance(val,v));
   }
 
@@ -417,6 +419,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<VertexA>& vbo,
   v->iboOffset  = iboOffset;
   v->iboLength  = iboLen;
   v->skiningAni = &anim;
+  invalidateInstancing();
   return size_t(std::distance(val,v));
   }
 
@@ -425,6 +428,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<ObjectsBucket::Vertex>* 
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
     v->vboM[i] = vbo[i];
   v->visibility.setGroup(VisibilityGroup::G_AlwaysVis);
+  invalidateInstancing();
   return size_t(std::distance(val,v));
   }
 
@@ -457,16 +461,6 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId,
   if(indSz==0)
     return;
 
-  if(enableInstancing && indSz==valSz) {
-    auto& v = val[0];
-    UboPush pushBlock  = {};
-    updatePushBlock(pushBlock,v);
-    cmd.setUniforms(shader, uboShared.ubo[fId][c], &pushBlock, sizeof(UboPushBase));
-    uint32_t instance = objPositions.offsetId();
-    cmd.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength, instance, indSz);
-    return;
-    }
-
   cmd.setUniforms(shader, uboShared.ubo[fId][c]);
   UboPush pushBlock = {};
   for(size_t i=0; i<indSz; ++i) {
@@ -484,24 +478,30 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId,
         }
       case Static:
       case Movable: {
+        uint32_t instance = objPositions.offsetId()+uint32_t(id);
+        uint32_t cnt      = applyInstancing(i,index,indSz);
+
         updatePushBlock(pushBlock,v);
         cmd.setUniforms(shader, &pushBlock, sizeof(UboPushBase));
-        uint32_t instance = objPositions.offsetId()+uint32_t(id);
-        cmd.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength, instance, 1);
+        cmd.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength, instance, cnt);
         break;
         }
       case Morph: {
+        uint32_t instance = objPositions.offsetId()+uint32_t(id);
+        uint32_t cnt      = 1;
+
         updatePushBlock(pushBlock,v);
         cmd.setUniforms(shader, &pushBlock, sizeof(UboPush));
-        uint32_t instance = objPositions.offsetId()+uint32_t(id);
-        cmd.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength, instance, 1);
+        cmd.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength, instance, cnt);
         break;
         }
       case Animated: {
+        uint32_t instance = v.skiningAni->offsetId();
+        uint32_t cnt      = 1;//applyInstancing(i,index,indSz);
+
         updatePushBlock(pushBlock,v);
         cmd.setUniforms(shader, &pushBlock, sizeof(UboPushBase));
-        uint32_t instance = v.skiningAni->offsetId();
-        cmd.draw(*v.vboA, *v.ibo, v.iboOffset, v.iboLength, instance, 1);
+        cmd.draw(*v.vboA, *v.ibo, v.iboOffset, v.iboLength, instance, cnt);
         break;
         }
       }
@@ -663,45 +663,67 @@ void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket:
   }
 
 void ObjectsBucket::reallocObjPositions() {
-  if(!usePositionsSsbo)
-    return;
+  if(usePositionsSsbo) {
+    windAnim = false;
+    for(size_t i=0; i<CAPACITY; ++i) {
+      auto& vx = val[i];
+      if(vx.isValid && vx.wind!=ZenLoad::AnimMode::NONE) {
+        windAnim = true;
+        break;
+        }
+      }
 
-  enableInstancing = useSharedUbo && (objType==Static || objType==Movable) && (valSz>1);
+    size_t valLen = 1;
+    for(size_t i=CAPACITY; i>1; --i)
+      if(val[i-1].isValid) {
+        valLen = i;
+        break;
+        }
+
+    auto sz   = nextPot(uint32_t(valLen));
+    auto heap = ssboHeap();
+    if(objPositions.size()!=sz || heap!=objPositions.heap()) {
+      objPositions = owner.getMatrixes(heap, sz);
+      for(size_t i=0; i<valLen; ++i)
+        objPositions.set(val[i].pos,i);
+      }
+    }
+  }
+
+void ObjectsBucket::invalidateInstancing() {
+  enableInstancing = useSharedUbo && (objType!=Pfx);
+  Object* pref = nullptr;
   for(size_t i=0; enableInstancing && i<valSz; ++i) {
     auto& vx = val[i];
     if(!vx.isValid)
+      continue;
+    if(pref==nullptr)
+      pref = &vx;
+
+    auto& ref = *pref;
+    if(vx.vbo!=ref.vbo || vx.ibo!=ref.ibo)
       enableInstancing = false;
-    if(vx.vbo!=val[0].vbo || vx.ibo!=val[0].ibo)
+    if(vx.vboA!=ref.vboA)
       enableInstancing = false;
-    if(vx.iboOffset!=val[0].iboOffset || vx.iboLength!=val[0].iboLength)
+    if(vx.iboOffset!=ref.iboOffset || vx.iboLength!=ref.iboLength)
       enableInstancing = false;
-    if(vx.fatness!=val[0].fatness)
+    if(vx.fatness!=ref.fatness)
       enableInstancing = false;
     }
+  }
 
-  windAnim = false;
-  for(size_t i=0; i<CAPACITY; ++i) {
-    auto& vx = val[i];
-    if(vx.isValid && vx.wind!=ZenLoad::AnimMode::NONE) {
-      windAnim = true;
+uint32_t ObjectsBucket::applyInstancing(size_t& i, const size_t* index, size_t indSz) const {
+  if(!enableInstancing)
+    return 1;
+  auto     id = index[i];
+  uint32_t cnt = 1;
+  while(i+1<indSz) {
+    if(index[i+1]!=id+cnt)
       break;
-      }
+    ++cnt;
+    ++i;
     }
-
-  size_t valLen = 1;
-  for(size_t i=CAPACITY; i>1; --i)
-    if(val[i-1].isValid) {
-      valLen = i;
-      break;
-      }
-
-  auto sz   = nextPot(uint32_t(valLen));
-  auto heap = ssboHeap();
-  if(objPositions.size()!=sz || heap!=objPositions.heap()) {
-    objPositions = owner.getMatrixes(heap, sz);
-    for(size_t i=0; i<valLen; ++i)
-      objPositions.set(val[i].pos,i);
-    }
+  return cnt;
   }
 
 const Bounds& ObjectsBucket::bounds(size_t i) const {
@@ -802,23 +824,26 @@ void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
         }
       case Static:
       case Movable: {
+        uint32_t instance = objPositions.offsetId()+uint32_t(id);
+
         updatePushBlock(pushBlock,v);
         cmd.setUniforms(shader, uboObj[id].ubo[fId][c], &pushBlock, sizeof(UboPushBase));
-        uint32_t instance = objPositions.offsetId()+uint32_t(id);
         cmd.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength, instance, 1);
         break;
         }
       case Morph: {
+        uint32_t instance = objPositions.offsetId()+uint32_t(id);
+
         updatePushBlock(pushBlock,v);
         cmd.setUniforms(shader, uboObj[id].ubo[fId][c], &pushBlock, sizeof(UboPush));
-        uint32_t instance = objPositions.offsetId()+uint32_t(id);
         cmd.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength, instance, 1);
         break;
         }
       case Animated: {
+        uint32_t instance = v.skiningAni->offsetId();
+
         updatePushBlock(pushBlock,v);
         cmd.setUniforms(shader, uboObj[id].ubo[fId][c], &pushBlock, sizeof(UboPushBase));
-        uint32_t instance = v.skiningAni->offsetId();
         cmd.draw(*v.vboA,*v.ibo, v.iboOffset, v.iboLength, instance,1);
         break;
         }
