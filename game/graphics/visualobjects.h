@@ -41,7 +41,7 @@ class VisualObjects final {
     Tempest::Signal<void(const Tempest::AccelerationStructure* tlas)> onTlasChanged;
 
   private:
-    ObjectsBucket&                  getBucket(const Material& mat, const ProtoMesh* anim, ObjectsBucket::Type type);
+    ObjectsBucket&                  getBucket(const Material& mat, const ProtoMesh* anim, ObjectsBucket::Type type, const StaticMesh* hint);
     void                            mkIndex();
     void                            commitUbo(uint8_t fId);
     void                            mkTlas(uint8_t fId);

@@ -33,7 +33,7 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
 
   auto m = owner->mat;
   m.isGhost = g;
-  auto&  bucket = owner->owner.getBucket(m,{},owner->objType);
+  auto&  bucket = owner->owner.getBucket(m,{},owner->objType,nullptr);
 
   auto&  v      = owner->val[id];
   size_t idNext = size_t(-1);
@@ -157,6 +157,17 @@ ObjectsBucket::ObjectsBucket(const Material& mat, const ProtoMesh* anim,
 ObjectsBucket::~ObjectsBucket() {
   }
 
+bool ObjectsBucket::isCompatible(const Material& mat, const std::vector<ProtoMesh::Animation>* a, const Type type,
+                                 const StaticMesh* hint) const {
+  if(hint!=nullptr && instancingType!=NoInstancing) {
+    for(auto& i:val)
+      if(i.isValid && i.vbo!=&hint->vbo)
+        return false;
+    }
+  auto morph = (morphAnim==nullptr ? nullptr : &morphAnim->morph);
+  return this->mat==mat && morph==a && objType==type;
+  }
+
 std::unique_ptr<ObjectsBucket> ObjectsBucket::mkBucket(const Material& mat, const ProtoMesh* anim, VisualObjects& owner,
                                                        const SceneGlobals& scene, const Type type) {
 
@@ -223,6 +234,12 @@ void ObjectsBucket::implFree(const size_t objId) {
   if(valSz==0) {
     owner.resetIndex();
     objPositions = MatrixStorage::Id();
+    } else {
+    auto mat = Matrix4x4::mkIdentity();
+    mat.set(0,0, 0.f);
+    mat.set(1,1, 0.f);
+    mat.set(2,2, 0.f);
+    objPositions.set(mat,objId);
     }
   invalidateInstancing();
   }
@@ -461,6 +478,9 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId,
   if(indSz==0)
     return;
 
+  if(instancingType!=NoInstancing)
+    visSet.sort(c);
+
   cmd.setUniforms(shader, uboShared.ubo[fId][c]);
   UboPush pushBlock = {};
   for(size_t i=0; i<indSz; ++i) {
@@ -627,6 +647,7 @@ void ObjectsBucket::startMMAnim(size_t i, std::string_view anim, float intensity
 void ObjectsBucket::setFatness(size_t i, float f) {
   auto& v = val[i];
   v.fatness = f*0.5f;
+  invalidateInstancing();
   }
 
 void ObjectsBucket::setWind(size_t i, ZenLoad::AnimMode m, float intensity) {
@@ -695,9 +716,11 @@ void ObjectsBucket::reallocObjPositions() {
   }
 
 void ObjectsBucket::invalidateInstancing() {
-  enableInstancing = useSharedUbo && (objType!=Pfx);
+  instancingType = Normal;
+  if(!useSharedUbo || objType==Pfx)
+    instancingType = NoInstancing;
   Object* pref = nullptr;
-  for(size_t i=0; enableInstancing && i<valSz; ++i) {
+  for(size_t i=0; instancingType!=NoInstancing && i<valSz; ++i) {
     auto& vx = val[i];
     if(!vx.isValid)
       continue;
@@ -706,19 +729,32 @@ void ObjectsBucket::invalidateInstancing() {
 
     auto& ref = *pref;
     if(vx.vbo!=ref.vbo || vx.ibo!=ref.ibo)
-      enableInstancing = false;
+      instancingType = NoInstancing;
     if(vx.vboA!=ref.vboA)
-      enableInstancing = false;
+      instancingType = NoInstancing;
     if(vx.iboOffset!=ref.iboOffset || vx.iboLength!=ref.iboLength)
-      enableInstancing = false;
+      instancingType = NoInstancing;
     if(vx.fatness!=ref.fatness)
-      enableInstancing = false;
+      instancingType = NoInstancing;
+    }
+
+  if(instancingType==Normal && pref!=nullptr) {
+    if(pref->vbo!=nullptr && pref->vbo->size()<=64){
+      instancingType = Aggressive;
+      }
     }
   }
 
 uint32_t ObjectsBucket::applyInstancing(size_t& i, const size_t* index, size_t indSz) const {
-  if(!enableInstancing)
+  if(instancingType==NoInstancing) {
     return 1;
+    }
+  if(instancingType==Aggressive) {
+    assert(i==0);
+    auto ret = uint32_t(index[indSz-1]-index[0]+1);
+    i = indSz;
+    return ret;
+    }
   auto     id = index[i];
   uint32_t cnt = 1;
   while(i+1<indSz) {

@@ -22,6 +22,12 @@ void VisibleSet::erase(size_t objId) {
       id[v][i] = id[v][count-1];
       count--;
       }
-    cnt[v].store(int(count));
+    cnt[v].store(std::uint_least8_t(count));
     }
+  }
+
+void VisibleSet::sort(SceneGlobals::VisCamera v) {
+  int     indSz = cnt[v].load();
+  size_t* index = id[v];
+  std::sort(index,index+indSz);
   }

@@ -20,9 +20,10 @@ class VisibleSet {
     const size_t* index(SceneGlobals::VisCamera v) const { return id[v];                 }
 
     void          erase(size_t id);
+    void          sort(SceneGlobals::VisCamera v);
 
   private:
-    std::atomic_int cnt[SceneGlobals::V_Count]           = {};
-    size_t          id [SceneGlobals::V_Count][CAPACITY] = {};
+    std::atomic_uint_least8_t cnt[SceneGlobals::V_Count]           = {};
+    size_t                    id [SceneGlobals::V_Count][CAPACITY] = {};
   };
 

@@ -39,6 +39,12 @@ class ObjectsBucket {
       Morph,
       };
 
+    enum InstancingType : uint8_t {
+      NoInstancing = 0,
+      Normal,
+      Aggressive, // allowed to draw disposed items
+      };
+
     class Item final {
       public:
         Item()=default;
@@ -78,13 +84,14 @@ class ObjectsBucket {
     ObjectsBucket(const Material& mat, const ProtoMesh* anim, VisualObjects& owner, const SceneGlobals& scene, const Type type);
     virtual ~ObjectsBucket();
 
+    bool isCompatible(const Material& mat, const std::vector<ProtoMesh::Animation>* a, const Type type, const StaticMesh* hint) const;
+
     static std::unique_ptr<ObjectsBucket> mkBucket(const Material& mat, const ProtoMesh* anim, VisualObjects& owner,
                                                    const SceneGlobals& scene, const Type type);
 
-    const Material&           material()  const;
-    const std::vector<ProtoMesh::Animation>* morph() const { return morphAnim==nullptr ? nullptr : &morphAnim->morph;  }
-
-    Type                      type()      const { return objType;    }
+    const Material&           material()      const;
+    Type                      type()          const { return objType;        }
+    InstancingType            hasInstancing() const { return instancingType; }
 
     size_t                    size()      const { return valSz;      }
     size_t                    alloc(const Tempest::VertexBuffer<Vertex>  &vbo,
@@ -234,9 +241,9 @@ class ObjectsBucket {
 
     Tempest::UniformBuffer<UboMaterial> uboMat[Resources::MaxFramesInFlight];
 
+    InstancingType            instancingType      = NoInstancing;
     bool                      useSharedUbo        = false;
     bool                      usePositionsSsbo    = false;
-    bool                      enableInstancing    = false;
     bool                      textureInShadowPass = false;
     bool                      windAnim            = false;
 
