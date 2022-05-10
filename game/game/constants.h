@@ -194,7 +194,8 @@ enum ItemMaterial : uint8_t {
   MAT_METAL   = 2,
   MAT_LEATHER = 3,
   MAT_CLAY    = 4,
-  MAT_GLAS    = 5
+  MAT_GLAS    = 5,
+  MAT_COUNT   = 6,
   };
 
 enum CollideMask : uint32_t {

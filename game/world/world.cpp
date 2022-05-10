@@ -35,6 +35,8 @@ const char* materialTag(ItemMaterial src) {
       return "CL";
     case ItemMaterial::MAT_GLAS:
       return "GL";
+    case ItemMaterial::MAT_COUNT:
+      return "UD";
     }
   return "UD";
   }
@@ -634,7 +636,7 @@ void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item &item, int3
   wobj.sendPassivePerc(self,other,victum,item,perc);
   }
 
-Sound World::addWeaponHitEffect(Npc& src, Npc& reciver) {
+Sound World::addWeaponHitEffect(Npc& src, const Bullet* srcArrow, Npc& reciver) {
   auto p0 = src.position();
   auto p1 = reciver.position();
 
@@ -648,6 +650,11 @@ Sound World::addWeaponHitEffect(Npc& src, Npc& reciver) {
     // NOTE: in vanilla only those sfx are defined for armor
     if(m==ItemMaterial::MAT_METAL || m==ItemMaterial::MAT_WOOD)
       armor = materialTag(m);
+    }
+
+  if(srcArrow!=nullptr && !srcArrow->isSpell()) {
+    auto m = ItemMaterial(srcArrow->itemMaterial());
+    return addHitEffect(materialTag(m),armor,"IAM",pos);
     }
 
   if(auto w = src.inventory().activeWeapon()) {

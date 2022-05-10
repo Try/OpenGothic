@@ -45,6 +45,7 @@ class Bullet final : public DynamicWorld::BulletCallback {
 
     Flg      flags()     const { return flg;  }
     void     setFlags(Flg f) { flg=f; }
+    ItemMaterial itemMaterial() const;
 
     auto     damage() const -> const DamageCalculator::Damage& { return dmg; }
     void     setDamage(DamageCalculator::Damage d) { dmg=d; }

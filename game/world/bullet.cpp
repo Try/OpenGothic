@@ -15,7 +15,7 @@ Bullet::Bullet(World& owner, const Item& itm, const Vec3& pos)
     }
 
   if(itm.isSpellOrRune()) {
-    material   = ZenLoad::NUM_MAT_GROUPS;
+    material   = ItemMaterial::MAT_COUNT;
     int32_t id = itm.spellId();
     const VisualFx* vfx = owner.script().spellVfx(id);
     if(vfx!=nullptr) {
@@ -88,6 +88,12 @@ void Bullet::setTarget(const Npc* n) {
   vfx.setTarget(n);
   }
 
+ItemMaterial Bullet::itemMaterial() const {
+  if(material>=ItemMaterial::MAT_COUNT)
+    return ItemMaterial::MAT_WOOD;
+  return ItemMaterial(material);
+  }
+
 bool Bullet::isFinished() const {
   if((flags()&Bullet::Stopped)!=Bullet::Stopped)
     return false;
@@ -109,7 +115,7 @@ void Bullet::onMove() {
 
 void Bullet::onCollide(uint8_t matId) {
   if(matId<ZenLoad::NUM_MAT_GROUPS) {
-    if(material<ZenLoad::NUM_MAT_GROUPS) {
+    if(material<ItemMaterial::MAT_COUNT) {
       auto s = wrld->addLandHitEffect(ItemMaterial(material),ZenLoad::MaterialGroup(matId),obj->matrix());
       s.play();
       }

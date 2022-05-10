@@ -1706,7 +1706,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     }
 
   if(!isSpell && !isDown() && hitResult.hasHit)
-    owner.addWeaponHitEffect(other,*this).play();
+    owner.addWeaponHitEffect(other,b,*this).play();
 
   if(hitResult.hasHit) {
     if(bodyStateMasked()!=BS_UNCONSCIOUS && interactive()==nullptr && !isSwim() && !mvAlgo.isClimb()) {

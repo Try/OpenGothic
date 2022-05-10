@@ -166,7 +166,7 @@ class World final {
 
     void                 addDlgSound(std::string_view s, const Tempest::Vec3& pos, float range, uint64_t &timeLen);
 
-    Sound                addWeaponHitEffect(Npc&         src, Npc&                   reciver);
+    Sound                addWeaponHitEffect(Npc&         src, const Bullet* srcArrow, Npc&  reciver);
     Sound                addWeaponBlkEffect(ItemMaterial src, ItemMaterial           reciver, const Tempest::Matrix4x4& pos);
     Sound                addLandHitEffect  (ItemMaterial src, ZenLoad::MaterialGroup reciver, const Tempest::Matrix4x4& pos);
 
