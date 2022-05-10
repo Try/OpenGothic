@@ -52,7 +52,7 @@ void VisibilityGroup::Token::setGroup(Group gr) {
   if(&g==group)
     return;
 
-  auto prevId = id;
+  const auto prevId = id;
   if(g.freeList.size()>0) {
     size_t id2 = g.freeList.back();
     g.freeList.pop_back();
@@ -76,7 +76,12 @@ void VisibilityGroup::Token::setBounds(const Bounds& bbox) {
   }
 
 const Bounds& VisibilityGroup::Token::bounds() const {
-  return group->tokens[id].bbox;
+  auto& t = group->tokens[id];
+  if(t.updateBbox) {
+    t.bbox.setObjMatrix(t.pos);
+    t.updateBbox = false;
+    }
+  return t.bbox;
   }
 
 VisibilityGroup::VisibilityGroup(const std::pair<Vec3, Vec3>& bbox) {

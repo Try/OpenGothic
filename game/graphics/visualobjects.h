@@ -54,12 +54,12 @@ class VisualObjects final {
     std::vector<ObjectsBucket*>                 index;
     size_t                                      lastSolidBucket = 0;
 
-    std::vector<Tempest::DescriptorSet>   recycled[Resources::MaxFramesInFlight];
-    uint8_t                               recycledId = 0;
+    std::vector<Tempest::DescriptorSet>         recycled[Resources::MaxFramesInFlight];
+    uint8_t                                     recycledId = 0;
 
-    bool                                  needtoInvalidateTlas = false;
-    Tempest::AccelerationStructure        tlas;
-    const Tempest::AccelerationStructure* landBlas = nullptr;
+    bool                                        needtoInvalidateTlas = false;
+    Tempest::AccelerationStructure              tlas;
+    const Tempest::AccelerationStructure*       landBlas = nullptr;
 
   friend class ObjectsBucket;
   friend class ObjectsBucket::Item;

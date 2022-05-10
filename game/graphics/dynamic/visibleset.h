@@ -10,7 +10,7 @@ class VisibleSet {
     VisibleSet();
 
     enum {
-      CAPACITY     = 256,
+      CAPACITY     = 255,
       };
 
     void reset();

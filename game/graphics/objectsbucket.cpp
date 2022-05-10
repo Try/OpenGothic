@@ -332,9 +332,9 @@ void ObjectsBucket::resetVis() {
   }
 
 void ObjectsBucket::fillTlas(std::vector<RtInstance>& inst) {
-  for(size_t i=0; i<valSz; ++i) {
+  for(size_t i=0; i<CAPACITY; ++i) {
     auto& v = val[i];
-    if(v.blas==nullptr)
+    if(!v.isValid || v.blas==nullptr)
       continue;
     RtInstance ix;
     ix.mat  = v.pos;
@@ -720,7 +720,7 @@ void ObjectsBucket::invalidateInstancing() {
   if(!useSharedUbo || objType==Pfx)
     instancingType = NoInstancing;
   Object* pref = nullptr;
-  for(size_t i=0; instancingType!=NoInstancing && i<valSz; ++i) {
+  for(size_t i=0; instancingType!=NoInstancing && i<CAPACITY; ++i) {
     auto& vx = val[i];
     if(!vx.isValid)
       continue;
