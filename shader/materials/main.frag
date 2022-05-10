@@ -7,6 +7,10 @@
 
 layout(location = 0) in Varyings shInp;
 
+#if DEBUG_DRAW
+layout(location = 20) in flat uint debugId;
+#endif
+
 layout(location = 0) out vec4 outColor;
 #if defined(GBUFFER)
 layout(location = 1) out vec4 outDiffuse;
@@ -55,29 +59,27 @@ vec4 dbgLambert() {
   return vec4(lambert,lambert,lambert,1.0);
   }
 
+vec3 flatNormal(){
+  vec3 pos = shInp.pos;
+  vec3 dx  = dFdx(pos);
+  vec3 dy  = dFdy(pos);
+  return /*normalize*/(cross(dx,dy));
+  }
+
 vec3 calcLight() {
   vec3  normal  = normalize(shInp.normal);
   float lambert = max(0.0,dot(scene.ldir,normal));
+
+#if (MESH_TYPE==T_LANDSCAPE)
+  // fix self-shadowed surface
+  float flatSh = dot(scene.ldir,flatNormal());
+  if(flatSh<=0) {
+    lambert = 0;
+    }
+#endif
+
   float light   = lambert*calcShadow();
   vec3  color   = scene.sunCl.rgb*clamp(light,0.0,1.0);
-
-  /*
-  for(int i=0; i<LIGHT_BLOCK; ++i) {
-    float rgn     = push.light[i].range;
-    if(rgn<=0.0)
-      continue;
-    vec3  ldir    = push.light[i].pos.xyz - inPos.xyz;
-    float qDist   = dot(ldir,ldir);
-    float lambert = max(0.0,dot(normalize(ldir),normal));
-
-    // return vec3(lambert);
-    // return vec3(length(ldir/rgn));
-
-    float light = (1.0-(qDist/(rgn*rgn)))*lambert;
-
-    color += push.light[i].color * clamp(light,0.0,1.0);
-    }*/
-
   return color + scene.ambient;
   }
 #endif
@@ -167,6 +169,14 @@ void main() {
   outDepth      = vec4(shInp.scr.z/shInp.scr.w,0.0,0.0,0.0);
 #endif
 
+#if DEBUG_DRAW
+#if (MESH_TYPE==T_LANDSCAPE)
+  outColor = vec4(0,0,0,1.0);
+#else
+  outColor = vec4(debugColors[debugId%MAX_DEBUG_COLORS],1.0);
+#endif
+#endif
+
   //outColor = vec4(inZ.xyz/inZ.w,1.0);
   //outColor = vec4(vec3(inPos.xyz)/1000.0,1.0);
   //outColor = vec4(vec3(shMap),1.0);
@@ -175,5 +185,6 @@ void main() {
   //vec3 shPos0  = (shInp.shadowPos[0].xyz)/shInp.shadowPos[0].w;
   //outColor   = vec4(vec3(shPos0.xy,0),1.0);
   //outColor = dbgLambert();
+
 #endif
   }

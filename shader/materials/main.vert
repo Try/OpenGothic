@@ -28,6 +28,10 @@ layout(location = 3) in uint inColor;
 
 layout(location = 0) out Varyings shOut;
 
+#if DEBUG_DRAW
+layout(location = 20) out flat uint debugId;
+#endif
+
 uint  objId  = 0;
 uvec4 boneId = uvec4(0);
 
@@ -128,6 +132,10 @@ void main() {
 
 #if defined(MAT_COLOR)
   shOut.color = unpackUnorm4x8(inColor);
+#endif
+
+#if DEBUG_DRAW
+  debugId = gl_InstanceIndex;
 #endif
 
   vec4 trPos  = scene.viewProject*vec4(pos,1.0);

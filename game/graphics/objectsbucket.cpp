@@ -169,7 +169,11 @@ bool ObjectsBucket::isCompatible(const Material& mat, const std::vector<ProtoMes
   }
 
 std::unique_ptr<ObjectsBucket> ObjectsBucket::mkBucket(const Material& mat, const ProtoMesh* anim, VisualObjects& owner,
-                                                       const SceneGlobals& scene, const Type type) {
+                                                       const SceneGlobals& scene, Type type) {
+  if(type==Landscape && mat.texAniMapDirPeriod!=Tempest::Point(0,0))
+    type = Static;
+  if(type==Landscape && mat.alpha==Material::Water)
+    type = Static;
 
   if(mat.frames.size()>0)
     return std::unique_ptr<ObjectsBucket>(new ObjectsBucketDyn(mat,anim,owner,scene,type));
@@ -254,7 +258,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
       ubo.set(L_Shadow0,  *scene.shadowMap[0],Resources::shadowSampler());
       ubo.set(L_Shadow1,  *scene.shadowMap[1],Resources::shadowSampler());
       ubo.set(L_Scene,    scene.uboGlobalPf[i][SceneGlobals::V_Main]);
-      if(objType!=ObjectsBucket::Pfx)
+      if(objType!=ObjectsBucket::Landscape && objType!=ObjectsBucket::Pfx)
         ubo.set(L_Material,uboMat[i]);
       if(isSceneInfoRequired()) {
         ubo.set(L_GDiffuse, *scene.lightingBuf,Sampler2d::nearest());
@@ -274,7 +278,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
       if(textureInShadowPass)
         uboSh.set(L_Diffuse, t);
       uboSh.set(L_Scene,    scene.uboGlobalPf[i][lay]);
-      if(objType!=ObjectsBucket::Pfx)
+      if(objType!=ObjectsBucket::Landscape && objType!=ObjectsBucket::Pfx)
         uboSh.set(L_Material, uboMat[i]);
       if(morphAnim!=nullptr) {
         uboSh.set(L_MorphId, morphAnim->morphIndex  );
@@ -288,7 +292,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
 
 void ObjectsBucket::uboSetSkeleton(Descriptors& v, uint8_t fId) {
   auto& ssbo = owner.matrixSsbo(ssboHeap(),fId);
-  if(ssbo.size()==0 || objType==Type::Pfx)
+  if(ssbo.size()==0 || objType==Type::Landscape || objType==Type::Pfx)
     return;
 
   for(size_t lay=SceneGlobals::V_Shadow0; lay<SceneGlobals::V_Count; ++lay) {
@@ -777,8 +781,9 @@ void ObjectsBucketLnd::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
   if(indSz==0)
     return;
 
-  UboPushBase pushBlock  = {};
-  cmd.setUniforms(shader, uboShared.ubo[fId][c], &pushBlock, sizeof(UboPushBase));
+  // UboPushBase pushBlock  = {};
+  // cmd.setUniforms(shader, uboShared.ubo[fId][c], &pushBlock, sizeof(UboPushBase));
+  cmd.setUniforms(shader, uboShared.ubo[fId][c]);
 
   for(size_t i=0; i<indSz; ++i) {
     auto& v = val[index[i]];
@@ -853,7 +858,8 @@ void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
 
     switch(objType) {
       case Landscape: {
-        cmd.setUniforms(shader, uboObj[id].ubo[fId][c], &pushBlock, sizeof(UboPushBase));
+        //cmd.setUniforms(shader, uboObj[id].ubo[fId][c], &pushBlock, sizeof(UboPushBase));
+        cmd.setUniforms(shader, uboObj[id].ubo[fId][c]);
         cmd.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength);
         break;
         }

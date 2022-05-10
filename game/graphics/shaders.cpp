@@ -38,22 +38,25 @@ void Shaders::ShaderPair::load(Device& device, const char* tag, bool hasTesselat
   }
 
 void Shaders::MaterialTemplate::load(Device &device, const char *tag, bool hasTesselation) {
+  char flnd[256]={};
   char fobj[256]={};
   char fani[256]={};
   char fmph[256]={};
   char fclr[256]={};
   if(tag==nullptr || tag[0]=='\0') {
+    std::snprintf(flnd,sizeof(fobj),"lnd");
     std::snprintf(fobj,sizeof(fobj),"obj");
     std::snprintf(fani,sizeof(fani),"ani");
     std::snprintf(fmph,sizeof(fani),"mph");
     std::snprintf(fclr,sizeof(fclr),"clr");
     } else {
+    std::snprintf(flnd,sizeof(flnd),"lnd_%s",tag);
     std::snprintf(fobj,sizeof(fobj),"obj_%s",tag);
     std::snprintf(fani,sizeof(fani),"ani_%s",tag);
     std::snprintf(fmph,sizeof(fmph),"mph_%s",tag);
     std::snprintf(fclr,sizeof(fclr),"clr_%s",tag);
     }
-  lnd.load(device,fobj,"%s.%s.sprv",hasTesselation);
+  lnd.load(device,flnd,"%s.%s.sprv",hasTesselation);
   obj.load(device,fobj,"%s.%s.sprv",hasTesselation);
   ani.load(device,fani,"%s.%s.sprv",hasTesselation);
   mph.load(device,fmph,"%s.%s.sprv",hasTesselation);

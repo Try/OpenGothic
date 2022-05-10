@@ -87,7 +87,7 @@ class ObjectsBucket {
     bool isCompatible(const Material& mat, const std::vector<ProtoMesh::Animation>* a, const Type type, const StaticMesh* hint) const;
 
     static std::unique_ptr<ObjectsBucket> mkBucket(const Material& mat, const ProtoMesh* anim, VisualObjects& owner,
-                                                   const SceneGlobals& scene, const Type type);
+                                                   const SceneGlobals& scene, Type type);
 
     const Material&           material()      const;
     Type                      type()          const { return objType;        }
