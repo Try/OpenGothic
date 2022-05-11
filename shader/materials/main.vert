@@ -135,7 +135,8 @@ void main() {
 #endif
 
 #if DEBUG_DRAW
-  debugId = gl_InstanceIndex;
+  //debugId = gl_InstanceIndex;
+  debugId = gl_VertexIndex/64;
 #endif
 
   vec4 trPos  = scene.viewProject*vec4(pos,1.0);

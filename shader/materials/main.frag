@@ -171,9 +171,9 @@ void main() {
 
 #if DEBUG_DRAW
 #if (MESH_TYPE==T_LANDSCAPE)
-  outColor = vec4(0,0,0,1.0);
-#else
   outColor = vec4(debugColors[debugId%MAX_DEBUG_COLORS],1.0);
+#else
+  outColor = vec4(0,0,0,1.0);
 #endif
 #endif
 
