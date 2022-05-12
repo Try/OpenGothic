@@ -81,7 +81,7 @@ bool PackedMesh::Meshlet::insert(const Vert& a, const Vert& b, const Vert& c, ui
   indexes[indSz+0] = ea;
   indexes[indSz+1] = eb;
   indexes[indSz+2] = ec;
-  indSz           += 3;
+  indSz           += 3u;
 
   vert[ea] = a;
   vert[eb] = b;
@@ -134,7 +134,7 @@ void PackedMesh::Meshlet::merge(const Meshlet& other) {
     vert[index]    = other.vert[other.indexes[i]];
     ++indSz;
     }
-  vertSz += other.vertSz;
+  vertSz = vertSz+other.vertSz;
   }
 
 
