@@ -26,31 +26,25 @@ PhysicVbo::PhysicVbo(const std::vector<btVector3>* v)
   :vert(*v) {
   }
 
-void PhysicVbo::addIndex(std::vector<uint32_t>&& index, uint8_t material) {
-  addIndex(std::move(index),material,nullptr);
+void PhysicVbo::addIndex(const std::vector<uint32_t>& index, size_t iboOff, size_t iboLen, uint8_t material) {
+  addIndex(index,iboOff,iboLen,material,nullptr);
   }
 
-void PhysicVbo::addIndex(std::vector<uint32_t>&& index, uint8_t material, const char* sector) {
-  if(index.size()==0)
+void PhysicVbo::addIndex(const std::vector<uint32_t>& index, size_t iboOff, size_t iboLen, uint8_t material,
+                         const char* sector) {
+  if(iboLen==0)
     return;
 
-  size_t off    = id.size();
-  size_t idSize = index.size();
-  if(id.size()==0) {
-    id=std::move(index);
-    for(size_t i=0;i<id.size();i+=3){
-      std::swap(id[i+1],id[i+2]);
-      }
-    } else {
-    id.resize(off+index.size());
-    for(size_t i=0;i<index.size();i+=3){
-      id[off+i+0] = index[i+0];
-      id[off+i+1] = index[i+2];
-      id[off+i+2] = index[i+1];
-      }
+  size_t off = id.size();
+
+  id.resize(off+iboLen);
+  for(size_t i=0; i<iboLen; i+=3){
+    id[off+i+0] = index[iboOff+i+0];
+    id[off+i+1] = index[iboOff+i+2];
+    id[off+i+2] = index[iboOff+i+1];
     }
 
-  addSegment(idSize,off,material,sector);
+  addSegment(iboLen,off,material,sector);
   adjustMesh();
   }
 

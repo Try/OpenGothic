@@ -73,7 +73,8 @@ void Bounds::assign(const std::vector<Resources::Vertex>& vbo) {
   calcR();
   }
 
-void Bounds::assign(const std::vector<ZenLoad::WorldVertex>& vbo, const std::vector<uint32_t>& ibo) {
+void Bounds::assign(const std::vector<ZenLoad::WorldVertex>& vbo, const std::vector<uint32_t>& ibo,
+                    size_t iboOffset, size_t iboLenght) {
   if(ibo.size()==0){
     bbox[0]   = Vec3();
     bbox[1]   = Vec3();
@@ -87,8 +88,8 @@ void Bounds::assign(const std::vector<ZenLoad::WorldVertex>& vbo, const std::vec
   bbox[0].y = vbo[ibo[0]].Position.y;
   bbox[0].z = vbo[ibo[0]].Position.z;
   bbox[1] = bbox[0];
-  for(auto id:ibo) {
-    auto& i = vbo[id];
+  for(size_t id=0; id<iboLenght; ++id) {
+    auto& i = vbo[ibo[iboOffset+id]];
     bbox[0].x = std::min(bbox[0].x,i.Position.x);
     bbox[0].y = std::min(bbox[0].y,i.Position.y);
     bbox[0].z = std::min(bbox[0].z,i.Position.z);

@@ -27,12 +27,14 @@ class Landscape final {
     using Item = ObjectsBucket::Item;
 
     struct Block {
-      Tempest::IndexBuffer<uint32_t> ibo;
+      size_t                         iboOffset = 0;
+      size_t                         iboLength = 0;
       Item                           mesh;
       Tempest::AccelerationStructure blas;
       };
 
     Tempest::VertexBuffer<Resources::Vertex> vbo;
+    Tempest::IndexBuffer<uint32_t>           ibo;
     Tempest::IndexBuffer<uint32_t>           iboSolid;
     std::list<Block>                         blocks;
   };

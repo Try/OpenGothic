@@ -18,7 +18,9 @@ class VisualObjects final {
     ObjectsBucket::Item get(const AnimMesh&   mesh, const Material& mat,
                             const MatrixStorage::Id& anim,
                             size_t ibo, size_t iboLen);
-    ObjectsBucket::Item get(const Tempest::VertexBuffer<Resources::Vertex>& vbo, const Tempest::IndexBuffer<uint32_t>& ibo, const Tempest::AccelerationStructure* blas,
+    ObjectsBucket::Item get(const Tempest::VertexBuffer<Resources::Vertex>& vbo,
+                            const Tempest::IndexBuffer<uint32_t>& ibo,
+                            size_t iboOff, size_t iboLen, const Tempest::AccelerationStructure* blas,
                             const Material& mat, const Bounds& bbox, ObjectsBucket::Type bucket);
     ObjectsBucket::Item get(const Tempest::VertexBuffer<Resources::Vertex>* vbo[],
                             const Material& mat, const Bounds& bbox);

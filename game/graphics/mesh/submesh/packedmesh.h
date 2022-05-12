@@ -19,15 +19,16 @@ class PackedMesh {
       PK_Visual,
       PK_VisualLnd,
       PK_Physic,
-      PK_PhysicZoned
       };
 
     struct SubMesh final {
       ZenLoad::zCMaterialData material;
-      std::vector<uint32_t>   indices;
+      size_t                  iboOffset = 0;
+      size_t                  iboLength = 0;
       };
 
     std::vector<WorldVertex>   vertices;
+    std::vector<uint32_t>      indices;
     std::vector<SubMesh>       subMeshes;
 
     PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type);
@@ -55,7 +56,8 @@ class PackedMesh {
       uint8_t indSz            = 0;
       Bounds  bounds;
 
-      void    flush(std::vector<WorldVertex>& vertices, SubMesh& sub, const ZenLoad::zCMesh& mesh);
+      void    flush(std::vector<WorldVertex>& vertices, std::vector<uint32_t>& indices,
+                    SubMesh& sub, const ZenLoad::zCMesh& mesh);
       bool    insert(const Vert& a, const Vert& b, const Vert& c, uint8_t matchHint);
       void    clear();
       void    updateBounds(const ZenLoad::zCMesh& mesh);
@@ -64,17 +66,10 @@ class PackedMesh {
       void    merge(const Meshlet& other);
       };
 
-    void   postProcess(const ZenLoad::zCMesh& mesh, size_t matId, std::vector<Meshlet>& meshlets);
+    void   packMeshlets(const ZenLoad::zCMesh& mesh);
+    void   postProcessP1(const ZenLoad::zCMesh& mesh, size_t matId, std::vector<Meshlet>& meshlets);
     void   postProcessP2(const ZenLoad::zCMesh& mesh, size_t matId, std::vector<Meshlet*>& meshlets);
 
-    void   pack(const ZenLoad::zCMesh& mesh,PkgType type);
-
-    size_t submeshIndex(const ZenLoad::zCMesh& mesh, std::vector<SubMesh*>& index,
-                        size_t vindex, size_t mat, PkgType type);
-
-    void   addSector(std::string_view s, uint8_t group);
-    static bool compare(const ZenLoad::zCMaterialData& l, const ZenLoad::zCMaterialData& r);
-
-    void   packMeshlets(const ZenLoad::zCMesh& mesh);
+    void   packPhysics(const ZenLoad::zCMesh& mesh,PkgType type);
   };
 

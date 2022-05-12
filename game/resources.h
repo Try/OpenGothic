@@ -131,6 +131,8 @@ class Resources final {
     static bool                      getFileData(std::string_view name, std::vector<uint8_t>& dat);
     static bool                      hasFile    (std::string_view fname);
 
+    static bool                      hasMeshShaders();
+
     static VDFS::FileIndex&          vdfsIndex();
 
     static const Tempest::VertexBuffer<VertexFsq>& fsqVbo();

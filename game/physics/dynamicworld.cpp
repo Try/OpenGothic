@@ -397,7 +397,7 @@ DynamicWorld::DynamicWorld(World& owner,const ZenLoad::zCMesh& worldMesh) {
   world.reset(new CollisionWorld());
 
   {
-  PackedMesh pkg(worldMesh,PackedMesh::PK_PhysicZoned);
+  PackedMesh pkg(worldMesh,PackedMesh::PK_Physic);
   sectors.resize(pkg.subMeshes.size());
   for(size_t i=0;i<sectors.size();++i)
     sectors[i] = pkg.subMeshes[i].material.matName;
@@ -413,11 +413,11 @@ DynamicWorld::DynamicWorld(World& owner,const ZenLoad::zCMesh& worldMesh) {
 
   for(size_t i=0;i<pkg.subMeshes.size();++i) {
     auto& sm = pkg.subMeshes[i];
-    if(!sm.material.noCollDet && sm.indices.size()>0) {
+    if(!sm.material.noCollDet && sm.iboLength>0) {
       if(sm.material.matGroup==ZenLoad::MaterialGroup::WATER) {
-        waterMesh->addIndex(std::move(sm.indices),sm.material.matGroup);
+        waterMesh->addIndex(pkg.indices,sm.iboOffset,sm.iboLength,sm.material.matGroup);
         } else {
-        landMesh ->addIndex(std::move(sm.indices),sm.material.matGroup,sectors[i].c_str());
+        landMesh ->addIndex(pkg.indices,sm.iboOffset,sm.iboLength,sm.material.matGroup,sectors[i].c_str());
         }
       }
     }

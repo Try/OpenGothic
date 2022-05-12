@@ -68,6 +68,7 @@ ObjectsBucket::Item VisualObjects::get(const AnimMesh &mesh, const Material& mat
 
 ObjectsBucket::Item VisualObjects::get(const Tempest::VertexBuffer<Resources::Vertex>& vbo,
                                        const Tempest::IndexBuffer<uint32_t>& ibo,
+                                       size_t iboOff, size_t iboLen,
                                        const Tempest::AccelerationStructure* blas,
                                        const Material& mat, const Bounds& bbox, ObjectsBucket::Type type) {
   if(mat.tex==nullptr) {
@@ -75,7 +76,7 @@ ObjectsBucket::Item VisualObjects::get(const Tempest::VertexBuffer<Resources::Ve
     return ObjectsBucket::Item();
     }
   auto&        bucket = getBucket(mat,nullptr,type,nullptr);
-  const size_t id     = bucket.alloc(vbo,ibo,blas,0,ibo.size(),bbox);
+  const size_t id     = bucket.alloc(vbo,ibo,blas,iboOff,iboLen,bbox);
   return ObjectsBucket::Item(bucket,id);
   }
 
