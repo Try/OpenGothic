@@ -202,7 +202,7 @@ void PackedMesh::packPhysics(const ZenLoad::zCMesh& mesh, PkgType type) {
 
     SubMesh sub;
     sub.material.matName  = m.matName;
-    sub.material.matGroup = ZenLoad::MaterialGroup(i);
+    sub.material.matGroup = m.matGroup;
     sub.iboOffset         = indices.size();
 
     for(size_t r=0; r<ibo.size(); ++r) {
