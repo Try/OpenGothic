@@ -11,7 +11,7 @@ using namespace Tempest;
 
 Shaders* Shaders::instance = nullptr;
 
-void Shaders::ShaderPair::load(Device &device, const char *tag, const char *format, bool hasTesselation) {
+void Shaders::ShaderSet::load(Device &device, const char *tag, const char *format, bool hasTesselation, bool hasMeshlets) {
   char buf[256]={};
 
   std::snprintf(buf,sizeof(buf),format,tag,"vert");
@@ -31,13 +31,19 @@ void Shaders::ShaderPair::load(Device &device, const char *tag, const char *form
     sh = GothicShader::get(buf);
     te = device.shader(sh.data,sh.len);
     }
+
+  if(hasMeshlets) {
+    std::snprintf(buf,sizeof(buf),format,tag,"mesh");
+    sh = GothicShader::get(buf);
+    me = device.shader(sh.data,sh.len);
+    }
   }
 
-void Shaders::ShaderPair::load(Device& device, const char* tag, bool hasTesselation) {
-  load(device,tag,"%s.%s.sprv",hasTesselation);
+void Shaders::ShaderSet::load(Device& device, const char* tag, bool hasTesselation, bool hasMeshlets) {
+  load(device,tag,"%s.%s.sprv",hasTesselation,hasMeshlets);
   }
 
-void Shaders::MaterialTemplate::load(Device &device, const char *tag, bool hasTesselation) {
+void Shaders::MaterialTemplate::load(Device &device, const char *tag, bool hasTesselation, bool hasMeshlets) {
   char flnd[256]={};
   char fobj[256]={};
   char fani[256]={};
@@ -56,28 +62,29 @@ void Shaders::MaterialTemplate::load(Device &device, const char *tag, bool hasTe
     std::snprintf(fmph,sizeof(fmph),"mph_%s",tag);
     std::snprintf(fclr,sizeof(fclr),"clr_%s",tag);
     }
-  lnd.load(device,flnd,"%s.%s.sprv",hasTesselation);
-  obj.load(device,fobj,"%s.%s.sprv",hasTesselation);
-  ani.load(device,fani,"%s.%s.sprv",hasTesselation);
-  mph.load(device,fmph,"%s.%s.sprv",hasTesselation);
-  pfx.load(device,fclr,"%s.%s.sprv",hasTesselation);
+  lnd.load(device,flnd,"%s.%s.sprv",hasTesselation,hasMeshlets);
+  obj.load(device,fobj,"%s.%s.sprv",hasTesselation,false);
+  ani.load(device,fani,"%s.%s.sprv",hasTesselation,false);
+  mph.load(device,fmph,"%s.%s.sprv",hasTesselation,false);
+  pfx.load(device,fclr,"%s.%s.sprv",hasTesselation,false);
   }
 
 Shaders::Shaders() {
   instance = this;
   auto& device = Resources::device();
 
-  solid   .load(device,"gbuffer");
-  atest   .load(device,"gbuffer_at");
-  water   .load(device,"water",device.properties().tesselationShader);
-  ghost   .load(device,"ghost");
-  emmision.load(device,"emi");
+  solid   .load(device,"gbuffer",   false,Resources::hasMeshShaders());
+  atest   .load(device,"gbuffer_at",false,Resources::hasMeshShaders());
+  ghost   .load(device,"ghost",     false,Resources::hasMeshShaders());
+  emmision.load(device,"emi",       false,Resources::hasMeshShaders());
 
-  solidF  .load(device,"");
-  atestF  .load(device,"at");
+  water   .load(device,"water",device.properties().tesselationShader,false);
 
-  shadow  .load(device,"shadow");
-  shadowAt.load(device,"shadow_at");
+  solidF  .load(device,"",  false,Resources::hasMeshShaders());
+  atestF  .load(device,"at",false,Resources::hasMeshShaders());
+
+  shadow  .load(device,"shadow",   false,Resources::hasMeshShaders());
+  shadowAt.load(device,"shadow_at",false,Resources::hasMeshShaders());
 
   copy               = postEffect("copy");
   ssao               = postEffect("ssao");
@@ -153,6 +160,9 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
     ;//state.setCullFaceMode(RenderState::CullMode::Back);
     state.setZTestMode(RenderState::ZTestMode::Greater);
     }
+
+  auto mesh = Resources::hasMeshShaders();
+  (void)mesh;
 
   switch(alpha) {
     case Material::Solid:
@@ -285,7 +295,10 @@ RenderPipeline Shaders::fogShader(std::string_view name) {
   }
 
 template<class Vertex>
-RenderPipeline Shaders::pipeline(RenderState& st, const ShaderPair &sh) const {
+RenderPipeline Shaders::pipeline(RenderState& st, const ShaderSet &sh) const {
+  if(!sh.me.isEmpty()) {
+    return Resources::device().pipeline(st,Shader(),sh.me,sh.fs);
+    }
   if(!sh.tc.isEmpty() && !sh.te.isEmpty()) {
     return Resources::device().pipeline<Vertex>(Triangles,st,sh.vs,sh.tc,sh.te,sh.fs);
     }

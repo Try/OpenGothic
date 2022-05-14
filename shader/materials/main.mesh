@@ -1,0 +1,110 @@
+#version 450
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_NV_mesh_shader : require
+
+#define MaxInd (41*3)
+
+layout(local_size_x = 32) in;
+layout(triangles, max_vertices = 64, max_primitives = MaxInd/3) out;
+
+#define MESH
+#include "materials_common.glsl"
+
+// Custom vertex output block
+layout(location = 0) out Varyings shOut[];  // [max_vertices]
+#if DEBUG_DRAW
+layout(location = DEBUG_DRAW_LOC) out flat uint debugId[];
+#endif
+
+struct Vertex {
+  vec3 pos;
+  vec3 norm;
+  vec2 uv;
+  uint color;
+  };
+
+layout(std430, binding = L_Ibo)      readonly buffer Ibo  { uint  indexes []; };
+layout(std430, binding = L_Vbo)      readonly buffer Vbo  { float vertices[]; };
+layout(std430, binding = L_MeshDesc) readonly buffer Inst { vec4  bounds  []; };
+
+void processVertex(uint vboOffset, uint vert) {
+  uint id        = (vboOffset + vert)*9;
+
+  vec3 pos       = vec3(vertices[id + 0], vertices[id + 1], vertices[id + 2]);
+  vec3 inNormal  = vec3(vertices[id + 3], vertices[id + 4], vertices[id + 5]);
+  vec2 inUV      = vec2(vertices[id + 6], vertices[id + 7]);
+
+  vec4 trPos     = scene.viewProject*vec4(pos,1.0);
+  gl_MeshVerticesNV[vert].gl_Position = trPos;
+  shOut[vert].scr                     = trPos;
+  shOut[vert].uv                      = inUV;
+
+#if !defined(SHADOW_MAP)
+  shOut[vert].shadowPos[0] = scene.shadow[0]*vec4(pos,1.0);
+  shOut[vert].shadowPos[1] = scene.shadow[1]*vec4(pos,1.0);
+  shOut[vert].normal       = inNormal;
+#endif
+
+#if !defined(SHADOW_MAP) || defined(WATER)
+  shOut[vert].pos = pos;
+#endif
+
+#if defined(MAT_COLOR)
+  uint inColor = floatBitsToUint(vertices[id + 8]);
+  shOut[vert].color = unpackUnorm4x8(inColor);
+#endif
+
+#if DEBUG_DRAW
+  debugId[vert] = gl_WorkGroupID.x;
+#endif
+  }
+
+shared uint invisible;
+
+void main() {
+  const uint laneID = gl_LocalInvocationID.x;
+
+  invisible = 0;
+  memoryBarrierShared();
+  barrier();
+
+  vec4 sphere = bounds[gl_WorkGroupID.x];
+  if(laneID<6) {
+    if(dot(vec4(sphere.xyz,1.0), scene.frustrum[laneID]) <= -sphere.w)
+      invisible = 1;
+    }
+  memoryBarrierShared();
+  barrier();
+  if(invisible==1) {
+    if(laneID==0)
+      gl_PrimitiveCountNV = 0;
+    return;
+    }
+
+  const uint vboOffset = gl_WorkGroupID.x * 64;
+  const uint iboOffset = gl_WorkGroupID.x * MaxInd;
+
+  processVertex(vboOffset, laneID*2 + 0);
+  processVertex(vboOffset, laneID*2 + 1);
+
+  // Triangle indices [0..123]
+  uint index0 = indexes[iboOffset];
+
+  /*
+   *  threads 0..30 -> 0..120
+   *  thread  31    -> 121..123
+   */
+  if(laneID<31) {
+    gl_PrimitiveIndicesNV[laneID*4 + 0] = indexes[iboOffset + laneID*4 + 0] - index0;
+    gl_PrimitiveIndicesNV[laneID*4 + 1] = indexes[iboOffset + laneID*4 + 1] - index0;
+    gl_PrimitiveIndicesNV[laneID*4 + 2] = indexes[iboOffset + laneID*4 + 2] - index0;
+    }
+  if(laneID<30) {
+    gl_PrimitiveIndicesNV[laneID*4 + 3] = indexes[iboOffset + laneID*4 + 3] - index0;
+    }
+
+  // Number of triangles
+  if(laneID==0)
+    gl_PrimitiveCountNV = MaxInd/3;
+  }

@@ -81,13 +81,14 @@ class ObjectsBucket {
         size_t         id=0;
       };
 
-    ObjectsBucket(const Material& mat, const ProtoMesh* anim, VisualObjects& owner, const SceneGlobals& scene, const Type type);
+    ObjectsBucket(const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
+                  const ProtoMesh* anim, const Tempest::StorageBuffer* desc, const Type type);
     virtual ~ObjectsBucket();
 
-    bool isCompatible(const Material& mat, const std::vector<ProtoMesh::Animation>* a, const Type type, const StaticMesh* hint) const;
+    virtual bool isCompatible(const Material& mat, const std::vector<ProtoMesh::Animation>* a, const Type type, const StaticMesh* hint) const;
 
-    static std::unique_ptr<ObjectsBucket> mkBucket(const Material& mat, const ProtoMesh* anim, VisualObjects& owner,
-                                                   const SceneGlobals& scene, Type type);
+    static std::unique_ptr<ObjectsBucket> mkBucket(const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
+                                                   const ProtoMesh* anim, const Tempest::StorageBuffer* desc, Type type);
 
     const Material&           material()      const;
     Type                      type()          const { return objType;        }
@@ -132,6 +133,9 @@ class ObjectsBucket {
       L_GDepth   = 7,
       L_MorphId  = 8,
       L_Morph    = 9,
+      L_Ibo      = L_MorphId,
+      L_Vbo      = L_Morph,
+      L_MeshDesc = 10,
       };
 
     struct ShLight final {
@@ -199,6 +203,7 @@ class ObjectsBucket {
       };
 
     virtual Object& implAlloc(const Bounds& bounds);
+    virtual void    postAlloc(Object& obj, size_t objId);
     virtual void    implFree(const size_t objId);
 
     void            uboSetCommon  (Descriptors& v);
@@ -226,6 +231,7 @@ class ObjectsBucket {
 
     const Type                objType   = Type::Landscape;
     const ProtoMesh*          morphAnim = nullptr;
+    const Tempest::StorageBuffer* instanceDesc = nullptr;
 
     VisualObjects&            owner;
     Descriptors               uboShared;
@@ -233,6 +239,7 @@ class ObjectsBucket {
 
     Object                    val[CAPACITY];
     size_t                    valSz = 0;
+    bool                      vertSsboInitialized = false;
     MatrixStorage::Id         objPositions;
 
   private:
@@ -255,19 +262,28 @@ class ObjectsBucket {
 
 class ObjectsBucketLnd : public ObjectsBucket {
   public:
-    ObjectsBucketLnd(const Material& mat, const ProtoMesh* anim, VisualObjects& owner, const SceneGlobals& scene, const Type type)
-      :ObjectsBucket(mat,anim,owner,scene,type) {
+    ObjectsBucketLnd(const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
+                     const ProtoMesh* anim, const Tempest::StorageBuffer* desc, const Type type)
+      :ObjectsBucket(mat,owner,scene,anim,desc,type) {
       }
 
+    bool    isCompatible(const Material& mat, const std::vector<ProtoMesh::Animation>* a, const Type type, const StaticMesh* hint) const override;
+
   private:
+    void    setupUbo() override;
     void    drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
                        const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c) override;
+
+    Object& implAlloc(const Bounds& bounds) override;
+    void    postAlloc(Object& obj, size_t objId) override;
+    void    implFree (const size_t objId) override;
   };
 
 class ObjectsBucketDyn : public ObjectsBucket {
   public:
-    ObjectsBucketDyn(const Material& mat, const ProtoMesh* anim, VisualObjects& owner, const SceneGlobals& scene, const Type type)
-      :ObjectsBucket(mat,anim,owner,scene,type) {
+    ObjectsBucketDyn(const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
+                     const ProtoMesh* anim, const Tempest::StorageBuffer* desc, const Type type)
+      :ObjectsBucket(mat,owner,scene,anim,desc,type) {
       }
 
     void    preFrameUpdate(uint8_t fId) override;

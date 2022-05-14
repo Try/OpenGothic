@@ -4,6 +4,7 @@
 
 #include "graphics/mesh/pose.h"
 #include "graphics/mesh/skeleton.h"
+#include "graphics/mesh/submesh/packedmesh.h"
 #include "sceneglobals.h"
 
 #include "utils/workers.h"
@@ -33,7 +34,7 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
 
   auto m = owner->mat;
   m.isGhost = g;
-  auto&  bucket = owner->owner.getBucket(m,{},owner->objType,nullptr);
+  auto&  bucket = owner->owner.getBucket(m,owner->objType,nullptr,nullptr,nullptr);
 
   auto&  v      = owner->val[id];
   size_t idNext = size_t(-1);
@@ -118,8 +119,9 @@ BufferHeap ObjectsBucket::ssboHeap() const {
   return heap;
   }
 
-ObjectsBucket::ObjectsBucket(const Material& mat, const ProtoMesh* anim,
+ObjectsBucket::ObjectsBucket(const Material& mat,
                              VisualObjects& owner, const SceneGlobals& scene,
+                             const ProtoMesh* anim, const Tempest::StorageBuffer* desc,
                              const Type type)
   :objType(type), owner(owner), scene(scene), mat(mat) {
   static_assert(sizeof(UboPush)<=128, "UboPush is way too big");
@@ -130,6 +132,7 @@ ObjectsBucket::ObjectsBucket(const Material& mat, const ProtoMesh* anim,
     morphAnim = anim;
     st        = Morph;
     }
+  instanceDesc = desc;
 
   pMain    = Shaders::inst().materialPipeline(mat,st,Shaders::T_Forward );
   pGbuffer = Shaders::inst().materialPipeline(mat,st,Shaders::T_Deffered);
@@ -159,6 +162,9 @@ ObjectsBucket::~ObjectsBucket() {
 
 bool ObjectsBucket::isCompatible(const Material& mat, const std::vector<ProtoMesh::Animation>* a, const Type type,
                                  const StaticMesh* hint) const {
+  if(type==Landscape && Resources::hasMeshShaders())
+    return false;
+
   if(hint!=nullptr && instancingType!=NoInstancing) {
     for(auto& i:val)
       if(i.isValid && i.vbo!=&hint->vbo)
@@ -168,18 +174,18 @@ bool ObjectsBucket::isCompatible(const Material& mat, const std::vector<ProtoMes
   return this->mat==mat && morph==a && objType==type;
   }
 
-std::unique_ptr<ObjectsBucket> ObjectsBucket::mkBucket(const Material& mat, const ProtoMesh* anim, VisualObjects& owner,
-                                                       const SceneGlobals& scene, Type type) {
+std::unique_ptr<ObjectsBucket> ObjectsBucket::mkBucket(const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
+                                                       const ProtoMesh* anim, const StorageBuffer* desc, Type type) {
   if(type==Landscape && mat.texAniMapDirPeriod!=Tempest::Point(0,0))
     type = Static;
   if(type==Landscape && mat.alpha==Material::Water)
     type = Static;
 
   if(mat.frames.size()>0)
-    return std::unique_ptr<ObjectsBucket>(new ObjectsBucketDyn(mat,anim,owner,scene,type));
+    return std::unique_ptr<ObjectsBucket>(new ObjectsBucketDyn(mat,owner,scene,anim,desc,type));
   if(type==Landscape)
-    return std::unique_ptr<ObjectsBucket>(new ObjectsBucketLnd(mat,anim,owner,scene,type));
-  return std::unique_ptr<ObjectsBucket>(new ObjectsBucket(mat,anim,owner,scene,type));
+    return std::unique_ptr<ObjectsBucket>(new ObjectsBucketLnd(mat,owner,scene,anim,desc,type));
+  return std::unique_ptr<ObjectsBucket>(new ObjectsBucket(mat,owner,scene,anim,desc,type));
   }
 
 const Material& ObjectsBucket::material() const {
@@ -217,6 +223,10 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const Bounds& bounds) {
   reallocObjPositions();
 
   return *v;
+  }
+
+void ObjectsBucket::postAlloc(Object&, size_t /*objId*/) {
+  invalidateInstancing();
   }
 
 void ObjectsBucket::implFree(const size_t objId) {
@@ -425,7 +435,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<Vertex>&  vbo,
     v->blas = blas;
     owner.resetTlas();
     }
-  invalidateInstancing();
+  postAlloc(*v,size_t(std::distance(val,v)));
   return size_t(std::distance(val,v));
   }
 
@@ -440,7 +450,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<VertexA>& vbo,
   v->iboOffset  = iboOffset;
   v->iboLength  = iboLen;
   v->skiningAni = &anim;
-  invalidateInstancing();
+  postAlloc(*v,size_t(std::distance(val,v)));
   return size_t(std::distance(val,v));
   }
 
@@ -449,7 +459,7 @@ size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<ObjectsBucket::Vertex>* 
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
     v->vboM[i] = vbo[i];
   v->visibility.setGroup(VisibilityGroup::G_AlwaysVis);
-  invalidateInstancing();
+  postAlloc(*v,size_t(std::distance(val,v)));
   return size_t(std::distance(val,v));
   }
 
@@ -774,6 +784,18 @@ const Bounds& ObjectsBucket::bounds(size_t i) const {
   return val[i].visibility.bounds();
   }
 
+bool ObjectsBucketLnd::isCompatible(const Material& mat, const std::vector<ProtoMesh::Animation>* a,
+                                    const Type type, const StaticMesh* hint) const {
+  if(type==Landscape && Resources::hasMeshShaders()) {
+    return mat==this->material();
+    }
+  return ObjectsBucket::isCompatible(mat,a,type,hint);
+  }
+
+void ObjectsBucketLnd::setupUbo() {
+  ObjectsBucket::setupUbo();
+  }
+
 void ObjectsBucketLnd::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
                                   const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c) {
   const size_t  indSz = visSet.count(c);
@@ -781,14 +803,44 @@ void ObjectsBucketLnd::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
   if(indSz==0)
     return;
 
-  // UboPushBase pushBlock  = {};
-  // cmd.setUniforms(shader, uboShared.ubo[fId][c], &pushBlock, sizeof(UboPushBase));
-  cmd.setUniforms(shader, uboShared.ubo[fId][c]);
+  if(Resources::hasMeshShaders()) {
+    cmd.setUniforms(shader, uboShared.ubo[fId][c]);
 
-  for(size_t i=0; i<indSz; ++i) {
-    auto& v = val[index[i]];
-    cmd.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength);
+    for(size_t i=0; i<indSz; ++i) {
+      auto& v = val[index[i]];
+      cmd.dispatchMesh((v.iboOffset)/PackedMesh::MaxInd,
+                       (v.iboLength+PackedMesh::MaxInd-1)/PackedMesh::MaxInd);
+      }
+    } else {
+    cmd.setUniforms(shader, uboShared.ubo[fId][c]);
+    for(size_t i=0; i<indSz; ++i) {
+      auto& v = val[index[i]];
+      cmd.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength);
+      }
     }
+  }
+
+ObjectsBucket::Object& ObjectsBucketLnd::implAlloc(const Bounds& bounds) {
+  auto& obj = ObjectsBucket::implAlloc(bounds);
+  return obj;
+  }
+
+void ObjectsBucketLnd::postAlloc(Object& obj, size_t objId) {
+  assert(obj.iboOffset%PackedMesh::MaxInd==0);
+  assert(obj.iboLength%PackedMesh::MaxInd==0);
+  if(Resources::hasMeshShaders() && !vertSsboInitialized) {
+    vertSsboInitialized = true;
+    for(uint8_t fId=0; fId<Resources::MaxFramesInFlight; ++fId)
+      for(uint8_t c=0; c<SceneGlobals::VisCamera::V_Count; ++c) {
+        uboShared.ubo[fId][c].set(L_Vbo,      *obj.vbo);
+        uboShared.ubo[fId][c].set(L_Ibo,      *obj.ibo);
+        uboShared.ubo[fId][c].set(L_MeshDesc, *instanceDesc);
+        }
+    }
+  }
+
+void ObjectsBucketLnd::implFree(const size_t objId) {
+  ObjectsBucket::implFree(objId);
   }
 
 

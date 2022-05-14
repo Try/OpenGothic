@@ -20,7 +20,9 @@ class VisualObjects final {
                             size_t ibo, size_t iboLen);
     ObjectsBucket::Item get(const Tempest::VertexBuffer<Resources::Vertex>& vbo,
                             const Tempest::IndexBuffer<uint32_t>& ibo,
-                            size_t iboOff, size_t iboLen, const Tempest::AccelerationStructure* blas,
+                            size_t iboOff, size_t iboLen,
+                            const Tempest::AccelerationStructure* blas,
+                            const Tempest::StorageBuffer* desc,
                             const Material& mat, const Bounds& bbox, ObjectsBucket::Type bucket);
     ObjectsBucket::Item get(const Tempest::VertexBuffer<Resources::Vertex>* vbo[],
                             const Material& mat, const Bounds& bbox);
@@ -43,7 +45,8 @@ class VisualObjects final {
     Tempest::Signal<void(const Tempest::AccelerationStructure* tlas)> onTlasChanged;
 
   private:
-    ObjectsBucket&                  getBucket(const Material& mat, const ProtoMesh* anim, ObjectsBucket::Type type, const StaticMesh* hint);
+    ObjectsBucket&                  getBucket(const Material& mat, ObjectsBucket::Type type,
+                                              const ProtoMesh* anim, const Tempest::StorageBuffer* desc, const StaticMesh* hint);
     void                            mkIndex();
     void                            commitUbo(uint8_t fId);
     void                            mkTlas(uint8_t fId);

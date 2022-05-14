@@ -8,7 +8,7 @@
 layout(location = 0) in Varyings shInp;
 
 #if DEBUG_DRAW
-layout(location = 20) in flat uint debugId;
+layout(location = DEBUG_DRAW_LOC) in flat uint debugId;
 #endif
 
 layout(location = 0) out vec4 outColor;

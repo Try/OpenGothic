@@ -19,6 +19,10 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &mesh) {
   Bounds bbox;
   std::vector<uint32_t> iboSolid;
 
+  if(Resources::hasMeshShaders()) {
+    meshletDesc = Resources::ssbo(mesh.meshletBounds.data(),mesh.meshletBounds.size()*sizeof(mesh.meshletBounds[0]));
+    }
+
   for(auto& i:mesh.subMeshes) {
     auto material = Resources::loadMaterial(i.material,true);
     if(material.alpha==Material::AdditiveLight || i.iboLength==0)
@@ -45,7 +49,7 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &mesh) {
         }
       }
 
-    b.mesh = visual.get(vbo,ibo,i.iboOffset,i.iboLength,&b.blas,material,bbox,ObjectsBucket::Landscape);
+    b.mesh = visual.get(vbo,ibo,i.iboOffset,i.iboLength,&b.blas,&meshletDesc,material,bbox,ObjectsBucket::Landscape);
     b.mesh.setObjMatrix(Matrix4x4::mkIdentity());
     }
 

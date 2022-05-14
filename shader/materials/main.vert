@@ -29,7 +29,7 @@ layout(location = 3) in uint inColor;
 layout(location = 0) out Varyings shOut;
 
 #if DEBUG_DRAW
-layout(location = 20) out flat uint debugId;
+layout(location = DEBUG_DRAW_LOC) out flat uint debugId;
 #endif
 
 uint  objId  = 0;
@@ -116,9 +116,12 @@ void main() {
   boneId  += uvec4(objId);
 #endif
 
-  vec3 pos = vertexPos();
+  vec3 pos    = vertexPos();
+  vec4 trPos  = scene.viewProject*vec4(pos,1.0);
 
-  shOut.uv = texcoord();
+  gl_Position = trPos;
+  shOut.scr   = trPos;
+  shOut.uv    = texcoord();
 
 #if !defined(SHADOW_MAP)
   shOut.shadowPos[0] = scene.shadow[0]*vec4(pos,1.0);
@@ -138,8 +141,4 @@ void main() {
   //debugId = gl_InstanceIndex;
   debugId = gl_VertexIndex/64;
 #endif
-
-  vec4 trPos  = scene.viewProject*vec4(pos,1.0);
-  shOut.scr   = trPos;
-  gl_Position = trPos;
   }

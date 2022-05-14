@@ -140,8 +140,8 @@ bool Resources::hasFile(std::string_view name) {
   }
 
 bool Resources::hasMeshShaders() {
-  return false;
-  // return inst->dev.properties().meshShader;
+  //return false;
+  return inst->dev.properties().meshlets.meshShader;
   }
 
 bool Resources::getFileData(std::string_view name, std::vector<uint8_t> &dat) {

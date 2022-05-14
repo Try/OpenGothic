@@ -52,6 +52,7 @@ class SceneGlobals final {
       Tempest::Matrix4x4              shadowView[Resources::ShadowLayers];
       Tempest::Vec4                   lightAmb   = {0,0,0,0};
       Tempest::Vec4                   lightCl    = {1,1,1,0};
+      Tempest::Vec4                   frustrum[6];
       Tempest::Vec3                   clipInfo;
       float                           padd0 = 0;
       Tempest::Vec3                   camPos;

@@ -37,17 +37,18 @@ class Shaders {
     const Tempest::RenderPipeline* materialPipeline(const Material& desc, ObjectsBucket::Type t, PipelineType pt) const;
 
   private:
-    struct ShaderPair {
+    struct ShaderSet {
       Tempest::Shader vs;
       Tempest::Shader fs;
       Tempest::Shader tc, te;
-      void load(Tempest::Device &device, const char* tag, const char* format, bool hasTesselation);
-      void load(Tempest::Device &device, const char* tag, bool hasTesselation);
+      Tempest::Shader me;
+      void load(Tempest::Device &device, const char* tag, const char* format, bool hasTesselation, bool hasMeshlets);
+      void load(Tempest::Device &device, const char* tag, bool hasTesselation, bool hasMeshlets);
       };
 
     struct MaterialTemplate {
-      ShaderPair lnd, obj, ani, mph, pfx;
-      void load(Tempest::Device& device, const char* tag, bool hasTesselation=false);
+      ShaderSet lnd, obj, ani, mph, pfx;
+      void load(Tempest::Device& device, const char* tag, bool hasTesselation=false, bool hasMeshlets=false);
       };
 
     struct Entry {
@@ -58,7 +59,7 @@ class Shaders {
       };
 
     template<class Vertex>
-    Tempest::RenderPipeline pipeline(Tempest::RenderState& st, const ShaderPair &fs) const;
+    Tempest::RenderPipeline pipeline(Tempest::RenderState& st, const ShaderSet &fs) const;
 
     Tempest::RenderPipeline postEffect(std::string_view name);
     Tempest::RenderPipeline postEffect(std::string_view vs, std::string_view fs);

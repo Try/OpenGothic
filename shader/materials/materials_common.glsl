@@ -3,6 +3,7 @@
 #define DEBUG_DRAW 0
 
 #if DEBUG_DRAW
+#define DEBUG_DRAW_LOC   20
 #define MAX_DEBUG_COLORS 10
 const vec3 debugColors[MAX_DEBUG_COLORS] = {
   vec3(1,1,1),
@@ -36,7 +37,10 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define L_GDiffuse 6
 #define L_GDepth   7
 #define L_MorphId  8
+#define L_Ibo      L_MorphId
 #define L_Morph    9
+#define L_Vbo      L_Morph
+#define L_MeshDesc 10
 
 #if (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING || MESH_TYPE==T_MORPH)
 #define LVL_OBJECT 1
@@ -117,7 +121,9 @@ layout(binding = L_Scene, std140) uniform UboScene {
   mat4  shadow[2];
   vec3  ambient;
   vec4  sunCl;
+  vec4  frustrum[6];
   vec3  clipInfo;
+  // float padd0;
   vec3  camPos;
   } scene;
 

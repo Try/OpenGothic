@@ -36,5 +36,7 @@ class Landscape final {
     Tempest::VertexBuffer<Resources::Vertex> vbo;
     Tempest::IndexBuffer<uint32_t>           ibo;
     Tempest::IndexBuffer<uint32_t>           iboSolid;
+    Tempest::StorageBuffer                   meshletDesc;
+
     std::list<Block>                         blocks;
   };
