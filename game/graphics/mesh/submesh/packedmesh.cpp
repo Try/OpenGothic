@@ -92,7 +92,7 @@ bool PackedMesh::Meshlet::insert(const Vert& a, const Vert& b, const Vert& c, ui
   indexes[indSz+0] = ea;
   indexes[indSz+1] = eb;
   indexes[indSz+2] = ec;
-  indSz           += 3u;
+  indSz            = uint8_t(indSz+3u);
 
   vert[ea] = a;
   vert[eb] = b;
@@ -154,12 +154,12 @@ float PackedMesh::Meshlet::qDistance(const Meshlet& other) const {
 
 void PackedMesh::Meshlet::merge(const Meshlet& other) {
   for(uint8_t i=0; i<other.indSz; ++i) {
-    uint8_t index  = vertSz+other.indexes[i];
+    uint8_t index  = uint8_t(vertSz+other.indexes[i]);
     indexes[indSz] = index;
     vert[index]    = other.vert[other.indexes[i]];
     ++indSz;
     }
-  vertSz = vertSz+other.vertSz;
+  vertSz = uint8_t(vertSz+other.vertSz);
   }
 
 static bool isSame(const ZenLoad::zCMaterialData& a, const ZenLoad::zCMaterialData& b) {
