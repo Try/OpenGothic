@@ -43,7 +43,14 @@ void Bounds::assign(const Vec3* src) {
   bbox[1] = src[1];
   mid     = (bbox[0]+bbox[1])/2;
   midTr   = mid;
+  calcR();
+  }
 
+void Bounds::assign(const std::pair<Tempest::Vec3, Tempest::Vec3>& src) {
+  bbox[0] = src.first;
+  bbox[1] = src.second;
+  mid     = (bbox[0]+bbox[1])/2;
+  midTr   = mid;
   calcR();
   }
 

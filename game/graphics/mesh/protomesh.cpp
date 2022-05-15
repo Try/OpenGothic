@@ -37,8 +37,8 @@ ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::string& fname)
   nodes.back().submeshIdE = submeshId.size();
   nodes.back().transform.identity();
 
-  bbox[0] = pm._bbox[0];
-  bbox[1] = pm._bbox[1];
+  bbox[0] = pm.bbox().first;
+  bbox[1] = pm.bbox().second;
   setupScheme(fname);
   }
 
@@ -84,7 +84,7 @@ ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::vector<ZenLoad::zCMorphMesh::An
 ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, std::unique_ptr<Skeleton>&& sk, const std::string &fname)
   :skeleton(std::move(sk)), fname(fname) {
   for(auto& m:library.getAttachments()) {
-    PackedMesh pack(m.second,true);
+    PackedMesh pack(m.second,PackedMesh::PK_Visual);
     attach.emplace_back(pack);
     auto& att = attach.back();
     att.name = m.first;

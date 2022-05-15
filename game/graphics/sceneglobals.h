@@ -74,5 +74,6 @@ class SceneGlobals final {
     void                              initSettings();
 
     UboGlobal                         uboGlobal;
+    Frustrum                          frustrum[V_Count];
   };
 

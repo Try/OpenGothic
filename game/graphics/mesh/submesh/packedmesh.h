@@ -26,6 +26,7 @@ class PackedMesh {
     enum PkgType {
       PK_Visual,
       PK_VisualLnd,
+      PK_VisualMorph,
       PK_Physic,
       };
 
@@ -46,33 +47,37 @@ class PackedMesh {
     std::vector<Bounds>        meshletBounds;
 
     std::vector<uint32_t>      verticesId; // only for morph meshes
-    Tempest::Vec3              _bbox[2];
     bool                       isUsingAlphaTest = true;
 
-    PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type);
-    PackedMesh(const ZenLoad::zCMesh& mesh);
-    PackedMesh(const ZenLoad::zCProgMeshProto& mesh, bool noVertexId);
+    PackedMesh(const ZenLoad::zCMesh&          mesh, PkgType type);
+    PackedMesh(const ZenLoad::zCProgMeshProto& mesh, PkgType type);
     void debug(std::ostream &out) const;
 
     std::pair<Tempest::Vec3,Tempest::Vec3> bbox() const;
 
   private:
-    size_t maxIboSliceLength = 0;
-    float  clusterRadius     = 20*100;
+    size_t        maxIboSliceLength = 0;
+    float         clusterRadius     = 20*100;
+    Tempest::Vec3 mBbox[2];
 
     using  Vert = std::pair<uint32_t,uint32_t>;
     struct Meshlet {
-      Vert    vert   [MaxVert] = {};
-      uint8_t indexes[MaxInd]  = {};
-      uint8_t vertSz           = 0;
-      uint8_t indSz            = 0;
-      Bounds  bounds;
+      Vert          vert   [MaxVert] = {};
+      uint8_t       indexes[MaxInd]  = {};
+      uint8_t       vertSz           = 0;
+      uint8_t       indSz            = 0;
+      Bounds        bounds;
 
       void    flush(std::vector<WorldVertex>& vertices, std::vector<uint32_t>& indices, std::vector<Bounds>& instances,
                     SubMesh& sub, const ZenLoad::zCMesh& mesh);
+      void    flush(std::vector<WorldVertex>& vertices, std::vector<uint32_t>& indices, std::vector<Bounds>& instances,
+                    SubMesh& sub, const std::vector<ZMath::float3>&  vbo, const std::vector<ZenLoad::zWedge>& wedgeList);
+
       bool    insert(const Vert& a, const Vert& b, const Vert& c, uint8_t matchHint);
       void    clear();
       void    updateBounds(const ZenLoad::zCMesh& mesh);
+      void    updateBounds(const ZenLoad::zCProgMeshProto& mesh);
+      void    updateBounds(const std::vector<ZMath::float3>& vbo);
       bool    canMerge(const Meshlet& other) const;
       bool    hasIntersection(const Meshlet& other) const;
       float   qDistance(const Meshlet& other) const;
@@ -81,13 +86,18 @@ class PackedMesh {
 
     void   addIndex(Meshlet* active, size_t numActive, std::vector<Meshlet>& meshlets,
                     const Vert& a, const Vert& b, const Vert& c);
+    void   packMeshlets(const ZenLoad::zCProgMeshProto& mesh);
     void   packMeshlets(const ZenLoad::zCMesh& mesh);
+
     void   postProcessP1(const ZenLoad::zCMesh& mesh, size_t matId, std::vector<Meshlet>& meshlets);
     void   postProcessP2(const ZenLoad::zCMesh& mesh, size_t matId, std::vector<Meshlet*>& meshlets);
 
     void   sortPass(std::vector<Meshlet*>& meshlets);
-    void   mergePass(std::vector<Meshlet*>& meshlets);
+    void   mergePass(std::vector<Meshlet*>& meshlets, bool fast);
 
     void   packPhysics(const ZenLoad::zCMesh& mesh,PkgType type);
+    void   computeBbox();
+
+    void   dbgUtilization(std::vector<Meshlet*>& meshlets);
   };
 

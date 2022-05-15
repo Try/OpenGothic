@@ -16,7 +16,7 @@ StaticMesh::StaticMesh(const PackedMesh& mesh) {
     sub[i].iboOffset = mesh.subMeshes[i].iboOffset;
     sub[i].iboLength = mesh.subMeshes[i].iboLength;
     }
-  bbox.assign(mesh._bbox);
+  bbox.assign(mesh.bbox());
 
   if(Gothic::inst().doRayQuery()) {
     for(size_t i=0;i<mesh.subMeshes.size();++i) {

@@ -328,7 +328,7 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     if(zmsh.getNumSubmeshes()==0)
       return nullptr;
 
-    PackedMesh packed(zmsh,true);
+    PackedMesh packed(zmsh,PackedMesh::PK_Visual);
     return std::unique_ptr<ProtoMesh>{new ProtoMesh(std::move(packed),name)};
     }
 
@@ -338,7 +338,7 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     if(zmm.getMesh().getNumSubmeshes()==0)
       return nullptr;
 
-    PackedMesh packed(zmm.getMesh(),false);
+    PackedMesh packed(zmm.getMesh(),PackedMesh::PK_VisualMorph);
     return std::unique_ptr<ProtoMesh>{new ProtoMesh(std::move(packed),zmm.aniList,name)};
     }
 
@@ -416,7 +416,7 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(std::string_view name) {
     if(zmsh.getNumSubmeshes()==0)
       return nullptr;
 
-    PackedMesh packed(zmsh,true);
+    PackedMesh packed(zmsh,PackedMesh::PK_Visual);
     ret = std::unique_ptr<PfxEmitterMesh>(new PfxEmitterMesh(packed));
     return ret.get();
     }

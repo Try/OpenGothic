@@ -86,12 +86,6 @@ void SceneGlobals::commitUbo(uint8_t fId) {
   uboGlobal.lightCl  = {c.x,c.y,c.z,0.f};
   uboGlobal.lightAmb = {ambient.x,ambient.y,ambient.z,0.f};
 
-#ifndef NDEBUG
-  Frustrum fru[V_Count];
-#else
-  static Frustrum fru[V_Count];
-#endif
-
   UboGlobal perView[V_Count];
   uboGlobalPf[fId][V_Main].update(&uboGlobal,0,1);
 
@@ -103,8 +97,8 @@ void SceneGlobals::commitUbo(uint8_t fId) {
 
     static bool upd = true;
     if(upd)
-      fru[i].make(ubo.viewProject,1,1);
-    std::memcpy(ubo.frustrum, fru[i].f, sizeof(ubo.frustrum));
+      frustrum[i].make(ubo.viewProject,1,1);
+    std::memcpy(ubo.frustrum, frustrum[i].f, sizeof(ubo.frustrum));
     }
 
   for(size_t i=V_Shadow0; i<V_Count; ++i) {
