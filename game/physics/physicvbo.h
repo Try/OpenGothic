@@ -7,9 +7,11 @@
 #include "graphics/mesh/protomesh.h"
 #include "physics/physics.h"
 
+class PackedMesh;
+
 class PhysicVbo : public btTriangleIndexVertexArray {
   public:
-    PhysicVbo(ZenLoad::PackedMesh&& sPacked);
+    PhysicVbo(PackedMesh&& packed);
     PhysicVbo(const std::vector<btVector3>* v);
 
     PhysicVbo(const PhysicVbo&)=delete;

@@ -1,10 +1,11 @@
 #include "pfxemittermesh.h"
 
-#include <Tempest/Log>
-
+#include "graphics/mesh/submesh/packedmesh.h"
 #include "graphics/mesh/pose.h"
 
-PfxEmitterMesh::PfxEmitterMesh(const ZenLoad::PackedMesh& src) {
+#include <Tempest/Log>
+
+PfxEmitterMesh::PfxEmitterMesh(const PackedMesh& src) {
   vertices.resize(src.vertices.size());
   for(size_t i=0;i<vertices.size();++i) {
     vertices[i].x = src.vertices[i].Position.x;

@@ -2,23 +2,93 @@
 
 #include <Tempest/Log>
 
-#include "physics/physicmeshshape.h"
+#include "graphics/mesh/submesh/packedmesh.h"
 #include "graphics/mesh/skeleton.h"
+#include "physics/physicmeshshape.h"
 
 using namespace Tempest;
 
 ProtoMesh::Attach::~Attach() {
   }
 
+ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::string& fname)
+  :fname(fname) {
+  attach.emplace_back(pm);
+  submeshId.resize(attach[0].sub.size());
+  auto&  att   = attach[0];
+  att.shape.reset(PhysicMeshShape::load(std::move(pm)));
+
+  size_t count = 0;
+  for(size_t r=0;r<att.sub.size();++r) {
+    if(att.sub[r].material.tex==nullptr) {
+      if(!att.sub[r].texName.empty())
+        Tempest::Log::e("no texture: ",att.sub[r].texName);
+      continue;
+      }
+    submeshId[count].id    = 0;
+    submeshId[count].subId = r;
+    count++;
+    }
+  submeshId.resize(count);
+
+  nodes.emplace_back();
+  nodes.back().attachId   = 0;
+  nodes.back().submeshIdB = 0;
+  nodes.back().submeshIdE = submeshId.size();
+  nodes.back().transform.identity();
+
+  bbox[0] = pm._bbox[0];
+  bbox[1] = pm._bbox[1];
+  setupScheme(fname);
+  }
+
+ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::vector<ZenLoad::zCMorphMesh::Animation>& aniList, const std::string& fname)
+  :ProtoMesh(std::move(pm),fname) {
+  if(attach.size()!=1) {
+    Log::d("skip animations for: ",fname);
+    return;
+    }
+
+  auto& device = Resources::device();
+
+  const size_t ssboAlign      = device.properties().ssbo.offsetAlign;
+  const size_t indexSz        = sizeof(int32_t[4])*((pm.verticesId.size()+3)/4);
+  const size_t indexSzAligned = ((indexSz+ssboAlign-1)/ssboAlign)*ssboAlign;
+  size_t       samplesCnt     = 0;
+
+  for(auto& i:aniList) {
+    samplesCnt += i.samples.size();
+    }
+
+  morphIndex   = Resources::ssbo(nullptr, indexSzAligned*aniList.size());
+  morphSamples = Resources::ssbo(nullptr, samplesCnt*sizeof(Vec4));
+
+  std::vector<int32_t> remapId;
+  std::vector<Vec4>    samples;
+
+  samplesCnt = 0;
+  morph.resize(aniList.size());
+  for(size_t i=0; i<aniList.size(); ++i) {
+    remap(aniList[i],pm.verticesId,remapId,samples,samplesCnt);
+
+    morphIndex  .update(remapId.data(), i*indexSzAligned,        remapId.size()*sizeof(remapId[0]));
+    morphSamples.update(samples.data(), samplesCnt*sizeof(Vec4), samples.size()*sizeof(Vec4)      );
+
+    morph[i] = mkAnimation(aniList[i]);
+    morph[i].index = (i*indexSzAligned)/sizeof(int32_t);
+
+    samplesCnt += samples.size();
+    }
+  }
+
 ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, std::unique_ptr<Skeleton>&& sk, const std::string &fname)
   :skeleton(std::move(sk)), fname(fname) {
   for(auto& m:library.getAttachments()) {
-    ZenLoad::PackedMesh stat;
-    m.second.packMesh(stat);
-    attach.emplace_back(stat);
+    PackedMesh pack(m.second,true);
+    attach.emplace_back(pack);
     auto& att = attach.back();
     att.name = m.first;
-    att.shape.reset(PhysicMeshShape::load(std::move(stat)));
+    att.shape.reset(PhysicMeshShape::load(std::move(pack)));
     }
 
   nodes.resize(skeleton==nullptr ? 0 : skeleton->nodes.size());
@@ -91,78 +161,6 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, std::unique_ptr<Ske
   setupScheme(fname);
   }
 
-ProtoMesh::ProtoMesh(ZenLoad::PackedMesh&& pm, const std::string& fname)
-  :fname(fname) {
-  attach.emplace_back(pm);
-  submeshId.resize(attach[0].sub.size());
-  auto&  att   = attach[0];
-  att.shape.reset(PhysicMeshShape::load(std::move(pm)));
-
-  size_t count = 0;
-  for(size_t r=0;r<att.sub.size();++r) {
-    if(att.sub[r].material.tex==nullptr) {
-      if(!att.sub[r].texName.empty())
-        Tempest::Log::e("no texture: ",att.sub[r].texName);
-      continue;
-      }
-    submeshId[count].id    = 0;
-    submeshId[count].subId = r;
-    count++;
-    }
-  submeshId.resize(count);
-
-  nodes.emplace_back();
-  nodes.back().attachId   = 0;
-  nodes.back().submeshIdB = 0;
-  nodes.back().submeshIdE = submeshId.size();
-  nodes.back().transform.identity();
-
-  bbox[0] = Vec3(pm.bbox[0].x,pm.bbox[0].y,pm.bbox[0].z);
-  bbox[1] = Vec3(pm.bbox[1].x,pm.bbox[1].y,pm.bbox[1].z);
-  setupScheme(fname);
-  }
-
-ProtoMesh::ProtoMesh(ZenLoad::PackedMesh&& pm,
-                     const std::vector<ZenLoad::zCMorphMesh::Animation>& aniList,
-                     const std::string& fname)
-  : ProtoMesh(std::move(pm),fname) {
-  if(attach.size()!=1) {
-    Log::d("skip animations for: ",fname);
-    return;
-    }
-
-  auto& device = Resources::device();
-
-  const size_t ssboAlign      = device.properties().ssbo.offsetAlign;
-  const size_t indexSz        = sizeof(int32_t[4])*((pm.verticesId.size()+3)/4);
-  const size_t indexSzAligned = ((indexSz+ssboAlign-1)/ssboAlign)*ssboAlign;
-  size_t       samplesCnt     = 0;
-
-  for(auto& i:aniList) {
-    samplesCnt += i.samples.size();
-    }
-
-  morphIndex   = Resources::ssbo(nullptr, indexSzAligned*aniList.size());
-  morphSamples = Resources::ssbo(nullptr, samplesCnt*sizeof(Vec4));
-
-  std::vector<int32_t> remapId;
-  std::vector<Vec4>    samples;
-
-  samplesCnt = 0;
-  morph.resize(aniList.size());
-  for(size_t i=0; i<aniList.size(); ++i) {
-    remap(aniList[i],pm.verticesId,remapId,samples,samplesCnt);
-
-    morphIndex  .update(remapId.data(), i*indexSzAligned,        remapId.size()*sizeof(remapId[0]));
-    morphSamples.update(samples.data(), samplesCnt*sizeof(Vec4), samples.size()*sizeof(Vec4)      );
-
-    morph[i] = mkAnimation(aniList[i]);
-    morph[i].index = (i*indexSzAligned)/sizeof(int32_t);
-
-    samplesCnt += samples.size();
-    }
-  }
-
 ProtoMesh::ProtoMesh(const Material& mat, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo) {
   attach.emplace_back(mat,std::move(vbo),std::move(ibo));
   submeshId.resize(attach[0].sub.size());
@@ -187,8 +185,6 @@ ProtoMesh::ProtoMesh(const Material& mat, std::vector<Resources::Vertex> vbo, st
   nodes.back().submeshIdE = submeshId.size();
   nodes.back().transform.identity();
 
-  //bbox[0] = Tempest::Vec3(pm.bbox[0].x,pm.bbox[0].y,pm.bbox[0].z);
-  //bbox[1] = Tempest::Vec3(pm.bbox[1].x,pm.bbox[1].y,pm.bbox[1].z);
   setupScheme("");
   }
 

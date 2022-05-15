@@ -1,7 +1,9 @@
 #version 450
+
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_NV_mesh_shader : require
+#extension GL_KHR_shader_subgroup_vote: enable
 
 #define MaxInd (41*3)
 
@@ -10,6 +12,10 @@ layout(triangles, max_vertices = 64, max_primitives = MaxInd/3) out;
 
 #define MESH
 #include "materials_common.glsl"
+
+out gl_MeshPerVertexNV {
+  vec4 gl_Position;
+  } gl_MeshVerticesNV[];
 
 // Custom vertex output block
 layout(location = 0) out Varyings shOut[];  // [max_vertices]
@@ -60,23 +66,23 @@ void processVertex(uint vboOffset, uint vert) {
 #endif
   }
 
-shared uint invisible;
+shared bool invisible;
 
 void main() {
   const uint laneID = gl_LocalInvocationID.x;
+  const vec4 sphere = bounds[gl_WorkGroupID.x];
 
-  invisible = 0;
+  invisible = false;
   memoryBarrierShared();
   barrier();
-
-  vec4 sphere = bounds[gl_WorkGroupID.x];
   if(laneID<6) {
     if(dot(vec4(sphere.xyz,1.0), scene.frustrum[laneID]) <= -sphere.w)
-      invisible = 1;
+      invisible = true;
     }
   memoryBarrierShared();
   barrier();
-  if(invisible==1) {
+
+  if(invisible) {
     if(laneID==0)
       gl_PrimitiveCountNV = 0;
     return;

@@ -10,14 +10,16 @@
 
 #include "resources.h"
 
+class PackedMesh;
+
 class ProtoMesh {
   public:
     using Vertex =Resources::VertexA;
 
+    ProtoMesh(PackedMesh&&  pm, const std::string& fname);
+    ProtoMesh(PackedMesh&&  pm, const std::vector<ZenLoad::zCMorphMesh::Animation>& aniList, const std::string& fname);
     ProtoMesh(const ZenLoad::zCModelMeshLib& lib, std::unique_ptr<Skeleton>&& sk, const std::string& fname);
-    ProtoMesh(ZenLoad::PackedMesh&&     pm, const std::string& fname);
-    ProtoMesh(ZenLoad::PackedMesh&&     pm, const std::vector<ZenLoad::zCMorphMesh::Animation>& aniList, const std::string& fname);
-    ProtoMesh(const Material& mat, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo);
+    ProtoMesh(const Material& mat, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo); //decals
     ProtoMesh(ProtoMesh&&)=default;
     ProtoMesh& operator=(ProtoMesh&&)=default;
     ~ProtoMesh();

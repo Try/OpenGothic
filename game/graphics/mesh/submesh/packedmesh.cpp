@@ -190,6 +190,7 @@ static bool isSame(const ZenLoad::zCMaterialData& a, const ZenLoad::zCMaterialDa
   return true;
   }
 
+
 PackedMesh::PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type) {
   if(Resources::hasMeshShaders()) {
     auto& prop = Resources::device().properties().meshlets;
@@ -207,6 +208,99 @@ PackedMesh::PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type) {
     packPhysics(mesh,type);
     return;
     }
+  }
+
+PackedMesh::PackedMesh(const ZenLoad::zCProgMeshProto& mesh, bool noVertexId) {
+  auto& mat  = mesh.getMaterials();
+  auto& vert = mesh.getVertices();
+
+  subMeshes.resize(std::max(mat.size(), mesh.getNumSubmeshes()));
+  {
+  auto min = mesh.getBBoxMin();
+  auto max = mesh.getBBoxMax();
+  _bbox[0]         = Vec3(min.x,min.y,min.z);
+  _bbox[1]         = Vec3(max.x,max.y,max.z);
+  }
+  isUsingAlphaTest = mesh.isAlphaTested();
+
+  size_t vboSize = 0;
+  size_t iboSize = 0;
+  for(size_t smI=0; smI<mesh.getNumSubmeshes(); ++smI) {
+    auto& sm = mesh.getSubmesh(smI);
+    vboSize += sm.m_WedgeList.size();
+    iboSize += sm.m_TriangleList.size()*3;
+    }
+
+  vertices.resize(vboSize);
+  indices .resize(iboSize);
+  if(!noVertexId)
+    verticesId.resize(vboSize);
+
+  auto* vbo = vertices.data();
+  auto* ibo = indices.data();
+  auto* vId = verticesId.data();
+
+  uint32_t meshVxStart = 0;
+  uint32_t meshIxStart = 0;
+  for(size_t smI=0; smI<mesh.getNumSubmeshes(); ++smI) {
+    const auto& sm   = mesh.getSubmesh(smI);
+    auto&       pack = subMeshes[smI];
+
+    pack.material = sm.m_Material;
+
+    for(size_t i=0; i<sm.m_WedgeList.size(); ++i) {
+      const ZenLoad::zWedge& wedge = sm.m_WedgeList[i];
+
+      vbo->Position = vert[wedge.m_VertexIndex];
+      vbo->Normal   = wedge.m_Normal;
+      vbo->TexCoord = wedge.m_Texcoord;
+      vbo->Color    = 0xFFFFFFFF;  // TODO: Apply color from material!
+      ++vbo;
+
+      if(!noVertexId) {
+        *vId = wedge.m_VertexIndex;
+        ++vId;
+        }
+      }
+
+    pack.iboOffset  = meshIxStart;
+    pack.iboLength  = sm.m_TriangleList.size()*3u;
+    meshIxStart    += uint32_t(sm.m_TriangleList.size())*3u;
+
+    for(size_t i=0; i<sm.m_TriangleList.size(); ++i) {
+      for(int j=0; j<3; ++j) {
+        uint32_t id = sm.m_TriangleList[i].m_Wedges[j] + meshVxStart;
+        *ibo = id;
+        ++ibo;
+        }
+      }
+
+    meshVxStart += uint32_t(sm.m_WedgeList.size());
+    }
+
+  /*
+  for(size_t mId=0; mId<mesh.getNumSubmeshes(); ++mId) {
+    auto& sm = mesh.getSubmesh(mId);
+    // pack.material = sm.m_Material;
+
+    std::vector<Meshlet> meshlets;
+    for(size_t i=0; i<sm.m_TriangleList.size(); ++i) {
+      Meshlet activeMeshlets[16];
+      const uint16_t* ibo = sm.m_TriangleList[i].m_Wedges;
+      //uint32_t id = sm.m_TriangleList[i].m_Wedges[j] + meshVxStart;
+
+      auto a = std::make_pair(ibo[0],0);
+      auto b = std::make_pair(ibo[1],0);
+      auto c = std::make_pair(ibo[2],0);
+      addIndex(activeMeshlets,16,meshlets, a,b,c);
+
+      for(auto& meshlet:activeMeshlets)
+        if(meshlet.indSz>0)
+          meshlets.push_back(std::move(meshlet));
+      // postProcessP1(mesh,mId,meshlets);
+      }
+    }
+  */
   }
 
 void PackedMesh::packPhysics(const ZenLoad::zCMesh& mesh, PkgType type) {
@@ -322,39 +416,7 @@ void PackedMesh::packMeshlets(const ZenLoad::zCMesh& mesh) {
       auto a = std::make_pair(ibo[i+0],feat[i+0]);
       auto b = std::make_pair(ibo[i+1],feat[i+1]);
       auto c = std::make_pair(ibo[i+2],feat[i+2]);
-
-      bool added = false;
-      for(size_t r=0; r<MaxMeshlets; ++r) {
-        auto& meshlet = activeMeshlets[r];
-        if(meshlet.insert(a,b,c,2)) {
-          added = true;
-          break;
-          }
-        }
-      if(added)
-        continue;
-
-      for(size_t r=0; r<MaxMeshlets; ++r) {
-        auto& meshlet = activeMeshlets[r];
-        if(meshlet.insert(a,b,c,1)) {
-          added = true;
-          break;
-          }
-        }
-      if(added)
-        continue;
-
-      size_t biggest = 0;
-      for(size_t r=0; r<MaxMeshlets; ++r) {
-        if(activeMeshlets[r].indSz>activeMeshlets[biggest].indSz) {
-          biggest = r;
-          }
-        }
-
-      auto& meshlet = activeMeshlets[biggest];
-      meshlets.push_back(std::move(meshlet));
-      meshlet.clear();
-      meshlet.insert(a,b,c,0);
+      addIndex(activeMeshlets,16,meshlets, a,b,c);
       }
 
     for(auto& meshlet:activeMeshlets)
@@ -372,7 +434,7 @@ void PackedMesh::sortPass(std::vector<Meshlet*>& meshlets) {
   Meshlet* a = nullptr;
   Meshlet* b = nullptr;
 
-  if(meshlets.size()>1000 || true) {
+  if(meshlets.size()>1000) {
     Vec3 minP = meshlets[0]->bounds.pos;
     Vec3 maxP = meshlets[0]->bounds.pos;
     for(size_t i=0; i<meshlets.size(); ++i) {
@@ -540,4 +602,26 @@ std::pair<Vec3, Vec3> PackedMesh::bbox() const {
     }
 
   return std::make_pair(bbox[0],bbox[1]);
+  }
+
+void PackedMesh::addIndex(Meshlet* active, size_t numActive, std::vector<Meshlet>& meshlets,
+                          const Vert& a, const Vert& b, const Vert& c) {
+  for(size_t r=0; r<MaxMeshlets; ++r) {
+    auto& meshlet = active[r];
+    if(meshlet.insert(a,b,c,2)) {
+      return;
+      }
+    }
+
+  size_t biggest = 0;
+  for(size_t r=0; r<MaxMeshlets; ++r) {
+    if(active[r].indSz>active[biggest].indSz) {
+      biggest = r;
+      }
+    }
+
+  auto& meshlet = active[biggest];
+  meshlets.push_back(std::move(meshlet));
+  meshlet.clear();
+  meshlet.insert(a,b,c,0);
   }

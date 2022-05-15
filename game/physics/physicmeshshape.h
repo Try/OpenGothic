@@ -9,10 +9,11 @@ class PhysicMeshShape final {
 
     float friction() const;
 
-    static PhysicMeshShape* load(ZenLoad::PackedMesh&& sPacked);
+    static PhysicMeshShape* load(PackedMesh&& packed);
 
   private:
-    PhysicMeshShape(ZenLoad::PackedMesh&& sPacked);
+    PhysicMeshShape(PackedMesh&& packed);
+
     PhysicVbo                      mesh;
     mutable btBvhTriangleMeshShape shape;
     float                          frict = 0;

@@ -2,6 +2,7 @@
 
 #include <zenload/zCMesh.h>
 #include <zenload/zCMaterial.h>
+#include <zenload/zCProgMeshProto.h>
 
 #include <Tempest/Vec>
 #include <unordered_map>
@@ -17,7 +18,8 @@ class PackedMesh {
 
     enum {
       MaxVert     = 64,
-      MaxInd      = 41*3, // NVidia allocates pipeline memory in batches of 128 bytes (2 reserved for size)
+      // NVidia allocates pipeline memory in batches of 128 bytes (2 reserved for size)
+      MaxInd      = 41*3,
       MaxMeshlets = 16,
       };
 
@@ -43,7 +45,13 @@ class PackedMesh {
     std::vector<SubMesh>       subMeshes;
     std::vector<Bounds>        meshletBounds;
 
+    std::vector<uint32_t>      verticesId; // only for morph meshes
+    Tempest::Vec3              _bbox[2];
+    bool                       isUsingAlphaTest = true;
+
     PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type);
+    PackedMesh(const ZenLoad::zCMesh& mesh);
+    PackedMesh(const ZenLoad::zCProgMeshProto& mesh, bool noVertexId);
     void debug(std::ostream &out) const;
 
     std::pair<Tempest::Vec3,Tempest::Vec3> bbox() const;
@@ -71,6 +79,8 @@ class PackedMesh {
       void    merge(const Meshlet& other);
       };
 
+    void   addIndex(Meshlet* active, size_t numActive, std::vector<Meshlet>& meshlets,
+                    const Vert& a, const Vert& b, const Vert& c);
     void   packMeshlets(const ZenLoad::zCMesh& mesh);
     void   postProcessP1(const ZenLoad::zCMesh& mesh, size_t matId, std::vector<Meshlet>& meshlets);
     void   postProcessP2(const ZenLoad::zCMesh& mesh, size_t matId, std::vector<Meshlet*>& meshlets);

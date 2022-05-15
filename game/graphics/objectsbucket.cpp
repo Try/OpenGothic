@@ -910,7 +910,6 @@ void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
 
     switch(objType) {
       case Landscape: {
-        //cmd.setUniforms(shader, uboObj[id].ubo[fId][c], &pushBlock, sizeof(UboPushBase));
         cmd.setUniforms(shader, uboObj[id].ubo[fId][c]);
         cmd.draw(*v.vbo, *v.ibo, v.iboOffset, v.iboLength);
         break;

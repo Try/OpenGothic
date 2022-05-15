@@ -22,6 +22,7 @@
 #include "graphics/mesh/submesh/staticmesh.h"
 #include "graphics/mesh/submesh/animmesh.h"
 #include "graphics/mesh/submesh/pfxemittermesh.h"
+#include "graphics/mesh/submesh/packedmesh.h"
 #include "graphics/mesh/skeleton.h"
 #include "graphics/mesh/protomesh.h"
 #include "graphics/mesh/animation.h"
@@ -327,9 +328,7 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     if(zmsh.getNumSubmeshes()==0)
       return nullptr;
 
-    ZenLoad::PackedMesh packed;
-    zmsh.packMesh(packed);
-
+    PackedMesh packed(zmsh,true);
     return std::unique_ptr<ProtoMesh>{new ProtoMesh(std::move(packed),name)};
     }
 
@@ -339,9 +338,7 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     if(zmm.getMesh().getNumSubmeshes()==0)
       return nullptr;
 
-    ZenLoad::PackedMesh packed;
-    zmm.getMesh().packMesh(packed,false);
-
+    PackedMesh packed(zmm.getMesh(),false);
     return std::unique_ptr<ProtoMesh>{new ProtoMesh(std::move(packed),zmm.aniList,name)};
     }
 
@@ -419,9 +416,7 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(std::string_view name) {
     if(zmsh.getNumSubmeshes()==0)
       return nullptr;
 
-    ZenLoad::PackedMesh packed;
-    zmsh.packMesh(packed);
-
+    PackedMesh packed(zmsh,true);
     ret = std::unique_ptr<PfxEmitterMesh>(new PfxEmitterMesh(packed));
     return ret.get();
     }

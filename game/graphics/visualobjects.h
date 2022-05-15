@@ -13,7 +13,7 @@ class VisualObjects final {
     VisualObjects(const SceneGlobals& globals, const std::pair<Tempest::Vec3, Tempest::Vec3>& bbox);
     ~VisualObjects();
 
-    ObjectsBucket::Item get(const StaticMesh& mesh, const Material& mat, size_t iboOffset, size_t iboLen,
+    ObjectsBucket::Item get(const StaticMesh& mesh, const Material& mat, size_t iboOffset, size_t iboLength,
                             const ProtoMesh* anim, bool staticDraw);
     ObjectsBucket::Item get(const AnimMesh&   mesh, const Material& mat,
                             const MatrixStorage::Id& anim,

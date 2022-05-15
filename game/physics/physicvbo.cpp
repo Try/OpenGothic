@@ -1,13 +1,14 @@
 #include "physicvbo.h"
 
+#include "graphics/mesh/submesh/packedmesh.h"
 #include "collisionworld.h"
 
-PhysicVbo::PhysicVbo(ZenLoad::PackedMesh&& sPacked)
-  :PhysicVbo(sPacked.vertices) {
-  id = std::move(sPacked.indices);
-  for(auto& i:sPacked.subMeshes)
-    if(!i.material.noCollDet && i.indexSize>0) {
-      addSegment(i.indexSize,i.indexOffset,i.material.matGroup,nullptr);
+PhysicVbo::PhysicVbo(PackedMesh&& packed)
+  :PhysicVbo(packed.vertices) {
+  id = std::move(packed.indices);
+  for(auto& i:packed.subMeshes)
+    if(!i.material.noCollDet && i.iboLength>0) {
+      addSegment(i.iboLength,i.iboOffset,i.material.matGroup,nullptr);
       }
   for(size_t i=0;i<id.size();i+=3){
     std::swap(id[i+1],id[i+2]);

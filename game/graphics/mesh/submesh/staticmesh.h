@@ -9,10 +9,12 @@
 
 #include "resources.h"
 
+class PackedMesh;
+
 class StaticMesh {
   public:
     using Vertex=Resources::Vertex;
-    StaticMesh(const ZenLoad::PackedMesh& data);
+    StaticMesh(const PackedMesh& data);
     StaticMesh(const ZenLoad::PackedSkeletalMesh& data);
     StaticMesh(const Material& mat, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo);
     StaticMesh(StaticMesh&&)=default;
@@ -21,7 +23,7 @@ class StaticMesh {
     struct SubMesh {
       Material                       material;
       size_t                         iboOffset = 0;
-      size_t                         iboSize   = 0;
+      size_t                         iboLength = 0;
       std::string                    texName;
       Tempest::AccelerationStructure blas;
       };

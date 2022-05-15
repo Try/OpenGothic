@@ -6,11 +6,13 @@
 
 #include <Tempest/Point>
 
+class PackedMesh;
 class Pose;
 
 class PfxEmitterMesh {
   public:
-    PfxEmitterMesh(const ZenLoad::PackedMesh& src);
+    PfxEmitterMesh(const PackedMesh& src);
+
     PfxEmitterMesh(const ZenLoad::zCModelMeshLib& src);
 
     Tempest::Vec3 randCoord(float rnd, const Pose* pose) const;

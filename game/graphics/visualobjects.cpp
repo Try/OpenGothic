@@ -32,7 +32,7 @@ ObjectsBucket& VisualObjects::getBucket(const Material& mat,ObjectsBucket::Type 
   }
 
 ObjectsBucket::Item VisualObjects::get(const StaticMesh& mesh, const Material& mat,
-                                       size_t iboOffset, size_t iboSize,
+                                       size_t iboOffset, size_t iboLength,
                                        const ProtoMesh* anim,
                                        bool staticDraw) {
   if(mat.tex==nullptr) {
@@ -46,11 +46,11 @@ ObjectsBucket::Item VisualObjects::get(const StaticMesh& mesh, const Material& m
 
   const Tempest::AccelerationStructure* blas = nullptr;
   for(auto& i:mesh.sub)
-    if(i.iboOffset==iboOffset && i.iboSize==iboSize)
+    if(i.iboOffset==iboOffset && i.iboLength==iboLength)
       blas = &i.blas;
 
   auto&        bucket = getBucket(mat,type,anim,nullptr,&mesh);
-  const size_t id     = bucket.alloc(mesh.vbo,mesh.ibo,blas,iboOffset,iboSize,mesh.bbox);
+  const size_t id     = bucket.alloc(mesh.vbo,mesh.ibo,blas,iboOffset,iboLength,mesh.bbox);
   return ObjectsBucket::Item(bucket,id);
   }
 

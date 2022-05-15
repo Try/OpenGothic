@@ -1,8 +1,9 @@
 #include "staticmesh.h"
 
+#include "graphics/mesh/submesh/packedmesh.h"
 #include "gothic.h"
 
-StaticMesh::StaticMesh(const ZenLoad::PackedMesh &mesh) {
+StaticMesh::StaticMesh(const PackedMesh& mesh) {
   static_assert(sizeof(Vertex)==sizeof(ZenLoad::WorldVertex),"invalid landscape vertex format");
   const Vertex* vert=reinterpret_cast<const Vertex*>(mesh.vertices.data());
   vbo = Resources::vbo<Vertex>  (vert,mesh.vertices.size());
@@ -12,14 +13,14 @@ StaticMesh::StaticMesh(const ZenLoad::PackedMesh &mesh) {
   for(size_t i=0;i<mesh.subMeshes.size();++i) {
     sub[i].texName   = mesh.subMeshes[i].material.texture;
     sub[i].material  = Resources::loadMaterial(mesh.subMeshes[i].material,mesh.isUsingAlphaTest);
-    sub[i].iboOffset = mesh.subMeshes[i].indexOffset;
-    sub[i].iboSize   = mesh.subMeshes[i].indexSize;
+    sub[i].iboOffset = mesh.subMeshes[i].iboOffset;
+    sub[i].iboLength = mesh.subMeshes[i].iboLength;
     }
-  bbox.assign(mesh.bbox);
+  bbox.assign(mesh._bbox);
 
   if(Gothic::inst().doRayQuery()) {
     for(size_t i=0;i<mesh.subMeshes.size();++i) {
-      sub[i].blas = Resources::blas(vbo,ibo, sub[i].iboOffset, sub[i].iboSize);
+      sub[i].blas = Resources::blas(vbo,ibo, sub[i].iboOffset, sub[i].iboLength);
       }
     }
   }
@@ -47,8 +48,7 @@ StaticMesh::StaticMesh(const ZenLoad::PackedSkeletalMesh &mesh) {
     sub[i].texName   = mesh.subMeshes[i].material.texture;
     sub[i].material  = Resources::loadMaterial(mesh.subMeshes[i].material,true);
     sub[i].iboOffset = mesh.subMeshes[i].indexOffset;
-    sub[i].iboSize   = mesh.subMeshes[i].indexSize;
-    //sub[i].ibo      = Resources::ibo(mesh.subMeshes[i].indices.data(),mesh.subMeshes[i].indices.size());
+    sub[i].iboLength = mesh.subMeshes[i].indexSize;
     }
   bbox.assign(mesh.bbox);
   }
@@ -58,9 +58,9 @@ StaticMesh::StaticMesh(const Material& mat, std::vector<Resources::Vertex> cvbo,
   ibo = Resources::ibo(cibo.data(),cibo.size());
   sub.resize(1);
   for(size_t i=0;i<1;++i) {
-    sub[i].texName  = "";
-    sub[i].material = mat;
-    sub[i].iboSize  = ibo.size();
+    sub[i].texName   = "";
+    sub[i].material  = mat;
+    sub[i].iboLength = ibo.size();
     if(Gothic::inst().doRayQuery())
       sub[i].blas = Resources::blas(vbo,ibo,0,ibo.size());
     }
