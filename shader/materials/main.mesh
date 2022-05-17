@@ -34,26 +34,47 @@ layout(std430, binding = L_Ibo)      readonly buffer Ibo  { uint  indexes []; };
 layout(std430, binding = L_Vbo)      readonly buffer Vbo  { float vertices[]; };
 layout(std430, binding = L_MeshDesc) readonly buffer Inst { vec4  bounds  []; };
 
+#if defined(LVL_OBJECT)
+taskNV in TaskDesc {
+  uint instanceIndex;
+  } perTask;
+#endif
+
 void processVertex(uint vboOffset, uint vert) {
+#if defined(LVL_OBJECT)
+  uint  objId  = push.baseInstance + perTask.instanceIndex;
+  uvec4 boneId = uvec4(objId);
+#endif
+
   uint id        = (vboOffset + vert)*9;
 
-  vec3 pos       = vec3(vertices[id + 0], vertices[id + 1], vertices[id + 2]);
+  vec3 inPos     = vec3(vertices[id + 0], vertices[id + 1], vertices[id + 2]);
   vec3 inNormal  = vec3(vertices[id + 3], vertices[id + 4], vertices[id + 5]);
   vec2 inUV      = vec2(vertices[id + 6], vertices[id + 7]);
 
-  vec4 trPos     = scene.viewProject*vec4(pos,1.0);
+#if (MESH_TYPE==T_OBJ || MESH_TYPE==T_MORPH)
+  vec3 dpos = vec3(0); //TODO
+  inPos     = (matrix.pos[boneId.x]*vec4(inPos+dpos,1.0)).xyz;
+  inNormal  = (matrix.pos[objId]   *vec4(inNormal,0.0)).xyz;
+#endif
+
+#if defined(MAT_ANIM)
+  inUV += material.texAnim;
+#endif
+
+  vec4 trPos     = scene.viewProject*vec4(inPos,1.0);
   gl_MeshVerticesNV[vert].gl_Position = trPos;
   shOut[vert].scr                     = trPos;
   shOut[vert].uv                      = inUV;
 
 #if !defined(SHADOW_MAP)
-  shOut[vert].shadowPos[0] = scene.shadow[0]*vec4(pos,1.0);
-  shOut[vert].shadowPos[1] = scene.shadow[1]*vec4(pos,1.0);
+  shOut[vert].shadowPos[0] = scene.shadow[0]*vec4(inPos,1.0);
+  shOut[vert].shadowPos[1] = scene.shadow[1]*vec4(inPos,1.0);
   shOut[vert].normal       = inNormal;
 #endif
 
 #if !defined(SHADOW_MAP) || defined(WATER)
-  shOut[vert].pos = pos;
+  shOut[vert].pos = inPos;
 #endif
 
 #if defined(MAT_COLOR)
@@ -72,7 +93,9 @@ void main() {
   const uint laneID = gl_LocalInvocationID.x;
   const vec4 sphere = bounds[gl_WorkGroupID.x];
 
-  invisible = false;
+#if (MESH_TYPE==T_LANDSCAPE)
+  {
+  invisible = (sphere.w<0.f);
   memoryBarrierShared();
   barrier();
   if(laneID<6) {
@@ -87,6 +110,8 @@ void main() {
       gl_PrimitiveCountNV = 0;
     return;
     }
+  }
+#endif
 
   const uint vboOffset = gl_WorkGroupID.x * 64;
   const uint iboOffset = gl_WorkGroupID.x * MaxInd;

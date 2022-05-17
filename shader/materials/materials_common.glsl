@@ -32,15 +32,15 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define L_Shadow0  1
 #define L_Shadow1  2
 #define L_Scene    3
-#define L_Skinning 4
+#define L_Matrix   4
 #define L_Material 5
 #define L_GDiffuse 6
 #define L_GDepth   7
-#define L_MorphId  8
-#define L_Ibo      L_MorphId
-#define L_Morph    9
-#define L_Vbo      L_Morph
+#define L_Ibo      8
+#define L_Vbo      9
 #define L_MeshDesc 10
+#define L_MorphId  11
+#define L_Morph    12
 
 #if (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING || MESH_TYPE==T_MORPH)
 #define LVL_OBJECT 1
@@ -127,8 +127,8 @@ layout(binding = L_Scene, std140) uniform UboScene {
   vec3  camPos;
   } scene;
 
-#if defined(LVL_OBJECT) && defined(VERTEX)
-layout(binding = L_Skinning, std140) readonly buffer UboAnim {
+#if defined(LVL_OBJECT) && (defined(VERTEX) || defined(MESH))
+layout(binding = L_Matrix, std140) readonly buffer UboAnim {
   mat4 pos[];
   } matrix;
 #endif

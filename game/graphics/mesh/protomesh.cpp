@@ -79,6 +79,14 @@ ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::vector<ZenLoad::zCMorphMesh::An
 
     samplesCnt += samples.size();
     }
+
+  if(morph.size()>0) {
+    for(auto& a:attach) {
+      a.morph.anim    = &morph;
+      a.morph.index   = &morphIndex;
+      a.morph.samples = &morphSamples;
+      }
+    }
   }
 
 ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, std::unique_ptr<Skeleton>&& sk, const std::string &fname)
@@ -257,8 +265,8 @@ void ProtoMesh::remap(const ZenLoad::zCMorphMesh::Animation& a,
     }
   }
 
-ProtoMesh::Animation ProtoMesh::mkAnimation(const ZenLoad::zCMorphMesh::Animation& a) {
-  Animation ret;
+ProtoMesh::Morph ProtoMesh::mkAnimation(const ZenLoad::zCMorphMesh::Animation& a) {
+  Morph ret;
   ret.name            = a.name;
   ret.numFrames       = a.numFrames;
   ret.samplesPerFrame = a.samples.size()/a.numFrames;

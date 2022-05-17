@@ -16,32 +16,21 @@ VisualObjects::VisualObjects(const SceneGlobals& globals, const std::pair<Vec3, 
 VisualObjects::~VisualObjects() {
   }
 
-ObjectsBucket& VisualObjects::getBucket(const Material& mat,ObjectsBucket::Type type,
-                                        const ProtoMesh* anim, const Tempest::StorageBuffer* desc, const StaticMesh* hint) {
-  const std::vector<ProtoMesh::Animation>* a = nullptr;
-  if(anim!=nullptr && anim->morph.size()>0) {
-    a = &anim->morph;
-    }
-
+ObjectsBucket& VisualObjects::getBucket(ObjectsBucket::Type type, const Material& mat,
+                                        const StaticMesh* st, const AnimMesh* anim, const StorageBuffer* desc) {
   for(auto& i:buckets)
-    if(i->size()<ObjectsBucket::CAPACITY && i->isCompatible(mat,a,type,hint))
+    if(i->size()<ObjectsBucket::CAPACITY && i->isCompatible(type,mat,st,anim,desc))
       return *i;
-
-  buckets.emplace_back(ObjectsBucket::mkBucket(mat,*this,globals,anim,desc,type));
+  buckets.emplace_back(ObjectsBucket::mkBucket(type,mat,*this,globals,st,anim,desc));
   return *buckets.back();
   }
 
 ObjectsBucket::Item VisualObjects::get(const StaticMesh& mesh, const Material& mat,
                                        size_t iboOffset, size_t iboLength,
-                                       const ProtoMesh* anim,
                                        bool staticDraw) {
   if(mat.tex==nullptr) {
     Log::e("no texture?!");
     return ObjectsBucket::Item();
-    }
-  ObjectsBucket::Type type = (staticDraw ? ObjectsBucket::Static : ObjectsBucket::Movable);
-  if(anim!=nullptr && anim->morph.size()>0) {
-    type = ObjectsBucket::Morph;
     }
 
   const Tempest::AccelerationStructure* blas = nullptr;
@@ -49,47 +38,46 @@ ObjectsBucket::Item VisualObjects::get(const StaticMesh& mesh, const Material& m
     if(i.iboOffset==iboOffset && i.iboLength==iboLength)
       blas = &i.blas;
 
-  auto&        bucket = getBucket(mat,type,anim,nullptr,&mesh);
-  const size_t id     = bucket.alloc(mesh.vbo,mesh.ibo,blas,iboOffset,iboLength,mesh.bbox);
+  const ObjectsBucket::Type type = (staticDraw ? ObjectsBucket::Static : ObjectsBucket::Movable);
+
+  auto&        bucket = getBucket(type,mat,&mesh,nullptr,nullptr);
+  const size_t id     = bucket.alloc(mesh,blas,iboOffset,iboLength,mesh.bbox);
+  return ObjectsBucket::Item(bucket,id);
+  }
+
+ObjectsBucket::Item VisualObjects::get(const StaticMesh& mesh, const Material& mat,
+                                       size_t iboOff, size_t iboLen,
+                                       const Tempest::AccelerationStructure* blas,
+                                       const Tempest::StorageBuffer& desc,
+                                       const Bounds& bbox, ObjectsBucket::Type type) {
+  if(mat.tex==nullptr) {
+    Tempest::Log::e("no texture?!");
+    return ObjectsBucket::Item();
+    }
+  auto&        bucket = getBucket(type,mat,&mesh,nullptr,&desc);
+  const size_t id     = bucket.alloc(mesh,blas,iboOff,iboLen,bbox);
   return ObjectsBucket::Item(bucket,id);
   }
 
 ObjectsBucket::Item VisualObjects::get(const AnimMesh &mesh, const Material& mat,
-                                       const MatrixStorage::Id& anim,
-                                       size_t ibo, size_t iboLen) {
-  if(mat.tex==nullptr) {
-    Tempest::Log::e("no texture?!");
-    return ObjectsBucket::Item();
-    }
-  auto&        bucket = getBucket(mat,ObjectsBucket::Animated,nullptr,nullptr,nullptr);
-  const size_t id     = bucket.alloc(mesh.vbo,mesh.ibo,ibo,iboLen,anim,mesh.bbox);
-  return ObjectsBucket::Item(bucket,id);
-  }
-
-ObjectsBucket::Item VisualObjects::get(const Tempest::VertexBuffer<Resources::Vertex>& vbo,
-                                       const Tempest::IndexBuffer<uint32_t>& ibo,
                                        size_t iboOff, size_t iboLen,
-                                       const Tempest::AccelerationStructure* blas,
-                                       const Tempest::StorageBuffer* desc,
-                                       const Material& mat, const Bounds& bbox, ObjectsBucket::Type type) {
+                                       const MatrixStorage::Id& anim) {
   if(mat.tex==nullptr) {
     Tempest::Log::e("no texture?!");
     return ObjectsBucket::Item();
     }
-  if(desc!=nullptr && desc->size()==0)
-    desc = nullptr;
-  auto&        bucket = getBucket(mat,type,nullptr,desc,nullptr);
-  const size_t id     = bucket.alloc(vbo,ibo,blas,iboOff,iboLen,bbox);
+  auto&        bucket = getBucket(ObjectsBucket::Animated,mat,nullptr,&mesh,nullptr);
+  const size_t id     = bucket.alloc(mesh,iboOff,iboLen,anim,mesh.bbox);
   return ObjectsBucket::Item(bucket,id);
   }
 
-ObjectsBucket::Item VisualObjects::get(const Tempest::VertexBuffer<Resources::Vertex>* vbo[], const Material& mat, const Bounds& bbox) {
+ObjectsBucket::Item VisualObjects::get(const Tempest::VertexBuffer<Resources::Vertex>* vbo[], const Material& mat) {
   if(mat.tex==nullptr) {
     Tempest::Log::e("no texture?!");
     return ObjectsBucket::Item();
     }
-  auto&        bucket = getBucket(mat,ObjectsBucket::Pfx,nullptr,nullptr,nullptr);
-  const size_t id     = bucket.alloc(vbo,bbox);
+  auto&        bucket = getBucket(ObjectsBucket::Pfx,mat,nullptr,nullptr,nullptr);
+  const size_t id     = bucket.alloc(vbo,Bounds());
   return ObjectsBucket::Item(bucket,id);
   }
 

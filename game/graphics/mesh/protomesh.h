@@ -20,8 +20,8 @@ class ProtoMesh {
     ProtoMesh(PackedMesh&&  pm, const std::vector<ZenLoad::zCMorphMesh::Animation>& aniList, const std::string& fname);
     ProtoMesh(const ZenLoad::zCModelMeshLib& lib, std::unique_ptr<Skeleton>&& sk, const std::string& fname);
     ProtoMesh(const Material& mat, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo); //decals
-    ProtoMesh(ProtoMesh&&)=default;
-    ProtoMesh& operator=(ProtoMesh&&)=default;
+    ProtoMesh(ProtoMesh&&)=delete;
+    ProtoMesh& operator=(ProtoMesh&&)=delete;
     ~ProtoMesh();
 
     struct SubMesh final {
@@ -62,21 +62,12 @@ class ProtoMesh {
       size_t             node=0;
       };
 
-    struct Animation {
-      std::string            name;
-      size_t                 numFrames       = 0;
-      size_t                 samplesPerFrame = 0;
-      int32_t                layer           = 0;
-      uint64_t               tickPerFrame    = 50;
-      uint64_t               duration        = 0;
-
-      size_t                 index           = 0;
-      };
+    using Morph = StaticMesh::Morph;
 
     // animation
     std::unique_ptr<Skeleton>      skeleton;
     std::vector<AnimMesh>          skined;
-    std::vector<Animation>         morph;
+    std::vector<Morph>             morph;
     Tempest::StorageBuffer         morphIndex;
     Tempest::StorageBuffer         morphSamples;
 
@@ -101,5 +92,5 @@ class ProtoMesh {
                                          std::vector<Tempest::Vec4>& samples,
                                          size_t idOffset);
 
-    Animation                      mkAnimation(const ZenLoad::zCMorphMesh::Animation& a);
+    Morph                          mkAnimation(const ZenLoad::zCMorphMesh::Animation& a);
   };

@@ -57,30 +57,37 @@ endfunction(add_shader)
 function(add_uber_shader OUTPUT)
   list(SUBLIST ARGV 1 -1 VARS)
   add_shader(${OUTPUT}_shadow.vert      materials/main.vert ${VARS} -DSHADOW_MAP)
+  add_shader(${OUTPUT}_shadow.task      materials/main.task ${VARS} -DSHADOW_MAP)
   add_shader(${OUTPUT}_shadow.mesh      materials/main.mesh ${VARS} -DSHADOW_MAP)
   add_shader(${OUTPUT}_shadow.frag      materials/main.frag ${VARS} -DSHADOW_MAP)
 
   add_shader(${OUTPUT}_shadow_at.vert   materials/main.vert ${VARS} -DSHADOW_MAP -DATEST)
+  add_shader(${OUTPUT}_shadow_at.task   materials/main.task ${VARS} -DSHADOW_MAP -DATEST)
   add_shader(${OUTPUT}_shadow_at.mesh   materials/main.mesh ${VARS} -DSHADOW_MAP -DATEST)
   add_shader(${OUTPUT}_shadow_at.frag   materials/main.frag ${VARS} -DSHADOW_MAP -DATEST)
 
   add_shader(${OUTPUT}.vert             materials/main.vert ${VARS} -DLIGHT)
+  add_shader(${OUTPUT}.task             materials/main.task ${VARS} -DLIGHT)
   add_shader(${OUTPUT}.mesh             materials/main.mesh ${VARS} -DLIGHT)
   add_shader(${OUTPUT}.frag             materials/main.frag ${VARS} -DLIGHT)
 
   add_shader(${OUTPUT}_at.vert          materials/main.vert ${VARS} -DLIGHT -DATEST)
+  add_shader(${OUTPUT}_at.task          materials/main.task ${VARS} -DLIGHT -DATEST)
   add_shader(${OUTPUT}_at.mesh          materials/main.mesh ${VARS} -DLIGHT -DATEST)
   add_shader(${OUTPUT}_at.frag          materials/main.frag ${VARS} -DLIGHT -DATEST)
 
   add_shader(${OUTPUT}_emi.vert         materials/main.vert ${VARS})
+  add_shader(${OUTPUT}_emi.task         materials/main.task ${VARS})
   add_shader(${OUTPUT}_emi.mesh         materials/main.mesh ${VARS})
   add_shader(${OUTPUT}_emi.frag         materials/main.frag ${VARS})
 
   add_shader(${OUTPUT}_gbuffer.vert     materials/main.vert ${VARS} -DLIGHT -DGBUFFER)
+  add_shader(${OUTPUT}_gbuffer.task     materials/main.task ${VARS} -DLIGHT -DGBUFFER)
   add_shader(${OUTPUT}_gbuffer.mesh     materials/main.mesh ${VARS} -DLIGHT -DGBUFFER)
   add_shader(${OUTPUT}_gbuffer.frag     materials/main.frag ${VARS} -DLIGHT -DGBUFFER)
 
   add_shader(${OUTPUT}_gbuffer_at.vert  materials/main.vert ${VARS} -DLIGHT -DGBUFFER -DATEST)
+  add_shader(${OUTPUT}_gbuffer_at.task  materials/main.task ${VARS} -DLIGHT -DGBUFFER -DATEST)
   add_shader(${OUTPUT}_gbuffer_at.mesh  materials/main.mesh ${VARS} -DLIGHT -DGBUFFER -DATEST)
   add_shader(${OUTPUT}_gbuffer_at.frag  materials/main.frag ${VARS} -DLIGHT -DGBUFFER -DATEST)
 
@@ -90,6 +97,7 @@ function(add_uber_shader OUTPUT)
   add_shader(${OUTPUT}_water.frag       materials/main.frag ${VARS} -DLIGHT -DWATER)
 
   add_shader(${OUTPUT}_ghost.vert       materials/main.vert ${VARS} -DLIGHT -DGHOST)
+  add_shader(${OUTPUT}_ghost.task       materials/main.task ${VARS} -DLIGHT -DGHOST)
   add_shader(${OUTPUT}_ghost.mesh       materials/main.mesh ${VARS} -DLIGHT -DGHOST)
   add_shader(${OUTPUT}_ghost.frag       materials/main.frag ${VARS} -DLIGHT -DGHOST)
 

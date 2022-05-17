@@ -230,6 +230,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
   b.pipelineType = pt;
   switch(t) {
     case ObjectsBucket::Landscape:
+    case ObjectsBucket::LandscapeShadow:
       b.pipeline = pipeline<Resources::Vertex> (state,temp->lnd);
       break;
     case ObjectsBucket::Static:

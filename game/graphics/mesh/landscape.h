@@ -21,22 +21,23 @@ class Landscape final {
   public:
     Landscape(VisualObjects& visual, const PackedMesh& wmesh);
 
-    Tempest::AccelerationStructure blasSolid;
+    struct RayTrace {
+      Tempest::IndexBuffer<uint32_t> ibo;
+      Tempest::AccelerationStructure blas;
+      } rt;
 
   private:
     using Item = ObjectsBucket::Item;
 
     struct Block {
-      size_t                         iboOffset = 0;
-      size_t                         iboLength = 0;
       Item                           mesh;
       Tempest::AccelerationStructure blas;
       };
 
-    Tempest::VertexBuffer<Resources::Vertex> vbo;
-    Tempest::IndexBuffer<uint32_t>           ibo;
-    Tempest::IndexBuffer<uint32_t>           iboSolid;
-    Tempest::StorageBuffer                   meshletDesc;
+    std::vector<Block>     blocks;
+    StaticMesh             mesh;
+    Tempest::StorageBuffer meshletDesc;
 
-    std::list<Block>                         blocks;
+    Block                  solidBlock;
+    Tempest::StorageBuffer meshletSolidDesc;
   };

@@ -47,8 +47,8 @@ class MeshObjects final {
       public:
         Mesh()=default;
         Mesh(MeshObjects& owner, const StaticMesh& mesh, int32_t version, bool staticDraw);
-        Mesh(MeshObjects& owner, const StaticMesh& mesh, int32_t headTexVar, int32_t teethTex, int32_t bodyColor);
-        Mesh(MeshObjects& owner, const ProtoMesh&  mesh, int32_t headTexVar, int32_t teethTex, int32_t bodyColor, bool staticDraw);
+        Mesh(MeshObjects& owner, const StaticMesh& mesh, int32_t texVar, int32_t teethTex, int32_t bodyColor);
+        Mesh(MeshObjects& owner, const ProtoMesh&  mesh, int32_t texVar, int32_t teethTex, int32_t bodyColor, bool staticDraw);
         Mesh(Mesh&& other);
         ~Mesh();
         Mesh& operator = (Mesh&& other);
@@ -87,7 +87,6 @@ class MeshObjects final {
     VisualObjects&                  parent;
 
     Item                            implGet(const StaticMesh& mesh, const StaticMesh::SubMesh& smesh,
-                                            const ProtoMesh* anim,
                                             int32_t texVar, int32_t teethTex, int32_t bodyColor,
                                             bool staticDraw);
 

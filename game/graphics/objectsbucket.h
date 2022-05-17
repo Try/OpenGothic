@@ -32,6 +32,7 @@ class ObjectsBucket {
 
     enum Type : uint8_t {
       Landscape,
+      LandscapeShadow,
       Static,
       Movable,
       Animated,
@@ -81,30 +82,30 @@ class ObjectsBucket {
         size_t         id=0;
       };
 
-    ObjectsBucket(const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
-                  const ProtoMesh* anim, const Tempest::StorageBuffer* desc, const Type type);
+    ObjectsBucket(const Type type, const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
+                  const StaticMesh* stMesh, const AnimMesh* anim, const Tempest::StorageBuffer* desc);
     virtual ~ObjectsBucket();
 
-    virtual bool isCompatible(const Material& mat, const std::vector<ProtoMesh::Animation>* a, const Type type, const StaticMesh* hint) const;
+    bool isCompatible(const Type type, const Material& mat,
+                      const StaticMesh* st, const AnimMesh* ani, const Tempest::StorageBuffer* desc) const;
 
-    static std::unique_ptr<ObjectsBucket> mkBucket(const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
-                                                   const ProtoMesh* anim, const Tempest::StorageBuffer* desc, Type type);
+    static std::unique_ptr<ObjectsBucket> mkBucket(Type type, const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
+                                                   const StaticMesh* st, const AnimMesh* anim, const Tempest::StorageBuffer* desc);
 
     const Material&           material()      const;
     Type                      type()          const { return objType;        }
     InstancingType            hasInstancing() const { return instancingType; }
 
     size_t                    size()      const { return valSz;      }
-    size_t                    alloc(const Tempest::VertexBuffer<Vertex>  &vbo,
-                                    const Tempest::IndexBuffer<uint32_t> &ibo,
+    size_t                    alloc(const StaticMesh& mesh,
                                     const Tempest::AccelerationStructure* blas,
                                     size_t iboOffset, size_t iboLen,
                                     const Bounds& bounds);
-    size_t                    alloc(const Tempest::VertexBuffer<VertexA> &vbo,
-                                    const Tempest::IndexBuffer<uint32_t> &ibo,
+    size_t                    alloc(const AnimMesh& mesh,
                                     size_t iboOffset, size_t iboLen,
                                     const MatrixStorage::Id& anim,
                                     const Bounds& bounds);
+
     size_t                    alloc(const Tempest::VertexBuffer<Vertex>* vbo[],
                                     const Bounds& bounds);
     void                      free(const size_t objId);
@@ -127,15 +128,15 @@ class ObjectsBucket {
       L_Shadow0  = 1,
       L_Shadow1  = 2,
       L_Scene    = 3,
-      L_Skinning = 4,
+      L_Matrix   = 4,
       L_Material = 5,
       L_GDiffuse = 6,
       L_GDepth   = 7,
-      L_MorphId  = 8,
-      L_Morph    = 9,
-      L_Ibo      = L_MorphId,
-      L_Vbo      = L_Morph,
+      L_Ibo      = 8,
+      L_Vbo      = 9,
       L_MeshDesc = 10,
+      L_MorphId  = 11,
+      L_Morph    = 12,
       };
 
     struct ShLight final {
@@ -182,10 +183,7 @@ class ObjectsBucket {
       };
 
     struct Object final {
-      const Tempest::VertexBuffer<Vertex>*  vbo     = nullptr;
       const Tempest::VertexBuffer<Vertex>*  vboM[Resources::MaxFramesInFlight] = {};
-      const Tempest::VertexBuffer<VertexA>* vboA    = nullptr;
-      const Tempest::IndexBuffer<uint32_t>* ibo     = nullptr;
       size_t                                iboOffset = 0;
       size_t                                iboLength = 0;
       Tempest::Matrix4x4                    pos;
@@ -229,8 +227,9 @@ class ObjectsBucket {
 
     Tempest::BufferHeap       ssboHeap() const;
 
-    const Type                objType   = Type::Landscape;
-    const ProtoMesh*          morphAnim = nullptr;
+    const Type                objType          = Type::Landscape;
+    const StaticMesh*         staticMesh       = nullptr;
+    const AnimMesh*           animMesh         = nullptr;
     const Tempest::StorageBuffer* instanceDesc = nullptr;
 
     VisualObjects&            owner;
@@ -239,8 +238,10 @@ class ObjectsBucket {
 
     Object                    val[CAPACITY];
     size_t                    valSz = 0;
-    bool                      vertSsboInitialized = false;
     MatrixStorage::Id         objPositions;
+
+    bool                      useMeshlets         = false;
+    bool                      textureInShadowPass = false;
 
   private:
     const SceneGlobals&       scene;
@@ -251,7 +252,6 @@ class ObjectsBucket {
     InstancingType            instancingType      = NoInstancing;
     bool                      useSharedUbo        = false;
     bool                      usePositionsSsbo    = false;
-    bool                      textureInShadowPass = false;
     bool                      windAnim            = false;
 
     const Tempest::RenderPipeline* pMain    = nullptr;
@@ -262,15 +262,12 @@ class ObjectsBucket {
 
 class ObjectsBucketLnd : public ObjectsBucket {
   public:
-    ObjectsBucketLnd(const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
-                     const ProtoMesh* anim, const Tempest::StorageBuffer* desc, const Type type)
-      :ObjectsBucket(mat,owner,scene,anim,desc,type) {
+    ObjectsBucketLnd( const Type type, const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
+                      const StaticMesh& st, const Tempest::StorageBuffer& desc)
+      :ObjectsBucket(type,mat,owner,scene,&st,nullptr,&desc) {
       }
 
-    bool    isCompatible(const Material& mat, const std::vector<ProtoMesh::Animation>* a, const Type type, const StaticMesh* hint) const override;
-
   private:
-    void    setupUbo() override;
     void    drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
                        const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c) override;
 
@@ -281,9 +278,9 @@ class ObjectsBucketLnd : public ObjectsBucket {
 
 class ObjectsBucketDyn : public ObjectsBucket {
   public:
-    ObjectsBucketDyn(const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
-                     const ProtoMesh* anim, const Tempest::StorageBuffer* desc, const Type type)
-      :ObjectsBucket(mat,owner,scene,anim,desc,type) {
+    ObjectsBucketDyn(const Type type, const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
+                     const StaticMesh* st, const AnimMesh* anim, const Tempest::StorageBuffer* desc)
+      :ObjectsBucket(type,mat,owner,scene,st,anim,desc) {
       }
 
     void    preFrameUpdate(uint8_t fId) override;

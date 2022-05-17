@@ -70,7 +70,7 @@ class PackedMesh {
 
       void    flush(std::vector<WorldVertex>& vertices, std::vector<uint32_t>& indices, std::vector<Bounds>& instances,
                     SubMesh& sub, const ZenLoad::zCMesh& mesh);
-      void    flush(std::vector<WorldVertex>& vertices, std::vector<uint32_t>& indices, std::vector<Bounds>& instances,
+      void    flush(std::vector<WorldVertex>& vertices, std::vector<uint32_t>& indices, std::vector<uint32_t>* verticesId, std::vector<Bounds>& instances,
                     SubMesh& sub, const std::vector<ZMath::float3>&  vbo, const std::vector<ZenLoad::zWedge>& wedgeList);
 
       bool    insert(const Vert& a, const Vert& b, const Vert& c, uint8_t matchHint);
@@ -86,7 +86,6 @@ class PackedMesh {
 
     void   addIndex(Meshlet* active, size_t numActive, std::vector<Meshlet>& meshlets,
                     const Vert& a, const Vert& b, const Vert& c);
-    void   packMeshlets(const ZenLoad::zCProgMeshProto& mesh);
     void   packMeshlets(const ZenLoad::zCMesh& mesh);
 
     void   postProcessP1(const ZenLoad::zCMesh& mesh, size_t matId, std::vector<Meshlet>& meshlets);

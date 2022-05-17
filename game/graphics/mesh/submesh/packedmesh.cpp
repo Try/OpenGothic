@@ -48,6 +48,7 @@ void PackedMesh::Meshlet::flush(std::vector<WorldVertex>& vertices,
 
 void PackedMesh::Meshlet::flush(std::vector<WorldVertex>& vertices,
                                 std::vector<uint32_t>& indices,
+                                std::vector<uint32_t>* verticesId,
                                 std::vector<Bounds>& instances,
                                 SubMesh& sub,
                                 const std::vector<ZMath::float3>&   vboList,
@@ -61,8 +62,10 @@ void PackedMesh::Meshlet::flush(std::vector<WorldVertex>& vertices,
 
   size_t vboSz = vertices.size();
   size_t iboSz = indices.size();
-  vertices.resize(vboSz+MaxVert);
-  indices .resize(iboSz+MaxInd );
+  vertices  .resize(vboSz+MaxVert);
+  indices   .resize(iboSz+MaxInd );
+  if(verticesId!=nullptr)
+    verticesId->resize(vboSz+MaxVert);
 
   for(size_t i=0; i<vertSz; ++i) {
     WorldVertex vx = {};
@@ -71,10 +74,14 @@ void PackedMesh::Meshlet::flush(std::vector<WorldVertex>& vertices,
     vx.Normal   = v.m_Normal;
     vx.TexCoord = ZMath::float2(v.m_Texcoord.x, v.m_Texcoord.y);
     vx.Color    = 0xFFFFFFFF;
-    vertices[vboSz+i] = vx;
+    vertices[vboSz+i]   = vx;
+    if(verticesId!=nullptr)
+      (*verticesId)[vboSz+i] = vert[i].first;
     }
   for(size_t i=vertSz; i<MaxVert; ++i) {
     vertices[vboSz+i] = WorldVertex();
+    if(verticesId!=nullptr)
+      (*verticesId)[vboSz+i] = uint32_t(-1);
     }
 
   for(size_t i=0; i<indSz; ++i) {
@@ -259,12 +266,6 @@ PackedMesh::PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type) {
   }
 
 PackedMesh::PackedMesh(const ZenLoad::zCProgMeshProto& mesh, PkgType type) {
-  if(type==PK_Visual) {
-    packMeshlets(mesh);
-    return;
-    }
-
-  auto& vert = mesh.getVertices();
   subMeshes.resize(mesh.getNumSubmeshes());
   isUsingAlphaTest = mesh.isAlphaTested();
   {
@@ -274,71 +275,7 @@ PackedMesh::PackedMesh(const ZenLoad::zCProgMeshProto& mesh, PkgType type) {
   mBbox[1] = Vec3(max.x,max.y,max.z);
   }
 
-  size_t vboSize = 0;
-  size_t iboSize = 0;
-  for(size_t smI=0; smI<mesh.getNumSubmeshes(); ++smI) {
-    auto& sm = mesh.getSubmesh(smI);
-    vboSize += sm.m_WedgeList.size();
-    iboSize += sm.m_TriangleList.size()*3;
-    }
-
-  vertices.resize(vboSize);
-  indices .resize(iboSize);
-  if(type==PK_VisualMorph)
-    verticesId.resize(vboSize);
-
-  auto* vbo = vertices.data();
-  auto* ibo = indices.data();
-  auto* vId = verticesId.data();
-
-  uint32_t meshVxStart = 0;
-  uint32_t meshIxStart = 0;
-  for(size_t smI=0; smI<mesh.getNumSubmeshes(); ++smI) {
-    const auto& sm   = mesh.getSubmesh(smI);
-    auto&       pack = subMeshes[smI];
-
-    pack.material = sm.m_Material;
-
-    for(size_t i=0; i<sm.m_WedgeList.size(); ++i) {
-      const ZenLoad::zWedge& wedge = sm.m_WedgeList[i];
-
-      vbo->Position = vert[wedge.m_VertexIndex];
-      vbo->Normal   = wedge.m_Normal;
-      vbo->TexCoord = wedge.m_Texcoord;
-      vbo->Color    = 0xFFFFFFFF;  // TODO: Apply color from material!
-      ++vbo;
-
-      if(type==PK_VisualMorph) {
-        *vId = wedge.m_VertexIndex;
-        ++vId;
-        }
-      }
-
-    pack.iboOffset  = meshIxStart;
-    pack.iboLength  = sm.m_TriangleList.size()*3u;
-    meshIxStart    += uint32_t(sm.m_TriangleList.size())*3u;
-
-    for(size_t i=0; i<sm.m_TriangleList.size(); ++i) {
-      for(int j=0; j<3; ++j) {
-        uint32_t id = sm.m_TriangleList[i].m_Wedges[j] + meshVxStart;
-        *ibo = id;
-        ++ibo;
-        }
-      }
-
-    meshVxStart += uint32_t(sm.m_WedgeList.size());
-    }
-  }
-
-void PackedMesh::packMeshlets(const ZenLoad::zCProgMeshProto& mesh) {
-  subMeshes.resize(mesh.getNumSubmeshes());
-  isUsingAlphaTest = mesh.isAlphaTested();
-  {
-  auto min = mesh.getBBoxMin();
-  auto max = mesh.getBBoxMax();
-  mBbox[0] = Vec3(min.x,min.y,min.z);
-  mBbox[1] = Vec3(max.x,max.y,max.z);
-  }
+  auto* vId = (type==PK_VisualMorph) ? &verticesId : nullptr;
 
   for(size_t mId=0; mId<mesh.getNumSubmeshes(); ++mId) {
     auto& sm   = mesh.getSubmesh(mId);
@@ -373,7 +310,7 @@ void PackedMesh::packMeshlets(const ZenLoad::zCProgMeshProto& mesh) {
     pack.iboOffset = indices.size();
     for(auto& i:ind) {
       i->updateBounds(mesh);
-      i->flush(vertices,indices,meshletBounds,pack,mesh.getVertices(),sm.m_WedgeList);
+      i->flush(vertices,indices,vId,meshletBounds,pack,mesh.getVertices(),sm.m_WedgeList);
       }
     pack.iboLength = indices.size() - pack.iboOffset;
     }
@@ -417,7 +354,8 @@ void PackedMesh::packPhysics(const ZenLoad::zCMesh& mesh, PkgType type) {
       }
 
     sub.iboLength = indices.size()-sub.iboOffset;
-    subMeshes.emplace_back(std::move(sub));
+    if(sub.iboLength>0)
+      subMeshes.emplace_back(std::move(sub));
     }
 
   for(size_t i=0; i<mat.size(); ++i) {
@@ -607,7 +545,8 @@ void PackedMesh::postProcessP1(const ZenLoad::zCMesh& mesh, size_t matId, std::v
       m.flush(vertices,indices,meshletBounds,sub,mesh);
       }
     sub.iboLength = indices.size()-sub.iboOffset;
-    subMeshes.push_back(std::move(sub));
+    if(sub.iboLength>0)
+      subMeshes.push_back(std::move(sub));
     return;
     }
 
@@ -647,7 +586,8 @@ void PackedMesh::postProcessP2(const ZenLoad::zCMesh& mesh, size_t matId, std::v
 
     if(prev!=nullptr && (disjoint || overflow)) {
       sub.iboLength = indices.size()-sub.iboOffset;
-      subMeshes.push_back(std::move(sub));
+      if(sub.iboLength>0)
+        subMeshes.push_back(std::move(sub));
       sub = SubMesh();
       sub.material  = mesh.getMaterials()[matId];
       sub.iboOffset = indices.size();
@@ -657,8 +597,8 @@ void PackedMesh::postProcessP2(const ZenLoad::zCMesh& mesh, size_t matId, std::v
     prev = meshlet;
     }
   sub.iboLength = indices.size()-sub.iboOffset;
-
-  subMeshes.push_back(std::move(sub));
+  if(sub.iboLength>0)
+    subMeshes.push_back(std::move(sub));
   }
 
 void PackedMesh::debug(std::ostream &out) const {

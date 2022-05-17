@@ -48,7 +48,7 @@ PfxBucket::PfxBucket(const ParticleFx &decl, PfxObjects& parent, VisualObjects& 
   const Tempest::VertexBuffer<Resources::Vertex>* vbo[Resources::MaxFramesInFlight] = {};
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i)
     vbo[i] = &vboGpu[i];
-  item = visual.get(vbo,decl.visMaterial,Bounds());
+  item = visual.get(vbo,decl.visMaterial);
 
   Matrix4x4 ident;
   ident.identity();

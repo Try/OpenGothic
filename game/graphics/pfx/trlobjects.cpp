@@ -36,7 +36,7 @@ struct TrlObjects::Bucket {
     Material mat = decl.visMaterial;
     mat.tex = decl.trlTexture;
 
-    item = visual.get(vbo,mat,Bounds());
+    item = visual.get(vbo,mat);
     item.setObjMatrix(Matrix4x4::mkIdentity());
     }
 

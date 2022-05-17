@@ -15,7 +15,6 @@ class AnimMesh {
 
     struct SubMesh {
       Material                       material;
-      //Tempest::IndexBuffer<uint32_t> ibo;
       std::string                    texName;
       size_t                         iboOffset = 0;
       size_t                         iboSize   = 0;

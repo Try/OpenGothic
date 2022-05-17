@@ -17,8 +17,8 @@ WorldView::WorldView(const World& world, const PackedMesh& wmesh)
   sky.setWorld(owner,wmesh.bbox());
   pfxGroup.resetTicks();
   if(Gothic::inst().doRayQuery())
-    tlasLand = Resources::device().tlas({{Matrix4x4::mkIdentity(),&land.blasSolid}});
-  visuals.setLandscapeBlas(&land.blasSolid);
+    tlasLand = Resources::device().tlas({{Matrix4x4::mkIdentity(),&land.rt.blas}});
+  visuals.setLandscapeBlas(&land.rt.blas);
   visuals.onTlasChanged.bind(this,&WorldView::setupTlas);
   }
 
