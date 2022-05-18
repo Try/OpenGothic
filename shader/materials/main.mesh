@@ -5,13 +5,11 @@
 #extension GL_NV_mesh_shader : require
 #extension GL_KHR_shader_subgroup_vote: enable
 
-#define MaxInd (41*3)
+#define MESH
+#include "materials_common.glsl"
 
 layout(local_size_x = 32) in;
 layout(triangles, max_vertices = 64, max_primitives = MaxInd/3) out;
-
-#define MESH
-#include "materials_common.glsl"
 
 out gl_MeshPerVertexNV {
   vec4 gl_Position;
@@ -30,22 +28,7 @@ struct Vertex {
   uint color;
   };
 
-layout(std430, binding = L_Ibo)      readonly buffer Ibo  { uint  indexes []; };
-layout(std430, binding = L_Vbo)      readonly buffer Vbo  { float vertices[]; };
-layout(std430, binding = L_MeshDesc) readonly buffer Inst { vec4  bounds  []; };
-
-#if defined(LVL_OBJECT)
-taskNV in TaskDesc {
-  uint instanceIndex;
-  } perTask;
-#endif
-
-void processVertex(uint vboOffset, uint vert) {
-#if defined(LVL_OBJECT)
-  uint  objId  = push.baseInstance + perTask.instanceIndex;
-  uvec4 boneId = uvec4(objId);
-#endif
-
+void processVertex(uint objId, uint vboOffset, uint vert) {
   uint id        = (vboOffset + vert)*9;
 
   vec3 inPos     = vec3(vertices[id + 0], vertices[id + 1], vertices[id + 2]);
@@ -54,8 +37,8 @@ void processVertex(uint vboOffset, uint vert) {
 
 #if (MESH_TYPE==T_OBJ || MESH_TYPE==T_MORPH)
   vec3 dpos = vec3(0); //TODO
-  inPos     = (matrix.pos[boneId.x]*vec4(inPos+dpos,1.0)).xyz;
-  inNormal  = (matrix.pos[objId]   *vec4(inNormal,0.0)).xyz;
+  inPos     = (matrix[objId]*vec4(inPos+dpos,1.0)).xyz;
+  inNormal  = (matrix[objId]*vec4(inNormal,  0.0)).xyz;
 #endif
 
 #if defined(MAT_ANIM)
@@ -81,20 +64,24 @@ void processVertex(uint vboOffset, uint vert) {
   uint inColor = floatBitsToUint(vertices[id + 8]);
   shOut[vert].color = unpackUnorm4x8(inColor);
 #endif
-
-#if DEBUG_DRAW
-  debugId[vert] = gl_WorkGroupID.x;
-#endif
   }
 
 shared bool invisible;
 
 void main() {
-  const uint laneID = gl_LocalInvocationID.x;
-  const vec4 sphere = bounds[gl_WorkGroupID.x];
+#if defined(LVL_OBJECT)
+  const uint objId     = gl_WorkGroupID.x/push.meshletCount + push.baseInstance;
+  const uint meshletId = gl_WorkGroupID.x%push.meshletCount + push.meshletBase;
+#else
+  const uint objId     = gl_WorkGroupID.x;
+  const uint meshletId = gl_WorkGroupID.x;
+#endif
+
+  const uint laneID    = gl_LocalInvocationID.x;
 
 #if (MESH_TYPE==T_LANDSCAPE)
   {
+  const vec4 sphere = bounds[meshletId];
   invisible = (sphere.w<0.f);
   memoryBarrierShared();
   barrier();
@@ -111,13 +98,41 @@ void main() {
     return;
     }
   }
+#elif defined(LVL_OBJECT)
+  {
+  vec4 sphere = matrix[objId][3];
+  sphere.w    = material.bboxRadius;
+
+  invisible = (sphere.w<0.f);
+  memoryBarrierShared();
+  barrier();
+  if(laneID<6) {
+    if(dot(vec4(sphere.xyz,1.0), scene.frustrum[laneID]) <= -sphere.w)
+      invisible = true;
+    }
+  memoryBarrierShared();
+  barrier();
+
+  if(invisible) {
+    if(laneID==0)
+      gl_PrimitiveCountNV = 0;
+    return;
+    }
+  }
+#else
+  // particles
 #endif
 
-  const uint vboOffset = gl_WorkGroupID.x * 64;
-  const uint iboOffset = gl_WorkGroupID.x * MaxInd;
+  const uint vboOffset = meshletId * MaxVert;
+  const uint iboOffset = meshletId * MaxInd;
 
-  processVertex(vboOffset, laneID*2 + 0);
-  processVertex(vboOffset, laneID*2 + 1);
+  processVertex(objId, vboOffset, laneID*2 + 0);
+  processVertex(objId, vboOffset, laneID*2 + 1);
+
+#if DEBUG_DRAW
+  debugId[laneID*2 + 0] = meshletId;
+  debugId[laneID*2 + 1] = meshletId;
+#endif
 
   // Triangle indices [0..123]
   uint index0 = indexes[iboOffset];

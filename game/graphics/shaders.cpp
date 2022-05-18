@@ -33,6 +33,10 @@ void Shaders::ShaderSet::load(Device &device, const char *tag, const char *forma
     }
 
   if(hasMeshlets) {
+    // std::snprintf(buf,sizeof(buf),format,tag,"task");
+    // sh = GothicShader::get(buf);
+    // ts = device.shader(sh.data,sh.len);
+
     std::snprintf(buf,sizeof(buf),format,tag,"mesh");
     sh = GothicShader::get(buf);
     me = device.shader(sh.data,sh.len);
@@ -63,7 +67,7 @@ void Shaders::MaterialTemplate::load(Device &device, const char *tag, bool hasTe
     std::snprintf(fclr,sizeof(fclr),"clr_%s",tag);
     }
   lnd.load(device,flnd,"%s.%s.sprv",hasTesselation,hasMeshlets);
-  obj.load(device,fobj,"%s.%s.sprv",hasTesselation,false);
+  obj.load(device,fobj,"%s.%s.sprv",hasTesselation,hasMeshlets);
   ani.load(device,fani,"%s.%s.sprv",hasTesselation,false);
   mph.load(device,fmph,"%s.%s.sprv",hasTesselation,false);
   pfx.load(device,fclr,"%s.%s.sprv",hasTesselation,false);

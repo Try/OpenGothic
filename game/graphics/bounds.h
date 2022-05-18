@@ -24,7 +24,7 @@ class Bounds final {
 
     Tempest::Vec3 bbox[2];
     Tempest::Vec3 midTr;
-    float         r = 0;
+    float         r = 0, rConservative = 0;
 
   private:
     void transformBbox(const Tempest::Matrix4x4& m);

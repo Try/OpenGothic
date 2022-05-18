@@ -97,14 +97,11 @@ class ObjectsBucket {
     InstancingType            hasInstancing() const { return instancingType; }
 
     size_t                    size()      const { return valSz;      }
-    size_t                    alloc(const StaticMesh& mesh,
-                                    const Tempest::AccelerationStructure* blas,
-                                    size_t iboOffset, size_t iboLen,
-                                    const Bounds& bounds);
-    size_t                    alloc(const AnimMesh& mesh,
-                                    size_t iboOffset, size_t iboLen,
-                                    const MatrixStorage::Id& anim,
-                                    const Bounds& bounds);
+    size_t                    alloc(const StaticMesh& mesh, size_t iboOffset, size_t iboLen);
+    size_t                    alloc(const StaticMesh& mesh, size_t iboOffset, size_t iboLen,
+                                    const Tempest::AccelerationStructure* blas, const Bounds& bounds);
+    size_t                    alloc(const AnimMesh& mesh, size_t iboOffset, size_t iboLen,
+                                    const MatrixStorage::Id& anim);
 
     size_t                    alloc(const Tempest::VertexBuffer<Vertex>* vbo[],
                                     const Bounds& bounds);
@@ -156,15 +153,18 @@ class ObjectsBucket {
 
     struct UboPushBase {
       uint32_t  baseInstance = 0;
+      uint32_t  meshletBase  = 0;
+      uint32_t  meshletCount = 0;
       float     fatness      = 0;
       };
 
     struct UboPush : UboPushBase {
-      float     pass[2] = {};
       MorphDesc morph[Resources::MAX_MORPH_LAYERS];
       };
 
-    struct UboMaterial final {
+    struct UboBucket final {
+      float         bboxRadius = 0;
+      float         padd0 = 0;
       Tempest::Vec2 texAniMapDir;
       float         waveAnim = 0;
       float         waveMaxAmplitude = 0;
@@ -207,6 +207,7 @@ class ObjectsBucket {
     void            uboSetCommon  (Descriptors& v);
     void            uboSetSkeleton(Descriptors& v, uint8_t fId);
     void            uboSetDynamic (Descriptors& v, Object& obj, uint8_t fId);
+    void            uboUpdateBucketDesc(uint8_t fId);
 
     void            setObjMatrix(size_t i, const Tempest::Matrix4x4& m);
     void            setBounds   (size_t i, const Bounds& b);
@@ -247,7 +248,7 @@ class ObjectsBucket {
     const SceneGlobals&       scene;
     Material                  mat;
 
-    Tempest::UniformBuffer<UboMaterial> uboMat[Resources::MaxFramesInFlight];
+    Tempest::UniformBuffer<UboBucket> uboBucket[Resources::MaxFramesInFlight];
 
     InstancingType            instancingType      = NoInstancing;
     bool                      useSharedUbo        = false;

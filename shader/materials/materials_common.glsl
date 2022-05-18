@@ -21,6 +21,8 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 
 #define MAX_NUM_SKELETAL_NODES 96
 #define MAX_MORPH_LAYERS       3
+#define MaxVert                64
+#define MaxInd                 (41*3)
 
 #define T_LANDSCAPE 0
 #define T_OBJ       1
@@ -46,7 +48,7 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define LVL_OBJECT 1
 #endif
 
-#if (defined(VERTEX) || defined(TESSELATION)) && (defined(LVL_OBJECT) || defined(WATER))
+#if (defined(VERTEX) || defined(TASK) || defined(MESH) || defined(TESSELATION)) && (defined(LVL_OBJECT) || defined(WATER))
 #define MAT_ANIM 1
 #endif
 
@@ -88,14 +90,17 @@ struct MorphDesc {
 #if (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING)
 layout(push_constant, std430) uniform UboPush {
   uint      baseInstance;
+  uint      meshletBase;
+  uint      meshletCount;
   float     fatness;
   } push;
 #elif (MESH_TYPE==T_MORPH)
 layout(push_constant, std430) uniform UboPush {
   uint      baseInstance;
+  uint      meshletBase;
+  uint      meshletCount;
   float     fatness;
-  float     padd1;
-  float     padd2;
+
   MorphDesc morph[MAX_MORPH_LAYERS];
   } push;
 #elif (MESH_TYPE==T_PFX || MESH_TYPE==T_LANDSCAPE)
@@ -127,14 +132,15 @@ layout(binding = L_Scene, std140) uniform UboScene {
   vec3  camPos;
   } scene;
 
-#if defined(LVL_OBJECT) && (defined(VERTEX) || defined(MESH))
+#if defined(LVL_OBJECT) && (defined(VERTEX) || defined(MESH) || defined(TASK))
 layout(binding = L_Matrix, std140) readonly buffer UboAnim {
-  mat4 pos[];
-  } matrix;
+  mat4 matrix[];
+  };
 #endif
 
 #if defined(MAT_ANIM)
-layout(binding = L_Material, std140) uniform UboMaterial {
+layout(binding = L_Material, std140) uniform UboBucket {
+  float bboxRadius;
   vec2  texAnim;
   float waveAnim;
   float waveMaxAmplitude;
@@ -146,11 +152,20 @@ layout(binding = L_GDiffuse) uniform sampler2D gbufferDiffuse;
 layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
 #endif
 
+#if defined(MESH) || defined(TASK)
+layout(std430, binding = L_Ibo)      readonly buffer Ibo  { uint  indexes []; };
+layout(std430, binding = L_Vbo)      readonly buffer Vbo  { float vertices[]; };
+#if (MESH_TYPE==T_LANDSCAPE)
+layout(std430, binding = L_MeshDesc) readonly buffer Inst { vec4  bounds  []; };
+#endif
+uint meshletsCount() { return indexes.length()/MaxInd; }
+#endif
+
 #if (MESH_TYPE==T_MORPH) && defined(VERTEX)
-layout(binding = L_MorphId, std430) readonly buffer SsboMorphId {
+layout(std430, binding = L_MorphId) readonly buffer SsboMorphId {
   int  index[];
   } morphId;
-layout(binding = L_Morph, std430) readonly buffer SsboMorph {
+layout(std430, binding = L_Morph) readonly buffer SsboMorph {
   vec4 samples[];
   } morph;
 #endif

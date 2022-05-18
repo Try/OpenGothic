@@ -59,10 +59,10 @@ vec3 morphOffset(int i) {
 
 vec3 vertexNormal() {
 #if (MESH_TYPE==T_SKINING)
-  vec4 n = matrix.pos[objId]*vec4(inNormal,0.0);
+  vec4 n = matrix[objId]*vec4(inNormal,0.0);
   return vec3(n.z,n.y,-n.x);
 #elif (MESH_TYPE==T_OBJ || MESH_TYPE==T_MORPH)
-  vec4 n = matrix.pos[objId]*vec4(inNormal,0.0);
+  vec4 n = matrix[objId]*vec4(inNormal,0.0);
   return vec3(n.xyz);
 #else
   return inNormal;
@@ -85,14 +85,14 @@ vec3 vertexPos() {
   vec4 pos1 = vec4(inPos1+dpos,1.0);
   vec4 pos2 = vec4(inPos2+dpos,1.0);
   vec4 pos3 = vec4(inPos3+dpos,1.0);
-  vec4 t0   = matrix.pos[boneId.x]*pos0;
-  vec4 t1   = matrix.pos[boneId.y]*pos1;
-  vec4 t2   = matrix.pos[boneId.z]*pos2;
-  vec4 t3   = matrix.pos[boneId.w]*pos3;
+  vec4 t0   = matrix[boneId.x]*pos0;
+  vec4 t1   = matrix[boneId.y]*pos1;
+  vec4 t2   = matrix[boneId.z]*pos2;
+  vec4 t3   = matrix[boneId.w]*pos3;
   vec4 pos  = t0*inWeight.x + t1*inWeight.y + t2*inWeight.z + t3*inWeight.w;
   return pos.xyz;
 #elif (MESH_TYPE==T_OBJ || MESH_TYPE==T_MORPH)
-  vec4 pos  = matrix.pos[boneId.x]*vec4(inPos+dpos,1.0);
+  vec4 pos  = matrix[boneId.x]*vec4(inPos+dpos,1.0);
   return pos.xyz;
 #else
   return inPos;
@@ -107,6 +107,33 @@ vec2 texcoord() {
 #endif
   }
 
+Varyings processVertex() {
+  Varyings ret;
+
+  vec3 pos    = vertexPos();
+  vec4 trPos  = scene.viewProject*vec4(pos,1.0);
+
+  //gl_Position = trPos;
+  ret.scr   = trPos;
+  ret.uv    = texcoord();
+
+#if !defined(SHADOW_MAP)
+  ret.shadowPos[0] = scene.shadow[0]*vec4(pos,1.0);
+  ret.shadowPos[1] = scene.shadow[1]*vec4(pos,1.0);
+  ret.normal       = vertexNormal();
+#endif
+
+#if !defined(SHADOW_MAP) || defined(WATER)
+  ret.pos   = pos;
+#endif
+
+#if defined(MAT_COLOR)
+  ret.color = unpackUnorm4x8(inColor);
+#endif
+
+  return ret;
+  }
+
 void main() {
 #if (MESH_TYPE==T_SKINING)
   boneId   = uvec4(unpackUnorm4x8(inId)*255.0);
@@ -116,26 +143,9 @@ void main() {
   boneId  += uvec4(objId);
 #endif
 
-  vec3 pos    = vertexPos();
-  vec4 trPos  = scene.viewProject*vec4(pos,1.0);
-
-  gl_Position = trPos;
-  shOut.scr   = trPos;
-  shOut.uv    = texcoord();
-
-#if !defined(SHADOW_MAP)
-  shOut.shadowPos[0] = scene.shadow[0]*vec4(pos,1.0);
-  shOut.shadowPos[1] = scene.shadow[1]*vec4(pos,1.0);
-  shOut.normal       = vertexNormal();
-#endif
-
-#if !defined(SHADOW_MAP) || defined(WATER)
-  shOut.pos   = pos;
-#endif
-
-#if defined(MAT_COLOR)
-  shOut.color = unpackUnorm4x8(inColor);
-#endif
+  Varyings ret = processVertex();
+  shOut = ret;
+  gl_Position = ret.scr;
 
 #if DEBUG_DRAW
   //debugId = gl_InstanceIndex;

@@ -33,15 +33,10 @@ ObjectsBucket::Item VisualObjects::get(const StaticMesh& mesh, const Material& m
     return ObjectsBucket::Item();
     }
 
-  const Tempest::AccelerationStructure* blas = nullptr;
-  for(auto& i:mesh.sub)
-    if(i.iboOffset==iboOffset && i.iboLength==iboLength)
-      blas = &i.blas;
-
   const ObjectsBucket::Type type = (staticDraw ? ObjectsBucket::Static : ObjectsBucket::Movable);
 
   auto&        bucket = getBucket(type,mat,&mesh,nullptr,nullptr);
-  const size_t id     = bucket.alloc(mesh,blas,iboOffset,iboLength,mesh.bbox);
+  const size_t id     = bucket.alloc(mesh,iboOffset,iboLength);
   return ObjectsBucket::Item(bucket,id);
   }
 
@@ -55,7 +50,7 @@ ObjectsBucket::Item VisualObjects::get(const StaticMesh& mesh, const Material& m
     return ObjectsBucket::Item();
     }
   auto&        bucket = getBucket(type,mat,&mesh,nullptr,&desc);
-  const size_t id     = bucket.alloc(mesh,blas,iboOff,iboLen,bbox);
+  const size_t id     = bucket.alloc(mesh,iboOff,iboLen,blas,bbox);
   return ObjectsBucket::Item(bucket,id);
   }
 
@@ -67,7 +62,7 @@ ObjectsBucket::Item VisualObjects::get(const AnimMesh &mesh, const Material& mat
     return ObjectsBucket::Item();
     }
   auto&        bucket = getBucket(ObjectsBucket::Animated,mat,nullptr,&mesh,nullptr);
-  const size_t id     = bucket.alloc(mesh,iboOff,iboLen,anim,mesh.bbox);
+  const size_t id     = bucket.alloc(mesh,iboOff,iboLen,anim);
   return ObjectsBucket::Item(bucket,id);
   }
 

@@ -141,4 +141,9 @@ void Bounds::calcR() {
   float dy = std::fabs(bbox[0].y-bbox[1].y);
   float dz = std::fabs(bbox[0].z-bbox[1].z);
   r = std::sqrt(dx*dx+dy*dy+dz*dz)*0.5f;
+
+  float x = std::max(std::abs(bbox[0].x),std::abs(bbox[1].x));
+  float y = std::max(std::abs(bbox[0].y),std::abs(bbox[1].y));
+  float z = std::max(std::abs(bbox[0].z),std::abs(bbox[1].z));
+  rConservative = std::sqrt(x*x+y*y+z*z);
   }

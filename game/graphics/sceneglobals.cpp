@@ -101,7 +101,7 @@ void SceneGlobals::commitUbo(uint8_t fId) {
     std::memcpy(ubo.frustrum, frustrum[i].f, sizeof(ubo.frustrum));
     }
 
-  for(size_t i=V_Shadow0; i<V_Count; ++i) {
+  for(size_t i=0; i<V_Count; ++i) {
     uboGlobalPf[fId][i].update(&perView[i],0,1);
     }
   }
