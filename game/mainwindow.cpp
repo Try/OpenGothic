@@ -932,10 +932,11 @@ void MainWindow::clearInput() {
   }
 
 void MainWindow::setFullscreen(bool fs) {
-  dMouse = Point();
   SystemApi::setAsFullscreen(hwnd(),fs);
-  setCursorPosition(w()/2,h()/2);
+  auto rect = SystemApi::windowClientRect(hwnd());
+  setCursorPosition(rect.w/2,rect.h/2);
   setCursorShape(fs ? CursorShape::Hidden : CursorShape::Arrow);
+  dMouse = Point();
   }
 
 void MainWindow::render(){
