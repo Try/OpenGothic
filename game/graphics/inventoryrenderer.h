@@ -15,7 +15,7 @@ class InventoryRenderer {
 
     void draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
-    void reset();
+    void reset(bool full=false);
     void drawItem(int x, int y, int w, int h, const Item &item);
 
   private:
@@ -32,5 +32,6 @@ class InventoryRenderer {
     VisualObjects          visual;
     MeshObjects            itmGroup;
     std::vector<Itm>       items;
+    std::vector<Itm>       prevItems; // resever previous to avoid bucket reallocation
   };
 

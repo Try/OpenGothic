@@ -99,7 +99,7 @@ void InventoryMenu::close() {
       Gothic::inst().emitGlobalSound("TRADE_CLOSE"); else
       Gothic::inst().emitGlobalSound("INV_CLOSE");
     }
-  renderer.reset();
+  renderer.reset(true);
   state  = State::Closed;
   }
 

@@ -227,6 +227,7 @@ class ObjectsBucket {
     const Bounds&             bounds(size_t i) const;
 
     Tempest::BufferHeap       ssboHeap() const;
+    static Type               sanitizeType(const Type t, const Material& mat, const StaticMesh* st);
 
     const Type                objType          = Type::Landscape;
     const StaticMesh*         staticMesh       = nullptr;

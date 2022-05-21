@@ -35,7 +35,9 @@ void InventoryRenderer::draw(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) 
     }
   }
 
-void InventoryRenderer::reset() {
+void InventoryRenderer::reset(bool full) {
+  if(!full)
+    prevItems = std::move(items);
   items.clear();
   }
 

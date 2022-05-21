@@ -158,9 +158,10 @@ ObjectsBucket::ObjectsBucket(const Type type, const Material& mat, VisualObjects
 ObjectsBucket::~ObjectsBucket() {
   }
 
-bool ObjectsBucket::isCompatible(const Type type, const Material& mat,
+bool ObjectsBucket::isCompatible(const Type t, const Material& mat,
                                  const StaticMesh* st, const AnimMesh* ani,
                                  const Tempest::StorageBuffer* desc) const {
+  auto type = sanitizeType(t,mat,st);
   if(objType!=type)
     return false;
 
@@ -181,6 +182,17 @@ bool ObjectsBucket::isCompatible(const Type type, const Material& mat,
 
 std::unique_ptr<ObjectsBucket> ObjectsBucket::mkBucket(Type type, const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
                                                        const StaticMesh* st, const AnimMesh* anim, const StorageBuffer* desc) {
+  type = sanitizeType(type,mat,st);
+
+  if(type==Landscape || type==LandscapeShadow)
+    return std::unique_ptr<ObjectsBucket>(new ObjectsBucketLnd(type,mat,owner,scene,*st,*desc));
+  if(mat.frames.size()>0)
+    return std::unique_ptr<ObjectsBucket>(new ObjectsBucketDyn(type,mat,owner,scene,st,anim,nullptr));
+  return std::unique_ptr<ObjectsBucket>(new ObjectsBucket(type,mat,owner,scene,st,anim,nullptr));
+  }
+
+ObjectsBucket::Type ObjectsBucket::sanitizeType(const Type t, const Material& mat, const StaticMesh* st) {
+  auto type = t;
   if(type==Landscape && mat.texAniMapDirPeriod!=Tempest::Point(0,0))
     type = Static;
   if(type==Landscape && mat.alpha==Material::Water)
@@ -191,12 +203,7 @@ std::unique_ptr<ObjectsBucket> ObjectsBucket::mkBucket(Type type, const Material
   if(st!=nullptr && st->morph.anim!=nullptr) {
     type = ObjectsBucket::Morph;
     }
-
-  if(type==Landscape || type==LandscapeShadow)
-    return std::unique_ptr<ObjectsBucket>(new ObjectsBucketLnd(type,mat,owner,scene,*st,*desc));
-  if(mat.frames.size()>0)
-    return std::unique_ptr<ObjectsBucket>(new ObjectsBucketDyn(type,mat,owner,scene,st,anim,nullptr));
-  return std::unique_ptr<ObjectsBucket>(new ObjectsBucket(type,mat,owner,scene,st,anim,nullptr));
+  return type;
   }
 
 const Material& ObjectsBucket::material() const {
@@ -851,10 +858,11 @@ void ObjectsBucketLnd::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
   if(indSz==0)
     return;
 
-  if(useMeshlets) {
-    if(objType==Landscape && c==SceneGlobals::V_Shadow1 && !textureInShadowPass)
+  if(useMeshlets && !textureInShadowPass) {
+    const bool isShadow = (c==SceneGlobals::V_Shadow1);
+    if(objType==Landscape && isShadow)
       return;
-    if(objType==LandscapeShadow && c!=SceneGlobals::V_Shadow1)
+    if(objType==LandscapeShadow && !isShadow)
       return;
     }
 
