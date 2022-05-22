@@ -3,18 +3,22 @@
 #include <zenload/zCMesh.h>
 #include <zenload/zCMaterial.h>
 #include <zenload/zCProgMeshProto.h>
+#include <zenload/zCMeshSoftSkin.h>
 
 #include <Tempest/Vec>
 #include <unordered_map>
 #include <map>
 #include <utility>
 
+#include "resources.h"
+
 class Bounds;
 
 class PackedMesh {
   public:
     using WorldTriangle = ZenLoad::WorldTriangle;
-    using WorldVertex   = ZenLoad::WorldVertex;
+    using Vertex        = Resources::Vertex;
+    using VertexA       = Resources::VertexA;
 
     enum {
       MaxVert     = 64,
@@ -41,16 +45,18 @@ class PackedMesh {
       float         r = 0;
       };
 
-    std::vector<WorldVertex>   vertices;
-    std::vector<uint32_t>      indices;
-    std::vector<SubMesh>       subMeshes;
-    std::vector<Bounds>        meshletBounds;
+    std::vector<Vertex>   vertices;
+    std::vector<VertexA>  verticesA;
+    std::vector<uint32_t> indices;
+    std::vector<SubMesh>  subMeshes;
+    std::vector<Bounds>   meshletBounds;
 
-    std::vector<uint32_t>      verticesId; // only for morph meshes
-    bool                       isUsingAlphaTest = true;
+    std::vector<uint32_t>    verticesId; // only for morph meshes
+    bool                     isUsingAlphaTest = true;
 
     PackedMesh(const ZenLoad::zCMesh&          mesh, PkgType type);
     PackedMesh(const ZenLoad::zCProgMeshProto& mesh, PkgType type);
+    PackedMesh(const ZenLoad::zCMeshSoftSkin&  mesh);
     void debug(std::ostream &out) const;
 
     std::pair<Tempest::Vec3,Tempest::Vec3> bbox() const;
@@ -60,6 +66,12 @@ class PackedMesh {
     float         clusterRadius     = 20*100;
     Tempest::Vec3 mBbox[2];
 
+    struct SkeletalData {
+      ZMath::float3 localPositions[4] = {};
+      uint8_t       boneIndices[4]    = {};
+      float         weights[4]        = {};
+      };
+
     using  Vert = std::pair<uint32_t,uint32_t>;
     struct Meshlet {
       Vert          vert   [MaxVert] = {};
@@ -68,10 +80,13 @@ class PackedMesh {
       uint8_t       indSz            = 0;
       Bounds        bounds;
 
-      void    flush(std::vector<WorldVertex>& vertices, std::vector<uint32_t>& indices, std::vector<Bounds>& instances,
+      void    flush(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<Bounds>& instances,
                     SubMesh& sub, const ZenLoad::zCMesh& mesh);
-      void    flush(std::vector<WorldVertex>& vertices, std::vector<uint32_t>& indices, std::vector<uint32_t>* verticesId, std::vector<Bounds>& instances,
-                    SubMesh& sub, const std::vector<ZMath::float3>&  vbo, const std::vector<ZenLoad::zWedge>& wedgeList);
+      void    flush(std::vector<Vertex>& vertices, std::vector<VertexA>& verticesA,
+                    std::vector<uint32_t>& indices, std::vector<uint32_t>* verticesId,
+                    SubMesh& sub, const std::vector<ZMath::float3>& vbo,
+                    const std::vector<ZenLoad::zWedge>& wedgeList,
+                    const std::vector<SkeletalData>* skeletal);
 
       bool    insert(const Vert& a, const Vert& b, const Vert& c, uint8_t matchHint);
       void    clear();
@@ -87,6 +102,8 @@ class PackedMesh {
     void   addIndex(Meshlet* active, size_t numActive, std::vector<Meshlet>& meshlets,
                     const Vert& a, const Vert& b, const Vert& c);
     void   packMeshlets(const ZenLoad::zCMesh& mesh);
+    void   packMeshlets(const ZenLoad::zCProgMeshProto& mesh, PkgType type,
+                        const std::vector<SkeletalData>* skeletal);
 
     void   postProcessP1(const ZenLoad::zCMesh& mesh, size_t matId, std::vector<Meshlet>& meshlets);
     void   postProcessP2(const ZenLoad::zCMesh& mesh, size_t matId, std::vector<Meshlet*>& meshlets);

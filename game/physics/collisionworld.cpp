@@ -96,10 +96,6 @@ CollisionWorld::CollisionWorld()
   :CollisionWorld(ContructInfo()) {
   }
 
-btVector3 CollisionWorld::toMeters(const ZMath::float3& v) {
-  return {v.x*0.01f, v.y*0.01f, v.z*0.01f};
-  }
-
 btVector3 CollisionWorld::toMeters(const Tempest::Vec3& v) {
   return {v.x*0.01f, v.y*0.01f, v.z*0.01f};
   }

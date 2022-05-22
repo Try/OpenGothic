@@ -121,19 +121,19 @@ class ObjectsBucket {
 
   protected:
     enum UboLinkpackage : uint8_t {
-      L_Diffuse  = 0,
-      L_Shadow0  = 1,
-      L_Shadow1  = 2,
-      L_Scene    = 3,
-      L_Matrix   = 4,
-      L_Material = 5,
-      L_GDiffuse = 6,
-      L_GDepth   = 7,
-      L_Ibo      = 8,
-      L_Vbo      = 9,
-      L_MeshDesc = 10,
-      L_MorphId  = 11,
-      L_Morph    = 12,
+      L_Scene    = 0,
+      L_Matrix   = 1,
+      L_MeshDesc = L_Matrix,
+      L_Material = 2,
+      L_Ibo      = 3,
+      L_Vbo      = 4,
+      L_Diffuse  = 5,
+      L_Shadow0  = 6,
+      L_Shadow1  = 7,
+      L_MorphId  = 8,
+      L_Morph    = 9,
+      L_GDiffuse = 10,
+      L_GDepth   = 11,
       };
 
     struct ShLight final {

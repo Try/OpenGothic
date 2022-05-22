@@ -80,29 +80,29 @@ void Bounds::assign(const std::vector<Resources::Vertex>& vbo) {
   calcR();
   }
 
-void Bounds::assign(const std::vector<ZenLoad::WorldVertex>& vbo, const std::vector<uint32_t>& ibo,
+void Bounds::assign(const std::vector<Resources::Vertex>& vbo, const std::vector<uint32_t>& ibo,
                     size_t iboOffset, size_t iboLenght) {
   if(ibo.size()==0){
-    bbox[0]   = Vec3();
-    bbox[1]   = Vec3();
-    mid       = Vec3();
-    midTr     = Vec3();
-    r         = 0;
+    bbox[0] = Vec3();
+    bbox[1] = Vec3();
+    mid     = Vec3();
+    midTr   = Vec3();
+    r       = 0;
     return;
     }
 
-  bbox[0].x = vbo[ibo[0]].Position.x;
-  bbox[0].y = vbo[ibo[0]].Position.y;
-  bbox[0].z = vbo[ibo[0]].Position.z;
+  bbox[0].x = vbo[ibo[0]].pos[0];
+  bbox[0].y = vbo[ibo[0]].pos[1];
+  bbox[0].z = vbo[ibo[0]].pos[2];
   bbox[1] = bbox[0];
   for(size_t id=0; id<iboLenght; ++id) {
     auto& i = vbo[ibo[iboOffset+id]];
-    bbox[0].x = std::min(bbox[0].x,i.Position.x);
-    bbox[0].y = std::min(bbox[0].y,i.Position.y);
-    bbox[0].z = std::min(bbox[0].z,i.Position.z);
-    bbox[1].x = std::max(bbox[1].x,i.Position.x);
-    bbox[1].y = std::max(bbox[1].y,i.Position.y);
-    bbox[1].z = std::max(bbox[1].z,i.Position.z);
+    bbox[0].x = std::min(bbox[0].x,i.pos[0]);
+    bbox[0].y = std::min(bbox[0].y,i.pos[1]);
+    bbox[0].z = std::min(bbox[0].z,i.pos[2]);
+    bbox[1].x = std::max(bbox[1].x,i.pos[0]);
+    bbox[1].y = std::max(bbox[1].y,i.pos[1]);
+    bbox[1].z = std::max(bbox[1].z,i.pos[2]);
     }
   mid   = (bbox[0]+bbox[1])/2;
   midTr = mid;

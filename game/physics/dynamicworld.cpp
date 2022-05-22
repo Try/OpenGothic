@@ -404,8 +404,8 @@ DynamicWorld::DynamicWorld(World& owner,const ZenLoad::zCMesh& worldMesh) {
 
   landVbo.resize(pkg.vertices.size());
   for(size_t i=0;i<pkg.vertices.size();++i) {
-    auto p = CollisionWorld::toMeters(pkg.vertices[i].Position);
-    landVbo[i] = p;
+    auto v = pkg.vertices[i];
+    landVbo[i] = CollisionWorld::toMeters(Tempest::Vec3(v.pos[0],v.pos[1],v.pos[2]));
     }
 
   landMesh .reset(new PhysicVbo(&landVbo));

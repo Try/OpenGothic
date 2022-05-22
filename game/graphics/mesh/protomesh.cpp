@@ -151,7 +151,9 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, std::unique_ptr<Ske
     ZenLoad::PackedSkeletalMesh pack;
     auto& mesh = library.getMeshes()[i];
     mesh.packMesh(pack);
-    skined.emplace_back(pack);
+
+    PackedMesh pkg(mesh);
+    skined.emplace_back(pkg);
     }
 
   if(skeleton!=nullptr) {

@@ -8,9 +8,9 @@
 PfxEmitterMesh::PfxEmitterMesh(const PackedMesh& src) {
   vertices.resize(src.vertices.size());
   for(size_t i=0;i<vertices.size();++i) {
-    vertices[i].x = src.vertices[i].Position.x;
-    vertices[i].y = src.vertices[i].Position.y;
-    vertices[i].z = src.vertices[i].Position.z;
+    vertices[i].x = src.vertices[i].pos[0];
+    vertices[i].y = src.vertices[i].pos[1];
+    vertices[i].z = src.vertices[i].pos[2];
     }
   for(size_t i=0;i<src.indices.size();i+=3) {
     Triangle t;

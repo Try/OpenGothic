@@ -11,6 +11,8 @@ class PackedMesh;
 
 class PhysicVbo : public btTriangleIndexVertexArray {
   public:
+    using Vertex = Resources::Vertex;
+
     PhysicVbo(PackedMesh&& packed);
     PhysicVbo(const std::vector<btVector3>* v);
 
@@ -29,7 +31,7 @@ class PhysicVbo : public btTriangleIndexVertexArray {
     std::string_view validateSectorName(std::string_view name) const;
 
   private:
-    PhysicVbo(const std::vector<ZenLoad::WorldVertex>& v);
+    PhysicVbo(const std::vector<Vertex>& v);
 
     void addSegment(size_t indexSize,size_t offset,uint8_t material,const char* sector);
 

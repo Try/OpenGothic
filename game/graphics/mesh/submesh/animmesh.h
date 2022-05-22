@@ -11,7 +11,8 @@
 class AnimMesh {
   public:
     using VertexA=Resources::VertexA;
-    AnimMesh(const ZenLoad::PackedSkeletalMesh& data);
+
+    AnimMesh(const PackedMesh& data);
 
     struct SubMesh {
       Material                       material;

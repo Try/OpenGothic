@@ -8,9 +8,9 @@
 
 using namespace Tempest;
 
-void PackedMesh::Meshlet::flush(std::vector<WorldVertex>& vertices,
-                                std::vector<uint32_t>&     indices,
-                                std::vector<Bounds>&      instances,
+void PackedMesh::Meshlet::flush(std::vector<Vertex>&   vertices,
+                                std::vector<uint32_t>& indices,
+                                std::vector<Bounds>&   instances,
                                 SubMesh& sub, const ZenLoad::zCMesh& mesh) {
   if(indSz==0)
     return;
@@ -25,16 +25,23 @@ void PackedMesh::Meshlet::flush(std::vector<WorldVertex>& vertices,
   indices .resize(iboSz+MaxInd );
 
   for(size_t i=0; i<vertSz; ++i) {
-    WorldVertex vx = {};
+    Vertex vx = {};
     auto& v     = uv [vert[i].second];
-    vx.Position = vbo[vert[i].first];
-    vx.Normal   = v.vertNormal;
-    vx.TexCoord = ZMath::float2(v.uv[0], v.uv[1]);
-    vx.Color    = v.lightStat;
+
+    vx.pos[0]  = vbo[vert[i].first].x;
+    vx.pos[1]  = vbo[vert[i].first].y;
+    vx.pos[2]  = vbo[vert[i].first].z;
+    vx.norm[0] = v.vertNormal.x;
+    vx.norm[1] = v.vertNormal.y;
+    vx.norm[2] = v.vertNormal.z;
+    vx.uv[0]   = v.uv[0];
+    vx.uv[1]   = v.uv[1];
+    vx.color   = v.lightStat;
     vertices[vboSz+i] = vx;
     }
   for(size_t i=vertSz; i<MaxVert; ++i) {
-    vertices[vboSz+i] = WorldVertex();
+    Vertex vx = {};
+    vertices[vboSz+i] = vx;
     }
 
   for(size_t i=0; i<indSz; ++i) {
@@ -46,42 +53,82 @@ void PackedMesh::Meshlet::flush(std::vector<WorldVertex>& vertices,
     }
   }
 
-void PackedMesh::Meshlet::flush(std::vector<WorldVertex>& vertices,
+void PackedMesh::Meshlet::flush(std::vector<Vertex>&   vertices,
+                                std::vector<VertexA>&  verticesA,
                                 std::vector<uint32_t>& indices,
                                 std::vector<uint32_t>* verticesId,
-                                std::vector<Bounds>& instances,
                                 SubMesh& sub,
                                 const std::vector<ZMath::float3>&   vboList,
-                                const std::vector<ZenLoad::zWedge>& wedgeList) {
+                                const std::vector<ZenLoad::zWedge>& wedgeList,
+                                const std::vector<SkeletalData>* skeletal) {
   if(indSz==0)
     return;
-  instances.push_back(bounds);
 
-  auto& vbo = vboList;  // xyz
+  auto& vbo = vboList;    // xyz
   auto& uv  = wedgeList;  // uv, normal
 
-  size_t vboSz = vertices.size();
+  size_t vboSz = 0;
   size_t iboSz = indices.size();
-  vertices  .resize(vboSz+MaxVert);
-  indices   .resize(iboSz+MaxInd );
+
+  if(skeletal==nullptr) {
+    vboSz = vertices.size();
+    vertices.resize(vboSz+MaxVert);
+    } else {
+    vboSz = verticesA.size();
+    verticesA.resize(vboSz+MaxVert);
+    }
+
+  indices.resize(iboSz+MaxInd );
   if(verticesId!=nullptr)
     verticesId->resize(vboSz+MaxVert);
 
-  for(size_t i=0; i<vertSz; ++i) {
-    WorldVertex vx = {};
-    auto& v     = uv [vert[i].second];
-    vx.Position = vbo[vert[i].first];
-    vx.Normal   = v.m_Normal;
-    vx.TexCoord = ZMath::float2(v.m_Texcoord.x, v.m_Texcoord.y);
-    vx.Color    = 0xFFFFFFFF;
-    vertices[vboSz+i]   = vx;
-    if(verticesId!=nullptr)
-      (*verticesId)[vboSz+i] = vert[i].first;
-    }
-  for(size_t i=vertSz; i<MaxVert; ++i) {
-    vertices[vboSz+i] = WorldVertex();
-    if(verticesId!=nullptr)
-      (*verticesId)[vboSz+i] = uint32_t(-1);
+  if(skeletal==nullptr) {
+    for(size_t i=0; i<vertSz; ++i) {
+      Vertex vx = {};
+      auto& v     = uv [vert[i].second];
+      vx.pos[0]   = vbo[vert[i].first].x;
+      vx.pos[1]   = vbo[vert[i].first].y;
+      vx.pos[2]   = vbo[vert[i].first].z;
+      vx.norm[0] = v.m_Normal.x;
+      vx.norm[1] = v.m_Normal.y;
+      vx.norm[2] = v.m_Normal.z;
+      vx.uv[0]   = v.m_Texcoord.x;
+      vx.uv[1]   = v.m_Texcoord.y;
+      vx.color    = 0xFFFFFFFF;
+      vertices[vboSz+i]   = vx;
+      if(verticesId!=nullptr)
+        (*verticesId)[vboSz+i] = vert[i].first;
+      }
+    for(size_t i=vertSz; i<MaxVert; ++i) {
+      Vertex vx = {};
+      vertices[vboSz+i] = vx;
+      if(verticesId!=nullptr)
+        (*verticesId)[vboSz+i] = uint32_t(-1);
+      }
+    } else {
+    auto& sk = *skeletal;
+    for(size_t i=0; i<vertSz; ++i) {
+      VertexA vx = {};
+      auto& v    = uv [vert[i].second];
+      vx.norm[0] = v.m_Normal.x;
+      vx.norm[1] = v.m_Normal.y;
+      vx.norm[2] = v.m_Normal.z;
+      vx.uv[0]   = v.m_Texcoord.x;
+      vx.uv[1]   = v.m_Texcoord.y;
+      vx.color   = 0xFFFFFFFF;
+      for(int r=0; r<4; ++r) {
+        vx.pos    [r][0] = sk[vert[i].first].localPositions[r].x;
+        vx.pos    [r][1] = sk[vert[i].first].localPositions[r].y;
+        vx.pos    [r][2] = sk[vert[i].first].localPositions[r].z;
+        vx.boneId [r]    = sk[vert[i].first].boneIndices[r];
+        vx.weights[r]    = sk[vert[i].first].weights[r];
+        }
+      verticesA[vboSz+i]  = vx;
+      }
+    for(size_t i=vertSz; i<MaxVert; ++i) {
+      VertexA vx = {};
+      verticesA[vboSz+i] = vx;
+      }
     }
 
   for(size_t i=0; i<indSz; ++i) {
@@ -275,45 +322,46 @@ PackedMesh::PackedMesh(const ZenLoad::zCProgMeshProto& mesh, PkgType type) {
   mBbox[1] = Vec3(max.x,max.y,max.z);
   }
 
-  auto* vId = (type==PK_VisualMorph) ? &verticesId : nullptr;
+  packMeshlets(mesh,type,nullptr);
+  }
 
-  for(size_t mId=0; mId<mesh.getNumSubmeshes(); ++mId) {
-    auto& sm   = mesh.getSubmesh(mId);
-    auto& pack = subMeshes[mId];
+PackedMesh::PackedMesh(const ZenLoad::zCMeshSoftSkin& skinned) {
+  auto& mesh = skinned.getMesh();
+  subMeshes.resize(mesh.getNumSubmeshes());
+  {
+  ZMath::float3 min = {}, max = {};
+  skinned.getAABBTotal(min,max);
+  mBbox[0] = Vec3(min.x,min.y,min.z);
+  mBbox[1] = Vec3(max.x,max.y,max.z);
+  }
 
-    pack.material = sm.m_Material;
+  std::vector<SkeletalData> vertices(mesh.getVertices().size());
+  // Extract weights and local positions
+  const uint8_t* stream = skinned.getVertexWeightStream();
+  for(size_t i=0; i<vertices.size(); ++i) {
+    auto& vert = vertices[i];
+    // Layout:
+    //	uint32_t: numWeights
+    //	numWeights* zTWeightEntry: weights
+    uint32_t numWeights = 0;
+    std::memcpy(&numWeights,stream,sizeof(numWeights)); stream+=sizeof(numWeights);
+    for(size_t j=0; j<numWeights; j++) {
+      float weight = 0;
+      std::memcpy(&weight,stream,sizeof(weight)); stream+=sizeof(weight);
 
-    std::vector<Meshlet> meshlets;
-    Meshlet activeMeshlets[16];
-    for(size_t i=0; i<sm.m_TriangleList.size(); ++i) {
-      const uint16_t* ibo = sm.m_TriangleList[i].m_Wedges;
+      ZMath::float3 localVertexPosition = {};
+      std::memcpy(&localVertexPosition,stream,sizeof(localVertexPosition)); stream+=sizeof(localVertexPosition);
 
-      Vert vert[3];
-      for(int x=0; x<3; ++x) {
-        const ZenLoad::zWedge& wedge = sm.m_WedgeList[ibo[x]];
-        vert[x] = std::make_pair(wedge.m_VertexIndex,ibo[x]);
-        }
-      addIndex(activeMeshlets,16,meshlets, vert[0],vert[1],vert[2]);
+      uint8_t nodeIndex = {};
+      std::memcpy(&nodeIndex,stream,sizeof(nodeIndex)); stream+=sizeof(nodeIndex);
+
+      vert.boneIndices[j]    = nodeIndex;
+      vert.localPositions[j] = localVertexPosition;
+      vert.weights[j]        = weight;
       }
-
-    for(auto& meshlet:activeMeshlets)
-      if(meshlet.indSz>0)
-        meshlets.push_back(std::move(meshlet));
-
-    std::vector<Meshlet*> ind(meshlets.size());
-    for(size_t i=0; i<meshlets.size(); ++i) {
-      meshlets[i].updateBounds(mesh);
-      ind[i] = &meshlets[i];
-      }
-    mergePass(ind,false);
-
-    pack.iboOffset = indices.size();
-    for(auto& i:ind) {
-      i->updateBounds(mesh);
-      i->flush(vertices,indices,vId,meshletBounds,pack,mesh.getVertices(),sm.m_WedgeList);
-      }
-    pack.iboLength = indices.size() - pack.iboOffset;
     }
+
+  packMeshlets(mesh,PK_Visual,&vertices);
   }
 
 void PackedMesh::packPhysics(const ZenLoad::zCMesh& mesh, PkgType type) {
@@ -343,8 +391,10 @@ void PackedMesh::packPhysics(const ZenLoad::zCMesh& mesh, PkgType type) {
       if(rx!=icache.end()) {
         indices.push_back(uint32_t(rx->second));
         } else {
-        WorldVertex vx = {};
-        vx.Position = vbo[index];
+        Vertex vx = {};
+        vx.pos[0] = vbo[index].x;
+        vx.pos[1] = vbo[index].y;
+        vx.pos[2] = vbo[index].z;
 
         size_t val = vertices.size();
         vertices.emplace_back(vx);
@@ -378,8 +428,10 @@ void PackedMesh::packPhysics(const ZenLoad::zCMesh& mesh, PkgType type) {
       if(rx!=icache.end()) {
         indices.push_back(uint32_t(rx->second));
         } else {
-        WorldVertex vx = {};
-        vx.Position = vbo[index];
+        Vertex vx = {};
+        vx.pos[0] = vbo[index].x;
+        vx.pos[1] = vbo[index].y;
+        vx.pos[2] = vbo[index].z;
 
         size_t val = vertices.size();
         vertices.emplace_back(vx);
@@ -437,6 +489,49 @@ void PackedMesh::packMeshlets(const ZenLoad::zCMesh& mesh) {
       if(meshlet.indSz>0)
         meshlets.push_back(std::move(meshlet));
     postProcessP1(mesh,mId,meshlets);
+    }
+  }
+
+void PackedMesh::packMeshlets(const ZenLoad::zCProgMeshProto& mesh, PkgType type,
+                              const std::vector<SkeletalData>* skeletal) {
+  auto* vId = (type==PK_VisualMorph) ? &verticesId : nullptr;
+
+  for(size_t mId=0; mId<mesh.getNumSubmeshes(); ++mId) {
+    auto& sm   = mesh.getSubmesh(mId);
+    auto& pack = subMeshes[mId];
+
+    pack.material = sm.m_Material;
+
+    std::vector<Meshlet> meshlets;
+    Meshlet activeMeshlets[16];
+    for(size_t i=0; i<sm.m_TriangleList.size(); ++i) {
+      const uint16_t* ibo = sm.m_TriangleList[i].m_Wedges;
+
+      Vert vert[3];
+      for(int x=0; x<3; ++x) {
+        const ZenLoad::zWedge& wedge = sm.m_WedgeList[ibo[x]];
+        vert[x] = std::make_pair(wedge.m_VertexIndex,ibo[x]);
+        }
+      addIndex(activeMeshlets,16,meshlets, vert[0],vert[1],vert[2]);
+      }
+
+    for(auto& meshlet:activeMeshlets)
+      if(meshlet.indSz>0)
+        meshlets.push_back(std::move(meshlet));
+
+    std::vector<Meshlet*> ind(meshlets.size());
+    for(size_t i=0; i<meshlets.size(); ++i) {
+      meshlets[i].updateBounds(mesh);
+      ind[i] = &meshlets[i];
+      }
+    mergePass(ind,false);
+
+    pack.iboOffset = indices.size();
+    for(auto& i:ind) {
+      i->updateBounds(mesh);
+      i->flush(vertices,verticesA,indices,vId,pack,mesh.getVertices(),sm.m_WedgeList,skeletal);
+      }
+    pack.iboLength = indices.size() - pack.iboOffset;
     }
   }
 
@@ -603,9 +698,9 @@ void PackedMesh::postProcessP2(const ZenLoad::zCMesh& mesh, size_t matId, std::v
 
 void PackedMesh::debug(std::ostream &out) const {
   for(auto& i:vertices) {
-    out << "v  " << i.Position.x << " " << i.Position.y << " " << i.Position.z << std::endl;
-    out << "vn " << i.Normal.x   << " " << i.Normal.y   << " " << i.Normal.z   << std::endl;
-    out << "vt " << i.TexCoord.x << " " << i.TexCoord.y  << std::endl;
+    out << "v  " << i.pos[0]  << " " << i.pos[1]  << " " << i.pos[2]  << std::endl;
+    out << "vn " << i.norm[0] << " " << i.norm[1] << " " << i.norm[2] << std::endl;
+    out << "vt " << i.uv[0]   << " " << i.uv[1]  << std::endl;
     }
 
   for(auto& s:subMeshes) {
@@ -629,19 +724,19 @@ void PackedMesh::computeBbox() {
     return;
     }
 
-  mBbox[0].x = vertices[0].Position.x;
-  mBbox[0].y = vertices[0].Position.y;
-  mBbox[0].z = vertices[0].Position.z;
+  mBbox[0].x = vertices[0].pos[0];
+  mBbox[0].y = vertices[0].pos[1];
+  mBbox[0].z = vertices[0].pos[2];
   mBbox[1] = mBbox[0];
 
   for(size_t i=1; i<vertices.size(); ++i) {
-    mBbox[0].x = std::min(mBbox[0].x, vertices[i].Position.x);
-    mBbox[0].y = std::min(mBbox[0].y, vertices[i].Position.y);
-    mBbox[0].z = std::min(mBbox[0].z, vertices[i].Position.z);
+    mBbox[0].x = std::min(mBbox[0].x, vertices[i].pos[0]);
+    mBbox[0].y = std::min(mBbox[0].y, vertices[i].pos[1]);
+    mBbox[0].z = std::min(mBbox[0].z, vertices[i].pos[2]);
 
-    mBbox[1].x = std::max(mBbox[1].x, vertices[i].Position.x);
-    mBbox[1].y = std::max(mBbox[1].y, vertices[i].Position.y);
-    mBbox[1].z = std::max(mBbox[1].z, vertices[i].Position.z);
+    mBbox[1].x = std::max(mBbox[1].x, vertices[i].pos[0]);
+    mBbox[1].y = std::max(mBbox[1].y, vertices[i].pos[1]);
+    mBbox[1].z = std::max(mBbox[1].z, vertices[i].pos[2]);
     }
   }
 

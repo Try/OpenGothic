@@ -1,3 +1,6 @@
+#ifndef COMMON_GLSL
+#define COMMON_GLSL
+
 const float M_PI = 3.1415926535897932384626433832795;
 
 float reconstructCSZ(float d, vec3 clipInfo) {
@@ -37,3 +40,5 @@ float cookTorrance(out float fresnel, vec3 normal, vec3 light, vec3 view, float 
   fresnel = 1.0/(1.0+NdotV);
   return min(1.0, (fresnel * geometric * r) / (NdotV * NdotL + 1.0e-7));
   }
+
+#endif

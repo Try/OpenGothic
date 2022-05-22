@@ -16,10 +16,10 @@ PhysicVbo::PhysicVbo(PackedMesh&& packed)
   adjustMesh();
   }
 
-PhysicVbo::PhysicVbo(const std::vector<ZenLoad::WorldVertex>& v)
+PhysicVbo::PhysicVbo(const std::vector<Vertex>& v)
   :vStorage(v.size()), vert(vStorage) {
   for(size_t i=0;i<v.size();++i){
-    vStorage[i] = CollisionWorld::toMeters(v[i].Position);
+    vStorage[i] = CollisionWorld::toMeters(Tempest::Vec3(v[i].pos[0],v[i].pos[1],v[i].pos[2]));
     }
   }
 

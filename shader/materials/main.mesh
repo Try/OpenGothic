@@ -7,6 +7,7 @@
 
 #define MESH
 #include "materials_common.glsl"
+#include "vertex_process.glsl"
 
 layout(local_size_x = 32) in;
 layout(triangles, max_vertices = 64, max_primitives = MaxInd/3) out;
@@ -20,51 +21,6 @@ layout(location = 0) out Varyings shOut[];  // [max_vertices]
 #if DEBUG_DRAW
 layout(location = DEBUG_DRAW_LOC) out flat uint debugId[];
 #endif
-
-struct Vertex {
-  vec3 pos;
-  vec3 norm;
-  vec2 uv;
-  uint color;
-  };
-
-void processVertex(uint objId, uint vboOffset, uint vert) {
-  uint id        = (vboOffset + vert)*9;
-
-  vec3 inPos     = vec3(vertices[id + 0], vertices[id + 1], vertices[id + 2]);
-  vec3 inNormal  = vec3(vertices[id + 3], vertices[id + 4], vertices[id + 5]);
-  vec2 inUV      = vec2(vertices[id + 6], vertices[id + 7]);
-
-#if (MESH_TYPE==T_OBJ || MESH_TYPE==T_MORPH)
-  vec3 dpos = vec3(0); //TODO
-  inPos     = (matrix[objId]*vec4(inPos+dpos,1.0)).xyz;
-  inNormal  = (matrix[objId]*vec4(inNormal,  0.0)).xyz;
-#endif
-
-#if defined(MAT_ANIM)
-  inUV += material.texAnim;
-#endif
-
-  vec4 trPos     = scene.viewProject*vec4(inPos,1.0);
-  gl_MeshVerticesNV[vert].gl_Position = trPos;
-  shOut[vert].scr                     = trPos;
-  shOut[vert].uv                      = inUV;
-
-#if !defined(SHADOW_MAP)
-  shOut[vert].shadowPos[0] = scene.shadow[0]*vec4(inPos,1.0);
-  shOut[vert].shadowPos[1] = scene.shadow[1]*vec4(inPos,1.0);
-  shOut[vert].normal       = inNormal;
-#endif
-
-#if !defined(SHADOW_MAP) || defined(WATER)
-  shOut[vert].pos = inPos;
-#endif
-
-#if defined(MAT_COLOR)
-  uint inColor = floatBitsToUint(vertices[id + 8]);
-  shOut[vert].color = unpackUnorm4x8(inColor);
-#endif
-  }
 
 shared bool invisible;
 
@@ -126,8 +82,13 @@ void main() {
   const uint vboOffset = meshletId * MaxVert;
   const uint iboOffset = meshletId * MaxInd;
 
-  processVertex(objId, vboOffset, laneID*2 + 0);
-  processVertex(objId, vboOffset, laneID*2 + 1);
+  const Varyings out0 = processVertex(objId, vboOffset + laneID*2 + 0);
+  const Varyings out1 = processVertex(objId, vboOffset + laneID*2 + 1);
+
+  shOut            [laneID*2 + 0]             = out0;
+  gl_MeshVerticesNV[laneID*2 + 0].gl_Position = out0.scr;
+  shOut            [laneID*2 + 1]             = out1;
+  gl_MeshVerticesNV[laneID*2 + 1].gl_Position = out1.scr;
 
 #if DEBUG_DRAW
   debugId[laneID*2 + 0] = meshletId;

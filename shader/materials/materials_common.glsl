@@ -1,3 +1,6 @@
+#ifndef MATERIALS_COMMON_GLSL
+#define MATERIALS_COMMON_GLSL
+
 #include "../common.glsl"
 
 #define DEBUG_DRAW 0
@@ -30,19 +33,19 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define T_MORPH     3
 #define T_PFX       4
 
-#define L_Diffuse  0
-#define L_Shadow0  1
-#define L_Shadow1  2
-#define L_Scene    3
-#define L_Matrix   4
-#define L_Material 5
-#define L_GDiffuse 6
-#define L_GDepth   7
-#define L_Ibo      8
-#define L_Vbo      9
-#define L_MeshDesc 10
-#define L_MorphId  11
-#define L_Morph    12
+#define L_Scene    0
+#define L_Matrix   1
+#define L_MeshDesc L_Matrix
+#define L_Material 2
+#define L_Ibo      3
+#define L_Vbo      4
+#define L_Diffuse  5
+#define L_Shadow0  6
+#define L_Shadow1  7
+#define L_MorphId  8
+#define L_Morph    9
+#define L_GDiffuse 10
+#define L_GDepth   11
 
 #if (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING || MESH_TYPE==T_MORPH)
 #define LVL_OBJECT 1
@@ -109,15 +112,6 @@ layout(push_constant, std430) uniform UboPush {
 #error "unknown MESH_TYPE"
 #endif
 
-#if defined(FRAGMENT) && !(defined(SHADOW_MAP) && !defined(ATEST))
-layout(binding = L_Diffuse) uniform sampler2D textureD;
-#endif
-
-#if defined(FRAGMENT) && !defined(SHADOW_MAP)
-layout(binding = L_Shadow0) uniform sampler2D textureSm0;
-layout(binding = L_Shadow1) uniform sampler2D textureSm1;
-#endif
-
 layout(binding = L_Scene, std140) uniform UboScene {
   vec3  ldir;
   float shadowSize;
@@ -133,9 +127,13 @@ layout(binding = L_Scene, std140) uniform UboScene {
   } scene;
 
 #if defined(LVL_OBJECT) && (defined(VERTEX) || defined(MESH) || defined(TASK))
-layout(binding = L_Matrix, std140) readonly buffer UboAnim {
+layout(binding = L_Matrix, std140) readonly buffer UboMatrix {
   mat4 matrix[];
   };
+#endif
+
+#if (MESH_TYPE==T_LANDSCAPE) && (defined(VERTEX) || defined(MESH) || defined(TASK))
+layout(std430, binding = L_MeshDesc) readonly buffer Inst { vec4  bounds  []; };
 #endif
 
 #if defined(MAT_ANIM)
@@ -147,25 +145,32 @@ layout(binding = L_Material, std140) uniform UboBucket {
   } material;
 #endif
 
-#if defined(FRAGMENT) && (defined(WATER) || defined(GHOST))
-layout(binding = L_GDiffuse) uniform sampler2D gbufferDiffuse;
-layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
-#endif
-
 #if defined(MESH) || defined(TASK)
 layout(std430, binding = L_Ibo)      readonly buffer Ibo  { uint  indexes []; };
 layout(std430, binding = L_Vbo)      readonly buffer Vbo  { float vertices[]; };
-#if (MESH_TYPE==T_LANDSCAPE)
-layout(std430, binding = L_MeshDesc) readonly buffer Inst { vec4  bounds  []; };
-#endif
-uint meshletsCount() { return indexes.length()/MaxInd; }
 #endif
 
-#if (MESH_TYPE==T_MORPH) && defined(VERTEX)
+#if defined(FRAGMENT) && !(defined(SHADOW_MAP) && !defined(ATEST))
+layout(binding = L_Diffuse) uniform sampler2D textureD;
+#endif
+
+#if defined(FRAGMENT) && !defined(SHADOW_MAP)
+layout(binding = L_Shadow0) uniform sampler2D textureSm0;
+layout(binding = L_Shadow1) uniform sampler2D textureSm1;
+#endif
+
+#if (MESH_TYPE==T_MORPH) && (defined(VERTEX) || defined(MESH))
 layout(std430, binding = L_MorphId) readonly buffer SsboMorphId {
   int  index[];
   } morphId;
 layout(std430, binding = L_Morph) readonly buffer SsboMorph {
   vec4 samples[];
   } morph;
+#endif
+
+#if defined(FRAGMENT) && (defined(WATER) || defined(GHOST))
+layout(binding = L_GDiffuse) uniform sampler2D gbufferDiffuse;
+layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
+#endif
+
 #endif
