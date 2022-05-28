@@ -9,6 +9,8 @@
 #include "materials_common.glsl"
 #include "vertex_process.glsl"
 
+vec4 debugClr = vec4(0);
+
 layout(local_size_x = 32) in;
 layout(triangles, max_vertices = 64, max_primitives = MaxInd/3) out;
 
@@ -24,6 +26,98 @@ layout(location = DEBUG_DRAW_LOC) out flat uint debugId[];
 
 shared bool invisible;
 
+#if (MESH_TYPE==T_LANDSCAPE)
+void meshletTest(const uint meshletId) {
+  const uint laneID = gl_LocalInvocationID.x;
+  const vec4 sphere = bounds[meshletId];
+
+  invisible = (sphere.w<0.f);
+  memoryBarrierShared();
+  barrier();
+  if(laneID<6) {
+    if(dot(vec4(sphere.xyz,1.0), scene.frustrum[laneID]) <= -sphere.w)
+      invisible = true;
+    }
+  memoryBarrierShared();
+  barrier();
+  }
+#endif
+
+#if defined(LVL_OBJECT)
+void boundSphereTest(const uint objId) {
+  const uint laneID = gl_LocalInvocationID.x;
+
+  vec4 sphere = matrix[objId][3];
+  sphere.w    = material.bboxRadius;
+
+  float dist  = 0;
+
+  invisible = (sphere.w<0.f);
+  memoryBarrierShared();
+  barrier();
+
+  if(laneID<6) {
+    dist = dot(vec4(sphere.xyz,1.0), scene.frustrum[laneID]);
+    if(dist <= -sphere.w)
+      invisible = true;
+    }
+  memoryBarrierShared();
+  barrier();
+  }
+#endif
+
+#if !defined(SHADOW_MAP) && defined(LVL_OBJECT)
+float textureHiZ(in vec2 uv) {
+  const vec4  z4 = textureGather(hiZ,uv);
+  const float z  = max(max(z4[0],z4[1]), max(z4[2],z4[3]));
+  return z + 1.0/32768.0;
+  }
+
+shared vec3 bboxProj[8];
+void bboxTest(const uint objId) {
+  const uint laneID = gl_LocalInvocationID.x;
+
+  if(laneID<8) {
+    const vec3  b[2] = {material.bbox[0].xyz, material.bbox[1].xyz};
+    //const ivec3 v[8] = {{0,0,0},{0,0,1},{0,1,0},{0,1,1},{1,0,0},{1,0,1},{1,1,0},{1,1,1}};
+    //const ivec3 msk  = v[laneID];
+    const vec3  pos  = vec3(b[(laneID&0x1)].x,b[(laneID&0x2)>>1].y,b[(laneID&0x4)>>2].z);
+
+    vec4 trPos = vec4(pos.xyz,1.0);
+    trPos = matrix[objId]    *trPos;
+    trPos = scene.viewProject*trPos;
+
+    vec3 bp = trPos.xyz/trPos.w;
+    bp.xy = bp.xy*0.5 + vec2(0.5);
+    bboxProj[laneID] = bp;
+    }
+
+  memoryBarrierShared();
+  barrier();
+
+  if(laneID==0 && !invisible) {
+    vec3 bbox[2] = {bboxProj[0], bboxProj[0]};
+    for(int i=1; i<8; ++i) {
+      bbox[0] = min(bbox[0],bboxProj[i]);
+      bbox[1] = max(bbox[1],bboxProj[i]);
+      }
+
+    vec2  hFrag = vec2(1.0)/vec2(textureSize(hiZ,0));
+    vec2  sz    = vec2(bbox[1].x-bbox[0].x, bbox[1].y-bbox[0].y);
+    if(sz.x<=hFrag.x && sz.y<=hFrag.y) {
+      const vec2  uv = (bbox[1].xy+bbox[0].xy)*0.5;
+      const float z  = textureHiZ(uv);
+      if(bbox[0].z > z)
+        invisible = true;
+      //invisible = true;
+      }
+    }
+
+  memoryBarrierShared();
+  barrier();
+  }
+#endif
+
 void main() {
 #if defined(LVL_OBJECT)
   const uint objId     = gl_WorkGroupID.x/push.meshletCount + push.baseInstance;
@@ -36,48 +130,25 @@ void main() {
   const uint laneID    = gl_LocalInvocationID.x;
 
 #if (MESH_TYPE==T_LANDSCAPE)
-  {
-  const vec4 sphere = bounds[meshletId];
-  invisible = (sphere.w<0.f);
-  memoryBarrierShared();
-  barrier();
-  if(laneID<6) {
-    if(dot(vec4(sphere.xyz,1.0), scene.frustrum[laneID]) <= -sphere.w)
-      invisible = true;
-    }
-  memoryBarrierShared();
-  barrier();
-
-  if(invisible) {
-    if(laneID==0)
-      gl_PrimitiveCountNV = 0;
-    return;
-    }
-  }
+  meshletTest(meshletId);
+#elif defined(LVL_OBJECT) && !defined(SHADOW_MAP)
+  boundSphereTest(objId);
+  bboxTest(objId);
 #elif defined(LVL_OBJECT)
-  {
-  vec4 sphere = matrix[objId][3];
-  sphere.w    = material.bboxRadius;
-
-  invisible = (sphere.w<0.f);
-  memoryBarrierShared();
-  barrier();
-  if(laneID<6) {
-    if(dot(vec4(sphere.xyz,1.0), scene.frustrum[laneID]) <= -sphere.w)
-      invisible = true;
-    }
-  memoryBarrierShared();
-  barrier();
-
-  if(invisible) {
-    if(laneID==0)
-      gl_PrimitiveCountNV = 0;
-    return;
-    }
-  }
+  boundSphereTest(objId);
 #else
-  // particles
+  invisible = false;
+  memoryBarrierShared();
+  barrier();
 #endif
+
+  {
+    if(invisible) {
+      if(laneID==0)
+        gl_PrimitiveCountNV = 0;
+      return;
+      }
+  }
 
   const uint vboOffset = meshletId * MaxVert;
   const uint iboOffset = meshletId * MaxInd;
@@ -114,4 +185,37 @@ void main() {
   // Number of triangles
   if(laneID==0)
     gl_PrimitiveCountNV = MaxInd/3;
+#if 0 && defined(LVL_OBJECT) && !defined(SHADOW_MAP)
+  memoryBarrierShared();
+  barrier();
+  if(laneID==0) {
+    const ivec3 v[8] = {
+      {0,0,0},{1,0,0},{1,1,0},{0,1,0},
+      {0,0,1},{1,0,1},{1,1,1},{0,1,1},
+      };
+    const int ibo[] = {
+      0, 1, 3, 3, 1, 2,
+      1, 5, 2, 2, 5, 6,
+      5, 4, 6, 6, 4, 7,
+      4, 0, 7, 7, 0, 3,
+      3, 2, 7, 7, 2, 6,
+      4, 5, 0, 0, 5, 1
+      };
+    const vec3 b[2] = {material.bbox[0].xyz, material.bbox[1].xyz};
+
+    for(int i=0; i<8; ++i) {
+      vec4 trPos;
+      const ivec3 msk  = v[i];
+      const vec3  pos  = vec3(b[msk.x].x,b[msk.y].y,b[msk.z].z);
+      trPos = matrix[objId]    *vec4(pos.xyz,1.0);
+      trPos = scene.viewProject*trPos;
+      gl_MeshVerticesNV[i].gl_Position = trPos;
+      shOut            [i].uv          = vec2(0);
+      }
+    gl_PrimitiveCountNV       = 6*2;
+
+    for(int i=0; i<36;++i)
+      gl_PrimitiveIndicesNV[i] = ibo[i];
+    }
+#endif
   }

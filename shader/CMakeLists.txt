@@ -13,13 +13,15 @@ file(GLOB SOURCES
   "${CMAKE_SOURCE_DIR}/shader/*.glsl"
   "${CMAKE_SOURCE_DIR}/shader/*.task"
   "${CMAKE_SOURCE_DIR}/shader/*.mesh"
+  "${CMAKE_SOURCE_DIR}/shader/*.comp"
   "${CMAKE_SOURCE_DIR}/shader/**/*.vert"
   "${CMAKE_SOURCE_DIR}/shader/**/*.tesc"
   "${CMAKE_SOURCE_DIR}/shader/**/*.tese"
   "${CMAKE_SOURCE_DIR}/shader/**/*.frag"
   "${CMAKE_SOURCE_DIR}/shader/**/*.glsl"
   "${CMAKE_SOURCE_DIR}/shader/**/*.task"
-  "${CMAKE_SOURCE_DIR}/shader/**/*.mesh")
+  "${CMAKE_SOURCE_DIR}/shader/**/*.mesh"
+  "${CMAKE_SOURCE_DIR}/shader/**/*.comp")
 
 file(GLOB GLSL_SOURCES
   "${CMAKE_SOURCE_DIR}/shader/*.glsl"
@@ -146,6 +148,8 @@ add_shader(bilateral.frag            bilateral.frag "")
 add_shader(ssao_compose.vert         copy.vert "")
 add_shader(ssao_compose.frag         ssao_compose.frag "")
 add_shader(ssao_compose_rq.frag      ssao_compose.frag -DRAY_QUERY)
+
+add_shader(hiZ.comp hiZ.comp "")
 
 add_custom_command(
   OUTPUT     ${HEADER} ${CPP}

@@ -134,6 +134,11 @@ Shaders::Shaders() {
     } else {
     sky = postEffect("sky_g2");
     }
+
+  if(Resources::hasMeshShaders()){
+    auto sh = GothicShader::get("hiZ.comp.sprv");
+    hiZ = device.pipeline(device.shader(sh.data,sh.len));
+    }
   }
 
 Shaders::~Shaders() {
@@ -161,12 +166,8 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
   state.setZTestMode   (RenderState::ZTestMode::Less);
 
   if(pt==PipelineType::T_Shadow) {
-    ;//state.setCullFaceMode(RenderState::CullMode::Back);
-    state.setZTestMode(RenderState::ZTestMode::Greater);
+    state.setZTestMode(RenderState::ZTestMode::Greater); //FIXME
     }
-
-  auto mesh = Resources::hasMeshShaders();
-  (void)mesh;
 
   switch(alpha) {
     case Material::Solid:
@@ -189,8 +190,8 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
       forward  = &solidF;
       deffered = nullptr;
 
-      state.setBlendSource (RenderState::BlendMode::SrcAlpha); // premultiply in shader
-      state.setBlendDest   (RenderState::BlendMode::OneMinusSrcAlpha);
+      state.setBlendSource  (RenderState::BlendMode::SrcAlpha); // premultiply in shader
+      state.setBlendDest    (RenderState::BlendMode::OneMinusSrcAlpha);
       state.setZWriteEnabled(false);
       break;
     case Material::AdditiveLight:
@@ -211,6 +212,16 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
       break;
     }
 
+  static bool overdrawDbg = false;
+  if(overdrawDbg &&
+     (alpha==Material::Solid || alpha==Material::AlphaTest) &&
+     t!=ObjectsBucket::Landscape && t!=ObjectsBucket::LandscapeShadow && pt!=T_Shadow && pt!=T_Prepass) {
+    state.setBlendSource(RenderState::BlendMode::One);
+    state.setBlendDest  (RenderState::BlendMode::One);
+    state.setZWriteEnabled(false);
+    state.setZTestMode(RenderState::ZTestMode::Always);
+    }
+
   const MaterialTemplate* temp = nullptr;
   switch(pt) {
     case T_Forward:
@@ -220,6 +231,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
       temp = deffered;
       break;
     case T_Shadow:
+    case T_Prepass:
       temp = shadow;
       break;
     }

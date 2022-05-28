@@ -65,7 +65,8 @@ void WorldView::preFrameUpdate(const Matrix4x4& view, const Matrix4x4& proj,
 
 void WorldView::setGbuffer(const Texture2d& lightingBuf, const Texture2d& diffuse,
                            const Texture2d& norm, const Texture2d& depth,
-                           const Texture2d* sh[]) {
+                           const Texture2d* sh[],
+                           const Texture2d& hiZ) {
   const Texture2d* shadow[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
     if(sh==nullptr || sh[i]->isEmpty())
@@ -78,6 +79,7 @@ void WorldView::setGbuffer(const Texture2d& lightingBuf, const Texture2d& diffus
   sGlobal.gbufDiffuse = &diffuse;
   sGlobal.gbufNormals = &norm;
   sGlobal.gbufDepth   = &depth;
+  sGlobal.hiZ         = &hiZ;
   //sGlobal.tlas        = &tlas;
   sGlobal.setShadowMap(shadow);
   setupUbo();
@@ -93,6 +95,10 @@ void WorldView::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
 
 void WorldView::visibilityPass(const Frustrum fr[]) {
   visuals.visibilityPass(fr);
+  }
+
+void WorldView::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  visuals.drawHiZ(cmd,fId);
   }
 
 void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId, uint8_t layer) {

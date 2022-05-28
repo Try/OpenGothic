@@ -41,6 +41,7 @@ class SceneGlobals final {
     const Tempest::Texture2d*         gbufDiffuse = &Resources::fallbackBlack();
     const Tempest::Texture2d*         gbufNormals = &Resources::fallbackBlack();
     const Tempest::Texture2d*         gbufDepth   = &Resources::fallbackBlack();
+    const Tempest::Texture2d*         hiZ         = &Resources::fallbackTexture();
 
     const Tempest::AccelerationStructure* tlas = nullptr;
 

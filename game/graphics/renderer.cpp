@@ -61,8 +61,23 @@ void Renderer::resetSwapchain() {
   const uint32_t h      = swapchain.h();
   const uint32_t smSize = settings.shadowResolution;
 
+  auto smpN = Sampler2d::nearest();
+  smpN.setClamping(ClampMode::ClampToEdge);
+
+  auto smpB = Sampler2d::bilinear();
+  smpB.setClamping(ClampMode::ClampToEdge);
+
   zbuffer        = device.zbuffer(zBufferFormat,w,h);
   zbufferItem    = device.zbuffer(zBufferFormat,w,h);
+
+  if(Resources::hasMeshShaders()) {
+    const int hizSize = 32;
+    hiZBase        = device.attachment(TextureFormat::R16, w,h);
+    hiZ            = device.image2d(TextureFormat::R16, (w+hizSize-1)/hizSize, (h+hizSize-1)/hizSize);
+    uboHiZ         = device.descriptors(Shaders::inst().hiZ);
+    uboHiZ.set(0, hiZ);
+    uboHiZ.set(1, hiZBase, smpN);
+    }
 
   if(smSize>0) {
     for(int i=0; i<Resources::ShadowLayers; ++i) {
@@ -75,12 +90,6 @@ void Renderer::resetSwapchain() {
   gbufDiffuse = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
   gbufNormal  = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
   gbufDepth   = device.attachment(TextureFormat::R32F, swapchain.w(),swapchain.h());
-
-  auto smp = Sampler2d::nearest();
-  smp.setClamping(ClampMode::ClampToEdge);
-
-  auto smpB = Sampler2d::bilinear();
-  smpB.setClamping(ClampMode::ClampToEdge);
 
   uboCopy = device.descriptors(Shaders::inst().copy);
   uboCopy.set(0,lightingBuf,Sampler2d::nearest());
@@ -97,9 +106,9 @@ void Renderer::resetSwapchain() {
     ssao.ssaoComposePso = &Shaders::inst().ssaoCompose;
     }
   ssao.uboSsao = device.descriptors(*ssao.ssaoPso);
-  ssao.uboSsao.set(0,lightingBuf,smp);
-  ssao.uboSsao.set(1,gbufDiffuse,smp);
-  ssao.uboSsao.set(2,gbufNormal, smp);
+  ssao.uboSsao.set(0,lightingBuf,smpN);
+  ssao.uboSsao.set(1,gbufDiffuse,smpN);
+  ssao.uboSsao.set(2,gbufNormal, smpN);
   ssao.uboSsao.set(3,gbufDepth,  smpB);
 
   ssao.uboCompose = device.descriptors(*ssao.ssaoComposePso);
@@ -109,11 +118,11 @@ void Renderer::resetSwapchain() {
   ssao.uboCompose.set(3,gbufDepth,   smpB);
 
   ssao.uboBlur[0] = device.descriptors(Shaders::inst().bilateralBlur);
-  ssao.uboBlur[0].set(0,ssao.ssaoBuf,smp);
+  ssao.uboBlur[0].set(0,ssao.ssaoBuf,smpN);
   ssao.uboBlur[0].set(1,gbufDepth,   smpB);
 
   ssao.uboBlur[1] = device.descriptors(Shaders::inst().bilateralBlur);
-  ssao.uboBlur[1].set(0,ssao.blurBuf,smp);
+  ssao.uboBlur[1].set(0,ssao.blurBuf,smpN);
   ssao.uboBlur[1].set(1,gbufDepth,   smpB);
 
   prepareUniforms();
@@ -160,7 +169,7 @@ void Renderer::prepareUniforms() {
     sh[i] = &textureCast(shadowMap[i]);
   wview->setGbuffer(textureCast(lightingBuf),textureCast(gbufDiffuse),
                     textureCast(gbufNormal),textureCast(gbufDepth),
-                    sh);
+                    sh, textureCast(hiZ));
   }
 
 void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
@@ -200,12 +209,23 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
 
   wview->preFrameUpdate(view,proj,zNear,zFar,shadow,Gothic::inst().world()->tickCount(),cmdId);
 
+  if(Resources::hasMeshShaders()) {
+    cmd.setFramebuffer({{hiZBase, 1.f, Tempest::Preserve}}, {zbuffer, 1.f, Tempest::Discard});
+    wview->drawHiZ(cmd,cmdId);
+    }
+
   for(uint8_t i=0; i<Resources::ShadowLayers; ++i) {
     if(shadowMap[i].isEmpty())
       continue;
-    cmd.setFramebuffer({{shadowMap[i], Vec4(), Tempest::Preserve}}, {shadowZ[i], 0.f, Tempest::Preserve});
+    cmd.setFramebuffer({{shadowMap[i], 0.f, Tempest::Preserve}}, {shadowZ[i], 0.f, Tempest::Preserve});
     if(wview->mainLight().dir().y>0)
       wview->drawShadow(cmd,cmdId,i);
+    }
+
+  if(Resources::hasMeshShaders()) {
+    cmd.setFramebuffer({});
+    cmd.setUniforms(Shaders::inst().hiZ, uboHiZ);
+    cmd.dispatch(size_t(hiZ.w()),size_t(hiZ.h()),1);
     }
 
   wview->prepareSky(cmd,cmdId);

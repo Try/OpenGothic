@@ -1,0 +1,41 @@
+#version 450
+
+#extension GL_EXT_control_flow_attributes:enable
+
+#define SIZE 32
+
+layout(binding = 0, r32f) uniform writeonly image2D hiZ;
+layout(binding = 1)       uniform sampler2D zbuffer;
+
+layout(local_size_x = SIZE, local_size_y = SIZE) in;
+
+shared float tileZ[SIZE][SIZE];
+
+void main() {
+  uvec2 lane = gl_LocalInvocationID.xy;
+  ivec2 uv   = ivec2(gl_GlobalInvocationID.xy);
+  float zbuf = texelFetch(zbuffer,uv,0).x;
+
+  tileZ[lane.x][lane.y] = zbuf;
+  memoryBarrierShared();
+  barrier();
+
+  [[unroll]]
+  for(int i=SIZE/2; i>0; i/=2) {
+    if(lane.x>=i || lane.y>=i)
+      continue;
+    float z  = tileZ[lane.x  ][lane.y  ];
+    z = max(z, tileZ[lane.x  ][lane.y+i]);
+    z = max(z, tileZ[lane.x+i][lane.y  ]);
+    z = max(z, tileZ[lane.x+i][lane.y+i]);
+
+    tileZ[lane.x][lane.y] = z;
+    memoryBarrierShared();
+    barrier();
+    }
+
+  if(lane==uvec2(0)) {
+    float z = tileZ[0][0];
+    imageStore(hiZ, ivec2(gl_WorkGroupID.xy), vec4(z));
+    }
+  }

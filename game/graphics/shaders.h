@@ -28,10 +28,14 @@ class Shaders {
     Tempest::RenderPipeline skyTransmittance, skyMultiScattering, skyViewLut, skyEGSR;
     Tempest::RenderPipeline fogViewLut, fogEGSR;
 
+    // Compute
+    Tempest::ComputePipeline hiZ;
+
     enum PipelineType: uint8_t {
       T_Forward,
       T_Deffered,
       T_Shadow,
+      T_Prepass,
       };
 
     const Tempest::RenderPipeline* materialPipeline(const Material& desc, ObjectsBucket::Type t, PipelineType pt) const;

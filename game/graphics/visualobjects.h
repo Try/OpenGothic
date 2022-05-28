@@ -34,6 +34,7 @@ class VisualObjects final {
     void draw          (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
     void drawGBuffer   (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
     void drawShadow    (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer=0);
+    void drawHiZ       (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
 
     void resetIndex();
     void resetTlas();

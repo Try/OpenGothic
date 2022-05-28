@@ -114,6 +114,7 @@ class ObjectsBucket {
     void                      fillTlas(std::vector<Tempest::RtInstance>& inst);
 
     virtual void              preFrameUpdate(uint8_t fId);
+    virtual void              drawHiZ    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
     void                      draw       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void                      drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void                      drawShadow (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer=0);
@@ -134,6 +135,7 @@ class ObjectsBucket {
       L_Morph    = 9,
       L_GDiffuse = 10,
       L_GDepth   = 11,
+      L_HiZ      = 12,
       };
 
     struct ShLight final {
@@ -163,9 +165,9 @@ class ObjectsBucket {
       };
 
     struct UboBucket final {
-      float         bboxRadius = 0;
-      float         padd0 = 0;
+      Tempest::Vec4 bbox[2];
       Tempest::Vec2 texAniMapDir;
+      float         bboxRadius = 0;
       float         waveAnim = 0;
       float         waveMaxAmplitude = 0;
       };
@@ -222,7 +224,8 @@ class ObjectsBucket {
     uint32_t        applyInstancing(size_t& i, const size_t* index, size_t indSz) const;
 
     virtual Descriptors& objUbo(size_t objId);
-    virtual void         drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c);
+    virtual void         drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
+                                    const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c, bool isHiZPass);
 
     const Bounds&             bounds(size_t i) const;
 
@@ -245,6 +248,10 @@ class ObjectsBucket {
     bool                      useMeshlets         = false;
     bool                      textureInShadowPass = false;
 
+    const Tempest::RenderPipeline* pMain    = nullptr;
+    const Tempest::RenderPipeline* pGbuffer = nullptr;
+    const Tempest::RenderPipeline* pShadow  = nullptr;
+
   private:
     const SceneGlobals&       scene;
     Material                  mat;
@@ -255,27 +262,25 @@ class ObjectsBucket {
     bool                      useSharedUbo        = false;
     bool                      usePositionsSsbo    = false;
     bool                      windAnim            = false;
-
-    const Tempest::RenderPipeline* pMain    = nullptr;
-    const Tempest::RenderPipeline* pGbuffer = nullptr;
-    const Tempest::RenderPipeline* pShadow  = nullptr;
   };
 
 
 class ObjectsBucketLnd : public ObjectsBucket {
   public:
     ObjectsBucketLnd( const Type type, const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
-                      const StaticMesh& st, const Tempest::StorageBuffer& desc)
-      :ObjectsBucket(type,mat,owner,scene,&st,nullptr,&desc) {
-      }
+                      const StaticMesh& st, const Tempest::StorageBuffer& desc);
 
   private:
     void    drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
-                       const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c) override;
+                       const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c, bool isHiZPass) override;
+    void    drawHiZ   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId) override;
 
     Object& implAlloc(const Bounds& bounds) override;
     void    postAlloc(Object& obj, size_t objId) override;
     void    implFree (const size_t objId) override;
+
+    const Tempest::RenderPipeline* pHiZ = nullptr;
+    Descriptors uboHiZ;
   };
 
 class ObjectsBucketDyn : public ObjectsBucket {
@@ -297,7 +302,7 @@ class ObjectsBucketDyn : public ObjectsBucket {
     void    invalidateUbo(uint8_t fId) override;
 
     void    drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
-                       const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c) override;
+                       const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c, bool isHiZPass) override;
 
     Descriptors uboObj[CAPACITY];
   };

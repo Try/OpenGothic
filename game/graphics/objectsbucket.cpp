@@ -315,6 +315,11 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
         ubo.set(L_GDiffuse, *scene.lightingBuf,Sampler2d::nearest());
         ubo.set(L_GDepth,   *scene.gbufDepth,  Sampler2d::nearest());
         }
+      if(lay==SceneGlobals::V_Main && useMeshlets) {
+        auto sb = Sampler2d::bilinear();
+        sb.setClamping(ClampMode::ClampToEdge);
+        ubo.set(L_HiZ, *scene.hiZ, sb);
+        }
       }
     uboSetSkeleton(v,i);
     }
@@ -362,10 +367,18 @@ void ObjectsBucket::uboUpdateBucketDesc(uint8_t fId) {
   ubo.waveAnim = 2.f*float(M_PI)*float(scene.tickCount%3000)/3000.f;
   ubo.waveMaxAmplitude = mat.waveMaxAmplitude;
 
-  if(staticMesh!=nullptr)
+  if(staticMesh!=nullptr) {
+    auto& bbox     = staticMesh->bbox.bbox;
     ubo.bboxRadius = staticMesh->bbox.rConservative;
-  if(animMesh!=nullptr)
+    ubo.bbox[0]    = Vec4(bbox[0].x,bbox[0].y,bbox[0].z,0.f);
+    ubo.bbox[1]    = Vec4(bbox[1].x,bbox[1].y,bbox[1].z,0.f);
+    }
+  if(animMesh!=nullptr) {
+    auto& bbox     = animMesh->bbox.bbox;
     ubo.bboxRadius = animMesh->bbox.rConservative;
+    ubo.bbox[0]    = Vec4(bbox[0].x,bbox[0].y,bbox[0].z,0.f);
+    ubo.bbox[1]    = Vec4(bbox[1].x,bbox[1].y,bbox[1].z,0.f);
+    }
 
   uboBucket[fId].update(&ubo,0,1);
   }
@@ -509,23 +522,26 @@ void ObjectsBucket::free(const size_t objId) {
 void ObjectsBucket::draw(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   if(pMain==nullptr)
     return;
-  drawCommon(cmd,fId,*pMain,SceneGlobals::V_Main);
+  drawCommon(cmd,fId,*pMain,SceneGlobals::V_Main,false);
   }
 
 void ObjectsBucket::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   if(pGbuffer==nullptr)
     return;
-  drawCommon(cmd,fId,*pGbuffer,SceneGlobals::V_Main);
+  drawCommon(cmd,fId,*pGbuffer,SceneGlobals::V_Main,false);
   }
 
 void ObjectsBucket::drawShadow(Encoder<CommandBuffer>& cmd, uint8_t fId, int layer) {
   if(pShadow==nullptr)
     return;
-  drawCommon(cmd,fId,*pShadow,SceneGlobals::VisCamera(SceneGlobals::V_Shadow0+layer));
+  drawCommon(cmd,fId,*pShadow,SceneGlobals::VisCamera(SceneGlobals::V_Shadow0+layer),false);
   }
 
-void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId,
-                               const RenderPipeline& shader, SceneGlobals::VisCamera c) {
+void ObjectsBucket::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& /*cmd*/, uint8_t /*fId*/) {
+  }
+
+void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId, const RenderPipeline& shader,
+                               SceneGlobals::VisCamera c, bool isHiZPass) {
   const size_t  indSz = visSet.count(c);
   const size_t* index = visSet.index(c);
   if(indSz==0)
@@ -825,34 +841,61 @@ const Bounds& ObjectsBucket::bounds(size_t i) const {
   return val[i].visibility.bounds();
   }
 
+ObjectsBucketLnd::ObjectsBucketLnd(const Type type, const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
+                                   const StaticMesh& st, const Tempest::StorageBuffer& desc)
+  :ObjectsBucket(type,mat,owner,scene,&st,nullptr,&desc) {
+  pHiZ = Shaders::inst().materialPipeline(mat,objType,Shaders::T_Prepass);
+  uboHiZ.alloc(*this);
+  uboSetCommon(uboHiZ);
+  for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i) {
+    for(size_t lay=SceneGlobals::V_Shadow0; lay<SceneGlobals::V_Count; ++lay) {
+      auto& ubo = uboHiZ.ubo[i][lay];
+      if(ubo.isEmpty())
+        continue;
+      uboHiZ.ubo[i][lay].set(L_Scene, scene.uboGlobalPf[i][SceneGlobals::V_Main]);
+      }
+    }
+  }
+
 void ObjectsBucketLnd::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
-                                  const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c) {
+                                  const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c,
+                                  bool isHiZPass) {
   const size_t  indSz = visSet.count(c);
   const size_t* index = visSet.index(c);
   if(indSz==0)
     return;
 
   if(useMeshlets && !textureInShadowPass) {
-    const bool isShadow = (c==SceneGlobals::V_Shadow1);
+    const bool isShadow = (c==SceneGlobals::V_Shadow1 || isHiZPass);
     if(objType==Landscape && isShadow)
       return;
     if(objType==LandscapeShadow && !isShadow)
       return;
     }
 
+  cmd.setUniforms(shader, uboShared.ubo[fId][c]);
   if(useMeshlets) {
-    cmd.setUniforms(shader, uboShared.ubo[fId][c]);
-
     for(size_t i=0; i<indSz; ++i) {
       auto& v = val[index[i]];
       cmd.dispatchMesh(v.iboOffset/PackedMesh::MaxInd, v.iboLength/PackedMesh::MaxInd);
       }
     } else {
-    cmd.setUniforms(shader, uboShared.ubo[fId][c]);
     for(size_t i=0; i<indSz; ++i) {
       auto& v = val[index[i]];
       cmd.draw(staticMesh->vbo, staticMesh->ibo, v.iboOffset, v.iboLength);
       }
+    }
+  }
+
+void ObjectsBucketLnd::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  if(pHiZ==nullptr || objType!=LandscapeShadow || !useMeshlets)
+    return;
+  cmd.setUniforms(*pHiZ, uboHiZ.ubo[fId][SceneGlobals::V_Shadow1]);
+  for(size_t i=0; i<valSz; ++i) {
+    auto& v = val[i];
+    if(!v.isValid)
+      continue;
+    cmd.dispatchMesh(v.iboOffset/PackedMesh::MaxInd, v.iboLength/PackedMesh::MaxInd);
     }
   }
 
@@ -923,18 +966,12 @@ void ObjectsBucketDyn::invalidateUbo(uint8_t fId) {
     uboSetSkeleton(v,fId);
   }
 
-void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c) {
+void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const Tempest::RenderPipeline& shader,
+                                  SceneGlobals::VisCamera c, bool isHiZPass) {
   const size_t  indSz = visSet.count(c);
   const size_t* index = visSet.index(c);
   if(indSz==0)
     return;
-
-  if(useMeshlets) {
-    if(objType==Landscape && c==SceneGlobals::V_Shadow1 && !textureInShadowPass)
-      return;
-    if(objType==LandscapeShadow && c!=SceneGlobals::V_Shadow1)
-      return;
-    }
 
   UboPush pushBlock  = {};
   for(size_t i=0; i<indSz; ++i) {

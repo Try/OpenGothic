@@ -27,17 +27,6 @@ void Bounds::assign(const Bounds& a, const Bounds& b) {
   calcR();
   }
 
-void Bounds::assign(const ZMath::float3* src) {
-  for(size_t i=0; i<2; ++i) {
-    bbox[i].x = src[i].x;
-    bbox[i].y = src[i].y;
-    bbox[i].z = src[i].z;
-    }
-  mid   = (bbox[0]+bbox[1])/2;
-  midTr = mid;
-  calcR();
-  }
-
 void Bounds::assign(const Vec3* src) {
   bbox[0] = src[0];
   bbox[1] = src[1];

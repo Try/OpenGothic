@@ -16,7 +16,6 @@ class StaticMesh {
     using Vertex=Resources::Vertex;
 
     StaticMesh(const PackedMesh& data);
-    StaticMesh(const ZenLoad::PackedSkeletalMesh& data);
     StaticMesh(const Material& mat, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo);
     StaticMesh(StaticMesh&&)=default;
     StaticMesh& operator=(StaticMesh&&)=default;

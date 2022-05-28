@@ -46,6 +46,7 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define L_Morph    9
 #define L_GDiffuse 10
 #define L_GDepth   11
+#define L_HiZ      12
 
 #if (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING || MESH_TYPE==T_MORPH)
 #define LVL_OBJECT 1
@@ -127,19 +128,18 @@ layout(binding = L_Scene, std140) uniform UboScene {
   } scene;
 
 #if defined(LVL_OBJECT) && (defined(VERTEX) || defined(MESH) || defined(TASK))
-layout(binding = L_Matrix, std140) readonly buffer UboMatrix {
-  mat4 matrix[];
-  };
+layout(std140, binding = L_Matrix)   readonly buffer Matrix { mat4 matrix[]; };
 #endif
 
 #if (MESH_TYPE==T_LANDSCAPE) && (defined(VERTEX) || defined(MESH) || defined(TASK))
-layout(std430, binding = L_MeshDesc) readonly buffer Inst { vec4  bounds  []; };
+layout(std430, binding = L_MeshDesc) readonly buffer Inst   { vec4 bounds[]; };
 #endif
 
 #if defined(MAT_ANIM)
 layout(binding = L_Material, std140) uniform UboBucket {
-  float bboxRadius;
+  vec4  bbox[2];
   vec2  texAnim;
+  float bboxRadius;
   float waveAnim;
   float waveMaxAmplitude;
   } material;
@@ -171,6 +171,10 @@ layout(std430, binding = L_Morph) readonly buffer SsboMorph {
 #if defined(FRAGMENT) && (defined(WATER) || defined(GHOST))
 layout(binding = L_GDiffuse) uniform sampler2D gbufferDiffuse;
 layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
+#endif
+
+#if defined(MESH) && !defined(SHADOW_MAP)
+layout(binding = L_HiZ) uniform sampler2D hiZ;
 #endif
 
 #endif

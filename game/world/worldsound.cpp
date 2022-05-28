@@ -83,7 +83,7 @@ void WorldSound::addSound(const ZenLoad::zCVobData &vob) {
   auto&  pr = vob.zCVobSound;
 
   WSound s;
-  s.loop      = pr.sndType==ZenLoad::SoundMode::SM_LOOPING;
+  s.loop      = pr.sndMode==ZenLoad::SoundMode::SM_LOOPING;
   s.active    = pr.sndStartOn;
   s.delay     = uint64_t(pr.sndRandDelay   *1000);
   s.delayVar  = uint64_t(pr.sndRandDelayVar*1000);
