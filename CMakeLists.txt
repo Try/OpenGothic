@@ -83,6 +83,13 @@ add_subdirectory(lib/ZenLib)
 include_directories(lib/ZenLib)
 target_link_libraries(${PROJECT_NAME} zenload daedalus)
 
+# phoenix
+set(PX_BUILD_TESTS OFF)
+set(PX_BUILD_TOOLS OFF)
+add_subdirectory(lib/phoenix)
+include_directories(lib/phoenix/include)
+target_link_libraries(${PROJECT_NAME} phoenix)
+
 # TinySoundFont
 add_definitions(-DTSF_NO_STDIO)
 include_directories(lib/TinySoundFont)
