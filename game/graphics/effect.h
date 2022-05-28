@@ -10,7 +10,6 @@
 #include "game/constants.h"
 
 #include <memory>
-#include <daedalus/ZString.h>
 
 class World;
 class Npc;
