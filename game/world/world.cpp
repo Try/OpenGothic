@@ -66,7 +66,10 @@ World::World(GameSession& game, std::string file, bool startup, std::function<vo
   :wname(std::move(file)),game(game),wsound(game,*this),wobj(*this) {
   using namespace Daedalus::GameState;
 
-  ZenLoad::ZenParser parser(wname,Resources::vdfsIndex());
+  phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(wname);
+  if (entry == nullptr) throw;
+  phoenix::buffer reader = entry->open();
+  ZenLoad::ZenParser parser(reader.array().data(), reader.remaining());
   loadProgress(1);
   if(parser.getFileSize()==0)
     Tempest::Log::e("unable to open Zen-file: \"",wname,"\"");

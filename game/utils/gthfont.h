@@ -1,11 +1,12 @@
 #pragma once
+#include <phoenix/vdfs.hh>
+#include <phoenix/font.hh>
 
-#include <zenload/zCFont.h>
 #include <Tempest/Painter>
 
 class GthFont final {
   public:
-    GthFont(const char* name, std::string_view tex, const Tempest::Color& cl, const VDFS::FileIndex& fileIndex);
+    GthFont(phoenix::buffer data, std::string_view ftex, const Tempest::Color &cl);
     GthFont(const GthFont&) = delete;
 
     int  pixelSize() const;
@@ -20,7 +21,7 @@ class GthFont final {
     auto lineCount(int w, std::string_view txt) const -> int32_t;
 
   private:
-    ZenLoad::zCFont           fnt;
+    phoenix::font             fnt;
     const Tempest::Texture2d* tex=nullptr;
     Tempest::Color            color;
 

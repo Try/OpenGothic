@@ -72,7 +72,6 @@ int main(int argc,const char** argv) {
     Tempest::Log::e("unable to setup logfile - fallback to console log");
     }
   CrashLog::setup();
-  VDFS::FileIndex::initVDFS(argv[0]);
 
   Tempest::Log::i(appBuild);
 

@@ -309,8 +309,13 @@ Animation::Sequence::Sequence(const ZenLoad::zCModelScriptAni& hdr, const std::s
   if(!Resources::hasFile(fname))
     return;
 
-  const VDFS::FileIndex& idx = Resources::vdfsIndex();
-  ZenLoad::ZenParser            zen(fname,idx);
+  const phoenix::vdf_file& idx = Resources::vdfsIndex();
+  phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(fname);
+  if (entry == nullptr)
+    return ;
+
+  phoenix::buffer reader      = entry->open();
+  ZenLoad::ZenParser            zen(reader.array().data(), reader.remaining());
   ZenLoad::ModelAnimationParser p(zen);
 
   data = std::make_shared<AnimData>();

@@ -115,8 +115,7 @@ Resources::Resources(Tempest::Device &device)
     });
 
   for(auto& i:archives)
-    gothicAssets.loadVDF(i.name);
-  gothicAssets.finalizeLoad();
+    gothicAssets.merge(phoenix::vdf_file::open(i.name));
 
   //for(auto& i:gothicAssets.getKnownFiles())
   //  Log::i(i);
@@ -132,12 +131,7 @@ Resources::~Resources() {
 
 bool Resources::hasFile(std::string_view name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
-  if(name.size()<128) {
-    char buf[128] = {};
-    std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
-    return inst->gothicAssets.hasFile(buf);
-    }
-  return inst->gothicAssets.hasFile(std::string(name));
+  return inst->gothicAssets.find_entry(name) != nullptr;
   }
 
 bool Resources::hasMeshShaders() {
@@ -147,12 +141,16 @@ bool Resources::hasMeshShaders() {
 
 bool Resources::getFileData(std::string_view name, std::vector<uint8_t> &dat) {
   dat.clear();
-  if(name.size()<128) {
-    char buf[128] = {};
-    std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
-    return inst->gothicAssets.getFileData(buf,dat);
-    }
-  return inst->gothicAssets.getFileData(std::string(name),dat);
+
+  phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
+  if (entry == nullptr)
+    return false;
+
+  // TODO: This should return a buffer!
+  phoenix::buffer reader = entry->open();
+  dat.assign(reader.array().begin(), reader.array().end());
+
+  return true;
   }
 
 std::vector<uint8_t> Resources::getFileData(std::string_view name) {
@@ -225,7 +223,7 @@ const Texture2d &Resources::fallbackBlack() {
   return inst->fbZero;
   }
 
-VDFS::FileIndex& Resources::vdfsIndex() {
+phoenix::vdf_file& Resources::vdfsIndex() {
   return inst->gothicAssets;
   }
 
@@ -324,7 +322,15 @@ ProtoMesh* Resources::implLoadMesh(std::string_view name) {
 std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
   if(FileExt::hasExt(name,"3DS")) {
     FileExt::exchangeExt(name,"3DS","MRM");
-    ZenLoad::zCProgMeshProto zmsh(name,gothicAssets);
+
+    phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
+    if (entry == nullptr) throw;
+    phoenix::buffer reader = entry->open();
+
+    ZenLoad::ZenParser zen(reader.array().data(), reader.remaining());
+    ZenLoad::zCProgMeshProto zmsh {};
+    zmsh.readObjectData(zen);
+
     if(zmsh.getNumSubmeshes()==0)
       return nullptr;
 
@@ -334,7 +340,14 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
 
   if(FileExt::hasExt(name,"MMS") || FileExt::hasExt(name,"MMB")) {
     FileExt::exchangeExt(name,"MMS","MMB");
-    ZenLoad::zCMorphMesh zmm(name,gothicAssets);
+
+    phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
+    if (entry == nullptr) throw;
+    phoenix::buffer reader = entry->open();
+    ZenLoad::ZenParser zen(reader.array().data(), reader.remaining());
+    ZenLoad::zCMorphMesh zmm {};
+    zmm.readObjectData(zen);
+
     if(zmm.getMesh().getNumSubmeshes()==0)
       return nullptr;
 
@@ -356,7 +369,10 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     FileExt::exchangeExt(mesh,"ASC",  "MDM");
 
     if(hasFile(mesh)) {
-      ZenLoad::ZenParser parserMdm(mesh,gothicAssets);
+      phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(mesh);
+      if (entry == nullptr) throw;
+      phoenix::buffer reader = entry->open();
+      ZenLoad::ZenParser parserMdm(reader.array().data(), reader.remaining());
       mdm.loadMDM(parserMdm);
       hasMdm = true;
       }
@@ -365,7 +381,10 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
       mesh = name;
     FileExt::assignExt(mesh,"MDH");
 
-    ZenLoad::ZenParser parserMdh(mesh,gothicAssets);
+    phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(mesh);
+    if (entry == nullptr) throw;
+    phoenix::buffer reader = entry->open();
+    ZenLoad::ZenParser parserMdh(reader.array().data(), reader.remaining());
     mdh.loadMDH(parserMdh);
 
     std::unique_ptr<Skeleton> sk{new Skeleton(mdh,anim,name)};
@@ -384,7 +403,10 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
 
     ZenLoad::zCModelMeshLib mdm;
 
-    ZenLoad::ZenParser parser(name,gothicAssets);
+    phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
+    if (entry == nullptr) throw;
+    phoenix::buffer reader = entry->open();
+    ZenLoad::ZenParser parser(reader.array().data(), reader.remaining());
     if(FileExt::hasExt(name,"MDL"))
       mdm.loadMDL(parser); else
       mdm.loadMDM(parser);
@@ -412,7 +434,14 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(std::string_view name) {
 
   if(FileExt::hasExt(cname,"3DS")) {
     FileExt::exchangeExt(cname,"3DS","MRM");
-    ZenLoad::zCProgMeshProto zmsh(cname,gothicAssets);
+
+    phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname);
+    if (entry == nullptr) throw;
+    phoenix::buffer reader = entry->open();
+    ZenLoad::ZenParser zen(reader.array().data(), reader.remaining());
+    ZenLoad::zCProgMeshProto zmsh {};
+    zmsh.readObjectData(zen);
+
     if(zmsh.getNumSubmeshes()==0)
       return nullptr;
 
@@ -425,7 +454,10 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(std::string_view name) {
     if(!hasFile(name))
       return nullptr;
 
-    ZenLoad::ZenParser parser(cname,gothicAssets);
+    phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname);
+    if (entry == nullptr) throw;
+    phoenix::buffer reader = entry->open();
+    ZenLoad::ZenParser parser(reader.array().data(), reader.remaining());
     ZenLoad::zCModelMeshLib mdm;
     mdm.loadMDM(parser);
 
@@ -491,14 +523,18 @@ std::unique_ptr<Animation> Resources::implLoadAnimation(std::string name) {
   if(Gothic::inst().version().game==2)
     FileExt::exchangeExt(name,"MDS","MSB");
 
+  phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
+  if (entry == nullptr) return nullptr;
+  phoenix::buffer reader = entry->open();
+
   if(FileExt::hasExt(name,"MSB")) {
-    ZenLoad::ZenParser    zen(name,gothicAssets);
+    ZenLoad::ZenParser    zen(reader.array().data(), reader.remaining());
     ZenLoad::MdsParserBin p(zen);
     return std::unique_ptr<Animation>{new Animation(p,name.substr(0,name.size()-4),false)};
     }
 
   if(FileExt::hasExt(name,"MDS")) {
-    ZenLoad::ZenParser    zen(name,gothicAssets);
+    ZenLoad::ZenParser    zen(reader.array().data(), reader.remaining());
     ZenLoad::MdsParserTxt p(zen);
     return std::unique_ptr<Animation>{new Animation(p,name.substr(0,name.size()-4),true)};
     }
@@ -574,7 +610,10 @@ GthFont &Resources::implLoadFont(std::string_view name, FontType type) {
       break;
     }
 
-  auto ptr   = std::make_unique<GthFont>(fnt,tex,color,gothicAssets);
+    phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(fnt);
+    if (entry == nullptr) throw;
+
+  auto ptr   = std::make_unique<GthFont>(entry->open(),tex,color);
   GthFont* f = ptr.get();
   gothicFnt[std::make_pair(std::move(cname),type)] = std::move(ptr);
   return *f;
@@ -717,7 +756,10 @@ ZenLoad::oCWorldData& Resources::implLoadVobBundle(std::string_view filename) {
 
   ZenLoad::oCWorldData bundle;
   try {
-    ZenLoad::ZenParser parser(cname,Resources::vdfsIndex());
+    phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname);
+    if (entry == nullptr) throw;
+    phoenix::buffer reader = entry->open();
+    ZenLoad::ZenParser parser(reader.array().data(), reader.remaining());
     parser.readHeader();
 
     auto fver = ZenLoad::ZenParser::FileVersion::Gothic1;

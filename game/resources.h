@@ -5,7 +5,7 @@
 #include <Tempest/Device>
 #include <Tempest/SoundDevice>
 
-#include <vdfs/fileIndex.h>
+#include <phoenix/vdfs.hh>
 
 #include <zenload/zCModelMeshLib.h>
 #include <zenload/zCMorphMesh.h>
@@ -133,7 +133,7 @@ class Resources final {
 
     static bool                      hasMeshShaders();
 
-    static VDFS::FileIndex&          vdfsIndex();
+    static phoenix::vdf_file&          vdfsIndex();
 
     static const Tempest::VertexBuffer<VertexFsq>& fsqVbo();
 
@@ -202,7 +202,7 @@ class Resources final {
 
     std::recursive_mutex              sync;
     std::unique_ptr<Dx8::DirectMusic> dxMusic;
-    VDFS::FileIndex                   gothicAssets;
+    phoenix::vdf_file                 gothicAssets {"Root"};
 
     std::vector<uint8_t>              fBuff, ddsBuf;
     Tempest::VertexBuffer<VertexFsq>  fsq;

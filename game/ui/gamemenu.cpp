@@ -379,7 +379,7 @@ void GameMenu::paintEvent(PaintEvent &e) {
   }
 
 void GameMenu::drawItem(Painter& p, Item& hItem) {
-  if(!hItem.visible)
+  if(!hItem.visible || hItem.name.empty())
     return;
   Daedalus::GEngineClasses::C_Menu_Item&        item  = hItem.handle;
   Daedalus::GEngineClasses::C_Menu_Item::EFlags flags = Daedalus::GEngineClasses::C_Menu_Item::EFlags(item.flags);

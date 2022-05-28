@@ -297,7 +297,7 @@ void GameSession::tick(uint64_t dt) {
 
     const char *w = (beg!=std::string::npos) ? (chWorld.zen.c_str()+beg+1) : chWorld.zen.c_str();
 
-    if(Resources::vdfsIndex().hasFile(w)) {
+    if(Resources::hasFile(w)) {
       std::snprintf(buf,sizeof(buf),"LOADING_%s.TGA",wname.c_str());  // format load-screen name, like "LOADING_OLDWORLD.TGA"
 
       Gothic::inst().startLoad(buf,[this](std::unique_ptr<GameSession>&& game){
@@ -316,7 +316,7 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
   if(cut!=std::string::npos)
     w = w+cut+1;
 
-  if(!Resources::vdfsIndex().hasFile(w)) {
+  if(!Resources::hasFile(w)) {
     Log::i("World not found[",world,"]");
     return std::move(game);
     }
