@@ -281,13 +281,16 @@ void MainWindow::tickMouse() {
     return;
     }
 
-  const float mouseSensitivity = Gothic::inst().settingsGetF("GAME","mouseSensitivity")/MouseUtil::mouseSysSpeed();
+  const bool  camLookaroundInverse = Gothic::inst().settingsGetI("GAME","camLookaroundInverse");
+  const float mouseSensitivity     = Gothic::inst().settingsGetF("GAME","mouseSensitivity")/MouseUtil::mouseSysSpeed();
   PointF dpScaled = PointF(float(dMouse.x)*mouseSensitivity,float(dMouse.y)*mouseSensitivity);
   dpScaled.x/=float(w());
   dpScaled.y/=float(h());
 
   dpScaled*=1000.f;
   dpScaled.y /= 7.f;
+  if(camLookaroundInverse)
+    dpScaled.y *= -1.f;
 
   if(auto camera = Gothic::inst().camera())
     camera->onRotateMouse(PointF(dpScaled.y,-dpScaled.x));
