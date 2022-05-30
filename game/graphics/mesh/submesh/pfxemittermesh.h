@@ -1,6 +1,5 @@
 #pragma once
 
-#include <zenload/zCModelMeshLib.h>
 #include <zenload/zTypes.h>
 #include <cstdint>
 
@@ -14,8 +13,6 @@ class Pose;
 class PfxEmitterMesh {
   public:
     PfxEmitterMesh(const PackedMesh& src);
-
-    PfxEmitterMesh(const ZenLoad::zCModelMeshLib& src);
     PfxEmitterMesh(const phoenix::model_mesh& src);
 
     Tempest::Vec3 randCoord(float rnd, const Pose* pose) const;

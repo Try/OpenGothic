@@ -172,6 +172,43 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, std::unique_ptr<Ske
   setupScheme(fname);
   }
 
+ProtoMesh::ProtoMesh(const phoenix::model_hierachy& library, std::unique_ptr<Skeleton>&& sk, const std::string& fname)
+      :skeleton(std::move(sk)), fname(fname) {
+
+  nodes.resize(skeleton == nullptr ? 0 : skeleton->nodes.size());
+  for (size_t i = 0; i < nodes.size(); ++i) {
+    Node& n = nodes[i];
+    auto& src = skeleton->nodes[i];
+    n.parentId = src.parent;
+    n.transform = src.tr;
+  }
+
+  for (auto& i : nodes)
+    if (i.parentId < nodes.size())
+      nodes[i.parentId].hasChild = true;
+
+  size_t subCount = 0;
+  for (auto& i : nodes) {
+    i.submeshIdB = subCount;
+    i.submeshIdE = subCount;
+  }
+  submeshId.resize(subCount);
+
+  if (skeleton != nullptr) {
+    for (size_t i = 0; i < skeleton->nodes.size(); ++i) {
+      auto& n = skeleton->nodes[i];
+      if (n.name.find("ZS_POS") == 0) {
+        Pos p;
+        p.name = n.name;
+        p.node = i;
+        p.transform = n.tr;
+        pos.push_back(p);
+      }
+    }
+  }
+  setupScheme(fname);
+}
+
 ProtoMesh::ProtoMesh(const phoenix::model_mesh& library, std::unique_ptr<Skeleton>&& sk, const std::string& fname) {
   for(auto& m:library.attachments()) {
     PackedMesh pack(m.second,PackedMesh::PK_Visual);

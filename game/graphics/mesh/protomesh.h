@@ -6,6 +6,7 @@
 #include <Tempest/Matrix4x4>
 
 #include <phoenix/model_mesh.hh>
+#include <phoenix/model_hierarchy.hh>
 
 #include "graphics/mesh/submesh/staticmesh.h"
 #include "graphics/mesh/submesh/animmesh.h"
@@ -21,6 +22,7 @@ class ProtoMesh {
     ProtoMesh(PackedMesh&&  pm, const std::string& fname);
     ProtoMesh(PackedMesh&&  pm, const std::vector<ZenLoad::zCMorphMesh::Animation>& aniList, const std::string& fname);
     ProtoMesh(const ZenLoad::zCModelMeshLib& lib, std::unique_ptr<Skeleton>&& sk, const std::string& fname);
+    ProtoMesh(const phoenix::model_hierachy& lib, std::unique_ptr<Skeleton>&& sk, const std::string& fname);
     ProtoMesh(const phoenix::model_mesh& lib, std::unique_ptr<Skeleton>&& sk, const std::string& fname);
     ProtoMesh(const Material& mat, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo); //decals
     ProtoMesh(ProtoMesh&&)=delete;

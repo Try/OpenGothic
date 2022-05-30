@@ -17,6 +17,7 @@
 #include <zenload/ztex2dds.h>
 
 #include <phoenix/proto_mesh.hh>
+#include <phoenix/model_hierarchy.hh>
 
 #include <fstream>
 
@@ -358,7 +359,6 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     if(anim==nullptr)
       return nullptr;
 
-    ZenLoad::zCModelMeshLib mdh;
     std::optional<phoenix::model_mesh> mdm {};
 
     auto mesh   = anim->defaultMesh();
@@ -378,14 +378,15 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
 
     phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(mesh);
     if (entry == nullptr) throw;
-    phoenix::buffer reader = entry->open();
-    ZenLoad::ZenParser parserMdh(reader.array().data(), reader.remaining());
-    mdh.loadMDH(parserMdh);
+    auto reader = entry->open();
+    auto mdh = phoenix::model_hierachy::parse(reader);
+    std::cout << "HIERACHY:: " << mesh << "\n";
 
     std::unique_ptr<Skeleton> sk{new Skeleton(mdh,anim,name)};
     std::unique_ptr<ProtoMesh> t;
     if(mdm)
-      t.reset(new ProtoMesh(std::move(*mdm),std::move(sk),name)); else
+      t.reset(new ProtoMesh(std::move(*mdm),std::move(sk),name));
+    else
       t.reset(new ProtoMesh(std::move(mdh),std::move(sk),name));
     return t;
     }

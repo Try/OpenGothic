@@ -48,6 +48,47 @@ Skeleton::Skeleton(const ZenLoad::zCModelMeshLib& src, const Animation* anim, st
   mkSkeleton();
   }
 
+Skeleton::Skeleton(const phoenix::model_hierachy& src, const Animation* anim, std::string_view name)
+      :fileName(name), anim(anim) {
+    bboxCol[0] = {src.collision_bbox().min.x, src.collision_bbox().min.y, src.collision_bbox().min.z};
+    bboxCol[1] = {src.collision_bbox().max.x, src.collision_bbox().max.y, src.collision_bbox().max.z};
+
+    nodes.resize(src.nodes().size());
+    tr.resize(src.nodes().size());
+
+    for(size_t i=0;i<nodes.size();++i) {
+      Node& n = nodes[i];
+      auto& s = src.nodes()[i];
+
+      n.name   = s.name;
+      n.parent = s.parent_index==uint16_t(-1) ? size_t(-1) : s.parent_index;
+      std::memcpy(reinterpret_cast<void*>(&n.tr),reinterpret_cast<const void*>(&s.transform),sizeof(n.tr));
+    }
+    assert(nodes.size()<=Resources::MAX_NUM_SKELETAL_NODES);
+    for(auto& i:tr)
+      i.identity();
+
+    for(size_t i=0;i<nodes.size();++i) {
+      if(nodes[i].parent>=i && nodes[i].parent!=size_t(-1)) {
+        ordered=false;
+        break;
+      }
+    }
+    for(size_t i=0;i<nodes.size();++i)
+      if(nodes[i].parent==size_t(-1))
+        rootNodes.push_back(i);
+
+    auto tr = src.root_translation();
+    rootTr = Vec3{tr.x,tr.y,tr.z};
+
+    for(auto& i:nodes)
+      if(i.parent==size_t(-1)){
+        i.tr.translate(rootTr);
+      }
+    BIP01_HEAD = findNode("BIP01 HEAD");
+    mkSkeleton();
+  }
+
 size_t Skeleton::findNode(std::string_view name, size_t def) const {
   if(name.empty())
     return def;

@@ -3,6 +3,8 @@
 #include <Tempest/Matrix4x4>
 #include <zenload/zCModelMeshLib.h>
 
+#include <phoenix/model_hierarchy.hh>
+
 #include <vector>
 #include <array>
 
@@ -11,6 +13,7 @@
 class Skeleton final {
   public:
     Skeleton(const ZenLoad::zCModelMeshLib& src, const Animation* anim, std::string_view name);
+    Skeleton(const phoenix::model_hierachy& src, const Animation* anim, std::string_view name);
 
     struct Node final {
       size_t             parent=size_t(-1);
