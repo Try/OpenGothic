@@ -13,9 +13,10 @@
 #include <zenload/modelScriptParser.h>
 #include <zenload/zCModelMeshLib.h>
 #include <zenload/zCMorphMesh.h>
-#include <zenload/zCProgMeshProto.h>
 #include <zenload/zenParser.h>
 #include <zenload/ztex2dds.h>
+
+#include <phoenix/proto_mesh.hh>
 
 #include <fstream>
 
@@ -324,14 +325,11 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     FileExt::exchangeExt(name,"3DS","MRM");
 
     phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
-    if (entry == nullptr) throw;
-    phoenix::buffer reader = entry->open();
+    if (entry == nullptr) return nullptr;
+    auto reader = entry->open();
+    auto zmsh = phoenix::proto_mesh::parse(reader);
 
-    ZenLoad::ZenParser zen(reader.array().data(), reader.remaining());
-    ZenLoad::zCProgMeshProto zmsh {};
-    zmsh.readObjectData(zen);
-
-    if(zmsh.getNumSubmeshes()==0)
+    if(zmsh.submeshes().empty())
       return nullptr;
 
     PackedMesh packed(zmsh,PackedMesh::PK_Visual);
@@ -436,13 +434,11 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(std::string_view name) {
     FileExt::exchangeExt(cname,"3DS","MRM");
 
     phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname);
-    if (entry == nullptr) throw;
-    phoenix::buffer reader = entry->open();
-    ZenLoad::ZenParser zen(reader.array().data(), reader.remaining());
-    ZenLoad::zCProgMeshProto zmsh {};
-    zmsh.readObjectData(zen);
+    if (entry == nullptr) return nullptr;
+    auto reader = entry->open();
+    auto zmsh = phoenix::proto_mesh::parse(reader);
 
-    if(zmsh.getNumSubmeshes()==0)
+    if(zmsh.submeshes().empty())
       return nullptr;
 
     PackedMesh packed(zmsh,PackedMesh::PK_Visual);

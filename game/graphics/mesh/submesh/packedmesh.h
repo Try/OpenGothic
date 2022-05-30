@@ -5,6 +5,8 @@
 #include <zenload/zCProgMeshProto.h>
 #include <zenload/zCMeshSoftSkin.h>
 
+#include <phoenix/proto_mesh.hh>
+
 #include <Tempest/Vec>
 #include <unordered_map>
 #include <map>
@@ -56,6 +58,7 @@ class PackedMesh {
 
     PackedMesh(const ZenLoad::zCMesh&          mesh, PkgType type);
     PackedMesh(const ZenLoad::zCProgMeshProto& mesh, PkgType type);
+    PackedMesh(const phoenix::proto_mesh& mesh, PkgType type);
     PackedMesh(const ZenLoad::zCMeshSoftSkin&  mesh);
     void debug(std::ostream &out) const;
 
@@ -88,11 +91,19 @@ class PackedMesh {
                     const std::vector<ZenLoad::zWedge>& wedgeList,
                     const std::vector<SkeletalData>* skeletal);
 
+      void    flush(std::vector<Vertex>& vertices, std::vector<VertexA>& verticesA,
+                 std::vector<uint32_t>& indices, std::vector<uint32_t>* verticesId,
+                 SubMesh& sub, const std::vector<glm::vec3>& vbo,
+                 const std::vector<phoenix::wedge>& wedgeList,
+                 const std::vector<SkeletalData>* skeletal);
+
       bool    insert(const Vert& a, const Vert& b, const Vert& c, uint8_t matchHint);
       void    clear();
       void    updateBounds(const ZenLoad::zCMesh& mesh);
       void    updateBounds(const ZenLoad::zCProgMeshProto& mesh);
+      void    updateBounds(const phoenix::proto_mesh& mesh);
       void    updateBounds(const std::vector<ZMath::float3>& vbo);
+      void    updateBounds(const std::vector<glm::vec3>& vbo);
       bool    canMerge(const Meshlet& other) const;
       bool    hasIntersection(const Meshlet& other) const;
       float   qDistance(const Meshlet& other) const;
@@ -103,6 +114,9 @@ class PackedMesh {
                     const Vert& a, const Vert& b, const Vert& c);
     void   packMeshlets(const ZenLoad::zCMesh& mesh);
     void   packMeshlets(const ZenLoad::zCProgMeshProto& mesh, PkgType type,
+                        const std::vector<SkeletalData>* skeletal);
+
+    void   packMeshlets(const phoenix::proto_mesh& mesh, PkgType type,
                         const std::vector<SkeletalData>* skeletal);
 
     void   postProcessP1(const ZenLoad::zCMesh& mesh, size_t matId, std::vector<Meshlet>& meshlets);

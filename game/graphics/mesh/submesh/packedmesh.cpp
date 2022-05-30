@@ -4,6 +4,7 @@
 #include <fstream>
 #include <algorithm>
 
+#include "game/compatibility/phoenix.h"
 #include "graphics/bounds.h"
 
 using namespace Tempest;
@@ -140,6 +141,90 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>&   vertices,
     }
   }
 
+void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices, std::vector<VertexA>& verticesA,
+           std::vector<uint32_t>& indices, std::vector<uint32_t>* verticesId,
+           SubMesh& sub, const std::vector<glm::vec3>& vboList,
+           const std::vector<phoenix::wedge>& wedgeList,
+           const std::vector<SkeletalData>* skeletal) {
+  if(indSz==0)
+    return;
+
+  auto& vbo = vboList;    // xyz
+  auto& uv  = wedgeList;  // uv, normal
+
+  size_t vboSz = 0;
+  size_t iboSz = indices.size();
+
+  if(skeletal==nullptr) {
+    vboSz = vertices.size();
+    vertices.resize(vboSz+MaxVert);
+  } else {
+    vboSz = verticesA.size();
+    verticesA.resize(vboSz+MaxVert);
+  }
+
+  indices.resize(iboSz+MaxInd );
+  if(verticesId!=nullptr)
+    verticesId->resize(vboSz+MaxVert);
+
+  if(skeletal==nullptr) {
+    for(size_t i=0; i<vertSz; ++i) {
+      Vertex vx = {};
+      auto& v     = uv [vert[i].second];
+      vx.pos[0]   = vbo[vert[i].first].x;
+      vx.pos[1]   = vbo[vert[i].first].y;
+      vx.pos[2]   = vbo[vert[i].first].z;
+      vx.norm[0] = v.normal.x;
+      vx.norm[1] = v.normal.y;
+      vx.norm[2] = v.normal.z;
+      vx.uv[0]   = v.texture.x;
+      vx.uv[1]   = v.texture.y;
+      vx.color    = 0xFFFFFFFF;
+      vertices[vboSz+i]   = vx;
+      if(verticesId!=nullptr)
+        (*verticesId)[vboSz+i] = vert[i].first;
+    }
+    for(size_t i=vertSz; i<MaxVert; ++i) {
+      Vertex vx = {};
+      vertices[vboSz+i] = vx;
+      if(verticesId!=nullptr)
+        (*verticesId)[vboSz+i] = uint32_t(-1);
+    }
+  } else {
+    auto& sk = *skeletal;
+    for(size_t i=0; i<vertSz; ++i) {
+      VertexA vx = {};
+      auto& v    = uv [vert[i].second];
+      vx.norm[0] = v.normal.x;
+      vx.norm[1] = v.normal.y;
+      vx.norm[2] = v.normal.z;
+      vx.uv[0]   = v.texture.x;
+      vx.uv[1]   = v.texture.y;
+      vx.color   = 0xFFFFFFFF;
+      for(int r=0; r<4; ++r) {
+        vx.pos    [r][0] = sk[vert[i].first].localPositions[r].x;
+        vx.pos    [r][1] = sk[vert[i].first].localPositions[r].y;
+        vx.pos    [r][2] = sk[vert[i].first].localPositions[r].z;
+        vx.boneId [r]    = sk[vert[i].first].boneIndices[r];
+        vx.weights[r]    = sk[vert[i].first].weights[r];
+      }
+      verticesA[vboSz+i]  = vx;
+    }
+    for(size_t i=vertSz; i<MaxVert; ++i) {
+      VertexA vx = {};
+      verticesA[vboSz+i] = vx;
+    }
+  }
+
+  for(size_t i=0; i<indSz; ++i) {
+    indices[iboSz+i] = uint32_t(vboSz)+indexes[i];
+  }
+  for(size_t i=indSz; i<MaxInd; ++i) {
+    // padd with degenerated triangles
+    indices[iboSz+i] = uint32_t(vboSz);
+  }
+}
+
 bool PackedMesh::Meshlet::insert(const Vert& a, const Vert& b, const Vert& c, uint8_t matchHint) {
   if(indSz+3>MaxInd)
     return false;
@@ -209,6 +294,10 @@ void PackedMesh::Meshlet::updateBounds(const ZenLoad::zCProgMeshProto& mesh) {
   updateBounds(mesh.getVertices());
   }
 
+void PackedMesh::Meshlet::updateBounds(const phoenix::proto_mesh& mesh) {
+  updateBounds(mesh.positions());
+}
+
 void PackedMesh::Meshlet::updateBounds(const std::vector<ZMath::float3>& vbo) {
   float dim = 0;
   for(size_t i=0; i<vertSz; ++i)
@@ -236,6 +325,34 @@ void PackedMesh::Meshlet::updateBounds(const std::vector<ZMath::float3>& vbo) {
     }
   bounds.r = std::sqrt(bounds.r);
   }
+
+void PackedMesh::Meshlet::updateBounds(const std::vector<glm::vec3>& vbo) {
+  float dim = 0;
+  for(size_t i=0; i<vertSz; ++i)
+    for(size_t r=i+1; r<vertSz; ++r) {
+      auto a = vbo[vert[i].first];
+      auto b = vbo[vert[r].first];
+      a.x -= b.x;
+      a.y -= b.y;
+      a.z -= b.z;
+      float d = a.x*a.x + a.y*a.y + a.z*a.z;
+      if(dim<d) {
+        bounds.pos = Vec3(b.x,b.y,b.z)+Vec3(a.x,a.y,a.z)*0.5f;
+        dim = d;
+      }
+    }
+  bounds.r = 0;
+  for(size_t i=0; i<vertSz; ++i) {
+    auto a = vbo[vert[i].first];
+    a.x -= bounds.pos.x;
+    a.y -= bounds.pos.y;
+    a.z -= bounds.pos.z;
+    float d = (a.x*a.x + a.y*a.y + a.z*a.z);
+    if(bounds.r<d)
+      bounds.r = d;
+  }
+  bounds.r = std::sqrt(bounds.r);
+}
 
 bool PackedMesh::Meshlet::canMerge(const Meshlet& other) const {
   if(vertSz+other.vertSz>MaxVert)
@@ -324,6 +441,18 @@ PackedMesh::PackedMesh(const ZenLoad::zCProgMeshProto& mesh, PkgType type) {
 
   packMeshlets(mesh,type,nullptr);
   }
+
+PackedMesh::PackedMesh(const phoenix::proto_mesh& mesh, PkgType type) {
+  subMeshes.resize(mesh.submeshes().size());
+  isUsingAlphaTest = mesh.alpha_test();
+  {
+    auto bbox = mesh.bbox();
+    mBbox[0] = Vec3(bbox.min.x,bbox.min.y,bbox.min.z);
+    mBbox[1] = Vec3(bbox.max.x,bbox.max.y,bbox.max.z);
+  }
+
+  packMeshlets(mesh,type,nullptr);
+}
 
 PackedMesh::PackedMesh(const ZenLoad::zCMeshSoftSkin& skinned) {
   auto& mesh = skinned.getMesh();
@@ -534,6 +663,49 @@ void PackedMesh::packMeshlets(const ZenLoad::zCProgMeshProto& mesh, PkgType type
     pack.iboLength = indices.size() - pack.iboOffset;
     }
   }
+
+void PackedMesh::packMeshlets(const phoenix::proto_mesh& mesh, PkgType type,
+                             const std::vector<SkeletalData>* skeletal) {
+  auto* vId = (type==PK_VisualMorph) ? &verticesId : nullptr;
+
+  for(size_t mId=0; mId<mesh.submeshes().size(); ++mId) {
+    auto& sm   = mesh.submeshes()[mId];
+    auto& pack = subMeshes[mId];
+
+    pack.material = phoenix_compat::to_zenlib_material(sm.mat);
+
+    std::vector<Meshlet> meshlets;
+    Meshlet activeMeshlets[16];
+    for(size_t i=0; i<sm.triangles.size(); ++i) {
+      const uint16_t* ibo = sm.triangles[i].wedges;
+
+      Vert vert[3];
+      for(int x=0; x<3; ++x) {
+        auto& wedge = sm.wedges[ibo[x]];
+        vert[x] = std::make_pair(wedge.index,ibo[x]);
+      }
+      addIndex(activeMeshlets,16,meshlets, vert[0],vert[1],vert[2]);
+    }
+
+    for(auto& meshlet:activeMeshlets)
+      if(meshlet.indSz>0)
+        meshlets.push_back(std::move(meshlet));
+
+    std::vector<Meshlet*> ind(meshlets.size());
+    for(size_t i=0; i<meshlets.size(); ++i) {
+      meshlets[i].updateBounds(mesh);
+      ind[i] = &meshlets[i];
+    }
+    mergePass(ind,false);
+
+    pack.iboOffset = indices.size();
+    for(auto& i:ind) {
+      i->updateBounds(mesh);
+      i->flush(vertices,verticesA,indices,vId,pack,mesh.positions(),sm.wedges,skeletal);
+    }
+    pack.iboLength = indices.size() - pack.iboOffset;
+  }
+}
 
 void PackedMesh::sortPass(std::vector<Meshlet*>& meshlets) {
   if(meshlets.size()<2)
