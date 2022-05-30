@@ -2,6 +2,7 @@
 
 #include <Tempest/Log>
 
+#include "game/compatibility/phoenix.h"
 #include "graphics/mesh/submesh/packedmesh.h"
 #include "graphics/mesh/skeleton.h"
 #include "physics/physicmeshshape.h"
@@ -170,6 +171,83 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, std::unique_ptr<Ske
     }
   setupScheme(fname);
   }
+
+ProtoMesh::ProtoMesh(const phoenix::model_mesh& library, std::unique_ptr<Skeleton>&& sk, const std::string& fname) {
+  for(auto& m:library.attachments()) {
+    PackedMesh pack(m.second,PackedMesh::PK_Visual);
+    attach.emplace_back(pack);
+    auto& att = attach.back();
+    att.name = m.first;
+    att.shape.reset(PhysicMeshShape::load(std::move(pack)));
+  }
+
+  nodes.resize(skeleton==nullptr ? 0 : skeleton->nodes.size());
+  for(size_t i=0;i<nodes.size();++i) {
+    Node& n   = nodes[i];
+    auto& src = skeleton->nodes[i];
+    for(size_t r=0;r<attach.size();++r)
+      if(attach[r].name==src.name){
+        n.attachId = r;
+        break;
+      }
+    n.parentId  = src.parent;
+    n.transform = src.tr;
+  }
+
+  for(auto& i:nodes)
+    if(i.parentId<nodes.size())
+      nodes[i.parentId].hasChild=true;
+
+  size_t subCount=0;
+  for(auto& i:nodes)
+    if(i.attachId<attach.size()) {
+      attach[i.attachId].hasNode = true;
+      subCount+=attach[i.attachId].sub.size();
+    }
+  for(auto& a:attach)
+    if(!a.hasNode)
+      subCount+=a.sub.size();
+  submeshId.resize(subCount);
+
+  subCount=0;
+  for(auto& i:nodes) {
+    i.submeshIdB = subCount;
+    if(i.attachId<attach.size()) {
+      auto& att = attach[i.attachId];
+      for(size_t r=0;r<att.sub.size();++r){
+        if(att.sub[r].material.tex==nullptr) {
+          if(!att.sub[r].texName.empty())
+            Tempest::Log::e("no texture: ",att.sub[r].texName);
+          continue;
+        }
+        submeshId[subCount].id    = i.attachId;
+        submeshId[subCount].subId = r;
+        subCount++;
+      }
+    }
+    i.submeshIdE = subCount;
+  }
+  submeshId.resize(subCount);
+
+  for(const auto &i : library.meshes()){
+    PackedMesh pkg(i);
+    skined.emplace_back(pkg);
+  }
+
+  if(skeleton!=nullptr) {
+    for(size_t i=0;i<skeleton->nodes.size();++i) {
+      auto& n=skeleton->nodes[i];
+      if(n.name.find("ZS_POS")==0){
+        Pos p;
+        p.name      = n.name;
+        p.node      = i;
+        p.transform = n.tr;
+        pos.push_back(p);
+      }
+    }
+  }
+  setupScheme(fname);
+}
 
 ProtoMesh::ProtoMesh(const Material& mat, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo) {
   attach.emplace_back(mat,std::move(vbo),std::move(ibo));

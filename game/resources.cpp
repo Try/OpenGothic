@@ -358,21 +358,18 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     if(anim==nullptr)
       return nullptr;
 
-    ZenLoad::zCModelMeshLib mdm, mdh;
+    ZenLoad::zCModelMeshLib mdh;
+    std::optional<phoenix::model_mesh> mdm {};
 
     auto mesh   = anim->defaultMesh();
-    bool hasMdm = false;
 
     FileExt::exchangeExt(mesh,nullptr,"MDM") ||
     FileExt::exchangeExt(mesh,"ASC",  "MDM");
 
     if(hasFile(mesh)) {
       phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(mesh);
-      if (entry == nullptr) throw;
-      phoenix::buffer reader = entry->open();
-      ZenLoad::ZenParser parserMdm(reader.array().data(), reader.remaining());
-      mdm.loadMDM(parserMdm);
-      hasMdm = true;
+      auto reader = entry->open();
+      mdm = phoenix::model_mesh::parse(reader);
       }
 
     if(anim->defaultMesh().empty())
@@ -387,31 +384,42 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
 
     std::unique_ptr<Skeleton> sk{new Skeleton(mdh,anim,name)};
     std::unique_ptr<ProtoMesh> t;
-    if(hasMdm)
-      t.reset(new ProtoMesh(std::move(mdm),std::move(sk),name)); else
+    if(mdm)
+      t.reset(new ProtoMesh(std::move(*mdm),std::move(sk),name)); else
       t.reset(new ProtoMesh(std::move(mdh),std::move(sk),name));
     return t;
     }
 
-  if(FileExt::hasExt(name,"MDM") || FileExt::hasExt(name,"MDL") || FileExt::hasExt(name,"ASC")) {
+  if(FileExt::hasExt(name,"MDM") || FileExt::hasExt(name,"ASC")) {
     FileExt::exchangeExt(name,"ASC","MDM");
 
     if(!hasFile(name))
       return nullptr;
 
-    ZenLoad::zCModelMeshLib mdm;
-
     phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
-    if (entry == nullptr) throw;
-    phoenix::buffer reader = entry->open();
-    ZenLoad::ZenParser parser(reader.array().data(), reader.remaining());
-    if(FileExt::hasExt(name,"MDL"))
-      mdm.loadMDL(parser); else
-      mdm.loadMDM(parser);
+    if (entry == nullptr) return nullptr;
+    auto reader = entry->open();
+    auto mdm = phoenix::model_mesh::parse(reader);
 
-    std::unique_ptr<Skeleton> sk{new Skeleton(mdm,nullptr,name)};
-    std::unique_ptr<ProtoMesh> t{new ProtoMesh(std::move(mdm),std::move(sk),name)};
+    std::unique_ptr<ProtoMesh> t{new ProtoMesh(std::move(mdm),nullptr,name)};
     return t;
+    }
+
+    if(FileExt::hasExt(name,"MDL")) {
+      if(!hasFile(name))
+        return nullptr;
+
+      ZenLoad::zCModelMeshLib mdm;
+
+      phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
+      if (entry == nullptr) throw;
+      phoenix::buffer reader = entry->open();
+      ZenLoad::ZenParser parser(reader.array().data(), reader.remaining());
+      mdm.loadMDL(parser);
+
+      std::unique_ptr<Skeleton> sk{new Skeleton(mdm,nullptr,name)};
+      std::unique_ptr<ProtoMesh> t{new ProtoMesh(std::move(mdm),std::move(sk),name)};
+      return t;
     }
 
   if(FileExt::hasExt(name,"TGA")) {
@@ -452,10 +460,8 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(std::string_view name) {
 
     phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname);
     if (entry == nullptr) throw;
-    phoenix::buffer reader = entry->open();
-    ZenLoad::ZenParser parser(reader.array().data(), reader.remaining());
-    ZenLoad::zCModelMeshLib mdm;
-    mdm.loadMDM(parser);
+    auto reader = entry->open();
+    auto mdm = phoenix::model_mesh::parse(reader);
 
     ret = std::unique_ptr<PfxEmitterMesh>(new PfxEmitterMesh(std::move(mdm)));
     return ret.get();
