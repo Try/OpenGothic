@@ -7,7 +7,6 @@
 
 #include <phoenix/vdfs.hh>
 
-#include <zenload/zCModelMeshLib.h>
 #include <zenload/zCMorphMesh.h>
 #include <zenload/zTypes.h>
 

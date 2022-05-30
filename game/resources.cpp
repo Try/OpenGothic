@@ -11,13 +11,13 @@
 #include <Tempest/Log>
 
 #include <zenload/modelScriptParser.h>
-#include <zenload/zCModelMeshLib.h>
 #include <zenload/zCMorphMesh.h>
 #include <zenload/zenParser.h>
 #include <zenload/ztex2dds.h>
 
 #include <phoenix/proto_mesh.hh>
 #include <phoenix/model_hierarchy.hh>
+#include <phoenix/model.hh>
 
 #include <fstream>
 
@@ -380,7 +380,6 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     if (entry == nullptr) throw;
     auto reader = entry->open();
     auto mdh = phoenix::model_hierachy::parse(reader);
-    std::cout << "HIERACHY:: " << mesh << "\n";
 
     std::unique_ptr<Skeleton> sk{new Skeleton(mdh,anim,name)};
     std::unique_ptr<ProtoMesh> t;
@@ -410,16 +409,13 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
       if(!hasFile(name))
         return nullptr;
 
-      ZenLoad::zCModelMeshLib mdm;
-
       phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
       if (entry == nullptr) throw;
-      phoenix::buffer reader = entry->open();
-      ZenLoad::ZenParser parser(reader.array().data(), reader.remaining());
-      mdm.loadMDL(parser);
+      auto reader = entry->open();
+      auto mdm = phoenix::model::parse(reader);
 
-      std::unique_ptr<Skeleton> sk{new Skeleton(mdm,nullptr,name)};
-      std::unique_ptr<ProtoMesh> t{new ProtoMesh(std::move(mdm),std::move(sk),name)};
+      std::unique_ptr<Skeleton> sk{new Skeleton(mdm.hierachy(),nullptr,name)};
+      std::unique_ptr<ProtoMesh> t{new ProtoMesh(mdm,std::move(sk),name)};
       return t;
     }
 

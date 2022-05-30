@@ -90,9 +90,9 @@ ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::vector<ZenLoad::zCMorphMesh::An
     }
   }
 
-ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, std::unique_ptr<Skeleton>&& sk, const std::string &fname)
+ProtoMesh::ProtoMesh(const phoenix::model &library, std::unique_ptr<Skeleton>&& sk, const std::string &fname)
   :skeleton(std::move(sk)), fname(fname) {
-  for(auto& m:library.getAttachments()) {
+  for(auto& m:library.mesh().attachments()) {
     PackedMesh pack(m.second,PackedMesh::PK_Visual);
     attach.emplace_back(pack);
     auto& att = attach.back();
@@ -105,7 +105,7 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, std::unique_ptr<Ske
     Node& n   = nodes[i];
     auto& src = skeleton->nodes[i];
     for(size_t r=0;r<attach.size();++r)
-      if(library.getAttachments()[r].first==src.name){
+      if(attach[r].name==src.name){
         n.attachId = r;
         break;
         }
@@ -148,11 +148,8 @@ ProtoMesh::ProtoMesh(const ZenLoad::zCModelMeshLib &library, std::unique_ptr<Ske
     }
   submeshId.resize(subCount);
 
-  for(size_t i=0;i<library.getMeshes().size();++i){
-    ZenLoad::PackedSkeletalMesh pack;
-    auto& mesh = library.getMeshes()[i];
-    mesh.packMesh(pack);
-
+  for(size_t i=0;i<library.mesh().meshes().size();++i){
+    auto& mesh = library.mesh().meshes()[i];
     PackedMesh pkg(mesh);
     skined.emplace_back(pkg);
     }
