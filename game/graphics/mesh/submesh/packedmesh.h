@@ -5,6 +5,7 @@
 #include <zenload/zCProgMeshProto.h>
 #include <zenload/zCMeshSoftSkin.h>
 
+#include <phoenix/mesh.hh>
 #include <phoenix/proto_mesh.hh>
 #include <phoenix/softskin_mesh.hh>
 
@@ -60,6 +61,7 @@ class PackedMesh {
     PackedMesh(const ZenLoad::zCMesh&          mesh, PkgType type);
     PackedMesh(const ZenLoad::zCProgMeshProto& mesh, PkgType type);
     PackedMesh(const phoenix::proto_mesh& mesh, PkgType type);
+    PackedMesh(const phoenix::mesh& mesh, PkgType type);
     PackedMesh(const ZenLoad::zCMeshSoftSkin&  mesh);
     PackedMesh(const phoenix::softskin_mesh&  mesh);
     void debug(std::ostream &out) const;
@@ -87,6 +89,8 @@ class PackedMesh {
 
       void    flush(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<Bounds>& instances,
                     SubMesh& sub, const ZenLoad::zCMesh& mesh);
+      void    flush(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<Bounds>& instances,
+                    SubMesh& sub, const phoenix::mesh& mesh);
       void    flush(std::vector<Vertex>& vertices, std::vector<VertexA>& verticesA,
                     std::vector<uint32_t>& indices, std::vector<uint32_t>* verticesId,
                     SubMesh& sub, const std::vector<ZMath::float3>& vbo,
@@ -102,6 +106,7 @@ class PackedMesh {
       bool    insert(const Vert& a, const Vert& b, const Vert& c, uint8_t matchHint);
       void    clear();
       void    updateBounds(const ZenLoad::zCMesh& mesh);
+      void    updateBounds(const phoenix::mesh& mesh);
       void    updateBounds(const ZenLoad::zCProgMeshProto& mesh);
       void    updateBounds(const phoenix::proto_mesh& mesh);
       void    updateBounds(const std::vector<ZMath::float3>& vbo);
@@ -115,6 +120,7 @@ class PackedMesh {
     void   addIndex(Meshlet* active, size_t numActive, std::vector<Meshlet>& meshlets,
                     const Vert& a, const Vert& b, const Vert& c);
     void   packMeshlets(const ZenLoad::zCMesh& mesh);
+    void   packMeshlets(const phoenix::mesh& mesh);
     void   packMeshlets(const ZenLoad::zCProgMeshProto& mesh, PkgType type,
                         const std::vector<SkeletalData>* skeletal);
 
@@ -122,12 +128,15 @@ class PackedMesh {
                         const std::vector<SkeletalData>* skeletal);
 
     void   postProcessP1(const ZenLoad::zCMesh& mesh, size_t matId, std::vector<Meshlet>& meshlets);
+    void   postProcessP1(const phoenix::mesh& mesh, size_t matId, std::vector<Meshlet>& meshlets);
     void   postProcessP2(const ZenLoad::zCMesh& mesh, size_t matId, std::vector<Meshlet*>& meshlets);
+    void   postProcessP2(const phoenix::mesh& mesh, size_t matId, std::vector<Meshlet*>& meshlets);
 
     void   sortPass(std::vector<Meshlet*>& meshlets);
     void   mergePass(std::vector<Meshlet*>& meshlets, bool fast);
 
     void   packPhysics(const ZenLoad::zCMesh& mesh,PkgType type);
+    void   packPhysics(const phoenix::mesh& mesh,PkgType type);
     void   computeBbox();
 
     void   dbgUtilization(std::vector<Meshlet*>& meshlets);

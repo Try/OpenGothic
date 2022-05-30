@@ -54,6 +54,52 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>&   vertices,
     }
   }
 
+void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices,
+                                std::vector<uint32_t>& indices,
+                                std::vector<Bounds>& instances,
+                                SubMesh& sub,
+                                const phoenix::mesh& mesh) {
+  if(indSz==0)
+    return;
+  instances.push_back(bounds);
+
+  auto& vbo = mesh.vertices();  // xyz
+  auto& uv  = mesh.features();  // uv, normal
+
+  size_t vboSz = vertices.size();
+  size_t iboSz = indices.size();
+  vertices.resize(vboSz+MaxVert);
+  indices .resize(iboSz+MaxInd );
+
+  for(size_t i=0; i<vertSz; ++i) {
+    Vertex vx = {};
+    auto& v     = uv [vert[i].second];
+
+    vx.pos[0]  = vbo[vert[i].first].x;
+    vx.pos[1]  = vbo[vert[i].first].y;
+    vx.pos[2]  = vbo[vert[i].first].z;
+    vx.norm[0] = v.normal.x;
+    vx.norm[1] = v.normal.y;
+    vx.norm[2] = v.normal.z;
+    vx.uv[0]   = v.texture.x;
+    vx.uv[1]   = v.texture.y;
+    vx.color   = v.light;
+    vertices[vboSz+i] = vx;
+  }
+  for(size_t i=vertSz; i<MaxVert; ++i) {
+    Vertex vx = {};
+    vertices[vboSz+i] = vx;
+  }
+
+  for(size_t i=0; i<indSz; ++i) {
+    indices[iboSz+i] = uint32_t(vboSz)+indexes[i];
+  }
+  for(size_t i=indSz; i<MaxInd; ++i) {
+    // padd with degenerated triangles
+    indices[iboSz+i] = uint32_t(vboSz);
+  }
+}
+
 void PackedMesh::Meshlet::flush(std::vector<Vertex>&   vertices,
                                 std::vector<VertexA>&  verticesA,
                                 std::vector<uint32_t>& indices,
@@ -290,6 +336,10 @@ void PackedMesh::Meshlet::updateBounds(const ZenLoad::zCMesh& mesh) {
   updateBounds(mesh.getVertices());
   }
 
+void PackedMesh::Meshlet::updateBounds(const phoenix::mesh& mesh) {
+  updateBounds(mesh.vertices());
+}
+
 void PackedMesh::Meshlet::updateBounds(const ZenLoad::zCProgMeshProto& mesh) {
   updateBounds(mesh.getVertices());
   }
@@ -408,6 +458,34 @@ static bool isSame(const ZenLoad::zCMaterialData& a, const ZenLoad::zCMaterialDa
   return true;
   }
 
+static bool isSame(const phoenix::material& a, const phoenix::material& b) {
+  if( a.name                         != b.name ||
+      a.group                        != b.group ||
+      a.color                        != b.color ||
+      a.smooth_angle                 != b.smooth_angle ||
+      a.texture                      != b.texture ||
+      a.texture_scale                != b.texture_scale ||
+      a.texture_anim_fps             != b.texture_anim_fps ||
+      a.texture_anim_map_mode        != b.texture_anim_map_mode ||
+      a.texture_anim_map_dir         != b.texture_anim_map_dir ||
+      a.disable_collision            != b.disable_collision ||
+      a.disable_lightmap             != b.disable_lightmap ||
+      a.dont_collapse                != b.dont_collapse ||
+      a.detail_object                != b.detail_object ||
+      a.detail_texture_scale         != b.detail_texture_scale ||
+      a.force_occluder               != b.force_occluder ||
+      a.environment_mapping          != b.environment_mapping ||
+      a.environment_mapping_strength != b.environment_mapping_strength ||
+      a.wave_mode                    != b.wave_mode ||
+      a.wave_speed                   != b.wave_speed ||
+      a.wave_max_amplitude           != b.wave_max_amplitude ||
+      a.wave_grid_size               != b.wave_grid_size ||
+      a.ignore_sun                   != b.ignore_sun ||
+      a.alpha_func                   != b.alpha_func)
+    return false;
+  return true;
+}
+
 
 PackedMesh::PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type) {
   if(Resources::hasMeshShaders()) {
@@ -428,6 +506,26 @@ PackedMesh::PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type) {
     return;
     }
   }
+
+PackedMesh::PackedMesh(const phoenix::mesh& mesh, PkgType type) {
+  if(Resources::hasMeshShaders()) {
+    auto& prop = Resources::device().properties().meshlets;
+    maxIboSliceLength = prop.maxMeshGroups * 32 * MaxInd;
+  } else {
+    maxIboSliceLength = 8*1024*3;
+  }
+
+  if(type==PK_VisualLnd || type==PK_Visual) {
+    packMeshlets(mesh);
+    computeBbox();
+    return;
+  }
+
+  if(type==PK_Physic) {
+    packPhysics(mesh,type);
+    return;
+  }
+}
 
 PackedMesh::PackedMesh(const ZenLoad::zCProgMeshProto& mesh, PkgType type) {
   subMeshes.resize(mesh.getNumSubmeshes());
@@ -601,6 +699,87 @@ void PackedMesh::packPhysics(const ZenLoad::zCMesh& mesh, PkgType type) {
     }
   }
 
+void PackedMesh::packPhysics(const phoenix::mesh& mesh, PkgType type) {
+  auto& vbo = mesh.vertices();
+  auto& ibo = mesh.polygons().vertex_indices;
+  vertices.reserve(vbo.size());
+
+  std::unordered_map<uint32_t,size_t> icache;
+  auto& mid = mesh.polygons().material_indices;
+  auto& mat = mesh.materials();
+
+  for(size_t i=0; i<ZenLoad::MaterialGroup::NUM_MAT_GROUPS; ++i) {
+    SubMesh sub;
+    sub.material.matName  = "";
+    sub.material.matGroup = ZenLoad::MaterialGroup(i);
+    sub.iboOffset         = indices.size();
+
+    for(size_t r=0; r<ibo.size(); ++r) {
+      auto& m = mat[size_t(mid[r/3u])];
+      if(uint8_t(m.group)!=i || m.disable_collision)
+        continue;
+      if(m.name.find(':')!=std::string::npos)
+        continue; // named material - add them later
+
+      uint32_t index = ibo[r];
+      auto     rx    = icache.find(index);
+      if(rx!=icache.end()) {
+        indices.push_back(uint32_t(rx->second));
+      } else {
+        Vertex vx = {};
+        vx.pos[0] = vbo[index].x;
+        vx.pos[1] = vbo[index].y;
+        vx.pos[2] = vbo[index].z;
+
+        size_t val = vertices.size();
+        vertices.emplace_back(vx);
+        indices.push_back(uint32_t(val));
+        icache[index] = uint32_t(val);
+      }
+    }
+
+    sub.iboLength = indices.size()-sub.iboOffset;
+    if(sub.iboLength>0)
+      subMeshes.emplace_back(std::move(sub));
+  }
+
+  for(size_t i=0; i<mat.size(); ++i) {
+    auto& m = mat[i];
+    if(m.disable_collision)
+      continue;
+    if(m.name.find(':')==std::string::npos)
+      continue; // only named materials
+
+    SubMesh sub;
+    sub.material.matName  = m.name;
+    sub.material.matGroup = uint8_t(m.group);
+    sub.iboOffset         = indices.size();
+
+    for(size_t r=0; r<ibo.size(); ++r) {
+      if(size_t(mid[r/3u])!=i)
+        continue;
+      uint32_t index = ibo[r];
+      auto     rx    = icache.find(index);
+      if(rx!=icache.end()) {
+        indices.push_back(uint32_t(rx->second));
+      } else {
+        Vertex vx = {};
+        vx.pos[0] = vbo[index].x;
+        vx.pos[1] = vbo[index].y;
+        vx.pos[2] = vbo[index].z;
+
+        size_t val = vertices.size();
+        vertices.emplace_back(vx);
+        indices.push_back(uint32_t(val));
+        icache[index] = uint32_t(val);
+      }
+    }
+    sub.iboLength = indices.size()-sub.iboOffset;
+    if(sub.iboLength>0)
+      subMeshes.emplace_back(std::move(sub));
+  }
+}
+
 void PackedMesh::packMeshlets(const ZenLoad::zCMesh& mesh) {
   auto& ibo  = mesh.getIndices();
   auto& feat = mesh.getFeatureIndices();
@@ -647,6 +826,53 @@ void PackedMesh::packMeshlets(const ZenLoad::zCMesh& mesh) {
     postProcessP1(mesh,mId,meshlets);
     }
   }
+
+void PackedMesh::packMeshlets(const phoenix::mesh& mesh) {
+  auto& ibo  = mesh.polygons().vertex_indices;
+  auto& feat = mesh.polygons().feature_indices;
+  auto& mat  = mesh.polygons().material_indices;
+
+  std::vector<size_t> duplicates(mesh.materials().size());
+  for(size_t i=0; i<mesh.materials().size(); ++i)
+    duplicates[i] = i;
+
+  if(!Resources::hasMeshShaders()) {
+    for(size_t i=0; i<mesh.materials().size(); ++i) {
+      if(duplicates[i]!=i)
+        continue;
+      duplicates[i] = i;
+      for(size_t r=i+1; r<mesh.materials().size(); ++r) {
+        auto& a = mesh.materials()[i];
+        auto& b = mesh.materials()[r];
+        if(!isSame(a,b))
+          continue;
+        duplicates[r] = i;
+      }
+    }
+  }
+
+  for(size_t mId=0; mId<mesh.materials().size(); ++mId) {
+    std::vector<Meshlet> meshlets;
+    Meshlet activeMeshlets[16];
+
+    if(duplicates[mId]!=mId)
+      continue;
+
+    for(size_t i=0; i<ibo.size(); i+=3) {
+      if(duplicates[size_t(mat[i/3u])]!=mId)
+        continue;
+      auto a = std::make_pair(ibo[i+0],feat[i+0]);
+      auto b = std::make_pair(ibo[i+1],feat[i+1]);
+      auto c = std::make_pair(ibo[i+2],feat[i+2]);
+      addIndex(activeMeshlets,16,meshlets, a,b,c);
+    }
+
+    for(auto& meshlet:activeMeshlets)
+      if(meshlet.indSz>0)
+        meshlets.push_back(std::move(meshlet));
+    postProcessP1(mesh,mId,meshlets);
+  }
+}
 
 void PackedMesh::packMeshlets(const ZenLoad::zCProgMeshProto& mesh, PkgType type,
                               const std::vector<SkeletalData>* skeletal) {
@@ -861,6 +1087,38 @@ void PackedMesh::postProcessP1(const ZenLoad::zCMesh& mesh, size_t matId, std::v
   // dbgUtilization(ind);
   }
 
+void PackedMesh::postProcessP1(const phoenix::mesh& mesh, size_t matId, std::vector<Meshlet>& meshlets) {
+  if(meshlets.size()<=1) {
+    SubMesh sub;
+    sub.material  = phoenix_compat::to_zenlib_material(mesh.materials()[matId]);
+    sub.iboOffset = indices.size();
+    for(auto& m:meshlets) {
+      m.updateBounds(mesh);
+      m.flush(vertices,indices,meshletBounds,sub,mesh);
+    }
+    sub.iboLength = indices.size()-sub.iboOffset;
+    if(sub.iboLength>0)
+      subMeshes.push_back(std::move(sub));
+    return;
+  }
+
+  std::vector<Meshlet*> ind(meshlets.size());
+  for(size_t i=0; i<meshlets.size(); ++i) {
+    meshlets[i].updateBounds(mesh);
+    ind[i] = &meshlets[i];
+  }
+
+  // merge
+  sortPass(ind);
+  mergePass(ind,false);
+
+  for(auto i:ind)
+    i->updateBounds(mesh);
+
+  postProcessP2(mesh,matId,ind);
+  // dbgUtilization(ind);
+}
+
 void PackedMesh::postProcessP2(const ZenLoad::zCMesh& mesh, size_t matId, std::vector<Meshlet*>& meshlets) {
   if(meshlets.size()==0)
     return;
@@ -894,6 +1152,40 @@ void PackedMesh::postProcessP2(const ZenLoad::zCMesh& mesh, size_t matId, std::v
   if(sub.iboLength>0)
     subMeshes.push_back(std::move(sub));
   }
+
+void PackedMesh::postProcessP2(const phoenix::mesh& mesh, size_t matId, std::vector<Meshlet*>& meshlets) {
+  if(meshlets.empty())
+    return;
+
+  const bool hasMeshShaders = Resources::hasMeshShaders();
+
+  SubMesh sub;
+  sub.material  = phoenix_compat::to_zenlib_material(mesh.materials()[matId]);
+  sub.iboOffset = indices.size();
+
+  auto prev = meshlets[0];
+  for(size_t i=0; i<meshlets.size(); ++i) {
+    auto meshlet  = meshlets[i];
+    bool overflow = (indices.size()-sub.iboOffset+MaxInd > maxIboSliceLength);
+    bool disjoint = !hasMeshShaders && !meshlet->hasIntersection(*prev) && (indices.size()-sub.iboOffset>4096*3);
+    //bool disjoint = !hasMeshShaders && (meshlet->qDistance(*prev) > 4*clusterRadius*clusterRadius);
+
+    if(prev!=nullptr && (disjoint || overflow)) {
+      sub.iboLength = indices.size()-sub.iboOffset;
+      if(sub.iboLength>0)
+        subMeshes.push_back(std::move(sub));
+      sub = SubMesh();
+      sub.material  = phoenix_compat::to_zenlib_material(mesh.materials()[matId]);
+      sub.iboOffset = indices.size();
+    }
+    meshlet->updateBounds(mesh);
+    meshlet->flush(vertices,indices,meshletBounds,sub,mesh);
+    prev = meshlet;
+  }
+  sub.iboLength = indices.size()-sub.iboOffset;
+  if(sub.iboLength>0)
+    subMeshes.push_back(std::move(sub));
+}
 
 void PackedMesh::debug(std::ostream &out) const {
   for(auto& i:vertices) {
