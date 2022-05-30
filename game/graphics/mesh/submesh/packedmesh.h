@@ -6,6 +6,7 @@
 #include <zenload/zCMeshSoftSkin.h>
 
 #include <phoenix/proto_mesh.hh>
+#include <phoenix/softskin_mesh.hh>
 
 #include <Tempest/Vec>
 #include <unordered_map>
@@ -60,6 +61,7 @@ class PackedMesh {
     PackedMesh(const ZenLoad::zCProgMeshProto& mesh, PkgType type);
     PackedMesh(const phoenix::proto_mesh& mesh, PkgType type);
     PackedMesh(const ZenLoad::zCMeshSoftSkin&  mesh);
+    PackedMesh(const phoenix::softskin_mesh&  mesh);
     void debug(std::ostream &out) const;
 
     std::pair<Tempest::Vec3,Tempest::Vec3> bbox() const;

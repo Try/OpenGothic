@@ -493,6 +493,33 @@ PackedMesh::PackedMesh(const ZenLoad::zCMeshSoftSkin& skinned) {
   packMeshlets(mesh,PK_Visual,&vertices);
   }
 
+PackedMesh::PackedMesh(const phoenix::softskin_mesh&  skinned) {
+  auto& mesh = skinned.mesh();
+  subMeshes.resize(mesh.submeshes().size());
+  {
+    auto bbox = phoenix_compat::get_total_aabb(skinned);
+    mBbox[0] = Vec3(bbox.min.x,bbox.min.y,bbox.min.z);
+    mBbox[1] = Vec3(bbox.max.x,bbox.max.y,bbox.max.z);
+  }
+
+  std::vector<SkeletalData> vertices(mesh.positions().size());
+  // Extract weights and local positions
+  auto& stream = skinned.weights();
+  for(size_t i=0; i<vertices.size(); ++i) {
+    auto& vert = vertices[i];
+
+    for(size_t j=0; j<stream[i].size(); j++) {
+      auto& weight = stream[i][j];
+
+      vert.boneIndices[j]    = weight.node_index;
+      vert.localPositions[j] = {weight.position.x, weight.position.y, weight.position.z};
+      vert.weights[j]        = weight.weight;
+    }
+  }
+
+  packMeshlets(mesh,PK_Visual,&vertices);
+  }
+
 void PackedMesh::packPhysics(const ZenLoad::zCMesh& mesh, PkgType type) {
   auto& vbo = mesh.getVertices();
   auto& ibo = mesh.getIndices();
