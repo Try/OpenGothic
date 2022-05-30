@@ -7,7 +7,6 @@
 
 #include <phoenix/vdfs.hh>
 
-#include <zenload/zCMorphMesh.h>
 #include <zenload/zTypes.h>
 
 #include <tuple>

@@ -11,7 +11,6 @@
 #include <Tempest/Log>
 
 #include <zenload/modelScriptParser.h>
-#include <zenload/zCMorphMesh.h>
 #include <zenload/zenParser.h>
 #include <zenload/ztex2dds.h>
 
@@ -349,16 +348,14 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
 
     phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
     if (entry == nullptr) throw;
-    phoenix::buffer reader = entry->open();
-    ZenLoad::ZenParser zen(reader.array().data(), reader.remaining());
-    ZenLoad::zCMorphMesh zmm {};
-    zmm.readObjectData(zen);
+    auto reader = entry->open();
+    auto zmm = phoenix::morph_mesh::parse(reader);
 
-    if(zmm.getMesh().getNumSubmeshes()==0)
+    if(zmm.mesh().submeshes().empty())
       return nullptr;
 
-    PackedMesh packed(zmm.getMesh(),PackedMesh::PK_VisualMorph);
-    return std::unique_ptr<ProtoMesh>{new ProtoMesh(std::move(packed),zmm.aniList,name)};
+    PackedMesh packed(zmm.mesh(),PackedMesh::PK_VisualMorph);
+    return std::unique_ptr<ProtoMesh>{new ProtoMesh(std::move(packed),zmm.animations(),name)};
     }
 
   if(FileExt::hasExt(name,"MDS")) {

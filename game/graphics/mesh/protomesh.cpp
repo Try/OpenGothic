@@ -43,12 +43,12 @@ ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::string& fname)
   setupScheme(fname);
   }
 
-ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::vector<ZenLoad::zCMorphMesh::Animation>& aniList, const std::string& fname)
-  :ProtoMesh(std::move(pm),fname) {
+ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::vector<phoenix::morph_animation>& aniList, const std::string& fname)
+  : ProtoMesh(std::move(pm),fname) {
   if(attach.size()!=1) {
     Log::d("skip animations for: ",fname);
     return;
-    }
+  }
 
   auto& device = Resources::device();
 
@@ -59,7 +59,7 @@ ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::vector<ZenLoad::zCMorphMesh::An
 
   for(auto& i:aniList) {
     samplesCnt += i.samples.size();
-    }
+  }
 
   morphIndex   = Resources::ssbo(nullptr, indexSzAligned*aniList.size());
   morphSamples = Resources::ssbo(nullptr, samplesCnt*sizeof(Vec4));
@@ -79,16 +79,16 @@ ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::vector<ZenLoad::zCMorphMesh::An
     morph[i].index = (i*indexSzAligned)/sizeof(int32_t);
 
     samplesCnt += samples.size();
-    }
+  }
 
   if(morph.size()>0) {
     for(auto& a:attach) {
       a.morph.anim    = &morph;
       a.morph.index   = &morphIndex;
       a.morph.samples = &morphSamples;
-      }
     }
   }
+}
 
 ProtoMesh::ProtoMesh(const phoenix::model &library, std::unique_ptr<Skeleton>&& sk, const std::string &fname)
   :skeleton(std::move(sk)), fname(fname) {
@@ -354,7 +354,7 @@ void ProtoMesh::setupScheme(const std::string &s) {
   scheme = s;
   }
 
-void ProtoMesh::remap(const ZenLoad::zCMorphMesh::Animation& a,
+void ProtoMesh::remap(const phoenix::morph_animation& a,
                       const std::vector<uint32_t>& vertId,
                       std::vector<int32_t>&        remap,
                       std::vector<Tempest::Vec4>&  samples,
@@ -365,31 +365,31 @@ void ProtoMesh::remap(const ZenLoad::zCMorphMesh::Animation& a,
     i = -1;
   for(size_t i=0; i<vertId.size(); ++i) {
     const uint32_t id = vertId[i];
-    for(size_t r=0; r<a.vertexIndex.size(); ++r)
-      if(a.vertexIndex[r]==id) {
+    for(size_t r=0; r<a.vertices.size(); ++r)
+      if(a.vertices[r]==id) {
         remap[i] = int(r+idOffset);
         break;
-        }
-    }
+      }
+  }
 
   samples.resize(a.samples.size());
   for(size_t i=0; i<a.samples.size(); ++i) {
     auto& s = a.samples[i];
     samples[i] = Tempest::Vec4(s.x,s.y,s.z,0);
-    }
   }
+}
 
-ProtoMesh::Morph ProtoMesh::mkAnimation(const ZenLoad::zCMorphMesh::Animation& a) {
+ProtoMesh::Morph ProtoMesh::mkAnimation(const phoenix::morph_animation& a) {
   Morph ret;
   ret.name            = a.name;
-  ret.numFrames       = a.numFrames;
-  ret.samplesPerFrame = a.samples.size()/a.numFrames;
+  ret.numFrames       = a.frame_count;
+  ret.samplesPerFrame = a.samples.size()/a.frame_count;
   ret.layer           = a.layer;
   ret.duration        = uint64_t(a.duration>0 ? a.duration : 0);
 
   if(a.flags&0x2 || a.duration<=0)
     ret.tickPerFrame = size_t(1.f/a.speed); else
-    ret.tickPerFrame = size_t(a.duration/float(a.numFrames));
+    ret.tickPerFrame = size_t(a.duration/float(a.frame_count));
 
   if(ret.tickPerFrame==0)
     ret.tickPerFrame = 1;
