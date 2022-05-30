@@ -2,8 +2,6 @@
 
 #include <zenload/zCMesh.h>
 #include <zenload/zCMaterial.h>
-#include <zenload/zCProgMeshProto.h>
-#include <zenload/zCMeshSoftSkin.h>
 
 #include <phoenix/mesh.hh>
 #include <phoenix/proto_mesh.hh>
@@ -59,10 +57,8 @@ class PackedMesh {
     bool                     isUsingAlphaTest = true;
 
     PackedMesh(const ZenLoad::zCMesh&          mesh, PkgType type);
-    PackedMesh(const ZenLoad::zCProgMeshProto& mesh, PkgType type);
     PackedMesh(const phoenix::proto_mesh& mesh, PkgType type);
     PackedMesh(const phoenix::mesh& mesh, PkgType type);
-    PackedMesh(const ZenLoad::zCMeshSoftSkin&  mesh);
     PackedMesh(const phoenix::softskin_mesh&  mesh);
     void debug(std::ostream &out) const;
 
@@ -107,7 +103,6 @@ class PackedMesh {
       void    clear();
       void    updateBounds(const ZenLoad::zCMesh& mesh);
       void    updateBounds(const phoenix::mesh& mesh);
-      void    updateBounds(const ZenLoad::zCProgMeshProto& mesh);
       void    updateBounds(const phoenix::proto_mesh& mesh);
       void    updateBounds(const std::vector<ZMath::float3>& vbo);
       void    updateBounds(const std::vector<glm::vec3>& vbo);
@@ -121,8 +116,6 @@ class PackedMesh {
                     const Vert& a, const Vert& b, const Vert& c);
     void   packMeshlets(const ZenLoad::zCMesh& mesh);
     void   packMeshlets(const phoenix::mesh& mesh);
-    void   packMeshlets(const ZenLoad::zCProgMeshProto& mesh, PkgType type,
-                        const std::vector<SkeletalData>* skeletal);
 
     void   packMeshlets(const phoenix::proto_mesh& mesh, PkgType type,
                         const std::vector<SkeletalData>* skeletal);

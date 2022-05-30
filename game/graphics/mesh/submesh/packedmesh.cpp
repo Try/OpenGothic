@@ -340,10 +340,6 @@ void PackedMesh::Meshlet::updateBounds(const phoenix::mesh& mesh) {
   updateBounds(mesh.vertices());
 }
 
-void PackedMesh::Meshlet::updateBounds(const ZenLoad::zCProgMeshProto& mesh) {
-  updateBounds(mesh.getVertices());
-  }
-
 void PackedMesh::Meshlet::updateBounds(const phoenix::proto_mesh& mesh) {
   updateBounds(mesh.positions());
 }
@@ -527,19 +523,6 @@ PackedMesh::PackedMesh(const phoenix::mesh& mesh, PkgType type) {
   }
 }
 
-PackedMesh::PackedMesh(const ZenLoad::zCProgMeshProto& mesh, PkgType type) {
-  subMeshes.resize(mesh.getNumSubmeshes());
-  isUsingAlphaTest = mesh.isAlphaTested();
-  {
-  auto min = mesh.getBBoxMin();
-  auto max = mesh.getBBoxMax();
-  mBbox[0] = Vec3(min.x,min.y,min.z);
-  mBbox[1] = Vec3(max.x,max.y,max.z);
-  }
-
-  packMeshlets(mesh,type,nullptr);
-  }
-
 PackedMesh::PackedMesh(const phoenix::proto_mesh& mesh, PkgType type) {
   subMeshes.resize(mesh.submeshes().size());
   isUsingAlphaTest = mesh.alpha_test();
@@ -551,45 +534,6 @@ PackedMesh::PackedMesh(const phoenix::proto_mesh& mesh, PkgType type) {
 
   packMeshlets(mesh,type,nullptr);
 }
-
-PackedMesh::PackedMesh(const ZenLoad::zCMeshSoftSkin& skinned) {
-  auto& mesh = skinned.getMesh();
-  subMeshes.resize(mesh.getNumSubmeshes());
-  {
-  ZMath::float3 min = {}, max = {};
-  skinned.getAABBTotal(min,max);
-  mBbox[0] = Vec3(min.x,min.y,min.z);
-  mBbox[1] = Vec3(max.x,max.y,max.z);
-  }
-
-  std::vector<SkeletalData> vertices(mesh.getVertices().size());
-  // Extract weights and local positions
-  const uint8_t* stream = skinned.getVertexWeightStream();
-  for(size_t i=0; i<vertices.size(); ++i) {
-    auto& vert = vertices[i];
-    // Layout:
-    //	uint32_t: numWeights
-    //	numWeights* zTWeightEntry: weights
-    uint32_t numWeights = 0;
-    std::memcpy(&numWeights,stream,sizeof(numWeights)); stream+=sizeof(numWeights);
-    for(size_t j=0; j<numWeights; j++) {
-      float weight = 0;
-      std::memcpy(&weight,stream,sizeof(weight)); stream+=sizeof(weight);
-
-      ZMath::float3 localVertexPosition = {};
-      std::memcpy(&localVertexPosition,stream,sizeof(localVertexPosition)); stream+=sizeof(localVertexPosition);
-
-      uint8_t nodeIndex = {};
-      std::memcpy(&nodeIndex,stream,sizeof(nodeIndex)); stream+=sizeof(nodeIndex);
-
-      vert.boneIndices[j]    = nodeIndex;
-      vert.localPositions[j] = localVertexPosition;
-      vert.weights[j]        = weight;
-      }
-    }
-
-  packMeshlets(mesh,PK_Visual,&vertices);
-  }
 
 PackedMesh::PackedMesh(const phoenix::softskin_mesh&  skinned) {
   auto& mesh = skinned.mesh();
@@ -873,49 +817,6 @@ void PackedMesh::packMeshlets(const phoenix::mesh& mesh) {
     postProcessP1(mesh,mId,meshlets);
   }
 }
-
-void PackedMesh::packMeshlets(const ZenLoad::zCProgMeshProto& mesh, PkgType type,
-                              const std::vector<SkeletalData>* skeletal) {
-  auto* vId = (type==PK_VisualMorph) ? &verticesId : nullptr;
-
-  for(size_t mId=0; mId<mesh.getNumSubmeshes(); ++mId) {
-    auto& sm   = mesh.getSubmesh(mId);
-    auto& pack = subMeshes[mId];
-
-    pack.material = sm.m_Material;
-
-    std::vector<Meshlet> meshlets;
-    Meshlet activeMeshlets[16];
-    for(size_t i=0; i<sm.m_TriangleList.size(); ++i) {
-      const uint16_t* ibo = sm.m_TriangleList[i].m_Wedges;
-
-      Vert vert[3];
-      for(int x=0; x<3; ++x) {
-        const ZenLoad::zWedge& wedge = sm.m_WedgeList[ibo[x]];
-        vert[x] = std::make_pair(wedge.m_VertexIndex,ibo[x]);
-        }
-      addIndex(activeMeshlets,16,meshlets, vert[0],vert[1],vert[2]);
-      }
-
-    for(auto& meshlet:activeMeshlets)
-      if(meshlet.indSz>0)
-        meshlets.push_back(std::move(meshlet));
-
-    std::vector<Meshlet*> ind(meshlets.size());
-    for(size_t i=0; i<meshlets.size(); ++i) {
-      meshlets[i].updateBounds(mesh);
-      ind[i] = &meshlets[i];
-      }
-    mergePass(ind,false);
-
-    pack.iboOffset = indices.size();
-    for(auto& i:ind) {
-      i->updateBounds(mesh);
-      i->flush(vertices,verticesA,indices,vId,pack,mesh.getVertices(),sm.m_WedgeList,skeletal);
-      }
-    pack.iboLength = indices.size() - pack.iboOffset;
-    }
-  }
 
 void PackedMesh::packMeshlets(const phoenix::proto_mesh& mesh, PkgType type,
                              const std::vector<SkeletalData>* skeletal) {
