@@ -506,9 +506,9 @@ const Daedalus::ZString& Gothic::messageFromSvm(const Daedalus::ZString &id, int
   return game->messageFromSvm(id,voice);
   }
 
-const Daedalus::ZString& Gothic::messageByName(const Daedalus::ZString& id) const {
+const std::string& Gothic::messageByName(const Daedalus::ZString& id) const {
   if(!game){
-    static Daedalus::ZString empty;
+    static std::string empty {};
     return empty;
     }
   return game->messageByName(id);

@@ -161,6 +161,13 @@ std::vector<uint8_t> Resources::getFileData(std::string_view name) {
   return data;
   }
 
+phoenix::buffer Resources::getFileBuffer(std::string_view name) {
+  phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
+  if (entry == nullptr)
+    throw;
+  return entry->open();
+}
+
 const char* Resources::renderer() {
   return inst->dev.properties().name;
   }

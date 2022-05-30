@@ -128,6 +128,7 @@ class Resources final {
 
     static std::vector<uint8_t>      getFileData(std::string_view name);
     static bool                      getFileData(std::string_view name, std::vector<uint8_t>& dat);
+    static phoenix::buffer           getFileBuffer(std::string_view name);
     static bool                      hasFile    (std::string_view fname);
 
     static bool                      hasMeshShaders();

@@ -394,9 +394,9 @@ const Daedalus::ZString& GameSession::messageFromSvm(const Daedalus::ZString& id
   return vm->messageFromSvm(id,voice);
   }
 
-const Daedalus::ZString& GameSession::messageByName(const Daedalus::ZString& id) const {
+const std::string& GameSession::messageByName(const Daedalus::ZString& id) const {
   if(!wrld){
-    static Daedalus::ZString empty;
+    static std::string empty {};
     return empty;
     }
   return vm->messageByName(id);

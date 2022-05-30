@@ -417,8 +417,6 @@ void GameScript::initCommon() {
 
 void GameScript::initDialogs() {
   loadDialogOU();
-  if(!dialogs)
-    dialogs.reset(new ZenLoad::zCCSLib());
 
   size_t count=0;
   vm.getDATFile().iterateSymbolsOfClass("C_Info", [&count](size_t,Daedalus::PARSymbol&){
@@ -443,9 +441,8 @@ void GameScript::loadDialogOU() {
 
   for(auto OU:names) {
     if(Resources::hasFile(OU)) {
-      std::vector<uint8_t> data = Resources::getFileData(OU);
-      ZenLoad::ZenParser parser(data.data(),data.size());
-      dialogs.reset(new ZenLoad::zCCSLib(parser));
+      auto buf = Resources::getFileBuffer(OU);
+      dialogs = phoenix::messages::parse(buf);
       return;
       }
 
@@ -454,13 +451,8 @@ void GameScript::loadDialogOU() {
       str16[i] = char16_t(OU[i]);
     std::u16string full = FileUtil::caseInsensitiveSegment(gCutscene,str16,Dir::FT_File);
     try {
-      std::vector<uint8_t> data;
-      RFile f(full);
-      data.resize(f.size());
-      f.read(&data[0],data.size());
-
-      ZenLoad::ZenParser parser(data.data(),data.size());
-      dialogs.reset(new ZenLoad::zCCSLib(parser));
+      auto buf = phoenix::buffer::open(full);
+      dialogs = phoenix::messages::parse(buf);
       return;
       }
     catch(...){
@@ -1092,12 +1084,13 @@ const Daedalus::ZString& GameScript::messageFromSvm(const Daedalus::ZString& id,
   return svm->find(id.c_str(),voice);
   }
 
-const Daedalus::ZString& GameScript::messageByName(const Daedalus::ZString& id) const {
-  if(!dialogs->messageExists(id)){
-    static Daedalus::ZString empty;
+const std::string& GameScript::messageByName(const Daedalus::ZString& id) const {
+  auto* blk = dialogs.block_by_name(id.c_str());
+  if(blk == nullptr){
+    static std::string empty {};
     return empty;
     }
-  return dialogs->getMessageByName(id).text;
+  return blk->message.text;
   }
 
 uint32_t GameScript::messageTime(const Daedalus::ZString& id) const {

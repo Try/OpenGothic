@@ -2,7 +2,8 @@
 
 #include <daedalus/DaedalusStdlib.h>
 #include <daedalus/DaedalusVM.h>
-#include <zenload/zCCSLib.h>
+
+#include <phoenix/messages.hh>
 
 #include <memory>
 #include <unordered_set>
@@ -144,7 +145,7 @@ class GameScript final {
     bool isAtack      (const Npc &pl) const;
 
     const Daedalus::ZString& messageFromSvm(const Daedalus::ZString& id,int voice) const;
-    const Daedalus::ZString& messageByName (const Daedalus::ZString& id) const;
+    const std::string&       messageByName (const Daedalus::ZString& id) const;
     uint32_t                 messageTime   (const Daedalus::ZString& id) const;
 
     int      printNothingToGet();
@@ -420,7 +421,7 @@ class GameScript final {
 
     std::set<std::pair<size_t,size_t>>                          dlgKnownInfos;
     std::vector<Daedalus::GEngineClasses::C_Info>               dialogsInfo;
-    std::unique_ptr<ZenLoad::zCCSLib>                           dialogs;
+    phoenix::messages                                           dialogs;
     std::unordered_map<size_t,AiState>                          aiStates;
     std::unique_ptr<AiOuputPipe>                                aiDefaultPipe;
 

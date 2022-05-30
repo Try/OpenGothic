@@ -66,7 +66,7 @@ class GameSession final {
     void         dialogExec(const GameScript::DlgChoise &dlg, Npc &player, Npc &npc);
 
     const Daedalus::ZString& messageFromSvm(const Daedalus::ZString& id, int voice) const;
-    const Daedalus::ZString& messageByName (const Daedalus::ZString& id) const;
+    const std::string&       messageByName (const Daedalus::ZString& id) const;
     uint32_t                 messageTime   (const Daedalus::ZString& id) const;
 
     AiOuputPipe* openDlgOuput(Npc &player, Npc &npc);
