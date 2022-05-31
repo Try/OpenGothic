@@ -6,16 +6,16 @@
 
 using namespace Tempest;
 
-ParticleFx::ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob) {
-  dbgName          = vob.visual;
+ParticleFx::ParticleFx(const Material& mat, const phoenix::vobs::vob& vob) {
+  dbgName          = vob.visual_name;
 
   ppsValue         = -1;
   lspPartAvg       = 1000;
   dirMode          = ParticleFx::Dir::Dir;
   visTexColorStart = Vec3(255,255,255);
   visTexColorEnd   = Vec3(255,255,255);
-  visSizeStart     = Vec2(2.f*vob.visualChunk.zCDecal.decalDim.x,
-                          2.f*vob.visualChunk.zCDecal.decalDim.y);
+  visSizeStart     = Vec2(2.f*vob.visual_decal->dimension.x,
+                          2.f*vob.visual_decal->dimension.y);
   visOrientation   = Orientation::None;
 
   visMaterial      = mat;
@@ -27,8 +27,8 @@ ParticleFx::ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob) {
   visSizeEndScale  = 1;
   visAlphaStart    = 1;
   visAlphaEnd      = 1;
-  visYawAlign      = vob.visualCamAlign==1;
-  visZBias         = vob.zBias!=0;
+  visYawAlign      = vob.camera_alignment==1;
+  visZBias         = vob.bias!=0;
 
   useEmittersFOR   = true;
   }

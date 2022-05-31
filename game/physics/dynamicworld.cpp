@@ -393,7 +393,7 @@ struct DynamicWorld::BBoxList final {
   DynamicWorld&          wrld;
   };
 
-DynamicWorld::DynamicWorld(World& owner,const ZenLoad::zCMesh& worldMesh) {
+DynamicWorld::DynamicWorld(World& owner,const phoenix::mesh& worldMesh) {
   world.reset(new CollisionWorld());
 
   {
@@ -680,7 +680,7 @@ DynamicWorld::BulletBody* DynamicWorld::bulletObj(BulletCallback* cb) {
   return bulletList->add(cb);
   }
 
-DynamicWorld::BBoxBody DynamicWorld::bboxObj(BBoxCallback* cb, const ZMath::float3* bbox) {
+DynamicWorld::BBoxBody DynamicWorld::bboxObj(BBoxCallback* cb, const phoenix::bounding_box& bbox) {
   return BBoxBody(this,cb,bbox);
   }
 
@@ -1089,6 +1089,25 @@ DynamicWorld::BBoxBody::BBoxBody(DynamicWorld* ow, DynamicWorld::BBoxCallback* c
 
   owner->bboxList->add(this);
   }
+
+DynamicWorld::BBoxBody::BBoxBody(DynamicWorld* ow, BBoxCallback* cb, const phoenix::bounding_box& bbox)
+  : owner(ow), cb(cb) {
+  btVector3 hExt = CollisionWorld::toMeters(Tempest::Vec3{bbox.max.x-bbox.min.x, bbox.max.y-bbox.min.y, bbox.max.z-bbox.min.z})*0.5f;
+  btVector3 pos  = CollisionWorld::toMeters(Tempest::Vec3{bbox.max.x+bbox.min.x, bbox.max.y+bbox.min.y, bbox.max.z+bbox.min.z})*0.5f;
+
+  shape = new btBoxShape(hExt);
+  obj   = new btRigidBody(btRigidBody::btRigidBodyConstructionInfo(0,nullptr,shape));
+
+  btTransform trans;
+  trans.setIdentity();
+  trans.setOrigin(pos);
+
+  obj->setWorldTransform(trans);
+  obj->setUserIndex(C_Ghost);
+  obj->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
+
+  owner->bboxList->add(this);
+}
 
 DynamicWorld::BBoxBody::BBoxBody(DynamicWorld* ow, BBoxCallback* cb, const Tempest::Vec3& p, float R)
   : owner(ow), cb(cb) {

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <phoenix/world/way_net.hh>
+
 #include <zenload/zTypes.h>
 #include <limits>
 #include <Tempest/Vec>
@@ -9,7 +11,7 @@ class FpLock;
 class WayPoint final {
   public:
     WayPoint();
-    WayPoint(const ZenLoad::zCWaypointData& dat);
+    WayPoint(const phoenix::way_point& dat);
     WayPoint(const Tempest::Vec3& pos, std::string_view name);
     WayPoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name);
     WayPoint(const WayPoint&)=default;

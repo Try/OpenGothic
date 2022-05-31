@@ -79,6 +79,34 @@ LightGroup::Light::Light(LightGroup& owner, const ZenLoad::zCVobData& vob)
   data = std::move(l);
   }
 
+LightGroup::Light::Light(LightGroup& owner, const phoenix::vobs::light& vob)
+      :owner(&owner) {
+  LightSource l;
+  l.setPosition(Vec3(vob.position.x,vob.position.y,vob.position.z));
+
+  if(!vob.range_animation_scale.empty()) {
+    l.setRange(vob.range_animation_scale,vob.range,vob.range_animation_fps,vob.range_animation_smooth);
+  } else {
+    l.setRange(vob.range);
+  }
+
+  if(!vob.color_animation_list.empty()) {
+    l.setColor(vob.color_animation_list,vob.color_animation_fps,vob.color_animation_smooth);
+  } else {
+    l.setColor(vob.color.r << 16 | vob.color.g << 8 | vob.color.b);
+  }
+
+  std::lock_guard<std::recursive_mutex> guard(owner.sync);
+  id = owner.alloc(l.isDynamic());
+  auto& ssbo = owner.get(id);
+  ssbo.pos   = l.position();
+  ssbo.range = l.range();
+  ssbo.color = l.color();
+
+  auto& data = owner.getL(id);
+  data = std::move(l);
+}
+
 LightGroup::Light::Light(World& owner, std::string_view preset)
   :Light(owner,owner.view()->sGlobal.lights.findPreset(preset)){
   setTimeOffset(owner.tickCount());
@@ -88,6 +116,11 @@ LightGroup::Light::Light(World& owner, const ZenLoad::zCVobData& vob)
   :Light(owner.view()->sGlobal.lights,vob) {
   setTimeOffset(owner.tickCount());
   }
+
+LightGroup::Light::Light(World& owner, const phoenix::vobs::light& vob)
+  :Light(owner.view()->sGlobal.lights,vob){
+  setTimeOffset(owner.tickCount());
+}
 
 LightGroup::Light::Light(World& owner)
   :Light(owner.view()->sGlobal.lights) {

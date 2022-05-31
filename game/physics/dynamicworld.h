@@ -1,6 +1,7 @@
 #pragma once
 
-#include <zenload/zCMesh.h>
+#include <phoenix/mesh.hh>
+
 #include <zenload/zTypes.h>
 #include <zenload/zCMaterial.h>
 #include <Tempest/Matrix4x4>
@@ -41,7 +42,7 @@ class DynamicWorld final {
     static constexpr float spellSpeed  = 1; // centimeters per milliseconds
     static const     float ghostPadding;
 
-    DynamicWorld(World &world, const ZenLoad::zCMesh& mesh);
+    DynamicWorld(World &world, const phoenix::mesh& mesh);
     DynamicWorld(const DynamicWorld&)=delete;
     ~DynamicWorld();
 
@@ -207,6 +208,7 @@ class DynamicWorld final {
       public:
         BBoxBody() = default;
         BBoxBody(DynamicWorld* wrld, BBoxCallback* cb, const ZMath::float3* bbox);
+        BBoxBody(DynamicWorld* wrld, BBoxCallback* cb, const phoenix::bounding_box& bbox);
         BBoxBody(DynamicWorld* wrld, BBoxCallback* cb, const Tempest::Vec3& pos, float R);
         BBoxBody(BBoxBody&& other);
         ~BBoxBody();
@@ -235,7 +237,7 @@ class DynamicWorld final {
     Item           dynamicObj(const Tempest::Matrix4x4& pos, const Bounds& bbox, ZenLoad::MaterialGroup mat);
 
     BulletBody*    bulletObj(BulletCallback* cb);
-    BBoxBody       bboxObj(BBoxCallback* cb, const ZMath::float3* bbox);
+    BBoxBody       bboxObj(BBoxCallback* cb, const phoenix::bounding_box& bbox);
     BBoxBody       bboxObj(BBoxCallback* cb, const Tempest::Vec3& pos, float R);
 
     void           tick(uint64_t dt);

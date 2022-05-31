@@ -6,7 +6,7 @@ class World;
 
 class TouchDamage : public AbstractTrigger {
   public:
-    TouchDamage(Vob* parent, World &world, ZenLoad::zCVobData&& data, Flags flags);
+    TouchDamage(Vob* parent, World &world, const std::unique_ptr<phoenix::vobs::vob>& data, Flags flags);
 
   private:
     void onTrigger(const TriggerEvent &evt) override;
@@ -14,4 +14,14 @@ class TouchDamage : public AbstractTrigger {
     void takeDamage(Npc& npc, int32_t val, int32_t prot);
 
     uint64_t repeatTimeout = 0;
+    bool     barrier;
+    bool     blunt;
+    bool     edge;
+    bool     fire;
+    bool     fly;
+    bool     magic;
+    bool     point;
+    bool     fall;
+    float    damage;
+    float    repeatDelaySec;
   };

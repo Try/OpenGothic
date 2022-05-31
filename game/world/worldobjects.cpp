@@ -21,6 +21,8 @@
 #include <Tempest/Application>
 #include <Tempest/Log>
 
+#include <glm/gtc/type_ptr.hpp>
+
 using namespace Tempest;
 using namespace Daedalus::GameState;
 
@@ -504,13 +506,16 @@ void WorldObjects::stopEffect(const VisualFx& vfx) {
     i->stopEffect(vfx);
   }
 
-Item* WorldObjects::addItem(const ZenLoad::zCVobData &vob) {
-  size_t inst = owner.script().getSymbolIndex(vob.oCItem.instanceName);
+Item* WorldObjects::addItem(const phoenix::vobs::item& vob) {
+  size_t inst = owner.script().getSymbolIndex(vob.instance);
   Item*  it   = addItem(inst,"");
   if(it==nullptr)
     return nullptr;
 
-  Matrix4x4 m { vob.worldMatrix.mv };
+  glm::mat4x4 worldMatrix = glm::transpose(vob.rotation);
+  worldMatrix[3] = glm::vec4(vob.position, 1);
+
+  Matrix4x4 m { glm::value_ptr(worldMatrix) };
   it->setObjMatrix(m);
   return it;
   }
@@ -624,8 +629,8 @@ void WorldObjects::addStatic(StaticObj* obj) {
   objStatic.push_back(obj);
   }
 
-void WorldObjects::addRoot(ZenLoad::zCVobData&& vob, bool startup) {
-  auto p = Vob::load(nullptr,owner,std::move(vob),(startup ? Vob::Startup : Vob::None) | Vob::Static);
+void WorldObjects::addRoot(const std::unique_ptr<phoenix::vobs::vob>& vob, bool startup) {
+  auto p = Vob::load(nullptr,owner,vob,(startup ? Vob::Startup : Vob::None) | Vob::Static);
   if(p==nullptr)
     return;
   rootVobs.emplace_back(std::move(p));

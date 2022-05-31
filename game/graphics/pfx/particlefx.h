@@ -13,7 +13,7 @@ class PfxEmitterMesh;
 
 class ParticleFx final {
   public:
-    ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob);
+    ParticleFx(const Material& mat, const phoenix::vobs::vob& vob);
     ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX& src, std::string_view name);
     ParticleFx(const ParticleFx& proto, const VisualFx::Key& key);
 

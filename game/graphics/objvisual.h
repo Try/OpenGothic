@@ -19,7 +19,7 @@ class ObjVisual {
     void load(Serialize& fin,  Interactive &mob);
 
     void setVisual(const Daedalus::GEngineClasses::C_Item& visual, World& world, bool staticDraw);
-    void setVisual(const ZenLoad::zCVobData& visual, World& world, bool staticDraw);
+    void setVisual(const phoenix::vobs::vob& visual, World& world, bool staticDraw);
     void setObjMatrix(const Tempest::Matrix4x4& obj);
 
     void setInteractive(Interactive* it);

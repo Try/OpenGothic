@@ -2,14 +2,15 @@
 
 #include "world/world.h"
 
-TriggerWorldStart::TriggerWorldStart(Vob* parent, World &world, ZenLoad::zCVobData&& data, Flags flags)
-  :AbstractTrigger(parent,world,std::move(data),flags){
+TriggerWorldStart::TriggerWorldStart(Vob* parent, World &world, const std::unique_ptr<phoenix::vobs::vob>& data, Flags flags)
+  :AbstractTrigger(parent,world,data,flags){
+  fireOnlyFirstTime = ((const phoenix::vobs::trigger_world_start*) data.get())->fire_once;
   }
 
 void TriggerWorldStart::onTrigger(const TriggerEvent &ev) {
-  if(data.oCTriggerWorldStart.fireOnlyFirstTime && ev.type!=TriggerEvent::T_StartupFirstTime)
+  if(fireOnlyFirstTime && ev.type!=TriggerEvent::T_StartupFirstTime)
     return;
 
-  TriggerEvent e(data.oCTriggerWorldStart.triggerTarget,data.vobName,TriggerEvent::T_Trigger);
+  TriggerEvent e(target,vobName,TriggerEvent::T_Trigger);
   world.execTriggerEvent(e);
   }

@@ -471,12 +471,12 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(std::string_view name) {
   return nullptr;
   }
 
-ProtoMesh* Resources::implDecalMesh(const ZenLoad::zCVobData& vob) {
+ProtoMesh* Resources::implDecalMesh(const phoenix::vobs::vob& vob) {
   DecalK key;
   key.mat         = Material(vob);
-  key.sX          = vob.visualChunk.zCDecal.decalDim.x;
-  key.sY          = vob.visualChunk.zCDecal.decalDim.y;
-  key.decal2Sided = vob.visualChunk.zCDecal.decal2Sided;
+  key.sX          = vob.visual_decal->dimension.x;
+  key.sY          = vob.visual_decal->dimension.y;
+  key.decal2Sided = vob.visual_decal->two_sided;
 
   if(key.mat.tex==nullptr)
     return nullptr;
@@ -741,34 +741,31 @@ Dx8::PatternList Resources::loadDxMusic(std::string_view name) {
   return inst->implLoadDxMusic(name);
   }
 
-const ProtoMesh* Resources::decalMesh(const ZenLoad::zCVobData& vob) {
+const ProtoMesh* Resources::decalMesh(const phoenix::vobs::vob& vob) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implDecalMesh(vob);
   }
 
-ZenLoad::oCWorldData Resources::loadVobBundle(std::string_view name) {
+std::vector<std::unique_ptr<phoenix::vobs::vob>>& Resources::loadVobBundle(std::string_view name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadVobBundle(name);
   }
 
-ZenLoad::oCWorldData& Resources::implLoadVobBundle(std::string_view filename) {
+std::vector<std::unique_ptr<phoenix::vobs::vob>>& Resources::implLoadVobBundle(std::string_view filename) {
   auto cname = std::string(filename);
   auto i     = zenCache.find(cname);
   if(i!=zenCache.end())
     return i->second;
 
-  ZenLoad::oCWorldData bundle;
+  std::vector<std::unique_ptr<phoenix::vobs::vob>> bundle;
   try {
     phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname);
     if (entry == nullptr) throw;
-    phoenix::buffer reader = entry->open();
-    ZenLoad::ZenParser parser(reader.array().data(), reader.remaining());
-    parser.readHeader();
+    auto reader = entry->open();
+    auto wrld = phoenix::world::parse(reader, Gothic::inst().version().game==1 ? phoenix::game_version::gothic_1
+                                                                               : phoenix::game_version::gothic_2);
 
-    auto fver = ZenLoad::ZenParser::FileVersion::Gothic1;
-    if(Gothic::inst().version().game==2)
-      fver = ZenLoad::ZenParser::FileVersion::Gothic2;
-    parser.readWorld(bundle,fver);
+    bundle = std::move(wrld.world_vobs);
     }
   catch(...) {
     Log::e("unable to load Zen-file: \"",cname,"\"");

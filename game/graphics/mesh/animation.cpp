@@ -309,7 +309,6 @@ Animation::Sequence::Sequence(const ZenLoad::zCModelScriptAni& hdr, const std::s
   if(!Resources::hasFile(fname))
     return;
 
-  const phoenix::vdf_file& idx = Resources::vdfsIndex();
   phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(fname);
   if (entry == nullptr)
     return ;

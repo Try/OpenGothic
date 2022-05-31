@@ -2,9 +2,9 @@
 
 #include "world.h"
 
-WorldLight::WorldLight(Vob* parent, World& world, ZenLoad::zCVobData&& vob, Flags flags)
+WorldLight::WorldLight(Vob* parent, World& world, const std::unique_ptr<phoenix::vobs::vob>& vob, Flags flags)
   : Vob(parent,world,vob,flags) {
-  light = LightGroup::Light(world,vob);
+  light = LightGroup::Light(world, (const phoenix::vobs::light&) *vob);
   }
 
 void WorldLight::moveEvent() {

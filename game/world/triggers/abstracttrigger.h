@@ -44,10 +44,9 @@ class TriggerEvent final {
 
 class AbstractTrigger : public Vob {
   public:
-    AbstractTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& data, Flags flags);
+    AbstractTrigger(Vob* parent, World& world, const std::unique_ptr<phoenix::vobs::vob>& data, Flags flags);
     virtual ~AbstractTrigger();
 
-    ZenLoad::zCVobData::EVobType vobType() const;
     const std::string&           name() const;
     bool                         isEnabled() const;
 
@@ -79,8 +78,6 @@ class AbstractTrigger : public Vob {
       AbstractTrigger* tg;
       };
 
-    ZenLoad::zCVobData           data;
-
     virtual void                 onTrigger(const TriggerEvent& evt);
     virtual void                 onUntrigger(const TriggerEvent& evt);
     virtual void                 onGotoMsg(const TriggerEvent& evt);
@@ -98,7 +95,16 @@ class AbstractTrigger : public Vob {
     CollisionZone                boxNpc;
     Tempest::Vec3                bboxSize, bboxOrigin;
 
+    float                        fireDelaySec;
+    uint32_t                     maxActivationCount;
+    uint32_t                     triggerFlags;
+    uint32_t                     filterFlags;
+
     uint32_t                     emitCount = 0;
     bool                         disabled  = false;
     uint64_t                     emitTimeLast = 0;
+
+  protected:
+    std::string                  vobName;
+    std::string                  target;
   };

@@ -10,6 +10,8 @@
 #include <zenload/zTypes.h>
 #include <zenload/zTypes.h>
 
+#include <phoenix/world.hh>
+
 #include "graphics/worldview.h"
 #include "graphics/lightgroup.h"
 #include "graphics/meshobjects.h"
@@ -102,7 +104,7 @@ class World final {
     MeshObjects::Mesh    addAtachView (const ProtoMesh::Attach& visual, const int32_t version);
     MeshObjects::Mesh    addStaticView(const ProtoMesh* visual, bool staticDraw);
     MeshObjects::Mesh    addStaticView(const char* visual);
-    MeshObjects::Mesh    addDecalView (const ZenLoad::zCVobData& vob);
+    MeshObjects::Mesh    addDecalView (const phoenix::vobs::vob& vob);
 
     void                 updateAnimation(uint64_t dt);
     void                 resetPositionToTA();
@@ -148,7 +150,7 @@ class World final {
     Npc*                 addNpc     (size_t itemInstance,   std::string_view     at);
     Npc*                 addNpc     (size_t itemInstance,   const Tempest::Vec3& at);
     Item*                addItem    (size_t itemInstance,   std::string_view     at);
-    Item*                addItem    (const ZenLoad::zCVobData& vob);
+    Item*                addItem    (const std::unique_ptr<phoenix::vobs::vob>& vob);
     Item*                addItem    (size_t itemInstance, const Tempest::Vec3&      pos);
     Item*                addItemDyn (size_t itemInstance, const Tempest::Matrix4x4& pos, size_t owner);
     auto                 takeItem(Item& it) -> std::unique_ptr<Item>;
@@ -174,7 +176,7 @@ class World final {
     void                 addInteractive(Interactive* inter);
     void                 addStartPoint (const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name);
     void                 addFreePoint  (const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name);
-    void                 addSound      (const ZenLoad::zCVobData& vob);
+    void                 addSound      (const std::unique_ptr<phoenix::vobs::vob>& vob);
 
     void                 invalidateVobIndex();
 
@@ -184,7 +186,7 @@ class World final {
     GameSession&                          game;
 
     std::unique_ptr<WayMatrix>            wmatrix;
-    ZenLoad::zCBspTreeData                bsp;
+    phoenix::bsp_tree                     bsp;
     std::vector<BspSector>                bspSectors;
 
     Npc*                                  npcPlayer=nullptr;
@@ -196,7 +198,7 @@ class World final {
     WorldObjects                          wobj;
     std::unique_ptr<Npc>                  lvlInspector;
 
-    auto         roomAt(const ZenLoad::zCBspNode &node) -> const std::string &;
+    auto         roomAt(const phoenix::bsp_node &node) -> const std::string &;
     auto         portalAt(std::string_view tag) -> BspSector*;
 
     void         initScripts(bool firstTime);

@@ -1,9 +1,9 @@
 #include "fireplace.h"
 
-FirePlace::FirePlace(Vob* parent, World& world, ZenLoad::zCVobData& vob, Flags flags)
-  :Interactive(parent,world,vob,flags){
-  fireVobtreeName = std::move(vob.oCMobFire.fireVobtreeName);
-  fireSlot        = std::move(vob.oCMobFire.fireSlot);
+FirePlace::FirePlace(Vob* parent, World& world, const std::unique_ptr<phoenix::vobs::vob>& vob, Flags flags)
+  : Interactive(parent,world,vob,flags){
+  fireVobtreeName = ((const phoenix::vobs::mob_fire*) vob.get())->vob_tree;
+  fireSlot        = ((const phoenix::vobs::mob_fire*) vob.get())->slot;
   }
 
 void FirePlace::load(Serialize& fin) {

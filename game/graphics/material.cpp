@@ -31,18 +31,52 @@ Material::Material(const ZenLoad::zCMaterialData& m, bool enableAlphaTest) {
     envMapping = m.environmentalMappingStrength;
   }
 
-Material::Material(const ZenLoad::zCVobData& vob) {
-  tex = Resources::loadTexture(vob.visual);
-  if(tex==nullptr && !vob.visual.empty())
+static Material::AlphaFunc loadAlphaFuncPhoenix (phoenix::alpha_function zenAlpha, uint8_t matGroup, const Tempest::Texture2d* tex, bool enableAlphaTest) {
+  Material::AlphaFunc alpha = Material::AlphaFunc::AlphaTest;
+  switch(zenAlpha) {
+  case phoenix::alpha_function::test:
+    // Gothic1
+    alpha = Material::AlphaFunc::AlphaTest;
+    break;
+  case phoenix::alpha_function::transparent:
+    alpha = Material::AlphaFunc::Transparent;
+    break;
+  case phoenix::alpha_function::additive:
+    alpha = Material::AlphaFunc::AdditiveLight;
+    break;
+  case phoenix::alpha_function::multiply:
+    alpha = Material::AlphaFunc::Multiply;
+    break;
+  }
+
+  if(matGroup==ZenLoad::MaterialGroup::WATER)
+    alpha = Material::AlphaFunc::Water;
+
+  if(alpha==Material::AlphaFunc::AlphaTest || alpha==Material::AlphaFunc::Transparent) {
+    if(tex!=nullptr && tex->format()==Tempest::TextureFormat::DXT1) {
+      alpha = Material::AlphaFunc::Solid;
+    }
+  }
+
+  if(alpha==Material::AlphaFunc::AlphaTest && !enableAlphaTest) {
+    alpha = Material::AlphaFunc::Solid;
+  }
+  return alpha;
+}
+
+
+Material::Material(const phoenix::vobs::vob& vob) {
+  tex = Resources::loadTexture(vob.visual_name);
+  if(tex==nullptr && !vob.visual_name.empty())
     tex = Resources::loadTexture("DEFAULT.TGA");
 
-  frames       = Resources::loadTextureAnim(vob.visual);
+  frames       = Resources::loadTextureAnim(vob.visual_name);
 
   texAniFPSInv = 1000/std::max<size_t>(frames.size(),1);
-  alpha        = loadAlphaFunc(vob.visualChunk.zCDecal.decalAlphaFunc,ZenLoad::MaterialGroup::UNDEF,tex,true);
+  alpha        = loadAlphaFuncPhoenix(vob.visual_decal->alpha_func,ZenLoad::MaterialGroup::UNDEF,tex,true);
 
-  if(vob.visualChunk.zCDecal.decalTexAniFPS>0)
-    texAniFPSInv = uint64_t(1000.f/vob.visualChunk.zCDecal.decalTexAniFPS); else
+  if(vob.visual_decal->texture_anim_fps>0)
+    texAniFPSInv = uint64_t(1000.f/vob.visual_decal->texture_anim_fps); else
     texAniFPSInv = 1;
   }
 

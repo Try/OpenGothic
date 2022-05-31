@@ -6,8 +6,19 @@
 #include "world/world.h"
 #include "game/serialize.h"
 
-TouchDamage::TouchDamage(Vob* parent, World &world, ZenLoad::zCVobData&& d, Flags flags)
-  :AbstractTrigger(parent,world,std::move(d),flags) {
+TouchDamage::TouchDamage(Vob* parent, World &world, const std::unique_ptr<phoenix::vobs::vob>& d, Flags flags)
+  :AbstractTrigger(parent,world,d,flags) {
+  auto* dmg = (const phoenix::vobs::touch_damage*) d.get();
+  barrier = dmg->barrier;
+  blunt = dmg->blunt;
+  edge = dmg->edge;
+  fire = dmg->fire;
+  fly = dmg->fly;
+  magic = dmg->magic;
+  point = dmg->point;
+  fall = dmg->fall;
+  damage = dmg->damage;
+  repeatDelaySec = dmg->repeat_delay_sec;
   }
 
 void TouchDamage::onTrigger(const TriggerEvent&/*evt*/) {
@@ -21,24 +32,24 @@ void TouchDamage::tick(uint64_t dt) {
 
   for(auto npc:intersections()) {
     bool mask[Daedalus::GEngineClasses::PROT_INDEX_MAX] = {};
-    mask[Daedalus::GEngineClasses::PROT_BARRIER] = data.oCTouchDamage.touchDamage.barrier;
-    mask[Daedalus::GEngineClasses::PROT_BLUNT]   = data.oCTouchDamage.touchDamage.blunt;
-    mask[Daedalus::GEngineClasses::PROT_EDGE]    = data.oCTouchDamage.touchDamage.edge;
-    mask[Daedalus::GEngineClasses::PROT_FIRE]    = data.oCTouchDamage.touchDamage.fire;
-    mask[Daedalus::GEngineClasses::PROT_FLY]     = data.oCTouchDamage.touchDamage.fly;
-    mask[Daedalus::GEngineClasses::PROT_MAGIC]   = data.oCTouchDamage.touchDamage.magic;
-    mask[Daedalus::GEngineClasses::PROT_POINT]   = data.oCTouchDamage.touchDamage.point;
-    mask[Daedalus::GEngineClasses::PROT_FALL]    = data.oCTouchDamage.touchDamage.fall;
+    mask[Daedalus::GEngineClasses::PROT_BARRIER] = barrier;
+    mask[Daedalus::GEngineClasses::PROT_BLUNT]   = blunt;
+    mask[Daedalus::GEngineClasses::PROT_EDGE]    = edge;
+    mask[Daedalus::GEngineClasses::PROT_FIRE]    = fire;
+    mask[Daedalus::GEngineClasses::PROT_FLY]     = fly;
+    mask[Daedalus::GEngineClasses::PROT_MAGIC]   = magic;
+    mask[Daedalus::GEngineClasses::PROT_POINT]   = point;
+    mask[Daedalus::GEngineClasses::PROT_FALL]    = fall;
 
     auto& hnpc = *npc->handle();
     for(size_t i=0; i<Daedalus::GEngineClasses::PROT_INDEX_MAX; ++i) {
       if(!mask[i])
         continue;
-      takeDamage(*npc,int32_t(data.oCTouchDamage.damage),hnpc.protection[i]);
+      takeDamage(*npc,int32_t(damage),hnpc.protection[i]);
       }
     }
 
-  repeatTimeout = world.tickCount() + uint64_t(data.oCTouchDamage.damageRepeatDelaySec*1000);
+  repeatTimeout = world.tickCount() + uint64_t(repeatDelaySec*1000);
   }
 
 void TouchDamage::takeDamage(Npc& npc, int32_t val, int32_t prot) {

@@ -4,6 +4,7 @@
 #include <memory>
 
 #include <daedalus/DaedalusGameState.h>
+#include <phoenix/world/vob_tree.hh>
 
 #include "bullet.h"
 #include "spaceindex.h"
@@ -90,7 +91,7 @@ class WorldObjects final {
     void           stopEffect(const VisualFx& vfx);
 
     Item*          addItem   (size_t itemInstance, std::string_view at);
-    Item*          addItem   (const ZenLoad::zCVobData &vob);
+    Item*          addItem   (const phoenix::vobs::item &vob);
     Item*          addItem   (size_t itemInstance, const Tempest::Vec3& pos);
     Item*          addItem   (size_t itemInstance, const Tempest::Vec3& pos, const Tempest::Vec3& dir);
     Item*          addItemDyn(size_t itemInstance, const Tempest::Matrix4x4& pos, size_t owner);
@@ -103,7 +104,7 @@ class WorldObjects final {
 
     void           addInteractive(Interactive*         obj);
     void           addStatic     (StaticObj*           obj);
-    void           addRoot       (ZenLoad::zCVobData&& vob, bool startup);
+    void           addRoot       (const std::unique_ptr<phoenix::vobs::vob>& vob, bool startup);
     void           invalidateVobIndex();
 
     Interactive*   validateInteractive(Interactive *def);

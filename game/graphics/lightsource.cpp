@@ -53,6 +53,20 @@ void LightSource::setColor(const std::vector<uint32_t>& arr, float fps, bool smo
   colorAniListFpsInv = arr.size()>0 ? uint64_t(1000.0/fps) : 0;
   }
 
+void LightSource::setColor(const std::vector<glm::u8vec4>&   arr, float fps, bool smooth) {
+  colorSmooth = smooth;
+  if(arr.size()==1) {
+    setColor({static_cast<float>(arr[0].r), static_cast<float>(arr[0].g), static_cast<float>(arr[0].b)});
+    colorAniListFpsInv = 0;
+    return;
+  }
+
+  colorAniList.resize(arr.size());
+  for(size_t i=0; i<arr.size(); ++i)
+    colorAniList[i] = {static_cast<float>(arr[i].r), static_cast<float>(arr[i].g), static_cast<float>(arr[i].b)};
+  colorAniListFpsInv = !arr.empty() ? uint64_t(1000.0/fps) : 0;
+}
+
 void LightSource::setColor(const std::vector<Vec3>& arr, float fps, bool smooth) {
   colorSmooth = smooth;
   if(arr.size()==0) {

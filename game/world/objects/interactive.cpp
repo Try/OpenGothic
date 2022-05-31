@@ -11,35 +11,46 @@
 #include "utils/fileext.h"
 #include "utils/dbgpainter.h"
 
-Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData& vob, Flags flags)
+Interactive::Interactive(Vob* parent, World &world, const std::unique_ptr<phoenix::vobs::vob>& vob, Flags flags)
   : Vob(parent,world,vob,flags) {
-  vobName       = std::move(vob.vobName);
-  focName       = std::move(vob.oCMOB.focusName);
-  bbox[0]       = vob.bbox[0];
-  bbox[1]       = vob.bbox[1];
-  owner         = std::move(vob.oCMOB.owner);
-  focOver       = vob.oCMOB.focusOverride;
-  showVisual    = vob.showVisual;
 
-  stateNum      = vob.oCMobInter.stateNum;
-  triggerTarget = std::move(vob.oCMobInter.triggerTarget);
-  useWithItem   = std::move(vob.oCMobInter.useWithItem);
-  conditionFunc = std::move(vob.oCMobInter.conditionFunc);
-  onStateFunc   = std::move(vob.oCMobInter.onStateFunc);
-  rewind        = std::move(vob.oCMobInter.rewind);
+  auto* mob = (const phoenix::vobs::mob*) vob.get();
+
+  vobName       = mob->vob_name;
+  focName       = mob->name;
+  bbox[0]       = {mob->bbox.min.x, mob->bbox.min.y, mob->bbox.min.z};
+  bbox[1]       = {mob->bbox.max.x, mob->bbox.max.y, mob->bbox.max.z};
+  owner         = mob->owner;
+  focOver       = mob->focus_override;
+  showVisual    = mob->show_visual;
+
+  if (mob->type != phoenix::vob_type::oCMOB) {
+    auto* inter = (const phoenix::vobs::mob_inter*) vob.get();
+    stateNum      = inter->state;
+    triggerTarget = inter->target;
+    useWithItem   = inter->item;
+    conditionFunc = inter->condition_function;
+    onStateFunc   = inter->on_state_change_function;
+    rewind        = inter->rewind;
+  }
 
   for(auto& i:owner)
     i = char(std::toupper(i));
 
-  if(vobType==ZenLoad::zCVobData::VT_oCMobContainer ||
-     vobType==ZenLoad::zCVobData::VT_oCMobDoor) {
-    locked      = vob.oCMobLockable.locked;
-    keyInstance = std::move(vob.oCMobLockable.keyInstance);
-    pickLockStr = std::move(vob.oCMobLockable.pickLockStr);
-    }
+  if (vobType==phoenix::vob_type::oCMobDoor) {
+    auto* door = (const phoenix::vobs::mob_door*) vob.get();
+    locked      = door->locked;
+    keyInstance = door->key;
+    pickLockStr = door->pick_string;
+  }
 
   if(isContainer()) {
-    auto items  = std::move(vob.oCMobContainer.contains);
+    auto* container = (const phoenix::vobs::mob_container*) vob.get();
+    locked      = container->locked;
+    keyInstance = container->key;
+    pickLockStr = container->pick_string;
+
+    auto items  = std::move(container->contents);
     if(items.size()>0) {
       char* it = &items[0];
       for(auto i=it;;++i) {
@@ -57,8 +68,8 @@ Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData& vob, Fla
       }
     }
 
-  setVisual(vob);
-  mdlVisual = std::move(vob.visual);
+  setVisual(*vob);
+  mdlVisual = std::move(vob->visual_name);
 
   if(isLadder() && !mdlVisual.empty()) {
     // NOTE: there must be else way to determinate steps count, nut for now - we parse filename
@@ -156,7 +167,7 @@ void Interactive::resetPositionToTA(int32_t state) {
   setState(state);
   }
 
-void Interactive::setVisual(ZenLoad::zCVobData& vob) {
+void Interactive::setVisual(const phoenix::vobs::vob& vob) {
   visual.setVisual(vob,world,false);
   visual.setObjMatrix(transform());
   visual.setInteractive(this);
@@ -199,7 +210,7 @@ void Interactive::tick(uint64_t dt) {
     // Note: oCMobInter::rewind, oCMobInter with killed user has to go back to state=-1
     // All other cases, oCMobFire, oCMobDoor in particular - preserve old state
     const int destSt = -1;
-    if(destSt!=state && (vobType==ZenLoad::zCVobData::VT_oCMobInter || rewind)) {
+    if(destSt!=state && (vobType==phoenix::vob_type::oCMobInter || rewind)) {
       if(!setAnim(nullptr,Anim::Out))
         return;
       auto prev = state;
@@ -416,11 +427,11 @@ std::string_view Interactive::posSchemeName() const {
   }
 
 bool Interactive::isContainer() const {
-  return vobType==ZenLoad::zCVobData::VT_oCMobContainer;
+  return vobType==phoenix::vob_type::oCMobContainer;
   }
 
 bool Interactive::isLadder() const {
-  return vobType==ZenLoad::zCVobData::VT_oCMobLadder;
+  return vobType==phoenix::vob_type::oCMobLadder;
   }
 
 bool Interactive::needToLockpick(const Npc& pl) const {

@@ -24,7 +24,7 @@ class Interactive : public Vob {
       FromStand = 11,
       };
 
-    Interactive(Vob* parent, World& world, ZenLoad::zCVobData& vob, Flags flags);
+    Interactive(Vob* parent, World& world, const std::unique_ptr<phoenix::vobs::vob>& vob, Flags flags);
 
     void                load(Serialize& fin) override;
     void                save(Serialize& fout) const override;
@@ -98,7 +98,7 @@ class Interactive : public Vob {
       bool               isDistPos() const;
       };
 
-    void                setVisual(ZenLoad::zCVobData& vob);
+    void                setVisual(const phoenix::vobs::vob& vob);
     void                invokeStateFunc(Npc &npc);
     void                implTick(Pos &p, uint64_t dt);
     void                implQuitInteract(Pos &p);

@@ -6,7 +6,7 @@
 
 class MoveTrigger : public AbstractTrigger {
   public:
-    MoveTrigger(Vob* parent, World &world, ZenLoad::zCVobData&& data, Flags flags);
+    MoveTrigger(Vob* parent, World &world, const std::unique_ptr<phoenix::vobs::vob>& data, Flags flags);
 
     void save(Serialize& fout) const override;
     void load(Serialize &fin) override;
@@ -42,10 +42,17 @@ class MoveTrigger : public AbstractTrigger {
       uint64_t ticks    = 0;
       };
 
-    Tempest::Matrix4x4       pos0;
-    MeshObjects::Mesh        view;
-    PhysicMesh               physic;
-    std::vector<KeyLen>      keyframes;
+    Tempest::Matrix4x4                     pos0;
+    MeshObjects::Mesh                      view;
+    PhysicMesh                             physic;
+    std::vector<KeyLen>                    keyframes;
+    std::vector<phoenix::animation_sample> mover_keyframes;
+    phoenix::mover_behavior                behavior;
+    std::string                            sfxOpenStart;
+    std::string                            sfxOpenEnd;
+    std::string                            sfxCloseEnd;
+    std::string                            sfxMoving;
+    float                                  stayOpenTimeSec;
 
     State                    state     = Idle;
     uint64_t                 sAnim     = 0;

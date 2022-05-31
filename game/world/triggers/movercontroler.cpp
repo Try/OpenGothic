@@ -2,16 +2,19 @@
 
 #include "world/world.h"
 
-MoverControler::MoverControler(Vob* parent, World &world, ZenLoad::zCVobData &&d, Flags flags)
-  :AbstractTrigger(parent,world,std::move(d),flags) {
+MoverControler::MoverControler(Vob* parent, World &world, const std::unique_ptr<phoenix::vobs::vob>& d, Flags flags)
+  :AbstractTrigger(parent,world,d,flags) {
+  auto* ctrl = (const phoenix::vobs::mover_controller*) d.get();
+  message = ctrl->message;
+  key = ctrl->key;
   }
 
 void MoverControler::onUntrigger(const TriggerEvent&) {
   }
 
 void MoverControler::onTrigger(const TriggerEvent&) {
-  TriggerEvent ex(data.zCMoverControler.triggerTarget,data.vobName,0,TriggerEvent::T_Move);
-  ex.move.msg = data.zCMoverControler.moverMessage;
-  ex.move.key = data.zCMoverControler.gotoFixedKey;
+  TriggerEvent ex(target,vobName,0,TriggerEvent::T_Move);
+  ex.move.msg = ZenLoad::MoverMessage(message);
+  ex.move.key = int(key);
   world.execTriggerEvent(ex);
   }

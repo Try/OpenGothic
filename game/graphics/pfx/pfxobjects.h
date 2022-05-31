@@ -51,7 +51,7 @@ class PfxObjects final {
       };
 
     PfxBucket&                    getBucket(const ParticleFx& decl);
-    PfxBucket&                    getBucket(const Material& mat, const ZenLoad::zCVobData& vob);
+    PfxBucket&                    getBucket(const Material& mat, const phoenix::vobs::vob& vob);
 
     WorldView&                    world;
     const SceneGlobals&           scene;

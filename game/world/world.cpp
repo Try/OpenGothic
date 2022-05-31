@@ -1,6 +1,5 @@
 #include "world.h"
 
-#include <zenload/zCMesh.h>
 #include <fstream>
 #include <functional>
 #include <cctype>
@@ -67,50 +66,45 @@ World::World(GameSession& game, std::string file, bool startup, std::function<vo
   using namespace Daedalus::GameState;
 
   phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(wname);
-  if (entry == nullptr) throw;
-  phoenix::buffer reader = entry->open();
-  ZenLoad::ZenParser parser(reader.array().data(), reader.remaining());
-  loadProgress(1);
-  if(parser.getFileSize()==0)
+
+  if(entry == nullptr) {
     Tempest::Log::e("unable to open Zen-file: \"",wname,"\"");
-  parser.readHeader();
-
-  loadProgress(10);
-  ZenLoad::oCWorldData world;
-
-  auto fver = ZenLoad::ZenParser::FileVersion::Gothic1;
-  if(Gothic::inst().version().game==2)
-    fver = ZenLoad::ZenParser::FileVersion::Gothic2;
+    return;
+  }
 
   try {
-    parser.readWorld(world,fver);
+    auto buf = entry->open();
+    auto world = phoenix::world::parse(buf, version().game == 1 ? phoenix::game_version::gothic_1
+                                                                : phoenix::game_version::gothic_2);
+    loadProgress(20);
+
+    auto& worldMesh = world.world_mesh;
+    {
+      PackedMesh vmesh(worldMesh,PackedMesh::PK_VisualLnd);
+      wview.reset   (new WorldView(*this,vmesh));
+    }
+
+    loadProgress(50);
+    wdynamic.reset(new DynamicWorld(*this,worldMesh));
+    loadProgress(70);
+
+    globFx.reset(new GlobalEffects(*this));
+
+    wmatrix.reset(new WayMatrix(*this,world.world_way_net));
+
+    for(auto& vob:world.world_vobs)
+      wobj.addRoot(vob,startup);
+
+    wmatrix->buildIndex();
+    bsp = std::move(world.world_bsp_tree);
+    bspSectors.resize(bsp.sectors().size());
+    loadProgress(100);
+
     }
   catch(...) {
     Tempest::Log::e("unable to load landscape mesh");
     throw;
     }
-
-  ZenLoad::zCMesh* worldMesh = parser.getWorldMesh();
-  {
-  PackedMesh vmesh(*worldMesh,PackedMesh::PK_VisualLnd);
-  wview.reset   (new WorldView(*this,vmesh));
-  }
-
-  loadProgress(50);
-  wdynamic.reset(new DynamicWorld(*this,*worldMesh));
-  loadProgress(70);
-
-  globFx.reset(new GlobalEffects(*this));
-
-  wmatrix.reset(new WayMatrix(*this,world.waynet));
-  if(1){
-    for(auto& vob:world.rootVobs)
-      wobj.addRoot(std::move(vob),startup);
-    }
-  wmatrix->buildIndex();
-  bsp = std::move(world.bspTree);
-  bspSectors.resize(bsp.sectors.size());
-  loadProgress(100);
   }
 
 World::~World() {
@@ -181,7 +175,7 @@ void World::save(Serialize &fout) {
 
   fout.write(uint32_t(bspSectors.size()));
   for(size_t i=0;i<bspSectors.size();++i) {
-    fout.write(bsp.sectors[i].name,bspSectors[i].guild);
+    fout.write(bsp.sectors()[i].name,bspSectors[i].guild);
     }
 
   wobj.save(fout);
@@ -266,7 +260,7 @@ MeshObjects::Mesh World::addStaticView(const char* visual) {
   return view()->addStaticView(visual);
   }
 
-MeshObjects::Mesh World::addDecalView(const ZenLoad::zCVobData& vob) {
+MeshObjects::Mesh World::addDecalView(const phoenix::vobs::vob& vob) {
   return view()->addDecalView(vob);
   }
 
@@ -289,42 +283,42 @@ Npc *World::findNpcByInstance(size_t instance) {
 const std::string& World::roomAt(const Tempest::Vec3& p) {
   static std::string empty;
 
-  if(bsp.nodes.empty())
+  if(bsp.nodes().empty())
     return empty;
 
-  const ZenLoad::zCBspNode* node=&bsp.nodes[0];
+  const auto* node=&bsp.nodes()[0];
 
   while(true) {
-    const float* v    = node->plane.v;
-    float        sgn  = v[0]*p.x + v[1]*p.y + v[2]*p.z - v[3];
-    uint32_t     next = (sgn>0) ? node->front : node->back;
-    if(next>=bsp.nodes.size())
+    const auto v    = node->plane;
+    float        sgn  = v.x*p.x + v.y*p.y + v.z*p.z - v.w;
+    uint32_t     next = (sgn>0) ? node->front_index : node->back_index;
+    if(next>=bsp.nodes().size())
       break;
 
-    node = &bsp.nodes[next];
+    node = &bsp.nodes()[next];
     }
 
-  if(node->bbox3dMin.x <= p.x && p.x <node->bbox3dMax.x &&
-     node->bbox3dMin.y <= p.y && p.y <node->bbox3dMax.y &&
-     node->bbox3dMin.z <= p.z && p.z <node->bbox3dMax.z) {
+  if(node->bbox.min.x <= p.x && p.x <node->bbox.max.x &&
+     node->bbox.min.y <= p.y && p.y <node->bbox.max.y &&
+     node->bbox.min.z <= p.z && p.z <node->bbox.max.z) {
     return roomAt(*node);
     }
 
   return empty;
   }
 
-const std::string& World::roomAt(const ZenLoad::zCBspNode& node) {
-  std::string* ret=nullptr;
+const std::string& World::roomAt(const phoenix::bsp_node& node) {
+  const std::string* ret=nullptr;
   size_t       count=0;
-  auto         id = &node-bsp.nodes.data();(void)id;
+  auto         id = &node-bsp.nodes().data();(void)id;
 
-  for(auto& i:bsp.sectors) {
-    for(auto r:i.bspNodeIndices)
-      if(r<bsp.leafIndices.size()){
-        size_t idx = bsp.leafIndices[r];
-        if(idx>=bsp.nodes.size())
+  for(auto& i:bsp.sectors()) {
+    for(auto r:i.node_indices)
+      if(r<bsp.leaf_node_indices().size()){
+        size_t idx = bsp.leaf_node_indices()[r];
+        if(idx>=bsp.nodes().size())
           continue;
-        if(&bsp.nodes[idx]==&node) {
+        if(&bsp.nodes()[idx]==&node) {
           ret = &i.name;
           count++;
           }
@@ -342,8 +336,8 @@ World::BspSector* World::portalAt(std::string_view tag) {
   if(tag.empty())
     return nullptr;
 
-  for(size_t i=0;i<bsp.sectors.size();++i)
-    if(bsp.sectors[i].name==tag)
+  for(size_t i=0;i<bsp.sectors().size();++i)
+    if(bsp.sectors()[i].name==tag)
       return &bspSectors[i];
   return nullptr;
   }
@@ -544,8 +538,8 @@ Item *World::addItem(size_t itemInstance, std::string_view at) {
   return wobj.addItem(itemInstance,at);
   }
 
-Item* World::addItem(const ZenLoad::zCVobData& vob) {
-  return wobj.addItem(vob);
+Item* World::addItem(const std::unique_ptr<phoenix::vobs::vob>& vob) {
+  return wobj.addItem(*(const phoenix::vobs::item*) vob.get());
   }
 
 Item* World::addItem(size_t itemInstance, const Tempest::Vec3& pos) {
@@ -740,16 +734,15 @@ void World::addFreePoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir, std
   wmatrix->addFreePoint(pos,dir,name);
   }
 
-void World::addSound(const ZenLoad::zCVobData& vob) {
-  if(vob.vobType==ZenLoad::zCVobData::VT_zCVobSound ||
-     vob.vobType==ZenLoad::zCVobData::VT_zCVobSoundDaytime) {
-    wsound.addSound(vob);
+void World::addSound(const std::unique_ptr<phoenix::vobs::vob>& vob) {
+  if(vob->type==phoenix::vob_type::zCVobSound || vob->type==phoenix::vob_type::zCVobSoundDaytime) {
+    wsound.addSound((const phoenix::vobs::sound&) *vob);
     }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusic) {
-    wsound.addZone(vob);
+  else if(vob->type==phoenix::vob_type::oCZoneMusic) {
+    wsound.addZone((const phoenix::vobs::zone_music&) *vob);
     }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusicDefault) {
-    wsound.setDefaultZone(vob);
+  else if(vob->type==phoenix::vob_type::oCZoneMusicDefault) {
+    wsound.setDefaultZone((const phoenix::vobs::zone_music&) *vob);
     }
   }
 
@@ -920,8 +913,8 @@ int32_t World::guildOfRoom(std::string_view portalName) {
 
   auto name = portalName.substr(b,e-b);
 
-  for(size_t i=0;i<bsp.sectors.size();++i) {
-    auto& s = bsp.sectors[i].name;
+  for(size_t i=0;i<bsp.sectors().size();++i) {
+    auto& s = bsp.sectors()[i].name;
     if(s==name)
       return bspSectors[i].guild;
     }

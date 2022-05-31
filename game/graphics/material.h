@@ -4,11 +4,13 @@
 #include <daedalus/DaedalusStdlib.h>
 #include <zenload/zTypes.h>
 
+#include <phoenix/world/vob_tree.hh>
+
 class Material final {
   public:
     Material()=default;
     Material(const ZenLoad::zCMaterialData& m, bool enableAlphaTest);
-    Material(const ZenLoad::zCVobData& vob);
+    Material(const phoenix::vobs::vob& vob);
     Material(const Daedalus::GEngineClasses::C_ParticleFX &src);
 
     enum AlphaFunc:uint8_t {

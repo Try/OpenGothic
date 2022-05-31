@@ -20,8 +20,10 @@ class LightGroup final {
       public:
         Light() = default;
         Light(LightGroup& owner, const ZenLoad::zCVobData& vob);
+        Light(LightGroup& owner, const phoenix::vobs::light& vob);
         Light(LightGroup& owner);
         Light(World& owner, const ZenLoad::zCVobData& vob);
+        Light(World& owner, const phoenix::vobs::light& vob);
         Light(World& owner, std::string_view preset);
         Light(World& owner);
 
