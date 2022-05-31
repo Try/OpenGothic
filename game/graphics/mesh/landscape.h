@@ -4,8 +4,6 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/UniformBuffer>
 
-#include <zenload/zTypes.h>
-
 #include "graphics/bounds.h"
 #include "graphics/material.h"
 #include "graphics/meshobjects.h"

@@ -14,7 +14,7 @@ void MoverControler::onUntrigger(const TriggerEvent&) {
 
 void MoverControler::onTrigger(const TriggerEvent&) {
   TriggerEvent ex(target,vobName,0,TriggerEvent::T_Move);
-  ex.move.msg = ZenLoad::MoverMessage(message);
+  ex.move.msg = message;
   ex.move.key = int(key);
   world.execTriggerEvent(ex);
   }

@@ -119,7 +119,7 @@ PfxBucket& PfxObjects::getBucket(const Material& mat, const phoenix::vobs::vob& 
     if(i.pfx->visMaterial==mat &&
        i.visualCamAlign==vob.camera_alignment &&
        i.zBias==vob.bias &&
-       i.decalDim== ZMath::float2{vob.visual_decal->dimension.x, vob.visual_decal->dimension.y}) {
+       i.decalDim==Tempest::Vec2{vob.visual_decal->dimension.x, vob.visual_decal->dimension.y}) {
       return getBucket(*i.pfx);
       }
   spriteEmit.emplace_back();
@@ -127,7 +127,7 @@ PfxBucket& PfxObjects::getBucket(const Material& mat, const phoenix::vobs::vob& 
 
   e.visualCamAlign = vob.camera_alignment;
   e.zBias          = vob.bias;
-  e.decalDim       = ZMath::float2{vob.visual_decal->dimension.x, vob.visual_decal->dimension.y};
+  e.decalDim       = Tempest::Vec2{vob.visual_decal->dimension.x, vob.visual_decal->dimension.y};
   e.pfx.reset(new ParticleFx(mat,vob));
   return getBucket(*e.pfx);
   }

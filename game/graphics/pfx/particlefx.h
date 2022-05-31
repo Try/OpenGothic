@@ -2,7 +2,6 @@
 
 #include <daedalus/DaedalusStdlib.h>
 #include <Tempest/RenderState>
-#include <zenload/zTypes.h>
 
 #include <Tempest/Texture2d>
 

@@ -2,8 +2,6 @@
 
 #include <phoenix/mesh.hh>
 
-#include <zenload/zTypes.h>
-
 #include <Tempest/Matrix4x4>
 #include <memory>
 #include <limits>
@@ -207,7 +205,6 @@ class DynamicWorld final {
     struct BBoxBody final {
       public:
         BBoxBody() = default;
-        BBoxBody(DynamicWorld* wrld, BBoxCallback* cb, const ZMath::float3* bbox);
         BBoxBody(DynamicWorld* wrld, BBoxCallback* cb, const phoenix::bounding_box& bbox);
         BBoxBody(DynamicWorld* wrld, BBoxCallback* cb, const Tempest::Vec3& pos, float R);
         BBoxBody(BBoxBody&& other);

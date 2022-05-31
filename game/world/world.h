@@ -7,8 +7,6 @@
 #include <functional>
 
 #include <daedalus/DaedalusVM.h>
-#include <zenload/zTypes.h>
-#include <zenload/zTypes.h>
 
 #include <phoenix/world.hh>
 

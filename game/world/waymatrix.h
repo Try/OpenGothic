@@ -5,7 +5,6 @@
 
 #include <phoenix/world/way_net.hh>
 
-#include <zenload/zTypes.h>
 #include <vector>
 #include <functional>
 

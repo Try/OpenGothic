@@ -1,6 +1,5 @@
 #pragma once
 
-#include <zenload/zTypes.h>
 #include <cstdint>
 
 #include <phoenix/model_mesh.hh>

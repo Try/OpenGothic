@@ -3,8 +3,6 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Vec>
 
-#include <zenload/zTypes.h>
-
 #include "world/collisionzone.h"
 #include "physics/dynamicworld.h"
 #include "graphics/meshobjects.h"

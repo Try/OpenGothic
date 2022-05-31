@@ -55,93 +55,6 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices,
   }
 }
 
-void PackedMesh::Meshlet::flush(std::vector<Vertex>&   vertices,
-                                std::vector<VertexA>&  verticesA,
-                                std::vector<uint32_t>& indices,
-                                std::vector<uint32_t>* verticesId,
-                                SubMesh& sub,
-                                const std::vector<ZMath::float3>&   vboList,
-                                const std::vector<ZenLoad::zWedge>& wedgeList,
-                                const std::vector<SkeletalData>* skeletal) {
-  if(indSz==0)
-    return;
-
-  auto& vbo = vboList;    // xyz
-  auto& uv  = wedgeList;  // uv, normal
-
-  size_t vboSz = 0;
-  size_t iboSz = indices.size();
-
-  if(skeletal==nullptr) {
-    vboSz = vertices.size();
-    vertices.resize(vboSz+MaxVert);
-    } else {
-    vboSz = verticesA.size();
-    verticesA.resize(vboSz+MaxVert);
-    }
-
-  indices.resize(iboSz+MaxInd );
-  if(verticesId!=nullptr)
-    verticesId->resize(vboSz+MaxVert);
-
-  if(skeletal==nullptr) {
-    for(size_t i=0; i<vertSz; ++i) {
-      Vertex vx = {};
-      auto& v     = uv [vert[i].second];
-      vx.pos[0]   = vbo[vert[i].first].x;
-      vx.pos[1]   = vbo[vert[i].first].y;
-      vx.pos[2]   = vbo[vert[i].first].z;
-      vx.norm[0] = v.m_Normal.x;
-      vx.norm[1] = v.m_Normal.y;
-      vx.norm[2] = v.m_Normal.z;
-      vx.uv[0]   = v.m_Texcoord.x;
-      vx.uv[1]   = v.m_Texcoord.y;
-      vx.color    = 0xFFFFFFFF;
-      vertices[vboSz+i]   = vx;
-      if(verticesId!=nullptr)
-        (*verticesId)[vboSz+i] = vert[i].first;
-      }
-    for(size_t i=vertSz; i<MaxVert; ++i) {
-      Vertex vx = {};
-      vertices[vboSz+i] = vx;
-      if(verticesId!=nullptr)
-        (*verticesId)[vboSz+i] = uint32_t(-1);
-      }
-    } else {
-    auto& sk = *skeletal;
-    for(size_t i=0; i<vertSz; ++i) {
-      VertexA vx = {};
-      auto& v    = uv [vert[i].second];
-      vx.norm[0] = v.m_Normal.x;
-      vx.norm[1] = v.m_Normal.y;
-      vx.norm[2] = v.m_Normal.z;
-      vx.uv[0]   = v.m_Texcoord.x;
-      vx.uv[1]   = v.m_Texcoord.y;
-      vx.color   = 0xFFFFFFFF;
-      for(int r=0; r<4; ++r) {
-        vx.pos    [r][0] = sk[vert[i].first].localPositions[r].x;
-        vx.pos    [r][1] = sk[vert[i].first].localPositions[r].y;
-        vx.pos    [r][2] = sk[vert[i].first].localPositions[r].z;
-        vx.boneId [r]    = sk[vert[i].first].boneIndices[r];
-        vx.weights[r]    = sk[vert[i].first].weights[r];
-        }
-      verticesA[vboSz+i]  = vx;
-      }
-    for(size_t i=vertSz; i<MaxVert; ++i) {
-      VertexA vx = {};
-      verticesA[vboSz+i] = vx;
-      }
-    }
-
-  for(size_t i=0; i<indSz; ++i) {
-    indices[iboSz+i] = uint32_t(vboSz)+indexes[i];
-    }
-  for(size_t i=indSz; i<MaxInd; ++i) {
-    // padd with degenerated triangles
-    indices[iboSz+i] = uint32_t(vboSz);
-    }
-  }
-
 void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices, std::vector<VertexA>& verticesA,
            std::vector<uint32_t>& indices, std::vector<uint32_t>* verticesId,
            SubMesh& sub, const std::vector<glm::vec3>& vboList,
@@ -294,34 +207,6 @@ void PackedMesh::Meshlet::updateBounds(const phoenix::mesh& mesh) {
 void PackedMesh::Meshlet::updateBounds(const phoenix::proto_mesh& mesh) {
   updateBounds(mesh.positions());
 }
-
-void PackedMesh::Meshlet::updateBounds(const std::vector<ZMath::float3>& vbo) {
-  float dim = 0;
-  for(size_t i=0; i<vertSz; ++i)
-    for(size_t r=i+1; r<vertSz; ++r) {
-      auto a = vbo[vert[i].first];
-      auto b = vbo[vert[r].first];
-      a.x -= b.x;
-      a.y -= b.y;
-      a.z -= b.z;
-      float d = a.x*a.x + a.y*a.y + a.z*a.z;
-      if(dim<d) {
-        bounds.pos = Vec3(b.x,b.y,b.z)+Vec3(a.x,a.y,a.z)*0.5f;
-        dim = d;
-        }
-      }
-  bounds.r = 0;
-  for(size_t i=0; i<vertSz; ++i) {
-    auto a = vbo[vert[i].first];
-    a.x -= bounds.pos.x;
-    a.y -= bounds.pos.y;
-    a.z -= bounds.pos.z;
-    float d = (a.x*a.x + a.y*a.y + a.z*a.z);
-    if(bounds.r<d)
-      bounds.r = d;
-    }
-  bounds.r = std::sqrt(bounds.r);
-  }
 
 void PackedMesh::Meshlet::updateBounds(const std::vector<glm::vec3>& vbo) {
   float dim = 0;

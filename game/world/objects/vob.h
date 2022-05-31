@@ -5,8 +5,6 @@
 
 #include <phoenix/world/vob_tree.hh>
 
-#include <zenload/zTypes.h>
-
 class World;
 class Serialize;
 

@@ -34,7 +34,7 @@ struct WorldSound::WSound final {
   };
 
 struct WorldSound::Zone final {
-  ZMath::float3 bbox[2]={};
+  Tempest::Vec3 bbox[2]={};
   std::string   name;
   bool          checkPos(float x,float y,float z) const {
     return

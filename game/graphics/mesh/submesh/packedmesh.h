@@ -16,7 +16,6 @@ class Bounds;
 
 class PackedMesh {
   public:
-    using WorldTriangle = ZenLoad::WorldTriangle;
     using Vertex        = Resources::Vertex;
     using VertexA       = Resources::VertexA;
 
@@ -67,7 +66,7 @@ class PackedMesh {
     Tempest::Vec3 mBbox[2];
 
     struct SkeletalData {
-      ZMath::float3 localPositions[4] = {};
+      Tempest::Vec3 localPositions[4] = {};
       uint8_t       boneIndices[4]    = {};
       float         weights[4]        = {};
       };
@@ -82,11 +81,6 @@ class PackedMesh {
 
       void    flush(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<Bounds>& instances,
                     SubMesh& sub, const phoenix::mesh& mesh);
-      void    flush(std::vector<Vertex>& vertices, std::vector<VertexA>& verticesA,
-                    std::vector<uint32_t>& indices, std::vector<uint32_t>* verticesId,
-                    SubMesh& sub, const std::vector<ZMath::float3>& vbo,
-                    const std::vector<ZenLoad::zWedge>& wedgeList,
-                    const std::vector<SkeletalData>* skeletal);
 
       void    flush(std::vector<Vertex>& vertices, std::vector<VertexA>& verticesA,
                  std::vector<uint32_t>& indices, std::vector<uint32_t>* verticesId,
@@ -98,7 +92,6 @@ class PackedMesh {
       void    clear();
       void    updateBounds(const phoenix::mesh& mesh);
       void    updateBounds(const phoenix::proto_mesh& mesh);
-      void    updateBounds(const std::vector<ZMath::float3>& vbo);
       void    updateBounds(const std::vector<glm::vec3>& vbo);
       bool    canMerge(const Meshlet& other) const;
       bool    hasIntersection(const Meshlet& other) const;

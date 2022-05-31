@@ -4,7 +4,6 @@
 #include <Tempest/SoundEffect>
 #include <Tempest/Point>
 
-#include <zenload/zTypes.h>
 #include <phoenix/world/vob_tree.hh>
 
 #include <mutex>

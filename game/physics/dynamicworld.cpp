@@ -71,7 +71,7 @@ struct DynamicWorld::NpcBodyList final {
     frozen.reserve(1024);
     }
 
-  NpcBody* create(const ZMath::float3 &min, const ZMath::float3 &max) {
+  NpcBody* create(const Tempest::Vec3 &min, const Tempest::Vec3 &max) {
     static const float dimMax=45.f;
     float dx     = max.x-min.x;
     float dz     = max.z-min.z;
@@ -624,7 +624,7 @@ float DynamicWorld::soundOclusion(const Tempest::Vec3& from, const Tempest::Vec3
   }
 
 DynamicWorld::NpcItem DynamicWorld::ghostObj(std::string_view visual) {
-  ZMath::float3 min={0,0,0}, max={0,0,0};
+  Tempest::Vec3 min={0,0,0}, max={0,0,0};
   if(auto sk=Resources::loadSkeleton(visual)) {
     min = sk->bboxCol[0];
     max = sk->bboxCol[1];
@@ -1066,26 +1066,6 @@ Tempest::Matrix4x4 DynamicWorld::BulletBody::matrix() const {
   mat.rotateOY(-ang);
   mat.rotateOZ(-a2);
   return mat;
-  }
-
-
-DynamicWorld::BBoxBody::BBoxBody(DynamicWorld* ow, DynamicWorld::BBoxCallback* cb, const ZMath::float3* bbox)
-  : owner(ow), cb(cb) {
-  btVector3 hExt = CollisionWorld::toMeters(Tempest::Vec3{bbox[1].x-bbox[0].x, bbox[1].y-bbox[0].y, bbox[1].z-bbox[0].z})*0.5f;
-  btVector3 pos  = CollisionWorld::toMeters(Tempest::Vec3{bbox[1].x+bbox[0].x, bbox[1].y+bbox[0].y, bbox[1].z+bbox[0].z})*0.5f;
-
-  shape = new btBoxShape(hExt);
-  obj   = new btRigidBody(btRigidBody::btRigidBodyConstructionInfo(0,nullptr,shape));
-
-  btTransform trans;
-  trans.setIdentity();
-  trans.setOrigin(pos);
-
-  obj->setWorldTransform(trans);
-  obj->setUserIndex(C_Ghost);
-  obj->setCollisionFlags(btCollisionObject::CF_NO_CONTACT_RESPONSE);
-
-  owner->bboxList->add(this);
   }
 
 DynamicWorld::BBoxBody::BBoxBody(DynamicWorld* ow, BBoxCallback* cb, const phoenix::bounding_box& bbox)

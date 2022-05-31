@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Tempest/Vec>
+
 #include <phoenix/material.hh>
 #include <phoenix/softskin_mesh.hh>
 
@@ -8,10 +10,10 @@
 namespace phoenix_compat {
   struct SkeletalVertex
   {
-    ZMath::float3 Normal;
-    ZMath::float2 TexCoord;
+    Tempest::Vec3 Normal;
+    Tempest::Vec2 TexCoord;
     uint32_t Color;
-    ZMath::float3 LocalPositions[4];
+    Tempest::Vec3 LocalPositions[4];
     unsigned char BoneIndices[4];
     float Weights[4];
   };
@@ -25,7 +27,7 @@ namespace phoenix_compat {
       size_t           indexSize   = 0;
     };
 
-    ZMath::float3               bbox[2];
+    Tempest::Vec3               bbox[2];
     std::vector<SkeletalVertex> vertices;
     std::vector<uint32_t>       indices;
     std::vector<SubMesh>        subMeshes;

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <zenload/zTypes.h>
 
 #include "world/objects/vob.h"
 #include "world/collisionzone.h"
@@ -37,8 +36,8 @@ class TriggerEvent final {
     Type              type        = T_Trigger;
     uint64_t          timeBarrier = 0;
     struct {
-      ZenLoad::MoverMessage msg = ZenLoad::MoverMessage::GOTO_KEY_FIXED_DIRECTLY;
-      int32_t               key = 0;
+      phoenix::mover_message_type msg = phoenix::mover_message_type::fixed_direct;
+      int32_t                     key = 0;
       } move;
   };
 

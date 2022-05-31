@@ -125,7 +125,7 @@ class Interactive : public Vob {
     std::string                  vobName;
     std::string                  focName;
     std::string                  mdlVisual;
-    ZMath::float3                bbox[2]={};
+    Tempest::Vec3                bbox[2]={};
     std::string                  owner;
     bool                         focOver=false;
     bool                         showVisual=true;

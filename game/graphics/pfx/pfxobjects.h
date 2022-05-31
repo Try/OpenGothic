@@ -46,7 +46,7 @@ class PfxObjects final {
     struct SpriteEmitter {
       uint8_t                     visualCamAlign = 0;
       int32_t                     zBias          = 0;
-      ZMath::float2               decalDim = {};
+      Tempest::Vec2               decalDim = {};
       std::unique_ptr<ParticleFx> pfx;
       };
 
