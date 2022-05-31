@@ -3,8 +3,7 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Vec>
 
-#include <zenload/zTypes.h>
-#include <zenload/zCMaterial.h>
+#include <phoenix/material.hh>
 
 #include <memory>
 #include <vector>
@@ -34,7 +33,7 @@ class CollisionWorld : public btDiscreteDynamicsWorld {
 
     void tick(uint64_t dt);
     void setBBox(const btVector3& min, const btVector3& max);
-    void setItemHitCallback(std::function<void(Item& itm,ZenLoad::MaterialGroup mat,float impulse,float mass)> f);
+    void setItemHitCallback(std::function<void(Item& itm,phoenix::material_group mat,float impulse,float mass)> f);
 
     void updateAabbs() override;
     void touchAabbs();
@@ -80,7 +79,7 @@ class CollisionWorld : public btDiscreteDynamicsWorld {
     std::unique_ptr<btBroadphaseInterface>      broad;
     std::unique_ptr<btSequentialImpulseConstraintSolver> solver;
 
-    std::function<void(Item& itm,ZenLoad::MaterialGroup mat,float impulse,float mass)>  hitItem;
+    std::function<void(Item& itm, phoenix::material_group mat,float impulse,float mass)>  hitItem;
 
     std::vector<btRigidBody*>                   rigid;
     btVector3                                   gravity = btVector3(0,0,0);

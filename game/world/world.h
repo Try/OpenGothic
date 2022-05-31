@@ -170,7 +170,7 @@ class World final {
 
     Sound                addWeaponHitEffect(Npc&         src, const Bullet* srcArrow, Npc&  reciver);
     Sound                addWeaponBlkEffect(ItemMaterial src, ItemMaterial           reciver, const Tempest::Matrix4x4& pos);
-    Sound                addLandHitEffect  (ItemMaterial src, ZenLoad::MaterialGroup reciver, const Tempest::Matrix4x4& pos);
+    Sound                addLandHitEffect  (ItemMaterial src, phoenix::material_group reciver, const Tempest::Matrix4x4& pos);
 
     void                 addTrigger    (AbstractTrigger* trigger);
     void                 addInteractive(Interactive* inter);

@@ -40,22 +40,22 @@ const char* materialTag(ItemMaterial src) {
   return "UD";
   }
 
-const char* materialTag(ZenLoad::MaterialGroup src) {
+const char* materialTag(phoenix::material_group src) {
   switch(src) {
-    case ZenLoad::MaterialGroup::UNDEF:
-    case ZenLoad::MaterialGroup::NUM_MAT_GROUPS:
+    case phoenix::material_group::undef:
+    case phoenix::material_group::none:
       return "UD";
-    case ZenLoad::MaterialGroup::METAL:
+    case phoenix::material_group::metal:
       return "ME";
-    case ZenLoad::MaterialGroup::STONE:
+    case phoenix::material_group::stone:
       return "ST";
-    case ZenLoad::MaterialGroup::WOOD:
+    case phoenix::material_group::wood:
       return "WO";
-    case ZenLoad::MaterialGroup::EARTH:
+    case phoenix::material_group::earth:
       return "EA";
-    case ZenLoad::MaterialGroup::WATER:
+    case phoenix::material_group::water:
       return "WA";
-    case ZenLoad::MaterialGroup::SNOW:
+    case phoenix::material_group::snow:
       return "SA"; // sand?
     }
   return "UD";
@@ -664,7 +664,7 @@ Sound World::addWeaponHitEffect(Npc& src, const Bullet* srcArrow, Npc& reciver) 
     return addHitEffect("FI",armor,"MAM",pos);
   }
 
-Sound World::addLandHitEffect(ItemMaterial src, ZenLoad::MaterialGroup reciver, const Tempest::Matrix4x4& pos) {
+Sound World::addLandHitEffect(ItemMaterial src, phoenix::material_group reciver, const Tempest::Matrix4x4& pos) {
   // IHI - item hits item
   // IHL - Item hits Level
   return addHitEffect(materialTag(src),materialTag(reciver),"IHL",pos);

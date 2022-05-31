@@ -4,7 +4,8 @@
 #include <array>
 #include <limits>
 
-#include <zenload/zTypes.h>
+#include <phoenix/material.hh>
+
 #include <Tempest/Point>
 
 #include "physics/dynamicworld.h"
@@ -62,7 +63,7 @@ class MoveAlgo final {
     bool    isSwim()    const;
     bool    isDive()    const;
 
-    uint8_t groundMaterial() const;
+    phoenix::material_group groundMaterial() const;
     auto    groundNormal() const -> Tempest::Vec3;
 
     auto    portalName() -> std::string_view;

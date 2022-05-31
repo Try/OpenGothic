@@ -29,7 +29,7 @@ StaticMesh::StaticMesh(const Material& mat, std::vector<Resources::Vertex> cvbo,
   vbo = Resources::vbo<Vertex>(cvbo.data(),cvbo.size());
   ibo = Resources::ibo(cibo.data(),cibo.size());
   sub.resize(1);
-  for(size_t i=0; i<1; ++i) {
+  for(size_t i=0;i<1;++i) {
     sub[i].texName   = "";
     sub[i].material  = mat;
     sub[i].iboLength = ibo.size();

@@ -3,7 +3,7 @@
 #include <phoenix/mesh.hh>
 
 #include <zenload/zTypes.h>
-#include <zenload/zCMaterial.h>
+
 #include <Tempest/Matrix4x4>
 #include <memory>
 #include <limits>
@@ -135,10 +135,10 @@ class DynamicWorld final {
       };
 
     struct RayLandResult {
-      Tempest::Vec3       v={};
-      Tempest::Vec3       n={};
-      uint8_t             mat    = 0;
-      bool                hasCol = false;
+      Tempest::Vec3           v={};
+      Tempest::Vec3           n={};
+      phoenix::material_group mat    = phoenix::material_group::undef;
+      bool                    hasCol = false;
 
       const char*         sector = nullptr;
       };
@@ -152,7 +152,7 @@ class DynamicWorld final {
       virtual ~BulletCallback()=default;
       virtual void onStop(){}
       virtual void onMove(){}
-      virtual void onCollide(uint8_t matId){(void)matId;}
+      virtual void onCollide(phoenix::material_group matId){(void)matId;}
       virtual void onCollide(Npc& other){(void)other;}
       };
 
@@ -234,7 +234,7 @@ class DynamicWorld final {
     NpcItem        ghostObj  (std::string_view visual);
     Item           staticObj (const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
     Item           movableObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
-    Item           dynamicObj(const Tempest::Matrix4x4& pos, const Bounds& bbox, ZenLoad::MaterialGroup mat);
+    Item           dynamicObj(const Tempest::Matrix4x4& pos, const Bounds& bbox, phoenix::material_group mat);
 
     BulletBody*    bulletObj(BulletCallback* cb);
     BBoxBody       bboxObj(BBoxCallback* cb, const phoenix::bounding_box& bbox);
@@ -244,8 +244,8 @@ class DynamicWorld final {
 
     void           deleteObj(BulletBody* obj);
 
-    static float   materialFriction(ZenLoad::MaterialGroup mat);
-    static float   materialDensity (ZenLoad::MaterialGroup mat);
+    static float   materialFriction(phoenix::material_group mat);
+    static float   materialDensity (phoenix::material_group mat);
 
     std::string_view validateSectorName(std::string_view name) const;
 

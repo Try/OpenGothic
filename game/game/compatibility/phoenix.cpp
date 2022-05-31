@@ -1,48 +1,5 @@
 #include "phoenix.h"
 
-ZenLoad::zCMaterialData phoenix_compat::to_zenlib_material(const phoenix::material& px) {
-  ZenLoad::zCMaterialData mat {};
-  mat.matName = px.name;
-  mat.matGroup = uint8_t(px.group);
-  mat.color = px.color.r << 24 | px.color.g << 16 | px.color.b << 8 | px.color.a;
-  mat.smoothAngle = px.smooth_angle;
-  mat.texture = px.texture;
-  mat.texScale = std::to_string(px.texture_scale.x) + " " + std::to_string(px.texture_scale.y);
-  mat.texAniFPS = px.texture_anim_fps;
-  mat.texAniMapMode = px.texture_anim_map_mode;
-  mat.texAniMapDir = std::to_string(px.texture_anim_map_dir.x) + " " + std::to_string(px.texture_anim_map_dir.y);
-  mat.noCollDet = px.disable_collision;
-  mat.noLighmap = px.disable_lightmap;
-  mat.loadDontCollapse = px.dont_collapse;
-  mat.detailObject = px.detail_object;
-  mat.detailTextureScale = px.texture_scale.x;
-  mat.forceOccluder = px.force_occluder;
-  mat.environmentMapping = px.environment_mapping;
-  mat.environmentalMappingStrength = px.environment_mapping_strength;
-  mat.waveMode = px.wave_mode;
-  mat.waveSpeed = px.wave_speed;
-  mat.waveMaxAmplitude = px.wave_max_amplitude;
-  mat.waveGridSize = px.wave_grid_size;
-  mat.ignoreSun = px.ignore_sun;
-
-  switch(px.alpha_func) {
-  case phoenix::alpha_function::test:
-    mat.alphaFunc = 1;
-    break;
-  case phoenix::alpha_function::additive:
-    mat.alphaFunc = 5;
-    break;
-  case phoenix::alpha_function::transparent:
-    mat.alphaFunc = 4;
-    break;
-  case phoenix::alpha_function::multiply:
-    mat.alphaFunc = 6;
-    break;
-  }
-
-  return mat;
-}
-
 phoenix::bounding_box phoenix_compat::get_total_aabb(const phoenix::softskin_mesh& msh) {
   phoenix::bounding_box bbox = {{FLT_MAX, FLT_MAX, FLT_MAX}, {-FLT_MAX, -FLT_MAX, -FLT_MAX}};
 
@@ -73,9 +30,9 @@ phoenix::bounding_box phoenix_compat::get_total_aabb(const phoenix::softskin_mes
   return bbox;
 }
 
-ZenLoad::PackedSkeletalMesh phoenix_compat::pack_softskin_mesh(const phoenix::softskin_mesh& self) {
-  ZenLoad::PackedSkeletalMesh mesh {};
-  std::vector<ZenLoad::SkeletalVertex> vertices(self.mesh().positions().size());
+phoenix_compat::PackedSkeletalMesh phoenix_compat::pack_softskin_mesh(const phoenix::softskin_mesh& self) {
+  phoenix_compat::PackedSkeletalMesh mesh {};
+  std::vector<phoenix_compat::SkeletalVertex> vertices(self.mesh().positions().size());
 
   auto bb = get_total_aabb(self);
   mesh.bbox[0] = {bb.min.x, bb.min.y, bb.min.z};
@@ -114,7 +71,7 @@ ZenLoad::PackedSkeletalMesh phoenix_compat::pack_softskin_mesh(const phoenix::so
     // Get data
     for(size_t i=0; i<sm.wedges.size(); ++i) {
       const auto&  wedge = sm.wedges[i];
-      ZenLoad::SkeletalVertex v   = vertices[wedge.index];
+      phoenix_compat::SkeletalVertex v   = vertices[wedge.index];
 
       v.Normal   = {wedge.normal.x, wedge.normal.y, wedge.normal.z};
       v.TexCoord = {wedge.texture.x, wedge.texture.y};
@@ -134,7 +91,7 @@ ZenLoad::PackedSkeletalMesh phoenix_compat::pack_softskin_mesh(const phoenix::so
     auto& pack = mesh.subMeshes[s];
     pack.indexOffset = iboStart;
     pack.indexSize   = sm.triangles.size()*3;
-    pack.material    = to_zenlib_material(sm.mat);
+    pack.material    = sm.mat;
     meshVxStart += uint32_t(sm.wedges.size());
     iboStart    += uint32_t(sm.triangles.size()*3);
   }

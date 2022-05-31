@@ -3,8 +3,6 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Log>
 
-#include <zenload/zCMaterial.h>
-
 #include "graphics/mesh/skeleton.h"
 #include "graphics/mesh/animmath.h"
 #include "graphics/pfx/particlefx.h"
@@ -2476,10 +2474,20 @@ void Npc::emitSoundEffect(std::string_view sound, float range, bool freeSlot) {
   sfx.play();
   }
 
+static const char* MaterialGroupNames[] = {
+    "UNDEF",
+    "METAL",
+    "STONE",
+    "WOOD",
+    "EARTH",
+    "WATER",
+    "SNOW",
+};
+
 void Npc::emitSoundGround(std::string_view sound, float range, bool freeSlot) {
   char    buf[256]={};
-  uint8_t mat = mvAlgo.groundMaterial();
-  std::snprintf(buf,sizeof(buf),"%.*s_%s",int(sound.size()),sound.data(),ZenLoad::zCMaterial::getMatGroupString(ZenLoad::MaterialGroup(mat)));
+  auto mat = mvAlgo.groundMaterial();
+  std::snprintf(buf,sizeof(buf),"%.*s_%s",int(sound.size()),sound.data(), MaterialGroupNames[uint8_t(mat)]);
   auto sfx = ::Sound(owner,::Sound::T_Regular,buf,{x,y,z},range,freeSlot);
   sfx.play();
   }

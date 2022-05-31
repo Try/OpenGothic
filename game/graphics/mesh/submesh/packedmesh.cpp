@@ -9,51 +9,6 @@
 
 using namespace Tempest;
 
-void PackedMesh::Meshlet::flush(std::vector<Vertex>&   vertices,
-                                std::vector<uint32_t>& indices,
-                                std::vector<Bounds>&   instances,
-                                SubMesh& sub, const ZenLoad::zCMesh& mesh) {
-  if(indSz==0)
-    return;
-  instances.push_back(bounds);
-
-  auto& vbo = mesh.getVertices();  // xyz
-  auto& uv  = mesh.getFeatures();  // uv, normal
-
-  size_t vboSz = vertices.size();
-  size_t iboSz = indices.size();
-  vertices.resize(vboSz+MaxVert);
-  indices .resize(iboSz+MaxInd );
-
-  for(size_t i=0; i<vertSz; ++i) {
-    Vertex vx = {};
-    auto& v     = uv [vert[i].second];
-
-    vx.pos[0]  = vbo[vert[i].first].x;
-    vx.pos[1]  = vbo[vert[i].first].y;
-    vx.pos[2]  = vbo[vert[i].first].z;
-    vx.norm[0] = v.vertNormal.x;
-    vx.norm[1] = v.vertNormal.y;
-    vx.norm[2] = v.vertNormal.z;
-    vx.uv[0]   = v.uv[0];
-    vx.uv[1]   = v.uv[1];
-    vx.color   = v.lightStat;
-    vertices[vboSz+i] = vx;
-    }
-  for(size_t i=vertSz; i<MaxVert; ++i) {
-    Vertex vx = {};
-    vertices[vboSz+i] = vx;
-    }
-
-  for(size_t i=0; i<indSz; ++i) {
-    indices[iboSz+i] = uint32_t(vboSz)+indexes[i];
-    }
-  for(size_t i=indSz; i<MaxInd; ++i) {
-    // padd with degenerated triangles
-    indices[iboSz+i] = uint32_t(vboSz);
-    }
-  }
-
 void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices,
                                 std::vector<uint32_t>& indices,
                                 std::vector<Bounds>& instances,
@@ -332,10 +287,6 @@ void PackedMesh::Meshlet::clear() {
   indSz  = 0;
   }
 
-void PackedMesh::Meshlet::updateBounds(const ZenLoad::zCMesh& mesh) {
-  updateBounds(mesh.getVertices());
-  }
-
 void PackedMesh::Meshlet::updateBounds(const phoenix::mesh& mesh) {
   updateBounds(mesh.vertices());
 }
@@ -426,34 +377,6 @@ void PackedMesh::Meshlet::merge(const Meshlet& other) {
   vertSz = uint8_t(vertSz+other.vertSz);
   }
 
-static bool isSame(const ZenLoad::zCMaterialData& a, const ZenLoad::zCMaterialData& b) {
-  if(a.matGroup          !=b.matGroup ||
-     a.color             !=b.color ||
-     a.smoothAngle       !=b.smoothAngle ||
-     a.texture           !=b.texture ||
-     a.texScale          !=b.texScale ||
-     a.texAniFPS         !=b.texAniFPS ||
-     a.texAniMapMode     !=b.texAniMapMode ||
-     a.texAniMapDir      !=b.texAniMapDir ||
-     a.noCollDet         !=b.noCollDet ||
-     a.noLighmap         !=b.noLighmap ||
-     a.loadDontCollapse  !=b.loadDontCollapse ||
-     a.detailObject      !=b.detailObject ||
-     a.detailTextureScale!=b.detailTextureScale ||
-     a.forceOccluder     !=b.forceOccluder ||
-     a.environmentMapping!=b.environmentMapping ||
-     a.environmentalMappingStrength!=b.environmentalMappingStrength ||
-     a.waveMode          !=b.waveMode ||
-     a.waveSpeed         !=b.waveSpeed ||
-     a.waveMaxAmplitude  !=b.waveMaxAmplitude ||
-     a.waveGridSize      !=b.waveGridSize ||
-     a.ignoreSun         !=b.ignoreSun ||
-     a.alphaFunc         !=b.alphaFunc ||
-     a.defaultMapping    !=b.defaultMapping)
-    return false;
-  return true;
-  }
-
 static bool isSame(const phoenix::material& a, const phoenix::material& b) {
   if( a.name                         != b.name ||
       a.group                        != b.group ||
@@ -481,27 +404,6 @@ static bool isSame(const phoenix::material& a, const phoenix::material& b) {
     return false;
   return true;
 }
-
-
-PackedMesh::PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type) {
-  if(Resources::hasMeshShaders()) {
-    auto& prop = Resources::device().properties().meshlets;
-    maxIboSliceLength = prop.maxMeshGroups * 32 * MaxInd;
-    } else {
-    maxIboSliceLength = 8*1024*3;
-    }
-
-  if(type==PK_VisualLnd || type==PK_Visual) {
-    packMeshlets(mesh);
-    computeBbox();
-    return;
-    }
-
-  if(type==PK_Physic) {
-    packPhysics(mesh,type);
-    return;
-    }
-  }
 
 PackedMesh::PackedMesh(const phoenix::mesh& mesh, PkgType type) {
   if(Resources::hasMeshShaders()) {
@@ -562,87 +464,6 @@ PackedMesh::PackedMesh(const phoenix::softskin_mesh&  skinned) {
   packMeshlets(mesh,PK_Visual,&vertices);
   }
 
-void PackedMesh::packPhysics(const ZenLoad::zCMesh& mesh, PkgType type) {
-  auto& vbo = mesh.getVertices();
-  auto& ibo = mesh.getIndices();
-  vertices.reserve(vbo.size());
-
-  std::unordered_map<uint32_t,size_t> icache;
-  auto& mid = mesh.getTriangleMaterialIndices();
-  auto& mat = mesh.getMaterials();
-
-  for(size_t i=0; i<ZenLoad::MaterialGroup::NUM_MAT_GROUPS; ++i) {
-    SubMesh sub;
-    sub.material.matName  = "";
-    sub.material.matGroup = ZenLoad::MaterialGroup(i);
-    sub.iboOffset         = indices.size();
-
-    for(size_t r=0; r<ibo.size(); ++r) {
-      auto& m = mat[size_t(mid[r/3u])];
-      if(m.matGroup!=i || m.noCollDet)
-        continue;
-      if(m.matName.find(':')!=std::string::npos)
-        continue; // named material - add them later
-
-      uint32_t index = ibo[r];
-      auto     rx    = icache.find(index);
-      if(rx!=icache.end()) {
-        indices.push_back(uint32_t(rx->second));
-        } else {
-        Vertex vx = {};
-        vx.pos[0] = vbo[index].x;
-        vx.pos[1] = vbo[index].y;
-        vx.pos[2] = vbo[index].z;
-
-        size_t val = vertices.size();
-        vertices.emplace_back(vx);
-        indices.push_back(uint32_t(val));
-        icache[index] = uint32_t(val);
-        }
-      }
-
-    sub.iboLength = indices.size()-sub.iboOffset;
-    if(sub.iboLength>0)
-      subMeshes.emplace_back(std::move(sub));
-    }
-
-  for(size_t i=0; i<mat.size(); ++i) {
-    auto& m = mat[i];
-    if(m.noCollDet)
-      continue;
-    if(m.matName.find(':')==std::string::npos)
-      continue; // only named materials
-
-    SubMesh sub;
-    sub.material.matName  = m.matName;
-    sub.material.matGroup = m.matGroup;
-    sub.iboOffset         = indices.size();
-
-    for(size_t r=0; r<ibo.size(); ++r) {
-      if(size_t(mid[r/3u])!=i)
-        continue;
-      uint32_t index = ibo[r];
-      auto     rx    = icache.find(index);
-      if(rx!=icache.end()) {
-        indices.push_back(uint32_t(rx->second));
-        } else {
-        Vertex vx = {};
-        vx.pos[0] = vbo[index].x;
-        vx.pos[1] = vbo[index].y;
-        vx.pos[2] = vbo[index].z;
-
-        size_t val = vertices.size();
-        vertices.emplace_back(vx);
-        indices.push_back(uint32_t(val));
-        icache[index] = uint32_t(val);
-        }
-      }
-    sub.iboLength = indices.size()-sub.iboOffset;
-    if(sub.iboLength>0)
-      subMeshes.emplace_back(std::move(sub));
-    }
-  }
-
 void PackedMesh::packPhysics(const phoenix::mesh& mesh, PkgType type) {
   auto& vbo = mesh.vertices();
   auto& ibo = mesh.polygons().vertex_indices;
@@ -652,15 +473,26 @@ void PackedMesh::packPhysics(const phoenix::mesh& mesh, PkgType type) {
   auto& mid = mesh.polygons().material_indices;
   auto& mat = mesh.materials();
 
-  for(size_t i=0; i<ZenLoad::MaterialGroup::NUM_MAT_GROUPS; ++i) {
+  phoenix::material_group mats[] = {
+      phoenix::material_group::undef,
+      phoenix::material_group::metal,
+      phoenix::material_group::stone,
+      phoenix::material_group::wood,
+      phoenix::material_group::earth,
+      phoenix::material_group::water,
+      phoenix::material_group::snow,
+      phoenix::material_group::none,
+  };
+
+  for(auto i : mats) {
     SubMesh sub;
-    sub.material.matName  = "";
-    sub.material.matGroup = ZenLoad::MaterialGroup(i);
+    sub.material.name  = "";
+    sub.material.group = i;
     sub.iboOffset         = indices.size();
 
     for(size_t r=0; r<ibo.size(); ++r) {
       auto& m = mat[size_t(mid[r/3u])];
-      if(uint8_t(m.group)!=i || m.disable_collision)
+      if(m.group!=i || m.disable_collision)
         continue;
       if(m.name.find(':')!=std::string::npos)
         continue; // named material - add them later
@@ -695,9 +527,9 @@ void PackedMesh::packPhysics(const phoenix::mesh& mesh, PkgType type) {
       continue; // only named materials
 
     SubMesh sub;
-    sub.material.matName  = m.name;
-    sub.material.matGroup = uint8_t(m.group);
-    sub.iboOffset         = indices.size();
+    sub.material.name  = m.name;
+    sub.material.group = m.group;
+    sub.iboOffset      = indices.size();
 
     for(size_t r=0; r<ibo.size(); ++r) {
       if(size_t(mid[r/3u])!=i)
@@ -723,53 +555,6 @@ void PackedMesh::packPhysics(const phoenix::mesh& mesh, PkgType type) {
       subMeshes.emplace_back(std::move(sub));
   }
 }
-
-void PackedMesh::packMeshlets(const ZenLoad::zCMesh& mesh) {
-  auto& ibo  = mesh.getIndices();
-  auto& feat = mesh.getFeatureIndices();
-  auto& mat  = mesh.getTriangleMaterialIndices();
-
-  std::vector<size_t> duplicates(mesh.getMaterials().size());
-  for(size_t i=0; i<mesh.getMaterials().size(); ++i)
-    duplicates[i] = i;
-
-  if(!Resources::hasMeshShaders()) {
-    for(size_t i=0; i<mesh.getMaterials().size(); ++i) {
-      if(duplicates[i]!=i)
-        continue;
-      duplicates[i] = i;
-      for(size_t r=i+1; r<mesh.getMaterials().size(); ++r) {
-        auto& a = mesh.getMaterials()[i];
-        auto& b = mesh.getMaterials()[r];
-        if(!isSame(a,b))
-          continue;
-        duplicates[r] = i;
-        }
-      }
-    }
-
-  for(size_t mId=0; mId<mesh.getMaterials().size(); ++mId) {
-    std::vector<Meshlet> meshlets;
-    Meshlet activeMeshlets[16];
-
-    if(duplicates[mId]!=mId)
-      continue;
-
-    for(size_t i=0; i<ibo.size(); i+=3) {
-      if(duplicates[size_t(mat[i/3u])]!=mId)
-        continue;
-      auto a = std::make_pair(ibo[i+0],feat[i+0]);
-      auto b = std::make_pair(ibo[i+1],feat[i+1]);
-      auto c = std::make_pair(ibo[i+2],feat[i+2]);
-      addIndex(activeMeshlets,16,meshlets, a,b,c);
-      }
-
-    for(auto& meshlet:activeMeshlets)
-      if(meshlet.indSz>0)
-        meshlets.push_back(std::move(meshlet));
-    postProcessP1(mesh,mId,meshlets);
-    }
-  }
 
 void PackedMesh::packMeshlets(const phoenix::mesh& mesh) {
   auto& ibo  = mesh.polygons().vertex_indices;
@@ -826,7 +611,7 @@ void PackedMesh::packMeshlets(const phoenix::proto_mesh& mesh, PkgType type,
     auto& sm   = mesh.submeshes()[mId];
     auto& pack = subMeshes[mId];
 
-    pack.material = phoenix_compat::to_zenlib_material(sm.mat);
+    pack.material = sm.mat;
 
     std::vector<Meshlet> meshlets;
     Meshlet activeMeshlets[16];
@@ -956,42 +741,10 @@ void PackedMesh::mergePass(std::vector<Meshlet*>& ind, bool fast) {
   ind.resize(n);
   }
 
-void PackedMesh::postProcessP1(const ZenLoad::zCMesh& mesh, size_t matId, std::vector<Meshlet>& meshlets) {
-  if(meshlets.size()<=1) {
-    SubMesh sub;
-    sub.material  = mesh.getMaterials()[matId];
-    sub.iboOffset = indices.size();
-    for(auto& m:meshlets) {
-      m.updateBounds(mesh);
-      m.flush(vertices,indices,meshletBounds,sub,mesh);
-      }
-    sub.iboLength = indices.size()-sub.iboOffset;
-    if(sub.iboLength>0)
-      subMeshes.push_back(std::move(sub));
-    return;
-    }
-
-  std::vector<Meshlet*> ind(meshlets.size());
-  for(size_t i=0; i<meshlets.size(); ++i) {
-    meshlets[i].updateBounds(mesh);
-    ind[i] = &meshlets[i];
-    }
-
-  // merge
-  sortPass(ind);
-  mergePass(ind,false);
-
-  for(auto i:ind)
-    i->updateBounds(mesh);
-
-  postProcessP2(mesh,matId,ind);
-  // dbgUtilization(ind);
-  }
-
 void PackedMesh::postProcessP1(const phoenix::mesh& mesh, size_t matId, std::vector<Meshlet>& meshlets) {
   if(meshlets.size()<=1) {
     SubMesh sub;
-    sub.material  = phoenix_compat::to_zenlib_material(mesh.materials()[matId]);
+    sub.material  = mesh.materials()[matId];
     sub.iboOffset = indices.size();
     for(auto& m:meshlets) {
       m.updateBounds(mesh);
@@ -1020,40 +773,6 @@ void PackedMesh::postProcessP1(const phoenix::mesh& mesh, size_t matId, std::vec
   // dbgUtilization(ind);
 }
 
-void PackedMesh::postProcessP2(const ZenLoad::zCMesh& mesh, size_t matId, std::vector<Meshlet*>& meshlets) {
-  if(meshlets.size()==0)
-    return;
-
-  const bool hasMeshShaders = Resources::hasMeshShaders();
-
-  SubMesh sub;
-  sub.material  = mesh.getMaterials()[matId];
-  sub.iboOffset = indices.size();
-
-  auto prev = meshlets[0];
-  for(size_t i=0; i<meshlets.size(); ++i) {
-    auto meshlet  = meshlets[i];
-    bool overflow = (indices.size()-sub.iboOffset+MaxInd > maxIboSliceLength);
-    bool disjoint = !hasMeshShaders && !meshlet->hasIntersection(*prev) && (indices.size()-sub.iboOffset>4096*3);
-    //bool disjoint = !hasMeshShaders && (meshlet->qDistance(*prev) > 4*clusterRadius*clusterRadius);
-
-    if(prev!=nullptr && (disjoint || overflow)) {
-      sub.iboLength = indices.size()-sub.iboOffset;
-      if(sub.iboLength>0)
-        subMeshes.push_back(std::move(sub));
-      sub = SubMesh();
-      sub.material  = mesh.getMaterials()[matId];
-      sub.iboOffset = indices.size();
-      }
-    meshlet->updateBounds(mesh);
-    meshlet->flush(vertices,indices,meshletBounds,sub,mesh);
-    prev = meshlet;
-    }
-  sub.iboLength = indices.size()-sub.iboOffset;
-  if(sub.iboLength>0)
-    subMeshes.push_back(std::move(sub));
-  }
-
 void PackedMesh::postProcessP2(const phoenix::mesh& mesh, size_t matId, std::vector<Meshlet*>& meshlets) {
   if(meshlets.empty())
     return;
@@ -1061,7 +780,7 @@ void PackedMesh::postProcessP2(const phoenix::mesh& mesh, size_t matId, std::vec
   const bool hasMeshShaders = Resources::hasMeshShaders();
 
   SubMesh sub;
-  sub.material  = phoenix_compat::to_zenlib_material(mesh.materials()[matId]);
+  sub.material  = mesh.materials()[matId];
   sub.iboOffset = indices.size();
 
   auto prev = meshlets[0];
@@ -1076,7 +795,7 @@ void PackedMesh::postProcessP2(const phoenix::mesh& mesh, size_t matId, std::vec
       if(sub.iboLength>0)
         subMeshes.push_back(std::move(sub));
       sub = SubMesh();
-      sub.material  = phoenix_compat::to_zenlib_material(mesh.materials()[matId]);
+      sub.material  = mesh.materials()[matId];
       sub.iboOffset = indices.size();
     }
     meshlet->updateBounds(mesh);
@@ -1096,7 +815,7 @@ void PackedMesh::debug(std::ostream &out) const {
     }
 
   for(auto& s:subMeshes) {
-    out << "o " << s.material.matName << std::endl;
+    out << "o " << s.material.name << std::endl;
     for(size_t i=0; i<s.iboLength; i+=3) {
       const uint32_t* tri = &indices[s.iboOffset+i];
       out << "f " << 1+tri[0] << " " << 1+tri[1] << " " << 1+tri[2] << std::endl;

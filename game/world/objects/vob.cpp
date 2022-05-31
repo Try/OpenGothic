@@ -124,14 +124,12 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const std::unique_ptr<
       if(parent!=nullptr)
         parent->childContent = ContentBit(parent->childContent|cbMobsi);
       return std::unique_ptr<Vob>(new FirePlace(parent,world,vob,flags));
-
     case phoenix::vob_type::oCMOB:
       // Irdotar bow-triggers
       // focusOverride=true
       if(parent!=nullptr)
         parent->childContent = ContentBit(parent->childContent|cbMobsi);
       return std::unique_ptr<Vob>(new Interactive(parent,world,vob,flags));
-
     case phoenix::vob_type::oCMobInter:
     case phoenix::vob_type::oCMobBed:
     case phoenix::vob_type::oCMobDoor:
@@ -227,7 +225,7 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const std::unique_ptr<
       }
     }
 
-  return nullptr; // std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
+  return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
   }
 
 void Vob::saveVobTree(Serialize& fin) const {

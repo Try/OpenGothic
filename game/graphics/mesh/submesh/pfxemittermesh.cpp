@@ -26,7 +26,7 @@ PfxEmitterMesh::PfxEmitterMesh(const PackedMesh& src) {
 
 PfxEmitterMesh::PfxEmitterMesh(const phoenix::model_mesh& library) {
   for(const auto &i : library.meshes()) {
-    ZenLoad::PackedSkeletalMesh src = phoenix_compat::pack_softskin_mesh(i);
+    auto src = phoenix_compat::pack_softskin_mesh(i);
 
     size_t vert0 = vertices.size();
     vertAnim.resize(vert0 + src.vertices.size());

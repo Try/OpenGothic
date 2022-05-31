@@ -17,6 +17,7 @@
 #include <phoenix/proto_mesh.hh>
 #include <phoenix/model_hierarchy.hh>
 #include <phoenix/model.hh>
+#include <phoenix/material.hh>
 
 #include <fstream>
 
@@ -692,7 +693,7 @@ Texture2d Resources::loadTexturePm(const Pixmap &pm) {
   return inst->dev.texture(pm);
   }
 
-Material Resources::loadMaterial(const ZenLoad::zCMaterialData& src, bool enableAlphaTest) {
+Material Resources::loadMaterial(const phoenix::material& src, bool enableAlphaTest) {
   return Material(src,enableAlphaTest);
   }
 
