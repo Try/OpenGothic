@@ -19,10 +19,10 @@ class LightGroup final {
     class Light final {
       public:
         Light() = default;
-        Light(LightGroup& owner, const ZenLoad::zCVobData& vob);
         Light(LightGroup& owner, const phoenix::vobs::light& vob);
+        Light(LightGroup& owner, const phoenix::vobs::light_preset& vob);
         Light(LightGroup& owner);
-        Light(World& owner, const ZenLoad::zCVobData& vob);
+        Light(World& owner, const phoenix::vobs::light_preset& vob);
         Light(World& owner, const phoenix::vobs::light& vob);
         Light(World& owner, std::string_view preset);
         Light(World& owner);
@@ -91,25 +91,25 @@ class LightGroup final {
       void                     free(size_t id);
       };
 
-    size_t                            alloc(bool dynamic);
-    void                              free(size_t id);
+    size_t                             alloc(bool dynamic);
+    void                               free(size_t id);
 
-    LightSsbo&                        get (size_t id);
-    LightSource&                      getL(size_t id);
+    LightSsbo&                         get (size_t id);
+    LightSource&                       getL(size_t id);
 
-    Tempest::RenderPipeline&          shader() const;
+    Tempest::RenderPipeline&           shader() const;
 
-    const ZenLoad::zCVobData&         findPreset(std::string_view preset) const;
+    const phoenix::vobs::light_preset& findPreset(std::string_view preset) const;
 
-    const SceneGlobals&               scene;
-    std::vector<ZenLoad::zCVobData>   presets;
+    const SceneGlobals&                                       scene;
+    std::vector<std::unique_ptr<phoenix::vobs::light_preset>> presets;
 
-    Tempest::UniformBuffer<Ubo>       uboBuf[Resources::MaxFramesInFlight];
+    Tempest::UniformBuffer<Ubo>          uboBuf[Resources::MaxFramesInFlight];
 
-    Tempest::IndexBuffer<uint16_t>    ibo;
+    Tempest::IndexBuffer<uint16_t>       ibo;
     Tempest::VertexBuffer<Tempest::Vec3> vbo;
 
-    std::recursive_mutex              sync;
-    LightBucket                       bucketSt, bucketDyn;
+    std::recursive_mutex                 sync;
+    LightBucket                          bucketSt, bucketDyn;
   };
 
