@@ -11,6 +11,15 @@
 
 using namespace Tempest;
 
+static uint32_t nearestPot(uint32_t x) {
+  x = x | (x >> 1);
+  x = x | (x >> 2);
+  x = x | (x >> 4);
+  x = x | (x >> 8);
+  x = x | (x >> 16);
+  return x - (x >> 1);
+  }
+
 Renderer::Renderer(Tempest::Swapchain& swapchain)
   : swapchain(swapchain) {
   auto& device = Resources::device();
@@ -71,12 +80,37 @@ void Renderer::resetSwapchain() {
   zbufferItem    = device.zbuffer(zBufferFormat,w,h);
 
   if(Resources::hasMeshShaders()) {
-    const int hizSize = 32;
-    hiZBase        = device.attachment(TextureFormat::R16, w,h);
-    hiZ            = device.image2d(TextureFormat::R16, (w+hizSize-1)/hizSize, (h+hizSize-1)/hizSize);
-    uboHiZ         = device.descriptors(Shaders::inst().hiZ);
-    uboHiZ.set(0, hiZ);
-    uboHiZ.set(1, hiZBase, smpN);
+    uint32_t hw = nearestPot(w);
+    uint32_t hh = nearestPot(h);
+
+    hiZBase = device.attachment(TextureFormat::R16, w,  h);
+    hiZMain = device.image2d   (TextureFormat::R16, hw, hh, true);
+    hiZ     = StorageImage();
+
+    uboHiZ  = device.descriptors(Shaders::inst().hiZ);
+    uboHiZ.set(0, hiZBase, smpN);
+    uboHiZ.set(1, hiZMain);
+
+    uboZMip.clear();
+    for(uint32_t i=0; (hw>1 || hh>1); ++i) {
+      hw /= 2;
+      hh /= 2;
+      auto& ubo = uboZMip.emplace_back(device.descriptors(Shaders::inst().mips));
+
+      if(hiZ.isEmpty()) {
+        ubo.set(0, hiZMain, smpN, i);
+        ubo.set(1, hiZMain, smpN, i+1);
+        } else {
+        ubo.set(0, hiZ, smpN, i);
+        ubo.set(1, hiZ, smpN, i+1);
+        }
+
+      if(hiZ.isEmpty() && (hw<=64 || hh<=32)) {
+        hiZ = device.image2d(TextureFormat::R16, hw, hh, true);
+        ubo.set(1, hiZ, smpN, 0);
+        i = uint32_t(-1);
+        }
+      }
     }
 
   if(smSize>0) {
@@ -223,9 +257,19 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     }
 
   if(Resources::hasMeshShaders()) {
+    uint32_t w = uint32_t(hiZMain.w()), h = uint32_t(hiZMain.h());
     cmd.setFramebuffer({});
     cmd.setUniforms(Shaders::inst().hiZ, uboHiZ);
-    cmd.dispatch(size_t(hiZ.w()),size_t(hiZ.h()),1);
+    cmd.dispatch(std::max<size_t>((w+31)/32,1u),
+                 std::max<size_t>((h+31)/32,1u),1);
+    for(uint32_t i=0; i<uboZMip.size(); ++i) {
+      w = w/2;
+      h = h/2;
+      cmd.setUniforms(Shaders::inst().mips, uboZMip[i]);
+      cmd.dispatch(std::max<size_t>((w+7)/8,1u),
+                   std::max<size_t>((h+7)/8,1u),1);
+      }
+
     }
 
   wview->prepareSky(cmd,cmdId);

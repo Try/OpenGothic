@@ -54,6 +54,7 @@ class Renderer final {
     Tempest::ZBuffer          zbuffer, zbufferItem, shadowZ[Resources::ShadowLayers];
 
     Tempest::Attachment       hiZBase;
+    Tempest::StorageImage     hiZMain;
     Tempest::StorageImage     hiZ;
 
     Tempest::Attachment       lightingBuf;
@@ -73,7 +74,9 @@ class Renderer final {
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::RGBA8;
     Tempest::TextureFormat    zBufferFormat = Tempest::TextureFormat::Depth16;
 
-    Tempest::DescriptorSet    uboCopy;
     Tempest::DescriptorSet    uboHiZ;
+    std::vector<Tempest::DescriptorSet> uboZMip;
+
+    Tempest::DescriptorSet    uboCopy;
     Shaders                   stor;
   };

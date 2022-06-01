@@ -67,10 +67,49 @@ void boundSphereTest(const uint objId) {
 #endif
 
 #if !defined(SHADOW_MAP) && defined(LVL_OBJECT)
-float textureHiZ(in vec2 uv) {
-  const vec4  z4 = textureGather(hiZ,uv);
-  const float z  = max(max(z4[0],z4[1]), max(z4[2],z4[3]));
-  return z + 1.0/32768.0;
+float textureHiZ(in vec2 uv, in int mip, in vec2 uv0, in vec2 uv1) {
+  const int maxLvl = textureQueryLevels(hiZ);
+
+  if(mip<=0) {
+    vec4 z4 = textureGather(hiZ,uv);
+    return max(max(z4[0],z4[1]), max(z4[2],z4[3]));
+    }
+
+  ivec2 iuv0 = ivec2(uv0*textureSize(hiZ,mip));
+  ivec2 iuv1 = ivec2(uv1*textureSize(hiZ,mip));
+  iuv0 = min(iuv0,textureSize(hiZ,mip)-ivec2(1,1));
+  iuv1 = min(iuv1,textureSize(hiZ,mip)-ivec2(1,1));
+
+  if(iuv0==iuv1) {
+    return texelFetch(hiZ,iuv0,mip).r;
+    }
+
+  vec4 z4;
+  z4.x = texelFetch(hiZ,ivec2(iuv0.x, iuv0.y),mip).r;
+  z4.y = texelFetch(hiZ,ivec2(iuv1.x, iuv0.y),mip).r;
+  z4.z = texelFetch(hiZ,ivec2(iuv0.x, iuv1.y),mip).r;
+  z4.w = texelFetch(hiZ,ivec2(iuv1.x, iuv1.y),mip).r;
+
+  return max(max(z4[0],z4[1]), max(z4[2],z4[3]));
+  }
+
+int mipLevel(vec2 bboxSz) {
+  float sm = ceil(max(bboxSz.x,bboxSz.y));
+  if(sm<=1)
+    return 0;
+  if(sm<=2)
+    return 1;
+  if(sm<=4)
+    return 2;
+  if(sm<=8)
+    return 3;
+  if(sm<=16)
+    return 4;
+  if(sm<=32)
+    return 5;
+  if(sm<=64)
+    return 6;
+  return 0;
   }
 
 shared vec3 bboxProj[8];
@@ -79,8 +118,6 @@ void bboxTest(const uint objId) {
 
   if(laneID<8) {
     const vec3  b[2] = {material.bbox[0].xyz, material.bbox[1].xyz};
-    //const ivec3 v[8] = {{0,0,0},{0,0,1},{0,1,0},{0,1,1},{1,0,0},{1,0,1},{1,1,0},{1,1,1}};
-    //const ivec3 msk  = v[laneID];
     const vec3  pos  = vec3(b[(laneID&0x1)].x,b[(laneID&0x2)>>1].y,b[(laneID&0x4)>>2].z);
 
     vec4 trPos = vec4(pos.xyz,1.0);
@@ -89,6 +126,7 @@ void bboxTest(const uint objId) {
 
     vec3 bp = trPos.xyz/trPos.w;
     bp.xy = bp.xy*0.5 + vec2(0.5);
+    bp.xy = clamp(bp.xy, vec2(0.0), vec2(1.0));
     bboxProj[laneID] = bp;
     }
 
@@ -102,11 +140,12 @@ void bboxTest(const uint objId) {
       bbox[1] = max(bbox[1],bboxProj[i]);
       }
 
-    vec2  hFrag = vec2(1.0)/vec2(textureSize(hiZ,0));
-    vec2  sz    = vec2(bbox[1].x-bbox[0].x, bbox[1].y-bbox[0].y);
-    if(sz.x<=hFrag.x && sz.y<=hFrag.y) {
+    vec2  sz     = vec2(bbox[1].x-bbox[0].x, bbox[1].y-bbox[0].y)*vec2(textureSize(hiZ,0));
+    int   mip    = mipLevel(sz);
+    int   maxMip = textureQueryLevels(hiZ);
+    if(mip<maxMip) {
       const vec2  uv = (bbox[1].xy+bbox[0].xy)*0.5;
-      const float z  = textureHiZ(uv);
+      const float z  = textureHiZ(uv,mip, bbox[0].xy,bbox[1].xy) + 1.0/32768.0;
       if(bbox[0].z > z)
         invisible = true;
       //invisible = true;

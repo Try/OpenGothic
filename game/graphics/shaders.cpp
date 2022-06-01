@@ -138,6 +138,9 @@ Shaders::Shaders() {
   if(Resources::hasMeshShaders()){
     auto sh = GothicShader::get("hiZ.comp.sprv");
     hiZ = device.pipeline(device.shader(sh.data,sh.len));
+
+    sh = GothicShader::get("mips.comp.sprv");
+    mips = device.pipeline(device.shader(sh.data,sh.len));
     }
   }
 

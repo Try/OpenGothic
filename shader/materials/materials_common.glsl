@@ -174,7 +174,7 @@ layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
 #endif
 
 #if defined(MESH) && !defined(SHADOW_MAP)
-layout(binding = L_HiZ) uniform sampler2D hiZ;
+layout(binding = L_HiZ)  uniform sampler2D hiZ;
 #endif
 
 #endif

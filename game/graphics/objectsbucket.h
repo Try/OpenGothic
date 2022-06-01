@@ -27,7 +27,8 @@ class ObjectsBucket {
 
   public:
     enum {
-      CAPACITY     = VisibleSet::CAPACITY,
+      CAPACITY          = VisibleSet::CAPACITY,
+      RELEVANT_HIZ_MIPS = 5,
       };
 
     enum Type : uint8_t {
