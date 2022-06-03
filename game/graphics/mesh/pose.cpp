@@ -253,6 +253,9 @@ void Pose::stopAllAnim() {
   }
 
 void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
+  if(hasTransitions==0)
+    return;
+
   size_t ret    = 0;
   bool   doSort = false;
   for(size_t i=0; i<lay.size(); ++i) {
@@ -492,6 +495,8 @@ void Pose::onAddLayer(const Pose::Layer& l) {
     hasEvents++;
   if(l.seq->isFly())
     isFlyCombined++;
+  if(l.seq->animCls==Animation::Transition)
+    hasTransitions++;
   needToUpdate = true;
 
   for(auto id:l.seq->data->nodeIndex)
@@ -504,6 +509,8 @@ void Pose::onRemoveLayer(const Pose::Layer &l) {
     rotation=nullptr;
   if(hasLayerEvents(l))
     hasEvents--;
+  if(l.seq->animCls==Animation::Transition)
+    hasTransitions--;
   if(l.seq->isFly())
     isFlyCombined--;
   }

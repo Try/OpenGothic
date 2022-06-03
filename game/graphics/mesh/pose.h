@@ -138,6 +138,7 @@ class Pose final {
     bool                            needToUpdate = true;
     uint8_t                         hasEvents = 0;
     uint8_t                         isFlyCombined = 0;
+    uint8_t                         hasTransitions = 0;
 
     float                           headRotX = 0, headRotY = 0;
 
