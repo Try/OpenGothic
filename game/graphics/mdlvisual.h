@@ -53,7 +53,7 @@ class MdlVisual final {
     void                           setSlotItem   (MeshObjects::Mesh&& itm,  std::string_view bone);
     void                           setStateItem  (MeshObjects::Mesh&& itm,  std::string_view bone);
     void                           clearSlotItem (std::string_view bone);
-    bool                           setFightMode  (const ZenLoad::EFightMode mode);
+    bool                           setFightMode  (phoenix::mds::event_fight_mode mode);
     void                           dropWeapon    (Npc& owner);
 
     void                           setMagicWeapon(Effect&& spell, World& owner);

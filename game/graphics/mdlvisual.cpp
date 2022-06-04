@@ -234,31 +234,29 @@ void MdlVisual::clearSlotItem(std::string_view bone) {
     }
   }
 
-bool MdlVisual::setFightMode(const ZenLoad::EFightMode mode) {
+bool MdlVisual::setFightMode(phoenix::mds::event_fight_mode mode) {
   WeaponState f=WeaponState::NoWeapon;
 
   switch(mode) {
-    case ZenLoad::FM_LAST:
-      return false;
-    case ZenLoad::FM_NONE:
+    case phoenix::mds::event_fight_mode::none:
       f=WeaponState::NoWeapon;
       break;
-    case ZenLoad::FM_FIST:
+    case phoenix::mds::event_fight_mode::fist:
       f=WeaponState::Fist;
       break;
-    case ZenLoad::FM_1H:
+    case phoenix::mds::event_fight_mode::one_handed:
       f=WeaponState::W1H;
       break;
-    case ZenLoad::FM_2H:
+    case phoenix::mds::event_fight_mode::two_handed:
       f=WeaponState::W2H;
       break;
-    case ZenLoad::FM_BOW:
+    case phoenix::mds::event_fight_mode::bow:
       f=WeaponState::Bow;
       break;
-    case ZenLoad::FM_CBOW:
+    case phoenix::mds::event_fight_mode::crossbow:
       f=WeaponState::CBow;
       break;
-    case ZenLoad::FM_MAG:
+    case phoenix::mds::event_fight_mode::magic:
       f=WeaponState::Mage;
       break;
     }

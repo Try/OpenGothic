@@ -820,6 +820,7 @@ float DynamicWorld::materialFriction(phoenix::material_group mat) {
 float DynamicWorld::materialDensity(phoenix::material_group mat) {
   switch (mat) {
   case phoenix::material_group::undef:
+  case phoenix::material_group::none:
     return 2000.0f;
   case phoenix::material_group::metal:
     return 7800.f;

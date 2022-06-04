@@ -10,13 +10,12 @@
 #include <Tempest/TextCodec>
 #include <Tempest/Log>
 
-#include <zenload/modelScriptParser.h>
-#include <zenload/zenParser.h>
 #include <zenload/ztex2dds.h>
 
 #include <phoenix/proto_mesh.hh>
 #include <phoenix/model_hierarchy.hh>
 #include <phoenix/model.hh>
+#include <phoenix/model_script.hh>
 #include <phoenix/material.hh>
 
 #include <fstream>
@@ -532,14 +531,12 @@ std::unique_ptr<Animation> Resources::implLoadAnimation(std::string name) {
   phoenix::buffer reader = entry->open();
 
   if(FileExt::hasExt(name,"MSB")) {
-    ZenLoad::ZenParser    zen(reader.array().data(), reader.remaining());
-    ZenLoad::MdsParserBin p(zen);
+    auto p = phoenix::model_script::parse_binary(reader);
     return std::unique_ptr<Animation>{new Animation(p,name.substr(0,name.size()-4),false)};
     }
 
   if(FileExt::hasExt(name,"MDS")) {
-    ZenLoad::ZenParser    zen(reader.array().data(), reader.remaining());
-    ZenLoad::MdsParserTxt p(zen);
+    auto p = phoenix::model_script::parse(reader);
     return std::unique_ptr<Animation>{new Animation(p,name.substr(0,name.size()-4),true)};
     }
   return nullptr;

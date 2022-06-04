@@ -1566,7 +1566,7 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
     return;
 
   auto ws = visual.fightMode();
-  if(ev.weaponCh==ZenLoad::FM_NONE && (ws==WeaponState::W1H || ws==WeaponState::W2H)) {
+  if(ev.weaponCh==phoenix::mds::event_fight_mode::none && (ws==WeaponState::W1H || ws==WeaponState::W2H)) {
     if(auto melee = invent.currentMeleWeapon()) {
       if(melee->handle().material==ItemMaterial::MAT_METAL)
         sfxWeapon = ::Sound(owner,::Sound::T_Regular,"UNDRAWSOUND_ME.WAV",{x,y+translateY(),z},2500,false); else
@@ -1574,7 +1574,7 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
       sfxWeapon.play();
       }
     }
-  else if(ev.weaponCh==ZenLoad::FM_1H || ev.weaponCh==ZenLoad::FM_2H) {
+  else if(ev.weaponCh==phoenix::mds::event_fight_mode::one_handed || ev.weaponCh==phoenix::mds::event_fight_mode::two_handed) {
     if(auto melee = invent.currentMeleWeapon()) {
       if(melee->handle().material==ItemMaterial::MAT_METAL)
         sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_ME.WAV",{x,y+translateY(),z},2500,false); else
@@ -1582,7 +1582,7 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
       sfxWeapon.play();
       }
     }
-  else if(ev.weaponCh==ZenLoad::FM_BOW || ev.weaponCh==ZenLoad::FM_CBOW) {
+  else if(ev.weaponCh==phoenix::mds::event_fight_mode::bow || ev.weaponCh==phoenix::mds::event_fight_mode::crossbow) {
     sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_BOW",{x,y+translateY(),z},2500,false);
     sfxWeapon.play();
     }
@@ -1794,27 +1794,24 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
 
   for(auto& i:ev.timed) {
     switch(i.def) {
-      case ZenLoad::DEF_NULL:
-      case ZenLoad::DEF_LAST:
-        break;
-      case ZenLoad::DEF_CREATE_ITEM: {
+      case phoenix::mds::event_tag_type::create_item: {
         if(auto it = invent.addItem(i.item,1,world())) {
           invent.putToSlot(*this,it->clsId(),i.slot[0]);
           }
         break;
         }
-      case ZenLoad::DEF_INSERT_ITEM: {
+      case phoenix::mds::event_tag_type::insert_item: {
         invent.putCurrentToSlot(*this,i.slot[0]);
         break;
         }
-      case ZenLoad::DEF_REMOVE_ITEM:
-      case ZenLoad::DEF_DESTROY_ITEM: {
-        invent.clearSlot(*this,"",i.def!=ZenLoad::DEF_REMOVE_ITEM);
+      case phoenix::mds::event_tag_type::remove_item:
+      case phoenix::mds::event_tag_type::destroy_item: {
+        invent.clearSlot(*this, "", i.def != phoenix::mds::event_tag_type::remove_item);
         break;
         }
-      case ZenLoad::DEF_PLACE_ITEM:
+      case phoenix::mds::event_tag_type::place_item:
         break;
-      case ZenLoad::DEF_EXCHANGE_ITEM: {
+      case phoenix::mds::event_tag_type::exchange_item: {
         if(!invent.clearSlot(*this,i.slot[0],true))
           invent.clearSlot(*this,"",true); // fallback for cooking animations
         if(auto it = invent.addItem(i.item,1,world())) {
@@ -1822,10 +1819,9 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
           }
         break;
         }
-
-      case ZenLoad::DEF_FIGHTMODE:
+      case phoenix::mds::event_tag_type::fight_mode:
         break;
-      case ZenLoad::DEF_PLACE_MUNITION: {
+      case phoenix::mds::event_tag_type::place_munition: {
         auto active=invent.activeWeapon();
         if(active!=nullptr) {
           const int32_t munition = active->handle().munition;
@@ -1833,33 +1829,20 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
           }
         break;
         }
-      case ZenLoad::DEF_REMOVE_MUNITION: {
+      case phoenix::mds::event_tag_type::remove_munition: {
         invent.putAmmunition(*this,0,"");
         break;
         }
-      case ZenLoad::DEF_DRAWSOUND:
-      case ZenLoad::DEF_UNDRAWSOUND:
-        break;
-      case ZenLoad::DEF_SWAPMESH:
-        break;
-
-      case ZenLoad::DEF_DRAWTORCH:
+      case phoenix::mds::event_tag_type::draw_torch:
         setTorch(true);
         break;
-      case ZenLoad::DEF_INV_TORCH:
+      case phoenix::mds::event_tag_type::inventory_torch:
         processDefInvTorch();
         break;
-      case ZenLoad::DEF_DROP_TORCH:
+      case phoenix::mds::event_tag_type::drop_torch:
         dropTorch();
         break;
-
-      case ZenLoad::DEF_HIT_LIMB:
-      case ZenLoad::DEF_HIT_DIR:
-      case ZenLoad::DEF_DAM_MULTIPLY:
-      case ZenLoad::DEF_PAR_FRAME:
-      case ZenLoad::DEF_OPT_FRAME:
-      case ZenLoad::DEF_HIT_END:
-      case ZenLoad::DEF_WINDOW:
+      default:
         break;
       }
     }
