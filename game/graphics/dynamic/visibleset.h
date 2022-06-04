@@ -21,6 +21,7 @@ class VisibleSet {
 
     void          erase(size_t id);
     void          sort(SceneGlobals::VisCamera v);
+    void          minmax(SceneGlobals::VisCamera v);
 
   private:
     std::atomic_uint_least8_t cnt[SceneGlobals::V_Count]           = {};

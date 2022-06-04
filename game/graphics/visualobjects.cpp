@@ -130,7 +130,10 @@ void VisualObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& enc, ui
 void VisualObjects::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {
   for(size_t i=0;i<lastSolidBucket;++i) {
     auto c = index[i];
+    if(c->type()!=ObjectsBucket::LandscapeShadow)
+      continue;
     c->drawHiZ(enc,fId);
+    return;
     }
   }
 

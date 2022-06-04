@@ -31,3 +31,16 @@ void VisibleSet::sort(SceneGlobals::VisCamera v) {
   size_t* index = id[v];
   std::sort(index,index+indSz);
   }
+
+void VisibleSet::minmax(SceneGlobals::VisCamera v) {
+  uint8_t indSz = uint8_t(cnt[v].load());
+  size_t* index = id[v];
+  size_t& last  = index[indSz-1];
+
+  for(size_t i=0; i<indSz; ++i) {
+    if(index[0]>index[i])
+      std::swap(index[0],index[i]);
+    if(last<index[i])
+      std::swap(last,index[i]);
+    }
+  }

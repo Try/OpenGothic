@@ -545,8 +545,10 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId, const R
       return;
     }
 
-  if(instancingType!=NoInstancing)
+  if(instancingType==Normal)
     visSet.sort(c);
+  else if(instancingType==Aggressive)
+    visSet.minmax(c);
 
   cmd.setUniforms(shader, uboShared.ubo[fId][c]);
   UboPush pushBlock = {};

@@ -32,8 +32,8 @@ class ObjectsBucket {
       };
 
     enum Type : uint8_t {
-      Landscape,
       LandscapeShadow,
+      Landscape,
       Static,
       Movable,
       Animated,
