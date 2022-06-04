@@ -5,8 +5,6 @@
 #include <phoenix/material.hh>
 #include <phoenix/softskin_mesh.hh>
 
-#include <zenload/zTypes.h>
-
 namespace phoenix_compat {
   struct SkeletalVertex
   {

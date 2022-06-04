@@ -1,7 +1,5 @@
 #include "vobbundle.h"
 
-#include <zenload/zenParser.h>
-
 #include "world/world.h"
 #include "utils/versioninfo.h"
 #include "resources.h"

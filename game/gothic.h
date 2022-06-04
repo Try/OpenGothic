@@ -151,9 +151,7 @@ class Gothic final {
     static void                           settingsSetF(std::string_view sec, std::string_view name, float val);
     static void                           flushSettings();
 
-    static void debug(const ZenLoad::zCMesh &mesh, std::ostream& out);
-    static void debug(const ZenLoad::PackedMesh& mesh, std::ostream& out);
-    static void debug(const ZenLoad::PackedSkeletalMesh& mesh, std::ostream& out);
+    static void debug(const phoenix_compat::PackedSkeletalMesh& mesh, std::ostream& out);
 
   private:
     VersionInfo                             vinfo;

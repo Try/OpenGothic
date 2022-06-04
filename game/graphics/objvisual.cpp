@@ -155,7 +155,7 @@ void ObjVisual::setVisual(const phoenix::vobs::vob& vob, World& world, bool stat
     mesh.proto = view;
     if(vob.show_visual) {
       mesh.view = world.addStaticView(view,staticDraw);
-      mesh.view.setWind(ZenLoad::AnimMode(vob.anim_mode),vob.anim_strength);
+      mesh.view.setWind(vob.anim_mode,vob.anim_strength);
       }
     if(vob.show_visual && enableCollision && vob.anim_mode!=phoenix::animation_mode::wind2) {
       mesh.physic = PhysicMesh(*view,*world.physic(),false);

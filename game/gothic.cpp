@@ -3,7 +3,6 @@
 #include <Tempest/Log>
 #include <Tempest/TextCodec>
 
-#include <zenload/zCMesh.h>
 #include <cstring>
 #include <cctype>
 
@@ -608,39 +607,6 @@ void Gothic::settingsSetF(std::string_view sec, std::string_view name, float val
 
 void Gothic::flushSettings() {
   instance->iniFile->flush();
-  }
-
-void Gothic::debug(const ZenLoad::zCMesh &mesh, std::ostream &out) {
-  for(auto& i:mesh.getVertices())
-    out << "v " << i.x << " " << i.y << " " << i.z << std::endl;
-  for(size_t i=0;i<mesh.getIndices().size();i+=3){
-    const uint32_t* tri = &mesh.getIndices()[i];
-    out << "f " << 1+tri[0] << " " << 1+tri[1] << " " << 1+tri[2] << std::endl;
-    }
-  }
-
-void Gothic::debug(const ZenLoad::PackedMesh &mesh, std::ostream &out) {
-  for(auto& i:mesh.vertices) {
-    out << "v  " << i.Position.x << " " << i.Position.y << " " << i.Position.z << std::endl;
-    out << "vn " << i.Normal.x   << " " << i.Normal.y   << " " << i.Normal.z   << std::endl;
-    out << "vt " << i.TexCoord.x << " " << i.TexCoord.y  << std::endl;
-    }
-  for(size_t i=0;i<mesh.indices.size();i+=3){
-    const uint32_t* tri = &mesh.indices[i];
-    out << "f " << 1+tri[0] << " " << 1+tri[1] << " " << 1+tri[2] << std::endl;
-    }
-  }
-
-void Gothic::debug(const ZenLoad::PackedSkeletalMesh &mesh, std::ostream &out) {
-  for(auto& i:mesh.vertices) {
-    out << "v  " << i.LocalPositions[0].x << " " << i.LocalPositions[0].y << " " << i.LocalPositions[0].z << std::endl;
-    out << "vn " << i.Normal.x   << " " << i.Normal.y   << " " << i.Normal.z   << std::endl;
-    out << "vt " << i.TexCoord.x << " " << i.TexCoord.y  << std::endl;
-    }
-  for(size_t i=0;i<mesh.indices.size();i+=3){
-    const uint32_t* tri = &mesh.indices[i];
-    out << "f " << 1+tri[0] << " " << 1+tri[1] << " " << 1+tri[2] << std::endl;
-    }
   }
 
 void Gothic::detectGothicVersion() {

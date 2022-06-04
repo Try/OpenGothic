@@ -1,6 +1,5 @@
 #pragma once
 
-#include <zenload/zCModelScript.h>
 #include <Tempest/Matrix4x4>
 
 #include "graphics/mesh/animationsolver.h"
