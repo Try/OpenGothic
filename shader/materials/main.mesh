@@ -68,28 +68,9 @@ void boundSphereTest(const uint objId) {
 
 #if !defined(SHADOW_MAP) && defined(LVL_OBJECT)
 float textureHiZ(in vec2 uv, in int mip, in vec2 uv0, in vec2 uv1) {
-  const int maxLvl = textureQueryLevels(hiZ);
-
-  if(mip<=0) {
-    vec4 z4 = textureGather(hiZ,uv);
-    return max(max(z4[0],z4[1]), max(z4[2],z4[3]));
-    }
-
-  ivec2 iuv0 = ivec2(uv0*textureSize(hiZ,mip));
-  ivec2 iuv1 = ivec2(uv1*textureSize(hiZ,mip));
-  iuv0 = min(iuv0,textureSize(hiZ,mip)-ivec2(1,1));
-  iuv1 = min(iuv1,textureSize(hiZ,mip)-ivec2(1,1));
-
-  if(iuv0==iuv1) {
-    return texelFetch(hiZ,iuv0,mip).r;
-    }
-
-  vec4 z4;
-  z4.x = texelFetch(hiZ,ivec2(iuv0.x, iuv0.y),mip).r;
-  z4.y = texelFetch(hiZ,ivec2(iuv1.x, iuv0.y),mip).r;
-  z4.z = texelFetch(hiZ,ivec2(iuv0.x, iuv1.y),mip).r;
-  z4.w = texelFetch(hiZ,ivec2(iuv1.x, iuv1.y),mip).r;
-
+  //ivec2 iuv0 = ivec2(uv*textureSize(hiZ,mip));
+  vec2 offset = vec2(0.5)/textureSize(hiZ,mip);
+  vec4 z4 = textureLod(hiZ,uv-offset,mip);
   return max(max(z4[0],z4[1]), max(z4[2],z4[3]));
   }
 
@@ -109,7 +90,9 @@ int mipLevel(vec2 bboxSz) {
     return 5;
   if(sm<=64)
     return 6;
-  return 0;
+  if(sm<=128)
+    return 7;
+  return 1024; // big value that is larger than mip count
   }
 
 shared vec3 bboxProj[8];
@@ -142,10 +125,10 @@ void bboxTest(const uint objId) {
 
     vec2  sz     = vec2(bbox[1].x-bbox[0].x, bbox[1].y-bbox[0].y)*vec2(textureSize(hiZ,0));
     int   mip    = mipLevel(sz);
-    int   maxMip = textureQueryLevels(hiZ);
-    if(mip<maxMip) {
-      const vec2  uv = (bbox[1].xy+bbox[0].xy)*0.5;
-      const float z  = textureHiZ(uv,mip, bbox[0].xy,bbox[1].xy) + 1.0/32768.0;
+    {
+      const vec2  uv    = (bbox[1].xy+bbox[0].xy)*0.5;
+      const float z     = textureHiZ(uv,mip, bbox[0].xy,bbox[1].xy) + 1.0/32768.0;
+      const float meshZ = (bbox[0].z);
       if(bbox[0].z > z)
         invisible = true;
       //invisible = true;

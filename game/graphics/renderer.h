@@ -32,6 +32,7 @@ class Renderer final {
 
   private:
     void prepareUniforms();
+    void drawHiZ (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, uint8_t cmdId);
     void drawDSM (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void drawSSAO(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void draw    (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t cmdId);
@@ -53,10 +54,6 @@ class Renderer final {
     Tempest::Attachment       shadowMap[Resources::ShadowLayers];
     Tempest::ZBuffer          zbuffer, zbufferItem, shadowZ[Resources::ShadowLayers];
 
-    Tempest::Attachment       hiZBase;
-    Tempest::StorageImage     hiZMain;
-    Tempest::StorageImage     hiZ;
-
     Tempest::Attachment       lightingBuf;
     Tempest::Attachment       gbufDiffuse;
     Tempest::Attachment       gbufNormal;
@@ -74,8 +71,13 @@ class Renderer final {
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::RGBA8;
     Tempest::TextureFormat    zBufferFormat = Tempest::TextureFormat::Depth16;
 
-    Tempest::DescriptorSet    uboHiZ;
+    Tempest::Attachment       hiZBase;
+    Tempest::StorageImage     hiZPot;
+    Tempest::StorageImage     hiZ;
+
+    Tempest::DescriptorSet    uboHiZPot, uboHiZ;
     std::vector<Tempest::DescriptorSet> uboZMip;
+    std::vector<Tempest::DescriptorSet> uboZGather;
 
     Tempest::DescriptorSet    uboCopy;
     Shaders                   stor;

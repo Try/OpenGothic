@@ -1,0 +1,25 @@
+#version 450
+
+#extension GL_EXT_control_flow_attributes:enable
+
+layout(binding = 0, r16)    uniform readonly  image2D src;
+layout(binding = 1, rgba16) uniform writeonly image2D dst;
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+void main() {
+  const ivec2 size = imageSize(dst);
+  const ivec2 uv0  = ivec2(gl_GlobalInvocationID.xy);
+  const ivec2 uv1  = min(uv0+ivec2(1,1), imageSize(dst)-ivec2(1,1));
+
+  if(uv0.x>=size.x || uv0.x>=size.x)
+    return;
+
+  vec4 z;
+  z.r = imageLoad(src, ivec2(uv0.x,uv0.y)).x;
+  z.g = imageLoad(src, ivec2(uv1.x,uv0.y)).x;
+  z.b = imageLoad(src, ivec2(uv0.x,uv1.y)).x;
+  z.a = imageLoad(src, ivec2(uv1.x,uv1.y)).x;
+
+  imageStore(dst, uv0, z);
+  }

@@ -5,7 +5,7 @@
 layout(binding = 0)      uniform sampler2D zbuffer;
 layout(binding = 1, r16) uniform writeonly image2D hiZ;
 
-layout(local_size_x = 32, local_size_y = 32) in;
+layout(local_size_x = 16, local_size_y = 16) in;
 
 void main() {
   const ivec2 srcSz = textureSize(zbuffer,0);
@@ -16,15 +16,22 @@ void main() {
 
   ivec2 begin = ivec2(uv*srcSz/dstSz);
   ivec2 end   = ivec2(/*ceil*/((uv+ivec2(1,1))*srcSz/dstSz));
+  end = min(end, srcSz-ivec2(1,1));
 
   float z = 0;
   [[unroll]]
-  for(int x=begin.x; x<=end.x; ++x)
-    for(int y=begin.y; y<=end.y; ++y) {
-      if(x>=srcSz.x || y>=srcSz.y)
+  for(int i=0; i<4; ++i) {
+    [[unroll]]
+    for(int r=0; r<4; ++r) {
+      int x = begin.x+i;
+      int y = begin.y+r;
+      if(x>end.x || y>end.y)
         continue;
       float zbuf = texelFetch(zbuffer,ivec2(x,y),0).x;
       z = max(z,zbuf);
       }
+    }
+
+  // z = (z-0.9)*10.0;
   imageStore(hiZ, ivec2(uv), vec4(z));
   }

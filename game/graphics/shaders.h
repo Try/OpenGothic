@@ -29,7 +29,7 @@ class Shaders {
     Tempest::RenderPipeline fogViewLut, fogEGSR;
 
     // Compute
-    Tempest::ComputePipeline hiZ, mips;
+    Tempest::ComputePipeline hiZPot, hiZMip, hiZGather;
 
     enum PipelineType: uint8_t {
       T_Forward,

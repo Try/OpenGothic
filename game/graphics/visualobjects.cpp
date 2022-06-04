@@ -36,7 +36,7 @@ ObjectsBucket::Item VisualObjects::get(const StaticMesh& mesh, const Material& m
   const ObjectsBucket::Type type = (staticDraw ? ObjectsBucket::Static : ObjectsBucket::Movable);
 
   auto&        bucket = getBucket(type,mat,&mesh,nullptr,nullptr);
-  const size_t id     = bucket.alloc(mesh,iboOffset,iboLength);
+  const size_t id     = bucket.alloc(mesh,iboOffset,iboLength,nullptr,mesh.bbox,mat);
   return ObjectsBucket::Item(bucket,id);
   }
 
@@ -50,7 +50,7 @@ ObjectsBucket::Item VisualObjects::get(const StaticMesh& mesh, const Material& m
     return ObjectsBucket::Item();
     }
   auto&        bucket = getBucket(type,mat,&mesh,nullptr,&desc);
-  const size_t id     = bucket.alloc(mesh,iboOff,iboLen,blas,bbox);
+  const size_t id     = bucket.alloc(mesh,iboOff,iboLen,blas,bbox,mat);
   return ObjectsBucket::Item(bucket,id);
   }
 

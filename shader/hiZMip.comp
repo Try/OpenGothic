@@ -3,7 +3,7 @@
 #extension GL_EXT_control_flow_attributes:enable
 
 layout(binding = 0, r16) uniform readonly  image2D mip0;
-layout(binding = 1, r16) uniform writeonly image2D mip1;
+layout(binding = 1)      uniform writeonly image2D mip1;
 
 layout(local_size_x = 8, local_size_y = 8) in;
 

@@ -149,8 +149,9 @@ add_shader(ssao_compose.vert         copy.vert "")
 add_shader(ssao_compose.frag         ssao_compose.frag "")
 add_shader(ssao_compose_rq.frag      ssao_compose.frag -DRAY_QUERY)
 
-add_shader(hiZ.comp  hiZ.comp  "")
-add_shader(mips.comp mips.comp "")
+add_shader(hiZPot.comp    hiZPot.comp    "")
+add_shader(hiZMip.comp    hiZMip.comp    "")
+add_shader(hiZGather.comp hiZGather.comp "")
 
 add_custom_command(
   OUTPUT     ${HEADER} ${CPP}

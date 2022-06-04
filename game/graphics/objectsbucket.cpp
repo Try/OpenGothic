@@ -51,13 +51,13 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
   switch(owner->objType) {
     case Landscape:
     case LandscapeShadow: {
-      idNext = bucket.alloc(*owner->staticMesh,v.iboOffset,v.iboLength,v.blas,v.visibility.bounds());
+      idNext = bucket.alloc(*owner->staticMesh,v.iboOffset,v.iboLength,v.blas,v.visibility.bounds(),owner->mat);
       break;
       }
     case Static:
     case Movable:
     case Morph: {
-      idNext = bucket.alloc(*owner->staticMesh,v.iboOffset,v.iboLength,v.blas,v.visibility.bounds());
+      idNext = bucket.alloc(*owner->staticMesh,v.iboOffset,v.iboLength,v.blas,v.visibility.bounds(),owner->mat);
       break;
       }
     case Pfx: {
@@ -126,7 +126,7 @@ void ObjectsBucket::Descriptors::alloc(ObjectsBucket& owner) {
 
 ObjectsBucket::ObjectsBucket(const Type type, const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
                              const StaticMesh* stMesh, const AnimMesh* anim, const Tempest::StorageBuffer* desc)
-  :objType(type), owner(owner), scene(scene), mat(mat) {
+  :objType(type), owner(owner), mat(mat), scene(scene) {
   static_assert(sizeof(UboPush)<=128, "UboPush is way too big");
   auto& device = Resources::device();
 
@@ -150,7 +150,7 @@ ObjectsBucket::ObjectsBucket(const Type type, const Material& mat, VisualObjects
 
   if(useSharedUbo) {
     uboShared.alloc(*this);
-    uboSetCommon(uboShared);
+    uboSetCommon(uboShared,mat);
     }
   }
 
@@ -165,11 +165,14 @@ bool ObjectsBucket::isCompatible(const Type t, const Material& mat,
     return false;
 
   if(type==Pfx) {
-    return mat==this->material();
+    return mat==this->mat;
     }
 
   if(type==Landscape) {
-    return mat==this->material();
+    if(Resources::hasMeshShaders()) {
+      return objType==type && mat.alpha==this->mat.alpha;
+      }
+    return mat==this->mat;
     }
 
   if(type==LandscapeShadow) {
@@ -184,9 +187,11 @@ std::unique_ptr<ObjectsBucket> ObjectsBucket::mkBucket(Type type, const Material
   type = sanitizeType(type,mat,st);
 
   if(type==Landscape || type==LandscapeShadow)
-    return std::unique_ptr<ObjectsBucket>(new ObjectsBucketLnd(type,mat,owner,scene,*st,*desc));
+    return std::unique_ptr<ObjectsBucket>(new ObjectsBucketDyn(type,mat,owner,scene,st,nullptr,desc));
+
   if(mat.frames.size()>0)
     return std::unique_ptr<ObjectsBucket>(new ObjectsBucketDyn(type,mat,owner,scene,st,anim,nullptr));
+
   return std::unique_ptr<ObjectsBucket>(new ObjectsBucket(type,mat,owner,scene,st,anim,nullptr));
   }
 
@@ -218,7 +223,7 @@ BufferHeap ObjectsBucket::ssboHeap() const {
   return heap;
   }
 
-ObjectsBucket::Object& ObjectsBucket::implAlloc(const Bounds& bounds) {
+ObjectsBucket::Object& ObjectsBucket::implAlloc(const Bounds& bounds, const Material& /*mat*/) {
   Object* v = nullptr;
   for(size_t i=0; i<CAPACITY; ++i) {
     auto& vx = val[i];
@@ -278,7 +283,7 @@ void ObjectsBucket::implFree(const size_t objId) {
   invalidateInstancing();
   }
 
-void ObjectsBucket::uboSetCommon(Descriptors& v) {
+void ObjectsBucket::uboSetCommon(Descriptors& v, const Material& mat) {
   for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i) {
     for(size_t lay=SceneGlobals::V_Shadow0; lay<SceneGlobals::V_Count; ++lay) {
       auto& ubo = v.ubo[i][lay];
@@ -316,7 +321,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v) {
         ubo.set(L_GDepth,   *scene.gbufDepth,  Sampler2d::nearest());
         }
       if(lay==SceneGlobals::V_Main && useMeshlets) {
-        auto sb = Sampler2d::bilinear();
+        auto sb = Sampler2d::nearest();
         sb.setClamping(ClampMode::ClampToEdge);
         ubo.set(L_HiZ, *scene.hiZ, sb);
         }
@@ -388,7 +393,7 @@ ObjectsBucket::Descriptors& ObjectsBucket::objUbo(size_t objId) {
   }
 
 void ObjectsBucket::setupUbo() {
-  uboSetCommon(uboShared);
+  uboSetCommon(uboShared,mat);
   }
 
 void ObjectsBucket::invalidateUbo(uint8_t fId) {
@@ -463,15 +468,16 @@ void ObjectsBucket::preFrameUpdate(uint8_t fId) {
     }
   }
 
-size_t ObjectsBucket::alloc(const StaticMesh& mesh, size_t iboOffset, size_t iboLength) {
-  Object* v = &implAlloc(mesh.bbox);
+size_t ObjectsBucket::alloc(const StaticMesh& mesh, size_t iboOffset, size_t iboLen,
+                            const Tempest::AccelerationStructure* blas,
+                            const Bounds& bounds, const Material& mat) {
+  Object* v = &implAlloc(bounds,mat);
   v->iboOffset = iboOffset;
-  v->iboLength = iboLength;
-
+  v->iboLength = iboLen;
   if(!mat.isGhost && mat.alpha==Material::Solid &&
      (/*objType==Type::Landscape ||*/ objType==Type::Static)) {
     for(auto& i:mesh.sub)
-      if(i.iboOffset==iboOffset && i.iboLength==iboLength && !i.blas.isEmpty()) {
+      if(i.iboOffset==iboOffset && i.iboLength==iboLen && !i.blas.isEmpty()) {
         v->blas = &i.blas;
         owner.resetTlas();
         break;
@@ -481,24 +487,9 @@ size_t ObjectsBucket::alloc(const StaticMesh& mesh, size_t iboOffset, size_t ibo
   return size_t(std::distance(val,v));
   }
 
-size_t ObjectsBucket::alloc(const StaticMesh& mesh, size_t iboOffset, size_t iboLen,
-                            const Tempest::AccelerationStructure* blas,
-                            const Bounds& bounds) {
-  Object* v = &implAlloc(bounds);
-  v->iboOffset = iboOffset;
-  v->iboLength = iboLen;
-  if(blas!=nullptr && !blas->isEmpty() && !mat.isGhost && mat.alpha==Material::Solid &&
-     (/*objType==Type::Landscape ||*/ objType==Type::Static)) {
-    v->blas = blas;
-    owner.resetTlas();
-    }
-  postAlloc(*v,size_t(std::distance(val,v)));
-  return size_t(std::distance(val,v));
-  }
-
 size_t ObjectsBucket::alloc(const AnimMesh& mesh, size_t iboOffset, size_t iboLen,
                             const MatrixStorage::Id& anim) {
-  Object* v = &implAlloc(mesh.bbox);
+  Object* v = &implAlloc(mesh.bbox,mat);
   v->iboOffset  = iboOffset;
   v->iboLength  = iboLen;
   v->skiningAni = &anim;
@@ -507,7 +498,7 @@ size_t ObjectsBucket::alloc(const AnimMesh& mesh, size_t iboOffset, size_t iboLe
   }
 
 size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<ObjectsBucket::Vertex>* vbo[], const Bounds& bounds) {
-  Object* v = &implAlloc(bounds);
+  Object* v = &implAlloc(bounds,mat);
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
     v->vboM[i] = vbo[i];
   v->visibility.setGroup(VisibilityGroup::G_AlwaysVis);
@@ -787,8 +778,10 @@ void ObjectsBucket::reallocObjPositions() {
 
 void ObjectsBucket::invalidateInstancing() {
   instancingType = Normal;
-  if(!useSharedUbo || objType==Pfx)
+  if(!useSharedUbo || objType==Pfx) {
     instancingType = NoInstancing;
+    return;
+    }
   Object* pref = nullptr;
   for(size_t i=0; instancingType!=NoInstancing && i<CAPACITY; ++i) {
     auto& vx = val[i];
@@ -841,12 +834,13 @@ const Bounds& ObjectsBucket::bounds(size_t i) const {
   return val[i].visibility.bounds();
   }
 
-ObjectsBucketLnd::ObjectsBucketLnd(const Type type, const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
-                                   const StaticMesh& st, const Tempest::StorageBuffer& desc)
-  :ObjectsBucket(type,mat,owner,scene,&st,nullptr,&desc) {
+
+ObjectsBucketDyn::ObjectsBucketDyn(const Type type, const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
+                                   const StaticMesh* st, const AnimMesh* anim, const Tempest::StorageBuffer* desc)
+  :ObjectsBucket(type,mat,owner,scene,st,anim,desc) {
   pHiZ = Shaders::inst().materialPipeline(mat,objType,Shaders::T_Prepass);
   uboHiZ.alloc(*this);
-  uboSetCommon(uboHiZ);
+  uboSetCommon(uboHiZ,mat);
   for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i) {
     for(size_t lay=SceneGlobals::V_Shadow0; lay<SceneGlobals::V_Count; ++lay) {
       auto& ubo = uboHiZ.ubo[i][lay];
@@ -857,64 +851,11 @@ ObjectsBucketLnd::ObjectsBucketLnd(const Type type, const Material& mat, VisualO
     }
   }
 
-void ObjectsBucketLnd::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
-                                  const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c,
-                                  bool isHiZPass) {
-  const size_t  indSz = visSet.count(c);
-  const size_t* index = visSet.index(c);
-  if(indSz==0)
-    return;
-
-  if(useMeshlets && !textureInShadowPass) {
-    const bool isShadow = (c==SceneGlobals::V_Shadow1 || isHiZPass);
-    if(objType==Landscape && isShadow)
-      return;
-    if(objType==LandscapeShadow && !isShadow)
-      return;
-    }
-
-  cmd.setUniforms(shader, uboShared.ubo[fId][c]);
-  if(useMeshlets) {
-    for(size_t i=0; i<indSz; ++i) {
-      auto& v = val[index[i]];
-      cmd.dispatchMesh(v.iboOffset/PackedMesh::MaxInd, v.iboLength/PackedMesh::MaxInd);
-      }
-    } else {
-    for(size_t i=0; i<indSz; ++i) {
-      auto& v = val[index[i]];
-      cmd.draw(staticMesh->vbo, staticMesh->ibo, v.iboOffset, v.iboLength);
-      }
-    }
-  }
-
-void ObjectsBucketLnd::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  if(pHiZ==nullptr || objType!=LandscapeShadow || !useMeshlets)
-    return;
-  cmd.setUniforms(*pHiZ, uboHiZ.ubo[fId][SceneGlobals::V_Shadow1]);
-  for(size_t i=0; i<valSz; ++i) {
-    auto& v = val[i];
-    if(!v.isValid)
-      continue;
-    cmd.dispatchMesh(v.iboOffset/PackedMesh::MaxInd, v.iboLength/PackedMesh::MaxInd);
-    }
-  }
-
-ObjectsBucket::Object& ObjectsBucketLnd::implAlloc(const Bounds& bounds) {
-  auto& obj = ObjectsBucket::implAlloc(bounds);
-  return obj;
-  }
-
-void ObjectsBucketLnd::postAlloc(Object& obj, size_t objId) {
-  ObjectsBucket::postAlloc(obj,objId);
-  }
-
-void ObjectsBucketLnd::implFree(const size_t objId) {
-  ObjectsBucket::implFree(objId);
-  }
-
-
 void ObjectsBucketDyn::preFrameUpdate(uint8_t fId) {
   ObjectsBucket::preFrameUpdate(fId);
+
+  if(!hasDynMaterials)
+    return;
 
   for(uint8_t ic=0; ic<SceneGlobals::V_Count; ++ic) {
     const auto    c     = SceneGlobals::VisCamera(ic);
@@ -927,13 +868,15 @@ void ObjectsBucketDyn::preFrameUpdate(uint8_t fId) {
     }
   }
 
-ObjectsBucket::Object& ObjectsBucketDyn::implAlloc(const Bounds& bounds) {
-  auto& obj = ObjectsBucket::implAlloc(bounds);
+ObjectsBucket::Object& ObjectsBucketDyn::implAlloc(const Bounds& bounds, const Material& m) {
+  auto& obj = ObjectsBucket::implAlloc(bounds,m);
 
   const size_t id = size_t(std::distance(val,&obj));
+  mat[id] = m;
   uboObj[id].alloc(*this);
-  uboSetCommon(uboObj[id]);
+  uboSetCommon(uboObj[id],mat[id]);
 
+  invalidateDyn();
   return obj;
   }
 
@@ -944,6 +887,7 @@ void ObjectsBucketDyn::implFree(const size_t objId) {
       owner.recycle(std::move(set));
       }
   ObjectsBucket::implFree(objId);
+  invalidateDyn();
   }
 
 ObjectsBucket::Descriptors& ObjectsBucketDyn::objUbo(size_t objId) {
@@ -953,9 +897,9 @@ ObjectsBucket::Descriptors& ObjectsBucketDyn::objUbo(size_t objId) {
 void ObjectsBucketDyn::setupUbo() {
   ObjectsBucket::setupUbo();
 
-  for(auto& v:uboObj) {
-    if(!v.ubo[0][SceneGlobals::V_Main].isEmpty())
-      uboSetCommon(v);
+  for(size_t i=0; i<CAPACITY; ++i) {
+    if(!uboObj[i].ubo[0][SceneGlobals::V_Main].isEmpty())
+      uboSetCommon(uboObj[i],mat[i]);
     }
   }
 
@@ -966,12 +910,29 @@ void ObjectsBucketDyn::invalidateUbo(uint8_t fId) {
     uboSetSkeleton(v,fId);
   }
 
+void ObjectsBucketDyn::invalidateDyn() {
+  hasDynMaterials = false;
+  for(auto& v:val) {
+    if(!v.isValid)
+      continue;
+    hasDynMaterials |= (mat->frames.size()>0);
+    }
+  }
+
 void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const Tempest::RenderPipeline& shader,
                                   SceneGlobals::VisCamera c, bool isHiZPass) {
   const size_t  indSz = visSet.count(c);
   const size_t* index = visSet.index(c);
   if(indSz==0)
     return;
+
+  if(useMeshlets && !textureInShadowPass) {
+    const bool isShadow = (c==SceneGlobals::V_Shadow1 || isHiZPass);
+    if(objType==Landscape && isShadow)
+      return;
+    if(objType==LandscapeShadow && !isShadow)
+      return;
+    }
 
   UboPush pushBlock  = {};
   for(size_t i=0; i<indSz; ++i) {
@@ -1019,5 +980,17 @@ void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
         break;
         }
       }
+    }
+  }
+
+void ObjectsBucketDyn::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  if(pHiZ==nullptr || objType!=LandscapeShadow || !useMeshlets)
+    return;
+  cmd.setUniforms(*pHiZ, uboHiZ.ubo[fId][SceneGlobals::V_Shadow1]);
+  for(size_t i=0; i<valSz; ++i) {
+    auto& v = val[i];
+    if(!v.isValid)
+      continue;
+    cmd.dispatchMesh(v.iboOffset/PackedMesh::MaxInd, v.iboLength/PackedMesh::MaxInd);
     }
   }

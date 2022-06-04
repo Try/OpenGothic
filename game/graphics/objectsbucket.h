@@ -98,9 +98,9 @@ class ObjectsBucket {
     InstancingType            hasInstancing() const { return instancingType; }
 
     size_t                    size()      const { return valSz;      }
-    size_t                    alloc(const StaticMesh& mesh, size_t iboOffset, size_t iboLen);
     size_t                    alloc(const StaticMesh& mesh, size_t iboOffset, size_t iboLen,
-                                    const Tempest::AccelerationStructure* blas, const Bounds& bounds);
+                                    const Tempest::AccelerationStructure* blas, const Bounds& bounds,
+                                    const Material& mat);
     size_t                    alloc(const AnimMesh& mesh, size_t iboOffset, size_t iboLen,
                                     const MatrixStorage::Id& anim);
 
@@ -203,11 +203,11 @@ class ObjectsBucket {
       bool                                  isValid = false;
       };
 
-    virtual Object& implAlloc(const Bounds& bounds);
+    virtual Object& implAlloc(const Bounds& bounds, const Material& mat);
     virtual void    postAlloc(Object& obj, size_t objId);
     virtual void    implFree(const size_t objId);
 
-    void            uboSetCommon  (Descriptors& v);
+    void            uboSetCommon  (Descriptors& v, const Material& mat);
     void            uboSetSkeleton(Descriptors& v, uint8_t fId);
     void            uboSetDynamic (Descriptors& v, Object& obj, uint8_t fId);
     void            uboUpdateBucketDesc(uint8_t fId);
@@ -253,9 +253,10 @@ class ObjectsBucket {
     const Tempest::RenderPipeline* pGbuffer = nullptr;
     const Tempest::RenderPipeline* pShadow  = nullptr;
 
+    Material                  mat;
+
   private:
     const SceneGlobals&       scene;
-    Material                  mat;
 
     Tempest::UniformBuffer<UboBucket> uboBucket[Resources::MaxFramesInFlight];
 
@@ -266,44 +267,31 @@ class ObjectsBucket {
   };
 
 
-class ObjectsBucketLnd : public ObjectsBucket {
-  public:
-    ObjectsBucketLnd( const Type type, const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
-                      const StaticMesh& st, const Tempest::StorageBuffer& desc);
-
-  private:
-    void    drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
-                       const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c, bool isHiZPass) override;
-    void    drawHiZ   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId) override;
-
-    Object& implAlloc(const Bounds& bounds) override;
-    void    postAlloc(Object& obj, size_t objId) override;
-    void    implFree (const size_t objId) override;
-
-    const Tempest::RenderPipeline* pHiZ = nullptr;
-    Descriptors uboHiZ;
-  };
-
 class ObjectsBucketDyn : public ObjectsBucket {
   public:
     ObjectsBucketDyn(const Type type, const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
-                     const StaticMesh* st, const AnimMesh* anim, const Tempest::StorageBuffer* desc)
-      :ObjectsBucket(type,mat,owner,scene,st,anim,desc) {
-      }
+                     const StaticMesh* st, const AnimMesh* anim, const Tempest::StorageBuffer* desc);
 
     void    preFrameUpdate(uint8_t fId) override;
 
   private:
-    Object& implAlloc(const Bounds& bounds) override;
+    Object& implAlloc(const Bounds& bounds, const Material& mat) override;
     void    implFree (const size_t objId) override;
 
     Descriptors& objUbo(size_t objId) override;
 
     void    setupUbo() override;
     void    invalidateUbo(uint8_t fId) override;
+    void    invalidateDyn();
 
     void    drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
                        const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c, bool isHiZPass) override;
+    void    drawHiZ   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId) override;
 
     Descriptors uboObj[CAPACITY];
+    Material    mat[CAPACITY];
+    bool        hasDynMaterials = false;
+
+    const Tempest::RenderPipeline* pHiZ = nullptr;
+    Descriptors uboHiZ;
   };

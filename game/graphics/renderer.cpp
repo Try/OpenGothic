@@ -84,32 +84,38 @@ void Renderer::resetSwapchain() {
     uint32_t hh = nearestPot(h);
 
     hiZBase = device.attachment(TextureFormat::R16, w,  h);
-    hiZMain = device.image2d   (TextureFormat::R16, hw, hh, true);
+    hiZPot  = device.image2d   (TextureFormat::R16, hw, hh, true);
     hiZ     = StorageImage();
 
-    uboHiZ  = device.descriptors(Shaders::inst().hiZ);
-    uboHiZ.set(0, hiZBase, smpN);
-    uboHiZ.set(1, hiZMain);
+    uboHiZPot = device.descriptors(Shaders::inst().hiZPot);
+    uboHiZPot.set(0, hiZBase, smpN);
+    uboHiZPot.set(1, hiZPot);
 
+    uint32_t mipOffset = 0;
     uboZMip.clear();
     for(uint32_t i=0; (hw>1 || hh>1); ++i) {
       hw /= 2;
       hh /= 2;
-      auto& ubo = uboZMip.emplace_back(device.descriptors(Shaders::inst().mips));
+      auto& ubo = uboZMip.emplace_back(device.descriptors(Shaders::inst().hiZMip));
 
-      if(hiZ.isEmpty()) {
-        ubo.set(0, hiZMain, smpN, i);
-        ubo.set(1, hiZMain, smpN, i+1);
-        } else {
-        ubo.set(0, hiZ, smpN, i);
-        ubo.set(1, hiZ, smpN, i+1);
-        }
+      ubo.set(0, hiZPot, smpN, i);
+      ubo.set(1, hiZPot, smpN, i+1);
 
       if(hiZ.isEmpty() && (hw<=64 || hh<=32)) {
-        hiZ = device.image2d(TextureFormat::R16, hw, hh, true);
-        ubo.set(1, hiZ, smpN, 0);
-        i = uint32_t(-1);
+        hiZ = device.image2d(TextureFormat::RGBA16, hw, hh, true);
+        mipOffset = i+1;
         }
+      }
+
+    hw = uint32_t(hiZ.w());
+    hh = uint32_t(hiZ.h());
+    uboZGather.clear();
+    for(uint32_t i=0; (hw>=1 || hh>=1); ++i) {
+      hw /= 2;
+      hh /= 2;
+      auto& ubo = uboZGather.emplace_back(device.descriptors(Shaders::inst().hiZGather));
+      ubo.set(0, hiZPot, smpN, i+mipOffset);
+      ubo.set(1, hiZ,    smpN, i);
       }
     }
 
@@ -243,10 +249,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
 
   wview->preFrameUpdate(view,proj,zNear,zFar,shadow,Gothic::inst().world()->tickCount(),cmdId);
 
-  if(Resources::hasMeshShaders()) {
-    cmd.setFramebuffer({{hiZBase, 1.f, Tempest::Preserve}}, {zbuffer, 1.f, Tempest::Discard});
-    wview->drawHiZ(cmd,cmdId);
-    }
+  drawHiZ(cmd,*wview,cmdId);
 
   for(uint8_t i=0; i<Resources::ShadowLayers; ++i) {
     if(shadowMap[i].isEmpty())
@@ -254,22 +257,6 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     cmd.setFramebuffer({{shadowMap[i], 0.f, Tempest::Preserve}}, {shadowZ[i], 0.f, Tempest::Preserve});
     if(wview->mainLight().dir().y>0)
       wview->drawShadow(cmd,cmdId,i);
-    }
-
-  if(Resources::hasMeshShaders()) {
-    uint32_t w = uint32_t(hiZMain.w()), h = uint32_t(hiZMain.h());
-    cmd.setFramebuffer({});
-    cmd.setUniforms(Shaders::inst().hiZ, uboHiZ);
-    cmd.dispatch(std::max<size_t>((w+31)/32,1u),
-                 std::max<size_t>((h+31)/32,1u),1);
-    for(uint32_t i=0; i<uboZMip.size(); ++i) {
-      w = w/2;
-      h = h/2;
-      cmd.setUniforms(Shaders::inst().mips, uboZMip[i]);
-      cmd.dispatch(std::max<size_t>((w+7)/8,1u),
-                   std::max<size_t>((h+7)/8,1u),1);
-      }
-
     }
 
   wview->prepareSky(cmd,cmdId);
@@ -288,6 +275,34 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   wview->drawSky    (cmd,cmdId);
   wview->drawMain   (cmd,cmdId);
   wview->drawFog    (cmd,cmdId);
+  }
+
+void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, uint8_t cmdId) {
+  if(!Resources::hasMeshShaders())
+    return;
+
+  cmd.setFramebuffer({{hiZBase, 1.f, Tempest::Preserve}}, {zbuffer, 1.f, Tempest::Discard});
+  wview.drawHiZ(cmd,cmdId);
+
+  uint32_t w = uint32_t(hiZPot.w()), h = uint32_t(hiZPot.h());
+  cmd.setFramebuffer({});
+  cmd.setUniforms(Shaders::inst().hiZPot, uboHiZPot);
+  cmd.dispatchThreads(w,h);
+  for(uint32_t i=0; i<uboZMip.size(); ++i) {
+    w = w/2;
+    h = h/2;
+    cmd.setUniforms(Shaders::inst().hiZMip, uboZMip[i]);
+    cmd.dispatchThreads(std::max<size_t>(w,1),std::max<size_t>(h,1));
+    }
+
+  w = uint32_t(hiZ.w());
+  h = uint32_t(hiZ.h());
+  for(uint32_t i=0; i<uboZGather.size(); ++i) {
+    cmd.setUniforms(Shaders::inst().hiZGather, uboZGather[i]);
+    cmd.dispatchThreads(std::max<size_t>(w,1),std::max<size_t>(h,1));
+    w = w/2;
+    h = h/2;
+    }
   }
 
 void Renderer::drawDSM(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view) {
