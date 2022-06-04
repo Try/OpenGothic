@@ -164,7 +164,7 @@ class Resources final {
     void                  detectVdf(std::vector<Archive>& ret, const std::u16string& root);
 
     Tempest::Texture2d*   implLoadTexture(TextureCache& cache, std::string_view cname);
-    Tempest::Texture2d*   implLoadTexture(TextureCache& cache, std::string &&name, const std::vector<uint8_t> &data);
+    Tempest::Texture2d*   implLoadTexture(TextureCache& cache, std::string &&name, std::span<const uint8_t> data);
     ProtoMesh*            implLoadMesh(std::string_view name);
     std::unique_ptr<ProtoMesh> implLoadMeshMain(std::string name);
     std::unique_ptr<Animation> implLoadAnimation(std::string name);

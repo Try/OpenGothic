@@ -10,13 +10,13 @@
 #include <Tempest/TextCodec>
 #include <Tempest/Log>
 
-#include <zenload/ztex2dds.h>
-
 #include <phoenix/proto_mesh.hh>
 #include <phoenix/model_hierarchy.hh>
 #include <phoenix/model.hh>
 #include <phoenix/model_script.hh>
 #include <phoenix/material.hh>
+#include <phoenix/texture.hh>
+#include <phoenix/ext/dds_convert.hh>
 
 #include <fstream>
 
@@ -272,16 +272,17 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
     return it->second.get();
 
   if(FileExt::hasExt(name,"TGA")){
-    name.resize(name.size()+2);
+    name.resize(name.size() + 2);
     std::memcpy(&name[0]+name.size()-6,"-C.TEX",6);
     if(hasFile(name)) {
-      if(!getFileData(name.c_str(),fBuff)) {
-        Log::e("unable to load texture \"",name,"\"");
-        return nullptr;
-        }
-      ddsBuf.clear();
-      ZenLoad::convertZTEX2DDS(fBuff,ddsBuf);
-      auto t = implLoadTexture(cache,std::string(cname),ddsBuf);
+
+      phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
+      if (entry == nullptr) return nullptr;
+      auto reader = entry->open();
+      auto tex = phoenix::texture::parse(reader);
+      auto dds = phoenix::texture_to_dds(tex);
+
+      auto t = implLoadTexture(cache,std::string(cname),dds.array());
       if(t!=nullptr) {
         return t;
         }
@@ -295,7 +296,7 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
   return nullptr;
   }
 
-Texture2d *Resources::implLoadTexture(TextureCache& cache, std::string&& name, const std::vector<uint8_t> &data) {
+Texture2d *Resources::implLoadTexture(TextureCache& cache, std::string&& name, std::span<const uint8_t> data) {
   try {
     Tempest::MemReader rd(data.data(),data.size());
     Tempest::Pixmap    pm(rd);
