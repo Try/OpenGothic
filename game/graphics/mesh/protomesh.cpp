@@ -206,7 +206,8 @@ ProtoMesh::ProtoMesh(const phoenix::model_hierachy& library, std::unique_ptr<Ske
   setupScheme(fname);
 }
 
-ProtoMesh::ProtoMesh(const phoenix::model_mesh& library, std::unique_ptr<Skeleton>&& sk, const std::string& fname) {
+ProtoMesh::ProtoMesh(const phoenix::model_mesh& library, std::unique_ptr<Skeleton>&& sk, const std::string& fname)
+  :skeleton(std::move(sk)), fname(fname){
   for(auto& m:library.attachments()) {
     PackedMesh pack(m.second,PackedMesh::PK_Visual);
     attach.emplace_back(pack);
