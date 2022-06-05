@@ -116,7 +116,7 @@ Resources::Resources(Tempest::Device &device)
     });
 
   for(auto& i:archives)
-    gothicAssets.merge(phoenix::vdf_file::open(i.name));
+    gothicAssets.merge(phoenix::vdf_file::open(i.name), false);
 
   //for(auto& i:gothicAssets.getKnownFiles())
   //  Log::i(i);
