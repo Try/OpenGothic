@@ -223,6 +223,8 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const std::unique_ptr<
     case phoenix::vob_type::zCVobLight: {
       return std::unique_ptr<Vob>(new WorldLight(parent,world,vob,flags));
       }
+    default:
+      break;
     }
 
   return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
