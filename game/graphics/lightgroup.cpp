@@ -238,12 +238,19 @@ LightGroup::LightGroup(const SceneGlobals& scene)
     auto buf = phoenix::buffer::open(filename);
     auto zen = phoenix::archive_reader::open(buf);
 
+    phoenix::archive_object obj {};
     auto count = zen->read_int();
     for (int i = 0; i < count; ++i) {
+      zen->read_object_begin(obj);
+
       presets.push_back(phoenix::vobs::light_preset::parse(
           zen,
           Gothic::inst().version().game == 1 ? phoenix::game_version::gothic_1
                                              : phoenix::game_version::gothic_2));
+
+      if (!zen->read_object_end()) {
+        zen->skip_object(true);
+      }
     }
   } catch(...) {
     Log::e("unable to load Zen-file: \"LIGHTPRESETS.ZEN\"");
