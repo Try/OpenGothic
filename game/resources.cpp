@@ -280,14 +280,33 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
       if (entry == nullptr) return nullptr;
       auto reader = entry->open();
       auto tex = phoenix::texture::parse(reader);
-      auto dds = phoenix::texture_to_dds(tex);
 
-      auto t = implLoadTexture(cache,std::string(cname),dds.array());
-      if(t!=nullptr) {
-        return t;
+      if (tex.format() == phoenix::tex_dxt1 ||
+          tex.format() == phoenix::tex_dxt2 ||
+          tex.format() == phoenix::tex_dxt3 ||
+          tex.format() == phoenix::tex_dxt4 ||
+          tex.format() == phoenix::tex_dxt5) {
+        auto dds = phoenix::texture_to_dds(tex);
+
+        auto t = implLoadTexture(cache, std::string(cname), dds.array());
+        if(t!=nullptr) {
+          return t;
         }
+      } else {
+        auto rgba = tex.as_rgba8(0);
+
+        try {
+          Tempest::Pixmap pm(tex.width(), tex.height(), Tempest::Pixmap::Format::RGBA);
+          std::memcpy(pm.data(), rgba.data(), rgba.size());
+
+          std::unique_ptr<Texture2d> t{new Texture2d(dev.texture(pm))};
+          Texture2d *ret = t.get();
+          cache[std::move(name)] = std::move(t);
+          return ret;
+        } catch (...) {}
       }
     }
+  }
 
   if(getFileData(cname,fBuff))
     return implLoadTexture(cache,std::string(cname),fBuff);
