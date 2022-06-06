@@ -9,7 +9,15 @@ class Frustrum {
 
     bool testPoint(float x, float y, float z) const;
     bool testPoint(float x, float y, float z, float R) const;
+    bool testPoint(const Tempest::Vec3& p, float R) const;
     bool testPoint(const Tempest::Vec3& p, float R, float& dist) const;
+
+    enum Ret:uint8_t {
+      T_Invisible,
+      T_Partial,
+      T_Full,
+      };
+    Ret  testBbox (const Tempest::Vec3& min, const Tempest::Vec3& max) const;
 
     float              f[6][4] = {};
     Tempest::Matrix4x4 mat;

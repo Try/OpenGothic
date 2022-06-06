@@ -116,6 +116,10 @@ bool Frustrum::testPoint(float x, float y, float z, float R) const {
   return true;
   }
 
+bool Frustrum::testPoint(const Tempest::Vec3& p, float R) const {
+  return testPoint(p.x,p.y,p.z,R);
+  }
+
 bool Frustrum::testPoint(const Vec3& p, float R, float& dist) const {
   for(size_t i=0; i<5; i++) {
     if(f[i][0]*p.x+f[i][1]*p.y+f[i][2]*p.z+f[i][3]<=-R)
@@ -127,4 +131,25 @@ bool Frustrum::testPoint(const Vec3& p, float R, float& dist) const {
     return false;
 
   return true;
+  }
+
+Frustrum::Ret Frustrum::testBbox(const Tempest::Vec3& min, const Tempest::Vec3& max) const {
+  auto ret = Ret::T_Full;
+  for(int i=0; i<6; i++) {
+    float dmax =
+          std::max(min.x * f[i][0], max.x * f[i][0])
+        + std::max(min.y * f[i][1], max.y * f[i][1])
+        + std::max(min.z * f[i][2], max.z * f[i][2])
+        + f[i][3];
+    float dmin =
+          std::min(min.x * f[i][0], max.x * f[i][0])
+        + std::min(min.y * f[i][1], max.y * f[i][1])
+        + std::min(min.z * f[i][2], max.z * f[i][2])
+        + f[i][3];
+    if(dmax<0)
+      return Ret::T_Invisible;
+    if(dmin<0)
+      ret = Ret::T_Partial;
+    }
+  return ret;
   }

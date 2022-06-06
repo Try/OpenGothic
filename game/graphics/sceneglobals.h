@@ -64,6 +64,7 @@ class SceneGlobals final {
     LightSource                       sun;
     Tempest::Vec3                     ambient;
     LightGroup                        lights;
+    Frustrum                          frustrum[V_Count];
 
     bool                              zWindEnabled = false;
     Tempest::Vec2                     windDir = {0,1};
@@ -75,6 +76,5 @@ class SceneGlobals final {
     void                              initSettings();
 
     UboGlobal                         uboGlobal;
-    Frustrum                          frustrum[V_Count];
   };
 

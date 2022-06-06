@@ -85,7 +85,7 @@ void Workers::threadFunc(size_t id) {
     // Log::d("worker: id = ",id," [",b, ", ",e,"]");
 
     if(b!=e) {
-      void* d = &workSet[b*workEltSize];
+      void* d = workSet + b*workEltSize;
       workFunc(d,e-b);
       }
 

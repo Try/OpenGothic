@@ -61,9 +61,37 @@ class VisibilityGroup {
       std::vector<Tok>    tokens;
       std::vector<size_t> freeList;
       };
-    TokList def, alwaysVis;
+    TokList def, stat, alwaysVis;
 
+    struct TreeItm {
+      Tok*          self = nullptr;
+      Tempest::Vec3 bbox[2];
+      Tempest::Vec3 midTr;
+      };
+    struct Node {
+      Bounds   bbox;
+      bool     isLeaf = false;
+      };
+    struct TreeTask {
+      TreeItm* begin = nullptr;
+      TreeItm* end   = nullptr;
+      size_t   node  = 0;
+      };
+    std::vector<Node>     treeNode;
+    std::vector<TreeItm>  treeTok;
+    std::vector<TreeTask> treeTasks;
+    bool                  updateThree = false;
+
+    void     buildTree();
+    void     buildTree(size_t node, TreeItm* begin, TreeItm* end, size_t step);
+    void     buildTreeTasks(size_t node, size_t depth, TreeItm* begin, TreeItm* end);
     TokList& group(Group gr);
+
+    static void setVisible(SceneGlobals::VisCamera c, TreeItm* begin, TreeItm* end);
+    void        testStaticObjectsThreaded(const Frustrum f[]);
+    void        testStaticObjects(const Frustrum f[], SceneGlobals::VisCamera c,
+                                  size_t node, TreeItm* begin, TreeItm* end);
+    static void testVisibility(Tok& t, const Frustrum f[], float mX, float mY, float sh1X, float sh1Y);
     static bool subpixelMeshTest(const Tok& t, const Frustrum& f, float edgeX, float edgeY);
   };
 

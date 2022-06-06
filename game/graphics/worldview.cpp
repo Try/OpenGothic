@@ -94,6 +94,8 @@ void WorldView::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
   }
 
 void WorldView::visibilityPass(const Frustrum fr[]) {
+  for(uint8_t i=0; i<SceneGlobals::V_Count; ++i)
+    sGlobal.frustrum[i] = fr[i];
   visuals.visibilityPass(fr);
   }
 

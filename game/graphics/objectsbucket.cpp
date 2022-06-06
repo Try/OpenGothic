@@ -238,8 +238,11 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const Bounds& bounds, const Mate
 
   ++valSz;
   v->timeShift  = uint64_t(0-scene.tickCount);
-  if(objType==Type::Landscape || objType==Type::LandscapeShadow || objType==Type::Static)
+  if(objType==Type::Landscape || objType==Type::Static)
     v->visibility = owner.visGroup.get(VisibilityGroup::G_Static);
+  else if(objType==Type::LandscapeShadow) {
+    v->visibility = owner.visGroup.get(VisibilityGroup::G_Default);
+    }
   else if(objType==Type::Pfx)
     v->visibility = owner.visGroup.get(VisibilityGroup::G_AlwaysVis);
   else

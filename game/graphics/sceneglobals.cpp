@@ -94,10 +94,6 @@ void SceneGlobals::commitUbo(uint8_t fId) {
     ubo = uboGlobal;
     if(i!=V_Main)
       ubo.viewProject = uboGlobal.shadowView[i-V_Shadow0];
-
-    static bool upd = true;
-    if(upd)
-      frustrum[i].make(ubo.viewProject,1,1);
     std::memcpy(ubo.frustrum, frustrum[i].f, sizeof(ubo.frustrum));
     }
 

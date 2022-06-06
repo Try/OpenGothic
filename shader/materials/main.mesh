@@ -70,7 +70,7 @@ void boundSphereTest(const uint objId) {
 float textureHiZ(in vec2 uv, in int mip, in vec2 uv0, in vec2 uv1) {
   //ivec2 iuv0 = ivec2(uv*textureSize(hiZ,mip));
   vec2 offset = vec2(0.5)/textureSize(hiZ,mip);
-  vec4 z4 = textureLod(hiZ,uv-offset,mip);
+  vec4 z4     = textureLod(hiZ,uv-offset,mip);
   return max(max(z4[0],z4[1]), max(z4[2],z4[3]));
   }
 

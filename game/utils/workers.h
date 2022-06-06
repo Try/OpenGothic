@@ -29,6 +29,18 @@ class Workers final {
       inst().runParallelFor(data.data(),data.size(),maxTh,func);
       }
 
+    template<class F>
+    static void parallelTasks(size_t taskCount, const F& func) {
+      inst().runParallelTasks<F>(taskCount,func);
+      }
+
+    static uint8_t maxThreads() {
+      uint32_t th = std::thread::hardware_concurrency();
+      if(th>MAX_THREADS)
+        return MAX_THREADS;
+      return uint8_t(th);
+      }
+
   private:
     enum { MAX_THREADS=16 };
 
@@ -53,6 +65,19 @@ class Workers final {
         workTasks = maxTh;
 
       batchSize = std::max<size_t>(16,(sz+workTasks-1)/workTasks);
+      execWork();
+      }
+
+    template<class F>
+    void runParallelTasks(size_t taskCount, const F& func) {
+      workTasks   = taskCount;
+      workSize    = taskCount;
+      batchSize   = 1;
+      workSet     = nullptr;
+      workEltSize = 1;
+      workFunc = [&func](void* data, size_t sz) {
+        func(reinterpret_cast<uintptr_t>(data));
+        };
       execWork();
       }
 

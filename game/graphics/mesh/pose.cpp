@@ -294,9 +294,10 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
 bool Pose::update(uint64_t tickCount) {
   if(lay.size()==0) {
     const bool ret = needToUpdate;
+    if(needToUpdate || lastUpdate==0)
+      mkSkeleton(pos);
     needToUpdate = false;
     lastUpdate   = tickCount;
-    mkSkeleton(pos);
     return ret;
     }
 

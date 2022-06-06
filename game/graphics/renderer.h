@@ -44,6 +44,7 @@ class Renderer final {
       bool           zCloudShadowScale  = false;
       } settings;
 
+    Frustrum                  frustrum[SceneGlobals::V_Count];
     Tempest::Swapchain&       swapchain;
     Tempest::Matrix4x4        view, proj, viewProj;
     Tempest::Matrix4x4        shadow[Resources::ShadowLayers];
