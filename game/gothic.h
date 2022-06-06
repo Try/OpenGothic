@@ -151,8 +151,6 @@ class Gothic final {
     static void                           settingsSetF(std::string_view sec, std::string_view name, float val);
     static void                           flushSettings();
 
-    static void debug(const phoenix_compat::PackedSkeletalMesh& mesh, std::ostream& out);
-
   private:
     VersionInfo                             vinfo;
     std::mt19937                            randGen;
