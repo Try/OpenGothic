@@ -68,3 +68,5 @@ make -C build -j <number_of_cpucores>
 * -window - window mode
 * -rambo - reduce damage to player to 1hp
 * -v -validation - enable Vulkan validation mode
+* -g1 - assume a Gothic 1 installation
+* -g2 - assume a Gothic 2 installation
