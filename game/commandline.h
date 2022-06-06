@@ -27,6 +27,8 @@ class CommandLine {
     bool                isWindowMode() const { return isWindow; }
     bool                isRayQuery()   const { return isRQuery; }
     bool                doStartMenu()  const { return !noMenu;  }
+    bool                doForceG1()    const { return forceG1;  }
+    bool                doForceG2()    const { return forceG2;  }
     std::string_view    defaultSave()  const { return saveDef;  }
 
     std::string         wrldDef;
@@ -43,5 +45,7 @@ class CommandLine {
     bool                isDebug  = false;
     bool                isRambo  = false;
     bool                isRQuery = false;
+    bool                forceG1  = false;
+    bool                forceG2  = false;
   };
 
