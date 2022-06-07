@@ -89,7 +89,8 @@ void Workers::threadFunc(size_t id) {
       workFunc(d,e-b);
       }
 
-    workDone.fetch_add(1);
+    if(size_t(workDone.fetch_add(1)+1)==workTasks)
+      std::this_thread::yield();
     }
   }
 

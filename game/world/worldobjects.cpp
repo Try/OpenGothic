@@ -145,9 +145,22 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
   auto passive=std::move(sndPerc);
   sndPerc.clear();
 
-  std::sort(npcArr.begin(),npcArr.end(),[](std::unique_ptr<Npc>& a, std::unique_ptr<Npc>& b){
-    return a->handle()->id<b->handle()->id;
-    });
+  bool needSort = false;
+  for(size_t i=1; i<npcArr.size(); ++i) {
+    auto& a = npcArr[i-1];
+    auto& b = npcArr[i-0];
+    if(a->handle()->id>b->handle()->id) {
+      needSort = true;
+      break;
+      }
+    }
+
+  if(needSort) {
+    std::sort(npcArr.begin(),npcArr.end(),[](std::unique_ptr<Npc>& a, std::unique_ptr<Npc>& b){
+      return a->handle()->id<b->handle()->id;
+      });
+    }
+
   for(size_t i=0; i<npcArr.size(); ++i) {
     auto& npc = *npcArr[i];
     if(npc.isPlayer())
