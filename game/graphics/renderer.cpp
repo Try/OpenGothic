@@ -24,21 +24,21 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
   : swapchain(swapchain) {
   auto& device = Resources::device();
   view.identity();
-
+  /*
   static const TextureFormat shfrm[] = {
     TextureFormat::R16,
     TextureFormat::RG16,
     TextureFormat::R32F,
     TextureFormat::RGBA8,
-    };
+    };*/
   static const TextureFormat zfrm[] = {
     //TextureFormat::Depth24S8,
     TextureFormat::Depth24x8,
     TextureFormat::Depth16,
     };
 
-  for(auto& i:shfrm) {
-    if(device.properties().hasAttachFormat(i) && device.properties().hasSamplerFormat(i)){
+  for(auto& i:zfrm) {
+    if(device.properties().hasDepthFormat(i) && device.properties().hasSamplerFormat(i)){
       shadowFormat = i;
       break;
       }
@@ -83,12 +83,11 @@ void Renderer::resetSwapchain() {
     uint32_t hw = nearestPot(w);
     uint32_t hh = nearestPot(h);
 
-    hiZBase = device.attachment(TextureFormat::R16, w,  h);
     hiZPot  = device.image2d   (TextureFormat::R16, hw, hh, true);
     hiZ     = StorageImage();
 
     uboHiZPot = device.descriptors(Shaders::inst().hiZPot);
-    uboHiZPot.set(0, hiZBase, smpN);
+    uboHiZPot.set(0, zbuffer, smpN);
     uboHiZPot.set(1, hiZPot);
 
     uint32_t mipOffset = 0;
@@ -120,10 +119,8 @@ void Renderer::resetSwapchain() {
     }
 
   if(smSize>0) {
-    for(int i=0; i<Resources::ShadowLayers; ++i) {
-      shadowMap[i] = device.attachment(shadowFormat, smSize,smSize);
-      shadowZ[i]   = device.zbuffer   (zBufferFormat,smSize,smSize);
-      }
+    for(int i=0; i<Resources::ShadowLayers; ++i)
+      shadowMap[i] = device.zbuffer(shadowFormat,smSize,smSize);
     }
 
   lightingBuf = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
@@ -149,21 +146,21 @@ void Renderer::resetSwapchain() {
   ssao.uboSsao.set(0,lightingBuf,smpN);
   ssao.uboSsao.set(1,gbufDiffuse,smpN);
   ssao.uboSsao.set(2,gbufNormal, smpN);
-  ssao.uboSsao.set(3,gbufDepth,  smpB);
+  ssao.uboSsao.set(3,zbuffer,    smpB);
 
   ssao.uboCompose = device.descriptors(*ssao.ssaoComposePso);
   ssao.uboCompose.set(0,lightingBuf, smpB);
   ssao.uboCompose.set(1,gbufDiffuse, smpB);
   ssao.uboCompose.set(2,ssao.ssaoBuf,smpB);
-  ssao.uboCompose.set(3,gbufDepth,   smpB);
+  ssao.uboCompose.set(3,zbuffer,     smpB);
 
   ssao.uboBlur[0] = device.descriptors(Shaders::inst().bilateralBlur);
   ssao.uboBlur[0].set(0,ssao.ssaoBuf,smpN);
-  ssao.uboBlur[0].set(1,gbufDepth,   smpB);
+  ssao.uboBlur[0].set(1,zbuffer,     smpB);
 
   ssao.uboBlur[1] = device.descriptors(Shaders::inst().bilateralBlur);
   ssao.uboBlur[1].set(0,ssao.blurBuf,smpN);
-  ssao.uboBlur[1].set(1,gbufDepth,   smpB);
+  ssao.uboBlur[1].set(1,zbuffer,     smpB);
 
   prepareUniforms();
   }
@@ -208,7 +205,7 @@ void Renderer::prepareUniforms() {
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
     sh[i] = &textureCast(shadowMap[i]);
   wview->setGbuffer(textureCast(lightingBuf),textureCast(gbufDiffuse),
-                    textureCast(gbufNormal),textureCast(gbufDepth),
+                    textureCast(gbufNormal), textureCast(gbufDepth),
                     sh, textureCast(hiZ));
   }
 
@@ -257,18 +254,26 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   for(uint8_t i=0; i<Resources::ShadowLayers; ++i) {
     if(shadowMap[i].isEmpty())
       continue;
-    cmd.setFramebuffer({{shadowMap[i], 0.f, Tempest::Preserve}}, {shadowZ[i], 0.f, Tempest::Preserve});
+    cmd.setFramebuffer({}, {shadowMap[i], 0.f, Tempest::Preserve});
     if(wview->mainLight().dir().y>0)
       wview->drawShadow(cmd,cmdId,i);
     }
 
   wview->prepareSky(cmd,cmdId);
 
-  cmd.setFramebuffer({{lightingBuf, Vec4(),           Tempest::Preserve},
-                      {gbufDiffuse, Tempest::Discard, Tempest::Preserve},
-                      {gbufNormal,  Tempest::Discard, Tempest::Preserve},
-                      {gbufDepth,   1.f,              Tempest::Preserve}},
-                     {zbuffer, 1.f, Tempest::Preserve});
+  if(Resources::hasMeshShaders()) {
+    cmd.setFramebuffer({{lightingBuf, Vec4(),           Tempest::Preserve},
+                        {gbufDiffuse, Tempest::Discard, Tempest::Preserve},
+                        {gbufNormal,  Tempest::Discard, Tempest::Preserve},
+                        {gbufDepth,   1.f,              Tempest::Preserve}},
+                       {zbuffer, Tempest::Preserve, Tempest::Preserve});
+    } else {
+    cmd.setFramebuffer({{lightingBuf, Vec4(),           Tempest::Preserve},
+                        {gbufDiffuse, Tempest::Discard, Tempest::Preserve},
+                        {gbufNormal,  Tempest::Discard, Tempest::Preserve},
+                        {gbufDepth,   1.f,              Tempest::Preserve}},
+                       {zbuffer, 1.f, Tempest::Preserve});
+    }
   wview->drawGBuffer(cmd,cmdId);
 
   drawSSAO(result,cmd,*wview);
@@ -284,7 +289,7 @@ void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
   if(!Resources::hasMeshShaders())
     return;
 
-  cmd.setFramebuffer({{hiZBase, 1.f, Tempest::Preserve}}, {zbuffer, 1.f, Tempest::Discard});
+  cmd.setFramebuffer({}, {zbuffer, 1.f, Tempest::Preserve});
   wview.drawHiZ(cmd,cmdId);
 
   uint32_t w = uint32_t(hiZPot.w()), h = uint32_t(hiZPot.h());

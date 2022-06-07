@@ -171,6 +171,9 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
   state.setCullFaceMode(RenderState::CullMode::Front);
   state.setZTestMode   (RenderState::ZTestMode::Less);
 
+  if(t==ObjectsBucket::Landscape) {
+    state.setZTestMode(RenderState::ZTestMode::LEqual);
+    }
   if(pt==PipelineType::T_Shadow) {
     state.setZTestMode(RenderState::ZTestMode::Greater); //FIXME
     }

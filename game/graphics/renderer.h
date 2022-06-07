@@ -52,8 +52,7 @@ class Renderer final {
     float                     zFar  = 0;
     Tempest::Vec3             clipInfo;
 
-    Tempest::Attachment       shadowMap[Resources::ShadowLayers];
-    Tempest::ZBuffer          zbuffer, zbufferItem, shadowZ[Resources::ShadowLayers];
+    Tempest::ZBuffer          zbuffer, zbufferItem, shadowMap[Resources::ShadowLayers];
 
     Tempest::Attachment       lightingBuf;
     Tempest::Attachment       gbufDiffuse;
@@ -72,7 +71,6 @@ class Renderer final {
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::RGBA8;
     Tempest::TextureFormat    zBufferFormat = Tempest::TextureFormat::Depth16;
 
-    Tempest::Attachment       hiZBase;
     Tempest::StorageImage     hiZPot;
     Tempest::StorageImage     hiZ;
 

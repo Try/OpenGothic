@@ -11,7 +11,10 @@ layout(location = 0) in Varyings shInp;
 layout(location = DEBUG_DRAW_LOC) in flat uint debugId;
 #endif
 
+#if !defined(SHADOW_MAP)
 layout(location = 0) out vec4 outColor;
+#endif
+
 #if defined(GBUFFER)
 layout(location = 1) out vec4 outDiffuse;
 layout(location = 2) out vec4 outNormal;
@@ -124,10 +127,7 @@ void main() {
 #  endif
 #endif
 
-#if defined(SHADOW_MAP)
-  outColor = vec4(shInp.scr.zzz/shInp.scr.w,0.0);
-#else
-
+#if !defined(SHADOW_MAP)
   vec3  color = vec3(0);
   float alpha = 1;
 
@@ -162,7 +162,10 @@ void main() {
   }
 #endif
 
+#if !defined(SHADOW_MAP)
   outColor      = vec4(color,alpha);
+#endif
+
 #ifdef GBUFFER
   outDiffuse    = t;
   outNormal     = vec4(normalize(shInp.normal)*0.5 + vec3(0.5),1.0);
