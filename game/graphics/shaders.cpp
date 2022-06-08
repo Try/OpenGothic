@@ -139,9 +139,6 @@ Shaders::Shaders() {
     auto sh = GothicShader::get("hiZPot.comp.sprv");
     hiZPot  = device.pipeline(device.shader(sh.data,sh.len));
 
-    sh  = GothicShader::get("hiZGather.comp.sprv");
-    hiZGather = device.pipeline(device.shader(sh.data,sh.len));
-
     sh   = GothicShader::get("hiZMip.comp.sprv");
     hiZMip = device.pipeline(device.shader(sh.data,sh.len));
     }
@@ -169,11 +166,9 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
 
   RenderState state;
   state.setCullFaceMode(RenderState::CullMode::Front);
-  state.setZTestMode   (RenderState::ZTestMode::Less);
+  state.setZTestMode   (RenderState::ZTestMode::LEqual);
+  //state.setZTestMode   (RenderState::ZTestMode::Less);
 
-  if(t==ObjectsBucket::Landscape) {
-    state.setZTestMode(RenderState::ZTestMode::LEqual);
-    }
   if(pt==PipelineType::T_Shadow) {
     state.setZTestMode(RenderState::ZTestMode::Greater); //FIXME
     }

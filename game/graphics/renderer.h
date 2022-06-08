@@ -74,9 +74,8 @@ class Renderer final {
     Tempest::StorageImage     hiZPot;
     Tempest::StorageImage     hiZ;
 
-    Tempest::DescriptorSet    uboHiZPot, uboHiZ;
+    Tempest::DescriptorSet    uboHiZPot;
     std::vector<Tempest::DescriptorSet> uboZMip;
-    std::vector<Tempest::DescriptorSet> uboZGather;
 
     Tempest::DescriptorSet    uboCopy;
     Shaders                   stor;

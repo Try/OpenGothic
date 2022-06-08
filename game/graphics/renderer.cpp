@@ -83,38 +83,32 @@ void Renderer::resetSwapchain() {
     uint32_t hw = nearestPot(w);
     uint32_t hh = nearestPot(h);
 
-    hiZPot  = device.image2d   (TextureFormat::R16, hw, hh, true);
+    hiZPot  = device.image2d(TextureFormat::R16, hw, hh, true);
     hiZ     = StorageImage();
 
     uboHiZPot = device.descriptors(Shaders::inst().hiZPot);
     uboHiZPot.set(0, zbuffer, smpN);
     uboHiZPot.set(1, hiZPot);
 
-    uint32_t mipOffset = 0;
     uboZMip.clear();
-    for(uint32_t i=0; (hw>1 || hh>1); ++i) {
-      hw /= 2;
-      hh /= 2;
+    for(uint32_t i=0; (hw>1 && hh>1); ++i) {
+      hw = std::max(1u, hw/2u);
+      hh = std::max(1u, hh/2u);
       auto& ubo = uboZMip.emplace_back(device.descriptors(Shaders::inst().hiZMip));
 
-      ubo.set(0, hiZPot, smpN, i);
-      ubo.set(1, hiZPot, smpN, i+1);
-
-      if(hiZ.isEmpty() && (hw<=64 || hh<=32)) {
-        hiZ = device.image2d(TextureFormat::RGBA16, hw, hh, true);
-        mipOffset = i+1;
+      if(hiZ.isEmpty()) {
+        ubo.set(0, hiZPot, smpN, i);
+        ubo.set(1, hiZPot, smpN, i+1);
+        } else {
+        ubo.set(0, hiZ, smpN, i);
+        ubo.set(1, hiZ, smpN, i+1);
         }
-      }
 
-    hw = uint32_t(hiZ.w());
-    hh = uint32_t(hiZ.h());
-    uboZGather.clear();
-    for(uint32_t i=0; (hw>=1 || hh>=1); ++i) {
-      hw /= 2;
-      hh /= 2;
-      auto& ubo = uboZGather.emplace_back(device.descriptors(Shaders::inst().hiZGather));
-      ubo.set(0, hiZPot, smpN, i+mipOffset);
-      ubo.set(1, hiZ,    smpN, i);
+      if(hiZ.isEmpty() && (hw<=64 && hh<=64)) {
+        hiZ = device.image2d(TextureFormat::R16, hw, hh, true);
+        ubo.set(1, hiZ, smpN, 0);
+        i = uint32_t(-1);
+        }
       }
     }
 
@@ -301,15 +295,6 @@ void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
     h = h/2;
     cmd.setUniforms(Shaders::inst().hiZMip, uboZMip[i]);
     cmd.dispatchThreads(std::max<size_t>(w,1),std::max<size_t>(h,1));
-    }
-
-  w = uint32_t(hiZ.w());
-  h = uint32_t(hiZ.h());
-  for(uint32_t i=0; i<uboZGather.size(); ++i) {
-    cmd.setUniforms(Shaders::inst().hiZGather, uboZGather[i]);
-    cmd.dispatchThreads(std::max<size_t>(w,1),std::max<size_t>(h,1));
-    w = w/2;
-    h = h/2;
     }
   }
 

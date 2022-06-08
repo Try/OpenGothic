@@ -151,7 +151,6 @@ add_shader(ssao_compose_rq.frag      ssao_compose.frag -DRAY_QUERY)
 
 add_shader(hiZPot.comp    hiZPot.comp    "")
 add_shader(hiZMip.comp    hiZMip.comp    "")
-add_shader(hiZGather.comp hiZGather.comp "")
 
 add_custom_command(
   OUTPUT     ${HEADER} ${CPP}
