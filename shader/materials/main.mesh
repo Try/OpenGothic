@@ -104,13 +104,13 @@ bool bboxTest(const uint objId) {
 #endif
     const vec3  pos    = vec3(b[(laneID&0x1)].x,b[(laneID&0x2)>>1].y,b[(laneID&0x4)>>2].z);
 
-    vec4 trPos = vec4(pos.xyz,1.0);
+    vec4 trPos = vec4(pos,1.0);
 #if defined(LVL_OBJECT)
     trPos = matrix[objId]    *trPos;
 #endif
     trPos = scene.viewProject*trPos;
 
-    vec3 bp = trPos.xyz/trPos.w;
+    vec3 bp = trPos.xyz/max(trPos.w,0.001);
     bp.xy = bp.xy*0.5 + vec2(0.5);
     bp.xy = clamp(bp.xy, vec2(0.0), vec2(1.0));
     bboxProj[laneID] = bp;
@@ -148,7 +148,7 @@ bool bboxTest(const uint objId) {
       float bz = bbox[0].z;
       bz = (1.0-bz)*20.0;
       float z  = texelFetch(hiZ, at, mip).x;
-      if(bz >= z || bz>=1)
+      if(bz >= z)
         visible = true;
       }
     }
@@ -179,8 +179,8 @@ void main() {
 #  endif
 #else
 #  if (MESH_TYPE==T_LANDSCAPE)
-  //const bool visible = bboxTest(meshletId);
-  const bool visible = meshletTest(meshletId);
+  const bool visible = bboxTest(meshletId);
+  //const bool visible = meshletTest(meshletId);
 #  elif (MESH_TYPE==T_PFX)
   const bool visible = true;
 #  else
