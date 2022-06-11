@@ -74,6 +74,11 @@ CommandLine::CommandLine(int argc, const char** argv) {
     else if(arg=="-rt") {
       isRQuery = true;
       }
+    else if(arg=="-ms") {
+      ++i;
+      if(i<argc)
+        isMeshSh = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
+      }
     }
 
   if(gpath.empty()) {

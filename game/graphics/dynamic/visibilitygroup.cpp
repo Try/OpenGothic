@@ -91,7 +91,8 @@ const Bounds& VisibilityGroup::Token::bounds() const {
   }
 
 VisibilityGroup::VisibilityGroup(const std::pair<Vec3, Vec3>& bbox) {
-  def.freeList.reserve(4);
+  def .freeList.reserve(4);
+  stat.freeList.reserve(4);
   }
 
 VisibilityGroup::TokList& VisibilityGroup::group(Group gr) {
@@ -101,11 +102,6 @@ VisibilityGroup::TokList& VisibilityGroup::group(Group gr) {
     case G_AlwaysVis: return alwaysVis;
     }
   return def;
-  }
-
-void VisibilityGroup::setVisible(SceneGlobals::VisCamera c, TreeItm* begin, TreeItm* end) {
-  for(auto i=begin; i!=end; ++i)
-    i->self->vSet->push(i->self->id, c);
   }
 
 void VisibilityGroup::buildTree() {
@@ -254,6 +250,7 @@ VisibilityGroup::Token VisibilityGroup::get(Group g) {
   if(&gr==&stat) {
     updateThree = true;
     }
+  updateSets = true;
   return Token(*this, gr,id);
   }
 
@@ -268,6 +265,15 @@ void VisibilityGroup::pass(const Frustrum f[]) {
     buildTree();
     updateThree = false;
     }
+
+  if(updateSets) {
+    indexResetable();
+    updateSets = false;
+    }
+
+  Workers::parallelFor(resetableSets,[](VisibleSet *v){
+    v->reset();
+    });
 
   for(auto& t:alwaysVis.tokens) {
     if(t.vSet==nullptr)
@@ -284,12 +290,40 @@ void VisibilityGroup::pass(const Frustrum f[]) {
     });
   }
 
+void VisibilityGroup::indexResetable() {
+  resetableSets.clear();
+
+  TokList* lists[] = {&alwaysVis, &def, &stat};
+  for(auto& list:lists) {
+    for(auto& i:list->tokens) {
+      if(i.vSet==nullptr)
+        continue;
+      bool add = true;
+      for(auto& r:resetableSets)
+        if(r==i.vSet) {
+          add = false;
+          break;
+          }
+      if(add)
+        resetableSets.push_back(i.vSet);
+      }
+    }
+  }
+
 void VisibilityGroup::testStaticObjectsThreaded(const Frustrum f[]) {
+  ++lastUpdate;
   Workers::parallelTasks(treeTasks.size(),[&](uintptr_t taskId) {
     auto& t = treeTasks[taskId];
     for(uint8_t c=SceneGlobals::V_Shadow0; c<SceneGlobals::V_Count; ++c)
       testStaticObjects(f,SceneGlobals::VisCamera(c),t.node, t.begin,t.end);
     });
+  }
+
+void VisibilityGroup::setVisible(SceneGlobals::VisCamera c, TreeItm* begin, TreeItm* end, uint64_t updateId) {
+  for(auto i=begin; i!=end; ++i) {
+    auto& v = *i->self->vSet;
+    v.push(i->self->id, c);
+    }
   }
 
 void VisibilityGroup::testStaticObjects(const Frustrum f[], SceneGlobals::VisCamera c,
@@ -300,11 +334,12 @@ void VisibilityGroup::testStaticObjects(const Frustrum f[], SceneGlobals::VisCam
   auto  visible = f[c].testBbox(n.bbox.bbox[0],n.bbox.bbox[1]);
 
   if(n.isLeaf || visible==Frustrum::T_Full) {
-    setVisible(SceneGlobals::VisCamera(c),begin,end);
+    setVisible(SceneGlobals::VisCamera(c),begin,end,lastUpdate);
     return;
     }
-  if(visible==Frustrum::T_Invisible)
+  if(visible==Frustrum::T_Invisible) {
     return;
+    }
 
   size_t sz = size_t(std::distance(begin,end));
   testStaticObjects(f,c, node*2+0, begin,     begin+sz/2);

@@ -77,18 +77,19 @@ Shaders::Shaders() {
   instance = this;
   auto& device = Resources::device();
 
-  solid   .load(device,"gbuffer",   false,Resources::hasMeshShaders());
-  atest   .load(device,"gbuffer_at",false,Resources::hasMeshShaders());
-  ghost   .load(device,"ghost",     false,Resources::hasMeshShaders());
-  emmision.load(device,"emi",       false,Resources::hasMeshShaders());
+  const bool meshlets = Gothic::inst().doMeshShading();
+  solid   .load(device,"gbuffer",   false,meshlets);
+  atest   .load(device,"gbuffer_at",false,meshlets);
+  ghost   .load(device,"ghost",     false,meshlets);
+  emmision.load(device,"emi",       false,meshlets);
 
   water   .load(device,"water",device.properties().tesselationShader,false);
 
-  solidF  .load(device,"",  false,Resources::hasMeshShaders());
-  atestF  .load(device,"at",false,Resources::hasMeshShaders());
+  solidF  .load(device,"",  false,meshlets);
+  atestF  .load(device,"at",false,meshlets);
 
-  shadow  .load(device,"shadow",   false,Resources::hasMeshShaders());
-  shadowAt.load(device,"shadow_at",false,Resources::hasMeshShaders());
+  shadow  .load(device,"shadow",   false,meshlets);
+  shadowAt.load(device,"shadow_at",false,meshlets);
 
   copy               = postEffect("copy");
   ssao               = postEffect("ssao");
@@ -135,7 +136,7 @@ Shaders::Shaders() {
     sky = postEffect("sky_g2");
     }
 
-  if(Resources::hasMeshShaders()){
+  if(meshlets){
     auto sh = GothicShader::get("hiZPot.comp.sprv");
     hiZPot  = device.pipeline(device.shader(sh.data,sh.len));
 

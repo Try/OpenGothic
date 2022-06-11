@@ -22,14 +22,15 @@ class CommandLine {
     std::u16string_view modPath() const { return gmod; }
     std::u16string      nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const;
 
-    bool                isDebugMode()  const { return isDebug;  }
-    bool                isRamboMode()  const { return isRambo;  }
-    bool                isWindowMode() const { return isWindow; }
-    bool                isRayQuery()   const { return isRQuery; }
-    bool                doStartMenu()  const { return !noMenu;  }
-    bool                doForceG1()    const { return forceG1;  }
-    bool                doForceG2()    const { return forceG2;  }
-    std::string_view    defaultSave()  const { return saveDef;  }
+    bool                isDebugMode()   const { return isDebug;  }
+    bool                isRamboMode()   const { return isRambo;  }
+    bool                isWindowMode()  const { return isWindow; }
+    bool                isRayQuery()    const { return isRQuery; }
+    bool                isMeshShading() const { return isMeshSh; }
+    bool                doStartMenu()   const { return !noMenu;  }
+    bool                doForceG1()     const { return forceG1;  }
+    bool                doForceG2()     const { return forceG2;  }
+    std::string_view    defaultSave()   const { return saveDef;  }
 
     std::string         wrldDef;
     bool                noFrate = false;
@@ -45,6 +46,7 @@ class CommandLine {
     bool                isDebug  = false;
     bool                isRambo  = false;
     bool                isRQuery = false;
+    bool                isMeshSh = true;
     bool                forceG1  = false;
     bool                forceG2  = false;
   };

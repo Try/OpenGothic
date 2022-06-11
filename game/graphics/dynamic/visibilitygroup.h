@@ -69,25 +69,34 @@ class VisibilityGroup {
       Tempest::Vec3 midTr;
       };
     struct Node {
-      Bounds   bbox;
-      bool     isLeaf = false;
+      Bounds        bbox;
+      bool          isLeaf = false;
+      Frustrum::Ret visible[SceneGlobals::V_Count] = {};
       };
     struct TreeTask {
       TreeItm* begin = nullptr;
       TreeItm* end   = nullptr;
       size_t   node  = 0;
       };
-    std::vector<Node>     treeNode;
-    std::vector<TreeItm>  treeTok;
-    std::vector<TreeTask> treeTasks;
-    bool                  updateThree = false;
+    std::vector<Node>        treeNode;
+    std::vector<TreeItm>     treeTok;
+    std::vector<TreeTask>    treeTasks;
+
+    bool                     updateSets = false;
+    std::vector<VisibleSet*> resetableSets;
+
+    bool                     updateThree = false;
+    uint64_t                 lastUpdate  = 0;
+
+    void     indexResetable();
 
     void     buildTree();
     void     buildTree(size_t node, TreeItm* begin, TreeItm* end, size_t step);
     void     buildTreeTasks(size_t node, size_t depth, TreeItm* begin, TreeItm* end);
     TokList& group(Group gr);
 
-    static void setVisible(SceneGlobals::VisCamera c, TreeItm* begin, TreeItm* end);
+    static void setVisible  (SceneGlobals::VisCamera c, TreeItm* begin, TreeItm* end, uint64_t updateId);
+
     void        testStaticObjectsThreaded(const Frustrum f[]);
     void        testStaticObjects(const Frustrum f[], SceneGlobals::VisCamera c,
                                   size_t node, TreeItm* begin, TreeItm* end);

@@ -35,6 +35,8 @@ Gothic::Gothic() {
 
   noFrate = CommandLine::inst().noFrate;
   wrldDef = CommandLine::inst().wrldDef;
+  if(Resources::device().properties().meshlets.meshShader)
+    isMeshSh = CommandLine::inst().isMeshShading();
 
   baseIniFile.reset(new IniFile(nestedPath({u"system",u"Gothic.ini"},Dir::FT_File)));
   iniFile    .reset(new IniFile(u"Gothic.ini"));
@@ -333,6 +335,10 @@ bool Gothic::doRayQuery() const {
   if(!Resources::device().properties().raytracing.rayQuery)
     return false;
   return CommandLine::inst().isRayQuery();
+  }
+
+bool Gothic::doMeshShading() const {
+  return isMeshSh;
   }
 
 Gothic::LoadState Gothic::checkLoading() const {

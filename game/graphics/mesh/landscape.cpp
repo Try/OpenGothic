@@ -9,7 +9,7 @@ using namespace Tempest;
 
 Landscape::Landscape(VisualObjects& visual, const PackedMesh &packed)
   :mesh(packed) {
-  if(Resources::hasMeshShaders())
+  if(Gothic::inst().doMeshShading())
     meshletDesc = Resources::ssbo(packed.meshletBounds.data(),packed.meshletBounds.size()*sizeof(packed.meshletBounds[0]));
 
   auto& device = Resources::device();
@@ -49,7 +49,7 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &packed)
     rt.blas = device.blas(mesh.vbo,rt.ibo);
     }
 
-  if(Resources::hasMeshShaders()) {
+  if(Gothic::inst().doMeshShading()) {
     auto boundsSolid = packed.meshletBounds;
     for(auto& i:packed.subMeshes) {
       auto material = Resources::loadMaterial(i.material,true);

@@ -140,11 +140,6 @@ bool Resources::hasFile(std::string_view name) {
   return inst->gothicAssets.hasFile(std::string(name));
   }
 
-bool Resources::hasMeshShaders() {
-  //return false;
-  return inst->dev.properties().meshlets.meshShader;
-  }
-
 bool Resources::getFileData(std::string_view name, std::vector<uint8_t> &dat) {
   dat.clear();
   if(name.size()<128) {

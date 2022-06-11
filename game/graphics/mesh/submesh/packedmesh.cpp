@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "graphics/bounds.h"
+#include "gothic.h"
 
 using namespace Tempest;
 
@@ -293,9 +294,9 @@ static bool isSame(const ZenLoad::zCMaterialData& a, const ZenLoad::zCMaterialDa
 
 
 PackedMesh::PackedMesh(const ZenLoad::zCMesh& mesh, PkgType type) {
-  if(Resources::hasMeshShaders()) {
+  if(Gothic::inst().doMeshShading()) {
     auto& prop = Resources::device().properties().meshlets;
-    maxIboSliceLength = prop.maxMeshGroups * 32 * MaxInd;
+    maxIboSliceLength = prop.maxMeshGroups * prop.maxMeshGroupSize * MaxInd;
     } else {
     maxIboSliceLength = 8*1024*3;
     }
@@ -454,7 +455,7 @@ void PackedMesh::packMeshlets(const ZenLoad::zCMesh& mesh) {
   for(size_t i=0; i<mesh.getMaterials().size(); ++i)
     duplicates[i] = i;
 
-  if(!Resources::hasMeshShaders()) {
+  if(!Gothic::inst().doMeshShading()) {
     for(size_t i=0; i<mesh.getMaterials().size(); ++i) {
       if(duplicates[i]!=i)
         continue;
@@ -666,7 +667,7 @@ void PackedMesh::postProcessP2(const ZenLoad::zCMesh& mesh, size_t matId, std::v
   if(meshlets.size()==0)
     return;
 
-  const bool hasMeshShaders = Resources::hasMeshShaders();
+  //const bool hasMeshShaders = Resources::hasMeshShaders();
 
   SubMesh sub;
   sub.material  = mesh.getMaterials()[matId];
@@ -676,7 +677,8 @@ void PackedMesh::postProcessP2(const ZenLoad::zCMesh& mesh, size_t matId, std::v
   for(size_t i=0; i<meshlets.size(); ++i) {
     auto meshlet  = meshlets[i];
     bool overflow = (indices.size()-sub.iboOffset+MaxInd > maxIboSliceLength);
-    bool disjoint = !hasMeshShaders && !meshlet->hasIntersection(*prev) && (indices.size()-sub.iboOffset>4096*3);
+    bool disjoint = !meshlet->hasIntersection(*prev) && (indices.size()-sub.iboOffset>4096*3);
+    //bool disjoint = !hasMeshShaders && !meshlet->hasIntersection(*prev) && (indices.size()-sub.iboOffset>4096*3);
     //bool disjoint = !hasMeshShaders && (meshlet->qDistance(*prev) > 4*clusterRadius*clusterRadius);
 
     if(prev!=nullptr && (disjoint || overflow)) {

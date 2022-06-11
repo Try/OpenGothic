@@ -101,8 +101,6 @@ void VisualObjects::preFrameUpdate(uint8_t fId) {
   }
 
 void VisualObjects::visibilityPass(const Frustrum fr[]) {
-  for(auto& i:buckets)
-    i->resetVis();
   visGroup.pass(fr);
   }
 
@@ -186,6 +184,14 @@ void VisualObjects::mkIndex() {
       return true;
     if(lt>rt)
       return false;
+
+    auto lv = l->meshPointer();
+    auto rv = r->meshPointer();
+    if(lv<rv)
+      return true;
+    if(lv>rv)
+      return false;
+
     return lm.tex < rm.tex;
     });
   lastSolidBucket = index.size();
@@ -196,6 +202,24 @@ void VisualObjects::mkIndex() {
       break;
       }
     }
+  /*
+  std::unordered_set<std::string> uniqTex;
+  std::unordered_set<const void*> uniqMesh;
+  for(size_t i=0; i<index.size(); ++i) {
+    auto& b = index[i];
+    const char* name = "ObjectsBucket   ";
+    if(dynamic_cast<ObjectsBucketDyn*>(b)!=nullptr)
+      name = "ObjectsBucketDyn";
+    char ind[32] = {};
+    std::snprintf(ind,32,"%04d",int(i));
+    char size[32] = {};
+    std::snprintf(size,32,"%03d",int(b->size()));
+    Log::d(name,"[",ind,"] size = ",size," ",b->meshPointer()," ",b->material().debugHint);
+    uniqTex .insert(b->material().debugHint);
+    uniqMesh.insert(b->meshPointer());
+    }
+  Log::d("uniqTex: ",uniqTex.size()," uniqMesh:",uniqMesh.size());
+  */
   }
 
 void VisualObjects::commitUbo(uint8_t fId) {

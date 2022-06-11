@@ -96,6 +96,7 @@ class ObjectsBucket {
     const Material&           material()      const;
     Type                      type()          const { return objType;        }
     InstancingType            hasInstancing() const { return instancingType; }
+    const void*               meshPointer()   const;
 
     size_t                    size()      const { return valSz;      }
     size_t                    alloc(const StaticMesh& mesh, size_t iboOffset, size_t iboLen,
@@ -111,14 +112,13 @@ class ObjectsBucket {
     virtual void              setupUbo();
     virtual void              invalidateUbo(uint8_t fId);
 
-    void                      resetVis();
     void                      fillTlas(std::vector<Tempest::RtInstance>& inst);
 
     virtual void              preFrameUpdate(uint8_t fId);
     virtual void              drawHiZ    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
     void                      draw       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void                      drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void                      drawShadow (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer=0);
+    void                      drawShadow (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer);
     void                      draw       (size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId);
 
   protected:

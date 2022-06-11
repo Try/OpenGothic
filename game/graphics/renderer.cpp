@@ -79,7 +79,7 @@ void Renderer::resetSwapchain() {
   zbuffer        = device.zbuffer(zBufferFormat,w,h);
   zbufferItem    = device.zbuffer(zBufferFormat,w,h);
 
-  if(Resources::hasMeshShaders()) {
+  if(Gothic::inst().doMeshShading()) {
     uint32_t hw = nearestPot(w);
     uint32_t hh = nearestPot(h);
 
@@ -255,7 +255,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
 
   wview->prepareSky(cmd,cmdId);
 
-  if(Resources::hasMeshShaders()) {
+  if(Gothic::inst().doMeshShading()) {
     cmd.setFramebuffer({{lightingBuf, Vec4(),           Tempest::Preserve},
                         {gbufDiffuse, Tempest::Discard, Tempest::Preserve},
                         {gbufNormal,  Tempest::Discard, Tempest::Preserve},
@@ -280,7 +280,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   }
 
 void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, uint8_t cmdId) {
-  if(!Resources::hasMeshShaders())
+  if(!Gothic::inst().doMeshShading())
     return;
 
   cmd.setFramebuffer({}, {zbuffer, 1.f, Tempest::Preserve});

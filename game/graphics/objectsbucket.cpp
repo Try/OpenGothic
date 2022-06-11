@@ -10,6 +10,7 @@
 #include "utils/workers.h"
 #include "visualobjects.h"
 #include "shaders.h"
+#include "gothic.h"
 
 using namespace Tempest;
 
@@ -136,7 +137,7 @@ ObjectsBucket::ObjectsBucket(const Type type, const Material& mat, VisualObjects
 
   useSharedUbo        = (mat.frames.size()==0);
   textureInShadowPass = (mat.alpha==Material::AlphaTest);
-  useMeshlets         = (Resources::hasMeshShaders() && mat.alpha!=Material::Water && (type!=Type::Pfx && type!=Type::Morph));
+  useMeshlets         = (Gothic::inst().doMeshShading() && !mat.isTesselated() && (type!=Type::Pfx && type!=Type::Morph));
   usePositionsSsbo    = (type==Type::Static || type==Type::Movable || type==Type::Morph);
 
   pMain    = Shaders::inst().materialPipeline(mat,objType,Shaders::T_Forward);
@@ -169,7 +170,7 @@ bool ObjectsBucket::isCompatible(const Type t, const Material& mat,
     }
 
   if(type==Landscape) {
-    if(Resources::hasMeshShaders()) {
+    if(Gothic::inst().doMeshShading()) {
       return objType==type && mat.alpha==this->mat.alpha;
       }
     return mat==this->mat;
@@ -212,6 +213,12 @@ ObjectsBucket::Type ObjectsBucket::sanitizeType(const Type t, const Material& ma
 
 const Material& ObjectsBucket::material() const {
   return mat;
+  }
+
+const void* ObjectsBucket::meshPointer() const {
+  if(staticMesh!=nullptr)
+    return staticMesh;
+  return animMesh;
   }
 
 BufferHeap ObjectsBucket::ssboHeap() const {
@@ -402,10 +409,6 @@ void ObjectsBucket::setupUbo() {
 void ObjectsBucket::invalidateUbo(uint8_t fId) {
   if(useSharedUbo)
     uboSetSkeleton(uboShared,fId);
-  }
-
-void ObjectsBucket::resetVis() {
-  visSet.reset();
   }
 
 void ObjectsBucket::fillTlas(std::vector<RtInstance>& inst) {
@@ -924,7 +927,8 @@ void ObjectsBucketDyn::invalidateDyn() {
     }
   }
 
-void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const Tempest::RenderPipeline& shader,
+void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,
+                                  const Tempest::RenderPipeline& shader,
                                   SceneGlobals::VisCamera c, bool isHiZPass) {
   const size_t  indSz = visSet.count(c);
   const size_t* index = visSet.index(c);
