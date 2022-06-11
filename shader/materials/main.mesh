@@ -102,7 +102,9 @@ bool bboxTest(const uint objId) {
     const float R      = bounds[objId].w;
     const vec3  b[2]   = { objPos-vec3(R), objPos+vec3(R) };
 #endif
-    const vec3  pos    = vec3(b[(laneID&0x1)].x,b[(laneID&0x2)>>1].y,b[(laneID&0x4)>>2].z);
+    const vec3  pos    = vec3(b[bitfieldExtract(laneID,0,1)].x,
+                              b[bitfieldExtract(laneID,1,1)].y,
+                              b[bitfieldExtract(laneID,2,1)].z);
 
     vec4 trPos = vec4(pos,1.0);
 #if defined(LVL_OBJECT)
