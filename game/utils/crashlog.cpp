@@ -135,7 +135,7 @@ void CrashLog::tracebackLinux(std::ostream &out) {
     int skip = 4; // skip the signal handler frames
     bool loop = true;
     Dl_info info;
-    const char* frame;
+    const char* frame = "";
     for(int i = skip; i < framesNum && loop; i++) {
       if(dladdr(callstack[i], &info) && info.dli_sname) {
         int status = -1;
