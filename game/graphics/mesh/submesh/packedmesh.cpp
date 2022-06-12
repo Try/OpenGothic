@@ -667,7 +667,7 @@ void PackedMesh::postProcessP2(const ZenLoad::zCMesh& mesh, size_t matId, std::v
   if(meshlets.size()==0)
     return;
 
-  //const bool hasMeshShaders = Resources::hasMeshShaders();
+  //const bool hasMeshShaders = Gothic::inst().doMeshShading();
 
   SubMesh sub;
   sub.material  = mesh.getMaterials()[matId];
@@ -679,7 +679,6 @@ void PackedMesh::postProcessP2(const ZenLoad::zCMesh& mesh, size_t matId, std::v
     bool overflow = (indices.size()-sub.iboOffset+MaxInd > maxIboSliceLength);
     bool disjoint = !meshlet->hasIntersection(*prev) && (indices.size()-sub.iboOffset>4096*3);
     //bool disjoint = !hasMeshShaders && !meshlet->hasIntersection(*prev) && (indices.size()-sub.iboOffset>4096*3);
-    //bool disjoint = !hasMeshShaders && (meshlet->qDistance(*prev) > 4*clusterRadius*clusterRadius);
 
     if(prev!=nullptr && (disjoint || overflow)) {
       sub.iboLength = indices.size()-sub.iboOffset;

@@ -61,33 +61,22 @@ bool workgroupAll(bool b) {
   }
 #endif
 
+bool sphereTest(const uint objId, const uint meshletId) {
+  const uint laneID = gl_LocalInvocationID.x;
 #if (MESH_TYPE==T_LANDSCAPE)
-bool meshletTest(const uint meshletId) {
-  const uint laneID = gl_LocalInvocationID.x;
   const vec4 sphere = bounds[meshletId];
-
-  bool invisible = (sphere.w<0.f);
-  if(laneID<6 && dot(vec4(sphere.xyz,1.0), scene.frustrum[laneID]) <= -sphere.w) {
-    invisible = true;
-    }
-  invisible = workgroupAll(invisible);
-  return !invisible;
-  }
-#endif
-
-#if defined(LVL_OBJECT)
-bool boundSphereTest(const uint objId) {
-  const uint laneID = gl_LocalInvocationID.x;
+#elif (MESH_TYPE==T_PFX)
+  const vec4 sphere = vec4(0);
+#else
   const vec4 sphere = vec4(matrix[objId][3].xyz,material.bboxRadius);
-
+#endif
   bool invisible = (sphere.w<0.f);
   if(laneID<6 && dot(vec4(sphere.xyz,1.0), scene.frustrum[laneID]) <= -sphere.w) {
     invisible = true;
     }
-  invisible = workgroupAll(invisible);
+  invisible = workgroupAny(invisible);
   return !invisible;
   }
-#endif
 
 #if !defined(SHADOW_MAP) && (MESH_TYPE!=T_PFX)
 shared vec3 bboxProj[8];
@@ -173,20 +162,21 @@ void main() {
 
 #if defined(SHADOW_MAP)
 #  if (MESH_TYPE==T_LANDSCAPE)
-  const bool visible = meshletTest(meshletId);
+  const bool visible = sphereTest(objId,meshletId);
 #  elif (MESH_TYPE==T_PFX)
   const bool visible = true;
 #  else
-  const bool visible = boundSphereTest(objId);
+  const bool visible = sphereTest(objId,meshletId);
 #  endif
 #else
 #  if (MESH_TYPE==T_LANDSCAPE)
   const bool visible = bboxTest(meshletId);
-  //const bool visible = meshletTest(meshletId);
+  //const bool visible = sphereTest(objId,meshletId);
 #  elif (MESH_TYPE==T_PFX)
   const bool visible = true;
 #  else
   const bool visible = bboxTest(objId);
+  //const bool visible = sphereTest(objId,meshletId);
 #  endif
 #endif
 
