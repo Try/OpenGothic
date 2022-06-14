@@ -255,12 +255,6 @@ VisibilityGroup::Token VisibilityGroup::get(Group g) {
   }
 
 void VisibilityGroup::pass(const Frustrum f[]) {
-  float mX   = 2.f/float(f[SceneGlobals::V_Main].width );
-  float mY   = 2.f/float(f[SceneGlobals::V_Main].height);
-
-  float sh1X = 2.f/float(f[SceneGlobals::V_Shadow1].width );
-  float sh1Y = 2.f/float(f[SceneGlobals::V_Shadow1].height);
-
   if(updateThree) {
     buildTree();
     updateThree = false;
@@ -285,12 +279,17 @@ void VisibilityGroup::pass(const Frustrum f[]) {
 
   testStaticObjectsThreaded(f);
 
-  Workers::parallelFor(def.tokens,[&f,sh1X,sh1Y,mX,mY](Tok& t) {
-    testVisibility(t,f,mX,mY,sh1X,sh1Y);
+  Workers::parallelFor(def.tokens,[&f](Tok& t) {
+    testVisibility(t,f);
     });
   }
 
+void VisibilityGroup::resetIndex() {
+  updateSets = true;
+  }
+
 void VisibilityGroup::indexResetable() {
+  resetableSets.reserve(resetableSets.size());
   resetableSets.clear();
 
   TokList* lists[] = {&alwaysVis, &def, &stat};
@@ -308,6 +307,7 @@ void VisibilityGroup::indexResetable() {
         resetableSets.push_back(i.vSet);
       }
     }
+  std::sort(resetableSets.begin(),resetableSets.end());
   }
 
 void VisibilityGroup::testStaticObjectsThreaded(const Frustrum f[]) {
@@ -346,7 +346,7 @@ void VisibilityGroup::testStaticObjects(const Frustrum f[], SceneGlobals::VisCam
   testStaticObjects(f,c, node*2+1, begin+sz/2,end);
   }
 
-void VisibilityGroup::testVisibility(Tok& t, const Frustrum f[], float mX, float mY, float sh1X, float sh1Y) {
+void VisibilityGroup::testVisibility(Tok& t, const Frustrum f[]) {
   auto& b = t.bbox;
   if(t.vSet==nullptr)
     return;
@@ -361,13 +361,14 @@ void VisibilityGroup::testVisibility(Tok& t, const Frustrum f[], float mX, float
   visible[SceneGlobals::V_Shadow1] = f[SceneGlobals::V_Shadow1].testPoint(b.midTr, b.r, dist[SceneGlobals::V_Shadow1]);
   visible[SceneGlobals::V_Main]    = f[SceneGlobals::V_Main   ].testPoint(b.midTr, b.r, dist[SceneGlobals::V_Main   ]);
 
+  /*
   if(b.r<1.f*100.f) {
     static const float farDist = 50*100; // 50 meters
     if(visible[SceneGlobals::V_Shadow1] && dist[SceneGlobals::V_Shadow1]>b.r+farDist)
       visible[SceneGlobals::V_Shadow1] = subpixelMeshTest(t,f[SceneGlobals::V_Shadow1],sh1X,sh1Y);
     if(visible[SceneGlobals::V_Main] && dist[SceneGlobals::V_Main]>b.r+farDist)
       visible[SceneGlobals::V_Main] = subpixelMeshTest(t,f[SceneGlobals::V_Main],mX,mY);
-    }
+    }*/
 
   if(visible[SceneGlobals::V_Shadow0])
     t.vSet->push(t.id,SceneGlobals::V_Shadow0);

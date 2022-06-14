@@ -47,6 +47,7 @@ class VisibilityGroup {
 
     Token get(Group g);
     void  pass(const Frustrum f[]);
+    void  resetIndex();
 
   private:
     struct Tok {
@@ -100,7 +101,7 @@ class VisibilityGroup {
     void        testStaticObjectsThreaded(const Frustrum f[]);
     void        testStaticObjects(const Frustrum f[], SceneGlobals::VisCamera c,
                                   size_t node, TreeItm* begin, TreeItm* end);
-    static void testVisibility(Tok& t, const Frustrum f[], float mX, float mY, float sh1X, float sh1Y);
+    static void testVisibility(Tok& t, const Frustrum f[]);
     static bool subpixelMeshTest(const Tok& t, const Frustrum& f, float edgeX, float edgeY);
   };
 
