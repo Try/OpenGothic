@@ -239,18 +239,18 @@ void VisibilityGroup::buildTreeTasks(size_t node, size_t depth, TreeItm* begin, 
   }
 
 VisibilityGroup::Token VisibilityGroup::get(Group g) {
-  auto& gr = group(g);
+  auto&  gr = group(g);
   size_t id = gr.tokens.size();
   if(gr.freeList.size()>0) {
     id = gr.freeList.back();
     gr.freeList.pop_back();
     } else {
     gr.tokens.emplace_back();
+    updateSets = true;
     }
   if(&gr==&stat) {
     updateThree = true;
     }
-  updateSets = true;
   return Token(*this, gr,id);
   }
 
