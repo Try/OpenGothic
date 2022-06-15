@@ -265,7 +265,7 @@ void MoveAlgo::tickSwim(uint64_t dt) {
     return;
     }
 
-  if(ground+chest>=water || !validW) {
+  if(ground+chest>=water && !(!validW && isSwim())) {
     DynamicWorld::CollisionTest info;
     if(testSlide(pos+dp+Tempest::Vec3(0,fallThreshold,0),info))
       return;
