@@ -202,6 +202,7 @@ void VisualObjects::mkIndex() {
       break;
       }
     }
+  visGroup.buildVSetIndex(index);
   /*
   std::unordered_set<std::string> uniqTex;
   std::unordered_set<const void*> uniqMesh;

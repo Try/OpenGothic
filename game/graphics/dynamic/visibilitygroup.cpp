@@ -6,6 +6,8 @@
 #include "visibleset.h"
 #include "utils/workers.h"
 
+#include "graphics/objectsbucket.h"
+
 using namespace Tempest;
 
 VisibilityGroup::Token::Token(VisibilityGroup& owner, TokList& group, size_t id)
@@ -246,7 +248,6 @@ VisibilityGroup::Token VisibilityGroup::get(Group g) {
     gr.freeList.pop_back();
     } else {
     gr.tokens.emplace_back();
-    updateSets = true;
     }
   if(&gr==&stat) {
     updateThree = true;
@@ -258,11 +259,6 @@ void VisibilityGroup::pass(const Frustrum f[]) {
   if(updateThree) {
     buildTree();
     updateThree = false;
-    }
-
-  if(updateSets) {
-    indexResetable();
-    updateSets = false;
     }
 
   Workers::parallelFor(resetableSets,[](VisibleSet *v){
@@ -284,34 +280,18 @@ void VisibilityGroup::pass(const Frustrum f[]) {
     });
   }
 
-void VisibilityGroup::resetIndex() {
-  updateSets = true;
-  }
-
-void VisibilityGroup::indexResetable() {
-  resetableSets.reserve(resetableSets.size());
+void VisibilityGroup::buildVSetIndex(const std::vector<ObjectsBucket*>& index) {
+  resetableSets.reserve(index.size());
   resetableSets.clear();
 
-  TokList* lists[] = {&alwaysVis, &def, &stat};
-  for(auto& list:lists) {
-    for(auto& i:list->tokens) {
-      if(i.vSet==nullptr)
-        continue;
-      bool add = true;
-      for(auto& r:resetableSets)
-        if(r==i.vSet) {
-          add = false;
-          break;
-          }
-      if(add)
-        resetableSets.push_back(i.vSet);
-      }
+  for(auto i:index) {
+    auto& v = i->visibilitySet();
+    resetableSets.push_back(&v);
     }
   std::sort(resetableSets.begin(),resetableSets.end());
   }
 
 void VisibilityGroup::testStaticObjectsThreaded(const Frustrum f[]) {
-  ++lastUpdate;
   Workers::parallelTasks(treeTasks.size(),[&](uintptr_t taskId) {
     auto& t = treeTasks[taskId];
     for(uint8_t c=SceneGlobals::V_Shadow0; c<SceneGlobals::V_Count; ++c)
@@ -319,7 +299,7 @@ void VisibilityGroup::testStaticObjectsThreaded(const Frustrum f[]) {
     });
   }
 
-void VisibilityGroup::setVisible(SceneGlobals::VisCamera c, TreeItm* begin, TreeItm* end, uint64_t updateId) {
+void VisibilityGroup::setVisible(SceneGlobals::VisCamera c, TreeItm* begin, TreeItm* end) {
   for(auto i=begin; i!=end; ++i) {
     auto& v = *i->self->vSet;
     v.push(i->self->id, c);
@@ -334,7 +314,7 @@ void VisibilityGroup::testStaticObjects(const Frustrum f[], SceneGlobals::VisCam
   auto  visible = f[c].testBbox(n.bbox.bbox[0],n.bbox.bbox[1]);
 
   if(n.isLeaf || visible==Frustrum::T_Full) {
-    setVisible(SceneGlobals::VisCamera(c),begin,end,lastUpdate);
+    setVisible(SceneGlobals::VisCamera(c),begin,end);
     return;
     }
   if(visible==Frustrum::T_Invisible) {
