@@ -97,6 +97,7 @@ class ObjectsBucket {
     Type                      type()          const { return objType;        }
     InstancingType            hasInstancing() const { return instancingType; }
     const void*               meshPointer()   const;
+    VisibleSet&               visibilitySet() { return visSet; };
 
     size_t                    size()      const { return valSz;      }
     size_t                    alloc(const StaticMesh& mesh, size_t iboOffset, size_t iboLen,
