@@ -869,7 +869,7 @@ WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
     });
   if(begin==nullptr)
     return WayPath();
-  if(MoveAlgo::isClose(p,*begin))
+  if(MoveAlgo::isClose(p,*begin) && begin==&end)
     return WayPath();
 
   return wmatrix->wayTo(*begin,end);

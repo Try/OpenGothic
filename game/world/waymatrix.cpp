@@ -15,8 +15,10 @@ using namespace Tempest;
 WayMatrix::WayMatrix(World &world, const ZenLoad::zCWayNetData &dat)
   :world(world) {
   // scripting doc says 20m, but number seems to be incorrect
-  if(world.version().game==2)
-    distanceThreshold = 5.f*100.f;
+  if(world.version().game==2) {
+    // Vatras requires at least 8 meters
+    distanceThreshold = 10.f*100.f;
+    }
 
   wayPoints.resize(dat.waypoints.size());
   for(size_t i=0;i<wayPoints.size();++i){
