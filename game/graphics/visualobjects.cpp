@@ -93,7 +93,7 @@ void VisualObjects::preFrameUpdate(uint8_t fId) {
   recycledId = fId;
   recycled[fId].clear();
 
-  mkTlas(fId);
+  //mkTlas(fId);
   mkIndex();
   for(auto& c:buckets)
     c->preFrameUpdate(fId);
@@ -231,26 +231,36 @@ void VisualObjects::commitUbo(uint8_t fId) {
     c->invalidateUbo(fId);
   }
 
-void VisualObjects::mkTlas(uint8_t fId) {
-  auto& device = Resources::device();
+void VisualObjects::updateTlas(Bindless& out, uint8_t fId) {
   if(!needtoInvalidateTlas || !globals.tlasEnabled)
     return;
   needtoInvalidateTlas = false;
 
   if(!Gothic::inst().doRayQuery())
     return;
-  device.waitIdle();
 
   std::vector<Tempest::RtInstance> inst;
-  for(auto& c:buckets)
-    c->fillTlas(inst);
+  out.tex.clear();
+  out.vbo.clear();
+  out.ibo.clear();
   if(landBlas!=nullptr) {
     Tempest::RtInstance ix;
     ix.mat  = Matrix4x4::mkIdentity();
     ix.blas = landBlas;
     inst.push_back(ix);
+    out.tex.push_back(&Resources::fallbackBlack());
+    out.vbo.push_back(nullptr);
+    out.ibo.push_back(nullptr);
     }
+  for(auto& c:buckets)
+    c->fillTlas(inst,out);
+
+  // FIXME
+  out.vbo[0] = out.vbo.back();
+  out.ibo[0] = out.ibo.back();
+
+  auto& device = Resources::device();
+  device.waitIdle();
   tlas = device.tlas(inst);
   onTlasChanged(&tlas);
   }
-

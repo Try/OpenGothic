@@ -1,6 +1,10 @@
 #version 450
 
+#if VULKAN >= 110
+#define USE_SUBGROUPS 1
+#else
 #define USE_SUBGROUPS 0
+#endif
 
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : enable

@@ -16,6 +16,7 @@
 #include "graphics/dynamic/visibleset.h"
 
 class Pose;
+class Bindless;
 class VisualObjects;
 
 class ObjectsBucket {
@@ -27,8 +28,7 @@ class ObjectsBucket {
 
   public:
     enum {
-      CAPACITY          = VisibleSet::CAPACITY,
-      RELEVANT_HIZ_MIPS = 5,
+      CAPACITY = VisibleSet::CAPACITY,
       };
 
     enum Type : uint8_t {
@@ -112,8 +112,7 @@ class ObjectsBucket {
 
     virtual void              setupUbo();
     virtual void              invalidateUbo(uint8_t fId);
-
-    void                      fillTlas(std::vector<Tempest::RtInstance>& inst);
+    virtual void              fillTlas(std::vector<Tempest::RtInstance>& inst, Bindless& out);
 
     virtual void              preFrameUpdate(uint8_t fId);
     virtual void              drawHiZ    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
@@ -283,6 +282,8 @@ class ObjectsBucketDyn : public ObjectsBucket {
 
     void    setupUbo() override;
     void    invalidateUbo(uint8_t fId) override;
+    void    fillTlas(std::vector<Tempest::RtInstance>& inst, Bindless& out) override;
+
     void    invalidateDyn();
 
     void    drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,

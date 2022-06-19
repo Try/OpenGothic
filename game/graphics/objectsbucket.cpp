@@ -171,7 +171,7 @@ bool ObjectsBucket::isCompatible(const Type t, const Material& mat,
 
   if(type==Landscape) {
     if(Gothic::inst().doMeshShading()) {
-      return objType==type && mat.alpha==this->mat.alpha;
+      return objType==type && mat.alpha==this->mat.alpha && desc==instanceDesc;
       }
     return mat==this->mat;
     }
@@ -411,15 +411,24 @@ void ObjectsBucket::invalidateUbo(uint8_t fId) {
     uboSetSkeleton(uboShared,fId);
   }
 
-void ObjectsBucket::fillTlas(std::vector<RtInstance>& inst) {
+void ObjectsBucket::fillTlas(std::vector<RtInstance>& inst, Bindless& out) {
+  bool desc = false;
   for(size_t i=0; i<CAPACITY; ++i) {
     auto& v = val[i];
     if(!v.isValid || v.blas==nullptr)
       continue;
     RtInstance ix;
     ix.mat  = v.pos;
+    ix.id   = uint32_t(out.tex.size());
     ix.blas = v.blas;
     inst.push_back(ix);
+    desc = true;
+    }
+
+  if(desc) {
+    out.tex.push_back(mat.tex);
+    out.vbo.push_back(&bufferCast(staticMesh->vbo));
+    out.ibo.push_back(&bufferCast(staticMesh->ibo));
     }
   }
 
@@ -480,7 +489,7 @@ size_t ObjectsBucket::alloc(const StaticMesh& mesh, size_t iboOffset, size_t ibo
   Object* v = &implAlloc(bounds,mat);
   v->iboOffset = iboOffset;
   v->iboLength = iboLen;
-  if(!mat.isGhost && mat.alpha==Material::Solid &&
+  if(!mat.isGhost && (mat.alpha==Material::Solid || mat.alpha==Material::AlphaTest) &&
      (/*objType==Type::Landscape ||*/ objType==Type::Static)) {
     for(auto& i:mesh.sub)
       if(i.iboOffset==iboOffset && i.iboLength==iboLen && !i.blas.isEmpty()) {
@@ -505,8 +514,10 @@ size_t ObjectsBucket::alloc(const AnimMesh& mesh, size_t iboOffset, size_t iboLe
 
 size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<ObjectsBucket::Vertex>* vbo[], const Bounds& bounds) {
   Object* v = &implAlloc(bounds,mat);
-  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
+  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
+    assert(vbo[i]);
     v->vboM[i] = vbo[i];
+    }
   v->visibility.setGroup(VisibilityGroup::G_AlwaysVis);
   postAlloc(*v,size_t(std::distance(val,v)));
   return size_t(std::distance(val,v));
@@ -916,6 +927,23 @@ void ObjectsBucketDyn::invalidateUbo(uint8_t fId) {
 
   for(auto& v:uboObj)
     uboSetSkeleton(v,fId);
+  }
+
+void ObjectsBucketDyn::fillTlas(std::vector<Tempest::RtInstance>& inst, Bindless& out) {
+  for(size_t i=0; i<CAPACITY; ++i) {
+    auto& v = val[i];
+    if(!v.isValid || v.blas==nullptr)
+      continue;
+    RtInstance ix;
+    ix.mat  = v.pos;
+    ix.id   = uint32_t(out.tex.size());
+    ix.blas = v.blas;
+    inst.push_back(ix);
+
+    out.tex.push_back(mat[i].tex);
+    out.vbo.push_back(&bufferCast(staticMesh->vbo));
+    out.ibo.push_back(&bufferCast(staticMesh->ibo));
+    }
   }
 
 void ObjectsBucketDyn::invalidateDyn() {

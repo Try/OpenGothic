@@ -17,7 +17,7 @@ WorldView::WorldView(const World& world, const PackedMesh& wmesh)
   sky.setWorld(owner,wmesh.bbox());
   pfxGroup.resetTicks();
   if(Gothic::inst().doRayQuery())
-    tlasLand = Resources::device().tlas({{Matrix4x4::mkIdentity(),&land.rt.blas}});
+    tlasLand = Resources::device().tlas({{Matrix4x4::mkIdentity(),0,&land.rt.blas}});
   visuals.setLandscapeBlas(&land.rt.blas);
   visuals.onTlasChanged.bind(this,&WorldView::setupTlas);
   }
@@ -50,6 +50,8 @@ void WorldView::preFrameUpdate(const Matrix4x4& view, const Matrix4x4& proj,
                                float zNear, float zFar,
                                const Tempest::Matrix4x4* shadow,
                                uint64_t tickCount, uint8_t fId) {
+  visuals.updateTlas(sGlobal.bindless,fId);
+
   updateLight();
   sGlobal.setViewProject(view,proj,zNear,zFar,shadow);
 

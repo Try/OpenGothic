@@ -5,6 +5,7 @@
 #include "objectsbucket.h"
 
 class SceneGlobals;
+class Bindless;
 class AnimMesh;
 class Sky;
 
@@ -33,12 +34,14 @@ class VisualObjects final {
     void visibilityPass(const Frustrum fr[]);
     void draw          (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
     void drawGBuffer   (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
-    void drawShadow    (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer=0);
+    void drawShadow    (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer);
     void drawHiZ       (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
 
     void resetIndex();
     void resetTlas();
     void recycle(Tempest::DescriptorSet&& del);
+
+    void updateTlas(Bindless& out, uint8_t fId);
 
     void setLandscapeBlas(const Tempest::AccelerationStructure* blas);
     Tempest::Signal<void(const Tempest::AccelerationStructure* tlas)> onTlasChanged;
@@ -49,7 +52,6 @@ class VisualObjects final {
 
     void                            mkIndex();
     void                            commitUbo(uint8_t fId);
-    void                            mkTlas(uint8_t fId);
 
     const SceneGlobals&             globals;
     VisibilityGroup                 visGroup;

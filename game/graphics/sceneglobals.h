@@ -6,6 +6,7 @@
 
 #include "lightsource.h"
 #include "lightgroup.h"
+#include "bindless.h"
 
 class SceneGlobals final {
   public:
@@ -71,6 +72,7 @@ class SceneGlobals final {
     uint64_t                          windPeriod = 6000;
 
     bool                              tlasEnabled = true;
+    Bindless                          bindless;
 
   private:
     void                              initSettings();

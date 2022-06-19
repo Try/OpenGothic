@@ -12,6 +12,7 @@
 #include "lightsource.h"
 #include "sceneglobals.h"
 #include "visualobjects.h"
+#include "bindless.h"
 
 class World;
 class ParticleFx;
@@ -64,7 +65,6 @@ class WorldView {
 
   private:
     const World&  owner;
-
     SceneGlobals  sGlobal;
     Sky           sky;
     VisualObjects visuals;
