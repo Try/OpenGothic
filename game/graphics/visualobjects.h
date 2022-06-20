@@ -18,7 +18,6 @@ class VisualObjects final {
                             size_t iboOffset, size_t iboLength, bool staticDraw);
     ObjectsBucket::Item get(const StaticMesh& mesh, const Material& mat,
                             size_t iboOff, size_t iboLen,
-                            const Tempest::AccelerationStructure* blas,
                             const Tempest::StorageBuffer& desc,
                             const Bounds& bbox, ObjectsBucket::Type bucket);
     ObjectsBucket::Item get(const AnimMesh& mesh, const Material& mat,

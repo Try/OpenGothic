@@ -406,6 +406,7 @@ void LightGroup::setupUbo() {
           u.set(6,scene.bindless.tex);
           u.set(7,scene.bindless.vbo);
           u.set(8,scene.bindless.ibo);
+          u.set(9,scene.bindless.iboOffset);
           }
         // Workaround for https://github.com/KhronosGroup/Vulkan-ValidationLayers/pull/4219
         u.set(5,*scene.tlas);

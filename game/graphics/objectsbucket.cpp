@@ -52,13 +52,13 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
   switch(owner->objType) {
     case Landscape:
     case LandscapeShadow: {
-      idNext = bucket.alloc(*owner->staticMesh,v.iboOffset,v.iboLength,v.blas,v.visibility.bounds(),owner->mat);
+      idNext = bucket.alloc(*owner->staticMesh,v.iboOffset,v.iboLength,v.visibility.bounds(),owner->mat);
       break;
       }
     case Static:
     case Movable:
     case Morph: {
-      idNext = bucket.alloc(*owner->staticMesh,v.iboOffset,v.iboLength,v.blas,v.visibility.bounds(),owner->mat);
+      idNext = bucket.alloc(*owner->staticMesh,v.iboOffset,v.iboLength,v.visibility.bounds(),owner->mat);
       break;
       }
     case Pfx: {
@@ -411,24 +411,27 @@ void ObjectsBucket::invalidateUbo(uint8_t fId) {
     uboSetSkeleton(uboShared,fId);
   }
 
-void ObjectsBucket::fillTlas(std::vector<RtInstance>& inst, Bindless& out) {
-  bool desc = false;
+void ObjectsBucket::fillTlas(std::vector<RtInstance>& inst, std::vector<uint32_t>& iboOff, Bindless& out) {
   for(size_t i=0; i<CAPACITY; ++i) {
     auto& v = val[i];
     if(!v.isValid || v.blas==nullptr)
       continue;
+
+    if(mat.tex!=out.tex.back() ||
+       &bufferCast(staticMesh->vbo)!=out.vbo.back() ||
+       &bufferCast(staticMesh->ibo)!=out.ibo.back() ||
+       uint32_t(v.iboOffset/3)!=iboOff.back()) {
+      out.tex.push_back(mat.tex);
+      out.vbo.push_back(&bufferCast(staticMesh->vbo));
+      out.ibo.push_back(&bufferCast(staticMesh->ibo));
+      iboOff.push_back(uint32_t(v.iboOffset/3));
+      }
+
     RtInstance ix;
     ix.mat  = v.pos;
-    ix.id   = uint32_t(out.tex.size());
+    ix.id   = uint32_t(out.tex.size()-1);
     ix.blas = v.blas;
     inst.push_back(ix);
-    desc = true;
-    }
-
-  if(desc) {
-    out.tex.push_back(mat.tex);
-    out.vbo.push_back(&bufferCast(staticMesh->vbo));
-    out.ibo.push_back(&bufferCast(staticMesh->ibo));
     }
   }
 
@@ -484,13 +487,23 @@ void ObjectsBucket::preFrameUpdate(uint8_t fId) {
   }
 
 size_t ObjectsBucket::alloc(const StaticMesh& mesh, size_t iboOffset, size_t iboLen,
-                            const Tempest::AccelerationStructure* blas,
                             const Bounds& bounds, const Material& mat) {
   Object* v = &implAlloc(bounds,mat);
   v->iboOffset = iboOffset;
   v->iboLength = iboLen;
-  if(!mat.isGhost && (mat.alpha==Material::Solid || mat.alpha==Material::AlphaTest) &&
-     (/*objType==Type::Landscape ||*/ objType==Type::Static)) {
+
+  bool useBlas = true;
+  if(mat.alpha==Material::Solid && objType==Type::Landscape)
+    useBlas = false; // handles separetly
+
+  if(objType!=Type::Landscape && objType!=Type::Static)
+    useBlas = false; // not supported
+  if(mat.isGhost)
+    useBlas = false;
+  if(mat.alpha!=Material::Solid && mat.alpha!=Material::AlphaTest && mat.alpha!=Material::Transparent)
+    useBlas = false;
+
+  if(useBlas) {
     for(auto& i:mesh.sub)
       if(i.iboOffset==iboOffset && i.iboLength==iboLen && !i.blas.isEmpty()) {
         v->blas = &i.blas;
@@ -929,20 +942,27 @@ void ObjectsBucketDyn::invalidateUbo(uint8_t fId) {
     uboSetSkeleton(v,fId);
   }
 
-void ObjectsBucketDyn::fillTlas(std::vector<Tempest::RtInstance>& inst, Bindless& out) {
+void ObjectsBucketDyn::fillTlas(std::vector<Tempest::RtInstance>& inst, std::vector<uint32_t>& iboOff, Bindless& out) {
   for(size_t i=0; i<CAPACITY; ++i) {
     auto& v = val[i];
     if(!v.isValid || v.blas==nullptr)
       continue;
+
+    if(mat[i].tex!=out.tex.back() ||
+       &bufferCast(staticMesh->vbo)!=out.vbo.back() ||
+       &bufferCast(staticMesh->ibo)!=out.ibo.back() ||
+       uint32_t(v.iboOffset/3)!=iboOff.back()) {
+      out.tex.push_back(mat[i].tex);
+      out.vbo.push_back(&bufferCast(staticMesh->vbo));
+      out.ibo.push_back(&bufferCast(staticMesh->ibo));
+      iboOff.push_back(uint32_t(v.iboOffset/3));
+      }
+
     RtInstance ix;
     ix.mat  = v.pos;
-    ix.id   = uint32_t(out.tex.size());
+    ix.id   = uint32_t(out.tex.size()-1);
     ix.blas = v.blas;
     inst.push_back(ix);
-
-    out.tex.push_back(mat[i].tex);
-    out.vbo.push_back(&bufferCast(staticMesh->vbo));
-    out.ibo.push_back(&bufferCast(staticMesh->ibo));
     }
   }
 

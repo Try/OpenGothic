@@ -100,8 +100,7 @@ class ObjectsBucket {
     VisibleSet&               visibilitySet() { return visSet; };
 
     size_t                    size()      const { return valSz;      }
-    size_t                    alloc(const StaticMesh& mesh, size_t iboOffset, size_t iboLen,
-                                    const Tempest::AccelerationStructure* blas, const Bounds& bounds,
+    size_t                    alloc(const StaticMesh& mesh, size_t iboOffset, size_t iboLen, const Bounds& bounds,
                                     const Material& mat);
     size_t                    alloc(const AnimMesh& mesh, size_t iboOffset, size_t iboLen,
                                     const MatrixStorage::Id& anim);
@@ -112,7 +111,7 @@ class ObjectsBucket {
 
     virtual void              setupUbo();
     virtual void              invalidateUbo(uint8_t fId);
-    virtual void              fillTlas(std::vector<Tempest::RtInstance>& inst, Bindless& out);
+    virtual void              fillTlas(std::vector<Tempest::RtInstance>& inst, std::vector<uint32_t>& iboOff, Bindless& out);
 
     virtual void              preFrameUpdate(uint8_t fId);
     virtual void              drawHiZ    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
@@ -282,7 +281,7 @@ class ObjectsBucketDyn : public ObjectsBucket {
 
     void    setupUbo() override;
     void    invalidateUbo(uint8_t fId) override;
-    void    fillTlas(std::vector<Tempest::RtInstance>& inst, Bindless& out) override;
+    void    fillTlas(std::vector<Tempest::RtInstance>& inst, std::vector<uint32_t>& iboOff, Bindless& out) override;
 
     void    invalidateDyn();
 

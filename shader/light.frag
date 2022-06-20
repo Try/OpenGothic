@@ -27,8 +27,9 @@ layout(binding  = 5) uniform accelerationStructureEXT topLevelAS;
 
 #if defined(RAY_QUERY_AT)
 layout(binding  = 6) uniform sampler2D textures[];
-layout(binding  = 7, std430) readonly buffer Vbo { float vert[];  } vbo[];
-layout(binding  = 8, std430) readonly buffer Ibo { uint  index[]; } ibo[];
+layout(binding  = 7, std430) readonly buffer Vbo { float vert[];   } vbo[];
+layout(binding  = 8, std430) readonly buffer Ibo { uint  index[];  } ibo[];
+layout(binding  = 9, std430) readonly buffer Off { uint  offset[]; } iboOff;
 #endif
 
 layout(location = 0) in vec4 scrPosition;
@@ -51,13 +52,15 @@ uvec3 pullTrinagleIds(uint id, uint primitiveID) {
   }
 
 bool alphaTest(in rayQueryEXT rayQuery, uint id) {
-  const bool commited = false;
+  const bool commited   = false;
+
   if(id==0)
     return true; // landscape
   //if(id!=62)
   //  return true; // debug
 
-  const int   primitiveID = rayQueryGetIntersectionPrimitiveIndexEXT(rayQuery, commited);
+  const uint  primOffset  = iboOff.offset[id];
+  const uint  primitiveID = rayQueryGetIntersectionPrimitiveIndexEXT(rayQuery, commited) + primOffset;
   const uvec3 index       = pullTrinagleIds(id,primitiveID);
 
   const vec2  uv0         = pullTexcoord(id,index.x);

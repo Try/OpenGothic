@@ -36,13 +36,12 @@ ObjectsBucket::Item VisualObjects::get(const StaticMesh& mesh, const Material& m
   const ObjectsBucket::Type type = (staticDraw ? ObjectsBucket::Static : ObjectsBucket::Movable);
 
   auto&        bucket = getBucket(type,mat,&mesh,nullptr,nullptr);
-  const size_t id     = bucket.alloc(mesh,iboOffset,iboLength,nullptr,mesh.bbox,mat);
+  const size_t id     = bucket.alloc(mesh,iboOffset,iboLength,mesh.bbox,mat);
   return ObjectsBucket::Item(bucket,id);
   }
 
 ObjectsBucket::Item VisualObjects::get(const StaticMesh& mesh, const Material& mat,
                                        size_t iboOff, size_t iboLen,
-                                       const Tempest::AccelerationStructure* blas,
                                        const Tempest::StorageBuffer& desc,
                                        const Bounds& bbox, ObjectsBucket::Type type) {
   if(mat.tex==nullptr) {
@@ -50,7 +49,7 @@ ObjectsBucket::Item VisualObjects::get(const StaticMesh& mesh, const Material& m
     return ObjectsBucket::Item();
     }
   auto&        bucket = getBucket(type,mat,&mesh,nullptr,&desc);
-  const size_t id     = bucket.alloc(mesh,iboOff,iboLen,blas,bbox,mat);
+  const size_t id     = bucket.alloc(mesh,iboOff,iboLen,bbox,mat);
   return ObjectsBucket::Item(bucket,id);
   }
 
@@ -240,6 +239,7 @@ void VisualObjects::updateTlas(Bindless& out, uint8_t fId) {
     return;
 
   std::vector<Tempest::RtInstance> inst;
+  std::vector<uint32_t>            iboOff;
   out.tex.clear();
   out.vbo.clear();
   out.ibo.clear();
@@ -251,16 +251,16 @@ void VisualObjects::updateTlas(Bindless& out, uint8_t fId) {
     out.tex.push_back(&Resources::fallbackBlack());
     out.vbo.push_back(nullptr);
     out.ibo.push_back(nullptr);
+    iboOff.push_back(0);
     }
   for(auto& c:buckets)
-    c->fillTlas(inst,out);
-
-  // FIXME
-  out.vbo[0] = out.vbo.back();
-  out.ibo[0] = out.ibo.back();
+    c->fillTlas(inst,iboOff,out);
 
   auto& device = Resources::device();
   device.waitIdle();
+
+  out.iboOffset = device.ssbo(iboOff);
   tlas = device.tlas(inst);
+
   onTlasChanged(&tlas);
   }
