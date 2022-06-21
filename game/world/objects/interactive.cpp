@@ -157,7 +157,7 @@ void Interactive::resetPositionToTA(int32_t state) {
   }
 
 void Interactive::setVisual(ZenLoad::zCVobData& vob) {
-  visual.setVisual(vob,world,false);
+  visual.setVisual(vob,world,true);
   visual.setObjMatrix(transform());
   visual.setInteractive(this);
   animChanged = true;
@@ -673,7 +673,7 @@ bool Interactive::attach(Npc &npc) {
       return true;
 
   if(!isAvailable()) {
-    if(npc.isPlayer())
+    if(npc.isPlayer() && !attPos.empty())
       world.script().printMobAnotherIsUsing(npc);
     return false;
     }
@@ -682,7 +682,7 @@ bool Interactive::attach(Npc &npc) {
   if(p!=nullptr)
     return attach(npc,*p);
 
-  if(npc.isPlayer() && attPos.size()>0)
+  if(npc.isPlayer() && !attPos.empty())
     world.script().printMobAnotherIsUsing(npc);
   return false;
   }
