@@ -21,7 +21,7 @@ environment:
 
 install:
 - ps: >-
-    $VK_SDK = '1.2.198.1'
+    $VK_SDK = '1.3.211.0'
 
     if($IsLinux) {
       sudo apt-get update
