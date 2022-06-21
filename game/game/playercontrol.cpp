@@ -472,8 +472,8 @@ bool PlayerControl::tickMove(uint64_t dt) {
   implMove(dt);
 
   float runAngle = pl->runAngle();
-  if(runAngle!=0.f || std::fabs(runAngleDest)>5.f) {
-    const float speed = 30.f;
+  if(runAngle!=0.f || std::fabs(runAngleDest)>0.01f) {
+    const float speed = 35.f;
     if(runAngle<runAngleDest) {
       runAngle+=speed*dtF;
       if(runAngle>runAngleDest)
@@ -870,20 +870,15 @@ void PlayerControl::assignRunAngle(Npc& pl, float rotation, uint64_t dt) {
   float dangle = (rotation-angle)/dtF;
   auto& wrld   = pl.world();
 
-  if(std::fabs(dangle)<5.f) {
+  if(std::fabs(dangle)<1.f || pl.walkMode()!=WalkBit::WM_Run) {
     if(runAngleSmooth<wrld.tickCount())
       runAngleDest = 0;
     return;
     }
 
-  if(dangle>0)
-    dangle-=5.f;
-  if(dangle<0)
-    dangle+=5.f;
+  dangle *= 0.9f;
 
-  dangle *= 0.25f;
-
-  float maxV = 12.5;
+  float maxV = 15.0f;
   if(angle<rotation)
     runAngleDest =  std::min( dangle,maxV);
   if(angle>rotation)
