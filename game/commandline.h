@@ -23,7 +23,6 @@ class CommandLine {
     std::u16string      nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const;
 
     bool                isDebugMode()   const { return isDebug;  }
-    bool                isRamboMode()   const { return isRambo;  }
     bool                isWindowMode()  const { return isWindow; }
     bool                isRayQuery()    const { return isRQuery; }
     bool                isMeshShading() const { return isMeshSh; }
@@ -44,8 +43,7 @@ class CommandLine {
     bool                noMenu   = false;
     bool                isWindow = false;
     bool                isDebug  = false;
-    bool                isRambo  = false;
-    bool                isRQuery = false;
+    bool                isRQuery = true;
     bool                isMeshSh = true;
     bool                forceG1  = false;
     bool                forceG2  = false;

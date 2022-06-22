@@ -56,9 +56,6 @@ CommandLine::CommandLine(int argc, const char** argv) {
     else if(arg=="-nofrate") {
       noFrate  = true;
       }
-    else if(arg=="-rambo") {
-      isRambo  = true;
-      }
     else if(arg=="-g1") {
       forceG1 = true;
       }
@@ -72,7 +69,8 @@ CommandLine::CommandLine(int argc, const char** argv) {
       isDebug  = true;
       }
     else if(arg=="-rt") {
-      isRQuery = true;
+      if(i<argc)
+        isRQuery = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
       }
     else if(arg=="-ms") {
       ++i;
