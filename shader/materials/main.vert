@@ -18,7 +18,7 @@ layout(location = DEBUG_DRAW_LOC) out flat uint debugId;
 
 void main() {
 #if defined(LVL_OBJECT)
-  uint objId = push.baseInstance + gl_InstanceIndex;
+  uint objId = gl_InstanceIndex;
 #else
   uint objId = 0;
 #endif

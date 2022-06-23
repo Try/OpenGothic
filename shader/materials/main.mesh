@@ -155,7 +155,7 @@ bool bboxTest(const uint objId) {
 
 void main() {
 #if defined(LVL_OBJECT)
-  const uint objId     = gl_WorkGroupID.x/push.meshletCount + push.baseInstance;
+  const uint objId     = gl_WorkGroupID.x/push.meshletCount;
   const uint meshletId = gl_WorkGroupID.x%push.meshletCount + push.meshletBase;
 #else
   const uint objId     = gl_WorkGroupID.x;
