@@ -27,6 +27,7 @@ class MoveTrigger : public AbstractTrigger {
     void advanceAnim (uint32_t f0, uint32_t f1, float alpha);
 
     float pathLength() const;
+    void invalidateView();
 
     enum State : int32_t {
       Idle         = 0,

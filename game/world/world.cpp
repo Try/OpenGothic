@@ -259,7 +259,7 @@ MeshObjects::Mesh World::addStaticView(const ProtoMesh* visual, bool staticDraw)
   return view()->addStaticView(visual,staticDraw);
   }
 
-MeshObjects::Mesh World::addStaticView(const char* visual) {
+MeshObjects::Mesh World::addStaticView(std::string_view visual) {
   return view()->addStaticView(visual);
   }
 

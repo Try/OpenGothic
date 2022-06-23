@@ -101,7 +101,7 @@ class World final {
     MeshObjects::Mesh    addView(const ProtoMesh* visual);
     MeshObjects::Mesh    addAtachView (const ProtoMesh::Attach& visual, const int32_t version);
     MeshObjects::Mesh    addStaticView(const ProtoMesh* visual, bool staticDraw);
-    MeshObjects::Mesh    addStaticView(const char* visual);
+    MeshObjects::Mesh    addStaticView(std::string_view visual);
     MeshObjects::Mesh    addDecalView (const ZenLoad::zCVobData& vob);
 
     void                 updateAnimation(uint64_t dt);

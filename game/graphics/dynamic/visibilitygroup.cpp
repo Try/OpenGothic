@@ -33,6 +33,8 @@ VisibilityGroup::Token::~Token() {
   auto& t = group->tokens[id];
   t.vSet = nullptr;
   group->freeList.push_back(id);
+  if(group==&owner->stat)
+    owner->updateThree = true;
   }
 
 void VisibilityGroup::Token::setObject(VisibleSet* b, size_t i) {

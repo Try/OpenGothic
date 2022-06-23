@@ -11,7 +11,6 @@ using namespace Tempest;
 MoveTrigger::MoveTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& d, Flags flags)
   :AbstractTrigger(parent,world,std::move(d),flags) {
   auto& mover = data.zCMover;
-  setView(world.addView(data.visual));
   if(data.cdDyn || data.cdStatic) {
     auto mesh = Resources::loadMesh(data.visual);
     if(mesh!=nullptr)
@@ -43,6 +42,7 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& d, Flag
       }
     }
 
+  invalidateView();
   MoveTrigger::moveEvent();
   }
 
@@ -54,8 +54,10 @@ void MoveTrigger::save(Serialize& fout) const {
 void MoveTrigger::load(Serialize& fin) {
   AbstractTrigger::load(fin);
   fin.read(pos0,reinterpret_cast<uint8_t&>(state),sAnim,frame);
-  if(state!=Idle)
+  if(state!=Idle) {
+    invalidateView();
     enableTicks();
+    }
   }
 
 bool MoveTrigger::hasVolume() const {
@@ -85,6 +87,16 @@ float MoveTrigger::pathLength() const {
   for(size_t i=0; i<keyframes.size(); ++i)
     len += keyframes[i].position;
   return len;
+  }
+
+void MoveTrigger::invalidateView() {
+  if(isDynamic() && !view.isEmpty())
+    return;
+
+  if(state!=Idle || isDynamic())
+    setView(world.addView(data.visual)); else
+    setView(world.addStaticView(data.visual));
+  view.setObjMatrix(transform());
   }
 
 void MoveTrigger::moveEvent() {
@@ -146,6 +158,8 @@ void MoveTrigger::processTrigger(const TriggerEvent& e, bool onTrigger) {
 
   sAnim = world.tickCount();
   enableTicks();
+  // override view
+  invalidateView();
   emitSound(snd);
   }
 
@@ -233,6 +247,7 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
     auto prev = state;
     state = Idle;
     frame = f0;
+    invalidateView();
     disableTicks();
 
     if(data.zCTrigger.triggerTarget.size()>0) {
@@ -248,6 +263,8 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
     if(data.zCMover.moverBehavior==ZenLoad::MoverBehavior::STATE_OPEN_TIMED && prev==Open) {
       state = OpenTimed;
       sAnim = world.tickCount();
+      // override view
+      invalidateView();
       enableTicks();
       }
     emitSound(snd);
