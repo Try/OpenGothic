@@ -1233,10 +1233,10 @@ bool Npc::implPointAt(const Tempest::Vec3& to) {
 bool Npc::implLookAt(uint64_t dt) {
   if(currentLookAt==nullptr)
     return false;
-  auto dx = currentLookAt->x-x;
-  auto dy = currentLookAt->y-y;
-  auto dz = currentLookAt->z-z;
-  return implLookAt(dx,dy,dz,dt);
+  auto selfHead  = visual.mapHeadBone();
+  auto otherHead = currentLookAt->visual.mapHeadBone();
+  auto dvec = otherHead - selfHead;
+  return implLookAt(dvec.x,dvec.y,dvec.z,dt);
   }
 
 bool Npc::implLookAt(float dx, float dy, float dz, uint64_t dt) {

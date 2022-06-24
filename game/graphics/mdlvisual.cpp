@@ -521,6 +521,10 @@ Vec3 MdlVisual::mapWeaponBone() const {
   return {pos.at(3,0), pos.at(3,1), pos.at(3,2)};
   }
 
+Vec3 MdlVisual::mapHeadBone() const {
+  return mapBone(skeleton->BIP01_HEAD);
+  }
+
 void MdlVisual::stopAnim(Npc& npc, std::string_view anim) {
   skInst->stopAnim(anim);
   if(!skInst->hasAnim())

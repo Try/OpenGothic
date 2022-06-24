@@ -78,6 +78,7 @@ class MdlVisual final {
     bool                           processEvents(World& world, uint64_t &barrier, Animation::EvCount &ev);
     auto                           mapBone(const size_t boneId) const -> Tempest::Vec3;
     auto                           mapWeaponBone() const -> Tempest::Vec3;
+    auto                           mapHeadBone() const -> Tempest::Vec3;
 
     bool                           isStanding() const;
 
