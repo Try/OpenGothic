@@ -95,16 +95,6 @@ Varyings processVertex(uint objId, uint vboOffset) {
   uv += material.texAnim;
 #endif
 
-  // Normals
-#if (MESH_TYPE==T_SKINING)
-  normal = (matrix[objId]*vec4(normal,  0.0)).xyz;
-  normal = vec3(normal.z,normal.y,-normal.x);
-#elif (MESH_TYPE==T_OBJ || MESH_TYPE==T_MORPH)
-  normal = (matrix[objId]*vec4(normal,  0.0)).xyz;
-#else
-  // normal = normal;
-#endif
-
   // Position offsets
   vec3 dpos   = vec3(0);
 #if (MESH_TYPE==T_MORPH)
@@ -113,6 +103,16 @@ Varyings processVertex(uint objId, uint vboOffset) {
 #endif
 #if defined(LVL_OBJECT)
   dpos += normal*push.fatness;
+#endif
+
+  // Normals
+#if (MESH_TYPE==T_SKINING)
+  normal = (matrix[objId]*vec4(normal,  0.0)).xyz;
+  normal = vec3(normal.z,normal.y,-normal.x);
+#elif (MESH_TYPE==T_OBJ || MESH_TYPE==T_MORPH)
+  normal = (matrix[objId]*vec4(normal,  0.0)).xyz;
+#else
+  // normal = normal;
 #endif
 
   // Position
