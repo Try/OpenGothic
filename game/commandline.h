@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Tempest/Platform>
 #include <Tempest/Dir>
 
 #include <cstdint>
@@ -43,7 +44,11 @@ class CommandLine {
     bool                noMenu   = false;
     bool                isWindow = false;
     bool                isDebug  = false;
+#if defined(__OSX__)
+    bool                isRQuery = false;
+#else
     bool                isRQuery = true;
+#endif
     bool                isMeshSh = true;
     bool                forceG1  = false;
     bool                forceG2  = false;
