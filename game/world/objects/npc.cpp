@@ -1601,6 +1601,7 @@ bool Npc::implAiFlee(uint64_t dt) {
 
   const WayPoint* wp      = nullptr;
   const float     maxDist = 5*100; // 5 meters
+
   owner.findWayPoint(position(),[&](const WayPoint& p) {
     if(p.useCounter()>0 || qDistTo(&p)>maxDist*maxDist)
       return false;
@@ -1611,16 +1612,21 @@ bool Npc::implAiFlee(uint64_t dt) {
     return false;
     });
 
+  if(go2.flag!=GT_Flee && go2.flag!=GT_No) {
+    go2.clear();
+    setAnim(Anim::Idle);
+    }
+
   if(wp==nullptr || oth.qDistTo(wp)<oth.qDistTo(*this)) {
     auto  dx  = oth.x-x;
     auto  dz  = oth.z-z;
     if(implTurnTo(-dx,-dz,false,dt))
-      return false;
+      return (go2.flag==GT_Flee);
     } else {
     auto  dx  = wp->x-x;
     auto  dz  = wp->z-z;
     if(implTurnTo(dx,dz,false,dt))
-      return false;
+      return (go2.flag==GT_Flee);
     }
 
   go2.setFlee();
@@ -1949,8 +1955,11 @@ void Npc::tick(uint64_t dt) {
     if(implAtack(dt))
       return;
 
-    if(implGoTo(dt))
+    if(implGoTo(dt)) {
+      if(go2.flag==GT_Flee)
+        implAiTick(dt);
       return;
+      }
     }
 
   mvAlgo.tick(dt);
