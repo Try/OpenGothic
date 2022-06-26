@@ -898,10 +898,12 @@ static bool canSee(const Npc& pl,const Item& n){
   auto p0 = pl.position();
   auto p1 = n.position();
   const float plY = p0.y;
-  const float itY = p1.y;
-  if(plY<=itY && itY<=plY+180)
-    return pl.canSeeNpc(p1.x,plY+180,p1.z,true);
-  return pl.canSeeNpc(p1.x,itY+20,p1.z,true);
+  if(plY<=p1.y && p1.y<=plY+180) {
+    //auto head = pl.mapHeadBone();
+    if(pl.canSeeNpc(p0.x,p1.y,p0.z,true))
+      return true;
+    }
+  return pl.canSeeNpc(p1.x,p1.y+20,p1.z,true);
   }
 
 template<class T>

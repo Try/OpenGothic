@@ -337,6 +337,7 @@ class Npc final {
     Item*     currentMeleWeapon();
     Item*     currentRangeWeapon();
     auto      mapWeaponBone() const -> Tempest::Vec3;
+    auto      mapHeadBone() const -> Tempest::Vec3;
     auto      mapBone(std::string_view bone) const -> Tempest::Vec3;
 
     bool      turnTo  (float dx, float dz, bool anim, uint64_t dt);

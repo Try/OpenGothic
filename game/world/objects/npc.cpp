@@ -656,7 +656,9 @@ float Npc::rotationYRad() const {
   }
 
 Bounds Npc::bounds() const {
-  return visual.bounds();
+  auto b = visual.bounds();
+  b.setObjMatrix(transform());
+  return b;
   }
 
 float Npc::translateY() const {
@@ -2841,6 +2843,10 @@ Vec3 Npc::mapWeaponBone() const {
   return visual.mapWeaponBone();
   }
 
+Vec3 Npc::mapHeadBone() const {
+  return visual.mapHeadBone();
+  }
+
 Vec3 Npc::mapBone(std::string_view bone) const {
   if(auto sk = visual.visualSkeleton()) {
     size_t id = sk->findNode(bone);
@@ -3772,7 +3778,8 @@ void Npc::stopWalking() {
   }
 
 bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
-  return canSeeNpc(oth.x,oth.y+180,oth.z,freeLos);
+  const auto mid = oth.bounds().midTr;
+  return canSeeNpc(mid.x,mid.y,mid.z,freeLos);
   }
 
 bool Npc::canSeeNpc(float tx, float ty, float tz, bool freeLos) const {
@@ -3781,8 +3788,9 @@ bool Npc::canSeeNpc(float tx, float ty, float tz, bool freeLos) const {
   }
 
 SensesBit Npc::canSenseNpc(const Npc &oth, bool freeLos, float extRange) const {
+  const auto mid = oth.bounds().midTr;
   const bool isNoisy = (oth.bodyState()&BodyState::BS_SNEAK)==0;
-  return canSenseNpc(oth.x,oth.y+180,oth.z,freeLos,isNoisy,extRange);
+  return canSenseNpc(mid.x,mid.y,mid.z,freeLos,isNoisy,extRange);
   }
 
 SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, bool isNoisy, float extRange) const {
@@ -3800,16 +3808,17 @@ SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, bool isNo
       ret = ret | SensesBit::SENSE_HEAR;
     }
 
-  if(!freeLos){
+  // npc eyesight height
+  auto head = visual.mapHeadBone();
+  if(!freeLos) {
     float dx  = x-tx, dz=z-tz;
     float dir = angleDir(dx,dz);
     float da  = float(M_PI)*(visual.viewDirection()-dir)/180.f;
     if(double(std::cos(da))<=ref)
-      if(!w->ray(Vec3(x,y+180,z), Vec3(tx,ty,tz)).hasCol)
+      if(!w->ray(head, Vec3(tx,ty,tz)).hasCol)
         ret = ret | SensesBit::SENSE_SEE;
     } else {
-    // TODO: npc eyesight height
-    if(!w->ray(Vec3(x,y+180,z), Vec3(tx,ty,tz)).hasCol)
+    if(!w->ray(head, Vec3(tx,ty,tz)).hasCol)
       ret = ret | SensesBit::SENSE_SEE;
     }
   return ret & SensesBit(hnpc.senses);

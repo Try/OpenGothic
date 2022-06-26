@@ -522,6 +522,8 @@ Vec3 MdlVisual::mapWeaponBone() const {
   }
 
 Vec3 MdlVisual::mapHeadBone() const {
+  if(skeleton->BIP01_HEAD==size_t(-1))
+    return {pos.at(3,0), pos.at(3,1)+180, pos.at(3,2)};
   return mapBone(skeleton->BIP01_HEAD);
   }
 
