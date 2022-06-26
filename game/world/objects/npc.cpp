@@ -1622,12 +1622,12 @@ bool Npc::implAiFlee(uint64_t dt) {
   if(wp==nullptr || oth.qDistTo(wp)<oth.qDistTo(*this)) {
     auto  dx  = oth.x-x;
     auto  dz  = oth.z-z;
-    if(implTurnTo(-dx,-dz,false,dt))
+    if(implTurnTo(-dx,-dz,(go2.flag!=GT_No),dt))
       return (go2.flag==GT_Flee);
     } else {
     auto  dx  = wp->x-x;
     auto  dz  = wp->z-z;
-    if(implTurnTo(dx,dz,false,dt))
+    if(implTurnTo(dx,dz,(go2.flag!=GT_No),dt))
       return (go2.flag==GT_Flee);
     }
 
