@@ -1710,9 +1710,9 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
     fghAlgo.onTakeHit();
     implFaiWait(0);
-    hitResult = DamageCalculator::damageValue(other,*this,b,isSpell,dmg,bMask);
     }
 
+  hitResult = DamageCalculator::damageValue(other,*this,b,isSpell,dmg,bMask);
   if(!isSpell && !isDown() && hitResult.hasHit)
     owner.addWeaponHitEffect(other,b,*this).play();
 
