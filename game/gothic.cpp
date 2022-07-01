@@ -6,6 +6,8 @@
 #include <cstring>
 #include <cctype>
 
+#include <phoenix/ext/daedalus_classes.hh>
+
 #include "game/definitions/visualfxdefinitions.h"
 #include "game/definitions/sounddefinitions.h"
 #include "game/definitions/cameradefinitions.h"
@@ -539,6 +541,15 @@ std::unique_ptr<Daedalus::DaedalusVM> Gothic::createVm(std::string_view datFile)
   return vm;
   }
 
+std::unique_ptr<phoenix::daedalus::vm> Gothic::createPhoenixVm(std::string_view datFile) {
+  auto byte = loadPhoenixScriptCode(datFile);
+  phoenix::daedalus::register_all_script_classes(byte);
+
+  auto vm   = std::make_unique<phoenix::daedalus::vm>(std::move(byte));
+  // FIXME: setupVmCommonApi(*vm);
+  return vm;
+}
+
 std::vector<uint8_t> Gothic::loadScriptCode(std::string_view datFile) {
   if(Resources::hasFile(datFile))
     return Resources::getFileData(datFile);
@@ -553,6 +564,21 @@ std::vector<uint8_t> Gothic::loadScriptCode(std::string_view datFile) {
   f.read(ret.data(),ret.size());
   return ret;
   }
+
+phoenix::daedalus::script Gothic::loadPhoenixScriptCode(std::string_view datFile) {
+  if(Resources::hasFile(datFile)){
+    auto buf = Resources::getFileBuffer(datFile);
+    return phoenix::daedalus::script::parse(buf);
+  }
+
+  auto gscript = CommandLine::inst().scriptPath();
+  char16_t str16[256] = {};
+  for(size_t i=0; i<datFile.size() && i<255; ++i)
+    str16[i] = char16_t(datFile[i]);
+  auto path = caseInsensitiveSegment(gscript,str16,Dir::FT_File);
+  auto buf = phoenix::buffer::open(path);
+  return phoenix::daedalus::script::parse(buf);
+}
 
 int Gothic::settingsGetI(std::string_view sec, std::string_view name) {
   if(name.empty())

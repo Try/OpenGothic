@@ -44,15 +44,15 @@ Material::Material(const phoenix::vobs::vob& vob) {
     texAniFPSInv = 1;
   }
 
-Material::Material(const Daedalus::GEngineClasses::C_ParticleFX& src) {
-  tex    = Resources::loadTexture(src.visName_S.c_str());
-  frames = Resources::loadTextureAnim(src.visName_S.c_str());
-  if(src.visTexAniFPS>0)
-    texAniFPSInv = uint64_t(1000.f/src.visTexAniFPS); else
+Material::Material(const phoenix::daedalus::c_particle_fx& src) {
+  tex    = Resources::loadTexture(src.vis_name_s);
+  frames = Resources::loadTextureAnim(src.vis_name_s);
+  if(src.vis_tex_ani_fps>0)
+    texAniFPSInv = uint64_t(1000.f/src.vis_tex_ani_fps); else
     texAniFPSInv = 1;
   //TODO: visTexAniIsLooping
 
-  alpha = Parser::loadAlpha(src.visAlphaFunc_S);
+  alpha = Parser::loadAlpha(src.vis_alpha_func_s);
   }
 
 bool Material::operator < (const Material& other) const {

@@ -8,6 +8,7 @@
 #include <Tempest/Dir>
 
 #include <daedalus/DaedalusVM.h>
+#include <phoenix/daedalus/interpreter.hh>
 
 #include "game/gamesession.h"
 #include "world/world.h"
@@ -135,7 +136,9 @@ class Gothic final {
 
     std::u16string                        nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const;
     std::unique_ptr<Daedalus::DaedalusVM> createVm(std::string_view datFile);
+    std::unique_ptr<phoenix::daedalus::vm> createPhoenixVm(std::string_view datFile);
     std::vector<uint8_t>                  loadScriptCode(std::string_view datFile);
+    phoenix::daedalus::script             loadPhoenixScriptCode(std::string_view datFile);
     void                                  setupVmCommonApi(Daedalus::DaedalusVM &vm);
 
     static const FightAi&                 fai();

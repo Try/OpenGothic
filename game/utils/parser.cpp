@@ -25,11 +25,15 @@ Vec2 Parser::loadVec2(std::string_view src) {
   }
 
 Vec3 Parser::loadVec3(const Daedalus::ZString& src) {
+  return loadVec3(std::string_view(src.c_str()));
+}
+
+Vec3 Parser::loadVec3(std::string_view src) {
   if(src=="=")
     return Vec3();
 
   float       v[3] = {};
-  const char* str  = src.c_str();
+  const char* str  = src.data();
   for(int i=0;i<3;++i) {
     char* next=nullptr;
     v[i] = std::strtof(str,&next);
@@ -45,6 +49,10 @@ Vec3 Parser::loadVec3(const Daedalus::ZString& src) {
   }
 
 Material::AlphaFunc Parser::loadAlpha(const Daedalus::ZString& src) {
+  return loadAlpha(std::string_view(src.c_str()));
+}
+
+Material::AlphaFunc Parser::loadAlpha(std::string_view src) {
   if(src=="NONE")
     return Material::AlphaTest;
   if(src=="BLEND")

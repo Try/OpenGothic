@@ -5,13 +5,14 @@
 
 #include <phoenix/material.hh>
 #include <phoenix/world/vob_tree.hh>
+#include <phoenix/ext/daedalus_classes.hh>
 
 class Material final {
   public:
     Material()=default;
     Material(const phoenix::material& m, bool enableAlphaTest);
     Material(const phoenix::vobs::vob& vob);
-    Material(const Daedalus::GEngineClasses::C_ParticleFX &src);
+    Material(const phoenix::daedalus::c_particle_fx &src);
 
     enum AlphaFunc:uint8_t {
       Solid,
