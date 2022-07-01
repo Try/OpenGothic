@@ -6,23 +6,24 @@
 using namespace Tempest;
 
 SoundDefinitions::SoundDefinitions() {
-  auto vm = Gothic::inst().createVm("Sfx.dat");
+  auto vm = Gothic::inst().createPhoenixVm("Sfx.dat");
+  auto parent = vm->loaded_script().find_symbol_by_name("C_SFX_DEF");
 
-  vm->getDATFile().iterateSymbolsOfClass("C_SFX",[this,&vm](size_t i,Daedalus::PARSymbol& s){
-    Daedalus::GEngineClasses::C_SFX sfx;
-    vm->initializeInstance(sfx, i, Daedalus::IC_Sfx);
-    vm->clearReferences(Daedalus::IC_Sfx);
-    this->sfx[s.name] = std::move(sfx);
-    });
+  for (auto& sym : vm->loaded_script().symbols()) {
+    if (sym.type() == phoenix::daedalus::dt_instance && sym.parent() == parent->index()) {
+      this->sfx[sym.name()] = vm->init_instance<phoenix::daedalus::c_sfx>(&sym);
+    }
   }
 
-const Daedalus::GEngineClasses::C_SFX& SoundDefinitions::operator[](std::string_view name) const {
+  }
+
+const phoenix::daedalus::c_sfx& SoundDefinitions::operator[](std::string_view name) const {
   char buf[256] = {};
   std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
   auto i = sfx.find(buf);
   if(i!=sfx.end())
-    return i->second;
-  static Daedalus::GEngineClasses::C_SFX s;
+    return *i->second;
+  static phoenix::daedalus::c_sfx s {};
   return s;
   }
 
