@@ -4,7 +4,8 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Point>
 #include <array>
-#include <daedalus/DaedalusStdlib.h>
+
+#include <phoenix/ext/daedalus_classes.hh>
 
 class World;
 class Npc;
@@ -131,5 +132,5 @@ class Camera final {
     void                  followAng   (Tempest::Vec3& spin, Tempest::Vec3 dest, float dtF);
     static void           followAng   (float& ang, float dest, float speed, float dtF);
 
-    const Daedalus::GEngineClasses::CCamSys& cameraDef() const;
+    const phoenix::daedalus::c_camera& cameraDef() const;
   };
