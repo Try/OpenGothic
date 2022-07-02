@@ -3,18 +3,16 @@
 #include "gothic.h"
 
 FightAi::FightAi() {
-  auto vm = Gothic::inst().createVm("Fight.dat");
+  auto vm = Gothic::inst().createPhoenixVm("Fight.dat");
 
-  auto& max = vm->getDATFile().getSymbolByName("MAX_FIGHTAI");
-  int count = max.getInt();
+  auto* max = vm->loaded_script().find_symbol_by_name("MAX_FIGHTAI");
+  int count = max->get_int();
   if(count<0)
     count=0;
 
   fAi.resize(size_t(count));
   for(size_t i=1;i<fAi.size();++i)
     fAi[i] = loadAi(*vm,i);
-
-  vm->clearReferences(Daedalus::IC_FightAi);
   }
 
 const FightAi::FA& FightAi::operator[](size_t i) const {
@@ -24,16 +22,14 @@ const FightAi::FA& FightAi::operator[](size_t i) const {
   return tmp;
   }
 
-Daedalus::GEngineClasses::C_FightAI FightAi::loadAi(Daedalus::DaedalusVM& vm, const char* name) {
-  Daedalus::GEngineClasses::C_FightAI ret={};
-  auto id = vm.getDATFile().getSymbolIndexByName(name);
-  if(id==size_t(-1))
-    return ret;
-  vm.initializeInstance(ret, id, Daedalus::IC_FightAi);
-  return ret;
+std::shared_ptr<phoenix::daedalus::c_fight_ai> FightAi::loadAi(phoenix::daedalus::vm& vm, const char* name) {
+  auto id = vm.loaded_script().find_symbol_by_name(name);
+  if(id==nullptr)
+    return nullptr;
+  return vm.init_instance<phoenix::daedalus::c_fight_ai>(id);
   }
 
-FightAi::FA FightAi::loadAi(Daedalus::DaedalusVM &vm, size_t id) {
+FightAi::FA FightAi::loadAi(phoenix::daedalus::vm &vm, size_t id) {
   FA ret={};
   char buf[64]={};
 
