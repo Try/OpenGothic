@@ -228,7 +228,7 @@ void World::stopEffect(const VisualFx& root) {
   wobj.stopEffect(root);
   }
 
-GlobalFx World::addGlobalEffect(const Daedalus::ZString& what, uint64_t len, const Daedalus::ZString* argv, size_t argc) {
+GlobalFx World::addGlobalEffect(std::string_view what, uint64_t len, const std::string* argv, size_t argc) {
   return globFx->startEffect(what,len,argv,argc);
   }
 

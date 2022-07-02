@@ -18,7 +18,7 @@ class GlobalEffects {
     GlobalEffects(World& owner);
 
     void     tick(uint64_t dt);
-    GlobalFx startEffect(const Daedalus::ZString& what, uint64_t len, const Daedalus::ZString* argv, size_t argc);
+    GlobalFx startEffect(std::string_view what, uint64_t len, const std::string* argv, size_t argc);
     void     stopEffect (const VisualFx& vfx);
 
     void     scaleTime(uint64_t& dt);
@@ -63,11 +63,11 @@ class GlobalEffects {
     template<class T>
     void    tick(uint64_t dt, std::vector<T>& eff);
 
-    GlobalFx create        (const Daedalus::ZString& what, const Daedalus::ZString* argv, size_t argc);
-    GlobalFx addSlowTime   (const Daedalus::ZString* argv, size_t argc);
-    GlobalFx addScreenBlend(const Daedalus::ZString* argv, size_t argc);
-    GlobalFx addMorphFov   (const Daedalus::ZString* argv, size_t argc);
-    GlobalFx addEarthQuake (const Daedalus::ZString* argv, size_t argc);
+    GlobalFx create        (std::string_view what, const std::string* argv, size_t argc);
+    GlobalFx addSlowTime   (const std::string* argv, size_t argc);
+    GlobalFx addScreenBlend(const std::string* argv, size_t argc);
+    GlobalFx addMorphFov   (const std::string* argv, size_t argc);
+    GlobalFx addEarthQuake (const std::string* argv, size_t argc);
 
 
     static Tempest::Color parseColor(std::string_view c);

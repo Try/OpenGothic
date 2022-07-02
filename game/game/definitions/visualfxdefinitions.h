@@ -1,6 +1,7 @@
 #pragma once
 
-#include <daedalus/DaedalusStdlib.h>
+#include <phoenix/daedalus/interpreter.hh>
+#include <phoenix/ext/daedalus_classes.hh>
 
 #include <unordered_map>
 #include <memory>
@@ -15,8 +16,8 @@ class VisualFxDefinitions final {
     const VisualFx *get(std::string_view name);
 
   private:
-    std::unique_ptr<Daedalus::DaedalusVM>                     vm;
+    std::unique_ptr<phoenix::daedalus::vm>                   vm;
     std::unordered_map<std::string,std::unique_ptr<VisualFx>> vfx;
 
-    bool implGet(std::string_view name, Daedalus::GEngineClasses::CFx_Base& out);
+    std::shared_ptr<phoenix::daedalus::c_fx_base> implGet(std::string_view name);
   };
