@@ -22,7 +22,7 @@ void MenuRoot::setMainMenu() {
   }
 
 void MenuRoot::setMenu(const char* menuEv, KeyCodec::Action key) {
-  if(vm->loaded_script().find_symbol_by_name(menuEv) == nullptr){
+  if(vm->find_symbol_by_name(menuEv) == nullptr){
     Log::e("invalid menu-id: ",menuEv);
     return;
     }

@@ -5,7 +5,7 @@
 CameraDefinitions::CameraDefinitions() {
   auto vm = Gothic::inst().createPhoenixVm("Camera.dat");
 
-  vm->loaded_script().enumerate_instances_by_class_name("CCAMSYS", [this, &vm](phoenix::daedalus::symbol& s) {
+  vm->enumerate_instances_by_class_name("CCAMSYS", [this, &vm](phoenix::daedalus::symbol& s) {
     auto cam = vm->init_instance<phoenix::daedalus::c_camera>(&s);
     cameras.emplace_back(s.name(), std::move(cam));
   });

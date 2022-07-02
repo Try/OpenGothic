@@ -39,7 +39,7 @@ std::shared_ptr<phoenix::daedalus::c_fx_base> VisualFxDefinitions::implGet(std::
 
   char buf[256] = {};
   std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
-  auto id = vm->loaded_script().find_symbol_by_name(buf);
+  auto id = vm->find_symbol_by_name(buf);
   if(id==nullptr) {
     Log::e("invalid visual effect: \"",buf,"\"");
     return nullptr;

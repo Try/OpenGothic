@@ -119,7 +119,7 @@ VisualFx::VisualFx(const phoenix::daedalus::c_fx_base& fx, phoenix::daedalus::vm
   for(int i=0; i<int(SpellFxKey::Count); ++i) {
     char kname[256]={};
     std::snprintf(kname,sizeof(kname),"%.*s_KEY_%s", int(name.size()),name.data(), keyName[i]);
-    auto id = vm.loaded_script().find_symbol_by_name(kname);
+    auto id = vm.find_symbol_by_name(kname);
     if(id==nullptr)
       continue;
     auto key = vm.init_instance<phoenix::daedalus::c_particle_fx_emit_key>(id);
@@ -130,7 +130,7 @@ VisualFx::VisualFx(const phoenix::daedalus::c_fx_base& fx, phoenix::daedalus::vm
   for(int i=1; ; ++i) {
     char kname[256]={};
     std::snprintf(kname,sizeof(kname),"%.*s_KEY_INVEST_%d", int(name.size()),name.data(), i);
-    auto id = vm.loaded_script().find_symbol_by_name(kname);
+    auto id = vm.find_symbol_by_name(kname);
     if(id==nullptr)
       break;
     auto key = vm.init_instance<phoenix::daedalus::c_particle_fx_emit_key>(id);

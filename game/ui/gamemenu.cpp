@@ -263,8 +263,7 @@ GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, phoenix::daedalus::vm &v
 
   textBuf.reserve(64);
 
-  auto& dat=vm.loaded_script();
-  menu = vm.init_instance<phoenix::daedalus::c_menu>(dat.find_symbol_by_name(menuSection));
+  menu = vm.init_instance<phoenix::daedalus::c_menu>(vm.find_symbol_by_name(menuSection));
   back = Resources::loadTexture(menu->back_pic);
 
   initItems();
@@ -272,9 +271,9 @@ GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, phoenix::daedalus::vm &v
   float infoY = 7500.0f/scriptDiv;
 
   // There could be script-defined values
-  if(dat.find_symbol_by_name("MENU_INFO_X") != nullptr && dat.find_symbol_by_name("MENU_INFO_X") != nullptr) {
-    auto* symX = dat.find_symbol_by_name("MENU_INFO_X");
-    auto* symY = dat.find_symbol_by_name("MENU_INFO_Y");
+  if(vm.find_symbol_by_name("MENU_INFO_X") != nullptr && vm.find_symbol_by_name("MENU_INFO_X") != nullptr) {
+    auto* symX = vm.find_symbol_by_name("MENU_INFO_X");
+    auto* symY = vm.find_symbol_by_name("MENU_INFO_Y");
 
     infoX = float(symX->get_int())/scriptDiv;
     infoY = float(symY->get_int())/scriptDiv;
@@ -331,7 +330,7 @@ void GameMenu::initItems() {
       continue;
 
     hItems[i].name = menu->items[i].c_str();
-    hItems[i].handle = vm.init_instance<phoenix::daedalus::c_menu_item>(vm.loaded_script().find_symbol_by_name(hItems[i].name));
+    hItems[i].handle = vm.init_instance<phoenix::daedalus::c_menu_item>(vm.find_symbol_by_name(hItems[i].name));
     hItems[i].img = Resources::loadTexture(hItems[i].handle->backpic);
 
     if(hItems[i].handle->type==int(phoenix::daedalus::c_menu_item_type::listbox)) {
@@ -761,7 +760,7 @@ void GameMenu::execSingle(Item &it, int slideDx) {
         exitFlag = true;
         break;
       case c_menu_item_select_action::start_menu:
-        if(vm.loaded_script().find_symbol_by_name(onSelAction_S[i]) != nullptr)
+        if(vm.find_symbol_by_name(onSelAction_S[i]) != nullptr)
           owner.pushMenu(new GameMenu(owner,keyCodec,vm,onSelAction_S[i].c_str(),keyClose()));
         break;
       case c_menu_item_select_action::start_item:
@@ -791,7 +790,7 @@ void GameMenu::execSingle(Item &it, int slideDx) {
     }
 
   if(onEventAction[int(c_menu_item_select_event::execute)]>0){
-    auto* sym = vm.loaded_script().find_symbol_by_index(size_t(onEventAction[int(c_menu_item_select_event::execute)]));
+    auto* sym = vm.find_symbol_by_index(size_t(onEventAction[int(c_menu_item_select_event::execute)]));
     vm.call_function(sym);
     }
 

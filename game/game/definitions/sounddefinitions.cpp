@@ -8,7 +8,7 @@ using namespace Tempest;
 SoundDefinitions::SoundDefinitions() {
   auto vm = Gothic::inst().createPhoenixVm("Sfx.dat");
 
-  vm->loaded_script().enumerate_instances_by_class_name("C_SFX", [this, &vm](phoenix::daedalus::symbol& s) {
+  vm->enumerate_instances_by_class_name("C_SFX", [this, &vm](phoenix::daedalus::symbol& s) {
     this->sfx[s.name()] = vm->init_instance<phoenix::daedalus::c_sfx>(&s);
   });
   }

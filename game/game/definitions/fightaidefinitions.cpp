@@ -5,7 +5,7 @@
 FightAi::FightAi() {
   auto vm = Gothic::inst().createPhoenixVm("Fight.dat");
 
-  auto* max = vm->loaded_script().find_symbol_by_name("MAX_FIGHTAI");
+  auto* max = vm->find_symbol_by_name("MAX_FIGHTAI");
   int count = max->get_int();
   if(count<0)
     count=0;
@@ -23,7 +23,7 @@ const FightAi::FA& FightAi::operator[](size_t i) const {
   }
 
 std::shared_ptr<phoenix::daedalus::c_fight_ai> FightAi::loadAi(phoenix::daedalus::vm& vm, const char* name) {
-  auto id = vm.loaded_script().find_symbol_by_name(name);
+  auto id = vm.find_symbol_by_name(name);
   if(id==nullptr)
     return nullptr;
   return vm.init_instance<phoenix::daedalus::c_fight_ai>(id);

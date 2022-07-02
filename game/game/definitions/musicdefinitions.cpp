@@ -9,7 +9,7 @@ using namespace Tempest;
 MusicDefinitions::MusicDefinitions() {
   vm = Gothic::inst().createPhoenixVm("Music.dat");
 
-  vm->loaded_script().enumerate_instances_by_class_name("C_MusicTheme", [this](phoenix::daedalus::symbol& s) {
+  vm->enumerate_instances_by_class_name("C_MusicTheme", [this](phoenix::daedalus::symbol& s) {
     themes.push_back(vm->init_instance<phoenix::daedalus::c_music_theme>(&s));
   });
   }
@@ -23,11 +23,12 @@ const phoenix::daedalus::c_music_theme* MusicDefinitions::operator[](std::string
 
   char buf[256]={};
   std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
-  auto id = vm->loaded_script().find_symbol_by_name(buf);
+  auto id = vm->find_symbol_by_name(buf);
   if(id==nullptr)
     return nullptr;
   for(auto& i:themes) {
-    if(i->get_symbol()->index() == id->index())
+    auto* sym = vm->find_symbol_by_instance(i);
+    if(sym->index() == id->index())
       return i.get();
     }
   return nullptr;
