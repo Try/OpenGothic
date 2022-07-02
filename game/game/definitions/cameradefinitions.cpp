@@ -4,14 +4,11 @@
 
 CameraDefinitions::CameraDefinitions() {
   auto vm = Gothic::inst().createPhoenixVm("Camera.dat");
-  auto parent = vm->loaded_script().find_symbol_by_name("CCAMSYS_DEF");
 
-  for (auto& sym : vm->loaded_script().symbols()) {
-    if (sym.type() == phoenix::daedalus::dt_instance && sym.parent() == parent->index()) {
-      auto cam = vm->init_instance<phoenix::daedalus::c_camera>(&sym);
-      cameras.emplace_back(sym.name(), std::move(cam));
-    }
-  }
+  vm->loaded_script().enumerate_instances_by_class_name("CCAMSYS", [this, &vm](phoenix::daedalus::symbol& s) {
+    auto cam = vm->init_instance<phoenix::daedalus::c_camera>(&s);
+    cameras.emplace_back(s.name(), std::move(cam));
+  });
 
   camModDialog    = getCam("CAMMODDIALOG");
   camModInventory = getCam("CAMMODINVENTORY");
