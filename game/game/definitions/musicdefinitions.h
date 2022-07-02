@@ -1,6 +1,8 @@
 #pragma once
 
-#include <daedalus/DaedalusStdlib.h>
+#include <phoenix/daedalus/interpreter.hh>
+#include <phoenix/ext/daedalus_classes.hh>
+
 #include <memory>
 
 class MusicDefinitions final {
@@ -8,12 +10,9 @@ class MusicDefinitions final {
     MusicDefinitions();
     ~MusicDefinitions();
 
-    const Daedalus::GEngineClasses::C_MusicTheme* operator[](std::string_view name) const;
+    const phoenix::daedalus::c_music_theme* operator[](std::string_view name) const;
 
   private:
-    std::unique_ptr<Daedalus::DaedalusVM>  vm;
-    struct Theme : Daedalus::GEngineClasses::C_MusicTheme {
-      size_t symId=0;
-      };
-    std::vector<Theme> themes;
+    std::unique_ptr<phoenix::daedalus::vm>  vm;
+    std::vector<std::shared_ptr<phoenix::daedalus::c_music_theme>> themes;
   };
