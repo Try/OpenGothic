@@ -57,13 +57,15 @@ void main() {
   const vec3 viewPos = vec3(0.0, RPlanet + push.plPosY, 0.0);
   vec3       rayDir  = vec3(0.0);
   vec3       sunDir  = vec3(0.0);
+  float      tMax    = fogFarDistance;
 
 #if defined(FOG)
   {
     // TODO: optimize
     vec3  pos1 = inverse(vec3(inPos,1));
     vec3  pos0 = inverse(vec3(inPos,0));
-    rayDir = normalize(pos1-pos0);
+    tMax   = length(pos1-pos0);
+    rayDir = (pos1-pos0)/tMax;
     sunDir = vec3(push.sunDir);
   }
 #else
@@ -93,15 +95,13 @@ void main() {
   }
 #endif
 
-#if defined(FOG)
-  float tMax       = fogFarDistance;
-#else
+#if !defined(FOG)
   float atmoDist   = rayIntersect(viewPos, rayDir, RAtmos);
   float groundDist = rayIntersect(viewPos, rayDir, RPlanet);
-  float tMax       = (groundDist < 0.0) ? atmoDist : groundDist;
+  tMax = (groundDist < 0.0) ? atmoDist : groundDist;
 #endif
-  vec3  sun        = raymarchScattering(viewPos, rayDir, sunDir, tMax);
-  vec3  moon       = raymarchScattering(viewPos, rayDir, normalize(vec3(0,4,1)), tMax)*0.005;
 
+  vec3  sun  = raymarchScattering(viewPos, rayDir, sunDir, tMax);
+  vec3  moon = raymarchScattering(viewPos, rayDir, normalize(vec3(0,4,1)), tMax)*0.005;
   outColor = vec4(sun+moon, 1.0);
   }

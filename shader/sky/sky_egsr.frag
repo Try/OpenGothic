@@ -87,7 +87,8 @@ vec3 atmosphere(vec3 view, vec3 sunDir) {
   }
 
 vec3 atmosphereFog(vec2 uv) {
-  return textureLod(skyLUT, uv, 0).rgb;
+  // NOTE: 10.0 is not physical accurate, but dunno how to achive nice look without it
+  return textureLod(skyLUT, uv, 0).rgb * 10.0;
   }
 
 vec3 finalizeColor(vec3 color, vec3 sunDir) {

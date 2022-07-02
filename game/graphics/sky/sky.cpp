@@ -83,7 +83,6 @@ void Sky::setupUbo() {
     egsr.uboFogViewLut.set(0, egsr.transLut,       smpB);
     egsr.uboFogViewLut.set(1, egsr.multiScatLut,   smpB);
     //egsr.uboFogViewLut.set(2, *scene.shadowMap[1], smpB);
-    //egsr.uboFogViewLut.set(3, *scene.gbufDepth,    Sampler2d::nearest());
 
     egsr.uboFinal = device.descriptors(Shaders::inst().skyEGSR);
     egsr.uboFinal.set(0, egsr.transLut,     smpB);
@@ -130,6 +129,13 @@ void Sky::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
 
 void Sky::drawSky(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
   UboSky ubo = mkPush();
+
+  Vec3 a(0,0,0), b(0,0,1);
+  ubo.viewProjectInv.project(a);
+  ubo.viewProjectInv.project(b);
+  auto dv = b-a;
+  auto len = dv.length();
+  (void)len;
 
   if(algo==EGSR) {
     cmd.setUniforms(Shaders::inst().skyEGSR, egsr.uboFinal, &ubo, sizeof(ubo));

@@ -18,7 +18,7 @@ const float mieAbsorptionBase      = 4.40  / 1e6;
 // NOTE: Ozone does not contribute to scattering; it only absorbs light.
 const vec3  ozoneAbsorptionBase    = vec3(0.650, 1.881, .085) / 1e6;
 
-const float fogFarDistance         = 10000.0;
+const float fogFarDistance         = 1000.0;
 const vec3  groundAlbedo           = vec3(0.1);
 const float sunIntensity           = 20.0;
 
