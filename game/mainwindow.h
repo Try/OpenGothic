@@ -75,7 +75,7 @@ class MainWindow : public Tempest::Window {
     void loadGame (std::string_view slot);
     void saveGame (std::string_view slot, std::string_view name);
 
-    void onVideo(const Daedalus::ZString& fname);
+    void onVideo(std::string_view fname);
     void onStartLoading();
     void onWorldLoaded();
     void onSessionExit();

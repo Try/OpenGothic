@@ -12,7 +12,7 @@ class VideoWidget : public Tempest::Widget {
     VideoWidget();
     ~VideoWidget();
 
-    void pushVideo(const Daedalus::ZString& filename);
+    void pushVideo(std::string_view filename);
     bool isActive() const;
 
     void tick();
@@ -38,6 +38,6 @@ class VideoWidget : public Tempest::Widget {
 
     std::atomic_bool              hasPendingVideo{false};
     std::mutex                    syncVideo;
-    std::queue<Daedalus::ZString> pendingVideo;
+    std::queue<std::string>       pendingVideo;
   };
 

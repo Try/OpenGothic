@@ -163,9 +163,9 @@ VideoWidget::VideoWidget() {
 VideoWidget::~VideoWidget() {
   }
 
-void VideoWidget::pushVideo(const Daedalus::ZString& filename) {
+void VideoWidget::pushVideo(std::string_view filename) {
   std::lock_guard<std::mutex> guard(syncVideo);
-  pendingVideo.push(filename);
+  pendingVideo.emplace(filename);
   hasPendingVideo.store(true);
   }
 
