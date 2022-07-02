@@ -140,6 +140,7 @@ class Gothic final {
     std::vector<uint8_t>                  loadScriptCode(std::string_view datFile);
     phoenix::daedalus::script             loadPhoenixScriptCode(std::string_view datFile);
     void                                  setupVmCommonApi(Daedalus::DaedalusVM &vm);
+    void                                  setupVmCommonApi(phoenix::daedalus::vm &vm);
 
     static const FightAi&                 fai();
     static const SoundDefinitions&        sfx();
@@ -205,6 +206,7 @@ class Gothic final {
     auto                                    getDocument(int id) -> std::unique_ptr<DocumentMenu::Show>&;
 
     static void                             notImplementedRoutine(Daedalus::DaedalusVM &vm);
+    static void                             notImplementedRoutine(const std::string& fn);
 
     static void                             concatstrings     (Daedalus::DaedalusVM& vm);
     static void                             inttostring       (Daedalus::DaedalusVM& vm);

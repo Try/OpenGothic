@@ -546,7 +546,7 @@ std::unique_ptr<phoenix::daedalus::vm> Gothic::createPhoenixVm(std::string_view 
   phoenix::daedalus::register_all_script_classes(byte);
 
   auto vm   = std::make_unique<phoenix::daedalus::vm>(std::move(byte));
-  // FIXME: setupVmCommonApi(*vm);
+  setupVmCommonApi(*vm);
   return vm;
 }
 
@@ -756,6 +756,10 @@ void Gothic::setupVmCommonApi(Daedalus::DaedalusVM& vm) {
   vm.registerExternalFunction("printdebuginstch",    [this](Daedalus::DaedalusVM& vm){ printdebuginstch(vm);     });
   }
 
+void Gothic::setupVmCommonApi(phoenix::daedalus::vm &vm) {
+  vm.register_default_external([](std::string_view name) { notImplementedRoutine(std::string {name}); });
+}
+
 void Gothic::notImplementedRoutine(Daedalus::DaedalusVM& vm) {
   static std::set<std::string> s;
   auto& fn = vm.currentCall();
@@ -764,6 +768,15 @@ void Gothic::notImplementedRoutine(Daedalus::DaedalusVM& vm) {
     s.insert(fn);
     Log::e("not implemented call [",fn,"]");
     }
+  }
+
+void Gothic::notImplementedRoutine(const std::string& fn) {
+  static std::set<std::string> s;
+
+  if(s.find(fn)==s.end()){
+    s.insert(fn);
+    Log::e("not implemented call [",fn,"]");
+  }
   }
 
 void Gothic::concatstrings(Daedalus::DaedalusVM &vm) {
