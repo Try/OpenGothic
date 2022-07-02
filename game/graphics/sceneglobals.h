@@ -32,6 +32,7 @@ class SceneGlobals final {
 
     const Tempest::Matrix4x4& viewProject() const;
     const Tempest::Matrix4x4& viewProjectInv() const;
+    const Tempest::Matrix4x4& shadowView(uint8_t view) const;
 
     uint64_t                          tickCount = 0;
     const Tempest::Texture2d*         shadowMap[2] = {};

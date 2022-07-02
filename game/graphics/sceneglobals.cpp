@@ -115,3 +115,7 @@ const Tempest::Matrix4x4& SceneGlobals::viewProject() const {
 const Tempest::Matrix4x4& SceneGlobals::viewProjectInv() const {
   return uboGlobal.viewProjectInv;
   }
+
+const Tempest::Matrix4x4& SceneGlobals::shadowView(uint8_t view) const {
+  return uboGlobal.shadowView[view];
+  }

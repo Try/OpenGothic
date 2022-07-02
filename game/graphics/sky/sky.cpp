@@ -8,9 +8,9 @@
 
 #include "game/gamesession.h"
 #include "graphics/shaders.h"
-#include "gothic.h"
 #include "world/world.h"
 #include "utils/versioninfo.h"
+#include "gothic.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -26,8 +26,8 @@ Sky::Sky(const SceneGlobals& scene)
   if(algo==EGSR) {
     egsr.transLut     = device.attachment(egsr.lutFormat,256, 64);
     egsr.multiScatLut = device.attachment(egsr.lutFormat, 32, 32);
-    egsr.viewLut      = device.attachment(egsr.lutFormat,256,128);
-    egsr.fogLut       = device.attachment(egsr.lutFormat,128, 64); // TODO: use propper 3d texture
+    egsr.viewLut      = device.attachment(egsr.lutFormat,128, 64);
+    egsr.fogLut       = device.attachment(egsr.lutFormat,256,128);  // TODO: use propper 3d texture
     }
   }
 
@@ -80,8 +80,10 @@ void Sky::setupUbo() {
     egsr.uboSkyViewLut.set(1, egsr.multiScatLut, smpB);
 
     egsr.uboFogViewLut = device.descriptors(Shaders::inst().fogViewLut);
-    egsr.uboFogViewLut.set(0, egsr.transLut,     smpB);
-    egsr.uboFogViewLut.set(1, egsr.multiScatLut, smpB);
+    egsr.uboFogViewLut.set(0, egsr.transLut,       smpB);
+    egsr.uboFogViewLut.set(1, egsr.multiScatLut,   smpB);
+    //egsr.uboFogViewLut.set(2, *scene.shadowMap[1], smpB);
+    //egsr.uboFogViewLut.set(3, *scene.gbufDepth,    Sampler2d::nearest());
 
     egsr.uboFinal = device.descriptors(Shaders::inst().skyEGSR);
     egsr.uboFinal.set(0, egsr.transLut,     smpB);
@@ -96,7 +98,7 @@ void Sky::setupUbo() {
     egsr.uboFog.set(0, egsr.transLut,     smpB);
     egsr.uboFog.set(1, egsr.multiScatLut, smpB);
     egsr.uboFog.set(2, egsr.fogLut,       smpB);
-    egsr.uboFog.set(3, *scene.gbufDepth, Sampler2d::nearest());
+    egsr.uboFog.set(3, *scene.gbufDepth,  Sampler2d::nearest());
     }
   }
 
@@ -162,6 +164,8 @@ Sky::UboSky Sky::mkPush() {
   ubo.viewProjectInv = scene.proj;
   ubo.viewProjectInv.mul(v);
   ubo.viewProjectInv.inverse();
+
+  //ubo.shadow1 = scene.shadowView(1);
 
   auto ticks = scene.tickCount;
   auto t0 = float(ticks%90000 )/90000.f;

@@ -86,6 +86,10 @@ vec3 atmosphere(vec3 view, vec3 sunDir) {
   return textureSkyLUT(view, sunDir);
   }
 
+vec3 atmosphereFog(vec2 uv) {
+  return textureLod(skyLUT, uv, 0).rgb;
+  }
+
 vec3 finalizeColor(vec3 color, vec3 sunDir) {
   // Tonemapping and gamma. Super ad-hoc, probably a better way to do this.
   color = pow(color, vec3(1.3));
@@ -109,7 +113,7 @@ void main() {
   float dist     = length(pos1-pos0);
   float fogDens  = volumetricFog(pos0,pos1-pos0);
 
-  vec3  lum      = atmosphere(view, sunDir);
+  vec3  lum      = atmosphereFog(uv);
   lum *= sunIntensity;
   lum = finalizeColor(lum,sunDir);
 
