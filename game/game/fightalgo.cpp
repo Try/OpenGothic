@@ -186,7 +186,7 @@ FightAlgo::Action FightAlgo::nextFromQueue(Npc& npc, Npc& tg, GameScript& owner)
         break;
         }
       default: {
-        static std::unordered_set<c_fight_ai_move> inst;
+        static std::set<c_fight_ai_move> inst;
         if(inst.find(queueId)==inst.end()) {
           Tempest::Log::d("unrecognized FAI instruction: ", int(queueId));
           inst.insert(queueId);

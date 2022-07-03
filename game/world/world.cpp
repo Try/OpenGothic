@@ -240,8 +240,8 @@ MeshObjects::Mesh World::addView(std::string_view visual, int32_t headTex, int32
   return view()->addView(visual,headTex,teetTex,bodyColor);
   }
 
-MeshObjects::Mesh World::addView(const Daedalus::GEngineClasses::C_Item& itm) {
-  return view()->addView(itm.visual.c_str(),itm.material,0,itm.material);
+MeshObjects::Mesh World::addView(const phoenix::daedalus::c_item& itm) {
+  return view()->addView(itm.visual,itm.material,0,itm.material);
   }
 
 MeshObjects::Mesh World::addView(const ProtoMesh* visual) {
@@ -491,7 +491,7 @@ void World::triggerChangeWorld(const std::string& world, const std::string& wayP
   game.changeWorld(world,wayPoint);
   }
 
-void World::setMobRoutine(gtime time, const Daedalus::ZString& scheme, int32_t state) {
+void World::setMobRoutine(gtime time, std::string_view scheme, int32_t state) {
   wobj.setMobRoutine(time,scheme,state);
   }
 
@@ -558,7 +558,7 @@ void World::removeItem(Item& it) {
   wobj.removeItem(it);
   }
 
-size_t World::hasItems(const char* tag, size_t itemCls) {
+size_t World::hasItems(std::string_view tag, size_t itemCls) {
   return wobj.hasItems(tag,itemCls);
   }
 
@@ -643,7 +643,7 @@ Sound World::addWeaponHitEffect(Npc& src, const Bullet* srcArrow, Npc& reciver) 
 
   const char* armor = "FL";
   if(auto a = reciver.currentArmour()) {
-    auto m = ItemMaterial(a->handle().material);
+    auto m = ItemMaterial(a->handle()->material);
     // NOTE: in vanilla only those sfx are defined for armor
     if(m==ItemMaterial::MAT_METAL || m==ItemMaterial::MAT_WOOD)
       armor = materialTag(m);
@@ -655,7 +655,7 @@ Sound World::addWeaponHitEffect(Npc& src, const Bullet* srcArrow, Npc& reciver) 
     }
 
   if(auto w = src.inventory().activeWeapon()) {
-    auto m = ItemMaterial(w->handle().material);
+    auto m = ItemMaterial(w->handle()->material);
     return addHitEffect(materialTag(m),armor,"IAM",pos);
     }
 
@@ -750,7 +750,7 @@ void World::invalidateVobIndex() {
   wobj.invalidateVobIndex();
   }
 
-const Daedalus::GEngineClasses::C_Focus& World::searchPolicy(const Npc& pl, TargetCollect& coll, WorldObjects::SearchFlg& opt) const {
+const phoenix::daedalus::c_focus& World::searchPolicy(const Npc& pl, TargetCollect& coll, WorldObjects::SearchFlg& opt) const {
   opt  = WorldObjects::NoFlg;
   coll = TARGET_COLLECT_FOCUS;
 
@@ -768,7 +768,7 @@ const Daedalus::GEngineClasses::C_Focus& World::searchPolicy(const Npc& pl, Targ
       if(auto weapon = pl.inventory().activeWeapon()) {
         int32_t id  = weapon->spellId();
         auto&   spl = script().spellDesc(id);
-        coll = TargetCollect(spl.targetCollectAlgo);
+        coll = TargetCollect(spl.target_collect_algo);
         }
       opt = WorldObjects::SearchFlg(WorldObjects::NoDeath | WorldObjects::NoUnconscious);
       return game.script()->focusMage();

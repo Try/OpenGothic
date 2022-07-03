@@ -10,7 +10,7 @@ TriggerScript::TriggerScript(Vob* parent, World &world, const std::unique_ptr<ph
 
 void TriggerScript::onTrigger(const TriggerEvent &) {
   try {
-    world.script().runFunction(function);
+    world.script().getVm().call_function(function);
     }
   catch(std::runtime_error& e){
     Tempest::Log::e("exception in trigger-script: ",e.what());

@@ -68,7 +68,7 @@ DamageCalculator::Val DamageCalculator::rangeDamage(Npc& nsrc, Npc& nother, cons
   }
 
 DamageCalculator::Val DamageCalculator::rangeDamage(Npc&, Npc& nother, Damage dmg, const CollideMask bMsk) {
-  C_Npc& other = *nother.handle();
+  auto& other = *nother.handle();
 
   if(bMsk & COLL_APPLYDOUBLEDAMAGE)
     dmg*=2;
@@ -92,8 +92,8 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
     return Val(0,true,true);
 
   auto&  script = nsrc.world().script();
-  C_Npc& src    = *nsrc.handle();
-  C_Npc& other  = *nother.handle();
+  auto& src    = *nsrc.handle();
+  auto& other  = *nother.handle();
 
   // Swords/Fists
   const int dtype      = damageTypeMask(nsrc);
@@ -118,7 +118,7 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
     if((dtype & (1<<i))==0)
       continue;
     int vd = std::max(s + src.damage[i] - other.protection[i],0);
-    if(src.hitChance[hitCh]<critChance)
+    if(src.hitchance[hitCh]<critChance)
       vd = (vd-1)/10;
     if(other.protection[i]>=0) // Filter immune
       value += vd;
@@ -129,12 +129,12 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
 
 int32_t DamageCalculator::damageTypeMask(Npc& npc) {
   if(auto w = npc.inventory().activeWeapon())
-    return w->handle().damageType;
-  return npc.handle()->damagetype;
+    return w->handle()->damage_type;
+  return npc.handle()->damage_type;
   }
 
 bool DamageCalculator::checkDamageMask(Npc& nsrc, Npc& nother, const Bullet* b) {
-  C_Npc& other = *nother.handle();
+  auto& other = *nother.handle();
 
   if(b!=nullptr) {
     auto dmg = b->damage();

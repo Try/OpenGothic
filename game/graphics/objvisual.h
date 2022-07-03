@@ -18,7 +18,7 @@ class ObjVisual {
     void save(Serialize& fout, const Interactive& mob) const;
     void load(Serialize& fin,  Interactive &mob);
 
-    void setVisual(const Daedalus::GEngineClasses::C_Item& visual, World& world, bool staticDraw);
+    void setVisual(const phoenix::daedalus::c_item& visual, World& world, bool staticDraw);
     void setVisual(const phoenix::vobs::vob& visual, World& world, bool staticDraw);
     void setObjMatrix(const Tempest::Matrix4x4& obj);
 

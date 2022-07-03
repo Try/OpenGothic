@@ -120,7 +120,7 @@ class WorldObjects final {
     void           marchInteractives(DbgPainter& p) const;
 
     Interactive*   aviableMob(const Npc& pl, const char* name);
-    void           setMobRoutine(gtime time, const Daedalus::ZString& scheme, int32_t state);
+    void           setMobRoutine(gtime time, std::string_view scheme, int32_t state);
 
     void           sendPassivePerc(Npc& self,Npc& other,Npc& victum,int32_t perc);
     void           sendPassivePerc(Npc& self,Npc& other,Npc& victum,Item& itm,int32_t perc);
@@ -133,7 +133,7 @@ class WorldObjects final {
       };
 
     struct MobStates {
-      Daedalus::ZString       scheme;
+      std::string            scheme;
       std::vector<MobRoutine> routines;
       int32_t                 curState = 0;
       int32_t                 stateByTime(gtime t) const;

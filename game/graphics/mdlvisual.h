@@ -61,7 +61,7 @@ class MdlVisual final {
     void                           startEffect (World& owner, Effect&& pfx, int32_t slot, bool noSlot);
     void                           stopEffect  (const VisualFx& vfx);
     void                           stopEffect  (int32_t slot);
-    void                           setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s, Daedalus::GEngineClasses::C_Npc::ENPCFlag flags);
+    void                           setNpcEffect(World& owner, Npc& npc, const std::string& s, int flags);
     void                           setFatness  (float f);
     void                           emitBlockEffect(Npc& dst, Npc& src);
 
@@ -159,7 +159,7 @@ class MdlVisual final {
 
     TorchSlot                      torch;
 
-    Daedalus::ZString              hnpcVisualName;
+    std::string              hnpcVisualName;
     bool                           hnpcFlagGhost = false;
     PfxSlot                        hnpcVisual;
 

@@ -97,14 +97,14 @@ AiQueue::AiAction AiQueue::aiGoToNpc(Npc *other) {
   return a;
   }
 
-AiQueue::AiAction AiQueue::aiGoToNextFp(const Daedalus::ZString& fp) {
+AiQueue::AiAction AiQueue::aiGoToNextFp(std::string_view fp) {
   AiAction a;
   a.act = AI_GoToNextFp;
   a.s0  = fp;
   return a;
   }
 
-AiQueue::AiAction AiQueue::aiStartState(ScriptFn stateFn, int behavior, Npc* other, Npc* victum, const Daedalus::ZString& wp) {
+AiQueue::AiAction AiQueue::aiStartState(ScriptFn stateFn, int behavior, Npc* other, Npc* victum, std::string_view wp) {
   AiAction a;
   a.act    = AI_StartState;
   a.func   = stateFn;
@@ -115,14 +115,14 @@ AiQueue::AiAction AiQueue::aiStartState(ScriptFn stateFn, int behavior, Npc* oth
   return a;
   }
 
-AiQueue::AiAction AiQueue::aiPlayAnim(const Daedalus::ZString& ani) {
+AiQueue::AiAction AiQueue::aiPlayAnim(std::string_view ani) {
   AiAction a;
   a.act  = AI_PlayAnim;
   a.s0   = ani;
   return a;
   }
 
-AiQueue::AiAction AiQueue::aiPlayAnimBs(const Daedalus::ZString& ani, BodyState bs) {
+AiQueue::AiAction AiQueue::aiPlayAnimBs(std::string_view ani, BodyState bs) {
   AiAction a;
   a.act  = AI_PlayAnimBs;
   a.s0   = ani;
@@ -181,7 +181,7 @@ AiQueue::AiAction AiQueue::aiEquipBestRangeWeapon() {
   return a;
   }
 
-AiQueue::AiAction AiQueue::aiUseMob(const Daedalus::ZString& name, int st) {
+AiQueue::AiAction AiQueue::aiUseMob(std::string_view name, int st) {
   AiAction a;
   a.act = AI_UseMob;
   a.s0  = name;
@@ -273,7 +273,7 @@ AiQueue::AiAction AiQueue::aiProcessInfo(Npc &other) {
   return a;
   }
 
-AiQueue::AiAction AiQueue::aiOutput(Npc& to, const Daedalus::ZString& text, int order) {
+AiQueue::AiAction AiQueue::aiOutput(Npc& to, std::string_view  text, int order) {
   AiAction a;
   a.act    = AI_Output;
   a.s0     = text;
@@ -282,7 +282,7 @@ AiQueue::AiAction AiQueue::aiOutput(Npc& to, const Daedalus::ZString& text, int 
   return a;
   }
 
-AiQueue::AiAction AiQueue::aiOutputSvm(Npc &to, const Daedalus::ZString& text, int order) {
+AiQueue::AiAction AiQueue::aiOutputSvm(Npc &to, std::string_view  text, int order) {
   AiAction a;
   a.act    = AI_OutputSvm;
   a.s0     = text;
@@ -291,7 +291,7 @@ AiQueue::AiAction AiQueue::aiOutputSvm(Npc &to, const Daedalus::ZString& text, i
   return a;
   }
 
-AiQueue::AiAction AiQueue::aiOutputSvmOverlay(Npc &to, const Daedalus::ZString& text, int order) {
+AiQueue::AiAction AiQueue::aiOutputSvmOverlay(Npc &to, std::string_view  text, int order) {
   AiAction a;
   a.act    = AI_OutputSvmOverlay;
   a.s0     = text;

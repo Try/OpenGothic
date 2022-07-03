@@ -57,9 +57,9 @@ class DialogMenu : public Tempest::Widget {
     struct Pipe : AiOuputPipe {
       Pipe(DialogMenu& owner):owner(owner){}
 
-      bool output   (Npc &npc, const Daedalus::ZString& text) override;
-      bool outputSvm(Npc& npc, const Daedalus::ZString& text) override;
-      bool outputOv (Npc& npc, const Daedalus::ZString& text) override;
+      bool output   (Npc &npc, std::string_view text) override;
+      bool outputSvm(Npc& npc, std::string_view text) override;
+      bool outputOv (Npc& npc, std::string_view text) override;
 
       bool close() override;
       bool isFinished() override;
@@ -101,7 +101,7 @@ class DialogMenu : public Tempest::Widget {
     void onEntry(const GameScript::DlgChoise& e);
     void onDoneText();
     void close();
-    bool aiOutput(Npc& npc, const Daedalus::ZString& msg);
+    bool aiOutput(Npc& npc, std::string_view msg);
     bool aiClose();
 
     bool haveToWaitOutput() const;

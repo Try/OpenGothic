@@ -386,15 +386,15 @@ void GameSession::dialogExec(const GameScript::DlgChoise &dlg, Npc& player, Npc&
   return vm->exec(dlg,player,npc);
   }
 
-const Daedalus::ZString& GameSession::messageFromSvm(const Daedalus::ZString& id, int voice) const {
+const std::string& GameSession::messageFromSvm(std::string_view id, int voice) const {
   if(!wrld){
-    static Daedalus::ZString empty;
+    static std::string empty;
     return empty;
     }
   return vm->messageFromSvm(id,voice);
   }
 
-const std::string& GameSession::messageByName(const Daedalus::ZString& id) const {
+const std::string& GameSession::messageByName(const std::string& id) const {
   if(!wrld){
     static std::string empty {};
     return empty;
@@ -402,7 +402,7 @@ const std::string& GameSession::messageByName(const Daedalus::ZString& id) const
   return vm->messageByName(id);
   }
 
-uint32_t GameSession::messageTime(const Daedalus::ZString& id) const {
+uint32_t GameSession::messageTime(std::string_view id) const {
   if(!wrld)
     return 0;
   return vm->messageTime(id);
@@ -431,20 +431,20 @@ void GameSession::initScripts(bool firstTime) {
   auto name   = (dot==std::string::npos ? wname : wname.substr(0,dot));
 
   if(vm->hasSymbolName("startup_global"))
-    vm->runFunction("startup_global");
+    vm->getVm().call_function("startup_global");
 
   if(vm->hasSymbolName("init_global"))
-    vm->runFunction("init_global");
+    vm->getVm().call_function("init_global");
 
   if(firstTime) {
     std::string startup = "startup_"+name;
     if(vm->hasSymbolName(startup))
-      vm->runFunction(startup);
+      vm->getVm().call_function(startup);
     }
 
   std::string init = "init_"+name;
   if(vm->hasSymbolName(init))
-    vm->runFunction(init);
+    vm->getVm().call_function(init);
 
   wrld->resetPositionToTA();
   }

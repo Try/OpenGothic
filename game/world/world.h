@@ -97,7 +97,7 @@ class World final {
     GlobalFx             addGlobalEffect(std::string_view what, uint64_t len, const std::string* argv, size_t argc);
     MeshObjects::Mesh    addView(std::string_view visual) const;
     MeshObjects::Mesh    addView(std::string_view visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
-    MeshObjects::Mesh    addView(const Daedalus::GEngineClasses::C_Item& itm);
+    MeshObjects::Mesh    addView(const phoenix::daedalus::c_item& itm);
     MeshObjects::Mesh    addView(const ProtoMesh* visual);
     MeshObjects::Mesh    addAtachView (const ProtoMesh::Attach& visual, const int32_t version);
     MeshObjects::Mesh    addStaticView(const ProtoMesh* visual, bool staticDraw);
@@ -134,7 +134,7 @@ class World final {
 
     Interactive*         aviableMob(const Npc &pl, const char* name);
     Interactive*         findInteractive(const Npc& pl);
-    void                 setMobRoutine(gtime time, const Daedalus::ZString& scheme, int32_t state);
+    void                 setMobRoutine(gtime time, std::string_view scheme, int32_t state);
 
     void                 marchInteractives(DbgPainter& p) const;
     void                 marchPoints      (DbgPainter& p) const;
@@ -153,7 +153,7 @@ class World final {
     Item*                addItemDyn (size_t itemInstance, const Tempest::Matrix4x4& pos, size_t owner);
     auto                 takeItem(Item& it) -> std::unique_ptr<Item>;
     void                 removeItem (Item &it);
-    size_t               hasItems(const char* tag, size_t itemCls);
+    size_t               hasItems(std::string_view tag, size_t itemCls);
 
     Bullet&              shootBullet(const Item &itmId, const Npc& npc, const Npc* target, const Interactive* inter);
     Bullet&              shootSpell(const Item &itm, const Npc &npc, const Npc *target);
@@ -179,7 +179,7 @@ class World final {
     void                 invalidateVobIndex();
 
   private:
-    const Daedalus::GEngineClasses::C_Focus& searchPolicy(const Npc& pl, TargetCollect& coll, WorldObjects::SearchFlg& opt) const;
+    const phoenix::daedalus::c_focus&     searchPolicy(const Npc& pl, TargetCollect& coll, WorldObjects::SearchFlg& opt) const;
     std::string                           wname;
     GameSession&                          game;
 

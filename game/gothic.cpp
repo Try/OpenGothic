@@ -499,15 +499,15 @@ const CameraDefinitions& Gothic::cameraDef() {
   return *instance->camDef;
   }
 
-const Daedalus::ZString& Gothic::messageFromSvm(const Daedalus::ZString &id, int voice) const {
+const std::string& Gothic::messageFromSvm(std::string_view id, int voice) const {
   if(!game){
-    static Daedalus::ZString empty;
+    static std::string empty;
     return empty;
     }
   return game->messageFromSvm(id,voice);
   }
 
-const std::string& Gothic::messageByName(const Daedalus::ZString& id) const {
+const std::string& Gothic::messageByName(const std::string& id) const {
   if(!game){
     static std::string empty {};
     return empty;
@@ -515,7 +515,7 @@ const std::string& Gothic::messageByName(const Daedalus::ZString& id) const {
   return game->messageByName(id);
   }
 
-uint32_t Gothic::messageTime(const Daedalus::ZString& id) const {
+uint32_t Gothic::messageTime(std::string_view id) const {
   if(!game)
     return 0;
   return game->messageTime(id);

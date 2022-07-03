@@ -3,10 +3,10 @@
 #include "game/gamescript.h"
 
 AiState::AiState(GameScript& owner,size_t id) {
-  auto& fn = owner.getSymbol(id);
-  mname    = fn.name.c_str();
+  auto* fn = owner.getSymbol(id);
+  mname    = fn->name();
 
   funcIni  = id;
-  funcLoop = owner.getSymbolIndex(fn.name+"_Loop");
-  funcEnd  = owner.getSymbolIndex(fn.name+"_End");
+  funcLoop = owner.getSymbolIndex(fn->name()+"_Loop");
+  funcEnd  = owner.getSymbolIndex(fn->name()+"_End");
   }

@@ -1,15 +1,12 @@
 #include "svmdefinitions.h"
 
-#include <daedalus/DaedalusVM.h>
-
-SvmDefinitions::SvmDefinitions(Daedalus::DaedalusVM &vm):vm(vm) {
+SvmDefinitions::SvmDefinitions(phoenix::daedalus::vm& vm):vm(vm) {
   }
 
 SvmDefinitions::~SvmDefinitions() {
-  vm.clearReferences(Daedalus::IC_Svm);
   }
 
-const Daedalus::ZString& SvmDefinitions::find(std::string_view speech, const int intId) {
+const std::string& SvmDefinitions::find(std::string_view speech, int intId) {
   if(!speech.empty() && speech[0]=='$' && intId>=0){
     const size_t id=size_t(intId);
 
@@ -18,20 +15,19 @@ const Daedalus::ZString& SvmDefinitions::find(std::string_view speech, const int
 
     if(svm.size()<=id)
       svm.resize(id+1);
-    if(svm[id]==nullptr)
-      svm[id].reset(new Daedalus::GEngineClasses::C_SVM());
-    if(svm[id]->instanceSymbol==0){
-      size_t i = vm.getDATFile().getSymbolIndexByName(name);
-      vm.initializeInstance(*svm[id], i, Daedalus::IC_Svm);
+
+    if(svm[id] == nullptr){
+      auto i = vm.find_symbol_by_name(name);
+      svm[id] = vm.init_instance<phoenix::daedalus::c_svm>(i);
       }
 
     speech = speech.substr(1);
     std::snprintf(name,sizeof(name),"C_SVM.%.*s",int(speech.size()),speech.data());
 
-    auto& i = vm.getDATFile().getSymbolByName(name); //TODO: optimize
-    return i.getString(0,svm[size_t(id)].get());
+    auto* i = vm.find_symbol_by_name(name); //TODO: optimize
+    return i->get_string(0,svm[size_t(id)]);
     }
 
-  static Daedalus::ZString empty;
+  static std::string empty;
   return empty;
   }

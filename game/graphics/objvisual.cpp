@@ -114,12 +114,12 @@ void ObjVisual::setType(Type t) {
   type = t;
   }
 
-void ObjVisual::setVisual(const Daedalus::GEngineClasses::C_Item& hitem, World& world, bool staticDraw) {
+void ObjVisual::setVisual(const phoenix::daedalus::c_item& hitem, World& world, bool staticDraw) {
   cleanup();
 
-  if(FileExt::hasExt(hitem.visual.c_str(),"ZEN")) {
+  if(FileExt::hasExt(hitem.visual,"ZEN")) {
     setType(M_Bundle);
-    bundle = VobBundle(world,hitem.visual.c_str(),(staticDraw ? Vob::Static : Vob::None));
+    bundle = VobBundle(world,hitem.visual,(staticDraw ? Vob::Static : Vob::None));
     } else {
     setType(M_Mesh);
     mesh.view = world.addView(hitem);

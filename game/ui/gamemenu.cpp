@@ -1132,11 +1132,11 @@ void GameMenu::setPlayer(const Npc &pl) {
     return;
 
   auto& sc    = world->script();
-  auto& gilds = sc.getSymbol("TXT_GUILDS");
-  auto& tal   = sc.getSymbol("TXT_TALENTS");
-  auto& talV  = sc.getSymbol("TXT_TALENTS_SKILLS");
+  auto* gilds = sc.getSymbol("TXT_GUILDS");
+  auto* tal   = sc.getSymbol("TXT_TALENTS");
+  auto* talV  = sc.getSymbol("TXT_TALENTS_SKILLS");
 
-  set("MENU_ITEM_PLAYERGUILD",gilds.getString(pl.guild()).c_str());
+  set("MENU_ITEM_PLAYERGUILD",gilds->get_string(pl.guild()).c_str());
 
   set("MENU_ITEM_LEVEL",      pl.level());
   set("MENU_ITEM_EXP",        pl.experience());
@@ -1155,7 +1155,7 @@ void GameMenu::setPlayer(const Npc &pl) {
 
   const int talentMax = Gothic::inst().version().game==2 ? TALENT_MAX_G2 : TALENT_MAX_G1;
   for(int i=0;i<talentMax;++i){
-    auto& str = tal.getString(size_t(i));
+    auto& str = tal->get_string(size_t(i));
     if(str.empty())
       continue;
 
@@ -1165,7 +1165,7 @@ void GameMenu::setPlayer(const Npc &pl) {
 
     const int sk=pl.talentSkill(Talent(i));
     std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d_SKILL",i);
-    set(buf,strEnum(talV.getString(size_t(i)).c_str(),sk,textBuf));
+    set(buf,strEnum(talV->get_string(size_t(i)).c_str(),sk,textBuf));
 
     const int val=pl.hitChanse(Talent(i));
     std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d",i);

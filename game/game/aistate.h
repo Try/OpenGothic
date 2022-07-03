@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdlib>
+#include <string>
 
 class GameScript;
 
@@ -12,7 +13,7 @@ class AiState final {
     size_t funcLoop=0;
     size_t funcEnd =0;
 
-    const char* name() const { return mname; }
+    const char* name() const { return mname.c_str(); }
   private:
-    const char* mname=""; //for debugging
+    std::string mname; //for debugging
   };

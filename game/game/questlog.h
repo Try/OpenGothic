@@ -29,9 +29,9 @@ class QuestLog final {
       std::vector<std::string> entry;
       };
 
-    Quest& add      (const char* name, Section s);
-    void   setStatus(const char* name, Status  s);
-    void   addEntry (const char* name, const char* entry);
+    Quest& add      (std::string_view name, Section s);
+    void   setStatus(std::string_view name, Status  s);
+    void   addEntry (std::string_view name, std::string_view entry);
 
     void   save(Serialize &fout);
     void   load(Serialize &fin);
@@ -41,7 +41,7 @@ class QuestLog final {
 
 
   private:
-    Quest* find(const char* name);
+    Quest* find(std::string_view name);
 
     std::vector<Quest> quests;
   };

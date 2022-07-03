@@ -20,6 +20,8 @@
 
 #include <zenload/zTypes.h>
 
+#include <phoenix/daedalus/interpreter.hh>
+#include <phoenix/ext/daedalus_classes.hh>
 #include <phoenix/animation.hh>
 
 #include "gametime.h"
@@ -89,6 +91,7 @@ class Serialize {
       (void)dummy;
       }
 
+    std::shared_ptr<phoenix::daedalus::c_npc> readNpc(phoenix::daedalus::vm& vm);
   private:
     Serialize();
 
@@ -283,8 +286,7 @@ class Serialize {
     void implWrite(const Tempest::Pixmap& p);
     void implRead (Tempest::Pixmap&       p);
 
-    void implWrite(const Daedalus::GEngineClasses::C_Npc& h);
-    void implRead (Daedalus::GEngineClasses::C_Npc&       h);
+    void implWrite(const phoenix::daedalus::c_npc& h);
 
     void implWrite(const FpLock& fp);
     void implRead (FpLock& fp);

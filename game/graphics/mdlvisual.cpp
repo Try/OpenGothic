@@ -284,7 +284,7 @@ void MdlVisual::dropWeapon(Npc& npc) {
   if(itm==nullptr)
     return;
 
-  auto it = npc.world().addItemDyn(itm->clsId(),p,npc.handle()->instanceSymbol);
+  auto it = npc.world().addItemDyn(itm->clsId(),p,npc.handle()->symbol_index());
   it->setCount(1);
 
   npc.delItem(itm->clsId(),1);
@@ -343,7 +343,7 @@ void MdlVisual::stopEffect(int32_t slot) {
     }
   }
 
-void MdlVisual::setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s, Daedalus::GEngineClasses::C_Npc::ENPCFlag flags) {
+void MdlVisual::setNpcEffect(World& owner, Npc& npc, const std::string& s, int flags) {
   if(hnpcVisualName!=s) {
     hnpcVisualName = s;
     auto vfx = Gothic::inst().loadVisualFx(s.c_str());
@@ -390,7 +390,7 @@ void MdlVisual::emitBlockEffect(Npc& dest, Npc& source) {
   if(src==nullptr || dst==nullptr)
     return;
 
-  auto s = world.addWeaponBlkEffect(ItemMaterial(src->handle().material),ItemMaterial(dst->handle().material),p);
+  auto s = world.addWeaponBlkEffect(ItemMaterial(src->handle()->material),ItemMaterial(dst->handle()->material),p);
   s.play();
   }
 
@@ -449,11 +449,10 @@ void MdlVisual::setTorch(bool t, World& owner) {
   if(torchId==size_t(-1))
     return;
 
-  Daedalus::GEngineClasses::C_Item  hitem={};
-  owner.script().initializeInstance(hitem,torchId);
-  owner.script().clearReferences(hitem);
+  auto hitem = std::make_shared<phoenix::daedalus::c_item>();
+  owner.script().initializeInstanceItem(hitem, torchId);
   torch.view.reset(new ObjVisual());
-  torch.view->setVisual(hitem,owner,false);
+  torch.view->setVisual(*hitem,owner,false);
   torch.boneId = (skeleton==nullptr ? size_t(-1) : skeleton->findNode("ZS_LEFTHAND"));
   }
 

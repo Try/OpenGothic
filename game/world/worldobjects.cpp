@@ -421,7 +421,7 @@ Npc *WorldObjects::findHero() {
 
 Npc *WorldObjects::findNpcByInstance(size_t instance) {
   for(auto& i:npcArr)
-    if(i->handle()->instanceSymbol==instance)
+    if(i->handle()->symbol_index()==instance)
       return i.get();
   return nullptr;
   }
@@ -612,7 +612,7 @@ Item* WorldObjects::addItemDyn(size_t itemInstance, const Tempest::Matrix4x4& po
     ptr.reset(new Item(owner,itemInstance,Item::T_WorldDyn));
 
   auto* it=ptr.get();
-  it->handle().owner = ownerNpc==size_t(-1) ? 0 : uint32_t(ownerNpc);
+  it->handle()->owner = ownerNpc==size_t(-1) ? 0 : uint32_t(ownerNpc);
   itemArr.emplace_back(std::move(ptr));
   items.add(itemArr.back().get());
 
@@ -766,7 +766,7 @@ Interactive *WorldObjects::aviableMob(const Npc &pl, const char* dest) {
   return ret;
   }
 
-void WorldObjects::setMobRoutine(gtime time, const Daedalus::ZString& scheme, int32_t state) {
+void WorldObjects::setMobRoutine(gtime time, std::string_view scheme, int32_t state) {
   MobRoutine r;
   r.time  = time;
   r.state = state;
@@ -804,7 +804,7 @@ void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item &itm
   m.self   = &self;
   m.other  = &other;
   m.victum = &victum;
-  m.item   = itm.handle().instanceSymbol;
+  m.item   = itm.handle()->symbol_index();
 
   sndPerc.push_back(m);
   }
@@ -860,7 +860,7 @@ template<class T>
 bool checkFlag(T&,WorldObjects::SearchFlg){ return true; }
 
 static bool checkFlag(Npc& n,WorldObjects::SearchFlg f){
-  if(n.handle()->noFocus)
+  if(n.handle()->no_focus)
     return false;
   if(bool(f&WorldObjects::NoDeath) && n.isDead())
     return false;

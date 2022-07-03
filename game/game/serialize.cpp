@@ -274,34 +274,38 @@ void Serialize::implRead(Tempest::Pixmap& p) {
   readOffset += r.cursorPosition();
   }
 
-void Serialize::implWrite(const Daedalus::GEngineClasses::C_Npc& h) {
-  write(uint32_t(h.instanceSymbol));
-  write(h.id,h.name,h.slot,h.effect,int32_t(h.npcType));
+void Serialize::implWrite(const phoenix::daedalus::c_npc& h) {
+  write(uint32_t(h.symbol_index()));
+  write(h.id,h.name,h.slot,h.effect,int32_t(h.npc_type));
   write(int32_t(h.flags));
-  write(h.attribute,h.hitChance,h.protection,h.damage);
-  write(h.damagetype,h.guild,h.level);
+  write(h.attribute,h.hitchance,h.protection,h.damage);
+  write(h.damage_type,h.guild,h.level);
   write(h.mission);
-  write(h.fight_tactic,h.weapon,h.voice,h.voicePitch,h.bodymass);
+  write(h.fight_tactic,h.weapon,h.voice,h.voice_pitch,h.body_mass);
   write(h.daily_routine,h.start_aistate);
-  write(h.spawnPoint,h.spawnDelay,h.senses,h.senses_range);
+  write(h.spawnpoint,h.spawn_delay,h.senses,h.senses_range);
   write(h.aivar);
-  write(h.wp,h.exp,h.exp_next,h.lp,h.bodyStateInterruptableOverride,h.noFocus);
+  write(h.wp,h.exp,h.exp_next,h.lp,h.bodystate_interruptable_override,h.no_focus);
   }
 
-void Serialize::implRead(Daedalus::GEngineClasses::C_Npc& h) {
+std::shared_ptr<phoenix::daedalus::c_npc> Serialize::readNpc(phoenix::daedalus::vm& vm) {
   uint32_t instanceSymbol=0;
+  read(instanceSymbol);
 
-  read(instanceSymbol); h.instanceSymbol = instanceSymbol;
-  read(h.id,h.name,h.slot,h.effect, reinterpret_cast<int32_t&>(h.npcType));
-  read(reinterpret_cast<int32_t&>(h.flags));
-  read(h.attribute,h.hitChance,h.protection,h.damage);
-  read(h.damagetype,h.guild,h.level);
-  read(h.mission);
-  read(h.fight_tactic,h.weapon,h.voice,h.voicePitch,h.bodymass);
-  read(h.daily_routine,h.start_aistate);
-  read(h.spawnPoint,h.spawnDelay,h.senses,h.senses_range);
-  read(h.aivar);
-  read(h.wp,h.exp,h.exp_next,h.lp,h.bodyStateInterruptableOverride,h.noFocus);
+  auto sym = vm.find_symbol_by_index(instanceSymbol);
+  auto h = vm.init_instance<phoenix::daedalus::c_npc>(sym);
+
+  read(h->id,h->name,h->slot,h->effect, reinterpret_cast<int32_t&>(h->npc_type));
+  read(reinterpret_cast<int32_t&>(h->flags));
+  read(h->attribute,h->hitchance,h->protection,h->damage);
+  read(h->damage_type,h->guild,h->level);
+  read(h->mission);
+  read(h->fight_tactic,h->weapon,h->voice,h->voice_pitch,h->body_mass);
+  read(h->daily_routine,h->start_aistate);
+  read(h->spawnpoint,h->spawn_delay,h->senses,h->senses_range);
+  read(h->aivar);
+  read(h->wp,h->exp,h->exp_next,h->lp,h->bodystate_interruptable_override,h->no_focus);
+  return h;
   }
 
 void Serialize::implWrite(const FpLock &fp) {
