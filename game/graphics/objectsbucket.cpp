@@ -137,7 +137,7 @@ ObjectsBucket::ObjectsBucket(const Type type, const Material& mat, VisualObjects
 
   useSharedUbo        = (mat.frames.size()==0);
   textureInShadowPass = (mat.alpha==Material::AlphaTest);
-  useMeshlets         = (Gothic::inst().doMeshShading() && !mat.isTesselated() && (type!=Type::Pfx && type!=Type::Morph));
+  useMeshlets         = (Gothic::inst().doMeshShading() && !mat.isTesselated() && (type!=Type::Pfx));
   usePositionsSsbo    = (type==Type::Static || type==Type::Movable || type==Type::Morph);
 
   pMain    = Shaders::inst().materialPipeline(mat,objType,Shaders::T_Forward);
@@ -327,13 +327,21 @@ void ObjectsBucket::uboSetCommon(Descriptors& v, const Material& mat) {
         ubo.set(L_Morph,    *staticMesh->morph.samples);
         }
       if(lay==SceneGlobals::V_Main && isSceneInfoRequired()) {
-        ubo.set(L_GDiffuse, *scene.lightingBuf,Sampler2d::nearest());
-        ubo.set(L_GDepth,   *scene.gbufDepth,  Sampler2d::nearest());
+        auto smp = Sampler2d::bilinear();
+        smp.setClamping(ClampMode::MirroredRepeat);
+        ubo.set(L_GDiffuse, *scene.lightingBuf,smp);
+
+        smp = Sampler2d::nearest();
+        smp.setClamping(ClampMode::ClampToEdge);
+        ubo.set(L_GDepth,   *scene.gbufDepth,  smp);
         }
       if(lay==SceneGlobals::V_Main && useMeshlets) {
-        auto sb = Sampler2d::nearest();
-        sb.setClamping(ClampMode::ClampToEdge);
-        ubo.set(L_HiZ, *scene.hiZ, sb);
+        auto smp = Sampler2d::nearest();
+        smp.setClamping(ClampMode::ClampToEdge);
+        ubo.set(L_HiZ, *scene.hiZ, smp);
+        }
+      if(lay==SceneGlobals::V_Main && mat.alpha==Material::Water) {
+        ubo.set(L_SkyLut, *scene.skyLut);
         }
       }
     uboSetSkeleton(v,i);

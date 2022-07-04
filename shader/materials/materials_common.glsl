@@ -47,6 +47,7 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define L_GDiffuse 10
 #define L_GDepth   11
 #define L_HiZ      12
+#define L_SkyLut   13
 
 #if (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING || MESH_TYPE==T_MORPH)
 #define LVL_OBJECT 1
@@ -113,7 +114,7 @@ layout(push_constant, std430) uniform UboPush {
 #endif
 
 layout(binding = L_Scene, std140) uniform UboScene {
-  vec3  ldir;
+  vec3  sunDir;
   float shadowSize;
   mat4  viewProject;
   mat4  viewProjectInv;
@@ -174,6 +175,10 @@ layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
 
 #if defined(MESH) && !defined(SHADOW_MAP)
 layout(binding = L_HiZ)  uniform sampler2D hiZ;
+#endif
+
+#if defined(FRAGMENT) && defined(WATER)
+layout(binding = L_SkyLut) uniform sampler2D skyLUT;
 #endif
 
 #endif

@@ -23,14 +23,7 @@ layout(location = 3) in uint inColor;
 #endif
 
 #if (MESH_TYPE==T_MORPH)
-vec3 morphOffset(int i) {
-#if defined(MESH)
-  uint  vertexIndex = 0;
-  return vec3(0);//TODO
-#else
-  uint  vertexIndex = gl_VertexIndex;
-#endif
-
+vec3 morphOffset(int i, uint vertexIndex) {
   vec2  ai        = unpackUnorm2x16(push.morph[i].alpha16_intensity16);
   float alpha     = ai.x;
   float intensity = ai.y;
@@ -99,7 +92,7 @@ Varyings processVertex(uint objId, uint vboOffset) {
   vec3 dpos   = vec3(0);
 #if (MESH_TYPE==T_MORPH)
   for(int i=0; i<MAX_MORPH_LAYERS; ++i)
-    dpos += morphOffset(i);
+    dpos += morphOffset(i,vboOffset);
 #endif
 #if defined(LVL_OBJECT)
   dpos += normal*push.fatness;

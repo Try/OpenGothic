@@ -22,7 +22,7 @@ class PackedMesh {
 
     enum {
       MaxVert     = 64,
-      // NVidia allocates pipeline memory in batches of 128 bytes (2 reserved for size)
+      // NVidia allocates pipeline memory in batches of 128 bytes (4 reserved for size)
       MaxInd      = 41*3,
       MaxMeshlets = 16,
       };

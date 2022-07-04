@@ -12,8 +12,7 @@ SceneGlobals::SceneGlobals()
   Gothic::inst().onSettingsChanged.bind(this,&SceneGlobals::initSettings);
   initSettings();
 
-  uboGlobal.lightDir={1,1,-1};
-  uboGlobal.lightDir/=uboGlobal.lightDir.length();
+  uboGlobal.sunDir=Tempest::Vec3::normalize({1,1,-1});
 
   uboGlobal.viewProject.identity();
   uboGlobal.viewProjectInv.identity();
@@ -79,10 +78,9 @@ void SceneGlobals::setTime(uint64_t time) {
   }
 
 void SceneGlobals::commitUbo(uint8_t fId) {
-  auto  d = sun.dir();
   auto& c = sun.color();
 
-  uboGlobal.lightDir = {d.x,d.y,d.z};
+  uboGlobal.sunDir   = sun.dir();
   uboGlobal.lightCl  = {c.x,c.y,c.z,0.f};
   uboGlobal.lightAmb = {ambient.x,ambient.y,ambient.z,0.f};
 

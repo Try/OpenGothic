@@ -22,6 +22,8 @@ class Sky final {
     void drawSky    (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
     void drawFog    (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
 
+    const Tempest::Texture2d& skyLut() const;
+
   private:
     enum Algo : uint8_t {
       Nishita,

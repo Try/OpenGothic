@@ -44,11 +44,12 @@ class SceneGlobals final {
     const Tempest::Texture2d*         gbufNormals = &Resources::fallbackBlack();
     const Tempest::Texture2d*         gbufDepth   = &Resources::fallbackBlack();
     const Tempest::Texture2d*         hiZ         = &Resources::fallbackTexture();
+    const Tempest::Texture2d*         skyLut      = &Resources::fallbackTexture();
 
     const Tempest::AccelerationStructure* tlas = nullptr;
 
     struct UboGlobal final {
-      Tempest::Vec3                   lightDir   = {0,0,1};
+      Tempest::Vec3                   sunDir     = {0,0,1};
       float                           shadowSize = 2048;
       Tempest::Matrix4x4              viewProject;
       Tempest::Matrix4x4              viewProjectInv;

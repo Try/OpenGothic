@@ -157,6 +157,10 @@ void Sky::drawFog(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
     }
   }
 
+const Texture2d& Sky::skyLut() const {
+  return textureCast(egsr.viewLut);
+  }
+
 Sky::UboSky Sky::mkPush() {
   UboSky ubo;
   auto v = scene.view;

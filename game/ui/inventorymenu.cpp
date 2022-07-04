@@ -582,7 +582,7 @@ void InventoryMenu::drawItems(Painter &p, DrawPass pass,
 
   auto   it = inv.iterator();
   size_t id = 0;
-  for(size_t i=0; i<sel.scroll*size_t(wcount); ++i) {
+  for(size_t i=0; it.isValid() && i<sel.scroll*size_t(wcount); ++i) {
     ++it;
     ++id;
     }

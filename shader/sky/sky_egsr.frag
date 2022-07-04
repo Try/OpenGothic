@@ -39,7 +39,7 @@ vec4 clouds(vec3 at) {
 #endif
 
   // Clouds (LDR textures from original game) - need to adjust
-  day.rgb   = srgbDecode(day.rgb)*sunIntensity;
+  day.rgb   = srgbDecode(day.rgb)*GSunIntensity;
   day.a     = day.a*(1.0-push.night);
 
   night.rgb = srgbDecode(night.rgb);
@@ -56,30 +56,7 @@ vec4 clouds(vec3 at) {
  */
 vec3 textureSkyLUT(vec3 rayDir, vec3 sunDir) {
   const vec3  viewPos = vec3(0.0, RPlanet + push.plPosY, 0.0);
-  float height = length(viewPos);
-  vec3  up     = viewPos / height;
-
-  float horizonAngle  = safeacos(sqrt(height*height - RPlanet*RPlanet) / height);
-  float altitudeAngle = horizonAngle - acos(dot(rayDir, up)); // Between -PI/2 and PI/2
-  float azimuthAngle; // Between 0 and 2*PI
-  if(abs(altitudeAngle) > (0.5*PI - .0001)) {
-    // Looking nearly straight up or down.
-    azimuthAngle = 0.0;
-    } else {
-    vec3 right   = cross(sunDir, up);
-    vec3 forward = cross(up, right);
-
-    vec3 projectedDir = normalize(rayDir - up*(dot(rayDir, up)));
-    float sinTheta = dot(projectedDir, right);
-    float cosTheta = dot(projectedDir, forward);
-    azimuthAngle = atan(sinTheta, cosTheta) + PI;
-    }
-
-  // Non-linear mapping of altitude angle. See Section 5.3 of the paper.
-  float v  = 0.5 + 0.5*sign(altitudeAngle)*sqrt(abs(altitudeAngle)*2.0/PI);
-  vec2  uv = vec2(azimuthAngle / (2.0*PI), v);
-
-  return textureLod(skyLUT, uv, 0).rgb;
+  return textureSkyLUT(skyLUT, viewPos, rayDir, sunDir);
   }
 
 vec3 atmosphere(vec3 view, vec3 sunDir) {
@@ -115,7 +92,7 @@ void main() {
   float fogDens  = volumetricFog(pos0,pos1-pos0);
 
   vec3  lum      = atmosphereFog(uv);
-  lum *= sunIntensity;
+  lum *= GSunIntensity;
   lum = finalizeColor(lum,sunDir);
 
   vec3  fogColor = lum*fogDens;
@@ -131,7 +108,7 @@ void main() {
     sunLum = vec3(0.0);
     }
   lum += sunLum;
-  lum *= sunIntensity;
+  lum *= GSunIntensity;
 
   float L       = rayIntersect(pos, view, RClouds);
   // Clouds

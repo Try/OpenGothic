@@ -70,7 +70,7 @@ void main() {
   }
 #else
   {
-    float azimuthAngle = (uv.x - 0.5)*2.0*PI;
+    float azimuthAngle = (uv.x - 0.5)*2.0*M_PI;
     // Non-linear mapping of altitude. See Section 5.3 of the paper.
     float adjV;
     if(uv.y < 0.5) {
@@ -83,12 +83,12 @@ void main() {
 
     const float height        = length(viewPos);
     const vec3  up            = viewPos / height;
-    const float horizonAngle  = safeacos(sqrt(height*height - RPlanet*RPlanet) / height) - 0.5*PI;
-    const float altitudeAngle = adjV*0.5*PI - horizonAngle;
+    const float horizonAngle  = safeacos(sqrt(height*height - RPlanet*RPlanet) / height) - 0.5*M_PI;
+    const float altitudeAngle = adjV*0.5*M_PI - horizonAngle;
 
     float cosAltitude = cos(altitudeAngle);
 
-    float sunAltitude = (0.5*PI) - acos(dot(push.sunDir, up));
+    float sunAltitude = (0.5*M_PI) - acos(dot(push.sunDir, up));
 
     sunDir = vec3(0.0, sin(sunAltitude), -cos(sunAltitude));
     rayDir = vec3(cosAltitude*sin(azimuthAngle), sin(altitudeAngle), -cosAltitude*cos(azimuthAngle));

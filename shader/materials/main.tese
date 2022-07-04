@@ -53,6 +53,7 @@ void main() {
   vec3 dPos = multiWave(shOut.pos.xz*0.001);
 
   pos                += scene.viewProject*vec4(dPos,0);
+  shOut.pos          += dPos;
   shOut.shadowPos[0] += scene.shadow[0]  *vec4(dPos,0);
   shOut.shadowPos[1] += scene.shadow[1]  *vec4(dPos,0);
 

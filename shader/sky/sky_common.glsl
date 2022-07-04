@@ -1,9 +1,4 @@
-const float PI = 3.14159265358979323846;
-
-//Environment
-const float RPlanet  = 6360e3;       // Radius of the planet in meters
-const float RClouds  = RPlanet+3000; // Clouds height in meters
-const float RAtmos   = 6460e3;       // Radius of the atmosphere in meters
+#include "../common.glsl"
 
 const float g        = 0.8;          // light concentration .76 //.45 //.6  .45 is normaL
 
@@ -19,8 +14,6 @@ const float mieAbsorptionBase      = 4.40  / 1e6;
 const vec3  ozoneAbsorptionBase    = vec3(0.650, 1.881, .085) / 1e6;
 
 const float fogFarDistance         = 1000.0;
-const vec3  groundAlbedo           = vec3(0.1);
-const float sunIntensity           = 20.0;
 
 layout(push_constant, std140) uniform UboPush {
   mat4  viewProjectInv;
@@ -34,25 +27,6 @@ layout(push_constant, std140) uniform UboPush {
 vec3 inverse(vec3 pos) {
   vec4 ret = push.viewProjectInv*vec4(pos,1.0);
   return (ret.xyz/ret.w)/100.f;
-  }
-
-float safeacos(const float x) {
-  return acos(clamp(x, -1.0, 1.0));
-  }
-
-vec3 srgbDecode(vec3 color){
-  return pow(color,vec3(2.2));
-  }
-
-vec3 srgbEncode(vec3 color){
-  return pow(color,vec3(1.0/2.2));
-  }
-
-vec3 jodieReinhardTonemap(vec3 c){
-  // From: https://www.shadertoy.com/view/tdSXzD
-  float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
-  vec3 tc = c / (c + 1.0);
-  return mix(c / (l + 1.0), tc, tc);
   }
 
 vec4 mixClr(vec4 s, vec4 d) {
@@ -80,7 +54,7 @@ float volumetricFog(in vec3 pos, in vec3 cameraToWorldPos) {
   }
 
 float miePhase(float cosTheta) {
-  const float scale = 3.0/(8.0*PI);
+  const float scale = 3.0/(8.0*M_PI);
 
   float num   = (1.0-g*g)*(1.0+cosTheta*cosTheta);
   float denom = (2.0+g*g)*pow((1.0 + g*g - 2.0*g*cosTheta), 1.5);
@@ -89,7 +63,7 @@ float miePhase(float cosTheta) {
   }
 
 float rayleighPhase(float cosTheta) {
-  const float k = 3.0/(16.0*PI);
+  const float k = 3.0/(16.0*M_PI);
   return k*(1.0+cosTheta*cosTheta);
   }
 
@@ -109,7 +83,7 @@ float rayIntersect(vec3 v, vec3 d, float R) {
   }
 
 vec3 sunWithBloom(vec3 view, vec3 sunDir) {
-  const float sunSolidAngle  = 2.0*PI/180.0;
+  const float sunSolidAngle  = 2.0*M_PI/180.0;
   const float minSunCosTheta = cos(sunSolidAngle);
 
   float cosTheta = dot(view, sunDir);

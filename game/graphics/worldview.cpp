@@ -82,6 +82,7 @@ void WorldView::setGbuffer(const Texture2d& lightingBuf, const Texture2d& diffus
   sGlobal.gbufNormals = &norm;
   sGlobal.gbufDepth   = &depth;
   sGlobal.hiZ         = &hiZ;
+  sGlobal.skyLut      = &sky.skyLut();
   //sGlobal.tlas        = &tlas;
   sGlobal.setShadowMap(shadow);
   setupUbo();

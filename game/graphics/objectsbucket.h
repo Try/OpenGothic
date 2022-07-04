@@ -136,6 +136,7 @@ class ObjectsBucket {
       L_GDiffuse = 10,
       L_GDepth   = 11,
       L_HiZ      = 12,
+      L_SkyLut   = 13,
       };
 
     struct ShLight final {

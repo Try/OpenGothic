@@ -23,7 +23,7 @@ void main() {
   uint objId = 0;
 #endif
 
-  Varyings ret = processVertex(objId,0);
+  Varyings ret = processVertex(objId,gl_VertexIndex);
   shOut = ret;
   gl_Position = ret.scr;
 

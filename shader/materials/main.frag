@@ -58,7 +58,7 @@ float calcShadow() {
 #if !defined(SHADOW_MAP)
 vec4 dbgLambert() {
   vec3  normal  = normalize(shInp.normal);
-  float lambert = max(0.0,dot(scene.ldir,normal));
+  float lambert = max(0.0,dot(scene.sunDir,normal));
   return vec4(lambert,lambert,lambert,1.0);
   }
 
@@ -71,11 +71,11 @@ vec3 flatNormal(){
 
 vec3 calcLight() {
   vec3  normal  = normalize(shInp.normal);
-  float lambert = max(0.0,dot(scene.ldir,normal));
+  float lambert = max(0.0,dot(scene.sunDir,normal));
 
 #if (MESH_TYPE==T_LANDSCAPE)
   // fix self-shadowed surface
-  float flatSh = dot(scene.ldir,flatNormal());
+  float flatSh = dot(scene.sunDir,flatNormal());
   if(flatSh<=0) {
     lambert = 0;
     }
@@ -88,24 +88,59 @@ vec3 calcLight() {
 #endif
 
 #if defined(WATER)
-vec3 waterColor(vec3 selfColor) {
-  vec3  scr    = shInp.scr.xyz/shInp.scr.w;
-  vec2  p      = scr.xy*0.5+vec2(0.5);
-  vec4  back   = texture(gbufferDiffuse,p);
-  float depth  = texture(gbufferDepth,  p).r;
+vec4 waterColor(vec3 albedo) {
+  const float F   = 0.02;
+  const float ior = 1.0 / 1.52; // air / water
+  //return vec4(vec3(albedo.a),1);
 
-  float ground   = reconstructCSZ(depth, scene.clipInfo);
-  float water    = reconstructCSZ(scr.z, scene.clipInfo);
-  /*
-  float ratio   = 1.00 / 1.52; // air / water
-  vec3  view    = normalize(shInp.pos - scene.camPos);
-  vec3  refract = refract(view, shInp.normal, ratio);
-  */
+  vec4  camPos = scene.viewProjectInv*vec4(0,0,0,1.0);
+  camPos.xyz /= camPos.w;
 
-  float dist     = abs(water-ground)*10.0;
-  float a        = min(1.0 - exp(-0.95 * dist), 0.95);
+  const vec3  view     = normalize(shInp.pos - camPos.xyz);
+  const vec3  scr      = shInp.scr.xyz/shInp.scr.w;
+  const vec3  refl     = reflect(view, shInp.normal);
+  const vec3  refr     = refract(view, shInp.normal, ior);
 
-  return mix(back.rgb,selfColor,a);
+  const vec2  p        = scr.xy*0.5+vec2(0.5);
+  const float depth    = texture(gbufferDepth,  p).r;
+  const vec3  backOrig = texture(gbufferDiffuse,p).rgb;
+
+  const float ground   = reconstructCSZ(depth, scene.clipInfo);
+  const float water    = reconstructCSZ(scr.z, scene.clipInfo);
+  const float dist     = -(water-ground);
+  //return vec4(vec3(dist),1);
+
+  vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir);
+  sky *= GSunIntensity;
+  sky = jodieReinhardTonemap(sky);
+  sky = srgbEncode(sky);
+
+  const float f = fresnel(refl,shInp.normal,ior);
+  //return vec4(f,f,f,1);
+
+  vec3  rPos     = shInp.pos + dist*10.0*refr;
+  vec4  rPosScr  = scene.viewProject*vec4(rPos,1.0);
+  rPosScr.xyz /= rPosScr.w;
+  vec2  p2       = rPosScr.xy*0.5+vec2(0.5);
+  vec3  back     = texture(gbufferDiffuse,p2).rgb;
+  float depth2   = texture(gbufferDepth,  p2).r;
+  if(depth2<scr.z)
+    back  = backOrig;
+  //return vec4(p2,0,1);
+  //return vec4(back,1);
+
+  float transmittance = min(1.0 - exp(-0.95 * abs(dist)*5.0), 1.0);
+  //return vec4(vec3(transmittance),1);
+
+  back = mix(back.rgb,back.rgb*albedo.rgb,transmittance);
+  //return vec4(back,1);
+
+  vec3  clr      = mix(back,sky,f);
+  return vec4(clr,1);
+
+  //float dist     = abs(water-ground)*10.0;
+  //float a        = min(1.0 - exp(-0.95 * dist), 0.95);
+  //return vec4(mix(back.rgb,selfColor,a),1);
   }
 #endif
 
@@ -150,13 +185,7 @@ void main() {
 
 #if defined(WATER)
   {
-    float f     = 0.02;
-    vec3  view  = normalize(shInp.pos - scene.camPos);
-    float rs    = cookTorrance(f, shInp.normal,scene.ldir,view, 0.01);
-
-    vec4  wclr  = vec4(waterColor(color) + vec3(rs),1);
-
-    //wclr   = vec4(rs,rs,rs,1);
+    vec4 wclr = waterColor(color);
     color  = wclr.rgb;
     alpha  = wclr.a;
   }
