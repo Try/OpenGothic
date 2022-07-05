@@ -88,7 +88,71 @@ vec3 calcLight() {
 #endif
 
 #if defined(WATER)
-vec4 waterColor(vec3 albedo) {
+float intersectPlane(const vec3 pos, const vec3 dir, const vec4 plane) {
+  float dist = dot(vec4(pos,1.0), plane);
+  float step = -dot(plane.xyz,dir);
+  if(abs(step)<0.0001)
+    return 0;
+  return dist/step;
+  }
+
+float intersectFrustum(const vec3 pos, const vec3 dir) {
+  float ret = 0;
+  for(int i=0; i<6; ++i) {
+    // skip left and right planes to hide some SSR artifacts
+    if(i==0 || i==1)
+      continue;
+    float len = intersectPlane(pos,dir,scene.frustrum[i]);
+    if(len>0 && (len<ret || ret==0))
+      ret = len;
+    }
+  return ret;
+  }
+
+vec3 ssr(vec4 orig, vec3 start, vec3 refl) {
+  const int SSR_STEPS = 64;
+
+  vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir);
+  sky *= GSunIntensity;
+  sky = jodieReinhardTonemap(sky);
+  sky = srgbEncode(sky);
+
+  // const float rayLen = 10000;
+  const float rayLen = intersectFrustum(start,refl);
+  // return vec3(rayLen*0.01);
+  if(rayLen<=0)
+    return sky;
+
+  const vec4  dest = scene.viewProject*vec4(start+refl*rayLen, 1.0);
+
+  vec2  uv         = (orig.xy/orig.w)*0.5+vec2(0.5);
+  float depthPrev  = orig.z /orig.w;
+  bool  found      = false;
+  for(int i=1; i<=SSR_STEPS; ++i) {
+    const vec4  pos4  = mix(orig,dest,(float(i)/SSR_STEPS));
+    const vec3  pos   = pos4.xyz/pos4.w;
+    if(pos.z>=1.0)
+      break;
+
+    const vec2  p     = pos.xy*0.5+vec2(0.5);
+    const float depth = texture(gbufferDepth,p).r;
+    if(depth==1.0)
+      continue;
+
+    if(depthPrev<=depth && depth<=pos.z) {
+      uv    = p;
+      found = true;
+      break;
+      }
+    }
+
+  const vec3 reflection = texture(gbufferDiffuse,uv).rgb;
+  if(found)
+    return mix(sky,reflection,min(1.0,uv.y*4.0));
+  return sky;
+  }
+
+vec4 waterColor(vec3 color, vec3 albedo) {
   const float F   = 0.02;
   const float ior = 1.0 / 1.52; // air / water
   //return vec4(vec3(albedo.a),1);
@@ -110,10 +174,8 @@ vec4 waterColor(vec3 albedo) {
   const float dist     = -(water-ground);
   //return vec4(vec3(dist),1);
 
-  vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir);
-  sky *= GSunIntensity;
-  sky = jodieReinhardTonemap(sky);
-  sky = srgbEncode(sky);
+  vec3 sky = ssr(shInp.scr,shInp.pos,refl)*albedo;
+  // return vec4(sky,1);
 
   const float f = fresnel(refl,shInp.normal,ior);
   //return vec4(f,f,f,1);
@@ -132,7 +194,7 @@ vec4 waterColor(vec3 albedo) {
   float transmittance = min(1.0 - exp(-0.95 * abs(dist)*5.0), 1.0);
   //return vec4(vec3(transmittance),1);
 
-  back = mix(back.rgb,back.rgb*albedo.rgb,transmittance);
+  back = mix(back.rgb,back.rgb*color.rgb,transmittance);
   //return vec4(back,1);
 
   vec3  clr      = mix(back,sky,f);
@@ -185,7 +247,7 @@ void main() {
 
 #if defined(WATER)
   {
-    vec4 wclr = waterColor(color);
+    vec4 wclr = waterColor(color,vec3(0.8,0.9,1.0));
     color  = wclr.rgb;
     alpha  = wclr.a;
   }

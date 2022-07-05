@@ -21,6 +21,7 @@ vec3 fresnelSchlick(vec3 F0, float cosTheta) {
   return F0 + (vec3(1.0) - F0) * pow(1.0 - cosTheta, 5.0);
   }
 
+// https://www.scratchapixel.com/lessons/3d-basic-rendering/introduction-to-shading/reflection-refraction-fresnel
 float fresnel(const vec3 incident, const vec3 normal, const float ior) {
   float cosi = clamp(-1, 1, dot(incident, normal));
   float etai = 1, etat = ior;
