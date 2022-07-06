@@ -109,7 +109,7 @@ float intersectFrustum(const vec3 pos, const vec3 dir) {
   return ret;
   }
 
-vec3 ssr(vec4 orig, vec3 start, vec3 refl) {
+vec3 ssr(vec4 orig, vec3 start, vec3 refl, vec3 fallbackClr) {
   const int SSR_STEPS = 64;
 
   vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir);
@@ -125,11 +125,13 @@ vec3 ssr(vec4 orig, vec3 start, vec3 refl) {
 
   const vec4  dest = scene.viewProject*vec4(start+refl*rayLen, 1.0);
 
-  vec2  uv         = (orig.xy/orig.w)*0.5+vec2(0.5);
-  float depthPrev  = orig.z /orig.w;
-  bool  found      = false;
+  vec2 uv       = (orig.xy/orig.w)*0.5+vec2(0.5);
+  bool found    = false;
+  bool occluded = false;
+
   for(int i=1; i<=SSR_STEPS; ++i) {
-    const vec4  pos4  = mix(orig,dest,(float(i)/SSR_STEPS));
+    const float t     = (float(i)/SSR_STEPS);
+    const vec4  pos4  = mix(orig,dest,t*t);
     const vec3  pos   = pos4.xyz/pos4.w;
     if(pos.z>=1.0)
       break;
@@ -139,15 +141,29 @@ vec3 ssr(vec4 orig, vec3 start, vec3 refl) {
     if(depth==1.0)
       continue;
 
-    if(depthPrev<=depth && depth<=pos.z) {
-      uv    = p;
-      found = true;
-      break;
+    if(pos.z>=depth) {
+      // screen-space data is occluded
+      occluded = true;
+      }
+
+    if(pos.z>depth) {
+      vec4  hit4   = scene.viewProjectInv*vec4(pos.xy,depth,1.0);
+      vec3  hit    = /*normalize*/(hit4.xyz/hit4.w - start);
+      float angCos = dot(hit,refl);
+
+      if(angCos>0.0) {
+        uv    = p;
+        found = true;
+        break;
+        }
       }
     }
 
-  const vec3 reflection = texture(gbufferDiffuse,uv).rgb;
+  const vec3 reflection = textureLod(gbufferDiffuse,uv,0).rgb;
   if(found)
+    return mix(sky,reflection,min(1.0,uv.y*4.0));
+    //return reflection;
+  if(occluded)
     return mix(sky,reflection,min(1.0,uv.y*4.0));
   return sky;
   }
@@ -174,7 +190,7 @@ vec4 waterColor(vec3 color, vec3 albedo) {
   const float dist     = -(water-ground);
   //return vec4(vec3(dist),1);
 
-  vec3 sky = ssr(shInp.scr,shInp.pos,refl)*albedo;
+  vec3 sky = ssr(shInp.scr,shInp.pos,refl,backOrig)*albedo;
   // return vec4(sky,1);
 
   const float f = fresnel(refl,shInp.normal,ior);
