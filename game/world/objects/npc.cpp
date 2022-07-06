@@ -3779,7 +3779,14 @@ void Npc::stopWalking() {
 
 bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
   const auto mid = oth.bounds().midTr;
-  return canSeeNpc(mid.x,mid.y,mid.z,freeLos);
+  if(canSeeNpc(mid.x,mid.y,mid.z,freeLos))
+    return true;
+  if(oth.visual.visualSkeleton()->BIP01_HEAD==size_t(-1))
+    return false;
+  auto head = oth.visual.mapHeadBone();
+  if(canSeeNpc(head.x,head.y,head.z,freeLos))
+    return true;
+  return false;
   }
 
 bool Npc::canSeeNpc(float tx, float ty, float tz, bool freeLos) const {
