@@ -38,6 +38,9 @@ MainWindow::MainWindow(Device& device)
   for(uint8_t i=0;i<Resources::MaxFramesInFlight;++i)
     fence[i] = device.fence();
 
+  Gothic::inst().onSettingsChanged.bind(this,&MainWindow::onSettings);
+  onSettings();
+
   if(!CommandLine::inst().isWindowMode())
     setFullscreen(true);
 
@@ -300,6 +303,13 @@ void MainWindow::tickMouse() {
     }
 
   dMouse = Point();
+  }
+
+void MainWindow::onSettings() {
+  auto zMaxFps = Gothic::inst().settingsGetI("ENGINE","zMaxFps");
+  if(zMaxFps>0)
+    maxFpsInv = 1000u/uint64_t(zMaxFps); else
+    maxFpsInv = 0;
   }
 
 void MainWindow::mouseWheelEvent(MouseEvent &event) {
@@ -1000,12 +1010,18 @@ void MainWindow::render(){
     cmdId = (cmdId+1u)%Resources::MaxFramesInFlight;
 
     auto t = Application::tickCount();
-    if(t-time<15 && !Gothic::inst().isInGame() && !video.isActive()){
-      Application::sleep(uint32_t(15-(t-time)));
-      t = Application::tickCount();
+    if(t-time<15 && !Gothic::inst().isInGame() && !video.isActive()) {
+      uint32_t delay = uint32_t(15-(t-time));
+      Application::sleep(delay);
+      t += delay;
+      }
+    else if(maxFpsInv>0 && t-time<maxFpsInv) {
+      uint32_t delay = uint32_t(maxFpsInv-(t-time));
+      Application::sleep(delay);
+      t += delay;
       }
     fps.push(t-time);
-    time=t;
+    time = t;
     }
   catch(const Tempest::SwapchainSuboptimal&) {
     Log::e("swapchain is outdated - reset renderer");
