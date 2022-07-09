@@ -581,6 +581,9 @@ void Npc::onNoHealth(bool death, HitSound sndMask) {
 
   size_t fdead=owner.script().getSymbolIndex(state);
   startState(fdead,"",gtime::endOfTime(),true);
+  // Note: clear perceptions for William in Jarkentar
+  for(size_t i=0;i<PERC_Count;++i)
+    setPerceptionDisable(PercType(i));
   if(hnpc.voice>0 && sndMask!=HS_NoSound) {
     emitSoundSVM(svm);
     }
