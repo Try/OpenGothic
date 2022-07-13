@@ -261,8 +261,8 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
   for(size_t i=0; i<lay.size(); ++i) {
     const auto& l = lay[i];
     if(l.seq->animCls==Animation::Transition && l.seq->isFinished(tickCount,l.sAnim,combo.len())) {
-      auto next = solveNext(solver,lay[i]);
-      if(next!=lay[i].seq) {
+      auto next = solveNext(solver,l);
+      if(next!=l.seq) {
         needToUpdate = true;
         onRemoveLayer(lay[i]);
 
@@ -272,6 +272,8 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
           doSort       = lay[i].seq->layer!=next->layer;
           lay[i].seq   = next;
           lay[i].sAnim = tickCount;
+          // WA for swampshark animation
+          lay[i].bs    = BodyState(lay[i].bs & (~BS_STUMBLE));
           onAddLayer(lay[i]);
           ret++;
           }

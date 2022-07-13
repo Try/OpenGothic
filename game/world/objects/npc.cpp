@@ -1380,6 +1380,11 @@ bool Npc::implAtack(uint64_t dt) {
   if(ws==WeaponState::NoWeapon)
     return false;
 
+  if(bodyStateMasked()==BS_STUMBLE) {
+    mvAlgo.tick(dt,MoveAlgo::FaiMove);
+    return true;
+    }
+
   if(faiWaitTime>=owner.tickCount()) {
     adjustAtackRotation(dt);
     mvAlgo.tick(dt,MoveAlgo::FaiMove);
@@ -1722,8 +1727,10 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
   if(hitResult.hasHit) {
     if(bodyStateMasked()!=BS_UNCONSCIOUS && interactive()==nullptr && !isSwim() && !mvAlgo.isClimb()) {
       const bool noInter = (hnpc.bodyStateInterruptableOverride!=0);
-      if(!noInter)
+      if(!noInter) {
+        visual.setAnimRotate(*this,0);
         visual.interrupt();
+        }
       setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB);
       }
     }
