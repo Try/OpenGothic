@@ -273,7 +273,8 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
           lay[i].seq   = next;
           lay[i].sAnim = tickCount;
           // WA for swampshark animation
-          lay[i].bs    = BodyState(lay[i].bs & (~BS_STUMBLE));
+          if((lay[i].bs & BS_MAX)==BS_STUMBLE)
+            lay[i].bs = BodyState(lay[i].bs & (~BS_MAX));
           onAddLayer(lay[i]);
           ret++;
           }
