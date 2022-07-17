@@ -405,7 +405,7 @@ bool MdlVisual::setToFightMode(const WeaponState f) {
 
 void MdlVisual::setObjMatrix(const Tempest::Matrix4x4 &m, bool syncAttach) {
   pos = m;
-  skInst->setObjectMatrix(m);
+  skInst->setObjectMatrix(m,syncAttach);
   view.setPose(m,*skInst);
   if(syncAttach)
     syncAttaches();
@@ -484,7 +484,7 @@ bool MdlVisual::updateAnimation(Npc* npc, World& world, uint64_t dt) {
     }
 
   solver.update(tickCount);
-  pose.setObjectMatrix(pos);
+  pose.setObjectMatrix(pos,false);
   const bool changed = pose.update(tickCount);
 
   if(changed)

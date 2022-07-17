@@ -547,15 +547,16 @@ bool Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev
   return hasEvents>0;
   }
 
-void Pose::setObjectMatrix(const Tempest::Matrix4x4& obj) {
+void Pose::setObjectMatrix(const Tempest::Matrix4x4& obj, bool sync) {
   if(pos==obj)
     return;
-  needToUpdate = true;
-  pos          = obj;
-  mkSkeleton(pos);
+  pos = obj;
+  if(sync)
+    mkSkeleton(pos); else
+    needToUpdate = true;
   }
 
-Tempest::Vec3 Pose::animMoveSpeed(uint64_t tickCount,uint64_t dt) const {
+Tempest::Vec3 Pose::animMoveSpeed(uint64_t tickCount, uint64_t dt) const {
   for(size_t i=lay.size(); i>0; ) {
     --i;
     auto& lx = lay[i];

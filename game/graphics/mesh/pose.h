@@ -46,7 +46,7 @@ class Pose final {
     void               interrupt();
     void               stopAllAnim();
 
-    void               setObjectMatrix(const Tempest::Matrix4x4& obj);
+    void               setObjectMatrix(const Tempest::Matrix4x4& obj, bool sync);
     bool               update(uint64_t tickCount);
 
     void               processLayers(AnimationSolver &solver, uint64_t tickCount);

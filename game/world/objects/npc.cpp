@@ -702,7 +702,12 @@ float Npc::qDistTo(const Npc &p) const {
   }
 
 float Npc::qDistTo(const Interactive &p) const {
-  auto pos = p.position();
+  auto pos = p.nearestPoint(*this);
+  return qDistTo(pos.x,pos.y,pos.z);
+  }
+
+float Npc::qDistTo(const Item& p) const {
+  auto pos = p.midPosition();
   return qDistTo(pos.x,pos.y,pos.z);
   }
 
@@ -714,16 +719,12 @@ uint8_t Npc::calcAniComb() const {
   }
 
 void Npc::updateAnimation(uint64_t dt) {
-  bool syncAtt = false;
-
   if(durtyTranform) {
     updatePos();
-    syncAtt = true;
     durtyTranform=0;
     }
 
-  syncAtt |= visual.updateAnimation(this,owner,dt);
-
+  bool syncAtt = visual.updateAnimation(this,owner,dt);
   if(syncAtt)
     visual.syncAttaches();
   }
