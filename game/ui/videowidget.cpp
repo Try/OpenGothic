@@ -200,7 +200,7 @@ void VideoWidget::tick() {
   auto f     = FileUtil::caseInsensitiveSegment(path,fname.c_str(),Dir::FT_File);
   if(!FileUtil::exists(f)) {
     // some api-calls are missing extension
-    f = FileUtil::caseInsensitiveSegment(f,u".bik",Dir::FT_File);
+    f = FileUtil::caseInsensitiveSegment(path,(fname+u".bik").c_str(),Dir::FT_File);
     }
 
   try {
