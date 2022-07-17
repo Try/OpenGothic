@@ -73,6 +73,9 @@ void WorldObjects::load(Serialize &fin) {
   fin.read(v);
   fin.setVersion(v);
   }
+  itemArr.clear();
+  items.clear();
+
   uint32_t sz = fin.directorySize("worlds/",fin.worldName(),"/npc/");
   npcArr.resize(sz);
   for(size_t i=0; i<sz; ++i)
@@ -83,8 +86,6 @@ void WorldObjects::load(Serialize &fin) {
 
   fin.setEntry("worlds/",fin.worldName(),"/items");
   fin.read(sz);
-  itemArr.clear();
-  items.clear();
   for(size_t i=0; i<sz; ++i) {
     auto it = std::make_unique<Item>(owner,fin,Item::T_World);
     itemArr.emplace_back(std::move(it));

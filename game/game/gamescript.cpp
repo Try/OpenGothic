@@ -510,7 +510,7 @@ void GameScript::loadQuests(Serialize& fin) {
   }
 
 void GameScript::saveVar(Serialize &fout) {
-  auto&  dat = vm.getDATFile().getSymTable().symbols;
+  auto& dat = vm.getDATFile().getSymTable().symbols;
   fout.write(uint32_t(dat.size()));
   for(auto& i:dat){
     saveSym(fout,i);
@@ -558,6 +558,14 @@ void GameScript::loadVar(Serialize &fin) {
             auto itm = world().itmById(id);
             s.instance.set(itm ? &itm->handle() : nullptr, Daedalus::IC_Item);
             }
+          else if(dataClass==3) {
+            uint32_t itmClass=0;
+            fin.read(itmClass);
+            if(auto npc = world().npcById(id)) {
+              auto itm = npc->getItem(itmClass);
+              s.instance.set(itm ? &itm->handle() : nullptr, Daedalus::IC_Item);
+              }
+            }
           }
         break;
         }
@@ -580,6 +588,7 @@ const QuestLog& GameScript::questLog() const {
   }
 
 void GameScript::saveSym(Serialize &fout,const Daedalus::PARSymbol &i) {
+  auto& w = world();
   switch(i.properties.elemProps.type) {
     case Daedalus::EParType::EParType_Int:
       if(i.intData.size()>0){
@@ -610,10 +619,26 @@ void GameScript::saveSym(Serialize &fout,const Daedalus::PARSymbol &i) {
       else if(i.instance.instanceOf(Daedalus::IC_Npc)){
         auto hnpc = reinterpret_cast<const Daedalus::GEngineClasses::C_Npc*>(i.instance.get());
         auto npc  = reinterpret_cast<const Npc*>(hnpc==nullptr ? nullptr : hnpc->userPtr);
-        fout.write(uint8_t(1),i.name,world().npcId(npc));
+        fout.write(uint8_t(1),i.name,w.npcId(npc));
         }
       else if(i.instance.instanceOf(Daedalus::IC_Item)){
-        fout.write(uint8_t(2),i.name,world().itmId(i.instance.get()));
+        auto     item = reinterpret_cast<const Daedalus::GEngineClasses::C_Item*>(i.instance.get());
+        uint32_t id   = w.itmId(item);
+        if(id!=uint32_t(-1) || item==nullptr) {
+          fout.write(uint8_t(2),i.name,id);
+          } else {
+          uint32_t idNpc = uint32_t(-1);
+          for(uint32_t r=0; r<w.npcCount(); ++r) {
+            auto& n = *w.npcById(r);
+            if(n.hasItem(item->instanceSymbol)) {
+              idNpc = r;
+              fout.write(uint8_t(3),i.name,idNpc,item->instanceSymbol);
+              break;
+              }
+            }
+          if(idNpc==uint32_t(-1))
+            fout.write(uint8_t(2),i.name,uint32_t(-1));
+          }
         }
       else if(i.instance.instanceOf(Daedalus::IC_Focus) ||
               i.instance.instanceOf(Daedalus::IC_GilValues) ||
@@ -2429,7 +2454,7 @@ void GameScript::npc_getreadiedweapon(Daedalus::DaedalusVM &vm) {
     }
 
   auto ret = npc->inventory().activeWeapon();
-  if(ret!=nullptr){
+  if(ret!=nullptr) {
     vm.setReturn(int32_t(ret->clsId()));
     } else {
     vm.setReturn(0);
@@ -3209,8 +3234,9 @@ void GameScript::hlp_isitem(Daedalus::DaedalusVM &vm) {
   if(item!=nullptr){
     auto& v = item->handle();
     vm.setReturn(v.instanceSymbol==instanceSymbol ? 1 : 0);
-    } else
+    } else {
     vm.setReturn(0);
+    }
   }
 
 void GameScript::hlp_isvaliditem(Daedalus::DaedalusVM &vm) {

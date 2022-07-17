@@ -1315,7 +1315,7 @@ bool Npc::implGoTo(uint64_t dt) {
       dist = fghAlgo.baseDistance(*this,*go2.npc,owner.script());
     } else {
     // use smaller threshold, to avoid edge-looping in script
-    dist = MoveAlgo::closeToPointThreshold*0.25f;
+    dist = MoveAlgo::closeToPointThreshold*0.5f;
     if(go2.wp!=nullptr && go2.wp->useCounter()>1)
       dist += 100;
     }
@@ -1725,6 +1725,12 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
   if(!isSpell && !isDown() && hitResult.hasHit)
     owner.addWeaponHitEffect(other,b,*this).play();
 
+  if(isDown()) {
+    // check again after PERC_ASSESSDAMAGE script
+    onNoHealth(dontKill,HS_NoSound);
+    return;
+    }
+
   if(hitResult.hasHit) {
     if(bodyStateMasked()!=BS_UNCONSCIOUS && interactive()==nullptr && !isSwim() && !mvAlgo.isClimb()) {
       const bool noInter = (hnpc.bodyStateInterruptableOverride!=0);
@@ -2127,10 +2133,12 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
           queue.pushFront(std::move(act));
         break;
         }
+      /*
+       * Rhademes doesn't quit talk properly
       if(owner.script().isTalk(*this)) {
         queue.pushFront(std::move(act));
         break;
-        }
+        }*/
       auto inter = owner.aviableMob(*this,act.s0.c_str());
       if(inter==nullptr) {
         queue.pushFront(std::move(act));

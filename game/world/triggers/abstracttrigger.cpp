@@ -115,10 +115,14 @@ bool AbstractTrigger::hasFlag(ReactFlg flg) const {
   return (filter&flg)==flg;
   }
 
-void AbstractTrigger::onIntersect(Npc &n) {
-  if(!hasFlag(n.isPlayer() ? RespondToPC : RespondToNPC) &&
-     !hasFlag(ReactToOnTouch)/* &&
-     data.vobType!=ZenLoad::zCVobData::VT_oCTouchDamage*/)
+void AbstractTrigger::onIntersect(Npc& n) {
+  /* NOTE:
+   *
+   * In Adanaos temple trap-movers have:
+   *  flags       = 0b00000011
+   *  filterFlags = 0b00011001
+   */
+  if(!hasFlag(n.isPlayer() ? RespondToPC : RespondToNPC) && !hasFlag(ReactToOnTouch))
     return;
 
   if(!isEnabled())
