@@ -63,7 +63,7 @@ class Interactive : public Vob {
     uint32_t            stateMask() const;
 
     bool                canSeeNpc(const Npc &npc, bool freeLos) const;
-    Tempest::Vec3       nearestPoint(const Npc& to);
+    Tempest::Vec3       nearestPoint(const Npc& to) const;
 
     bool                isAvailable() const;
     bool                isStaticState() const;
@@ -81,6 +81,7 @@ class Interactive : public Vob {
   protected:
     Tempest::Matrix4x4  nodeTranform(std::string_view nodeName) const;
     void                moveEvent() override;
+    float               extendedSearchRadius() const override;
     virtual void        onStateChanged(){}
 
   private:
@@ -114,6 +115,10 @@ class Interactive : public Vob {
     bool                setAnim(Npc* npc, Anim dir);
     void                setState(int st);
 
+    template<class P, class Inter>
+    static P*           findNearest(Inter& in, const Npc& to);
+
+    const Pos*          findNearest(const Npc& to) const;
     Pos*                findNearest(const Npc& to);
     const Pos*          findFreePos() const;
     Pos*                findFreePos();
@@ -125,10 +130,11 @@ class Interactive : public Vob {
     std::string                  vobName;
     std::string                  focName;
     std::string                  mdlVisual;
-    ZMath::float3                bbox[2]={};
+    Tempest::Vec3                bbox[2]={};
     std::string                  owner;
     bool                         focOver=false;
     bool                         showVisual=true;
+    Tempest::Vec3                displayOffset;
     // oCMobInter
     int                          stateNum=0;
     std::string                  triggerTarget;

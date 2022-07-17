@@ -125,6 +125,7 @@ class Npc final {
     float      qDistTo(const WayPoint* p) const;
     float      qDistTo(const Npc& p) const;
     float      qDistTo(const Interactive& p) const;
+    float      qDistTo(const Item& p) const;
 
     void       updateAnimation(uint64_t dt);
     void       updateTransform();

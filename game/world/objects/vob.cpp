@@ -43,10 +43,8 @@ Vob::Vob(Vob* parent, World& owner, ZenLoad::zCVobData& vob, Flags flags)
 
   for(auto& i:vob.childVobs) {
     auto p = Vob::load(this,owner,std::move(i),flags);
-    if(p!=nullptr) {
-      childContent = ContentBit(p->childContent|childContent);
+    if(p!=nullptr)
       child.emplace_back(std::move(p));
-      }
     }
   vob.childVobs.clear();
   }
@@ -89,6 +87,10 @@ bool Vob::isDynamic() const {
   return false;
   }
 
+float Vob::extendedSearchRadius() const {
+  return 0;
+  }
+
 void Vob::recalculateTransform() {
   auto old = position();
   if(parent!=nullptr) {
@@ -97,9 +99,19 @@ void Vob::recalculateTransform() {
     } else {
     pos = local;
     }
-  if(old != position() && !isDynamic()) {
-    if(childContent!=cbNone)
-      world.invalidateVobIndex();
+  if(old!=position() && !isDynamic()) {
+    switch(vobType) {
+      case ZenLoad::zCVobData::VT_oCMOB:
+      case ZenLoad::zCVobData::VT_oCMobBed:
+      case ZenLoad::zCVobData::VT_oCMobDoor:
+      case ZenLoad::zCVobData::VT_oCMobInter:
+      case ZenLoad::zCVobData::VT_oCMobContainer:
+      case ZenLoad::zCVobData::VT_oCMobSwitch:
+      case ZenLoad::zCVobData::VT_oCMobLadder:
+      case ZenLoad::zCVobData::VT_oCMobWheel:
+        world.invalidateVobIndex();
+        break;
+      }
     }
   moveEvent();
   for(auto& i:child) {
@@ -117,14 +129,10 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
     case ZenLoad::zCVobData::VT_zCVobLevelCompo:
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
     case ZenLoad::zCVobData::VT_oCMobFire:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbMobsi);
       return std::unique_ptr<Vob>(new FirePlace(parent,world,vob,flags));
     case ZenLoad::zCVobData::VT_oCMOB:
       // Irdotar bow-triggers
       // focusOverride=true
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbMobsi);
       return std::unique_ptr<Vob>(new Interactive(parent,world,vob,flags));
     case ZenLoad::zCVobData::VT_oCMobBed:
     case ZenLoad::zCVobData::VT_oCMobDoor:
@@ -133,57 +141,31 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
     case ZenLoad::zCVobData::VT_oCMobSwitch:
     case ZenLoad::zCVobData::VT_oCMobLadder:
     case ZenLoad::zCVobData::VT_oCMobWheel:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbMobsi);
       return std::unique_ptr<Vob>(new Interactive(parent,world,vob,flags));
 
     case ZenLoad::zCVobData::VT_zCMover:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new MoveTrigger(parent,world,std::move(vob),flags));
     case ZenLoad::zCVobData::VT_zCCodeMaster:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new CodeMaster(parent,world,std::move(vob),flags));
     case ZenLoad::zCVobData::VT_zCTriggerList:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new TriggerList(parent,world,std::move(vob),flags));
     case ZenLoad::zCVobData::VT_zCTriggerScript:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new TriggerScript(parent,world,std::move(vob),flags));
     case ZenLoad::zCVobData::VT_oCTriggerWorldStart:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new TriggerWorldStart(parent,world,std::move(vob),flags));
     case ZenLoad::zCVobData::VT_oCTriggerChangeLevel:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new ZoneTrigger(parent,world,std::move(vob),flags));
     case ZenLoad::zCVobData::VT_zCTrigger:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new Trigger(parent,world,std::move(vob),flags));
     case ZenLoad::zCVobData::VT_zCMessageFilter:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new MessageFilter(parent,world,std::move(vob),flags));
     case ZenLoad::zCVobData::VT_zCPFXControler:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new PfxController(parent,world,std::move(vob),flags));
     case ZenLoad::zCVobData::VT_oCTouchDamage:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new TouchDamage(parent,world,std::move(vob),flags));
     case ZenLoad::zCVobData::VT_zCTriggerUntouch:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
     case ZenLoad::zCVobData::VT_zCMoverControler:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new MoverControler(parent,world,std::move(vob),flags));
 
     case ZenLoad::zCVobData::VT_zCVobStartpoint: {

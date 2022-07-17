@@ -176,6 +176,11 @@ Tempest::Vec3 Item::position() const {
   return pos;
   }
 
+Vec3 Item::midPosition() const {
+  auto b = view.bounds();
+  return pos + (b.bbox[1]-b.bbox[0]);
+  }
+
 bool Item::isGold() const {
   return hitem.instanceSymbol==world.script().goldId();
   }

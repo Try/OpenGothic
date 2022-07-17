@@ -15,11 +15,14 @@ Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData& vob, Fla
   : Vob(parent,world,vob,flags) {
   vobName       = std::move(vob.vobName);
   focName       = std::move(vob.oCMOB.focusName);
-  bbox[0]       = vob.bbox[0];
-  bbox[1]       = vob.bbox[1];
+  bbox[0]       = Tempest::Vec3(vob.bbox[0].x,vob.bbox[0].y,vob.bbox[0].z);
+  bbox[1]       = Tempest::Vec3(vob.bbox[1].x,vob.bbox[1].y,vob.bbox[1].z);
   owner         = std::move(vob.oCMOB.owner);
   focOver       = vob.oCMOB.focusOverride;
   showVisual    = vob.showVisual;
+
+  auto p = position();
+  displayOffset = Tempest::Vec3(0,bbox[1].y-p.y,0);
 
   stateNum      = vob.oCMobInter.stateNum;
   triggerTarget = std::move(vob.oCMobInter.triggerTarget);
@@ -78,7 +81,7 @@ void Interactive::load(Serialize &fin) {
   Vob::load(fin);
 
   fin.read(vobName,focName,mdlVisual);
-  fin.read(bbox[0].x,bbox[0].y,bbox[0].z,bbox[1].x,bbox[1].y,bbox[1].z,owner);
+  fin.read(bbox[0],bbox[1],owner);
   fin.read(focOver,showVisual);
 
   fin.read(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
@@ -116,7 +119,7 @@ void Interactive::save(Serialize &fout) const {
   Vob::save(fout);
 
   fout.write(vobName,focName,mdlVisual);
-  fout.write(bbox[0].x,bbox[0].y,bbox[0].z,bbox[1].x,bbox[1].y,bbox[1].z,owner);
+  fout.write(bbox[0],bbox[1],owner);
   fout.write(focOver,showVisual);
 
   fout.write(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
@@ -338,7 +341,7 @@ bool Interactive::overrideFocus() const {
 
 Tempest::Vec3 Interactive::displayPosition() const {
   auto p = position();
-  return {p.x,bbox[1].y,p.z};
+  return p+displayOffset;
   }
 
 std::string_view Interactive::displayName() const {
@@ -448,7 +451,7 @@ bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
 
   // graves
   if(attPos.size()==0){
-    auto pos = position();
+    auto pos = displayPosition();
 
     float x = pos.x;
     float y = pos.y;
@@ -459,25 +462,34 @@ bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
   return false;
   }
 
-Tempest::Vec3 Interactive::nearestPoint(const Npc& to) {
+Tempest::Vec3 Interactive::nearestPoint(const Npc& to) const {
   if(auto p = findNearest(to))
     return worldPos(*p);
-  return Tempest::Vec3();
+  return displayPosition();
   }
 
-Interactive::Pos* Interactive::findNearest(const Npc& to) {
+template<class P, class Inter>
+P* Interactive::findNearest(Inter& in, const Npc& to) {
   float dist = 0;
-  Pos*  p    = nullptr;
-  for(auto& i:attPos) {
+  P*    p    = nullptr;
+  for(auto& i:in.attPos) {
     if(i.user || !i.isAttachPoint())
       continue;
-    float d = qDistanceTo(to,i);
+    float d = in.qDistanceTo(to,i);
     if(d<dist || p==nullptr) {
       p    = &i;
       dist = d;
       }
     }
   return p;
+  }
+
+const Interactive::Pos* Interactive::findNearest(const Npc& to) const {
+  return findNearest<const Interactive::Pos, const Interactive>(*this,to);
+  }
+
+Interactive::Pos* Interactive::findNearest(const Npc& to) {
+  return findNearest<Interactive::Pos, Interactive>(*this,to);
   }
 
 void Interactive::implAddItem(std::string_view name) {
@@ -653,6 +665,13 @@ bool Interactive::attach(Npc& npc, Interactive::Pos& to) {
 
   setPos(npc,mv);
   setDir(npc,mat);
+
+  if(vobType==ZenLoad::zCVobData::VT_oCMobLadder) {
+    if(&to!=&attPos[0])
+      state = -1; else
+      state = stepsCount;
+    loopState = false;
+    }
 
   if(state>0) {
     reverseState = (state>0);
@@ -906,8 +925,23 @@ const Animation::Sequence* Interactive::animNpc(const AnimationSolver &solver, A
 void Interactive::marchInteractives(DbgPainter &p) const {
   p.setBrush(Tempest::Color(1.0,0,0,1));
 
-  for(auto& m:attPos){
+  for(auto& m:attPos) {
     auto pos = worldPos(m);
+
+    float x = pos.x;
+    float y = pos.y;
+    float z = pos.z;
+    p.mvp.project(x,y,z);
+
+    x = (0.5f*x+0.5f)*float(p.w);
+    y = (0.5f*y+0.5f)*float(p.h);
+
+    p.painter.drawRect(int(x),int(y),1,1);
+    p.drawText(int(x), int(y), schemeName().data());
+    }
+
+  if(attPos.size()==0) {
+    auto pos = displayPosition();
 
     float x = pos.x;
     float y = pos.y;
@@ -925,6 +959,14 @@ void Interactive::marchInteractives(DbgPainter &p) const {
 void Interactive::moveEvent() {
   Vob::moveEvent();
   visual.setObjMatrix(transform());
+  }
+
+float Interactive::extendedSearchRadius() const {
+  float x = bbox[1].x-bbox[0].x;
+  float y = bbox[1].y-bbox[0].y;
+  float z = bbox[1].z-bbox[0].z;
+
+  return std::max(x,std::max(y,z));
   }
 
 std::string_view Interactive::Pos::posTag() const {

@@ -896,14 +896,14 @@ static bool canSee(const Npc& pl,const Interactive& n){
 
 static bool canSee(const Npc& pl,const Item& n){
   auto p0 = pl.position();
-  auto p1 = n.position();
+  auto p1 = n.midPosition();
   const float plY = p0.y;
   if(plY<=p1.y && p1.y<=plY+180) {
     //auto head = pl.mapHeadBone();
     if(pl.canSeeNpc(p0.x,p1.y,p0.z,true))
       return true;
     }
-  return pl.canSeeNpc(p1.x,p1.y+20,p1.z,true);
+  return pl.canSeeNpc(p1.x,p1.y,p1.z,true);
   }
 
 template<class T>
@@ -946,17 +946,14 @@ bool WorldObjects::testObj(T &src, const Npc &pl, const WorldObjects::SearchOpt 
   if(!checkFlag(npc,opt.flags))
     return false;
 
-  auto pos  = npc.position();
-  auto dpos = pl.position()-pos;
-  //float dx=pl.position()[0]-pos[0];
-  //float dy=pl.position()[1]-pos[1];
-  //float dz=pl.position()[2]-pos[2];
-
-  float l = dpos.quadLength();
+  float l = pl.qDistTo(npc);
   if(l>qmax || l<qmin)
     return false;
 
-  auto angle=std::atan2(dpos.z,dpos.x);
+  auto pos   = npc.position();
+  auto dpos  = pl.position()-pos;
+  auto angle = std::atan2(dpos.z,dpos.x);
+
   if(std::cos(plAng-angle)<ang && !bool(opt.flags&SearchFlg::NoAngle))
     return false;
 
