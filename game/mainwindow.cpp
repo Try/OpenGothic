@@ -1010,8 +1010,8 @@ void MainWindow::render(){
     cmdId = (cmdId+1u)%Resources::MaxFramesInFlight;
 
     auto t = Application::tickCount();
-    if(t-time<15 && !Gothic::inst().isInGame() && !video.isActive()) {
-      uint32_t delay = uint32_t(15-(t-time));
+    if(t-time<16 && !Gothic::inst().isInGame() && !video.isActive()) {
+      uint32_t delay = uint32_t(16-(t-time));
       Application::sleep(delay);
       t += delay;
       }

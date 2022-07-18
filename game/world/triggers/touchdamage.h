@@ -10,6 +10,7 @@ class TouchDamage : public AbstractTrigger {
 
   private:
     void onTrigger(const TriggerEvent &evt) override;
+    void onIntersect(Npc& n) override;
     void tick(uint64_t dt) override;
     void takeDamage(Npc& npc, int32_t val, int32_t prot);
 

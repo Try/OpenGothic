@@ -8,6 +8,7 @@
 #if defined(RAY_QUERY_AT)
 #extension GL_EXT_nonuniform_qualifier : enable
 #endif
+layout(early_fragment_tests) in;
 
 layout(location = 0) out vec4 outColor;
 

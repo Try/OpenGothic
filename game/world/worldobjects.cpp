@@ -355,9 +355,9 @@ std::unique_ptr<Npc> WorldObjects::takeNpc(const Npc* ptr) {
 
 void WorldObjects::tickNear(uint64_t /*dt*/) {
   for(Npc* i:npcNear) {
-    auto pos=i->position();
+    auto pos = i->position() + Vec3(0,i->translateY(),0);
     for(CollisionZone* z:collisionZn)
-      if(z->checkPos(pos + Vec3(0,i->translateY(),0)))
+      if(z->checkPos(pos))
         z->onIntersect(*i);
     }
   }

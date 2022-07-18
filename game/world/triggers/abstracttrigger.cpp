@@ -129,7 +129,7 @@ void AbstractTrigger::onIntersect(Npc& n) {
     return;
 
   if(boxNpc.intersections().size()==1) {
-    enableTicks();
+    // enableTicks();
     TriggerEvent e("","",TriggerEvent::T_Activate);
     processEvent(e);
     }
