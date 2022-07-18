@@ -317,7 +317,8 @@ class Npc final {
     auto      handle() -> Daedalus::GEngineClasses::C_Npc* { return  &hnpc; }
 
     auto      inventory() const -> const Inventory& { return invent; }
-    size_t    hasItem    (size_t id) const;
+    size_t    itemCount  (size_t id) const;
+    Item*     activeWeapon();
     Item*     getItem    (size_t id);
     Item*     addItem    (size_t id, size_t amount);
     Item*     addItem    (std::unique_ptr<Item>&& i);

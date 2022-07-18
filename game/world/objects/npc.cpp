@@ -2924,8 +2924,12 @@ bool Npc::checkGoToNpcdistance(const Npc &other) {
   return fghAlgo.isInAtackRange(*this,other,owner.script());
   }
 
-size_t Npc::hasItem(size_t id) const {
+size_t Npc::itemCount(size_t id) const {
   return invent.itemCount(id);
+  }
+
+Item* Npc::activeWeapon() {
+  return invent.activeWeapon();
   }
 
 Item *Npc::getItem(size_t id) {

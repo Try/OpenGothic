@@ -407,6 +407,7 @@ class GameScript final {
 
     void fixNpcPosition(Npc& npc, float angle0, float distBias);
     void onWldInstanceRemoved(const Daedalus::GEngineClasses::Instance* obj);
+    void makeCurrent(Item* w);
 
     GameSession&                                                owner;
     Daedalus::DaedalusVM                                        vm;

@@ -525,7 +525,7 @@ bool Interactive::checkUseConditions(Npc& npc) {
     const size_t keyInst        = keyInstance.empty() ? size_t(-1) : world.script().getSymbolIndex(keyInstance.c_str());
     const bool   needToPicklock = (pickLockStr.size()>0);
 
-    if(keyInst!=size_t(-1) && npc.hasItem(keyInst)>0)
+    if(keyInst!=size_t(-1) && npc.itemCount(keyInst)>0)
       return true;
     if((canLockPick || isLockCracked) && needToPicklock)
       return true;
@@ -551,7 +551,7 @@ bool Interactive::checkUseConditions(Npc& npc) {
 
     if(!useWithItem.empty()) {
       size_t it = world.script().getSymbolIndex(useWithItem);
-      if(it!=size_t(-1) && npc.hasItem(it)==0) {
+      if(it!=size_t(-1) && npc.itemCount(it)==0) {
         sc.printMobMissingItem(npc);
         return false;
         }
@@ -657,7 +657,7 @@ bool Interactive::attach(Npc& npc, Interactive::Pos& to) {
 
   if(!useWithItem.empty()) {
     size_t it = world.script().getSymbolIndex(useWithItem.c_str());
-    if(it!=size_t(-1) && npc.hasItem(it)>0) {
+    if(it!=size_t(-1) && npc.itemCount(it)>0) {
       npc.delItem(it,1);
       }
     npc.setCurrentItem(it);

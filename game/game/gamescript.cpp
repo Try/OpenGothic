@@ -630,7 +630,7 @@ void GameScript::saveSym(Serialize &fout,const Daedalus::PARSymbol &i) {
           uint32_t idNpc = uint32_t(-1);
           for(uint32_t r=0; r<w.npcCount(); ++r) {
             auto& n = *w.npcById(r);
-            if(n.hasItem(item->instanceSymbol)) {
+            if(n.itemCount(item->instanceSymbol)>0) {
               idNpc = r;
               fout.write(uint8_t(3),i.name,idNpc,uint32_t(item->instanceSymbol));
               break;
@@ -1214,6 +1214,13 @@ void GameScript::onWldInstanceRemoved(const Daedalus::GEngineClasses::Instance* 
     }
   }
 
+void GameScript::makeCurrent(Item* w) {
+  if(w==nullptr)
+    return;
+  auto& s = vm.getDATFile().getSymbolByIndex(w->clsId());
+  s.instance.set(&w->handle(),Daedalus::IC_Item);
+  }
+
 bool GameScript::searchScheme(std::string_view sc, std::string_view listName) {
   auto& list = getSymbol(listName).getString();
   const char* l = list.c_str();
@@ -1752,7 +1759,7 @@ void GameScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
     return;
   npc->setVisualBody(headTexNr,teethTexNr,bodyTexNr,bodyTexColor,body.c_str(),head.c_str());
   if(armor>=0) {
-    if(npc->hasItem(uint32_t(armor))==0)
+    if(npc->itemCount(uint32_t(armor))==0)
       npc->addItem(uint32_t(armor),1);
     npc->useItem(uint32_t(armor),true);
     }
@@ -2026,7 +2033,7 @@ void GameScript::npc_hasitems(Daedalus::DaedalusVM &vm) {
   uint32_t itemId = uint32_t(vm.popInt());
   auto     npc    = popInstance(vm);
   if(npc!=nullptr)
-    vm.setReturn(int32_t(npc->hasItem(itemId))); else
+    vm.setReturn(int32_t(npc->itemCount(itemId))); else
     vm.setReturn(0);
   }
 
@@ -2253,12 +2260,13 @@ void GameScript::npc_getactivespell(Daedalus::DaedalusVM &vm) {
     return;
     }
 
-  const Item* w = npc->inventory().activeWeapon();
+  Item* w = npc->activeWeapon();
   if(w==nullptr || !w->isSpellOrRune()){
     vm.setReturn(-1);
     return;
     }
 
+  makeCurrent(w);
   vm.setReturn(w->spellId());
   }
 
@@ -2269,7 +2277,7 @@ void GameScript::npc_getactivespellisscroll(Daedalus::DaedalusVM &vm) {
     return;
     }
 
-  const Item* w = npc->inventory().activeWeapon();
+  Item* w = npc->activeWeapon();
   if(w==nullptr || !w->isSpell()){
     vm.setReturn(0);
     return;
@@ -2453,8 +2461,9 @@ void GameScript::npc_getreadiedweapon(Daedalus::DaedalusVM &vm) {
     return;
     }
 
-  auto ret = npc->inventory().activeWeapon();
+  auto ret = npc->activeWeapon();
   if(ret!=nullptr) {
+    makeCurrent(ret);
     vm.setReturn(int32_t(ret->clsId()));
     } else {
     vm.setReturn(0);
@@ -2479,12 +2488,13 @@ void GameScript::npc_isdrawingspell(Daedalus::DaedalusVM &vm) {
     vm.setReturn(0);
     return;
     }
-  auto it = npc->inventory().activeWeapon();
-  if(it==nullptr || !it->isSpell()){
+  auto ret = npc->activeWeapon();
+  if(ret==nullptr || !ret->isSpell()){
     vm.setReturn(0);
     return;
     }
-  vm.setReturn(int32_t(it->clsId()));
+  makeCurrent(ret);
+  vm.setReturn(int32_t(ret->clsId()));
   }
 
 void GameScript::npc_isdrawingweapon(Daedalus::DaedalusVM& vm) {
@@ -2493,13 +2503,14 @@ void GameScript::npc_isdrawingweapon(Daedalus::DaedalusVM& vm) {
     vm.setReturn(0);
     return;
     }
-  npc->weaponState();
-  auto it = npc->inventory().activeWeapon();
-  if(it==nullptr || !it->isSpell()){
+
+  auto ret = npc->activeWeapon();
+  if(ret==nullptr || !ret->isSpell()){
     vm.setReturn(0);
     return;
     }
-  vm.setReturn(int32_t(it->clsId()));
+  makeCurrent(ret);
+  vm.setReturn(int32_t(ret->clsId()));
   }
 
 void GameScript::npc_perceiveall(Daedalus::DaedalusVM &vm) {
@@ -2719,7 +2730,7 @@ void GameScript::npc_getactivespellcat(Daedalus::DaedalusVM &vm) {
     return;
     }
 
-  const Item* w = npc->inventory().activeWeapon();
+  const Item* w = npc->activeWeapon();
   if(w==nullptr || !w->isSpellOrRune()){
     vm.setReturn(SPELL_GOOD);
     return;
@@ -3171,7 +3182,7 @@ void GameScript::equipitem(Daedalus::DaedalusVM &vm) {
   auto     self = popInstance(vm);
 
   if(self!=nullptr) {
-    if(self->hasItem(cls)==0)
+    if(self->itemCount(cls)==0)
       self->addItem(cls,1);
     self->useItem(cls,true);
     }
