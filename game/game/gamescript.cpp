@@ -632,7 +632,7 @@ void GameScript::saveSym(Serialize &fout,const Daedalus::PARSymbol &i) {
             auto& n = *w.npcById(r);
             if(n.hasItem(item->instanceSymbol)) {
               idNpc = r;
-              fout.write(uint8_t(3),i.name,idNpc,item->instanceSymbol);
+              fout.write(uint8_t(3),i.name,idNpc,uint32_t(item->instanceSymbol));
               break;
               }
             }
