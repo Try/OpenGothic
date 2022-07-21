@@ -112,11 +112,14 @@ Varyings processVertex(uint objId, uint vboOffset) {
 #if (MESH_TYPE==T_SKINING)
   vec3 pos = vec3(0);
   {
-    vec3 t0   = (matrix[boneId.x]*vec4(pos0+dpos,1.0)).xyz;
-    vec3 t1   = (matrix[boneId.y]*vec4(pos1+dpos,1.0)).xyz;
-    vec3 t2   = (matrix[boneId.z]*vec4(pos2+dpos,1.0)).xyz;
-    vec3 t3   = (matrix[boneId.w]*vec4(pos3+dpos,1.0)).xyz;
-    pos = (t0*weight.x + t1*weight.y + t2*weight.z + t3*weight.w);
+    dpos = (matrix[objId]*vec4(dpos,0)).xyz;
+    dpos = vec3(dpos.z,dpos.y,-dpos.x);
+
+    vec3 t0   = (matrix[boneId.x]*vec4(pos0,1.0)).xyz;
+    vec3 t1   = (matrix[boneId.y]*vec4(pos1,1.0)).xyz;
+    vec3 t2   = (matrix[boneId.z]*vec4(pos2,1.0)).xyz;
+    vec3 t3   = (matrix[boneId.w]*vec4(pos3,1.0)).xyz;
+    pos += (t0*weight.x + t1*weight.y + t2*weight.z + t3*weight.w) + dpos;
   }
 #elif (MESH_TYPE==T_OBJ || MESH_TYPE==T_MORPH)
   pos    = (matrix[objId]*vec4(pos+dpos,1.0)).xyz;
