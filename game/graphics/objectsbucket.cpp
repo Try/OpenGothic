@@ -842,7 +842,7 @@ void ObjectsBucket::invalidateInstancing() {
     if(staticMesh!=nullptr && staticMesh->ibo.size()<=PackedMesh::MaxInd){
       instancingType = Aggressive;
       }
-    if(useMeshlets) {
+    if(useMeshlets && animMesh==nullptr) {
       instancingType = Aggressive;
       }
     }
