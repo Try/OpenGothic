@@ -491,6 +491,8 @@ bool Npc::resetPositionToTA() {
     }
   setPosition (at->x, at->y, at->z);
   setDirection(at->dirX,at->dirY,at->dirZ);
+  owner.script().fixNpcPosition(*this,0,0);
+
   if(!isDead)
     attachToPoint(at);
   return true;

@@ -156,6 +156,7 @@ class GameScript final {
     BodyState schemeToBodystate(std::string_view sc);
 
     void      onWldItemRemoved(const Item& itm);
+    void      fixNpcPosition(Npc& npc, float angle0, float distBias);
 
   private:
     void               initCommon();
@@ -405,7 +406,6 @@ class GameScript final {
 
     void saveSym(Serialize& fout,const Daedalus::PARSymbol& s);
 
-    void fixNpcPosition(Npc& npc, float angle0, float distBias);
     void onWldInstanceRemoved(const Daedalus::GEngineClasses::Instance* obj);
     void makeCurrent(Item* w);
 
