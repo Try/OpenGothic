@@ -1435,6 +1435,10 @@ bool Npc::implAtack(uint64_t dt) {
             obsticle = false;
           }
         }
+      if(auto spl = activeWeapon()) {
+        if(!spl->isSpellShoot())
+          obsticle = false;
+        }
       if(obsticle) {
         auto anim = (owner.script().rand(2)==0 ? Npc::Anim::MoveL : Npc::Anim::MoveR);
         if(setAnim(anim)){
