@@ -904,7 +904,7 @@ void GameMenu::updateSavTitle(GameMenu::Item& sel) {
   std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",int(id));
 
   if(!FileUtil::exists(TextCodec::toUtf16(fname))) {
-    sel.handle.text[0] = "";
+    sel.handle.text[0] = "---";
     return;
     }
 
