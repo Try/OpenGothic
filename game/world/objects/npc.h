@@ -116,7 +116,7 @@ class Npc final {
     auto       world() -> World&;
 
     float      translateY() const;
-    float      centerY() const;
+    auto       centerPosition() const -> Tempest::Vec3;
     Npc*       lookAtTarget() const;
     auto       portalName() -> std::string_view;
     auto       formerPortalName() -> std::string_view;

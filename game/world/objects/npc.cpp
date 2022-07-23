@@ -6,13 +6,10 @@
 #include <zenload/zCMaterial.h>
 
 #include "graphics/mesh/skeleton.h"
-#include "graphics/mesh/animmath.h"
-#include "graphics/pfx/particlefx.h"
 #include "graphics/visualfx.h"
 #include "game/damagecalculator.h"
 #include "game/serialize.h"
 #include "game/gamescript.h"
-#include "world/triggers/trigger.h"
 #include "world/objects/interactive.h"
 #include "world/objects/item.h"
 #include "world/world.h"
@@ -668,8 +665,10 @@ float Npc::translateY() const {
   return visual.pose().translateY();
   }
 
-float Npc::centerY() const {
-  return physic.centerY();
+Vec3 Npc::centerPosition() const {
+  auto p = position();
+  p.y = physic.centerY();
+  return p;
   }
 
 Npc *Npc::lookAtTarget() const {
@@ -1426,6 +1425,27 @@ bool Npc::implAtack(uint64_t dt) {
       }
 
     auto ws = weaponState();
+    if(ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage) {
+      bool obsticle = false;
+      if(currentTarget!=nullptr) {
+        auto hit = owner.physic()->rayNpc(this->mapWeaponBone(),currentTarget->centerPosition());
+        if(hit.hasCol) {
+          obsticle = true;
+          if(hit.npcHit!=nullptr && owner.script().personAttitude(*this,*hit.npcHit)==ATT_HOSTILE)
+            obsticle = false;
+          }
+        }
+      if(obsticle) {
+        auto anim = (owner.script().rand(2)==0 ? Npc::Anim::MoveL : Npc::Anim::MoveR);
+        if(setAnim(anim)){
+          visual.setAnimRotate(*this,0);
+          implFaiWait(visual.pose().animationTotalTime());
+          fghAlgo.consumeAction();
+          return true;
+          }
+        }
+      }
+
     if(ws==WeaponState::Mage) {
       if(castSpell()) {
         fghAlgo.consumeAction();
@@ -2874,7 +2894,7 @@ Vec3 Npc::mapBone(std::string_view bone) const {
     }
 
   Vec3 ret = {};
-  ret.y = centerY()-y;
+  ret.y = physic.centerY()-y;
   return ret+position();
   }
 
@@ -3358,6 +3378,7 @@ bool Npc::shootBow(Interactive* focOverride) {
   auto itm = invent.getItem(size_t(munition));
   if(itm==nullptr)
     return false;
+
   auto& b = owner.shootBullet(*itm,*this,currentTarget,focOverride);
 
   invent.delItem(size_t(munition),1,*this);

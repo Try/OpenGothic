@@ -147,6 +147,10 @@ class DynamicWorld final {
       bool                hasCol = false;
       };
 
+    struct RayQueryResult : RayLandResult{
+      Npc* npcHit = nullptr;
+      };
+
     struct BulletCallback {
       virtual ~BulletCallback()=default;
       virtual void onStop(){}
@@ -227,6 +231,7 @@ class DynamicWorld final {
     RayWaterResult waterRay     (const Tempest::Vec3& from) const;
 
     RayLandResult  ray          (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
+    RayQueryResult rayNpc       (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
     float          soundOclusion(const Tempest::Vec3& from, const Tempest::Vec3& to) const;
 
     NpcItem        ghostObj  (std::string_view visual);

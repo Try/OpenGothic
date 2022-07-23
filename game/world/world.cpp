@@ -9,7 +9,6 @@
 #include <Tempest/Painter>
 
 #include "graphics/mesh/submesh/packedmesh.h"
-#include "graphics/mesh/skeleton.h"
 #include "graphics/visualfx.h"
 #include "world/objects/globalfx.h"
 #include "world/objects/npc.h"
@@ -595,10 +594,7 @@ Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target, c
   auto          pos = npc.mapWeaponBone();
 
   if(target!=nullptr) {
-    auto  tgPos = target->position();
-    tgPos.y = target->centerY();
-
-    dir = tgPos-pos;
+    dir = target->centerPosition() - pos;
 
     float lxz   = std::sqrt(dir.x*dir.x+0*0+dir.z*dir.z);
     float speed = DynamicWorld::bulletSpeed;
