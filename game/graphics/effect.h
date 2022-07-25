@@ -83,8 +83,9 @@ class Effect final {
     Tempest::Matrix4x4    pos;
     Tempest::Vec3         selfRotation;
 
-    bool                  active = false;
-    bool                  looped = false;
+    bool                  active    = false;
+    bool                  looped    = false;
+    bool                  noPhysics = false;
 
     std::unique_ptr<Effect> next;
   };

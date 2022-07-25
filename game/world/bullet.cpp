@@ -63,6 +63,7 @@ void Bullet::setView(Effect &&p) {
   vfx = std::move(p);
   vfx.setActive(true);
   vfx.setLooped(true);
+  vfx.setBullet(this,*wrld);
   vfx.setPhysicsDisable();
   updateMatrix();
   }
@@ -122,6 +123,7 @@ void Bullet::onCollide(uint8_t matId) {
     }
   Effect::onCollide(*wrld,vfx.handle(),obj->position(),nullptr,ow,spellId());
   vfx.setLooped(false);
+  vfx.setPhysicsDisable();
   wrld->runEffect(std::move(vfx));
   if(obj==nullptr || obj->hitCount()>3 || obj->isSpell())
     onStop();
@@ -138,6 +140,7 @@ void Bullet::onCollide(Npc& npc) {
     }
   vfx.setKey(*wrld,SpellFxKey::Collide);
   vfx.setLooped(false);
+  vfx.setPhysicsDisable();
   wrld->runEffect(std::move(vfx));
 
   onStop();

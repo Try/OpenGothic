@@ -273,6 +273,7 @@ bool Effect::isAlive() const {
   }
 
 void Effect::setPhysicsDisable() {
+  noPhysics = true;
   pfx.setPhysicsDisable();
   }
 
@@ -334,6 +335,8 @@ void Effect::setupCollision(World& owner) {
     physics = true;
   if(emCheckCollision)
     physics = true;
+  if(noPhysics)
+    physics = false;
 
   if(!pfx.isEmpty() && physics) {
     auto vfx = root;
