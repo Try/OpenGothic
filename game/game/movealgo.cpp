@@ -371,6 +371,9 @@ void MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
       setInWater(false);
     }
 
+  if(pos+dp==pos && dY==0)
+    return;
+
   if(-fallThreshold<dY && npc.isFlyAnim()) {
     // jump animation
     tryMove(dp.x,dp.y,dp.z);

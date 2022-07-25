@@ -284,8 +284,7 @@ void Npc::load(Serialize &fin, size_t id) {
     invent.load(fin,*this);
 
   // post-alignment
-  updatePos();
-  visual.syncAttaches();
+  updateTransform();
   if(isUsingTorch)
     visual.setTorch(true,owner);
   if(isDead())
@@ -353,9 +352,7 @@ bool Npc::setPosition(float ix, float iy, float iz) {
   y = iy;
   z = iz;
   durtyTranform |= TR_Pos;
-
   physic.setPosition(Vec3{x,y,z});
-  updatePos();
   return true;
   }
 
@@ -718,25 +715,6 @@ uint8_t Npc::calcAniComb() const {
     return 0;
   auto dpos = currentTarget->position()-position();
   return Pose::calcAniComb(dpos,angle);
-  }
-
-void Npc::updateAnimation(uint64_t dt) {
-  if(durtyTranform) {
-    updatePos();
-    durtyTranform=0;
-    }
-
-  bool syncAtt = visual.updateAnimation(this,owner,dt);
-  if(syncAtt)
-    visual.syncAttaches();
-  }
-
-void Npc::updateTransform() {
-  if(durtyTranform) {
-    updatePos();
-    visual.syncAttaches();
-    durtyTranform=0;
-    }
   }
 
 std::string_view Npc::displayName() const {
@@ -3926,32 +3904,40 @@ Matrix4x4 Npc::mkPositionMatrix() const {
   return mt;
   }
 
-void Npc::updatePos() {
-  const auto ground = groundNormal();
-
-  if(lastGroundNormal!=ground) {
-    durtyTranform |= TR_Rot;
-    lastGroundNormal = ground;
-    }
-
-  sfxWeapon.setPosition(x,y,z);
-
-  Matrix4x4 pos;
-  if(durtyTranform==TR_Pos) {
-    pos = visual.transform();
-    pos.set(3,0,x);
-    pos.set(3,1,y);
-    pos.set(3,2,z);
-    } else {
-    pos = mkPositionMatrix();
-    }
-
-  if(mvAlgo.isSwim()) {
-    float chest = mvAlgo.canFlyOverWater() ? 0 : mvAlgo.waterDepthChest();
-    float y = pos.at(3,1);
-    pos.set(3,1,y+chest);
-    }
-
-  visual.setObjMatrix(pos,false);
+void Npc::updateTransform() {
+  updateAnimation(0);
   }
 
+void Npc::updateAnimation(uint64_t dt) {
+  if(durtyTranform) {
+    const auto ground = groundNormal();
+    if(lastGroundNormal!=ground) {
+      durtyTranform |= TR_Rot;
+      lastGroundNormal = ground;
+      }
+
+    sfxWeapon.setPosition(x,y,z);
+    Matrix4x4 pos;
+    if(durtyTranform==TR_Pos) {
+      pos = visual.transform();
+      pos.set(3,0,x);
+      pos.set(3,1,y);
+      pos.set(3,2,z);
+      } else {
+      pos = mkPositionMatrix();
+      }
+
+    if(mvAlgo.isSwim()) {
+      float chest = mvAlgo.canFlyOverWater() ? 0 : mvAlgo.waterDepthChest();
+      float y = pos.at(3,1);
+      pos.set(3,1,y+chest);
+      }
+
+    visual.setObjMatrix(pos,false);
+    durtyTranform = 0;
+    }
+
+  bool syncAtt = visual.updateAnimation(this,owner,dt);
+  if(syncAtt)
+    visual.syncAttaches();
+  }
