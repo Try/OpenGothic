@@ -284,6 +284,7 @@ void Npc::load(Serialize &fin, size_t id) {
     invent.load(fin,*this);
 
   // post-alignment
+  updatePos();
   visual.syncAttaches();
   if(isUsingTorch)
     visual.setTorch(true,owner);

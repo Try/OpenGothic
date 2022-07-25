@@ -915,19 +915,26 @@ void MainWindow::onStartLoading() {
   }
 
 void MainWindow::onWorldLoaded() {
+  dMouse = Point();
+
   player   .clearInput();
   inventory.onWorldChanged();
   dialogs  .onWorldChanged();
-
-  dMouse = Point();
-  renderer.onWorldChanged();
 
   device.waitIdle();
   for(auto& c:commands)
     c = device.commandBuffer();
 
-  if(auto c = Gothic::inst().camera())
+  if(auto wview=Gothic::inst().worldView()) {
+    wview->updateLight();
+    }
+
+  if(auto c = Gothic::inst().camera()) {
     c->setViewport(uint32_t(w()),uint32_t(h()));
+    renderer.setCameraView(*c);
+    }
+  renderer.onWorldChanged();
+
   if(auto pl = Gothic::inst().player())
     pl->multSpeed(1.f);
   lastTick = Application::tickCount();

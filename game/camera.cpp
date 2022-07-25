@@ -3,7 +3,6 @@
 #include "world/objects/npc.h"
 #include "world/objects/interactive.h"
 #include "world/world.h"
-#include "game/playercontrol.h"
 #include "game/definitions/cameradefinitions.h"
 #include "game/serialize.h"
 #include "utils/gthfont.h"
@@ -48,7 +47,8 @@ void Camera::reset(const Npc* pl) {
   dst.spin.x = def.bestElevation;
   dst.spin.y = pl ? pl->rotation() : 0;
 
-  src.spin = dst.spin;
+  src.spin   = dst.spin;
+
   calcControlPoints(-1.f);
   }
 
@@ -443,10 +443,9 @@ void Camera::calcControlPoints(float dtF) {
                             def.rotOffsetZ);
   auto  rotBest      = Vec3(0,def.bestAzimuth,0);
 
-  float range        = src.range*100.f;
-
   clampRotation(dst.spin);
 
+  float range = src.range*100.f;
   if(camMod==Dialog) {
     // TODO: DialogCams.zen
     range        = dlgDist;
@@ -476,15 +475,13 @@ void Camera::calcControlPoints(float dtF) {
   followPos(src.target,target,dtF);
   followCamera(cameraPos,src.target,dtF);
 
-  auto baseOrigin = target    - dir*range;
-  origin          = cameraPos - dir*range;
-
+  origin = cameraPos - dir*range;
   if(def.collision!=0) {
-    range      = calcCameraColision(src.target,origin,src.spin,range);
-    baseOrigin = target    - dir*range*100.f;
-    origin     = cameraPos - dir*range*100.f;
+    range  = calcCameraColision(src.target,origin,src.spin,range);
+    origin = cameraPos - dir*range;
     }
 
+  auto baseOrigin = target - dir*range;
   if(camMod==Dialog)
     offsetAng = Vec3(); else
     offsetAng = calcOffsetAngles(origin,baseOrigin,dst.target);
@@ -571,7 +568,7 @@ float Camera::calcCameraColision(const Vec3& target, const Vec3& origin, const V
       if(md<distMd)
         distMd=md;
       }
-  return std::max(minDist,distMd)/100.f;
+  return std::max(minDist,distMd);
   }
 
 Matrix4x4 Camera::mkView(const Vec3& pos, const Vec3& spin) const {
