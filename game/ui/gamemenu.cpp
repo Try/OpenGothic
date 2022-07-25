@@ -733,6 +733,8 @@ void GameMenu::execSingle(Item &it, int slideDx) {
     ctrlInput = &it;
     if(item.onChgSetOption.empty()) {
       SavNameDialog dlg{item.text[0]};
+      if(it.savHdr.version==0)
+        dlg.text = "";
       dlg.resize(owner.size());
       dlg.exec();
       ctrlInput = nullptr;
@@ -826,7 +828,7 @@ void GameMenu::execChgOption(Item &item, int slideDx) {
     }
   }
 
-void GameMenu::execSaveGame(GameMenu::Item &item) {
+void GameMenu::execSaveGame(const GameMenu::Item& item) {
   const size_t id = saveSlotId(item);
   if(id==size_t(-1))
     return;
@@ -836,13 +838,15 @@ void GameMenu::execSaveGame(GameMenu::Item &item) {
   Gothic::inst().save(fname,item.handle.text[0].c_str());
   }
 
-void GameMenu::execLoadGame(GameMenu::Item &item) {
+void GameMenu::execLoadGame(const GameMenu::Item &item) {
   const size_t id = saveSlotId(item);
   if(id==size_t(-1))
     return;
 
   char fname[64]={};
   std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",int(id));
+  if(!FileUtil::exists(TextCodec::toUtf16(fname)))
+    return;
   Gothic::inst().load(fname);
   }
 
