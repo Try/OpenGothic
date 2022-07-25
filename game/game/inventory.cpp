@@ -539,10 +539,19 @@ void Inventory::unequipArmour(GameScript &, Npc &owner) {
   setSlot(armour,nullptr,owner,false);
   }
 
-void Inventory::clear(GameScript&, Npc&) {
+void Inventory::clear(GameScript&, Npc&, bool includeMissionItm) {
   std::vector<std::unique_ptr<Item>> used;
   for(auto& i:items)
-    if(i->isEquiped() || i->isMission()){
+    if(i->isEquiped() || (i->isMission() && !includeMissionItm)){
+      used.emplace_back(std::move(i));
+      }
+  items = std::move(used); // Gothic don't clear items, which are in use
+  }
+
+void Inventory::clear(GameScript& vm, Interactive& owner, bool includeMissionItm) {
+  std::vector<std::unique_ptr<Item>> used;
+  for(auto& i:items)
+    if(i->isMission() && !includeMissionItm){
       used.emplace_back(std::move(i));
       }
   items = std::move(used); // Gothic don't clear items, which are in use

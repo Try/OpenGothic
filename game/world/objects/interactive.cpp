@@ -5,10 +5,8 @@
 
 #include "game/serialize.h"
 #include "graphics/mesh/skeleton.h"
-#include "graphics/mesh/pose.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
-#include "utils/fileext.h"
 #include "utils/dbgpainter.h"
 
 Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData& vob, Flags flags)
@@ -41,7 +39,7 @@ Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData& vob, Fla
     pickLockStr = std::move(vob.oCMobLockable.pickLockStr);
     }
 
-  if(isContainer()) {
+  if(isContainer() && (flags&Flags::Startup)==Flags::Startup) {
     auto items  = std::move(vob.oCMobContainer.contains);
     if(items.size()>0) {
       char* it = &items[0];
@@ -98,16 +96,17 @@ void Interactive::load(Serialize &fin) {
 
     fin.read(name,user,attachMode,started);
 
-    for(auto& i:attPos)
-      if(i.name==name) {
-        i.user       = user;
-        i.attachMode = attachMode;
-        i.started    = started;
+    for(auto& a:attPos)
+      if(a.name==name) {
+        a.user       = user;
+        a.attachMode = attachMode;
+        a.started    = started;
         }
     }
 
   if(fin.setEntry("worlds/",fin.worldName(),"/mobsi/",vobObjectID,"/inventory"))
-    invent.load(fin,*this,world);
+    invent.load(fin,*this,world); else
+    invent.clear(world.script(),*this,true);
 
   fin.setEntry("worlds/",fin.worldName(),"/mobsi/",vobObjectID,"/visual");
   visual.load(fin,*this);
