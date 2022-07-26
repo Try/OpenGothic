@@ -133,6 +133,14 @@ const WayPoint &WayMatrix::startPoint() const {
   return p;
   }
 
+const WayPoint& WayMatrix::deadPoint() const {
+  for(auto& i:indexPoints)
+    if(i->name=="TOT")
+      return *i;
+  static WayPoint p(Vec3(-1000,-1000,-1000),"TOT");
+  return p;
+  }
+
 const WayPoint* WayMatrix::findPoint(std::string_view name, bool inexact) const {
   if(name.empty())
     return nullptr;

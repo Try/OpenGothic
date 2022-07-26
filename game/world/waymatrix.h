@@ -25,6 +25,7 @@ class WayMatrix final {
     void            addStartPoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name);
 
     const WayPoint& startPoint() const;
+    const WayPoint& deadPoint() const;
     void            buildIndex();
 
     const WayPoint* findPoint(std::string_view name, bool inexact) const;

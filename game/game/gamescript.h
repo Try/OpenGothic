@@ -162,7 +162,7 @@ class GameScript final {
     void               initCommon();
 
     struct GlobalOutput : AiOuputPipe {
-      GlobalOutput(GameScript& owner):owner(owner){}
+      explicit GlobalOutput(GameScript& owner):owner(owner){}
 
       bool output   (Npc &npc, const Daedalus::ZString& text) override;
       bool outputSvm(Npc& npc, const Daedalus::ZString& text) override;

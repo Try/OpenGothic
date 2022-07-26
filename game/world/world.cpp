@@ -839,6 +839,10 @@ const WayPoint *World::findNextPoint(const WayPoint &pos) const {
   return wmatrix->findNextPoint(pos.position());
   }
 
+const WayPoint& World::deadPoint() const {
+  return wmatrix->deadPoint();
+  }
+
 void World::detectNpcNear(std::function<void (Npc &)> f) {
   wobj.detectNpcNear(f);
   }

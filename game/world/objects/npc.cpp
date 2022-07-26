@@ -2394,6 +2394,13 @@ bool Npc::startState(ScriptFn id, const Daedalus::ZString& wp, gtime endTime, bo
       setPerceptionDisable(PercType(i));
     }
 
+  if(wp=="TOT") {
+    // workaround for Pedro removal script
+    auto& point = owner.deadPoint();
+    attachToPoint(nullptr);
+    setPosition(point.position());
+    }
+
   auto& st = owner.script().aiState(id);
   aiState.started      = false;
   aiState.funcIni      = st.funcIni;

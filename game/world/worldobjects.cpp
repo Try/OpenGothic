@@ -834,9 +834,10 @@ void WorldObjects::resetPositionToTA() {
       npcInvalid.emplace_back(std::move(npcArr[i]));
       npcArr.erase(npcArr.begin()+int(i));
 
-      auto& npc = *npcInvalid.back();
+      auto& point = owner.deadPoint();
+      auto& npc   = *npcInvalid.back();
       npc.attachToPoint(nullptr);
-      npc.setPosition(-1000,-1000,-1000); // FIXME
+      npc.setPosition(point.position());
       npc.updateTransform();
       }
     }

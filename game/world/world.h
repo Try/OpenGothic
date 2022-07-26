@@ -72,6 +72,8 @@ class World final {
     const WayPoint*      findNextFreePoint(const Npc& pos, std::string_view name) const;
     const WayPoint*      findNextPoint(const WayPoint& pos) const;
 
+    const WayPoint&      deadPoint() const;
+
     void                 detectNpcNear(std::function<void(Npc&)> f);
     void                 detectNpc (const Tempest::Vec3& p, const float r, const std::function<void(Npc&)>& f);
     void                 detectItem(const Tempest::Vec3& p, const float r, const std::function<void(Item&)>& f);
