@@ -2187,8 +2187,10 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_Teleport: {
       setPosition(act.point->x,act.point->y,act.point->z);
       setDirection(act.point->dirX,act.point->dirY,act.point->dirZ);
-      if(isPlayer())
+      if(isPlayer()) {
+        updateTransform();
         Gothic::inst().camera()->reset(this);
+        }
       }
       break;
     case AI_DrawWeapon:
