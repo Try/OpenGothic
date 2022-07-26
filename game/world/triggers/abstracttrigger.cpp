@@ -121,6 +121,10 @@ void AbstractTrigger::onIntersect(Npc& n) {
    * In Adanaos temple trap-movers have:
    *  flags       = 0b00000011
    *  filterFlags = 0b00011001
+   *
+   * smaller doors in temple:
+   *  flags       = 0b00000011
+   *  filterFlags = 0b00110011
    */
   if(!hasFlag(n.isPlayer() ? RespondToPC : RespondToNPC) && !hasFlag(ReactToOnTouch))
     return;
