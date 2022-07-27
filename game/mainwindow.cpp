@@ -10,7 +10,6 @@
 #include <Tempest/Log>
 
 #include "ui/dialogmenu.h"
-#include "ui/gamemenu.h"
 #include "ui/menuroot.h"
 #include "ui/stacklayout.h"
 #include "ui/videowidget.h"
@@ -713,6 +712,9 @@ void MainWindow::onMarvinKey() {
 uint64_t MainWindow::tick() {
   auto time = Application::tickCount();
   auto dt   = time-lastTick;
+  // NOTE: limit to ~200 FPS in game logic to avoid math issues
+  if(dt<5)
+    return 0;
   lastTick  = time;
 
   auto st = Gothic::inst().checkLoading();
@@ -731,7 +733,7 @@ uint64_t MainWindow::tick() {
     return 0;
     }
 
-  if(Gothic::inst().isPause() || dt==0)
+  if(Gothic::inst().isPause())
     return 0;
 
   if(dt>50)

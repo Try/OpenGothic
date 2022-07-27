@@ -160,11 +160,12 @@ vec3 ssr(vec4 orig, vec3 start, vec3 refl, vec3 fallbackClr) {
     }
 
   const vec3 reflection = textureLod(gbufferDiffuse,uv,0).rgb;
+  float att = min(1.0,uv.y*4.0);//*(max(0,1.0-abs(uv.x*2.0-1.0)));
   if(found)
-    return mix(sky,reflection,min(1.0,uv.y*4.0));
+    return mix(sky,reflection,att);
     //return reflection;
   if(occluded)
-    return mix(sky,reflection,min(1.0,uv.y*4.0));
+    return mix(sky,reflection,att);
   return sky;
   }
 

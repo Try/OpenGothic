@@ -187,8 +187,7 @@ void GameSession::save(Serialize &fout, const char* name, const Pixmap& screen) 
     }
   Gothic::inst().setLoadingProgress(25);
 
-  if(wrld)
-    wrld->save(fout);
+  wrld->save(fout);
   Gothic::inst().setLoadingProgress(60);
 
   fout.setEntry("game/quests");
