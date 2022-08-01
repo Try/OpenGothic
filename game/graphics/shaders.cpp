@@ -121,7 +121,7 @@ Shaders::Shaders() {
   auto vsLight = device.shader(sh.data,sh.len);
   sh           = GothicShader::get("light.frag.sprv");
   auto fsLight = device.shader(sh.data,sh.len);
-  lights       = device.pipeline<Vec3>(Triangles, state, vsLight, fsLight);
+  lights       = device.pipeline(Triangles, state, vsLight, fsLight);
   if(Gothic::inst().doRayQuery()) {
     if(Resources::device().properties().bindless.nonUniformIndexing) {
       sh      = GothicShader::get("light_rq_at.frag.sprv");
@@ -130,7 +130,7 @@ Shaders::Shaders() {
       sh      = GothicShader::get("light_rq.frag.sprv");
       fsLight = device.shader(sh.data,sh.len);
       }
-    lightsRq = device.pipeline<Vec3>(Triangles, state, vsLight, fsLight);
+    lightsRq = device.pipeline(Triangles, state, vsLight, fsLight);
     }
   }
 
@@ -257,20 +257,20 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
   switch(t) {
     case ObjectsBucket::Landscape:
     case ObjectsBucket::LandscapeShadow:
-      b.pipeline = pipeline<Resources::Vertex> (state,temp->lnd);
+      b.pipeline = pipeline(state,temp->lnd);
       break;
     case ObjectsBucket::Static:
     case ObjectsBucket::Movable:
-      b.pipeline = pipeline<Resources::Vertex> (state,temp->obj);
+      b.pipeline = pipeline(state,temp->obj);
       break;
     case ObjectsBucket::Morph:
-      b.pipeline = pipeline<Resources::Vertex> (state,temp->mph);
+      b.pipeline = pipeline(state,temp->mph);
       break;
     case ObjectsBucket::Animated:
-      b.pipeline = pipeline<Resources::VertexA>(state,temp->ani);
+      b.pipeline = pipeline(state,temp->ani);
       break;
     case ObjectsBucket::Pfx:
-      b.pipeline = pipeline<Resources::Vertex>(state,temp->pfx);
+      b.pipeline = pipeline(state,temp->pfx);
       break;
     }
 
@@ -297,7 +297,7 @@ RenderPipeline Shaders::postEffect(std::string_view vsName, std::string_view fsN
   std::snprintf(buf,sizeof(buf),"%.*s.frag.sprv",int(fsName.size()),fsName.data());
   sh      = GothicShader::get(buf);
   auto fs = device.shader(sh.data,sh.len);
-  return device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,vs,fs);
+  return device.pipeline(Triangles,stateFsq,vs,fs);
   }
 
 RenderPipeline Shaders::fogShader(std::string_view name) {
@@ -318,16 +318,15 @@ RenderPipeline Shaders::fogShader(std::string_view name) {
   std::snprintf(buf,sizeof(buf),"%.*s.frag.sprv",int(name.size()),name.data());
   sh      = GothicShader::get(buf);
   auto fs = device.shader(sh.data,sh.len);
-  return device.pipeline<Resources::VertexFsq>(Triangles,state,vs,fs);
+  return device.pipeline(Triangles,state,vs,fs);
   }
 
-template<class Vertex>
 RenderPipeline Shaders::pipeline(RenderState& st, const ShaderSet &sh) const {
   if(!sh.me.isEmpty()) {
     return Resources::device().pipeline(st,Shader(),sh.me,sh.fs);
     }
   if(!sh.tc.isEmpty() && !sh.te.isEmpty()) {
-    return Resources::device().pipeline<Vertex>(Triangles,st,sh.vs,sh.tc,sh.te,sh.fs);
+    return Resources::device().pipeline(Triangles,st,sh.vs,sh.tc,sh.te,sh.fs);
     }
-  return Resources::device().pipeline<Vertex>(Triangles,st,sh.vs,sh.fs);
+  return Resources::device().pipeline(Triangles,st,sh.vs,sh.fs);
   }

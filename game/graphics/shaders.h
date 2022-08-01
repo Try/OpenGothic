@@ -62,9 +62,7 @@ class Shaders {
       PipelineType            pipelineType = PipelineType::T_Forward;
       };
 
-    template<class Vertex>
     Tempest::RenderPipeline pipeline(Tempest::RenderState& st, const ShaderSet &fs) const;
-
     Tempest::RenderPipeline postEffect(std::string_view name);
     Tempest::RenderPipeline postEffect(std::string_view vs, std::string_view fs);
     Tempest::RenderPipeline fogShader (std::string_view name);
