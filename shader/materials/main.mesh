@@ -9,11 +9,11 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_NV_mesh_shader : require
-#extension GL_KHR_shader_subgroup_vote: enable
 #extension GL_EXT_control_flow_attributes : enable
 
 #if USE_SUBGROUPS
 #extension GL_KHR_shader_subgroup_basic : enable
+#extension GL_KHR_shader_subgroup_vote: enable
 #endif
 
 #define MESH
@@ -207,7 +207,7 @@ void main() {
 #endif
 
   // Triangle indices [0..123]
-  uint index0 = indexes[iboOffset];
+  uint index0 = vboOffset;
 
   /*
    *  threads 0..30 -> 0..120

@@ -5,23 +5,16 @@ project(GothicShaders)
 set(HEADER "${PROJECT_BINARY_DIR}/sprv/shader.h")
 set(CPP    "${PROJECT_BINARY_DIR}/sprv/shader.cpp")
 
-file(GLOB SOURCES
+file(GLOB_RECURSE SOURCES
   "${CMAKE_SOURCE_DIR}/shader/*.vert"
   "${CMAKE_SOURCE_DIR}/shader/*.tesc"
   "${CMAKE_SOURCE_DIR}/shader/*.tese"
+  "${CMAKE_SOURCE_DIR}/shader/*.geom"
   "${CMAKE_SOURCE_DIR}/shader/*.frag"
   "${CMAKE_SOURCE_DIR}/shader/*.glsl"
   "${CMAKE_SOURCE_DIR}/shader/*.task"
   "${CMAKE_SOURCE_DIR}/shader/*.mesh"
-  "${CMAKE_SOURCE_DIR}/shader/*.comp"
-  "${CMAKE_SOURCE_DIR}/shader/**/*.vert"
-  "${CMAKE_SOURCE_DIR}/shader/**/*.tesc"
-  "${CMAKE_SOURCE_DIR}/shader/**/*.tese"
-  "${CMAKE_SOURCE_DIR}/shader/**/*.frag"
-  "${CMAKE_SOURCE_DIR}/shader/**/*.glsl"
-  "${CMAKE_SOURCE_DIR}/shader/**/*.task"
-  "${CMAKE_SOURCE_DIR}/shader/**/*.mesh"
-  "${CMAKE_SOURCE_DIR}/shader/**/*.comp")
+  "${CMAKE_SOURCE_DIR}/shader/*.comp")
 
 file(GLOB GLSL_SOURCES
   "${CMAKE_SOURCE_DIR}/shader/*.glsl"
