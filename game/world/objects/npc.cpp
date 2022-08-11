@@ -381,8 +381,8 @@ bool Npc::performOutput(const AiQueue::AiAction &act) {
     return false;
   if(aiPolicy>=AiFar)
     return true; // don't waste CPU on far-away svm-talks
-  if(act.act!=AI_OutputSvmOverlay && bodyStateMasked()!=BS_STAND)
-    return false;
+  //if(act.act!=AI_OutputSvmOverlay && bodyStateMasked()!=BS_STAND)
+  //  return false;
   if(act.act==AI_Output           && outputPipe->output   (*this,act.s0))
     return true;
   auto& svm = owner.script().messageFromSvm(act.s0,hnpc.voice);
