@@ -100,13 +100,22 @@ Gothic::Gothic() {
     modFile.reset(new IniFile(mod));
     }
 
+  std::vector<std::u16string> modvdfs;
   if(modFile!=nullptr) {
     wrldDef = modFile->getS("SETTINGS","WORLD");
     size_t split = wrldDef.rfind('\\');
     if(split!=std::string::npos)
       wrldDef = wrldDef.substr(split+1);
     plDef = modFile->getS("SETTINGS","PLAYER");
+
+    std::u16string vdf = TextCodec::toUtf16(std::string(modFile->getS("FILES","VDF")));
+    std::basic_stringstream<char16_t> stringstream { vdf };
+    while (std::getline(stringstream, vdf, char16_t(' '))) {
+      if(!vdf.empty())
+        modvdfs.push_back(vdf);
+      }
     }
+  Resources::loadAssets(modvdfs);
 
   if(wrldDef.empty()) {
     if(version().game==2)
