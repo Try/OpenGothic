@@ -6,9 +6,6 @@
 #include <zenload/zCMesh.h>
 #include <cstring>
 #include <cctype>
-#include <locale>
-#include <sstream>
-#include <vector>
 
 #include "game/definitions/visualfxdefinitions.h"
 #include "game/definitions/sounddefinitions.h"
@@ -112,10 +109,11 @@ Gothic::Gothic() {
     plDef = modFile->getS("SETTINGS","PLAYER");
 
     std::u16string vdf = TextCodec::toUtf16(std::string(modFile->getS("FILES","VDF")));
-    std::basic_stringstream<char16_t> stringstream { vdf };
-    while (std::getline(stringstream, vdf, char16_t(' '))) {
-      if(!vdf.empty())
-        modvdfs.push_back(vdf);
+    for (size_t start = 0, split = 0; split != std::string::npos; start = split+1) {
+      split = vdf.find(' ', start);
+      std::u16string mod = vdf.substr(start, split-start);
+      if (!mod.empty())
+        modvdfs.push_back(mod);
       }
     }
   Resources::loadAssets(modvdfs);
