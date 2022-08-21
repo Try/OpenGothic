@@ -104,7 +104,7 @@ Resources::Resources(Tempest::Device &device)
   }
   }
 
-void Resources::loadAssets(const std::vector<std::u16string>& modvdfs) {
+void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs) {
   std::vector<Archive> archives;
   inst->detectVdf(archives,Gothic::inst().nestedPath({u"Data"},Dir::FT_Dir));
 

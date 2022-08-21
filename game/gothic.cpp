@@ -116,7 +116,7 @@ Gothic::Gothic() {
         modvdfs.push_back(mod);
       }
     }
-  Resources::loadAssets(modvdfs);
+  Resources::loadVdfs(modvdfs);
 
   if(wrldDef.empty()) {
     if(version().game==2)
