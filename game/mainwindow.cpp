@@ -690,7 +690,7 @@ void MainWindow::onMarvinKey() {
           runtimeMode = R_Suspended; else
           runtimeMode = R_Normal;
         } else {
-          Gothic::inst().quickLoad();
+        Gothic::inst().quickLoad();
         }
       break;
     case Event::K_F10:
