@@ -686,10 +686,11 @@ void MainWindow::onMarvinKey() {
 
     case Event::K_F9:
       if(Gothic::inst().isMarvinEnabled()) {
-        // note: quick load?
         if(runtimeMode==R_Normal)
           runtimeMode = R_Suspended; else
           runtimeMode = R_Normal;
+        } else {
+        Gothic::inst().quickLoad();
         }
       break;
     case Event::K_F10:
