@@ -17,6 +17,7 @@
 #include <zenload/zenParser.h>
 #include <zenload/ztex2dds.h>
 
+#include <algorithm>
 #include <fstream>
 
 #include "graphics/mesh/submesh/staticmesh.h"

@@ -6,6 +6,8 @@
 #include <zenload/zCMesh.h>
 #include <cstring>
 #include <cctype>
+#include <vector>
+#include <sstream>
 
 #include "game/definitions/visualfxdefinitions.h"
 #include "game/definitions/sounddefinitions.h"
