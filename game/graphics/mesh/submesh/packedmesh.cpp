@@ -4,7 +4,6 @@
 #include <fstream>
 #include <algorithm>
 
-#include "graphics/bounds.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -50,7 +49,7 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>&   vertices,
     }
   for(size_t i=indSz; i<MaxInd; ++i) {
     // padd with degenerated triangles
-    indices[iboSz+i] = uint32_t(vboSz);
+    indices[iboSz+i] = uint32_t(vboSz+indSz/3);
     }
   }
 
@@ -137,7 +136,7 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>&   vertices,
     }
   for(size_t i=indSz; i<MaxInd; ++i) {
     // padd with degenerated triangles
-    indices[iboSz+i] = uint32_t(vboSz);
+    indices[iboSz+i] = uint32_t(vboSz+indSz/3);
     }
   }
 

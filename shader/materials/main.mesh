@@ -210,8 +210,9 @@ void main() {
   uint index0 = vboOffset;
 
   /*
-   *  threads 0..30 -> 0..120
-   *  thread  31    -> 121..123
+   *  threads 0..29 -> 0..120
+   *  thread  30    -> 121..123
+   *  thread  31    -> none
    */
   if(laneID<31) {
     gl_PrimitiveIndicesNV[laneID*4 + 0] = indexes[iboOffset + laneID*4 + 0] - index0;
@@ -223,8 +224,27 @@ void main() {
     }
 
   // Number of triangles
-  if(laneID==0)
-    gl_PrimitiveCountNV = MaxInd/3;
+  if(laneID==30) {
+    uint c = laneID*4;
+    if(gl_PrimitiveIndicesNV[c+0]==gl_PrimitiveIndicesNV[c+1]) {
+      // last dummy triangle encodes primitive count
+      gl_PrimitiveCountNV = gl_PrimitiveIndicesNV[c];
+      } else {
+      gl_PrimitiveCountNV = MaxInd/3;
+      }
+    // drop extras
+    /*
+    while(gl_PrimitiveCountNV>0) {
+      uint c = gl_PrimitiveCountNV*3-3;
+      if(gl_PrimitiveIndicesNV[c+0]==gl_PrimitiveIndicesNV[c+1] ||
+         gl_PrimitiveIndicesNV[c+1]==gl_PrimitiveIndicesNV[c+2]) {
+        --gl_PrimitiveCountNV;
+        } else {
+        break;
+        }
+      }
+    */
+    }
 #if 0 && defined(LVL_OBJECT) && !defined(SHADOW_MAP) && (MESH_TYPE==T_SKINING)
   // DEBUG CODE
   memoryBarrierShared();

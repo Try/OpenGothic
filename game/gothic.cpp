@@ -25,6 +25,15 @@ using namespace FileUtil;
 
 Gothic* Gothic::instance = nullptr;
 
+static bool hasMeshShader() {
+  const auto& p = Resources::device().properties();
+  if(p.meshlets.meshShader)
+    return true;
+  if(p.meshlets.meshShaderEmulated)
+    ;//return true;
+  return false;
+  }
+
 Gothic::Gothic() {
   instance = this;
 
@@ -35,7 +44,7 @@ Gothic::Gothic() {
 
   noFrate = CommandLine::inst().noFrate;
   wrldDef = CommandLine::inst().wrldDef;
-  if(Resources::device().properties().meshlets.meshShader)
+  if(hasMeshShader())
     isMeshSh = CommandLine::inst().isMeshShading();
 
   baseIniFile.reset(new IniFile(nestedPath({u"system",u"Gothic.ini"},Dir::FT_File)));
