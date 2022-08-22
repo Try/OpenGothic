@@ -102,9 +102,23 @@ Resources::Resources(Tempest::Device &device)
   Pixmap pm(1,1,Pixmap::Format::RGBA);
   fbZero = device.texture(pm);
   }
+  }
 
+void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs) {
   std::vector<Archive> archives;
-  detectVdf(archives,Gothic::inst().nestedPath({u"Data"},Dir::FT_Dir));
+  inst->detectVdf(archives,Gothic::inst().nestedPath({u"Data"},Dir::FT_Dir));
+
+  // Remove all mod files, that are not listed in modvdfs
+  archives.erase(std::remove_if(archives.begin(), archives.end(),
+                [&modvdfs](const Archive& a){
+                  return a.isMod && modvdfs.end() == std::find_if(modvdfs.begin(), modvdfs.end(),
+                        [&a](const std::u16string& modname) {
+                          const std::u16string_view& full_path = a.name;
+                          const std::u16string_view& file_name = modname;
+                          return (0 == full_path.compare(full_path.length() - file_name.length(),
+                                                         file_name.length(), file_name));
+                          });
+                  }), archives.end());
 
   // addon archives first!
   std::stable_sort(archives.begin(),archives.end(),[](const Archive& a,const Archive& b){
@@ -115,8 +129,8 @@ Resources::Resources(Tempest::Device &device)
     });
 
   for(auto& i:archives)
-    gothicAssets.loadVDF(i.name);
-  gothicAssets.finalizeLoad();
+    inst->gothicAssets.loadVDF(i.name);
+  inst->gothicAssets.finalizeLoad();
 
   //for(auto& i:gothicAssets.getKnownFiles())
   //  Log::i(i);
