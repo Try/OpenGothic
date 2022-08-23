@@ -197,7 +197,9 @@ void Renderer::prepareUniforms() {
 
   const Texture2d* sh[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
-    sh[i] = &textureCast(shadowMap[i]);
+    if(!shadowMap[i].isEmpty()) {
+      sh[i] = &textureCast(shadowMap[i]);
+      }
   wview->setGbuffer(textureCast(lightingBuf),textureCast(gbufDiffuse),
                     textureCast(gbufNormal), textureCast(gbufDepth),
                     sh, textureCast(hiZ));

@@ -71,7 +71,7 @@ void WorldView::setGbuffer(const Texture2d& lightingBuf, const Texture2d& diffus
                            const Texture2d& hiZ) {
   const Texture2d* shadow[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
-    if(sh==nullptr || sh[i]->isEmpty())
+    if(sh[i]==nullptr || sh[i]->isEmpty())
       shadow[i] = &Resources::fallbackBlack(); else
       shadow[i] = sh[i];
 
