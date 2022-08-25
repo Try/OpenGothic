@@ -131,13 +131,13 @@ Varyings processVertex(uint objId, uint vboOffset) {
   shOut.scr  = trPos;
   shOut.uv   = uv;
 
-#if !defined(SHADOW_MAP)
+#if !defined(DEPTH_ONLY)
   shOut.shadowPos[0] = scene.shadow[0]*vec4(pos,1.0);
   shOut.shadowPos[1] = scene.shadow[1]*vec4(pos,1.0);
   shOut.normal       = normal;
 #endif
 
-#if !defined(SHADOW_MAP) || defined(WATER)
+#if !defined(DEPTH_ONLY) || defined(WATER)
   shOut.pos = pos;
 #endif
 

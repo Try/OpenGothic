@@ -254,8 +254,6 @@ class ObjectsBucket {
     const Tempest::RenderPipeline* pShadow  = nullptr;
 
     Material                  mat;
-
-  private:
     const SceneGlobals&       scene;
 
     Tempest::UniformBuffer<UboBucket> uboBucket[Resources::MaxFramesInFlight];

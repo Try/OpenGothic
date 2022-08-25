@@ -28,6 +28,8 @@ class Renderer final {
               Tempest::VectorImage::Mesh& uiLayer, Tempest::VectorImage::Mesh& numOverlay,
               InventoryMenu &inventory);
 
+    void dbgDraw(Tempest::Painter& painter);
+
     Tempest::Attachment       screenshoot(uint8_t frameId);
 
   private:

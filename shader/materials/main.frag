@@ -11,7 +11,7 @@ layout(location = 0) in Varyings shInp;
 layout(location = DEBUG_DRAW_LOC) in flat uint debugId;
 #endif
 
-#if !defined(SHADOW_MAP)
+#if !defined(DEPTH_ONLY)
 layout(location = 0) out vec4 outColor;
 #endif
 
@@ -21,7 +21,7 @@ layout(location = 2) out vec4 outNormal;
 layout(location = 3) out vec4 outDepth;
 #endif
 
-#if !defined(SHADOW_MAP)
+#if !defined(DEPTH_ONLY)
 vec4 shadowSample(in sampler2D shadowMap, vec2 shPos) {
   shPos.xy = shPos.xy*vec2(0.5,0.5)+vec2(0.5);
   return textureGather(shadowMap,shPos);
@@ -55,7 +55,7 @@ float calcShadow() {
   }
 #endif
 
-#if !defined(SHADOW_MAP)
+#if !defined(DEPTH_ONLY)
 vec4 dbgLambert() {
   vec3  normal  = normalize(shInp.normal);
   float lambert = max(0.0,dot(scene.sunDir,normal));
@@ -233,7 +233,7 @@ vec3 ghostColor(vec3 selfColor) {
 #endif
 
 void main() {
-#if !defined(SHADOW_MAP) || defined(ATEST)
+#if !defined(DEPTH_ONLY) || defined(ATEST)
   vec4 t = texture(textureD,shInp.uv);
 #  ifdef ATEST
   if(t.a<0.5)
@@ -241,7 +241,7 @@ void main() {
 #  endif
 #endif
 
-#if !defined(SHADOW_MAP)
+#if !defined(DEPTH_ONLY)
   vec3  color = vec3(0);
   float alpha = 1;
 
@@ -270,7 +270,7 @@ void main() {
   }
 #endif
 
-#if !defined(SHADOW_MAP)
+#if !defined(DEPTH_ONLY)
   outColor      = vec4(color,alpha);
 #endif
 

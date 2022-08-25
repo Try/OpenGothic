@@ -53,11 +53,15 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define LVL_OBJECT 1
 #endif
 
+#if defined(HIZ) || defined(SHADOW_MAP)
+#define DEPTH_ONLY 1
+#endif
+
 #if (defined(VERTEX) || defined(TASK) || defined(MESH) || defined(TESSELATION)) && (defined(LVL_OBJECT) || defined(WATER))
 #define MAT_ANIM 1
 #endif
 
-#if !defined(SHADOW_MAP) && (MESH_TYPE==T_PFX)
+#if !defined(DEPTH_ONLY) && (MESH_TYPE==T_PFX)
 #define MAT_COLOR 1
 #endif
 
@@ -65,12 +69,12 @@ struct Varyings {
   vec4 scr;
   vec2 uv;
 
-#if !defined(SHADOW_MAP)
+#if !defined(DEPTH_ONLY)
   vec4 shadowPos[2];
   vec3 normal;
 #endif
 
-#if !defined(SHADOW_MAP) || defined(WATER)
+#if !defined(DEPTH_ONLY) || defined(WATER)
   vec3 pos;
 #endif
 
@@ -150,11 +154,11 @@ layout(std430, binding = L_Ibo)      readonly buffer Ibo  { uint  indexes []; };
 layout(std430, binding = L_Vbo)      readonly buffer Vbo  { float vertices[]; };
 #endif
 
-#if defined(FRAGMENT) && !(defined(SHADOW_MAP) && !defined(ATEST))
+#if defined(FRAGMENT) && !(defined(DEPTH_ONLY) && !defined(ATEST))
 layout(binding = L_Diffuse) uniform sampler2D textureD;
 #endif
 
-#if defined(FRAGMENT) && !defined(SHADOW_MAP)
+#if defined(FRAGMENT) && !defined(DEPTH_ONLY)
 layout(binding = L_Shadow0) uniform sampler2D textureSm0;
 layout(binding = L_Shadow1) uniform sampler2D textureSm1;
 #endif

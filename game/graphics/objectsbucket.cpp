@@ -877,15 +877,22 @@ const Bounds& ObjectsBucket::bounds(size_t i) const {
 ObjectsBucketDyn::ObjectsBucketDyn(const Type type, const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
                                    const StaticMesh* st, const AnimMesh* anim, const Tempest::StorageBuffer* desc)
   :ObjectsBucket(type,mat,owner,scene,st,anim,desc) {
-  pHiZ = Shaders::inst().materialPipeline(mat,objType,Shaders::T_Prepass);
-  uboHiZ.alloc(*this);
-  uboSetCommon(uboHiZ,mat);
-  for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i) {
-    for(size_t lay=SceneGlobals::V_Shadow0; lay<SceneGlobals::V_Count; ++lay) {
-      auto& ubo = uboHiZ.ubo[i][lay];
+  if(useMeshlets && objType==Type::LandscapeShadow) {
+    auto& device = Resources::device();
+    pHiZ = &Shaders::inst().lndPrePass;
+    for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i) {
+      auto& ubo = uboHiZ.ubo[i][SceneGlobals::V_Shadow1];
+      ubo = device.descriptors(pHiZ->layout());
       if(ubo.isEmpty())
         continue;
-      uboHiZ.ubo[i][lay].set(L_Scene, scene.uboGlobalPf[i][SceneGlobals::V_Main]);
+      ubo.set(L_MeshDesc, *instanceDesc);
+      ubo.set(L_Vbo,      staticMesh->vbo);
+      ubo.set(L_Ibo,      staticMesh->ibo);
+      ubo.set(L_Scene,    scene.uboGlobalPf[i][SceneGlobals::V_Main]);
+
+      auto smp = Sampler2d::nearest();
+      smp.setClamping(ClampMode::ClampToEdge);
+      ubo.set(L_HiZ,      *scene.hiZ, smp);
       }
     }
   }
@@ -939,6 +946,17 @@ void ObjectsBucketDyn::setupUbo() {
   for(size_t i=0; i<CAPACITY; ++i) {
     if(!uboObj[i].ubo[0][SceneGlobals::V_Main].isEmpty())
       uboSetCommon(uboObj[i],mat[i]);
+    }
+
+  if(pHiZ!=nullptr) {
+    for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i) {
+      auto& ubo = uboHiZ.ubo[i][SceneGlobals::V_Shadow1];
+      if(ubo.isEmpty())
+        continue;
+      auto smp = Sampler2d::nearest();
+      smp.setClamping(ClampMode::ClampToEdge);
+      ubo.set(L_HiZ,      *scene.hiZ, smp);
+      }
     }
   }
 

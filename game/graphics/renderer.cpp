@@ -223,6 +223,31 @@ void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
     }
   }
 
+void Renderer::dbgDraw(Tempest::Painter& p) {
+  static bool dbg = false;
+  if(!dbg)
+    return;
+
+  auto& tex = hiZ;
+  //auto& tex = shadowMap[1];
+
+  p.setBrush(textureCast(tex));
+  auto sz = Size(p.brush().w(),p.brush().h());
+  if(sz.isEmpty())
+    return;
+
+  while(sz.w<256 && sz.h<256) {
+    sz.w *= 2;
+    sz.h *= 2;
+    }
+  while(sz.w>512 || sz.h>512) {
+    sz.w = (sz.w+1)/2;
+    sz.h = (sz.h+1)/2;
+    }
+  p.drawRect(10,50,sz.w,sz.h,
+             0,0,p.brush().w(),p.brush().h());
+  }
+
 void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>& cmd, uint8_t cmdId) {
   auto wview = Gothic::inst().worldView();
   if(wview==nullptr) {

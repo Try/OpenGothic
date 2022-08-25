@@ -87,6 +87,9 @@ shared vec3 bboxProj[8];
 bool bboxTest(const uint objId) {
   const uint laneID = gl_LocalInvocationID.x;
 
+  if(!sphereTest(objId,objId))
+    return false;
+
   if(laneID<8) {
 #if defined(LVL_OBJECT)
     const vec3  b[2]   = {material.bbox[0].xyz, material.bbox[1].xyz};
@@ -245,7 +248,7 @@ void main() {
       }
     */
     }
-#if 0 && defined(LVL_OBJECT) && !defined(SHADOW_MAP) && (MESH_TYPE==T_SKINING)
+#if 0 && defined(LVL_OBJECT) && !defined(DEPTH_ONLY) && (MESH_TYPE==T_SKINING)
   // DEBUG CODE
   memoryBarrierShared();
   barrier();

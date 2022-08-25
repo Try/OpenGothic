@@ -220,6 +220,8 @@ void MainWindow::paintEvent(PaintEvent& event) {
     // world->view()->dbgLights(dbg);
     }
 
+  renderer.dbgDraw(p);
+
   if(Gothic::inst().doFrate()) {
     char fpsT[64]={};
     std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f %s",fps.get(),info);

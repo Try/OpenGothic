@@ -141,12 +141,25 @@ Shaders::Shaders() {
     sky = postEffect("sky_g2");
     }
 
-  if(meshlets){
+  if(meshlets) {
     auto sh = GothicShader::get("hiZPot.comp.sprv");
     hiZPot  = device.pipeline(device.shader(sh.data,sh.len));
 
     sh   = GothicShader::get("hiZMip.comp.sprv");
     hiZMip = device.pipeline(device.shader(sh.data,sh.len));
+    }
+
+  if(meshlets) {
+    RenderState state;
+    state.setCullFaceMode(RenderState::CullMode::Front);
+    state.setZTestMode   (RenderState::ZTestMode::Less);
+
+    auto sh = GothicShader::get("lnd_hiz.mesh.sprv");
+    auto ms = device.shader(sh.data,sh.len);
+    sh      = GothicShader::get("lnd_hiz.frag.sprv");
+    auto fs = device.shader(sh.data,sh.len);
+
+    lndPrePass = device.pipeline(Triangles,state,ms,fs);
     }
   }
 
@@ -225,7 +238,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
   static bool overdrawDbg = false;
   if(overdrawDbg &&
      (alpha==Material::Solid || alpha==Material::AlphaTest) &&
-     t!=ObjectsBucket::Landscape && t!=ObjectsBucket::LandscapeShadow && pt!=T_Shadow && pt!=T_Prepass) {
+     t!=ObjectsBucket::Landscape && t!=ObjectsBucket::LandscapeShadow && pt!=T_Shadow) {
     state.setBlendSource(RenderState::BlendMode::One);
     state.setBlendDest  (RenderState::BlendMode::One);
     state.setZWriteEnabled(false);
@@ -241,7 +254,6 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
       temp = deffered;
       break;
     case T_Shadow:
-    case T_Prepass:
       temp = shadow;
       break;
     }

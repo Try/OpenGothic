@@ -35,10 +35,10 @@ class Shaders {
       T_Forward,
       T_Deffered,
       T_Shadow,
-      T_Prepass,
       };
 
     const Tempest::RenderPipeline* materialPipeline(const Material& desc, ObjectsBucket::Type t, PipelineType pt) const;
+    Tempest::RenderPipeline lndPrePass;
 
   private:
     struct ShaderSet {
