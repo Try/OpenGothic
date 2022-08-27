@@ -60,7 +60,5 @@ void main() {
   //shOut.normal += dPos;
   //shOut.normal = normalize(shOut.normal);
 
-  shOut.scr          = pos;
-
   gl_Position = pos;
   }

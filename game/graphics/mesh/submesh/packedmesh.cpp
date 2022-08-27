@@ -677,9 +677,8 @@ void PackedMesh::postProcessP2(const ZenLoad::zCMesh& mesh, size_t matId, std::v
     auto meshlet  = meshlets[i];
     bool overflow = (indices.size()-sub.iboOffset+MaxInd > maxIboSliceLength);
     bool disjoint = !meshlet->hasIntersection(*prev) && (indices.size()-sub.iboOffset>4096*3);
-    //bool disjoint = !hasMeshShaders && !meshlet->hasIntersection(*prev) && (indices.size()-sub.iboOffset>4096*3);
 
-    if(prev!=nullptr && (disjoint || overflow)) {
+    if(disjoint || overflow) {
       sub.iboLength = indices.size()-sub.iboOffset;
       if(sub.iboLength>0)
         subMeshes.push_back(std::move(sub));

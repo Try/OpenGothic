@@ -196,13 +196,14 @@ void main() {
   const uint vboOffset = meshletId * MaxVert;
   const uint iboOffset = meshletId * MaxInd;
 
-  const Varyings out0 = processVertex(objId, vboOffset + laneID*2 + 0);
-  const Varyings out1 = processVertex(objId, vboOffset + laneID*2 + 1);
+  vec4 pos0, pos1;
+  const Varyings out0 = processVertex(pos0, objId, vboOffset + laneID*2 + 0);
+  const Varyings out1 = processVertex(pos1, objId, vboOffset + laneID*2 + 1);
 
   shOut            [laneID*2 + 0]             = out0;
-  gl_MeshVerticesNV[laneID*2 + 0].gl_Position = out0.scr;
+  gl_MeshVerticesNV[laneID*2 + 0].gl_Position = pos0;
   shOut            [laneID*2 + 1]             = out1;
-  gl_MeshVerticesNV[laneID*2 + 1].gl_Position = out1.scr;
+  gl_MeshVerticesNV[laneID*2 + 1].gl_Position = pos1;
 
 #if DEBUG_DRAW
   debugId[laneID*2 + 0] = meshletId;

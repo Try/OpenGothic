@@ -66,7 +66,6 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #endif
 
 struct Varyings {
-  vec4 scr;
   vec2 uv;
 
 #if !defined(DEPTH_ONLY)
@@ -74,7 +73,7 @@ struct Varyings {
   vec3 normal;
 #endif
 
-#if !defined(DEPTH_ONLY) || defined(WATER)
+#if defined(WATER)
   vec3 pos;
 #endif
 

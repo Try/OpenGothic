@@ -20,9 +20,9 @@ void main() {
 
   float z = 0;
   [[unroll]]
-  for(int i=0; i<4; ++i) {
+  for(int i=0; i<3; ++i) {
     [[unroll]]
-    for(int r=0; r<4; ++r) {
+    for(int r=0; r<3; ++r) {
       int x = begin.x+i;
       int y = begin.y+r;
       if(x>end.x || y>end.y)

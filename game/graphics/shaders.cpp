@@ -143,10 +143,10 @@ Shaders::Shaders() {
 
   if(meshlets) {
     auto sh = GothicShader::get("hiZPot.comp.sprv");
-    hiZPot  = device.pipeline(device.shader(sh.data,sh.len));
+    hiZPot   = device.pipeline(device.shader(sh.data,sh.len));
 
-    sh   = GothicShader::get("hiZMip.comp.sprv");
-    hiZMip = device.pipeline(device.shader(sh.data,sh.len));
+    sh = GothicShader::get("hiZMip.comp.sprv");
+    hiZMip   = device.pipeline(device.shader(sh.data,sh.len));
     }
 
   if(meshlets) {
@@ -237,8 +237,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
 
   static bool overdrawDbg = false;
   if(overdrawDbg &&
-     (alpha==Material::Solid || alpha==Material::AlphaTest) &&
-     t!=ObjectsBucket::Landscape && t!=ObjectsBucket::LandscapeShadow && pt!=T_Shadow) {
+     (alpha==Material::Solid || alpha==Material::AlphaTest) && t!=ObjectsBucket::LandscapeShadow && pt!=T_Shadow) {
     state.setBlendSource(RenderState::BlendMode::One);
     state.setBlendDest  (RenderState::BlendMode::One);
     state.setZWriteEnabled(false);

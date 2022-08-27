@@ -39,11 +39,15 @@ float tessInnerFactor(in vec4 a, in vec4 b, in vec4 c) {
 
 void main() {
   if(gl_InvocationID==0) {
-    gl_TessLevelInner[0] = tessInnerFactor(shInp[0].scr,shInp[1].scr,shInp[2].scr);
+    vec4 pos0 = gl_in[0].gl_Position;
+    vec4 pos1 = gl_in[1].gl_Position;
+    vec4 pos2 = gl_in[2].gl_Position;
 
-    gl_TessLevelOuter[0] = tessFactor(shInp[1].scr,shInp[2].scr);
-    gl_TessLevelOuter[1] = tessFactor(shInp[0].scr,shInp[2].scr);
-    gl_TessLevelOuter[2] = tessFactor(shInp[0].scr,shInp[1].scr);
+    gl_TessLevelInner[0] = tessInnerFactor(pos0,pos1,pos2);
+
+    gl_TessLevelOuter[0] = tessFactor(pos1,pos2);
+    gl_TessLevelOuter[1] = tessFactor(pos0,pos2);
+    gl_TessLevelOuter[2] = tessFactor(pos0,pos1);
     }
 
   gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;

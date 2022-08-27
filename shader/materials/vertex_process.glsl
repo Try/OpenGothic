@@ -44,7 +44,7 @@ vec3 morphOffset(int i, uint vertexIndex) {
   }
 #endif
 
-Varyings processVertex(uint objId, uint vboOffset) {
+Varyings processVertex(out vec4 position, uint objId, uint vboOffset) {
   Varyings shOut;
 
 #if   (MESH_TYPE==T_SKINING) && defined(VERTEX)
@@ -127,8 +127,6 @@ Varyings processVertex(uint objId, uint vboOffset) {
   //pos = pos;
 #endif
 
-  vec4 trPos = scene.viewProject*vec4(pos,1.0);
-  shOut.scr  = trPos;
   shOut.uv   = uv;
 
 #if !defined(DEPTH_ONLY)
@@ -137,7 +135,7 @@ Varyings processVertex(uint objId, uint vboOffset) {
   shOut.normal       = normal;
 #endif
 
-#if !defined(DEPTH_ONLY) || defined(WATER)
+#if defined(WATER)
   shOut.pos = pos;
 #endif
 
@@ -145,6 +143,7 @@ Varyings processVertex(uint objId, uint vboOffset) {
   shOut.color = unpackUnorm4x8(color);
 #endif
 
+  position = scene.viewProject*vec4(pos,1.0);
   return shOut;
   }
 

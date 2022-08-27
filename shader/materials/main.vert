@@ -23,9 +23,7 @@ void main() {
   uint objId = 0;
 #endif
 
-  Varyings ret = processVertex(objId,gl_VertexIndex);
-  shOut = ret;
-  gl_Position = ret.scr;
+  shOut = processVertex(gl_Position,objId,gl_VertexIndex);
 
 #if DEBUG_DRAW
   //debugId = gl_InstanceIndex;
