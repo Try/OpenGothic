@@ -145,6 +145,7 @@ void MoveAlgo::tickGravity(uint64_t dt) {
         npc.setAnim(AnimationSolver::Fall);
       // takeFallDamage();
       onGravityFailed(info,dt);
+      fallSpeed.y = std::max(fallSpeed.y, 0.f);
       } else {
       fallSpeed.y -= gravity*float(dt);
       }
