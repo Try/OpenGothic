@@ -28,11 +28,12 @@ class SceneGlobals final {
     void setTime(uint64_t time);
     void commitUbo(uint8_t fId);
 
+    void setResolution(uint32_t w, uint32_t h);
     void setShadowMap(const Tempest::Texture2d* tex[]);
 
     const Tempest::Matrix4x4& viewProject() const;
     const Tempest::Matrix4x4& viewProjectInv() const;
-    const Tempest::Matrix4x4& shadowView(uint8_t view) const;
+    const Tempest::Matrix4x4& viewShadow(uint8_t view) const;
 
     uint64_t                          tickCount = 0;
     const Tempest::Texture2d*         shadowMap[2] = {};
@@ -50,16 +51,18 @@ class SceneGlobals final {
 
     struct UboGlobal final {
       Tempest::Vec3                   sunDir     = {0,0,1};
-      float                           shadowSize = 2048;
+      float                           padd0      = 0;
       Tempest::Matrix4x4              viewProject;
       Tempest::Matrix4x4              viewProjectInv;
-      Tempest::Matrix4x4              shadowView[Resources::ShadowLayers];
+      Tempest::Matrix4x4              viewShadow[Resources::ShadowLayers];
       Tempest::Vec4                   lightAmb   = {0,0,0,0};
       Tempest::Vec4                   lightCl    = {1,1,1,0};
       Tempest::Vec4                   frustrum[6];
       Tempest::Vec3                   clipInfo;
-      float                           padd0 = 0;
+      float                           padd1 = 0;
       Tempest::Vec3                   camPos;
+      float                           padd2 = 0;
+      Tempest::Vec2                   screenResInv;
       };
 
     Tempest::UniformBuffer<UboGlobal> uboGlobalPf[Resources::MaxFramesInFlight][V_Count];

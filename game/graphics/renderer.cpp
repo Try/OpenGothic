@@ -24,13 +24,6 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
   : swapchain(swapchain) {
   auto& device = Resources::device();
   view.identity();
-  /*
-  static const TextureFormat shfrm[] = {
-    TextureFormat::R16,
-    TextureFormat::RG16,
-    TextureFormat::R32F,
-    TextureFormat::RGBA8,
-    };*/
   static const TextureFormat zfrm[] = {
     //TextureFormat::Depth24S8,
     TextureFormat::Depth24x8,

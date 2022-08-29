@@ -114,6 +114,7 @@ class PackedMesh {
     void   packPhysics(const ZenLoad::zCMesh& mesh,PkgType type);
     void   computeBbox();
 
-    void   dbgUtilization(std::vector<Meshlet*>& meshlets);
+    void   dbgUtilization(const std::vector<Meshlet*>& meshlets);
+    void   dbgMeshlets(const ZenLoad::zCMesh& mesh, const std::vector<Meshlet*>& meshlets);
   };
 

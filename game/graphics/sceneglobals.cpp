@@ -16,7 +16,7 @@ SceneGlobals::SceneGlobals()
 
   uboGlobal.viewProject.identity();
   uboGlobal.viewProjectInv.identity();
-  for(auto& s:uboGlobal.shadowView)
+  for(auto& s:uboGlobal.viewShadow)
     s.identity();
 
   for(auto& i:shadowMap)
@@ -59,7 +59,7 @@ void SceneGlobals::setViewProject(const Tempest::Matrix4x4& v, const Tempest::Ma
   uboGlobal.viewProjectInv = vp;
   uboGlobal.viewProjectInv.inverse();
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
-    uboGlobal.shadowView[i] = sh[i];
+    uboGlobal.viewShadow[i] = sh[i];
 
   uboGlobal.clipInfo.x = zNear*zFar;
   uboGlobal.clipInfo.y = zNear-zFar;
@@ -91,7 +91,7 @@ void SceneGlobals::commitUbo(uint8_t fId) {
     auto& ubo = perView[i];
     ubo = uboGlobal;
     if(i!=V_Main)
-      ubo.viewProject = uboGlobal.shadowView[i-V_Shadow0];
+      ubo.viewProject = uboGlobal.viewShadow[i-V_Shadow0];
     std::memcpy(ubo.frustrum, frustrum[i].f, sizeof(ubo.frustrum));
     }
 
@@ -100,10 +100,17 @@ void SceneGlobals::commitUbo(uint8_t fId) {
     }
   }
 
+void SceneGlobals::setResolution(uint32_t w, uint32_t h) {
+  if(w==0)
+    w = 1;
+  if(h==0)
+    h = 1;
+  uboGlobal.screenResInv = Tempest::Vec2(1.f/float(w), 1.f/float(h));
+  }
+
 void SceneGlobals::setShadowMap(const Tempest::Texture2d* tex[]) {
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
     shadowMap[i] = tex[i];
-  uboGlobal.shadowSize = float(tex[0]->w());
   }
 
 const Tempest::Matrix4x4& SceneGlobals::viewProject() const {
@@ -114,6 +121,6 @@ const Tempest::Matrix4x4& SceneGlobals::viewProjectInv() const {
   return uboGlobal.viewProjectInv;
   }
 
-const Tempest::Matrix4x4& SceneGlobals::shadowView(uint8_t view) const {
-  return uboGlobal.shadowView[view];
+const Tempest::Matrix4x4& SceneGlobals::viewShadow(uint8_t view) const {
+  return uboGlobal.viewShadow[view];
   }

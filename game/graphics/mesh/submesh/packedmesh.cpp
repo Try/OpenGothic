@@ -660,6 +660,7 @@ void PackedMesh::postProcessP1(const ZenLoad::zCMesh& mesh, size_t matId, std::v
 
   postProcessP2(mesh,matId,ind);
   // dbgUtilization(ind);
+  // dbgMeshlets(mesh,ind);
   }
 
 void PackedMesh::postProcessP2(const ZenLoad::zCMesh& mesh, size_t matId, std::vector<Meshlet*>& meshlets) {
@@ -739,7 +740,7 @@ void PackedMesh::computeBbox() {
     }
   }
 
-void PackedMesh::dbgUtilization(std::vector<Meshlet*>& meshlets) {
+void PackedMesh::dbgUtilization(const std::vector<Meshlet*>& meshlets) {
   size_t used = 0, allocated = 0;
   for(auto i:meshlets) {
     used      += i->indSz;
@@ -750,6 +751,25 @@ void PackedMesh::dbgUtilization(std::vector<Meshlet*>& meshlets) {
   Log::d("Meshlet usage: ", procent," %");
   if(procent<25)
     Log::d("");
+  }
+
+void PackedMesh::dbgMeshlets(const ZenLoad::zCMesh& mesh, const std::vector<Meshlet*>& meshlets) {
+  std::ofstream out("dbg.obj");
+
+  size_t off = 1;
+  auto&  vbo = mesh.getVertices();
+  for(auto i:meshlets) {
+    out << "o meshlet" << off <<" " << i->bounds.r << std::endl;
+    for(size_t r=0; r<i->vertSz; ++r) {
+      auto& v = vbo[i->vert[r].first];
+      out << "v " << v.x << " " << v.y << " " << v.z << std::endl;
+      }
+    for(size_t r=0; r<i->indSz; r+=3) {
+      auto tri = &i->indexes[r];
+      out << "f " << off+tri[0] << " " << off+tri[1] << " " << off+tri[2] << std::endl;
+      }
+    off += i->vertSz;
+    }
   }
 
 void PackedMesh::addIndex(Meshlet* active, size_t numActive, std::vector<Meshlet>& meshlets,

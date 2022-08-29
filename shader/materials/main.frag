@@ -5,7 +5,9 @@
 #define FRAGMENT
 #include "materials_common.glsl"
 
+#if defined(MAT_VARYINGS)
 layout(location = 0) in Varyings shInp;
+#endif
 
 #if DEBUG_DRAW
 layout(location = DEBUG_DRAW_LOC) in flat uint debugId;
@@ -27,8 +29,7 @@ vec4 shadowSample(in sampler2D shadowMap, vec2 shPos) {
   return textureGather(shadowMap,shPos);
   }
 
-float shadowResolve(in vec4 sh, float z, float bias) {
-  z += (bias/65535.0);
+float shadowResolve(in vec4 sh, float z) {
   z  = max(0,z);
   sh = step(sh,vec4(z));
   return 0.25*(sh.x+sh.y+sh.z+sh.w);
@@ -38,8 +39,8 @@ float calcShadow(vec3 shPos0, vec3 shPos1) {
   vec4  lay0 = shadowSample(textureSm0,shPos0.xy);
   vec4  lay1 = shadowSample(textureSm1,shPos1.xy);
 
-  float v0   = shadowResolve(lay0,shPos0.z,4.0);
-  float v1   = shadowResolve(lay1,shPos1.z,1.0);
+  float v0   = shadowResolve(lay0,shPos0.z);
+  float v1   = shadowResolve(lay1,shPos1.z);
 
   if(abs(shPos0.x)<1.0 && abs(shPos0.y)<1.0 && ((0.45<lay1.x && lay1.x<0.55) || lay1.x==0))
     return v0;
@@ -49,8 +50,18 @@ float calcShadow(vec3 shPos0, vec3 shPos1) {
   }
 
 float calcShadow() {
-  vec3 shPos0  = (shInp.shadowPos[0].xyz)/shInp.shadowPos[0].w;
-  vec3 shPos1  = (shInp.shadowPos[1].xyz)/shInp.shadowPos[1].w;
+  // const vec2  fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
+  // const vec4  scr       = vec4(fragCoord.x, fragCoord.y, gl_FragCoord.z, 1.0)/gl_FragCoord.w;
+  // vec4  pos4 = scene.viewProjectInv * scr;
+
+  vec4 shadowPos[2];
+  // shadowPos[0] = scene.viewShadow[0]*vec4(pos4);
+  // shadowPos[1] = scene.viewShadow[1]*vec4(pos4);
+  shadowPos[0] = shInp.shadowPos[0];
+  shadowPos[1] = shInp.shadowPos[1];
+
+  vec3 shPos0  = (shadowPos[0].xyz)/shadowPos[0].w;
+  vec3 shPos1  = (shadowPos[1].xyz)/shadowPos[1].w;
   return calcShadow(shPos0,shPos1);
   }
 #endif
@@ -62,9 +73,28 @@ vec4 dbgLambert() {
   return vec4(lambert,lambert,lambert,1.0);
   }
 
+vec3 flatNormal() {
+  const vec2  fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
+  const vec4  scr       = vec4(fragCoord.x, fragCoord.y, gl_FragCoord.z, 1.0)/gl_FragCoord.w;
+  const vec4  pos4      = scene.viewProjectInv * scr;
+
+  vec3 pos = pos4.xyz/pos4.w;
+  vec3 dx  = dFdx(pos);
+  vec3 dy  = dFdy(pos);
+  return /*normalize*/(cross(dx,dy));
+  }
+
 vec3 calcLight() {
   vec3  normal  = normalize(shInp.normal);
   float lambert = max(0.0,dot(scene.sunDir,normal));
+
+#if (MESH_TYPE==T_LANDSCAPE)
+  // fix self-shadowed surface
+  // float flatSh = dot(scene.sunDir,flatNormal());
+  // if(flatSh<=0) {
+  //   lambert = 0;
+  //   }
+#endif
 
   float light   = lambert*calcShadow();
   vec3  color   = scene.sunCl.rgb*clamp(light,0.0,1.0);
@@ -174,7 +204,7 @@ vec4 waterColor(vec3 color, vec3 albedo) {
   const float dist     = -(water-ground);
   //return vec4(vec3(dist),1);
 
-  const vec2  fragCoord = (gl_FragCoord.xy/textureSize(gbufferDepth,0))*2.0-vec2(1.0);
+  const vec2  fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
   const vec4  scr       = vec4(fragCoord.x, fragCoord.y, gl_FragCoord.z, 1.0)/gl_FragCoord.w;
 
   vec3 sky = ssr(scr,shInp.pos,refl,backOrig)*albedo;
@@ -212,10 +242,21 @@ vec3 ghostColor(vec3 selfColor) {
   }
 #endif
 
+#if defined(MAT_UV)
+vec4 diffuseTex() {
+#if defined(MAT_ANIM)
+  const vec2 uv = shInp.uv + material.texAnim;
+#else
+  const vec2 uv = shInp.uv;
+#endif
+  return texture(textureD,uv);
+  }
+#endif
+
 void main() {
-#if !defined(DEPTH_ONLY) || defined(ATEST)
-  vec4 t = texture(textureD,shInp.uv);
-#  ifdef ATEST
+#if defined(MAT_UV)
+  vec4 t = diffuseTex();
+#  if defined(ATEST)
   if(t.a<0.5)
     discard;
 #  endif

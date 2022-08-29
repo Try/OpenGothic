@@ -82,12 +82,6 @@ Varyings processVertex(out vec4 position, uint objId, uint vboOffset) {
   uint  color  = floatBitsToUint(vertices[id + 8]);
 #endif
 
-
-  // TexCoords
-#if defined(MAT_ANIM)
-  uv += material.texAnim;
-#endif
-
   // Position offsets
   vec3 dpos   = vec3(0);
 #if (MESH_TYPE==T_MORPH)
@@ -127,11 +121,13 @@ Varyings processVertex(out vec4 position, uint objId, uint vboOffset) {
   //pos = pos;
 #endif
 
+#if defined(MAT_UV)
   shOut.uv   = uv;
+#endif
 
 #if !defined(DEPTH_ONLY)
-  shOut.shadowPos[0] = scene.shadow[0]*vec4(pos,1.0);
-  shOut.shadowPos[1] = scene.shadow[1]*vec4(pos,1.0);
+  shOut.shadowPos[0] = scene.viewShadow[0]*vec4(pos,1.0);
+  shOut.shadowPos[1] = scene.viewShadow[1]*vec4(pos,1.0);
   shOut.normal       = normal;
 #endif
 
@@ -144,6 +140,13 @@ Varyings processVertex(out vec4 position, uint objId, uint vboOffset) {
 #endif
 
   position = scene.viewProject*vec4(pos,1.0);
+#if defined(SHADOW_MAP)
+#  if defined(ATEST)
+  position.z -= 10.0*(1.0/32768.0)*position.w;
+#  else
+  //position.z -= (1.0/65535.0)*position.w;
+#  endif
+#endif
   return shOut;
   }
 

@@ -20,8 +20,6 @@
 #include "materials_common.glsl"
 #include "vertex_process.glsl"
 
-vec4 debugClr = vec4(0);
-
 layout(local_size_x = 32) in;
 layout(triangles, max_vertices = 64, max_primitives = MaxInd/3) out;
 
@@ -29,8 +27,10 @@ out gl_MeshPerVertexNV {
   vec4 gl_Position;
   } gl_MeshVerticesNV[];
 
-// Custom vertex output block
+#if defined(MAT_VARYINGS)
 layout(location = 0) out Varyings shOut[];  // [max_vertices]
+#endif
+
 #if DEBUG_DRAW
 layout(location = DEBUG_DRAW_LOC) out flat uint debugId[];
 #endif
@@ -200,12 +200,14 @@ void main() {
   const Varyings out0 = processVertex(pos0, objId, vboOffset + laneID*2 + 0);
   const Varyings out1 = processVertex(pos1, objId, vboOffset + laneID*2 + 1);
 
+#if defined(MAT_VARYINGS)
   shOut            [laneID*2 + 0]             = out0;
-  gl_MeshVerticesNV[laneID*2 + 0].gl_Position = pos0;
   shOut            [laneID*2 + 1]             = out1;
+#endif
+  gl_MeshVerticesNV[laneID*2 + 0].gl_Position = pos0;
   gl_MeshVerticesNV[laneID*2 + 1].gl_Position = pos1;
 
-#if DEBUG_DRAW
+#if (DEBUG_DRAW) && !defined(LVL_OBJECT)
   debugId[laneID*2 + 0] = meshletId;
   debugId[laneID*2 + 1] = meshletId;
 #endif
@@ -236,18 +238,6 @@ void main() {
       } else {
       gl_PrimitiveCountNV = MaxInd/3;
       }
-    // drop extras
-    /*
-    while(gl_PrimitiveCountNV>0) {
-      uint c = gl_PrimitiveCountNV*3-3;
-      if(gl_PrimitiveIndicesNV[c+0]==gl_PrimitiveIndicesNV[c+1] ||
-         gl_PrimitiveIndicesNV[c+1]==gl_PrimitiveIndicesNV[c+2]) {
-        --gl_PrimitiveCountNV;
-        } else {
-        break;
-        }
-      }
-    */
     }
 #if 0 && defined(LVL_OBJECT) && !defined(DEPTH_ONLY) && (MESH_TYPE==T_SKINING)
   // DEBUG CODE
