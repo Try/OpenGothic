@@ -50,7 +50,9 @@ float volumetricFog(in vec3 pos, in vec3 cameraToWorldPos) {
     float t = heightFalloff*cameraToWorldPos.y;
     fogInt *= (1.0-exp(-t))/t;
     }
-  return 1.0-exp(-globalDensity*fogInt);
+
+  float  T = exp(-globalDensity*fogInt);
+  return 1.0 - T;
   }
 
 float miePhase(float cosTheta) {

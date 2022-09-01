@@ -25,11 +25,6 @@ class Sky final {
     const Tempest::Texture2d& skyLut() const;
 
   private:
-    enum Algo : uint8_t {
-      Nishita,
-      EGSR,
-      };
-
     struct Layer final {
       const Tempest::Texture2d* texture=nullptr;
       };
@@ -48,13 +43,9 @@ class Sky final {
       };
 
     struct {
-      Tempest::DescriptorSet uboSky;
-      Tempest::DescriptorSet uboFog;
-    } nishita;
-
-    struct {
       Tempest::TextureFormat  lutFormat = Tempest::TextureFormat::RGBA32F;
       Tempest::Attachment     transLut, multiScatLut, viewLut, fogLut;
+      Tempest::StorageImage   fogLut3D;
       Tempest::DescriptorSet  uboMultiScatLut, uboSkyViewLut, uboFogViewLut, uboFinal, uboFog;
       bool                    lutIsInitialized = false;
     } egsr;
@@ -64,7 +55,6 @@ class Sky final {
     const Tempest::Texture2d*     skyTexture(std::string_view name, bool day, size_t id);
     const Tempest::Texture2d*     implSkyTexture(std::string_view name, bool day, size_t id);
 
-    Algo                          algo = Nishita;
     const SceneGlobals&           scene;
     Tempest::VertexBuffer<Vertex> vbo;
 

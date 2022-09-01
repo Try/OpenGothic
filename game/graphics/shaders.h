@@ -21,9 +21,6 @@ class Shaders {
     Tempest::RenderPipeline ssao, ssaoCompose;
     Tempest::RenderPipeline ssaoRq, ssaoComposeRq;
 
-    // Nishita
-    Tempest::RenderPipeline sky, fog;
-
     // Scalable and Production Ready Sky and Atmosphere
     Tempest::RenderPipeline skyTransmittance, skyMultiScattering, skyViewLut, skyEGSR;
     Tempest::RenderPipeline fogViewLut, fogEGSR;

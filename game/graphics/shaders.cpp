@@ -100,7 +100,12 @@ Shaders::Shaders() {
   skyMultiScattering = postEffect("sky_multi_scattering");
   skyViewLut         = postEffect("sky_view_lut");
   fogViewLut         = postEffect("fog_view_lut");
-  skyEGSR            = postEffect("sky_egsr_g2");
+  if(Gothic::inst().version().game==1) {
+    // TODO
+    skyEGSR = postEffect("sky_egsr_g2");
+    } else {
+    skyEGSR = postEffect("sky_egsr_g2");
+    }
   fogEGSR            = fogShader ("fog_egsr");
 
   if(Gothic::inst().doRayQuery()) {
@@ -133,13 +138,6 @@ Shaders::Shaders() {
     lightsRq = device.pipeline(Triangles, state, vsLight, fsLight);
     }
   }
-
-  fog = fogShader("fog");
-  if(Gothic::inst().version().game==1) {
-    sky = postEffect("sky_g1");
-    } else {
-    sky = postEffect("sky_g2");
-    }
 
   if(meshlets) {
     auto sh = GothicShader::get("hiZPot.comp.sprv");
