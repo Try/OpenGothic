@@ -848,7 +848,7 @@ void GameMenu::execCommands(std::string_view str, bool isClick) {
     const char* arg0 = str.data()+std::strlen("EFFECTS ");
     for(uint32_t id=0; id<phoenix::daedalus::C_MENU_ITEMS_COUNT; ++id) {
       auto& i = hItems[id];
-      if(i.handle->type==int(phoenix::daedalus::c_menu_item_type::listbox)) {
+      if(i.handle != nullptr && i.handle->type==int(phoenix::daedalus::c_menu_item_type::listbox)) {
         i.visible = (i.name==arg0);
         if(i.visible && isClick) {
           const uint32_t prev = curItem;

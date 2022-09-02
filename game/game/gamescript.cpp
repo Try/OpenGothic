@@ -56,7 +56,8 @@ bool GameScript::GlobalOutput::isFinished() {
   }
 
 GameScript::GameScript(GameSession &owner)
-  :owner(owner), vm(Gothic::inst().loadPhoenixScriptCode("GOTHIC.DAT")) {
+  :owner(owner), vm(Gothic::inst().loadPhoenixScriptCode("GOTHIC.DAT"), (phoenix::daedalus::execution_flag)
+        (phoenix::daedalus::vm_allow_empty_stack_pop | phoenix::daedalus::vm_allow_null_instance_access)) {
   phoenix::daedalus::register_all_script_classes(vm);
   Gothic::inst().setupVmCommonApi(vm);
   aiDefaultPipe.reset(new GlobalOutput(*this));
@@ -435,7 +436,7 @@ void GameScript::initializeInstanceNpc(const std::shared_ptr<phoenix::daedalus::
 
 void GameScript::initializeInstanceItem(const std::shared_ptr<phoenix::daedalus::c_item>& item, size_t instance) {
   auto sym = vm.find_symbol_by_index(instance);
-  return vm.init_instance(item, sym);
+  vm.init_instance(item, sym);
   }
 
 void GameScript::saveQuests(Serialize &fout) {
@@ -905,7 +906,6 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
   int ret = 0;
   if (sym->rtype() == phoenix::daedalus::dt_integer) {
     ret = vm.call_function<int>(sym);
-    std::cout << "Returned: " << ret << "\n";
   } else {
     vm.call_function<void>(sym);
   }
@@ -1636,7 +1636,7 @@ void GameScript::mdl_applyrandomfaceani(std::shared_ptr<phoenix::daedalus::c_npc
   }
 
 void GameScript::wld_insertnpc(int npcInstance, std::string_view spawnpoint) {
-  if(spawnpoint.empty() || npcInstance<=0 || (npcInstance != 0x00000f63 && npcInstance != 0x00002b94))
+  if(spawnpoint.empty() || npcInstance<=0)
     return;
 
   auto npc = world().addNpc(size_t(npcInstance),spawnpoint);

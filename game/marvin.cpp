@@ -311,6 +311,9 @@ bool Marvin::printVariable(World* world, std::string_view name) {
     case phoenix::daedalus::dt_string:
       std::snprintf(buf,sizeof(buf),"%.*s = %s",int(name.size()),name.data(), sym->get_string(0).c_str());
       break;
+    case phoenix::daedalus::dt_instance:
+      std::snprintf(buf,sizeof(buf),"%.*s = %p",int(name.size()),name.data(), sym->get_instance().get());
+      break;
     default:
       break;
     }

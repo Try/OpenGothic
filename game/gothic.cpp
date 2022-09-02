@@ -545,7 +545,11 @@ std::unique_ptr<phoenix::daedalus::vm> Gothic::createPhoenixVm(std::string_view 
   auto byte = loadPhoenixScriptCode(datFile);
   phoenix::daedalus::register_all_script_classes(byte);
 
-  auto vm   = std::make_unique<phoenix::daedalus::vm>(std::move(byte));
+  auto vm   = std::make_unique<phoenix::daedalus::vm>(
+          std::move(byte),
+          (phoenix::daedalus::execution_flag)
+          (phoenix::daedalus::vm_allow_empty_stack_pop | phoenix::daedalus::vm_allow_null_instance_access)
+  );
   setupVmCommonApi(*vm);
   return vm;
 }
