@@ -72,10 +72,12 @@ void Sky::setupUbo() {
   uboFogViewLut.set(1, multiScatLut,   smpB);
   //uboFogViewLut.set(2, *scene.shadowMap[1], smpB);
 
-  uboFogViewLut3d = device.descriptors(Shaders::inst().fogViewLut3D);
-  uboFogViewLut3d.set(0, transLut,     smpB);
-  uboFogViewLut3d.set(1, multiScatLut, smpB);
-  uboFogViewLut3d.set(3, fogLut3D);
+  if(use3dFog) {
+    uboFogViewLut3d = device.descriptors(Shaders::inst().fogViewLut3D);
+    uboFogViewLut3d.set(0, transLut,     smpB);
+    uboFogViewLut3d.set(1, multiScatLut, smpB);
+    uboFogViewLut3d.set(3, fogLut3D);
+    }
 
   uboFinal = device.descriptors(Shaders::inst().sky);
   uboFinal.set(0, transLut,     smpB);
@@ -93,12 +95,14 @@ void Sky::setupUbo() {
   //uboFog.set(3, fogLut3D,     smpB);
   uboFog.set(4, *scene.gbufDepth, Sampler::nearest());
 
-  uboFog3d = device.descriptors(Shaders::inst().fog3d);
-  uboFog3d.set(0, transLut,     smpB);
-  uboFog3d.set(1, multiScatLut, smpB);
-  uboFog3d.set(2, fogLut,       smpB);
-  uboFog3d.set(3, fogLut3D,     smpB);
-  uboFog3d.set(4, *scene.gbufDepth, Sampler::nearest());
+  if(use3dFog) {
+    uboFog3d = device.descriptors(Shaders::inst().fog3d);
+    uboFog3d.set(0, transLut,     smpB);
+    uboFog3d.set(1, multiScatLut, smpB);
+    uboFog3d.set(2, fogLut,       smpB);
+    uboFog3d.set(3, fogLut3D,     smpB);
+    uboFog3d.set(4, *scene.gbufDepth, Sampler::nearest());
+    }
   }
 
 void Sky::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t frameId) {
