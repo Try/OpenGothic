@@ -238,6 +238,8 @@ bool MdlVisual::setFightMode(phoenix::mds::event_fight_mode mode) {
   WeaponState f=WeaponState::NoWeapon;
 
   switch(mode) {
+    case phoenix::mds::event_fight_mode::invalid:
+      return false;
     case phoenix::mds::event_fight_mode::none:
       f=WeaponState::NoWeapon;
       break;
