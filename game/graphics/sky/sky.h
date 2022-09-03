@@ -42,21 +42,20 @@ class Sky final {
       float              plPosY   = 0.0;
       };
 
-    struct {
-      Tempest::TextureFormat  lutFormat = Tempest::TextureFormat::RGBA32F;
-      Tempest::Attachment     transLut, multiScatLut, viewLut, fogLut;
-      Tempest::StorageImage   fogLut3D;
-      Tempest::DescriptorSet  uboMultiScatLut, uboSkyViewLut, uboFogViewLut, uboFinal, uboFog;
-      bool                    lutIsInitialized = false;
-    } egsr;
-
     UboSky                        mkPush();
     static std::array<float,3>    mkColor(uint8_t r,uint8_t g,uint8_t b);
     const Tempest::Texture2d*     skyTexture(std::string_view name, bool day, size_t id);
     const Tempest::Texture2d*     implSkyTexture(std::string_view name, bool day, size_t id);
 
+    Tempest::TextureFormat        lutFormat = Tempest::TextureFormat::RGBA32F;
+    Tempest::Attachment           transLut, multiScatLut, viewLut, fogLut;
+    Tempest::StorageImage         fogLut3D;
+    Tempest::DescriptorSet        uboMultiScatLut, uboSkyViewLut, uboFogViewLut, uboFogViewLut3d, uboFinal;
+    Tempest::DescriptorSet        uboFog, uboFog3d;
+    bool                          lutIsInitialized = false;
+
     const SceneGlobals&           scene;
-    Tempest::VertexBuffer<Vertex> vbo;
+    bool                          use3dFog = false;
 
     State                         day, night;
     const Tempest::Texture2d*     sun = &Resources::fallbackBlack();

@@ -8,7 +8,6 @@
 
 #include "graphics/shaders.h"
 #include "world/world.h"
-#include "utils/versioninfo.h"
 #include "gothic.h"
 #include "resources.h"
 
@@ -18,15 +17,16 @@ Sky::Sky(const SceneGlobals& scene)
   :scene(scene) {
   auto& device = Resources::device();
 
-  egsr.transLut     = device.attachment(egsr.lutFormat,256, 64);
-  egsr.multiScatLut = device.attachment(egsr.lutFormat, 32, 32);
-  egsr.viewLut      = device.attachment(egsr.lutFormat,128, 64);
-  egsr.fogLut       = device.attachment(egsr.lutFormat,256,128);  // TODO: use propper 3d texture
+  transLut     = device.attachment(lutFormat,256, 64);
+  multiScatLut = device.attachment(lutFormat, 32, 32);
+  viewLut      = device.attachment(lutFormat,128, 64);
+  fogLut       = device.attachment(lutFormat,256,128);  // TODO: use propper 3d texture
 
   /* https://bartwronski.files.wordpress.com/2014/08/bwronski_volumetric_fog_siggraph2014.pdf
    * page 25 160*90*64 = ~720p
    */
-  //egsr.fogLut3D     = device.image3d(egsr.lutFormat,160,90,64);
+  if(use3dFog)
+    fogLut3D = device.image3d(lutFormat,160,90,64);
   }
 
 void Sky::setWorld(const World& world, const std::pair<Vec3, Vec3>& bbox) {
@@ -56,59 +56,78 @@ void Sky::setWorld(const World& world, const std::pair<Vec3, Vec3>& bbox) {
 
 void Sky::setupUbo() {
   auto& device = Resources::device();
-  auto  smp    = Sampler2d::trillinear();
-  auto  smpB   = Sampler2d::bilinear();
+  auto  smp    = Sampler::trillinear();
+  auto  smpB   = Sampler::bilinear();
   smpB.setClamping(ClampMode::ClampToEdge);
 
-  egsr.uboMultiScatLut = device.descriptors(Shaders::inst().skyMultiScattering);
-  egsr.uboMultiScatLut.set(0, egsr.transLut, smpB);
+  uboMultiScatLut = device.descriptors(Shaders::inst().skyMultiScattering);
+  uboMultiScatLut.set(0, transLut, smpB);
 
-  egsr.uboSkyViewLut = device.descriptors(Shaders::inst().skyViewLut);
-  egsr.uboSkyViewLut.set(0, egsr.transLut,     smpB);
-  egsr.uboSkyViewLut.set(1, egsr.multiScatLut, smpB);
+  uboSkyViewLut = device.descriptors(Shaders::inst().skyViewLut);
+  uboSkyViewLut.set(0, transLut,     smpB);
+  uboSkyViewLut.set(1, multiScatLut, smpB);
 
-  egsr.uboFogViewLut = device.descriptors(Shaders::inst().fogViewLut);
-  egsr.uboFogViewLut.set(0, egsr.transLut,       smpB);
-  egsr.uboFogViewLut.set(1, egsr.multiScatLut,   smpB);
-  //egsr.uboFogViewLut.set(2, *scene.shadowMap[1], smpB);
+  uboFogViewLut = device.descriptors(Shaders::inst().fogViewLut);
+  uboFogViewLut.set(0, transLut,       smpB);
+  uboFogViewLut.set(1, multiScatLut,   smpB);
+  //uboFogViewLut.set(2, *scene.shadowMap[1], smpB);
 
-  egsr.uboFinal = device.descriptors(Shaders::inst().skyEGSR);
-  egsr.uboFinal.set(0, egsr.transLut,     smpB);
-  egsr.uboFinal.set(1, egsr.multiScatLut, smpB);
-  egsr.uboFinal.set(2, egsr.viewLut,      smpB);
-  egsr.uboFinal.set(3,*day  .lay[0].texture,smp);
-  egsr.uboFinal.set(4,*day  .lay[1].texture,smp);
-  egsr.uboFinal.set(5,*night.lay[0].texture,smp);
-  egsr.uboFinal.set(6,*night.lay[1].texture,smp);
+  uboFogViewLut3d = device.descriptors(Shaders::inst().fogViewLut3D);
+  uboFogViewLut3d.set(0, transLut,     smpB);
+  uboFogViewLut3d.set(1, multiScatLut, smpB);
+  uboFogViewLut3d.set(3, fogLut3D);
 
-  egsr.uboFog = device.descriptors(Shaders::inst().fogEGSR);
-  egsr.uboFog.set(0, egsr.transLut,     smpB);
-  egsr.uboFog.set(1, egsr.multiScatLut, smpB);
-  egsr.uboFog.set(2, egsr.fogLut,       smpB);
-  egsr.uboFog.set(3, *scene.gbufDepth,  Sampler2d::nearest());
+  uboFinal = device.descriptors(Shaders::inst().sky);
+  uboFinal.set(0, transLut,     smpB);
+  uboFinal.set(1, multiScatLut, smpB);
+  uboFinal.set(2, viewLut,      smpB);
+  uboFinal.set(3,*day  .lay[0].texture,smp);
+  uboFinal.set(4,*day  .lay[1].texture,smp);
+  uboFinal.set(5,*night.lay[0].texture,smp);
+  uboFinal.set(6,*night.lay[1].texture,smp);
+
+  uboFog = device.descriptors(Shaders::inst().fog);
+  uboFog.set(0, transLut,     smpB);
+  uboFog.set(1, multiScatLut, smpB);
+  uboFog.set(2, fogLut,       smpB);
+  //uboFog.set(3, fogLut3D,     smpB);
+  uboFog.set(4, *scene.gbufDepth, Sampler::nearest());
+
+  uboFog3d = device.descriptors(Shaders::inst().fog3d);
+  uboFog3d.set(0, transLut,     smpB);
+  uboFog3d.set(1, multiScatLut, smpB);
+  uboFog3d.set(2, fogLut,       smpB);
+  uboFog3d.set(3, fogLut3D,     smpB);
+  uboFog3d.set(4, *scene.gbufDepth, Sampler::nearest());
   }
 
 void Sky::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t frameId) {
   UboSky ubo = mkPush();
 
-  if(!egsr.lutIsInitialized) {
-    cmd.setFramebuffer({{egsr.transLut, Tempest::Discard, Tempest::Preserve}});
+  if(!lutIsInitialized) {
+    cmd.setFramebuffer({{transLut, Tempest::Discard, Tempest::Preserve}});
     cmd.setUniforms(Shaders::inst().skyTransmittance, &ubo, sizeof(ubo));
     cmd.draw(Resources::fsqVbo());
 
-    cmd.setFramebuffer({{egsr.multiScatLut, Tempest::Discard, Tempest::Preserve}});
-    cmd.setUniforms(Shaders::inst().skyMultiScattering, egsr.uboMultiScatLut, &ubo, sizeof(ubo));
+    cmd.setFramebuffer({{multiScatLut, Tempest::Discard, Tempest::Preserve}});
+    cmd.setUniforms(Shaders::inst().skyMultiScattering, uboMultiScatLut, &ubo, sizeof(ubo));
     cmd.draw(Resources::fsqVbo());
 
-    egsr.lutIsInitialized = true;
+    lutIsInitialized = true;
     }
 
-  cmd.setFramebuffer({{egsr.viewLut, Tempest::Discard, Tempest::Preserve}});
-  cmd.setUniforms(Shaders::inst().skyViewLut, egsr.uboSkyViewLut, &ubo, sizeof(ubo));
+  if(use3dFog) {
+    cmd.setFramebuffer({});
+    cmd.setUniforms(Shaders::inst().fogViewLut3D, uboFogViewLut3d, &ubo, sizeof(ubo));
+    cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
+    }
+
+  cmd.setFramebuffer({{viewLut, Tempest::Discard, Tempest::Preserve}});
+  cmd.setUniforms(Shaders::inst().skyViewLut, uboSkyViewLut, &ubo, sizeof(ubo));
   cmd.draw(Resources::fsqVbo());
 
-  cmd.setFramebuffer({{egsr.fogLut, Tempest::Discard, Tempest::Preserve}});
-  cmd.setUniforms(Shaders::inst().fogViewLut, egsr.uboFogViewLut, &ubo, sizeof(ubo));
+  cmd.setFramebuffer({{fogLut, Tempest::Discard, Tempest::Preserve}});
+  cmd.setUniforms(Shaders::inst().fogViewLut, uboFogViewLut, &ubo, sizeof(ubo));
   cmd.draw(Resources::fsqVbo());
   }
 
@@ -122,18 +141,23 @@ void Sky::drawSky(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
   auto len = dv.length();
   (void)len;
 
-  cmd.setUniforms(Shaders::inst().skyEGSR, egsr.uboFinal, &ubo, sizeof(ubo));
+  cmd.setUniforms(Shaders::inst().sky, uboFinal, &ubo, sizeof(ubo));
   cmd.draw(Resources::fsqVbo());
   }
 
 void Sky::drawFog(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
   UboSky ubo = mkPush();
-  cmd.setUniforms(Shaders::inst().fogEGSR, egsr.uboFog, &ubo, sizeof(ubo));
-  cmd.draw(Resources::fsqVbo());
+  if(use3dFog) {
+    cmd.setUniforms(Shaders::inst().fog3d, uboFog3d, &ubo, sizeof(ubo));
+    cmd.draw(Resources::fsqVbo());
+    } else {
+    cmd.setUniforms(Shaders::inst().fog,   uboFog,   &ubo, sizeof(ubo));
+    cmd.draw(Resources::fsqVbo());
+    }
   }
 
 const Texture2d& Sky::skyLut() const {
-  return textureCast(egsr.viewLut);
+  return textureCast(viewLut);
   }
 
 Sky::UboSky Sky::mkPush() {

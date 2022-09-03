@@ -174,15 +174,15 @@ const char* Resources::renderer() {
   return inst->dev.properties().name;
   }
 
-static Sampler2d implShadowSampler() {
-  Tempest::Sampler2d smp;
+static Sampler implShadowSampler() {
+  Tempest::Sampler smp;
   smp.setClamping(Tempest::ClampMode::ClampToEdge);
   smp.anisotropic = false;
   return smp;
   }
 
-const Sampler2d& Resources::shadowSampler() {
-  static Tempest::Sampler2d smp = implShadowSampler();
+const Sampler& Resources::shadowSampler() {
+  static Tempest::Sampler smp = implShadowSampler();
   return smp;
   }
 

@@ -100,13 +100,10 @@ Shaders::Shaders() {
   skyMultiScattering = postEffect("sky_multi_scattering");
   skyViewLut         = postEffect("sky_view_lut");
   fogViewLut         = postEffect("fog_view_lut");
-  if(Gothic::inst().version().game==1) {
-    // TODO
-    skyEGSR = postEffect("sky_egsr_g2");
-    } else {
-    skyEGSR = postEffect("sky_egsr_g2");
-    }
-  fogEGSR            = fogShader ("fog_egsr");
+  fogViewLut3D       = computeShader("fog_view_lut.comp.sprv");
+  sky                = postEffect("sky_g2");
+  fog3d              = fogShader("fog3d");
+  fog                = fogShader("fog");
 
   if(Gothic::inst().doRayQuery()) {
     ssaoRq        = postEffect("ssao",        "ssao_rq");
@@ -140,11 +137,8 @@ Shaders::Shaders() {
   }
 
   if(meshlets) {
-    auto sh = GothicShader::get("hiZPot.comp.sprv");
-    hiZPot   = device.pipeline(device.shader(sh.data,sh.len));
-
-    sh = GothicShader::get("hiZMip.comp.sprv");
-    hiZMip   = device.pipeline(device.shader(sh.data,sh.len));
+    hiZPot = computeShader("hiZPot.comp.sprv");
+    hiZMip = computeShader("hiZMip.comp.sprv");
     }
 
   if(meshlets) {
@@ -290,6 +284,15 @@ RenderPipeline Shaders::postEffect(std::string_view name) {
   return postEffect(name,name);
   }
 
+ComputePipeline Shaders::computeShader(std::string_view name) {
+  char buf[256] = {};
+  std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
+
+  auto& device = Resources::device();
+  auto  sh     = GothicShader::get(buf);
+  return device.pipeline(device.shader(sh.data,sh.len));
+  }
+
 RenderPipeline Shaders::postEffect(std::string_view vsName, std::string_view fsName) {
   auto& device = Resources::device();
 
@@ -311,13 +314,16 @@ RenderPipeline Shaders::postEffect(std::string_view vsName, std::string_view fsN
 
 RenderPipeline Shaders::fogShader(std::string_view name) {
   auto& device = Resources::device();
+  const bool fogDbg = false;
 
   RenderState state;
+  state.setZWriteEnabled(false);
   state.setCullFaceMode (RenderState::CullMode::Front);
   state.setBlendSource  (RenderState::BlendMode::One);
-  state.setBlendDest    (RenderState::BlendMode::OneMinusSrcAlpha);
-  state.setZTestMode    (RenderState::ZTestMode::Greater);
-  state.setZWriteEnabled(false);
+  if(!fogDbg) {
+    state.setBlendDest(RenderState::BlendMode::OneMinusSrcAlpha);
+    state.setZTestMode(RenderState::ZTestMode::Greater);
+    }
 
   char buf[256] = {};
   std::snprintf(buf,sizeof(buf),"%.*s.vert.sprv",int(name.size()),name.data());

@@ -22,8 +22,9 @@ class Shaders {
     Tempest::RenderPipeline ssaoRq, ssaoComposeRq;
 
     // Scalable and Production Ready Sky and Atmosphere
-    Tempest::RenderPipeline skyTransmittance, skyMultiScattering, skyViewLut, skyEGSR;
-    Tempest::RenderPipeline fogViewLut, fogEGSR;
+    Tempest::RenderPipeline  skyTransmittance, skyMultiScattering, skyViewLut, sky;
+    Tempest::RenderPipeline  fogViewLut, fog, fog3d;
+    Tempest::ComputePipeline fogViewLut3D;
 
     // Compute
     Tempest::ComputePipeline hiZPot, hiZMip;
@@ -59,10 +60,11 @@ class Shaders {
       PipelineType            pipelineType = PipelineType::T_Forward;
       };
 
-    Tempest::RenderPipeline pipeline(Tempest::RenderState& st, const ShaderSet &fs) const;
-    Tempest::RenderPipeline postEffect(std::string_view name);
-    Tempest::RenderPipeline postEffect(std::string_view vs, std::string_view fs);
-    Tempest::RenderPipeline fogShader (std::string_view name);
+    Tempest::RenderPipeline  pipeline(Tempest::RenderState& st, const ShaderSet &fs) const;
+    Tempest::RenderPipeline  postEffect(std::string_view name);
+    Tempest::ComputePipeline computeShader(std::string_view name);
+    Tempest::RenderPipeline  postEffect(std::string_view vs, std::string_view fs);
+    Tempest::RenderPipeline  fogShader (std::string_view name);
 
     static Shaders* instance;
 

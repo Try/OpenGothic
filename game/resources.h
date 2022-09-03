@@ -83,7 +83,7 @@ class Resources final {
     static const char*               renderer();
     static void                      loadVdfs(const std::vector<std::u16string> &modvdfs);
 
-    static const Tempest::Sampler2d& shadowSampler();
+    static const Tempest::Sampler&   shadowSampler();
 
     static const GthFont&            dialogFont();
     static const GthFont&            font();

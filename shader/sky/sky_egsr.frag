@@ -8,8 +8,12 @@ layout(binding = 0) uniform sampler2D tLUT;
 layout(binding = 1) uniform sampler2D mLUT;
 layout(binding = 2) uniform sampler2D skyLUT;
 
+#if defined(FOG3D)
+layout(binding = 3) uniform sampler3D fogLut;
+#endif
+
 #if defined(FOG)
-layout(binding = 3) uniform sampler2D depth;
+layout(binding = 4) uniform sampler2D depth;
 #else
 layout(binding = 3) uniform sampler2D textureDayL0;
 layout(binding = 4) uniform sampler2D textureDayL1;
@@ -78,6 +82,7 @@ vec3 finalizeColor(vec3 color, vec3 sunDir) {
   }
 
 #if defined(FOG)
+// debug only
 vec3 transmittance(vec3 pos0, vec3 pos1) {
   const int   steps = 32;
   const float scale = 60.0;
@@ -99,7 +104,36 @@ vec3 transmittance(vec3 pos0, vec3 pos1) {
     }
   return transmittance;
   }
+#endif
 
+#if defined(FOG3D)
+vec4 fog3d(vec2 uv, vec3 sunDir) {
+  float z        = texture(depth,uv).r;
+  vec3  pos1     = inverse(vec3(inPos,1));
+  vec3  posz     = inverse(vec3(inPos,z));
+  vec3  pos0     = inverse(vec3(inPos,0));
+
+  // vec3  trans    = transmittance(pos0, posz);
+  // vec3  trans    = transmittance(pos0, pos1);
+
+  float d        = length(posz-pos0)/length(pos1-pos0);
+  vec4  val      = textureLod(fogLut, vec3(uv,d), 0);
+  vec3  trans    = vec3(val.w);
+  trans = vec3(1.0)-trans;
+  float fogDens = (trans.x+trans.y+trans.z)/3.0;
+
+  //vec3  lum      = atmosphereFog(uv) * GSunIntensity;
+  vec3  lum      = val.rgb * GSunIntensity;
+  lum = finalizeColor(lum*fogDens*30.0,sunDir);
+
+  return vec4(lum.rgb,fogDens);
+  // return vec4(vec3(d),1);
+  // return vec4(val.xyw,1);
+  // return vec4(val);
+  }
+#endif
+
+#if defined(FOG)
 vec4 fog(vec2 uv, vec3 sunDir) {
   float z        = texture(depth,uv).r;
   vec3  pos      = vec3(0,RPlanet+push.plPosY,0);
@@ -115,8 +149,8 @@ vec4 fog(vec2 uv, vec3 sunDir) {
   // lum = finalizeColor(lum*trans,sunDir);
   lum = finalizeColor(lum*fogDens,sunDir);
 
+  //return vec4(fogDens,fogDens,fogDens,1);
   return vec4(lum, fogDens);
-  // return vec4(fogDens,fogDens,fogDens,1);
   }
 #else
 vec4 sky(vec2 uv, vec3 sunDir) {
@@ -159,7 +193,9 @@ void main() {
   vec3 view      = normalize(inverse(vec3(inPos,1.0)));
   vec3 sunDir    = push.sunDir;
 
-#if defined(FOG)
+#if defined(FOG3D)
+  outColor = fog3d(uv,push.sunDir);
+#elif defined(FOG)
   outColor = fog(uv,push.sunDir);
 #else
   outColor = sky(uv,push.sunDir);

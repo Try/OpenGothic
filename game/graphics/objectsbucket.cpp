@@ -327,16 +327,16 @@ void ObjectsBucket::uboSetCommon(Descriptors& v, const Material& mat) {
         ubo.set(L_Morph,    *staticMesh->morph.samples);
         }
       if(lay==SceneGlobals::V_Main && isSceneInfoRequired()) {
-        auto smp = Sampler2d::bilinear();
+        auto smp = Sampler::bilinear();
         smp.setClamping(ClampMode::MirroredRepeat);
         ubo.set(L_GDiffuse, *scene.lightingBuf,smp);
 
-        smp = Sampler2d::nearest();
+        smp = Sampler::nearest();
         smp.setClamping(ClampMode::ClampToEdge);
         ubo.set(L_GDepth,   *scene.gbufDepth,  smp);
         }
       if(lay==SceneGlobals::V_Main && useMeshlets) {
-        auto smp = Sampler2d::nearest();
+        auto smp = Sampler::nearest();
         smp.setClamping(ClampMode::ClampToEdge);
         ubo.set(L_HiZ, *scene.hiZ, smp);
         }
@@ -890,7 +890,7 @@ ObjectsBucketDyn::ObjectsBucketDyn(const Type type, const Material& mat, VisualO
       ubo.set(L_Ibo,      staticMesh->ibo);
       ubo.set(L_Scene,    scene.uboGlobalPf[i][SceneGlobals::V_Main]);
 
-      auto smp = Sampler2d::nearest();
+      auto smp = Sampler::nearest();
       smp.setClamping(ClampMode::ClampToEdge);
       ubo.set(L_HiZ,      *scene.hiZ, smp);
       }
@@ -953,7 +953,7 @@ void ObjectsBucketDyn::setupUbo() {
       auto& ubo = uboHiZ.ubo[i][SceneGlobals::V_Shadow1];
       if(ubo.isEmpty())
         continue;
-      auto smp = Sampler2d::nearest();
+      auto smp = Sampler::nearest();
       smp.setClamping(ClampMode::ClampToEdge);
       ubo.set(L_HiZ,      *scene.hiZ, smp);
       }

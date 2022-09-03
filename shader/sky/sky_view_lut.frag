@@ -52,56 +52,101 @@ vec3 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax) {
   return lum;
   }
 
+vec3 fog() {
+  const vec2  uv       = inPos*vec2(0.5)+vec2(0.5);
+  const vec3  viewPos  = vec3(0.0, RPlanet + push.plPosY, 0.0);
+
+  const vec3  pos1     = inverse(vec3(inPos,1));
+  const vec3  pos0     = inverse(vec3(inPos,0));
+
+  const float dist     = length(pos1-pos0);
+  const vec3  dir      = normalize(pos1-pos0);
+
+  const vec3  sunDir   = vec3(push.sunDir);
+  const float cosTheta = dot(dir, sunDir);
+
+  //---
+  const int   steps   = 64;
+
+  float miePhaseValue      = miePhase(cosTheta);
+  float rayleighPhaseValue = rayleighPhase(-cosTheta);
+
+  vec3  lum                = vec3(0.0);
+  vec3  transmittance      = vec3(1.0);
+
+  for(int i=0; i<steps; ++i) {
+    float t  = (float(i+0.5)/steps)*dist;
+    float dt = dist/steps;
+
+    vec3  newPos = pos0 + t*dir + vec3(0,RPlanet,0);
+
+    vec3  rayleighScattering;
+    vec3  extinction;
+    float mieScattering;
+    scatteringValues(newPos, rayleighScattering, mieScattering, extinction);
+
+    vec3 sampleTransmittance = exp(-dt*extinction);
+
+    vec3 sunTransmittance = textureLUT(tLUT, newPos, sunDir);
+    vec3 psiMS            = textureLUT(mLUT, newPos, sunDir);
+
+    vec3 rayleighInScattering = rayleighScattering*(rayleighPhaseValue*sunTransmittance + psiMS);
+    vec3 mieInScattering      = mieScattering*(miePhaseValue*sunTransmittance + psiMS);
+    vec3 inScattering         = (rayleighInScattering + mieInScattering);
+
+    // Integrated scattering within path segment.
+    vec3 scatteringIntegral = (inScattering - inScattering * sampleTransmittance) / extinction;
+
+    lum += scatteringIntegral*transmittance;
+
+    transmittance *= sampleTransmittance;
+    }
+
+  return lum;
+
+  //const float tMax    = length(pos1-pos0);
+  //const vec3  rayDir  = (pos1-pos0)/tMax;
+  //return raymarchScattering(viewPos, rayDir, sunDir, tMax);
+  }
+
 void main() {
+#if defined(FOG)
+  outColor = vec4(fog(),1.0);
+#else
   const vec2 uv      = inPos*vec2(0.5)+vec2(0.5);
   const vec3 viewPos = vec3(0.0, RPlanet + push.plPosY, 0.0);
   vec3       rayDir  = vec3(0.0);
   vec3       sunDir  = vec3(0.0);
   float      tMax    = fogFarDistance;
 
-#if defined(FOG)
-  {
-    // TODO: optimize
-    vec3  pos1 = inverse(vec3(inPos,1));
-    vec3  pos0 = inverse(vec3(inPos,0));
-    tMax   = length(pos1-pos0);
-    rayDir = (pos1-pos0)/tMax;
-    sunDir = vec3(push.sunDir);
-  }
-#else
-  {
-    float azimuthAngle = (uv.x - 0.5)*2.0*M_PI;
-    // Non-linear mapping of altitude. See Section 5.3 of the paper.
-    float adjV;
-    if(uv.y < 0.5) {
-      float coord = 1.0 - 2.0*uv.y;
-      adjV = -coord*coord;
-      } else {
-      float coord = uv.y*2.0 - 1.0;
-      adjV = coord*coord;
-      }
+  float azimuthAngle = (uv.x - 0.5)*2.0*M_PI;
+  // Non-linear mapping of altitude. See Section 5.3 of the paper.
+  float adjV;
+  if(uv.y < 0.5) {
+    float coord = 1.0 - 2.0*uv.y;
+    adjV = -coord*coord;
+    } else {
+    float coord = uv.y*2.0 - 1.0;
+    adjV = coord*coord;
+    }
 
-    const float height        = length(viewPos);
-    const vec3  up            = viewPos / height;
-    const float horizonAngle  = safeacos(sqrt(height*height - RPlanet*RPlanet) / height) - 0.5*M_PI;
-    const float altitudeAngle = adjV*0.5*M_PI - horizonAngle;
+  const float height        = length(viewPos);
+  const vec3  up            = viewPos / height;
+  const float horizonAngle  = safeacos(sqrt(height*height - RPlanet*RPlanet) / height) - 0.5*M_PI;
+  const float altitudeAngle = adjV*0.5*M_PI - horizonAngle;
 
-    float cosAltitude = cos(altitudeAngle);
+  float cosAltitude = cos(altitudeAngle);
+  float sunAltitude = (0.5*M_PI) - acos(dot(push.sunDir, up));
 
-    float sunAltitude = (0.5*M_PI) - acos(dot(push.sunDir, up));
+  sunDir = vec3(0.0, sin(sunAltitude), -cos(sunAltitude));
+  rayDir = vec3(cosAltitude*sin(azimuthAngle), sin(altitudeAngle), -cosAltitude*cos(azimuthAngle));
 
-    sunDir = vec3(0.0, sin(sunAltitude), -cos(sunAltitude));
-    rayDir = vec3(cosAltitude*sin(azimuthAngle), sin(altitudeAngle), -cosAltitude*cos(azimuthAngle));
-  }
-#endif
-
-#if !defined(FOG)
   float atmoDist   = rayIntersect(viewPos, rayDir, RAtmos);
   float groundDist = rayIntersect(viewPos, rayDir, RPlanet);
   tMax = (groundDist < 0.0) ? atmoDist : groundDist;
-#endif
 
   vec3  sun  = raymarchScattering(viewPos, rayDir, sunDir, tMax);
   vec3  moon = raymarchScattering(viewPos, rayDir, normalize(vec3(0,4,1)), tMax)*0.005;
   outColor = vec4(sun+moon, 1.0);
+#endif
   }

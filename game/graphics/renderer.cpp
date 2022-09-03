@@ -63,10 +63,10 @@ void Renderer::resetSwapchain() {
   const uint32_t h      = swapchain.h();
   const uint32_t smSize = settings.shadowResolution;
 
-  auto smpN = Sampler2d::nearest();
+  auto smpN = Sampler::nearest();
   smpN.setClamping(ClampMode::ClampToEdge);
 
-  auto smpB = Sampler2d::bilinear();
+  auto smpB = Sampler::bilinear();
   smpB.setClamping(ClampMode::ClampToEdge);
 
   zbuffer        = device.zbuffer(zBufferFormat,w,h);
@@ -116,7 +116,7 @@ void Renderer::resetSwapchain() {
   gbufDepth   = device.attachment(TextureFormat::R32F, swapchain.w(),swapchain.h());
 
   uboCopy = device.descriptors(Shaders::inst().copy);
-  uboCopy.set(0,lightingBuf,Sampler2d::nearest());
+  uboCopy.set(0,lightingBuf,Sampler::nearest());
 
   ssao.ssaoBuf = device.attachment(ssao.aoFormat, (swapchain.w()+1)/2,(swapchain.h()+1)/2);
   ssao.blurBuf = device.attachment(ssao.aoFormat, (swapchain.w()+1)/2,(swapchain.h()+1)/2);
