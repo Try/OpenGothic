@@ -149,7 +149,7 @@ bool Resources::getFileData(std::string_view name, std::vector<uint8_t> &dat) {
 
   // TODO: This should return a buffer!
   phoenix::buffer reader = entry->open();
-  dat.assign(reader.array().begin(), reader.array().end());
+  dat.assign((uint8_t*) reader.array().begin().base(), (uint8_t*) reader.array().end().base());
 
   return true;
   }
@@ -288,7 +288,7 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
           tex.format() == phoenix::tex_dxt5) {
         auto dds = phoenix::texture_to_dds(tex);
 
-        auto t = implLoadTexture(cache, std::string(cname), dds.array());
+        auto t = implLoadTexture(cache, std::string(cname), {(uint8_t*) dds.array().data(), dds.array().size()});
         if(t!=nullptr) {
           return t;
         }

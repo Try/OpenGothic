@@ -235,7 +235,7 @@ LightGroup::LightGroup(const SceneGlobals& scene)
 
   try {
     auto filename = Gothic::inst().nestedPath({u"_work", u"Data", u"Presets", u"LIGHTPRESETS.ZEN"}, Dir::FT_File);
-    auto buf = phoenix::buffer::open(filename);
+    auto buf = phoenix::buffer::mmap(filename);
     auto zen = phoenix::archive_reader::open(buf);
 
     phoenix::archive_object obj {};

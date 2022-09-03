@@ -580,7 +580,7 @@ phoenix::daedalus::script Gothic::loadPhoenixScriptCode(std::string_view datFile
   for(size_t i=0; i<datFile.size() && i<255; ++i)
     str16[i] = char16_t(datFile[i]);
   auto path = caseInsensitiveSegment(gscript,str16,Dir::FT_File);
-  auto buf = phoenix::buffer::open(path);
+  auto buf = phoenix::buffer::mmap(path);
   return phoenix::daedalus::script::parse(buf);
 }
 

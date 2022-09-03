@@ -411,7 +411,7 @@ void GameScript::loadDialogOU() {
       str16[i] = char16_t(OU[i]);
     std::u16string full = FileUtil::caseInsensitiveSegment(gCutscene,str16,Dir::FT_File);
     try {
-      auto buf = phoenix::buffer::open(full);
+      auto buf = phoenix::buffer::mmap(full);
       dialogs = phoenix::messages::parse(buf);
       return;
       }
