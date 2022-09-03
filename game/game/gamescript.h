@@ -155,12 +155,13 @@ class GameScript final {
     BodyState schemeToBodystate(std::string_view sc);
 
     void      onWldItemRemoved(const Item& itm);
+    void      fixNpcPosition(Npc& npc, float angle0, float distBias);
 
   private:
     void               initCommon();
 
     struct GlobalOutput : AiOuputPipe {
-      GlobalOutput(GameScript& owner):owner(owner){}
+      explicit GlobalOutput(GameScript& owner):owner(owner){}
 
       bool output   (Npc &npc, std::string_view text) override;
       bool outputSvm(Npc& npc, std::string_view text) override;
@@ -391,8 +392,8 @@ class GameScript final {
 
     void saveSym(Serialize& fout, phoenix::daedalus::symbol& s);
 
-    void fixNpcPosition(Npc& npc, float angle0, float distBias);
     void onWldInstanceRemoved(const phoenix::daedalus::instance* obj);
+    void makeCurrent(Item* w);
 
     GameSession&                                                owner;
     phoenix::daedalus::vm                                       vm;

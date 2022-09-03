@@ -8,7 +8,6 @@
 #include <Tempest/Painter>
 
 #include "graphics/mesh/submesh/packedmesh.h"
-#include "graphics/mesh/skeleton.h"
 #include "graphics/visualfx.h"
 #include "world/objects/globalfx.h"
 #include "world/objects/npc.h"
@@ -256,7 +255,7 @@ MeshObjects::Mesh World::addStaticView(const ProtoMesh* visual, bool staticDraw)
   return view()->addStaticView(visual,staticDraw);
   }
 
-MeshObjects::Mesh World::addStaticView(const char* visual) {
+MeshObjects::Mesh World::addStaticView(std::string_view visual) {
   return view()->addStaticView(visual);
   }
 
@@ -592,10 +591,7 @@ Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target, c
   auto          pos = npc.mapWeaponBone();
 
   if(target!=nullptr) {
-    auto  tgPos = target->position();
-    tgPos.y = target->centerY();
-
-    dir = tgPos-pos;
+    dir = target->centerPosition() - pos;
 
     float lxz   = std::sqrt(dir.x*dir.x+0*0+dir.z*dir.z);
     float speed = DynamicWorld::bulletSpeed;
@@ -839,6 +835,10 @@ const WayPoint *World::findNextPoint(const WayPoint &pos) const {
   return wmatrix->findNextPoint(pos.position());
   }
 
+const WayPoint& World::deadPoint() const {
+  return wmatrix->deadPoint();
+  }
+
 void World::detectNpcNear(std::function<void (Npc &)> f) {
   wobj.detectNpcNear(f);
   }
@@ -865,7 +865,7 @@ WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
     });
   if(begin==nullptr)
     return WayPath();
-  if(MoveAlgo::isClose(p,*begin))
+  if(MoveAlgo::isClose(p,*begin) && begin==&end)
     return WayPath();
 
   return wmatrix->wayTo(*begin,end);

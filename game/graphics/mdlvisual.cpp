@@ -405,7 +405,7 @@ bool MdlVisual::setToFightMode(const WeaponState f) {
 
 void MdlVisual::setObjMatrix(const Tempest::Matrix4x4 &m, bool syncAttach) {
   pos = m;
-  skInst->setObjectMatrix(m);
+  skInst->setObjectMatrix(m,syncAttach);
   view.setPose(m,*skInst);
   if(syncAttach)
     syncAttaches();
@@ -483,7 +483,7 @@ bool MdlVisual::updateAnimation(Npc* npc, World& world, uint64_t dt) {
     }
 
   solver.update(tickCount);
-  pose.setObjectMatrix(pos);
+  pose.setObjectMatrix(pos,false);
   const bool changed = pose.update(tickCount);
 
   if(changed)
@@ -518,6 +518,12 @@ Vec3 MdlVisual::mapWeaponBone() const {
   if(fgtMode==WeaponState::Mage && skeleton!=nullptr)
     return mapBone(skeleton->findNode("ZS_RIGHTHAND"));
   return {pos.at(3,0), pos.at(3,1), pos.at(3,2)};
+  }
+
+Vec3 MdlVisual::mapHeadBone() const {
+  if(skeleton->BIP01_HEAD==size_t(-1))
+    return {pos.at(3,0), pos.at(3,1)+180, pos.at(3,2)};
+  return mapBone(skeleton->BIP01_HEAD);
   }
 
 void MdlVisual::stopAnim(Npc& npc, std::string_view anim) {

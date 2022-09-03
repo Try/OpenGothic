@@ -10,7 +10,9 @@ out gl_PerVertex {
   vec4 gl_Position;
   };
 
+#if defined(MAT_VARYINGS)
 layout(location = 0) out Varyings shOut;
+#endif
 
 #if DEBUG_DRAW
 layout(location = DEBUG_DRAW_LOC) out flat uint debugId;
@@ -18,17 +20,17 @@ layout(location = DEBUG_DRAW_LOC) out flat uint debugId;
 
 void main() {
 #if defined(LVL_OBJECT)
-  uint objId = push.baseInstance + gl_InstanceIndex;
+  uint objId = gl_InstanceIndex;
 #else
   uint objId = 0;
 #endif
 
-  Varyings ret = processVertex(objId,0);
-  shOut = ret;
-  gl_Position = ret.scr;
+  const Varyings out0 = processVertex(gl_Position,objId,gl_VertexIndex);
+#if defined(MAT_VARYINGS)
+  shOut = out0;
+#endif
 
 #if DEBUG_DRAW
-  //debugId = gl_InstanceIndex;
   debugId = gl_VertexIndex/64;
 #endif
   }

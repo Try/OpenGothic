@@ -85,11 +85,12 @@ void Workers::threadFunc(size_t id) {
     // Log::d("worker: id = ",id," [",b, ", ",e,"]");
 
     if(b!=e) {
-      void* d = &workSet[b*workEltSize];
+      void* d = workSet + b*workEltSize;
       workFunc(d,e-b);
       }
 
-    workDone.fetch_add(1);
+    if(size_t(workDone.fetch_add(1)+1)==workTasks)
+      std::this_thread::yield();
     }
   }
 

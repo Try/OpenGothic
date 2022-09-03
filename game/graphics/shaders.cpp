@@ -69,7 +69,7 @@ void Shaders::MaterialTemplate::load(Device &device, const char *tag, bool hasTe
   lnd.load(device,flnd,"%s.%s.sprv",hasTesselation,hasMeshlets);
   obj.load(device,fobj,"%s.%s.sprv",hasTesselation,hasMeshlets);
   ani.load(device,fani,"%s.%s.sprv",hasTesselation,hasMeshlets);
-  mph.load(device,fmph,"%s.%s.sprv",hasTesselation,false);
+  mph.load(device,fmph,"%s.%s.sprv",hasTesselation,hasMeshlets);
   pfx.load(device,fclr,"%s.%s.sprv",hasTesselation,false);
   }
 
@@ -77,18 +77,19 @@ Shaders::Shaders() {
   instance = this;
   auto& device = Resources::device();
 
-  solid   .load(device,"gbuffer",   false,Resources::hasMeshShaders());
-  atest   .load(device,"gbuffer_at",false,Resources::hasMeshShaders());
-  ghost   .load(device,"ghost",     false,Resources::hasMeshShaders());
-  emmision.load(device,"emi",       false,Resources::hasMeshShaders());
+  const bool meshlets = Gothic::inst().doMeshShading();
+  solid   .load(device,"gbuffer",   false,meshlets);
+  atest   .load(device,"gbuffer_at",false,meshlets);
+  ghost   .load(device,"ghost",     false,meshlets);
+  emmision.load(device,"emi",       false,meshlets);
 
   water   .load(device,"water",device.properties().tesselationShader,false);
 
-  solidF  .load(device,"",  false,Resources::hasMeshShaders());
-  atestF  .load(device,"at",false,Resources::hasMeshShaders());
+  solidF  .load(device,"",  false,meshlets);
+  atestF  .load(device,"at",false,meshlets);
 
-  shadow  .load(device,"shadow",   false,Resources::hasMeshShaders());
-  shadowAt.load(device,"shadow_at",false,Resources::hasMeshShaders());
+  shadow  .load(device,"shadow",   false,meshlets);
+  shadowAt.load(device,"shadow_at",false,meshlets);
 
   copy               = postEffect("copy");
   ssao               = postEffect("ssao");
@@ -99,7 +100,12 @@ Shaders::Shaders() {
   skyMultiScattering = postEffect("sky_multi_scattering");
   skyViewLut         = postEffect("sky_view_lut");
   fogViewLut         = postEffect("fog_view_lut");
-  skyEGSR            = postEffect("sky_egsr_g2");
+  if(Gothic::inst().version().game==1) {
+    // TODO
+    skyEGSR = postEffect("sky_egsr_g2");
+    } else {
+    skyEGSR = postEffect("sky_egsr_g2");
+    }
   fogEGSR            = fogShader ("fog_egsr");
 
   if(Gothic::inst().doRayQuery()) {
@@ -120,30 +126,38 @@ Shaders::Shaders() {
   auto vsLight = device.shader(sh.data,sh.len);
   sh           = GothicShader::get("light.frag.sprv");
   auto fsLight = device.shader(sh.data,sh.len);
-  lights       = device.pipeline<Vec3>(Triangles, state, vsLight, fsLight);
+  lights       = device.pipeline(Triangles, state, vsLight, fsLight);
   if(Gothic::inst().doRayQuery()) {
-    sh           = GothicShader::get("light_rq.frag.sprv");
-    auto fsLight = device.shader(sh.data,sh.len);
-    lightsRq     = device.pipeline<Vec3>(Triangles, state, vsLight, fsLight);
+    if(Resources::device().properties().bindless.nonUniformIndexing) {
+      sh      = GothicShader::get("light_rq_at.frag.sprv");
+      fsLight = device.shader(sh.data,sh.len);
+      } else {
+      sh      = GothicShader::get("light_rq.frag.sprv");
+      fsLight = device.shader(sh.data,sh.len);
+      }
+    lightsRq = device.pipeline(Triangles, state, vsLight, fsLight);
     }
   }
 
-  fog = fogShader("fog");
-  if(Gothic::inst().version().game==1) {
-    sky = postEffect("sky_g1");
-    } else {
-    sky = postEffect("sky_g2");
+  if(meshlets) {
+    auto sh = GothicShader::get("hiZPot.comp.sprv");
+    hiZPot   = device.pipeline(device.shader(sh.data,sh.len));
+
+    sh = GothicShader::get("hiZMip.comp.sprv");
+    hiZMip   = device.pipeline(device.shader(sh.data,sh.len));
     }
 
-  if(Resources::hasMeshShaders()){
-    auto sh = GothicShader::get("hiZPot.comp.sprv");
-    hiZPot  = device.pipeline(device.shader(sh.data,sh.len));
+  if(meshlets) {
+    RenderState state;
+    state.setCullFaceMode(RenderState::CullMode::Front);
+    state.setZTestMode   (RenderState::ZTestMode::Less);
 
-    sh  = GothicShader::get("hiZGather.comp.sprv");
-    hiZGather = device.pipeline(device.shader(sh.data,sh.len));
+    auto sh = GothicShader::get("lnd_hiz.mesh.sprv");
+    auto ms = device.shader(sh.data,sh.len);
+    sh      = GothicShader::get("lnd_hiz.frag.sprv");
+    auto fs = device.shader(sh.data,sh.len);
 
-    sh   = GothicShader::get("hiZMip.comp.sprv");
-    hiZMip = device.pipeline(device.shader(sh.data,sh.len));
+    lndPrePass = device.pipeline(Triangles,state,ms,fs);
     }
   }
 
@@ -169,7 +183,8 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
 
   RenderState state;
   state.setCullFaceMode(RenderState::CullMode::Front);
-  state.setZTestMode   (RenderState::ZTestMode::Less);
+  state.setZTestMode   (RenderState::ZTestMode::LEqual);
+  //state.setZTestMode   (RenderState::ZTestMode::Less);
 
   if(pt==PipelineType::T_Shadow) {
     state.setZTestMode(RenderState::ZTestMode::Greater); //FIXME
@@ -220,8 +235,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
 
   static bool overdrawDbg = false;
   if(overdrawDbg &&
-     (alpha==Material::Solid || alpha==Material::AlphaTest) &&
-     t!=ObjectsBucket::Landscape && t!=ObjectsBucket::LandscapeShadow && pt!=T_Shadow && pt!=T_Prepass) {
+     (alpha==Material::Solid || alpha==Material::AlphaTest) && t!=ObjectsBucket::LandscapeShadow && pt!=T_Shadow) {
     state.setBlendSource(RenderState::BlendMode::One);
     state.setBlendDest  (RenderState::BlendMode::One);
     state.setZWriteEnabled(false);
@@ -237,7 +251,6 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
       temp = deffered;
       break;
     case T_Shadow:
-    case T_Prepass:
       temp = shadow;
       break;
     }
@@ -253,20 +266,20 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
   switch(t) {
     case ObjectsBucket::Landscape:
     case ObjectsBucket::LandscapeShadow:
-      b.pipeline = pipeline<Resources::Vertex> (state,temp->lnd);
+      b.pipeline = pipeline(state,temp->lnd);
       break;
     case ObjectsBucket::Static:
     case ObjectsBucket::Movable:
-      b.pipeline = pipeline<Resources::Vertex> (state,temp->obj);
+      b.pipeline = pipeline(state,temp->obj);
       break;
     case ObjectsBucket::Morph:
-      b.pipeline = pipeline<Resources::Vertex> (state,temp->mph);
+      b.pipeline = pipeline(state,temp->mph);
       break;
     case ObjectsBucket::Animated:
-      b.pipeline = pipeline<Resources::VertexA>(state,temp->ani);
+      b.pipeline = pipeline(state,temp->ani);
       break;
     case ObjectsBucket::Pfx:
-      b.pipeline = pipeline<Resources::Vertex>(state,temp->pfx);
+      b.pipeline = pipeline(state,temp->pfx);
       break;
     }
 
@@ -293,7 +306,7 @@ RenderPipeline Shaders::postEffect(std::string_view vsName, std::string_view fsN
   std::snprintf(buf,sizeof(buf),"%.*s.frag.sprv",int(fsName.size()),fsName.data());
   sh      = GothicShader::get(buf);
   auto fs = device.shader(sh.data,sh.len);
-  return device.pipeline<Resources::VertexFsq>(Triangles,stateFsq,vs,fs);
+  return device.pipeline(Triangles,stateFsq,vs,fs);
   }
 
 RenderPipeline Shaders::fogShader(std::string_view name) {
@@ -314,16 +327,15 @@ RenderPipeline Shaders::fogShader(std::string_view name) {
   std::snprintf(buf,sizeof(buf),"%.*s.frag.sprv",int(name.size()),name.data());
   sh      = GothicShader::get(buf);
   auto fs = device.shader(sh.data,sh.len);
-  return device.pipeline<Resources::VertexFsq>(Triangles,state,vs,fs);
+  return device.pipeline(Triangles,state,vs,fs);
   }
 
-template<class Vertex>
 RenderPipeline Shaders::pipeline(RenderState& st, const ShaderSet &sh) const {
   if(!sh.me.isEmpty()) {
     return Resources::device().pipeline(st,Shader(),sh.me,sh.fs);
     }
   if(!sh.tc.isEmpty() && !sh.te.isEmpty()) {
-    return Resources::device().pipeline<Vertex>(Triangles,st,sh.vs,sh.tc,sh.te,sh.fs);
+    return Resources::device().pipeline(Triangles,st,sh.vs,sh.tc,sh.te,sh.fs);
     }
-  return Resources::device().pipeline<Vertex>(Triangles,st,sh.vs,sh.fs);
+  return Resources::device().pipeline(Triangles,st,sh.vs,sh.fs);
   }

@@ -102,29 +102,30 @@ void BaseSpaceIndex::implFind(Vob** v, size_t cnt, uint8_t depth,
 
   auto mid = cnt/2;
   auto pos = v[mid]->position();
+  auto qR  = (R+500.0);//v[mid]->extendedSearchRadius());
 
-  if((pos-p).quadLength()<=R*R) {
+  if((pos-p).quadLength()<=qR*qR) {
     func(ctx,v[mid]);
     }
 
   depth%=3;
   switch(depth) {
     case 0:
-      if(p.x-R<=pos.x)
+      if(p.x-qR<=pos.x)
         implFind(v,mid,uint8_t(depth+1u),p,R, ctx,func);
-      if(p.x+R>=pos.x)
+      if(p.x+qR>=pos.x)
         implFind(v+mid+1,cnt-mid-1,uint8_t(depth+1u),p,R, ctx,func);
       break;
     case 1:
-      if(p.y-R<=pos.y)
+      if(p.y-qR<=pos.y)
         implFind(v,mid,uint8_t(depth+1u),p,R, ctx,func);
-      if(p.y+R>=pos.y)
+      if(p.y+qR>=pos.y)
         implFind(v+mid+1,cnt-mid-1,uint8_t(depth+1u),p,R, ctx,func);
       break;
     case 2:
-      if(p.z-R<=pos.z)
+      if(p.z-qR<=pos.z)
         implFind(v,mid,uint8_t(depth+1u),p,R, ctx,func);
-      if(p.z+R>=pos.z)
+      if(p.z+qR>=pos.z)
         implFind(v+mid+1,cnt-mid-1,uint8_t(depth+1u),p,R, ctx,func);
       break;
     }

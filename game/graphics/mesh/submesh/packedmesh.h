@@ -21,7 +21,7 @@ class PackedMesh {
 
     enum {
       MaxVert     = 64,
-      // NVidia allocates pipeline memory in batches of 128 bytes (2 reserved for size)
+      // NVidia allocates pipeline memory in batches of 128 bytes (4 reserved for size)
       MaxInd      = 41*3,
       MaxMeshlets = 16,
       };
@@ -115,6 +115,7 @@ class PackedMesh {
     void   packPhysics(const phoenix::mesh& mesh,PkgType type);
     void   computeBbox();
 
-    void   dbgUtilization(std::vector<Meshlet*>& meshlets);
+    void   dbgUtilization(const std::vector<Meshlet*>& meshlets);
+    void   dbgMeshlets(const phoenix::mesh& mesh, const std::vector<Meshlet*>& meshlets);
   };
 

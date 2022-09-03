@@ -47,10 +47,8 @@ Vob::Vob(Vob* parent, World& owner, const std::unique_ptr<phoenix::vobs::vob>& v
 
   for(auto& i:vob->children) {
     auto p = Vob::load(this,owner,i,flags);
-    if(p!=nullptr) {
-      childContent = ContentBit(p->childContent|childContent);
+    if(p!=nullptr)
       child.emplace_back(std::move(p));
-      }
     }
   vob->children.clear();
   }
@@ -93,6 +91,10 @@ bool Vob::isDynamic() const {
   return false;
   }
 
+float Vob::extendedSearchRadius() const {
+  return 0;
+  }
+
 void Vob::recalculateTransform() {
   auto old = position();
   if(parent!=nullptr) {
@@ -101,9 +103,21 @@ void Vob::recalculateTransform() {
     } else {
     pos = local;
     }
-  if(old != position() && !isDynamic()) {
-    if(childContent!=cbNone)
-      world.invalidateVobIndex();
+  if(old!=position() && !isDynamic()) {
+    switch(vobType) {
+      case phoenix::vob_type::oCMOB:
+      case phoenix::vob_type::oCMobBed:
+      case phoenix::vob_type::oCMobDoor:
+      case phoenix::vob_type::oCMobInter:
+      case phoenix::vob_type::oCMobContainer:
+      case phoenix::vob_type::oCMobSwitch:
+      case phoenix::vob_type::oCMobLadder:
+      case phoenix::vob_type::oCMobWheel:
+        world.invalidateVobIndex();
+        break;
+      default:
+        break;
+      }
     }
   moveEvent();
   for(auto& i:child) {
@@ -121,14 +135,10 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const std::unique_ptr<
     case phoenix::vob_type::zCVobLevelCompo:
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
     case phoenix::vob_type::oCMobFire:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbMobsi);
       return std::unique_ptr<Vob>(new FirePlace(parent,world,vob,flags));
     case phoenix::vob_type::oCMOB:
       // Irdotar bow-triggers
       // focusOverride=true
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbMobsi);
       return std::unique_ptr<Vob>(new Interactive(parent,world,vob,flags));
     case phoenix::vob_type::oCMobInter:
     case phoenix::vob_type::oCMobBed:
@@ -137,57 +147,31 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const std::unique_ptr<
     case phoenix::vob_type::oCMobSwitch:
     case phoenix::vob_type::oCMobLadder:
     case phoenix::vob_type::oCMobWheel:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbMobsi);
       return std::unique_ptr<Vob>(new Interactive(parent,world,vob,flags));
 
     case phoenix::vob_type::zCMover:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new MoveTrigger(parent,world,vob,flags));
     case phoenix::vob_type::zCCodeMaster:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new CodeMaster(parent,world,vob,flags));
     case phoenix::vob_type::zCTriggerList:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new TriggerList(parent,world,vob,flags));
     case phoenix::vob_type::oCTriggerScript:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new TriggerScript(parent,world,vob,flags));
     case phoenix::vob_type::zCTriggerWorldStart:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new TriggerWorldStart(parent,world,vob,flags));
     case phoenix::vob_type::oCTriggerChangeLevel:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new ZoneTrigger(parent,world,vob,flags));
     case phoenix::vob_type::zCTrigger:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new Trigger(parent,world,vob,flags));
     case phoenix::vob_type::zCMessageFilter:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new MessageFilter(parent,world,vob,flags));
     case phoenix::vob_type::zCPFXController:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new PfxController(parent,world,vob,flags));
     case phoenix::vob_type::oCTouchDamage:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new TouchDamage(parent,world,vob,flags));
     case phoenix::vob_type::zCTriggerUntouch:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
     case phoenix::vob_type::zCMoverController:
-      if(parent!=nullptr)
-        parent->childContent = ContentBit(parent->childContent|cbTrigger);
       return std::unique_ptr<Vob>(new MoverControler(parent,world,vob,flags));
     case phoenix::vob_type::zCVobStartpoint: {
       float dx = vob->rotation[2].x;

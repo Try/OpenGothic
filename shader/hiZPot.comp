@@ -14,15 +14,15 @@ void main() {
   if(uv.x>=dstSz.x || uv.y>=dstSz.y)
     return;
 
-  ivec2 begin = ivec2(uv*srcSz/dstSz);
+  ivec2 begin = ivec2((uv*srcSz)/dstSz);
   ivec2 end   = ivec2(/*ceil*/((uv+ivec2(1,1))*srcSz/dstSz));
   end = min(end, srcSz-ivec2(1,1));
 
   float z = 0;
   [[unroll]]
-  for(int i=0; i<4; ++i) {
+  for(int i=0; i<3; ++i) {
     [[unroll]]
-    for(int r=0; r<4; ++r) {
+    for(int r=0; r<3; ++r) {
       int x = begin.x+i;
       int y = begin.y+r;
       if(x>end.x || y>end.y)
@@ -32,6 +32,7 @@ void main() {
       }
     }
 
-  // z = (z-0.9)*10.0;
+  z = (1.0-z)*20.0;
+  z = z - 1.0/32768.0;
   imageStore(hiZ, ivec2(uv), vec4(z));
   }

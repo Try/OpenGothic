@@ -78,6 +78,7 @@ class Resources final {
 
     static Tempest::Device&          device() { return inst->dev; }
     static const char*               renderer();
+    static void                      loadVdfs(const std::vector<std::u16string> &modvdfs);
 
     static const Tempest::Sampler2d& shadowSampler();
 
@@ -128,8 +129,6 @@ class Resources final {
     static bool                      getFileData(std::string_view name, std::vector<uint8_t>& dat);
     static phoenix::buffer           getFileBuffer(std::string_view name);
     static bool                      hasFile    (std::string_view fname);
-
-    static bool                      hasMeshShaders();
 
     static phoenix::vdf_file&          vdfsIndex();
 

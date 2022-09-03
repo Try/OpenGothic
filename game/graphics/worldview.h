@@ -14,6 +14,7 @@
 #include "lightsource.h"
 #include "sceneglobals.h"
 #include "visualobjects.h"
+#include "bindless.h"
 
 class World;
 class ParticleFx;
@@ -44,6 +45,7 @@ class WorldView {
 
     void dbgLights    (DbgPainter& p) const;
     void prepareSky   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void updateLight();
 
     void visibilityPass(const Frustrum fr[]);
     void drawHiZ       (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
@@ -66,7 +68,6 @@ class WorldView {
 
   private:
     const World&  owner;
-
     SceneGlobals  sGlobal;
     Sky           sky;
     VisualObjects visuals;
@@ -79,8 +80,6 @@ class WorldView {
 
     bool needToUpdateCmd(uint8_t frameId) const;
     void invalidateCmd();
-
-    void updateLight();
 
   friend class LightGroup::Light;
   friend class PfxEmitter;

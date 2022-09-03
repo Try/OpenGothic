@@ -72,6 +72,8 @@ class World final {
     const WayPoint*      findNextFreePoint(const Npc& pos, std::string_view name) const;
     const WayPoint*      findNextPoint(const WayPoint& pos) const;
 
+    const WayPoint&      deadPoint() const;
+
     void                 detectNpcNear(std::function<void(Npc&)> f);
     void                 detectNpc (const Tempest::Vec3& p, const float r, const std::function<void(Npc&)>& f);
     void                 detectItem(const Tempest::Vec3& p, const float r, const std::function<void(Item&)>& f);
@@ -101,7 +103,7 @@ class World final {
     MeshObjects::Mesh    addView(const ProtoMesh* visual);
     MeshObjects::Mesh    addAtachView (const ProtoMesh::Attach& visual, const int32_t version);
     MeshObjects::Mesh    addStaticView(const ProtoMesh* visual, bool staticDraw);
-    MeshObjects::Mesh    addStaticView(const char* visual);
+    MeshObjects::Mesh    addStaticView(std::string_view visual);
     MeshObjects::Mesh    addDecalView (const phoenix::vobs::vob& vob);
 
     void                 updateAnimation(uint64_t dt);

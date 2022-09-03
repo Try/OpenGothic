@@ -83,7 +83,8 @@ class Inventory final {
     void   equipBestRangeWeapon(Npc &owner);
     void   unequipWeapons(GameScript &vm, Npc &owner);
     void   unequipArmour(GameScript &vm, Npc &owner);
-    void   clear(GameScript &vm, Npc &owner);
+    void   clear(GameScript &vm, Npc &owner, bool includeMissionItm = false);
+    void   clear(GameScript &vm, Interactive &owner, bool includeMissionItm = false);
     bool   hasMissionItems() const;
 
     void   updateArmourView(Npc& owner);

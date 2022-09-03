@@ -24,6 +24,11 @@ TouchDamage::TouchDamage(Vob* parent, World &world, const std::unique_ptr<phoeni
 void TouchDamage::onTrigger(const TriggerEvent&/*evt*/) {
   }
 
+void TouchDamage::onIntersect(Npc& n) {
+  AbstractTrigger::onIntersect(n);
+  enableTicks();
+  }
+
 void TouchDamage::tick(uint64_t dt) {
   AbstractTrigger::tick(dt);
 
@@ -50,6 +55,9 @@ void TouchDamage::tick(uint64_t dt) {
     }
 
   repeatTimeout = world.tickCount() + uint64_t(repeatDelaySec*1000);
+
+  if(intersections().empty())
+    disableTicks();
   }
 
 void TouchDamage::takeDamage(Npc& npc, int32_t val, int32_t prot) {

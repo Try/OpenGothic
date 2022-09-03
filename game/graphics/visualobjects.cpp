@@ -36,13 +36,12 @@ ObjectsBucket::Item VisualObjects::get(const StaticMesh& mesh, const Material& m
   const ObjectsBucket::Type type = (staticDraw ? ObjectsBucket::Static : ObjectsBucket::Movable);
 
   auto&        bucket = getBucket(type,mat,&mesh,nullptr,nullptr);
-  const size_t id     = bucket.alloc(mesh,iboOffset,iboLength,nullptr,mesh.bbox,mat);
+  const size_t id     = bucket.alloc(mesh,iboOffset,iboLength,mesh.bbox,mat);
   return ObjectsBucket::Item(bucket,id);
   }
 
 ObjectsBucket::Item VisualObjects::get(const StaticMesh& mesh, const Material& mat,
                                        size_t iboOff, size_t iboLen,
-                                       const Tempest::AccelerationStructure* blas,
                                        const Tempest::StorageBuffer& desc,
                                        const Bounds& bbox, ObjectsBucket::Type type) {
   if(mat.tex==nullptr) {
@@ -50,7 +49,7 @@ ObjectsBucket::Item VisualObjects::get(const StaticMesh& mesh, const Material& m
     return ObjectsBucket::Item();
     }
   auto&        bucket = getBucket(type,mat,&mesh,nullptr,&desc);
-  const size_t id     = bucket.alloc(mesh,iboOff,iboLen,blas,bbox,mat);
+  const size_t id     = bucket.alloc(mesh,iboOff,iboLen,bbox,mat);
   return ObjectsBucket::Item(bucket,id);
   }
 
@@ -93,7 +92,7 @@ void VisualObjects::preFrameUpdate(uint8_t fId) {
   recycledId = fId;
   recycled[fId].clear();
 
-  mkTlas(fId);
+  //mkTlas(fId);
   mkIndex();
   for(auto& c:buckets)
     c->preFrameUpdate(fId);
@@ -101,8 +100,6 @@ void VisualObjects::preFrameUpdate(uint8_t fId) {
   }
 
 void VisualObjects::visibilityPass(const Frustrum fr[]) {
-  for(auto& i:buckets)
-    i->resetVis();
   visGroup.pass(fr);
   }
 
@@ -186,6 +183,14 @@ void VisualObjects::mkIndex() {
       return true;
     if(lt>rt)
       return false;
+
+    auto lv = l->meshPointer();
+    auto rv = r->meshPointer();
+    if(lv<rv)
+      return true;
+    if(lv>rv)
+      return false;
+
     return lm.tex < rm.tex;
     });
   lastSolidBucket = index.size();
@@ -196,6 +201,25 @@ void VisualObjects::mkIndex() {
       break;
       }
     }
+  visGroup.buildVSetIndex(index);
+  /*
+  std::unordered_set<std::string> uniqTex;
+  std::unordered_set<const void*> uniqMesh;
+  for(size_t i=0; i<index.size(); ++i) {
+    auto& b = index[i];
+    const char* name = "ObjectsBucket   ";
+    if(dynamic_cast<ObjectsBucketDyn*>(b)!=nullptr)
+      name = "ObjectsBucketDyn";
+    char ind[32] = {};
+    std::snprintf(ind,32,"%04d",int(i));
+    char size[32] = {};
+    std::snprintf(size,32,"%03d",int(b->size()));
+    Log::d(name,"[",ind,"] size = ",size," ",b->meshPointer()," ",b->material().debugHint);
+    uniqTex .insert(b->material().debugHint);
+    uniqMesh.insert(b->meshPointer());
+    }
+  Log::d("uniqTex: ",uniqTex.size()," uniqMesh:",uniqMesh.size());
+  */
   }
 
 void VisualObjects::commitUbo(uint8_t fId) {
@@ -206,26 +230,37 @@ void VisualObjects::commitUbo(uint8_t fId) {
     c->invalidateUbo(fId);
   }
 
-void VisualObjects::mkTlas(uint8_t fId) {
-  auto& device = Resources::device();
+void VisualObjects::updateTlas(Bindless& out, uint8_t fId) {
   if(!needtoInvalidateTlas || !globals.tlasEnabled)
     return;
   needtoInvalidateTlas = false;
 
   if(!Gothic::inst().doRayQuery())
     return;
-  device.waitIdle();
 
   std::vector<Tempest::RtInstance> inst;
-  for(auto& c:buckets)
-    c->fillTlas(inst);
+  std::vector<uint32_t>            iboOff;
+  out.tex.clear();
+  out.vbo.clear();
+  out.ibo.clear();
   if(landBlas!=nullptr) {
     Tempest::RtInstance ix;
     ix.mat  = Matrix4x4::mkIdentity();
     ix.blas = landBlas;
     inst.push_back(ix);
+    out.tex.push_back(&Resources::fallbackBlack());
+    out.vbo.push_back(nullptr);
+    out.ibo.push_back(nullptr);
+    iboOff.push_back(0);
     }
+  for(auto& c:buckets)
+    c->fillTlas(inst,iboOff,out);
+
+  auto& device = Resources::device();
+  device.waitIdle();
+
+  out.iboOffset = device.ssbo(iboOff);
   tlas = device.tlas(inst);
+
   onTlasChanged(&tlas);
   }
-

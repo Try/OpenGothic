@@ -5,7 +5,7 @@
 #include <algorithm>
 
 #include "game/compatibility/phoenix.h"
-#include "graphics/bounds.h"
+#include "gothic.h"
 
 using namespace Tempest;
 
@@ -51,7 +51,7 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices,
   }
   for(size_t i=indSz; i<MaxInd; ++i) {
     // padd with degenerated triangles
-    indices[iboSz+i] = uint32_t(vboSz);
+    indices[iboSz+i] = uint32_t(vboSz+indSz/3);
   }
 }
 
@@ -135,7 +135,7 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices, std::vector<Verte
   }
   for(size_t i=indSz; i<MaxInd; ++i) {
     // padd with degenerated triangles
-    indices[iboSz+i] = uint32_t(vboSz);
+    indices[iboSz+i] = uint32_t(vboSz+indSz/3);
   }
 }
 
@@ -291,9 +291,9 @@ static bool isSame(const phoenix::material& a, const phoenix::material& b) {
 }
 
 PackedMesh::PackedMesh(const phoenix::mesh& mesh, PkgType type) {
-  if(Resources::hasMeshShaders()) {
+  if(Gothic::inst().doMeshShading()) {
     auto& prop = Resources::device().properties().meshlets;
-    maxIboSliceLength = prop.maxMeshGroups * 32 * MaxInd;
+    maxIboSliceLength = prop.maxMeshGroups * prop.maxMeshGroupSize * MaxInd;
   } else {
     maxIboSliceLength = 8*1024*3;
   }
@@ -450,7 +450,7 @@ void PackedMesh::packMeshlets(const phoenix::mesh& mesh) {
   for(size_t i=0; i<mesh.materials().size(); ++i)
     duplicates[i] = i;
 
-  if(!Resources::hasMeshShaders()) {
+  if(!Gothic::inst().doMeshShading()) {
     for(size_t i=0; i<mesh.materials().size(); ++i) {
       if(duplicates[i]!=i)
         continue;
@@ -656,13 +656,14 @@ void PackedMesh::postProcessP1(const phoenix::mesh& mesh, size_t matId, std::vec
 
   postProcessP2(mesh,matId,ind);
   // dbgUtilization(ind);
-}
+  // dbgMeshlets(mesh,ind);
+  }
 
 void PackedMesh::postProcessP2(const phoenix::mesh& mesh, size_t matId, std::vector<Meshlet*>& meshlets) {
   if(meshlets.empty())
     return;
 
-  const bool hasMeshShaders = Resources::hasMeshShaders();
+  //const bool hasMeshShaders = Gothic::inst().doMeshShading();
 
   SubMesh sub;
   sub.material  = mesh.materials()[matId];
@@ -672,10 +673,9 @@ void PackedMesh::postProcessP2(const phoenix::mesh& mesh, size_t matId, std::vec
   for(size_t i=0; i<meshlets.size(); ++i) {
     auto meshlet  = meshlets[i];
     bool overflow = (indices.size()-sub.iboOffset+MaxInd > maxIboSliceLength);
-    bool disjoint = !hasMeshShaders && !meshlet->hasIntersection(*prev) && (indices.size()-sub.iboOffset>4096*3);
-    //bool disjoint = !hasMeshShaders && (meshlet->qDistance(*prev) > 4*clusterRadius*clusterRadius);
+    bool disjoint = !meshlet->hasIntersection(*prev) && (indices.size()-sub.iboOffset>4096*3);
 
-    if(prev!=nullptr && (disjoint || overflow)) {
+    if(disjoint || overflow) {
       sub.iboLength = indices.size()-sub.iboOffset;
       if(sub.iboLength>0)
         subMeshes.push_back(std::move(sub));
@@ -736,7 +736,7 @@ void PackedMesh::computeBbox() {
     }
   }
 
-void PackedMesh::dbgUtilization(std::vector<Meshlet*>& meshlets) {
+void PackedMesh::dbgUtilization(const std::vector<Meshlet*>& meshlets) {
   size_t used = 0, allocated = 0;
   for(auto i:meshlets) {
     used      += i->indSz;
@@ -747,6 +747,25 @@ void PackedMesh::dbgUtilization(std::vector<Meshlet*>& meshlets) {
   Log::d("Meshlet usage: ", procent," %");
   if(procent<25)
     Log::d("");
+  }
+
+void PackedMesh::dbgMeshlets(const phoenix::mesh& mesh, const std::vector<Meshlet*>& meshlets) {
+  std::ofstream out("dbg.obj");
+
+  size_t off = 1;
+  auto&  vbo = mesh.vertices();
+  for(auto i:meshlets) {
+    out << "o meshlet" << off <<" " << i->bounds.r << std::endl;
+    for(size_t r=0; r<i->vertSz; ++r) {
+      auto& v = vbo[i->vert[r].first];
+      out << "v " << v.x << " " << v.y << " " << v.z << std::endl;
+      }
+    for(size_t r=0; r<i->indSz; r+=3) {
+      auto tri = &i->indexes[r];
+      out << "f " << off+tri[0] << " " << off+tri[1] << " " << off+tri[2] << std::endl;
+      }
+    off += i->vertSz;
+    }
   }
 
 void PackedMesh::addIndex(Meshlet* active, size_t numActive, std::vector<Meshlet>& meshlets,

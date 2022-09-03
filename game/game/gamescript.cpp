@@ -462,7 +462,7 @@ void GameScript::loadQuests(Serialize& fin) {
   }
 
 void GameScript::saveVar(Serialize &fout) {
-  auto&  dat = vm.symbols();
+  auto& dat = vm.symbols();
   fout.write(uint32_t(dat.size()));
   for(unsigned i = 0; i < dat.size(); ++i){
     saveSym(fout,*vm.find_symbol_by_index(i));
@@ -528,6 +528,14 @@ void GameScript::loadVar(Serialize &fin) {
             auto itm = world().itmById(id);
             s->set_instance(itm != nullptr ? itm->handle() : nullptr);
             }
+          else if(dataClass==3) {
+            uint32_t itmClass=0;
+            fin.read(itmClass);
+            if(auto npc = world().npcById(id)) {
+              auto itm = npc->getItem(itmClass);
+              s->set_instance(itm ? itm->handle() : nullptr);
+              }
+            }
           }
         break;
         }
@@ -551,6 +559,7 @@ const QuestLog& GameScript::questLog() const {
   }
 
 void GameScript::saveSym(Serialize &fout, phoenix::daedalus::symbol &i) {
+  auto& w = world();
   switch(i.type()) {
     case phoenix::daedalus::dt_integer:
       if(i.count()>0){
@@ -588,7 +597,23 @@ void GameScript::saveSym(Serialize &fout, phoenix::daedalus::symbol &i) {
         fout.write(uint8_t(1),i.name(),world().npcId(npc));
         }
       else if(i.is_instance_of<phoenix::daedalus::c_item>()){
-        fout.write(uint8_t(2),i.name(),world().itmId(i.get_instance().get()));
+          auto     item = reinterpret_cast<const phoenix::daedalus::c_item*>(i.get_instance().get());
+          uint32_t id   = w.itmId(item);
+          if(id!=uint32_t(-1) || item==nullptr) {
+              fout.write(uint8_t(2),i.name(),id);
+          } else {
+              uint32_t idNpc = uint32_t(-1);
+              for(uint32_t r=0; r<w.npcCount(); ++r) {
+                  auto& n = *w.npcById(r);
+                  if(n.itemCount(item->symbol_index())>0) {
+                      idNpc = r;
+                      fout.write(uint8_t(3),i.name(),idNpc,uint32_t(item->symbol_index()));
+                      break;
+                  }
+              }
+              if(idNpc==uint32_t(-1))
+                  fout.write(uint8_t(2),i.name(),uint32_t(-1));
+          }
         }
       else if(i.is_instance_of<phoenix::daedalus::c_focus>() ||
               i.is_instance_of<phoenix::daedalus::c_gil_values>() ||
@@ -1147,6 +1172,13 @@ void GameScript::onWldInstanceRemoved(const phoenix::daedalus::instance* obj) {
   vm.find_symbol_by_instance(*obj)->set_instance(nullptr);
   }
 
+void GameScript::makeCurrent(Item* w) {
+  if(w==nullptr)
+    return;
+  auto* s = vm.find_symbol_by_index(w->clsId());
+  s->set_instance(w->handle());
+  }
+
 bool GameScript::searchScheme(std::string_view sc, std::string_view listName) {
   auto& list = getSymbol(listName)->get_string();
   const char* l = list.c_str();
@@ -1548,7 +1580,7 @@ void GameScript::mdl_setvisualbody(std::shared_ptr<phoenix::daedalus::c_npc> npc
 
   npc->setVisualBody(headTexNr,teethTexNr,bodyTexNr,bodyTexColor,body,head);
   if(armor>=0) {
-    if(npc->hasItem(uint32_t(armor))==0)
+    if(npc->itemCount(uint32_t(armor))==0)
       npc->addItem(uint32_t(armor),1);
     npc->useItem(uint32_t(armor),true);
     }
@@ -1766,7 +1798,7 @@ bool GameScript::npc_refusetalk(std::shared_ptr<phoenix::daedalus::c_npc> npcRef
 
 bool GameScript::npc_hasitems(std::shared_ptr<phoenix::daedalus::c_npc> npcRef, int itemId) {
   auto npc = getNpc(npcRef);
-  return npc!=nullptr && npc->hasItem(itemId);
+  return npc!=nullptr ? npc->itemCount(itemId) : 0;
   }
 
 int GameScript::npc_getinvitem(std::shared_ptr<phoenix::daedalus::c_npc> npcRef, int itemId) {
@@ -1970,11 +2002,12 @@ int GameScript::npc_getactivespell(std::shared_ptr<phoenix::daedalus::c_npc> npc
     return -1;
     }
 
-  const Item* w = npc->inventory().activeWeapon();
+  Item* w = npc->activeWeapon();
   if(w==nullptr || !w->isSpellOrRune()){
     return -1;
     }
 
+  makeCurrent(w);
   return w->spellId();
   }
 
@@ -1984,7 +2017,7 @@ bool GameScript::npc_getactivespellisscroll(std::shared_ptr<phoenix::daedalus::c
     return false;
     }
 
-  const Item* w = npc->inventory().activeWeapon();
+  Item* w = npc->activeWeapon();
   if(w==nullptr || !w->isSpell()){
     return false;
     }
@@ -2156,8 +2189,9 @@ std::shared_ptr<phoenix::daedalus::c_item> GameScript::npc_getreadiedweapon(std:
     return 0;
     }
 
-  auto ret = npc->inventory().activeWeapon();
-  if(ret!=nullptr){
+  auto ret = npc->activeWeapon();
+  if(ret!=nullptr) {
+    makeCurrent(ret);
     return ret->handle();
     } else {
     return nullptr;
@@ -2178,11 +2212,12 @@ int GameScript::npc_isdrawingspell(std::shared_ptr<phoenix::daedalus::c_npc> npc
   if(npc==nullptr){
     return 0;
     }
-  auto it = npc->inventory().activeWeapon();
-  if(it==nullptr || !it->isSpell()){
+  auto ret = npc->activeWeapon();
+  if(ret==nullptr || !ret->isSpell()){
     return 0;
     }
-  return int32_t(it->clsId());
+  makeCurrent(ret);
+  return int32_t(ret->clsId());
   }
 
 int GameScript::npc_isdrawingweapon(std::shared_ptr<phoenix::daedalus::c_npc> npcRef) {
@@ -2190,12 +2225,13 @@ int GameScript::npc_isdrawingweapon(std::shared_ptr<phoenix::daedalus::c_npc> np
   if(npc==nullptr){
     return 0;
     }
-  npc->weaponState();
-  auto it = npc->inventory().activeWeapon();
-  if(it==nullptr || !it->isSpell()){
+
+  auto ret = npc->activeWeapon();
+  if(ret==nullptr || !ret->isSpell()){
     return 0;
     }
-  return int32_t(it->clsId());
+  makeCurrent(ret);
+  return int32_t(ret->clsId());
   }
 
 void GameScript::npc_perceiveall(std::shared_ptr<phoenix::daedalus::c_npc> npcRef) {
@@ -2400,7 +2436,7 @@ int GameScript::npc_getactivespellcat(std::shared_ptr<phoenix::daedalus::c_npc> 
     return SPELL_GOOD;
     }
 
-  const Item* w = npc->inventory().activeWeapon();
+  const Item* w = npc->activeWeapon();
   if(w==nullptr || !w->isSpellOrRune()){
     return SPELL_GOOD;
     }
@@ -2807,7 +2843,7 @@ void GameScript::log_addentry(std::string_view topicName, std::string_view entry
 void GameScript::equipitem(std::shared_ptr<phoenix::daedalus::c_npc> npcRef, int cls) {
   auto self = getNpc(npcRef);
   if(self!=nullptr) {
-    if(self->hasItem(cls)==0)
+    if(self->itemCount(cls)==0)
       self->addItem(cls,1);
     self->useItem(cls,true);
     }
@@ -2849,8 +2885,9 @@ bool GameScript::hlp_isitem(std::shared_ptr<phoenix::daedalus::c_item> itemRef, 
   if(item!=nullptr){
     auto& v = item->handle();
     return int(v->symbol_index()) == instanceSymbol;
-    } else
+    } else {
       return false;
+    }
   }
 
 bool GameScript::hlp_isvaliditem(std::shared_ptr<phoenix::daedalus::c_item> itemRef) {

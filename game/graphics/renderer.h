@@ -28,6 +28,8 @@ class Renderer final {
               Tempest::VectorImage::Mesh& uiLayer, Tempest::VectorImage::Mesh& numOverlay,
               InventoryMenu &inventory);
 
+    void dbgDraw(Tempest::Painter& painter);
+
     Tempest::Attachment       screenshoot(uint8_t frameId);
 
   private:
@@ -44,6 +46,7 @@ class Renderer final {
       bool           zCloudShadowScale  = false;
       } settings;
 
+    Frustrum                  frustrum[SceneGlobals::V_Count];
     Tempest::Swapchain&       swapchain;
     Tempest::Matrix4x4        view, proj, viewProj;
     Tempest::Matrix4x4        shadow[Resources::ShadowLayers];
@@ -51,8 +54,7 @@ class Renderer final {
     float                     zFar  = 0;
     Tempest::Vec3             clipInfo;
 
-    Tempest::Attachment       shadowMap[Resources::ShadowLayers];
-    Tempest::ZBuffer          zbuffer, zbufferItem, shadowZ[Resources::ShadowLayers];
+    Tempest::ZBuffer          zbuffer, zbufferItem, shadowMap[Resources::ShadowLayers];
 
     Tempest::Attachment       lightingBuf;
     Tempest::Attachment       gbufDiffuse;
@@ -71,13 +73,11 @@ class Renderer final {
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::RGBA8;
     Tempest::TextureFormat    zBufferFormat = Tempest::TextureFormat::Depth16;
 
-    Tempest::Attachment       hiZBase;
     Tempest::StorageImage     hiZPot;
     Tempest::StorageImage     hiZ;
 
-    Tempest::DescriptorSet    uboHiZPot, uboHiZ;
+    Tempest::DescriptorSet    uboHiZPot;
     std::vector<Tempest::DescriptorSet> uboZMip;
-    std::vector<Tempest::DescriptorSet> uboZGather;
 
     Tempest::DescriptorSet    uboCopy;
     Shaders                   stor;

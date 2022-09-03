@@ -5,10 +5,8 @@
 
 #include "game/serialize.h"
 #include "graphics/mesh/skeleton.h"
-#include "graphics/mesh/pose.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
-#include "utils/fileext.h"
 #include "utils/dbgpainter.h"
 
 Interactive::Interactive(Vob* parent, World &world, const std::unique_ptr<phoenix::vobs::vob>& vob, Flags flags)
@@ -24,7 +22,11 @@ Interactive::Interactive(Vob* parent, World &world, const std::unique_ptr<phoeni
   focOver       = mob->focus_override;
   showVisual    = mob->show_visual;
 
+  auto p = position();
+  displayOffset = Tempest::Vec3(0,bbox[1].y-p.y,0);
+
   if (mob->type != phoenix::vob_type::oCMOB) {
+    // TODO: These might be movable
     auto* inter = (const phoenix::vobs::mob_inter*) vob.get();
     stateNum      = inter->state;
     triggerTarget = inter->target;
@@ -44,7 +46,7 @@ Interactive::Interactive(Vob* parent, World &world, const std::unique_ptr<phoeni
     pickLockStr = door->pick_string;
   }
 
-  if(isContainer()) {
+  if(isContainer() && (flags&Flags::Startup)==Flags::Startup) {
     auto* container = (const phoenix::vobs::mob_container*) vob.get();
     locked      = container->locked;
     keyInstance = container->key;
@@ -89,7 +91,7 @@ void Interactive::load(Serialize &fin) {
   Vob::load(fin);
 
   fin.read(vobName,focName,mdlVisual);
-  fin.read(bbox[0].x,bbox[0].y,bbox[0].z,bbox[1].x,bbox[1].y,bbox[1].z,owner);
+  fin.read(bbox[0],bbox[1],owner);
   fin.read(focOver,showVisual);
 
   fin.read(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
@@ -106,16 +108,17 @@ void Interactive::load(Serialize &fin) {
 
     fin.read(name,user,attachMode,started);
 
-    for(auto& i:attPos)
-      if(i.name==name) {
-        i.user       = user;
-        i.attachMode = attachMode;
-        i.started    = started;
+    for(auto& a:attPos)
+      if(a.name==name) {
+        a.user       = user;
+        a.attachMode = attachMode;
+        a.started    = started;
         }
     }
 
   if(fin.setEntry("worlds/",fin.worldName(),"/mobsi/",vobObjectID,"/inventory"))
-    invent.load(fin,*this,world);
+    invent.load(fin,*this,world); else
+    invent.clear(world.script(),*this,true);
 
   fin.setEntry("worlds/",fin.worldName(),"/mobsi/",vobObjectID,"/visual");
   visual.load(fin,*this);
@@ -127,7 +130,7 @@ void Interactive::save(Serialize &fout) const {
   Vob::save(fout);
 
   fout.write(vobName,focName,mdlVisual);
-  fout.write(bbox[0].x,bbox[0].y,bbox[0].z,bbox[1].x,bbox[1].y,bbox[1].z,owner);
+  fout.write(bbox[0],bbox[1],owner);
   fout.write(focOver,showVisual);
 
   fout.write(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
@@ -168,7 +171,7 @@ void Interactive::resetPositionToTA(int32_t state) {
   }
 
 void Interactive::setVisual(const phoenix::vobs::vob& vob) {
-  visual.setVisual(vob,world,false);
+  visual.setVisual(vob,world,true);
   visual.setObjMatrix(transform());
   visual.setInteractive(this);
   animChanged = true;
@@ -349,7 +352,7 @@ bool Interactive::overrideFocus() const {
 
 Tempest::Vec3 Interactive::displayPosition() const {
   auto p = position();
-  return {p.x,bbox[1].y,p.z};
+  return p+displayOffset;
   }
 
 std::string_view Interactive::displayName() const {
@@ -459,7 +462,7 @@ bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
 
   // graves
   if(attPos.size()==0){
-    auto pos = position();
+    auto pos = displayPosition();
 
     float x = pos.x;
     float y = pos.y;
@@ -470,25 +473,34 @@ bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
   return false;
   }
 
-Tempest::Vec3 Interactive::nearestPoint(const Npc& to) {
+Tempest::Vec3 Interactive::nearestPoint(const Npc& to) const {
   if(auto p = findNearest(to))
     return worldPos(*p);
-  return Tempest::Vec3();
+  return displayPosition();
   }
 
-Interactive::Pos* Interactive::findNearest(const Npc& to) {
+template<class P, class Inter>
+P* Interactive::findNearest(Inter& in, const Npc& to) {
   float dist = 0;
-  Pos*  p    = nullptr;
-  for(auto& i:attPos) {
+  P*    p    = nullptr;
+  for(auto& i:in.attPos) {
     if(i.user || !i.isAttachPoint())
       continue;
-    float d = qDistanceTo(to,i);
+    float d = in.qDistanceTo(to,i);
     if(d<dist || p==nullptr) {
       p    = &i;
       dist = d;
       }
     }
   return p;
+  }
+
+const Interactive::Pos* Interactive::findNearest(const Npc& to) const {
+  return findNearest<const Interactive::Pos, const Interactive>(*this,to);
+  }
+
+Interactive::Pos* Interactive::findNearest(const Npc& to) {
+  return findNearest<Interactive::Pos, Interactive>(*this,to);
   }
 
 void Interactive::implAddItem(std::string_view name) {
@@ -524,7 +536,7 @@ bool Interactive::checkUseConditions(Npc& npc) {
     const size_t keyInst        = keyInstance.empty() ? size_t(-1) : world.script().getSymbolIndex(keyInstance.c_str());
     const bool   needToPicklock = (pickLockStr.size()>0);
 
-    if(keyInst!=size_t(-1) && npc.hasItem(keyInst)>0)
+    if(keyInst!=size_t(-1) && npc.itemCount(keyInst)>0)
       return true;
     if((canLockPick || isLockCracked) && needToPicklock)
       return true;
@@ -550,7 +562,7 @@ bool Interactive::checkUseConditions(Npc& npc) {
 
     if(!useWithItem.empty()) {
       size_t it = world.script().getSymbolIndex(useWithItem);
-      if(it!=size_t(-1) && npc.hasItem(it)==0) {
+      if(it!=size_t(-1) && npc.itemCount(it)==0) {
         sc.printMobMissingItem(npc);
         return false;
         }
@@ -656,14 +668,18 @@ bool Interactive::attach(Npc& npc, Interactive::Pos& to) {
 
   if(!useWithItem.empty()) {
     size_t it = world.script().getSymbolIndex(useWithItem.c_str());
-    if(it!=size_t(-1) && npc.hasItem(it)>0) {
-      npc.delItem(it,1);
-      }
     npc.setCurrentItem(it);
     }
 
   setPos(npc,mv);
   setDir(npc,mat);
+
+  if(vobType==phoenix::vob_type::oCMobLadder) {
+    if(&to!=&attPos[0])
+      state = -1; else
+      state = stepsCount;
+    loopState = false;
+    }
 
   if(state>0) {
     reverseState = (state>0);
@@ -684,7 +700,7 @@ bool Interactive::attach(Npc &npc) {
       return true;
 
   if(!isAvailable()) {
-    if(npc.isPlayer())
+    if(npc.isPlayer() && !attPos.empty())
       world.script().printMobAnotherIsUsing(npc);
     return false;
     }
@@ -693,7 +709,7 @@ bool Interactive::attach(Npc &npc) {
   if(p!=nullptr)
     return attach(npc,*p);
 
-  if(npc.isPlayer() && attPos.size()>0)
+  if(npc.isPlayer() && !attPos.empty())
     world.script().printMobAnotherIsUsing(npc);
   return false;
   }
@@ -917,8 +933,23 @@ const Animation::Sequence* Interactive::animNpc(const AnimationSolver &solver, A
 void Interactive::marchInteractives(DbgPainter &p) const {
   p.setBrush(Tempest::Color(1.0,0,0,1));
 
-  for(auto& m:attPos){
+  for(auto& m:attPos) {
     auto pos = worldPos(m);
+
+    float x = pos.x;
+    float y = pos.y;
+    float z = pos.z;
+    p.mvp.project(x,y,z);
+
+    x = (0.5f*x+0.5f)*float(p.w);
+    y = (0.5f*y+0.5f)*float(p.h);
+
+    p.painter.drawRect(int(x),int(y),1,1);
+    p.drawText(int(x), int(y), schemeName().data());
+    }
+
+  if(attPos.size()==0) {
+    auto pos = displayPosition();
 
     float x = pos.x;
     float y = pos.y;
@@ -936,6 +967,14 @@ void Interactive::marchInteractives(DbgPainter &p) const {
 void Interactive::moveEvent() {
   Vob::moveEvent();
   visual.setObjMatrix(transform());
+  }
+
+float Interactive::extendedSearchRadius() const {
+  float x = bbox[1].x-bbox[0].x;
+  float y = bbox[1].y-bbox[0].y;
+  float z = bbox[1].z-bbox[0].z;
+
+  return std::max(x,std::max(y,z));
   }
 
 std::string_view Interactive::Pos::posTag() const {

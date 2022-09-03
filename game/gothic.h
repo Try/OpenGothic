@@ -91,6 +91,7 @@ class Gothic final {
     void         setFRate(bool f) { noFrate = !f; }
 
     bool         doRayQuery() const;
+    bool         doMeshShading() const;
 
     LoadState    checkLoading() const;
     bool         finishLoading();
@@ -161,6 +162,7 @@ class Gothic final {
     uint16_t                                pauseSum=0;
     bool                                    isMarvin = false;
     bool                                    noFrate  = false;
+    bool                                    isMeshSh = false;
     std::string                             wrldDef, plDef;
 
     std::unique_ptr<IniFile>                defaults;

@@ -10,7 +10,6 @@
 #include <Tempest/Log>
 
 #include "ui/dialogmenu.h"
-#include "ui/gamemenu.h"
 #include "ui/menuroot.h"
 #include "ui/stacklayout.h"
 #include "ui/videowidget.h"
@@ -37,6 +36,9 @@ MainWindow::MainWindow(Device& device)
   CrashLog::setGpu(device.properties().name);
   for(uint8_t i=0;i<Resources::MaxFramesInFlight;++i)
     fence[i] = device.fence();
+
+  Gothic::inst().onSettingsChanged.bind(this,&MainWindow::onSettings);
+  onSettings();
 
   if(!CommandLine::inst().isWindowMode())
     setFullscreen(true);
@@ -218,6 +220,8 @@ void MainWindow::paintEvent(PaintEvent& event) {
     // world->view()->dbgLights(dbg);
     }
 
+  renderer.dbgDraw(p);
+
   if(Gothic::inst().doFrate()) {
     char fpsT[64]={};
     std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f %s",fps.get(),info);
@@ -300,6 +304,13 @@ void MainWindow::tickMouse() {
     }
 
   dMouse = Point();
+  }
+
+void MainWindow::onSettings() {
+  auto zMaxFps = Gothic::inst().settingsGetI("ENGINE","zMaxFps");
+  if(zMaxFps>0)
+    maxFpsInv = 1000u/uint64_t(zMaxFps); else
+    maxFpsInv = 0;
   }
 
 void MainWindow::mouseWheelEvent(MouseEvent &event) {
@@ -677,10 +688,11 @@ void MainWindow::onMarvinKey() {
 
     case Event::K_F9:
       if(Gothic::inst().isMarvinEnabled()) {
-        // note: quick load?
         if(runtimeMode==R_Normal)
           runtimeMode = R_Suspended; else
           runtimeMode = R_Normal;
+        } else {
+        Gothic::inst().quickLoad();
         }
       break;
     case Event::K_F10:
@@ -703,6 +715,9 @@ void MainWindow::onMarvinKey() {
 uint64_t MainWindow::tick() {
   auto time = Application::tickCount();
   auto dt   = time-lastTick;
+  // NOTE: limit to ~200 FPS in game logic to avoid math issues
+  if(dt<5)
+    return 0;
   lastTick  = time;
 
   auto st = Gothic::inst().checkLoading();
@@ -721,7 +736,7 @@ uint64_t MainWindow::tick() {
     return 0;
     }
 
-  if(Gothic::inst().isPause() || dt==0)
+  if(Gothic::inst().isPause())
     return 0;
 
   if(dt>50)
@@ -875,6 +890,9 @@ void MainWindow::saveGame(std::string_view slot, std::string_view name) {
   auto tex = renderer.screenshoot(cmdId);
   auto pm  = device.readPixels(textureCast(tex));
 
+  if(dialogs.isActive())
+    return;
+
   Gothic::inst().startSave(std::move(textureCast(tex)),[slot=std::string(slot),name=std::string(name),pm](std::unique_ptr<GameSession>&& game){
     if(!game)
       return std::move(game);
@@ -902,19 +920,26 @@ void MainWindow::onStartLoading() {
   }
 
 void MainWindow::onWorldLoaded() {
+  dMouse = Point();
+
   player   .clearInput();
   inventory.onWorldChanged();
   dialogs  .onWorldChanged();
-
-  dMouse = Point();
-  renderer.onWorldChanged();
 
   device.waitIdle();
   for(auto& c:commands)
     c = device.commandBuffer();
 
-  if(auto c = Gothic::inst().camera())
+  if(auto wview=Gothic::inst().worldView()) {
+    wview->updateLight();
+    }
+
+  if(auto c = Gothic::inst().camera()) {
     c->setViewport(uint32_t(w()),uint32_t(h()));
+    renderer.setCameraView(*c);
+    }
+  renderer.onWorldChanged();
+
   if(auto pl = Gothic::inst().player())
     pl->multSpeed(1.f);
   lastTick = Application::tickCount();
@@ -1000,12 +1025,18 @@ void MainWindow::render(){
     cmdId = (cmdId+1u)%Resources::MaxFramesInFlight;
 
     auto t = Application::tickCount();
-    if(t-time<15 && !Gothic::inst().isInGame() && !video.isActive()){
-      Application::sleep(uint32_t(15-(t-time)));
-      t = Application::tickCount();
+    if(t-time<16 && !Gothic::inst().isInGame() && !video.isActive()) {
+      uint32_t delay = uint32_t(16-(t-time));
+      Application::sleep(delay);
+      t += delay;
+      }
+    else if(maxFpsInv>0 && t-time<maxFpsInv) {
+      uint32_t delay = uint32_t(maxFpsInv-(t-time));
+      Application::sleep(delay);
+      t += delay;
       }
     fps.push(t-time);
-    time=t;
+    time = t;
     }
   catch(const Tempest::SwapchainSuboptimal&) {
     Log::e("swapchain is outdated - reset renderer");

@@ -51,6 +51,7 @@ class Item : public Vob {
     std::string_view    displayName() const;
     std::string_view    description() const;
     Tempest::Vec3       position() const;
+    Tempest::Vec3       midPosition() const;
     bool                isGold() const;
     ItmFlags            mainFlag() const;
     int32_t             itemFlag() const;

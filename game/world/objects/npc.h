@@ -116,7 +116,7 @@ class Npc final {
     auto       world() -> World&;
 
     float      translateY() const;
-    float      centerY() const;
+    auto       centerPosition() const -> Tempest::Vec3;
     Npc*       lookAtTarget() const;
     auto       portalName() -> std::string_view;
     auto       formerPortalName() -> std::string_view;
@@ -125,6 +125,7 @@ class Npc final {
     float      qDistTo(const WayPoint* p) const;
     float      qDistTo(const Npc& p) const;
     float      qDistTo(const Interactive& p) const;
+    float      qDistTo(const Item& p) const;
 
     void       updateAnimation(uint64_t dt);
     void       updateTransform();
@@ -316,7 +317,8 @@ class Npc final {
     auto      handle() -> const std::shared_ptr<phoenix::daedalus::c_npc>& { return hnpc; }
 
     auto      inventory() const -> const Inventory& { return invent; }
-    size_t    hasItem    (size_t id) const;
+    size_t    itemCount  (size_t id) const;
+    Item*     activeWeapon();
     Item*     getItem    (size_t id);
     Item*     addItem    (size_t id, size_t amount);
     Item*     addItem    (std::unique_ptr<Item>&& i);
@@ -337,6 +339,7 @@ class Npc final {
     Item*     currentMeleWeapon();
     Item*     currentRangeWeapon();
     auto      mapWeaponBone() const -> Tempest::Vec3;
+    auto      mapHeadBone() const -> Tempest::Vec3;
     auto      mapBone(std::string_view bone) const -> Tempest::Vec3;
 
     bool      turnTo  (float dx, float dz, bool anim, uint64_t dt);
@@ -438,7 +441,6 @@ class Npc final {
     void      updateWeaponSkeleton();
     void      tickTimedEvt(Animation::EvCount &ev);
     void      tickRegen(int32_t& v,const int32_t max,const int32_t chg, const uint64_t dt);
-    void      updatePos();
     void      setViewPosition(const Tempest::Vec3& pos);
     bool      tickCast();
 

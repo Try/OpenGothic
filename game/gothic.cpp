@@ -26,6 +26,15 @@ using namespace FileUtil;
 
 Gothic* Gothic::instance = nullptr;
 
+static bool hasMeshShader() {
+  const auto& p = Resources::device().properties();
+  if(p.meshlets.meshShader)
+    return true;
+  if(p.meshlets.meshShaderEmulated)
+    ;//return true;
+  return false;
+  }
+
 Gothic::Gothic() {
   instance = this;
 
@@ -36,6 +45,8 @@ Gothic::Gothic() {
 
   noFrate = CommandLine::inst().noFrate;
   wrldDef = CommandLine::inst().wrldDef;
+  if(hasMeshShader())
+    isMeshSh = CommandLine::inst().isMeshShading();
 
   baseIniFile.reset(new IniFile(nestedPath({u"system",u"Gothic.ini"},Dir::FT_File)));
   iniFile    .reset(new IniFile(u"Gothic.ini"));
@@ -99,13 +110,23 @@ Gothic::Gothic() {
     modFile.reset(new IniFile(mod));
     }
 
+  std::vector<std::u16string> modvdfs;
   if(modFile!=nullptr) {
     wrldDef = modFile->getS("SETTINGS","WORLD");
     size_t split = wrldDef.rfind('\\');
     if(split!=std::string::npos)
       wrldDef = wrldDef.substr(split+1);
     plDef = modFile->getS("SETTINGS","PLAYER");
+
+    std::u16string vdf = TextCodec::toUtf16(std::string(modFile->getS("FILES","VDF")));
+    for (size_t start = 0, split = 0; split != std::string::npos; start = split+1) {
+      split = vdf.find(' ', start);
+      std::u16string mod = vdf.substr(start, split-start);
+      if (!mod.empty())
+        modvdfs.push_back(mod);
+      }
     }
+  Resources::loadVdfs(modvdfs);
 
   if(wrldDef.empty()) {
     if(version().game==2)
@@ -334,6 +355,10 @@ bool Gothic::doRayQuery() const {
   if(!Resources::device().properties().raytracing.rayQuery)
     return false;
   return CommandLine::inst().isRayQuery();
+  }
+
+bool Gothic::doMeshShading() const {
+  return isMeshSh;
   }
 
 Gothic::LoadState Gothic::checkLoading() const {

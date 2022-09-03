@@ -17,7 +17,7 @@ WorldView::WorldView(const World& world, const PackedMesh& wmesh)
   sky.setWorld(owner,wmesh.bbox());
   pfxGroup.resetTicks();
   if(Gothic::inst().doRayQuery())
-    tlasLand = Resources::device().tlas({{Matrix4x4::mkIdentity(),&land.rt.blas}});
+    tlasLand = Resources::device().tlas({{Matrix4x4::mkIdentity(),0,&land.rt.blas}});
   visuals.setLandscapeBlas(&land.rt.blas);
   visuals.onTlasChanged.bind(this,&WorldView::setupTlas);
   }
@@ -50,6 +50,8 @@ void WorldView::preFrameUpdate(const Matrix4x4& view, const Matrix4x4& proj,
                                float zNear, float zFar,
                                const Tempest::Matrix4x4* shadow,
                                uint64_t tickCount, uint8_t fId) {
+  visuals.updateTlas(sGlobal.bindless,fId);
+
   updateLight();
   sGlobal.setViewProject(view,proj,zNear,zFar,shadow);
 
@@ -69,7 +71,7 @@ void WorldView::setGbuffer(const Texture2d& lightingBuf, const Texture2d& diffus
                            const Texture2d& hiZ) {
   const Texture2d* shadow[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
-    if(sh==nullptr || sh[i]->isEmpty())
+    if(sh[i]==nullptr || sh[i]->isEmpty())
       shadow[i] = &Resources::fallbackBlack(); else
       shadow[i] = sh[i];
 
@@ -80,8 +82,10 @@ void WorldView::setGbuffer(const Texture2d& lightingBuf, const Texture2d& diffus
   sGlobal.gbufNormals = &norm;
   sGlobal.gbufDepth   = &depth;
   sGlobal.hiZ         = &hiZ;
+  sGlobal.skyLut      = &sky.skyLut();
   //sGlobal.tlas        = &tlas;
   sGlobal.setShadowMap(shadow);
+  sGlobal.setResolution(uint32_t(diffuse.w()),uint32_t(diffuse.h()));
   setupUbo();
   }
 
@@ -94,6 +98,8 @@ void WorldView::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
   }
 
 void WorldView::visibilityPass(const Frustrum fr[]) {
+  for(uint8_t i=0; i<SceneGlobals::V_Count; ++i)
+    sGlobal.frustrum[i] = fr[i];
   visuals.visibilityPass(fr);
   }
 

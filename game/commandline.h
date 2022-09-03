@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Tempest/Platform>
 #include <Tempest/Dir>
 
 #include <cstdint>
@@ -22,14 +23,14 @@ class CommandLine {
     std::u16string_view modPath() const { return gmod; }
     std::u16string      nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const;
 
-    bool                isDebugMode()  const { return isDebug;  }
-    bool                isRamboMode()  const { return isRambo;  }
-    bool                isWindowMode() const { return isWindow; }
-    bool                isRayQuery()   const { return isRQuery; }
-    bool                doStartMenu()  const { return !noMenu;  }
-    bool                doForceG1()    const { return forceG1;  }
-    bool                doForceG2()    const { return forceG2;  }
-    std::string_view    defaultSave()  const { return saveDef;  }
+    bool                isDebugMode()   const { return isDebug;  }
+    bool                isWindowMode()  const { return isWindow; }
+    bool                isRayQuery()    const { return isRQuery; }
+    bool                isMeshShading() const { return isMeshSh; }
+    bool                doStartMenu()   const { return !noMenu;  }
+    bool                doForceG1()     const { return forceG1;  }
+    bool                doForceG2()     const { return forceG2;  }
+    std::string_view    defaultSave()   const { return saveDef;  }
 
     std::string         wrldDef;
     bool                noFrate = false;
@@ -43,8 +44,12 @@ class CommandLine {
     bool                noMenu   = false;
     bool                isWindow = false;
     bool                isDebug  = false;
-    bool                isRambo  = false;
+#if defined(__OSX__)
     bool                isRQuery = false;
+#else
+    bool                isRQuery = true;
+#endif
+    bool                isMeshSh = true;
     bool                forceG1  = false;
     bool                forceG2  = false;
   };

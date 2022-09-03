@@ -21,7 +21,7 @@ environment:
 
 install:
 - ps: >-
-    $VK_SDK = '1.2.198.1'
+    $VK_SDK = '1.3.216.0'
 
     if($IsLinux) {
       sudo apt-get update
@@ -30,7 +30,7 @@ install:
       $env:VK_SDK_PATH     = "$env:APPVEYOR_BUILD_FOLDER/VulkanSDK/$VK_SDK/x86_64"
       $env:VK_LAYER_PATH   = "$env:VK_SDK_PATH/etc/vulkan/explicit_layers.d"
       $env:LD_LIBRARY_PATH = "$env:VK_SDK_PATH/lib"
-      Invoke-WebRequest -Uri https://sdk.lunarg.com/sdk/download/$VK_SDK/linux/vulkan_sdk.tar.gz -OutFile VulkanSDK.tar.gz
+      Invoke-WebRequest -Uri https://sdk.lunarg.com/sdk/download/$VK_SDK/linux/vulkansdk-linux-x86_64-$VK_SDK.tar.gz -OutFile VulkanSDK.tar.gz
       mkdir VulkanSDK
       tar -xzf VulkanSDK.tar.gz -C ./VulkanSDK
       }
@@ -38,7 +38,7 @@ install:
     if($IsWindows) {
       # Vulkan SDK
       $env:VK_SDK_PATH = "C:/VulkanSDK/$VK_SDK"
-      Invoke-WebRequest -Uri https://sdk.lunarg.com/sdk/download/$VK_SDK/windows/vulkan_sdk.exe -OutFile VulkanSDK.exe
+      Invoke-WebRequest -Uri https://sdk.lunarg.com/sdk/download/$VK_SDK/windows/VulkanSDK-$VK_SDK-Installer.exe -OutFile VulkanSDK.exe
       ./VulkanSDK.exe --accept-licenses --default-answer --confirm-command install
       }
 

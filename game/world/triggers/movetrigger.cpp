@@ -18,8 +18,8 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, const std::unique_ptr<phoeni
   sfxOpenEnd = mover->sfx_open_end;
   sfxCloseEnd = mover->sfx_close_end;
   sfxMoving = mover->sfx_transitioning;
+  visualName = mover->visual_name;
 
-  setView(world.addView(mover->visual_name));
   if(mover->cd_dynamic || mover->cd_static) {
     auto mesh = Resources::loadMesh(mover->visual_name);
     if(mesh!=nullptr)
@@ -51,6 +51,7 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, const std::unique_ptr<phoeni
       }
     }
 
+  invalidateView();
   MoveTrigger::moveEvent();
   }
 
@@ -62,8 +63,10 @@ void MoveTrigger::save(Serialize& fout) const {
 void MoveTrigger::load(Serialize& fin) {
   AbstractTrigger::load(fin);
   fin.read(pos0,reinterpret_cast<uint8_t&>(state),sAnim,frame);
-  if(state!=Idle)
+  if(state!=Idle) {
+    invalidateView();
     enableTicks();
+    }
   }
 
 bool MoveTrigger::hasVolume() const {
@@ -93,6 +96,16 @@ float MoveTrigger::pathLength() const {
   for(size_t i=0; i<keyframes.size(); ++i)
     len += keyframes[i].position;
   return len;
+  }
+
+void MoveTrigger::invalidateView() {
+  if(isDynamic() && !view.isEmpty())
+    return;
+
+  if(state!=Idle || isDynamic())
+    setView(world.addView(visualName)); else
+    setView(world.addStaticView(visualName));
+  view.setObjMatrix(transform());
   }
 
 void MoveTrigger::moveEvent() {
@@ -154,6 +167,8 @@ void MoveTrigger::processTrigger(const TriggerEvent& e, bool onTrigger) {
 
   sAnim = world.tickCount();
   enableTicks();
+  // override view
+  invalidateView();
   emitSound(snd);
   }
 
@@ -240,6 +255,7 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
     auto prev = state;
     state = Idle;
     frame = f0;
+    invalidateView();
     disableTicks();
 
     if(!target.empty()) {
@@ -255,6 +271,8 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
     if(behavior==phoenix::mover_behavior::open_timed && prev==Open) {
       state = OpenTimed;
       sAnim = world.tickCount();
+      // override view
+      invalidateView();
       enableTicks();
       }
     emitSound(snd);

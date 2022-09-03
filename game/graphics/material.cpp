@@ -90,6 +90,13 @@ bool Material::isSolid() const {
   return !isGhost && (alpha==Material::Solid || alpha==Material::AlphaTest);
   }
 
+bool Material::isTesselated() const {
+  // if(alpha!=Material::Water)
+  //   return false;
+  // return waveMaxAmplitude!=0.f;
+  return (alpha==Material::Water);
+  }
+
 int Material::alphaOrder(AlphaFunc a, bool ghost) {
   if(ghost)
     return Ghost;

@@ -47,34 +47,52 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define L_GDiffuse 10
 #define L_GDepth   11
 #define L_HiZ      12
+#define L_SkyLut   13
 
 #if (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING || MESH_TYPE==T_MORPH)
 #define LVL_OBJECT 1
 #endif
 
-#if (defined(VERTEX) || defined(TASK) || defined(MESH) || defined(TESSELATION)) && (defined(LVL_OBJECT) || defined(WATER))
+#if defined(HIZ) || defined(SHADOW_MAP)
+#define DEPTH_ONLY 1
+#endif
+
+#if !defined(DEPTH_ONLY) || defined(ATEST)
+#define MAT_UV 1
+#endif
+
+#if (defined(LVL_OBJECT) || defined(WATER))
 #define MAT_ANIM 1
 #endif
 
-#if !defined(SHADOW_MAP) && (MESH_TYPE==T_PFX)
+#if !defined(DEPTH_ONLY) && (MESH_TYPE==T_PFX)
 #define MAT_COLOR 1
 #endif
 
-struct Varyings {
-  vec4 scr;
-  vec2 uv;
+#if defined(MAT_UV) || !defined(DEPTH_ONLY) || defined(WATER) || defined(MAT_COLOR)
+#define MAT_VARYINGS 1
+#endif
 
-#if !defined(SHADOW_MAP)
+struct Varyings {
+#if defined(MAT_UV)
+  vec2 uv;
+#endif
+
+#if !defined(DEPTH_ONLY)
   vec4 shadowPos[2];
   vec3 normal;
 #endif
 
-#if !defined(SHADOW_MAP) || defined(WATER)
+#if defined(WATER)
   vec3 pos;
 #endif
 
 #if defined(MAT_COLOR)
   vec4 color;
+#endif
+
+#if !defined(MAT_VARYINGS)
+  float dummy;
 #endif
   };
 
@@ -93,17 +111,16 @@ struct MorphDesc {
 
 #if (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING)
 layout(push_constant, std430) uniform UboPush {
-  uint      baseInstance;
   uint      meshletBase;
   uint      meshletCount;
   float     fatness;
   } push;
 #elif (MESH_TYPE==T_MORPH)
 layout(push_constant, std430) uniform UboPush {
-  uint      baseInstance;
   uint      meshletBase;
   uint      meshletCount;
   float     fatness;
+  uint      padd0;
 
   MorphDesc morph[MAX_MORPH_LAYERS];
   } push;
@@ -114,17 +131,19 @@ layout(push_constant, std430) uniform UboPush {
 #endif
 
 layout(binding = L_Scene, std140) uniform UboScene {
-  vec3  ldir;
-  float shadowSize;
+  vec3  sunDir;
+  // float pass0;
   mat4  viewProject;
   mat4  viewProjectInv;
-  mat4  shadow[2];
+  mat4  viewShadow[2];
   vec3  ambient;
   vec4  sunCl;
   vec4  frustrum[6];
   vec3  clipInfo;
-  // float padd0;
+  // float padd1;
   vec3  camPos;
+  // float padd2;
+  vec2  screenResInv;
   } scene;
 
 #if defined(LVL_OBJECT) && (defined(VERTEX) || defined(MESH) || defined(TASK))
@@ -150,11 +169,11 @@ layout(std430, binding = L_Ibo)      readonly buffer Ibo  { uint  indexes []; };
 layout(std430, binding = L_Vbo)      readonly buffer Vbo  { float vertices[]; };
 #endif
 
-#if defined(FRAGMENT) && !(defined(SHADOW_MAP) && !defined(ATEST))
+#if defined(FRAGMENT) && !(defined(DEPTH_ONLY) && !defined(ATEST))
 layout(binding = L_Diffuse) uniform sampler2D textureD;
 #endif
 
-#if defined(FRAGMENT) && !defined(SHADOW_MAP)
+#if defined(FRAGMENT) && !defined(DEPTH_ONLY)
 layout(binding = L_Shadow0) uniform sampler2D textureSm0;
 layout(binding = L_Shadow1) uniform sampler2D textureSm1;
 #endif
@@ -175,6 +194,10 @@ layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
 
 #if defined(MESH) && !defined(SHADOW_MAP)
 layout(binding = L_HiZ)  uniform sampler2D hiZ;
+#endif
+
+#if defined(FRAGMENT) && defined(WATER)
+layout(binding = L_SkyLut) uniform sampler2D skyLUT;
 #endif
 
 #endif

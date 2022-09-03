@@ -16,6 +16,7 @@
 #include "graphics/dynamic/visibleset.h"
 
 class Pose;
+class Bindless;
 class VisualObjects;
 
 class ObjectsBucket {
@@ -27,8 +28,7 @@ class ObjectsBucket {
 
   public:
     enum {
-      CAPACITY          = VisibleSet::CAPACITY,
-      RELEVANT_HIZ_MIPS = 5,
+      CAPACITY = VisibleSet::CAPACITY,
       };
 
     enum Type : uint8_t {
@@ -96,10 +96,11 @@ class ObjectsBucket {
     const Material&           material()      const;
     Type                      type()          const { return objType;        }
     InstancingType            hasInstancing() const { return instancingType; }
+    const void*               meshPointer()   const;
+    VisibleSet&               visibilitySet() { return visSet; };
 
     size_t                    size()      const { return valSz;      }
-    size_t                    alloc(const StaticMesh& mesh, size_t iboOffset, size_t iboLen,
-                                    const Tempest::AccelerationStructure* blas, const Bounds& bounds,
+    size_t                    alloc(const StaticMesh& mesh, size_t iboOffset, size_t iboLen, const Bounds& bounds,
                                     const Material& mat);
     size_t                    alloc(const AnimMesh& mesh, size_t iboOffset, size_t iboLen,
                                     const MatrixStorage::Id& anim);
@@ -110,15 +111,13 @@ class ObjectsBucket {
 
     virtual void              setupUbo();
     virtual void              invalidateUbo(uint8_t fId);
-
-    void                      resetVis();
-    void                      fillTlas(std::vector<Tempest::RtInstance>& inst);
+    virtual void              fillTlas(std::vector<Tempest::RtInstance>& inst, std::vector<uint32_t>& iboOff, Bindless& out);
 
     virtual void              preFrameUpdate(uint8_t fId);
     virtual void              drawHiZ    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
     void                      draw       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void                      drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void                      drawShadow (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer=0);
+    void                      drawShadow (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer);
     void                      draw       (size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId);
 
   protected:
@@ -137,6 +136,7 @@ class ObjectsBucket {
       L_GDiffuse = 10,
       L_GDepth   = 11,
       L_HiZ      = 12,
+      L_SkyLut   = 13,
       };
 
     struct ShLight final {
@@ -155,13 +155,13 @@ class ObjectsBucket {
       };
 
     struct UboPushBase {
-      uint32_t  baseInstance = 0;
       uint32_t  meshletBase  = 0;
       uint32_t  meshletCount = 0;
       float     fatness      = 0;
       };
 
     struct UboPush : UboPushBase {
+      uint32_t  padd0 = 0;
       MorphDesc morph[Resources::MAX_MORPH_LAYERS];
       };
 
@@ -219,7 +219,7 @@ class ObjectsBucket {
     void            setWind     (size_t i, phoenix::animation_mode m, float intensity);
 
     bool            isSceneInfoRequired() const;
-    void            updatePushBlock(UboPush& push, Object& v, uint32_t baseInstance);
+    void            updatePushBlock(UboPush& push, Object& v);
     void            reallocObjPositions();
     void            invalidateInstancing();
     uint32_t        applyInstancing(size_t& i, const size_t* index, size_t indSz) const;
@@ -254,8 +254,6 @@ class ObjectsBucket {
     const Tempest::RenderPipeline* pShadow  = nullptr;
 
     Material                  mat;
-
-  private:
     const SceneGlobals&       scene;
 
     Tempest::UniformBuffer<UboBucket> uboBucket[Resources::MaxFramesInFlight];
@@ -282,6 +280,8 @@ class ObjectsBucketDyn : public ObjectsBucket {
 
     void    setupUbo() override;
     void    invalidateUbo(uint8_t fId) override;
+    void    fillTlas(std::vector<Tempest::RtInstance>& inst, std::vector<uint32_t>& iboOff, Bindless& out) override;
+
     void    invalidateDyn();
 
     void    drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId,

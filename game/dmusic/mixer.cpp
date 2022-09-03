@@ -288,6 +288,10 @@ void Mixer::mix(int16_t *out, size_t samples) {
     out          += stp.samples*2;
     samplesRemain-= size_t(stp.samples);
 
+    // HACK: some music in addonworld.zen has odd paddings in the end of each track
+    if(stp.nextOn==std::numeric_limits<int64_t>::max() && uniqInstr.size()==0)
+      sampleCursor = patEnd;
+
     if(sampleCursor==patEnd || nextMus!=nullptr) {
       nextPattern();
       if(!stp.isValid())

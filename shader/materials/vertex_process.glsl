@@ -23,14 +23,7 @@ layout(location = 3) in uint inColor;
 #endif
 
 #if (MESH_TYPE==T_MORPH)
-vec3 morphOffset(int i) {
-#if defined(MESH)
-  uint  vertexIndex = 0;
-  return vec3(0);//TODO
-#else
-  uint  vertexIndex = gl_VertexIndex;
-#endif
-
+vec3 morphOffset(int i, uint vertexIndex) {
   vec2  ai        = unpackUnorm2x16(push.morph[i].alpha16_intensity16);
   float alpha     = ai.x;
   float intensity = ai.y;
@@ -51,7 +44,7 @@ vec3 morphOffset(int i) {
   }
 #endif
 
-Varyings processVertex(uint objId, uint vboOffset) {
+Varyings processVertex(out vec4 position, uint objId, uint vboOffset) {
   Varyings shOut;
 
 #if   (MESH_TYPE==T_SKINING) && defined(VERTEX)
@@ -89,10 +82,14 @@ Varyings processVertex(uint objId, uint vboOffset) {
   uint  color  = floatBitsToUint(vertices[id + 8]);
 #endif
 
-
-  // TexCoords
-#if defined(MAT_ANIM)
-  uv += material.texAnim;
+  // Position offsets
+  vec3 dpos   = vec3(0);
+#if (MESH_TYPE==T_MORPH)
+  for(int i=0; i<MAX_MORPH_LAYERS; ++i)
+    dpos += morphOffset(i,vboOffset);
+#endif
+#if defined(LVL_OBJECT)
+  dpos += normal*push.fatness;
 #endif
 
   // Normals
@@ -105,25 +102,18 @@ Varyings processVertex(uint objId, uint vboOffset) {
   // normal = normal;
 #endif
 
-  // Position offsets
-  vec3 dpos   = vec3(0);
-#if (MESH_TYPE==T_MORPH)
-  for(int i=0; i<MAX_MORPH_LAYERS; ++i)
-    dpos += morphOffset(i);
-#endif
-#if defined(LVL_OBJECT)
-  dpos += normal*push.fatness;
-#endif
-
   // Position
 #if (MESH_TYPE==T_SKINING)
   vec3 pos = vec3(0);
   {
-    vec3 t0   = (matrix[boneId.x]*vec4(pos0+dpos,1.0)).xyz;
-    vec3 t1   = (matrix[boneId.y]*vec4(pos1+dpos,1.0)).xyz;
-    vec3 t2   = (matrix[boneId.z]*vec4(pos2+dpos,1.0)).xyz;
-    vec3 t3   = (matrix[boneId.w]*vec4(pos3+dpos,1.0)).xyz;
-    pos = (t0*weight.x + t1*weight.y + t2*weight.z + t3*weight.w);
+    dpos = (matrix[objId]*vec4(dpos,0)).xyz;
+    dpos = vec3(dpos.z,dpos.y,-dpos.x);
+
+    vec3 t0   = (matrix[boneId.x]*vec4(pos0,1.0)).xyz;
+    vec3 t1   = (matrix[boneId.y]*vec4(pos1,1.0)).xyz;
+    vec3 t2   = (matrix[boneId.z]*vec4(pos2,1.0)).xyz;
+    vec3 t3   = (matrix[boneId.w]*vec4(pos3,1.0)).xyz;
+    pos += (t0*weight.x + t1*weight.y + t2*weight.z + t3*weight.w) + dpos;
   }
 #elif (MESH_TYPE==T_OBJ || MESH_TYPE==T_MORPH)
   pos    = (matrix[objId]*vec4(pos+dpos,1.0)).xyz;
@@ -131,17 +121,17 @@ Varyings processVertex(uint objId, uint vboOffset) {
   //pos = pos;
 #endif
 
-  vec4 trPos = scene.viewProject*vec4(pos,1.0);
-  shOut.scr  = trPos;
+#if defined(MAT_UV)
   shOut.uv   = uv;
+#endif
 
-#if !defined(SHADOW_MAP)
-  shOut.shadowPos[0] = scene.shadow[0]*vec4(pos,1.0);
-  shOut.shadowPos[1] = scene.shadow[1]*vec4(pos,1.0);
+#if !defined(DEPTH_ONLY)
+  shOut.shadowPos[0] = scene.viewShadow[0]*vec4(pos,1.0);
+  shOut.shadowPos[1] = scene.viewShadow[1]*vec4(pos,1.0);
   shOut.normal       = normal;
 #endif
 
-#if !defined(SHADOW_MAP) || defined(WATER)
+#if defined(WATER)
   shOut.pos = pos;
 #endif
 
@@ -149,6 +139,14 @@ Varyings processVertex(uint objId, uint vboOffset) {
   shOut.color = unpackUnorm4x8(color);
 #endif
 
+  position = scene.viewProject*vec4(pos,1.0);
+#if defined(SHADOW_MAP)
+#  if defined(ATEST)
+  position.z -= 10.0*(1.0/32768.0)*position.w;
+#  else
+  //position.z -= (1.0/65535.0)*position.w;
+#  endif
+#endif
   return shOut;
   }
 

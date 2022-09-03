@@ -4,13 +4,10 @@
 #include <Tempest/Log>
 
 #include "graphics/mesh/skeleton.h"
-#include "graphics/mesh/animmath.h"
-#include "graphics/pfx/particlefx.h"
 #include "graphics/visualfx.h"
 #include "game/damagecalculator.h"
 #include "game/serialize.h"
 #include "game/gamescript.h"
-#include "world/triggers/trigger.h"
 #include "world/objects/interactive.h"
 #include "world/objects/item.h"
 #include "world/world.h"
@@ -282,7 +279,7 @@ void Npc::load(Serialize &fin, size_t id) {
     invent.load(fin,*this);
 
   // post-alignment
-  visual.syncAttaches();
+  updateTransform();
   if(isUsingTorch)
     visual.setTorch(true,owner);
   if(isDead())
@@ -350,9 +347,7 @@ bool Npc::setPosition(float ix, float iy, float iz) {
   y = iy;
   z = iz;
   durtyTranform |= TR_Pos;
-
   physic.setPosition(Vec3{x,y,z});
-  updatePos();
   return true;
   }
 
@@ -381,6 +376,8 @@ bool Npc::performOutput(const AiQueue::AiAction &act) {
     return false;
   if(aiPolicy>=AiFar)
     return true; // don't waste CPU on far-away svm-talks
+  //if(act.act!=AI_OutputSvmOverlay && bodyStateMasked()!=BS_STAND)
+  //  return false;
   if(act.act==AI_Output           && outputPipe->output   (*this,act.s0))
     return true;
   auto& svm = owner.script().messageFromSvm(act.s0,hnpc->voice);
@@ -489,6 +486,8 @@ bool Npc::resetPositionToTA() {
     }
   setPosition (at->x, at->y, at->z);
   setDirection(at->dirX,at->dirY,at->dirZ);
+  owner.script().fixNpcPosition(*this,0,0);
+
   if(!isDead)
     attachToPoint(at);
   return true;
@@ -576,6 +575,9 @@ void Npc::onNoHealth(bool death, HitSound sndMask) {
 
   size_t fdead=owner.script().getSymbolIndex(state);
   startState(fdead,"",gtime::endOfTime(),true);
+  // Note: clear perceptions for William in Jarkentar
+  for(size_t i=0;i<PERC_Count;++i)
+    setPerceptionDisable(PercType(i));
   if(hnpc->voice>0 && sndMask!=HS_NoSound) {
     emitSoundSVM(svm);
     }
@@ -651,15 +653,19 @@ float Npc::rotationYRad() const {
   }
 
 Bounds Npc::bounds() const {
-  return visual.bounds();
+  auto b = visual.bounds();
+  b.setObjMatrix(transform());
+  return b;
   }
 
 float Npc::translateY() const {
   return visual.pose().translateY();
   }
 
-float Npc::centerY() const {
-  return physic.centerY();
+Vec3 Npc::centerPosition() const {
+  auto p = position();
+  p.y = physic.centerY();
+  return p;
   }
 
 Npc *Npc::lookAtTarget() const {
@@ -692,7 +698,12 @@ float Npc::qDistTo(const Npc &p) const {
   }
 
 float Npc::qDistTo(const Interactive &p) const {
-  auto pos = p.position();
+  auto pos = p.nearestPoint(*this);
+  return qDistTo(pos.x,pos.y,pos.z);
+  }
+
+float Npc::qDistTo(const Item& p) const {
+  auto pos = p.midPosition();
   return qDistTo(pos.x,pos.y,pos.z);
   }
 
@@ -701,29 +712,6 @@ uint8_t Npc::calcAniComb() const {
     return 0;
   auto dpos = currentTarget->position()-position();
   return Pose::calcAniComb(dpos,angle);
-  }
-
-void Npc::updateAnimation(uint64_t dt) {
-  bool syncAtt = false;
-
-  if(durtyTranform) {
-    updatePos();
-    syncAtt = true;
-    durtyTranform=0;
-    }
-
-  syncAtt |= visual.updateAnimation(this,owner,dt);
-
-  if(syncAtt)
-    visual.syncAttaches();
-  }
-
-void Npc::updateTransform() {
-  if(durtyTranform) {
-    updatePos();
-    visual.syncAttaches();
-    durtyTranform=0;
-    }
   }
 
 std::string_view Npc::displayName() const {
@@ -1228,10 +1216,10 @@ bool Npc::implPointAt(const Tempest::Vec3& to) {
 bool Npc::implLookAt(uint64_t dt) {
   if(currentLookAt==nullptr)
     return false;
-  auto dx = currentLookAt->x-x;
-  auto dy = currentLookAt->y-y;
-  auto dz = currentLookAt->z-z;
-  return implLookAt(dx,dy,dz,dt);
+  auto selfHead  = visual.mapHeadBone();
+  auto otherHead = currentLookAt->visual.mapHeadBone();
+  auto dvec = otherHead - selfHead;
+  return implLookAt(dvec.x,dvec.y,dvec.z,dt);
   }
 
 bool Npc::implLookAt(float dx, float dy, float dz, uint64_t dt) {
@@ -1304,7 +1292,7 @@ bool Npc::implGoTo(uint64_t dt) {
       dist = fghAlgo.baseDistance(*this,*go2.npc,owner.script());
     } else {
     // use smaller threshold, to avoid edge-looping in script
-    dist = MoveAlgo::closeToPointThreshold*0.25f;
+    dist = MoveAlgo::closeToPointThreshold*0.5f;
     if(go2.wp!=nullptr && go2.wp->useCounter()>1)
       dist += 100;
     }
@@ -1370,6 +1358,11 @@ bool Npc::implAtack(uint64_t dt) {
   if(ws==WeaponState::NoWeapon)
     return false;
 
+  if(bodyStateMasked()==BS_STUMBLE) {
+    mvAlgo.tick(dt,MoveAlgo::FaiMove);
+    return true;
+    }
+
   if(faiWaitTime>=owner.tickCount()) {
     adjustAtackRotation(dt);
     mvAlgo.tick(dt,MoveAlgo::FaiMove);
@@ -1410,6 +1403,31 @@ bool Npc::implAtack(uint64_t dt) {
       }
 
     auto ws = weaponState();
+    if(ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage) {
+      bool obsticle = false;
+      if(currentTarget!=nullptr) {
+        auto hit = owner.physic()->rayNpc(this->mapWeaponBone(),currentTarget->centerPosition());
+        if(hit.hasCol) {
+          obsticle = true;
+          if(hit.npcHit!=nullptr && owner.script().personAttitude(*this,*hit.npcHit)==ATT_HOSTILE)
+            obsticle = false;
+          }
+        }
+      if(auto spl = activeWeapon()) {
+        if(!spl->isSpellShoot())
+          obsticle = false;
+        }
+      if(obsticle) {
+        auto anim = (owner.script().rand(2)==0 ? Npc::Anim::MoveL : Npc::Anim::MoveR);
+        if(setAnim(anim)){
+          visual.setAnimRotate(*this,0);
+          implFaiWait(visual.pose().animationTotalTime());
+          fghAlgo.consumeAction();
+          return true;
+          }
+        }
+      }
+
     if(ws==WeaponState::Mage) {
       if(castSpell()) {
         fghAlgo.consumeAction();
@@ -1596,6 +1614,7 @@ bool Npc::implAiFlee(uint64_t dt) {
 
   const WayPoint* wp      = nullptr;
   const float     maxDist = 5*100; // 5 meters
+
   owner.findWayPoint(position(),[&](const WayPoint& p) {
     if(p.useCounter()>0 || qDistTo(&p)>maxDist*maxDist)
       return false;
@@ -1606,16 +1625,21 @@ bool Npc::implAiFlee(uint64_t dt) {
     return false;
     });
 
+  if(go2.flag!=GT_Flee && go2.flag!=GT_No) {
+    go2.clear();
+    setAnim(Anim::Idle);
+    }
+
   if(wp==nullptr || oth.qDistTo(wp)<oth.qDistTo(*this)) {
     auto  dx  = oth.x-x;
     auto  dz  = oth.z-z;
-    if(implTurnTo(-dx,-dz,false,dt))
-      return false;
+    if(implTurnTo(-dx,-dz,(go2.flag!=GT_No),dt))
+      return (go2.flag==GT_Flee);
     } else {
     auto  dx  = wp->x-x;
     auto  dz  = wp->z-z;
-    if(implTurnTo(dx,dz,false,dt))
-      return false;
+    if(implTurnTo(dx,dz,(go2.flag!=GT_No),dt))
+      return (go2.flag==GT_Flee);
     }
 
   go2.setFlee();
@@ -1697,17 +1721,25 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     perceptionProcess(other,this,0,PERC_ASSESSDAMAGE);
     fghAlgo.onTakeHit();
     implFaiWait(0);
-    hitResult = DamageCalculator::damageValue(other,*this,b,isSpell,dmg,bMask);
     }
 
+  hitResult = DamageCalculator::damageValue(other,*this,b,isSpell,dmg,bMask);
   if(!isSpell && !isDown() && hitResult.hasHit)
     owner.addWeaponHitEffect(other,b,*this).play();
+
+  if(isDown()) {
+    // check again after PERC_ASSESSDAMAGE script
+    onNoHealth(dontKill,HS_NoSound);
+    return;
+    }
 
   if(hitResult.hasHit) {
     if(bodyStateMasked()!=BS_UNCONSCIOUS && interactive()==nullptr && !isSwim() && !mvAlgo.isClimb()) {
       const bool noInter = (hnpc->bodystate_interruptable_override!=0);
-      if(!noInter)
+      if(!noInter) {
+        visual.setAnimRotate(*this,0);
         visual.interrupt();
+        }
       setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB);
       }
     }
@@ -1927,8 +1959,11 @@ void Npc::tick(uint64_t dt) {
     if(implAtack(dt))
       return;
 
-    if(implGoTo(dt))
+    if(implGoTo(dt)) {
+      if(go2.flag==GT_Flee)
+        implAiTick(dt);
       return;
+      }
     }
 
   mvAlgo.tick(dt);
@@ -2083,10 +2118,12 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
           queue.pushFront(std::move(act));
         break;
         }
+      /*
+       * Rhademes doesn't quit talk properly
       if(owner.script().isTalk(*this)) {
         queue.pushFront(std::move(act));
         break;
-        }
+        }*/
       auto inter = owner.aviableMob(*this,act.s0.c_str());
       if(inter==nullptr) {
         queue.pushFront(std::move(act));
@@ -2113,10 +2150,15 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
       break;
       }
-    case AI_UseItem:
+    case AI_UseItem: {
+      if(!isStanding()) {
+        queue.pushFront(std::move(act));
+        break;
+        }
       if(act.i0!=0)
         useItem(uint32_t(act.i0));
       break;
+      }
     case AI_UseItemToState:
       if(act.i0!=0) {
         uint32_t itm   = uint32_t(act.i0);
@@ -2130,8 +2172,10 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_Teleport: {
       setPosition(act.point->x,act.point->y,act.point->z);
       setDirection(act.point->dirX,act.point->dirY,act.point->dirZ);
-      if(isPlayer())
+      if(isPlayer()) {
+        updateTransform();
         Gothic::inst().camera()->reset(this);
+        }
       }
       break;
     case AI_DrawWeapon:
@@ -2333,6 +2377,13 @@ bool Npc::startState(ScriptFn id, const std::string& wp, gtime endTime, bool noF
   if(!noFinalize) {
     for(size_t i=0;i<PERC_Count;++i)
       setPerceptionDisable(PercType(i));
+    }
+
+  if(wp=="TOT") {
+    // workaround for Pedro removal script
+    auto& point = owner.deadPoint();
+    attachToPoint(nullptr);
+    setPosition(point.position());
     }
 
   auto& st = owner.script().aiState(id);
@@ -2820,6 +2871,10 @@ Vec3 Npc::mapWeaponBone() const {
   return visual.mapWeaponBone();
   }
 
+Vec3 Npc::mapHeadBone() const {
+  return visual.mapHeadBone();
+  }
+
 Vec3 Npc::mapBone(std::string_view bone) const {
   if(auto sk = visual.visualSkeleton()) {
     size_t id = sk->findNode(bone);
@@ -2828,7 +2883,7 @@ Vec3 Npc::mapBone(std::string_view bone) const {
     }
 
   Vec3 ret = {};
-  ret.y = centerY()-y;
+  ret.y = physic.centerY()-y;
   return ret+position();
   }
 
@@ -2878,8 +2933,12 @@ bool Npc::checkGoToNpcdistance(const Npc &other) {
   return fghAlgo.isInAtackRange(*this,other,owner.script());
   }
 
-size_t Npc::hasItem(size_t id) const {
+size_t Npc::itemCount(size_t id) const {
   return invent.itemCount(id);
+  }
+
+Item* Npc::activeWeapon() {
+  return invent.activeWeapon();
   }
 
 Item *Npc::getItem(size_t id) {
@@ -3308,6 +3367,7 @@ bool Npc::shootBow(Interactive* focOverride) {
   auto itm = invent.getItem(size_t(munition));
   if(itm==nullptr)
     return false;
+
   auto& b = owner.shootBullet(*itm,*this,currentTarget,focOverride);
 
   invent.delItem(size_t(munition),1,*this);
@@ -3405,7 +3465,7 @@ bool Npc::perceptionProcess(Npc &pl) {
 
   const float quadDist = pl.qDistTo(*this);
 
-  if(hasPerc(PERC_ASSESSPLAYER) && canSenseNpc(pl,false)!=SensesBit::SENSE_NONE) {
+  if(aiQueue.size()==0 && hasPerc(PERC_ASSESSPLAYER) && canSenseNpc(pl,false)!=SensesBit::SENSE_NONE) {
     if(perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSPLAYER)) {
       ret = true;
       }
@@ -3751,7 +3811,15 @@ void Npc::stopWalking() {
   }
 
 bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
-  return canSeeNpc(oth.x,oth.y+180,oth.z,freeLos);
+  const auto mid = oth.bounds().midTr;
+  if(canSeeNpc(mid.x,mid.y,mid.z,freeLos))
+    return true;
+  if(oth.visual.visualSkeleton()->BIP01_HEAD==size_t(-1))
+    return false;
+  auto head = oth.visual.mapHeadBone();
+  if(canSeeNpc(head.x,head.y,head.z,freeLos))
+    return true;
+  return false;
   }
 
 bool Npc::canSeeNpc(float tx, float ty, float tz, bool freeLos) const {
@@ -3760,8 +3828,9 @@ bool Npc::canSeeNpc(float tx, float ty, float tz, bool freeLos) const {
   }
 
 SensesBit Npc::canSenseNpc(const Npc &oth, bool freeLos, float extRange) const {
+  const auto mid = oth.bounds().midTr;
   const bool isNoisy = (oth.bodyState()&BodyState::BS_SNEAK)==0;
-  return canSenseNpc(oth.x,oth.y+180,oth.z,freeLos,isNoisy,extRange);
+  return canSenseNpc(mid.x,mid.y,mid.z,freeLos,isNoisy,extRange);
   }
 
 SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, bool isNoisy, float extRange) const {
@@ -3779,16 +3848,17 @@ SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, bool isNo
       ret = ret | SensesBit::SENSE_HEAR;
     }
 
-  if(!freeLos){
+  // npc eyesight height
+  auto head = visual.mapHeadBone();
+  if(!freeLos) {
     float dx  = x-tx, dz=z-tz;
     float dir = angleDir(dx,dz);
     float da  = float(M_PI)*(visual.viewDirection()-dir)/180.f;
     if(double(std::cos(da))<=ref)
-      if(!w->ray(Vec3(x,y+180,z), Vec3(tx,ty,tz)).hasCol)
+      if(!w->ray(head, Vec3(tx,ty,tz)).hasCol)
         ret = ret | SensesBit::SENSE_SEE;
     } else {
-    // TODO: npc eyesight height
-    if(!w->ray(Vec3(x,y+180,z), Vec3(tx,ty,tz)).hasCol)
+    if(!w->ray(head, Vec3(tx,ty,tz)).hasCol)
       ret = ret | SensesBit::SENSE_SEE;
     }
   return ret & SensesBit(hnpc->senses);
@@ -3838,32 +3908,40 @@ Matrix4x4 Npc::mkPositionMatrix() const {
   return mt;
   }
 
-void Npc::updatePos() {
-  const auto ground = groundNormal();
-
-  if(lastGroundNormal!=ground) {
-    durtyTranform |= TR_Rot;
-    lastGroundNormal = ground;
-    }
-
-  sfxWeapon.setPosition(x,y,z);
-
-  Matrix4x4 pos;
-  if(durtyTranform==TR_Pos) {
-    pos = visual.transform();
-    pos.set(3,0,x);
-    pos.set(3,1,y);
-    pos.set(3,2,z);
-    } else {
-    pos = mkPositionMatrix();
-    }
-
-  if(mvAlgo.isSwim()) {
-    float chest = mvAlgo.canFlyOverWater() ? 0 : mvAlgo.waterDepthChest();
-    float y = pos.at(3,1);
-    pos.set(3,1,y+chest);
-    }
-
-  visual.setObjMatrix(pos,false);
+void Npc::updateTransform() {
+  updateAnimation(0);
   }
 
+void Npc::updateAnimation(uint64_t dt) {
+  if(durtyTranform) {
+    const auto ground = groundNormal();
+    if(lastGroundNormal!=ground) {
+      durtyTranform |= TR_Rot;
+      lastGroundNormal = ground;
+      }
+
+    sfxWeapon.setPosition(x,y,z);
+    Matrix4x4 pos;
+    if(durtyTranform==TR_Pos) {
+      pos = visual.transform();
+      pos.set(3,0,x);
+      pos.set(3,1,y);
+      pos.set(3,2,z);
+      } else {
+      pos = mkPositionMatrix();
+      }
+
+    if(mvAlgo.isSwim()) {
+      float chest = mvAlgo.canFlyOverWater() ? 0 : mvAlgo.waterDepthChest();
+      float y = pos.at(3,1);
+      pos.set(3,1,y+chest);
+      }
+
+    visual.setObjMatrix(pos,false);
+    durtyTranform = 0;
+    }
+
+  bool syncAtt = visual.updateAnimation(this,owner,dt);
+  if(syncAtt)
+    visual.syncAttaches();
+  }

@@ -75,6 +75,9 @@ void WorldObjects::load(Serialize &fin) {
   fin.read(v);
   fin.setVersion(v);
   }
+  itemArr.clear();
+  items.clear();
+
   uint32_t sz = fin.directorySize("worlds/",fin.worldName(),"/npc/");
   npcArr.resize(sz);
   for(size_t i=0; i<sz; ++i)
@@ -85,8 +88,6 @@ void WorldObjects::load(Serialize &fin) {
 
   fin.setEntry("worlds/",fin.worldName(),"/items");
   fin.read(sz);
-  itemArr.clear();
-  items.clear();
   for(size_t i=0; i<sz; ++i) {
     auto it = std::make_unique<Item>(owner,fin,Item::T_World);
     itemArr.emplace_back(std::move(it));
@@ -147,9 +148,22 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
   auto passive=std::move(sndPerc);
   sndPerc.clear();
 
-  std::sort(npcArr.begin(),npcArr.end(),[](std::unique_ptr<Npc>& a, std::unique_ptr<Npc>& b){
-    return a->handle()->id<b->handle()->id;
-    });
+  bool needSort = false;
+  for(size_t i=1; i<npcArr.size(); ++i) {
+    auto& a = npcArr[i-1];
+    auto& b = npcArr[i-0];
+    if(a->handle()->id>b->handle()->id) {
+      needSort = true;
+      break;
+      }
+    }
+
+  if(needSort) {
+    std::sort(npcArr.begin(),npcArr.end(),[](std::unique_ptr<Npc>& a, std::unique_ptr<Npc>& b){
+      return a->handle()->id<b->handle()->id;
+      });
+    }
+
   for(size_t i=0; i<npcArr.size(); ++i) {
     auto& npc = *npcArr[i];
     if(npc.isPlayer())
@@ -343,9 +357,9 @@ std::unique_ptr<Npc> WorldObjects::takeNpc(const Npc* ptr) {
 
 void WorldObjects::tickNear(uint64_t /*dt*/) {
   for(Npc* i:npcNear) {
-    auto pos=i->position();
+    auto pos = i->position() + Vec3(0,i->translateY(),0);
     for(CollisionZone* z:collisionZn)
-      if(z->checkPos(pos + Vec3(0,i->translateY(),0)))
+      if(z->checkPos(pos))
         z->onIntersect(*i);
     }
   }
@@ -825,9 +839,10 @@ void WorldObjects::resetPositionToTA() {
       npcInvalid.emplace_back(std::move(npcArr[i]));
       npcArr.erase(npcArr.begin()+int(i));
 
-      auto& npc = *npcInvalid.back();
+      auto& point = owner.deadPoint();
+      auto& npc   = *npcInvalid.back();
       npc.attachToPoint(nullptr);
-      npc.setPosition(-1000,-1000,-1000); // FIXME
+      npc.setPosition(point.position());
       npc.updateTransform();
       }
     }
@@ -888,12 +903,14 @@ static bool canSee(const Npc& pl,const Interactive& n){
 
 static bool canSee(const Npc& pl,const Item& n){
   auto p0 = pl.position();
-  auto p1 = n.position();
+  auto p1 = n.midPosition();
   const float plY = p0.y;
-  const float itY = p1.y;
-  if(plY<=itY && itY<=plY+180)
-    return pl.canSeeNpc(p1.x,plY+180,p1.z,true);
-  return pl.canSeeNpc(p1.x,itY+20,p1.z,true);
+  if(plY<=p1.y && p1.y<=plY+180) {
+    //auto head = pl.mapHeadBone();
+    if(pl.canSeeNpc(p0.x,p1.y,p0.z,true))
+      return true;
+    }
+  return pl.canSeeNpc(p1.x,p1.y,p1.z,true);
   }
 
 template<class T>
@@ -936,17 +953,14 @@ bool WorldObjects::testObj(T &src, const Npc &pl, const WorldObjects::SearchOpt 
   if(!checkFlag(npc,opt.flags))
     return false;
 
-  auto pos  = npc.position();
-  auto dpos = pl.position()-pos;
-  //float dx=pl.position()[0]-pos[0];
-  //float dy=pl.position()[1]-pos[1];
-  //float dz=pl.position()[2]-pos[2];
-
-  float l = dpos.quadLength();
+  float l = pl.qDistTo(npc);
   if(l>qmax || l<qmin)
     return false;
 
-  auto angle=std::atan2(dpos.z,dpos.x);
+  auto pos   = npc.position();
+  auto dpos  = pl.position()-pos;
+  auto angle = std::atan2(dpos.z,dpos.x);
+
   if(std::cos(plAng-angle)<ang && !bool(opt.flags&SearchFlg::NoAngle))
     return false;
 

@@ -45,15 +45,10 @@ endif()
 ## OpenGothic
 
 # sources
-file(GLOB OPENGOTHIC_SOURCES
+file(GLOB_RECURSE OPENGOTHIC_SOURCES
     "game/*.h"
-    "game/*.cpp"
-    "game/**/*.h"
-    "game/**/*.cpp"
-    "game/**/**/*.h"
-    "game/**/**/*.cpp"
-    "game/**/**/**/*.h"
-    "game/**/**/**/*.cpp")
+    "game/*.cpp")
+
 target_sources(${PROJECT_NAME} PRIVATE ${OPENGOTHIC_SOURCES} icon.rc)
 
 # shaders

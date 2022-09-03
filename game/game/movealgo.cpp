@@ -10,6 +10,7 @@ const float   MoveAlgo::climbMove             = 55;
 const float   MoveAlgo::gravity               = DynamicWorld::gravity;
 const float   MoveAlgo::eps                   = 2.f;   // 2-santimeters
 const int32_t MoveAlgo::flyOverWaterHint      = 999999;
+const float   MoveAlgo::waterPadd             = 15;
 
 MoveAlgo::MoveAlgo(Npc& unit)
   :npc(unit) {
@@ -144,6 +145,7 @@ void MoveAlgo::tickGravity(uint64_t dt) {
         npc.setAnim(AnimationSolver::Fall);
       // takeFallDamage();
       onGravityFailed(info,dt);
+      fallSpeed.y = std::max(fallSpeed.y, 0.f);
       } else {
       fallSpeed.y -= gravity*float(dt);
       }
@@ -153,7 +155,7 @@ void MoveAlgo::tickGravity(uint64_t dt) {
     if(fallSpeed.y<-0.3f && !npc.isDead() && npc.bodyStateMasked()!=BS_JUMP)
       npc.setAnim(AnimationSolver::Fall);
     } else {
-    if(ground+chest<water && !npc.isDead()) {
+    if(ground+chest+waterPadd<water && !npc.isDead()) {
       // attach to water
       const bool splash = isInAir();
       tryMove(0.f,water-chest-pY,0.f);
@@ -250,7 +252,7 @@ void MoveAlgo::tickSwim(uint64_t dt) {
   bool  valid  = false;
   bool  validW = false;
   auto  ground = dropRay (pos+dp+Tempest::Vec3(0,fallThreshold,0), valid);
-  auto  water  = waterRay(pos+dp+Tempest::Vec3(0,-chest,0), &validW);
+  auto  water  = waterRay(pos+dp+Tempest::Vec3(0,fallThreshold,0), &validW);
 
   if(npc.isDead()){
     setAsSwim(false);
@@ -265,7 +267,7 @@ void MoveAlgo::tickSwim(uint64_t dt) {
     return;
     }
 
-  if(ground+chest>=water || !validW) {
+  if(ground+chest-waterPadd>=water && !(!validW && isSwim())) {
     DynamicWorld::CollisionTest info;
     if(testSlide(pos+dp+Tempest::Vec3(0,fallThreshold,0),info))
       return;
@@ -369,6 +371,9 @@ void MoveAlgo::implTick(uint64_t dt, MvFlags moveFlg) {
       setInWater(true); else
       setInWater(false);
     }
+
+  if(pos+dp==pos && dY==0)
+    return;
 
   if(-fallThreshold<dY && npc.isFlyAnim()) {
     // jump animation
@@ -763,6 +768,13 @@ void MoveAlgo::setInWater(bool f) {
   }
 
 void MoveAlgo::setAsSwim(bool f) {
+  if(f==isSwim())
+    return;
+
+  if(f)
+    flags=Flags(flags|Swim);  else
+    flags=Flags(flags&(~Swim));
+
   if(f) {
     auto ws = npc.weaponState();
     npc.setAnim(Npc::Anim::NoAnim);
@@ -770,10 +782,6 @@ void MoveAlgo::setAsSwim(bool f) {
       npc.closeWeapon(true);
     npc.dropTorch(true);
     }
-
-  if(f)
-    flags=Flags(flags|Swim);  else
-    flags=Flags(flags&(~Swim));
   }
 
 void MoveAlgo::setAsDive(bool f) {

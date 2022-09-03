@@ -1,7 +1,5 @@
 #include "dynamicworld.h"
 
-#include "physics.h"
-
 #include "collisionworld.h"
 #include "physicmeshshape.h"
 #include "physicvbo.h"
@@ -568,7 +566,6 @@ DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const T
       hitNorm.z = callback.m_hitNormalWorld.z();
       }
     }
-
   RayLandResult ret;
   ret.v      = hitPos;
   ret.n      = hitNorm;
@@ -576,6 +573,16 @@ DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const T
   ret.hasCol = callback.hasHit();
   ret.sector = callback.sector;
   return ret;
+  }
+
+DynamicWorld::RayQueryResult DynamicWorld::rayNpc(const Tempest::Vec3& from, const Tempest::Vec3& to) const {
+  RayQueryResult r;
+  static_cast<RayLandResult&>(r) = ray(from,to);
+  if(auto ptr = npcList->rayTest(from,(r.hasCol ? r.v : to),1)) {
+    r.npcHit = ptr->toNpc();
+    r.hasCol = true;
+    }
+  return r;
   }
 
 float DynamicWorld::soundOclusion(const Tempest::Vec3& from, const Tempest::Vec3& to) const {

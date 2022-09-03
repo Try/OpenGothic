@@ -24,21 +24,14 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
   : swapchain(swapchain) {
   auto& device = Resources::device();
   view.identity();
-
-  static const TextureFormat shfrm[] = {
-    TextureFormat::R16,
-    TextureFormat::RG16,
-    TextureFormat::R32F,
-    TextureFormat::RGBA8,
-    };
   static const TextureFormat zfrm[] = {
     //TextureFormat::Depth24S8,
     TextureFormat::Depth24x8,
     TextureFormat::Depth16,
     };
 
-  for(auto& i:shfrm) {
-    if(device.properties().hasAttachFormat(i) && device.properties().hasSamplerFormat(i)){
+  for(auto& i:zfrm) {
+    if(device.properties().hasDepthFormat(i) && device.properties().hasSamplerFormat(i)){
       shadowFormat = i;
       break;
       }
@@ -79,51 +72,42 @@ void Renderer::resetSwapchain() {
   zbuffer        = device.zbuffer(zBufferFormat,w,h);
   zbufferItem    = device.zbuffer(zBufferFormat,w,h);
 
-  if(Resources::hasMeshShaders()) {
+  if(Gothic::inst().doMeshShading()) {
     uint32_t hw = nearestPot(w);
     uint32_t hh = nearestPot(h);
 
-    hiZBase = device.attachment(TextureFormat::R16, w,  h);
-    hiZPot  = device.image2d   (TextureFormat::R16, hw, hh, true);
+    hiZPot  = device.image2d(TextureFormat::R16, hw, hh, true);
     hiZ     = StorageImage();
 
     uboHiZPot = device.descriptors(Shaders::inst().hiZPot);
-    uboHiZPot.set(0, hiZBase, smpN);
+    uboHiZPot.set(0, zbuffer, smpN);
     uboHiZPot.set(1, hiZPot);
 
-    uint32_t mipOffset = 0;
     uboZMip.clear();
-    for(uint32_t i=0; (hw>1 || hh>1); ++i) {
-      hw /= 2;
-      hh /= 2;
+    for(uint32_t i=0; (hw>1 && hh>1); ++i) {
+      hw = std::max(1u, hw/2u);
+      hh = std::max(1u, hh/2u);
       auto& ubo = uboZMip.emplace_back(device.descriptors(Shaders::inst().hiZMip));
 
-      ubo.set(0, hiZPot, smpN, i);
-      ubo.set(1, hiZPot, smpN, i+1);
-
-      if(hiZ.isEmpty() && (hw<=64 || hh<=32)) {
-        hiZ = device.image2d(TextureFormat::RGBA16, hw, hh, true);
-        mipOffset = i+1;
+      if(hiZ.isEmpty()) {
+        ubo.set(0, hiZPot, smpN, i);
+        ubo.set(1, hiZPot, smpN, i+1);
+        } else {
+        ubo.set(0, hiZ, smpN, i);
+        ubo.set(1, hiZ, smpN, i+1);
         }
-      }
 
-    hw = uint32_t(hiZ.w());
-    hh = uint32_t(hiZ.h());
-    uboZGather.clear();
-    for(uint32_t i=0; (hw>=1 || hh>=1); ++i) {
-      hw /= 2;
-      hh /= 2;
-      auto& ubo = uboZGather.emplace_back(device.descriptors(Shaders::inst().hiZGather));
-      ubo.set(0, hiZPot, smpN, i+mipOffset);
-      ubo.set(1, hiZ,    smpN, i);
+      if(hiZ.isEmpty() && (hw<=64 && hh<=64)) {
+        hiZ = device.image2d(TextureFormat::R16, hw, hh, true);
+        ubo.set(1, hiZ, smpN, 0);
+        i = uint32_t(-1);
+        }
       }
     }
 
   if(smSize>0) {
-    for(int i=0; i<Resources::ShadowLayers; ++i) {
-      shadowMap[i] = device.attachment(shadowFormat, smSize,smSize);
-      shadowZ[i]   = device.zbuffer   (zBufferFormat,smSize,smSize);
-      }
+    for(int i=0; i<Resources::ShadowLayers; ++i)
+      shadowMap[i] = device.zbuffer(shadowFormat,smSize,smSize);
     }
 
   lightingBuf = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
@@ -149,21 +133,21 @@ void Renderer::resetSwapchain() {
   ssao.uboSsao.set(0,lightingBuf,smpN);
   ssao.uboSsao.set(1,gbufDiffuse,smpN);
   ssao.uboSsao.set(2,gbufNormal, smpN);
-  ssao.uboSsao.set(3,gbufDepth,  smpB);
+  ssao.uboSsao.set(3,zbuffer,    smpB);
 
   ssao.uboCompose = device.descriptors(*ssao.ssaoComposePso);
   ssao.uboCompose.set(0,lightingBuf, smpB);
   ssao.uboCompose.set(1,gbufDiffuse, smpB);
   ssao.uboCompose.set(2,ssao.ssaoBuf,smpB);
-  ssao.uboCompose.set(3,gbufDepth,   smpB);
+  ssao.uboCompose.set(3,zbuffer,     smpB);
 
   ssao.uboBlur[0] = device.descriptors(Shaders::inst().bilateralBlur);
   ssao.uboBlur[0].set(0,ssao.ssaoBuf,smpN);
-  ssao.uboBlur[0].set(1,gbufDepth,   smpB);
+  ssao.uboBlur[0].set(1,zbuffer,     smpB);
 
   ssao.uboBlur[1] = device.descriptors(Shaders::inst().bilateralBlur);
   ssao.uboBlur[1].set(0,ssao.blurBuf,smpN);
-  ssao.uboBlur[1].set(1,gbufDepth,   smpB);
+  ssao.uboBlur[1].set(1,zbuffer,     smpB);
 
   prepareUniforms();
   }
@@ -206,9 +190,11 @@ void Renderer::prepareUniforms() {
 
   const Texture2d* sh[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
-    sh[i] = &textureCast(shadowMap[i]);
+    if(!shadowMap[i].isEmpty()) {
+      sh[i] = &textureCast(shadowMap[i]);
+      }
   wview->setGbuffer(textureCast(lightingBuf),textureCast(gbufDiffuse),
-                    textureCast(gbufNormal),textureCast(gbufDepth),
+                    textureCast(gbufNormal), textureCast(gbufDepth),
                     sh, textureCast(hiZ));
   }
 
@@ -230,6 +216,31 @@ void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
     }
   }
 
+void Renderer::dbgDraw(Tempest::Painter& p) {
+  static bool dbg = false;
+  if(!dbg)
+    return;
+
+  auto& tex = hiZ;
+  //auto& tex = shadowMap[1];
+
+  p.setBrush(textureCast(tex));
+  auto sz = Size(p.brush().w(),p.brush().h());
+  if(sz.isEmpty())
+    return;
+
+  while(sz.w<256 && sz.h<256) {
+    sz.w *= 2;
+    sz.h *= 2;
+    }
+  while(sz.w>512 || sz.h>512) {
+    sz.w = (sz.w+1)/2;
+    sz.h = (sz.h+1)/2;
+    }
+  p.drawRect(10,50,sz.w,sz.h,
+             0,0,p.brush().w(),p.brush().h());
+  }
+
 void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>& cmd, uint8_t cmdId) {
   auto wview = Gothic::inst().worldView();
   if(wview==nullptr) {
@@ -237,15 +248,18 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     return;
     }
 
-  {
-  Frustrum f[SceneGlobals::V_Count];
-  if(wview->mainLight().dir().y>0) {
-    f[SceneGlobals::V_Shadow0].make(shadow[0],shadowMap[0].w(),shadowMap[0].h());
-    f[SceneGlobals::V_Shadow1].make(shadow[1],shadowMap[1].w(),shadowMap[1].h());
+  static bool updFr = true;
+  if(updFr){
+    if(wview->mainLight().dir().y>0) {
+      frustrum[SceneGlobals::V_Shadow0].make(shadow[0],shadowMap[0].w(),shadowMap[0].h());
+      frustrum[SceneGlobals::V_Shadow1].make(shadow[1],shadowMap[1].w(),shadowMap[1].h());
+      } else {
+      frustrum[SceneGlobals::V_Shadow0].clear();
+      frustrum[SceneGlobals::V_Shadow1].clear();
+      }
+    frustrum[SceneGlobals::V_Main].make(viewProj,zbuffer.w(),zbuffer.h());
+    wview->visibilityPass(frustrum);
     }
-  f[SceneGlobals::V_Main].make(viewProj,zbuffer.w(),zbuffer.h());
-  wview->visibilityPass(f);
-  }
 
   wview->preFrameUpdate(view,proj,zNear,zFar,shadow,Gothic::inst().world()->tickCount(),cmdId);
 
@@ -254,18 +268,26 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   for(uint8_t i=0; i<Resources::ShadowLayers; ++i) {
     if(shadowMap[i].isEmpty())
       continue;
-    cmd.setFramebuffer({{shadowMap[i], 0.f, Tempest::Preserve}}, {shadowZ[i], 0.f, Tempest::Preserve});
+    cmd.setFramebuffer({}, {shadowMap[i], 0.f, Tempest::Preserve});
     if(wview->mainLight().dir().y>0)
       wview->drawShadow(cmd,cmdId,i);
     }
 
   wview->prepareSky(cmd,cmdId);
 
-  cmd.setFramebuffer({{lightingBuf, Vec4(),           Tempest::Preserve},
-                      {gbufDiffuse, Tempest::Discard, Tempest::Preserve},
-                      {gbufNormal,  Tempest::Discard, Tempest::Preserve},
-                      {gbufDepth,   1.f,              Tempest::Preserve}},
-                     {zbuffer, 1.f, Tempest::Preserve});
+  if(Gothic::inst().doMeshShading()) {
+    cmd.setFramebuffer({{lightingBuf, Vec4(),           Tempest::Preserve},
+                        {gbufDiffuse, Tempest::Discard, Tempest::Preserve},
+                        {gbufNormal,  Tempest::Discard, Tempest::Preserve},
+                        {gbufDepth,   1.f,              Tempest::Preserve}},
+                       {zbuffer, Tempest::Preserve, Tempest::Preserve});
+    } else {
+    cmd.setFramebuffer({{lightingBuf, Vec4(),           Tempest::Preserve},
+                        {gbufDiffuse, Tempest::Discard, Tempest::Preserve},
+                        {gbufNormal,  Tempest::Discard, Tempest::Preserve},
+                        {gbufDepth,   1.f,              Tempest::Preserve}},
+                       {zbuffer, 1.f, Tempest::Preserve});
+    }
   wview->drawGBuffer(cmd,cmdId);
 
   drawSSAO(result,cmd,*wview);
@@ -278,10 +300,10 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   }
 
 void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, uint8_t cmdId) {
-  if(!Resources::hasMeshShaders())
+  if(!Gothic::inst().doMeshShading())
     return;
 
-  cmd.setFramebuffer({{hiZBase, 1.f, Tempest::Preserve}}, {zbuffer, 1.f, Tempest::Discard});
+  cmd.setFramebuffer({}, {zbuffer, 1.f, Tempest::Preserve});
   wview.drawHiZ(cmd,cmdId);
 
   uint32_t w = uint32_t(hiZPot.w()), h = uint32_t(hiZPot.h());
@@ -293,15 +315,6 @@ void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
     h = h/2;
     cmd.setUniforms(Shaders::inst().hiZMip, uboZMip[i]);
     cmd.dispatchThreads(std::max<size_t>(w,1),std::max<size_t>(h,1));
-    }
-
-  w = uint32_t(hiZ.w());
-  h = uint32_t(hiZ.h());
-  for(uint32_t i=0; i<uboZGather.size(); ++i) {
-    cmd.setUniforms(Shaders::inst().hiZGather, uboZGather[i]);
-    cmd.dispatchThreads(std::max<size_t>(w,1),std::max<size_t>(h,1));
-    w = w/2;
-    h = h/2;
     }
   }
 

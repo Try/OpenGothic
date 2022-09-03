@@ -66,7 +66,8 @@ make -C build -j <number_of_cpucores>
 * -save \<q> - startup with quick save
 * -save \<number> - startup with specified save-game slot
 * -window - window mode
-* -rambo - reduce damage to player to 1hp
 * -v -validation - enable Vulkan validation mode
 * -g1 - assume a Gothic 1 installation
 * -g2 - assume a Gothic 2 installation
+* -rt \<boolean> - explicitly enable or disable ray-query
+* -ms \<boolean> - explicitly enable or disable meshlets

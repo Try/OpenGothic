@@ -30,7 +30,7 @@ void mulScattValues(vec3 pos, vec3 sunDir, out vec3 lumTotal, out vec3 fms) {
     for(int j=0; j<sqrtSamples; j++) {
       // This integral is symmetric about theta = 0 (or theta = PI), so we
       // only need to integrate from zero to PI, not zero to 2*PI.
-      float theta  = PI * (float(i) + 0.5) / float(sqrtSamples);
+      float theta  = M_PI * (float(i) + 0.5) / float(sqrtSamples);
       float phi    = safeacos(1.0 - 2.0*(float(j) + 0.5) / float(sqrtSamples));
       vec3  rayDir = sphericalDir(theta, phi);
 
@@ -82,7 +82,7 @@ void mulScattValues(vec3 pos, vec3 sunDir, out vec3 lumTotal, out vec3 fms) {
         vec3 hitPos = pos + groundDist*rayDir;
         if(dot(pos, sunDir) > 0.0) {
           hitPos = normalize(hitPos)*RPlanet;
-          lum   += transmittance*groundAlbedo*textureLUT(tLUT, hitPos, sunDir);
+          lum   += transmittance*GGroundAlbedo*textureLUT(tLUT, hitPos, sunDir);
           }
         }
 

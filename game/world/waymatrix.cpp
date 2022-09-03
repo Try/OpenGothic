@@ -15,8 +15,11 @@ using namespace Tempest;
 WayMatrix::WayMatrix(World &world, const phoenix::way_net &dat)
   :world(world) {
   // scripting doc says 20m, but number seems to be incorrect
-  if(world.version().game==2)
-    distanceThreshold = 5.f*100.f;
+  if(world.version().game==2) {
+    // Vatras requires at least 8 meters
+    // Abuyin requires less than 10 meters
+    distanceThreshold = 9.f*100.f;
+    }
 
   wayPoints.resize(dat.waypoints().size());
   for(size_t i=0;i<wayPoints.size();++i){
@@ -127,6 +130,14 @@ const WayPoint &WayMatrix::startPoint() const {
   if(startPoints.size()>0)
     return startPoints.back();
   static WayPoint p(Vec3(),"START");
+  return p;
+  }
+
+const WayPoint& WayMatrix::deadPoint() const {
+  for(auto& i:indexPoints)
+    if(i->name=="TOT")
+      return *i;
+  static WayPoint p(Vec3(-1000,-1000,-1000),"TOT");
   return p;
   }
 

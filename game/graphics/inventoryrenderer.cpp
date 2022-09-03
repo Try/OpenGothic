@@ -148,7 +148,7 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
     mat.set(3,2, 0.75f);//+itData.inv_zbias/1000.f);
 
     Itm itm;
-    itm.mesh = MeshObjects::Mesh(itmGroup,*mesh,itData->material,0,itData->material,true);
+    itm.mesh = MeshObjects::Mesh(itmGroup,*mesh,itData->material,0,itData->material,false);
     itm.mesh.setObjMatrix(mat);
     itm.x    = x;
     itm.y    = y;

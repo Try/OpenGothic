@@ -5,23 +5,16 @@ project(GothicShaders)
 set(HEADER "${PROJECT_BINARY_DIR}/sprv/shader.h")
 set(CPP    "${PROJECT_BINARY_DIR}/sprv/shader.cpp")
 
-file(GLOB SOURCES
+file(GLOB_RECURSE SOURCES
   "${CMAKE_SOURCE_DIR}/shader/*.vert"
   "${CMAKE_SOURCE_DIR}/shader/*.tesc"
   "${CMAKE_SOURCE_DIR}/shader/*.tese"
+  "${CMAKE_SOURCE_DIR}/shader/*.geom"
   "${CMAKE_SOURCE_DIR}/shader/*.frag"
   "${CMAKE_SOURCE_DIR}/shader/*.glsl"
   "${CMAKE_SOURCE_DIR}/shader/*.task"
   "${CMAKE_SOURCE_DIR}/shader/*.mesh"
-  "${CMAKE_SOURCE_DIR}/shader/*.comp"
-  "${CMAKE_SOURCE_DIR}/shader/**/*.vert"
-  "${CMAKE_SOURCE_DIR}/shader/**/*.tesc"
-  "${CMAKE_SOURCE_DIR}/shader/**/*.tese"
-  "${CMAKE_SOURCE_DIR}/shader/**/*.frag"
-  "${CMAKE_SOURCE_DIR}/shader/**/*.glsl"
-  "${CMAKE_SOURCE_DIR}/shader/**/*.task"
-  "${CMAKE_SOURCE_DIR}/shader/**/*.mesh"
-  "${CMAKE_SOURCE_DIR}/shader/**/*.comp")
+  "${CMAKE_SOURCE_DIR}/shader/*.comp")
 
 file(GLOB GLSL_SOURCES
   "${CMAKE_SOURCE_DIR}/shader/*.glsl"
@@ -106,17 +99,13 @@ add_uber_shader(ani "-DMESH_TYPE=2")
 add_uber_shader(mph "-DMESH_TYPE=3")
 add_uber_shader(clr "-DMESH_TYPE=4")
 
+add_shader(lnd_hiz.mesh              materials/main.mesh -DMESH_TYPE=0 -DHIZ)
+add_shader(lnd_hiz.frag              materials/main.frag -DMESH_TYPE=0 -DHIZ)
+
 add_shader(light.vert                light.vert "")
 add_shader(light.frag                light.frag "")
 add_shader(light_rq.frag             light.frag -DRAY_QUERY)
-
-# Old nishita sky model
-add_shader(fog.vert                  sky/sky.vert         -DFOG)
-add_shader(fog.frag                  sky/sky_nishita.frag -DFOG)
-add_shader(sky_g2.vert               sky/sky.vert         -DG2)
-add_shader(sky_g2.frag               sky/sky_nishita.frag -DG2)
-add_shader(sky_g1.vert               sky/sky.vert         -DG1)
-add_shader(sky_g1.frag               sky/sky_nishita.frag -DG1)
+add_shader(light_rq_at.frag          light.frag -DRAY_QUERY -DRAY_QUERY_AT)
 
 # Based on Scalable and Production Ready Sky and Atmosphere
 # https://sebh.github.io/publications/egsr2020.pdf
@@ -129,9 +118,11 @@ add_shader(sky_view_lut.vert         sky/sky.vert                  "")
 add_shader(sky_view_lut.frag         sky/sky_view_lut.frag         "")
 add_shader(fog_view_lut.vert         sky/sky.vert                  -DFOG)
 add_shader(fog_view_lut.frag         sky/sky_view_lut.frag         -DFOG)
+add_shader(fog_view_lut.comp         sky/fog_view_lut.comp         -DFOG)
 
 add_shader(fog_egsr.vert             sky/sky.vert         -DFOG)
 add_shader(fog_egsr.frag             sky/sky_egsr.frag    -DFOG)
+
 add_shader(sky_egsr_g2.vert          sky/sky.vert         -DG2)
 add_shader(sky_egsr_g2.frag          sky/sky_egsr.frag    -DG2)
 
@@ -151,7 +142,6 @@ add_shader(ssao_compose_rq.frag      ssao_compose.frag -DRAY_QUERY)
 
 add_shader(hiZPot.comp    hiZPot.comp    "")
 add_shader(hiZMip.comp    hiZMip.comp    "")
-add_shader(hiZGather.comp hiZGather.comp "")
 
 add_custom_command(
   OUTPUT     ${HEADER} ${CPP}

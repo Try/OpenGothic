@@ -21,24 +21,21 @@ class Shaders {
     Tempest::RenderPipeline ssao, ssaoCompose;
     Tempest::RenderPipeline ssaoRq, ssaoComposeRq;
 
-    // Nishita
-    Tempest::RenderPipeline sky, fog;
-
     // Scalable and Production Ready Sky and Atmosphere
     Tempest::RenderPipeline skyTransmittance, skyMultiScattering, skyViewLut, skyEGSR;
     Tempest::RenderPipeline fogViewLut, fogEGSR;
 
     // Compute
-    Tempest::ComputePipeline hiZPot, hiZMip, hiZGather;
+    Tempest::ComputePipeline hiZPot, hiZMip;
 
     enum PipelineType: uint8_t {
       T_Forward,
       T_Deffered,
       T_Shadow,
-      T_Prepass,
       };
 
     const Tempest::RenderPipeline* materialPipeline(const Material& desc, ObjectsBucket::Type t, PipelineType pt) const;
+    Tempest::RenderPipeline lndPrePass;
 
   private:
     struct ShaderSet {
@@ -62,9 +59,7 @@ class Shaders {
       PipelineType            pipelineType = PipelineType::T_Forward;
       };
 
-    template<class Vertex>
     Tempest::RenderPipeline pipeline(Tempest::RenderState& st, const ShaderSet &fs) const;
-
     Tempest::RenderPipeline postEffect(std::string_view name);
     Tempest::RenderPipeline postEffect(std::string_view vs, std::string_view fs);
     Tempest::RenderPipeline fogShader (std::string_view name);

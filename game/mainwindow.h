@@ -85,6 +85,7 @@ class MainWindow : public Tempest::Window {
 
     void processMouse(Tempest::MouseEvent& event, bool enable);
     void tickMouse();
+    void onSettings();
 
     void setupUi();
 
@@ -159,5 +160,6 @@ class MainWindow : public Tempest::Window {
       double   get() const;
       void     push(uint64_t t);
       };
-    Fps fps;
+    Fps        fps;
+    uint64_t   maxFpsInv = 0;
   };

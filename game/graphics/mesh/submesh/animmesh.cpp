@@ -22,11 +22,28 @@ AnimMesh::AnimMesh(const PackedMesh& mesh)
   ibo = Resources::ibo(mesh.indices.data(),  mesh.indices.size());
 
   sub.resize(mesh.subMeshes.size());
-  for(size_t i=0;i<mesh.subMeshes.size();++i){
+  for(size_t i=0;i<mesh.subMeshes.size();++i) {
     sub[i].texName   = mesh.subMeshes[i].material.texture;
     sub[i].material  = Resources::loadMaterial(mesh.subMeshes[i].material,true);
     sub[i].iboOffset = mesh.subMeshes[i].iboOffset;
     sub[i].iboSize   = mesh.subMeshes[i].iboLength;
     }
+
+  // compact similar sub-meshes. not a big deal, but helps in graphics debugging
+  size_t cnt = 1;
+  for(size_t i=1;i<mesh.subMeshes.size();++i) {
+    auto& a = sub[cnt-1];
+    auto& b = sub[i];
+    if(a.iboOffset+a.iboSize==b.iboOffset &&
+       a.texName==b.texName &&
+       a.material==b.material) {
+      a.iboSize += b.iboSize;
+      } else {
+      sub[cnt] = b;
+      ++cnt;
+      }
+    }
+  sub.resize(cnt);
+
   bbox.assign(mesh.bbox());
   }

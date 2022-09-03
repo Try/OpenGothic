@@ -440,6 +440,13 @@ void LightGroup::setupUbo() {
       u.set(2,*scene.gbufDepth,  Sampler2d::nearest());
       u.set(3,uboBuf[i]);
       if(Gothic::inst().doRayQuery() && scene.tlas!=nullptr) {
+        if(Resources::device().properties().bindless.nonUniformIndexing) {
+          u.set(6,scene.bindless.tex);
+          u.set(7,scene.bindless.vbo);
+          u.set(8,scene.bindless.ibo);
+          u.set(9,scene.bindless.iboOffset);
+          }
+        // Workaround for https://github.com/KhronosGroup/Vulkan-ValidationLayers/pull/4219
         u.set(5,*scene.tlas);
         }
       }

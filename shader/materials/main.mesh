@@ -1,15 +1,24 @@
 #version 450
 
+#if VULKAN >= 110
+#define USE_SUBGROUPS 1
+#else
+#define USE_SUBGROUPS 0
+#endif
+
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_NV_mesh_shader : require
+#extension GL_EXT_control_flow_attributes : enable
+
+#if USE_SUBGROUPS
+#extension GL_KHR_shader_subgroup_basic : enable
 #extension GL_KHR_shader_subgroup_vote: enable
+#endif
 
 #define MESH
 #include "materials_common.glsl"
 #include "vertex_process.glsl"
-
-vec4 debugClr = vec4(0);
 
 layout(local_size_x = 32) in;
 layout(triangles, max_vertices = 64, max_primitives = MaxInd/3) out;
@@ -18,96 +27,88 @@ out gl_MeshPerVertexNV {
   vec4 gl_Position;
   } gl_MeshVerticesNV[];
 
-// Custom vertex output block
+#if defined(MAT_VARYINGS)
 layout(location = 0) out Varyings shOut[];  // [max_vertices]
+#endif
+
 #if DEBUG_DRAW
 layout(location = DEBUG_DRAW_LOC) out flat uint debugId[];
 #endif
 
-shared bool invisible;
+#if USE_SUBGROUPS
+bool workgroupAny(bool b) {
+  return subgroupAny(b);
+  }
+bool workgroupAll(bool b) {
+  return subgroupAll(b);
+  }
+#else
+shared bool workgroup_bool;
+bool workgroupAny(bool b) {
+  workgroup_bool = false;
+  barrier();
+  if(b)
+    workgroup_bool = true;
+  memoryBarrierShared();
+  barrier();
+  return workgroup_bool;
+  }
 
+bool workgroupAll(bool b) {
+  workgroup_bool = true;
+  barrier();
+  if(!b)
+    workgroup_bool = false;
+  memoryBarrierShared();
+  barrier();
+  return workgroup_bool;
+  }
+#endif
+
+bool sphereTest(const uint objId, const uint meshletId) {
+  const uint laneID = gl_LocalInvocationID.x;
 #if (MESH_TYPE==T_LANDSCAPE)
-void meshletTest(const uint meshletId) {
-  const uint laneID = gl_LocalInvocationID.x;
   const vec4 sphere = bounds[meshletId];
-
-  invisible = (sphere.w<0.f);
-  memoryBarrierShared();
-  barrier();
-  if(laneID<6) {
-    if(dot(vec4(sphere.xyz,1.0), scene.frustrum[laneID]) <= -sphere.w)
-      invisible = true;
-    }
-  memoryBarrierShared();
-  barrier();
-  }
+#elif (MESH_TYPE==T_PFX)
+  const vec4 sphere = vec4(0);
+#else
+  const vec4 sphere = vec4(matrix[objId][3].xyz,material.bboxRadius);
 #endif
-
-#if defined(LVL_OBJECT)
-void boundSphereTest(const uint objId) {
-  const uint laneID = gl_LocalInvocationID.x;
-
-  vec4 sphere = matrix[objId][3];
-  sphere.w    = material.bboxRadius;
-
-  float dist  = 0;
-
-  invisible = (sphere.w<0.f);
-  memoryBarrierShared();
-  barrier();
-
-  if(laneID<6) {
-    dist = dot(vec4(sphere.xyz,1.0), scene.frustrum[laneID]);
-    if(dist <= -sphere.w)
-      invisible = true;
+  bool invisible = (sphere.w<0.f);
+  if(laneID<6 && dot(vec4(sphere.xyz,1.0), scene.frustrum[laneID]) <= -sphere.w) {
+    invisible = true;
     }
-  memoryBarrierShared();
-  barrier();
-  }
-#endif
-
-#if !defined(SHADOW_MAP) && defined(LVL_OBJECT)
-float textureHiZ(in vec2 uv, in int mip, in vec2 uv0, in vec2 uv1) {
-  //ivec2 iuv0 = ivec2(uv*textureSize(hiZ,mip));
-  vec2 offset = vec2(0.5)/textureSize(hiZ,mip);
-  vec4 z4 = textureLod(hiZ,uv-offset,mip);
-  return max(max(z4[0],z4[1]), max(z4[2],z4[3]));
+  invisible = workgroupAny(invisible);
+  return !invisible;
   }
 
-int mipLevel(vec2 bboxSz) {
-  float sm = ceil(max(bboxSz.x,bboxSz.y));
-  if(sm<=1)
-    return 0;
-  if(sm<=2)
-    return 1;
-  if(sm<=4)
-    return 2;
-  if(sm<=8)
-    return 3;
-  if(sm<=16)
-    return 4;
-  if(sm<=32)
-    return 5;
-  if(sm<=64)
-    return 6;
-  if(sm<=128)
-    return 7;
-  return 1024; // big value that is larger than mip count
-  }
-
+#if !defined(SHADOW_MAP) && (MESH_TYPE!=T_PFX)
 shared vec3 bboxProj[8];
-void bboxTest(const uint objId) {
+bool bboxTest(const uint objId) {
   const uint laneID = gl_LocalInvocationID.x;
+
+  if(!sphereTest(objId,objId))
+    return false;
 
   if(laneID<8) {
-    const vec3  b[2] = {material.bbox[0].xyz, material.bbox[1].xyz};
-    const vec3  pos  = vec3(b[(laneID&0x1)].x,b[(laneID&0x2)>>1].y,b[(laneID&0x4)>>2].z);
+#if defined(LVL_OBJECT)
+    const vec3  b[2]   = {material.bbox[0].xyz, material.bbox[1].xyz};
+#else
+    const vec3  objPos = bounds[objId].xyz;
+    const float R      = bounds[objId].w;
+    const vec3  b[2]   = { objPos-vec3(R), objPos+vec3(R) };
+#endif
+    const vec3  pos    = vec3(b[bitfieldExtract(laneID,0,1)].x,
+                              b[bitfieldExtract(laneID,1,1)].y,
+                              b[bitfieldExtract(laneID,2,1)].z);
 
-    vec4 trPos = vec4(pos.xyz,1.0);
+    vec4 trPos = vec4(pos,1.0);
+#if defined(LVL_OBJECT)
     trPos = matrix[objId]    *trPos;
+#endif
     trPos = scene.viewProject*trPos;
 
-    vec3 bp = trPos.xyz/trPos.w;
+    vec3 bp = trPos.xyz/max(trPos.w,0.001);
     bp.xy = bp.xy*0.5 + vec2(0.5);
     bp.xy = clamp(bp.xy, vec2(0.0), vec2(1.0));
     bboxProj[laneID] = bp;
@@ -116,33 +117,48 @@ void bboxTest(const uint objId) {
   memoryBarrierShared();
   barrier();
 
-  if(laneID==0 && !invisible) {
-    vec3 bbox[2] = {bboxProj[0], bboxProj[0]};
-    for(int i=1; i<8; ++i) {
-      bbox[0] = min(bbox[0],bboxProj[i]);
-      bbox[1] = max(bbox[1],bboxProj[i]);
-      }
+  vec3 bbox[2] = {bboxProj[0], bboxProj[0]};
+  for(int i=1; i<8; ++i) {
+    bbox[0] = min(bbox[0],bboxProj[i]);
+    bbox[1] = max(bbox[1],bboxProj[i]);
+    }
 
-    vec2  sz     = vec2(bbox[1].x-bbox[0].x, bbox[1].y-bbox[0].y)*vec2(textureSize(hiZ,0));
-    int   mip    = mipLevel(sz);
-    {
-      const vec2  uv    = (bbox[1].xy+bbox[0].xy)*0.5;
-      const float z     = textureHiZ(uv,mip, bbox[0].xy,bbox[1].xy) + 1.0/32768.0;
-      const float meshZ = (bbox[0].z);
-      if(bbox[0].z > z)
-        invisible = true;
-      //invisible = true;
+  int   mip     = 0;
+  ivec2 ibbox[2];
+  ivec2 hiZsize = textureSize(hiZ,mip);
+  ibbox[0] = ivec2(    (bbox[0].xy*hiZsize));
+  ibbox[1] = ivec2(ceil(bbox[1].xy*hiZsize));
+  ivec2 sz = ibbox[1]-ibbox[0];
+
+  [[dont_unroll]]
+  while(sz.x*sz.y>gl_WorkGroupSize.x) {
+    ibbox[0] = ibbox[0]/2;
+    ibbox[1] = (ibbox[1]+ivec2(1))/2;
+    sz       = ibbox[1]-ibbox[0];
+    mip++;
+    }
+
+  bool visible = false;
+  if(sz.x>0) {
+    ivec2 offset  = ivec2(laneID%sz.x,laneID/sz.x);
+    ivec2 at      = ibbox[0]+offset;
+    if(offset.y<sz.y) {
+      float bz = bbox[0].z;
+      bz = (1.0-bz)*20.0;
+      float z  = texelFetch(hiZ, at, mip).x;
+      if(bz >= z)
+        visible = true;
       }
     }
 
-  memoryBarrierShared();
-  barrier();
+  visible = workgroupAny(visible);
+  return visible;
   }
 #endif
 
 void main() {
 #if defined(LVL_OBJECT)
-  const uint objId     = gl_WorkGroupID.x/push.meshletCount + push.baseInstance;
+  const uint objId     = gl_WorkGroupID.x/push.meshletCount;
   const uint meshletId = gl_WorkGroupID.x%push.meshletCount + push.meshletBase;
 #else
   const uint objId     = gl_WorkGroupID.x;
@@ -151,49 +167,58 @@ void main() {
 
   const uint laneID    = gl_LocalInvocationID.x;
 
-#if (MESH_TYPE==T_LANDSCAPE)
-  meshletTest(meshletId);
-#elif defined(LVL_OBJECT) && !defined(SHADOW_MAP)
-  boundSphereTest(objId);
-  bboxTest(objId);
-#elif defined(LVL_OBJECT)
-  boundSphereTest(objId);
+#if defined(SHADOW_MAP)
+#  if (MESH_TYPE==T_LANDSCAPE)
+  const bool visible = sphereTest(objId,meshletId);
+#  elif (MESH_TYPE==T_PFX)
+  const bool visible = true;
+#  else
+  const bool visible = sphereTest(objId,meshletId);
+#  endif
 #else
-  invisible = false;
-  memoryBarrierShared();
-  barrier();
+#  if (MESH_TYPE==T_LANDSCAPE)
+  const bool visible = bboxTest(meshletId);
+  //const bool visible = sphereTest(objId,meshletId);
+#  elif (MESH_TYPE==T_PFX)
+  const bool visible = true;
+#  else
+  const bool visible = bboxTest(objId);
+  //const bool visible = sphereTest(objId,meshletId);
+#  endif
 #endif
 
-  {
-    if(invisible) {
-      if(laneID==0)
-        gl_PrimitiveCountNV = 0;
-      return;
-      }
-  }
+  if(!visible) {
+    if(laneID==0)
+      gl_PrimitiveCountNV = 0;
+    return;
+    }
 
   const uint vboOffset = meshletId * MaxVert;
   const uint iboOffset = meshletId * MaxInd;
 
-  const Varyings out0 = processVertex(objId, vboOffset + laneID*2 + 0);
-  const Varyings out1 = processVertex(objId, vboOffset + laneID*2 + 1);
+  vec4 pos0, pos1;
+  const Varyings out0 = processVertex(pos0, objId, vboOffset + laneID*2 + 0);
+  const Varyings out1 = processVertex(pos1, objId, vboOffset + laneID*2 + 1);
 
+#if defined(MAT_VARYINGS)
   shOut            [laneID*2 + 0]             = out0;
-  gl_MeshVerticesNV[laneID*2 + 0].gl_Position = out0.scr;
   shOut            [laneID*2 + 1]             = out1;
-  gl_MeshVerticesNV[laneID*2 + 1].gl_Position = out1.scr;
+#endif
+  gl_MeshVerticesNV[laneID*2 + 0].gl_Position = pos0;
+  gl_MeshVerticesNV[laneID*2 + 1].gl_Position = pos1;
 
-#if DEBUG_DRAW
+#if (DEBUG_DRAW) && !defined(LVL_OBJECT)
   debugId[laneID*2 + 0] = meshletId;
   debugId[laneID*2 + 1] = meshletId;
 #endif
 
   // Triangle indices [0..123]
-  uint index0 = indexes[iboOffset];
+  uint index0 = vboOffset;
 
   /*
-   *  threads 0..30 -> 0..120
-   *  thread  31    -> 121..123
+   *  threads 0..29 -> 0..120
+   *  thread  30    -> 121..123
+   *  thread  31    -> none
    */
   if(laneID<31) {
     gl_PrimitiveIndicesNV[laneID*4 + 0] = indexes[iboOffset + laneID*4 + 0] - index0;
@@ -205,9 +230,17 @@ void main() {
     }
 
   // Number of triangles
-  if(laneID==0)
-    gl_PrimitiveCountNV = MaxInd/3;
-#if 0 && defined(LVL_OBJECT) && !defined(SHADOW_MAP)
+  if(laneID==30) {
+    uint c = laneID*4;
+    if(gl_PrimitiveIndicesNV[c+0]==gl_PrimitiveIndicesNV[c+1]) {
+      // last dummy triangle encodes primitive count
+      gl_PrimitiveCountNV = gl_PrimitiveIndicesNV[c];
+      } else {
+      gl_PrimitiveCountNV = MaxInd/3;
+      }
+    }
+#if 0 && defined(LVL_OBJECT) && !defined(DEPTH_ONLY) && (MESH_TYPE==T_SKINING)
+  // DEBUG CODE
   memoryBarrierShared();
   barrier();
   if(laneID==0) {

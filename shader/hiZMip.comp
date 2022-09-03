@@ -8,22 +8,21 @@ layout(binding = 1)      uniform writeonly image2D mip1;
 layout(local_size_x = 8, local_size_y = 8) in;
 
 void main() {
-  const ivec2 srcSz  = imageSize(mip0);
-  const ivec2 dstSz  = imageSize(mip1);
+  const ivec2 srcSz = imageSize(mip0);
+  const ivec2 dstSz = imageSize(mip1);
 
   ivec2 dstUV  = ivec2(gl_GlobalInvocationID.xy);
-  ivec2 srcUV0 = dstUV*2;
-  ivec2 srcUV1 = dstUV*2 + ivec2(1,1);
-  srcUV1 = min(srcUV1, imageSize(mip0)-ivec2(1,1));
-
   if(dstUV.x>=dstSz.x || dstUV.x>=dstSz.x)
     return;
 
-  float z = 0;
-  z = max(z, imageLoad(mip0, ivec2(srcUV0.x,srcUV0.y)).x);
-  z = max(z, imageLoad(mip0, ivec2(srcUV1.x,srcUV0.y)).x);
-  z = max(z, imageLoad(mip0, ivec2(srcUV0.x,srcUV1.y)).x);
-  z = max(z, imageLoad(mip0, ivec2(srcUV1.x,srcUV1.y)).x);
+  ivec2 srcUV0 = dstUV*2;
+  ivec2 srcUV1 = dstUV*2 + ivec2(1,1);
+  srcUV1 = min(srcUV1, srcSz-ivec2(1,1));
+
+  float z =  imageLoad(mip0, ivec2(srcUV0.x,srcUV0.y)).x;
+  z = min(z, imageLoad(mip0, ivec2(srcUV1.x,srcUV0.y)).x);
+  z = min(z, imageLoad(mip0, ivec2(srcUV0.x,srcUV1.y)).x);
+  z = min(z, imageLoad(mip0, ivec2(srcUV1.x,srcUV1.y)).x);
 
   imageStore(mip1, dstUV, vec4(z));
   }

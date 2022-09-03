@@ -38,7 +38,7 @@ vec3 multiWave(vec2 at) {
 
 void main() {
   shOut.uv           = interpolate(shInp[0].uv,           shInp[1].uv,           shInp[2].uv);
-#if !defined(SHADOW_MAP)
+#if !defined(DEPTH_ONLY)
   shOut.shadowPos[0] = interpolate(shInp[0].shadowPos[0], shInp[1].shadowPos[0], shInp[2].shadowPos[0]);
   shOut.shadowPos[1] = interpolate(shInp[0].shadowPos[1], shInp[1].shadowPos[1], shInp[2].shadowPos[1]);
   shOut.normal       = interpolate(shInp[0].normal,       shInp[1].normal,       shInp[2].normal);
@@ -53,13 +53,12 @@ void main() {
   vec3 dPos = multiWave(shOut.pos.xz*0.001);
 
   pos                += scene.viewProject*vec4(dPos,0);
-  shOut.shadowPos[0] += scene.shadow[0]  *vec4(dPos,0);
-  shOut.shadowPos[1] += scene.shadow[1]  *vec4(dPos,0);
+  shOut.pos          += dPos;
+  shOut.shadowPos[0] += scene.viewShadow[0] * vec4(dPos,0);
+  shOut.shadowPos[1] += scene.viewShadow[1] * vec4(dPos,0);
 
   //shOut.normal += dPos;
   //shOut.normal = normalize(shOut.normal);
-
-  shOut.scr          = pos;
 
   gl_Position = pos;
   }

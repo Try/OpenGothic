@@ -261,8 +261,8 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
   for(size_t i=0; i<lay.size(); ++i) {
     const auto& l = lay[i];
     if(l.seq->animCls==Animation::Transition && l.seq->isFinished(tickCount,l.sAnim,combo.len())) {
-      auto next = solveNext(solver,lay[i]);
-      if(next!=lay[i].seq) {
+      auto next = solveNext(solver,l);
+      if(next!=l.seq) {
         needToUpdate = true;
         onRemoveLayer(lay[i]);
 
@@ -272,6 +272,9 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
           doSort       = lay[i].seq->layer!=next->layer;
           lay[i].seq   = next;
           lay[i].sAnim = tickCount;
+          // WA for swampshark animation
+          if((lay[i].bs & BS_MAX)==BS_STUMBLE)
+            lay[i].bs = BodyState(lay[i].bs & (~BS_MAX));
           onAddLayer(lay[i]);
           ret++;
           }
@@ -294,9 +297,10 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
 bool Pose::update(uint64_t tickCount) {
   if(lay.size()==0) {
     const bool ret = needToUpdate;
+    if(needToUpdate || lastUpdate==0)
+      mkSkeleton(pos);
     needToUpdate = false;
     lastUpdate   = tickCount;
-    mkSkeleton(pos);
     return ret;
     }
 
@@ -543,15 +547,16 @@ bool Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev
   return hasEvents>0;
   }
 
-void Pose::setObjectMatrix(const Tempest::Matrix4x4& obj) {
+void Pose::setObjectMatrix(const Tempest::Matrix4x4& obj, bool sync) {
   if(pos==obj)
     return;
-  needToUpdate = true;
-  pos          = obj;
-  mkSkeleton(pos);
+  pos = obj;
+  if(sync)
+    mkSkeleton(pos); else
+    needToUpdate = true;
   }
 
-Tempest::Vec3 Pose::animMoveSpeed(uint64_t tickCount,uint64_t dt) const {
+Tempest::Vec3 Pose::animMoveSpeed(uint64_t tickCount, uint64_t dt) const {
   for(size_t i=lay.size(); i>0; ) {
     --i;
     auto& lx = lay[i];

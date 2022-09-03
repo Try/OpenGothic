@@ -135,7 +135,7 @@ void CrashLog::tracebackLinux(std::ostream &out) {
     int skip = 4; // skip the signal handler frames
     bool loop = true;
     Dl_info info;
-    const char* frame = nullptr;
+    const char* frame = "";
     for(int i = skip; i < framesNum && loop; i++) {
       if(dladdr(callstack[i], &info) && info.dli_sname) {
         int status = -1;
@@ -147,11 +147,6 @@ void CrashLog::tracebackLinux(std::ostream &out) {
         // looping beyond the main() causes crashes
         loop = false;
         }
-
-      if (frame == nullptr) {
-        continue ;
-      }
-
       if(strcmp(frame, symbols[i]))
         out << "#" << i-skip+1 << ": " << frame << " - " << symbols[i] << std::endl;
       else
