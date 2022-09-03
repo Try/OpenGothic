@@ -1,6 +1,3 @@
-[submodule "lib/ZenLib"]
-	path = lib/ZenLib
-  url = https://github.com/Try/ZenLib.git
 [submodule "lib/Tempest"]
 	path = lib/Tempest
 	url = https://github.com/Try/Tempest.git

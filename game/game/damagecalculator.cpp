@@ -8,7 +8,6 @@
 #include "game/gamesession.h"
 #include "commandline.h"
 
-using namespace Daedalus::GEngineClasses;
 
 DamageCalculator::Val DamageCalculator::damageValue(Npc& src, Npc& other, const Bullet* b, bool isSpell, const DamageCalculator::Damage& splDmg, const CollideMask bMsk) {
   DamageCalculator::Val ret;
@@ -74,7 +73,7 @@ DamageCalculator::Val DamageCalculator::rangeDamage(Npc&, Npc& nother, Damage dm
     dmg/=2;
 
   int  value = 0;
-  for(int i=0; i<DAM_INDEX_MAX; ++i) {
+  for(unsigned int i=0; i<phoenix::daedalus::damage_type::count; ++i) {
     if(dmg[size_t(i)]==0)
       continue;
     int vd = std::max(dmg[size_t(i)] - other.protection[i],0);
@@ -112,7 +111,7 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
     critChance = 0;
     }
 
-  for(int i=0; i<DAM_INDEX_MAX; ++i){
+  for(unsigned int i=0; i<phoenix::daedalus::damage_type::count; ++i){
     if((dtype & (1<<i))==0)
       continue;
     int vd = std::max(s + src.damage[i] - other.protection[i],0);
@@ -136,13 +135,13 @@ bool DamageCalculator::checkDamageMask(Npc& nsrc, Npc& nother, const Bullet* b) 
 
   if(b!=nullptr) {
     auto dmg = b->damage();
-    for(int i=0;i<DAM_INDEX_MAX;++i) {
+    for(unsigned int i=0;i<phoenix::daedalus::damage_type::count;++i) {
       if(dmg[size_t(i)]>0 && other.protection[i]>=0)
         return true;
       }
     } else {
     const int dtype = damageTypeMask(nsrc);
-    for(int i=0;i<DAM_INDEX_MAX;++i){
+    for(unsigned int i=0;i<phoenix::daedalus::damage_type::count;++i){
       if((dtype & (1<<i))==0)
         continue;
       return true;
@@ -156,7 +155,7 @@ DamageCalculator::Damage DamageCalculator::rangeDamageValue(Npc& src) {
   const int dtype = damageTypeMask(src);
   int d = src.attribute(Attribute::ATR_DEXTERITY);
   Damage ret={};
-  for(int i=0;i<DAM_INDEX_MAX;++i){
+  for(unsigned int i=0;i<phoenix::daedalus::damage_type::count;++i){
     if((dtype & (1<<i))==0)
       continue;
     ret[size_t(i)] = d + src.handle()->damage[i];

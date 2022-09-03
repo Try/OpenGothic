@@ -175,18 +175,6 @@ void Serialize::implWrite(std::string_view s) {
   writeBytes(s.data(),sz);
   }
 
-void Serialize::implWrite(const Daedalus::ZString& s) {
-  uint32_t sz=uint32_t(s.size());
-  implWrite(sz);
-  writeBytes(s.c_str(),sz);
-  }
-
-void Serialize::implRead(Daedalus::ZString& s) {
-  std::string rs;
-  implRead(rs);
-  s = Daedalus::ZString(std::move(rs));
-  }
-
 void Serialize::implWrite(WeaponState w) {
   implWrite(uint8_t(w));
   }
@@ -276,7 +264,7 @@ void Serialize::implRead(Tempest::Pixmap& p) {
 
 void Serialize::implWrite(const phoenix::daedalus::c_npc& h) {
   write(uint32_t(h.symbol_index()));
-  write(h.id,h.name,h.slot,h.effect,int32_t(h.npc_type));
+  write(h.id,h.name,h.slot,h.effect,int32_t(h.type));
   write(int32_t(h.flags));
   write(h.attribute,h.hitchance,h.protection,h.damage);
   write(h.damage_type,h.guild,h.level);
@@ -295,7 +283,7 @@ std::shared_ptr<phoenix::daedalus::c_npc> Serialize::readNpc(phoenix::daedalus::
   auto sym = vm.find_symbol_by_index(instanceSymbol);
   auto h = vm.init_instance<phoenix::daedalus::c_npc>(sym);
 
-  read(h->id,h->name,h->slot,h->effect, reinterpret_cast<int32_t&>(h->npc_type));
+  read(h->id,h->name,h->slot,h->effect, reinterpret_cast<int32_t&>(h->type));
   read(reinterpret_cast<int32_t&>(h->flags));
   read(h->attribute,h->hitchance,h->protection,h->damage);
   read(h->damage_type,h->guild,h->level);

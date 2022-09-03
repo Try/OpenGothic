@@ -1,6 +1,5 @@
 #pragma once
-
-#include <daedalus/ZString.h>
+#include <string_view>
 
 class Npc;
 

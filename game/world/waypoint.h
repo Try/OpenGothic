@@ -2,7 +2,6 @@
 
 #include <phoenix/world/way_net.hh>
 
-#include <zenload/zTypes.h>
 #include <limits>
 #include <Tempest/Vec>
 

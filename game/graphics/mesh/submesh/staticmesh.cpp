@@ -4,7 +4,6 @@
 #include "gothic.h"
 
 StaticMesh::StaticMesh(const PackedMesh& mesh) {
-  static_assert(sizeof(Vertex)==sizeof(ZenLoad::WorldVertex),"invalid landscape vertex format");
   const Vertex* vert=reinterpret_cast<const Vertex*>(mesh.vertices.data());
   vbo = Resources::vbo<Vertex>  (vert,mesh.vertices.size());
   ibo = Resources::ibo<uint32_t>(mesh.indices.data(),mesh.indices.size());

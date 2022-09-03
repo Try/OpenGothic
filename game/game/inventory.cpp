@@ -2,7 +2,6 @@
 #include "inventory.h"
 
 #include <Tempest/Log>
-#include <daedalus/DaedalusExcept.h>
 
 #include "world/objects/item.h"
 #include "world/objects/npc.h"
@@ -11,7 +10,6 @@
 #include "serialize.h"
 #include "gothic.h"
 
-using namespace Daedalus::GameState;
 using namespace Tempest;
 
 const Item& Inventory::Iterator::operator*() const {
@@ -220,7 +218,6 @@ size_t Inventory::itemCount(const size_t cls) const {
   }
 
 Item* Inventory::addItem(std::unique_ptr<Item> &&p) {
-  using namespace Daedalus::GEngineClasses;
   if(p==nullptr)
     return nullptr;
   sorted=false;
@@ -249,7 +246,6 @@ Item* Inventory::addItem(std::string_view name, size_t count, World &owner) {
   }
 
 Item* Inventory::addItem(size_t itemSymbol, size_t count, World &owner) {
-  using namespace Daedalus::GEngineClasses;
   if(count<=0)
     return nullptr;
   sorted=false;
@@ -262,11 +258,8 @@ Item* Inventory::addItem(size_t itemSymbol, size_t count, World &owner) {
       items.emplace_back(std::move(ptr));
       return items.back().get();
       }
-    catch(const Daedalus::InvalidCall& call) {
+    catch(const std::runtime_error& call) {
       Log::e("[invalid call in VM, while initializing item: ",itemSymbol,"]");
-      for(auto& i:call.callstack)
-        Log::e("-",i);
-      Log::e("---end of callstack---");
       return nullptr;
       }
     } else {
@@ -276,7 +269,6 @@ Item* Inventory::addItem(size_t itemSymbol, size_t count, World &owner) {
   }
 
 void Inventory::delItem(size_t itemSymbol, size_t count, Npc& owner) {
-  using namespace Daedalus::GEngineClasses;
   if(count<=0)
     return;
   Item* it=findByClass(itemSymbol);
@@ -930,7 +922,7 @@ Item *Inventory::bestRangeWeapon(Npc &owner) {
 void Inventory::applyWeaponStats(Npc& owner, const Item &weapon, int sgn) {
   auto& hnpc = *owner.handle();
   //hnpc.damagetype = sgn>0 ? weapon.handle()->damageType : (1 << Daedalus::GEngineClasses::DAM_INDEX_BLUNT);
-  for(size_t i=0; i<DamageCalculator::DAM_INDEX_MAX; ++i){
+  for(size_t i=0; i<phoenix::daedalus::damage_type::count; ++i){
     hnpc.damage[i] += sgn*weapon.handle()->damage[i];
     if(weapon.handle()->damage_type & (1<<i)) {
       hnpc.damage[i] += sgn*weapon.handle()->damage_total;

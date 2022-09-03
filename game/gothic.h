@@ -7,7 +7,6 @@
 #include <Tempest/Signal>
 #include <Tempest/Dir>
 
-#include <daedalus/DaedalusVM.h>
 #include <phoenix/daedalus/interpreter.hh>
 
 #include "game/gamesession.h"
@@ -136,11 +135,9 @@ class Gothic final {
     uint32_t                              messageTime   (std::string_view id) const;
 
     std::u16string                        nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const;
-    std::unique_ptr<Daedalus::DaedalusVM> createVm(std::string_view datFile);
     std::unique_ptr<phoenix::daedalus::vm> createPhoenixVm(std::string_view datFile);
     std::vector<uint8_t>                  loadScriptCode(std::string_view datFile);
     phoenix::daedalus::script             loadPhoenixScriptCode(std::string_view datFile);
-    void                                  setupVmCommonApi(Daedalus::DaedalusVM &vm);
     void                                  setupVmCommonApi(phoenix::daedalus::vm &vm);
 
     static const FightAi&                 fai();
@@ -207,14 +204,7 @@ class Gothic final {
 
     auto                                    getDocument(int id) -> std::unique_ptr<DocumentMenu::Show>&;
 
-    static void                             notImplementedRoutine(Daedalus::DaedalusVM &vm);
     static void                             notImplementedRoutine(const std::string& fn);
-
-    static void                             concatstrings     (Daedalus::DaedalusVM& vm);
-    static void                             inttostring       (Daedalus::DaedalusVM& vm);
-    static void                             floattostring     (Daedalus::DaedalusVM& vm);
-    static void                             floattoint        (Daedalus::DaedalusVM& vm);
-    static void                             inttofloat        (Daedalus::DaedalusVM& vm);
 
     static std::string                      concatstrings     (std::string_view a, std::string_view b);
     static std::string                      inttostring       (int i);
@@ -222,37 +212,16 @@ class Gothic final {
     static int                              floattoint        (float f);
     static float                            inttofloat        (int i);
 
-    static void                             hlp_strcmp        (Daedalus::DaedalusVM& vm);
     static bool                             hlp_strcmp        (std::string_view a, std::string_view b);
-    void                                    hlp_random        (Daedalus::DaedalusVM& vm);
     int                                     hlp_random        (int max);
 
-    void                                    introducechapter  (Daedalus::DaedalusVM &vm);
     void                                    introducechapter  (std::string_view title, std::string_view subtitle, std::string_view img, std::string_view sound, int time);
-    void                                    playvideo         (Daedalus::DaedalusVM &vm);
     bool                                    playvideo         (std::string_view name);
-    void                                    playvideoex       (Daedalus::DaedalusVM &vm);
     bool                                    playvideoex       (std::string_view name, bool screenBlend, bool exitSession);
-    void                                    printscreen       (Daedalus::DaedalusVM &vm);
     bool                                    printscreen       (std::string_view msg, int posx, int posy, std::string_view font, int timesec);
-    void                                    ai_printscreen    (Daedalus::DaedalusVM &vm);
     bool                                    ai_printscreen    (std::string_view msg, int posx, int posy, std::string_view font, int timesec);
-    void                                    printdialog       (Daedalus::DaedalusVM &vm);
     bool                                    printdialog       (int dialognr, std::string_view msg, int posx, int posy, std::string_view font, int timesec);
-    void                                    print             (Daedalus::DaedalusVM &vm);
     void                                    print             (std::string_view msg);
-
-    void                                    doc_create        (Daedalus::DaedalusVM &vm);
-    void                                    doc_createmap     (Daedalus::DaedalusVM &vm);
-    void                                    doc_setpage       (Daedalus::DaedalusVM &vm);
-    void                                    doc_setpages      (Daedalus::DaedalusVM &vm);
-    void                                    doc_printline     (Daedalus::DaedalusVM &vm);
-    void                                    doc_printlines    (Daedalus::DaedalusVM &vm);
-    void                                    doc_setmargins    (Daedalus::DaedalusVM &vm);
-    void                                    doc_setfont       (Daedalus::DaedalusVM &vm);
-    void                                    doc_setlevel      (Daedalus::DaedalusVM &vm);
-    void                                    doc_setlevelcoords(Daedalus::DaedalusVM &vm);
-    void                                    doc_show          (Daedalus::DaedalusVM &vm);
 
     int                                     doc_create        ();
     int                                     doc_createmap     ();
@@ -266,13 +235,7 @@ class Gothic final {
     void                                    doc_setlevelcoords(int handle, int left, int top, int right, int bottom);
     void                                    doc_show          (int handle);
 
-    void                                    exitgame          (Daedalus::DaedalusVM &vm);
     void                                    exitgame          ();
-
-    void                                    printdebug        (Daedalus::DaedalusVM &vm);
-    void                                    printdebugch      (Daedalus::DaedalusVM &vm);
-    void                                    printdebuginst    (Daedalus::DaedalusVM &vm);
-    void                                    printdebuginstch  (Daedalus::DaedalusVM &vm);
 
     void                                    printdebug        (std::string_view msg);
     void                                    printdebugch      (int ch, std::string_view msg);

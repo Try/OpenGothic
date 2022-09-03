@@ -39,7 +39,7 @@ Item::Item(World &owner, Serialize &fin, Type type)
 
   owner.script().initializeInstanceItem(h, instanceSymbol);
   fin.read(h->id,h->name,h->name_id,h->hp,h->hp_max,h->main_flag);
-  fin.read(h->flags,h->weight,h->value,h->damage_type,h->damage_total,h->damage);
+  fin.read(reinterpret_cast<int&>(h->flags),h->weight,h->value,h->damage_type,h->damage_total,h->damage);
   fin.read(h->wear,h->protection,h->nutrition,h->cond_atr,h->cond_value,h->change_atr,h->change_value,h->magic);
   fin.read(h->on_equip,h->on_unequip,h->on_state);
   fin.read(h->owner,h->owner_guild,h->disguise_guild,h->visual,h->visual_change);
@@ -77,7 +77,7 @@ void Item::save(Serialize &fout) const {
   auto& h = *hitem;
   fout.write(uint32_t(h.symbol_index()));
   fout.write(h.id,h.name,h.name_id,h.hp,h.hp_max,h.main_flag);
-  fout.write(h.flags,h.weight,h.value,h.damage_type,h.damage_total,h.damage);
+  fout.write(reinterpret_cast<int&>(h.flags),h.weight,h.value,h.damage_type,h.damage_total,h.damage);
   fout.write(h.wear,h.protection,h.nutrition,h.cond_atr,h.cond_value,h.change_atr,h.change_value,h.magic);
   fout.write(h.on_equip,h.on_unequip,h.on_state);
   fout.write(h.owner,h.owner_guild,h.disguise_guild,h.visual,h.visual_change);
@@ -187,7 +187,7 @@ ItmFlags Item::mainFlag() const {
   }
 
 int32_t Item::itemFlag() const {
-  return hitem->flags;
+  return static_cast<int>(hitem->flags);
   }
 
 bool Item::isMulti() const {
@@ -275,7 +275,7 @@ bool Item::checkCond(const Npc &other) const {
   }
 
 bool Item::checkCondUse(const Npc &other, int32_t &a, int32_t &nv) const {
-  for(size_t i=0;i<Daedalus::GEngineClasses::C_Item::COND_ATR_MAX;++i){
+  for(size_t i=0;i<3;++i){
     auto atr = Attribute(hitem->cond_atr[i]);
     if(other.attribute(atr)<hitem->cond_value[i] && hitem->cond_value[i]!=0) {
       a  = atr;

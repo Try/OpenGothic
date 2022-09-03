@@ -108,7 +108,7 @@ struct GameMenu::ListViewDialog : Dialog {
       next->handle->text[0] = text.c_str();
       }
 
-    for(uint32_t i=0;i<phoenix::daedalus::C_MENU_ITEMS_COUNT;++i)
+    for(uint32_t i=0;i<phoenix::daedalus::c_menu::item_count;++i)
       if(&owner.hItems[i]==next) {
         owner.curItem = i;
         break;
@@ -325,7 +325,7 @@ int32_t GameMenu::numQuests(const QuestLog* ql, QuestStat st) {
   }
 
 void GameMenu::initItems() {
-  for(int i=0;i<phoenix::daedalus::C_MENU_ITEMS_COUNT;++i){
+  for(int i=0;i<phoenix::daedalus::c_menu::item_count;++i){
     if(menu->items[i].empty())
       continue;
 
@@ -333,7 +333,7 @@ void GameMenu::initItems() {
     hItems[i].handle = vm.init_instance<phoenix::daedalus::c_menu_item>(vm.find_symbol_by_name(hItems[i].name));
     hItems[i].img = Resources::loadTexture(hItems[i].handle->backpic);
 
-    if(hItems[i].handle->type==int(phoenix::daedalus::c_menu_item_type::listbox)) {
+    if(hItems[i].handle->type==phoenix::daedalus::c_menu_item_type::listbox) {
       hItems[i].visible = false;
       }
     updateItem(hItems[i]);
@@ -436,10 +436,10 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
                textBuf.data(), txtAlign, hItem.scroll);
   }
 
-  if(item->type==int(phoenix::daedalus::c_menu_item_type::slider) && slider!=nullptr) {
+  if(item->type==phoenix::daedalus::c_menu_item_type::slider && slider!=nullptr) {
     drawSlider(p,hItem,x,y,szX,szY);
     }
-  else if(item->type==int(phoenix::daedalus::c_menu_item_type::listbox)) {
+  else if(item->type==phoenix::daedalus::c_menu_item_type::listbox) {
     if(auto ql = Gothic::inst().questLog()) {
       const int px = int(float(w()*item->frame_sizex)/scriptDiv);
       const int py = int(float(h()*item->frame_sizey)/scriptDiv);
@@ -448,7 +448,7 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
       drawQuestList(p, hItem, x+px,y+py, szX-2*px,szY-2*py, *ql,st);
       }
     }
-  else if(item->type==int(phoenix::daedalus::c_menu_item_type::input)) {
+  else if(item->type==phoenix::daedalus::c_menu_item_type::input) {
     char textBuf[256]={};
 
     if(item->on_chg_set_option_section=="KEYS") {
@@ -594,21 +594,21 @@ void GameMenu::processMusicTheme() {
   }
 
 GameMenu::Item *GameMenu::selectedItem() {
-  if(curItem<phoenix::daedalus::C_MENU_ITEMS_COUNT)
+  if(curItem<phoenix::daedalus::c_menu::item_count)
     return &hItems[curItem];
   return nullptr;
   }
 
 GameMenu::Item* GameMenu::selectedNextItem(Item *it) {
   uint32_t cur=curItem+1;
-  for(uint32_t i=0;i<phoenix::daedalus::C_MENU_ITEMS_COUNT;++i)
+  for(uint32_t i=0;i<phoenix::daedalus::c_menu::item_count;++i)
     if(&hItems[i]==it) {
       cur=i+1;
       break;
       }
 
-  for(int i=0;i<phoenix::daedalus::C_MENU_ITEMS_COUNT;++i,cur++) {
-    cur%=phoenix::daedalus::C_MENU_ITEMS_COUNT;
+  for(int i=0;i<phoenix::daedalus::c_menu::item_count;++i,cur++) {
+    cur%=phoenix::daedalus::c_menu::item_count;
 
     auto& it=hItems[cur].handle;
     if(isEnabled(it))
@@ -619,17 +619,17 @@ GameMenu::Item* GameMenu::selectedNextItem(Item *it) {
 
 GameMenu::Item* GameMenu::selectedContentItem(Item *it) {
   uint32_t cur=curItem+1;
-  for(uint32_t i=0;i<phoenix::daedalus::C_MENU_ITEMS_COUNT;++i)
+  for(uint32_t i=0;i<phoenix::daedalus::c_menu::item_count;++i)
     if(&hItems[i]==it) {
       cur=i+1;
       break;
       }
 
-  for(int i=0;i<phoenix::daedalus::C_MENU_ITEMS_COUNT;++i,cur++) {
-    cur%=phoenix::daedalus::C_MENU_ITEMS_COUNT;
+  for(int i=0;i<phoenix::daedalus::c_menu::item_count;++i,cur++) {
+    cur%=phoenix::daedalus::c_menu::item_count;
 
     auto& it=hItems[cur].handle;
-    if(isEnabled(it) && it->type==int(phoenix::daedalus::c_menu_item_type::text))
+    if(isEnabled(it) && it->type==phoenix::daedalus::c_menu_item_type::text)
       return &hItems[cur];
     }
   return nullptr;
@@ -637,13 +637,13 @@ GameMenu::Item* GameMenu::selectedContentItem(Item *it) {
 
 void GameMenu::setSelection(int desired, int seek) {
   uint32_t cur=uint32_t(desired);
-  for(int i=0; i<phoenix::daedalus::C_MENU_ITEMS_COUNT; ++i,cur+=uint32_t(seek)) {
-    cur%=phoenix::daedalus::C_MENU_ITEMS_COUNT;
+  for(int i=0; i<phoenix::daedalus::c_menu::item_count; ++i,cur+=uint32_t(seek)) {
+    cur%=phoenix::daedalus::c_menu::item_count;
 
     auto& it=hItems[cur].handle;
     if(isSelectable(it) && isEnabled(it)){
       curItem=cur;
-      for(size_t i=0;i<phoenix::daedalus::C_MENU_ITEM_SELECT_ACTION_COUNT;++i)
+      for(size_t i=0;i<phoenix::daedalus::c_menu_item::select_action_count;++i)
         if(it->on_sel_action[i]==int(phoenix::daedalus::c_menu_item_select_action::execute_commands))
           execCommands(it->on_sel_action_s[i],false);
       return;
@@ -658,14 +658,14 @@ void GameMenu::getText(const Item& it, std::vector<char> &out) {
   out[0]='\0';
 
   const auto& src = it.handle->text[0];
-  if(it.handle->type==int(phoenix::daedalus::c_menu_item_type::text)) {
+  if(it.handle->type==phoenix::daedalus::c_menu_item_type::text) {
     size_t size = std::strlen(src.c_str());
     out.resize(size+1);
     std::memcpy(out.data(),src.c_str(),size+1);
     return;
     }
 
-  if(it.handle->type==int(phoenix::daedalus::c_menu_item_type::choicebox)) {
+  if(it.handle->type==phoenix::daedalus::c_menu_item_type::choicebox) {
     strEnum(src.c_str(),it.value,out);
     return;
     }
@@ -723,7 +723,7 @@ void GameMenu::execSingle(Item &it, int slideDx) {
   auto& onSelAction_S = item->on_sel_action_s;
   auto& onEventAction = item->on_event_action;
 
-  if(item->type==int(phoenix::daedalus::c_menu_item_type::input) && slideDx==0) {
+  if(item->type==phoenix::daedalus::c_menu_item_type::input && slideDx==0) {
     ctrlInput = &it;
     if(item->on_chg_set_option.empty()) {
       SavNameDialog dlg{item->text[0]};
@@ -752,7 +752,7 @@ void GameMenu::execSingle(Item &it, int slideDx) {
       }
     }
 
-  for(size_t i=0; i<phoenix::daedalus::C_MENU_ITEM_SELECT_ACTION_COUNT; ++i) {
+  for(size_t i=0; i<phoenix::daedalus::c_menu_item::select_action_count; ++i) {
     auto action = c_menu_item_select_action(onSelAction[i]);
     switch(action) {
       case c_menu_item_select_action::unknown:
@@ -805,13 +805,13 @@ void GameMenu::execChgOption(Item &item, int slideDx) {
   if(sec.empty() || opt.empty())
     return;
 
-  if(item.handle->type==int(phoenix::daedalus::c_menu_item_type::slider) && slideDx!=0) {
+  if(item.handle->type==phoenix::daedalus::c_menu_item_type::slider && slideDx!=0) {
     updateItem(item);
     float v = Gothic::settingsGetF(sec.c_str(),opt.c_str());
     v  = std::max(0.f,std::min(v+float(slideDx)*0.03f,1.f));
     Gothic::settingsSetF(sec.c_str(), opt.c_str(), v);
     }
-  if(item.handle->type==int(phoenix::daedalus::c_menu_item_type::choicebox) && slideDx==0) {
+  if(item.handle->type==phoenix::daedalus::c_menu_item_type::choicebox && slideDx==0) {
     updateItem(item);
     item.value += 1; // next value
 
@@ -850,9 +850,9 @@ void GameMenu::execCommands(std::string_view str, bool isClick) {
   if(str.find("EFFECTS ")==0) {
     // menu log
     const char* arg0 = str.data()+std::strlen("EFFECTS ");
-    for(uint32_t id=0; id<phoenix::daedalus::C_MENU_ITEMS_COUNT; ++id) {
+    for(uint32_t id=0; id<phoenix::daedalus::c_menu::item_count; ++id) {
       auto& i = hItems[id];
-      if(i.handle != nullptr && i.handle->type==int(phoenix::daedalus::c_menu_item_type::listbox)) {
+      if(i.handle != nullptr && i.handle->type==phoenix::daedalus::c_menu_item_type::listbox) {
         i.visible = (i.name==arg0);
         if(i.visible && isClick) {
           const uint32_t prev = curItem;

@@ -72,13 +72,8 @@ elseif(UNIX)
   target_link_libraries(${PROJECT_NAME} -lpthread -ldl)
 endif()
 
-# ZenLib
-set(BUILD_SQUISH_WITH_SSE2 OFF CACHE INTERNAL "")
-add_subdirectory(lib/ZenLib)
-include_directories(lib/ZenLib)
-target_link_libraries(${PROJECT_NAME} zenload daedalus)
-
 # phoenix
+set(BUILD_SQUISH_WITH_SSE2 OFF CACHE INTERNAL "")
 set(PX_BUILD_TESTS OFF)
 set(PX_BUILD_TOOLS OFF)
 add_subdirectory(lib/phoenix)

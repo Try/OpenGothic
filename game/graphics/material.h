@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Tempest/Texture2d>
-#include <daedalus/DaedalusStdlib.h>
 
 #include <phoenix/material.hh>
 #include <phoenix/world/vob_tree.hh>

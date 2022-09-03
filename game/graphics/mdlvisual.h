@@ -61,7 +61,7 @@ class MdlVisual final {
     void                           startEffect (World& owner, Effect&& pfx, int32_t slot, bool noSlot);
     void                           stopEffect  (const VisualFx& vfx);
     void                           stopEffect  (int32_t slot);
-    void                           setNpcEffect(World& owner, Npc& npc, const std::string& s, int flags);
+    void                           setNpcEffect(World& owner, Npc& npc, const std::string& s, phoenix::daedalus::npc_flag flags);
     void                           setFatness  (float f);
     void                           emitBlockEffect(Npc& dst, Npc& src);
 

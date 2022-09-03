@@ -2,10 +2,6 @@
 
 using namespace Tempest;
 
-Vec2 Parser::loadVec2(const Daedalus::ZString& src) {
-  return loadVec2(std::string_view(src.c_str()));
-  }
-
 Vec2 Parser::loadVec2(std::string_view src) {
   if(src=="=")
     return Vec2();
@@ -23,10 +19,6 @@ Vec2 Parser::loadVec2(std::string_view src) {
     }
   return Vec2(v[0],v[1]);
   }
-
-Vec3 Parser::loadVec3(const Daedalus::ZString& src) {
-  return loadVec3(std::string_view(src.c_str()));
-}
 
 Vec3 Parser::loadVec3(std::string_view src) {
   if(src=="=")
@@ -47,10 +39,6 @@ Vec3 Parser::loadVec3(std::string_view src) {
     }
   return Vec3(v[0],v[1],v[2]);
   }
-
-Material::AlphaFunc Parser::loadAlpha(const Daedalus::ZString& src) {
-  return loadAlpha(std::string_view(src.c_str()));
-}
 
 Material::AlphaFunc Parser::loadAlpha(std::string_view src) {
   if(src=="NONE")

@@ -24,7 +24,6 @@
 #include <glm/gtc/type_ptr.hpp>
 
 using namespace Tempest;
-using namespace Daedalus::GameState;
 
 int32_t WorldObjects::MobStates::stateByTime(gtime t) const {
   t = t.timeInDay();

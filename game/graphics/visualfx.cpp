@@ -97,7 +97,7 @@ VisualFx::VisualFx(const phoenix::daedalus::c_fx_base& fx, phoenix::daedalus::vm
   emInvestNextKeyDuration  = fx.em_invest_next_key_duration<0 ? 0 : uint64_t(fx.em_invest_next_key_duration*1000.f);
   emFlyGravity             = fx.em_fly_gravity;
   emSelfRotVel             = Parser::loadVec3(fx.em_self_rot_vel_s);
-  for(size_t i=0; i<Daedalus::GEngineClasses::VFX_NUM_USERSTRINGS; ++i)
+  for(size_t i=0; i<phoenix::daedalus::c_fx_base::user_string_count; ++i)
     userString[i] = fx.user_string[i];
   lightPresetName          = fx.light_preset_name;
   sfxID                    = fx.sfx_id;

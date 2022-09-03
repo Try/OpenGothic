@@ -423,10 +423,10 @@ float Npc::angleDir(float x, float z) {
   }
 
 bool Npc::resetPositionToTA() {
-  const auto npcType   = hnpc->npc_type;
-  const bool isMainNpc = (npcType==Daedalus::GEngineClasses::NPCTYPE_MAIN ||
-                          npcType==Daedalus::GEngineClasses::NPCTYPE_OCMAIN ||
-                          npcType==Daedalus::GEngineClasses::NPCTYPE_BL_MAIN);
+  const auto npcType   = hnpc->type;
+  const bool isMainNpc = (npcType==phoenix::daedalus::npc_type::main ||
+                          npcType==phoenix::daedalus::npc_type::oc_main ||
+                          npcType==phoenix::daedalus::npc_type::bl_main);
   const bool isDead = this->isDead();
 
   if(isDead && !isMainNpc && !invent.hasMissionItems()) {
@@ -1091,7 +1091,7 @@ int32_t Npc::talentValue(Talent t) const {
   }
 
 int32_t Npc::hitChanse(Talent t) const {
-  if(t<Daedalus::GEngineClasses::MAX_HITCHANCE)
+  if(t<5)
     return hnpc->hitchance[t];
   return 0;
   }
@@ -1199,7 +1199,7 @@ void Npc::setAttitude(Attitude att) {
   }
 
 bool Npc::isFriend() const {
-  return hnpc->npc_type==Daedalus::GEngineClasses::ENPCType::NPCTYPE_FRIEND;
+  return hnpc->type==phoenix::daedalus::npc_type::friend_;
   }
 
 void Npc::setTempAttitude(Attitude att) {
@@ -1712,7 +1712,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     auto& spl  = owner.script().spellDesc(splId);
     splCat     = SpellCategory(spl.spell_type);
     damageType = spl.damage_type;
-    for(size_t i=0; i<DamageCalculator::DAM_INDEX_MAX; ++i)
+    for(size_t i=0; i<phoenix::daedalus::damage_type::count; ++i)
       if((damageType&(1<<i))!=0)
         dmg[i] = spl.damage_per_level;
     }
@@ -1763,7 +1763,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
       }
     }
 
-  if(damageType & (1<<Daedalus::GEngineClasses::DAM_INDEX_FLY))
+  if(damageType & (1<<phoenix::daedalus::damage_type::fly))
     mvAlgo.accessDamFly(x-other.x,z-other.z); // throw enemy
   }
 
@@ -2562,7 +2562,7 @@ void Npc::commitSpell() {
   if(active->isSpellShoot()) {
     int   lvl = (castLevel-CS_Cast_0)+1;
     DamageCalculator::Damage dmg={};
-    for(size_t i=0; i<DamageCalculator::DAM_INDEX_MAX; ++i)
+    for(size_t i=0; i<phoenix::daedalus::damage_type::count; ++i)
       if((spl.damage_type&(1<<i))!=0) {
         dmg[i] = spl.damage_per_level*lvl;
         }
@@ -3425,7 +3425,7 @@ bool Npc::isPrehit() const {
   }
 
 bool Npc::isImmortal() const {
-  return hnpc->flags & Daedalus::GEngineClasses::C_Npc::ENPCFlag::EFLAG_IMMORTAL;
+  return hnpc->flags & phoenix::daedalus::npc_flag::immortal;
   }
 
 void Npc::setPerceptionTime(uint64_t time) {

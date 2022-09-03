@@ -62,7 +62,6 @@ const char* materialTag(phoenix::material_group src) {
 
 World::World(GameSession& game, std::string file, bool startup, std::function<void(int)> loadProgress)
   :wname(std::move(file)),game(game),wsound(game,*this),wobj(*this) {
-  using namespace Daedalus::GameState;
 
   phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(wname);
 

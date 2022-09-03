@@ -74,7 +74,7 @@ class GameMenu : public Tempest::Widget {
     Tempest::Texture2d                    savThumb;
     std::vector<char>                     textBuf;
 
-    Item                                  hItems[phoenix::daedalus::C_MENU_ITEMS_COUNT];
+    Item                                  hItems[phoenix::daedalus::c_menu::item_count];
     Item*                                 ctrlInput = nullptr;
     uint32_t                              curItem=0;
     bool                                  exitFlag=false;

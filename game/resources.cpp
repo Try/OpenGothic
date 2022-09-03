@@ -56,20 +56,6 @@ Resources::Resources(Tempest::Device &device)
   : dev(device) {
   inst=this;
 
-  ZenLib::Log::SetLogCallback([](ZenLib::Log::EMessageType t, const char* what) {
-    switch(t) {
-      case ZenLib::Log::EMessageType::MT_Error:
-        Log::e(what);
-        break;
-      case ZenLib::Log::EMessageType::MT_Warning:
-        Log::d(what);
-        break;
-      case ZenLib::Log::EMessageType::MT_Info:
-        Log::i(what);
-        break;
-      }
-    });
-
   static std::array<VertexFsq,6> fsqBuf =
    {{
       {-1,-1},{ 1,1},{1,-1},

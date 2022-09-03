@@ -6,8 +6,6 @@
 #include <string>
 #include <functional>
 
-#include <daedalus/DaedalusVM.h>
-
 #include <phoenix/world.hh>
 
 #include "graphics/worldview.h"

@@ -13,12 +13,7 @@
 #include <sstream>
 #include <ctime>
 
-#include <daedalus/DATFile.h>
-#include <daedalus/ZString.h>
-
 #include <miniz.h>
-
-#include <zenload/zTypes.h>
 
 #include <phoenix/daedalus/interpreter.hh>
 #include <phoenix/ext/daedalus_classes.hh>
@@ -34,12 +29,6 @@ class World;
 class FpLock;
 class ScriptFn;
 class SaveGameHeader;
-
-namespace Daedalus {
-namespace GEngineClasses {
-struct C_Npc;
-}
-}
 
 class Serialize {
   public:
@@ -160,9 +149,6 @@ class Serialize {
 
     void implWrite(std::string_view                s);
 
-    void implWrite(const Daedalus::ZString&        s);
-    void implRead (Daedalus::ZString&              s);
-
     // vectors
     template<class T>
     void implWrite(const std::vector<T>& s) {
@@ -255,29 +241,6 @@ class Serialize {
     template<class T, size_t sz>
     void implReadArr(T (&s)[sz],std::true_type) {
       readBytes(s,sz*sizeof(T));
-      }
-
-    // classes
-    void implWrite(const Daedalus::DataContainer<int>&               c) { implWriteDat<int>  (c); }
-    void implRead (Daedalus::DataContainer<int>&                     c) { implReadDat <int>  (c); }
-    void implWrite(const Daedalus::DataContainer<float>&             c) { implWriteDat<float>(c); }
-    void implRead (Daedalus::DataContainer<float>&                   c) { implReadDat <float>(c); }
-    void implWrite(const Daedalus::DataContainer<Daedalus::ZString>& c) { implWriteDat<Daedalus::ZString>(c); }
-    void implRead (Daedalus::DataContainer<Daedalus::ZString>&       c) { implReadDat <Daedalus::ZString>(c); }
-    template<class T>
-    void implWriteDat(const Daedalus::DataContainer<T>& s) {
-      uint32_t sz=uint32_t(s.size());
-      write(sz);
-      for(size_t i=0; i<sz; ++i)
-        write(s[i]);
-      }
-    template<class T>
-    void implReadDat(Daedalus::DataContainer<T>& s) {
-      uint32_t sz=0;
-      read(sz);
-      s.resize(sz);
-      for(size_t i=0; i<sz; ++i)
-        read(s[i]);
       }
 
     void implWrite(const SaveGameHeader& p);

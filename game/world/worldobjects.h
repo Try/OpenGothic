@@ -3,7 +3,6 @@
 #include <vector>
 #include <memory>
 
-#include <daedalus/DaedalusGameState.h>
 #include <phoenix/world/vob_tree.hh>
 
 #include "bullet.h"

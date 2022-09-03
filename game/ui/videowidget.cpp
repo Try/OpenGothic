@@ -184,7 +184,7 @@ void VideoWidget::tick() {
   if(!hasPendingVideo)
     return;
 
-  Daedalus::ZString filename;
+  std::string filename;
   {
   std::lock_guard<std::mutex> guard(syncVideo);
   if(pendingVideo.empty())

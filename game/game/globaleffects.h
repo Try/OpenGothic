@@ -4,7 +4,6 @@
 #include <Tempest/Painter>
 #include <Tempest/Texture2d>
 
-#include <daedalus/ZString.h>
 #include <vector>
 #include <memory>
 #include <cstdint>

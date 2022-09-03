@@ -144,7 +144,7 @@ class VisualFx final {
     uint64_t              emInvestNextKeyDuration = 0;
     float	                emFlyGravity            = 0.f;
     Tempest::Vec3         emSelfRotVel;
-    std::string           userString[Daedalus::GEngineClasses::VFX_NUM_USERSTRINGS];
+    std::string           userString[phoenix::daedalus::c_fx_base::user_string_count];
     std::string           lightPresetName;
     std::string           sfxID;
     bool    	            sfxIsAmbient            = false;

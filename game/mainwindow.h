@@ -19,8 +19,6 @@
 #include <Tempest/Timer>
 #include <Tempest/Swapchain>
 
-#include <daedalus/DaedalusVM.h>
-
 #include <vector>
 #include <thread>
 

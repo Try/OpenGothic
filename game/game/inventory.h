@@ -2,7 +2,6 @@
 
 #include <vector>
 #include <memory>
-#include <daedalus/DaedalusGameState.h>
 
 #include "game/constants.h"
 

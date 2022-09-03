@@ -1,6 +1,5 @@
 #pragma once
 
-#include <daedalus/DaedalusStdlib.h>
 #include <Tempest/RenderState>
 
 #include <phoenix/ext/daedalus_classes.hh>

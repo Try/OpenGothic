@@ -1,7 +1,5 @@
 #include "touchdamage.h"
 
-#include <daedalus/DaedalusStdlib.h>
-
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "game/serialize.h"
@@ -36,18 +34,18 @@ void TouchDamage::tick(uint64_t dt) {
     return;
 
   for(auto npc:intersections()) {
-    bool mask[Daedalus::GEngineClasses::PROT_INDEX_MAX] = {};
-    mask[Daedalus::GEngineClasses::PROT_BARRIER] = barrier;
-    mask[Daedalus::GEngineClasses::PROT_BLUNT]   = blunt;
-    mask[Daedalus::GEngineClasses::PROT_EDGE]    = edge;
-    mask[Daedalus::GEngineClasses::PROT_FIRE]    = fire;
-    mask[Daedalus::GEngineClasses::PROT_FLY]     = fly;
-    mask[Daedalus::GEngineClasses::PROT_MAGIC]   = magic;
-    mask[Daedalus::GEngineClasses::PROT_POINT]   = point;
-    mask[Daedalus::GEngineClasses::PROT_FALL]    = fall;
+    bool mask[phoenix::daedalus::damage_type::count] = {};
+    mask[phoenix::daedalus::damage_type::barrier] = barrier;
+    mask[phoenix::daedalus::damage_type::blunt]   = blunt;
+    mask[phoenix::daedalus::damage_type::edge]    = edge;
+    mask[phoenix::daedalus::damage_type::fire]    = fire;
+    mask[phoenix::daedalus::damage_type::fly]     = fly;
+    mask[phoenix::daedalus::damage_type::magic]   = magic;
+    mask[phoenix::daedalus::damage_type::point]   = point;
+    mask[phoenix::daedalus::damage_type::fall]    = fall;
 
     auto& hnpc = *npc->handle();
-    for(size_t i=0; i<Daedalus::GEngineClasses::PROT_INDEX_MAX; ++i) {
+    for(size_t i=0; i<phoenix::daedalus::damage_type::count; ++i) {
       if(!mask[i])
         continue;
       takeDamage(*npc,int32_t(damage),hnpc.protection[i]);

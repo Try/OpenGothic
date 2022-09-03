@@ -20,7 +20,6 @@
 #include "gothic.h"
 
 using namespace Tempest;
-using namespace Daedalus::GameState;
 
 template <typename T>
 requires (std::derived_from<T, phoenix::daedalus::instance>)

@@ -558,14 +558,6 @@ std::string_view Gothic::defaultSave() const {
   return CommandLine::inst().defaultSave();
   }
 
-std::unique_ptr<Daedalus::DaedalusVM> Gothic::createVm(std::string_view datFile) {
-  auto byte = loadScriptCode(datFile);
-  auto vm   = std::make_unique<Daedalus::DaedalusVM>(byte.data(),byte.size());
-  Daedalus::registerGothicEngineClasses(*vm);
-  setupVmCommonApi(*vm);
-  return vm;
-  }
-
 std::unique_ptr<phoenix::daedalus::vm> Gothic::createPhoenixVm(std::string_view datFile) {
   auto byte = loadPhoenixScriptCode(datFile);
   phoenix::daedalus::register_all_script_classes(byte);
@@ -745,46 +737,6 @@ std::u16string Gothic::nestedPath(const std::initializer_list<const char16_t*> &
   return CommandLine::inst().nestedPath(name,type);
   }
 
-void Gothic::setupVmCommonApi(Daedalus::DaedalusVM& vm) {
-  vm.registerUnsatisfiedLink([](Daedalus::DaedalusVM& vm){ notImplementedRoutine(vm); });
-
-  vm.registerExternalFunction("concatstrings", [](Daedalus::DaedalusVM& vm) { Gothic::concatstrings(vm); });
-  vm.registerExternalFunction("inttostring",   [](Daedalus::DaedalusVM& vm) { Gothic::inttostring(vm);   });
-  vm.registerExternalFunction("floattostring", [](Daedalus::DaedalusVM& vm) { Gothic::floattostring(vm); });
-  vm.registerExternalFunction("inttofloat",    [](Daedalus::DaedalusVM& vm) { Gothic::inttofloat(vm);    });
-  vm.registerExternalFunction("floattoint",    [](Daedalus::DaedalusVM& vm) { Gothic::floattoint(vm);    });
-
-  vm.registerExternalFunction("hlp_strcmp",    [](Daedalus::DaedalusVM& vm) { Gothic::hlp_strcmp(vm); });
-  vm.registerExternalFunction("hlp_random",    [this](Daedalus::DaedalusVM& vm) { hlp_random(vm);     });
-
-  vm.registerExternalFunction("introducechapter",    [this](Daedalus::DaedalusVM& vm){ introducechapter(vm);     });
-  vm.registerExternalFunction("playvideo",           [this](Daedalus::DaedalusVM& vm){ playvideo(vm);            });
-  vm.registerExternalFunction("playvideoex",         [this](Daedalus::DaedalusVM& vm){ playvideoex(vm);          });
-  vm.registerExternalFunction("printscreen",         [this](Daedalus::DaedalusVM& vm){ printscreen(vm);          });
-  vm.registerExternalFunction("ai_printscreen",      [this](Daedalus::DaedalusVM& vm){ ai_printscreen(vm);       });
-  vm.registerExternalFunction("printdialog",         [this](Daedalus::DaedalusVM& vm){ printdialog(vm);          });
-  vm.registerExternalFunction("print",               [this](Daedalus::DaedalusVM& vm){ print(vm);                });
-
-  vm.registerExternalFunction("doc_create",          [this](Daedalus::DaedalusVM& vm){ doc_create(vm);           });
-  vm.registerExternalFunction("doc_createmap",       [this](Daedalus::DaedalusVM& vm){ doc_createmap(vm);        });
-  vm.registerExternalFunction("doc_setpage",         [this](Daedalus::DaedalusVM& vm){ doc_setpage(vm);          });
-  vm.registerExternalFunction("doc_setpages",        [this](Daedalus::DaedalusVM& vm){ doc_setpages(vm);         });
-  vm.registerExternalFunction("doc_setmargins",      [this](Daedalus::DaedalusVM& vm){ doc_setmargins(vm);       });
-  vm.registerExternalFunction("doc_printline",       [this](Daedalus::DaedalusVM& vm){ doc_printline(vm);        });
-  vm.registerExternalFunction("doc_printlines",      [this](Daedalus::DaedalusVM& vm){ doc_printlines(vm);       });
-  vm.registerExternalFunction("doc_setfont",         [this](Daedalus::DaedalusVM& vm){ doc_setfont(vm);          });
-  vm.registerExternalFunction("doc_setlevel",        [this](Daedalus::DaedalusVM& vm){ doc_setlevel(vm);         });
-  vm.registerExternalFunction("doc_setlevelcoords",  [this](Daedalus::DaedalusVM& vm){ doc_setlevelcoords(vm);   });
-  vm.registerExternalFunction("doc_show",            [this](Daedalus::DaedalusVM& vm){ doc_show(vm);             });
-
-  vm.registerExternalFunction("exitgame",            [this](Daedalus::DaedalusVM& vm){ exitgame(vm);             });
-
-  vm.registerExternalFunction("printdebug",          [this](Daedalus::DaedalusVM& vm){ printdebug(vm);           });
-  vm.registerExternalFunction("printdebugch",        [this](Daedalus::DaedalusVM& vm){ printdebugch(vm);         });
-  vm.registerExternalFunction("printdebuginst",      [this](Daedalus::DaedalusVM& vm){ printdebuginst(vm);       });
-  vm.registerExternalFunction("printdebuginstch",    [this](Daedalus::DaedalusVM& vm){ printdebuginstch(vm);     });
-  }
-
 void Gothic::setupVmCommonApi(phoenix::daedalus::vm &vm) {
   vm.register_default_external([](std::string_view name) { notImplementedRoutine(std::string {name}); });
 
@@ -826,16 +778,6 @@ void Gothic::setupVmCommonApi(phoenix::daedalus::vm &vm) {
   vm.register_external("printdebuginstch",    [this](int ch, std::string_view msg){ printdebuginstch(ch, msg); });
   }
 
-void Gothic::notImplementedRoutine(Daedalus::DaedalusVM& vm) {
-  static std::set<std::string> s;
-  auto& fn = vm.currentCall();
-
-  if(s.find(fn)==s.end()){
-    s.insert(fn);
-    Log::e("not implemented call [",fn,"]");
-    }
-  }
-
 void Gothic::notImplementedRoutine(const std::string& fn) {
   static std::set<std::string> s;
 
@@ -843,33 +785,6 @@ void Gothic::notImplementedRoutine(const std::string& fn) {
     s.insert(fn);
     Log::e("not implemented call [",fn,"]");
   }
-  }
-
-void Gothic::concatstrings(Daedalus::DaedalusVM &vm) {
-  Daedalus::ZString s2 = vm.popString();
-  Daedalus::ZString s1 = vm.popString();
-
-  vm.setReturn(s1 + s2);
-  }
-
-void Gothic::inttostring(Daedalus::DaedalusVM &vm){
-  int32_t x = vm.popInt();
-  vm.setReturn(Daedalus::ZString::toStr(x));
-  }
-
-void Gothic::floattostring(Daedalus::DaedalusVM &vm) {
-  auto x = vm.popFloat();
-  vm.setReturn(Daedalus::ZString::toStr(x));
-  }
-
-void Gothic::floattoint(Daedalus::DaedalusVM &vm) {
-  auto x = vm.popFloat();
-  vm.setReturn(int32_t(x));
-  }
-
-void Gothic::inttofloat(Daedalus::DaedalusVM &vm) {
-  auto x = vm.popInt();
-  vm.setReturn(float(x));
   }
 
 std::string Gothic::concatstrings(std::string_view a, std::string_view b) {
@@ -892,35 +807,13 @@ float Gothic::inttofloat(int i) {
   return static_cast<float>(i);
   }
 
-void Gothic::hlp_random(Daedalus::DaedalusVM &vm) {
-  uint32_t mod = uint32_t(std::max(1,vm.popInt()));
-  vm.setReturn(int32_t(randGen() % mod));
-  }
-
 int Gothic::hlp_random(int max) {
   uint32_t mod = std::max(1, max);
   return static_cast<int32_t>(randGen() % mod);
   }
 
-void Gothic::hlp_strcmp(Daedalus::DaedalusVM &vm) {
-  const Daedalus::ZString& s2 = vm.popString();
-  const Daedalus::ZString& s1 = vm.popString();
-  vm.setReturn(s1 == s2 ? 1 : 0);
-  }
-
-
 bool Gothic::hlp_strcmp(std::string_view a, std::string_view b) {
   return a == b;
-  }
-
-void Gothic::introducechapter(Daedalus::DaedalusVM &vm) {
-  pendingChapter = true;
-  ChapterScreen::Show& s = chapter;
-  s.time     = vm.popInt();
-  s.sound    = vm.popString().c_str();
-  s.img      = vm.popString().c_str();
-  s.subtitle = vm.popString().c_str();
-  s.title    = vm.popString().c_str();
   }
 
 void Gothic::introducechapter(std::string_view title, std::string_view subtitle, std::string_view img, std::string_view sound, int time) {
@@ -933,27 +826,9 @@ void Gothic::introducechapter(std::string_view title, std::string_view subtitle,
   s.title    = title;
   }
 
-void Gothic::playvideo(Daedalus::DaedalusVM &vm) {
-  Daedalus::ZString filename = vm.popString();
-  onVideo(filename.c_str());
-  vm.setReturn(1);
-  }
-
 bool Gothic::playvideo(std::string_view name) {
   onVideo(name);
   return true;
-  }
-
-void Gothic::playvideoex(Daedalus::DaedalusVM &vm) {
-  int exitSession = vm.popInt();
-  int screenBlend = vm.popInt();
-
-  (void)exitSession; // TODO: ex-fetures
-  (void)screenBlend;
-
-  Daedalus::ZString filename = vm.popString();
-  onVideo(filename.c_str());
-  vm.setReturn(1);
   }
 
 bool Gothic::playvideoex(std::string_view name, bool, bool) {
@@ -961,30 +836,9 @@ bool Gothic::playvideoex(std::string_view name, bool, bool) {
   return true;
   }
 
-void Gothic::printscreen(Daedalus::DaedalusVM &vm) {
-  int32_t                  timesec = vm.popInt();
-  const Daedalus::ZString& font    = vm.popString();
-  int32_t                  posy    = vm.popInt();
-  int32_t                  posx    = vm.popInt();
-  const Daedalus::ZString& msg     = vm.popString();
-  onPrintScreen(msg.c_str(),posx,posy,timesec,Resources::font(font.c_str()));
-  vm.setReturn(0);
-  }
-
 bool Gothic::printscreen(std::string_view msg, int posx, int posy, std::string_view font, int timesec) {
   onPrintScreen(msg,posx,posy,timesec,Resources::font(font));
   return false;
-  }
-
-void Gothic::ai_printscreen(Daedalus::DaedalusVM& vm) {
-  // TODO: print-screen queue
-  int32_t                  timesec = vm.popInt();
-  const Daedalus::ZString& font    = vm.popString();
-  int32_t                  posy    = vm.popInt();
-  int32_t                  posx    = vm.popInt();
-  const Daedalus::ZString& msg     = vm.popString();
-  onPrintScreen(msg.c_str(),posx,posy,timesec,Resources::font(font.c_str()));
-  vm.setReturn(0);
   }
 
 bool Gothic::ai_printscreen(std::string_view msg, int posx, int posy, std::string_view font, int timesec) {
@@ -993,198 +847,14 @@ bool Gothic::ai_printscreen(std::string_view msg, int posx, int posy, std::strin
   return false;
   }
 
-void Gothic::printdialog(Daedalus::DaedalusVM &vm) {
-  int32_t     timesec  = vm.popInt();
-  const auto& font     = vm.popString();
-  int32_t     posy     = vm.popInt();
-  int32_t     posx     = vm.popInt();
-  const auto& msg      = vm.popString();
-  int32_t     dialognr = vm.popInt();
-  (void)dialognr;
-  onPrintScreen(msg.c_str(),posx,posy,timesec,Resources::font(font.c_str()));
-  vm.setReturn(0);
-  }
-
 bool Gothic::printdialog(int, std::string_view msg, int posx, int posy, std::string_view font, int timesec) {
   onPrintScreen(msg,posx,posy,timesec,Resources::font(font));
   return false;
   }
 
-void Gothic::print(Daedalus::DaedalusVM &vm) {
-  const auto& msg = vm.popString();
-  onPrint(msg.c_str());
-  }
-
 void Gothic::print(std::string_view msg) {
   onPrint(msg);
   }
-
-void Gothic::doc_create(Daedalus::DaedalusVM &vm) {
-  for(size_t i=0;i<documents.size();++i){
-    if(documents[i]==nullptr){
-      documents[i].reset(new DocumentMenu::Show());
-      vm.setReturn(int(i));
-      }
-    }
-  documents.emplace_back(new DocumentMenu::Show());
-  vm.setReturn(int(documents.size())-1);
-  }
-
-void Gothic::doc_createmap(Daedalus::DaedalusVM &vm) {
-  for(size_t i=0;i<documents.size();++i){
-    if(documents[i]==nullptr){
-      documents[i].reset(new DocumentMenu::Show());
-      vm.setReturn(int(i));
-      }
-    }
-  documents.emplace_back(new DocumentMenu::Show());
-  vm.setReturn(int(documents.size())-1);
-  }
-
-void Gothic::doc_setpage(Daedalus::DaedalusVM &vm) {
-  int   scale  = vm.popInt();
-  auto  img    = vm.popString();
-  int   page   = vm.popInt();
-  int   handle = vm.popInt();
-
-  //TODO: scale
-  (void)scale;
-
-  auto& doc = getDocument(handle);
-  if(doc==nullptr)
-    return;
-  if(page>=0 && size_t(page)<doc->pages.size()){
-    auto& pg = doc->pages[size_t(page)];
-    pg.img = img.c_str();
-    pg.flg = DocumentMenu::Flags(pg.flg | DocumentMenu::F_Backgr);
-    } else {
-    doc->img = img.c_str();
-    }
-  }
-
-void Gothic::doc_setpages(Daedalus::DaedalusVM &vm) {
-  int   count  = vm.popInt();
-  int   handle = vm.popInt();
-
-  auto& doc = getDocument(handle);
-  if(doc!=nullptr && count>=0 && count<1024){
-    doc->pages.resize(size_t(count));
-    }
-  }
-
-void Gothic::doc_printline(Daedalus::DaedalusVM &vm) {
-  auto text   = vm.popString();
-  int  page   = vm.popInt();
-  int  handle = vm.popInt();
-
-  auto& doc = getDocument(handle);
-  if(doc!=nullptr && page>=0 && size_t(page)<doc->pages.size()){
-    doc->pages[size_t(page)].text += text.c_str();
-    doc->pages[size_t(page)].text += "\n";
-    }
-  }
-
-void Gothic::doc_printlines(Daedalus::DaedalusVM &vm) {
-  auto text   = vm.popString();
-  int  page   = vm.popInt();
-  int  handle = vm.popInt();
-
-  auto& doc = getDocument(handle);
-  if(doc!=nullptr && page>=0 && size_t(page)<doc->pages.size()){
-    doc->pages[size_t(page)].text += text.c_str();
-    doc->pages[size_t(page)].text += "\n";
-    }
-  }
-
-void Gothic::doc_setmargins(Daedalus::DaedalusVM &vm) {
-  int   mul    = vm.popInt();
-  int   bottom = vm.popInt() * mul;
-  int   right  = vm.popInt() * mul;
-  int   top    = vm.popInt() * mul;
-  int   left   = vm.popInt() * mul;
-
-  int   page   = vm.popInt();
-  int   handle = vm.popInt();
-
-  auto& doc = getDocument(handle);
-  if(doc==nullptr)
-    return;
-  if(page>=0 && size_t(page)<doc->pages.size()){
-    auto& pg = doc->pages[size_t(page)];
-    pg.margins = Tempest::Margin(left,right,top,bottom);
-    pg.flg     = DocumentMenu::Flags(pg.flg | DocumentMenu::F_Margin);
-    } else {
-    doc->margins = Tempest::Margin(left,right,top,bottom);
-    }
-  }
-
-void Gothic::doc_setfont(Daedalus::DaedalusVM &vm) {
-  auto font   = vm.popString();
-  int  page   = vm.popInt();
-  int  handle = vm.popInt();
-
-  auto& doc = getDocument(handle);
-  if(doc==nullptr)
-    return;
-
-  if(page>=0 && size_t(page)<doc->pages.size()){
-    auto& pg = doc->pages[size_t(page)];
-    pg.font = font.c_str();
-    pg.flg  = DocumentMenu::Flags(pg.flg | DocumentMenu::F_Font);
-    } else {
-    doc->font = font.c_str();
-    }
-  }
-
-void Gothic::doc_show(Daedalus::DaedalusVM &vm) {
-  const int handle = vm.popInt();
-
-  auto& doc = getDocument(handle);
-  if(doc!=nullptr){
-    onShowDocument(*doc);
-    doc.reset();
-    }
-
-  while(documents.size()>0 && documents.back()==nullptr)
-    documents.pop_back();
-  }
-
-void Gothic::doc_setlevel(Daedalus::DaedalusVM& vm) {
-  const auto level  = vm.popString();
-  const int  handle = vm.popInt();
-
-  auto& doc = getDocument(handle);
-  if(doc==nullptr)
-    return;
-
-  std::string str = level.c_str();
-  size_t bg = str.rfind('\\');
-  if(bg!=std::string::npos)
-    str = str.substr(bg+1);
-
-  for(auto& i:str)
-    i = char(std::tolower(i));
-
-  if(auto w = world()) {
-    auto& wname = w->name();
-    doc->showPlayer = wname==str;
-    }
-  }
-
-void Gothic::doc_setlevelcoords(Daedalus::DaedalusVM& vm) {
-  int   bottom = vm.popInt();
-  int   right  = vm.popInt();
-  int   top    = vm.popInt();
-  int   left   = vm.popInt();
-
-  int   handle = vm.popInt();
-
-  auto& doc = getDocument(handle);
-  if(doc==nullptr)
-    return;
-  doc->wbounds = Rect(left,top,right-left,bottom-top);
-  }
-
 
 int Gothic::doc_create() {
   for(size_t i=0;i<documents.size();++i){
@@ -1316,40 +986,9 @@ void Gothic::doc_setlevelcoords(int handle, int left, int top, int right, int bo
   doc->wbounds = Rect(left,top,right-left,bottom-top);
 }
 
-void Gothic::exitgame(Daedalus::DaedalusVM&) {
-  Tempest::SystemApi::exit();
-  }
-
 void Gothic::exitgame() {
   Tempest::SystemApi::exit();
 }
-
-void Gothic::printdebug(Daedalus::DaedalusVM &vm) {
-  const auto& msg = vm.popString();
-  if(version().game==2)
-    Log::d("[zspy]: ",msg.c_str());
-  }
-
-void Gothic::printdebugch(Daedalus::DaedalusVM &vm) {
-  const auto& msg = vm.popString();
-  int         ch  = vm.popInt();
-  if(version().game==2)
-    Log::d("[zspy,",ch,"]: ",msg.c_str());
-  }
-
-void Gothic::printdebuginst(Daedalus::DaedalusVM &vm) {
-  const auto& msg = vm.popString();
-  if(version().game==2)
-    Log::d("[zspy]: ",msg.c_str());
-  }
-
-void Gothic::printdebuginstch(Daedalus::DaedalusVM &vm) {
-  auto msg = vm.popString();
-  int  ch  = vm.popInt();
-  if(version().game==2)
-    Log::d("[zspy,",ch,"]: ",msg.c_str());
-  }
-
 
 void Gothic::printdebug(std::string_view msg) {
   if(version().game==2)

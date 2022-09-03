@@ -345,7 +345,7 @@ void MdlVisual::stopEffect(int32_t slot) {
     }
   }
 
-void MdlVisual::setNpcEffect(World& owner, Npc& npc, const std::string& s, int flags) {
+void MdlVisual::setNpcEffect(World& owner, Npc& npc, const std::string& s, phoenix::daedalus::npc_flag flags) {
   if(hnpcVisualName!=s) {
     hnpcVisualName = s;
     auto vfx = Gothic::inst().loadVisualFx(s.c_str());
@@ -361,7 +361,7 @@ void MdlVisual::setNpcEffect(World& owner, Npc& npc, const std::string& s, int f
     hnpcVisual.view.setMesh(&view);
     }
 
-  const bool nextGhost = (flags & Daedalus::GEngineClasses::C_Npc::ENPCFlag::EFLAG_GHOST);
+  const bool nextGhost = (flags & phoenix::daedalus::npc_flag::ghost);
   if(hnpcFlagGhost!=nextGhost) {
     hnpcFlagGhost=nextGhost;
     view.setAsGhost(hnpcFlagGhost);
