@@ -114,20 +114,23 @@ add_shader(sky_transmittance.vert    sky/sky.vert                  "")
 add_shader(sky_transmittance.frag    sky/sky_transmittance.frag    "")
 add_shader(sky_multi_scattering.vert sky/sky.vert                  "")
 add_shader(sky_multi_scattering.frag sky/sky_multi_scattering.frag "")
+
 add_shader(sky_view_lut.vert         sky/sky.vert                  "")
 add_shader(sky_view_lut.frag         sky/sky_view_lut.frag         "")
 add_shader(fog_view_lut.vert         sky/sky.vert                  -DFOG)
-add_shader(fog_view_lut.frag         sky/sky_view_lut.frag         -DFOG)
-add_shader(fog_view_lut.comp         sky/fog_view_lut.comp         -DFOG)
 
-add_shader(fog3d.vert                sky/sky.vert         -DFOG -DFOG3D)
-add_shader(fog3d.frag                sky/sky_egsr.frag    -DFOG -DFOG3D)
+add_shader(fog_view_lut.frag         sky/fog_view_lut.comp         -S frag -DFOG -DFRAG)
+add_shader(fog_view_lut.comp         sky/fog_view_lut.comp         -S comp -DFOG -DCOMPUTE)
+
+add_shader(fog3d.vert                sky/sky.vert         -DFOG -DVOLUMETRIC)
+add_shader(fog3d.frag                sky/sky_egsr.frag    -DFOG -DVOLUMETRIC)
+add_shader(sky3d.vert                sky/sky.vert         -DVOLUMETRIC)
+add_shader(sky3d.frag                sky/sky_egsr.frag    -DVOLUMETRIC)
 
 add_shader(fog.vert                  sky/sky.vert         -DFOG)
 add_shader(fog.frag                  sky/sky_egsr.frag    -DFOG)
-
-add_shader(sky_g2.vert               sky/sky.vert         -DG2)
-add_shader(sky_g2.frag               sky/sky_egsr.frag    -DG2)
+add_shader(sky.vert                  sky/sky.vert         "")
+add_shader(sky.frag                  sky/sky_egsr.frag    "")
 
 add_shader(copy.vert                 copy.vert "")
 add_shader(copy.frag                 copy.frag "")

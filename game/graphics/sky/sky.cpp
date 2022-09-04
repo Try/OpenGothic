@@ -2,6 +2,7 @@
 
 #include <Tempest/Application>
 #include <Tempest/CommandBuffer>
+#include <Tempest/Platform>
 #include <Tempest/Fence>
 
 #include <cctype>
@@ -13,31 +14,16 @@
 
 using namespace Tempest;
 
-Sky::Sky(const SceneGlobals& scene)
+Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest::Vec3, Tempest::Vec3>& bbox)
   :scene(scene) {
-  auto& device = Resources::device();
-
-  transLut     = device.attachment(lutFormat,256, 64);
-  multiScatLut = device.attachment(lutFormat, 32, 32);
-  viewLut      = device.attachment(lutFormat,128, 64);
-  fogLut       = device.attachment(lutFormat,256,128);  // TODO: use propper 3d texture
-
-  /* https://bartwronski.files.wordpress.com/2014/08/bwronski_volumetric_fog_siggraph2014.pdf
-   * page 25 160*90*64 = ~720p
-   */
-  if(use3dFog)
-    fogLut3D = device.image3d(lutFormat,160,90,64);
-  }
-
-void Sky::setWorld(const World& world, const std::pair<Vec3, Vec3>& bbox) {
   auto& wname  = world.name();
   auto  dot    = wname.rfind('.');
   auto  name   = dot==std::string::npos ? wname : wname.substr(0,dot);
-
   for(size_t i=0;i<2;++i) {
     day  .lay[i].texture = skyTexture(name,true, i);
     night.lay[i].texture = skyTexture(name,false,i);
     }
+  minZ = bbox.first.z;
 
   /*
     zSunName=unsun5.tga
@@ -50,8 +36,47 @@ void Sky::setWorld(const World& world, const std::pair<Vec3, Vec3>& bbox) {
   sun          = Resources::loadTexture(Gothic::settingsGetS("SKY_OUTDOOR","zSunName"));
   // auto& moon   = gothic.settingsGetS("SKY_OUTDOOR","zMoonName");
 
-  minZ = bbox.first.z;
+  auto& device = Resources::device();
+  transLut     = device.attachment(lutFormat,256, 64);
+  multiScatLut = device.attachment(lutFormat, 32, 32);
+  viewLut      = device.attachment(lutFormat,128, 64);
+  fogLut       = device.attachment(lutFormat,256,128);
+  Gothic::inst().onSettingsChanged.bind(this,&Sky::setupSettings);
   setupUbo();
+  }
+
+Sky::~Sky() {
+  Gothic::inst().onSettingsChanged.ubind(this,&Sky::setupSettings);
+  }
+
+void Sky::setupSettings() {
+  bool fog = Gothic::inst().settingsGetI("RENDERER_D3D","zFogRadial")!=0;
+#if !defined(__OSX__)
+  fog = false; // TODO: test on MetalApi
+#endif
+  if(fog==zFogRadial)
+    return;
+
+  zFogRadial = fog;
+  if(!zFogRadial)
+    return;
+
+  auto& device = Resources::device();
+  device.waitIdle();
+  /* https://bartwronski.files.wordpress.com/2014/08/bwronski_volumetric_fog_siggraph2014.pdf
+   * page 25 160*90*64 = ~720p
+   */
+  //fogLut3D = device.image3d(lutFormat,160,90,64);
+  //fogLut3D = device.image3d(lutFormat,160,90,128);
+  //fogLut3D = device.image3d(lutFormat,160,90,256);
+  //fogLut3D = device.image3d(lutFormat,160,90,512);
+
+  fogLut3D = device.image3d(lutFormat,320,176,128);
+  setupUbo();
+  }
+
+void Sky::setWorld(const World& world, const std::pair<Vec3, Vec3>& bbox) {
+  setupSettings();
   }
 
 void Sky::setupUbo() {
@@ -70,23 +95,28 @@ void Sky::setupUbo() {
   uboFogViewLut = device.descriptors(Shaders::inst().fogViewLut);
   uboFogViewLut.set(0, transLut,       smpB);
   uboFogViewLut.set(1, multiScatLut,   smpB);
-  //uboFogViewLut.set(2, *scene.shadowMap[1], smpB);
 
-  if(use3dFog) {
-    uboFogViewLut3d = device.descriptors(Shaders::inst().fogViewLut3D);
-    uboFogViewLut3d.set(0, transLut,     smpB);
-    uboFogViewLut3d.set(1, multiScatLut, smpB);
-    uboFogViewLut3d.set(3, fogLut3D);
+  if(zFogRadial) {
+    for(uint32_t i=0; i<Resources::MaxFramesInFlight; ++i) {
+      uboFogViewLut3d[i] = device.descriptors(Shaders::inst().fogViewLut3D);
+      uboFogViewLut3d[i].set(0, transLut,     smpB);
+      uboFogViewLut3d[i].set(1, multiScatLut, smpB);
+      uboFogViewLut3d[i].set(2, *scene.shadowMap[1],Resources::shadowSampler());
+      uboFogViewLut3d[i].set(3, fogLut3D);
+      uboFogViewLut3d[i].set(4, scene.uboGlobalPf[i][SceneGlobals::V_Main]);
+      }
     }
 
-  uboFinal = device.descriptors(Shaders::inst().sky);
-  uboFinal.set(0, transLut,     smpB);
-  uboFinal.set(1, multiScatLut, smpB);
-  uboFinal.set(2, viewLut,      smpB);
-  uboFinal.set(3,*day  .lay[0].texture,smp);
-  uboFinal.set(4,*day  .lay[1].texture,smp);
-  uboFinal.set(5,*night.lay[0].texture,smp);
-  uboFinal.set(6,*night.lay[1].texture,smp);
+  uboSky = device.descriptors(Shaders::inst().sky);
+  uboSky.set(0, transLut,     smpB);
+  uboSky.set(1, multiScatLut, smpB);
+  uboSky.set(2, viewLut,      smpB);
+  //uboSky.set(3, fogLut3D,     smpB);
+  uboSky.set(4, *scene.gbufDepth, Sampler::nearest());
+  uboSky.set(5,*day  .lay[0].texture,smp);
+  uboSky.set(6,*day  .lay[1].texture,smp);
+  uboSky.set(7,*night.lay[0].texture,smp);
+  uboSky.set(8,*night.lay[1].texture,smp);
 
   uboFog = device.descriptors(Shaders::inst().fog);
   uboFog.set(0, transLut,     smpB);
@@ -95,7 +125,18 @@ void Sky::setupUbo() {
   //uboFog.set(3, fogLut3D,     smpB);
   uboFog.set(4, *scene.gbufDepth, Sampler::nearest());
 
-  if(use3dFog) {
+  if(zFogRadial) {
+    uboSky3d = device.descriptors(Shaders::inst().sky3d);
+    uboSky3d.set(0, transLut,     smpB);
+    uboSky3d.set(1, multiScatLut, smpB);
+    uboSky3d.set(2, viewLut,      smpB);
+    uboSky3d.set(3, fogLut3D,     smpB);
+    uboSky3d.set(4, *scene.gbufDepth, Sampler::nearest());
+    uboSky3d.set(5,*day  .lay[0].texture,smp);
+    uboSky3d.set(6,*day  .lay[1].texture,smp);
+    uboSky3d.set(7,*night.lay[0].texture,smp);
+    uboSky3d.set(8,*night.lay[1].texture,smp);
+
     uboFog3d = device.descriptors(Shaders::inst().fog3d);
     uboFog3d.set(0, transLut,     smpB);
     uboFog3d.set(1, multiScatLut, smpB);
@@ -120,9 +161,9 @@ void Sky::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
     lutIsInitialized = true;
     }
 
-  if(use3dFog) {
+  if(zFogRadial) {
     cmd.setFramebuffer({});
-    cmd.setUniforms(Shaders::inst().fogViewLut3D, uboFogViewLut3d, &ubo, sizeof(ubo));
+    cmd.setUniforms(Shaders::inst().fogViewLut3D, uboFogViewLut3d[frameId], &ubo, sizeof(ubo));
     cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
     }
 
@@ -145,19 +186,21 @@ void Sky::drawSky(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
   auto len = dv.length();
   (void)len;
 
-  cmd.setUniforms(Shaders::inst().sky, uboFinal, &ubo, sizeof(ubo));
+  auto len2 = (ubo.clipInfo.x / (ubo.clipInfo.y * 1.0 + ubo.clipInfo.z));
+  (void)len2;
+
+  if(zFogRadial)
+    cmd.setUniforms(Shaders::inst().sky3d, uboSky3d, &ubo, sizeof(ubo)); else
+    cmd.setUniforms(Shaders::inst().sky,   uboSky,   &ubo, sizeof(ubo));
   cmd.draw(Resources::fsqVbo());
   }
 
 void Sky::drawFog(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
   UboSky ubo = mkPush();
-  if(use3dFog) {
-    cmd.setUniforms(Shaders::inst().fog3d, uboFog3d, &ubo, sizeof(ubo));
-    cmd.draw(Resources::fsqVbo());
-    } else {
+  if(zFogRadial)
+    cmd.setUniforms(Shaders::inst().fog3d, uboFog3d, &ubo, sizeof(ubo));  else
     cmd.setUniforms(Shaders::inst().fog,   uboFog,   &ubo, sizeof(ubo));
-    cmd.draw(Resources::fsqVbo());
-    }
+  cmd.draw(Resources::fsqVbo());
   }
 
 const Texture2d& Sky::skyLut() const {
@@ -188,11 +231,14 @@ Sky::UboSky Sky::mkPush() {
   ubo.sunDir  = scene.sun.dir();
   ubo.night   = 1.f-std::min(std::max(3.f*ubo.sunDir.y,0.f),1.f);
 
-  return ubo;
-  }
+  static float rayleighScatteringScale = 33.1f;
+  static float GSunIntensity           = 20.f;
 
-std::array<float,3> Sky::mkColor(uint8_t r, uint8_t g, uint8_t b) {
-  return {{r/255.f,g/255.f,b/255.f}};
+  ubo.rayleighScatteringScale = rayleighScatteringScale;
+  ubo.clipInfo                = scene.clipInfo();
+  ubo.GSunIntensity           = GSunIntensity;
+
+  return ubo;
   }
 
 const Texture2d* Sky::skyTexture(std::string_view name, bool day, size_t id) {

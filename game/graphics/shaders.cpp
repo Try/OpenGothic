@@ -101,9 +101,11 @@ Shaders::Shaders() {
   skyViewLut         = postEffect("sky_view_lut");
   fogViewLut         = postEffect("fog_view_lut");
   fogViewLut3D       = computeShader("fog_view_lut.comp.sprv");
-  sky                = postEffect("sky_g2");
-  fog3d              = fogShader("fog3d");
-  fog                = fogShader("fog");
+
+  sky                = postEffect("sky");
+  fog                = fogShader ("fog");
+  sky3d              = postEffect("sky3d");
+  fog3d              = fogShader ("fog3d");
 
   if(Gothic::inst().doRayQuery()) {
     ssaoRq        = postEffect("ssao",        "ssao_rq");

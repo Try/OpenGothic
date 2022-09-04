@@ -4,7 +4,6 @@
 #include <Tempest/Fence>
 #include <Tempest/Log>
 
-#include "graphics/mesh/submesh/staticmesh.h"
 #include "ui/inventorymenu.h"
 #include "camera.h"
 #include "gothic.h"
@@ -110,13 +109,13 @@ void Renderer::resetSwapchain() {
       shadowMap[i] = device.zbuffer(shadowFormat,smSize,smSize);
     }
 
-  lightingBuf = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
-  gbufDiffuse = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
-  gbufNormal  = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
-  gbufDepth   = device.attachment(TextureFormat::R32F, swapchain.w(),swapchain.h());
+  gbufEmission = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
+  gbufDiffuse  = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
+  gbufNormal   = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
+  gbufDepth    = device.attachment(TextureFormat::R32F, swapchain.w(),swapchain.h());
 
   uboCopy = device.descriptors(Shaders::inst().copy);
-  uboCopy.set(0,lightingBuf,Sampler::nearest());
+  uboCopy.set(0,gbufEmission,Sampler::nearest());
 
   ssao.ssaoBuf = device.attachment(ssao.aoFormat, (swapchain.w()+1)/2,(swapchain.h()+1)/2);
   ssao.blurBuf = device.attachment(ssao.aoFormat, (swapchain.w()+1)/2,(swapchain.h()+1)/2);
@@ -130,16 +129,16 @@ void Renderer::resetSwapchain() {
     ssao.ssaoComposePso = &Shaders::inst().ssaoCompose;
     }
   ssao.uboSsao = device.descriptors(*ssao.ssaoPso);
-  ssao.uboSsao.set(0,lightingBuf,smpN);
-  ssao.uboSsao.set(1,gbufDiffuse,smpN);
-  ssao.uboSsao.set(2,gbufNormal, smpN);
-  ssao.uboSsao.set(3,zbuffer,    smpB);
+  ssao.uboSsao.set(0,gbufEmission,smpN);
+  ssao.uboSsao.set(1,gbufDiffuse, smpN);
+  ssao.uboSsao.set(2,gbufNormal,  smpN);
+  ssao.uboSsao.set(3,zbuffer,     smpB);
 
   ssao.uboCompose = device.descriptors(*ssao.ssaoComposePso);
-  ssao.uboCompose.set(0,lightingBuf, smpB);
-  ssao.uboCompose.set(1,gbufDiffuse, smpB);
-  ssao.uboCompose.set(2,ssao.ssaoBuf,smpB);
-  ssao.uboCompose.set(3,zbuffer,     smpB);
+  ssao.uboCompose.set(0,gbufEmission, smpB);
+  ssao.uboCompose.set(1,gbufDiffuse,  smpB);
+  ssao.uboCompose.set(2,ssao.ssaoBuf, smpB);
+  ssao.uboCompose.set(3,zbuffer,      smpB);
 
   ssao.uboBlur[0] = device.descriptors(Shaders::inst().bilateralBlur);
   ssao.uboBlur[0].set(0,ssao.ssaoBuf,smpN);
@@ -193,8 +192,8 @@ void Renderer::prepareUniforms() {
     if(!shadowMap[i].isEmpty()) {
       sh[i] = &textureCast(shadowMap[i]);
       }
-  wview->setGbuffer(textureCast(lightingBuf),textureCast(gbufDiffuse),
-                    textureCast(gbufNormal), textureCast(gbufDepth),
+  wview->setGbuffer(textureCast(gbufEmission), textureCast(gbufDiffuse),
+                    textureCast(gbufNormal),   textureCast(gbufDepth),
                     sh, textureCast(hiZ));
   }
 
@@ -221,8 +220,8 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   if(!dbg)
     return;
 
-  auto& tex = hiZ;
-  //auto& tex = shadowMap[1];
+  //auto& tex = hiZ;
+  auto& tex = shadowMap[1];
 
   p.setBrush(textureCast(tex));
   auto sz = Size(p.brush().w(),p.brush().h());
@@ -276,24 +275,24 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   wview->prepareSky(cmd,cmdId);
 
   if(Gothic::inst().doMeshShading()) {
-    cmd.setFramebuffer({{lightingBuf, Vec4(),           Tempest::Preserve},
-                        {gbufDiffuse, Tempest::Discard, Tempest::Preserve},
-                        {gbufNormal,  Tempest::Discard, Tempest::Preserve},
-                        {gbufDepth,   1.f,              Tempest::Preserve}},
+    cmd.setFramebuffer({{gbufEmission, Vec4(),           Tempest::Preserve},
+                        {gbufDiffuse,  Tempest::Discard, Tempest::Preserve},
+                        {gbufNormal,   Tempest::Discard, Tempest::Preserve},
+                        {gbufDepth,    1.f,              Tempest::Preserve}},
                        {zbuffer, Tempest::Preserve, Tempest::Preserve});
     } else {
-    cmd.setFramebuffer({{lightingBuf, Vec4(),           Tempest::Preserve},
-                        {gbufDiffuse, Tempest::Discard, Tempest::Preserve},
-                        {gbufNormal,  Tempest::Discard, Tempest::Preserve},
-                        {gbufDepth,   1.f,              Tempest::Preserve}},
+    cmd.setFramebuffer({{gbufEmission, Vec4(),           Tempest::Preserve},
+                        {gbufDiffuse,  Tempest::Discard, Tempest::Preserve},
+                        {gbufNormal,   Tempest::Discard, Tempest::Preserve},
+                        {gbufDepth,    1.f,              Tempest::Preserve}},
                        {zbuffer, 1.f, Tempest::Preserve});
     }
   wview->drawGBuffer(cmd,cmdId);
 
   drawSSAO(result,cmd,*wview);
-
   cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Discard});
   wview->drawLights (cmd,cmdId);
+
   wview->drawSky    (cmd,cmdId);
   wview->drawMain   (cmd,cmdId);
   wview->drawFog    (cmd,cmdId);

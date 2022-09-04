@@ -35,7 +35,7 @@ class WorldView {
                         const Tempest::Matrix4x4* shadow,
                         uint64_t tickCount, uint8_t fId);
 
-    void setGbuffer(const Tempest::Texture2d& lightingBuf, const Tempest::Texture2d& diffuse,
+    void setGbuffer(const Tempest::Texture2d& emission, const Tempest::Texture2d& diffuse,
                     const Tempest::Texture2d& norm, const Tempest::Texture2d& depth,
                     const Tempest::Texture2d* shadow[], const Tempest::Texture2d& hiZ);
     void setupUbo();

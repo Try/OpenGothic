@@ -13,7 +13,8 @@ class Sky final {
   public:
     using Vertex=Resources::VertexFsq;
 
-    Sky(const SceneGlobals& scene);
+    Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest::Vec3, Tempest::Vec3>& bbox);
+    ~Sky();
 
     void setupUbo();
     void setWorld   (const World& world, const std::pair<Tempest::Vec3, Tempest::Vec3>& bbox);
@@ -39,24 +40,28 @@ class Sky final {
       float              dxy1[2]  = {};
       Tempest::Vec3      sunDir   = {};
       float              night    = 1.0;
+      Tempest::Vec3      clipInfo;
       float              plPosY   = 0.0;
+      float              rayleighScatteringScale = 0;
+      float              GSunIntensity = 0;
       };
 
     UboSky                        mkPush();
-    static std::array<float,3>    mkColor(uint8_t r,uint8_t g,uint8_t b);
     const Tempest::Texture2d*     skyTexture(std::string_view name, bool day, size_t id);
     const Tempest::Texture2d*     implSkyTexture(std::string_view name, bool day, size_t id);
+
+    void                          setupSettings();
+    bool                          zFogRadial = false;
 
     Tempest::TextureFormat        lutFormat = Tempest::TextureFormat::RGBA32F;
     Tempest::Attachment           transLut, multiScatLut, viewLut, fogLut;
     Tempest::StorageImage         fogLut3D;
-    Tempest::DescriptorSet        uboMultiScatLut, uboSkyViewLut, uboFogViewLut, uboFogViewLut3d, uboFinal;
-    Tempest::DescriptorSet        uboFog, uboFog3d;
+    Tempest::DescriptorSet        uboMultiScatLut, uboSkyViewLut;
+    Tempest::DescriptorSet        uboFogViewLut,   uboFogViewLut3d[Resources::MaxFramesInFlight];
+    Tempest::DescriptorSet        uboSky, uboSky3d, uboFog, uboFog3d;
     bool                          lutIsInitialized = false;
 
     const SceneGlobals&           scene;
-    bool                          use3dFog = false;
-
     State                         day, night;
     const Tempest::Texture2d*     sun = &Resources::fallbackBlack();
 

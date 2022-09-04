@@ -66,6 +66,8 @@ Gothic::Gothic() {
   defaults->set("SKY_OUTDOOR", "zMoonSize",  400);
   defaults->set("SKY_OUTDOOR", "zMoonAlpha", 255);
 
+  defaults->set("RENDERER_D3D", "zFogRadial", 0);
+
   defaults->set("SOUND", "musicEnabled",  1);
   defaults->set("SOUND", "musicVolume",   0.5f);
   defaults->set("SOUND", "soundVolume",   0.5f);
