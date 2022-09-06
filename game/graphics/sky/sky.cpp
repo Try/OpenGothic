@@ -42,7 +42,7 @@ Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest:
   viewLut      = device.attachment(lutFormat,128, 64);
   fogLut       = device.attachment(lutFormat,256,128);
   Gothic::inst().onSettingsChanged.bind(this,&Sky::setupSettings);
-  setupUbo();
+  setupSettings();
   }
 
 Sky::~Sky() {
