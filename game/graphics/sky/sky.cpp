@@ -51,7 +51,7 @@ Sky::~Sky() {
 
 void Sky::setupSettings() {
   bool fog = Gothic::inst().settingsGetI("RENDERER_D3D","zFogRadial")!=0;
-#if !defined(__OSX__)
+#if defined(__OSX__)
   fog = false; // TODO: test on MetalApi
 #endif
   if(fog==zFogRadial)
