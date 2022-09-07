@@ -68,7 +68,8 @@ void Sky::setupSettings() {
   //fogLut3D = device.image3d(lutFormat,160,90,256);
   //fogLut3D = device.image3d(lutFormat,160,90,512);
 
-  fogLut3D = device.image3d(lutFormat,320,176,128);
+  fogLut3D = device.image3d(lutFormat,320,176,32);
+  //fogLut3D = device.image3d(lutFormat,320,176,64);
   setupUbo();
   }
 

@@ -64,25 +64,19 @@ float calcShadow(vec3 shPos1) {
   }
 #endif
 
-float shadowFactor(vec3 pos) {
+float shadowFactor(vec4 shPos) {
 #ifdef COMPUTE
-  pos *= 100.0;
-  vec4 shPos = scene.viewShadow[1]*vec4(pos,1.0);
   return calcShadow(shPos.xyz/shPos.w);
 #else
   return 1.0;
 #endif
   }
 
-float shadowFactorMS(vec3 pos0, vec3 pos1) {
+float shadowFactorMS(vec4 shPos0, vec4 shPos1) {
 #ifdef COMPUTE
-  pos0 *= 100.0;
-  pos1 *= 100.0;
-
   float ret = 0;
   for(int i=0; i<8; ++i) {
-    vec3 pos = mix(pos0,pos1,float(i)/8.0);
-    vec4 shPos = scene.viewShadow[1]*vec4(pos,1.0);
+    vec4 shPos = mix(shPos0,shPos1,float(i)/8.0);
     ret += calcShadow(shPos.xyz/shPos.w);
     }
   return ret/8.0;
@@ -91,16 +85,19 @@ float shadowFactorMS(vec3 pos0, vec3 pos1) {
 #endif
   }
 
-#ifdef COMPUTE
-vec3 inverse2(vec3 pos) {
-  vec4 ret = scene.viewProjectInv*vec4(pos,1.0);
-  return (ret.xyz/ret.w)/100.f;
+vec3 project(mat4 m, vec3 pos) {
+  vec4 p = m*vec4(pos,1);
+  return p.xyz/p.w;
   }
-#else
-vec3 inverse2(vec3 pos) {
-  return inverse(pos);
+
+float tStep(int i, int steps) {
+  float t = float(i+0.3)/steps;
+  if(i<=0)
+    t = 0.0;
+  if(i+1==steps)
+    t = 1.0;
+  return t*t;
   }
-#endif
 
 void main() {
 #ifdef COMPUTE
@@ -117,45 +114,69 @@ void main() {
 
   float dMin = 0.95;
   float dMax = 0.999;
-  const vec3  pos1     = inverse2(vec3(inPos,dMax));
-  const vec3  pos0     = inverse2(vec3(inPos,dMin));
 
-  const float dist     = length(pos1-pos0);
-  const vec3  dir      = normalize(pos1-pos0);
+#ifdef COMPUTE
+  const vec3  pos0     = project(scene.viewProjectInv, vec3(inPos,dMin));
+  const vec3  pos1     = project(scene.viewProjectInv, vec3(inPos,dMax));
+  const vec4  shPos0   = scene.viewShadow[1]*vec4(pos0,1);
+  const vec4  shPos1   = scene.viewShadow[1]*vec4(pos1,1);
+#else
+  const vec3  pos0     = project(push.viewProjectInv, vec3(inPos,dMin));
+  const vec3  pos1     = project(push.viewProjectInv, vec3(inPos,dMax));
+  const vec4  shPos0   = vec4(0);
+  const vec4  shPos1   = vec4(0);
+#endif
+
+  const vec3  ray      = pos1.xyz - pos0.xyz;
+  const float dist     = length(ray)*0.01; // meters
+  const vec3  dir      = normalize(ray);
 
   const vec3  sunDir             = vec3(push.sunDir);
   const float cosTheta           = dot(dir, sunDir);
   const float miePhaseValue      = miePhase(cosTheta);
   const float rayleighPhaseValue = rayleighPhase(-cosTheta);
 
+#ifdef COMPUTE
+  const int msCount     = 4;
+  const int shadowSteps = steps*msCount;
+  float     shadowS[128];
+  for(int i=1; i<steps; ++i)
+    shadowS[i] = 0;
+  for(int i=1*msCount; i<shadowSteps; ++i) {
+    float t     = tStep(i,  shadowSteps);
+    float tPrev = tStep(i-1,shadowSteps);
+    shadowS[i/msCount] += shadowFactor(mix(shPos0,shPos1,t))/float(msCount);
+    }
+#endif
+
   vec3  scatteredLight = vec3(0.0);
   vec3  transmittance  = vec3(1.0);
 
-  float prevT = 0;
-  for(int i=0; i<steps; ++i) {
-    float t      = float(i+0.3)/steps;
-    if(i==0)
-      t = 0.0;
-    if(i+1==steps)
-      t = 1.0;
+  store(ivec3(dstUV.xy,0), scatteredLight, transmittance);
+  for(int i=1; i<steps; ++i) {
+    float t      = tStep(i,  steps);
+    float tPrev  = tStep(i-1,steps);
+    float dd     = (t - tPrev)*dist;
 
-    float dd     = (t-prevT)*dist;
-    prevT = t;
-
-    vec3  pos    = pos0 + t*dir*dist;
-    vec3  newPos = pos  + vec3(0,RPlanet,0);
+    vec3  pos    = mix(pos0,pos1,t)*0.01 + vec3(0,RPlanet,0);
 
     vec3  rayleighScattering;
     vec3  extinction;
     float mieScattering;
-    scatteringValues(newPos, rayleighScattering, mieScattering, extinction);
+    scatteringValues(pos, rayleighScattering, mieScattering, extinction);
 
     vec3  sampleTransmittance = exp(-dd*extinction);
 
-    float shadow              = shadowFactor(pos);
-    //float shadow              = shadowFactorMS(pos0 + dir*dist*float(i)/float(steps), pos0 + dir*dist*t*float(i+1)/float(steps));
-    vec3  sunTransmittance    = textureLUT(tLUT, newPos, sunDir) * shadow;
-    vec3  psiMS               = textureLUT(mLUT, newPos, sunDir);
+#ifdef COMPUTE
+    float shadow              = shadowS[i];
+#else
+    float shadow              = 0;
+#endif
+    // float shadow              = shadowFactor(mix(shPos0,shPos1,t));
+    // float shadow              = shadowFactorMS(mix(shPos0,shPos1,t), mix(shPos0,shPos1,tPrev));
+
+    vec3  sunTransmittance    = textureLUT(tLUT, pos, sunDir) * shadow;
+    vec3  psiMS               = textureLUT(mLUT, pos, sunDir);
 
     vec3 rayleighInScattering = rayleighScattering*(rayleighPhaseValue*sunTransmittance + psiMS);
     vec3 mieInScattering      = mieScattering     *(miePhaseValue     *sunTransmittance + psiMS);
