@@ -41,7 +41,7 @@ const char* materialTag(ItemMaterial src) {
 
 const char* materialTag(phoenix::material_group src) {
   switch(src) {
-    case phoenix::material_group::undef:
+    case phoenix::material_group::undefined:
     case phoenix::material_group::none:
       return "UD";
     case phoenix::material_group::metal:
@@ -258,7 +258,7 @@ MeshObjects::Mesh World::addStaticView(std::string_view visual) {
   return view()->addStaticView(visual);
   }
 
-MeshObjects::Mesh World::addDecalView(const phoenix::vobs::vob& vob) {
+MeshObjects::Mesh World::addDecalView(const phoenix::vob& vob) {
   return view()->addDecalView(vob);
   }
 
@@ -536,7 +536,7 @@ Item *World::addItem(size_t itemInstance, std::string_view at) {
   return wobj.addItem(itemInstance,at);
   }
 
-Item* World::addItem(const std::unique_ptr<phoenix::vobs::vob>& vob) {
+Item* World::addItem(const std::unique_ptr<phoenix::vob>& vob) {
   return wobj.addItem(*(const phoenix::vobs::item*) vob.get());
   }
 
@@ -729,7 +729,7 @@ void World::addFreePoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir, std
   wmatrix->addFreePoint(pos,dir,name);
   }
 
-void World::addSound(const std::unique_ptr<phoenix::vobs::vob>& vob) {
+void World::addSound(const std::unique_ptr<phoenix::vob>& vob) {
   if(vob->type==phoenix::vob_type::zCVobSound || vob->type==phoenix::vob_type::zCVobSoundDaytime) {
     wsound.addSound((const phoenix::vobs::sound&) *vob);
     }

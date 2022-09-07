@@ -8,7 +8,7 @@
 
 using namespace Tempest;
 
-MoveTrigger::MoveTrigger(Vob* parent, World& world, const std::unique_ptr<phoenix::vobs::vob>& d, Flags flags)
+MoveTrigger::MoveTrigger(Vob* parent, World& world, const std::unique_ptr<phoenix::vob>& d, Flags flags)
   :AbstractTrigger(parent,world,d,flags) {
   auto* mover = (const phoenix::vobs::trigger_mover*) d.get();
   mover_keyframes = mover->keyframes;

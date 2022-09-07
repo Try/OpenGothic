@@ -361,9 +361,9 @@ RenderPipeline& LightGroup::shader() const {
 
 const phoenix::vobs::light_preset& LightGroup::findPreset(std::string_view preset) const {
   for(auto& i:presets) {
-    if(i->preset!=preset)
+    if(i.preset!=preset)
       continue;
-    return *i;
+    return i;
     }
   Log::e("unknown light preset: \"",std::string(preset),"\"");
   static phoenix::vobs::light_preset zero {};

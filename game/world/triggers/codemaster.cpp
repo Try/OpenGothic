@@ -3,7 +3,7 @@
 #include "world/world.h"
 #include "game/serialize.h"
 
-CodeMaster::CodeMaster(Vob* parent, World &world, const std::unique_ptr<phoenix::vobs::vob>& d, Flags flags)
+CodeMaster::CodeMaster(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& d, Flags flags)
   :AbstractTrigger(parent,world,d,flags), keys(((const phoenix::vobs::code_master*) d.get())->slaves.size()) {
   auto* cm = (const phoenix::vobs::code_master*) d.get();
   slaves = cm->slaves;

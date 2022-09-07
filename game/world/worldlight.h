@@ -5,7 +5,7 @@
 
 class WorldLight : public Vob {
   public:
-    WorldLight(Vob* parent, World& world, const std::unique_ptr<phoenix::vobs::vob>& vob, Flags flags);
+    WorldLight(Vob* parent, World& world, const std::unique_ptr<phoenix::vob>& vob, Flags flags);
 
   private:
     void  moveEvent() override;

@@ -74,7 +74,7 @@ void PhysicVbo::addSegment(size_t indexSize, size_t offset, phoenix::material_gr
 phoenix::material_group PhysicVbo::materialId(size_t segment) const {
   if(segment<segments.size())
     return segments[segment].mat;
-  return phoenix::material_group::undef;
+  return phoenix::material_group::undefined;
   }
 
 const char* PhysicVbo::sectorName(size_t segment) const {

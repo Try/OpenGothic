@@ -1,5 +1,6 @@
 #pragma once
 
+#include <phoenix/vobs/misc.hh>
 #include <string>
 
 #include "world/objects/vob.h"
@@ -43,7 +44,7 @@ class TriggerEvent final {
 
 class AbstractTrigger : public Vob {
   public:
-    AbstractTrigger(Vob* parent, World& world, const std::unique_ptr<phoenix::vobs::vob>& data, Flags flags);
+    AbstractTrigger(Vob* parent, World& world, const std::unique_ptr<phoenix::vob>& data, Flags flags);
     virtual ~AbstractTrigger();
 
     const std::string&           name() const;

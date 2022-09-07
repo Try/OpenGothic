@@ -29,7 +29,7 @@ Vob::Vob(World& owner)
   : world(owner) {
   }
 
-Vob::Vob(Vob* parent, World& owner, const std::unique_ptr<phoenix::vobs::vob>& vob, Flags flags)
+Vob::Vob(Vob* parent, World& owner, const std::unique_ptr<phoenix::vob>& vob, Flags flags)
   : world(owner), vobType(vob->type), vobObjectID(vob->id), parent(parent) {
 
   glm::mat4x4 worldMatrix = glm::transpose(vob->rotation);
@@ -126,7 +126,7 @@ void Vob::recalculateTransform() {
   }
 
 
-std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const std::unique_ptr<phoenix::vobs::vob>& vob, Flags flags) {
+std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const std::unique_ptr<phoenix::vob>& vob, Flags flags) {
   switch(vob->type) {
     case phoenix::vob_type::unknown:
       return nullptr;

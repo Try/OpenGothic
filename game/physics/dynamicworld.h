@@ -135,7 +135,7 @@ class DynamicWorld final {
     struct RayLandResult {
       Tempest::Vec3           v={};
       Tempest::Vec3           n={};
-      phoenix::material_group mat    = phoenix::material_group::undef;
+      phoenix::material_group mat    = phoenix::material_group::undefined;
       bool                    hasCol = false;
 
       const char*         sector = nullptr;

@@ -126,7 +126,7 @@ void ObjVisual::setVisual(const phoenix::daedalus::c_item& hitem, World& world, 
     }
   }
 
-void ObjVisual::setVisual(const phoenix::vobs::vob& vob, World& world, bool staticDraw) {
+void ObjVisual::setVisual(const phoenix::vob& vob, World& world, bool staticDraw) {
   cleanup();
 
   const bool enableCollision = (vob.cd_dynamic || vob.cd_static);
@@ -137,7 +137,7 @@ void ObjVisual::setVisual(const phoenix::vobs::vob& vob, World& world, bool stat
     bundle = VobBundle(world,vob.visual_name,(staticDraw ? Vob::Static : Vob::None));
     }
   else if(FileExt::hasExt(vob.visual_name,"PFX") || FileExt::hasExt(vob.visual_name,"TGA")) {
-    if(vob.camera_alignment==0 && FileExt::hasExt(vob.visual_name,"TGA")) {
+    if(vob.camera_alignment==phoenix::camera_lock_mode::none && FileExt::hasExt(vob.visual_name,"TGA")) {
       setType(M_Mesh);
       mesh.view = world.addDecalView(vob);
       } else {

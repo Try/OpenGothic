@@ -3,7 +3,7 @@
 #include <vector>
 #include <memory>
 
-#include <phoenix/world/vob_tree.hh>
+#include <phoenix/vobs/misc.hh>
 
 #include "bullet.h"
 #include "spaceindex.h"
@@ -103,7 +103,7 @@ class WorldObjects final {
 
     void           addInteractive(Interactive*         obj);
     void           addStatic     (StaticObj*           obj);
-    void           addRoot       (const std::unique_ptr<phoenix::vobs::vob>& vob, bool startup);
+    void           addRoot       (const std::unique_ptr<phoenix::vob>& vob, bool startup);
     void           invalidateVobIndex();
 
     Interactive*   validateInteractive(Interactive *def);

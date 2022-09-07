@@ -3,13 +3,15 @@
 #include <Tempest/Painter>
 #include <Tempest/Log>
 
+#include <phoenix/vobs/mob.hh>
+
 #include "game/serialize.h"
 #include "graphics/mesh/skeleton.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "utils/dbgpainter.h"
 
-Interactive::Interactive(Vob* parent, World &world, const std::unique_ptr<phoenix::vobs::vob>& vob, Flags flags)
+Interactive::Interactive(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& vob, Flags flags)
   : Vob(parent,world,vob,flags) {
 
   auto* mob = (const phoenix::vobs::mob*) vob.get();
@@ -170,7 +172,7 @@ void Interactive::resetPositionToTA(int32_t state) {
   setState(state);
   }
 
-void Interactive::setVisual(const phoenix::vobs::vob& vob) {
+void Interactive::setVisual(const phoenix::vob& vob) {
   visual.setVisual(vob,world,true);
   visual.setObjMatrix(transform());
   visual.setInteractive(this);

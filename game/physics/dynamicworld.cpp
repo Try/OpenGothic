@@ -526,7 +526,7 @@ DynamicWorld::RayWaterResult DynamicWorld::implWaterRay(const Tempest::Vec3& fro
 DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const Tempest::Vec3& to) const {
   struct CallBack:btCollisionWorld::ClosestRayResultCallback {
     using ClosestRayResultCallback::ClosestRayResultCallback;
-    phoenix::material_group matId  = phoenix::material_group::undef;
+    phoenix::material_group matId  = phoenix::material_group::undefined;
     const char*             sector = nullptr;
     Category                colCat = C_Null;
 
@@ -804,7 +804,7 @@ void DynamicWorld::deleteObj(BulletBody* obj) {
 float DynamicWorld::materialFriction(phoenix::material_group mat) {
   // https://www.thoughtspike.com/friction-coefficients-for-bullet-physics/
   switch(mat) {
-    case phoenix::material_group::undef:
+    case phoenix::material_group::undefined:
       return 0.5f;
     case phoenix::material_group::metal:
       return 1.1f;
@@ -826,7 +826,7 @@ float DynamicWorld::materialFriction(phoenix::material_group mat) {
 
 float DynamicWorld::materialDensity(phoenix::material_group mat) {
   switch (mat) {
-  case phoenix::material_group::undef:
+  case phoenix::material_group::undefined:
   case phoenix::material_group::none:
     return 2000.0f;
   case phoenix::material_group::metal:

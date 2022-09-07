@@ -6,7 +6,7 @@ class World;
 
 class TouchDamage : public AbstractTrigger {
   public:
-    TouchDamage(Vob* parent, World &world, const std::unique_ptr<phoenix::vobs::vob>& data, Flags flags);
+    TouchDamage(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& data, Flags flags);
 
   private:
     void onTrigger(const TriggerEvent &evt) override;

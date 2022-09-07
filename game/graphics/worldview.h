@@ -62,7 +62,7 @@ class WorldView {
     MeshObjects::Mesh   addAtachView (const ProtoMesh::Attach& visual, const int32_t version);
     MeshObjects::Mesh   addStaticView(const ProtoMesh* visual, bool staticDraw = false);
     MeshObjects::Mesh   addStaticView(std::string_view visual);
-    MeshObjects::Mesh   addDecalView (const phoenix::vobs::vob& vob);
+    MeshObjects::Mesh   addDecalView (const phoenix::vob& vob);
 
     const Tempest::AccelerationStructure& landscapeTlas();
 

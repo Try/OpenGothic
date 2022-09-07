@@ -6,7 +6,7 @@
 
 using namespace Tempest;
 
-Trigger::Trigger(Vob* parent, World &world, const std::unique_ptr<phoenix::vobs::vob>& d, Flags flags)
+Trigger::Trigger(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& d, Flags flags)
   :AbstractTrigger(parent,world,d,flags) {
   }
 

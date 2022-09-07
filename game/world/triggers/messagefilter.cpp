@@ -2,7 +2,7 @@
 
 #include "world/world.h"
 
-MessageFilter::MessageFilter(Vob* parent, World &world, const std::unique_ptr<phoenix::vobs::vob>& d, Flags flags)
+MessageFilter::MessageFilter(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& d, Flags flags)
   :AbstractTrigger(parent,world,d,flags) {
   auto* filt = (const phoenix::vobs::message_filter*) d.get();
   onUntriggerA = filt->on_untrigger;

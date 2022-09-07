@@ -114,7 +114,7 @@ PfxBucket& PfxObjects::getBucket(const ParticleFx &decl) {
   return bucket.back();
   }
 
-PfxBucket& PfxObjects::getBucket(const Material& mat, const phoenix::vobs::vob& vob) {
+PfxBucket& PfxObjects::getBucket(const Material& mat, const phoenix::vob& vob) {
   for(auto& i:spriteEmit)
     if(i.pfx->visMaterial==mat &&
        i.visualCamAlign==vob.camera_alignment &&

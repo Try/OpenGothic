@@ -4,7 +4,7 @@
 
 class MoverControler : public AbstractTrigger {
   public:
-    MoverControler(Vob* parent, World& world, const std::unique_ptr<phoenix::vobs::vob>& data, Flags flags);
+    MoverControler(Vob* parent, World& world, const std::unique_ptr<phoenix::vob>& data, Flags flags);
 
   private:
     void onTrigger(const TriggerEvent& evt) override;

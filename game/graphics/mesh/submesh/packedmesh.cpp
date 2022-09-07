@@ -359,7 +359,7 @@ void PackedMesh::packPhysics(const phoenix::mesh& mesh, PkgType type) {
   auto& mat = mesh.materials();
 
   phoenix::material_group mats[] = {
-      phoenix::material_group::undef,
+      phoenix::material_group::undefined,
       phoenix::material_group::metal,
       phoenix::material_group::stone,
       phoenix::material_group::wood,

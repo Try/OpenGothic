@@ -2,13 +2,15 @@
 
 #include <Tempest/Log>
 
+#include <phoenix/vobs/trigger.hh>
+
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "game/serialize.h"
 
 using namespace Tempest;
 
-AbstractTrigger::AbstractTrigger(Vob* parent, World &world, const std::unique_ptr<phoenix::vobs::vob>& data, Flags flags)
+AbstractTrigger::AbstractTrigger(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& data, Flags flags)
   : Vob(parent,world,data,flags & (~Flags::Static)), callback(this), vobName(data->vob_name) {
   if(!hasFlag(StartEnabled))
     ;//disabled = true;

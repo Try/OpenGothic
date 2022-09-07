@@ -4,7 +4,8 @@
 #include <Tempest/SoundEffect>
 #include <Tempest/Point>
 
-#include <phoenix/world/vob_tree.hh>
+#include <phoenix/vobs/zone.hh>
+#include <phoenix/vobs/sound.hh>
 
 #include <mutex>
 

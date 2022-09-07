@@ -167,7 +167,7 @@ MeshObjects::Mesh WorldView::addStaticView(std::string_view visual) {
   return MeshObjects::Mesh();
   }
 
-MeshObjects::Mesh WorldView::addDecalView(const phoenix::vobs::vob& vob) {
+MeshObjects::Mesh WorldView::addDecalView(const phoenix::vob& vob) {
   if(auto mesh=Resources::decalMesh(vob))
     return MeshObjects::Mesh(objGroup,*mesh,0,0,0,true);
   return MeshObjects::Mesh();

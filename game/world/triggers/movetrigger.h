@@ -1,12 +1,14 @@
 #pragma once
 
+#include <phoenix/vobs/trigger.hh>
+
 #include "graphics/meshobjects.h"
 #include "physics/physicmesh.h"
 #include "abstracttrigger.h"
 
 class MoveTrigger : public AbstractTrigger {
   public:
-    MoveTrigger(Vob* parent, World &world, const std::unique_ptr<phoenix::vobs::vob>& data, Flags flags);
+    MoveTrigger(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& data, Flags flags);
 
     void save(Serialize& fout) const override;
     void load(Serialize &fin) override;

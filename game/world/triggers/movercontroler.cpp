@@ -2,7 +2,7 @@
 
 #include "world/world.h"
 
-MoverControler::MoverControler(Vob* parent, World &world, const std::unique_ptr<phoenix::vobs::vob>& d, Flags flags)
+MoverControler::MoverControler(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& d, Flags flags)
   :AbstractTrigger(parent,world,d,flags) {
   auto* ctrl = (const phoenix::vobs::mover_controller*) d.get();
   message = ctrl->message;

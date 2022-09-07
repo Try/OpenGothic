@@ -103,9 +103,9 @@ class Resources final {
     static Tempest::Sound            loadSoundBuffer(std::string_view name);
 
     static Dx8::PatternList          loadDxMusic(std::string_view name);
-    static const ProtoMesh*          decalMesh(const phoenix::vobs::vob& vob);
+    static const ProtoMesh*          decalMesh(const phoenix::vob& vob);
 
-    static std::vector<std::unique_ptr<phoenix::vobs::vob>>& loadVobBundle(std::string_view name);
+    static std::vector<std::unique_ptr<phoenix::vob>>& loadVobBundle(std::string_view name);
 
     template<class V>
     static Tempest::VertexBuffer<V>  vbo(const V* data,size_t sz){ return inst->dev.vbo(data,sz); }
@@ -167,12 +167,12 @@ class Resources final {
     ProtoMesh*            implLoadMesh(std::string_view name);
     std::unique_ptr<ProtoMesh> implLoadMeshMain(std::string name);
     std::unique_ptr<Animation> implLoadAnimation(std::string name);
-    ProtoMesh*            implDecalMesh(const phoenix::vobs::vob& vob);
+    ProtoMesh*            implDecalMesh(const phoenix::vob& vob);
     Tempest::Sound        implLoadSoundBuffer(std::string_view name);
     Dx8::PatternList      implLoadDxMusic(std::string_view name);
     GthFont&              implLoadFont(std::string_view fname, FontType type);
     PfxEmitterMesh*       implLoadEmiterMesh(std::string_view name);
-    std::vector<std::unique_ptr<phoenix::vobs::vob>>& implLoadVobBundle(std::string_view name);
+    std::vector<std::unique_ptr<phoenix::vob>>& implLoadVobBundle(std::string_view name);
 
     Tempest::VertexBuffer<Vertex> sphere(int passCount, float R);
 
@@ -213,5 +213,5 @@ class Resources final {
     std::unordered_map<BindK,std::unique_ptr<AttachBinder>,Hash>                     bindCache;
     std::unordered_map<std::string,std::unique_ptr<PfxEmitterMesh>>                  emiMeshCache;
     std::unordered_map<FontK,std::unique_ptr<GthFont>,Hash>                          gothicFnt;
-    std::unordered_map<std::string,std::vector<std::unique_ptr<phoenix::vobs::vob>>> zenCache;
+    std::unordered_map<std::string,std::vector<std::unique_ptr<phoenix::vob>>> zenCache;
   };

@@ -102,7 +102,7 @@ class World final {
     MeshObjects::Mesh    addAtachView (const ProtoMesh::Attach& visual, const int32_t version);
     MeshObjects::Mesh    addStaticView(const ProtoMesh* visual, bool staticDraw);
     MeshObjects::Mesh    addStaticView(std::string_view visual);
-    MeshObjects::Mesh    addDecalView (const phoenix::vobs::vob& vob);
+    MeshObjects::Mesh    addDecalView (const phoenix::vob& vob);
 
     void                 updateAnimation(uint64_t dt);
     void                 resetPositionToTA();
@@ -148,7 +148,7 @@ class World final {
     Npc*                 addNpc     (size_t itemInstance,   std::string_view     at);
     Npc*                 addNpc     (size_t itemInstance,   const Tempest::Vec3& at);
     Item*                addItem    (size_t itemInstance,   std::string_view     at);
-    Item*                addItem    (const std::unique_ptr<phoenix::vobs::vob>& vob);
+    Item*                addItem    (const std::unique_ptr<phoenix::vob>& vob);
     Item*                addItem    (size_t itemInstance, const Tempest::Vec3&      pos);
     Item*                addItemDyn (size_t itemInstance, const Tempest::Matrix4x4& pos, size_t owner);
     auto                 takeItem(Item& it) -> std::unique_ptr<Item>;
@@ -174,7 +174,7 @@ class World final {
     void                 addInteractive(Interactive* inter);
     void                 addStartPoint (const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name);
     void                 addFreePoint  (const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name);
-    void                 addSound      (const std::unique_ptr<phoenix::vobs::vob>& vob);
+    void                 addSound      (const std::unique_ptr<phoenix::vob>& vob);
 
     void                 invalidateVobIndex();
 

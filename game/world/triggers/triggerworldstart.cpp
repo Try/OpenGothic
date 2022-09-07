@@ -1,8 +1,10 @@
+#include <phoenix/vobs/trigger.hh>
+
 #include "triggerworldstart.h"
 
 #include "world/world.h"
 
-TriggerWorldStart::TriggerWorldStart(Vob* parent, World &world, const std::unique_ptr<phoenix::vobs::vob>& data, Flags flags)
+TriggerWorldStart::TriggerWorldStart(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& data, Flags flags)
   :AbstractTrigger(parent,world,data,flags){
   fireOnlyFirstTime = ((const phoenix::vobs::trigger_world_start*) data.get())->fire_once;
   }

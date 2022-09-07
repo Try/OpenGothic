@@ -7,11 +7,11 @@
 
 using namespace Tempest;
 
-TriggerList::TriggerList(Vob* parent, World &world, const std::unique_ptr<phoenix::vobs::vob>& d, Flags flags)
+TriggerList::TriggerList(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& d, Flags flags)
   :AbstractTrigger(parent,world,d,flags) {
   auto* list = (const phoenix::vobs::trigger_list*) d.get();
   targets = list->targets;
-  listProcess = list->list_process;
+  listProcess = list->mode;
   }
 
 void TriggerList::onTrigger(const TriggerEvent&) {
@@ -19,7 +19,7 @@ void TriggerList::onTrigger(const TriggerEvent&) {
     return;
 
   switch(listProcess) {
-    case phoenix::trigger_list_process_type::all: {
+    case phoenix::trigger_batch_mode::all: {
       uint64_t offset = 0;
       for(auto& i:targets) {
         offset += uint64_t(i.delay*1000);
@@ -29,7 +29,7 @@ void TriggerList::onTrigger(const TriggerEvent&) {
         }
       break;
       }
-    case phoenix::trigger_list_process_type::next: {
+    case phoenix::trigger_batch_mode::next: {
       auto& i = targets[next];
       next = (next+1)%uint32_t(targets.size());
 
@@ -38,7 +38,7 @@ void TriggerList::onTrigger(const TriggerEvent&) {
       world.execTriggerEvent(ex);
       break;
       }
-    case phoenix::trigger_list_process_type::random: {
+    case phoenix::trigger_batch_mode::random: {
       auto& i = targets[world.script().rand(uint32_t(targets.size()))];
 
       uint64_t time = world.tickCount()+uint64_t(i.delay*1000);

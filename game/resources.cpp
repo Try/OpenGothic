@@ -486,7 +486,7 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(std::string_view name) {
   return nullptr;
   }
 
-ProtoMesh* Resources::implDecalMesh(const phoenix::vobs::vob& vob) {
+ProtoMesh* Resources::implDecalMesh(const phoenix::vob& vob) {
   DecalK key;
   key.mat         = Material(vob);
   key.sX          = vob.visual_decal->dimension.x;
@@ -754,23 +754,23 @@ Dx8::PatternList Resources::loadDxMusic(std::string_view name) {
   return inst->implLoadDxMusic(name);
   }
 
-const ProtoMesh* Resources::decalMesh(const phoenix::vobs::vob& vob) {
+const ProtoMesh* Resources::decalMesh(const phoenix::vob& vob) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implDecalMesh(vob);
   }
 
-std::vector<std::unique_ptr<phoenix::vobs::vob>>& Resources::loadVobBundle(std::string_view name) {
+std::vector<std::unique_ptr<phoenix::vob>>& Resources::loadVobBundle(std::string_view name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadVobBundle(name);
   }
 
-std::vector<std::unique_ptr<phoenix::vobs::vob>>& Resources::implLoadVobBundle(std::string_view filename) {
+std::vector<std::unique_ptr<phoenix::vob>>& Resources::implLoadVobBundle(std::string_view filename) {
   auto cname = std::string(filename);
   auto i     = zenCache.find(cname);
   if(i!=zenCache.end())
     return i->second;
 
-  std::vector<std::unique_ptr<phoenix::vobs::vob>> bundle;
+  std::vector<std::unique_ptr<phoenix::vob>> bundle;
   try {
     phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname);
     if (entry == nullptr) throw;

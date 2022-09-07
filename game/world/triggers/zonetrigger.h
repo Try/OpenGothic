@@ -4,7 +4,7 @@
 
 class ZoneTrigger : public AbstractTrigger {
   public:
-    ZoneTrigger(Vob* parent, World& world, const std::unique_ptr<phoenix::vobs::vob>& data, Flags flags);
+    ZoneTrigger(Vob* parent, World& world, const std::unique_ptr<phoenix::vob>& data, Flags flags);
 
     void onIntersect(Npc& n) override;
 

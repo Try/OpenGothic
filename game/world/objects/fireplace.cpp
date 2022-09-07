@@ -1,6 +1,8 @@
+#include <phoenix/vobs/mob.hh>
+
 #include "fireplace.h"
 
-FirePlace::FirePlace(Vob* parent, World& world, const std::unique_ptr<phoenix::vobs::vob>& vob, Flags flags)
+FirePlace::FirePlace(Vob* parent, World& world, const std::unique_ptr<phoenix::vob>& vob, Flags flags)
   : Interactive(parent,world,vob,flags){
   fireVobtreeName = ((const phoenix::vobs::mob_fire*) vob.get())->vob_tree;
   fireSlot        = ((const phoenix::vobs::mob_fire*) vob.get())->slot;

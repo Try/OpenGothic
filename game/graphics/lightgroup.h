@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Tempest/CommandBuffer>
+#include <phoenix/vobs/light.hh>
 #include <memory>
 
 #include "graphics/dynamic/frustrum.h"
@@ -102,7 +103,7 @@ class LightGroup final {
     const phoenix::vobs::light_preset& findPreset(std::string_view preset) const;
 
     const SceneGlobals&                                       scene;
-    std::vector<std::unique_ptr<phoenix::vobs::light_preset>> presets;
+    std::vector<phoenix::vobs::light_preset> presets;
 
     Tempest::UniformBuffer<Ubo>          uboBuf[Resources::MaxFramesInFlight];
 

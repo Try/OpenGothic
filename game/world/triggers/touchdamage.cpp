@@ -4,7 +4,7 @@
 #include "world/world.h"
 #include "game/serialize.h"
 
-TouchDamage::TouchDamage(Vob* parent, World &world, const std::unique_ptr<phoenix::vobs::vob>& d, Flags flags)
+TouchDamage::TouchDamage(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& d, Flags flags)
   :AbstractTrigger(parent,world,d,flags) {
   auto* dmg = (const phoenix::vobs::touch_damage*) d.get();
   barrier = dmg->barrier;

@@ -6,7 +6,7 @@
 
 using namespace Tempest;
 
-ParticleFx::ParticleFx(const Material& mat, const phoenix::vobs::vob& vob) {
+ParticleFx::ParticleFx(const Material& mat, const phoenix::vob& vob) {
   dbgName          = vob.visual_name;
 
   ppsValue         = -1;
@@ -27,7 +27,7 @@ ParticleFx::ParticleFx(const Material& mat, const phoenix::vobs::vob& vob) {
   visSizeEndScale  = 1;
   visAlphaStart    = 1;
   visAlphaEnd      = 1;
-  visYawAlign      = vob.camera_alignment==1;
+  visYawAlign      = vob.camera_alignment==phoenix::camera_lock_mode::yaw;
   visZBias         = vob.bias!=0;
 
   useEmittersFOR   = true;
