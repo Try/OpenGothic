@@ -215,6 +215,8 @@ const GthFont &Resources::font(Resources::FontType type) {
 
 const GthFont &Resources::font(std::string_view fname, FontType type) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
+
+  if (fname.empty()) return font();
   return inst->implLoadFont(fname,type);
   }
 
