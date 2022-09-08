@@ -464,7 +464,8 @@ void GameScript::saveVar(Serialize &fout) {
   auto& dat = vm.symbols();
   fout.write(uint32_t(dat.size()));
   for(unsigned i = 0; i < dat.size(); ++i){
-    saveSym(fout,*vm.find_symbol_by_index(i));
+    auto* sym = vm.find_symbol_by_index(i);
+    saveSym(fout,*sym);
     }
   }
 
@@ -480,10 +481,16 @@ void GameScript::loadVar(Serialize &fin) {
         fin.read(name);
         auto* s = getSymbol(name.c_str());
 
+        uint32_t size;
+        fin.read(size);
+
         int v;
-        for (unsigned j = 0; j < s->count(); ++j) {
-          fin.read(v);
-          s->set_int(v, j);
+        for (unsigned j = 0; j < size; ++j) {
+
+            fin.read(v);
+            if (s != nullptr && !s->is_member() && !s->is_const()) {
+                s->set_int(v, j);
+            }
         }
 
         break;
@@ -492,10 +499,15 @@ void GameScript::loadVar(Serialize &fin) {
         fin.read(name);
         auto* s = getSymbol(name.c_str());
 
+        uint32_t size;
+        fin.read(size);
+
         float v;
-        for (unsigned j = 0; j < s->count(); ++j) {
-          fin.read(v);
-          s->set_float(v, j);
+        for (unsigned j = 0; j < size; ++j) {
+            fin.read(v);
+            if (s != nullptr && !s->is_member() && !s->is_const()) {
+                s->set_float(v, j);
+            }
         }
 
         break;
@@ -504,10 +516,15 @@ void GameScript::loadVar(Serialize &fin) {
         fin.read(name);
         auto* s = getSymbol(name.c_str());
 
+        uint32_t size;
+        fin.read(size);
+
         std::string v;
-        for (unsigned j = 0; j < s->count(); ++j) {
-          fin.read(v);
-          s->set_string(v, j);
+        for (unsigned j = 0; j < size; ++j) {
+            fin.read(v);
+            if (s != nullptr && !s->is_member() && !s->is_const()) {
+                s->set_string(v, j);
+            }
         }
 
         break;
@@ -561,8 +578,8 @@ void GameScript::saveSym(Serialize &fout, phoenix::daedalus::symbol &i) {
   auto& w = world();
   switch(i.type()) {
     case phoenix::daedalus::dt_integer:
-      if(i.count()>0){
-        fout.write(i.type(), i.name());
+      if(i.count()>0 && !i.is_member() && !i.is_const()){
+        fout.write(i.type(), i.name(), i.count());
 
         for (unsigned j = 0; j < i.count(); ++j)
           fout.write(i.get_int(j));
@@ -570,8 +587,8 @@ void GameScript::saveSym(Serialize &fout, phoenix::daedalus::symbol &i) {
         }
       break;
     case phoenix::daedalus::dt_float:
-      if(i.count()>0){
-        fout.write(i.type(), i.name());
+      if(i.count()>0 && !i.is_member() && !i.is_const()){
+        fout.write(i.type(), i.name(), i.count());
 
         for (unsigned j = 0; j < i.count(); ++j)
           fout.write(i.get_float(j));
@@ -579,8 +596,8 @@ void GameScript::saveSym(Serialize &fout, phoenix::daedalus::symbol &i) {
         }
       break;
     case phoenix::daedalus::dt_string:
-      if(i.count()>0){
-        fout.write(i.type(), i.name());
+      if(i.count()>0 && !i.is_member() && !i.is_const()){
+        fout.write(i.type(), i.name(), i.count());
 
         for (unsigned j = 0; j < i.count(); ++j)
           fout.write(i.get_string(j));

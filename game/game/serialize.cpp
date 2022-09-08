@@ -276,12 +276,12 @@ void Serialize::implWrite(const phoenix::daedalus::c_npc& h) {
   write(h.wp,h.exp,h.exp_next,h.lp,h.bodystate_interruptable_override,h.no_focus);
   }
 
-std::shared_ptr<phoenix::daedalus::c_npc> Serialize::readNpc(phoenix::daedalus::vm& vm) {
+void Serialize::readNpc(phoenix::daedalus::vm& vm, std::shared_ptr<phoenix::daedalus::c_npc>& h) {
   uint32_t instanceSymbol=0;
   read(instanceSymbol);
 
   auto sym = vm.find_symbol_by_index(instanceSymbol);
-  auto h = vm.init_instance<phoenix::daedalus::c_npc>(sym);
+  vm.init_instance(h, sym);
 
   read(h->id,h->name,h->slot,h->effect, reinterpret_cast<int32_t&>(h->type));
   read(reinterpret_cast<int32_t&>(h->flags));
@@ -293,7 +293,6 @@ std::shared_ptr<phoenix::daedalus::c_npc> Serialize::readNpc(phoenix::daedalus::
   read(h->spawnpoint,h->spawn_delay,h->senses,h->senses_range);
   read(h->aivar);
   read(h->wp,h->exp,h->exp_next,h->lp,h->bodystate_interruptable_override,h->no_focus);
-  return h;
   }
 
 void Serialize::implWrite(const FpLock &fp) {

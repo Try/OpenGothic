@@ -13,4 +13,4 @@
 [submodule "lib/phoenix"]
 	path = lib/phoenix
 	url = https://github.com/lmichaelis/phoenix.git
-	branch = feature/vm-execution-flags
+	branch = main

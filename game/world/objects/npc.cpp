@@ -94,7 +94,9 @@ struct Npc::TransformBack {
     }
 
   TransformBack(Npc& owner, phoenix::daedalus::vm& vm, Serialize& fin) {
-    hnpc = fin.readNpc(vm);
+    hnpc = std::make_shared<phoenix::daedalus::c_npc>();
+    hnpc->user_ptr        = this;
+    fin.readNpc(vm, hnpc);
     invent.load(fin,owner);
     fin.read(talentsSk,talentsVl);
     fin.read(body,head,vHead,vTeeth,vColor,bdColor);
@@ -223,7 +225,10 @@ void Npc::save(Serialize &fout, size_t id) {
 
 void Npc::load(Serialize &fin, size_t id) {
   fin.setEntry("worlds/",fin.worldName(),"/npc/",id,"/data");
-  hnpc = fin.readNpc(owner.script().getVm());
+
+  hnpc = std::make_shared<phoenix::daedalus::c_npc>();
+  hnpc->user_ptr        = this;
+  fin.readNpc(owner.script().getVm(), hnpc);
   fin.read(body,head,vHead,vTeeth,bdColor,vColor,bdFatness);
 
   auto* sym = owner.script().getSymbol(hnpc->symbol_index());

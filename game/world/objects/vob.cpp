@@ -241,7 +241,10 @@ void Vob::load(Serialize& fin) {
   auto type = uint8_t(vobType);
   uint8_t savValue;
   fin.read(savValue,pos,local);
-  if(savValue!=type)
-    throw std::logic_error("inconsistent *.sav vs world");
+
+  if (fin.version() > 38) {
+      if(savValue!=type)
+          throw std::logic_error("inconsistent *.sav vs world");
+  }
   moveEvent();
   }

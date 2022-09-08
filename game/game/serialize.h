@@ -33,7 +33,7 @@ class SaveGameHeader;
 class Serialize {
   public:
     enum Version : uint16_t {
-      Current = 38
+      Current = 39
       };
     Serialize(Tempest::ODevice& fout);
     Serialize(Tempest::IDevice&  fin);
@@ -80,7 +80,7 @@ class Serialize {
       (void)dummy;
       }
 
-    std::shared_ptr<phoenix::daedalus::c_npc> readNpc(phoenix::daedalus::vm& vm);
+    void readNpc(phoenix::daedalus::vm& vm, std::shared_ptr<phoenix::daedalus::c_npc>& npc);
   private:
     Serialize();
 
