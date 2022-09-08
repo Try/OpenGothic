@@ -24,7 +24,7 @@ class ProtoMesh {
     ProtoMesh(PackedMesh&&  pm, const std::string& fname);
     ProtoMesh(PackedMesh&&  pm, const std::vector<phoenix::morph_animation>& aniList, const std::string& fname);
     ProtoMesh(const phoenix::model& lib, std::unique_ptr<Skeleton>&& sk, const std::string& fname);
-    ProtoMesh(const phoenix::model_hierachy& lib, std::unique_ptr<Skeleton>&& sk, const std::string& fname);
+    ProtoMesh(const phoenix::model_hierarchy& lib, std::unique_ptr<Skeleton>&& sk, const std::string& fname);
     ProtoMesh(const phoenix::model_mesh& lib, std::unique_ptr<Skeleton>&& sk, const std::string& fname);
     ProtoMesh(const Material& mat, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo); //decals
     ProtoMesh(ProtoMesh&&)=delete;

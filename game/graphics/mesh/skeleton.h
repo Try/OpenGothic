@@ -11,7 +11,7 @@
 
 class Skeleton final {
   public:
-    Skeleton(const phoenix::model_hierachy& src, const Animation* anim, std::string_view name);
+    Skeleton(const phoenix::model_hierarchy& src, const Animation* anim, std::string_view name);
 
     struct Node final {
       size_t             parent=size_t(-1);

@@ -169,7 +169,7 @@ ProtoMesh::ProtoMesh(const phoenix::model &library, std::unique_ptr<Skeleton>&& 
   setupScheme(fname);
   }
 
-ProtoMesh::ProtoMesh(const phoenix::model_hierachy& library, std::unique_ptr<Skeleton>&& sk, const std::string& fname)
+ProtoMesh::ProtoMesh(const phoenix::model_hierarchy& library, std::unique_ptr<Skeleton>&& sk, const std::string& fname)
       :skeleton(std::move(sk)), fname(fname) {
 
   nodes.resize(skeleton == nullptr ? 0 : skeleton->nodes.size());

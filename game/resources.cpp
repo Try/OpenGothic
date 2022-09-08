@@ -400,7 +400,7 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(mesh);
     if (entry == nullptr) throw;
     auto reader = entry->open();
-    auto mdh = phoenix::model_hierachy::parse(reader);
+    auto mdh = phoenix::model_hierarchy::parse(reader);
 
     std::unique_ptr<Skeleton> sk{new Skeleton(mdh,anim,name)};
     std::unique_ptr<ProtoMesh> t;
@@ -435,7 +435,7 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
       auto reader = entry->open();
       auto mdm = phoenix::model::parse(reader);
 
-      std::unique_ptr<Skeleton> sk{new Skeleton(mdm.hierachy(),nullptr,name)};
+      std::unique_ptr<Skeleton> sk{new Skeleton(mdm.hierarchy(),nullptr,name)};
       std::unique_ptr<ProtoMesh> t{new ProtoMesh(mdm,std::move(sk),name)};
       return t;
     }
