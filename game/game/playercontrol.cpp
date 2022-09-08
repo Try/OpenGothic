@@ -822,7 +822,14 @@ void PlayerControl::processPickLock(Npc& pl, Interactive& inter, KeyCodec::Actio
     return;
 
   auto cmp = inter.pickLockCode();
-  if(pickLockProgress<cmp.size() && cmp[pickLockProgress]!=ch) {
+  while(pickLockProgress<cmp.size()) {
+    auto c = cmp[pickLockProgress];
+    if(c=='l' || c=='L' || c=='r' || c=='R')
+      break;
+    ++pickLockProgress;
+    }
+
+  if(pickLockProgress<cmp.size() && std::toupper(cmp[pickLockProgress])!=ch) {
     pickLockProgress = 0;
     const int32_t dex = pl.attribute(ATR_DEXTERITY);
     if(dex<int32_t(script.rand(100)))  {
@@ -837,7 +844,7 @@ void PlayerControl::processPickLock(Npc& pl, Interactive& inter, KeyCodec::Actio
       }
     } else {
     pickLockProgress++;
-    if(pickLockProgress==cmp.size()) {
+    if(pickLockProgress>=cmp.size()) {
       script.invokePickLock(pl,1,1);
       inter.setAsCracked(true);
       pickLockProgress = 0;
