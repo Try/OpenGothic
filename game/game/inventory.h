@@ -70,7 +70,7 @@ class Inventory final {
     Item*  addItem(std::string_view name, size_t count, World &owner);
     Item*  addItem(size_t cls, size_t count, World &owner);
     void   delItem(size_t cls, size_t count, Npc &owner);
-    bool   use    (size_t cls, Npc &owner, bool force);
+    bool   use    (size_t cls, Npc &owner, uint8_t slotHint, bool force);
     bool   equip  (size_t cls, Npc &owner, bool force);
     bool   unequip(size_t cls, Npc &owner);
     void   unequip(Item*  cls, Npc &owner);
@@ -128,7 +128,7 @@ class Inventory final {
     void   implPutState(Npc& owner, size_t cls, std::string_view slot);
 
     bool   setSlot     (Item*& slot, Item *next, Npc &owner, bool force);
-    bool   equipNumSlot(Item *next, Npc &owner, bool force);
+    bool   equipNumSlot(Item *next, uint8_t slotHint, Npc &owner, bool force);
     void   applyArmour (Item& it, Npc &owner, int32_t sgn);
 
     Item*  findByClass(size_t cls);

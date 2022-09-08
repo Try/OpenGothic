@@ -317,7 +317,13 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
     onTakeStuff();
     }
   else if (keycodec.tr(e)==KeyCodec::ActionGeneric) {
-    onItemAction();
+    onItemAction(Item::NSLOT);
+    }
+  else if((KeyEvent::K_3<=e.key && e.key<=KeyEvent::K_9) || e.key==KeyEvent::K_0) {
+    uint8_t slot = 10;
+    if((KeyEvent::K_3<=e.key && e.key<=KeyEvent::K_9))
+      slot = (e.key-KeyEvent::K_0);
+    onItemAction(slot);
     }
   else if(e.key==KeyEvent::K_ESCAPE || keycodec.tr(e)==KeyCodec::Inventory){
     close();
@@ -350,7 +356,7 @@ void InventoryMenu::mouseDownEvent(MouseEvent &e) {
     return;
 
   if (e.button==MouseEvent::ButtonLeft)
-    onItemAction();
+    onItemAction(Item::NSLOT);
   else if (e.button==MouseEvent::ButtonRight)
     close();
 
@@ -438,7 +444,7 @@ InventoryMenu::PageLocal &InventoryMenu::activePageSel() {
   return pageLocal[1];
   }
   
-void InventoryMenu::onItemAction() { 
+void InventoryMenu::onItemAction(uint8_t slotHint) {
   auto& page = activePage();
   auto& sel  = activePageSel();
 
@@ -448,10 +454,10 @@ void InventoryMenu::onItemAction() {
 
   if(state==State::Equip) {
     const size_t clsId = it->clsId();
-    if(it.isEquiped()) {
+    if(it.isEquiped() && slotHint==Item::NSLOT) {
       player->unequipItem(clsId);
       } else {
-      player->useItem(clsId);
+      player->useItem(clsId,slotHint,false);
       auto it2 = page.get(sel.sel);
       if((!it2.isValid() || it2->clsId()!=clsId) && sel.sel>0)
         --sel.sel;

@@ -325,7 +325,8 @@ class Npc final {
     Item*     takeItem   (Item& i);
     void      onWldItemRemoved(const Item& itm);
     void      delItem    (size_t id, uint32_t amount);
-    void      useItem    (size_t item, bool force=false);
+    void      useItem    (size_t item);
+    void      useItem    (size_t item, uint8_t slotHint, bool force);
     void      setCurrentItem(size_t item);
     void      unequipItem(size_t item);
     void      addItem    (size_t id, Interactive& chest, size_t count=1);
