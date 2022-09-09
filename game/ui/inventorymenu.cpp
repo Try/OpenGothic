@@ -322,7 +322,7 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
   else if((KeyEvent::K_3<=e.key && e.key<=KeyEvent::K_9) || e.key==KeyEvent::K_0) {
     uint8_t slot = 10;
     if((KeyEvent::K_3<=e.key && e.key<=KeyEvent::K_9))
-      slot = (e.key-KeyEvent::K_0);
+      slot = uint8_t(e.key-KeyEvent::K_0);
     onItemAction(slot);
     }
   else if(e.key==KeyEvent::K_ESCAPE || keycodec.tr(e)==KeyCodec::Inventory){
