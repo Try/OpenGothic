@@ -93,11 +93,11 @@ void Ikarus::mem_replacefunc(int dest, int func) {
   auto* sf      = vm.find_symbol_by_index(func);
   auto* sd      = vm.find_symbol_by_index(dest);
 
-  if(sf->type() == phoenix::daedalus::dt_function) {
+  if(sf->type() != phoenix::daedalus::dt_function) {
     Log::e("mem_replacefunc: invalid function ptr");
     return;
     }
-  if(sd->type() == phoenix::daedalus::dt_function) {
+  if(sd->type() != phoenix::daedalus::dt_function) {
     Log::e("mem_replacefunc: invalid function ptr");
     return;
     }
@@ -110,13 +110,13 @@ void Ikarus::mem_replacefunc(int dest, int func) {
 
 void Ikarus::mem_printstacktrace_implementation() {
   Log::e("[start of stacktrace]");
-  // TODO: add getter for callstack in the vm
+  vm.print_stack_trace();
   Log::e("[end of stacktrace]");
   }
 
 int Ikarus::mem_getfuncptr(int func) {
   auto* sym  = vm.find_symbol_by_index(size_t(func));
-  if(sym->type() == phoenix::daedalus::dt_function) {
+  if(sym->type() != phoenix::daedalus::dt_function) {
     Log::e("mem_getfuncptr: invalid function ptr");
     return 0;
     }
