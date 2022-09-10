@@ -363,7 +363,7 @@ void ObjectsBucket::uboSetSkeleton(Descriptors& v, uint8_t fId) {
 void ObjectsBucket::uboSetDynamic(Descriptors& v, Object& obj, uint8_t fId) {
   auto& ubo = v.ubo[fId][SceneGlobals::V_Main];
 
-  if(mat.frames.size()!=0) {
+  if(mat.frames.size()!=0 && mat.texAniFPSInv != 0) {
     auto frame = size_t((obj.timeShift+scene.tickCount)/mat.texAniFPSInv);
     auto t = mat.frames[frame%mat.frames.size()];
     ubo.set(L_Diffuse, *t);
