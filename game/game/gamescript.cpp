@@ -9,7 +9,6 @@
 
 #include "game/definitions/spelldefinitions.h"
 #include "game/serialize.h"
-#include "game/globaleffects.h"
 #include "game/compatibility/ikarus.h"
 #include "game/compatibility/lego.h"
 #include "world/objects/npc.h"
@@ -1598,7 +1597,7 @@ void GameScript::mdl_setvisualbody(std::shared_ptr<phoenix::daedalus::c_npc> npc
   if(armor>=0) {
     if(npc->itemCount(uint32_t(armor))==0)
       npc->addItem(uint32_t(armor),1);
-    npc->useItem(uint32_t(armor),true);
+    npc->useItem(uint32_t(armor),Item::NSLOT,true);
     }
   }
 
@@ -2861,7 +2860,7 @@ void GameScript::equipitem(std::shared_ptr<phoenix::daedalus::c_npc> npcRef, int
   if(self!=nullptr) {
     if(self->itemCount(cls)==0)
       self->addItem(cls,1);
-    self->useItem(cls,true);
+    self->useItem(cls,Item::NSLOT,true);
     }
   }
 

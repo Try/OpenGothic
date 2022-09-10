@@ -34,18 +34,20 @@ class SceneGlobals final {
     const Tempest::Matrix4x4& viewProject() const;
     const Tempest::Matrix4x4& viewProjectInv() const;
     const Tempest::Matrix4x4& viewShadow(uint8_t view) const;
+    const Tempest::Vec3       clipInfo() const;
 
     uint64_t                          tickCount = 0;
     const Tempest::Texture2d*         shadowMap[2] = {};
 
     Tempest::Matrix4x4                view, proj;
 
-    const Tempest::Texture2d*         lightingBuf = &Resources::fallbackBlack();
-    const Tempest::Texture2d*         gbufDiffuse = &Resources::fallbackBlack();
-    const Tempest::Texture2d*         gbufNormals = &Resources::fallbackBlack();
-    const Tempest::Texture2d*         gbufDepth   = &Resources::fallbackBlack();
-    const Tempest::Texture2d*         hiZ         = &Resources::fallbackTexture();
-    const Tempest::Texture2d*         skyLut      = &Resources::fallbackTexture();
+    const Tempest::Texture2d*         gbufEmission = &Resources::fallbackBlack();
+    const Tempest::Texture2d*         gbufDiffuse  = &Resources::fallbackBlack();
+    const Tempest::Texture2d*         gbufNormals  = &Resources::fallbackBlack();
+    const Tempest::Texture2d*         gbufDepth    = &Resources::fallbackBlack();
+
+    const Tempest::Texture2d*         hiZ          = &Resources::fallbackTexture();
+    const Tempest::Texture2d*         skyLut       = &Resources::fallbackTexture();
 
     const Tempest::AccelerationStructure* tlas = nullptr;
 

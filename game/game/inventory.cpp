@@ -745,9 +745,13 @@ void Inventory::setStateItem(size_t cls) {
   stateItem = int32_t(cls);
   }
 
-bool Inventory::equipNumSlot(Item *next, Npc &owner, bool force) {
-  for(auto& i:numslot){
-    if(i==nullptr){
+bool Inventory::equipNumSlot(Item *next, uint8_t slotHint, Npc &owner, bool force) {
+  if(slotHint!=Item::NSLOT) {
+    return setSlot(numslot[slotHint-3],next,owner,force);
+    }
+
+  for(auto& i:numslot) {
+    if(i==nullptr) {
       setSlot(i,next,owner,force);
       return true;
       }
@@ -762,7 +766,7 @@ void Inventory::applyArmour(Item &it, Npc &owner, int32_t sgn) {
     }
   }
 
-bool Inventory::use(size_t cls, Npc &owner, bool force) {
+bool Inventory::use(size_t cls, Npc &owner, uint8_t slotHint, bool force) {
   Item* it=findByClass(cls);
   if(it==nullptr)
     return false;
@@ -778,9 +782,11 @@ bool Inventory::use(size_t cls, Npc &owner, bool force) {
     return setSlot(range,it,owner,force);
 
   if(mainflag & ITM_CAT_RUNE) {
-    if(it->isEquiped())
+    if(it->isEquiped() && slotHint==it->slot())
       return false;
-    return equipNumSlot(it,owner,force);
+    if(it->isEquiped())
+      unequip(it,owner);
+    return equipNumSlot(it,slotHint,owner,force);
     }
 
   if(mainflag & ITM_CAT_ARMOR)
@@ -831,7 +837,7 @@ bool Inventory::equip(size_t cls, Npc &owner, bool force) {
   Item* it=findByClass(cls);
   if(it==nullptr || it->isEquiped())
     return false;
-  return use(cls,owner,force);
+  return use(cls,owner,Item::NSLOT,force);
   }
 
 void Inventory::invalidateCond(Npc &owner) {
@@ -872,7 +878,7 @@ void Inventory::equipArmour(int32_t cls, Npc &owner) {
     return;
   if(uint32_t(it->mainFlag()) & ITM_CAT_ARMOR){
     if(!it->isEquiped())
-      use(size_t(cls),owner,true);
+      use(size_t(cls),owner,Item::NSLOT,true);
     }
   }
 

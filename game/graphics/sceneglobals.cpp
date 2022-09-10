@@ -124,3 +124,7 @@ const Tempest::Matrix4x4& SceneGlobals::viewProjectInv() const {
 const Tempest::Matrix4x4& SceneGlobals::viewShadow(uint8_t view) const {
   return uboGlobal.viewShadow[view];
   }
+
+const Tempest::Vec3 SceneGlobals::clipInfo() const {
+  return uboGlobal.clipInfo;
+  }

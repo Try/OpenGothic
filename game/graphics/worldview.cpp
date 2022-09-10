@@ -12,9 +12,8 @@
 using namespace Tempest;
 
 WorldView::WorldView(const World& world, const PackedMesh& wmesh)
-  : owner(world),sky(sGlobal),visuals(sGlobal,wmesh.bbox()),
+  : owner(world),sky(sGlobal,world,wmesh.bbox()),visuals(sGlobal,wmesh.bbox()),
     objGroup(visuals),pfxGroup(*this,sGlobal,visuals),land(visuals,wmesh) {
-  sky.setWorld(owner,wmesh.bbox());
   pfxGroup.resetTicks();
   if(Gothic::inst().doRayQuery())
     tlasLand = Resources::device().tlas({{Matrix4x4::mkIdentity(),0,&land.rt.blas}});
@@ -65,10 +64,9 @@ void WorldView::preFrameUpdate(const Matrix4x4& view, const Matrix4x4& proj,
   visuals .preFrameUpdate(fId);
   }
 
-void WorldView::setGbuffer(const Texture2d& lightingBuf, const Texture2d& diffuse,
+void WorldView::setGbuffer(const Texture2d& emission, const Texture2d& diffuse,
                            const Texture2d& norm, const Texture2d& depth,
-                           const Texture2d* sh[],
-                           const Texture2d& hiZ) {
+                           const Texture2d* sh[], const Texture2d& hiZ) {
   const Texture2d* shadow[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
     if(sh[i]==nullptr || sh[i]->isEmpty())
@@ -77,12 +75,12 @@ void WorldView::setGbuffer(const Texture2d& lightingBuf, const Texture2d& diffus
 
   // wait before update all descriptors
   Resources::device().waitIdle();
-  sGlobal.lightingBuf = &lightingBuf;
-  sGlobal.gbufDiffuse = &diffuse;
-  sGlobal.gbufNormals = &norm;
-  sGlobal.gbufDepth   = &depth;
-  sGlobal.hiZ         = &hiZ;
-  sGlobal.skyLut      = &sky.skyLut();
+  sGlobal.gbufEmission = &emission;
+  sGlobal.gbufDiffuse  = &diffuse;
+  sGlobal.gbufNormals  = &norm;
+  sGlobal.gbufDepth    = &depth;
+  sGlobal.hiZ          = &hiZ;
+  sGlobal.skyLut       = &sky.skyLut();
   //sGlobal.tlas        = &tlas;
   sGlobal.setShadowMap(shadow);
   sGlobal.setResolution(uint32_t(diffuse.w()),uint32_t(diffuse.h()));

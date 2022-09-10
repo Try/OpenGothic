@@ -56,7 +56,7 @@ class Renderer final {
 
     Tempest::ZBuffer          zbuffer, zbufferItem, shadowMap[Resources::ShadowLayers];
 
-    Tempest::Attachment       lightingBuf;
+    Tempest::Attachment       gbufEmission;
     Tempest::Attachment       gbufDiffuse;
     Tempest::Attachment       gbufNormal;
     Tempest::Attachment       gbufDepth;

@@ -1,10 +1,11 @@
 #include "../common.glsl"
+#include "../tonemapping.glsl"
 
 const float g        = 0.8;          // light concentration .76 //.45 //.6  .45 is normaL
 
 // Table 1: Coefficients of the different participating media compo-nents constituting the Earth’s atmosphere
 // These are per megameter.
-const vec3  rayleighScatteringBase = vec3(5.802, 13.558, 33.1) / 1e6;
+const vec3  rayleighScatteringBase = vec3(0.175, 0.409, 1.0) / 1e6;
 const float rayleighAbsorptionBase = 0.0;
 
 const float mieScatteringBase      = 3.996 / 1e6;
@@ -13,15 +14,18 @@ const float mieAbsorptionBase      = 4.40  / 1e6;
 // NOTE: Ozone does not contribute to scattering; it only absorbs light.
 const vec3  ozoneAbsorptionBase    = vec3(0.650, 1.881, .085) / 1e6;
 
-const float fogFarDistance         = 1000.0;
+const float maxDepth = 0.4;
 
-layout(push_constant, std140) uniform UboPush {
+layout(push_constant, std430) uniform UboPush {
   mat4  viewProjectInv;
   vec2  dxy0;
   vec2  dxy1;
   vec3  sunDir;
   float night;
+  vec3  clipInfo;
   float plPosY;
+  float rayleighScatteringScale;
+  float GSunIntensity;
   } push;
 
 vec3 inverse(vec3 pos) {
@@ -35,24 +39,6 @@ vec4 mixClr(vec4 s, vec4 d) {
     return vec4(0);
   vec3  c  = ((1-s.a)*d.a*d.rgb+s.a*s.rgb)/a;
   return vec4(c,a);
-  }
-
-// based on: https://developer.amd.com/wordpress/media/2012/10/Wenzel-Real-time_Atmospheric_Effects_in_Games.pdf
-float volumetricFog(in vec3 pos, in vec3 cameraToWorldPos) {
-  // Fog props
-  const float fogHeightDensityAtViewer = 0.5;
-  const float globalDensity            = 0.005;
-  const float heightFalloff            = 0.02;
-
-  // float fogHeightDensityAtViewer = exp(-heightFalloff * pos.z);
-  float fogInt = length(cameraToWorldPos) * fogHeightDensityAtViewer;
-  if(abs(cameraToWorldPos.y) > 0.01) {
-    float t = heightFalloff*cameraToWorldPos.y;
-    fogInt *= (1.0-exp(-t))/t;
-    }
-
-  float  T = exp(-globalDensity*fogInt);
-  return 1.0 - T;
   }
 
 float miePhase(float cosTheta) {
@@ -109,16 +95,7 @@ void scatteringValues(vec3 pos,
   float mieDensity         = exp(-altitudeKM/1.2);
   float ozoneDistribution  = max(0.0, 1.0 - abs(altitudeKM-25.0)/15.0);
 
-  /*
-  float cld = 0;
-  if(5.0 < altitudeKM && altitudeKM < 8.0) {
-    cld = 1.0;//cloud(pos+vec3(23175.7, 0.,-t*3e3), t);
-    cld *= sin(3.1415*(altitudeKM-5.0)/5.0);// * cloudy;
-    mieDensity += cld;
-    }
-  */
-
-  rayleighScattering       = rayleighScatteringBase*rayleighDensity;
+  rayleighScattering       = rayleighScatteringBase*rayleighDensity*push.rayleighScatteringScale;
   float rayleighAbsorption = rayleighAbsorptionBase*rayleighDensity;
 
   mieScattering            = (mieScatteringBase/*+0.02*/)*mieDensity;
