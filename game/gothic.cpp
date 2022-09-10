@@ -434,8 +434,8 @@ void Gothic::implStartLoadSave(std::string_view banner,
         Tempest::Log::e("loading error: bad_function_call");
         loadingFlag.compare_exchange_strong(curState,err);
         }
-      catch(...) {
-        Tempest::Log::e("loading error");
+      catch(const std::exception&e) {
+        Tempest::Log::e("loading error: ", e.what());
         loadingFlag.compare_exchange_strong(curState,err);
         }
       if(curState==LoadState::Saving) {

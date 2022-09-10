@@ -158,7 +158,7 @@ std::vector<uint8_t> Resources::getFileData(std::string_view name) {
 phoenix::buffer Resources::getFileBuffer(std::string_view name) {
   phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
   if (entry == nullptr)
-    throw;
+    throw std::runtime_error("failed to open resource: " + std::string{name});
   return entry->open();
 }
 
@@ -364,7 +364,8 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     FileExt::exchangeExt(name,"MMS","MMB");
 
     phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
-    if (entry == nullptr) throw;
+    if (entry == nullptr)
+        throw std::runtime_error("failed to open resource: " + name);
     auto reader = entry->open();
     auto zmm = phoenix::morph_mesh::parse(reader);
 
@@ -398,7 +399,8 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     FileExt::assignExt(mesh,"MDH");
 
     phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(mesh);
-    if (entry == nullptr) throw;
+    if (entry == nullptr)
+        std::runtime_error("failed to open resource: " + mesh);
     auto reader = entry->open();
     auto mdh = phoenix::model_hierarchy::parse(reader);
 
@@ -431,7 +433,8 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
         return nullptr;
 
       phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
-      if (entry == nullptr) throw;
+      if (entry == nullptr)
+          throw std::runtime_error("failed to open resource: " + name);
       auto reader = entry->open();
       auto mdm = phoenix::model::parse(reader);
 
@@ -477,7 +480,8 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(std::string_view name) {
       return nullptr;
 
     phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname);
-    if (entry == nullptr) throw;
+    if (entry == nullptr)
+        throw std::runtime_error("failed to open resource: " + cname);
     auto reader = entry->open();
     auto mdm = phoenix::model_mesh::parse(reader);
 
@@ -629,7 +633,8 @@ GthFont &Resources::implLoadFont(std::string_view name, FontType type) {
     }
 
     phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(fnt);
-    if (entry == nullptr) throw;
+    if (entry == nullptr)
+        throw std::runtime_error("failed to open resource: " + std::string{fnt});
 
   auto ptr   = std::make_unique<GthFont>(entry->open(),tex,color);
   GthFont* f = ptr.get();
@@ -775,7 +780,8 @@ std::vector<std::unique_ptr<phoenix::vob>>& Resources::implLoadVobBundle(std::st
   std::vector<std::unique_ptr<phoenix::vob>> bundle;
   try {
     phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname);
-    if (entry == nullptr) throw;
+    if (entry == nullptr)
+        throw std::runtime_error("failed to open resource: " + cname);
     auto reader = entry->open();
     auto wrld = phoenix::world::parse(reader, Gothic::inst().version().game==1 ? phoenix::game_version::gothic_1
                                                                                : phoenix::game_version::gothic_2);
