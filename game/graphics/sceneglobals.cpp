@@ -67,6 +67,15 @@ void SceneGlobals::setViewProject(const Tempest::Matrix4x4& v, const Tempest::Ma
 
   uboGlobal.camPos = Tempest::Vec3(0,0,1);
   uboGlobal.viewProjectInv.project(uboGlobal.camPos);
+
+  Tempest::Vec3 min = {0,0.75,0}, max = {0, 0.75f, 0.9f};
+  auto inv = uboGlobal.viewShadow[0]; inv.inverse();
+  inv.project(min);
+  inv.project(max);
+
+  uboGlobal.viewShadow[1].project(min);
+  uboGlobal.viewShadow[1].project(max);
+  uboGlobal.closeupShadowSlice = Tempest::Vec2(min.z,max.z);
   }
 
 void SceneGlobals::setTime(uint64_t time) {

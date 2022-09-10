@@ -65,6 +65,7 @@ class SceneGlobals final {
       Tempest::Vec3                   camPos;
       float                           padd2 = 0;
       Tempest::Vec2                   screenResInv;
+      Tempest::Vec2                   closeupShadowSlice;
       };
 
     Tempest::UniformBuffer<UboGlobal> uboGlobalPf[Resources::MaxFramesInFlight][V_Count];

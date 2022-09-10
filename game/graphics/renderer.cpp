@@ -268,7 +268,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     if(shadowMap[i].isEmpty())
       continue;
     cmd.setFramebuffer({}, {shadowMap[i], 0.f, Tempest::Preserve});
-    if(wview->mainLight().dir().y>0)
+    if(wview->mainLight().dir().y>0.05)
       wview->drawShadow(cmd,cmdId,i);
     }
 

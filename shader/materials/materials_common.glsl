@@ -144,6 +144,7 @@ layout(binding = L_Scene, std140) uniform UboScene {
   vec3  camPos;
   // float padd2;
   vec2  screenResInv;
+  vec2  closeupShadowSlice;
   } scene;
 
 #if defined(LVL_OBJECT) && (defined(VERTEX) || defined(MESH) || defined(TASK))

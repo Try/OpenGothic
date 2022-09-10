@@ -36,16 +36,31 @@ float shadowResolve(in vec4 sh, float z) {
   }
 
 float calcShadow(vec3 shPos0, vec3 shPos1) {
-  vec4  lay0 = shadowSample(textureSm0,shPos0.xy);
-  vec4  lay1 = shadowSample(textureSm1,shPos1.xy);
+  vec4  lay0   = shadowSample(textureSm0,shPos0.xy);
+  vec4  lay1   = shadowSample(textureSm1,shPos1.xy);
 
-  float v0   = shadowResolve(lay0,shPos0.z);
-  float v1   = shadowResolve(lay1,shPos1.z);
+  //float v0     = shadowResolve(lay0,shPos0.z);
+  //float v1     = shadowResolve(lay1,shPos1.z);
 
-  if(abs(shPos0.x)<1.0 && abs(shPos0.y)<1.0 && ((0.45<lay1.x && lay1.x<0.55) || lay1.x==0))
-    return v0;
-  if(abs(shPos1.x)<1.0 && abs(shPos1.y)<1.0)
-    return v1;
+  vec2  minMax = scene.closeupShadowSlice;
+  bool  inSm0  = abs(shPos0.x)<1.0 && abs(shPos0.y)<1.0;
+  bool  inSm1  = abs(shPos1.x)<1.0 && abs(shPos1.y)<1.0;
+
+  //if(abs(shPos0.x)<1.0 && abs(shPos0.y)<1.0 && (0<shPos0.z && shPos0.z<1))
+  //if(inSm1 && (!(minMax[0]<lay1.x && lay1.x<minMax[1]) || !inSm0))
+  //  return shadowResolve(lay1,shPos1.z);
+  //if(inSm0)
+  //  return shadowResolve(lay0,shPos0.z);
+
+  // if(inSm0 && (lay1.x<minMax[1]) || (lay1.x==0 || lay1.y==0 || lay1.z==0 || lay1.w==0))
+  //   return shadowResolve(lay0,shPos0.z);
+  // if(inSm1)
+  //   return shadowResolve(lay1,shPos1.z);
+
+  if(inSm0 && lay1.x<minMax[1])
+    return shadowResolve(lay0,shPos0.z);
+  if(inSm1)
+    return shadowResolve(lay1,shPos1.z);
   return 1.0;
   }
 
