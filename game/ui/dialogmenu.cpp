@@ -84,8 +84,12 @@ void DialogMenu::tick(uint64_t dt) {
 
   if(current.time<=dt){
     current.time = 0;
-    if(dlgTrade && !haveToWaitOutput())
+    if(dlgTrade && !haveToWaitOutput()) {
       startTrade();
+      }
+    else if(choise.size()==0 && !haveToWaitOutput()) {
+      close();
+      }
     } else {
     current.time-=dt;
     }
