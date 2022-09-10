@@ -1811,7 +1811,7 @@ bool GameScript::npc_refusetalk(std::shared_ptr<phoenix::daedalus::c_npc> npcRef
   return npc && npc->isRefuseTalk();
   }
 
-bool GameScript::npc_hasitems(std::shared_ptr<phoenix::daedalus::c_npc> npcRef, int itemId) {
+int GameScript::npc_hasitems(std::shared_ptr<phoenix::daedalus::c_npc> npcRef, int itemId) {
   auto npc = getNpc(npcRef);
   return npc!=nullptr ? npc->itemCount(itemId) : 0;
   }

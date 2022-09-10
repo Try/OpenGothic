@@ -250,7 +250,7 @@ class GameScript final {
     int  npc_gettalentvalue  (std::shared_ptr<phoenix::daedalus::c_npc> npcRef, int skillId);
     void npc_setrefusetalk   (std::shared_ptr<phoenix::daedalus::c_npc> npcRef, int timeSec);
     bool npc_refusetalk      (std::shared_ptr<phoenix::daedalus::c_npc> npcRef);
-    bool npc_hasitems        (std::shared_ptr<phoenix::daedalus::c_npc> npcRef, int itemId);
+    int  npc_hasitems        (std::shared_ptr<phoenix::daedalus::c_npc> npcRef, int itemId);
     int  npc_getinvitem      (std::shared_ptr<phoenix::daedalus::c_npc> npcRef, int itemId);
     int  npc_removeinvitem   (std::shared_ptr<phoenix::daedalus::c_npc> npcRef, int itemId);
     int  npc_removeinvitems  (std::shared_ptr<phoenix::daedalus::c_npc> npcRef, int itemId, int amount);
