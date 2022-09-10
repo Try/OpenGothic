@@ -1962,7 +1962,7 @@ int GameScript::npc_getheighttonpc(std::shared_ptr<phoenix::daedalus::c_npc> aRe
 
 std::shared_ptr<phoenix::daedalus::c_item> GameScript::npc_getequippedmeleeweapon(std::shared_ptr<phoenix::daedalus::c_npc> npcRef) {
   auto npc = getNpc(npcRef);
-  if(npc!=nullptr){
+  if(npc!=nullptr && npc->currentMeleWeapon() != nullptr){
     return npc->currentMeleWeapon()->handle();
     }
   return nullptr;
@@ -1970,7 +1970,7 @@ std::shared_ptr<phoenix::daedalus::c_item> GameScript::npc_getequippedmeleeweapo
 
 std::shared_ptr<phoenix::daedalus::c_item> GameScript::npc_getequippedrangedweapon(std::shared_ptr<phoenix::daedalus::c_npc> npcRef) {
   auto npc = getNpc(npcRef);
-  if(npc!=nullptr){
+  if(npc!=nullptr && npc->currentMeleWeapon() != nullptr){
     return npc->currentRangeWeapon()->handle();
     }
   return nullptr;
