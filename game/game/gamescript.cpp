@@ -54,8 +54,7 @@ bool GameScript::GlobalOutput::isFinished() {
   }
 
 GameScript::GameScript(GameSession &owner)
-  :owner(owner), vm(Gothic::inst().loadPhoenixScriptCode("GOTHIC.DAT"), (phoenix::daedalus::execution_flag)
-        (phoenix::daedalus::vm_allow_empty_stack_pop | phoenix::daedalus::vm_allow_null_instance_access)) {
+  :owner(owner), vm(Gothic::inst().loadPhoenixScriptCode("GOTHIC.DAT"), phoenix::daedalus::vm_allow_null_instance_access) {
   phoenix::daedalus::register_all_script_classes(vm);
   Gothic::inst().setupVmCommonApi(vm);
   aiDefaultPipe.reset(new GlobalOutput(*this));
