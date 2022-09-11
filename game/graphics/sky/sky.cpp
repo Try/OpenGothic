@@ -33,7 +33,7 @@ Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest:
     zMoonSize=400
     zMoonAlpha=255
     */
-  sun          = Resources::loadTexture(Gothic::settingsGetS("SKY_OUTDOOR","zSunName"));
+  sunImg       = Resources::loadTexture(Gothic::settingsGetS("SKY_OUTDOOR","zSunName"));
   // auto& moon   = gothic.settingsGetS("SKY_OUTDOOR","zMoonName");
 
   auto& device = Resources::device();
@@ -75,6 +75,42 @@ void Sky::setupSettings() {
 
 void Sky::setWorld(const World& world, const std::pair<Vec3, Vec3>& bbox) {
   setupSettings();
+  }
+
+void Sky::updateLight(const int64_t now) {
+  // https://www.suncalc.org/#/52.4561,13.4033,5/2020.06.28/13:09/1/3
+  const int64_t rise         = gtime( 4,45).toInt();
+  const int64_t meridian     = gtime(13, 9).toInt();
+  const int64_t set          = gtime(21,33).toInt();
+  const int64_t midnight     = gtime(1,0,0).toInt();
+  //const int64_t now          = owner.time().timeInDay().toInt();
+  const float   shadowLength = 0.56f;
+
+  float pulse = 0.f;
+  if(rise<=now && now<meridian){
+    pulse =  0.f + float(now-rise)/float(meridian-rise);
+    }
+  else if(meridian<=now && now<set){
+    pulse =  1.f - float(now-meridian)/float(set-meridian);
+    }
+  else if(set<=now){
+    pulse =  0.f - float(now-set)/float(midnight-set);
+    }
+  else if(now<rise){
+    pulse = -1.f + (float(now)/float(rise));
+    }
+
+  float k = float(now)/float(midnight);
+
+  float a  = std::max(0.f,std::min(pulse*3.f,1.f));
+  auto clr = Vec3(0.75f,0.75f,0.75f)*a;
+  ambient  = Vec3(0.2f,0.2f,0.3f)*(1.f-a)+Vec3(0.25f,0.25f,0.25f)*a;
+
+  float ax  = 360-360*std::fmod(k+0.25f,1.f);
+  ax = ax*float(M_PI/180.0);
+
+  sun.setDir(-std::sin(ax)*shadowLength, pulse, std::cos(ax)*shadowLength);
+  sun.setColor(clr);
   }
 
 void Sky::setupUbo() {
@@ -226,7 +262,7 @@ Sky::UboSky Sky::mkPush() {
   auto t1 = float(ticks%270000)/270000.f;
   ubo.dxy0[0] = t0;
   ubo.dxy1[0] = t1;
-  ubo.sunDir  = scene.sun.dir();
+  ubo.sunDir  = sun.dir();
   ubo.night   = 1.f-std::min(std::max(3.f*ubo.sunDir.y,0.f),1.f);
 
   static float rayleighScatteringScale = 33.1f;

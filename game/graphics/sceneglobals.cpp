@@ -1,6 +1,5 @@
 #include "sceneglobals.h"
 
-#include "objectsbucket.h"
 #include "gothic.h"
 
 #include <cassert>
@@ -21,8 +20,6 @@ SceneGlobals::SceneGlobals()
 
   for(auto& i:shadowMap)
     i = &Resources::fallbackBlack();
-
-  sun.setDir(1,-1,1);
 
   for(uint8_t fId=0; fId<Resources::MaxFramesInFlight; ++fId)
     for(uint8_t lay=0; lay<V_Count; ++lay) {
@@ -78,6 +75,13 @@ void SceneGlobals::setViewProject(const Tempest::Matrix4x4& v, const Tempest::Ma
   uboGlobal.closeupShadowSlice = Tempest::Vec2(min.z,max.z);
   }
 
+void SceneGlobals::setSunlight(const LightSource& light, const Tempest::Vec3& a) {
+  auto c = light.color();
+  uboGlobal.sunDir   = light.dir();
+  uboGlobal.lightCl  = {c.x,c.y,c.z,0.f};
+  uboGlobal.lightAmb = {a.x,a.y,a.z,0.f};
+  }
+
 void SceneGlobals::setTime(uint64_t time) {
   tickCount            = time;
 
@@ -87,12 +91,6 @@ void SceneGlobals::setTime(uint64_t time) {
   }
 
 void SceneGlobals::commitUbo(uint8_t fId) {
-  auto& c = sun.color();
-
-  uboGlobal.sunDir   = sun.dir();
-  uboGlobal.lightCl  = {c.x,c.y,c.z,0.f};
-  uboGlobal.lightAmb = {ambient.x,ambient.y,ambient.z,0.f};
-
   UboGlobal perView[V_Count];
   uboGlobalPf[fId][V_Main].update(&uboGlobal,0,1);
 

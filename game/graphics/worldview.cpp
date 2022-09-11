@@ -27,11 +27,11 @@ WorldView::~WorldView() {
   }
 
 const LightSource& WorldView::mainLight() const {
-  return sGlobal.sun;
+  return sky.sunLight();
   }
 
 const Tempest::Vec3& WorldView::ambientLight() const {
-  return sGlobal.ambient;
+  return sky.ambientLight();
   }
 
 bool WorldView::isInPfxRange(const Vec3& pos) const {
@@ -180,39 +180,10 @@ const AccelerationStructure& WorldView::landscapeTlas() {
   }
 
 void WorldView::updateLight() {
-  // https://www.suncalc.org/#/52.4561,13.4033,5/2020.06.28/13:09/1/3
-  const int64_t rise         = gtime( 4,45).toInt();
-  const int64_t meridian     = gtime(13, 9).toInt();
-  const int64_t set          = gtime(21,33).toInt();
-  const int64_t midnight     = gtime(1,0,0).toInt();
-  const int64_t now          = owner.time().timeInDay().toInt();
-  const float   shadowLength = 0.56f;
+  const int64_t now = owner.time().timeInDay().toInt();
+  sky.updateLight(now);
 
-  float pulse = 0.f;
-  if(rise<=now && now<meridian){
-    pulse =  0.f + float(now-rise)/float(meridian-rise);
-    }
-  else if(meridian<=now && now<set){
-    pulse =  1.f - float(now-meridian)/float(set-meridian);
-    }
-  else if(set<=now){
-    pulse =  0.f - float(now-set)/float(midnight-set);
-    }
-  else if(now<rise){
-    pulse = -1.f + (float(now)/float(rise));
-    }
-
-  float k = float(now)/float(midnight);
-
-  float a  = std::max(0.f,std::min(pulse*3.f,1.f));
-  auto clr = Vec3(0.75f,0.75f,0.75f)*a;
-  sGlobal.ambient  = Vec3(0.2f,0.2f,0.3f)*(1.f-a)+Vec3(0.25f,0.25f,0.25f)*a;
-
-  float ax  = 360-360*std::fmod(k+0.25f,1.f);
-  ax = ax*float(M_PI/180.0);
-
-  sGlobal.sun.setDir(-std::sin(ax)*shadowLength, pulse, std::cos(ax)*shadowLength);
-  sGlobal.sun.setColor(clr);
+  sGlobal.setSunlight(sky.sunLight(), sky.ambientLight());
   }
 
 void WorldView::setupUbo() {
