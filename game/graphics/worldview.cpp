@@ -117,8 +117,12 @@ void WorldView::drawSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t f
   sky.drawSky(cmd,fId);
   }
 
-void WorldView::drawMain(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
-  visuals.draw(cmd,fId);
+void WorldView::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  visuals.drawWater(cmd,fId);
+  }
+
+void WorldView::drawTranslucent(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
+  visuals.drawTranslucent(cmd,fId);
   }
 
 void WorldView::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {

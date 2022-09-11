@@ -137,7 +137,7 @@ void main() {
   const float rayleighPhaseValue = rayleighPhase(-cosTheta);
 
 #ifdef COMPUTE
-  const int msCount     = 4;
+  const int msCount     = 8;
   const int shadowSteps = steps*msCount;
   float     shadowS[128];
   for(int i=1; i<steps; ++i)
@@ -172,17 +172,17 @@ void main() {
 #else
     float shadow              = 0;
 #endif
-    // float shadow              = shadowFactor(mix(shPos0,shPos1,t));
-    // float shadow              = shadowFactorMS(mix(shPos0,shPos1,t), mix(shPos0,shPos1,tPrev));
 
     vec3  sunTransmittance    = textureLUT(tLUT, pos, sunDir) * shadow;
-    vec3  psiMS               = textureLUT(mLUT, pos, sunDir);
+    //vec3  sunTransmittance    = textureLUT(tLUT, pos, sunDir);
+    vec3  psiMS               = textureLUT(mLUT, pos, sunDir) * (shadow*0.7+0.3);
 
     vec3 rayleighInScattering = rayleighScattering*(rayleighPhaseValue*sunTransmittance + psiMS);
     vec3 mieInScattering      = mieScattering     *(miePhaseValue     *sunTransmittance + psiMS);
     vec3 inScattering         = (rayleighInScattering + mieInScattering);
 
     // Integrated scattering within path segment.
+    // See slide 28 at http://www.frostbite.com/2015/08/physically-based-unified-volumetric-rendering-in-frostbite/
     vec3  scatteringIntegral  = (inScattering - inScattering * sampleTransmittance) / extinction;
 
     transmittance  *= sampleTransmittance;

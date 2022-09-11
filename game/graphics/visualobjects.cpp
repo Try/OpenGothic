@@ -103,9 +103,20 @@ void VisualObjects::visibilityPass(const Frustrum fr[]) {
   visGroup.pass(fr);
   }
 
-void VisualObjects::draw(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {
+void VisualObjects::drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {
   for(size_t i=lastSolidBucket;i<index.size();++i) {
     auto c = index[i];
+    if(c->material().alpha==Material::AlphaFunc::Water)
+      continue;
+    c->draw(enc,fId);
+    }
+  }
+
+void VisualObjects::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {
+  for(size_t i=lastSolidBucket;i<index.size();++i) {
+    auto c = index[i];
+    if(c->material().alpha!=Material::AlphaFunc::Water)
+      continue;
     c->draw(enc,fId);
     }
   }
