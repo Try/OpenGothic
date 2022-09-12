@@ -136,8 +136,8 @@ vec4 fog(vec2 uv, vec3 sunDir) {
   // vec3  posz     = inverse(vec3(inPos,z));
   // vec3  pos0     = inverse(vec3(inPos,0));
 
-  float dMin = 0.95;
-  float dMax = 0.999;
+  float dMin = 0;
+  float dMax = 1;
   float z    = texture(depth,uv).r;
   float dZ   = reconstructCSZ(   z, push.clipInfo);
   float d0   = reconstructCSZ(dMin, push.clipInfo);
@@ -157,8 +157,8 @@ vec4 fog(vec2 uv, vec3 sunDir) {
   }
 #else
 vec4 fog(vec2 uv, vec3 sunDir) {
-  float dMin = 0.95;
-  float dMax = 0.999;
+  float dMin = 0.0;
+  float dMax = 1.0;
   float z    = texture(depth,uv).r;
   float dZ   = reconstructCSZ(   z, push.clipInfo);
   float d0   = reconstructCSZ(dMin, push.clipInfo);
@@ -224,7 +224,7 @@ void main() {
   vec3 sunDir = push.sunDir;
 
   // NOTE: not a physical value, but dunno how to achive nice look without it
-  float fogFixup = 25.0;
+  float fogFixup = 20.0;
 
   vec4  val      = fog(uv,push.sunDir) * fogFixup;
   vec3  lum      = val.rgb;
@@ -232,7 +232,7 @@ void main() {
 #if !defined(FOG)
   // Sky
   // lum = sky(uv,push.sunDir);
-  lum = lum + sky(uv,push.sunDir);
+  lum = lum*0.5 + sky(uv,push.sunDir);
   // Clouds
   lum = applyClouds(lum);
 #endif
@@ -240,5 +240,5 @@ void main() {
   lum      = finalizeColor(lum, sunDir);
   outColor = vec4(lum, val.a);
 
-  //outColor = vec4(val.a);
+  // outColor = vec4(val.a*2.0);
   }

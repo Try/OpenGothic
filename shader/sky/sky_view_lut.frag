@@ -82,6 +82,6 @@ void main() {
   float tMax       = (groundDist < 0.0) ? atmoDist : groundDist;
 
   vec3  sun  = raymarchScattering(viewPos, rayDir, sunDir, tMax);
-  vec3  moon = raymarchScattering(viewPos, rayDir, normalize(vec3(0,4,1)), tMax)*0.005;
+  vec3  moon = raymarchScattering(viewPos, rayDir, normalize(vec3(0,2,4)), tMax)*(0.01*push.night);
   outColor = vec4(sun+moon, 1.0);
   }

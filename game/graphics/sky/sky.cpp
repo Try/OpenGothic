@@ -100,11 +100,17 @@ void Sky::updateLight(const int64_t now) {
     pulse = -1.f + (float(now)/float(rise));
     }
 
-  float k = float(now)/float(midnight);
+  const auto ambientDay   = Vec3(0.25f,0.25f,0.25f);
+  const auto ambientNight = Vec3(0.24f,0.24f,0.50f);
 
+  const auto directDay    = Vec3(0.75f,0.75f,0.75f);
+  const auto directNight  = Vec3(0,0,0);
+
+  float k = float(now)/float(midnight);
   float a  = std::max(0.f,std::min(pulse*3.f,1.f));
-  auto clr = Vec3(0.75f,0.75f,0.75f)*a;
-  ambient  = Vec3(0.2f,0.2f,0.3f)*(1.f-a)+Vec3(0.25f,0.25f,0.25f)*a;
+
+  auto clr = directNight *(1.f-a) + directDay *a;
+  ambient  = ambientNight*(1.f-a) + ambientDay*a;
 
   float ax  = 360-360*std::fmod(k+0.25f,1.f);
   ax = ax*float(M_PI/180.0);
@@ -160,11 +166,14 @@ void Sky::setupUbo() {
   uboFog.set(4, *scene.gbufDepth, Sampler::nearest());
 
   if(zFogRadial) {
+    auto smpLut3d = Sampler::bilinear();
+    smpLut3d.setClamping(ClampMode::ClampToEdge);
+
     uboSky3d = device.descriptors(Shaders::inst().sky3d);
     uboSky3d.set(0, transLut,     smpB);
     uboSky3d.set(1, multiScatLut, smpB);
     uboSky3d.set(2, viewLut,      smpB);
-    uboSky3d.set(3, fogLut3D,     smpB);
+    uboSky3d.set(3, fogLut3D,     smpLut3d);
     uboSky3d.set(4, *scene.gbufDepth, Sampler::nearest());
     uboSky3d.set(5,*day  .lay[0].texture,smp);
     uboSky3d.set(6,*day  .lay[1].texture,smp);

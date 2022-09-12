@@ -92,11 +92,7 @@ vec3 project(mat4 m, vec3 pos) {
 
 float tStep(int i, int steps) {
   float t = float(i+0.3)/steps;
-  if(i<=0)
-    t = 0.0;
-  if(i+1==steps)
-    t = 1.0;
-  return t*t;
+  return t;
   }
 
 void main() {
@@ -112,17 +108,14 @@ void main() {
   const int   steps  = 64;
 #endif
 
-  float dMin = 0.95;
-  float dMax = 0.999;
-
 #ifdef COMPUTE
-  const vec3  pos0     = project(scene.viewProjectInv, vec3(inPos,dMin));
-  const vec3  pos1     = project(scene.viewProjectInv, vec3(inPos,dMax));
+  const vec3  pos0     = project(scene.viewProjectInv, vec3(inPos,0));
+  const vec3  pos1     = project(scene.viewProjectInv, vec3(inPos,1));
   const vec4  shPos0   = scene.viewShadow[1]*vec4(pos0,1);
   const vec4  shPos1   = scene.viewShadow[1]*vec4(pos1,1);
 #else
-  const vec3  pos0     = project(push.viewProjectInv, vec3(inPos,dMin));
-  const vec3  pos1     = project(push.viewProjectInv, vec3(inPos,dMax));
+  const vec3  pos0     = project(push.viewProjectInv, vec3(inPos,0));
+  const vec3  pos1     = project(push.viewProjectInv, vec3(inPos,1));
   const vec4  shPos0   = vec4(0);
   const vec4  shPos1   = vec4(0);
 #endif
@@ -137,16 +130,45 @@ void main() {
   const float rayleighPhaseValue = rayleighPhase(-cosTheta);
 
 #ifdef COMPUTE
-  const int msCount     = 8;
+  /*
+  const int msCount     = 16;
   const int shadowSteps = steps*msCount;
   float     shadowS[128];
-  for(int i=1; i<steps; ++i)
+  const int shadowFirst = 1   *msCount;
+  const int shadowLast  = 16  *msCount;
+  for(int i=0; i<steps; ++i)
+    shadowS[i] = 1;
+  for(int i=shadowFirst; i<shadowLast; ++i)
     shadowS[i] = 0;
-  for(int i=1*msCount; i<shadowSteps; ++i) {
-    float t     = tStep(i,  shadowSteps);
-    float tPrev = tStep(i-1,shadowSteps);
+  for(int i=shadowFirst; i<shadowLast; ++i) {
+    const float t = tStep(i, shadowSteps);
     shadowS[i/msCount] += shadowFactor(mix(shPos0,shPos1,t))/float(msCount);
+    }*/
+
+  const int shadowSteps = 32*8;
+  float     shadowS[128];
+  int       shadowC[128];
+  for(int i=0; i<steps; ++i) {
+    shadowS[i] = 0;
+    shadowC[i] = 0;
     }
+  for(int i=0; i<shadowSteps; ++i) {
+    const float t  = tStep(i, shadowSteps);
+    const float tt = t*t*t*t;
+
+    vec4 shPos = mix(shPos0,shPos1,tt);
+    if(shPos.y> 1.0*shPos.w)
+      break;
+    int id = int(tt*steps);
+    shadowS[id] += shadowFactor(shPos);
+    shadowC[id] += 1;
+    }
+  for(int i=0; i<steps; ++i)
+    if(shadowC[i]>0) {
+      shadowS[i] = shadowS[i]/float(shadowC[i]);
+      } else {
+      shadowS[i] = 1;
+      }
 #endif
 
   vec3  scatteredLight = vec3(0.0);
