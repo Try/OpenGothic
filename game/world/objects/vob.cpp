@@ -32,7 +32,7 @@ Vob::Vob(World& owner)
 Vob::Vob(Vob* parent, World& owner, const std::unique_ptr<phoenix::vob>& vob, Flags flags)
   : world(owner), vobType(vob->type), vobObjectID(vob->id), parent(parent) {
 
-  glm::mat4x4 worldMatrix = glm::transpose(vob->rotation);
+  glm::mat4x4 worldMatrix = vob->rotation;
   worldMatrix[3] = glm::vec4(vob->position, 1);
 
   pos   = Tempest::Matrix4x4(glm::value_ptr(worldMatrix));

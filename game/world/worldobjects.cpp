@@ -525,7 +525,7 @@ Item* WorldObjects::addItem(const phoenix::vobs::item& vob) {
   if(it==nullptr)
     return nullptr;
 
-  glm::mat4x4 worldMatrix = glm::transpose(vob.rotation);
+  glm::mat4x4 worldMatrix = vob.rotation;
   worldMatrix[3] = glm::vec4(vob.position, 1);
 
   Matrix4x4 m { glm::value_ptr(worldMatrix) };
