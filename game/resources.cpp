@@ -293,11 +293,11 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
         auto rgba = tex.as_rgba8(0);
 
         try {
-          Tempest::Pixmap pm(tex.width(), tex.height(), Tempest::Pixmap::Format::RGBA);
-          std::memcpy(pm.data(), rgba.data(), rgba.size());
+          Tempest::MemReader rd(rgba.data(),rgba.size());
+          Tempest::Pixmap    pm(rd);
 
           std::unique_ptr<Texture2d> t{new Texture2d(dev.texture(pm))};
-          Texture2d *ret = t.get();
+          Texture2d* ret=t.get();
           cache[std::move(name)] = std::move(t);
           return ret;
         } catch (...) {}
