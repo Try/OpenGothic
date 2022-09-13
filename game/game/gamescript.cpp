@@ -971,7 +971,7 @@ int GameScript::invokeMana(Npc &npc, Npc* target, Item &) {
     return SpellCode::SPL_SENDSTOP;
 
   ScopeVar self (vm.global_self(),  npc.handle());
-  ScopeVar other(vm.global_other(), target->handle());
+  ScopeVar other(vm.global_other(), target != nullptr ? target->handle() : nullptr);
 
   return vm.call_function<int>(fn, npc.attribute(ATR_MANA));
   }
@@ -989,7 +989,7 @@ void GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
   int32_t splLevel = 0;
 
   ScopeVar self (vm.global_self(),  npc.handle());
-  ScopeVar other(vm.global_other(), target->handle());
+  ScopeVar other(vm.global_other(), target != nullptr ? target->handle() : nullptr);
   try {
     if (fn->count() == 1) {
       // this is a leveled spell
