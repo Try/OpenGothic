@@ -50,15 +50,16 @@ vec4 shadowSample(in sampler2D shadowMap, vec2 shPos) {
   }
 
 float shadowResolve(in vec4 sh, float z) {
-  z  = max(0,z);
+  z  = clamp(z,0,0.99);
   sh = step(sh,vec4(z));
   return 0.25*(sh.x+sh.y+sh.z+sh.w);
   }
 
 float calcShadow(vec3 shPos1) {
+  //shPos1.y = max(0,shPos1.y);
   vec4  lay1 = shadowSample(textureSm1,shPos1.xy);
   float v1   = shadowResolve(lay1,shPos1.z);
-  if(abs(shPos1.x)<1.0 && abs(shPos1.y)<1.0)
+  if(abs(shPos1.x)<1.0)
     return v1;
   return 1.0;
   }
@@ -94,6 +95,49 @@ float tStep(int i, int steps) {
   float t = float(i+0.3)/steps;
   return t;
   }
+
+#ifdef COMPUTE
+void preintegrateShadow(out float shadowS[128], vec4 shPos0, vec4 shPos1) {
+  const int steps       = imageSize(fogLut).z;
+  const int shadowSteps = 32*8;
+
+  float shadowC[128];
+  for(int i=0; i<steps; ++i) {
+    shadowS[i] = 0;
+    shadowC[i] = 0;
+    }
+
+  //const vec4  shDir4 = (shPos1-shPos0);
+  //const vec4  shDir  = normalize(shDir4);
+  //const vec4  shDir  = (shDir4)/length(shDir4.xyz);
+
+  for(int i=0; i<shadowSteps; ++i) {
+    const float t  = tStep(i, shadowSteps);
+    const float tt = t;//*t*t;
+    //const float tt = mix(0.0,0.75,t); // fine tuned
+
+    //vec4  shPos = shPos0 + shDir*tt;
+    vec4  shPos = mix(shPos0, shPos1, tt);
+    //float tx    = dot(shDir*tt, shDir4)/dot(shDir4,shDir4);
+
+    int   id    = int(tt*steps);
+    //int   id    = int(tx*steps);
+    shadowS[id] += shadowFactor(shPos);
+    shadowC[id] += 1.0;
+    }
+
+  float prev = 1.0;
+  for(int i=steps; i>0; ) {
+    --i;
+    if(shadowC[i]>0.0) {
+      prev = shadowS[i]/float(shadowC[i]);
+      shadowS[i] = prev;
+      } else {
+      shadowS[i] = prev;
+      }
+    }
+  }
+#endif
 
 void main() {
 #ifdef COMPUTE
@@ -131,7 +175,7 @@ void main() {
 
 #ifdef COMPUTE
   /*
-  const int msCount     = 16;
+  const int msCount     = 4;
   const int shadowSteps = steps*msCount;
   float     shadowS[128];
   const int shadowFirst = 1   *msCount;
@@ -145,30 +189,8 @@ void main() {
     shadowS[i/msCount] += shadowFactor(mix(shPos0,shPos1,t))/float(msCount);
     }*/
 
-  const int shadowSteps = 32*8;
-  float     shadowS[128];
-  int       shadowC[128];
-  for(int i=0; i<steps; ++i) {
-    shadowS[i] = 0;
-    shadowC[i] = 0;
-    }
-  for(int i=0; i<shadowSteps; ++i) {
-    const float t  = tStep(i, shadowSteps);
-    const float tt = t*t*t*t;
-
-    vec4 shPos = mix(shPos0,shPos1,tt);
-    if(shPos.y> 1.0*shPos.w)
-      break;
-    int id = int(tt*steps);
-    shadowS[id] += shadowFactor(shPos);
-    shadowC[id] += 1;
-    }
-  for(int i=0; i<steps; ++i)
-    if(shadowC[i]>0) {
-      shadowS[i] = shadowS[i]/float(shadowC[i]);
-      } else {
-      shadowS[i] = 1;
-      }
+  float shadowS[128];
+  preintegrateShadow(shadowS, shPos0, shPos1);
 #endif
 
   vec3  scatteredLight = vec3(0.0);

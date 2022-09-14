@@ -26,6 +26,10 @@ WorldView::~WorldView() {
   Resources::device().waitIdle();
   }
 
+const Texture2d& WorldView::shadowLq() const {
+  return sky.shadowLq();
+  }
+
 const LightSource& WorldView::mainLight() const {
   return sky.sunLight();
   }

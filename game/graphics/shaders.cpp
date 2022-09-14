@@ -101,6 +101,7 @@ Shaders::Shaders() {
   skyViewLut         = postEffect("sky_view_lut");
   fogViewLut         = postEffect("fog_view_lut");
   fogViewLut3D       = computeShader("fog_view_lut.comp.sprv");
+  shadowDownsample   = computeShader("shadow_downsample.comp.sprv");
 
   sky                = postEffect("sky");
   fog                = fogShader ("fog");

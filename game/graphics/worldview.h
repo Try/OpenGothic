@@ -23,8 +23,9 @@ class WorldView {
     WorldView(const World &world, const PackedMesh& wmesh);
     ~WorldView();
 
-    const LightSource&   mainLight() const;
-    const Tempest::Vec3& ambientLight() const;
+    const Tempest::Texture2d& shadowLq() const;
+    const LightSource&        mainLight() const;
+    const Tempest::Vec3&      ambientLight() const;
 
     bool isInPfxRange(const Tempest::Vec3& pos) const;
 

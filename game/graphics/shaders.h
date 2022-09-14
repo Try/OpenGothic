@@ -25,7 +25,7 @@ class Shaders {
     Tempest::RenderPipeline  skyTransmittance, skyMultiScattering;
     Tempest::RenderPipeline  skyViewLut, sky, sky3d;
     Tempest::RenderPipeline  fogViewLut, fog, fog3d;
-    Tempest::ComputePipeline fogViewLut3D;
+    Tempest::ComputePipeline fogViewLut3D, shadowDownsample;
 
     // Compute
     Tempest::ComputePipeline hiZPot, hiZMip;

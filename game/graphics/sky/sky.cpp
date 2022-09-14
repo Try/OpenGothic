@@ -69,7 +69,10 @@ void Sky::setupSettings() {
   //fogLut3D = device.image3d(lutFormat,160,90,512);
 
   fogLut3D = device.image3d(lutFormat,320,176,32);
-  //fogLut3D = device.image3d(lutFormat,320,176,64);
+  //fogLut3D = device.image3d(lutFormat,320,176,128);
+
+  //shadowDw = device.image2d(TextureFormat::R32F,320, 32*16);
+  shadowDw = device.image2d(TextureFormat::R16, 256, 256);
   setupUbo();
   }
 
@@ -137,11 +140,16 @@ void Sky::setupUbo() {
   uboFogViewLut.set(1, multiScatLut,   smpB);
 
   if(zFogRadial) {
+    uboShadowDw = device.descriptors(Shaders::inst().shadowDownsample);
+    uboShadowDw.set(0, shadowDw);
+    uboShadowDw.set(1, *scene.shadowMap[1],Resources::shadowSampler());
+
     for(uint32_t i=0; i<Resources::MaxFramesInFlight; ++i) {
       uboFogViewLut3d[i] = device.descriptors(Shaders::inst().fogViewLut3D);
       uboFogViewLut3d[i].set(0, transLut,     smpB);
       uboFogViewLut3d[i].set(1, multiScatLut, smpB);
-      uboFogViewLut3d[i].set(2, *scene.shadowMap[1],Resources::shadowSampler());
+      // uboFogViewLut3d[i].set(2, *scene.shadowMap[1],Resources::shadowSampler());
+      uboFogViewLut3d[i].set(2, shadowDw, Resources::shadowSampler());
       uboFogViewLut3d[i].set(3, fogLut3D);
       uboFogViewLut3d[i].set(4, scene.uboGlobalPf[i][SceneGlobals::V_Main]);
       }
@@ -205,7 +213,12 @@ void Sky::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
     }
 
   if(zFogRadial) {
+    Tempest::Matrix4x4 mt[2] = {scene.viewProjectInv(), scene.viewShadow(1)};
+
     cmd.setFramebuffer({});
+    cmd.setUniforms(Shaders::inst().shadowDownsample, uboShadowDw, &mt, sizeof(mt));
+    cmd.dispatchThreads(uint32_t(shadowDw.w()),uint32_t(shadowDw.h()));
+
     cmd.setUniforms(Shaders::inst().fogViewLut3D, uboFogViewLut3d[frameId], &ubo, sizeof(ubo));
     cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
     }
@@ -248,6 +261,10 @@ void Sky::drawFog(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
 
 const Texture2d& Sky::skyLut() const {
   return textureCast(viewLut);
+  }
+
+const Texture2d& Sky::shadowLq() const {
+  return textureCast(shadowDw);
   }
 
 Sky::UboSky Sky::mkPush() {

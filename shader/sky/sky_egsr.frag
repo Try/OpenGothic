@@ -239,6 +239,9 @@ void main() {
 
   lum      = finalizeColor(lum, sunDir);
   outColor = vec4(lum, val.a);
+#if !defined(FOG)
+  outColor.a = 1.0;
+#endif
 
   // outColor = vec4(val.a*2.0);
   }
