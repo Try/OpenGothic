@@ -863,8 +863,9 @@ void Inventory::invalidateCond(Npc &owner) {
   }
 
 void Inventory::invalidateCond(Item *&slot, Npc &owner) {
-  if(slot && !slot->checkCond(owner))
-    slot=nullptr;
+  if(slot && !slot->checkCond(owner)) {
+    unequip(slot,owner);
+    }
   }
 
 void Inventory::autoEquip(Npc &owner) {
