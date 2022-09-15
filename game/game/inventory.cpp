@@ -356,6 +356,9 @@ bool Inventory::unequip(size_t cls, Npc &owner) {
   }
 
 void Inventory::unequip(Item *it, Npc &owner) {
+  if (it==activeWeapon())
+  owner.closeWeapon(false);
+  
   if(armour==it) {
     setSlot(armour,nullptr,owner,false);
     return;
