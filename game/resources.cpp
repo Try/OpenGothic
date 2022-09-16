@@ -271,6 +271,11 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
   if(FileExt::hasExt(name,"TGA")){
     name.resize(name.size() + 2);
     std::memcpy(&name[0]+name.size()-6,"-C.TEX",6);
+
+    it=cache.find(name);
+    if(it!=cache.end())
+      return it->second.get();
+
     if(hasFile(name)) {
 
       phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
@@ -290,10 +295,6 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
           return t;
         }
       } else {
-        if (name == "NW_MISC_ROOF_01-C.TEX") {
-          return nullptr;
-        }
-
         auto rgba = tex.as_rgba8(0);
 
         try {
