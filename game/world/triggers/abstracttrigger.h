@@ -95,10 +95,10 @@ class AbstractTrigger : public Vob {
     CollisionZone                boxNpc;
     Tempest::Vec3                bboxSize, bboxOrigin;
 
-    float                        fireDelaySec;
-    uint32_t                     maxActivationCount;
-    uint32_t                     triggerFlags;
-    uint32_t                     filterFlags;
+    float                        fireDelaySec = 0;
+    uint32_t                     maxActivationCount = 0;
+    uint32_t                     triggerFlags = 0;
+    uint32_t                     filterFlags = 0;
 
     uint32_t                     emitCount = 0;
     bool                         disabled  = false;

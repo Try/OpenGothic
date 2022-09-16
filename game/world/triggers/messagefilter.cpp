@@ -5,6 +5,7 @@
 MessageFilter::MessageFilter(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& d, Flags flags)
   :AbstractTrigger(parent,world,d,flags) {
   auto* filt = (const phoenix::vobs::message_filter*) d.get();
+  target = filt->target;
   onUntriggerA = filt->on_untrigger;
   onTriggerA = filt->on_trigger;
   }

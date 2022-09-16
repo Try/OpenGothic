@@ -26,18 +26,17 @@ AbstractTrigger::AbstractTrigger(Vob* parent, World &world, const std::unique_pt
       });
     }
 
-  if (data->type != phoenix::vob_type::oCTouchDamage) {
+  using phoenix::vob_type;
+
+  if (data->type == vob_type::zCTrigger || data->type == vob_type::zCTriggerList ||
+      data->type == vob_type::oCTriggerScript || data->type == vob_type::zCMover ||
+      data->type == vob_type::oCTriggerChangeLevel || data->type == vob_type::oCCSTrigger) {
     auto* trigger = (const phoenix::vobs::trigger*) data.get();
     fireDelaySec = trigger->fire_delay_sec;
     maxActivationCount = trigger->max_activation_count;
     filterFlags = trigger->filter_flags;
     triggerFlags = trigger->flags;
     target = trigger->target;
-  } else {
-      fireDelaySec = 0;
-      maxActivationCount = 0;
-      filterFlags = 0;
-      triggerFlags = 0;
   }
 
   world.addTrigger(this);
