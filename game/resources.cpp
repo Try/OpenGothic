@@ -290,11 +290,15 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
           return t;
         }
       } else {
+        if (name == "NW_MISC_ROOF_01-C.TEX") {
+          return nullptr;
+        }
+
         auto rgba = tex.as_rgba8(0);
 
         try {
-          Tempest::MemReader rd(rgba.data(),rgba.size());
-          Tempest::Pixmap    pm(rd);
+          Tempest::Pixmap    pm(tex.width(), tex.height(), Tempest::Pixmap::Format::RGBA);
+          std::memcpy(pm.data(), rgba.data(), rgba.size());
 
           std::unique_ptr<Texture2d> t{new Texture2d(dev.texture(pm))};
           Texture2d* ret=t.get();
