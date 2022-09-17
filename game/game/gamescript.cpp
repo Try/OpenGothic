@@ -21,7 +21,6 @@
 using namespace Tempest;
 
 template <typename T>
-requires (std::derived_from<T, phoenix::daedalus::instance>)
 struct ScopeVar final {
   ScopeVar(phoenix::daedalus::symbol* sym, std::shared_ptr<T> h) : prev(sym->get_instance()), sym(sym) {
     sym->set_instance(h);

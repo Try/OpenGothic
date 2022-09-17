@@ -144,7 +144,7 @@ bool Resources::getFileData(std::string_view name, std::vector<uint8_t> &dat) {
 
   // TODO: This should return a buffer!
   phoenix::buffer reader = entry->open();
-  dat.assign((uint8_t*) reader.array().begin().base(), (uint8_t*) reader.array().end().base());
+  dat.assign((uint8_t*) reader.array(), (uint8_t*) reader.array() + reader.limit());
 
   return true;
   }
@@ -291,7 +291,7 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
           tex.format() == phoenix::tex_dxt5) {
         auto dds = phoenix::texture_to_dds(tex);
 
-        auto t = implLoadTexture(cache, std::string(cname), {(uint8_t*) dds.array().data(), dds.array().size()});
+        auto t = implLoadTexture(cache, std::string(cname), dds);
         if(t!=nullptr) {
           return t;
         }
@@ -311,16 +311,19 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
     }
   }
 
-  if(getFileData(cname,fBuff))
-    return implLoadTexture(cache,std::string(cname),fBuff);
+  phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname);
+  if (entry != nullptr) {
+      phoenix::buffer reader = entry->open();
+      return implLoadTexture(cache,std::string(cname),reader);
+  }
 
   cache[name]=nullptr;
   return nullptr;
   }
 
-Texture2d *Resources::implLoadTexture(TextureCache& cache, std::string&& name, std::span<const uint8_t> data) {
+Texture2d *Resources::implLoadTexture(TextureCache& cache, std::string&& name, const phoenix::buffer& data) {
   try {
-    Tempest::MemReader rd(data.data(),data.size());
+    Tempest::MemReader rd((uint8_t*)data.array(),data.limit());
     Tempest::Pixmap    pm(rd);
 
     std::unique_ptr<Texture2d> t{new Texture2d(dev.texture(pm))};
