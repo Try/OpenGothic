@@ -55,7 +55,7 @@ void DialogMenu::setupSettings() {
   }
 
 void DialogMenu::tick(uint64_t dt) {
-  if(state==State::PreStart){
+  if(state==State::PreStart) {
     except.clear();
     dlgTrade=false;
     trade.close();
@@ -63,7 +63,7 @@ void DialogMenu::tick(uint64_t dt) {
     return;
     }
 
-  if(remPrint<dt){
+  if(remPrint<dt) {
     for(size_t i=1;i<MAX_PRINT;++i)
       printMsg[i-1u]=printMsg[i];
     printMsg[MAX_PRINT-1]=PScreen();
@@ -84,8 +84,12 @@ void DialogMenu::tick(uint64_t dt) {
 
   if(current.time<=dt){
     current.time = 0;
-    if(dlgTrade && !haveToWaitOutput())
+    if(dlgTrade && !haveToWaitOutput()) {
       startTrade();
+      }
+    else if(choise.size()==0 && state!=State::Idle && !haveToWaitOutput()) {
+      close();
+      }
     } else {
     current.time-=dt;
     }

@@ -24,6 +24,7 @@ class SceneGlobals final {
     void setViewProject(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& proj,
                         float zNear, float zFar,
                         const Tempest::Matrix4x4 *sh);
+    void setSunlight(const LightSource& light, const Tempest::Vec3& ambient);
 
     void setTime(uint64_t time);
     void commitUbo(uint8_t fId);
@@ -65,12 +66,11 @@ class SceneGlobals final {
       Tempest::Vec3                   camPos;
       float                           padd2 = 0;
       Tempest::Vec2                   screenResInv;
+      Tempest::Vec2                   closeupShadowSlice;
       };
 
     Tempest::UniformBuffer<UboGlobal> uboGlobalPf[Resources::MaxFramesInFlight][V_Count];
 
-    LightSource                       sun;
-    Tempest::Vec3                     ambient;
     LightGroup                        lights;
     Frustrum                          frustrum[V_Count];
 

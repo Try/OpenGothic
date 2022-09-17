@@ -119,6 +119,7 @@ add_shader(sky_view_lut.vert         sky/sky.vert                  "")
 add_shader(sky_view_lut.frag         sky/sky_view_lut.frag         "")
 add_shader(fog_view_lut.vert         sky/sky.vert                  -DFOG)
 
+add_shader(shadow_downsample.comp    sky/shadow_downsample.comp    "")
 add_shader(fog_view_lut.frag         sky/fog_view_lut.comp         -S frag -DFOG -DFRAG)
 add_shader(fog_view_lut.comp         sky/fog_view_lut.comp         -S comp -DFOG -DCOMPUTE)
 

@@ -1,0 +1,84 @@
+#version 450
+
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_GOOGLE_include_directive    : enable
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(binding = 0) uniform writeonly image2D shadowLq;
+layout(binding = 1) uniform sampler2D textureSm1;
+
+layout(push_constant, std430) uniform UboPush {
+  mat4  viewProjectInv;
+  mat4  viewShadow;
+  } push;
+
+vec3 project(mat4 m, vec3 pos) {
+  vec4 p = m*vec4(pos,1);
+  return p.xyz/p.w;
+  }
+
+float tStep(int i, int steps) {
+  float t = float(i+0.3)/steps;
+  return t;
+  }
+
+vec2 mkInPos(ivec2 dstUV, ivec2 dstSz) {
+  vec2 ret;
+  ret.x = ((dstUV.x+0.5)/float(dstSz.x))*2.0-1.0;
+  ret.y = 0;
+  return ret;
+  }
+
+void main() {
+  const ivec2 srcSz = textureSize(textureSm1,0);
+  const ivec2 dstSz = imageSize(shadowLq);
+  const ivec2 dstUV = ivec2(gl_GlobalInvocationID.xy);
+  if(dstUV.x>=dstSz.x || dstUV.y>=dstSz.y)
+    return;
+  /*
+  const vec2  inPos  = mkInPos(dstUV, dstSz);
+  const int   steps  = dstSz.y;
+  const vec3  pos0     = project(push.viewProjectInv, vec3(inPos,0));
+  const vec3  pos1     = project(push.viewProjectInv, vec3(inPos,1));
+  const vec4  shPos0   = push.viewShadow*vec4(pos0,1);
+  const vec4  shPos1   = push.viewShadow*vec4(pos1,1);
+
+  const int msCount     = 16;
+  const int shadowSteps = steps*msCount;
+
+  const int shadowFirst = ((dstUV.y+0)*srcSz.y)/dstSz.y;
+  const int shadowLast  = ((dstUV.y+1)*srcSz.y)/dstSz.y;
+
+  float maxS = 0;
+  for(int i=shadowFirst; i<shadowLast; ++i) {
+    const float t = tStep(i, shadowSteps);
+    vec4 shPos = mix(shPos0,shPos1,t);
+    shPos.xy /= shPos.w;
+    shPos.xy  = shPos.xy*vec2(0.5,0.5)+vec2(0.5);
+
+    vec4 sh = textureGather(textureSm1,shPos.xy);
+    maxS = max(maxS, sh.x);
+    maxS = max(maxS, sh.y);
+    maxS = max(maxS, sh.z);
+    maxS = max(maxS, sh.w);
+    }
+
+  imageStore(shadowLq, dstUV, vec4(maxS));
+  */
+
+  const int sX = ((dstUV.x+0)*srcSz.x)/dstSz.x;
+  const int eX = ((dstUV.x+1)*srcSz.x)/dstSz.x;
+
+  const int sY = ((dstUV.y+0)*srcSz.y)/dstSz.y;
+  const int eY = ((dstUV.y+1)*srcSz.y)/dstSz.y;
+
+  float maxS = 0;
+  for(int y=sY; y<eY; ++y)
+    for(int x=sX; x<eX; ++x) {
+      vec4 sh = texelFetch(textureSm1, ivec2(x,y), 0);
+      maxS = max(maxS, sh.x);
+      }
+
+  imageStore(shadowLq, dstUV, vec4(maxS));
+  }

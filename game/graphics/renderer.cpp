@@ -220,8 +220,9 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   if(!dbg)
     return;
 
-  //auto& tex = hiZ;
-  auto& tex = shadowMap[1];
+  // auto& tex = hiZ;
+  // auto& tex = shadowMap[1];
+  auto& tex = shadowMap[0];
 
   p.setBrush(textureCast(tex));
   auto sz = Size(p.brush().w(),p.brush().h());
@@ -268,7 +269,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     if(shadowMap[i].isEmpty())
       continue;
     cmd.setFramebuffer({}, {shadowMap[i], 0.f, Tempest::Preserve});
-    if(wview->mainLight().dir().y>0)
+    if(wview->mainLight().dir().y>0.05)
       wview->drawShadow(cmd,cmdId,i);
     }
 
@@ -291,11 +292,14 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
 
   drawSSAO(result,cmd,*wview);
   cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Discard});
-  wview->drawLights (cmd,cmdId);
+  wview->drawLights     (cmd,cmdId);
+  wview->drawWater      (cmd,cmdId);
 
-  wview->drawSky    (cmd,cmdId);
-  wview->drawMain   (cmd,cmdId);
-  wview->drawFog    (cmd,cmdId);
+  wview->drawSky        (cmd,cmdId);
+  wview->drawTranslucent(cmd,cmdId);
+
+  // cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
+  wview->drawFog        (cmd,cmdId);
   }
 
 void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, uint8_t cmdId) {

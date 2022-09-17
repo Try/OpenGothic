@@ -25,8 +25,9 @@ class WorldView {
     WorldView(const World &world, const PackedMesh& wmesh);
     ~WorldView();
 
-    const LightSource&   mainLight() const;
-    const Tempest::Vec3& ambientLight() const;
+    const Tempest::Texture2d& shadowLq() const;
+    const LightSource&        mainLight() const;
+    const Tempest::Vec3&      ambientLight() const;
 
     bool isInPfxRange(const Tempest::Vec3& pos) const;
 
@@ -48,13 +49,14 @@ class WorldView {
     void updateLight();
 
     void visibilityPass(const Frustrum fr[]);
-    void drawHiZ       (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawShadow    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, uint8_t layer);
-    void drawGBuffer   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawSky       (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawFog       (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawMain      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawLights    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, uint8_t layer);
+    void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void drawSky        (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void drawFog        (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void drawWater      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void drawLights     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
 
     MeshObjects::Mesh   addView      (std::string_view visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
     MeshObjects::Mesh   addView      (const ProtoMesh* visual);

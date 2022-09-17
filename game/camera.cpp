@@ -248,6 +248,7 @@ Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
       break;
     case 1: {
       proj.translate(0.f, 0.5f, 0.5f);
+      proj.scale(1,(0.5f+ldir.y)/1.5f,1);
       break;
       }
     }

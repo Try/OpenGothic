@@ -33,7 +33,7 @@ Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest:
     zMoonSize=400
     zMoonAlpha=255
     */
-  sun          = Resources::loadTexture(Gothic::settingsGetS("SKY_OUTDOOR","zSunName"));
+  sunImg       = Resources::loadTexture(Gothic::settingsGetS("SKY_OUTDOOR","zSunName"));
   // auto& moon   = gothic.settingsGetS("SKY_OUTDOOR","zMoonName");
 
   auto& device = Resources::device();
@@ -69,12 +69,57 @@ void Sky::setupSettings() {
   //fogLut3D = device.image3d(lutFormat,160,90,512);
 
   fogLut3D = device.image3d(lutFormat,320,176,32);
-  //fogLut3D = device.image3d(lutFormat,320,176,64);
+  //fogLut3D = device.image3d(lutFormat,320,176,128);
+
+  //shadowDw = device.image2d(TextureFormat::R32F,320, 32*16);
+  shadowDw = device.image2d(TextureFormat::R16, 256, 256);
   setupUbo();
   }
 
 void Sky::setWorld(const World& world, const std::pair<Vec3, Vec3>& bbox) {
   setupSettings();
+  }
+
+void Sky::updateLight(const int64_t now) {
+  // https://www.suncalc.org/#/52.4561,13.4033,5/2020.06.28/13:09/1/3
+  const int64_t rise         = gtime( 4,45).toInt();
+  const int64_t meridian     = gtime(13, 9).toInt();
+  const int64_t set          = gtime(21,33).toInt();
+  const int64_t midnight     = gtime(1,0,0).toInt();
+  //const int64_t now          = owner.time().timeInDay().toInt();
+  const float   shadowLength = 0.56f;
+
+  float pulse = 0.f;
+  if(rise<=now && now<meridian){
+    pulse =  0.f + float(now-rise)/float(meridian-rise);
+    }
+  else if(meridian<=now && now<set){
+    pulse =  1.f - float(now-meridian)/float(set-meridian);
+    }
+  else if(set<=now){
+    pulse =  0.f - float(now-set)/float(midnight-set);
+    }
+  else if(now<rise){
+    pulse = -1.f + (float(now)/float(rise));
+    }
+
+  const auto ambientDay   = Vec3(0.25f,0.25f,0.25f);
+  const auto ambientNight = Vec3(0.24f,0.24f,0.50f);
+
+  const auto directDay    = Vec3(0.75f,0.75f,0.75f);
+  const auto directNight  = Vec3(0,0,0);
+
+  float k = float(now)/float(midnight);
+  float a  = std::max(0.f,std::min(pulse*3.f,1.f));
+
+  auto clr = directNight *(1.f-a) + directDay *a;
+  ambient  = ambientNight*(1.f-a) + ambientDay*a;
+
+  float ax  = 360-360*std::fmod(k+0.25f,1.f);
+  ax = ax*float(M_PI/180.0);
+
+  sun.setDir(-std::sin(ax)*shadowLength, pulse, std::cos(ax)*shadowLength);
+  sun.setColor(clr);
   }
 
 void Sky::setupUbo() {
@@ -95,11 +140,16 @@ void Sky::setupUbo() {
   uboFogViewLut.set(1, multiScatLut,   smpB);
 
   if(zFogRadial) {
+    uboShadowDw = device.descriptors(Shaders::inst().shadowDownsample);
+    uboShadowDw.set(0, shadowDw);
+    uboShadowDw.set(1, *scene.shadowMap[1],Resources::shadowSampler());
+
     for(uint32_t i=0; i<Resources::MaxFramesInFlight; ++i) {
       uboFogViewLut3d[i] = device.descriptors(Shaders::inst().fogViewLut3D);
       uboFogViewLut3d[i].set(0, transLut,     smpB);
       uboFogViewLut3d[i].set(1, multiScatLut, smpB);
-      uboFogViewLut3d[i].set(2, *scene.shadowMap[1],Resources::shadowSampler());
+      // uboFogViewLut3d[i].set(2, *scene.shadowMap[1],Resources::shadowSampler());
+      uboFogViewLut3d[i].set(2, shadowDw, Resources::shadowSampler());
       uboFogViewLut3d[i].set(3, fogLut3D);
       uboFogViewLut3d[i].set(4, scene.uboGlobalPf[i][SceneGlobals::V_Main]);
       }
@@ -124,11 +174,14 @@ void Sky::setupUbo() {
   uboFog.set(4, *scene.gbufDepth, Sampler::nearest());
 
   if(zFogRadial) {
+    auto smpLut3d = Sampler::bilinear();
+    smpLut3d.setClamping(ClampMode::ClampToEdge);
+
     uboSky3d = device.descriptors(Shaders::inst().sky3d);
     uboSky3d.set(0, transLut,     smpB);
     uboSky3d.set(1, multiScatLut, smpB);
     uboSky3d.set(2, viewLut,      smpB);
-    uboSky3d.set(3, fogLut3D,     smpB);
+    uboSky3d.set(3, fogLut3D,     smpLut3d);
     uboSky3d.set(4, *scene.gbufDepth, Sampler::nearest());
     uboSky3d.set(5,*day  .lay[0].texture,smp);
     uboSky3d.set(6,*day  .lay[1].texture,smp);
@@ -160,7 +213,12 @@ void Sky::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
     }
 
   if(zFogRadial) {
+    Tempest::Matrix4x4 mt[2] = {scene.viewProjectInv(), scene.viewShadow(1)};
+
     cmd.setFramebuffer({});
+    cmd.setUniforms(Shaders::inst().shadowDownsample, uboShadowDw, &mt, sizeof(mt));
+    cmd.dispatchThreads(uint32_t(shadowDw.w()),uint32_t(shadowDw.h()));
+
     cmd.setUniforms(Shaders::inst().fogViewLut3D, uboFogViewLut3d[frameId], &ubo, sizeof(ubo));
     cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
     }
@@ -205,6 +263,10 @@ const Texture2d& Sky::skyLut() const {
   return textureCast(viewLut);
   }
 
+const Texture2d& Sky::shadowLq() const {
+  return textureCast(shadowDw);
+  }
+
 Sky::UboSky Sky::mkPush() {
   UboSky ubo;
   auto v = scene.view;
@@ -226,7 +288,7 @@ Sky::UboSky Sky::mkPush() {
   auto t1 = float(ticks%270000)/270000.f;
   ubo.dxy0[0] = t0;
   ubo.dxy1[0] = t1;
-  ubo.sunDir  = scene.sun.dir();
+  ubo.sunDir  = sun.dir();
   ubo.night   = 1.f-std::min(std::max(3.f*ubo.sunDir.y,0.f),1.f);
 
   static float rayleighScatteringScale = 33.1f;

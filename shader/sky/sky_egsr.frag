@@ -68,7 +68,10 @@ vec3 finalizeColor(vec3 color, vec3 sunDir) {
   // Tonemapping and gamma. Super ad-hoc, probably a better way to do this.
   color = pow(color, vec3(1.3));
   color /= (smoothstep(0.0, 0.2, clamp(sunDir.y, 0.0, 1.0))*2.0 + 0.15);
+
   color = reinhardTonemap(color);
+  // color = acesTonemap(color);
+
   color = srgbEncode(color);
   return color;
   }
@@ -133,8 +136,8 @@ vec4 fog(vec2 uv, vec3 sunDir) {
   // vec3  posz     = inverse(vec3(inPos,z));
   // vec3  pos0     = inverse(vec3(inPos,0));
 
-  float dMin = 0.95;
-  float dMax = 0.999;
+  float dMin = 0;
+  float dMax = 1;
   float z    = texture(depth,uv).r;
   float dZ   = reconstructCSZ(   z, push.clipInfo);
   float d0   = reconstructCSZ(dMin, push.clipInfo);
@@ -151,14 +154,11 @@ vec4 fog(vec2 uv, vec3 sunDir) {
 
   vec3  lum      = val.rgb * push.GSunIntensity;
   return vec4(lum, fogDens);
-  // return vec4(vec3(d),1);
-  // return vec4(vec3(fogDens),1);
-  // return vec4(val);
   }
 #else
 vec4 fog(vec2 uv, vec3 sunDir) {
-  float dMin = 0.95;
-  float dMax = 0.999;
+  float dMin = 0.0;
+  float dMax = 1.0;
   float z    = texture(depth,uv).r;
   float dZ   = reconstructCSZ(   z, push.clipInfo);
   float d0   = reconstructCSZ(dMin, push.clipInfo);
@@ -170,8 +170,8 @@ vec4 fog(vec2 uv, vec3 sunDir) {
   vec3  posz     = inverse(vec3(inPos,z));
 
   vec3  val      = textureLod(skyLUT, uv, 0).rgb;
-  vec3  trans    = vec3(1.0)-transmittanceAprox(pos0, posz);
   //vec3  trans    = vec3(1.0)-transmittance(pos0, posz);
+  vec3  trans    = vec3(1.0)-transmittanceAprox(pos0, posz);
   float fogDens  = (trans.x+trans.y+trans.z)/3.0;
 
   //return vec4(fogDens);
@@ -224,19 +224,24 @@ void main() {
   vec3 sunDir = push.sunDir;
 
   // NOTE: not a physical value, but dunno how to achive nice look without it
-  float fogFixup = 25.0;
+  float fogFixup = 20.0;
 
   vec4  val      = fog(uv,push.sunDir) * fogFixup;
   vec3  lum      = val.rgb;
 
 #if !defined(FOG)
   // Sky
-  lum = lum + sky(uv,push.sunDir);
+  // lum = sky(uv,push.sunDir);
+  lum = lum*0.5 + sky(uv,push.sunDir);
   // Clouds
   lum = applyClouds(lum);
 #endif
 
   lum      = finalizeColor(lum, sunDir);
   outColor = vec4(lum, val.a);
-  //outColor = vec4(val.a);
+#if !defined(FOG)
+  outColor.a = 1.0;
+#endif
+
+  // outColor = vec4(val.a*2.0);
   }

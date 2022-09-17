@@ -14,8 +14,6 @@ const float mieAbsorptionBase      = 4.40  / 1e6;
 // NOTE: Ozone does not contribute to scattering; it only absorbs light.
 const vec3  ozoneAbsorptionBase    = vec3(0.650, 1.881, .085) / 1e6;
 
-const float maxDepth = 0.4;
-
 layout(push_constant, std430) uniform UboPush {
   mat4  viewProjectInv;
   vec2  dxy0;
