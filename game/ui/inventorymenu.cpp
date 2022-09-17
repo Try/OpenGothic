@@ -106,6 +106,7 @@ void InventoryMenu::close() {
 void InventoryMenu::open(Npc &pl) {
   if(pl.isDown())
     return;
+  pl.closeWeapon(false);
   state  = State::Equip;
   player = &pl;
   trader = nullptr;

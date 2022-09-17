@@ -1453,7 +1453,7 @@ bool Npc::implAtack(uint64_t dt) {
         }
       }
     else if(ws==WeaponState::Fist) {
-      if(doAttack(Anim::Atack))
+      if(doAttack(Anim::Atack) || mvAlgo.isSwim() || mvAlgo.isDive())
         fghAlgo.consumeAction();
       }
     else {

@@ -350,7 +350,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v, const Material& mat) {
 
 void ObjectsBucket::uboSetSkeleton(Descriptors& v, uint8_t fId) {
   auto& ssbo = owner.matrixSsbo(ssboHeap(),fId);
-  if(ssbo.size()==0 || objType==Type::Landscape || objType==Type::LandscapeShadow || objType==Type::Pfx)
+  if(ssbo.byteSize()==0 || objType==Type::Landscape || objType==Type::LandscapeShadow || objType==Type::Pfx)
     return;
 
   for(size_t lay=SceneGlobals::V_Shadow0; lay<SceneGlobals::V_Count; ++lay) {
@@ -426,12 +426,12 @@ void ObjectsBucket::fillTlas(std::vector<RtInstance>& inst, std::vector<uint32_t
       continue;
 
     if(mat.tex!=out.tex.back() ||
-       &bufferCast(staticMesh->vbo)!=out.vbo.back() ||
-       &bufferCast(staticMesh->ibo)!=out.ibo.back() ||
+       &staticMesh->vbo!=out.vbo.back() ||
+       &staticMesh->ibo!=out.ibo.back() ||
        uint32_t(v.iboOffset/3)!=iboOff.back()) {
       out.tex.push_back(mat.tex);
-      out.vbo.push_back(&bufferCast(staticMesh->vbo));
-      out.ibo.push_back(&bufferCast(staticMesh->ibo));
+      out.vbo.push_back(&staticMesh->vbo);
+      out.ibo.push_back(&staticMesh->ibo);
       iboOff.push_back(uint32_t(v.iboOffset/3));
       }
 
@@ -974,12 +974,12 @@ void ObjectsBucketDyn::fillTlas(std::vector<Tempest::RtInstance>& inst, std::vec
       continue;
 
     if(mat[i].tex!=out.tex.back() ||
-       &bufferCast(staticMesh->vbo)!=out.vbo.back() ||
-       &bufferCast(staticMesh->ibo)!=out.ibo.back() ||
+       &staticMesh->vbo!=out.vbo.back() ||
+       &staticMesh->ibo!=out.ibo.back() ||
        uint32_t(v.iboOffset/3)!=iboOff.back()) {
       out.tex.push_back(mat[i].tex);
-      out.vbo.push_back(&bufferCast(staticMesh->vbo));
-      out.ibo.push_back(&bufferCast(staticMesh->ibo));
+      out.vbo.push_back(&staticMesh->vbo);
+      out.ibo.push_back(&staticMesh->ibo);
       iboOff.push_back(uint32_t(v.iboOffset/3));
       }
 
