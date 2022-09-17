@@ -221,19 +221,20 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
     return;
 
   // auto& tex = hiZ;
-  // auto& tex = shadowMap[1];
-  auto& tex = shadowMap[0];
+  auto& tex = shadowMap[1];
+  // auto& tex = shadowMap[0];
 
   p.setBrush(textureCast(tex));
   auto sz = Size(p.brush().w(),p.brush().h());
   if(sz.isEmpty())
     return;
 
-  while(sz.w<256 && sz.h<256) {
+  const int size = 128;
+  while(sz.w<size && sz.h<size) {
     sz.w *= 2;
     sz.h *= 2;
     }
-  while(sz.w>512 || sz.h>512) {
+  while(sz.w>size*2 || sz.h>size*2) {
     sz.w = (sz.w+1)/2;
     sz.h = (sz.h+1)/2;
     }
