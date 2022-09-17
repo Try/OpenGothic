@@ -140,8 +140,8 @@ class Serialize {
     void implWrite(const Tempest::Matrix4x4& i) { writeBytes(&i,sizeof(i)); }
     void implRead (Tempest::Matrix4x4& i)       { readBytes (&i,sizeof(i)); }
 
-    void implWrite(const phoenix::animation_sample& i) { writeBytes(&i,sizeof(i)); }
-    void implRead (phoenix::animation_sample& i)       { readBytes (&i,sizeof(i)); }
+    void implWrite(const phoenix::animation_sample& i);
+    void implRead (phoenix::animation_sample& i);
 
     // strings
     void implWrite(const std::string&              s);

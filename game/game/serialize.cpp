@@ -302,3 +302,16 @@ void Serialize::implWrite(const FpLock &fp) {
 void Serialize::implRead(FpLock &fp) {
   fp.load(*this);
   }
+
+void Serialize::implWrite(const phoenix::animation_sample &i) {
+  writeBytes(&i,sizeof(i));
+  }
+
+void Serialize::implRead(phoenix::animation_sample &i) {
+  if (version() < 39) {
+    read(i.position.x,i.position.y,i.position.z);
+    read(i.rotation.x,i.rotation.y,i.rotation.z,i.rotation.w);
+    } else {
+    readBytes (&i,sizeof(i));
+    }
+  }
