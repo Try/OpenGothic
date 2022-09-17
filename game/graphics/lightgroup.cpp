@@ -65,7 +65,7 @@ LightGroup::Light::Light(LightGroup& owner, const phoenix::vobs::light_preset& v
   if(!vob.color_animation_list.empty()) {
     l.setColor(vob.color_animation_list,vob.color_animation_fps,vob.color_animation_smooth);
     } else {
-    l.setColor(vob.color.b << 16 | vob.color.g << 8 | vob.color.r);
+    l.setColor(vob.color.r << 16 | vob.color.g << 8 | vob.color.b);
     }
 
   std::lock_guard<std::recursive_mutex> guard(owner.sync);
@@ -93,8 +93,7 @@ LightGroup::Light::Light(LightGroup& owner, const phoenix::vobs::light& vob)
   if(!vob.color_animation_list.empty()) {
     l.setColor(vob.color_animation_list,vob.color_animation_fps,vob.color_animation_smooth);
   } else {
-    // TODO: this should probably be fixed in phoenix
-    l.setColor(vob.color.b << 16 | vob.color.g << 8 | vob.color.r);
+    l.setColor(vob.color.r << 16 | vob.color.g << 8 | vob.color.b);
   }
 
   std::lock_guard<std::recursive_mutex> guard(owner.sync);
