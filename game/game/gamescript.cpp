@@ -5,7 +5,6 @@
 
 #include <fstream>
 #include <cctype>
-#include <concepts>
 
 #include "game/definitions/spelldefinitions.h"
 #include "game/serialize.h"
@@ -67,7 +66,7 @@ GameScript::~GameScript() {
 // Beware: amazing hacks from this point!
 template<typename T>
 struct DetermineSignature {
-  using signature = void(void);
+  using signature = void();
 };
 
 template <typename C, typename R, typename ... P>
@@ -75,7 +74,7 @@ struct DetermineSignature<R(C::*)(P...)> {
   using signature = R(P...);
 };
 
-#define bind_this(func) std::function<DetermineSignature<decltype(&func)>::signature> {std::bind_front(&func, this)}
+#define bind_this(func) std::function<DetermineSignature<decltype(&func)>::signature> {[this](auto ... v) { return func(v...); }}
 
 void GameScript::initCommon() {
   vm.register_external("hlp_random",          bind_this(GameScript::hlp_random));
