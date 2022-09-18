@@ -1,6 +1,6 @@
 #pragma once
 
-#include <phoenix/daedalus/interpreter.hh>
+#include <phoenix/vm.hh>
 
 #include "scriptplugin.h"
 #include "mem32.h"
@@ -9,9 +9,9 @@ class GameScript;
 
 class Ikarus : public ScriptPlugin {
   public:
-    Ikarus(GameScript& owner, phoenix::daedalus::vm& vm);
+    Ikarus(GameScript& owner, phoenix::vm& vm);
 
-    static bool isRequired(phoenix::daedalus::vm& vm);
+    static bool isRequired(phoenix::vm& vm);
 
   private:
     using ptr32_t = Mem32::ptr32_t;
@@ -62,7 +62,7 @@ class Ikarus : public ScriptPlugin {
     ptr32_t  oGame_Pointer = 0;
     oGame    gameProxy;
     zCParser parserProxy;
-    phoenix::daedalus::vm& vm;
+    phoenix::vm& vm;
     // GameScript& owner;
   };
 

@@ -33,7 +33,7 @@ ParticleFx::ParticleFx(const Material& mat, const phoenix::vob& vob) {
   useEmittersFOR   = true;
   }
 
-ParticleFx::ParticleFx(const phoenix::daedalus::c_particle_fx &src, std::string_view name)
+ParticleFx::ParticleFx(const phoenix::c_particle_fx &src, std::string_view name)
   :dbgName(name) {
   ppsValue            = std::max(0.f,src.pps_value);
   ppsScaleKeys        = loadArr(src.pps_scale_keys_s);

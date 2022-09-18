@@ -5,8 +5,8 @@
 CameraDefinitions::CameraDefinitions() {
   auto vm = Gothic::inst().createPhoenixVm("Camera.dat");
 
-  vm->enumerate_instances_by_class_name("CCAMSYS", [this, &vm](phoenix::daedalus::symbol& s) {
-    auto cam = vm->init_instance<phoenix::daedalus::c_camera>(&s);
+  vm->enumerate_instances_by_class_name("CCAMSYS", [this, &vm](phoenix::symbol& s) {
+    auto cam = vm->init_instance<phoenix::c_camera>(&s);
     cameras.emplace_back(s.name(), std::move(cam));
   });
 
@@ -23,7 +23,7 @@ CameraDefinitions::CameraDefinitions() {
   camModDive      = getCam("CAMMODDIVE");
   }
 
-const phoenix::daedalus::c_camera& CameraDefinitions::mobsiCam(std::string_view tag, std::string_view pos) const {
+const phoenix::c_camera& CameraDefinitions::mobsiCam(std::string_view tag, std::string_view pos) const {
   char name[256]={};
 
   if(!pos.empty()) {
@@ -40,7 +40,7 @@ const phoenix::daedalus::c_camera& CameraDefinitions::mobsiCam(std::string_view 
   return *camModNormal;
   }
 
-phoenix::daedalus::c_camera* CameraDefinitions::getCam(std::string_view name) {
+phoenix::c_camera* CameraDefinitions::getCam(std::string_view name) {
   for(auto& i:cameras)
     if(i.first==name)
       return i.second.get();
@@ -48,7 +48,7 @@ phoenix::daedalus::c_camera* CameraDefinitions::getCam(std::string_view name) {
   return nullptr;
   }
 
-const phoenix::daedalus::c_camera* CameraDefinitions::find(std::string_view name) const {
+const phoenix::c_camera* CameraDefinitions::find(std::string_view name) const {
   for(auto& i:cameras)
     if(i.first==name)
       return i.second.get();

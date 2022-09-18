@@ -30,7 +30,7 @@ class GameMusic final {
     void      setEnabled(bool e);
     bool      isEnabled() const;
     void      setMusic(Music m);
-    void      setMusic(const phoenix::daedalus::c_music_theme &theme, Tags t);
+    void      setMusic(const phoenix::c_music_theme &theme, Tags t);
     void      stopMusic();
 
   private:

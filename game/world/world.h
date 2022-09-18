@@ -97,7 +97,7 @@ class World final {
     GlobalFx             addGlobalEffect(std::string_view what, uint64_t len, const std::string* argv, size_t argc);
     MeshObjects::Mesh    addView(std::string_view visual) const;
     MeshObjects::Mesh    addView(std::string_view visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
-    MeshObjects::Mesh    addView(const phoenix::daedalus::c_item& itm);
+    MeshObjects::Mesh    addView(const phoenix::c_item& itm);
     MeshObjects::Mesh    addView(const ProtoMesh* visual);
     MeshObjects::Mesh    addAtachView (const ProtoMesh::Attach& visual, const int32_t version);
     MeshObjects::Mesh    addStaticView(const ProtoMesh* visual, bool staticDraw);
@@ -179,7 +179,7 @@ class World final {
     void                 invalidateVobIndex();
 
   private:
-    const phoenix::daedalus::c_focus&     searchPolicy(const Npc& pl, TargetCollect& coll, WorldObjects::SearchFlg& opt) const;
+    const phoenix::c_focus&     searchPolicy(const Npc& pl, TargetCollect& coll, WorldObjects::SearchFlg& opt) const;
     std::string                           wname;
     GameSession&                          game;
 

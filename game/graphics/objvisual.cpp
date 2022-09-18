@@ -114,7 +114,7 @@ void ObjVisual::setType(Type t) {
   type = t;
   }
 
-void ObjVisual::setVisual(const phoenix::daedalus::c_item& hitem, World& world, bool staticDraw) {
+void ObjVisual::setVisual(const phoenix::c_item& hitem, World& world, bool staticDraw) {
   cleanup();
 
   if(FileExt::hasExt(hitem.visual,"ZEN")) {

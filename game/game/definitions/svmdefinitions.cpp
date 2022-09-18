@@ -1,6 +1,6 @@
 #include "svmdefinitions.h"
 
-SvmDefinitions::SvmDefinitions(phoenix::daedalus::vm& vm):vm(vm) {
+SvmDefinitions::SvmDefinitions(phoenix::vm& vm):vm(vm) {
   }
 
 SvmDefinitions::~SvmDefinitions() {
@@ -18,7 +18,7 @@ const std::string& SvmDefinitions::find(std::string_view speech, int intId) {
 
     if(svm[id] == nullptr){
       auto i = vm.find_symbol_by_name(name);
-      svm[id] = vm.init_instance<phoenix::daedalus::c_svm>(i);
+      svm[id] = vm.init_instance<phoenix::c_svm>(i);
       }
 
     speech = speech.substr(1);

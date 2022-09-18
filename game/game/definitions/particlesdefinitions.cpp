@@ -58,7 +58,7 @@ const ParticleFx* ParticlesDefinitions::implGet(const ParticleFx& base, const Vi
   return elt.first->second.get();
   }
 
-std::shared_ptr<phoenix::daedalus::c_particle_fx> ParticlesDefinitions::implGetDirect(std::string_view name, bool relaxed) {
+std::shared_ptr<phoenix::c_particle_fx> ParticlesDefinitions::implGetDirect(std::string_view name, bool relaxed) {
   if(!vm || name.empty())
     return nullptr;
 
@@ -71,5 +71,5 @@ std::shared_ptr<phoenix::daedalus::c_particle_fx> ParticlesDefinitions::implGetD
     return nullptr;
     }
 
-  return vm->init_instance<phoenix::daedalus::c_particle_fx>(id);
+  return vm->init_instance<phoenix::c_particle_fx>(id);
   }

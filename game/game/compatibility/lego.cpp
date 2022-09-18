@@ -5,11 +5,11 @@
 
 using namespace Tempest;
 
-LeGo::LeGo(GameScript& /*owner*/, phoenix::daedalus::vm& /*vm*/) {
+LeGo::LeGo(GameScript& /*owner*/, phoenix::vm& /*vm*/) {
   Log::i("DMA mod detected: LeGo");
   }
 
-bool LeGo::isRequired(phoenix::daedalus::vm& vm) {
+bool LeGo::isRequired(phoenix::vm& vm) {
   return
       vm.find_symbol_by_name("LeGo_InitFlags") != nullptr &&
       vm.find_symbol_by_name("LeGo_Init") != nullptr &&

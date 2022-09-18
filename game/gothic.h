@@ -7,7 +7,7 @@
 #include <Tempest/Signal>
 #include <Tempest/Dir>
 
-#include <phoenix/daedalus/interpreter.hh>
+#include <phoenix/vm.hh>
 
 #include "game/gamesession.h"
 #include "world/world.h"
@@ -135,10 +135,10 @@ class Gothic final {
     uint32_t                              messageTime   (std::string_view id) const;
 
     std::u16string                        nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const;
-    std::unique_ptr<phoenix::daedalus::vm> createPhoenixVm(std::string_view datFile);
+    std::unique_ptr<phoenix::vm> createPhoenixVm(std::string_view datFile);
     std::vector<uint8_t>                  loadScriptCode(std::string_view datFile);
-    phoenix::daedalus::script             loadPhoenixScriptCode(std::string_view datFile);
-    void                                  setupVmCommonApi(phoenix::daedalus::vm &vm);
+    phoenix::script             loadPhoenixScriptCode(std::string_view datFile);
+    void                                  setupVmCommonApi(phoenix::vm &vm);
 
     static const FightAi&                 fai();
     static const SoundDefinitions&        sfx();

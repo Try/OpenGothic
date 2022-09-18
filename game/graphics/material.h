@@ -11,7 +11,7 @@ class Material final {
     Material()=default;
     Material(const phoenix::material& m, bool enableAlphaTest);
     Material(const phoenix::vob& vob);
-    Material(const phoenix::daedalus::c_particle_fx &src);
+    Material(const phoenix::c_particle_fx &src);
 
     enum AlphaFunc:uint8_t {
       Solid,

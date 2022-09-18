@@ -314,7 +314,7 @@ class Npc final {
 
     auto      dialogChoises(Npc &player, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<GameScript::DlgChoise>;
 
-    auto      handle() -> const std::shared_ptr<phoenix::daedalus::c_npc>& { return hnpc; }
+    auto      handle() -> const std::shared_ptr<phoenix::c_npc>& { return hnpc; }
 
     auto      inventory() const -> const Inventory& { return invent; }
     size_t    itemCount  (size_t id) const;
@@ -496,7 +496,7 @@ class Npc final {
 
     World&                         owner;
     // main props
-    std::shared_ptr<phoenix::daedalus::c_npc> hnpc={};
+    std::shared_ptr<phoenix::c_npc> hnpc={};
     float                          x=0.f;
     float                          y=0.f;
     float                          z=0.f;

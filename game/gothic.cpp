@@ -560,11 +560,11 @@ std::string_view Gothic::defaultSave() const {
   return CommandLine::inst().defaultSave();
   }
 
-std::unique_ptr<phoenix::daedalus::vm> Gothic::createPhoenixVm(std::string_view datFile) {
+std::unique_ptr<phoenix::vm> Gothic::createPhoenixVm(std::string_view datFile) {
   auto byte = loadPhoenixScriptCode(datFile);
-  phoenix::daedalus::register_all_script_classes(byte);
+  phoenix::register_all_script_classes(byte);
 
-  auto vm = std::make_unique<phoenix::daedalus::vm>(std::move(byte), phoenix::daedalus::vm_allow_null_instance_access);
+  auto vm = std::make_unique<phoenix::vm>(std::move(byte), phoenix::execution_flag::vm_allow_null_instance_access);
   setupVmCommonApi(*vm);
   return vm;
 }
@@ -584,10 +584,10 @@ std::vector<uint8_t> Gothic::loadScriptCode(std::string_view datFile) {
   return ret;
   }
 
-phoenix::daedalus::script Gothic::loadPhoenixScriptCode(std::string_view datFile) {
+phoenix::script Gothic::loadPhoenixScriptCode(std::string_view datFile) {
   if(Resources::hasFile(datFile)){
     auto buf = Resources::getFileBuffer(datFile);
-    return phoenix::daedalus::script::parse(buf);
+    return phoenix::script::parse(buf);
   }
 
   auto gscript = CommandLine::inst().scriptPath();
@@ -596,7 +596,7 @@ phoenix::daedalus::script Gothic::loadPhoenixScriptCode(std::string_view datFile
     str16[i] = char16_t(datFile[i]);
   auto path = caseInsensitiveSegment(gscript,str16,Dir::FT_File);
   auto buf = phoenix::buffer::mmap(path);
-  return phoenix::daedalus::script::parse(buf);
+  return phoenix::script::parse(buf);
 }
 
 int Gothic::settingsGetI(std::string_view sec, std::string_view name) {
@@ -735,7 +735,7 @@ std::u16string Gothic::nestedPath(const std::initializer_list<const char16_t*> &
   return CommandLine::inst().nestedPath(name,type);
   }
 
-void Gothic::setupVmCommonApi(phoenix::daedalus::vm &vm) {
+void Gothic::setupVmCommonApi(phoenix::vm &vm) {
   vm.register_default_external([](std::string_view name) { notImplementedRoutine(std::string {name}); });
 
   vm.register_external("concatstrings", [](std::string_view a, std::string_view b) { return Gothic::concatstrings(a, b);});

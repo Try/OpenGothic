@@ -80,8 +80,8 @@ class Item : public Vob {
     bool                checkCondUse (const Npc& other,int32_t& atr,int32_t& nv) const;
     bool                checkCondRune(const Npc& other,int32_t& cPl,int32_t& cIt) const;
 
-    const std::shared_ptr<phoenix::daedalus::c_item>& handle() const { return hitem; }
-    std::shared_ptr<phoenix::daedalus::c_item>&       handle()       { return hitem; }
+    const std::shared_ptr<phoenix::c_item>& handle() const { return hitem; }
+    std::shared_ptr<phoenix::c_item>&       handle()       { return hitem; }
     size_t                                  clsId() const;
 
   protected:
@@ -92,7 +92,7 @@ class Item : public Vob {
   private:
     void                updateMatrix();
 
-    std::shared_ptr<phoenix::daedalus::c_item> hitem={};
+    std::shared_ptr<phoenix::c_item> hitem={};
     Tempest::Vec3                              pos={};
 
     uint32_t                          amount  = 0;

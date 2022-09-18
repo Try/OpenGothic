@@ -20,7 +20,7 @@ class SoundFx {
   private:
     struct SoundVar {
       SoundVar()=default;
-      SoundVar(const phoenix::daedalus::c_sfx& sfx,Tempest::Sound&& snd);
+      SoundVar(const phoenix::c_sfx& sfx,Tempest::Sound&& snd);
       SoundVar(const float vol,Tempest::Sound&& snd);
 
       Tempest::Sound snd;

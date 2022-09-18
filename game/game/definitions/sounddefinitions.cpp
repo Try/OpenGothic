@@ -8,18 +8,18 @@ using namespace Tempest;
 SoundDefinitions::SoundDefinitions() {
   auto vm = Gothic::inst().createPhoenixVm("Sfx.dat");
 
-  vm->enumerate_instances_by_class_name("C_SFX", [this, &vm](phoenix::daedalus::symbol& s) {
-    this->sfx[s.name()] = vm->init_instance<phoenix::daedalus::c_sfx>(&s);
+  vm->enumerate_instances_by_class_name("C_SFX", [this, &vm](phoenix::symbol& s) {
+    this->sfx[s.name()] = vm->init_instance<phoenix::c_sfx>(&s);
   });
   }
 
-const phoenix::daedalus::c_sfx& SoundDefinitions::operator[](std::string_view name) const {
+const phoenix::c_sfx& SoundDefinitions::operator[](std::string_view name) const {
   char buf[256] = {};
   std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
   auto i = sfx.find(buf);
   if(i!=sfx.end())
     return *i->second;
-  static phoenix::daedalus::c_sfx s {};
+  static phoenix::c_sfx s {};
   return s;
   }
 

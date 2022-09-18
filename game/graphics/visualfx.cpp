@@ -9,7 +9,7 @@
 
 using namespace Tempest;
 
-VisualFx::Key::Key(const phoenix::daedalus::c_particle_fx_emit_key& k) {
+VisualFx::Key::Key(const phoenix::c_particle_fx_emit_key& k) {
   visName                 = Gothic::inst().loadParticleFx(k.vis_name_s);
   visSizeScale            = k.vis_size_scale;
   scaleDuration           = k.scale_duration; // time to reach full scale at this key for relevant vars (size, alpha, etc.)
@@ -53,7 +53,7 @@ VisualFx::Key::Key(const phoenix::daedalus::c_particle_fx_emit_key& k) {
   emFXLifeSpan            = k.em_fx_lifespan<0 ? 0 : uint64_t(k.em_fx_lifespan*1000.f);
   }
 
-VisualFx::VisualFx(const phoenix::daedalus::c_fx_base& fx, phoenix::daedalus::vm& vm, std::string_view name) {
+VisualFx::VisualFx(const phoenix::c_fx_base& fx, phoenix::vm& vm, std::string_view name) {
   visName_S                = fx.vis_name_s;
   visSize                  = Parser::loadVec2(fx.vis_size_s);
   visAlpha                 = fx.vis_alpha;
@@ -97,7 +97,7 @@ VisualFx::VisualFx(const phoenix::daedalus::c_fx_base& fx, phoenix::daedalus::vm
   emInvestNextKeyDuration  = fx.em_invest_next_key_duration<0 ? 0 : uint64_t(fx.em_invest_next_key_duration*1000.f);
   emFlyGravity             = fx.em_fly_gravity;
   emSelfRotVel             = Parser::loadVec3(fx.em_self_rot_vel_s);
-  for(size_t i=0; i<phoenix::daedalus::c_fx_base::user_string_count; ++i)
+  for(size_t i=0; i<phoenix::c_fx_base::user_string_count; ++i)
     userString[i] = fx.user_string[i];
   lightPresetName          = fx.light_preset_name;
   sfxID                    = fx.sfx_id;
@@ -122,7 +122,7 @@ VisualFx::VisualFx(const phoenix::daedalus::c_fx_base& fx, phoenix::daedalus::vm
     auto id = vm.find_symbol_by_name(kname);
     if(id==nullptr)
       continue;
-    auto key = vm.init_instance<phoenix::daedalus::c_particle_fx_emit_key>(id);
+    auto key = vm.init_instance<phoenix::c_particle_fx_emit_key>(id);
     keys  [i] = Key(*key);
     hasKey[i] = true;
     }
@@ -133,7 +133,7 @@ VisualFx::VisualFx(const phoenix::daedalus::c_fx_base& fx, phoenix::daedalus::vm
     auto id = vm.find_symbol_by_name(kname);
     if(id==nullptr)
       break;
-    auto key = vm.init_instance<phoenix::daedalus::c_particle_fx_emit_key>(id);
+    auto key = vm.init_instance<phoenix::c_particle_fx_emit_key>(id);
     // keys[int(SpellFxKey::Invest)] = key;
     investKeys.emplace_back(*key);
     }

@@ -34,18 +34,18 @@ void TouchDamage::tick(uint64_t dt) {
     return;
 
   for(auto npc:intersections()) {
-    bool mask[phoenix::daedalus::damage_type::count] = {};
-    mask[phoenix::daedalus::damage_type::barrier] = barrier;
-    mask[phoenix::daedalus::damage_type::blunt]   = blunt;
-    mask[phoenix::daedalus::damage_type::edge]    = edge;
-    mask[phoenix::daedalus::damage_type::fire]    = fire;
-    mask[phoenix::daedalus::damage_type::fly]     = fly;
-    mask[phoenix::daedalus::damage_type::magic]   = magic;
-    mask[phoenix::daedalus::damage_type::point]   = point;
-    mask[phoenix::daedalus::damage_type::fall]    = fall;
+    bool mask[phoenix::damage_type::count] = {};
+    mask[phoenix::damage_type::barrier] = barrier;
+    mask[phoenix::damage_type::blunt]   = blunt;
+    mask[phoenix::damage_type::edge]    = edge;
+    mask[phoenix::damage_type::fire]    = fire;
+    mask[phoenix::damage_type::fly]     = fly;
+    mask[phoenix::damage_type::magic]   = magic;
+    mask[phoenix::damage_type::point]   = point;
+    mask[phoenix::damage_type::fall]    = fall;
 
     auto& hnpc = *npc->handle();
-    for(size_t i=0; i<phoenix::daedalus::damage_type::count; ++i) {
+    for(size_t i=0; i<phoenix::damage_type::count; ++i) {
       if(!mask[i])
         continue;
       takeDamage(*npc,int32_t(damage),hnpc.protection[i]);

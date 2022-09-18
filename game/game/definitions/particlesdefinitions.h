@@ -1,6 +1,6 @@
 #pragma once
 
-#include <phoenix/daedalus/interpreter.hh>
+#include <phoenix/vm.hh>
 #include <phoenix/ext/daedalus_classes.hh>
 
 #include <unordered_map>
@@ -21,7 +21,7 @@ class ParticlesDefinitions final {
 
   private:
     std::recursive_mutex                                        sync;
-    std::unique_ptr<phoenix::daedalus::vm>                       vm;
+    std::unique_ptr<phoenix::vm>                       vm;
 
     std::unordered_map<std::string,          std::unique_ptr<ParticleFx>> pfx;
     std::unordered_map<const VisualFx::Key*, std::unique_ptr<ParticleFx>> pfxKey;
@@ -29,5 +29,5 @@ class ParticlesDefinitions final {
     const ParticleFx* implGet(std::string_view name, bool relaxed);
     const ParticleFx* implGet(const ParticleFx& base, const VisualFx::Key& key);
 
-    std::shared_ptr<phoenix::daedalus::c_particle_fx> implGetDirect(std::string_view name, bool relaxed);
+    std::shared_ptr<phoenix::c_particle_fx> implGetDirect(std::string_view name, bool relaxed);
   };

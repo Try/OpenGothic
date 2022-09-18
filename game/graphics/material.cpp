@@ -44,7 +44,7 @@ Material::Material(const phoenix::vob& vob) {
     texAniFPSInv = 1;
   }
 
-Material::Material(const phoenix::daedalus::c_particle_fx& src) {
+Material::Material(const phoenix::c_particle_fx& src) {
   tex    = Resources::loadTexture(src.vis_name_s);
   frames = Resources::loadTextureAnim(src.vis_name_s);
   if(src.vis_tex_ani_fps>0)

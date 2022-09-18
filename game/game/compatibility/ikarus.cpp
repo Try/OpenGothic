@@ -17,7 +17,7 @@ enum {
   MEMINT_gameMan_Pointer_address      = 9185624,  //0x8C2958
   };
 
-Ikarus::Ikarus(GameScript& /*owner*/, phoenix::daedalus::vm& vm) : vm(vm)
+Ikarus::Ikarus(GameScript& /*owner*/, phoenix::vm& vm) : vm(vm)
   /*:owner(owner)*/ {
   Log::i("DMA mod detected: Ikarus");
 
@@ -74,7 +74,7 @@ Ikarus::Ikarus(GameScript& /*owner*/, phoenix::daedalus::vm& vm) : vm(vm)
   // vm.disAsm(vm.getDATFile().getSymbolIndexByName("MEMINT_GetAddress_Init"));
   }
 
-bool Ikarus::isRequired(phoenix::daedalus::vm& vm) {
+bool Ikarus::isRequired(phoenix::vm& vm) {
   return
       vm.find_symbol_by_name("MEM_InitAll") != nullptr &&
       vm.find_symbol_by_name("MEM_ReadInt") != nullptr &&
@@ -93,18 +93,18 @@ void Ikarus::mem_replacefunc(int dest, int func) {
   auto* sf      = vm.find_symbol_by_index(func);
   auto* sd      = vm.find_symbol_by_index(dest);
 
-  if(sf->type() != phoenix::daedalus::dt_function) {
+  if(sf->type() != phoenix::datatype::function) {
     Log::e("mem_replacefunc: invalid function ptr");
     return;
     }
-  if(sd->type() != phoenix::daedalus::dt_function) {
+  if(sd->type() != phoenix::datatype::function) {
     Log::e("mem_replacefunc: invalid function ptr");
     return;
     }
 
   Log::d("mem_replacefunc: ",sd->name()," -> ",sf->name());
   //auto& bin = vm.getDATFile().rawCode();
-  //bin[sd.address]->op      = Daedalus::EParOp_Jump;
+  //bin[sd.address]->op      = EParOp_Jump;
   //bin[sd.address]->address = func;
   }
 
@@ -116,7 +116,7 @@ void Ikarus::mem_printstacktrace_implementation() {
 
 int Ikarus::mem_getfuncptr(int func) {
   auto* sym  = vm.find_symbol_by_index(size_t(func));
-  if(sym->type() != phoenix::daedalus::dt_function) {
+  if(sym->type() != phoenix::datatype::function) {
     Log::e("mem_getfuncptr: invalid function ptr");
     return 0;
     }

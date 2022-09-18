@@ -14,7 +14,7 @@ using namespace Tempest;
 Item::Item(World &owner, size_t itemInstance, Type type)
   :Vob(owner) {
   assert(itemInstance!=size_t(-1));
-  hitem = std::make_shared<phoenix::daedalus::c_item>();
+  hitem = std::make_shared<phoenix::c_item>();
   hitem->user_ptr=this;
   owner.script().initializeInstanceItem(hitem, itemInstance);
   setCount(1);
@@ -29,7 +29,7 @@ Item::Item(World &owner, size_t itemInstance, Type type)
 Item::Item(World &owner, Serialize &fin, Type type)
   :Vob(owner) {
   auto& h = hitem;
-  h = std::make_shared<phoenix::daedalus::c_item>();
+  h = std::make_shared<phoenix::c_item>();
   h->user_ptr = this;
 
   Tempest::Matrix4x4 mat;

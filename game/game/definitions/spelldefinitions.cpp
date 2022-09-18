@@ -5,16 +5,16 @@
 
 using namespace Tempest;
 
-SpellDefinitions::SpellDefinitions(phoenix::daedalus::vm &vm) : vm(vm) {
-  vm.enumerate_instances_by_class_name("C_Spell", [this, &vm](phoenix::daedalus::symbol& sym){
-    spl.push_back(vm.init_instance<phoenix::daedalus::c_spell>(&sym));
+SpellDefinitions::SpellDefinitions(phoenix::vm &vm) : vm(vm) {
+  vm.enumerate_instances_by_class_name("C_Spell", [this, &vm](phoenix::symbol& sym){
+    spl.push_back(vm.init_instance<phoenix::c_spell>(&sym));
     });
   }
 
 SpellDefinitions::~SpellDefinitions() {
   }
 
-const phoenix::daedalus::c_spell& SpellDefinitions::find(std::string_view instanceName) const {
+const phoenix::c_spell& SpellDefinitions::find(std::string_view instanceName) const {
   char format[64]={};
   std::snprintf(format,sizeof(format),"SPELL_%.*s",int(instanceName.size()),instanceName.data());
   for(auto& i:format)
@@ -26,6 +26,6 @@ const phoenix::daedalus::c_spell& SpellDefinitions::find(std::string_view instan
       return *i;
   }
   Log::d("invalid spell [",instanceName.data(),"]");
-  static phoenix::daedalus::c_spell szero={};
+  static phoenix::c_spell szero={};
   return szero;
   }

@@ -265,7 +265,7 @@ float Camera::zFar() const {
   return 85.0f;
   }
 
-const phoenix::daedalus::c_camera &Camera::cameraDef() const {
+const phoenix::c_camera &Camera::cameraDef() const {
   auto& camd = Gothic::cameraDef();
   if(camMod==Dialog)
     return camd.dialogCam();

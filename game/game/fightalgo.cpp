@@ -86,21 +86,21 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
   fillQueue(owner,*ai.my_w_nofocus);
   }
 
-bool FightAlgo::fillQueue(GameScript& owner,const phoenix::daedalus::c_fight_ai &src) {
+bool FightAlgo::fillQueue(GameScript& owner,const phoenix::c_fight_ai &src) {
   uint32_t sz=0;
-  for(size_t i=0;i<phoenix::daedalus::c_fight_ai::move_count;++i){
-    if(src.move[i]==static_cast<phoenix::daedalus::c_fight_ai_move>(0))
+  for(size_t i=0;i<phoenix::c_fight_ai::move_count;++i){
+    if(src.move[i]==static_cast<phoenix::c_fight_ai_move>(0))
       break;
     sz++;
     }
   if(sz==0)
     return false;
-  queueId = phoenix::daedalus::c_fight_ai_move(src.move[owner.rand(sz)]);
-  return queueId!=phoenix::daedalus::c_fight_ai_move(0);
+  queueId = phoenix::c_fight_ai_move(src.move[owner.rand(sz)]);
+  return queueId!=phoenix::c_fight_ai_move(0);
   }
 
 FightAlgo::Action FightAlgo::nextFromQueue(Npc& npc, Npc& tg, GameScript& owner) {
-  using phoenix::daedalus::c_fight_ai_move;
+  using phoenix::c_fight_ai_move;
 
   if(tr[0]==MV_NULL) {
     switch(queueId) {
@@ -204,7 +204,7 @@ bool FightAlgo::hasInstructions() const {
 
 bool FightAlgo::fetchInstructions(Npc &npc, Npc &tg, GameScript& owner) {
   fillQueue(npc,tg,owner);
-  if(queueId==phoenix::daedalus::c_fight_ai_move(0))
+  if(queueId==phoenix::c_fight_ai_move(0))
     return false;
   nextFromQueue(npc,tg,owner);
   return true;
@@ -217,7 +217,7 @@ void FightAlgo::consumeAction() {
   }
 
 void FightAlgo::onClearTarget() {
-  queueId = phoenix::daedalus::c_fight_ai_move(0);
+  queueId = phoenix::c_fight_ai_move(0);
   tr[0]   = MV_NULL;
   }
 

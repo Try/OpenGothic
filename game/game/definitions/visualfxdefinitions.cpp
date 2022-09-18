@@ -33,7 +33,7 @@ const VisualFx* VisualFxDefinitions::get(std::string_view name) {
   return &vfx;
   }
 
-std::shared_ptr<phoenix::daedalus::c_fx_base> VisualFxDefinitions::implGet(std::string_view name) {
+std::shared_ptr<phoenix::c_fx_base> VisualFxDefinitions::implGet(std::string_view name) {
   if(!vm || name.empty())
     return nullptr;
 
@@ -45,5 +45,5 @@ std::shared_ptr<phoenix::daedalus::c_fx_base> VisualFxDefinitions::implGet(std::
     return nullptr;
     }
 
-  return vm->init_instance<phoenix::daedalus::c_fx_base>(id);
+  return vm->init_instance<phoenix::c_fx_base>(id);
   }

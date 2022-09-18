@@ -238,7 +238,7 @@ MeshObjects::Mesh World::addView(std::string_view visual, int32_t headTex, int32
   return view()->addView(visual,headTex,teetTex,bodyColor);
   }
 
-MeshObjects::Mesh World::addView(const phoenix::daedalus::c_item& itm) {
+MeshObjects::Mesh World::addView(const phoenix::c_item& itm) {
   return view()->addView(itm.visual,itm.material,0,itm.material);
   }
 
@@ -745,7 +745,7 @@ void World::invalidateVobIndex() {
   wobj.invalidateVobIndex();
   }
 
-const phoenix::daedalus::c_focus& World::searchPolicy(const Npc& pl, TargetCollect& coll, WorldObjects::SearchFlg& opt) const {
+const phoenix::c_focus& World::searchPolicy(const Npc& pl, TargetCollect& coll, WorldObjects::SearchFlg& opt) const {
   opt  = WorldObjects::NoFlg;
   coll = TARGET_COLLECT_FOCUS;
 

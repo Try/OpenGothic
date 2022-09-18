@@ -1,6 +1,6 @@
 #pragma once
 
-#include <phoenix/daedalus/interpreter.hh>
+#include <phoenix/vm.hh>
 
 #include "scriptplugin.h"
 
@@ -8,8 +8,8 @@ class GameScript;
 
 class LeGo : public ScriptPlugin {
   public:
-    LeGo(GameScript& owner, phoenix::daedalus::vm& vm);
+    LeGo(GameScript& owner, phoenix::vm& vm);
 
-    static bool isRequired(phoenix::daedalus::vm& vm);
+    static bool isRequired(phoenix::vm& vm);
   };
 

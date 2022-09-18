@@ -279,7 +279,7 @@ bool Marvin::addItemOrNpcBySymbolName(World* world, std::string_view name, const
   if(sym->parent()==uint32_t(-1))
     return false;
 
-  if(sym->type()!=phoenix::daedalus::dt_instance)
+  if(sym->type()!=phoenix::datatype::instance)
     return false;
 
   const auto* cls = sym;
@@ -302,16 +302,16 @@ bool Marvin::printVariable(World* world, std::string_view name) {
   char buf[256] = {};
   auto*  sym = sc.getSymbol(id);
   switch(sym->type()) {
-    case phoenix::daedalus::dt_integer:
+    case phoenix::datatype::integer:
       std::snprintf(buf,sizeof(buf),"%.*s = %d",int(name.size()),name.data(), sym->get_int(0));
       break;
-    case phoenix::daedalus::dt_float:
+    case phoenix::datatype::float_:
       std::snprintf(buf,sizeof(buf),"%.*s = %f",int(name.size()),name.data(), sym->get_float(0));
       break;
-    case phoenix::daedalus::dt_string:
+    case phoenix::datatype::string:
       std::snprintf(buf,sizeof(buf),"%.*s = %s",int(name.size()),name.data(), sym->get_string(0).c_str());
       break;
-    case phoenix::daedalus::dt_instance:
+    case phoenix::datatype::instance:
       std::snprintf(buf,sizeof(buf),"%.*s = %p",int(name.size()),name.data(), sym->get_instance().get());
       break;
     default:

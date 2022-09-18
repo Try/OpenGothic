@@ -345,7 +345,7 @@ void MdlVisual::stopEffect(int32_t slot) {
     }
   }
 
-void MdlVisual::setNpcEffect(World& owner, Npc& npc, const std::string& s, phoenix::daedalus::npc_flag flags) {
+void MdlVisual::setNpcEffect(World& owner, Npc& npc, const std::string& s, phoenix::npc_flag flags) {
   if(hnpcVisualName!=s) {
     hnpcVisualName = s;
     auto vfx = Gothic::inst().loadVisualFx(s.c_str());
@@ -361,7 +361,7 @@ void MdlVisual::setNpcEffect(World& owner, Npc& npc, const std::string& s, phoen
     hnpcVisual.view.setMesh(&view);
     }
 
-  const bool nextGhost = (flags & phoenix::daedalus::npc_flag::ghost);
+  const bool nextGhost = (flags & phoenix::npc_flag::ghost);
   if(hnpcFlagGhost!=nextGhost) {
     hnpcFlagGhost=nextGhost;
     view.setAsGhost(hnpcFlagGhost);
@@ -451,7 +451,7 @@ void MdlVisual::setTorch(bool t, World& owner) {
   if(torchId==size_t(-1))
     return;
 
-  auto hitem = std::make_shared<phoenix::daedalus::c_item>();
+  auto hitem = std::make_shared<phoenix::c_item>();
   owner.script().initializeInstanceItem(hitem, torchId);
   torch.view.reset(new ObjVisual());
   torch.view->setVisual(*hitem,owner,false);

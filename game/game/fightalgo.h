@@ -52,11 +52,11 @@ class FightAlgo final {
 
   private:
     void   fillQueue(Npc &npc, Npc &tg, GameScript& owner);
-    bool   fillQueue(GameScript& owner,const phoenix::daedalus::c_fight_ai& src);
+    bool   fillQueue(GameScript& owner,const phoenix::c_fight_ai& src);
 
     static float  weaponRange(GameScript &owner,const Npc &npc);
 
-    phoenix::daedalus::c_fight_ai_move queueId=phoenix::daedalus::c_fight_ai_move {0};
+    phoenix::c_fight_ai_move queueId=phoenix::c_fight_ai_move {0};
     Action                             tr   [MV_MAX]={};
     bool                               hitFlg=false;
   };

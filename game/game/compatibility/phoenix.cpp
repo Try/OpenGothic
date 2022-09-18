@@ -1,7 +1,10 @@
 #include "phoenix.h"
 
+#include <limits>
+
 phoenix::bounding_box phoenix_compat::get_total_aabb(const phoenix::softskin_mesh& msh) {
-  phoenix::bounding_box bbox = {{FLT_MAX, FLT_MAX, FLT_MAX}, {-FLT_MAX, -FLT_MAX, -FLT_MAX}};
+  phoenix::bounding_box bbox = {{std::numeric_limits<float>::max(), std::numeric_limits<float>::max(), std::numeric_limits<float>::max()},
+                                {std::numeric_limits<float>::min(), std::numeric_limits<float>::min(), std::numeric_limits<float>::min()}};
 
   {
     auto meshBbox = msh.mesh().bbox();

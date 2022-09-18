@@ -22,14 +22,14 @@ const FightAi::FA& FightAi::operator[](size_t i) const {
   return tmp;
   }
 
-std::shared_ptr<phoenix::daedalus::c_fight_ai> FightAi::loadAi(phoenix::daedalus::vm& vm, const char* name) {
+std::shared_ptr<phoenix::c_fight_ai> FightAi::loadAi(phoenix::vm& vm, const char* name) {
   auto id = vm.find_symbol_by_name(name);
   if(id==nullptr)
     return nullptr;
-  return vm.init_instance<phoenix::daedalus::c_fight_ai>(id);
+  return vm.init_instance<phoenix::c_fight_ai>(id);
   }
 
-FightAi::FA FightAi::loadAi(phoenix::daedalus::vm &vm, size_t id) {
+FightAi::FA FightAi::loadAi(phoenix::vm &vm, size_t id) {
   FA ret={};
   char buf[64]={};
 
