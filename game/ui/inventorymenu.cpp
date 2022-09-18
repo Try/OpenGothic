@@ -104,9 +104,12 @@ void InventoryMenu::close() {
   }
 
 void InventoryMenu::open(Npc &pl) {
-  if(pl.isDown())
+  if(pl.isDown() || pl.isMonster() || !pl.isStanding())
     return;
-  pl.closeWeapon(false);
+  if(pl.weaponState()!=WeaponState::NoWeapon) {
+    pl.stopAnim("");
+    pl.closeWeapon(false);
+    }
   state  = State::Equip;
   player = &pl;
   trader = nullptr;
