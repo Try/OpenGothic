@@ -564,6 +564,7 @@ bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
   }
 
 void Npc::onNoHealth(bool death, HitSound sndMask) {
+  invent.switchActiveWeapon(*this,Item::NSLOT);
   visual.dropWeapon(*this);
   dropTorch();
   visual.setToFightMode(WeaponState::NoWeapon);
