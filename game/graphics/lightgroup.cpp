@@ -354,7 +354,7 @@ void LightGroup::preFrameUpdate(uint8_t fId) {
     if(b->updated[fId])
       continue;
     b->updated[fId] = true;
-    if(b->ssbo[fId].size()==b->data.size()*sizeof(b->data[0])) {
+    if(b->ssbo[fId].byteSize()==b->data.size()*sizeof(b->data[0])) {
       b->ssbo[fId].update(b->data);
       } else {
       b->ssbo[fId] = device.ssbo(BufferHeap::Upload,b->data);

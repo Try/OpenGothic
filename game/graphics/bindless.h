@@ -6,9 +6,9 @@
 
 class Bindless {
   public:
-    std::vector<const Tempest::Texture2d*>   tex;
-    std::vector<const Tempest::VideoBuffer*> vbo;
-    std::vector<const Tempest::VideoBuffer*> ibo;
-    Tempest::StorageBuffer                   iboOffset;
+    std::vector<const Tempest::Texture2d*>     tex;
+    std::vector<const Tempest::StorageBuffer*> vbo;
+    std::vector<const Tempest::StorageBuffer*> ibo;
+    Tempest::StorageBuffer                     iboOffset;
   };
 

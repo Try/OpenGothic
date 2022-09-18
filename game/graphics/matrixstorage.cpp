@@ -79,7 +79,7 @@ bool MatrixStorage::commit(uint8_t fId) {
 bool MatrixStorage::commit(Heap& heap, uint8_t fId) {
   auto&  obj = heap.gpu[fId];
   size_t sz  = heap.data.size() * sizeof(Tempest::Matrix4x4);
-  if(obj.size()==sz) {
+  if(obj.byteSize()==sz) {
     obj.update(heap.data);
     return false;
     }
