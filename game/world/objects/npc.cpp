@@ -3881,6 +3881,37 @@ SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, bool isNo
   return ret & SensesBit(hnpc.senses);
   }
 
+bool Npc::canSeeItem(const Item& it, bool freeLos) const {
+  DynamicWorld* w = owner.physic();
+  static const double ref = std::cos(100*M_PI/180.0); // spec requires +-100 view angle range
+
+  const auto  itMid = it.midPosition();
+  const float range = float(hnpc.senses_range);
+  if(qDistTo(itMid.x,itMid.y,itMid.z)>range*range)
+    return false;
+
+  if(!freeLos) {
+    float dx  = x-itMid.x, dz=z-itMid.z;
+    float dir = angleDir(dx,dz);
+    float da  = float(M_PI)*(visual.viewDirection()-dir)/180.f;
+    if(double(std::cos(da))>ref)
+      return false;
+    }
+
+  // npc eyesight height
+  auto head = visual.mapHeadBone();
+  if(!w->ray(head,itMid).hasCol)
+    return true;
+  if(y<=itMid.y && itMid.y<=head.y) {
+    auto pl  = Vec3(head.x,itMid.y,head.z);
+    auto r   = w->ray(pl,itMid);
+    auto err = (pl-itMid)*(1.f-r.hitFraction);
+    if(!r.hasCol || err.length()<25.f)
+      return true;
+    }
+  return false;
+  }
+
 bool Npc::isAlignedToGround() const {
   auto gl = guild();
   return (owner.script().guildVal().surface_align[gl]!=0) || isDead();

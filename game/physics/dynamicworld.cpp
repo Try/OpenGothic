@@ -567,10 +567,11 @@ DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const T
       }
     }
   RayLandResult ret;
-  ret.v      = hitPos;
-  ret.n      = hitNorm;
-  ret.mat    = callback.matId;
-  ret.hasCol = callback.hasHit();
+  ret.v           = hitPos;
+  ret.n           = hitNorm;
+  ret.mat         = callback.matId;
+  ret.hasCol      = callback.hasHit();
+  ret.hitFraction = callback.m_closestHitFraction;
   ret.sector = callback.sector;
   return ret;
   }

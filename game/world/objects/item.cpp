@@ -178,7 +178,7 @@ Tempest::Vec3 Item::position() const {
 
 Vec3 Item::midPosition() const {
   auto b = view.bounds();
-  return pos + (b.bbox[1]-b.bbox[0]);
+  return pos + (b.bbox[1]-b.bbox[0])*0.5;
   }
 
 bool Item::isGold() const {

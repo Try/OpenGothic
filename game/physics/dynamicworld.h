@@ -138,6 +138,7 @@ class DynamicWorld final {
       Tempest::Vec3       n={};
       uint8_t             mat    = 0;
       bool                hasCol = false;
+      float               hitFraction = 0;
 
       const char*         sector = nullptr;
       };
