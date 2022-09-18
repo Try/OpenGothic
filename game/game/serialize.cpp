@@ -195,7 +195,6 @@ void Serialize::implRead(WeaponState &w) {
   implRead(reinterpret_cast<uint8_t&>(w));
   }
 
-
 void Serialize::implWrite(const WayPoint* wptr) {
   implWrite(wptr ? wptr->name : "");
   }
