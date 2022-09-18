@@ -104,7 +104,7 @@ void InventoryMenu::close() {
   }
 
 void InventoryMenu::open(Npc &pl) {
-  if(pl.isDown() || pl.isMonster())
+  if(pl.isDown() || pl.isMonster() || !pl.isStanding())
     return;
   if(pl.weaponState()!=WeaponState::NoWeapon) {
     pl.stopAnim("");
