@@ -767,7 +767,6 @@ void Gothic::setupVmCommonApi(Daedalus::DaedalusVM& vm) {
   vm.registerExternalFunction("playvideo",           [this](Daedalus::DaedalusVM& vm){ playvideo(vm);            });
   vm.registerExternalFunction("playvideoex",         [this](Daedalus::DaedalusVM& vm){ playvideoex(vm);          });
   vm.registerExternalFunction("printscreen",         [this](Daedalus::DaedalusVM& vm){ printscreen(vm);          });
-  vm.registerExternalFunction("ai_printscreen",      [this](Daedalus::DaedalusVM& vm){ ai_printscreen(vm);       });
   vm.registerExternalFunction("printdialog",         [this](Daedalus::DaedalusVM& vm){ printdialog(vm);          });
   vm.registerExternalFunction("print",               [this](Daedalus::DaedalusVM& vm){ print(vm);                });
 
@@ -868,17 +867,6 @@ void Gothic::playvideoex(Daedalus::DaedalusVM &vm) {
   }
 
 void Gothic::printscreen(Daedalus::DaedalusVM &vm) {
-  int32_t                  timesec = vm.popInt();
-  const Daedalus::ZString& font    = vm.popString();
-  int32_t                  posy    = vm.popInt();
-  int32_t                  posx    = vm.popInt();
-  const Daedalus::ZString& msg     = vm.popString();
-  onPrintScreen(msg.c_str(),posx,posy,timesec,Resources::font(font.c_str()));
-  vm.setReturn(0);
-  }
-
-void Gothic::ai_printscreen(Daedalus::DaedalusVM& vm) {
-  // TODO: print-screen queue
   int32_t                  timesec = vm.popInt();
   const Daedalus::ZString& font    = vm.popString();
   int32_t                  posy    = vm.popInt();

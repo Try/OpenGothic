@@ -8,7 +8,6 @@
 
 #include "worldstatestorage.h"
 #include "world/objects/npc.h"
-#include "world/objects/interactive.h"
 #include "world/world.h"
 #include "sound/soundfx.h"
 #include "serialize.h"

@@ -86,6 +86,7 @@ class AiQueue {
     static AiAction aiPointAt(const WayPoint &to);
     static AiAction aiPointAtNpc(Npc& other);
     static AiAction aiStopPointAt();
+    static AiAction aiPrintScreen(int time, const Daedalus::ZString& font, int x,int y, const Daedalus::ZString& msg);
 
   private:
     std::deque<AiAction> aiActions;

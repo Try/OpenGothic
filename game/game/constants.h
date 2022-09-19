@@ -346,6 +346,7 @@ enum Action:uint32_t {
   AI_PointAtNpc,
   AI_PointAt,
   AI_StopPointAt,
+  AI_PrintScreen,
   };
 
 

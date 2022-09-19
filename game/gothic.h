@@ -222,7 +222,6 @@ class Gothic final {
     void                                    playvideo         (Daedalus::DaedalusVM &vm);
     void                                    playvideoex       (Daedalus::DaedalusVM &vm);
     void                                    printscreen       (Daedalus::DaedalusVM &vm);
-    void                                    ai_printscreen    (Daedalus::DaedalusVM &vm);
     void                                    printdialog       (Daedalus::DaedalusVM &vm);
     void                                    print             (Daedalus::DaedalusVM &vm);
 

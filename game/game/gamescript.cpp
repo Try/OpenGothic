@@ -277,6 +277,7 @@ void GameScript::initCommon() {
   vm.registerExternalFunction("ai_gotoitem",         [this](Daedalus::DaedalusVM& vm){ ai_gotoitem(vm);          });
   vm.registerExternalFunction("ai_pointat",          [this](Daedalus::DaedalusVM& vm){ ai_pointat(vm);           });
   vm.registerExternalFunction("ai_pointatnpc",       [this](Daedalus::DaedalusVM& vm){ ai_pointatnpc(vm);        });
+  vm.registerExternalFunction("ai_printscreen",      [this](Daedalus::DaedalusVM& vm){ ai_printscreen(vm);       });
 
   vm.registerExternalFunction("mob_hasitems",        [this](Daedalus::DaedalusVM& vm){ mob_hasitems(vm);         });
 
@@ -3128,6 +3129,22 @@ void GameScript::ai_pointatnpc(Daedalus::DaedalusVM& vm) {
   auto npc   = popInstance(vm);
   if(npc!=nullptr && other!=nullptr)
     npc->aiPush(AiQueue::aiPointAtNpc(*other));
+  }
+
+void GameScript::ai_printscreen(Daedalus::DaedalusVM& vm) {
+  int32_t                  timesec = vm.popInt();
+  const Daedalus::ZString& font    = vm.popString();
+  int32_t                  posy    = vm.popInt();
+  int32_t                  posx    = vm.popInt();
+  const Daedalus::ZString& msg     = vm.popString();
+  vm.setReturn(0);
+
+  auto pl = owner.player();
+  if(pl==nullptr) {
+    Gothic::inst().onPrintScreen(msg.c_str(),posx,posy,timesec,Resources::font(font.c_str()));
+    return;
+    }
+  pl->aiPush(AiQueue::aiPrintScreen(timesec,font,posx,posy,msg));
   }
 
 void GameScript::mob_hasitems(Daedalus::DaedalusVM &vm) {

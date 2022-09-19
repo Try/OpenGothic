@@ -379,3 +379,12 @@ AiQueue::AiAction AiQueue::aiStopPointAt() {
   a.act    = AI_StopPointAt;
   return a;
   }
+
+AiQueue::AiAction AiQueue::aiPrintScreen(int time, const Daedalus::ZString& font, int x,int y, const Daedalus::ZString& msg) {
+  AiAction a;
+  a.act    = AI_PrintScreen;
+  a.i0     = x;
+  a.i1     = y;
+  a.s0     = msg;
+  return a;
+  }

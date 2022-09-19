@@ -2380,6 +2380,16 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       visual.stopAnim(*this,"T_POINT");
       break;
       }
+    case AI_PrintScreen:{
+      auto  msg     = act.s0;
+      auto  posx    = act.i0;
+      auto  posy    = act.i1;
+      int   timesec = 1;
+      auto& fnt     = Resources::font();
+      // Resources::font(font.c_str())
+      Gothic::inst().onPrintScreen(msg.c_str(),posx,posy,timesec,fnt);
+      break;
+      }
     }
   }
 
