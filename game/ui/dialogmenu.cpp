@@ -24,6 +24,10 @@ bool DialogMenu::Pipe::outputOv(Npc &npc, const Daedalus::ZString& text) {
   return owner.aiOutput(npc,text);
   }
 
+bool DialogMenu::Pipe::printScr(Npc& npc, int time, const Daedalus::ZString& msg, int x, int y, const Daedalus::ZString& font) {
+  return owner.aiPrintScr(npc,time,msg,x,y,font);
+  }
+
 bool DialogMenu::Pipe::close() {
   return owner.aiClose();
   }
@@ -227,6 +231,14 @@ bool DialogMenu::aiOutput(Npc &npc, const Daedalus::ZString& msg) {
   currentSnd.play();
   npc.setAiOutputBarrier(current.msgTime,false);
   update();
+  return true;
+  }
+
+bool DialogMenu::aiPrintScr(Npc& npc, int time, const Daedalus::ZString& msg, int x, int y, const Daedalus::ZString& font) {
+  if(current.time>0)
+    return false;
+  auto& f = Resources::font(font.c_str());
+  Gothic::inst().onPrintScreen(msg.c_str(),x,y,time,f);
   return true;
   }
 

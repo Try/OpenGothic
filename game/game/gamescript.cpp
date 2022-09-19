@@ -62,6 +62,12 @@ bool GameScript::GlobalOutput::outputOv(Npc &npc, const Daedalus::ZString& text)
   return owner.aiOutputSvm(npc,text,true);
   }
 
+bool GameScript::GlobalOutput::printScr(Npc& npc, int time, const Daedalus::ZString& msg, int x, int y, const Daedalus::ZString& font) {
+  auto& f = Resources::font(font.c_str());
+  Gothic::inst().onPrintScreen(msg.c_str(),x,y,time,f);
+  return true;
+  }
+
 bool GameScript::GlobalOutput::isFinished() {
   return true;
   }
