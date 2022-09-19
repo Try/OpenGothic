@@ -3900,12 +3900,15 @@ bool Npc::canSeeItem(const Item& it, bool freeLos) const {
 
   // npc eyesight height
   auto head = visual.mapHeadBone();
-  if(!w->ray(head,itMid).hasCol)
+  auto r    = w->ray(head,itMid);
+  auto err  = (head-itMid)*(1.f-r.hitFraction);
+  if(!r.hasCol || err.length()<25.f) {
     return true;
+    }
   if(y<=itMid.y && itMid.y<=head.y) {
-    auto pl  = Vec3(head.x,itMid.y,head.z);
-    auto r   = w->ray(pl,itMid);
-    auto err = (pl-itMid)*(1.f-r.hitFraction);
+    auto pl = Vec3(head.x,itMid.y,head.z);
+    r   = w->ray(pl,itMid);
+    err = (pl-itMid)*(1.f-r.hitFraction);
     if(!r.hasCol || err.length()<25.f)
       return true;
     }
