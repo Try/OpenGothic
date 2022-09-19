@@ -26,6 +26,9 @@ class AiQueue {
       int               i0    =0;
       int               i1    =0;
       Daedalus::ZString s0;
+      // Extended section, only for print-screen
+      int               i2    =0;
+      Daedalus::ZString s1;
       };
 
     void     save(Serialize& fout) const;

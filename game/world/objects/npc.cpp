@@ -2381,13 +2381,16 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
       }
     case AI_PrintScreen:{
-      auto  msg     = act.s0;
-      auto  posx    = act.i0;
-      auto  posy    = act.i1;
-      int   timesec = 1;
-      auto& fnt     = Resources::font();
-      // Resources::font(font.c_str())
-      Gothic::inst().onPrintScreen(msg.c_str(),posx,posy,timesec,fnt);
+      if(aiOutputBarrier<=owner.tickCount()) {
+        auto  msg     = act.s0;
+        auto  posx    = act.i0;
+        auto  posy    = act.i1;
+        int   timesec = act.i2;
+        auto& fnt     = Resources::font(act.s1.c_str());
+        Gothic::inst().onPrintScreen(msg.c_str(),posx,posy,timesec,fnt);
+        } else {
+        queue.pushFront(std::move(act));
+        }
       break;
       }
     }

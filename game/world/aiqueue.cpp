@@ -12,6 +12,8 @@ void AiQueue::save(Serialize& fout) const {
     fout.write(uint32_t(i.act));
     fout.write(i.target,i.victum);
     fout.write(i.point,i.func,i.i0,i.i1,i.s0);
+    if(i.act==AI_PrintScreen)
+      fout.write(i.i2,i.s1);
     }
   }
 
@@ -23,6 +25,8 @@ void AiQueue::load(Serialize& fin) {
     fin.read(reinterpret_cast<uint32_t&>(i.act));
     fin.read(i.target,i.victum);
     fin.read(i.point,i.func,i.i0,i.i1,i.s0);
+    if(i.act==AI_PrintScreen)
+      fin.read(i.i2,i.s1);
     }
   }
 
@@ -41,6 +45,10 @@ void AiQueue::pushBack(AiAction&& a) {
   }
 
 void AiQueue::pushFront(AiQueue::AiAction&& a) {
+  if(a.act!=AI_PrintScreen) {
+    assert(a.i2==0);
+    assert(a.s1.empty());
+    }
   aiActions.push_front(a);
   }
 
@@ -386,5 +394,7 @@ AiQueue::AiAction AiQueue::aiPrintScreen(int time, const Daedalus::ZString& font
   a.i0     = x;
   a.i1     = y;
   a.s0     = msg;
+  a.i2     = time;
+  a.s1     = font;
   return a;
   }

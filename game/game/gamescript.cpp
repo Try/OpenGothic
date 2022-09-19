@@ -3139,12 +3139,16 @@ void GameScript::ai_printscreen(Daedalus::DaedalusVM& vm) {
   const Daedalus::ZString& msg     = vm.popString();
   vm.setReturn(0);
 
-  auto pl = owner.player();
-  if(pl==nullptr) {
+  auto npc = owner.player();
+  if(vm.globalSelf().instance.instanceOf(Daedalus::IC_Npc)) {
+    auto oth = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(vm.globalSelf().instance.get());
+    npc = reinterpret_cast<Npc*>(oth->userPtr);
+    }
+  if(npc==nullptr) {
     Gothic::inst().onPrintScreen(msg.c_str(),posx,posy,timesec,Resources::font(font.c_str()));
     return;
     }
-  pl->aiPush(AiQueue::aiPrintScreen(timesec,font,posx,posy,msg));
+  npc->aiPush(AiQueue::aiPrintScreen(timesec,font,posx,posy,msg));
   }
 
 void GameScript::mob_hasitems(Daedalus::DaedalusVM &vm) {

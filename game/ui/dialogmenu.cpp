@@ -225,6 +225,7 @@ bool DialogMenu::aiOutput(Npc &npc, const Daedalus::ZString& msg) {
   curentIsPl      = (pl==&npc);
 
   currentSnd.play();
+  npc.setAiOutputBarrier(current.msgTime,false);
   update();
   return true;
   }
@@ -351,6 +352,10 @@ void DialogMenu::startTrade() {
 
 void DialogMenu::skipPhrase() {
   if(current.time>0) {
+    if(pl!=nullptr)
+      pl->setAiOutputBarrier(0,false);
+    if(other!=nullptr)
+      other->setAiOutputBarrier(0,false);
     currentSnd   = SoundEffect();
     current.time = 1;
     }
