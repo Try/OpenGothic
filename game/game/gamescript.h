@@ -167,7 +167,7 @@ class GameScript final {
       bool output   (Npc &npc, const Daedalus::ZString& text) override;
       bool outputSvm(Npc& npc, const Daedalus::ZString& text) override;
       bool outputOv (Npc& npc, const Daedalus::ZString& text) override;
-      bool printScr (Npc& npc, int time, const Daedalus::ZString& msg, int x,int y, const Daedalus::ZString& font);
+      bool printScr (Npc& npc, int time, const Daedalus::ZString& msg, int x,int y, const Daedalus::ZString& font) override;
       bool isFinished() override;
 
       bool close() override { return true; }
