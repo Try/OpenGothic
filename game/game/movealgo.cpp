@@ -44,10 +44,20 @@ void MoveAlgo::tickMobsi(uint64_t dt) {
     return;
 
   auto dp  = animMoveSpeed(dt);
-  if(!npc.interactive()->isLadder())
+  auto pos = npc.position();
+  if(npc.interactive()->isLadder()) {
+    auto rotY=-npc.rotationY();
+    if (std::abs(rotY)>0.001 && std::abs(dp.y)>0.001) {
+      if (dp.y<0.001)
+        rotY*=-2;
+      float rot = npc.rotationRad();
+      float s   = std::sin(rot)*rotY, c = std::cos(rot)*rotY;
+      dp+=Tempest::Vec3(s,0,-c);
+      }
+    }
+  else
     dp.y = 0;
 
-  auto pos = npc.position();
   pos += dp;
   npc.setPosition(pos);
   setAsSlide(false);

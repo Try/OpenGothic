@@ -76,7 +76,7 @@ class Interactive : public Vob {
     auto                animNpc(const AnimationSolver &solver, Anim t) -> const Animation::Sequence*;
     void                marchInteractives(DbgPainter& p) const;
 
-    void                nextState(Npc& owner);
+    void                nextState(Npc& npc, const uint8_t st);
 
   protected:
     Tempest::Matrix4x4  nodeTranform(std::string_view nodeName) const;
@@ -151,6 +151,7 @@ class Interactive : public Vob {
     int                          stepsCount = 0;
 
     int32_t                      state         = -1;
+    bool                         wait          = false;
     bool                         reverseState  = false;
     bool                         loopState     = false;
     bool                         isLockCracked = false;
