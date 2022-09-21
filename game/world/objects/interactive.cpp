@@ -221,7 +221,7 @@ void Interactive::tick(uint64_t dt) {
       auto prev = state;
       setState(state-1);
       loopState = (prev==state);
-      }    
+      }
     return;
     }
 
@@ -239,11 +239,23 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
   Npc& npc = *p.user;
   if(!p.started) {
     // STAND -> S0
+    if (isLadder()) {
+      float x0 = 0 , y0 = 0 , z0 = 0;
+      float x1 = 0 , y1 = 0 , z1 = 1;
+      auto mat = nodeTranform(npc,p);
+      mat.project(x0,y0,z0);
+      mat.project(x1,y1,z1);
+      npc.setDirectionY(y1-y0);
+      wait = true;
+      }
     auto sq = npc.setAnimAngGet(Npc::Anim::InteractFromStand);
     uint64_t t = sq==nullptr ? 0 : uint64_t(sq->totalTime());
     waitAnim   = world.tickCount()+t;
     p.started  = sq!=nullptr;
-    setState(std::min(stateNum,state+1));
+    if (state<1)
+      setState(std::min(stateNum,state+1));
+    else
+      setState(std::max(0,state-1));
     return;
     }
 
@@ -260,7 +272,10 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
       }
     }
 
-  if(!attach && state==0) {
+  if(isLadder() && wait && p.started)
+    return;
+
+  if((!attach && state==0) || (isLadder() && attach && state==stateNum-1)) {
     implQuitInteract(p);
     return;
     }
@@ -303,12 +318,33 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
   loopState = (prev==state);
   }
 
-void Interactive::nextState(Npc& npc) {
-  const int prev = state;
-  if(!setAnim(&npc,Anim::In))
-    return;
-  setState(std::min(stateNum,state+1));
-  loopState = (prev==state);
+void Interactive::nextState(Npc& npc, const uint8_t st) {
+  wait = !st;
+  switch(st){
+    case 1 :
+      reverseState=false;
+      return;
+    case 2 :
+      reverseState=true;
+      return;
+    case 3 :
+      if (state==0)
+        wait=true;
+      else
+        reverseState=true;
+      return;
+    case 4 :
+      if (state<1) {
+        reverseState=true;
+        return;
+        }
+      if (state>stateNum-2) {
+        reverseState=false;
+        return;
+        }
+      npc.stopAnim("");
+      npc.setInteraction(nullptr);
+    }
   }
 
 void Interactive::implQuitInteract(Interactive::Pos &p) {
@@ -316,9 +352,15 @@ void Interactive::implQuitInteract(Interactive::Pos &p) {
     return;
   Npc& npc = *p.user;
   const Animation::Sequence* sq = nullptr;
-  if(state==0) {
+  if(state==0 || (isLadder() && state==stateNum-1)) {
     // S0 -> STAND
     sq = npc.setAnimAngGet(Npc::Anim::InteractToStand);
+    if (isLadder() && state==stateNum-1) {
+      waitAnim=world.tickCount()+uint64_t(sq->totalTime());
+      setState(stateNum);
+      npc.setDirectionY(0);
+      return;
+      }
     }
   if(sq==nullptr && !(npc.isDown() || npc.setAnim(Npc::Anim::Idle)))
     return;
@@ -896,10 +938,10 @@ const Animation::Sequence* Interactive::animNpc(const AnimationSolver &solver, A
 
   if(t==Anim::FromStand) {
     st[0] = -1;
-    st[1] = 0;
-    }
+    st[1] = state<1 ? 0 : stateNum - 1;
+  }
   else if(t==Anim::ToStand) {
-    st[0] = 0;
+    st[0] = state<1 ? 0 : stateNum - 1;
     st[1] = -1;
     }
 

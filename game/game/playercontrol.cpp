@@ -176,6 +176,19 @@ void PlayerControl::onKeyReleased(KeyCodec::Action a) {
     } else {
     std::memset(actrl,0,sizeof(actrl));
     }
+
+  if(pl!=nullptr && pl->interactive()!=nullptr) {
+    auto inter = pl->interactive();
+    if (inter->isLadder()) {
+       bool g1c=Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS")!=0 ;
+      if (a==KeyCodec::ActionGeneric && !g1c) {
+        inter->nextState(*pl,4);
+        return;
+      }
+      if ((a==KeyCodec::Forward || a==KeyCodec::Back) && (g1c || (!g1c && isPressed(KeyCodec::ActionGeneric))))
+        inter->nextState(*pl,0);
+      }
+    }
   }
 
 bool PlayerControl::isPressed(KeyCodec::Action a) const {
@@ -196,12 +209,13 @@ void PlayerControl::tickFocus() {
   currentFocus = findFocus(&currentFocus);
   setTarget(currentFocus.npc);
 
-  if(!ctrl[Action::ActionGeneric])
+  if(!ctrl[Action::ActionGeneric] || Gothic::inst().world()->player()->interactive()!=nullptr)
     return;
 
   auto focus = currentFocus;
   if(focus.interactive!=nullptr && interact(*focus.interactive)) {
-    clearInput();
+    if (!focus.interactive->isLadder())
+      clearInput();
     }
   else if(focus.npc!=nullptr && interact(*focus.npc)) {
     clearInput();
@@ -801,9 +815,10 @@ void PlayerControl::implMoveMobsi(Npc& pl, uint64_t /*dt*/) {
     }
 
   if(inter->isStaticState() && !inter->isDetachState(pl)) {
-    if(inter->canQuitAtState(pl,inter->stateId())) {
-      pl.setInteraction(nullptr,false);
-      }
+    auto stateId=inter->stateId();
+    bool ladder=inter->isLadder() && stateId==inter->stateCount();
+    if(inter->canQuitAtState(pl,stateId-ladder))
+      pl.setInteraction(nullptr,ladder);
     }
   }
 
@@ -858,13 +873,31 @@ void PlayerControl::processPickLock(Npc& pl, Interactive& inter, KeyCodec::Actio
   }
 
 void PlayerControl::processLadder(Npc& pl, Interactive& inter, KeyCodec::Action key) {
-  if(key==KeyCodec::Back) {
-    pl.setInteraction(nullptr);
+  bool g1c=Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS")!=0 ;
+
+  if(key==KeyCodec::ActionGeneric) {
+    ctrl[key] = true;
+    if (g1c) {
+      pl.stopAnim("");
+      pl.setInteraction(nullptr);
+      ctrl[key] = false;
+      }
+    else {
+      inter.nextState(pl,0);
+      }
     return;
     }
-
-  if(key==KeyCodec::Forward) {
-    inter.nextState(pl);
+  if (!g1c && !isPressed(KeyCodec::ActionGeneric))
+    return;
+  if(key==KeyCodec::Forward ) {
+    inter.nextState(pl,1);
+    return;
+    }
+  if(key==KeyCodec::Back) {
+    if (g1c)
+      inter.nextState(pl,2);
+    else
+      inter.nextState(pl,3);
     }
   }
 
