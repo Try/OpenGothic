@@ -104,7 +104,7 @@ void InventoryMenu::close() {
   }
 
 void InventoryMenu::open(Npc &pl) {
-  if(pl.isDown() || pl.isMonster() || pl.isInAir() || pl.isSlide() || (pl.interactive()!=nullptr))
+  if(pl.isDown() || pl.isMonster() || pl.isInAir() || pl.isSlide() || pl.interactive()!=nullptr)
     return;
   if(pl.weaponState()!=WeaponState::NoWeapon) {
     pl.stopAnim("");
@@ -145,6 +145,9 @@ bool InventoryMenu::ransack(Npc &pl, Npc &tr) {
   auto it = tr.inventory().iterator(Inventory::T_Ransack);
   if(!it.isValid())
     return false;
+  // fix quest "Lost in Darkness"
+  if (tr.displayName()=="Sengrath" && tr.isDead())
+    tr.addItem(7674,1);
   state  = State::Ransack;
   player = &pl;
   trader = &tr;
