@@ -362,7 +362,7 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     auto reader = entry->open();
     auto zmsh = phoenix::proto_mesh::parse(reader);
 
-    if(zmsh.submeshes().empty())
+    if(zmsh.sub_meshes.empty())
       return nullptr;
 
     PackedMesh packed(zmsh,PackedMesh::PK_Visual);
@@ -378,11 +378,11 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     auto reader = entry->open();
     auto zmm = phoenix::morph_mesh::parse(reader);
 
-    if(zmm.mesh().submeshes().empty())
+    if(zmm.mesh.sub_meshes.empty())
       return nullptr;
 
-    PackedMesh packed(zmm.mesh(),PackedMesh::PK_VisualMorph);
-    return std::unique_ptr<ProtoMesh>{new ProtoMesh(std::move(packed),zmm.animations(),name)};
+    PackedMesh packed(zmm.mesh,PackedMesh::PK_VisualMorph);
+    return std::unique_ptr<ProtoMesh>{new ProtoMesh(std::move(packed),zmm.animations,name)};
     }
 
   if(FileExt::hasExt(name,"MDS")) {
@@ -447,7 +447,7 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
       auto reader = entry->open();
       auto mdm = phoenix::model::parse(reader);
 
-      std::unique_ptr<Skeleton> sk{new Skeleton(mdm.hierarchy(),nullptr,name)};
+      std::unique_ptr<Skeleton> sk{new Skeleton(mdm.hierarchy,nullptr,name)};
       std::unique_ptr<ProtoMesh> t{new ProtoMesh(mdm,std::move(sk),name)};
       return t;
     }
@@ -476,7 +476,7 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(std::string_view name) {
     auto reader = entry->open();
     auto zmsh = phoenix::proto_mesh::parse(reader);
 
-    if(zmsh.submeshes().empty())
+    if(zmsh.sub_meshes.empty())
       return nullptr;
 
     PackedMesh packed(zmsh,PackedMesh::PK_Visual);

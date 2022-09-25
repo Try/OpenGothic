@@ -25,7 +25,7 @@ PfxEmitterMesh::PfxEmitterMesh(const PackedMesh& src) {
   }
 
 PfxEmitterMesh::PfxEmitterMesh(const phoenix::model_mesh& library) {
-  for(const auto &i : library.meshes()) {
+  for(const auto &i : library.meshes) {
     auto src = phoenix_compat::pack_softskin_mesh(i);
 
     size_t vert0 = vertices.size();

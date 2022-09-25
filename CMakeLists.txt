@@ -74,15 +74,9 @@ endif()
 
 # phoenix
 set(BUILD_SQUISH_WITH_SSE2 OFF CACHE INTERNAL "")
-
-# exclude tests and tools, examples are disabled by default
-set(PX_BUILD_TESTS OFF)
-set(PX_BUILD_TOOLS OFF)
-
-set(PX_LOG_LEVEL "INFO")
+set(PHOENIX_LOG_LEVEL "3")
 
 add_subdirectory(lib/phoenix)
-include_directories(lib/phoenix/include)
 target_link_libraries(${PROJECT_NAME} phoenix)
 
 # TinySoundFont

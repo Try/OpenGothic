@@ -18,8 +18,8 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices,
     return;
   instances.push_back(bounds);
 
-  auto& vbo = mesh.vertices();  // xyz
-  auto& uv  = mesh.features();  // uv, normal
+  auto& vbo = mesh.vertices;  // xyz
+  auto& uv  = mesh.features;  // uv, normal
 
   size_t vboSz = vertices.size();
   size_t iboSz = indices.size();
@@ -201,11 +201,11 @@ void PackedMesh::Meshlet::clear() {
   }
 
 void PackedMesh::Meshlet::updateBounds(const phoenix::mesh& mesh) {
-  updateBounds(mesh.vertices());
+  updateBounds(mesh.vertices);
 }
 
 void PackedMesh::Meshlet::updateBounds(const phoenix::proto_mesh& mesh) {
-  updateBounds(mesh.positions());
+  updateBounds(mesh.positions);
 }
 
 void PackedMesh::Meshlet::updateBounds(const std::vector<glm::vec3>& vbo) {
@@ -311,10 +311,10 @@ PackedMesh::PackedMesh(const phoenix::mesh& mesh, PkgType type) {
 }
 
 PackedMesh::PackedMesh(const phoenix::proto_mesh& mesh, PkgType type) {
-  subMeshes.resize(mesh.submeshes().size());
-  isUsingAlphaTest = mesh.alpha_test();
+  subMeshes.resize(mesh.sub_meshes.size());
+  isUsingAlphaTest = mesh.alpha_test;
   {
-    auto bbox = mesh.bbox();
+    auto bbox = mesh.bbox;
     mBbox[0] = Vec3(bbox.min.x,bbox.min.y,bbox.min.z);
     mBbox[1] = Vec3(bbox.max.x,bbox.max.y,bbox.max.z);
   }
@@ -323,17 +323,17 @@ PackedMesh::PackedMesh(const phoenix::proto_mesh& mesh, PkgType type) {
 }
 
 PackedMesh::PackedMesh(const phoenix::softskin_mesh&  skinned) {
-  auto& mesh = skinned.mesh();
-  subMeshes.resize(mesh.submeshes().size());
+  auto& mesh = skinned.mesh;
+  subMeshes.resize(mesh.sub_meshes.size());
   {
     auto bbox = phoenix_compat::get_total_aabb(skinned);
     mBbox[0] = Vec3(bbox.min.x,bbox.min.y,bbox.min.z);
     mBbox[1] = Vec3(bbox.max.x,bbox.max.y,bbox.max.z);
   }
 
-  std::vector<SkeletalData> vertices(mesh.positions().size());
+  std::vector<SkeletalData> vertices(mesh.positions.size());
   // Extract weights and local positions
-  auto& stream = skinned.weights();
+  auto& stream = skinned.weights;
   for(size_t i=0; i<vertices.size(); ++i) {
     auto& vert = vertices[i];
 
@@ -350,13 +350,13 @@ PackedMesh::PackedMesh(const phoenix::softskin_mesh&  skinned) {
   }
 
 void PackedMesh::packPhysics(const phoenix::mesh& mesh, PkgType type) {
-  auto& vbo = mesh.vertices();
-  auto& ibo = mesh.polygons().vertex_indices;
+  auto& vbo = mesh.vertices;
+  auto& ibo = mesh.polygons.vertex_indices;
   vertices.reserve(vbo.size());
 
   std::unordered_map<uint32_t,size_t> icache;
-  auto& mid = mesh.polygons().material_indices;
-  auto& mat = mesh.materials();
+  auto& mid = mesh.polygons.material_indices;
+  auto& mat = mesh.materials;
 
   phoenix::material_group mats[] = {
       phoenix::material_group::undefined,
@@ -442,22 +442,22 @@ void PackedMesh::packPhysics(const phoenix::mesh& mesh, PkgType type) {
 }
 
 void PackedMesh::packMeshlets(const phoenix::mesh& mesh) {
-  auto& ibo  = mesh.polygons().vertex_indices;
-  auto& feat = mesh.polygons().feature_indices;
-  auto& mat  = mesh.polygons().material_indices;
+  auto& ibo  = mesh.polygons.vertex_indices;
+  auto& feat = mesh.polygons.feature_indices;
+  auto& mat  = mesh.polygons.material_indices;
 
-  std::vector<size_t> duplicates(mesh.materials().size());
-  for(size_t i=0; i<mesh.materials().size(); ++i)
+  std::vector<size_t> duplicates(mesh.materials.size());
+  for(size_t i=0; i<mesh.materials.size(); ++i)
     duplicates[i] = i;
 
   if(!Gothic::inst().doMeshShading()) {
-    for(size_t i=0; i<mesh.materials().size(); ++i) {
+    for(size_t i=0; i<mesh.materials.size(); ++i) {
       if(duplicates[i]!=i)
         continue;
       duplicates[i] = i;
-      for(size_t r=i+1; r<mesh.materials().size(); ++r) {
-        auto& a = mesh.materials()[i];
-        auto& b = mesh.materials()[r];
+      for(size_t r=i+1; r<mesh.materials.size(); ++r) {
+        auto& a = mesh.materials[i];
+        auto& b = mesh.materials[r];
         if(!isSame(a,b))
           continue;
         duplicates[r] = i;
@@ -465,7 +465,7 @@ void PackedMesh::packMeshlets(const phoenix::mesh& mesh) {
     }
   }
 
-  for(size_t mId=0; mId<mesh.materials().size(); ++mId) {
+  for(size_t mId=0; mId<mesh.materials.size(); ++mId) {
     std::vector<Meshlet> meshlets;
     Meshlet activeMeshlets[16];
 
@@ -492,8 +492,8 @@ void PackedMesh::packMeshlets(const phoenix::proto_mesh& mesh, PkgType type,
                              const std::vector<SkeletalData>* skeletal) {
   auto* vId = (type==PK_VisualMorph) ? &verticesId : nullptr;
 
-  for(size_t mId=0; mId<mesh.submeshes().size(); ++mId) {
-    auto& sm   = mesh.submeshes()[mId];
+  for(size_t mId=0; mId<mesh.sub_meshes.size(); ++mId) {
+    auto& sm   = mesh.sub_meshes[mId];
     auto& pack = subMeshes[mId];
 
     pack.material = sm.mat;
@@ -525,7 +525,7 @@ void PackedMesh::packMeshlets(const phoenix::proto_mesh& mesh, PkgType type,
     pack.iboOffset = indices.size();
     for(auto& i:ind) {
       i->updateBounds(mesh);
-      i->flush(vertices,verticesA,indices,vId,pack,mesh.positions(),sm.wedges,skeletal);
+      i->flush(vertices,verticesA,indices,vId,pack,mesh.positions,sm.wedges,skeletal);
     }
     pack.iboLength = indices.size() - pack.iboOffset;
   }
@@ -629,7 +629,7 @@ void PackedMesh::mergePass(std::vector<Meshlet*>& ind, bool fast) {
 void PackedMesh::postProcessP1(const phoenix::mesh& mesh, size_t matId, std::vector<Meshlet>& meshlets) {
   if(meshlets.size()<=1) {
     SubMesh sub;
-    sub.material  = mesh.materials()[matId];
+    sub.material  = mesh.materials[matId];
     sub.iboOffset = indices.size();
     for(auto& m:meshlets) {
       m.updateBounds(mesh);
@@ -666,7 +666,7 @@ void PackedMesh::postProcessP2(const phoenix::mesh& mesh, size_t matId, std::vec
   //const bool hasMeshShaders = Gothic::inst().doMeshShading();
 
   SubMesh sub;
-  sub.material  = mesh.materials()[matId];
+  sub.material  = mesh.materials[matId];
   sub.iboOffset = indices.size();
 
   auto prev = meshlets[0];
@@ -680,7 +680,7 @@ void PackedMesh::postProcessP2(const phoenix::mesh& mesh, size_t matId, std::vec
       if(sub.iboLength>0)
         subMeshes.push_back(std::move(sub));
       sub = SubMesh();
-      sub.material  = mesh.materials()[matId];
+      sub.material  = mesh.materials[matId];
       sub.iboOffset = indices.size();
     }
     meshlet->updateBounds(mesh);
@@ -753,7 +753,7 @@ void PackedMesh::dbgMeshlets(const phoenix::mesh& mesh, const std::vector<Meshle
   std::ofstream out("dbg.obj");
 
   size_t off = 1;
-  auto&  vbo = mesh.vertices();
+  auto&  vbo = mesh.vertices;
   for(auto i:meshlets) {
     out << "o meshlet" << off <<" " << i->bounds.r << std::endl;
     for(size_t r=0; r<i->vertSz; ++r) {

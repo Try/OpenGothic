@@ -92,7 +92,7 @@ ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::vector<phoenix::morph_animation
 
 ProtoMesh::ProtoMesh(const phoenix::model &library, std::unique_ptr<Skeleton>&& sk, const std::string &fname)
   :skeleton(std::move(sk)), fname(fname) {
-  for(auto& m:library.mesh().attachments()) {
+  for(auto& m:library.mesh.attachments) {
     PackedMesh pack(m.second,PackedMesh::PK_Visual);
     attach.emplace_back(pack);
     auto& att = attach.back();
@@ -148,8 +148,8 @@ ProtoMesh::ProtoMesh(const phoenix::model &library, std::unique_ptr<Skeleton>&& 
     }
   submeshId.resize(subCount);
 
-  for(size_t i=0;i<library.mesh().meshes().size();++i){
-    auto& mesh = library.mesh().meshes()[i];
+  for(size_t i=0;i<library.mesh.meshes.size();++i){
+    auto& mesh = library.mesh.meshes[i];
     PackedMesh pkg(mesh);
     skined.emplace_back(pkg);
     }
@@ -208,7 +208,7 @@ ProtoMesh::ProtoMesh(const phoenix::model_hierarchy& library, std::unique_ptr<Sk
 
 ProtoMesh::ProtoMesh(const phoenix::model_mesh& library, std::unique_ptr<Skeleton>&& sk, const std::string& fname)
   :skeleton(std::move(sk)), fname(fname){
-  for(auto& m:library.attachments()) {
+  for(auto& m:library.attachments) {
     PackedMesh pack(m.second,PackedMesh::PK_Visual);
     attach.emplace_back(pack);
     auto& att = attach.back();
@@ -264,7 +264,7 @@ ProtoMesh::ProtoMesh(const phoenix::model_mesh& library, std::unique_ptr<Skeleto
   }
   submeshId.resize(subCount);
 
-  for(const auto &i : library.meshes()){
+  for(const auto &i : library.meshes){
     PackedMesh pkg(i);
     skined.emplace_back(pkg);
   }

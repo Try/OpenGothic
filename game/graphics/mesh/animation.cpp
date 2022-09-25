@@ -212,12 +212,12 @@ Animation::Sequence::Sequence(const phoenix::mds::animation& hdr, const std::str
   data->lastFrame  = uint32_t(hdr.last_frame);
 
 
-  name = p.name();
-  layer = p.layer();
-  data->fpsRate = p.frames_per_second();
-  data->numFrames = p.frames();
-  data->nodeIndex = p.node_indices();
-  data->samples = p.samples();
+  name = p.name;
+  layer = p.layer;
+  data->fpsRate = p.fps;
+  data->numFrames = p.frame_count;
+  data->nodeIndex = p.node_indices;
+  data->samples = p.samples;
 
   setupMoveTr();
   }

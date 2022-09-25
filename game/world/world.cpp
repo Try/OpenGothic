@@ -95,7 +95,7 @@ World::World(GameSession& game, std::string file, bool startup, std::function<vo
 
     wmatrix->buildIndex();
     bsp = std::move(world.world_bsp_tree);
-    bspSectors.resize(bsp.sectors().size());
+    bspSectors.resize(bsp.sectors.size());
     loadProgress(100);
 
     }
@@ -173,7 +173,7 @@ void World::save(Serialize &fout) {
 
   fout.write(uint32_t(bspSectors.size()));
   for(size_t i=0;i<bspSectors.size();++i) {
-    fout.write(bsp.sectors()[i].name,bspSectors[i].guild);
+    fout.write(bsp.sectors[i].name,bspSectors[i].guild);
     }
 
   wobj.save(fout);
@@ -281,19 +281,19 @@ Npc *World::findNpcByInstance(size_t instance) {
 const std::string& World::roomAt(const Tempest::Vec3& p) {
   static std::string empty;
 
-  if(bsp.nodes().empty())
+  if(bsp.nodes.empty())
     return empty;
 
-  const auto* node=&bsp.nodes()[0];
+  const auto* node=&bsp.nodes[0];
 
   while(true) {
     const auto v    = node->plane;
     float        sgn  = v.x*p.x + v.y*p.y + v.z*p.z - v.w;
     uint32_t     next = (sgn>0) ? node->front_index : node->back_index;
-    if(next>=bsp.nodes().size())
+    if(next>=bsp.nodes.size())
       break;
 
-    node = &bsp.nodes()[next];
+    node = &bsp.nodes[next];
     }
 
   if(node->bbox.min.x <= p.x && p.x <node->bbox.max.x &&
@@ -308,15 +308,15 @@ const std::string& World::roomAt(const Tempest::Vec3& p) {
 const std::string& World::roomAt(const phoenix::bsp_node& node) {
   const std::string* ret=nullptr;
   size_t       count=0;
-  auto         id = &node-bsp.nodes().data();(void)id;
+  auto         id = &node-bsp.nodes.data();(void)id;
 
-  for(auto& i:bsp.sectors()) {
+  for(auto& i:bsp.sectors) {
     for(auto r:i.node_indices)
-      if(r<bsp.leaf_node_indices().size()){
-        size_t idx = bsp.leaf_node_indices()[r];
-        if(idx>=bsp.nodes().size())
+      if(r<bsp.leaf_node_indices.size()){
+        size_t idx = bsp.leaf_node_indices[r];
+        if(idx>=bsp.nodes.size())
           continue;
-        if(&bsp.nodes()[idx]==&node) {
+        if(&bsp.nodes[idx]==&node) {
           ret = &i.name;
           count++;
           }
@@ -334,8 +334,8 @@ World::BspSector* World::portalAt(std::string_view tag) {
   if(tag.empty())
     return nullptr;
 
-  for(size_t i=0;i<bsp.sectors().size();++i)
-    if(bsp.sectors()[i].name==tag)
+  for(size_t i=0;i<bsp.sectors.size();++i)
+    if(bsp.sectors[i].name==tag)
       return &bspSectors[i];
   return nullptr;
   }
@@ -912,8 +912,8 @@ int32_t World::guildOfRoom(std::string_view portalName) {
 
   auto name = portalName.substr(b,e-b);
 
-  for(size_t i=0;i<bsp.sectors().size();++i) {
-    auto& s = bsp.sectors()[i].name;
+  for(size_t i=0;i<bsp.sectors.size();++i) {
+    auto& s = bsp.sectors[i].name;
     if(s==name)
       return bspSectors[i].guild;
     }

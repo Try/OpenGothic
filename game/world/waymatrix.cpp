@@ -21,12 +21,12 @@ WayMatrix::WayMatrix(World &world, const phoenix::way_net &dat)
     distanceThreshold = 9.f*100.f;
     }
 
-  wayPoints.resize(dat.waypoints().size());
+  wayPoints.resize(dat.waypoints.size());
   for(size_t i=0;i<wayPoints.size();++i){
-    wayPoints[i] = WayPoint(dat.waypoints()[i]);
+    wayPoints[i] = WayPoint(dat.waypoints[i]);
     }
 
-  edges = dat.edges();
+  edges = dat.edges;
 
   for(auto& i:wayPoints)
     if(i.name.find("START")==0)
