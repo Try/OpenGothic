@@ -1139,8 +1139,11 @@ void Npc::changeAttribute(Attribute a, int32_t val, bool allowUnconscious) {
   if(val<0)
     invent.invalidateCond(*this);
 
-  if(a==ATR_HITPOINTS)
+  if(a==ATR_HITPOINTS) {
     checkHealth(true,allowUnconscious);
+    if(aiPolicy==AiFar || aiPolicy==AiFar2)
+      aiState.started = true;
+    }
   }
 
 int32_t Npc::protection(Protection p) const {
@@ -3488,17 +3491,16 @@ bool Npc::perceptionProcess(Npc &pl) {
   if(disable)
     return false;
 
-  perceptionNextTime = owner.tickCount()+perceptionTime;
-
   if(isPlayer())
     return true;
 
   bool ret=false;
-  if(processPolicy()!=Npc::AiNormal)
+  if(processPolicy()!=Npc::AiNormal) {
+    perceptionNextTime = owner.tickCount()+perceptionTime;
     return ret;
+    }
 
   const float quadDist = pl.qDistTo(*this);
-
   if(aiQueue.size()==0 && hasPerc(PERC_ASSESSPLAYER) && canSenseNpc(pl,false)!=SensesBit::SENSE_NONE) {
     if(perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSPLAYER)) {
       ret = true;
@@ -3522,6 +3524,9 @@ bool Npc::perceptionProcess(Npc &pl) {
       ret = true;
       }
     }
+
+  if(aiQueue.size()==0)
+    perceptionNextTime = owner.tickCount()+perceptionTime;
 
   return ret;
   }
