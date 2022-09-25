@@ -1416,7 +1416,7 @@ bool Npc::implAtack(uint64_t dt) {
       bool obsticle = false;
       if(currentTarget!=nullptr) {
         auto hit = owner.physic()->rayNpc(this->mapWeaponBone(),currentTarget->centerPosition());
-        if(hit.hasCol) {
+        if(hit.hasCol && hit.npcHit!=currentTarget) {
           obsticle = true;
           if(hit.npcHit!=nullptr && owner.script().personAttitude(*this,*hit.npcHit)==ATT_HOSTILE)
             obsticle = false;
