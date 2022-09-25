@@ -105,7 +105,7 @@ void Sky::updateLight(const int64_t now) {
     }
 
   const auto ambientDay   = Vec3(0.25f,0.25f,0.25f);
-  const auto ambientNight = Vec3(0.24f,0.24f,0.50f);
+  const auto ambientNight = Vec3(0.16f,0.16f,0.50f);
 
   const auto directDay    = Vec3(0.75f,0.75f,0.75f);
   const auto directNight  = Vec3(0,0,0);
