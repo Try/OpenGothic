@@ -1141,8 +1141,10 @@ void Npc::changeAttribute(Attribute a, int32_t val, bool allowUnconscious) {
 
   if(a==ATR_HITPOINTS) {
     checkHealth(true,allowUnconscious);
-    if(aiPolicy==AiFar || aiPolicy==AiFar2)
+    if(aiPolicy==AiFar || aiPolicy==AiFar2) {
       aiState.started = true;
+      invent.unequipWeapons(owner.script(),*this);
+      }
     }
   }
 
