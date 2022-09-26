@@ -289,13 +289,29 @@ Npc* WorldObjects::addNpc(size_t npcInstance, std::string_view at) {
       pos=p;
     }
 
+  bool valid = false;
   if(pos!=nullptr) {
+    valid = true;
+    }
+  if(npc->resetPositionToTA()) {
+    valid = true;
+    }
+
+  if(valid) {
+    if(auto p = npc->currentWayPoint())
+      pos = p;
+    if(pos==nullptr)
+      pos = &owner.deadPoint();
     npc->setPosition  (pos->x,pos->y,pos->z);
     npc->setDirection (pos->dirX,pos->dirY,pos->dirZ);
     npc->attachToPoint(pos);
     npc->updateTransform();
     npcArr.emplace_back(npc);
     } else {
+    auto& point = owner.deadPoint();
+    npc->attachToPoint(nullptr);
+    npc->setPosition(point.position());
+    npc->updateTransform();
     npcInvalid.emplace_back(npc);
     }
 
