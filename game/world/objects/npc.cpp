@@ -3229,7 +3229,7 @@ bool Npc::beginCastSpell() {
   if(active==nullptr)
     return false;
 
-  castLevel        = CS_Invest_0;
+  // castLevel        = CS_Invest_0;
   currentSpellCast = active->clsId();
   castNextTime     = owner.tickCount();
   hnpc.aivar[88]   = 0; // HACK: clear AIV_SpellLevel
@@ -3247,12 +3247,15 @@ bool Npc::beginCastSpell() {
     case SpellCode::SPL_NEXTLEVEL: {
       auto& ani = owner.script().spellCastAnim(*this,*active);
       if(!visual.startAnimSpell(*this,ani.c_str(),true)) {
+        // falback to cast animation to match teleport spells in  original
+        visual.startAnimSpell(*this,ani.c_str(),false);
         endCastSpell();
         return false;
         }
       break;
       }
     case SpellCode::SPL_SENDCAST:{
+      castLevel = CS_Invest_0;
       auto& ani = owner.script().spellCastAnim(*this,*active);
       visual.startAnimSpell(*this,ani.c_str(),false);
       endCastSpell();
@@ -3263,6 +3266,8 @@ bool Npc::beginCastSpell() {
       endCastSpell();
       return false;
     }
+
+  castLevel = CS_Invest_0;
   return true;
   }
 
