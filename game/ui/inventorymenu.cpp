@@ -100,6 +100,7 @@ void InventoryMenu::close() {
       Gothic::inst().emitGlobalSound("INV_CLOSE");
     }
   renderer.reset(true);
+  takeTimer.stop();
   state  = State::Closed;
   }
 

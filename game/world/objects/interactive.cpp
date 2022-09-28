@@ -153,7 +153,9 @@ void Interactive::resetPositionToTA(int32_t state) {
   loopState = false;
 
   char buf[256]={};
-  std::snprintf(buf,sizeof(buf),"S_S%d",state);
+  if(state<0)
+    std::snprintf(buf,sizeof(buf),"S_S0"); else
+    std::snprintf(buf,sizeof(buf),"S_S%d",state);
   visual.startAnimAndGet(buf,world.tickCount(),true);
   setState(state);
   }
