@@ -10,6 +10,3 @@
 [submodule "lib/TinySoundFont"]
 	path = lib/TinySoundFont
 	url = https://github.com/schellingb/TinySoundFont.git
-[submodule "lib/kuba-zip"]
-	path = lib/kuba-zip
-	url = https://github.com/kuba--/zip.git
