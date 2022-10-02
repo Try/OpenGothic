@@ -564,6 +564,7 @@ bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
   }
 
 void Npc::onNoHealth(bool death, HitSound sndMask) {
+  invent.switchActiveWeapon(*this,Item::NSLOT);
   visual.dropWeapon(*this);
   dropTorch();
   visual.setToFightMode(WeaponState::NoWeapon);
@@ -1138,8 +1139,11 @@ void Npc::changeAttribute(Attribute a, int32_t val, bool allowUnconscious) {
   if(val<0)
     invent.invalidateCond(*this);
 
-  if(a==ATR_HITPOINTS)
+  if(a==ATR_HITPOINTS) {
     checkHealth(true,allowUnconscious);
+    if(aiPolicy==AiFar || aiPolicy==AiFar2)
+      aiState.started = true;
+    }
   }
 
 int32_t Npc::protection(Protection p) const {
@@ -1412,7 +1416,7 @@ bool Npc::implAtack(uint64_t dt) {
       bool obsticle = false;
       if(currentTarget!=nullptr) {
         auto hit = owner.physic()->rayNpc(this->mapWeaponBone(),currentTarget->centerPosition());
-        if(hit.hasCol) {
+        if(hit.hasCol && hit.npcHit!=currentTarget) {
           obsticle = true;
           if(hit.npcHit!=nullptr && owner.script().personAttitude(*this,*hit.npcHit)==ATT_HOSTILE)
             obsticle = false;
@@ -1453,7 +1457,7 @@ bool Npc::implAtack(uint64_t dt) {
         }
       }
     else if(ws==WeaponState::Fist) {
-      if(doAttack(Anim::Atack))
+      if(doAttack(Anim::Atack) || mvAlgo.isSwim() || mvAlgo.isDive())
         fghAlgo.consumeAction();
       }
     else {
@@ -2362,6 +2366,23 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       visual.stopAnim(*this,"T_POINT");
       break;
       }
+    case AI_PrintScreen:{
+      auto  msg     = act.s0;
+      auto  posx    = act.i0;
+      auto  posy    = act.i1;
+      int   timesec = act.i2;
+      auto  font    = act.s1;
+
+      bool complete = false;
+      if(aiOutputBarrier<=owner.tickCount()) {
+        if(outputPipe->printScr(*this,timesec,msg,posx,posy,font))
+          complete = true;
+        }
+
+      if(!complete)
+        queue.pushFront(std::move(act));
+      break;
+      }
     }
   }
 
@@ -3201,7 +3222,7 @@ bool Npc::beginCastSpell() {
   if(active==nullptr)
     return false;
 
-  castLevel        = CS_Invest_0;
+  // castLevel        = CS_Invest_0;
   currentSpellCast = active->clsId();
   castNextTime     = owner.tickCount();
   hnpc->aivar[88]   = 0; // HACK: clear AIV_SpellLevel
@@ -3219,12 +3240,15 @@ bool Npc::beginCastSpell() {
     case SpellCode::SPL_NEXTLEVEL: {
       auto& ani = owner.script().spellCastAnim(*this,*active);
       if(!visual.startAnimSpell(*this,ani.c_str(),true)) {
+        // falback to cast animation to match teleport spells in  original
+        visual.startAnimSpell(*this,ani.c_str(),false);
         endCastSpell();
         return false;
         }
       break;
       }
     case SpellCode::SPL_SENDCAST:{
+      castLevel = CS_Invest_0;
       auto& ani = owner.script().spellCastAnim(*this,*active);
       visual.startAnimSpell(*this,ani.c_str(),false);
       endCastSpell();
@@ -3235,6 +3259,8 @@ bool Npc::beginCastSpell() {
       endCastSpell();
       return false;
     }
+
+  castLevel = CS_Invest_0;
   return true;
   }
 
@@ -3463,17 +3489,16 @@ bool Npc::perceptionProcess(Npc &pl) {
   if(disable)
     return false;
 
-  perceptionNextTime = owner.tickCount()+perceptionTime;
-
   if(isPlayer())
     return true;
 
   bool ret=false;
-  if(processPolicy()!=Npc::AiNormal)
+  if(processPolicy()!=Npc::AiNormal) {
+    perceptionNextTime = owner.tickCount()+perceptionTime;
     return ret;
+    }
 
   const float quadDist = pl.qDistTo(*this);
-
   if(aiQueue.size()==0 && hasPerc(PERC_ASSESSPLAYER) && canSenseNpc(pl,false)!=SensesBit::SENSE_NONE) {
     if(perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSPLAYER)) {
       ret = true;
@@ -3497,6 +3522,9 @@ bool Npc::perceptionProcess(Npc &pl) {
       ret = true;
       }
     }
+
+  if(aiQueue.size()==0)
+    perceptionNextTime = owner.tickCount()+perceptionTime;
 
   return ret;
   }
@@ -3871,6 +3899,40 @@ SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, bool isNo
       ret = ret | SensesBit::SENSE_SEE;
     }
   return ret & SensesBit(hnpc->senses);
+  }
+
+bool Npc::canSeeItem(const Item& it, bool freeLos) const {
+  DynamicWorld* w = owner.physic();
+  static const double ref = std::cos(100*M_PI/180.0); // spec requires +-100 view angle range
+
+  const auto  itMid = it.midPosition();
+  const float range = float(hnpc->senses_range);
+  if(qDistTo(itMid.x,itMid.y,itMid.z)>range*range)
+    return false;
+
+  if(!freeLos) {
+    float dx  = x-itMid.x, dz=z-itMid.z;
+    float dir = angleDir(dx,dz);
+    float da  = float(M_PI)*(visual.viewDirection()-dir)/180.f;
+    if(double(std::cos(da))>ref)
+      return false;
+    }
+
+  // npc eyesight height
+  auto head = visual.mapHeadBone();
+  auto r    = w->ray(head,itMid);
+  auto err  = (head-itMid)*(1.f-r.hitFraction);
+  if(!r.hasCol || err.length()<25.f) {
+    return true;
+    }
+  if(y<=itMid.y && itMid.y<=head.y) {
+    auto pl = Vec3(head.x,itMid.y,head.z);
+    r   = w->ray(pl,itMid);
+    err = (pl-itMid)*(1.f-r.hitFraction);
+    if(!r.hasCol || err.length()<25.f)
+      return true;
+    }
+  return false;
   }
 
 bool Npc::isAlignedToGround() const {

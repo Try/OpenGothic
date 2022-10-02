@@ -47,6 +47,12 @@ bool GameScript::GlobalOutput::outputOv(Npc &npc, std::string_view text) {
   return owner.aiOutputSvm(npc,text,true);
   }
 
+bool GameScript::GlobalOutput::printScr(Npc& npc, int time, std::string_view msg, int x, int y, std::string_view font) {
+  auto& f = Resources::font(font);
+  Gothic::inst().onPrintScreen(msg,x,y,time,f);
+  return true;
+  }
+
 bool GameScript::GlobalOutput::isFinished() {
   return true;
   }
@@ -251,7 +257,8 @@ void GameScript::initCommon() {
   vm.register_external("ai_pointat",                bind_this(GameScript::ai_pointat));
   vm.register_external("ai_pointatnpc",             bind_this(GameScript::ai_pointatnpc));
 
-  vm.register_external("mob_hasitems",        bind_this(GameScript::mob_hasitems));
+  vm.register_external("mob_hasitems",              bind_this(GameScript::mob_hasitems));
+  vm.register_external("ai_printscreen",            bind_this(GameScript::ai_printscreen));
 
   vm.register_external("ta_min",              bind_this(GameScript::ta_min));
 
@@ -2821,6 +2828,22 @@ void GameScript::ai_pointatnpc(std::shared_ptr<phoenix::c_npc> npcRef, std::shar
   auto npc = getNpc(npcRef);
   if(npc!=nullptr && other!=nullptr)
     npc->aiPush(AiQueue::aiPointAtNpc(*other));
+  }
+
+int GameScript::ai_printscreen(std::string_view msg, int posx, int posy, std::string_view font, int timesec) {
+  return 0;
+
+  auto npc = owner.player();
+  if(vm.global_self()->is_instance_of<phoenix::c_npc>()) {
+    auto* oth = reinterpret_cast<phoenix::c_npc*>(vm.global_self()->get_instance().get());
+    npc = reinterpret_cast<Npc*>(oth->user_ptr);
+    }
+  if(npc==nullptr) {
+    Gothic::inst().onPrintScreen(msg,posx,posy,timesec,Resources::font(font));
+    return 0;
+    }
+  npc->aiPush(AiQueue::aiPrintScreen(timesec,font,posx,posy,msg));
+  return 0;
   }
 
 int GameScript::mob_hasitems(std::string_view tag, int item) {

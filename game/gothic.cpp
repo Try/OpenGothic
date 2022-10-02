@@ -752,7 +752,6 @@ void Gothic::setupVmCommonApi(phoenix::vm &vm) {
   vm.register_external("playvideo",        [this](std::string_view name){ return playvideo(name); });
   vm.register_external("playvideoex",      [this](std::string_view name, bool a, bool b){ return playvideoex(name, a, b); });
   vm.register_external("printscreen",      [this](std::string_view msg, int posx, int posy, std::string_view font, int timesec){ return printscreen(msg, posx, posy, font, timesec); });
-  vm.register_external("ai_printscreen",   [this](std::string_view msg, int posx, int posy, std::string_view font, int timesec){ return ai_printscreen(msg, posx, posy, font, timesec); });
   vm.register_external("printdialog",      [this](int dialognr, std::string_view msg, int posx, int posy, std::string_view font, int timesec){ return printdialog(dialognr, msg, posx, posy, font, timesec); });
   vm.register_external("print",            [this](std::string_view msg){ print(msg); });
 
@@ -835,12 +834,6 @@ bool Gothic::playvideoex(std::string_view name, bool, bool) {
   }
 
 bool Gothic::printscreen(std::string_view msg, int posx, int posy, std::string_view font, int timesec) {
-  onPrintScreen(msg,posx,posy,timesec,Resources::font(font));
-  return false;
-  }
-
-bool Gothic::ai_printscreen(std::string_view msg, int posx, int posy, std::string_view font, int timesec) {
-  // TODO: print-screen queue
   onPrintScreen(msg,posx,posy,timesec,Resources::font(font));
   return false;
   }

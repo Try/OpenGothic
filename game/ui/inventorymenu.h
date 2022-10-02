@@ -96,7 +96,8 @@ class InventoryMenu : public Tempest::Widget {
     LootMode                  lootMode   =LootMode::Normal;
     InventoryRenderer         renderer;
 
-    size_t                    columsCount=5;
+    size_t                    columsCount = 5;
+    int32_t                   scrollDelta = 0;
 
     size_t                    rowsCount() const;
 

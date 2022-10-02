@@ -131,19 +131,34 @@ float volumetricFog(in vec3 pos, in vec3 pos1) {
   }
 
 #if defined(VOLUMETRIC)
+#define MAX_DEBUG_COLORS 10
+const vec3 debugColors[MAX_DEBUG_COLORS] = {
+  vec3(1,1,1),
+  vec3(1,0,0),
+  vec3(0,1,0),
+  vec3(0,0,1),
+  vec3(1,1,0),
+  vec3(1,0,1),
+  vec3(0,1,1),
+  vec3(1,0.5,0),
+  vec3(0.5,1,0),
+  vec3(0,0.5,1),
+  };
+
 vec4 fog(vec2 uv, vec3 sunDir) {
   // vec3  pos1     = inverse(vec3(inPos,1));
   // vec3  posz     = inverse(vec3(inPos,z));
   // vec3  pos0     = inverse(vec3(inPos,0));
 
   float dMin = 0;
-  float dMax = 1;
+  float dMax = 0.9999;
   float z    = texture(depth,uv).r;
   float dZ   = reconstructCSZ(   z, push.clipInfo);
   float d0   = reconstructCSZ(dMin, push.clipInfo);
   float d1   = reconstructCSZ(dMax, push.clipInfo);
 
   float d    = (dZ-d0)/(d1-d0);
+  // return vec4(debugColors[min(int(d*textureSize(fogLut,0).z), textureSize(fogLut,0).z-1)%MAX_DEBUG_COLORS], 1);
 
   // vec3  trans    = transmittance(pos0, posz);
   // vec3  trans    = transmittance(pos0, pos1);
@@ -228,6 +243,10 @@ void main() {
 
   vec4  val      = fog(uv,push.sunDir) * fogFixup;
   vec3  lum      = val.rgb;
+#if defined(FOG)
+  //outColor = fog(uv,push.sunDir);
+  //return;
+#endif
 
 #if !defined(FOG)
   // Sky

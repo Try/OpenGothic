@@ -166,6 +166,7 @@ class GameScript final {
       bool output   (Npc &npc, std::string_view text) override;
       bool outputSvm(Npc& npc, std::string_view text) override;
       bool outputOv (Npc& npc, std::string_view text) override;
+      bool printScr (Npc& npc, int time, std::string_view msg, int x,int y, std::string_view font) override;
       bool isFinished() override;
 
       bool close() override { return true; }
@@ -364,6 +365,7 @@ class GameScript final {
     void ai_gotoitem         (std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_item> itmRef);
     void ai_pointat          (std::shared_ptr<phoenix::c_npc> npcRef, std::string_view waypoint);
     void ai_pointatnpc       (std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_npc> otherRef);
+    int ai_printscreen       (std::string_view msg, int posx, int posy, std::string_view font, int timesec);
 
     int mob_hasitems        (std::string_view tag, int item);
 

@@ -1,12 +1,6 @@
 #include "worldobjects.h"
 
 #include "game/serialize.h"
-#include "graphics/meshobjects.h"
-#include "world/triggers/codemaster.h"
-#include "world/triggers/triggerscript.h"
-#include "world/triggers/triggerlist.h"
-#include "world/triggers/triggerworldstart.h"
-#include "world/triggers/messagefilter.h"
 #include "world/objects/itemtorchburning.h"
 #include "world/objects/item.h"
 #include "world/objects/npc.h"
@@ -296,13 +290,29 @@ Npc* WorldObjects::addNpc(size_t npcInstance, std::string_view at) {
       pos=p;
     }
 
+  bool valid = false;
   if(pos!=nullptr) {
+    valid = true;
+    }
+  if(npc->resetPositionToTA()) {
+    valid = true;
+    }
+
+  if(valid) {
+    if(auto p = npc->currentWayPoint())
+      pos = p;
+    if(pos==nullptr)
+      pos = &owner.deadPoint();
     npc->setPosition  (pos->x,pos->y,pos->z);
     npc->setDirection (pos->dirX,pos->dirY,pos->dirZ);
     npc->attachToPoint(pos);
     npc->updateTransform();
     npcArr.emplace_back(npc);
     } else {
+    auto& point = owner.deadPoint();
+    npc->attachToPoint(nullptr);
+    npc->setPosition(point.position());
+    npc->updateTransform();
     npcInvalid.emplace_back(npc);
     }
 
@@ -900,16 +910,8 @@ static bool canSee(const Npc& pl,const Interactive& n){
   return n.canSeeNpc(pl,true);
   }
 
-static bool canSee(const Npc& pl,const Item& n){
-  auto p0 = pl.position();
-  auto p1 = n.midPosition();
-  const float plY = p0.y;
-  if(plY<=p1.y && p1.y<=plY+180) {
-    //auto head = pl.mapHeadBone();
-    if(pl.canSeeNpc(p0.x,p1.y,p0.z,true))
-      return true;
-    }
-  return pl.canSeeNpc(p1.x,p1.y,p1.z,true);
+static bool canSee(const Npc& pl, const Item& n){
+  return pl.canSeeItem(n,true);
   }
 
 template<class T>

@@ -66,6 +66,7 @@ class Sky final {
     Tempest::DescriptorSet        uboMultiScatLut, uboSkyViewLut;
     Tempest::DescriptorSet        uboFogViewLut,   uboFogViewLut3d[Resources::MaxFramesInFlight], uboShadowDw;
     Tempest::DescriptorSet        uboSky, uboSky3d, uboFog, uboFog3d;
+
     bool                          lutIsInitialized = false;
 
     const SceneGlobals&           scene;

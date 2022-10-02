@@ -134,9 +134,6 @@ class Serialize {
     void implRead (WeaponState &w);
 
     // composite types
-    void implWrite(const std::tm& i)       { writeBytes(&i,sizeof(i)); }
-    void implRead (std::tm&       i)       { readBytes (&i,sizeof(i)); }
-
     void implWrite(const Tempest::Vec3& s) { writeBytes(&s,sizeof(s)); }
     void implRead (Tempest::Vec3& s)       { readBytes (&s,sizeof(s)); }
 

@@ -137,6 +137,7 @@ class DynamicWorld final {
       Tempest::Vec3           n={};
       phoenix::material_group mat    = phoenix::material_group::undefined;
       bool                    hasCol = false;
+      float               hitFraction = 0;
 
       const char*         sector = nullptr;
       };

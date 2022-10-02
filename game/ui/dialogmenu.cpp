@@ -24,6 +24,10 @@ bool DialogMenu::Pipe::outputOv(Npc &npc, std::string_view text) {
   return owner.aiOutput(npc,text);
   }
 
+bool DialogMenu::Pipe::printScr(Npc& npc, int time, std::string_view msg, int x, int y, std::string_view font) {
+  return owner.aiPrintScr(npc,time,msg,x,y,font);
+  }
+
 bool DialogMenu::Pipe::close() {
   return owner.aiClose();
   }
@@ -225,7 +229,16 @@ bool DialogMenu::aiOutput(Npc &npc, std::string_view msg) {
   curentIsPl      = (pl==&npc);
 
   currentSnd.play();
+  npc.setAiOutputBarrier(current.msgTime,false);
   update();
+  return true;
+  }
+
+bool DialogMenu::aiPrintScr(Npc& npc, int time, std::string_view msg, int x, int y, std::string_view font) {
+  if(current.time>0)
+    return false;
+  auto& f = Resources::font(font);
+  Gothic::inst().onPrintScreen(msg,x,y,time,f);
   return true;
   }
 
@@ -351,6 +364,10 @@ void DialogMenu::startTrade() {
 
 void DialogMenu::skipPhrase() {
   if(current.time>0) {
+    if(pl!=nullptr)
+      pl->setAiOutputBarrier(0,false);
+    if(other!=nullptr)
+      other->setAiOutputBarrier(0,false);
     currentSnd   = SoundEffect();
     current.time = 1;
     }

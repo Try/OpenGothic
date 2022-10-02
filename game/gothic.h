@@ -219,7 +219,6 @@ class Gothic final {
     bool                                    playvideo         (std::string_view name);
     bool                                    playvideoex       (std::string_view name, bool screenBlend, bool exitSession);
     bool                                    printscreen       (std::string_view msg, int posx, int posy, std::string_view font, int timesec);
-    bool                                    ai_printscreen    (std::string_view msg, int posx, int posy, std::string_view font, int timesec);
     bool                                    printdialog       (int dialognr, std::string_view msg, int posx, int posy, std::string_view font, int timesec);
     void                                    print             (std::string_view msg);
 

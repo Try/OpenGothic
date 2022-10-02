@@ -244,7 +244,7 @@ LightGroup::LightGroup(const SceneGlobals& scene)
       zen->read_object_begin(obj);
 
       presets.push_back(phoenix::vobs::light_preset::parse(
-          zen,
+          *zen,
           Gothic::inst().version().game == 1 ? phoenix::game_version::gothic_1
                                              : phoenix::game_version::gothic_2));
 
@@ -392,7 +392,7 @@ void LightGroup::preFrameUpdate(uint8_t fId) {
     if(b->updated[fId])
       continue;
     b->updated[fId] = true;
-    if(b->ssbo[fId].size()==b->data.size()*sizeof(b->data[0])) {
+    if(b->ssbo[fId].byteSize()==b->data.size()*sizeof(b->data[0])) {
       b->ssbo[fId].update(b->data);
       } else {
       b->ssbo[fId] = device.ssbo(BufferHeap::Upload,b->data);

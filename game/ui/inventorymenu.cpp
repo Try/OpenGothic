@@ -100,12 +100,17 @@ void InventoryMenu::close() {
       Gothic::inst().emitGlobalSound("INV_CLOSE");
     }
   renderer.reset(true);
+  takeTimer.stop();
   state  = State::Closed;
   }
 
 void InventoryMenu::open(Npc &pl) {
-  if(pl.isDown())
+  if(pl.isDown() || pl.isMonster() || pl.isInAir() || pl.isSlide() || (pl.interactive()!=nullptr))
     return;
+  if(pl.weaponState()!=WeaponState::NoWeapon) {
+    pl.stopAnim("");
+    pl.closeWeapon(false);
+    }
   state  = State::Equip;
   player = &pl;
   trader = nullptr;
@@ -377,14 +382,16 @@ void InventoryMenu::mouseWheelEvent(MouseEvent &e) {
   if(state==State::LockPicking)
     return;
 
-  if(e.delta>0)
-    for(int i=0;i<e.delta/120;++i){
+  scrollDelta += e.delta;
+  if(scrollDelta>0) {
+    for(int i=0;i<scrollDelta/120;++i)
       moveUp();
-      }
-  else if(e.delta<0)
-    for(int i=0;i<-e.delta/120;++i){
+    scrollDelta %= 120;
+    } else {
+    for(int i=0;i<-scrollDelta/120;++i)
       moveDown();
-      }
+    scrollDelta %= 120;
+    }
   adjustScroll();
   }
 

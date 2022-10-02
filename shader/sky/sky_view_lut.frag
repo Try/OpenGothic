@@ -74,14 +74,14 @@ void main() {
   float cosAltitude = cos(altitudeAngle);
   float sunAltitude = (0.5*M_PI) - acos(dot(push.sunDir, up));
 
-  vec3  sunDir     = vec3(0.0, sin(sunAltitude), -cos(sunAltitude));
-  vec3  rayDir     = vec3(cosAltitude*sin(azimuthAngle), sin(altitudeAngle), -cosAltitude*cos(azimuthAngle));
+  vec3  sunDir      = vec3(0.0, sin(sunAltitude), -cos(sunAltitude));
+  vec3  rayDir      = vec3(cosAltitude*sin(azimuthAngle), sin(altitudeAngle), -cosAltitude*cos(azimuthAngle));
 
-  float atmoDist   = rayIntersect(viewPos, rayDir, RAtmos);
-  float groundDist = rayIntersect(viewPos, rayDir, RPlanet);
-  float tMax       = (groundDist < 0.0) ? atmoDist : groundDist;
+  float atmoDist    = rayIntersect(viewPos, rayDir, RAtmos);
+  float groundDist  = rayIntersect(viewPos, rayDir, RPlanet);
+  float tMax        = (groundDist < 0.0) ? atmoDist : groundDist;
 
   vec3  sun  = raymarchScattering(viewPos, rayDir, sunDir, tMax);
-  vec3  moon = raymarchScattering(viewPos, rayDir, normalize(vec3(0,2,4)), tMax)*(0.01*push.night);
+  vec3  moon = raymarchScattering(viewPos, rayDir, normalize(vec3(0,2,0)), tMax)*(0.01*push.night)*vec3(0.4,0.5,1.0);
   outColor = vec4(sun+moon, 1.0);
   }

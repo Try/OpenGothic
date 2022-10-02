@@ -25,6 +25,9 @@ class AiQueue {
       int               i0    =0;
       int               i1    =0;
       std::string       s0;
+      // Extended section, only for print-screen
+      int               i2    =0;
+      std::string       s1;
       };
 
     void     save(Serialize& fout) const;
@@ -85,6 +88,7 @@ class AiQueue {
     static AiAction aiPointAt(const WayPoint &to);
     static AiAction aiPointAtNpc(Npc& other);
     static AiAction aiStopPointAt();
+    static AiAction aiPrintScreen(int time, std::string_view font, int x,int y, std::string_view msg);
 
   private:
     std::deque<AiAction> aiActions;

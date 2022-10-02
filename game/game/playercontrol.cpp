@@ -510,6 +510,7 @@ void PlayerControl::implMove(uint64_t dt) {
     return;
 
   if(pl.interactive()!=nullptr) {
+    runAngleDest = 0;
     implMoveMobsi(pl,dt);
     return;
     }
