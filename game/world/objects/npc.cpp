@@ -2007,8 +2007,15 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
       }
     case AI_TurnToNpc: {
-      if(interactive()==nullptr)
+      const auto st = bodyStateMasked();
+      if(interactive()==nullptr && st!=BS_STAND && st!=BS_NONE) {
         visual.stopWalkAnim(*this);
+        queue.pushFront(std::move(act));
+        break;
+        }
+      if(interactive()==nullptr) {
+        visual.stopWalkAnim(*this);
+        }
       if(act.target!=nullptr && implTurnTo(*act.target,dt)) {
         queue.pushFront(std::move(act));
         }
@@ -2112,7 +2119,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       if(interactive()!=nullptr) {
         // if(interactive()->stateMask()==BS_SIT)
         //   ;
-        if(!setInteraction(nullptr,act.act==AI_StandUpQuick)) {
+        if(!setInteraction(nullptr,false)) {
           queue.pushFront(std::move(act));
           }
         break;
@@ -2123,6 +2130,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
           implAniWait(visual.pose().animationTotalTime());
         }
       else if(bodyStateMasked()!=BS_DEAD) {
+        visual.stopAnim(*this,"");
         setAnim(Anim::Idle);
         }
       break;
@@ -2282,9 +2290,25 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
       break;
       }
-    case AI_ProcessInfo:
+    case AI_ProcessInfo: {
+      const int PERC_DIST_DIALOG = 500;
+
       if(act.target==nullptr)
         break;
+
+      if(!owner.aiIsDlgFinished()) {
+        queue.pushFront(std::move(act));
+        break;
+        }
+
+      if(this!=act.target && act.target->isPlayer() && act.target->currentInteract!=nullptr) {
+        //queue.pushFront(std::move(act));
+        break;
+        }
+
+      if(act.target->qDistTo(*this)>PERC_DIST_DIALOG*PERC_DIST_DIALOG) {
+        break;
+        }
 
       if(act.target->interactive()==nullptr && !act.target->isAiBusy())
         act.target->stopWalkAnimation();
@@ -2299,6 +2323,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         } else {
         queue.pushFront(std::move(act));
         }
+      }
       break;
     case AI_StopProcessInfo:
       if(outputPipe->close()) {
@@ -3532,6 +3557,11 @@ bool Npc::perceptionProcess(Npc &pl) {
 
   if(aiQueue.size()==0)
     perceptionNextTime = owner.tickCount()+perceptionTime;
+
+  // TODO: rotate to player
+  // if(currentLookAt==nullptr && owner.script().hasImportantInfo(*this,pl,1)) {
+  //   currentLookAt = &pl;
+  //   }
 
   return ret;
   }

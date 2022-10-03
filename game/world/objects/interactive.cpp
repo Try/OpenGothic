@@ -213,7 +213,7 @@ void Interactive::tick(uint64_t dt) {
     return;
     }
 
-  if(p->user==nullptr && (state==0 && !p->attachMode))
+  if(p->user==nullptr && (state==-1 && !p->attachMode))
     return;
   if(p->user==nullptr && (state==stateNum && p->attachMode))
     return;
@@ -303,18 +303,16 @@ void Interactive::implQuitInteract(Interactive::Pos &p) {
   if(p.user==nullptr)
     return;
   Npc& npc = *p.user;
-  if(!(npc.isPlayer() && (!npc.world().aiIsDlgFinished() || !npc.isAiQueueEmpty()))) {
-    const Animation::Sequence* sq = nullptr;
-    if(state==0) {
-      // S0 -> STAND
-      sq = npc.setAnimAngGet(Npc::Anim::InteractToStand);
-      }
-    if(sq==nullptr && !(npc.isDown() || npc.setAnim(Npc::Anim::Idle)))
-      return;
-    npc.quitIneraction();
-    p.user      = nullptr;
-    loopState   = false;
+  const Animation::Sequence* sq = nullptr;
+  if(state==0) {
+    // S0 -> STAND
+    sq = npc.setAnimAngGet(Npc::Anim::InteractToStand);
     }
+  if(sq==nullptr && !(npc.isDown() || npc.setAnim(Npc::Anim::Idle)))
+    return;
+  npc.quitIneraction();
+  p.user      = nullptr;
+  loopState   = false;
   }
 
 std::string_view Interactive::tag() const {
@@ -705,11 +703,6 @@ bool Interactive::attach(Npc &npc) {
   }
 
 bool Interactive::dettach(Npc &npc, bool quick) {
-  if(!quick) {
-    if(!npc.setAnim(Npc::Anim::Idle))
-      return false;
-    }
-
   for(auto& i:attPos) {
     if(i.user==&npc && i.attachMode) {
       if(canQuitAtState(*i.user,state)) {
