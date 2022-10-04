@@ -56,7 +56,7 @@ class FightAlgo final {
 
     static float  weaponRange(GameScript &owner,const Npc &npc);
 
-    phoenix::c_fight_ai_move queueId=phoenix::c_fight_ai_move {0};
+    phoenix::c_fight_ai_move           queueId=phoenix::c_fight_ai_move::nop;
     Action                             tr   [MV_MAX]={};
     bool                               hitFlg=false;
   };
