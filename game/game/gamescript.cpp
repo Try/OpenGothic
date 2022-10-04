@@ -495,14 +495,13 @@ void GameScript::loadVar(Serialize &fin) {
     switch(phoenix::datatype(t)) {
       case phoenix::datatype::integer:{
         fin.read(name);
-        auto* s = getSymbol(name.c_str());
+        auto* s = getSymbol(name);
 
         uint32_t size;
         fin.read(size);
 
         int v;
         for (unsigned j = 0; j < size; ++j) {
-
             fin.read(v);
             if (s != nullptr && !s->is_member() && !s->is_const()) {
                 s->set_int(v, j);
@@ -513,7 +512,7 @@ void GameScript::loadVar(Serialize &fin) {
         }
       case phoenix::datatype::float_:{
         fin.read(name);
-        auto* s = getSymbol(name.c_str());
+        auto* s = getSymbol(name);
 
         uint32_t size;
         fin.read(size);
@@ -530,7 +529,7 @@ void GameScript::loadVar(Serialize &fin) {
         }
       case phoenix::datatype::string:{
         fin.read(name);
-        auto* s = getSymbol(name.c_str());
+        auto* s = getSymbol(name);
 
         uint32_t size;
         fin.read(size);
@@ -551,7 +550,9 @@ void GameScript::loadVar(Serialize &fin) {
         if(dataClass>0){
           uint32_t id=0;
           fin.read(name,id);
-          auto* s = getSymbol(name.c_str());
+          auto* s = getSymbol(name);
+          if (s == nullptr)
+            break;
           if(dataClass==1) {
             auto npc = world().npcById(id);
             s->set_instance(npc ? npc->handle() : nullptr);
@@ -692,12 +693,15 @@ World &GameScript::world() {
   return *owner.world();
   }
 
-std::shared_ptr<phoenix::c_focus> GameScript::getFocus(const char *name) {
-  phoenix::c_focus ret={};
+phoenix::c_focus GameScript::getFocus(const std::string& name) {
   auto id = vm.find_symbol_by_name(name);
   if(id==nullptr)
-    return nullptr;
-  return vm.init_instance<phoenix::c_focus>(id);
+    return {};
+  try {
+    return *vm.init_instance<phoenix::c_focus>(id);
+    } catch (const phoenix::script_error&) {
+    return {};
+    }
   }
 
 void GameScript::storeItem(Item *itm) {
@@ -1080,7 +1084,7 @@ const std::string& GameScript::spellCastAnim(Npc&, Item &it) {
 
 bool GameScript::aiOutput(Npc &npc, std::string_view outputname, bool overlay) {
   char buf[256]={};
-  std::snprintf(buf,sizeof(buf),"%s.WAV",outputname.data());
+  std::snprintf(buf,sizeof(buf),"%.*s.WAV",int(outputname.size()),outputname.data());
 
   uint64_t dt=0;
   world().addDlgSound(buf,npc.position()+Vec3{0,180,0},WorldSound::talkRange,dt);
