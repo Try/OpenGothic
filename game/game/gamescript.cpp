@@ -301,18 +301,22 @@ void GameScript::initCommon() {
   spellFxInstanceNames = vm.find_symbol_by_name("spellFxInstanceNames");
   spellFxAniLetters    = vm.find_symbol_by_name("spellFxAniLetters");
 
+  if (spellFxInstanceNames == nullptr || spellFxAniLetters == nullptr) {
+    throw std::runtime_error("spellFxInstanceNames and/or spellFxAniLetters not found");
+    }
+
   if(owner.version().game==2){
     auto* currency = vm.find_symbol_by_name("TRADE_CURRENCY_INSTANCE");
-    itMi_Gold      = vm.find_symbol_by_name(currency->get_string());
+    itMi_Gold      = currency != nullptr ? vm.find_symbol_by_name(currency->get_string()) : nullptr;
     if(itMi_Gold!=nullptr){ // FIXME
       auto item = vm.init_instance<phoenix::c_item>(itMi_Gold);
       goldTxt = item->name;
       }
     auto* tradeMul = vm.find_symbol_by_name("TRADE_VALUE_MULTIPLIER");
-    tradeValMult   = tradeMul->get_float();
+    tradeValMult   = tradeMul != nullptr ? tradeMul->get_float() : 1.0f;
 
     auto* vtime     = vm.find_symbol_by_name("VIEW_TIME_PER_CHAR");
-    viewTimePerChar = vtime->get_float(0);
+    viewTimePerChar = vtime != nullptr ? vtime->get_float() : 0.55f;
     if(viewTimePerChar<=0.f)
       viewTimePerChar=0.55f;
     } else {
@@ -327,18 +331,20 @@ void GameScript::initCommon() {
     }
 
   auto* gilMax = vm.find_symbol_by_name("GIL_MAX");
-  gilCount=size_t(gilMax->get_int());
+  gilCount=gilMax != nullptr ? size_t(gilMax->get_int()) : 0;
 
   auto* tableSz = vm.find_symbol_by_name("TAB_ANZAHL");
   auto* guilds  = vm.find_symbol_by_name("GIL_ATTITUDES");
-  gilAttitudes.resize(gilCount*gilCount,ATT_HOSTILE);
 
-  size_t tbSz=size_t(std::sqrt(tableSz->get_int()));
-  for(size_t i=0;i<tbSz;++i)
-    for(size_t r=0;r<tbSz;++r) {
-      gilAttitudes[i*gilCount+r]=guilds->get_int(i*tbSz+r);
-      gilAttitudes[r*gilCount+i]=guilds->get_int(r*tbSz+i);
-      }
+  if (tableSz != nullptr && guilds != nullptr) {
+    gilAttitudes.resize(gilCount*gilCount,ATT_HOSTILE);
+    size_t tbSz=size_t(std::sqrt(tableSz->get_int()));
+    for(size_t i=0;i<tbSz;++i)
+      for(size_t r=0;r<tbSz;++r) {
+        gilAttitudes[i*gilCount+r]=guilds->get_int(i*tbSz+r);
+        gilAttitudes[r*gilCount+i]=guilds->get_int(r*tbSz+i);
+        }
+  }
 
   auto id = vm.find_symbol_by_name("Gil_Values");
   if(id!=nullptr){
@@ -426,18 +432,33 @@ void GameScript::loadDialogOU() {
 
 void GameScript::initializeInstanceNpc(const std::shared_ptr<phoenix::c_npc>& npc, size_t instance) {
   auto sym = vm.find_symbol_by_index(instance);
+
+  if (sym == nullptr) {
+    Tempest::Log::e("Cannot initialize NPC ", instance, ": Symbol not found.");
+    return;
+    }
+
   vm.init_instance(npc, sym);
 
   if(npc->daily_routine!=0) {
     ScopeVar self(vm.global_self(), npc);
     auto* daily_routine = vm.find_symbol_by_index(npc->daily_routine);
-    vm.call_function(daily_routine);
+
+    if (daily_routine != nullptr) {
+      vm.call_function(daily_routine);
+      }
     }
 
   }
 
 void GameScript::initializeInstanceItem(const std::shared_ptr<phoenix::c_item>& item, size_t instance) {
   auto sym = vm.find_symbol_by_index(instance);
+
+  if (sym == nullptr) {
+    Tempest::Log::e("Cannot initialize item ", instance, ": Symbol not found.");
+    return;
+    }
+
   vm.init_instance(item, sym);
   }
 
@@ -467,7 +488,7 @@ void GameScript::saveVar(Serialize &fout) {
   auto& dat = vm.symbols();
   fout.write(uint32_t(dat.size()));
   for(unsigned i = 0; i < dat.size(); ++i){
-    auto* sym = vm.find_symbol_by_index(i);
+    auto* sym = vm.find_symbol_by_index(i); // never returns nullptr
     saveSym(fout,*sym);
     }
   }
@@ -566,7 +587,7 @@ void GameScript::loadVar(Serialize &fin) {
 
 void GameScript::resetVarPointers() {
   for(size_t i=0;i<vm.symbols().size();++i){
-    auto* s = vm.find_symbol_by_index(i);
+    auto* s = vm.find_symbol_by_index(i); // never returns nullptr
     if(s->is_instance_of<phoenix::c_npc>() || s->is_instance_of<phoenix::c_item>()){
       s->set_instance(nullptr);
       }
@@ -774,8 +795,12 @@ std::vector<GameScript::DlgChoise> GameScript::dialogChoises(std::shared_ptr<pho
         }
 
       bool valid=true;
-      if(info.condition)
-        valid = vm.call_function<int>(vm.find_symbol_by_index(info.condition))!=0;
+      if(info.condition) {
+        auto* conditionSymbol = vm.find_symbol_by_index(info.condition);
+        if (conditionSymbol != nullptr) {
+          valid = vm.call_function<int>(conditionSymbol) != 0;
+          }
+        }
       if(!valid)
         continue;
 
@@ -946,11 +971,11 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
   ScopeVar other (vm.global_other(),  oth != nullptr ? oth->handle() : nullptr);
   ScopeVar victum(vm.global_victim(), vic != nullptr ? vic->handle() : nullptr);
 
-  auto sym = vm.find_symbol_by_index(fn.ptr);
+  auto* sym = vm.find_symbol_by_index(fn.ptr);
   int ret = 0;
-  if (sym->rtype() == phoenix::datatype::integer) {
+  if (sym!=nullptr && sym->rtype() == phoenix::datatype::integer) {
     ret = vm.call_function<int>(sym);
-  } else {
+  } else if (sym!=nullptr) {
     vm.call_function<void>(sym);
   }
   if(vm.global_other()->is_instance_of<phoenix::c_npc>()){
@@ -966,8 +991,13 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
 void GameScript::invokeItem(Npc *npc, ScriptFn fn) {
   if(fn==size_t(-1) || fn == 0)
     return;
+  auto functionSymbol = vm.find_symbol_by_index(fn.ptr);
+
+  if (functionSymbol == nullptr)
+    return;
+
   ScopeVar self(vm.global_self(), npc->handle());
-  return vm.call_function<void>(vm.find_symbol_by_index(fn.ptr));
+  vm.call_function<void>(functionSymbol);
   }
 
 int GameScript::invokeMana(Npc &npc, Npc* target, Item &) {
@@ -1195,7 +1225,9 @@ void GameScript::makeCurrent(Item* w) {
   if(w==nullptr)
     return;
   auto* s = vm.find_symbol_by_index(w->clsId());
-  s->set_instance(w->handle());
+
+  if (s != nullptr)
+    s->set_instance(w->handle());
   }
 
 bool GameScript::searchScheme(std::string_view sc, std::string_view listName) {
@@ -1252,7 +1284,7 @@ Item *GameScript::getItem(phoenix::c_item* handle) {
 
 Item *GameScript::getItemById(size_t id) {
   auto* handle = vm.find_symbol_by_index(id);
-  if(!handle->is_instance_of<phoenix::c_item>())
+  if(handle==nullptr||!handle->is_instance_of<phoenix::c_item>())
     return nullptr;
   auto hnpc = reinterpret_cast<phoenix::c_item*>(handle->get_instance().get());
   return getItem(hnpc);
@@ -1260,7 +1292,7 @@ Item *GameScript::getItemById(size_t id) {
 
 Npc* GameScript::getNpcById(size_t id) {
   auto* handle = vm.find_symbol_by_index(id);
-  if(!handle->is_instance_of<phoenix::c_npc>())
+  if(handle==nullptr||!handle->is_instance_of<phoenix::c_npc>())
     return nullptr;
 
   auto hnpc = reinterpret_cast<phoenix::c_npc*>(handle->get_instance().get());
@@ -1274,7 +1306,7 @@ Npc* GameScript::getNpcById(size_t id) {
 
 phoenix::c_info* GameScript::getInfo(size_t id) {
   auto* sym = vm.find_symbol_by_index(id);
-  if(!sym->is_instance_of<phoenix::c_info>())
+  if(sym==nullptr||!sym->is_instance_of<phoenix::c_info>())
     return nullptr;
   auto* h = sym->get_instance().get();
   if(h==nullptr)
@@ -1290,7 +1322,12 @@ void GameScript::setInstanceNPC(std::string_view name, Npc &npc) {
   char buf[256] = {};
   std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
   auto sym = vm.find_symbol_by_name(buf);
-  assert(sym != nullptr);
+
+  if (sym == nullptr) {
+    Tempest::Log::e("Cannot set NPC instance ", buf, ": Symbol not found.");
+    return;
+    }
+
   sym->set_instance(npc.handle());
   }
 
@@ -1761,7 +1798,9 @@ void GameScript::npc_exchangeroutine(std::shared_ptr<phoenix::c_npc> npcRef, std
     auto& v = *npc->handle();
     char buf[256]={};
     std::snprintf(buf,sizeof(buf),"Rtn_%s_%d",rname.data(),v.id);
-    size_t d = vm.find_symbol_by_name(buf)->index();
+
+    auto* sym = vm.find_symbol_by_name(buf);
+    size_t d = sym != nullptr ? sym->index() : 0;
     if(d>0)
       npc->excRoutine(d);
     }
@@ -2171,8 +2210,11 @@ bool GameScript::npc_checkinfo(std::shared_ptr<phoenix::c_npc> npcRef, int imp) 
     if(npcKnowsInfo && !info->permanent)
       continue;
     bool valid=false;
-    if(info->condition)
-      valid = vm.call_function<int>(vm.find_symbol_by_index(info->condition))!=0;
+    if(info->condition) {
+      auto* conditionSymbol = vm.find_symbol_by_index(info->condition);
+      if (conditionSymbol != nullptr)
+        valid = vm.call_function<int>(conditionSymbol)!=0;
+      }
     if(valid) {
       return true;
       }
@@ -2402,7 +2444,7 @@ bool GameScript::npc_ownedbynpc(std::shared_ptr<phoenix::c_item> itmRef, std::sh
     }
 
   auto* sym = vm.find_symbol_by_index(itm->handle()->owner);
-  return npc->handle()==sym->get_instance();
+  return sym != nullptr && npc->handle()==sym->get_instance();
   }
 
 bool GameScript::npc_canseesource(std::shared_ptr<phoenix::c_npc> npcRef) {

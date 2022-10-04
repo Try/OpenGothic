@@ -93,11 +93,11 @@ void Ikarus::mem_replacefunc(int dest, int func) {
   auto* sf      = vm.find_symbol_by_index(func);
   auto* sd      = vm.find_symbol_by_index(dest);
 
-  if(sf->type() != phoenix::datatype::function) {
+  if(sf == nullptr || sf->type() != phoenix::datatype::function) {
     Log::e("mem_replacefunc: invalid function ptr");
     return;
     }
-  if(sd->type() != phoenix::datatype::function) {
+  if(sd == nullptr || sd->type() != phoenix::datatype::function) {
     Log::e("mem_replacefunc: invalid function ptr");
     return;
     }
@@ -116,7 +116,7 @@ void Ikarus::mem_printstacktrace_implementation() {
 
 int Ikarus::mem_getfuncptr(int func) {
   auto* sym  = vm.find_symbol_by_index(size_t(func));
-  if(sym->type() != phoenix::datatype::function) {
+  if(sym == nullptr || sym->type() != phoenix::datatype::function) {
     Log::e("mem_getfuncptr: invalid function ptr");
     return 0;
     }

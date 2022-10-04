@@ -9,6 +9,7 @@
 
 #include <Tempest/MemReader>
 #include <Tempest/MemWriter>
+#include <Tempest/Log>
 
 size_t Serialize::writeFunc(void* pOpaque, uint64_t file_ofs, const void* pBuf, size_t n) {
   auto& self = *reinterpret_cast<Serialize*>(pOpaque);
@@ -280,7 +281,12 @@ void Serialize::readNpc(phoenix::vm& vm, std::shared_ptr<phoenix::c_npc>& h) {
   read(instanceSymbol);
 
   auto sym = vm.find_symbol_by_index(instanceSymbol);
-  vm.init_instance(h, sym);
+
+  if (sym != nullptr) {
+    vm.init_instance(h, sym);
+    } else {
+    Tempest::Log::e("Cannot load serialized NPC ", instanceSymbol, ": Symbol not found.");
+    }
 
   read(h->id,h->name,h->slot,h->effect, reinterpret_cast<int32_t&>(h->type));
   read(reinterpret_cast<int32_t&>(h->flags));

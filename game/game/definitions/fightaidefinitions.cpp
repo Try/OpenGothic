@@ -6,7 +6,7 @@ FightAi::FightAi() {
   auto vm = Gothic::inst().createPhoenixVm("Fight.dat");
 
   auto* max = vm->find_symbol_by_name("MAX_FIGHTAI");
-  int count = max->get_int();
+  int count = max != nullptr ? max->get_int() : 0;
   if(count<0)
     count=0;
 

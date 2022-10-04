@@ -7,6 +7,8 @@ SvmDefinitions::~SvmDefinitions() {
   }
 
 const std::string& SvmDefinitions::find(std::string_view speech, int intId) {
+  static std::string empty;
+
   if(!speech.empty() && speech[0]=='$' && intId>=0){
     const size_t id=size_t(intId);
 
@@ -17,7 +19,12 @@ const std::string& SvmDefinitions::find(std::string_view speech, int intId) {
       svm.resize(id+1);
 
     if(svm[id] == nullptr){
-      auto i = vm.find_symbol_by_name(name);
+      auto* i = vm.find_symbol_by_name(name);
+
+      if (i == nullptr) {
+        return empty;
+        }
+
       svm[id] = vm.init_instance<phoenix::c_svm>(i);
       }
 
@@ -25,9 +32,8 @@ const std::string& SvmDefinitions::find(std::string_view speech, int intId) {
     std::snprintf(name,sizeof(name),"C_SVM.%.*s",int(speech.size()),speech.data());
 
     auto* i = vm.find_symbol_by_name(name); //TODO: optimize
-    return i->get_string(0,svm[size_t(id)]);
+    return i != nullptr ? i->get_string(0,svm[size_t(id)]) : empty;
     }
 
-  static std::string empty;
   return empty;
   }

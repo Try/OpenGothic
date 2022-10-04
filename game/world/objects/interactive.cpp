@@ -377,7 +377,11 @@ std::string_view Interactive::displayName() const {
     }
 
   auto* s=world.script().getSymbol(strId);
-  const char* txt = s->get_string(0).c_str();
+
+  if (s==nullptr)
+    return "";
+
+  const char* txt = s->get_string().c_str();
   if(std::strlen(txt)==0)
     txt="";
   return txt;

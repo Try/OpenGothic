@@ -232,7 +232,8 @@ void Npc::load(Serialize &fin, size_t id) {
   fin.read(body,head,vHead,vTeeth,bdColor,vColor,bdFatness);
 
   auto* sym = owner.script().getSymbol(hnpc->symbol_index());
-  sym->set_instance(hnpc);
+  if (sym != nullptr)
+    sym->set_instance(hnpc);
 
   fin.read(x,y,z,angle,sz);
   fin.read(wlkMode,trGuild,talentsSk,talentsVl,refuseTalkMilis);

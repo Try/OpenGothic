@@ -4,9 +4,17 @@
 
 AiState::AiState(GameScript& owner,size_t id) {
   auto* fn = owner.getSymbol(id);
-  mname    = fn->name();
+  if (fn != nullptr) {
+    mname    = fn->name();
 
-  funcIni  = id;
-  funcLoop = owner.getSymbolIndex(fn->name()+"_Loop");
-  funcEnd  = owner.getSymbolIndex(fn->name()+"_End");
+    funcIni  = id;
+    funcLoop = owner.getSymbolIndex(fn->name() + "_Loop");
+    funcEnd  = owner.getSymbolIndex(fn->name() + "_End");
+    } else {
+    mname    = "";
+
+    funcIni  = id;
+    funcLoop = -1;
+    funcEnd  = -1;
+    }
   }

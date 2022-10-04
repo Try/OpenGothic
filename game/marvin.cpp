@@ -276,16 +276,19 @@ bool Marvin::addItemOrNpcBySymbolName(World* world, std::string_view name, const
     return false;
 
   auto*  sym = sc.getSymbol(id);
-  if(sym->parent()==uint32_t(-1))
+  if(sym==nullptr||sym->parent()==uint32_t(-1))
     return false;
 
   if(sym->type()!=phoenix::datatype::instance)
     return false;
 
   const auto* cls = sym;
-  while(cls->parent()!=uint32_t(-1)) {
+  while(cls!=nullptr&&cls->parent()!=uint32_t(-1)) {
     cls = sc.getSymbol(cls->parent());
     }
+
+  if (cls==nullptr)
+    return false;
 
   if(cls->name()=="C_NPC")
     return (world->addNpc(id, at)!=nullptr);

@@ -263,7 +263,14 @@ GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, phoenix::vm &vm, const c
 
   textBuf.reserve(64);
 
-  menu = vm.init_instance<phoenix::c_menu>(vm.find_symbol_by_name(menuSection));
+  auto* menuSectionSymbol = vm.find_symbol_by_name(menuSection);
+  if (menuSectionSymbol != nullptr) {
+    menu = vm.init_instance<phoenix::c_menu>(menuSectionSymbol);
+    } else {
+    Tempest::Log::e("Cannot initialize menu ", menuSection, ": Symbol not found.");
+    menu = std::make_shared<phoenix::c_menu>();
+    }
+
   back = Resources::loadTexture(menu->back_pic);
 
   initItems();
@@ -329,8 +336,15 @@ void GameMenu::initItems() {
     if(menu->items[i].empty())
       continue;
 
+    auto* menuItemSymbol = vm.find_symbol_by_name(hItems[i].name);
+    if (menuItemSymbol != nullptr) {
+      hItems[i].handle = vm.init_instance<phoenix::c_menu_item>(menuItemSymbol);
+      } else {
+      Tempest::Log::e("Cannot initialize menu item ", hItems[i].name, ": Symbol not found.");
+      hItems[i].handle = std::make_shared<phoenix::c_menu_item>();
+      }
+
     hItems[i].name = menu->items[i].c_str();
-    hItems[i].handle = vm.init_instance<phoenix::c_menu_item>(vm.find_symbol_by_name(hItems[i].name));
     hItems[i].img = Resources::loadTexture(hItems[i].handle->backpic);
 
     if(hItems[i].handle->type==phoenix::c_menu_item_type::listbox) {
@@ -807,7 +821,8 @@ void GameMenu::execSingle(Item &it, int slideDx) {
 
   if(onEventAction[int(c_menu_item_select_event::execute)]>0){
     auto* sym = vm.find_symbol_by_index(size_t(onEventAction[int(c_menu_item_select_event::execute)]));
-    vm.call_function(sym);
+    if (sym != nullptr)
+      vm.call_function(sym);
     }
 
   execChgOption(it,slideDx);
@@ -1153,6 +1168,10 @@ void GameMenu::setPlayer(const Npc &pl) {
   auto* gilds = sc.getSymbol("TXT_GUILDS");
   auto* tal   = sc.getSymbol("TXT_TALENTS");
   auto* talV  = sc.getSymbol("TXT_TALENTS_SKILLS");
+
+  if (gilds==nullptr||tal==nullptr||talV==nullptr) {
+    return;
+    }
 
   set("MENU_ITEM_PLAYERGUILD",gilds->get_string(pl.guild()).c_str());
 
