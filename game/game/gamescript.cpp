@@ -21,17 +21,17 @@ using namespace Tempest;
 
 template <typename T>
 struct ScopeVar final {
-  ScopeVar(phoenix::symbol* sym, std::shared_ptr<T> h) : prev(sym->get_instance()), sym(sym) {
-    sym->set_instance(h);
+  ScopeVar(phoenix::symbol& sym, const std::shared_ptr<T>& h) : prev(sym.get_instance()), sym(sym) {
+    sym.set_instance(h);
     }
 
   ScopeVar(const ScopeVar&)=delete;
   ~ScopeVar(){
-    sym->set_instance(prev);
+    sym.set_instance(prev);
     }
 
-  std::shared_ptr<phoenix::instance> prev;
-  phoenix::symbol*  sym;
+  const std::shared_ptr<phoenix::instance>& prev;
+  phoenix::symbol&  sym;
   };
 
 
@@ -59,6 +59,11 @@ bool GameScript::GlobalOutput::isFinished() {
 
 GameScript::GameScript(GameSession &owner)
   :owner(owner), vm(Gothic::inst().loadPhoenixScriptCode("GOTHIC.DAT"), phoenix::execution_flag::vm_allow_null_instance_access) {
+
+  if (vm.global_self() == nullptr || vm.global_other() == nullptr || vm.global_item() == nullptr ||
+      vm.global_victim() == nullptr || vm.global_hero() == nullptr)
+    throw std::runtime_error("Cannot find script symbol SELF, OTHER, ITEM, VICTIM, or HERO! Cannot proceed!");
+
   phoenix::register_all_script_classes(vm);
   Gothic::inst().setupVmCommonApi(vm);
   aiDefaultPipe.reset(new GlobalOutput(*this));
@@ -441,7 +446,7 @@ void GameScript::initializeInstanceNpc(const std::shared_ptr<phoenix::c_npc>& np
   vm.init_instance(npc, sym);
 
   if(npc->daily_routine!=0) {
-    ScopeVar self(vm.global_self(), npc);
+    ScopeVar self(*vm.global_self(), npc);
     auto* daily_routine = vm.find_symbol_by_index(npc->daily_routine);
 
     if (daily_routine != nullptr) {
@@ -763,8 +768,8 @@ std::vector<GameScript::DlgChoise> GameScript::dialogChoises(std::shared_ptr<pho
                                                                std::shared_ptr<phoenix::c_npc> hnpc,
                                                                const std::vector<uint32_t>& except,
                                                                bool includeImp) {
-  ScopeVar self (vm.global_self(),  hnpc);
-  ScopeVar other(vm.global_other(), player);
+  ScopeVar self (*vm.global_self(),  hnpc);
+  ScopeVar other(*vm.global_other(), player);
   std::vector<phoenix::c_info*> hDialog;
   for(auto& info : dialogsInfo) {
     if(info->npc==static_cast<int>(hnpc->symbol_index())) {
@@ -827,8 +832,8 @@ std::vector<GameScript::DlgChoise> GameScript::updateDialog(const GameScript::Dl
   const phoenix::c_info& info = *dlg.handle;
   std::vector<GameScript::DlgChoise>     ret;
 
-  ScopeVar self (vm.global_self(),  npc.handle());
-  ScopeVar other(vm.global_other(), player.handle());
+  ScopeVar self (*vm.global_self(),  npc.handle());
+  ScopeVar other(*vm.global_other(), player.handle());
 
   for(size_t i=0;i<info.choices.size();++i){
     auto& sub = info.choices[i];
@@ -846,8 +851,8 @@ std::vector<GameScript::DlgChoise> GameScript::updateDialog(const GameScript::Dl
   }
 
 void GameScript::exec(const GameScript::DlgChoise &dlg,Npc& player, Npc& npc) {
-  ScopeVar self (vm.global_self(),  npc.handle());
-  ScopeVar other(vm.global_other(), player.handle());
+  ScopeVar self (*vm.global_self(),  npc.handle());
+  ScopeVar other(*vm.global_other(), player.handle());
 
   phoenix::c_info& info = *dlg.handle;
 
@@ -872,7 +877,7 @@ void GameScript::printCannotUseError(Npc& npc, int32_t atr, int32_t nValue) {
   if(id==nullptr)
     return;
 
-  ScopeVar self(vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handle());
   vm.call_function<void>(id, npc.isPlayer(), atr, nValue);
   }
 
@@ -881,7 +886,7 @@ void GameScript::printCannotCastError(Npc &npc, int32_t plM, int32_t itM) {
   if(id==nullptr)
     return;
 
-  ScopeVar self(vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handle());
   vm.call_function<void>(id, npc.isPlayer(), itM, plM);
   }
 
@@ -889,7 +894,7 @@ void GameScript::printCannotBuyError(Npc &npc) {
   auto id = vm.find_symbol_by_name("player_trade_not_enough_gold");
   if(id==nullptr)
     return;
-  ScopeVar self(vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handle());
   vm.call_function<void>(id);
   }
 
@@ -897,7 +902,7 @@ void GameScript::printMobMissingItem(Npc &npc) {
   auto id = vm.find_symbol_by_name("player_mob_missing_item");
   if(id==nullptr)
     return;
-  ScopeVar self(vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handle());
   vm.call_function<void>(id);
   }
 
@@ -905,7 +910,7 @@ void GameScript::printMobMissingKey(Npc& npc) {
   auto id = vm.find_symbol_by_name("player_mob_missing_key");
   if(id==nullptr)
     return;
-  ScopeVar self(vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handle());
   vm.call_function<void>(id);
   }
 
@@ -913,7 +918,7 @@ void GameScript::printMobAnotherIsUsing(Npc &npc) {
   auto id = vm.find_symbol_by_name("player_mob_another_is_using");
   if(id==nullptr)
     return;
-  ScopeVar self(vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handle());
   vm.call_function<void>(id);
   }
 
@@ -921,7 +926,7 @@ void GameScript::printMobMissingKeyOrLockpick(Npc& npc) {
   auto id = vm.find_symbol_by_name("player_mob_missing_key_or_lockpick");
   if(id==nullptr)
     return;
-  ScopeVar self(vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handle());
   vm.call_function<void>(id);
   }
 
@@ -929,7 +934,7 @@ void GameScript::printMobMissingLockpick(Npc& npc) {
   auto id = vm.find_symbol_by_name("player_mob_missing_lockpick");
   if(id==nullptr)
     return;
-  ScopeVar self(vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handle());
   vm.call_function<void>(id);
   }
 
@@ -937,7 +942,7 @@ void GameScript::printMobTooFar(Npc& npc) {
   auto id = vm.find_symbol_by_name("player_mob_too_far_away");
   if(id==nullptr)
     return;
-  ScopeVar self(vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handle());
   vm.call_function<void>(id);
   }
 
@@ -946,8 +951,8 @@ void GameScript::invokeState(const std::shared_ptr<phoenix::c_npc>& hnpc, const 
   if(id==nullptr)
     return;
 
-  ScopeVar self (vm.global_self(),  hnpc);
-  ScopeVar other(vm.global_other(), oth);
+  ScopeVar self (*vm.global_self(),  hnpc);
+  ScopeVar other(*vm.global_other(), oth);
   vm.call_function<void>(id);
   }
 
@@ -967,9 +972,9 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
       }
     }
 
-  ScopeVar self  (vm.global_self(),   npc != nullptr ? npc->handle() : nullptr);
-  ScopeVar other (vm.global_other(),  oth != nullptr ? oth->handle() : nullptr);
-  ScopeVar victum(vm.global_victim(), vic != nullptr ? vic->handle() : nullptr);
+  ScopeVar self  (*vm.global_self(),   npc != nullptr ? npc->handle() : nullptr);
+  ScopeVar other (*vm.global_other(),  oth != nullptr ? oth->handle() : nullptr);
+  ScopeVar victum(*vm.global_victim(), vic != nullptr ? vic->handle() : nullptr);
 
   auto* sym = vm.find_symbol_by_index(fn.ptr);
   int ret = 0;
@@ -996,7 +1001,7 @@ void GameScript::invokeItem(Npc *npc, ScriptFn fn) {
   if (functionSymbol == nullptr)
     return;
 
-  ScopeVar self(vm.global_self(), npc->handle());
+  ScopeVar self(*vm.global_self(), npc->handle());
   vm.call_function<void>(functionSymbol);
   }
 
@@ -1005,8 +1010,8 @@ int GameScript::invokeMana(Npc &npc, Npc* target, Item &) {
   if(fn==nullptr)
     return SpellCode::SPL_SENDSTOP;
 
-  ScopeVar self (vm.global_self(),  npc.handle());
-  ScopeVar other(vm.global_other(), target != nullptr ? target->handle() : nullptr);
+  ScopeVar self (*vm.global_self(),  npc.handle());
+  ScopeVar other(*vm.global_other(), target != nullptr ? target->handle() : nullptr);
 
   return vm.call_function<int>(fn, npc.attribute(ATR_MANA));
   }
@@ -1023,8 +1028,8 @@ void GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
   // FIXME: actually set the spell level!
   int32_t splLevel = 0;
 
-  ScopeVar self (vm.global_self(),  npc.handle());
-  ScopeVar other(vm.global_other(), target != nullptr ? target->handle() : nullptr);
+  ScopeVar self (*vm.global_self(),  npc.handle());
+  ScopeVar other(*vm.global_other(), target != nullptr ? target->handle() : nullptr);
   try {
     if (fn->count() == 1) {
       // this is a leveled spell
@@ -1044,7 +1049,7 @@ int GameScript::invokeCond(Npc& npc, const std::string& func) {
     Gothic::inst().onPrint("MOBSI::conditionFunc is not invalid");
     return 1;
     }
-  ScopeVar self(vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handle());
   return vm.call_function<int>(fn);
   }
 
@@ -1052,7 +1057,7 @@ void GameScript::invokePickLock(Npc& npc, int bSuccess, int bBrokenOpen) {
   auto fn   = vm.find_symbol_by_name("G_PickLock");
   if(fn==nullptr)
     return;
-  ScopeVar self(vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handle());
   vm.call_function<void>(fn, bSuccess, bBrokenOpen);
   }
 
@@ -1061,8 +1066,8 @@ CollideMask GameScript::canNpcCollideWithSpell(Npc& npc, Npc* shooter, int32_t s
   if(fn==nullptr)
     return COLL_DOEVERYTHING;
 
-  ScopeVar self (vm.global_self(),  npc.handle());
-  ScopeVar other(vm.global_other(), shooter->handle());
+  ScopeVar self (*vm.global_self(),  npc.handle());
+  ScopeVar other(*vm.global_other(), shooter->handle());
   return CollideMask(vm.call_function<int>(fn, spellId));
   }
 
@@ -1071,7 +1076,7 @@ int GameScript::playerHotKeyScreenMap(Npc& pl) {
   if(fn==nullptr)
     return -1;
 
-  ScopeVar self(vm.global_self(), pl.handle());
+  ScopeVar self(*vm.global_self(), pl.handle());
   int map = vm.call_function<int>(fn);
   if(map>=0)
     pl.useItem(size_t(map));
@@ -1161,7 +1166,7 @@ void GameScript::printNothingToGet() {
   auto id = vm.find_symbol_by_name("player_plunder_is_empty");
   if(id==nullptr)
     return;
-  ScopeVar self(vm.global_self(), owner.player()->handle());
+  ScopeVar self(*vm.global_self(), owner.player()->handle());
   vm.call_function<void>(id);
   }
 
@@ -1170,7 +1175,7 @@ void GameScript::useInteractive(const std::shared_ptr<phoenix::c_npc>& hnpc,cons
   if(fn == nullptr)
     return;
 
-  ScopeVar self(vm.global_self(),hnpc);
+  ScopeVar self(*vm.global_self(),hnpc);
   try {
     vm.call_function<void>(func);
     }
