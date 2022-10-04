@@ -65,6 +65,7 @@ GameScript::GameScript(GameSession &owner)
     throw std::runtime_error("Cannot find script symbol SELF, OTHER, ITEM, VICTIM, or HERO! Cannot proceed!");
 
   phoenix::register_all_script_classes(vm);
+  vm.register_exception_handler(phoenix::lenient_vm_exception_handler);
   Gothic::inst().setupVmCommonApi(vm);
   aiDefaultPipe.reset(new GlobalOutput(*this));
   initCommon();
