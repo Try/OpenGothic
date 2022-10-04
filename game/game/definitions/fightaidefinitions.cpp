@@ -22,11 +22,19 @@ const FightAi::FA& FightAi::operator[](size_t i) const {
   return tmp;
   }
 
-std::shared_ptr<phoenix::c_fight_ai> FightAi::loadAi(phoenix::vm& vm, const char* name) {
+phoenix::c_fight_ai FightAi::loadAi(phoenix::vm& vm, const char* name) {
   auto id = vm.find_symbol_by_name(name);
   if(id==nullptr)
-    return nullptr;
-  return vm.init_instance<phoenix::c_fight_ai>(id);
+    return {};
+
+  try {
+    auto fai = vm.init_instance<phoenix::c_fight_ai>(id);
+    return *fai;
+    } catch (const phoenix::script_error&) {
+    // There was an error during initialization. Ignore it.
+    }
+
+  return {};
   }
 
 FightAi::FA FightAi::loadAi(phoenix::vm &vm, size_t id) {

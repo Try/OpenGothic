@@ -33,7 +33,7 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
 
   if(hitFlg) {
     hitFlg = false;
-    if(fillQueue(owner,*ai.my_w_strafe))
+    if(fillQueue(owner,ai.my_w_strafe))
       return;
     }
 
@@ -41,49 +41,49 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
 
   if(tg.isPrehit() && isInWRange(tg,npc,owner) && isInFocusAngle(tg,npc)){
     if(tg.bodyStateMasked()==BS_RUN)
-      if(fillQueue(owner,*ai.enemy_stormprehit))
+      if(fillQueue(owner,ai.enemy_stormprehit))
         return;
-    if(fillQueue(owner,*ai.enemy_prehit))
+    if(fillQueue(owner,ai.enemy_prehit))
       return;
     }
 
   if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
     if(isInWRange(npc,tg,owner)) {
       if(npc.bodyStateMasked()==BS_RUN && focus)
-        if(fillQueue(owner,*ai.my_w_runto))
+        if(fillQueue(owner,ai.my_w_runto))
           return;
       if(focus)
-        if(fillQueue(owner,*ai.my_w_focus))
+        if(fillQueue(owner,ai.my_w_focus))
           return;
-      if(fillQueue(owner,*ai.my_w_nofocus))
+      if(fillQueue(owner,ai.my_w_nofocus))
         return;
       }
 
     if(isInGRange(npc,tg,owner)) {
       if(npc.bodyStateMasked()==BS_RUN && focus)
-        if(fillQueue(owner,*ai.my_g_runto))
+        if(fillQueue(owner,ai.my_g_runto))
           return;
       if(focus)
-        if(fillQueue(owner,*ai.my_g_focus))
+        if(fillQueue(owner,ai.my_g_focus))
           return;
       }
     }
 
   if(ws==WeaponState::Mage) {
     if(isInWRange(npc,tg,owner))
-      if(fillQueue(owner,*ai.my_fk_focus_mag))
+      if(fillQueue(owner,ai.my_fk_focus_mag))
         return;
-    if(fillQueue(owner,*ai.my_fk_nofocus_mag))
+    if(fillQueue(owner,ai.my_fk_nofocus_mag))
       return;
     }
 
   if(isInWRange(npc,tg,owner) && focus)
-    if(fillQueue(owner,*ai.my_fk_focus_far))
+    if(fillQueue(owner,ai.my_fk_focus_far))
       return;
-  if(fillQueue(owner,*ai.my_fk_nofocus_far))
+  if(fillQueue(owner,ai.my_fk_nofocus_far))
     return;
 
-  fillQueue(owner,*ai.my_w_nofocus);
+  fillQueue(owner,ai.my_w_nofocus);
   }
 
 bool FightAlgo::fillQueue(GameScript& owner,const phoenix::c_fight_ai &src) {
