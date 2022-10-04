@@ -27,7 +27,7 @@ class DamageCalculator {
 
     struct Damage final {
       int32_t  val[phoenix::damage_type::count] = {};
-      int32_t& operator[](std::size_t i) { return val[i]; }
+      int32_t& operator[](size_t i) { return val[i]; }
       void     operator *= (int32_t v) { for(auto& i:val) i*=v; }
       void     operator /= (int32_t v) { for(auto& i:val) i/=v; }
       };
