@@ -336,6 +336,8 @@ void GameMenu::initItems() {
     if(menu->items[i].empty())
       continue;
 
+    hItems[i].name = menu->items[i].c_str();
+
     auto* menuItemSymbol = vm.find_symbol_by_name(hItems[i].name);
     if (menuItemSymbol != nullptr) {
       hItems[i].handle = vm.init_instance<phoenix::c_menu_item>(menuItemSymbol);
@@ -344,7 +346,6 @@ void GameMenu::initItems() {
       hItems[i].handle = std::make_shared<phoenix::c_menu_item>();
       }
 
-    hItems[i].name = menu->items[i].c_str();
     hItems[i].img = Resources::loadTexture(hItems[i].handle->backpic);
 
     if(hItems[i].handle->type==phoenix::c_menu_item_type::listbox) {
