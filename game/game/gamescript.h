@@ -158,6 +158,22 @@ class GameScript final {
     void      fixNpcPosition(Npc& npc, float angle0, float distBias);
 
   private:
+    template<typename T>
+    struct DetermineSignature {
+        using signature = void();
+    };
+
+    template <typename C, typename R, typename ... P>
+    struct DetermineSignature<R(C::*)(P...)> {
+        using signature = R(P...);
+    };
+
+    template <class F>
+    void bindExternal(const std::string& name, F function) {
+      vm.register_external(name, std::function<typename DetermineSignature<F>::signature> (
+        [this, function](auto ... v) { return (this->*function)(v...); }));
+    }
+
     void               initCommon();
 
     struct GlobalOutput : AiOuputPipe {
