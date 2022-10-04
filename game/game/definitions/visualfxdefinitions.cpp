@@ -21,7 +21,7 @@ const VisualFx* VisualFxDefinitions::get(std::string_view name) {
     return it->second.get();
 
   auto def = implGet(cname);
-  if(!def)
+  if(def == nullptr)
     return nullptr;
 
   auto ret = vfx.insert(std::make_pair<std::string,std::unique_ptr<VisualFx>>(std::move(cname),nullptr));
@@ -45,5 +45,9 @@ std::shared_ptr<phoenix::c_fx_base> VisualFxDefinitions::implGet(std::string_vie
     return nullptr;
     }
 
-  return vm->init_instance<phoenix::c_fx_base>(id);
+  try {
+    return vm->init_instance<phoenix::c_fx_base>(id);
+    } catch (const phoenix::script_error&) {
+    return nullptr;
+    }
   }
