@@ -6,8 +6,12 @@ CameraDefinitions::CameraDefinitions() {
   auto vm = Gothic::inst().createPhoenixVm("Camera.dat");
 
   vm->enumerate_instances_by_class_name("CCAMSYS", [this, &vm](phoenix::symbol& s) {
-    auto cam = vm->init_instance<phoenix::c_camera>(&s);
-    cameras.emplace_back(s.name(), std::move(cam));
+    try {
+      auto cam = vm->init_instance<phoenix::c_camera>(&s);
+      cameras.emplace_back(s.name(), *cam);
+      } catch (const phoenix::script_error&) {
+      // There was an error initializing the c_camera. Ignore it.
+      }
   });
 
   camModDialog    = getCam("CAMMODDIALOG");
@@ -37,20 +41,20 @@ const phoenix::c_camera& CameraDefinitions::mobsiCam(std::string_view tag, std::
     return *c;
   if(auto* c = find("CAMMODMOBDEFAULT"))
     return *c;
-  return *camModNormal;
+  return camModNormal;
   }
 
-phoenix::c_camera* CameraDefinitions::getCam(std::string_view name) {
+phoenix::c_camera CameraDefinitions::getCam(std::string_view name) {
   for(auto& i:cameras)
     if(i.first==name)
-      return i.second.get();
+      return i.second;
 
-  return nullptr;
+  return {};
   }
 
 const phoenix::c_camera* CameraDefinitions::find(std::string_view name) const {
   for(auto& i:cameras)
     if(i.first==name)
-      return i.second.get();
+      return &i.second;
   return nullptr;
   }
