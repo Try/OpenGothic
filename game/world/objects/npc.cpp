@@ -2008,7 +2008,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       }
     case AI_TurnToNpc: {
       const auto st = bodyStateMasked();
-      if(interactive()==nullptr && st!=BS_STAND && st!=BS_NONE) {
+      if(interactive()==nullptr && (st==BS_WALK || st==BS_SNEAK)) {
         visual.stopWalkAnim(*this);
         queue.pushFront(std::move(act));
         break;
@@ -3510,7 +3510,7 @@ void Npc::setPerceptionDisable(PercType t) {
   }
 
 void Npc::startDialog(Npc& pl) {
-  if(pl.isDown() || pl.isInAir() || isPlayer())
+   if(pl.isDown() || pl.isInAir() || isPlayer())
     return;
   if(perceptionProcess(pl,nullptr,0,PERC_ASSESSTALK))
     setOther(&pl);
@@ -3902,7 +3902,7 @@ bool Npc::canSeeNpc(float tx, float ty, float tz, bool freeLos) const {
   }
 
 SensesBit Npc::canSenseNpc(const Npc &oth, bool freeLos, float extRange) const {
-  const auto mid = oth.bounds().midTr;
+  const auto mid     = oth.bounds().midTr;
   const bool isNoisy = (oth.bodyState()&BodyState::BS_SNEAK)==0;
   return canSenseNpc(mid.x,mid.y,mid.z,freeLos,isNoisy,extRange);
   }
