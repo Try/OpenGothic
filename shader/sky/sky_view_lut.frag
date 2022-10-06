@@ -6,6 +6,7 @@
 
 layout(binding  = 0) uniform sampler2D tLUT;
 layout(binding  = 1) uniform sampler2D mLUT;
+layout(binding  = 2) uniform sampler2D cloudsLUT;
 
 layout(location = 0) in  vec2 inPos;
 layout(location = 0) out vec4 outColor;
@@ -20,6 +21,8 @@ vec3 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax) {
 
   vec3  scatteredLight = vec3(0.0);
   vec3  transmittance  = vec3(1.0);
+
+  float oclusion       = 1.0 - textureLod(cloudsLUT, vec2(push.night,0), 0).a;
 
   for(int i=1; i<=numScatteringSteps; ++i) {
     float t  = (float(i)/numScatteringSteps)*tMax;
@@ -37,8 +40,8 @@ vec3 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax) {
     vec3 sunTransmittance = textureLUT(tLUT, newPos, sunDir);
     vec3 psiMS            = textureLUT(mLUT, newPos, sunDir);
 
-    vec3 rayleighInScattering = rayleighScattering*(rayleighPhaseValue*sunTransmittance + psiMS);
-    vec3 mieInScattering      = mieScattering*(miePhaseValue*sunTransmittance + psiMS);
+    vec3 rayleighInScattering = rayleighScattering*(rayleighPhaseValue*sunTransmittance + psiMS)*oclusion;
+    vec3 mieInScattering      = mieScattering     *(miePhaseValue*sunTransmittance      + psiMS)*oclusion;
     vec3 inScattering         = (rayleighInScattering + mieInScattering);
 
     // Integrated scattering within path segment.

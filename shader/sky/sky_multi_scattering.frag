@@ -67,9 +67,9 @@ void mulScattValues(vec3 pos, vec3 sunDir, out vec3 lumTotal, out vec3 fms) {
         // In equation (6), I think S(x,w_s) should be S(x-tv,w_s).
         vec3 sunTransmittance = textureLUT(tLUT, newPos, sunDir);
 
-        vec3 rayleighInScattering = rayleighScattering*rayleighPhaseValue;
-        float mieInScattering = mieScattering*miePhaseValue;
-        vec3 inScattering = (rayleighInScattering + mieInScattering)*sunTransmittance;
+        vec3  rayleighInScattering = rayleighScattering*rayleighPhaseValue;
+        float mieInScattering      = mieScattering*miePhaseValue;
+        vec3  inScattering         = (rayleighInScattering + mieInScattering)*sunTransmittance;
 
         // Integrated scattering within path segment.
         vec3 scatteringIntegral = (inScattering - inScattering * sampleTransmittance) / extinction;
@@ -105,6 +105,7 @@ void main() {
   mulScattValues(pos, sunDir, lum, f_ms);
 
   // Equation 10 from the paper.
-  vec3 psi = lum  / (1.0 - f_ms);
+  //vec3 psi = lum  / (1.0 - f_ms);
+  vec3 psi = vec3(0);
   outColor = vec4(psi, 1.0);
   }

@@ -37,10 +37,10 @@ Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest:
   // auto& moon   = gothic.settingsGetS("SKY_OUTDOOR","zMoonName");
 
   auto& device = Resources::device();
-  transLut     = device.attachment(lutFormat,256, 64);
-  multiScatLut = device.attachment(lutFormat, 32, 32);
-  viewLut      = device.attachment(lutFormat,128, 64);
-  fogLut       = device.attachment(lutFormat,256,128);
+  transLut     = device.attachment(lutRGBFormat,256, 64);
+  multiScatLut = device.attachment(lutRGBFormat, 32, 32);
+  viewLut      = device.attachment(lutRGBFormat,128, 64);
+  fogLut       = device.attachment(lutRGBFormat,256,128);
   Gothic::inst().onSettingsChanged.bind(this,&Sky::setupSettings);
   setupSettings();
   }
@@ -60,6 +60,10 @@ void Sky::setupSettings() {
 
   auto& device = Resources::device();
   device.waitIdle();
+
+  lutIsInitialized = false;
+  cloudsLut = device.image2d(lutRGBAFormat,2,1);
+
   /* https://bartwronski.files.wordpress.com/2014/08/bwronski_volumetric_fog_siggraph2014.pdf
    * page 25 160*90*64 = ~720p
    */
@@ -69,7 +73,7 @@ void Sky::setupSettings() {
   //fogLut3D = device.image3d(lutFormat,160,90,512);
 
   //fogLut3D = device.image3d(lutFormat,320,176,32);
-  fogLut3D    = device.image3d(lutFormat,320,176,64);
+  fogLut3D    = device.image3d(lutRGBAFormat,320,176,64);
 
   //shadowDw = device.image2d(TextureFormat::R32F,320, 32*16);
   //shadowDw = device.image2d(TextureFormat::R16, 256, 256);
@@ -129,16 +133,31 @@ void Sky::setupUbo() {
   auto  smpB   = Sampler::bilinear();
   smpB.setClamping(ClampMode::ClampToEdge);
 
+  uboClouds = device.descriptors(Shaders::inst().cloudsLut);
+  uboClouds.set(0, cloudsLut);
+  uboClouds.set(5,*day  .lay[0].texture,smp);
+  uboClouds.set(6,*day  .lay[1].texture,smp);
+  uboClouds.set(7,*night.lay[0].texture,smp);
+  uboClouds.set(8,*night.lay[1].texture,smp);
+
+  uboTransmittance = device.descriptors(Shaders::inst().skyTransmittance);
+  uboTransmittance.set(5,*day  .lay[0].texture,smp);
+  uboTransmittance.set(6,*day  .lay[1].texture,smp);
+  uboTransmittance.set(7,*night.lay[0].texture,smp);
+  uboTransmittance.set(8,*night.lay[1].texture,smp);
+
   uboMultiScatLut = device.descriptors(Shaders::inst().skyMultiScattering);
   uboMultiScatLut.set(0, transLut, smpB);
 
   uboSkyViewLut = device.descriptors(Shaders::inst().skyViewLut);
   uboSkyViewLut.set(0, transLut,     smpB);
   uboSkyViewLut.set(1, multiScatLut, smpB);
+  uboSkyViewLut.set(2, cloudsLut,    smpB);
 
   uboFogViewLut = device.descriptors(Shaders::inst().fogViewLut);
   uboFogViewLut.set(0, transLut,       smpB);
   uboFogViewLut.set(1, multiScatLut,   smpB);
+  uboFogViewLut.set(2, cloudsLut,      smpB);
 
   if(zFogRadial) {
     uboShadowDw = device.descriptors(Shaders::inst().shadowDownsample);
@@ -149,10 +168,11 @@ void Sky::setupUbo() {
       uboFogViewLut3d[i] = device.descriptors(Shaders::inst().fogViewLut3D);
       uboFogViewLut3d[i].set(0, transLut,     smpB);
       uboFogViewLut3d[i].set(1, multiScatLut, smpB);
-      //uboFogViewLut3d[i].set(2, *scene.shadowMap[1],Resources::shadowSampler());
-      uboFogViewLut3d[i].set(2, shadowDw, Resources::shadowSampler());
-      uboFogViewLut3d[i].set(3, fogLut3D);
-      uboFogViewLut3d[i].set(4, scene.uboGlobalPf[i][SceneGlobals::V_Main]);
+      uboFogViewLut3d[i].set(2, cloudsLut,    smpB);
+
+      uboFogViewLut3d[i].set(3, shadowDw, Resources::shadowSampler());
+      uboFogViewLut3d[i].set(4, fogLut3D);
+      uboFogViewLut3d[i].set(5, scene.uboGlobalPf[i][SceneGlobals::V_Main]);
       }
     }
 
@@ -202,8 +222,14 @@ void Sky::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
   UboSky ubo = mkPush();
 
   if(!lutIsInitialized) {
+    cmd.setFramebuffer({});
+    cmd.setUniforms(Shaders::inst().cloudsLut, uboClouds, &ubo, sizeof(ubo));
+    cmd.dispatchThreads(size_t(cloudsLut.w()),size_t(cloudsLut.h()));
+    }
+
+  if(!lutIsInitialized) {
     cmd.setFramebuffer({{transLut, Tempest::Discard, Tempest::Preserve}});
-    cmd.setUniforms(Shaders::inst().skyTransmittance, &ubo, sizeof(ubo));
+    cmd.setUniforms(Shaders::inst().skyTransmittance, uboTransmittance, &ubo, sizeof(ubo));
     cmd.draw(Resources::fsqVbo());
 
     cmd.setFramebuffer({{multiScatLut, Tempest::Discard, Tempest::Preserve}});

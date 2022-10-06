@@ -60,9 +60,13 @@ class Sky final {
     LightSource                   sun;
     Tempest::Vec3                 ambient;
 
-    Tempest::TextureFormat        lutFormat = Tempest::TextureFormat::RGBA32F;
+    Tempest::TextureFormat        lutRGBFormat  = Tempest::TextureFormat::R11G11B10UF;
+    Tempest::TextureFormat        lutRGBAFormat = Tempest::TextureFormat::RGBA16F;
     Tempest::Attachment           transLut, multiScatLut, viewLut, fogLut;
-    Tempest::StorageImage         fogLut3D, shadowDw;
+    Tempest::StorageImage         cloudsLut, fogLut3D, shadowDw;
+
+    Tempest::DescriptorSet        uboClouds;
+    Tempest::DescriptorSet        uboTransmittance;
     Tempest::DescriptorSet        uboMultiScatLut, uboSkyViewLut;
     Tempest::DescriptorSet        uboFogViewLut,   uboFogViewLut3d[Resources::MaxFramesInFlight], uboShadowDw;
     Tempest::DescriptorSet        uboSky, uboSky3d, uboFog, uboFog3d;
