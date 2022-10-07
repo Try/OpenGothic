@@ -37,10 +37,11 @@ Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest:
   // auto& moon   = gothic.settingsGetS("SKY_OUTDOOR","zMoonName");
 
   auto& device = Resources::device();
-  transLut     = device.attachment(lutRGBFormat,256, 64);
-  multiScatLut = device.attachment(lutRGBFormat, 32, 32);
-  viewLut      = device.attachment(lutRGBFormat,128, 64);
-  fogLut       = device.attachment(lutRGBFormat,256,128);
+  cloudsLut    = device.image2d   (lutRGBAFormat,  2,  1);
+  transLut     = device.attachment(lutRGBFormat, 256, 64);
+  multiScatLut = device.attachment(lutRGBFormat,  32, 32);
+  viewLut      = device.attachment(lutRGBFormat, 128, 64);
+  fogLut       = device.attachment(lutRGBFormat, 256,128);
   Gothic::inst().onSettingsChanged.bind(this,&Sky::setupSettings);
   setupSettings();
   }
@@ -62,7 +63,6 @@ void Sky::setupSettings() {
   device.waitIdle();
 
   lutIsInitialized = false;
-  cloudsLut = device.image2d(lutRGBAFormat,2,1);
 
   /* https://bartwronski.files.wordpress.com/2014/08/bwronski_volumetric_fog_siggraph2014.pdf
    * page 25 160*90*64 = ~720p
