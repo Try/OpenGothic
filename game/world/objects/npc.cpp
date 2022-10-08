@@ -1955,7 +1955,7 @@ void Npc::tick(uint64_t dt) {
         t-=v;
         int dmg = t/tickSz - (t-int(dt))/tickSz;
         if(dmg>0)
-          changeAttribute(ATR_HITPOINTS,-100*dmg,false);
+          changeAttribute(ATR_HITPOINTS,-dmg,false);
         }
       }
     }
