@@ -26,8 +26,8 @@ class Animation final {
       };
 
     struct EvMorph final {
-      const char* node = nullptr;
-      const char* anim = nullptr;
+      std::string_view node;
+      std::string_view anim;
       };
 
     struct EvCount final {

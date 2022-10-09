@@ -345,10 +345,10 @@ void MdlVisual::stopEffect(int32_t slot) {
     }
   }
 
-void MdlVisual::setNpcEffect(World& owner, Npc& npc, const std::string& s, phoenix::npc_flag flags) {
+void MdlVisual::setNpcEffect(World& owner, Npc& npc, std::string_view s, phoenix::npc_flag flags) {
   if(hnpcVisualName!=s) {
     hnpcVisualName = s;
-    auto vfx = Gothic::inst().loadVisualFx(s.c_str());
+    auto vfx = Gothic::inst().loadVisualFx(s);
     if(vfx==nullptr) {
       hnpcVisual.view = Effect();
       return;

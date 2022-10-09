@@ -222,7 +222,7 @@ bool DialogMenu::aiOutput(Npc &npc, std::string_view msg) {
       pl->stopDlgAnim();
     }
 
-  current.txt     = Gothic::inst().messageByName(msg.data()).c_str();
+  current.txt     = Gothic::inst().messageByName(msg.data());
   current.msgTime = Gothic::inst().messageTime(msg);
   current.time    = current.msgTime + (dlgAnimation ? ANIM_TIME*2 : 0);
   currentSnd      = soundDevice.load(Resources::loadSoundBuffer(std::string(msg)+".wav"));

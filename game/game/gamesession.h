@@ -65,8 +65,8 @@ class GameSession final {
     auto         updateDialog(const GameScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<GameScript::DlgChoise>;
     void         dialogExec(const GameScript::DlgChoise &dlg, Npc &player, Npc &npc);
 
-    const std::string&       messageFromSvm(std::string_view id, int voice) const;
-    const std::string&       messageByName (const std::string& id) const;
+    std::string_view         messageFromSvm(std::string_view id, int voice) const;
+    std::string_view         messageByName (const std::string& id) const;
     uint32_t                 messageTime   (std::string_view id) const;
 
     AiOuputPipe* openDlgOuput(Npc &player, Npc &npc);

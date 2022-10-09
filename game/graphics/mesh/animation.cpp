@@ -180,7 +180,7 @@ void Animation::setupIndex() {
     }
 
   for(auto& i:sequences) {
-    i.nextPtr = sequence(i.next.c_str());
+    i.nextPtr = sequence(i.next);
     i.owner   = this;
     }
   // for(auto& i:sequences)
@@ -408,8 +408,8 @@ void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64
     uint64_t fr = frameClamp(i.frame,d.firstFrame,d.numFrames,d.lastFrame);
     if((frameA<=fr && fr<frameB) ^ invert) {
       EvMorph e;
-      e.anim = i.animation.c_str();
-      e.node = i.node.c_str();
+      e.anim = i.animation;
+      e.node = i.node;
       ev.morph.push_back(e);
       }
     }

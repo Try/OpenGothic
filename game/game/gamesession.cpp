@@ -384,7 +384,7 @@ void GameSession::dialogExec(const GameScript::DlgChoise &dlg, Npc& player, Npc&
   return vm->exec(dlg,player,npc);
   }
 
-const std::string& GameSession::messageFromSvm(std::string_view id, int voice) const {
+std::string_view GameSession::messageFromSvm(std::string_view id, int voice) const {
   if(!wrld){
     static std::string empty;
     return empty;
@@ -392,7 +392,7 @@ const std::string& GameSession::messageFromSvm(std::string_view id, int voice) c
   return vm->messageFromSvm(id,voice);
   }
 
-const std::string& GameSession::messageByName(const std::string& id) const {
+std::string_view GameSession::messageByName(const std::string& id) const {
   if(!wrld){
     static std::string empty {};
     return empty;

@@ -142,9 +142,9 @@ class GameScript final {
     bool isTalk       (const Npc &pl);
     bool isAtack      (const Npc &pl) const;
 
-    const std::string& messageFromSvm(std::string_view id,int voice) const;
-    const std::string& messageByName (const std::string& id) const;
-    uint32_t           messageTime   (std::string_view id) const;
+    std::string_view messageFromSvm(std::string_view id,int voice) const;
+    std::string_view messageByName (const std::string& id) const;
+    uint32_t         messageTime   (std::string_view id) const;
 
     void      printNothingToGet();
     float    tradeValueMultiplier() const { return tradeValMult; }

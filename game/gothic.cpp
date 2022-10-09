@@ -526,7 +526,7 @@ const CameraDefinitions& Gothic::cameraDef() {
   return *instance->camDef;
   }
 
-const std::string& Gothic::messageFromSvm(std::string_view id, int voice) const {
+std::string_view Gothic::messageFromSvm(std::string_view id, int voice) const {
   if(!game){
     static std::string empty;
     return empty;
@@ -534,7 +534,7 @@ const std::string& Gothic::messageFromSvm(std::string_view id, int voice) const 
   return game->messageFromSvm(id,voice);
   }
 
-const std::string& Gothic::messageByName(const std::string& id) const {
+std::string_view Gothic::messageByName(const std::string& id) const {
   if(!game){
     static std::string empty {};
     return empty;

@@ -119,16 +119,16 @@ ParticleFx::ParticleFx(const ParticleFx& proto, const VisualFx::Key& key)
   shpDistribWalkSpeed = key.pfx_shpDistribWalkSpeed;
   shpOffsetVec        = key.pfx_shpOffsetVec.value_or(shpOffsetVec);
   if(!key.pfx_shpDistribType_S.empty())
-    shpDistribType    = loadDistribType(key.pfx_shpDistribType_S.c_str());
+    shpDistribType    = loadDistribType(key.pfx_shpDistribType_S);
 
   if(!key.pfx_dirMode_S.empty())
-    dirMode           = loadDirType(key.pfx_dirMode_S.c_str());
+    dirMode           = loadDirType(key.pfx_dirMode_S);
 
   if(!key.pfx_dirFOR_S.empty())
-    dirFOR            = loadFrameType(key.pfx_dirFOR_S.c_str());
+    dirFOR            = loadFrameType(key.pfx_dirFOR_S);
 
   if(!key.pfx_dirModeTargetFOR_S.empty())
-    dirModeTargetFOR  = loadFrameType(key.pfx_dirModeTargetFOR_S.c_str());
+    dirModeTargetFOR  = loadFrameType(key.pfx_dirModeTargetFOR_S);
 
   if(!key.pfx_dirModeTargetPos_S.empty())
     dirModeTargetPos  = Parser::loadVec3(key.pfx_dirModeTargetPos_S);
@@ -203,9 +203,9 @@ const Tempest::Texture2d* ParticleFx::loadTexture(std::string_view src) {
   return view;
   }
 
-ParticleFx::KeyList ParticleFx::loadArr(const std::string& src) {
+ParticleFx::KeyList ParticleFx::loadArr(std::string_view src) {
   std::vector<float> v;
-  const char* str  = src.c_str();
+  const char* str  = src.data();
   for(int i=0;;++i) {
     char* next=nullptr;
     float f = std::strtof(str,&next);
@@ -217,7 +217,7 @@ ParticleFx::KeyList ParticleFx::loadArr(const std::string& src) {
     }
   }
 
-ParticleFx::EmitterType ParticleFx::loadEmitType(const std::string& src) {
+ParticleFx::EmitterType ParticleFx::loadEmitType(std::string_view src) {
   if(src=="POINT")
     return EmitterType::Point;
   if(src=="LINE")
@@ -233,7 +233,7 @@ ParticleFx::EmitterType ParticleFx::loadEmitType(const std::string& src) {
   return EmitterType::Point;
   }
 
-ParticleFx::Frame ParticleFx::loadFrameType(const std::string& src) {
+ParticleFx::Frame ParticleFx::loadFrameType(std::string_view src) {
   if(src=="OBJECT")
     return Frame::Object;
   if(src=="object")
@@ -243,7 +243,7 @@ ParticleFx::Frame ParticleFx::loadFrameType(const std::string& src) {
   return Frame::World;
   }
 
-ParticleFx::Distribution ParticleFx::loadDistribType(const std::string& src) {
+ParticleFx::Distribution ParticleFx::loadDistribType(std::string_view src) {
   if(src=="RAND" || src=="RANDOM")
     return Distribution::Rand;
   if(src=="DIR")
@@ -255,7 +255,7 @@ ParticleFx::Distribution ParticleFx::loadDistribType(const std::string& src) {
   return Distribution::Rand;
   }
 
-ParticleFx::Dir ParticleFx::loadDirType(const std::string& src) {
+ParticleFx::Dir ParticleFx::loadDirType(std::string_view src) {
   if(src=="RAND")
     return Dir::Rand;
   if(src=="DIR")
@@ -265,7 +265,7 @@ ParticleFx::Dir ParticleFx::loadDirType(const std::string& src) {
   return Dir::Rand;
   }
 
-ParticleFx::Orientation ParticleFx::loadOrientation(const std::string& src) {
+ParticleFx::Orientation ParticleFx::loadOrientation(std::string_view src) {
   if(src=="NONE")
     return Orientation::None;
   if(src=="VELO")

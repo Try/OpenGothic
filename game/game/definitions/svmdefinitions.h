@@ -10,7 +10,7 @@ class SvmDefinitions final {
     SvmDefinitions(phoenix::vm& vm);
     ~SvmDefinitions();
 
-    const std::string& find(std::string_view speech, int id);
+    std::string_view find(std::string_view speech, int id);
 
   private:
     phoenix::vm&                                 vm;

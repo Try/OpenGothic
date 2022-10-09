@@ -6,7 +6,7 @@ SvmDefinitions::SvmDefinitions(phoenix::vm& vm):vm(vm) {
 SvmDefinitions::~SvmDefinitions() {
   }
 
-const std::string& SvmDefinitions::find(std::string_view speech, int intId) {
+std::string_view SvmDefinitions::find(std::string_view speech, int intId) {
   static std::string empty;
 
   if(!speech.empty() && speech[0]=='$' && intId>=0){

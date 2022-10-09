@@ -138,12 +138,12 @@ class ParticleFx final {
     static uint64_t      calcPrefferedTimeSingle(const KeyList& k, float fps);
 
     static auto          loadTexture(std::string_view src) -> const Tempest::Texture2d*;
-    static KeyList       loadArr(const std::string& src);
-    static EmitterType   loadEmitType(const std::string& src);
-    static Frame         loadFrameType(const std::string& src);
-    static Distribution  loadDistribType(const std::string& src);
-    static Dir           loadDirType(const std::string& src);
-    static Orientation   loadOrientation(const std::string& src);
+    static KeyList       loadArr(std::string_view src);
+    static EmitterType   loadEmitType(std::string_view src);
+    static Frame         loadFrameType(std::string_view src);
+    static Distribution  loadDistribType(std::string_view src);
+    static Dir           loadDirType(std::string_view src);
+    static Orientation   loadOrientation(std::string_view src);
 
     float                fetchScaleKey(uint64_t time, const KeyList& k, float fps, bool smooth, bool loop) const;
   };

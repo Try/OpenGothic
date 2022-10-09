@@ -386,7 +386,7 @@ bool Npc::performOutput(const AiQueue::AiAction &act) {
   //  return false;
   if(act.act==AI_Output           && outputPipe->output   (*this,act.s0))
     return true;
-  auto& svm = owner.script().messageFromSvm(act.s0,hnpc->voice);
+  auto svm = owner.script().messageFromSvm(act.s0,hnpc->voice);
   if(act.act==AI_OutputSvm        && outputPipe->outputSvm(*this,svm))
     return true;
   if(act.act==AI_OutputSvmOverlay && outputPipe->outputOv(*this,svm))
@@ -2252,7 +2252,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
           if(act.act==AI_Output) {
             msgTime = owner.script().messageTime(act.s0);
             } else {
-            auto& svm = owner.script().messageFromSvm(act.s0,hnpc->voice);
+            auto svm  = owner.script().messageFromSvm(act.s0,hnpc->voice);
             msgTime   = owner.script().messageTime(svm);
             }
           visual.startFaceAnim(*this,"VISEME",1,msgTime);

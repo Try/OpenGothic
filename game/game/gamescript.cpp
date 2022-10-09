@@ -1122,11 +1122,11 @@ bool GameScript::isAtack(const Npc& pl) const {
   return pl.isState(ZS_Attack) || pl.isState(ZS_MM_Attack);
   }
 
-const std::string& GameScript::messageFromSvm(std::string_view id, int voice) const {
+std::string_view GameScript::messageFromSvm(std::string_view id, int voice) const {
   return svm->find(id,voice);
   }
 
-const std::string& GameScript::messageByName(const std::string& id) const {
+std::string_view GameScript::messageByName(const std::string& id) const {
   auto* blk = dialogs.block_by_name(id);
   if(blk == nullptr){
     static std::string empty {};
@@ -1146,10 +1146,8 @@ uint32_t GameScript::messageTime(std::string_view id) const {
   if(s.timeLength()>0) {
     time = uint32_t(s.timeLength());
     } else {
-    auto&  txt  = messageByName(id.data());
-    size_t size = std::strlen(txt.c_str());
-
-    time = uint32_t(float(size)*viewTimePerChar);
+    auto txt  = messageByName(id.data());
+    time = uint32_t(float(txt.length())*viewTimePerChar);
     }
   return time;
   }
