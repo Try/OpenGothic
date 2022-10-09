@@ -110,7 +110,7 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
   std::atomic_bool                       enable{true};
   bool                                   hasPending=false;
   bool                                   reloadTheme=false;
-  phoenix::c_music_theme       pendingMusic;
+  phoenix::c_music_theme                 pendingMusic;
   Tags                                   pendingTags=Tags::Day;
   Tags                                   currentTags=Tags::Day;
   };

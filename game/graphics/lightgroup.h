@@ -102,7 +102,7 @@ class LightGroup final {
 
     const phoenix::vobs::light_preset& findPreset(std::string_view preset) const;
 
-    const SceneGlobals&                                       scene;
+    const SceneGlobals&                      scene;
     std::vector<phoenix::vobs::light_preset> presets;
 
     Tempest::UniformBuffer<Ubo>          uboBuf[Resources::MaxFramesInFlight];

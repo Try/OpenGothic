@@ -160,7 +160,7 @@ class MdlVisual final {
 
     TorchSlot                      torch;
 
-    std::string              hnpcVisualName;
+    std::string                    hnpcVisualName;
     bool                           hnpcFlagGhost = false;
     PfxSlot                        hnpcVisual;
 
