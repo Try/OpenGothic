@@ -4,7 +4,7 @@
 #include "gothic.h"
 
 StaticMesh::StaticMesh(const PackedMesh& mesh) {
-  const Vertex* vert=reinterpret_cast<const Vertex*>(mesh.vertices.data());
+  const Vertex* vert=mesh.vertices.data();
   vbo = Resources::vbo<Vertex>  (vert,mesh.vertices.size());
   ibo = Resources::ibo<uint32_t>(mesh.indices.data(),mesh.indices.size());
 
