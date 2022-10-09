@@ -42,8 +42,8 @@ void InventoryRenderer::reset(bool full) {
   }
 
 void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
-  auto& itData = item.handle();
-  if(auto mesh=Resources::loadMesh(itData->visual.c_str())) {
+  auto& itData = *item.handle();
+  if(auto mesh=Resources::loadMesh(itData.visual)) {
     float    sz  = (mesh->bbox[1]-mesh->bbox[0]).length();
     auto     mv  = (mesh->bbox[1]+mesh->bbox[0])*0.5f;
     ItmFlags flg = ItmFlags(item.mainFlag());
@@ -58,9 +58,9 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
     mat.identity();
     mat.scale(sz);
 
-    float rotx = float(itData->inv_rot_x);
-    float roty = float(itData->inv_rot_y);
-    float rotz = float(itData->inv_rot_z);
+    float rotx = float(itData.inv_rot_x);
+    float roty = float(itData.inv_rot_y);
+    float rotz = float(itData.inv_rot_z);
 
     if(flg&(ITM_CAT_NF | ITM_CAT_FF | ITM_CAT_MUN)) {
       static const float invX = -45;
@@ -86,7 +86,7 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
       mat.rotateOZ(invZ+rotz);
       mat.rotateOY(invY+roty);
       }
-    else if((flg&ITM_CAT_MAGIC) || (ItmFlags(itData->flags)&ITM_RING)) {
+    else if((flg&ITM_CAT_MAGIC) || (ItmFlags(itData.flags)&ITM_RING)) {
       static const float invX = 200;
       static const float invY = 0;
       static const float invZ = 90;
@@ -148,7 +148,7 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
     mat.set(3,2, 0.75f);//+itData.inv_zbias/1000.f);
 
     Itm itm;
-    itm.mesh = MeshObjects::Mesh(itmGroup,*mesh,itData->material,0,itData->material,false);
+    itm.mesh = MeshObjects::Mesh(itmGroup,*mesh,itData.material,0,itData.material,false);
     itm.mesh.setObjMatrix(mat);
     itm.x    = x;
     itm.y    = y;
