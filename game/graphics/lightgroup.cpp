@@ -65,7 +65,7 @@ LightGroup::Light::Light(LightGroup& owner, const phoenix::vobs::light_preset& v
   if(!vob.color_animation_list.empty()) {
     l.setColor(vob.color_animation_list,vob.color_animation_fps,vob.color_animation_smooth);
     } else {
-    l.setColor(vob.color.r << 16 | vob.color.g << 8 | vob.color.b);
+    l.setColor(Vec3(vob.color.r / 255.f, vob.color.g / 255.f, vob.color.b / 255.f));
     }
 
   std::lock_guard<std::recursive_mutex> guard(owner.sync);
@@ -93,7 +93,7 @@ LightGroup::Light::Light(LightGroup& owner, const phoenix::vobs::light& vob)
   if(!vob.color_animation_list.empty()) {
     l.setColor(vob.color_animation_list,vob.color_animation_fps,vob.color_animation_smooth);
   } else {
-    l.setColor(vob.color.r << 16 | vob.color.g << 8 | vob.color.b);
+    l.setColor(Vec3(vob.color.r / 255.f, vob.color.g / 255.f, vob.color.b / 255.f));
   }
 
   std::lock_guard<std::recursive_mutex> guard(owner.sync);

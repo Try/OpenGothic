@@ -33,12 +33,6 @@ void LightSource::setColor(const Vec3& cl) {
   colorAniListFpsInv = 0;
   }
 
-void LightSource::setColor(uint32_t v) {
-  uint8_t cl[4];
-  std::memcpy(cl,&v,4);
-  setColor(Vec3(cl[0]/255.f,cl[1]/255.f,cl[2]/255.f));
-  }
-
 void LightSource::setColor(const std::vector<uint32_t>& arr, float fps, bool smooth) {
   colorSmooth = smooth;
   if(arr.size()==1) {

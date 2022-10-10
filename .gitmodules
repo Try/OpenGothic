@@ -10,4 +10,4 @@
 [submodule "lib/phoenix"]
 	path = lib/phoenix
 	url = https://github.com/lmichaelis/phoenix.git
-	branch = main
+	branch = v/1.0
