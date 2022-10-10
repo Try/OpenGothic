@@ -38,14 +38,16 @@ vec4 clouds(vec3 at, float nightPhase, float GSunIntensity, vec3 highlight,
   vec4 night     = (cloudNL0+cloudNL1)*0.5;
 
   // Clouds (LDR textures from original game) - need to adjust
-  day.rgb   = srgbDecode(day.rgb);
-  day.rgb  += day.rgb*highlight;
-  day.a     = day.a*(1.0-nightPhase);
-
+  day.rgb   = srgbDecode(day.rgb)*push.GSunIntensity*1.0;
+  day.rgb   = day.rgb*highlight*1.0;
   night.rgb = srgbDecode(night.rgb);
+
+  //day  .a   = day  .a*(1.0-nightPhase);
+  day  .a   = day  .a*0.1;
   night.a   = night.a*(nightPhase);
 
   vec4 color = mixClr(day,night);
+  // color.rgb += hday;
 
   return color;
   }
@@ -235,7 +237,14 @@ vec3 applyClouds(vec3 skyColor, vec3 sunDir) {
   vec3  view     = normalize(pos1);
 
   float L        = rayIntersect(pos, view, RClouds);
-  vec3  lum      = atmosphere  (vec3(view.x,view.y*0.1,view.z), sunDir)*push.GSunIntensity*10.0;
+  // TODO: http://killzone.dl.playstation.net/killzone/horizonzerodawn/presentations/Siggraph15_Schneider_Real-Time_Volumetric_Cloudscapes_of_Horizon_Zero_Dawn.pdf\
+  // fake cloud scattering inspired by Henyey-Greenstein model
+  vec3  lum      = vec3(0);
+  lum += atmosphere  (vec3( view.x, view.y*0.0, view.z), sunDir);
+  lum += atmosphere  (vec3(-view.x, view.y*0.0, view.z), sunDir);
+  lum += atmosphere  (vec3(-view.x, view.y*0.0,-view.z), sunDir);
+  lum += atmosphere  (vec3( view.x, view.y*0.0,-view.z), sunDir);
+  lum = lum*push.GSunIntensity;
   //return lum;
 
   //vec4  cloud    = clouds(pos + view*L, vec3(push.GSunIntensity));
@@ -270,6 +279,7 @@ void main() {
 #endif
 
   lum      = finalizeColor(lum, sunDir);
+  //lum = vec3(val.a); //debug transmittance
   outColor = vec4(lum, val.a);
 #if !defined(FOG)
   outColor.a = 1.0;
