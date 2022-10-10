@@ -76,7 +76,7 @@ void Inventory::Iterator::skipHidden() {
       ++at;
     }
   if(type==T_Ransack) {
-    while(at<it.size() && ((it[at]->isEquiped() && it[at]->isRune()) || (it[at]->isEquiped() && it[at]->isArmour()))) {
+    while(at<it.size() && it[at]->isEquiped()) {
       ++at;
       }
     }
