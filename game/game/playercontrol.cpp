@@ -497,8 +497,7 @@ void PlayerControl::implMove(uint64_t dt) {
   Npc&  pl       = *w->player();
   float rot      = pl.rotation();
   float rotY     = pl.rotationY();
-  auto  gl       = pl.guild();
-  float rspeed   = float(w->script().guildVal().turn_speed[gl])*(float(dt)/1000.f)*60.f/100.f;
+  float rspeed   = (pl.weaponState()==WeaponState::NoWeapon ? 90.f : 180.f)*(float(dt)/1000.f);
   auto  ws       = pl.weaponState();
   bool  allowRot = !(pl.isPrehit() || pl.isFinishingMove() || pl.bodyStateMasked()==BS_CLIMB);
 
