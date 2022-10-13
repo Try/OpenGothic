@@ -5,6 +5,7 @@
 #include "graphics/mesh/skeleton.h"
 #include "game/serialize.h"
 #include "world/objects/npc.h"
+#include "world/objects/interactive.h"
 #include "world/objects/item.h"
 #include "world/world.h"
 #include "utils/fileext.h"
@@ -590,7 +591,7 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     auto inter = npc.interactive();
     const Animation::Sequence *sq = solver.solveAnim(inter,a,*skInst);
     if(sq!=nullptr){
-      auto bs=sq->name.find("T_LADDER")==0 ? BS_CLIMB : BS_MOBINTERACT;
+      auto bs=inter->isLadder() ? BS_CLIMB : BS_MOBINTERACT;
       if(skInst->startAnim(solver,sq,comb,bs,Pose::NoHint,npc.world().tickCount()))
         return sq;
       }

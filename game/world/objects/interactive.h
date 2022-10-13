@@ -26,6 +26,12 @@ class Interactive : public Vob {
       FromStand = 11,
       };
 
+    enum MobsiAction : uint8_t {
+      Next      = 1,
+      Prev      = 2,
+      Quit      = 3,
+      };
+
     Interactive(Vob* parent, World& world, const phoenix::vobs::mob& vob, Flags flags);
 
     void                load(Serialize& fin) override;
@@ -78,7 +84,7 @@ class Interactive : public Vob {
     auto                animNpc(const AnimationSolver &solver, Anim t) -> const Animation::Sequence*;
     void                marchInteractives(DbgPainter& p) const;
 
-    void                nextState(Npc& npc, const uint8_t st);
+    void                nextState(Npc& npc, MobsiAction act);
 
   protected:
     Tempest::Matrix4x4  nodeTranform(std::string_view nodeName) const;
@@ -153,7 +159,6 @@ class Interactive : public Vob {
     int                          stepsCount = 0;
 
     int32_t                      state         = -1;
-    bool                         wait          = false;
     bool                         reverseState  = false;
     bool                         loopState     = false;
     bool                         isLockCracked = false;
