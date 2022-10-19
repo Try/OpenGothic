@@ -4,9 +4,9 @@
 #include "world/objects/item.h"
 #include "world/world.h"
 #include "world/bullet.h"
+#include "gothic.h"
 
-#include "game/gamesession.h"
-#include "commandline.h"
+// https://forum.worldofplayers.de/forum/threads/127320-Damage-System?p=2198181#post2198181
 
 using namespace Daedalus::GEngineClasses;
 
@@ -96,7 +96,7 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
   // Swords/Fists
   const int dtype      = damageTypeMask(nsrc);
   uint8_t   hitCh      = TALENT_UNKNOWN;
-  int       s          = nsrc.attribute(Attribute::ATR_STRENGTH);
+  int       str        = nsrc.attribute(Attribute::ATR_STRENGTH);
   int       critChance = int(script.rand(100));
 
   int  value=0;
@@ -107,22 +107,37 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
       hitCh = TALENT_1H;
     }
 
-  if(nsrc.isMonster() && hitCh==TALENT_UNKNOWN) {
-    // regular monsters always do critical damage
-    critChance = 0;
-    }
+  if(Gothic::inst().version().game==2) {
+    if(nsrc.isMonster() && hitCh==TALENT_UNKNOWN) {
+      // regular monsters always do critical damage
+      critChance = 0;
+      }
 
-  for(int i=0; i<DAM_INDEX_MAX; ++i){
-    if((dtype & (1<<i))==0)
-      continue;
-    int vd = std::max(s + src.damage[i] - other.protection[i],0);
-    if(src.hitChance[hitCh]<critChance)
-      vd = (vd-1)/10;
-    if(other.protection[i]>=0) // Filter immune
-      value += vd;
-    }
+    for(int i=0; i<DAM_INDEX_MAX; ++i){
+      if((dtype & (1<<i))==0)
+        continue;
+      int vd = std::max(str + src.damage[i] - other.protection[i],0);
+      if(src.hitChance[hitCh]<critChance)
+        vd = (vd-1)/10;
+      if(other.protection[i]>=0) // Filter immune
+        value += vd;
+      }
 
-  return Val(value,true);
+    return Val(value,true);
+    } else {
+    for(int i=0; i<DAM_INDEX_MAX; ++i) {
+      if((dtype & (1<<i))==0)
+        continue;
+      int vd = std::max(str + src.damage[i] - other.protection[i],0);
+      if(src.hitChance[hitCh]<critChance)
+        vd = std::max(str + src.damage[i]   - other.protection[i],0); else
+        vd = std::max(str + src.damage[i]*2 - other.protection[i],0);
+      if(other.protection[i]>=0) // Filter immune
+        value += vd;
+      }
+
+    return Val(value,true);
+    }
   }
 
 int32_t DamageCalculator::damageTypeMask(Npc& npc) {
