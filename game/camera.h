@@ -15,6 +15,8 @@ class Camera final {
   public:
     Camera();
 
+    constexpr static const float minShadowY = -0.025f;
+
     enum Mode {
       Dialog,
       Normal,

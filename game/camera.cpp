@@ -171,8 +171,19 @@ Matrix4x4 Camera::projective() const {
   }
 
 Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
-  //Vec3 ldir = Vec3::normalize({1,1,0});
-  Vec3 ldir   = lightDir;
+  Vec3  ldir = lightDir;
+  float eps  = 0.005f;
+
+  if(std::abs(ldir.y)<eps) {
+    float k = (1.f-eps*eps)/std::sqrt(ldir.x*ldir.x + ldir.z*ldir.z);
+    ldir.y = (ldir.y<0) ? -eps : eps;
+    ldir.x *= k;
+    ldir.z *= k;
+    }
+
+  // if(layer==1)
+  //   return viewShadow2(ldir,layer);
+
   Vec3 center = cameraPos;
   auto vp = viewProj();
   vp.project(center);
@@ -183,21 +194,21 @@ Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
   vp.project(r);
 
   float smWidth    = 0;
-  float smWidthInv = 0;
-  float zScale     = 1.f/5120;
-
+  float smDepth    = 5120*5;
   switch(layer) {
     case 0:
       smWidth    = (r-l).length();
       smWidth    = std::max(smWidth,1024.f); // ~4 pixels per santimeter
+      smDepth    = 5120;
       break;
     case 1:
       smWidth    = 5120;
-      zScale    *= 0.2f;
+      smDepth    = 5120*5;
       break;
     };
 
-  smWidthInv = 1.f/smWidth;
+  float smWidthInv = 1.f/smWidth;
+  float zScale     = 1.f/smDepth;
 
   float rotation = (180+src.spin.y-rotOffset.y);
 
@@ -209,9 +220,10 @@ Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
   view.translate(cameraPos);
   view.scale(-1,-1,-1);
 
+  // sun direction
   if(ldir.y!=0.f) {
-    float lx = ldir.x/ldir.y;
-    float lz = ldir.z/ldir.y;
+    float lx = ldir.x/std::abs(ldir.y);
+    float lz = ldir.z/std::abs(ldir.y);
 
     const float ang = -rotation*float(M_PI)/180.f;
     const float c   = std::cos(ang), s = std::sin(ang);
@@ -223,7 +235,28 @@ Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
     view.set(1,1, dz*smWidthInv);
     }
 
+  // strectch shadowmap on light dir
+  if(ldir.y!=0.f) {
+    // stetch view to camera
+    float r0 = std::fmod(rotation, 360.f);
+    float r  = std::fmod(std::atan2(ldir.z,ldir.x)*180.f/float(M_PI), 360.f);
+    r -= r0;
+
+    float s = std::abs(ldir.y);
+    Matrix4x4 proj;
+    proj.identity();
+    proj.rotate( r, 0, 0, 1);
+    proj.translate(-0.5f,0,0);
+    proj.scale(s, 1, 1);
+    //proj.scale(0.1f, 1, 1);
+    proj.translate(0.5f,0,0);
+    proj.rotate(-r, 0, 0, 1);
+    proj.mul(view);
+    view = proj;
+    }
+
   if(layer>0) {
+    // projective shadowmap
     Tempest::Matrix4x4 proj;
     proj.identity();
 
@@ -239,24 +272,25 @@ Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
   inv.project(mid);
   view.translate(mid-cameraPos);
 
-  Matrix4x4 proj;
-  proj.identity();
-
-  switch(layer) {
-    case 0:
-      proj.translate(0.f, 0.8f, 0.5f);
-      break;
-    case 1: {
-      proj.translate(0.f, 0.5f, 0.5f);
-      proj.scale(1,(0.5f+ldir.y)/1.5f,1);
-      break;
+  {
+    Matrix4x4 proj;
+    proj.identity();
+    switch(layer) {
+      case 0:
+        proj.translate(0.f, 0.8f, 0.5f);
+        break;
+      case 1: {
+        proj.translate(0.f, 0.5f, 0.5f);
+        break;
+        }
       }
+
+    proj.mul(view);
+    view = proj;
     }
 
-  proj.mul(view);
-  return proj;
+  return view;
   }
-
 float Camera::zNear() const {
   return 0.01f;
   }

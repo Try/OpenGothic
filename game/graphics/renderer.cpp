@@ -229,7 +229,7 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   if(sz.isEmpty())
     return;
 
-  const int size = 128;
+  const int size = 200;
   while(sz.w<size && sz.h<size) {
     sz.w *= 2;
     sz.h *= 2;
@@ -251,7 +251,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
 
   static bool updFr = true;
   if(updFr){
-    if(wview->mainLight().dir().y>0) {
+    if(wview->mainLight().dir().y>Camera::minShadowY) {
       frustrum[SceneGlobals::V_Shadow0].make(shadow[0],shadowMap[0].w(),shadowMap[0].h());
       frustrum[SceneGlobals::V_Shadow1].make(shadow[1],shadowMap[1].w(),shadowMap[1].h());
       } else {
@@ -270,7 +270,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     if(shadowMap[i].isEmpty())
       continue;
     cmd.setFramebuffer({}, {shadowMap[i], 0.f, Tempest::Preserve});
-    if(wview->mainLight().dir().y>0.05)
+    if(wview->mainLight().dir().y > Camera::minShadowY)
       wview->drawShadow(cmd,cmdId,i);
     }
 
