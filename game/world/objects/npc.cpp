@@ -3852,6 +3852,7 @@ bool Npc::isAiBusy() const {
 void Npc::clearAiQueue() {
   aiQueue.clear();
   aiQueueOverlay.clear();
+  aniWaitTime = 0;
   waitTime    = 0;
   faiWaitTime = 0;
   fghAlgo.onClearTarget();
