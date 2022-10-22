@@ -2129,6 +2129,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
       else if(bodyStateMasked()!=BS_DEAD) {
         visual.stopAnim(*this,"");
+        setStateItem(MeshObjects::Mesh(),"");
         setAnim(Anim::Idle);
         }
       break;
