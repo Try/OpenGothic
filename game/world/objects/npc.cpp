@@ -2117,8 +2117,6 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_StandUpQuick:
       // NOTE: B_ASSESSTALK calls AI_StandUp, to make npc stand, if it's not on a chair or something
       if(interactive()!=nullptr) {
-        // if(interactive()->stateMask()==BS_SIT)
-        //   ;
         if(!setInteraction(nullptr,false)) {
           queue.pushFront(std::move(act));
           }
@@ -2291,7 +2289,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
       }
     case AI_ProcessInfo: {
-      const int PERC_DIST_DIALOG = 500;
+      const int PERC_DIST_DIALOG = 2000;
 
       if(act.target==nullptr)
         break;
