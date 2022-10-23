@@ -56,10 +56,11 @@ float calcShadow() {
   // vec4  pos4 = scene.viewProjectInv * scr;
 
   vec4 shadowPos[2];
-  // shadowPos[0] = scene.viewShadow[0]*vec4(pos4);
-  // shadowPos[1] = scene.viewShadow[1]*vec4(pos4);
-  shadowPos[0] = shInp.shadowPos[0];
-  shadowPos[1] = shInp.shadowPos[1];
+  vec4 pos4 = vec4(shInp.pos,1);
+  shadowPos[0] = scene.viewShadow[0]*vec4(pos4);
+  shadowPos[1] = scene.viewShadow[1]*vec4(pos4);
+  // shadowPos[0] = shInp.shadowPos[0];
+  // shadowPos[1] = shInp.shadowPos[1];
 
   vec3 shPos0  = (shadowPos[0].xyz)/shadowPos[0].w;
   vec3 shPos1  = (shadowPos[1].xyz)/shadowPos[1].w;
@@ -75,11 +76,12 @@ vec4 dbgLambert() {
   }
 
 vec3 flatNormal() {
-  const vec2  fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
-  const vec4  scr       = vec4(fragCoord.x, fragCoord.y, gl_FragCoord.z, 1.0)/gl_FragCoord.w;
-  const vec4  pos4      = scene.viewProjectInv * scr;
+  // const vec2  fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
+  // const vec4  scr       = vec4(fragCoord.x, fragCoord.y, gl_FragCoord.z, 1.0)/gl_FragCoord.w;
+  // const vec4  pos4      = scene.viewProjectInv * scr;
+  // vec3 pos = pos4.xyz/pos4.w;
 
-  vec3 pos = pos4.xyz/pos4.w;
+  vec3 pos = shInp.pos;
   vec3 dx  = dFdx(pos);
   vec3 dy  = dFdy(pos);
   return /*normalize*/(cross(dx,dy));
@@ -91,10 +93,10 @@ vec3 calcLight() {
 
 #if (MESH_TYPE==T_LANDSCAPE)
   // fix self-shadowed surface
-  // float flatSh = dot(scene.sunDir,flatNormal());
-  // if(flatSh<=0) {
-  //   lambert = 0;
-  //   }
+  float flatSh = dot(scene.sunDir,flatNormal());
+  if(flatSh<=0) {
+    lambert = 0;
+    }
 #endif
 
   float light   = lambert*calcShadow();

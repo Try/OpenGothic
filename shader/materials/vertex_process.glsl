@@ -126,13 +126,8 @@ Varyings processVertex(out vec4 position, uint objId, uint vboOffset) {
 #endif
 
 #if !defined(DEPTH_ONLY)
-  shOut.shadowPos[0] = scene.viewShadow[0]*vec4(pos,1.0);
-  shOut.shadowPos[1] = scene.viewShadow[1]*vec4(pos,1.0);
-  shOut.normal       = normal;
-#endif
-
-#if defined(WATER)
-  shOut.pos = pos;
+  shOut.normal = normal;
+  shOut.pos    = pos;
 #endif
 
 #if defined(MAT_COLOR)

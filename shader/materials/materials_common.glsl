@@ -79,11 +79,7 @@ struct Varyings {
 #endif
 
 #if !defined(DEPTH_ONLY)
-  vec4 shadowPos[2];
   vec3 normal;
-#endif
-
-#if defined(WATER)
   vec3 pos;
 #endif
 
