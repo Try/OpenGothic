@@ -137,7 +137,7 @@ void ObjVisual::setVisual(const phoenix::vob& vob, World& world, bool staticDraw
     bundle = VobBundle(world,vob.visual_name,(staticDraw ? Vob::Static : Vob::None));
     }
   else if(FileExt::hasExt(vob.visual_name,"PFX") || FileExt::hasExt(vob.visual_name,"TGA")) {
-    if(vob.camera_alignment==phoenix::camera_lock_mode::none && FileExt::hasExt(vob.visual_name,"TGA")) {
+    if(vob.sprite_camera_facing_mode==phoenix::sprite_alignment::none && FileExt::hasExt(vob.visual_name,"TGA")) {
       setType(M_Mesh);
       mesh.view = world.addDecalView(vob);
       } else {

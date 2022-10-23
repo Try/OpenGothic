@@ -44,7 +44,7 @@ class PfxObjects final {
 
   private:
     struct SpriteEmitter {
-      phoenix::camera_lock_mode   visualCamAlign = phoenix::camera_lock_mode::none;
+      phoenix::sprite_alignment   visualCamAlign = phoenix::sprite_alignment::none;
       int32_t                     zBias          = 0;
       Tempest::Vec2               decalDim = {};
       std::unique_ptr<ParticleFx> pfx;

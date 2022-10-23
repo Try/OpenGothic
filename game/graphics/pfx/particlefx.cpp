@@ -27,7 +27,7 @@ ParticleFx::ParticleFx(const Material& mat, const phoenix::vob& vob) {
   visSizeEndScale  = 1;
   visAlphaStart    = 1;
   visAlphaEnd      = 1;
-  visYawAlign      = vob.camera_alignment==phoenix::camera_lock_mode::yaw;
+  visYawAlign      = vob.sprite_camera_facing_mode==phoenix::sprite_alignment::yaw;
   visZBias         = vob.bias!=0;
 
   useEmittersFOR   = true;
