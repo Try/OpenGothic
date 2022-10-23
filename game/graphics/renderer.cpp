@@ -117,6 +117,9 @@ void Renderer::resetSwapchain() {
   uboCopy = device.descriptors(Shaders::inst().copy);
   uboCopy.set(0,gbufEmission,Sampler::nearest());
 
+  uboCopyDepth = device.descriptors(Shaders::inst().copy);
+  uboCopyDepth.set(0, zbuffer);
+
   ssao.ssaoBuf = device.attachment(ssao.aoFormat, (swapchain.w()+1)/2,(swapchain.h()+1)/2);
   ssao.blurBuf = device.attachment(ssao.aoFormat, (swapchain.w()+1)/2,(swapchain.h()+1)/2);
 
@@ -243,7 +246,8 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   }
 
 void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>& cmd, uint8_t cmdId) {
-  auto wview = Gothic::inst().worldView();
+  auto& device = Resources::device();
+  auto  wview  = Gothic::inst().worldView();
   if(wview==nullptr) {
     cmd.setFramebuffer({{result, Vec4(), Tempest::Preserve}});
     return;
@@ -292,14 +296,19 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   wview->drawGBuffer(cmd,cmdId);
 
   drawSSAO(result,cmd,*wview);
-  cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Discard});
+  cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
   wview->drawLights     (cmd,cmdId);
   wview->drawWater      (cmd,cmdId);
 
   wview->drawSky        (cmd,cmdId);
   wview->drawTranslucent(cmd,cmdId);
 
-  // cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
+  if(device.properties().hasSamplerFormat(zBufferFormat)){
+    cmd.setFramebuffer({{gbufDepth, 1.f, Tempest::Preserve}});
+    cmd.setUniforms(Shaders::inst().copy, uboCopyDepth);
+    cmd.draw(Resources::fsqVbo());
+    }
+  cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
   wview->drawFog        (cmd,cmdId);
   }
 
