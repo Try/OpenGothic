@@ -145,6 +145,6 @@ deploy:
   prerelease: true
   tag: opengothic-v$(appveyor_build_version)
   on:
-    branch: $(APPVEYOR_REPO_TAG_NAME)
-    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015 # mingw is default for now
+    branch: master
     appveyor_repo_tag: true       # deploy on tag push only
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015 # mingw is default for now
