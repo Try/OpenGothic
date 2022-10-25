@@ -321,7 +321,7 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
     takeTimer.start(200);
     onTakeStuff();
     }
-  else if (keycodec.tr(e)==KeyCodec::ActionGeneric) {
+  else if (keycodec.tr(e)==KeyCodec::ActionGeneric || e.key==KeyEvent::K_Return) {
     onItemAction(Item::NSLOT);
     }
   else if((KeyEvent::K_3<=e.key && e.key<=KeyEvent::K_9) || e.key==KeyEvent::K_0) {

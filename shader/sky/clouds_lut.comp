@@ -1,0 +1,45 @@
+#version 450
+
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_GOOGLE_include_directive    : enable
+
+#include "sky_common.glsl"
+
+layout(local_size_x = 2) in;
+
+layout(binding = 0) uniform writeonly image2D result;
+
+layout(binding = 5) uniform sampler2D textureDayL0;
+layout(binding = 6) uniform sampler2D textureDayL1;
+layout(binding = 7) uniform sampler2D textureNightL0;
+layout(binding = 8) uniform sampler2D textureNightL1;
+
+vec4 clouds(vec3 at, float nightPhase,
+            in sampler2D dayL1,   in sampler2D dayL0,
+            in sampler2D nightL1, in sampler2D nightL0) {
+  vec3  cloudsAt = normalize(at);
+  vec2  texc     = 2000.0*vec2(atan(cloudsAt.z,cloudsAt.y), atan(cloudsAt.x,cloudsAt.y));
+
+  vec4  cloudDL1 = textureLod(dayL1,   texc*0.3, textureQueryLevels(dayL1)  );
+  vec4  cloudDL0 = textureLod(dayL0,   texc*0.3, textureQueryLevels(dayL0)  );
+  vec4  cloudNL1 = textureLod(nightL1, texc*0.3, textureQueryLevels(nightL1));
+  vec4  cloudNL0 = vec4(0); // stars
+
+  vec4 day       = (cloudDL0+cloudDL1)*0.5;
+  vec4 night     = (cloudNL0+cloudNL1)*0.5;
+
+  // Clouds (LDR textures from original game) - need to adjust
+  day.a     = day.a*(1.0-nightPhase);
+  night.a   = night.a*(nightPhase);
+
+  vec4 color = mixClr(day,night);
+  return color;
+  }
+
+void main() {
+  const ivec2 dstUV = ivec2(gl_GlobalInvocationID.xy);
+  float night = gl_GlobalInvocationID.x==0 ? 0.0 : 1.0;
+
+  vec4  ret   = clouds(vec3(0,1,0), night, textureDayL1,textureDayL0, textureNightL1,textureNightL0);
+  imageStore(result, dstUV, ret);
+  }

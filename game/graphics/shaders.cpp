@@ -96,6 +96,7 @@ Shaders::Shaders() {
   ssaoCompose        = postEffect("ssao_compose");
   bilateralBlur      = postEffect("bilateral");
 
+  cloudsLut          = computeShader("clouds_lut.comp.sprv");
   skyTransmittance   = postEffect("sky_transmittance");
   skyMultiScattering = postEffect("sky_multi_scattering");
   skyViewLut         = postEffect("sky_view_lut");

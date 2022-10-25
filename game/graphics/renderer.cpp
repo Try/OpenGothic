@@ -117,6 +117,9 @@ void Renderer::resetSwapchain() {
   uboCopy = device.descriptors(Shaders::inst().copy);
   uboCopy.set(0,gbufEmission,Sampler::nearest());
 
+  uboCopyDepth = device.descriptors(Shaders::inst().copy);
+  uboCopyDepth.set(0, zbuffer);
+
   ssao.ssaoBuf = device.attachment(ssao.aoFormat, (swapchain.w()+1)/2,(swapchain.h()+1)/2);
   ssao.blurBuf = device.attachment(ssao.aoFormat, (swapchain.w()+1)/2,(swapchain.h()+1)/2);
 
@@ -229,7 +232,7 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   if(sz.isEmpty())
     return;
 
-  const int size = 128;
+  const int size = 200;
   while(sz.w<size && sz.h<size) {
     sz.w *= 2;
     sz.h *= 2;
@@ -243,7 +246,8 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   }
 
 void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>& cmd, uint8_t cmdId) {
-  auto wview = Gothic::inst().worldView();
+  auto& device = Resources::device();
+  auto  wview  = Gothic::inst().worldView();
   if(wview==nullptr) {
     cmd.setFramebuffer({{result, Vec4(), Tempest::Preserve}});
     return;
@@ -251,7 +255,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
 
   static bool updFr = true;
   if(updFr){
-    if(wview->mainLight().dir().y>0) {
+    if(wview->mainLight().dir().y>Camera::minShadowY) {
       frustrum[SceneGlobals::V_Shadow0].make(shadow[0],shadowMap[0].w(),shadowMap[0].h());
       frustrum[SceneGlobals::V_Shadow1].make(shadow[1],shadowMap[1].w(),shadowMap[1].h());
       } else {
@@ -270,7 +274,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     if(shadowMap[i].isEmpty())
       continue;
     cmd.setFramebuffer({}, {shadowMap[i], 0.f, Tempest::Preserve});
-    if(wview->mainLight().dir().y>0.05)
+    if(wview->mainLight().dir().y > Camera::minShadowY)
       wview->drawShadow(cmd,cmdId,i);
     }
 
@@ -292,14 +296,19 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   wview->drawGBuffer(cmd,cmdId);
 
   drawSSAO(result,cmd,*wview);
-  cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Discard});
+  cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
   wview->drawLights     (cmd,cmdId);
   wview->drawWater      (cmd,cmdId);
 
   wview->drawSky        (cmd,cmdId);
   wview->drawTranslucent(cmd,cmdId);
 
-  // cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
+  if(device.properties().hasSamplerFormat(zBufferFormat)){
+    cmd.setFramebuffer({{gbufDepth, 1.f, Tempest::Preserve}});
+    cmd.setUniforms(Shaders::inst().copy, uboCopyDepth);
+    cmd.draw(Resources::fsqVbo());
+    }
+  cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
   wview->drawFog        (cmd,cmdId);
   }
 

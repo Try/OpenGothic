@@ -254,7 +254,7 @@ void MoveAlgo::tickSwim(uint64_t dt) {
   auto  ground = dropRay (pos+dp+Tempest::Vec3(0,fallThreshold,0), valid);
   auto  water  = waterRay(pos+dp+Tempest::Vec3(0,fallThreshold,0), &validW);
 
-  if(npc.isDead()){
+  if(npc.isDead()) {
     setAsSwim(false);
     setAsDive(false);
     return;

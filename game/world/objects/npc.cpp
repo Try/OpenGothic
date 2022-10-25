@@ -1939,7 +1939,7 @@ void Npc::tick(uint64_t dt) {
         t-=v;
         int dmg = t/tickSz - (t-int(dt))/tickSz;
         if(dmg>0)
-          changeAttribute(ATR_HITPOINTS,-100*dmg,false);
+          changeAttribute(ATR_HITPOINTS,-dmg,false);
         }
       }
     }
@@ -1991,8 +1991,15 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
       }
     case AI_TurnToNpc: {
-      if(interactive()==nullptr)
+      const auto st = bodyStateMasked();
+      if(interactive()==nullptr && (st==BS_WALK || st==BS_SNEAK)) {
         visual.stopWalkAnim(*this);
+        queue.pushFront(std::move(act));
+        break;
+        }
+      if(interactive()==nullptr) {
+        visual.stopWalkAnim(*this);
+        }
       if(act.target!=nullptr && implTurnTo(*act.target,dt)) {
         queue.pushFront(std::move(act));
         }
@@ -2094,9 +2101,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_StandUpQuick:
       // NOTE: B_ASSESSTALK calls AI_StandUp, to make npc stand, if it's not on a chair or something
       if(interactive()!=nullptr) {
-        // if(interactive()->stateMask()==BS_SIT)
-        //   ;
-        if(!setInteraction(nullptr,act.act==AI_StandUpQuick)) {
+        if(!setInteraction(nullptr,false)) {
           queue.pushFront(std::move(act));
           }
         break;
@@ -2107,6 +2112,8 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
           implAniWait(visual.pose().animationTotalTime());
         }
       else if(bodyStateMasked()!=BS_DEAD) {
+        visual.stopAnim(*this,"");
+        setStateItem(MeshObjects::Mesh(),"");
         setAnim(Anim::Idle);
         }
       break;
@@ -2266,9 +2273,25 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
       break;
       }
-    case AI_ProcessInfo:
+    case AI_ProcessInfo: {
+      const int PERC_DIST_DIALOG = 2000;
+
       if(act.target==nullptr)
         break;
+
+      if(!owner.aiIsDlgFinished()) {
+        queue.pushFront(std::move(act));
+        break;
+        }
+
+      if(this!=act.target && act.target->isPlayer() && act.target->currentInteract!=nullptr) {
+        //queue.pushFront(std::move(act));
+        break;
+        }
+
+      if(act.target->qDistTo(*this)>PERC_DIST_DIALOG*PERC_DIST_DIALOG) {
+        break;
+        }
 
       if(act.target->interactive()==nullptr && !act.target->isAiBusy())
         act.target->stopWalkAnimation();
@@ -2283,6 +2306,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         } else {
         queue.pushFront(std::move(act));
         }
+      }
       break;
     case AI_StopProcessInfo:
       if(outputPipe->close()) {
@@ -3479,7 +3503,7 @@ void Npc::setPerceptionDisable(PercType t) {
   }
 
 void Npc::startDialog(Npc& pl) {
-  if(pl.isDown() || pl.isInAir() || isPlayer())
+   if(pl.isDown() || pl.isInAir() || isPlayer())
     return;
   if(perceptionProcess(pl,nullptr,0,PERC_ASSESSTALK))
     setOther(&pl);
@@ -3526,6 +3550,11 @@ bool Npc::perceptionProcess(Npc &pl) {
 
   if(aiQueue.size()==0)
     perceptionNextTime = owner.tickCount()+perceptionTime;
+
+  // TODO: rotate to player
+  // if(currentLookAt==nullptr && owner.script().hasImportantInfo(*this,pl,1)) {
+  //   currentLookAt = &pl;
+  //   }
 
   return ret;
   }
@@ -3584,6 +3613,7 @@ void Npc::quitIneraction() {
     return;
   if(invTorch)
     processDefInvTorch();
+  implAniWait(visual.pose().animationTotalTime());
   currentInteract=nullptr;
   }
 
@@ -3818,6 +3848,7 @@ bool Npc::isAiBusy() const {
 void Npc::clearAiQueue() {
   aiQueue.clear();
   aiQueueOverlay.clear();
+  aniWaitTime = 0;
   waitTime    = 0;
   faiWaitTime = 0;
   fghAlgo.onClearTarget();
@@ -3866,7 +3897,7 @@ bool Npc::canSeeNpc(float tx, float ty, float tz, bool freeLos) const {
   }
 
 SensesBit Npc::canSenseNpc(const Npc &oth, bool freeLos, float extRange) const {
-  const auto mid = oth.bounds().midTr;
+  const auto mid     = oth.bounds().midTr;
   const bool isNoisy = (oth.bodyState()&BodyState::BS_SNEAK)==0;
   return canSenseNpc(mid.x,mid.y,mid.z,freeLos,isNoisy,extRange);
   }

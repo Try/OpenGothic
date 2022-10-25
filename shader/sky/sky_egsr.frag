@@ -22,33 +22,42 @@ layout(location = 0) in  vec2 inPos;
 layout(location = 0) out vec4 outColor;
 
 #if !defined(FOG)
-vec4 clouds(vec3 at) {
+vec4 clouds(vec3 at, float nightPhase, float GSunIntensity, vec3 highlight,
+            vec2 dxy0, vec2 dxy1,
+            in sampler2D dayL1,   in sampler2D dayL0,
+            in sampler2D nightL1, in sampler2D nightL0) {
   vec3  cloudsAt = normalize(at);
   vec2  texc     = 2000.0*vec2(atan(cloudsAt.z,cloudsAt.y), atan(cloudsAt.x,cloudsAt.y));
 
-  vec4  cloudDL1 = texture(textureDayL1,  texc*0.3+push.dxy1);
-  vec4  cloudDL0 = texture(textureDayL0,  texc*0.3+push.dxy0);
-  vec4  cloudNL1 = texture(textureNightL1,texc*0.3+push.dxy1);
-  vec4  cloudNL0 = texture(textureNightL0,texc*0.6+vec2(0.5)); // stars
+  vec4  cloudDL1 = texture(dayL1,   texc*0.3 + dxy1);
+  vec4  cloudDL0 = texture(dayL0,   texc*0.3 + dxy0);
+  vec4  cloudNL1 = texture(nightL1, texc*0.3 + dxy1);
+  vec4  cloudNL0 = texture(nightL0, texc*0.6 + vec2(0.5)); // stars
 
-#ifdef G1
-  vec4 day       = mix(cloudDL0,cloudDL1,cloudDL1.a);
-  vec4 night     = mix(cloudNL0,cloudNL1,cloudNL1.a);
-#else
   vec4 day       = (cloudDL0+cloudDL1)*0.5;
   vec4 night     = (cloudNL0+cloudNL1)*0.5;
-#endif
 
   // Clouds (LDR textures from original game) - need to adjust
-  day.rgb   = srgbDecode(day.rgb)*push.GSunIntensity;
-  day.a     = day.a*(1.0-push.night);
-
+  day.rgb   = srgbDecode(day.rgb)*push.GSunIntensity*1.0;
+  day.rgb   = day.rgb*highlight*1.0;
   night.rgb = srgbDecode(night.rgb);
-  night.a   = night.a*(push.night);
+
+  //day  .a   = day  .a*(1.0-nightPhase);
+  day  .a   = day  .a*0.1;
+  night.a   = night.a*(nightPhase);
 
   vec4 color = mixClr(day,night);
+  // color.rgb += hday;
+
   return color;
   }
+
+vec4 clouds(vec3 at, vec3 highlight) {
+  return clouds(at, push.night, push.GSunIntensity, highlight,
+                push.dxy0, push.dxy1,
+                textureDayL1,textureDayL0, textureNightL1,textureNightL0);
+  }
+
 #endif
 
 /*
@@ -145,14 +154,10 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
   vec3(0,0.5,1),
   };
 
-vec4 fog(vec2 uv, vec3 sunDir) {
-  // vec3  pos1     = inverse(vec3(inPos,1));
-  // vec3  posz     = inverse(vec3(inPos,z));
-  // vec3  pos0     = inverse(vec3(inPos,0));
-
+vec4 fog(vec2 uv, float z, vec3 sunDir) {
   float dMin = 0;
   float dMax = 0.9999;
-  float z    = texture(depth,uv).r;
+
   float dZ   = reconstructCSZ(   z, push.clipInfo);
   float d0   = reconstructCSZ(dMin, push.clipInfo);
   float d1   = reconstructCSZ(dMax, push.clipInfo);
@@ -171,10 +176,10 @@ vec4 fog(vec2 uv, vec3 sunDir) {
   return vec4(lum, fogDens);
   }
 #else
-vec4 fog(vec2 uv, vec3 sunDir) {
+vec4 fog(vec2 uv, float z, vec3 sunDir) {
   float dMin = 0.0;
   float dMax = 1.0;
-  float z    = texture(depth,uv).r;
+
   float dZ   = reconstructCSZ(   z, push.clipInfo);
   float d0   = reconstructCSZ(dMin, push.clipInfo);
   float d1   = reconstructCSZ(dMax, push.clipInfo);
@@ -222,14 +227,27 @@ vec3 sky(vec2 uv, vec3 sunDir) {
   }
 
 #if !defined(FOG)
-vec3 applyClouds(vec3 lum) {
+vec3 applyClouds(vec3 skyColor, vec3 sunDir) {
   vec3  pos      = vec3(0,RPlanet+push.plPosY,0);
   vec3  pos1     = inverse(vec3(inPos,1.0));
   vec3  view     = normalize(pos1);
 
   float L        = rayIntersect(pos, view, RClouds);
-  vec4  cloud    = clouds(pos + view*L);
-  return mix(lum, cloud.rgb, cloud.a);
+  // TODO: http://killzone.dl.playstation.net/killzone/horizonzerodawn/presentations/Siggraph15_Schneider_Real-Time_Volumetric_Cloudscapes_of_Horizon_Zero_Dawn.pdf\
+  // fake cloud scattering inspired by Henyey-Greenstein model
+  vec3  lum      = vec3(0);
+  lum += atmosphere  (vec3( view.x, view.y*0.0, view.z), sunDir);
+  lum += atmosphere  (vec3(-view.x, view.y*0.0, view.z), sunDir);
+  lum += atmosphere  (vec3(-view.x, view.y*0.0,-view.z), sunDir);
+  lum += atmosphere  (vec3( view.x, view.y*0.0,-view.z), sunDir);
+  lum = lum*push.GSunIntensity;
+  //return lum;
+
+  //vec4  cloud    = clouds(pos + view*L, vec3(push.GSunIntensity));
+  vec4  cloud    = clouds(pos + view*L, lum);
+  // cloud.rgb *= textureLUT(tLUT, view, sunDir);
+
+  return mix(skyColor, cloud.rgb, cloud.a);
   }
 #endif
 
@@ -237,26 +255,33 @@ void main() {
   vec2 uv     = inPos*vec2(0.5)+vec2(0.5);
   vec3 view   = normalize(inverse(vec3(inPos,1.0)));
   vec3 sunDir = push.sunDir;
+  float z     = textureLod(depth,uv,0).r;
+
+#if defined(FOG)
+  if(z>=1.0)
+    discard;
+#endif
 
   // NOTE: not a physical value, but dunno how to achive nice look without it
   float fogFixup = 20.0;
 
-  vec4  val      = fog(uv,push.sunDir) * fogFixup;
+  vec4  val      = fog(uv,z,push.sunDir) * fogFixup;
   vec3  lum      = val.rgb;
 #if defined(FOG)
-  //outColor = fog(uv,push.sunDir);
+  //outColor = fog(uv, sunDir);
   //return;
 #endif
 
 #if !defined(FOG)
   // Sky
   // lum = sky(uv,push.sunDir);
-  lum = lum*0.5 + sky(uv,push.sunDir);
+  lum = lum*0.5 + sky(uv, sunDir);
   // Clouds
-  lum = applyClouds(lum);
+  lum = applyClouds(lum, sunDir);
 #endif
 
   lum      = finalizeColor(lum, sunDir);
+  //lum = vec3(val.a); //debug transmittance
   outColor = vec4(lum, val.a);
 #if !defined(FOG)
   outColor.a = 1.0;
