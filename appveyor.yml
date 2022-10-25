@@ -13,8 +13,8 @@ environment:
 
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015  # used as mingw
       GENERATOR: "Ninja"
-      CC:        C:/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/bin/gcc.exe
-      CXX:       C:/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/bin/g++.exe
+      CC:        C:/msys64/mingw64/bin/gcc.exe
+      CXX:       C:/msys64/mingw64/bin/g++.exe
 
     - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
       GENERATOR: ""
@@ -37,7 +37,7 @@ install:
 
     if($IsWindows) {
       # debug
-      $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+      # $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
       # Vulkan SDK
       $env:VK_SDK_PATH = "C:/VulkanSDK/$VK_SDK"
       Invoke-WebRequest -Uri https://sdk.lunarg.com/sdk/download/$VK_SDK/windows/VulkanSDK-$VK_SDK-Installer.exe -OutFile VulkanSDK.exe
