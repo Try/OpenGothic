@@ -283,7 +283,7 @@ void Serialize::readNpc(phoenix::vm& vm, std::shared_ptr<phoenix::c_npc>& h) {
   auto sym = vm.find_symbol_by_index(instanceSymbol);
 
   if (sym != nullptr) {
-    vm.init_instance(h, sym);
+    vm.allocate_instance(h, sym);
     } else {
     Tempest::Log::e("Cannot load serialized NPC ", instanceSymbol, ": Symbol not found.");
     }
