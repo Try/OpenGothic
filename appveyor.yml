@@ -3,6 +3,11 @@ configuration:
 
 environment:
   matrix:
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015  # used as mingw
+      GENERATOR: "Ninja"
+      CC:        C:/msys64/mingw64/bin/gcc.exe
+      CXX:       C:/msys64/mingw64/bin/g++.exe
+
     - APPVEYOR_BUILD_WORKER_IMAGE: macos-bigsur
       GENERATOR: "Ninja"
 
@@ -10,11 +15,6 @@ environment:
       GENERATOR: "Ninja"
       VCVARSALL: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build/vcvarsall.bat"
       PLATFORM:  x64
-
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015  # used as mingw
-      GENERATOR: "Ninja"
-      CC:        C:/msys64/mingw64/bin/gcc.exe
-      CXX:       C:/msys64/mingw64/bin/g++.exe
 
     - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
       GENERATOR: ""
@@ -37,7 +37,7 @@ install:
 
     if($IsWindows) {
       # debug
-      # $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+      $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
       # Vulkan SDK
       $env:VK_SDK_PATH = "C:/VulkanSDK/$VK_SDK"
       Invoke-WebRequest -Uri https://sdk.lunarg.com/sdk/download/$VK_SDK/windows/VulkanSDK-$VK_SDK-Installer.exe -OutFile VulkanSDK.exe
