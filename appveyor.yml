@@ -3,7 +3,7 @@ configuration:
 
 environment:
   matrix:
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015  # used as mingw
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019  # used as mingw
       GENERATOR: "Ninja"
       CC:        C:/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/bin/gcc.exe
       CXX:       C:/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/bin/g++.exe
@@ -11,7 +11,7 @@ environment:
     - APPVEYOR_BUILD_WORKER_IMAGE: macos-bigsur
       GENERATOR: "Ninja"
 
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
       GENERATOR: "Ninja"
       VCVARSALL: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build/vcvarsall.bat"
       PLATFORM:  x64
