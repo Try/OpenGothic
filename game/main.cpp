@@ -12,6 +12,14 @@
 #include <Tempest/MetalApi>
 #endif
 
+// CI testing
+#include <filesystem>
+extern "C" void f() {
+  std::filesystem::path a, b;
+  bool v = a!=b;
+  (void)v;
+  }
+
 #include "utils/crashlog.h"
 #include "mainwindow.h"
 #include "gothic.h"
