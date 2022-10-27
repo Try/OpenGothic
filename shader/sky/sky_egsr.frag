@@ -233,7 +233,7 @@ vec3 applyClouds(vec3 skyColor, vec3 sunDir) {
   vec3  view     = normalize(pos1);
 
   float L        = rayIntersect(pos, view, RClouds);
-  // TODO: http://killzone.dl.playstation.net/killzone/horizonzerodawn/presentations/Siggraph15_Schneider_Real-Time_Volumetric_Cloudscapes_of_Horizon_Zero_Dawn.pdf\
+  // TODO: http://killzone.dl.playstation.net/killzone/horizonzerodawn/presentations/Siggraph15_Schneider_Real-Time_Volumetric_Cloudscapes_of_Horizon_Zero_Dawn.pdf
   // fake cloud scattering inspired by Henyey-Greenstein model
   vec3  lum      = vec3(0);
   lum += atmosphere  (vec3( view.x, view.y*0.0, view.z), sunDir);
