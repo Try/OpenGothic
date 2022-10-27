@@ -564,8 +564,8 @@ void PackedMesh::sortPass(std::vector<Meshlet*>& meshlets) {
     const int   lenZ      = int(std::ceil((maxP.z-minP.z)/clusterSz));
 
     std::sort(meshlets.begin(),meshlets.end(),[=](const Meshlet* l, const Meshlet* r) {
-      auto lp  = (l->bounds.pos-minP)/(clusterRadius*2);
-      auto rp  = (r->bounds.pos-minP)/(clusterRadius*2);
+      auto lp  = (l->bounds.pos-minP)/clusterSz;
+      auto rp  = (r->bounds.pos-minP)/clusterSz;
 
       int  lId = (int(lp.x)*lenY + int(lp.y))*lenZ + int(lp.z);
       int  rId = (int(rp.x)*lenY + int(rp.y))*lenZ + int(rp.z);
