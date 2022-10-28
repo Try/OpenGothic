@@ -37,7 +37,15 @@ Item::Item(World &owner, Serialize &fin, Type type)
   uint32_t instanceSymbol=0;
   fin.read(instanceSymbol);
 
-  owner.script().initializeInstanceItem(h, instanceSymbol);
+  auto& vm = owner.script().getVm();
+  auto* sym = vm.find_symbol_by_index(instanceSymbol);
+
+  if (sym != nullptr) {
+    vm.allocate_instance(h, sym);
+    } else {
+    Tempest::Log::e("Loading unknown item from save: " , instanceSymbol);
+    }
+
   fin.read(h->id,h->name,h->name_id,h->hp,h->hp_max,h->main_flag);
   fin.read(reinterpret_cast<int&>(h->flags),h->weight,h->value,h->damage_type,h->damage_total,h->damage);
   fin.read(h->wear,h->protection,h->nutrition,h->cond_atr,h->cond_value,h->change_atr,h->change_value,h->magic);

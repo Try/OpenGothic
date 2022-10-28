@@ -69,6 +69,7 @@ CommandLine::CommandLine(int argc, const char** argv) {
       isDebug  = true;
       }
     else if(arg=="-rt") {
+      ++i;
       if(i<argc)
         isRQuery = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
       }
