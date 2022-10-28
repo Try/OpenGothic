@@ -1,24 +1,25 @@
 #include "parser.h"
 
-#include <charconv>
-
 using namespace Tempest;
 
 Vec2 Parser::loadVec2(std::string_view src) {
   if(src=="=")
     return Vec2();
 
-  float       v[2] = {};
-  for(int i=0;i<2;++i) {
-    // see https://en.cppreference.com/w/cpp/utility/from_chars
-    auto result = std::from_chars(src.begin(), src.end(), v[i]);
+  float v[2] = {};
+  char  buf[256];
+  std::memcpy(buf, src.data(), src.length() > 254 ? 254 : src.length());
+  buf[src.length()] = 0;
 
-    if(result.ec == std::errc::invalid_argument) {
+  const char* str = buf;
+  for(int i=0;i<2;++i) {
+    char* next=nullptr;
+    v[i] = std::strtof(str,&next);
+    if(str==next) {
       if(i==1)
         return Vec2(v[0],v[0]);
       }
-
-    src = std::string_view {result.ptr, src.end()};
+    str = next;
     }
   return Vec2(v[0],v[1]);
   }
@@ -28,18 +29,21 @@ Vec3 Parser::loadVec3(std::string_view src) {
     return Vec3();
 
   float v[3] = {};
-  for(int i=0;i<3;++i) {
-    // see https://en.cppreference.com/w/cpp/utility/from_chars
-    auto result = std::from_chars(src.begin(), src.end(), v[i]);
+  char  buf[256];
+  std::memcpy(buf, src.data(), src.length() > 254 ? 254 : src.length());
+  buf[src.length()] = 0;
 
-    if(result.ec == std::errc::invalid_argument) {
+  const char* str = buf;
+  for(int i=0;i<3;++i) {
+    char* next=nullptr;
+    v[i] = std::strtof(str,&next);
+    if(str==next) {
       if(i==1)
         return Vec3(v[0],v[0],v[0]);
       if(i==2)
         return Vec3(v[0],v[1],0.f);
-    }
-
-    src = std::string_view {result.ptr, src.end()};
+      }
+    str = next;
     }
   return Vec3(v[0],v[1],v[2]);
   }
