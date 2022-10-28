@@ -2431,11 +2431,11 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     }
   }
 
-bool Npc::startState(ScriptFn id, const std::string& wp) {
+bool Npc::startState(ScriptFn id, std::string_view wp) {
   return startState(id,wp,gtime::endOfTime(),false);
   }
 
-bool Npc::startState(ScriptFn id, const std::string& wp, gtime endTime, bool noFinalize) {
+bool Npc::startState(ScriptFn id, std::string_view wp, gtime endTime, bool noFinalize) {
   if(!id.isValid())
     return false;
   if(aiState.funcIni==id)
