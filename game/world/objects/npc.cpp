@@ -1881,7 +1881,27 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
       case phoenix::mds::event_tag_type::drop_torch:
         dropTorch();
         break;
-      default:
+      case phoenix::mds::event_tag_type::draw_sound:
+        break;
+      case phoenix::mds::event_tag_type::undraw_sound:
+        break;
+      case phoenix::mds::event_tag_type::swap_mesh:
+        break;
+      case phoenix::mds::event_tag_type::hit_limb:
+        break;
+      case phoenix::mds::event_tag_type::hit_direction:
+        break;
+      case phoenix::mds::event_tag_type::dam_multiply:
+        break;
+      case phoenix::mds::event_tag_type::par_frame:
+        break;
+      case phoenix::mds::event_tag_type::opt_frame:
+        break;
+      case phoenix::mds::event_tag_type::hit_end:
+        break;
+      case phoenix::mds::event_tag_type::window:
+        break;
+      case phoenix::mds::event_tag_type::unknown:
         break;
       }
     }
