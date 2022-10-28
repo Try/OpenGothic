@@ -20,7 +20,7 @@ class Vob {
     friend Flags operator ~ (Flags a)          { return Flags(~uint8_t(a));             }
 
     Vob(World& owner);
-    Vob(Vob* parent, World& owner, const std::unique_ptr<phoenix::vob>& vob, Flags flags);
+    Vob(Vob* parent, World& owner, phoenix::vob& vob, Flags flags);
     virtual ~Vob();
     static std::unique_ptr<Vob> load(Vob* parent, World& world, const std::unique_ptr<phoenix::vob>& vob, Flags flags);
 

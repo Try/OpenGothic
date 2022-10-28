@@ -3,14 +3,13 @@
 #include "world/world.h"
 #include "game/serialize.h"
 
-CodeMaster::CodeMaster(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& d, Flags flags)
-  :AbstractTrigger(parent,world,d,flags), keys(((const phoenix::vobs::code_master*) d.get())->slaves.size()) {
-  auto* cm = (const phoenix::vobs::code_master*) d.get();
-  target = cm->target;
-  slaves = cm->slaves;
-  ordered = cm->ordered;
-  firstFalseIsFailure = cm->first_false_is_failure;
-  failureTarget = cm->failure_target;
+CodeMaster::CodeMaster(Vob* parent, World &world, phoenix::vobs::code_master& cm, Flags flags)
+  :AbstractTrigger(parent,world,cm,flags), keys(cm.slaves.size()) {
+  target = cm.target;
+  slaves = cm.slaves;
+  ordered = cm.ordered;
+  firstFalseIsFailure = cm.first_false_is_failure;
+  failureTarget = cm.failure_target;
   }
 
 void CodeMaster::onTrigger(const TriggerEvent &evt) {

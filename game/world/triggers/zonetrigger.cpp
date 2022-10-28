@@ -5,11 +5,10 @@
 #include "world/objects/npc.h"
 #include "world/world.h"
 
-ZoneTrigger::ZoneTrigger(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& d, Flags flags)
-  :AbstractTrigger(parent,world,d,flags){
-  auto* trig = (const phoenix::vobs::trigger_change_level*) d.get();
-  levelName = trig->level_name;
-  startVobName = trig->start_vob;
+ZoneTrigger::ZoneTrigger(Vob* parent, World &world, phoenix::vobs::trigger_change_level& trig, Flags flags)
+  :AbstractTrigger(parent,world,trig,flags){
+  levelName = trig.level_name;
+  startVobName = trig.start_vob;
   }
 
 void ZoneTrigger::onIntersect(Npc &n) {

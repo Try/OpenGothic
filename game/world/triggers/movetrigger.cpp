@@ -8,45 +8,44 @@
 
 using namespace Tempest;
 
-MoveTrigger::MoveTrigger(Vob* parent, World& world, const std::unique_ptr<phoenix::vob>& d, Flags flags)
-  :AbstractTrigger(parent,world,d,flags) {
-  auto* mover = (const phoenix::vobs::trigger_mover*) d.get();
-  mover_keyframes = mover->keyframes;
-  behavior = mover->behavior;
-  sfxOpenStart = mover->sfx_open_start;
-  stayOpenTimeSec = mover->stay_open_time_sec;
-  sfxOpenEnd = mover->sfx_open_end;
-  sfxCloseEnd = mover->sfx_close_end;
-  sfxMoving = mover->sfx_transitioning;
-  visualName = mover->visual_name;
+MoveTrigger::MoveTrigger(Vob* parent, World& world, phoenix::vobs::trigger_mover& mover, Flags flags)
+  :AbstractTrigger(parent,world,mover,flags) {
+  mover_keyframes = mover.keyframes;
+  behavior = mover.behavior;
+  sfxOpenStart = mover.sfx_open_start;
+  stayOpenTimeSec = mover.stay_open_time_sec;
+  sfxOpenEnd = mover.sfx_open_end;
+  sfxCloseEnd = mover.sfx_close_end;
+  sfxMoving = mover.sfx_transitioning;
+  visualName = mover.visual_name;
 
-  if(mover->cd_dynamic || mover->cd_static) {
-    auto mesh = Resources::loadMesh(mover->visual_name);
+  if(mover.cd_dynamic || mover.cd_static) {
+    auto mesh = Resources::loadMesh(mover.visual_name);
     if(mesh!=nullptr)
       physic = PhysicMesh(*mesh,*world.physic(),true);
     }
-  if(mover->locked && !mover->keyframes.empty()) {
-    frame = uint32_t(mover->keyframes.size()-1);
+  if(mover.locked && !mover.keyframes.empty()) {
+    frame = uint32_t(mover.keyframes.size()-1);
     }
   auto tr = transform();
-  if(frame<mover->keyframes.size())
-    tr = mkMatrix(mover->keyframes[frame]);
+  if(frame<mover.keyframes.size())
+    tr = mkMatrix(mover.keyframes[frame]);
   tr.inverse();
   pos0 = localTransform();
   pos0.mul(tr);
 
-  keyframes.resize(mover->keyframes.size());
-  for(size_t i=0; i<mover->keyframes.size(); ++i) {
-    auto& f0 = mover->keyframes[i];
-    auto& f1 = mover->keyframes[(i+1)%mover->keyframes.size()];
+  keyframes.resize(mover.keyframes.size());
+  for(size_t i=0; i<mover.keyframes.size(); ++i) {
+    auto& f0 = mover.keyframes[i];
+    auto& f1 = mover.keyframes[(i+1)%mover.keyframes.size()];
     auto  dx = (f1.position.x-f0.position.x);
     auto  dy = (f1.position.y-f0.position.y);
     auto  dz = (f1.position.z-f0.position.z);
     keyframes[i].position = Vec3(dx,dy,dz).length();
-    keyframes[i].ticks    = uint64_t(keyframes[i].position/mover->speed);
+    keyframes[i].ticks    = uint64_t(keyframes[i].position/mover.speed);
     if(keyframes[i].ticks==0) {
-      keyframes[i].ticks = uint64_t(1.f/mover->speed);
-      if(mover->behavior==phoenix::mover_behavior::loop)
+      keyframes[i].ticks = uint64_t(1.f/mover.speed);
+      if(mover.behavior==phoenix::mover_behavior::loop)
         keyframes[i].ticks = 10000; // HACK: windmil
       }
     }

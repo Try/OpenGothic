@@ -5,7 +5,7 @@
 
 class FirePlace : public Interactive {
   public:
-    FirePlace(Vob* parent, World& world, const std::unique_ptr<phoenix::vob>& vob, Flags flags);
+    FirePlace(Vob* parent, World& world, phoenix::vobs::mob_fire& vob, Flags flags);
 
   protected:
     void  load(Serialize& fin) override;

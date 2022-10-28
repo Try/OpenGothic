@@ -7,11 +7,10 @@
 
 using namespace Tempest;
 
-TriggerList::TriggerList(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& d, Flags flags)
-  :AbstractTrigger(parent,world,d,flags) {
-  auto* list = (const phoenix::vobs::trigger_list*) d.get();
-  targets = list->targets;
-  listProcess = list->mode;
+TriggerList::TriggerList(Vob* parent, World &world, phoenix::vobs::trigger_list& list, Flags flags)
+  :AbstractTrigger(parent,world,list,flags) {
+  targets = list.targets;
+  listProcess = list.mode;
   }
 
 void TriggerList::onTrigger(const TriggerEvent&) {

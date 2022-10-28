@@ -6,7 +6,7 @@ class World;
 
 class CodeMaster : public AbstractTrigger {
   public:
-    CodeMaster(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& data, Flags flags);
+    CodeMaster(Vob* parent, World &world, phoenix::vobs::code_master& data, Flags flags);
 
     void onTrigger(const TriggerEvent& evt) override;
 

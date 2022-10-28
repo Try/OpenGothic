@@ -7,12 +7,12 @@
 
 using namespace Tempest;
 
-StaticObj::StaticObj(Vob* parent, World& world, const std::unique_ptr<phoenix::vob>& vob, Flags flags)
+StaticObj::StaticObj(Vob* parent, World& world, phoenix::vob& vob, Flags flags)
   : Vob(parent, world, vob, flags) {
-  visual.setVisual(*vob,world,(flags & Flags::Static));
+  visual.setVisual(vob,world,(flags & Flags::Static));
   visual.setObjMatrix(transform());
 
-  scheme = vob->visual_name;
+  scheme = vob.visual_name;
   }
 
 void StaticObj::moveEvent() {

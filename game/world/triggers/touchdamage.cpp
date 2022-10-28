@@ -4,19 +4,18 @@
 #include "world/world.h"
 #include "game/serialize.h"
 
-TouchDamage::TouchDamage(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& d, Flags flags)
-  :AbstractTrigger(parent,world,d,flags) {
-  auto* dmg = (const phoenix::vobs::touch_damage*) d.get();
-  barrier = dmg->barrier;
-  blunt = dmg->blunt;
-  edge = dmg->edge;
-  fire = dmg->fire;
-  fly = dmg->fly;
-  magic = dmg->magic;
-  point = dmg->point;
-  fall = dmg->fall;
-  damage = dmg->damage;
-  repeatDelaySec = dmg->repeat_delay_sec;
+TouchDamage::TouchDamage(Vob* parent, World &world, phoenix::vobs::touch_damage& dmg, Flags flags)
+  :AbstractTrigger(parent,world,dmg,flags) {
+  barrier = dmg.barrier;
+  blunt = dmg.blunt;
+  edge = dmg.edge;
+  fire = dmg.fire;
+  fly = dmg.fly;
+  magic = dmg.magic;
+  point = dmg.point;
+  fall = dmg.fall;
+  damage = dmg.damage;
+  repeatDelaySec = dmg.repeat_delay_sec;
   }
 
 void TouchDamage::onTrigger(const TriggerEvent&/*evt*/) {

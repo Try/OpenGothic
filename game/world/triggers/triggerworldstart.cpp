@@ -4,11 +4,10 @@
 
 #include "world/world.h"
 
-TriggerWorldStart::TriggerWorldStart(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& data, Flags flags)
-  :AbstractTrigger(parent,world,data,flags){
-  auto trg = (const phoenix::vobs::trigger_world_start*) data.get();
-  fireOnlyFirstTime = trg->fire_once;
-  target = trg->target;
+TriggerWorldStart::TriggerWorldStart(Vob* parent, World &world, phoenix::vobs::trigger_world_start& trg, Flags flags)
+  :AbstractTrigger(parent,world,trg,flags){
+  fireOnlyFirstTime = trg.fire_once;
+  target = trg.target;
   }
 
 void TriggerWorldStart::onTrigger(const TriggerEvent &ev) {

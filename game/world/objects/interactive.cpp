@@ -11,50 +11,48 @@
 #include "world/world.h"
 #include "utils/dbgpainter.h"
 
-Interactive::Interactive(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& vob, Flags flags)
+Interactive::Interactive(Vob* parent, World &world, phoenix::vobs::mob& vob, Flags flags)
   : Vob(parent,world,vob,flags) {
 
-  auto* mob = (const phoenix::vobs::mob*) vob.get();
-
-  vobName       = mob->vob_name;
-  focName       = mob->name;
-  bbox[0]       = {mob->bbox.min.x, mob->bbox.min.y, mob->bbox.min.z};
-  bbox[1]       = {mob->bbox.max.x, mob->bbox.max.y, mob->bbox.max.z};
-  owner         = mob->owner;
-  focOver       = mob->focus_override;
-  showVisual    = mob->show_visual;
+  vobName       = vob.vob_name;
+  focName       = vob.name;
+  bbox[0]       = {vob.bbox.min.x, vob.bbox.min.y, vob.bbox.min.z};
+  bbox[1]       = {vob.bbox.max.x, vob.bbox.max.y, vob.bbox.max.z};
+  owner         = vob.owner;
+  focOver       = vob.focus_override;
+  showVisual    = vob.show_visual;
 
   auto p = position();
   displayOffset = Tempest::Vec3(0,bbox[1].y-p.y,0);
 
-  if (mob->type != phoenix::vob_type::oCMOB) {
+  if (vob.type != phoenix::vob_type::oCMOB) {
     // TODO: These might be movable
-    auto* inter = (const phoenix::vobs::mob_inter*) vob.get();
-    stateNum      = inter->state;
-    triggerTarget = inter->target;
-    useWithItem   = inter->item;
-    conditionFunc = inter->condition_function;
-    onStateFunc   = inter->on_state_change_function;
-    rewind        = inter->rewind;
+    auto& inter = reinterpret_cast<phoenix::vobs::mob_inter&>(vob);
+    stateNum      = inter.state;
+    triggerTarget = inter.target;
+    useWithItem   = inter.item;
+    conditionFunc = inter.condition_function;
+    onStateFunc   = inter.on_state_change_function;
+    rewind        = inter.rewind;
   }
 
   for(auto& i:owner)
     i = char(std::toupper(i));
 
   if (vobType==phoenix::vob_type::oCMobDoor) {
-    auto* door = (const phoenix::vobs::mob_door*) vob.get();
-    locked      = door->locked;
-    keyInstance = door->key;
-    pickLockStr = door->pick_string;
+    auto& door = reinterpret_cast<phoenix::vobs::mob_door&>(vob);
+    locked      = door.locked;
+    keyInstance = door.key;
+    pickLockStr = door.pick_string;
   }
 
   if(isContainer() && (flags&Flags::Startup)==Flags::Startup) {
-    auto* container = (const phoenix::vobs::mob_container*) vob.get();
-    locked      = container->locked;
-    keyInstance = container->key;
-    pickLockStr = container->pick_string;
+    auto& container = reinterpret_cast<phoenix::vobs::mob_container&>(vob);
+    locked      = container.locked;
+    keyInstance = container.key;
+    pickLockStr = container.pick_string;
 
-    auto items  = std::move(container->contents);
+    auto items  = std::move(container.contents);
     if(items.size()>0) {
       char* it = &items[0];
       for(auto i=it;;++i) {
@@ -72,8 +70,8 @@ Interactive::Interactive(Vob* parent, World &world, const std::unique_ptr<phoeni
       }
     }
 
-  setVisual(*vob);
-  mdlVisual = std::move(vob->visual_name);
+  setVisual(vob);
+  mdlVisual = std::move(vob.visual_name);
 
   if(isLadder() && !mdlVisual.empty()) {
     // NOTE: there must be else way to determinate steps count, nut for now - we parse filename

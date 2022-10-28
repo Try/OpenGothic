@@ -7,7 +7,7 @@ class World;
 
 class PfxController : public AbstractTrigger {
   public:
-    PfxController(Vob* parent, World& world, const std::unique_ptr<phoenix::vob>& data, Flags flags);
+    PfxController(Vob* parent, World& world, phoenix::vobs::pfx_controller& data, Flags flags);
 
     void save(Serialize &fout) const override;
     void load(Serialize &fin) override;

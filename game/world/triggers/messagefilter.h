@@ -4,7 +4,7 @@
 
 class MessageFilter : public AbstractTrigger {
   public:
-    MessageFilter(Vob* parent, World& world, const std::unique_ptr<phoenix::vob>& data, Flags flags);
+    MessageFilter(Vob* parent, World& world, phoenix::vobs::message_filter& data, Flags flags);
 
   private:
     void onTrigger(const TriggerEvent& evt) override;

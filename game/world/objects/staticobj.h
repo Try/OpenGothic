@@ -6,7 +6,7 @@
 
 class StaticObj : public Vob {
   public:
-    StaticObj(Vob* parent, World& world, const std::unique_ptr<phoenix::vob>& vob, Flags flags);
+    StaticObj(Vob* parent, World& world, phoenix::vob& vob, Flags flags);
 
   private:
     void  moveEvent() override;

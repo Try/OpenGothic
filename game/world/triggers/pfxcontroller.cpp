@@ -5,19 +5,18 @@
 #include "game/serialize.h"
 #include "gothic.h"
 
-PfxController::PfxController(Vob* parent, World& world, const std::unique_ptr<phoenix::vob>& d, Flags flags)
-  :AbstractTrigger(parent,world,d,flags) {
-  auto* ctrl = (const phoenix::vobs::pfx_controller*) d.get();
-  killWhenDone = ctrl->kill_when_done;
+PfxController::PfxController(Vob* parent, World& world, phoenix::vobs::pfx_controller& ctrl, Flags flags)
+  :AbstractTrigger(parent,world,ctrl,flags) {
+  killWhenDone = ctrl.kill_when_done;
 
-  const ParticleFx* view = Gothic::inst().loadParticleFx(ctrl->pfx_name);
+  const ParticleFx* view = Gothic::inst().loadParticleFx(ctrl.pfx_name);
   if(view==nullptr)
-    view = Gothic::inst().loadParticleFx(ctrl->visual_name);
+    view = Gothic::inst().loadParticleFx(ctrl.visual_name);
   if(view==nullptr)
     return;
   lifeTime = view->maxLifetime();
   pfx = PfxEmitter(world,view);
-  pfx.setActive(ctrl->initially_running);
+  pfx.setActive(ctrl.initially_running);
   pfx.setLooped(true);
   pfx.setObjMatrix(transform());
   }

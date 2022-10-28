@@ -2,12 +2,11 @@
 
 #include "world/world.h"
 
-MessageFilter::MessageFilter(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& d, Flags flags)
-  :AbstractTrigger(parent,world,d,flags) {
-  auto* filt = (const phoenix::vobs::message_filter*) d.get();
-  target = filt->target;
-  onUntriggerA = filt->on_untrigger;
-  onTriggerA = filt->on_trigger;
+MessageFilter::MessageFilter(Vob* parent, World &world, phoenix::vobs::message_filter& filt, Flags flags)
+  :AbstractTrigger(parent,world,filt,flags) {
+  target = filt.target;
+  onUntriggerA = filt.on_untrigger;
+  onTriggerA = filt.on_trigger;
   }
 
 void MessageFilter::onTrigger(const TriggerEvent&) {

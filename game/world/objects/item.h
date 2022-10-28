@@ -93,7 +93,7 @@ class Item : public Vob {
     void                updateMatrix();
 
     std::shared_ptr<phoenix::c_item> hitem={};
-    Tempest::Vec3                              pos={};
+    Tempest::Vec3                    pos={};
 
     uint32_t                          amount  = 0;
     uint8_t                           equiped = 0;

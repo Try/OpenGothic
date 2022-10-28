@@ -10,15 +10,15 @@
 
 using namespace Tempest;
 
-AbstractTrigger::AbstractTrigger(Vob* parent, World &world, const std::unique_ptr<phoenix::vob>& data, Flags flags)
-  : Vob(parent,world,data,flags & (~Flags::Static)), callback(this), vobName(data->vob_name) {
+AbstractTrigger::AbstractTrigger(Vob* parent, World &world, phoenix::vob& data, Flags flags)
+  : Vob(parent,world,data,flags & (~Flags::Static)), callback(this), vobName(data.vob_name) {
   if(!hasFlag(StartEnabled))
     ;//disabled = true;
-  bboxSize   = Vec3(data->bbox.max.x-data->bbox.min.x,data->bbox.max.y-data->bbox.min.y,data->bbox.max.z-data->bbox.min.z)*0.5f;
-  bboxOrigin = Vec3(data->bbox.max.x+data->bbox.min.x,data->bbox.max.y+data->bbox.min.y,data->bbox.max.z+data->bbox.min.z)*0.5f;
+  bboxSize   = Vec3(data.bbox.max.x-data.bbox.min.x,data.bbox.max.y-data.bbox.min.y,data.bbox.max.z-data.bbox.min.z)*0.5f;
+  bboxOrigin = Vec3(data.bbox.max.x+data.bbox.min.x,data.bbox.max.y+data.bbox.min.y,data.bbox.max.z+data.bbox.min.z)*0.5f;
   bboxOrigin = bboxOrigin - position();
 
-  box        = world.physic()->bboxObj(&callback,data->bbox);
+  box        = world.physic()->bboxObj(&callback,data.bbox);
   if(bboxSize!=Vec3()) {
     boxNpc = CollisionZone(world,bboxOrigin+position(),bboxSize);
     boxNpc.setCallback([this](Npc& npc){
@@ -28,15 +28,15 @@ AbstractTrigger::AbstractTrigger(Vob* parent, World &world, const std::unique_pt
 
   using phoenix::vob_type;
 
-  if (data->type == vob_type::zCTrigger || data->type == vob_type::zCTriggerList ||
-      data->type == vob_type::oCTriggerScript || data->type == vob_type::zCMover ||
-      data->type == vob_type::oCTriggerChangeLevel || data->type == vob_type::oCCSTrigger) {
-    auto* trigger = (const phoenix::vobs::trigger*) data.get();
-    fireDelaySec = trigger->fire_delay_sec;
-    maxActivationCount = trigger->max_activation_count;
-    filterFlags = trigger->filter_flags;
-    triggerFlags = trigger->flags;
-    target = trigger->target;
+  if (data.type == vob_type::zCTrigger || data.type == vob_type::zCTriggerList ||
+      data.type == vob_type::oCTriggerScript || data.type == vob_type::zCMover ||
+      data.type == vob_type::oCTriggerChangeLevel || data.type == vob_type::oCCSTrigger) {
+    auto& trigger = reinterpret_cast<phoenix::vobs::trigger&>(data);
+    fireDelaySec = trigger.fire_delay_sec;
+    maxActivationCount = trigger.max_activation_count;
+    filterFlags = trigger.filter_flags;
+    triggerFlags = trigger.flags;
+    target = trigger.target;
   }
 
   world.addTrigger(this);
