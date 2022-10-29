@@ -8,8 +8,7 @@ Vec2 Parser::loadVec2(std::string_view src) {
 
   float v[2] = {};
   char  buf[256];
-  std::memcpy(buf, src.data(), src.length() > 254 ? 254 : src.length());
-  buf[src.length()] = 0;
+  std::snprintf(buf, sizeof(buf), "%.*s", static_cast<int>(src.length()), src.data());
 
   const char* str = buf;
   for(int i=0;i<2;++i) {
@@ -30,8 +29,7 @@ Vec3 Parser::loadVec3(std::string_view src) {
 
   float v[3] = {};
   char  buf[256];
-  std::memcpy(buf, src.data(), src.length() > 254 ? 254 : src.length());
-  buf[src.length()] = 0;
+  std::snprintf(buf, sizeof(buf), "%.*s", static_cast<int>(src.length()), src.data());
 
   const char* str = buf;
   for(int i=0;i<3;++i) {
