@@ -313,7 +313,7 @@ void Serialize::implWrite(const phoenix::animation_sample &i) {
   }
 
 void Serialize::implRead(phoenix::animation_sample &i) {
-  if (version() < 39) {
+  if (version() < 40) {
     read(i.position.x,i.position.y,i.position.z);
     read(i.rotation.x,i.rotation.y,i.rotation.z,i.rotation.w);
     } else {
