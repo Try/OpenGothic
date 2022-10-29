@@ -120,12 +120,10 @@ void Interactive::load(Serialize &fin) {
     invent.load(fin,*this,world); else
     invent.clear(world.script(),*this,true);
 
-  if (fin.version() < 39 && vobType != phoenix::vob_type::oCMobContainer) {
-    fin.setEntry("worlds/", fin.worldName(), "/mobsi/", vobObjectID, "/visual");
-    visual.load(fin, *this);
-    visual.setObjMatrix(transform());
-    visual.syncPhysics();
-    }
+  fin.setEntry("worlds/", fin.worldName(), "/mobsi/", vobObjectID, "/visual");
+  visual.load(fin, *this);
+  visual.setObjMatrix(transform());
+  visual.syncPhysics();
   }
 
 void Interactive::save(Serialize &fout) const {
