@@ -148,7 +148,7 @@ class World final {
     Npc*                 addNpc     (size_t itemInstance,   std::string_view     at);
     Npc*                 addNpc     (size_t itemInstance,   const Tempest::Vec3& at);
     Item*                addItem    (size_t itemInstance,   std::string_view     at);
-    Item*                addItem    (const std::unique_ptr<phoenix::vob>& vob);
+    Item*                addItem    (const phoenix::vobs::item& vob);
     Item*                addItem    (size_t itemInstance, const Tempest::Vec3&      pos);
     Item*                addItemDyn (size_t itemInstance, const Tempest::Matrix4x4& pos, size_t owner);
     auto                 takeItem(Item& it) -> std::unique_ptr<Item>;

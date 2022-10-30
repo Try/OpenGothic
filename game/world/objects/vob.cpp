@@ -192,7 +192,7 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const std::unique_ptr<
       }
     case phoenix::vob_type::oCItem: {
       if(flags)
-        world.addItem(vob);
+        world.addItem(reinterpret_cast<vobs::item&>(*vob));
       // FIXME
       return std::unique_ptr<Vob>(new Vob(parent,world,*vob,flags));
       }

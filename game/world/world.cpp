@@ -536,8 +536,8 @@ Item *World::addItem(size_t itemInstance, std::string_view at) {
   return wobj.addItem(itemInstance,at);
   }
 
-Item* World::addItem(const std::unique_ptr<phoenix::vob>& vob) {
-  return wobj.addItem(*(const phoenix::vobs::item*) vob.get());
+Item* World::addItem(const phoenix::vobs::item& vob) {
+  return wobj.addItem(vob);
   }
 
 Item* World::addItem(size_t itemInstance, const Tempest::Vec3& pos) {
