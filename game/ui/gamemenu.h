@@ -102,7 +102,7 @@ class GameMenu : public Tempest::Widget {
     void                                  execChgOption(Item &item, int slideDx);
     void                                  execSaveGame (const Item& item);
     void                                  execLoadGame (const Item& item);
-    void                                  execCommands (std::string_view str, bool isClick);
+    void                                  execCommands (std::string str, bool isClick);
 
     bool                                  implUpdateSavThumb(Item& sel);
     size_t                                saveSlotId(const Item& sel);

@@ -879,7 +879,7 @@ void GameMenu::execLoadGame(const GameMenu::Item &item) {
   Gothic::inst().load(fname);
   }
 
-void GameMenu::execCommands(std::string_view str, bool isClick) {
+void GameMenu::execCommands(std::string str, bool isClick) {
 
   if(str.find("EFFECTS ")==0) {
     // menu log
