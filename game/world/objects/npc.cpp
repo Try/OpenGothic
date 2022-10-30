@@ -1098,7 +1098,7 @@ int32_t Npc::talentValue(Talent t) const {
   }
 
 int32_t Npc::hitChanse(Talent t) const {
-  if(t<5)
+  if(t<=phoenix::c_npc::hitchance_count)
     return hnpc->hitchance[t];
   return 0;
   }

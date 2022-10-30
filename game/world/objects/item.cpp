@@ -283,7 +283,7 @@ bool Item::checkCond(const Npc &other) const {
   }
 
 bool Item::checkCondUse(const Npc &other, int32_t &a, int32_t &nv) const {
-  for(size_t i=0;i<3;++i){
+  for(size_t i=0;i<phoenix::c_item::condition_count;++i){
     auto atr = Attribute(hitem->cond_atr[i]);
     if(other.attribute(atr)<hitem->cond_value[i] && hitem->cond_value[i]!=0) {
       a  = atr;
