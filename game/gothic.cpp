@@ -528,8 +528,7 @@ const CameraDefinitions& Gothic::cameraDef() {
 
 std::string_view Gothic::messageFromSvm(std::string_view id, int voice) const {
   if(!game){
-    static std::string empty;
-    return empty;
+    return "";
     }
   return game->messageFromSvm(id,voice);
   }
