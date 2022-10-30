@@ -394,8 +394,7 @@ std::string_view GameSession::messageFromSvm(std::string_view id, int voice) con
 
 std::string_view GameSession::messageByName(const std::string& id) const {
   if(!wrld){
-    static std::string empty {};
-    return empty;
+    return "";
     }
   return vm->messageByName(id);
   }
