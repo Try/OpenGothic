@@ -2576,16 +2576,6 @@ void Npc::emitSoundEffect(std::string_view sound, float range, bool freeSlot) {
   sfx.play();
   }
 
-static const char* MaterialGroupNames[] = {
-    "UNDEF",
-    "METAL",
-    "STONE",
-    "WOOD",
-    "EARTH",
-    "WATER",
-    "SNOW",
-};
-
 void Npc::emitSoundGround(std::string_view sound, float range, bool freeSlot) {
   char    buf[256]={};
   auto mat = mvAlgo.groundMaterial();
