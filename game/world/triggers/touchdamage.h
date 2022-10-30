@@ -15,14 +15,14 @@ class TouchDamage : public AbstractTrigger {
     void takeDamage(Npc& npc, int32_t val, int32_t prot);
 
     uint64_t repeatTimeout = 0;
-    bool     barrier;
-    bool     blunt;
-    bool     edge;
-    bool     fire;
-    bool     fly;
-    bool     magic;
-    bool     point;
-    bool     fall;
-    float    damage;
-    float    repeatDelaySec;
+    bool     barrier = false;
+    bool     blunt = false;
+    bool     edge = false;
+    bool     fire = false;
+    bool     fly = false;
+    bool     magic = false;
+    bool     point = false;
+    bool     fall = false;
+    float    damage = 0;
+    float    repeatDelaySec = 0;
   };
