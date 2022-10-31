@@ -774,13 +774,13 @@ void Gothic::setupVmCommonApi(phoenix::vm &vm) {
   vm.register_external("printdebuginstch",    [this](int ch, std::string_view msg){ printdebuginstch(ch, msg); });
   }
 
-void Gothic::notImplementedRoutine(const std::string& fn) {
-  static std::set<std::string> s;
+void Gothic::notImplementedRoutine(std::string_view fn) {
+  static std::set<std::string, std::less<>> s;
 
   if(s.find(fn)==s.end()){
-    s.insert(fn);
-    Log::e("not implemented call [",fn,"]");
-  }
+    auto [v, _] = s.insert(std::string {fn});
+    Log::e("not implemented call [",v->c_str(),"]");
+    }
   }
 
 std::string Gothic::concatstrings(std::string_view a, std::string_view b) {

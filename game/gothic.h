@@ -204,7 +204,7 @@ class Gothic final {
 
     auto                                    getDocument(int id) -> std::unique_ptr<DocumentMenu::Show>&;
 
-    static void                             notImplementedRoutine(const std::string& fn);
+    static void                             notImplementedRoutine(std::string_view fn);
 
     static std::string                      concatstrings     (std::string_view a, std::string_view b);
     static std::string                      inttostring       (int i);
