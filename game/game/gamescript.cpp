@@ -1141,7 +1141,7 @@ uint32_t GameScript::messageTime(std::string_view id) const {
     return time;
 
   char buf[256]={};
-  std::snprintf(buf,sizeof(buf),"%s.wav",id.data());
+  std::snprintf(buf,sizeof(buf),"%.*s.wav",int(id.length()),id.data());
   auto  s   = Resources::loadSoundBuffer(buf);
   if(s.timeLength()>0) {
     time = uint32_t(s.timeLength());
@@ -1792,7 +1792,7 @@ void GameScript::npc_exchangeroutine(std::shared_ptr<phoenix::c_npc> npcRef, std
   if(npc!=nullptr) {
     auto& v = *npc->handle();
     char buf[256]={};
-    std::snprintf(buf,sizeof(buf),"Rtn_%s_%d",rname.data(),v.id);
+    std::snprintf(buf,sizeof(buf),"Rtn_%.*s_%d",int(rname.length()),rname.data(),v.id);
 
     auto* sym = vm.find_symbol_by_name(buf);
     size_t d = sym != nullptr ? sym->index() : 0;
