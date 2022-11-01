@@ -560,14 +560,14 @@ void GameScript::loadVar(Serialize &fin) {
             }
           else if(dataClass==2) {
             auto itm = world().itmById(id);
-            s->set_instance(itm != nullptr ? itm->handle() : nullptr);
+            s->set_instance(itm != nullptr ? itm->handlePtr() : nullptr);
             }
           else if(dataClass==3) {
             uint32_t itmClass=0;
             fin.read(itmClass);
             if(auto npc = world().npcById(id)) {
               auto itm = npc->getItem(itmClass);
-              s->set_instance(itm ? itm->handle() : nullptr);
+              s->set_instance(itm ? itm->handlePtr() : nullptr);
               }
             }
           }
@@ -708,7 +708,7 @@ phoenix::c_focus GameScript::getFocus(const std::string& name) {
 void GameScript::storeItem(Item *itm) {
   auto* s = vm.global_item();
   if(itm!=nullptr) {
-    s->set_instance(itm->handle());
+    s->set_instance(itm->handlePtr());
     } else {
     s->set_instance(nullptr);
     }
@@ -1209,7 +1209,7 @@ BodyState GameScript::schemeToBodystate(std::string_view sc) {
   }
 
 void GameScript::onWldItemRemoved(const Item& itm) {
-  onWldInstanceRemoved(itm.handle().get());
+  onWldInstanceRemoved(&itm.handle());
   }
 
 void GameScript::onWldInstanceRemoved(const phoenix::instance* obj) {
@@ -1222,7 +1222,7 @@ void GameScript::makeCurrent(Item* w) {
   auto* s = vm.find_symbol_by_index(w->clsId());
 
   if (s != nullptr)
-    s->set_instance(w->handle());
+    s->set_instance(w->handlePtr());
   }
 
 bool GameScript::searchScheme(std::string_view sc, std::string_view listName) {
@@ -1566,7 +1566,7 @@ bool GameScript::wld_detectitem(std::shared_ptr<phoenix::c_npc> npcRef, int flag
   Item* ret =nullptr;
   float dist=std::numeric_limits<float>::max();
   world().detectItem(npc->position(), float(npc->handle().senses_range), [npc,&ret,&dist,flags](Item& it) {
-    if((it.handle()->main_flag&flags)==0)
+    if((it.handle().main_flag&flags)==0)
       return;
     float d = (npc->position()-it.position()).quadLength();
     if(d<dist) {
@@ -1576,7 +1576,7 @@ bool GameScript::wld_detectitem(std::shared_ptr<phoenix::c_npc> npcRef, int flag
     });
 
   if(ret)
-    vm.global_item()->set_instance(ret->handle());
+    vm.global_item()->set_instance(ret->handlePtr());
   return ret != nullptr;
   }
 
@@ -1859,7 +1859,7 @@ int GameScript::npc_getinvitem(std::shared_ptr<phoenix::c_npc> npcRef, int itemI
   auto     itm    = npc==nullptr ? nullptr : npc->getItem(itemId);
   storeItem(itm);
   if(itm!=nullptr) {
-    return itm->handle()->symbol_index();
+    return itm->handle().symbol_index();
     } else {
     return -1;
     }
@@ -2001,7 +2001,7 @@ int GameScript::npc_getheighttonpc(std::shared_ptr<phoenix::c_npc> aRef, std::sh
 std::shared_ptr<phoenix::c_item> GameScript::npc_getequippedmeleeweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
   auto npc = getNpc(npcRef);
   if(npc!=nullptr && npc->currentMeleWeapon() != nullptr){
-    return npc->currentMeleWeapon()->handle();
+    return npc->currentMeleWeapon()->handlePtr();
     }
   return nullptr;
   }
@@ -2009,7 +2009,7 @@ std::shared_ptr<phoenix::c_item> GameScript::npc_getequippedmeleeweapon(std::sha
 std::shared_ptr<phoenix::c_item> GameScript::npc_getequippedrangedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
   auto npc = getNpc(npcRef);
   if(npc!=nullptr && npc->currentMeleWeapon() != nullptr){
-    return npc->currentRangeWeapon()->handle();
+    return npc->currentRangeWeapon()->handlePtr();
     }
   return nullptr;
   }
@@ -2017,7 +2017,7 @@ std::shared_ptr<phoenix::c_item> GameScript::npc_getequippedrangedweapon(std::sh
 std::shared_ptr<phoenix::c_item> GameScript::npc_getequippedarmor(std::shared_ptr<phoenix::c_npc> npcRef) {
   auto npc = getNpc(npcRef);
   if(npc!=nullptr && npc->currentArmour()!=nullptr){
-    return npc->currentArmour()->handle();
+    return npc->currentArmour()->handlePtr();
     }
   return nullptr;
   }
@@ -2248,7 +2248,7 @@ std::shared_ptr<phoenix::c_item> GameScript::npc_getreadiedweapon(std::shared_pt
   auto ret = npc->activeWeapon();
   if(ret!=nullptr) {
     makeCurrent(ret);
-    return ret->handle();
+    return ret->handlePtr();
     } else {
     return nullptr;
     }
@@ -2438,7 +2438,7 @@ bool GameScript::npc_ownedbynpc(std::shared_ptr<phoenix::c_item> itmRef, std::sh
     return false;
     }
 
-  auto* sym = vm.find_symbol_by_index(itm->handle()->owner);
+  auto* sym = vm.find_symbol_by_index(itm->handle().owner);
   return sym != nullptr && npc->handlePtr()==sym->get_instance();
   }
 
@@ -2956,7 +2956,7 @@ bool GameScript::hlp_isitem(std::shared_ptr<phoenix::c_item> itemRef, int instan
   auto item = getItem(itemRef.get());
   if(item!=nullptr){
     auto& v = item->handle();
-    return int(v->symbol_index()) == instanceSymbol;
+    return int(v.symbol_index()) == instanceSymbol;
     } else {
       return false;
     }

@@ -456,7 +456,7 @@ DynamicWorld::DynamicWorld(World& owner,const phoenix::mesh& worldMesh) {
   bboxList  .reset(new BBoxList   (*this));
 
   world->setItemHitCallback([&](::Item& itm, phoenix::material_group mat, float impulse, float mass) {
-    auto  snd = owner.addLandHitEffect(ItemMaterial(itm.handle()->material),mat,itm.transform());
+    auto  snd = owner.addLandHitEffect(ItemMaterial(itm.handle().material),mat,itm.transform());
     float v   = impulse/mass;
     float vol = snd.volume()*std::min(v/10.f,1.f);
     snd.setVolume(vol);

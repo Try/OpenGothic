@@ -80,9 +80,10 @@ class Item : public Vob {
     bool                checkCondUse (const Npc& other,int32_t& atr,int32_t& nv) const;
     bool                checkCondRune(const Npc& other,int32_t& cPl,int32_t& cIt) const;
 
-    const std::shared_ptr<phoenix::c_item>& handle() const { return hitem; }
-    std::shared_ptr<phoenix::c_item>&       handle()       { return hitem; }
-    size_t                                  clsId() const;
+    const phoenix::c_item&                   handle() const { return *hitem; }
+    phoenix::c_item&                         handle() { return *hitem; }
+    const std::shared_ptr<phoenix::c_item>&  handlePtr()    { return hitem; }
+    size_t                                   clsId() const;
 
   protected:
     void                moveEvent() override;

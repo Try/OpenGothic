@@ -852,9 +852,9 @@ void Npc::updateArmour() {
     visual.setBody(*this,std::move(vbody),bdColor);
     } else {
     auto& itData = ar->handle();
-    auto  flag   = ItmFlags(itData->main_flag);
+    auto  flag   = ItmFlags(itData.main_flag);
     if(flag & ITM_CAT_ARMOR){
-      auto& asc   = itData->visual_change;
+      auto& asc   = itData.visual_change;
       auto  vbody = asc.empty() ? MeshObjects::Mesh() : w.addView(asc.c_str(),vColor,0,bdColor);
       visual.setArmour(*this,std::move(vbody));
       }
@@ -1593,7 +1593,7 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
   auto ws = visual.fightMode();
   if(ev.weaponCh==phoenix::mds::event_fight_mode::none && (ws==WeaponState::W1H || ws==WeaponState::W2H)) {
     if(auto melee = invent.currentMeleWeapon()) {
-      if(melee->handle()->material==ItemMaterial::MAT_METAL)
+      if(melee->handle().material==ItemMaterial::MAT_METAL)
         sfxWeapon = ::Sound(owner,::Sound::T_Regular,"UNDRAWSOUND_ME.WAV",{x,y+translateY(),z},2500,false); else
         sfxWeapon = ::Sound(owner,::Sound::T_Regular,"UNDRAWSOUND_WO.WAV",{x,y+translateY(),z},2500,false);
       sfxWeapon.play();
@@ -1601,7 +1601,7 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
     }
   else if(ev.weaponCh==phoenix::mds::event_fight_mode::one_handed || ev.weaponCh==phoenix::mds::event_fight_mode::two_handed) {
     if(auto melee = invent.currentMeleWeapon()) {
-      if(melee->handle()->material==ItemMaterial::MAT_METAL)
+      if(melee->handle().material==ItemMaterial::MAT_METAL)
         sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_ME.WAV",{x,y+translateY(),z},2500,false); else
         sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_WO.WAV",{x,y+translateY(),z},2500,false);
       sfxWeapon.play();
@@ -1863,7 +1863,7 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
       case phoenix::mds::event_tag_type::place_munition: {
         auto active=invent.activeWeapon();
         if(active!=nullptr) {
-          const int32_t munition = active->handle()->munition;
+          const int32_t munition = active->handle().munition;
           invent.putAmmunition(*this,uint32_t(munition),i.slot[0]);
           }
         break;
@@ -3427,7 +3427,7 @@ bool Npc::shootBow(Interactive* focOverride) {
     return true;
     }
 
-  const int32_t munition = active->handle()->munition;
+  const int32_t munition = active->handle().munition;
   if(!hasAmunition())
     return false;
 
@@ -3456,7 +3456,7 @@ bool Npc::hasAmunition() const {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return false;
-  const int32_t munition = active->handle()->munition;
+  const int32_t munition = active->handle().munition;
   if(munition<0 || invent.itemCount(size_t(munition))<=0)
     return false;
   return true;

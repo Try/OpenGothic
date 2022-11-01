@@ -392,7 +392,7 @@ void MdlVisual::emitBlockEffect(Npc& dest, Npc& source) {
   if(src==nullptr || dst==nullptr)
     return;
 
-  auto s = world.addWeaponBlkEffect(ItemMaterial(src->handle()->material),ItemMaterial(dst->handle()->material),p);
+  auto s = world.addWeaponBlkEffect(ItemMaterial(src->handle().material),ItemMaterial(dst->handle().material),p);
   s.play();
   }
 

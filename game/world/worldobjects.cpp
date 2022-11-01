@@ -635,7 +635,7 @@ Item* WorldObjects::addItemDyn(size_t itemInstance, const Tempest::Matrix4x4& po
     ptr.reset(new Item(owner,itemInstance,Item::T_WorldDyn));
 
   auto* it=ptr.get();
-  it->handle()->owner = ownerNpc==size_t(-1) ? 0 : uint32_t(ownerNpc);
+  it->handle().owner = ownerNpc==size_t(-1) ? 0 : uint32_t(ownerNpc);
   itemArr.emplace_back(std::move(ptr));
   items.add(itemArr.back().get());
 
@@ -827,7 +827,7 @@ void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item &itm
   m.self   = &self;
   m.other  = &other;
   m.victum = &victum;
-  m.item   = itm.handle()->symbol_index();
+  m.item   = itm.handle().symbol_index();
 
   sndPerc.push_back(m);
   }

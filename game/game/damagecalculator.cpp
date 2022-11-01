@@ -141,7 +141,7 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
 
 int32_t DamageCalculator::damageTypeMask(Npc& npc) {
   if(auto w = npc.inventory().activeWeapon())
-    return w->handle()->damage_type;
+    return w->handle().damage_type;
   return npc.handle().damage_type;
   }
 

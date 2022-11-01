@@ -42,7 +42,7 @@ void InventoryRenderer::reset(bool full) {
   }
 
 void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
-  auto& itData = *item.handle();
+  auto& itData = item.handle();
   if(auto mesh=Resources::loadMesh(itData.visual)) {
     float    sz  = (mesh->bbox[1]-mesh->bbox[0]).length();
     auto     mv  = (mesh->bbox[1]+mesh->bbox[0])*0.5f;
