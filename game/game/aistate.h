@@ -13,7 +13,7 @@ class AiState final {
     size_t funcLoop=0;
     size_t funcEnd =0;
 
-    const char* name() const { return mname.c_str(); }
+    const char* name() const { return mname; }
   private:
-    std::string mname; //for debugging
+    const char* mname=""; //for debugging
   };
