@@ -681,20 +681,6 @@ void GameMenu::getText(const Item& it, std::vector<char> &out) {
     size_t size = std::strlen(src.c_str());
     out.resize(size+1);
     std::memcpy(out.data(),src.c_str(),size+1);
-
-    if (it.handle->flags & phoenix::c_menu_item_flags::multiline) {
-      auto i = std::find(out.begin(), out.end(), '\\');
-
-      while (i != out.end()) {
-          if (*(i + 1) == 'n') {
-              *i = '\n';
-              out.erase(i + 1);
-          }
-
-        i = std::find(out.begin(), out.end(), '\\');
-    }
-    }
-
     return;
     }
 
