@@ -927,7 +927,7 @@ Item *Inventory::bestRangeWeapon(Npc &owner) {
   }
 
 void Inventory::applyWeaponStats(Npc& owner, const Item &weapon, int sgn) {
-  auto& hnpc = *owner.handle();
+  auto& hnpc = owner.handle();
   //hnpc.damagetype = sgn>0 ? weapon.handle()->damageType : (1 << GEngineClasses::DAM_INDEX_BLUNT);
   for(size_t i=0; i<phoenix::damage_type::count; ++i){
     hnpc.damage[i] += sgn*weapon.handle()->damage[i];

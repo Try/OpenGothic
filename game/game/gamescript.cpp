@@ -556,7 +556,7 @@ void GameScript::loadVar(Serialize &fin) {
             break;
           if(dataClass==1) {
             auto npc = world().npcById(id);
-            s->set_instance(npc ? npc->handle() : nullptr);
+            s->set_instance(npc ? npc->handlePtr() : nullptr);
             }
           else if(dataClass==2) {
             auto itm = world().itmById(id);
@@ -824,8 +824,8 @@ std::vector<GameScript::DlgChoise> GameScript::updateDialog(const GameScript::Dl
   const phoenix::c_info& info = *dlg.handle;
   std::vector<GameScript::DlgChoise>     ret;
 
-  ScopeVar self (*vm.global_self(),  npc.handle());
-  ScopeVar other(*vm.global_other(), player.handle());
+  ScopeVar self (*vm.global_self(), npc.handlePtr());
+  ScopeVar other(*vm.global_other(), player.handlePtr());
 
   for(size_t i=0;i<info.choices.size();++i){
     auto& sub = info.choices[i];
@@ -843,14 +843,14 @@ std::vector<GameScript::DlgChoise> GameScript::updateDialog(const GameScript::Dl
   }
 
 void GameScript::exec(const GameScript::DlgChoise &dlg,Npc& player, Npc& npc) {
-  ScopeVar self (*vm.global_self(),  npc.handle());
-  ScopeVar other(*vm.global_other(), player.handle());
+  ScopeVar self (*vm.global_self(), npc.handlePtr());
+  ScopeVar other(*vm.global_other(), player.handlePtr());
 
   phoenix::c_info& info = *dlg.handle;
 
   if(&player!=&npc)
     player.stopAnim("");
-  auto pl = *player.handle();
+  auto& pl = player.handle();
 
   if(info.information==int(dlg.scriptFn)) {
     setNpcInfoKnown(pl,info);
@@ -869,7 +869,7 @@ void GameScript::printCannotUseError(Npc& npc, int32_t atr, int32_t nValue) {
   if(id==nullptr)
     return;
 
-  ScopeVar self(*vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id, npc.isPlayer(), atr, nValue);
   }
 
@@ -878,7 +878,7 @@ void GameScript::printCannotCastError(Npc &npc, int32_t plM, int32_t itM) {
   if(id==nullptr)
     return;
 
-  ScopeVar self(*vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id, npc.isPlayer(), itM, plM);
   }
 
@@ -886,7 +886,7 @@ void GameScript::printCannotBuyError(Npc &npc) {
   auto id = vm.find_symbol_by_name("player_trade_not_enough_gold");
   if(id==nullptr)
     return;
-  ScopeVar self(*vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id);
   }
 
@@ -894,7 +894,7 @@ void GameScript::printMobMissingItem(Npc &npc) {
   auto id = vm.find_symbol_by_name("player_mob_missing_item");
   if(id==nullptr)
     return;
-  ScopeVar self(*vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id);
   }
 
@@ -902,7 +902,7 @@ void GameScript::printMobMissingKey(Npc& npc) {
   auto id = vm.find_symbol_by_name("player_mob_missing_key");
   if(id==nullptr)
     return;
-  ScopeVar self(*vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id);
   }
 
@@ -910,7 +910,7 @@ void GameScript::printMobAnotherIsUsing(Npc &npc) {
   auto id = vm.find_symbol_by_name("player_mob_another_is_using");
   if(id==nullptr)
     return;
-  ScopeVar self(*vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id);
   }
 
@@ -918,7 +918,7 @@ void GameScript::printMobMissingKeyOrLockpick(Npc& npc) {
   auto id = vm.find_symbol_by_name("player_mob_missing_key_or_lockpick");
   if(id==nullptr)
     return;
-  ScopeVar self(*vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id);
   }
 
@@ -926,7 +926,7 @@ void GameScript::printMobMissingLockpick(Npc& npc) {
   auto id = vm.find_symbol_by_name("player_mob_missing_lockpick");
   if(id==nullptr)
     return;
-  ScopeVar self(*vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id);
   }
 
@@ -934,7 +934,7 @@ void GameScript::printMobTooFar(Npc& npc) {
   auto id = vm.find_symbol_by_name("player_mob_too_far_away");
   if(id==nullptr)
     return;
-  ScopeVar self(*vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id);
   }
 
@@ -964,9 +964,9 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
       }
     }
 
-  ScopeVar self  (*vm.global_self(),   npc != nullptr ? npc->handle() : nullptr);
-  ScopeVar other (*vm.global_other(),  oth != nullptr ? oth->handle() : nullptr);
-  ScopeVar victum(*vm.global_victim(), vic != nullptr ? vic->handle() : nullptr);
+  ScopeVar self  (*vm.global_self(),   npc != nullptr ? npc->handlePtr() : nullptr);
+  ScopeVar other (*vm.global_other(),  oth != nullptr ? oth->handlePtr() : nullptr);
+  ScopeVar victum(*vm.global_victim(), vic != nullptr ? vic->handlePtr() : nullptr);
 
   auto* sym = vm.find_symbol_by_index(fn.ptr);
   int ret = 0;
@@ -977,7 +977,7 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
   }
   if(vm.global_other()->is_instance_of<phoenix::c_npc>()){
     auto oth2 = reinterpret_cast<phoenix::c_npc*>(vm.global_other()->get_instance().get());
-    if(oth!=nullptr && oth2!=oth->handle().get()) {
+    if(oth!=nullptr && oth2!=&oth->handle()) {
       Npc* other = getNpc(oth2);
       npc->setOther(other);
       }
@@ -993,7 +993,7 @@ void GameScript::invokeItem(Npc *npc, ScriptFn fn) {
   if (functionSymbol == nullptr)
     return;
 
-  ScopeVar self(*vm.global_self(), npc->handle());
+  ScopeVar self(*vm.global_self(), npc->handlePtr());
   vm.call_function<void>(functionSymbol);
   }
 
@@ -1002,8 +1002,8 @@ int GameScript::invokeMana(Npc &npc, Npc* target, Item &) {
   if(fn==nullptr)
     return SpellCode::SPL_SENDSTOP;
 
-  ScopeVar self (*vm.global_self(),  npc.handle());
-  ScopeVar other(*vm.global_other(), target != nullptr ? target->handle() : nullptr);
+  ScopeVar self (*vm.global_self(),  npc.handlePtr());
+  ScopeVar other(*vm.global_other(), target != nullptr ? target->handlePtr() : nullptr);
 
   return vm.call_function<int>(fn, npc.attribute(ATR_MANA));
   }
@@ -1020,8 +1020,8 @@ void GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
   // FIXME: actually set the spell level!
   int32_t splLevel = 0;
 
-  ScopeVar self (*vm.global_self(),  npc.handle());
-  ScopeVar other(*vm.global_other(), target != nullptr ? target->handle() : nullptr);
+  ScopeVar self (*vm.global_self(),  npc.handlePtr());
+  ScopeVar other(*vm.global_other(), target != nullptr ? target->handlePtr() : nullptr);
   try {
     if (fn->count() == 1) {
       // this is a leveled spell
@@ -1041,7 +1041,7 @@ int GameScript::invokeCond(Npc& npc, const std::string& func) {
     Gothic::inst().onPrint("MOBSI::conditionFunc is not invalid");
     return 1;
     }
-  ScopeVar self(*vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
   return vm.call_function<int>(fn);
   }
 
@@ -1049,7 +1049,7 @@ void GameScript::invokePickLock(Npc& npc, int bSuccess, int bBrokenOpen) {
   auto fn   = vm.find_symbol_by_name("G_PickLock");
   if(fn==nullptr)
     return;
-  ScopeVar self(*vm.global_self(), npc.handle());
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(fn, bSuccess, bBrokenOpen);
   }
 
@@ -1058,8 +1058,8 @@ CollideMask GameScript::canNpcCollideWithSpell(Npc& npc, Npc* shooter, int32_t s
   if(fn==nullptr)
     return COLL_DOEVERYTHING;
 
-  ScopeVar self (*vm.global_self(),  npc.handle());
-  ScopeVar other(*vm.global_other(), shooter->handle());
+  ScopeVar self (*vm.global_self(),  npc.handlePtr());
+  ScopeVar other(*vm.global_other(), shooter->handlePtr());
   return CollideMask(vm.call_function<int>(fn, spellId));
   }
 
@@ -1068,7 +1068,7 @@ int GameScript::playerHotKeyScreenMap(Npc& pl) {
   if(fn==nullptr)
     return -1;
 
-  ScopeVar self(*vm.global_self(), pl.handle());
+  ScopeVar self(*vm.global_self(), pl.handlePtr());
   int map = vm.call_function<int>(fn);
   if(map>=0)
     pl.useItem(size_t(map));
@@ -1156,7 +1156,7 @@ void GameScript::printNothingToGet() {
   auto id = vm.find_symbol_by_name("player_plunder_is_empty");
   if(id==nullptr)
     return;
-  ScopeVar self(*vm.global_self(), owner.player()->handle());
+  ScopeVar self(*vm.global_self(), owner.player()->handlePtr());
   vm.call_function<void>(id);
   }
 
@@ -1293,7 +1293,7 @@ Npc* GameScript::getNpcById(size_t id) {
   auto hnpc = reinterpret_cast<phoenix::c_npc*>(handle->get_instance().get());
   if(hnpc==nullptr) {
     auto obj = world().findNpcByInstance(id);
-    handle->set_instance(obj ? obj->handle() : nullptr);
+    handle->set_instance(obj ? obj->handlePtr() : nullptr);
     hnpc = reinterpret_cast<phoenix::c_npc*>(handle->get_instance().get());
     }
   return getNpc(hnpc);
@@ -1323,7 +1323,7 @@ void GameScript::setInstanceNPC(std::string_view name, Npc &npc) {
     return;
     }
 
-  sym->set_instance(npc.handle());
+  sym->set_instance(npc.handlePtr());
   }
 
 void GameScript::setInstanceItem(Npc &holder, size_t itemId) {
@@ -1514,7 +1514,7 @@ bool GameScript::wld_detectnpc(std::shared_ptr<phoenix::c_npc> npcRef, int inst,
   Npc*  ret =nullptr;
   float dist=std::numeric_limits<float>::max();
 
-  world().detectNpc(npc->position(), float(npc->handle()->senses_range), [inst,state,guild,&ret,&dist,npc](Npc& n){
+  world().detectNpc(npc->position(), float(npc->handle().senses_range), [inst,state,guild,&ret,&dist,npc](Npc& n){
     if((inst ==-1 || int32_t(n.instanceSymbol())==inst) &&
        (state==-1 || n.isState(uint32_t(state))) &&
        (guild==-1 || int32_t(n.guild())==guild) &&
@@ -1527,7 +1527,7 @@ bool GameScript::wld_detectnpc(std::shared_ptr<phoenix::c_npc> npcRef, int inst,
       }
     });
   if(ret)
-    vm.global_other()->set_instance(ret->handle());
+    vm.global_other()->set_instance(ret->handlePtr());
   return ret != nullptr;
   }
 
@@ -1539,7 +1539,7 @@ bool GameScript::wld_detectnpcex(std::shared_ptr<phoenix::c_npc> npcRef, int ins
   Npc*  ret =nullptr;
   float dist=std::numeric_limits<float>::max();
 
-  world().detectNpc(npc->position(), float(npc->handle()->senses_range), [inst,state,guild,&ret,&dist,npc,player](Npc& n){
+  world().detectNpc(npc->position(), float(npc->handle().senses_range), [inst,state,guild,&ret,&dist,npc,player](Npc& n){
     if((inst ==-1 || int32_t(n.instanceSymbol())==inst) &&
        (state==-1 || n.isState(uint32_t(state))) &&
        (guild==-1 || int32_t(n.guild())==guild) &&
@@ -1553,7 +1553,7 @@ bool GameScript::wld_detectnpcex(std::shared_ptr<phoenix::c_npc> npcRef, int ins
       }
     });
   if(ret)
-    vm.global_other()->set_instance(ret->handle());
+    vm.global_other()->set_instance(ret->handlePtr());
   return ret != nullptr;
   }
 
@@ -1565,7 +1565,7 @@ bool GameScript::wld_detectitem(std::shared_ptr<phoenix::c_npc> npcRef, int flag
 
   Item* ret =nullptr;
   float dist=std::numeric_limits<float>::max();
-  world().detectItem(npc->position(), float(npc->handle()->senses_range), [npc,&ret,&dist,flags](Item& it) {
+  world().detectItem(npc->position(), float(npc->handle().senses_range), [npc,&ret,&dist,flags](Item& it) {
     if((it.handle()->main_flag&flags)==0)
       return;
     float d = (npc->position()-it.position()).quadLength();
@@ -1790,7 +1790,7 @@ int GameScript::npc_getdisttowp(std::shared_ptr<phoenix::c_npc> npcRef, std::str
 void GameScript::npc_exchangeroutine(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view rname) {
   auto npc = getNpc(npcRef);
   if(npc!=nullptr) {
-    auto& v = *npc->handle();
+    auto& v = npc->handle();
     char buf[256]={};
     std::snprintf(buf,sizeof(buf),"Rtn_%.*s_%d",int(rname.length()),rname.data(),v.id);
 
@@ -1812,7 +1812,7 @@ bool GameScript::npc_knowsinfo(std::shared_ptr<phoenix::c_npc> npcRef, int infoi
     return false;
     }
 
-  phoenix::c_npc& vnpc = *npc->handle();
+  phoenix::c_npc& vnpc = npc->handle();
   return doesNpcKnowInfo(vnpc, infoinstance);
   }
 
@@ -1894,7 +1894,7 @@ int GameScript::npc_getbodystate(std::shared_ptr<phoenix::c_npc> npcRef) {
 
 std::shared_ptr<phoenix::c_npc> GameScript::npc_getlookattarget(std::shared_ptr<phoenix::c_npc> npcRef) {
   auto npc = getNpc(npcRef);
-  return npc && npc->lookAtTarget() ? npc->lookAtTarget()->handle() : nullptr;
+  return npc && npc->lookAtTarget() ? npc->lookAtTarget()->handlePtr() : nullptr;
   }
 
 int GameScript::npc_getdisttonpc(std::shared_ptr<phoenix::c_npc> aRef, std::shared_ptr<phoenix::c_npc> bRef) {
@@ -2135,7 +2135,7 @@ bool GameScript::npc_gettarget(std::shared_ptr<phoenix::c_npc> npcRef) {
   auto s = vm.global_other();
 
   if(npc!=nullptr && npc->target()) {
-    s->set_instance(npc->target()->handle());
+    s->set_instance(npc->target()->handlePtr());
     return true;
     } else {
     s->set_instance(nullptr);
@@ -2148,10 +2148,10 @@ bool GameScript::npc_getnexttarget(std::shared_ptr<phoenix::c_npc> npcRef) {
   Npc* ret = nullptr;
 
   if(npc!=nullptr){
-    float dist = float(npc->handle()->senses_range);
+    float dist = float(npc->handle().senses_range);
     dist*=dist;
 
-    world().detectNpc(npc->position(),float(npc->handle()->senses_range),[&,npc](Npc& oth){
+    world().detectNpc(npc->position(),float(npc->handle().senses_range),[&,npc](Npc& oth){
       if(&oth!=npc && !oth.isDown() && oth.isEnemy(*npc) && npc->canSeeNpc(oth,true)){
         float qd = oth.qDistTo(*npc);
         if(qd<dist){
@@ -2167,7 +2167,7 @@ bool GameScript::npc_getnexttarget(std::shared_ptr<phoenix::c_npc> npcRef) {
 
   auto s = vm.global_other();
   if(ret!=nullptr) {
-    s->set_instance(ret->handle());
+    s->set_instance(ret->handlePtr());
     return true;
     } else {
     s->set_instance(nullptr);
@@ -2196,7 +2196,7 @@ bool GameScript::npc_checkinfo(std::shared_ptr<phoenix::c_npc> npcRef, int imp) 
     }
   auto* hpl  = reinterpret_cast<phoenix::c_npc*>(hero->get_instance().get());
   auto& pl   = *(hpl);
-  auto& npc  = *(n->handle());
+  auto& npc  = n->handle();
 
   for(auto& info:dialogsInfo) {
     if(info->npc!=int32_t(npc.symbol_index()) || info->important!=imp)
@@ -2439,7 +2439,7 @@ bool GameScript::npc_ownedbynpc(std::shared_ptr<phoenix::c_item> itmRef, std::sh
     }
 
   auto* sym = vm.find_symbol_by_index(itm->handle()->owner);
-  return sym != nullptr && npc->handle()==sym->get_instance();
+  return sym != nullptr && npc->handlePtr()==sym->get_instance();
   }
 
 bool GameScript::npc_canseesource(std::shared_ptr<phoenix::c_npc> npcRef) {
@@ -2970,7 +2970,7 @@ bool GameScript::hlp_isvaliditem(std::shared_ptr<phoenix::c_item> itemRef) {
 std::shared_ptr<phoenix::c_npc> GameScript::hlp_getnpc(int instanceSymbol) {
   auto npc = getNpcById(instanceSymbol);
   if(npc != nullptr)
-    return npc->handle();
+    return npc->handlePtr();
   else
     return nullptr;
   }

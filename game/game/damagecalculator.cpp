@@ -65,7 +65,7 @@ DamageCalculator::Val DamageCalculator::rangeDamage(Npc& nsrc, Npc& nother, cons
   }
 
 DamageCalculator::Val DamageCalculator::rangeDamage(Npc&, Npc& nother, Damage dmg, const CollideMask bMsk) {
-  auto& other = *nother.handle();
+  auto& other = nother.handle();
 
   if(bMsk & COLL_APPLYDOUBLEDAMAGE)
     dmg*=2;
@@ -89,8 +89,8 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
     return Val(0,true,true);
 
   auto&  script = nsrc.world().script();
-  auto& src    = *nsrc.handle();
-  auto& other  = *nother.handle();
+  auto& src    = nsrc.handle();
+  auto& other  = nother.handle();
 
   // Swords/Fists
   const int dtype      = damageTypeMask(nsrc);
@@ -142,11 +142,11 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
 int32_t DamageCalculator::damageTypeMask(Npc& npc) {
   if(auto w = npc.inventory().activeWeapon())
     return w->handle()->damage_type;
-  return npc.handle()->damage_type;
+  return npc.handle().damage_type;
   }
 
 bool DamageCalculator::checkDamageMask(Npc& nsrc, Npc& nother, const Bullet* b) {
-  auto& other = *nother.handle();
+  auto& other = nother.handle();
 
   if(b!=nullptr) {
     auto dmg = b->damage();
@@ -173,7 +173,7 @@ DamageCalculator::Damage DamageCalculator::rangeDamageValue(Npc& src) {
   for(unsigned int i=0;i<phoenix::damage_type::count;++i){
     if((dtype & (1<<i))==0)
       continue;
-    ret[size_t(i)] = d + src.handle()->damage[i];
+    ret[size_t(i)] = d + src.handle().damage[i];
     }
   return ret;
   }

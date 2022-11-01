@@ -314,7 +314,8 @@ class Npc final {
 
     auto      dialogChoises(Npc &player, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<GameScript::DlgChoise>;
 
-    auto      handle() -> const std::shared_ptr<phoenix::c_npc>& { return hnpc; }
+    phoenix::c_npc&                        handle() { return *hnpc; }
+    const std::shared_ptr<phoenix::c_npc>& handlePtr() const { return hnpc; }
 
     auto      inventory() const -> const Inventory& { return invent; }
     size_t    itemCount  (size_t id) const;

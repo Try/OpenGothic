@@ -408,7 +408,7 @@ void Interactive::invokeStateFunc(Npc& npc) {
   std::snprintf(func,sizeof(func),"%s_S%d",onStateFunc.c_str(),state);
 
   auto& sc = npc.world().script();
-  sc.useInteractive(npc.handle(),func);
+  sc.useInteractive(npc.handlePtr(), func);
   }
 
 void Interactive::emitTriggerEvent() const {

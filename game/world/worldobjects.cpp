@@ -145,7 +145,7 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
   for(size_t i=1; i<npcArr.size(); ++i) {
     auto& a = npcArr[i-1];
     auto& b = npcArr[i-0];
-    if(a->handle()->id>b->handle()->id) {
+    if(a->handle().id>b->handle().id) {
       needSort = true;
       break;
       }
@@ -153,7 +153,7 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
 
   if(needSort) {
     std::sort(npcArr.begin(),npcArr.end(),[](std::unique_ptr<Npc>& a, std::unique_ptr<Npc>& b){
-      return a->handle()->id<b->handle()->id;
+      return a->handle().id<b->handle().id;
       });
     }
 
@@ -232,12 +232,12 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
         float l = i.qDistTo(r.pos.x,r.pos.y,r.pos.z);
         if(r.item!=size_t(-1) && r.other!=nullptr)
           owner.script().setInstanceItem(*r.other,r.item);
-        const float range = float(i.handle()->senses_range);
+        const float range = float(i.handle().senses_range);
         if(l<range*range && r.other!=nullptr && r.victum!=nullptr) {
           // aproximation of behavior of original G2
           if(!i.isDown() && !i.isPlayer() &&
              i.canSenseNpc(*r.other, true)!=SensesBit::SENSE_NONE &&
-             i.canSenseNpc(*r.victum,true,float(r.other->handle()->senses_range))!=SensesBit::SENSE_NONE
+             i.canSenseNpc(*r.victum,true,float(r.other->handle().senses_range))!=SensesBit::SENSE_NONE
             ) {
             i.perceptionProcess(*r.other,r.victum,l,PercType(r.what));
             }
@@ -444,7 +444,7 @@ Npc *WorldObjects::findHero() {
 
 Npc *WorldObjects::findNpcByInstance(size_t instance) {
   for(auto& i:npcArr)
-    if(i->handle()->symbol_index()==instance)
+    if(i->handle().symbol_index()==instance)
       return i.get();
   return nullptr;
   }
@@ -884,7 +884,7 @@ template<class T>
 bool checkFlag(T&,WorldObjects::SearchFlg){ return true; }
 
 static bool checkFlag(Npc& n,WorldObjects::SearchFlg f){
-  if(n.handle()->no_focus)
+  if(n.handle().no_focus)
     return false;
   if(bool(f&WorldObjects::NoDeath) && n.isDead())
     return false;

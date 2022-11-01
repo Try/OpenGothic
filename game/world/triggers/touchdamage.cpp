@@ -43,7 +43,7 @@ void TouchDamage::tick(uint64_t dt) {
     mask[phoenix::damage_type::point]   = point;
     mask[phoenix::damage_type::fall]    = fall;
 
-    auto& hnpc = *npc->handle();
+    auto& hnpc = npc->handle();
     for(size_t i=0; i<phoenix::damage_type::count; ++i) {
       if(!mask[i])
         continue;

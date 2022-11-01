@@ -25,7 +25,7 @@ void FightAlgo::save(Serialize &fout) {
   }
 
 void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
-  auto& ai = Gothic::fai()[size_t(npc.handle()->fight_tactic)];
+  auto& ai = Gothic::fai()[size_t(npc.handle().fight_tactic)];
   auto  ws = npc.weaponState();
 
   if(ws==WeaponState::NoWeapon)
