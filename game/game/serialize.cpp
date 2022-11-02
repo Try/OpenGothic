@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include "savegameheader.h"
+#include "world/respawnobject.h"
 #include "world/world.h"
 #include "world/fplock.h"
 #include "world/waypoint.h"
@@ -239,6 +240,14 @@ void Serialize::implRead(Interactive*& mobsi) {
   uint32_t id=uint32_t(-1);
   implRead(id);
   mobsi = ctx==nullptr ? nullptr : ctx->mobsiById(id);
+  }
+
+void Serialize::implWrite(const RespawnObject& ro) {
+  ro.save(*this);
+  }
+
+void Serialize::implRead(RespawnObject& ro) {
+  ro = RespawnObject(*this);
   }
 
 void Serialize::implWrite(const SaveGameHeader& p) {

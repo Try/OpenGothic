@@ -13,6 +13,7 @@
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
 #include "world/objects/interactive.h"
+#include "world/respawnobject.h"
 #include "graphics/visualfx.h"
 #include "utils/fileutil.h"
 #include "gothic.h"
@@ -1370,6 +1371,7 @@ bool GameScript::game_initenglish() {
 
 void GameScript::wld_settime(int hour, int minute) {
   world().setDayTime(hour,minute);
+  RespawnObject::processRespawnList();
   }
 
 int GameScript::wld_getday() {

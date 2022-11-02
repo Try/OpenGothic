@@ -24,6 +24,7 @@
 
 class WayPoint;
 class Npc;
+class RespawnObject;
 class Interactive;
 class World;
 class FpLock;
@@ -250,6 +251,11 @@ class Serialize {
     void implRead (Tempest::Pixmap&       p);
 
     void implWrite(const phoenix::c_npc& h);
+    void implWrite(const RespawnObject& ro);
+    void implRead (RespawnObject&       ro);
+
+    void implWrite(const Daedalus::GEngineClasses::C_Npc& h);
+    void implRead (Daedalus::GEngineClasses::C_Npc&       h);
 
     void implWrite(const FpLock& fp);
     void implRead (FpLock& fp);

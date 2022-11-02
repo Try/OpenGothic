@@ -8,6 +8,7 @@
 
 #include "worldstatestorage.h"
 #include "world/objects/npc.h"
+#include "world/respawnobject.h"
 #include "world/world.h"
 #include "sound/soundfx.h"
 #include "serialize.h"
@@ -121,6 +122,10 @@ GameSession::GameSession(Serialize &fin) {
   vm.reset(new GameScript(*this));
   vm->initDialogs();
 
+  if (fin.setEntry("game/respawn"))
+    // Load respawn state if entry exists (backward compatibility with older savegames)
+    RespawnObject::loadRespawnState(fin);
+
   if(true) {
     setWorld(std::unique_ptr<World>(new World(*this,wname,false,[&](int v){
       Gothic::inst().setLoadingProgress(int(v*0.55));
@@ -191,6 +196,10 @@ void GameSession::save(Serialize &fout, std::string_view name, const Pixmap& scr
 
   fout.setEntry("game/quests");
   vm->saveQuests(fout);
+
+  Gothic::inst().setLoadingProgress(70);
+  fout.setEntry("game/respawn");
+  RespawnObject::saveRespawnState(fout);
 
   fout.setEntry("game/daedalus");
   vm->saveVar(fout);
