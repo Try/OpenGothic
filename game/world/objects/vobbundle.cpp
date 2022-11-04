@@ -5,8 +5,8 @@
 #include "resources.h"
 
 VobBundle::VobBundle(World& owner, std::string_view filename, Vob::Flags flags) {
-  auto& bundle = Resources::loadVobBundle(filename);
-  for(auto& vob:bundle)
+  auto* bundle = Resources::loadVobBundle(filename);
+  for(auto& vob:*bundle)
     rootVobs.emplace_back(Vob::load(nullptr,owner,*vob,(flags | Vob::Startup)));
   }
 

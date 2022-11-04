@@ -76,6 +76,8 @@ class Resources final {
       Tempest::Vec3 color;
       };
 
+    using VobTree = std::vector<std::unique_ptr<phoenix::vob>>;
+
     static Tempest::Device&          device() { return inst->dev; }
     static const char*               renderer();
     static void                      loadVdfs(const std::vector<std::u16string> &modvdfs);
@@ -105,7 +107,7 @@ class Resources final {
     static Dx8::PatternList          loadDxMusic(std::string_view name);
     static const ProtoMesh*          decalMesh(const phoenix::vob& vob);
 
-    static std::vector<std::unique_ptr<phoenix::vob>>& loadVobBundle(std::string_view name);
+    static const VobTree*            loadVobBundle(std::string_view name);
 
     template<class V>
     static Tempest::VertexBuffer<V>  vbo(const V* data,size_t sz){ return inst->dev.vbo(data,sz); }
@@ -172,7 +174,7 @@ class Resources final {
     Dx8::PatternList      implLoadDxMusic(std::string_view name);
     GthFont&              implLoadFont(std::string_view fname, FontType type);
     PfxEmitterMesh*       implLoadEmiterMesh(std::string_view name);
-    std::vector<std::unique_ptr<phoenix::vob>>& implLoadVobBundle(std::string_view name);
+    const VobTree* implLoadVobBundle(std::string_view name);
 
     Tempest::VertexBuffer<Vertex> sphere(int passCount, float R);
 
@@ -204,14 +206,14 @@ class Resources final {
     std::vector<uint8_t>              fBuff, ddsBuf;
     Tempest::VertexBuffer<VertexFsq>  fsq;
 
-    TextureCache                                                                     texCache;
+    TextureCache                                                      texCache;
 
-    std::unordered_map<std::string,std::unique_ptr<ProtoMesh>>                       aniMeshCache;
-    std::unordered_map<DecalK,std::unique_ptr<ProtoMesh>,Hash>                       decalMeshCache;
-    std::unordered_map<std::string,std::unique_ptr<Skeleton>>                        skeletonCache;
-    std::unordered_map<std::string,std::unique_ptr<Animation>>                       animCache;
-    std::unordered_map<BindK,std::unique_ptr<AttachBinder>,Hash>                     bindCache;
-    std::unordered_map<std::string,std::unique_ptr<PfxEmitterMesh>>                  emiMeshCache;
-    std::unordered_map<FontK,std::unique_ptr<GthFont>,Hash>                          gothicFnt;
-    std::unordered_map<std::string,std::vector<std::unique_ptr<phoenix::vob>>> zenCache;
+    std::unordered_map<std::string,std::unique_ptr<ProtoMesh>>        aniMeshCache;
+    std::unordered_map<DecalK,std::unique_ptr<ProtoMesh>,Hash>        decalMeshCache;
+    std::unordered_map<std::string,std::unique_ptr<Skeleton>>         skeletonCache;
+    std::unordered_map<std::string,std::unique_ptr<Animation>>        animCache;
+    std::unordered_map<BindK,std::unique_ptr<AttachBinder>,Hash>      bindCache;
+    std::unordered_map<std::string,std::unique_ptr<PfxEmitterMesh>>   emiMeshCache;
+    std::unordered_map<FontK,std::unique_ptr<GthFont>,Hash>           gothicFnt;
+    std::unordered_map<std::string,std::unique_ptr<VobTree>> zenCache;
   };

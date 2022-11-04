@@ -775,16 +775,16 @@ const ProtoMesh* Resources::decalMesh(const phoenix::vob& vob) {
   return inst->implDecalMesh(vob);
   }
 
-std::vector<std::unique_ptr<phoenix::vob>>& Resources::loadVobBundle(std::string_view name) {
+const Resources::VobTree* Resources::loadVobBundle(std::string_view name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadVobBundle(name);
   }
 
-std::vector<std::unique_ptr<phoenix::vob>>& Resources::implLoadVobBundle(std::string_view filename) {
+const Resources::VobTree* Resources::implLoadVobBundle(std::string_view filename) {
   auto cname = std::string(filename);
   auto i     = zenCache.find(cname);
   if(i!=zenCache.end())
-    return i->second;
+    return i->second.get();
 
   std::vector<std::unique_ptr<phoenix::vob>> bundle;
   try {
@@ -801,8 +801,8 @@ std::vector<std::unique_ptr<phoenix::vob>>& Resources::implLoadVobBundle(std::st
     Log::e("unable to load Zen-file: \"",cname,"\"");
     }
 
-  auto ret = zenCache.insert(std::make_pair(filename,std::move(bundle)));
-  return ret.first->second;
+  auto ret = zenCache.insert(std::make_pair(filename,std::make_unique<VobTree>(std::move(bundle))));
+  return ret.first->second.get();
   }
 
 const AttachBinder *Resources::bindMesh(const ProtoMesh &anim, const Skeleton &s) {
