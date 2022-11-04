@@ -174,7 +174,7 @@ class World final {
     void                 addInteractive(Interactive* inter);
     void                 addStartPoint (const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name);
     void                 addFreePoint  (const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name);
-    void                 addSound      (const std::unique_ptr<phoenix::vob>& vob);
+    void                 addSound      (const phoenix::vob& vob);
 
     void                 invalidateVobIndex();
 

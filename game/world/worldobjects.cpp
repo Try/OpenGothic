@@ -653,7 +653,7 @@ void WorldObjects::addStatic(StaticObj* obj) {
   }
 
 void WorldObjects::addRoot(const std::unique_ptr<phoenix::vob>& vob, bool startup) {
-  auto p = Vob::load(nullptr,owner,vob,(startup ? Vob::Startup : Vob::None) | Vob::Static);
+  auto p = Vob::load(nullptr,owner,*vob,(startup ? Vob::Startup : Vob::None) | Vob::Static);
   if(p==nullptr)
     return;
   rootVobs.emplace_back(std::move(p));

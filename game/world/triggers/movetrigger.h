@@ -8,7 +8,7 @@
 
 class MoveTrigger : public AbstractTrigger {
   public:
-    MoveTrigger(Vob* parent, World &world, phoenix::vobs::trigger_mover& data, Flags flags);
+    MoveTrigger(Vob* parent, World &world, const phoenix::vobs::trigger_mover& data, Flags flags);
 
     void save(Serialize& fout) const override;
     void load(Serialize &fin) override;

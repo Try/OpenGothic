@@ -44,7 +44,7 @@ class TriggerEvent final {
 
 class AbstractTrigger : public Vob {
   public:
-    AbstractTrigger(Vob* parent, World& world, phoenix::vob& data, Flags flags);
+    AbstractTrigger(Vob* parent, World& world, const phoenix::vob& data, Flags flags);
     virtual ~AbstractTrigger();
 
     const std::string&           name() const;

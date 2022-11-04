@@ -5,7 +5,7 @@
 #include "game/serialize.h"
 #include "gothic.h"
 
-PfxController::PfxController(Vob* parent, World& world, phoenix::vobs::pfx_controller& ctrl, Flags flags)
+PfxController::PfxController(Vob* parent, World& world, const phoenix::vobs::pfx_controller& ctrl, Flags flags)
   :AbstractTrigger(parent,world,ctrl,flags) {
   killWhenDone = ctrl.kill_when_done;
 

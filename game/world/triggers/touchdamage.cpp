@@ -4,7 +4,7 @@
 #include "world/world.h"
 #include "game/serialize.h"
 
-TouchDamage::TouchDamage(Vob* parent, World &world, phoenix::vobs::touch_damage& dmg, Flags flags)
+TouchDamage::TouchDamage(Vob* parent, World &world, const phoenix::vobs::touch_damage& dmg, Flags flags)
   :AbstractTrigger(parent,world,dmg,flags) {
   barrier = dmg.barrier;
   blunt = dmg.blunt;

@@ -11,7 +11,7 @@
 #include "world/world.h"
 #include "utils/dbgpainter.h"
 
-Interactive::Interactive(Vob* parent, World &world, phoenix::vobs::mob& vob, Flags flags)
+Interactive::Interactive(Vob* parent, World &world, const phoenix::vobs::mob& vob, Flags flags)
   : Vob(parent,world,vob,flags) {
 
   vobName       = vob.vob_name;
@@ -27,7 +27,7 @@ Interactive::Interactive(Vob* parent, World &world, phoenix::vobs::mob& vob, Fla
 
   if (vob.type != phoenix::vob_type::oCMOB) {
     // TODO: These might be movable
-    auto& inter = reinterpret_cast<phoenix::vobs::mob_inter&>(vob);
+    auto& inter = reinterpret_cast<const phoenix::vobs::mob_inter&>(vob);
     stateNum      = inter.state;
     triggerTarget = inter.target;
     useWithItem   = inter.item;
@@ -40,14 +40,14 @@ Interactive::Interactive(Vob* parent, World &world, phoenix::vobs::mob& vob, Fla
     i = char(std::toupper(i));
 
   if (vobType==phoenix::vob_type::oCMobDoor) {
-    auto& door = reinterpret_cast<phoenix::vobs::mob_door&>(vob);
+    auto& door = reinterpret_cast<const phoenix::vobs::mob_door&>(vob);
     locked      = door.locked;
     keyInstance = door.key;
     pickLockStr = door.pick_string;
   }
 
   if(isContainer() && (flags&Flags::Startup)==Flags::Startup) {
-    auto& container = reinterpret_cast<phoenix::vobs::mob_container&>(vob);
+    auto& container = reinterpret_cast<const phoenix::vobs::mob_container&>(vob);
     locked      = container.locked;
     keyInstance = container.key;
     pickLockStr = container.pick_string;

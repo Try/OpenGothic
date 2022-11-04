@@ -729,15 +729,15 @@ void World::addFreePoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir, std
   wmatrix->addFreePoint(pos,dir,name);
   }
 
-void World::addSound(const std::unique_ptr<phoenix::vob>& vob) {
-  if(vob->type==phoenix::vob_type::zCVobSound || vob->type==phoenix::vob_type::zCVobSoundDaytime) {
-    wsound.addSound((const phoenix::vobs::sound&) *vob);
+void World::addSound(const phoenix::vob& vob) {
+  if(vob.type==phoenix::vob_type::zCVobSound || vob.type==phoenix::vob_type::zCVobSoundDaytime) {
+    wsound.addSound(reinterpret_cast<const phoenix::vobs::sound&>(vob));
     }
-  else if(vob->type==phoenix::vob_type::oCZoneMusic) {
-    wsound.addZone((const phoenix::vobs::zone_music&) *vob);
+  else if(vob.type==phoenix::vob_type::oCZoneMusic) {
+    wsound.addZone(reinterpret_cast<const phoenix::vobs::zone_music&>(vob));
     }
-  else if(vob->type==phoenix::vob_type::oCZoneMusicDefault) {
-    wsound.setDefaultZone((const phoenix::vobs::zone_music&) *vob);
+  else if(vob.type==phoenix::vob_type::oCZoneMusicDefault) {
+    wsound.setDefaultZone(reinterpret_cast<const phoenix::vobs::zone_music&>(vob));
     }
   }
 

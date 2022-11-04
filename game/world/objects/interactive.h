@@ -26,7 +26,7 @@ class Interactive : public Vob {
       FromStand = 11,
       };
 
-    Interactive(Vob* parent, World& world, phoenix::vobs::mob& vob, Flags flags);
+    Interactive(Vob* parent, World& world, const phoenix::vobs::mob& vob, Flags flags);
 
     void                load(Serialize& fin) override;
     void                save(Serialize& fout) const override;

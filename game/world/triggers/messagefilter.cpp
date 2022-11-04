@@ -2,7 +2,7 @@
 
 #include "world/world.h"
 
-MessageFilter::MessageFilter(Vob* parent, World &world, phoenix::vobs::message_filter& filt, Flags flags)
+MessageFilter::MessageFilter(Vob* parent, World &world, const phoenix::vobs::message_filter& filt, Flags flags)
   :AbstractTrigger(parent,world,filt,flags) {
   target = filt.target;
   onUntriggerA = filt.on_untrigger;

@@ -10,7 +10,7 @@
 
 using namespace Tempest;
 
-AbstractTrigger::AbstractTrigger(Vob* parent, World &world, phoenix::vob& data, Flags flags)
+AbstractTrigger::AbstractTrigger(Vob* parent, World &world, const phoenix::vob& data, Flags flags)
   : Vob(parent,world,data,flags & (~Flags::Static)), callback(this), vobName(data.vob_name) {
   if(!hasFlag(StartEnabled))
     ;//disabled = true;
@@ -31,7 +31,7 @@ AbstractTrigger::AbstractTrigger(Vob* parent, World &world, phoenix::vob& data, 
   if (data.type == vob_type::zCTrigger || data.type == vob_type::zCTriggerList ||
       data.type == vob_type::oCTriggerScript || data.type == vob_type::zCMover ||
       data.type == vob_type::oCTriggerChangeLevel || data.type == vob_type::oCCSTrigger) {
-    auto& trigger = reinterpret_cast<phoenix::vobs::trigger&>(data);
+    auto& trigger = reinterpret_cast<const phoenix::vobs::trigger&>(data);
     fireDelaySec = trigger.fire_delay_sec;
     maxActivationCount = trigger.max_activation_count;
     filterFlags = trigger.filter_flags;

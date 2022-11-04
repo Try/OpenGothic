@@ -2,7 +2,7 @@
 
 #include "world.h"
 
-WorldLight::WorldLight(Vob* parent, World& world, phoenix::vobs::light& vob, Flags flags)
+WorldLight::WorldLight(Vob* parent, World& world, const phoenix::vobs::light& vob, Flags flags)
   : Vob(parent,world,vob,flags) {
   light = LightGroup::Light(world, vob);
   }

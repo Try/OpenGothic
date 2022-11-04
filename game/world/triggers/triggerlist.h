@@ -8,7 +8,7 @@ class World;
 
 class TriggerList : public AbstractTrigger {
   public:
-    TriggerList(Vob* parent, World &world, phoenix::vobs::trigger_list& data, Flags flags);
+    TriggerList(Vob* parent, World &world, const phoenix::vobs::trigger_list& data, Flags flags);
 
     void onTrigger(const TriggerEvent& evt) override;
 
