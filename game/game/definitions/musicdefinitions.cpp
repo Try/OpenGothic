@@ -7,34 +7,29 @@
 using namespace Tempest;
 
 MusicDefinitions::MusicDefinitions() {
-  vm = Gothic::inst().createVm("Music.dat");
-  vm->getDATFile().iterateSymbolsOfClass("C_MusicTheme",[this](size_t i,Daedalus::PARSymbol& /*s*/){
-    Theme theme={};
+  vm = Gothic::inst().createPhoenixVm("Music.dat");
 
-    vm->initializeInstance(theme, i, Daedalus::IC_MusicTheme);
-    vm->clearReferences(Daedalus::IC_MusicTheme);
-
-    theme.symId = i;
-    themes.push_back(theme);
-    });
+  vm->enumerate_instances_by_class_name("C_MusicTheme", [this](phoenix::symbol& s) {
+    themes.push_back(vm->init_instance<phoenix::c_music_theme>(&s));
+  });
   }
 
 MusicDefinitions::~MusicDefinitions() {
-  vm->clearReferences(Daedalus::IC_MusicTheme);
   }
 
-const Daedalus::GEngineClasses::C_MusicTheme* MusicDefinitions::operator[](std::string_view name) const {
+const phoenix::c_music_theme* MusicDefinitions::operator[](std::string_view name) const {
   if(!vm)
     return nullptr;
 
   char buf[256]={};
   std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
-  auto id = vm->getDATFile().getSymbolIndexByName(buf);
-  if(id==size_t(-1))
+  auto id = vm->find_symbol_by_name(buf);
+  if(id==nullptr)
     return nullptr;
   for(auto& i:themes) {
-    if(i.symId==id)
-      return &i;
+    auto* sym = vm->find_symbol_by_instance(i);
+    if(sym->index() == id->index())
+      return i.get();
     }
   return nullptr;
   }

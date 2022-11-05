@@ -909,7 +909,7 @@ void MainWindow::saveGame(std::string_view slot, std::string_view name) {
   update();
   }
 
-void MainWindow::onVideo(const Daedalus::ZString& fname) {
+void MainWindow::onVideo(std::string_view fname) {
   video.pushVideo(fname);
   }
 

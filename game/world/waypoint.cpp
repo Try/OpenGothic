@@ -9,10 +9,10 @@ using namespace Tempest;
 WayPoint::WayPoint() {
   }
 
-WayPoint::WayPoint(const ZenLoad::zCWaypointData &dat)
+WayPoint::WayPoint(const phoenix::way_point &dat)
   : x(dat.position.x),y(dat.position.y),z(dat.position.z),
     dirX(dat.direction.x),dirY(dat.direction.y),dirZ(dat.direction.z),
-    name(upcaseof(dat.wpName)){
+    name(upcaseof(dat.name)){
   }
 
 WayPoint::WayPoint(const Vec3& pos, std::string_view name)

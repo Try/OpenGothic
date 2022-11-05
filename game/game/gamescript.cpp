@@ -18,53 +18,38 @@
 #include "gothic.h"
 
 using namespace Tempest;
-using namespace Daedalus::GameState;
 
-struct GameScript::ScopeVar final {
-  ScopeVar(Daedalus::DaedalusVM& vm,Daedalus::PARSymbol& sym,Npc& n)
-    :ScopeVar(vm,sym,n.handle(),Daedalus::IC_Npc){
-    }
-
-  ScopeVar(Daedalus::DaedalusVM& vm,Daedalus::PARSymbol& sym,Npc* n)
-    :ScopeVar(vm,sym,n ? n->handle() : nullptr, Daedalus::IC_Npc){
-    }
-
-  ScopeVar(Daedalus::DaedalusVM& vm, const char* name, Daedalus::GEngineClasses::C_Npc* h)
-    :ScopeVar(vm,vm.getDATFile().getSymbolByName(name),h,Daedalus::IC_Npc){
-    }
-
-  ScopeVar(Daedalus::DaedalusVM& vm,Daedalus::PARSymbol& sym, Daedalus::GEngineClasses::Instance* h, Daedalus::EInstanceClass instanceClass)
-    :vm(vm),sym(sym) {
-    prev = sym.instance;
-    sym.instance.set(h,instanceClass);
+template <typename T>
+struct ScopeVar final {
+  ScopeVar(phoenix::symbol& sym, const std::shared_ptr<T>& h) : prev(sym.get_instance()), sym(sym) {
+    sym.set_instance(h);
     }
 
   ScopeVar(const ScopeVar&)=delete;
   ~ScopeVar(){
-    sym.instance = prev;
+    sym.set_instance(prev);
     }
 
-  Daedalus::InstancePtr prev;
-  Daedalus::DaedalusVM& vm;
-  Daedalus::PARSymbol&  sym;
+  const std::shared_ptr<phoenix::instance>& prev;
+  phoenix::symbol&  sym;
   };
 
 
-bool GameScript::GlobalOutput::output(Npc& npc,const Daedalus::ZString& text) {
+bool GameScript::GlobalOutput::output(Npc& npc, std::string_view text) {
   return owner.aiOutput(npc,text,false);
   }
 
-bool GameScript::GlobalOutput::outputSvm(Npc &npc, const Daedalus::ZString& text) {
+bool GameScript::GlobalOutput::outputSvm(Npc &npc, std::string_view text) {
   return owner.aiOutputSvm(npc,text,false);
   }
 
-bool GameScript::GlobalOutput::outputOv(Npc &npc, const Daedalus::ZString& text) {
+bool GameScript::GlobalOutput::outputOv(Npc &npc, std::string_view text) {
   return owner.aiOutputSvm(npc,text,true);
   }
 
-bool GameScript::GlobalOutput::printScr(Npc& npc, int time, const Daedalus::ZString& msg, int x, int y, const Daedalus::ZString& font) {
-  auto& f = Resources::font(font.c_str());
-  Gothic::inst().onPrintScreen(msg.c_str(),x,y,time,f);
+bool GameScript::GlobalOutput::printScr(Npc& npc, int time, std::string_view msg, int x, int y, std::string_view font) {
+  auto& f = Resources::font(font);
+  Gothic::inst().onPrintScreen(msg,x,y,time,f);
   return true;
   }
 
@@ -73,242 +58,222 @@ bool GameScript::GlobalOutput::isFinished() {
   }
 
 GameScript::GameScript(GameSession &owner)
-  :owner(owner), vm(Gothic::inst().loadScriptCode("GOTHIC.DAT")) {
-  Daedalus::registerGothicEngineClasses(vm);
+  :owner(owner), vm(Gothic::inst().loadPhoenixScriptCode("GOTHIC.DAT"), phoenix::execution_flag::vm_allow_null_instance_access) {
+
+  if (vm.global_self() == nullptr || vm.global_other() == nullptr || vm.global_item() == nullptr ||
+      vm.global_victim() == nullptr || vm.global_hero() == nullptr)
+    throw std::runtime_error("Cannot find script symbol SELF, OTHER, ITEM, VICTIM, or HERO! Cannot proceed!");
+
+  phoenix::register_all_script_classes(vm);
+  vm.register_exception_handler(phoenix::lenient_vm_exception_handler);
   Gothic::inst().setupVmCommonApi(vm);
   aiDefaultPipe.reset(new GlobalOutput(*this));
   initCommon();
   }
 
 GameScript::~GameScript() {
-  vm.clearReferences(Daedalus::IC_Info);
   }
 
+
 void GameScript::initCommon() {
-  vm.registerExternalFunction("hlp_random",          [this](Daedalus::DaedalusVM& vm){ hlp_random(vm);         });
-  vm.registerExternalFunction("hlp_isvalidnpc",      [this](Daedalus::DaedalusVM& vm){ hlp_isvalidnpc(vm);     });
-  vm.registerExternalFunction("hlp_isvaliditem",     [this](Daedalus::DaedalusVM& vm){ hlp_isvaliditem(vm);    });
-  vm.registerExternalFunction("hlp_isitem",          [this](Daedalus::DaedalusVM& vm){ hlp_isitem(vm);         });
-  vm.registerExternalFunction("hlp_getnpc",          [this](Daedalus::DaedalusVM& vm){ hlp_getnpc(vm);         });
-  vm.registerExternalFunction("hlp_getinstanceid",   [this](Daedalus::DaedalusVM& vm){ hlp_getinstanceid(vm);  });
+  bindExternal("hlp_random",                     &GameScript::hlp_random);
+  bindExternal("hlp_isvalidnpc",                 &GameScript::hlp_isvalidnpc);
+  bindExternal("hlp_isvaliditem",                &GameScript::hlp_isvaliditem);
+  bindExternal("hlp_isitem",                     &GameScript::hlp_isitem);
+  bindExternal("hlp_getnpc",                     &GameScript::hlp_getnpc);
+  bindExternal("hlp_getinstanceid",              &GameScript::hlp_getinstanceid);
 
-  vm.registerExternalFunction("wld_insertnpc",       [this](Daedalus::DaedalusVM& vm){ wld_insertnpc(vm);  });
-  vm.registerExternalFunction("wld_insertitem",      [this](Daedalus::DaedalusVM& vm){ wld_insertitem(vm); });
-  vm.registerExternalFunction("wld_settime",         [this](Daedalus::DaedalusVM& vm){ wld_settime(vm);    });
-  vm.registerExternalFunction("wld_getday",          [this](Daedalus::DaedalusVM& vm){ wld_getday(vm);     });
-  vm.registerExternalFunction("wld_playeffect",      [this](Daedalus::DaedalusVM& vm){ wld_playeffect(vm); });
-  vm.registerExternalFunction("wld_stopeffect",      [this](Daedalus::DaedalusVM& vm){ wld_stopeffect(vm); });
-  vm.registerExternalFunction("wld_getplayerportalguild",
-                                                     [this](Daedalus::DaedalusVM& vm){ wld_getplayerportalguild(vm); });
-  vm.registerExternalFunction("wld_getformerplayerportalguild",
-                                                     [this](Daedalus::DaedalusVM& vm){ wld_getformerplayerportalguild(vm); });
-  vm.registerExternalFunction("wld_setguildattitude",[this](Daedalus::DaedalusVM& vm){ wld_setguildattitude(vm);     });
-  vm.registerExternalFunction("wld_getguildattitude",[this](Daedalus::DaedalusVM& vm){ wld_getguildattitude(vm);     });
-  vm.registerExternalFunction("wld_istime",          [this](Daedalus::DaedalusVM& vm){ wld_istime(vm);               });
-  vm.registerExternalFunction("wld_isfpavailable",   [this](Daedalus::DaedalusVM& vm){ wld_isfpavailable(vm);        });
-  vm.registerExternalFunction("wld_isnextfpavailable",
-                                                     [this](Daedalus::DaedalusVM& vm){ wld_isnextfpavailable(vm);    });
-  vm.registerExternalFunction("wld_ismobavailable",  [this](Daedalus::DaedalusVM& vm){ wld_ismobavailable(vm);       });
-  vm.registerExternalFunction("wld_setmobroutine",   [this](Daedalus::DaedalusVM& vm){ wld_setmobroutine(vm);        });
-  vm.registerExternalFunction("wld_getmobstate",     [this](Daedalus::DaedalusVM& vm){ wld_getmobstate(vm);          });
-  vm.registerExternalFunction("wld_assignroomtoguild",
-                                                     [this](Daedalus::DaedalusVM& vm){ wld_assignroomtoguild(vm);    });
-  vm.registerExternalFunction("wld_detectnpc",       [this](Daedalus::DaedalusVM& vm){ wld_detectnpc(vm);            });
-  vm.registerExternalFunction("wld_detectnpcex",     [this](Daedalus::DaedalusVM& vm){ wld_detectnpcex(vm);          });
-  vm.registerExternalFunction("wld_detectitem",      [this](Daedalus::DaedalusVM& vm){ wld_detectitem(vm);           });
-  vm.registerExternalFunction("wld_spawnnpcrange",   [this](Daedalus::DaedalusVM& vm){ wld_spawnnpcrange(vm);        });
-  vm.registerExternalFunction("wld_sendtrigger",     [this](Daedalus::DaedalusVM& vm){ wld_sendtrigger(vm);          });
-  vm.registerExternalFunction("wld_senduntrigger",   [this](Daedalus::DaedalusVM& vm){ wld_senduntrigger(vm);        });
-  vm.registerExternalFunction("wld_israining",       [this](Daedalus::DaedalusVM& vm){ wld_israining(vm);            });
+  bindExternal("wld_insertnpc",                  &GameScript::wld_insertnpc);
+  bindExternal("wld_insertitem",                 &GameScript::wld_insertitem);
+  bindExternal("wld_settime",                    &GameScript::wld_settime);
+  bindExternal("wld_getday",                     &GameScript::wld_getday);
+  bindExternal("wld_playeffect",                 &GameScript::wld_playeffect);
+  bindExternal("wld_stopeffect",                 &GameScript::wld_stopeffect);
+  bindExternal("wld_getplayerportalguild",       &GameScript::wld_getplayerportalguild);
+  bindExternal("wld_getformerplayerportalguild", &GameScript::wld_getformerplayerportalguild);
+  bindExternal("wld_setguildattitude",           &GameScript::wld_setguildattitude);
+  bindExternal("wld_getguildattitude",           &GameScript::wld_getguildattitude);
+  bindExternal("wld_istime",                     &GameScript::wld_istime);
+  bindExternal("wld_isfpavailable",              &GameScript::wld_isfpavailable);
+  bindExternal("wld_isnextfpavailable",          &GameScript::wld_isnextfpavailable);
+  bindExternal("wld_ismobavailable",             &GameScript::wld_ismobavailable);
+  bindExternal("wld_setmobroutine",              &GameScript::wld_setmobroutine);
+  bindExternal("wld_getmobstate",                &GameScript::wld_getmobstate);
+  bindExternal("wld_assignroomtoguild",          &GameScript::wld_assignroomtoguild);
+  bindExternal("wld_detectnpc",                  &GameScript::wld_detectnpc);
+  bindExternal("wld_detectnpcex",                &GameScript::wld_detectnpcex);
+  bindExternal("wld_detectitem",                 &GameScript::wld_detectitem);
+  bindExternal("wld_spawnnpcrange",              &GameScript::wld_spawnnpcrange);
+  bindExternal("wld_sendtrigger",                &GameScript::wld_sendtrigger);
+  bindExternal("wld_senduntrigger",              &GameScript::wld_senduntrigger);
+  bindExternal("wld_israining",                  &GameScript::wld_israining);
 
-  vm.registerExternalFunction("mdl_setvisual",       [this](Daedalus::DaedalusVM& vm){ mdl_setvisual(vm);        });
-  vm.registerExternalFunction("mdl_setvisualbody",   [this](Daedalus::DaedalusVM& vm){ mdl_setvisualbody(vm);    });
-  vm.registerExternalFunction("mdl_setmodelfatness", [this](Daedalus::DaedalusVM& vm){ mdl_setmodelfatness(vm);  });
-  vm.registerExternalFunction("mdl_applyoverlaymds", [this](Daedalus::DaedalusVM& vm){ mdl_applyoverlaymds(vm);  });
-  vm.registerExternalFunction("mdl_applyoverlaymdstimed",
-                                                     [this](Daedalus::DaedalusVM& vm){ mdl_applyoverlaymdstimed(vm); });
-  vm.registerExternalFunction("mdl_removeoverlaymds",[this](Daedalus::DaedalusVM& vm){ mdl_removeoverlaymds(vm); });
-  vm.registerExternalFunction("mdl_setmodelscale",   [this](Daedalus::DaedalusVM& vm){ mdl_setmodelscale(vm);    });
-  vm.registerExternalFunction("mdl_startfaceani",    [this](Daedalus::DaedalusVM& vm){ mdl_startfaceani(vm);     });
-  vm.registerExternalFunction("mdl_applyrandomani",  [this](Daedalus::DaedalusVM& vm){ mdl_applyrandomani(vm);   });
-  vm.registerExternalFunction("mdl_applyrandomanifreq",
-                                                     [this](Daedalus::DaedalusVM& vm){ mdl_applyrandomanifreq(vm);});
-  vm.registerExternalFunction("mdl_applyrandomfaceani",
-                                                     [this](Daedalus::DaedalusVM& vm){ mdl_applyrandomfaceani(vm);});
+  bindExternal("mdl_setvisual",                  &GameScript::mdl_setvisual);
+  bindExternal("mdl_setvisualbody",              &GameScript::mdl_setvisualbody);
+  bindExternal("mdl_setmodelfatness",            &GameScript::mdl_setmodelfatness);
+  bindExternal("mdl_applyoverlaymds",            &GameScript::mdl_applyoverlaymds);
+  bindExternal("mdl_applyoverlaymdstimed",       &GameScript::mdl_applyoverlaymdstimed);
+  bindExternal("mdl_removeoverlaymds",           &GameScript::mdl_removeoverlaymds);
+  bindExternal("mdl_setmodelscale",              &GameScript::mdl_setmodelscale);
+  bindExternal("mdl_startfaceani",               &GameScript::mdl_startfaceani);
+  bindExternal("mdl_applyrandomani",             &GameScript::mdl_applyrandomani);
+  bindExternal("mdl_applyrandomanifreq",         &GameScript::mdl_applyrandomanifreq);
+  bindExternal("mdl_applyrandomfaceani",         &GameScript::mdl_applyrandomfaceani);
 
-  vm.registerExternalFunction("npc_settofightmode",  [this](Daedalus::DaedalusVM& vm){ npc_settofightmode(vm);   });
-  vm.registerExternalFunction("npc_settofistmode",   [this](Daedalus::DaedalusVM& vm){ npc_settofistmode(vm);    });
-  vm.registerExternalFunction("npc_isinstate",       [this](Daedalus::DaedalusVM& vm){ npc_isinstate(vm);        });
-  vm.registerExternalFunction("npc_isinroutine",     [this](Daedalus::DaedalusVM& vm){ npc_isinroutine(vm);      });
-  vm.registerExternalFunction("npc_wasinstate",      [this](Daedalus::DaedalusVM& vm){ npc_wasinstate(vm);       });
-  vm.registerExternalFunction("npc_getdisttowp",     [this](Daedalus::DaedalusVM& vm){ npc_getdisttowp(vm);      });
-  vm.registerExternalFunction("npc_exchangeroutine", [this](Daedalus::DaedalusVM& vm){ npc_exchangeroutine(vm);  });
-  vm.registerExternalFunction("npc_isdead",          [this](Daedalus::DaedalusVM& vm){ npc_isdead(vm);           });
-  vm.registerExternalFunction("npc_knowsinfo",       [this](Daedalus::DaedalusVM& vm){ npc_knowsinfo(vm);        });
-  vm.registerExternalFunction("npc_settalentskill",  [this](Daedalus::DaedalusVM& vm){ npc_settalentskill(vm);   });
-  vm.registerExternalFunction("npc_gettalentskill",  [this](Daedalus::DaedalusVM& vm){ npc_gettalentskill(vm);   });
-  vm.registerExternalFunction("npc_settalentvalue",  [this](Daedalus::DaedalusVM& vm){ npc_settalentvalue(vm);   });
-  vm.registerExternalFunction("npc_gettalentvalue",  [this](Daedalus::DaedalusVM& vm){ npc_gettalentvalue(vm);   });
-  vm.registerExternalFunction("npc_setrefusetalk",   [this](Daedalus::DaedalusVM& vm){ npc_setrefusetalk(vm);    });
-  vm.registerExternalFunction("npc_refusetalk",      [this](Daedalus::DaedalusVM& vm){ npc_refusetalk(vm);       });
-  vm.registerExternalFunction("npc_hasitems",        [this](Daedalus::DaedalusVM& vm){ npc_hasitems(vm);         });
-  vm.registerExternalFunction("npc_getinvitem",      [this](Daedalus::DaedalusVM& vm){ npc_getinvitem(vm);       });
-  vm.registerExternalFunction("npc_removeinvitem",   [this](Daedalus::DaedalusVM& vm){ npc_removeinvitem(vm);    });
-  vm.registerExternalFunction("npc_removeinvitems",  [this](Daedalus::DaedalusVM& vm){ npc_removeinvitems(vm);   });
-  vm.registerExternalFunction("npc_getbodystate",    [this](Daedalus::DaedalusVM& vm){ npc_getbodystate(vm);     });
-  vm.registerExternalFunction("npc_getlookattarget", [this](Daedalus::DaedalusVM& vm){ npc_getlookattarget(vm);  });
-  vm.registerExternalFunction("npc_getdisttonpc",    [this](Daedalus::DaedalusVM& vm){ npc_getdisttonpc(vm);     });
-  vm.registerExternalFunction("npc_hasequippedarmor",[this](Daedalus::DaedalusVM& vm){ npc_hasequippedarmor(vm); });
-  vm.registerExternalFunction("npc_setperctime",     [this](Daedalus::DaedalusVM& vm){ npc_setperctime(vm);      });
-  vm.registerExternalFunction("npc_percenable",      [this](Daedalus::DaedalusVM& vm){ npc_percenable(vm);       });
-  vm.registerExternalFunction("npc_percdisable",     [this](Daedalus::DaedalusVM& vm){ npc_percdisable(vm);      });
-  vm.registerExternalFunction("npc_getnearestwp",    [this](Daedalus::DaedalusVM& vm){ npc_getnearestwp(vm);     });
-  vm.registerExternalFunction("npc_clearaiqueue",    [this](Daedalus::DaedalusVM& vm){ npc_clearaiqueue(vm);     });
-  vm.registerExternalFunction("npc_isplayer",        [this](Daedalus::DaedalusVM& vm){ npc_isplayer(vm);         });
-  vm.registerExternalFunction("npc_getstatetime",    [this](Daedalus::DaedalusVM& vm){ npc_getstatetime(vm);     });
-  vm.registerExternalFunction("npc_setstatetime",    [this](Daedalus::DaedalusVM& vm){ npc_setstatetime(vm);     });
-  vm.registerExternalFunction("npc_changeattribute", [this](Daedalus::DaedalusVM& vm){ npc_changeattribute(vm);  });
-  vm.registerExternalFunction("npc_isonfp",          [this](Daedalus::DaedalusVM& vm){ npc_isonfp(vm);           });
-  vm.registerExternalFunction("npc_getheighttonpc",  [this](Daedalus::DaedalusVM& vm){ npc_getheighttonpc(vm);   });
-  vm.registerExternalFunction("npc_getequippedmeleeweapon",
-                                                     [this](Daedalus::DaedalusVM& vm){ npc_getequippedmeleeweapon(vm); });
-  vm.registerExternalFunction("npc_getequippedrangedweapon",
-                                                     [this](Daedalus::DaedalusVM& vm){ npc_getequippedrangedweapon(vm); });
-  vm.registerExternalFunction("npc_getequippedarmor",[this](Daedalus::DaedalusVM& vm){ npc_getequippedarmor(vm); });
-  vm.registerExternalFunction("npc_canseenpc",       [this](Daedalus::DaedalusVM& vm){ npc_canseenpc(vm);        });
-  vm.registerExternalFunction("npc_hasequippedweapon",
-                                                     [this](Daedalus::DaedalusVM& vm){ npc_hasequippedweapon(vm); });
-  vm.registerExternalFunction("npc_hasequippedmeleeweapon",
-                                                     [this](Daedalus::DaedalusVM& vm){ npc_hasequippedmeleeweapon(vm); });
-  vm.registerExternalFunction("npc_hasequippedrangedweapon",
-                                                     [this](Daedalus::DaedalusVM& vm){ npc_hasequippedrangedweapon(vm); });
-  vm.registerExternalFunction("npc_getactivespell",  [this](Daedalus::DaedalusVM& vm){ npc_getactivespell(vm);   });
-  vm.registerExternalFunction("npc_getactivespellisscroll",
-                                                     [this](Daedalus::DaedalusVM& vm){ npc_getactivespellisscroll(vm); });
-  vm.registerExternalFunction("npc_getactivespellcat",
-                                                     [this](Daedalus::DaedalusVM& vm){ npc_getactivespellcat(vm); });
-  vm.registerExternalFunction("npc_setactivespellinfo",
-                                                     [this](Daedalus::DaedalusVM& vm){ npc_setactivespellinfo(vm); });
-  vm.registerExternalFunction("npc_getactivespelllevel",
-                                                     [this](Daedalus::DaedalusVM& vm){ npc_getactivespelllevel(vm); });
+  bindExternal("npc_settofightmode",             &GameScript::npc_settofightmode);
+  bindExternal("npc_settofistmode",              &GameScript::npc_settofistmode);
+  bindExternal("npc_isinstate",                  &GameScript::npc_isinstate);
+  bindExternal("npc_isinroutine",                &GameScript::npc_isinroutine);
+  bindExternal("npc_wasinstate",                 &GameScript::npc_wasinstate);
+  bindExternal("npc_getdisttowp",                &GameScript::npc_getdisttowp);
+  bindExternal("npc_exchangeroutine",            &GameScript::npc_exchangeroutine);
+  bindExternal("npc_isdead",                     &GameScript::npc_isdead);
+  bindExternal("npc_knowsinfo",                  &GameScript::npc_knowsinfo);
+  bindExternal("npc_settalentskill",             &GameScript::npc_settalentskill);
+  bindExternal("npc_gettalentskill",             &GameScript::npc_gettalentskill);
+  bindExternal("npc_settalentvalue",             &GameScript::npc_settalentvalue);
+  bindExternal("npc_gettalentvalue",             &GameScript::npc_gettalentvalue);
+  bindExternal("npc_setrefusetalk",              &GameScript::npc_setrefusetalk);
+  bindExternal("npc_refusetalk",                 &GameScript::npc_refusetalk);
+  bindExternal("npc_hasitems",                   &GameScript::npc_hasitems);
+  bindExternal("npc_getinvitem",                 &GameScript::npc_getinvitem);
+  bindExternal("npc_removeinvitem",              &GameScript::npc_removeinvitem);
+  bindExternal("npc_removeinvitems",             &GameScript::npc_removeinvitems);
+  bindExternal("npc_getbodystate",               &GameScript::npc_getbodystate);
+  bindExternal("npc_getlookattarget",            &GameScript::npc_getlookattarget);
+  bindExternal("npc_getdisttonpc",               &GameScript::npc_getdisttonpc);
+  bindExternal("npc_hasequippedarmor",           &GameScript::npc_hasequippedarmor);
+  bindExternal("npc_setperctime",                &GameScript::npc_setperctime);
+  bindExternal("npc_percenable",                 &GameScript::npc_percenable);
+  bindExternal("npc_percdisable",                &GameScript::npc_percdisable);
+  bindExternal("npc_getnearestwp",               &GameScript::npc_getnearestwp);
+  bindExternal("npc_clearaiqueue",               &GameScript::npc_clearaiqueue);
+  bindExternal("npc_isplayer",                   &GameScript::npc_isplayer);
+  bindExternal("npc_getstatetime",               &GameScript::npc_getstatetime);
+  bindExternal("npc_setstatetime",               &GameScript::npc_setstatetime);
+  bindExternal("npc_changeattribute",            &GameScript::npc_changeattribute);
+  bindExternal("npc_isonfp",                     &GameScript::npc_isonfp);
+  bindExternal("npc_getheighttonpc",             &GameScript::npc_getheighttonpc);
+  bindExternal("npc_getequippedmeleeweapon",     &GameScript::npc_getequippedmeleeweapon);
+  bindExternal("npc_getequippedrangedweapon",    &GameScript::npc_getequippedrangedweapon);
+  bindExternal("npc_getequippedarmor",           &GameScript::npc_getequippedarmor);
+  bindExternal("npc_canseenpc",                  &GameScript::npc_canseenpc);
+  bindExternal("npc_hasequippedweapon",          &GameScript::npc_hasequippedweapon);
+  bindExternal("npc_hasequippedmeleeweapon",     &GameScript::npc_hasequippedmeleeweapon);
+  bindExternal("npc_hasequippedrangedweapon",    &GameScript::npc_hasequippedrangedweapon);
+  bindExternal("npc_getactivespell",             &GameScript::npc_getactivespell);
+  bindExternal("npc_getactivespellisscroll",     &GameScript::npc_getactivespellisscroll);
+  bindExternal("npc_getactivespellcat",          &GameScript::npc_getactivespellcat);
+  bindExternal("npc_setactivespellinfo",         &GameScript::npc_setactivespellinfo);
+  bindExternal("npc_getactivespelllevel",        &GameScript::npc_getactivespelllevel);
+  bindExternal("npc_canseenpcfreelos",           &GameScript::npc_canseenpcfreelos);
+  bindExternal("npc_isinfightmode",              &GameScript::npc_isinfightmode);
+  bindExternal("npc_settarget",                  &GameScript::npc_settarget);
+  bindExternal("npc_gettarget",                  &GameScript::npc_gettarget);
+  bindExternal("npc_getnexttarget",              &GameScript::npc_getnexttarget);
+  bindExternal("npc_sendpassiveperc",            &GameScript::npc_sendpassiveperc);
+  bindExternal("npc_checkinfo",                  &GameScript::npc_checkinfo);
+  bindExternal("npc_getportalguild",             &GameScript::npc_getportalguild);
+  bindExternal("npc_isinplayersroom",            &GameScript::npc_isinplayersroom);
+  bindExternal("npc_getreadiedweapon",           &GameScript::npc_getreadiedweapon);
+  bindExternal("npc_hasreadiedmeleeweapon",      &GameScript::npc_hasreadiedmeleeweapon);
+  bindExternal("npc_isdrawingspell",             &GameScript::npc_isdrawingspell);
+  bindExternal("npc_isdrawingweapon",            &GameScript::npc_isdrawingweapon);
+  bindExternal("npc_perceiveall",                &GameScript::npc_perceiveall);
+  bindExternal("npc_stopani",                    &GameScript::npc_stopani);
+  bindExternal("npc_settrueguild",               &GameScript::npc_settrueguild);
+  bindExternal("npc_gettrueguild",               &GameScript::npc_gettrueguild);
+  bindExternal("npc_clearinventory",             &GameScript::npc_clearinventory);
+  bindExternal("npc_getattitude",                &GameScript::npc_getattitude);
+  bindExternal("npc_getpermattitude",            &GameScript::npc_getpermattitude);
+  bindExternal("npc_setattitude",                &GameScript::npc_setattitude);
+  bindExternal("npc_settempattitude",            &GameScript::npc_settempattitude);
+  bindExternal("npc_hasbodyflag",                &GameScript::npc_hasbodyflag);
+  bindExternal("npc_getlasthitspellid",          &GameScript::npc_getlasthitspellid);
+  bindExternal("npc_getlasthitspellcat",         &GameScript::npc_getlasthitspellcat);
+  bindExternal("npc_playani",                    &GameScript::npc_playani);
+  bindExternal("npc_isdetectedmobownedbynpc",    &GameScript::npc_isdetectedmobownedbynpc);
+  bindExternal("npc_getdetectedmob",             &GameScript::npc_getdetectedmob);
+  bindExternal("npc_isdetectedmobownedbyguild",  &GameScript::npc_isdetectedmobownedbyguild);
+  bindExternal("npc_ownedbynpc",                 &GameScript::npc_ownedbynpc);
+  bindExternal("npc_canseesource",               &GameScript::npc_canseesource);
+  bindExternal("npc_getdisttoitem",              &GameScript::npc_getdisttoitem);
+  bindExternal("npc_getheighttoitem",            &GameScript::npc_getheighttoitem);
+  bindExternal("npc_getdisttoplayer",            &GameScript::npc_getdisttoplayer);
 
-  vm.registerExternalFunction("npc_canseenpcfreelos",[this](Daedalus::DaedalusVM& vm){ npc_canseenpcfreelos(vm); });
-  vm.registerExternalFunction("npc_isinfightmode",   [this](Daedalus::DaedalusVM& vm){ npc_isinfightmode(vm);    });
-  vm.registerExternalFunction("npc_settarget",       [this](Daedalus::DaedalusVM& vm){ npc_settarget(vm);        });
-  vm.registerExternalFunction("npc_gettarget",       [this](Daedalus::DaedalusVM& vm){ npc_gettarget(vm);        });
-  vm.registerExternalFunction("npc_getnexttarget",   [this](Daedalus::DaedalusVM& vm){ npc_getnexttarget(vm);    });
-  vm.registerExternalFunction("npc_sendpassiveperc", [this](Daedalus::DaedalusVM& vm){ npc_sendpassiveperc(vm);  });
-  vm.registerExternalFunction("npc_checkinfo",       [this](Daedalus::DaedalusVM& vm){ npc_checkinfo(vm);        });
-  vm.registerExternalFunction("npc_getportalguild",  [this](Daedalus::DaedalusVM& vm){ npc_getportalguild(vm);   });
-  vm.registerExternalFunction("npc_isinplayersroom", [this](Daedalus::DaedalusVM& vm){ npc_isinplayersroom(vm);  });
-  vm.registerExternalFunction("npc_getreadiedweapon",[this](Daedalus::DaedalusVM& vm){ npc_getreadiedweapon(vm); });
-  vm.registerExternalFunction("npc_hasreadiedmeleeweapon",
-                                                     [this](Daedalus::DaedalusVM& vm){ npc_hasreadiedmeleeweapon(vm); });
-  vm.registerExternalFunction("npc_isdrawingspell",  [this](Daedalus::DaedalusVM& vm){ npc_isdrawingspell(vm);   });
-  vm.registerExternalFunction("npc_isdrawingweapon", [this](Daedalus::DaedalusVM& vm){ npc_isdrawingweapon(vm);  });
-  vm.registerExternalFunction("npc_perceiveall",     [this](Daedalus::DaedalusVM& vm){ npc_perceiveall(vm);      });
-  vm.registerExternalFunction("npc_stopani",         [this](Daedalus::DaedalusVM& vm){ npc_stopani(vm);          });
-  vm.registerExternalFunction("npc_settrueguild",    [this](Daedalus::DaedalusVM& vm){ npc_settrueguild(vm);     });
-  vm.registerExternalFunction("npc_gettrueguild",    [this](Daedalus::DaedalusVM& vm){ npc_gettrueguild(vm);     });
-  vm.registerExternalFunction("npc_clearinventory",  [this](Daedalus::DaedalusVM& vm){ npc_clearinventory(vm);   });
-  vm.registerExternalFunction("npc_getattitude",     [this](Daedalus::DaedalusVM& vm){ npc_getattitude(vm);      });
-  vm.registerExternalFunction("npc_getpermattitude", [this](Daedalus::DaedalusVM& vm){ npc_getpermattitude(vm);  });
-  vm.registerExternalFunction("npc_setattitude",     [this](Daedalus::DaedalusVM& vm){ npc_setattitude(vm);      });
-  vm.registerExternalFunction("npc_settempattitude", [this](Daedalus::DaedalusVM& vm){ npc_settempattitude(vm);  });
-  vm.registerExternalFunction("npc_hasbodyflag",     [this](Daedalus::DaedalusVM& vm){ npc_hasbodyflag(vm);      });
-  vm.registerExternalFunction("npc_getlasthitspellid",
-                                                     [this](Daedalus::DaedalusVM& vm){ npc_getlasthitspellid(vm);});
-  vm.registerExternalFunction("npc_getlasthitspellcat",
-                                                     [this](Daedalus::DaedalusVM& vm){ npc_getlasthitspellcat(vm);});
-  vm.registerExternalFunction("npc_playani",         [this](Daedalus::DaedalusVM& vm){ npc_playani(vm);          });
+  bindExternal("ai_output",                      &GameScript::ai_output);
+  bindExternal("ai_stopprocessinfos",            &GameScript::ai_stopprocessinfos);
+  bindExternal("ai_processinfos",                &GameScript::ai_processinfos);
+  bindExternal("ai_standup",                     &GameScript::ai_standup);
+  bindExternal("ai_standupquick",                &GameScript::ai_standupquick);
+  bindExternal("ai_continueroutine",             &GameScript::ai_continueroutine);
+  bindExternal("ai_stoplookat",                  &GameScript::ai_stoplookat);
+  bindExternal("ai_lookatnpc",                   &GameScript::ai_lookatnpc);
+  bindExternal("ai_removeweapon",                &GameScript::ai_removeweapon);
+  bindExternal("ai_turntonpc",                   &GameScript::ai_turntonpc);
+  bindExternal("ai_outputsvm",                   &GameScript::ai_outputsvm);
+  bindExternal("ai_outputsvm_overlay",           &GameScript::ai_outputsvm_overlay);
+  bindExternal("ai_startstate",                  &GameScript::ai_startstate);
+  bindExternal("ai_playani",                     &GameScript::ai_playani);
+  bindExternal("ai_setwalkmode",                 &GameScript::ai_setwalkmode);
+  bindExternal("ai_wait",                        &GameScript::ai_wait);
+  bindExternal("ai_waitms",                      &GameScript::ai_waitms);
+  bindExternal("ai_aligntowp",                   &GameScript::ai_aligntowp);
+  bindExternal("ai_gotowp",                      &GameScript::ai_gotowp);
+  bindExternal("ai_gotofp",                      &GameScript::ai_gotofp);
+  bindExternal("ai_playanibs",                   &GameScript::ai_playanibs);
+  bindExternal("ai_equiparmor",                  &GameScript::ai_equiparmor);
+  bindExternal("ai_equipbestarmor",              &GameScript::ai_equipbestarmor);
+  bindExternal("ai_equipbestmeleeweapon",        &GameScript::ai_equipbestmeleeweapon);
+  bindExternal("ai_equipbestrangedweapon",       &GameScript::ai_equipbestrangedweapon);
+  bindExternal("ai_usemob",                      &GameScript::ai_usemob);
+  bindExternal("ai_teleport",                    &GameScript::ai_teleport);
+  bindExternal("ai_stoppointat",                 &GameScript::ai_stoppointat);
+  bindExternal("ai_drawweapon",                  &GameScript::ai_drawweapon);
+  bindExternal("ai_readymeleeweapon",            &GameScript::ai_readymeleeweapon);
+  bindExternal("ai_readyrangedweapon",           &GameScript::ai_readyrangedweapon);
+  bindExternal("ai_readyspell",                  &GameScript::ai_readyspell);
+  bindExternal("ai_attack",                      &GameScript::ai_atack);
+  bindExternal("ai_flee",                        &GameScript::ai_flee);
+  bindExternal("ai_dodge",                       &GameScript::ai_dodge);
+  bindExternal("ai_unequipweapons",              &GameScript::ai_unequipweapons);
+  bindExternal("ai_unequiparmor",                &GameScript::ai_unequiparmor);
+  bindExternal("ai_gotonpc",                     &GameScript::ai_gotonpc);
+  bindExternal("ai_gotonextfp",                  &GameScript::ai_gotonextfp);
+  bindExternal("ai_aligntofp",                   &GameScript::ai_aligntofp);
+  bindExternal("ai_useitem",                     &GameScript::ai_useitem);
+  bindExternal("ai_useitemtostate",              &GameScript::ai_useitemtostate);
+  bindExternal("ai_setnpcstostate",              &GameScript::ai_setnpcstostate);
+  bindExternal("ai_finishingmove",               &GameScript::ai_finishingmove);
+  bindExternal("ai_takeitem",                    &GameScript::ai_takeitem);
+  bindExternal("ai_gotoitem",                    &GameScript::ai_gotoitem);
+  bindExternal("ai_pointat",                     &GameScript::ai_pointat);
+  bindExternal("ai_pointatnpc",                  &GameScript::ai_pointatnpc);
 
-  vm.registerExternalFunction("npc_isdetectedmobownedbynpc",
-                                                     [this](Daedalus::DaedalusVM& vm){ npc_isdetectedmobownedbynpc(vm);});
-  vm.registerExternalFunction("npc_getdetectedmob",  [this](Daedalus::DaedalusVM& vm){ npc_getdetectedmob(vm);   });
-  vm.registerExternalFunction("npc_isdetectedmobownedbyguild",
-                                                     [this](Daedalus::DaedalusVM& vm) { npc_isdetectedmobownedbyguild(vm); });
-  vm.registerExternalFunction("npc_ownedbynpc",      [this](Daedalus::DaedalusVM& vm){ npc_ownedbynpc(vm);       });
-  vm.registerExternalFunction("npc_canseesource",    [this](Daedalus::DaedalusVM& vm){ npc_canseesource(vm);     });
-  vm.registerExternalFunction("npc_getdisttoitem",   [this](Daedalus::DaedalusVM& vm){ npc_getdisttoitem(vm);    });
-  vm.registerExternalFunction("npc_getheighttoitem", [this](Daedalus::DaedalusVM& vm){ npc_getheighttoitem(vm);  });
-  vm.registerExternalFunction("npc_getdisttoplayer", [this](Daedalus::DaedalusVM& vm){ npc_getdisttoplayer(vm);  });
+  bindExternal("mob_hasitems",                   &GameScript::mob_hasitems);
+  bindExternal("ai_printscreen",                 &GameScript::ai_printscreen);
 
-  vm.registerExternalFunction("ai_output",           [this](Daedalus::DaedalusVM& vm){ ai_output(vm);            });
-  vm.registerExternalFunction("ai_stopprocessinfos", [this](Daedalus::DaedalusVM& vm){ ai_stopprocessinfos(vm);  });
-  vm.registerExternalFunction("ai_processinfos",     [this](Daedalus::DaedalusVM& vm){ ai_processinfos(vm);      });
-  vm.registerExternalFunction("ai_standup",          [this](Daedalus::DaedalusVM& vm){ ai_standup(vm);           });
-  vm.registerExternalFunction("ai_standupquick",     [this](Daedalus::DaedalusVM& vm){ ai_standupquick(vm);      });
-  vm.registerExternalFunction("ai_continueroutine",  [this](Daedalus::DaedalusVM& vm){ ai_continueroutine(vm);   });
-  vm.registerExternalFunction("ai_stoplookat",       [this](Daedalus::DaedalusVM& vm){ ai_stoplookat(vm);        });
-  vm.registerExternalFunction("ai_lookatnpc",        [this](Daedalus::DaedalusVM& vm){ ai_lookatnpc(vm);         });
-  vm.registerExternalFunction("ai_removeweapon",     [this](Daedalus::DaedalusVM& vm){ ai_removeweapon(vm);      });
-  vm.registerExternalFunction("ai_turntonpc",        [this](Daedalus::DaedalusVM& vm){ ai_turntonpc(vm);         });
-  vm.registerExternalFunction("ai_outputsvm",        [this](Daedalus::DaedalusVM& vm){ ai_outputsvm(vm);         });
-  vm.registerExternalFunction("ai_outputsvm_overlay",[this](Daedalus::DaedalusVM& vm){ ai_outputsvm_overlay(vm); });
-  vm.registerExternalFunction("ai_startstate",       [this](Daedalus::DaedalusVM& vm){ ai_startstate(vm);        });
-  vm.registerExternalFunction("ai_playani",          [this](Daedalus::DaedalusVM& vm){ ai_playani(vm);           });
-  vm.registerExternalFunction("ai_setwalkmode",      [this](Daedalus::DaedalusVM& vm){ ai_setwalkmode(vm);       });
-  vm.registerExternalFunction("ai_wait",             [this](Daedalus::DaedalusVM& vm){ ai_wait(vm);              });
-  vm.registerExternalFunction("ai_waitms",           [this](Daedalus::DaedalusVM& vm){ ai_waitms(vm);            });
-  vm.registerExternalFunction("ai_aligntowp",        [this](Daedalus::DaedalusVM& vm){ ai_aligntowp(vm);         });
-  vm.registerExternalFunction("ai_gotowp",           [this](Daedalus::DaedalusVM& vm){ ai_gotowp(vm);            });
-  vm.registerExternalFunction("ai_gotofp",           [this](Daedalus::DaedalusVM& vm){ ai_gotofp(vm);            });
-  vm.registerExternalFunction("ai_playanibs",        [this](Daedalus::DaedalusVM& vm){ ai_playanibs(vm);         });
-  vm.registerExternalFunction("ai_equiparmor",       [this](Daedalus::DaedalusVM& vm){ ai_equiparmor(vm);        });
-  vm.registerExternalFunction("ai_equipbestarmor",   [this](Daedalus::DaedalusVM& vm){ ai_equipbestarmor(vm);    });
-  vm.registerExternalFunction("ai_equipbestmeleeweapon",
-                                                     [this](Daedalus::DaedalusVM& vm){ ai_equipbestmeleeweapon(vm);  });
-  vm.registerExternalFunction("ai_equipbestrangedweapon",
-                                                     [this](Daedalus::DaedalusVM& vm){ ai_equipbestrangedweapon(vm); });
-  vm.registerExternalFunction("ai_usemob",           [this](Daedalus::DaedalusVM& vm){ ai_usemob(vm);            });
-  vm.registerExternalFunction("ai_teleport",         [this](Daedalus::DaedalusVM& vm){ ai_teleport(vm);          });
-  vm.registerExternalFunction("ai_stoppointat",      [this](Daedalus::DaedalusVM& vm){ ai_stoppointat(vm);       });
-  vm.registerExternalFunction("ai_drawweapon",       [this](Daedalus::DaedalusVM& vm){ ai_drawweapon(vm);  });
-  vm.registerExternalFunction("ai_readymeleeweapon", [this](Daedalus::DaedalusVM& vm){ ai_readymeleeweapon(vm);  });
-  vm.registerExternalFunction("ai_readyrangedweapon",[this](Daedalus::DaedalusVM& vm){ ai_readyrangedweapon(vm); });
-  vm.registerExternalFunction("ai_readyspell",       [this](Daedalus::DaedalusVM& vm){ ai_readyspell(vm);        });
-  vm.registerExternalFunction("ai_attack",           [this](Daedalus::DaedalusVM& vm){ ai_atack(vm);             });
-  vm.registerExternalFunction("ai_flee",             [this](Daedalus::DaedalusVM& vm){ ai_flee(vm);              });
-  vm.registerExternalFunction("ai_dodge",            [this](Daedalus::DaedalusVM& vm){ ai_dodge(vm);             });
-  vm.registerExternalFunction("ai_unequipweapons",   [this](Daedalus::DaedalusVM& vm){ ai_unequipweapons(vm);    });
-  vm.registerExternalFunction("ai_unequiparmor",     [this](Daedalus::DaedalusVM& vm){ ai_unequiparmor(vm);      });
-  vm.registerExternalFunction("ai_gotonpc",          [this](Daedalus::DaedalusVM& vm){ ai_gotonpc(vm);           });
-  vm.registerExternalFunction("ai_gotonextfp",       [this](Daedalus::DaedalusVM& vm){ ai_gotonextfp(vm);        });
-  vm.registerExternalFunction("ai_aligntofp",        [this](Daedalus::DaedalusVM& vm){ ai_aligntofp(vm);         });
-  vm.registerExternalFunction("ai_useitem",          [this](Daedalus::DaedalusVM& vm){ ai_useitem(vm);           });
-  vm.registerExternalFunction("ai_useitemtostate",   [this](Daedalus::DaedalusVM& vm){ ai_useitemtostate(vm);    });
-  vm.registerExternalFunction("ai_setnpcstostate",   [this](Daedalus::DaedalusVM& vm){ ai_setnpcstostate(vm);    });
-  vm.registerExternalFunction("ai_finishingmove",    [this](Daedalus::DaedalusVM& vm){ ai_finishingmove(vm);     });
-  vm.registerExternalFunction("ai_takeitem",         [this](Daedalus::DaedalusVM& vm){ ai_takeitem(vm);          });
-  vm.registerExternalFunction("ai_gotoitem",         [this](Daedalus::DaedalusVM& vm){ ai_gotoitem(vm);          });
-  vm.registerExternalFunction("ai_pointat",          [this](Daedalus::DaedalusVM& vm){ ai_pointat(vm);           });
-  vm.registerExternalFunction("ai_pointatnpc",       [this](Daedalus::DaedalusVM& vm){ ai_pointatnpc(vm);        });
-  vm.registerExternalFunction("ai_printscreen",      [this](Daedalus::DaedalusVM& vm){ ai_printscreen(vm);       });
+  bindExternal("ta_min",                         &GameScript::ta_min);
 
-  vm.registerExternalFunction("mob_hasitems",        [this](Daedalus::DaedalusVM& vm){ mob_hasitems(vm);         });
+  bindExternal("log_createtopic",                &GameScript::log_createtopic);
+  bindExternal("log_settopicstatus",             &GameScript::log_settopicstatus);
+  bindExternal("log_addentry",                   &GameScript::log_addentry);
 
-  vm.registerExternalFunction("ta_min",              [this](Daedalus::DaedalusVM& vm){ ta_min(vm);               });
+  bindExternal("equipitem",                      &GameScript::equipitem);
+  bindExternal("createinvitem",                  &GameScript::createinvitem);
+  bindExternal("createinvitems",                 &GameScript::createinvitems);
 
-  vm.registerExternalFunction("log_createtopic",     [this](Daedalus::DaedalusVM& vm){ log_createtopic(vm);      });
-  vm.registerExternalFunction("log_settopicstatus",  [this](Daedalus::DaedalusVM& vm){ log_settopicstatus(vm);   });
-  vm.registerExternalFunction("log_addentry",        [this](Daedalus::DaedalusVM& vm){ log_addentry(vm);         });
+  bindExternal("info_addchoice",                 &GameScript::info_addchoice);
+  bindExternal("info_clearchoices",              &GameScript::info_clearchoices);
+  bindExternal("infomanager_hasfinished",        &GameScript::infomanager_hasfinished);
 
-  vm.registerExternalFunction("equipitem",           [this](Daedalus::DaedalusVM& vm){ equipitem(vm);            });
-  vm.registerExternalFunction("createinvitem",       [this](Daedalus::DaedalusVM& vm){ createinvitem(vm);        });
-  vm.registerExternalFunction("createinvitems",      [this](Daedalus::DaedalusVM& vm){ createinvitems(vm);       });
+  bindExternal("snd_play",                       &GameScript::snd_play);
+  bindExternal("snd_play3d",                     &GameScript::snd_play3d);
 
-  vm.registerExternalFunction("info_addchoice",      [this](Daedalus::DaedalusVM& vm){ info_addchoice(vm);       });
-  vm.registerExternalFunction("info_clearchoices",   [this](Daedalus::DaedalusVM& vm){ info_clearchoices(vm);    });
-  vm.registerExternalFunction("infomanager_hasfinished",
-                                                     [this](Daedalus::DaedalusVM& vm){ infomanager_hasfinished(vm); });
+  bindExternal("game_initgerman",                &GameScript::game_initgerman);
+  bindExternal("game_initenglish",               &GameScript::game_initenglish);
 
-  vm.registerExternalFunction("snd_play",            [this](Daedalus::DaedalusVM& vm){ snd_play(vm);             });
-  vm.registerExternalFunction("snd_play3d",          [this](Daedalus::DaedalusVM& vm){ snd_play3d(vm);           });
-
-  vm.registerExternalFunction("game_initgerman",     [this](Daedalus::DaedalusVM& vm){ game_initgerman(vm);      });
-  vm.registerExternalFunction("game_initenglish",    [this](Daedalus::DaedalusVM& vm){ game_initenglish(vm);     });
-
-  vm.registerExternalFunction("exitsession",         [this](Daedalus::DaedalusVM& vm){ exitsession(vm);          });
+  bindExternal("exitsession",                    &GameScript::exitsession);
 
   // vm.validateExternals();
 
@@ -326,90 +291,89 @@ void GameScript::initCommon() {
   ZS_Attack            = aiState(getSymbolIndex("ZS_Attack")).funcIni;
   ZS_MM_Attack         = aiState(getSymbolIndex("ZS_MM_Attack")).funcIni;
 
-  auto& dat            = vm.getDATFile();
+  spellFxInstanceNames = vm.find_symbol_by_name("spellFxInstanceNames");
+  spellFxAniLetters    = vm.find_symbol_by_name("spellFxAniLetters");
 
-  spellFxInstanceNames = dat.getSymbolIndexByName("spellFxInstanceNames");
-  spellFxAniLetters    = dat.getSymbolIndexByName("spellFxAniLetters");
+  if (spellFxInstanceNames == nullptr || spellFxAniLetters == nullptr) {
+    throw std::runtime_error("spellFxInstanceNames and/or spellFxAniLetters not found");
+    }
 
   if(owner.version().game==2){
-    auto& currency = dat.getSymbolByName("TRADE_CURRENCY_INSTANCE");
-    itMi_Gold      = dat.getSymbolIndexByName(currency.getString(0).c_str());
-    if(itMi_Gold!=size_t(-1)){ // FIXME
-      Daedalus::GEngineClasses::C_Item item={};
-      vm.initializeInstance(item, itMi_Gold, Daedalus::IC_Item);
-      clearReferences(item);
-      goldTxt = item.name.c_str();
+    auto* currency = vm.find_symbol_by_name("TRADE_CURRENCY_INSTANCE");
+    itMi_Gold      = currency != nullptr ? vm.find_symbol_by_name(currency->get_string()) : nullptr;
+    if(itMi_Gold!=nullptr){ // FIXME
+      auto item = vm.init_instance<phoenix::c_item>(itMi_Gold);
+      goldTxt = item->name;
       }
-    auto& tradeMul = dat.getSymbolByName("TRADE_VALUE_MULTIPLIER");
-    tradeValMult   = tradeMul.getFloat();
+    auto* tradeMul = vm.find_symbol_by_name("TRADE_VALUE_MULTIPLIER");
+    tradeValMult   = tradeMul != nullptr ? tradeMul->get_float() : 1.0f;
 
-    auto& vtime     = dat.getSymbolByName("VIEW_TIME_PER_CHAR");
-    viewTimePerChar = vtime.getFloat(0);
+    auto* vtime     = vm.find_symbol_by_name("VIEW_TIME_PER_CHAR");
+    viewTimePerChar = vtime != nullptr ? vtime->get_float() : 0.55f;
     if(viewTimePerChar<=0.f)
       viewTimePerChar=0.55f;
     } else {
-    itMi_Gold      = dat.getSymbolIndexByName("ItMiNugget");
-    if(itMi_Gold!=size_t(-1)) { // FIXME
-      Daedalus::GEngineClasses::C_Item item={};
-      vm.initializeInstance(item, itMi_Gold, Daedalus::IC_Item);
-      clearReferences(item);
-      goldTxt = item.name.c_str();
+    itMi_Gold      = vm.find_symbol_by_name("ItMiNugget");
+    if(itMi_Gold!=nullptr) { // FIXME
+      auto item = vm.init_instance<phoenix::c_item>(itMi_Gold);
+      goldTxt = item->name;
       }
     //
     tradeValMult   = 1.f;
     viewTimePerChar=0.55f;
     }
 
-  auto& gilMax = dat.getSymbolByName("GIL_MAX");
-  gilCount=size_t(gilMax.getInt(0));
+  auto* gilMax = vm.find_symbol_by_name("GIL_MAX");
+  gilCount=gilMax != nullptr ? size_t(gilMax->get_int()) : 0;
 
-  auto& tableSz = dat.getSymbolByName("TAB_ANZAHL");
-  auto& guilds  = dat.getSymbolByName("GIL_ATTITUDES");
-  gilAttitudes.resize(gilCount*gilCount,ATT_HOSTILE);
+  auto* tableSz = vm.find_symbol_by_name("TAB_ANZAHL");
+  auto* guilds  = vm.find_symbol_by_name("GIL_ATTITUDES");
 
-  size_t tbSz=size_t(std::sqrt(tableSz.getInt()));
-  for(size_t i=0;i<tbSz;++i)
-    for(size_t r=0;r<tbSz;++r) {
-      gilAttitudes[i*gilCount+r]=guilds.getInt(i*tbSz+r);
-      gilAttitudes[r*gilCount+i]=guilds.getInt(r*tbSz+i);
-      }
+  if (tableSz != nullptr && guilds != nullptr) {
+    gilAttitudes.resize(gilCount*gilCount,ATT_HOSTILE);
+    size_t tbSz=size_t(std::sqrt(tableSz->get_int()));
+    for(size_t i=0;i<tbSz;++i)
+      for(size_t r=0;r<tbSz;++r) {
+        gilAttitudes[i*gilCount+r]=guilds->get_int(i*tbSz+r);
+        gilAttitudes[r*gilCount+i]=guilds->get_int(r*tbSz+i);
+        }
+  }
 
-  auto id = dat.getSymbolIndexByName("Gil_Values");
-  if(id!=size_t(-1)){
-    vm.initializeInstance(cGuildVal, id, Daedalus::IC_GilValues);
-    clearReferences(cGuildVal);
+  auto id = vm.find_symbol_by_name("Gil_Values");
+  if(id!=nullptr){
+    cGuildVal = vm.init_instance<phoenix::c_gil_values>(id);
     for(size_t i=0;i<Guild::GIL_PUBLIC;++i){
-      cGuildVal.water_depth_knee   [i]=cGuildVal.water_depth_knee   [Guild::GIL_HUMAN];
-      cGuildVal.water_depth_chest  [i]=cGuildVal.water_depth_chest  [Guild::GIL_HUMAN];
-      cGuildVal.jumpup_height      [i]=cGuildVal.jumpup_height      [Guild::GIL_HUMAN];
-      cGuildVal.swim_time          [i]=cGuildVal.swim_time          [Guild::GIL_HUMAN];
-      cGuildVal.dive_time          [i]=cGuildVal.dive_time          [Guild::GIL_HUMAN];
-      cGuildVal.step_height        [i]=cGuildVal.step_height        [Guild::GIL_HUMAN];
-      cGuildVal.jumplow_height     [i]=cGuildVal.jumplow_height     [Guild::GIL_HUMAN];
-      cGuildVal.jumpmid_height     [i]=cGuildVal.jumpmid_height     [Guild::GIL_HUMAN];
-      cGuildVal.slide_angle        [i]=cGuildVal.slide_angle        [Guild::GIL_HUMAN];
-      cGuildVal.slide_angle2       [i]=cGuildVal.slide_angle2       [Guild::GIL_HUMAN];
-      cGuildVal.disable_autoroll   [i]=cGuildVal.disable_autoroll   [Guild::GIL_HUMAN];
-      cGuildVal.surface_align      [i]=cGuildVal.surface_align      [Guild::GIL_HUMAN];
-      cGuildVal.climb_heading_angle[i]=cGuildVal.climb_heading_angle[Guild::GIL_HUMAN];
-      cGuildVal.climb_horiz_angle  [i]=cGuildVal.climb_horiz_angle  [Guild::GIL_HUMAN];
-      cGuildVal.climb_ground_angle [i]=cGuildVal.climb_ground_angle [Guild::GIL_HUMAN];
-      cGuildVal.fight_range_base   [i]=cGuildVal.fight_range_base   [Guild::GIL_HUMAN];
-      cGuildVal.fight_range_fist   [i]=cGuildVal.fight_range_fist   [Guild::GIL_HUMAN];
-      cGuildVal.fight_range_g      [i]=cGuildVal.fight_range_g      [Guild::GIL_HUMAN];
-      cGuildVal.fight_range_1hs    [i]=cGuildVal.fight_range_1hs    [Guild::GIL_HUMAN];
-      cGuildVal.fight_range_1ha    [i]=cGuildVal.fight_range_1ha    [Guild::GIL_HUMAN];
-      cGuildVal.fight_range_2hs    [i]=cGuildVal.fight_range_2hs    [Guild::GIL_HUMAN];
-      cGuildVal.fight_range_2ha    [i]=cGuildVal.fight_range_2ha    [Guild::GIL_HUMAN];
-      cGuildVal.falldown_height    [i]=cGuildVal.falldown_height    [Guild::GIL_HUMAN];
-      cGuildVal.falldown_damage    [i]=cGuildVal.falldown_damage    [Guild::GIL_HUMAN];
-      cGuildVal.blood_disabled     [i]=cGuildVal.blood_disabled     [Guild::GIL_HUMAN];
-      cGuildVal.blood_max_distance [i]=cGuildVal.blood_max_distance [Guild::GIL_HUMAN];
-      cGuildVal.blood_amount       [i]=cGuildVal.blood_amount       [Guild::GIL_HUMAN];
-      cGuildVal.blood_flow         [i]=cGuildVal.blood_flow         [Guild::GIL_HUMAN];
-      cGuildVal.blood_emitter      [i]=cGuildVal.blood_emitter      [Guild::GIL_HUMAN];
-      cGuildVal.blood_texture      [i]=cGuildVal.blood_texture      [Guild::GIL_HUMAN];
-      cGuildVal.turn_speed         [i]=cGuildVal.turn_speed         [Guild::GIL_HUMAN];
+      cGuildVal->water_depth_knee   [i]=cGuildVal->water_depth_knee   [Guild::GIL_HUMAN];
+      cGuildVal->water_depth_chest  [i]=cGuildVal->water_depth_chest  [Guild::GIL_HUMAN];
+      cGuildVal->jumpup_height      [i]=cGuildVal->jumpup_height      [Guild::GIL_HUMAN];
+      cGuildVal->swim_time          [i]=cGuildVal->swim_time          [Guild::GIL_HUMAN];
+      cGuildVal->dive_time          [i]=cGuildVal->dive_time          [Guild::GIL_HUMAN];
+      cGuildVal->step_height        [i]=cGuildVal->step_height        [Guild::GIL_HUMAN];
+      cGuildVal->jumplow_height     [i]=cGuildVal->jumplow_height     [Guild::GIL_HUMAN];
+      cGuildVal->jumpmid_height     [i]=cGuildVal->jumpmid_height     [Guild::GIL_HUMAN];
+      cGuildVal->slide_angle        [i]=cGuildVal->slide_angle        [Guild::GIL_HUMAN];
+      cGuildVal->slide_angle2       [i]=cGuildVal->slide_angle2       [Guild::GIL_HUMAN];
+      cGuildVal->disable_autoroll   [i]=cGuildVal->disable_autoroll   [Guild::GIL_HUMAN];
+      cGuildVal->surface_align      [i]=cGuildVal->surface_align      [Guild::GIL_HUMAN];
+      cGuildVal->climb_heading_angle[i]=cGuildVal->climb_heading_angle[Guild::GIL_HUMAN];
+      cGuildVal->climb_horiz_angle  [i]=cGuildVal->climb_horiz_angle  [Guild::GIL_HUMAN];
+      cGuildVal->climb_ground_angle [i]=cGuildVal->climb_ground_angle [Guild::GIL_HUMAN];
+      cGuildVal->fight_range_base   [i]=cGuildVal->fight_range_base   [Guild::GIL_HUMAN];
+      cGuildVal->fight_range_fist   [i]=cGuildVal->fight_range_fist   [Guild::GIL_HUMAN];
+      cGuildVal->fight_range_g      [i]=cGuildVal->fight_range_g      [Guild::GIL_HUMAN];
+      cGuildVal->fight_range_1hs    [i]=cGuildVal->fight_range_1hs    [Guild::GIL_HUMAN];
+      cGuildVal->fight_range_1ha    [i]=cGuildVal->fight_range_1ha    [Guild::GIL_HUMAN];
+      cGuildVal->fight_range_2hs    [i]=cGuildVal->fight_range_2hs    [Guild::GIL_HUMAN];
+      cGuildVal->fight_range_2ha    [i]=cGuildVal->fight_range_2ha    [Guild::GIL_HUMAN];
+      cGuildVal->falldown_height    [i]=cGuildVal->falldown_height    [Guild::GIL_HUMAN];
+      cGuildVal->falldown_damage    [i]=cGuildVal->falldown_damage    [Guild::GIL_HUMAN];
+      cGuildVal->blood_disabled     [i]=cGuildVal->blood_disabled     [Guild::GIL_HUMAN];
+      cGuildVal->blood_max_distance [i]=cGuildVal->blood_max_distance [Guild::GIL_HUMAN];
+      cGuildVal->blood_amount       [i]=cGuildVal->blood_amount       [Guild::GIL_HUMAN];
+      cGuildVal->blood_flow         [i]=cGuildVal->blood_flow         [Guild::GIL_HUMAN];
+      cGuildVal->blood_emitter      [i]=cGuildVal->blood_emitter      [Guild::GIL_HUMAN];
+      cGuildVal->blood_texture      [i]=cGuildVal->blood_texture      [Guild::GIL_HUMAN];
+      cGuildVal->turn_speed         [i]=cGuildVal->turn_speed         [Guild::GIL_HUMAN];
       }
     }
 
@@ -423,20 +387,9 @@ void GameScript::initCommon() {
 
 void GameScript::initDialogs() {
   loadDialogOU();
-  if(!dialogs)
-    dialogs.reset(new ZenLoad::zCCSLib());
 
-  size_t count=0;
-  vm.getDATFile().iterateSymbolsOfClass("C_Info", [&count](size_t,Daedalus::PARSymbol&){
-    ++count;
-    });
-  dialogsInfo.resize(count);
-
-  count=0;
-  vm.getDATFile().iterateSymbolsOfClass("C_Info", [this,&count](size_t i,Daedalus::PARSymbol&){
-    Daedalus::GEngineClasses::C_Info& h = dialogsInfo[count];
-    vm.initializeInstance(h, i, Daedalus::IC_Info);
-    ++count;
+  vm.enumerate_instances_by_class_name("C_INFO", [this](phoenix::symbol& sym){
+    dialogsInfo.push_back(vm.init_instance<phoenix::c_info>(&sym));
     });
   }
 
@@ -449,9 +402,8 @@ void GameScript::loadDialogOU() {
 
   for(auto OU:names) {
     if(Resources::hasFile(OU)) {
-      std::vector<uint8_t> data = Resources::getFileData(OU);
-      ZenLoad::ZenParser parser(data.data(),data.size());
-      dialogs.reset(new ZenLoad::zCCSLib(parser));
+      auto buf = Resources::getFileBuffer(OU);
+      dialogs = phoenix::messages::parse(buf);
       return;
       }
 
@@ -460,13 +412,8 @@ void GameScript::loadDialogOU() {
       str16[i] = char16_t(OU[i]);
     std::u16string full = FileUtil::caseInsensitiveSegment(gCutscene,str16,Dir::FT_File);
     try {
-      std::vector<uint8_t> data;
-      RFile f(full);
-      data.resize(f.size());
-      f.read(&data[0],data.size());
-
-      ZenLoad::ZenParser parser(data.data(),data.size());
-      dialogs.reset(new ZenLoad::zCCSLib(parser));
+      auto buf = phoenix::buffer::mmap(full);
+      dialogs = phoenix::messages::parse(buf);
       return;
       }
     catch(...){
@@ -476,21 +423,36 @@ void GameScript::loadDialogOU() {
   Log::e("unable to load Zen-file: \"OU.DAT\" or \"OU.BIN\"");
   }
 
-void GameScript::initializeInstance(Daedalus::GEngineClasses::C_Npc &n, size_t instance) {
-  vm.initializeInstance(n,instance,Daedalus::IC_Npc);
+void GameScript::initializeInstanceNpc(const std::shared_ptr<phoenix::c_npc>& npc, size_t instance) {
+  auto sym = vm.find_symbol_by_index(instance);
 
-  if(n.daily_routine!=0) {
-    ScopeVar self(vm,vm.globalSelf(),&n,Daedalus::IC_Npc);
-    vm.runFunctionBySymIndex(n.daily_routine);
+  if (sym == nullptr) {
+    Tempest::Log::e("Cannot initialize NPC ", instance, ": Symbol not found.");
+    return;
     }
+
+  vm.init_instance(npc, sym);
+
+  if(npc->daily_routine!=0) {
+    ScopeVar self(*vm.global_self(), npc);
+    auto* daily_routine = vm.find_symbol_by_index(npc->daily_routine);
+
+    if (daily_routine != nullptr) {
+      vm.call_function(daily_routine);
+      }
+    }
+
   }
 
-void GameScript::initializeInstance(Daedalus::GEngineClasses::C_Item &it,size_t instance) {
-  vm.initializeInstance(it,instance,Daedalus::IC_Item);
-  }
+void GameScript::initializeInstanceItem(const std::shared_ptr<phoenix::c_item>& item, size_t instance) {
+  auto sym = vm.find_symbol_by_index(instance);
 
-void GameScript::clearReferences(Daedalus::GEngineClasses::Instance &ptr) {
-  vm.clearReferences(ptr);
+  if (sym == nullptr) {
+    Tempest::Log::e("Cannot initialize item ", instance, ": Symbol not found.");
+    return;
+    }
+
+  vm.init_instance(item, sym);
   }
 
 void GameScript::saveQuests(Serialize &fout) {
@@ -516,10 +478,11 @@ void GameScript::loadQuests(Serialize& fin) {
   }
 
 void GameScript::saveVar(Serialize &fout) {
-  auto& dat = vm.getDATFile().getSymTable().symbols;
+  auto& dat = vm.symbols();
   fout.write(uint32_t(dat.size()));
-  for(auto& i:dat){
-    saveSym(fout,i);
+  for(unsigned i = 0; i < dat.size(); ++i){
+    auto* sym = vm.find_symbol_by_index(i); // never returns nullptr
+    saveSym(fout,*sym);
     }
   }
 
@@ -528,63 +491,99 @@ void GameScript::loadVar(Serialize &fin) {
   uint32_t sz=0;
   fin.read(sz);
   for(size_t i=0;i<sz;++i){
-    uint32_t t=Daedalus::EParType::EParType_Void;
+    auto t= (uint32_t) phoenix::datatype::void_;
     fin.read(t);
-    switch(t) {
-      case Daedalus::EParType::EParType_Int:{
+    switch(phoenix::datatype(t)) {
+      case phoenix::datatype::integer:{
         fin.read(name);
-        auto& s = getSymbol(name.c_str());
-        fin.read(s.intData);
+        auto* s = getSymbol(name);
+
+        uint32_t size;
+        fin.read(size);
+
+        int v;
+        for (unsigned j = 0; j < size; ++j) {
+            fin.read(v);
+            if (s != nullptr && !s->is_member() && !s->is_const()) {
+                s->set_int(v, j);
+            }
+        }
+
         break;
         }
-      case Daedalus::EParType::EParType_Float:{
+      case phoenix::datatype::float_:{
         fin.read(name);
-        auto& s = getSymbol(name.c_str());
-        fin.read(s.floatData);
+        auto* s = getSymbol(name);
+
+        uint32_t size;
+        fin.read(size);
+
+        float v;
+        for (unsigned j = 0; j < size; ++j) {
+            fin.read(v);
+            if (s != nullptr && !s->is_member() && !s->is_const()) {
+                s->set_float(v, j);
+            }
+        }
+
         break;
         }
-      case Daedalus::EParType::EParType_String:{
+      case phoenix::datatype::string:{
         fin.read(name);
-        auto& s = getSymbol(name.c_str());
-        fin.read(s.strData);
+        auto* s = getSymbol(name);
+
+        uint32_t size;
+        fin.read(size);
+
+        std::string v;
+        for (unsigned j = 0; j < size; ++j) {
+            fin.read(v);
+            if (s != nullptr && !s->is_member() && !s->is_const()) {
+                s->set_string(v, j);
+            }
+        }
+
         break;
         }
-      case Daedalus::EParType::EParType_Instance:{
+      case phoenix::datatype::instance:{
         uint8_t dataClass=0;
         fin.read(dataClass);
         if(dataClass>0){
           uint32_t id=0;
           fin.read(name,id);
-          auto& s = getSymbol(name.c_str());
+          auto* s = getSymbol(name);
+          if (s == nullptr)
+            break;
           if(dataClass==1) {
             auto npc = world().npcById(id);
-            s.instance.set(npc ? npc->handle() : nullptr, Daedalus::IC_Npc);
+            s->set_instance(npc ? npc->handlePtr() : nullptr);
             }
           else if(dataClass==2) {
             auto itm = world().itmById(id);
-            s.instance.set(itm ? &itm->handle() : nullptr, Daedalus::IC_Item);
+            s->set_instance(itm != nullptr ? itm->handlePtr() : nullptr);
             }
           else if(dataClass==3) {
             uint32_t itmClass=0;
             fin.read(itmClass);
             if(auto npc = world().npcById(id)) {
               auto itm = npc->getItem(itmClass);
-              s.instance.set(itm ? &itm->handle() : nullptr, Daedalus::IC_Item);
+              s->set_instance(itm ? itm->handlePtr() : nullptr);
               }
             }
           }
         break;
         }
+        default:
+          break;
       }
     }
   }
 
 void GameScript::resetVarPointers() {
-  auto&  dat = vm.getDATFile().getSymTable().symbols;
-  for(size_t i=0;i<dat.size();++i){
-    auto& s = vm.getDATFile().getSymbolByIndex(i);
-    if(s.instance.instanceOf(Daedalus::IC_Npc) || s.instance.instanceOf(Daedalus::IC_Item)){
-      s.instance = nullptr;
+  for(size_t i=0;i<vm.symbols().size();++i){
+    auto* s = vm.find_symbol_by_index(i); // never returns nullptr
+    if(s->is_instance_of<phoenix::c_npc>() || s->is_instance_of<phoenix::c_item>()){
+      s->set_instance(nullptr);
       }
     }
   }
@@ -593,70 +592,76 @@ const QuestLog& GameScript::questLog() const {
   return quests;
   }
 
-void GameScript::saveSym(Serialize &fout,const Daedalus::PARSymbol &i) {
+void GameScript::saveSym(Serialize &fout, phoenix::symbol &i) {
   auto& w = world();
-  switch(i.properties.elemProps.type) {
-    case Daedalus::EParType::EParType_Int:
-      if(i.intData.size()>0){
-        fout.write(i.properties.elemProps.type);
-        fout.write(i.name,i.intData);
+  switch(i.type()) {
+    case phoenix::datatype::integer:
+      if(i.count()>0 && !i.is_member() && !i.is_const()){
+        fout.write(i.type(), i.name(), i.count());
+
+        for (unsigned j = 0; j < i.count(); ++j)
+          fout.write(i.get_int(j));
         return;
         }
       break;
-    case Daedalus::EParType::EParType_Float:
-      if(i.floatData.size()>0){
-        fout.write(i.properties.elemProps.type);
-        fout.write(i.name,i.floatData);
+    case phoenix::datatype::float_:
+      if(i.count()>0 && !i.is_member() && !i.is_const()){
+        fout.write(i.type(), i.name(), i.count());
+
+        for (unsigned j = 0; j < i.count(); ++j)
+          fout.write(i.get_float(j));
         return;
         }
       break;
-    case Daedalus::EParType::EParType_String:
-      if(i.strData.size()>0){
-        fout.write(i.properties.elemProps.type);
-        fout.write(i.name,i.strData);
+    case phoenix::datatype::string:
+      if(i.count()>0 && !i.is_member() && !i.is_const()){
+        fout.write(i.type(), i.name(), i.count());
+
+        for (unsigned j = 0; j < i.count(); ++j)
+          fout.write(i.get_string(j));
         return;
         }
       break;
-    case Daedalus::EParType::EParType_Instance:
-      fout.write(i.properties.elemProps.type);
-      if(i.instance.instanceOf(Daedalus::IC_None)){
-        fout.write(uint8_t(0));
+    case phoenix::datatype::instance:
+      fout.write(i.type());
+
+      if(i.is_instance_of<phoenix::c_npc>()){
+        auto hnpc = reinterpret_cast<const phoenix::c_npc*>(i.get_instance().get());
+        auto npc  = reinterpret_cast<const Npc*>(hnpc==nullptr ? nullptr : hnpc->user_ptr);
+        fout.write(uint8_t(1),i.name(),world().npcId(npc));
         }
-      else if(i.instance.instanceOf(Daedalus::IC_Npc)){
-        auto hnpc = reinterpret_cast<const Daedalus::GEngineClasses::C_Npc*>(i.instance.get());
-        auto npc  = reinterpret_cast<const Npc*>(hnpc==nullptr ? nullptr : hnpc->userPtr);
-        fout.write(uint8_t(1),i.name,w.npcId(npc));
-        }
-      else if(i.instance.instanceOf(Daedalus::IC_Item)){
-        auto     item = reinterpret_cast<const Daedalus::GEngineClasses::C_Item*>(i.instance.get());
-        uint32_t id   = w.itmId(item);
-        if(id!=uint32_t(-1) || item==nullptr) {
-          fout.write(uint8_t(2),i.name,id);
+      else if(i.is_instance_of<phoenix::c_item>()){
+          auto     item = reinterpret_cast<const phoenix::c_item*>(i.get_instance().get());
+          uint32_t id   = w.itmId(item);
+          if(id!=uint32_t(-1) || item==nullptr) {
+              fout.write(uint8_t(2),i.name(),id);
           } else {
-          uint32_t idNpc = uint32_t(-1);
-          for(uint32_t r=0; r<w.npcCount(); ++r) {
-            auto& n = *w.npcById(r);
-            if(n.itemCount(item->instanceSymbol)>0) {
-              idNpc = r;
-              fout.write(uint8_t(3),i.name,idNpc,uint32_t(item->instanceSymbol));
-              break;
+              uint32_t idNpc = uint32_t(-1);
+              for(uint32_t r=0; r<w.npcCount(); ++r) {
+                  auto& n = *w.npcById(r);
+                  if(n.itemCount(item->symbol_index())>0) {
+                      idNpc = r;
+                      fout.write(uint8_t(3),i.name(),idNpc,uint32_t(item->symbol_index()));
+                      break;
+                  }
               }
-            }
-          if(idNpc==uint32_t(-1))
-            fout.write(uint8_t(2),i.name,uint32_t(-1));
+              if(idNpc==uint32_t(-1))
+                  fout.write(uint8_t(2),i.name(),uint32_t(-1));
           }
         }
-      else if(i.instance.instanceOf(Daedalus::IC_Focus) ||
-              i.instance.instanceOf(Daedalus::IC_GilValues) ||
-              i.instance.instanceOf(Daedalus::IC_Info)) {
+      else if(i.is_instance_of<phoenix::c_focus>() ||
+              i.is_instance_of<phoenix::c_gil_values>() ||
+              i.is_instance_of<phoenix::c_info>()) {
         fout.write(uint8_t(0));
         }
       else {
         fout.write(uint8_t(0));
         }
       return;
+    default:
+      break;
     }
-  fout.write(uint32_t(Daedalus::EParType::EParType_Void));
+  fout.write((uint32_t) phoenix::datatype::void_);
   }
 
 void GameScript::fixNpcPosition(Npc& npc, float angle0, float distBias) {
@@ -689,43 +694,45 @@ World &GameScript::world() {
   return *owner.world();
   }
 
-Daedalus::GEngineClasses::C_Focus GameScript::getFocus(const char *name) {
-  Daedalus::GEngineClasses::C_Focus ret={};
-  auto id = vm.getDATFile().getSymbolIndexByName(name);
-  if(id==size_t(-1))
-    return ret;
-  vm.initializeInstance(ret, id, Daedalus::IC_Focus);
-  vm.clearReferences(ret);
-  return ret;
-  }
-
-void GameScript::storeItem(Item *itm) {
-  Daedalus::PARSymbol& s = vm.globalItem();
-  if(itm!=nullptr) {
-    s.instance.set(&itm->handle(),Daedalus::IC_Item);
-    } else {
-    s.instance.set(nullptr,Daedalus::IC_Item);
+phoenix::c_focus GameScript::getFocus(const std::string& name) {
+  auto id = vm.find_symbol_by_name(name);
+  if(id==nullptr)
+    return {};
+  try {
+    return *vm.init_instance<phoenix::c_focus>(id);
+    } catch (const phoenix::script_error&) {
+    return {};
     }
   }
 
-Daedalus::PARSymbol &GameScript::getSymbol(std::string_view s) {
-  char buf[256] = {};
-  std::snprintf(buf,sizeof(buf),"%.*s",int(s.size()),s.data());
-  return vm.getDATFile().getSymbolByName(buf);
+void GameScript::storeItem(Item *itm) {
+  auto* s = vm.global_item();
+  if(itm!=nullptr) {
+    s->set_instance(itm->handlePtr());
+    } else {
+    s->set_instance(nullptr);
+    }
   }
 
-Daedalus::PARSymbol &GameScript::getSymbol(const size_t s) {
-  return vm.getDATFile().getSymbolByIndex(s);
+phoenix::symbol* GameScript::getSymbol(std::string_view s) {
+  char buf[256] = {};
+  std::snprintf(buf,sizeof(buf),"%.*s",int(s.size()),s.data());
+  return vm.find_symbol_by_name(buf);
+  }
+
+phoenix::symbol* GameScript::getSymbol(const size_t s) {
+  return vm.find_symbol_by_index(s);
   }
 
 size_t GameScript::getSymbolIndex(std::string_view s) {
   char buf[256] = {};
   std::snprintf(buf,sizeof(buf),"%.*s",int(s.size()),s.data());
-  return vm.getDATFile().getSymbolIndexByName(buf);
+  auto sym = vm.find_symbol_by_name(buf);
+  return sym == nullptr ? size_t(-1) : sym->index();
   }
 
 size_t GameScript::getSymbolCount() const {
-  return vm.getDATFile().getSymTable().symbols.size();
+  return vm.symbols().size();
   }
 
 const AiState& GameScript::aiState(ScriptFn id) {
@@ -736,35 +743,29 @@ const AiState& GameScript::aiState(ScriptFn id) {
   return ins.first->second;
   }
 
-const Daedalus::GEngineClasses::C_Spell& GameScript::spellDesc(int32_t splId) {
-  auto& spellInst = vm.getDATFile().getSymbolByIndex(spellFxInstanceNames);
-  auto& tag       = spellInst.getString(size_t(splId));
-  return spells->find(tag.c_str());
+const phoenix::c_spell& GameScript::spellDesc(int32_t splId) {
+  auto& tag = spellFxInstanceNames->get_string(splId);
+  return spells->find(tag);
   }
 
 const VisualFx* GameScript::spellVfx(int32_t splId) {
-  auto& spellInst = vm.getDATFile().getSymbolByIndex(spellFxInstanceNames);
-  auto& tag       = spellInst.getString(size_t(splId));
+  auto& tag = spellFxInstanceNames->get_string(splId);
 
   char name[256]={};
   std::snprintf(name,sizeof(name),"spellFX_%s",tag.c_str());
   return Gothic::inst().loadVisualFx(name);
   }
 
-std::vector<GameScript::DlgChoise> GameScript::dialogChoises(Daedalus::GEngineClasses::C_Npc* player,
-                                                               Daedalus::GEngineClasses::C_Npc* hnpc,
+std::vector<GameScript::DlgChoise> GameScript::dialogChoises(std::shared_ptr<phoenix::c_npc> player,
+                                                               std::shared_ptr<phoenix::c_npc> hnpc,
                                                                const std::vector<uint32_t>& except,
                                                                bool includeImp) {
-  auto& npc = *hnpc;
-  auto& pl  = *player;
-
-  ScopeVar self (vm, vm.globalSelf(),  hnpc,   Daedalus::IC_Npc);
-  ScopeVar other(vm, vm.globalOther(), player, Daedalus::IC_Npc);
-
-  std::vector<Daedalus::GEngineClasses::C_Info*> hDialog;
+  ScopeVar self (*vm.global_self(),  hnpc);
+  ScopeVar other(*vm.global_other(), player);
+  std::vector<phoenix::c_info*> hDialog;
   for(auto& info : dialogsInfo) {
-    if(info.npc==int32_t(npc.instanceSymbol)) {
-      hDialog.push_back(&info);
+    if(info->npc==static_cast<int>(hnpc->symbol_index())) {
+      hDialog.push_back(info.get());
       }
     }
 
@@ -772,17 +773,17 @@ std::vector<GameScript::DlgChoise> GameScript::dialogChoises(Daedalus::GEngineCl
 
   for(int important=includeImp ? 1 : 0;important>=0;--important){
     for(auto& i:hDialog) {
-      const Daedalus::GEngineClasses::C_Info& info = *i;
+      const phoenix::c_info& info = *i;
       if(info.important!=important)
         continue;
-      bool npcKnowsInfo = doesNpcKnowInfo(pl,info.instanceSymbol);
+      bool npcKnowsInfo = doesNpcKnowInfo(*player,vm.find_symbol_by_instance(info)->index());
       if(npcKnowsInfo && !info.permanent)
         continue;
 
       if(info.important && info.permanent){
         bool skip=false;
         for(auto i:except)
-          if(i==info.information){
+          if(static_cast<int>(i)==info.information){
             skip=true;
             break;
             }
@@ -791,8 +792,12 @@ std::vector<GameScript::DlgChoise> GameScript::dialogChoises(Daedalus::GEngineCl
         }
 
       bool valid=true;
-      if(info.condition)
-        valid = runFunction(info.condition)!=0;
+      if(info.condition) {
+        auto* conditionSymbol = vm.find_symbol_by_index(info.condition);
+        if (conditionSymbol != nullptr) {
+          valid = vm.call_function<int>(conditionSymbol) != 0;
+          }
+        }
       if(!valid)
         continue;
 
@@ -816,17 +821,17 @@ std::vector<GameScript::DlgChoise> GameScript::dialogChoises(Daedalus::GEngineCl
 std::vector<GameScript::DlgChoise> GameScript::updateDialog(const GameScript::DlgChoise &dlg, Npc& player,Npc& npc) {
   if(dlg.handle==nullptr)
     return {};
-  const Daedalus::GEngineClasses::C_Info& info = *dlg.handle;
+  const phoenix::c_info& info = *dlg.handle;
   std::vector<GameScript::DlgChoise>     ret;
 
-  ScopeVar self (vm, vm.globalSelf(),  npc.handle(),    Daedalus::IC_Npc);
-  ScopeVar other(vm, vm.globalOther(), player.handle(), Daedalus::IC_Npc);
+  ScopeVar self (*vm.global_self(), npc.handlePtr());
+  ScopeVar other(*vm.global_other(), player.handlePtr());
 
-  for(size_t i=0;i<info.subChoices.size();++i){
-    auto& sub = info.subChoices[i];
+  for(size_t i=0;i<info.choices.size();++i){
+    auto& sub = info.choices[i];
     GameScript::DlgChoise ch;
     ch.title    = sub.text.c_str();
-    ch.scriptFn = sub.functionSym;
+    ch.scriptFn = sub.function;
     ch.handle   = dlg.handle;
     ch.isTrade  = false;
     ch.sort     = int(i);
@@ -838,121 +843,116 @@ std::vector<GameScript::DlgChoise> GameScript::updateDialog(const GameScript::Dl
   }
 
 void GameScript::exec(const GameScript::DlgChoise &dlg,Npc& player, Npc& npc) {
-  ScopeVar self (vm, vm.globalSelf(),  npc.handle(),    Daedalus::IC_Npc);
-  ScopeVar other(vm, vm.globalOther(), player.handle(), Daedalus::IC_Npc);
+  ScopeVar self (*vm.global_self(), npc.handlePtr());
+  ScopeVar other(*vm.global_other(), player.handlePtr());
 
-  Daedalus::GEngineClasses::C_Info& info = *dlg.handle;
+  phoenix::c_info& info = *dlg.handle;
 
   if(&player!=&npc)
     player.stopAnim("");
-  auto pl = *player.handle();
+  auto& pl = player.handle();
 
-  if(info.information==dlg.scriptFn) {
+  if(info.information==int(dlg.scriptFn)) {
     setNpcInfoKnown(pl,info);
     } else {
-    for(size_t i=0;i<info.subChoices.size();){
-      if(info.subChoices[i].functionSym==dlg.scriptFn)
-        info.subChoices.erase(info.subChoices.begin()+int(i)); else
+    for(size_t i=0;i<info.choices.size();){
+      if(info.choices[i].function==int(dlg.scriptFn))
+        info.choices.erase(info.choices.begin()+int(i)); else
         ++i;
       }
     }
-  runFunction(dlg.scriptFn);
+  vm.call_function(vm.find_symbol_by_index(dlg.scriptFn));
   }
 
-int GameScript::printCannotUseError(Npc& npc, int32_t atr, int32_t nValue) {
-  auto id = vm.getDATFile().getSymbolIndexByName("G_CanNotUse");
-  if(id==size_t(-1))
-    return 0;
-  vm.pushInt(npc.isPlayer() ? 1 : 0);
-  vm.pushInt(atr);
-  vm.pushInt(nValue);
-  ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
-  return runFunction(id);
+void GameScript::printCannotUseError(Npc& npc, int32_t atr, int32_t nValue) {
+  auto id = vm.find_symbol_by_name("G_CanNotUse");
+  if(id==nullptr)
+    return;
+
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
+  vm.call_function<void>(id, npc.isPlayer(), atr, nValue);
   }
 
-int GameScript::printCannotCastError(Npc &npc, int32_t plM, int32_t itM) {
-  auto id = vm.getDATFile().getSymbolIndexByName("G_CanNotCast");
-  if(id==size_t(-1))
-    return 0;
-  vm.pushInt(npc.isPlayer() ? 1 : 0);
-  vm.pushInt(itM);
-  vm.pushInt(plM);
-  ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
-  return runFunction(id);
+void GameScript::printCannotCastError(Npc &npc, int32_t plM, int32_t itM) {
+  auto id = vm.find_symbol_by_name("G_CanNotCast");
+  if(id==nullptr)
+    return;
+
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
+  vm.call_function<void>(id, npc.isPlayer(), itM, plM);
   }
 
-int GameScript::printCannotBuyError(Npc &npc) {
-  auto id = vm.getDATFile().getSymbolIndexByName("player_trade_not_enough_gold");
-  if(id==size_t(-1))
-    return 0;
-  ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
-  return runFunction(id);
+void GameScript::printCannotBuyError(Npc &npc) {
+  auto id = vm.find_symbol_by_name("player_trade_not_enough_gold");
+  if(id==nullptr)
+    return;
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
+  vm.call_function<void>(id);
   }
 
-int GameScript::printMobMissingItem(Npc &npc) {
-  auto id = vm.getDATFile().getSymbolIndexByName("player_mob_missing_item");
-  if(id==size_t(-1))
-    return 0;
-  ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
-  return runFunction(id);
+void GameScript::printMobMissingItem(Npc &npc) {
+  auto id = vm.find_symbol_by_name("player_mob_missing_item");
+  if(id==nullptr)
+    return;
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
+  vm.call_function<void>(id);
   }
 
-int GameScript::printMobMissingKey(Npc& npc) {
-  auto id = vm.getDATFile().getSymbolIndexByName("player_mob_missing_key");
-  if(id==size_t(-1))
-    return 0;
-  ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
-  return runFunction(id);
+void GameScript::printMobMissingKey(Npc& npc) {
+  auto id = vm.find_symbol_by_name("player_mob_missing_key");
+  if(id==nullptr)
+    return;
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
+  vm.call_function<void>(id);
   }
 
-int GameScript::printMobAnotherIsUsing(Npc &npc) {
-  auto id = vm.getDATFile().getSymbolIndexByName("player_mob_another_is_using");
-  if(id==size_t(-1))
-    return 0;
-  ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
-  return runFunction(id);
+void GameScript::printMobAnotherIsUsing(Npc &npc) {
+  auto id = vm.find_symbol_by_name("player_mob_another_is_using");
+  if(id==nullptr)
+    return;
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
+  vm.call_function<void>(id);
   }
 
-int GameScript::printMobMissingKeyOrLockpick(Npc& npc) {
-  auto id = vm.getDATFile().getSymbolIndexByName("player_mob_missing_key_or_lockpick");
-  if(id==size_t(-1))
-    return 0;
-  ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
-  return runFunction(id);
+void GameScript::printMobMissingKeyOrLockpick(Npc& npc) {
+  auto id = vm.find_symbol_by_name("player_mob_missing_key_or_lockpick");
+  if(id==nullptr)
+    return;
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
+  vm.call_function<void>(id);
   }
 
-int GameScript::printMobMissingLockpick(Npc& npc) {
-  auto id = vm.getDATFile().getSymbolIndexByName("player_mob_missing_lockpick");
-  if(id==size_t(-1))
-    return 0;
-  ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
-  return runFunction(id);
+void GameScript::printMobMissingLockpick(Npc& npc) {
+  auto id = vm.find_symbol_by_name("player_mob_missing_lockpick");
+  if(id==nullptr)
+    return;
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
+  vm.call_function<void>(id);
   }
 
-int GameScript::printMobTooFar(Npc& npc) {
-  auto id = vm.getDATFile().getSymbolIndexByName("player_mob_too_far_away");
-  if(id==size_t(-1))
-    return 0;
-  ScopeVar self(vm, vm.globalSelf(), npc.handle(), Daedalus::IC_Npc);
-  return runFunction(id);
+void GameScript::printMobTooFar(Npc& npc) {
+  auto id = vm.find_symbol_by_name("player_mob_too_far_away");
+  if(id==nullptr)
+    return;
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
+  vm.call_function<void>(id);
   }
 
-int GameScript::invokeState(Daedalus::GEngineClasses::C_Npc* hnpc, Daedalus::GEngineClasses::C_Npc* oth, const char *name) {
-  auto& dat = vm.getDATFile();
-  auto  id  = dat.getSymbolIndexByName(name);
-  if(id==size_t(-1))
-    return 0;
+void GameScript::invokeState(const std::shared_ptr<phoenix::c_npc>& hnpc, const std::shared_ptr<phoenix::c_npc>& oth, const char *name) {
+  auto id = vm.find_symbol_by_name(name);
+  if(id==nullptr)
+    return;
 
-  ScopeVar self (vm, vm.globalSelf(),  hnpc, Daedalus::IC_Npc);
-  ScopeVar other(vm, vm.globalOther(), oth,  Daedalus::IC_Npc);
-  return runFunction(id);
+  ScopeVar self (*vm.global_self(),  hnpc);
+  ScopeVar other(*vm.global_other(), oth);
+  vm.call_function<void>(id);
   }
 
 int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
   if(!fn.isValid())
     return 0;
   if(oth==nullptr){
-    //oth=npc; //FIXME: PC_Levelinspektor?
+    // oth=npc; //FIXME: PC_Levelinspektor?
     }
   if(vic==nullptr)
     vic=owner.player();
@@ -964,13 +964,20 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
       }
     }
 
-  ScopeVar self  (vm, vm.globalSelf(),   npc);
-  ScopeVar other (vm, vm.globalOther(),  oth);
-  ScopeVar victum(vm, vm.globalVictim(), vic);
-  const int ret = runFunction(fn.ptr);
-  if(vm.globalOther().instance.instanceOf(Daedalus::IC_Npc)){
-    auto oth2 = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(vm.globalOther().instance.get());
-    if(oth!=nullptr && oth2!=oth->handle()) {
+  ScopeVar self  (*vm.global_self(),   npc != nullptr ? npc->handlePtr() : nullptr);
+  ScopeVar other (*vm.global_other(),  oth != nullptr ? oth->handlePtr() : nullptr);
+  ScopeVar victum(*vm.global_victim(), vic != nullptr ? vic->handlePtr() : nullptr);
+
+  auto* sym = vm.find_symbol_by_index(fn.ptr);
+  int ret = 0;
+  if (sym!=nullptr && sym->rtype() == phoenix::datatype::integer) {
+    ret = vm.call_function<int>(sym);
+  } else if (sym!=nullptr) {
+    vm.call_function<void>(sym);
+  }
+  if(vm.global_other()->is_instance_of<phoenix::c_npc>()){
+    auto oth2 = reinterpret_cast<phoenix::c_npc*>(vm.global_other()->get_instance().get());
+    if(oth!=nullptr && oth2!=&oth->handle()) {
       Npc* other = getNpc(oth2);
       npc->setOther(other);
       }
@@ -978,111 +985,107 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
   return ret;
   }
 
-int GameScript::invokeItem(Npc *npc, ScriptFn fn) {
-  if(fn==size_t(-1))
-    return 1;
-  ScopeVar self(vm, vm.globalSelf(), npc);
-  return runFunction(fn.ptr);
+void GameScript::invokeItem(Npc *npc, ScriptFn fn) {
+  if(fn==size_t(-1) || fn == 0)
+    return;
+  auto functionSymbol = vm.find_symbol_by_index(fn.ptr);
+
+  if (functionSymbol == nullptr)
+    return;
+
+  ScopeVar self(*vm.global_self(), npc->handlePtr());
+  vm.call_function<void>(functionSymbol);
   }
 
 int GameScript::invokeMana(Npc &npc, Npc* target, Item &) {
-  auto& dat = vm.getDATFile();
-  auto fn   = dat.getSymbolIndexByName("Spell_ProcessMana");
-  if(fn==size_t(-1))
+  auto fn = vm.find_symbol_by_name("Spell_ProcessMana");
+  if(fn==nullptr)
     return SpellCode::SPL_SENDSTOP;
 
-  ScopeVar self (vm, vm.globalSelf(),  npc);
-  ScopeVar other(vm, vm.globalOther(), target);
+  ScopeVar self (*vm.global_self(),  npc.handlePtr());
+  ScopeVar other(*vm.global_other(), target != nullptr ? target->handlePtr() : nullptr);
 
-  vm.pushInt(npc.attribute(ATR_MANA));
-  return runFunction(fn);
+  return vm.call_function<int>(fn, npc.attribute(ATR_MANA));
   }
 
-int GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
-  auto& spellInst = vm.getDATFile().getSymbolByIndex(spellFxInstanceNames);
-  auto& tag       = spellInst.getString(size_t(it.spellId()));
+void GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
+  auto& tag       = spellFxInstanceNames->get_string(it.spellId());
   char  str[256]={};
   std::snprintf(str,sizeof(str),"Spell_Cast_%s",tag.c_str());
 
-  auto& dat = vm.getDATFile();
-  auto  fn  = dat.getSymbolIndexByName(str);
-  if(fn==size_t(-1))
-    return 0;
+  auto  fn  = vm.find_symbol_by_name(str);
+  if(fn==nullptr)
+    return;
 
+  // FIXME: actually set the spell level!
   int32_t splLevel = 0;
 
-  ScopeVar self (vm, vm.globalSelf(),  npc);
-  ScopeVar other(vm, vm.globalOther(), target);
+  ScopeVar self (*vm.global_self(),  npc.handlePtr());
+  ScopeVar other(*vm.global_other(), target != nullptr ? target->handlePtr() : nullptr);
   try {
-    vm.pushInt(splLevel);
-    return runFunction(fn);
+    if (fn->count() == 1) {
+      // this is a leveled spell
+      vm.call_function<void>(fn, splLevel);
+    } else {
+      vm.call_function<void>(fn);
+    }
     }
   catch(...){
     Log::d("unable to call spell-script: \"",str,"\'");
-    return 0;
     }
   }
 
-int GameScript::invokeCond(Npc& npc, std::string_view func) {
-  auto fn = getSymbolIndex(func);
-  if(fn==size_t(-1)) {
+int GameScript::invokeCond(Npc& npc, const std::string& func) {
+  auto fn = vm.find_symbol_by_name(func);
+  if(fn==nullptr) {
     Gothic::inst().onPrint("MOBSI::conditionFunc is not invalid");
     return 1;
     }
-  ScopeVar self(vm, vm.globalSelf(),  npc);
-  return runFunction(fn);
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
+  return vm.call_function<int>(fn);
   }
 
 void GameScript::invokePickLock(Npc& npc, int bSuccess, int bBrokenOpen) {
-  auto& dat = vm.getDATFile();
-  auto fn   = dat.getSymbolIndexByName("G_PickLock");
-  if(fn==size_t(-1))
+  auto fn   = vm.find_symbol_by_name("G_PickLock");
+  if(fn==nullptr)
     return;
-  ScopeVar self(vm, vm.globalSelf(),  npc);
-  vm.pushInt(bSuccess);
-  vm.pushInt(bBrokenOpen);
-  runFunction(fn);
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
+  vm.call_function<void>(fn, bSuccess, bBrokenOpen);
   }
 
 CollideMask GameScript::canNpcCollideWithSpell(Npc& npc, Npc* shooter, int32_t spellId) {
-  auto& dat = vm.getDATFile();
-  auto fn   = dat.getSymbolIndexByName("C_CanNpcCollideWithSpell");
-  if(fn==size_t(-1))
+  auto fn   = vm.find_symbol_by_name("C_CanNpcCollideWithSpell");
+  if(fn==nullptr)
     return COLL_DOEVERYTHING;
 
-  ScopeVar self (vm, vm.globalSelf(),  npc);
-  ScopeVar other(vm, vm.globalOther(), shooter);
-  vm.pushInt(spellId);
-  int v = runFunction(fn);
-  return CollideMask(v);
+  ScopeVar self (*vm.global_self(),  npc.handlePtr());
+  ScopeVar other(*vm.global_other(), shooter->handlePtr());
+  return CollideMask(vm.call_function<int>(fn, spellId));
   }
 
 int GameScript::playerHotKeyScreenMap(Npc& pl) {
-  auto& dat = vm.getDATFile();
-  auto fn   = dat.getSymbolIndexByName("player_hotkey_screen_map");
-  if(fn==size_t(-1))
+  auto fn   = vm.find_symbol_by_name("player_hotkey_screen_map");
+  if(fn==nullptr)
     return -1;
 
-  ScopeVar self(vm, vm.globalSelf(), pl);
-  int map = runFunction(fn);
+  ScopeVar self(*vm.global_self(), pl.handlePtr());
+  int map = vm.call_function<int>(fn);
   if(map>=0)
     pl.useItem(size_t(map));
   return map;
   }
 
-const Daedalus::ZString& GameScript::spellCastAnim(Npc&, Item &it) {
-  if(spellFxAniLetters==size_t(-1)) {
-    static const Daedalus::ZString FIB = "FIB";
+const std::string& GameScript::spellCastAnim(Npc&, Item &it) {
+  if(spellFxAniLetters==nullptr) {
+    static const std::string FIB = "FIB";
     return FIB;
     }
-  auto& spellAni = vm.getDATFile().getSymbolByIndex(spellFxAniLetters);
-  auto& tag      = spellAni.getString(size_t(it.spellId()));
-  return tag;
+  return spellFxAniLetters->get_string(it.spellId());
   }
 
-bool GameScript::aiOutput(Npc &npc, const Daedalus::ZString& outputname, bool overlay) {
+bool GameScript::aiOutput(Npc &npc, std::string_view outputname, bool overlay) {
   char buf[256]={};
-  std::snprintf(buf,sizeof(buf),"%s.WAV",outputname.c_str());
+  std::snprintf(buf,sizeof(buf),"%.*s.WAV",int(outputname.size()),outputname.data());
 
   uint64_t dt=0;
   world().addDlgSound(buf,npc.position()+Vec3{0,180,0},WorldSound::talkRange,dt);
@@ -1091,7 +1094,7 @@ bool GameScript::aiOutput(Npc &npc, const Daedalus::ZString& outputname, bool ov
   return true;
   }
 
-bool GameScript::aiOutputSvm(Npc &npc, const Daedalus::ZString& outputname, bool overlay) {
+bool GameScript::aiOutputSvm(Npc &npc, std::string_view outputname, bool overlay) {
   if(overlay) {
     if(tickCount()<svmBarrier)
       return true;
@@ -1119,53 +1122,52 @@ bool GameScript::isAtack(const Npc& pl) const {
   return pl.isState(ZS_Attack) || pl.isState(ZS_MM_Attack);
   }
 
-const Daedalus::ZString& GameScript::messageFromSvm(const Daedalus::ZString& id, int voice) const {
-  return svm->find(id.c_str(),voice);
+std::string_view GameScript::messageFromSvm(std::string_view id, int voice) const {
+  return svm->find(id,voice);
   }
 
-const Daedalus::ZString& GameScript::messageByName(const Daedalus::ZString& id) const {
-  if(!dialogs->messageExists(id)){
-    static Daedalus::ZString empty;
+std::string_view GameScript::messageByName(const std::string& id) const {
+  auto* blk = dialogs.block_by_name(id);
+  if(blk == nullptr){
+    static std::string empty {};
     return empty;
     }
-  return dialogs->getMessageByName(id).text;
+  return blk->message.text;
   }
 
-uint32_t GameScript::messageTime(const Daedalus::ZString& id) const {
-  uint32_t& time = msgTimings[id.c_str()];
+uint32_t GameScript::messageTime(std::string_view id) const {
+  uint32_t& time = msgTimings[id.data()];
   if(time>0)
     return time;
 
   char buf[256]={};
-  std::snprintf(buf,sizeof(buf),"%s.wav",id.c_str());
+  std::snprintf(buf,sizeof(buf),"%.*s.wav",int(id.length()),id.data());
   auto  s   = Resources::loadSoundBuffer(buf);
   if(s.timeLength()>0) {
     time = uint32_t(s.timeLength());
     } else {
-    auto&  txt  = messageByName(id.c_str());
-    size_t size = std::strlen(txt.c_str());
-
-    time = uint32_t(float(size)*viewTimePerChar);
+    auto txt  = messageByName(id.data());
+    time = uint32_t(float(txt.length())*viewTimePerChar);
     }
   return time;
   }
 
-int GameScript::printNothingToGet() {
-  auto id = vm.getDATFile().getSymbolIndexByName("player_plunder_is_empty");
-  if(id==size_t(-1))
-    return 0;
-  ScopeVar self(vm, vm.globalSelf(), owner.player());
-  return runFunction(id);
+void GameScript::printNothingToGet() {
+  auto id = vm.find_symbol_by_name("player_plunder_is_empty");
+  if(id==nullptr)
+    return;
+  ScopeVar self(*vm.global_self(), owner.player()->handlePtr());
+  vm.call_function<void>(id);
   }
 
-void GameScript::useInteractive(Daedalus::GEngineClasses::C_Npc* hnpc,const std::string& func) {
-  auto& dat = vm.getDATFile();
-  if(!dat.hasSymbolName(func.c_str()))
+void GameScript::useInteractive(const std::shared_ptr<phoenix::c_npc>& hnpc,const std::string& func) {
+  auto fn = vm.find_symbol_by_name(func);
+  if(fn == nullptr)
     return;
 
-  ScopeVar self(vm,vm.globalSelf(),hnpc,Daedalus::IC_Npc);
+  ScopeVar self(*vm.global_self(),hnpc);
   try {
-    runFunction(func.c_str());
+    vm.call_function<void>(func);
     }
   catch (...) {
     Log::i("unable to use interactive [",func,"]");
@@ -1210,25 +1212,21 @@ void GameScript::onWldItemRemoved(const Item& itm) {
   onWldInstanceRemoved(&itm.handle());
   }
 
-void GameScript::onWldInstanceRemoved(const Daedalus::GEngineClasses::Instance* obj) {
-  auto& dat = vm.getDATFile().getSymTable().symbols;
-  for(size_t i=0;i<dat.size();++i) {
-    auto& s = vm.getDATFile().getSymbolByIndex(i);
-    if(s.instance.get()!=obj)
-      continue;
-    s.instance = nullptr;
-    }
+void GameScript::onWldInstanceRemoved(const phoenix::instance* obj) {
+  vm.find_symbol_by_instance(*obj)->set_instance(nullptr);
   }
 
 void GameScript::makeCurrent(Item* w) {
   if(w==nullptr)
     return;
-  auto& s = vm.getDATFile().getSymbolByIndex(w->clsId());
-  s.instance.set(&w->handle(),Daedalus::IC_Item);
+  auto* s = vm.find_symbol_by_index(w->clsId());
+
+  if (s != nullptr)
+    s->set_instance(w->handlePtr());
   }
 
 bool GameScript::searchScheme(std::string_view sc, std::string_view listName) {
-  auto& list = getSymbol(listName).getString();
+  auto& list = getSymbol(listName)->get_string();
   const char* l = list.c_str();
   for(const char* e = l;;++e) {
     if(*e=='\0' || *e==',') {
@@ -1246,25 +1244,7 @@ bool GameScript::searchScheme(std::string_view sc, std::string_view listName) {
 bool GameScript::hasSymbolName(std::string_view s) {
   char buf[256] = {};
   std::snprintf(buf,sizeof(buf),"%.*s",int(s.size()),s.data());
-  return vm.getDATFile().hasSymbolName(buf);
-  }
-
-int32_t GameScript::runFunction(std::string_view s) {
-  char buf[256] = {};
-  std::snprintf(buf,sizeof(buf),"%.*s",int(s.size()),s.data());
-  auto id = vm.getDATFile().getSymbolIndexByName(buf);
-  if(id==size_t(-1))
-    throw std::runtime_error("script bad call");
-  return runFunction(id);
-  }
-
-int32_t GameScript::runFunction(const size_t fid) {
-  auto&       dat  = vm.getDATFile();
-  auto&       sym  = dat.getSymbolByIndex(fid);
-  const char* call = sym.name.c_str();(void)call; //for debuging
-
-  int32_t ret = vm.runFunctionBySymIndex(fid);
-  return ret;
+  return vm.find_symbol_by_name(buf) != nullptr;
   }
 
 uint64_t GameScript::tickCount() const {
@@ -1275,75 +1255,58 @@ uint32_t GameScript::rand(uint32_t max) {
   return uint32_t(randGen())%max;
   }
 
-template<class Ret,class ... Args>
-std::function<Ret(Args...)> GameScript::notImplementedFn(){
-  struct _{
-    static Ret fn(Args...){
-      static bool first=true;
-      if(first){
-        Log::e("not implemented routine call");
-        first=false;
-        }
-      return Ret();
-      }
-    };
-  return std::function<Ret(Args...)>(_::fn);
-  }
-
-template<void(GameScript::*)(Daedalus::DaedalusVM &vm)>
-void GameScript::notImplementedFn(const char* name) {
-  static bool first=true;
-  if(first){
-    Log::e("not implemented call [",name,"]");
-    first=false;
-    }
-  }
-
-Npc* GameScript::getNpc(Daedalus::GEngineClasses::C_Npc *handle) {
+Npc* GameScript::getNpc(phoenix::c_npc *handle) {
   if(handle==nullptr)
     return nullptr;
-  assert(handle->userPtr); // engine bug, if null
-  return reinterpret_cast<Npc*>(handle->userPtr);
+  assert(handle->user_ptr); // engine bug, if null
+  return reinterpret_cast<Npc*>(handle->user_ptr);
   }
 
-Item *GameScript::getItem(Daedalus::GEngineClasses::C_Item* handle) {
+Npc* GameScript::getNpc(const std::shared_ptr<phoenix::c_npc>& handle) {
+  if(handle==nullptr)
+    return nullptr;
+  assert(handle->user_ptr); // engine bug, if null
+  return reinterpret_cast<Npc*>(handle->user_ptr);
+  }
+
+Item *GameScript::getItem(phoenix::c_item* handle) {
   if(handle==nullptr)
     return nullptr;
   auto& itData = *handle;
-  assert(itData.userPtr); // engine bug, if null
-  return reinterpret_cast<Item*>(itData.userPtr);
+  assert(itData.user_ptr); // engine bug, if null
+  return reinterpret_cast<Item*>(itData.user_ptr);
   }
 
 Item *GameScript::getItemById(size_t id) {
-  auto& handle = vm.getDATFile().getSymbolByIndex(id);
-  if(!handle.instance.instanceOf(Daedalus::EInstanceClass::IC_Item))
+  auto* handle = vm.find_symbol_by_index(id);
+  if(handle==nullptr||!handle->is_instance_of<phoenix::c_item>())
     return nullptr;
-  auto hnpc = reinterpret_cast<Daedalus::GEngineClasses::C_Item*>(handle.instance.get());
+  auto hnpc = reinterpret_cast<phoenix::c_item*>(handle->get_instance().get());
   return getItem(hnpc);
   }
 
 Npc* GameScript::getNpcById(size_t id) {
-  auto& handle = vm.getDATFile().getSymbolByIndex(id);
-  if(!handle.instance.instanceOf(Daedalus::EInstanceClass::IC_Npc))
+  auto* handle = vm.find_symbol_by_index(id);
+  if(handle==nullptr||!handle->is_instance_of<phoenix::c_npc>())
     return nullptr;
 
-  auto hnpc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(handle.instance.get());
+  auto hnpc = reinterpret_cast<phoenix::c_npc*>(handle->get_instance().get());
   if(hnpc==nullptr) {
     auto obj = world().findNpcByInstance(id);
-    handle.instance.set(obj ? obj->handle() : nullptr,Daedalus::EInstanceClass::IC_Npc);
-    hnpc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(handle.instance.get());
+    handle->set_instance(obj ? obj->handlePtr() : nullptr);
+    hnpc = reinterpret_cast<phoenix::c_npc*>(handle->get_instance().get());
     }
   return getNpc(hnpc);
   }
 
-Daedalus::GEngineClasses::C_Info* GameScript::getInfo(size_t id) {
-  auto& sym = vm.getDATFile().getSymbolByIndex(id);
-  if(!sym.instance.instanceOf(Daedalus::EInstanceClass::IC_Info))
+phoenix::c_info* GameScript::getInfo(size_t id) {
+  auto* sym = vm.find_symbol_by_index(id);
+  if(sym==nullptr||!sym->is_instance_of<phoenix::c_info>())
     return nullptr;
-  auto* h = sym.instance.get();
+  auto* h = sym->get_instance().get();
   if(h==nullptr)
-    Log::e("invalid C_Info object: \"",sym.name,"\"");
-  return reinterpret_cast<Daedalus::GEngineClasses::C_Info*>(h);
+    Log::e("invalid c_info object: \"",sym->name(),"\"");
+  return reinterpret_cast<phoenix::c_info*>(h);
   }
 
 void GameScript::removeItem(Item &it) {
@@ -1353,16 +1316,14 @@ void GameScript::removeItem(Item &it) {
 void GameScript::setInstanceNPC(std::string_view name, Npc &npc) {
   char buf[256] = {};
   std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
-  assert(vm.getDATFile().hasSymbolName(buf));
-  vm.setInstance(buf,npc.handle(),Daedalus::EInstanceClass::IC_Npc);
+  auto sym = vm.find_symbol_by_name(buf);
 
-  /*
-  if(true) {
-    auto& d = vm.getDATFile();
-    d.iterateSymbolsOfClass("C_ITEM",[&](size_t id,Daedalus::PARSymbol&){
-      npc.addItem(id,10);
-      });
-    }*/
+  if (sym == nullptr) {
+    Tempest::Log::e("Cannot set NPC instance ", buf, ": Symbol not found.");
+    return;
+    }
+
+  sym->set_instance(npc.handlePtr());
   }
 
 void GameScript::setInstanceItem(Npc &holder, size_t itemId) {
@@ -1380,97 +1341,55 @@ AiOuputPipe *GameScript::openDlgOuput(Npc &player, Npc &npc) {
   }
 
 ScriptFn GameScript::playerPercAssessMagic() {
-  size_t id = vm.getDATFile().getSymbolIndexByName("PLAYER_PERC_ASSESSMAGIC");
-  if(id==size_t(-1))
+  auto id = vm.find_symbol_by_name("PLAYER_PERC_ASSESSMAGIC");
+  if(id==nullptr)
     return ScriptFn();
-  auto& var = vm.getDATFile().getSymbolByIndex(id);
-  auto& cnt = var.getDataContainer<int>();
-  if(cnt.size()>0)
-    return ScriptFn(size_t(cnt[0]));
+
+  if(id->count()>0)
+    return ScriptFn(id->get_int());
   return ScriptFn();
   }
 
 int GameScript::npcDamDiveTime() {
-  size_t id = vm.getDATFile().getSymbolIndexByName("NPC_DAM_DIVE_TIME");
-  if(id==size_t(-1))
+  auto id = vm.find_symbol_by_name("NPC_DAM_DIVE_TIME");
+  if(id==nullptr)
     return 0;
-  auto& var = vm.getDATFile().getSymbolByIndex(id);
-  return var.getInt(0);
+  return id->get_int();
   }
 
-Npc *GameScript::popInstance(Daedalus::DaedalusVM &vm) {
-  uint32_t idx = vm.popUInt();
-  return getNpcById(idx);
+bool GameScript::game_initgerman() {
+  return true;
   }
 
-Item *GameScript::popItem(Daedalus::DaedalusVM &vm) {
-  uint32_t idx = vm.popUInt();
-  return getItemById(idx);
+bool GameScript::game_initenglish() {
+  return true;
   }
 
-void GameScript::pushInstance(Daedalus::DaedalusVM &vm, Npc *npc) {
-  if(npc==nullptr){
-    vm.setReturn(-1);
-    return;
-    }
-  auto& sym = vm.getDATFile().getSymbolByIndex(npc->handle()->instanceSymbol);
-  sym.instance.set(npc->handle(),Daedalus::IC_Npc); // TODO: proper symbols
-  vm.setReturn(int(npc->handle()->instanceSymbol));
-  }
-
-void GameScript::pushItem(Daedalus::DaedalusVM &vm, Item *it) {
-  if(it==nullptr){
-    vm.setReturn(-1);
-    return;
-    }
-  auto& sym = vm.getDATFile().getSymbolByIndex(it->handle().instanceSymbol);
-  sym.instance.set(&it->handle(),Daedalus::IC_Item); // TODO: proper symbols
-  vm.setReturn(int(it->handle().instanceSymbol));
-  }
-
-
-void GameScript::game_initgerman(Daedalus::DaedalusVM&) {
-  }
-
-void GameScript::game_initenglish(Daedalus::DaedalusVM &) {
-  }
-
-void GameScript::wld_settime(Daedalus::DaedalusVM &vm) {
-  auto minute = vm.popInt();
-  auto hour   = vm.popInt();
+void GameScript::wld_settime(int hour, int minute) {
   world().setDayTime(hour,minute);
   }
 
-void GameScript::wld_getday(Daedalus::DaedalusVM &vm) {
-  auto d = owner.time().day();
-  vm.setReturn(int32_t(d));
+int GameScript::wld_getday() {
+  return owner.time().day();
   }
 
-void GameScript::wld_playeffect(Daedalus::DaedalusVM &vm) {
-  int32_t                  isProjectile = vm.popInt();
-  int32_t                  damageType   = vm.popInt();
-  int32_t                  damage       = vm.popInt();
-  int32_t                  effectLevel  = vm.popInt();
-  uint32_t                 targetId     = vm.popUInt();
-  uint32_t                 sourceId     = vm.popUInt();
-  const Daedalus::ZString& visual       = vm.popString();
-
+void GameScript::wld_playeffect(std::string_view visual, std::shared_ptr<phoenix::instance> sourceId, std::shared_ptr<phoenix::instance> targetId, int effectLevel, int damage, int damageType, int isProjectile) {
   if(isProjectile!=0 || damageType!=0 || damage!=0 || effectLevel!=0) {
     // TODO
-    Log::i("effect not implemented [",visual.c_str(),"]");
+    Log::i("effect not implemented [",visual.data(),"]");
     return;
     }
-  const VisualFx* vfx = Gothic::inst().loadVisualFx(visual.c_str());
+  const VisualFx* vfx = Gothic::inst().loadVisualFx(visual);
   if(vfx==nullptr) {
-    Log::i("invalid effect [",visual.c_str(),"]");
+    Log::i("invalid effect [",visual.data(),"]");
     return;
     }
 
-  auto dstNpc = getNpcById(targetId);
-  auto srcNpc = getNpcById(sourceId);
+  auto dstNpc = getNpcById(targetId->symbol_index());
+  auto srcNpc = getNpcById(sourceId->symbol_index());
 
-  auto dstItm = getItemById(targetId);
-  auto srcItm = getItemById(sourceId);
+  auto dstItm = getItemById(targetId->symbol_index());
+  auto srcItm = getItemById(sourceId->symbol_index());
 
   if(srcNpc!=nullptr && dstNpc!=nullptr) {
     srcNpc->startEffect(*dstNpc,*vfx);
@@ -1482,156 +1401,120 @@ void GameScript::wld_playeffect(Daedalus::DaedalusVM &vm) {
     }
   }
 
-void GameScript::wld_stopeffect(Daedalus::DaedalusVM &vm) {
-  const Daedalus::ZString& visual = vm.popString();
-  const VisualFx*          vfx    = Gothic::inst().loadVisualFx(visual.c_str());
+void GameScript::wld_stopeffect(std::string_view visual) {
+  const VisualFx*          vfx    = Gothic::inst().loadVisualFx(visual);
   if(vfx==nullptr) {
-    Log::i("invalid effect [",visual.c_str(),"]");
+    Log::i("invalid effect [",visual.data(),"]");
     return;
     }
   if(auto w = owner.world())
     w->stopEffect(*vfx);
   }
 
-void GameScript::wld_getplayerportalguild(Daedalus::DaedalusVM &vm) {
+int GameScript::wld_getplayerportalguild() {
   int32_t g = GIL_NONE;
   if(auto p = world().player())
     g = world().guildOfRoom(p->portalName());
-  vm.setReturn(g);
+  return g;
   }
 
-void GameScript::wld_getformerplayerportalguild(Daedalus::DaedalusVM& vm) {
+int GameScript::wld_getformerplayerportalguild() {
   int32_t g = GIL_NONE;
   if(auto p = world().player())
     g = world().guildOfRoom(p->formerPortalName());
-  vm.setReturn(g);
+  return g;
   }
 
-void GameScript::wld_setguildattitude(Daedalus::DaedalusVM &vm) {
-  size_t  gil2 = size_t(vm.popInt());
-  int32_t att  = vm.popInt();
-  size_t  gil1 = size_t(vm.popInt());
-  if(gilCount==0 || gil1>=gilCount || gil2>=gilCount)
+void GameScript::wld_setguildattitude(int gil1, int att, int gil2) {
+  if(gilCount==0 || gil1>=int(gilCount) || gil2>=int(gilCount))
     return;
   gilAttitudes[gil1*gilCount+gil2]=att;
   gilAttitudes[gil2*gilCount+gil1]=att;
   }
 
-void GameScript::wld_getguildattitude(Daedalus::DaedalusVM &vm) {
-  int32_t g0 = vm.popInt();
-  int32_t g1 = vm.popInt();
+int GameScript::wld_getguildattitude(int g1, int g0) {
   if(g0<0 || g1<0 || gilCount==0) {
-    vm.setReturn(ATT_HOSTILE); // error
-    return;
+    return ATT_HOSTILE; // error
     }
 
   auto selfG = std::min(gilCount-1,size_t(g0));
   auto npcG  = std::min(gilCount-1,size_t(g1));
   auto ret   = gilAttitudes[selfG*gilCount+npcG];
-  vm.setReturn(ret);
+  return ret;
   }
 
-void GameScript::wld_istime(Daedalus::DaedalusVM &vm) {
-  int32_t min1  = vm.popInt();
-  int32_t hour1 = vm.popInt();
-  int32_t min0  = vm.popInt();
-  int32_t hour0 = vm.popInt();
-
+bool GameScript::wld_istime(int hour0, int min0, int hour1, int min1) {
   gtime begin{hour0,min0}, end{hour1,min1};
   gtime now = owner.time();
   now = gtime(0,now.hour(),now.minute());
 
   if(begin<=end && begin<=now && now<end)
-    vm.setReturn(1);
+    return true;
   else if(end<begin && (now<end || begin<=now))
-    vm.setReturn(1);
+    return true;
   else
-    vm.setReturn(0);
+    return 0;
   }
 
-void GameScript::wld_isfpavailable(Daedalus::DaedalusVM &vm) {
-  auto name = vm.popString();
-  auto self = popInstance(vm);
-
+bool GameScript::wld_isfpavailable(std::shared_ptr<phoenix::c_npc> self, std::string_view name) {
   if(self==nullptr){
-    vm.setReturn(0);
-    return;
+    return false;
     }
 
-  auto wp = world().findFreePoint(*self,name.c_str());
-  vm.setReturn(wp ? 1 : 0);
+  auto wp = world().findFreePoint(*getNpc(self.get()),name);
+  return wp != nullptr;
   }
 
-void GameScript::wld_isnextfpavailable(Daedalus::DaedalusVM &vm) {
-  auto name = vm.popString();
-  auto self = popInstance(vm);
-
+bool GameScript::wld_isnextfpavailable(std::shared_ptr<phoenix::c_npc> self, std::string_view name) {
   if(self==nullptr){
-    vm.setReturn(0);
-    return;
+    return false;
     }
-  auto fp = world().findNextFreePoint(*self,name.c_str());
-  vm.setReturn(fp ? 1 : 0);
+  auto fp = world().findNextFreePoint(*getNpc(self.get()),name);
+  return fp != nullptr;
   }
 
-void GameScript::wld_ismobavailable(Daedalus::DaedalusVM &vm) {
-  Daedalus::ZString name = vm.popString();
-  auto              self = popInstance(vm);
+bool GameScript::wld_ismobavailable(std::shared_ptr<phoenix::c_npc> self, std::string_view name) {
   if(self==nullptr){
-    vm.setReturn(0);
-    return;
+    return false;
     }
 
-  auto wp = world().aviableMob(*self,name.c_str());
-  vm.setReturn(wp ? 1 : 0);
+  auto wp = world().aviableMob(*getNpc(self.get()),name.data());
+  return wp != nullptr;
   }
 
-void GameScript::wld_setmobroutine(Daedalus::DaedalusVM &vm) {
-  int  st   = vm.popInt();
-  auto name = vm.popString();
-  int  m    = vm.popInt();
-  int  h    = vm.popInt();
-
+void GameScript::wld_setmobroutine(int h, int m, std::string_view name, int st) {
   world().setMobRoutine(gtime(h,m), name, st);
   }
 
-void GameScript::wld_getmobstate(Daedalus::DaedalusVM& vm) {
-  auto scheme = vm.popString();
-  auto npc    = popInstance(vm);
+int GameScript::wld_getmobstate(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view scheme) {
+  auto npc = getNpc(npcRef);
 
   if(npc==nullptr) {
-    vm.setReturn(-1);
-    return;
+    return -1;
     }
 
   auto mob = npc->detectedMob();
-  if(mob==nullptr || mob->schemeName()!=scheme.c_str()) {
-    vm.setReturn(-1);
-    return;
+  if(mob==nullptr || mob->schemeName()!=scheme) {
+    return -1;
     }
 
-  vm.setReturn(std::max(0,mob->stateId()));
+  return std::max(0,mob->stateId());
   }
 
-void GameScript::wld_assignroomtoguild(Daedalus::DaedalusVM &vm) {
-  int               g    = vm.popInt();
-  Daedalus::ZString name = vm.popString();
-  world().assignRoomToGuild(name.c_str(),g);
+void GameScript::wld_assignroomtoguild(std::string_view name, int g) {
+  world().assignRoomToGuild(name,g);
   }
 
-void GameScript::wld_detectnpc(Daedalus::DaedalusVM &vm) {
-  int   guild  = vm.popInt();
-  int   state  = vm.popInt();
-  int   inst   = vm.popInt();
-  auto  npc    = popInstance(vm);
+bool GameScript::wld_detectnpc(std::shared_ptr<phoenix::c_npc> npcRef, int inst, int state, int guild) {
+  auto npc = getNpc(npcRef);
   if(npc==nullptr) {
-    vm.setReturn(0);
-    return;
+    return false;
     }
+
   Npc*  ret =nullptr;
   float dist=std::numeric_limits<float>::max();
 
-  world().detectNpc(npc->position(), float(npc->handle()->senses_range), [inst,state,guild,&ret,&dist,npc](Npc& n){
+  world().detectNpc(npc->position(), float(npc->handle().senses_range), [inst,state,guild,&ret,&dist,npc](Npc& n){
     if((inst ==-1 || int32_t(n.instanceSymbol())==inst) &&
        (state==-1 || n.isState(uint32_t(state))) &&
        (guild==-1 || int32_t(n.guild())==guild) &&
@@ -1644,24 +1527,19 @@ void GameScript::wld_detectnpc(Daedalus::DaedalusVM &vm) {
       }
     });
   if(ret)
-    vm.globalOther().instance.set(ret->handle(), Daedalus::IC_Npc);
-  vm.setReturn(ret ? 1 : 0);
+    vm.global_other()->set_instance(ret->handlePtr());
+  return ret != nullptr;
   }
 
-void GameScript::wld_detectnpcex(Daedalus::DaedalusVM &vm) {
-  int   player = vm.popInt();
-  int   guild  = vm.popInt();
-  int   state  = vm.popInt();
-  int   inst   = vm.popInt();
-  auto  npc    = popInstance(vm);
+bool GameScript::wld_detectnpcex(std::shared_ptr<phoenix::c_npc> npcRef, int inst, int state, int guild, int player) {
+  auto npc = getNpc(npcRef);
   if(npc==nullptr) {
-    vm.setReturn(0);
-    return;
+    return false;
     }
   Npc*  ret =nullptr;
   float dist=std::numeric_limits<float>::max();
 
-  world().detectNpc(npc->position(), float(npc->handle()->senses_range), [inst,state,guild,&ret,&dist,npc,player](Npc& n){
+  world().detectNpc(npc->position(), float(npc->handle().senses_range), [inst,state,guild,&ret,&dist,npc,player](Npc& n){
     if((inst ==-1 || int32_t(n.instanceSymbol())==inst) &&
        (state==-1 || n.isState(uint32_t(state))) &&
        (guild==-1 || int32_t(n.guild())==guild) &&
@@ -1675,22 +1553,20 @@ void GameScript::wld_detectnpcex(Daedalus::DaedalusVM &vm) {
       }
     });
   if(ret)
-    vm.globalOther().instance.set(ret->handle(), Daedalus::IC_Npc);
-  vm.setReturn(ret ? 1 : 0);
+    vm.global_other()->set_instance(ret->handlePtr());
+  return ret != nullptr;
   }
 
-void GameScript::wld_detectitem(Daedalus::DaedalusVM &vm) {
-  int   flags = vm.popInt();
-  auto  npc   = popInstance(vm);
+bool GameScript::wld_detectitem(std::shared_ptr<phoenix::c_npc> npcRef, int flags) {
+  auto npc = getNpc(npcRef);
   if(npc==nullptr) {
-    vm.setReturn(0);
-    return;
+    return false;
     }
 
   Item* ret =nullptr;
   float dist=std::numeric_limits<float>::max();
-  world().detectItem(npc->position(), float(npc->handle()->senses_range), [npc,&ret,&dist,flags](Item& it) {
-    if((it.handle().mainflag&flags)==0)
+  world().detectItem(npc->position(), float(npc->handle().senses_range), [npc,&ret,&dist,flags](Item& it) {
+    if((it.handle().main_flag&flags)==0)
       return;
     float d = (npc->position()-it.position()).quadLength();
     if(d<dist) {
@@ -1700,16 +1576,12 @@ void GameScript::wld_detectitem(Daedalus::DaedalusVM &vm) {
     });
 
   if(ret)
-    vm.globalItem().instance.set(&ret->handle(), Daedalus::IC_Item);
-  vm.setReturn(ret ? 1 : 0);
+    vm.global_item()->set_instance(ret->handlePtr());
+  return ret != nullptr;
   }
 
-void GameScript::wld_spawnnpcrange(Daedalus::DaedalusVM& vm) {
-  int32_t lifeTime = vm.popInt();
-  int32_t count    = vm.popInt();
-  int32_t clsId    = vm.popInt();
-  auto    at       = popInstance(vm);
-
+void GameScript::wld_spawnnpcrange(std::shared_ptr<phoenix::c_npc> npcRef, int clsId, int count, float lifeTime) {
+  auto at = getNpc(npcRef);
   if(at==nullptr || clsId<=0)
     return;
 
@@ -1720,50 +1592,44 @@ void GameScript::wld_spawnnpcrange(Daedalus::DaedalusVM& vm) {
     }
   }
 
-void GameScript::wld_sendtrigger(Daedalus::DaedalusVM& vm) {
-  auto triggerTarget = vm.popString();
+void GameScript::wld_sendtrigger(std::string_view triggerTarget) {
   if(triggerTarget.empty())
     return;
   auto& world = *owner.world();
-  const TriggerEvent evt(triggerTarget.c_str(),"",world.tickCount(),TriggerEvent::T_Trigger);
+  const TriggerEvent evt(std::string{triggerTarget},"",world.tickCount(),TriggerEvent::T_Trigger);
   world.triggerEvent(evt);
   }
 
-void GameScript::wld_senduntrigger(Daedalus::DaedalusVM& vm) {
-  auto triggerTarget = vm.popString();
+void GameScript::wld_senduntrigger(std::string_view triggerTarget) {
   if(triggerTarget.empty())
     return;
   auto& world = *owner.world();
-  const TriggerEvent evt(triggerTarget.c_str(),"",world.tickCount(),TriggerEvent::T_Untrigger);
+  const TriggerEvent evt(std::string{triggerTarget},"",world.tickCount(),TriggerEvent::T_Untrigger);
   world.triggerEvent(evt);
   }
 
-void GameScript::wld_israining(Daedalus::DaedalusVM&) {
-  notImplementedFn<&GameScript::wld_israining>("wld_israining");
-  vm.setReturn(0);
+bool GameScript::wld_israining() {
+  static bool first=true;
+  if(first){
+    Log::e("not implemented call [wld_israining]");
+    first=false;
+  }
+  return false;
   }
 
-void GameScript::mdl_setvisual(Daedalus::DaedalusVM &vm) {
-  const auto& visual = vm.popString();
-  auto        npc    = popInstance(vm);
+void GameScript::mdl_setvisual(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view visual) {
+  auto npc = getNpc(npcRef);
   if(npc==nullptr)
     return;
-  npc->setVisual(visual.c_str());
+  npc->setVisual(visual);
   }
 
-void GameScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
-  int32_t armor        = vm.popInt();
-  int32_t teethTexNr   = vm.popInt();
-  int32_t headTexNr    = vm.popInt();
-  auto    head         = vm.popString();
-  int32_t bodyTexColor = vm.popInt();
-  int32_t bodyTexNr    = vm.popInt();
-  auto    body         = vm.popString();
-  auto    npc          = popInstance(vm);
-
+void GameScript::mdl_setvisualbody(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view body, int bodyTexNr, int bodyTexColor, std::string_view head, int headTexNr, int teethTexNr, int armor) {
+  auto npc = getNpc(npcRef);
   if(npc==nullptr)
     return;
-  npc->setVisualBody(headTexNr,teethTexNr,bodyTexNr,bodyTexColor,body.c_str(),head.c_str());
+
+  npc->setVisualBody(headTexNr,teethTexNr,bodyTexNr,bodyTexColor,body,head);
   if(armor>=0) {
     if(npc->itemCount(uint32_t(armor))==0)
       npc->addItem(uint32_t(armor),1);
@@ -1771,546 +1637,463 @@ void GameScript::mdl_setvisualbody(Daedalus::DaedalusVM &vm) {
     }
   }
 
-void GameScript::mdl_setmodelfatness(Daedalus::DaedalusVM &vm) {
-  float    fat = vm.popFloat();
-  auto     npc = popInstance(vm);
-
+void GameScript::mdl_setmodelfatness(std::shared_ptr<phoenix::c_npc> npcRef, float fat) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->setFatness(fat);
   }
 
-void GameScript::mdl_applyoverlaymds(Daedalus::DaedalusVM &vm) {
-  auto overlayname = vm.popString();
-  auto npc         = popInstance(vm);
-  auto skelet      = Resources::loadSkeleton(overlayname.c_str());
-
-  if(npc!=nullptr)
+void GameScript::mdl_applyoverlaymds(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view overlayname) {
+  auto npc = getNpc(npcRef);
+  if(npc!=nullptr) {
+    auto skelet = Resources::loadSkeleton(overlayname);
     npc->addOverlay(skelet,0);
   }
+}
 
-void GameScript::mdl_applyoverlaymdstimed(Daedalus::DaedalusVM &vm) {
-  int32_t ticks       = vm.popInt();
-  auto    overlayname = vm.popString();
-  auto    npc         = popInstance(vm);
-  auto    skelet      = Resources::loadSkeleton(overlayname.c_str());
-
-  if(npc!=nullptr && ticks>0)
+void GameScript::mdl_applyoverlaymdstimed(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view overlayname, int ticks) {
+  auto npc = getNpc(npcRef);
+  if(npc!=nullptr && ticks>0) {
+    auto skelet = Resources::loadSkeleton(overlayname);
     npc->addOverlay(skelet,uint64_t(ticks));
   }
+}
 
-void GameScript::mdl_removeoverlaymds(Daedalus::DaedalusVM &vm) {
-  auto overlayname = vm.popString();
-  auto npc         = popInstance(vm);
-  auto skelet      = Resources::loadSkeleton(overlayname.c_str());
-
-  if(npc!=nullptr)
+void GameScript::mdl_removeoverlaymds(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view overlayname) {
+  auto npc = getNpc(npcRef);
+  if(npc!=nullptr) {
+    auto skelet = Resources::loadSkeleton(overlayname);
     npc->delOverlay(skelet);
   }
+}
 
-void GameScript::mdl_setmodelscale(Daedalus::DaedalusVM &vm) {
-  float z   = vm.popFloat();
-  float y   = vm.popFloat();
-  float x   = vm.popFloat();
-  auto  npc = popInstance(vm);
-
-  if(npc!=nullptr)
+void GameScript::mdl_setmodelscale(std::shared_ptr<phoenix::c_npc> npcRef, float x, float y, float z) {
+  auto npc = getNpc(npcRef);
+  if(npcRef!=nullptr)
     npc->setScale(x,y,z);
   }
 
-void GameScript::mdl_startfaceani(Daedalus::DaedalusVM &vm) {
-  float time      = vm.popFloat();
-  float intensity = vm.popFloat();
-  auto  ani       = vm.popString();
-  auto  npc       = popInstance(vm);
-
-  if(npc!=nullptr)
-    npc->startFaceAnim(ani.c_str(),intensity,uint64_t(time*1000.f));
+void GameScript::mdl_startfaceani(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view ani, float intensity, float time) {
+  if(npcRef!=nullptr)
+    getNpc(npcRef.get())->startFaceAnim(ani,intensity,uint64_t(time*1000.f));
   }
 
-void GameScript::mdl_applyrandomani(Daedalus::DaedalusVM &vm) {
-  auto s0  = vm.popString();
-  auto s1  = vm.popString();
-  auto npc = popInstance(vm);
+void GameScript::mdl_applyrandomani(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view s1, std::string_view s0) {
+  (void)npcRef;
+  (void)s1;
+  (void)s0;
 
-  (void)npc;
-
-  notImplementedFn<&GameScript::mdl_applyrandomani>("mdl_applyrandomani");
+  static bool first=true;
+  if(first){
+    Log::e("not implemented call [mdl_applyrandomani]");
+    first=false;
+  }
   }
 
-void GameScript::mdl_applyrandomanifreq(Daedalus::DaedalusVM &vm) {
-  auto f0  = vm.popFloat();
-  auto s1  = vm.popString();
-  auto npc = popInstance(vm);
-
+void GameScript::mdl_applyrandomanifreq(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view s1, float f0) {
   (void)f0;
   (void)s1;
-  (void)npc;
+  (void)npcRef;
 
-  notImplementedFn<&GameScript::mdl_applyrandomanifreq>("mdl_applyrandomanifreq");
+  static bool first=true;
+  if(first){
+    Log::e("not implemented call [mdl_applyrandomanifreq]");
+    first=false;
+  }
   }
 
-void GameScript::mdl_applyrandomfaceani(Daedalus::DaedalusVM& vm) {
-  auto probMin    = vm.popFloat();
-  auto timeMaxVar = vm.popFloat();
-  auto timeMax    = vm.popFloat();
-  auto timeMinVar = vm.popFloat();
-  auto timeMin    = vm.popFloat();
-  auto name       = vm.popString();
-  auto npc        = popInstance(vm);
-
+void GameScript::mdl_applyrandomfaceani(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view name, float timeMin, float timeMinVar, float timeMax, float timeMaxVar, float probMin) {
   (void)probMin;
   (void)timeMaxVar;
   (void)timeMax;
   (void)timeMinVar;
   (void)timeMin;
   (void)name;
-  (void)npc;
+  (void)npcRef;
 
-  notImplementedFn<&GameScript::mdl_applyrandomfaceani>("mdl_applyrandomfaceani");
+  static bool first=true;
+  if(first){
+    Log::e("not implemented call [mdl_applyrandomfaceani]");
+    first=false;
+  }
   }
 
-void GameScript::wld_insertnpc(Daedalus::DaedalusVM &vm) {
-  Daedalus::ZString spawnpoint  = vm.popString();
-  int32_t           npcInstance = vm.popInt();
-
+void GameScript::wld_insertnpc(int npcInstance, std::string_view spawnpoint) {
   if(spawnpoint.empty() || npcInstance<=0)
     return;
 
-  auto npc = world().addNpc(size_t(npcInstance),spawnpoint.c_str());
+  auto npc = world().addNpc(size_t(npcInstance),spawnpoint);
   if(npc!=nullptr)
     fixNpcPosition(*npc,0,0);
   }
 
-void GameScript::wld_insertitem(Daedalus::DaedalusVM &vm) {
-  const Daedalus::ZString& spawnpoint   = vm.popString();
-  int32_t                  itemInstance = vm.popInt();
-
+void GameScript::wld_insertitem(int itemInstance, std::string_view spawnpoint) {
   if(spawnpoint.empty() || itemInstance<=0)
     return;
 
-  world().addItem(size_t(itemInstance),spawnpoint.c_str());
+  world().addItem(size_t(itemInstance),spawnpoint);
   }
 
-void GameScript::npc_settofightmode(Daedalus::DaedalusVM &vm) {
-  int32_t weaponSymbol = vm.popInt();
-  auto    npc          = popInstance(vm);
-  if(npc!=nullptr && weaponSymbol>=0)
-    npc->setToFightMode(size_t(weaponSymbol));
+void GameScript::npc_settofightmode(std::shared_ptr<phoenix::c_npc> npcRef, int weaponSymbol) {
+  if(npcRef!=nullptr && weaponSymbol>=0)
+    getNpc(npcRef.get())->setToFightMode(size_t(weaponSymbol));
   }
 
-void GameScript::npc_settofistmode(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+void GameScript::npc_settofistmode(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->setToFistMode();
   }
 
-void GameScript::npc_isinstate(Daedalus::DaedalusVM &vm) {
-  uint32_t stateFn = vm.popUInt();
-  auto     npc     = popInstance(vm);
+bool GameScript::npc_isinstate(std::shared_ptr<phoenix::c_npc> npcRef, int stateFn) {
+  auto npc = getNpc(npcRef);
 
   if(npc!=nullptr){
-    const bool ret=npc->isState(stateFn);
-    vm.setReturn(ret ? 1: 0);
-    return;
+    return npc->isState(stateFn);
     }
-  vm.setReturn(0);
+  return false;
   }
 
-void GameScript::npc_isinroutine(Daedalus::DaedalusVM& vm) {
-  uint32_t stateFn = vm.popUInt();
-  auto     npc     = popInstance(vm);
+bool GameScript::npc_isinroutine(std::shared_ptr<phoenix::c_npc> npcRef, int stateFn) {
+  auto npc = getNpc(npcRef);
 
   if(npc!=nullptr){
-    const bool ret=npc->isRoutine(stateFn);
-    vm.setReturn(ret ? 1 : 0);
-    return;
+    return npc->isRoutine(stateFn);
     }
-  vm.setReturn(0);
+  return false;
   }
 
-void GameScript::npc_wasinstate(Daedalus::DaedalusVM &vm) {
-  uint32_t stateFn = vm.popUInt();
-  auto     npc     = popInstance(vm);
+bool GameScript::npc_wasinstate(std::shared_ptr<phoenix::c_npc> npcRef, int stateFn) {
+  auto npc = getNpc(npcRef);
 
   if(npc!=nullptr){
-    const bool ret=npc->wasInState(stateFn);
-    vm.setReturn(ret ? 1: 0);
-    return;
+    return npc->wasInState(stateFn);
     }
-  vm.setReturn(0);
+  return false;
   }
 
-void GameScript::npc_getdisttowp(Daedalus::DaedalusVM &vm) {
-  auto  wpname = vm.popString();
-  auto  npc    = popInstance(vm);
-
-  auto* wp     = world().findPoint(wpname.c_str());
+int GameScript::npc_getdisttowp(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view wpname) {
+  auto npc = getNpc(npcRef);
+  auto* wp     = world().findPoint(wpname);
 
   if(npc!=nullptr && wp!=nullptr){
     float ret = std::sqrt(npc->qDistTo(wp));
     if(ret<float(std::numeric_limits<int32_t>::max()))
-      vm.setReturn(int32_t(ret));else
-      vm.setReturn(std::numeric_limits<int32_t>::max());
+      return int32_t(ret);
+    else
+      return std::numeric_limits<int32_t>::max();
     } else {
-    vm.setReturn(std::numeric_limits<int32_t>::max());
+    return std::numeric_limits<int32_t>::max();
     }
   }
 
-void GameScript::npc_exchangeroutine(Daedalus::DaedalusVM &vm) {
-  auto rname  = vm.popString();
-  auto npc    = popInstance(vm);
+void GameScript::npc_exchangeroutine(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view rname) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr) {
-    auto& v = *npc->handle();
+    auto& v = npc->handle();
     char buf[256]={};
-    std::snprintf(buf,sizeof(buf),"Rtn_%s_%d",rname.c_str(),v.id);
-    size_t d = vm.getDATFile().getSymbolIndexByName(buf);
+    std::snprintf(buf,sizeof(buf),"Rtn_%.*s_%d",int(rname.length()),rname.data(),v.id);
+
+    auto* sym = vm.find_symbol_by_name(buf);
+    size_t d = sym != nullptr ? sym->index() : 0;
     if(d>0)
       npc->excRoutine(d);
     }
   }
 
-void GameScript::npc_isdead(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
-  if(npc==nullptr || isDead(*npc))
-    vm.setReturn(1); else
-    vm.setReturn(0);
+bool GameScript::npc_isdead(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
+  return npc==nullptr || isDead(*npc);
   }
 
-void GameScript::npc_knowsinfo(Daedalus::DaedalusVM &vm) {
-  uint32_t infoinstance = uint32_t(vm.popInt());
-  auto     npc          = popInstance(vm);
+bool GameScript::npc_knowsinfo(std::shared_ptr<phoenix::c_npc> npcRef, int infoinstance) {
+  auto npc = getNpc(npcRef);
   if(!npc){
-    vm.setReturn(0);
-    return;
+    return false;
     }
 
-  Daedalus::GEngineClasses::C_Npc& vnpc = *npc->handle();
-  bool knows = doesNpcKnowInfo(vnpc, infoinstance);
-  vm.setReturn(knows ? 1 : 0);
+  phoenix::c_npc& vnpc = npc->handle();
+  return doesNpcKnowInfo(vnpc, infoinstance);
   }
 
-void GameScript::npc_settalentskill(Daedalus::DaedalusVM &vm) {
-  int  lvl     = vm.popInt();
-  int  t       = vm.popInt();
-  auto npc     = popInstance(vm);
+void GameScript::npc_settalentskill(std::shared_ptr<phoenix::c_npc> npcRef, int t, int lvl) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->setTalentSkill(Talent(t),lvl);
   }
 
-void GameScript::npc_gettalentskill(Daedalus::DaedalusVM &vm) {
-  uint32_t skillId = uint32_t(vm.popInt());
-  auto     npc     = popInstance(vm);
-
-  int32_t  skill   = npc==nullptr ? 0 : npc->talentSkill(Talent(skillId));
-  vm.setReturn(skill);
+int GameScript::npc_gettalentskill(std::shared_ptr<phoenix::c_npc> npcRef, int skillId) {
+  auto npc = getNpc(npcRef);
+  return npc==nullptr ? 0 : npc->talentSkill(Talent(skillId));
   }
 
-void GameScript::npc_settalentvalue(Daedalus::DaedalusVM &vm) {
-  int lvl  = vm.popInt();
-  int t    = vm.popInt();
-  auto npc = popInstance(vm);
+void GameScript::npc_settalentvalue(std::shared_ptr<phoenix::c_npc> npcRef, int t, int lvl) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->setTalentValue(Talent(t),lvl);
   }
 
-void GameScript::npc_gettalentvalue(Daedalus::DaedalusVM &vm) {
-  uint32_t skillId = uint32_t(vm.popInt());
-  auto     npc     = popInstance(vm);
-
-  int32_t  skill   = npc==nullptr ? 0 : npc->talentValue(Talent(skillId));
-  vm.setReturn(skill);
+int GameScript::npc_gettalentvalue(std::shared_ptr<phoenix::c_npc> npcRef, int skillId) {
+  auto npc = getNpc(npcRef);
+  return npc==nullptr ? 0 : npc->talentValue(Talent(skillId));
   }
 
-void GameScript::npc_setrefusetalk(Daedalus::DaedalusVM &vm) {
-  int32_t  timeSec = vm.popInt();
-  auto     npc     = popInstance(vm);
+void GameScript::npc_setrefusetalk(std::shared_ptr<phoenix::c_npc> npcRef, int timeSec) {
+  auto npc = getNpc(npcRef);
   if(npc)
     npc->setRefuseTalk(uint64_t(std::max(timeSec*1000,0)));
   }
 
-void GameScript::npc_refusetalk(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
-  if(npc && npc->isRefuseTalk())
-    vm.setReturn(1); else
-    vm.setReturn(0);
+bool GameScript::npc_refusetalk(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
+  return npc && npc->isRefuseTalk();
   }
 
-void GameScript::npc_hasitems(Daedalus::DaedalusVM &vm) {
-  uint32_t itemId = uint32_t(vm.popInt());
-  auto     npc    = popInstance(vm);
-  if(npc!=nullptr)
-    vm.setReturn(int32_t(npc->itemCount(itemId))); else
-    vm.setReturn(0);
+int GameScript::npc_hasitems(std::shared_ptr<phoenix::c_npc> npcRef, int itemId) {
+  auto npc = getNpc(npcRef);
+  return npc!=nullptr ? npc->itemCount(itemId) : 0;
   }
 
-void GameScript::npc_getinvitem(Daedalus::DaedalusVM &vm) {
-  uint32_t itemId = uint32_t(vm.popInt());
-  auto     npc    = popInstance(vm);
+int GameScript::npc_getinvitem(std::shared_ptr<phoenix::c_npc> npcRef, int itemId) {
+  auto npc = getNpc(npcRef);
   auto     itm    = npc==nullptr ? nullptr : npc->getItem(itemId);
   storeItem(itm);
   if(itm!=nullptr) {
-    pushItem(vm,itm);
+    return itm->handle().symbol_index();
     } else {
-    vm.setReturn(0);
+    return -1;
     }
   }
 
-void GameScript::npc_removeinvitem(Daedalus::DaedalusVM &vm) {
-  uint32_t itemId = uint32_t(vm.popInt());
-  auto     npc    = popInstance(vm);
+int GameScript::npc_removeinvitem(std::shared_ptr<phoenix::c_npc> npcRef, int itemId) {
+  auto npc = getNpc(npcRef);
 
   if(npc!=nullptr)
     npc->delItem(itemId,1);
+
+  return 0;
   }
 
-void GameScript::npc_removeinvitems(Daedalus::DaedalusVM &vm) {
-  int32_t  amount = vm.popInt();
-  uint32_t itemId = uint32_t(vm.popInt());
-  auto     npc    = popInstance(vm);
+int GameScript::npc_removeinvitems(std::shared_ptr<phoenix::c_npc> npcRef, int itemId, int amount) {
+  auto npc = getNpc(npcRef);
 
   if(npc!=nullptr && amount>0)
     npc->delItem(itemId,uint32_t(amount));
+
+  return 0;
   }
 
-void GameScript::npc_getbodystate(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+int GameScript::npc_getbodystate(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
 
   if(npc!=nullptr)
-    vm.setReturn(int32_t(npc->bodyState())); else
-    vm.setReturn(int32_t(0));
+    return int32_t(npc->bodyState());
+  else
+    return int32_t(0);
   }
 
-void GameScript::npc_getlookattarget(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
-  auto ret = npc ? npc->lookAtTarget() : nullptr;
-  pushInstance(vm,ret);
+std::shared_ptr<phoenix::c_npc> GameScript::npc_getlookattarget(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
+  return npc && npc->lookAtTarget() ? npc->lookAtTarget()->handlePtr() : nullptr;
   }
 
-void GameScript::npc_getdisttonpc(Daedalus::DaedalusVM &vm) {
-  auto a = popInstance(vm);
-  auto b = popInstance(vm);
+int GameScript::npc_getdisttonpc(std::shared_ptr<phoenix::c_npc> aRef, std::shared_ptr<phoenix::c_npc> bRef) {
+  auto a = getNpc(aRef);
+  auto b = getNpc(bRef);
 
   if(a==nullptr || b==nullptr){
-    vm.setReturn(std::numeric_limits<int32_t>::max());
-    return;
+    return std::numeric_limits<int32_t>::max();
     }
 
   float ret = std::sqrt(a->qDistTo(*b));
   if(ret>float(std::numeric_limits<int32_t>::max()))
-    vm.setReturn(std::numeric_limits<int32_t>::max()); else
-    vm.setReturn(int(ret));
+    return std::numeric_limits<int32_t>::max();
+  else
+    return int(ret);
   }
 
-void GameScript::npc_hasequippedarmor(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
-  if(npc!=nullptr && npc->currentArmour()!=nullptr)
-    vm.setReturn(1); else
-    vm.setReturn(0);
+bool GameScript::npc_hasequippedarmor(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
+  return npc!=nullptr && npc->currentArmour()!=nullptr;
   }
 
-void GameScript::npc_setperctime(Daedalus::DaedalusVM &vm) {
-  float sec = vm.popFloat();
-  auto  npc = popInstance(vm);
+void GameScript::npc_setperctime(std::shared_ptr<phoenix::c_npc> npcRef, float sec) {
+  auto npc = getNpc(npcRef);
   if(npc)
     npc->setPerceptionTime(uint64_t(sec*1000));
   }
 
-void GameScript::npc_percenable(Daedalus::DaedalusVM &vm) {
-  int32_t fn  = vm.popInt();
-  int32_t pr  = vm.popInt();
-  auto    npc = popInstance(vm);
+void GameScript::npc_percenable(std::shared_ptr<phoenix::c_npc> npcRef, int pr, int fn) {
+  auto npc = getNpc(npcRef);
   if(npc && fn>=0)
     npc->setPerceptionEnable(PercType(pr),size_t(fn));
   }
 
-void GameScript::npc_percdisable(Daedalus::DaedalusVM &vm) {
-  int32_t pr  = vm.popInt();
-  auto    npc = popInstance(vm);
+void GameScript::npc_percdisable(std::shared_ptr<phoenix::c_npc> npcRef, int pr) {
+  auto npc = getNpc(npcRef);
   if(npc)
     npc->setPerceptionDisable(PercType(pr));
   }
 
-void GameScript::npc_getnearestwp(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+std::string GameScript::npc_getnearestwp(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   auto wp  = npc ? world().findWayPoint(npc->position()) : nullptr;
   if(wp)
-    vm.setReturn(wp->name); else
-    vm.setReturn("");
+    return (wp->name);
+  else
+    return "";
   }
 
-void GameScript::npc_clearaiqueue(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+void GameScript::npc_clearaiqueue(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc)
     npc->clearAiQueue();
   }
 
-void GameScript::npc_isplayer(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
-  if(npc && npc->isPlayer())
-    vm.setReturn(1); else
-    vm.setReturn(0);
+bool GameScript::npc_isplayer(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
+  return npc && npc->isPlayer();
   }
 
-void GameScript::npc_getstatetime(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+int GameScript::npc_getstatetime(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc)
-    vm.setReturn(int32_t(npc->stateTime()/1000)); else
-    vm.setReturn(0);
+    return int32_t(npc->stateTime()/1000);
+  else
+    return 0;
   }
 
-void GameScript::npc_setstatetime(Daedalus::DaedalusVM &vm) {
-  int32_t val = vm.popInt();
-  auto    npc = popInstance(vm);
+void GameScript::npc_setstatetime(std::shared_ptr<phoenix::c_npc> npcRef, int val) {
+  auto npc = getNpc(npcRef);
   if(npc)
     npc->setStateTime(val*1000);
   }
 
-void GameScript::npc_changeattribute(Daedalus::DaedalusVM &vm) {
-  int32_t val  = vm.popInt();
-  int32_t atr  = vm.popInt();
-  auto    npc  = popInstance(vm);
+void GameScript::npc_changeattribute(std::shared_ptr<phoenix::c_npc> npcRef, int atr, int val) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr && atr>=0)
     npc->changeAttribute(Attribute(atr),val,false);
   }
 
-void GameScript::npc_isonfp(Daedalus::DaedalusVM &vm) {
-  auto val = vm.popString();
-  auto npc = popInstance(vm);
+bool GameScript::npc_isonfp(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view val) {
+  auto npc = getNpc(npcRef);
   if(npc==nullptr) {
-    vm.setReturn(0);
-    return;
+    return false;
     }
 
   auto w = npc->currentWayPoint();
-  if(w==nullptr || !MoveAlgo::isClose(npc->position(),*w) || !w->checkName(val.c_str())){
-    vm.setReturn(0);
-    return;
+  if(w==nullptr || !MoveAlgo::isClose(npc->position(),*w) || !w->checkName(val)){
+    return false;
     }
-  if(w->isFreePoint()){
-    vm.setReturn(1);
-    return;
-    }
-  vm.setReturn(0);
+
+  return w->isFreePoint();
   }
 
-void GameScript::npc_getheighttonpc(Daedalus::DaedalusVM &vm) {
-  auto  a   = popInstance(vm);
-  auto  b   = popInstance(vm);
+int GameScript::npc_getheighttonpc(std::shared_ptr<phoenix::c_npc> aRef, std::shared_ptr<phoenix::c_npc> bRef) {
+  auto a = getNpc(aRef);
+  auto b = getNpc(bRef);
   float ret = 0;
   if(a!=nullptr && b!=nullptr)
     ret = std::abs(a->position().y - b->position().y);
-  vm.setReturn(int32_t(ret));
+  return int32_t(ret);
   }
 
-void GameScript::npc_getequippedmeleeweapon(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
-  if(npc!=nullptr){
-    auto a = npc->currentMeleWeapon();
-    pushItem(vm,a);
+std::shared_ptr<phoenix::c_item> GameScript::npc_getequippedmeleeweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
+  if(npc!=nullptr && npc->currentMeleWeapon() != nullptr){
+    return npc->currentMeleWeapon()->handlePtr();
     }
+  return nullptr;
   }
 
-void GameScript::npc_getequippedrangedweapon(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
-  if(npc!=nullptr){
-    auto a = npc->currentRangeWeapon();
-    pushItem(vm,a);
+std::shared_ptr<phoenix::c_item> GameScript::npc_getequippedrangedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
+  if(npc!=nullptr && npc->currentMeleWeapon() != nullptr){
+    return npc->currentRangeWeapon()->handlePtr();
     }
+  return nullptr;
   }
 
-void GameScript::npc_getequippedarmor(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
-  if(npc!=nullptr){
-    auto a = npc->currentArmour();
-    pushItem(vm,a);
+std::shared_ptr<phoenix::c_item> GameScript::npc_getequippedarmor(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
+  if(npc!=nullptr && npc->currentArmour()!=nullptr){
+    return npc->currentArmour()->handlePtr();
     }
+  return nullptr;
   }
 
-void GameScript::npc_canseenpc(Daedalus::DaedalusVM &vm) {
-  auto other = popInstance(vm);
-  auto npc   = popInstance(vm);
+bool GameScript::npc_canseenpc(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_npc> otherRef) {
+  auto other = getNpc(otherRef);
+  auto npc   = getNpc(npcRef);
   bool ret   = false;
   if(npc!=nullptr && other!=nullptr){
     ret = npc->canSeeNpc(*other,false);
     }
-  vm.setReturn(ret ? 1 : 0);
+  return ret;
   }
 
-void GameScript::npc_hasequippedweapon(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
-  if(npc!=nullptr &&
+bool GameScript::npc_hasequippedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
+  return (npc!=nullptr &&
      (npc->currentMeleWeapon()!=nullptr ||
-      npc->currentRangeWeapon()!=nullptr))
-    vm.setReturn(1); else
-    vm.setReturn(0);
+      npc->currentRangeWeapon()!=nullptr));
   }
 
-void GameScript::npc_hasequippedmeleeweapon(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
-  if(npc!=nullptr && npc->currentMeleWeapon()!=nullptr)
-    vm.setReturn(1); else
-    vm.setReturn(0);
+bool GameScript::npc_hasequippedmeleeweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
+  return npc!=nullptr && npc->currentMeleWeapon()!=nullptr;
   }
 
-void GameScript::npc_hasequippedrangedweapon(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
-  if(npc!=nullptr && npc->currentRangeWeapon()!=nullptr)
-    vm.setReturn(1); else
-    vm.setReturn(0);
+bool GameScript::npc_hasequippedrangedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
+  return npc!=nullptr && npc->currentRangeWeapon()!=nullptr;
   }
 
-void GameScript::npc_getactivespell(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+int GameScript::npc_getactivespell(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc==nullptr){
-    vm.setReturn(-1);
-    return;
+    return -1;
     }
 
   Item* w = npc->activeWeapon();
   if(w==nullptr || !w->isSpellOrRune()){
-    vm.setReturn(-1);
-    return;
+    return -1;
     }
 
   makeCurrent(w);
-  vm.setReturn(w->spellId());
+  return w->spellId();
   }
 
-void GameScript::npc_getactivespellisscroll(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+bool GameScript::npc_getactivespellisscroll(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc==nullptr){
-    vm.setReturn(0);
-    return;
+    return false;
     }
 
   Item* w = npc->activeWeapon();
   if(w==nullptr || !w->isSpell()){
-    vm.setReturn(0);
-    return;
+    return false;
     }
 
-  vm.setReturn(1);
+  return true;
   }
 
-void GameScript::npc_canseenpcfreelos(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
-  auto oth = popInstance(vm);
+bool GameScript::npc_canseenpcfreelos(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_npc> otherRef) {
+  auto npc = getNpc(npcRef);
+  auto oth = getNpc(otherRef);
 
   if(npc!=nullptr && oth!=nullptr){
-    bool v = npc->canSeeNpc(*oth,true);
-    vm.setReturn(v ? 1 : 0);
-    return;
+    return npc->canSeeNpc(*oth,true);
     }
-  vm.setReturn(0);
+  return false;
   }
 
-void GameScript::npc_isinfightmode(Daedalus::DaedalusVM &vm) {
-  FightMode mode = FightMode(vm.popInt());
-  auto      npc  = popInstance(vm);
+bool GameScript::npc_isinfightmode(std::shared_ptr<phoenix::c_npc> npcRef, int modeI) {
+  auto npc = getNpc(npcRef);
+  auto mode = FightMode(modeI);
 
   if(npc==nullptr){
-    vm.setReturn(0);
-    return;
+    return false;
     }
 
   auto st  = npc->weaponState();
@@ -2330,12 +2113,12 @@ void GameScript::npc_isinfightmode(Daedalus::DaedalusVM &vm) {
   else if(mode==FightMode::FMODE_MAGIC){
     ret = (st==WeaponState::Mage);
     }
-  vm.setReturn(ret ? 1: 0);
+  return ret;
   }
 
-void GameScript::npc_settarget(Daedalus::DaedalusVM &vm) {
-  auto oth = popInstance(vm);
-  auto npc = popInstance(vm);
+void GameScript::npc_settarget(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_npc> otherRef) {
+  auto oth = getNpc(otherRef);
+  auto npc = getNpc(npcRef);
   if(npc)
     npc->setTarget(oth);
   }
@@ -2347,28 +2130,28 @@ void GameScript::npc_settarget(Daedalus::DaedalusVM &vm) {
  * - return: current target saved -> TRUE
  * no target saved -> FALSE
  */
-void GameScript::npc_gettarget(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
-  Daedalus::PARSymbol& s = vm.globalOther();
+bool GameScript::npc_gettarget(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
+  auto s = vm.global_other();
 
   if(npc!=nullptr && npc->target()) {
-    s.instance.set(npc->target()->handle(),Daedalus::IC_Npc);
-    vm.setReturn(1);
+    s->set_instance(npc->target()->handlePtr());
+    return true;
     } else {
-    s.instance.set(nullptr,Daedalus::IC_Npc);
-    vm.setReturn(0);
+    s->set_instance(nullptr);
+    return false;
     }
   }
 
-void GameScript::npc_getnexttarget(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+bool GameScript::npc_getnexttarget(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   Npc* ret = nullptr;
 
   if(npc!=nullptr){
-    float dist = float(npc->handle()->senses_range);
+    float dist = float(npc->handle().senses_range);
     dist*=dist;
 
-    world().detectNpc(npc->position(),float(npc->handle()->senses_range),[&,npc](Npc& oth){
+    world().detectNpc(npc->position(),float(npc->handle().senses_range),[&,npc](Npc& oth){
       if(&oth!=npc && !oth.isDown() && oth.isEnemy(*npc) && npc->canSeeNpc(oth,true)){
         float qd = oth.qDistTo(*npc);
         if(qd<dist){
@@ -2382,389 +2165,360 @@ void GameScript::npc_getnexttarget(Daedalus::DaedalusVM &vm) {
       npc->setTarget(ret);
     }
 
-  Daedalus::PARSymbol& s = vm.globalOther();
+  auto s = vm.global_other();
   if(ret!=nullptr) {
-    s.instance.set(ret->handle(),Daedalus::IC_Npc);
-    vm.setReturn(1);
+    s->set_instance(ret->handlePtr());
+    return true;
     } else {
-    s.instance.set(nullptr,Daedalus::IC_Npc);
-    vm.setReturn(0);
+    s->set_instance(nullptr);
+    return false;
     }
   }
 
-void GameScript::npc_sendpassiveperc(Daedalus::DaedalusVM &vm) {
-  auto other  = popInstance(vm);
-  auto victum = popInstance(vm);
-  auto id     = vm.popInt();
-  auto npc    = popInstance(vm);
+void GameScript::npc_sendpassiveperc(std::shared_ptr<phoenix::c_npc> npcRef, int id, std::shared_ptr<phoenix::c_npc> victimRef, std::shared_ptr<phoenix::c_npc> otherRef) {
+  auto other  = getNpc(otherRef);
+  auto victum = getNpc(victimRef);
+  auto npc = getNpc(npcRef);
 
   if(npc && other && victum)
     world().sendPassivePerc(*npc,*other,*victum,id);
   }
 
-void GameScript::npc_checkinfo(Daedalus::DaedalusVM &vm) {
-  auto imp = vm.popInt();
-  auto n   = popInstance(vm);
+bool GameScript::npc_checkinfo(std::shared_ptr<phoenix::c_npc> npcRef, int imp) {
+  auto n = getNpc(npcRef);
   if(n==nullptr){
-    vm.setReturn(0);
-    return;
+    return false;
     }
 
-  auto& hero = vm.globalOther();
-  if(!hero.instance.instanceOf(Daedalus::EInstanceClass::IC_Npc)){
-    vm.setReturn(0);
-    return;
+  auto* hero = vm.global_other();
+  if(!hero->is_instance_of<phoenix::c_npc>()){
+    return false;
     }
-  auto* hpl  = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(hero.instance.get());
+  auto* hpl  = reinterpret_cast<phoenix::c_npc*>(hero->get_instance().get());
   auto& pl   = *(hpl);
-  auto& npc  = *(n->handle());
+  auto& npc  = n->handle();
 
   for(auto& info:dialogsInfo) {
-    if(info.npc!=int32_t(npc.instanceSymbol) || info.important!=imp)
+    if(info->npc!=int32_t(npc.symbol_index()) || info->important!=imp)
       continue;
-    bool npcKnowsInfo = doesNpcKnowInfo(pl,info.instanceSymbol);
-    if(npcKnowsInfo && !info.permanent)
+    bool npcKnowsInfo = doesNpcKnowInfo(pl,info->symbol_index());
+    if(npcKnowsInfo && !info->permanent)
       continue;
     bool valid=false;
-    if(info.condition)
-      valid = runFunction(info.condition)!=0;
+    if(info->condition) {
+      auto* conditionSymbol = vm.find_symbol_by_index(info->condition);
+      if (conditionSymbol != nullptr)
+        valid = vm.call_function<int>(conditionSymbol)!=0;
+      }
     if(valid) {
-      vm.setReturn(1);
-      return;
+      return true;
       }
     }
-
-  vm.setReturn(0);
+  return false;
   }
 
-void GameScript::npc_getportalguild(Daedalus::DaedalusVM &vm) {
+int GameScript::npc_getportalguild(std::shared_ptr<phoenix::c_npc> npcRef) {
   int32_t g  = GIL_NONE;
-  auto   npc = popInstance(vm);
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     g = world().guildOfRoom(npc->portalName());
-  vm.setReturn(g);
+  return g;
   }
 
-void GameScript::npc_isinplayersroom(Daedalus::DaedalusVM &vm) {
-  auto    npc = popInstance(vm);
-  auto    pl  = world().player();
+bool GameScript::npc_isinplayersroom(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
+  auto pl  = world().player();
 
   if(npc!=nullptr && pl!=nullptr) {
     int32_t g1 = world().guildOfRoom(pl->portalName());
     int32_t g2 = world().guildOfRoom(npc->portalName());
     if(g1==g2) {
-      vm.setReturn(1);
-      return;
+      return true;
       }
     }
-  vm.setReturn(0);
+  return false;
   }
 
-void GameScript::npc_getreadiedweapon(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+std::shared_ptr<phoenix::c_item> GameScript::npc_getreadiedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc==nullptr) {
-    vm.setReturn(0);
-    return;
+    return 0;
     }
 
   auto ret = npc->activeWeapon();
   if(ret!=nullptr) {
     makeCurrent(ret);
-    vm.setReturn(int32_t(ret->clsId()));
+    return ret->handlePtr();
     } else {
-    vm.setReturn(0);
+    return nullptr;
     }
   }
 
-void GameScript::npc_hasreadiedmeleeweapon(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+bool GameScript::npc_hasreadiedmeleeweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc==nullptr) {
-    vm.setReturn(0);
-    return;
+    return false;
     }
   auto ws = npc->weaponState();
-  if(ws==WeaponState::W1H || ws==WeaponState::W2H)
-    vm.setReturn(1); else
-    vm.setReturn(0);
+  return ws==WeaponState::W1H || ws==WeaponState::W2H;
   }
 
-void GameScript::npc_isdrawingspell(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+int GameScript::npc_isdrawingspell(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc==nullptr){
-    vm.setReturn(0);
-    return;
+    return 0;
     }
   auto ret = npc->activeWeapon();
   if(ret==nullptr || !ret->isSpell()){
-    vm.setReturn(0);
-    return;
+    return 0;
     }
   makeCurrent(ret);
-  vm.setReturn(int32_t(ret->clsId()));
+  return int32_t(ret->clsId());
   }
 
-void GameScript::npc_isdrawingweapon(Daedalus::DaedalusVM& vm) {
-  auto npc = popInstance(vm);
+int GameScript::npc_isdrawingweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc==nullptr){
-    vm.setReturn(0);
-    return;
+    return 0;
     }
 
   auto ret = npc->activeWeapon();
   if(ret==nullptr || !ret->isSpell()){
-    vm.setReturn(0);
-    return;
+    return 0;
     }
   makeCurrent(ret);
-  vm.setReturn(int32_t(ret->clsId()));
+  return int32_t(ret->clsId());
   }
 
-void GameScript::npc_perceiveall(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
-  (void)npc; // nop
+void GameScript::npc_perceiveall(std::shared_ptr<phoenix::c_npc> npcRef) {
+  (void)npcRef; // nop
   }
 
-void GameScript::npc_stopani(Daedalus::DaedalusVM &vm) {
-  auto name = vm.popString();
-  auto npc  = popInstance(vm);
+void GameScript::npc_stopani(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view name) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
-    npc->stopAnim(name.c_str());
+    npc->stopAnim(name);
   }
 
-void GameScript::npc_settrueguild(Daedalus::DaedalusVM &vm) {
-  auto  gil = vm.popInt();
-  auto  npc = popInstance(vm);
+int GameScript::npc_settrueguild(std::shared_ptr<phoenix::c_npc> npcRef, int gil) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->setTrueGuild(gil);
+  return 0;
   }
 
-void GameScript::npc_gettrueguild(Daedalus::DaedalusVM &vm) {
-  auto  npc = popInstance(vm);
+int GameScript::npc_gettrueguild(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
-    vm.setReturn(npc->trueGuild()); else
-    vm.setReturn(int32_t(GIL_NONE));
+    return npc->trueGuild();
+  else
+    return int32_t(GIL_NONE);
   }
 
-void GameScript::npc_clearinventory(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+void GameScript::npc_clearinventory(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->clearInventory();
   }
 
-void GameScript::npc_getattitude(Daedalus::DaedalusVM &vm) {
-  auto a = popInstance(vm);
-  auto b = popInstance(vm);
+int GameScript::npc_getattitude(std::shared_ptr<phoenix::c_npc> aRef, std::shared_ptr<phoenix::c_npc> bRef) {
+  auto a = getNpc(aRef);
+  auto b = getNpc(bRef);
 
   if(a!=nullptr && b!=nullptr){
     auto att=personAttitude(*a,*b);
-    vm.setReturn(att); //TODO: temp attitudes
+      return att; //TODO: temp attitudes
     } else {
-    vm.setReturn(ATT_NEUTRAL);
+      return ATT_NEUTRAL;
     }
   }
 
-void GameScript::npc_getpermattitude(Daedalus::DaedalusVM &vm) {
-  auto a = popInstance(vm);
-  auto b = popInstance(vm);
+int GameScript::npc_getpermattitude(std::shared_ptr<phoenix::c_npc> aRef, std::shared_ptr<phoenix::c_npc> bRef) {
+  auto a = getNpc(aRef);
+  auto b = getNpc(bRef);
 
   if(a!=nullptr && b!=nullptr){
     auto att=personAttitude(*a,*b);
-    vm.setReturn(att);
+    return att;
     } else {
-    vm.setReturn(ATT_NEUTRAL);
+    return ATT_NEUTRAL;
     }
   }
 
-void GameScript::npc_setattitude(Daedalus::DaedalusVM &vm) {
-  int32_t att = vm.popInt();
-  auto    npc = popInstance(vm);
+void GameScript::npc_setattitude(std::shared_ptr<phoenix::c_npc> npcRef, int att) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->setAttitude(Attitude(att));
   }
 
-void GameScript::npc_settempattitude(Daedalus::DaedalusVM &vm) {
-  int32_t att = vm.popInt();
-  auto    npc = popInstance(vm);
+void GameScript::npc_settempattitude(std::shared_ptr<phoenix::c_npc> npcRef, int att) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->setTempAttitude(Attitude(att));
   }
 
-void GameScript::npc_hasbodyflag(Daedalus::DaedalusVM &vm) {
-  int32_t bodyflag = vm.popInt();
-  auto    npc      = popInstance(vm);
+bool GameScript::npc_hasbodyflag(std::shared_ptr<phoenix::c_npc> npcRef, int bodyflag) {
+  auto npc = getNpc(npcRef);
   if(npc==nullptr){
-    vm.setReturn(0);
-    return;
+    return false;
     }
   int32_t st = npc->bodyState()&BS_MAX_FLAGS;
   bodyflag&=BS_MAX_FLAGS;
-  vm.setReturn(bool(bodyflag&st) ? 1 : 0);
+  return bool(bodyflag&st);
   }
 
-void GameScript::npc_getlasthitspellid(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+int GameScript::npc_getlasthitspellid(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc==nullptr){
-    vm.setReturn(0);
-    return;
+    return 0;
     }
-  vm.setReturn(npc->lastHitSpellId());
+  return npc->lastHitSpellId();
   }
 
-void GameScript::npc_getlasthitspellcat(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+int GameScript::npc_getlasthitspellcat(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc==nullptr){
-    vm.setReturn(SPELL_GOOD);
-    return;
+    return SPELL_GOOD;
     }
   const int id    = npc->lastHitSpellId();
   auto&     spell = spellDesc(id);
-  vm.setReturn(spell.spellType);
+  return spell.spell_type;
   }
 
-void GameScript::npc_playani(Daedalus::DaedalusVM &vm) {
-  auto name = vm.popString();
-  auto npc  = popInstance(vm);
+void GameScript::npc_playani(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view name) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
-    npc->playAnimByName(name.c_str(),BS_NONE);
+    npc->playAnimByName(name,BS_NONE);
   }
 
-void GameScript::npc_isdetectedmobownedbynpc(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
-  auto usr = popInstance(vm);
+bool GameScript::npc_isdetectedmobownedbynpc(std::shared_ptr<phoenix::c_npc> usrRef, std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
+  auto usr = getNpc(usrRef);
 
   if(npc!=nullptr && usr!=nullptr && usr->interactive()!=nullptr){
-    auto& inst = vm.getDATFile().getSymbolByIndex(npc->instanceSymbol());
+    auto* inst = vm.find_symbol_by_index(npc->instanceSymbol());
     auto  ow   = usr->interactive()->ownerName();
-    vm.setReturn(inst.name==ow ? 1 : 0);
-    return;
+    return inst->name() == ow;
     }
-  vm.setReturn(0);
+  return false;
   }
 
-void GameScript::npc_isdetectedmobownedbyguild(Daedalus::DaedalusVM& vm) {
-  notImplementedFn<&GameScript::npc_isdetectedmobownedbyguild>("npc_isdetectedmobownedbyguild");
-  auto guild = vm.popInt();
-  auto npc   = popInstance(vm);
+bool GameScript::npc_isdetectedmobownedbyguild(std::shared_ptr<phoenix::c_npc> npcRef, int guild) {
+  static bool first=true;
+  if(first){
+    Log::e("not implemented call [npc_isdetectedmobownedbyguild]");
+    first=false;
+  }
+
+  auto npc = getNpc(npcRef);
   (void)guild;
 
   if(npc!=nullptr && npc->detectedMob()!=nullptr) {
     auto  ow   = npc->detectedMob()->ownerName();
     (void)ow;
     //vm.setReturn(inst.name==ow ? 1 : 0);
-    vm.setReturn(0);
-    return;
+    return false;
     }
-  vm.setReturn(0);
+  return false;
   }
 
-void GameScript::npc_getdetectedmob(Daedalus::DaedalusVM &vm) {
-  auto usr = popInstance(vm);
+std::string GameScript::npc_getdetectedmob(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto usr = getNpc(npcRef);
   if(usr!=nullptr && usr->detectedMob()!=nullptr){
     auto i = usr->detectedMob();
-    vm.setReturn(std::string(i->schemeName()));
-    return;
+    return std::string(i->schemeName());
     }
-  vm.setReturn("");
+  return "";
   }
 
-void GameScript::npc_ownedbynpc(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
-  auto itm = popItem(vm);
+bool GameScript::npc_ownedbynpc(std::shared_ptr<phoenix::c_item> itmRef, std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
+  auto itm = getItem(itmRef.get());
   if(itm==nullptr || npc==nullptr) {
-    vm.setReturn(0);
-    return;
+    return false;
     }
 
-  auto& sym = vm.getDATFile().getSymbolByIndex(itm->handle().owner);
-  if(npc->handle()==sym.instance.get())
-    vm.setReturn(1); else
-    vm.setReturn(0);
+  auto* sym = vm.find_symbol_by_index(itm->handle().owner);
+  return sym != nullptr && npc->handlePtr()==sym->get_instance();
   }
 
-void GameScript::npc_canseesource(Daedalus::DaedalusVM& vm) {
-  Npc* self = popInstance(vm);
+bool GameScript::npc_canseesource(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto self = getNpc(npcRef);
   if(self!=nullptr) {
     bool ret = owner.world()->sound()->canSeeSource(self->position()+Vec3(0,self->translateY(),0));
-    vm.setReturn(ret ? 1 : 0);
+    return ret;
     } else {
-    vm.setReturn(0);
+    return false;
     }
   }
 
-void GameScript::npc_getdisttoitem(Daedalus::DaedalusVM& vm) {
-  auto itm = popItem(vm);
-  auto npc = popInstance(vm);
+int GameScript::npc_getdisttoitem(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_item> itmRef) {
+  auto itm = getItem(itmRef.get());
+  auto npc = getNpc(npcRef);
   if(itm==nullptr || npc==nullptr) {
-    vm.setReturn(std::numeric_limits<int32_t>::max());
-    return;
+    return std::numeric_limits<int32_t>::max();
     }
   auto dp = itm->position()-npc->position();
-  vm.setReturn(int32_t(dp.length()));
+  return int32_t(dp.length());
   }
 
-void GameScript::npc_getheighttoitem(Daedalus::DaedalusVM& vm) {
-  auto itm = popItem(vm);
-  auto npc = popInstance(vm);
+int GameScript::npc_getheighttoitem(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_item> itmRef) {
+  auto itm = getItem(itmRef.get());
+  auto npc = getNpc(npcRef);
   if(itm==nullptr || npc==nullptr) {
-    vm.setReturn(std::numeric_limits<int32_t>::max());
-    return;
+    return std::numeric_limits<int32_t>::max();
     }
   auto dp = int32_t(itm->position().y-npc->position().y);
-  vm.setReturn(std::abs(dp));
+  return std::abs(dp);
   }
 
-void GameScript::npc_getdisttoplayer(Daedalus::DaedalusVM& vm) {
+int GameScript::npc_getdisttoplayer(std::shared_ptr<phoenix::c_npc> npcRef) {
   auto pl  = world().player();
-  auto npc = popInstance(vm);
+  auto npc = getNpc(npcRef);
   if(pl==nullptr || npc==nullptr) {
-    vm.setReturn(std::numeric_limits<int32_t>::max());
-    return;
+    return std::numeric_limits<int32_t>::max();
     }
   auto dp = pl->position()-npc->position();
   auto l  = dp.length();
   if(l>float(std::numeric_limits<int32_t>::max())) {
-    vm.setReturn(std::numeric_limits<int32_t>::max());
-    return;
+    return std::numeric_limits<int32_t>::max();
     }
-  vm.setReturn(int32_t(l));
+  return int32_t(l);
   }
 
-void GameScript::npc_getactivespellcat(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+int GameScript::npc_getactivespellcat(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc==nullptr){
-    vm.setReturn(SPELL_GOOD);
-    return;
+    return SPELL_GOOD;
     }
 
   const Item* w = npc->activeWeapon();
   if(w==nullptr || !w->isSpellOrRune()){
-    vm.setReturn(SPELL_GOOD);
-    return;
+    return SPELL_GOOD;
     }
 
   const int id    = w->spellId();
   auto&     spell = spellDesc(id);
-  vm.setReturn(spell.spellType);
+  return spell.spell_type;
   }
 
-void GameScript::npc_setactivespellinfo(Daedalus::DaedalusVM &vm) {
-  int32_t v   = vm.popInt();
-  auto    npc = popInstance(vm);
+int GameScript::npc_setactivespellinfo(std::shared_ptr<phoenix::c_npc> npcRef, int v) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->setActiveSpellInfo(v);
-  vm.setReturn(0);
+  return 0;
   }
 
-void GameScript::npc_getactivespelllevel(Daedalus::DaedalusVM& vm) {
+int GameScript::npc_getactivespelllevel(std::shared_ptr<phoenix::c_npc> npcRef) {
   int  v   = 0;
-  auto npc = popInstance(vm);
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     v = npc->activeSpellLevel();
-  vm.setReturn(v);
+  return v;
   }
 
-void GameScript::ai_processinfos(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+void GameScript::ai_processinfos(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   auto pl  = owner.player();
   if(pl!=nullptr && npc!=nullptr) {
     aiOutOrderId=0;
@@ -2772,10 +2526,9 @@ void GameScript::ai_processinfos(Daedalus::DaedalusVM &vm) {
     }
   }
 
-void GameScript::ai_output(Daedalus::DaedalusVM &vm) {
-  auto outputname = vm.popString();
-  auto target     = popInstance(vm);
-  auto self       = popInstance(vm);
+void GameScript::ai_output(std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> targetRef, std::string_view outputname) {
+  auto target = getNpc(targetRef);
+  auto self = getNpc(selfRef);
 
   if(!self || !target)
     return;
@@ -2784,95 +2537,91 @@ void GameScript::ai_output(Daedalus::DaedalusVM &vm) {
   ++aiOutOrderId;
   }
 
-void GameScript::ai_stopprocessinfos(Daedalus::DaedalusVM &vm) {
-  auto self = popInstance(vm);
+void GameScript::ai_stopprocessinfos(std::shared_ptr<phoenix::c_npc> selfRef) {
+  auto self = getNpc(selfRef);
   if(self)
     self->aiPush(AiQueue::aiStopProcessInfo());
   }
 
-void GameScript::ai_standup(Daedalus::DaedalusVM &vm) {
-  auto self = popInstance(vm);
+void GameScript::ai_standup(std::shared_ptr<phoenix::c_npc> selfRef) {
+  auto self = getNpc(selfRef);
   if(self!=nullptr)
     self->aiPush(AiQueue::aiStandup());
   }
 
-void GameScript::ai_standupquick(Daedalus::DaedalusVM &vm) {
-  auto self = popInstance(vm);
+void GameScript::ai_standupquick(std::shared_ptr<phoenix::c_npc> selfRef) {
+  auto self = getNpc(selfRef);
   if(self!=nullptr)
     self->aiPush(AiQueue::aiStandupQuick());
   }
 
-void GameScript::ai_continueroutine(Daedalus::DaedalusVM &vm) {
-  auto self = popInstance(vm);
+void GameScript::ai_continueroutine(std::shared_ptr<phoenix::c_npc> selfRef) {
+  auto self = getNpc(selfRef);
   if(self!=nullptr)
     self->aiPush(AiQueue::aiContinueRoutine());
   }
 
-void GameScript::ai_stoplookat(Daedalus::DaedalusVM &vm) {
-  auto self = popInstance(vm);
+void GameScript::ai_stoplookat(std::shared_ptr<phoenix::c_npc> selfRef) {
+  auto self = getNpc(selfRef);
   if(self!=nullptr)
     self->aiPush(AiQueue::aiStopLookAt());
   }
 
-void GameScript::ai_lookatnpc(Daedalus::DaedalusVM &vm) {
-  auto npc  = popInstance(vm);
-  auto self = popInstance(vm);
+void GameScript::ai_lookatnpc(std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
+  auto self = getNpc(selfRef);
   if(self!=nullptr)
     self->aiPush(AiQueue::aiLookAt(npc));
   }
 
-void GameScript::ai_removeweapon(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+void GameScript::ai_removeweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiRemoveWeapon());
   }
 
-void GameScript::ai_turntonpc(Daedalus::DaedalusVM &vm) {
-  auto npc  = popInstance(vm);
-  auto self = popInstance(vm);
+void GameScript::ai_turntonpc(std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
+  auto self = getNpc(selfRef);
   if(self!=nullptr)
     self->aiPush(AiQueue::aiTurnToNpc(npc));
   }
 
-void GameScript::ai_outputsvm(Daedalus::DaedalusVM &vm) {
-  auto name   = vm.popString();
-  auto target = popInstance(vm);
-  auto self   = popInstance(vm);
+void GameScript::ai_outputsvm(std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> targetRef, std::string_view name) {
+  auto target = getNpc(targetRef);
+
+  auto self = getNpc(selfRef);
   if(self!=nullptr && target!=nullptr) {
     self->aiPush(AiQueue::aiOutputSvm(*target,name,aiOutOrderId));
     ++aiOutOrderId;
     }
   }
 
-void GameScript::ai_outputsvm_overlay(Daedalus::DaedalusVM &vm) {
-  auto name   = vm.popString();
-  auto target = popInstance(vm);
-  auto self   = popInstance(vm);
+void GameScript::ai_outputsvm_overlay(std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> targetRef, std::string_view name) {
+  auto target = getNpc(targetRef);
+  auto self = getNpc(selfRef);
   if(self!=nullptr && target!=nullptr) {
     self->aiPush(AiQueue::aiOutputSvmOverlay(*target,name,aiOutOrderId));
     ++aiOutOrderId;
     }
   }
 
-void GameScript::ai_startstate(Daedalus::DaedalusVM &vm) {
-  auto  wp    = vm.popString();
-  auto  state = vm.popInt();
-  auto  func  = vm.popInt();
-  auto  self  = popInstance(vm);
-  Daedalus::PARSymbol& sOth = vm.globalOther();
-  Daedalus::PARSymbol& sVic = vm.globalVictim();
+void GameScript::ai_startstate(std::shared_ptr<phoenix::c_npc> selfRef, int func, int state, std::string_view wp) {
+  auto self = getNpc(selfRef);
+  auto* sOth = vm.global_other();
+  auto* sVic = vm.global_victim();
   if(self!=nullptr && func>0) {
     Npc* oth = nullptr;
     Npc* vic = nullptr;
-    if(sOth.instance.instanceOf(Daedalus::IC_Npc)){
-      auto npc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(sOth.instance.get());
+    if(sOth->is_instance_of<phoenix::c_npc>()){
+      auto npc = reinterpret_cast<phoenix::c_npc*>(sOth->get_instance().get());
       if(npc)
-        oth = reinterpret_cast<Npc*>(npc->userPtr);
+        oth = reinterpret_cast<Npc*>(npc->user_ptr);
       }
-    if(sVic.instance.instanceOf(Daedalus::IC_Npc)){
-      auto npc = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(sVic.instance.get());
+    if(sVic->is_instance_of<phoenix::c_npc>()){
+      auto npc = reinterpret_cast<phoenix::c_npc*>(sVic->get_instance().get());
       if(npc)
-        vic = reinterpret_cast<Npc*>(npc->userPtr);
+        vic = reinterpret_cast<Npc*>(npc->user_ptr);
       }
 
     if(!self->isInState(ScriptFn()) && self->isPlayer()) {
@@ -2886,18 +2635,16 @@ void GameScript::ai_startstate(Daedalus::DaedalusVM &vm) {
     }
   }
 
-void GameScript::ai_playani(Daedalus::DaedalusVM &vm) {
-  auto name = vm.popString();
-  auto npc  = popInstance(vm);
+void GameScript::ai_playani(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view name) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr) {
     npc->aiPush(AiQueue::aiPlayAnim(name));
     }
   }
 
-void GameScript::ai_setwalkmode(Daedalus::DaedalusVM &vm) {
+void GameScript::ai_setwalkmode(std::shared_ptr<phoenix::c_npc> npcRef, int modeBits) {
   int32_t weaponBit = 0x80;
-  int32_t modeBits  = vm.popInt();
-  auto    npc       = popInstance(vm);
+  auto npc = getNpc(npcRef);
 
   int32_t mode = modeBits & (~weaponBit);
   if(npc!=nullptr && mode>=0 && mode<=3){ //TODO: weapon flags
@@ -2905,308 +2652,268 @@ void GameScript::ai_setwalkmode(Daedalus::DaedalusVM &vm) {
     }
   }
 
-void GameScript::ai_wait(Daedalus::DaedalusVM &vm) {
-  auto ms  = vm.popFloat();
-  auto npc = popInstance(vm);
+void GameScript::ai_wait(std::shared_ptr<phoenix::c_npc> npcRef, float ms) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr && ms>0)
     npc->aiPush(AiQueue::aiWait(uint64_t(ms*1000)));
   }
 
-void GameScript::ai_waitms(Daedalus::DaedalusVM &vm) {
-  auto ms  = vm.popInt();
-  auto npc = popInstance(vm);
+void GameScript::ai_waitms(std::shared_ptr<phoenix::c_npc> npcRef, int ms) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr && ms>0)
     npc->aiPush(AiQueue::aiWait(uint64_t(ms)));
   }
 
-void GameScript::ai_aligntowp(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+void GameScript::ai_aligntowp(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc)
     npc->aiPush(AiQueue::aiAlignToWp());
   }
 
-void GameScript::ai_gotowp(Daedalus::DaedalusVM &vm) {
-  auto waypoint = vm.popString();
-  auto npc      = popInstance(vm);
+void GameScript::ai_gotowp(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view waypoint) {
+  auto npc = getNpc(npcRef);
 
-  auto to = world().findPoint(waypoint.c_str());
+  auto to = world().findPoint(waypoint);
   if(npc && to)
     npc->aiPush(AiQueue::aiGoToPoint(*to));
   }
 
-void GameScript::ai_gotofp(Daedalus::DaedalusVM &vm) {
-  auto waypoint = vm.popString();
-  auto npc      = popInstance(vm);
+void GameScript::ai_gotofp(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view waypoint) {
+  auto npc = getNpc(npcRef);
 
   if(npc) {
-    auto to = world().findFreePoint(*npc,waypoint.c_str());
+    auto to = world().findFreePoint(*npc,waypoint);
     if(to!=nullptr)
       npc->aiPush(AiQueue::aiGoToPoint(*to));
     }
   }
 
-void GameScript::ai_playanibs(Daedalus::DaedalusVM &vm) {
-  BodyState bs  = BodyState(vm.popUInt());
-  auto      ani = vm.popString();
-  auto      npc = popInstance(vm);
+void GameScript::ai_playanibs(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view ani, int bs) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
-    npc->aiPush(AiQueue::aiPlayAnimBs(ani,bs));
+    npc->aiPush(AiQueue::aiPlayAnimBs(ani,BodyState(bs)));
   }
 
-void GameScript::ai_equiparmor(Daedalus::DaedalusVM &vm) {
-  auto id  = vm.popInt();
-  auto npc = popInstance(vm);
+void GameScript::ai_equiparmor(std::shared_ptr<phoenix::c_npc> npcRef, int id) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiEquipArmor(id));
   }
 
-void GameScript::ai_equipbestarmor(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+void GameScript::ai_equipbestarmor(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiEquipBestArmor());
   }
 
-void GameScript::ai_equipbestmeleeweapon(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+int GameScript::ai_equipbestmeleeweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiEquipBestMeleWeapon());
+  return 0;
   }
 
-void GameScript::ai_equipbestrangedweapon(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+int GameScript::ai_equipbestrangedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiEquipBestRangeWeapon());
+  return 0;
   }
 
-void GameScript::ai_usemob(Daedalus::DaedalusVM &vm) {
-  int32_t  state = vm.popInt();
-  auto     tg    = vm.popString();
-  auto     npc   = popInstance(vm);
+bool GameScript::ai_usemob(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view tg, int state) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiUseMob(tg,state));
-  vm.pushInt(0);
+  return 0;
   }
 
-void GameScript::ai_teleport(Daedalus::DaedalusVM &vm) {
-  auto     tg  = vm.popString();
-  auto     npc = popInstance(vm);
-  auto     pt  = world().findPoint(tg.c_str());
+void GameScript::ai_teleport(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view tg) {
+  auto npc = getNpc(npcRef);
+  auto     pt  = world().findPoint(tg);
   if(npc!=nullptr && pt!=nullptr)
     npc->aiPush(AiQueue::aiTeleport(*pt));
   }
 
-void GameScript::ai_stoppointat(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+void GameScript::ai_stoppointat(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiStopPointAt());
   }
 
-void GameScript::ai_drawweapon(Daedalus::DaedalusVM& vm) {
-  auto npc = popInstance(vm);
+void GameScript::ai_drawweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiDrawWeapon());
   }
 
-void GameScript::ai_readymeleeweapon(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+void GameScript::ai_readymeleeweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiReadyMeleWeapon());
   }
 
-void GameScript::ai_readyrangedweapon(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+void GameScript::ai_readyrangedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiReadyRangeWeapon());
   }
 
-void GameScript::ai_readyspell(Daedalus::DaedalusVM &vm) {
-  auto mana  = vm.popInt();
-  auto spell = vm.popInt();
-  auto npc   = popInstance(vm);
+void GameScript::ai_readyspell(std::shared_ptr<phoenix::c_npc> npcRef, int spell, int mana) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiReadySpell(spell,mana));
   }
 
-void GameScript::ai_atack(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+void GameScript::ai_atack(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiAtack());
   }
 
-void GameScript::ai_flee(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+void GameScript::ai_flee(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiFlee());
   }
 
-void GameScript::ai_dodge(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+void GameScript::ai_dodge(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiDodge());
   }
 
-void GameScript::ai_unequipweapons(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+void GameScript::ai_unequipweapons(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiUnEquipWeapons());
   }
 
-void GameScript::ai_unequiparmor(Daedalus::DaedalusVM &vm) {
-  auto npc = popInstance(vm);
+void GameScript::ai_unequiparmor(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiUnEquipArmor());
   }
 
-void GameScript::ai_gotonpc(Daedalus::DaedalusVM &vm) {
-  auto to  = popInstance(vm);
-  auto npc = popInstance(vm);
+void GameScript::ai_gotonpc(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_npc> toRef) {
+  auto to  = getNpc(toRef);
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiGoToNpc(to));
   }
 
-void GameScript::ai_gotonextfp(Daedalus::DaedalusVM &vm) {
-  auto to  = vm.popString();
-  auto npc = popInstance(vm);
+void GameScript::ai_gotonextfp(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view to) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiGoToNextFp(to));
   }
 
-void GameScript::ai_aligntofp(Daedalus::DaedalusVM &vm) {
-  auto  npc = popInstance(vm);
+void GameScript::ai_aligntofp(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiAlignToFp());
   }
 
-void GameScript::ai_useitem(Daedalus::DaedalusVM &vm) {
-  int32_t  item  = vm.popInt();
-  auto     npc   = popInstance(vm);
+void GameScript::ai_useitem(std::shared_ptr<phoenix::c_npc> npcRef, int item) {
+  auto npc = getNpc(npcRef);
   if(npc)
     npc->aiPush(AiQueue::aiUseItem(item));
   }
 
-void GameScript::ai_useitemtostate(Daedalus::DaedalusVM &vm) {
-  int32_t  state = vm.popInt();
-  int32_t  item  = vm.popInt();
-  auto     npc   = popInstance(vm);
+void GameScript::ai_useitemtostate(std::shared_ptr<phoenix::c_npc> npcRef, int item, int state) {
+  auto npc = getNpc(npcRef);
   if(npc)
     npc->aiPush(AiQueue::aiUseItemToState(item,state));
   }
 
-void GameScript::ai_setnpcstostate(Daedalus::DaedalusVM &vm) {
-  int32_t  radius = vm.popInt();
-  int32_t  state  = vm.popInt();
-  auto     npc    = popInstance(vm);
+void GameScript::ai_setnpcstostate(std::shared_ptr<phoenix::c_npc> npcRef, int state, int radius) {
+  auto npc = getNpc(npcRef);
   if(npc && state>0)
     npc->aiPush(AiQueue::aiSetNpcsToState(size_t(state),radius));
   }
 
-void GameScript::ai_finishingmove(Daedalus::DaedalusVM &vm) {
-  auto oth = popInstance(vm);
-  auto npc = popInstance(vm);
+void GameScript::ai_finishingmove(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_npc> othRef) {
+  auto oth = getNpc(othRef);
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr && oth!=nullptr)
     npc->aiPush(AiQueue::aiFinishingMove(*oth));
   }
 
-void GameScript::ai_takeitem(Daedalus::DaedalusVM& vm) {
-  auto itm = popItem(vm);
-  auto npc = popInstance(vm);
+void GameScript::ai_takeitem(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_item> itmRef) {
+  auto itm = getItem(itmRef.get());
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr && itm!=nullptr)
     npc->aiPush(AiQueue::aiTakeItem(*itm));
   }
 
-void GameScript::ai_gotoitem(Daedalus::DaedalusVM& vm) {
-  auto itm = popItem(vm);
-  auto npc = popInstance(vm);
+void GameScript::ai_gotoitem(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_item> itmRef) {
+  auto itm = getItem(itmRef.get());
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr && itm!=nullptr)
     npc->aiPush(AiQueue::aiGotoItem(*itm));
   }
 
-void GameScript::ai_pointat(Daedalus::DaedalusVM& vm) {
-  auto waypoint = vm.popString();
-  auto npc      = popInstance(vm);
+void GameScript::ai_pointat(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view waypoint) {
+  auto npc = getNpc(npcRef);
 
-  auto to       = world().findPoint(waypoint.c_str());
+  auto to       = world().findPoint(waypoint);
   if(npc!=nullptr && to!=nullptr)
     npc->aiPush(AiQueue::aiPointAt(*to));
   }
 
-void GameScript::ai_pointatnpc(Daedalus::DaedalusVM& vm) {
-  auto other = popInstance(vm);
-  auto npc   = popInstance(vm);
+void GameScript::ai_pointatnpc(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_npc> otherRef) {
+  auto other = getNpc(otherRef);
+  auto npc = getNpc(npcRef);
   if(npc!=nullptr && other!=nullptr)
     npc->aiPush(AiQueue::aiPointAtNpc(*other));
   }
 
-void GameScript::ai_printscreen(Daedalus::DaedalusVM& vm) {
-  int32_t                  timesec = vm.popInt();
-  const Daedalus::ZString& font    = vm.popString();
-  int32_t                  posy    = vm.popInt();
-  int32_t                  posx    = vm.popInt();
-  const Daedalus::ZString& msg     = vm.popString();
-  vm.setReturn(0);
+int GameScript::ai_printscreen(std::string_view msg, int posx, int posy, std::string_view font, int timesec) {
+  return 0;
 
   auto npc = owner.player();
-  if(vm.globalSelf().instance.instanceOf(Daedalus::IC_Npc)) {
-    auto oth = reinterpret_cast<Daedalus::GEngineClasses::C_Npc*>(vm.globalSelf().instance.get());
-    npc = reinterpret_cast<Npc*>(oth->userPtr);
+  if(vm.global_self()->is_instance_of<phoenix::c_npc>()) {
+    auto* oth = reinterpret_cast<phoenix::c_npc*>(vm.global_self()->get_instance().get());
+    npc = reinterpret_cast<Npc*>(oth->user_ptr);
     }
   if(npc==nullptr) {
-    Gothic::inst().onPrintScreen(msg.c_str(),posx,posy,timesec,Resources::font(font.c_str()));
-    return;
+    Gothic::inst().onPrintScreen(msg,posx,posy,timesec,Resources::font(font));
+    return 0;
     }
   npc->aiPush(AiQueue::aiPrintScreen(timesec,font,posx,posy,msg));
+  return 0;
   }
 
-void GameScript::mob_hasitems(Daedalus::DaedalusVM &vm) {
-  uint32_t item = vm.popUInt();
-  auto     tag  = vm.popString();
-  vm.setReturn(int(world().hasItems(tag.c_str(),item)));
+int GameScript::mob_hasitems(std::string_view tag, int item) {
+  return int(world().hasItems(tag,item));
   }
 
-void GameScript::ta_min(Daedalus::DaedalusVM &vm) {
-  auto     waypoint = vm.popString();
-  int32_t  action   = vm.popInt();
-  int32_t  stop_m   = vm.popInt();
-  int32_t  stop_h   = vm.popInt();
-  int32_t  start_m  = vm.popInt();
-  int32_t  start_h  = vm.popInt();
-  auto     npc      = popInstance(vm);
-  auto     at       = world().findPoint(waypoint.c_str());
+void GameScript::ta_min(std::shared_ptr<phoenix::c_npc> npcRef, int start_h, int start_m, int stop_h, int stop_m, int action, std::string_view waypoint) {
+  auto npc = getNpc(npcRef);
+  auto at  = world().findPoint(waypoint);
 
   if(npc!=nullptr)
     npc->addRoutine(gtime(start_h,start_m),gtime(stop_h,stop_m),uint32_t(action),at);
   }
 
-void GameScript::log_createtopic(Daedalus::DaedalusVM &vm) {
-  int32_t section   = vm.popInt();
-  auto    topicName = vm.popString();
-
+void GameScript::log_createtopic(std::string_view topicName, int section) {
   if(section==QuestLog::Mission || section==QuestLog::Note)
-    quests.add(topicName.c_str(),QuestLog::Section(section));
+    quests.add(topicName,QuestLog::Section(section));
   }
 
-void GameScript::log_settopicstatus(Daedalus::DaedalusVM &vm) {
-  int32_t status    = vm.popInt();
-  auto    topicName = vm.popString();
-
+void GameScript::log_settopicstatus(std::string_view topicName, int status) {
   if(status==int32_t(QuestLog::Status::Running) ||
      status==int32_t(QuestLog::Status::Success) ||
      status==int32_t(QuestLog::Status::Failed ) ||
      status==int32_t(QuestLog::Status::Obsolete))
-    quests.setStatus(topicName.c_str(),QuestLog::Status(status));
+    quests.setStatus(topicName,QuestLog::Status(status));
   }
 
-void GameScript::log_addentry(Daedalus::DaedalusVM &vm) {
-  auto  entry     = vm.popString();
-  auto  topicName = vm.popString();
-
-  quests.addEntry(topicName.c_str(),entry.c_str());
+void GameScript::log_addentry(std::string_view topicName, std::string_view entry) {
+  quests.addEntry(topicName,entry);
   }
 
-void GameScript::equipitem(Daedalus::DaedalusVM &vm) {
-  uint32_t cls  = uint32_t(vm.popInt());
-  auto     self = popInstance(vm);
-
+void GameScript::equipitem(std::shared_ptr<phoenix::c_npc> npcRef, int cls) {
+  auto self = getNpc(npcRef);
   if(self!=nullptr) {
     if(self->itemCount(cls)==0)
       self->addItem(cls,1);
@@ -3214,121 +2921,91 @@ void GameScript::equipitem(Daedalus::DaedalusVM &vm) {
     }
   }
 
-void GameScript::createinvitem(Daedalus::DaedalusVM &vm) {
-  uint32_t itemInstance = uint32_t(vm.popInt());
-  auto     self         = popInstance(vm);
+void GameScript::createinvitem(std::shared_ptr<phoenix::c_npc> npcRef, int itemInstance) {
+  auto self = getNpc(npcRef);
   if(self!=nullptr) {
     Item* itm = self->addItem(itemInstance,1);
     storeItem(itm);
     }
   }
 
-void GameScript::createinvitems(Daedalus::DaedalusVM &vm) {
-  int32_t  amount       = int32_t(vm.popInt());
-  uint32_t itemInstance = vm.popUInt();
-  auto     self         = popInstance(vm);
+void GameScript::createinvitems(std::shared_ptr<phoenix::c_npc> npcRef, int itemInstance, int amount) {
+  auto self = getNpc(npcRef);
   if(self!=nullptr && amount>0) {
     Item* itm = self->addItem(itemInstance,size_t(amount));
     storeItem(itm);
     }
   }
 
-void GameScript::hlp_getinstanceid(Daedalus::DaedalusVM &vm) {
-  uint32_t idx  = vm.popUInt();
-  auto     self = getNpcById(idx);
-  if(self!=nullptr){
-    auto& v = *(self->handle());
-    vm.setReturn(int32_t(v.instanceSymbol));
-    return;
-    }
-
-  auto item = getItemById(idx);
-  if(item!=nullptr){
-    auto& v = item->handle();
-    vm.setReturn(int32_t(v.instanceSymbol));
-    return;
-    }
-
+int GameScript::hlp_getinstanceid(std::shared_ptr<phoenix::instance> instance) {
   // Log::d("hlp_getinstanceid: name \"",handle.name,"\" not found");
-  vm.setReturn(-1);
+  return instance == nullptr ? -1 : instance->symbol_index();
   }
 
-void GameScript::hlp_random(Daedalus::DaedalusVM& vm) {
-  uint32_t mod = uint32_t(std::max(1,vm.popInt()));
-  vm.setReturn(int32_t(randGen() % mod));
+int GameScript::hlp_random(int bound) {
+  uint32_t mod = uint32_t(std::max(1,bound));
+  return int32_t(randGen() % mod);
   }
 
-void GameScript::hlp_isvalidnpc(Daedalus::DaedalusVM &vm) {
-  auto self = popInstance(vm);
-  if(self!=nullptr)
-    vm.setReturn(1); else
-    vm.setReturn(0);
+bool GameScript::hlp_isvalidnpc(std::shared_ptr<phoenix::c_npc> npcRef) {
+  auto self = getNpc(npcRef);
+  return self != nullptr;
   }
 
-void GameScript::hlp_isitem(Daedalus::DaedalusVM &vm) {
-  uint32_t instanceSymbol = vm.popUInt();
-  auto     item           = popItem(vm);
+bool GameScript::hlp_isitem(std::shared_ptr<phoenix::c_item> itemRef, int instanceSymbol) {
+  auto item = getItem(itemRef.get());
   if(item!=nullptr){
     auto& v = item->handle();
-    vm.setReturn(v.instanceSymbol==instanceSymbol ? 1 : 0);
+    return int(v.symbol_index()) == instanceSymbol;
     } else {
-    vm.setReturn(0);
+      return false;
     }
   }
 
-void GameScript::hlp_isvaliditem(Daedalus::DaedalusVM &vm) {
-  auto item = popItem(vm);
-  if(item!=nullptr)
-    vm.setReturn(1); else
-    vm.setReturn(0);
+bool GameScript::hlp_isvaliditem(std::shared_ptr<phoenix::c_item> itemRef) {
+  auto item = getItem(itemRef.get());
+  return item!=nullptr;
   }
 
-void GameScript::hlp_getnpc(Daedalus::DaedalusVM &vm) {
-  uint32_t instanceSymbol = vm.popUInt();
-  auto&    handle         = vm.getDATFile().getSymbolByIndex(instanceSymbol);(void)handle;
-
-  if(nullptr != getNpcById(instanceSymbol))
-    vm.setReturn(int32_t(instanceSymbol)); else
-    vm.setReturn(-1);
+std::shared_ptr<phoenix::c_npc> GameScript::hlp_getnpc(int instanceSymbol) {
+  auto npc = getNpcById(instanceSymbol);
+  if(npc != nullptr)
+    return npc->handlePtr();
+  else
+    return nullptr;
   }
 
-void GameScript::info_addchoice(Daedalus::DaedalusVM &vm) {
-  uint32_t func         = vm.popUInt();
-  auto     text         = vm.popString();
-  uint32_t infoInstance = uint32_t(vm.popInt());
-
+void GameScript::info_addchoice(int infoInstance, std::string_view text, int func) {
   auto info = getInfo(infoInstance);
   if(info==nullptr)
     return;
-  Daedalus::GEngineClasses::SubChoice choise;
-  choise.text        = text;
-  choise.functionSym = func;
-  info->addChoice(choise);
+  phoenix::c_info_choice choice {};
+  choice.text     = text;
+  choice.function = func;
+  info->add_choice(choice);
   }
 
-void GameScript::info_clearchoices(Daedalus::DaedalusVM &vm) {
-  uint32_t infoInstance = uint32_t(vm.popInt());
-
+void GameScript::info_clearchoices(int infoInstance) {
   auto info = getInfo(infoInstance);
   if(info==nullptr)
     return;
-  info->subChoices.clear();
+  info->choices.clear();
   }
 
-void GameScript::infomanager_hasfinished(Daedalus::DaedalusVM &vm) {
-  vm.setReturn(owner.aiIsDlgFinished() ? 1 : 0);
+bool GameScript::infomanager_hasfinished() {
+  return owner.aiIsDlgFinished();
   }
 
-void GameScript::snd_play(Daedalus::DaedalusVM &vm) {
-  std::string file = vm.popString().c_str();
+void GameScript::snd_play(std::string_view fileS) {
+  std::string file {fileS};
   for(auto& c:file)
     c = char(std::toupper(c));
   Gothic::inst().emitGlobalSound(file);
   }
 
-void GameScript::snd_play3d(Daedalus::DaedalusVM& vm) {
-  std::string file = vm.popString().c_str();
-  Npc*        npc  = popInstance(vm);
+void GameScript::snd_play3d(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view fileS) {
+  std::string file {fileS};
+  Npc*        npc  = getNpc(npcRef);
   if(npc==nullptr)
     return;
   for(auto& c:file)
@@ -3338,7 +3015,7 @@ void GameScript::snd_play3d(Daedalus::DaedalusVM& vm) {
   owner.world()->sendPassivePerc(*npc,*npc,*npc,PERC_ASSESSQUIETSOUND);
   }
 
-void GameScript::exitsession(Daedalus::DaedalusVM&) {
+void GameScript::exitsession() {
   owner.exitSession();
   }
 
@@ -3348,14 +3025,12 @@ void GameScript::sort(std::vector<GameScript::DlgChoise> &dlg) {
     });
   }
 
-void GameScript::setNpcInfoKnown(const Daedalus::GEngineClasses::C_Npc& npc, const Daedalus::GEngineClasses::C_Info &info) {
-  auto id = std::make_pair(npc.instanceSymbol,info.instanceSymbol);
+void GameScript::setNpcInfoKnown(const phoenix::c_npc& npc, const phoenix::c_info &info) {
+  auto id = std::make_pair(vm.find_symbol_by_instance(npc)->index(),vm.find_symbol_by_instance(info)->index());
   dlgKnownInfos.insert(id);
   }
 
-bool GameScript::doesNpcKnowInfo(const Daedalus::GEngineClasses::C_Npc& npc, size_t infoInstance) const {
-  auto id = std::make_pair(npc.instanceSymbol,infoInstance);
+bool GameScript::doesNpcKnowInfo(const phoenix::c_npc& npc, size_t infoInstance) const {
+  auto id = std::make_pair(vm.find_symbol_by_instance(npc)->index(),infoInstance);
   return dlgKnownInfos.find(id)!=dlgKnownInfos.end();
   }
-
-

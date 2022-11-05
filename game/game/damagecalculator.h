@@ -1,7 +1,8 @@
 #pragma once
 
 #include <tuple>
-#include <daedalus/DaedalusStdlib.h>
+
+#include <phoenix/ext/daedalus_classes.hh>
 
 #include "game/constants.h"
 
@@ -12,10 +13,6 @@ class DamageCalculator {
   public:
     enum {
       MinDamage = 5
-      };
-
-    enum {
-      DAM_INDEX_MAX = Daedalus::GEngineClasses::DAM_INDEX_MAX
       };
 
     struct Val final {
@@ -29,7 +26,7 @@ class DamageCalculator {
       };
 
     struct Damage final {
-      int32_t  val[DAM_INDEX_MAX] = {};
+      int32_t  val[phoenix::damage_type::count] = {};
       int32_t& operator[](size_t i) { return val[i]; }
       void     operator *= (int32_t v) { for(auto& i:val) i*=v; }
       void     operator /= (int32_t v) { for(auto& i:val) i/=v; }

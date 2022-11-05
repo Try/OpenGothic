@@ -1,5 +1,6 @@
 #include "pfxemittermesh.h"
 
+#include "game/compatibility/phoenix.h"
 #include "graphics/mesh/submesh/packedmesh.h"
 #include "graphics/mesh/pose.h"
 
@@ -23,11 +24,9 @@ PfxEmitterMesh::PfxEmitterMesh(const PackedMesh& src) {
   mkIndex();
   }
 
-PfxEmitterMesh::PfxEmitterMesh(const ZenLoad::zCModelMeshLib& library) {
-  for(size_t i=0;i<library.getMeshes().size();++i) {
-    ZenLoad::PackedSkeletalMesh src;
-    auto& mesh = library.getMeshes()[i];
-    mesh.packMesh(src);
+PfxEmitterMesh::PfxEmitterMesh(const phoenix::model_mesh& library) {
+  for(const auto &i : library.meshes) {
+    auto src = phoenix_compat::pack_softskin_mesh(i);
 
     size_t vert0 = vertices.size();
     vertAnim.resize(vert0 + src.vertices.size());
@@ -40,8 +39,8 @@ PfxEmitterMesh::PfxEmitterMesh(const ZenLoad::zCModelMeshLib& library) {
 
         vertAnim[vert0+i].id[r]      = v.BoneIndices[r];
         vertAnim[vert0+i].weights[r] = v.Weights[r];
-        }
       }
+    }
 
     for(size_t i=0;i<src.indices.size();i+=3) {
       Triangle t;
@@ -49,11 +48,11 @@ PfxEmitterMesh::PfxEmitterMesh(const ZenLoad::zCModelMeshLib& library) {
       t.id[1] = src.indices[i+1];
       t.id[2] = src.indices[i+2];
       triangle.push_back(t);
-      }
     }
+  }
 
   mkIndex();
-  }
+}
 
 Tempest::Vec3 PfxEmitterMesh::randCoord(float rnd, const Pose* pose) const {
   if(triangle.size()==0)

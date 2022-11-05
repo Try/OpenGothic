@@ -7,7 +7,7 @@ class World;
 
 class PfxController : public AbstractTrigger {
   public:
-    PfxController(Vob* parent, World& world, ZenLoad::zCVobData&& data, Flags flags);
+    PfxController(Vob* parent, World& world, const phoenix::vobs::pfx_controller& data, Flags flags);
 
     void save(Serialize &fout) const override;
     void load(Serialize &fin) override;
@@ -21,4 +21,5 @@ class PfxController : public AbstractTrigger {
     PfxEmitter pfx;
     uint64_t   killed   = std::numeric_limits<uint64_t>::max();
     uint64_t   lifeTime = 0;
+    bool       killWhenDone;
   };

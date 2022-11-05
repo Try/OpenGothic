@@ -17,7 +17,7 @@ enum {
   MEMINT_gameMan_Pointer_address      = 9185624,  //0x8C2958
   };
 
-Ikarus::Ikarus(GameScript& /*owner*/, Daedalus::DaedalusVM& vm)
+Ikarus::Ikarus(GameScript& /*owner*/, phoenix::vm& vm) : vm(vm)
   /*:owner(owner)*/ {
   Log::i("DMA mod detected: Ikarus");
 
@@ -31,171 +31,149 @@ Ikarus::Ikarus(GameScript& /*owner*/, Daedalus::DaedalusVM& vm)
   oGame_Pointer = allocator.pin(&gameProxy, 0, sizeof(gameProxy), "oGame");
 
   // Note: no inline asm
-  vm.registerInternalFunction("ASMINT_Push",           [](Daedalus::DaedalusVM&){});
-  vm.registerInternalFunction("ASMINT_Pop",            [](Daedalus::DaedalusVM&){});
-  vm.registerInternalFunction("ASMINT_MyExternal",     [](Daedalus::DaedalusVM&){});
-  vm.registerInternalFunction("ASMINT_CallMyExternal", [](Daedalus::DaedalusVM&){});
-  vm.registerInternalFunction("ASMINT_Init",           [](Daedalus::DaedalusVM&){});
-  vm.registerInternalFunction("ASM_Open",              [](Daedalus::DaedalusVM&){});
-  vm.registerInternalFunction("ASM_Close",             [](Daedalus::DaedalusVM&){});
-  vm.registerInternalFunction("ASM",                   [](Daedalus::DaedalusVM&){});
-  vm.registerInternalFunction("ASM_Run",               [](Daedalus::DaedalusVM&){});
-  vm.registerInternalFunction("ASM_RunOnce",           [](Daedalus::DaedalusVM&){});
+  // TODO: Make sure this actually works!
+  vm.override_function("ASMINT_Push",           [](){});
+  vm.override_function("ASMINT_Pop",            [](){});
+  vm.override_function("ASMINT_MyExternal",     [](){});
+  vm.override_function("ASMINT_CallMyExternal", [](){});
+  vm.override_function("ASMINT_Init",           [](){});
+  vm.override_function("ASM_Open",              [](){});
+  vm.override_function("ASM_Close",             [](){});
+  vm.override_function("ASM",                   [](){});
+  vm.override_function("ASM_Run",               [](){});
+  vm.override_function("ASM_RunOnce",           [](){});
 
-  vm.registerInternalFunction("MEMINT_SetupExceptionHandler", [this](Daedalus::DaedalusVM& vm){ mem_setupexceptionhandler(vm); });
-  vm.registerInternalFunction("MEMINT_ReplaceSlowFunctions",  [    ](Daedalus::DaedalusVM& )  { });
-  vm.registerInternalFunction("MEM_GetAddress_Init",          [this](Daedalus::DaedalusVM& vm){ mem_getaddress_init(vm); });
-  vm.registerInternalFunction("MEM_PrintStackTrace",          [this](Daedalus::DaedalusVM& vm){ mem_printstacktrace_implementation(vm); });
-  vm.registerInternalFunction("MEM_GetFuncPtr",               [this](Daedalus::DaedalusVM& vm){ mem_getfuncptr(vm); });
-  vm.registerInternalFunction("MEM_ReplaceFunc",              [this](Daedalus::DaedalusVM& vm){ mem_replacefunc(vm); });
-  vm.registerInternalFunction("MEM_SearchVobByName",          [this](Daedalus::DaedalusVM& vm){ mem_searchvobbyname(vm); });
+  vm.override_function("MEMINT_SetupExceptionHandler", [this](){ mem_setupexceptionhandler(); });
+  vm.override_function("MEMINT_ReplaceSlowFunctions",  [    ](){ });
+  vm.override_function("MEM_GetAddress_Init",          [this](){ mem_getaddress_init(); });
+  vm.override_function("MEM_PrintStackTrace",          [this](){ mem_printstacktrace_implementation(); });
+  vm.override_function("MEM_GetFuncPtr",               [this](int func){ return mem_getfuncptr(func); });
+  vm.override_function("MEM_ReplaceFunc",              [this](int dest, int func){ mem_replacefunc(dest, func); });
+  vm.override_function("MEM_SearchVobByName",          [this](std::string_view name){ return mem_searchvobbyname(name); });
 
   // ## Basic Read Write ##
-  vm.registerInternalFunction("MEM_ReadInt",                  [this](Daedalus::DaedalusVM& vm){ mem_readint(vm);        });
-  vm.registerInternalFunction("MEM_WriteInt",                 [this](Daedalus::DaedalusVM& vm){ mem_writeint(vm);       });
-  vm.registerInternalFunction("MEM_CopyBytes",                [this](Daedalus::DaedalusVM& vm){ mem_copybytes(vm);      });
-  vm.registerInternalFunction("MEM_GetCommandLine",           [this](Daedalus::DaedalusVM& vm){ mem_getcommandline(vm); });
+  vm.override_function("MEM_ReadInt",                  [this](int address){ return mem_readint(address);        });
+  vm.override_function("MEM_WriteInt",                 [this](int address, int val){ mem_writeint(address, val);       });
+  vm.override_function("MEM_CopyBytes",                [this](int src, int dst, int size){ mem_copybytes(src, dst, size);      });
+  vm.override_function("MEM_GetCommandLine",           [this](){ return mem_getcommandline(); });
 
   // ## Basic zCParser related functions ##
-  vm.registerInternalFunction("MEM_GetIntAddress",   [this](Daedalus::DaedalusVM& vm){ _takeref(vm);      });
-  vm.registerInternalFunction("MEM_PtrToInst",       [this](Daedalus::DaedalusVM& vm){ mem_ptrtoinst(vm); });
-  vm.registerInternalFunction("_@",                  [this](Daedalus::DaedalusVM& vm){ _takeref(vm);     });
-  vm.registerInternalFunction("_@s",                 [this](Daedalus::DaedalusVM& vm){ _takeref_s(vm);   });
-  vm.registerInternalFunction("_@f",                 [this](Daedalus::DaedalusVM& vm){ _takeref_f(vm);   });
+  vm.override_function("MEM_GetIntAddress",   [this](int val){ return _takeref(val);      });
+  vm.override_function("MEM_PtrToInst",       [this](int address){ return mem_ptrtoinst(address); });
+  vm.override_function("_@",                  [this](int val){ return _takeref(val);     });
+  vm.override_function("_@s",                 [this](std::string_view val){ return _takeref_s(val);   });
+  vm.override_function("_@f",                 [this](float val){ return _takeref_f(val);   });
 
   // ## Preliminary MEM_Alloc and MEM_Free ##
-  vm.registerInternalFunction("MEM_Alloc", [this](Daedalus::DaedalusVM& vm){ mem_alloc(vm); });
-  vm.registerInternalFunction("MEM_Free",  [this](Daedalus::DaedalusVM& vm){ mem_free(vm);  });
+  vm.override_function("MEM_Alloc", [this](int amount){ mem_alloc(amount); });
+  vm.override_function("MEM_Free",  [this](int address){ mem_free(address);  });
 
 
-  vm.registerInternalFunction("CALL__stdcall",       [this](Daedalus::DaedalusVM& vm){ call__stdcall(vm); });
+  vm.override_function("CALL__stdcall", [this](int address){ call__stdcall(address); });
 
   // vm.disAsm(vm.getDATFile().getSymbolIndexByName("MEMINT_GetAddress_Init"));
   }
 
-bool Ikarus::isRequired(Daedalus::DaedalusVM& vm) {
-  auto& dat = vm.getDATFile();
+bool Ikarus::isRequired(phoenix::vm& vm) {
   return
-      dat.hasSymbolName("MEM_InitAll") &&
-      dat.hasSymbolName("MEM_ReadInt") &&
-      dat.hasSymbolName("MEM_WriteInt") &&
-      dat.hasSymbolName("_@") &&
-      dat.hasSymbolName("_^");
+      vm.find_symbol_by_name("MEM_InitAll") != nullptr &&
+      vm.find_symbol_by_name("MEM_ReadInt") != nullptr &&
+      vm.find_symbol_by_name("MEM_WriteInt") != nullptr &&
+      vm.find_symbol_by_name("_@") != nullptr &&
+      vm.find_symbol_by_name("_^") != nullptr;
   }
 
-void Ikarus::mem_setupexceptionhandler(Daedalus::DaedalusVM&) {
+void Ikarus::mem_setupexceptionhandler() {
   // disallow any SEH handlers and similar - that is not a script business!
   }
 
-void Ikarus::mem_getaddress_init(Daedalus::DaedalusVM&) { /* nop */ }
+void Ikarus::mem_getaddress_init() { /* nop */ }
 
-void Ikarus::mem_replacefunc(Daedalus::DaedalusVM& vm) {
-  int   func    = vm.popInt();
-  int   dest    = vm.popInt();
-  auto& sf      = vm.getDATFile().getSymbolByIndex(size_t(func));
-  auto& sd      = vm.getDATFile().getSymbolByIndex(size_t(dest));
+void Ikarus::mem_replacefunc(int dest, int func) {
+  auto* sf      = vm.find_symbol_by_index(func);
+  auto* sd      = vm.find_symbol_by_index(dest);
 
-  if(sf.properties.elemProps.type!=Daedalus::EParType_Func) {
+  if(sf == nullptr || sf->type() != phoenix::datatype::function) {
     Log::e("mem_replacefunc: invalid function ptr");
     return;
     }
-  if(sd.properties.elemProps.type!=Daedalus::EParType_Func) {
+  if(sd == nullptr || sd->type() != phoenix::datatype::function) {
     Log::e("mem_replacefunc: invalid function ptr");
     return;
     }
 
-  Log::d("mem_replacefunc: ",sd.name," -> ",sf.name);
+  Log::d("mem_replacefunc: ",sd->name()," -> ",sf->name());
   //auto& bin = vm.getDATFile().rawCode();
-  //bin[sd.address]->op      = Daedalus::EParOp_Jump;
+  //bin[sd.address]->op      = EParOp_Jump;
   //bin[sd.address]->address = func;
   }
 
-void Ikarus::mem_printstacktrace_implementation(Daedalus::DaedalusVM &vm) {
+void Ikarus::mem_printstacktrace_implementation() {
   Log::e("[start of stacktrace]");
-  auto stk = vm.getCallStack();
-  for(auto& i:stk)
-    Log::e(i);
+  vm.print_stack_trace();
   Log::e("[end of stacktrace]");
   }
 
-void Ikarus::mem_getfuncptr(Daedalus::DaedalusVM& vm) {
-  auto  func = vm.popInt();
-  auto& sym  = vm.getDATFile().getSymbolByIndex(size_t(func));
-  if(sym.properties.elemProps.type!=Daedalus::EParType_Func) {
+int Ikarus::mem_getfuncptr(int func) {
+  auto* sym  = vm.find_symbol_by_index(size_t(func));
+  if(sym == nullptr || sym->type() != phoenix::datatype::function) {
     Log::e("mem_getfuncptr: invalid function ptr");
-    vm.setReturn(0);
-    return;
+    return 0;
     }
-  vm.setReturn(0);
+    return 0;
   }
 
-void Ikarus::mem_readint(Daedalus::DaedalusVM& vm) {
-  const auto address = vm.popInt();
-  int32_t v = allocator.readInt(ptr32_t(address));
-  vm.setReturn(v);
+int Ikarus::mem_readint(int address) {
+  return allocator.readInt(ptr32_t(address));
   }
 
-void Ikarus::mem_writeint(Daedalus::DaedalusVM& vm) {
-  auto val     = vm.popInt();
-  auto address = ptr32_t(vm.popInt());
+void Ikarus::mem_writeint(int address, int val) {
   allocator.writeInt(address,val);
   }
 
-void Ikarus::mem_copybytes(Daedalus::DaedalusVM& vm) {
-  auto size = uint32_t(vm.popInt());
-  auto dst  = uint32_t(vm.popInt());
-  auto src  = uint32_t(vm.popInt());
+void Ikarus::mem_copybytes(int src, int dst, int size) {
   allocator.copyBytes(src,dst,size);
   }
 
-void Ikarus::mem_getcommandline(Daedalus::DaedalusVM &vm) {
+std::string Ikarus::mem_getcommandline() {
   // TODO: return real commandline
-  vm.setReturn("");
+  return "";
   }
 
-void Ikarus::mem_searchvobbyname(Daedalus::DaedalusVM& vm) {
+int Ikarus::mem_searchvobbyname(std::string_view name) {
   // see ZS_STAND_PEDRO_LOOP in VarusBikerEdition mod
-  auto name = vm.popString();
   (void)name;
-  vm.setReturn(0); // NULL-like
+  return 0; // NULL-like
   }
 
-void Ikarus::call__stdcall(Daedalus::DaedalusVM& vm) {
-  auto address = vm.popInt();
+void Ikarus::call__stdcall(int address) {
   (void)address;
   }
 
-void Ikarus::mem_ptrtoinst(Daedalus::DaedalusVM& vm) {
-  auto address = vm.popInt();
-  // TODO: return an instance
-  vm.setReturn(address);
+int Ikarus::mem_ptrtoinst(int address) {
+  return address;
   }
 
-void Ikarus::_takeref(Daedalus::DaedalusVM& vm) {
-  auto val = vm.popInt();
+int Ikarus::_takeref(int val) {
   (void)val;
-  vm.setReturn(0x1);
+  return 0x1;
   }
 
-void Ikarus::_takeref_s(Daedalus::DaedalusVM& vm) {
-  auto val = vm.popString();
+int Ikarus::_takeref_s(std::string_view val) {
   (void)val;
-  vm.setReturn(0x1);
+  return 0x1;
   }
 
-void Ikarus::_takeref_f(Daedalus::DaedalusVM& vm) {
-  auto val = vm.popFloat();
+int Ikarus::_takeref_f(float val) {
   (void)val;
-  vm.setReturn(0x1);
+  return 0x1;
   }
 
-void Ikarus::mem_alloc(Daedalus::DaedalusVM& vm) {
-  auto amount = vm.popInt();
+int Ikarus::mem_alloc(int amount) {
   auto ptr    = allocator.alloc(uint32_t(amount));
-  vm.setReturn(int32_t(ptr));
+  return int32_t(ptr);
   }
 
-void Ikarus::mem_free(Daedalus::DaedalusVM& vm) {
-  auto ptr = uint32_t(vm.popInt());
+void Ikarus::mem_free(int ptr) {
   allocator.free(Mem32::ptr32_t(ptr));
   }

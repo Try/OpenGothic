@@ -3,6 +3,8 @@
 #include <Tempest/Log>
 #include <Tempest/Vec>
 
+#include <glm/gtc/type_ptr.hpp>
+
 #include "world/objects/fireplace.h"
 #include "world/objects/interactive.h"
 #include "world/objects/staticobj.h"
@@ -27,11 +29,13 @@ Vob::Vob(World& owner)
   : world(owner) {
   }
 
-Vob::Vob(Vob* parent, World& owner, ZenLoad::zCVobData& vob, Flags flags)
-  : world(owner), vobType(uint8_t(vob.vobType)), vobObjectID(vob.vobObjectID), parent(parent) {
-  float v[16]={};
-  std::memcpy(v,vob.worldMatrix.m,sizeof(v));
-  pos   = Tempest::Matrix4x4(v);
+Vob::Vob(Vob* parent, World& owner, const phoenix::vob& vob, Flags flags)
+  : world(owner), vobType(vob.type), vobObjectID(vob.id), parent(parent) {
+
+  glm::mat4x4 worldMatrix = vob.rotation;
+  worldMatrix[3] = glm::vec4(vob.position, 1);
+
+  pos   = Tempest::Matrix4x4(glm::value_ptr(worldMatrix));
   local = pos;
 
   if(parent!=nullptr) {
@@ -41,12 +45,11 @@ Vob::Vob(Vob* parent, World& owner, ZenLoad::zCVobData& vob, Flags flags)
     local = m;
     }
 
-  for(auto& i:vob.childVobs) {
-    auto p = Vob::load(this,owner,std::move(i),flags);
+  for(auto& i:vob.children) {
+    auto p = Vob::load(this,owner,*i,flags);
     if(p!=nullptr)
       child.emplace_back(std::move(p));
     }
-  vob.childVobs.clear();
   }
 
 Vob::~Vob() {
@@ -101,15 +104,17 @@ void Vob::recalculateTransform() {
     }
   if(old!=position() && !isDynamic()) {
     switch(vobType) {
-      case ZenLoad::zCVobData::VT_oCMOB:
-      case ZenLoad::zCVobData::VT_oCMobBed:
-      case ZenLoad::zCVobData::VT_oCMobDoor:
-      case ZenLoad::zCVobData::VT_oCMobInter:
-      case ZenLoad::zCVobData::VT_oCMobContainer:
-      case ZenLoad::zCVobData::VT_oCMobSwitch:
-      case ZenLoad::zCVobData::VT_oCMobLadder:
-      case ZenLoad::zCVobData::VT_oCMobWheel:
+      case phoenix::vob_type::oCMOB:
+      case phoenix::vob_type::oCMobBed:
+      case phoenix::vob_type::oCMobDoor:
+      case phoenix::vob_type::oCMobInter:
+      case phoenix::vob_type::oCMobContainer:
+      case phoenix::vob_type::oCMobSwitch:
+      case phoenix::vob_type::oCMobLadder:
+      case phoenix::vob_type::oCMobWheel:
         world.invalidateVobIndex();
+        break;
+      default:
         break;
       }
     }
@@ -120,89 +125,90 @@ void Vob::recalculateTransform() {
   }
 
 
-std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& vob, Flags flags) {
-  switch(vob.vobType) {
-    case ZenLoad::zCVobData::VT_Unknown:
+std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const phoenix::vob& vob, Flags flags) {
+  namespace vobs = phoenix::vobs;
+  switch(vob.type) {
+    case phoenix::vob_type::unknown:
       return nullptr;
-    case ZenLoad::zCVobData::VT_zCVob:
-      return std::unique_ptr<Vob>(new StaticObj(parent,world,std::move(vob),flags));
-    case ZenLoad::zCVobData::VT_zCVobLevelCompo:
+    case phoenix::vob_type::zCVob:
+      return std::unique_ptr<Vob>(new StaticObj(parent,world,vob,flags));
+    case phoenix::vob_type::zCVobLevelCompo:
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
-    case ZenLoad::zCVobData::VT_oCMobFire:
-      return std::unique_ptr<Vob>(new FirePlace(parent,world,vob,flags));
-    case ZenLoad::zCVobData::VT_oCMOB:
+    case phoenix::vob_type::oCMobFire:
+      return std::unique_ptr<Vob>(new FirePlace(parent,world,reinterpret_cast<const vobs::mob_fire&>(vob),flags));
+    case phoenix::vob_type::oCMOB:
       // Irdotar bow-triggers
       // focusOverride=true
-      return std::unique_ptr<Vob>(new Interactive(parent,world,vob,flags));
-    case ZenLoad::zCVobData::VT_oCMobBed:
-    case ZenLoad::zCVobData::VT_oCMobDoor:
-    case ZenLoad::zCVobData::VT_oCMobInter:
-    case ZenLoad::zCVobData::VT_oCMobContainer:
-    case ZenLoad::zCVobData::VT_oCMobSwitch:
-    case ZenLoad::zCVobData::VT_oCMobLadder:
-    case ZenLoad::zCVobData::VT_oCMobWheel:
-      return std::unique_ptr<Vob>(new Interactive(parent,world,vob,flags));
+      return std::unique_ptr<Vob>(new Interactive(parent,world,reinterpret_cast<const vobs::mob&>(vob),flags));
+    case phoenix::vob_type::oCMobInter:
+    case phoenix::vob_type::oCMobBed:
+    case phoenix::vob_type::oCMobDoor:
+    case phoenix::vob_type::oCMobContainer:
+    case phoenix::vob_type::oCMobSwitch:
+    case phoenix::vob_type::oCMobLadder:
+    case phoenix::vob_type::oCMobWheel:
+      return std::unique_ptr<Vob>(new Interactive(parent,world,reinterpret_cast<const vobs::mob&>(vob),flags));
 
-    case ZenLoad::zCVobData::VT_zCMover:
-      return std::unique_ptr<Vob>(new MoveTrigger(parent,world,std::move(vob),flags));
-    case ZenLoad::zCVobData::VT_zCCodeMaster:
-      return std::unique_ptr<Vob>(new CodeMaster(parent,world,std::move(vob),flags));
-    case ZenLoad::zCVobData::VT_zCTriggerList:
-      return std::unique_ptr<Vob>(new TriggerList(parent,world,std::move(vob),flags));
-    case ZenLoad::zCVobData::VT_zCTriggerScript:
-      return std::unique_ptr<Vob>(new TriggerScript(parent,world,std::move(vob),flags));
-    case ZenLoad::zCVobData::VT_oCTriggerWorldStart:
-      return std::unique_ptr<Vob>(new TriggerWorldStart(parent,world,std::move(vob),flags));
-    case ZenLoad::zCVobData::VT_oCTriggerChangeLevel:
-      return std::unique_ptr<Vob>(new ZoneTrigger(parent,world,std::move(vob),flags));
-    case ZenLoad::zCVobData::VT_zCTrigger:
-      return std::unique_ptr<Vob>(new Trigger(parent,world,std::move(vob),flags));
-    case ZenLoad::zCVobData::VT_zCMessageFilter:
-      return std::unique_ptr<Vob>(new MessageFilter(parent,world,std::move(vob),flags));
-    case ZenLoad::zCVobData::VT_zCPFXControler:
-      return std::unique_ptr<Vob>(new PfxController(parent,world,std::move(vob),flags));
-    case ZenLoad::zCVobData::VT_oCTouchDamage:
-      return std::unique_ptr<Vob>(new TouchDamage(parent,world,std::move(vob),flags));
-    case ZenLoad::zCVobData::VT_zCTriggerUntouch:
+    case phoenix::vob_type::zCMover:
+      return std::unique_ptr<Vob>(new MoveTrigger(parent,world,reinterpret_cast<const vobs::trigger_mover&>(vob),flags));
+    case phoenix::vob_type::zCCodeMaster:
+      return std::unique_ptr<Vob>(new CodeMaster(parent,world,reinterpret_cast<const vobs::code_master&>(vob),flags));
+    case phoenix::vob_type::zCTriggerList:
+      return std::unique_ptr<Vob>(new TriggerList(parent,world,reinterpret_cast<const vobs::trigger_list&>(vob),flags));
+    case phoenix::vob_type::oCTriggerScript:
+      return std::unique_ptr<Vob>(new TriggerScript(parent,world,reinterpret_cast<const vobs::trigger_script&>(vob),flags));
+    case phoenix::vob_type::zCTriggerWorldStart:
+      return std::unique_ptr<Vob>(new TriggerWorldStart(parent,world,reinterpret_cast<const vobs::trigger_world_start&>(vob),flags));
+    case phoenix::vob_type::oCTriggerChangeLevel:
+      return std::unique_ptr<Vob>(new ZoneTrigger(parent,world,reinterpret_cast<const vobs::trigger_change_level&>(vob),flags));
+    case phoenix::vob_type::zCTrigger:
+      return std::unique_ptr<Vob>(new Trigger(parent,world,vob,flags));
+    case phoenix::vob_type::zCMessageFilter:
+      return std::unique_ptr<Vob>(new MessageFilter(parent,world,reinterpret_cast<const vobs::message_filter&>(vob),flags));
+    case phoenix::vob_type::zCPFXController:
+      return std::unique_ptr<Vob>(new PfxController(parent,world,reinterpret_cast<const vobs::pfx_controller&>(vob),flags));
+    case phoenix::vob_type::oCTouchDamage:
+      return std::unique_ptr<Vob>(new TouchDamage(parent,world,reinterpret_cast<const vobs::touch_damage&>(vob),flags));
+    case phoenix::vob_type::zCTriggerUntouch:
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
-    case ZenLoad::zCVobData::VT_zCMoverControler:
-      return std::unique_ptr<Vob>(new MoverControler(parent,world,std::move(vob),flags));
-
-    case ZenLoad::zCVobData::VT_zCVobStartpoint: {
-      float dx = vob.rotationMatrix.v[2].x;
-      float dy = vob.rotationMatrix.v[2].y;
-      float dz = vob.rotationMatrix.v[2].z;
-      world.addStartPoint(Vec3(vob.position.x,vob.position.y,vob.position.z),Vec3(dx,dy,dz),vob.vobName.c_str());
+    case phoenix::vob_type::zCMoverController:
+      return std::unique_ptr<Vob>(new MoverControler(parent,world,reinterpret_cast<const vobs::mover_controller&>(vob),flags));
+    case phoenix::vob_type::zCVobStartpoint: {
+      float dx = vob.rotation[2].x;
+      float dy = vob.rotation[2].y;
+      float dz = vob.rotation[2].z;
+      world.addStartPoint(Vec3(vob.position.x,vob.position.y,vob.position.z),Vec3(dx,dy,dz),vob.vob_name.c_str());
       // FIXME
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
       }
-    case ZenLoad::zCVobData::VT_zCVobSpot: {
-      float dx = vob.rotationMatrix.v[2].x;
-      float dy = vob.rotationMatrix.v[2].y;
-      float dz = vob.rotationMatrix.v[2].z;
-      world.addFreePoint(Vec3(vob.position.x,vob.position.y,vob.position.z),Vec3(dx,dy,dz),vob.vobName.c_str());
+    case phoenix::vob_type::zCVobSpot: {
+      float dx = vob.rotation[2].x;
+      float dy = vob.rotation[2].y;
+      float dz = vob.rotation[2].z;
+      world.addFreePoint(Vec3(vob.position.x,vob.position.y,vob.position.z),Vec3(dx,dy,dz),vob.vob_name.c_str());
       // FIXME
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
       }
-    case ZenLoad::zCVobData::VT_oCItem: {
+    case phoenix::vob_type::oCItem: {
       if(flags)
-        world.addItem(vob);
+        world.addItem(reinterpret_cast<const vobs::item&>(vob));
       // FIXME
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
       }
-    case ZenLoad::zCVobData::VT_zCVobSound:
-    case ZenLoad::zCVobData::VT_zCVobSoundDaytime:
-    case ZenLoad::zCVobData::VT_oCZoneMusic:
-    case ZenLoad::zCVobData::VT_oCZoneMusicDefault: {
+
+    case phoenix::vob_type::zCVobSound:
+    case phoenix::vob_type::zCVobSoundDaytime:
+    case phoenix::vob_type::oCZoneMusic:
+    case phoenix::vob_type::oCZoneMusicDefault: {
       world.addSound(vob);
       // FIXME
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
       }
-    case ZenLoad::zCVobData::VT_zCVobLight: {
-      return std::unique_ptr<Vob>(new WorldLight(parent,world,std::move(vob),flags));
+    case phoenix::vob_type::zCVobLight: {
+      return std::unique_ptr<Vob>(new WorldLight(parent,world,reinterpret_cast<const vobs::light&>(vob),flags));
       }
-    case ZenLoad::zCVobData::VT_zCVobLightPreset:
-      return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
+    default:
+      break;
     }
 
   return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
@@ -211,7 +217,7 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, ZenLoad::zCVobData&& v
 void Vob::saveVobTree(Serialize& fin) const {
   for(auto& i:child)
     i->saveVobTree(fin);
-  if(vobType==ZenLoad::zCVobData::VT_zCVob)
+  if(vobType==phoenix::vob_type::zCVob)
     return;
   if(vobObjectID!=uint32_t(-1))
     save(fin);
@@ -220,21 +226,25 @@ void Vob::saveVobTree(Serialize& fin) const {
 void Vob::loadVobTree(Serialize& fin) {
   for(auto& i:child)
     i->loadVobTree(fin);
-  if(vobObjectID!=uint32_t(-1) && vobType!=ZenLoad::zCVobData::VT_zCVob)
+  if(vobObjectID!=uint32_t(-1) && vobType!=phoenix::vob_type::zCVob)
     load(fin);
   }
 
 void Vob::save(Serialize& fout) const {
   fout.setEntry("worlds/",fout.worldName(),"/mobsi/",vobObjectID,"/data");
-  fout.write(vobType,pos,local);
+  fout.write(uint8_t(vobType),pos,local);
   }
 
 void Vob::load(Serialize& fin) {
   if(!fin.setEntry("worlds/",fin.worldName(),"/mobsi/",vobObjectID,"/data"))
     return;
-  uint8_t type = vobType;
-  fin.read(vobType,pos,local);
-  if(vobType!=type)
-    throw std::logic_error("inconsistent *.sav vs world");
+  auto type = uint8_t(vobType);
+  uint8_t savValue;
+  fin.read(savValue,pos,local);
+
+  if (fin.version() > 39) {
+      if(savValue!=type)
+          throw std::logic_error("inconsistent *.sav vs world");
+  }
   moveEvent();
   }

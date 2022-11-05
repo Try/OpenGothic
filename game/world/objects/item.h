@@ -1,6 +1,6 @@
 #pragma once
 
-#include <daedalus/DaedalusVM.h>
+#include <phoenix/ext/daedalus_classes.hh>
 
 #include "graphics/objvisual.h"
 #include "graphics/meshobjects.h"
@@ -80,9 +80,10 @@ class Item : public Vob {
     bool                checkCondUse (const Npc& other,int32_t& atr,int32_t& nv) const;
     bool                checkCondRune(const Npc& other,int32_t& cPl,int32_t& cIt) const;
 
-    const Daedalus::GEngineClasses::C_Item& handle() const { return hitem; }
-    Daedalus::GEngineClasses::C_Item&       handle()       { return hitem; }
-    size_t                                  clsId() const;
+    const phoenix::c_item&                   handle() const { return *hitem; }
+    phoenix::c_item&                         handle() { return *hitem; }
+    const std::shared_ptr<phoenix::c_item>&  handlePtr()    { return hitem; }
+    size_t                                   clsId() const;
 
   protected:
     void                moveEvent() override;
@@ -92,8 +93,8 @@ class Item : public Vob {
   private:
     void                updateMatrix();
 
-    Daedalus::GEngineClasses::C_Item  hitem={};
-    Tempest::Vec3                     pos={};
+    std::shared_ptr<phoenix::c_item> hitem={};
+    Tempest::Vec3                    pos={};
 
     uint32_t                          amount  = 0;
     uint8_t                           equiped = 0;

@@ -1,8 +1,8 @@
 #pragma once
 
-#include <daedalus/DaedalusStdlib.h>
 #include <Tempest/RenderState>
-#include <zenload/zTypes.h>
+
+#include <phoenix/ext/daedalus_classes.hh>
 
 #include <Tempest/Texture2d>
 
@@ -13,8 +13,8 @@ class PfxEmitterMesh;
 
 class ParticleFx final {
   public:
-    ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob);
-    ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX& src, std::string_view name);
+    ParticleFx(const Material& mat, const phoenix::vob& vob);
+    ParticleFx(const phoenix::c_particle_fx& src, std::string_view name);
     ParticleFx(const ParticleFx& proto, const VisualFx::Key& key);
 
     enum class EmitterType:uint8_t {
@@ -71,7 +71,7 @@ class ParticleFx final {
     bool          shpIsVolume         = false;
     Tempest::Vec3 shpDim;
     const PfxEmitterMesh* shpMesh     = nullptr;
-    Daedalus::ZString shpMesh_S;
+    std::string   shpMesh_S;
     bool          shpMeshRender       = false;
     KeyList       shpScaleKeys;
     bool          shpScaleIsLooping   = false;
@@ -138,12 +138,12 @@ class ParticleFx final {
     static uint64_t      calcPrefferedTimeSingle(const KeyList& k, float fps);
 
     static auto          loadTexture(std::string_view src) -> const Tempest::Texture2d*;
-    static KeyList       loadArr(const Daedalus::ZString& src);
-    static EmitterType   loadEmitType(const Daedalus::ZString& src);
-    static Frame         loadFrameType(const Daedalus::ZString& src);
-    static Distribution  loadDistribType(const Daedalus::ZString& src);
-    static Dir           loadDirType(const Daedalus::ZString& src);
-    static Orientation   loadOrientation(const Daedalus::ZString& src);
+    static KeyList       loadArr(std::string_view src);
+    static EmitterType   loadEmitType(std::string_view src);
+    static Frame         loadFrameType(std::string_view src);
+    static Distribution  loadDistribType(std::string_view src);
+    static Dir           loadDirType(std::string_view src);
+    static Orientation   loadOrientation(std::string_view src);
 
     float                fetchScaleKey(uint64_t time, const KeyList& k, float fps, bool smooth, bool loop) const;
   };

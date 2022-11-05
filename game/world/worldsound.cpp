@@ -34,7 +34,7 @@ struct WorldSound::WSound final {
   };
 
 struct WorldSound::Zone final {
-  ZMath::float3 bbox[2]={};
+  Tempest::Vec3 bbox[2]={};
   std::string   name;
   bool          checkPos(float x,float y,float z) const {
     return
@@ -63,43 +63,41 @@ WorldSound::WorldSound(GameSession &game, World& owner)
 WorldSound::~WorldSound() {
   }
 
-void WorldSound::setDefaultZone(const ZenLoad::zCVobData &vob) {
+void WorldSound::setDefaultZone(const phoenix::vobs::zone_music &vob) {
   def.reset(new Zone());
-  def->bbox[0] = vob.bbox[0];
-  def->bbox[1] = vob.bbox[1];
-  def->name    = vob.vobName;
+  def->bbox[0] = {vob.bbox.min.x, vob.bbox.min.y, vob.bbox.min.z};
+  def->bbox[1] = {vob.bbox.max.x, vob.bbox.max.y, vob.bbox.max.z};
+  def->name    = vob.vob_name;
   }
 
-void WorldSound::addZone(const ZenLoad::zCVobData &vob) {
+void WorldSound::addZone(const phoenix::vobs::zone_music &vob) {
   Zone z;
-  z.bbox[0] = vob.bbox[0];
-  z.bbox[1] = vob.bbox[1];
-  z.name    = vob.vobName;
+  z.bbox[0] = {vob.bbox.min.x, vob.bbox.min.y, vob.bbox.min.z};
+  z.bbox[1] = {vob.bbox.max.x, vob.bbox.max.y, vob.bbox.max.z};
+  z.name    = vob.vob_name;
 
   zones.emplace_back(std::move(z));
   }
 
-void WorldSound::addSound(const ZenLoad::zCVobData &vob) {
-  auto&  pr = vob.zCVobSound;
-
+void WorldSound::addSound(const phoenix::vobs::sound &vob) {
   WSound s;
-  s.loop      = pr.sndMode==ZenLoad::SoundMode::SM_LOOPING;
-  s.active    = pr.sndStartOn;
-  s.delay     = uint64_t(pr.sndRandDelay   *1000);
-  s.delayVar  = uint64_t(pr.sndRandDelayVar*1000);
-  s.eff0      = Gothic::inst().loadSoundFx(pr.sndName.c_str());
+  s.loop      = vob.mode==phoenix::sound_mode::loop;
+  s.active    = vob.initially_playing;
+  s.delay     = uint64_t(vob.random_delay * 1000);
+  s.delayVar  = uint64_t(vob.random_delay_var * 1000);
+  s.eff0      = Gothic::inst().loadSoundFx(vob.sound_name.c_str());
 
   s.pos       = {vob.position.x,vob.position.y,vob.position.z};
-  s.sndRadius = pr.sndRadius;
+  s.sndRadius = vob.radius;
 
-  if(vob.vobType==ZenLoad::zCVobData::VT_zCVobSoundDaytime) {
-    auto& prDay = vob.zCVobSoundDaytime;
-    float b     = prDay.sndStartTime;
-    float e     = prDay.sndEndTime;
+  if(vob.type==phoenix::vob_type::zCVobSoundDaytime) {
+    auto& prDay = (const phoenix::vobs::sound_daytime&) vob;
+    float b     = prDay.start_time;
+    float e     = prDay.end_time;
 
     s.sndStart = gtime(int(b),int(b*60)%60);
     s.sndEnd   = gtime(int(e),int(e*60)%60);
-    s.eff1     = Gothic::inst().loadSoundFx(prDay.sndName2.c_str());
+    s.eff1     = Gothic::inst().loadSoundFx(prDay.sound_name2.c_str());
     } else {
     s.sndStart = gtime(0,0);
     s.sndEnd   = gtime(24,0);

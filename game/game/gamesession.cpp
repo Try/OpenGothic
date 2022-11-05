@@ -295,7 +295,7 @@ void GameSession::tick(uint64_t dt) {
 
     const char *w = (beg!=std::string::npos) ? (chWorld.zen.c_str()+beg+1) : chWorld.zen.c_str();
 
-    if(Resources::vdfsIndex().hasFile(w)) {
+    if(Resources::hasFile(w)) {
       std::snprintf(buf,sizeof(buf),"LOADING_%s.TGA",wname.c_str());  // format load-screen name, like "LOADING_OLDWORLD.TGA"
 
       Gothic::inst().startLoad(buf,[this](std::unique_ptr<GameSession>&& game){
@@ -314,7 +314,7 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
   if(cut!=std::string::npos)
     w = w+cut+1;
 
-  if(!Resources::vdfsIndex().hasFile(w)) {
+  if(!Resources::hasFile(w)) {
     Log::i("World not found[",world,"]");
     return std::move(game);
     }
@@ -384,23 +384,22 @@ void GameSession::dialogExec(const GameScript::DlgChoise &dlg, Npc& player, Npc&
   return vm->exec(dlg,player,npc);
   }
 
-const Daedalus::ZString& GameSession::messageFromSvm(const Daedalus::ZString& id, int voice) const {
+std::string_view GameSession::messageFromSvm(std::string_view id, int voice) const {
   if(!wrld){
-    static Daedalus::ZString empty;
+    static std::string empty;
     return empty;
     }
   return vm->messageFromSvm(id,voice);
   }
 
-const Daedalus::ZString& GameSession::messageByName(const Daedalus::ZString& id) const {
+std::string_view GameSession::messageByName(const std::string& id) const {
   if(!wrld){
-    static Daedalus::ZString empty;
-    return empty;
+    return "";
     }
   return vm->messageByName(id);
   }
 
-uint32_t GameSession::messageTime(const Daedalus::ZString& id) const {
+uint32_t GameSession::messageTime(std::string_view id) const {
   if(!wrld)
     return 0;
   return vm->messageTime(id);
@@ -429,20 +428,20 @@ void GameSession::initScripts(bool firstTime) {
   auto name   = (dot==std::string::npos ? wname : wname.substr(0,dot));
 
   if(vm->hasSymbolName("startup_global"))
-    vm->runFunction("startup_global");
+    vm->getVm().call_function("startup_global");
 
   if(vm->hasSymbolName("init_global"))
-    vm->runFunction("init_global");
+    vm->getVm().call_function("init_global");
 
   if(firstTime) {
     std::string startup = "startup_"+name;
     if(vm->hasSymbolName(startup))
-      vm->runFunction(startup);
+      vm->getVm().call_function(startup);
     }
 
   std::string init = "init_"+name;
   if(vm->hasSymbolName(init))
-    vm->runFunction(init);
+    vm->getVm().call_function(init);
 
   wrld->resetPositionToTA();
   }

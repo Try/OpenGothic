@@ -1,7 +1,7 @@
 #pragma once
 
+#include <phoenix/vobs/misc.hh>
 #include <string>
-#include <zenload/zTypes.h>
 
 #include "world/objects/vob.h"
 #include "world/collisionzone.h"
@@ -37,17 +37,16 @@ class TriggerEvent final {
     Type              type        = T_Trigger;
     uint64_t          timeBarrier = 0;
     struct {
-      ZenLoad::MoverMessage msg = ZenLoad::MoverMessage::GOTO_KEY_FIXED_DIRECTLY;
-      int32_t               key = 0;
+      phoenix::mover_message_type msg = phoenix::mover_message_type::fixed_direct;
+      int32_t                     key = 0;
       } move;
   };
 
 class AbstractTrigger : public Vob {
   public:
-    AbstractTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& data, Flags flags);
+    AbstractTrigger(Vob* parent, World& world, const phoenix::vob& data, Flags flags);
     virtual ~AbstractTrigger();
 
-    ZenLoad::zCVobData::EVobType vobType() const;
     const std::string&           name() const;
     bool                         isEnabled() const;
 
@@ -79,8 +78,6 @@ class AbstractTrigger : public Vob {
       AbstractTrigger* tg;
       };
 
-    ZenLoad::zCVobData           data;
-
     virtual void                 onTrigger(const TriggerEvent& evt);
     virtual void                 onUntrigger(const TriggerEvent& evt);
     virtual void                 onGotoMsg(const TriggerEvent& evt);
@@ -98,7 +95,16 @@ class AbstractTrigger : public Vob {
     CollisionZone                boxNpc;
     Tempest::Vec3                bboxSize, bboxOrigin;
 
+    float                        fireDelaySec = 0;
+    uint32_t                     maxActivationCount = 0;
+    uint32_t                     triggerFlags = 0;
+    uint32_t                     filterFlags = 0;
+
     uint32_t                     emitCount = 0;
     bool                         disabled  = false;
     uint64_t                     emitTimeLast = 0;
+
+  protected:
+    std::string                  vobName;
+    std::string                  target;
   };

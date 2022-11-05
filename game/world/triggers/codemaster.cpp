@@ -3,8 +3,13 @@
 #include "world/world.h"
 #include "game/serialize.h"
 
-CodeMaster::CodeMaster(Vob* parent, World &world, ZenLoad::zCVobData&& d, Flags flags)
-  :AbstractTrigger(parent,world,std::move(d),flags), keys(data.zCCodeMaster.slaveVobName.size()) {
+CodeMaster::CodeMaster(Vob* parent, World &world, const phoenix::vobs::code_master& cm, Flags flags)
+  :AbstractTrigger(parent,world,cm,flags), keys(cm.slaves.size()) {
+  target = cm.target;
+  slaves = cm.slaves;
+  ordered = cm.ordered;
+  firstFalseIsFailure = cm.first_false_is_failure;
+  failureTarget = cm.failure_target;
   }
 
 void CodeMaster::onTrigger(const TriggerEvent &evt) {
@@ -16,9 +21,9 @@ void CodeMaster::onTrigger(const TriggerEvent &evt) {
     }
 
   for(size_t i=0;i<keys.size();++i) {
-    if(data.zCCodeMaster.slaveVobName[i]==evt.emitter) {
-      if(data.zCCodeMaster.orderRelevant && (count!=i)) {
-        if(data.zCCodeMaster.firstFalseIsFailure)
+    if(slaves[i]==evt.emitter) {
+      if(ordered && (count!=i)) {
+        if(firstFalseIsFailure)
           onFailure();
         zeroState();
         return;
@@ -33,7 +38,7 @@ void CodeMaster::onTrigger(const TriggerEvent &evt) {
       }
 
   zeroState();
-  TriggerEvent e(data.zCCodeMaster.triggerTarget,data.vobName,TriggerEvent::T_Activate);
+  TriggerEvent e(target,vobName,TriggerEvent::T_Activate);
   world.triggerEvent(e);
   }
 
@@ -48,8 +53,8 @@ void CodeMaster::load(Serialize& fin) {
   }
 
 void CodeMaster::onFailure() {
-  if(!data.zCCodeMaster.triggerTargetFailure.empty()) {
-    TriggerEvent e(data.zCCodeMaster.triggerTargetFailure,data.vobName,TriggerEvent::T_Activate);
+  if(!failureTarget.empty()) {
+    TriggerEvent e(failureTarget,vobName,TriggerEvent::T_Activate);
     world.triggerEvent(e);
     }
   }

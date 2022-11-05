@@ -4,7 +4,9 @@
 #include <Tempest/SoundEffect>
 #include <Tempest/Point>
 
-#include <zenload/zTypes.h>
+#include <phoenix/vobs/zone.hh>
+#include <phoenix/vobs/sound.hh>
+
 #include <mutex>
 
 #include "game/gametime.h"
@@ -21,9 +23,9 @@ class WorldSound final {
     WorldSound(GameSession& game, World& world);
     ~WorldSound();
 
-    void    setDefaultZone(const ZenLoad::zCVobData &vob);
-    void    addZone       (const ZenLoad::zCVobData &vob);
-    void    addSound      (const ZenLoad::zCVobData &vob);
+    void    setDefaultZone(const phoenix::vobs::zone_music &vob);
+    void    addZone       (const phoenix::vobs::zone_music &vob);
+    void    addSound      (const phoenix::vobs::sound &vob);
 
     Sound   addDlgSound(std::string_view s, float x, float y, float z, float range, uint64_t &timeLen);
 

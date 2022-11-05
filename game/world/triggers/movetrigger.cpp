@@ -8,15 +8,23 @@
 
 using namespace Tempest;
 
-MoveTrigger::MoveTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& d, Flags flags)
-  :AbstractTrigger(parent,world,std::move(d),flags) {
-  auto& mover = data.zCMover;
-  if(data.cdDyn || data.cdStatic) {
-    auto mesh = Resources::loadMesh(data.visual);
+MoveTrigger::MoveTrigger(Vob* parent, World& world, const phoenix::vobs::trigger_mover& mover, Flags flags)
+  :AbstractTrigger(parent,world,mover,flags) {
+  mover_keyframes = mover.keyframes;
+  behavior = mover.behavior;
+  sfxOpenStart = mover.sfx_open_start;
+  stayOpenTimeSec = mover.stay_open_time_sec;
+  sfxOpenEnd = mover.sfx_open_end;
+  sfxCloseEnd = mover.sfx_close_end;
+  sfxMoving = mover.sfx_transitioning;
+  visualName = mover.visual_name;
+
+  if(mover.cd_dynamic || mover.cd_static) {
+    auto mesh = Resources::loadMesh(mover.visual_name);
     if(mesh!=nullptr)
       physic = PhysicMesh(*mesh,*world.physic(),true);
     }
-  if(mover.moverLocked && mover.keyframes.size()>0) {
+  if(mover.locked && !mover.keyframes.empty()) {
     frame = uint32_t(mover.keyframes.size()-1);
     }
   auto tr = transform();
@@ -34,10 +42,10 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, ZenLoad::zCVobData&& d, Flag
     auto  dy = (f1.position.y-f0.position.y);
     auto  dz = (f1.position.z-f0.position.z);
     keyframes[i].position = Vec3(dx,dy,dz).length();
-    keyframes[i].ticks    = uint64_t(keyframes[i].position/mover.moveSpeed);
+    keyframes[i].ticks    = uint64_t(keyframes[i].position/mover.speed);
     if(keyframes[i].ticks==0) {
-      keyframes[i].ticks = uint64_t(1.f/mover.moveSpeed);
-      if(mover.moverBehavior==ZenLoad::MoverBehavior::NSTATE_LOOP)
+      keyframes[i].ticks = uint64_t(1.f/mover.speed);
+      if(mover.behavior==phoenix::mover_behavior::loop)
         keyframes[i].ticks = 10000; // HACK: windmil
       }
     }
@@ -76,7 +84,7 @@ void MoveTrigger::emitSound(std::string_view snd,bool freeSlot) {
 
 void MoveTrigger::advanceAnim(uint32_t f0, uint32_t f1, float alpha) {
   alpha    = std::max(0.f,std::min(alpha,1.f));
-  auto fr  = mix(data.zCMover.keyframes[f0],data.zCMover.keyframes[f1],alpha);
+  auto fr  = mix(mover_keyframes[f0],mover_keyframes[f1],alpha);
   auto mat = pos0;
   mat.mul(mkMatrix(fr));
   setLocalTransform(mat);
@@ -94,8 +102,8 @@ void MoveTrigger::invalidateView() {
     return;
 
   if(state!=Idle || isDynamic())
-    setView(world.addView(data.visual)); else
-    setView(world.addStaticView(data.visual));
+    setView(world.addView(visualName)); else
+    setView(world.addStaticView(visualName));
   view.setObjMatrix(transform());
   }
 
@@ -110,47 +118,47 @@ void MoveTrigger::onTrigger(const TriggerEvent& e) {
   }
 
 void MoveTrigger::onUntrigger(const TriggerEvent& e) {
-  if(data.zCMover.moverBehavior==ZenLoad::MoverBehavior::STATE_TRIGGER_CTRL)
+  if(behavior==phoenix::mover_behavior::trigger_control)
     processTrigger(e,false);
   }
 
 void MoveTrigger::onGotoMsg(const TriggerEvent& evt) {
-  if(evt.move.key<0 || data.zCMover.keyframes.size()<size_t(evt.move.key))
+  if(evt.move.key<0 || mover_keyframes.size()<size_t(evt.move.key))
     return;
   Log::e("TODO: MoveTrigger::onGotoMsg");
   }
 
 void MoveTrigger::processTrigger(const TriggerEvent& e, bool onTrigger) {
-  if(data.zCMover.keyframes.size()==0 || state!=Idle) {
+  if(mover_keyframes.size()==0 || state!=Idle) {
     world.triggerEvent(e);
     return;
     }
 
-  std::string_view snd = data.zCMover.sfxOpenStart;
-  switch(data.zCMover.moverBehavior) {
-    case ZenLoad::MoverBehavior::STATE_TOGGLE: {
-      if(frame+1==data.zCMover.keyframes.size()) {
+  std::string_view snd = sfxOpenStart;
+  switch(behavior) {
+    case phoenix::mover_behavior::toggle: {
+      if(frame+1==mover_keyframes.size()) {
         state = Close;
         } else {
         state = Open;
         }
       break;
       }
-    case ZenLoad::MoverBehavior::STATE_TRIGGER_CTRL: {
+    case phoenix::mover_behavior::trigger_control: {
       if(onTrigger)
         state = Open; else
         state = Close;
       break;
       }
-    case ZenLoad::MoverBehavior::STATE_OPEN_TIMED: {
+    case phoenix::mover_behavior::open_timed: {
       state = Open;
       break;
       }
-    case ZenLoad::MoverBehavior::NSTATE_LOOP: {
+    case phoenix::mover_behavior::loop: {
       state = Loop;
       break;
       }
-    case ZenLoad::MoverBehavior::NSTATE_SINGLE_KEYS: {
+    case phoenix::mover_behavior::single_keys: {
       state = NextKey;
       break;
       }
@@ -167,9 +175,8 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
   if(state==Idle || keyframes.size()==0)
     return;
 
-  auto&    mover = data.zCMover;
-  uint32_t keySz = uint32_t(mover.keyframes.size());
-  uint32_t maxFr = uint32_t(mover.keyframes.size()-1);
+  uint32_t keySz = uint32_t(mover_keyframes.size());
+  uint32_t maxFr = uint32_t(mover_keyframes.size()-1);
 
   uint64_t maxTicks = 0;
   for(size_t i=0; ; ++i) {
@@ -189,7 +196,7 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
     case Idle:
       break;
     case OpenTimed: {
-      if(sAnim+uint64_t(mover.stayOpenTimeSec*1000)<world.tickCount()) {
+      if(sAnim+uint64_t(stayOpenTimeSec*1000)<world.tickCount()) {
         state = Close;
         sAnim = world.tickCount();
         }
@@ -233,7 +240,7 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
       }
     case NextKey: {
       f0       = frame;
-      f1       = uint32_t(f0+1)%uint32_t(mover.keyframes.size());
+      f1       = uint32_t(f0+1)%uint32_t(mover_keyframes.size());
       a        = float(dt)/float(keyframes[f0].ticks);
       a        = std::min(1.f,a);
       finished = dt>keyframes[f0].ticks;
@@ -250,17 +257,17 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
     invalidateView();
     disableTicks();
 
-    if(data.zCTrigger.triggerTarget.size()>0) {
-      TriggerEvent e(data.zCTrigger.triggerTarget,data.vobName,TriggerEvent::T_Activate);
+    if(!target.empty()) {
+      TriggerEvent e(target,vobName,TriggerEvent::T_Activate);
       world.triggerEvent(e);
       }
 
-    std::string_view snd = data.zCMover.sfxOpenEnd;
+    std::string_view snd = sfxOpenEnd;
     if(prev==Close)
-      snd = data.zCMover.sfxCloseEnd;
+      snd = sfxCloseEnd;
     if(prev==NextKey)
       snd = "";
-    if(data.zCMover.moverBehavior==ZenLoad::MoverBehavior::STATE_OPEN_TIMED && prev==Open) {
+    if(behavior==phoenix::mover_behavior::open_timed && prev==Open) {
       state = OpenTimed;
       sAnim = world.tickCount();
       // override view
@@ -269,6 +276,6 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
       }
     emitSound(snd);
     } else {
-    emitSound(data.zCMover.sfxMoving);
+    emitSound(sfxMoving);
     }
   }

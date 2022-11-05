@@ -9,6 +9,7 @@
 
 #include <Tempest/MemReader>
 #include <Tempest/MemWriter>
+#include <Tempest/Log>
 
 size_t Serialize::writeFunc(void* pOpaque, uint64_t file_ofs, const void* pBuf, size_t n) {
   auto& self = *reinterpret_cast<Serialize*>(pOpaque);
@@ -175,18 +176,6 @@ void Serialize::implWrite(std::string_view s) {
   writeBytes(s.data(),sz);
   }
 
-void Serialize::implWrite(const Daedalus::ZString& s) {
-  uint32_t sz=uint32_t(s.size());
-  implWrite(sz);
-  writeBytes(s.c_str(),sz);
-  }
-
-void Serialize::implRead(Daedalus::ZString& s) {
-  std::string rs;
-  implRead(rs);
-  s = Daedalus::ZString(std::move(rs));
-  }
-
 void Serialize::implWrite(WeaponState w) {
   implWrite(uint8_t(w));
   }
@@ -273,34 +262,42 @@ void Serialize::implRead(Tempest::Pixmap& p) {
   readOffset += r.cursorPosition();
   }
 
-void Serialize::implWrite(const Daedalus::GEngineClasses::C_Npc& h) {
-  write(uint32_t(h.instanceSymbol));
-  write(h.id,h.name,h.slot,h.effect,int32_t(h.npcType));
+void Serialize::implWrite(const phoenix::c_npc& h) {
+  write(uint32_t(h.symbol_index()));
+  write(h.id,h.name,h.slot,h.effect,int32_t(h.type));
   write(int32_t(h.flags));
-  write(h.attribute,h.hitChance,h.protection,h.damage);
-  write(h.damagetype,h.guild,h.level);
+  write(h.attribute,h.hitchance,h.protection,h.damage);
+  write(h.damage_type,h.guild,h.level);
   write(h.mission);
-  write(h.fight_tactic,h.weapon,h.voice,h.voicePitch,h.bodymass);
+  write(h.fight_tactic,h.weapon,h.voice,h.voice_pitch,h.body_mass);
   write(h.daily_routine,h.start_aistate);
-  write(h.spawnPoint,h.spawnDelay,h.senses,h.senses_range);
+  write(h.spawnpoint,h.spawn_delay,h.senses,h.senses_range);
   write(h.aivar);
-  write(h.wp,h.exp,h.exp_next,h.lp,h.bodyStateInterruptableOverride,h.noFocus);
+  write(h.wp,h.exp,h.exp_next,h.lp,h.bodystate_interruptable_override,h.no_focus);
   }
 
-void Serialize::implRead(Daedalus::GEngineClasses::C_Npc& h) {
+void Serialize::readNpc(phoenix::vm& vm, std::shared_ptr<phoenix::c_npc>& h) {
   uint32_t instanceSymbol=0;
+  read(instanceSymbol);
 
-  read(instanceSymbol); h.instanceSymbol = instanceSymbol;
-  read(h.id,h.name,h.slot,h.effect, reinterpret_cast<int32_t&>(h.npcType));
-  read(reinterpret_cast<int32_t&>(h.flags));
-  read(h.attribute,h.hitChance,h.protection,h.damage);
-  read(h.damagetype,h.guild,h.level);
-  read(h.mission);
-  read(h.fight_tactic,h.weapon,h.voice,h.voicePitch,h.bodymass);
-  read(h.daily_routine,h.start_aistate);
-  read(h.spawnPoint,h.spawnDelay,h.senses,h.senses_range);
-  read(h.aivar);
-  read(h.wp,h.exp,h.exp_next,h.lp,h.bodyStateInterruptableOverride,h.noFocus);
+  auto sym = vm.find_symbol_by_index(instanceSymbol);
+
+  if (sym != nullptr) {
+    vm.allocate_instance(h, sym);
+    } else {
+    Tempest::Log::e("Cannot load serialized NPC ", instanceSymbol, ": Symbol not found.");
+    }
+
+  read(h->id,h->name,h->slot,h->effect, reinterpret_cast<int32_t&>(h->type));
+  read(reinterpret_cast<int32_t&>(h->flags));
+  read(h->attribute,h->hitchance,h->protection,h->damage);
+  read(h->damage_type,h->guild,h->level);
+  read(h->mission);
+  read(h->fight_tactic,h->weapon,h->voice,h->voice_pitch,h->body_mass);
+  read(h->daily_routine,h->start_aistate);
+  read(h->spawnpoint,h->spawn_delay,h->senses,h->senses_range);
+  read(h->aivar);
+  read(h->wp,h->exp,h->exp_next,h->lp,h->bodystate_interruptable_override,h->no_focus);
   }
 
 void Serialize::implWrite(const FpLock &fp) {
@@ -309,4 +306,17 @@ void Serialize::implWrite(const FpLock &fp) {
 
 void Serialize::implRead(FpLock &fp) {
   fp.load(*this);
+  }
+
+void Serialize::implWrite(const phoenix::animation_sample &i) {
+  writeBytes(&i,sizeof(i));
+  }
+
+void Serialize::implRead(phoenix::animation_sample &i) {
+  if (version() < 40) {
+    read(i.position.x,i.position.y,i.position.z);
+    read(i.rotation.x,i.rotation.y,i.rotation.z,i.rotation.w);
+    } else {
+    readBytes (&i,sizeof(i));
+    }
   }

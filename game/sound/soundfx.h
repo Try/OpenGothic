@@ -4,7 +4,7 @@
 #include <Tempest/Sound>
 #include <vector>
 
-#include <daedalus/DaedalusStdlib.h>
+#include <phoenix/ext/daedalus_classes.hh>
 
 class GSoundEffect;
 
@@ -20,7 +20,7 @@ class SoundFx {
   private:
     struct SoundVar {
       SoundVar()=default;
-      SoundVar(const Daedalus::GEngineClasses::C_SFX& sfx,Tempest::Sound&& snd);
+      SoundVar(const phoenix::c_sfx& sfx,Tempest::Sound&& snd);
       SoundVar(const float vol,Tempest::Sound&& snd);
 
       Tempest::Sound snd;

@@ -38,7 +38,7 @@ if(WIN32)
   if(MSVC)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup" )
   else()
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mwindows")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mwindows -lstdc++fs")
   endif()
 endif()
 
@@ -72,11 +72,12 @@ elseif(UNIX)
   target_link_libraries(${PROJECT_NAME} -lpthread -ldl)
 endif()
 
-# ZenLib
+# phoenix
 set(BUILD_SQUISH_WITH_SSE2 OFF CACHE INTERNAL "")
-add_subdirectory(lib/ZenLib)
-include_directories(lib/ZenLib)
-target_link_libraries(${PROJECT_NAME} zenload daedalus)
+set(PHOENIX_LOG_LEVEL "3")
+
+add_subdirectory(lib/phoenix)
+target_link_libraries(${PROJECT_NAME} phoenix)
 
 # TinySoundFont
 add_definitions(-DTSF_NO_STDIO)

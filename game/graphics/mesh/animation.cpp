@@ -3,10 +3,6 @@
 #include <Tempest/Log>
 #include <cctype>
 
-#include <zenload/modelAnimationParser.h>
-#include <zenload/zCModelPrototype.h>
-#include <zenload/zenParser.h>
-
 #include "graphics/pfx/particlefx.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
@@ -32,166 +28,53 @@ static uint64_t frameClamp(int32_t frame,uint32_t first,uint32_t numFrames,uint3
   return uint64_t(frame)-first;
   }
 
-Animation::Animation(ZenLoad::MdsParser &p, std::string_view name, const bool ignoreErrChunks) {
-  AnimData* current=nullptr;
+Animation::Animation(phoenix::model_script &p, std::string_view name, const bool ignoreErrChunks) {
+  ref = std::move(p.aliases);
 
-  while(true) {
-    ZenLoad::MdsParser::Chunk type=p.parse();
-    switch (type) {
-      case ZenLoad::MdsParser::CHUNK_EOF: {
-        setupIndex();
-        return;
-        }
-      case ZenLoad::MdsParser::CHUNK_MODEL_SCRIPT: {
-        // TODO: use model-script?
-        break;
-        }
-      case ZenLoad::MdsParser::CHUNK_ANI: {
-        auto& ani      = loadMAN(p.ani,std::string(name)+'-'+p.ani.m_Name+".MAN");
-        current        = ani.data.get();
-        break;
-        }
-      case ZenLoad::MdsParser::CHUNK_ANI_ALIAS:{
-        ref.emplace_back(std::move(p.alias));
-        current = nullptr;
-        break;
-        }
-      case ZenLoad::MdsParser::CHUNK_ANI_COMB:{
-        current = nullptr;
-        char name[256]={};
-        std::snprintf(name,sizeof(name),"%s%d",p.comb.m_Asc.c_str(),1+(p.comb.m_LastFrame-1)/2);
+  for (auto& ani : p.animations) {
+    auto& data = loadMAN(ani, std::string(name) + '-' + ani.name + ".MAN");
+    data.data->sfx = std::move(ani.sfx);
+    data.data->gfx = std::move(ani.sfx_ground);
+    data.data->pfx = std::move(ani.pfx);
+    data.data->pfxStop = std::move(ani.pfx_stop);
+    data.data->events = std::move(ani.events);
+    data.data->mmStartAni = std::move(ani.morph);
+  }
 
-        bool found=false;
-        for(size_t r=0;r<sequences.size();++r) { // reverse search: expect to find animations right before aniComb
-          auto& i = sequences[sequences.size()-r-1];
-          if(i.askName==name) {
-            auto d = i.data;
-            sequences.emplace_back();
-            Animation::Sequence& ani = sequences.back();
-            ani.name     = p.comb.m_Name;
-            ani.askName  = p.comb.m_Asc;
-            ani.layer    = p.comb.m_Layer;
-            ani.flags    = Flags(p.comb.m_Flags);
-            ani.blendIn  = uint64_t(1000*p.comb.m_BlendIn);
-            ani.blendOut = uint64_t(1000*p.comb.m_BlendOut);
-            ani.next     = std::move(p.comb.m_Next);
-            ani.data     = d; // set first as default
-            ani.comb.resize(p.comb.m_LastFrame);
-            found=true;
-            break;
-            }
-          }
-        if(!found)
-          Log::d("comb not found: ",p.comb.m_Name," -> ",p.comb.m_Asc); // error
-        break;
-        }        
-      case ZenLoad::MdsParser::CHUNK_ANI_BLEND:{
-        break;
-        }
+  for (auto& co : p.combinations) {
+    char name[256]={};
+    std::snprintf(name,sizeof(name),"%s%d",co.model.c_str(),1+(co.last_frame-1)/2);
 
-      case ZenLoad::MdsParser::CHUNK_EVENT_SFX: {
-        if(current) {
-          if(current->sfx.size()==0) {
-            current->sfx = std::move(p.sfx);
-            } else {
-            current->sfx.insert(current->sfx.end(), p.sfx.begin(), p.sfx.end());
-            p.sfx.clear();
-            }
-          }
+    bool found=false;
+    for(size_t r=0;r<sequences.size();++r) { // reverse search: expect to find animations right before aniComb
+      auto& i = sequences[sequences.size()-r-1];
+      if(i.askName==name) {
+        auto d = i.data;
+        sequences.emplace_back();
+        Animation::Sequence& ani = sequences.back();
+        ani.name     = co.name;
+        ani.askName  = co.model;
+        ani.layer    = co.layer;
+        ani.flags    = co.flags;
+        ani.blendIn  = uint64_t(1000*co.blend_in);
+        ani.blendOut = uint64_t(1000*co.blend_out);
+        ani.next     = std::move(co.next);
+        ani.data     = d; // set first as default
+        ani.comb.resize(co.last_frame);
+        found=true;
         break;
-        }
-      case ZenLoad::MdsParser::CHUNK_EVENT_SFX_GRND: {
-        if(current) {
-          if(current->gfx.size()==0) {
-            current->gfx = std::move(p.gfx);
-            } else {
-            current->gfx.insert(current->gfx.end(), p.gfx.begin(), p.gfx.end());
-            p.gfx.clear();
-            }
-          }
-        break;
-        }
-
-      case ZenLoad::MdsParser::CHUNK_EVENT_PFX: {
-        if(current) {
-          if(current->pfx.size()==0) {
-            current->pfx = std::move(p.pfx);
-            } else {
-            current->pfx.insert(current->pfx.end(), p.pfx.begin(), p.pfx.end());
-            p.pfx.clear();
-            }
-          }
-        break;
-        }
-      case ZenLoad::MdsParser::CHUNK_EVENT_PFX_STOP: {
-        if(current) {
-          if(current->pfxStop.size()==0) {
-            current->pfxStop = std::move(p.pfxStop);
-            } else {
-            current->pfxStop.insert(current->pfxStop.end(), p.pfxStop.begin(), p.pfxStop.end());
-            p.pfxStop.clear();
-            }
-          }
-        break;
-        }
-
-      case ZenLoad::MdsParser::CHUNK_EVENT_TAG: {
-        if(current) {
-          if(current->events.size()==0) {
-            current->events = std::move(p.eventTag);
-            } else {
-            current->events.insert(current->events.end(), p.eventTag.begin(), p.eventTag.end());
-            p.eventTag.clear();
-            }
-          }
-        break;
-        }
-
-      case ZenLoad::MdsParser::CHUNK_EVENT_MMSTARTANI: {
-        if(current) {
-          if(current->mmStartAni.size()==0) {
-            current->mmStartAni = std::move(p.mmStartAni);
-            } else {
-            current->mmStartAni.insert(current->mmStartAni.end(), p.mmStartAni.begin(), p.mmStartAni.end());
-            p.mmStartAni.clear();
-            }
-          }
-        break;
-        }
-
-      case ZenLoad::MdsParser::CHUNK_MODEL_TAG: {
-        if(current)
-          current->tag = std::move(p.modelTag);
-        break;
-        }
-      case ZenLoad::MdsParser::CHUNK_REGISTER_MESH: {
-        for(auto& i:p.meshesASC) {
-          MeshAndThree m;
-          m.mds = i;
-          mesh.push_back(m);
-          }
-        p.meshesASC.clear();
-        break;
-        }
-      case ZenLoad::MdsParser::CHUNK_MESH_AND_TREE: {
-        meshDef.mds      = p.meshAndThree.m_Name;
-        meshDef.disabled = p.meshAndThree.m_Disabled;
-        break;
-        }
-      case ZenLoad::MdsParser::CHUNK_ERROR:
-        if(!ignoreErrChunks)
-          throw std::runtime_error("animation load error");
-        break;
-      default:{
-        static std::unordered_set<int> v;
-        if(v.find(type)==v.end()){
-          //Log::d("not implemented anim chunk: ",int(type));
-          v.insert(type);
-          }
-        break;
-        }
       }
     }
+
+    if (!found) {
+      Log::d("comb not found: ", co.name," -> ", co.model, "(", name, ")"); // error
+    }
+  }
+
+  mesh = std::move(p.meshes);
+  meshDef = std::move(p.skeleton);
+
+  setupIndex();
   }
 
 const Animation::Sequence* Animation::sequence(std::string_view name) const {
@@ -217,13 +100,13 @@ void Animation::debug() const {
   }
 
 const std::string& Animation::defaultMesh() const {
-  if(meshDef.mds.size()>0 && !meshDef.disabled)
-    return meshDef.mds;
+  if(!meshDef.name.empty() && !meshDef.disable_mesh)
+    return meshDef.name;
   static std::string nop;
   return nop;
   }
 
-Animation::Sequence& Animation::loadMAN(const ZenLoad::zCModelScriptAni& hdr, const std::string& name) {
+Animation::Sequence& Animation::loadMAN(const phoenix::mds::animation& hdr, const std::string& name) {
   sequences.emplace_back(hdr,name);
   auto& ret = sequences.back();
   if(ret.data==nullptr) {
@@ -240,21 +123,21 @@ void Animation::setupIndex() {
   for(auto& r:ref) {
     Sequence ani;
     for(auto& s:sequences)
-      if(s.askName==r.m_Alias)
+      if(s.askName==r.alias)
         ani.data = s.data;
 
     if(ani.data==nullptr) {
-      Log::d("alias not found: ",r.m_Name," -> ",r.m_Alias);
+      Log::d("alias not found: ",r.name," -> ",r.alias);
       continue;
       }
 
-    ani.name     = r.m_Name;
-    ani.layer    = r.m_Layer;
-    ani.flags    = Flags(r.m_Flags);
-    ani.blendIn  = uint64_t(1000*r.m_BlendIn);
-    ani.blendOut = uint64_t(1000*r.m_BlendOut);
-    ani.reverse  = r.m_Dir!=ZenLoad::MSB_FORWARD;
-    ani.next     = r.m_Next;
+    ani.name     = r.name;
+    ani.layer    = r.layer;
+    ani.flags    = r.flags;
+    ani.blendIn  = uint64_t(1000 * r.blend_in);
+    ani.blendOut = uint64_t(1000 * r.blend_out);
+    ani.reverse  = r.direction != phoenix::mds::animation_direction::forward;
+    ani.next     = r.next;
     sequences.emplace_back(std::move(ani));
     }
   ref.clear();
@@ -297,7 +180,7 @@ void Animation::setupIndex() {
     }
 
   for(auto& i:sequences) {
-    i.nextPtr = sequence(i.next.c_str());
+    i.nextPtr = sequence(i.next);
     i.owner   = this;
     }
   // for(auto& i:sequences)
@@ -305,48 +188,38 @@ void Animation::setupIndex() {
   }
 
 
-Animation::Sequence::Sequence(const ZenLoad::zCModelScriptAni& hdr, const std::string &fname) {
+Animation::Sequence::Sequence(const phoenix::mds::animation& hdr, const std::string &fname) {
   if(!Resources::hasFile(fname))
     return;
 
-  const VDFS::FileIndex& idx = Resources::vdfsIndex();
-  ZenLoad::ZenParser            zen(fname,idx);
-  ZenLoad::ModelAnimationParser p(zen);
+  phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(fname);
+  if (entry == nullptr)
+    return ;
+
+  phoenix::buffer reader = entry->open();
+  auto p                 = phoenix::animation::parse(reader);
 
   data = std::make_shared<AnimData>();
-  askName    = hdr.m_Name;
-  layer      = hdr.m_Layer;
-  flags      = Flags(hdr.m_Flags);
-  blendIn    = uint64_t(1000*hdr.m_BlendIn);
-  blendOut   = uint64_t(1000*hdr.m_BlendOut);
-  next       = hdr.m_Next;
-  reverse    = hdr.m_Dir!=ZenLoad::MSB_FORWARD;
+  askName    = hdr.name;
+  layer      = hdr.layer;
+  flags      = hdr.flags;
+  blendIn    = uint64_t(1000*hdr.blend_in);
+  blendOut   = uint64_t(1000*hdr.blend_out);
+  next       = hdr.next;
+  reverse    = hdr.direction != phoenix::mds::animation_direction::forward;
 
-  data->firstFrame = uint32_t(hdr.m_FirstFrame);
-  data->lastFrame  = uint32_t(hdr.m_LastFrame);
+  data->firstFrame = uint32_t(hdr.first_frame);
+  data->lastFrame  = uint32_t(hdr.last_frame);
 
-  while(true) {
-    ZenLoad::ModelAnimationParser::EChunkType type = p.parse();
-    switch(type) {
-      case ZenLoad::ModelAnimationParser::CHUNK_EOF:{
-        setupMoveTr();
-        return;
-        }
-      case ZenLoad::ModelAnimationParser::CHUNK_HEADER: {
-        name            = p.getHeader().aniName;
-        layer           = p.getHeader().layer;
-        data->fpsRate   = p.getHeader().fpsRate;
-        data->numFrames = p.getHeader().numFrames;
-        break;
-        }
-      case ZenLoad::ModelAnimationParser::CHUNK_RAWDATA:
-        data->nodeIndex = std::move(p.getNodeIndex());
-        data->samples   = p.getSamples();
-        break;
-      case ZenLoad::ModelAnimationParser::CHUNK_ERROR:
-        throw std::runtime_error("animation load error");
-      }
-    }
+
+  name = p.name;
+  layer = p.layer;
+  data->fpsRate = p.fps;
+  data->numFrames = p.frame_count;
+  data->nodeIndex = p.node_indices;
+  data->samples = p.samples;
+
+  setupMoveTr();
   }
 
 bool Animation::Sequence::isFinished(uint64_t now, uint64_t sTime, uint16_t comboLen) const {
@@ -399,7 +272,7 @@ bool Animation::Sequence::isDefWindow(uint64_t t) const {
 
 bool Animation::Sequence::isAtackAnim() const {
   for(auto& e:data->events)
-    if(e.m_Def==ZenLoad::DEF_OPT_FRAME)
+    if(e.type == phoenix::mds::event_tag_type::opt_frame)
       return true;
   return false;
   }
@@ -413,9 +286,9 @@ bool Animation::Sequence::isPrehit(uint64_t sTime, uint64_t now) const {
   int64_t frame = int64_t(float(now-sTime)*d.fpsRate/1000.f);
 
   for(auto& e:data->events)
-    if(e.m_Def==ZenLoad::DEF_OPT_FRAME)
-      for(auto i:e.m_Int)
-        if(int64_t(i)>frame)
+    if(e.type == phoenix::mds::event_tag_type::opt_frame)
+      for(auto i : e.frames)
+        if(int64_t(i) > frame)
           return true;
   return false;
   }
@@ -461,16 +334,16 @@ void Animation::Sequence::processSfx(uint64_t barrier, uint64_t sTime, uint64_t 
 
   auto& d = *data;
   for(auto& i:d.sfx) {
-    uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.numFrames,d.lastFrame);
+    uint64_t fr = frameClamp(i.frame,d.firstFrame,d.numFrames,d.lastFrame);
     if(((frameA<=fr && fr<frameB) ^ invert) ||
-       i.m_Frame==int32_t(d.lastFrame))
-      npc.emitSoundEffect(i.m_Name,i.m_Range,i.m_EmptySlot);
+       i.frame==int32_t(d.lastFrame))
+      npc.emitSoundEffect(i.name,i.range,i.empty_slot);
     }
   if(!npc.isInAir()) {
     for(auto& i:d.gfx){
-      uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.numFrames,d.lastFrame);
+      uint64_t fr = frameClamp(i.frame,d.firstFrame,d.numFrames,d.lastFrame);
       if((frameA<=fr && fr<frameB) ^ invert)
-        npc.emitSoundGround(i.m_Name,i.m_Range,i.m_EmptySlot);
+        npc.emitSoundGround(i.name, i.range, i.empty_slot);
       }
     }
   }
@@ -483,21 +356,21 @@ void Animation::Sequence::processPfx(uint64_t barrier, uint64_t sTime, uint64_t 
 
   auto& d = *data;
   for(auto& i:d.pfx){
-    uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.numFrames,d.lastFrame);
+    uint64_t fr = frameClamp(i.frame,d.firstFrame,d.numFrames,d.lastFrame);
     if(((frameA<=fr && fr<frameB) ^ invert) ||
-       i.m_Frame==int32_t(d.lastFrame)) {
-      if(i.m_Name.empty())
+       i.frame==int32_t(d.lastFrame)) {
+      if(i.name.empty())
         continue;
-      Effect e(PfxEmitter(world,i.m_Name),i.m_Pos);
+      Effect e(PfxEmitter(world,i.name),i.position);
       e.setActive(true);
-      visual.startEffect(world,std::move(e),i.m_Num,false);
+      visual.startEffect(world,std::move(e),i.index,false);
       }
     }
   for(auto& i:d.pfxStop){
-    uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.numFrames,d.lastFrame);
+    uint64_t fr = frameClamp(i.frame,d.firstFrame,d.numFrames,d.lastFrame);
     if(((frameA<=fr && fr<frameB) ^ invert) ||
-       i.m_Frame==int32_t(d.lastFrame)) {
-      visual.stopEffect(i.m_Num);
+       i.frame==int32_t(d.lastFrame)) {
+      visual.stopEffect(i.index);
       }
     }
   }
@@ -512,107 +385,95 @@ void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64
   float fpsRate = d.fpsRate;
 
   for(auto& e:d.events) {
-    if(e.m_Def==ZenLoad::DEF_OPT_FRAME) {
-      for(auto i:e.m_Int) {
+    if(e.type == phoenix::mds::event_tag_type::opt_frame) {
+      for(auto i:e.frames) {
         uint64_t fr = frameClamp(i,d.firstFrame,d.numFrames,d.lastFrame);
         if((frameA<=fr && fr<frameB) ^ invert)
           processEvent(e,ev,uint64_t(float(fr)*1000.f/fpsRate)+sTime);
         }
       } else {
-      uint64_t fr = frameClamp(e.m_Frame,d.firstFrame,d.numFrames,d.lastFrame);
+      uint64_t fr = frameClamp(e.frame,d.firstFrame,d.numFrames,d.lastFrame);
       if((frameA<=fr && fr<frameB) ^ invert)
         processEvent(e,ev,uint64_t(float(fr)*1000.f/fpsRate)+sTime);
       }
     }
 
   for(auto& i:d.gfx){
-    uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.numFrames,d.lastFrame);
+    uint64_t fr = frameClamp(i.frame,d.firstFrame,d.numFrames,d.lastFrame);
     if((frameA<=fr && fr<frameB) ^ invert)
       ev.groundSounds++;
     }
 
   for(auto& i:d.mmStartAni){
-    uint64_t fr = frameClamp(i.m_Frame,d.firstFrame,d.numFrames,d.lastFrame);
+    uint64_t fr = frameClamp(i.frame,d.firstFrame,d.numFrames,d.lastFrame);
     if((frameA<=fr && fr<frameB) ^ invert) {
       EvMorph e;
-      e.anim = i.m_Animation.c_str();
-      e.node = i.m_Node.c_str();
+      e.anim = i.animation;
+      e.node = i.node;
       ev.morph.push_back(e);
       }
     }
   }
 
-void Animation::Sequence::processEvent(const ZenLoad::zCModelEvent &e, Animation::EvCount &ev, uint64_t time) {
-  switch(e.m_Def) {
-    case ZenLoad::DEF_NULL:
-    case ZenLoad::DEF_LAST:
-    case ZenLoad::DEF_DAM_MULTIPLY:
-    case ZenLoad::DEF_HIT_LIMB:
-    case ZenLoad::DEF_HIT_DIR:
-    case ZenLoad::DEF_HIT_END:
-      break;
-    case ZenLoad::DEF_OPT_FRAME:
+void Animation::Sequence::processEvent(const phoenix::mds::event_tag &e, Animation::EvCount &ev, uint64_t time) {
+  switch(e.type) {
+    case phoenix::mds::event_tag_type::opt_frame:
       ev.def_opt_frame++;
       break;
-    case ZenLoad::DEF_FIGHTMODE:
-      ev.weaponCh = e.m_Fmode;
+    case phoenix::mds::event_tag_type::fight_mode:
+      ev.weaponCh = e.fight_mode;
       break;
-    case ZenLoad::DEF_DRAWSOUND:
-    case ZenLoad::DEF_UNDRAWSOUND:
-      break;
-    case ZenLoad::DEF_PAR_FRAME:
-      break;
-    case ZenLoad::DEF_WINDOW:
-      break;
-    case ZenLoad::DEF_CREATE_ITEM:
-    case ZenLoad::DEF_EXCHANGE_ITEM:{
+    case phoenix::mds::event_tag_type::create_item:
+    case phoenix::mds::event_tag_type::exchange_item:{
       EvTimed ex;
-      ex.def     = e.m_Def;
-      ex.item    = e.m_Item;
-      ex.slot[0] = e.m_Slot;
+      ex.def     = e.type;
+      ex.item    = e.item;
+      ex.slot[0] = e.slot;
       ex.time    = time;
       ev.timed.push_back(ex);
       break;
       }
-    case ZenLoad::DEF_INSERT_ITEM:
-    case ZenLoad::DEF_REMOVE_ITEM:
-    case ZenLoad::DEF_DESTROY_ITEM:
-    case ZenLoad::DEF_PLACE_ITEM: {
+    case phoenix::mds::event_tag_type::insert_item:
+    case phoenix::mds::event_tag_type::remove_item:
+    case phoenix::mds::event_tag_type::destroy_item:
+    case phoenix::mds::event_tag_type::place_item: {
       EvTimed ex;
-      ex.def     = e.m_Def;
-      ex.slot[0] = e.m_Slot;
+      ex.def     = e.type;
+      ex.slot[0] = e.slot;
       ex.time    = time;
       ev.timed.push_back(ex);
       break;
       }
-    case ZenLoad::DEF_PLACE_MUNITION:
-    case ZenLoad::DEF_REMOVE_MUNITION: {
+    case phoenix::mds::event_tag_type::place_munition:
+    case phoenix::mds::event_tag_type::remove_munition: {
       EvTimed ex;
-      ex.def     = e.m_Def;
-      ex.slot[0] = e.m_Slot;
+      ex.def     = e.type;
+      ex.slot[0] = e.slot;
       ex.time    = time;
       ev.timed.push_back(ex);
       break;
       }
-    case ZenLoad::DEF_SWAPMESH: {
+    case phoenix::mds::event_tag_type::swap_mesh: {
       EvTimed ex;
-      ex.def     = e.m_Def;
-      ex.slot[0] = e.m_Slot;
-      ex.slot[1] = e.m_Slot2;
+      ex.def     = e.type;
+      ex.slot[0] = e.slot;
+      ex.slot[1] = e.slot2;
       ex.time    = time;
       ev.timed.push_back(ex);
       break;
       }
-    case ZenLoad::DEF_DRAWTORCH:
-    case ZenLoad::DEF_INV_TORCH:
-    case ZenLoad::DEF_DROP_TORCH: {
+    case phoenix::mds::event_tag_type::draw_torch:
+    case phoenix::mds::event_tag_type::inventory_torch:
+    case phoenix::mds::event_tag_type::drop_torch: {
       EvTimed ex;
-      ex.def     = e.m_Def;
-      ex.slot[0] = e.m_Slot;
+      ex.def     = e.type;
+      ex.slot[0] = e.slot;
       ex.time    = time;
       ev.timed.push_back(ex);
       break;
       }
+    default:
+      break;
     }
   }
 
@@ -720,22 +581,22 @@ void Animation::AnimData::setupEvents(float fpsRate) {
 
   int hasOptFrame = std::numeric_limits<int>::max();
   for(size_t i=0; i<events.size(); ++i)
-    if(events[i].m_Def==ZenLoad::DEF_OPT_FRAME) {
-      hasOptFrame = std::min(hasOptFrame, events[i].m_Int[0]);
+    if(events[i].type==phoenix::mds::event_tag_type::opt_frame) {
+      hasOptFrame = std::min(hasOptFrame, events[i].frames[0]);
       }
 
   for(size_t i=0; i<events.size(); ++i)
-    if(events[i].m_Def==ZenLoad::DEF_OPT_FRAME && events[i].m_Int[0]!=hasOptFrame) {
+    if(events[i].type==phoenix::mds::event_tag_type::opt_frame && events[i].frames[0]!=hasOptFrame) {
       events[i] = std::move(events.back());
       events.pop_back();
       }
 
   for(auto& r:events) {
-    if(r.m_Def==ZenLoad::DEF_HIT_END)
-      setupTime(defHitEnd,r.m_Int,fpsRate);
-    if(r.m_Def==ZenLoad::DEF_PAR_FRAME)
-      setupTime(defParFrame,r.m_Int,fpsRate);
-    if(r.m_Def==ZenLoad::DEF_WINDOW)
-      setupTime(defWindow,r.m_Int,fpsRate);
+    if(r.type==phoenix::mds::event_tag_type::hit_end)
+      setupTime(defHitEnd,r.frames,fpsRate);
+    if(r.type==phoenix::mds::event_tag_type::par_frame)
+      setupTime(defParFrame,r.frames,fpsRate);
+    if(r.type==phoenix::mds::event_tag_type::window)
+      setupTime(defWindow,r.frames,fpsRate);
     }
   }

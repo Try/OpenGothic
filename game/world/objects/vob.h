@@ -3,7 +3,7 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Vec>
 
-#include <zenload/zTypes.h>
+#include <phoenix/world/vob_tree.hh>
 
 class World;
 class Serialize;
@@ -20,9 +20,9 @@ class Vob {
     friend Flags operator ~ (Flags a)          { return Flags(~uint8_t(a));             }
 
     Vob(World& owner);
-    Vob(Vob* parent, World& owner, ZenLoad::zCVobData& vob, Flags flags);
+    Vob(Vob* parent, World& owner, const phoenix::vob& vob, Flags flags);
     virtual ~Vob();
-    static std::unique_ptr<Vob> load(Vob* parent, World& world, ZenLoad::zCVobData&& vob, Flags flags);
+    static std::unique_ptr<Vob> load(Vob* parent, World& world, const phoenix::vob& vob, Flags flags);
 
     void          saveVobTree(Serialize& fin) const;
     virtual void  save(Serialize& fout) const;
@@ -43,7 +43,7 @@ class Vob {
 
   protected:
     World&                            world;
-    uint8_t                           vobType = 0;
+    phoenix::vob_type                 vobType = phoenix::vob_type::unknown;
     uint32_t                          vobObjectID = uint32_t(-1);
 
     virtual void  moveEvent();

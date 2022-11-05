@@ -234,31 +234,31 @@ void MdlVisual::clearSlotItem(std::string_view bone) {
     }
   }
 
-bool MdlVisual::setFightMode(const ZenLoad::EFightMode mode) {
+bool MdlVisual::setFightMode(phoenix::mds::event_fight_mode mode) {
   WeaponState f=WeaponState::NoWeapon;
 
   switch(mode) {
-    case ZenLoad::FM_LAST:
+    case phoenix::mds::event_fight_mode::invalid:
       return false;
-    case ZenLoad::FM_NONE:
+    case phoenix::mds::event_fight_mode::none:
       f=WeaponState::NoWeapon;
       break;
-    case ZenLoad::FM_FIST:
+    case phoenix::mds::event_fight_mode::fist:
       f=WeaponState::Fist;
       break;
-    case ZenLoad::FM_1H:
+    case phoenix::mds::event_fight_mode::one_handed:
       f=WeaponState::W1H;
       break;
-    case ZenLoad::FM_2H:
+    case phoenix::mds::event_fight_mode::two_handed:
       f=WeaponState::W2H;
       break;
-    case ZenLoad::FM_BOW:
+    case phoenix::mds::event_fight_mode::bow:
       f=WeaponState::Bow;
       break;
-    case ZenLoad::FM_CBOW:
+    case phoenix::mds::event_fight_mode::crossbow:
       f=WeaponState::CBow;
       break;
-    case ZenLoad::FM_MAG:
+    case phoenix::mds::event_fight_mode::magic:
       f=WeaponState::Mage;
       break;
     }
@@ -286,7 +286,7 @@ void MdlVisual::dropWeapon(Npc& npc) {
   if(itm==nullptr)
     return;
 
-  auto it = npc.world().addItemDyn(itm->clsId(),p,npc.handle()->instanceSymbol);
+  auto it = npc.world().addItemDyn(itm->clsId(),p,npc.handle().symbol_index());
   it->setCount(1);
 
   npc.delItem(itm->clsId(),1);
@@ -345,10 +345,10 @@ void MdlVisual::stopEffect(int32_t slot) {
     }
   }
 
-void MdlVisual::setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s, Daedalus::GEngineClasses::C_Npc::ENPCFlag flags) {
+void MdlVisual::setNpcEffect(World& owner, Npc& npc, std::string_view s, phoenix::npc_flag flags) {
   if(hnpcVisualName!=s) {
     hnpcVisualName = s;
-    auto vfx = Gothic::inst().loadVisualFx(s.c_str());
+    auto vfx = Gothic::inst().loadVisualFx(s);
     if(vfx==nullptr) {
       hnpcVisual.view = Effect();
       return;
@@ -361,7 +361,7 @@ void MdlVisual::setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s,
     hnpcVisual.view.setMesh(&view);
     }
 
-  const bool nextGhost = (flags & Daedalus::GEngineClasses::C_Npc::ENPCFlag::EFLAG_GHOST);
+  const bool nextGhost = (flags & phoenix::npc_flag::ghost);
   if(hnpcFlagGhost!=nextGhost) {
     hnpcFlagGhost=nextGhost;
     view.setAsGhost(hnpcFlagGhost);
@@ -451,11 +451,10 @@ void MdlVisual::setTorch(bool t, World& owner) {
   if(torchId==size_t(-1))
     return;
 
-  Daedalus::GEngineClasses::C_Item  hitem={};
-  owner.script().initializeInstance(hitem,torchId);
-  owner.script().clearReferences(hitem);
+  auto hitem = std::make_shared<phoenix::c_item>();
+  owner.script().initializeInstanceItem(hitem, torchId);
   torch.view.reset(new ObjVisual());
-  torch.view->setVisual(hitem,owner,false);
+  torch.view->setVisual(*hitem,owner,false);
   torch.boneId = (skeleton==nullptr ? size_t(-1) : skeleton->findNode("ZS_LEFTHAND"));
   }
 

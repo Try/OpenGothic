@@ -1,18 +1,19 @@
 #pragma once
 
-#include <daedalus/DaedalusStdlib.h>
-#include <daedalus/ZString.h>
+#include <phoenix/vm.hh>
+#include <phoenix/ext/daedalus_classes.hh>
+
 #include <memory>
 
 class SvmDefinitions final {
   public:
-    SvmDefinitions(Daedalus::DaedalusVM &vm);
+    SvmDefinitions(phoenix::vm& vm);
     ~SvmDefinitions();
 
-    const Daedalus::ZString& find(std::string_view speech, const int id);
+    std::string_view find(std::string_view speech, int id);
 
   private:
-    Daedalus::DaedalusVM&                                         vm;
-    std::vector<std::unique_ptr<Daedalus::GEngineClasses::C_SVM>> svm;
+    phoenix::vm&                                 vm;
+    std::vector<std::shared_ptr<phoenix::c_svm>> svm;
   };
 

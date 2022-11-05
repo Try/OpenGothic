@@ -7,39 +7,41 @@
 
 using namespace Tempest;
 
-TriggerList::TriggerList(Vob* parent, World &world, ZenLoad::zCVobData &&d, Flags flags)
-  :AbstractTrigger(parent,world,std::move(d),flags) {
+TriggerList::TriggerList(Vob* parent, World &world, const phoenix::vobs::trigger_list& list, Flags flags)
+  :AbstractTrigger(parent,world,list,flags) {
+  targets = list.targets;
+  listProcess = list.mode;
   }
 
 void TriggerList::onTrigger(const TriggerEvent&) {
-  if(data.zCTriggerList.list.size()==0)
+  if(targets.empty())
     return;
 
-  switch(data.zCTriggerList.listProcess) {
-    case LP_ALL: {
+  switch(listProcess) {
+    case phoenix::trigger_batch_mode::all: {
       uint64_t offset = 0;
-      for(auto& i:data.zCTriggerList.list) {
-        offset += uint64_t(i.fireDelay*1000);
+      for(auto& i:targets) {
+        offset += uint64_t(i.delay*1000);
         uint64_t time = world.tickCount()+offset;
-        TriggerEvent ex(i.triggerTarget,data.vobName,time,TriggerEvent::T_Trigger);
+        TriggerEvent ex(i.name,vobName,time,TriggerEvent::T_Trigger);
         world.execTriggerEvent(ex);
         }
       break;
       }
-    case LP_NEXT: {
-      auto& i = data.zCTriggerList.list[next];
-      next = (next+1)%uint32_t(data.zCTriggerList.list.size());
+    case phoenix::trigger_batch_mode::next: {
+      auto& i = targets[next];
+      next = (next+1)%uint32_t(targets.size());
 
-      uint64_t time = world.tickCount()+uint64_t(i.fireDelay*1000);
-      TriggerEvent ex(i.triggerTarget,data.vobName,time,TriggerEvent::T_Trigger);
+      uint64_t time = world.tickCount()+uint64_t(i.delay*1000);
+      TriggerEvent ex(i.name,vobName,time,TriggerEvent::T_Trigger);
       world.execTriggerEvent(ex);
       break;
       }
-    case LP_RAND: {
-      auto& i = data.zCTriggerList.list[world.script().rand(uint32_t(data.zCTriggerList.list.size()))];
+    case phoenix::trigger_batch_mode::random: {
+      auto& i = targets[world.script().rand(uint32_t(targets.size()))];
 
-      uint64_t time = world.tickCount()+uint64_t(i.fireDelay*1000);
-      TriggerEvent ex(i.triggerTarget,data.vobName,time,TriggerEvent::T_Trigger);
+      uint64_t time = world.tickCount()+uint64_t(i.delay*1000);
+      TriggerEvent ex(i.name,vobName,time,TriggerEvent::T_Trigger);
       world.execTriggerEvent(ex);
       break;
       }

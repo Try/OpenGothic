@@ -1,39 +1,31 @@
 #include "spelldefinitions.h"
 
-#include <daedalus/DaedalusVM.h>
 #include <Tempest/Log>
 #include <cctype>
 
 using namespace Tempest;
 
-SpellDefinitions::SpellDefinitions(Daedalus::DaedalusVM &vm) : vm(vm) {
-  size_t count=0;
-  vm.getDATFile().iterateSymbolsOfClass("C_Spell", [&count](size_t,Daedalus::PARSymbol&){
-    ++count;
-    });
-  spl.resize(count);
-  count=0;
-  vm.getDATFile().iterateSymbolsOfClass("C_Spell", [&](size_t i,Daedalus::PARSymbol& p){
-    vm.initializeInstance(spl[count], i, Daedalus::IC_Spell);
-    spl[count].instName = p.name;
-    ++count;
+SpellDefinitions::SpellDefinitions(phoenix::vm &vm) : vm(vm) {
+  vm.enumerate_instances_by_class_name("C_Spell", [this, &vm](phoenix::symbol& sym){
+    spl.push_back(vm.init_instance<phoenix::c_spell>(&sym));
     });
   }
 
 SpellDefinitions::~SpellDefinitions() {
-  vm.clearReferences(Daedalus::IC_Spell);
   }
 
-const Daedalus::GEngineClasses::C_Spell& SpellDefinitions::find(std::string_view instanceName) const {
+const phoenix::c_spell& SpellDefinitions::find(std::string_view instanceName) const {
   char format[64]={};
   std::snprintf(format,sizeof(format),"SPELL_%.*s",int(instanceName.size()),instanceName.data());
   for(auto& i:format)
     i = char(std::toupper(i));
 
-  for(auto& i:spl)
-    if(i.instName==format)
-      return i;
+  for(auto& i:spl) { // TODO: optimize
+    auto sym = vm.find_symbol_by_instance(i);
+    if(sym->name()==format)
+      return *i;
+  }
   Log::d("invalid spell [",instanceName.data(),"]");
-  static Daedalus::GEngineClasses::C_Spell szero={};
+  static phoenix::c_spell szero={};
   return szero;
   }

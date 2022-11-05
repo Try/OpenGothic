@@ -3,7 +3,7 @@
 #include <vector>
 #include <memory>
 
-#include <daedalus/DaedalusGameState.h>
+#include <phoenix/vobs/misc.hh>
 
 #include "bullet.h"
 #include "spaceindex.h"
@@ -90,7 +90,7 @@ class WorldObjects final {
     void           stopEffect(const VisualFx& vfx);
 
     Item*          addItem   (size_t itemInstance, std::string_view at);
-    Item*          addItem   (const ZenLoad::zCVobData &vob);
+    Item*          addItem   (const phoenix::vobs::item &vob);
     Item*          addItem   (size_t itemInstance, const Tempest::Vec3& pos);
     Item*          addItem   (size_t itemInstance, const Tempest::Vec3& pos, const Tempest::Vec3& dir);
     Item*          addItemDyn(size_t itemInstance, const Tempest::Matrix4x4& pos, size_t owner);
@@ -103,7 +103,7 @@ class WorldObjects final {
 
     void           addInteractive(Interactive*         obj);
     void           addStatic     (StaticObj*           obj);
-    void           addRoot       (ZenLoad::zCVobData&& vob, bool startup);
+    void           addRoot       (const std::unique_ptr<phoenix::vob>& vob, bool startup);
     void           invalidateVobIndex();
 
     Interactive*   validateInteractive(Interactive *def);
@@ -119,7 +119,7 @@ class WorldObjects final {
     void           marchInteractives(DbgPainter& p) const;
 
     Interactive*   aviableMob(const Npc& pl, const char* name);
-    void           setMobRoutine(gtime time, const Daedalus::ZString& scheme, int32_t state);
+    void           setMobRoutine(gtime time, std::string_view scheme, int32_t state);
 
     void           sendPassivePerc(Npc& self,Npc& other,Npc& victum,int32_t perc);
     void           sendPassivePerc(Npc& self,Npc& other,Npc& victum,Item& itm,int32_t perc);
@@ -132,7 +132,7 @@ class WorldObjects final {
       };
 
     struct MobStates {
-      Daedalus::ZString       scheme;
+      std::string            scheme;
       std::vector<MobRoutine> routines;
       int32_t                 curState = 0;
       int32_t                 stateByTime(gtime t) const;

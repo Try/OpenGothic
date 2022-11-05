@@ -1,6 +1,5 @@
 #pragma once
 
-#include <zenload/zCModelScript.h>
 #include <Tempest/Matrix4x4>
 
 #include "graphics/mesh/animationsolver.h"
@@ -53,7 +52,7 @@ class MdlVisual final {
     void                           setSlotItem   (MeshObjects::Mesh&& itm,  std::string_view bone);
     void                           setStateItem  (MeshObjects::Mesh&& itm,  std::string_view bone);
     void                           clearSlotItem (std::string_view bone);
-    bool                           setFightMode  (const ZenLoad::EFightMode mode);
+    bool                           setFightMode  (phoenix::mds::event_fight_mode mode);
     void                           dropWeapon    (Npc& owner);
 
     void                           setMagicWeapon(Effect&& spell, World& owner);
@@ -62,7 +61,7 @@ class MdlVisual final {
     void                           startEffect (World& owner, Effect&& pfx, int32_t slot, bool noSlot);
     void                           stopEffect  (const VisualFx& vfx);
     void                           stopEffect  (int32_t slot);
-    void                           setNpcEffect(World& owner, Npc& npc, const Daedalus::ZString& s, Daedalus::GEngineClasses::C_Npc::ENPCFlag flags);
+    void                           setNpcEffect(World& owner, Npc& npc, std::string_view s, phoenix::npc_flag flags);
     void                           setFatness  (float f);
     void                           emitBlockEffect(Npc& dst, Npc& src);
 
@@ -161,7 +160,7 @@ class MdlVisual final {
 
     TorchSlot                      torch;
 
-    Daedalus::ZString              hnpcVisualName;
+    std::string                    hnpcVisualName;
     bool                           hnpcFlagGhost = false;
     PfxSlot                        hnpcVisual;
 

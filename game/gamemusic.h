@@ -1,12 +1,8 @@
 #pragma once
 
-#include <memory>
+#include <phoenix/ext/daedalus_classes.hh>
 
-namespace Daedalus {
-namespace GEngineClasses {
-struct C_MusicTheme;
-}
-}
+#include <memory>
 
 class GameMusic final {
   public:
@@ -34,7 +30,7 @@ class GameMusic final {
     void      setEnabled(bool e);
     bool      isEnabled() const;
     void      setMusic(Music m);
-    void      setMusic(const Daedalus::GEngineClasses::C_MusicTheme &theme, Tags t);
+    void      setMusic(const phoenix::c_music_theme &theme, Tags t);
     void      stopMusic();
 
   private:

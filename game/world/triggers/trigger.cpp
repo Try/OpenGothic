@@ -6,11 +6,11 @@
 
 using namespace Tempest;
 
-Trigger::Trigger(Vob* parent, World &world, ZenLoad::zCVobData &&d, Flags flags)
-  :AbstractTrigger(parent,world,std::move(d),flags) {
+Trigger::Trigger(Vob* parent, World &world, const phoenix::vob& d, Flags flags)
+  :AbstractTrigger(parent,world,d,flags) {
   }
 
 void Trigger::onTrigger(const TriggerEvent&) {
-  TriggerEvent e(data.zCTrigger.triggerTarget,data.vobName,TriggerEvent::T_Trigger);
+  TriggerEvent e(target,vobName,TriggerEvent::T_Trigger);
   world.triggerEvent(e);
   }

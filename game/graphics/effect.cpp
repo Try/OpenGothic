@@ -57,7 +57,7 @@ void Effect::setupPfx(World& owner) {
     uint64_t emFXLifeSpan = root->emFXLifeSpan;
     if(key!=nullptr && key->emFXLifeSpan!=0)
       emFXLifeSpan = key->emFXLifeSpan;
-    gfx = owner.addGlobalEffect(root->visName_S,emFXLifeSpan,root->userString,Daedalus::GEngineClasses::VFX_NUM_USERSTRINGS);
+    gfx = owner.addGlobalEffect(root->visName_S,emFXLifeSpan,root->userString, phoenix::c_fx_base::user_string_count);
     return;
     }
 

@@ -114,20 +114,20 @@ PfxBucket& PfxObjects::getBucket(const ParticleFx &decl) {
   return bucket.back();
   }
 
-PfxBucket& PfxObjects::getBucket(const Material& mat, const ZenLoad::zCVobData& vob) {
+PfxBucket& PfxObjects::getBucket(const Material& mat, const phoenix::vob& vob) {
   for(auto& i:spriteEmit)
     if(i.pfx->visMaterial==mat &&
-       i.visualCamAlign==vob.visualCamAlign &&
-       i.zBias==vob.zBias &&
-       i.decalDim==vob.visualChunk.zCDecal.decalDim) {
+       i.visualCamAlign==vob.sprite_camera_facing_mode &&
+       i.zBias==vob.bias &&
+       i.decalDim==Tempest::Vec2{vob.visual_decal->dimension.x, vob.visual_decal->dimension.y}) {
       return getBucket(*i.pfx);
       }
   spriteEmit.emplace_back();
   auto& e = spriteEmit.back();
 
-  e.visualCamAlign = vob.visualCamAlign;
-  e.zBias          = vob.zBias;
-  e.decalDim       = vob.visualChunk.zCDecal.decalDim;
+  e.visualCamAlign = vob.sprite_camera_facing_mode;
+  e.zBias          = vob.bias;
+  e.decalDim       = Tempest::Vec2{vob.visual_decal->dimension.x, vob.visual_decal->dimension.y};
   e.pfx.reset(new ParticleFx(mat,vob));
   return getBucket(*e.pfx);
   }

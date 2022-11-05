@@ -1,6 +1,8 @@
 #pragma once
 
-#include <zenload/modelScriptParser.h>
+#include <phoenix/model_script.hh>
+#include <phoenix/animation.hh>
+
 #include <Tempest/Vec>
 #include <memory>
 
@@ -10,15 +12,6 @@ class World;
 
 class Animation final {
   public:
-    enum Flags : uint32_t {
-      None         = 0,
-      Move         = 0x00000001,
-      Rotate       = 0x00000002,
-      QueueAnim    = 0x00000004,
-      Fly          = 0x00000008,
-      Idle         = 0x00000010
-      };
-
     enum AnimClass : uint8_t {
       UnknownAnim=0,
       Transition,
@@ -26,21 +19,21 @@ class Animation final {
       };
 
     struct EvTimed final {
-      ZenLoad::EModelScriptAniDef def     = ZenLoad::DEF_NULL;
-      std::string_view            item;
-      std::string_view            slot[2] = {};
-      uint64_t                    time    = 0;
+      phoenix::mds::event_tag_type def = phoenix::mds::event_tag_type::unknown;
+      std::string_view             item;
+      std::string_view             slot[2] = {};
+      uint64_t                     time    = 0;
       };
 
     struct EvMorph final {
-      const char* node = nullptr;
-      const char* anim = nullptr;
+      std::string_view node;
+      std::string_view anim;
       };
 
     struct EvCount final {
-      uint8_t              def_opt_frame=0;
-      uint8_t              groundSounds=0;
-      ZenLoad::EFightMode  weaponCh=ZenLoad::FM_LAST;
+      uint8_t                        def_opt_frame=0;
+      uint8_t                        groundSounds=0;
+      phoenix::mds::event_fight_mode weaponCh = phoenix::mds::event_fight_mode::invalid;
       std::vector<EvTimed> timed;
       std::vector<EvMorph> morph;
       };
@@ -49,7 +42,7 @@ class Animation final {
       Tempest::Vec3                               translate={};
       Tempest::Vec3                               moveTr={};
 
-      std::vector<ZenLoad::zCModelAniSample>      samples;
+      std::vector<phoenix::animation_sample>      samples;
       std::vector<uint32_t>                       nodeIndex;
       std::vector<Tempest::Vec3>                  tr;
       bool                                        hasMoveTr=false;
@@ -59,13 +52,14 @@ class Animation final {
       float                                       fpsRate   =60.f;
       uint32_t                                    numFrames =0;
 
-      std::vector<ZenLoad::zCModelScriptEventSfx> sfx, gfx;
-      std::vector<ZenLoad::zCModelScriptEventPfx> pfx;
-      std::vector<ZenLoad::zCModelScriptEventPfxStop> pfxStop;
-      std::vector<ZenLoad::zCModelEvent>          tag;
-      std::vector<ZenLoad::zCModelEvent>          events;
+      std::vector<phoenix::mds::event_sfx_ground> gfx;
+      std::vector<phoenix::mds::event_sfx>        sfx;
+      std::vector<phoenix::mds::event_pfx>        pfx;
+      std::vector<phoenix::mds::event_pfx_stop>   pfxStop;
+      std::vector<phoenix::mds::model_tag>        tag;
+      std::vector<phoenix::mds::event_tag>        events;
 
-      std::vector<ZenLoad::zCModelScriptEventMMStartAni> mmStartAni;
+      std::vector<phoenix::mds::event_morph_animate> mmStartAni;
 
       std::vector<uint64_t>                       defHitEnd;   // hit-end time
       std::vector<uint64_t>                       defParFrame;
@@ -77,12 +71,12 @@ class Animation final {
 
     struct Sequence final {
       Sequence()=default;
-      Sequence(const ZenLoad::zCModelScriptAni& hdr, const std::string& name);
+      Sequence(const phoenix::mds::animation& hdr, const std::string& name);
 
-      bool                                   isRotate() const { return bool(flags&Flags::Rotate); }
-      bool                                   isMove()   const { return bool(flags&Flags::Move);   }
-      bool                                   isFly()    const { return bool(flags&Flags::Fly);    }
-      bool                                   isIdle()   const { return bool(flags&Flags::Idle);   }
+      bool                                   isRotate() const { return bool(flags & phoenix::mds::af_rotate); }
+      bool                                   isMove()   const { return bool(flags & phoenix::mds::af_move);   }
+      bool                                   isFly()    const { return bool(flags & phoenix::mds::af_fly);    }
+      bool                                   isIdle()   const { return bool(flags & phoenix::mds::af_idle);   }
       bool                                   isFinished(uint64_t now, uint64_t sTime, uint16_t comboLen) const;
       float                                  atkTotalTime(uint16_t comboLen) const;
       bool                                   canInterrupt(uint64_t now, uint64_t sTime, uint16_t comboLen) const;
@@ -104,7 +98,7 @@ class Animation final {
       std::string                            name, askName;
       const char*                            shortName = nullptr;
       uint32_t                               layer     = 0;
-      Flags                                  flags     = Flags::None;
+      phoenix::mds::animation_flags          flags     = phoenix::mds::af_none;
       uint64_t                               blendIn   = 0;
       uint64_t                               blendOut  = 0;
       AnimClass                              animCls   = Transition;
@@ -119,16 +113,12 @@ class Animation final {
 
       private:
         void                                 setupMoveTr();
-        static void                          processEvent(const ZenLoad::zCModelEvent& e, EvCount& ev, uint64_t time);
+        static void                          processEvent(const phoenix::mds::event_tag& e, EvCount& ev, uint64_t time);
         bool                                 extractFrames(uint64_t &frameA, uint64_t &frameB, bool &invert, uint64_t barrier, uint64_t sTime, uint64_t now) const;
       };
 
-    struct MeshAndThree {
-      std::string mds;
-      bool        disabled = false;
-      };
 
-    Animation(ZenLoad::MdsParser &p, std::string_view name, bool ignoreErrChunks);
+    Animation(phoenix::model_script &p, std::string_view name, bool ignoreErrChunks);
 
     const Sequence*    sequence(std::string_view name) const;
     const Sequence*    sequenceAsc(std::string_view name) const;
@@ -136,11 +126,11 @@ class Animation final {
     const std::string& defaultMesh() const;
 
   private:
-    Sequence&          loadMAN(const ZenLoad::zCModelScriptAni& hdr, const std::string &name);
+    Sequence&          loadMAN(const phoenix::mds::animation& hdr, const std::string &name);
     void               setupIndex();
 
     std::vector<Sequence>                       sequences;
-    std::vector<ZenLoad::zCModelScriptAniAlias> ref;
-    std::vector<MeshAndThree>                   mesh;
-    MeshAndThree                                meshDef;
+    std::vector<phoenix::mds::animation_alias>  ref;
+    std::vector<std::string>                    mesh;
+    phoenix::mds::skeleton                      meshDef;
   };

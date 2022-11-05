@@ -25,6 +25,7 @@ class DocumentMenu : public Tempest::Widget {
       Flags           flg=F_None;
       };
 
+    // TODO: set default values for these
     struct Show {
       std::vector<Page> pages;
       std::string       font;

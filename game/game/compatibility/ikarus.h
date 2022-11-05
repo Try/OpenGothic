@@ -1,6 +1,6 @@
 #pragma once
 
-#include <daedalus/DaedalusVM.h>
+#include <phoenix/vm.hh>
 
 #include "scriptplugin.h"
 #include "mem32.h"
@@ -9,9 +9,9 @@ class GameScript;
 
 class Ikarus : public ScriptPlugin {
   public:
-    Ikarus(GameScript& owner, Daedalus::DaedalusVM& vm);
+    Ikarus(GameScript& owner, phoenix::vm& vm);
 
-    static bool isRequired(Daedalus::DaedalusVM& vm);
+    static bool isRequired(phoenix::vm& vm);
 
   private:
     using ptr32_t = Mem32::ptr32_t;
@@ -30,38 +30,39 @@ class Ikarus : public ScriptPlugin {
       ptr32_t stack_stackPtr = 0;            // 76
       };
 
-    void  mem_setupexceptionhandler         (Daedalus::DaedalusVM &vm);
-    void  mem_getaddress_init               (Daedalus::DaedalusVM &vm);
-    void  mem_printstacktrace_implementation(Daedalus::DaedalusVM &vm);
-    void  mem_getfuncptr                    (Daedalus::DaedalusVM &vm);
-    void  mem_replacefunc                   (Daedalus::DaedalusVM &vm);
-    void  mem_searchvobbyname               (Daedalus::DaedalusVM &vm);
+    void  mem_setupexceptionhandler         ();
+    void  mem_getaddress_init               ();
+    void  mem_printstacktrace_implementation();
+    int   mem_getfuncptr                     (int func);
+    void  mem_replacefunc                   (int dest, int func);
+    int   mem_searchvobbyname                (std::string_view name);
 
     // ## Basic Read Write ##
-    void  mem_readint                       (Daedalus::DaedalusVM &vm);
-    void  mem_writeint                      (Daedalus::DaedalusVM &vm);
-    void  mem_copybytes                     (Daedalus::DaedalusVM &vm);
-    void  mem_getcommandline                (Daedalus::DaedalusVM &vm);
+    int         mem_readint       (int address);
+    void        mem_writeint      (int address, int val);
+    void        mem_copybytes     (int src, int dst, int size);
+    std::string mem_getcommandline();
 
     // pointers
-    void  mem_ptrtoinst                     (Daedalus::DaedalusVM &vm);
+    int  mem_ptrtoinst            (int address);
 
     // ## Basic zCParser related functions ##
-    void  _takeref    (Daedalus::DaedalusVM &vm);
-    void  _takeref_s  (Daedalus::DaedalusVM &vm);
-    void  _takeref_f  (Daedalus::DaedalusVM &vm);
+    int  _takeref    (int val);
+    int  _takeref_s  (std::string_view val);
+    int  _takeref_f  (float val);
 
     // ## Preliminary MEM_Alloc and MEM_Free ##
-    void  mem_alloc                        (Daedalus::DaedalusVM &vm);
-    void  mem_free                         (Daedalus::DaedalusVM &vm);
+    int  mem_alloc           (int amount);
+    void mem_free            (int address);
 
-    void  call__stdcall      (Daedalus::DaedalusVM &vm);
+    void  call__stdcall      (int address);
 
     Mem32    allocator;
     uint32_t versionHint   = 0;
     ptr32_t  oGame_Pointer = 0;
     oGame    gameProxy;
     zCParser parserProxy;
+    phoenix::vm& vm;
     // GameScript& owner;
   };
 

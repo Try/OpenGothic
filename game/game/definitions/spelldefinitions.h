@@ -1,18 +1,16 @@
 #pragma once
 
-#include <daedalus/DaedalusStdlib.h>
+#include <phoenix/vm.hh>
+#include <phoenix/ext/daedalus_classes.hh>
 
 class SpellDefinitions final {
   public:
-    SpellDefinitions(Daedalus::DaedalusVM &vm);
+    SpellDefinitions(phoenix::vm &vm);
     ~SpellDefinitions();
 
-    const Daedalus::GEngineClasses::C_Spell &find(std::string_view instanceName) const;
+    const phoenix::c_spell& find(std::string_view instanceName) const;
 
   private:
-    struct Spell:Daedalus::GEngineClasses::C_Spell {
-      std::string instName;
-      };
-    Daedalus::DaedalusVM& vm;
-    std::vector<Spell>    spl;
+    phoenix::vm&                                   vm;
+    std::vector<std::shared_ptr<phoenix::c_spell>> spl;
   };

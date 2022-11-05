@@ -277,13 +277,13 @@ void CollisionWorld::tick(uint64_t dt) {
           if(land->getUserIndex()!=DynamicWorld::C_Landscape)
             continue;
 
-          auto matId = ZenLoad::STONE;
+          auto matId = phoenix::material_group::stone;
           if(auto shape = land->getCollisionShape()) {
             auto s  = reinterpret_cast<const btMultimaterialTriangleMeshShape*>(shape);
             auto mt = reinterpret_cast<const PhysicVbo*>(s->getMeshInterface());
 
             int part = (obj==a ? pt.m_partId1 : pt.m_partId0);
-            matId = ZenLoad::MaterialGroup(mt->materialId(size_t(part)));
+            matId = mt->materialId(size_t(part));
             }
 
           if(auto ptr = reinterpret_cast<::Item*>(obj->getUserPointer())) {
@@ -336,7 +336,7 @@ void CollisionWorld::setBBox(const btVector3& min, const btVector3& max) {
   bbox[1] = max;
   }
 
-void CollisionWorld::setItemHitCallback(std::function<void(Item&, ZenLoad::MaterialGroup, float, float)> f) {
+void CollisionWorld::setItemHitCallback(std::function<void(Item&, phoenix::material_group, float, float)> f) {
   hitItem = f;
   }
 

@@ -958,10 +958,10 @@ Tempest::Vec3 MoveAlgo::normalRay(const Tempest::Vec3& pos) const {
   return cache.n;
   }
 
-uint8_t MoveAlgo::groundMaterial() const {
+phoenix::material_group MoveAlgo::groundMaterial() const {
   const float stp = stepHeight();
   if(cacheW.wdepth+stp>cache.v.y)
-    return ZenLoad::MaterialGroup::WATER;
+    return phoenix::material_group::water;
   return cache.mat;
   }
 

@@ -5,18 +5,16 @@
 ItemTorchBurning::ItemTorchBurning(World& owner, size_t inst, Item::Type type)
   :Item(owner,inst,type) {
   auto& sc = owner.script();
-  Daedalus::GEngineClasses::C_Item  hitem={};
-  sc.initializeInstance(hitem,inst);
-  sc.clearReferences(hitem);
-  view.setVisual(hitem,owner,false);
+
+  auto hitem = std::make_shared<phoenix::c_item>();
+  sc.initializeInstanceItem(hitem, inst);
+  view.setVisual(*hitem,owner,false);
 
   size_t torchId = sc.getSymbolIndex("ItLsTorchburned");
   if(torchId!=size_t(-1)) {
-    Daedalus::GEngineClasses::C_Item  hitem={};
-    sc.initializeInstance(hitem,torchId);
-    sc.clearReferences(hitem);
-
-    auto m = Resources::loadMesh(hitem.visual.c_str());
+    auto hitem = std::make_shared<phoenix::c_item>();
+    sc.initializeInstanceItem(hitem, torchId);
+    auto m = Resources::loadMesh(hitem->visual);
     setPhysicsEnable(m);
     }
   }

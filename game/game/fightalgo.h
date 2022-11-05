@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include <daedalus/DaedalusStdlib.h>
+#include <phoenix/ext/daedalus_classes.hh>
 
 class Npc;
 class GameScript;
@@ -52,11 +52,11 @@ class FightAlgo final {
 
   private:
     void   fillQueue(Npc &npc, Npc &tg, GameScript& owner);
-    bool   fillQueue(GameScript& owner,const Daedalus::GEngineClasses::C_FightAI& src);
+    bool   fillQueue(GameScript& owner,const phoenix::c_fight_ai& src);
 
     static float  weaponRange(GameScript &owner,const Npc &npc);
 
-    Daedalus::GEngineClasses::Move queueId=Daedalus::GEngineClasses::Move(0);
-    Action                         tr   [MV_MAX]={};
-    bool                           hitFlg=false;
+    phoenix::c_fight_ai_move           queueId=phoenix::c_fight_ai_move::nop;
+    Action                             tr   [MV_MAX]={};
+    bool                               hitFlg=false;
   };

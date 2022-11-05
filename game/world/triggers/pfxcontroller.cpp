@@ -5,17 +5,18 @@
 #include "game/serialize.h"
 #include "gothic.h"
 
-PfxController::PfxController(Vob* parent, World& world, ZenLoad::zCVobData&& d, Flags flags)
-  :AbstractTrigger(parent,world,std::move(d),flags) {
-  auto& name = data.zCPFXControler.pfxName;
-  const ParticleFx* view = Gothic::inst().loadParticleFx(name);
+PfxController::PfxController(Vob* parent, World& world, const phoenix::vobs::pfx_controller& ctrl, Flags flags)
+  :AbstractTrigger(parent,world,ctrl,flags) {
+  killWhenDone = ctrl.kill_when_done;
+
+  const ParticleFx* view = Gothic::inst().loadParticleFx(ctrl.pfx_name);
   if(view==nullptr)
-    view = Gothic::inst().loadParticleFx(data.visual);
+    view = Gothic::inst().loadParticleFx(ctrl.visual_name);
   if(view==nullptr)
     return;
   lifeTime = view->maxLifetime();
   pfx = PfxEmitter(world,view);
-  pfx.setActive(d.zCPFXControler.pfxStartOn);
+  pfx.setActive(ctrl.initially_running);
   pfx.setLooped(true);
   pfx.setObjMatrix(transform());
   }
@@ -39,7 +40,7 @@ void PfxController::onTrigger(const TriggerEvent&) {
   if(killed<world.tickCount())
     return;
   pfx.setActive(true);
-  if(data.zCPFXControler.killVobWhenDone) {
+  if(killWhenDone) {
     killed = world.tickCount() + lifeTime;
     enableTicks();
     }

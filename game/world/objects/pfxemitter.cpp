@@ -35,10 +35,10 @@ PfxEmitter::PfxEmitter(PfxObjects& owner, const ParticleFx* decl) {
     shpMesh = owner.world.addView(decl->shpMesh_S.c_str(),0,0,0);
   }
 
-PfxEmitter::PfxEmitter(World& world, const ZenLoad::zCVobData& vob) {
+PfxEmitter::PfxEmitter(World& world, const phoenix::vob& vob) {
   auto& owner = world.view()->pfxGroup;
-  if(FileExt::hasExt(vob.visual,"PFX")) {
-    auto decl = Gothic::inst().loadParticleFx(vob.visual.c_str());
+  if(FileExt::hasExt(vob.visual_name,"PFX")) {
+    auto decl = Gothic::inst().loadParticleFx(vob.visual_name.c_str());
     if(decl==nullptr || decl->visMaterial.tex==nullptr)
       return;
     std::lock_guard<std::recursive_mutex> guard(owner.sync);

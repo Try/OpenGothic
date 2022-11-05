@@ -1,6 +1,7 @@
 #pragma once
 
-#include <zenload/zTypes.h>
+#include <phoenix/world/way_net.hh>
+
 #include <limits>
 #include <Tempest/Vec>
 
@@ -9,7 +10,7 @@ class FpLock;
 class WayPoint final {
   public:
     WayPoint();
-    WayPoint(const ZenLoad::zCWaypointData& dat);
+    WayPoint(const phoenix::way_point& dat);
     WayPoint(const Tempest::Vec3& pos, std::string_view name);
     WayPoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name);
     WayPoint(const WayPoint&)=default;
@@ -32,7 +33,7 @@ class WayPoint final {
     float dirY=0;
     float dirZ=0;
 
-    Daedalus::ZString name;
+    std::string name;
 
     struct Conn final {
       WayPoint* point=nullptr;

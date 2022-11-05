@@ -58,7 +58,7 @@ class MeshObjects final {
         void   setPose     (const Tempest::Matrix4x4& obj, const Pose& p);
         void   setAsGhost  (bool g);
         void   setFatness  (float f);
-        void   setWind     (ZenLoad::AnimMode m, float intensity);
+        void   setWind     (phoenix::animation_mode m, float intensity);
         void   startMMAnim (std::string_view anim, float intensity, uint64_t timeUntil);
 
         bool   isEmpty()    const { return subCount==0; }

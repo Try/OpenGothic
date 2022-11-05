@@ -4,6 +4,8 @@
 
 #include <Tempest/VulkanApi>
 
+#include <phoenix/phoenix.hh>
+
 #if defined(_MSC_VER)
 #include <Tempest/DirectX12Api>
 #endif
@@ -67,12 +69,28 @@ int main(int argc,const char** argv) {
       logFile.write("\n",1);
       logFile.flush();
       });
+
+    phoenix::logging::use_logger([] (phoenix::logging::level lvl, const std::string& message) {
+      switch (lvl) {
+        case phoenix::logging::level::error:
+          Tempest::Log::e("[phoenix] ", message);
+          break;
+        case phoenix::logging::level::warn:
+          Tempest::Log::e("[phoenix] ", message);
+          break;
+        case phoenix::logging::level::info:
+          Tempest::Log::i("[phoenix] ", message);
+          break;
+        case phoenix::logging::level::debug:
+          Tempest::Log::d("[phoenix] ", message);
+          break;
+        }
+      });
     }
   catch(...) {
     Tempest::Log::e("unable to setup logfile - fallback to console log");
     }
   CrashLog::setup();
-  VDFS::FileIndex::initVDFS(argv[0]);
 
   Tempest::Log::i(appBuild);
 

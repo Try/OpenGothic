@@ -3,8 +3,6 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Point>
 
-#include <zenload/zCMesh.h>
-
 #include <vector>
 
 #include "resources.h"

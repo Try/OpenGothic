@@ -8,7 +8,6 @@
 
 // https://forum.worldofplayers.de/forum/threads/127320-Damage-System?p=2198181#post2198181
 
-using namespace Daedalus::GEngineClasses;
 
 DamageCalculator::Val DamageCalculator::damageValue(Npc& src, Npc& other, const Bullet* b, bool isSpell, const DamageCalculator::Damage& splDmg, const CollideMask bMsk) {
   DamageCalculator::Val ret;
@@ -66,7 +65,7 @@ DamageCalculator::Val DamageCalculator::rangeDamage(Npc& nsrc, Npc& nother, cons
   }
 
 DamageCalculator::Val DamageCalculator::rangeDamage(Npc&, Npc& nother, Damage dmg, const CollideMask bMsk) {
-  C_Npc& other = *nother.handle();
+  auto& other = nother.handle();
 
   if(bMsk & COLL_APPLYDOUBLEDAMAGE)
     dmg*=2;
@@ -74,7 +73,7 @@ DamageCalculator::Val DamageCalculator::rangeDamage(Npc&, Npc& nother, Damage dm
     dmg/=2;
 
   int  value = 0;
-  for(int i=0; i<DAM_INDEX_MAX; ++i) {
+  for(unsigned int i=0; i<phoenix::damage_type::count; ++i) {
     if(dmg[size_t(i)]==0)
       continue;
     int vd = std::max(dmg[size_t(i)] - other.protection[i],0);
@@ -90,8 +89,8 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
     return Val(0,true,true);
 
   auto&  script = nsrc.world().script();
-  C_Npc& src    = *nsrc.handle();
-  C_Npc& other  = *nother.handle();
+  auto& src    = nsrc.handle();
+  auto& other  = nother.handle();
 
   // Swords/Fists
   const int dtype      = damageTypeMask(nsrc);
@@ -113,11 +112,11 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
       critChance = 0;
       }
 
-    for(int i=0; i<DAM_INDEX_MAX; ++i){
+    for(unsigned int i=0; i<phoenix::damage_type::count; ++i){
       if((dtype & (1<<i))==0)
         continue;
       int vd = std::max(str + src.damage[i] - other.protection[i],0);
-      if(src.hitChance[hitCh]<critChance)
+      if(src.hitchance[hitCh]<critChance)
         vd = (vd-1)/10;
       if(other.protection[i]>=0) // Filter immune
         value += vd;
@@ -125,11 +124,11 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
 
     return Val(value,true);
     } else {
-    for(int i=0; i<DAM_INDEX_MAX; ++i) {
+    for(unsigned int i=0; i<phoenix::damage_type::count; ++i) {
       if((dtype & (1<<i))==0)
         continue;
       int vd = std::max(str + src.damage[i] - other.protection[i],0);
-      if(src.hitChance[hitCh]<critChance)
+      if(src.hitchance[hitCh]<critChance)
         vd = std::max(str + src.damage[i]   - other.protection[i],0); else
         vd = std::max(str + src.damage[i]*2 - other.protection[i],0);
       if(other.protection[i]>=0) // Filter immune
@@ -142,22 +141,22 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
 
 int32_t DamageCalculator::damageTypeMask(Npc& npc) {
   if(auto w = npc.inventory().activeWeapon())
-    return w->handle().damageType;
-  return npc.handle()->damagetype;
+    return w->handle().damage_type;
+  return npc.handle().damage_type;
   }
 
 bool DamageCalculator::checkDamageMask(Npc& nsrc, Npc& nother, const Bullet* b) {
-  C_Npc& other = *nother.handle();
+  auto& other = nother.handle();
 
   if(b!=nullptr) {
     auto dmg = b->damage();
-    for(int i=0;i<DAM_INDEX_MAX;++i) {
+    for(unsigned int i=0;i<phoenix::damage_type::count;++i) {
       if(dmg[size_t(i)]>0 && other.protection[i]>=0)
         return true;
       }
     } else {
     const int dtype = damageTypeMask(nsrc);
-    for(int i=0;i<DAM_INDEX_MAX;++i){
+    for(unsigned int i=0;i<phoenix::damage_type::count;++i){
       if((dtype & (1<<i))==0)
         continue;
       return true;
@@ -171,10 +170,10 @@ DamageCalculator::Damage DamageCalculator::rangeDamageValue(Npc& src) {
   const int dtype = damageTypeMask(src);
   int d = src.attribute(Attribute::ATR_DEXTERITY);
   Damage ret={};
-  for(int i=0;i<DAM_INDEX_MAX;++i){
+  for(unsigned int i=0;i<phoenix::damage_type::count;++i){
     if((dtype & (1<<i))==0)
       continue;
-    ret[size_t(i)] = d + src.handle()->damage[i];
+    ret[size_t(i)] = d + src.handle().damage[i];
     }
   return ret;
   }

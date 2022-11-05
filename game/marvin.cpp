@@ -275,21 +275,24 @@ bool Marvin::addItemOrNpcBySymbolName(World* world, std::string_view name, const
   if(id==size_t(-1))
     return false;
 
-  auto&  sym = sc.getSymbol(id);
-  if(sym.parent==uint32_t(-1))
+  auto*  sym = sc.getSymbol(id);
+  if(sym==nullptr||sym->parent()==uint32_t(-1))
     return false;
 
-  if(sym.properties.elemProps.type!=Daedalus::EParType::EParType_Instance)
+  if(sym->type()!=phoenix::datatype::instance)
     return false;
 
-  const auto* cls = &sym;
-  while(cls->parent!=uint32_t(-1)) {
-    cls = &sc.getSymbol(cls->parent);
+  const auto* cls = sym;
+  while(cls!=nullptr&&cls->parent()!=uint32_t(-1)) {
+    cls = sc.getSymbol(cls->parent());
     }
 
-  if(cls->name=="C_NPC")
+  if (cls==nullptr)
+    return false;
+
+  if(cls->name()=="C_NPC")
     return (world->addNpc(id, at)!=nullptr);
-  if(cls->name=="C_ITEM")
+  if(cls->name()=="C_ITEM")
     return (world->addItem(id, at)!=nullptr);
   return false;
   }
@@ -300,16 +303,21 @@ bool Marvin::printVariable(World* world, std::string_view name) {
   if(id==size_t(-1))
     return false;
   char buf[256] = {};
-  auto&  sym = sc.getSymbol(id);
-  switch(sym.properties.elemProps.type) {
-    case Daedalus::EParType::EParType_Int:
-      std::snprintf(buf,sizeof(buf),"%.*s = %d",int(name.size()),name.data(), sym.getInt(0));
+  auto*  sym = sc.getSymbol(id);
+  switch(sym->type()) {
+    case phoenix::datatype::integer:
+      std::snprintf(buf,sizeof(buf),"%.*s = %d",int(name.size()),name.data(), sym->get_int(0));
       break;
-    case Daedalus::EParType::EParType_Float:
-      std::snprintf(buf,sizeof(buf),"%.*s = %f",int(name.size()),name.data(), sym.getFloat(0));
+    case phoenix::datatype::float_:
+      std::snprintf(buf,sizeof(buf),"%.*s = %f",int(name.size()),name.data(), sym->get_float(0));
       break;
-    case Daedalus::EParType::EParType_String:
-      std::snprintf(buf,sizeof(buf),"%.*s = %s",int(name.size()),name.data(), sym.getString(0).c_str());
+    case phoenix::datatype::string:
+      std::snprintf(buf,sizeof(buf),"%.*s = %s",int(name.size()),name.data(), sym->get_string(0).c_str());
+      break;
+    case phoenix::datatype::instance:
+      std::snprintf(buf,sizeof(buf),"%.*s = %p",int(name.size()),name.data(), sym->get_instance().get());
+      break;
+    default:
       break;
     }
   print(buf);
@@ -324,8 +332,8 @@ std::string_view Marvin::completeInstanceName(std::string_view inp, bool& fullwo
   auto&            sc    = world->script();
   std::string_view match = "";
   for(size_t i=0; i<sc.getSymbolCount(); ++i) {
-    auto&  sym  = sc.getSymbol(i);
-    auto   name = std::string_view(sym.name);
+    auto*  sym  = sc.getSymbol(i);
+    auto   name = std::string_view(sym->name());
     if(!startsWith(name,inp))
       continue;
 

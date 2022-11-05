@@ -1,6 +1,3 @@
-[submodule "lib/ZenLib"]
-	path = lib/ZenLib
-  url = https://github.com/Try/ZenLib.git
 [submodule "lib/Tempest"]
 	path = lib/Tempest
 	url = https://github.com/Try/Tempest.git
@@ -10,3 +7,7 @@
 [submodule "lib/TinySoundFont"]
 	path = lib/TinySoundFont
 	url = https://github.com/schellingb/TinySoundFont.git
+[submodule "lib/phoenix"]
+	path = lib/phoenix
+	url = https://github.com/lmichaelis/phoenix.git
+	branch = v/1.0

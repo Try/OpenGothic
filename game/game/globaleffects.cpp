@@ -84,7 +84,7 @@ void GlobalEffects::scrBlend(Tempest::Painter& p, const Tempest::Rect& rect) {
     }
   }
 
-GlobalFx GlobalEffects::startEffect(const Daedalus::ZString& what, uint64_t len, const Daedalus::ZString* argv, size_t argc) {
+GlobalFx GlobalEffects::startEffect(std::string_view what, uint64_t len, const std::string* argv, size_t argc) {
   auto     ret = create(what,argv,argc);
   auto&    eff = *ret.h;
   if(len==0)
@@ -107,7 +107,7 @@ void GlobalEffects::stopEffect(const VisualFx& vfx) {
     quakeEff.clear();
   }
 
-GlobalFx GlobalEffects::create(const Daedalus::ZString& what, const Daedalus::ZString* argv, size_t argc) {
+GlobalFx GlobalEffects::create(std::string_view what, const std::string* argv, size_t argc) {
   if(what=="time.slw")
     return addSlowTime(argv,argc);
   if(what=="screenblend.scx")
@@ -119,7 +119,7 @@ GlobalFx GlobalEffects::create(const Daedalus::ZString& what, const Daedalus::ZS
   return GlobalFx();
   }
 
-GlobalFx GlobalEffects::addSlowTime(const Daedalus::ZString* argv, size_t argc) {
+GlobalFx GlobalEffects::addSlowTime(const std::string* argv, size_t argc) {
   double val[2] = {1,1};
   for(size_t i=0; i<argc && i<2; ++i)
     val[i] = std::atof(argv[i].c_str());
@@ -134,7 +134,7 @@ GlobalFx GlobalEffects::addSlowTime(const Daedalus::ZString* argv, size_t argc) 
   return GlobalFx(timeEff.back());
   }
 
-GlobalFx GlobalEffects::addScreenBlend(const Daedalus::ZString* argv, size_t argc) {
+GlobalFx GlobalEffects::addScreenBlend(const std::string* argv, size_t argc) {
   ScreenBlend sc;
 
   if(0<argc)
@@ -154,7 +154,7 @@ GlobalFx GlobalEffects::addScreenBlend(const Daedalus::ZString* argv, size_t arg
   return GlobalFx(scrEff.back());
   }
 
-GlobalFx GlobalEffects::addMorphFov(const Daedalus::ZString* argv, size_t argc) {
+GlobalFx GlobalEffects::addMorphFov(const std::string* argv, size_t argc) {
   double val[4] = {0,0,0,0};
   for(size_t i=0; i<argc && i<4; ++i) {
     val[i] = std::atof(argv[i].c_str());
@@ -169,7 +169,7 @@ GlobalFx GlobalEffects::addMorphFov(const Daedalus::ZString* argv, size_t argc) 
   return GlobalFx(morphEff.back());
   }
 
-GlobalFx GlobalEffects::addEarthQuake(const Daedalus::ZString*, size_t) {
+GlobalFx GlobalEffects::addEarthQuake(const std::string*, size_t) {
   quakeEff.emplace_back(std::make_shared<Quake>());
   return GlobalFx(quakeEff.back());
   }

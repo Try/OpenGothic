@@ -2,7 +2,6 @@
 #include "inventory.h"
 
 #include <Tempest/Log>
-#include <daedalus/DaedalusExcept.h>
 
 #include "world/objects/item.h"
 #include "world/objects/npc.h"
@@ -11,7 +10,6 @@
 #include "serialize.h"
 #include "gothic.h"
 
-using namespace Daedalus::GameState;
 using namespace Tempest;
 
 const Item& Inventory::Iterator::operator*() const {
@@ -220,7 +218,6 @@ size_t Inventory::itemCount(const size_t cls) const {
   }
 
 Item* Inventory::addItem(std::unique_ptr<Item> &&p) {
-  using namespace Daedalus::GEngineClasses;
   if(p==nullptr)
     return nullptr;
   sorted=false;
@@ -234,8 +231,8 @@ Item* Inventory::addItem(std::unique_ptr<Item> &&p) {
     return items.back().get();
     } else {
     it->setCount(it->count()+p->count());
-    it->handle().owner      = p->handle().owner;
-    it->handle().ownerGuild = p->handle().ownerGuild;
+    it->handle().owner       = p->handle().owner;
+    it->handle().owner_guild = p->handle().owner_guild;
     return p.get();
     }
   }
@@ -249,7 +246,6 @@ Item* Inventory::addItem(std::string_view name, size_t count, World &owner) {
   }
 
 Item* Inventory::addItem(size_t itemSymbol, size_t count, World &owner) {
-  using namespace Daedalus::GEngineClasses;
   if(count<=0)
     return nullptr;
   sorted=false;
@@ -262,11 +258,8 @@ Item* Inventory::addItem(size_t itemSymbol, size_t count, World &owner) {
       items.emplace_back(std::move(ptr));
       return items.back().get();
       }
-    catch(const Daedalus::InvalidCall& call) {
+    catch(const std::runtime_error& call) {
       Log::e("[invalid call in VM, while initializing item: ",itemSymbol,"]");
-      for(auto& i:call.callstack)
-        Log::e("-",i);
-      Log::e("---end of callstack---");
       return nullptr;
       }
     } else {
@@ -276,7 +269,6 @@ Item* Inventory::addItem(size_t itemSymbol, size_t count, World &owner) {
   }
 
 void Inventory::delItem(size_t itemSymbol, size_t count, Npc& owner) {
-  using namespace Daedalus::GEngineClasses;
   if(count<=0)
     return;
   Item* it=findByClass(itemSymbol);
@@ -413,7 +405,7 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
 
   if(slot!=nullptr) {
     auto& itData = slot->handle();
-    auto  flag   = ItmFlags(itData.mainflag);
+    auto  flag   = ItmFlags(itData.main_flag);
     applyArmour(*slot,owner,-1);
     if(slot->isEquiped())
       slot->setAsEquiped(false);
@@ -480,7 +472,7 @@ void Inventory::updateArmourView(Npc& owner) {
     return;
 
   auto& itData = armour->handle();
-  auto  flag   = ItmFlags(itData.mainflag);
+  auto  flag   = ItmFlags(itData.main_flag);
   if(flag & ITM_CAT_ARMOR)
     owner.updateArmour();
   }
@@ -737,7 +729,7 @@ bool Inventory::putState(Npc& owner, size_t cls, int state) {
     return owner.stopItemStateAnim();
     }
 
-  if(!owner.setAnimItem(it->handle().scemeName.c_str(),state))
+  if(!owner.setAnimItem(it->handle().scheme_name,state))
     return false;
 
   setCurrentItem(0);
@@ -780,7 +772,7 @@ bool Inventory::use(size_t cls, Npc &owner, uint8_t slotHint, bool force) {
     return false;
 
   auto& itData   = it->handle();
-  auto  mainflag = ItmFlags(itData.mainflag);
+  auto  mainflag = ItmFlags(itData.main_flag);
   auto  flag     = ItmFlags(itData.flags);
 
   if(mainflag & ITM_CAT_NF)
@@ -825,7 +817,7 @@ bool Inventory::use(size_t cls, Npc &owner, uint8_t slotHint, bool force) {
       }
     }
 
-  if(!owner.setAnimItem(itData.scemeName.c_str(),-1))
+  if(!owner.setAnimItem(itData.scheme_name,-1))
     return false;
 
   // owner.stopDlgAnim();
@@ -908,7 +900,7 @@ Item* Inventory::bestItem(Npc &owner, ItmFlags f) {
   int   g  =-1;
   for(auto& i:items) {
     auto& itData = i->handle();
-    auto  flag   = ItmFlags(itData.mainflag);
+    auto  flag   = ItmFlags(itData.main_flag);
     if((flag & f)==0)
       continue;
     if(!i->checkCond(owner))
@@ -935,12 +927,12 @@ Item *Inventory::bestRangeWeapon(Npc &owner) {
   }
 
 void Inventory::applyWeaponStats(Npc& owner, const Item &weapon, int sgn) {
-  auto& hnpc = *owner.handle();
-  //hnpc.damagetype = sgn>0 ? weapon.handle()->damageType : (1 << Daedalus::GEngineClasses::DAM_INDEX_BLUNT);
-  for(size_t i=0; i<DamageCalculator::DAM_INDEX_MAX; ++i){
+  auto& hnpc = owner.handle();
+  //hnpc.damagetype = sgn>0 ? weapon.handle()->damageType : (1 << GEngineClasses::DAM_INDEX_BLUNT);
+  for(size_t i=0; i<phoenix::damage_type::count; ++i){
     hnpc.damage[i] += sgn*weapon.handle().damage[i];
-    if(weapon.handle().damageType & (1<<i)) {
-      hnpc.damage[i] += sgn*weapon.handle().damageTotal;
+    if(weapon.handle().damage_type & (1<<i)) {
+      hnpc.damage[i] += sgn*weapon.handle().damage_total;
       }
     }
   }
@@ -972,8 +964,8 @@ bool Inventory::less(const Item &il, const Item &ir) {
     rV = ir.cost();
     }
 
-  return std::make_tuple(il.mainFlag(), -il.handle().damageTotal, -lV, -il.clsId())
-      <  std::make_tuple(ir.mainFlag(), -ir.handle().damageTotal, -rV, -ir.clsId());
+  return std::make_tuple(il.mainFlag(), -il.handle().damage_total, -lV, -il.clsId())
+      <  std::make_tuple(ir.mainFlag(), -ir.handle().damage_total, -rV, -ir.clsId());
   }
 
 int Inventory::orderId(const Item& i) {

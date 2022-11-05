@@ -6,16 +6,16 @@
 
 using namespace Tempest;
 
-ParticleFx::ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob) {
-  dbgName          = vob.visual;
+ParticleFx::ParticleFx(const Material& mat, const phoenix::vob& vob) {
+  dbgName          = vob.visual_name;
 
   ppsValue         = -1;
   lspPartAvg       = 1000;
   dirMode          = ParticleFx::Dir::Dir;
   visTexColorStart = Vec3(255,255,255);
   visTexColorEnd   = Vec3(255,255,255);
-  visSizeStart     = Vec2(2.f*vob.visualChunk.zCDecal.decalDim.x,
-                          2.f*vob.visualChunk.zCDecal.decalDim.y);
+  visSizeStart     = Vec2(2.f*vob.visual_decal->dimension.x,
+                          2.f*vob.visual_decal->dimension.y);
   visOrientation   = Orientation::None;
 
   visMaterial      = mat;
@@ -27,81 +27,81 @@ ParticleFx::ParticleFx(const Material& mat, const ZenLoad::zCVobData& vob) {
   visSizeEndScale  = 1;
   visAlphaStart    = 1;
   visAlphaEnd      = 1;
-  visYawAlign      = vob.visualCamAlign==1;
-  visZBias         = vob.zBias!=0;
+  visYawAlign      = vob.sprite_camera_facing_mode==phoenix::sprite_alignment::yaw;
+  visZBias         = vob.bias!=0;
 
   useEmittersFOR   = true;
   }
 
-ParticleFx::ParticleFx(const Daedalus::GEngineClasses::C_ParticleFX &src, std::string_view name)
+ParticleFx::ParticleFx(const phoenix::c_particle_fx &src, std::string_view name)
   :dbgName(name) {
-  ppsValue            = std::max(0.f,src.ppsValue);
-  ppsScaleKeys        = loadArr(src.ppsScaleKeys_S);
-  ppsIsLooping        = src.ppsIsLooping!=0;
-  ppsIsSmooth         = src.ppsIsSmooth!=0;
-  ppsFPS              = src.ppsFPS>0 ? src.ppsFPS : 1.f;
-  ppsCreateEm         = Gothic::inst().loadParticleFx(src.ppsCreateEm_S.c_str());
-  ppsCreateEmDelay    = uint64_t(src.ppsCreateEmDelay);
+  ppsValue            = std::max(0.f,src.pps_value);
+  ppsScaleKeys        = loadArr(src.pps_scale_keys_s);
+  ppsIsLooping        = src.pps_is_looping!=0;
+  ppsIsSmooth         = src.pps_is_smooth!=0;
+  ppsFPS              = src.pps_fps>0 ? src.pps_fps : 1.f;
+  ppsCreateEm         = Gothic::inst().loadParticleFx(src.pps_create_em_s);
+  ppsCreateEmDelay    = uint64_t(src.pps_create_em_delay);
 
-  shpType             = loadEmitType(src.shpType_S);
-  shpFOR              = loadFrameType(src.shpFOR_S);
-  shpOffsetVec        = Parser::loadVec3(src.shpOffsetVec_S);
-  shpDistribType      = loadDistribType(src.shpDistribType_S);
-  shpDistribWalkSpeed = src.shpDistribWalkSpeed;
-  shpIsVolume         = src.shpIsVolume!=0;
-  shpDim              = Parser::loadVec3(src.shpDim_S);
-  shpMesh_S           = src.shpMesh_S;
-  shpMesh             = Resources::loadEmiterMesh(src.shpMesh_S.c_str());
-  shpMeshRender       = src.shpMeshRender_B!=0;
-  shpScaleKeys        = loadArr(src.shpScaleKeys_S);
-  shpScaleIsLooping   = src.shpScaleIsLooping!=0;
-  shpScaleIsSmooth    = src.shpScaleIsSmooth!=0;
-  shpScaleFPS         = src.shpScaleFPS;
+  shpType             = loadEmitType(src.shp_type_s);
+  shpFOR              = loadFrameType(src.shp_for_s);
+  shpOffsetVec        = Parser::loadVec3(src.shp_offset_vec_s);
+  shpDistribType      = loadDistribType(src.shp_distrib_type_s);
+  shpDistribWalkSpeed = src.shp_distrib_walk_speed;
+  shpIsVolume         = src.shp_is_volume!=0;
+  shpDim              = Parser::loadVec3(src.shp_dim_s);
+  shpMesh_S           = src.shp_mesh_s;
+  shpMesh             = Resources::loadEmiterMesh(src.shp_mesh_s);
+  shpMeshRender       = src.shp_mesh_render_b!=0;
+  shpScaleKeys        = loadArr(src.shp_scale_keys_s);
+  shpScaleIsLooping   = src.shp_scale_is_looping!=0;
+  shpScaleIsSmooth    = src.shp_scale_is_smooth!=0;
+  shpScaleFPS         = src.shp_scale_fps;
 
-  dirMode             = loadDirType(src.dirMode_S);
-  dirFOR              = loadFrameType(src.dirFOR_S);
-  dirModeTargetFOR    = loadFrameType(src.dirModeTargetFOR_S);
-  dirModeTargetPos    = Parser::loadVec3(src.dirModeTargetPos_S);
-  dirAngleHead        = src.dirAngleHead;
-  dirAngleHeadVar     = src.dirAngleHeadVar;
-  dirAngleElev        = src.dirAngleElev;
-  dirAngleElevVar     = src.dirAngleElevVar;
+  dirMode             = loadDirType(src.dir_mode_s);
+  dirFOR              = loadFrameType(src.dir_for_s);
+  dirModeTargetFOR    = loadFrameType(src.dir_mode_target_for_s);
+  dirModeTargetPos    = Parser::loadVec3(src.dir_mode_target_pos_s);
+  dirAngleHead        = src.dir_angle_head;
+  dirAngleHeadVar     = src.dir_angle_head_var;
+  dirAngleElev        = src.dir_angle_elev;
+  dirAngleElevVar     = src.dir_angle_elev_var;
 
-  velAvg              = src.velAvg;
-  velVar              = src.velVar;
-  lspPartAvg          = src.lspPartAvg;
-  lspPartVar          = src.lspPartVar;
+  velAvg              = src.vel_avg;
+  velVar              = src.vel_var;
+  lspPartAvg          = src.lsp_part_avg;
+  lspPartVar          = src.lsp_part_var;
 
-  flyGravity          = Parser::loadVec3(src.flyGravity_S);
-  flyCollDet          = src.flyCollDet_B!=0;
+  flyGravity          = Parser::loadVec3(src.fly_gravity_s);
+  flyCollDet          = src.fly_colldet_b!=0;
 
   visMaterial         = Material(src);
-  visOrientation      = loadOrientation(src.visOrientation_S);
-  visTexIsQuadPoly    = src.visTexIsQuadPoly;
-  visTexAniFPS        = src.visTexAniFPS;
-  visTexAniIsLooping  = src.visTexAniIsLooping;
-  visTexColorStart    = Parser::loadVec3(src.visTexColorStart_S);
-  visTexColorEnd      = Parser::loadVec3(src.visTexColorEnd_S);
-  visSizeStart        = Parser::loadVec2(src.visSizeStart_S);
-  visSizeEndScale     = src.visSizeEndScale;
-  visAlphaStart       = src.visAlphaStart/255.f;
-  visAlphaEnd         = src.visAlphaEnd/255.f;
+  visOrientation      = loadOrientation(src.vis_orientation_s);
+  visTexIsQuadPoly    = src.vis_tex_is_quadpoly;
+  visTexAniFPS        = src.vis_tex_ani_fps;
+  visTexAniIsLooping  = src.vis_tex_ani_is_looping;
+  visTexColorStart    = Parser::loadVec3(src.vis_tex_color_start_s);
+  visTexColorEnd      = Parser::loadVec3(src.vis_tex_color_end_s);
+  visSizeStart        = Parser::loadVec2(src.vis_size_start_s);
+  visSizeEndScale     = src.vis_size_end_scale;
+  visAlphaStart       = src.vis_alpha_start/255.f;
+  visAlphaEnd         = src.vis_alpha_end/255.f;
 
-  trlFadeSpeed       = src.trlFadeSpeed;
-  trlTexture         = loadTexture(src.trlTexture_S.c_str());
-  trlWidth           = src.trlWidth;
+  trlFadeSpeed       = src.trl_fade_speed;
+  trlTexture         = loadTexture(src.trl_texture_s);
+  trlWidth           = src.trl_width;
 
-  mrkFadeSpeed       = src.mrkFadeSpeed;
-  mrkTexture         = loadTexture(src.mrkTexture_S.c_str());
-  mrkSize            = src.mrkSize;
+  mrkFadeSpeed       = src.mrk_fades_peed;
+  mrkTexture         = loadTexture(src.mrkt_exture_s);
+  mrkSize            = src.mrk_size;
 
-  flockMode           = src.flockMode.c_str();
-  flockStrength       = src.flockStrength;
+  flockMode           = src.flock_mode;
+  flockStrength       = src.flock_strength;
 
-  useEmittersFOR      = src.useEmittersFOR!=0;
+  useEmittersFOR      = src.use_emitters_for!=0;
 
-  timeStartEnd_S      = src.timeStartEnd_S.c_str();
-  m_bIsAmbientPFX     = src.m_bIsAmbientPFX!=0;
+  timeStartEnd_S      = src.time_start_end_s;
+  m_bIsAmbientPFX     = src.m_bis_ambient_pfx!=0;
 
   prefferedTime       = calcPrefferedTimeSingle();
 
@@ -203,9 +203,9 @@ const Tempest::Texture2d* ParticleFx::loadTexture(std::string_view src) {
   return view;
   }
 
-ParticleFx::KeyList ParticleFx::loadArr(const Daedalus::ZString& src) {
+ParticleFx::KeyList ParticleFx::loadArr(std::string_view src) {
   std::vector<float> v;
-  const char* str  = src.c_str();
+  const char* str  = src.data();
   for(int i=0;;++i) {
     char* next=nullptr;
     float f = std::strtof(str,&next);
@@ -217,7 +217,7 @@ ParticleFx::KeyList ParticleFx::loadArr(const Daedalus::ZString& src) {
     }
   }
 
-ParticleFx::EmitterType ParticleFx::loadEmitType(const Daedalus::ZString& src) {
+ParticleFx::EmitterType ParticleFx::loadEmitType(std::string_view src) {
   if(src=="POINT")
     return EmitterType::Point;
   if(src=="LINE")
@@ -233,7 +233,7 @@ ParticleFx::EmitterType ParticleFx::loadEmitType(const Daedalus::ZString& src) {
   return EmitterType::Point;
   }
 
-ParticleFx::Frame ParticleFx::loadFrameType(const Daedalus::ZString& src) {
+ParticleFx::Frame ParticleFx::loadFrameType(std::string_view src) {
   if(src=="OBJECT")
     return Frame::Object;
   if(src=="object")
@@ -243,7 +243,7 @@ ParticleFx::Frame ParticleFx::loadFrameType(const Daedalus::ZString& src) {
   return Frame::World;
   }
 
-ParticleFx::Distribution ParticleFx::loadDistribType(const Daedalus::ZString& src) {
+ParticleFx::Distribution ParticleFx::loadDistribType(std::string_view src) {
   if(src=="RAND" || src=="RANDOM")
     return Distribution::Rand;
   if(src=="DIR")
@@ -255,7 +255,7 @@ ParticleFx::Distribution ParticleFx::loadDistribType(const Daedalus::ZString& sr
   return Distribution::Rand;
   }
 
-ParticleFx::Dir ParticleFx::loadDirType(const Daedalus::ZString& src) {
+ParticleFx::Dir ParticleFx::loadDirType(std::string_view src) {
   if(src=="RAND")
     return Dir::Rand;
   if(src=="DIR")
@@ -265,7 +265,7 @@ ParticleFx::Dir ParticleFx::loadDirType(const Daedalus::ZString& src) {
   return Dir::Rand;
   }
 
-ParticleFx::Orientation ParticleFx::loadOrientation(const Daedalus::ZString& src) {
+ParticleFx::Orientation ParticleFx::loadOrientation(std::string_view src) {
   if(src=="NONE")
     return Orientation::None;
   if(src=="VELO")

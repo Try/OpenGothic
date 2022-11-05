@@ -3,8 +3,6 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Vec>
 
-#include <zenload/zTypes.h>
-
 #include "world/collisionzone.h"
 #include "physics/dynamicworld.h"
 #include "graphics/meshobjects.h"
@@ -22,7 +20,7 @@ class PfxEmitter {
     PfxEmitter(World& world, std::string_view name);
     PfxEmitter(World& world, const ParticleFx* decl);
     PfxEmitter(PfxObjects& obj, const ParticleFx* vob);
-    PfxEmitter(World& world, const ZenLoad::zCVobData& vob);
+    PfxEmitter(World& world, const phoenix::vob& vob);
     ~PfxEmitter();
     PfxEmitter(PfxEmitter&&);
     PfxEmitter& operator=(PfxEmitter&& b);

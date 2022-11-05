@@ -114,10 +114,10 @@ void Bullet::onMove() {
   updateMatrix();
   }
 
-void Bullet::onCollide(uint8_t matId) {
-  if(matId<ZenLoad::NUM_MAT_GROUPS) {
-    if(material<ItemMaterial::MAT_COUNT) {
-      auto s = wrld->addLandHitEffect(ItemMaterial(material),ZenLoad::MaterialGroup(matId),obj->matrix());
+void Bullet::onCollide(phoenix::material_group matId) {
+  if(matId != phoenix::material_group::none) {
+    if(material < ItemMaterial::MAT_COUNT) {
+      auto s = wrld->addLandHitEffect(ItemMaterial(material),matId,obj->matrix());
       s.play();
       }
     }

@@ -1,6 +1,5 @@
 #include "world.h"
 
-#include <zenload/zCMesh.h>
 #include <fstream>
 #include <functional>
 #include <cctype>
@@ -40,22 +39,22 @@ const char* materialTag(ItemMaterial src) {
   return "UD";
   }
 
-const char* materialTag(ZenLoad::MaterialGroup src) {
+const char* materialTag(phoenix::material_group src) {
   switch(src) {
-    case ZenLoad::MaterialGroup::UNDEF:
-    case ZenLoad::MaterialGroup::NUM_MAT_GROUPS:
+    case phoenix::material_group::undefined:
+    case phoenix::material_group::none:
       return "UD";
-    case ZenLoad::MaterialGroup::METAL:
+    case phoenix::material_group::metal:
       return "ME";
-    case ZenLoad::MaterialGroup::STONE:
+    case phoenix::material_group::stone:
       return "ST";
-    case ZenLoad::MaterialGroup::WOOD:
+    case phoenix::material_group::wood:
       return "WO";
-    case ZenLoad::MaterialGroup::EARTH:
+    case phoenix::material_group::earth:
       return "EA";
-    case ZenLoad::MaterialGroup::WATER:
+    case phoenix::material_group::water:
       return "WA";
-    case ZenLoad::MaterialGroup::SNOW:
+    case phoenix::material_group::snow:
       return "SA"; // sand?
     }
   return "UD";
@@ -63,50 +62,47 @@ const char* materialTag(ZenLoad::MaterialGroup src) {
 
 World::World(GameSession& game, std::string file, bool startup, std::function<void(int)> loadProgress)
   :wname(std::move(file)),game(game),wsound(game,*this),wobj(*this) {
-  using namespace Daedalus::GameState;
 
-  ZenLoad::ZenParser parser(wname,Resources::vdfsIndex());
-  loadProgress(1);
-  if(parser.getFileSize()==0)
+  phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(wname);
+
+  if(entry == nullptr) {
     Tempest::Log::e("unable to open Zen-file: \"",wname,"\"");
-  parser.readHeader();
-
-  loadProgress(10);
-  ZenLoad::oCWorldData world;
-
-  auto fver = ZenLoad::ZenParser::FileVersion::Gothic1;
-  if(Gothic::inst().version().game==2)
-    fver = ZenLoad::ZenParser::FileVersion::Gothic2;
+    return;
+  }
 
   try {
-    parser.readWorld(world,fver);
+    auto buf = entry->open();
+    auto world = phoenix::world::parse(buf, version().game == 1 ? phoenix::game_version::gothic_1
+                                                                : phoenix::game_version::gothic_2);
+    loadProgress(20);
+
+    auto& worldMesh = world.world_mesh;
+    {
+      PackedMesh vmesh(worldMesh,PackedMesh::PK_VisualLnd);
+      wview.reset   (new WorldView(*this,vmesh));
+    }
+
+    loadProgress(50);
+    wdynamic.reset(new DynamicWorld(*this,worldMesh));
+    loadProgress(70);
+
+    globFx.reset(new GlobalEffects(*this));
+
+    wmatrix.reset(new WayMatrix(*this,world.world_way_net));
+
+    for(auto& vob:world.world_vobs)
+      wobj.addRoot(vob,startup);
+
+    wmatrix->buildIndex();
+    bsp = std::move(world.world_bsp_tree);
+    bspSectors.resize(bsp.sectors.size());
+    loadProgress(100);
+
     }
   catch(...) {
     Tempest::Log::e("unable to load landscape mesh");
     throw;
     }
-
-  ZenLoad::zCMesh* worldMesh = parser.getWorldMesh();
-  {
-  PackedMesh vmesh(*worldMesh,PackedMesh::PK_VisualLnd);
-  wview.reset   (new WorldView(*this,vmesh));
-  }
-
-  loadProgress(50);
-  wdynamic.reset(new DynamicWorld(*this,*worldMesh));
-  loadProgress(70);
-
-  globFx.reset(new GlobalEffects(*this));
-
-  wmatrix.reset(new WayMatrix(*this,world.waynet));
-  if(1){
-    for(auto& vob:world.rootVobs)
-      wobj.addRoot(std::move(vob),startup);
-    }
-  wmatrix->buildIndex();
-  bsp = std::move(world.bspTree);
-  bspSectors.resize(bsp.sectors.size());
-  loadProgress(100);
   }
 
 World::~World() {
@@ -230,7 +226,7 @@ void World::stopEffect(const VisualFx& root) {
   wobj.stopEffect(root);
   }
 
-GlobalFx World::addGlobalEffect(const Daedalus::ZString& what, uint64_t len, const Daedalus::ZString* argv, size_t argc) {
+GlobalFx World::addGlobalEffect(std::string_view what, uint64_t len, const std::string* argv, size_t argc) {
   return globFx->startEffect(what,len,argv,argc);
   }
 
@@ -242,8 +238,8 @@ MeshObjects::Mesh World::addView(std::string_view visual, int32_t headTex, int32
   return view()->addView(visual,headTex,teetTex,bodyColor);
   }
 
-MeshObjects::Mesh World::addView(const Daedalus::GEngineClasses::C_Item& itm) {
-  return view()->addView(itm.visual.c_str(),itm.material,0,itm.material);
+MeshObjects::Mesh World::addView(const phoenix::c_item& itm) {
+  return view()->addView(itm.visual,itm.material,0,itm.material);
   }
 
 MeshObjects::Mesh World::addView(const ProtoMesh* visual) {
@@ -262,7 +258,7 @@ MeshObjects::Mesh World::addStaticView(std::string_view visual) {
   return view()->addStaticView(visual);
   }
 
-MeshObjects::Mesh World::addDecalView(const ZenLoad::zCVobData& vob) {
+MeshObjects::Mesh World::addDecalView(const phoenix::vob& vob) {
   return view()->addDecalView(vob);
   }
 
@@ -288,36 +284,36 @@ const std::string& World::roomAt(const Tempest::Vec3& p) {
   if(bsp.nodes.empty())
     return empty;
 
-  const ZenLoad::zCBspNode* node=&bsp.nodes[0];
+  const auto* node=&bsp.nodes[0];
 
   while(true) {
-    const float* v    = node->plane.v;
-    float        sgn  = v[0]*p.x + v[1]*p.y + v[2]*p.z - v[3];
-    uint32_t     next = (sgn>0) ? node->front : node->back;
+    const auto v    = node->plane;
+    float        sgn  = v.x*p.x + v.y*p.y + v.z*p.z - v.w;
+    uint32_t     next = (sgn>0) ? node->front_index : node->back_index;
     if(next>=bsp.nodes.size())
       break;
 
     node = &bsp.nodes[next];
     }
 
-  if(node->bbox3dMin.x <= p.x && p.x <node->bbox3dMax.x &&
-     node->bbox3dMin.y <= p.y && p.y <node->bbox3dMax.y &&
-     node->bbox3dMin.z <= p.z && p.z <node->bbox3dMax.z) {
+  if(node->bbox.min.x <= p.x && p.x <node->bbox.max.x &&
+     node->bbox.min.y <= p.y && p.y <node->bbox.max.y &&
+     node->bbox.min.z <= p.z && p.z <node->bbox.max.z) {
     return roomAt(*node);
     }
 
   return empty;
   }
 
-const std::string& World::roomAt(const ZenLoad::zCBspNode& node) {
-  std::string* ret=nullptr;
+const std::string& World::roomAt(const phoenix::bsp_node& node) {
+  const std::string* ret=nullptr;
   size_t       count=0;
   auto         id = &node-bsp.nodes.data();(void)id;
 
   for(auto& i:bsp.sectors) {
-    for(auto r:i.bspNodeIndices)
-      if(r<bsp.leafIndices.size()){
-        size_t idx = bsp.leafIndices[r];
+    for(auto r:i.node_indices)
+      if(r<bsp.leaf_node_indices.size()){
+        size_t idx = bsp.leaf_node_indices[r];
         if(idx>=bsp.nodes.size())
           continue;
         if(&bsp.nodes[idx]==&node) {
@@ -493,7 +489,7 @@ void World::triggerChangeWorld(const std::string& world, const std::string& wayP
   game.changeWorld(world,wayPoint);
   }
 
-void World::setMobRoutine(gtime time, const Daedalus::ZString& scheme, int32_t state) {
+void World::setMobRoutine(gtime time, std::string_view scheme, int32_t state) {
   wobj.setMobRoutine(time,scheme,state);
   }
 
@@ -540,7 +536,7 @@ Item *World::addItem(size_t itemInstance, std::string_view at) {
   return wobj.addItem(itemInstance,at);
   }
 
-Item* World::addItem(const ZenLoad::zCVobData& vob) {
+Item* World::addItem(const phoenix::vobs::item& vob) {
   return wobj.addItem(vob);
   }
 
@@ -560,7 +556,7 @@ void World::removeItem(Item& it) {
   wobj.removeItem(it);
   }
 
-size_t World::hasItems(const char* tag, size_t itemCls) {
+size_t World::hasItems(std::string_view tag, size_t itemCls) {
   return wobj.hasItems(tag,itemCls);
   }
 
@@ -663,7 +659,7 @@ Sound World::addWeaponHitEffect(Npc& src, const Bullet* srcArrow, Npc& reciver) 
     return addHitEffect("FI",armor,"MAM",pos);
   }
 
-Sound World::addLandHitEffect(ItemMaterial src, ZenLoad::MaterialGroup reciver, const Tempest::Matrix4x4& pos) {
+Sound World::addLandHitEffect(ItemMaterial src, phoenix::material_group reciver, const Tempest::Matrix4x4& pos) {
   // IHI - item hits item
   // IHL - Item hits Level
   return addHitEffect(materialTag(src),materialTag(reciver),"IHL",pos);
@@ -733,16 +729,15 @@ void World::addFreePoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir, std
   wmatrix->addFreePoint(pos,dir,name);
   }
 
-void World::addSound(const ZenLoad::zCVobData& vob) {
-  if(vob.vobType==ZenLoad::zCVobData::VT_zCVobSound ||
-     vob.vobType==ZenLoad::zCVobData::VT_zCVobSoundDaytime) {
-    wsound.addSound(vob);
+void World::addSound(const phoenix::vob& vob) {
+  if(vob.type==phoenix::vob_type::zCVobSound || vob.type==phoenix::vob_type::zCVobSoundDaytime) {
+    wsound.addSound(reinterpret_cast<const phoenix::vobs::sound&>(vob));
     }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusic) {
-    wsound.addZone(vob);
+  else if(vob.type==phoenix::vob_type::oCZoneMusic) {
+    wsound.addZone(reinterpret_cast<const phoenix::vobs::zone_music&>(vob));
     }
-  else if(vob.vobType==ZenLoad::zCVobData::VT_oCZoneMusicDefault) {
-    wsound.setDefaultZone(vob);
+  else if(vob.type==phoenix::vob_type::oCZoneMusicDefault) {
+    wsound.setDefaultZone(reinterpret_cast<const phoenix::vobs::zone_music&>(vob));
     }
   }
 
@@ -750,7 +745,7 @@ void World::invalidateVobIndex() {
   wobj.invalidateVobIndex();
   }
 
-const Daedalus::GEngineClasses::C_Focus& World::searchPolicy(const Npc& pl, TargetCollect& coll, WorldObjects::SearchFlg& opt) const {
+const phoenix::c_focus& World::searchPolicy(const Npc& pl, TargetCollect& coll, WorldObjects::SearchFlg& opt) const {
   opt  = WorldObjects::NoFlg;
   coll = TARGET_COLLECT_FOCUS;
 
@@ -768,7 +763,7 @@ const Daedalus::GEngineClasses::C_Focus& World::searchPolicy(const Npc& pl, Targ
       if(auto weapon = pl.inventory().activeWeapon()) {
         int32_t id  = weapon->spellId();
         auto&   spl = script().spellDesc(id);
-        coll = TargetCollect(spl.targetCollectAlgo);
+        coll = TargetCollect(spl.target_collect_algo);
         }
       opt = WorldObjects::SearchFlg(WorldObjects::NoDeath | WorldObjects::NoUnconscious);
       return game.script()->focusMage();

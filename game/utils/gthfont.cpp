@@ -5,13 +5,14 @@
 
 using namespace Tempest;
 
-GthFont::GthFont(const char *name, std::string_view ftex, const Color &cl, const VDFS::FileIndex &fileIndex)
-  :fnt(name,fileIndex), color(cl) {
+
+GthFont::GthFont(phoenix::buffer data, std::string_view ftex, const Color &cl)
+  :fnt(phoenix::font::parse(data)), color(cl) {
   tex = Resources::loadTexture(ftex);
   }
 
 int GthFont::pixelSize() const {
-  return int(fnt.getFontInfo().fontHeight);
+  return int(fnt.height);
   }
 
 void GthFont::drawText(Painter &p, int bx, int by, int bw, int bh,
@@ -70,9 +71,9 @@ Size GthFont::processText(Painter* p, int bx, int by, int bw, int bh,
 
     for(auto i=txt; i!=t; ++i) {
       uint8_t id  = *i;
-      auto&   uv1 = fnt.getFontInfo().fontUV1[id];
-      auto&   uv2 = fnt.getFontInfo().fontUV2[id];
-      int     w   = fnt.getFontInfo().glyphWidth[id];
+      auto&   uv1 = fnt.glyphs[id].uv[0];
+      auto&   uv2 = fnt.glyphs[id].uv[1];
+      int     w   = fnt.glyphs[id].width;
 
       if(p!=nullptr) {
         p->drawRect(x,y, w,h,
@@ -105,9 +106,9 @@ void GthFont::drawText(Tempest::Painter &p, int bx, int by, std::string_view txt
 
   for(size_t i=0;txt[i];++i) {
     uint8_t id  = txt[i];
-    auto&   uv1 = fnt.getFontInfo().fontUV1[id];
-    auto&   uv2 = fnt.getFontInfo().fontUV2[id];
-    int     w   = fnt.getFontInfo().glyphWidth[id];
+    auto&   uv1 = fnt.glyphs[id].uv[0];
+    auto&   uv2 = fnt.glyphs[id].uv[1];
+    int     w   = fnt.glyphs[id].width;
 
     p.drawRect(x,y, w,h,
                tw*uv1.x,th*uv1.y, tw*uv2.x,th*uv2.y);
@@ -148,7 +149,7 @@ Size GthFont::textSize(const uint8_t* b, const uint8_t* e) const {
       x=0;
       }
     else {
-      int w = fnt.getFontInfo().glyphWidth[id];
+      int w = fnt.glyphs[id].width;
       x += w;
       ++i;
       }
@@ -204,7 +205,7 @@ const uint8_t* GthFont::getWord(const uint8_t *txt, int& width, int& space) cons
       return txt;
     if(id!=' ')
       break;
-    space += fnt.getFontInfo().glyphWidth[id];
+    space += fnt.glyphs[id].width;
     ++txt;
     }
 
@@ -213,7 +214,7 @@ const uint8_t* GthFont::getWord(const uint8_t *txt, int& width, int& space) cons
     if(id=='\0' || id=='\n' || id==' ')
       return txt;
 
-    width += fnt.getFontInfo().glyphWidth[id];
+    width += fnt.glyphs[id].width;
     ++txt;
     }
   }

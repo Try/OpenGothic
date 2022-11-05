@@ -71,7 +71,7 @@ void MeshObjects::Mesh::setFatness(float f) {
     sub[i].setFatness(f);
   }
 
-void MeshObjects::Mesh::setWind(ZenLoad::AnimMode m, float intensity) {
+void MeshObjects::Mesh::setWind(phoenix::animation_mode m, float intensity) {
   for(size_t i=0;i<subCount;++i)
     sub[i].setWind(m,intensity);
   }

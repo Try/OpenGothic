@@ -10,7 +10,7 @@ using namespace Tempest;
 MenuRoot::MenuRoot(KeyCodec& keyCodec)
   :keyCodec(keyCodec) {
   setCursorShape(CursorShape::Hidden);
-  vm = Gothic::inst().createVm("MENU.DAT");
+  vm = Gothic::inst().createPhoenixVm("MENU.DAT");
   }
 
 MenuRoot::~MenuRoot() {
@@ -22,7 +22,7 @@ void MenuRoot::setMainMenu() {
   }
 
 void MenuRoot::setMenu(const char* menuEv, KeyCodec::Action key) {
-  if(!vm->getDATFile().hasSymbolName(menuEv)){
+  if(vm->find_symbol_by_name(menuEv) == nullptr){
     Log::e("invalid menu-id: ",menuEv);
     return;
     }

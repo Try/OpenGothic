@@ -12,7 +12,7 @@
 
 using namespace Tempest;
 
-WayMatrix::WayMatrix(World &world, const ZenLoad::zCWayNetData &dat)
+WayMatrix::WayMatrix(World &world, const phoenix::way_net &dat)
   :world(world) {
   // scripting doc says 20m, but number seems to be incorrect
   if(world.version().game==2) {
@@ -56,9 +56,9 @@ void WayMatrix::buildIndex() {
     });
 
   for(auto& i:edges){
-    if(i.first<wayPoints.size() && i.second<wayPoints.size()){
-      auto& a = wayPoints[i.first ];
-      auto& b = wayPoints[i.second];
+    if(i.a<wayPoints.size() && i.b<wayPoints.size()){
+      auto& a = wayPoints[i.a ];
+      auto& b = wayPoints[i.b];
 
       a.connect(b);
       b.connect(a);

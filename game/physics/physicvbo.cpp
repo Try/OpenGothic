@@ -7,8 +7,8 @@ PhysicVbo::PhysicVbo(PackedMesh&& packed)
   :PhysicVbo(packed.vertices) {
   id = std::move(packed.indices);
   for(auto& i:packed.subMeshes)
-    if(!i.material.noCollDet && i.iboLength>0) {
-      addSegment(i.iboLength,i.iboOffset,i.material.matGroup,nullptr);
+    if(!i.material.disable_collision && i.iboLength>0) {
+      addSegment(i.iboLength,i.iboOffset,i.material.group,nullptr);
       }
   for(size_t i=0;i<id.size();i+=3){
     std::swap(id[i+1],id[i+2]);
@@ -27,11 +27,11 @@ PhysicVbo::PhysicVbo(const std::vector<btVector3>* v)
   :vert(*v) {
   }
 
-void PhysicVbo::addIndex(const std::vector<uint32_t>& index, size_t iboOff, size_t iboLen, uint8_t material) {
+void PhysicVbo::addIndex(const std::vector<uint32_t>& index, size_t iboOff, size_t iboLen, phoenix::material_group material) {
   addIndex(index,iboOff,iboLen,material,nullptr);
   }
 
-void PhysicVbo::addIndex(const std::vector<uint32_t>& index, size_t iboOff, size_t iboLen, uint8_t material,
+void PhysicVbo::addIndex(const std::vector<uint32_t>& index, size_t iboOff, size_t iboLen, phoenix::material_group material,
                          const char* sector) {
   if(iboLen==0)
     return;
@@ -49,7 +49,7 @@ void PhysicVbo::addIndex(const std::vector<uint32_t>& index, size_t iboOff, size
   adjustMesh();
   }
 
-void PhysicVbo::addSegment(size_t indexSize, size_t offset, uint8_t material, const char* sector) {
+void PhysicVbo::addSegment(size_t indexSize, size_t offset, phoenix::material_group material, const char* sector) {
   btIndexedMesh meshIndex={};
   meshIndex.m_numTriangles = int(indexSize/3);
   meshIndex.m_numVertices  = int32_t(vert.size());
@@ -71,10 +71,10 @@ void PhysicVbo::addSegment(size_t indexSize, size_t offset, uint8_t material, co
   segments.push_back(sgm);
   }
 
-uint8_t PhysicVbo::materialId(size_t segment) const {
+phoenix::material_group PhysicVbo::materialId(size_t segment) const {
   if(segment<segments.size())
     return segments[segment].mat;
-  return 0;
+  return phoenix::material_group::undefined;
   }
 
 const char* PhysicVbo::sectorName(size_t segment) const {

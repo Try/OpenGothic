@@ -2,18 +2,20 @@
 
 #include <Tempest/Log>
 
+#include <phoenix/vobs/trigger.hh>
+
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "game/serialize.h"
 
 using namespace Tempest;
 
-AbstractTrigger::AbstractTrigger(Vob* parent, World &world, ZenLoad::zCVobData &&data, Flags flags)
-  : Vob(parent,world,data,flags & (~Flags::Static)), data(std::move(data)), callback(this) {
+AbstractTrigger::AbstractTrigger(Vob* parent, World &world, const phoenix::vob& data, Flags flags)
+  : Vob(parent,world,data,flags & (~Flags::Static)), callback(this), vobName(data.vob_name) {
   if(!hasFlag(StartEnabled))
     ;//disabled = true;
-  bboxSize   = Vec3(data.bbox[1].x-data.bbox[0].x,data.bbox[1].y-data.bbox[0].y,data.bbox[1].z-data.bbox[0].z)*0.5f;
-  bboxOrigin = Vec3(data.bbox[1].x+data.bbox[0].x,data.bbox[1].y+data.bbox[0].y,data.bbox[1].z+data.bbox[0].z)*0.5f;
+  bboxSize   = Vec3(data.bbox.max.x-data.bbox.min.x,data.bbox.max.y-data.bbox.min.y,data.bbox.max.z-data.bbox.min.z)*0.5f;
+  bboxOrigin = Vec3(data.bbox.max.x+data.bbox.min.x,data.bbox.max.y+data.bbox.min.y,data.bbox.max.z+data.bbox.min.z)*0.5f;
   bboxOrigin = bboxOrigin - position();
 
   box        = world.physic()->bboxObj(&callback,data.bbox);
@@ -23,18 +25,27 @@ AbstractTrigger::AbstractTrigger(Vob* parent, World &world, ZenLoad::zCVobData &
       this->onIntersect(npc);
       });
     }
+
+  using phoenix::vob_type;
+
+  if (data.type == vob_type::zCTrigger || data.type == vob_type::zCTriggerList ||
+      data.type == vob_type::oCTriggerScript || data.type == vob_type::zCMover ||
+      data.type == vob_type::oCTriggerChangeLevel || data.type == vob_type::oCCSTrigger) {
+    auto& trigger = reinterpret_cast<const phoenix::vobs::trigger&>(data);
+    fireDelaySec = trigger.fire_delay_sec;
+    maxActivationCount = trigger.max_activation_count;
+    filterFlags = trigger.filter_flags;
+    triggerFlags = trigger.flags;
+    target = trigger.target;
+  }
+
   world.addTrigger(this);
   }
 
-AbstractTrigger::~AbstractTrigger() {
-  }
-
-ZenLoad::zCVobData::EVobType AbstractTrigger::vobType() const {
-  return data.vobType;
-  }
+AbstractTrigger::~AbstractTrigger() {}
 
 const std::string &AbstractTrigger::name() const {
-  return data.vobName;
+  return vobName;
   }
 
 bool AbstractTrigger::isEnabled() const {
@@ -42,14 +53,14 @@ bool AbstractTrigger::isEnabled() const {
   }
 
 void AbstractTrigger::processOnStart(const TriggerEvent& evt) {
-  if(vobType()==ZenLoad::zCVobData::VT_oCTriggerWorldStart) {
+  if(vobType==phoenix::vob_type::zCTriggerWorldStart) {
     processEvent(evt);
     return;
     }
   }
 
 void AbstractTrigger::processEvent(const TriggerEvent& evt) {
-  if(emitTimeLast>0 && world.tickCount()<emitTimeLast+uint64_t(data.zCTrigger.fireDelaySec*1000.f)) {
+  if(emitTimeLast>0 && world.tickCount()<emitTimeLast+uint64_t(fireDelaySec*1000.f)) {
     world.triggerEvent(evt);
     return;
     }
@@ -80,8 +91,8 @@ void AbstractTrigger::processEvent(const TriggerEvent& evt) {
       disabled = !disabled;
       break;
     case TriggerEvent::T_Activate: {
-      const bool canActivate = (data.zCTrigger.numCanBeActivated<=0 ||
-                                emitCount<uint32_t(data.zCTrigger.numCanBeActivated));
+      const bool canActivate = (maxActivationCount<=0 ||
+                                emitCount<maxActivationCount);
       if(canActivate) {
         ++emitCount;
         onTrigger(evt);
@@ -111,7 +122,7 @@ void AbstractTrigger::moveEvent() {
   }
 
 bool AbstractTrigger::hasFlag(ReactFlg flg) const {
-  ReactFlg filter = ReactFlg(data.zCTrigger.flags & data.zCTrigger.filterFlags);
+  ReactFlg filter = ReactFlg(triggerFlags & filterFlags);
   return (filter&flg)==flg;
   }
 
@@ -183,7 +194,7 @@ const std::vector<Npc*>& AbstractTrigger::intersections() const {
 void AbstractTrigger::Cb::onCollide(DynamicWorld::BulletBody&) {
   if(!tg->hasFlag(ReactToOnTouch))
     return;
-  TriggerEvent ex(tg->data.vobName,tg->data.vobName,tg->world.tickCount(),TriggerEvent::T_Activate);
+  TriggerEvent ex(tg->vobName,tg->vobName,tg->world.tickCount(),TriggerEvent::T_Activate);
   tg->processEvent(ex);
   }
 

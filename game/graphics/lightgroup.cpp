@@ -51,21 +51,21 @@ LightGroup::Light::Light(LightGroup& owner)
   id = owner.alloc(true);
   }
 
-LightGroup::Light::Light(LightGroup& owner, const ZenLoad::zCVobData& vob)
+LightGroup::Light::Light(LightGroup& owner, const phoenix::vobs::light_preset& vob)
   :owner(&owner) {
   LightSource l;
-  l.setPosition(Vec3(vob.position.x,vob.position.y,vob.position.z));
+  l.setPosition(Vec3(0, 0, 0));
 
-  if(vob.zCVobLight.dynamic.rangeAniScale.size()>0) {
-    l.setRange(vob.zCVobLight.dynamic.rangeAniScale,vob.zCVobLight.range,vob.zCVobLight.dynamic.rangeAniFPS,vob.zCVobLight.dynamic.rangeAniSmooth);
-    } else {
-    l.setRange(vob.zCVobLight.range);
-    }
+  if(!vob.range_animation_scale.empty()) {
+    l.setRange(vob.range_animation_scale,vob.range,vob.range_animation_fps,vob.range_animation_smooth);
+  } else {
+    l.setRange(vob.range);
+  }
 
-  if(vob.zCVobLight.dynamic.colorAniList.size()>0) {
-    l.setColor(vob.zCVobLight.dynamic.colorAniList,vob.zCVobLight.dynamic.colorAniListFPS,vob.zCVobLight.dynamic.colorAniSmooth);
+  if(!vob.color_animation_list.empty()) {
+    l.setColor(vob.color_animation_list,vob.color_animation_fps,vob.color_animation_smooth);
     } else {
-    l.setColor(vob.zCVobLight.color);
+    l.setColor(Vec3(vob.color.r / 255.f, vob.color.g / 255.f, vob.color.b / 255.f));
     }
 
   std::lock_guard<std::recursive_mutex> guard(owner.sync);
@@ -79,15 +79,48 @@ LightGroup::Light::Light(LightGroup& owner, const ZenLoad::zCVobData& vob)
   data = std::move(l);
   }
 
+LightGroup::Light::Light(LightGroup& owner, const phoenix::vobs::light& vob)
+      :owner(&owner) {
+  LightSource l;
+  l.setPosition(Vec3(vob.position.x,vob.position.y,vob.position.z));
+
+  if(!vob.range_animation_scale.empty()) {
+    l.setRange(vob.range_animation_scale,vob.range,vob.range_animation_fps,vob.range_animation_smooth);
+  } else {
+    l.setRange(vob.range);
+  }
+
+  if(!vob.color_animation_list.empty()) {
+    l.setColor(vob.color_animation_list,vob.color_animation_fps,vob.color_animation_smooth);
+  } else {
+    l.setColor(Vec3(vob.color.r / 255.f, vob.color.g / 255.f, vob.color.b / 255.f));
+  }
+
+  std::lock_guard<std::recursive_mutex> guard(owner.sync);
+  id = owner.alloc(l.isDynamic());
+  auto& ssbo = owner.get(id);
+  ssbo.pos   = l.position();
+  ssbo.range = l.range();
+  ssbo.color = l.color();
+
+  auto& data = owner.getL(id);
+  data = std::move(l);
+}
+
 LightGroup::Light::Light(World& owner, std::string_view preset)
   :Light(owner,owner.view()->sGlobal.lights.findPreset(preset)){
   setTimeOffset(owner.tickCount());
   }
 
-LightGroup::Light::Light(World& owner, const ZenLoad::zCVobData& vob)
+LightGroup::Light::Light(World& owner, const phoenix::vobs::light_preset& vob)
   :Light(owner.view()->sGlobal.lights,vob) {
   setTimeOffset(owner.tickCount());
   }
+
+LightGroup::Light::Light(World& owner, const phoenix::vobs::light& vob)
+  :Light(owner.view()->sGlobal.lights,vob){
+  setTimeOffset(owner.tickCount());
+}
 
 LightGroup::Light::Light(World& owner)
   :Light(owner.view()->sGlobal.lights) {
@@ -201,20 +234,25 @@ LightGroup::LightGroup(const SceneGlobals& scene)
   vbo = device.vbo(v,8);
 
   try {
-    auto  filename = Gothic::inst().nestedPath({u"_work",u"Data",u"Presets",u"LIGHTPRESETS.ZEN"},Dir::FT_File);
-    RFile fin(filename);
-    std::vector<uint8_t> bin(fin.size());
-    fin.read(bin.data(),bin.size());
+    auto filename = Gothic::inst().nestedPath({u"_work", u"Data", u"Presets", u"LIGHTPRESETS.ZEN"}, Dir::FT_File);
+    auto buf = phoenix::buffer::mmap(filename);
+    auto zen = phoenix::archive_reader::open(buf);
 
-    ZenLoad::ZenParser parser(bin.data(),bin.size());
-    parser.readHeader();
+    phoenix::archive_object obj {};
+    auto count = zen->read_int();
+    for (int i = 0; i < count; ++i) {
+      zen->read_object_begin(obj);
 
-    auto fver = ZenLoad::ZenParser::FileVersion::Gothic1;
-    if(Gothic::inst().version().game==2)
-      fver = ZenLoad::ZenParser::FileVersion::Gothic2;
-    parser.readPresets(presets,fver);
+      presets.push_back(phoenix::vobs::light_preset::parse(
+          *zen,
+          Gothic::inst().version().game == 1 ? phoenix::game_version::gothic_1
+                                             : phoenix::game_version::gothic_2));
+
+      if (!zen->read_object_end()) {
+        zen->skip_object(true);
+      }
     }
-  catch(...) {
+  } catch(...) {
     Log::e("unable to load Zen-file: \"LIGHTPRESETS.ZEN\"");
     }
   }
@@ -321,14 +359,14 @@ RenderPipeline& LightGroup::shader() const {
   return Shaders::inst().lights;
   }
 
-const ZenLoad::zCVobData& LightGroup::findPreset(std::string_view preset) const {
+const phoenix::vobs::light_preset& LightGroup::findPreset(std::string_view preset) const {
   for(auto& i:presets) {
-    if(i.zCVobLight.lightPresetInUse!=preset)
+    if(i.preset!=preset)
       continue;
     return i;
     }
   Log::e("unknown light preset: \"",std::string(preset),"\"");
-  static ZenLoad::zCVobData zero;
+  static phoenix::vobs::light_preset zero {};
   return zero;
   }
 

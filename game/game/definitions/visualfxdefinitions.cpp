@@ -8,11 +8,10 @@
 using namespace Tempest;
 
 VisualFxDefinitions::VisualFxDefinitions() {
-  vm = Gothic::inst().createVm("VisualFx.dat");
+  vm = Gothic::inst().createPhoenixVm("VisualFx.dat");
   }
 
 VisualFxDefinitions::~VisualFxDefinitions() {
-  vm->clearReferences(Daedalus::IC_Pfx);
   }
 
 const VisualFx* VisualFxDefinitions::get(std::string_view name) {
@@ -21,12 +20,12 @@ const VisualFx* VisualFxDefinitions::get(std::string_view name) {
   if(it!=vfx.end())
     return it->second.get();
 
-  Daedalus::GEngineClasses::CFx_Base def;
-  if(!implGet(cname,def))
+  auto def = implGet(cname);
+  if(def == nullptr)
     return nullptr;
 
   auto ret = vfx.insert(std::make_pair<std::string,std::unique_ptr<VisualFx>>(std::move(cname),nullptr));
-  ret.first->second.reset(new VisualFx(def,*vm,name));
+  ret.first->second.reset(new VisualFx(*def,*vm,name));
 
   auto& vfx = *ret.first->second;
   vfx.dbgName = name.data();
@@ -34,20 +33,21 @@ const VisualFx* VisualFxDefinitions::get(std::string_view name) {
   return &vfx;
   }
 
-bool VisualFxDefinitions::implGet(std::string_view name,
-                                  Daedalus::GEngineClasses::CFx_Base& ret) {
+std::shared_ptr<phoenix::c_fx_base> VisualFxDefinitions::implGet(std::string_view name) {
   if(!vm || name.empty())
-    return false;
+    return nullptr;
 
   char buf[256] = {};
   std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
-  auto id = vm->getDATFile().getSymbolIndexByName(buf);
-  if(id==size_t(-1)) {
+  auto id = vm->find_symbol_by_name(buf);
+  if(id==nullptr) {
     Log::e("invalid visual effect: \"",buf,"\"");
-    return false;
+    return nullptr;
     }
 
-  vm->initializeInstance(ret, id, Daedalus::IC_Vfx);
-  vm->clearReferences(Daedalus::IC_Vfx);
-  return true;
+  try {
+    return vm->init_instance<phoenix::c_fx_base>(id);
+    } catch (const phoenix::script_error&) {
+    return nullptr;
+    }
   }

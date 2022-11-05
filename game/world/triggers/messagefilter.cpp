@@ -2,44 +2,47 @@
 
 #include "world/world.h"
 
-MessageFilter::MessageFilter(Vob* parent, World &world, ZenLoad::zCVobData &&d, Flags flags)
-  :AbstractTrigger(parent,world,std::move(d),flags) {
+MessageFilter::MessageFilter(Vob* parent, World &world, const phoenix::vobs::message_filter& filt, Flags flags)
+  :AbstractTrigger(parent,world,filt,flags) {
+  target = filt.target;
+  onUntriggerA = filt.on_untrigger;
+  onTriggerA = filt.on_trigger;
   }
 
 void MessageFilter::onTrigger(const TriggerEvent&) {
-  exec(data.zCMessageFilter.onTrigger);
+  exec(onTriggerA);
   }
 
 void MessageFilter::onUntrigger(const TriggerEvent&) {
-  exec(data.zCMessageFilter.onUntrigger);
+  exec(onUntriggerA);
   }
 
-void MessageFilter::exec(ZenLoad::MutateType eval) {
+void MessageFilter::exec(phoenix::message_filter_action eval) {
   switch(eval) {
-    case ZenLoad::MutateType::MT_NONE:
+    case phoenix::message_filter_action::none:
       break;
-    case ZenLoad::MutateType::MT_TRIGGER: {
-      TriggerEvent e(data.zCMessageFilter.triggerTarget,data.vobName,TriggerEvent::T_Trigger);
+    case phoenix::message_filter_action::trigger: {
+      TriggerEvent e(target,vobName,TriggerEvent::T_Trigger);
       world.execTriggerEvent(e);
       break;
       }
-    case ZenLoad::MutateType::MT_UNTRIGGER: {
-      TriggerEvent e(data.zCMessageFilter.triggerTarget,data.vobName,TriggerEvent::T_Untrigger);
+    case phoenix::message_filter_action::untrigger: {
+      TriggerEvent e(target,vobName,TriggerEvent::T_Untrigger);
       world.execTriggerEvent(e);
       break;
       }
-    case ZenLoad::MutateType::MT_ENABLE: {
-      TriggerEvent e(data.zCMessageFilter.triggerTarget,data.vobName,TriggerEvent::T_Enable);
+    case phoenix::message_filter_action::enable: {
+      TriggerEvent e(target,vobName,TriggerEvent::T_Enable);
       world.execTriggerEvent(e);
       break;
       }
-    case ZenLoad::MutateType::MT_DISABLE:{
-      TriggerEvent e(data.zCMessageFilter.triggerTarget,data.vobName,TriggerEvent::T_Disable);
+    case phoenix::message_filter_action::disable:{
+      TriggerEvent e(target,vobName,TriggerEvent::T_Disable);
       world.execTriggerEvent(e);
       break;
       }
-    case ZenLoad::MutateType::MT_TOOGLE_ENABLED:{
-      TriggerEvent e(data.zCMessageFilter.triggerTarget,data.vobName,TriggerEvent::T_ToogleEnable);
+    case phoenix::message_filter_action::toggle:{
+      TriggerEvent e(target,vobName,TriggerEvent::T_ToogleEnable);
       world.execTriggerEvent(e);
       break;
       }

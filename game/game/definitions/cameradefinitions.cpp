@@ -3,33 +3,31 @@
 #include "gothic.h"
 
 CameraDefinitions::CameraDefinitions() {
-  auto vm = Gothic::inst().createVm("Camera.dat");
-  vm->getDATFile().iterateSymbolsOfClass("CCamSys",[this,&vm](size_t i,Daedalus::PARSymbol& s){
-    Camera cam={};
+  auto vm = Gothic::inst().createPhoenixVm("Camera.dat");
 
-    vm->initializeInstance(cam, i, Daedalus::IC_CamSys);
-    vm->clearReferences(Daedalus::IC_CamSys);
+  vm->enumerate_instances_by_class_name("CCAMSYS", [this, &vm](phoenix::symbol& s) {
+    try {
+      auto cam = vm->init_instance<phoenix::c_camera>(&s);
+      cameras.emplace_back(s.name(), *cam);
+      } catch (const phoenix::script_error&) {
+      // There was an error initializing the c_camera. Ignore it.
+      }
+  });
 
-    cam.name = s.name;
-    cameras.push_back(cam);
-    });
-
-  camModDialog    = loadCam("CAMMODDIALOG");
-  camModInventory = loadCam("CAMMODINVENTORY");
-  camModNormal    = loadCam("CAMMODNORMAL");
-  camModBack      = loadCam("CAMMODLOOKBACK");
-  camModFp        = loadCam("CAMMODFIRSTPERSON");
-  camModDeath     = loadCam("CAMMODDEATH");
-  camModMelee     = loadCam("CAMMODMELEE");
-  camModRange     = loadCam("CAMMODRANGED");
-  camModMage      = loadCam("CAMMODMAGIC");
-  camModSwim      = loadCam("CAMMODSWIM");
-  camModDive      = loadCam("CAMMODDIVE");
-
-  vm->clearReferences(Daedalus::IC_CamSys);
+  camModDialog    = getCam("CAMMODDIALOG");
+  camModInventory = getCam("CAMMODINVENTORY");
+  camModNormal    = getCam("CAMMODNORMAL");
+  camModBack      = getCam("CAMMODLOOKBACK");
+  camModFp        = getCam("CAMMODFIRSTPERSON");
+  camModDeath     = getCam("CAMMODDEATH");
+  camModMelee     = getCam("CAMMODMELEE");
+  camModRange     = getCam("CAMMODRANGED");
+  camModMage      = getCam("CAMMODMAGIC");
+  camModSwim      = getCam("CAMMODSWIM");
+  camModDive      = getCam("CAMMODDIVE");
   }
 
-const Daedalus::GEngineClasses::CCamSys& CameraDefinitions::mobsiCam(std::string_view tag, std::string_view pos) const {
+const phoenix::c_camera& CameraDefinitions::mobsiCam(std::string_view tag, std::string_view pos) const {
   char name[256]={};
 
   if(!pos.empty()) {
@@ -46,16 +44,17 @@ const Daedalus::GEngineClasses::CCamSys& CameraDefinitions::mobsiCam(std::string
   return camModNormal;
   }
 
-Daedalus::GEngineClasses::CCamSys CameraDefinitions::loadCam(std::string_view name) {
+phoenix::c_camera CameraDefinitions::getCam(std::string_view name) {
   for(auto& i:cameras)
-    if(i.name==name)
-      return i;
-  return Daedalus::GEngineClasses::CCamSys();
+    if(i.first==name)
+      return i.second;
+
+  return {};
   }
 
-const CameraDefinitions::Camera* CameraDefinitions::find(std::string_view name) const {
+const phoenix::c_camera* CameraDefinitions::find(std::string_view name) const {
   for(auto& i:cameras)
-    if(i.name==name)
-      return &i;
+    if(i.first==name)
+      return &i.second;
   return nullptr;
   }

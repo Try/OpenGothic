@@ -90,7 +90,7 @@ void ObjectsBucket::Item::setFatness(float f) {
     owner->setFatness(id,f);
   }
 
-void ObjectsBucket::Item::setWind(ZenLoad::AnimMode m, float intensity) {
+void ObjectsBucket::Item::setWind(phoenix::animation_mode m, float intensity) {
   if(owner!=nullptr)
     owner->setWind(id,m,intensity);
   }
@@ -363,7 +363,7 @@ void ObjectsBucket::uboSetSkeleton(Descriptors& v, uint8_t fId) {
 void ObjectsBucket::uboSetDynamic(Descriptors& v, Object& obj, uint8_t fId) {
   auto& ubo = v.ubo[fId][SceneGlobals::V_Main];
 
-  if(mat.frames.size()!=0) {
+  if(mat.frames.size()!=0 && mat.texAniFPSInv != 0) {
     auto frame = size_t((obj.timeShift+scene.tickCount)/mat.texAniFPSInv);
     auto t = mat.frames[frame%mat.frames.size()];
     ubo.set(L_Diffuse, *t);
@@ -460,7 +460,7 @@ void ObjectsBucket::preFrameUpdate(uint8_t fId) {
 
     for(size_t i=0; i<CAPACITY; ++i) {
       auto& v = val[i];
-      if(upd[i] && v.wind!=ZenLoad::AnimMode::NONE) {
+      if(upd[i] && v.wind!=phoenix::animation_mode::none) {
         auto pos = v.pos;
         float shift = v.pos[3][0]*scene.windDir.x + v.pos[3][2]*scene.windDir.y;
 
@@ -470,17 +470,17 @@ void ObjectsBucket::preFrameUpdate(uint8_t fId) {
         a = std::cos(float(a*M_PI) + shift*0.0001f);
 
         switch(v.wind) {
-          case ZenLoad::AnimMode::WIND:
+          case phoenix::animation_mode::wind:
             // tree
             // a *= v.windIntensity;
             a *= 0.03f;
             break;
-          case ZenLoad::AnimMode::WIND2:
+          case phoenix::animation_mode::wind2:
             // grass
             // a *= v.windIntensity;
             a *= 0.0005f;
             break;
-          case ZenLoad::AnimMode::NONE:
+          case phoenix::animation_mode::none:
           default:
             // error
             a *= 0.f;
@@ -751,7 +751,7 @@ void ObjectsBucket::setFatness(size_t i, float f) {
   invalidateInstancing();
   }
 
-void ObjectsBucket::setWind(size_t i, ZenLoad::AnimMode m, float intensity) {
+void ObjectsBucket::setWind(size_t i, phoenix::animation_mode m, float intensity) {
   auto& v = val[i];
   v.wind          = m;
   v.windIntensity = intensity;
@@ -792,7 +792,7 @@ void ObjectsBucket::reallocObjPositions() {
     windAnim = false;
     for(size_t i=0; i<CAPACITY; ++i) {
       auto& vx = val[i];
-      if(vx.isValid && vx.wind!=ZenLoad::AnimMode::NONE) {
+      if(vx.isValid && vx.wind!=phoenix::animation_mode::none) {
         windAnim = true;
         break;
         }

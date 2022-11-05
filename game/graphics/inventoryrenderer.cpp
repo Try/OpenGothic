@@ -43,7 +43,7 @@ void InventoryRenderer::reset(bool full) {
 
 void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
   auto& itData = item.handle();
-  if(auto mesh=Resources::loadMesh(itData.visual.c_str())) {
+  if(auto mesh=Resources::loadMesh(itData.visual)) {
     float    sz  = (mesh->bbox[1]-mesh->bbox[0]).length();
     auto     mv  = (mesh->bbox[1]+mesh->bbox[0])*0.5f;
     ItmFlags flg = ItmFlags(item.mainFlag());
@@ -58,9 +58,9 @@ void InventoryRenderer::drawItem(int x, int y, int w, int h, const Item& item) {
     mat.identity();
     mat.scale(sz);
 
-    float rotx = float(itData.inv_rotx);
-    float roty = float(itData.inv_roty);
-    float rotz = float(itData.inv_rotz);
+    float rotx = float(itData.inv_rot_x);
+    float roty = float(itData.inv_rot_y);
+    float rotz = float(itData.inv_rot_z);
 
     if(flg&(ITM_CAT_NF | ITM_CAT_FF | ITM_CAT_MUN)) {
       static const float invX = -45;

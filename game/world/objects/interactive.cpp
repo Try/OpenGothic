@@ -3,44 +3,56 @@
 #include <Tempest/Painter>
 #include <Tempest/Log>
 
+#include <phoenix/vobs/mob.hh>
+
 #include "game/serialize.h"
 #include "graphics/mesh/skeleton.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "utils/dbgpainter.h"
 
-Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData& vob, Flags flags)
+Interactive::Interactive(Vob* parent, World &world, const phoenix::vobs::mob& vob, Flags flags)
   : Vob(parent,world,vob,flags) {
-  vobName       = std::move(vob.vobName);
-  focName       = std::move(vob.oCMOB.focusName);
-  bbox[0]       = Tempest::Vec3(vob.bbox[0].x,vob.bbox[0].y,vob.bbox[0].z);
-  bbox[1]       = Tempest::Vec3(vob.bbox[1].x,vob.bbox[1].y,vob.bbox[1].z);
-  owner         = std::move(vob.oCMOB.owner);
-  focOver       = vob.oCMOB.focusOverride;
-  showVisual    = vob.showVisual;
+
+  vobName       = vob.vob_name;
+  focName       = vob.name;
+  bbox[0]       = {vob.bbox.min.x, vob.bbox.min.y, vob.bbox.min.z};
+  bbox[1]       = {vob.bbox.max.x, vob.bbox.max.y, vob.bbox.max.z};
+  owner         = vob.owner;
+  focOver       = vob.focus_override;
+  showVisual    = vob.show_visual;
 
   auto p = position();
   displayOffset = Tempest::Vec3(0,bbox[1].y-p.y,0);
 
-  stateNum      = vob.oCMobInter.stateNum;
-  triggerTarget = std::move(vob.oCMobInter.triggerTarget);
-  useWithItem   = std::move(vob.oCMobInter.useWithItem);
-  conditionFunc = std::move(vob.oCMobInter.conditionFunc);
-  onStateFunc   = std::move(vob.oCMobInter.onStateFunc);
-  rewind        = std::move(vob.oCMobInter.rewind);
+  if (vob.type != phoenix::vob_type::oCMOB) {
+    // TODO: These might be movable
+    auto& inter = reinterpret_cast<const phoenix::vobs::mob_inter&>(vob);
+    stateNum      = inter.state;
+    triggerTarget = inter.target;
+    useWithItem   = inter.item;
+    conditionFunc = inter.condition_function;
+    onStateFunc   = inter.on_state_change_function;
+    rewind        = inter.rewind;
+  }
 
   for(auto& i:owner)
     i = char(std::toupper(i));
 
-  if(vobType==ZenLoad::zCVobData::VT_oCMobContainer ||
-     vobType==ZenLoad::zCVobData::VT_oCMobDoor) {
-    locked      = vob.oCMobLockable.locked;
-    keyInstance = std::move(vob.oCMobLockable.keyInstance);
-    pickLockStr = std::move(vob.oCMobLockable.pickLockStr);
-    }
+  if (vobType==phoenix::vob_type::oCMobDoor) {
+    auto& door = reinterpret_cast<const phoenix::vobs::mob_door&>(vob);
+    locked      = door.locked;
+    keyInstance = door.key;
+    pickLockStr = door.pick_string;
+  }
 
   if(isContainer() && (flags&Flags::Startup)==Flags::Startup) {
-    auto items  = std::move(vob.oCMobContainer.contains);
+    auto& container = reinterpret_cast<const phoenix::vobs::mob_container&>(vob);
+    locked      = container.locked;
+    keyInstance = container.key;
+    pickLockStr = container.pick_string;
+
+    auto items  = std::move(container.contents);
     if(items.size()>0) {
       char* it = &items[0];
       for(auto i=it;;++i) {
@@ -59,7 +71,7 @@ Interactive::Interactive(Vob* parent, World &world, ZenLoad::zCVobData& vob, Fla
     }
 
   setVisual(vob);
-  mdlVisual = std::move(vob.visual);
+  mdlVisual = std::move(vob.visual_name);
 
   if(isLadder() && !mdlVisual.empty()) {
     // NOTE: there must be else way to determinate steps count, nut for now - we parse filename
@@ -108,8 +120,8 @@ void Interactive::load(Serialize &fin) {
     invent.load(fin,*this,world); else
     invent.clear(world.script(),*this,true);
 
-  fin.setEntry("worlds/",fin.worldName(),"/mobsi/",vobObjectID,"/visual");
-  visual.load(fin,*this);
+  fin.setEntry("worlds/", fin.worldName(), "/mobsi/", vobObjectID, "/visual");
+  visual.load(fin, *this);
   visual.setObjMatrix(transform());
   visual.syncPhysics();
   }
@@ -160,7 +172,7 @@ void Interactive::resetPositionToTA(int32_t state) {
   setState(state);
   }
 
-void Interactive::setVisual(ZenLoad::zCVobData& vob) {
+void Interactive::setVisual(const phoenix::vob& vob) {
   visual.setVisual(vob,world,true);
   visual.setObjMatrix(transform());
   visual.setInteractive(this);
@@ -203,7 +215,7 @@ void Interactive::tick(uint64_t dt) {
     // Note: oCMobInter::rewind, oCMobInter with killed user has to go back to state=-1
     // All other cases, oCMobFire, oCMobDoor in particular - preserve old state
     const int destSt = -1;
-    if(destSt!=state && (vobType==ZenLoad::zCVobData::VT_oCMobInter || rewind)) {
+    if(destSt!=state && (vobType==phoenix::vob_type::oCMobInter || rewind)) {
       if(!setAnim(nullptr,Anim::Out))
         return;
       auto prev = state;
@@ -358,8 +370,12 @@ std::string_view Interactive::displayName() const {
     return "";
     }
 
-  auto& s=world.script().getSymbol(strId);
-  const char* txt = s.getString(0).c_str();
+  auto* s=world.script().getSymbol(strId);
+
+  if (s==nullptr)
+    return "";
+
+  const char* txt = s->get_string().c_str();
   if(std::strlen(txt)==0)
     txt="";
   return txt;
@@ -392,7 +408,7 @@ void Interactive::invokeStateFunc(Npc& npc) {
   std::snprintf(func,sizeof(func),"%s_S%d",onStateFunc.c_str(),state);
 
   auto& sc = npc.world().script();
-  sc.useInteractive(npc.handle(),func);
+  sc.useInteractive(npc.handlePtr(), func);
   }
 
 void Interactive::emitTriggerEvent() const {
@@ -418,11 +434,11 @@ std::string_view Interactive::posSchemeName() const {
   }
 
 bool Interactive::isContainer() const {
-  return vobType==ZenLoad::zCVobData::VT_oCMobContainer;
+  return vobType==phoenix::vob_type::oCMobContainer;
   }
 
 bool Interactive::isLadder() const {
-  return vobType==ZenLoad::zCVobData::VT_oCMobLadder;
+  return vobType==phoenix::vob_type::oCMobLadder;
   }
 
 bool Interactive::needToLockpick(const Npc& pl) const {
@@ -662,7 +678,7 @@ bool Interactive::attach(Npc& npc, Interactive::Pos& to) {
   setPos(npc,mv);
   setDir(npc,mat);
 
-  if(vobType==ZenLoad::zCVobData::VT_oCMobLadder) {
+  if(vobType==phoenix::vob_type::oCMobLadder) {
     if(&to!=&attPos[0])
       state = -1; else
       state = stepsCount;

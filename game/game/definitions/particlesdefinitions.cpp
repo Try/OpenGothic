@@ -9,11 +9,10 @@
 using namespace Tempest;
 
 ParticlesDefinitions::ParticlesDefinitions() {
-  vm = Gothic::inst().createVm("ParticleFx.dat");
+  vm = Gothic::inst().createPhoenixVm("ParticleFx.dat");
   }
 
 ParticlesDefinitions::~ParticlesDefinitions() {
-  vm->clearReferences(Daedalus::IC_Pfx);
   }
 
 const ParticleFx* ParticlesDefinitions::get(std::string_view name, bool relaxed) {
@@ -39,10 +38,10 @@ const ParticleFx* ParticlesDefinitions::implGet(std::string_view name, bool rela
   auto it    = pfx.find(cname);
   if(it!=pfx.end())
     return it->second.get();
-  Daedalus::GEngineClasses::C_ParticleFX decl={};
-  if(!implGet(name,decl,relaxed))
+  auto decl=implGetDirect(name, relaxed);
+  if(!decl)
     return nullptr;
-  std::unique_ptr<ParticleFx> p{new ParticleFx(decl,name)};
+  std::unique_ptr<ParticleFx> p{new ParticleFx(*decl,name)};
   auto elt = pfx.insert(std::make_pair(std::move(cname),std::move(p)));
 
   return elt.first->second.get();
@@ -59,22 +58,18 @@ const ParticleFx* ParticlesDefinitions::implGet(const ParticleFx& base, const Vi
   return elt.first->second.get();
   }
 
-bool ParticlesDefinitions::implGet(std::string_view name,
-                                   Daedalus::GEngineClasses::C_ParticleFX& ret,
-                                   bool relaxed) {
+std::shared_ptr<phoenix::c_particle_fx> ParticlesDefinitions::implGetDirect(std::string_view name, bool relaxed) {
   if(!vm || name.empty())
-    return false;
+    return nullptr;
 
   char buf[256] = {};
   std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
-  auto id = vm->getDATFile().getSymbolIndexByName(buf);
-  if(id==size_t(-1)) {
+  auto id = vm->find_symbol_by_name(buf);
+  if(id==nullptr) {
     if(!relaxed)
       Log::e("invalid particle system: \"",buf,"\"");
-    return false;
+    return nullptr;
     }
 
-  vm->initializeInstance(ret, id, Daedalus::IC_Pfx);
-  vm->clearReferences(Daedalus::IC_Pfx);
-  return true;
+  return vm->init_instance<phoenix::c_particle_fx>(id);
   }

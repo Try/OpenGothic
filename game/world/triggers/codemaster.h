@@ -6,7 +6,7 @@ class World;
 
 class CodeMaster : public AbstractTrigger {
   public:
-    CodeMaster(Vob* parent, World &world, ZenLoad::zCVobData&& data, Flags flags);
+    CodeMaster(Vob* parent, World &world, const phoenix::vobs::code_master& data, Flags flags);
 
     void onTrigger(const TriggerEvent& evt) override;
 
@@ -17,6 +17,10 @@ class CodeMaster : public AbstractTrigger {
     void onFailure();
     void zeroState();
 
-    std::vector<bool> keys;
+    std::vector<bool>        keys;
+    std::vector<std::string> slaves;
+    bool                     ordered;
+    bool                     firstFalseIsFailure;
+    std::string              failureTarget;
   };
 

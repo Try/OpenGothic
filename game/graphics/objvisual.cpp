@@ -114,30 +114,30 @@ void ObjVisual::setType(Type t) {
   type = t;
   }
 
-void ObjVisual::setVisual(const Daedalus::GEngineClasses::C_Item& hitem, World& world, bool staticDraw) {
+void ObjVisual::setVisual(const phoenix::c_item& hitem, World& world, bool staticDraw) {
   cleanup();
 
-  if(FileExt::hasExt(hitem.visual.c_str(),"ZEN")) {
+  if(FileExt::hasExt(hitem.visual,"ZEN")) {
     setType(M_Bundle);
-    bundle = VobBundle(world,hitem.visual.c_str(),(staticDraw ? Vob::Static : Vob::None));
+    bundle = VobBundle(world,hitem.visual,(staticDraw ? Vob::Static : Vob::None));
     } else {
     setType(M_Mesh);
     mesh.view = world.addView(hitem);
     }
   }
 
-void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world, bool staticDraw) {
+void ObjVisual::setVisual(const phoenix::vob& vob, World& world, bool staticDraw) {
   cleanup();
 
-  const bool enableCollision = (vob.cdDyn || vob.cdStatic);
+  const bool enableCollision = (vob.cd_dynamic || vob.cd_static);
 
   // *.ZEN; *.PFX; *.TGA; *.3DS; *.MDS; *.ASC; *.MMS
-  if(FileExt::hasExt(vob.visual,"ZEN")) {
+  if(FileExt::hasExt(vob.visual_name,"ZEN")) {
     setType(M_Bundle);
-    bundle = VobBundle(world,vob.visual,(staticDraw ? Vob::Static : Vob::None));
+    bundle = VobBundle(world,vob.visual_name,(staticDraw ? Vob::Static : Vob::None));
     }
-  else if(FileExt::hasExt(vob.visual,"PFX") || FileExt::hasExt(vob.visual,"TGA")) {
-    if(vob.visualCamAlign==0 && FileExt::hasExt(vob.visual,"TGA")) {
+  else if(FileExt::hasExt(vob.visual_name,"PFX") || FileExt::hasExt(vob.visual_name,"TGA")) {
+    if(vob.sprite_camera_facing_mode==phoenix::sprite_alignment::none && FileExt::hasExt(vob.visual_name,"TGA")) {
       setType(M_Mesh);
       mesh.view = world.addDecalView(vob);
       } else {
@@ -147,24 +147,24 @@ void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world, bool stat
       pfx.setLooped(true);
       }
     }
-  else if(FileExt::hasExt(vob.visual,"3DS")) {
-    auto view = Resources::loadMesh(vob.visual);
+  else if(FileExt::hasExt(vob.visual_name,"3DS")) {
+    auto view = Resources::loadMesh(vob.visual_name);
     if(!view)
       return;
     setType(M_Mesh);
     mesh.proto = view;
-    if(vob.showVisual) {
+    if(vob.show_visual) {
       mesh.view = world.addStaticView(view,staticDraw);
-      mesh.view.setWind(vob.visualAniMode,vob.visualAniModeStrength);
+      mesh.view.setWind(vob.anim_mode,vob.anim_strength);
       }
-    if(vob.showVisual && enableCollision && vob.visualAniMode!=ZenLoad::AnimMode::WIND2) {
+    if(vob.show_visual && enableCollision && vob.anim_mode!=phoenix::animation_mode::wind2) {
       mesh.physic = PhysicMesh(*view,*world.physic(),false);
       }
     }
-  else if(FileExt::hasExt(vob.visual,"MDS") ||
-          FileExt::hasExt(vob.visual,"MMS") ||
-          FileExt::hasExt(vob.visual,"ASC"))  {
-    auto visual = vob.visual;
+  else if(FileExt::hasExt(vob.visual_name,"MDS") ||
+          FileExt::hasExt(vob.visual_name,"MMS") ||
+          FileExt::hasExt(vob.visual_name,"ASC"))  {
+    auto visual = vob.visual_name;
     FileExt::exchangeExt(visual,"ASC","MDL");
 
     auto view = Resources::loadMesh(visual);
@@ -175,13 +175,13 @@ void ObjVisual::setVisual(const ZenLoad::zCVobData& vob, World& world, bool stat
     mdl.view.setYTranslationEnable(false);
     mdl.view.setVisual(view->skeleton.get());
 
-    if(vob.showVisual) {
+    if(vob.show_visual) {
       if((view->skeleton==nullptr || view->skeleton->animation()==nullptr) && enableCollision)
         mdl.view.setVisualBody(world,world.addStaticView(view,true)); else
         mdl.view.setVisualBody(world,world.addView(view));
       }
 
-    if(vob.showVisual && enableCollision) {
+    if(vob.show_visual && enableCollision) {
       mdl.physic = PhysicMesh(*view,*world.physic(),true);
       mdl.physic.setSkeleton(view->skeleton.get());
       }

@@ -19,7 +19,7 @@
 #include <string>
 #include <deque>
 
-#include <daedalus/DaedalusVM.h>
+#include <phoenix/ext/daedalus_classes.hh>
 
 class Interactive;
 class WayPoint;
@@ -222,8 +222,8 @@ class Npc final {
     Attitude  tempAttitude() const { return tmpAttitude; }
 
     void      startDialog(Npc& other);
-    bool      startState(ScriptFn id, const Daedalus::ZString& wp);
-    bool      startState(ScriptFn id, const Daedalus::ZString& wp, gtime endTime, bool noFinalize);
+    bool      startState(ScriptFn id, std::string_view wp);
+    bool      startState(ScriptFn id, std::string_view wp, gtime endTime, bool noFinalize);
     void      clearState(bool noFinalize);
     BodyState bodyState() const;
     BodyState bodyStateMasked() const;
@@ -314,7 +314,8 @@ class Npc final {
 
     auto      dialogChoises(Npc &player, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<GameScript::DlgChoise>;
 
-    auto      handle() -> Daedalus::GEngineClasses::C_Npc* { return  &hnpc; }
+    phoenix::c_npc&                        handle() { return *hnpc; }
+    const std::shared_ptr<phoenix::c_npc>& handlePtr() const { return hnpc; }
 
     auto      inventory() const -> const Inventory& { return invent; }
     size_t    itemCount  (size_t id) const;
@@ -498,7 +499,7 @@ class Npc final {
 
     World&                         owner;
     // main props
-    Daedalus::GEngineClasses::C_Npc hnpc={};
+    std::shared_ptr<phoenix::c_npc> hnpc={};
     float                          x=0.f;
     float                          y=0.f;
     float                          z=0.f;

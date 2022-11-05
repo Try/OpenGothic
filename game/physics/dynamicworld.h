@@ -1,8 +1,7 @@
 #pragma once
 
-#include <zenload/zCMesh.h>
-#include <zenload/zTypes.h>
-#include <zenload/zCMaterial.h>
+#include <phoenix/mesh.hh>
+
 #include <Tempest/Matrix4x4>
 #include <memory>
 #include <limits>
@@ -41,7 +40,7 @@ class DynamicWorld final {
     static constexpr float spellSpeed  = 1; // centimeters per milliseconds
     static const     float ghostPadding;
 
-    DynamicWorld(World &world, const ZenLoad::zCMesh& mesh);
+    DynamicWorld(World &world, const phoenix::mesh& mesh);
     DynamicWorld(const DynamicWorld&)=delete;
     ~DynamicWorld();
 
@@ -134,10 +133,10 @@ class DynamicWorld final {
       };
 
     struct RayLandResult {
-      Tempest::Vec3       v={};
-      Tempest::Vec3       n={};
-      uint8_t             mat    = 0;
-      bool                hasCol = false;
+      Tempest::Vec3           v={};
+      Tempest::Vec3           n={};
+      phoenix::material_group mat    = phoenix::material_group::undefined;
+      bool                    hasCol = false;
       float               hitFraction = 0;
 
       const char*         sector = nullptr;
@@ -156,7 +155,7 @@ class DynamicWorld final {
       virtual ~BulletCallback()=default;
       virtual void onStop(){}
       virtual void onMove(){}
-      virtual void onCollide(uint8_t matId){(void)matId;}
+      virtual void onCollide(phoenix::material_group matId){(void)matId;}
       virtual void onCollide(Npc& other){(void)other;}
       };
 
@@ -211,7 +210,7 @@ class DynamicWorld final {
     struct BBoxBody final {
       public:
         BBoxBody() = default;
-        BBoxBody(DynamicWorld* wrld, BBoxCallback* cb, const ZMath::float3* bbox);
+        BBoxBody(DynamicWorld* wrld, BBoxCallback* cb, const phoenix::bounding_box& bbox);
         BBoxBody(DynamicWorld* wrld, BBoxCallback* cb, const Tempest::Vec3& pos, float R);
         BBoxBody(BBoxBody&& other);
         ~BBoxBody();
@@ -238,18 +237,18 @@ class DynamicWorld final {
     NpcItem        ghostObj  (std::string_view visual);
     Item           staticObj (const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
     Item           movableObj(const PhysicMeshShape *src, const Tempest::Matrix4x4& m);
-    Item           dynamicObj(const Tempest::Matrix4x4& pos, const Bounds& bbox, ZenLoad::MaterialGroup mat);
+    Item           dynamicObj(const Tempest::Matrix4x4& pos, const Bounds& bbox, phoenix::material_group mat);
 
     BulletBody*    bulletObj(BulletCallback* cb);
-    BBoxBody       bboxObj(BBoxCallback* cb, const ZMath::float3* bbox);
+    BBoxBody       bboxObj(BBoxCallback* cb, const phoenix::bounding_box& bbox);
     BBoxBody       bboxObj(BBoxCallback* cb, const Tempest::Vec3& pos, float R);
 
     void           tick(uint64_t dt);
 
     void           deleteObj(BulletBody* obj);
 
-    static float   materialFriction(ZenLoad::MaterialGroup mat);
-    static float   materialDensity (ZenLoad::MaterialGroup mat);
+    static float   materialFriction(phoenix::material_group mat);
+    static float   materialDensity (phoenix::material_group mat);
 
     std::string_view validateSectorName(std::string_view name) const;
 

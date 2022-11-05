@@ -1,14 +1,17 @@
+#include <phoenix/vobs/trigger.hh>
+
 #include "zonetrigger.h"
 
 #include "world/objects/npc.h"
 #include "world/world.h"
 
-ZoneTrigger::ZoneTrigger(Vob* parent, World &world, ZenLoad::zCVobData &&d, Flags flags)
-  :AbstractTrigger(parent,world,std::move(d),flags){
+ZoneTrigger::ZoneTrigger(Vob* parent, World &world, const phoenix::vobs::trigger_change_level& trig, Flags flags)
+  :AbstractTrigger(parent,world,trig,flags){
+  levelName = trig.level_name;
+  startVobName = trig.start_vob;
   }
 
 void ZoneTrigger::onIntersect(Npc &n) {
   if(n.isPlayer())
-    world.triggerChangeWorld(data.oCTriggerChangeLevel.levelName,
-                             data.oCTriggerChangeLevel.startVobName);
+    world.triggerChangeWorld(levelName, startVobName);
   }

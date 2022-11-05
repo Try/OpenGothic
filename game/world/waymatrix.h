@@ -3,7 +3,8 @@
 #include <Tempest/Painter>
 #include <Tempest/Matrix4x4>
 
-#include <zenload/zTypes.h>
+#include <phoenix/world/way_net.hh>
+
 #include <vector>
 #include <functional>
 
@@ -15,7 +16,7 @@ class DbgPainter;
 
 class WayMatrix final {
   public:
-    WayMatrix(World& owner,const ZenLoad::zCWayNetData& dat);
+    WayMatrix(World& owner,const phoenix::way_net& dat);
 
     const WayPoint* findWayPoint (const Tempest::Vec3& at, const Tempest::Vec3& to, const std::function<bool(const WayPoint&)>& filter) const;
     const WayPoint* findFreePoint(const Tempest::Vec3& at, std::string_view name, const std::function<bool(const WayPoint&)>& filter) const;
@@ -36,8 +37,8 @@ class WayMatrix final {
   private:
     World&                 world;
     float                  distanceThreshold = 20.f*100.f;
-    using Edge = std::pair<size_t,size_t>;
-    std::vector<Edge>      edges;
+
+    std::vector<phoenix::way_edge> edges;
 
     std::vector<WayPoint>  wayPoints;
     std::vector<WayPoint>  freePoints, startPoints;

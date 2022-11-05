@@ -15,8 +15,9 @@
 #include <Tempest/Application>
 #include <Tempest/Log>
 
+#include <glm/gtc/type_ptr.hpp>
+
 using namespace Tempest;
-using namespace Daedalus::GameState;
 
 int32_t WorldObjects::MobStates::stateByTime(gtime t) const {
   t = t.timeInDay();
@@ -144,7 +145,7 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
   for(size_t i=1; i<npcArr.size(); ++i) {
     auto& a = npcArr[i-1];
     auto& b = npcArr[i-0];
-    if(a->handle()->id>b->handle()->id) {
+    if(a->handle().id>b->handle().id) {
       needSort = true;
       break;
       }
@@ -152,7 +153,7 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
 
   if(needSort) {
     std::sort(npcArr.begin(),npcArr.end(),[](std::unique_ptr<Npc>& a, std::unique_ptr<Npc>& b){
-      return a->handle()->id<b->handle()->id;
+      return a->handle().id<b->handle().id;
       });
     }
 
@@ -231,12 +232,12 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
         float l = i.qDistTo(r.pos.x,r.pos.y,r.pos.z);
         if(r.item!=size_t(-1) && r.other!=nullptr)
           owner.script().setInstanceItem(*r.other,r.item);
-        const float range = float(i.handle()->senses_range);
+        const float range = float(i.handle().senses_range);
         if(l<range*range && r.other!=nullptr && r.victum!=nullptr) {
           // aproximation of behavior of original G2
           if(!i.isDown() && !i.isPlayer() &&
              i.canSenseNpc(*r.other, true)!=SensesBit::SENSE_NONE &&
-             i.canSenseNpc(*r.victum,true,float(r.other->handle()->senses_range))!=SensesBit::SENSE_NONE
+             i.canSenseNpc(*r.victum,true,float(r.other->handle().senses_range))!=SensesBit::SENSE_NONE
             ) {
             i.perceptionProcess(*r.other,r.victum,l,PercType(r.what));
             }
@@ -443,7 +444,7 @@ Npc *WorldObjects::findHero() {
 
 Npc *WorldObjects::findNpcByInstance(size_t instance) {
   for(auto& i:npcArr)
-    if(i->handle()->instanceSymbol==instance)
+    if(i->handle().symbol_index()==instance)
       return i.get();
   return nullptr;
   }
@@ -528,13 +529,16 @@ void WorldObjects::stopEffect(const VisualFx& vfx) {
     i->stopEffect(vfx);
   }
 
-Item* WorldObjects::addItem(const ZenLoad::zCVobData &vob) {
-  size_t inst = owner.script().getSymbolIndex(vob.oCItem.instanceName);
+Item* WorldObjects::addItem(const phoenix::vobs::item& vob) {
+  size_t inst = owner.script().getSymbolIndex(vob.instance);
   Item*  it   = addItem(inst,"");
   if(it==nullptr)
     return nullptr;
 
-  Matrix4x4 m { vob.worldMatrix.mv };
+  glm::mat4x4 worldMatrix = vob.rotation;
+  worldMatrix[3] = glm::vec4(vob.position, 1);
+
+  Matrix4x4 m { glm::value_ptr(worldMatrix) };
   it->setObjMatrix(m);
   return it;
   }
@@ -648,8 +652,8 @@ void WorldObjects::addStatic(StaticObj* obj) {
   objStatic.push_back(obj);
   }
 
-void WorldObjects::addRoot(ZenLoad::zCVobData&& vob, bool startup) {
-  auto p = Vob::load(nullptr,owner,std::move(vob),(startup ? Vob::Startup : Vob::None) | Vob::Static);
+void WorldObjects::addRoot(const std::unique_ptr<phoenix::vob>& vob, bool startup) {
+  auto p = Vob::load(nullptr,owner,*vob,(startup ? Vob::Startup : Vob::None) | Vob::Static);
   if(p==nullptr)
     return;
   rootVobs.emplace_back(std::move(p));
@@ -785,7 +789,7 @@ Interactive *WorldObjects::aviableMob(const Npc &pl, const char* dest) {
   return ret;
   }
 
-void WorldObjects::setMobRoutine(gtime time, const Daedalus::ZString& scheme, int32_t state) {
+void WorldObjects::setMobRoutine(gtime time, std::string_view scheme, int32_t state) {
   MobRoutine r;
   r.time  = time;
   r.state = state;
@@ -823,7 +827,7 @@ void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item &itm
   m.self   = &self;
   m.other  = &other;
   m.victum = &victum;
-  m.item   = itm.handle().instanceSymbol;
+  m.item   = itm.handle().symbol_index();
 
   sndPerc.push_back(m);
   }
@@ -880,7 +884,7 @@ template<class T>
 bool checkFlag(T&,WorldObjects::SearchFlg){ return true; }
 
 static bool checkFlag(Npc& n,WorldObjects::SearchFlg f){
-  if(n.handle()->noFocus)
+  if(n.handle().no_focus)
     return false;
   if(bool(f&WorldObjects::NoDeath) && n.isDead())
     return false;

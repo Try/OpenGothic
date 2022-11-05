@@ -9,101 +9,101 @@
 
 using namespace Tempest;
 
-VisualFx::Key::Key(Daedalus::GEngineClasses::C_ParticleFXEmitKey&& k) {
-  visName                 = Gothic::inst().loadParticleFx(k.visName_S.c_str());
-  visSizeScale            = k.visSizeScale;
-  scaleDuration           = k.scaleDuration; // time to reach full scale at this key for relevant vars (size, alpha, etc.)
+VisualFx::Key::Key(const phoenix::c_particle_fx_emit_key& k) {
+  visName                 = Gothic::inst().loadParticleFx(k.vis_name_s);
+  visSizeScale            = k.vis_size_scale;
+  scaleDuration           = k.scale_duration; // time to reach full scale at this key for relevant vars (size, alpha, etc.)
 
-  pfx_ppsValue            = k.pfx_ppsValue;
-  pfx_ppsIsSmoothChg      = k.pfx_ppsIsSmoothChg!=0;
-  pfx_ppsIsLoopingChg     = k.pfx_ppsIsLoopingChg!=0;
+  pfx_ppsValue            = k.pfx_pps_value;
+  pfx_ppsIsSmoothChg      = k.pfx_pps_is_smooth_chg!=0;
+  pfx_ppsIsLoopingChg     = k.pfx_pps_is_looping_chg!=0;
   pfx_scTime              = 0.f;
-  if(!k.pfx_flyGravity_S.empty())
-    pfx_flyGravity = Parser::loadVec3(k.pfx_flyGravity_S);
+  if(!k.pfx_fly_gravity_s.empty())
+    pfx_flyGravity = Parser::loadVec3(k.pfx_fly_gravity_s);
 
-  if(!k.pfx_shpDim_S.empty())
-    pfx_shpDim = Parser::loadVec3(k.pfx_shpDim_S);
-  pfx_shpIsVolumeChg      = k.pfx_shpIsVolumeChg;    // changes volume rendering of pfx if set to 1
-  pfx_shpScaleFPS         = k.pfx_shpScaleFPS;
-  pfx_shpDistribWalkSpeed = k.pfx_shpDistribWalkSpeed;
-  if(!k.pfx_shpOffsetVec_S.empty())
-    pfx_shpOffsetVec = Parser::loadVec3(k.pfx_shpOffsetVec_S);
-  pfx_shpDistribType_S    = k.pfx_shpDistribType_S;
-  pfx_dirMode_S           = k.pfx_dirMode_S;
-  pfx_dirFOR_S            = k.pfx_dirFOR_S;
-  pfx_dirModeTargetFOR_S  = k.pfx_dirModeTargetFOR_S;
-  pfx_dirModeTargetPos_S  = k.pfx_dirModeTargetPos_S;
-  pfx_velAvg              = k.pfx_velAvg;
-  pfx_lspPartAvg          = k.pfx_lspPartAvg;
-  pfx_visAlphaStart       = k.pfx_visAlphaStart;
+  if(!k.pfx_shp_dim_s.empty())
+    pfx_shpDim = Parser::loadVec3(k.pfx_shp_dim_s);
+  pfx_shpIsVolumeChg      = k.pfx_shp_is_volume_chg;    // changes volume rendering of pfx if set to 1
+  pfx_shpScaleFPS         = k.pfx_shp_scale_fps;
+  pfx_shpDistribWalkSpeed = k.pfx_shp_distrib_walks_peed;
+  if(!k.pfx_shp_offset_vec_s.empty())
+    pfx_shpOffsetVec = Parser::loadVec3(k.pfx_shp_offset_vec_s);
+  pfx_shpDistribType_S    = k.pfx_shp_distrib_type_s;
+  pfx_dirMode_S           = k.pfx_dir_mode_s;
+  pfx_dirFOR_S            = k.pfx_dir_for_s;
+  pfx_dirModeTargetFOR_S  = k.pfx_dir_mode_target_for_s;
+  pfx_dirModeTargetPos_S  = k.pfx_dir_mode_target_pos_s;
+  pfx_velAvg              = k.pfx_vel_avg;
+  pfx_lspPartAvg          = k.pfx_lsp_part_avg;
+  pfx_visAlphaStart       = k.pfx_vis_alpha_start;
 
-  lightPresetName         = k.lightPresetName;
-  lightRange              = k.lightRange;
-  sfxID                   = k.sfxID;
-  sfxIsAmbient            = k.sfxIsAmbient;
-  emCreateFXID            = Gothic::inst().loadVisualFx(k.emCreateFXID.c_str());
+  lightPresetName         = k.light_preset_name;
+  lightRange              = k.light_range;
+  sfxID                   = k.sfx_id;
+  sfxIsAmbient            = k.sfx_is_ambient;
+  emCreateFXID            = Gothic::inst().loadVisualFx(k.em_create_fx_id);
 
-  emFlyGravity            = k.emFlyGravity;
-  if(!k.emSelfRotVel_S.empty())
-    emSelfRotVel          = Parser::loadVec3(k.emSelfRotVel_S);
-  if(!k.emTrjMode_S.empty())
-    emTrjMode             = VisualFx::loadTrajectory(k.emTrjMode_S);
-  emTrjEaseVel            = k.emTrjEaseVel;
-  emCheckCollision        = k.emCheckCollision!=0;
-  emFXLifeSpan            = k.emFXLifeSpan<0 ? 0 : uint64_t(k.emFXLifeSpan*1000.f);
+  emFlyGravity            = k.em_fly_gravity;
+  if(!k.em_self_rot_vel_s.empty())
+    emSelfRotVel          = Parser::loadVec3(k.em_self_rot_vel_s);
+  if(!k.em_trj_mode_s.empty())
+    emTrjMode             = VisualFx::loadTrajectory(k.em_trj_mode_s);
+  emTrjEaseVel            = k.em_trj_ease_vel;
+  emCheckCollision        = k.em_check_collision!=0;
+  emFXLifeSpan            = k.em_fx_lifespan<0 ? 0 : uint64_t(k.em_fx_lifespan*1000.f);
   }
 
-VisualFx::VisualFx(const Daedalus::GEngineClasses::CFx_Base& fx, Daedalus::DaedalusVM& vm, std::string_view name) {
-  visName_S                = fx.visName_S;
-  visSize                  = Parser::loadVec2(fx.visSize_S);
-  visAlpha                 = fx.visAlpha;
-  visAlphaBlendFunc        = Parser::loadAlpha(fx.visAlphaBlendFunc_S);
+VisualFx::VisualFx(const phoenix::c_fx_base& fx, phoenix::vm& vm, std::string_view name) {
+  visName_S                = fx.vis_name_s;
+  visSize                  = Parser::loadVec2(fx.vis_size_s);
+  visAlpha                 = fx.vis_alpha;
+  visAlphaBlendFunc        = Parser::loadAlpha(fx.vis_alpha_blend_func_s);
   visTexAniFPS             = 0.f;
   visTexAniIsLooping       = false;
 
-  emTrjMode                = loadTrajectory(fx.emTrjMode_S);
-  emTrjOriginNode          = fx.emTrjOriginNode.c_str();
-  emTrjTargetNode          = fx.emTrjTargetNode.c_str();
-  emTrjTargetRange         = fx.emTrjTargetRange;
-  emTrjTargetAzi           = fx.emTrjTargetAzi;
-  emTrjTargetElev          = fx.emTrjTargetElev;
-  emTrjNumKeys             = fx.emTrjNumKeys;
-  emTrjNumKeysVar          = fx.emTrjNumKeysVar;
-  emTrjAngleElevVar        = fx.emTrjAngleElevVar;
-  emTrjAngleHeadVar        = fx.emTrjAngleHeadVar;
-  emTrjKeyDistVar          = fx.emTrjKeyDistVar;
-  emTrjLoopMode            = loadLoopmode(fx.emTrjLoopMode_S);
-  emTrjEaseFunc            = loadEaseFunc(fx.emTrjEaseFunc_S);
-  emTrjEaseVel             = fx.emTrjEaseVel;
-  emTrjDynUpdateDelay      = fx.emTrjDynUpdateDelay;
-  emTrjDynUpdateTargetOnly = fx.emTrjDynUpdateTargetOnly!=0;
+  emTrjMode                = loadTrajectory(fx.em_trj_mode_s);
+  emTrjOriginNode          = fx.em_trj_origin_node;
+  emTrjTargetNode          = fx.em_trj_target_node;
+  emTrjTargetRange         = fx.em_trj_target_range;
+  emTrjTargetAzi           = fx.em_trj_target_azi;
+  emTrjTargetElev          = fx.em_trj_target_elev;
+  emTrjNumKeys             = fx.em_trj_num_keys;
+  emTrjNumKeysVar          = fx.em_trj_num_keys_var;
+  emTrjAngleElevVar        = fx.em_trj_angle_elev_var;
+  emTrjAngleHeadVar        = fx.em_trj_angle_head_var;
+  emTrjKeyDistVar          = fx.em_trj_key_dist_var;
+  emTrjLoopMode            = loadLoopmode(fx.em_trj_loop_mode_s);
+  emTrjEaseFunc            = loadEaseFunc(fx.em_trj_ease_func_s);
+  emTrjEaseVel             = fx.em_trj_ease_vel;
+  emTrjDynUpdateDelay      = fx.em_trj_dyn_update_delay;
+  emTrjDynUpdateTargetOnly = fx.em_trj_dyn_update_target_only!=0;
 
-  emFXCreate               = Gothic::inst().loadVisualFx(fx.emFXCreate_S.c_str());
-  emFXInvestOrigin         = fx.emFXInvestOrigin_S.c_str();
-  emFXInvestTarget         = fx.emFXInvestTarget_S.c_str();
-  emFXTriggerDelay         = fx.emFXTriggerDelay<0 ? 0 : uint64_t(fx.emFXTriggerDelay*1000.f);
-  emFXCreatedOwnTrj        = fx.emFXCreatedOwnTrj!=0;
-  emActionCollDyn          = strToColision(fx.emActionCollDyn_S.c_str());		// CREATE, BOUNCE, CREATEONCE, NORESP, COLLIDE
-  emActionCollStat         = strToColision(fx.emActionCollStat_S.c_str());			// CREATE, BOUNCE, CREATEONCE, NORESP, COLLIDE, CREATEQUAD
-  emFXCollStat             = Gothic::inst().loadVisualFx(fx.emFXCollStat_S.c_str());
-  emFXCollDyn              = Gothic::inst().loadVisualFx(fx.emFXCollDyn_S.c_str());
-  emFXCollDynPerc          = Gothic::inst().loadVisualFx(fx.emFXCollDynPerc_S.c_str());
-  emFXCollStatAlign        = loadCollisionAlign(fx.emFXCollStatAlign_S);
-  emFXCollDynAlign         = loadCollisionAlign(fx.emFXCollDynAlign_S);
-  emFXLifeSpan             = fx.emFXLifeSpan<0 ? 0 : uint64_t(fx.emFXLifeSpan*1000.f);
+  emFXCreate               = Gothic::inst().loadVisualFx(fx.em_fx_create_s);
+  emFXInvestOrigin         = fx.em_fx_invest_origin_s;
+  emFXInvestTarget         = fx.em_fx_invest_target_s;
+  emFXTriggerDelay         = fx.em_fx_trigger_delay<0 ? 0 : uint64_t(fx.em_fx_trigger_delay*1000.f);
+  emFXCreatedOwnTrj        = fx.em_fx_create_down_trj!=0;
+  emActionCollDyn          = strToColision(fx.em_action_coll_dyn_s);		// CREATE, BOUNCE, CREATEONCE, NORESP, COLLIDE
+  emActionCollStat         = strToColision(fx.em_action_coll_stat_s);			// CREATE, BOUNCE, CREATEONCE, NORESP, COLLIDE, CREATEQUAD
+  emFXCollStat             = Gothic::inst().loadVisualFx(fx.em_fx_coll_stat_s);
+  emFXCollDyn              = Gothic::inst().loadVisualFx(fx.em_fx_coll_dyn_s);
+  emFXCollDynPerc          = Gothic::inst().loadVisualFx(fx.em_fx_coll_dyn_perc_s);
+  emFXCollStatAlign        = loadCollisionAlign(fx.em_fx_coll_stat_align_s);
+  emFXCollDynAlign         = loadCollisionAlign(fx.em_fx_coll_dyn_align_s);
+  emFXLifeSpan             = fx.em_fx_lifespan<0 ? 0 : uint64_t(fx.em_fx_lifespan*1000.f);
 
-  emCheckCollision         = fx.emCheckCollision;
-  emAdjustShpToOrigin      = fx.emAdjustShpToOrigin;
-  emInvestNextKeyDuration  = fx.emInvestNextKeyDuration<0 ? 0 : uint64_t(fx.emInvestNextKeyDuration*1000.f);
-  emFlyGravity             = fx.emFlyGravity;
-  emSelfRotVel             = Parser::loadVec3(fx.emSelfRotVel_S);
-  for(size_t i=0; i<Daedalus::GEngineClasses::VFX_NUM_USERSTRINGS; ++i)
-    userString[i] = fx.userString[i];
-  lightPresetName          = fx.lightPresetName;
-  sfxID                    = fx.sfxID;
-  sfxIsAmbient             = fx.sfxIsAmbient;
-  sendAssessMagic          = fx.sendAssessMagic;
-  secsPerDamage            = fx.secsPerDamage;
+  emCheckCollision         = fx.em_check_collision;
+  emAdjustShpToOrigin      = fx.em_adjust_shp_to_origin;
+  emInvestNextKeyDuration  = fx.em_invest_next_key_duration<0 ? 0 : uint64_t(fx.em_invest_next_key_duration*1000.f);
+  emFlyGravity             = fx.em_fly_gravity;
+  emSelfRotVel             = Parser::loadVec3(fx.em_self_rot_vel_s);
+  for(size_t i=0; i<phoenix::c_fx_base::user_string_count; ++i)
+    userString[i] = fx.user_string[i];
+  lightPresetName          = fx.light_preset_name;
+  sfxID                    = fx.sfx_id;
+  sfxIsAmbient             = fx.sfx_is_ambient;
+  sendAssessMagic          = fx.send_assess_magic;
+  secsPerDamage            = fx.secs_per_damage;
 
   for(auto& c:emTrjOriginNode)
     c = char(std::toupper(c));
@@ -119,27 +119,23 @@ VisualFx::VisualFx(const Daedalus::GEngineClasses::CFx_Base& fx, Daedalus::Daeda
   for(int i=0; i<int(SpellFxKey::Count); ++i) {
     char kname[256]={};
     std::snprintf(kname,sizeof(kname),"%.*s_KEY_%s", int(name.size()),name.data(), keyName[i]);
-    auto id = vm.getDATFile().getSymbolIndexByName(kname);
-    if(id==size_t(-1))
+    auto id = vm.find_symbol_by_name(kname);
+    if(id==nullptr)
       continue;
-    Daedalus::GEngineClasses::C_ParticleFXEmitKey key;
-    vm.initializeInstance(key, id, Daedalus::IC_FXEmitKey);
-    vm.clearReferences(Daedalus::IC_FXEmitKey);
-    keys  [i] = Key(std::move(key));
+    auto key = vm.init_instance<phoenix::c_particle_fx_emit_key>(id);
+    keys  [i] = Key(*key);
     hasKey[i] = true;
     }
 
   for(int i=1; ; ++i) {
     char kname[256]={};
     std::snprintf(kname,sizeof(kname),"%.*s_KEY_INVEST_%d", int(name.size()),name.data(), i);
-    auto id = vm.getDATFile().getSymbolIndexByName(kname);
-    if(id==size_t(-1))
+    auto id = vm.find_symbol_by_name(kname);
+    if(id==nullptr)
       break;
-    Daedalus::GEngineClasses::C_ParticleFXEmitKey key;
-    vm.initializeInstance(key, id, Daedalus::IC_FXEmitKey);
-    vm.clearReferences(Daedalus::IC_FXEmitKey);
+    auto key = vm.init_instance<phoenix::c_particle_fx_emit_key>(id);
     // keys[int(SpellFxKey::Invest)] = key;
-    investKeys.push_back(std::move(key));
+    investKeys.emplace_back(*key);
     }
   }
 
@@ -167,10 +163,10 @@ const VisualFx::Key* VisualFx::key(SpellFxKey type, int32_t keyLvl) const {
   return &keys[int(type)];
   }
 
-VisualFx::Trajectory VisualFx::loadTrajectory(const Daedalus::ZString& str) {
+VisualFx::Trajectory VisualFx::loadTrajectory(std::string_view str) {
   uint8_t bits = 0;
   size_t  prev = 0;
-  auto    s    = str.c_str();
+  auto    s    = str.data();
   for(size_t i=0; i<str.size(); ++i) {
     if(s[i]==' ' || s[i]=='\0') {
       if(std::memcmp(s+prev,"NONE",i-prev)==0) {
@@ -204,7 +200,7 @@ VisualFx::Trajectory VisualFx::loadTrajectory(const Daedalus::ZString& str) {
   return Trajectory(bits);
   }
 
-VisualFx::LoopMode VisualFx::loadLoopmode(const Daedalus::ZString& str) {
+VisualFx::LoopMode VisualFx::loadLoopmode(std::string_view str) {
   if(str=="NONE")
     return LoopMode::LoopModeNone;
   if(str=="PINGPONG")
@@ -216,13 +212,13 @@ VisualFx::LoopMode VisualFx::loadLoopmode(const Daedalus::ZString& str) {
   return LoopMode::LoopModeNone;
   }
 
-VisualFx::EaseFunc VisualFx::loadEaseFunc(const Daedalus::ZString& str) {
+VisualFx::EaseFunc VisualFx::loadEaseFunc(std::string_view str) {
   if(str=="LINEAR")
     return EaseFunc::Linear;
   return EaseFunc::Linear;
   }
 
-VisualFx::CollisionAlign VisualFx::loadCollisionAlign(const Daedalus::ZString& str) {
+VisualFx::CollisionAlign VisualFx::loadCollisionAlign(std::string_view str) {
   if(str=="COLLISIONNORMAL")
     return CollisionAlign::Normal;
   if(str=="TRAJECTORY")

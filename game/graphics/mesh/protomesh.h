@@ -5,6 +5,11 @@
 #include <Tempest/Device>
 #include <Tempest/Matrix4x4>
 
+#include <phoenix/model.hh>
+#include <phoenix/model_mesh.hh>
+#include <phoenix/model_hierarchy.hh>
+#include <phoenix/morph_mesh.hh>
+
 #include "graphics/mesh/submesh/staticmesh.h"
 #include "graphics/mesh/submesh/animmesh.h"
 
@@ -17,8 +22,10 @@ class ProtoMesh {
     using Vertex =Resources::VertexA;
 
     ProtoMesh(PackedMesh&&  pm, const std::string& fname);
-    ProtoMesh(PackedMesh&&  pm, const std::vector<ZenLoad::zCMorphMesh::Animation>& aniList, const std::string& fname);
-    ProtoMesh(const ZenLoad::zCModelMeshLib& lib, std::unique_ptr<Skeleton>&& sk, const std::string& fname);
+    ProtoMesh(PackedMesh&&  pm, const std::vector<phoenix::morph_animation>& aniList, const std::string& fname);
+    ProtoMesh(const phoenix::model& lib, std::unique_ptr<Skeleton>&& sk, const std::string& fname);
+    ProtoMesh(const phoenix::model_hierarchy& lib, std::unique_ptr<Skeleton>&& sk, const std::string& fname);
+    ProtoMesh(const phoenix::model_mesh& lib, std::unique_ptr<Skeleton>&& sk, const std::string& fname);
     ProtoMesh(const Material& mat, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo); //decals
     ProtoMesh(ProtoMesh&&)=delete;
     ProtoMesh& operator=(ProtoMesh&&)=delete;
@@ -86,11 +93,11 @@ class ProtoMesh {
 
   private:
     void                           setupScheme(const std::string& s);
-    void                           remap(const ZenLoad::zCMorphMesh::Animation& a,
+    void                           remap(const phoenix::morph_animation& a,
                                          const std::vector<uint32_t>& vertId,
                                          std::vector<int32_t>& remapId,
                                          std::vector<Tempest::Vec4>& samples,
                                          size_t idOffset);
 
-    Morph                          mkAnimation(const ZenLoad::zCMorphMesh::Animation& a);
+    Morph                          mkAnimation(const phoenix::morph_animation& a);
   };

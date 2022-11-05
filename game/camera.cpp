@@ -41,10 +41,10 @@ void Camera::reset() {
 
 void Camera::reset(const Npc* pl) {
   const auto& def = cameraDef();
-  dst.range  = userRange*(def.maxRange-def.minRange)+def.minRange;
+  dst.range  = userRange*(def.max_range-def.min_range)+def.min_range;
   dst.target = pl ? pl->cameraBone() : Vec3();
 
-  dst.spin.x = def.bestElevation;
+  dst.spin.x = def.best_elevation;
   dst.spin.y = pl ? pl->rotation() : 0;
 
   src.spin   = dst.spin;
@@ -299,7 +299,7 @@ float Camera::zFar() const {
   return 85.0f;
   }
 
-const Daedalus::GEngineClasses::CCamSys &Camera::cameraDef() const {
+const phoenix::c_camera &Camera::cameraDef() const {
   auto& camd = Gothic::cameraDef();
   if(camMod==Dialog)
     return camd.dialogCam();
@@ -338,9 +338,9 @@ const Daedalus::GEngineClasses::CCamSys &Camera::cameraDef() const {
 
 void Camera::clampRotation(Tempest::Vec3& spin) {
   const auto& def = cameraDef();
-  if(spin.x>def.maxElevation)
-    spin.x = def.maxElevation;
-  if(spin.x<def.minElevation)
+  if(spin.x>def.max_elevation)
+    spin.x = def.max_elevation;
+  if(spin.x<def.min_elevation)
     ;//spin.x = def.minElevation;
   }
 
@@ -421,7 +421,7 @@ void Camera::followCamera(Vec3& pos, Vec3 dest, float dtF) {
     return;
     }
 
-  float speed = def.veloTrans*100.f*dtF;
+  float speed = def.velo_trans*100.f*dtF;
   float tr    = std::min(speed,len);
   float k     = tr/len;
   pos += dp*k;
@@ -429,8 +429,8 @@ void Camera::followCamera(Vec3& pos, Vec3 dest, float dtF) {
 
 void Camera::followAng(Vec3& spin, Vec3 dest, float dtF) {
   const auto& def = cameraDef();
-  followAng(spin.x,dest.x,def.veloRot,dtF);
-  followAng(spin.y,dest.y,def.veloRot,dtF);
+  followAng(spin.x,dest.x,def.velo_rot,dtF);
+  followAng(spin.y,dest.y,def.velo_rot,dtF);
   }
 
 void Camera::followAng(float& ang, float dest, float speed, float dtF) {
@@ -459,7 +459,7 @@ void Camera::tick(uint64_t dt) {
 
   {
   const auto& def = cameraDef();
-  dst.range = def.minRange + (def.maxRange-def.minRange)*userRange;
+  dst.range = def.min_range + (def.max_range-def.min_range)*userRange;
   const float zSpeed = 5.f;
   const float dz     = dst.range-src.range;
   src.range+=dz*std::min(1.f,2.f*zSpeed*dtF);
@@ -470,13 +470,13 @@ void Camera::tick(uint64_t dt) {
 
 void Camera::calcControlPoints(float dtF) {
   const auto& def = cameraDef();
-  auto  targetOffset = Vec3(def.targetOffsetX,
-                            def.targetOffsetY,
-                            def.targetOffsetZ);
-  auto  rotOffsetDef = Vec3(def.rotOffsetX,
-                            def.rotOffsetY,
-                            def.rotOffsetZ);
-  auto  rotBest      = Vec3(0,def.bestAzimuth,0);
+  auto  targetOffset = Vec3(def.target_offset_x,
+                            def.target_offset_y,
+                            def.target_offset_z);
+  auto  rotOffsetDef = Vec3(def.rot_offset_x,
+                            def.rot_offset_y,
+                            def.rot_offset_z);
+  auto  rotBest      = Vec3(0,def.best_azimuth,0);
 
   clampRotation(dst.spin);
 
@@ -631,8 +631,8 @@ Matrix4x4 Camera::mkRotation(const Vec3& spin) const {
 
 void Camera::resetDst() {
   const auto& def = cameraDef();
-  dst.spin.x = def.bestElevation;
-  dst.range  = def.bestRange;
+  dst.spin.x = def.best_elevation;
+  dst.range  = def.best_range;
   }
 
 void Camera::debugDraw(DbgPainter& p) {
