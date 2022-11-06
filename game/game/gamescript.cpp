@@ -2011,7 +2011,7 @@ std::shared_ptr<phoenix::c_item> GameScript::npc_getequippedmeleeweapon(std::sha
 
 std::shared_ptr<phoenix::c_item> GameScript::npc_getequippedrangedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
   auto npc = getNpc(npcRef);
-  if(npc!=nullptr && npc->currentMeleWeapon() != nullptr){
+  if(npc!=nullptr && npc->currentRangeWeapon() != nullptr){
     return npc->currentRangeWeapon()->handlePtr();
     }
   return nullptr;
