@@ -2808,7 +2808,8 @@ Item* Npc::takeItem(Item& item) {
   auto dpos = item.position()-position();
   dpos.y-=translateY();
 
-  if(bodyStateMasked()!=BS_STAND) {
+  auto state = bodyStateMasked();
+  if(state!=BS_STAND && state!=BS_SNEAK) {
     setAnim(Anim::Idle);
     return nullptr;
     }

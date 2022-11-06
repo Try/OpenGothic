@@ -700,7 +700,7 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     bs = BS_DIVE;
   else if(bool(wlk & WalkBit::WM_Swim))
     bs = BS_SWIM;
-  else if(bool(wlk & WalkBit::WM_Sneak))
+  else if(bool(wlk & WalkBit::WM_Sneak) && (st!=WeaponState::Bow && st!=WeaponState::CBow))
     bs = BS_SNEAK;
 
   Pose::StartHint hint = (forceAnim ? Pose::Force : Pose::NoHint);

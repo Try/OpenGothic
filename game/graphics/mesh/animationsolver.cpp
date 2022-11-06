@@ -156,9 +156,8 @@ const Animation::Sequence* AnimationSolver::implSolveAnim(AnimationSolver::Anim 
       if(bs==BS_AIMNEAR || bs==BS_AIMFAR)
         return solveFrm("S_%sSHOOT",st);
       }
-    if(a==Anim::Idle)
-      return solveFrm("S_%sRUN",st);
     }
+
   if(a==Anim::MagNoMana)
     return solveFrm("T_CASTFAIL");
   // Move

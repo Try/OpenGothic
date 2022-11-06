@@ -262,9 +262,12 @@ bool PlayerControl::interact(Npc &other) {
   auto pl = w->player();
   if(pl->isDown())
     return true;
+  auto state = pl->bodyStateMasked();
+  if(state!=BS_STAND && state!=BS_SNEAK)
+    return true;
   if(!canInteract())
     return false;
-  if(w->script().isDead(other) || w->script().isUnconscious(other)){
+  if(w->script().isDead(other) || w->script().isUnconscious(other)) {
     if(!inv.ransack(*w->player(),other))
       w->script().printNothingToGet();
     }
