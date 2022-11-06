@@ -2086,6 +2086,8 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       if(startState(act.func,act.s0,aiState.eTime,act.i0==0)) {
         setOther(act.target);
         setVictum(act.victum);
+        // WA: for gothic1 dialogs
+        perceptionNextTime = owner.tickCount()+perceptionTime;
         }
       break;
     case AI_PlayAnim:{
