@@ -99,14 +99,13 @@ void Animation::debug() const {
     Log::d(i.name);
   }
 
-const std::string& Animation::defaultMesh() const {
+std::string_view Animation::defaultMesh() const {
   if(!meshDef.name.empty() && !meshDef.disable_mesh)
     return meshDef.name;
-  static std::string nop;
-  return nop;
+  return "";
   }
 
-Animation::Sequence& Animation::loadMAN(const phoenix::mds::animation& hdr, const std::string& name) {
+Animation::Sequence& Animation::loadMAN(const phoenix::mds::animation& hdr, std::string_view name) {
   sequences.emplace_back(hdr,name);
   auto& ret = sequences.back();
   if(ret.data==nullptr) {
@@ -188,7 +187,7 @@ void Animation::setupIndex() {
   }
 
 
-Animation::Sequence::Sequence(const phoenix::mds::animation& hdr, const std::string &fname) {
+Animation::Sequence::Sequence(const phoenix::mds::animation& hdr, std::string_view fname) {
   if(!Resources::hasFile(fname))
     return;
 

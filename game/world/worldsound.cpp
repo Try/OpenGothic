@@ -85,7 +85,7 @@ void WorldSound::addSound(const phoenix::vobs::sound &vob) {
   s.active    = vob.initially_playing;
   s.delay     = uint64_t(vob.random_delay * 1000);
   s.delayVar  = uint64_t(vob.random_delay_var * 1000);
-  s.eff0      = Gothic::inst().loadSoundFx(vob.sound_name.c_str());
+  s.eff0      = Gothic::inst().loadSoundFx(vob.sound_name);
 
   s.pos       = {vob.position.x,vob.position.y,vob.position.z};
   s.sndRadius = vob.radius;
@@ -97,7 +97,7 @@ void WorldSound::addSound(const phoenix::vobs::sound &vob) {
 
     s.sndStart = gtime(int(b),int(b*60)%60);
     s.sndEnd   = gtime(int(e),int(e*60)%60);
-    s.eff1     = Gothic::inst().loadSoundFx(prDay.sound_name2.c_str());
+    s.eff1     = Gothic::inst().loadSoundFx(prDay.sound_name2);
     } else {
     s.sndStart = gtime(0,0);
     s.sndEnd   = gtime(24,0);
@@ -327,9 +327,9 @@ bool WorldSound::canSeeSource(const Tempest::Vec3& p) const {
   return false;
   }
 
-void WorldSound::aiOutput(const Tempest::Vec3& pos,const std::string &outputname) {
+void WorldSound::aiOutput(const Tempest::Vec3& pos, std::string_view outputname) {
   if(isInListenerRange(pos,talkRange)){
     std::lock_guard<std::mutex> guard(sync);
-    Gothic::inst().emitGlobalSound(Resources::loadSoundBuffer(outputname+".wav"));
+    Gothic::inst().emitGlobalSound(Resources::loadSoundBuffer(std::string(outputname)+".wav"));
     }
   }

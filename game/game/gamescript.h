@@ -129,26 +129,25 @@ class GameScript final {
     void invokeItem (Npc* npc, ScriptFn fn);
     int  invokeMana (Npc& npc, Npc* target, Item&  fn);
     void invokeSpell(Npc& npc, Npc *target, Item&  fn);
-    int  invokeCond (Npc& npc, const std::string& func);
+    int  invokeCond (Npc& npc, std::string_view func);
     void invokePickLock(Npc& npc, int bSuccess, int bBrokenOpen);
     auto canNpcCollideWithSpell(Npc& npc, Npc* shooter, int32_t spellId) -> CollideMask;
 
     int  playerHotKeyScreenMap(Npc& pl);
-
-    auto spellCastAnim(Npc& npc, Item&  fn) -> const std::string&;
 
     bool isDead       (const Npc &pl);
     bool isUnconscious(const Npc &pl);
     bool isTalk       (const Npc &pl);
     bool isAtack      (const Npc &pl) const;
 
+    std::string_view spellCastAnim(Npc& npc, Item&  fn);
     std::string_view messageFromSvm(std::string_view id,int voice) const;
-    std::string_view messageByName (const std::string& id) const;
+    std::string_view messageByName (std::string_view id) const;
     uint32_t         messageTime   (std::string_view id) const;
 
     void      printNothingToGet();
     float    tradeValueMultiplier() const { return tradeValMult; }
-    void     useInteractive(const std::shared_ptr<phoenix::c_npc>& hnpc, const std::string &func);
+    void     useInteractive(const std::shared_ptr<phoenix::c_npc>& hnpc, std::string_view func);
     Attitude guildAttitude(const Npc& p0,const Npc& p1) const;
     Attitude personAttitude(const Npc& p0,const Npc& p1) const;
 
@@ -160,19 +159,19 @@ class GameScript final {
   private:
     template<typename T>
     struct DetermineSignature {
-        using signature = void();
-    };
+      using signature = void();
+      };
 
     template <typename C, typename R, typename ... P>
     struct DetermineSignature<R(C::*)(P...)> {
-        using signature = R(P...);
-    };
+      using signature = R(P...);
+      };
 
     template <class F>
     void bindExternal(const std::string& name, F function) {
       vm.register_external(name, std::function<typename DetermineSignature<F>::signature> (
         [this, function](auto ... v) { return (this->*function)(v...); }));
-    }
+      }
 
     void               initCommon();
 
@@ -196,7 +195,7 @@ class GameScript final {
     Npc*  getNpc(const std::shared_ptr<phoenix::c_npc>& handle);
     Npc*  getNpcById (size_t id);
     auto  getInfo    (size_t id) -> phoenix::c_info*;
-    auto  getFocus(const std::string& name) -> phoenix::c_focus;
+    auto  getFocus(std::string_view name) -> phoenix::c_focus;
 
     void  storeItem(Item* it);
 

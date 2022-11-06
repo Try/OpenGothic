@@ -144,7 +144,7 @@ uint64_t VisualFx::effectPrefferedTime() const {
   }
 
 PfxEmitter VisualFx::visual(World& owner) const {
-  return PfxEmitter(owner,visName_S.c_str());
+  return PfxEmitter(owner,visName_S);
   }
 
 const VisualFx::Key* VisualFx::key(SpellFxKey type, int32_t keyLvl) const {

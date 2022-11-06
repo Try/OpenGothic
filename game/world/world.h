@@ -34,7 +34,7 @@ class World final {
   public:
     World()=delete;
     World(const World&)=delete;
-    World(GameSession& game, std::string file, bool startup, std::function<void(int)> loadProgress);
+    World(GameSession& game, std::string_view file, bool startup, std::function<void(int)> loadProgress);
     ~World();
 
     struct BspSector final {
@@ -45,7 +45,7 @@ class World final {
     void                 insertPlayer(std::unique_ptr<Npc>&& npc, std::string_view waypoint);
     void                 setPlayer(Npc* npc);
     void                 postInit();
-    const std::string&   name() const { return wname; }
+    std::string_view     name() const { return wname; }
 
     void                 load(Serialize& fin );
     void                 save(Serialize& fout);
@@ -110,7 +110,7 @@ class World final {
     auto                 takeHero() -> std::unique_ptr<Npc>;
     Npc*                 player() const { return npcPlayer; }
     Npc*                 findNpcByInstance(size_t instance);
-    auto                 roomAt(const Tempest::Vec3& arr) -> const std::string&;
+    std::string_view     roomAt(const Tempest::Vec3& arr);
 
     void                 scaleTime(uint64_t& dt);
     void                 tick(uint64_t dt);
@@ -125,14 +125,14 @@ class World final {
 
     void                 triggerOnStart(bool firstTime);
     void                 triggerEvent(const TriggerEvent& e);
-    void                 triggerChangeWorld(const std::string &world, const std::string &wayPoint);
+    void                 triggerChangeWorld(std::string_view world, std::string_view wayPoint);
     void                 execTriggerEvent(const TriggerEvent& e);
     void                 enableTicks (AbstractTrigger& t);
     void                 disableTicks(AbstractTrigger& t);
     void                 enableCollizionZone (CollisionZone& z);
     void                 disableCollizionZone(CollisionZone& z);
 
-    Interactive*         aviableMob(const Npc &pl, const char* name);
+    Interactive*         aviableMob(const Npc &pl, std::string_view name);
     Interactive*         findInteractive(const Npc& pl);
     void                 setMobRoutine(gtime time, std::string_view scheme, int32_t state);
 
@@ -140,7 +140,7 @@ class World final {
     void                 marchPoints      (DbgPainter& p) const;
 
     AiOuputPipe*         openDlgOuput(Npc &player, Npc &npc);
-    void                 aiOutputSound(Npc &player, const std::string& msg);
+    void                 aiOutputSound(Npc &player, std::string_view msg);
     bool                 aiIsDlgFinished();
 
     bool                 isTargeted (Npc& npc);
@@ -196,7 +196,7 @@ class World final {
     WorldObjects                          wobj;
     std::unique_ptr<Npc>                  lvlInspector;
 
-    auto         roomAt(const phoenix::bsp_node &node) -> const std::string &;
+    auto         roomAt(const phoenix::bsp_node &node) -> std::string_view;
     auto         portalAt(std::string_view tag) -> BspSector*;
 
     void         initScripts(bool firstTime);

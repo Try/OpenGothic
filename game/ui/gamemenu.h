@@ -21,7 +21,7 @@ class GthFont;
 
 class GameMenu : public Tempest::Widget {
   public:
-    GameMenu(MenuRoot& owner, KeyCodec& keyCodec, phoenix::vm& vm, const char *menuSection, KeyCodec::Action keyClose);
+    GameMenu(MenuRoot& owner, KeyCodec& keyCodec, phoenix::vm& vm, std::string_view menuSection, KeyCodec::Action keyClose);
     ~GameMenu() override;
 
     void setPlayer(const Npc& pl);
@@ -107,8 +107,8 @@ class GameMenu : public Tempest::Widget {
     bool                                  implUpdateSavThumb(Item& sel);
     size_t                                saveSlotId(const Item& sel);
 
-    const char*                           strEnum(const char* en, int id, std::vector<char> &out);
-    size_t                                strEnumSize(const char* en);
+    std::string_view                      strEnum(std::string_view en, int id, std::vector<char> &out);
+    size_t                                strEnumSize(std::string_view en);
 
     void                                  updateValues();
     void                                  updateItem    (Item &item);
@@ -127,5 +127,5 @@ class GameMenu : public Tempest::Widget {
     void                                  set(std::string_view item, const int32_t  value);
     void                                  set(std::string_view item, const int32_t  value,const char* post);
     void                                  set(std::string_view item, const int32_t  value, const int32_t max);
-    void                                  set(std::string_view item, const char* value);
+    void                                  set(std::string_view item, std::string_view value);
   };

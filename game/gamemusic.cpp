@@ -42,7 +42,7 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
 
     try {
       if(reloadTheme) {
-        Dx8::PatternList p = Resources::loadDxMusic(theme.file.c_str());
+        Dx8::PatternList p = Resources::loadDxMusic(theme.file);
 
         Dx8::Music m;
         m.addPattern(p);
@@ -70,7 +70,7 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
       mix.setMusicVolume(theme.vol);
       }
     catch(std::runtime_error&) {
-      Log::e("unable to load sound: \"",theme.file.c_str(),"\"");
+      Log::e("unable to load sound: \"",theme.file,"\"");
       }
     }
 

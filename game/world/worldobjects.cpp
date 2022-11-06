@@ -167,7 +167,7 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
   for(auto& i:routines) {
     auto s = i.stateByTime(owner.time());
     if(s!=i.curState) {
-      setMobState(i.scheme.c_str(),s);
+      setMobState(i.scheme,s);
       i.curState = s;
       }
     }
@@ -763,7 +763,7 @@ void WorldObjects::marchInteractives(DbgPainter &p) const {
     }
   }
 
-Interactive *WorldObjects::aviableMob(const Npc &pl, const char* dest) {
+Interactive *WorldObjects::aviableMob(const Npc &pl, std::string_view dest) {
   const float  dist=100*10.f;
   Interactive* ret =nullptr;
 
@@ -862,14 +862,14 @@ void WorldObjects::resetPositionToTA() {
   for(auto& i:interactiveObj) {
     int32_t state = -1;
     for(auto& r:routines) {
-      if(i->schemeName()==r.scheme.c_str())
+      if(i->schemeName()==r.scheme)
         state = r.curState;
       }
     i->resetPositionToTA(state);
     }
   }
 
-void WorldObjects::setMobState(const char* scheme, int32_t st) {
+void WorldObjects::setMobState(std::string_view scheme, int32_t st) {
   for(auto& i:rootVobs)
     i->setMobState(scheme,st);
   }

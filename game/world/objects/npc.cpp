@@ -103,7 +103,7 @@ struct Npc::TransformBack {
 
     std::string sk;
     fin.read(sk);
-    skeleton = Resources::loadSkeleton(sk.c_str());
+    skeleton = Resources::loadSkeleton(sk);
     }
 
   void undo(Npc& self) {
@@ -722,7 +722,7 @@ uint8_t Npc::calcAniComb() const {
   }
 
 std::string_view Npc::displayName() const {
-  return hnpc->name[0].c_str();
+  return hnpc->name[0];
   }
 
 Tempest::Vec3 Npc::displayPosition() const {
@@ -855,7 +855,7 @@ void Npc::updateArmour() {
     auto  flag   = ItmFlags(itData.main_flag);
     if(flag & ITM_CAT_ARMOR){
       auto& asc   = itData.visual_change;
-      auto  vbody = asc.empty() ? MeshObjects::Mesh() : w.addView(asc.c_str(),vColor,0,bdColor);
+      auto  vbody = asc.empty() ? MeshObjects::Mesh() : w.addView(asc,vColor,0,bdColor);
       visual.setArmour(*this,std::move(vbody));
       }
     }
@@ -2040,7 +2040,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         queue.pushFront(std::move(act));
         break;
         }
-      auto fp = owner.findNextFreePoint(*this,act.s0.c_str());
+      auto fp = owner.findNextFreePoint(*this,act.s0);
       if(fp!=nullptr) {
         currentFp       = nullptr;
         currentFpLock   = FpLock(*fp);
@@ -2089,20 +2089,20 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
       break;
     case AI_PlayAnim:{
-      if(auto sq = playAnimByName(act.s0.c_str(),BS_NONE)) {
+      if(auto sq = playAnimByName(act.s0,BS_NONE)) {
         implAniWait(uint64_t(sq->totalTime()));
         } else {
-        if(visual.isAnimExist(act.s0.c_str()))
+        if(visual.isAnimExist(act.s0))
           queue.pushFront(std::move(act));
         }
       break;
       }
     case AI_PlayAnimBs:{
       BodyState bs = BodyState(act.i0);
-      if(auto sq = playAnimByName(act.s0.c_str(),bs)) {
+      if(auto sq = playAnimByName(act.s0,bs)) {
         implAniWait(uint64_t(sq->totalTime()));
         } else {
-        if(visual.isAnimExist(act.s0.c_str())) {
+        if(visual.isAnimExist(act.s0)) {
           queue.pushFront(std::move(act));
           } else {
           /* ZS_MM_Rtn_Sleep will set NPC_WALK mode and run T_STAND_2_SLEEP animation.
@@ -2161,7 +2161,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         queue.pushFront(std::move(act));
         break;
         }*/
-      auto inter = owner.aviableMob(*this,act.s0.c_str());
+      auto inter = owner.aviableMob(*this,act.s0);
       if(inter==nullptr) {
         queue.pushFront(std::move(act));
         break;
@@ -3273,10 +3273,10 @@ bool Npc::beginCastSpell() {
       castNextTime     = 0;
       return false;
     case SpellCode::SPL_NEXTLEVEL: {
-      auto& ani = owner.script().spellCastAnim(*this,*active);
-      if(!visual.startAnimSpell(*this,ani.c_str(),true)) {
+      auto ani = owner.script().spellCastAnim(*this,*active);
+      if(!visual.startAnimSpell(*this,ani,true)) {
         // falback to cast animation to match teleport spells in  original
-        visual.startAnimSpell(*this,ani.c_str(),false);
+        visual.startAnimSpell(*this,ani,false);
         endCastSpell();
         return false;
         }
@@ -3284,8 +3284,8 @@ bool Npc::beginCastSpell() {
       }
     case SpellCode::SPL_SENDCAST:{
       castLevel = CS_Invest_0;
-      auto& ani = owner.script().spellCastAnim(*this,*active);
-      visual.startAnimSpell(*this,ani.c_str(),false);
+      auto ani = owner.script().spellCastAnim(*this,*active);
+      visual.startAnimSpell(*this,ani,false);
       endCastSpell();
       return false;
       }
@@ -3318,8 +3318,8 @@ bool Npc::tickCast() {
   if(CS_Cast_0<=castLevel && castLevel<=CS_Cast_Last) {
     // cast anim
     if(active!=nullptr) {
-      auto& ani = owner.script().spellCastAnim(*this,*active);
-      if(!visual.startAnimSpell(*this,ani.c_str(),false))
+      auto ani = owner.script().spellCastAnim(*this,*active);
+      if(!visual.startAnimSpell(*this,ani,false))
         return true;
       }
     commitSpell();

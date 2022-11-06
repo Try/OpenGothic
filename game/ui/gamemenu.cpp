@@ -104,8 +104,8 @@ struct GameMenu::ListViewDialog : Dialog {
         if(i+1<ql->entry.size())
           text+="\n---\n";
         }
-      next->scroll         = 0;
-      next->handle->text[0] = text.c_str();
+      next->scroll          = 0;
+      next->handle->text[0] = text;
       }
 
     for(uint32_t i=0;i<phoenix::c_menu::item_count;++i)
@@ -235,9 +235,7 @@ struct GameMenu::SavNameDialog : Dialog {
       return;
       }
     if(e.key==Event::K_Back && text.size()>0) {
-      std::string tmp = text.c_str();
-      tmp.pop_back();
-      text = std::move(tmp);
+      text.pop_back();
       return;
       }
 
@@ -259,7 +257,7 @@ struct GameMenu::SavNameDialog : Dialog {
   bool                accepted = false;
   };
 
-GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, phoenix::vm &vm, const char* menuSection, KeyCodec::Action kClose)
+GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, phoenix::vm &vm, std::string_view menuSection, KeyCodec::Action kClose)
   :owner(owner), keyCodec(keyCodec), vm(vm), kClose(kClose) {
   setCursorShape(CursorShape::Hidden);
   timer.timeout.bind(this,&GameMenu::onTick);
@@ -267,7 +265,7 @@ GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, phoenix::vm &vm, const c
 
   textBuf.reserve(64);
 
-  auto* menuSectionSymbol = vm.find_symbol_by_name(menuSection);
+  auto* menuSectionSymbol = vm.find_symbol_by_name(std::string(menuSection)); // https://github.com/lmichaelis/phoenix/issues/30
   if (menuSectionSymbol != nullptr) {
     menu = vm.init_instance<phoenix::c_menu>(menuSectionSymbol);
     } else {
@@ -340,7 +338,7 @@ void GameMenu::initItems() {
     if(menu->items[i].empty())
       continue;
 
-    hItems[i].name = menu->items[i].c_str();
+    hItems[i].name = menu->items[i];
 
     auto* menuItemSymbol = vm.find_symbol_by_name(hItems[i].name);
     if (menuItemSymbol != nullptr) {
@@ -376,7 +374,7 @@ void GameMenu::paintEvent(PaintEvent &e) {
       auto& fnt  = Resources::font();
       auto& item = sel->handle;
       if(item->text->size()>0) {
-        const char* txt = item->text[1].c_str();
+        std::string_view txt = item->text[1];
         int tw = fnt.textSize(txt).w;
         fnt.drawText(p,(w()-tw)/2,h()-7,txt);
         }
@@ -504,7 +502,7 @@ void GameMenu::drawSlider(Painter& p, Item& it, int x, int y, int sw, int sh) {
   if(sec.empty() || opt.empty())
     return;
 
-  float v  = Gothic::settingsGetF(sec.c_str(),opt.c_str());
+  float v  = Gothic::settingsGetF(sec, opt);
   int   dx = int(float(sw-w)*std::max(0.f,std::min(v,1.f)));
   p.drawRect(x+dx,y+(sh-h)/2,w,h,
              0,0,p.brush().w(),p.brush().h());
@@ -678,14 +676,14 @@ void GameMenu::getText(const Item& it, std::vector<char> &out) {
 
   const auto& src = it.handle->text[0];
   if(it.handle->type==phoenix::c_menu_item_type::text) {
-    size_t size = std::strlen(src.c_str());
+    size_t size = src.size();
     out.resize(size+1);
     std::memcpy(out.data(),src.c_str(),size+1);
     return;
     }
 
   if(it.handle->type==phoenix::c_menu_item_type::choicebox) {
-    strEnum(src.c_str(),it.value,out);
+    strEnum(src,it.value,out);
     return;
     }
   }
@@ -765,7 +763,7 @@ void GameMenu::execSingle(Item &it, int slideDx) {
       if(dlg.key==Event::K_ESCAPE)
         next = KeyCodec::keyToCode(dlg.mkey); else
         next = KeyCodec::keyToCode(dlg.key);
-      keyCodec.set(item->on_chg_set_option_section.c_str(), item->on_chg_set_option.c_str(), next);
+      keyCodec.set(item->on_chg_set_option_section, item->on_chg_set_option, next);
       updateItem(it);
       return; //HACK: there is a SEL_ACTION_BACK token in same item
       }
@@ -782,7 +780,7 @@ void GameMenu::execSingle(Item &it, int slideDx) {
         break;
       case c_menu_item_select_action::start_menu:
         if(vm.find_symbol_by_name(onSelAction_S[i]) != nullptr)
-          owner.pushMenu(new GameMenu(owner,keyCodec,vm,onSelAction_S[i].c_str(),keyClose()));
+          owner.pushMenu(new GameMenu(owner,keyCodec,vm,onSelAction_S[i],keyClose()));
         break;
       case c_menu_item_select_action::start_item:
         break;
@@ -802,7 +800,7 @@ void GameMenu::execSingle(Item &it, int slideDx) {
         // unknown
         break;
       case c_menu_item_select_action::play_sound:
-        Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx(onSelAction_S[i].c_str()));
+        Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx(onSelAction_S[i]));
         break;
       case c_menu_item_select_action::execute_commands:
         execCommands(onSelAction_S[i],true);
@@ -827,19 +825,19 @@ void GameMenu::execChgOption(Item &item, int slideDx) {
 
   if(item.handle->type==phoenix::c_menu_item_type::slider && slideDx!=0) {
     updateItem(item);
-    float v = Gothic::settingsGetF(sec.c_str(),opt.c_str());
+    float v = Gothic::settingsGetF(sec, opt);
     v  = std::max(0.f,std::min(v+float(slideDx)*0.03f,1.f));
-    Gothic::settingsSetF(sec.c_str(), opt.c_str(), v);
+    Gothic::settingsSetF(sec, opt, v);
     }
   if(item.handle->type==phoenix::c_menu_item_type::choicebox && slideDx==0) {
     updateItem(item);
     item.value += 1; // next value
 
-    int cnt = int(strEnumSize(item.handle->text[0].c_str()));
+    int cnt = int(strEnumSize(item.handle->text[0]));
     if(cnt>0)
       item.value%=cnt; else
       item.value =0;
-    Gothic::settingsSetI(sec.c_str(), opt.c_str(), item.value);
+    Gothic::settingsSetI(sec, opt, item.value);
     }
   }
 
@@ -850,7 +848,7 @@ void GameMenu::execSaveGame(const GameMenu::Item& item) {
 
   char fname[64]={};
   std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",int(id));
-  Gothic::inst().save(fname,item.handle->text[0].c_str());
+  Gothic::inst().save(fname,item.handle->text[0]);
   }
 
 void GameMenu::execLoadGame(const GameMenu::Item &item) {
@@ -932,7 +930,7 @@ void GameMenu::updateSavTitle(GameMenu::Item& sel) {
     Serialize reader(fin);
     reader.setEntry("header");
     reader.read(hdr);
-    sel.handle->text[0] = hdr.name.c_str();
+    sel.handle->text[0] = hdr.name;
     sel.savHdr         = std::move(hdr);
 
     if(reader.setEntry("priview.png"))
@@ -997,7 +995,7 @@ bool GameMenu::implUpdateSavThumb(GameMenu::Item& sel) {
   savThumb = Resources::loadTexturePm(sel.savPriview);
 
   set("MENUITEM_LOADSAVE_THUMBPIC",       &savThumb);
-  set("MENUITEM_LOADSAVE_LEVELNAME_VALUE",hdr.world.c_str());
+  set("MENUITEM_LOADSAVE_LEVELNAME_VALUE",hdr.world);
 
   std::snprintf(form,sizeof(form),"%d.%d.%d - %d:%02d",int(hdr.pcTime.tm_mday),int(hdr.pcTime.tm_mon+1),int(1900+hdr.pcTime.tm_year), int(hdr.pcTime.tm_hour),int(hdr.pcTime.tm_min));
   set("MENUITEM_LOADSAVE_DATETIME_VALUE", form);
@@ -1030,11 +1028,11 @@ size_t GameMenu::saveSlotId(const GameMenu::Item &sel) {
   return size_t(-1);
   }
 
-const char *GameMenu::strEnum(const char *en, int id, std::vector<char> &out) {
+std::string_view GameMenu::strEnum(std::string_view en, int id, std::vector<char> &out) {
   int num=0;
 
   size_t i=0;
-  for(size_t r=0;en[r];++r)
+  for(size_t r=0; r<en.size(); ++r)
     if(en[r]=='#'){
       i=r+1;
       break;
@@ -1042,7 +1040,7 @@ const char *GameMenu::strEnum(const char *en, int id, std::vector<char> &out) {
 
   for(;en[i];++i){
     size_t b=i;
-    for(size_t r=i;en[r];++r,++i)
+    for(size_t r=i; r<en.size(); ++r,++i)
       if(en[r]=='|')
         break;
 
@@ -1051,26 +1049,28 @@ const char *GameMenu::strEnum(const char *en, int id, std::vector<char> &out) {
       out.resize(sz+1);
       std::memcpy(&out[0],&en[b],sz);
       out[sz]='\0';
-      return textBuf.data();
+      return out.data();
       }
     ++num;
     }
-  for(size_t i=0;en[i];++i){
+
+  for(size_t i=0; i<en.size(); ++i){
     if(en[i]=='#' || en[i]=='|'){
       out.resize(i+1);
-      std::memcpy(&out[0],en,i);
+      std::memcpy(&out[0],en.data(),i);
       out[i]='\0';
       return out.data();
       }
     }
+
   return "";
   }
 
-size_t GameMenu::strEnumSize(const char *en) {
-  if(en==nullptr)
+size_t GameMenu::strEnumSize(std::string_view en) {
+  if(en.empty())
     return 0;
   size_t cnt = 0;
-  for(size_t i=0;en[i];++i) {
+  for(size_t i=0; i<en.size(); ++i) {
     if(en[i]=='#' || en[i]=='|') {
       cnt += en[i]=='|' ? 2 : 1;
       i++;
@@ -1115,7 +1115,7 @@ void GameMenu::set(std::string_view item, const int32_t value, const int32_t max
   set(item,buf);
   }
 
-void GameMenu::set(std::string_view item, const char* value) {
+void GameMenu::set(std::string_view item, std::string_view value) {
   for(auto& i:hItems)
     if(i.name==item) {
       i.handle->text[0] = value;
@@ -1164,7 +1164,7 @@ void GameMenu::setPlayer(const Npc &pl) {
     return;
     }
 
-  set("MENU_ITEM_PLAYERGUILD",gilds->get_string(pl.guild()).c_str());
+  set("MENU_ITEM_PLAYERGUILD",gilds->get_string(pl.guild()));
 
   set("MENU_ITEM_LEVEL",      pl.level());
   set("MENU_ITEM_EXP",        pl.experience());
@@ -1189,14 +1189,14 @@ void GameMenu::setPlayer(const Npc &pl) {
 
     char buf[64]={};
     std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d_TITLE",i);
-    set(buf,str.c_str());
+    set(buf, str);
 
     const int sk=pl.talentSkill(Talent(i));
     std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d_SKILL",i);
-    set(buf,strEnum(talV->get_string(size_t(i)).c_str(),sk,textBuf));
+    set(buf, strEnum(talV->get_string(size_t(i)),sk,textBuf));
 
     const int val=pl.hitChanse(Talent(i));
     std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d",i);
-    set(buf,val,"%");
+    set(buf, val, "%");
     }
   }

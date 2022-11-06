@@ -111,13 +111,13 @@ void DialogMenu::tick(uint64_t dt) {
   update();
   }
 
-void DialogMenu::drawTextMultiline(Painter &p, int x, int y, int w, int h, const std::string &txt, bool isPl) {
+void DialogMenu::drawTextMultiline(Painter &p, int x, int y, int w, int h, std::string_view txt, bool isPl) {
   auto sz = processTextMultiline(nullptr,0,0,w,h,txt,isPl);
   y+=std::max(0, (h-sz.h)/2);
   processTextMultiline(&p,x,y,w,h,txt,isPl);
   }
 
-Size DialogMenu::processTextMultiline(Painter* p, int x, int y, int w, int h, const std::string& txt, bool isPl) {
+Size DialogMenu::processTextMultiline(Painter* p, int x, int y, int w, int h, std::string_view txt, bool isPl) {
   const int pdd=10;
 
   Size ret = {0,0};
@@ -128,7 +128,7 @@ Size DialogMenu::processTextMultiline(Painter* p, int x, int y, int w, int h, co
       fnt.drawText(*p,x+pdd, y,
                    w-2*pdd, h, txt, Tempest::AlignHCenter);
       }
-    auto sz = fnt.textSize(w,txt.c_str());
+    auto sz = fnt.textSize(w,txt);
     ret.w  = std::max(ret.w,sz.w);
     ret.h += sz.h;
     } else {
@@ -150,7 +150,7 @@ Size DialogMenu::processTextMultiline(Painter* p, int x, int y, int w, int h, co
       fnt.drawText(*p,x+pdd, y,
                    w-2*pdd, h, txt, Tempest::AlignHCenter);
       }
-    auto sz = fnt.textSize(w,txt.c_str());
+    auto sz = fnt.textSize(w,txt);
     ret.w  = std::max(ret.w,sz.w);
     ret.h += sz.h;
     }
@@ -222,7 +222,7 @@ bool DialogMenu::aiOutput(Npc &npc, std::string_view msg) {
       pl->stopDlgAnim();
     }
 
-  current.txt     = Gothic::inst().messageByName(msg.data());
+  current.txt     = Gothic::inst().messageByName(msg);
   current.msgTime = Gothic::inst().messageTime(msg);
   current.time    = current.msgTime + (dlgAnimation ? ANIM_TIME*2 : 0);
   currentSnd      = soundDevice.load(Resources::loadSoundBuffer(std::string(msg)+".wav"));
@@ -463,7 +463,7 @@ void DialogMenu::paintChoise(PaintEvent &e) {
   int  dh = padd*2;
   for(size_t i=0;i<choise.size();++i){
     const GthFont* font = &fnt;
-    Size choiseTextSize = font->textSize(dw-padd, choise[i].title.c_str());
+    Size choiseTextSize = font->textSize(dw-padd, choise[i].title);
     dh += choiseTextSize.h;
     }
 
@@ -493,7 +493,7 @@ void DialogMenu::paintChoise(PaintEvent &e) {
     int x = (w()-dw)/2;
     if(i==dlgSel)
       font = &Resources::font(Resources::FontType::Hi);
-    Size choiseTextSize = font->textSize(dw-padd, choise[i].title.c_str());
+    Size choiseTextSize = font->textSize(dw-padd, choise[i].title);
     font->drawText(p,x+padd,y+padd+textHeightOffset,dw-padd,0,choise[i].title,AlignLeft);
     textHeightOffset += choiseTextSize.h;
     }

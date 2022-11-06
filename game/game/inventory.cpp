@@ -686,7 +686,7 @@ bool Inventory::clearSlot(Npc& owner, std::string_view slot, bool remove) {
   if(all || stateSlot.slot==slot) {
     if(stateSlot.item!=nullptr)
       ++count;
-    implPutState(owner,0,stateSlot.slot.c_str());
+    implPutState(owner,0,stateSlot.slot);
     }
   return count>0;
   }

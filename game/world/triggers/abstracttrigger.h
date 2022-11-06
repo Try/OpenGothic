@@ -47,7 +47,7 @@ class AbstractTrigger : public Vob {
     AbstractTrigger(Vob* parent, World& world, const phoenix::vob& data, Flags flags);
     virtual ~AbstractTrigger();
 
-    const std::string&           name() const;
+    std::string_view             name() const;
     bool                         isEnabled() const;
 
     void                         processOnStart(const TriggerEvent& evt);

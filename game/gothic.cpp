@@ -527,17 +527,14 @@ const CameraDefinitions& Gothic::cameraDef() {
   }
 
 std::string_view Gothic::messageFromSvm(std::string_view id, int voice) const {
-  if(!game){
+  if(!game)
     return "";
-    }
   return game->messageFromSvm(id,voice);
   }
 
-std::string_view Gothic::messageByName(const std::string& id) const {
-  if(!game){
-    static std::string empty {};
-    return empty;
-    }
+std::string_view Gothic::messageByName(std::string_view id) const {
+  if(!game)
+    return "";
   return game->messageByName(id);
   }
 
@@ -566,7 +563,7 @@ std::unique_ptr<phoenix::vm> Gothic::createPhoenixVm(std::string_view datFile) {
   auto vm = std::make_unique<phoenix::vm>(std::move(byte), phoenix::execution_flag::vm_allow_null_instance_access);
   setupVmCommonApi(*vm);
   return vm;
-}
+  }
 
 std::vector<uint8_t> Gothic::loadScriptCode(std::string_view datFile) {
   if(Resources::hasFile(datFile))
@@ -584,10 +581,10 @@ std::vector<uint8_t> Gothic::loadScriptCode(std::string_view datFile) {
   }
 
 phoenix::script Gothic::loadPhoenixScriptCode(std::string_view datFile) {
-  if(Resources::hasFile(datFile)){
+  if(Resources::hasFile(datFile)) {
     auto buf = Resources::getFileBuffer(datFile);
     return phoenix::script::parse(buf);
-  }
+    }
 
   auto gscript = CommandLine::inst().scriptPath();
   char16_t str16[256] = {};
@@ -596,7 +593,7 @@ phoenix::script Gothic::loadPhoenixScriptCode(std::string_view datFile) {
   auto path = caseInsensitiveSegment(gscript,str16,Dir::FT_File);
   auto buf = phoenix::buffer::mmap(path);
   return phoenix::script::parse(buf);
-}
+  }
 
 int Gothic::settingsGetI(std::string_view sec, std::string_view name) {
   if(name.empty())
@@ -851,22 +848,22 @@ int Gothic::doc_create() {
     if(documents[i]==nullptr){
       documents[i].reset(new DocumentMenu::Show());
       return static_cast<int>(i);
+      }
     }
-  }
   documents.emplace_back(new DocumentMenu::Show());
   return static_cast<int>(documents.size()) - 1;
-}
+  }
 
 int Gothic::doc_createmap() {
   for(size_t i=0;i<documents.size();++i){
     if(documents[i]==nullptr){
       documents[i].reset(new DocumentMenu::Show());
       return static_cast<int>(i);
+      }
     }
-  }
   documents.emplace_back(new DocumentMenu::Show());
   return static_cast<int>(documents.size())-1;
-}
+  }
 
 void Gothic::doc_setpage(int handle, int page, std::string_view img, int scale) {
   //TODO: scale
@@ -879,33 +876,33 @@ void Gothic::doc_setpage(int handle, int page, std::string_view img, int scale) 
     auto& pg = doc->pages[size_t(page)];
     pg.img = img;
     pg.flg = DocumentMenu::Flags(pg.flg | DocumentMenu::F_Backgr);
-  } else {
+    } else {
     doc->img = img;
+    }
   }
-}
 
 void Gothic::doc_setpages(int handle, int count) {
   auto& doc = getDocument(handle);
   if(doc!=nullptr && count>=0 && count<1024){
     doc->pages.resize(size_t(count));
+    }
   }
-}
 
 void Gothic::doc_printline(int handle, int page, std::string_view text) {
   auto& doc = getDocument(handle);
   if(doc!=nullptr && page>=0 && size_t(page)<doc->pages.size()){
     doc->pages[size_t(page)].text += text;
     doc->pages[size_t(page)].text += "\n";
+    }
   }
-}
 
 void Gothic::doc_printlines(int handle, int page, std::string_view text) {
   auto& doc = getDocument(handle);
   if(doc!=nullptr && page>=0 && size_t(page)<doc->pages.size()){
     doc->pages[size_t(page)].text += text;
     doc->pages[size_t(page)].text += "\n";
+    }
   }
-}
 
 void Gothic::doc_setmargins(int handle, int page, int left, int top, int right, int bottom, int mul) {
   bottom *=  mul;
@@ -920,10 +917,10 @@ void Gothic::doc_setmargins(int handle, int page, int left, int top, int right, 
     auto& pg = doc->pages[size_t(page)];
     pg.margins = Tempest::Margin(left,right,top,bottom);
     pg.flg     = DocumentMenu::Flags(pg.flg | DocumentMenu::F_Margin);
-  } else {
+    } else {
     doc->margins = Tempest::Margin(left,right,top,bottom);
+    }
   }
-}
 
 void Gothic::doc_setfont(int handle, int page, std::string_view font) {
   auto& doc = getDocument(handle);
@@ -934,21 +931,21 @@ void Gothic::doc_setfont(int handle, int page, std::string_view font) {
     auto& pg = doc->pages[size_t(page)];
     pg.font = font;
     pg.flg  = DocumentMenu::Flags(pg.flg | DocumentMenu::F_Font);
-  } else {
+    } else {
     doc->font = font;
+    }
   }
-}
 
 void Gothic::doc_show(int handle) {
   auto& doc = getDocument(handle);
   if(doc!=nullptr){
     onShowDocument(*doc);
     doc.reset();
-  }
+    }
 
   while(documents.size()>0 && documents.back()==nullptr)
     documents.pop_back();
-}
+  }
 
 void Gothic::doc_setlevel(int handle, std::string_view level) {
   auto& doc = getDocument(handle);
@@ -964,38 +961,37 @@ void Gothic::doc_setlevel(int handle, std::string_view level) {
     i = char(std::tolower(i));
 
   if(auto w = world()) {
-    auto& wname = w->name();
-    doc->showPlayer = wname==str;
+    doc->showPlayer = (w->name()==str);
+    }
   }
-}
 
 void Gothic::doc_setlevelcoords(int handle, int left, int top, int right, int bottom) {
   auto& doc = getDocument(handle);
   if(doc==nullptr)
     return;
   doc->wbounds = Rect(left,top,right-left,bottom-top);
-}
+  }
 
 void Gothic::exitgame() {
   Tempest::SystemApi::exit();
-}
+  }
 
 void Gothic::printdebug(std::string_view msg) {
   if(version().game==2)
-    Log::d("[zspy]: ",msg.data());
-}
+    Log::d("[zspy]: ",msg);
+  }
 
 void Gothic::printdebugch(int ch, std::string_view msg) {
   if(version().game==2)
-    Log::d("[zspy,",ch,"]: ",msg.data());
-}
+    Log::d("[zspy,",ch,"]: ",msg);
+  }
 
 void Gothic::printdebuginst(std::string_view msg) {
   if(version().game==2)
-    Log::d("[zspy]: ",msg.data());
-}
+    Log::d("[zspy]: ",msg);
+  }
 
 void Gothic::printdebuginstch(int ch, std::string_view msg) {
   if(version().game==2)
-    Log::d("[zspy,",ch,"]: ",msg.data());
-}
+    Log::d("[zspy,",ch,"]: ",msg);
+  }

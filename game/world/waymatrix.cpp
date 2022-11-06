@@ -145,12 +145,12 @@ const WayPoint* WayMatrix::findPoint(std::string_view name, bool inexact) const 
   if(name.empty())
     return nullptr;
   for(auto& i:startPoints)
-    if(name==i.name.c_str())
+    if(name==i.name)
       return &i;
   auto it = std::lower_bound(indexPoints.begin(),indexPoints.end(),name,[](const WayPoint* a, std::string_view b){
-      return a->name.c_str()<b;
+      return a->name<b;
     });
-  if(it!=indexPoints.end() && name==(*it)->name.c_str())
+  if(it!=indexPoints.end() && name==(*it)->name)
     return *it;
   if(!inexact)
     return nullptr;

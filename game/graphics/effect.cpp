@@ -61,7 +61,7 @@ void Effect::setupPfx(World& owner) {
     return;
     }
 
-  const ParticleFx* pfxDecl = Gothic::inst().loadParticleFx(root->visName_S.c_str());
+  const ParticleFx* pfxDecl = Gothic::inst().loadParticleFx(root->visName_S);
   if(key!=nullptr && key->visName!=nullptr)
     pfxDecl = key->visName;
 
@@ -86,7 +86,7 @@ void Effect::setupSfx(World& owner) {
 
   if(!sfxID.empty()) {
     Vec3 pos3 = {pos.at(3,0),pos.at(3,1),pos.at(3,2)};
-    sfx = ::Sound(owner,::Sound::T_Regular,sfxID.c_str(),pos3,2500.f,false);
+    sfx = ::Sound(owner,::Sound::T_Regular,sfxID,pos3,2500.f,false);
     sfx.setAmbient(sfxIsAmbient);
     sfx.play();
     }

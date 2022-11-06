@@ -130,7 +130,7 @@ KeyCodec::Action KeyCodec::tr(Tempest::MouseEvent& e) const {
   return Idle;
   }
 
-void KeyCodec::set(const char* sec, const char* opt, int32_t code) {
+void KeyCodec::set(std::string_view sec, std::string_view opt, int32_t code) {
   for(auto i:allKeys) {
     const bool chg = i->is(code);
     if(i->k[0]==code)

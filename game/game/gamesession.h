@@ -31,12 +31,12 @@ class GameSession final {
     GameSession(Serialize&  fin);
     ~GameSession();
 
-    void         save(Serialize& fout, const char *name, const Tempest::Pixmap &screen);
+    void         save(Serialize& fout, std::string_view name, const Tempest::Pixmap &screen);
 
     void         setWorld(std::unique_ptr<World> &&w);
     auto         clearWorld() -> std::unique_ptr<World>;
 
-    void         changeWorld(const std::string &world, const std::string &wayPoint);
+    void         changeWorld(std::string_view world, std::string_view wayPoint);
     void         exitSession();
 
     auto         version() const -> const VersionInfo&;
@@ -66,7 +66,7 @@ class GameSession final {
     void         dialogExec(const GameScript::DlgChoise &dlg, Npc &player, Npc &npc);
 
     std::string_view         messageFromSvm(std::string_view id, int voice) const;
-    std::string_view         messageByName (const std::string& id) const;
+    std::string_view         messageByName (std::string_view id) const;
     uint32_t                 messageTime   (std::string_view id) const;
 
     AiOuputPipe* openDlgOuput(Npc &player, Npc &npc);
@@ -84,10 +84,10 @@ class GameSession final {
       std::vector<uint8_t> storage;
       };
 
-    bool         isWorldKnown(const std::string& name) const;
+    bool         isWorldKnown(std::string_view name) const;
     void         initScripts(bool firstTime);
-    auto         implChangeWorld(std::unique_ptr<GameSession> &&game, const std::string &world, const std::string &wayPoint) -> std::unique_ptr<GameSession>;
-    auto         findStorage(const std::string& name) -> const WorldStateStorage&;
+    auto         implChangeWorld(std::unique_ptr<GameSession> &&game, std::string_view world, std::string_view wayPoint) -> std::unique_ptr<GameSession>;
+    auto         findStorage(std::string_view name) -> const WorldStateStorage&;
 
     Tempest::SoundDevice           sound;
 

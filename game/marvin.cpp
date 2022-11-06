@@ -219,7 +219,7 @@ void Marvin::autoComplete(std::string& v) {
     }
   }
 
-bool Marvin::exec(const std::string& v) {
+bool Marvin::exec(std::string_view v) {
   auto ret = recognize(v);
   switch(ret.cmd.type) {
     case C_None:

@@ -44,7 +44,7 @@ AbstractTrigger::AbstractTrigger(Vob* parent, World &world, const phoenix::vob& 
 
 AbstractTrigger::~AbstractTrigger() {}
 
-const std::string &AbstractTrigger::name() const {
+std::string_view AbstractTrigger::name() const {
   return vobName;
   }
 

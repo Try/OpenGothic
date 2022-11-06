@@ -694,8 +694,9 @@ World &GameScript::world() {
   return *owner.world();
   }
 
-phoenix::c_focus GameScript::getFocus(const std::string& name) {
-  auto id = vm.find_symbol_by_name(name);
+phoenix::c_focus GameScript::getFocus(std::string_view name) {
+  // https://github.com/lmichaelis/phoenix/issues/30
+  auto id = vm.find_symbol_by_name(std::string(name));
   if(id==nullptr)
     return {};
   try {
@@ -1035,8 +1036,9 @@ void GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
     }
   }
 
-int GameScript::invokeCond(Npc& npc, const std::string& func) {
-  auto fn = vm.find_symbol_by_name(func);
+int GameScript::invokeCond(Npc& npc, std::string_view func) {
+  // https://github.com/lmichaelis/phoenix/issues/30
+  auto fn = vm.find_symbol_by_name(std::string(func));
   if(fn==nullptr) {
     Gothic::inst().onPrint("MOBSI::conditionFunc is not invalid");
     return 1;
@@ -1075,11 +1077,9 @@ int GameScript::playerHotKeyScreenMap(Npc& pl) {
   return map;
   }
 
-const std::string& GameScript::spellCastAnim(Npc&, Item &it) {
-  if(spellFxAniLetters==nullptr) {
-    static const std::string FIB = "FIB";
-    return FIB;
-    }
+std::string_view GameScript::spellCastAnim(Npc&, Item &it) {
+  if(spellFxAniLetters==nullptr)
+    return "FIB";
   return spellFxAniLetters->get_string(it.spellId());
   }
 
@@ -1126,8 +1126,8 @@ std::string_view GameScript::messageFromSvm(std::string_view id, int voice) cons
   return svm->find(id,voice);
   }
 
-std::string_view GameScript::messageByName(const std::string& id) const {
-  auto* blk = dialogs.block_by_name(id);
+std::string_view GameScript::messageByName(std::string_view id) const {
+  auto* blk = dialogs.block_by_name(std::string(id));
   if(blk == nullptr){
     static std::string empty {};
     return empty;
@@ -1136,7 +1136,10 @@ std::string_view GameScript::messageByName(const std::string& id) const {
   }
 
 uint32_t GameScript::messageTime(std::string_view id) const {
-  uint32_t& time = msgTimings[id.data()];
+  static std::string tmp;
+  tmp.assign(id);
+
+  uint32_t& time = msgTimings[tmp];
   if(time>0)
     return time;
 
@@ -1146,7 +1149,7 @@ uint32_t GameScript::messageTime(std::string_view id) const {
   if(s.timeLength()>0) {
     time = uint32_t(s.timeLength());
     } else {
-    auto txt  = messageByName(id.data());
+    auto txt  = messageByName(id);
     time = uint32_t(float(txt.length())*viewTimePerChar);
     }
   return time;
@@ -1160,14 +1163,14 @@ void GameScript::printNothingToGet() {
   vm.call_function<void>(id);
   }
 
-void GameScript::useInteractive(const std::shared_ptr<phoenix::c_npc>& hnpc,const std::string& func) {
-  auto fn = vm.find_symbol_by_name(func);
+void GameScript::useInteractive(const std::shared_ptr<phoenix::c_npc>& hnpc, std::string_view func) {
+  auto fn = vm.find_symbol_by_name(std::string(func));
   if(fn == nullptr)
     return;
 
   ScopeVar self(*vm.global_self(),hnpc);
   try {
-    vm.call_function<void>(func);
+    vm.call_function<void>(fn);
     }
   catch (...) {
     Log::i("unable to use interactive [",func,"]");
@@ -1478,7 +1481,7 @@ bool GameScript::wld_ismobavailable(std::shared_ptr<phoenix::c_npc> self, std::s
     return false;
     }
 
-  auto wp = world().aviableMob(*getNpc(self.get()),name.data());
+  auto wp = world().aviableMob(*getNpc(self.get()),name);
   return wp != nullptr;
   }
 

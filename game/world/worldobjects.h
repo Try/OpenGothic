@@ -118,7 +118,7 @@ class WorldObjects final {
 
     void           marchInteractives(DbgPainter& p) const;
 
-    Interactive*   aviableMob(const Npc& pl, const char* name);
+    Interactive*   aviableMob(const Npc& pl, std::string_view name);
     void           setMobRoutine(gtime time, std::string_view scheme, int32_t state);
 
     void           sendPassivePerc(Npc& self,Npc& other,Npc& victum,int32_t perc);
@@ -178,7 +178,7 @@ class WorldObjects final {
     template<class T>
     bool testObj(T &src, const Npc &pl, const SearchOpt& opt, float& rlen);
 
-    void             setMobState(const char* scheme, int32_t st);
+    void             setMobState(std::string_view scheme, int32_t st);
 
     void             tickNear(uint64_t dt);
     void             tickTriggers(uint64_t dt);

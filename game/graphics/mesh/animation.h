@@ -71,7 +71,7 @@ class Animation final {
 
     struct Sequence final {
       Sequence()=default;
-      Sequence(const phoenix::mds::animation& hdr, const std::string& name);
+      Sequence(const phoenix::mds::animation& hdr, std::string_view name);
 
       bool                                   isRotate() const { return bool(flags & phoenix::mds::af_rotate); }
       bool                                   isMove()   const { return bool(flags & phoenix::mds::af_move);   }
@@ -123,10 +123,10 @@ class Animation final {
     const Sequence*    sequence(std::string_view name) const;
     const Sequence*    sequenceAsc(std::string_view name) const;
     void               debug() const;
-    const std::string& defaultMesh() const;
+    std::string_view   defaultMesh() const;
 
   private:
-    Sequence&          loadMAN(const phoenix::mds::animation& hdr, const std::string &name);
+    Sequence&          loadMAN(const phoenix::mds::animation& hdr, std::string_view name);
     void               setupIndex();
 
     std::vector<Sequence>                       sequences;

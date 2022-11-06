@@ -1,5 +1,7 @@
 #include "globaleffects.h"
 
+#include <charconv>
+
 #include "world/objects/globalfx.h"
 #include "world/world.h"
 #include "graphics/visualfx.h"
@@ -122,7 +124,7 @@ GlobalFx GlobalEffects::create(std::string_view what, const std::string* argv, s
 GlobalFx GlobalEffects::addSlowTime(const std::string* argv, size_t argc) {
   double val[2] = {1,1};
   for(size_t i=0; i<argc && i<2; ++i)
-    val[i] = std::atof(argv[i].c_str());
+    val[i] = std::stof(argv[i]);
   uint64_t v[2] = {};
   for(int i=0; i<2; ++i)
     v[i] = uint64_t(val[i]*1000);
@@ -138,15 +140,15 @@ GlobalFx GlobalEffects::addScreenBlend(const std::string* argv, size_t argc) {
   ScreenBlend sc;
 
   if(0<argc)
-    sc.loop   = float(std::atof(argv[0].c_str()));
+    sc.loop   = float(std::stof(argv[0]));
   if(1<argc)
-    sc.cl     = parseColor(argv[1].c_str());
+    sc.cl     = parseColor(argv[1]);
   if(2<argc)
-    sc.inout  = float(std::atof(argv[2].c_str()));
+    sc.inout  = float(std::stof(argv[2]));
   if(3<argc)
-    sc.frames = Resources::loadTextureAnim(argv[3].c_str());
+    sc.frames = Resources::loadTextureAnim(argv[3]);
   if(4<argc)
-    sc.fps    = size_t(std::atoi(argv[4].c_str()));
+    sc.fps    = size_t(std::stoi(argv[4]));
 
   sc.timeLoop = uint64_t(sc.loop*1000.f);
 
@@ -157,7 +159,7 @@ GlobalFx GlobalEffects::addScreenBlend(const std::string* argv, size_t argc) {
 GlobalFx GlobalEffects::addMorphFov(const std::string* argv, size_t argc) {
   double val[4] = {0,0,0,0};
   for(size_t i=0; i<argc && i<4; ++i) {
-    val[i] = std::atof(argv[i].c_str());
+    val[i] = std::stof(argv[i]);
     }
   Morph m;
   m.amplitude = float(val[0]);
@@ -174,8 +176,10 @@ GlobalFx GlobalEffects::addEarthQuake(const std::string*, size_t) {
   return GlobalFx(quakeEff.back());
   }
 
-Tempest::Color GlobalEffects::parseColor(std::string_view s) {
+Tempest::Color GlobalEffects::parseColor(std::string_view sv) {
+  auto  s    = std::string(sv);
   auto  str  = s.data();
+
   float v[4] = {};
   for(int i=0;i<4;++i) {
     char* next=nullptr;

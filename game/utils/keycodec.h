@@ -61,7 +61,7 @@ class KeyCodec final {
     static void   keysStr(std::string_view keys, char buf[], size_t bufSz);
     Action        tr(Tempest::KeyEvent&   e) const;
     Action        tr(Tempest::MouseEvent& e) const;
-    void          set(const char* section, const char* key, int32_t code);
+    void          set(std::string_view section, std::string_view key, int32_t code);
     void          setDefaultKeys(const char* preset);
 
     static int32_t     keyToCode(Tempest::Event::KeyType     t);

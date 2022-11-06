@@ -40,7 +40,7 @@ MeshObjects::Item MeshObjects::implGet(const StaticMesh &mesh, const StaticMesh:
   return parent.get(mesh,mat,s.iboOffset,s.iboLength,staticDraw);
   }
 
-const Tempest::Texture2d *MeshObjects::solveTex(const Tempest::Texture2d *def, const std::string &format, int32_t v, int32_t c) {
+const Tempest::Texture2d *MeshObjects::solveTex(const Tempest::Texture2d *def, std::string_view format, int32_t v, int32_t c) {
   if(format.find_first_of("VC")!=std::string::npos){
     auto ntex = Resources::loadTexture(format,v,c);
     if(ntex!=nullptr)

@@ -12,7 +12,7 @@ using namespace Tempest;
 ProtoMesh::Attach::~Attach() {
   }
 
-ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::string& fname)
+ProtoMesh::ProtoMesh(PackedMesh&& pm, std::string_view fname)
   :fname(fname) {
   attach.emplace_back(pm);
   submeshId.resize(attach[0].sub.size());
@@ -43,7 +43,7 @@ ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::string& fname)
   setupScheme(fname);
   }
 
-ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::vector<phoenix::morph_animation>& aniList, const std::string& fname)
+ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::vector<phoenix::morph_animation>& aniList, std::string_view fname)
   : ProtoMesh(std::move(pm),fname) {
   if(attach.size()!=1) {
     Log::d("skip animations for: ",fname);
@@ -90,7 +90,7 @@ ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::vector<phoenix::morph_animation
   }
 }
 
-ProtoMesh::ProtoMesh(const phoenix::model &library, std::unique_ptr<Skeleton>&& sk, const std::string &fname)
+ProtoMesh::ProtoMesh(const phoenix::model &library, std::unique_ptr<Skeleton>&& sk, std::string_view fname)
   :skeleton(std::move(sk)), fname(fname) {
   for(auto& m:library.mesh.attachments) {
     PackedMesh pack(m.second,PackedMesh::PK_Visual);
@@ -169,7 +169,7 @@ ProtoMesh::ProtoMesh(const phoenix::model &library, std::unique_ptr<Skeleton>&& 
   setupScheme(fname);
   }
 
-ProtoMesh::ProtoMesh(const phoenix::model_hierarchy& library, std::unique_ptr<Skeleton>&& sk, const std::string& fname)
+ProtoMesh::ProtoMesh(const phoenix::model_hierarchy& library, std::unique_ptr<Skeleton>&& sk, std::string_view fname)
       :skeleton(std::move(sk)), fname(fname) {
 
   nodes.resize(skeleton == nullptr ? 0 : skeleton->nodes.size());
@@ -178,7 +178,7 @@ ProtoMesh::ProtoMesh(const phoenix::model_hierarchy& library, std::unique_ptr<Sk
     auto& src = skeleton->nodes[i];
     n.parentId = src.parent;
     n.transform = src.tr;
-  }
+    }
 
   for (auto& i : nodes)
     if (i.parentId < nodes.size())
@@ -188,7 +188,7 @@ ProtoMesh::ProtoMesh(const phoenix::model_hierarchy& library, std::unique_ptr<Sk
   for (auto& i : nodes) {
     i.submeshIdB = subCount;
     i.submeshIdE = subCount;
-  }
+    }
   submeshId.resize(subCount);
 
   if (skeleton != nullptr) {
@@ -200,13 +200,13 @@ ProtoMesh::ProtoMesh(const phoenix::model_hierarchy& library, std::unique_ptr<Sk
         p.node = i;
         p.transform = n.tr;
         pos.push_back(p);
+        }
       }
     }
-  }
   setupScheme(fname);
-}
+  }
 
-ProtoMesh::ProtoMesh(const phoenix::model_mesh& library, std::unique_ptr<Skeleton>&& sk, const std::string& fname)
+ProtoMesh::ProtoMesh(const phoenix::model_mesh& library, std::unique_ptr<Skeleton>&& sk, std::string_view fname)
   :skeleton(std::move(sk)), fname(fname){
   for(auto& m:library.attachments) {
     PackedMesh pack(m.second,PackedMesh::PK_Visual);
@@ -224,10 +224,10 @@ ProtoMesh::ProtoMesh(const phoenix::model_mesh& library, std::unique_ptr<Skeleto
       if(attach[r].name==src.name){
         n.attachId = r;
         break;
-      }
+        }
     n.parentId  = src.parent;
     n.transform = src.tr;
-  }
+    }
 
   for(auto& i:nodes)
     if(i.parentId<nodes.size())
@@ -238,7 +238,7 @@ ProtoMesh::ProtoMesh(const phoenix::model_mesh& library, std::unique_ptr<Skeleto
     if(i.attachId<attach.size()) {
       attach[i.attachId].hasNode = true;
       subCount+=attach[i.attachId].sub.size();
-    }
+      }
   for(auto& a:attach)
     if(!a.hasNode)
       subCount+=a.sub.size();
@@ -254,20 +254,20 @@ ProtoMesh::ProtoMesh(const phoenix::model_mesh& library, std::unique_ptr<Skeleto
           if(!att.sub[r].texName.empty())
             Tempest::Log::e("no texture: ",att.sub[r].texName);
           continue;
-        }
+          }
         submeshId[subCount].id    = i.attachId;
         submeshId[subCount].subId = r;
         subCount++;
+        }
       }
-    }
     i.submeshIdE = subCount;
-  }
+    }
   submeshId.resize(subCount);
 
   for(const auto &i : library.meshes){
     PackedMesh pkg(i);
     skined.emplace_back(pkg);
-  }
+    }
 
   if(skeleton!=nullptr) {
     for(size_t i=0;i<skeleton->nodes.size();++i) {
@@ -278,11 +278,11 @@ ProtoMesh::ProtoMesh(const phoenix::model_mesh& library, std::unique_ptr<Skeleto
         p.node      = i;
         p.transform = n.tr;
         pos.push_back(p);
+        }
       }
     }
-  }
   setupScheme(fname);
-}
+  }
 
 ProtoMesh::ProtoMesh(const Material& mat, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo) {
   attach.emplace_back(mat,std::move(vbo),std::move(ibo));
@@ -341,7 +341,7 @@ size_t ProtoMesh::findNode(std::string_view name, size_t def) const {
   return skeleton->findNode(name,def);
   }
 
-void ProtoMesh::setupScheme(const std::string &s) {
+void ProtoMesh::setupScheme(std::string_view s) {
   auto sep = s.find("_");
   if(sep!=std::string::npos) {
     scheme = s.substr(0,sep);

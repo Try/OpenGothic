@@ -16,7 +16,7 @@ void FirePlace::load(Serialize& fin) {
 void FirePlace::moveEvent() {
   Interactive::moveEvent();
 
-  auto at = this->nodeTranform(fireSlot.c_str());
+  auto at = this->nodeTranform(fireSlot);
   fireVobtree.setObjMatrix(at);
   }
 

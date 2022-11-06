@@ -21,11 +21,11 @@ class ProtoMesh {
   public:
     using Vertex =Resources::VertexA;
 
-    ProtoMesh(PackedMesh&&  pm, const std::string& fname);
-    ProtoMesh(PackedMesh&&  pm, const std::vector<phoenix::morph_animation>& aniList, const std::string& fname);
-    ProtoMesh(const phoenix::model& lib, std::unique_ptr<Skeleton>&& sk, const std::string& fname);
-    ProtoMesh(const phoenix::model_hierarchy& lib, std::unique_ptr<Skeleton>&& sk, const std::string& fname);
-    ProtoMesh(const phoenix::model_mesh& lib, std::unique_ptr<Skeleton>&& sk, const std::string& fname);
+    ProtoMesh(PackedMesh&&  pm, std::string_view fname);
+    ProtoMesh(PackedMesh&&  pm, const std::vector<phoenix::morph_animation>& aniList, std::string_view fname);
+    ProtoMesh(const phoenix::model& lib, std::unique_ptr<Skeleton>&& sk, std::string_view fname);
+    ProtoMesh(const phoenix::model_hierarchy& lib, std::unique_ptr<Skeleton>&& sk, std::string_view fname);
+    ProtoMesh(const phoenix::model_mesh& lib, std::unique_ptr<Skeleton>&& sk, std::string_view fname);
     ProtoMesh(const Material& mat, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo); //decals
     ProtoMesh(ProtoMesh&&)=delete;
     ProtoMesh& operator=(ProtoMesh&&)=delete;
@@ -92,7 +92,7 @@ class ProtoMesh {
     size_t                         findNode(std::string_view name,size_t def=size_t(-1)) const;
 
   private:
-    void                           setupScheme(const std::string& s);
+    void                           setupScheme(std::string_view s);
     void                           remap(const phoenix::morph_animation& a,
                                          const std::vector<uint32_t>& vertId,
                                          std::vector<int32_t>& remapId,

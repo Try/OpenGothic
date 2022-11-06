@@ -420,7 +420,7 @@ void Interactive::emitTriggerEvent() const {
 
 std::string_view Interactive::schemeName() const {
   if(auto mesh = visual.protoMesh())
-    return mesh->scheme.c_str();
+    return mesh->scheme;
   Tempest::Log::i("unable to recognize mobsi{",focName,", ",mdlVisual,"}");
   return "";
   }
@@ -442,7 +442,7 @@ bool Interactive::isLadder() const {
   }
 
 bool Interactive::needToLockpick(const Npc& pl) const {
-  const size_t keyInst = keyInstance.empty() ? size_t(-1) : world.script().getSymbolIndex(keyInstance.c_str());
+  const size_t keyInst = keyInstance.empty() ? size_t(-1) : world.script().getSymbolIndex(keyInstance);
   if(keyInst!=size_t(-1) && pl.inventory().itemCount(keyInst)>0)
     return false;
   return !(pickLockStr.empty() || isLockCracked);
@@ -537,7 +537,7 @@ bool Interactive::checkUseConditions(Npc& npc) {
     const size_t lockPickCnt    = npc.inventory().itemCount(ItKE_lockpick);
     const bool   canLockPick    = (npc.talentSkill(TALENT_PICKLOCK)!=0 && lockPickCnt>0);
 
-    const size_t keyInst        = keyInstance.empty() ? size_t(-1) : world.script().getSymbolIndex(keyInstance.c_str());
+    const size_t keyInst        = keyInstance.empty() ? size_t(-1) : world.script().getSymbolIndex(keyInstance);
     const bool   needToPicklock = (pickLockStr.size()>0);
 
     if(keyInst!=size_t(-1) && npc.itemCount(keyInst)>0)
@@ -671,7 +671,7 @@ bool Interactive::attach(Npc& npc, Interactive::Pos& to) {
     return false;
 
   if(!useWithItem.empty()) {
-    size_t it = world.script().getSymbolIndex(useWithItem.c_str());
+    size_t it = world.script().getSymbolIndex(useWithItem);
     npc.setCurrentItem(it);
     }
 

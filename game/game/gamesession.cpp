@@ -147,7 +147,7 @@ GameSession::GameSession(Serialize &fin) {
 GameSession::~GameSession() {
   }
 
-void GameSession::save(Serialize &fout, const char* name, const Pixmap& screen) {
+void GameSession::save(Serialize &fout, std::string_view name, const Pixmap& screen) {
   SaveGameHeader hdr;
   hdr.version   = Serialize::Version::Current;
   hdr.name      = name;
@@ -214,7 +214,7 @@ std::unique_ptr<World> GameSession::clearWorld() {
   return std::move(wrld);
   }
 
-void GameSession::changeWorld(const std::string& world, const std::string& wayPoint) {
+void GameSession::changeWorld(std::string_view world, std::string_view wayPoint) {
   chWorld.zen = world;
   chWorld.wp  = wayPoint;
   }
@@ -308,11 +308,11 @@ void GameSession::tick(uint64_t dt) {
   }
 
 auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
-                                  const std::string& world, const std::string& wayPoint) -> std::unique_ptr<GameSession> {
-  const char*   w   = world.c_str();
-  size_t        cut = world.rfind('\\');
+                                  std::string_view world, std::string_view wayPoint) -> std::unique_ptr<GameSession> {
+  std::string_view w   = world;
+  size_t           cut = world.rfind('\\');
   if(cut!=std::string::npos)
-    w = w+cut+1;
+    w = world.substr(cut+1);
 
   if(!Resources::hasFile(w)) {
     Log::i("World not found[",world,"]");
@@ -363,7 +363,7 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
   return std::move(game);
   }
 
-const WorldStateStorage& GameSession::findStorage(const std::string &name) {
+const WorldStateStorage& GameSession::findStorage(std::string_view name) {
   for(auto& i:visitedWorlds)
     if(i.name==name)
       return i;
@@ -392,7 +392,7 @@ std::string_view GameSession::messageFromSvm(std::string_view id, int voice) con
   return vm->messageFromSvm(id,voice);
   }
 
-std::string_view GameSession::messageByName(const std::string& id) const {
+std::string_view GameSession::messageByName(std::string_view id) const {
   if(!wrld){
     return "";
     }
@@ -415,7 +415,7 @@ bool GameSession::aiIsDlgFinished() {
   return Gothic::inst().aiIsDlgFinished();
   }
 
-bool GameSession::isWorldKnown(const std::string &name) const {
+bool GameSession::isWorldKnown(std::string_view name) const {
   for(auto& i:visitedWorlds)
     if(i.name==name)
       return true;
@@ -423,9 +423,9 @@ bool GameSession::isWorldKnown(const std::string &name) const {
   }
 
 void GameSession::initScripts(bool firstTime) {
-  auto& wname = wrld->name();
-  auto dot    = wname.rfind('.');
-  auto name   = (dot==std::string::npos ? wname : wname.substr(0,dot));
+  auto wname = wrld->name();
+  auto dot   = wname.rfind('.');
+  auto name  = (dot==std::string::npos ? wname : wname.substr(0,dot));
 
   if(vm->hasSymbolName("startup_global"))
     vm->getVm().call_function("startup_global");
@@ -434,12 +434,12 @@ void GameSession::initScripts(bool firstTime) {
     vm->getVm().call_function("init_global");
 
   if(firstTime) {
-    std::string startup = "startup_"+name;
+    std::string startup = std::string("startup_") + std::string(name);
     if(vm->hasSymbolName(startup))
       vm->getVm().call_function(startup);
     }
 
-  std::string init = "init_"+name;
+  std::string init = std::string("init_") + std::string(name);
   if(vm->hasSymbolName(init))
     vm->getVm().call_function(init);
 

@@ -12,7 +12,7 @@ class Marvin {
     Tempest::Signal<void(std::string_view)> print;
 
     void autoComplete(std::string& v);
-    bool exec(const std::string& v);
+    bool exec(std::string_view v);
 
   private:
     enum CmdType {

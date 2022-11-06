@@ -392,7 +392,7 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
 
     std::optional<phoenix::model_mesh> mdm {};
 
-    auto mesh   = anim->defaultMesh();
+    auto mesh   = std::string(anim->defaultMesh());
 
     FileExt::exchangeExt(mesh,nullptr,"MDM") ||
     FileExt::exchangeExt(mesh,"ASC",  "MDM");

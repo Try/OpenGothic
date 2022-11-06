@@ -383,12 +383,12 @@ const Animation::Sequence *AnimationSolver::solveFrm(std::string_view fview, Wea
   return solveFrm(name);
   }
 
-const Animation::Sequence* AnimationSolver::solveMag(std::string_view fview, const std::string &spell) const {
+const Animation::Sequence* AnimationSolver::solveMag(std::string_view fview, std::string_view spell) const {
   char format[256] = {};
   std::snprintf(format,sizeof(format),"%.*s",int(fview.size()),fview.data());
 
   char name[128]={};
-  std::snprintf(name,sizeof(name),format,spell.c_str());
+  std::snprintf(name,sizeof(name),format,std::string(spell).c_str()); //FIXME
   return solveFrm(name);
   }
 
@@ -405,7 +405,7 @@ void AnimationSolver::invalidateCache() {
 const Animation::Sequence* AnimationSolver::solveNext(const Animation::Sequence& sq) const {
   if(sq.next.empty())
     return nullptr;
-  const char* name = sq.next.c_str();
+  std::string_view name = sq.next;
   for(size_t i=overlay.size();i>0;){
     --i;
     if(overlay[i].skeleton->animation()==sq.owner && sq.nextPtr!=nullptr)

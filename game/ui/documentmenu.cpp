@@ -67,8 +67,8 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
   for(auto& i:document.pages){
     const GthFont* fnt = nullptr;
     if(i.flg&F_Font)
-      fnt = &Resources::font(i.font.c_str()); else
-      fnt = &Resources::font(document.font.c_str());
+      fnt = &Resources::font(i.font); else
+      fnt = &Resources::font(document.font);
     if(fnt==nullptr)
       fnt = &Resources::font();
     auto back = Resources::loadTexture((i.flg&F_Backgr) ? i.img : document.img);

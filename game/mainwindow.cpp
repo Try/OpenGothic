@@ -139,7 +139,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
   auto world = Gothic::inst().world();
   auto st    = Gothic::inst().checkLoading();
 
-  const char* info="";
+  std::string_view info;
 
   if(world==nullptr && background!=nullptr) {
     p.setBrush(Color(0.0));
@@ -203,9 +203,9 @@ void MainWindow::paintEvent(PaintEvent& event) {
 
     if(world && world->player()) {
       if(world->player()->hasCollision())
-        info="[c]";
+        info = "[c]";
       else
-        info = world->roomAt(world->player()->position()).c_str();
+        info = world->roomAt(world->player()->position());
       }
     }
 
@@ -224,7 +224,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
 
   if(Gothic::inst().doFrate()) {
     char fpsT[64]={};
-    std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f %s",fps.get(),info);
+    std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f %.*s",fps.get(),int(info.size()),info.data());
 
     auto& fnt = Resources::font();
     fnt.drawText(p,5,fnt.pixelSize()+5,fpsT);
@@ -899,7 +899,7 @@ void MainWindow::saveGame(std::string_view slot, std::string_view name) {
 
     Tempest::WFile f(slot);
     Serialize      s(f);
-    game->save(s,name.c_str(),pm);
+    game->save(s,name,pm);
 
     // no print yet, because threading
     // gothic.print("Game saved");

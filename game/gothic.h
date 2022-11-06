@@ -131,7 +131,7 @@ class Gothic final {
     Tempest::Signal<void()>                                             onSettingsChanged;
 
     std::string_view                      messageFromSvm(std::string_view id, int voice) const;
-    std::string_view                      messageByName (const std::string& id) const;
+    std::string_view                      messageByName (std::string_view id) const;
     uint32_t                              messageTime   (std::string_view id) const;
 
     std::u16string                        nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const;

@@ -60,8 +60,8 @@ const char* materialTag(phoenix::material_group src) {
   return "UD";
   }
 
-World::World(GameSession& game, std::string file, bool startup, std::function<void(int)> loadProgress)
-  :wname(std::move(file)),game(game),wsound(game,*this),wobj(*this) {
+World::World(GameSession& game, std::string_view file, bool startup, std::function<void(int)> loadProgress)
+  :wname(std::move(file)), game(game), wsound(game,*this), wobj(*this) {
 
   phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(wname);
 
@@ -109,7 +109,7 @@ World::~World() {
   }
 
 void World::createPlayer(std::string_view cls) {
-  npcPlayer = addNpc(cls,wmatrix->startPoint().name.c_str());
+  npcPlayer = addNpc(cls,wmatrix->startPoint().name);
   if(npcPlayer!=nullptr) {
     npcPlayer->setProcessPolicy(Npc::ProcessPolicy::Player);
     game.script()->setInstanceNPC("HERO",*npcPlayer);
@@ -146,7 +146,7 @@ void World::postInit() {
   // NOTE: level inspector override player stats globaly
   // lvlInspector.reset(new Npc(*this,script().getSymbolIndex("PC_Levelinspektor"),""));
 
-  // game.script()->inserNpc("Snapper",wmatrix->startPoint().name.c_str());
+  // game.script()->inserNpc("Snapper",wmatrix->startPoint().name);
   }
 
 void World::load(Serialize &fin) {
@@ -278,11 +278,9 @@ Npc *World::findNpcByInstance(size_t instance) {
   return wobj.findNpcByInstance(instance);
   }
 
-const std::string& World::roomAt(const Tempest::Vec3& p) {
-  static std::string empty;
-
+std::string_view World::roomAt(const Tempest::Vec3& p) {
   if(bsp.nodes.empty())
-    return empty;
+    return "";
 
   const auto* node=&bsp.nodes[0];
 
@@ -302,10 +300,10 @@ const std::string& World::roomAt(const Tempest::Vec3& p) {
     return roomAt(*node);
     }
 
-  return empty;
+  return "";
   }
 
-const std::string& World::roomAt(const phoenix::bsp_node& node) {
+std::string_view World::roomAt(const phoenix::bsp_node& node) {
   const std::string* ret=nullptr;
   size_t       count=0;
   auto         id = &node-bsp.nodes.data();(void)id;
@@ -449,7 +447,7 @@ bool World::testFocusNpc(Npc* def) {
   return wobj.testFocusNpc(*npcPlayer,def,optNpc);
   }
 
-Interactive *World::aviableMob(const Npc &pl, const char* name) {
+Interactive *World::aviableMob(const Npc &pl, std::string_view name) {
   return wobj.aviableMob(pl,name);
   }
 
@@ -485,7 +483,7 @@ void World::disableCollizionZone(CollisionZone& z) {
   wobj.disableCollizionZone(z);
   }
 
-void World::triggerChangeWorld(const std::string& world, const std::string& wayPoint) {
+void World::triggerChangeWorld(std::string_view world, std::string_view wayPoint) {
   game.changeWorld(world,wayPoint);
   }
 
@@ -505,7 +503,7 @@ AiOuputPipe *World::openDlgOuput(Npc &player, Npc &npc) {
   return game.openDlgOuput(player,npc);
   }
 
-void World::aiOutputSound(Npc &player, const std::string &msg) {
+void World::aiOutputSound(Npc &player, std::string_view msg) {
   wsound.aiOutput(player.position(),msg);
   }
 
@@ -892,7 +890,7 @@ void World::assignRoomToGuild(std::string_view r, int32_t guildId) {
   }
 
 int32_t World::guildOfRoom(const Tempest::Vec3& pos) {
-  const std::string& tg = roomAt(pos);
+  std::string_view tg = roomAt(pos);
   if(auto room=portalAt(tg)) {
     if(room->guild==GIL_PUBLIC) //FIXME: proper portal implementation
       return room->guild;

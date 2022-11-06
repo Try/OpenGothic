@@ -70,11 +70,10 @@ void Skeleton::debug() const {
     anim->debug();
   }
 
-const std::string& Skeleton::defaultMesh() const {
+std::string_view Skeleton::defaultMesh() const {
   if(anim!=nullptr)
     return anim->defaultMesh();
-  static std::string nop;
-  return nop;
+  return "";
   }
 
 float Skeleton::colisionHeight() const {

@@ -90,6 +90,6 @@ class MeshObjects final {
                                             int32_t texVar, int32_t teethTex, int32_t bodyColor,
                                             bool staticDraw);
 
-    const Tempest::Texture2d*       solveTex(const Tempest::Texture2d* def,const std::string& format,
+    const Tempest::Texture2d*       solveTex(const Tempest::Texture2d* def, std::string_view format,
                                              int32_t v,int32_t c);
   };

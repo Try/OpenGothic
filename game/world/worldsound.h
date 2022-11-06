@@ -29,7 +29,7 @@ class WorldSound final {
 
     Sound   addDlgSound(std::string_view s, float x, float y, float z, float range, uint64_t &timeLen);
 
-    void    aiOutput(const Tempest::Vec3& pos, const std::string& outputname);
+    void    aiOutput(const Tempest::Vec3& pos, std::string_view outputname);
 
     void    tick(Npc& player);
     bool    isInListenerRange(const Tempest::Vec3& pos, float sndRgn) const;

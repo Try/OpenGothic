@@ -16,9 +16,9 @@ using namespace Tempest;
 
 Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest::Vec3, Tempest::Vec3>& bbox)
   :scene(scene) {
-  auto& wname  = world.name();
-  auto  dot    = wname.rfind('.');
-  auto  name   = dot==std::string::npos ? wname : wname.substr(0,dot);
+  auto wname  = world.name();
+  auto dot    = wname.rfind('.');
+  auto name   = dot==std::string::npos ? wname : wname.substr(0,dot);
   for(size_t i=0;i<2;++i) {
     day  .lay[i].texture = skyTexture(name,true, i);
     night.lay[i].texture = skyTexture(name,false,i);

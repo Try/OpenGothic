@@ -32,13 +32,13 @@ PfxEmitter::PfxEmitter(PfxObjects& owner, const ParticleFx* decl) {
   id     = bucket->allocEmitter();
   trail  = TrlObjects::Item(owner.trails,*decl);
   if(decl->shpMesh!=nullptr && decl->shpMeshRender)
-    shpMesh = owner.world.addView(decl->shpMesh_S.c_str(),0,0,0);
+    shpMesh = owner.world.addView(decl->shpMesh_S,0,0,0);
   }
 
 PfxEmitter::PfxEmitter(World& world, const phoenix::vob& vob) {
   auto& owner = world.view()->pfxGroup;
   if(FileExt::hasExt(vob.visual_name,"PFX")) {
-    auto decl = Gothic::inst().loadParticleFx(vob.visual_name.c_str());
+    auto decl = Gothic::inst().loadParticleFx(vob.visual_name);
     if(decl==nullptr || decl->visMaterial.tex==nullptr)
       return;
     std::lock_guard<std::recursive_mutex> guard(owner.sync);

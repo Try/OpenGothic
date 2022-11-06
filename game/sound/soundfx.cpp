@@ -26,7 +26,7 @@ SoundFx::SoundFx(std::string_view s) {
   for(auto& i:name)
     i = char(std::toupper(i));
 
-  implLoad(name.c_str());
+  implLoad(name);
   if(inst.size()!=0)
     return;
 
@@ -58,7 +58,7 @@ Tempest::SoundEffect SoundFx::getEffect(Tempest::SoundDevice &dev, bool& loop) c
 
 void SoundFx::implLoad(std::string_view s) {
   auto& sfx = Gothic::sfx()[s];
-  auto  snd = Resources::loadSoundBuffer(sfx.file.c_str());
+  auto  snd = Resources::loadSoundBuffer(sfx.file);
 
   if(!snd.isEmpty())
     inst.emplace_back(sfx,std::move(snd));
@@ -70,7 +70,7 @@ void SoundFx::loadVariants(std::string_view s) {
   for(int i=1;i<100;++i){
     std::snprintf(name,sizeof(name),"%.*s_A%02d",int(s.size()),s.data(),i);
     auto& sfx = Gothic::sfx()[name];
-    auto  snd = Resources::loadSoundBuffer(sfx.file.c_str());
+    auto  snd = Resources::loadSoundBuffer(sfx.file);
     if(snd.isEmpty())
       break;
     inst.emplace_back(sfx,std::move(snd));

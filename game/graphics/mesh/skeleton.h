@@ -31,11 +31,11 @@ class Skeleton final {
 
     size_t                          findNode(std::string_view   name,size_t def=size_t(-1)) const;
 
-    const std::string&              name() const { return fileName; }
+    std::string_view                name() const { return fileName; }
     const Animation::Sequence*      sequence(std::string_view name) const;
     const Animation*                animation() const { return anim; }
     void                            debug() const;
-    const std::string&              defaultMesh() const;
+    std::string_view                defaultMesh() const;
 
     float                           colisionHeight() const;
     float                           colisionRadius() const;
