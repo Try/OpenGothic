@@ -215,9 +215,8 @@ const GthFont &Resources::font(Resources::FontType type) {
   }
 
 const GthFont &Resources::font(std::string_view fname, FontType type) {
-  std::lock_guard<std::recursive_mutex> g(inst->sync);
-
-  if (fname.empty()) return font();
+  if(fname.empty())
+    return font();
   return inst->implLoadFont(fname,type);
   }
 
@@ -595,6 +594,8 @@ Tempest::Sound Resources::implLoadSoundBuffer(std::string_view name) {
   }
 
 GthFont &Resources::implLoadFont(std::string_view name, FontType type) {
+  std::lock_guard<std::recursive_mutex> g(inst->syncFont);
+
   auto cname = std::string(name);
   auto it    = gothicFnt.find(std::make_pair(cname,type));
   if(it!=gothicFnt.end())

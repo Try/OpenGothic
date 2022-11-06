@@ -174,7 +174,7 @@ class Resources final {
     Dx8::PatternList      implLoadDxMusic(std::string_view name);
     GthFont&              implLoadFont(std::string_view fname, FontType type);
     PfxEmitterMesh*       implLoadEmiterMesh(std::string_view name);
-    const VobTree* implLoadVobBundle(std::string_view name);
+    const VobTree*        implLoadVobBundle(std::string_view name);
 
     Tempest::VertexBuffer<Vertex> sphere(int passCount, float R);
 
@@ -214,6 +214,8 @@ class Resources final {
     std::unordered_map<std::string,std::unique_ptr<Animation>>        animCache;
     std::unordered_map<BindK,std::unique_ptr<AttachBinder>,Hash>      bindCache;
     std::unordered_map<std::string,std::unique_ptr<PfxEmitterMesh>>   emiMeshCache;
+    std::unordered_map<std::string,std::unique_ptr<VobTree>>          zenCache;
+
+    std::recursive_mutex                                              syncFont;
     std::unordered_map<FontK,std::unique_ptr<GthFont>,Hash>           gothicFnt;
-    std::unordered_map<std::string,std::unique_ptr<VobTree>> zenCache;
   };
