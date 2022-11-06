@@ -561,7 +561,7 @@ std::unique_ptr<Animation> Resources::implLoadAnimation(std::string name) {
   phoenix::buffer reader = entry->open();
 
   if(FileExt::hasExt(name,"MSB")) {
-    auto p = phoenix::model_script::parse_binary(reader);
+    auto p = phoenix::model_script::parse(reader);
     return std::unique_ptr<Animation>{new Animation(p,name.substr(0,name.size()-4),false)};
     }
 
