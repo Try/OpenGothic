@@ -3,10 +3,8 @@
 #include <Tempest/Log>
 #include <cctype>
 
-#include "graphics/pfx/particlefx.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
-#include "utils/fileext.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -31,7 +29,7 @@ static uint64_t frameClamp(int32_t frame,uint32_t first,uint32_t numFrames,uint3
 Animation::Animation(phoenix::model_script &p, std::string_view name, const bool ignoreErrChunks) {
   ref = std::move(p.aliases);
 
-  for (auto& ani : p.animations) {
+  for(auto& ani : p.animations) {
     auto& data = loadMAN(ani, std::string(name) + '-' + ani.name + ".MAN");
     data.data->sfx = std::move(ani.sfx);
     data.data->gfx = std::move(ani.sfx_ground);
@@ -39,9 +37,9 @@ Animation::Animation(phoenix::model_script &p, std::string_view name, const bool
     data.data->pfxStop = std::move(ani.pfx_stop);
     data.data->events = std::move(ani.events);
     data.data->mmStartAni = std::move(ani.morph);
-  }
+    }
 
-  for (auto& co : p.combinations) {
+  for(auto& co : p.combinations) {
     char name[256]={};
     std::snprintf(name,sizeof(name),"%s%d",co.model.c_str(),1+(co.last_frame-1)/2);
 
@@ -63,13 +61,13 @@ Animation::Animation(phoenix::model_script &p, std::string_view name, const bool
         ani.comb.resize(co.last_frame);
         found=true;
         break;
+        }
+      }
+
+    if(!found) {
+      Log::d("comb not found: ", co.name," -> ", co.model, "(", name, ")"); // error
       }
     }
-
-    if (!found) {
-      Log::d("comb not found: ", co.name," -> ", co.model, "(", name, ")"); // error
-    }
-  }
 
   mesh = std::move(p.meshes);
   meshDef = std::move(p.skeleton);
@@ -188,12 +186,9 @@ void Animation::setupIndex() {
 
 
 Animation::Sequence::Sequence(const phoenix::mds::animation& hdr, std::string_view fname) {
-  if(!Resources::hasFile(fname))
-    return;
-
   phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(fname);
-  if (entry == nullptr)
-    return ;
+  if(entry==nullptr)
+    return;
 
   phoenix::buffer reader = entry->open();
   auto p                 = phoenix::animation::parse(reader);
