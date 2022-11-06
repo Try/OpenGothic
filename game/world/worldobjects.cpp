@@ -407,7 +407,7 @@ void WorldObjects::updateAnimation(uint64_t dt) {
   static bool doAnim=true;
   if(!doAnim)
     return;
-  Workers::parallelFor(npcArr,[dt](std::unique_ptr<Npc>& i){
+  Workers::parallelTasks(npcArr,[dt](std::unique_ptr<Npc>& i){
     i->updateAnimation(dt);
     });
   interactiveObj.parallelFor([dt](Interactive& i){

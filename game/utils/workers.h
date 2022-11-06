@@ -6,8 +6,8 @@
 #include <functional>
 #include <atomic>
 #include <algorithm>
-
-#include "semaphore.h"
+#include <condition_variable>
+#include <new>
 
 class Workers final {
   public:
@@ -27,6 +27,11 @@ class Workers final {
     template<class T,class F>
     static void parallelFor(std::vector<T>& data, size_t maxTh, const F& func) {
       inst().runParallelFor(data.data(),data.size(),maxTh,func);
+      }
+
+    template<class T,class F>
+    static void parallelTasks(std::vector<T>& data, const F& func) {
+      inst().runParallelFor2(data.data(),data.size(),std::thread::hardware_concurrency(),func);
       }
 
     template<class F>
@@ -68,6 +73,33 @@ class Workers final {
       execWork();
       }
 
+    template<class T,class F>
+    void runParallelFor2(T* data, size_t sz, size_t maxTh, const F& func) {
+      workTasks   = std::min<size_t>(MAX_THREADS, sz);
+      workTasks   = std::min<size_t>(workTasks,  maxTh);
+      workSize    = workTasks;
+      batchSize   = 1;
+      workEltSize = 0;
+
+      workSet     = reinterpret_cast<uint8_t*>(data);
+      taskDone.store(0);
+      workFunc = [this, &func, sz](void* data, size_t /*sz*/) {
+        T* tdata = reinterpret_cast<T*>(data);
+        const size_t increment = (64+sizeof(T)-1)/sizeof(T);
+        while(true) {
+          size_t id = taskDone.fetch_add(increment);
+          for(size_t i=0;i<increment;++i) {
+            if(id+i<sz)
+              func(tdata[id+i]);
+            }
+
+          if(id+increment>=sz)
+            break;
+          }
+        };
+      execWork();
+      }
+
     template<class F>
     void runParallelTasks(size_t taskCount, const F& func) {
       workTasks   = taskCount;
@@ -94,4 +126,5 @@ class Workers final {
     std::mutex                        sync;
     std::condition_variable           workWait;
     std::atomic_int                   workDone{0};
+    std::atomic_int                   taskDone{0};
   };

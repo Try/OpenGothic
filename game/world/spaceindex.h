@@ -42,7 +42,7 @@ class BaseSpaceIndex {
 
 template<class Func>
 void BaseSpaceIndex::parallelFor(Func func) {
-  Workers::parallelFor(arr,func);
+  Workers::parallelTasks(arr,func);
   }
 
 
