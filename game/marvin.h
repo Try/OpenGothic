@@ -34,6 +34,7 @@ class Marvin {
       C_ToogleCamera,
 
       C_Insert,
+      C_Respawn
       };
 
     struct Cmd {

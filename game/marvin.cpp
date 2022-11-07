@@ -5,6 +5,7 @@
 #include <cctype>
 
 #include "world/objects/npc.h"
+#include "world/respawnobject.h"
 #include "camera.h"
 #include "gothic.h"
 
@@ -117,6 +118,8 @@ Marvin::Marvin() {
     {"toogle camdebug",   C_ToogleCamDebug},
     {"toogle camera",     C_ToogleCamera},
     {"insert %c",         C_Insert},
+
+    {"respawn %s",        C_Respawn}, // Supports respawn [clear,show]
     };
   }
 
@@ -263,6 +266,9 @@ bool Marvin::exec(std::string_view v) {
       if(world==nullptr || player==nullptr)
         return false;
       return printVariable(world,ret.argv[0]);
+      }
+    case C_Respawn: {
+      return RespawnObject::handleCommand(ret.argv[0]);
       }
     }
 
