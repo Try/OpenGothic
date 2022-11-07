@@ -309,8 +309,8 @@ void GameSession::tick(uint64_t dt) {
 
 auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
                                   std::string_view world, std::string_view wayPoint) -> std::unique_ptr<GameSession> {
-  std::string_view w   = world;
   size_t           cut = world.rfind('\\');
+  std::string_view w   = world;
   if(cut!=std::string::npos)
     w = world.substr(cut+1);
 
@@ -365,7 +365,7 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
 
 const WorldStateStorage& GameSession::findStorage(std::string_view name) {
   for(auto& i:visitedWorlds)
-    if(i.name==name)
+    if(i.compareName(name))
       return i;
   static WorldStateStorage wss;
   return wss;
