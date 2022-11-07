@@ -268,7 +268,7 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
   if(it!=cache.end())
     return it->second.get();
 
-  if(FileExt::hasExt(name,"TGA")){
+  if(FileExt::hasExt(name,"TGA")) {
     name.resize(name.size() + 2);
     std::memcpy(&name[0]+name.size()-6,"-C.TEX",6);
 
@@ -276,10 +276,7 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
     if(it!=cache.end())
       return it->second.get();
 
-    if(hasFile(name)) {
-      const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
-      if(entry==nullptr)
-        return nullptr;
+    if(const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name)) {
       auto reader = entry->open();
       auto tex = phoenix::texture::parse(reader);
 
@@ -311,8 +308,7 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
       }
     }
 
-  const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname);
-  if(entry!=nullptr) {
+  if(const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname)) {
     phoenix::buffer reader = entry->open();
     return implLoadTexture(cache,std::string(cname),reader);
     }
@@ -444,8 +440,8 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
       return nullptr;
 
     const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
-    if (entry == nullptr)
-        throw std::runtime_error("failed to open resource: " + name);
+    if(entry == nullptr)
+      throw std::runtime_error("failed to open resource: " + name);
     auto reader = entry->open();
     auto mdm = phoenix::model::parse(reader);
 
@@ -491,8 +487,8 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(std::string_view name) {
       return nullptr;
 
     const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname);
-    if (entry == nullptr)
-        throw std::runtime_error("failed to open resource: " + cname);
+    if(entry == nullptr)
+      throw std::runtime_error("failed to open resource: " + cname);
     auto reader = entry->open();
     auto mdm = phoenix::model_mesh::parse(reader);
 
