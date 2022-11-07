@@ -186,7 +186,7 @@ void Animation::setupIndex() {
 
 
 Animation::Sequence::Sequence(const phoenix::mds::animation& hdr, std::string_view fname) {
-  phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(fname);
+  const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(fname);
   if(entry==nullptr)
     return;
 

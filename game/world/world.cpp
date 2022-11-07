@@ -62,13 +62,12 @@ const char* materialTag(phoenix::material_group src) {
 
 World::World(GameSession& game, std::string_view file, bool startup, std::function<void(int)> loadProgress)
   :wname(std::move(file)), game(game), wsound(game,*this), wobj(*this) {
-
-  phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(wname);
+  const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(wname);
 
   if(entry == nullptr) {
     Tempest::Log::e("unable to open Zen-file: \"",wname,"\"");
     return;
-  }
+    }
 
   try {
     auto buf = entry->open();
@@ -97,7 +96,6 @@ World::World(GameSession& game, std::string_view file, bool startup, std::functi
     bsp = std::move(world.world_bsp_tree);
     bspSectors.resize(bsp.sectors.size());
     loadProgress(100);
-
     }
   catch(...) {
     Tempest::Log::e("unable to load landscape mesh");

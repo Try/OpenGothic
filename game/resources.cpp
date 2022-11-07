@@ -132,14 +132,14 @@ Resources::~Resources() {
 
 bool Resources::hasFile(std::string_view name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->gothicAssets.find_entry(name) != nullptr;
+  return static_cast<const phoenix::vdf_file&>(inst->gothicAssets).find_entry(name) != nullptr;
   }
 
 bool Resources::getFileData(std::string_view name, std::vector<uint8_t> &dat) {
   dat.clear();
 
-  phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
-  if (entry == nullptr)
+  const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
+  if(entry==nullptr)
     return false;
 
   // TODO: This should return a buffer!
@@ -156,11 +156,11 @@ std::vector<uint8_t> Resources::getFileData(std::string_view name) {
   }
 
 phoenix::buffer Resources::getFileBuffer(std::string_view name) {
-  phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
+  const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
   if (entry == nullptr)
     throw std::runtime_error("failed to open resource: " + std::string{name});
   return entry->open();
-}
+  }
 
 const char* Resources::renderer() {
   return inst->dev.properties().name;
@@ -228,7 +228,7 @@ const Texture2d &Resources::fallbackBlack() {
   return inst->fbZero;
   }
 
-phoenix::vdf_file& Resources::vdfsIndex() {
+const phoenix::vdf_file& Resources::vdfsIndex() {
   return inst->gothicAssets;
   }
 
@@ -277,9 +277,9 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
       return it->second.get();
 
     if(hasFile(name)) {
-
-      phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
-      if (entry == nullptr) return nullptr;
+      const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
+      if(entry==nullptr)
+        return nullptr;
       auto reader = entry->open();
       auto tex = phoenix::texture::parse(reader);
 
@@ -291,10 +291,9 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
         auto dds = phoenix::texture_to_dds(tex);
 
         auto t = implLoadTexture(cache, std::string(cname), dds);
-        if(t!=nullptr) {
+        if(t!=nullptr)
           return t;
-        }
-      } else {
+        } else {
         auto rgba = tex.as_rgba8(0);
 
         try {
@@ -305,16 +304,18 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
           Texture2d* ret=t.get();
           cache[std::move(name)] = std::move(t);
           return ret;
-        } catch (...) {}
+          }
+        catch (...) {
+          }
+        }
       }
     }
-  }
 
-  phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname);
-  if (entry != nullptr) {
-      phoenix::buffer reader = entry->open();
-      return implLoadTexture(cache,std::string(cname),reader);
-  }
+  const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname);
+  if(entry!=nullptr) {
+    phoenix::buffer reader = entry->open();
+    return implLoadTexture(cache,std::string(cname),reader);
+    }
 
   cache[name]=nullptr;
   return nullptr;
@@ -356,8 +357,9 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
   if(FileExt::hasExt(name,"3DS")) {
     FileExt::exchangeExt(name,"3DS","MRM");
 
-    phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
-    if (entry == nullptr) return nullptr;
+    const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
+    if(entry == nullptr)
+      return nullptr;
     auto reader = entry->open();
     auto zmsh = phoenix::proto_mesh::parse(reader);
 
@@ -371,12 +373,12 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
   if(FileExt::hasExt(name,"MMS") || FileExt::hasExt(name,"MMB")) {
     FileExt::exchangeExt(name,"MMS","MMB");
 
-    phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
-    if (entry == nullptr)
-        throw std::runtime_error("failed to open resource: " + name);
+    const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
+    if(entry == nullptr)
+      throw std::runtime_error("failed to open resource: " + name);
+
     auto reader = entry->open();
     auto zmm = phoenix::morph_mesh::parse(reader);
-
     if(zmm.mesh.sub_meshes.empty())
       return nullptr;
 
@@ -397,7 +399,7 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     FileExt::exchangeExt(mesh,"ASC",  "MDM");
 
     if(hasFile(mesh)) {
-      phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(mesh);
+      const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(mesh);
       auto reader = entry->open();
       mdm = phoenix::model_mesh::parse(reader);
       }
@@ -406,7 +408,7 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
       mesh = name;
     FileExt::assignExt(mesh,"MDH");
 
-    phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(mesh);
+    const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(mesh);
     if (entry == nullptr)
         std::runtime_error("failed to open resource: " + mesh);
     auto reader = entry->open();
@@ -427,28 +429,29 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     if(!hasFile(name))
       return nullptr;
 
-    phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
-    if (entry == nullptr) return nullptr;
+    const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
+    if(entry == nullptr)
+      return nullptr;
+
     auto reader = entry->open();
     auto mdm = phoenix::model_mesh::parse(reader);
-
     std::unique_ptr<ProtoMesh> t{new ProtoMesh(std::move(mdm),nullptr,name)};
     return t;
     }
 
-    if(FileExt::hasExt(name,"MDL")) {
-      if(!hasFile(name))
-        return nullptr;
+  if(FileExt::hasExt(name,"MDL")) {
+    if(!hasFile(name))
+      return nullptr;
 
-      phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
-      if (entry == nullptr)
-          throw std::runtime_error("failed to open resource: " + name);
-      auto reader = entry->open();
-      auto mdm = phoenix::model::parse(reader);
+    const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
+    if (entry == nullptr)
+        throw std::runtime_error("failed to open resource: " + name);
+    auto reader = entry->open();
+    auto mdm = phoenix::model::parse(reader);
 
-      std::unique_ptr<Skeleton> sk{new Skeleton(mdm.hierarchy,nullptr,name)};
-      std::unique_ptr<ProtoMesh> t{new ProtoMesh(mdm,std::move(sk),name)};
-      return t;
+    std::unique_ptr<Skeleton> sk{new Skeleton(mdm.hierarchy,nullptr,name)};
+    std::unique_ptr<ProtoMesh> t{new ProtoMesh(mdm,std::move(sk),name)};
+    return t;
     }
 
   if(FileExt::hasExt(name,"TGA")) {
@@ -470,7 +473,7 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(std::string_view name) {
   if(FileExt::hasExt(cname,"3DS")) {
     FileExt::exchangeExt(cname,"3DS","MRM");
 
-    phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname);
+    const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname);
     if (entry == nullptr) return nullptr;
     auto reader = entry->open();
     auto zmsh = phoenix::proto_mesh::parse(reader);
@@ -487,7 +490,7 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(std::string_view name) {
     if(!hasFile(name))
       return nullptr;
 
-    phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname);
+    const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname);
     if (entry == nullptr)
         throw std::runtime_error("failed to open resource: " + cname);
     auto reader = entry->open();
@@ -555,8 +558,9 @@ std::unique_ptr<Animation> Resources::implLoadAnimation(std::string name) {
   if(Gothic::inst().version().game==2)
     FileExt::exchangeExt(name,"MDS","MSB");
 
-  phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
-  if (entry == nullptr) return nullptr;
+  const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(name);
+  if(entry == nullptr)
+    return nullptr;
   phoenix::buffer reader = entry->open();
 
   if(FileExt::hasExt(name,"MSB")) {
@@ -642,9 +646,9 @@ GthFont &Resources::implLoadFont(std::string_view name, FontType type) {
       break;
     }
 
-    phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(fnt);
-    if (entry == nullptr)
-        throw std::runtime_error("failed to open resource: " + std::string{fnt});
+  const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(fnt);
+  if(entry == nullptr)
+    throw std::runtime_error("failed to open resource: " + std::string{fnt});
 
   auto ptr   = std::make_unique<GthFont>(entry->open(),tex,color);
   GthFont* f = ptr.get();
@@ -789,7 +793,7 @@ const Resources::VobTree* Resources::implLoadVobBundle(std::string_view filename
 
   std::vector<std::unique_ptr<phoenix::vob>> bundle;
   try {
-    phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname);
+    const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(cname);
     if (entry == nullptr)
         throw std::runtime_error("failed to open resource: " + cname);
     auto reader = entry->open();

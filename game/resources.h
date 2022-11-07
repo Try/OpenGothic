@@ -132,7 +132,7 @@ class Resources final {
     static phoenix::buffer           getFileBuffer(std::string_view name);
     static bool                      hasFile    (std::string_view fname);
 
-    static phoenix::vdf_file&          vdfsIndex();
+    static const phoenix::vdf_file&  vdfsIndex();
 
     static const Tempest::VertexBuffer<VertexFsq>& fsqVbo();
 
