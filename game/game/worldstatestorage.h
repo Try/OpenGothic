@@ -23,6 +23,8 @@ class WorldStateStorage final {
     void                 save(Serialize& fout) const;
     void                 load(Serialize& fin);
 
+    bool                 compareName(std::string_view name) const;
+
     std::string          name;
     std::vector<uint8_t> storage;
   };
