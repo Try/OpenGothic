@@ -78,6 +78,9 @@ CommandLine::CommandLine(int argc, const char** argv) {
       if(i<argc)
         isMeshSh = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
       }
+    else if(arg=="-respawn") {
+      respawn  = true;
+      }
     }
 
   if(gpath.empty()) {

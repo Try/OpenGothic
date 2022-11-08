@@ -16,6 +16,7 @@
 
 #include "utils/mouseutil.h"
 #include "world/objects/npc.h"
+#include "world/respawnobject.h"
 #include "game/serialize.h"
 #include "game/globaleffects.h"
 #include "utils/crashlog.h"
@@ -944,6 +945,9 @@ void MainWindow::onWorldLoaded() {
     pl->multSpeed(1.f);
   lastTick = Application::tickCount();
   player.clearFocus();
+  if (Gothic::inst().hasChangeWldFlg())
+    RespawnObject::processRespawnList();
+  Gothic::inst().clearChangeWldFlg();
   }
 
 void MainWindow::onSessionExit() {

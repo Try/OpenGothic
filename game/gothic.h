@@ -92,11 +92,17 @@ class Gothic final {
     bool         doRayQuery() const;
     bool         doMeshShading() const;
 
+    bool         doRespawn() const { return respawn; };
+
     LoadState    checkLoading() const;
     bool         finishLoading();
     void         startLoad(std::string_view banner, const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
     void         startSave(Tempest::Texture2d&& tex, const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
     void         cancelLoading();
+
+    void         setChangeWldFlg() { changeWld = true; };
+    void         clearChangeWldFlg() { changeWld = false; };
+    bool         hasChangeWldFlg() { return changeWld; };
 
     void         tick(uint64_t dt);
 
@@ -160,6 +166,8 @@ class Gothic final {
     bool                                    isMarvin = false;
     bool                                    noFrate  = false;
     bool                                    isMeshSh = false;
+    bool                                    respawn = false;
+    bool                                    changeWld = false;
     std::string                             wrldDef, plDef;
 
     std::unique_ptr<IniFile>                defaults;

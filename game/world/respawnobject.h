@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+class World;
 class GameScript;
 class Serialize;
 
@@ -27,6 +28,7 @@ class RespawnObject final {
     std::string world;   // World name
 
     static bool npcShouldRespawn(uint32_t guild);
+    static uint32_t getCurrDay(World* world);
 
     // Print output methods
     static void printMsg(std::string msg);
@@ -34,6 +36,7 @@ class RespawnObject final {
     static void printMsg(std::string msg, int y, bool forcePrint);
 
     static std::vector<RespawnObject> respawnList;
+    static std::string processedDayWorld; // Cache value to not process multiple times per day / check also world
     static uint32_t minDays;
     static uint32_t maxDays;
 };

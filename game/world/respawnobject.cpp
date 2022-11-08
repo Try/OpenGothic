@@ -1,17 +1,18 @@
 #include "respawnobject.h"
 
+#include <Tempest/Log>
+
 #include "game/serialize.h"
 #include "world/world.h"
 #include "gothic.h"
-#include <string>
+
 #include <vector>
 #include <map>
-#include <sstream>
-#include <stdarg.h>
 
 using namespace Tempest;
 
 std::vector<RespawnObject> RespawnObject::respawnList = {};
+std::string RespawnObject::processedDayWorld = "";
 uint32_t RespawnObject::minDays = 2;  // Should be at least 1
 uint32_t RespawnObject::maxDays = 10; // Must be bigger than minDays
 
@@ -33,7 +34,7 @@ void RespawnObject::registerObject(size_t inst, std::string wp, uint32_t guild){
     RespawnObject ro;
     ro.inst = inst;
     ro.wp = wp;
-    uint32_t currDay = (uint32_t)world->time().day();
+    uint32_t currDay = getCurrDay(world);
     uint32_t offset = minDays + world->script().rand(maxDays - minDays);
     ro.respawnDay = currDay + offset;
     ro.world = world->name();
@@ -45,12 +46,24 @@ void RespawnObject::registerObject(size_t inst, std::string wp, uint32_t guild){
 }
 
 void RespawnObject::processRespawnList(){
+    // Is respawn activated ?
+    if (!Gothic::inst().doRespawn())
+        return;
     World* world  = Gothic::inst().world();
     // Ensure respawn list is not processed during world transition / loading sequences
-    if(world==nullptr || Gothic::inst().player()==nullptr)
+    if(world==nullptr || Gothic::inst().player()==nullptr) {
+        printMsg("Skip processing respawn list (world not fully loaded)");
         return;
-    printMsg("Process respawn list, currently " + std::to_string(respawnList.size()) + " monsters registered");
-    uint32_t currDay = (uint32_t)world->time().day();
+    }
+    uint32_t currDay = getCurrDay(world);
+    // Check against cache value for early abort (no multi-processing on same day in same world)
+    std::string currDayWld = std::to_string(currDay) + std::string("_") + std::string(world->name());
+    if (processedDayWorld.compare(currDayWld) == 0) {
+        printMsg("Skip processing respawn list (day+world already processed today)");
+        return;
+    }
+    // Store current day and world as cache value
+    processedDayWorld = currDayWld;
     uint32_t cnt = 0;
     std::vector<RespawnObject>::iterator iter;
     for (iter = respawnList.begin(); iter != respawnList.end(); ){
@@ -61,8 +74,7 @@ void RespawnObject::processRespawnList(){
         } else
             ++iter;
     }
-    printMsg("Respawned " + std::to_string(cnt) + " monsters", 2);
-    printMsg("Still " + std::to_string(respawnList.size()) + " entries in respawn-list registered", 3);
+    printMsg("Respawned " + std::to_string(cnt) + " monsters (" + std::to_string(respawnList.size()) + " still registered)");
     return;
 }
 
@@ -80,6 +92,11 @@ void RespawnObject::loadRespawnState(Serialize &fin){
  * - 'clear': Clear respawn list completely
  */
 bool RespawnObject::handleCommand(std::string_view cmd){
+    // Is respawn activated ?
+    if (!Gothic::inst().doRespawn()) {
+        printMsg("OpenGothic respawn system is deactivated globally");
+        return false;
+    }
     if (cmd.compare("show") == 0) {
         // Make print output
         std::map<std::string, int> map;
@@ -100,12 +117,18 @@ bool RespawnObject::handleCommand(std::string_view cmd){
         // Clear respawn list
         respawnList.clear();
         printMsg("Respawn list cleared", 1, true);
+    } else if (cmd.compare("process") == 0) {
+        // process now
+        processRespawnList();
     } else
         return false;
     return true;
 }
 
 bool RespawnObject::npcShouldRespawn(uint32_t guild){
+    // Is respawn activated ?
+    if (!Gothic::inst().doRespawn())
+        return false;
     // Check which NPCs should respawn -- return true if npc should respawn, otherwise false
     // Skip humans and orcs (test for monsters in general)
     if (Guild::GIL_SEPERATOR_HUM > guild || guild > Guild::GIL_SEPERATOR_ORC)
@@ -139,6 +162,10 @@ bool RespawnObject::npcShouldRespawn(uint32_t guild){
     return true;
 }
 
+uint32_t RespawnObject::getCurrDay(World* world) {
+    return (uint32_t)world->time().day();
+}
+
 void RespawnObject::printMsg(std::string msg){
     printMsg(msg, 1);
 }
@@ -148,6 +175,7 @@ void RespawnObject::printMsg(std::string msg, int y){
 }
 
 void RespawnObject::printMsg(std::string msg, int y, bool forcePrint){
+    Log::i("[respawn] ", msg);
     if(!(forcePrint || Gothic::inst().doFrate()))
         return;
     int x = 1;

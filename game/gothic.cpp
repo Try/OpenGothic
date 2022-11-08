@@ -45,6 +45,7 @@ Gothic::Gothic() {
 
   noFrate = CommandLine::inst().noFrate;
   wrldDef = CommandLine::inst().wrldDef;
+  respawn = CommandLine::inst().doRespawn();
   if(hasMeshShader())
     isMeshSh = CommandLine::inst().isMeshShading();
 
@@ -456,6 +457,7 @@ void Gothic::cancelLoading() {
   if(loadingFlag.load()!=LoadState::Idle){
     loaderTh.join();
     loadingFlag.store(LoadState::Idle);
+    Gothic::inst().clearChangeWldFlg();
     }
   }
 

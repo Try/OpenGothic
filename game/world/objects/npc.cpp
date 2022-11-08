@@ -1767,7 +1767,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
       else if(isDead()) {
         owner.sendPassivePerc(*this,other,*this,PERC_ASSESSMURDER);
         // Register monsters for respawn (method handles human / monster / orc evaluation)
-        RespawnObject::registerObject(size_t(instanceSymbol()), hnpc.wp.c_str(), guild());
+        RespawnObject::registerObject(size_t(instanceSymbol()), hnpc->wp.c_str(), guild());
         }
       else {
         if(owner.script().rand(2)==0)

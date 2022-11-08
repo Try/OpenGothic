@@ -254,9 +254,6 @@ class Serialize {
     void implWrite(const RespawnObject& ro);
     void implRead (RespawnObject&       ro);
 
-    void implWrite(const Daedalus::GEngineClasses::C_Npc& h);
-    void implRead (Daedalus::GEngineClasses::C_Npc&       h);
-
     void implWrite(const FpLock& fp);
     void implRead (FpLock& fp);
 

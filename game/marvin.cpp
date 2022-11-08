@@ -119,7 +119,8 @@ Marvin::Marvin() {
     {"toogle camera",     C_ToogleCamera},
     {"insert %c",         C_Insert},
 
-    {"respawn %s",        C_Respawn}, // Supports respawn [clear,show]
+    // Respawn system [clear,show,process]
+    {"respawn %s",        C_Respawn},
     };
   }
 

@@ -30,6 +30,7 @@ class CommandLine {
     bool                doStartMenu()   const { return !noMenu;  }
     bool                doForceG1()     const { return forceG1;  }
     bool                doForceG2()     const { return forceG2;  }
+    bool                doRespawn()     const { return respawn;  }
     std::string_view    defaultSave()   const { return saveDef;  }
 
     std::string         wrldDef;
@@ -52,5 +53,6 @@ class CommandLine {
     bool                isMeshSh = true;
     bool                forceG1  = false;
     bool                forceG2  = false;
+    bool                respawn  = false;
   };
 

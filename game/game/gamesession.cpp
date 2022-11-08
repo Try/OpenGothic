@@ -226,6 +226,7 @@ std::unique_ptr<World> GameSession::clearWorld() {
 void GameSession::changeWorld(std::string_view world, std::string_view wayPoint) {
   chWorld.zen = world;
   chWorld.wp  = wayPoint;
+  Gothic::inst().setChangeWldFlg();
   }
 
 void GameSession::exitSession() {

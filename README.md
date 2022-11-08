@@ -92,4 +92,5 @@ make -C build -j $(nproc)
 | `-g2`                  | assume a Gothic 2 installation                                   |
 | `-rt <boolean>`        | explicitly enable or disable ray-query                           |
 | `-ms <boolean>`        | explicitly enable or disable meshlets                            |
+| `-respawn`             | enable respawn system (monsters will respawn after some days)    |
 | `-window`              | windowed debugging mode (not to be used for playing)             |
