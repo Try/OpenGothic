@@ -264,7 +264,7 @@ bool PlayerControl::interact(Npc &other) {
     return true;
   auto state = pl->bodyStateMasked();
   if(state!=BS_STAND && state!=BS_SNEAK)
-    return true;
+    return false;
   if(!canInteract())
     return false;
   if(w->script().isDead(other) || w->script().isUnconscious(other)) {
