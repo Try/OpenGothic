@@ -327,6 +327,9 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
   vm->resetVarPointers();
 
   const WorldStateStorage& wss = findStorage(w);
+  // Update world name for non-empty wss in case we have a mixed-case world name - otherwise wss is empty for already visited world
+  if(!wss.isEmpty())
+    w = wss.name;
 
   auto loadProgress = [](int v) {
     Gothic::inst().setLoadingProgress(v);
@@ -352,7 +355,7 @@ auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
   wrld->triggerOnStart(wss.isEmpty());
 
   for(auto& i:visitedWorlds)
-    if(i.name==wrld->name()){
+    if(i.compareName(wrld->name())){
       i = std::move(visitedWorlds.back());
       visitedWorlds.pop_back();
       break;
