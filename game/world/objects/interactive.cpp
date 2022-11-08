@@ -245,7 +245,7 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
       auto mat = nodeTranform(npc,p);
       mat.project(x0,y0,z0);
       mat.project(x1,y1,z1);
-      npc.setDirectionY(y1-y0);
+      npc.setDirectionY(y0-y1);
       }
     auto sq = npc.setAnimAngGet(Npc::Anim::InteractFromStand);
     uint64_t t = sq==nullptr ? 0 : uint64_t(sq->totalTime());
@@ -273,8 +273,8 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
 
   if(isLadder()) {
     if (state==-1) {
-      loopState=true;
-      reverseState=false;
+      loopState    = true;
+      reverseState = false;
       }
     return;
     }
@@ -334,14 +334,14 @@ void Interactive::nextState(Npc& npc, MobsiAction act) {
 
   const int prev = state;
   if (act==MobsiAction::Next)
-    reverseState=false;
+    reverseState = false;
   if (act==MobsiAction::Prev)
-    reverseState=true;
+    reverseState = true;
   if ((act==MobsiAction::Prev && state==0) || (act==MobsiAction::Next && state==stateNum-1)) {
     auto sq = npc.setAnimAngGet(Npc::Anim::InteractToStand);
     if (sq==nullptr)
       return;
-    waitAnim=world.tickCount()+uint64_t(sq->totalTime());
+    waitAnim = world.tickCount()+uint64_t(sq->totalTime());
     npc.setDirectionY(0);
     if (state==0) {
       setState(-1);

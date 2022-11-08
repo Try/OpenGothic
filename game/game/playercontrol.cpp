@@ -198,7 +198,7 @@ void PlayerControl::tickFocus() {
   currentFocus = findFocus(&currentFocus);
   setTarget(currentFocus.npc);
 
-  if(!ctrl[Action::ActionGeneric] || Gothic::inst().world()->player()->interactive()!=nullptr)
+  if(!ctrl[Action::ActionGeneric])
     return;
 
   auto focus = currentFocus;
@@ -793,8 +793,8 @@ void PlayerControl::implMove(uint64_t dt) {
 
 void PlayerControl::implMoveMobsi(Npc& pl, uint64_t /*dt*/) {
   // animation handled in MOBSI
-  auto inter = pl.interactive();
-  bool g1c=Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS")!=0;
+  auto inter     = pl.interactive();
+  const bool g1c = Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS")!=0;
 
   if(ctrl[KeyCodec::Back] && !inter->isLadder()) {
     pl.setInteraction(nullptr);
@@ -806,8 +806,8 @@ void PlayerControl::implMoveMobsi(Npc& pl, uint64_t /*dt*/) {
     }
 
   if(inter->isStaticState() && !inter->isDetachState(pl)) {
-    auto stateId=inter->stateId();
-    bool ladder=inter->isLadder() && stateId==inter->stateCount();
+    auto stateId = inter->stateId();
+    bool ladder  = inter->isLadder() && stateId==inter->stateCount();
     if(inter->canQuitAtState(pl,stateId-ladder))
       pl.setInteraction(nullptr,ladder);
     }
@@ -888,7 +888,7 @@ void PlayerControl::processPickLock(Npc& pl, Interactive& inter, KeyCodec::Actio
   }
 
 void PlayerControl::processLadder(Npc& pl, Interactive& inter, KeyCodec::Action key) {
-  bool g1c=Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS")!=0;
+  const bool g1c = Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS")!=0;
   if(key==KeyCodec::ActionGeneric) {
     ctrl[key] = true;
     if (g1c) {
