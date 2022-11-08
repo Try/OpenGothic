@@ -24,12 +24,10 @@ void RespawnObject::save(Serialize &fout) const{
 }
 
 void RespawnObject::registerObject(size_t inst, std::string wp, uint32_t guild){
-    if (!RespawnObject::npcShouldRespawn(guild)) {
-        printMsg("Not a respawnable monster (Guild ID " + std::to_string(guild) + ")");
+    if (!RespawnObject::npcShouldRespawn(guild))
         return;
-    }
     World *world = Gothic::inst().world();
-    // Skip also if the waypoint is not findable
+    // Skip if waypoint is unknown
     if (!world->findPoint(wp))
         return;
     RespawnObject ro;
@@ -47,8 +45,11 @@ void RespawnObject::registerObject(size_t inst, std::string wp, uint32_t guild){
 }
 
 void RespawnObject::processRespawnList(){
+    World* world  = Gothic::inst().world();
+    // Ensure respawn list is not processed during world transition / loading sequences
+    if(world==nullptr || Gothic::inst().player()==nullptr)
+        return;
     printMsg("Process respawn list, currently " + std::to_string(respawnList.size()) + " monsters registered");
-    World *world = Gothic::inst().world();
     uint32_t currDay = (uint32_t)world->time().day();
     uint32_t cnt = 0;
     std::vector<RespawnObject>::iterator iter;
