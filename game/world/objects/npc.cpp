@@ -410,7 +410,7 @@ void Npc::setDirectionY(float rotation) {
   if(rotation<-90)
     rotation = -90;
   rotation = std::fmod(rotation,360.f);
-  if(!mvAlgo.isSwim())
+  if(!mvAlgo.isSwim() && !(interactive()!=nullptr && interactive()->isLadder()))
     return;
   angleY = rotation;
   durtyTranform |= TR_Rot;
@@ -2981,7 +2981,7 @@ bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
 
   const auto sgn = std::sin(double(da)*M_PI/180.0);
   if(sgn<0) {
-    setAnimRotate( 1);
+    setAnimRotate(1);
     setDirection(angle-step);
     } else
   if(sgn>0) {

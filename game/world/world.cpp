@@ -431,7 +431,7 @@ Focus World::findFocus(const Npc &pl, const Focus& def) {
   }
 
 Focus World::findFocus(const Focus &def) {
-  if(npcPlayer==nullptr)
+  if(npcPlayer==nullptr || npcPlayer->interactive()!=nullptr)
     return Focus();
   return findFocus(*npcPlayer,def);
   }

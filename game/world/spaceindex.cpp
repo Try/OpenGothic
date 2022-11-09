@@ -102,7 +102,7 @@ void BaseSpaceIndex::implFind(Vob** v, size_t cnt, uint8_t depth,
 
   auto mid = cnt/2;
   auto pos = v[mid]->position();
-  auto qR  = (R+500.0);//v[mid]->extendedSearchRadius());
+  auto qR  = (R+675.0);//v[mid]->extendedSearchRadius());
 
   if((pos-p).quadLength()<=qR*qR) {
     func(ctx,v[mid]);
