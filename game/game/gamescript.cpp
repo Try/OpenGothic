@@ -2871,8 +2871,6 @@ void GameScript::ai_pointatnpc(std::shared_ptr<phoenix::c_npc> npcRef, std::shar
   }
 
 int GameScript::ai_printscreen(std::string_view msg, int posx, int posy, std::string_view font, int timesec) {
-  return 0;
-
   auto npc = owner.player();
   if(vm.global_self()->is_instance_of<phoenix::c_npc>()) {
     auto* oth = reinterpret_cast<phoenix::c_npc*>(vm.global_self()->get_instance().get());
