@@ -12,7 +12,7 @@ Material::Material(const phoenix::material& m, bool enableAlphaTest) {
 
   loadFrames(m);
 
-  alpha = loadAlphaFunc(m.alpha_func,m.group,tex,enableAlphaTest);
+  alpha = loadAlphaFunc(m.alpha_func,m.group,m.color.a,tex,enableAlphaTest);
 
   if(m.texture_anim_map_mode!=phoenix::animation_mapping_mode::none && tex!=nullptr) {
     auto texAniMapDir = m.texture_anim_map_dir;
@@ -37,7 +37,7 @@ Material::Material(const phoenix::vob& vob) {
   frames       = Resources::loadTextureAnim(vob.visual_name);
 
   texAniFPSInv = 1000/std::max<size_t>(frames.size(),1);
-  alpha        = loadAlphaFunc(vob.visual_decal->alpha_func,phoenix::material_group::undefined,tex,true);
+  alpha        = loadAlphaFunc(vob.visual_decal->alpha_func,phoenix::material_group::undefined,vob.visual_decal->alpha_weight,tex,true);
 
   if(vob.visual_decal->texture_anim_fps>0)
     texAniFPSInv = uint64_t(1000.f/vob.visual_decal->texture_anim_fps); else
@@ -105,44 +105,46 @@ int Material::alphaOrder(AlphaFunc a, bool ghost) {
 
 Material::AlphaFunc Material::loadAlphaFunc(phoenix::alpha_function zenAlpha,
                                             phoenix::material_group matGroup,
+                                            uint8_t clrAlpha,
                                             const Tempest::Texture2d* tex,
                                             bool enableAlphaTest) {
   Material::AlphaFunc alpha = Material::AlphaFunc::AlphaTest;
-  switch (zenAlpha) {
-  case phoenix::alpha_function::blend:
-    alpha = Material::AlphaFunc::Transparent;
-    break;
-  case phoenix::alpha_function::add:
-    alpha = Material::AlphaFunc::AdditiveLight;
-    break;
-  case phoenix::alpha_function::mul: // TODO: originally, this was `sub` and `mul`
-  case phoenix::alpha_function::mul2:
-    alpha = Material::AlphaFunc::Multiply;
-    break;
-  default:
-    alpha = Material::AlphaFunc::AlphaTest;
-    break;
-  }
+  switch(zenAlpha) {
+    case phoenix::alpha_function::blend:
+      alpha = Material::AlphaFunc::Transparent;
+      break;
+    case phoenix::alpha_function::add:
+      alpha = Material::AlphaFunc::AdditiveLight;
+      break;
+    case phoenix::alpha_function::mul: // TODO: originally, this was `sub` and `mul`
+    case phoenix::alpha_function::mul2:
+      alpha = Material::AlphaFunc::Multiply;
+      break;
+    default:
+      alpha = Material::AlphaFunc::AlphaTest;
+      break;
+    }
 
-  if (matGroup == phoenix::material_group::water)
+  if(matGroup == phoenix::material_group::water)
     alpha = Material::AlphaFunc::Water;
 
-  if (alpha == Material::AlphaFunc::AlphaTest || alpha == Material::AlphaFunc::Transparent) {
-    if (tex != nullptr && tex->format() == Tempest::TextureFormat::DXT1) {
-      alpha = Material::AlphaFunc::Solid;
+  if(alpha==Material::AlphaFunc::AlphaTest || alpha==Material::AlphaFunc::Transparent) {
+    if(tex!=nullptr && tex->format()==Tempest::TextureFormat::DXT1) {
+      if(clrAlpha==255)
+        alpha = Material::AlphaFunc::Solid; else
+        alpha = Material::AlphaFunc::Transparent;
+      }
     }
-  }
 
-  if (alpha == Material::AlphaFunc::AlphaTest && !enableAlphaTest) {
+  if(alpha == Material::AlphaFunc::AlphaTest && !enableAlphaTest) {
     alpha = Material::AlphaFunc::Solid;
-  }
+    }
   return alpha;
-}
+  }
 
 void Material::loadFrames(const phoenix::material& m) {
   frames = Resources::loadTextureAnim(m.texture);
-  if (m.texture_anim_fps > 0)
-    texAniFPSInv = uint64_t(1.0f / m.texture_anim_fps);
-  else
+  if(m.texture_anim_fps > 0)
+    texAniFPSInv = uint64_t(1.0f / m.texture_anim_fps); else
     texAniFPSInv = 1;
-}
+  }

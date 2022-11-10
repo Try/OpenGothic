@@ -44,7 +44,8 @@ class Material final {
   private:
     static int alphaOrder(AlphaFunc a, bool ghost);
 
-    static AlphaFunc loadAlphaFunc(phoenix::alpha_function zenAlpha, phoenix::material_group matGroup, const Tempest::Texture2d* tex, bool enableAlphaTest);
+    static AlphaFunc loadAlphaFunc(phoenix::alpha_function zenAlpha, phoenix::material_group matGroup,
+                                   uint8_t alpha, const Tempest::Texture2d* tex, bool enableAlphaTest);
     void             loadFrames(const phoenix::material& m);
   };
 
