@@ -928,14 +928,14 @@ void PlayerControl::assignRunAngle(Npc& pl, float rotation, uint64_t dt) {
     return;
     }
 
-  dangle *= 0.9f;
+  dangle *= 0.5f;
 
   float maxV = 15.0f;
   if(angle<rotation)
     runAngleDest =  std::min( dangle,maxV);
   if(angle>rotation)
     runAngleDest = -std::min(-dangle,maxV);
-  runAngleSmooth = wrld.tickCount()+150;
+  runAngleSmooth = wrld.tickCount() + 200;
   }
 
 void PlayerControl::setAnimRotate(Npc& pl, float rotation, int anim, bool force, uint64_t dt) {
