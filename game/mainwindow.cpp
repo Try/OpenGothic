@@ -238,6 +238,12 @@ void MainWindow::resizeEvent(SizeEvent&) {
   renderer.resetSwapchain();
   if(auto camera = Gothic::inst().camera())
     camera->setViewport(swapchain.w(),swapchain.h());
+
+  const bool fs = SystemApi::isFullscreen(hwnd());
+  auto rect = SystemApi::windowClientRect(hwnd());
+  setCursorPosition(rect.w/2,rect.h/2);
+  setCursorShape(fs ? CursorShape::Hidden : CursorShape::Arrow);
+  dMouse = Point();
   }
 
 void MainWindow::mouseDownEvent(MouseEvent &event) {
@@ -961,10 +967,6 @@ void MainWindow::clearInput() {
 
 void MainWindow::setFullscreen(bool fs) {
   SystemApi::setAsFullscreen(hwnd(),fs);
-  auto rect = SystemApi::windowClientRect(hwnd());
-  setCursorPosition(rect.w/2,rect.h/2);
-  setCursorShape(fs ? CursorShape::Hidden : CursorShape::Arrow);
-  dMouse = Point();
   }
 
 void MainWindow::render(){
