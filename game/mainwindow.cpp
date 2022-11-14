@@ -40,7 +40,7 @@ MainWindow::MainWindow(Device& device)
   Gothic::inst().onSettingsChanged.bind(this,&MainWindow::onSettings);
   onSettings();
 
-  if(!CommandLine::inst().isWindowMode())
+  if(!CommandLine::inst().isWindowMode() && Gothic::inst().settingsGetI("COMMANDLINE","windowedMode")==0)
     setFullscreen(true);
 
   renderer.resetSwapchain();
@@ -71,7 +71,8 @@ MainWindow::MainWindow(Device& device)
     Gothic::inst().load(Gothic::inst().defaultSave());
     rootMenu.popMenu();
     }
-  else if(!CommandLine::inst().doStartMenu()) {
+  else if(!CommandLine::inst().doStartMenu() ||
+           Gothic::inst().settingsGetI("COMMANDLINE","skipMenu")!=0) {
     startGame(Gothic::inst().defaultWorld());
     rootMenu.popMenu();
     }

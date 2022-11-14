@@ -38,8 +38,13 @@ const char* selectDevice(const Tempest::AbstractGraphicsApi& api) {
   }
 
 std::unique_ptr<Tempest::AbstractGraphicsApi> mkApi(const CommandLine& g) {
-  Tempest::ApiFlags flg = g.isDebugMode() ? Tempest::ApiFlags::Validation : Tempest::ApiFlags::NoFlags;
-  switch(g.graphicsApi()) {
+  Tempest::ApiFlags flg = g.isDebugMode() ||
+                          Gothic::inst().settingsGetI("COMMANDLINE", "vulkanValidationMode")!=0 ?
+                          Tempest::ApiFlags::Validation : Tempest::ApiFlags::NoFlags;
+  auto gApi             = g.graphicsApi()==CommandLine::DirectX12 ||
+                          Gothic::inst().settingsGetI("COMMANDLINE", "dx12")!=0 ?
+                          CommandLine::DirectX12 : CommandLine::Vulkan;
+  switch(gApi) {
     case CommandLine::DirectX12:
 #if defined(_MSC_VER)
       return std::make_unique<Tempest::DirectX12Api>(flg);
@@ -95,12 +100,15 @@ int main(int argc,const char** argv) {
   Tempest::Log::i(appBuild);
 
   CommandLine          cmd{argc,argv};
+
+  Gothic               gothic;
+
   auto                 api = mkApi(cmd);
 
   Tempest::Device      device{*api,selectDevice(*api)};
   Resources            resources{device};
 
-  Gothic               gothic;
+  gothic.initialSetup();
   GameMusic            music;
   gothic.setupGlobalScripts();
 

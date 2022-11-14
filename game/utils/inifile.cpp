@@ -28,7 +28,10 @@ static bool compareNoCase(std::string_view a, std::string_view b) {
 IniFile::IniFile(std::u16string_view file) {
   fileName = std::u16string(file);
   if(!FileUtil::exists(fileName)) {
-    Log::e("no *.ini file in path - using default settings");
+    if (fileName==u"OpenGothic.ini")
+      Log::e("no OpenGothic.ini file in path - generating default ini");
+    else
+      Log::e("no *.ini file in path - using default settings");
     return;
     }
 

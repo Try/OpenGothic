@@ -18,6 +18,7 @@
 
 #include "utils/fileutil.h"
 #include "utils/inifile.h"
+#include "utils/installdetect.h"
 
 #include "commandline.h"
 
@@ -38,82 +39,126 @@ static bool hasMeshShader() {
 Gothic::Gothic() {
   instance = this;
 
-#ifndef NDEBUG
-  setMarvinEnabled(true);
-  setFRate(true);
+  auto populate=[](std::unique_ptr<IniFile>& ini) {
+#if defined(__OSX__)
+    bool isRQuery = false;
+#else
+    bool isRQuery = true;
 #endif
+    ini->set("COMMANDLINE", "gothicPath",           "/path/to/Gothic/Installation");
+    ini->set("COMMANDLINE", "gothicGameVersion",    "auto");
+    ini->set("COMMANDLINE", "modIni",               "");
+    ini->set("COMMANDLINE", "skipMenu",             0);
+    ini->set("COMMANDLINE", "showFps",              1);
+    ini->set("COMMANDLINE", "startupWorld",         "");
+    ini->set("COMMANDLINE", "loadQuickSave",        0);
+    ini->set("COMMANDLINE", "loadSave",            -1);
+    ini->set("COMMANDLINE", "vulkanValidationMode", 0);
+    ini->set("COMMANDLINE", "dx12",                 0);
+    ini->set("COMMANDLINE", "rayTracing",           isRQuery);
+    ini->set("COMMANDLINE", "meshShader",           1);
+    ini->set("COMMANDLINE", "windowedMode",         0);
 
-  noFrate = CommandLine::inst().noFrate;
-  wrldDef = CommandLine::inst().wrldDef;
-  if(hasMeshShader())
-    isMeshSh = CommandLine::inst().isMeshShading();
+    ini->set("GAME", "enableMouse",         1);
+    ini->set("GAME", "mouseSensitivity",    0.5f);
+    ini->set("GAME", "invCatOrder",         "COMBAT,POTION,FOOD,ARMOR,MAGIC,RUNE,DOCS,OTHER,NONE");
+    ini->set("GAME", "invMaxColumns",       5);
+    ini->set("GAME", "animatedWindows",     1);
+    ini->set("GAME", "useGothic1Controls",  1);
+    ini->set("GAME", "highlightMeleeFocus", 0);
+
+    ini->set("SKY_OUTDOOR", "zSunName",   "unsun5.tga");
+    ini->set("SKY_OUTDOOR", "zSunSize",   200);
+    ini->set("SKY_OUTDOOR", "zSunAlpha",  230);
+    ini->set("SKY_OUTDOOR", "zMoonName",  "moon.tga");
+    ini->set("SKY_OUTDOOR", "zMoonSize",  400);
+    ini->set("SKY_OUTDOOR", "zMoonAlpha", 255);
+
+    ini->set("RENDERER_D3D", "zFogRadial", 0);
+
+    ini->set("SOUND", "musicEnabled",  1);
+    ini->set("SOUND", "musicVolume",   0.5f);
+    ini->set("SOUND", "soundVolume",   0.5f);
+
+    ini->set("ENGINE", "zEnvMappingEnabled", 0);
+    ini->set("ENGINE", "zCloudShadowScale",  0);
+    ini->set("ENGINE", "zWindEnabled",       1);
+    ini->set("ENGINE", "zWindCycleTime",     4);
+    ini->set("ENGINE", "zWindCycleTimeVar",  6);
+    ini->set("ENGINE", "zMaxFps",            0);
+
+    ini->set("KEYS", "keyEnd",         "0100");
+    ini->set("KEYS", "keyHeal",        "2300");
+    ini->set("KEYS", "keyPotion",      "1900");
+    ini->set("KEYS", "keyLockTarget",  "4f00");
+    ini->set("KEYS", "keyParade",      "cf000d02");
+    ini->set("KEYS", "keyActionRight", "d100");
+    ini->set("KEYS", "keyActionLeft",  "d300");
+    ini->set("KEYS", "keyUp",          "c8001100");
+    ini->set("KEYS", "keyDown",        "d0001f00");
+    ini->set("KEYS", "keyLeft",        "cb001000");
+    ini->set("KEYS", "keyRight",       "cd001200");
+    ini->set("KEYS", "keyStrafeLeft",  "d3001e00");
+    ini->set("KEYS", "keyStrafeRight", "d1002000");
+    ini->set("KEYS", "keyAction",      "1d000c02");
+    ini->set("KEYS", "keySlow",        "2a003600");
+    ini->set("KEYS", "keySMove",       "38009d00");
+    ini->set("KEYS", "keyWeapon",      "39000e02");
+    ini->set("KEYS", "keySneak",       "2d00");
+    ini->set("KEYS", "keyLook",        "13005200");
+    ini->set("KEYS", "keyLookFP",      "21005300");
+    ini->set("KEYS", "keyInventory",   "0f000e00");
+    ini->set("KEYS", "keyShowStatus",  "30002e00");
+    ini->set("KEYS", "keyShowLog",     "31002600");
+    ini->set("KEYS", "keyShowMap",     "3200");
+    };
+
+  defaults.reset(new IniFile());
+  iniFile. reset(new IniFile(u"OpenGothic.ini"));
+  populate(defaults);
+  if(!FileUtil::exists(u"OpenGothic.ini")) {
+    populate(iniFile);
+    flushSettings();
+    }
+
+  validateGothicPath();
 
   baseIniFile.reset(new IniFile(nestedPath({u"system",u"Gothic.ini"},Dir::FT_File)));
-  iniFile    .reset(new IniFile(u"Gothic.ini"));
-  {
-  defaults.reset(new IniFile());
-  defaults->set("GAME", "enableMouse",         1);
-  defaults->set("GAME", "mouseSensitivity",    0.5f);
-  defaults->set("GAME", "invCatOrder",         "COMBAT,POTION,FOOD,ARMOR,MAGIC,RUNE,DOCS,OTHER,NONE");
-  defaults->set("GAME", "invMaxColumns",       5);
-  defaults->set("GAME", "animatedWindows",     1);
-  defaults->set("GAME", "useGothic1Controls",  0);
-  defaults->set("GAME", "highlightMeleeFocus", 0);
-
-  defaults->set("SKY_OUTDOOR", "zSunName",   "unsun5.tga");
-  defaults->set("SKY_OUTDOOR", "zSunSize",   200);
-  defaults->set("SKY_OUTDOOR", "zSunAlpha",  230);
-  defaults->set("SKY_OUTDOOR", "zMoonName",  "moon.tga");
-  defaults->set("SKY_OUTDOOR", "zMoonSize",  400);
-  defaults->set("SKY_OUTDOOR", "zMoonAlpha", 255);
-
-  defaults->set("RENDERER_D3D", "zFogRadial", 0);
-
-  defaults->set("SOUND", "musicEnabled",  1);
-  defaults->set("SOUND", "musicVolume",   0.5f);
-  defaults->set("SOUND", "soundVolume",   0.5f);
-
-  defaults->set("ENGINE", "zEnvMappingEnabled", 0);
-  defaults->set("ENGINE", "zCloudShadowScale",  0);
-  defaults->set("ENGINE", "zWindEnabled",       1);
-  defaults->set("ENGINE", "zWindCycleTime",     4);
-  defaults->set("ENGINE", "zWindCycleTimeVar",  6);
-
-  defaults->set("KEYS", "keyEnd",         "0100");
-  defaults->set("KEYS", "keyHeal",        "2300");
-  defaults->set("KEYS", "keyPotion",      "1900");
-  defaults->set("KEYS", "keyLockTarget",  "4f00");
-  defaults->set("KEYS", "keyParade",      "cf000d02");
-  defaults->set("KEYS", "keyActionRight", "d100");
-  defaults->set("KEYS", "keyActionLeft",  "d300");
-  defaults->set("KEYS", "keyUp",          "c8001100");
-  defaults->set("KEYS", "keyDown",        "d0001f00");
-  defaults->set("KEYS", "keyLeft",        "cb001000");
-  defaults->set("KEYS", "keyRight",       "cd001200");
-  defaults->set("KEYS", "keyStrafeLeft",  "d3001e00");
-  defaults->set("KEYS", "keyStrafeRight", "d1002000");
-  defaults->set("KEYS", "keyAction",      "1d000c02");
-  defaults->set("KEYS", "keySlow",        "2a003600");
-  defaults->set("KEYS", "keySMove",       "38009d00");
-  defaults->set("KEYS", "keyWeapon",      "39000e02");
-  defaults->set("KEYS", "keySneak",       "2d00");
-  defaults->set("KEYS", "keyLook",        "13005200");
-  defaults->set("KEYS", "keyLookFP",      "21005300");
-  defaults->set("KEYS", "keyInventory",   "0f000e00");
-  defaults->set("KEYS", "keyShowStatus",  "30002e00");
-  defaults->set("KEYS", "keyShowLog",     "31002600");
-  defaults->set("KEYS", "keyShowMap",     "3200");
   }
+
+Gothic::~Gothic() {
+  instance = nullptr;
+  }
+
+Gothic& Gothic::inst() {
+  return *instance;
+  }
+
+void Gothic::initialSetup() {
+#ifndef NDEBUG
+  setMarvinEnabled(true);
+#endif
+
+  noFrate = CommandLine::inst().noFrate || settingsGetI("COMMANDLINE","showFps")==0;
+  wrldDef = CommandLine::inst().wrldDef.empty() ?
+            settingsGetS("COMMANDLINE","startupWorld") :
+            CommandLine::inst().wrldDef;
+
+  if(hasMeshShader())
+    isMeshSh = CommandLine::inst().isMeshShading() &&
+               settingsGetI("COMMANDLINE","meshShader")!=0;
 
   detectGothicVersion();
 
-  std::u16string_view mod = CommandLine::inst().modPath();
-  if(!mod.empty()){
-    modFile.reset(new IniFile(mod));
-    }
+  std::u16string mod = CommandLine::inst().modPath().empty() ?
+                       TextCodec::toUtf16(std::string(settingsGetS("COMMANDLINE","modIni"))) :
+                       std::u16string(CommandLine::inst().modPath());
+  if(!mod.empty())
+    mod=nestedPath({u"system",mod.c_str()},Dir::FT_File);
 
   std::vector<std::u16string> modvdfs;
-  if(modFile!=nullptr) {
+  if (FileUtil::exists(mod)) {
+    modFile.reset(new IniFile(mod));
     wrldDef = modFile->getS("SETTINGS","WORLD");
     size_t split = wrldDef.rfind('\\');
     if(split!=std::string::npos)
@@ -141,14 +186,6 @@ Gothic::Gothic() {
 
   onSettingsChanged.bind(this,&Gothic::setupSettings);
   setupSettings();
-  }
-
-Gothic::~Gothic() {
-  instance = nullptr;
-  }
-
-Gothic& Gothic::inst() {
-  return *instance;
   }
 
 void Gothic::setupGlobalScripts() {
@@ -356,7 +393,11 @@ void Gothic::setMarvinEnabled(bool m) {
 bool Gothic::doRayQuery() const {
   if(!Resources::device().properties().raytracing.rayQuery)
     return false;
-  return CommandLine::inst().isRayQuery();
+#if defined(__OSX__)
+  return CommandLine::inst().isRayQuery() || settingsGetI("COMMANDLINE", "rayTracing")!=0;
+#else
+  return CommandLine::inst().isRayQuery() && settingsGetI("COMMANDLINE", "rayTracing")!=0;
+#endif
   }
 
 bool Gothic::doMeshShading() const {
@@ -553,8 +594,14 @@ std::string_view Gothic::defaultPlayer() const {
   }
 
 std::string_view Gothic::defaultSave() const {
-  return CommandLine::inst().defaultSave();
-  }
+  if (!CommandLine::inst().defaultSave().empty())
+    return CommandLine::inst().defaultSave();
+  int loadSave            = settingsGetI("COMMANDLINE", "loadSave");
+  int loadQuickSave       = settingsGetI("COMMANDLINE", "loadQuickSave");
+  static std::string save = loadQuickSave!=0 ? "save_slot_0.sav" : loadSave>0
+                                             ? "save_slot_"+std::to_string(loadSave)+".sav" : "";
+  return save;
+}
 
 std::unique_ptr<phoenix::vm> Gothic::createPhoenixVm(std::string_view datFile) {
   auto byte = loadPhoenixScriptCode(datFile);
@@ -569,7 +616,6 @@ std::vector<uint8_t> Gothic::loadScriptCode(std::string_view datFile) {
   if(Resources::hasFile(datFile))
     return Resources::getFileData(datFile);
 
-  auto gscript = CommandLine::inst().scriptPath();
   char16_t str16[256] = {};
   for(size_t i=0; i<datFile.size() && i<255; ++i)
     str16[i] = char16_t(datFile[i]);
@@ -586,7 +632,6 @@ phoenix::script Gothic::loadPhoenixScriptCode(std::string_view datFile) {
     return phoenix::script::parse(buf);
     }
 
-  auto gscript = CommandLine::inst().scriptPath();
   char16_t str16[256] = {};
   for(size_t i=0; i<datFile.size() && i<255; ++i)
     str16[i] = char16_t(datFile[i]);
@@ -608,6 +653,8 @@ int Gothic::settingsGetI(std::string_view sec, std::string_view name) {
   }
 
 void Gothic::settingsSetI(std::string_view sec, std::string_view name, int val) {
+  if (!instance->defaults->has(sec,name))
+    return;
   instance->iniFile->set(sec,name,val);
   instance->onSettingsChanged();
   }
@@ -625,6 +672,8 @@ std::string_view Gothic::settingsGetS(std::string_view sec, std::string_view nam
   }
 
 void Gothic::settingsSetS(std::string_view sec, std::string_view name, std::string_view val) {
+  if (!instance->defaults->has(sec,name))
+    return;
   instance->iniFile->set(sec,name,val);
   instance->onSettingsChanged();
   }
@@ -642,6 +691,8 @@ float Gothic::settingsGetF(std::string_view sec, std::string_view name) {
   }
 
 void Gothic::settingsSetF(std::string_view sec, std::string_view name, float val) {
+  if (!instance->defaults->has(sec,name))
+    return;
   instance->iniFile->set(sec,name,val);
   instance->onSettingsChanged();
   }
@@ -651,34 +702,63 @@ void Gothic::flushSettings() {
   }
 
 void Gothic::detectGothicVersion() {
-  int score[3]={};
-
-  auto gpath = CommandLine::inst().rootPath();
-  if(gpath.find(u"Gothic/")!=std::string::npos || gpath.find(u"gothic/")!=std::string::npos)
-    score[1]++;
-  if(FileUtil::exists(nestedPath({u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE",u"OU.BIN"},Dir::FT_File)))
-    score[1]++;
-
-  if(FileUtil::exists(nestedPath({u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE",u"OU.DAT"},Dir::FT_File)))
-    score[2]++;
-  if(baseIniFile->has("KEYSDEFAULT1"))
-    score[2]++;
-  if(baseIniFile->has("GAME","PATCHVERSION"))
-    score[2]++;
-  if(baseIniFile->has("GAME","useGothic1Controls"))
-    score[2]++;
-
-  if(score[1]>score[2])
-    vinfo.game = 1; else
-    vinfo.game = 2;
-
-  if(CommandLine::inst().doForceG1())
+  if(CommandLine::inst().doForceG1() || (settingsGetS("COMMANDLINE","gothicGameVersion")=="1" && !CommandLine::inst().doForceG2()))
     vinfo.game = 1;
-  else if(CommandLine::inst().doForceG2())
+  else if(CommandLine::inst().doForceG2() || settingsGetS("COMMANDLINE","gothicGameVersion")=="2")
     vinfo.game = 2;
+  else {
+    int score[3]={};
+
+    if(gpath.find(u"Gothic/")!=std::string::npos || gpath.find(u"gothic/")!=std::string::npos)
+      score[1]++;
+    if(FileUtil::exists(nestedPath({u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE",u"OU.BIN"},Dir::FT_File)))
+      score[1]++;
+
+    if(FileUtil::exists(nestedPath({u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE",u"OU.DAT"},Dir::FT_File)))
+      score[2]++;
+    if(baseIniFile->has("KEYSDEFAULT1"))
+      score[2]++;
+    if(baseIniFile->has("GAME","PATCHVERSION"))
+      score[2]++;
+    if(baseIniFile->has("GAME","useGothic1Controls"))
+      score[2]++;
+
+    if(score[1]>score[2])
+      vinfo.game = 1;
+    else
+      vinfo.game = 2;
+    }
 
   if(vinfo.game==2) {
     vinfo.patch = baseIniFile->getI("GAME","PATCHVERSION");
+    }
+  }
+
+void Gothic::validateGothicPath() {
+  gpath = CommandLine::inst().rootPath().empty() ?
+          TextCodec::toUtf16(std::string(iniFile->getS("COMMANDLINE","gothicPath"))) :
+          std::u16string(CommandLine::inst().rootPath());
+
+  if (gpath.empty()) {
+    InstallDetect inst;
+    gpath = inst.detectG2();
+    }
+
+  for(auto& i:gpath)
+    if(i=='\\')
+      i='/';
+
+  if(gpath.size()>0 && gpath.back()!='/')
+    gpath.push_back('/');
+
+  gscript = nestedPath({u"_work",u"Data",u"Scripts",u"_compiled"},Dir::FT_Dir);
+
+  if(gpath.empty() ||
+     !FileUtil::exists(gscript) ||
+     !FileUtil::exists(nestedPath({u"Data"},Dir::FT_Dir)) ||
+     !FileUtil::exists(nestedPath({u"_work",u"Data"},Dir::FT_Dir))) {
+    Log::e("invalid gothic path: \"",TextCodec::toUtf8(gpath),"\"");
+    throw std::logic_error("gothic not found!"); //TODO: user-friendly message-box
     }
   }
 
@@ -731,7 +811,7 @@ std::unique_ptr<DocumentMenu::Show>& Gothic::getDocument(int id) {
   }
 
 std::u16string Gothic::nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const {
-  return CommandLine::inst().nestedPath(name,type);
+  return FileUtil::nestedPath(gpath, name, type);
   }
 
 void Gothic::setupVmCommonApi(phoenix::vm &vm) {

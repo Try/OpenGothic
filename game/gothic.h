@@ -58,6 +58,7 @@ class Gothic final {
     Camera*      camera();
     auto         questLog() const -> const QuestLog*;
 
+    void         initialSetup();
     void         setupGlobalScripts();
 
     auto         loadingBanner() const -> const Tempest::Texture2d*;
@@ -161,6 +162,7 @@ class Gothic final {
     bool                                    noFrate  = false;
     bool                                    isMeshSh = false;
     std::string                             wrldDef, plDef;
+    std::u16string                          gscript, gpath;
 
     std::unique_ptr<IniFile>                defaults;
     std::unique_ptr<IniFile>                baseIniFile;
@@ -200,6 +202,7 @@ class Gothic final {
                                                               const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f);
 
     void                                    detectGothicVersion();
+    void                                    validateGothicPath();
     void                                    setupSettings();
 
     auto                                    getDocument(int id) -> std::unique_ptr<DocumentMenu::Show>&;
