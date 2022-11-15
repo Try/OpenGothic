@@ -291,6 +291,24 @@ Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
 
   return view;
   }
+
+Camera::ListenerPos Camera::listenerPosition() const {
+  auto vp = viewProj();
+  vp.inverse();
+
+  ListenerPos pos;
+  pos.up    = Vec3(0,1,0);
+  pos.front = Vec3(0,0,1);
+  pos.pos   = Vec3(0,0,0);
+  vp.project(pos.up);
+  vp.project(pos.front);
+  vp.project(pos.pos);
+
+  pos.up    = Vec3::normalize(pos.up    - pos.pos);
+  pos.front = Vec3::normalize(pos.front - pos.pos);
+  return pos;
+  }
+
 float Camera::zNear() const {
   return 0.01f;
   }

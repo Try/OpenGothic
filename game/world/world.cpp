@@ -705,7 +705,7 @@ bool World::isInPfxRange(const Tempest::Vec3& p) const {
   }
 
 void World::addDlgSound(std::string_view s, const Tempest::Vec3& pos, float range, uint64_t& timeLen) {
-  auto sfx = wsound.addDlgSound(s,pos.x,pos.y,pos.z,range,timeLen);
+  auto sfx = wsound.addDlgSound(s,pos,range,timeLen);
   sfx.play();
   }
 

@@ -247,13 +247,9 @@ Npc* GameSession::player() {
   return nullptr;
   }
 
-void GameSession::updateListenerPos(Npc &npc) {
-  auto plPos = npc.position();
-  float rot = npc.rotationRad()+float(M_PI/2.0);
-  float s   = std::sin(rot);
-  float c   = std::cos(rot);
-  sound.setListenerPosition(plPos.x,plPos.y+180/*head pos*/,plPos.z);
-  sound.setListenerDirection(c,0,s, 0,1,0);
+void GameSession::updateListenerPos(const Camera::ListenerPos& lpos) {
+  sound.setListenerPosition (lpos.pos);
+  sound.setListenerDirection(lpos.front, lpos.up);
   }
 
 void GameSession::setTime(gtime t) {

@@ -31,6 +31,12 @@ class Camera final {
       Dive
       };
 
+    struct ListenerPos {
+      Tempest::Vec3 up;
+      Tempest::Vec3 front;
+      Tempest::Vec3 pos;
+      };
+
     void reset();
     void reset(const Npc* pl);
 
@@ -79,6 +85,8 @@ class Camera final {
     Tempest::Matrix4x4 view() const;
     Tempest::Matrix4x4 viewProj() const;
     Tempest::Matrix4x4 viewShadow(const Tempest::Vec3& ldir, size_t layer) const;
+
+    ListenerPos        listenerPosition() const;
 
     float              zNear() const;
     float              zFar()  const;

@@ -2,6 +2,7 @@
 
 #include <Tempest/SoundEffect>
 
+#include "camera.h"
 #include "game/definitions/musicdefinitions.h"
 #include "game/gamesession.h"
 #include "world/objects/npc.h"
@@ -106,14 +107,14 @@ void WorldSound::addSound(const phoenix::vobs::sound &vob) {
   worldEff.emplace_back(std::move(s));
   }
 
-Sound WorldSound::addDlgSound(std::string_view s, float x, float y, float z, float range, uint64_t& timeLen) {
-  if(!isInListenerRange({x,y,z},range))
+Sound WorldSound::addDlgSound(std::string_view s, const Tempest::Vec3& pos, float range, uint64_t& timeLen) {
+  if(!isInListenerRange(pos,range))
     return Sound();
   auto snd = Resources::loadSoundBuffer(s);
   if(snd.isEmpty())
     return Sound();
 
-  auto ret = implAddSound(game.loadSound(snd), x,y,z,range,maxDist);
+  auto ret = implAddSound(game.loadSound(snd), pos,range);
   if(ret.isEmpty())
     return Sound();
 
@@ -124,34 +125,36 @@ Sound WorldSound::addDlgSound(std::string_view s, float x, float y, float z, flo
   return ret;
   }
 
-Sound WorldSound::implAddSound(const SoundFx& eff, float x, float y, float z, float rangeRef, float rangeMax) {
+Sound WorldSound::implAddSound(const SoundFx& eff, const Tempest::Vec3& pos, float rangeMax) {
   bool loop = false;
-  auto ret = implAddSound(game.loadSound(eff,loop), x,y,z,rangeRef,rangeMax);
+  auto ret = implAddSound(game.loadSound(eff,loop), pos,rangeMax);
   ret.setLooping(loop);
   return ret;
   }
 
-Sound WorldSound::implAddSound(Tempest::SoundEffect&& eff, float x, float y, float z, float rangeRef, float rangeMax) {
+Sound WorldSound::implAddSound(Tempest::SoundEffect&& eff, const Tempest::Vec3& pos, float rangeMax) {
   if(eff.isEmpty())
     return Sound();
   auto ex = std::make_shared<Effect>();
-  eff.setPosition(x,y,z);
+  eff.setPosition(pos);
   eff.setMaxDistance(rangeMax);
-  eff.setRefDistance(rangeRef);
 
-  ex->eff = std::move(eff);
-  ex->pos = {x,y,z};
-  ex->vol = ex->eff.volume();
+  ex->eff     = std::move(eff);
+  ex->pos     = pos;
+  ex->vol     = ex->eff.volume();
+  ex->maxDist = rangeMax;
   ex->setOcclusion(0);
 
   return Sound(ex);
   }
 
-void WorldSound::tick(Npc &player) {
+void WorldSound::tick(Npc& player) {
   std::lock_guard<std::mutex> guard(sync);
-  plPos = player.position();
 
-  game.updateListenerPos(player);
+  auto cx = game.camera().listenerPosition();
+  plPos = cx.pos;
+
+  game.updateListenerPos(cx);
 
   for(auto& i:worldEff) {
     if(!i.active || !i.current.isFinished())
@@ -178,7 +181,7 @@ void WorldSound::tick(Npc &player) {
     if(snd==nullptr)
       continue;
 
-    i.current = implAddSound(*snd,i.pos.x,i.pos.y,i.pos.z,0,i.sndRadius);
+    i.current = implAddSound(*snd,i.pos,i.sndRadius);
     if(!i.current.isEmpty()) {
       effect.emplace_back(i.current.val);
       i.current.play();
@@ -278,10 +281,11 @@ void WorldSound::tickSlot(Effect& slot) {
     slot.setOcclusion(1.f);
     } else {
     auto  dyn  = owner.physic();
-    auto  head = plPos+Tempest::Vec3(0,180,0)/*head pos*/;
+    auto  head = plPos;
     auto  pos  = slot.pos;
     float occ  = 1;
-    if((pos-head).quadLength()<maxDist*maxDist)
+
+    if((pos-head).quadLength()<slot.maxDist*slot.maxDist)
       occ = dyn->soundOclusion(head, pos);
     slot.setOcclusion(std::max(0.f,1.f-occ));
     }
@@ -290,7 +294,7 @@ void WorldSound::tickSlot(Effect& slot) {
 void WorldSound::initSlot(WorldSound::Effect& slot) {
   auto  dyn = owner.physic();
   auto  pos = slot.pos;
-  float occ = dyn->soundOclusion(plPos+Tempest::Vec3(0,180,0)/*head pos*/, pos);
+  float occ = dyn->soundOclusion(plPos, pos);
   slot.setOcclusion(std::max(0.f,1.f-occ));
   }
 

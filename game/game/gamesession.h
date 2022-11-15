@@ -7,10 +7,10 @@
 #include "ui/documentmenu.h"
 #include "ui/chapterscreen.h"
 #include "game/gamescript.h"
+#include "camera.h"
 #include "gamemusic.h"
 #include "gametime.h"
 
-class Camera;
 class World;
 class WorldView;
 class Npc;
@@ -53,7 +53,7 @@ class GameSession final {
     auto         loadSound(const SoundFx&        fx, bool& looped)  -> Tempest::SoundEffect;
 
     Npc*         player();
-    void         updateListenerPos(Npc& npc);
+    void         updateListenerPos(const Camera::ListenerPos& lpos);
 
     gtime        time() const { return  wrldTime; }
     void         setTime(gtime t);

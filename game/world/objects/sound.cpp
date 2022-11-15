@@ -1,6 +1,5 @@
 #include "sound.h"
 
-#include "game/gamesession.h"
 #include "world/world.h"
 #include "utils/fileext.h"
 #include "gothic.h"
@@ -32,7 +31,7 @@ Sound::Sound(World& world, Sound::Type type, std::string_view s, const Tempest::
   if(snd==nullptr)
     return;
 
-  *this = owner.implAddSound(*snd, pos.x,pos.y,pos.z,range,WorldSound::maxDist);
+  *this = owner.implAddSound(*snd,pos,range);
   if(isEmpty())
     return;
 
@@ -95,16 +94,6 @@ float Sound::volume() const {
   if(val!=nullptr)
     return val->vol;
   return 0;
-  }
-
-void Sound::setMaxDistance(float v) {
-  if(val!=nullptr)
-    val->eff.setMaxDistance(v);
-  }
-
-void Sound::setRefDistance(float v) {
-  if(val!=nullptr)
-    val->eff.setRefDistance(v);
   }
 
 void Sound::setPosition(const Tempest::Vec3& pos) {

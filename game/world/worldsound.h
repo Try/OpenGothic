@@ -27,7 +27,7 @@ class WorldSound final {
     void    addZone       (const phoenix::vobs::zone_music &vob);
     void    addSound      (const phoenix::vobs::sound &vob);
 
-    Sound   addDlgSound(std::string_view s, float x, float y, float z, float range, uint64_t &timeLen);
+    Sound   addDlgSound(std::string_view s, const Tempest::Vec3& pos, float range, uint64_t &timeLen);
 
     void    aiOutput(const Tempest::Vec3& pos, std::string_view outputname);
 
@@ -46,6 +46,7 @@ class WorldSound final {
       Tempest::Vec3        pos;
       float                vol     = 1.f;
       float                occ     = 1.f;
+      float                maxDist = 0.f;
       bool                 loop    = false;
       bool                 active  = true;
       bool                 ambient = false;
@@ -62,8 +63,8 @@ class WorldSound final {
     void    initSlot(Effect& slot);
     bool    setMusic(std::string_view zone, GameMusic::Tags tags);
 
-    Sound   implAddSound(const SoundFx& s, float x, float y, float z, float rangeRef, float rangeMax);
-    Sound   implAddSound(Tempest::SoundEffect&& s, float x, float y, float z, float rangeRef, float rangeMax);
+    Sound   implAddSound(const SoundFx& s, const Tempest::Vec3& pos, float rangeMax);
+    Sound   implAddSound(Tempest::SoundEffect&& s, const Tempest::Vec3& pos, float rangeMax);
 
     GameSession&                            game;
     World&                                  owner;

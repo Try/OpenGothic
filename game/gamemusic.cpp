@@ -20,10 +20,10 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
     }
 
   void updateTheme() {
-    phoenix::c_music_theme       theme;
-    bool                                   updateTheme=false;
-    bool                                   reloadTheme=false;
-    Tags                                   tags=Tags::Day;
+    phoenix::c_music_theme  theme;
+    bool                    updateTheme = false;
+    bool                    reloadTheme = false;
+    Tags                    tags        = Tags::Day;
 
     {
       std::lock_guard<std::mutex> guard(pendingSync);
@@ -119,8 +119,10 @@ struct GameMusic::Impl final {
   Impl() {
     std::unique_ptr<MusicProducer> mix(new MusicProducer());
     dxMixer = mix.get();
-    sound   = device.load(std::move(mix));
     dxMixer->setVolume(0.5f);
+
+    sound = device.load(std::move(mix));
+    sound.play();
     }
 
   void setMusic(const phoenix::c_music_theme &theme, Tags tags) {
@@ -135,8 +137,8 @@ struct GameMusic::Impl final {
     if(isEnabled()==e)
       return;
     if(e) {
-      sound.play();
       dxMixer->restartMusic();
+      sound.play();
       } else {
       dxMixer->stopMusic();
       }
