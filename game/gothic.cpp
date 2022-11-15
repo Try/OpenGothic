@@ -683,6 +683,9 @@ void Gothic::detectGothicVersion() {
   }
 
 void Gothic::setupSettings() {
+  if(game!=nullptr)
+    game->setupSettings();
+
   const float soundVolume = settingsGetF("SOUND","soundVolume");
   sndDev.setGlobalVolume(soundVolume);
 

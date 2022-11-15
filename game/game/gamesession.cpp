@@ -56,6 +56,7 @@ GameSession::GameSession(std::string file) {
   cam.reset(new Camera());
 
   Gothic::inst().setLoadingProgress(0);
+  setupSettings();
   setTime(gtime(8,0));
 
   vm.reset(new GameScript(*this));
@@ -97,6 +98,7 @@ GameSession::GameSession(std::string file) {
 
 GameSession::GameSession(Serialize &fin) {
   Gothic::inst().setLoadingProgress(0);
+  setupSettings();
 
   SaveGameHeader hdr;
   fin.setEntry("header");
@@ -195,6 +197,13 @@ void GameSession::save(Serialize &fout, std::string_view name, const Pixmap& scr
   fout.setEntry("game/daedalus");
   vm->saveVar(fout);
   Gothic::inst().setLoadingProgress(80);
+  }
+
+void GameSession::setupSettings() {
+  constexpr const float soundScale = 2.f;
+
+  const float soundVolume = Gothic::inst().settingsGetF("SOUND","soundVolume");
+  sound.setGlobalVolume(soundVolume*soundScale);
   }
 
 void GameSession::setWorld(std::unique_ptr<World> &&w) {

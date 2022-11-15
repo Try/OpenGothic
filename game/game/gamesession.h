@@ -32,6 +32,7 @@ class GameSession final {
     ~GameSession();
 
     void         save(Serialize& fout, std::string_view name, const Tempest::Pixmap &screen);
+    void         setupSettings();
 
     void         setWorld(std::unique_ptr<World> &&w);
     auto         clearWorld() -> std::unique_ptr<World>;
