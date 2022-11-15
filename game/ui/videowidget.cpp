@@ -54,6 +54,10 @@ struct VideoWidget::SoundContext {
     snd = SoundEffect();
     }
 
+  void play() {
+    snd.play();
+    }
+
   void pushSamples(const std::vector<float>& s) {
     std::lock_guard<std::mutex> guard(syncSamples);
     size_t sz = samples.size();
@@ -90,8 +94,10 @@ struct VideoWidget::Context {
       }
 
     const float volume = Gothic::inst().settingsGetF("SOUND","soundVolume");
-    sndDev.setGlobalVolume(volume);
     frameTime = Application::tickCount();
+    sndDev.setGlobalVolume(volume);
+    for(size_t i=0; i<vid.audioCount(); ++i)
+      sndCtx[i]->play();
     }
 
   ~Context() {
