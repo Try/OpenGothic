@@ -308,11 +308,13 @@ bool MoveAlgo::tickRun(uint64_t dt, MvFlags moveFlg) {
   const auto  dp            = npcMoveSpeed(dt,moveFlg);
   const auto  pos           = npc.position();
   const float fallThreshold = stepHeight();
+  const auto  chest         = waterDepthChest();
 
   // moving NPC, by animation
   bool  valid   = false;
+  bool  validW  = false;
   auto  ground  = dropRay (pos+Tempest::Vec3(0,fallThreshold,0), valid);
-  auto  water   = waterRay(pos);
+  auto  water   = waterRay(pos,&validW);
   float dY      = pos.y-ground;
   bool  onGound = true;
 
@@ -371,6 +373,13 @@ bool MoveAlgo::tickRun(uint64_t dt, MvFlags moveFlg) {
       // start to fall of cliff
       auto dpCliff = (dp==Tempest::Vec3()) ? Tempest::Vec3(cache.n.x,0,cache.n.z)*float(dt) : dp;
       if(tryMove(dp.x,dp.y,dp.z)){
+        if(validW) {
+          setInWater(true);
+          setAsSwim (true);
+          if(pos.y+chest<water)
+            setAsDive(true);
+          return false;
+          }
         fallSpeed.x = 0.3f*dpCliff.x;
         fallSpeed.y = 0.f;
         fallSpeed.z = 0.3f*dpCliff.z;
@@ -734,6 +743,7 @@ bool MoveAlgo::startClimb(JumpStatus jump) {
 void MoveAlgo::startDive() {
   if(isSwim() && !isDive()) {
     if(npc.world().tickCount()-diveStart>1000) {
+      npc.setDirectionY(-40);
       setAsDive(true);
 
       auto  pos   = npc.position();
@@ -743,6 +753,16 @@ void MoveAlgo::startDive() {
       tryMove(0,water-chest-pY,0);
       }
     }
+  }
+
+void MoveAlgo::invalidatePhysics() {
+  setInWater (false);
+  setAsSwim  (false);
+  setAsDive  (false);
+  setAsJumpup(false);
+  setAsSlide (false);
+  setAsClimb (false);
+  setInAir   (false);
   }
 
 bool MoveAlgo::isFaling() const {
@@ -830,7 +850,6 @@ void MoveAlgo::setAsDive(bool f) {
   if(f==isDive())
     return;
   if(f) {
-    npc.setDirectionY(-40);
     diveStart = npc.world().tickCount();
     npc.setWalkMode(npc.walkMode() | WalkBit::WM_Dive);
     } else {

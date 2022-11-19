@@ -431,6 +431,7 @@ void PlayerControl::marvinF8(uint64_t dt) {
   pl.quitIneraction();
   pl.setAnim(AnimationSolver::Idle);
   pl.clearAiQueue();
+  pl.invalidatePhysics();
 
   if(auto c = Gothic::inst().camera())
     c->reset();
@@ -441,18 +442,20 @@ void PlayerControl::marvinK(uint64_t dt) {
   if (w == nullptr || w->player() == nullptr)
     return;
 
-  auto& pl = *w->player();
-  auto  pos = pl.position();
-  float rot = pl.rotationRad();
-  float s = std::sin(rot), c = std::cos(rot);
+  auto& pl   = *w->player();
+  auto  pos  = pl.position();
+  float rot  = pl.rotationRad();
+  float rotY = pl.isDive() ? pl.rotationYRad() : 0;
+  float s    = std::sin(rot), c = std::cos(rot);
 
-  Tempest::Vec3 dp(s, 0.0f, -c);
+  Tempest::Vec3 dp(s,rotY,-c);
   pos += dp * 6000 * float(dt) / 1000.f;
 
   pl.clearState(false);
   pl.setPosition(pos);
   pl.clearSpeed();
   pl.quitIneraction();
+  pl.invalidatePhysics();
   // pl.setAnim(AnimationSolver::Idle); // Original G2 behaviour: K doesn't stop running
   }
 

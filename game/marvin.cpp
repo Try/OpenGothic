@@ -284,6 +284,7 @@ bool Marvin::exec(std::string_view v) {
           return false;
         }
       player->setPosition(float(c[0]),float(c[1]),float(c[2]));
+      player->invalidatePhysics();
       player->updateTransform();
       Gothic::inst().camera()->reset(player);
       return true;
@@ -297,6 +298,7 @@ bool Marvin::exec(std::string_view v) {
       if(wpoint==nullptr)
         return false;
       player->setPosition(wpoint->x,wpoint->y,wpoint->z);
+      player->invalidatePhysics();
       player->updateTransform();
       Gothic::inst().camera()->reset(player);
       return true;

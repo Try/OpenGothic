@@ -53,6 +53,7 @@ class MoveAlgo final {
 
     bool    startClimb(JumpStatus ani);
     void    startDive();
+    void    invalidatePhysics();
 
     bool    isFaling()  const;
     bool    isSlide()   const;

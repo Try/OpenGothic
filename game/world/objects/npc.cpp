@@ -1021,6 +1021,10 @@ bool Npc::isInAir() const {
   return mvAlgo.isInAir();
   }
 
+void Npc::invalidatePhysics() {
+  mvAlgo.invalidatePhysics();
+  }
+
 void Npc::setTalentSkill(Talent t, int32_t lvl) {
   if(t>=TALENT_MAX_G2)
     return;
