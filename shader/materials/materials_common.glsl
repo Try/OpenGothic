@@ -144,7 +144,8 @@ layout(binding = L_Scene, std140) uniform UboScene {
   } scene;
 
 #if defined(LVL_OBJECT) && (defined(VERTEX) || defined(MESH) || defined(TASK))
-layout(std140, binding = L_Matrix)   readonly buffer Matrix { mat4 matrix[]; };
+layout(std430, binding = L_Matrix)   readonly buffer Matrix  { mat4 matrix[]; };
+layout(std430, binding = L_Matrix)   readonly buffer Skining { uint skinId[]; };
 #endif
 
 #if (MESH_TYPE==T_LANDSCAPE) && (defined(VERTEX) || defined(MESH) || defined(TASK))

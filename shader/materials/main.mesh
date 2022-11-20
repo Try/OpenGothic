@@ -158,11 +158,17 @@ bool bboxTest(const uint objId) {
 
 void main() {
 #if defined(LVL_OBJECT)
-  const uint objId     = gl_WorkGroupID.x/push.meshletCount;
-  const uint meshletId = gl_WorkGroupID.x%push.meshletCount + push.meshletBase;
+  uint objId     = gl_WorkGroupID.x/push.meshletCount;
+  uint meshletId = gl_WorkGroupID.x%push.meshletCount + push.meshletBase;
 #else
-  const uint objId     = gl_WorkGroupID.x;
-  const uint meshletId = gl_WorkGroupID.x;
+  uint objId     = gl_WorkGroupID.x;
+  uint meshletId = gl_WorkGroupID.x;
+#endif
+
+#if (MESH_TYPE==T_SKINING)
+  {
+    objId = skinId[objId];
+  }
 #endif
 
   const uint laneID    = gl_LocalInvocationID.x;

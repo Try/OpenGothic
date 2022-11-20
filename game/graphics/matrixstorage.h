@@ -29,6 +29,7 @@ class MatrixStorage {
         const uint32_t offsetId() const { return uint32_t(rgn.begin); }
         void           set(const Tempest::Matrix4x4* anim);
         void           set(const Tempest::Matrix4x4& obj, size_t offset);
+        void           set(const size_t index, size_t offset);
 
         const Tempest::StorageBuffer& ssbo(uint8_t fId) const;
         Tempest::BufferHeap           heap() const;

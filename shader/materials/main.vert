@@ -25,6 +25,12 @@ void main() {
   uint objId = 0;
 #endif
 
+#if (MESH_TYPE==T_SKINING)
+  {
+    objId = skinId[objId];
+  }
+#endif
+
   const Varyings out0 = processVertex(gl_Position,objId,gl_VertexIndex);
 #if defined(MAT_VARYINGS)
   shOut = out0;

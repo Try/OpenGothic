@@ -26,6 +26,7 @@ class VisualObjects final {
     ObjectsBucket::Item get(const Tempest::VertexBuffer<Resources::Vertex>* vbo[], const Material& mat);
 
     MatrixStorage::Id   getMatrixes(Tempest::BufferHeap heap, size_t boneCnt);
+    MatrixStorage::Id   getIndexes (Tempest::BufferHeap heap, size_t idxCnt);
     auto                matrixSsbo (Tempest::BufferHeap heap, uint8_t fId) const -> const Tempest::StorageBuffer&;
 
     void setupUbo();

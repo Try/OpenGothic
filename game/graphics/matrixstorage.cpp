@@ -35,7 +35,19 @@ void MatrixStorage::Id::set(const Tempest::Matrix4x4& obj, size_t offset) {
     return;
   heapPtr->data[rgn.begin+offset] = obj;
 
-  if(heapPtr==&heapPtr->owner->upload)
+  if(heapPtr == &heapPtr->owner->upload)
+    return;
+  for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i)
+    heapPtr->durty[i].store(true);
+  }
+
+void MatrixStorage::Id::set(const size_t index, size_t offset) {
+  if(heapPtr==nullptr)
+    return;
+  uint32_t* idx = reinterpret_cast<uint32_t*>(&heapPtr->data[rgn.begin]);
+  idx[offset] = index;
+
+  if(heapPtr == &heapPtr->owner->upload)
     return;
   for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i)
     heapPtr->durty[i].store(true);

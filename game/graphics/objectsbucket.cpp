@@ -288,7 +288,9 @@ void ObjectsBucket::implFree(const size_t objId) {
     owner.resetIndex();
     objPositions = MatrixStorage::Id();
     } else {
-    objPositions.set(dummyMatrix(),objId);
+    if(v.skiningAni!=nullptr)
+      objPositions.set(0, objId); else
+      objPositions.set(dummyMatrix(), objId);
     }
   invalidateInstancing();
   }
@@ -530,6 +532,7 @@ size_t ObjectsBucket::alloc(const AnimMesh& mesh, size_t iboOffset, size_t iboLe
   v->iboLength  = iboLen;
   v->skiningAni = &anim;
   postAlloc(*v,size_t(std::distance(val,v)));
+  reallocAnimIndexes();
   return size_t(std::distance(val,v));
   }
 
@@ -612,13 +615,10 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId, const R
       case Movable:
       case Morph:
       case Animated: {
-        uint32_t instance = 0;
-        if(objType!=Animated)
-          instance = objPositions.offsetId()+uint32_t(id); else
-          instance = v.skiningAni->offsetId();
-
-        uint32_t cnt   = applyInstancing(i,index,indSz);
-        size_t   uboSz = (objType==Morph ? sizeof(UboPush) : sizeof(UboPushBase));
+        uint32_t cnt      = applyInstancing(i,index,indSz);
+        size_t   uboSz    = (objType==Morph    ? sizeof(UboPush) : sizeof(UboPushBase));
+        uint32_t mul      = (objType==Animated ? 16 : 1);
+        uint32_t instance = (objPositions.offsetId()*mul)+uint32_t(id);
 
         updatePushBlock(pushBlock,v);
         if(useMeshlets) {
@@ -680,7 +680,7 @@ void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
   v.visibility.setObjMatrix(m);
   v.pos = m;
 
-  if(objPositions.size()>0)
+  if(usePositionsSsbo)
     objPositions.set(m,i);
 
   if(v.blas!=nullptr)
@@ -788,30 +788,45 @@ void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket:
   }
 
 void ObjectsBucket::reallocObjPositions() {
-  if(usePositionsSsbo) {
-    windAnim = false;
-    for(size_t i=0; i<CAPACITY; ++i) {
-      auto& vx = val[i];
-      if(vx.isValid && vx.wind!=phoenix::animation_mode::none) {
-        windAnim = true;
-        break;
-        }
+  if(!usePositionsSsbo)
+    return;
+
+  windAnim = false;
+  for(size_t i=0; i<CAPACITY; ++i) {
+    auto& vx = val[i];
+    if(vx.isValid && vx.wind!=phoenix::animation_mode::none) {
+      windAnim = true;
+      break;
+      }
+    }
+
+  size_t valLen = 1;
+  for(size_t i=CAPACITY; i>1; --i)
+    if(val[i-1].isValid) {
+      valLen = i;
+      break;
       }
 
-    size_t valLen = 1;
-    for(size_t i=CAPACITY; i>1; --i)
-      if(val[i-1].isValid) {
-        valLen = i;
-        break;
-        }
+  auto sz   = nextPot(uint32_t(valLen));
+  auto heap = ssboHeap();
+  if(objPositions.size()!=sz || heap!=objPositions.heap()) {
+    objPositions = owner.getMatrixes(heap, sz);
+    for(size_t i=0; i<valLen; ++i)
+      objPositions.set(val[i].pos,i);
+    }
+  }
 
-    auto sz   = nextPot(uint32_t(valLen));
-    auto heap = ssboHeap();
-    if(objPositions.size()!=sz || heap!=objPositions.heap()) {
-      objPositions = owner.getMatrixes(heap, sz);
-      for(size_t i=0; i<valLen; ++i)
-        objPositions.set(val[i].pos,i);
-      }
+void ObjectsBucket::reallocAnimIndexes() {
+  if(objType!=Type::Animated)
+    return;
+
+  // indirection table for animated objects
+  if(objPositions.size()==0)
+    objPositions = owner.getIndexes(ssboHeap(), CAPACITY);
+
+  for(size_t i=0; i<CAPACITY; ++i) {
+    if(val[i].skiningAni!=nullptr)
+      objPositions.set(val[i].skiningAni->offsetId(),i);
     }
   }
 
@@ -833,8 +848,6 @@ void ObjectsBucket::invalidateInstancing() {
     if(vx.iboOffset!=ref.iboOffset || vx.iboLength!=ref.iboLength)
       instancingType = NoInstancing;
     if(vx.fatness!=ref.fatness)
-      instancingType = NoInstancing;
-    if(vx.skiningAni!=ref.skiningAni)
       instancingType = NoInstancing;
     }
 
@@ -1041,11 +1054,9 @@ void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
       case Movable:
       case Morph:
       case Animated:  {
-        uint32_t instance = 0;
-        if(objType!=Animated)
-          instance = objPositions.offsetId()+uint32_t(id); else
-          instance = v.skiningAni->offsetId();
-        size_t   uboSz    = (objType==Morph ? sizeof(UboPush) : sizeof(UboPushBase));
+        size_t   uboSz    = (objType==Morph    ? sizeof(UboPush) : sizeof(UboPushBase));
+        uint32_t mul      = (objType==Animated ? 16 : 1);
+        uint32_t instance = (objPositions.offsetId()*mul)+uint32_t(id);
 
         updatePushBlock(pushBlock,v);
         if(useMeshlets) {

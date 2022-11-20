@@ -79,7 +79,12 @@ MatrixStorage::Id VisualObjects::getMatrixes(BufferHeap heap, size_t boneCnt) {
   return matrix.alloc(heap, boneCnt);
   }
 
-const Tempest::StorageBuffer& VisualObjects::matrixSsbo(Tempest::BufferHeap heap, uint8_t fId) const {
+MatrixStorage::Id VisualObjects::getIndexes(BufferHeap heap, size_t idxCnt) {
+  size_t boneCnt = (idxCnt+16-1)/16;
+  return matrix.alloc(heap, boneCnt);
+  }
+
+const Tempest::StorageBuffer& VisualObjects::matrixSsbo(BufferHeap heap, uint8_t fId) const {
   return matrix.ssbo(heap, fId);
   }
 

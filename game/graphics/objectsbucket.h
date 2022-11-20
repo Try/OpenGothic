@@ -221,6 +221,7 @@ class ObjectsBucket {
     bool            isSceneInfoRequired() const;
     void            updatePushBlock(UboPush& push, Object& v);
     void            reallocObjPositions();
+    void            reallocAnimIndexes();
     void            invalidateInstancing();
     uint32_t        applyInstancing(size_t& i, const size_t* index, size_t indSz) const;
 
