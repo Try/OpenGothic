@@ -60,6 +60,9 @@ void SoundFx::implLoad(std::string_view s) {
   auto& sfx = Gothic::sfx()[s];
   auto  snd = Resources::loadSoundBuffer(sfx.file);
 
+  // if(s.starts_with("SHP_AMBIENT"))
+  //   Tempest::Log::d("");
+
   if(!snd.isEmpty())
     inst.emplace_back(sfx,std::move(snd));
   loadVariants(s);
@@ -68,7 +71,7 @@ void SoundFx::implLoad(std::string_view s) {
 void SoundFx::loadVariants(std::string_view s) {
   char name[256]={};
   for(int i=1;i<100;++i){
-    std::snprintf(name,sizeof(name),"%.*s_A%02d",int(s.size()),s.data(),i);
+    std::snprintf(name,sizeof(name),"%.*s_A%d",int(s.size()),s.data(),i);
     auto& sfx = Gothic::sfx()[name];
     auto  snd = Resources::loadSoundBuffer(sfx.file);
     if(snd.isEmpty())
