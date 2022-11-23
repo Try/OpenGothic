@@ -29,10 +29,10 @@ void wave(inout vec3 dPos, vec2 pos, vec2 dir, float len, float amplitude, float
 
 vec3 multiWave(vec2 at) {
   vec3 dPos = vec3(0);
-  wave(dPos, at, vec2(1,0), 0.50, material.waveMaxAmplitude*0.50, material.waveAnim);
-  wave(dPos, at, vec2(0,1), 0.50, material.waveMaxAmplitude*0.50, material.waveAnim);
-  //wave(dPos, at, vec2(1,1), 0.10, material.waveMaxAmplitude*0.20, material.waveAnim);
-  //wave(dPos, at,-vec2(1,1), 0.10, material.waveMaxAmplitude*0.20, material.waveAnim);
+  wave(dPos, at, vec2(1,0), 0.50, bucket.waveMaxAmplitude*0.50, scene.waveAnim);
+  wave(dPos, at, vec2(0,1), 0.50, bucket.waveMaxAmplitude*0.50, scene.waveAnim);
+  //wave(dPos, at, vec2(1,1), 0.10, bucket.waveMaxAmplitude*0.20, scene.waveAnim);
+  //wave(dPos, at,-vec2(1,1), 0.10, bucket.waveMaxAmplitude*0.20, scene.waveAnim);
   return dPos;
   }
 

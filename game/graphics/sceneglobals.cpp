@@ -83,7 +83,9 @@ void SceneGlobals::setSunlight(const LightSource& light, const Tempest::Vec3& a)
   }
 
 void SceneGlobals::setTime(uint64_t time) {
-  tickCount            = time;
+  tickCount             = time;
+  uboGlobal.waveAnim    = 2.f*float(M_PI)*float(tickCount%3000)/3000.f;
+  uboGlobal.tickCount32 = uint32_t(tickCount);
 
   if(zWindEnabled)
     windDir = Tempest::Vec2(0.f,1.f)*1.f; else

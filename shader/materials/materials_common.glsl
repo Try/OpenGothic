@@ -36,7 +36,7 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define L_Scene    0
 #define L_Matrix   1
 #define L_MeshDesc L_Matrix
-#define L_Material 2
+#define L_Bucket   2
 #define L_Ibo      3
 #define L_Vbo      4
 #define L_Diffuse  5
@@ -59,10 +59,6 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 
 #if !defined(DEPTH_ONLY) || defined(ATEST)
 #define MAT_UV 1
-#endif
-
-#if (defined(LVL_OBJECT) || defined(WATER))
-#define MAT_ANIM 1
 #endif
 
 #if !defined(DEPTH_ONLY) && (MESH_TYPE==T_PFX)
@@ -128,7 +124,7 @@ layout(push_constant, std430) uniform UboPush {
 
 layout(binding = L_Scene, std140) uniform UboScene {
   vec3  sunDir;
-  // float pass0;
+  float waveAnim;
   mat4  viewProject;
   mat4  viewProjectInv;
   mat4  viewShadow[2];
@@ -136,7 +132,7 @@ layout(binding = L_Scene, std140) uniform UboScene {
   vec4  sunCl;
   vec4  frustrum[6];
   vec3  clipInfo;
-  // float padd1;
+  uint  tickCount32;
   vec3  camPos;
   // float padd2;
   vec2  screenResInv;
@@ -144,26 +140,25 @@ layout(binding = L_Scene, std140) uniform UboScene {
   } scene;
 
 #if defined(LVL_OBJECT) && (defined(VERTEX) || defined(MESH) || defined(TASK))
-layout(std140, binding = L_Matrix)   readonly buffer Matrix { mat4 matrix[]; };
+layout(binding = L_Matrix, std430)   readonly buffer Matrix { mat4 matrix[]; };
 #endif
 
 #if (MESH_TYPE==T_LANDSCAPE) && (defined(VERTEX) || defined(MESH) || defined(TASK))
-layout(std430, binding = L_MeshDesc) readonly buffer Inst   { vec4 bounds[]; };
+layout(binding = L_MeshDesc, std430) readonly buffer Inst   { vec4 bounds[]; };
 #endif
 
-#if defined(MAT_ANIM)
-layout(binding = L_Material, std140) uniform UboBucket {
+#if (defined(LVL_OBJECT) || defined(WATER))
+layout(binding = L_Bucket, std140) uniform BucketDesc {
   vec4  bbox[2];
-  vec2  texAnim;
+  ivec2 texAniMapDirPeriod;
   float bboxRadius;
-  float waveAnim;
   float waveMaxAmplitude;
-  } material;
+  } bucket;
 #endif
 
 #if defined(MESH) || defined(TASK)
-layout(std430, binding = L_Ibo)      readonly buffer Ibo  { uint  indexes []; };
-layout(std430, binding = L_Vbo)      readonly buffer Vbo  { float vertices[]; };
+layout(binding = L_Ibo, std430)      readonly buffer Ibo  { uint  indexes []; };
+layout(binding = L_Vbo, std430)      readonly buffer Vbo  { float vertices[]; };
 #endif
 
 #if defined(FRAGMENT) && !(defined(DEPTH_ONLY) && !defined(ATEST))

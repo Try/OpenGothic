@@ -54,7 +54,7 @@ class SceneGlobals final {
 
     struct UboGlobal final {
       Tempest::Vec3                   sunDir     = {0,0,1};
-      float                           padd0      = 0;
+      float                           waveAnim   = 0;
       Tempest::Matrix4x4              viewProject;
       Tempest::Matrix4x4              viewProjectInv;
       Tempest::Matrix4x4              viewShadow[Resources::ShadowLayers];
@@ -62,7 +62,7 @@ class SceneGlobals final {
       Tempest::Vec4                   lightCl    = {1,1,1,0};
       Tempest::Vec4                   frustrum[6];
       Tempest::Vec3                   clipInfo;
-      float                           padd1 = 0;
+      uint32_t                        tickCount32 = 0;
       Tempest::Vec3                   camPos;
       float                           padd2 = 0;
       Tempest::Vec2                   screenResInv;

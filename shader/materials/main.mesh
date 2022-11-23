@@ -72,7 +72,7 @@ bool sphereTest(const uint objId, const uint meshletId) {
 #elif (MESH_TYPE==T_PFX)
   const vec4 sphere = vec4(0);
 #else
-  const vec4 sphere = vec4(matrix[objId][3].xyz,material.bboxRadius);
+  const vec4 sphere = vec4(matrix[objId][3].xyz,bucket.bboxRadius);
 #endif
   bool invisible = (sphere.w<0.f);
   if(laneID<6 && dot(vec4(sphere.xyz,1.0), scene.frustrum[laneID]) <= -sphere.w) {
@@ -92,7 +92,7 @@ bool bboxTest(const uint objId) {
 
   if(laneID<8) {
 #if defined(LVL_OBJECT)
-    const vec3  b[2]   = {material.bbox[0].xyz, material.bbox[1].xyz};
+    const vec3  b[2]   = {bucket.bbox[0].xyz, bucket.bbox[1].xyz};
 #else
     const vec3  objPos = bounds[objId].xyz;
     const float R      = bounds[objId].w;

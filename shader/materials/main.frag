@@ -247,8 +247,19 @@ vec3 ghostColor(vec3 selfColor) {
 
 #if defined(MAT_UV)
 vec4 diffuseTex() {
-#if defined(MAT_ANIM)
-  const vec2 uv = shInp.uv + material.texAnim;
+#if (defined(LVL_OBJECT) || defined(WATER))
+  vec2 texAnim = vec2(0);
+  {
+    if(bucket.texAniMapDirPeriod.x!=0) {
+      uint fract = scene.tickCount32 % abs(bucket.texAniMapDirPeriod.x);
+      texAnim.x  = float(fract)/float(bucket.texAniMapDirPeriod.x);
+      }
+    if(bucket.texAniMapDirPeriod.y!=0) {
+      uint fract = scene.tickCount32 % abs(bucket.texAniMapDirPeriod.y);
+      texAnim.y  = float(fract)/float(bucket.texAniMapDirPeriod.y);
+      }
+  }
+  const vec2 uv = shInp.uv + texAnim;
 #else
   const vec2 uv = shInp.uv;
 #endif

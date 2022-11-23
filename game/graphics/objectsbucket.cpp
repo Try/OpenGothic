@@ -127,31 +127,26 @@ void ObjectsBucket::Descriptors::alloc(ObjectsBucket& owner) {
 
 ObjectsBucket::ObjectsBucket(const Type type, const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
                              const StaticMesh* stMesh, const AnimMesh* anim, const Tempest::StorageBuffer* desc)
-  :objType(type), owner(owner), mat(mat), scene(scene) {
+  :objType(type), owner(owner), scene(scene), mat(mat) {
   static_assert(sizeof(UboPush)<=128, "UboPush is way too big");
-  auto& device = Resources::device();
 
-  instanceDesc = desc;
-  staticMesh   = stMesh;
-  animMesh     = anim;
+  instanceDesc        = desc;
+  staticMesh          = stMesh;
+  animMesh            = anim;
 
   useSharedUbo        = (mat.frames.size()==0);
   textureInShadowPass = (mat.alpha==Material::AlphaTest);
   useMeshlets         = (Gothic::inst().doMeshShading() && !mat.isTesselated() && (type!=Type::Pfx));
   usePositionsSsbo    = (type==Type::Static || type==Type::Movable || type==Type::Morph);
 
-  pMain    = Shaders::inst().materialPipeline(mat,objType,Shaders::T_Forward);
-  pGbuffer = Shaders::inst().materialPipeline(mat,objType,Shaders::T_Deffered);
-  pShadow  = Shaders::inst().materialPipeline(mat,objType,Shaders::T_Shadow);
-
-  for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i) {
-    uboBucket[i] = device.ubo<UboBucket>(nullptr,1);
-    uboUpdateBucketDesc(i);
-    }
+  pMain               = Shaders::inst().materialPipeline(mat,objType,Shaders::T_Forward);
+  pGbuffer            = Shaders::inst().materialPipeline(mat,objType,Shaders::T_Deffered);
+  pShadow             = Shaders::inst().materialPipeline(mat,objType,Shaders::T_Shadow);
 
   if(useSharedUbo) {
     uboShared.alloc(*this);
-    uboSetCommon(uboShared,mat);
+    bucketShared = allocBucketDesc(mat);
+    uboSetCommon(uboShared,mat,bucketShared);
     }
   }
 
@@ -190,7 +185,7 @@ std::unique_ptr<ObjectsBucket> ObjectsBucket::mkBucket(Type type, const Material
   if(type==Landscape || type==LandscapeShadow)
     return std::unique_ptr<ObjectsBucket>(new ObjectsBucketDyn(type,mat,owner,scene,st,nullptr,desc));
 
-  if(mat.frames.size()>0)
+  if(ObjectsBucket::isAnimated(mat))
     return std::unique_ptr<ObjectsBucket>(new ObjectsBucketDyn(type,mat,owner,scene,st,anim,nullptr));
 
   return std::unique_ptr<ObjectsBucket>(new ObjectsBucket(type,mat,owner,scene,st,anim,nullptr));
@@ -293,18 +288,40 @@ void ObjectsBucket::implFree(const size_t objId) {
   invalidateInstancing();
   }
 
-void ObjectsBucket::uboSetCommon(Descriptors& v, const Material& mat) {
-  for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i) {
+ObjectsBucket::Bucket ObjectsBucket::allocBucketDesc(const Material& mat) {
+  auto& device = Resources::device();
+
+  BucketDesc ubo;
+  ubo.texAniMapDirPeriod = mat.texAniMapDirPeriod;
+  ubo.waveMaxAmplitude   = mat.waveMaxAmplitude;
+  if(staticMesh!=nullptr) {
+    auto& bbox     = staticMesh->bbox.bbox;
+    ubo.bboxRadius = staticMesh->bbox.rConservative;
+    ubo.bbox[0]    = Vec4(bbox[0].x,bbox[0].y,bbox[0].z,0.f);
+    ubo.bbox[1]    = Vec4(bbox[1].x,bbox[1].y,bbox[1].z,0.f);
+    }
+  if(animMesh!=nullptr) {
+    auto& bbox     = animMesh->bbox.bbox;
+    ubo.bboxRadius = animMesh->bbox.rConservative;
+    ubo.bbox[0]    = Vec4(bbox[0].x,bbox[0].y,bbox[0].z,0.f);
+    ubo.bbox[1]    = Vec4(bbox[1].x,bbox[1].y,bbox[1].z,0.f);
+    }
+
+  return device.ubo<BucketDesc>(BufferHeap::Device,&ubo,1);
+  }
+
+void ObjectsBucket::uboSetCommon(Descriptors& v, const Material& mat, const Bucket& bucket) {
+  for(uint8_t fId=0; fId<Resources::MaxFramesInFlight; ++fId) {
     for(size_t lay=SceneGlobals::V_Shadow0; lay<SceneGlobals::V_Count; ++lay) {
-      auto& ubo = v.ubo[i][lay];
+      auto& ubo = v.ubo[fId][lay];
       if(ubo.isEmpty())
         continue;
-      ubo.set(L_Scene, scene.uboGlobalPf[i][lay]);
+      ubo.set(L_Scene, scene.uboGlobalPf[fId][lay]);
       if(useMeshlets && (objType==Type::Landscape || objType==Type::LandscapeShadow)) {
         ubo.set(L_MeshDesc, *instanceDesc);
         }
       if(objType!=ObjectsBucket::Landscape && objType!=ObjectsBucket::LandscapeShadow && objType!=ObjectsBucket::Pfx) {
-        ubo.set(L_Material, uboBucket[i]);
+        ubo.set(L_Bucket, bucket);
         }
       if(useMeshlets) {
         if(staticMesh!=nullptr) {
@@ -344,7 +361,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v, const Material& mat) {
         ubo.set(L_SkyLut, *scene.skyLut);
         }
       }
-    uboSetSkeleton(v,i);
+    uboSetSkeleton(v,fId);
     }
   }
 
@@ -363,7 +380,7 @@ void ObjectsBucket::uboSetSkeleton(Descriptors& v, uint8_t fId) {
 void ObjectsBucket::uboSetDynamic(Descriptors& v, Object& obj, uint8_t fId) {
   auto& ubo = v.ubo[fId][SceneGlobals::V_Main];
 
-  if(mat.frames.size()!=0 && mat.texAniFPSInv != 0) {
+  if(mat.frames.size()!=0 && mat.texAniFPSInv!=0) {
     auto frame = size_t((obj.timeShift+scene.tickCount)/mat.texAniFPSInv);
     auto t = mat.frames[frame%mat.frames.size()];
     ubo.set(L_Diffuse, *t);
@@ -376,42 +393,12 @@ void ObjectsBucket::uboSetDynamic(Descriptors& v, Object& obj, uint8_t fId) {
     }
   }
 
-void ObjectsBucket::uboUpdateBucketDesc(uint8_t fId) {
-  UboBucket ubo;
-  if(mat.texAniMapDirPeriod.x!=0) {
-    uint64_t fract = scene.tickCount%uint64_t(std::abs(mat.texAniMapDirPeriod.x));
-    ubo.texAniMapDir.x = float(fract)/float(mat.texAniMapDirPeriod.x);
-    }
-  if(mat.texAniMapDirPeriod.y!=0) {
-    uint64_t fract = scene.tickCount%uint64_t(std::abs(mat.texAniMapDirPeriod.y));
-    ubo.texAniMapDir.y = float(fract)/float(mat.texAniMapDirPeriod.y);
-    }
-
-  ubo.waveAnim = 2.f*float(M_PI)*float(scene.tickCount%3000)/3000.f;
-  ubo.waveMaxAmplitude = mat.waveMaxAmplitude;
-
-  if(staticMesh!=nullptr) {
-    auto& bbox     = staticMesh->bbox.bbox;
-    ubo.bboxRadius = staticMesh->bbox.rConservative;
-    ubo.bbox[0]    = Vec4(bbox[0].x,bbox[0].y,bbox[0].z,0.f);
-    ubo.bbox[1]    = Vec4(bbox[1].x,bbox[1].y,bbox[1].z,0.f);
-    }
-  if(animMesh!=nullptr) {
-    auto& bbox     = animMesh->bbox.bbox;
-    ubo.bboxRadius = animMesh->bbox.rConservative;
-    ubo.bbox[0]    = Vec4(bbox[0].x,bbox[0].y,bbox[0].z,0.f);
-    ubo.bbox[1]    = Vec4(bbox[1].x,bbox[1].y,bbox[1].z,0.f);
-    }
-
-  uboBucket[fId].update(&ubo,0,1);
-  }
-
 ObjectsBucket::Descriptors& ObjectsBucket::objUbo(size_t objId) {
   return uboShared;
   }
 
 void ObjectsBucket::setupUbo() {
-  uboSetCommon(uboShared,mat);
+  uboSetCommon(uboShared,mat,bucketShared);
   }
 
 void ObjectsBucket::invalidateUbo(uint8_t fId) {
@@ -444,10 +431,6 @@ void ObjectsBucket::fillTlas(std::vector<RtInstance>& inst, std::vector<uint32_t
   }
 
 void ObjectsBucket::preFrameUpdate(uint8_t fId) {
-  if(mat.texAniMapDirPeriod.x!=0 || mat.texAniMapDirPeriod.y!=0 || mat.alpha==Material::Water) {
-    uboUpdateBucketDesc(fId);
-    }
-
   if(windAnim && scene.zWindEnabled) {
     bool upd[CAPACITY] = {};
     for(uint8_t ic=0; ic<SceneGlobals::V_Count; ++ic) {
@@ -758,6 +741,16 @@ void ObjectsBucket::setWind(size_t i, phoenix::animation_mode m, float intensity
   reallocObjPositions();
   }
 
+bool ObjectsBucket::isAnimated(const Material& mat) {
+  if(mat.frames.size()>0)
+    return true;
+  if(mat.texAniMapDirPeriod!=Point())
+    return true;
+  if(mat.alpha==Material::Water)
+    return true;
+  return false;
+  }
+
 bool ObjectsBucket::isSceneInfoRequired() const {
   return mat.isGhost || mat.alpha==Material::Water || mat.alpha==Material::Ghost;
   }
@@ -771,8 +764,8 @@ void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket:
       auto&    anim = (*staticMesh->morph.anim)[ani.id];
       uint64_t time = (scene.tickCount-ani.timeStart);
 
-      float alpha     = float(time%anim.tickPerFrame)/float(anim.tickPerFrame);
-      float intensity = ani.intensity;
+      float    alpha     = float(time%anim.tickPerFrame)/float(anim.tickPerFrame);
+      float    intensity = ani.intensity;
 
       if(scene.tickCount>ani.timeUntil)
         intensity = 0;
@@ -918,10 +911,11 @@ ObjectsBucket::Object& ObjectsBucketDyn::implAlloc(const Bounds& bounds, const M
   auto& obj = ObjectsBucket::implAlloc(bounds,m);
 
   const size_t id = size_t(std::distance(val,&obj));
-  mat[id] = m;
-  uboObj[id].alloc(*this);
-  uboSetCommon(uboObj[id],mat[id]);
+  uboObj   [id].alloc(*this);
+  mat      [id] = m;
+  bucketObj[id] = allocBucketDesc(mat[id]);
 
+  uboSetCommon(uboObj[id],mat[id],bucketObj[id]);
   invalidateDyn();
   return obj;
   }
@@ -944,8 +938,7 @@ void ObjectsBucketDyn::setupUbo() {
   ObjectsBucket::setupUbo();
 
   for(size_t i=0; i<CAPACITY; ++i) {
-    if(!uboObj[i].ubo[0][SceneGlobals::V_Main].isEmpty())
-      uboSetCommon(uboObj[i],mat[i]);
+    uboSetCommon(uboObj[i],mat[i],bucketObj[i]);
     }
 
   if(pHiZ!=nullptr) {
