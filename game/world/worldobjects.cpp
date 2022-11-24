@@ -10,6 +10,7 @@
 #include "world.h"
 #include "utils/workers.h"
 #include "utils/dbgpainter.h"
+#include "gothic.h"
 
 #include <Tempest/Painter>
 #include <Tempest/Application>
@@ -716,7 +717,10 @@ Npc* WorldObjects::findNpc(const Npc &pl, Npc *def, const SearchOpt& opt) {
       return def;
     }
   auto r = findObj(npcArr,pl,opt);
-  return r ? r->get() : nullptr;
+  const bool hideFocus = Gothic::inst().settingsSystemPackGetI("PARAMETERS","HideFocus")!=0;
+  if(r!=nullptr && (!hideFocus || !r->get()->isDead() || r->get()->inventory().iterator(Inventory::T_Ransack).isValid()))
+    return r->get();
+  return nullptr;
   }
 
 Item *WorldObjects::findItem(const Npc &pl, Item *def, const SearchOpt& opt) {
