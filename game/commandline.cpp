@@ -53,9 +53,6 @@ CommandLine::CommandLine(int argc, const char** argv) {
     else if(arg=="-nomenu") {
       noMenu   = true;
       }
-    else if(arg=="-nofrate") {
-      noFrate  = true;
-      }
     else if(arg=="-g1") {
       forceG1 = true;
       }

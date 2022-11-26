@@ -33,7 +33,6 @@ class CommandLine {
     std::string_view    defaultSave()   const { return saveDef;  }
 
     std::string         wrldDef;
-    bool                noFrate = false;
 
   private:
     bool                validateGothicPath() const;

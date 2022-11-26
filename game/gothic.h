@@ -86,8 +86,9 @@ class Gothic final {
     bool         isMarvinEnabled() const;
     void         setMarvinEnabled(bool m);
 
-    bool         doFrate() const { return !noFrate; }
-    void         setFRate(bool f) { noFrate = !f; }
+    bool         doHideFocus () const { return hideFocus; }
+    bool         doFrate() const { return showFpsCounter; }
+    void         setFRate(bool f) { showFpsCounter = f; }
 
     bool         doRayQuery() const;
     bool         doMeshShading() const;
@@ -157,15 +158,17 @@ class Gothic final {
     VersionInfo                             vinfo;
     std::mt19937                            randGen;
     uint16_t                                pauseSum=0;
-    bool                                    isMarvin = false;
-    bool                                    noFrate  = false;
-    bool                                    isMeshSh = false;
+    bool                                    isMarvin       = false;
+    bool                                    showFpsCounter = false;
+    bool                                    hideFocus      = false;
+    bool                                    isMeshSh       = false;
     std::string                             wrldDef, plDef;
 
     std::unique_ptr<IniFile>                defaults;
     std::unique_ptr<IniFile>                baseIniFile;
     std::unique_ptr<IniFile>                iniFile;
     std::unique_ptr<IniFile>                modFile;
+    std::unique_ptr<IniFile>                systemPackIniFile;
 
     const Tempest::Texture2d*               loadTex=nullptr;
     Tempest::Texture2d                      saveTex;

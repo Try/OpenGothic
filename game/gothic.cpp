@@ -38,12 +38,15 @@ static bool hasMeshShader() {
 Gothic::Gothic() {
   instance = this;
 
+  systemPackIniFile.reset(new IniFile(nestedPath({u"system",u"SystemPack.ini"},Dir::FT_File)));
+  showFpsCounter = systemPackIniFile->getI("DEBUG","Show_FPS_Counter");
+  hideFocus      = systemPackIniFile->getI("PARAMETERS","HideFocus");
+
 #ifndef NDEBUG
   setMarvinEnabled(true);
   setFRate(true);
 #endif
 
-  noFrate = CommandLine::inst().noFrate;
   wrldDef = CommandLine::inst().wrldDef;
   if(hasMeshShader())
     isMeshSh = CommandLine::inst().isMeshShading();

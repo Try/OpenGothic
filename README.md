@@ -82,7 +82,6 @@ make -C build -j $(nproc)
 | `-g`                   | specify path containing Gothic game data                         |
 | `-game:<modfile.init>` | specify game modification manifest (GothicStarter compatibility) |
 | `-nomenu`              | skip main menu                                                   |
-| `-nofrate`             | disable FPS display in-game                                      |
 | `-w <worldname.zen>`   | startup world; newworld.zen is default                           |
 | `-save q`              | load the quick save on start                                     |
 | `-save <number>`       | load a specified save-game slot on start                         |
