@@ -39,8 +39,8 @@ Gothic::Gothic() {
   instance = this;
 
   systemPackIniFile.reset(new IniFile(nestedPath({u"system",u"SystemPack.ini"},Dir::FT_File)));
-  frate = systemPackIniFile->getI("DEBUG","Show_FPS_Counter");
-  systemPackIniFile->getI("PARAMETERS","HideFocus");
+  showFpsCounter = systemPackIniFile->getI("DEBUG","Show_FPS_Counter");
+  hideFocus      = systemPackIniFile->getI("PARAMETERS","HideFocus");
 
 #ifndef NDEBUG
   setMarvinEnabled(true);
@@ -596,14 +596,6 @@ phoenix::script Gothic::loadPhoenixScriptCode(std::string_view datFile) {
   auto path = caseInsensitiveSegment(gscript,str16,Dir::FT_File);
   auto buf = phoenix::buffer::mmap(path);
   return phoenix::script::parse(buf);
-  }
-
-int Gothic::settingsSystemPackGetI(std::string_view sec, std::string_view name) {
-  if(name.empty())
-    return 0;
-  if(instance->systemPackIniFile->has(sec,name))
-    return instance->systemPackIniFile->getI(sec,name);
-  return 0;
   }
 
 int Gothic::settingsGetI(std::string_view sec, std::string_view name) {

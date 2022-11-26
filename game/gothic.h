@@ -86,8 +86,9 @@ class Gothic final {
     bool         isMarvinEnabled() const;
     void         setMarvinEnabled(bool m);
 
-    bool         doFrate() const { return frate; }
-    void         setFRate(bool f) { frate = f; }
+    bool         doHideFocus () const { return hideFocus; }
+    bool         doFrate() const { return showFpsCounter; }
+    void         setFRate(bool f) { showFpsCounter = f; }
 
     bool         doRayQuery() const;
     bool         doMeshShading() const;
@@ -145,8 +146,6 @@ class Gothic final {
     static const MusicDefinitions&        musicDef();
     static const CameraDefinitions&       cameraDef();
 
-    static int                            settingsSystemPackGetI(std::string_view sec, std::string_view name);
-
     static int                            settingsGetI(std::string_view sec, std::string_view name);
     static void                           settingsSetI(std::string_view sec, std::string_view name, int val);
     static std::string_view               settingsGetS(std::string_view sec, std::string_view name);
@@ -159,9 +158,10 @@ class Gothic final {
     VersionInfo                             vinfo;
     std::mt19937                            randGen;
     uint16_t                                pauseSum=0;
-    bool                                    isMarvin = false;
-    bool                                    frate    = false;
-    bool                                    isMeshSh = false;
+    bool                                    isMarvin       = false;
+    bool                                    showFpsCounter = false;
+    bool                                    hideFocus      = false;
+    bool                                    isMeshSh       = false;
     std::string                             wrldDef, plDef;
 
     std::unique_ptr<IniFile>                defaults;

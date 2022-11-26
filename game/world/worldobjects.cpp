@@ -717,8 +717,8 @@ Npc* WorldObjects::findNpc(const Npc &pl, Npc *def, const SearchOpt& opt) {
       return def;
     }
   auto r = findObj(npcArr,pl,opt);
-  const bool hideFocus = Gothic::inst().settingsSystemPackGetI("PARAMETERS","HideFocus")!=0;
-  if(r!=nullptr && (!hideFocus || !r->get()->isDead() || r->get()->inventory().iterator(Inventory::T_Ransack).isValid()))
+  if(r!=nullptr && (!Gothic::inst().doHideFocus() || !r->get()->isDead() ||
+                    r->get()->inventory().iterator(Inventory::T_Ransack).isValid()))
     return r->get();
   return nullptr;
   }
