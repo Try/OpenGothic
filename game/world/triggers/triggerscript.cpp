@@ -14,7 +14,7 @@ void TriggerScript::onTrigger(const TriggerEvent &) {
   try {
     world.script().getVm().call_function(function);
     }
-  catch(std::runtime_error& e){
+  catch(const std::exception& e){
     Tempest::Log::e("exception in trigger-script: ",e.what());
     }
   }
