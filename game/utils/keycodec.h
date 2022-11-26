@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "utils/string_frm.h"
+
 class KeyCodec final {
   public:
     KeyCodec();
@@ -58,7 +60,7 @@ class KeyCodec final {
       Last
       };
 
-    static void   keysStr(std::string_view keys, char buf[], size_t bufSz);
+    static auto   keysStr(std::string_view keys) -> string_frm<64>;
     Action        tr(Tempest::KeyEvent&   e) const;
     Action        tr(Tempest::MouseEvent& e) const;
     void          set(std::string_view section, std::string_view key, int32_t code);
@@ -89,9 +91,9 @@ class KeyCodec final {
 
     Action      implTr(int32_t code) const;
     static int  fetch(std::string_view keys, size_t s, size_t e);
-    static bool keyToStr(int32_t k, char* buf, size_t bufSz);
-    static void keyToStr(Tempest::Event::KeyType k, char* buf, size_t bufSz);
-    static void keyToStr(Tempest::Event::MouseButton k, char* buf, size_t bufSz);
+    static auto keyToStr(int32_t k) -> string_frm<64>;
+    static auto keyToStr(Tempest::Event::KeyType k) -> string_frm<64>;
+    static auto keyToStr(Tempest::Event::MouseButton k) -> string_frm<64>;
 
     void        setupSettings();
     KeyPair     setup(const char* kp);

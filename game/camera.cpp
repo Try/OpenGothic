@@ -9,6 +9,8 @@
 #include "utils/dbgpainter.h"
 #include "gothic.h"
 
+#include "utils/string_frm.h"
+
 using namespace Tempest;
 
 static float angleMod(float a) {
@@ -669,20 +671,19 @@ void Camera::debugDraw(DbgPainter& p) {
 
   auto& fnt = Resources::font();
   int   y   = 300+fnt.pixelSize();
-  char  buf[256] = {};
 
-  std::snprintf(buf,sizeof(buf),"RaysCasted : %d", raysCasted);
+  string_frm buf("RaysCasted: ",raysCasted);
   p.drawText(8,y,buf); y += fnt.pixelSize();
 
-  std::snprintf(buf,sizeof(buf),"PlayerPos : %f %f %f", dst.target.x, dst.target.y, dst.target.z);
+  buf = string_frm("PlayerPos : ",dst.target.x, ' ', dst.target.y, ' ', dst.target.z);
   p.drawText(8,y,buf); y += fnt.pixelSize();
 
-  std::snprintf(buf,sizeof(buf),"Range To Player : %f", (dst.target-origin).length());
+  buf = string_frm("Range To Player : ", (dst.target-origin).length());
   p.drawText(8,y,buf); y += fnt.pixelSize();
 
-  std::snprintf(buf,sizeof(buf),"Azimuth : %f", angleMod(dst.spin.y-src.spin.y));
+  buf = string_frm("Azimuth : ", angleMod(dst.spin.y-src.spin.y));
   p.drawText(8,y,buf); y += fnt.pixelSize();
-  std::snprintf(buf,sizeof(buf),"Elevation : %f", rotOffset.x-src.spin.x);
+  buf = string_frm("Elevation : ", rotOffset.x-src.spin.x);
   p.drawText(8,y,buf); y += fnt.pixelSize();
   }
 

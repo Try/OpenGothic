@@ -1,4 +1,5 @@
 #include "spelldefinitions.h"
+#include "utils/string_frm.h"
 
 #include <Tempest/Log>
 #include <cctype>
@@ -15,8 +16,7 @@ SpellDefinitions::~SpellDefinitions() {
   }
 
 const phoenix::c_spell& SpellDefinitions::find(std::string_view instanceName) const {
-  char format[64]={};
-  std::snprintf(format,sizeof(format),"SPELL_%.*s",int(instanceName.size()),instanceName.data());
+  string_frm format("SPELL_",instanceName);
   for(auto& i:format)
     i = char(std::toupper(i));
 

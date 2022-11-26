@@ -3,6 +3,7 @@
 #include <Tempest/Log>
 #include <cctype>
 
+#include "utils/string_frm.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "resources.h"
@@ -40,8 +41,7 @@ Animation::Animation(phoenix::model_script &p, std::string_view name, const bool
     }
 
   for(auto& co : p.combinations) {
-    char name[256]={};
-    std::snprintf(name,sizeof(name),"%s%d",co.model.c_str(),1+(co.last_frame-1)/2);
+    string_frm name(co.model, 1+(co.last_frame-1)/2);
 
     bool found=false;
     for(size_t r=0;r<sequences.size();++r) { // reverse search: expect to find animations right before aniComb
@@ -154,8 +154,7 @@ void Animation::setupIndex() {
     if(s.comb.size()==0)
       continue;
     for(size_t i=0;i<s.comb.size();++i) {
-      char name[256]={};
-      std::snprintf(name,sizeof(name),"%s%d",s.askName.c_str(),int(i+1));
+      string_frm name(s.askName, int(i+1));
       s.comb[i] = sequenceAsc(name);
       }
     }

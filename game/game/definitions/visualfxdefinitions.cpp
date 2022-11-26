@@ -37,17 +37,16 @@ std::shared_ptr<phoenix::c_fx_base> VisualFxDefinitions::implGet(std::string_vie
   if(!vm || name.empty())
     return nullptr;
 
-  char buf[256] = {};
-  std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
-  auto id = vm->find_symbol_by_name(buf);
+  auto id = vm->find_symbol_by_name(name);
   if(id==nullptr) {
-    Log::e("invalid visual effect: \"",buf,"\"");
+    Log::e("invalid visual effect: \"",name,"\"");
     return nullptr;
     }
 
   try {
     return vm->init_instance<phoenix::c_fx_base>(id);
-    } catch (const phoenix::script_error&) {
+    }
+  catch (const phoenix::script_error&) {
     return nullptr;
     }
   }

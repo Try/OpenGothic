@@ -125,7 +125,6 @@ class GameMenu : public Tempest::Widget {
     void                                  set(std::string_view item, const Tempest::Texture2d* value);
     void                                  set(std::string_view item, const uint32_t value);
     void                                  set(std::string_view item, const int32_t  value);
-    void                                  set(std::string_view item, const int32_t  value,const char* post);
     void                                  set(std::string_view item, const int32_t  value, const int32_t max);
     void                                  set(std::string_view item, std::string_view value);
   };

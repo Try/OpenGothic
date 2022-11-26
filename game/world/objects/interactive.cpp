@@ -7,6 +7,7 @@
 
 #include "game/serialize.h"
 #include "graphics/mesh/skeleton.h"
+#include "utils/string_frm.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "utils/dbgpainter.h"
@@ -163,11 +164,9 @@ void Interactive::resetPositionToTA(int32_t state) {
       return;
 
   loopState = false;
-
-  char buf[256]={};
+  string_frm buf("S_S0");
   if(state<0)
-    std::snprintf(buf,sizeof(buf),"S_S0"); else
-    std::snprintf(buf,sizeof(buf),"S_S%d",state);
+    buf = string_frm("S_S",int(state));
   visual.startAnimAndGet(buf,world.tickCount(),true);
   setState(state);
   }
@@ -408,26 +407,18 @@ std::string_view Interactive::displayName() const {
   if(focName.empty())
     return "";
 
-  const char* strId=focName.c_str();
-  char buf[256] = {};
-  if(world.script().getSymbolIndex(strId)==size_t(-1)) {
-    std::snprintf(buf,sizeof(buf),"MOBNAME_%s",strId);
-    strId = buf;
-    }
+  string_frm strId(focName);
+  if(world.script().getSymbolIndex(strId)==size_t(-1))
+    strId = string_frm("MOBNAME_",strId);
 
-  if(world.script().getSymbolIndex(strId)==size_t(-1)) {
+  if(world.script().getSymbolIndex(strId)==size_t(-1))
     return "";
-    }
 
   auto* s=world.script().getSymbol(strId);
-
-  if (s==nullptr)
+  if(s==nullptr)
     return "";
 
-  const char* txt = s->get_string().c_str();
-  if(std::strlen(txt)==0)
-    txt="";
-  return txt;
+  return s->get_string();
   }
 
 bool Interactive::setMobState(std::string_view scheme, int32_t st) {
@@ -438,10 +429,8 @@ bool Interactive::setMobState(std::string_view scheme, int32_t st) {
   if(schemeName()!=scheme)
     return ret;
 
-  char buf[256]={};
-  std::snprintf(buf,sizeof(buf),"S_S%d",st);
-  if(visual.startAnimAndGet(buf,world.tickCount())!=nullptr ||
-     !visual.isAnimExist(buf)) {
+  string_frm name("S_S",st);
+  if(visual.startAnimAndGet(name,world.tickCount())!=nullptr || !visual.isAnimExist(name)) {
     setState(st);
     return ret;
     }
@@ -453,9 +442,8 @@ void Interactive::invokeStateFunc(Npc& npc) {
     return;
   if(loopState)
     return;
-  char func[256]={};
-  std::snprintf(func,sizeof(func),"%s_S%d",onStateFunc.c_str(),state);
 
+  string_frm func(onStateFunc,"_S",state);
   auto& sc = npc.world().script();
   sc.useInteractive(npc.handlePtr(), func);
   }
@@ -681,15 +669,16 @@ bool Interactive::isDetachState(const Npc& npc) const {
 bool Interactive::canQuitAtState(Npc& npc, int32_t state) const {
   if(state<0)
     return true;
-  //if(isLadder())
-  //  return false;
+
   auto scheme   = schemeName();
   auto pos      = posSchemeName();
-  char frm[256] = {};
-  if(!pos.empty())
-    std::snprintf(frm,sizeof(frm),"T_%.*s_%.*s_S%d_2_STAND",int(scheme.size()),scheme.data(),int(pos.size()),pos.data(),state); else
-    std::snprintf(frm,sizeof(frm),"T_%.*s_S%d_2_STAND",int(scheme.size()),scheme.data(),state);
-  if(npc.hasAnim(frm))
+
+  string_frm anim;
+  if(pos.empty())
+    anim = string_frm("T_",scheme,"_S",state,"_2_STAND"); else
+    anim = string_frm("T_",scheme,"_",pos,"_S",state,"_2_STAND");
+
+  if(npc.hasAnim(anim))
     return true;
   return state==stateNum && reverseState;
   }
@@ -889,7 +878,7 @@ const Animation::Sequence* Interactive::setAnim(Interactive::Anim t) {
   st[1] = std::max(0,std::min(st[1],stateNum));
 
   char buf[256]={};
-  for(int i=0;i<2;++i){
+  for(int i=0;i<2;++i) {
     if(st[i]<0)
       std::snprintf(ss[i],sizeof(ss[i]),"S0"); else
       std::snprintf(ss[i],sizeof(ss[i]),"S%d",st[i]);

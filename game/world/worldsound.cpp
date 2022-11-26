@@ -8,6 +8,7 @@
 #include "world/objects/npc.h"
 #include "world/objects/sound.h"
 #include "sound/soundfx.h"
+#include "utils/string_frm.h"
 #include "world.h"
 #include "gamemusic.h"
 #include "gothic.h"
@@ -299,16 +300,14 @@ void WorldSound::initSlot(WorldSound::Effect& slot) {
   }
 
 bool WorldSound::setMusic(std::string_view zone, GameMusic::Tags tags) {
-  bool        isDay = (tags&GameMusic::Ngt)==0;
-  const char* smode = "STD";
+  bool             isDay = (tags&GameMusic::Ngt)==0;
+  std::string_view smode = "STD";
   if(tags&GameMusic::Thr)
     smode = "THR";
   if(tags&GameMusic::Fgt)
     smode = "FGT";
 
-  char name[64]={};
-  std::snprintf(name,sizeof(name),"%.*s_%s_%s",int(zone.size()),zone.data(),(isDay ? "DAY" : "NGT"),smode);
-
+  string_frm name(zone,'_',(isDay ? "DAY" : "NGT"),'_',smode);
   if(auto* theme = Gothic::musicDef()[name]) {
     GameMusic::inst().setMusic(*theme,tags);
     return true;

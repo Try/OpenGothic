@@ -36,6 +36,7 @@
 #include "utils/gthfont.h"
 
 #include "gothic.h"
+#include "utils/string_frm.h"
 
 using namespace Tempest;
 
@@ -608,19 +609,18 @@ GthFont &Resources::implLoadFont(std::string_view name, FontType type) {
     file[i] = cname[i];
     }
 
-  char tex[300]={};
-  char fnt[300]={};
+  string_frm tex, fnt;
   switch(type) {
     case FontType::Normal:
     case FontType::Disabled:
     case FontType::Yellow:
     case FontType::Red:
-      std::snprintf(tex,sizeof(tex),"%s.tga",file);
-      std::snprintf(fnt,sizeof(fnt),"%s.fnt",file);
+      tex = string_frm(file,".tga");
+      fnt = string_frm(file,".fnt");
       break;
     case FontType::Hi:
-      std::snprintf(tex,sizeof(tex),"%s_hi.tga",file);
-      std::snprintf(fnt,sizeof(fnt),"%s_hi.fnt",file);
+      tex = string_frm(file,"_hi.tga");
+      fnt = string_frm(file,"_hi.fnt");
       break;
     }
 
@@ -701,11 +701,10 @@ std::vector<const Texture2d*> Resources::loadTextureAnim(std::string_view name) 
       if(at>sizeof(buf))
         return ret;
       }
-   auto t = loadTexture(std::string_view(buf));
+   auto t = loadTexture(buf);
     if(t==nullptr) {
-      char buf2[128] = {};
-      std::snprintf(buf2,sizeof(buf2),"%s.TGA",buf);
-      t = loadTexture(std::string_view(buf2));
+      string_frm buf2(buf,".TGA");
+      t = loadTexture(buf2);
       if(t==nullptr)
         return ret;
       }

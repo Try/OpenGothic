@@ -15,6 +15,7 @@
 #include "world/objects/interactive.h"
 #include "game/globaleffects.h"
 #include "game/serialize.h"
+#include "utils/string_frm.h"
 #include "gothic.h"
 #include "focus.h"
 #include "resources.h"
@@ -667,22 +668,20 @@ Sound World::addWeaponBlkEffect(ItemMaterial src, ItemMaterial reciver, const Te
   }
 
 Sound World::addHitEffect(std::string_view src, std::string_view dst, std::string_view scheme, const Tempest::Matrix4x4& pos) {
-  char buf[128]={};
-  std::snprintf(buf,sizeof(buf),"CS_%.*s_%.*s_%.*s",int(scheme.size()),scheme.data(), int(src.size()),src.data(), int(dst.size()),dst.data());
-
   Tempest::Vec3 pos3;
   pos.project(pos3);
 
-  auto ret = Sound(*this,::Sound::T_Regular,buf,pos3,2500.f,false);
+  string_frm sound("CS_",scheme,'_',src,'_',dst);
+  auto ret = Sound(*this,::Sound::T_Regular,sound,pos3,2500.f,false);
 
-  std::snprintf(buf,sizeof(buf),"CPFX_%.*s_%.*s_%.*s", int(scheme.size()),scheme.data(), int(src.size()),src.data(), int(dst.size()),dst.data());
+  string_frm buf("CPFX_",scheme,'_',src,'_',dst);
   if(Gothic::inst().loadParticleFx(buf,true)==nullptr) {
     if(dst=="ME")
-      std::snprintf(buf,sizeof(buf),"CPFX_%.*s_%s",int(scheme.size()),scheme.data(),"METAL");
+      buf = string_frm("CPFX_",scheme,"_METAL");
     else if(dst=="WO")
-      std::snprintf(buf,sizeof(buf),"CPFX_%.*s_%s",int(scheme.size()),scheme.data(),"WOOD");
+      buf = string_frm("CPFX_",scheme,"_WOOD");
     else if(dst=="ST")
-      std::snprintf(buf,sizeof(buf),"CPFX_%.*s_%s",int(scheme.size()),scheme.data(),"STONE");
+      buf = string_frm("CPFX_",scheme,"_STONE");
     else
       return ret;
     }

@@ -5,6 +5,7 @@
 
 #include "graphics/shaders.h"
 #include "graphics/sceneglobals.h"
+#include "utils/string_frm.h"
 #include "world/world.h"
 #include "utils/gthfont.h"
 #include "utils/workers.h"
@@ -322,9 +323,8 @@ void LightGroup::dbgLights(DbgPainter& p) const {
       }
     }
 
-  char  buf[250]={};
-  std::snprintf(buf,sizeof(buf),"light count = %d",cnt);
-  p.drawText(10,50,buf);
+  string_frm name("light count = ",cnt);
+  p.drawText(10,50,name);
   }
 
 void LightGroup::free(size_t id) {

@@ -62,12 +62,10 @@ std::shared_ptr<phoenix::c_particle_fx> ParticlesDefinitions::implGetDirect(std:
   if(!vm || name.empty())
     return nullptr;
 
-  char buf[256] = {};
-  std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
-  auto id = vm->find_symbol_by_name(buf);
+  auto id = vm->find_symbol_by_name(name);
   if(id==nullptr) {
     if(!relaxed)
-      Log::e("invalid particle system: \"",buf,"\"");
+      Log::e("invalid particle system: \"",name,"\"");
     return nullptr;
     }
 

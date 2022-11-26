@@ -3,6 +3,7 @@
 #include <Tempest/Painter>
 #include <Tempest/SoundEffect>
 
+#include "utils/string_frm.h"
 #include "world/objects/npc.h"
 #include "world/objects/interactive.h"
 #include "world/objects/item.h"
@@ -642,10 +643,9 @@ void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Inventory::Iterato
     renderer.drawItem(x-dsz, y-dsz, slotSize().w+2*dsz, slotSize().h+2*dsz, *it);
     } else {
     auto& fnt = Resources::font();
-    char  vint[32]={};
 
     if(it.count()>1) {
-      std::snprintf(vint,sizeof(vint),"%d",int(it.count()));
+      string_frm vint(int(it.count()));
       auto sz = fnt.textSize(vint);
       fnt.drawText(p,x+slotSize().w-sz.w-10,
                    y+slotSize().h-10,
@@ -654,7 +654,7 @@ void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Inventory::Iterato
 
     if(it.slot()!=Item::NSLOT) {
       auto& fnt = Resources::font(Resources::FontType::Red);
-      std::snprintf(vint,sizeof(vint),"%d",int(it.slot()));
+      string_frm vint(int(it.slot()));
       auto sz = fnt.textSize(vint);
       fnt.drawText(p,x+10,
                    y+slotSize().h/2+sz.h/2,
@@ -669,11 +669,10 @@ void InventoryMenu::drawGold(Painter &p, Npc &player, int x, int y) {
   auto           w    = world();
   auto           txt  = w ? w->script().currencyName() : "";
   const size_t   gold = player.inventory().goldCount();
-  char           vint[64]={};
   if(txt.empty())
     txt="Gold";
 
-  std::snprintf(vint,sizeof(vint),"%.*s : %u",int(txt.size()),txt.data(),uint32_t(gold));
+  string_frm vint(txt," : ",int(gold));
   drawHeader(p,vint,x,y);
   }
 
@@ -725,7 +724,6 @@ void InventoryMenu::drawInfo(Painter &p) {
   for(size_t i=0;i<Item::MAX_UI_ROWS;++i){
     auto    txt = r.uiText(i);
     int32_t val = r.uiValue(i);
-    char    vint[32]={};
 
     if(txt.empty())
       continue;
@@ -734,7 +732,7 @@ void InventoryMenu::drawInfo(Painter &p) {
       val = r.sellCost();
       }
 
-    std::snprintf(vint,sizeof(vint),"%d",val);
+    string_frm vint(val);
     int tw = fnt.textSize(vint).w;
 
     fnt.drawText(p, x+20,  y+int(i+2)*fnt.pixelSize(), txt);

@@ -10,6 +10,7 @@
 #include "game/serialize.h"
 #include "game/compatibility/ikarus.h"
 #include "game/compatibility/lego.h"
+#include "utils/string_frm.h"
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
 #include "world/objects/interactive.h"
@@ -716,19 +717,15 @@ void GameScript::storeItem(Item *itm) {
   }
 
 phoenix::symbol* GameScript::getSymbol(std::string_view s) {
-  char buf[256] = {};
-  std::snprintf(buf,sizeof(buf),"%.*s",int(s.size()),s.data());
-  return vm.find_symbol_by_name(buf);
+  return vm.find_symbol_by_name(s);
   }
 
 phoenix::symbol* GameScript::getSymbol(const size_t s) {
   return vm.find_symbol_by_index(s);
   }
 
-size_t GameScript::getSymbolIndex(std::string_view s) {
-  char buf[256] = {};
-  std::snprintf(buf,sizeof(buf),"%.*s",int(s.size()),s.data());
-  auto sym = vm.find_symbol_by_name(buf);
+size_t GameScript::getSymbolIndex(std::string_view name) {
+  auto sym = vm.find_symbol_by_name(name);
   return sym == nullptr ? size_t(-1) : sym->index();
   }
 
@@ -751,9 +748,7 @@ const phoenix::c_spell& GameScript::spellDesc(int32_t splId) {
 
 const VisualFx* GameScript::spellVfx(int32_t splId) {
   auto& tag = spellFxInstanceNames->get_string(splId);
-
-  char name[256]={};
-  std::snprintf(name,sizeof(name),"spellFX_%s",tag.c_str());
+  string_frm name("spellFX_",tag);
   return Gothic::inst().loadVisualFx(name);
   }
 
@@ -1010,29 +1005,26 @@ int GameScript::invokeMana(Npc &npc, Npc* target, Item &) {
   }
 
 void GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
-  auto& tag       = spellFxInstanceNames->get_string(it.spellId());
-  char  str[256]={};
-  std::snprintf(str,sizeof(str),"Spell_Cast_%s",tag.c_str());
-
-  auto  fn  = vm.find_symbol_by_name(str);
+  auto&      tag = spellFxInstanceNames->get_string(it.spellId());
+  string_frm name("Spell_Cast_",tag);
+  auto       fn = vm.find_symbol_by_name(name);
   if(fn==nullptr)
     return;
 
   // FIXME: actually set the spell level!
-  int32_t splLevel = 0;
-
+  int32_t  splLevel = 0;
   ScopeVar self (*vm.global_self(),  npc.handlePtr());
   ScopeVar other(*vm.global_other(), target != nullptr ? target->handlePtr() : nullptr);
   try {
-    if (fn->count() == 1) {
+    if(fn->count()==1) {
       // this is a leveled spell
       vm.call_function<void>(fn, splLevel);
-    } else {
+      } else {
       vm.call_function<void>(fn);
+      }
     }
-    }
-  catch(...){
-    Log::d("unable to call spell-script: \"",str,"\'");
+  catch(...) {
+    Log::d("unable to call spell-script: \"",name,"\'");
     }
   }
 
@@ -1084,11 +1076,10 @@ std::string_view GameScript::spellCastAnim(Npc&, Item &it) {
   }
 
 bool GameScript::aiOutput(Npc &npc, std::string_view outputname, bool overlay) {
-  char buf[256]={};
-  std::snprintf(buf,sizeof(buf),"%.*s.WAV",int(outputname.size()),outputname.data());
+  string_frm name(outputname,".WAV");
+  uint64_t   dt = 0;
 
-  uint64_t dt=0;
-  world().addDlgSound(buf,npc.position()+Vec3{0,180,0},WorldSound::talkRange,dt);
+  world().addDlgSound(name, npc.mapHeadBone(), WorldSound::talkRange, dt);
   npc.setAiOutputBarrier(messageTime(outputname),overlay);
 
   return true;
@@ -1143,9 +1134,8 @@ uint32_t GameScript::messageTime(std::string_view id) const {
   if(time>0)
     return time;
 
-  char buf[256]={};
-  std::snprintf(buf,sizeof(buf),"%.*s.wav",int(id.length()),id.data());
-  auto  s   = Resources::loadSoundBuffer(buf);
+  string_frm name(id,".WAV");
+  auto  s   = Resources::loadSoundBuffer(name);
   if(s.timeLength()>0) {
     time = uint32_t(s.timeLength());
     } else {
@@ -1223,31 +1213,27 @@ void GameScript::makeCurrent(Item* w) {
   if(w==nullptr)
     return;
   auto* s = vm.find_symbol_by_index(w->clsId());
-
-  if (s != nullptr)
+  if(s != nullptr)
     s->set_instance(w->handlePtr());
   }
 
 bool GameScript::searchScheme(std::string_view sc, std::string_view listName) {
-  auto& list = getSymbol(listName)->get_string();
-  const char* l = list.c_str();
-  for(const char* e = l;;++e) {
-    if(*e=='\0' || *e==',') {
-      size_t len = size_t(std::distance(l,e));
-      if(sc==std::string_view(l,len))
+  std::string_view list = getSymbol(listName)->get_string();
+  for(size_t i=0; i<=list.size(); ++i) {
+    if(i==list.size() || list[i]==',') {
+      if(sc==list.substr(0,i))
         return true;
-      l = e+1;
+      if(i==list.size())
+         break;
+      list = list.substr(i+1);
+      i    = 0;
       }
-    if(*e=='\0')
-      break;
     }
   return false;
   }
 
-bool GameScript::hasSymbolName(std::string_view s) {
-  char buf[256] = {};
-  std::snprintf(buf,sizeof(buf),"%.*s",int(s.size()),s.data());
-  return vm.find_symbol_by_name(buf) != nullptr;
+bool GameScript::hasSymbolName(std::string_view name) {
+  return vm.find_symbol_by_name(name)!=nullptr;
   }
 
 uint64_t GameScript::tickCount() const {
@@ -1317,15 +1303,11 @@ void GameScript::removeItem(Item &it) {
   }
 
 void GameScript::setInstanceNPC(std::string_view name, Npc &npc) {
-  char buf[256] = {};
-  std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
-  auto sym = vm.find_symbol_by_name(buf);
-
-  if (sym == nullptr) {
-    Tempest::Log::e("Cannot set NPC instance ", buf, ": Symbol not found.");
+  auto sym = vm.find_symbol_by_name(name);
+  if(sym == nullptr) {
+    Tempest::Log::e("Cannot set NPC instance ", name, ": Symbol not found.");
     return;
     }
-
   sym->set_instance(npc.handlePtr());
   }
 
@@ -1794,10 +1776,9 @@ void GameScript::npc_exchangeroutine(std::shared_ptr<phoenix::c_npc> npcRef, std
   auto npc = getNpc(npcRef);
   if(npc!=nullptr) {
     auto& v = npc->handle();
-    char buf[256]={};
-    std::snprintf(buf,sizeof(buf),"Rtn_%.*s_%d",int(rname.length()),rname.data(),v.id);
+    string_frm name("Rtn_",rname,'_',v.id);
 
-    auto* sym = vm.find_symbol_by_name(buf);
+    auto* sym = vm.find_symbol_by_name(name);
     size_t d = sym != nullptr ? sym->index() : 0;
     if(d>0)
       npc->excRoutine(d);

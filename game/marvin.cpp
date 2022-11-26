@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cctype>
 
+#include "utils/string_frm.h"
 #include "world/objects/npc.h"
 #include "camera.h"
 #include "gothic.h"
@@ -302,20 +303,20 @@ bool Marvin::printVariable(World* world, std::string_view name) {
   size_t id  = sc.getSymbolIndex(name);
   if(id==size_t(-1))
     return false;
-  char buf[256] = {};
+  string_frm buf;
   auto*  sym = sc.getSymbol(id);
   switch(sym->type()) {
     case phoenix::datatype::integer:
-      std::snprintf(buf,sizeof(buf),"%.*s = %d",int(name.size()),name.data(), sym->get_int(0));
+      buf = string_frm(name," = ",sym->get_int(0));
       break;
     case phoenix::datatype::float_:
-      std::snprintf(buf,sizeof(buf),"%.*s = %f",int(name.size()),name.data(), sym->get_float(0));
+      buf = string_frm(name," = ",sym->get_float(0));
       break;
     case phoenix::datatype::string:
-      std::snprintf(buf,sizeof(buf),"%.*s = %s",int(name.size()),name.data(), sym->get_string(0).c_str());
+      buf = string_frm(name," = ",sym->get_string(0));
       break;
     case phoenix::datatype::instance:
-      std::snprintf(buf,sizeof(buf),"%.*s = %p",int(name.size()),name.data(), sym->get_instance().get());
+      buf = string_frm(name," = ",sym->get_instance().get());
       break;
     default:
       break;

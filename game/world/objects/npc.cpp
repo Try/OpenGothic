@@ -8,6 +8,7 @@
 #include "game/damagecalculator.h"
 #include "game/serialize.h"
 #include "game/gamescript.h"
+#include "utils/string_frm.h"
 #include "world/objects/interactive.h"
 #include "world/objects/item.h"
 #include "world/world.h"
@@ -1767,8 +1768,9 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
         owner.sendPassivePerc(*this,other,*this,PERC_ASSESSMURDER);
         }
       else {
-        if(owner.script().rand(2)==0)
+        if(owner.script().rand(2)==0) {
           emitSoundSVM("SVM_%d_AARGH");
+          }
         }
       }
     }
@@ -2579,9 +2581,8 @@ void Npc::emitSoundEffect(std::string_view sound, float range, bool freeSlot) {
   }
 
 void Npc::emitSoundGround(std::string_view sound, float range, bool freeSlot) {
-  char    buf[256]={};
   auto mat = mvAlgo.groundMaterial();
-  std::snprintf(buf,sizeof(buf),"%.*s_%s",int(sound.size()),sound.data(), MaterialGroupNames[uint8_t(mat)]);
+  string_frm buf(sound,"_",MaterialGroupNames[uint8_t(mat)]);
   auto sfx = ::Sound(owner,::Sound::T_Regular,buf,{x,y,z},range,freeSlot);
   sfx.play();
   }
@@ -2594,7 +2595,7 @@ void Npc::emitSoundSVM(std::string_view svm) {
 
   char name[32]={};
   std::snprintf(name,sizeof(name),frm,int(hnpc->voice));
-  emitSoundEffect(name,25,true);
+  emitSoundEffect(name,2500,true);
   }
 
 void Npc::startEffect(Npc& to, const VisualFx& vfx) {

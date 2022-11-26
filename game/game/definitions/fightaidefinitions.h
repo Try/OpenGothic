@@ -38,7 +38,7 @@ class FightAi final {
     const FA& operator[](size_t i) const;
 
   private:
-    auto loadAi(phoenix::vm &vm, const char* name) -> phoenix::c_fight_ai;
+    auto loadAi(phoenix::vm &vm, std::string_view name) -> phoenix::c_fight_ai;
     FA   loadAi(phoenix::vm &vm, size_t id);
 
     std::vector<FA> fAi;

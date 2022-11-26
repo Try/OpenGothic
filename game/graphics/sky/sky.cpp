@@ -8,6 +8,7 @@
 #include <cctype>
 
 #include "graphics/shaders.h"
+#include "utils/string_frm.h"
 #include "world/world.h"
 #include "gothic.h"
 #include "resources.h"
@@ -335,16 +336,19 @@ const Texture2d* Sky::skyTexture(std::string_view name, bool day, size_t id) {
   }
 
 const Texture2d* Sky::implSkyTexture(std::string_view name, bool day, size_t id) {
-  char tex[256]={};
-  if(!name.empty()){
-    const char* format=day ? "SKYDAY_%.*s_LAYER%d_A0.TGA" : "SKYNIGHT_%.*s_LAYER%d_A0.TGA";
-    std::snprintf(tex,sizeof(tex),format,int(name.size()),name.data(),int(id));
+  string_frm tex("");
+  if(name.empty()) {
+    if(day)
+      tex = string_frm("SKYDAY_LAYER",  int(id),"_A0.TGA"); else
+      tex = string_frm("SKYNIGHT_LAYER",int(id),"_A0.TGA");
     } else {
-    const char* format=day ? "SKYDAY_LAYER%d_A0.TGA" : "SKYNIGHT_LAYER%d_A0.TGA";
-    std::snprintf(tex,sizeof(tex),format,int(id));
+    if(day)
+      tex = string_frm("SKYDAY_",  name,"_LAYER",int(id),"_A0.TGA"); else
+      tex = string_frm("SKYNIGHT_",name,"_LAYER",int(id),"_A0.TGA");
     }
-  for(size_t r=0;tex[r];++r)
-    tex[r]=char(std::toupper(tex[r]));
+  for(auto& i:tex)
+    i = char(std::toupper(i));
+
   auto r = Resources::loadTexture(tex);
   if(r==&Resources::fallbackTexture())
     return &Resources::fallbackBlack(); //format error

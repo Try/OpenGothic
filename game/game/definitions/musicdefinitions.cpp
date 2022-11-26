@@ -21,9 +21,7 @@ const phoenix::c_music_theme* MusicDefinitions::operator[](std::string_view name
   if(!vm)
     return nullptr;
 
-  char buf[256]={};
-  std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
-  auto id = vm->find_symbol_by_name(buf);
+  auto id = vm->find_symbol_by_name(name);
   if(id==nullptr)
     return nullptr;
   for(auto& i:themes) {

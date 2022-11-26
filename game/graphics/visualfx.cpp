@@ -3,6 +3,7 @@
 #include <Tempest/Log>
 #include <cctype>
 
+#include "utils/string_frm.h"
 #include "world/world.h"
 #include "utils/parser.h"
 #include "gothic.h"
@@ -117,8 +118,7 @@ VisualFx::VisualFx(const phoenix::c_fx_base& fx, phoenix::vm& vm, std::string_vi
     };
 
   for(int i=0; i<int(SpellFxKey::Count); ++i) {
-    char kname[256]={};
-    std::snprintf(kname,sizeof(kname),"%.*s_KEY_%s", int(name.size()),name.data(), keyName[i]);
+    string_frm kname(name,"_KEY_",keyName[i]);
     auto id = vm.find_symbol_by_name(kname);
     if(id==nullptr)
       continue;
@@ -128,8 +128,7 @@ VisualFx::VisualFx(const phoenix::c_fx_base& fx, phoenix::vm& vm, std::string_vi
     }
 
   for(int i=1; ; ++i) {
-    char kname[256]={};
-    std::snprintf(kname,sizeof(kname),"%.*s_KEY_INVEST_%d", int(name.size()),name.data(), i);
+    string_frm kname(name,"_KEY_INVEST_",i);
     auto id = vm.find_symbol_by_name(kname);
     if(id==nullptr)
       break;
@@ -250,9 +249,7 @@ VisualFx::Collision VisualFx::strToColision(std::string_view sv) {
       bits |= Collision::CreateQuad;
       }
     else {
-      char buf[256] = {};
-      std::snprintf(buf,sizeof(buf),"%*.s",int(word.size()),word.data());
-      Log::d("unknown collision flag: \"",buf,"\"");
+      Log::d("unknown collision flag: \"",word,"\"");
       }
     if(sp==std::string_view::npos)
       break;

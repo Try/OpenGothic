@@ -17,7 +17,7 @@ void DbgPainter::setPen(const Pen& pen) {
   painter.setPen(pen);
   }
 
-void DbgPainter::drawText(int x, int y, const char* txt) {
+void DbgPainter::drawText(int x, int y, std::string_view txt) {
   auto& fnt = Resources::font();
   fnt.drawText(painter,x,y,txt);
   }

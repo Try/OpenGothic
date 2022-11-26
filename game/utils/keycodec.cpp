@@ -222,142 +222,116 @@ KeyCodec::Action KeyCodec::implTr(int32_t code) const {
   return Idle;
   }
 
-void KeyCodec::keysStr(std::string_view keys, char buf[], size_t bufSz) {
+string_frm<64> KeyCodec::keysStr(std::string_view keys) {
   int32_t k0 = fetch(keys,0,4);
   int32_t k1 = fetch(keys,4,8);
 
   if(k0==0 && k1==0)
-    return;
+    return "";
 
-  char kbuf[2][128] = {};
-  bool hasK0 = keyToStr(k0,kbuf[0],128);
-  bool hasK1 = keyToStr(k1,kbuf[1],128);
-
-  if(!hasK0 || std::strcmp(kbuf[0],kbuf[1])==0){
-    std::snprintf(buf,bufSz,"%s",kbuf[1]);
-    return;
+  auto k0Str = keyToStr(k0);
+  auto k1Str = keyToStr(k1);
+  if(k0Str.empty() || std::string_view(k0Str)==k1Str){
+    return k1Str;
     }
-  if(!hasK1){
-    std::snprintf(buf,bufSz,"%s",kbuf[0]);
-    return;
+  if(k1Str.empty()){
+    return k0Str;
     }
 
-  std::snprintf(buf,bufSz,"%s, %s",kbuf[0],kbuf[1]);
+  return string_frm<64>(k0Str,", ",k1Str);
   }
 
-bool KeyCodec::keyToStr(int32_t k, char* buf, size_t bufSz) {
+string_frm<64> KeyCodec::keyToStr(int32_t k) {
   using namespace Tempest;
 
   for(auto& i:keys)
     if(k==i.code) {
-      keyToStr(i.k,buf,bufSz);
-      return true;
+      return keyToStr(i.k);
       }
   for(auto& i:mkeys)
     if(k==i.code) {
-      keyToStr(i.k,buf,bufSz);
-      return true;
+      return keyToStr(i.k);
       }
-  return false;
+  return "";
   }
 
-void KeyCodec::keyToStr(Tempest::Event::KeyType k, char* buf, size_t bufSz) {
+string_frm<64> KeyCodec::keyToStr(Tempest::Event::KeyType k) {
   if(Tempest::Event::K_0<=k && k<=Tempest::Event::K_9) {
-    buf[0] = char('0' + (k-Tempest::Event::K_0));
-    return;
+    auto c = char('0' + (k-Tempest::Event::K_0));
+    return string_frm<64>(c);
     }
   if(Tempest::Event::K_A<=k && k<=Tempest::Event::K_Z) {
-    buf[0] = char('A' + (k-Tempest::Event::K_A));
-    return;
+    auto c = char('A' + (k-Tempest::Event::K_A));
+    return string_frm<64>(c);
     }
 
   if(k==Tempest::Event::K_Up) {
-    std::strncpy(buf,"CURSOR UP",bufSz);
-    return;
+    return "CURSOR UP";
     }
   if(k==Tempest::Event::K_Down) {
-    std::strncpy(buf,"CURSOR DOWN",bufSz);
-    return;
+    return "CURSOR DOWN";
     }
   if(k==Tempest::Event::K_Left) {
-    std::strncpy(buf,"CURSOR LEFT",bufSz);
-    return;
+    return "CURSOR LEFT";
     }
   if(k==Tempest::Event::K_Right) {
-    std::strncpy(buf,"CURSOR RIGHT",bufSz);
-    return;
+    return "CURSOR RIGHT";
     }
   if(k==Tempest::Event::K_Tab) {
-    std::strncpy(buf,"TAB",bufSz);
-    return;
+    return "TAB";
     }
   if(k==Tempest::Event::K_Back) {
-    std::strncpy(buf,"BACKSPACE",bufSz);
-    return;
+    return "BACKSPACE";
     }
   if(k==Tempest::Event::K_Space) {
-    std::strncpy(buf,"SPACE",bufSz);
-    return;
+    return "SPACE";
     }
   if(k==Tempest::Event::K_LControl) {
-    std::strncpy(buf,"LEFT CONTROL",bufSz);
-    return;
+    return "LEFT CONTROL";
     }
   if(k==Tempest::Event::K_RControl) {
-    std::strncpy(buf,"RIGHT CONTROL",bufSz);
-    return;
+    return "RIGHT CONTROL";
     }
   if(k==Tempest::Event::K_Delete) {
-    std::strncpy(buf,"DELETE",bufSz);
-    return;
+    return "DELETE";
     }
   if(k==Tempest::Event::K_LShift) {
-    std::strncpy(buf,"LEFT SHIFT",bufSz);
-    return;
+    return "LEFT SHIFT";
     }
   if(k==Tempest::Event::K_RShift) {
-    std::strncpy(buf,"RIGHT SHIFT",bufSz);
-    return;
+    return "RIGHT SHIFT";
     }
   if(k==Tempest::Event::K_CapsLock) {
-    std::strncpy(buf,"CAPS LOCK",bufSz);
-    return;
+    return "CAPS LOCK";
     }
   if(k==Tempest::Event::K_LAlt) {
-    std::strncpy(buf,"LEFT ALT", bufSz);
-    return;
+    return "LEFT ALT";
     }
   if(k==Tempest::Event::K_RAlt) {
-    std::strncpy(buf,"RIGHT ALT", bufSz);
-    return;
+    return "RIGHT ALT";
     }
 
-  buf[0] = '?';
+  return string_frm<64>('?');
   }
 
-void KeyCodec::keyToStr(Tempest::Event::MouseButton k, char* buf, size_t bufSz) {
+string_frm<64> KeyCodec::keyToStr(Tempest::Event::MouseButton k) {
   if(k==Tempest::Event::ButtonLeft) {
-    std::strncpy(buf,"MOUSE LEFT",bufSz);
-    return;
+    return "MOUSE LEFT";
     }
   if(k==Tempest::Event::ButtonMid) {
-    std::strncpy(buf,"MOUSE MID",bufSz);
-    return;
+    return "MOUSE MID";
     }
   if(k==Tempest::Event::ButtonRight) {
-    std::strncpy(buf,"MOUSE RIGHT",bufSz);
-    return;
+    return "MOUSE RIGHT";
     }
   if(k==Tempest::Event::ButtonForward) {
-    std::strncpy(buf,"MOUSE X2",bufSz);
-    return;
+    return "MOUSE X2";
     }
   if(k==Tempest::Event::ButtonBack) {
-    std::strncpy(buf,"MOUSE X1",bufSz);
-    return;
+    return "MOUSE X1";
     }
 
-  buf[0] = '?';
+  return string_frm<64>('?');
   }
 
 int32_t KeyCodec::keyToCode(Tempest::Event::KeyType t) {

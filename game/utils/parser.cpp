@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "utils/string_frm.h"
 
 using namespace Tempest;
 
@@ -7,13 +8,10 @@ Vec2 Parser::loadVec2(std::string_view src) {
     return Vec2();
 
   float v[2] = {};
-  char  buf[256];
-  std::snprintf(buf, sizeof(buf), "%.*s", static_cast<int>(src.length()), src.data());
-
-  const char* str = buf;
-  for(int i=0;i<2;++i) {
-    char* next=nullptr;
-    v[i] = std::strtof(str,&next);
+  string_frm str(src);
+  for(int i=0; i<2; ++i) {
+    char* next = nullptr;
+    v[i] = std::strtof(str.c_str(),&next);
     if(str==next) {
       if(i==1)
         return Vec2(v[0],v[0]);
@@ -28,13 +26,10 @@ Vec3 Parser::loadVec3(std::string_view src) {
     return Vec3();
 
   float v[3] = {};
-  char  buf[256];
-  std::snprintf(buf, sizeof(buf), "%.*s", static_cast<int>(src.length()), src.data());
-
-  const char* str = buf;
-  for(int i=0;i<3;++i) {
+  string_frm str(src);
+  for(int i=0; i<3; ++i) {
     char* next=nullptr;
-    v[i] = std::strtof(str,&next);
+    v[i] = std::strtof(str.c_str(),&next);
     if(str==next) {
       if(i==1)
         return Vec3(v[0],v[0],v[0]);

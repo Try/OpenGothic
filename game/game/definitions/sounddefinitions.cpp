@@ -2,6 +2,7 @@
 
 #include <Tempest/Log>
 #include <gothic.h>
+#include "utils/string_frm.h"
 
 using namespace Tempest;
 
@@ -18,8 +19,7 @@ SoundDefinitions::SoundDefinitions() {
   }
 
 const phoenix::c_sfx& SoundDefinitions::operator[](std::string_view name) const {
-  char buf[256] = {};
-  std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
+  std::string buf(name); // FIXME
   auto i = sfx.find(buf);
   if(i!=sfx.end())
     return *i->second;

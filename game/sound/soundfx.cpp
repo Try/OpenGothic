@@ -8,6 +8,7 @@
 #include "gothic.h"
 
 #include "resources.h"
+#include "utils/string_frm.h"
 
 SoundFx::SoundVar::SoundVar(const phoenix::c_sfx &sfx, Tempest::Sound &&snd)
   :snd(std::move(snd)),vol(float(sfx.vol)/127.f),loop(sfx.loop){
@@ -69,9 +70,8 @@ void SoundFx::implLoad(std::string_view s) {
   }
 
 void SoundFx::loadVariants(std::string_view s) {
-  char name[256]={};
-  for(int i=1;i<100;++i){
-    std::snprintf(name,sizeof(name),"%.*s_A%d",int(s.size()),s.data(),i);
+  for(int i=1;i<100;++i) {
+    string_frm name(s,"_A",i);
     auto& sfx = Gothic::sfx()[name];
     auto  snd = Resources::loadSoundBuffer(sfx.file);
     if(snd.isEmpty())

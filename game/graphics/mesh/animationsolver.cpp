@@ -358,7 +358,7 @@ const Animation::Sequence *AnimationSolver::solveAnim(Interactive *inter, Animat
     }
   }
 
-const Animation::Sequence *AnimationSolver::solveFrm(std::string_view fview, WeaponState st) const {
+const Animation::Sequence* AnimationSolver::solveFrm(std::string_view fview, WeaponState st) const {
   char format[256] = {};
   std::snprintf(format,sizeof(format),"%.*s",int(fview.size()),fview.data());
 

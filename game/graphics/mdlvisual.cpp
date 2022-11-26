@@ -4,6 +4,7 @@
 #include "graphics/pfx/particlefx.h"
 #include "graphics/mesh/skeleton.h"
 #include "game/serialize.h"
+#include "utils/string_frm.h"
 #include "world/objects/npc.h"
 #include "world/objects/interactive.h"
 #include "world/objects/item.h"
@@ -858,11 +859,10 @@ bool MdlVisual::startAnimItem(Npc &npc, std::string_view scheme, int state) {
   }
 
 bool MdlVisual::startAnimSpell(Npc &npc, std::string_view scheme, bool invest) {
-  char name[128]={};
-
+  string_frm name("");
   if(invest)
-    std::snprintf(name,sizeof(name),"S_%.*sCAST", int(scheme.size()), scheme.data()); else
-    std::snprintf(name,sizeof(name),"S_%.*sSHOOT",int(scheme.size()), scheme.data());
+    name = string_frm("S_",scheme,"CAST"); else
+    name = string_frm("S_",scheme,"SHOOT");
 
   const Animation::Sequence *sq = solver.solveFrm(name);
   if(skInst->startAnim(solver,sq,0,BS_CASTING,Pose::NoHint,npc.world().tickCount())) {

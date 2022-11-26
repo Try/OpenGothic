@@ -5,6 +5,7 @@
 #include <Tempest/TextCodec>
 #include <Tempest/Dialog>
 
+#include "utils/string_frm.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "ui/menuroot.h"
@@ -466,21 +467,20 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
       }
     }
   else if(item->type==phoenix::c_menu_item_type::input) {
-    char textBuf[256]={};
-
+    string_frm textBuf;
     if(item->on_chg_set_option_section=="KEYS") {
       auto keys = Gothic::settingsGetS(item->on_chg_set_option_section, item->on_chg_set_option);
-      if(&hItem==ctrlInput)
-        std::snprintf(textBuf,sizeof(textBuf),"_"); else
-        KeyCodec::keysStr(keys,textBuf,sizeof(textBuf));
+      if(&hItem!=ctrlInput)
+        textBuf = KeyCodec::keysStr(keys); else
+        textBuf = "_";
       }
     else {
-      auto str = item->text[0].c_str();
-      if(str[0]=='\0' && &hItem!=ctrlInput && saveSlotId(hItem)!=size_t(-1))
+      auto str = string_frm(item->text[0]);
+      if(str.empty() && &hItem!=ctrlInput && saveSlotId(hItem)!=size_t(-1))
         str = "---";
-      if(&hItem==ctrlInput)
-        std::snprintf(textBuf,sizeof(textBuf),"%s_",str); else
-        std::snprintf(textBuf,sizeof(textBuf),"%s", str);
+      if(&hItem!=ctrlInput)
+        textBuf = std::string_view(str); else
+        textBuf = string_frm(str,"_");
       }
 
     fnt.drawText(p,
@@ -846,8 +846,7 @@ void GameMenu::execSaveGame(const GameMenu::Item& item) {
   if(id==size_t(-1))
     return;
 
-  char fname[64]={};
-  std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",int(id));
+  string_frm fname("save_slot_",int(id),".sav");
   Gothic::inst().save(fname,item.handle->text[0]);
   }
 
@@ -856,6 +855,7 @@ void GameMenu::execLoadGame(const GameMenu::Item &item) {
   if(id==size_t(-1))
     return;
 
+  //string_frm fname("save_slot_",int(id),".sav");
   char fname[64]={};
   std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",int(id));
   if(!FileUtil::exists(TextCodec::toUtf16(fname)))
@@ -864,7 +864,6 @@ void GameMenu::execLoadGame(const GameMenu::Item &item) {
   }
 
 void GameMenu::execCommands(std::string str, bool isClick) {
-
   if(str.find("EFFECTS ")==0) {
     // menu log
     const char* arg0 = str.data()+std::strlen("EFFECTS ");
@@ -1092,27 +1091,15 @@ void GameMenu::set(std::string_view item, const Texture2d *value) {
   }
 
 void GameMenu::set(std::string_view item, const uint32_t value) {
-  char buf[16]={};
-  std::snprintf(buf,sizeof(buf),"%u",value);
-  set(item,buf);
+  set(item,string_frm(value));
   }
 
 void GameMenu::set(std::string_view item, const int32_t value) {
-  char buf[16]={};
-  std::snprintf(buf,sizeof(buf),"%d",value);
-  set(item,buf);
-  }
-
-void GameMenu::set(std::string_view item, const int32_t value, const char *post) {
-  char buf[32]={};
-  std::snprintf(buf,sizeof(buf),"%d%s",value,post);
-  set(item,buf);
+  set(item,string_frm(value));
   }
 
 void GameMenu::set(std::string_view item, const int32_t value, const int32_t max) {
-  char buf[32]={};
-  std::snprintf(buf,sizeof(buf),"%d/%d",value,max);
-  set(item,buf);
+  set(item,string_frm(value,"/",max));
   }
 
 void GameMenu::set(std::string_view item, std::string_view value) {
@@ -1160,43 +1147,38 @@ void GameMenu::setPlayer(const Npc &pl) {
   auto* tal   = sc.getSymbol("TXT_TALENTS");
   auto* talV  = sc.getSymbol("TXT_TALENTS_SKILLS");
 
-  if (gilds==nullptr||tal==nullptr||talV==nullptr) {
+  if(gilds==nullptr || tal==nullptr || talV==nullptr) {
     return;
     }
 
-  set("MENU_ITEM_PLAYERGUILD",gilds->get_string(pl.guild()));
+  set("MENU_ITEM_PLAYERGUILD", gilds->get_string(pl.guild()));
 
-  set("MENU_ITEM_LEVEL",      pl.level());
-  set("MENU_ITEM_EXP",        pl.experience());
-  set("MENU_ITEM_LEVEL_NEXT", pl.experienceNext());
-  set("MENU_ITEM_LEARN",      pl.learningPoints());
+  set("MENU_ITEM_LEVEL",       pl.level());
+  set("MENU_ITEM_EXP",         pl.experience());
+  set("MENU_ITEM_LEVEL_NEXT",  pl.experienceNext());
+  set("MENU_ITEM_LEARN",       pl.learningPoints());
 
   set("MENU_ITEM_ATTRIBUTE_1", pl.attribute(ATR_STRENGTH));
   set("MENU_ITEM_ATTRIBUTE_2", pl.attribute(ATR_DEXTERITY));
   set("MENU_ITEM_ATTRIBUTE_3", pl.attribute(ATR_MANA),      pl.attribute(ATR_MANAMAX));
   set("MENU_ITEM_ATTRIBUTE_4", pl.attribute(ATR_HITPOINTS), pl.attribute(ATR_HITPOINTSMAX));
 
-  set("MENU_ITEM_ARMOR_1", pl.protection(PROT_EDGE));
-  set("MENU_ITEM_ARMOR_2", pl.protection(PROT_POINT)); // not sure about it
-  set("MENU_ITEM_ARMOR_3", pl.protection(PROT_FIRE));
-  set("MENU_ITEM_ARMOR_4", pl.protection(PROT_MAGIC));
+  set("MENU_ITEM_ARMOR_1",     pl.protection(PROT_EDGE));
+  set("MENU_ITEM_ARMOR_2",     pl.protection(PROT_POINT)); // not sure about it
+  set("MENU_ITEM_ARMOR_3",     pl.protection(PROT_FIRE));
+  set("MENU_ITEM_ARMOR_4",     pl.protection(PROT_MAGIC));
 
   const int talentMax = Gothic::inst().version().game==2 ? TALENT_MAX_G2 : TALENT_MAX_G1;
-  for(int i=0;i<talentMax;++i){
+  for(int i=0; i<talentMax; ++i){
     auto& str = tal->get_string(size_t(i));
     if(str.empty())
       continue;
 
-    char buf[64]={};
-    std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d_TITLE",i);
-    set(buf, str);
+    const int sk  = pl.talentSkill(Talent(i));
+    const int val = pl.hitChanse(Talent(i));
 
-    const int sk=pl.talentSkill(Talent(i));
-    std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d_SKILL",i);
-    set(buf, strEnum(talV->get_string(size_t(i)),sk,textBuf));
-
-    const int val=pl.hitChanse(Talent(i));
-    std::snprintf(buf,sizeof(buf),"MENU_ITEM_TALENT_%d",i);
-    set(buf, val, "%");
+    set(string_frm("MENU_ITEM_TALENT_",i,"_TITLE"), str);
+    set(string_frm("MENU_ITEM_TALENT_",i,"_SKILL"), strEnum(talV->get_string(size_t(i)),sk,textBuf));
+    set(string_frm("MENU_ITEM_TALENT_",i),          string_frm(val,"%"));
     }
   }

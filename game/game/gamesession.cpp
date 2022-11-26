@@ -6,6 +6,7 @@
 #include <Tempest/MemWriter>
 #include <cctype>
 
+#include "utils/string_frm.h"
 #include "worldstatestorage.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
@@ -285,7 +286,6 @@ void GameSession::tick(uint64_t dt) {
     }
 
   if(!chWorld.zen.empty()) {
-    char buf[128]={};
     for(auto& c:chWorld.zen)
       c = char(std::tolower(c));
     size_t beg = chWorld.zen.rfind('\\');
@@ -301,9 +301,9 @@ void GameSession::tick(uint64_t dt) {
     const char *w = (beg!=std::string::npos) ? (chWorld.zen.c_str()+beg+1) : chWorld.zen.c_str();
 
     if(Resources::hasFile(w)) {
-      std::snprintf(buf,sizeof(buf),"LOADING_%s.TGA",wname.c_str());  // format load-screen name, like "LOADING_OLDWORLD.TGA"
+      string_frm name("LOADING_",wname,".TGA"); // format load-screen name, like "LOADING_OLDWORLD.TGA"
 
-      Gothic::inst().startLoad(buf,[this](std::unique_ptr<GameSession>&& game){
+      Gothic::inst().startLoad(name,[this](std::unique_ptr<GameSession>&& game){
         auto ret = implChangeWorld(std::move(game),chWorld.zen,chWorld.wp);
         chWorld.zen.clear();
         return ret;

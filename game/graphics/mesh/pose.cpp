@@ -2,6 +2,7 @@
 
 #include <Tempest/Log>
 
+#include "utils/string_frm.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "game/serialize.h"
@@ -168,18 +169,17 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
         stopItemStateAnim(solver,tickCount);
         return false;
         }
-      char tansition[256]={};
       const Animation::Sequence* tr=nullptr;
       if(i.seq->shortName!=nullptr && sq->shortName!=nullptr) {
-        std::snprintf(tansition,sizeof(tansition),"T_%s_2_%s",i.seq->shortName,sq->shortName);
+        string_frm tansition("T_",i.seq->shortName,"_2_",sq->shortName);
         tr = solver.solveFrm(tansition);
         }
       if(tr==nullptr && sq->shortName!=nullptr) {
-        std::snprintf(tansition,sizeof(tansition),"T_STAND_2_%s",sq->shortName);
+        string_frm tansition("T_STAND_2_",sq->shortName);
         tr = solver.solveFrm(tansition);
         }
       if(tr==nullptr && i.seq->shortName!=nullptr && sq->isIdle()) {
-        std::snprintf(tansition,sizeof(tansition),"T_%s_2_STAND",i.seq->shortName);
+        string_frm tansition("T_",i.seq->shortName,"_2_STAND");
         tr = solver.solveFrm(tansition);
         }
       onRemoveLayer(i);
@@ -456,14 +456,12 @@ const Animation::Sequence* Pose::solveNext(const AnimationSolver &solver, const 
 
     const Animation::Sequence* ret = nullptr;
     if(itemUseSt>itemUseDestSt) {
-      char T_ID_SX_2_STAND[128]={};
-      std::snprintf(T_ID_SX_2_STAND,sizeof(T_ID_SX_2_STAND),"T_%s_S%d_2_STAND",scheme,itemUseSt);
+      string_frm T_ID_SX_2_STAND("T_",scheme,"_S",itemUseSt,"_2_STAND");
       ret = solver.solveFrm(T_ID_SX_2_STAND);
       }
 
     if(ret==nullptr) {
-      char T_ID_Sa_2_Sb[256]={};
-      std::snprintf(T_ID_Sa_2_Sb,sizeof(T_ID_Sa_2_Sb),"T_%s_S%d_2_S%d",scheme,sA,sB);
+      string_frm T_ID_Sa_2_Sb("T_",scheme,"_S",sA,"_2_S",sB);
       ret = solver.solveFrm(T_ID_Sa_2_Sb);
       }
 
@@ -582,7 +580,6 @@ bool Pose::isDefWindow(uint64_t tickCount) const {
   }
 
 bool Pose::isDefence(uint64_t tickCount) const {
-  char buf[32]={};
   static const char* alt[3]={"","_A2","_A3"};
 
   for(auto& i:lay) {
@@ -590,7 +587,7 @@ bool Pose::isDefence(uint64_t tickCount) const {
       // FIXME: seems like name check is not needed
       for(int h=1;h<=2;++h) {
         for(int v=0;v<3;++v) {
-          std::snprintf(buf,sizeof(buf),"T_%dHPARADE_0%s",h,alt[v]);
+          string_frm buf("T_",h,"HPARADE_0",alt[v]);
           if(i.seq->name==buf)
             return true;
           }
@@ -601,10 +598,9 @@ bool Pose::isDefence(uint64_t tickCount) const {
   }
 
 bool Pose::isJumpBack() const {
-  char buf[32]={};
   for(auto& i:lay) {
     for(int h=1;h<=2;++h) {
-      std::snprintf(buf,sizeof(buf),"T_%dHJUMPB",h);
+      string_frm buf("T_",h,"HJUMPB");
       if(i.seq->name==buf)
         return true;
       }
@@ -808,8 +804,7 @@ void Pose::setAnimRotate(const AnimationSolver &solver, Npc &npc, WeaponState fi
   }
 
 bool Pose::setAnimItem(const AnimationSolver &solver, Npc &npc, std::string_view scheme, int state) {
-  char T_ID_STAND_2_S0[128]={};
-  std::snprintf(T_ID_STAND_2_S0,sizeof(T_ID_STAND_2_S0),"T_%.*s_STAND_2_S0",int(scheme.size()),scheme.data());
+  string_frm T_ID_STAND_2_S0("T_",scheme,"_STAND_2_S0");
   const Animation::Sequence *sq = solver.solveFrm(T_ID_STAND_2_S0);
   if(startAnim(solver,sq,0,BS_ITEMINTERACT,Pose::NoHint,npc.world().tickCount())) {
     itemUseSt     = 0;

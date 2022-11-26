@@ -15,6 +15,7 @@
 #include "ui/videowidget.h"
 
 #include "utils/mouseutil.h"
+#include "utils/string_frm.h"
 #include "world/objects/npc.h"
 #include "game/serialize.h"
 #include "game/globaleffects.h"
@@ -225,6 +226,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
   if(Gothic::inst().doFrate()) {
     char fpsT[64]={};
     std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f %.*s",fps.get(),int(info.size()),info.data());
+    //string_frm fpsT("fps = ", fps.get(), " ", info);
 
     auto& fnt = Resources::font();
     fnt.drawText(p,5,fnt.pixelSize()+5,fpsT);
@@ -709,8 +711,7 @@ void MainWindow::onMarvinKey() {
       if(Gothic::inst().isMarvinEnabled()) {
         if(auto p = Gothic::inst().player()) {
           auto pos = p->position();
-          char buf[256] = {};
-          std::snprintf(buf, sizeof(buf), "Position: %f/%f/%f", pos.x,pos.y,pos.z);
+          string_frm buf("Position: ", pos.x,'/',pos.y,'/',pos.z);
           Gothic::inst().onPrint(buf);
           }
         }

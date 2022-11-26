@@ -1,4 +1,5 @@
 #include "workers.h"
+#include "utils/string_frm.h"
 
 #include <Tempest/Log>
 
@@ -63,10 +64,10 @@ Workers &Workers::inst() {
 
 void Workers::threadFunc(size_t id) {
   {
-  char buf[128] = {};
-  std::snprintf(buf, sizeof(buf), "Workers [%d]", int(id));
-  setThreadName(buf);
+  string_frm tname("Workers [",int(id),"]");
+  setThreadName(tname.c_str());
   }
+
   while(true) {
     {
     std::unique_lock<std::mutex> lck(sync);

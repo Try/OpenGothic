@@ -1,6 +1,7 @@
 #include "cameradefinitions.h"
 
 #include "gothic.h"
+#include "utils/string_frm.h"
 
 CameraDefinitions::CameraDefinitions() {
   auto vm = Gothic::inst().createPhoenixVm("Camera.dat");
@@ -28,15 +29,13 @@ CameraDefinitions::CameraDefinitions() {
   }
 
 const phoenix::c_camera& CameraDefinitions::mobsiCam(std::string_view tag, std::string_view pos) const {
-  char name[256]={};
-
   if(!pos.empty()) {
-    std::snprintf(name,sizeof(name),"CAMMODMOB%.*s_%.*s",int(tag.size()),tag.data(), int(pos.size()),pos.data());
+    string_frm name("CAMMODMOB",tag,'_',pos);
     if(auto* c = find(name))
       return *c;
     }
 
-  std::snprintf(name,sizeof(name),"CAMMODMOB%.*s",int(tag.size()),tag.data());
+  string_frm name("CAMMODMOB",tag);
   if(auto* c = find(name))
     return *c;
   if(auto* c = find("CAMMODMOBDEFAULT"))
