@@ -966,7 +966,7 @@ void GameMenu::updateVideo() {
   set("MENUITEM_VID_RESOLUTION_CHOICE", "");
   }
 
-void GameMenu::setDefaultKeys(const char* preset) {
+void GameMenu::setDefaultKeys(std::string_view preset) {
   keyCodec.setDefaultKeys(preset);
   }
 

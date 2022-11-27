@@ -146,6 +146,7 @@ class Gothic final {
     static const MusicDefinitions&        musicDef();
     static const CameraDefinitions&       cameraDef();
 
+    static bool                           settingsHasSection(std::string_view sec);
     static int                            settingsGetI(std::string_view sec, std::string_view name);
     static void                           settingsSetI(std::string_view sec, std::string_view name, int val);
     static std::string_view               settingsGetS(std::string_view sec, std::string_view name);

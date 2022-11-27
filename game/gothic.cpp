@@ -598,6 +598,15 @@ phoenix::script Gothic::loadPhoenixScriptCode(std::string_view datFile) {
   return phoenix::script::parse(buf);
   }
 
+bool Gothic::settingsHasSection(std::string_view sec) {
+  if(instance->iniFile->has(sec))
+    return true;
+  if(instance->baseIniFile->has(sec))
+    return true;
+  // no defaults
+  return false;
+  }
+
 int Gothic::settingsGetI(std::string_view sec, std::string_view name) {
   if(name.empty())
     return 0;

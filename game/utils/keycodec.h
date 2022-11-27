@@ -64,7 +64,7 @@ class KeyCodec final {
     Action        tr(Tempest::KeyEvent&   e) const;
     Action        tr(Tempest::MouseEvent& e) const;
     void          set(std::string_view section, std::string_view key, int32_t code);
-    void          setDefaultKeys(const char* preset);
+    void          setDefaultKeys(std::string_view preset);
 
     static int32_t     keyToCode(Tempest::Event::KeyType     t);
     static int32_t     keyToCode(Tempest::Event::MouseButton t);
@@ -95,6 +95,7 @@ class KeyCodec final {
     static auto keyToStr(Tempest::Event::KeyType k) -> string_frm<64>;
     static auto keyToStr(Tempest::Event::MouseButton k) -> string_frm<64>;
 
+    void        setDefaultKeysG1();
     void        setupSettings();
     KeyPair     setup(const char* kp);
     static auto parse(std::string_view kp) -> KeyPair;

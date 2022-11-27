@@ -115,7 +115,7 @@ class GameMenu : public Tempest::Widget {
     void                                  updateSavTitle(Item& sel);
     void                                  updateSavThumb(Item& sel);
     void                                  updateVideo();
-    void                                  setDefaultKeys(const char* preset);
+    void                                  setDefaultKeys(std::string_view preset);
 
     static bool                           isInGameAndAlive();
     static QuestStat                      toStatus(std::string_view str);
