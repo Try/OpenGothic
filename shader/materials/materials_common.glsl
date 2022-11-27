@@ -2,6 +2,7 @@
 #define MATERIALS_COMMON_GLSL
 
 #include "../common.glsl"
+#include "../scene.glsl"
 
 #define DEBUG_DRAW 0
 
@@ -123,21 +124,8 @@ layout(push_constant, std430) uniform UboPush {
 #endif
 
 layout(binding = L_Scene, std140) uniform UboScene {
-  vec3  sunDir;
-  float waveAnim;
-  mat4  viewProject;
-  mat4  viewProjectInv;
-  mat4  viewShadow[2];
-  vec3  ambient;
-  vec4  sunCl;
-  vec4  frustrum[6];
-  vec3  clipInfo;
-  uint  tickCount32;
-  vec3  camPos;
-  // float padd2;
-  vec2  screenResInv;
-  vec2  closeupShadowSlice;
-  } scene;
+  SceneDesc scene;
+  };
 
 #if defined(LVL_OBJECT) && (defined(VERTEX) || defined(MESH) || defined(TASK))
 layout(binding = L_Matrix, std430)   readonly buffer Matrix { mat4 matrix[]; };

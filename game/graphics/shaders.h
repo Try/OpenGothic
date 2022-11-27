@@ -16,6 +16,8 @@ class Shaders {
     static Shaders& inst();
 
     Tempest::RenderPipeline lights, lightsRq;
+    Tempest::RenderPipeline shadowResolve;
+
     Tempest::RenderPipeline copy;
     Tempest::RenderPipeline bilateralBlur;
     Tempest::RenderPipeline ssao, ssaoCompose;

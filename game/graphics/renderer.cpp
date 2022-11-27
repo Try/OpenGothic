@@ -111,7 +111,8 @@ void Renderer::resetSwapchain() {
 
   gbufEmission = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
   gbufDiffuse  = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
-  gbufNormal   = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
+  //gbufNormal   = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
+  gbufNormal   = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
   gbufDepth    = device.attachment(TextureFormat::R32F, swapchain.w(),swapchain.h());
 
   uboCopy = device.descriptors(Shaders::inst().copy);
@@ -119,6 +120,10 @@ void Renderer::resetSwapchain() {
 
   uboCopyDepth = device.descriptors(Shaders::inst().copy);
   uboCopyDepth.set(0, zbuffer);
+
+  shadow.composePso = &Shaders::inst().shadowResolve;
+  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
+    shadow.ubo[i] = device.descriptors(*shadow.composePso);
 
   ssao.ssaoBuf = device.attachment(ssao.aoFormat, (swapchain.w()+1)/2,(swapchain.h()+1)/2);
   ssao.blurBuf = device.attachment(ssao.aoFormat, (swapchain.w()+1)/2,(swapchain.h()+1)/2);
@@ -169,7 +174,7 @@ void Renderer::setCameraView(const Camera& camera) {
   viewProj = camera.viewProj();
   if(auto wview=Gothic::inst().worldView()) {
     for(size_t i=0; i<Resources::ShadowLayers; ++i)
-      shadow[i] = camera.viewShadow(wview->mainLight().dir(),i);
+      shadowMatrix[i] = camera.viewShadow(wview->mainLight().dir(),i);
     }
 
   zNear      = camera.zNear();
@@ -184,11 +189,20 @@ void Renderer::prepareUniforms() {
   if(wview==nullptr)
     return;
 
+  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
+    shadow.ubo[i].set(0, wview->sceneGlobals().uboGlobalPf[i][SceneGlobals::V_Main]);
+    shadow.ubo[i].set(1, gbufDiffuse);
+    shadow.ubo[i].set(2, gbufNormal);
+    shadow.ubo[i].set(3, gbufDepth);
+
+    shadow.ubo[i].set(4, shadowMap[0]);
+    shadow.ubo[i].set(5, shadowMap[1]);
+    }
+
   if(ssao.ssaoPso==&Shaders::inst().ssaoRq)
     ssao.uboSsao   .set(5,wview->landscapeTlas());
   if(ssao.ssaoComposePso==&Shaders::inst().ssaoComposeRq)
     ssao.uboCompose.set(5,wview->landscapeTlas());
-
 
   const Texture2d* sh[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
@@ -245,7 +259,7 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
              0,0,p.brush().w(),p.brush().h());
   }
 
-void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>& cmd, uint8_t cmdId) {
+void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
   auto& device = Resources::device();
   auto  wview  = Gothic::inst().worldView();
   if(wview==nullptr) {
@@ -256,8 +270,8 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   static bool updFr = true;
   if(updFr){
     if(wview->mainLight().dir().y>Camera::minShadowY) {
-      frustrum[SceneGlobals::V_Shadow0].make(shadow[0],shadowMap[0].w(),shadowMap[0].h());
-      frustrum[SceneGlobals::V_Shadow1].make(shadow[1],shadowMap[1].w(),shadowMap[1].h());
+      frustrum[SceneGlobals::V_Shadow0].make(shadowMatrix[0],shadowMap[0].w(),shadowMap[0].h());
+      frustrum[SceneGlobals::V_Shadow1].make(shadowMatrix[1],shadowMap[1].w(),shadowMap[1].h());
       } else {
       frustrum[SceneGlobals::V_Shadow0].clear();
       frustrum[SceneGlobals::V_Shadow1].clear();
@@ -266,58 +280,58 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     wview->visibilityPass(frustrum);
     }
 
-  wview->preFrameUpdate(view,proj,zNear,zFar,shadow,Gothic::inst().world()->tickCount(),cmdId);
+  wview->preFrameUpdate(view,proj,zNear,zFar,shadowMatrix,Gothic::inst().world()->tickCount(),fId);
 
-  drawHiZ(cmd,*wview,cmdId);
+  drawHiZ(cmd,*wview,fId);
 
   for(uint8_t i=0; i<Resources::ShadowLayers; ++i) {
     if(shadowMap[i].isEmpty())
       continue;
     cmd.setFramebuffer({}, {shadowMap[i], 0.f, Tempest::Preserve});
     if(wview->mainLight().dir().y > Camera::minShadowY)
-      wview->drawShadow(cmd,cmdId,i);
+      wview->drawShadow(cmd,fId,i);
     }
 
-  wview->prepareSky(cmd,cmdId);
+  wview->prepareSky(cmd,fId);
 
   if(Gothic::inst().doMeshShading()) {
-    cmd.setFramebuffer({{gbufEmission, Vec4(),           Tempest::Preserve},
-                        {gbufDiffuse,  Tempest::Discard, Tempest::Preserve},
-                        {gbufNormal,   Tempest::Discard, Tempest::Preserve},
-                        {gbufDepth,    1.f,              Tempest::Preserve}},
+    cmd.setFramebuffer({{gbufDiffuse, Tempest::Discard, Tempest::Preserve},
+                        {gbufNormal,  Tempest::Discard, Tempest::Preserve},
+                        {gbufDepth,   1.f,              Tempest::Preserve}},
                        {zbuffer, Tempest::Preserve, Tempest::Preserve});
     } else {
-    cmd.setFramebuffer({{gbufEmission, Vec4(),           Tempest::Preserve},
-                        {gbufDiffuse,  Tempest::Discard, Tempest::Preserve},
-                        {gbufNormal,   Tempest::Discard, Tempest::Preserve},
-                        {gbufDepth,    1.f,              Tempest::Preserve}},
+    cmd.setFramebuffer({{gbufDiffuse, Tempest::Discard, Tempest::Preserve},
+                        {gbufNormal,  Tempest::Discard, Tempest::Preserve},
+                        {gbufDepth,   1.f,              Tempest::Preserve}},
                        {zbuffer, 1.f, Tempest::Preserve});
     }
-  wview->drawGBuffer(cmd,cmdId);
+  wview->drawGBuffer(cmd,fId);
 
+  drawShadowResolve(gbufEmission,cmd,*wview,fId);
   drawSSAO(result,cmd,*wview);
+
   cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
-  wview->drawLights     (cmd,cmdId);
-  wview->drawWater      (cmd,cmdId);
+  wview->drawLights     (cmd,fId);
+  wview->drawWater      (cmd,fId);
 
-  wview->drawSky        (cmd,cmdId);
-  wview->drawTranslucent(cmd,cmdId);
+  wview->drawSky        (cmd,fId);
+  wview->drawTranslucent(cmd,fId);
 
-  if(device.properties().hasSamplerFormat(zBufferFormat)){
+  if(device.properties().hasSamplerFormat(zBufferFormat)) {
     cmd.setFramebuffer({{gbufDepth, 1.f, Tempest::Preserve}});
     cmd.setUniforms(Shaders::inst().copy, uboCopyDepth);
     cmd.draw(Resources::fsqVbo());
     }
   cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
-  wview->drawFog        (cmd,cmdId);
+  wview->drawFog        (cmd,fId);
   }
 
-void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, uint8_t cmdId) {
+void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, uint8_t fId) {
   if(!Gothic::inst().doMeshShading())
     return;
 
   cmd.setFramebuffer({}, {zbuffer, 1.f, Tempest::Preserve});
-  wview.drawHiZ(cmd,cmdId);
+  wview.drawHiZ(cmd,fId);
 
   uint32_t w = uint32_t(hiZPot.w()), h = uint32_t(hiZPot.h());
   cmd.setFramebuffer({});
@@ -331,15 +345,14 @@ void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
     }
   }
 
-void Renderer::drawDSM(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view) {
+void Renderer::drawShadowResolve(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view, uint8_t fId) {
   static bool useDsm = true;
-
-  if(!useDsm || !Gothic::inst().doRayQuery()) {
-    cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
-    cmd.setUniforms(Shaders::inst().copy,uboCopy);
-    cmd.draw(Resources::fsqVbo());
+  if(!useDsm)
     return;
-    }
+
+  cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
+  cmd.setUniforms(*shadow.composePso,shadow.ubo[fId]);
+  cmd.draw(Resources::fsqVbo());
   }
 
 void Renderer::drawSSAO(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, const WorldView& view) {

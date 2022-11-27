@@ -744,7 +744,7 @@ void ObjectsBucket::setWind(size_t i, phoenix::animation_mode m, float intensity
 bool ObjectsBucket::isAnimated(const Material& mat) {
   if(mat.frames.size()>0)
     return true;
-  if(mat.texAniMapDirPeriod!=Point())
+  if(mat.texAniMapDirPeriod!=Point() || mat.waveMaxAmplitude!=0)
     return true;
   if(mat.alpha==Material::Water)
     return true;

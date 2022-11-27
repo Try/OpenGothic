@@ -34,10 +34,10 @@ class Renderer final {
 
   private:
     void prepareUniforms();
-    void drawHiZ (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, uint8_t cmdId);
-    void drawDSM (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
-    void drawSSAO(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
-    void draw    (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t cmdId);
+    void drawHiZ          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, uint8_t fId);
+    void drawShadowResolve(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view, uint8_t fId);
+    void drawSSAO         (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
+    void draw             (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void initSettings();
 
     struct Settings {
@@ -49,7 +49,7 @@ class Renderer final {
     Frustrum                  frustrum[SceneGlobals::V_Count];
     Tempest::Swapchain&       swapchain;
     Tempest::Matrix4x4        view, proj, viewProj;
-    Tempest::Matrix4x4        shadow[Resources::ShadowLayers];
+    Tempest::Matrix4x4        shadowMatrix[Resources::ShadowLayers];
     float                     zNear = 0;
     float                     zFar  = 0;
     Tempest::Vec3             clipInfo;
@@ -60,6 +60,11 @@ class Renderer final {
     Tempest::Attachment       gbufDiffuse;
     Tempest::Attachment       gbufNormal;
     Tempest::Attachment       gbufDepth;
+
+    struct Shadow {
+      Tempest::RenderPipeline* composePso = nullptr;
+      Tempest::DescriptorSet   ubo[Resources::MaxFramesInFlight];
+    } shadow;
 
     struct SSAO {
       Tempest::TextureFormat   aoFormat = Tempest::TextureFormat::R8;

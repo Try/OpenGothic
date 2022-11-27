@@ -4,6 +4,7 @@
 
 #define FRAGMENT
 #include "materials_common.glsl"
+#include "../lighting/shadow_sampling.glsl"
 
 #if defined(MAT_VARYINGS)
 layout(location = 0) in Varyings shInp;
@@ -13,59 +14,16 @@ layout(location = 0) in Varyings shInp;
 layout(location = DEBUG_DRAW_LOC) in flat uint debugId;
 #endif
 
-#if !defined(DEPTH_ONLY)
-layout(location = 0) out vec4 outColor;
+#if !defined(GBUFFER)
+#define FORWARD 1
 #endif
 
 #if defined(GBUFFER)
-layout(location = 1) out vec4 outDiffuse;
-layout(location = 2) out vec4 outNormal;
-layout(location = 3) out vec4 outDepth;
-#endif
-
-#if !defined(DEPTH_ONLY)
-vec4 shadowSample(in sampler2D shadowMap, vec2 shPos) {
-  shPos.xy = shPos.xy*vec2(0.5,0.5)+vec2(0.5);
-  return textureGather(shadowMap,shPos);
-  }
-
-float shadowResolve(in vec4 sh, float z) {
-  z  = max(0,z);
-  sh = step(sh,vec4(z));
-  return 0.25*(sh.x+sh.y+sh.z+sh.w);
-  }
-
-float calcShadow(vec3 shPos0, vec3 shPos1) {
-  vec4  lay0   = shadowSample(textureSm0,shPos0.xy);
-  vec4  lay1   = shadowSample(textureSm1,shPos1.xy);
-
-  vec2  minMax = scene.closeupShadowSlice;
-  bool  inSm0  = abs(shPos0.x)<1.0 && abs(shPos0.y)<1.0;
-  bool  inSm1  = abs(shPos1.x)<1.0 && abs(shPos1.y)<1.0;
-
-  if(inSm0 && lay1.x<minMax[1])
-    return shadowResolve(lay0,shPos0.z);
-  if(inSm1)
-    return shadowResolve(lay1,shPos1.z);
-  return 1.0;
-  }
-
-float calcShadow() {
-  // const vec2  fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
-  // const vec4  scr       = vec4(fragCoord.x, fragCoord.y, gl_FragCoord.z, 1.0)/gl_FragCoord.w;
-  // vec4  pos4 = scene.viewProjectInv * scr;
-
-  vec4 shadowPos[2];
-  vec4 pos4 = vec4(shInp.pos,1);
-  shadowPos[0] = scene.viewShadow[0]*vec4(pos4);
-  shadowPos[1] = scene.viewShadow[1]*vec4(pos4);
-  // shadowPos[0] = shInp.shadowPos[0];
-  // shadowPos[1] = shInp.shadowPos[1];
-
-  vec3 shPos0  = (shadowPos[0].xyz)/shadowPos[0].w;
-  vec3 shPos1  = (shadowPos[1].xyz)/shadowPos[1].w;
-  return calcShadow(shPos0,shPos1);
-  }
+layout(location = 0) out vec4 outDiffuse;
+layout(location = 1) out vec4 outNormal;
+layout(location = 2) out vec4 outDepth;
+#elif !defined(DEPTH_ONLY)
+layout(location = 0) out vec4 outColor;
 #endif
 
 #if !defined(DEPTH_ONLY)
@@ -77,7 +35,7 @@ vec4 dbgLambert() {
 
 vec3 flatNormal() {
   // const vec2  fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
-  // const vec4  scr       = vec4(fragCoord.x, fragCoord.y, gl_FragCoord.z, 1.0)/gl_FragCoord.w;
+  // const vec4  scr       = vec4(fragCoord.x, fragCoord.y, gl_FragCoord.z, 1.0);
   // const vec4  pos4      = scene.viewProjectInv * scr;
   // vec3 pos = pos4.xyz/pos4.w;
 
@@ -89,7 +47,7 @@ vec3 flatNormal() {
 
 vec3 calcLight() {
   vec3  normal  = normalize(shInp.normal);
-  float lambert = max(0.0,dot(scene.sunDir,normal));
+  float lambert = clamp(dot(scene.sunDir,normal), 0.0, 1.0);
 
 #if (MESH_TYPE==T_LANDSCAPE)
   // fix self-shadowed surface
@@ -99,9 +57,8 @@ vec3 calcLight() {
     }
 #endif
 
-  float light   = lambert*calcShadow();
-  vec3  color   = scene.sunCl.rgb*clamp(light,0.0,1.0);
-  return color + scene.ambient;
+  float light = lambert * calcShadow(vec4(shInp.pos,1), scene, textureSm0, textureSm1);
+  return scene.sunCl.rgb*light + scene.ambient;
   }
 #endif
 
@@ -267,25 +224,12 @@ vec4 diffuseTex() {
   }
 #endif
 
-void main() {
-#if defined(MAT_UV)
-  vec4 t = diffuseTex();
-#  if defined(ATEST)
-  if(t.a<0.5)
-    discard;
-#  endif
-#endif
-
-#if !defined(DEPTH_ONLY)
-  vec3  color = vec3(0);
-  float alpha = 1;
+vec4 forwardShading(vec4 t) {
+  vec3  color = t.rgb;
+  float alpha = t.a;
 
 #if defined(GHOST)
   color = ghostColor(t.rgb);
-  alpha = t.a;
-#else
-  color = t.rgb;
-  alpha = t.a;
 #endif
 
 #if defined(MAT_COLOR)
@@ -305,18 +249,32 @@ void main() {
   }
 #endif
 
-#if !defined(DEPTH_ONLY)
-  outColor      = vec4(color,alpha);
+  return vec4(color,alpha);
+  }
+
+void main() {
+#if defined(MAT_UV)
+  vec4 t = diffuseTex();
+#  if defined(ATEST)
+  if(t.a<0.5)
+    discard;
+#  endif
 #endif
 
-#ifdef GBUFFER
-  outDiffuse    = t;
-  outNormal     = vec4(normalize(shInp.normal)*0.5 + vec3(0.5),1.0);
-  outDepth      = vec4(gl_FragCoord.z,0.0,0.0,0.0);
+#if defined(GBUFFER)
+  outDiffuse = t;
+  outNormal  = vec4(normalize(shInp.normal)*0.5 + vec3(0.5),1.0);
+  outDepth   = vec4(gl_FragCoord.z,0.0,0.0,0.0);
 #endif
 
+#if defined(DEPTH_ONLY)
+  return;
+#endif
+
+#if defined(FORWARD) && !defined(DEPTH_ONLY)
+  outColor   = forwardShading(t);
 #if DEBUG_DRAW
-  outColor = vec4(debugColors[debugId%MAX_DEBUG_COLORS],1.0);
+  outColor   = vec4(debugColors[debugId%MAX_DEBUG_COLORS],1.0);
 #endif
 
   //outColor = vec4(inZ.xyz/inZ.w,1.0);
@@ -327,6 +285,5 @@ void main() {
   //vec3 shPos0  = (shInp.shadowPos[0].xyz)/shInp.shadowPos[0].w;
   //outColor   = vec4(vec3(shPos0.xy,0),1.0);
   //outColor = dbgLambert();
-
 #endif
   }

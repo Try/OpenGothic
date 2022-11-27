@@ -102,6 +102,9 @@ add_uber_shader(clr "-DMESH_TYPE=4")
 add_shader(lnd_hiz.mesh              materials/main.mesh -DMESH_TYPE=0 -DHIZ)
 add_shader(lnd_hiz.frag              materials/main.frag -DMESH_TYPE=0 -DHIZ)
 
+add_shader(shadow_resolve.vert       copy.vert "")
+add_shader(shadow_resolve.frag       shadow_resolve.frag "")
+
 add_shader(light.vert                light.vert "")
 add_shader(light.frag                light.frag "")
 add_shader(light_rq.frag             light.frag -DRAY_QUERY)

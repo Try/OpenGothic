@@ -5,7 +5,6 @@
 
 #include <phoenix/world/vob_tree.hh>
 
-#include "physics/dynamicworld.h"
 #include "graphics/mesh/landscape.h"
 #include "graphics/meshobjects.h"
 #include "graphics/mesh/protomesh.h"
@@ -14,7 +13,6 @@
 #include "lightsource.h"
 #include "sceneglobals.h"
 #include "visualobjects.h"
-#include "bindless.h"
 
 class World;
 class ParticleFx;
@@ -67,6 +65,7 @@ class WorldView {
     MeshObjects::Mesh   addDecalView (const phoenix::vob& vob);
 
     const Tempest::AccelerationStructure& landscapeTlas();
+    const SceneGlobals&  sceneGlobals() const { return sGlobal; }
 
   private:
     const World&  owner;
