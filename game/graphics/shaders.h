@@ -36,6 +36,7 @@ class Shaders {
     enum PipelineType: uint8_t {
       T_Forward,
       T_Deffered,
+      T_Inventory,
       T_Shadow,
       };
 

@@ -37,7 +37,7 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
     }
 
   for(auto& i:zfrm) {
-    if(device.properties().hasDepthFormat(i)){
+    if(device.properties().hasDepthFormat(i) && device.properties().hasSamplerFormat(i)){
       zBufferFormat = i;
       break;
       }
@@ -109,14 +109,13 @@ void Renderer::resetSwapchain() {
       shadowMap[i] = device.zbuffer(shadowFormat,smSize,smSize);
     }
 
-  gbufEmission = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
-  gbufDiffuse  = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
-  //gbufNormal   = device.attachment(TextureFormat::RGBA8,swapchain.w(),swapchain.h());
+  sceneOpaque  = device.attachment(TextureFormat::RGBA8,      swapchain.w(),swapchain.h());
+  gbufDiffuse  = device.attachment(TextureFormat::RGBA8,      swapchain.w(),swapchain.h());
   gbufNormal   = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
-  gbufDepth    = device.attachment(TextureFormat::R32F, swapchain.w(),swapchain.h());
+  gbufDepth    = device.attachment(TextureFormat::R32F,       swapchain.w(),swapchain.h());
 
   uboCopy = device.descriptors(Shaders::inst().copy);
-  uboCopy.set(0,gbufEmission,Sampler::nearest());
+  uboCopy.set(0,sceneOpaque,Sampler::nearest());
 
   uboCopyDepth = device.descriptors(Shaders::inst().copy);
   uboCopyDepth.set(0, zbuffer);
@@ -137,24 +136,24 @@ void Renderer::resetSwapchain() {
     ssao.ssaoComposePso = &Shaders::inst().ssaoCompose;
     }
   ssao.uboSsao = device.descriptors(*ssao.ssaoPso);
-  ssao.uboSsao.set(0,gbufEmission,smpN);
-  ssao.uboSsao.set(1,gbufDiffuse, smpN);
-  ssao.uboSsao.set(2,gbufNormal,  smpN);
-  ssao.uboSsao.set(3,zbuffer,     smpB);
+  ssao.uboSsao.set(0, sceneOpaque, smpN);
+  ssao.uboSsao.set(1, gbufDiffuse, smpN);
+  ssao.uboSsao.set(2, gbufNormal,  smpN);
+  ssao.uboSsao.set(3, zbuffer,     smpB);
 
   ssao.uboCompose = device.descriptors(*ssao.ssaoComposePso);
-  ssao.uboCompose.set(0,gbufEmission, smpB);
-  ssao.uboCompose.set(1,gbufDiffuse,  smpB);
-  ssao.uboCompose.set(2,ssao.ssaoBuf, smpB);
-  ssao.uboCompose.set(3,zbuffer,      smpB);
+  ssao.uboCompose.set(0, sceneOpaque,  smpB);
+  ssao.uboCompose.set(1, gbufDiffuse,  smpB);
+  ssao.uboCompose.set(2, ssao.ssaoBuf, smpB);
+  ssao.uboCompose.set(3, zbuffer,      smpB);
 
   ssao.uboBlur[0] = device.descriptors(Shaders::inst().bilateralBlur);
-  ssao.uboBlur[0].set(0,ssao.ssaoBuf,smpN);
-  ssao.uboBlur[0].set(1,zbuffer,     smpB);
+  ssao.uboBlur[0].set(0, ssao.ssaoBuf,smpN);
+  ssao.uboBlur[0].set(1, zbuffer,     smpB);
 
   ssao.uboBlur[1] = device.descriptors(Shaders::inst().bilateralBlur);
-  ssao.uboBlur[1].set(0,ssao.blurBuf,smpN);
-  ssao.uboBlur[1].set(1,zbuffer,     smpB);
+  ssao.uboBlur[1].set(0, ssao.blurBuf,smpN);
+  ssao.uboBlur[1].set(1, zbuffer,     smpB);
 
   prepareUniforms();
   }
@@ -209,8 +208,8 @@ void Renderer::prepareUniforms() {
     if(!shadowMap[i].isEmpty()) {
       sh[i] = &textureCast(shadowMap[i]);
       }
-  wview->setGbuffer(textureCast(gbufEmission), textureCast(gbufDiffuse),
-                    textureCast(gbufNormal),   textureCast(gbufDepth),
+  wview->setGbuffer(textureCast(sceneOpaque), textureCast(gbufDiffuse),
+                    textureCast(gbufNormal),  textureCast(gbufDepth),
                     sh, textureCast(hiZ));
   }
 
@@ -284,16 +283,6 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
 
   drawHiZ(cmd,*wview,fId);
 
-  for(uint8_t i=0; i<Resources::ShadowLayers; ++i) {
-    if(shadowMap[i].isEmpty())
-      continue;
-    cmd.setFramebuffer({}, {shadowMap[i], 0.f, Tempest::Preserve});
-    if(wview->mainLight().dir().y > Camera::minShadowY)
-      wview->drawShadow(cmd,fId,i);
-    }
-
-  wview->prepareSky(cmd,fId);
-
   if(Gothic::inst().doMeshShading()) {
     cmd.setFramebuffer({{gbufDiffuse, Tempest::Discard, Tempest::Preserve},
                         {gbufNormal,  Tempest::Discard, Tempest::Preserve},
@@ -307,7 +296,17 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     }
   wview->drawGBuffer(cmd,fId);
 
-  drawShadowResolve(gbufEmission,cmd,*wview,fId);
+  if(settings.shadowResolution>0) {
+    for(uint8_t i=0; i<Resources::ShadowLayers; ++i) {
+      cmd.setFramebuffer({}, {shadowMap[i], 0.f, Tempest::Preserve});
+      if(wview->mainLight().dir().y > Camera::minShadowY)
+        wview->drawShadow(cmd,fId,i);
+      }
+    }
+  drawShadowResolve(sceneOpaque,cmd,*wview,fId);
+
+  wview->prepareSky(cmd,fId);
+
   drawSSAO(result,cmd,*wview);
 
   cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});

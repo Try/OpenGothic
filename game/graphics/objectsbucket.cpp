@@ -2,12 +2,9 @@
 
 #include <Tempest/Log>
 
-#include "graphics/mesh/pose.h"
-#include "graphics/mesh/skeleton.h"
 #include "graphics/mesh/submesh/packedmesh.h"
 #include "sceneglobals.h"
 
-#include "utils/workers.h"
 #include "visualobjects.h"
 #include "shaders.h"
 #include "gothic.h"
@@ -139,9 +136,9 @@ ObjectsBucket::ObjectsBucket(const Type type, const Material& mat, VisualObjects
   useMeshlets         = (Gothic::inst().doMeshShading() && !mat.isTesselated() && (type!=Type::Pfx));
   usePositionsSsbo    = (type==Type::Static || type==Type::Movable || type==Type::Morph);
 
-  pMain               = Shaders::inst().materialPipeline(mat,objType,Shaders::T_Forward);
-  pGbuffer            = Shaders::inst().materialPipeline(mat,objType,Shaders::T_Deffered);
-  pShadow             = Shaders::inst().materialPipeline(mat,objType,Shaders::T_Shadow);
+  pMain               = Shaders::inst().materialPipeline(mat,objType, isForwardShading() ? Shaders::T_Forward : Shaders::T_Deffered);
+  pShadow             = Shaders::inst().materialPipeline(mat,objType, Shaders::T_Shadow);
+  pInventory          = Shaders::inst().materialPipeline(mat,objType, Shaders::T_Inventory);
 
   if(useSharedUbo) {
     uboShared.alloc(*this);
@@ -335,7 +332,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v, const Material& mat, const Buck
       if(lay==SceneGlobals::V_Main || textureInShadowPass) {
         ubo.set(L_Diffuse, *mat.tex);
         }
-      if(lay==SceneGlobals::V_Main) {
+      if(lay==SceneGlobals::V_Main && isForwardShading() && mat.alpha!=Material::AdditiveLight) {
         ubo.set(L_Shadow0,  *scene.shadowMap[0],Resources::shadowSampler());
         ubo.set(L_Shadow1,  *scene.shadowMap[1],Resources::shadowSampler());
         }
@@ -538,9 +535,9 @@ void ObjectsBucket::draw(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   }
 
 void ObjectsBucket::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t fId) {
-  if(pGbuffer==nullptr)
+  if(pMain==nullptr)
     return;
-  drawCommon(cmd,fId,*pGbuffer,SceneGlobals::V_Main,false);
+  drawCommon(cmd,fId,*pMain,SceneGlobals::V_Main,false);
   }
 
 void ObjectsBucket::drawShadow(Encoder<CommandBuffer>& cmd, uint8_t fId, int layer) {
@@ -630,7 +627,7 @@ void ObjectsBucket::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer>& cm
   uboSetDynamic(ubo,v,fId);
 
   UboPush pushBlock = {};
-  cmd.setUniforms(*pMain,ubo.ubo[fId][SceneGlobals::V_Main]);
+  cmd.setUniforms(*pInventory,ubo.ubo[fId][SceneGlobals::V_Main]);
   switch(objType) {
     case Landscape:
     case LandscapeShadow:
@@ -647,10 +644,10 @@ void ObjectsBucket::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer>& cm
       if(useMeshlets) {
         pushBlock.meshletBase  = uint32_t(v.iboOffset/PackedMesh::MaxInd);
         pushBlock.meshletCount = uint32_t(v.iboLength/PackedMesh::MaxInd);
-        cmd.setUniforms(*pMain, &pushBlock, uboSz);
+        cmd.setUniforms(*pInventory, &pushBlock, uboSz);
         cmd.dispatchMesh(instance*pushBlock.meshletCount, 1*pushBlock.meshletCount);
         } else {
-        cmd.setUniforms(*pMain, &pushBlock, uboSz);
+        cmd.setUniforms(*pInventory, &pushBlock, uboSz);
         cmd.draw(staticMesh->vbo, staticMesh->ibo, v.iboOffset, v.iboLength, instance, 1);
         }
       break;
@@ -749,6 +746,10 @@ bool ObjectsBucket::isAnimated(const Material& mat) {
   if(mat.alpha==Material::Water)
     return true;
   return false;
+  }
+
+bool ObjectsBucket::isForwardShading() const {
+  return !mat.isSolid();
   }
 
 bool ObjectsBucket::isSceneInfoRequired() const {

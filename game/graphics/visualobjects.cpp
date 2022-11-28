@@ -3,8 +3,6 @@
 #include <Tempest/Log>
 
 #include "graphics/mesh/submesh/animmesh.h"
-#include "worldview.h"
-#include "utils/workers.h"
 #include "gothic.h"
 
 using namespace Tempest;

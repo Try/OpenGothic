@@ -153,7 +153,7 @@ layout(binding = L_Vbo, std430)      readonly buffer Vbo  { float vertices[]; };
 layout(binding = L_Diffuse) uniform sampler2D textureD;
 #endif
 
-#if defined(FRAGMENT) && !defined(DEPTH_ONLY)
+#if defined(FRAGMENT) && defined(FORWARD) && !defined(DEPTH_ONLY)
 layout(binding = L_Shadow0) uniform sampler2D textureSm0;
 layout(binding = L_Shadow1) uniform sampler2D textureSm1;
 #endif

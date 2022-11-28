@@ -220,6 +220,7 @@ class ObjectsBucket {
     void                      setWind     (size_t i, phoenix::animation_mode m, float intensity);
 
     static bool               isAnimated(const Material& mat);
+    bool                      isForwardShading() const;
     bool                      isSceneInfoRequired() const;
     void                      updatePushBlock(UboPush& push, Object& v);
     void                      reallocObjPositions();
@@ -251,9 +252,9 @@ class ObjectsBucket {
     bool                      useMeshlets         = false;
     bool                      textureInShadowPass = false;
 
-    const Tempest::RenderPipeline* pMain    = nullptr;
-    const Tempest::RenderPipeline* pGbuffer = nullptr;
-    const Tempest::RenderPipeline* pShadow  = nullptr;
+    const Tempest::RenderPipeline* pInventory = nullptr;
+    const Tempest::RenderPipeline* pMain      = nullptr;
+    const Tempest::RenderPipeline* pShadow    = nullptr;
 
     const SceneGlobals&       scene;
 

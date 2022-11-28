@@ -14,10 +14,6 @@ layout(location = 0) in Varyings shInp;
 layout(location = DEBUG_DRAW_LOC) in flat uint debugId;
 #endif
 
-#if !defined(GBUFFER)
-#define FORWARD 1
-#endif
-
 #if defined(GBUFFER)
 layout(location = 0) out vec4 outDiffuse;
 layout(location = 1) out vec4 outNormal;
@@ -26,7 +22,7 @@ layout(location = 2) out vec4 outDepth;
 layout(location = 0) out vec4 outColor;
 #endif
 
-#if !defined(DEPTH_ONLY)
+#if defined(FORWARD)
 vec4 dbgLambert() {
   vec3  normal  = normalize(shInp.normal);
   float lambert = max(0.0,dot(scene.sunDir,normal));
@@ -42,7 +38,7 @@ vec3 flatNormal() {
   vec3 pos = shInp.pos;
   vec3 dx  = dFdx(pos);
   vec3 dy  = dFdy(pos);
-  return /*normalize*/(cross(dx,dy));
+  return (cross(dx,dy));
   }
 
 vec3 calcLight() {
@@ -207,6 +203,7 @@ vec4 diffuseTex() {
 #if (defined(LVL_OBJECT) || defined(WATER))
   vec2 texAnim = vec2(0);
   {
+    // FIXME: this not suppose to run for every-single material
     if(bucket.texAniMapDirPeriod.x!=0) {
       uint fract = scene.tickCount32 % abs(bucket.texAniMapDirPeriod.x);
       texAnim.x  = float(fract)/float(bucket.texAniMapDirPeriod.x);
@@ -237,7 +234,7 @@ vec4 forwardShading(vec4 t) {
   alpha *= shInp.color.a;
 #endif
 
-#if defined(LIGHT)
+#if defined(FORWARD)
   color *= calcLight();
 #endif
 
@@ -263,15 +260,11 @@ void main() {
 
 #if defined(GBUFFER)
   outDiffuse = t;
-  outNormal  = vec4(normalize(shInp.normal)*0.5 + vec3(0.5),1.0);
+  outNormal  = vec4(shInp.normal*0.5 + vec3(0.5),1.0);
   outDepth   = vec4(gl_FragCoord.z,0.0,0.0,0.0);
 #endif
 
-#if defined(DEPTH_ONLY)
-  return;
-#endif
-
-#if defined(FORWARD) && !defined(DEPTH_ONLY)
+#if !defined(GBUFFER) && !defined(DEPTH_ONLY)
   outColor   = forwardShading(t);
 #if DEBUG_DRAW
   outColor   = vec4(debugColors[debugId%MAX_DEBUG_COLORS],1.0);

@@ -44,7 +44,8 @@ endfunction(add_shader)
 # Ubershader flags:
 #   MESH_TYPE  - type of mesh enum{landscape, object, skinned, morph, pfx}
 #   SHADOW_MAP - output is shadowmap
-#   LIGHT      - compute lambert lighting
+#   FORWARD    - compute forward lighting
+#   GBUFFER    - emit gbuffer
 #   ATEST      - use alpha test
 #   WATER      - water material
 #   GHOST      - ghost material
@@ -59,34 +60,34 @@ function(add_uber_shader OUTPUT)
   add_shader(${OUTPUT}_shadow_at.mesh   materials/main.mesh ${VARS} -DSHADOW_MAP -DATEST)
   add_shader(${OUTPUT}_shadow_at.frag   materials/main.frag ${VARS} -DSHADOW_MAP -DATEST)
 
-  add_shader(${OUTPUT}.vert             materials/main.vert ${VARS} -DLIGHT)
-  add_shader(${OUTPUT}.mesh             materials/main.mesh ${VARS} -DLIGHT)
-  add_shader(${OUTPUT}.frag             materials/main.frag ${VARS} -DLIGHT)
+  add_shader(${OUTPUT}.vert             materials/main.vert ${VARS} -DFORWARD)
+  add_shader(${OUTPUT}.mesh             materials/main.mesh ${VARS} -DFORWARD)
+  add_shader(${OUTPUT}.frag             materials/main.frag ${VARS} -DFORWARD)
 
-  add_shader(${OUTPUT}_at.vert          materials/main.vert ${VARS} -DLIGHT -DATEST)
-  add_shader(${OUTPUT}_at.mesh          materials/main.mesh ${VARS} -DLIGHT -DATEST)
-  add_shader(${OUTPUT}_at.frag          materials/main.frag ${VARS} -DLIGHT -DATEST)
+  add_shader(${OUTPUT}_at.vert          materials/main.vert ${VARS} -DFORWARD -DATEST)
+  add_shader(${OUTPUT}_at.mesh          materials/main.mesh ${VARS} -DFORWARD -DATEST)
+  add_shader(${OUTPUT}_at.frag          materials/main.frag ${VARS} -DFORWARD -DATEST)
 
   add_shader(${OUTPUT}_emi.vert         materials/main.vert ${VARS})
   add_shader(${OUTPUT}_emi.mesh         materials/main.mesh ${VARS})
   add_shader(${OUTPUT}_emi.frag         materials/main.frag ${VARS})
 
-  add_shader(${OUTPUT}_gbuffer.vert     materials/main.vert ${VARS} -DLIGHT -DGBUFFER)
-  add_shader(${OUTPUT}_gbuffer.mesh     materials/main.mesh ${VARS} -DLIGHT -DGBUFFER)
-  add_shader(${OUTPUT}_gbuffer.frag     materials/main.frag ${VARS} -DLIGHT -DGBUFFER)
+  add_shader(${OUTPUT}_gbuffer.vert     materials/main.vert ${VARS} -DGBUFFER)
+  add_shader(${OUTPUT}_gbuffer.mesh     materials/main.mesh ${VARS} -DGBUFFER)
+  add_shader(${OUTPUT}_gbuffer.frag     materials/main.frag ${VARS} -DGBUFFER)
 
-  add_shader(${OUTPUT}_gbuffer_at.vert  materials/main.vert ${VARS} -DLIGHT -DGBUFFER -DATEST)
-  add_shader(${OUTPUT}_gbuffer_at.mesh  materials/main.mesh ${VARS} -DLIGHT -DGBUFFER -DATEST)
-  add_shader(${OUTPUT}_gbuffer_at.frag  materials/main.frag ${VARS} -DLIGHT -DGBUFFER -DATEST)
+  add_shader(${OUTPUT}_gbuffer_at.vert  materials/main.vert ${VARS} -DGBUFFER -DATEST)
+  add_shader(${OUTPUT}_gbuffer_at.mesh  materials/main.mesh ${VARS} -DGBUFFER -DATEST)
+  add_shader(${OUTPUT}_gbuffer_at.frag  materials/main.frag ${VARS} -DGBUFFER -DATEST)
 
-  add_shader(${OUTPUT}_water.vert       materials/main.vert ${VARS} -DLIGHT -DWATER)
-  add_shader(${OUTPUT}_water.tesc       materials/main.tesc ${VARS} -DLIGHT -DWATER)
-  add_shader(${OUTPUT}_water.tese       materials/main.tese ${VARS} -DLIGHT -DWATER)
-  add_shader(${OUTPUT}_water.frag       materials/main.frag ${VARS} -DLIGHT -DWATER)
+  add_shader(${OUTPUT}_water.vert       materials/main.vert ${VARS} -DFORWARD -DWATER)
+  add_shader(${OUTPUT}_water.tesc       materials/main.tesc ${VARS} -DFORWARD -DWATER)
+  add_shader(${OUTPUT}_water.tese       materials/main.tese ${VARS} -DFORWARD -DWATER)
+  add_shader(${OUTPUT}_water.frag       materials/main.frag ${VARS} -DFORWARD -DWATER)
 
-  add_shader(${OUTPUT}_ghost.vert       materials/main.vert ${VARS} -DLIGHT -DGHOST)
-  add_shader(${OUTPUT}_ghost.mesh       materials/main.mesh ${VARS} -DLIGHT -DGHOST)
-  add_shader(${OUTPUT}_ghost.frag       materials/main.frag ${VARS} -DLIGHT -DGHOST)
+  add_shader(${OUTPUT}_ghost.vert       materials/main.vert ${VARS} -DFORWARD -DGHOST)
+  add_shader(${OUTPUT}_ghost.mesh       materials/main.mesh ${VARS} -DFORWARD -DGHOST)
+  add_shader(${OUTPUT}_ghost.frag       materials/main.frag ${VARS} -DFORWARD -DGHOST)
 
   set(OPENGOTHIC_SHADERS      ${OPENGOTHIC_SHADERS}      PARENT_SCOPE)
   set(OPENGOTHIC_SHADERS_SPRV ${OPENGOTHIC_SHADERS_SPRV} PARENT_SCOPE)

@@ -54,9 +54,9 @@ class Renderer final {
     float                     zFar  = 0;
     Tempest::Vec3             clipInfo;
 
+    Tempest::Attachment       sceneOpaque;
     Tempest::ZBuffer          zbuffer, zbufferItem, shadowMap[Resources::ShadowLayers];
 
-    Tempest::Attachment       gbufEmission;
     Tempest::Attachment       gbufDiffuse;
     Tempest::Attachment       gbufNormal;
     Tempest::Attachment       gbufDepth;

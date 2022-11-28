@@ -249,6 +249,9 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
     case T_Deffered:
       temp = deffered;
       break;
+    case T_Inventory:
+      temp = &emmision;
+      break;
     case T_Shadow:
       temp = shadow;
       break;
