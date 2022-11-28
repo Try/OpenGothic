@@ -89,6 +89,10 @@ class alignas(64) string_frm {
       char* heap;
       };
 
+    void implFormat(char* out, size_t maxSz, size_t& at) {
+      at = 0;
+      }
+
     template<class ... Args>
     void implFormat(char* out, size_t maxSz, size_t& at, const Args&... arg) {
       int dummy[sizeof...(Args)] = { (implWrite(out,maxSz,at,arg), 0)... };
