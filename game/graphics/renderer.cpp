@@ -24,13 +24,15 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
   auto& device = Resources::device();
   view.identity();
   static const TextureFormat zfrm[] = {
+    TextureFormat::Depth32F,
     //TextureFormat::Depth24S8,
     TextureFormat::Depth24x8,
     TextureFormat::Depth16,
     };
 
   for(auto& i:zfrm) {
-    if(device.properties().hasDepthFormat(i) && device.properties().hasSamplerFormat(i)){
+    if(device.properties().hasDepthFormat(i) && device.properties().hasSamplerFormat(i) &&
+       i!=TextureFormat::Depth32F) {
       shadowFormat = i;
       break;
       }
@@ -192,7 +194,7 @@ void Renderer::prepareUniforms() {
     shadow.ubo[i].set(0, wview->sceneGlobals().uboGlobalPf[i][SceneGlobals::V_Main]);
     shadow.ubo[i].set(1, gbufDiffuse);
     shadow.ubo[i].set(2, gbufNormal);
-    shadow.ubo[i].set(3, gbufDepth);
+    shadow.ubo[i].set(3, zbuffer);
 
     shadow.ubo[i].set(4, shadowMap[0]);
     shadow.ubo[i].set(5, shadowMap[1]);
