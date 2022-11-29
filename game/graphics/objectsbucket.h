@@ -155,13 +155,13 @@ class ObjectsBucket {
       };
 
     struct UboPushBase {
-      uint32_t  meshletBase  = 0;
-      uint32_t  meshletCount = 0;
-      float     fatness      = 0;
+      uint32_t  meshletBase   = 0;
+      uint32_t  meshletCount  = 0;
+      uint32_t  firstInstance = 0;
+      float     fatness       = 0;
       };
 
     struct UboPush : UboPushBase {
-      uint32_t  padd0 = 0;
       MorphDesc morph[Resources::MAX_MORPH_LAYERS];
       };
 
@@ -222,7 +222,7 @@ class ObjectsBucket {
     static bool               isAnimated(const Material& mat);
     bool                      isForwardShading() const;
     bool                      isSceneInfoRequired() const;
-    void                      updatePushBlock(UboPush& push, Object& v);
+    void                      updatePushBlock(UboPush& push, Object& v, uint32_t instance);
     void                      reallocObjPositions();
     void                      invalidateInstancing();
     uint32_t                  applyInstancing(size_t& i, const size_t* index, size_t indSz) const;

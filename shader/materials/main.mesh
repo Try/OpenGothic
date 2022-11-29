@@ -158,14 +158,17 @@ bool bboxTest(const uint objId) {
 
 void main() {
 #if defined(LVL_OBJECT)
-  const uint objId     = gl_WorkGroupID.x/push.meshletCount;
+  const uint objId     = gl_WorkGroupID.x/push.meshletCount + push.firstInstance;
   const uint meshletId = gl_WorkGroupID.x%push.meshletCount + push.meshletBase;
+#elif (MESH_TYPE==T_LANDSCAPE)
+  const uint objId     = gl_WorkGroupID.x + push.meshletBase;
+  const uint meshletId = gl_WorkGroupID.x + push.meshletBase;
 #else
-  const uint objId     = gl_WorkGroupID.x;
+  const uint objId     = 0;
   const uint meshletId = gl_WorkGroupID.x;
 #endif
 
-  const uint laneID    = gl_LocalInvocationID.x;
+  const uint laneID    = gl_LocalInvocationIndex;
 
 #if defined(SHADOW_MAP)
 #  if (MESH_TYPE==T_LANDSCAPE)
