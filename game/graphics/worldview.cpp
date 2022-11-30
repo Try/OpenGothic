@@ -60,35 +60,37 @@ void WorldView::preFrameUpdate(const Matrix4x4& view, const Matrix4x4& proj,
 
   pfxGroup.tick(tickCount);
   sGlobal.lights.tick(tickCount);
-  sGlobal .setTime(tickCount);
-  sGlobal .commitUbo(fId);
+  sGlobal.setTime(tickCount);
+  sGlobal.commitUbo(fId);
 
   sGlobal.lights.preFrameUpdate(fId);
   pfxGroup.preFrameUpdate(fId);
   visuals .preFrameUpdate(fId);
   }
 
-void WorldView::setGbuffer(const Texture2d& emission, const Texture2d& diffuse,
-                           const Texture2d& norm, const Texture2d& depth,
-                           const Texture2d* sh[], const Texture2d& hiZ) {
+void WorldView::setGbuffer(const Texture2d& diffuse, const Texture2d& norm) {
+  sGlobal.gbufDiffuse = &diffuse;
+  sGlobal.gbufNormals = &norm;
+  sGlobal.setResolution(uint32_t(diffuse.w()),uint32_t(diffuse.h()));
+  }
+
+void WorldView::setShadowMaps(const Tempest::Texture2d* sh[]) {
   const Texture2d* shadow[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
     if(sh[i]==nullptr || sh[i]->isEmpty())
       shadow[i] = &Resources::fallbackBlack(); else
       shadow[i] = sh[i];
-
-  // wait before update all descriptors
-  Resources::device().waitIdle();
-  sGlobal.gbufEmission = &emission;
-  sGlobal.gbufDiffuse  = &diffuse;
-  sGlobal.gbufNormals  = &norm;
-  sGlobal.gbufDepth    = &depth;
-  sGlobal.hiZ          = &hiZ;
-  sGlobal.skyLut       = &sky.skyLut();
-  //sGlobal.tlas        = &tlas;
   sGlobal.setShadowMap(shadow);
-  sGlobal.setResolution(uint32_t(diffuse.w()),uint32_t(diffuse.h()));
-  setupUbo();
+  }
+
+void WorldView::setHiZ(const Tempest::Texture2d& hiZ) {
+  sGlobal.hiZ = &hiZ;
+  }
+
+void WorldView::setSceneImages(const Tempest::Texture2d& clr, const Tempest::Texture2d& depthAux, const Tempest::ZBuffer& depthNative) {
+  sGlobal.sceneColor = &clr;
+  sGlobal.sceneDepth = &depthAux;
+  sGlobal.zbuffer    = &textureCast(depthNative);
   }
 
 void WorldView::dbgLights(DbgPainter& p) const {
@@ -97,6 +99,10 @@ void WorldView::dbgLights(DbgPainter& p) const {
 
 void WorldView::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId) {
   sky.prepareSky(cmd,frameId);
+  }
+
+void WorldView::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId) {
+  sky.prepareFog(cmd,frameId);
   }
 
 void WorldView::visibilityPass(const Frustrum fr[]) {
@@ -191,7 +197,9 @@ void WorldView::updateLight() {
   }
 
 void WorldView::setupUbo() {
-  // cmd buffers must not be in use
+  // wait before update all descriptors, cmd buffers must not be in use
+  Resources::device().waitIdle();
+  sGlobal.skyLut = &sky.skyLut();
   sGlobal.lights.setupUbo();
   sky.setupUbo();
   visuals.setupUbo();

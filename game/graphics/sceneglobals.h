@@ -42,10 +42,12 @@ class SceneGlobals final {
 
     Tempest::Matrix4x4                view, proj;
 
-    const Tempest::Texture2d*         gbufEmission = &Resources::fallbackBlack();
+    const Tempest::Texture2d*         sceneColor   = &Resources::fallbackBlack();
+    const Tempest::Texture2d*         sceneDepth   = &Resources::fallbackBlack();
+    const Tempest::Texture2d*         zbuffer      = &Resources::fallbackBlack();
+
     const Tempest::Texture2d*         gbufDiffuse  = &Resources::fallbackBlack();
     const Tempest::Texture2d*         gbufNormals  = &Resources::fallbackBlack();
-    const Tempest::Texture2d*         gbufDepth    = &Resources::fallbackBlack();
 
     const Tempest::Texture2d*         hiZ          = &Resources::fallbackTexture();
     const Tempest::Texture2d*         skyLut       = &Resources::fallbackTexture();

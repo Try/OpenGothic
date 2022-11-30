@@ -17,7 +17,6 @@ layout(location = DEBUG_DRAW_LOC) in flat uint debugId;
 #if defined(GBUFFER)
 layout(location = 0) out vec4 outDiffuse;
 layout(location = 1) out vec4 outNormal;
-layout(location = 2) out vec4 outDepth;
 #elif !defined(DEPTH_ONLY)
 layout(location = 0) out vec4 outColor;
 #endif
@@ -234,16 +233,16 @@ vec4 forwardShading(vec4 t) {
   alpha *= shInp.color.a;
 #endif
 
-#if defined(FORWARD)
-  color *= calcLight();
-#endif
-
 #if defined(WATER)
   {
     vec4 wclr = waterColor(color,vec3(0.8,0.9,1.0));
     color  = wclr.rgb;
     alpha  = wclr.a;
   }
+#endif
+
+#if defined(FORWARD)
+  color *= calcLight();
 #endif
 
   return vec4(color,alpha);
@@ -261,7 +260,6 @@ void main() {
 #if defined(GBUFFER)
   outDiffuse = t;
   outNormal  = vec4(shInp.normal*0.5 + vec3(0.5),1.0);
-  outDepth   = vec4(gl_FragCoord.z,0.0,0.0,0.0);
 #endif
 
 #if !defined(GBUFFER) && !defined(DEPTH_ONLY)

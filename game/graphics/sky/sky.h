@@ -22,6 +22,8 @@ class Sky final {
 
     void prepareSky (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
     void drawSky    (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
+
+    void prepareFog (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
     void drawFog    (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
 
     const Tempest::Texture2d& skyLut()   const;

@@ -90,6 +90,10 @@ bool Material::isSolid() const {
   return !isGhost && (alpha==Material::Solid || alpha==Material::AlphaTest);
   }
 
+bool Material::isSceneInfoRequired() const {
+  return isGhost || alpha==Material::Water || alpha==Material::Ghost;
+  }
+
 bool Material::isTesselated() const {
   // if(alpha!=Material::Water)
   //   return false;

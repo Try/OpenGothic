@@ -36,14 +36,18 @@ class WorldView {
                         const Tempest::Matrix4x4* shadow,
                         uint64_t tickCount, uint8_t fId);
 
-    void setGbuffer(const Tempest::Texture2d& emission, const Tempest::Texture2d& diffuse,
-                    const Tempest::Texture2d& norm, const Tempest::Texture2d& depth,
-                    const Tempest::Texture2d* shadow[], const Tempest::Texture2d& hiZ);
+    void setGbuffer(const Tempest::Texture2d& diffuse,
+                    const Tempest::Texture2d& norm);
+    void setShadowMaps (const Tempest::Texture2d* shadow[]);
+    void setHiZ(const Tempest::Texture2d& hiZ);
+    void setSceneImages(const Tempest::Texture2d& clr, const Tempest::Texture2d& depthAux, const Tempest::ZBuffer& depthNative);
+
     void setupUbo();
     void setupTlas(const Tempest::AccelerationStructure* tlas);
 
     void dbgLights    (DbgPainter& p) const;
     void prepareSky   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void prepareFog   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void updateLight();
 
     void visibilityPass(const Frustrum fr[]);

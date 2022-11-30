@@ -343,11 +343,11 @@ void ObjectsBucket::uboSetCommon(Descriptors& v, const Material& mat, const Buck
       if(lay==SceneGlobals::V_Main && isSceneInfoRequired()) {
         auto smp = Sampler::bilinear();
         smp.setClamping(ClampMode::MirroredRepeat);
-        ubo.set(L_GDiffuse, *scene.gbufEmission,smp);
+        ubo.set(L_GDiffuse, *scene.sceneColor, smp);
 
         smp = Sampler::nearest();
         smp.setClamping(ClampMode::ClampToEdge);
-        ubo.set(L_GDepth,   *scene.gbufDepth,  smp);
+        ubo.set(L_GDepth, *scene.sceneDepth, smp);
         }
       if(lay==SceneGlobals::V_Main && useMeshlets) {
         auto smp = Sampler::nearest();
@@ -755,7 +755,7 @@ bool ObjectsBucket::isForwardShading() const {
   }
 
 bool ObjectsBucket::isSceneInfoRequired() const {
-  return mat.isGhost || mat.alpha==Material::Water || mat.alpha==Material::Ghost;
+  return mat.isSceneInfoRequired();
   }
 
 void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket::Object& v, uint32_t instance) {

@@ -12,11 +12,14 @@ layout(binding = 2) uniform sampler2D skyLUT;
 layout(binding = 3) uniform sampler3D fogLut;
 #endif
 
+#if defined(FOG)
 layout(binding = 4) uniform sampler2D depth;
-layout(binding = 5) uniform sampler2D textureDayL0;
-layout(binding = 6) uniform sampler2D textureDayL1;
-layout(binding = 7) uniform sampler2D textureNightL0;
-layout(binding = 8) uniform sampler2D textureNightL1;
+#endif
+
+layout(binding = 4) uniform sampler2D textureDayL0;
+layout(binding = 5) uniform sampler2D textureDayL1;
+layout(binding = 6) uniform sampler2D textureNightL0;
+layout(binding = 7) uniform sampler2D textureNightL1;
 
 layout(location = 0) in  vec2 inPos;
 layout(location = 0) out vec4 outColor;
@@ -255,11 +258,13 @@ void main() {
   vec2 uv     = inPos*vec2(0.5)+vec2(0.5);
   vec3 view   = normalize(inverse(vec3(inPos,1.0)));
   vec3 sunDir = push.sunDir;
-  float z     = textureLod(depth,uv,0).r;
 
 #if defined(FOG)
+  const float z = textureLod(depth,uv,0).r;
   if(z>=1.0)
     discard;
+#else
+  const float z = 1.0;
 #endif
 
   // NOTE: not a physical value, but dunno how to achive nice look without it
