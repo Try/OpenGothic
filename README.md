@@ -65,6 +65,17 @@ make -C build -j $(nproc)
 # locate the executables at OpenGothic/build/opengothic
 ```
 
+### Build on MacOS
+```bash
+brew install glslang
+git clone --recurse-submodules https://github.com/Try/OpenGothic.git
+cd OpenGothic
+cmake -H. -Bbuild -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo
+cmake --build ./build --target Gothic2Notr
+
+# locate the executables at OpenGothic/build/opengothic
+```
+
 ### Gameplay video
 [![Video](https://img.youtube.com/vi/R9MNhNsBVQ0/0.jpg)](https://www.youtube.com/watch?v=R9MNhNsBVQ0)
 [![Video](https://img.youtube.com/vi/6BvwNkPMbwM/0.jpg)](https://www.youtube.com/watch?v=6BvwNkPMbwM)
