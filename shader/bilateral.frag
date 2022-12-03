@@ -20,7 +20,7 @@ layout(push_constant, std140) uniform PushConstant {
 
 float texLinearDepth(vec2 uv) {
   float d = texture(depth, uv).x;
-  return reconstructCSZ(d, ubo.clipInfo);
+  return linearDepth(d, ubo.clipInfo);
   }
 
 vec4 blurFunction(vec2 uv, float r, vec4 centerC, float centerD, inout float wTotal) {

@@ -161,9 +161,9 @@ vec4 fog(vec2 uv, float z, vec3 sunDir) {
   float dMin = 0;
   float dMax = 0.9999;
 
-  float dZ   = reconstructCSZ(   z, push.clipInfo);
-  float d0   = reconstructCSZ(dMin, push.clipInfo);
-  float d1   = reconstructCSZ(dMax, push.clipInfo);
+  float dZ   = linearDepth(   z, push.clipInfo);
+  float d0   = linearDepth(dMin, push.clipInfo);
+  float d1   = linearDepth(dMax, push.clipInfo);
 
   float d    = (dZ-d0)/(d1-d0);
   // return vec4(debugColors[min(int(d*textureSize(fogLut,0).z), textureSize(fogLut,0).z-1)%MAX_DEBUG_COLORS], 1);
@@ -183,9 +183,9 @@ vec4 fog(vec2 uv, float z, vec3 sunDir) {
   float dMin = 0.0;
   float dMax = 1.0;
 
-  float dZ   = reconstructCSZ(   z, push.clipInfo);
-  float d0   = reconstructCSZ(dMin, push.clipInfo);
-  float d1   = reconstructCSZ(dMax, push.clipInfo);
+  float dZ   = linearDepth(   z, push.clipInfo);
+  float d0   = linearDepth(dMin, push.clipInfo);
+  float d1   = linearDepth(dMax, push.clipInfo);
 
   float d    = (dZ-d0)/(d1-d0);
 

@@ -11,7 +11,7 @@ const float RAtmos   = 6460e3;       // Radius of the atmosphere in meters
 const vec3  GGroundAlbedo = vec3(0.1);
 const float GSunIntensity = 20.0;
 
-float reconstructCSZ(float d, vec3 clipInfo) {
+float linearDepth(float d, vec3 clipInfo) {
   // z_n * z_f,  z_n - z_f, z_f
   return (clipInfo[0] / (clipInfo[1] * d + clipInfo[2]));
   }
