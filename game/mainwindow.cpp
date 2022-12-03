@@ -385,7 +385,7 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
   auto act = keycodec.tr(event);
   player.onKeyPressed(act,event.key);
 
-  if(event.key==Event::K_F9) {
+  if(event.key==Event::K_F11) {
     auto tex = renderer.screenshoot(cmdId);
     auto pm  = device.readPixels(textureCast(tex));
     pm.save("dbg.png");

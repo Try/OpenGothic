@@ -66,7 +66,7 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define MAT_COLOR 1
 #endif
 
-#if defined(MAT_UV) || !defined(DEPTH_ONLY) || defined(WATER) || defined(MAT_COLOR)
+#if defined(MAT_UV) || !defined(DEPTH_ONLY) || defined(FORWARD) || defined(MAT_COLOR)
 #define MAT_VARYINGS 1
 #endif
 
@@ -77,6 +77,9 @@ struct Varyings {
 
 #if !defined(DEPTH_ONLY)
   vec3 normal;
+#endif
+
+#if defined(FORWARD)
   vec3 pos;
 #endif
 
@@ -85,7 +88,7 @@ struct Varyings {
 #endif
 
 #if !defined(MAT_VARYINGS)
-  float dummy;
+  float dummy; // GLSL has no support for empty structs
 #endif
   };
 

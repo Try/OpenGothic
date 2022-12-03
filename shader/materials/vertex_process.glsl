@@ -127,6 +127,9 @@ Varyings processVertex(out vec4 position, uint objId, uint vboOffset) {
 
 #if !defined(DEPTH_ONLY)
   shOut.normal = normal;
+#endif
+
+#if defined(FORWARD)
   shOut.pos    = pos;
 #endif
 
@@ -136,7 +139,11 @@ Varyings processVertex(out vec4 position, uint objId, uint vboOffset) {
 
   position = scene.viewProject*vec4(pos,1.0);
 #if defined(SHADOW_MAP)
-  position.z -= 10.0*(1.0/32768.0)*position.w;
+#  if defined(ATEST)
+  position.z -= 16.0*(1.0/32768.0)*position.w;
+#  else
+  position.z -=  2.0*(1.0/32768.0)*position.w;
+#  endif
 #endif
   return shOut;
   }

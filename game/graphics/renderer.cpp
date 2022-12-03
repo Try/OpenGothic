@@ -19,25 +19,39 @@ static uint32_t nearestPot(uint32_t x) {
   return x - (x >> 1);
   }
 
+static std::string_view toStr(TextureFormat f) {
+  switch (f) {
+    case TextureFormat::Depth16:   return "Depth16";
+    case TextureFormat::Depth24x8: return "Depth24x8";
+    case TextureFormat::Depth24S8: return "Depth24S8";
+    case TextureFormat::Depth32F:  return "Depth32F";
+    default: return "?";
+    }
+  }
+
 Renderer::Renderer(Tempest::Swapchain& swapchain)
   : swapchain(swapchain) {
   auto& device = Resources::device();
   view.identity();
-  static const TextureFormat zfrm[] = {
-    TextureFormat::Depth32F,
-    //TextureFormat::Depth24S8,
-    TextureFormat::Depth24x8,
+
+  static const TextureFormat sfrm[] = {
     TextureFormat::Depth16,
+    TextureFormat::Depth24x8,
+    TextureFormat::Depth32F,
     };
 
-  for(auto& i:zfrm) {
-    if(device.properties().hasDepthFormat(i) && device.properties().hasSamplerFormat(i) &&
-       i!=TextureFormat::Depth32F) {
+  for(auto& i:sfrm) {
+    if(device.properties().hasDepthFormat(i) && device.properties().hasSamplerFormat(i)) {
       shadowFormat = i;
       break;
       }
     }
 
+  static const TextureFormat zfrm[] = {
+    TextureFormat::Depth32F,
+    TextureFormat::Depth24x8,
+    TextureFormat::Depth16,
+    };
   for(auto& i:zfrm) {
     if(device.properties().hasDepthFormat(i) && device.properties().hasSamplerFormat(i)){
       zBufferFormat = i;
@@ -46,7 +60,7 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
     }
 
   Log::i("GPU = ",device.properties().name);
-  Log::i("Depth format = ",int(zBufferFormat)," Shadow format = ",int(shadowFormat));
+  Log::i("Depth format = ",toStr(zBufferFormat)," Shadow format = ",toStr(shadowFormat));
 
   Gothic::inst().onSettingsChanged.bind(this,&Renderer::initSettings);
   initSettings();
@@ -448,6 +462,9 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   Fence sync = device.fence();
   device.submit(cmd,sync);
   sync.wait();
+
+  //auto pm  = device.readPixels(textureCast(zbuffer));
+  //pm.save("dbg.hdr");
 
   return img;
   }

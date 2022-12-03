@@ -28,31 +28,10 @@ vec4 dbgLambert() {
   return vec4(lambert,lambert,lambert,1.0);
   }
 
-vec3 flatNormal() {
-  // const vec2  fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
-  // const vec4  scr       = vec4(fragCoord.x, fragCoord.y, gl_FragCoord.z, 1.0);
-  // const vec4  pos4      = scene.viewProjectInv * scr;
-  // vec3 pos = pos4.xyz/pos4.w;
-
-  vec3 pos = shInp.pos;
-  vec3 dx  = dFdx(pos);
-  vec3 dy  = dFdy(pos);
-  return (cross(dx,dy));
-  }
-
 vec3 calcLight() {
   vec3  normal  = normalize(shInp.normal);
   float lambert = clamp(dot(scene.sunDir,normal), 0.0, 1.0);
-
-#if (MESH_TYPE==T_LANDSCAPE)
-  // fix self-shadowed surface
-  float flatSh = dot(scene.sunDir,flatNormal());
-  if(flatSh<=0) {
-    lambert = 0;
-    }
-#endif
-
-  float light = lambert * calcShadow(vec4(shInp.pos,1), scene, textureSm0, textureSm1);
+  float light   = lambert * calcShadow(vec4(shInp.pos,1), scene, textureSm0, textureSm1);
   return scene.sunCl.rgb*light + scene.ambient;
   }
 #endif
@@ -233,16 +212,16 @@ vec4 forwardShading(vec4 t) {
   alpha *= shInp.color.a;
 #endif
 
+#if defined(FORWARD)
+  color *= calcLight();
+#endif
+
 #if defined(WATER)
   {
     vec4 wclr = waterColor(color,vec3(0.8,0.9,1.0));
     color  = wclr.rgb;
     alpha  = wclr.a;
   }
-#endif
-
-#if defined(FORWARD)
-  color *= calcLight();
 #endif
 
   return vec4(color,alpha);

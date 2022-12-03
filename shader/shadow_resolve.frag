@@ -6,6 +6,7 @@
 #extension GL_EXT_ray_query : enable
 #endif
 
+#include "common.glsl"
 #include "scene.glsl"
 #include "lighting/shadow_sampling.glsl"
 
@@ -22,16 +23,18 @@ layout(binding = 3) uniform sampler2D depth;
 layout(binding = 4) uniform sampler2D textureSm0;
 layout(binding = 5) uniform sampler2D textureSm1;
 
-float calcShadow(ivec2 frag, float depth) {
-  const vec2 fragCoord = (frag.xy*scene.screenResInv)*2.0 - vec2(1.0);
-  const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
-  const vec4 pos4      = scene.viewProjectInv * scr;
-
-  return calcShadow(pos4, scene, textureSm0, textureSm1);
+float lambert(vec3 normal) {
+  return max(0.0, dot(scene.sunDir,normal));
   }
 
-float lambert(vec3  normal) {
-  return max(0.0, dot(scene.sunDir,normal));
+vec4 worldPos(ivec2 frag, float depth) {
+  const vec2 fragCoord = (frag.xy*scene.screenResInv)*2.0 - vec2(1.0);
+  const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
+  return scene.viewProjectInv * scr;
+  }
+
+float calcShadow(vec4 pos4) {
+  return calcShadow(pos4, scene, textureSm0, textureSm1);
   }
 
 void main(void) {
@@ -46,9 +49,15 @@ void main(void) {
   const vec4  nrm    = texelFetch(normals, fragCoord, 0);
   const vec3  normal = normalize(nrm.xyz*2.0-vec3(1.0));
 
-  const float shadow = calcShadow(fragCoord, d);
-  const float light  = lambert(normal)*shadow;
-  const vec3  lcolor = scene.sunCl.rgb*light + scene.ambient;
+  const float light  = lambert(normal);
+
+  float shadow = 1;
+  if(light>0) {
+    const vec4 wpos = worldPos(fragCoord, d);
+    shadow = calcShadow(wpos);
+    }
+
+  const vec3  lcolor = scene.sunCl.rgb*light*shadow + scene.ambient;
 
   outColor = vec4(diff.rgb*lcolor, diff.a);
 
