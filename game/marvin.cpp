@@ -126,7 +126,7 @@ Marvin::CmdVal Marvin::isMatch(std::string_view inp, const Cmd& cmd) const {
   CmdVal           ret  = C_Invalid;
   int              argc = 0;
 
-  for(size_t i=0; !ref.empty(); ++i) {
+  while(!ref.empty()) {
     size_t wr = ref.find(' ');
     if(wr==std::string_view::npos)
       wr = ref.size();
@@ -299,12 +299,11 @@ bool Marvin::addItemOrNpcBySymbolName(World* world, std::string_view name, const
   }
 
 bool Marvin::printVariable(World* world, std::string_view name) {
-  auto&  sc  = world->script();
-  size_t id  = sc.getSymbolIndex(name);
-  if(id==size_t(-1))
-    return false;
   string_frm buf;
-  auto*  sym = sc.getSymbol(id);
+  auto&  sc  = world->script();
+  auto*  sym = sc.getSymbol(name);
+  if(sym==nullptr)
+    return false;
   switch(sym->type()) {
     case phoenix::datatype::integer:
       buf = string_frm(name," = ",sym->get_int(0));
