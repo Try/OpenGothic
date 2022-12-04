@@ -239,6 +239,9 @@ void main() {
 #if defined(GBUFFER)
   outDiffuse = t;
   outNormal  = vec4(shInp.normal*0.5 + vec3(0.5),1.0);
+#if DEBUG_DRAW
+  outDiffuse *= vec4(debugColors[debugId%MAX_DEBUG_COLORS],1.0);
+#endif
 #endif
 
 #if !defined(GBUFFER) && !defined(DEPTH_ONLY)

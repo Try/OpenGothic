@@ -1,27 +1,18 @@
 #version 450
 
-#if VULKAN >= 110
-#define USE_SUBGROUPS 1
-#else
-#define USE_SUBGROUPS 0
-#endif
-
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_NV_mesh_shader : require
 #extension GL_EXT_control_flow_attributes : enable
 
-#if USE_SUBGROUPS
-#extension GL_KHR_shader_subgroup_basic : enable
-#extension GL_KHR_shader_subgroup_vote: enable
-#endif
+#include "../scalar_ops.glsl"
 
 #define MESH
 #include "materials_common.glsl"
 #include "vertex_process.glsl"
 
 layout(local_size_x = 32) in;
-layout(triangles, max_vertices = 64, max_primitives = MaxInd/3) out;
+layout(triangles, max_vertices = 64, max_primitives = MaxPrim) out;
 
 out gl_MeshPerVertexNV {
   vec4 gl_Position;
@@ -33,36 +24,6 @@ layout(location = 0) out Varyings shOut[];  // [max_vertices]
 
 #if DEBUG_DRAW
 layout(location = DEBUG_DRAW_LOC) out flat uint debugId[];
-#endif
-
-#if USE_SUBGROUPS
-bool workgroupAny(bool b) {
-  return subgroupAny(b);
-  }
-bool workgroupAll(bool b) {
-  return subgroupAll(b);
-  }
-#else
-shared bool workgroup_bool;
-bool workgroupAny(bool b) {
-  workgroup_bool = false;
-  barrier();
-  if(b)
-    workgroup_bool = true;
-  memoryBarrierShared();
-  barrier();
-  return workgroup_bool;
-  }
-
-bool workgroupAll(bool b) {
-  workgroup_bool = true;
-  barrier();
-  if(!b)
-    workgroup_bool = false;
-  memoryBarrierShared();
-  barrier();
-  return workgroup_bool;
-  }
 #endif
 
 bool sphereTest(const uint objId, const uint meshletId) {
@@ -156,6 +117,38 @@ bool bboxTest(const uint objId) {
   }
 #endif
 
+void SetMeshOutputCounts(uint vertexCount, uint primitiveCount) {
+#if defined(GL_NV_mesh_shader)
+  if(gl_LocalInvocationIndex==0)
+    gl_PrimitiveCountNV = primitiveCount;
+#elif defined(GL_EXT_mesh_shader)
+  SetMeshOutputsEXT(vertexCount, primitiveCount);
+#endif
+  }
+
+void primitiveShader(const uint outId, const uint objId, const uint meshletId) {
+  const uint vboOffset = meshletId * MaxVert + outId;
+  const uint iboOffset = meshletId * MaxInd  + outId*3;
+  const uint index0    = meshletId * MaxVert; // TODO: uint8 ibo
+
+  vec4 position;
+
+  const Varyings var = processVertex(position, objId, vboOffset);
+  gl_MeshVerticesNV[outId].gl_Position = position;
+#if defined(MAT_VARYINGS)
+  shOut            [outId]             = var;
+#endif
+#if (DEBUG_DRAW) && !defined(LVL_OBJECT)
+  debugId          [outId]             = meshletId;
+#endif
+
+  uvec3 prim = processPrimitive(iboOffset) - uvec3(index0);
+
+  gl_PrimitiveIndicesNV[outId*3 + 0] = prim.x;
+  gl_PrimitiveIndicesNV[outId*3 + 1] = prim.y;
+  gl_PrimitiveIndicesNV[outId*3 + 2] = prim.z;
+  }
+
 void main() {
 #if defined(LVL_OBJECT)
   const uint objId     = gl_WorkGroupID.x/push.meshletCount + push.firstInstance;
@@ -191,57 +184,33 @@ void main() {
 #endif
 
   if(!visible) {
-    if(laneID==0)
-      gl_PrimitiveCountNV = 0;
+    SetMeshOutputCounts(0,0);
     return;
     }
 
-  const uint vboOffset = meshletId * MaxVert;
-  const uint iboOffset = meshletId * MaxInd;
-
-  vec4 pos0, pos1;
-  const Varyings out0 = processVertex(pos0, objId, vboOffset + laneID*2 + 0);
-  const Varyings out1 = processVertex(pos1, objId, vboOffset + laneID*2 + 1);
-
-#if defined(MAT_VARYINGS)
-  shOut            [laneID*2 + 0]             = out0;
-  shOut            [laneID*2 + 1]             = out1;
-#endif
-  gl_MeshVerticesNV[laneID*2 + 0].gl_Position = pos0;
-  gl_MeshVerticesNV[laneID*2 + 1].gl_Position = pos1;
-
-#if (DEBUG_DRAW) && !defined(LVL_OBJECT)
-  debugId[laneID*2 + 0] = meshletId;
-  debugId[laneID*2 + 1] = meshletId;
-#endif
-
-  // Triangle indices [0..123]
-  uint index0 = vboOffset;
-
-  /*
-   *  threads 0..29 -> 0..120
-   *  thread  30    -> 121..123
-   *  thread  31    -> none
-   */
-  if(laneID<31) {
-    gl_PrimitiveIndicesNV[laneID*4 + 0] = indexes[iboOffset + laneID*4 + 0] - index0;
-    gl_PrimitiveIndicesNV[laneID*4 + 1] = indexes[iboOffset + laneID*4 + 1] - index0;
-    gl_PrimitiveIndicesNV[laneID*4 + 2] = indexes[iboOffset + laneID*4 + 2] - index0;
-    }
-  if(laneID<30) {
-    gl_PrimitiveIndicesNV[laneID*4 + 3] = indexes[iboOffset + laneID*4 + 3] - index0;
-    }
-
-  // Number of triangles
-  if(laneID==30) {
-    uint c = laneID*4;
-    if(gl_PrimitiveIndicesNV[c+0]==gl_PrimitiveIndicesNV[c+1]) {
+  uint vertCount = MaxVert;
+  uint primCount = MaxPrim;
+  if(laneID==0) {
+    const uint iboOffset = meshletId * MaxInd + MaxInd - 3;
+    const uint index0    = meshletId * MaxVert; // TODO: uint8 ibo
+    uvec3 ret;
+    ret.x = indexes[iboOffset + 0];
+    ret.y = indexes[iboOffset + 1];
+    ret.z = indexes[iboOffset + 2];
+    if(ret.x==ret.y) {
       // last dummy triangle encodes primitive count
-      gl_PrimitiveCountNV = gl_PrimitiveIndicesNV[c];
-      } else {
-      gl_PrimitiveCountNV = MaxInd/3;
+      primCount = ret.x - index0;
+      //vertCount = ret.z;
       }
     }
+
+  // Alloc outputs
+  SetMeshOutputCounts(vertCount, primCount);
+
+  primitiveShader(laneID, objId, meshletId);
+  if(gl_WorkGroupSize.x<64)
+    primitiveShader(laneID+32, objId, meshletId);
+
 #if 0 && defined(LVL_OBJECT) && !defined(DEPTH_ONLY) && (MESH_TYPE==T_SKINING)
   // DEBUG CODE
   memoryBarrierShared();

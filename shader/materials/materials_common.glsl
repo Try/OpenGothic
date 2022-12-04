@@ -26,7 +26,8 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define MAX_NUM_SKELETAL_NODES 96
 #define MAX_MORPH_LAYERS       3
 #define MaxVert                64
-#define MaxInd                 (41*3)
+#define MaxPrim                64
+#define MaxInd                 (MaxPrim*3)
 
 #define T_LANDSCAPE 0
 #define T_OBJ       1

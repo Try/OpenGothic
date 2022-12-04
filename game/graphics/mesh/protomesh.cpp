@@ -48,7 +48,7 @@ ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::vector<phoenix::morph_animation
   if(attach.size()!=1) {
     Log::d("skip animations for: ",fname);
     return;
-  }
+    }
 
   auto& device = Resources::device();
 
@@ -59,7 +59,7 @@ ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::vector<phoenix::morph_animation
 
   for(auto& i:aniList) {
     samplesCnt += i.samples.size();
-  }
+    }
 
   morphIndex   = Resources::ssbo(nullptr, indexSzAligned*aniList.size());
   morphSamples = Resources::ssbo(nullptr, samplesCnt*sizeof(Vec4));
@@ -79,16 +79,16 @@ ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::vector<phoenix::morph_animation
     morph[i].index = (i*indexSzAligned)/sizeof(int32_t);
 
     samplesCnt += samples.size();
-  }
+    }
 
   if(morph.size()>0) {
     for(auto& a:attach) {
       a.morph.anim    = &morph;
       a.morph.index   = &morphIndex;
       a.morph.samples = &morphSamples;
+      }
     }
   }
-}
 
 ProtoMesh::ProtoMesh(const phoenix::model &library, std::unique_ptr<Skeleton>&& sk, std::string_view fname)
   :skeleton(std::move(sk)), fname(fname) {

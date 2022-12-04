@@ -21,8 +21,8 @@ class PackedMesh {
 
     enum {
       MaxVert     = 64,
-      // NVidia allocates pipeline memory in batches of 128 bytes (4 reserved for size)
-      MaxInd      = 41*3,
+      MaxPrim     = 64,
+      MaxInd      = MaxPrim * 3,
       MaxMeshlets = 16,
       };
 
@@ -47,6 +47,7 @@ class PackedMesh {
     std::vector<Vertex>   vertices;
     std::vector<VertexA>  verticesA;
     std::vector<uint32_t> indices;
+
     std::vector<SubMesh>  subMeshes;
     std::vector<Bounds>   meshletBounds;
 
@@ -72,9 +73,10 @@ class PackedMesh {
       };
 
     using  Vert = std::pair<uint32_t,uint32_t>;
+    struct PrimitiveHeap;
     struct Meshlet {
       Vert          vert   [MaxVert] = {};
-      uint8_t       indexes[MaxInd]  = {};
+      uint8_t       indexes[MaxInd ] = {};
       uint8_t       vertSz           = 0;
       uint8_t       indSz            = 0;
       Bounds        bounds;
@@ -88,7 +90,7 @@ class PackedMesh {
                  const std::vector<phoenix::wedge>& wedgeList,
                  const std::vector<SkeletalData>* skeletal);
 
-      bool    insert(const Vert& a, const Vert& b, const Vert& c, uint8_t matchHint);
+      bool    insert(const Vert& a, const Vert& b, const Vert& c);
       void    clear();
       void    updateBounds(const phoenix::mesh& mesh);
       void    updateBounds(const phoenix::proto_mesh& mesh);
@@ -99,23 +101,19 @@ class PackedMesh {
       void    merge(const Meshlet& other);
       };
 
-    void   addIndex(Meshlet* active, size_t numActive, std::vector<Meshlet>& meshlets,
-                    const Vert& a, const Vert& b, const Vert& c);
-    void   packMeshlets(const phoenix::mesh& mesh);
-
-    void   packMeshlets(const phoenix::proto_mesh& mesh, PkgType type,
-                        const std::vector<SkeletalData>* skeletal);
-
-    void   postProcessP1(const phoenix::mesh& mesh, size_t matId, std::vector<Meshlet>& meshlets);
-    void   postProcessP2(const phoenix::mesh& mesh, size_t matId, std::vector<Meshlet*>& meshlets);
-
-    void   sortPass(std::vector<Meshlet*>& meshlets);
-    void   mergePass(std::vector<Meshlet*>& meshlets, bool fast);
+    bool   addTriangle(Meshlet& dest, const phoenix::mesh* mesh, const phoenix::sub_mesh* proto_mesh, size_t id);
 
     void   packPhysics(const phoenix::mesh& mesh,PkgType type);
+    void   packMeshletsLnd(const phoenix::mesh& mesh);
+    void   packMeshletsObj(const phoenix::proto_mesh& mesh, PkgType type,
+                           const std::vector<SkeletalData>* skeletal);
+
+    std::vector<Meshlet> buildMeshlets(const phoenix::mesh* mesh, const phoenix::sub_mesh* proto_mesh,
+                                       PrimitiveHeap& heap, std::vector<bool>& used);
+
     void   computeBbox();
 
-    void   dbgUtilization(const std::vector<Meshlet*>& meshlets);
+    void   dbgUtilization(const std::vector<Meshlet>& meshlets);
     void   dbgMeshlets(const phoenix::mesh& mesh, const std::vector<Meshlet*>& meshlets);
   };
 

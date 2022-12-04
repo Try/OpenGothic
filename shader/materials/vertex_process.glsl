@@ -140,12 +140,22 @@ Varyings processVertex(out vec4 position, uint objId, uint vboOffset) {
   position = scene.viewProject*vec4(pos,1.0);
 #if defined(SHADOW_MAP)
 #  if defined(ATEST)
-  position.z -= 16.0*(1.0/32768.0)*position.w;
+  position.z -= 32.0*(1.0/32768.0)*position.w;
 #  else
   position.z -=  2.0*(1.0/32768.0)*position.w;
 #  endif
 #endif
   return shOut;
   }
+
+#if defined(MESH)
+uvec3 processPrimitive(uint iboOffset) {
+  uvec3 ret;
+  ret.x = indexes[iboOffset + 0];
+  ret.y = indexes[iboOffset + 1];
+  ret.z = indexes[iboOffset + 2];
+  return ret;
+  }
+#endif
 
 #endif
