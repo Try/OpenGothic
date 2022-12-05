@@ -531,7 +531,7 @@ void PackedMesh::packMeshletsLnd(const phoenix::mesh& mesh) {
     if(pack.iboLength>0)
       subMeshes.push_back(std::move(pack));
 
-    dbgUtilization(meshlets);
+    //dbgUtilization(meshlets);
     }
   }
 
@@ -570,7 +570,7 @@ void PackedMesh::packMeshletsObj(const phoenix::proto_mesh& mesh, PkgType type,
       i.flush(vertices,verticesA,indices,vId,pack,mesh.positions,sm.wedges,skeletal);
     pack.iboLength = indices.size() - pack.iboOffset;
 
-    dbgUtilization(meshlets);
+    //dbgUtilization(meshlets);
     }
   }
 
