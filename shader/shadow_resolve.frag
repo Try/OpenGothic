@@ -11,6 +11,7 @@
 #include "lighting/shadow_sampling.glsl"
 
 layout(location = 0) out vec4 outColor;
+layout(location = 0) in  vec2 UV;
 
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
