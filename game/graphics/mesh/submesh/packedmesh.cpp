@@ -322,13 +322,6 @@ void PackedMesh::Meshlet::merge(const Meshlet& other) {
   }
 
 PackedMesh::PackedMesh(const phoenix::mesh& mesh, PkgType type) {
-  if(Gothic::inst().doMeshShading()) {
-    auto& prop = Resources::device().properties().meshlets;
-    maxIboSliceLength = prop.maxMeshGroups * prop.maxMeshGroupSize * MaxInd;
-    } else {
-    maxIboSliceLength = 8*1024*3;
-    }
-
   if(type==PK_VisualLnd || type==PK_Visual) {
     packMeshletsLnd(mesh);
     computeBbox();

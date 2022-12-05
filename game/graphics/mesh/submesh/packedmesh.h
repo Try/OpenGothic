@@ -62,8 +62,6 @@ class PackedMesh {
     std::pair<Tempest::Vec3,Tempest::Vec3> bbox() const;
 
   private:
-    size_t        maxIboSliceLength = 0;
-    float         clusterRadius     = 20*100;
     Tempest::Vec3 mBbox[2];
 
     struct SkeletalData {
