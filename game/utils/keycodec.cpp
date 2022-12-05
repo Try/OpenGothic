@@ -155,8 +155,11 @@ void KeyCodec::set(std::string_view sec, std::string_view opt, int32_t code) {
 
 void KeyCodec::setDefaultKeys(std::string_view preset) {
   if(!Gothic::settingsHasSection(preset)) {
-    if(Gothic::inst().version().game==1)
-      setDefaultKeysG1();
+    if(Gothic::inst().version().game==1) {
+      if(preset=="KEYSDEFAULT0")
+        setDefaultKeysG1(); else
+        setDefaultKeysG1Alt();
+      }
     return;
     }
 
@@ -173,10 +176,10 @@ void KeyCodec::setDefaultKeysG1() {
 
   Gothic::settingsSetS("KEYS", "keyShowMap",     "3200");
   Gothic::settingsSetS("KEYS", "keyEnd",         "0100");
-  Gothic::settingsSetS("KEYS", "keyUp",          "c7001100");
-  Gothic::settingsSetS("KEYS", "keyDown",        "cf001f00");
-  Gothic::settingsSetS("KEYS", "keyLeft",        "d2001e00");
-  Gothic::settingsSetS("KEYS", "keyRight",       "c9002000");
+  Gothic::settingsSetS("KEYS", "keyUp",          "c800c700");
+  Gothic::settingsSetS("KEYS", "keyDown",        "d000cf00");
+  Gothic::settingsSetS("KEYS", "keyLeft",        "cb00d200");
+  Gothic::settingsSetS("KEYS", "keyRight",       "cd00c900");
   Gothic::settingsSetS("KEYS", "keyStrafeLeft",  "d300");
   Gothic::settingsSetS("KEYS", "keyStrafeRight", "d100");
   Gothic::settingsSetS("KEYS", "keyAction",      "1d00");
@@ -189,6 +192,34 @@ void KeyCodec::setDefaultKeysG1() {
   Gothic::settingsSetS("KEYS", "keyInventory",   "0f000e00");
   Gothic::settingsSetS("KEYS", "keyShowStatus",  "1f003000");
   Gothic::settingsSetS("KEYS", "keyShowLog",     "26003100");
+
+  for(auto i:allKeys) {
+    *i = setup(i->key);
+    }
+  }
+
+void KeyCodec::setDefaultKeysG1Alt() {
+  for(auto i:allKeys)
+    Gothic::settingsSetS("KEYS",i->key,"");
+
+  Gothic::settingsSetS("KEYS", "keyShowMap",     "3200");
+  Gothic::settingsSetS("KEYS", "keyEnd",         "0100");
+  Gothic::settingsSetS("KEYS", "keyUp",          "c8001100");
+  Gothic::settingsSetS("KEYS", "keyDown",        "d0001f00");
+  Gothic::settingsSetS("KEYS", "keyLeft",        "cb001000");
+  Gothic::settingsSetS("KEYS", "keyRight",       "cd001200");
+  Gothic::settingsSetS("KEYS", "keyStrafeLeft",  "d3001e00");
+  Gothic::settingsSetS("KEYS", "keyStrafeRight", "d1002000");
+  Gothic::settingsSetS("KEYS", "keyAction",      "1d00");
+  Gothic::settingsSetS("KEYS", "keySlow",        "2a00");
+  Gothic::settingsSetS("KEYS", "keySMove",       "3800b800");
+  Gothic::settingsSetS("KEYS", "keyWeapon",      "3900");
+  Gothic::settingsSetS("KEYS", "keySneak",       "2d003700");
+  Gothic::settingsSetS("KEYS", "keyLook",        "52001300");
+  Gothic::settingsSetS("KEYS", "keyLookFP",      "53002100");
+  Gothic::settingsSetS("KEYS", "keyInventory",   "0f000e00");
+  Gothic::settingsSetS("KEYS", "keyShowStatus",  "3000");
+  Gothic::settingsSetS("KEYS", "keyShowLog",     "3100");
 
   for(auto i:allKeys) {
     *i = setup(i->key);
