@@ -216,9 +216,7 @@ void Renderer::prepareUniforms() {
     }
 
   if(ssao.ssaoPso==&Shaders::inst().ssaoRq)
-    ssao.uboSsao   .set(5,wview->landscapeTlas());
-  if(ssao.ssaoComposePso==&Shaders::inst().ssaoComposeRq)
-    ssao.uboCompose.set(5,wview->landscapeTlas());
+    ssao.uboSsao.set(5,wview->landscapeTlas());
 
   const Texture2d* sh[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)

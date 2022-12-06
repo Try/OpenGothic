@@ -12,7 +12,7 @@
 #include "materials_common.glsl"
 #include "vertex_process.glsl"
 
-layout(local_size_x = WG_SIZE) in;
+layout(local_size_x = WORKGROUP_SIZE) in;
 layout(triangles, max_vertices = MaxVert, max_primitives = MaxPrim) out;
 
 out gl_MeshPerVertexEXT {
@@ -204,7 +204,7 @@ void main() {
 
   Varyings var;
   const uint laneID = gl_LocalInvocationIndex;
-  // laneID = gl_LocalInvocationIndex
+
   // AMD: prefersLocalInvocationVertexOutput / prefersLocalInvocationPrimitiveOutput
   if(laneID<primCount)
     gl_PrimitiveTriangleIndicesEXT[laneID] = processPrimitive(meshletId, laneID);
@@ -215,7 +215,8 @@ void main() {
     shOut[laneID]                          = var;
 #endif
 
-  if(gl_WorkGroupSize.x<64) {
+#if WORKGROUP_SIZE<64
+  {
     const uint id = laneID+32;
     if(id<primCount)
       gl_PrimitiveTriangleIndicesEXT[id] = processPrimitive(meshletId, id);
@@ -225,7 +226,8 @@ void main() {
     if(laneID<vertCount)
       shOut[id]                          = var;
 #endif
-    }
+  }
+#endif
 
 #if (DEBUG_DRAW) && !defined(LVL_OBJECT)
   for(int i=laneID; i<MaxVert; i+=gl_WorkGroupSize.x) {

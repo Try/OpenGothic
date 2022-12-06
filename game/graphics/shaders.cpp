@@ -6,71 +6,53 @@
 #include "resources.h"
 
 #include "shader.h"
+#include "utils/string_frm.h"
 
 using namespace Tempest;
 
+static constexpr uint32_t defaultWg = 32;
+
 Shaders* Shaders::instance = nullptr;
 
-void Shaders::ShaderSet::load(Device &device, const char *tag, const char *format, bool hasTesselation, bool hasMeshlets) {
-  char buf[256]={};
-
-  std::snprintf(buf,sizeof(buf),format,tag,"vert");
-  auto sh = GothicShader::get(buf);
-  vs = device.shader(sh.data,sh.len);
-
-  std::snprintf(buf,sizeof(buf),format,tag,"frag");
-  sh = GothicShader::get(buf);
+void Shaders::ShaderSet::load(Device &device, std::string_view tag, bool hasTesselation, bool hasMeshlets) {
+  auto sh = GothicShader::get(string_frm(tag,'.',"frag",".sprv"));
   fs = device.shader(sh.data,sh.len);
 
+  sh = GothicShader::get(string_frm(tag,'.',"vert",".sprv"));
+  vs = device.shader(sh.data,sh.len);
+
   if(hasTesselation) {
-    std::snprintf(buf,sizeof(buf),format,tag,"tesc");
-    auto sh = GothicShader::get(buf);
+    auto sh = GothicShader::get(string_frm(tag,'.',"tesc",".sprv"));
     tc = device.shader(sh.data,sh.len);
 
-    std::snprintf(buf,sizeof(buf),format,tag,"tese");
-    sh = GothicShader::get(buf);
+    sh = GothicShader::get(string_frm(tag,'.',"tese",".sprv"));
     te = device.shader(sh.data,sh.len);
     }
 
   if(hasMeshlets) {
-    // std::snprintf(buf,sizeof(buf),format,tag,"task");
-    // sh = GothicShader::get(buf);
-    // ts = device.shader(sh.data,sh.len);
-
-    std::snprintf(buf,sizeof(buf),format,tag,"64.mesh");
-    sh = GothicShader::get(buf);
+    sh = GothicShader::get(string_frm(tag,'.',defaultWg,".mesh",".sprv"));
     me = device.shader(sh.data,sh.len);
     }
   }
 
-void Shaders::ShaderSet::load(Device& device, const char* tag, bool hasTesselation, bool hasMeshlets) {
-  load(device,tag,"%s.%s.sprv",hasTesselation,hasMeshlets);
-  }
-
-void Shaders::MaterialTemplate::load(Device &device, const char *tag, bool hasTesselation, bool hasMeshlets) {
-  char flnd[256]={};
-  char fobj[256]={};
-  char fani[256]={};
-  char fmph[256]={};
-  char fclr[256]={};
-  if(tag==nullptr || tag[0]=='\0') {
-    std::snprintf(flnd,sizeof(fobj),"lnd");
-    std::snprintf(fobj,sizeof(fobj),"obj");
-    std::snprintf(fani,sizeof(fani),"ani");
-    std::snprintf(fmph,sizeof(fani),"mph");
-    std::snprintf(fclr,sizeof(fclr),"clr");
-    } else {
-    std::snprintf(flnd,sizeof(flnd),"lnd_%s",tag);
-    std::snprintf(fobj,sizeof(fobj),"obj_%s",tag);
-    std::snprintf(fani,sizeof(fani),"ani_%s",tag);
-    std::snprintf(fmph,sizeof(fmph),"mph_%s",tag);
-    std::snprintf(fclr,sizeof(fclr),"clr_%s",tag);
+void Shaders::MaterialTemplate::load(Device &device, std::string_view tag, bool hasTesselation, bool hasMeshlets) {
+  string_frm flnd = "lnd";
+  string_frm fobj = "obj";
+  string_frm fani = "ani";
+  string_frm fmph = "mph";
+  string_frm fclr = "clr";
+  if(!tag.empty()) {
+    flnd = string_frm("lnd_",tag);
+    fobj = string_frm("obj_",tag);
+    fani = string_frm("ani_",tag);
+    fmph = string_frm("mph_",tag);
+    fclr = string_frm("clr_",tag);
     }
-  lnd.load(device,flnd,"%s.%s.sprv",hasTesselation,hasMeshlets);
-  obj.load(device,fobj,"%s.%s.sprv",hasTesselation,hasMeshlets);
-  ani.load(device,fani,"%s.%s.sprv",hasTesselation,hasMeshlets);
-  mph.load(device,fmph,"%s.%s.sprv",hasTesselation,hasMeshlets);
-  pfx.load(device,fclr,"%s.%s.sprv",hasTesselation,false);
+  lnd.load(device,flnd,hasTesselation,hasMeshlets);
+  obj.load(device,fobj,hasTesselation,hasMeshlets);
+  ani.load(device,fani,hasTesselation,hasMeshlets);
+  mph.load(device,fmph,hasTesselation,hasMeshlets);
+  pfx.load(device,fclr,hasTesselation,false);
   }
 
 Shaders::Shaders() {
@@ -78,6 +60,7 @@ Shaders::Shaders() {
   auto& device = Resources::device();
 
   const bool meshlets = Gothic::inst().doMeshShading();
+
   solid   .load(device,"gbuffer",   false,meshlets);
   atest   .load(device,"gbuffer_at",false,meshlets);
   ghost   .load(device,"ghost",     false,meshlets);
@@ -111,8 +94,7 @@ Shaders::Shaders() {
   fog3d              = fogShader ("fog3d");
 
   if(Gothic::inst().doRayQuery()) {
-    ssaoRq        = postEffect("ssao",        "ssao_rq");
-    ssaoComposeRq = postEffect("ssao_compose","ssao_compose_rq");
+    ssaoRq = postEffect("ssao", "ssao_rq");
     }
 
   {
@@ -151,7 +133,7 @@ Shaders::Shaders() {
     state.setCullFaceMode(RenderState::CullMode::Front);
     state.setZTestMode   (RenderState::ZTestMode::Less);
 
-    auto sh = GothicShader::get("lnd_hiz.64.mesh.sprv");
+    auto sh = GothicShader::get(string_frm("lnd_hiz.",defaultWg,".mesh.sprv"));
     auto ms = device.shader(sh.data,sh.len);
     sh      = GothicShader::get("lnd_hiz.frag.sprv");
     auto fs = device.shader(sh.data,sh.len);

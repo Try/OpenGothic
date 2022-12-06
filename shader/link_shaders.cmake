@@ -7,7 +7,7 @@ set(CPP    "${CMAKE_CURRENT_BINARY_DIR}/sprv/shader.cpp")
 
 file(WRITE ${HEADER}
   "#include <cstdint>\n"
-  "#include <cstring>\n"
+  "#include <string_view>\n"
   "#include <stdexcept>\n"
   "\n"
   "struct GothicShader {\n"
@@ -21,14 +21,14 @@ foreach(i ${SOURCES})
   string(REPLACE "." "_" CLEAN_NAME ${NAME})
   file(APPEND ${HEADER} "  static const GothicShader ${CLEAN_NAME};\n")
 endforeach()
-file(APPEND ${HEADER} "  static GothicShader get(const char* name);\n")
+file(APPEND ${HEADER} "  static GothicShader get(std::string_view name);\n")
 file(APPEND ${HEADER} "  };\n")
 
-file(APPEND ${HEADER} "inline GothicShader GothicShader::get(const char* name) {\n")
+file(APPEND ${HEADER} "inline GothicShader GothicShader::get(std::string_view name) {\n")
 foreach(i ${SOURCES})
   get_filename_component(NAME ${i} NAME)
   string(REPLACE "." "_" CLEAN_NAME ${NAME})
-  file(APPEND ${HEADER} "  if(std::strcmp(\"${NAME}\",name)==0)\n")
+  file(APPEND ${HEADER} "  if(\"${NAME}\"==name)\n")
   file(APPEND ${HEADER} "    return ${CLEAN_NAME};\n")
 endforeach()
 file(APPEND ${HEADER} "  throw std::runtime_error(\"\");\n")

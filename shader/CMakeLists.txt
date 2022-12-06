@@ -32,19 +32,29 @@ function(add_shader OUTPUT SOURCE)
   set(OPENGOTHIC_SHADERS      ${OPENGOTHIC_SHADERS}      ${SOURCE_FILE} PARENT_SCOPE)
   set(OPENGOTHIC_SHADERS_SPRV ${OPENGOTHIC_SHADERS_SPRV} ${OUTPUT_FILE} PARENT_SCOPE)
 
-  string(REGEX MATCH "\.(mesh)" SPV14 ${OUTPUT})
-  if(SPV14)
-    set(ARG --target-env spirv1.4)
-  else()
-    set(ARG "")
+  list(SUBLIST ARGV 2 -1 VARS)
+
+  if("${OUTPUT}" MATCHES "\.(mesh)")
+    list(APPEND VARS "--target-env" "spirv1.4")
   endif()
 
-  list(SUBLIST ARGV 2 -1 VARS)
+  if("${OUTPUT}" MATCHES "\.(16).")
+    list(APPEND VARS "-DWORKGROUP_SIZE=16")
+  endif()
+
+  if("${OUTPUT}" MATCHES "\.(32).")
+    list(APPEND VARS "-DWORKGROUP_SIZE=32")
+  endif()
+
+  if("${OUTPUT}" MATCHES "\.(64).")
+    list(APPEND VARS "-DWORKGROUP_SIZE=64")
+  endif()
+
   add_custom_command(
     OUTPUT     ${OUTPUT_FILE}
     DEPENDS    ${SOURCE_FILE} ${GLSL_SOURCES}
     COMMAND    ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/sprv/"
-    COMMAND    ${GLSLANGVALIDATOR} -V ${VARS} ${ARG} "${SOURCE_FILE}" -o ${OUTPUT_FILE}
+    COMMAND    ${GLSLANGVALIDATOR} -V ${VARS} "${SOURCE_FILE}" -o ${OUTPUT_FILE}
     )
 endfunction(add_shader)
 
@@ -60,23 +70,23 @@ endfunction(add_shader)
 function(add_uber_shader OUTPUT)
   list(SUBLIST ARGV 1 -1 VARS)
   add_shader(${OUTPUT}_shadow.vert           materials/main.vert ${VARS} -DSHADOW_MAP)
-  add_shader(${OUTPUT}_shadow.32.mesh        materials/main.mesh ${VARS} -DSHADOW_MAP -DWG_SIZE=32)
-  add_shader(${OUTPUT}_shadow.64.mesh        materials/main.mesh ${VARS} -DSHADOW_MAP -DWG_SIZE=64)
+  add_shader(${OUTPUT}_shadow.32.mesh        materials/main.mesh ${VARS} -DSHADOW_MAP)
+  add_shader(${OUTPUT}_shadow.64.mesh        materials/main.mesh ${VARS} -DSHADOW_MAP)
   add_shader(${OUTPUT}_shadow.frag           materials/main.frag ${VARS} -DSHADOW_MAP)
 
   add_shader(${OUTPUT}_shadow_at.vert        materials/main.vert ${VARS} -DSHADOW_MAP -DATEST)
-  add_shader(${OUTPUT}_shadow_at.32.mesh     materials/main.mesh ${VARS} -DSHADOW_MAP -DATEST -DWG_SIZE=32)
-  add_shader(${OUTPUT}_shadow_at.64.mesh     materials/main.mesh ${VARS} -DSHADOW_MAP -DATEST -DWG_SIZE=64)
+  add_shader(${OUTPUT}_shadow_at.32.mesh     materials/main.mesh ${VARS} -DSHADOW_MAP -DATEST)
+  add_shader(${OUTPUT}_shadow_at.64.mesh     materials/main.mesh ${VARS} -DSHADOW_MAP -DATEST)
   add_shader(${OUTPUT}_shadow_at.frag        materials/main.frag ${VARS} -DSHADOW_MAP -DATEST)
 
   add_shader(${OUTPUT}.vert                  materials/main.vert ${VARS} -DFORWARD)
-  add_shader(${OUTPUT}.32.mesh               materials/main.mesh ${VARS} -DFORWARD -DWG_SIZE=32)
-  add_shader(${OUTPUT}.64.mesh               materials/main.mesh ${VARS} -DFORWARD -DWG_SIZE=64)
+  add_shader(${OUTPUT}.32.mesh               materials/main.mesh ${VARS} -DFORWARD)
+  add_shader(${OUTPUT}.64.mesh               materials/main.mesh ${VARS} -DFORWARD)
   add_shader(${OUTPUT}.frag                  materials/main.frag ${VARS} -DFORWARD)
 
   add_shader(${OUTPUT}_at.vert               materials/main.vert ${VARS} -DFORWARD -DATEST)
-  add_shader(${OUTPUT}_at.32.mesh            materials/main.mesh ${VARS} -DFORWARD -DATEST -DWG_SIZE=32)
-  add_shader(${OUTPUT}_at.64.mesh            materials/main.mesh ${VARS} -DFORWARD -DATEST -DWG_SIZE=64)
+  add_shader(${OUTPUT}_at.32.mesh            materials/main.mesh ${VARS} -DFORWARD -DATEST)
+  add_shader(${OUTPUT}_at.64.mesh            materials/main.mesh ${VARS} -DFORWARD -DATEST)
   add_shader(${OUTPUT}_at.frag               materials/main.frag ${VARS} -DFORWARD -DATEST)
 
   add_shader(${OUTPUT}_emi.vert              materials/main.vert ${VARS})
@@ -85,13 +95,13 @@ function(add_uber_shader OUTPUT)
   add_shader(${OUTPUT}_emi.frag              materials/main.frag ${VARS})
 
   add_shader(${OUTPUT}_gbuffer.vert          materials/main.vert ${VARS} -DGBUFFER)
-  add_shader(${OUTPUT}_gbuffer.32.mesh       materials/main.mesh ${VARS} -DGBUFFER -DWG_SIZE=32)
-  add_shader(${OUTPUT}_gbuffer.64.mesh       materials/main.mesh ${VARS} -DGBUFFER -DWG_SIZE=64)
+  add_shader(${OUTPUT}_gbuffer.32.mesh       materials/main.mesh ${VARS} -DGBUFFER)
+  add_shader(${OUTPUT}_gbuffer.64.mesh       materials/main.mesh ${VARS} -DGBUFFER)
   add_shader(${OUTPUT}_gbuffer.frag          materials/main.frag ${VARS} -DGBUFFER)
 
   add_shader(${OUTPUT}_gbuffer_at.vert       materials/main.vert ${VARS} -DGBUFFER -DATEST)
-  add_shader(${OUTPUT}_gbuffer_at.32.mesh    materials/main.mesh ${VARS} -DGBUFFER -DATEST -DWG_SIZE=32)
-  add_shader(${OUTPUT}_gbuffer_at.64.mesh    materials/main.mesh ${VARS} -DGBUFFER -DATEST -DWG_SIZE=64)
+  add_shader(${OUTPUT}_gbuffer_at.32.mesh    materials/main.mesh ${VARS} -DGBUFFER -DATEST)
+  add_shader(${OUTPUT}_gbuffer_at.64.mesh    materials/main.mesh ${VARS} -DGBUFFER -DATEST)
   add_shader(${OUTPUT}_gbuffer_at.frag       materials/main.frag ${VARS} -DGBUFFER -DATEST)
 
   add_shader(${OUTPUT}_water.vert            materials/main.vert ${VARS} -DFORWARD -DWATER)
@@ -100,8 +110,8 @@ function(add_uber_shader OUTPUT)
   add_shader(${OUTPUT}_water.frag            materials/main.frag ${VARS} -DFORWARD -DWATER)
 
   add_shader(${OUTPUT}_ghost.vert            materials/main.vert ${VARS} -DFORWARD -DGHOST)
-  add_shader(${OUTPUT}_ghost.32.mesh         materials/main.mesh ${VARS} -DFORWARD -DGHOST -DWG_SIZE=32)
-  add_shader(${OUTPUT}_ghost.64.mesh         materials/main.mesh ${VARS} -DFORWARD -DGHOST -DWG_SIZE=64)
+  add_shader(${OUTPUT}_ghost.32.mesh         materials/main.mesh ${VARS} -DFORWARD -DGHOST)
+  add_shader(${OUTPUT}_ghost.64.mesh         materials/main.mesh ${VARS} -DFORWARD -DGHOST)
   add_shader(${OUTPUT}_ghost.frag            materials/main.frag ${VARS} -DFORWARD -DGHOST)
 
   set(OPENGOTHIC_SHADERS      ${OPENGOTHIC_SHADERS}      PARENT_SCOPE)

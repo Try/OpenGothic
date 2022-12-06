@@ -21,7 +21,7 @@ class Shaders {
     Tempest::RenderPipeline copy;
     Tempest::RenderPipeline bilateralBlur;
     Tempest::RenderPipeline ssao, ssaoCompose;
-    Tempest::RenderPipeline ssaoRq, ssaoComposeRq;
+    Tempest::RenderPipeline ssaoRq;
 
     // Scalable and Production Ready Sky and Atmosphere
     Tempest::RenderPipeline  skyTransmittance, skyMultiScattering;
@@ -49,13 +49,12 @@ class Shaders {
       Tempest::Shader fs;
       Tempest::Shader tc, te;
       Tempest::Shader me;
-      void load(Tempest::Device &device, const char* tag, const char* format, bool hasTesselation, bool hasMeshlets);
-      void load(Tempest::Device &device, const char* tag, bool hasTesselation, bool hasMeshlets);
+      void load(Tempest::Device &device, std::string_view tag, bool hasTesselation, bool hasMeshlets);
       };
 
     struct MaterialTemplate {
       ShaderSet lnd, obj, ani, mph, pfx;
-      void load(Tempest::Device& device, const char* tag, bool hasTesselation=false, bool hasMeshlets=false);
+      void load(Tempest::Device& device, std::string_view tag, bool hasTesselation=false, bool hasMeshlets=false);
       };
 
     struct Entry {
