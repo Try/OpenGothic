@@ -1061,7 +1061,8 @@ void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
 void ObjectsBucketDyn::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   if(pHiZ==nullptr || objType!=LandscapeShadow || !useMeshlets)
     return;
-  cmd.setUniforms(*pHiZ, uboHiZ.ubo[fId][SceneGlobals::V_Shadow1]);
+  uint32_t meshletBase = 0;
+  cmd.setUniforms(*pHiZ, uboHiZ.ubo[fId][SceneGlobals::V_Shadow1], &meshletBase, sizeof(uint32_t));
   for(size_t i=0; i<valSz; ++i) {
     auto& v = val[i];
     if(!v.isValid)
