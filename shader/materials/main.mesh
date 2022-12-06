@@ -92,24 +92,28 @@ bool bboxTest(const uint objId) {
   ibbox[1] = ivec2(ceil(bbox[1].xy*hiZsize));
   ivec2 sz = ibbox[1]-ibbox[0];
 
-  [[dont_unroll]]
-  while(sz.x*sz.y>gl_WorkGroupSize.x) {
-    ibbox[0] = ibbox[0]/2;
-    ibbox[1] = (ibbox[1]+ivec2(1))/2;
-    sz       = ibbox[1]-ibbox[0];
-    mip++;
-    }
-
   bool visible = false;
-  if(sz.x>0) {
-    ivec2 offset  = ivec2(laneID%sz.x,laneID/sz.x);
-    ivec2 at      = ibbox[0]+offset;
-    if(offset.y<sz.y) {
-      float bz = bbox[0].z;
-      bz = (1.0-bz)*20.0;
-      float z  = texelFetch(hiZ, at, mip).x;
-      if(bz >= z)
-        visible = true;
+
+  const uint maxHiZSamples = 16;
+  if(laneID<maxHiZSamples) {
+    [[dont_unroll]]
+    while(sz.x*sz.y>maxHiZSamples) {
+      ibbox[0] = ibbox[0]/2;
+      ibbox[1] = (ibbox[1]+ivec2(1))/2;
+      sz       = ibbox[1]-ibbox[0];
+      mip++;
+      }
+
+    if(0<sz.x) {
+      ivec2 offset  = ivec2(laneID%sz.x,laneID/sz.x);
+      ivec2 at      = ibbox[0]+offset;
+      if(offset.y<sz.y) {
+        float bz = bbox[0].z;
+        bz = (1.0-bz)*20.0;
+        float z  = texelFetch(hiZ, at, mip).x;
+        if(bz >= z)
+          visible = true;
+        }
       }
     }
 
