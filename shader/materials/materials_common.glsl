@@ -113,15 +113,15 @@ layout(push_constant, std430) uniform UboPush {
 #elif (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING)
 layout(push_constant, std430) uniform UboPush {
   uint      meshletBase;
-  uint      meshletCount;
   uint      firstInstance;
+  uint      padd0;
   float     fatness;
   } push;
 #elif (MESH_TYPE==T_MORPH)
 layout(push_constant, std430) uniform UboPush {
   uint      meshletBase;
-  uint      meshletCount;
   uint      firstInstance;
+  uint      padd0;
   float     fatness;
 
   MorphDesc morph[MAX_MORPH_LAYERS];

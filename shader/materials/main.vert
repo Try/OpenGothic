@@ -25,9 +25,10 @@ void main() {
   uint objId = 0;
 #endif
 
-  const Varyings out0 = processVertex(gl_Position,objId,gl_VertexIndex);
+  Varyings var;
+  gl_Position = processVertex(var, objId, gl_VertexIndex);
 #if defined(MAT_VARYINGS)
-  shOut = out0;
+  shOut = var;
 #endif
 
 #if DEBUG_DRAW

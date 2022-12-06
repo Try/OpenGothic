@@ -2,8 +2,9 @@
 
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : enable
-#extension GL_NV_mesh_shader : require
 #extension GL_EXT_control_flow_attributes : enable
+
+#extension GL_EXT_mesh_shader : require
 
 #include "../scalar_ops.glsl"
 
@@ -11,12 +12,12 @@
 #include "materials_common.glsl"
 #include "vertex_process.glsl"
 
-layout(local_size_x = 32) in;
-layout(triangles, max_vertices = 64, max_primitives = MaxPrim) out;
+layout(local_size_x = WG_SIZE) in;
+layout(triangles, max_vertices = MaxVert, max_primitives = MaxPrim) out;
 
-out gl_MeshPerVertexNV {
+out gl_MeshPerVertexEXT {
   vec4 gl_Position;
-  } gl_MeshVerticesNV[];
+  } gl_MeshVerticesEXT[];
 
 #if defined(MAT_VARYINGS)
 layout(location = 0) out Varyings shOut[];  // [max_vertices]
@@ -117,51 +118,52 @@ bool bboxTest(const uint objId) {
   }
 #endif
 
-void SetMeshOutputCounts(uint vertexCount, uint primitiveCount) {
-#if defined(GL_NV_mesh_shader)
-  if(gl_LocalInvocationIndex==0)
-    gl_PrimitiveCountNV = primitiveCount;
-#elif defined(GL_EXT_mesh_shader)
-  SetMeshOutputsEXT(vertexCount, primitiveCount);
-#endif
+uvec2  processMeshlet(const uint meshletId) {
+  uint vertCount = MaxVert;
+  uint primCount = MaxPrim;
+
+  const uint iboOffset = meshletId * MaxInd + MaxInd - 3;
+  const uint index0    = meshletId * MaxVert; // TODO: uint8 ibo
+  uvec3 ret;
+  ret.x = indexes[iboOffset + 0];
+  ret.y = indexes[iboOffset + 1];
+  ret.z = indexes[iboOffset + 2];
+  if(ret.x==ret.y) {
+    // last dummy triangle encodes primitive count
+    primCount = ret.x - index0;
+    //vertCount = ret.z; // TODO
+    }
+  return uvec2(vertCount, primCount);
   }
 
-void primitiveShader(const uint outId, const uint objId, const uint meshletId) {
+uvec3 processPrimitive(const uint meshletId, const uint outId) {
+  const uint  iboOffset = meshletId * MaxInd  + outId*3;
+  const uint  index0    = meshletId * MaxVert; // TODO: uint8 ibo
+  const uvec3 prim      = processPrimitive(iboOffset) - uvec3(index0);
+  return prim;
+  }
+
+vec4  processVertex(out Varyings var, const uint objId, const uint meshletId, const uint outId) {
   const uint vboOffset = meshletId * MaxVert + outId;
   const uint iboOffset = meshletId * MaxInd  + outId*3;
   const uint index0    = meshletId * MaxVert; // TODO: uint8 ibo
 
-  vec4 position;
-
-  const Varyings var = processVertex(position, objId, vboOffset);
-  gl_MeshVerticesNV[outId].gl_Position = position;
-#if defined(MAT_VARYINGS)
-  shOut            [outId]             = var;
-#endif
-#if (DEBUG_DRAW) && !defined(LVL_OBJECT)
-  debugId          [outId]             = meshletId;
-#endif
-
-  uvec3 prim = processPrimitive(iboOffset) - uvec3(index0);
-
-  gl_PrimitiveIndicesNV[outId*3 + 0] = prim.x;
-  gl_PrimitiveIndicesNV[outId*3 + 1] = prim.y;
-  gl_PrimitiveIndicesNV[outId*3 + 2] = prim.z;
+  vec4 position = processVertex(var, objId, vboOffset);
+  // position.y = -position.y;
+  return position;
   }
 
 void main() {
 #if defined(LVL_OBJECT)
-  const uint objId     = gl_WorkGroupID.x/push.meshletCount + push.firstInstance;
-  const uint meshletId = gl_WorkGroupID.x%push.meshletCount + push.meshletBase;
+  const uint objId     = gl_WorkGroupID.y + push.firstInstance;
+  const uint meshletId = gl_WorkGroupID.x + push.meshletBase;
 #elif (MESH_TYPE==T_LANDSCAPE)
-  const uint objId     = gl_WorkGroupID.x + push.meshletBase;
+  const uint objId     = 0;
   const uint meshletId = gl_WorkGroupID.x + push.meshletBase;
 #else
   const uint objId     = 0;
   const uint meshletId = gl_WorkGroupID.x;
 #endif
-
-  const uint laneID    = gl_LocalInvocationIndex;
 
 #if defined(SHADOW_MAP)
 #  if (MESH_TYPE==T_LANDSCAPE)
@@ -174,42 +176,58 @@ void main() {
 #else
 #  if (MESH_TYPE==T_LANDSCAPE)
   const bool visible = bboxTest(meshletId);
-  //const bool visible = sphereTest(objId,meshletId);
 #  elif (MESH_TYPE==T_PFX)
   const bool visible = true;
 #  else
   const bool visible = bboxTest(objId);
-  //const bool visible = sphereTest(objId,meshletId);
 #  endif
 #endif
 
   if(!visible) {
-    SetMeshOutputCounts(0,0);
-    return;
+    // NOTE: produces compiller error on DX
+    // SetMeshOutputsEXT(0, 0);
+    // return;
     }
 
-  uint vertCount = MaxVert;
-  uint primCount = MaxPrim;
-  if(laneID==0) {
-    const uint iboOffset = meshletId * MaxInd + MaxInd - 3;
-    const uint index0    = meshletId * MaxVert; // TODO: uint8 ibo
-    uvec3 ret;
-    ret.x = indexes[iboOffset + 0];
-    ret.y = indexes[iboOffset + 1];
-    ret.z = indexes[iboOffset + 2];
-    if(ret.x==ret.y) {
-      // last dummy triangle encodes primitive count
-      primCount = ret.x - index0;
-      //vertCount = ret.z;
-      }
-    }
+  const uvec2 mesh      = visible ? processMeshlet(meshletId) : uvec2(0);
+  const uint  vertCount = mesh.x;
+  const uint  primCount = mesh.y;
 
   // Alloc outputs
-  SetMeshOutputCounts(vertCount, primCount);
+  SetMeshOutputsEXT(vertCount, primCount);
+  if(!visible)
+    return;
 
-  primitiveShader(laneID, objId, meshletId);
-  if(gl_WorkGroupSize.x<64)
-    primitiveShader(laneID+32, objId, meshletId);
+  Varyings var;
+  const uint laneID = gl_LocalInvocationIndex;
+  // laneID = gl_LocalInvocationIndex
+  // AMD: prefersLocalInvocationVertexOutput / prefersLocalInvocationPrimitiveOutput
+  if(laneID<primCount)
+    gl_PrimitiveTriangleIndicesEXT[laneID] = processPrimitive(meshletId, laneID);
+  if(laneID<vertCount)
+    gl_MeshVerticesEXT[laneID].gl_Position = processVertex(var, objId, meshletId, laneID);
+#if defined(MAT_VARYINGS)
+  if(laneID<vertCount)
+    shOut[laneID]                          = var;
+#endif
+
+  if(gl_WorkGroupSize.x<64) {
+    const uint id = laneID+32;
+    if(id<primCount)
+      gl_PrimitiveTriangleIndicesEXT[id] = processPrimitive(meshletId, id);
+    if(id<vertCount)
+      gl_MeshVerticesEXT[id].gl_Position = processVertex(var, objId, meshletId, id);
+#if defined(MAT_VARYINGS)
+    if(laneID<vertCount)
+      shOut[id]                          = var;
+#endif
+    }
+
+#if (DEBUG_DRAW) && !defined(LVL_OBJECT)
+  for(int i=laneID; i<MaxVert; i+=gl_WorkGroupSize.x) {
+    debugId[i] = meshletId;
+    }
+#endif
 
 #if 0 && defined(LVL_OBJECT) && !defined(DEPTH_ONLY) && (MESH_TYPE==T_SKINING)
   // DEBUG CODE

@@ -124,6 +124,8 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices,
     // padd with degenerated triangles
     indices[iboSz+i] = uint32_t(vboSz+indSz/3);
     }
+  if(indSz+1<MaxInd)
+    ;//indices[iboSz+MaxInd-1] = uint32_t(vboSz+vertSz);
   }
 
 void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices, std::vector<VertexA>& verticesA,
@@ -208,6 +210,8 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices, std::vector<Verte
     // padd with degenerated triangles
     indices[iboSz+i] = uint32_t(vboSz+indSz/3);
     }
+  if(indSz+1<MaxInd)
+    ;//indices[iboSz+MaxInd-1] = uint32_t(vboSz+vertSz);
   }
 
 bool PackedMesh::Meshlet::insert(const Vert& a, const Vert& b, const Vert& c) {
@@ -511,7 +515,7 @@ void PackedMesh::packMeshletsLnd(const phoenix::mesh& mesh) {
     if(heap.size()==0)
       continue;
 
-    std::vector<Meshlet>  meshlets = buildMeshlets(&mesh,nullptr,heap,used);
+    std::vector<Meshlet> meshlets = buildMeshlets(&mesh,nullptr,heap,used);
     for(size_t i=0; i<meshlets.size(); ++i)
       meshlets[i].updateBounds(mesh);
 

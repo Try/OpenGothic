@@ -44,9 +44,7 @@ vec3 morphOffset(int i, uint vertexIndex) {
   }
 #endif
 
-Varyings processVertex(out vec4 position, uint objId, uint vboOffset) {
-  Varyings shOut;
-
+vec4 processVertex(out Varyings shOut, uint objId, uint vboOffset) {
 #if   (MESH_TYPE==T_SKINING) && defined(VERTEX)
   vec3  normal = inNormal;
   vec2  uv     = inUV;
@@ -137,7 +135,7 @@ Varyings processVertex(out vec4 position, uint objId, uint vboOffset) {
   shOut.color = unpackUnorm4x8(color);
 #endif
 
-  position = scene.viewProject*vec4(pos,1.0);
+  vec4 position = scene.viewProject*vec4(pos,1.0);
 #if defined(SHADOW_MAP)
 #  if defined(ATEST)
   position.z -= 32.0*(1.0/32768.0)*position.w;
@@ -145,7 +143,7 @@ Varyings processVertex(out vec4 position, uint objId, uint vboOffset) {
   position.z -=  2.0*(1.0/32768.0)*position.w;
 #  endif
 #endif
-  return shOut;
+  return position;
   }
 
 #if defined(MESH)

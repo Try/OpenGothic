@@ -156,8 +156,8 @@ class ObjectsBucket {
 
     struct UboPushBase {
       uint32_t  meshletBase   = 0;
-      uint32_t  meshletCount  = 0;
       uint32_t  firstInstance = 0;
+      uint32_t  padd0         = 0;
       float     fatness       = 0;
       };
 

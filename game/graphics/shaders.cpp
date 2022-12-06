@@ -37,7 +37,7 @@ void Shaders::ShaderSet::load(Device &device, const char *tag, const char *forma
     // sh = GothicShader::get(buf);
     // ts = device.shader(sh.data,sh.len);
 
-    std::snprintf(buf,sizeof(buf),format,tag,"mesh");
+    std::snprintf(buf,sizeof(buf),format,tag,"64.mesh");
     sh = GothicShader::get(buf);
     me = device.shader(sh.data,sh.len);
     }
@@ -151,7 +151,7 @@ Shaders::Shaders() {
     state.setCullFaceMode(RenderState::CullMode::Front);
     state.setZTestMode   (RenderState::ZTestMode::Less);
 
-    auto sh = GothicShader::get("lnd_hiz.mesh.sprv");
+    auto sh = GothicShader::get("lnd_hiz.64.mesh.sprv");
     auto ms = device.shader(sh.data,sh.len);
     sh      = GothicShader::get("lnd_hiz.frag.sprv");
     auto fs = device.shader(sh.data,sh.len);

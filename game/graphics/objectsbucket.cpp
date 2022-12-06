@@ -580,7 +580,7 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId, const R
         if(useMeshlets) {
           uint32_t meshletBase = (v.iboOffset/PackedMesh::MaxInd);
           cmd.setUniforms(shader, &meshletBase, sizeof(uint32_t));
-          cmd.dispatchMesh(v.iboLength/PackedMesh::MaxInd);
+          cmd.dispatchMesh(v.iboLength/PackedMesh::MaxInd, 1);
           } else {
           cmd.draw(staticMesh->vbo, staticMesh->ibo, v.iboOffset, v.iboLength);
           }
@@ -604,10 +604,8 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId, const R
 
         updatePushBlock(pushBlock,v,instance);
         if(useMeshlets) {
-          pushBlock.meshletBase  = uint32_t(v.iboOffset/PackedMesh::MaxInd);
-          pushBlock.meshletCount = uint32_t(v.iboLength/PackedMesh::MaxInd);
           cmd.setUniforms(shader, &pushBlock, uboSz);
-          cmd.dispatchMesh(cnt*pushBlock.meshletCount);
+          cmd.dispatchMesh(uint32_t(v.iboLength/PackedMesh::MaxInd), cnt);
           } else {
           cmd.setUniforms(shader, &pushBlock, uboSz);
           if(objType!=Animated)
@@ -644,10 +642,8 @@ void ObjectsBucket::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer>& cm
 
       updatePushBlock(pushBlock,v,instance);
       if(useMeshlets) {
-        pushBlock.meshletBase  = uint32_t(v.iboOffset/PackedMesh::MaxInd);
-        pushBlock.meshletCount = uint32_t(v.iboLength/PackedMesh::MaxInd);
         cmd.setUniforms(*pInventory, &pushBlock, uboSz);
-        cmd.dispatchMesh(pushBlock.meshletCount);
+        cmd.dispatchMesh(uint32_t(v.iboLength/PackedMesh::MaxInd), 1);
         } else {
         cmd.setUniforms(*pInventory, &pushBlock, uboSz);
         cmd.draw(staticMesh->vbo, staticMesh->ibo, v.iboOffset, v.iboLength, instance, 1);
@@ -759,6 +755,7 @@ bool ObjectsBucket::isSceneInfoRequired() const {
   }
 
 void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket::Object& v, uint32_t instance) {
+  push.meshletBase   = uint32_t(v.iboOffset/PackedMesh::MaxInd);
   push.firstInstance = instance;
   push.fatness       = v.fatness;
 
@@ -1024,7 +1021,7 @@ void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
         uint32_t meshletBase = (v.iboOffset/PackedMesh::MaxInd);
         cmd.setUniforms(shader, uboObj[id].ubo[fId][c], &meshletBase, sizeof(uint32_t));
         if(useMeshlets) {
-          cmd.dispatchMesh(v.iboLength/PackedMesh::MaxInd);
+          cmd.dispatchMesh(v.iboLength/PackedMesh::MaxInd, 1);
           } else {
           cmd.draw(staticMesh->vbo, staticMesh->ibo, v.iboOffset, v.iboLength);
           }
@@ -1043,14 +1040,12 @@ void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
         if(objType!=Animated)
           instance = objPositions.offsetId()+uint32_t(id); else
           instance = v.skiningAni->offsetId();
-        size_t   uboSz    = (objType==Morph ? sizeof(UboPush) : sizeof(UboPushBase));
 
+        size_t uboSz = (objType==Morph ? sizeof(UboPush) : sizeof(UboPushBase));
         updatePushBlock(pushBlock,v,instance);
         if(useMeshlets) {
-          pushBlock.meshletBase  = uint32_t(v.iboOffset/PackedMesh::MaxInd);
-          pushBlock.meshletCount = uint32_t(v.iboLength/PackedMesh::MaxInd);
           cmd.setUniforms(shader, uboObj[id].ubo[fId][c], &pushBlock, uboSz);
-          cmd.dispatchMesh(pushBlock.meshletCount);
+          cmd.dispatchMesh(uint32_t(v.iboLength/PackedMesh::MaxInd), 1);
           } else {
           cmd.setUniforms(shader, uboObj[id].ubo[fId][c], &pushBlock, uboSz);
           if(objType!=Animated)
@@ -1073,6 +1068,6 @@ void ObjectsBucketDyn::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, ui
       continue;
     uint32_t meshletBase = (v.iboOffset/PackedMesh::MaxInd);
     cmd.setUniforms(*pHiZ, &meshletBase, sizeof(uint32_t));
-    cmd.dispatchMesh(v.iboLength/PackedMesh::MaxInd);
+    cmd.dispatchMesh(v.iboLength/PackedMesh::MaxInd, 1);
     }
   }
