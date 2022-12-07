@@ -16,7 +16,7 @@ class Shaders {
     static Shaders& inst();
 
     Tempest::RenderPipeline lights, lightsRq;
-    Tempest::RenderPipeline shadowResolve;
+    Tempest::RenderPipeline shadowResolve, shadowResolveSh, shadowResolveRq;
 
     Tempest::RenderPipeline copy;
     Tempest::RenderPipeline bilateralBlur;

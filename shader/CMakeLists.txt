@@ -16,9 +16,8 @@ file(GLOB_RECURSE SOURCES
   "${CMAKE_SOURCE_DIR}/shader/*.mesh"
   "${CMAKE_SOURCE_DIR}/shader/*.comp")
 
-file(GLOB GLSL_SOURCES
-  "${CMAKE_SOURCE_DIR}/shader/*.glsl"
-  "${CMAKE_SOURCE_DIR}/shader/**/*.glsl")
+file(GLOB_RECURSE GLSL_SOURCES
+  "${CMAKE_SOURCE_DIR}/shader/*.glsl")
 
 # GLSL to SPIRV compiler
 find_program(GLSLANGVALIDATOR glslangValidator "/opt/homebrew/bin")
@@ -125,12 +124,14 @@ add_uber_shader(ani "-DMESH_TYPE=2")
 add_uber_shader(mph "-DMESH_TYPE=3")
 add_uber_shader(clr "-DMESH_TYPE=4")
 
-add_shader(lnd_hiz.32.mesh           materials/main.mesh -DMESH_TYPE=0 -DHIZ -DWG_SIZE=32)
-add_shader(lnd_hiz.64.mesh           materials/main.mesh -DMESH_TYPE=0 -DHIZ -DWG_SIZE=64)
+add_shader(lnd_hiz.32.mesh           materials/main.mesh -DMESH_TYPE=0 -DHIZ)
+add_shader(lnd_hiz.64.mesh           materials/main.mesh -DMESH_TYPE=0 -DHIZ)
 add_shader(lnd_hiz.frag              materials/main.frag -DMESH_TYPE=0 -DHIZ)
 
 add_shader(shadow_resolve.vert       copy.vert "")
 add_shader(shadow_resolve.frag       shadow_resolve.frag "")
+add_shader(shadow_resolve_sh.frag    shadow_resolve.frag -DSHADOW_MAP)
+add_shader(shadow_resolve_rq.frag    shadow_resolve.frag -DSHADOW_MAP -DRAY_QUERY)
 
 add_shader(light.vert                light.vert "")
 add_shader(light.frag                light.frag "")

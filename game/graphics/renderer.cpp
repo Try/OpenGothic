@@ -137,7 +137,13 @@ void Renderer::resetSwapchain() {
   uboCopyDepth = device.descriptors(Shaders::inst().copy);
   uboCopyDepth.set(0, zbuffer);
 
-  shadow.composePso = &Shaders::inst().shadowResolve;
+  if(Gothic::inst().doRayQuery() && settings.shadowResolution>0 && false)
+    shadow.composePso = &Shaders::inst().shadowResolveRq;
+  else if(settings.shadowResolution>0)
+    shadow.composePso = &Shaders::inst().shadowResolveSh;
+  else
+    shadow.composePso = &Shaders::inst().shadowResolve;
+
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
     shadow.ubo[i] = device.descriptors(*shadow.composePso);
 
@@ -211,8 +217,13 @@ void Renderer::prepareUniforms() {
     shadow.ubo[i].set(2, gbufNormal);
     shadow.ubo[i].set(3, zbuffer);
 
-    shadow.ubo[i].set(4, shadowMap[0]);
-    shadow.ubo[i].set(5, shadowMap[1]);
+    for(size_t r=0; r<Resources::ShadowLayers; ++r) {
+      if(shadowMap[r].isEmpty())
+        continue;
+      shadow.ubo[i].set(4+r, shadowMap[r]);
+      }
+    if(shadow.composePso==&Shaders::inst().shadowResolveRq)
+      shadow.ubo[i].set(6,wview->landscapeTlas());
     }
 
   if(ssao.ssaoPso==&Shaders::inst().ssaoRq)

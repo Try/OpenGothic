@@ -79,6 +79,8 @@ Shaders::Shaders() {
   ssaoCompose        = postEffect("ssao_compose");
   bilateralBlur      = postEffect("bilateral");
   shadowResolve      = postEffect("shadow_resolve");
+  shadowResolveSh    = postEffect("shadow_resolve", "shadow_resolve_sh");
+  shadowResolveRq    = postEffect("shadow_resolve", "shadow_resolve_rq");
 
   cloudsLut          = computeShader("clouds_lut.comp.sprv");
   skyTransmittance   = postEffect("sky_transmittance");
