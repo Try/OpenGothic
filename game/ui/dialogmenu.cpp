@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "utils/gthfont.h"
+#include "utils/string_frm.h"
 #include "world/objects/npc.h"
 #include "gothic.h"
 #include "inventorymenu.h"
@@ -225,7 +226,7 @@ bool DialogMenu::aiOutput(Npc &npc, std::string_view msg) {
   current.txt     = Gothic::inst().messageByName(msg);
   current.msgTime = Gothic::inst().messageTime(msg);
   current.time    = current.msgTime + (dlgAnimation ? ANIM_TIME*2 : 0);
-  currentSnd      = soundDevice.load(Resources::loadSoundBuffer(std::string(msg)+".wav"));
+  currentSnd      = soundDevice.load(Resources::loadSoundBuffer(string_frm(msg,".wav")));
   curentIsPl      = (pl==&npc);
 
   currentSnd.play();

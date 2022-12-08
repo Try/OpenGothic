@@ -797,7 +797,7 @@ std::vector<GameScript::DlgChoise> GameScript::dialogChoises(std::shared_ptr<pho
         continue;
 
       DlgChoise ch;
-      ch.title    = info.description.c_str();
+      ch.title    = info.description;
       ch.scriptFn = info.information;
       ch.handle   = i;
       ch.isTrade  = info.trade!=0;
@@ -825,7 +825,7 @@ std::vector<GameScript::DlgChoise> GameScript::updateDialog(const GameScript::Dl
   for(size_t i=0;i<info.choices.size();++i){
     auto& sub = info.choices[i];
     GameScript::DlgChoise ch;
-    ch.title    = sub.text.c_str();
+    ch.title    = sub.text;
     ch.scriptFn = sub.function;
     ch.handle   = dlg.handle;
     ch.isTrade  = false;

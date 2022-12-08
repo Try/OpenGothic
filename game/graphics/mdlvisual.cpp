@@ -158,7 +158,7 @@ void MdlVisual::setSlotAttachment(MeshObjects::Mesh&& itm, std::string_view bone
     }
 
   MeshAttach slt;
-  slt.bone = skeleton->nodes[id].name.c_str();
+  slt.bone = skeleton->nodes[id].name;
   bind(slt,std::move(itm),slt.bone);
   attach.push_back(std::move(slt));
   }
@@ -212,7 +212,7 @@ void MdlVisual::setSlotItem(MeshObjects::Mesh &&itm, std::string_view bone) {
     }
 
   MeshAttach slt;
-  slt.bone = skeleton->nodes[id].name.c_str();
+  slt.bone = skeleton->nodes[id].name;
   bind(slt,std::move(itm),slt.bone);
   item.push_back(std::move(slt));
   syncAttaches();

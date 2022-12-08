@@ -701,37 +701,36 @@ void Gothic::setupSettings() {
   const float soundVolume = settingsGetF("SOUND","soundVolume");
   sndDev.setGlobalVolume(soundVolume);
 
-  auto        ord  = std::string(Gothic::settingsGetS("GAME","invCatOrder"));
-  const char* name = ord.c_str();
-  for(size_t i=0; i<=ord.size(); ++i) {
-    if(i<ord.size() && ord[i]==',')
-      ord[i] = '\0';
+  auto ord  = Gothic::settingsGetS("GAME","invCatOrder");
+  while(!ord.empty()) {
+    auto l    = ord.find(',');
+    auto name = ord.substr(0,l);
 
-    if(i==ord.size() || ord[i]=='\0') {
-      ItmFlags v = ITM_CAT_NONE;
-      if(std::strcmp(name,"COMBAT")==0)
-        v = ItmFlags(ITM_CAT_NF|ITM_CAT_FF|ITM_CAT_MUN);
-      else if(std::strcmp(name,"POTION")==0)
-        v = ITM_CAT_POTION;
-      else if(std::strcmp(name,"FOOD")==0)
-        v = ITM_CAT_FOOD;
-      else if(std::strcmp(name,"ARMOR")==0)
-        v = ITM_CAT_ARMOR;
-      else if(std::strcmp(name,"MAGIC")==0)
-        v = ITM_CAT_MAGIC;
-      else if(std::strcmp(name,"RUNE")==0)
-        v = ITM_CAT_RUNE;
-      else if(std::strcmp(name,"DOCS")==0)
-        v = ITM_CAT_DOCS;
-      else if(std::strcmp(name,"OTHER")==0)
-        v = ITM_CAT_LIGHT;
-      else if(std::strcmp(name,"NONE")==0)
-        v = ITM_CAT_NONE;
-      else
-        continue;
-      inventoryOrder.push_back(v);
-      name = ord.c_str()+i+1;
-      }
+    ItmFlags v = ITM_CAT_NONE;
+    if(name=="COMBAT")
+      v = ItmFlags(ITM_CAT_NF|ITM_CAT_FF|ITM_CAT_MUN);
+    else if(name=="POTION")
+      v = ITM_CAT_POTION;
+    else if(name=="FOOD")
+      v = ITM_CAT_FOOD;
+    else if(name=="ARMOR")
+      v = ITM_CAT_ARMOR;
+    else if(name=="MAGIC")
+      v = ITM_CAT_MAGIC;
+    else if(name=="RUNE")
+      v = ITM_CAT_RUNE;
+    else if(name=="DOCS")
+      v = ITM_CAT_DOCS;
+    else if(name=="OTHER")
+      v = ITM_CAT_LIGHT;
+    else if(name=="NONE")
+      v = ITM_CAT_NONE;
+    else
+      continue;
+    inventoryOrder.push_back(v);
+    if(l==std::string::npos)
+      break;
+    ord = ord.substr(l+1);
     }
   }
 

@@ -333,6 +333,6 @@ bool WorldSound::canSeeSource(const Tempest::Vec3& p) const {
 void WorldSound::aiOutput(const Tempest::Vec3& pos, std::string_view outputname) {
   if(isInListenerRange(pos,talkRange)){
     std::lock_guard<std::mutex> guard(sync);
-    Gothic::inst().emitGlobalSound(Resources::loadSoundBuffer(std::string(outputname)+".wav"));
+    Gothic::inst().emitGlobalSound(Resources::loadSoundBuffer(string_frm(outputname,".wav")));
     }
   }

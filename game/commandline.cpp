@@ -8,6 +8,7 @@
 
 #include "utils/installdetect.h"
 #include "utils/fileutil.h"
+#include "utils/string_frm.h"
 
 using namespace Tempest;
 using namespace FileUtil;
@@ -38,7 +39,7 @@ CommandLine::CommandLine(int argc, const char** argv) {
         if(std::strcmp(argv[i],"q")==0) {
           saveDef = "save_slot_0.sav";
           } else {
-          saveDef = std::string("save_slot_")+argv[i]+".sav";
+          saveDef = string_frm("save_slot_",argv[i],".sav");
           }
         }
       }
