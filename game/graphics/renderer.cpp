@@ -151,9 +151,9 @@ void Renderer::resetSwapchain() {
   ssao.ssaoBuf = device.attachment(ssao.aoFormat, (swapchain.w()+1)/2,(swapchain.h()+1)/2);
   ssao.blurBuf = device.attachment(ssao.aoFormat, (swapchain.w()+1)/2,(swapchain.h()+1)/2);
 
-  if(Gothic::inst().doRayQuery()) {
+  if(Gothic::inst().doRayQuery() && false) {
+    // disabled
     ssao.ssaoPso        = &Shaders::inst().ssaoRq;
-    //ssao.ssaoComposePso = &Shaders::inst().ssaoComposeRq;
     ssao.ssaoComposePso = &Shaders::inst().ssaoCompose;
     } else {
     ssao.ssaoPso        = &Shaders::inst().ssao;
