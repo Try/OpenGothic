@@ -696,8 +696,7 @@ World &GameScript::world() {
   }
 
 phoenix::c_focus GameScript::getFocus(std::string_view name) {
-  // https://github.com/lmichaelis/phoenix/issues/30
-  auto id = vm.find_symbol_by_name(std::string(name));
+  auto id = vm.find_symbol_by_name(name);
   if(id==nullptr)
     return {};
   try {
@@ -1029,8 +1028,7 @@ void GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
   }
 
 int GameScript::invokeCond(Npc& npc, std::string_view func) {
-  // https://github.com/lmichaelis/phoenix/issues/30
-  auto fn = vm.find_symbol_by_name(std::string(func));
+  auto fn = vm.find_symbol_by_name(func);
   if(fn==nullptr) {
     Gothic::inst().onPrint("MOBSI::conditionFunc is not invalid");
     return 1;
@@ -1118,7 +1116,7 @@ std::string_view GameScript::messageFromSvm(std::string_view id, int voice) cons
   }
 
 std::string_view GameScript::messageByName(std::string_view id) const {
-  auto* blk = dialogs.block_by_name(std::string(id));
+  auto* blk = dialogs.block_by_name(id);
   if(blk == nullptr){
     static std::string empty {};
     return empty;
@@ -1154,7 +1152,7 @@ void GameScript::printNothingToGet() {
   }
 
 void GameScript::useInteractive(const std::shared_ptr<phoenix::c_npc>& hnpc, std::string_view func) {
-  auto fn = vm.find_symbol_by_name(std::string(func));
+  auto fn = vm.find_symbol_by_name(func);
   if(fn == nullptr)
     return;
 

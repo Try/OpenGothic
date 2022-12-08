@@ -131,7 +131,7 @@ void Item::setAsEquiped(bool e) {
     ++equiped; else
     --equiped;
   if(equiped>amount) {
-    Log::e("[",std::string(displayName()),"] inconsistent inventory state");
+    Log::e("[",displayName(),"] inconsistent inventory state");
     }
   if(equiped==0)
     itSlot=NSLOT;

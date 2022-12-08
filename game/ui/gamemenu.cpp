@@ -266,7 +266,7 @@ GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, phoenix::vm &vm, std::st
 
   textBuf.reserve(64);
 
-  auto* menuSectionSymbol = vm.find_symbol_by_name(std::string(menuSection)); // https://github.com/lmichaelis/phoenix/issues/30
+  auto* menuSectionSymbol = vm.find_symbol_by_name(menuSection);
   if (menuSectionSymbol != nullptr) {
     menu = vm.init_instance<phoenix::c_menu>(menuSectionSymbol);
     } else {

@@ -365,7 +365,7 @@ const phoenix::vobs::light_preset& LightGroup::findPreset(std::string_view prese
       continue;
     return i;
     }
-  Log::e("unknown light preset: \"",std::string(preset),"\"");
+  Log::e("unknown light preset: \"",preset,"\"");
   static phoenix::vobs::light_preset zero {};
   return zero;
   }
