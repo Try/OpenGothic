@@ -3,10 +3,8 @@
 #include <Tempest/Application>
 
 #include "graphics/mesh/submesh/packedmesh.h"
-#include "game/globaleffects.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
-#include "utils/gthfont.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -209,4 +207,5 @@ void WorldView::setupTlas(const Tempest::AccelerationStructure* tlas) {
   sGlobal.tlas = tlas;
   //sGlobal.tlas = &tlasLand;
   setupUbo();
+  onTlasChanged(tlas);
   }

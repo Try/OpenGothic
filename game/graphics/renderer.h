@@ -34,6 +34,8 @@ class Renderer final {
 
   private:
     void prepareUniforms();
+    void setupTlas(const Tempest::AccelerationStructure* tlas);
+
     void drawHiZ          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, uint8_t fId);
     void drawGBuffer      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawShadowMap    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);

@@ -131,7 +131,7 @@ add_shader(lnd_hiz.frag              materials/main.frag -DMESH_TYPE=0 -DHIZ)
 add_shader(shadow_resolve.vert       copy.vert "")
 add_shader(shadow_resolve.frag       shadow_resolve.frag "")
 add_shader(shadow_resolve_sh.frag    shadow_resolve.frag -DSHADOW_MAP)
-add_shader(shadow_resolve_rq.frag    shadow_resolve.frag -DSHADOW_MAP -DRAY_QUERY)
+add_shader(shadow_resolve_rq.frag    shadow_resolve.frag -DSHADOW_MAP -DRAY_QUERY -DRAY_QUERY_AT)
 
 add_shader(light.vert                light.vert "")
 add_shader(light.frag                light.frag "")

@@ -29,6 +29,8 @@ class WorldView {
 
     bool isInPfxRange(const Tempest::Vec3& pos) const;
 
+    Tempest::Signal<void(const Tempest::AccelerationStructure* tlas)> onTlasChanged;
+
     void tick(uint64_t dt);
 
     void preFrameUpdate(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& proj,

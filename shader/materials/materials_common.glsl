@@ -80,7 +80,7 @@ struct Varyings {
   vec3 normal;
 #endif
 
-#if defined(FORWARD)
+#if defined(FORWARD) || (MESH_TYPE==T_LANDSCAPE)
   vec3 pos;
 #endif
 

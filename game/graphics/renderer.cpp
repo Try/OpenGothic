@@ -137,7 +137,8 @@ void Renderer::resetSwapchain() {
   uboCopyDepth = device.descriptors(Shaders::inst().copy);
   uboCopyDepth.set(0, zbuffer);
 
-  if(Gothic::inst().doRayQuery() && settings.shadowResolution>0 && false)
+  if(Gothic::inst().doRayQuery() && Resources::device().properties().bindless.nonUniformIndexing &&
+     settings.shadowResolution>0)
     shadow.composePso = &Shaders::inst().shadowResolveRq;
   else if(settings.shadowResolution>0)
     shadow.composePso = &Shaders::inst().shadowResolveSh;
@@ -187,6 +188,10 @@ void Renderer::initSettings() {
   }
 
 void Renderer::onWorldChanged() {
+  auto wview = Gothic::inst().worldView();
+  if(wview!=nullptr) {
+    wview->onTlasChanged.bind(this,&Renderer::setupTlas);
+    }
   prepareUniforms();
   }
 
@@ -212,22 +217,19 @@ void Renderer::prepareUniforms() {
     return;
 
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
-    shadow.ubo[i].set(0, wview->sceneGlobals().uboGlobalPf[i][SceneGlobals::V_Main]);
-    shadow.ubo[i].set(1, gbufDiffuse);
-    shadow.ubo[i].set(2, gbufNormal);
-    shadow.ubo[i].set(3, zbuffer);
+    auto& u = shadow.ubo[i];
+    u.set(0, wview->sceneGlobals().uboGlobalPf[i][SceneGlobals::V_Main]);
+    u.set(1, gbufDiffuse);
+    u.set(2, gbufNormal);
+    u.set(3, zbuffer);
 
     for(size_t r=0; r<Resources::ShadowLayers; ++r) {
       if(shadowMap[r].isEmpty())
         continue;
-      shadow.ubo[i].set(4+r, shadowMap[r]);
+      u.set(4+r, shadowMap[r]);
       }
-    if(shadow.composePso==&Shaders::inst().shadowResolveRq)
-      shadow.ubo[i].set(6,wview->landscapeTlas());
     }
-
-  if(ssao.ssaoPso==&Shaders::inst().ssaoRq)
-    ssao.uboSsao.set(5,wview->landscapeTlas());
+  setupTlas(nullptr);
 
   const Texture2d* sh[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
@@ -240,6 +242,31 @@ void Renderer::prepareUniforms() {
   wview->setGbuffer(textureCast(gbufDiffuse), textureCast(gbufNormal));
   wview->setSceneImages(textureCast(sceneOpaque), textureCast(sceneDepth), zbuffer);
   wview->setupUbo();
+  }
+
+void Renderer::setupTlas(const Tempest::AccelerationStructure* tlas) {
+  auto wview = Gothic::inst().worldView();
+  if(wview==nullptr)
+    return;
+  auto& scene = wview->sceneGlobals();
+  if(scene.tlas==nullptr)
+    return;
+
+  if(ssao.ssaoPso==&Shaders::inst().ssaoRq) {
+    ssao.uboSsao.set(5,wview->landscapeTlas());
+    }
+
+  if(shadow.composePso==&Shaders::inst().shadowResolveRq) {
+    for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
+      auto& u = shadow.ubo[i];
+      u.set(7, scene.bindless.tex);
+      u.set(8, scene.bindless.vbo);
+      u.set(9, scene.bindless.ibo);
+      u.set(10,scene.bindless.iboOffset);
+
+      u.set(6, *scene.tlas);
+      }
+    }
   }
 
 void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,

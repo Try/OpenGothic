@@ -7,7 +7,9 @@
 
 #if defined(RAY_QUERY_AT)
 #extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_ray_flags_primitive_culling : enable
 #endif
+
 layout(early_fragment_tests) in;
 
 layout(location = 0) out vec4 outColor;
@@ -85,10 +87,10 @@ bool isShadow(vec3 rayOrigin, vec3 direction) {
   if(rayDistance<=tMin)
     return false;
 
-  //uint flags = gl_RayFlagsCullBackFacingTrianglesEXT | gl_RayFlagsTerminateOnFirstHitEXT;
   uint flags = gl_RayFlagsTerminateOnFirstHitEXT;
 #if defined(RAY_QUERY_AT)
   flags |= gl_RayFlagsNoOpaqueEXT;
+  flags |= gl_RayFlagsCullBackFacingTrianglesEXT;
 #endif
 
   rayQueryEXT rayQuery;
@@ -138,7 +140,7 @@ void main(void) {
   //if(light<=0.001)
   //  discard;
 
-  pos.xyz  = pos.xyz+5.0*normal; //bias
+  //pos.xyz  = pos.xyz+5.0*normal; //bias
   ldir = (pos.xyz-cenPosition.xyz);
   if(light>0 && isShadow(cenPosition.xyz,ldir))
     discard;

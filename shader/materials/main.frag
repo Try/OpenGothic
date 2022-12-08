@@ -227,6 +227,20 @@ vec4 forwardShading(vec4 t) {
   return vec4(color,alpha);
   }
 
+bool isFlat() {
+#if defined(GBUFFER) && (MESH_TYPE==T_LANDSCAPE)
+  {
+    vec3 pos   = shInp.pos;
+    vec3 dx    = dFdx(pos);
+    vec3 dy    = dFdy(pos);
+    vec3 flatN = (cross(dx,dy));
+    if(dot(flatN,scene.sunDir)<=0)
+      return false;
+  }
+#endif
+  return true;
+  }
+
 void main() {
 #if defined(MAT_UV)
   vec4 t = diffuseTex();
@@ -237,10 +251,14 @@ void main() {
 #endif
 
 #if defined(GBUFFER)
+  t.a = (isFlat() ? 0 : 1);
+#endif
+
+#if defined(GBUFFER)
   outDiffuse = t;
   outNormal  = vec4(shInp.normal*0.5 + vec3(0.5),1.0);
 #if DEBUG_DRAW
-  outDiffuse *= vec4(debugColors[debugId%MAX_DEBUG_COLORS],1.0);
+  outDiffuse.rgb *= debugColors[debugId%MAX_DEBUG_COLORS];
 #endif
 #endif
 
