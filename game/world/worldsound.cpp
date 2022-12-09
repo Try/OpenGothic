@@ -14,8 +14,8 @@
 #include "gothic.h"
 #include "resources.h"
 
-const float WorldSound::maxDist   = 3500; // 35 meters
-const float WorldSound::talkRange = 800;
+const float WorldSound::maxDist   = 7000; // 70 meters
+const float WorldSound::talkRange = 2000;
 
 struct WorldSound::WSound final {
   Sound          current;
@@ -23,13 +23,13 @@ struct WorldSound::WSound final {
   const SoundFx* eff1 = nullptr;
 
   Tempest::Vec3  pos;
-  float          sndRadius = 25;
+  float          sndRadius      = 2500;
 
-  bool           loop          =false;
-  bool           active        =false;
-  uint64_t       delay         =0;
-  uint64_t       delayVar      =0;
-  uint64_t       restartTimeout=0;
+  bool           loop           = false;
+  bool           active         = false;
+  uint64_t       delay          = 0;
+  uint64_t       delayVar       = 0;
+  uint64_t       restartTimeout = 0;
 
   gtime          sndStart;
   gtime          sndEnd;
