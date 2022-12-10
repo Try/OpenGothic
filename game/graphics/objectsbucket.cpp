@@ -428,48 +428,47 @@ void ObjectsBucket::fillTlas(std::vector<RtInstance>& inst, std::vector<uint32_t
   }
 
 void ObjectsBucket::preFrameUpdate(uint8_t fId) {
-  if(windAnim && scene.zWindEnabled) {
-    bool upd[CAPACITY] = {};
-    for(uint8_t ic=0; ic<SceneGlobals::V_Count; ++ic) {
-      const auto    c     = SceneGlobals::VisCamera(ic);
-      const size_t  indSz = visSet.count(c);
-      const size_t* index = visSet.index(c);
-      for(size_t i=0; i<indSz; ++i)
-        upd[index[i]] = true;
-      }
+  if(!windAnim || !scene.zWindEnabled)
+    return;
 
-    for(size_t i=0; i<CAPACITY; ++i) {
-      auto& v = val[i];
-      if(upd[i] && v.wind!=phoenix::animation_mode::none) {
-        auto pos = v.pos;
-        float shift = v.pos[3][0]*scene.windDir.x + v.pos[3][2]*scene.windDir.y;
+  bool upd[CAPACITY] = {};
+  for(uint8_t ic=0; ic<SceneGlobals::V_Count; ++ic) {
+    const auto    c     = SceneGlobals::VisCamera(ic);
+    const size_t  indSz = visSet.count(c);
+    const size_t* index = visSet.index(c);
+    for(size_t i=0; i<indSz; ++i)
+      upd[index[i]] = true;
+    }
 
-        static const uint64_t preiod = scene.windPeriod;
-        float a = float(scene.tickCount%preiod)/float(preiod);
-        a = a*2.f-1.f;
-        a = std::cos(float(a*M_PI) + shift*0.0001f);
+  for(size_t i=0; i<CAPACITY; ++i) {
+    auto& v = val[i];
+    if(upd[i] && v.wind!=phoenix::animation_mode::none) {
+      auto  pos   = v.pos;
+      float shift = v.pos[3][0]*scene.windDir.x + v.pos[3][2]*scene.windDir.y;
 
-        switch(v.wind) {
-          case phoenix::animation_mode::wind:
-            // tree
-            // a *= v.windIntensity;
-            a *= 0.03f;
-            break;
-          case phoenix::animation_mode::wind2:
-            // grass
-            // a *= v.windIntensity;
-            a *= 0.0005f;
-            break;
-          case phoenix::animation_mode::none:
-          default:
-            // error
-            a *= 0.f;
-            break;
-          }
-        pos[1][0] += scene.windDir.x*a;
-        pos[1][2] += scene.windDir.y*a;
-        objPositions.set(pos,i);
+      static const uint64_t preiod = scene.windPeriod;
+      float a = float(scene.tickCount%preiod)/float(preiod);
+      a = a*2.f-1.f;
+      a = std::cos(float(a*M_PI) + shift*0.0001f);
+
+      switch(v.wind) {
+        case phoenix::animation_mode::wind:
+          // tree
+          a *= v.windIntensity;
+          break;
+        case phoenix::animation_mode::wind2:
+          // grass
+          a *= v.windIntensity * 0.1;
+          break;
+        case phoenix::animation_mode::none:
+        default:
+          // error
+          a = 0.f;
+          break;
         }
+      pos[1][0] += scene.windDir.x*a;
+      pos[1][2] += scene.windDir.y*a;
+      objPositions.set(pos,i);
       }
     }
   }
@@ -730,6 +729,10 @@ void ObjectsBucket::setFatness(size_t i, float f) {
   }
 
 void ObjectsBucket::setWind(size_t i, phoenix::animation_mode m, float intensity) {
+  if(intensity!=0 && m==phoenix::animation_mode::none) {
+    m = phoenix::animation_mode::wind2;
+    }
+
   auto& v = val[i];
   v.wind          = m;
   v.windIntensity = intensity;
