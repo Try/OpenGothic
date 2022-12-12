@@ -69,5 +69,8 @@ std::shared_ptr<phoenix::c_particle_fx> ParticlesDefinitions::implGetDirect(std:
     return nullptr;
     }
 
-  return vm->init_instance<phoenix::c_particle_fx>(id);
+  auto ret = std::make_shared<phoenix::c_particle_fx>();
+  ret->vis_tex_is_quadpoly = 1; // seem to be default
+  vm->init_instance(ret, id);
+  return ret;
   }
