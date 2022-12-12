@@ -178,6 +178,6 @@ void main(void) {
 
   const vec3  lcolor = scene.sunCl.rgb*light*shadow + scene.ambient;
 
-  outColor = vec4(diff.rgb*lcolor, diff.a);
+  outColor = vec4(diff.rgb*lcolor, 1.0);
   // outColor = vec4(vec3(lcolor), diff.a);
   }

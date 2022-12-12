@@ -90,7 +90,7 @@ bool isShadow(vec3 rayOrigin, vec3 direction) {
   uint flags = gl_RayFlagsTerminateOnFirstHitEXT;
 #if defined(RAY_QUERY_AT)
   flags |= gl_RayFlagsNoOpaqueEXT;
-  flags |= gl_RayFlagsCullBackFacingTrianglesEXT;
+  //flags |= gl_RayFlagsCullFrontFacingTrianglesEXT;
 #endif
 
   rayQueryEXT rayQuery;
@@ -140,7 +140,7 @@ void main(void) {
   //if(light<=0.001)
   //  discard;
 
-  //pos.xyz  = pos.xyz+5.0*normal; //bias
+  pos.xyz  = pos.xyz+5.0*normal; //bias
   ldir = (pos.xyz-cenPosition.xyz);
   if(light>0 && isShadow(cenPosition.xyz,ldir))
     discard;
