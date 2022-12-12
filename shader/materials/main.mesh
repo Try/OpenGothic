@@ -123,34 +123,37 @@ bool bboxTest(const uint objId) {
 #endif
 
 uvec2  processMeshlet(const uint meshletId) {
+  const uint iboOffset = meshletId * MaxPrim + MaxPrim - 1;
+  const uint bits      = indexes[iboOffset];
+  uvec4 prim;
+  prim.x = ((bits >>  0) & 0xFF);
+  prim.y = ((bits >>  8) & 0xFF);
+
   uint vertCount = MaxVert;
   uint primCount = MaxPrim;
-
-  const uint iboOffset = meshletId * MaxInd + MaxInd - 3;
-  const uint index0    = meshletId * MaxVert; // TODO: uint8 ibo
-  uvec3 ret;
-  ret.x = indexes[iboOffset + 0];
-  ret.y = indexes[iboOffset + 1];
-  ret.z = indexes[iboOffset + 2];
-  if(ret.x==ret.y) {
+  if(prim.x==prim.y) {
     // last dummy triangle encodes primitive count
-    primCount = ret.x - index0;
-    //vertCount = ret.z; // TODO
+    prim.z = ((bits >> 16) & 0xFF);
+    prim.w = ((bits >> 24) & 0xFF);
+
+    primCount = prim.z;
+    vertCount = prim.w;
     }
   return uvec2(vertCount, primCount);
   }
 
 uvec3 processPrimitive(const uint meshletId, const uint outId) {
-  const uint  iboOffset = meshletId * MaxInd  + outId*3;
-  const uint  index0    = meshletId * MaxVert; // TODO: uint8 ibo
-  const uvec3 prim      = processPrimitive(iboOffset) - uvec3(index0);
+  const uint iboOffset = meshletId * MaxPrim + outId;
+  const uint bits      = indexes[iboOffset];
+  uvec3 prim;
+  prim.x = ((bits >>  0) & 0xFF);
+  prim.y = ((bits >>  8) & 0xFF);
+  prim.z = ((bits >> 16) & 0xFF);
   return prim;
   }
 
 vec4  processVertex(out Varyings var, const uint objId, const uint meshletId, const uint outId) {
   const uint vboOffset = meshletId * MaxVert + outId;
-  const uint iboOffset = meshletId * MaxInd  + outId*3;
-  const uint index0    = meshletId * MaxVert; // TODO: uint8 ibo
 
   vec4 position = processVertex(var, objId, vboOffset);
   // position.y = -position.y;

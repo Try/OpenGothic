@@ -146,14 +146,4 @@ vec4 processVertex(out Varyings shOut, uint objId, uint vboOffset) {
   return position;
   }
 
-#if defined(MESH)
-uvec3 processPrimitive(uint iboOffset) {
-  uvec3 ret;
-  ret.x = indexes[iboOffset + 0];
-  ret.y = indexes[iboOffset + 1];
-  ret.z = indexes[iboOffset + 2];
-  return ret;
-  }
-#endif
-
 #endif

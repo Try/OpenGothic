@@ -18,8 +18,9 @@ static size_t countBones(const Resources::VertexA* v, size_t n) {
 
 AnimMesh::AnimMesh(const PackedMesh& mesh)
   : bonesCount(countBones(mesh.verticesA.data(),mesh.verticesA.size())) {
-  vbo = Resources::vbo(mesh.verticesA.data(),mesh.verticesA.size());
-  ibo = Resources::ibo(mesh.indices.data(),  mesh.indices.size());
+  vbo  = Resources::vbo (mesh.verticesA.data(),mesh.verticesA.size());
+  ibo  = Resources::ibo (mesh.indices.data(),  mesh.indices.size());
+  ibo8 = Resources::ssbo(mesh.indices8.data(), mesh.indices8.size());
 
   sub.resize(mesh.subMeshes.size());
   for(size_t i=0;i<mesh.subMeshes.size();++i) {

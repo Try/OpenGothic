@@ -47,6 +47,7 @@ class StaticMesh {
 
     Tempest::VertexBuffer<Vertex>   vbo;
     Tempest::IndexBuffer<uint32_t>  ibo;
+    Tempest::StorageBuffer          ibo8;
     MorphAnim                       morph;
 
     std::vector<SubMesh>            sub;

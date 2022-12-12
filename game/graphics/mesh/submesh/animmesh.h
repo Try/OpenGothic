@@ -23,6 +23,7 @@ class AnimMesh {
 
     Tempest::VertexBuffer<VertexA> vbo;
     Tempest::IndexBuffer<uint32_t> ibo;
+    Tempest::StorageBuffer         ibo8;
     std::vector<SubMesh>           sub;
     Bounds                         bbox;
     const size_t                   bonesCount = 0;

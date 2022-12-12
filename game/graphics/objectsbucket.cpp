@@ -133,8 +133,8 @@ ObjectsBucket::ObjectsBucket(const Type type, const Material& mat, VisualObjects
 
   useSharedUbo        = (mat.frames.size()==0);
   textureInShadowPass = (mat.alpha==Material::AlphaTest);
-  useMeshlets         = (Gothic::inst().doMeshShading() && !mat.isTesselated() && (type!=Type::Pfx));
   usePositionsSsbo    = (type==Type::Static || type==Type::Movable || type==Type::Morph);
+  useMeshlets         = (Gothic::inst().doMeshShading() && !mat.isTesselated() && (type!=Type::Pfx));
 
   pMain               = Shaders::inst().materialPipeline(mat,objType, isForwardShading() ? Shaders::T_Forward : Shaders::T_Deffered);
   pShadow             = Shaders::inst().materialPipeline(mat,objType, Shaders::T_Shadow);
@@ -256,7 +256,7 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const Bounds& bounds, const Mate
   }
 
 void ObjectsBucket::postAlloc(Object& obj, size_t /*objId*/) {
-  if(objType!=Pfx) {
+  if(objType!=Pfx && useMeshlets) {
     assert(obj.iboOffset%PackedMesh::MaxInd==0);
     assert(obj.iboLength%PackedMesh::MaxInd==0);
     }
@@ -323,10 +323,10 @@ void ObjectsBucket::uboSetCommon(Descriptors& v, const Material& mat, const Buck
       if(useMeshlets) {
         if(staticMesh!=nullptr) {
           ubo.set(L_Vbo, staticMesh->vbo);
-          ubo.set(L_Ibo, staticMesh->ibo);
+          ubo.set(L_Ibo, staticMesh->ibo8);
           } else {
           ubo.set(L_Vbo, animMesh->vbo);
-          ubo.set(L_Ibo, animMesh->ibo);
+          ubo.set(L_Ibo, animMesh->ibo8);
           }
         }
       if(lay==SceneGlobals::V_Main || textureInShadowPass) {
@@ -884,7 +884,7 @@ ObjectsBucketDyn::ObjectsBucketDyn(const Type type, const Material& mat, VisualO
         continue;
       ubo.set(L_MeshDesc, *instanceDesc);
       ubo.set(L_Vbo,      staticMesh->vbo);
-      ubo.set(L_Ibo,      staticMesh->ibo);
+      ubo.set(L_Ibo,      staticMesh->ibo8);
       ubo.set(L_Scene,    scene.uboGlobalPf[i][SceneGlobals::V_Main]);
 
       auto smp = Sampler::nearest();

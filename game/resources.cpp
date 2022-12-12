@@ -514,7 +514,7 @@ ProtoMesh* Resources::implDecalMesh(const phoenix::vob& vob) {
   if(it!=decalMeshCache.end())
     return it->second.get();
 
-  Resources::Vertex vbo[PackedMesh::MaxVert] = {
+  Resources::Vertex vbo[8] = {
     {{-1.f, -1.f, 0.f},{0,0,-1},{0,1}, 0xFFFFFFFF},
     {{ 1.f, -1.f, 0.f},{0,0,-1},{1,1}, 0xFFFFFFFF},
     {{ 1.f,  1.f, 0.f},{0,0,-1},{1,0}, 0xFFFFFFFF},
@@ -530,16 +530,11 @@ ProtoMesh* Resources::implDecalMesh(const phoenix::vob& vob) {
     i.pos[1]*=key.sY;
     }
 
-  std::vector<Resources::Vertex> cvbo(vbo,vbo+PackedMesh::MaxVert);
+  std::vector<Resources::Vertex> cvbo(vbo,vbo+8);
   std::vector<uint32_t>          cibo;
   if(key.decal2Sided)
     cibo = { 0,1,2, 0,2,3, 4,6,5, 4,7,6 }; else
     cibo = { 0,1,2, 0,2,3 };
-
-  size_t iboSz = cibo.size();
-  cibo.resize(PackedMesh::MaxInd);
-  for(size_t i=iboSz; i<cibo.size(); ++i)
-    cibo[i] = 0;
 
   std::unique_ptr<ProtoMesh> t{new ProtoMesh(key.mat, std::move(cvbo), std::move(cibo))};
 

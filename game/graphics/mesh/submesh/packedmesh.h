@@ -47,6 +47,7 @@ class PackedMesh {
     std::vector<Vertex>   vertices;
     std::vector<VertexA>  verticesA;
     std::vector<uint32_t> indices;
+    std::vector<uint8_t>  indices8;
 
     std::vector<SubMesh>  subMeshes;
     std::vector<Bounds>   meshletBounds;
@@ -79,14 +80,15 @@ class PackedMesh {
       uint8_t       indSz            = 0;
       Bounds        bounds;
 
-      void    flush(std::vector<Vertex>& vertices, std::vector<uint32_t>& indices, std::vector<Bounds>& instances,
-                    SubMesh& sub, const phoenix::mesh& mesh);
+      void    flush(std::vector<Vertex>& vertices,
+                    std::vector<uint32_t>& indices, std::vector<uint8_t>& indices8,
+                    std::vector<Bounds>& instances, const phoenix::mesh& mesh);
 
       void    flush(std::vector<Vertex>& vertices, std::vector<VertexA>& verticesA,
-                 std::vector<uint32_t>& indices, std::vector<uint32_t>* verticesId,
-                 SubMesh& sub, const std::vector<glm::vec3>& vbo,
-                 const std::vector<phoenix::wedge>& wedgeList,
-                 const std::vector<SkeletalData>* skeletal);
+                    std::vector<uint32_t>& indices, std::vector<uint8_t>& indices8,
+                    std::vector<uint32_t>* verticesId, const std::vector<glm::vec3>& vbo,
+                    const std::vector<phoenix::wedge>& wedgeList,
+                    const std::vector<SkeletalData>* skeletal);
 
       bool    insert(const Vert& a, const Vert& b, const Vert& c);
       void    clear();

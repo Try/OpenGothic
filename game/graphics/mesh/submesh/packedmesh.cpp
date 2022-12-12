@@ -73,17 +73,23 @@ struct PackedMesh::PrimitiveHeap {
     auto l = std::lower_bound(data.begin(), data.end(), v, [](const value_type& x, uint64_t v){
       return x.first<v;
       });
-    auto r = std::upper_bound(data.begin(), data.end(), v, [](uint64_t v, const value_type& x){
-      return v<x.first;
-      });
+    // auto r = std::upper_bound(data.begin(), data.end(), v, [](uint64_t v, const value_type& x){
+    //   return v<x.first;
+    //   });
+    auto r = l;
+    while(r!=data.end()) {
+      if(r->first>v)
+        break;
+      ++r;
+      }
     return std::make_pair(l,r);
     }
   };
 
 void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices,
                                 std::vector<uint32_t>& indices,
+                                std::vector<uint8_t>& indices8,
                                 std::vector<Bounds>& instances,
-                                SubMesh& sub,
                                 const phoenix::mesh& mesh) {
   if(indSz==0)
     return;
@@ -93,10 +99,7 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices,
   auto& uv  = mesh.features;  // uv, normal
 
   size_t vboSz = vertices.size();
-  size_t iboSz = indices.size();
-  vertices.resize(vboSz+MaxVert);
-  indices .resize(iboSz+MaxInd );
-
+  vertices.resize(vboSz + MaxVert);
   for(size_t i=0; i<vertSz; ++i) {
     Vertex vx = {};
     auto& v     = uv [vert[i].second];
@@ -117,6 +120,8 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices,
     vertices[vboSz+i] = vx;
     }
 
+  size_t iboSz  = indices.size();
+  indices .resize(iboSz  + MaxInd );
   for(size_t i=0; i<indSz; ++i) {
     indices[iboSz+i] = uint32_t(vboSz)+indexes[i];
     }
@@ -124,13 +129,31 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices,
     // padd with degenerated triangles
     indices[iboSz+i] = uint32_t(vboSz+indSz/3);
     }
-  if(indSz+1<MaxInd)
-    ;//indices[iboSz+MaxInd-1] = uint32_t(vboSz+vertSz);
+
+  if(Gothic::inst().doMeshShading()) {
+    size_t iboSz8 = indices8.size();
+    indices8.resize(iboSz8 + MaxPrim*4);
+    for(size_t i=0; i<indSz; i+=3) {
+      size_t at = iboSz8 + (i/3)*4;
+      indices8[at+0] = indexes[i+0];
+      indices8[at+1] = indexes[i+1];
+      indices8[at+2] = indexes[i+2];
+      indices8[at+3] = 0;
+      }
+    if(indSz+1<MaxInd) {
+      size_t at = iboSz8 + MaxPrim*4 - 4;
+      indices8[at+0] = indexes[0];
+      indices8[at+1] = indexes[0];
+      indices8[at+2] = indSz/3;
+      indices8[at+3] = vertSz;
+      }
+    }
   }
 
 void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices, std::vector<VertexA>& verticesA,
-                                std::vector<uint32_t>& indices, std::vector<uint32_t>* verticesId,
-                                SubMesh& sub, const std::vector<glm::vec3>& vboList,
+                                std::vector<uint32_t>& indices, std::vector<uint8_t>& indices8,
+                                std::vector<uint32_t>* verticesId,
+                                const std::vector<glm::vec3>& vboList,
                                 const std::vector<phoenix::wedge>& wedgeList,
                                 const std::vector<SkeletalData>* skeletal) {
   if(indSz==0)
@@ -139,8 +162,8 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices, std::vector<Verte
   auto& vbo = vboList;    // xyz
   auto& uv  = wedgeList;  // uv, normal
 
-  size_t vboSz = 0;
-  size_t iboSz = indices.size();
+  size_t vboSz  = 0;
+  size_t iboSz  = indices.size();
 
   if(skeletal==nullptr) {
     vboSz = vertices.size();
@@ -150,7 +173,8 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices, std::vector<Verte
     verticesA.resize(vboSz+MaxVert);
     }
 
-  indices.resize(iboSz+MaxInd);
+  indices .resize(iboSz  + MaxInd);
+
   if(verticesId!=nullptr)
     verticesId->resize(vboSz+MaxVert);
 
@@ -210,8 +234,25 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices, std::vector<Verte
     // padd with degenerated triangles
     indices[iboSz+i] = uint32_t(vboSz+indSz/3);
     }
-  if(indSz+1<MaxInd)
-    ;//indices[iboSz+MaxInd-1] = uint32_t(vboSz+vertSz);
+
+  if(Gothic::inst().doMeshShading()) {
+    size_t iboSz8 = indices8.size();
+    indices8.resize(iboSz8 + MaxPrim*4);
+    for(size_t i=0; i<indSz; i+=3) {
+      size_t at = iboSz8 + (i/3)*4;
+      indices8[at+0] = indexes[i+0];
+      indices8[at+1] = indexes[i+1];
+      indices8[at+2] = indexes[i+2];
+      indices8[at+3] = 0;
+      }
+    if(indSz+1<MaxInd) {
+      size_t at = iboSz8 + MaxPrim*4 - 4;
+      indices8[at+0] = indexes[0];
+      indices8[at+1] = indexes[0];
+      indices8[at+2] = indSz/3;
+      indices8[at+3] = vertSz;
+      }
+    }
   }
 
 bool PackedMesh::Meshlet::insert(const Vert& a, const Vert& b, const Vert& c) {
@@ -384,7 +425,7 @@ void PackedMesh::packPhysics(const phoenix::mesh& mesh, PkgType type) {
   auto& mid = mesh.polygons.material_indices;
   auto& mat = mesh.materials;
 
-  phoenix::material_group mats[] = {
+  static const phoenix::material_group mats[] = {
     phoenix::material_group::undefined,
     phoenix::material_group::metal,
     phoenix::material_group::stone,
@@ -523,7 +564,7 @@ void PackedMesh::packMeshletsLnd(const phoenix::mesh& mesh) {
     pack.material  = mesh.materials[mId];
     pack.iboOffset = indices.size();
     for(auto& i:meshlets)
-      i.flush(vertices,indices,meshletBounds,pack,mesh);
+      i.flush(vertices,indices,indices8,meshletBounds,mesh);
     pack.iboLength = indices.size() - pack.iboOffset;
     if(pack.iboLength>0)
       subMeshes.push_back(std::move(pack));
@@ -564,7 +605,7 @@ void PackedMesh::packMeshletsObj(const phoenix::proto_mesh& mesh, PkgType type,
 
     pack.iboOffset = indices.size();
     for(auto& i:meshlets)
-      i.flush(vertices,verticesA,indices,vId,pack,mesh.positions,sm.wedges,skeletal);
+      i.flush(vertices,verticesA,indices,indices8,vId,mesh.positions,sm.wedges,skeletal);
     pack.iboLength = indices.size() - pack.iboOffset;
 
     //dbgUtilization(meshlets);
@@ -604,11 +645,11 @@ std::vector<PackedMesh::Meshlet> PackedMesh::buildMeshlets(const phoenix::mesh* 
         }
       for(auto i=heap.begin()+firstUnused; i!=heap.end();) {
         if(used[i->second/3]) {
-          firstUnused++;
           ++i;
           continue;
           }
-        id = i->second;
+        firstUnused = std::distance(heap.begin(),i);
+        id          = i->second;
         break;
         }
       }
