@@ -442,12 +442,12 @@ void GameSession::initScripts(bool firstTime) {
     vm->getVm().call_function("init_global");
 
   if(firstTime) {
-    std::string startup = std::string("startup_") + std::string(name);
+    string_frm startup("startup_", name);
     if(vm->hasSymbolName(startup))
       vm->getVm().call_function(startup);
     }
 
-  std::string init = std::string("init_") + std::string(name);
+  string_frm init("init_",name);
   if(vm->hasSymbolName(init))
     vm->getVm().call_function(init);
 

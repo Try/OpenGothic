@@ -509,7 +509,7 @@ Tempest::Vec3 Animation::Sequence::translateXZ(uint64_t at) const {
   return p;
   }
 
-void Animation::Sequence::schemeName(char scheme[]) const {
+void Animation::Sequence::schemeName(char scheme[64]) const {
   scheme[0] = '\0';
   for(size_t i=0, r=0; i<name.size(); ++i) {
     if(name[i]=='_') {
