@@ -63,13 +63,13 @@ ObjectsBucket::Item VisualObjects::get(const AnimMesh &mesh, const Material& mat
   return ObjectsBucket::Item(bucket,id);
   }
 
-ObjectsBucket::Item VisualObjects::get(const Tempest::VertexBuffer<Resources::Vertex>* vbo[], const Material& mat) {
+ObjectsBucket::Item VisualObjects::get(const Material& mat) {
   if(mat.tex==nullptr) {
     Tempest::Log::e("no texture?!");
     return ObjectsBucket::Item();
     }
   auto&        bucket = getBucket(ObjectsBucket::Pfx,mat,nullptr,nullptr,nullptr);
-  const size_t id     = bucket.alloc(vbo,Bounds());
+  const size_t id     = bucket.alloc(Bounds());
   return ObjectsBucket::Item(bucket,id);
   }
 

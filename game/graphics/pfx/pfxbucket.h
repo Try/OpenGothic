@@ -43,11 +43,11 @@ class PfxBucket {
 
     struct PfxState {
       Tempest::Vec3 pos;
-      uint32_t      color = 0;
+      uint32_t      color  = 0;
       Tempest::Vec3 size;
-      uint32_t      bits0 = 0;
+      uint32_t      bits0  = 0;
       Tempest::Vec3 dir;
-      uint32_t      padd0 = 0;
+      uint32_t      colorB = 0;
       };
 
     ObjectsBucket::Item         item;
@@ -104,9 +104,6 @@ class PfxBucket {
     void                        implTickCommon(uint64_t dt, const Tempest::Vec3& viewPos);
     void                        implTickDecals(uint64_t dt, const Tempest::Vec3& viewPos);
 
-    void                        buildBilboard(Vertex v[], const Block& p, const ParState& ps, const uint32_t color,
-                                              const Tempest::Vec3& l, const Tempest::Vec3& t, const Tempest::Vec3& d,
-                                              float szX, float szY, float szZ);
     void                        buildBilboard(PfxState& v, const Block& p, const ParState& ps, const uint32_t color,
                                               float szX, float szY, float szZ);
 

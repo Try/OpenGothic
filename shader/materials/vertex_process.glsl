@@ -14,6 +14,8 @@ layout(location = 5) in vec3 inPos2;
 layout(location = 6) in vec3 inPos3;
 layout(location = 7) in uint inId;
 layout(location = 8) in vec4 inWeight;
+#elif (MESH_TYPE==T_PFX)
+// none
 #else
 layout(location = 0) in vec3 inPos;
 layout(location = 1) in vec3 inNormal;
@@ -64,7 +66,7 @@ vec4 processVertex(out Varyings shOut, uint objId, uint vboOffset) {
   vec3  pos    = pfx[objId].pos;
   uint  color  = pfx[objId].color;
   vec3  size   = pfx[objId].size;
-  uint  bits0  = pfx[objId].visOrientation;
+  uint  bits0  = pfx[objId].bits0;
   vec3  dir    = pfx[objId].dir;
   vec2  uv     = vec2(0);
   vec3  normal = vec3(0);
@@ -126,31 +128,55 @@ vec4 processVertex(out Varyings shOut, uint objId, uint vboOffset) {
   // Bilboards
 #if (MESH_TYPE==T_PFX)
   {
-    const float U[6]   = { 0.f, 1.f, 0.f,  0.f, 1.f, 1.f};
-    const float V[6]   = { 1.f, 0.f, 0.f,  1.f, 1.f, 0.f};
+    const float U[6]   = { 0, 1, 0,  0, 1, 1};
+    const float V[6]   = { 1, 0, 0,  1, 1, 0};
 
-    const float dxQ[6] = {-0.5f, 0.5f, -0.5f, -0.5f,  0.5f,  0.5f};
-    const float dyQ[6] = { 0.5f,-0.5f, -0.5f,  0.5f,  0.5f, -0.5f};
+    const float dxQ[6] = {-0.5, 0.5, -0.5, -0.5,  0.5,  0.5};
+    const float dyQ[6] = { 0.5,-0.5, -0.5,  0.5,  0.5, -0.5};
 
-    const float dxT[6] = {-0.3333f,  1.5f, -0.3333f, 0,0,0};
-    const float dyT[6] = { 1.5f, -0.3333f, -0.3333f, 0,0,0};
+    const float dxT[6] = {-0.3333,  1.5, -0.3333, 0,0,0};
+    const float dyT[6] = { 1.5, -0.3333, -0.3333, 0,0,0};
 
     const bool  visZBias         = bitfieldExtract(bits0, 0, 1)!=0;
     const bool  visTexIsQuadPoly = bitfieldExtract(bits0, 1, 1)!=0;
     const bool  visYawAlign      = bitfieldExtract(bits0, 2, 1)!=0;
-    const uint  visOrientation   = bitfieldExtract(bits0, 3, 2);
+    const bool  isTrail          = bitfieldExtract(bits0, 3, 1)!=0;
+    const uint  visOrientation   = bitfieldExtract(bits0, 4, 2);
 
     const mat4  m      = scene.viewProject;
-    vec3        left   = scene.pfxLeft;  //normalize(vec3(m[0][0],m[1][0],m[2][0]));
-    vec3        top    = scene.pfxTop;   //normalize(vec3(m[0][1],m[1][1],m[2][1]));
-    vec3        depth  = scene.pfxDepth; //normalize(vec3(m[0][2],m[1][2],m[2][2]));
+    vec3        left   = scene.pfxLeft;
+    vec3        top    = scene.pfxTop;
+    vec3        depth  = scene.pfxDepth;
 
     if(visYawAlign) {
       left = vec3(left.x, 0, left.z);
       top  = vec3(0, -1, 0);
       }
 
-    if(visOrientation==PfxOrientationVelocity3d) {
+    uv     = vec2(U[vboOffset],V[vboOffset]);
+    normal = -depth;
+
+    if(isTrail) {
+      normal = vec3(0,1,0);
+
+      uint  colorB = pfx[objId].colorB;
+      float tA     = size.y;
+      float tB     = size.z;
+
+      vec3 n  = cross(depth,dir);
+      //n = n/n.length(); // broken?
+      n = normalize(n);
+      n = n*size.x*4.f;
+
+      pos += (dxQ[vboOffset])*n + (dyQ[vboOffset]+0.5)*dir;
+
+      uv.x = dxQ[vboOffset]+0.5;
+      uv.y = 1.0-(tA + (dyQ[vboOffset]+0.5)*(tB-tA));
+
+      if(dyQ[vboOffset]>0)
+        color = colorB;
+      }
+    else if(visOrientation==PfxOrientationVelocity3d) {
       float ldir = length(dir);
       if(ldir!=0.f)
         dir/=ldir;
@@ -177,14 +203,12 @@ vec4 processVertex(out Varyings shOut, uint objId, uint vboOffset) {
       }
 
     if(visTexIsQuadPoly)
-      pos += left*dxQ[vboOffset]*size.x + top*dyQ[vboOffset]*size.y; else
+      pos += left*dxQ[vboOffset]*size.x + top*dyQ[vboOffset]*size.y;
+    else if(!isTrail)
       pos += left*dxT[vboOffset]*size.x + top*dyT[vboOffset]*size.y;
 
     if(visZBias)
       pos -= size.z*depth;
-
-    uv     = vec2(U[vboOffset],V[vboOffset]);
-    normal = -depth;
   }
 #endif
 

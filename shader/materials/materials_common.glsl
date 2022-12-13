@@ -108,9 +108,9 @@ struct Particle {
   vec3  pos;
   uint  color;
   vec3  size;
-  uint  visOrientation;
+  uint  bits0;
   vec3  dir;
-  uint  padd1;
+  uint  colorB;
   };
 
 struct MorphDesc {

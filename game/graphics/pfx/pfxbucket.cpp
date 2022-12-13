@@ -31,7 +31,7 @@ std::mt19937 PfxBucket::rndEngine;
 
 PfxBucket::PfxBucket(const ParticleFx &decl, PfxObjects& parent, VisualObjects& visual)
   :decl(decl), parent(parent), visual(visual), vertexCount(decl.visTexIsQuadPoly ? 6 : 3) {
-  item = visual.get(nullptr,decl.visMaterial);
+  item = visual.get(decl.visMaterial);
 
   Matrix4x4 ident;
   ident.identity();
@@ -513,52 +513,6 @@ void PfxBucket::buildSsbo() {
     }
   }
 
-void PfxBucket::buildBilboard(Vertex v[], const Block& p, const ParState& ps, const uint32_t color,
-                              const Vec3& l, const Vec3& t, const Vec3& d, float szX, float szY, float szZ) {
-  static const float U[6]   = { 0.f, 1.f, 0.f,  0.f, 1.f, 1.f};
-  static const float V[6]   = { 1.f, 0.f, 0.f,  1.f, 1.f, 0.f};
-
-  static const float dxQ[6] = {-0.5f, 0.5f, -0.5f, -0.5f,  0.5f,  0.5f};
-  static const float dyQ[6] = { 0.5f,-0.5f, -0.5f,  0.5f,  0.5f, -0.5f};
-
-  static const float dxT[3] = {-0.3333f,  1.5f, -0.3333f};
-  static const float dyT[3] = { 1.5f, -0.3333f, -0.3333f};
-
-  const float*       dx     = (vertexCount>3) ? dxQ : dxT;
-  const float*       dy     = (vertexCount>3) ? dyQ : dyT;
-
-  for(size_t i=0; i<vertexCount; ++i) {
-    float sx = l.x*dx[i]*szX + t.x*dy[i]*szY;
-    float sy = l.y*dx[i]*szX + t.y*dy[i]*szY;
-    float sz = l.z*dx[i]*szX + t.z*dy[i]*szY;
-
-    if(decl.useEmittersFOR) {
-      v[i].pos[0] = p.pos.x + ps.pos.x + sx;
-      v[i].pos[1] = p.pos.y + ps.pos.y + sy;
-      v[i].pos[2] = p.pos.z + ps.pos.z + sz;
-      } else {
-      v[i].pos[0] = ps.pos.x + sx;
-      v[i].pos[1] = ps.pos.y + sy;
-      v[i].pos[2] = ps.pos.z + sz;
-      }
-
-    if(decl.visZBias) {
-      v[i].pos[0] -= szZ*d.x;
-      v[i].pos[1] -= szZ*d.y;
-      v[i].pos[2] -= szZ*d.z;
-      }
-
-    v[i].uv[0]   = U[i];
-    v[i].uv[1]   = V[i];
-
-    v[i].norm[0] = -d.x;
-    v[i].norm[1] = -d.y;
-    v[i].norm[2] = -d.z;
-
-    v[i].color = color;
-    }
-  }
-
 void PfxBucket::buildBilboard(PfxState& v, const Block& p, const ParState& ps, const uint32_t color,
                               float szX, float szY, float szZ) {
   if(decl.useEmittersFOR)
@@ -571,6 +525,7 @@ void PfxBucket::buildBilboard(PfxState& v, const Block& p, const ParState& ps, c
   v.bits0 |= uint32_t(decl.visZBias ? 1 : 0);
   v.bits0 |= uint32_t(decl.visTexIsQuadPoly ? 1 : 0) << 1;
   v.bits0 |= uint32_t(decl.visYawAlign ? 1 : 0) << 2;
-  v.bits0 |= uint32_t(decl.visOrientation) << 3;
+  v.bits0 |= uint32_t(0) << 3; // TODO: trails
+  v.bits0 |= uint32_t(decl.visOrientation) << 4;
   v.dir   = ps.dir;
   }

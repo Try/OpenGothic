@@ -100,14 +100,12 @@ class ObjectsBucket {
     const void*               meshPointer()   const;
     VisibleSet&               visibilitySet() { return visSet; };
 
-    size_t                    size()      const { return valSz;      }
+    size_t                    size()          const { return valSz;      }
     size_t                    alloc(const StaticMesh& mesh, size_t iboOffset, size_t iboLen, const Bounds& bounds,
                                     const Material& mat);
     size_t                    alloc(const AnimMesh& mesh, size_t iboOffset, size_t iboLen,
                                     const MatrixStorage::Id& anim);
-
-    size_t                    alloc(const Tempest::VertexBuffer<Vertex>* vbo[],
-                                    const Bounds& bounds);
+    size_t                    alloc(const Bounds& bounds);
     void                      free(const size_t objId);
 
     virtual void              setupUbo();
@@ -190,7 +188,6 @@ class ObjectsBucket {
       };
 
     struct Object final {
-      const Tempest::VertexBuffer<Vertex>*  vboM[Resources::MaxFramesInFlight] = {};
       const Tempest::StorageBuffer*         pfx[Resources::MaxFramesInFlight] = {};
       size_t                                iboOffset = 0;
       size_t                                iboLength = 0;

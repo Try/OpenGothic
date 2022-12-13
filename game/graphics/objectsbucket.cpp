@@ -60,7 +60,7 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
       break;
       }
     case Pfx: {
-      idNext = bucket.alloc(v.vboM,v.visibility.bounds());
+      idNext = bucket.alloc(v.visibility.bounds());
       break;
       }
     case Animated: {
@@ -278,8 +278,6 @@ void ObjectsBucket::implFree(const size_t objId) {
 
   v.visibility = VisibilityGroup::Token();
   v.isValid    = false;
-  for(size_t i=0;i<Resources::MaxFramesInFlight;++i)
-    v.vboM[i] = nullptr;
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i)
     v.pfx[i] = nullptr;
   v.blas = nullptr;
@@ -522,12 +520,8 @@ size_t ObjectsBucket::alloc(const AnimMesh& mesh, size_t iboOffset, size_t iboLe
   return size_t(std::distance(val,v));
   }
 
-size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<ObjectsBucket::Vertex>* vbo[], const Bounds& bounds) {
+size_t ObjectsBucket::alloc(const Bounds& bounds) {
   Object* v = &implAlloc(bounds,mat);
-  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
-    if(vbo!=nullptr)
-      v->vboM[i] = vbo[i];
-    }
   v->visibility.setGroup(VisibilityGroup::G_AlwaysVis);
   postAlloc(*v,size_t(std::distance(val,v)));
   return size_t(std::distance(val,v));
@@ -752,7 +746,7 @@ void ObjectsBucket::setWind(size_t i, phoenix::animation_mode m, float intensity
   }
 
 void ObjectsBucket::setPfxData(size_t i, const Tempest::StorageBuffer* ssbo, uint8_t fId) {
-  assert(0);
+  assert(ssbo==nullptr);
   }
 
 bool ObjectsBucket::isAnimated(const Material& mat) {
@@ -1070,7 +1064,6 @@ void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
         break;
         }
       case Pfx: {
-        //cmd.draw(*v.vboM[fId]);
         if(v.pfx[fId]!=nullptr) {
           cmd.setUniforms(shader, uboObj[id].ubo[fId][c]);
           cmd.draw(6, 0, v.pfx[fId]->byteSize()/sizeof(PfxBucket::PfxState));

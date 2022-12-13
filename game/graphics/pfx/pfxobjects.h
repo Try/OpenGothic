@@ -9,7 +9,6 @@
 
 #include "world/objects/pfxemitter.h"
 #include "graphics/visualobjects.h"
-#include "resources.h"
 
 class SceneGlobals;
 class ParticleFx;
