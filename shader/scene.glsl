@@ -13,9 +13,15 @@ struct SceneDesc {
   vec3  clipInfo;
   uint  tickCount32;
   vec3  camPos;
-  // float padd2;
+  // float padd0;
   vec2  screenResInv;
   vec2  closeupShadowSlice;
+  vec3  pfxLeft;
+  // float padd1;
+  vec3  pfxTop;
+  // float padd2;
+  vec3  pfxDepth;
+  // float padd3;
   };
 
 #endif

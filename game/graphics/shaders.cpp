@@ -40,19 +40,19 @@ void Shaders::MaterialTemplate::load(Device &device, std::string_view tag, bool 
   string_frm fobj = "obj";
   string_frm fani = "ani";
   string_frm fmph = "mph";
-  string_frm fclr = "clr";
+  string_frm fpfx = "pfx";
   if(!tag.empty()) {
     flnd = string_frm("lnd_",tag);
     fobj = string_frm("obj_",tag);
     fani = string_frm("ani_",tag);
     fmph = string_frm("mph_",tag);
-    fclr = string_frm("clr_",tag);
+    fpfx = string_frm("pfx_",tag);
     }
   lnd.load(device,flnd,hasTesselation,hasMeshlets);
   obj.load(device,fobj,hasTesselation,hasMeshlets);
   ani.load(device,fani,hasTesselation,hasMeshlets);
   mph.load(device,fmph,hasTesselation,hasMeshlets);
-  pfx.load(device,fclr,hasTesselation,false);
+  pfx.load(device,fpfx,hasTesselation,false);
   }
 
 Shaders::Shaders() {

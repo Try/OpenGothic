@@ -45,11 +45,16 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define L_Shadow0  6
 #define L_Shadow1  7
 #define L_MorphId  8
+#define L_Pfx      L_MorphId
 #define L_Morph    9
 #define L_GDiffuse 10
 #define L_GDepth   11
 #define L_HiZ      12
 #define L_SkyLut   13
+
+#define PfxOrientationNone       0
+#define PfxOrientationVelocity   1
+#define PfxOrientationVelocity3d 2
 
 #if (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING || MESH_TYPE==T_MORPH)
 #define LVL_OBJECT 1
@@ -97,6 +102,15 @@ struct Light {
   vec4  pos;
   vec3  color;
   float range;
+  };
+
+struct Particle {
+  vec3  pos;
+  uint  color;
+  vec3  size;
+  uint  visOrientation;
+  vec3  dir;
+  uint  padd1;
   };
 
 struct MorphDesc {
@@ -150,6 +164,8 @@ layout(binding = L_Bucket, std140) uniform BucketDesc {
   ivec2 texAniMapDirPeriod;
   float bboxRadius;
   float waveMaxAmplitude;
+  // pfx
+  uint  visOrientation_visZBias;
   } bucket;
 #endif
 
@@ -174,6 +190,12 @@ layout(std430, binding = L_MorphId) readonly buffer SsboMorphId {
 layout(std430, binding = L_Morph) readonly buffer SsboMorph {
   vec4 samples[];
   } morph;
+#endif
+
+#if (MESH_TYPE==T_PFX) && (defined(VERTEX) || defined(MESH))
+layout(std430, binding = L_Pfx) readonly buffer SsboMorphId {
+  Particle pfx[];
+  };
 #endif
 
 #if defined(FRAGMENT) && (defined(WATER) || defined(GHOST))

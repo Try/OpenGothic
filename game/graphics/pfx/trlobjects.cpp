@@ -94,7 +94,7 @@ struct TrlObjects::Bucket {
   void mkSegment(Vertex* v, const Vec3& viewDir,
                  const Point& a, const Point& b, float tA, float tB, uint32_t clA, uint32_t clB) {
     auto dp = b.at  - a.at;
-    auto n  = Vec3::crossProduct(viewDir,dp);
+    auto n  = -Vec3::crossProduct(viewDir,dp);
     n = n/n.length();
     n = n*decl.trlWidth*2.f;
 

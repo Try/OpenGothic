@@ -127,6 +127,7 @@ class ParticleFx final {
 
     uint64_t      prefferedTime = 0;
 
+    bool          isDecal() const;
     uint64_t      maxLifetime() const;
     uint64_t      effectPrefferedTime() const;
     float         maxPps() const;

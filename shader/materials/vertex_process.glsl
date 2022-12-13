@@ -44,8 +44,31 @@ vec3 morphOffset(int i, uint vertexIndex) {
   }
 #endif
 
+#if (MESH_TYPE==T_PFX)
+void rotate(out vec3 rx, out vec3 ry, float a, in vec3 x, in vec3 y){
+  const float c = cos(a);
+  const float s = sin(a);
+
+  rx.x = x.x*c - y.x*s;
+  rx.y = x.y*c - y.y*s;
+  rx.z = x.z*c - y.z*s;
+
+  ry.x = x.x*s + y.x*c;
+  ry.y = x.y*s + y.y*c;
+  ry.z = x.z*s + y.z*c;
+  }
+#endif
+
 vec4 processVertex(out Varyings shOut, uint objId, uint vboOffset) {
-#if   (MESH_TYPE==T_SKINING) && defined(VERTEX)
+#if   (MESH_TYPE==T_PFX)
+  vec3  pos    = pfx[objId].pos;
+  uint  color  = pfx[objId].color;
+  vec3  size   = pfx[objId].size;
+  uint  bits0  = pfx[objId].visOrientation;
+  vec3  dir    = pfx[objId].dir;
+  vec2  uv     = vec2(0);
+  vec3  normal = vec3(0);
+#elif   (MESH_TYPE==T_SKINING) && defined(VERTEX)
   vec3  normal = inNormal;
   vec2  uv     = inUV;
   uint  color  = inColor;
@@ -98,6 +121,71 @@ vec4 processVertex(out Varyings shOut, uint objId, uint vboOffset) {
   normal = (matrix[objId]*vec4(normal,  0.0)).xyz;
 #else
   // normal = normal;
+#endif
+
+  // Bilboards
+#if (MESH_TYPE==T_PFX)
+  {
+    const float U[6]   = { 0.f, 1.f, 0.f,  0.f, 1.f, 1.f};
+    const float V[6]   = { 1.f, 0.f, 0.f,  1.f, 1.f, 0.f};
+
+    const float dxQ[6] = {-0.5f, 0.5f, -0.5f, -0.5f,  0.5f,  0.5f};
+    const float dyQ[6] = { 0.5f,-0.5f, -0.5f,  0.5f,  0.5f, -0.5f};
+
+    const float dxT[6] = {-0.3333f,  1.5f, -0.3333f, 0,0,0};
+    const float dyT[6] = { 1.5f, -0.3333f, -0.3333f, 0,0,0};
+
+    const bool  visZBias         = bitfieldExtract(bits0, 0, 1)!=0;
+    const bool  visTexIsQuadPoly = bitfieldExtract(bits0, 1, 1)!=0;
+    const bool  visYawAlign      = bitfieldExtract(bits0, 2, 1)!=0;
+    const uint  visOrientation   = bitfieldExtract(bits0, 3, 2);
+
+    const mat4  m      = scene.viewProject;
+    vec3        left   = scene.pfxLeft;  //normalize(vec3(m[0][0],m[1][0],m[2][0]));
+    vec3        top    = scene.pfxTop;   //normalize(vec3(m[0][1],m[1][1],m[2][1]));
+    vec3        depth  = scene.pfxDepth; //normalize(vec3(m[0][2],m[1][2],m[2][2]));
+
+    if(visYawAlign) {
+      left = vec3(left.x, 0, left.z);
+      top  = vec3(0, -1, 0);
+      }
+
+    if(visOrientation==PfxOrientationVelocity3d) {
+      float ldir = length(dir);
+      if(ldir!=0.f)
+        dir/=ldir;
+      top  = -dir;
+      left = -cross(top,depth);
+      }
+    else if(visOrientation==PfxOrientationVelocity) {
+      dir = (m * vec4(dir,0)).xyz;
+      float ldir = length(dir);
+      dir = (ldir>0) ? (dir/ldir) : vec3(0);
+
+      float sVel = 1.5f*(1.f - abs(dir.z));
+      float c    = -dir.x;
+      float s    =  dir.y;
+      float rot  = (s==0 && c==0) ? 0.f : atan(s,c);
+
+      vec3 l,t;
+      rotate(l,t,rot+float(M_PI/2),left,top);
+      left = l*sVel;
+      top  = t*sVel;
+      }
+    else {
+      // nope
+      }
+
+    if(visTexIsQuadPoly)
+      pos += left*dxQ[vboOffset]*size.x + top*dyQ[vboOffset]*size.y; else
+      pos += left*dxT[vboOffset]*size.x + top*dyT[vboOffset]*size.y;
+
+    if(visZBias)
+      pos -= size.z*depth;
+
+    uv     = vec2(U[vboOffset],V[vboOffset]);
+    normal = -depth;
+  }
 #endif
 
   // Position

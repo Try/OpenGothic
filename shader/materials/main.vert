@@ -21,6 +21,8 @@ layout(location = DEBUG_DRAW_LOC) out flat uint debugId;
 void main() {
 #if defined(LVL_OBJECT)
   uint objId = gl_InstanceIndex;
+#elif (MESH_TYPE==T_PFX)
+  uint objId = gl_InstanceIndex;
 #else
   uint objId = 0;
 #endif

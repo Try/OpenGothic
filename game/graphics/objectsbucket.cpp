@@ -3,6 +3,7 @@
 #include <Tempest/Log>
 
 #include "graphics/mesh/submesh/packedmesh.h"
+#include "graphics/pfx/pfxbucket.h"
 #include "sceneglobals.h"
 
 #include "visualobjects.h"
@@ -78,6 +79,8 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
   auto& v2 = owner->val[id];
   setObjMatrix(v.pos);
   std::swap(v.timeShift, v2.timeShift);
+  for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i)
+    setPfxData(v.pfx[i],i);
 
   oldOw->free(oldId);
   }
@@ -95,6 +98,11 @@ void ObjectsBucket::Item::setWind(phoenix::animation_mode m, float intensity) {
 void ObjectsBucket::Item::startMMAnim(std::string_view anim, float intensity, uint64_t timeUntil) {
   if(owner!=nullptr)
     owner->startMMAnim(id,anim,intensity,timeUntil);
+  }
+
+void ObjectsBucket::Item::setPfxData(const Tempest::StorageBuffer* ssbo, uint8_t fId) {
+  if(owner!=nullptr)
+    owner->setPfxData(id,ssbo,fId);
   }
 
 const Bounds& ObjectsBucket::Item::bounds() const {
@@ -182,7 +190,7 @@ std::unique_ptr<ObjectsBucket> ObjectsBucket::mkBucket(Type type, const Material
   if(type==Landscape || type==LandscapeShadow)
     return std::unique_ptr<ObjectsBucket>(new ObjectsBucketDyn(type,mat,owner,scene,st,nullptr,desc));
 
-  if(ObjectsBucket::isAnimated(mat))
+  if(ObjectsBucket::isAnimated(mat) || type==Pfx)
     return std::unique_ptr<ObjectsBucket>(new ObjectsBucketDyn(type,mat,owner,scene,st,anim,nullptr));
 
   return std::unique_ptr<ObjectsBucket>(new ObjectsBucket(type,mat,owner,scene,st,anim,nullptr));
@@ -272,6 +280,8 @@ void ObjectsBucket::implFree(const size_t objId) {
   v.isValid    = false;
   for(size_t i=0;i<Resources::MaxFramesInFlight;++i)
     v.vboM[i] = nullptr;
+  for(size_t i=0;i<Resources::MaxFramesInFlight;++i)
+    v.pfx[i] = nullptr;
   v.blas = nullptr;
   valSz--;
   visSet.erase(objId);
@@ -515,8 +525,8 @@ size_t ObjectsBucket::alloc(const AnimMesh& mesh, size_t iboOffset, size_t iboLe
 size_t ObjectsBucket::alloc(const Tempest::VertexBuffer<ObjectsBucket::Vertex>* vbo[], const Bounds& bounds) {
   Object* v = &implAlloc(bounds,mat);
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
-    assert(vbo[i]);
-    v->vboM[i] = vbo[i];
+    if(vbo!=nullptr)
+      v->vboM[i] = vbo[i];
     }
   v->visibility.setGroup(VisibilityGroup::G_AlwaysVis);
   postAlloc(*v,size_t(std::distance(val,v)));
@@ -586,7 +596,9 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId, const R
         break;
         }
       case Pfx: {
-        cmd.draw(*v.vboM[fId]);
+        // cmd.draw(*v.vboM[fId]);
+        if(v.pfx[fId]!=nullptr)
+          cmd.draw(6, 0, v.pfx[fId]->byteSize()/sizeof(PfxBucket::PfxState));
         break;
         }
       case Static:
@@ -737,6 +749,10 @@ void ObjectsBucket::setWind(size_t i, phoenix::animation_mode m, float intensity
   v.wind          = m;
   v.windIntensity = intensity;
   reallocObjPositions();
+  }
+
+void ObjectsBucket::setPfxData(size_t i, const Tempest::StorageBuffer* ssbo, uint8_t fId) {
+  assert(0);
   }
 
 bool ObjectsBucket::isAnimated(const Material& mat) {
@@ -938,6 +954,29 @@ ObjectsBucket::Descriptors& ObjectsBucketDyn::objUbo(size_t objId) {
   return uboObj[objId];
   }
 
+void ObjectsBucketDyn::setPfxData(size_t id, const Tempest::StorageBuffer* ssbo, uint8_t fId) {
+  if(ssbo->byteSize()==0)
+    ssbo = nullptr;
+
+  auto& v   = val[id];
+  auto& obj = uboObj[id];
+
+  v.pfx[fId] = ssbo;
+  if(ssbo==nullptr || ssbo->byteSize()==0)
+    return;
+
+  auto& ubo = obj.ubo[fId][SceneGlobals::V_Main];
+  if(objType==ObjectsBucket::Pfx) {
+    ubo.set(L_Pfx, *v.pfx[fId]);
+    if(pShadow!=nullptr) {
+      for(size_t lay=SceneGlobals::V_Shadow0; lay<=SceneGlobals::V_ShadowLast; ++lay) {
+        auto& uboSh = obj.ubo[fId][lay];
+        uboSh.set(L_Pfx, *v.pfx[fId]);
+        }
+      }
+    }
+  }
+
 void ObjectsBucketDyn::setupUbo() {
   ObjectsBucket::setupUbo();
 
@@ -1031,8 +1070,11 @@ void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
         break;
         }
       case Pfx: {
-        cmd.setUniforms(shader, uboObj[id].ubo[fId][c]);
-        cmd.draw(*v.vboM[fId]);
+        //cmd.draw(*v.vboM[fId]);
+        if(v.pfx[fId]!=nullptr) {
+          cmd.setUniforms(shader, uboObj[id].ubo[fId][c]);
+          cmd.draw(6, 0, v.pfx[fId]->byteSize()/sizeof(PfxBucket::PfxState));
+          }
         break;
         }
       case Static:

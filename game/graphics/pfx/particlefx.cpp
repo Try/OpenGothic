@@ -3,6 +3,7 @@
 #include "utils/parser.h"
 #include "gothic.h"
 #include "resources.h"
+#include "utils/string_frm.h"
 
 using namespace Tempest;
 
@@ -104,8 +105,6 @@ ParticleFx::ParticleFx(const phoenix::c_particle_fx &src, std::string_view name)
   m_bIsAmbientPFX     = src.m_bis_ambient_pfx!=0;
 
   prefferedTime       = calcPrefferedTimeSingle();
-
-  // visMaterial.alpha = Material::Solid;
   }
 
 ParticleFx::ParticleFx(const ParticleFx& proto, const VisualFx::Key& key)
@@ -141,6 +140,10 @@ ParticleFx::ParticleFx(const ParticleFx& proto, const VisualFx::Key& key)
 
   if(key.pfx_visAlphaStart>0)
     visAlphaStart     = key.pfx_visAlphaStart;
+  }
+
+bool ParticleFx::isDecal() const {
+  return ppsValue<0;
   }
 
 uint64_t ParticleFx::maxLifetime() const {
@@ -203,10 +206,12 @@ const Tempest::Texture2d* ParticleFx::loadTexture(std::string_view src) {
   return view;
   }
 
-ParticleFx::KeyList ParticleFx::loadArr(std::string_view src) {
+ParticleFx::KeyList ParticleFx::loadArr(std::string_view vsrc) {
+  string_frm src(vsrc);
   std::vector<float> v;
-  const char* str  = src.data();
-  for(int i=0;;++i) {
+
+  const char* str  = src.c_str();
+  while(true) {
     char* next=nullptr;
     float f = std::strtof(str,&next);
     if(str==next) {

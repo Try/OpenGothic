@@ -23,7 +23,8 @@ class VisualObjects final {
     ObjectsBucket::Item get(const AnimMesh& mesh, const Material& mat,
                             size_t iboOff, size_t iboLen,
                             const MatrixStorage::Id& anim);
-    ObjectsBucket::Item get(const Tempest::VertexBuffer<Resources::Vertex>* vbo[], const Material& mat);
+    ObjectsBucket::Item get(const Tempest::VertexBuffer<Resources::Vertex>* vbo[],
+                            const Material& mat);
 
     MatrixStorage::Id   getMatrixes(Tempest::BufferHeap heap, size_t boneCnt);
     auto                matrixSsbo (Tempest::BufferHeap heap, uint8_t fId) const -> const Tempest::StorageBuffer&;

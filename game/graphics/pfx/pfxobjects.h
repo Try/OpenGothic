@@ -23,17 +23,6 @@ class PfxObjects final {
 
     static constexpr const float viewRage = 4000.f;
 
-    struct VboContext {
-      Tempest::Vec3 left = {};
-      Tempest::Vec3 top  = {};
-      Tempest::Vec3 z    = {};
-
-      Tempest::Vec3 leftA = {};
-      Tempest::Vec3 topA  = {0,1,0};
-
-      Tempest::Matrix4x4 vp;
-      };
-
     void       setViewerPos(const Tempest::Vec3& pos);
 
     void       resetTicks();

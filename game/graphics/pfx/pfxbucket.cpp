@@ -8,19 +8,6 @@
 
 using namespace Tempest;
 
-static void     rotate(Vec3& rx, Vec3& ry,float a,const Vec3& x, const Vec3& y){
-  const float c = std::cos(a);
-  const float s = std::sin(a);
-
-  rx.x = x.x*c - y.x*s;
-  rx.y = x.y*c - y.y*s;
-  rx.z = x.z*c - y.z*s;
-
-  ry.x = x.x*s + y.x*c;
-  ry.y = x.y*s + y.y*c;
-  ry.z = x.z*s + y.z*c;
-  }
-
 static uint64_t ppsDiff(const ParticleFx& decl, bool loop, uint64_t time0, uint64_t time1) {
   if(time1<=time0)
     return 0;
@@ -42,13 +29,9 @@ float PfxBucket::ParState::lifeTime() const {
 
 std::mt19937 PfxBucket::rndEngine;
 
-
 PfxBucket::PfxBucket(const ParticleFx &decl, PfxObjects& parent, VisualObjects& visual)
   :decl(decl), parent(parent), visual(visual), vertexCount(decl.visTexIsQuadPoly ? 6 : 3) {
-  const Tempest::VertexBuffer<Resources::Vertex>* vbo[Resources::MaxFramesInFlight] = {};
-  for(size_t i=0;i<Resources::MaxFramesInFlight;++i)
-    vbo[i] = &vboGpu[i];
-  item = visual.get(vbo,decl.visMaterial);
+  item = visual.get(nullptr,decl.visMaterial);
 
   Matrix4x4 ident;
   ident.identity();
@@ -67,7 +50,7 @@ PfxBucket::~PfxBucket() {
 
 bool PfxBucket::isEmpty() const {
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
-    if(vboGpu[i].size()>0)
+    if(pfxGpu[i].byteSize()>0)
       return false;
     }
   return impl.size()==0;
@@ -90,7 +73,7 @@ size_t PfxBucket::allocBlock() {
   b.timeTotal = 0;
 
   particles.resize(particles.size()+blockSize);
-  vboCpu.resize(particles.size()*vertexCount);
+  pfxCpu   .resize(particles.size());
 
   for(size_t i=0; i<blockSize; ++i)
     particles[b.offset+i].life = 0;
@@ -103,8 +86,7 @@ void PfxBucket::freeBlock(size_t& i) {
   auto& b = block[i];
   assert(b.count==0);
 
-  Vertex* v  = &vboCpu[b.offset*vertexCount];
-  std::memset(v,0,blockSize*vertexCount*sizeof(*v));
+  pfxCpu[b.offset].size = Vec3();
 
   b.allocated = false;
   i = size_t(-1);
@@ -169,7 +151,7 @@ bool PfxBucket::shrink() {
     }
   if(particles.size()!=block.size()*blockSize) {
     particles.resize(block.size()*blockSize);
-    vboCpu.resize(particles.size()*vertexCount);
+    pfxCpu   .resize(particles.size());
     return true;
     }
   return false;
@@ -350,10 +332,9 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
   }
 
 void PfxBucket::finalize(size_t particle) {
-  Vertex* v = &vboCpu[particle*vertexCount];
-  std::memset(v,0,sizeof(*v)*vertexCount);
   auto& p = particles[particle];
   p = {};
+  pfxCpu[particle] = {};
   }
 
 void PfxBucket::tick(Block& sys, ImplEmitter&, size_t particle, uint64_t dt) {
@@ -377,7 +358,7 @@ void PfxBucket::tick(Block& sys, ImplEmitter&, size_t particle, uint64_t dt) {
   }
 
 void PfxBucket::tick(uint64_t dt, const Vec3& viewPos) {
-  if(decl.ppsValue<0) {
+  if(decl.isDecal()) {
     implTickDecals(dt,viewPos);
     return;
     }
@@ -476,7 +457,7 @@ void PfxBucket::tickEmit(Block& p, ImplEmitter& emitter, uint64_t emited) {
     }
   }
 
-void PfxBucket::buildVbo(const PfxObjects::VboContext& ctx) {
+void PfxBucket::buildSsbo() {
   auto  colorS          = decl.visTexColorStart;
   auto  colorE          = decl.visTexColorEnd;
   auto  visSizeStart    = decl.visSizeStart;
@@ -485,19 +466,16 @@ void PfxBucket::buildVbo(const PfxObjects::VboContext& ctx) {
   auto  visAlphaEnd     = decl.visAlphaEnd;
   auto  visAlphaFunc    = decl.visMaterial.alpha;
 
-  const Vec3& left = decl.visYawAlign ? ctx.leftA : ctx.left;
-  const Vec3& top  = decl.visYawAlign ? ctx.topA  : ctx.top;
-
   for(auto& p:block) {
     if(p.count==0)
       continue;
 
     for(size_t pId=0; pId<blockSize; ++pId) {
       ParState& ps = particles[pId+p.offset];
-      Vertex*   v  = &vboCpu[(pId+p.offset)*vertexCount];
+      auto&     px = pfxCpu   [pId+p.offset];
 
       if(ps.life==0) {
-        std::memset(v,0,vertexCount*sizeof(*v));
+        px.size = Vec3();
         continue;
         }
 
@@ -509,40 +487,6 @@ void PfxBucket::buildVbo(const PfxObjects::VboContext& ctx) {
       const float szX   = visSizeStart.x*scale;
       const float szY   = visSizeStart.y*scale;
       const float szZ   = 0.1f*((szX+szY)*0.5f);
-
-      Vec3 l={};
-      Vec3 t={};
-
-      if(decl.visOrientation==ParticleFx::Orientation::Velocity3d) {
-        static float k1 = -1, k2 = -1;
-        auto dir    = ps.dir;
-        auto ldir   = dir.length();
-        if(ldir!=0.f)
-          dir/=ldir;
-        t = dir*k1;
-        l = Vec3::crossProduct(t,ctx.z)*k2;
-        }
-      else if(decl.visOrientation==ParticleFx::Orientation::Velocity) {
-        auto  dir = ps.dir;
-        float w   = 0;
-        ctx.vp.project(dir.x,dir.y,dir.z,w);
-
-        auto ldir   = dir.length();
-        if(ldir!=0.f)
-          dir/=ldir;
-
-        float sVel = 1.5f*(1.f - std::fabs(dir.z));
-        auto  c    = -dir.x;
-        auto  s    =  dir.y;
-        auto  rot  = (s==0 && c==0) ? 0.f : std::atan2(s,c);
-        rotate(l,t,rot+float(M_PI/2),left,top);
-        l = l*sVel;
-        t = t*sVel;
-        }
-      else {
-        l = left;
-        t = top;
-        }
 
       struct Color {
         uint8_t r=255;
@@ -564,8 +508,7 @@ void PfxBucket::buildVbo(const PfxObjects::VboContext& ctx) {
         }
       uint32_t colorU32;
       std::memcpy(&colorU32,&color,4);
-
-      buildBilboard(v,p,ps,colorU32, l,t,ctx.z, szX,szY,szZ);
+      buildBilboard(px,p,ps, colorU32, szX,szY,szZ);
       }
     }
   }
@@ -605,8 +548,8 @@ void PfxBucket::buildBilboard(Vertex v[], const Block& p, const ParState& ps, co
       v[i].pos[2] -= szZ*d.z;
       }
 
-    v[i].uv[0]  = U[i];
-    v[i].uv[1]  = V[i];
+    v[i].uv[0]   = U[i];
+    v[i].uv[1]   = V[i];
 
     v[i].norm[0] = -d.x;
     v[i].norm[1] = -d.y;
@@ -614,4 +557,20 @@ void PfxBucket::buildBilboard(Vertex v[], const Block& p, const ParState& ps, co
 
     v[i].color = color;
     }
+  }
+
+void PfxBucket::buildBilboard(PfxState& v, const Block& p, const ParState& ps, const uint32_t color,
+                              float szX, float szY, float szZ) {
+  if(decl.useEmittersFOR)
+    v.pos = ps.pos + p.pos; else
+    v.pos = ps.pos;
+
+  v.size  = Vec3(szX,szY,szZ);
+  v.color = color;
+  v.bits0 = 0;
+  v.bits0 |= uint32_t(decl.visZBias ? 1 : 0);
+  v.bits0 |= uint32_t(decl.visTexIsQuadPoly ? 1 : 0) << 1;
+  v.bits0 |= uint32_t(decl.visYawAlign ? 1 : 0) << 2;
+  v.bits0 |= uint32_t(decl.visOrientation) << 3;
+  v.dir   = ps.dir;
   }

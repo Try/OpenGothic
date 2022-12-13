@@ -10,8 +10,8 @@
 #include "resources.h"
 #include "sceneglobals.h"
 #include "matrixstorage.h"
-#include "ubostorage.h"
-#include "graphics/mesh/protomesh.h"
+#include "graphics/mesh/submesh/staticmesh.h"
+#include "graphics/mesh/submesh/animmesh.h"
 #include "graphics/dynamic/visibilitygroup.h"
 #include "graphics/dynamic/visibleset.h"
 
@@ -73,6 +73,7 @@ class ObjectsBucket {
         void   setFatness  (float f);
         void   setWind     (phoenix::animation_mode m, float intensity);
         void   startMMAnim (std::string_view anim, float intensity, uint64_t timeUntil);
+        void   setPfxData  (const Tempest::StorageBuffer* ssbo, uint8_t fId);
 
         const Bounds& bounds() const;
 
@@ -133,6 +134,7 @@ class ObjectsBucket {
       L_Shadow1  = 7,
       L_MorphId  = 8,
       L_Morph    = 9,
+      L_Pfx      = L_MorphId,
       L_GDiffuse = 10,
       L_GDepth   = 11,
       L_HiZ      = 12,
@@ -170,6 +172,9 @@ class ObjectsBucket {
       Tempest::Point texAniMapDirPeriod;
       float          bboxRadius = 0;
       float          waveMaxAmplitude = 0;
+      // pfx
+      uint16_t       visOrientation = 0;
+      uint16_t       visZBias       = 0;
       };
 
     struct Descriptors final {
@@ -186,6 +191,7 @@ class ObjectsBucket {
 
     struct Object final {
       const Tempest::VertexBuffer<Vertex>*  vboM[Resources::MaxFramesInFlight] = {};
+      const Tempest::StorageBuffer*         pfx[Resources::MaxFramesInFlight] = {};
       size_t                                iboOffset = 0;
       size_t                                iboLength = 0;
       Tempest::Matrix4x4                    pos;
@@ -218,6 +224,7 @@ class ObjectsBucket {
     void                      startMMAnim (size_t i, std::string_view anim, float intensity, uint64_t timeUntil);
     void                      setFatness  (size_t i, float f);
     void                      setWind     (size_t i, phoenix::animation_mode m, float intensity);
+    virtual void              setPfxData  (size_t i, const Tempest::StorageBuffer* ssbo, uint8_t fId);
 
     static bool               isAnimated(const Material& mat);
     bool                      isForwardShading() const;
@@ -281,6 +288,7 @@ class ObjectsBucketDyn : public ObjectsBucket {
     void         implFree (const size_t objId) override;
 
     Descriptors& objUbo(size_t objId) override;
+    void         setPfxData  (size_t i, const Tempest::StorageBuffer* ssbo, uint8_t fId) override;
 
     void         setupUbo() override;
     void         invalidateUbo(uint8_t fId) override;

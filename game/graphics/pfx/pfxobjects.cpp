@@ -4,12 +4,7 @@
 #include <cstring>
 #include <cassert>
 
-#include "graphics/mesh/submesh/pfxemittermesh.h"
-#include "graphics/mesh/pose.h"
-#include "graphics/mesh/skeleton.h"
 #include "graphics/sceneglobals.h"
-#include "graphics/lightsource.h"
-#include "world/world.h"
 
 #include "pfxbucket.h"
 #include "particlefx.h"
@@ -45,38 +40,17 @@ void PfxObjects::tick(uint64_t ticks) {
   if(dt==0)
     return;
 
-  VboContext ctx;
-  const auto& m = scene.viewProject();
-  ctx.vp     = m;
-
-  ctx.left.x = m.at(0,0);
-  ctx.left.y = m.at(1,0);
-  ctx.left.z = m.at(2,0);
-
-  ctx.top.x  = m.at(0,1);
-  ctx.top.y  = m.at(1,1);
-  ctx.top.z  = m.at(2,1);
-
-  ctx.z.x    = m.at(0,2);
-  ctx.z.y    = m.at(1,2);
-  ctx.z.z    = m.at(2,2);
-
-  ctx.left/=ctx.left.length();
-  ctx.top /=ctx.top.length();
-  ctx.z   /=ctx.z.length();
-
-  ctx.leftA.x = ctx.left.x;
-  ctx.leftA.z = ctx.left.z;
-  ctx.topA.y  = -1;
-
   for(auto& i:bucket)
     i.tick(dt,viewerPos);
 
   trails.tick(dt);
 
   for(auto& i:bucket)
-    i.buildVbo(ctx);
-  trails.buildVbo(-ctx.z);
+    i.buildSsbo();
+
+  const auto& m = scene.viewProject();
+  const Vec3 viewDir = {m.at(0,2), m.at(1,2), m.at(2,2)};
+  trails.buildVbo(Vec3::normalize(viewDir));
 
   lastUpdate = ticks;
   }
@@ -97,10 +71,16 @@ void PfxObjects::preFrameUpdate(uint8_t fId) {
 
   auto& device = Resources::device();
   for(auto& i:bucket) {
-    auto& vbo = i.vboGpu[fId];
-    if(i.vboCpu.size()!=vbo.size())
-      vbo = device.vbo(BufferHeap::Upload,i.vboCpu); else
-      vbo.update(i.vboCpu);
+    // hidden staging under the hood
+    auto& ssbo = i.pfxGpu[fId];
+    if(i.pfxCpu.size()*sizeof(PfxBucket::PfxState)!=ssbo.byteSize()) {
+      auto heap = i.decl.isDecal() ? BufferHeap::Device : BufferHeap::Upload;
+      ssbo = device.ssbo(heap,i.pfxCpu);
+      i.item.setPfxData(&ssbo,fId);
+      } else {
+      if(!i.decl.isDecal())
+        ssbo.update(i.pfxCpu);
+      }
     }
 
   trails.preFrameUpdate(fId);
