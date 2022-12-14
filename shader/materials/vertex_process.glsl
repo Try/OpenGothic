@@ -157,24 +157,23 @@ vec4 processVertex(out Varyings shOut, uint objId, uint vboOffset) {
     normal = -depth;
 
     if(isTrail) {
+      const uint colorB = pfx[objId].colorB;
       normal = vec3(0,1,0);
 
-      uint  colorB = pfx[objId].colorB;
+      if(dyQ[vboOffset]>0)
+        color = colorB;
+
       float tA     = size.y;
       float tB     = size.z;
 
       vec3 n  = cross(depth,dir);
-      //n = n/n.length(); // broken?
       n = normalize(n);
-      n = n*size.x*4.f;
+      n = n*size.x;
 
       pos += (dxQ[vboOffset])*n + (dyQ[vboOffset]+0.5)*dir;
 
       uv.x = dxQ[vboOffset]+0.5;
       uv.y = 1.0-(tA + (dyQ[vboOffset]+0.5)*(tB-tA));
-
-      if(dyQ[vboOffset]>0)
-        color = colorB;
       }
     else if(visOrientation==PfxOrientationVelocity3d) {
       float ldir = length(dir);

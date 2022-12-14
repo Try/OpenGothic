@@ -12,7 +12,7 @@
 using namespace Tempest;
 
 PfxObjects::PfxObjects(WorldView& world, const SceneGlobals& scene, VisualObjects& visual)
-  :world(world), scene(scene), visual(visual), trails(visual) {
+  :world(world), scene(scene), visual(visual) {
   }
 
 PfxObjects::~PfxObjects() {
@@ -43,14 +43,8 @@ void PfxObjects::tick(uint64_t ticks) {
   for(auto& i:bucket)
     i.tick(dt,viewerPos);
 
-  trails.tick(dt);
-
   for(auto& i:bucket)
     i.buildSsbo();
-
-  const auto& m = scene.viewProject();
-  const Vec3 viewDir = {m.at(0,2), m.at(1,2), m.at(2,2)};
-  trails.buildVbo(Vec3::normalize(viewDir));
 
   lastUpdate = ticks;
   }
@@ -69,21 +63,8 @@ void PfxObjects::preFrameUpdate(uint8_t fId) {
       }
     }
 
-  auto& device = Resources::device();
-  for(auto& i:bucket) {
-    // hidden staging under the hood
-    auto& ssbo = i.pfxGpu[fId];
-    if(i.pfxCpu.size()*sizeof(PfxBucket::PfxState)!=ssbo.byteSize()) {
-      auto heap = i.decl.isDecal() ? BufferHeap::Device : BufferHeap::Upload;
-      ssbo = device.ssbo(heap,i.pfxCpu);
-      i.item.setPfxData(&ssbo,fId);
-      } else {
-      if(!i.decl.isDecal())
-        ssbo.update(i.pfxCpu);
-      }
-    }
-
-  trails.preFrameUpdate(fId);
+  for(auto& i:bucket)
+    i.preFrameUpdate(fId);
   }
 
 PfxBucket& PfxObjects::getBucket(const ParticleFx &decl) {

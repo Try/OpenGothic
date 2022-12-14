@@ -6,11 +6,10 @@
 #include "world/collisionzone.h"
 #include "physics/dynamicworld.h"
 #include "graphics/meshobjects.h"
-#include "graphics/pfx/trlobjects.h"
 
 class World;
-class PfxBucket;
 class ParticleFx;
+class PfxBucket;
 class PfxObjects;
 class PfxEmitterMesh;
 
@@ -51,7 +50,6 @@ class PfxEmitter {
     size_t     id     = size_t(-1);
 
     CollisionZone      zone;
-    TrlObjects::Item   trail;
     MeshObjects::Mesh  shpMesh;
 
   friend class PfxBucket;

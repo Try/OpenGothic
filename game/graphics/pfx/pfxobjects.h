@@ -52,8 +52,6 @@ class PfxObjects final {
     Tempest::Vec3                 viewerPos={};
     uint64_t                      lastUpdate=0;
 
-    TrlObjects                    trails;
-
   friend class PfxEmitter;
   friend class TrlObjects;
   };

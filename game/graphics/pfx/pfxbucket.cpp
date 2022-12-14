@@ -33,9 +33,8 @@ PfxBucket::PfxBucket(const ParticleFx &decl, PfxObjects& parent, VisualObjects& 
   :decl(decl), parent(parent), visual(visual), vertexCount(decl.visTexIsQuadPoly ? 6 : 3) {
   item = visual.get(decl.visMaterial);
 
-  Matrix4x4 ident;
-  ident.identity();
-  item.setObjMatrix(ident);
+  if(!item.isEmpty())
+    item.setObjMatrix(Matrix4x4::mkIdentity());
 
   uint64_t lt      = decl.maxLifetime();
   uint64_t pps     = uint64_t(std::ceil(decl.maxPps()));
@@ -43,6 +42,15 @@ PfxBucket::PfxBucket(const ParticleFx &decl, PfxObjects& parent, VisualObjects& 
   blockSize        = size_t(reserve);
   if(blockSize==0)
     blockSize=1;
+
+  if(decl.hasTrails()) {
+    maxTrlTime = uint64_t(decl.trlFadeSpeed*1000.f);
+
+    Material mat = decl.visMaterial;
+    mat.tex = decl.trlTexture;
+    itemTrl = visual.get(mat);
+    itemTrl.setObjMatrix(Matrix4x4::mkIdentity());
+    }
   }
 
 PfxBucket::~PfxBucket() {
@@ -332,12 +340,11 @@ void PfxBucket::init(PfxBucket::Block& block, ImplEmitter& emitter, size_t parti
   }
 
 void PfxBucket::finalize(size_t particle) {
-  auto& p = particles[particle];
-  p = {};
-  pfxCpu[particle] = {};
+  particles[particle] = {};
+  pfxCpu   [particle] = {};
   }
 
-void PfxBucket::tick(Block& sys, ImplEmitter&, size_t particle, uint64_t dt) {
+void PfxBucket::tick(Block& sys, ImplEmitter& emitter, size_t particle, uint64_t dt) {
   ParState& ps = particles[particle+sys.offset];
   if(ps.life==0)
     return;
@@ -355,6 +362,45 @@ void PfxBucket::tick(Block& sys, ImplEmitter&, size_t particle, uint64_t dt) {
   ps.life  = uint16_t(ps.life-dt);
   ps.pos  += ps.dir*dtF;
   ps.dir  += decl.flyGravity*dtF;
+
+  if(maxTrlTime!=0)
+    tickTrail(ps,emitter,dt);
+  }
+
+void PfxBucket::tickTrail(ParState& ps, ImplEmitter& emitter, uint64_t dt) {
+  for(auto& i:ps.trail)
+    i.time+=dt;
+
+  Trail tx;
+  if(decl.useEmittersFOR)
+    tx.pos = ps.pos + emitter.pos; else
+    tx.pos = ps.pos;
+
+  if(ps.trail.size()==0) {
+    ps.trail.push_back(tx);
+    }
+  else if(ps.trail.back().pos!=tx.pos) {
+    bool extrude = false;
+    if(false && ps.trail.size()>1) {
+      auto u = tx.pos              - ps.trail[ps.trail.size()-2].pos;
+      auto v = ps.trail.back().pos - ps.trail[ps.trail.size()-2].pos;
+      if(std::abs(Vec3::dotProduct(u,v)-u.length()*v.length()) < 0.001f)
+        extrude = true;
+      }
+    if(extrude)
+      ps.trail.back() = tx; else
+      ps.trail.push_back(tx);
+    }
+  else {
+    ps.trail.back().time = 0;
+    }
+
+  for(size_t rm=0; rm<=ps.trail.size(); ++rm) {
+    if(rm==ps.trail.size() || ps.trail[rm].time<maxTrlTime) {
+      ps.trail.erase(ps.trail.begin(),ps.trail.begin()+int(rm));
+      break;
+      }
+    }
   }
 
 void PfxBucket::tick(uint64_t dt, const Vec3& viewPos) {
@@ -457,7 +503,36 @@ void PfxBucket::tickEmit(Block& p, ImplEmitter& emitter, uint64_t emited) {
     }
   }
 
+void PfxBucket::preFrameUpdate(uint8_t fId) {
+  auto& device = Resources::device();
+
+  if(!item.isEmpty()) {
+    // hidden staging under the hood
+    auto& ssbo = pfxGpu[fId];
+    if(pfxCpu.size()*sizeof(PfxBucket::PfxState)!=ssbo.byteSize()) {
+      auto heap = decl.isDecal() ? BufferHeap::Device : BufferHeap::Upload;
+      ssbo = device.ssbo(heap,pfxCpu);
+      item.setPfxData(&ssbo,fId);
+      } else {
+      if(!decl.isDecal())
+        ssbo.update(pfxCpu);
+      }
+    }
+
+  if(!itemTrl.isEmpty()) {
+    auto& ssbo = trlGpu[fId];
+    if(trlCpu.size()*sizeof(PfxBucket::PfxState)!=ssbo.byteSize()) {
+      ssbo = device.ssbo(BufferHeap::Upload,trlCpu);
+      itemTrl.setPfxData(&ssbo,fId);
+      } else {
+      ssbo.update(trlCpu);
+      }
+    }
+  }
+
 void PfxBucket::buildSsbo() {
+  buildSsboTrails();
+
   auto  colorS          = decl.visTexColorStart;
   auto  colorE          = decl.visTexColorEnd;
   auto  visSizeStart    = decl.visSizeStart;
@@ -513,6 +588,28 @@ void PfxBucket::buildSsbo() {
     }
   }
 
+void PfxBucket::buildSsboTrails() {
+  if(!decl.hasTrails())
+    return;
+
+  trlCpu.reserve(trlCpu.size());
+  trlCpu.clear();
+
+  for(auto& p:particles) {
+    if(p.life==0)
+      continue;
+    if(p.trail.size()<2)
+      continue;
+
+    float maxT = float(std::min(maxTrlTime,p.trail[0].time));
+    for(size_t r=1; r<p.trail.size(); ++r) {
+      PfxState st;
+      buildTrailSegment(st,p.trail[r-1],p.trail[r],maxT);
+      trlCpu.push_back(st);
+      }
+    }
+  }
+
 void PfxBucket::buildBilboard(PfxState& v, const Block& p, const ParState& ps, const uint32_t color,
                               float szX, float szY, float szZ) {
   if(decl.useEmittersFOR)
@@ -528,4 +625,46 @@ void PfxBucket::buildBilboard(PfxState& v, const Block& p, const ParState& ps, c
   v.bits0 |= uint32_t(0) << 3; // TODO: trails
   v.bits0 |= uint32_t(decl.visOrientation) << 4;
   v.dir   = ps.dir;
+  }
+
+void PfxBucket::buildTrailSegment(PfxState& v, const Trail& a, const Trail& b, float maxT) {
+  float    tA  = 1.f - float(a.time)/maxT;
+  float    tB  = 1.f - float(b.time)/maxT;
+
+  uint32_t clA = mkTrailColor(tA);
+  uint32_t clB = mkTrailColor(tB);
+
+  v.pos    = a.pos;
+  v.color  = clA;
+  v.size   = Vec3(decl.trlWidth,tA,tB);
+  v.bits0  = uint32_t(1) << 3;
+  v.dir    = b.pos  - a.pos;
+  v.colorB = clB;
+  }
+
+uint32_t PfxBucket::mkTrailColor(float clA) const {
+  struct Color {
+    uint8_t r=255;
+    uint8_t g=255;
+    uint8_t b=255;
+    uint8_t a=255;
+    } color;
+
+  clA = std::max(0.f, std::min(clA, 1.f));
+
+  if(decl.visMaterial.alpha==Material::AlphaFunc::AdditiveLight) {
+    color.r = uint8_t(255*clA);
+    color.g = uint8_t(255*clA);
+    color.b = uint8_t(255*clA);
+    color.a = uint8_t(255);
+    }
+  else if(decl.visMaterial.alpha==Material::AlphaFunc::Transparent) {
+    color.r = 255;
+    color.g = 255;
+    color.b = 255;
+    color.a = uint8_t(clA*255);
+    }
+  uint32_t cl;
+  std::memcpy(&cl,&color,sizeof(cl));
+  return cl;
   }

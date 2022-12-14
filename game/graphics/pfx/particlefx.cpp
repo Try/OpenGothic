@@ -146,6 +146,10 @@ bool ParticleFx::isDecal() const {
   return ppsValue<0;
   }
 
+bool ParticleFx::hasTrails() const {
+  return trlTexture!=nullptr && trlWidth!=0.f && trlFadeSpeed>0;
+  }
+
 uint64_t ParticleFx::maxLifetime() const {
   return uint64_t(lspPartAvg+lspPartVar);
   }
