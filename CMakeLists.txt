@@ -42,6 +42,10 @@ if(WIN32)
   endif()
 endif()
 
+if(APPLE)
+  set(CMAKE_OSX_DEPLOYMENT_TARGET 12.0)
+endif()
+
 ## OpenGothic
 
 # sources
