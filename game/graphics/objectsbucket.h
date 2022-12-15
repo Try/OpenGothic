@@ -75,9 +75,11 @@ class ObjectsBucket {
         void   startMMAnim (std::string_view anim, float intensity, uint64_t timeUntil);
         void   setPfxData  (const Tempest::StorageBuffer* ssbo, uint8_t fId);
 
-        const Bounds& bounds() const;
-
-        void   draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) const;
+        const Material&    material() const;
+        const Bounds&      bounds()   const;
+        Tempest::Matrix4x4 position() const;
+        const StaticMesh*  mesh()     const;
+        std::pair<uint32_t,uint32_t> meshSlice() const;
 
       private:
         ObjectsBucket* owner=nullptr;
@@ -117,7 +119,6 @@ class ObjectsBucket {
     void                      draw       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void                      drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void                      drawShadow (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer);
-    void                      draw       (size_t id, Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId);
 
   protected:
     enum UboLinkpackage : uint8_t {
@@ -170,9 +171,6 @@ class ObjectsBucket {
       Tempest::Point texAniMapDirPeriod;
       float          bboxRadius = 0;
       float          waveMaxAmplitude = 0;
-      // pfx
-      uint16_t       visOrientation = 0;
-      uint16_t       visZBias       = 0;
       };
 
     struct Descriptors final {
@@ -236,6 +234,9 @@ class ObjectsBucket {
                                          const Tempest::RenderPipeline& shader, SceneGlobals::VisCamera c, bool isHiZPass);
 
     const Bounds&             bounds(size_t i) const;
+    Tempest::Matrix4x4        position(size_t i) const;
+    virtual const Material&   material(size_t i) const;
+    std::pair<uint32_t,uint32_t> meshSlice(size_t i) const;
 
     Tempest::BufferHeap       ssboHeap() const;
     static Type               sanitizeType(const Type t, const Material& mat, const StaticMesh* st);
@@ -256,7 +257,6 @@ class ObjectsBucket {
     bool                      useMeshlets         = false;
     bool                      textureInShadowPass = false;
 
-    const Tempest::RenderPipeline* pInventory = nullptr;
     const Tempest::RenderPipeline* pMain      = nullptr;
     const Tempest::RenderPipeline* pShadow    = nullptr;
 
@@ -286,6 +286,7 @@ class ObjectsBucketDyn : public ObjectsBucket {
 
     Descriptors& objUbo(size_t objId) override;
     void         setPfxData  (size_t i, const Tempest::StorageBuffer* ssbo, uint8_t fId) override;
+    const Material& material(size_t i) const override;
 
     void         setupUbo() override;
     void         invalidateUbo(uint8_t fId) override;

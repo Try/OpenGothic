@@ -124,6 +124,9 @@ add_uber_shader(ani "-DMESH_TYPE=2")
 add_uber_shader(mph "-DMESH_TYPE=3")
 add_uber_shader(pfx "-DMESH_TYPE=4")
 
+add_shader(item.vert                 inventory/item.vert "")
+add_shader(item.frag                 inventory/item.frag "")
+
 add_shader(lnd_hiz.32.mesh           materials/main.mesh -DMESH_TYPE=0 -DHIZ)
 add_shader(lnd_hiz.64.mesh           materials/main.mesh -DMESH_TYPE=0 -DHIZ)
 add_shader(lnd_hiz.frag              materials/main.frag -DMESH_TYPE=0 -DHIZ)

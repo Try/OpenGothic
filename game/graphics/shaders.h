@@ -36,12 +36,12 @@ class Shaders {
     enum PipelineType: uint8_t {
       T_Forward,
       T_Deffered,
-      T_Inventory,
       T_Shadow,
       };
 
     const Tempest::RenderPipeline* materialPipeline(const Material& desc, ObjectsBucket::Type t, PipelineType pt) const;
     Tempest::RenderPipeline lndPrePass;
+    Tempest::RenderPipeline inventory;
 
   private:
     struct ShaderSet {

@@ -112,8 +112,29 @@ const Bounds& ObjectsBucket::Item::bounds() const {
   return b;
   }
 
-void ObjectsBucket::Item::draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) const {
-  owner->draw(id,p,fId);
+Matrix4x4 ObjectsBucket::Item::position() const {
+  if(owner!=nullptr)
+    return owner->position(id);
+  return Matrix4x4();
+  }
+
+const StaticMesh* ObjectsBucket::Item::mesh() const {
+  if(owner!=nullptr)
+    return owner->staticMesh;
+  return nullptr;
+  }
+
+std::pair<uint32_t, uint32_t> ObjectsBucket::Item::meshSlice() const {
+  if(owner!=nullptr)
+    return owner->meshSlice(id);
+  return std::pair<uint32_t, uint32_t>(0,0);
+  }
+
+const Material& ObjectsBucket::Item::material() const {
+  if(owner!=nullptr)
+    return owner->material(id);
+  static Material m;
+  return m;
   }
 
 
@@ -146,7 +167,6 @@ ObjectsBucket::ObjectsBucket(const Type type, const Material& mat, VisualObjects
 
   pMain               = Shaders::inst().materialPipeline(mat,objType, isForwardShading() ? Shaders::T_Forward : Shaders::T_Deffered);
   pShadow             = Shaders::inst().materialPipeline(mat,objType, Shaders::T_Shadow);
-  pInventory          = Shaders::inst().materialPipeline(mat,objType, Shaders::T_Inventory);
 
   if(useSharedUbo) {
     uboShared.alloc(*this);
@@ -623,41 +643,6 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId, const R
     }
   }
 
-void ObjectsBucket::draw(size_t id, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  auto& v = val[id];
-  if(staticMesh==nullptr || pMain==nullptr)
-    return;
-
-  auto& ubo = objUbo(id);
-  uboSetDynamic(ubo,v,fId);
-
-  UboPush pushBlock = {};
-  cmd.setUniforms(*pInventory,ubo.ubo[fId][SceneGlobals::V_Main]);
-  switch(objType) {
-    case Landscape:
-    case LandscapeShadow:
-    case Animated:
-    case Pfx:
-      break;
-    case Static:
-    case Movable:
-    case Morph: {
-      uint32_t instance = objPositions.offsetId()+uint32_t(id);
-      size_t   uboSz    = (objType==Morph ? sizeof(UboPush) : sizeof(UboPushBase));
-
-      updatePushBlock(pushBlock,v,instance);
-      if(useMeshlets) {
-        cmd.setUniforms(*pInventory, &pushBlock, uboSz);
-        cmd.dispatchMesh(uint32_t(v.iboLength/PackedMesh::MaxInd), 1);
-        } else {
-        cmd.setUniforms(*pInventory, &pushBlock, uboSz);
-        cmd.draw(staticMesh->vbo, staticMesh->ibo, v.iboOffset, v.iboLength, instance, 1);
-        }
-      break;
-      }
-    }
-  }
-
 void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
   auto& v = val[i];
   v.visibility.setObjMatrix(m);
@@ -880,6 +865,18 @@ const Bounds& ObjectsBucket::bounds(size_t i) const {
   return val[i].visibility.bounds();
   }
 
+Matrix4x4 ObjectsBucket::position(size_t i) const {
+  return val[i].pos;
+  }
+
+const Material& ObjectsBucket::material(size_t i) const {
+  return mat;
+  }
+
+std::pair<uint32_t, uint32_t> ObjectsBucket::meshSlice(size_t i) const {
+  return std::pair<uint32_t, uint32_t>(val[i].iboOffset, val[i].iboLength);
+  }
+
 
 ObjectsBucketDyn::ObjectsBucketDyn(const Type type, const Material& mat, VisualObjects& owner, const SceneGlobals& scene,
                                    const StaticMesh* st, const AnimMesh* anim, const Tempest::StorageBuffer* desc)
@@ -969,6 +966,10 @@ void ObjectsBucketDyn::setPfxData(size_t id, const Tempest::StorageBuffer* ssbo,
         }
       }
     }
+  }
+
+const Material& ObjectsBucketDyn::material(size_t i) const {
+  return mat[i];
   }
 
 void ObjectsBucketDyn::setupUbo() {

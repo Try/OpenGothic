@@ -143,6 +143,17 @@ Shaders::Shaders() {
 
     lndPrePass = device.pipeline(Triangles,state,ms,fs);
     }
+  {
+    RenderState state;
+    state.setCullFaceMode(RenderState::CullMode::Front);
+    state.setZTestMode   (RenderState::ZTestMode::LEqual);
+
+    auto sh = GothicShader::get("item.vert.sprv");
+    auto vs = device.shader(sh.data,sh.len);
+    sh = GothicShader::get("item.frag.sprv");
+    auto fs = device.shader(sh.data,sh.len);
+    inventory = device.pipeline(Triangles,state,vs,fs);
+  };
   }
 
 Shaders::~Shaders() {
@@ -233,9 +244,6 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
       break;
     case T_Deffered:
       temp = deffered;
-      break;
-    case T_Inventory:
-      temp = &emmision;
       break;
     case T_Shadow:
       temp = shadow;

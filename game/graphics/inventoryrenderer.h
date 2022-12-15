@@ -32,6 +32,13 @@ class InventoryRenderer {
     VisualObjects          visual;
     MeshObjects            itmGroup;
     std::vector<Itm>       items;
-    std::vector<Itm>       prevItems; // resever previous to avoid bucket reallocation
+    std::vector<Itm>       prevItems; // reseve previous to avoid bucket reallocation
+
+    const Tempest::RenderPipeline* pInventory = nullptr;
+
+    struct Context {
+      std::vector<Tempest::DescriptorSet> decs;
+      };
+    Context context[Resources::MaxFramesInFlight];
   };
 

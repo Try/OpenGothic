@@ -33,8 +33,12 @@ class MeshObjects final {
       public:
         Node(Node&&)=default;
 
-        void draw(Tempest::Encoder<Tempest::CommandBuffer>& p, uint8_t fId) const;
-        const Bounds& bounds() const;
+        const Bounds&      bounds() const;
+        const Material&    material() const;
+        Tempest::Matrix4x4 position() const;
+        const StaticMesh*  mesh() const;
+
+        std::pair<uint32_t,uint32_t> meshSlice() const;
 
       private:
         Node(const Item* it):it(it){}

@@ -2,7 +2,6 @@
 
 #include <Tempest/Log>
 
-#include "game/compatibility/phoenix.h"
 #include "graphics/mesh/submesh/packedmesh.h"
 #include "graphics/mesh/skeleton.h"
 #include "physics/physicmeshshape.h"

@@ -164,8 +164,6 @@ layout(binding = L_Bucket, std140) uniform BucketDesc {
   ivec2 texAniMapDirPeriod;
   float bboxRadius;
   float waveMaxAmplitude;
-  // pfx
-  uint  visOrientation_visZBias;
   } bucket;
 #endif
 
