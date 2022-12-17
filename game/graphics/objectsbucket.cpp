@@ -481,12 +481,16 @@ void ObjectsBucket::preFrameUpdate(uint8_t fId) {
 
       switch(v.wind) {
         case phoenix::animation_mode::wind:
-          // tree
-          a *= v.windIntensity;
+          // tree. note: mods tent to bump Intensity to insane values
+          if(v.windIntensity>0.f)
+            a *= 0.03; else
+            a *= 0;
           break;
         case phoenix::animation_mode::wind2:
           // grass
-          a *= v.windIntensity * 0.1;
+          if(v.windIntensity<=1.0)
+            a *= v.windIntensity * 0.1; else
+            a *= 0;
           break;
         case phoenix::animation_mode::none:
         default:
