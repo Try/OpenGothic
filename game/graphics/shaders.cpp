@@ -10,7 +10,7 @@
 
 using namespace Tempest;
 
-static constexpr uint32_t defaultWg = 32;
+static constexpr uint32_t defaultWg = 64;
 
 Shaders* Shaders::instance = nullptr;
 
