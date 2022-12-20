@@ -88,6 +88,10 @@ vec4 worldPos(ivec2 frag, float depth) {
   return scene.viewProjectInv * scr;
   }
 
+vec4 worldPos(float depth) {
+  return worldPos(ivec2(gl_FragCoord.xy),depth);
+  }
+
 #if defined(SHADOW_MAP)
 float calcShadow(vec4 pos4) {
   return calcShadow(pos4, scene, textureSm0, textureSm1);
@@ -97,9 +101,7 @@ float calcShadow(vec4 pos4) { return 1.0; }
 #endif
 
 #if defined(RAY_QUERY)
-bool rayTest(vec3 pos, float tMin, float tMax) {
-  vec3  rayDirection = scene.sunDir;
-
+bool rayTest(vec3 pos, vec3  rayDirection, float tMin, float tMax, out float rayT) {
   uint flags = gl_RayFlagsOpaqueEXT;
 #if defined(RAY_QUERY_AT)
   flags |= gl_RayFlagsNoOpaqueEXT;
@@ -124,18 +126,34 @@ bool rayTest(vec3 pos, float tMin, float tMax) {
 
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true)==gl_RayQueryCommittedIntersectionNoneEXT)
     return false;
+  rayT = rayQueryGetIntersectionTEXT(rayQuery, true);
   return true;
+  }
+
+bool rayTest(vec3 pos, float tMin, float tMax) {
+  float t = 0;
+  return rayTest(pos, scene.sunDir, tMin, tMax, t);
   }
 
 float calcRayShadow(vec4 pos4, vec3 normal, float depth) {
   vec4 sp = scene.viewShadow[1]*pos4;
   if(all(lessThan(abs(sp.xy),vec2(abs(sp.w)))))
     return 1.0;
-  float dist = linearDepth(depth, scene.clipInfo);
-  vec3  p    = pos4.xyz/pos4.w;// - scene.sunDir*20;
 
-  float tMin = 50; // bias?
-  if(!rayTest(p,tMin,10000))
+  vec4 cam4 = worldPos(0.1);
+  vec3 cam  = cam4.xyz/cam4.w;
+  vec3 pos  = pos4.xyz/pos4.w;
+
+  // fine depth. 32F depth almost works, but still has self hadowing artifacts
+  float fineDepth = 0;
+  vec3  view      = pos - cam;
+  float viewL     = length(view);
+  rayTest(cam, view/viewL, max(viewL-200.0, 0), viewL+1000.0, fineDepth);
+
+  pos = cam + view*(fineDepth/viewL);
+
+  // float tMin = 50; // bias?
+  if(!rayTest(pos, 0.01, 10000))
     return 1.0;
   return 0.0;
   }
@@ -168,7 +186,7 @@ void main(void) {
     if(dot(scene.sunDir,normal)<=0)
       shadow = 0;
 
-    const vec4 wpos = worldPos(fragCoord, d);
+    const vec4 wpos = worldPos(d);
     shadow = calcShadow(wpos);
 #if defined(RAY_QUERY)
     if(shadow>0.01)
