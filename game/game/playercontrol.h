@@ -18,6 +18,7 @@ class Gothic;
 class PlayerControl final {
   public:
     PlayerControl(DialogMenu& dlg, InventoryMenu& inv);
+    ~PlayerControl();
 
     void onKeyPressed (KeyCodec::Action a, Tempest::Event::KeyType key);
     void onKeyReleased(KeyCodec::Action a);
@@ -91,10 +92,12 @@ class PlayerControl final {
     uint64_t       runAngleSmooth = 0;
     uint64_t       turnAniSmooth  = 0;
     int            rotationAni    = 0;
+    bool           g2Ctrl         = false;
 
     DialogMenu&    dlg;
     InventoryMenu& inv;
 
+    void           setupSettings();
     bool           canInteract() const;
     void           marvinF8(uint64_t dt);
     void           marvinK(uint64_t dt);

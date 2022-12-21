@@ -14,6 +14,16 @@ using MobsiAction=Interactive::MobsiAction;
 
 PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
   :dlg(dlg),inv(inv) {
+  Gothic::inst().onSettingsChanged.bind(this,&PlayerControl::setupSettings);
+  setupSettings();
+  }
+
+PlayerControl::~PlayerControl() {
+  Gothic::inst().onSettingsChanged.ubind(this,&PlayerControl::setupSettings);
+  }
+
+void PlayerControl::setupSettings() {
+  g2Ctrl = Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS")==0;
   }
 
 void PlayerControl::setTarget(Npc *other) {
@@ -37,7 +47,6 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
   auto       w    = Gothic::inst().world();
   auto       pl   = w  ? w->player() : nullptr;
   auto       ws   = pl ? pl->weaponState() : WeaponState::NoWeapon;
-  const bool g1c  = Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS")!=0;
   uint8_t    slot = pl ? pl->inventory().currentSpellSlot() : Item::NSLOT;
 
   if(pl!=nullptr && pl->interactive()!=nullptr) {
@@ -96,23 +105,19 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
   const bool actTunneling = (pl!=nullptr && pl->isAtackAnim());
 
   int fk = -1;
-  if(ctrl[KeyCodec::ActionGeneric] || actTunneling || !g1c) {
-    if((g1c && a==Action::Forward) || (!g1c && a==Action::ActionGeneric)) {
+  if((ctrl[KeyCodec::ActionGeneric] || actTunneling) && !g2Ctrl) {
+    if(a==Action::Forward) {
       if(pl!=nullptr && pl->target()!=nullptr && pl->canFinish(*pl->target()) && !pl->isAtackAnim()) {
         fk = ActKill;
         } else {
-        if(!g1c && ctrl[Action::Forward])
-          fk = ActMove; else
-          fk = ActForward;
+        fk = ActForward;
         }
       }
     if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
-      if(g1c && a==Action::Back)
-        fk = ActBack;
-      if(!g1c && a==Action::Parade)
+      if(a==Action::Back)
         fk = ActBack;
       }
-    if(ws!=WeaponState::NoWeapon && g1c && !pl->hasState(BS_RUN)) {
+    if(ws!=WeaponState::NoWeapon && !g2Ctrl && !pl->hasState(BS_RUN)) {
       if(a==Action::Left  || a==Action::RotateL)
         fk = ActLeft;
       if(a==Action::Right || a==Action::RotateR)
@@ -120,6 +125,29 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
       }
     }
 
+  if(g2Ctrl) {
+    if(ws!=WeaponState::NoWeapon) {
+      if(a==Action::ActionGeneric) {
+        if(pl!=nullptr && pl->target()!=nullptr && pl->canFinish(*pl->target()) && !pl->isAtackAnim()) {
+          fk = ActKill;
+          } else {
+          if(ctrl[Action::Forward])
+            fk = ActMove; else
+            fk = ActForward;
+          }
+        }
+      }
+    if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
+      if(a==Action::Parade)
+        fk = ActBack;
+      }
+    if(ws!=WeaponState::NoWeapon && !pl->hasState(BS_RUN)) {
+      if(a==Action::ActionLeft)
+        fk = ActLeft;
+      if(a==Action::ActionRight)
+        fk = ActRight;
+      }
+    }
 
   if(fk>=0) {
     std::memset(actrl,0,sizeof(actrl));
@@ -167,8 +195,15 @@ void PlayerControl::onKeyReleased(KeyCodec::Action a) {
 
   auto w  = Gothic::inst().world();
   auto pl = w ? w->player() : nullptr;
+
   if(a==KeyCodec::Map && pl!=nullptr) {
     w->script().playerHotKeyScreenMap(*pl);
+    }
+  if(a==KeyCodec::Heal && pl!=nullptr) {
+    w->script().playerHotLameHeal(*pl);
+    }
+  if(a==KeyCodec::Potion && pl!=nullptr) {
+    w->script().playerHotLamePotion(*pl);
     }
 
   auto ws = pl==nullptr ? WeaponState::NoWeapon : pl->weaponState();
@@ -645,7 +680,7 @@ void PlayerControl::implMove(uint64_t dt) {
   if(actrl[ActForward] || actrl[ActMove]) {
     ctrl [Action::Forward] = actrl[ActMove];
     actrl[ActMove]         = false;
-    if(ws!=WeaponState::Mage)
+    if(ws!=WeaponState::Mage && !(g2Ctrl && (ws==WeaponState::Bow || ws==WeaponState::CBow)))
        actrl[ActForward] = false;
     switch(ws) {
       case WeaponState::NoWeapon:

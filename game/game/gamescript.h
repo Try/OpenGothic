@@ -134,6 +134,8 @@ class GameScript final {
     auto canNpcCollideWithSpell(Npc& npc, Npc* shooter, int32_t spellId) -> CollideMask;
 
     int  playerHotKeyScreenMap(Npc& pl);
+    void playerHotLamePotion(Npc& pl);
+    void playerHotLameHeal(Npc& pl);
 
     bool isDead       (const Npc &pl);
     bool isUnconscious(const Npc &pl);

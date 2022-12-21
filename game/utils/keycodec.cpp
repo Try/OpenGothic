@@ -283,6 +283,10 @@ KeyCodec::Action KeyCodec::implTr(int32_t code) const {
     return Log;
   if(keyShowMap.is(code))
     return Map;
+  if(keyHeal.is(code))
+    return Heal;
+  if(keyPotion.is(code))
+    return Potion;
 
   return Idle;
   }

@@ -19,6 +19,8 @@ class KeyCodec final {
       Status,
       Log,
       Map,
+      Heal,
+      Potion,
 
       LookBack,
       FirstPerson,

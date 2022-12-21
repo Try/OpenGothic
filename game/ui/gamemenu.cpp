@@ -391,6 +391,9 @@ void GameMenu::paintEvent(PaintEvent &e) {
 void GameMenu::drawItem(Painter& p, Item& hItem) {
   if(!hItem.visible || hItem.name.empty())
     return;
+  if(isHidden(hItem.handle))
+    return;
+
   auto& item  = hItem.handle;
   auto flags = item->flags;
   getText(hItem,textBuf);
@@ -697,17 +700,28 @@ const GthFont& GameMenu::getTextFont(const GameMenu::Item &it) {
   }
 
 bool GameMenu::isSelectable(const std::shared_ptr<phoenix::c_menu_item>& item) {
-  return item != nullptr && (item->flags & phoenix::c_menu_item_flags::selectable);
+  return item != nullptr && (item->flags & phoenix::c_menu_item_flags::selectable) && !isHidden(item);
   }
 
 bool GameMenu::isEnabled(const std::shared_ptr<phoenix::c_menu_item>& item) {
-  if (item == nullptr)
+  if(item==nullptr)
     return false;
   if((item->flags & phoenix::c_menu_item_flags::only_ingame) && !isInGameAndAlive())
     return false;
   if((item->flags & phoenix::c_menu_item_flags::only_outgame) && isInGameAndAlive())
     return false;
   return true;
+  }
+
+bool GameMenu::isHidden(const std::shared_ptr<phoenix::c_menu_item>& item) {
+  if(item==nullptr)
+    return false;
+  if(item->hide_if_option_set.empty())
+    return false;
+
+  auto opt = Gothic::inst().settingsGetI(item->hide_if_option_section_set,
+                                         item->hide_if_option_set);
+  return opt==item->hide_on_value;
   }
 
 void GameMenu::exec(Item &p, int slideDx) {

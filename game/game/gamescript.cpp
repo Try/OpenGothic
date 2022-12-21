@@ -1067,6 +1067,32 @@ int GameScript::playerHotKeyScreenMap(Npc& pl) {
   return map;
   }
 
+void GameScript::playerHotLamePotion(Npc& pl) {
+  auto opt = Gothic::inst().settingsGetI("GAME", "usePotionKeys");
+  if(opt==0)
+    return;
+
+  auto fn   = vm.find_symbol_by_name("player_hotkey_lame_potion");
+  if(fn==nullptr)
+    return;
+
+  ScopeVar self(*vm.global_self(), pl.handlePtr());
+  vm.call_function<void>(fn);
+  }
+
+void GameScript::playerHotLameHeal(Npc& pl) {
+  auto opt = Gothic::inst().settingsGetI("GAME", "usePotionKeys");
+  if(opt==0)
+    return;
+
+  auto fn   = vm.find_symbol_by_name("player_hotkey_lame_heal");
+  if(fn==nullptr)
+    return;
+
+  ScopeVar self(*vm.global_self(), pl.handlePtr());
+  vm.call_function<void>(fn);
+  }
+
 std::string_view GameScript::spellCastAnim(Npc&, Item &it) {
   if(spellFxAniLetters==nullptr)
     return "FIB";

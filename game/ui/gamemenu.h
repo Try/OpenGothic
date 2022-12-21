@@ -96,6 +96,7 @@ class GameMenu : public Tempest::Widget {
     const GthFont&                        getTextFont(const Item &it);
     static bool                           isSelectable(const std::shared_ptr<phoenix::c_menu_item>& item);
     static bool                           isEnabled(const std::shared_ptr<phoenix::c_menu_item>& item);
+    static bool                           isHidden(const std::shared_ptr<phoenix::c_menu_item>& item);
 
     void                                  exec         (Item &item, int slideDx);
     void                                  execSingle   (Item &it,   int slideDx);
