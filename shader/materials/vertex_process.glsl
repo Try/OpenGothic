@@ -249,9 +249,9 @@ vec4 processVertex(out Varyings shOut, uint objId, uint vboOffset) {
   vec4 position = scene.viewProject*vec4(pos,1.0);
 #if defined(SHADOW_MAP)
 #  if defined(ATEST)
-  position.z -= 32.0*(1.0/32768.0)*position.w;
+  position.z -= 64.0*(1.0/32768.0)*position.w;
 #  else
-  position.z +=  4.0*(1.0/32768.0)*position.w;
+  //position.z +=  4.0*(1.0/32768.0)*position.w;
 #  endif
 #endif
   return position;

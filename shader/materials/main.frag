@@ -234,11 +234,11 @@ bool isFlat() {
     vec3 dx    = dFdx(pos);
     vec3 dy    = dFdy(pos);
     vec3 flatN = (cross(dx,dy));
-    if(dot(flatN,scene.sunDir)<=0)
-      return false;
+    if(dot(normalize(flatN),scene.sunDir)<=0.01)
+      return true;
   }
 #endif
-  return true;
+  return false;
   }
 
 void main() {
@@ -251,12 +251,9 @@ void main() {
 #endif
 
 #if defined(GBUFFER)
-  t.a = (isFlat() ? 0 : 1);
-#endif
-
-#if defined(GBUFFER)
-  outDiffuse = t;
-  outNormal  = vec4(shInp.normal*0.5 + vec3(0.5),1.0);
+  outDiffuse.rgb = t.rgb;
+  outDiffuse.a   = isFlat() ? 1 : 0;
+  outNormal      = vec4(shInp.normal*0.5 + vec3(0.5),1.0);
 #if DEBUG_DRAW
   outDiffuse.rgb *= debugColors[debugId%MAX_DEBUG_COLORS];
 #endif

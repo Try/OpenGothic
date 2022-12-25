@@ -3,8 +3,15 @@
 
 #include "../scene.glsl"
 
+
 vec4 shadowSample(in sampler2D shadowMap, vec2 shPos) {
   shPos.xy = shPos.xy*vec2(0.5,0.5)+vec2(0.5);
+  return textureGather(shadowMap,shPos);
+  }
+
+vec4 shadowSample(in sampler2D shadowMap, vec2 shPos, out vec2 m) {
+  shPos.xy = shPos.xy*vec2(0.5,0.5)+vec2(0.5);
+  m        = fract(shPos.xy * textureSize(shadowMap, 0) + vec2(0.5));
   return textureGather(shadowMap,shPos);
   }
 
@@ -14,20 +21,58 @@ float shadowResolve(in vec4 sh, float z) {
   return 0.25*(sh.x+sh.y+sh.z+sh.w);
   }
 
+float shadowResolve(in vec4 sh, float z, vec2 m) {
+  const float bias = 0.0002;
+  z  = max(0,z);
+  sh = smoothstep(sh-vec4(bias),sh+vec4(bias),vec4(z));
+
+  //m.x = smoothstep(0,1, m.x);
+  //m.y = smoothstep(0,1, m.y);
+
+  vec2 xx = mix(sh.wz, sh.xy, m.y);
+  return    mix(xx.x,  xx.y,  m.x);
+  }
+
+float calcShadowMs4(in sampler2D shadowMap0, vec3 shPos0) {
+  vec2  bias = vec2(1)/vec2(textureSize(shadowMap0, 0));
+  vec4  lay0 = vec4(0);
+  float ret  = 0;
+
+  vec2  m0;
+  lay0 = shadowSample(shadowMap0,shPos0.xy + bias*vec2(-1.5,  0.5), m0);
+  ret += shadowResolve(lay0,shPos0.z,m0);
+  lay0 = shadowSample(shadowMap0,shPos0.xy + bias*vec2( 0.5,  0.5), m0);
+  ret += shadowResolve(lay0,shPos0.z,m0);
+  lay0 = shadowSample(shadowMap0,shPos0.xy + bias*vec2(-1.5, -1.5), m0);
+  ret += shadowResolve(lay0,shPos0.z,m0);
+  lay0 = shadowSample(shadowMap0,shPos0.xy + bias*vec2( 0.5, -1.5), m0);
+  ret += shadowResolve(lay0,shPos0.z,m0);
+
+  return ret * 0.25;
+  }
+
+float calcShadowMs1(in sampler2D shadowMap0, vec3 shPos0) {
+  vec2 m0;
+  vec4 lay0 = shadowSample(shadowMap0,shPos0.xy, m0);
+  return shadowResolve(lay0,shPos0.z,m0);
+  }
+
 float calcShadow(in SceneDesc scene,
                  in sampler2D shadowMap0, vec3 shPos0,
                  in sampler2D shadowMap1, vec3 shPos1) {
-  vec4  lay0   = shadowSample(shadowMap0,shPos0.xy);
-  vec4  lay1   = shadowSample(shadowMap1,shPos1.xy);
+  vec2 minMax = scene.closeupShadowSlice;
+  vec2 m1;
+  vec4 lay1   = shadowSample(shadowMap1,shPos1.xy, m1);
+  lay1.x = max(max(lay1.x,lay1.y), max(lay1.z,lay1.w));
 
-  vec2  minMax = scene.closeupShadowSlice;
-  bool  inSm0  = abs(shPos0.x)<1.0 && abs(shPos0.y)<1.0;
-  bool  inSm1  = abs(shPos1.x)<1.0 && abs(shPos1.y)<1.0;
+  if(abs(shPos0.x)<0.99 && abs(shPos0.y)<0.99 && lay1.x<minMax[1]) {
+    return calcShadowMs4(shadowMap0,shPos0);
+    }
 
-  if(inSm0 && lay1.x<minMax[1])
-    return shadowResolve(lay0,shPos0.z);
-  if(inSm1)
-    return shadowResolve(lay1,shPos1.z);
+  if(abs(shPos1.x)<1.0 && abs(shPos1.y)<1.0) {
+    // return shadowResolve(lay1,shPos1.z,m1);
+    return calcShadowMs4(shadowMap1,shPos1);
+    }
   return 1.0;
   }
 

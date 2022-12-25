@@ -137,7 +137,7 @@ bool rayTest(vec3 pos, float tMin, float tMax) {
 
 float calcRayShadow(vec4 pos4, vec3 normal, float depth) {
   vec4 sp = scene.viewShadow[1]*pos4;
-  if(all(lessThan(abs(sp.xy),vec2(abs(sp.w)))))
+  if(all(lessThan(abs(sp.xy)+0.001,vec2(abs(sp.w)))))
     return 1.0;
 
   vec4 cam4 = worldPos(0.1);
@@ -179,6 +179,7 @@ void main(void) {
   const vec3  normal = normalize(nrm.xyz*2.0-vec3(1.0));
 
   const float light  = (diff.a>0) ? 0 : lambert(normal);
+  //const float light  = lambert(normal);
   //const vec3  fnorm  = flatNormal(worldPos(fragCoord, d));
 
   float shadow = 1;
@@ -194,8 +195,16 @@ void main(void) {
 #endif
     }
 
-  const vec3  lcolor = scene.sunCl.rgb*light*shadow + scene.ambient;
+  // const vec3  lcolor = scene.sunCl.rgb*light*shadow + vec3(0.05);
+  // vec3 color = (srgbDecode(diff.rgb) * lcolor); // TODO: linear shading
+  // color = jodieReinhardTonemap(color);
+  // color = srgbEncode(color);
+  // outColor = vec4(color, 1.0);
 
+  const vec3  lcolor = scene.sunCl.rgb*light*shadow + scene.ambient;
   outColor = vec4(diff.rgb*lcolor, 1.0);
-  // outColor = vec4(vec3(lcolor), diff.a);
+
+   //outColor = vec4(vec3(lcolor), diff.a); // debug
+   //if(diff.a>0)
+   //  outColor.r = 0;
   }
