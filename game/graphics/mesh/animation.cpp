@@ -58,7 +58,7 @@ Animation::Animation(phoenix::model_script &p, std::string_view name, const bool
         ani.blendOut = uint64_t(1000*co.blend_out);
         ani.next     = std::move(co.next);
         ani.data     = d; // set first as default
-        ani.comb.resize(co.last_frame);
+        ani.comb.resize(size_t(co.last_frame));
         found=true;
         break;
         }

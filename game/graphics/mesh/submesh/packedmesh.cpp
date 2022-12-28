@@ -623,7 +623,7 @@ std::vector<PackedMesh::Meshlet> PackedMesh::buildMeshlets(const phoenix::mesh* 
 
   std::vector<Meshlet> meshlets;
   while(!heap.empty()) {
-    size_t id = -1;
+    size_t id = size_t(-1);
 
     for(size_t r=0; r<active.vertSz; ++r) {
       auto i = active.vert[r];
@@ -643,12 +643,12 @@ std::vector<PackedMesh::Meshlet> PackedMesh::buildMeshlets(const phoenix::mesh* 
         meshlets.push_back(std::move(active));
         active.clear();
         }
-      for(auto i=heap.begin()+firstUnused; i!=heap.end();) {
+      for(auto i=heap.begin()+ptrdiff_t(firstUnused); i!=heap.end();) {
         if(used[i->second/3]) {
           ++i;
           continue;
           }
-        firstUnused = std::distance(heap.begin(),i);
+        firstUnused = size_t(std::distance(heap.begin(),i));
         id          = i->second;
         break;
         }
@@ -745,7 +745,7 @@ void PackedMesh::dbgUtilization(const std::vector<Meshlet>& meshlets) {
 
   float procentV = (float(usedV*100)/float(allocatedV));
   float procentP = (float(usedP*100)/float(allocatedP));
-  procentV = int(procentV*100)/100.f;
+  procentV = float(procentV*100)/100.f;
 
   char buf[256] = {};
   std::snprintf(buf,sizeof(buf),"Meshlet usage: prim = %02.02f%%, vert = %02.02f%%, count = %d", procentP, procentV, int(meshlets.size()));

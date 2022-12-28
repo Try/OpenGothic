@@ -6,7 +6,7 @@ MoverControler::MoverControler(Vob* parent, World &world, const phoenix::vobs::m
   :AbstractTrigger(parent,world,ctrl,flags) {
   target = ctrl.target;
   message = ctrl.message;
-  key = ctrl.key;
+  key = uint32_t(ctrl.key);
   }
 
 void MoverControler::onUntrigger(const TriggerEvent&) {

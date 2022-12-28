@@ -33,7 +33,7 @@ AbstractTrigger::AbstractTrigger(Vob* parent, World &world, const phoenix::vob& 
       data.type == vob_type::oCTriggerChangeLevel || data.type == vob_type::oCCSTrigger) {
     auto& trigger = reinterpret_cast<const phoenix::vobs::trigger&>(data);
     fireDelaySec = trigger.fire_delay_sec;
-    maxActivationCount = trigger.max_activation_count;
+    maxActivationCount = uint32_t(trigger.max_activation_count);
     filterFlags = trigger.filter_flags;
     triggerFlags = trigger.flags;
     target = trigger.target;

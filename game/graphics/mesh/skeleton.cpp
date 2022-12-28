@@ -20,7 +20,7 @@ Skeleton::Skeleton(const phoenix::model_hierarchy& src, const Animation* anim, s
       auto& s = src.nodes[i];
 
       n.name   = s.name;
-      n.parent = s.parent_index == -1 ? size_t(-1) : s.parent_index;
+      n.parent = s.parent_index == -1 ? size_t(-1) : size_t(s.parent_index);
 
       auto transposed_transform = s.transform;
       std::memcpy(reinterpret_cast<void*>(&n.tr),reinterpret_cast<const void*>(&transposed_transform),sizeof(n.tr));
