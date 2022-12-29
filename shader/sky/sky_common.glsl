@@ -24,6 +24,7 @@ layout(push_constant, std430) uniform UboPush {
   float plPosY;
   float rayleighScatteringScale;
   float GSunIntensity;
+  float exposureInv;
   } push;
 
 vec3 inverse(vec3 pos) {

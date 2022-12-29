@@ -25,7 +25,7 @@ layout(location = 0) in  vec2 inPos;
 layout(location = 0) out vec4 outColor;
 
 #if !defined(FOG)
-vec4 clouds(vec3 at, float nightPhase, float GSunIntensity, vec3 highlight,
+vec4 clouds(vec3 at, float nightPhase, vec3 highlight,
             vec2 dxy0, vec2 dxy1,
             in sampler2D dayL1,   in sampler2D dayL0,
             in sampler2D nightL1, in sampler2D nightL0) {
@@ -41,9 +41,11 @@ vec4 clouds(vec3 at, float nightPhase, float GSunIntensity, vec3 highlight,
   vec4 night     = (cloudNL0+cloudNL1)*0.5;
 
   // Clouds (LDR textures from original game) - need to adjust
-  day.rgb   = srgbDecode(day.rgb)*push.GSunIntensity*1.0;
-  day.rgb   = day.rgb*highlight*1.0;
+  day.rgb   = srgbDecode(day.rgb);
   night.rgb = srgbDecode(night.rgb);
+
+  day.rgb   = day.rgb  *highlight*1.0;
+  night.rgb = night.rgb*highlight;
 
   //day  .a   = day  .a*(1.0-nightPhase);
   day  .a   = day  .a*0.1;
@@ -56,7 +58,7 @@ vec4 clouds(vec3 at, float nightPhase, float GSunIntensity, vec3 highlight,
   }
 
 vec4 clouds(vec3 at, vec3 highlight) {
-  return clouds(at, push.night, push.GSunIntensity, highlight,
+  return clouds(at, push.night, highlight,
                 push.dxy0, push.dxy1,
                 textureDayL1,textureDayL0, textureNightL1,textureNightL0);
   }
@@ -76,14 +78,11 @@ vec3 atmosphere(vec3 view, vec3 sunDir) {
   return textureSkyLUT(view, sunDir);
   }
 
-vec3 finalizeColor(vec3 color, vec3 sunDir) {
-  // Tonemapping and gamma. Super ad-hoc, probably a better way to do this.
+vec3 finalizeColor(vec3 color) {
+  // Color grading
   color = pow(color, vec3(1.3));
-  color /= (smoothstep(0.0, 0.2, clamp(sunDir.y, 0.0, 1.0))*2.0 + 0.15);
-
-  color = reinhardTonemap(color);
-  // color = acesTonemap(color);
-
+  // Tonemapping and gamma.
+  color = reinhardTonemap(color/push.exposureInv);
   color = srgbEncode(color);
   return color;
   }
@@ -175,7 +174,7 @@ vec4 fog(vec2 uv, float z, vec3 sunDir) {
   vec3  trans    = vec3(1.0-val.w);
   float fogDens  = (trans.x+trans.y+trans.z)/3.0;
 
-  vec3  lum      = val.rgb * push.GSunIntensity;
+  vec3  lum      = val.rgb;
   return vec4(lum, fogDens);
   }
 #else
@@ -199,7 +198,7 @@ vec4 fog(vec2 uv, float z, vec3 sunDir) {
 
   //return vec4(fogDens);
 
-  vec3  lum      = val.rgb * push.GSunIntensity;
+  vec3  lum      = val.rgb;
   lum *= clamp(d,0,1);
 #if !defined(FOG)
   lum = vec3(0);
@@ -225,7 +224,6 @@ vec3 sky(vec2 uv, vec3 sunDir) {
     sunLum = vec3(0.0);
     }
   lum += sunLum;
-  lum *= push.GSunIntensity;
   return lum;
   }
 
@@ -268,10 +266,10 @@ void main() {
 #endif
 
   // NOTE: not a physical value, but dunno how to achive nice look without it
-  float fogFixup = 20.0;
+  float fogFixup = 1; //20.0;
 
-  vec4  val      = fog(uv,z,push.sunDir) * fogFixup;
-  vec3  lum      = val.rgb;
+  vec4  val      = fog(uv,z,push.sunDir);
+  vec3  lum      = val.rgb * fogFixup;
 #if defined(FOG)
   //outColor = fog(uv, sunDir);
   //return;
@@ -285,7 +283,7 @@ void main() {
   lum = applyClouds(lum, sunDir);
 #endif
 
-  lum      = finalizeColor(lum, sunDir);
+  lum      = finalizeColor(lum * push.GSunIntensity);
   //lum = vec3(val.a); //debug transmittance
   outColor = vec4(lum, val.a);
 #if !defined(FOG)

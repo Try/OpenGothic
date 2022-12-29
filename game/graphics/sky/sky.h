@@ -31,7 +31,7 @@ class Sky final {
     const LightSource&        sunLight()         const { return sun; }
     const Tempest::Vec3&      ambientLight()     const { return ambient; }
     float                     sunIntensity()     const { return GSunIntensity; }
-    float                     autoExposure()     const { return exposure; }
+    float                     autoExposure()     const { return exposureInv; }
 
   private:
     struct Layer final {
@@ -52,6 +52,7 @@ class Sky final {
       float              plPosY   = 0.0;
       float              rayleighScatteringScale = 0;
       float              GSunIntensity = 0;
+      float              exposureInv = 0;
       };
 
     UboSky                        mkPush();
@@ -63,7 +64,7 @@ class Sky final {
 
     LightSource                   sun;
     Tempest::Vec3                 ambient;
-    float                         exposure = 1;
+    float                         exposureInv = 1;
 
     Tempest::TextureFormat        lutRGBFormat  = Tempest::TextureFormat::R11G11B10UF;
     Tempest::TextureFormat        lutRGBAFormat = Tempest::TextureFormat::RGBA16F;

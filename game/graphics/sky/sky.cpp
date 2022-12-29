@@ -15,6 +15,11 @@
 
 using namespace Tempest;
 
+static float smoothstep(float edge0, float edge1, float x) {
+  float t = std::min(std::max((x - edge0) / (edge1 - edge0), 0.f), 1.f);
+  return t * t * (3.f - 2.f * t);
+  };
+
 Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest::Vec3, Tempest::Vec3>& bbox)
   :scene(scene) {
   auto wname  = world.name();
@@ -127,6 +132,8 @@ void Sky::updateLight(const int64_t now) {
 
   sun.setDir(-std::sin(ax)*shadowLength, pulse, std::cos(ax)*shadowLength);
   sun.setColor(clr);
+
+  exposureInv = (smoothstep(0.f, 0.2f, std::max(sun.dir().y, 0.f))*2.f + 0.15f);
   }
 
 void Sky::setupUbo() {
@@ -326,6 +333,7 @@ Sky::UboSky Sky::mkPush() {
   ubo.rayleighScatteringScale = rayleighScatteringScale;
   ubo.clipInfo                = scene.clipInfo();
   ubo.GSunIntensity           = GSunIntensity;
+  ubo.exposureInv             = exposureInv;
 
   return ubo;
   }

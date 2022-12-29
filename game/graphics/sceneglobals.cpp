@@ -84,7 +84,11 @@ void SceneGlobals::setSunlight(const LightSource& light, const Tempest::Vec3& a,
   uboGlobal.sunDir        = light.dir();
   uboGlobal.lightCl       = {c.x,c.y,c.z};
   uboGlobal.GSunIntensity = GSunIntensity;
-  uboGlobal.lightAmb       = {a.x,a.y,a.z,0.f};
+  uboGlobal.lightAmb      = {a.x,a.y,a.z};
+  }
+
+void SceneGlobals::setExposure(float expInv) {
+  uboGlobal.exposureInv = expInv;
   }
 
 void SceneGlobals::setTime(uint64_t time) {
