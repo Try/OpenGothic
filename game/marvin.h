@@ -33,6 +33,8 @@ class Marvin {
       C_ToogleCamDebug,
       C_ToogleCamera,
 
+      C_SetTime,
+
       C_Insert,
       };
 
@@ -59,6 +61,7 @@ class Marvin {
 
     bool   addItemOrNpcBySymbolName(World* world, std::string_view name, const Tempest::Vec3& at);
     bool   printVariable           (World* world, std::string_view name);
+    bool   setTime                 (World& world, std::string_view hh, std::string_view mm);
 
     std::vector<Cmd> cmd;
   };

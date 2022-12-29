@@ -1,5 +1,6 @@
 #include "marvin.h"
 
+#include <charconv>
 #include <initializer_list>
 #include <cstdint>
 #include <cctype>
@@ -91,7 +92,7 @@ Marvin::Marvin() {
     {"load game",                  C_Invalid},
     {"save game",                  C_Invalid},
     {"save zen",                   C_Invalid},
-    {"set time %d %d",             C_Invalid},
+    {"set time %d %d",             C_SetTime},
     {"spawnmass %d",               C_Invalid},
     {"spawnmass giga %d",          C_Invalid},
     {"toogle descktop",            C_Invalid},
@@ -172,7 +173,7 @@ Marvin::CmdVal Marvin::isMatch(std::string_view inp, const Cmd& cmd) const {
       return C_Incomplete;
 
     ref = ref.substr(wr+1);
-    inp = inp.substr(wr+1);
+    inp = inp.substr(std::min(wi+1,inp.size()));
     while(inp.size()>0 && inp[0]==' ')
       inp = inp.substr(1);
     }
@@ -258,12 +259,18 @@ bool Marvin::exec(std::string_view v) {
         return false;
       return addItemOrNpcBySymbolName(world, ret.argv[0], player->position());
       }
+    case C_SetTime: {
+      World* world = Gothic::inst().world();
+      if(world==nullptr)
+        return false;
+      return setTime(*world, ret.argv[0], ret.argv[1]);
+      }
     case C_PrintVar: {
       World* world  = Gothic::inst().world();
       Npc*   player = Gothic::inst().player();
       if(world==nullptr || player==nullptr)
         return false;
-      return printVariable(world,ret.argv[0]);
+      return printVariable(world, ret.argv[0]);
       }
     }
 
@@ -321,6 +328,24 @@ bool Marvin::printVariable(World* world, std::string_view name) {
       break;
     }
   print(buf);
+  return true;
+  }
+
+bool Marvin::setTime(World& world, std::string_view hh, std::string_view mm) {
+  int hv = 0, mv = 0;
+
+  auto err = std::from_chars(hh.begin(), hh.end(), hv, 10).ec;
+  if(err!=std::errc())
+    return false;
+
+  err = std::from_chars(mm.begin(), mm.end(), mv, 10).ec;
+  if(err!=std::errc())
+    return false;
+
+  if(hv<0 || hv>=24 || mv<0 || mv>=60)
+    return false;
+
+  world.setDayTime(hv,mv);
   return true;
   }
 
