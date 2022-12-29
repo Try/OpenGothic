@@ -1165,7 +1165,7 @@ void GameMenu::setPlayer(const Npc &pl) {
     return;
     }
 
-  set("MENU_ITEM_PLAYERGUILD", gilds->get_string(uint8_t(pl.guild())));
+  set("MENU_ITEM_PLAYERGUILD", gilds->get_string(pl.guild()));
 
   set("MENU_ITEM_LEVEL",       pl.level());
   set("MENU_ITEM_EXP",         pl.experience());
@@ -1184,7 +1184,7 @@ void GameMenu::setPlayer(const Npc &pl) {
 
   const int talentMax = Gothic::inst().version().game==2 ? TALENT_MAX_G2 : TALENT_MAX_G1;
   for(int i=0; i<talentMax; ++i){
-    auto& str = tal->get_string(uint8_t(i));
+    auto& str = tal->get_string(size_t(i));
     if(str.empty())
       continue;
 
@@ -1192,7 +1192,7 @@ void GameMenu::setPlayer(const Npc &pl) {
     const int val = pl.hitChanse(Talent(i));
 
     set(string_frm("MENU_ITEM_TALENT_",i,"_TITLE"), str);
-    set(string_frm("MENU_ITEM_TALENT_",i,"_SKILL"), strEnum(talV->get_string(uint8_t(i)),sk,textBuf));
+    set(string_frm("MENU_ITEM_TALENT_",i,"_SKILL"), strEnum(talV->get_string(size_t(i)),sk,textBuf));
     set(string_frm("MENU_ITEM_TALENT_",i),          string_frm(val,"%"));
     }
   }
