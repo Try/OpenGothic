@@ -26,6 +26,7 @@ class WorldView {
     const Tempest::Texture2d& shadowLq() const;
     const LightSource&        mainLight() const;
     const Tempest::Vec3&      ambientLight() const;
+    float                     autoExposure() const;
 
     bool isInPfxRange(const Tempest::Vec3& pos) const;
 
@@ -77,7 +78,6 @@ class WorldView {
   private:
     const World&  owner;
     SceneGlobals  sGlobal;
-    Sky           sky;
     Sky           gSky;
     VisualObjects visuals;
 

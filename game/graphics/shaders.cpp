@@ -126,6 +126,8 @@ Shaders::Shaders() {
     }
   }
 
+  tonemapping = postEffect("tonemapping", "tonemapping", RenderState::ZTestMode::Always);
+
   if(meshlets) {
     hiZPot = computeShader("hiZPot.comp.sprv");
     hiZMip = computeShader("hiZMip.comp.sprv");
@@ -153,7 +155,7 @@ Shaders::Shaders() {
     sh = GothicShader::get("item.frag.sprv");
     auto fs = device.shader(sh.data,sh.len);
     inventory = device.pipeline(Triangles,state,vs,fs);
-  };
+  }
   }
 
 Shaders::~Shaders() {
@@ -281,10 +283,6 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
   return &b.pipeline;
   }
 
-RenderPipeline Shaders::postEffect(std::string_view name) {
-  return postEffect(name,name);
-  }
-
 ComputePipeline Shaders::computeShader(std::string_view name) {
   char buf[256] = {};
   std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
@@ -294,12 +292,16 @@ ComputePipeline Shaders::computeShader(std::string_view name) {
   return device.pipeline(device.shader(sh.data,sh.len));
   }
 
-RenderPipeline Shaders::postEffect(std::string_view vsName, std::string_view fsName) {
+RenderPipeline Shaders::postEffect(std::string_view name) {
+  return postEffect(name,name,RenderState::ZTestMode::LEqual);
+  }
+
+RenderPipeline Shaders::postEffect(std::string_view vsName, std::string_view fsName, RenderState::ZTestMode ztest) {
   auto& device = Resources::device();
 
   RenderState stateFsq;
   stateFsq.setCullFaceMode(RenderState::CullMode::Front);
-  stateFsq.setZTestMode   (RenderState::ZTestMode::LEqual);
+  stateFsq.setZTestMode   (ztest);
   stateFsq.setZWriteEnabled(false);
 
   char buf[256] = {};
@@ -323,7 +325,8 @@ RenderPipeline Shaders::fogShader(std::string_view name) {
   state.setBlendSource  (RenderState::BlendMode::One);
   if(!fogDbg) {
     state.setBlendDest(RenderState::BlendMode::OneMinusSrcAlpha);
-    state.setZTestMode(RenderState::ZTestMode::Greater);
+    //state.setZTestMode(RenderState::ZTestMode::Greater);
+    state.setZTestMode(RenderState::ZTestMode::Always);
     }
 
   char buf[256] = {};

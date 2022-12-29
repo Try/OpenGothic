@@ -59,14 +59,10 @@ float intersectFrustum(const vec3 pos, const vec3 dir) {
   }
 
 vec3 ssr(vec4 orig, vec3 start, vec3 refl, vec3 fallbackClr) {
-  const int SSR_STEPS = 64;
+  const int   SSR_STEPS     = 64;
 
-  vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir);
-  sky *= GSunIntensity;
-  sky = jodieReinhardTonemap(sky);
-  sky = srgbEncode(sky);
+  vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir) * scene.GSunIntensity;
 
-  // const float rayLen = 10000;
   const float rayLen = intersectFrustum(start,refl);
   // return vec3(rayLen*0.01);
   if(rayLen<=0)
@@ -141,7 +137,7 @@ vec4 waterColor(vec3 color, vec3 albedo) {
   const vec2  fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
   const vec4  scr       = vec4(fragCoord.x, fragCoord.y, gl_FragCoord.z, 1.0)/gl_FragCoord.w;
 
-  vec3 sky = ssr(scr,shInp.pos,refl,backOrig)*albedo;
+  vec3 sky = ssr(scr,shInp.pos,refl,backOrig) * albedo;
   // return vec4(sky,1);
 
   const float f = fresnel(refl,shInp.normal,ior);
@@ -200,7 +196,7 @@ vec4 diffuseTex() {
 #endif
 
 vec4 forwardShading(vec4 t) {
-  vec3  color = t.rgb;
+  vec3  color = srgbDecode(t.rgb);
   float alpha = t.a;
 
 #if defined(GHOST)

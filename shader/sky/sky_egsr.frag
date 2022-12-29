@@ -78,13 +78,13 @@ vec3 atmosphere(vec3 view, vec3 sunDir) {
 
 vec3 finalizeColor(vec3 color, vec3 sunDir) {
   // Tonemapping and gamma. Super ad-hoc, probably a better way to do this.
-  color = pow(color, vec3(1.3));
-  color /= (smoothstep(0.0, 0.2, clamp(sunDir.y, 0.0, 1.0))*2.0 + 0.15);
+  // color = pow(color, vec3(1.3));
+  //color /= (smoothstep(0.0, 0.2, clamp(sunDir.y, 0.0, 1.0))*2.0 + 0.15);
 
-  color = reinhardTonemap(color);
+  // color = reinhardTonemap(color);
   // color = acesTonemap(color);
 
-  color = srgbEncode(color);
+  // color = srgbEncode(color);
   return color;
   }
 
@@ -172,10 +172,9 @@ vec4 fog(vec2 uv, float z, vec3 sunDir) {
   // vec3  trans    = transmittance(pos0, pos1);
 
   vec4  val      = textureLod(fogLut, vec3(uv,d), 0);
-  vec3  trans    = vec3(1.0-val.w);
-  float fogDens  = (trans.x+trans.y+trans.z)/3.0;
+  float fogDens  = 1.0 - val.a; //(trans.x+trans.y+trans.z)/3.0;
 
-  vec3  lum      = val.rgb * push.GSunIntensity;
+  vec3  lum      = val.rgb;
   return vec4(lum, fogDens);
   }
 #else
@@ -200,7 +199,7 @@ vec4 fog(vec2 uv, float z, vec3 sunDir) {
   //return vec4(fogDens);
 
   vec3  lum      = val.rgb * push.GSunIntensity;
-  lum *= clamp(d,0,1);
+  //lum *= clamp(d,0,1);
 #if !defined(FOG)
   lum = vec3(0);
 #endif
@@ -225,7 +224,6 @@ vec3 sky(vec2 uv, vec3 sunDir) {
     sunLum = vec3(0.0);
     }
   lum += sunLum;
-  lum *= push.GSunIntensity;
   return lum;
   }
 
@@ -268,10 +266,10 @@ void main() {
 #endif
 
   // NOTE: not a physical value, but dunno how to achive nice look without it
-  float fogFixup = 20.0;
+  // float fogFixup = 20.0;
 
-  vec4  val      = fog(uv,z,push.sunDir) * fogFixup;
-  vec3  lum      = val.rgb;
+  vec4  val      = fog(uv,z,push.sunDir);
+  vec3  lum      = val.rgb * push.GSunIntensity;
 #if defined(FOG)
   //outColor = fog(uv, sunDir);
   //return;
@@ -280,16 +278,15 @@ void main() {
 #if !defined(FOG)
   // Sky
   // lum = sky(uv,push.sunDir);
-  lum = lum*0.5 + sky(uv, sunDir);
+  lum = lum + sky(uv, sunDir) * push.GSunIntensity;
   // Clouds
   lum = applyClouds(lum, sunDir);
 #endif
-
-  lum      = finalizeColor(lum, sunDir);
   //lum = vec3(val.a); //debug transmittance
+#if defined(FOG)
   outColor = vec4(lum, val.a);
-#if !defined(FOG)
-  outColor.a = 1.0;
+#else
+  outColor = vec4(lum, 1);
 #endif
 
   // outColor = vec4(val.a*2.0);

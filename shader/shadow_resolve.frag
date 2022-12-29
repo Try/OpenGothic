@@ -14,6 +14,7 @@
 #include "common.glsl"
 #include "scene.glsl"
 #include "lighting/shadow_sampling.glsl"
+#include "sky/sky_common.glsl"
 
 layout(location = 0) out vec4 outColor;
 layout(location = 0) in  vec2 UV;
@@ -36,7 +37,7 @@ layout(binding = 6) uniform accelerationStructureEXT topLevelAS;
 #endif
 
 #if defined(RAY_QUERY_AT)
-layout(binding  = 7) uniform sampler2D textures[];
+layout(binding  = 7)  uniform sampler2D textures[];
 layout(binding  = 8,  std430) readonly buffer Vbo { float vert[];   } vbo[];
 layout(binding  = 9,  std430) readonly buffer Ibo { uint  index[];  } ibo[];
 layout(binding  = 10, std430) readonly buffer Off { uint  offset[]; } iboOff;
@@ -175,6 +176,7 @@ void main(void) {
     }
 
   const vec4  diff   = texelFetch(diffuse, fragCoord, 0);
+  // const vec4  diff   = vec4(1,1,1,0);
   const vec4  nrm    = texelFetch(normals, fragCoord, 0);
   const vec3  normal = normalize(nrm.xyz*2.0-vec3(1.0));
 
@@ -182,8 +184,9 @@ void main(void) {
   //const float light  = lambert(normal);
   //const vec3  fnorm  = flatNormal(worldPos(fragCoord, d));
 
-  float shadow = 1;
-  if(light>0) {
+  float occlude = smoothstep(0.0, 0.01, scene.sunDir.y);
+  float shadow  = 1;
+  if(light>0 && occlude>0) {
     if(dot(scene.sunDir,normal)<=0)
       shadow = 0;
 
@@ -195,14 +198,13 @@ void main(void) {
 #endif
     }
 
-  // const vec3  lcolor = scene.sunCl.rgb*light*shadow + vec3(0.05);
-  // vec3 color = (srgbDecode(diff.rgb) * lcolor); // TODO: linear shading
-  // color = jodieReinhardTonemap(color);
-  // color = srgbEncode(color);
-  // outColor = vec4(color, 1.0);
+  const vec3 direct = scene.sunCl.rgb*light*shadow*occlude;
+  const vec3 lcolor = direct + scene.ambient;
+  const vec3 color  = srgbDecode(diff.rgb) * lcolor;
+  outColor = vec4(color, 1.0);
 
-  const vec3  lcolor = scene.sunCl.rgb*light*shadow + scene.ambient;
-  outColor = vec4(diff.rgb*lcolor, 1.0);
+  // const vec3  lcolor = scene.sunCl.rgb*light*shadow + scene.ambient;
+  // outColor = vec4(diff.rgb*lcolor, 1.0);
 
    //outColor = vec4(vec3(lcolor), diff.a); // debug
    //if(diff.a>0)

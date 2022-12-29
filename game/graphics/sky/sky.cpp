@@ -110,11 +110,18 @@ void Sky::updateLight(const int64_t now) {
     pulse = -1.f + (float(now)/float(rise));
     }
 
-  const auto ambientDay   = Vec3(0.25f,0.25f,0.25f);
-  const auto ambientNight = Vec3(0.16f,0.16f,0.50f);
+  // const auto ambientDay   = Vec3(0.25f,0.25f,0.25f);
+  // const auto ambientNight = Vec3(0.16f,0.16f,0.50f);
 
-  const auto directDay    = Vec3(0.75f,0.75f,0.75f);
-  const auto directNight  = Vec3(0,0,0);
+  // const auto directDay    = Vec3(0.85f,0.85f,0.85f);
+  // const auto directNight  = Vec3(0,0,0);
+
+  static auto ambientDay   = Vec3(0.25f,0.25f,0.25f);
+  static auto ambientNight = Vec3(0.05f,0.05f,0.09f);
+
+  static auto directDay    = Vec3(1,1,1);
+  static auto directNight  = Vec3(0.85f,0.85f,0.85f);
+  // const auto directNight  = Vec3(0,0,0);
 
   float k = float(now)/float(midnight);
   float a  = std::max(0.f,std::min(pulse*3.f,1.f));
@@ -127,6 +134,19 @@ void Sky::updateLight(const int64_t now) {
 
   sun.setDir(-std::sin(ax)*shadowLength, pulse, std::cos(ax)*shadowLength);
   sun.setColor(clr);
+
+  static const auto clamp = [](float x, float min, float max) {
+    return std::max(min, std::min(x, max));
+    };
+
+  static const auto smoothstep = [](float edge0, float edge1, float x) {
+    float t = clamp((x - edge0) / (edge1 - edge0), 0.0, 1.0);
+    return t * t * (3.0 - 2.0 * t);
+    };
+
+  // NOTE: 0.75 - night
+  //
+  exposure = 1.f/(smoothstep(0.0f, 0.2f, clamp(sun.dir().y, 0.1f, 1.f))*2.f + 0.15f);
   }
 
 void Sky::setupUbo() {
@@ -321,7 +341,6 @@ Sky::UboSky Sky::mkPush() {
   ubo.night   = 1.f-std::min(std::max(3.f*ubo.sunDir.y,0.f),1.f);
 
   static float rayleighScatteringScale = 33.1f;
-  static float GSunIntensity           = 20.f;
 
   ubo.rayleighScatteringScale = rayleighScatteringScale;
   ubo.clipInfo                = scene.clipInfo();

@@ -1,5 +1,7 @@
 #version 460
+
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_GOOGLE_include_directive : enable
 
 #if defined(RAY_QUERY)
 #extension GL_EXT_ray_query : enable
@@ -9,6 +11,8 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_ray_flags_primitive_culling : enable
 #endif
+
+#include "common.glsl"
 
 layout(early_fragment_tests) in;
 
@@ -132,11 +136,12 @@ void main(void) {
 
   vec4 d   = textureLod(diffuse,uv,0);
   vec4 n   = textureLod(normals,uv,0);
+  d.rgb    = srgbDecode(d.rgb);
 
   vec3  normal  = normalize(n.xyz*2.0-vec3(1.0));
   float lambert = max(0.0,-dot(normalize(ldir),normal));
 
-  float light = (1.0-qDist)*lambert;
+  float light = (1.0-sqrt(qDist))*lambert;
   //if(light<=0.001)
   //  discard;
 

@@ -35,6 +35,9 @@ const LightSource& WorldView::mainLight() const {
 const Tempest::Vec3& WorldView::ambientLight() const {
   return gSky.ambientLight();
   }
+
+float WorldView::autoExposure() const {
+  return gSky.autoExposure();
   }
 
 bool WorldView::isInPfxRange(const Vec3& pos) const {

@@ -125,8 +125,9 @@ void Renderer::resetSwapchain() {
       shadowMap[i] = device.zbuffer(shadowFormat,smSize,smSize);
     }
 
-  sceneOpaque  = device.attachment(TextureFormat::RGBA8,      swapchain.w(),swapchain.h());
-  sceneDepth   = device.attachment(TextureFormat::R32F,       swapchain.w(),swapchain.h());
+  sceneOpaque  = device.attachment(TextureFormat::R11G11B10UF, swapchain.w(),swapchain.h());
+  sceneLinear  = device.attachment(TextureFormat::R11G11B10UF, swapchain.w(),swapchain.h());
+  sceneDepth   = device.attachment(TextureFormat::R32F,        swapchain.w(),swapchain.h());
 
   gbufDiffuse  = device.attachment(TextureFormat::RGBA8,      swapchain.w(),swapchain.h());
   gbufNormal   = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
@@ -179,6 +180,9 @@ void Renderer::resetSwapchain() {
   ssao.uboBlur[1].set(0, ssao.blurBuf,smpN);
   ssao.uboBlur[1].set(1, zbuffer,     smpB);
 
+  tonemapping.pso     = &Shaders::inst().tonemapping;
+  tonemapping.uboTone = device.descriptors(*tonemapping.pso);
+
   prepareUniforms();
   }
 
@@ -215,6 +219,8 @@ void Renderer::prepareUniforms() {
   auto wview = Gothic::inst().worldView();
   if(wview==nullptr)
     return;
+
+  tonemapping.uboTone.set(0, sceneLinear);
 
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
     auto& u = shadow.ubo[i];
@@ -344,19 +350,40 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   drawShadowResolve(sceneOpaque,cmd,fId,*wview);
 
   stashDepthAux(cmd,fId);
-  drawSSAO(result,cmd,*wview);
+  drawSSAO(sceneLinear,cmd,*wview);
 
   wview->prepareFog(cmd,fId);
 
-  cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
+  cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
   wview->drawLights     (cmd,fId);
   wview->drawWater      (cmd,fId);
 
   wview->drawSky        (cmd,fId);
   wview->drawTranslucent(cmd,fId);
 
-  cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
+  cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   wview->drawFog    (cmd,fId);
+
+  cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
+  drawTonemapping(result, cmd);
+  }
+
+void Renderer::drawTonemapping(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
+  struct Push {
+    Vec3  whitePoint = Vec3(1.08241, 0.96756, 0.95003);
+    float exposure   = 5.0;
+    };
+  Push p;
+  if(auto wview = Gothic::inst().worldView()) {
+    p.exposure = wview->autoExposure();
+    }
+
+  static float dbgExposure = -1;
+  if(dbgExposure>0)
+    p.exposure = dbgExposure;
+
+  cmd.setUniforms(*tonemapping.pso, tonemapping.uboTone, &p, sizeof(p));
+  cmd.draw(Resources::fsqVbo());
   }
 
 void Renderer::stashDepthAux(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
