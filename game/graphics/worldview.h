@@ -77,7 +77,6 @@ class WorldView {
   private:
     const World&  owner;
     SceneGlobals  sGlobal;
-    Sky           sky;
     Sky           gSky;
     VisualObjects visuals;
 

@@ -62,7 +62,7 @@ vec3 ssr(vec4 orig, vec3 start, vec3 refl, vec3 fallbackClr) {
   const int SSR_STEPS = 64;
 
   vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir);
-  sky *= GSunIntensity;
+  sky *= scene.GSunIntensity;
   sky = jodieReinhardTonemap(sky);
   sky = srgbEncode(sky);
 
