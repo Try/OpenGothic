@@ -8,7 +8,8 @@ struct SceneDesc {
   mat4  viewProjectInv;
   mat4  viewShadow[2];
   vec3  ambient;
-  vec4  sunCl;
+  vec3  sunCl;
+  float GSunIntensity;
   vec4  frustrum[6];
   vec3  clipInfo;
   uint  tickCount32;

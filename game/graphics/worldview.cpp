@@ -10,7 +10,7 @@
 using namespace Tempest;
 
 WorldView::WorldView(const World& world, const PackedMesh& wmesh)
-  : owner(world),sky(sGlobal,world,wmesh.bbox()),visuals(sGlobal,wmesh.bbox()),
+  : owner(world),gSky(sGlobal,world,wmesh.bbox()),visuals(sGlobal,wmesh.bbox()),
     objGroup(visuals),pfxGroup(*this,sGlobal,visuals),land(visuals,wmesh) {
   pfxGroup.resetTicks();
   if(Gothic::inst().doRayQuery())
@@ -25,15 +25,16 @@ WorldView::~WorldView() {
   }
 
 const Texture2d& WorldView::shadowLq() const {
-  return sky.shadowLq();
+  return gSky.shadowLq();
   }
 
 const LightSource& WorldView::mainLight() const {
-  return sky.sunLight();
+  return gSky.sunLight();
   }
 
 const Tempest::Vec3& WorldView::ambientLight() const {
-  return sky.ambientLight();
+  return gSky.ambientLight();
+  }
   }
 
 bool WorldView::isInPfxRange(const Vec3& pos) const {
@@ -96,11 +97,11 @@ void WorldView::dbgLights(DbgPainter& p) const {
   }
 
 void WorldView::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId) {
-  sky.prepareSky(cmd,frameId);
+  gSky.prepareSky(cmd,frameId);
   }
 
 void WorldView::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId) {
-  sky.prepareFog(cmd,frameId);
+  gSky.prepareFog(cmd,frameId);
   }
 
 void WorldView::visibilityPass(const Frustrum fr[]) {
@@ -122,7 +123,7 @@ void WorldView::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
   }
 
 void WorldView::drawSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  sky.drawSky(cmd,fId);
+  gSky.drawSky(cmd,fId);
   }
 
 void WorldView::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
@@ -134,7 +135,7 @@ void WorldView::drawTranslucent(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fI
   }
 
 void WorldView::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  sky.drawFog(cmd,fId);
+  gSky.drawFog(cmd,fId);
   }
 
 void WorldView::drawLights(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
@@ -189,17 +190,17 @@ const AccelerationStructure& WorldView::landscapeTlas() {
 
 void WorldView::updateLight() {
   const int64_t now = owner.time().timeInDay().toInt();
-  sky.updateLight(now);
+  gSky.updateLight(now);
 
-  sGlobal.setSunlight(sky.sunLight(), sky.ambientLight());
+  sGlobal.setSunlight(gSky.sunLight(), gSky.ambientLight(), gSky.sunIntensity());
   }
 
 void WorldView::setupUbo() {
   // wait before update all descriptors, cmd buffers must not be in use
   Resources::device().waitIdle();
-  sGlobal.skyLut = &sky.skyLut();
+  sGlobal.skyLut = &gSky.skyLut();
   sGlobal.lights.setupUbo();
-  sky.setupUbo();
+  gSky.setupUbo();
   visuals.setupUbo();
   }
 

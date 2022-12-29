@@ -4,7 +4,7 @@
 #include <Tempest/Texture2d>
 #include <array>
 
-#include "graphics/meshobjects.h"
+#include "graphics/sceneglobals.h"
 #include "resources.h"
 
 class World;
@@ -26,10 +26,12 @@ class Sky final {
     void prepareFog (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
     void drawFog    (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
 
-    const Tempest::Texture2d& skyLut()   const;
-    const Tempest::Texture2d& shadowLq() const;
-    const LightSource&        sunLight() const { return sun; }
-    const Tempest::Vec3&      ambientLight()  const { return ambient; }
+    const Tempest::Texture2d& skyLut()           const;
+    const Tempest::Texture2d& shadowLq()         const;
+    const LightSource&        sunLight()         const { return sun; }
+    const Tempest::Vec3&      ambientLight()     const { return ambient; }
+    float                     sunIntensity()     const { return GSunIntensity; }
+    float                     autoExposure()     const { return exposure; }
 
   private:
     struct Layer final {
@@ -61,6 +63,7 @@ class Sky final {
 
     LightSource                   sun;
     Tempest::Vec3                 ambient;
+    float                         exposure = 1;
 
     Tempest::TextureFormat        lutRGBFormat  = Tempest::TextureFormat::R11G11B10UF;
     Tempest::TextureFormat        lutRGBAFormat = Tempest::TextureFormat::RGBA16F;
@@ -80,4 +83,5 @@ class Sky final {
     const Tempest::Texture2d*     sunImg = &Resources::fallbackBlack();
 
     float                         minZ = 0;
+    float                         GSunIntensity = 20.f;
   };

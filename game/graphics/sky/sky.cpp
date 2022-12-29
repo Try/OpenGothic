@@ -25,6 +25,7 @@ Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest:
     night.lay[i].texture = skyTexture(name,false,i);
     }
   minZ = bbox.first.z;
+  GSunIntensity = 20.f;
 
   /*
     zSunName=unsun5.tga

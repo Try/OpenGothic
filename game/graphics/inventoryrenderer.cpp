@@ -14,7 +14,7 @@ InventoryRenderer::InventoryRenderer()
 
   LightSource light;
   light.setColor(Vec3(0.f,0.f,0.f));
-  scene.setSunlight(light, Vec3(1.f,1.f,1.f));
+  scene.setSunlight(light, Vec3(1.f,1.f,1.f), 0);
 
   Tempest::Matrix4x4 p, mv, shMv[Resources::ShadowLayers];
   p.identity();

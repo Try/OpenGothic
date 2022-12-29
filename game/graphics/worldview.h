@@ -72,11 +72,13 @@ class WorldView {
 
     const Tempest::AccelerationStructure& landscapeTlas();
     const SceneGlobals&  sceneGlobals() const { return sGlobal; }
+    const Sky&           sky() const { return gSky; }
 
   private:
     const World&  owner;
     SceneGlobals  sGlobal;
     Sky           sky;
+    Sky           gSky;
     VisualObjects visuals;
 
     MeshObjects   objGroup;

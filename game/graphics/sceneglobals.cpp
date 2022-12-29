@@ -79,11 +79,12 @@ void SceneGlobals::setViewProject(const Tempest::Matrix4x4& v, const Tempest::Ma
   uboGlobal.pfxDepth = Tempest::Vec3::normalize({vp.at(0,2), vp.at(1,2), vp.at(2,2)});
   }
 
-void SceneGlobals::setSunlight(const LightSource& light, const Tempest::Vec3& a) {
+void SceneGlobals::setSunlight(const LightSource& light, const Tempest::Vec3& a, float GSunIntensity) {
   auto c = light.color();
-  uboGlobal.sunDir   = light.dir();
-  uboGlobal.lightCl  = {c.x,c.y,c.z,0.f};
-  uboGlobal.lightAmb = {a.x,a.y,a.z,0.f};
+  uboGlobal.sunDir        = light.dir();
+  uboGlobal.lightCl       = {c.x,c.y,c.z};
+  uboGlobal.GSunIntensity = GSunIntensity;
+  uboGlobal.lightAmb       = {a.x,a.y,a.z,0.f};
   }
 
 void SceneGlobals::setTime(uint64_t time) {
