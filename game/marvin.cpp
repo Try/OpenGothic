@@ -334,11 +334,11 @@ bool Marvin::printVariable(World* world, std::string_view name) {
 bool Marvin::setTime(World& world, std::string_view hh, std::string_view mm) {
   int hv = 0, mv = 0;
 
-  auto err = std::from_chars(hh.begin(), hh.end(), hv, 10).ec;
+  auto err = std::from_chars(hh.data(), hh.data()+hh.size(), hv, 10).ec;
   if(err!=std::errc())
     return false;
 
-  err = std::from_chars(mm.begin(), mm.end(), mv, 10).ec;
+  err = std::from_chars(mm.data(), mm.data()+mm.size(), mv, 10).ec;
   if(err!=std::errc())
     return false;
 
