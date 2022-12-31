@@ -605,7 +605,7 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId, const R
       case Landscape:
       case LandscapeShadow: {
         if(useMeshlets) {
-          size_t meshletBase = (v.iboOffset/PackedMesh::MaxInd);
+          uint32_t meshletBase = uint32_t(v.iboOffset/PackedMesh::MaxInd);
           cmd.setUniforms(shader, &meshletBase, sizeof(uint32_t));
           cmd.dispatchMesh(v.iboLength/PackedMesh::MaxInd, 1);
           } else {
@@ -1059,7 +1059,7 @@ void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
     switch(objType) {
       case Landscape:
       case LandscapeShadow: {
-        size_t meshletBase = (v.iboOffset/PackedMesh::MaxInd);
+        uint32_t meshletBase = uint32_t(v.iboOffset/PackedMesh::MaxInd);
         cmd.setUniforms(shader, uboObj[id].ubo[fId][c], &meshletBase, sizeof(uint32_t));
         if(useMeshlets) {
           cmd.dispatchMesh(v.iboLength/PackedMesh::MaxInd, 1);
@@ -1110,7 +1110,7 @@ void ObjectsBucketDyn::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, ui
     auto& v = val[i];
     if(!v.isValid)
       continue;
-    size_t meshletBase = (v.iboOffset/PackedMesh::MaxInd);
+    uint32_t meshletBase = uint32_t(v.iboOffset/PackedMesh::MaxInd);
     cmd.setUniforms(*pHiZ, &meshletBase, sizeof(uint32_t));
     cmd.dispatchMesh(v.iboLength/PackedMesh::MaxInd, 1);
     }
