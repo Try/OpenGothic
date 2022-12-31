@@ -87,7 +87,7 @@ class Workers final {
         T* tdata = reinterpret_cast<T*>(data);
         const size_t increment = (64+sizeof(T)-1)/sizeof(T);
         while(true) {
-          size_t id = taskDone.fetch_add(increment);
+          size_t id = size_t(taskDone.fetch_add(increment));
           for(size_t i=0;i<increment;++i) {
             if(id+i<sz)
               func(tdata[id+i]);

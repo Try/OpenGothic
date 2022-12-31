@@ -14,7 +14,7 @@ AiState::AiState(GameScript& owner,size_t id) {
     mname    = "";
 
     funcIni  = id;
-    funcLoop = -1;
-    funcEnd  = -1;
+    funcLoop = uint32_t(-1);
+    funcEnd  = uint32_t(-1);
     }
   }

@@ -2494,7 +2494,7 @@ void Npc::tickRoutine() {
       startState(r.callback,r.point ? r.point->name : "",t,false);
       }
     else if(hnpc->start_aistate!=0) {
-      startState(hnpc->start_aistate,"");
+      startState(uint32_t(hnpc->start_aistate),"");
       }
     }
 

@@ -815,7 +815,7 @@ float Gothic::inttofloat(int i) {
   }
 
 int Gothic::hlp_random(int max) {
-  uint32_t mod = std::max(1, max);
+  auto mod = uint32_t(std::max(1, max));
   return static_cast<int32_t>(randGen() % mod);
   }
 

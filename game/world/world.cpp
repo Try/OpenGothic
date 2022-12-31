@@ -286,7 +286,7 @@ std::string_view World::roomAt(const Tempest::Vec3& p) {
   while(true) {
     const auto v    = node->plane;
     float        sgn  = v.x*p.x + v.y*p.y + v.z*p.z - v.w;
-    uint32_t     next = (sgn>0) ? node->front_index : node->back_index;
+    uint32_t     next = (sgn>0) ? uint32_t(node->front_index) : uint32_t(node->back_index);
     if(next>=bsp.nodes.size())
       break;
 

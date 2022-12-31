@@ -823,7 +823,7 @@ void GameMenu::execSingle(Item &it, int slideDx) {
     }
 
   if(onEventAction[int(c_menu_item_select_event::execute)]>0){
-    auto* sym = vm.find_symbol_by_index(size_t(onEventAction[int(c_menu_item_select_event::execute)]));
+    auto* sym = vm.find_symbol_by_index(uint32_t(onEventAction[int(c_menu_item_select_event::execute)]));
     if (sym != nullptr)
       vm.call_function(sym);
     }

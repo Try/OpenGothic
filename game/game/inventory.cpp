@@ -422,7 +422,7 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
     else if(flag & ITM_CAT_FF){
       owner.setRangeWeapon(MeshObjects::Mesh());
       }
-    vm.invokeItem(&owner,itData.on_unequip);
+    vm.invokeItem(&owner,uint32_t(itData.on_unequip));
     }
 
   if(next==nullptr)
@@ -441,7 +441,7 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
     updateRuneView  (owner);
     applyWeaponStats(owner,*slot,1);
     }
-  vm.invokeItem(&owner,itData.on_equip);
+  vm.invokeItem(&owner,uint32_t(itData.on_equip));
   return true;
   }
 
@@ -824,7 +824,7 @@ bool Inventory::use(size_t cls, Npc &owner, uint8_t slotHint, bool force) {
   setCurrentItem(it->clsId());
   if(itData.on_state[0]!=0){
     auto& vm = owner.world().script();
-    vm.invokeItem(&owner,itData.on_state[0]);
+    vm.invokeItem(&owner,uint32_t(itData.on_state[0]));
     }
 
   if(deleteLater)
