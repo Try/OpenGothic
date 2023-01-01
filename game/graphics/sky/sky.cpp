@@ -133,7 +133,7 @@ void Sky::updateLight(const int64_t now) {
   sun.setDir(-std::sin(ax)*shadowLength, pulse, std::cos(ax)*shadowLength);
   sun.setColor(clr);
 
-  exposureInv = (smoothstep(0.f, 0.2f, std::max(sun.dir().y, 0.f))*2.f + 0.15f);
+  exposureInv = 1.f/(smoothstep(0.f, 0.2f, std::max(sun.dir().y, 0.f))*2.f + 0.15f);
   }
 
 void Sky::setupUbo() {

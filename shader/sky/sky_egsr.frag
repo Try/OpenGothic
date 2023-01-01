@@ -79,10 +79,8 @@ vec3 atmosphere(vec3 view, vec3 sunDir) {
   }
 
 vec3 finalizeColor(vec3 color) {
-  // Color grading
-  color = pow(color, vec3(1.3));
   // Tonemapping and gamma.
-  color = reinhardTonemap(color/push.exposureInv);
+  color = jodieReinhardTonemap(color*push.exposureInv);
   color = srgbEncode(color);
   return color;
   }
@@ -265,26 +263,24 @@ void main() {
   const float z = 1.0;
 #endif
 
+  vec4  val = fog(uv,z,push.sunDir);
+  vec3  lum = val.rgb;
+
+#if defined(FOG)
   // NOTE: not a physical value, but dunno how to achive nice look without it
   float fogFixup = 1; //20.0;
-
-  vec4  val      = fog(uv,z,push.sunDir);
-  vec3  lum      = val.rgb * fogFixup;
-#if defined(FOG)
-  //outColor = fog(uv, sunDir);
-  //return;
-#endif
-
-#if !defined(FOG)
+  lum = lum * fogFixup;
+#else
   // Sky
-  // lum = sky(uv,push.sunDir);
-  lum = lum*0.5 + sky(uv, sunDir);
+  lum = lum + sky(uv, sunDir);
   // Clouds
   lum = applyClouds(lum, sunDir);
 #endif
 
-  lum      = finalizeColor(lum * push.GSunIntensity);
-  //lum = vec3(val.a); //debug transmittance
+  lum = lum * push.GSunIntensity;
+  lum = pow(lum, vec3(1.3));
+  lum = finalizeColor(lum);
+  // lum = vec3(val.a); //debug transmittance
   outColor = vec4(lum, val.a);
 #if !defined(FOG)
   outColor.a = 1.0;

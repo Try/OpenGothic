@@ -5,6 +5,7 @@
 #define FRAGMENT
 #include "materials_common.glsl"
 #include "../lighting/shadow_sampling.glsl"
+#include "../lighting/tonemapping.glsl"
 
 #if defined(MAT_VARYINGS)
 layout(location = 0) in Varyings shInp;
@@ -161,7 +162,7 @@ vec4 waterColor(vec3 color, vec3 albedo) {
   float transmittance = min(1.0 - exp(-0.95 * abs(dist)*5.0), 1.0);
   //return vec4(vec3(transmittance),1);
 
-  back = mix(back.rgb,back.rgb*color.rgb,transmittance);
+  back = mix(back.rgb, back.rgb*color.rgb, transmittance);
   //return vec4(back,1);
 
   vec3 clr = mix(back,sky,f);

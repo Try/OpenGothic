@@ -126,6 +126,8 @@ Shaders::Shaders() {
     }
   }
 
+  tonemapping = postEffect("tonemapping", "tonemapping", RenderState::ZTestMode::Always);
+
   if(meshlets) {
     hiZPot = computeShader("hiZPot.comp.sprv");
     hiZMip = computeShader("hiZMip.comp.sprv");
@@ -153,7 +155,7 @@ Shaders::Shaders() {
     sh = GothicShader::get("item.frag.sprv");
     auto fs = device.shader(sh.data,sh.len);
     inventory = device.pipeline(Triangles,state,vs,fs);
-  };
+  }
   }
 
 Shaders::~Shaders() {
@@ -285,21 +287,12 @@ RenderPipeline Shaders::postEffect(std::string_view name) {
   return postEffect(name,name);
   }
 
-ComputePipeline Shaders::computeShader(std::string_view name) {
-  char buf[256] = {};
-  std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
-
-  auto& device = Resources::device();
-  auto  sh     = GothicShader::get(buf);
-  return device.pipeline(device.shader(sh.data,sh.len));
-  }
-
-RenderPipeline Shaders::postEffect(std::string_view vsName, std::string_view fsName) {
+RenderPipeline Shaders::postEffect(std::string_view vsName, std::string_view fsName, Tempest::RenderState::ZTestMode ztest) {
   auto& device = Resources::device();
 
   RenderState stateFsq;
-  stateFsq.setCullFaceMode(RenderState::CullMode::Front);
-  stateFsq.setZTestMode   (RenderState::ZTestMode::LEqual);
+  stateFsq.setCullFaceMode (RenderState::CullMode::Front);
+  stateFsq.setZTestMode    (ztest);
   stateFsq.setZWriteEnabled(false);
 
   char buf[256] = {};
@@ -311,6 +304,15 @@ RenderPipeline Shaders::postEffect(std::string_view vsName, std::string_view fsN
   sh      = GothicShader::get(buf);
   auto fs = device.shader(sh.data,sh.len);
   return device.pipeline(Triangles,stateFsq,vs,fs);
+  }
+
+ComputePipeline Shaders::computeShader(std::string_view name) {
+  char buf[256] = {};
+  std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
+
+  auto& device = Resources::device();
+  auto  sh     = GothicShader::get(buf);
+  return device.pipeline(device.shader(sh.data,sh.len));
   }
 
 RenderPipeline Shaders::fogShader(std::string_view name) {

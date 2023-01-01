@@ -126,6 +126,8 @@ void Renderer::resetSwapchain() {
     }
 
   sceneOpaque  = device.attachment(TextureFormat::RGBA8,      swapchain.w(),swapchain.h());
+  //sceneOpaque  = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
+  //sceneLinear  = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
   sceneDepth   = device.attachment(TextureFormat::R32F,       swapchain.w(),swapchain.h());
 
   gbufDiffuse  = device.attachment(TextureFormat::RGBA8,      swapchain.w(),swapchain.h());
@@ -179,6 +181,9 @@ void Renderer::resetSwapchain() {
   ssao.uboBlur[1].set(0, ssao.blurBuf,smpN);
   ssao.uboBlur[1].set(1, zbuffer,     smpB);
 
+  tonemapping.pso     = &Shaders::inst().tonemapping;
+  tonemapping.uboTone = device.descriptors(*tonemapping.pso);
+
   prepareUniforms();
   }
 
@@ -215,6 +220,8 @@ void Renderer::prepareUniforms() {
   auto wview = Gothic::inst().worldView();
   if(wview==nullptr)
     return;
+
+  //tonemapping.uboTone.set(0, sceneLinear);
 
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
     auto& u = shadow.ubo[i];
@@ -357,6 +364,26 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
 
   cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
   wview->drawFog    (cmd,fId);
+
+  // cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
+  // drawTonemapping(cmd);
+  }
+
+void Renderer::drawTonemapping(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
+  struct Push {
+    float exposureInv = 1.0;
+    };
+  Push p;
+  if(auto wview = Gothic::inst().worldView()) {
+    p.exposureInv = wview->sky().autoExposure();
+    }
+
+  static float dbgExposure = -1;
+  if(dbgExposure>0)
+    p.exposureInv = dbgExposure;
+
+  cmd.setUniforms(*tonemapping.pso, tonemapping.uboTone, &p, sizeof(p));
+  cmd.draw(Resources::fsqVbo());
   }
 
 void Renderer::stashDepthAux(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {

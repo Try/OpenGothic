@@ -14,6 +14,13 @@ vec3 invertReinhardTonemap(vec3 c) {
   return c / max(1.0 / 32768.0, 1.0 - lum);
   }
 
+vec3 jodieReinhardTonemap(vec3 c){
+  // From: https://www.shadertoy.com/view/tdSXzD
+  float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+  vec3 tc = c / (c + 1.0);
+  return mix(c / (l + 1.0), tc, tc);
+  }
+
 vec3 acesTonemap(vec3 x) {
   const float a = 2.51;
   const float b = 0.03;

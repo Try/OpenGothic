@@ -178,6 +178,9 @@ add_shader(ssao_rq.frag              ssao.frag -DRAY_QUERY)
 add_shader(bilateral.vert            copy.vert "")
 add_shader(bilateral.frag            bilateral.frag "")
 
+add_shader(tonemapping.vert          copy.vert "")
+add_shader(tonemapping.frag          tonemapping.frag "")
+
 add_shader(ssao_compose.vert         copy.vert "")
 add_shader(ssao_compose.frag         ssao_compose.frag "")
 add_shader(ssao_compose_rq.frag      ssao_compose.frag -DRAY_QUERY)

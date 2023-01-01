@@ -59,13 +59,6 @@ vec3 srgbEncode(vec3 color){
   return pow(color,vec3(1.0/2.2));
   }
 
-vec3 jodieReinhardTonemap(vec3 c){
-  // From: https://www.shadertoy.com/view/tdSXzD
-  float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
-  vec3 tc = c / (c + 1.0);
-  return mix(c / (l + 1.0), tc, tc);
-  }
-
 /*
  * Final output basically looks up the value from the skyLUT, and then adds a sun on top,
  * does some tonemapping.

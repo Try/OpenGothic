@@ -1,9 +1,12 @@
 #version 460
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_GOOGLE_include_directive    : enable
 
 #if defined(RAY_QUERY)
 #extension GL_EXT_ray_query : enable
 #endif
+
+#include "common.glsl"
 
 layout(push_constant, std140) uniform PushConstant {
   mat4 mvpInv;
@@ -60,7 +63,7 @@ bool calcShadow(vec3 shPos0, vec3 shPos1) {
 
 void main() {
   vec4  lbuf    = textureLod(lightingBuf,uv,0);
-  vec3  clr     = textureLod(diffuse,    uv,0).rgb;
+  vec3  clr     = srgbDecode(textureLod(diffuse,    uv,0).rgb);
   float occ     = textureLod(ssao,       uv,0).r;
   vec3  ambient = ubo.ambient;
 

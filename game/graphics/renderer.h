@@ -42,6 +42,7 @@ class Renderer final {
     void drawShadowResolve(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const WorldView& view);
     void drawSSAO         (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void draw             (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void drawTonemapping  (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void stashDepthAux    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void initSettings();
 
@@ -60,6 +61,7 @@ class Renderer final {
     Tempest::Vec3             clipInfo;
 
     Tempest::Attachment       sceneOpaque;
+    //Tempest::Attachment       sceneLinear;
     Tempest::Attachment       sceneDepth;
     Tempest::ZBuffer          zbuffer, zbufferItem, shadowMap[Resources::ShadowLayers];
 
@@ -79,6 +81,11 @@ class Renderer final {
       Tempest::RenderPipeline* ssaoComposePso = nullptr;
       Tempest::DescriptorSet   uboSsao, uboBlur[2], uboCompose;
     } ssao;
+
+    struct Tonemapping {
+      Tempest::RenderPipeline* pso = nullptr;
+      Tempest::DescriptorSet   uboTone;
+    } tonemapping;
 
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::RGBA8;
     Tempest::TextureFormat    zBufferFormat = Tempest::TextureFormat::Depth16;

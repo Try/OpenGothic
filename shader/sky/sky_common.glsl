@@ -1,5 +1,5 @@
 #include "../common.glsl"
-#include "../tonemapping.glsl"
+#include "../lighting/tonemapping.glsl"
 
 const float g        = 0.8;          // light concentration .76 //.45 //.6  .45 is normaL
 

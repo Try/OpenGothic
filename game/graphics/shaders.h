@@ -30,6 +30,8 @@ class Shaders {
     Tempest::ComputePipeline cloudsLut;
     Tempest::ComputePipeline fogViewLut3D, shadowDownsample;
 
+    Tempest::RenderPipeline  tonemapping;
+
     // Compute
     Tempest::ComputePipeline hiZPot, hiZMip;
 
@@ -66,8 +68,8 @@ class Shaders {
 
     Tempest::RenderPipeline  pipeline(Tempest::RenderState& st, const ShaderSet &fs) const;
     Tempest::RenderPipeline  postEffect(std::string_view name);
+    Tempest::RenderPipeline  postEffect(std::string_view vs, std::string_view fs, Tempest::RenderState::ZTestMode ztest = Tempest::RenderState::ZTestMode::LEqual);
     Tempest::ComputePipeline computeShader(std::string_view name);
-    Tempest::RenderPipeline  postEffect(std::string_view vs, std::string_view fs);
     Tempest::RenderPipeline  fogShader (std::string_view name);
 
     static Shaders* instance;

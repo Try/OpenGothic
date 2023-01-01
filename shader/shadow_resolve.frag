@@ -179,8 +179,6 @@ void main(void) {
   const vec3  normal = normalize(nrm.xyz*2.0-vec3(1.0));
 
   const float light  = (diff.a>0) ? 0 : lambert(normal);
-  //const float light  = lambert(normal);
-  //const vec3  fnorm  = flatNormal(worldPos(fragCoord, d));
 
   float shadow = 1;
   if(light>0) {
