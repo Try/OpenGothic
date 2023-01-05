@@ -365,7 +365,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   wview->drawFog    (cmd,fId);
 
-  cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
+  cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
   drawTonemapping(cmd);
   }
 
