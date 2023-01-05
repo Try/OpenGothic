@@ -11,6 +11,7 @@
 #extension GL_EXT_ray_flags_primitive_culling : enable
 #endif
 
+#include "lighting/tonemapping.glsl"
 #include "common.glsl"
 
 layout(early_fragment_tests) in;
@@ -150,7 +151,9 @@ void main(void) {
 
   //outColor     = vec4(0.5,0.5,0.5,1);
   //outColor     = vec4(light,light,light,0.0);
-  outColor     = vec4(d.rgb*color*vec3(light),0.0);
+  //outColor     = vec4(d.rgb*color*vec3(light),0.0);
+  const vec3 linear = acesTonemapInv(srgbDecode(d.rgb));
+  outColor     = vec4(linear*color*vec3(light),0.0);
   //if(dbg!=vec4(0))
   //  outColor = dbg;
   }

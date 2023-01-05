@@ -125,9 +125,9 @@ void Renderer::resetSwapchain() {
       shadowMap[i] = device.zbuffer(shadowFormat,smSize,smSize);
     }
 
-  sceneOpaque  = device.attachment(TextureFormat::RGBA8,      swapchain.w(),swapchain.h());
-  //sceneOpaque  = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
-  //sceneLinear  = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
+  // sceneOpaque  = device.attachment(TextureFormat::RGBA8,      swapchain.w(),swapchain.h());
+  sceneOpaque  = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
+  sceneLinear  = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
   sceneDepth   = device.attachment(TextureFormat::R32F,       swapchain.w(),swapchain.h());
 
   gbufDiffuse  = device.attachment(TextureFormat::RGBA8,      swapchain.w(),swapchain.h());
@@ -221,7 +221,7 @@ void Renderer::prepareUniforms() {
   if(wview==nullptr)
     return;
 
-  //tonemapping.uboTone.set(0, sceneLinear);
+  tonemapping.uboTone.set(0, sceneLinear);
 
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
     auto& u = shadow.ubo[i];
@@ -351,22 +351,22 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   drawShadowResolve(sceneOpaque,cmd,fId,*wview);
 
   stashDepthAux(cmd,fId);
-  drawSSAO(result,cmd,*wview);
+  drawSSAO(sceneLinear,cmd,*wview);
 
   wview->prepareFog(cmd,fId);
 
-  cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
+  cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
   wview->drawLights     (cmd,fId);
   wview->drawWater      (cmd,fId);
 
   wview->drawSky        (cmd,fId);
   wview->drawTranslucent(cmd,fId);
 
-  cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
+  cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   wview->drawFog    (cmd,fId);
 
-  // cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
-  // drawTonemapping(cmd);
+  cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
+  drawTonemapping(cmd);
   }
 
 void Renderer::drawTonemapping(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {

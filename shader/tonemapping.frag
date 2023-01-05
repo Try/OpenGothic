@@ -23,8 +23,8 @@ void main() {
   // color = pow(color, vec3(1.3));
 
   // Tonemapping
-  color = jodieReinhardTonemap(color * push.exposureInv);
-  // color = reinhardTonemap(color * exposure);
+  // color = jodieReinhardTonemap(color * push.exposureInv);
+  color = acesTonemap(color * push.exposureInv);
   color = srgbEncode(color);
 
   outColor = vec4(color, 1.0);

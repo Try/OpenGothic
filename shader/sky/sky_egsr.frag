@@ -44,7 +44,7 @@ vec4 clouds(vec3 at, float nightPhase, vec3 highlight,
   day.rgb   = srgbDecode(day.rgb);
   night.rgb = srgbDecode(night.rgb);
 
-  day.rgb   = day.rgb  *highlight*1.0;
+  day.rgb   = day.rgb  *highlight*2.0;
   night.rgb = night.rgb*highlight;
 
   //day  .a   = day  .a*(1.0-nightPhase);
@@ -76,13 +76,6 @@ vec3 textureSkyLUT(vec3 rayDir, vec3 sunDir) {
 
 vec3 atmosphere(vec3 view, vec3 sunDir) {
   return textureSkyLUT(view, sunDir);
-  }
-
-vec3 finalizeColor(vec3 color) {
-  // Tonemapping and gamma.
-  color = jodieReinhardTonemap(color*push.exposureInv);
-  color = srgbEncode(color);
-  return color;
   }
 
 // debug only
@@ -278,8 +271,6 @@ void main() {
 #endif
 
   lum = lum * push.GSunIntensity;
-  lum = pow(lum, vec3(1.3));
-  lum = finalizeColor(lum);
   // lum = vec3(val.a); //debug transmittance
   outColor = vec4(lum, val.a);
 #if !defined(FOG)

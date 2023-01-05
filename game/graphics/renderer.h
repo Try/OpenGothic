@@ -61,7 +61,7 @@ class Renderer final {
     Tempest::Vec3             clipInfo;
 
     Tempest::Attachment       sceneOpaque;
-    //Tempest::Attachment       sceneLinear;
+    Tempest::Attachment       sceneLinear;
     Tempest::Attachment       sceneDepth;
     Tempest::ZBuffer          zbuffer, zbufferItem, shadowMap[Resources::ShadowLayers];
 

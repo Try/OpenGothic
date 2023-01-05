@@ -11,9 +11,10 @@
 #extension GL_EXT_ray_flags_primitive_culling : enable
 #endif
 
-#include "common.glsl"
-#include "scene.glsl"
+#include "lighting/tonemapping.glsl"
 #include "lighting/shadow_sampling.glsl"
+#include "scene.glsl"
+#include "common.glsl"
 
 layout(location = 0) out vec4 outColor;
 layout(location = 0) in  vec2 UV;
@@ -140,6 +141,7 @@ float calcRayShadow(vec4 pos4, vec3 normal, float depth) {
   if(all(lessThan(abs(sp.xy)+0.001,vec2(abs(sp.w)))))
     return 1.0;
 
+  // NOTE: shadow is still leaking! Need to develop pso.depthClampEnable to fix it.
   vec4 cam4 = worldPos(0.1);
   vec3 cam  = cam4.xyz/cam4.w;
   vec3 pos  = pos4.xyz/pos4.w;
@@ -193,16 +195,14 @@ void main(void) {
 #endif
     }
 
-  // const vec3  lcolor = scene.sunCl.rgb*light*shadow + vec3(0.05);
-  // vec3 color = (srgbDecode(diff.rgb) * lcolor); // TODO: linear shading
-  // color = jodieReinhardTonemap(color);
-  // color = srgbEncode(color);
-  // outColor = vec4(color, 1.0);
-
   const vec3  lcolor = scene.sunCl.rgb*light*shadow + scene.ambient;
-  outColor = vec4(diff.rgb*lcolor, 1.0);
 
-   //outColor = vec4(vec3(lcolor), diff.a); // debug
-   //if(diff.a>0)
-   //  outColor.r = 0;
+  // HACK: need to preserve look-and-fill of original graphics
+  vec3 linear = acesTonemapInv(srgbDecode(diff.rgb)*lcolor);
+
+  outColor = vec4(linear, 1.0);
+
+  // outColor = vec4(vec3(lcolor), diff.a); // debug
+  // if(diff.a>0)
+  //   outColor.r = 0;
   }

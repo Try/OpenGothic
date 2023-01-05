@@ -23,17 +23,14 @@ layout(location = 0) out vec4 outColor;
 #endif
 
 #if defined(FORWARD)
-vec4 dbgLambert() {
+float lambert() {
   vec3  normal  = normalize(shInp.normal);
-  float lambert = max(0.0,dot(scene.sunDir,normal));
-  return vec4(lambert,lambert,lambert,1.0);
+  return clamp(dot(scene.sunDir,normal), 0.0, 1.0);
   }
 
-vec3 calcLight() {
-  vec3  normal  = normalize(shInp.normal);
-  float lambert = clamp(dot(scene.sunDir,normal), 0.0, 1.0);
-  float light   = lambert * calcShadow(vec4(shInp.pos,1), scene, textureSm0, textureSm1);
-  return scene.sunCl.rgb*light + scene.ambient;
+vec4 dbgLambert() {
+  float l = lambert();
+  return vec4(l,l,l,1.0);
   }
 #endif
 
@@ -59,13 +56,11 @@ float intersectFrustum(const vec3 pos, const vec3 dir) {
   return ret;
   }
 
-vec3 ssr(vec4 orig, vec3 start, vec3 refl, vec3 fallbackClr) {
+vec3 ssr(vec4 orig, vec3 start, vec3 refl, float shadow) {
   const int SSR_STEPS = 64;
 
   vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir);
   sky *= scene.GSunIntensity;
-  sky = jodieReinhardTonemap(sky);
-  sky = srgbEncode(sky);
 
   // const float rayLen = 10000;
   const float rayLen = intersectFrustum(start,refl);
@@ -115,11 +110,12 @@ vec3 ssr(vec4 orig, vec3 start, vec3 refl, vec3 fallbackClr) {
     return mix(sky,reflection,att);
     //return reflection;
   if(occluded)
-    return mix(sky,reflection,att);
-  return sky;
+    return mix(sky,reflection,att*(1.0-shadow));
+  //return sky;
+  return mix(sky, scene.ambient*sky, shadow*0.2);
   }
 
-vec4 waterColor(vec3 color, vec3 albedo) {
+vec4 waterColor(vec3 color, vec3 albedo, float shadow) {
   const float F   = 0.02;
   const float ior = 1.0 / 1.52; // air / water
   //return vec4(vec3(albedo.a),1);
@@ -142,7 +138,7 @@ vec4 waterColor(vec3 color, vec3 albedo) {
   const vec2  fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
   const vec4  scr       = vec4(fragCoord.x, fragCoord.y, gl_FragCoord.z, 1.0)/gl_FragCoord.w;
 
-  vec3 sky = ssr(scr,shInp.pos,refl,backOrig)*albedo;
+  vec3 sky = ssr(scr,shInp.pos,refl,shadow)*albedo;
   // return vec4(sky,1);
 
   const float f = fresnel(refl,shInp.normal,ior);
@@ -201,7 +197,7 @@ vec4 diffuseTex() {
 #endif
 
 vec4 forwardShading(vec4 t) {
-  vec3  color = t.rgb;
+  vec3  color = acesTonemapInv(srgbDecode(t.rgb));
   float alpha = t.a;
 
 #if defined(GHOST)
@@ -209,17 +205,21 @@ vec4 forwardShading(vec4 t) {
 #endif
 
 #if defined(MAT_COLOR)
-  color *= shInp.color.rgb;
-  alpha *= shInp.color.a;
+  {
+    color *= shInp.color.rgb;
+    alpha *= shInp.color.a;
+  }
 #endif
 
 #if defined(FORWARD)
-  color *= calcLight();
+  float light  = lambert();
+  float shadow = calcShadow(vec4(shInp.pos,1), scene, textureSm0, textureSm1);
+  color *= scene.sunCl.rgb*light*shadow + scene.ambient;
 #endif
 
 #if defined(WATER)
   {
-    vec4 wclr = waterColor(color,vec3(0.8,0.9,1.0));
+    vec4 wclr = waterColor(color,vec3(0.8,0.9,1.0),shadow);
     color  = wclr.rgb;
     alpha  = wclr.a;
   }

@@ -30,7 +30,7 @@ Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest:
     night.lay[i].texture = skyTexture(name,false,i);
     }
   minZ = bbox.first.z;
-  GSunIntensity = 20.f;
+  GSunIntensity = 5.f; //20.f;
 
   /*
     zSunName=unsun5.tga
@@ -115,11 +115,14 @@ void Sky::updateLight(const int64_t now) {
     pulse = -1.f + (float(now)/float(rise));
     }
 
-  const auto ambientDay   = Vec3(0.25f,0.25f,0.25f);
-  const auto ambientNight = Vec3(0.16f,0.16f,0.50f);
+  static float sunMul = 1;
+  static float ambMul = 1;
 
-  const auto directDay    = Vec3(0.75f,0.75f,0.75f);
-  const auto directNight  = Vec3(0,0,0);
+  const auto ambientDay   = Vec3(0.08f,0.08f,0.08f);
+  const auto ambientNight = Vec3(0.02f,0.02f,0.03f);
+
+  const auto directDay    = Vec3(0.80f, 0.80f, 0.80f); //TODO: use tLUT to guide sky color in shader
+  const auto directNight  = Vec3(0.27f, 0.05f, 0.01f);
 
   float k = float(now)/float(midnight);
   float a  = std::max(0.f,std::min(pulse*3.f,1.f));
@@ -127,13 +130,18 @@ void Sky::updateLight(const int64_t now) {
   auto clr = directNight *(1.f-a) + directDay *a;
   ambient  = ambientNight*(1.f-a) + ambientDay*a;
 
+  const float sunOcclude = smoothstep(0.0f, 0.01f, sun.dir().y);
+  clr = clr*sunOcclude;
+
   float ax  = 360-360*std::fmod(k+0.25f,1.f);
   ax = ax*float(M_PI/180.0);
 
   sun.setDir(-std::sin(ax)*shadowLength, pulse, std::cos(ax)*shadowLength);
-  sun.setColor(clr);
+  sun.setColor(clr*sunMul);
+  ambient = ambient*ambMul;
 
-  exposureInv = 1.f/(smoothstep(0.f, 0.2f, std::max(sun.dir().y, 0.f))*2.f + 0.15f);
+  //exposureInv = 1.f/(smoothstep(0.f, 0.2f, std::max(sun.dir().y, 0.1f))*2.f + 0.15f);
+  exposureInv = 1.f/(smoothstep(0.f, 0.2f, std::max(sun.dir().y, 0.1f)) + 0.005f);
   }
 
 void Sky::setupUbo() {
@@ -328,7 +336,6 @@ Sky::UboSky Sky::mkPush() {
   ubo.night   = 1.f-std::min(std::max(3.f*ubo.sunDir.y,0.f),1.f);
 
   static float rayleighScatteringScale = 33.1f;
-  static float GSunIntensity           = 20.f;
 
   ubo.rayleighScatteringScale = rayleighScatteringScale;
   ubo.clipInfo                = scene.clipInfo();

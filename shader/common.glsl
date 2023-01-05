@@ -9,7 +9,6 @@ const float RClouds  = RPlanet+3000; // Clouds height in meters
 const float RAtmos   = 6460e3;       // Radius of the atmosphere in meters
 
 const vec3  GGroundAlbedo = vec3(0.1);
-//const float GSunIntensity = 20.0;
 
 float linearDepth(float d, vec3 clipInfo) {
   // z_n * z_f,  z_n - z_f, z_f

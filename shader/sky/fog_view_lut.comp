@@ -165,7 +165,7 @@ void main() {
                                                mix(shPos0,shPos1,t),
                                                samplecount);
     vec3  sunTransmittance    = sunTransmittance0 * shadow;
-    vec3  psiMS               = psiMS0 * (shadow*0.7 + 0.3);
+    vec3  psiMS               = psiMS0 * (shadow*0.9 + 0.1);
 #else
     vec3  sunTransmittance    = textureLUT(tLUT, pos, sunDir);
     vec3  psiMS               = textureLUT(mLUT, pos, sunDir);
