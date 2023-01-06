@@ -145,7 +145,7 @@ void main() {
   float oclusion       = 1.0 - textureLod(cloudsLUT, vec2(push.night,0), 0).a;
 
   store(ivec3(dstUV.xy,0), scatteredLight*oclusion, transmittance);
-  for(int i=1; i<steps; ++i) {
+  for(int i=0; i<steps; ++i) {
     float t      = tStep(i,  steps);
     float tPrev  = tStep(i-1,steps);
     float dd     = (t - tPrev)*dist;
