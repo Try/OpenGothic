@@ -68,18 +68,18 @@ class Camera final {
     void tick(uint64_t dt);
     void debugDraw(DbgPainter& p);
 
-    Tempest::PointF spin()     const;
-    Tempest::PointF destSpin() const;
+    Tempest::PointF    spin()     const;
+    Tempest::PointF    destSpin() const;
 
-    void            setSpin(const Tempest::PointF& p);
-    void            setDestSpin(const Tempest::PointF& p);
+    void               setSpin(const Tempest::PointF& p);
+    void               setDestSpin(const Tempest::PointF& p);
 
-    void            setPosition(const Tempest::Vec3& pos);
-    void            setDestPosition(const Tempest::Vec3& pos);
+    void               setPosition(const Tempest::Vec3& pos);
+    void               setDestPosition(const Tempest::Vec3& pos);
 
-    void            setDialogDistance(float d);
+    void               setDialogDistance(float d);
 
-    void            onRotateMouse(const Tempest::PointF& dpos);
+    void               onRotateMouse(const Tempest::PointF& dpos);
 
     Tempest::Matrix4x4 projective() const;
     Tempest::Matrix4x4 view() const;

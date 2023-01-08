@@ -419,7 +419,7 @@ void Camera::followPos(Vec3& pos, Vec3 dest, float dtF) {
 
   float speed = baseSpeeed*dtF;
   float tr    = std::min(speed,len);
-  if(len-tr>maxDist)
+  if(len-tr > maxDist-speed)
     tr = (len-maxDist); else
     tr = std::min(speed,len);
 
