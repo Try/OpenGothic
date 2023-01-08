@@ -1,6 +1,8 @@
 #ifndef TONEMAPPING_GLSL
 #define TONEMAPPING_GLSL
 
+#include "../common.glsl"
+
 vec3 jodieReinhardTonemapInv(vec3 c) {
   // rgb / (1 - lum(rgb))
   float lum = dot(c, vec3(0.2126, 0.7152, 0.0722));
@@ -31,6 +33,11 @@ vec3 acesTonemapInv(vec3 x) {
   const float d = 0.59;
   const float e = 0.14;
   return (-0.59 * x + 0.03 - sqrt(-1.0127 * x*x + 1.3702 * x + 0.0009)) / (2.0 * (2.43*x - 2.51));
+  }
+
+vec3 textureLinear(vec3 rgb) {
+  vec3 linear = (srgbDecode(rgb)*0.78);
+  return acesTonemapInv(linear);
   }
 
 #endif

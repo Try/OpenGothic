@@ -54,7 +54,7 @@ void mulScattValues(vec3 pos, vec3 sunDir, out vec3 lumTotal, out vec3 fms) {
         vec3  rayleighScattering;
         vec3  extinction;
         float mieScattering;
-        scatteringValues(newPos, rayleighScattering, mieScattering, extinction);
+        scatteringValues(newPos, 0, rayleighScattering, mieScattering, extinction);
 
         vec3 sampleTransmittance = exp(-dt*extinction);
 

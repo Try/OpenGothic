@@ -195,12 +195,15 @@ void main(void) {
 #endif
     }
 
-  const vec3  lcolor = scene.sunCl.rgb*light*shadow + scene.ambient;
+  const vec3  lcolor = scene.sunCl.rgb*light*shadow;
 
   // HACK: need to preserve look-and-fill of original graphics
-  vec3 linear = acesTonemapInv(srgbDecode(diff.rgb)*lcolor);
+  // vec3 linear = acesTonemapInv(srgbDecode(diff.rgb)*lcolor);
 
-  outColor = vec4(linear, 1.0);
+  vec3 linear = textureLinear(diff.rgb);
+  vec3 color  = linear*(lcolor + scene.ambient);
+
+  outColor = vec4(color, 1.0);
 
   // outColor = vec4(vec3(lcolor), diff.a); // debug
   // if(diff.a>0)

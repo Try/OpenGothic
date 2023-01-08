@@ -169,7 +169,7 @@ float calcOcclussion() {
     }
 
   occlusion /= weightAll;
-  return occlusion*(M_PI*0.75);
+  return occlusion*(M_PI*0.25);
   }
 
 void main() {

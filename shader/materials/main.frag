@@ -197,7 +197,7 @@ vec4 diffuseTex() {
 #endif
 
 vec4 forwardShading(vec4 t) {
-  vec3  color = acesTonemapInv(srgbDecode(t.rgb));
+  vec3  color = textureLinear(t.rgb);
   float alpha = t.a;
 
 #if defined(GHOST)

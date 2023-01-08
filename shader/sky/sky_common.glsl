@@ -85,6 +85,7 @@ vec3 sunWithBloom(vec3 view, vec3 sunDir) {
 
 // 4. Atmospheric model
 void scatteringValues(vec3 pos,
+                      float clouds,
                       out vec3 rayleighScattering,
                       out float mieScattering,
                       out vec3 extinction) {
@@ -97,10 +98,14 @@ void scatteringValues(vec3 pos,
   rayleighScattering       = rayleighScatteringBase*rayleighDensity*push.rayleighScatteringScale;
   float rayleighAbsorption = rayleighAbsorptionBase*rayleighDensity;
 
-  mieScattering            = (mieScatteringBase/*+0.02*/)*mieDensity;
+  mieScattering            = mieScatteringBase*mieDensity;
   float mieAbsorption      = mieAbsorptionBase*mieDensity;
 
   vec3  ozoneAbsorption    = ozoneAbsorptionBase*ozoneDistribution;
+
+  // Clouds Ah-Hook
+  mieScattering      *= exp( clouds*3.0); // (1.0+clouds*4.0);
+  rayleighScattering *= exp(-clouds*3.0); // (1.0-clouds*0.5);
 
   extinction = rayleighScattering + rayleighAbsorption +
                mieScattering + mieAbsorption +

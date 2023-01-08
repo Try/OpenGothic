@@ -142,9 +142,9 @@ void main() {
 
   vec3  scatteredLight = vec3(0.0);
   vec3  transmittance  = vec3(1.0);
-  float oclusion       = 1.0 - textureLod(cloudsLUT, vec2(push.night,0), 0).a;
+  // float oclusion       = 1.0 - textureLod(cloudsLUT, vec2(push.night,0), 0).a;
+  float clouds         = textureLod(cloudsLUT, vec2(push.night,0), 0).a;
 
-  store(ivec3(dstUV.xy,0), scatteredLight*oclusion, transmittance);
   for(int i=0; i<steps; ++i) {
     float t      = tStep(i,  steps);
     float tPrev  = tStep(i-1,steps);
@@ -155,7 +155,7 @@ void main() {
     vec3  rayleighScattering;
     vec3  extinction;
     float mieScattering;
-    scatteringValues(pos, rayleighScattering, mieScattering, extinction);
+    scatteringValues(pos, clouds, rayleighScattering, mieScattering, extinction);
 
     vec3  sampleTransmittance = exp(-dd*extinction*viewDistanceScale);
 
@@ -171,8 +171,8 @@ void main() {
     vec3  psiMS               = textureLUT(mLUT, pos, sunDir);
 #endif
 
-    vec3 rayleighInScattering = rayleighScattering*(rayleighPhaseValue*sunTransmittance + psiMS)*oclusion;
-    vec3 mieInScattering      = mieScattering     *(miePhaseValue     *sunTransmittance + psiMS)*oclusion;
+    vec3 rayleighInScattering = rayleighScattering*(rayleighPhaseValue*sunTransmittance + psiMS);
+    vec3 mieInScattering      = mieScattering     *(miePhaseValue     *sunTransmittance + psiMS);
     vec3 inScattering         = (rayleighInScattering + mieInScattering);
 
     // Integrated scattering within path segment.

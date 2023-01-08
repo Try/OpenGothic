@@ -29,12 +29,13 @@ vec3 inverse(vec3 pos) {
   }
 
 void main() {
-  vec4  lbuf    = textureLod(lightingBuf,uv,0);
-  vec3  clr     = textureLod(diffuse,    uv,0).rgb;
-  vec3  linear  = acesTonemapInv(srgbDecode(clr.rgb));
-  float occ     = textureLod(ssao,       uv,0).r;
+  vec4  lbuf    = textureLod   (lightingBuf,uv,0);
+  vec3  clr     = textureLod   (diffuse,    uv,0).rgb;
+  float occ     = textureLod   (ssao,       uv,0).r;
+
+  vec3  linear  = textureLinear(clr.rgb);
   vec3  ambient = ubo.ambient;
 
   // outColor = vec4(1-occ);
-  outColor = vec4(lbuf.rgb-clr*ambient*occ, lbuf.a);
+  outColor = vec4(lbuf.rgb - clr*ambient*occ, lbuf.a);
   }

@@ -118,10 +118,12 @@ void Sky::updateLight(const int64_t now) {
   static float sunMul = 1;
   static float ambMul = 1;
 
-  const auto ambientDay   = Vec3(0.08f,0.08f,0.08f);
-  const auto ambientNight = Vec3(0.02f,0.02f,0.03f);
+  //const auto ambientDay   = Vec3(0.08f,0.08f,0.08f);
+  const auto ambientDay   = Vec3(0.35f,0.35f,0.35f);
+  const auto ambientNight = Vec3(0.09f,0.09f,0.13f);
 
-  const auto directDay    = Vec3(0.80f, 0.80f, 0.80f); //TODO: use tLUT to guide sky color in shader
+  //const auto directDay    = Vec3(0.80f, 0.80f, 0.80f); //TODO: use tLUT to guide sky color in shader
+  const auto directDay    = Vec3(0.94f, 0.87f, 0.76f); //TODO: use tLUT to guide sky color in shader
   const auto directNight  = Vec3(0.27f, 0.05f, 0.01f);
 
   float k = float(now)/float(midnight);

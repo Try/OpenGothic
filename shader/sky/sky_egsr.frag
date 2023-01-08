@@ -37,6 +37,10 @@ vec4 clouds(vec3 at, float nightPhase, vec3 highlight,
   vec4  cloudNL1 = texture(nightL1, texc*0.3 + dxy1);
   vec4  cloudNL0 = texture(nightL0, texc*0.6 + vec2(0.5)); // stars
 
+  cloudDL0.a   = cloudDL0.a*0.2;
+  cloudDL1.a   = cloudDL1.a*0.2;
+  cloudNL1.a   = cloudNL1.a*0.1;
+
   vec4 day       = (cloudDL0+cloudDL1)*0.5;
   vec4 night     = (cloudNL0+cloudNL1)*0.5;
 
@@ -44,11 +48,10 @@ vec4 clouds(vec3 at, float nightPhase, vec3 highlight,
   day.rgb   = srgbDecode(day.rgb);
   night.rgb = srgbDecode(night.rgb);
 
-  day.rgb   = day.rgb  *highlight*2.0;
-  night.rgb = night.rgb*highlight;
+  day.rgb   = day.rgb  *highlight;
+  night.rgb = night.rgb*highlight*4.0;
 
-  //day  .a   = day  .a*(1.0-nightPhase);
-  day  .a   = day  .a*0.1;
+  //day  .a   = day  .a*0.2;
   night.a   = night.a*(nightPhase);
 
   vec4 color = mixClr(day,night);
@@ -93,7 +96,7 @@ vec3 transmittance(vec3 pos0, vec3 pos1) {
     vec3  rayleighScattering = vec3(0);
     vec3  extinction         = vec3(0);
     float mieScattering      = float(0);
-    scatteringValues(newPos, rayleighScattering, mieScattering, extinction);
+    scatteringValues(newPos, 0, rayleighScattering, mieScattering, extinction);
 
     transmittance *= exp(-dt*extinction);
     }
@@ -107,8 +110,8 @@ vec3 transmittanceAprox(in vec3 pos0, in vec3 pos1) {
   float mieScattering      = float(0);
   vec3  extinction0        = vec3(0);
   vec3  extinction1        = vec3(0);
-  scatteringValues(pos0 + vec3(0,RPlanet,0), rayleighScattering, mieScattering, extinction0);
-  scatteringValues(pos1 + vec3(0,RPlanet,0), rayleighScattering, mieScattering, extinction1);
+  scatteringValues(pos0 + vec3(0,RPlanet,0), 0, rayleighScattering, mieScattering, extinction0);
+  scatteringValues(pos1 + vec3(0,RPlanet,0), 0, rayleighScattering, mieScattering, extinction1);
 
   vec3  extinction         = extinction1;//-extinction0;
   return exp(-length(dir)*extinction);
@@ -183,8 +186,7 @@ vec4 fog(vec2 uv, float z, vec3 sunDir) {
   vec3  posz     = inverse(vec3(inPos,z));
 
   vec3  val      = textureLod(skyLUT, uv, 0).rgb;
-  //vec3  trans    = vec3(1.0)-transmittance(pos0, posz);
-  vec3  trans    = vec3(1.0)-transmittanceAprox(pos0, posz);
+  vec3  trans    = vec3(1.0)-transmittance(pos0, posz);
   float fogDens  = (trans.x+trans.y+trans.z)/3.0;
 
   //return vec4(fogDens);
@@ -235,9 +237,7 @@ vec3 applyClouds(vec3 skyColor, vec3 sunDir) {
   lum = lum*push.GSunIntensity;
   //return lum;
 
-  //vec4  cloud    = clouds(pos + view*L, vec3(push.GSunIntensity));
   vec4  cloud    = clouds(pos + view*L, lum);
-  // cloud.rgb *= textureLUT(tLUT, view, sunDir);
 
   return mix(skyColor, cloud.rgb, cloud.a);
   }
@@ -259,11 +259,7 @@ void main() {
   vec4  val = fog(uv,z,push.sunDir);
   vec3  lum = val.rgb;
 
-#if defined(FOG)
-  // NOTE: not a physical value, but dunno how to achive nice look without it
-  float fogFixup = 1; //20.0;
-  lum = lum * fogFixup;
-#else
+#if !defined(FOG)
   // Sky
   lum = lum + sky(uv, sunDir);
   // Clouds
