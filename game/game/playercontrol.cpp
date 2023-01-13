@@ -955,21 +955,26 @@ void PlayerControl::assignRunAngle(Npc& pl, float rotation, uint64_t dt) {
   float dtF    = (float(dt)/1000.f);
   float angle  = pl.rotation();
   float dangle = (rotation-angle)/dtF;
+  float sgn    = (dangle>0 ? 1 : -1);
   auto& wrld   = pl.world();
 
-  if(std::fabs(dangle)<1.f || pl.walkMode()!=WalkBit::WM_Run) {
+  if(std::fabs(dangle)<0.1f || pl.walkMode()!=WalkBit::WM_Run) {
     if(runAngleSmooth<wrld.tickCount())
       runAngleDest = 0;
     return;
     }
 
-  dangle *= 0.5f;
+  const float maxV = 15.0f;
+  dangle = std::pow(std::abs(dangle)/maxV,2.f)*maxV*sgn;
 
-  float maxV = 15.0f;
+  float dest = 0;
   if(angle<rotation)
-    runAngleDest =  std::min( dangle,maxV);
+    dest =  std::min( dangle,maxV);
   if(angle>rotation)
-    runAngleDest = -std::min(-dangle,maxV);
+    dest = -std::min(-dangle,maxV);
+
+  float a = std::clamp(dtF*2.5f, 0.f, 1.f);
+  runAngleDest   = runAngleDest*(1.f-a)+dest*a;
   runAngleSmooth = wrld.tickCount() + 200;
   }
 
