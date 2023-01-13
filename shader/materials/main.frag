@@ -213,7 +213,7 @@ vec4 forwardShading(vec4 t) {
 
 #if defined(FORWARD)
   float light  = lambert();
-  float shadow = calcShadow(vec4(shInp.pos,1), scene, textureSm0, textureSm1);
+  float shadow = calcShadow(vec4(shInp.pos,1), 0, scene, textureSm0, textureSm1);
   color *= scene.sunCl.rgb*light*shadow + scene.ambient;
 #endif
 
@@ -242,6 +242,16 @@ bool isFlat() {
   return false;
   }
 
+float encodeHintBits() {
+  const int flt  = (isFlat() ? 1 : 0) << 1;
+#if defined(ATEST)
+  const int atst = (1) << 2;
+#else
+  const int atst = (0) << 2;
+#endif
+  return float(flt | atst)/255.0;
+  }
+
 void main() {
 #if defined(MAT_UV)
   vec4 t = diffuseTex();
@@ -252,9 +262,9 @@ void main() {
 #endif
 
 #if defined(GBUFFER)
-  // outDiffuse.rgb = vec3(1);
+  //outDiffuse.rgb = vec3(1);
   outDiffuse.rgb = t.rgb;
-  outDiffuse.a   = isFlat() ? 1 : 0;
+  outDiffuse.a   = encodeHintBits();
   outNormal      = vec4(shInp.normal*0.5 + vec3(0.5),1.0);
 #if DEBUG_DRAW
   outDiffuse.rgb *= debugColors[debugId%MAX_DEBUG_COLORS];

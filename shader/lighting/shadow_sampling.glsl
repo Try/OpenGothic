@@ -3,7 +3,6 @@
 
 #include "../scene.glsl"
 
-
 vec4 shadowSample(in sampler2D shadowMap, vec2 shPos) {
   shPos.xy = shPos.xy*vec2(0.5,0.5)+vec2(0.5);
   return textureGather(shadowMap,shPos);
@@ -11,7 +10,7 @@ vec4 shadowSample(in sampler2D shadowMap, vec2 shPos) {
 
 vec4 shadowSample(in sampler2D shadowMap, vec2 shPos, out vec2 m) {
   shPos.xy = shPos.xy*vec2(0.5,0.5)+vec2(0.5);
-  m        = fract(shPos.xy * textureSize(shadowMap, 0) + vec2(0.5));
+  m        = fract(shPos.xy * textureSize(shadowMap, 0) - vec2(0.5));
   return textureGather(shadowMap,shPos);
   }
 
@@ -76,10 +75,10 @@ float calcShadow(in SceneDesc scene,
   return 1.0;
   }
 
-float calcShadow(in vec4 pos4, in SceneDesc scene, in sampler2D shadowMap0, in sampler2D shadowMap1) {
+float calcShadow(in vec4 pos4, in float bias, in SceneDesc scene, in sampler2D shadowMap0, in sampler2D shadowMap1) {
   vec4 shadowPos[2];
-  shadowPos[0] = scene.viewShadow[0]*vec4(pos4);
-  shadowPos[1] = scene.viewShadow[1]*vec4(pos4);
+  shadowPos[0] = scene.viewShadow[0]*vec4(pos4.xyz + bias*scene.sunDir*pos4.w*1.0, pos4.w);
+  shadowPos[1] = scene.viewShadow[1]*vec4(pos4.xyz + bias*scene.sunDir*pos4.w*4.0, pos4.w);
 
   vec3 shPos0  = (shadowPos[0].xyz)/shadowPos[0].w;
   vec3 shPos1  = (shadowPos[1].xyz)/shadowPos[1].w;

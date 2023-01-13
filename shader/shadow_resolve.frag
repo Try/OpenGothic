@@ -94,11 +94,11 @@ vec4 worldPos(float depth) {
   }
 
 #if defined(SHADOW_MAP)
-float calcShadow(vec4 pos4) {
-  return calcShadow(pos4, scene, textureSm0, textureSm1);
+float calcShadow(vec4 pos4, float bias) {
+  return calcShadow(pos4, bias, scene, textureSm0, textureSm1);
   }
 #else
-float calcShadow(vec4 pos4) { return 1.0; }
+float calcShadow(vec4 pos4, float bias) { return 1.0; }
 #endif
 
 #if defined(RAY_QUERY)
@@ -168,6 +168,13 @@ vec3 flatNormal(vec4 pos4) {
   return (cross(dx,dy));
   }
 
+void decodeBits(float v, out bool flt, out bool atst) {
+  int x = int(v*255+0.5);
+
+  flt  = (x & (1 << 1))!=0;
+  atst = (x & (1 << 2))!=0;
+  }
+
 void main(void) {
   const ivec2 fragCoord = ivec2(gl_FragCoord.xy);
   const float d         = texelFetch(depth, fragCoord, 0).r;
@@ -180,7 +187,11 @@ void main(void) {
   const vec4  nrm    = texelFetch(normals, fragCoord, 0);
   const vec3  normal = normalize(nrm.xyz*2.0-vec3(1.0));
 
-  const float light  = (diff.a>0) ? 0 : lambert(normal);
+  bool isFlat  = false;
+  bool isATest = false;
+  decodeBits(diff.a, isFlat, isATest);
+
+  const float light  = (isFlat ? 0 : lambert(normal));
 
   float shadow = 1;
   if(light>0) {
@@ -188,12 +199,31 @@ void main(void) {
       shadow = 0;
 
     const vec4 wpos = worldPos(d);
-    shadow = calcShadow(wpos);
+    if(isATest) {
+      // bias to avoid self-shadow on grass
+      // wpos.xyz += 16.0*(scene.sunDir*wpos.w);
+      }
+
+    shadow = calcShadow(wpos,(isATest ? 16 : -2));
 #if defined(RAY_QUERY)
     if(shadow>0.01)
       shadow *= calcRayShadow(wpos,normal,d);
 #endif
     }
+
+#if defined(SHADOW_MAP)
+  /*
+  {
+    // debug code
+    const vec4 pos4  = worldPos(d);
+    const vec4 shPos = scene.viewShadow[1]*vec4(pos4);
+    // vec4 s = shadowSample(textureSm1, shPos.xy/shPos.w);
+    // shadow = s.x;
+    outColor = vec4(0, (isFlat ? 1 : 0), (isATest ? 1 : 0), 1.0);
+    return;
+  }
+  */
+#endif
 
   const vec3  lcolor = scene.sunCl.rgb*light*shadow;
 
