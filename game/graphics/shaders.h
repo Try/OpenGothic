@@ -15,13 +15,12 @@ class Shaders {
 
     static Shaders& inst();
 
-    Tempest::RenderPipeline lights, lightsRq;
-    Tempest::RenderPipeline shadowResolve, shadowResolveSh, shadowResolveRq;
+    Tempest::RenderPipeline  lights, lightsRq;
+    Tempest::RenderPipeline  shadowResolve, shadowResolveSh, shadowResolveRq;
 
-    Tempest::RenderPipeline copy;
-    Tempest::RenderPipeline bilateralBlur;
-    Tempest::RenderPipeline ssao, ssaoCompose;
-    Tempest::RenderPipeline ssaoRq;
+    Tempest::RenderPipeline  copy;
+    Tempest::RenderPipeline  ssaoCompose;
+    Tempest::ComputePipeline ssao, ssaoRq;
 
     // Scalable and Production Ready Sky and Atmosphere
     Tempest::RenderPipeline  skyTransmittance, skyMultiScattering;

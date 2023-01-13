@@ -252,6 +252,7 @@ void main() {
 #endif
 
 #if defined(GBUFFER)
+  // outDiffuse.rgb = vec3(1);
   outDiffuse.rgb = t.rgb;
   outDiffuse.a   = isFlat() ? 1 : 0;
   outNormal      = vec4(shInp.normal*0.5 + vec3(0.5),1.0);

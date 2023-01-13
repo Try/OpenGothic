@@ -11,8 +11,8 @@
 #extension GL_EXT_ray_flags_primitive_culling : enable
 #endif
 
-#include "lighting/tonemapping.glsl"
-#include "common.glsl"
+#include "../lighting/tonemapping.glsl"
+#include "../common.glsl"
 
 layout(early_fragment_tests) in;
 

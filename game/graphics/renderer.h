@@ -74,12 +74,14 @@ class Renderer final {
     } shadow;
 
     struct SSAO {
-      Tempest::TextureFormat   aoFormat = Tempest::TextureFormat::R8;
-      Tempest::Attachment      ssaoBuf;
-      Tempest::Attachment      blurBuf;
-      Tempest::RenderPipeline* ssaoPso = nullptr;
-      Tempest::RenderPipeline* ssaoComposePso = nullptr;
-      Tempest::DescriptorSet   uboSsao, uboBlur[2], uboCompose;
+      Tempest::TextureFormat    aoFormat = Tempest::TextureFormat::R8;
+      Tempest::StorageImage     ssaoBuf;
+
+      Tempest::ComputePipeline* ssaoPso = nullptr;
+      Tempest::DescriptorSet    uboSsao;
+
+      Tempest::RenderPipeline*  ssaoComposePso = nullptr;
+      Tempest::DescriptorSet    uboCompose;
     } ssao;
 
     struct Tonemapping {

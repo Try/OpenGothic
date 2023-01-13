@@ -75,12 +75,15 @@ Shaders::Shaders() {
   shadowAt.load(device,"shadow_at",false,meshlets);
 
   copy               = postEffect("copy");
-  ssao               = postEffect("ssao");
+
+  ssao               = computeShader("ssao.comp.sprv");
   ssaoCompose        = postEffect("ssao_compose");
-  bilateralBlur      = postEffect("bilateral");
+  if(Gothic::inst().doRayQuery())
+    ssaoRq = computeShader("ssao_rq.comp.sprv");
+
   shadowResolve      = postEffect("shadow_resolve");
   shadowResolveSh    = postEffect("shadow_resolve", "shadow_resolve_sh");
-  if(Resources::device().properties().bindless.nonUniformIndexing)
+  if(Gothic::inst().doRayQuery() && Resources::device().properties().bindless.nonUniformIndexing)
     shadowResolveRq = postEffect("shadow_resolve", "shadow_resolve_rq");
 
   cloudsLut          = computeShader("clouds_lut.comp.sprv");
@@ -95,10 +98,6 @@ Shaders::Shaders() {
   fog                = fogShader ("fog");
   sky3d              = postEffect("sky3d");
   fog3d              = fogShader ("fog3d");
-
-  if(Gothic::inst().doRayQuery()) {
-    ssaoRq = postEffect("ssao", "ssao_rq");
-    }
 
   {
   RenderState state;

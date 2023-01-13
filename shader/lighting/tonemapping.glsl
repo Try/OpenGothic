@@ -36,7 +36,11 @@ vec3 acesTonemapInv(vec3 x) {
   }
 
 vec3 textureLinear(vec3 rgb) {
+#if defined(EMISSIVE)
+  vec3 linear = (srgbDecode(rgb)*1.0); // emissive objects, spells
+#else
   vec3 linear = (srgbDecode(rgb)*0.78);
+#endif
   return acesTonemapInv(linear);
   }
 

@@ -6,30 +6,56 @@
 #extension GL_EXT_ray_query : enable
 #endif
 
-#include "common.glsl"
+#include "../common.glsl"
+
+layout(local_size_x = 8, local_size_y = 8) in;
 
 layout(push_constant, std140) uniform PushConstant {
   mat4 mvp;
-  } ubo;
+  mat4 mvpInv;
+  };
 
-layout(binding  = 0) uniform sampler2D lightingBuf;
-layout(binding  = 1) uniform sampler2D diffuse;
-layout(binding  = 2) uniform sampler2D normals;
-layout(binding  = 3) uniform sampler2D depth;
+layout(binding  = 0) uniform writeonly image2D result;
+
+layout(binding  = 1) uniform sampler2D lightingBuf;
+layout(binding  = 2) uniform sampler2D diffuse;
+layout(binding  = 3) uniform sampler2D normals;
+layout(binding  = 4) uniform sampler2D depthBuf;
 
 #if defined(RAY_QUERY)
 layout(binding  = 5) uniform accelerationStructureEXT topLevelAS;
 #endif
 
-
-layout(location = 0) in  vec2 uv;
-layout(location = 1) in  vec2 inPos;
-layout(location = 2) in  mat4 mvpInv;
-
-layout(location = 0) out vec4 outColor;
-
-const uint  numSamples = 16*4;
+const uint  numSamples = 32;
 const float sphereLen  = 100;
+
+ivec2 fragCoord;
+ivec2 screenSize;
+mat3  tangent;
+
+shared uint vMin, vMax, vDiff;
+
+bool isSolved(float occlusion, float dx) {
+  vMin  = 256;
+  vMax  = 0;
+  vDiff = 0;
+  barrier();
+
+  if(occlusion>=0) {
+    uint v = uint(occlusion*255+0.5);
+    uint d = uint(dx       *255+0.5);
+
+    atomicMin(vMin,  v);
+    atomicMax(vMax,  v);
+    atomicMax(vDiff, d);
+    }
+  memoryBarrierShared();
+  barrier();
+
+  uint diff = vMax - vMin;
+
+  return (diff<4) || (vDiff<4);
+  }
 
 uint hash(uint x) {
   x += ( x << 10u );
@@ -76,12 +102,12 @@ vec3 inverse(vec3 pos) {
   }
 
 vec3 project(vec3 pos) {
-  vec4 ret = ubo.mvp*vec4(pos,1.0);
+  vec4 ret = mvp*vec4(pos,1.0);
   return (ret.xyz/ret.w);
   }
 
-float readZ(vec2 pos) {
-  return textureLod(depth, pos.xy*0.5+vec2(0.5), 0).r;
+float readZ(in vec2 posf) {
+  return textureLod(depthBuf, posf.xy*0.5+vec2(0.5), 0).r;
   }
 
 float sampleRadius(uint i, uint maxSmp) {
@@ -112,27 +138,10 @@ bool rayTest(vec3 pos0, vec3 dp, float tMin, inout float len) {
   }
 #endif
 
-float calcOcclussion() {
-  vec3 norm = normalize(textureLod(normals,uv,0).xyz*2.0-vec3(1.0));
-  // Compute a tangent frame and rotate the half vector to world space
-  vec3 up   = abs(norm.z) < 0.999f ? vec3(0.0f, 0.0f, 1.0f) : vec3(1.0f, 0.0f, 0.0f);
-  mat3 tangent;
-  tangent[0] = normalize(cross(up, norm));
-  tangent[1] = cross(norm, tangent[0]);
-  tangent[2] = norm;
+vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, uint step) {
+  float occlusion = 0, weightAll = 0;
 
-  const vec3 at0  = vec3(inPos.xy,readZ(inPos.xy));
-  const vec3 pos0 = inverse(at0);
-
-  if(at0.z>=0.998)
-    return 0; // sky
-
-  uvec2 fragCoord = uvec2(gl_FragCoord);
-  uint  h0        = hash(fragCoord);
-  float f0        = M_PI*2.0*floatConstruct(h0);
-
-  float occlusion = 0, weightAll = 0.0001;
-  for(uint i=0; i<numSamples; ++i) {
+  for(uint i=seed; i<numSamples; i+=step) {
     float r      = sampleRadius(i,numSamples);
     vec3  h      = sampleHemisphere(i,numSamples,f0);
 
@@ -168,14 +177,64 @@ float calcOcclussion() {
     weightAll += distW;
     }
 
-  occlusion /= weightAll;
-  return occlusion*(M_PI*0.25);
+  return vec2(occlusion,weightAll);
   }
 
 void main() {
-  vec3 clr  = textureLod(diffuse,uv,0).rgb;
-  vec4 lbuf = textureLod(lightingBuf,uv,0);
+  screenSize = ivec2(textureSize(depthBuf,0));
+  fragCoord  = ivec2(gl_GlobalInvocationID.xy);
 
-  float occ = calcOcclussion();
-  outColor  = vec4(occ);
+  const bool valid = all(lessThan(fragCoord, screenSize));
+
+  if(valid) {
+    vec3 norm = normalize(texelFetch(normals,fragCoord,0).xyz*2.0-vec3(1.0));
+    // Compute a tangent frame and rotate the half vector to world space
+    vec3 up   = abs(norm.z) < 0.999f ? vec3(0.0f, 0.0f, 1.0f) : vec3(1.0f, 0.0f, 0.0f);
+    tangent[0] = normalize(cross(up, norm));
+    tangent[1] = cross(norm, tangent[0]);
+    tangent[2] = norm;
+    }
+
+  float occlusion = -1, prev= -1;
+  vec2  occ       = vec2(0,0.0001);
+
+  const vec2  inPos = vec2(2*fragCoord+ivec2(1,1))/vec2(screenSize)-vec2(1,1);
+  const vec3  at0   = vec3(inPos.xy,readZ(inPos.xy));
+  const vec3  pos0  = inverse(at0);
+  const uint  h0    = hash(fragCoord);
+  const float f0    = M_PI*2.0*floatConstruct(h0);
+
+  int  maxSteps = 8;
+  bool eval     = true;
+
+  // TODO: linear depth
+  {
+    if(at0.z>=0.999)
+      eval = false; // sky
+    if(at0.z>=0.996)
+      maxSteps = 4; // far distance
+    if(at0.z<=0.970)
+      maxSteps = 4; // too close distance
+  }
+
+  int dbg = 0;
+  for(int i=0; i<8; ++i) {
+    if(valid && eval && i<maxSteps) {
+      dbg = i;
+      prev      = occlusion;
+      occ      += calcOcclussion(at0, pos0, f0, i, 8);
+      occlusion = (occ.x/occ.y)*(M_PI*0.25);
+      }
+    if(i==0)
+      continue;
+
+    if(isSolved(occlusion, abs(occlusion-prev))) {
+      // NOTE: 'break' here cause device-lost on Intel O_o
+      eval = false;
+      }
+    }
+
+  if(valid)
+    imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(occlusion));
+  // imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(float(dbg+1)/255.0));
   }

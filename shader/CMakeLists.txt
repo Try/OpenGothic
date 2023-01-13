@@ -91,7 +91,7 @@ function(add_uber_shader OUTPUT)
   add_shader(${OUTPUT}_emi.vert              materials/main.vert ${VARS})
   add_shader(${OUTPUT}_emi.32.mesh           materials/main.mesh ${VARS} -DWG_SIZE=32)
   add_shader(${OUTPUT}_emi.64.mesh           materials/main.mesh ${VARS} -DWG_SIZE=64)
-  add_shader(${OUTPUT}_emi.frag              materials/main.frag ${VARS})
+  add_shader(${OUTPUT}_emi.frag              materials/main.frag ${VARS} -DEMISSIVE)
 
   add_shader(${OUTPUT}_gbuffer.vert          materials/main.vert ${VARS} -DGBUFFER)
   add_shader(${OUTPUT}_gbuffer.32.mesh       materials/main.mesh ${VARS} -DGBUFFER)
@@ -136,10 +136,10 @@ add_shader(shadow_resolve.frag       shadow_resolve.frag "")
 add_shader(shadow_resolve_sh.frag    shadow_resolve.frag -DSHADOW_MAP)
 add_shader(shadow_resolve_rq.frag    shadow_resolve.frag -DSHADOW_MAP -DRAY_QUERY -DRAY_QUERY_AT)
 
-add_shader(light.vert                light.vert "")
-add_shader(light.frag                light.frag "")
-add_shader(light_rq.frag             light.frag -DRAY_QUERY)
-add_shader(light_rq_at.frag          light.frag -DRAY_QUERY -DRAY_QUERY_AT)
+add_shader(light.vert                lighting/light.vert "")
+add_shader(light.frag                lighting/light.frag "")
+add_shader(light_rq.frag             lighting/light.frag -DRAY_QUERY)
+add_shader(light_rq_at.frag          lighting/light.frag -DRAY_QUERY -DRAY_QUERY_AT)
 
 # Based on Scalable and Production Ready Sky and Atmosphere
 # https://sebh.github.io/publications/egsr2020.pdf
@@ -171,19 +171,15 @@ add_shader(sky.frag                  sky/sky_egsr.frag    "")
 add_shader(copy.vert                 copy.vert "")
 add_shader(copy.frag                 copy.frag "")
 
-add_shader(ssao.vert                 ssao.vert "")
-add_shader(ssao.frag                 ssao.frag "")
-add_shader(ssao_rq.frag              ssao.frag -DRAY_QUERY)
-
-add_shader(bilateral.vert            copy.vert "")
-add_shader(bilateral.frag            bilateral.frag "")
+add_shader(ssao.comp                 ssao/ssao.comp "")
+add_shader(ssao_rq.comp              ssao/ssao.comp -DRAY_QUERY)
 
 add_shader(tonemapping.vert          copy.vert "")
 add_shader(tonemapping.frag          tonemapping.frag "")
 
 add_shader(ssao_compose.vert         copy.vert "")
-add_shader(ssao_compose.frag         ssao_compose.frag "")
-add_shader(ssao_compose_rq.frag      ssao_compose.frag -DRAY_QUERY)
+add_shader(ssao_compose.frag         ssao/ssao_compose.frag "")
+add_shader(ssao_compose_rq.frag      ssao/ssao_compose.frag -DRAY_QUERY)
 
 add_shader(hiZPot.comp    hiZPot.comp    "")
 add_shader(hiZMip.comp    hiZMip.comp    "")

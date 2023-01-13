@@ -81,9 +81,6 @@ void Renderer::resetSwapchain() {
   auto smpN = Sampler::nearest();
   smpN.setClamping(ClampMode::ClampToEdge);
 
-  auto smpB = Sampler::bilinear();
-  smpB.setClamping(ClampMode::ClampToEdge);
-
   zbuffer        = device.zbuffer(zBufferFormat,w,h);
   zbufferItem    = device.zbuffer(zBufferFormat,w,h);
 
@@ -150,36 +147,29 @@ void Renderer::resetSwapchain() {
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
     shadow.ubo[i] = device.descriptors(*shadow.composePso);
 
-  ssao.ssaoBuf = device.attachment(ssao.aoFormat, (swapchain.w()+1)/2,(swapchain.h()+1)/2);
-  ssao.blurBuf = device.attachment(ssao.aoFormat, (swapchain.w()+1)/2,(swapchain.h()+1)/2);
-
+  //ssao.ssaoBuf = device.attachment(ssao.aoFormat, swapchain.w(),swapchain.h());
+  ssao.ssaoBuf = device.image2d(ssao.aoFormat, swapchain.w(),swapchain.h());
   if(Gothic::inst().doRayQuery() && false) {
     // disabled
-    ssao.ssaoPso        = &Shaders::inst().ssaoRq;
+    //ssao.ssaoPso        = &Shaders::inst().ssaoRq;
     ssao.ssaoComposePso = &Shaders::inst().ssaoCompose;
     } else {
     ssao.ssaoPso        = &Shaders::inst().ssao;
     ssao.ssaoComposePso = &Shaders::inst().ssaoCompose;
     }
   ssao.uboSsao = device.descriptors(*ssao.ssaoPso);
-  ssao.uboSsao.set(0, sceneOpaque, smpN);
-  ssao.uboSsao.set(1, gbufDiffuse, smpN);
-  ssao.uboSsao.set(2, gbufNormal,  smpN);
-  ssao.uboSsao.set(3, zbuffer,     smpB);
+  ssao.uboSsao.set(0, ssao.ssaoBuf);
+  ssao.uboSsao.set(1, sceneOpaque, smpN);
+  ssao.uboSsao.set(2, gbufDiffuse, smpN);
+  ssao.uboSsao.set(3, gbufNormal,  smpN);
+  ssao.uboSsao.set(4, zbuffer,     smpN);
 
   ssao.uboCompose = device.descriptors(*ssao.ssaoComposePso);
-  ssao.uboCompose.set(0, sceneOpaque,  smpB);
-  ssao.uboCompose.set(1, gbufDiffuse,  smpB);
-  ssao.uboCompose.set(2, ssao.ssaoBuf, smpB);
-  ssao.uboCompose.set(3, zbuffer,      smpB);
-
-  ssao.uboBlur[0] = device.descriptors(Shaders::inst().bilateralBlur);
-  ssao.uboBlur[0].set(0, ssao.ssaoBuf,smpN);
-  ssao.uboBlur[0].set(1, zbuffer,     smpB);
-
-  ssao.uboBlur[1] = device.descriptors(Shaders::inst().bilateralBlur);
-  ssao.uboBlur[1].set(0, ssao.blurBuf,smpN);
-  ssao.uboBlur[1].set(1, zbuffer,     smpB);
+  ssao.uboCompose.set(0, sceneOpaque,  smpN);
+  ssao.uboCompose.set(1, gbufDiffuse,  smpN);
+  ssao.uboCompose.set(2, gbufNormal,   smpN);
+  ssao.uboCompose.set(3, zbuffer,      smpN);
+  ssao.uboCompose.set(4, ssao.ssaoBuf, smpN);
 
   tonemapping.pso     = &Shaders::inst().tonemapping;
   tonemapping.uboTone = device.descriptors(*tonemapping.pso);
@@ -259,7 +249,7 @@ void Renderer::setupTlas(const Tempest::AccelerationStructure* tlas) {
   if(scene.tlas==nullptr)
     return;
 
-  if(ssao.ssaoPso==&Shaders::inst().ssaoRq) {
+  if(false /*ssao.ssaoPso==&Shaders::inst().ssaoRq*/) {
     ssao.uboSsao.set(5,wview->landscapeTlas());
     }
 
@@ -349,12 +339,11 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   drawGBuffer      (cmd,fId,*wview);
   drawShadowMap    (cmd,fId,*wview);
   drawShadowResolve(sceneOpaque,cmd,fId,*wview);
-
   stashDepthAux(cmd,fId);
-  drawSSAO(sceneLinear,cmd,*wview);
 
   wview->prepareFog(cmd,fId);
 
+  drawSSAO(sceneLinear,cmd,*wview);
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
   wview->drawLights     (cmd,fId);
   wview->drawWater      (cmd,fId);
@@ -462,45 +451,31 @@ void Renderer::drawSSAO(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd
   // ssao
   struct PushSsao {
     Matrix4x4 mvp;
+    Matrix4x4 mvpInv;
   } push;
-  push.mvp = viewProj;
+  push.mvp    = viewProj;
+  push.mvpInv = viewProj;
+  push.mvpInv.inverse();
 
-  cmd.setFramebuffer({{ssao.ssaoBuf, Tempest::Discard, Tempest::Preserve}});
-  cmd.setUniforms(*ssao.ssaoPso,ssao.uboSsao,&push,sizeof(push));
-  cmd.draw(Resources::fsqVbo());
+  //cmd.setFramebuffer({{ssao.ssaoBuf, Tempest::Discard, Tempest::Preserve}});
+  //cmd.setUniforms(*ssao.ssaoPso,ssao.uboSsao,&push,sizeof(push));
+  //cmd.draw(Resources::fsqVbo());
+  cmd.setFramebuffer({});
+  cmd.setUniforms(*ssao.ssaoPso, ssao.uboSsao, &push, sizeof(push));
+  cmd.dispatchThreads(size_t(result.w()), size_t(result.h()));
   }
-
-  for(int i=0; i<2; ++i) {
-    struct PushSsao {
-      Vec3  clipInfo;
-      float sharpness;
-      Vec2  invResolutionDirection;
-    } push;
-    push.clipInfo               = clipInfo;
-    push.sharpness              = 1.f;
-    push.invResolutionDirection = Vec2(1.f/float(ssao.ssaoBuf.w()), 1.f/float(ssao.ssaoBuf.h()));
-    if(i==0)
-      push.invResolutionDirection.y = 0; else
-      push.invResolutionDirection.x = 0;
-
-    if(i==0)
-      cmd.setFramebuffer({{ssao.blurBuf, Tempest::Discard, Tempest::Preserve}}); else
-      cmd.setFramebuffer({{ssao.ssaoBuf, Tempest::Discard, Tempest::Preserve}});
-    cmd.setUniforms(Shaders::inst().bilateralBlur,ssao.uboBlur[i],&push,sizeof(push));
-    cmd.draw(Resources::fsqVbo());
-    }
 
   {
   struct PushSsao {
-    Matrix4x4 mvpInv;
     Vec3      ambient;
     float     padd0 = 0;
     Vec3      ldir;
+    float     padd1 = 0;
+    Vec3      clipInfo;
   } push;
-  push.mvpInv  = viewProj;
-  push.mvpInv.inverse();
-  push.ambient = view.ambientLight();
-  push.ldir    = view.mainLight().dir();
+  push.ambient  = view.ambientLight();
+  push.ldir     = view.mainLight().dir();
+  push.clipInfo = clipInfo;
 
   cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
   cmd.setUniforms(*ssao.ssaoComposePso,ssao.uboCompose,&push,sizeof(push));
@@ -526,8 +501,35 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   device.submit(cmd,sync);
   sync.wait();
 
-  //auto pm  = device.readPixels(textureCast(zbuffer));
-  //pm.save("dbg.hdr");
+  auto d16     = device.attachment(TextureFormat::R16,    swapchain.w(),swapchain.h());
+  auto normals = device.attachment(TextureFormat::RGBA16, swapchain.w(),swapchain.h());
+
+  auto ubo = device.descriptors(Shaders::inst().copy);
+  ubo.set(0,gbufNormal,Sampler::nearest());
+  {
+  auto enc = cmd.startEncoding(device);
+  enc.setFramebuffer({{normals,Tempest::Discard,Tempest::Preserve}});
+  enc.setUniforms(Shaders::inst().copy,ubo);
+  enc.draw(Resources::fsqVbo());
+  }
+  device.submit(cmd,sync);
+  sync.wait();
+
+  ubo.set(0,zbuffer,Sampler::nearest());
+  {
+  auto enc = cmd.startEncoding(device);
+  enc.setFramebuffer({{d16,Tempest::Discard,Tempest::Preserve}});
+  enc.setUniforms(Shaders::inst().copy,ubo);
+  enc.draw(Resources::fsqVbo());
+  }
+  device.submit(cmd,sync);
+  sync.wait();
+
+  auto pm  = device.readPixels(textureCast(normals));
+  pm.save("gbufNormal.png");
+
+  pm  = device.readPixels(textureCast(d16));
+  pm.save("zbuffer.hdr");
 
   return img;
   }
