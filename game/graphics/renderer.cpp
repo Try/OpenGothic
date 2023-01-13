@@ -500,7 +500,9 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   Fence sync = device.fence();
   device.submit(cmd,sync);
   sync.wait();
+  return img;
 
+  // debug
   auto d16     = device.attachment(TextureFormat::R16,    swapchain.w(),swapchain.h());
   auto normals = device.attachment(TextureFormat::RGBA16, swapchain.w(),swapchain.h());
 
