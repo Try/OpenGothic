@@ -275,7 +275,7 @@ void MainWindow::mouseMoveEvent(MouseEvent &event) {
 
 void MainWindow::processMouse(MouseEvent& event, bool enable) {
   auto center = Point(w()/2,h()/2);
-  if(enable && event.pos()!=center) {
+  if(enable && event.pos()!=center && hasFocus()) {
     dMouse += (event.pos()-center);
     setCursorPosition(center);
     }
@@ -481,6 +481,14 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
     clearInput();
     }
   player.onKeyReleased(act);
+  }
+
+void MainWindow::focusEvent(FocusEvent &event) {
+  if(!event.in)
+    return;
+  dMouse = Point();
+  auto center = Point(w()/2,h()/2);
+  setCursorPosition(center);
   }
 
 void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp) {
