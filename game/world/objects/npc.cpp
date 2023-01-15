@@ -1751,7 +1751,8 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
         visual.setAnimRotate(*this,0);
         visual.interrupt();
         }
-      setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB);
+      if(bodyStateMasked()!=BS_CASTING)
+        setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB);
       }
     }
 
@@ -2635,7 +2636,7 @@ void Npc::commitSpell() {
     b.setDamage(dmg);
     b.setHitChance(1.f);
     b.setOrigin(this);
-    b.setTarget((currentTarget==nullptr) ? this : currentTarget);
+    b.setTarget(currentTarget);
     visual.setMagicWeaponKey(owner,SpellFxKey::Init);
     } else {
     // NOTE: use pfx_ppsIsLoopingChg ?

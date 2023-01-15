@@ -177,10 +177,12 @@ void Effect::syncAttachesSingle(const Matrix4x4& inPos) {
   auto p = inPos;
   if((emTrjMode&VisualFx::Trajectory::Target) && target!=nullptr) {
     p = target->transform();
-    } else {
-    if(pose!=nullptr && boneId<pose->boneCount())
-      p = pose->bone(boneId); else
-      p = inPos;
+    }
+  else if(pose!=nullptr && boneId<pose->boneCount()) {
+    p = pose->bone(boneId);
+    }
+  else {
+    p = inPos;
     }
 
   if(selfRotation!=Vec3() && false) {

@@ -181,6 +181,7 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
       if(tr==nullptr && i.seq->shortName!=nullptr && sq->isIdle()) {
         string_frm tansition("T_",i.seq->shortName,"_2_STAND");
         tr = solver.solveFrm(tansition);
+        bs = i.bs;
         }
       onRemoveLayer(i);
       i.seq   = tr ? tr : sq;
