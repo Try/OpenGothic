@@ -102,7 +102,7 @@ class PlayerControl final {
     void           marvinF8(uint64_t dt);
     void           marvinK(uint64_t dt);
     void           marvinO();
-    void           toogleWalkMode();
+    void           toggleWalkMode();
     void           toggleSneakMode();
     void           moveFocus(FocusAction act);
     Focus          findFocus(Focus *prev);

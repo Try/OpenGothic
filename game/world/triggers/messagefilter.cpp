@@ -42,7 +42,7 @@ void MessageFilter::exec(phoenix::message_filter_action eval) {
       break;
       }
     case phoenix::message_filter_action::toggle:{
-      TriggerEvent e(target,vobName,TriggerEvent::T_ToogleEnable);
+      TriggerEvent e(target,vobName,TriggerEvent::T_ToggleEnable);
       world.execTriggerEvent(e);
       break;
       }

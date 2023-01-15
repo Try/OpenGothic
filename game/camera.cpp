@@ -120,11 +120,11 @@ void Camera::setMode(Camera::Mode m) {
     dst.spin.y = pl->rotation();
   }
 
-void Camera::setToogleEnable(bool e) {
+void Camera::setToggleEnable(bool e) {
   tgEnable = e;
   }
 
-bool Camera::isToogleEnabled() const {
+bool Camera::isToggleEnabled() const {
   return tgEnable;
   }
 
@@ -143,7 +143,7 @@ void Camera::setLookBack(bool lb) {
   resetDst();
   }
 
-void Camera::toogleDebug() {
+void Camera::toggleDebug() {
   dbg = !dbg;
   }
 

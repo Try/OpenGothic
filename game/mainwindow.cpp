@@ -824,7 +824,7 @@ void MainWindow::tickCamera(uint64_t dt) {
 
   if(dt==0)
     return;
-  if(camera.isToogleEnabled())
+  if(camera.isToggleEnabled())
     camera.setMode(solveCameraMode());
   camera.tick(dt);
   renderer.setCameraView(camera);

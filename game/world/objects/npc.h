@@ -141,7 +141,7 @@ class Npc final {
     void       delOverlay   (std::string_view sk);
     void       delOverlay   (const Skeleton*  sk);
 
-    bool       toogleTorch();
+    bool       toggleTorch();
     void       setTorch(bool use);
     bool       isUsingTorch() const;
 

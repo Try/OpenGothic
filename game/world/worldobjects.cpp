@@ -767,7 +767,7 @@ void WorldObjects::marchInteractives(DbgPainter &p) const {
     }
   }
 
-Interactive *WorldObjects::aviableMob(const Npc &pl, std::string_view dest) {
+Interactive *WorldObjects::availableMob(const Npc &pl, std::string_view dest) {
   const float  dist=100*10.f;
   Interactive* ret =nullptr;
 

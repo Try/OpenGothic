@@ -765,7 +765,7 @@ void Npc::delOverlay(const Skeleton *sk) {
   visual.delOverlay(sk);
   }
 
-bool Npc::toogleTorch() {
+bool Npc::toggleTorch() {
   if(isUsingTorch()) {
     visual.setTorch(false,owner);
     delOverlay(humansTorchOverlay);
@@ -2166,7 +2166,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         queue.pushFront(std::move(act));
         break;
         }*/
-      auto inter = owner.aviableMob(*this,act.s0);
+      auto inter = owner.availableMob(*this,act.s0);
       if(inter==nullptr) {
         queue.pushFront(std::move(act));
         break;
@@ -2825,7 +2825,7 @@ Item* Npc::takeItem(Item& item) {
 
   std::unique_ptr<Item> ptr = owner.takeItem(item);
   if(ptr!=nullptr && ptr->isTorchBurn()) {
-   if(!toogleTorch())
+   if(!toggleTorch())
      return nullptr;
     size_t torchId = owner.script().getSymbolIndex("ItLsTorch");
     if(torchId!=size_t(-1))

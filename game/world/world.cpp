@@ -446,8 +446,8 @@ bool World::testFocusNpc(Npc* def) {
   return wobj.testFocusNpc(*npcPlayer,def,optNpc);
   }
 
-Interactive *World::aviableMob(const Npc &pl, std::string_view name) {
-  return wobj.aviableMob(pl,name);
+Interactive *World::availableMob(const Npc &pl, std::string_view name) {
+  return wobj.availableMob(pl,name);
   }
 
 Interactive* World::findInteractive(const Npc& pl) {

@@ -50,17 +50,17 @@ Marvin::Marvin() {
     {"play ani %s",                C_Invalid},
     {"play faceani %s",            C_Invalid},
     {"remove overlaymds %s",       C_Invalid},
-    {"toogle aniinfo",             C_Invalid},
+    {"toggle aniinfo",             C_Invalid},
     {"zoverlaymds apply",          C_Invalid},
     {"zoverlaymds remove",         C_Invalid},
     {"zstartani %s %s",            C_Invalid},
-    {"ztoogle modelskeleton",      C_Invalid},
-    {"ztoogle rootsmoothnode",     C_Invalid},
-    {"ztoogle vobmorph",           C_Invalid},
+    {"ztoggle modelskeleton",      C_Invalid},
+    {"ztoggle rootsmoothnode",     C_Invalid},
+    {"ztoggle vobmorph",           C_Invalid},
 
     // rendering
     {"set clipfactor %d",          C_Invalid},
-    {"toogle frame",               C_ToogleFrame},
+    {"toggle frame",               C_ToggleFrame},
     {"zfogzone",                   C_Invalid},
     {"zhighqualityrender",         C_Invalid},
     {"zmark",                      C_Invalid},
@@ -72,18 +72,18 @@ Marvin::Marvin() {
     {"zset levelclipscaler %f",    C_Invalid},
     {"zset nearclipz %f",          C_Invalid},
     {"zset vobfarclipscaler %f",   C_Invalid},
-    {"ztoogle ambientvobs",        C_Invalid},
-    {"ztoogle flushambientcol",    C_Invalid},
-    {"ztoogle lightstat",          C_Invalid},
-    {"ztoogle markpmeshmaterials", C_Invalid},
-    {"ztoogle matmorph",           C_Invalid},
-    {"ztoogle renderorder",        C_Invalid},
-    {"ztoogle renderportals",      C_Invalid},
-    {"ztoogle rendervob",          C_Invalid},
-    {"ztoogle showportals",        C_Invalid},
-    {"ztoogle showtraceray",       C_Invalid},
-    {"ztoogle tnl",                C_Invalid},
-    {"ztoogle vobbox",             C_Invalid},
+    {"ztoggle ambientvobs",        C_Invalid},
+    {"ztoggle flushambientcol",    C_Invalid},
+    {"ztoggle lightstat",          C_Invalid},
+    {"ztoggle markpmeshmaterials", C_Invalid},
+    {"ztoggle matmorph",           C_Invalid},
+    {"ztoggle renderorder",        C_Invalid},
+    {"ztoggle renderportals",      C_Invalid},
+    {"ztoggle rendervob",          C_Invalid},
+    {"ztoggle showportals",        C_Invalid},
+    {"ztoggle showtraceray",       C_Invalid},
+    {"ztoggle tnl",                C_Invalid},
+    {"ztoggle vobbox",             C_Invalid},
     {"zvideores %d %d %d",         C_Invalid},
 
     // game
@@ -95,19 +95,19 @@ Marvin::Marvin() {
     {"set time %d %d",             C_SetTime},
     {"spawnmass %d",               C_Invalid},
     {"spawnmass giga %d",          C_Invalid},
-    {"toogle descktop",            C_Invalid},
-    {"toogle freepoints",          C_Invalid},
-    {"toogle screen",              C_Invalid},
-    {"toogle time",                C_Invalid},
-    {"toogle wayboxes",            C_Invalid},
-    {"toogle waynet",              C_Invalid},
+    {"toggle desktop",             C_Invalid},
+    {"toggle freepoints",          C_Invalid},
+    {"toggle screen",              C_Invalid},
+    {"toggle time",                C_Invalid},
+    {"toggle wayboxes",            C_Invalid},
+    {"toggle waynet",              C_Invalid},
     {"version",                    C_Invalid},
     {"zstartrain",                 C_Invalid},
     {"zstartsnow",                 C_Invalid},
     {"ztimer multiplyer",          C_Invalid},
     {"ztimer realtime",            C_Invalid},
-    {"ztoogle helpervisuals",      C_Invalid},
-    {"ztoogle showzones",          C_Invalid},
+    {"ztoggle helpervisuals",      C_Invalid},
+    {"ztoggle showzones",          C_Invalid},
     {"ztrigger %s",                C_Invalid},
     {"zuntrigger %s",              C_Invalid},
 
@@ -116,8 +116,8 @@ Marvin::Marvin() {
 
     {"camera autoswitch", C_CamAutoswitch},
     {"camera mode",       C_CamMode},
-    {"toogle camdebug",   C_ToogleCamDebug},
-    {"toogle camera",     C_ToogleCamera},
+    {"toggle camdebug",   C_ToggleCamDebug},
+    {"toggle camera",     C_ToggleCamera},
     {"insert %c",         C_Insert},
     };
   }
@@ -235,7 +235,7 @@ bool Marvin::exec(std::string_view v) {
         }
       return true;
       }
-    case C_ToogleFrame:{
+    case C_ToggleFrame:{
       Gothic::inst().setFRate(!Gothic::inst().doFrate());
       return true;
       }
@@ -243,13 +243,13 @@ bool Marvin::exec(std::string_view v) {
       return true;
     case C_CamMode:
       return true;
-    case C_ToogleCamDebug:
+    case C_ToggleCamDebug:
       if(auto c = Gothic::inst().camera())
-        c->toogleDebug();
+        c->toggleDebug();
       return true;
-    case C_ToogleCamera: {
+    case C_ToggleCamera: {
       if(auto c = Gothic::inst().camera())
-        c->setToogleEnable(!c->isToogleEnabled());
+        c->setToggleEnable(!c->isToggleEnabled());
       return true;
       }
     case C_Insert: {

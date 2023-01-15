@@ -87,7 +87,7 @@ void AbstractTrigger::processEvent(const TriggerEvent& evt) {
     case TriggerEvent::T_Disable:
       disabled = true;
       break;
-    case TriggerEvent::T_ToogleEnable:
+    case TriggerEvent::T_ToggleEnable:
       disabled = !disabled;
       break;
     case TriggerEvent::T_Activate: {
