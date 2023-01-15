@@ -109,7 +109,7 @@ VisualFx::VisualFx(const phoenix::c_fx_base& fx, phoenix::vm& vm, std::string_vi
   for(auto& c:emTrjOriginNode)
     c = char(std::toupper(c));
 
-  static const char* keyName[int(SpellFxKey::Count)] = {
+  static std::string_view keyName[int(SpellFxKey::Count)] = {
     "OPEN",
     "INIT",
     "CAST",
@@ -164,37 +164,36 @@ const VisualFx::Key* VisualFx::key(SpellFxKey type, int32_t keyLvl) const {
 
 VisualFx::Trajectory VisualFx::loadTrajectory(std::string_view str) {
   uint8_t bits = 0;
-  size_t  prev = 0;
-  auto    s    = str.data();
-  for(size_t i=0; i<str.size(); ++i) {
-    if(s[i]==' ' || s[i]=='\0') {
-      if(std::memcmp(s+prev,"NONE",i-prev)==0) {
-        bits |= 0; // no effect
-        }
-      else if(std::memcmp(s+prev,"TARGET",i-prev)==0) {
-        bits |= Trajectory::Target;
-        }
-      else if(std::memcmp(s+prev,"LINE",i-prev)==0) {
-        bits |= Trajectory::Line;
-        }
-      else if(std::memcmp(s+prev,"SPLINE",i-prev)==0) {
-        bits |= Trajectory::Spline;
-        }
-      else if(std::memcmp(s+prev,"RANDOM",i-prev)==0) {
-        bits |= Trajectory::Random;
-        }
-      else if(std::memcmp(s+prev,"FIXED",i-prev)==0) {
-        bits |= Trajectory::Fixed;
-        }
-      else if(std::memcmp(s+prev,"FOLLOW",i-prev)==0) {
-        bits |= Trajectory::Follow;
-        }
-      else {
-        if(i!=prev)
-          Log::d("unknown trajectory flag: \"",s+prev,"\"");
-        }
-      prev = i+1;
+  while(str.size()>0) {
+    auto sp   = str.find(' ');
+    auto word = str.substr(0,sp);
+    if(word=="NONE") {
+      bits |= 0; // no effect
       }
+    else if(word=="TARGET") {
+      bits |= Trajectory::Target;
+      }
+    else if(word=="LINE") {
+      bits |= Trajectory::Line;
+      }
+    else if(word=="SPLINE") {
+      bits |= Trajectory::Spline;
+      }
+    else if(word=="RANDOM") {
+      bits |= Trajectory::Random;
+      }
+    else if(word=="FIXED") {
+      bits |= Trajectory::Fixed;
+      }
+    else if(word=="FOLLOW") {
+      bits |= Trajectory::Follow;
+      }
+    else {
+      Log::d("unknown trajectory flag: \"",word,"\"");
+      }
+    if(sp==std::string_view::npos)
+      break;
+    str = str.substr(sp+1);
     }
   return Trajectory(bits);
   }

@@ -4,8 +4,6 @@
 #include <phoenix/vobs/light.hh>
 #include <memory>
 
-#include "graphics/dynamic/frustrum.h"
-#include "bounds.h"
 #include "lightsource.h"
 #include "resources.h"
 

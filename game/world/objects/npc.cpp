@@ -2638,6 +2638,7 @@ void Npc::commitSpell() {
     b.setTarget((currentTarget==nullptr) ? this : currentTarget);
     visual.setMagicWeaponKey(owner,SpellFxKey::Init);
     } else {
+    // NOTE: use pfx_ppsIsLoopingChg ?
     const VisualFx* vfx = owner.script().spellVfx(splId);
     if(vfx!=nullptr) {
       auto e = Effect(*vfx,owner,Vec3(x,y,z),SpellFxKey::Cast);

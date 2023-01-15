@@ -4,6 +4,7 @@
 #include <Tempest/Vec>
 #include <list>
 
+#include "graphics/dynamic/frustrum.h"
 #include "lightsource.h"
 #include "lightgroup.h"
 #include "bindless.h"

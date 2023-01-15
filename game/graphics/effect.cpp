@@ -43,7 +43,7 @@ void Effect::setupLight(World& owner) {
     }
 
   Vec3 pos3 = {pos.at(3,0),pos.at(3,1),pos.at(3,2)};
-  light = LightGroup::Light(owner,lightPresetName->c_str());
+  light = LightGroup::Light(owner,*lightPresetName);
   light.setPosition(pos3);
   if(key!=nullptr && key->lightRange>0)
     light.setRange(key->lightRange);
@@ -194,7 +194,6 @@ void Effect::syncAttachesSingle(const Matrix4x4& inPos) {
 
   p.set(3,1, p.at(3,1)+emTrjEaseVel);
   Vec3  pos3 = {p.at(3,0),p.at(3,1),p.at(3,2)};
-
   pfx  .setObjMatrix(p);
   light.setPosition(pos3);
   sfx  .setPosition(pos3);
@@ -260,9 +259,9 @@ uint64_t Effect::effectPrefferedTime() const {
 
   ret = std::max(ret, root==nullptr ? 0 : root->effectPrefferedTime());
   ret = std::max(ret, pfx  .effectPrefferedTime());
-  ret = std::max(ret, sfx  .effectPrefferedTime());
-  ret = std::max(ret, gfx  .effectPrefferedTime());
-  ret = std::max(ret, light.effectPrefferedTime());
+  // ret = std::max(ret, sfx  .effectPrefferedTime());
+  // ret = std::max(ret, gfx  .effectPrefferedTime());
+  // ret = std::max(ret, light.effectPrefferedTime());
   return ret;
   }
 
