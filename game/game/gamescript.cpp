@@ -1487,7 +1487,7 @@ bool GameScript::wld_ismobavailable(std::shared_ptr<phoenix::c_npc> self, std::s
     return false;
     }
 
-  auto wp = world().aviableMob(*getNpc(self.get()),name);
+  auto wp = world().availableMob(*getNpc(self.get()),name);
   return wp != nullptr;
   }
 

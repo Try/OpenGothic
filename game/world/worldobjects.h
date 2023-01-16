@@ -118,7 +118,7 @@ class WorldObjects final {
 
     void           marchInteractives(DbgPainter& p) const;
 
-    Interactive*   aviableMob(const Npc& pl, std::string_view name);
+    Interactive*   availableMob(const Npc& pl, std::string_view name);
     void           setMobRoutine(gtime time, std::string_view scheme, int32_t state);
 
     void           sendPassivePerc(Npc& self,Npc& other,Npc& victum,int32_t perc);

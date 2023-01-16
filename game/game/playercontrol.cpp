@@ -169,7 +169,7 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
     }
 
   if(a==Action::Walk) {
-    toogleWalkMode();
+    toggleWalkMode();
     return;
     }
 
@@ -369,7 +369,7 @@ void PlayerControl::moveFocus(FocusAction act) {
   currentFocus.npc = next;
   }
 
-void PlayerControl::toogleWalkMode() {
+void PlayerControl::toggleWalkMode() {
   auto w = Gothic::inst().world();
   if(w==nullptr || w->player()==nullptr)
     return;

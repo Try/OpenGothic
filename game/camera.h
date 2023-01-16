@@ -55,15 +55,15 @@ class Camera final {
     void moveRight();
 
     void setMode(Mode m);
-    void setToogleEnable(bool e);
-    bool isToogleEnabled() const;
+    void setToggleEnable(bool e);
+    bool isToggleEnabled() const;
 
     void setFirstPerson(bool fp);
     bool isFirstPerson() const;
 
     void setLookBack(bool lb);
 
-    void toogleDebug();
+    void toggleDebug();
 
     void tick(uint64_t dt);
     void debugDraw(DbgPainter& p);

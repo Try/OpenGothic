@@ -810,7 +810,7 @@ bool Inventory::use(size_t cls, Npc &owner, uint8_t slotHint, bool force) {
   if(flag & ITM_TORCH) {
     if(owner.weaponState()!=WeaponState::NoWeapon)
       return false;
-    if(owner.toogleTorch()) {
+    if(owner.toggleTorch()) {
       deleteLater = true;
       } else {
       return true;

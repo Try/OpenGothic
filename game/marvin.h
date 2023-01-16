@@ -24,14 +24,14 @@ class Marvin {
       C_PrintVar,
 
       // rendering
-      C_ToogleFrame,
+      C_ToggleFrame,
       // npc
       C_CheatFull,
       // camera
       C_CamAutoswitch,
       C_CamMode,
-      C_ToogleCamDebug,
-      C_ToogleCamera,
+      C_ToggleCamDebug,
+      C_ToggleCamera,
 
       C_SetTime,
 
