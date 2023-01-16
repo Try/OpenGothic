@@ -249,29 +249,22 @@ void main() {
   vec3 sunDir = push.sunDir;
 
 #if defined(FOG)
-  const float z = textureLod(depth,uv,0).r;
-  if(z>=1.0)
-    discard;
-#else
-  const float z = 1.0;
-#endif
+  const float z   = textureLod(depth,uv,0).r;
+  const vec4  val = fog(uv,z,push.sunDir);
 
-  vec4  val = fog(uv,z,push.sunDir);
   vec3  lum = val.rgb;
-
-#if !defined(FOG)
+  float tr  = val.a;
+#else
   // Sky
-  lum = lum + sky(uv, sunDir);
+  vec3  lum = sky(uv, sunDir);
+  float tr  = 1.0;
   // Clouds
   lum = applyClouds(lum, sunDir);
 #endif
 
   lum = lum * push.GSunIntensity;
-  // lum = vec3(val.a); //debug transmittance
-  outColor = vec4(lum, val.a);
-#if !defined(FOG)
-  outColor.a = 1.0;
-#endif
+  // lum = vec3(tr); //debug transmittance
+  outColor = vec4(lum, tr);
 
   // outColor = vec4(val.a*2.0);
   }

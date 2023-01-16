@@ -324,7 +324,6 @@ RenderPipeline Shaders::fogShader(std::string_view name) {
   state.setBlendSource  (RenderState::BlendMode::One);
   if(!fogDbg) {
     state.setBlendDest(RenderState::BlendMode::OneMinusSrcAlpha);
-    state.setZTestMode(RenderState::ZTestMode::Greater);
     }
 
   char buf[256] = {};
