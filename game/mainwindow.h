@@ -60,6 +60,8 @@ class MainWindow : public Tempest::Window {
     void keyRepeatEvent (Tempest::KeyEvent&   event) override;
     void keyUpEvent     (Tempest::KeyEvent&   event) override;
 
+    void focusEvent     (Tempest::FocusEvent&  event) override;
+
     void paintFocus     (Tempest::Painter& p, const Focus& fc, const Tempest::Matrix4x4& vp);
     void paintFocus     (Tempest::Painter& p, Tempest::Rect rect);
 
