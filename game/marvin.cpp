@@ -211,14 +211,16 @@ Marvin::CmdVal Marvin::recognize(std::string_view inp) {
   return suggestion;
   }
 
-void Marvin::autoComplete(std::string& v) {
+bool Marvin::autoComplete(std::string& v) {
   auto ret = recognize(v);
   if(ret.cmd.type==C_Incomplete && !ret.complete.empty()) {
     for(auto& i:ret.complete)
       v.push_back(i);
     if(ret.fullword)
       v.push_back(' ');
+    return true;
     }
+  return false;
   }
 
 bool Marvin::exec(std::string_view v) {

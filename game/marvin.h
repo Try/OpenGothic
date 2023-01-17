@@ -11,7 +11,7 @@ class Marvin {
 
     Tempest::Signal<void(std::string_view)> print;
 
-    void autoComplete(std::string& v);
+    bool autoComplete(std::string& v);
     bool exec(std::string_view v);
 
   private:

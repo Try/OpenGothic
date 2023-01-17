@@ -29,7 +29,9 @@ class ConsoleWidget : public Tempest::Widget {
     const Tempest::Texture2d* background = nullptr;
     Tempest::Shortcut         closeSk;
     std::vector<std::string>  log, cmdHist;
+    std::string               currCmd;
     size_t                    histPos = size_t(-1);
+    size_t                    cursPos = 0;
     Marvin                    marvin;
   };
 
