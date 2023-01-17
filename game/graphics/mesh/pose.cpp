@@ -161,8 +161,10 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
       const bool hasNext   = !i.seq->next.empty();
       const bool finished  = i.seq->isFinished(tickCount,i.sAnim,combo.len()) && !hasNext && (i.seq->animCls!=Animation::Loop);
       const bool interrupt = force || i.seq->canInterrupt(tickCount,i.sAnim,combo.len());
-      if(i.seq==sq && i.comb==comb && i.bs==bs && !finished)
+      if(i.seq==sq && i.comb==comb && !finished) {
+        i.bs = bs;
         return true;
+        }
       if(!interrupt && !finished)
         return false;
       if(i.bs==BS_ITEMINTERACT) {
@@ -703,9 +705,9 @@ const Animation::Sequence* Pose::continueCombo(const AnimationSolver &solver, co
     return nullptr;
     }
 
-  auto&    d  = *prev->seq->data;
-  uint64_t t  = tickCount-prev->sAnim;
-  size_t   id = combo.len()*2;
+  auto&    d     = *prev->seq->data;
+  uint64_t t     = tickCount-prev->sAnim;
+  size_t   id    = combo.len()*2;
 
   if(0==d.defWindow.size() || 0==d.defHitEnd.size()) {
     if(!startAnim(solver,sq,prev->comb,prev->bs,Pose::NoHint,tickCount))
@@ -726,8 +728,8 @@ const Animation::Sequence* Pose::continueCombo(const AnimationSolver &solver, co
     return nullptr;
     }
 
-  if(t<d.defWindow[id+0] || d.defWindow[id+1]<=t) {
-    if(prev->seq->name==sq->name && sq->data->defHitEnd.size()>1)
+  if(!(d.defWindow[id+0]<t && t<=d.defWindow[id+1])) {
+    if(prev->seq->name==sq->name && sq->data->defHitEnd.size()>0)
       combo.setBreak();
     return nullptr;
     }

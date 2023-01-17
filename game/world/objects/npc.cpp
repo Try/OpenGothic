@@ -1749,10 +1749,9 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
       const bool noInter = (hnpc->bodystate_interruptable_override!=0);
       if(!noInter) {
         visual.setAnimRotate(*this,0);
-        visual.interrupt();
+        visual.interrupt(); // TODO: put down in pipeline, at Pose and merge with setAnimAngGet
         }
-      if(bodyStateMasked()!=BS_CASTING)
-        setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB);
+      setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB);
       }
     }
 

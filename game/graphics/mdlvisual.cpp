@@ -614,8 +614,7 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     skInst->stopAllAnim();
     forceAnim = true;
     }
-  if(a==AnimationSolver::Anim::StumbleA || a==AnimationSolver::Anim::StumbleB ||
-     a==AnimationSolver::Anim::JumpHang) {
+  if(a==AnimationSolver::Anim::JumpHang) {
     forceAnim = true;
     }
 

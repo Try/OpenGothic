@@ -246,7 +246,7 @@ bool Animation::Sequence::canInterrupt(uint64_t now, uint64_t sTime, uint16_t co
 
 bool Animation::Sequence::isInComboWindow(uint64_t t, uint16_t comboLen) const {
   uint16_t id = uint16_t(comboLen*2u);
-  return (t<data->defWindow[id+0] || data->defWindow[id+1]<=t);
+  return (data->defWindow[id+0]<t && t<=data->defWindow[id+1]);
   }
 
 bool Animation::Sequence::isDefParWindow(uint64_t t) const {
