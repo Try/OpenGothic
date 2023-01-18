@@ -2635,7 +2635,7 @@ void Npc::commitSpell() {
     b.setDamage(dmg);
     b.setHitChance(1.f);
     b.setOrigin(this);
-    b.setTarget(currentTarget);
+    b.setTarget(nullptr);
     visual.setMagicWeaponKey(owner,SpellFxKey::Init);
     } else {
     // NOTE: use pfx_ppsIsLoopingChg ?

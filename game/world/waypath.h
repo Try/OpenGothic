@@ -14,6 +14,7 @@ class WayPath final {
 
     void add(const WayPoint& p){ dat.push_back(&p); }
     void clear();
+    void reverse();
 
     const WayPoint* pop();
     const WayPoint* last() const;

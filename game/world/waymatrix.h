@@ -7,6 +7,7 @@
 
 #include <vector>
 #include <functional>
+#include <span>
 
 #include "waypath.h"
 #include "waypoint.h"
@@ -18,7 +19,7 @@ class WayMatrix final {
   public:
     WayMatrix(World& owner,const phoenix::way_net& dat);
 
-    const WayPoint* findWayPoint (const Tempest::Vec3& at, const Tempest::Vec3& to, const std::function<bool(const WayPoint&)>& filter) const;
+    const WayPoint* findWayPoint (const Tempest::Vec3& at, const std::function<bool(const WayPoint&)>& filter) const;
     const WayPoint* findFreePoint(const Tempest::Vec3& at, std::string_view name, const std::function<bool(const WayPoint&)>& filter) const;
     const WayPoint* findNextPoint(const Tempest::Vec3& at) const;
 
@@ -32,7 +33,7 @@ class WayMatrix final {
     const WayPoint* findPoint(std::string_view name, bool inexact) const;
     void            marchPoints(DbgPainter& p) const;
 
-    WayPath         wayTo(const WayPoint &begin, const WayPoint& end) const;
+    WayPath         wayTo(std::span<const WayPoint*> begin, const Tempest::Vec3 exactBegin, const WayPoint& end) const;
 
   private:
     World&                 world;

@@ -778,11 +778,11 @@ const WayPoint *World::findPoint(std::string_view name, bool inexact) const {
   }
 
 const WayPoint* World::findWayPoint(const Tempest::Vec3& pos) const {
-  return wmatrix->findWayPoint(pos,pos,[](const WayPoint&){ return true; });
+  return wmatrix->findWayPoint(pos,[](const WayPoint&){ return true; });
   }
 
 const WayPoint* World::findWayPoint(const Tempest::Vec3& pos, const std::function<bool(const WayPoint&)>& f) const {
-  return wmatrix->findWayPoint(pos,pos,f);
+  return wmatrix->findWayPoint(pos,f);
   }
 
 const WayPoint *World::findFreePoint(const Npc &npc, std::string_view name) const {
@@ -847,22 +847,29 @@ void World::detectItem(const Tempest::Vec3& p, const float r, const std::functio
 
 WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
   auto p     = npc.position();
+
   auto begin = npc.currentWayPoint();
   if(begin && !begin->isFreePoint() && MoveAlgo::isClose(npc.position(),*begin)) {
-    return wmatrix->wayTo(*begin,end);
+    return wmatrix->wayTo(std::span(&begin, &begin+1),p,end);
     }
 
-  begin = wmatrix->findWayPoint(p,end.position(),[&npc](const WayPoint &wp) {
+  auto near = wmatrix->findWayPoint(p, [&npc](const WayPoint &wp) {
     if(!npc.canSeeNpc(wp.x,wp.y+10,wp.z,true))
       return false;
     return true;
     });
-  if(begin==nullptr)
-    return WayPath();
-  if(MoveAlgo::isClose(p,*begin) && begin==&end)
+  if(near==nullptr)
     return WayPath();
 
-  return wmatrix->wayTo(*begin,end);
+  if(MoveAlgo::isClose(p,*near) && near==&end)
+    return WayPath();
+
+  std::vector<const WayPoint*> wpoint;
+  wpoint.push_back(near);
+  for(auto& i:near->connections())
+    wpoint.push_back(i.point);
+
+  return wmatrix->wayTo(wpoint,p,end);
   }
 
 GameScript &World::script() const {

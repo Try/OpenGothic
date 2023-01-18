@@ -4,8 +4,6 @@
 #include <algorithm>
 #include <limits>
 
-#include "game/movealgo.h"
-#include "utils/gthfont.h"
 #include "utils/dbgpainter.h"
 #include "utils/versioninfo.h"
 #include "world.h"
@@ -66,7 +64,7 @@ void WayMatrix::buildIndex() {
     }
   }
 
-const WayPoint *WayMatrix::findWayPoint(const Vec3& at, const Vec3& to, const std::function<bool(const WayPoint&)>& filter) const {
+const WayPoint *WayMatrix::findWayPoint(const Vec3& at, const std::function<bool(const WayPoint&)>& filter) const {
   const WayPoint* ret =nullptr;
   float           dist=std::numeric_limits<float>::max();
   for(auto& w:wayPoints) {
@@ -75,13 +73,9 @@ const WayPoint *WayMatrix::findWayPoint(const Vec3& at, const Vec3& to, const st
     auto  dp0 = at-w.position();
     float l0  = dp0.quadLength();
 
-    auto  dp1 = to-w.position();
-    float l1  = dp1.quadLength();
-
-    float l = l0 + std::min<float>(l1,150*150);
-    if(l<dist){
+    if(l0<dist){
       ret  = &w;
-      dist = l;
+      dist = l0;
       }
     }
   return ret;
@@ -242,7 +236,10 @@ const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const FpInde
   return ret;
   }
 
-WayPath WayMatrix::wayTo(const WayPoint& begin, const WayPoint& end) const {
+WayPath WayMatrix::wayTo(std::span<const WayPoint*> begin, const Tempest::Vec3 exactBegin, const WayPoint& end) const {
+  if(begin.empty())
+    return WayPath();
+
   intptr_t endId = std::distance<const WayPoint*>(&wayPoints[0],&end);
   if(endId<0 || size_t(endId)>=wayPoints.size()){
     if(end.name.find("FP_")==0) {
@@ -259,17 +256,26 @@ WayPath WayMatrix::wayTo(const WayPoint& begin, const WayPoint& end) const {
     for(auto& i:wayPoints)
       i.pathGen=0;
     }
-  begin.pathLen = 0;
-  begin.pathGen = pathGen;
 
   std::vector<const WayPoint*> *front=&stk[0], *back=&stk[1];
   stk[0].clear();
   stk[1].clear();
 
-  front->push_back(&begin);
+  end.pathLen = 0;
+  end.pathGen = pathGen;
+  front->push_back(&end);
 
-  while(end.pathGen!=pathGen && front->size()>0){
-    for(auto& wp:*front){
+  while(front->size()>0) {
+    bool done = true;
+    for(auto i:begin)
+      if(i->pathGen!=pathGen) {
+        done = false;
+        break;
+        }
+    if(done)
+      break;
+
+    for(auto& wp:*front) {
       int32_t l0 = wp->pathLen;
 
       for(auto i:wp->connections()){
@@ -286,10 +292,18 @@ WayPath WayMatrix::wayTo(const WayPoint& begin, const WayPoint& end) const {
     back->clear();
     }
 
+  const WayPoint* first = begin[0];
+  for(auto i:begin) {
+    int32_t iLen = i->pathLen     + int((exactBegin-i->position()).length());
+    int32_t fLen = first->pathLen + int((exactBegin-first->position()).length());
+    if(iLen<fLen)
+      first = i;
+    }
+
   WayPath ret;
-  ret.add(end);
-  const WayPoint* current = &end;
-  while(current!=&begin) {
+  ret.add(*first);
+  const WayPoint* current = first;
+  while(current!=&end) {
     int32_t l0 = current->pathLen, l1=l0;
 
     const WayPoint* next=nullptr;
@@ -305,5 +319,6 @@ WayPath WayMatrix::wayTo(const WayPoint& begin, const WayPoint& end) const {
     current=next;
     }
 
+  ret.reverse();
   return ret;
   }
