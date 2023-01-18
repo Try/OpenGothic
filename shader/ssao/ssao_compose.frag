@@ -9,8 +9,8 @@
 #include "../lighting/tonemapping.glsl"
 #include "../common.glsl"
 
-const float KERNEL_RADIUS = 2;
-const float blurSharpness = 1.0;
+const int   KERNEL_RADIUS = 1;
+const float blurSharpness = 0.8;
 
 layout(push_constant, std140) uniform PushConstant {
   vec3 ambient;
