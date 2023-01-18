@@ -262,7 +262,7 @@ uint64_t Effect::effectPrefferedTime() const {
   ret = std::max(ret, root==nullptr ? 0 : root->effectPrefferedTime());
   ret = std::max(ret, pfx  .effectPrefferedTime());
   // ret = std::max(ret, sfx  .effectPrefferedTime());
-  // ret = std::max(ret, gfx  .effectPrefferedTime());
+  ret = std::max(ret, gfx  .effectPrefferedTime());
   // ret = std::max(ret, light.effectPrefferedTime());
   return ret;
   }
