@@ -111,14 +111,20 @@ Marvin::Marvin() {
     {"ztrigger %s",                C_Invalid},
     {"zuntrigger %s",              C_Invalid},
 
-    {"cheat full",        C_CheatFull},
+    {"cheat full",                 C_CheatFull},
+    {"cheat god",                  C_CheatGod},
+    {"kill",                       C_Kill},
+
+    {"aigoto %s",                  C_AiGoTo},
+    {"goto waypoint %s",           C_GoToWayPoint},
+    {"goto pos %f %f %f",          C_GoToPos},
 
 
-    {"camera autoswitch", C_CamAutoswitch},
-    {"camera mode",       C_CamMode},
-    {"toggle camdebug",   C_ToggleCamDebug},
-    {"toggle camera",     C_ToggleCamera},
-    {"insert %c",         C_Insert},
+    {"camera autoswitch",          C_CamAutoswitch},
+    {"camera mode",                C_CamMode},
+    {"toggle camdebug",            C_ToggleCamDebug},
+    {"toggle camera",              C_ToggleCamera},
+    {"insert %c",                  C_Insert},
     };
   }
 
@@ -235,6 +241,67 @@ bool Marvin::exec(std::string_view v) {
       if(auto pl = Gothic::inst().player()) {
         pl->changeAttribute(ATR_HITPOINTS,pl->attribute(ATR_HITPOINTSMAX),false);
         }
+      return true;
+      }
+    case C_CheatGod: {
+      Gothic::inst().setGodMode();
+      auto& fnt = Resources::font();
+      if(Gothic::inst().isGodMode())
+        Gothic::inst().onPrintScreen("Godmode on",2,4,1,fnt);
+      else
+        Gothic::inst().onPrintScreen("Godmode off",2,4,1,fnt);
+      return true;
+      }
+    case C_Kill: {
+      Npc* player = Gothic::inst().player();
+      if(player==nullptr || player->target()==nullptr)
+        return false;
+      auto target = player->target();
+      target->changeAttribute(ATR_HITPOINTS,-target->attribute(ATR_HITPOINTSMAX),false);
+      return true;
+      }
+    case C_AiGoTo: {
+      World* world  = Gothic::inst().world();
+      Npc*   player = Gothic::inst().player();
+      if(world==nullptr || player==nullptr || !player->setInteraction(nullptr))
+        return false;
+      auto wpoint = world->findPoint(ret.argv[0]);
+      if(wpoint==nullptr)
+        return false;
+      player->aiPush(AiQueue::aiGoToPoint(*wpoint));
+      return true;
+      }
+    case C_GoToPos: {
+      Npc* player = Gothic::inst().player();
+      if(player==nullptr || !player->setInteraction(nullptr))
+        return false;
+      float x,y,z;
+      try {
+        x = std::stof(ret.argv[0].data());
+        y = std::stof(ret.argv[1].data());
+        z = std::stof(ret.argv[2].data());
+        }
+      catch(...) {
+        return false;
+        }
+      player->setPosition(x,y,z);
+      player->setDirection(x,y,z);
+      player->updateTransform();
+      Gothic::inst().camera()->reset(player);
+      return true;
+      }
+    case C_GoToWayPoint: {
+      World* world  = Gothic::inst().world();
+      Npc*   player = Gothic::inst().player();
+      if(world==nullptr || player==nullptr || !player->setInteraction(nullptr))
+        return false;
+      auto wayPoint = world->findPoint(ret.argv[0]);
+      if(wayPoint==nullptr)
+        return false;
+      player->setPosition(wayPoint->x,wayPoint->y,wayPoint->z);
+      player->setDirection(wayPoint->x,wayPoint->y,wayPoint->z);
+      player->updateTransform();
+      Gothic::inst().camera()->reset(player);
       return true;
       }
     case C_ToggleFrame:{
