@@ -82,7 +82,6 @@ void ConsoleWidget::close() {
 
   ov->takeWidget(this);
   delete ov;
-  log.back().clear();
   }
 
 int ConsoleWidget::exec() {
@@ -116,7 +115,7 @@ void ConsoleWidget::paintEvent(PaintEvent& e) {
     fnt.drawText(p, margins().left, y, log[i]);
     y-=fnt.pixelSize();
     if(i+1==log.size()) {
-      int x = margins().left + fnt.textSize(log[i].substr(0,cursPos)).w;
+      int x = margins().left + fnt.textSize(log[i].data(),log[i].data()+cursPos).w;
       float a = float(Application::tickCount()%2000)/2000.f;
       p.setBrush(Color(1,1,1,a));
       p.drawRect(x,y,1,fnt.pixelSize());
@@ -181,14 +180,14 @@ void ConsoleWidget::keyDownEvent(KeyEvent& e) {
     }
 
   if(e.key==Event::K_Back) {
-    if(log.back().size()>0 && cursPos>0) {
+    if(0<cursPos && cursPos<=log.back().size()) {
       log.back().erase(--cursPos,1);
       }
     return;
     }
   if(e.key==Event::K_Delete) {
     if(log.back().size()>cursPos) {
-        log.back().erase(cursPos,1);
+      log.back().erase(cursPos,1);
       }
     return;
     }
