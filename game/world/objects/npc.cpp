@@ -3976,7 +3976,7 @@ bool Npc::canSeeItem(const Item& it, bool freeLos) const {
     auto pl = Vec3(head.x,itMid.y,head.z);
     r   = w->ray(pl,itMid);
     err = (pl-itMid)*(1.f-r.hitFraction);
-    if(!r.hasCol || err.length()<25.f)
+    if(!r.hasCol || err.length()<65.f)
       return true;
     }
   return false;

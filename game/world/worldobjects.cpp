@@ -906,11 +906,11 @@ static bool checkFlag(Interactive& i,WorldObjects::SearchFlg f){
 template<class T>
 bool canSee(const Npc&,const T&){ return true; }
 
-static bool canSee(const Npc& pl,const Npc& n){
+static bool canSee(const Npc& pl, const Npc& n){
   return pl.canSeeNpc(n,true);
   }
 
-static bool canSee(const Npc& pl,const Interactive& n){
+static bool canSee(const Npc& pl, const Interactive& n){
   return n.canSeeNpc(pl,true);
   }
 

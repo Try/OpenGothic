@@ -26,7 +26,7 @@ Interactive::Interactive(Vob* parent, World &world, const phoenix::vobs::mob& vo
   auto p = position();
   displayOffset = Tempest::Vec3(0,bbox[1].y-p.y,0);
 
-  if (vob.type != phoenix::vob_type::oCMOB) {
+  if(vob.type != phoenix::vob_type::oCMOB) {
     // TODO: These might be movable
     auto& inter = reinterpret_cast<const phoenix::vobs::mob_inter&>(vob);
     stateNum      = inter.state;
@@ -35,17 +35,17 @@ Interactive::Interactive(Vob* parent, World &world, const phoenix::vobs::mob& vo
     conditionFunc = inter.condition_function;
     onStateFunc   = inter.on_state_change_function;
     rewind        = inter.rewind;
-  }
+    }
 
   for(auto& i:owner)
     i = char(std::toupper(i));
 
-  if (vobType==phoenix::vob_type::oCMobDoor) {
+  if(vobType==phoenix::vob_type::oCMobDoor) {
     auto& door = reinterpret_cast<const phoenix::vobs::mob_door&>(vob);
     locked      = door.locked;
     keyInstance = door.key;
     pickLockStr = door.pick_string;
-  }
+    }
 
   if(isContainer() && (flags&Flags::Startup)==Flags::Startup) {
     auto& container = reinterpret_cast<const phoenix::vobs::mob_container&>(vob);

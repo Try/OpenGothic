@@ -5,7 +5,6 @@
 #include "graphics/mesh/animationsolver.h"
 #include "graphics/mesh/protomesh.h"
 #include "graphics/objvisual.h"
-#include "graphics/meshobjects.h"
 #include "game/inventory.h"
 #include "vob.h"
 
