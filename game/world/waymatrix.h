@@ -33,7 +33,7 @@ class WayMatrix final {
     const WayPoint* findPoint(std::string_view name, bool inexact) const;
     void            marchPoints(DbgPainter& p) const;
 
-    WayPath         wayTo(std::span<const WayPoint*> begin, const Tempest::Vec3 exactBegin, const WayPoint& end) const;
+    WayPath         wayTo(const WayPoint** begin, size_t beginSz, const Tempest::Vec3 exactBegin, const WayPoint& end) const;
 
   private:
     World&                 world;

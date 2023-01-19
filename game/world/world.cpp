@@ -850,7 +850,7 @@ WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
 
   auto begin = npc.currentWayPoint();
   if(begin && !begin->isFreePoint() && MoveAlgo::isClose(npc.position(),*begin)) {
-    return wmatrix->wayTo(std::span(&begin, &begin+1),p,end);
+    return wmatrix->wayTo(&begin,1,p,end);
     }
 
   auto near = wmatrix->findWayPoint(p, [&npc](const WayPoint &wp) {
@@ -869,7 +869,7 @@ WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
   for(auto& i:near->connections())
     wpoint.push_back(i.point);
 
-  return wmatrix->wayTo(wpoint,p,end);
+  return wmatrix->wayTo(wpoint.data(),wpoint.size(),p,end);
   }
 
 GameScript &World::script() const {

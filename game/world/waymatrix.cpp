@@ -236,8 +236,8 @@ const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const FpInde
   return ret;
   }
 
-WayPath WayMatrix::wayTo(std::span<const WayPoint*> begin, const Tempest::Vec3 exactBegin, const WayPoint& end) const {
-  if(begin.empty())
+WayPath WayMatrix::wayTo(const WayPoint** begin, size_t beginSz, const Tempest::Vec3 exactBegin, const WayPoint& end) const {
+  if(beginSz==0)
     return WayPath();
 
   intptr_t endId = std::distance<const WayPoint*>(&wayPoints[0],&end);
@@ -293,11 +293,11 @@ WayPath WayMatrix::wayTo(std::span<const WayPoint*> begin, const Tempest::Vec3 e
     }
 
   const WayPoint* first = begin[0];
-  for(auto i:begin) {
-    int32_t iLen = i->pathLen     + int((exactBegin-i->position()).length());
-    int32_t fLen = first->pathLen + int((exactBegin-first->position()).length());
+  for(size_t i=0; i<beginSz; ++i) {
+    int32_t iLen = begin[i]->pathLen + int((exactBegin - begin[i]->position()).length());
+    int32_t fLen = first   ->pathLen + int((exactBegin - first   ->position()).length());
     if(iLen<fLen)
-      first = i;
+      first = begin[i];
     }
 
   WayPath ret;
