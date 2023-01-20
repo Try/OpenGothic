@@ -7,7 +7,6 @@
 
 #include <vector>
 #include <functional>
-#include <span>
 
 #include "waypath.h"
 #include "waypoint.h"
