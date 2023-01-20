@@ -267,8 +267,8 @@ WayPath WayMatrix::wayTo(const WayPoint** begin, size_t beginSz, const Tempest::
 
   while(front->size()>0) {
     bool done = true;
-    for(auto i:begin)
-      if(i->pathGen!=pathGen) {
+    for(size_t i=0; i<beginSz; ++i)
+      if(begin[i]->pathGen!=pathGen) {
         done = false;
         break;
         }
