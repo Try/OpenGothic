@@ -591,7 +591,7 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     auto inter = npc.interactive();
     const Animation::Sequence *sq = solver.solveAnim(inter,a,*skInst);
     if(sq!=nullptr){
-      auto bs=inter->isLadder() ? BS_CLIMB : BS_MOBINTERACT;
+      auto bs = inter->isLadder() ? BS_CLIMB : BS_MOBINTERACT;
       if(skInst->startAnim(solver,sq,comb,bs,Pose::NoHint,npc.world().tickCount()))
         return sq;
       }

@@ -285,7 +285,7 @@ class Npc final {
 
     auto      interactive() const -> Interactive* { return currentInteract; }
     bool      setInteraction(Interactive* id, bool quick=false);
-    void      quitIneraction();
+    void      quitIneraction(bool aniWait = true);
     void      processDefInvTorch();
 
     auto      detectedMob() const -> Interactive*;

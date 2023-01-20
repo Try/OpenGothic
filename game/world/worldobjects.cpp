@@ -788,7 +788,7 @@ void WorldObjects::marchInteractives(DbgPainter &p) const {
     }
   }
 
-Interactive *WorldObjects::availableMob(const Npc &pl, std::string_view dest) {
+Interactive *WorldObjects::availableMob(const Npc &pl, std::string_view dest, bool ignoreInUse) {
   const float  dist=100*10.f;
   Interactive* ret =nullptr;
 
@@ -799,7 +799,7 @@ Interactive *WorldObjects::availableMob(const Npc &pl, std::string_view dest) {
 
   float curDist=dist*dist;
   interactiveObj.find(pl.position(),dist,[&](Interactive& i){
-    if(i.isAvailable() && i.checkMobName(dest)) {
+    if((ignoreInUse || i.isAvailable()) && i.checkMobName(dest)) {
       float d = pl.qDistTo(i);
       if(d<curDist){
         ret    = &i;

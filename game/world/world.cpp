@@ -130,14 +130,14 @@ void World::setPlayer(Npc* npc) {
   if (!npcPlayer->isDead()) {
     npcPlayer->resumeAiRoutine();
   }
-  
+
   npc->setProcessPolicy(Npc::ProcessPolicy::Player);
   npc->clearState(true);
   npc->clearAiQueue();
 
   for(size_t i=0;i<PERC_Count;++i)
     npc->setPerceptionDisable(PercType(i));
-  
+
   npcPlayer = npc;
   }
 
@@ -446,8 +446,8 @@ bool World::testFocusNpc(Npc* def) {
   return wobj.testFocusNpc(*npcPlayer,def,optNpc);
   }
 
-Interactive *World::availableMob(const Npc &pl, std::string_view name) {
-  return wobj.availableMob(pl,name);
+Interactive *World::availableMob(const Npc &pl, std::string_view name, bool ignoreInUse) {
+  return wobj.availableMob(pl,name,ignoreInUse);
   }
 
 Interactive* World::findInteractive(const Npc& pl) {

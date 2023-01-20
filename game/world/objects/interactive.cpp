@@ -277,10 +277,16 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
     }
 
   if(isLadder()) {
-    if(state==-1) {
-      loopState    = true;
-      reverseState = false;
+    if(state==-1 || state==stateNum) {
+      nextState(npc,Quit);
+      return;
       }
+    if(npc.isPlayer() && npc.isAiQueueEmpty())
+      return;
+    if(reverseState)
+      nextState(npc,Prev);
+    else
+      nextState(npc,Next);
     return;
     }
 
@@ -328,39 +334,58 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
   }
 
 void Interactive::nextState(Npc& npc, MobsiAction act) {
-  if (act==MobsiAction::Quit) {
+  if(act==Quit) {
     npc.stopAnim("");
-    npc.setInteraction(nullptr);
-    return;
-    }
-
-  if(world.tickCount()<waitAnim)
-    return;
-
-  const int prev = state;
-  if (act==MobsiAction::Next)
-    reverseState = false;
-  if (act==MobsiAction::Prev)
-    reverseState = true;
-  if ((act==MobsiAction::Prev && state==0) || (act==MobsiAction::Next && state==stateNum-1)) {
-    auto sq = npc.setAnimAngGet(Npc::Anim::InteractToStand);
-    if (sq==nullptr)
-      return;
-    waitAnim = world.tickCount()+uint64_t(sq->totalTime());
-    npc.setDirectionY(0);
-    if (state==0) {
-      setState(-1);
-      } else {
-      setState(stateNum);
+    for(auto& i:attPos) {
+      if(i.user==&npc && i.attachMode) {
+        i.user       = nullptr;
+        i.attachMode = false;
+        break;
+        }
       }
+    npc.quitIneraction(false);
     return;
     }
-  if (!setAnim(&npc,Anim::In))
+
+  Pos* p = nullptr;
+  for(auto& i:attPos) {
+    if(i.user!=nullptr) {
+      p = &i;
+      }
+    }
+  if(p==nullptr || !p->started || world.tickCount()<waitAnim)
     return;
-  if (reverseState) {
+
+  if(act==Next)
+    reverseState = false;
+  if(act==Prev)
+    reverseState = true;
+  bool start  = (state==0 && act==Next) || (state==stateNum-1 && act==Prev);
+  bool finish = (state==0 && act==Prev) || (state==stateNum-1 && act==Next);
+  if(start) {
+    npc.world().sendPassivePerc(npc,npc,npc,PERC_ASSESSUSEMOB);
+    emitTriggerEvent();
+    }
+  if(finish) {
+    auto sq = npc.setAnimAngGet(Npc::Anim::InteractToStand);
+    if(sq==nullptr)
+       return;
+    waitAnim = world.tickCount()+uint64_t(sq->totalTime());
+    if(reverseState)
+      setState(-1); else
+      setState(stateNum);
+    return;
+    }
+
+  if(!setAnim(&npc,Anim::In))
+    return;
+  if(npc.isPlayer() && !loopState)
+    invokeStateFunc(npc);
+  const int prev = state;
+  if(reverseState) {
     setState(std::max(0,state-1));
     } else {
-    setState(std::min(state+1,stateNum));
+    setState(std::min(state+1,stateNum-1));
     }
   loopState = (prev==state);
   }

@@ -555,14 +555,14 @@ void PlayerControl::implMove(uint64_t dt) {
   if(pl.bodyStateMasked()==BS_UNCONSCIOUS)
     return;
 
-  if(pl.interactive()!=nullptr) {
+  if(!pl.isAiQueueEmpty()) {
     runAngleDest = 0;
-    implMoveMobsi(pl,dt);
     return;
     }
 
-  if(!pl.isAiQueueEmpty()) {
+  if(pl.interactive()!=nullptr) {
     runAngleDest = 0;
+    implMoveMobsi(pl,dt);
     return;
     }
 
@@ -835,7 +835,7 @@ void PlayerControl::implMove(uint64_t dt) {
 void PlayerControl::implMoveMobsi(Npc& pl, uint64_t /*dt*/) {
   // animation handled in MOBSI
   auto inter     = pl.interactive();
-  const bool g1c = Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS")!=0;
+  const bool g2  = Gothic::inst().version().game==2;
 
   if(ctrl[KeyCodec::Back] && !inter->isLadder()) {
     pl.setInteraction(nullptr);
@@ -847,19 +847,18 @@ void PlayerControl::implMoveMobsi(Npc& pl, uint64_t /*dt*/) {
     }
 
   if(inter->isStaticState() && !inter->isDetachState(pl)) {
-    auto stateId = inter->stateId();
-    bool ladder  = inter->isLadder() && stateId==inter->stateCount();
-    if(inter->canQuitAtState(pl,stateId-ladder))
-      pl.setInteraction(nullptr,ladder);
+    if(inter->canQuitAtState(pl,inter->stateId())) {
+      pl.setInteraction(nullptr,false);
+      }
     }
 
   if (inter->isLadder()) {
-    if(!g1c && !ctrl[KeyCodec::ActionGeneric]) {
+    if(!g2 && !ctrl[KeyCodec::ActionGeneric]) {
       if (inter->stateId()<1) {
         inter->nextState(pl,MobsiAction::Prev);
         return;
         }
-      if (inter->stateId()>inter->stateCount()-2) {
+      if(inter->stateId()>inter->stateCount()-2) {
         inter->nextState(pl,MobsiAction::Next);
         return;
         }
@@ -872,7 +871,7 @@ void PlayerControl::implMoveMobsi(Npc& pl, uint64_t /*dt*/) {
       }
     if(ctrl[KeyCodec::Back]) {
       inter->nextState(pl,MobsiAction::Prev);
-      if (inter->stateId()==-1)
+      if(inter->stateId()==-1)
         ctrl[KeyCodec::ActionGeneric] = false;
       }
     }
@@ -929,16 +928,16 @@ void PlayerControl::processPickLock(Npc& pl, Interactive& inter, KeyCodec::Actio
   }
 
 void PlayerControl::processLadder(Npc& pl, Interactive& inter, KeyCodec::Action key) {
-  const bool g1c = Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS")!=0;
+  const bool g2 = Gothic::inst().version().game==2;
   if(key==KeyCodec::ActionGeneric) {
     ctrl[key] = true;
-    if (g1c) {
+    if(g2) {
       inter.nextState(pl,MobsiAction::Quit);
       ctrl[key] = false;
       }
     return;
     }
-  if (!g1c && !ctrl[KeyCodec::ActionGeneric])
+  if(!g2 && !ctrl[KeyCodec::ActionGeneric])
     return;
   if(key==KeyCodec::Forward) {
     ctrl[key] = true;

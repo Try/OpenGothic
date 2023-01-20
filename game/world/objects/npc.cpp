@@ -1356,6 +1356,16 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
     if(go2.flag==GT_Way) {
       go2.wp = wayPath.pop();
       if(go2.wp!=nullptr) {
+        if(std::abs(go2.wp->x-x)+std::abs(go2.wp->z-z)<std::abs(go2.wp->y-y)) {
+          auto inter = owner.availableMob(*this,"LADDER",true);
+          if(inter!=nullptr) {
+            auto wpoint = wayPath.last()!=nullptr ? wayPath.last() : go2.wp;
+            clearGoTo();
+            aiQueue.pushFront(AiQueue::aiGoToPoint(*wpoint));
+            aiQueue.pushFront(AiQueue::aiUseMob("LADDER",0));
+            return false;
+            }
+          }
         attachToPoint(go2.wp);
         finished = false;
         }
@@ -2094,7 +2104,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
       }
     case AI_GoToPoint: {
-      if(!setInteraction(nullptr)) {
+      if((currentInteract!=nullptr && currentInteract->isLadder()) || !setInteraction(nullptr)) {
         queue.pushFront(std::move(act));
         break;
         }
@@ -2168,7 +2178,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_StandUpQuick:
       // NOTE: B_ASSESSTALK calls AI_StandUp, to make npc stand, if it's not on a chair or something
       if(interactive()!=nullptr) {
-        if(!setInteraction(nullptr,false)) {
+        if(interactive()->isLadder() || !setInteraction(nullptr,false)) {
           queue.pushFront(std::move(act));
           }
         break;
@@ -2228,6 +2238,9 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
           // queue.pushFront(std::move(act));
           }
         }
+
+      if(inter->isLadder())
+        break;
 
       if(currentInteract==nullptr || currentInteract->stateId()!=act.i0) {
         queue.pushFront(std::move(act));
@@ -3673,12 +3686,13 @@ bool Npc::setInteraction(Interactive *id, bool quick) {
   return false;
   }
 
-void Npc::quitIneraction() {
+void Npc::quitIneraction(bool aniWait) {
   if(currentInteract==nullptr)
     return;
   if(invTorch)
     processDefInvTorch();
-  implAniWait(visual.pose().animationTotalTime());
+  if(aniWait)
+    implAniWait(visual.pose().animationTotalTime());
   currentInteract=nullptr;
   }
 
