@@ -1304,6 +1304,8 @@ bool Npc::implGoTo(uint64_t dt) {
     } else {
     // use smaller threshold, to avoid edge-looping in script
     dist = MoveAlgo::closeToPointThreshold*0.5f;
+    if(!mvAlgo.checkLastBounce())
+      dist = MoveAlgo::closeToPointThreshold*1.5f;
     if(go2.wp!=nullptr && go2.wp->useCounter()>1)
       dist += 100;
     }

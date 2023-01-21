@@ -849,10 +849,12 @@ WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
   auto p     = npc.position();
 
   auto begin = npc.currentWayPoint();
+  if(begin==&end && MoveAlgo::isClose(npc.position(),end)) {
+    return WayPath();
+    }
   if(begin && !begin->isFreePoint() && MoveAlgo::isClose(npc.position(),*begin)) {
     return wmatrix->wayTo(&begin,1,p,end);
     }
-
   auto near = wmatrix->findWayPoint(p, [&npc](const WayPoint &wp) {
     if(!npc.canSeeNpc(wp.x,wp.y+10,wp.z,true))
       return false;
@@ -866,8 +868,11 @@ WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
 
   std::vector<const WayPoint*> wpoint;
   wpoint.push_back(near);
-  for(auto& i:near->connections())
-    wpoint.push_back(i.point);
+  for(auto& i:near->connections()) {
+    auto p = i.point->position();
+    if(npc.canSeeNpc(p.x,p.y+10,p.z,true))
+      wpoint.push_back(i.point);
+    }
 
   return wmatrix->wayTo(wpoint.data(),wpoint.size(),p,end);
   }
