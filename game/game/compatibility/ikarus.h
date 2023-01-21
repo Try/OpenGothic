@@ -44,7 +44,7 @@ class Ikarus : public ScriptPlugin {
     std::string mem_getcommandline();
 
     // pointers
-    int  mem_ptrtoinst            (int address);
+    std::shared_ptr<phoenix::instance>  mem_ptrtoinst(int address);
 
     // ## Basic zCParser related functions ##
     int  _takeref    (int val);

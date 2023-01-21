@@ -2,6 +2,8 @@
 
 #include <Tempest/Log>
 
+#include <phoenix/vobs/misc.hh>
+
 using namespace Tempest;
 
 enum {
@@ -32,15 +34,15 @@ Ikarus::Ikarus(GameScript& /*owner*/, phoenix::vm& vm) : vm(vm)
 
   // Note: no inline asm
   // TODO: Make sure this actually works!
-  vm.override_function("ASMINT_Push",           [](){});
-  vm.override_function("ASMINT_Pop",            [](){});
+  vm.override_function("ASMINT_Push",           [](int){});
+  vm.override_function("ASMINT_Pop",            []() -> int { return 0; });
   vm.override_function("ASMINT_MyExternal",     [](){});
   vm.override_function("ASMINT_CallMyExternal", [](){});
   vm.override_function("ASMINT_Init",           [](){});
-  vm.override_function("ASM_Open",              [](){});
-  vm.override_function("ASM_Close",             [](){});
-  vm.override_function("ASM",                   [](){});
-  vm.override_function("ASM_Run",               [](){});
+  vm.override_function("ASM_Open",              [](int){});
+  vm.override_function("ASM_Close",             []() -> int { return 0; });
+  vm.override_function("ASM",                   [](int,int){});
+  vm.override_function("ASM_Run",               [](int){});
   vm.override_function("ASM_RunOnce",           [](){});
 
   vm.override_function("MEMINT_SetupExceptionHandler", [this](){ mem_setupexceptionhandler(); });
@@ -59,14 +61,14 @@ Ikarus::Ikarus(GameScript& /*owner*/, phoenix::vm& vm) : vm(vm)
 
   // ## Basic zCParser related functions ##
   vm.override_function("MEM_GetIntAddress",   [this](int val){ return _takeref(val);      });
-  vm.override_function("MEM_PtrToInst",       [this](int address){ return mem_ptrtoinst(address); });
-  vm.override_function("_@",                  [this](int val){ return _takeref(val);     });
-  vm.override_function("_@s",                 [this](std::string_view val){ return _takeref_s(val);   });
-  vm.override_function("_@f",                 [this](float val){ return _takeref_f(val);   });
+  vm.override_function("MEM_PtrToInst",       [this](int address) -> auto { return mem_ptrtoinst(address); });
+  vm.override_function("_@",                  [this](int val) -> int { return _takeref(val);     });
+  vm.override_function("_@s",                 [this](std::string_view val) -> int { return _takeref_s(val);   });
+  vm.override_function("_@f",                 [this](float val) -> int{ return _takeref_f(val);   });
 
   // ## Preliminary MEM_Alloc and MEM_Free ##
-  vm.override_function("MEM_Alloc", [this](int amount){ mem_alloc(amount); });
-  vm.override_function("MEM_Free",  [this](int address){ mem_free(address);  });
+  vm.override_function("MEM_Alloc", [this](int amount ) -> int { return mem_alloc(amount);  });
+  vm.override_function("MEM_Free",  [this](int address)        { mem_free(address);  });
 
 
   vm.override_function("CALL__stdcall", [this](int address){ call__stdcall(address); });
@@ -150,8 +152,9 @@ void Ikarus::call__stdcall(int address) {
   (void)address;
   }
 
-int Ikarus::mem_ptrtoinst(int address) {
-  return address;
+std::shared_ptr<phoenix::instance> Ikarus::mem_ptrtoinst(int address) {
+  //return address;
+  return nullptr;
   }
 
 int Ikarus::_takeref(int val) {
