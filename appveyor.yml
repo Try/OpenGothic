@@ -5,8 +5,6 @@ environment:
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019  # used as mingw
       GENERATOR: "Ninja"
-      #CC:        C:/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/bin/gcc.exe
-      #CXX:       C:/mingw-w64/x86_64-8.1.0-posix-seh-rt_v6-rev0/mingw64/bin/g++.exe
       CC:         C:/msys64/mingw64/bin/gcc.exe
       CXX:        C:/msys64/mingw64/bin/g++.exe
 
@@ -16,7 +14,6 @@ environment:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
       GENERATOR: "Ninja"
       VCVARSALL: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvarsall.bat"
-      # VCVARSALL: "C:/Program Files (x86)/Microsoft Visual Studio/2019/Community/VC/Auxiliary/Build/vcvarsall.bat"
       PLATFORM:  x64
 
     - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
@@ -100,9 +97,9 @@ after_build:
 
     if($IsWindows) {
       echo gothic-win64-v$env:appveyor_build_version | Out-File "VERSION" -Encoding utf8
-      cp "C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin\libgcc_s_seh-1.dll"   "libgcc_s_seh-1.dll"
-      cp "C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin\libstdc++-6.dll"      "libstdc++-6.dll"
-      cp "C:\mingw-w64\x86_64-8.1.0-posix-seh-rt_v6-rev0\mingw64\bin\libwinpthread-1.dll"  "libwinpthread-1.dll"
+      cp "C:\msys64\mingw64\bin\libgcc_s_seh-1.dll"   "libgcc_s_seh-1.dll"
+      cp "C:\msys64\mingw64\bin\libstdc++-6.dll"      "libstdc++-6.dll"
+      cp "C:\msys64\mingw64\bin\libwinpthread-1.dll"  "libwinpthread-1.dll"
 
       $NAME = 'opengothic_win.zip'
       7z a $NAME    VERSION
