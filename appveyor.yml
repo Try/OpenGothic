@@ -153,4 +153,4 @@ deploy:
   on:
     branch: $(APPVEYOR_REPO_TAG_NAME)
     appveyor_repo_tag: true       # deploy on tag push only
-    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015 # mingw is default for now
+    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019 # mingw is default for now
