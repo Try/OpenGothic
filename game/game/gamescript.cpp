@@ -31,8 +31,8 @@ struct ScopeVar final {
     sym.set_instance(prev);
     }
 
-  const std::shared_ptr<phoenix::instance>& prev;
-  phoenix::symbol&  sym;
+  std::shared_ptr<phoenix::instance> prev;
+  phoenix::symbol&                   sym;
   };
 
 
@@ -427,7 +427,7 @@ void GameScript::loadDialogOU() {
 void GameScript::initializeInstanceNpc(const std::shared_ptr<phoenix::c_npc>& npc, size_t instance) {
   auto sym = vm.find_symbol_by_index(uint32_t(instance));
 
-  if (sym == nullptr) {
+  if(sym == nullptr) {
     Tempest::Log::e("Cannot initialize NPC ", instance, ": Symbol not found.");
     return;
     }
@@ -438,17 +438,16 @@ void GameScript::initializeInstanceNpc(const std::shared_ptr<phoenix::c_npc>& np
     ScopeVar self(*vm.global_self(), npc);
     auto* daily_routine = vm.find_symbol_by_index(uint32_t(npc->daily_routine));
 
-    if (daily_routine != nullptr) {
+    if(daily_routine != nullptr) {
       vm.call_function(daily_routine);
       }
     }
-
   }
 
 void GameScript::initializeInstanceItem(const std::shared_ptr<phoenix::c_item>& item, size_t instance) {
   auto sym = vm.find_symbol_by_index(uint32_t(instance));
 
-  if (sym == nullptr) {
+  if(sym == nullptr) {
     Tempest::Log::e("Cannot initialize item ", instance, ": Symbol not found.");
     return;
     }
@@ -837,7 +836,7 @@ std::vector<GameScript::DlgChoise> GameScript::updateDialog(const GameScript::Dl
   return ret;
   }
 
-void GameScript::exec(const GameScript::DlgChoise &dlg,Npc& player, Npc& npc) {
+void GameScript::exec(const GameScript::DlgChoise &dlg, Npc& player, Npc& npc) {
   ScopeVar self (*vm.global_self(), npc.handlePtr());
   ScopeVar other(*vm.global_other(), player.handlePtr());
 
@@ -965,11 +964,13 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
 
   auto* sym = vm.find_symbol_by_index(uint32_t(fn.ptr));
   int ret = 0;
-  if (sym!=nullptr && sym->rtype() == phoenix::datatype::integer) {
+  if(sym!=nullptr && sym->rtype() == phoenix::datatype::integer) {
     ret = vm.call_function<int>(sym);
-  } else if (sym!=nullptr) {
+    }
+  else if(sym!=nullptr) {
     vm.call_function<void>(sym);
-  }
+    }
+
   if(vm.global_other()->is_instance_of<phoenix::c_npc>()){
     auto oth2 = reinterpret_cast<phoenix::c_npc*>(vm.global_other()->get_instance().get());
     if(oth!=nullptr && oth2!=&oth->handle()) {
