@@ -144,6 +144,8 @@ uint32_t Serialize::implDirectorySize(std::string e) {
   }
 
 void Serialize::writeBytes(const void* buf, size_t sz) {
+  if(sz==0)
+    return;
   size_t at = entryBuf.size();
   entryBuf.resize(entryBuf.size()+sz);
   std::memcpy(&entryBuf[at],buf,sz);
