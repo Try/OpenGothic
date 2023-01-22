@@ -124,11 +124,11 @@ Gothic::Gothic() {
     plDef = modFile->getS("SETTINGS","PLAYER");
 
     std::u16string vdf = TextCodec::toUtf16(std::string(modFile->getS("FILES","VDF")));
-    for (size_t start = 0, split = 0; split != std::string::npos; start = split+1) {
+    for(size_t start = 0, split = 0; split != std::string::npos; start = split+1) {
       split = vdf.find(' ', start);
       std::u16string mod = vdf.substr(start, split-start);
-      if (!mod.empty())
-        modvdfs.push_back(mod);
+      if(!mod.empty())
+        modvdfs.emplace_back(std::move(mod));
       }
     }
   Resources::loadVdfs(modvdfs);

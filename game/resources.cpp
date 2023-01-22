@@ -97,16 +97,19 @@ void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs) {
   inst->detectVdf(archives,Gothic::inst().nestedPath({u"Data"},Dir::FT_Dir));
 
   // Remove all mod files, that are not listed in modvdfs
-  archives.erase(std::remove_if(archives.begin(), archives.end(),
-                [&modvdfs](const Archive& a){
-                  return a.isMod && modvdfs.end() == std::find_if(modvdfs.begin(), modvdfs.end(),
-                        [&a](const std::u16string& modname) {
-                          const std::u16string_view& full_path = a.name;
-                          const std::u16string_view& file_name = modname;
-                          return (0 == full_path.compare(full_path.length() - file_name.length(),
-                                                         file_name.length(), file_name));
-                          });
-                  }), archives.end());
+  if(!modvdfs.empty()) {
+    // NOTE: apparently in CoM there is no mods list declaration. In such case - assume all modes
+    archives.erase(std::remove_if(archives.begin(), archives.end(),
+                  [&modvdfs](const Archive& a){
+                    return a.isMod && modvdfs.end() == std::find_if(modvdfs.begin(), modvdfs.end(),
+                          [&a](const std::u16string& modname) {
+                            const std::u16string_view& full_path = a.name;
+                            const std::u16string_view& file_name = modname;
+                            return (0 == full_path.compare(full_path.length() - file_name.length(),
+                                                           file_name.length(), file_name));
+                            });
+                    }), archives.end());
+    }
 
   // addon archives first!
   std::stable_sort(archives.begin(),archives.end(),[](const Archive& a,const Archive& b){
