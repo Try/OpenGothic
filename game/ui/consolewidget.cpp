@@ -82,7 +82,6 @@ void ConsoleWidget::close() {
 
   ov->takeWidget(this);
   delete ov;
-  log.back().clear();
   }
 
 int ConsoleWidget::exec() {
@@ -116,7 +115,7 @@ void ConsoleWidget::paintEvent(PaintEvent& e) {
     fnt.drawText(p, margins().left, y, log[i]);
     y-=fnt.pixelSize();
     if(i+1==log.size()) {
-      int x = margins().left + fnt.textSize(log[i]).w;
+      int x = margins().left + fnt.textSize(log[i].data(),log[i].data()+cursPos).w;
       float a = float(Application::tickCount()%2000)/2000.f;
       p.setBrush(Color(1,1,1,a));
       p.drawRect(x,y,1,fnt.pixelSize());
@@ -137,11 +136,27 @@ void ConsoleWidget::keyDownEvent(KeyEvent& e) {
     close();
     }
 
+  if(e.key==Event::K_Left) {
+    if (cursPos>0)
+      cursPos--;
+    return;
+    }
+  if(e.key==Event::K_Right) {
+    if(cursPos<log.back().size())
+      cursPos++;
+    return;
+    }
   if(e.key==Event::K_Up) {
     histPos++;
-    if(histPos<cmdHist.size())
-      log.back() = cmdHist[cmdHist.size()-1-histPos]; else
-      histPos    = size_t(cmdHist.size()-1);
+    if(histPos<cmdHist.size()) {
+      if(histPos==0)
+        currCmd = log.back();
+      log.back() = cmdHist[cmdHist.size()-1-histPos];
+      cursPos    = log.back().size();
+      }
+    else {
+      histPos = size_t(cmdHist.size()-1);
+      }
     return;
     }
   if(e.key==Event::K_Down) {
@@ -149,24 +164,36 @@ void ConsoleWidget::keyDownEvent(KeyEvent& e) {
       return;
     histPos--;
     if(histPos<cmdHist.size())
-      log.back() = cmdHist[cmdHist.size()-1-histPos]; else
-      log.back() = "";
+      log.back() = cmdHist[cmdHist.size()-1-histPos];
+    else
+      log.back() = currCmd;
+    cursPos = log.back().size();
     return;
     }
 
   if(e.key==Event::K_C && (e.modifier&Event::M_Command)==Event::M_Command) {
     log.emplace_back("");
+    cursPos = 0;
+    currCmd = "";
+    histPos = size_t(-1);
     return;
     }
 
   if(e.key==Event::K_Back) {
-    if(log.back().size()>0)
-      log.back().pop_back();
+    if(0<cursPos && cursPos<=log.back().size()) {
+      log.back().erase(--cursPos,1);
+      }
+    return;
+    }
+  if(e.key==Event::K_Delete) {
+    if(log.back().size()>cursPos) {
+      log.back().erase(cursPos,1);
+      }
     return;
     }
   if(e.key==Event::K_Tab) {
-    if(log.back().size()>0)
-      marvin.autoComplete(log.back());
+    if(log.back().size()>0 && marvin.autoComplete(log.back()))
+      cursPos = log.back().size();
     return;
     }
   if(e.key==Event::K_Return) {
@@ -175,6 +202,9 @@ void ConsoleWidget::keyDownEvent(KeyEvent& e) {
       if(!marvin.exec(log.back()))
         log.back() = "Unknown command : " + log.back();
       log.emplace_back("");
+      cursPos = 0;
+      currCmd = "";
+      histPos = size_t(-1);
       }
     return;
     }
@@ -185,8 +215,8 @@ void ConsoleWidget::keyDownEvent(KeyEvent& e) {
     ch = char(e.code);
   if(ch=='\0')
     return;
-  log.back().push_back(ch);
-  histPos = size_t(-1);
+  log.back().insert(cursPos,1,ch);
+  cursPos++;
   }
 
 void ConsoleWidget::keyRepeatEvent(KeyEvent& e) {
