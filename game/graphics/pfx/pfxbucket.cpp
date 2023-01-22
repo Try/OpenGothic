@@ -30,7 +30,7 @@ float PfxBucket::ParState::lifeTime() const {
 std::mt19937 PfxBucket::rndEngine;
 
 PfxBucket::PfxBucket(const ParticleFx &decl, PfxObjects& parent, VisualObjects& visual)
-  :decl(decl), parent(parent), visual(visual), vertexCount(decl.visTexIsQuadPoly ? 6 : 3) {
+  :decl(decl), parent(parent), visual(visual)  {
   item = visual.get(decl.visMaterial);
 
   if(!item.isEmpty())
@@ -65,6 +65,9 @@ bool PfxBucket::isEmpty() const {
   }
 
 size_t PfxBucket::allocBlock() {
+  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
+    forceUpdate[i] = true;
+
   for(size_t i=0;i<block.size();++i) {
     if(!block[i].allocated) {
       block[i].allocated = true;
@@ -125,6 +128,8 @@ size_t PfxBucket::allocEmitter() {
   auto& e = impl.back();
   e.block = size_t(-1); // no backup memory
   e.st    = S_Inactive;
+  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
+    forceUpdate[i] = true;
 
   return impl.size()-1;
   }
@@ -139,6 +144,8 @@ void PfxBucket::freeEmitter(size_t& id) {
     } else {
     v.st    = S_Free;
     }
+  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
+    forceUpdate[i] = true;
   v.next.reset();
   id = size_t(-1);
   shrink();
@@ -514,8 +521,10 @@ void PfxBucket::preFrameUpdate(uint8_t fId) {
       ssbo = device.ssbo(heap,pfxCpu);
       item.setPfxData(&ssbo,fId);
       } else {
-      if(!decl.isDecal())
+      if(!decl.isDecal() || forceUpdate[fId]) {
         ssbo.update(pfxCpu);
+        forceUpdate[fId] = false;
+        }
       }
     }
 

@@ -1,7 +1,6 @@
 #include "vobbundle.h"
 
 #include "world/world.h"
-#include "utils/versioninfo.h"
 #include "resources.h"
 
 VobBundle::VobBundle(World& owner, std::string_view filename, Vob::Flags flags) {

@@ -130,7 +130,7 @@ class PfxBucket {
     std::vector<ParState>       particles;
     std::vector<ImplEmitter>    impl;
     std::vector<Block>          block;
-    const size_t                vertexCount;
+    bool                        forceUpdate[Resources::MaxFramesInFlight] = {};
 
     static std::mt19937         rndEngine;
 
