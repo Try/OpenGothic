@@ -165,7 +165,7 @@ void Interactive::resetPositionToTA(int32_t state) {
 
   loopState = false;
   string_frm buf("S_S0");
-  if(state<0)
+  if(state>0)
     buf = string_frm("S_S",int(state));
   visual.startAnimAndGet(buf,world.tickCount(),true);
   setState(state);
