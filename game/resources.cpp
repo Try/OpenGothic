@@ -92,12 +92,12 @@ Resources::Resources(Tempest::Device &device)
   }
   }
 
-void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs) {
+void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs, bool modFilter) {
   std::vector<Archive> archives;
   inst->detectVdf(archives,Gothic::inst().nestedPath({u"Data"},Dir::FT_Dir));
 
   // Remove all mod files, that are not listed in modvdfs
-  if(!modvdfs.empty()) {
+  if(modFilter) {
     // NOTE: apparently in CoM there is no mods list declaration. In such case - assume all modes
     archives.erase(std::remove_if(archives.begin(), archives.end(),
                   [&modvdfs](const Archive& a){
