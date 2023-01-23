@@ -1,5 +1,7 @@
 #include "camera.h"
 
+#include <Tempest/Log>
+
 #include "world/objects/npc.h"
 #include "world/objects/interactive.h"
 #include "world/world.h"
@@ -419,12 +421,33 @@ void Camera::followPos(Vec3& pos, Vec3 dest, float dtF) {
 
   float speed = baseSpeeed*dtF;
   float tr    = std::min(speed,len);
-  if(len-tr > maxDist-speed && (len-maxDist)>0.01f)
-    tr = (len-maxDist); else
+  float maxD  = maxDist + baseSpeeed*0.05f;
+  if(len-tr > maxD && (len-maxD)>0.0f)
+    tr = (len-maxD); else
     tr = std::min(speed,len);
 
   float k = tr/len;
   pos += dp*k;
+
+  // auto len2 = (dest-pos).length();
+  // if(len2>0.f)
+  //   Log::i("lenRaw = ", len2);
+  }
+
+Vec3 Camera::clampPos(Tempest::Vec3 pos, Vec3 dest) {
+  auto dp  = (dest-pos);
+  auto len = dp.length();
+
+  if(len > maxDist && (len-maxDist)>0.f) {
+    float tr = (len-maxDist);
+    float k  = tr/len;
+    return pos + dp*k;
+    }
+
+  // auto len2 = (dest-pos).length();
+  // if(len2>0.f)
+  //   Log::i("lenClp = ", len2);
+  return pos;
   }
 
 void Camera::followCamera(Vec3& pos, Vec3 dest, float dtF) {
@@ -528,11 +551,13 @@ void Camera::calcControlPoints(float dtF) {
   auto target = dst.target + targetOffset;
 
   followPos(src.target,target,dtF);
-  followCamera(cameraPos,src.target,dtF);
+
+  auto camTg = clampPos(src.target,target);
+  followCamera(cameraPos,camTg,dtF);
 
   origin = cameraPos - dir*range;
   if(def.collision!=0) {
-    range  = calcCameraColision(src.target,origin,src.spin,range);
+    range  = calcCameraColision(camTg,origin,src.spin,range);
     origin = cameraPos - dir*range;
     }
 

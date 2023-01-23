@@ -139,6 +139,7 @@ class Camera final {
 
     void                  followCamera(Tempest::Vec3& pos,  Tempest::Vec3 dest, float dtF);
     void                  followPos   (Tempest::Vec3& pos,  Tempest::Vec3 dest, float dtF);
+    Tempest::Vec3         clampPos    (Tempest::Vec3  pos,  Tempest::Vec3 dest);
     void                  followAng   (Tempest::Vec3& spin, Tempest::Vec3 dest, float dtF);
     static void           followAng   (float& ang, float dest, float speed, float dtF);
 
