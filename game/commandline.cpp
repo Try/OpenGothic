@@ -17,8 +17,10 @@ static CommandLine* instance = nullptr;
 
 CommandLine::CommandLine(int argc, const char** argv) {
   instance = this;
-  if(argc<1)
-    return;
+
+  for(int i=0;i<argc;++i) {
+    Log::d(argv[i]);
+    }
 
   std::string_view mod;
   for(int i=1;i<argc;++i) {
