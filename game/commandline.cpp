@@ -4,8 +4,6 @@
 #include <Tempest/TextCodec>
 #include <cstring>
 
-#include "gothic.h"
-
 #include "utils/installdetect.h"
 #include "utils/fileutil.h"
 #include "utils/string_frm.h"

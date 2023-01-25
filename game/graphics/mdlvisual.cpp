@@ -9,7 +9,6 @@
 #include "world/objects/interactive.h"
 #include "world/objects/item.h"
 #include "world/world.h"
-#include "utils/fileext.h"
 #include "gothic.h"
 
 using namespace Tempest;
