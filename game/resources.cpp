@@ -119,8 +119,8 @@ void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs, bool modFil
     try {
       inst->gothicAssets.merge(phoenix::vdf_file::open(i.name), false);
       }
-    catch(...) {
-      Log::e("unable to load archive: \"", TextCodec::toUtf8(i.name), "\"");
+    catch(const phoenix::vdfs_signature_error& err) {
+      Log::e("unable to load archive: \"", TextCodec::toUtf8(i.name), "\", reason: ", err.message);
       }
     }
   inst->gothicAssets.entries.size();
