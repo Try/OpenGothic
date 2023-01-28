@@ -170,30 +170,29 @@ ProtoMesh::ProtoMesh(const phoenix::model &library, std::unique_ptr<Skeleton>&& 
 
 ProtoMesh::ProtoMesh(const phoenix::model_hierarchy& library, std::unique_ptr<Skeleton>&& sk, std::string_view fname)
       :skeleton(std::move(sk)), fname(fname) {
-
   nodes.resize(skeleton == nullptr ? 0 : skeleton->nodes.size());
-  for (size_t i = 0; i < nodes.size(); ++i) {
+  for(size_t i = 0; i < nodes.size(); ++i) {
     Node& n = nodes[i];
     auto& src = skeleton->nodes[i];
     n.parentId = src.parent;
     n.transform = src.tr;
     }
 
-  for (auto& i : nodes)
-    if (i.parentId < nodes.size())
+  for(auto& i : nodes)
+    if(i.parentId < nodes.size())
       nodes[i.parentId].hasChild = true;
 
   size_t subCount = 0;
-  for (auto& i : nodes) {
+  for(auto& i : nodes) {
     i.submeshIdB = subCount;
     i.submeshIdE = subCount;
     }
   submeshId.resize(subCount);
 
-  if (skeleton != nullptr) {
-    for (size_t i = 0; i < skeleton->nodes.size(); ++i) {
+  if(skeleton != nullptr) {
+    for(size_t i = 0; i < skeleton->nodes.size(); ++i) {
       auto& n = skeleton->nodes[i];
-      if (n.name.find("ZS_POS") == 0) {
+      if(n.name.find("ZS_POS") == 0) {
         Pos p;
         p.name = n.name;
         p.node = i;
@@ -213,7 +212,7 @@ ProtoMesh::ProtoMesh(const phoenix::model_mesh& library, std::unique_ptr<Skeleto
     auto& att = attach.back();
     att.name = m.first;
     att.shape.reset(PhysicMeshShape::load(std::move(pack)));
-  }
+    }
 
   nodes.resize(skeleton==nullptr ? 0 : skeleton->nodes.size());
   for(size_t i=0;i<nodes.size();++i) {

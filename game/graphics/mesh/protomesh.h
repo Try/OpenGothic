@@ -19,7 +19,7 @@ class PackedMesh;
 
 class ProtoMesh {
   public:
-    using Vertex =Resources::VertexA;
+    using Vertex = Resources::VertexA;
 
     ProtoMesh(PackedMesh&&  pm, std::string_view fname);
     ProtoMesh(PackedMesh&&  pm, const std::vector<phoenix::morph_animation>& aniList, std::string_view fname);
