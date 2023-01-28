@@ -76,9 +76,8 @@ cmake --build ./build --target Gothic2Notr
 # locate the executables at OpenGothic/build/opengothic
 ```
 
-### Gameplay video
-[![Video](https://img.youtube.com/vi/R9MNhNsBVQ0/0.jpg)](https://www.youtube.com/watch?v=R9MNhNsBVQ0)
-[![Video](https://img.youtube.com/vi/6BvwNkPMbwM/0.jpg)](https://www.youtube.com/watch?v=6BvwNkPMbwM)
+### Video
+[![Video](https://img.youtube.com/vi/TpayMkyZ58Y/0.jpg)](https://www.youtube.com/watch?v=TpayMkyZ58Y)
 
 ### Mods compatibility
 - [x] Content mods (retexture/reworld/animations)
