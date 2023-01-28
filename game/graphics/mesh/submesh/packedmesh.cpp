@@ -391,7 +391,7 @@ PackedMesh::PackedMesh(const phoenix::proto_mesh& mesh, PkgType type) {
   packMeshletsObj(mesh,type,nullptr);
   }
 
-PackedMesh::PackedMesh(const phoenix::softskin_mesh&  skinned) {
+PackedMesh::PackedMesh(const phoenix::softskin_mesh& skinned) {
   auto& mesh = skinned.mesh;
   subMeshes.resize(mesh.sub_meshes.size());
   {
@@ -702,7 +702,6 @@ void PackedMesh::debug(std::ostream &out) const {
       out << "f " << 1+tri[0] << " " << 1+tri[1] << " " << 1+tri[2] << std::endl;
       }
     }
-
   }
 
 std::pair<Vec3, Vec3> PackedMesh::bbox() const {

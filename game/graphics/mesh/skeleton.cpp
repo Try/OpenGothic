@@ -2,52 +2,51 @@
 
 #include <cassert>
 
-#include "utils/fileext.h"
 #include "resources.h"
 
 using namespace Tempest;
 
 Skeleton::Skeleton(const phoenix::model_hierarchy& src, const Animation* anim, std::string_view name)
       :fileName(name), anim(anim) {
-    bboxCol[0] = {src.collision_bbox.min.x, src.collision_bbox.min.y, src.collision_bbox.min.z};
-    bboxCol[1] = {src.collision_bbox.max.x, src.collision_bbox.max.y, src.collision_bbox.max.z};
+  bboxCol[0] = {src.collision_bbox.min.x, src.collision_bbox.min.y, src.collision_bbox.min.z};
+  bboxCol[1] = {src.collision_bbox.max.x, src.collision_bbox.max.y, src.collision_bbox.max.z};
 
-    nodes.resize(src.nodes.size());
-    tr.resize(src.nodes.size());
+  nodes.resize(src.nodes.size());
+  tr.resize(src.nodes.size());
 
-    for(size_t i=0;i<nodes.size();++i) {
-      Node& n = nodes[i];
-      auto& s = src.nodes[i];
+  for(size_t i=0;i<nodes.size();++i) {
+    Node& n = nodes[i];
+    auto& s = src.nodes[i];
 
-      n.name   = s.name;
-      n.parent = s.parent_index == -1 ? size_t(-1) : size_t(s.parent_index);
+    n.name   = s.name;
+    n.parent = s.parent_index == -1 ? size_t(-1) : size_t(s.parent_index);
 
-      auto transposed_transform = s.transform;
-      std::memcpy(reinterpret_cast<void*>(&n.tr),reinterpret_cast<const void*>(&transposed_transform),sizeof(n.tr));
+    auto transposed_transform = s.transform;
+    std::memcpy(reinterpret_cast<void*>(&n.tr),reinterpret_cast<const void*>(&transposed_transform),sizeof(n.tr));
     }
-    assert(nodes.size()<=Resources::MAX_NUM_SKELETAL_NODES);
-    for(auto& i:tr)
-      i.identity();
+  assert(nodes.size()<=Resources::MAX_NUM_SKELETAL_NODES);
+  for(auto& i:tr)
+    i.identity();
 
-    for(size_t i=0;i<nodes.size();++i) {
-      if(nodes[i].parent>=i && nodes[i].parent!=size_t(-1)) {
-        ordered=false;
-        break;
+  for(size_t i=0;i<nodes.size();++i) {
+    if(nodes[i].parent>=i && nodes[i].parent!=size_t(-1)) {
+      ordered=false;
+      break;
       }
     }
-    for(size_t i=0;i<nodes.size();++i)
-      if(nodes[i].parent==size_t(-1))
-        rootNodes.push_back(i);
+  for(size_t i=0;i<nodes.size();++i)
+    if(nodes[i].parent==size_t(-1))
+      rootNodes.push_back(i);
 
-    auto tr = src.root_translation;
-    rootTr = Vec3{tr.x,tr.y,tr.z};
+  auto tr = src.root_translation;
+  rootTr = Vec3{tr.x,tr.y,tr.z};
 
-    for(auto& i:nodes)
-      if(i.parent==size_t(-1)){
-        i.tr.translate(rootTr);
+  for(auto& i:nodes)
+    if(i.parent==size_t(-1)) {
+      i.tr.translate(rootTr);
       }
-    BIP01_HEAD = findNode("BIP01 HEAD");
-    mkSkeleton();
+  BIP01_HEAD = findNode("BIP01 HEAD");
+  mkSkeleton();
   }
 
 size_t Skeleton::findNode(std::string_view name, size_t def) const {
@@ -93,7 +92,7 @@ void Skeleton::mkSkeleton() {
   }
 
 void Skeleton::mkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent) {
-  for(size_t i=0;i<nodes.size();++i){
+  for(size_t i=0; i<nodes.size(); ++i){
     if(nodes[i].parent!=parent)
       continue;
     tr[i] = mt;

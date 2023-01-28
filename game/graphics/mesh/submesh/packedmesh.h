@@ -58,6 +58,7 @@ class PackedMesh {
     PackedMesh(const phoenix::proto_mesh& mesh, PkgType type);
     PackedMesh(const phoenix::mesh& mesh, PkgType type);
     PackedMesh(const phoenix::softskin_mesh&  mesh);
+
     void debug(std::ostream &out) const;
 
     std::pair<Tempest::Vec3,Tempest::Vec3> bbox() const;
