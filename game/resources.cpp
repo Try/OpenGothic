@@ -412,8 +412,8 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     FileExt::assignExt(mesh,"MDH");
 
     const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(mesh);
-    if (entry == nullptr)
-        std::runtime_error("failed to open resource: " + mesh);
+    if(entry==nullptr)
+      throw std::runtime_error("failed to open resource: " + mesh);
     auto reader = entry->open();
     auto mdh = phoenix::model_hierarchy::parse(reader);
 
