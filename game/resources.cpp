@@ -196,8 +196,7 @@ void Resources::detectVdf(std::vector<Archive>& ret, const std::u16string &root)
       ar.ord   = uint16_t(ret.size());
       ar.isMod = vdf.rfind(u".mod")==vdf.size()-4;
 
-      //if(ar.time>0 || ar.isMod)
-      //if(ar.isMod)
+      if(std::filesystem::file_size(ar.name)>0)
         ret.emplace_back(std::move(ar));
       return;
       }
