@@ -302,23 +302,8 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
 
   processMove(e);
 
-  if(e.key==KeyEvent::K_Z) {
-    lootMode = LootMode::Ten;
-    takeTimer.start(200);
-    onTakeStuff();
-    }
-  else if(e.key==KeyEvent::K_X) {
-    lootMode = LootMode::Hundred;
-    takeTimer.start(200);
-    onTakeStuff();
-    }
-  else if(e.key==KeyEvent::K_Space) {
+  if(keycodec.tr(e)==KeyCodec::Jump) {
     lootMode = LootMode::Stack;
-    takeTimer.start(200);
-    onTakeStuff();
-    }
-  else if(keycodec.tr(e)==KeyCodec::Jump) {
-    lootMode = LootMode::Normal;
     takeTimer.start(200);
     onTakeStuff();
     }
@@ -333,6 +318,21 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
     }
   else if(e.key==KeyEvent::K_ESCAPE || keycodec.tr(e)==KeyCodec::Inventory){
     close();
+    }
+  else if(e.key==KeyEvent::K_Space) {
+    lootMode = LootMode::Normal;
+    takeTimer.start(200);
+    onTakeStuff();
+    }
+  else if(e.key==KeyEvent::K_Z) {
+    lootMode = LootMode::Ten;
+    takeTimer.start(200);
+    onTakeStuff();
+    }
+  else if(e.key==KeyEvent::K_X) {
+    lootMode = LootMode::Hundred;
+    takeTimer.start(200);
+    onTakeStuff();
     }
 
   adjustScroll();
