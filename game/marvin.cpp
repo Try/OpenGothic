@@ -281,11 +281,11 @@ bool Marvin::exec(std::string_view v) {
 
 bool Marvin::addItemOrNpcBySymbolName(World* world, std::string_view name, const Tempest::Vec3& at) {
   auto&  sc  = world->script();
-  size_t id  = sc.getSymbolIndex(name);
+  size_t id  = sc.findSymbolIndex(name);
   if(id==size_t(-1))
     return false;
 
-  auto*  sym = sc.getSymbol(id);
+  auto*  sym = sc.findSymbol(id);
   if(sym==nullptr||sym->parent()==uint32_t(-1))
     return false;
 
@@ -294,7 +294,7 @@ bool Marvin::addItemOrNpcBySymbolName(World* world, std::string_view name, const
 
   const auto* cls = sym;
   while(cls!=nullptr&&cls->parent()!=uint32_t(-1)) {
-    cls = sc.getSymbol(cls->parent());
+    cls = sc.findSymbol(cls->parent());
     }
 
   if (cls==nullptr)
@@ -310,7 +310,7 @@ bool Marvin::addItemOrNpcBySymbolName(World* world, std::string_view name, const
 bool Marvin::printVariable(World* world, std::string_view name) {
   string_frm buf;
   auto&  sc  = world->script();
-  auto*  sym = sc.getSymbol(name);
+  auto*  sym = sc.findSymbol(name);
   if(sym==nullptr)
     return false;
   switch(sym->type()) {
@@ -358,8 +358,8 @@ std::string_view Marvin::completeInstanceName(std::string_view inp, bool& fullwo
 
   auto&            sc    = world->script();
   std::string_view match = "";
-  for(size_t i=0; i<sc.getSymbolCount(); ++i) {
-    auto*  sym  = sc.getSymbol(i);
+  for(size_t i=0; i<sc.symbolsCount(); ++i) {
+    auto*  sym  = sc.findSymbol(i);
     auto   name = std::string_view(sym->name());
     if(!startsWith(name,inp))
       continue;

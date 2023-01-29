@@ -531,7 +531,7 @@ void WorldObjects::stopEffect(const VisualFx& vfx) {
   }
 
 Item* WorldObjects::addItem(const phoenix::vobs::item& vob) {
-  size_t inst = owner.script().getSymbolIndex(vob.instance);
+  size_t inst = owner.script().findSymbolIndex(vob.instance);
   Item*  it   = addItem(inst,"");
   if(it==nullptr)
     return nullptr;
@@ -624,8 +624,8 @@ Item* WorldObjects::addItem(size_t itemInstance, const Tempest::Vec3& pos, const
   }
 
 Item* WorldObjects::addItemDyn(size_t itemInstance, const Tempest::Matrix4x4& pos, size_t ownerNpc) {
-  //size_t ItLsTorchburned  = owner.script().getSymbolIndex("ItLsTorchburned");
-  size_t ItLsTorchburning = owner.script().getSymbolIndex("ItLsTorchburning");
+  //size_t ItLsTorchburned  = owner.script().findSymbolIndex("ItLsTorchburned");
+  size_t ItLsTorchburning = owner.script().findSymbolIndex("ItLsTorchburning");
 
   if(itemInstance==size_t(-1))
     return nullptr;

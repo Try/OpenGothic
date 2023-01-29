@@ -239,7 +239,7 @@ Item* Inventory::addItem(std::unique_ptr<Item> &&p) {
 
 Item* Inventory::addItem(std::string_view name, size_t count, World &owner) {
   auto&  vm = owner.script();
-  size_t id = vm.getSymbolIndex(name);
+  size_t id = vm.findSymbolIndex(name);
   if(id!=size_t(-1))
     return addItem(id,count,owner);
   return nullptr;

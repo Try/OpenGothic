@@ -232,7 +232,7 @@ void Npc::load(Serialize &fin, size_t id) {
   fin.readNpc(owner.script().getVm(), hnpc);
   fin.read(body,head,vHead,vTeeth,bdColor,vColor,bdFatness);
 
-  auto* sym = owner.script().getSymbol(hnpc->symbol_index());
+  auto* sym = owner.script().findSymbol(hnpc->symbol_index());
   if (sym != nullptr)
     sym->set_instance(hnpc);
 
@@ -541,7 +541,7 @@ bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
   const int minHp = isMonster() ? 0 : 1;
   if(hnpc->attribute[ATR_HITPOINTS]<=minHp) {
     if(hnpc->attribute[ATR_HITPOINTSMAX]<=1) {
-      size_t fdead=owner.script().getSymbolIndex("ZS_Dead");
+      size_t fdead=owner.script().findSymbolIndex("ZS_Dead");
       startState(fdead,"");
       physic.setEnable(false);
       return false;
@@ -581,7 +581,7 @@ void Npc::onNoHealth(bool death, HitSound sndMask) {
   if(!death)
     hnpc->attribute[ATR_HITPOINTS]=1;
 
-  size_t fdead=owner.script().getSymbolIndex(state);
+  size_t fdead=owner.script().findSymbolIndex(state);
   startState(fdead,"",gtime::endOfTime(),true);
   // Note: clear perceptions for William in Jarkentar
   for(size_t i=0;i<PERC_Count;++i)
@@ -805,8 +805,8 @@ void Npc::dropTorch(bool burnout) {
 
   size_t torchId = 0;
   if(burnout)
-    torchId = owner.script().getSymbolIndex("ItLsTorchburned"); else
-    torchId = owner.script().getSymbolIndex("ItLsTorchburning");
+    torchId = owner.script().findSymbolIndex("ItLsTorchburned"); else
+    torchId = owner.script().findSymbolIndex("ItLsTorchburning");
 
   size_t leftHand = sk->findNode("ZS_LEFTHAND");
   if(torchId!=size_t(-1) && leftHand!=size_t(-1)) {
@@ -2828,7 +2828,7 @@ Item* Npc::takeItem(Item& item) {
   if(ptr!=nullptr && ptr->isTorchBurn()) {
    if(!toggleTorch())
      return nullptr;
-    size_t torchId = owner.script().getSymbolIndex("ItLsTorch");
+    size_t torchId = owner.script().findSymbolIndex("ItLsTorch");
     if(torchId!=size_t(-1))
       return nullptr;
     ptr.reset(new Item(owner,torchId,Item::T_Inventory));

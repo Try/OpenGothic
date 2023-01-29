@@ -448,7 +448,7 @@ void MdlVisual::setTorch(bool t, World& owner) {
     torch.view.reset();
     return;
     }
-  size_t torchId = owner.script().getSymbolIndex("ItLsTorchburning");
+  size_t torchId = owner.script().findSymbolIndex("ItLsTorchburning");
   if(torchId==size_t(-1))
     return;
 

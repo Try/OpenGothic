@@ -101,14 +101,14 @@ class GameScript final {
     const phoenix::c_focus&          focusMage()  const { return cFocusMage;  }
     const phoenix::c_gil_values&     guildVal()   const { return *cGuildVal;   }
 
-    phoenix::symbol*                        getSymbol(std::string_view s);
-    phoenix::symbol*                        getSymbol(const size_t s);
-    size_t                                            getSymbolIndex(std::string_view s);
-    size_t                                            getSymbolCount() const;
+    phoenix::symbol*                        findSymbol(std::string_view s);
+    phoenix::symbol*                        findSymbol(const size_t s);
+    size_t                                  findSymbolIndex(std::string_view s);
+    size_t                                  symbolsCount() const;
 
-    const AiState&                                    aiState  (ScriptFn id);
+    const AiState&                          aiState  (ScriptFn id);
     const phoenix::c_spell&                 spellDesc(int32_t splId);
-    const VisualFx*                                   spellVfx (int32_t splId);
+    const VisualFx*                         spellVfx (int32_t splId);
 
     auto dialogChoises(std::shared_ptr<phoenix::c_npc> self, std::shared_ptr<phoenix::c_npc> npc, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<DlgChoise>;
     auto updateDialog (const GameScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<GameScript::DlgChoise>;
@@ -191,13 +191,13 @@ class GameScript final {
       GameScript& owner;
       };
 
-    Item* getItem(phoenix::c_item* handle);
-    Item* getItemById(size_t id);
-    Npc*  getNpc(phoenix::c_npc*   handle);
-    Npc*  getNpc(const std::shared_ptr<phoenix::c_npc>& handle);
-    Npc*  getNpcById (size_t id);
-    auto  getInfo    (size_t id) -> phoenix::c_info*;
-    auto  getFocus(std::string_view name) -> phoenix::c_focus;
+    Item* findItem(phoenix::c_item* handle);
+    Item* findItemById(size_t id);
+    Npc*  findNpc(phoenix::c_npc*   handle);
+    Npc*  findNpc(const std::shared_ptr<phoenix::c_npc>& handle);
+    Npc*  findNpcById (size_t id);
+    auto  findInfo    (size_t id) -> phoenix::c_info*;
+    auto  findFocus(std::string_view name) -> phoenix::c_focus;
 
     void  storeItem(Item* it);
 

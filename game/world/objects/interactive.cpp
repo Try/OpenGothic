@@ -408,13 +408,13 @@ std::string_view Interactive::displayName() const {
     return "";
 
   string_frm strId(focName);
-  if(world.script().getSymbolIndex(strId)==size_t(-1))
+  if(world.script().findSymbolIndex(strId)==size_t(-1))
     strId = string_frm("MOBNAME_",strId);
 
-  if(world.script().getSymbolIndex(strId)==size_t(-1))
+  if(world.script().findSymbolIndex(strId)==size_t(-1))
     return "";
 
-  auto* s=world.script().getSymbol(strId);
+  auto* s=world.script().findSymbol(strId);
   if(s==nullptr)
     return "";
 
@@ -479,7 +479,7 @@ bool Interactive::isLadder() const {
   }
 
 bool Interactive::needToLockpick(const Npc& pl) const {
-  const size_t keyInst = keyInstance.empty() ? size_t(-1) : world.script().getSymbolIndex(keyInstance);
+  const size_t keyInst = keyInstance.empty() ? size_t(-1) : world.script().findSymbolIndex(keyInstance);
   if(keyInst!=size_t(-1) && pl.inventory().itemCount(keyInst)>0)
     return false;
   return !(pickLockStr.empty() || isLockCracked);
@@ -570,11 +570,11 @@ bool Interactive::checkUseConditions(Npc& npc) {
   auto& sc = npc.world().script();
 
   if(isPlayer) {
-    const size_t ItKE_lockpick  = world.script().getSymbolIndex("ItKE_lockpick");
+    const size_t ItKE_lockpick  = world.script().findSymbolIndex("ItKE_lockpick");
     const size_t lockPickCnt    = npc.inventory().itemCount(ItKE_lockpick);
     const bool   canLockPick    = (npc.talentSkill(TALENT_PICKLOCK)!=0 && lockPickCnt>0);
 
-    const size_t keyInst        = keyInstance.empty() ? size_t(-1) : world.script().getSymbolIndex(keyInstance);
+    const size_t keyInst        = keyInstance.empty() ? size_t(-1) : world.script().findSymbolIndex(keyInstance);
     const bool   needToPicklock = (pickLockStr.size()>0);
 
     if(keyInst!=size_t(-1) && npc.itemCount(keyInst)>0)
@@ -602,7 +602,7 @@ bool Interactive::checkUseConditions(Npc& npc) {
       }
 
     if(!useWithItem.empty()) {
-      size_t it = world.script().getSymbolIndex(useWithItem);
+      size_t it = world.script().findSymbolIndex(useWithItem);
       if(it!=size_t(-1) && npc.itemCount(it)==0) {
         sc.printMobMissingItem(npc);
         return false;
@@ -709,7 +709,7 @@ bool Interactive::attach(Npc& npc, Interactive::Pos& to) {
     return false;
 
   if(!useWithItem.empty()) {
-    size_t it = world.script().getSymbolIndex(useWithItem);
+    size_t it = world.script().findSymbolIndex(useWithItem);
     npc.setCurrentItem(it);
     }
 

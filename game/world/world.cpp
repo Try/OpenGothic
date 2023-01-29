@@ -515,7 +515,7 @@ bool World::isTargeted(Npc& npc) {
   }
 
 Npc *World::addNpc(std::string_view name, std::string_view at) {
-  size_t id = script().getSymbolIndex(name);
+  size_t id = script().findSymbolIndex(name);
   if(id==size_t(-1))
     return nullptr;
   return wobj.addNpc(id,at);

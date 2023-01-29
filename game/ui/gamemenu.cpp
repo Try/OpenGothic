@@ -1157,9 +1157,9 @@ void GameMenu::setPlayer(const Npc &pl) {
     return;
 
   auto& sc    = world->script();
-  auto* gilds = sc.getSymbol("TXT_GUILDS");
-  auto* tal   = sc.getSymbol("TXT_TALENTS");
-  auto* talV  = sc.getSymbol("TXT_TALENTS_SKILLS");
+  auto* gilds = sc.findSymbol("TXT_GUILDS");
+  auto* tal   = sc.findSymbol("TXT_TALENTS");
+  auto* talV  = sc.findSymbol("TXT_TALENTS_SKILLS");
 
   if(gilds==nullptr || tal==nullptr || talV==nullptr) {
     return;

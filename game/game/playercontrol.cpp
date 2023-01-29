@@ -875,7 +875,7 @@ void PlayerControl::implMoveMobsi(Npc& pl, uint64_t /*dt*/) {
 void PlayerControl::processPickLock(Npc& pl, Interactive& inter, KeyCodec::Action k) {
   auto         w             = Gothic::inst().world();
   auto&        script        = w->script();
-  const size_t ItKE_lockpick = script.getSymbolIndex("ItKE_lockpick");
+  const size_t ItKE_lockpick = script.findSymbolIndex("ItKE_lockpick");
 
   char ch = '\0';
   if(k==KeyCodec::Left || k==KeyCodec::RotateL)
