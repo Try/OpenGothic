@@ -42,7 +42,7 @@ class AiQueue {
 
     void     onWldItemRemoved(const Item& itm);
 
-    static AiAction aiLookAt(Npc* other);
+    static AiAction aiLookAtNpc(Npc* other);
     static AiAction aiStopLookAt();
     static AiAction aiRemoveWeapon();
     static AiAction aiTurnToNpc(Npc *other);

@@ -2549,7 +2549,7 @@ void GameScript::ai_lookatnpc(std::shared_ptr<phoenix::c_npc> selfRef, std::shar
   auto npc  = findNpc(npcRef);
   auto self = findNpc(selfRef);
   if(self!=nullptr)
-    self->aiPush(AiQueue::aiLookAt(npc));
+    self->aiPush(AiQueue::aiLookAtNpc(npc));
   }
 
 void GameScript::ai_removeweapon(std::shared_ptr<phoenix::c_npc> npcRef) {

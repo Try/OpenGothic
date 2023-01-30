@@ -289,7 +289,7 @@ enum ItmFlags : uint32_t {
 
 enum Action:uint32_t {
   AI_None  =0,
-  AI_LookAt,
+  AI_LookAtNpc,
   AI_StopLookAt,
   AI_RemoveWeapon,
   AI_TurnToNpc,
