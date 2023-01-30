@@ -1,5 +1,6 @@
 #include "packedmesh.h"
 
+#include <Tempest/Application>
 #include <Tempest/Log>
 #include <fstream>
 #include <algorithm>
@@ -13,34 +14,6 @@ using namespace Tempest;
 static uint64_t mkUInt64(uint32_t a, uint32_t b) {
   return (uint64_t(a)<<32) | uint64_t(b);
   };
-
-static bool isSame(const phoenix::material& a, const phoenix::material& b) {
-  if( a.name                         != b.name ||
-      a.group                        != b.group ||
-      a.color                        != b.color ||
-      a.smooth_angle                 != b.smooth_angle ||
-      a.texture                      != b.texture ||
-      a.texture_scale                != b.texture_scale ||
-      a.texture_anim_fps             != b.texture_anim_fps ||
-      a.texture_anim_map_mode        != b.texture_anim_map_mode ||
-      a.texture_anim_map_dir         != b.texture_anim_map_dir ||
-      a.disable_collision            != b.disable_collision ||
-      a.disable_lightmap             != b.disable_lightmap ||
-      a.dont_collapse                != b.dont_collapse ||
-      a.detail_object                != b.detail_object ||
-      a.detail_texture_scale         != b.detail_texture_scale ||
-      a.force_occluder               != b.force_occluder ||
-      a.environment_mapping          != b.environment_mapping ||
-      a.environment_mapping_strength != b.environment_mapping_strength ||
-      a.wave_mode                    != b.wave_mode ||
-      a.wave_speed                   != b.wave_speed ||
-      a.wave_max_amplitude           != b.wave_max_amplitude ||
-      a.wave_grid_size               != b.wave_grid_size ||
-      a.ignore_sun                   != b.ignore_sun ||
-      a.alpha_func                   != b.alpha_func)
-    return false;
-  return true;
-  }
 
 struct PackedMesh::PrimitiveHeap {
   using value_type = std::pair<uint64_t,uint32_t>;
@@ -73,10 +46,7 @@ struct PackedMesh::PrimitiveHeap {
     auto l = std::lower_bound(data.begin(), data.end(), v, [](const value_type& x, uint64_t v){
       return x.first<v;
       });
-    // auto r = std::upper_bound(data.begin(), data.end(), v, [](uint64_t v, const value_type& x){
-    //   return v<x.first;
-    //   });
-    auto r = l;
+    auto r = l++;
     while(r!=data.end()) {
       if(r->first>v)
         break;
@@ -368,7 +338,10 @@ void PackedMesh::Meshlet::merge(const Meshlet& other) {
 
 PackedMesh::PackedMesh(const phoenix::mesh& mesh, PkgType type) {
   if(type==PK_VisualLnd || type==PK_Visual) {
+    auto t = Application::tickCount();
     packMeshletsLnd(mesh);
+    t = Application::tickCount() - t;
+    Log::d("time = ", t);
     computeBbox();
     return;
     }
@@ -471,6 +444,8 @@ void PackedMesh::packPhysics(const phoenix::mesh& mesh, PkgType type) {
       subMeshes.emplace_back(std::move(sub));
     }
 
+  icache.reserve(ibo.size());
+  indices.reserve(ibo.size());
   for(size_t i=0; i<mat.size(); ++i) {
     auto& m = mat[i];
     if(m.disable_collision)
@@ -513,36 +488,14 @@ void PackedMesh::packMeshletsLnd(const phoenix::mesh& mesh) {
   auto& feat = mesh.polygons.feature_indices;
   auto& mat  = mesh.polygons.material_indices;
 
-  std::vector<size_t> duplicates(mesh.materials.size());
-  for(size_t i=0; i<mesh.materials.size(); ++i)
-    duplicates[i] = i;
-
-  if(!Gothic::inst().doMeshShading()) {
-    for(size_t i=0; i<mesh.materials.size(); ++i) {
-      if(duplicates[i]!=i)
-        continue;
-      duplicates[i] = i;
-      for(size_t r=i+1; r<mesh.materials.size(); ++r) {
-        auto& a = mesh.materials[i];
-        auto& b = mesh.materials[r];
-        if(!isSame(a,b))
-          continue;
-        duplicates[r] = i;
-        }
-      }
-    }
-
   PrimitiveHeap heap;
   heap.reserve(ibo.size()/3);
   std::vector<bool> used(ibo.size()/3,false);
 
   for(size_t mId=0; mId<mesh.materials.size(); ++mId) {
-    if(duplicates[mId]!=mId)
-      continue;
-
     heap.clear();
     for(size_t id=0; id<ibo.size(); id+=3) {
-      if(duplicates[size_t(mat[id/3u])]!=mId)
+      if(size_t(mat[id/3u])!=mId)
         continue;
       auto a = mkUInt64(ibo[id+0],feat[id+0]);
       auto b = mkUInt64(ibo[id+1],feat[id+1]);
@@ -619,69 +572,70 @@ std::vector<PackedMesh::Meshlet> PackedMesh::buildMeshlets(const phoenix::mesh* 
   std::fill(used.begin(), used.end(), false);
 
   size_t  firstUnused = 0;
+  size_t  firstVert   = 0;
   Meshlet active;
 
   std::vector<Meshlet> meshlets;
-  while(!heap.empty()) {
-    size_t id = size_t(-1);
+  while(true) {
+    size_t triId = size_t(-1);
 
-    for(size_t r=0; r<active.vertSz; ++r) {
+    for(size_t r=firstVert; r<active.vertSz; ++r) {
       auto i = active.vert[r];
       auto e = heap.equal_range(mkUInt64(i.first,i.second));
       for(auto it = e.first; it!=e.second; ++it) {
         if(used[it->second/3])
           continue;
-        id = it->second;
-        break;
+        triId = it->second/3;
+        if(!addTriangle(active,mesh,proto_mesh,triId))
+          break;
+        used[triId] = true;
         }
-      if(id!=size_t(-1))
-        break;
+      firstVert = r;
       }
 
-    if(id==size_t(-1)) {
-      if(active.indSz!=0 && active.vertSz>=MaxVert) {
-        meshlets.push_back(std::move(active));
-        active.clear();
-        }
+    if(triId==size_t(-1)) {
       for(auto i=heap.begin()+ptrdiff_t(firstUnused); i!=heap.end();) {
         if(used[i->second/3]) {
           ++i;
           continue;
           }
-        firstUnused = size_t(std::distance(heap.begin(),i));
-        id          = i->second;
+        firstUnused = size_t(std::distance(heap.begin(),i+1));
+        triId       = i->second/3;
         break;
         }
       }
 
-    if(id==size_t(-1)) {
-      if(active.indSz>0)
-        meshlets.push_back(std::move(active));
-      break;
+    if(triId!=size_t(-1) && addTriangle(active,mesh,proto_mesh,triId)) {
+      used[triId] = true;
+      continue;
       }
 
-    if(addTriangle(active,mesh,proto_mesh,id)) {
-      used[id/3] = true;
-      } else {
+    if(active.indSz!=0)
       meshlets.push_back(std::move(active));
-      active.clear();
-      }
+
+    if(triId==size_t(-1))
+      break;
+
+    active.clear();
+    firstVert = 0;
     }
+
   return meshlets;
   }
 
 bool PackedMesh::addTriangle(Meshlet& dest, const phoenix::mesh* mesh, const phoenix::sub_mesh* sm, size_t id) {
   if(mesh!=nullptr) {
-    auto& ibo  = mesh->polygons.vertex_indices;
-    auto& feat = mesh->polygons.feature_indices;
+    size_t id3  = id*3;
+    auto&  ibo  = mesh->polygons.vertex_indices;
+    auto&  feat = mesh->polygons.feature_indices;
 
-    auto a = std::make_pair(ibo[id+0],feat[id+0]);
-    auto b = std::make_pair(ibo[id+1],feat[id+1]);
-    auto c = std::make_pair(ibo[id+2],feat[id+2]);
+    auto a = std::make_pair(ibo[id3+0],feat[id3+0]);
+    auto b = std::make_pair(ibo[id3+1],feat[id3+1]);
+    auto c = std::make_pair(ibo[id3+2],feat[id3+2]);
     return dest.insert(a,b,c);
     }
 
-  const uint16_t* feat = sm->triangles[id/3].wedges;
+  const uint16_t* feat = sm->triangles[id].wedges;
   auto a = std::make_pair(sm->wedges[feat[0]].index, feat[0]);
   auto b = std::make_pair(sm->wedges[feat[1]].index, feat[1]);
   auto c = std::make_pair(sm->wedges[feat[2]].index, feat[2]);
