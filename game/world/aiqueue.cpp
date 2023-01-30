@@ -72,6 +72,13 @@ void AiQueue::onWldItemRemoved(const Item& itm) {
       i.item = nullptr;
   }
 
+AiQueue::AiAction AiQueue::aiLookAt(const WayPoint* to) {
+  AiAction a;
+  a.act    = AI_LookAt;
+  a.point = to;
+  return a;
+  }
+
 AiQueue::AiAction AiQueue::aiLookAtNpc(Npc* other) {
   AiAction a;
   a.act    = AI_LookAtNpc;

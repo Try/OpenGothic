@@ -455,6 +455,7 @@ class Npc final {
     gtime     endTime(const Routine& r) const;
 
     bool      implPointAt(const Tempest::Vec3& to);
+    bool      implLookAtWp(uint64_t dt);
     bool      implLookAtNpc(uint64_t dt);
     bool      implLookAt (float dx, float dy, float dz, uint64_t dt);
     bool      implTurnTo (const Npc& oth, uint64_t dt);
@@ -571,7 +572,7 @@ class Npc final {
     Npc*                           currentOther   =nullptr;
     Npc*                           currentVictum  =nullptr;
 
-    WayPoint*                      currentLookAt=nullptr;
+    const WayPoint*                currentLookAt=nullptr;
     Npc*                           currentLookAtNpc=nullptr;
     Npc*                           currentTarget  =nullptr;
     Npc*                           nearestEnemy   =nullptr;

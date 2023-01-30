@@ -1224,6 +1224,13 @@ bool Npc::implPointAt(const Tempest::Vec3& to) {
   return (setAnimAngGet(Npc::Anim::PointAt,comb)!=nullptr);
   }
 
+bool Npc::implLookAtWp(uint64_t dt) {
+  if(currentLookAt==nullptr)
+    return false;
+  auto dvec = currentLookAt->position();
+  return implLookAt(dvec.x,dvec.y,dvec.z,dt);
+}
+
 bool Npc::implLookAtNpc(uint64_t dt) {
   if(currentLookAtNpc==nullptr)
     return false;
@@ -1988,7 +1995,8 @@ void Npc::tick(uint64_t dt) {
     }
 
   if(!isDown()) {
-    implLookAtNpc(dt);
+      implLookAtNpc(dt);
+      implLookAtWp(dt);
 
     if(implAtack(dt))
       return;
@@ -2011,7 +2019,13 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
   switch(act.act) {
     case AI_None: break;
     case AI_LookAtNpc:{
+      currentLookAt=nullptr;
       currentLookAtNpc=act.target;
+      break;
+      }
+    case AI_LookAt:{
+      currentLookAtNpc=nullptr;
+      currentLookAt=act.point;
       break;
       }
     case AI_TurnToNpc: {
@@ -2073,6 +2087,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
       }
     case AI_StopLookAt:
+      currentLookAtNpc=nullptr;
       currentLookAt=nullptr;
       visual.setHeadRotation(0,0);
       break;
