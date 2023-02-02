@@ -201,7 +201,7 @@ void Npc::save(Serialize &fout, size_t id) {
   saveAiState(fout);
 
   fout.write(currentInteract,currentOther,currentVictum);
-  fout.write(currentLookAt,currentTarget,nearestEnemy);
+  fout.write(currentLookAtNpc,currentTarget,nearestEnemy);
 
   go2.save(fout);
   fout.write(currentFp,currentFpLock);
