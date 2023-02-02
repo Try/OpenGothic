@@ -33,7 +33,7 @@ class SaveGameHeader;
 class Serialize {
   public:
     enum Version : uint16_t {
-      Current = 41
+      Current = 42
       };
     Serialize(Tempest::ODevice& fout);
     Serialize(Tempest::IDevice&  fin);

@@ -202,6 +202,7 @@ void Npc::save(Serialize &fout, size_t id) {
 
   fout.write(currentInteract,currentOther,currentVictum);
   fout.write(currentLookAtNpc,currentTarget,nearestEnemy);
+  fout.write(currentLookAt);
 
   go2.save(fout);
   fout.write(currentFp,currentFpLock);
@@ -258,6 +259,9 @@ void Npc::load(Serialize &fin, size_t id) {
 
   fin.read(currentInteract,currentOther,currentVictum);
   fin.read(currentLookAtNpc,currentTarget,nearestEnemy);
+  if (fin.version()>42) {
+    fin.read(currentLookAt);
+  }
 
   go2.load(fin);
   fin.read(currentFp,currentFpLock);
@@ -1995,8 +1999,8 @@ void Npc::tick(uint64_t dt) {
     }
 
   if(!isDown()) {
-      implLookAtNpc(dt);
-      implLookAtWp(dt);
+    implLookAtNpc(dt);
+    implLookAtWp(dt);
 
     if(implAtack(dt))
       return;
