@@ -248,8 +248,7 @@ bool Marvin::exec(std::string_view v) {
       if(Gothic::inst().isGodMode()) {
         Gothic::inst().setGodMode(false);
         Gothic::inst().onPrintScreen("Godmode off",2,4,1,fnt);
-        }
-      else {
+        } else {
         Gothic::inst().setGodMode(true);
         Gothic::inst().onPrintScreen("Godmode on",2,4,1,fnt);
         }
