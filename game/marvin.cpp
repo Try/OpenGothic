@@ -277,8 +277,8 @@ bool Marvin::exec(std::string_view v) {
       Npc* player = Gothic::inst().player();
       if(player==nullptr || !player->setInteraction(nullptr))
         return false;
-      float c[3];
-      for(int i=0;i<3;++i) {
+      float c[3] = {};
+      for(int i=0; i<3; ++i) {
         auto err = std::from_chars(ret.argv[i].data(),ret.argv[i].data()+ret.argv[i].size(),c[i]).ec;
         if(err!=std::errc())
           return false;
