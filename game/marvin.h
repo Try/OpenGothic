@@ -27,11 +27,17 @@ class Marvin {
       C_ToggleFrame,
       // npc
       C_CheatFull,
+      C_CheatGod,
+      C_Kill,
       // camera
       C_CamAutoswitch,
       C_CamMode,
       C_ToggleCamDebug,
       C_ToggleCamera,
+
+      C_AiGoTo,
+      C_GoToPos,
+      C_GoToWayPoint,
 
       C_SetTime,
 

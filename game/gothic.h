@@ -86,6 +86,9 @@ class Gothic final {
     bool         isMarvinEnabled() const;
     void         setMarvinEnabled(bool m);
 
+    bool         isGodMode() const { return godMode; }
+    void         setGodMode(bool g) { godMode = g; }
+
     bool         doHideFocus () const { return hideFocus; }
     bool         doFrate() const { return showFpsCounter; }
     void         setFRate(bool f) { showFpsCounter = f; }
@@ -160,6 +163,7 @@ class Gothic final {
     std::mt19937                            randGen;
     uint16_t                                pauseSum=0;
     bool                                    isMarvin       = false;
+    bool                                    godMode        = false;
     bool                                    showFpsCounter = false;
     bool                                    hideFocus      = false;
     bool                                    isMeshSh       = false;
