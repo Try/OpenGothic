@@ -201,8 +201,7 @@ void Npc::save(Serialize &fout, size_t id) {
   saveAiState(fout);
 
   fout.write(currentInteract,currentOther,currentVictum);
-  fout.write(currentLookAtNpc,currentTarget,nearestEnemy);
-  fout.write(currentLookAt);
+  fout.write(currentLookAt,currentLookAtNpc,currentTarget,nearestEnemy);
 
   go2.save(fout);
   fout.write(currentFp,currentFpLock);
@@ -258,10 +257,9 @@ void Npc::load(Serialize &fin, size_t id) {
   loadAiState(fin);
 
   fin.read(currentInteract,currentOther,currentVictum);
-  fin.read(currentLookAtNpc,currentTarget,nearestEnemy);
-  if (fin.version()>42) {
+  if(fin.version()>42)
     fin.read(currentLookAt);
-  }
+  fin.read(currentLookAtNpc,currentTarget,nearestEnemy);
 
   go2.load(fin);
   fin.read(currentFp,currentFpLock);
@@ -1233,7 +1231,7 @@ bool Npc::implLookAtWp(uint64_t dt) {
     return false;
   auto dvec = currentLookAt->position();
   return implLookAt(dvec.x,dvec.y,dvec.z,dt);
-}
+  }
 
 bool Npc::implLookAtNpc(uint64_t dt) {
   if(currentLookAtNpc==nullptr)
