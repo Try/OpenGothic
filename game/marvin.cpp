@@ -244,12 +244,15 @@ bool Marvin::exec(std::string_view v) {
       return true;
       }
     case C_CheatGod: {
-      Gothic::inst().setGodMode();
       auto& fnt = Resources::font();
-      if(Gothic::inst().isGodMode())
-        Gothic::inst().onPrintScreen("Godmode on",2,4,1,fnt);
-      else
+      if(Gothic::inst().isGodMode()) {
+        Gothic::inst().setGodMode(false);
         Gothic::inst().onPrintScreen("Godmode off",2,4,1,fnt);
+        }
+      else {
+        Gothic::inst().setGodMode(true);
+        Gothic::inst().onPrintScreen("Godmode on",2,4,1,fnt);
+        }
       return true;
       }
     case C_Kill: {
@@ -275,17 +278,14 @@ bool Marvin::exec(std::string_view v) {
       Npc* player = Gothic::inst().player();
       if(player==nullptr || !player->setInteraction(nullptr))
         return false;
-      float x,y,z;
-      try {
-        x = std::stof(ret.argv[0].data());
-        y = std::stof(ret.argv[1].data());
-        z = std::stof(ret.argv[2].data());
+      float c[3];
+      for(int i=0;i<3;++i) {
+        auto err = std::from_chars(ret.argv[i].data(),ret.argv[i].data()+ret.argv[i].size(),c[i]).ec;
+        if(err!=std::errc())
+          return false;
         }
-      catch(...) {
-        return false;
-        }
-      player->setPosition(x,y,z);
-      player->setDirection(x,y,z);
+      player->setPosition(c[0],c[1],c[2]);
+      player->setDirection(c[0],c[1],c[2]);
       player->updateTransform();
       Gothic::inst().camera()->reset(player);
       return true;
@@ -295,11 +295,11 @@ bool Marvin::exec(std::string_view v) {
       Npc*   player = Gothic::inst().player();
       if(world==nullptr || player==nullptr || !player->setInteraction(nullptr))
         return false;
-      auto wayPoint = world->findPoint(ret.argv[0]);
-      if(wayPoint==nullptr)
+      auto wpoint = world->findPoint(ret.argv[0]);
+      if(wpoint==nullptr)
         return false;
-      player->setPosition(wayPoint->x,wayPoint->y,wayPoint->z);
-      player->setDirection(wayPoint->x,wayPoint->y,wayPoint->z);
+      player->setPosition(wpoint->x,wpoint->y,wpoint->z);
+      player->setDirection(wpoint->x,wpoint->y,wpoint->z);
       player->updateTransform();
       Gothic::inst().camera()->reset(player);
       return true;

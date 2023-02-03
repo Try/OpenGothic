@@ -86,8 +86,8 @@ class Gothic final {
     bool         isMarvinEnabled() const;
     void         setMarvinEnabled(bool m);
 
-    bool         isGodMode() const {return godMode; }
-    void         setGodMode() { godMode = !godMode; }
+    bool         isGodMode() const { return godMode; }
+    void         setGodMode(bool g) { godMode = g; }
 
     bool         doHideFocus () const { return hideFocus; }
     bool         doFrate() const { return showFpsCounter; }
