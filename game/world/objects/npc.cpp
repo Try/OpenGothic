@@ -201,7 +201,7 @@ void Npc::save(Serialize &fout, size_t id) {
   saveAiState(fout);
 
   fout.write(currentInteract,currentOther,currentVictum);
-  fout.write(currentLookAt,currentTarget,nearestEnemy);
+  fout.write(currentLookAt,currentLookAtNpc,currentTarget,nearestEnemy);
 
   go2.save(fout);
   fout.write(currentFp,currentFpLock);
@@ -257,7 +257,9 @@ void Npc::load(Serialize &fin, size_t id) {
   loadAiState(fin);
 
   fin.read(currentInteract,currentOther,currentVictum);
-  fin.read(currentLookAt,currentTarget,nearestEnemy);
+  if(fin.version()>=42)
+    fin.read(currentLookAt);
+  fin.read(currentLookAtNpc,currentTarget,nearestEnemy);
 
   go2.load(fin);
   fin.read(currentFp,currentFpLock);
@@ -677,7 +679,7 @@ Vec3 Npc::centerPosition() const {
   }
 
 Npc *Npc::lookAtTarget() const {
-  return currentLookAt;
+  return currentLookAtNpc;
   }
 
 std::string_view Npc::portalName() {
@@ -1224,11 +1226,18 @@ bool Npc::implPointAt(const Tempest::Vec3& to) {
   return (setAnimAngGet(Npc::Anim::PointAt,comb)!=nullptr);
   }
 
-bool Npc::implLookAt(uint64_t dt) {
+bool Npc::implLookAtWp(uint64_t dt) {
   if(currentLookAt==nullptr)
     return false;
+  auto dvec = currentLookAt->position();
+  return implLookAt(dvec.x,dvec.y,dvec.z,dt);
+  }
+
+bool Npc::implLookAtNpc(uint64_t dt) {
+  if(currentLookAtNpc==nullptr)
+    return false;
   auto selfHead  = visual.mapHeadBone();
-  auto otherHead = currentLookAt->visual.mapHeadBone();
+  auto otherHead = currentLookAtNpc->visual.mapHeadBone();
   auto dvec = otherHead - selfHead;
   return implLookAt(dvec.x,dvec.y,dvec.z,dt);
   }
@@ -1988,7 +1997,8 @@ void Npc::tick(uint64_t dt) {
     }
 
   if(!isDown()) {
-    implLookAt(dt);
+    implLookAtNpc(dt);
+    implLookAtWp(dt);
 
     if(implAtack(dt))
       return;
@@ -2010,8 +2020,14 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
   auto act = queue.pop();
   switch(act.act) {
     case AI_None: break;
+    case AI_LookAtNpc:{
+      currentLookAt=nullptr;
+      currentLookAtNpc=act.target;
+      break;
+      }
     case AI_LookAt:{
-      currentLookAt=act.target;
+      currentLookAtNpc=nullptr;
+      currentLookAt=act.point;
       break;
       }
     case AI_TurnToNpc: {
@@ -2073,6 +2089,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
       }
     case AI_StopLookAt:
+      currentLookAtNpc=nullptr;
       currentLookAt=nullptr;
       visual.setHeadRotation(0,0);
       break;

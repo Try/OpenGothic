@@ -341,6 +341,7 @@ class GameScript final {
     void ai_standupquick     (std::shared_ptr<phoenix::c_npc> selfRef);
     void ai_continueroutine  (std::shared_ptr<phoenix::c_npc> selfRef);
     void ai_stoplookat       (std::shared_ptr<phoenix::c_npc> selfRef);
+    void ai_lookat           (std::shared_ptr<phoenix::c_npc> selfRef, std::string_view waypoint);
     void ai_lookatnpc        (std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> npcRef);
     void ai_removeweapon     (std::shared_ptr<phoenix::c_npc> npcRef);
     void ai_turntonpc        (std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> npcRef);

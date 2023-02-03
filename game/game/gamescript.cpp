@@ -209,6 +209,7 @@ void GameScript::initCommon() {
   bindExternal("ai_standupquick",                &GameScript::ai_standupquick);
   bindExternal("ai_continueroutine",             &GameScript::ai_continueroutine);
   bindExternal("ai_stoplookat",                  &GameScript::ai_stoplookat);
+  bindExternal("ai_lookat",                      &GameScript::ai_lookat);
   bindExternal("ai_lookatnpc",                   &GameScript::ai_lookatnpc);
   bindExternal("ai_removeweapon",                &GameScript::ai_removeweapon);
   bindExternal("ai_turntonpc",                   &GameScript::ai_turntonpc);
@@ -2545,11 +2546,18 @@ void GameScript::ai_stoplookat(std::shared_ptr<phoenix::c_npc> selfRef) {
     self->aiPush(AiQueue::aiStopLookAt());
   }
 
+void GameScript::ai_lookat(std::shared_ptr<phoenix::c_npc> selfRef, std::string_view waypoint) {
+  auto self = findNpc(selfRef);
+  auto to  = world().findPoint(waypoint);
+  if(self!=nullptr)
+    self->aiPush(AiQueue::aiLookAt(to));
+  }
+
 void GameScript::ai_lookatnpc(std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> npcRef) {
   auto npc  = findNpc(npcRef);
   auto self = findNpc(selfRef);
   if(self!=nullptr)
-    self->aiPush(AiQueue::aiLookAt(npc));
+    self->aiPush(AiQueue::aiLookAtNpc(npc));
   }
 
 void GameScript::ai_removeweapon(std::shared_ptr<phoenix::c_npc> npcRef) {

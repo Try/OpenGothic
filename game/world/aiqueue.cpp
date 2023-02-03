@@ -36,7 +36,7 @@ void AiQueue::clear() {
 
 void AiQueue::pushBack(AiAction&& a) {
   if(aiActions.size()>0) {
-    if(aiActions.back().act==AI_LookAt && a.act==AI_LookAt) {
+    if(aiActions.back().act==AI_LookAtNpc && a.act==AI_LookAtNpc) {
       aiActions.back() = a;
       return;
       }
@@ -72,9 +72,16 @@ void AiQueue::onWldItemRemoved(const Item& itm) {
       i.item = nullptr;
   }
 
-AiQueue::AiAction AiQueue::aiLookAt(Npc* other) {
+AiQueue::AiAction AiQueue::aiLookAt(const WayPoint* to) {
   AiAction a;
   a.act    = AI_LookAt;
+  a.point = to;
+  return a;
+  }
+
+AiQueue::AiAction AiQueue::aiLookAtNpc(Npc* other) {
+  AiAction a;
+  a.act    = AI_LookAtNpc;
   a.target = other;
   return a;
   }
