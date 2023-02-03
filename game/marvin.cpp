@@ -277,14 +277,13 @@ bool Marvin::exec(std::string_view v) {
       Npc* player = Gothic::inst().player();
       if(player==nullptr || !player->setInteraction(nullptr))
         return false;
-      float c[3] = {};
+      int c[3] = {};
       for(int i=0; i<3; ++i) {
         auto err = std::from_chars(ret.argv[i].data(),ret.argv[i].data()+ret.argv[i].size(),c[i]).ec;
         if(err!=std::errc())
           return false;
         }
-      player->setPosition(c[0],c[1],c[2]);
-      player->setDirection(c[0],c[1],c[2]);
+      player->setPosition(float(c[0]),float(c[1]),float(c[2]));
       player->updateTransform();
       Gothic::inst().camera()->reset(player);
       return true;
@@ -298,7 +297,6 @@ bool Marvin::exec(std::string_view v) {
       if(wpoint==nullptr)
         return false;
       player->setPosition(wpoint->x,wpoint->y,wpoint->z);
-      player->setDirection(wpoint->x,wpoint->y,wpoint->z);
       player->updateTransform();
       Gothic::inst().camera()->reset(player);
       return true;
