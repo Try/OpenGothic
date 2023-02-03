@@ -257,7 +257,7 @@ void Npc::load(Serialize &fin, size_t id) {
   loadAiState(fin);
 
   fin.read(currentInteract,currentOther,currentVictum);
-  if(fin.version()>42)
+  if(fin.version()>=42)
     fin.read(currentLookAt);
   fin.read(currentLookAtNpc,currentTarget,nearestEnemy);
 
