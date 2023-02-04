@@ -541,7 +541,7 @@ void PlayerControl::implMove(uint64_t dt) {
   float rotY     = pl.rotationY();
   float rspeed   = (pl.weaponState()==WeaponState::NoWeapon ? 90.f : 180.f)*(float(dt)/1000.f);
   auto  ws       = pl.weaponState();
-  bool  allowRot = !(pl.isPrehit() || pl.isFinishingMove() || pl.bodyStateMasked()==BS_CLIMB);
+  bool  allowRot = !(pl.isPrehit() || pl.isFinishingMove() || pl.bodyStateMasked()==BS_CLIMB || ctrl[KeyCodec::ActionGeneric]);
 
   Npc::Anim ani = Npc::Anim::Idle;
 
