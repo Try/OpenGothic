@@ -338,10 +338,7 @@ void PackedMesh::Meshlet::merge(const Meshlet& other) {
 
 PackedMesh::PackedMesh(const phoenix::mesh& mesh, PkgType type) {
   if(type==PK_VisualLnd || type==PK_Visual) {
-    auto t = Application::tickCount();
     packMeshletsLnd(mesh);
-    t = Application::tickCount() - t;
-    Log::d("time = ", t);
     computeBbox();
     return;
     }
@@ -590,7 +587,7 @@ std::vector<PackedMesh::Meshlet> PackedMesh::buildMeshlets(const phoenix::mesh* 
           break;
         used[triId] = true;
         }
-      firstVert = r;
+      firstVert = r+1;
       }
 
     if(triId==size_t(-1)) {

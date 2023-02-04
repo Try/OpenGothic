@@ -75,6 +75,5 @@ void main() {
   vec3  ambient = ubo.ambient;
 
   // outColor = vec4(1-occ);
-  //outColor = vec4(lbuf.rgb - clr*ambient*occ, lbuf.a);
   outColor = vec4(lbuf.rgb - clr*ambient*occ, lbuf.a);
   }
