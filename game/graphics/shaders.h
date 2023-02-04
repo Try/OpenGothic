@@ -24,7 +24,7 @@ class Shaders {
 
     // Scalable and Production Ready Sky and Atmosphere
     Tempest::RenderPipeline  skyTransmittance, skyMultiScattering;
-    Tempest::RenderPipeline  skyViewLut, sky, sky3d;
+    Tempest::RenderPipeline  skyViewLut, sky;
     Tempest::RenderPipeline  fogViewLut, fog, fog3d;
     Tempest::ComputePipeline cloudsLut;
     Tempest::ComputePipeline fogViewLut3D, shadowDownsample;

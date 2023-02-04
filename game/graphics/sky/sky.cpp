@@ -80,11 +80,12 @@ void Sky::setupSettings() {
   //fogLut3D = device.image3d(lutFormat,160,90,512);
 
   //fogLut3D = device.image3d(lutFormat,320,176,32);
-  fogLut3D    = device.image3d(lutRGBAFormat,320,176,64);
+  //fogLut3D    = device.image3d(lutRGBAFormat,320,176,64);
+  fogLut3D    = device.image3d(lutRGBAFormat,160,90,128);
 
   //shadowDw = device.image2d(TextureFormat::R32F,320, 32*16);
   //shadowDw = device.image2d(TextureFormat::R16, 256, 256);
-  shadowDw = device.image2d(TextureFormat::R16, 512, 256);
+  shadowDw = device.image2d(TextureFormat::R16, 1024, 256);
   setupUbo();
   }
 
@@ -203,33 +204,30 @@ void Sky::setupUbo() {
   uboSky.set(6,*night.lay[0].texture,smp);
   uboSky.set(7,*night.lay[1].texture,smp);
 
-  uboFog = device.descriptors(Shaders::inst().fog);
-  uboFog.set(0, transLut,       smpB);
-  uboFog.set(1, multiScatLut,   smpB);
-  uboFog.set(2, fogLut,         smpB);
-  //uboFog.set(3, fogLut3D,       smpB);
-  uboFog.set(4, *scene.zbuffer, Sampler::nearest()); // NOTE: wanna here depthFetch from gles2
+  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
+    uboFog[i] = device.descriptors(Shaders::inst().fog);
+    uboFog[i].set(0, transLut,       smpB);
+    uboFog[i].set(1, multiScatLut,   smpB);
+    uboFog[i].set(2, fogLut,         smpB);
+    uboFog[i].set(3, *scene.zbuffer, Sampler::nearest()); // NOTE: wanna here depthFetch from gles2
+    uboFog[i].set(4, scene.uboGlobalPf[i][SceneGlobals::V_Main]);
+    uboFog[i].set(5, cloudsLut,      smpB);
 
-  if(zFogRadial) {
-    auto smpLut3d = Sampler::bilinear();
-    smpLut3d.setClamping(ClampMode::ClampToEdge);
+    if(zFogRadial) {
+      auto smpLut3d = Sampler::bilinear();
+      smpLut3d.setClamping(ClampMode::ClampToEdge);
 
-    uboSky3d = device.descriptors(Shaders::inst().sky3d);
-    uboSky3d.set(0, transLut,       smpB);
-    uboSky3d.set(1, multiScatLut,   smpB);
-    uboSky3d.set(2, viewLut,        smpB);
-    uboSky3d.set(3, fogLut3D,       smpLut3d);
-    uboSky3d.set(4,*day  .lay[0].texture,smp);
-    uboSky3d.set(5,*day  .lay[1].texture,smp);
-    uboSky3d.set(6,*night.lay[0].texture,smp);
-    uboSky3d.set(7,*night.lay[1].texture,smp);
-
-    uboFog3d = device.descriptors(Shaders::inst().fog3d);
-    uboFog3d.set(0, transLut,       smpB);
-    uboFog3d.set(1, multiScatLut,   smpB);
-    uboFog3d.set(2, fogLut,         smpB);
-    uboFog3d.set(3, fogLut3D,       smpB);
-    uboFog3d.set(4, *scene.zbuffer, Sampler::nearest());
+      uboFog3d[i] = device.descriptors(Shaders::inst().fog3d);
+      uboFog3d[i].set(0, transLut,       smpB);
+      uboFog3d[i].set(1, multiScatLut,   smpB);
+      uboFog3d[i].set(2, fogLut,         smpB);
+      uboFog3d[i].set(3, *scene.zbuffer, Sampler::nearest());
+      uboFog3d[i].set(4, scene.uboGlobalPf[i][SceneGlobals::V_Main]);
+      uboFog3d[i].set(5, cloudsLut,      smpB);
+      uboFog3d[i].set(6, fogLut3D,       smpB);
+      uboFog3d[i].set(7, *scene.shadowMap[1], Resources::shadowSampler());
+      // uboFog3d[i].set(7, shadowDw);
+      }
     }
   }
 
@@ -264,8 +262,8 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
 
   if(zFogRadial) {
     cmd.setFramebuffer({});
-    cmd.setUniforms(Shaders::inst().shadowDownsample, uboShadowDw);
-    cmd.dispatchThreads(uint32_t(shadowDw.w()),uint32_t(shadowDw.h()));
+    // cmd.setUniforms(Shaders::inst().shadowDownsample, uboShadowDw);
+    // cmd.dispatchThreads(uint32_t(shadowDw.w()),uint32_t(shadowDw.h()));
 
     cmd.setUniforms(Shaders::inst().fogViewLut3D,    uboFogViewLut3d[frameId], &ubo, sizeof(ubo));
     cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
@@ -289,17 +287,15 @@ void Sky::drawSky(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
   auto len2 = (ubo.clipInfo.x / (ubo.clipInfo.y * 1.0 + ubo.clipInfo.z));
   (void)len2;
 
-  if(zFogRadial)
-    cmd.setUniforms(Shaders::inst().sky3d, uboSky3d, &ubo, sizeof(ubo)); else
-    cmd.setUniforms(Shaders::inst().sky,   uboSky,   &ubo, sizeof(ubo));
+  cmd.setUniforms(Shaders::inst().sky, uboSky, &ubo, sizeof(ubo));
   cmd.draw(Resources::fsqVbo());
   }
 
 void Sky::drawFog(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
   UboSky ubo = mkPush();
   if(zFogRadial)
-    cmd.setUniforms(Shaders::inst().fog3d, uboFog3d, &ubo, sizeof(ubo));  else
-    cmd.setUniforms(Shaders::inst().fog,   uboFog,   &ubo, sizeof(ubo));
+    cmd.setUniforms(Shaders::inst().fog3d, uboFog3d[fId], &ubo, sizeof(ubo));  else
+    cmd.setUniforms(Shaders::inst().fog,   uboFog[fId],   &ubo, sizeof(ubo));
   cmd.draw(Resources::fsqVbo());
   }
 
@@ -324,8 +320,6 @@ Sky::UboSky Sky::mkPush() {
   ubo.viewProjectInv = scene.proj;
   ubo.viewProjectInv.mul(v);
   ubo.viewProjectInv.inverse();
-
-  //ubo.shadow1 = scene.shadowView(1);
 
   auto ticks = scene.tickCount;
   auto t0 = float(ticks%90000 )/90000.f;

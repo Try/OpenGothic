@@ -96,7 +96,6 @@ Shaders::Shaders() {
 
   sky                = postEffect("sky");
   fog                = fogShader ("fog");
-  sky3d              = postEffect("sky3d");
   fog3d              = fogShader ("fog3d");
 
   {

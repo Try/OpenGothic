@@ -199,11 +199,6 @@ void main(void) {
       shadow = 0;
 
     const vec4 wpos = worldPos(d);
-    if(isATest) {
-      // bias to avoid self-shadow on grass
-      // wpos.xyz += 16.0*(scene.sunDir*wpos.w);
-      }
-
     shadow = calcShadow(wpos,(isATest ? 16 : -2));
 #if defined(RAY_QUERY)
     if(shadow>0.01)

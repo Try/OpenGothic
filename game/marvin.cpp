@@ -297,6 +297,7 @@ bool Marvin::exec(std::string_view v) {
       if(wpoint==nullptr)
         return false;
       player->setPosition(wpoint->x,wpoint->y,wpoint->z);
+      player->setDirection(wpoint->x,wpoint->y,wpoint->z);
       player->updateTransform();
       Gothic::inst().camera()->reset(player);
       return true;
