@@ -93,6 +93,9 @@ class Gothic final {
     bool         doFrate() const { return showFpsCounter; }
     void         setFRate(bool f) { showFpsCounter = f; }
 
+    bool         doClock() const { return showTime; }
+    void         setClock(bool t) { showTime = t; }
+
     bool         doRayQuery() const;
     bool         doMeshShading() const;
 
@@ -165,6 +168,7 @@ class Gothic final {
     bool                                    isMarvin       = false;
     bool                                    godMode        = false;
     bool                                    showFpsCounter = false;
+    bool                                    showTime       = false;
     bool                                    hideFocus      = false;
     bool                                    isMeshSh       = false;
     std::string                             wrldDef, plDef;

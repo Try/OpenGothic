@@ -486,21 +486,24 @@ bool PlayerControl::tickMove(uint64_t dt) {
 
   Npc*  pl     = w->player();
   auto  camera = Gothic::inst().camera();
-  if(pl==nullptr) {
-    if(camera==nullptr)
-      return false;
+
+  if(camera!=nullptr && camera->isFree()) {
+    if(ctrl[KeyCodec::Left] || (ctrl[KeyCodec::RotateL] && ctrl[KeyCodec::Jump])) {
+      camera->moveLeft(dt);
+      return true;
+      }
+    if(ctrl[KeyCodec::Right] || (ctrl[KeyCodec::RotateR] && ctrl[KeyCodec::Jump])) {
+      camera->moveRight(dt);
+      return true;
+      }
     if(ctrl[KeyCodec::RotateL])
-      camera->rotateLeft();
+      camera->rotateLeft(dt);
     if(ctrl[KeyCodec::RotateR])
-      camera->rotateRight();
-    if(ctrl[KeyCodec::Left])
-      camera->moveLeft();
-    if(ctrl[KeyCodec::Right])
-      camera->moveRight();
+      camera->rotateRight(dt);
     if(ctrl[KeyCodec::Forward])
-      camera->moveForward();
+      camera->moveForward(dt);
     if(ctrl[KeyCodec::Back])
-      camera->moveBack();
+      camera->moveBack(dt);
     return true;
     }
 

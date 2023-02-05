@@ -98,7 +98,7 @@ Marvin::Marvin() {
     {"toggle desktop",             C_Invalid},
     {"toggle freepoints",          C_Invalid},
     {"toggle screen",              C_Invalid},
-    {"toggle time",                C_Invalid},
+    {"toggle time",                C_ToggleTime},
     {"toggle wayboxes",            C_Invalid},
     {"toggle waynet",              C_Invalid},
     {"version",                    C_Invalid},
@@ -303,6 +303,10 @@ bool Marvin::exec(std::string_view v) {
       }
     case C_ToggleFrame:{
       Gothic::inst().setFRate(!Gothic::inst().doFrate());
+      return true;
+      }
+    case C_ToggleTime:{
+      Gothic::inst().setClock(!Gothic::inst().doClock());
       return true;
       }
     case C_CamAutoswitch:

@@ -25,6 +25,7 @@ class Marvin {
 
       // rendering
       C_ToggleFrame,
+      C_ToggleTime,
       // npc
       C_CheatFull,
       C_CheatGod,

@@ -46,13 +46,13 @@ class Camera final {
     void changeZoom(int delta);
     void setViewport(uint32_t w, uint32_t h);
 
-    void rotateLeft ();
-    void rotateRight();
+    void rotateLeft(u_int64_t dt);
+    void rotateRight(u_int64_t dt);
 
-    void moveForward();
-    void moveBack();
-    void moveLeft();
-    void moveRight();
+    void moveForward(u_int64_t dt);
+    void moveBack(u_int64_t dt);
+    void moveLeft(u_int64_t dt);
+    void moveRight(u_int64_t dt);
 
     void setMode(Mode m);
     void setToggleEnable(bool e);
@@ -62,6 +62,15 @@ class Camera final {
     bool isFirstPerson() const;
 
     void setLookBack(bool lb);
+
+    void setFreeze(bool f);
+    bool isFreeze() const;
+
+    void setFree(bool f);
+    bool isFree() const;
+
+    void setFixed(bool f);
+    bool isFixed() const;
 
     void toggleDebug();
 
@@ -98,10 +107,11 @@ class Camera final {
       Tempest::Vec3       target = {};
       };
 
-    Tempest::Vec3         cameraPos = {};
-    Tempest::Vec3         origin    = {};
-    Tempest::Vec3         rotOffset = {};
-    Tempest::Vec3         offsetAng = {};
+    Tempest::Vec3         cameraPos    = {};
+    Tempest::Vec3         cameraOffset = {};
+    Tempest::Vec3         origin       = {};
+    Tempest::Vec3         rotOffset    = {};
+    Tempest::Vec3         offsetAng    = {};
     State                 src, dst;
 
     float                 dlgDist   = 0;
@@ -115,6 +125,9 @@ class Camera final {
     bool                  tgEnable      = true;
     bool                  fpEnable      = false;
     bool                  lbEnable      = false;
+    bool                  freezeCam     = false;
+    bool                  freeCam       = false;
+    bool                  fixedCam      = false;
     bool                  inertiaTarget = true;
     Mode                  camMod        = Normal;
 
@@ -130,7 +143,7 @@ class Camera final {
     Tempest::Vec3         calcOffsetAngles(Tempest::Vec3 srcOrigin, Tempest::Vec3 dstOrigin, Tempest::Vec3 target) const;
     float                 calcCameraColision(const Tempest::Vec3& target, const Tempest::Vec3& origin, const Tempest::Vec3& rotSpin, float dist) const;
 
-    void                  implMove(Tempest::KeyEvent::KeyType t);
+    void                  implMove(Tempest::KeyEvent::KeyType t, u_int64_t dt);
     Tempest::Matrix4x4    mkView    (const Tempest::Vec3& pos, const Tempest::Vec3& spin) const;
     Tempest::Matrix4x4    mkRotation(const Tempest::Vec3& spin) const;
     void                  resetDst();

@@ -45,13 +45,18 @@ void Camera::reset() {
 
 void Camera::reset(const Npc* pl) {
   const auto& def = cameraDef();
-  dst.range  = userRange*(def.max_range-def.min_range)+def.min_range;
-  dst.target = pl ? pl->cameraBone() : Vec3();
+  dst.range    = userRange*(def.max_range-def.min_range)+def.min_range;
+  dst.target   = pl ? pl->cameraBone() : Vec3();
 
-  dst.spin.x = def.best_elevation;
-  dst.spin.y = pl ? pl->rotation() : 0;
+  dst.spin.x   = def.best_elevation;
+  dst.spin.y   = pl ? pl->rotation() : 0;
 
-  src.spin   = dst.spin;
+  src.spin     = dst.spin;
+
+  cameraOffset = Vec3();
+  fixedCam     = false;
+  freezeCam    = false;
+  freeCam      = false;
 
   calcControlPoints(-1.f);
   }
@@ -84,28 +89,28 @@ void Camera::setViewport(uint32_t w, uint32_t h) {
   vpHeight = h;
   }
 
-void Camera::rotateLeft() {
-  implMove(KeyEvent::K_Q);
+void Camera::rotateLeft(u_int64_t dt) {
+  implMove(KeyEvent::K_Q,dt);
   }
 
-void Camera::rotateRight() {
-  implMove(KeyEvent::K_E);
+void Camera::rotateRight(u_int64_t dt) {
+  implMove(KeyEvent::K_E,dt);
   }
 
-void Camera::moveForward() {
-  implMove(KeyEvent::K_W);
+void Camera::moveForward(u_int64_t dt) {
+  implMove(KeyEvent::K_W,dt);
   }
 
-void Camera::moveBack() {
-  implMove(KeyEvent::K_S);
+void Camera::moveBack(u_int64_t dt) {
+  implMove(KeyEvent::K_S,dt);
   }
 
-void Camera::moveLeft() {
-  implMove(KeyEvent::K_A);
+void Camera::moveLeft(u_int64_t dt) {
+  implMove(KeyEvent::K_A,dt);
   }
 
-void Camera::moveRight() {
-  implMove(KeyEvent::K_D);
+void Camera::moveRight(u_int64_t dt) {
+  implMove(KeyEvent::K_D,dt);
   }
 
 void Camera::setMode(Camera::Mode m) {
@@ -143,6 +148,45 @@ void Camera::setLookBack(bool lb) {
     return;
   lbEnable = lb;
   resetDst();
+  }
+
+void Camera::setFreeze(bool f) {
+  freezeCam = f;
+  }
+
+bool Camera::isFreeze() const {
+  return freezeCam;
+  }
+
+void Camera::setFree(bool f) {
+  freeCam = f;
+  }
+
+bool Camera::isFree() const {
+  return freeCam;
+  }
+
+void Camera::setFixed(bool f) {
+  if(f==fixedCam)
+    return;
+  if(f) {
+    auto pl = Gothic::inst().player();
+    if(pl==nullptr)
+      return;
+    auto offset    = dst.target - pl->cameraBone();
+    float k        = float(M_PI/180.0);
+    float s        = std::sin(dst.spin.y*k), c=std::cos(dst.spin.y*k);
+    cameraOffset.x = -offset.x * c - offset.z * s;
+    cameraOffset.z = offset.x * s - offset.z * c;
+    cameraOffset.y = offset.y;
+    }
+  else
+    dst.target = origin;
+  fixedCam = f;
+  }
+
+bool Camera::isFixed() const {
+  return fixedCam;
   }
 
 void Camera::toggleDebug() {
@@ -366,30 +410,35 @@ void Camera::clampRotation(Tempest::Vec3& spin) {
     ;//spin.x = def.minElevation;
   }
 
-void Camera::implMove(Tempest::Event::KeyType key) {
-  float dpos = 60.f;
-
-  float k = -float(M_PI/180.0);
-  float s = std::sin(dst.spin.x*k), c=std::cos(dst.spin.x*k);
+void Camera::implMove(Tempest::Event::KeyType key, u_int64_t dt) {
+  float dpos      = float(dt);
+  float dRot      = dpos/15.f;
+  float k         = float(M_PI/180.0);
+  float s         = std::sin(dst.spin.y*k), c=std::cos(dst.spin.y*k);
+  const auto& def = cameraDef();
 
   if(key==KeyEvent::K_A) {
-    cameraPos.x+=dpos*c;
-    cameraPos.z-=dpos*s;
+    dst.target.x += dpos*c;
+    dst.target.z += dpos*s;
     }
   if(key==KeyEvent::K_D) {
-    cameraPos.x-=dpos*c;
-    cameraPos.z+=dpos*s;
+    dst.target.x -= dpos*c;
+    dst.target.z -= dpos*s;
     }
   if(key==KeyEvent::K_W) {
-    cameraPos.x-=dpos*s;
-    cameraPos.z-=dpos*c;
+    dst.target.x += dpos*s;
+    dst.target.z -= dpos*c;
+    dst.target.y -= dst.spin.x - def.best_elevation;
     }
-  if(key==KeyEvent::K_S){
-    cameraPos.x+=dpos*s;
-    cameraPos.z+=dpos*c;
+  if(key==KeyEvent::K_S) {
+    dst.target.x -= dpos*s;
+    dst.target.z += dpos*c;
+    dst.target.y += dst.spin.x - def.best_elevation;
     }
-  if(auto world = Gothic::inst().world())
-    cameraPos.y = world->physic()->landRay(cameraPos).v.y;
+  if(key==KeyEvent::K_Q)
+    dst.spin.y += dRot;
+  if(key==KeyEvent::K_E)
+    dst.spin.y -= dRot;
   }
 
 void Camera::setPosition(const Tempest::Vec3& pos) {
@@ -495,7 +544,7 @@ void Camera::followAng(float& ang, float dest, float speed, float dtF) {
   }
 
 void Camera::tick(uint64_t dt) {
-  if(Gothic::inst().isPause())
+  if(Gothic::inst().isPause() || freezeCam)
     return;
 
   const float dtF = float(dt)/1000.f;
@@ -550,12 +599,16 @@ void Camera::calcControlPoints(float dtF) {
 
   auto target = dst.target + targetOffset;
 
+  if(!freeCam)
   followPos(src.target,target,dtF);
 
   auto camTg = clampPos(src.target,target);
   followCamera(cameraPos,camTg,dtF);
 
   origin = cameraPos - dir*range;
+
+  if(freeCam)
+    return;
   if(def.collision!=0) {
     range  = calcCameraColision(camTg,origin,src.spin,range);
     origin = cameraPos - dir*range;
@@ -566,11 +619,13 @@ void Camera::calcControlPoints(float dtF) {
     offsetAng = Vec3(); else
     offsetAng = calcOffsetAngles(origin,baseOrigin,dst.target);
 
-  if(fpEnable) {
+  if(fpEnable || fixedCam) {
     origin    = dst.target;
     offsetAng = Vec3();
 
     Vec3 offset = {0,0,20};
+    if(fixedCam)
+      offset = cameraOffset;
     Matrix4x4 rotOffsetMat;
     rotOffsetMat.identity();
     rotOffsetMat.rotateOY(180-src.spin.y);
