@@ -7,6 +7,7 @@
 #include "world/objects/interactive.h"
 #include "world/objects/vob.h"
 #include "world/collisionzone.h"
+#include "world/triggers/abstracttrigger.h"
 #include "world.h"
 #include "utils/workers.h"
 #include "utils/dbgpainter.h"
@@ -199,8 +200,9 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
     return;
 
   npcNear.clear();
-  const float nearDist = 3000*3000;
-  const float farDist  = 6000*6000;
+  const int   PERC_DIST_INTERMEDIAT = 1000;
+  const float nearDist              = 3000*3000;
+  const float farDist               = 6000*6000;
 
   auto plPos = pl->position();
   for(auto& i:npcArr) {
@@ -233,10 +235,10 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
         float l = i.qDistTo(r.pos.x,r.pos.y,r.pos.z);
         if(r.item!=size_t(-1) && r.other!=nullptr)
           owner.script().setInstanceItem(*r.other,r.item);
-        const float range = float(i.handle().senses_range);
+        const float range = float(std::min(i.handle().senses_range,PERC_DIST_INTERMEDIAT));
         if(l<range*range && r.other!=nullptr && r.victum!=nullptr) {
           // aproximation of behavior of original G2
-          if(!i.isDown() && !i.isPlayer() &&
+          if(!i.isDown() && !i.isPlayer() && i.isAiQueueEmpty() &&
              i.canSenseNpc(*r.other, true)!=SensesBit::SENSE_NONE &&
              i.canSenseNpc(*r.victum,true,float(r.other->handle().senses_range))!=SensesBit::SENSE_NONE
             ) {

@@ -8,6 +8,7 @@
 #include "game/serialize.h"
 #include "graphics/mesh/skeleton.h"
 #include "utils/string_frm.h"
+#include "world/triggers/abstracttrigger.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "utils/dbgpainter.h"

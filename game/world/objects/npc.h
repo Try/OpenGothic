@@ -363,6 +363,7 @@ class Npc final {
     void      stopWalking();
 
     bool      canSeeNpc(const Npc& oth,bool freeLos) const;
+    bool      canSeeSource() const;
     bool      canSeeNpc(float x,float y,float z,bool freeLos) const;
     auto      canSenseNpc(const Npc& oth,bool freeLos, float extRange=0.f) const -> SensesBit;
     auto      canSenseNpc(float x,float y,float z,bool freeLos,bool isNoisy,float extRange=0.f) const -> SensesBit;

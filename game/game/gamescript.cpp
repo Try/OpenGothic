@@ -14,6 +14,7 @@
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
 #include "world/objects/interactive.h"
+#include "world/triggers/abstracttrigger.h"
 #include "graphics/visualfx.h"
 #include "utils/fileutil.h"
 #include "gothic.h"
@@ -2217,8 +2218,8 @@ bool GameScript::npc_isinplayersroom(std::shared_ptr<phoenix::c_npc> npcRef) {
   auto pl  = world().player();
 
   if(npc!=nullptr && pl!=nullptr) {
-    int32_t g1 = world().guildOfRoom(pl->portalName());
-    int32_t g2 = world().guildOfRoom(npc->portalName());
+    auto g1 = pl ->portalName();
+    auto g2 = npc->portalName();
     if(g1==g2)
       return true;
     }
@@ -2426,11 +2427,10 @@ bool GameScript::npc_ownedbynpc(std::shared_ptr<phoenix::c_item> itmRef, std::sh
 
 bool GameScript::npc_canseesource(std::shared_ptr<phoenix::c_npc> npcRef) {
   auto self = findNpc(npcRef);
-  if(self!=nullptr) {
-    bool ret = owner.world()->sound()->canSeeSource(self->position()+Vec3(0,self->translateY(),0));
-    return ret;
-    }
-  return false;
+  if(!self)
+    return false;
+
+  return self->canSeeSource();
   }
 
 int GameScript::npc_getdisttoitem(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_item> itmRef) {

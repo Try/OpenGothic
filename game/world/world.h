@@ -13,12 +13,10 @@
 #include "graphics/meshobjects.h"
 #include "game/gamescript.h"
 #include "physics/dynamicworld.h"
-#include "triggers/trigger.h"
 #include "worldobjects.h"
 #include "worldsound.h"
 #include "waypoint.h"
 #include "waymatrix.h"
-#include "resources.h"
 
 class GameSession;
 class Focus;

@@ -1948,7 +1948,7 @@ void Npc::tickAnimationTags() {
 
   for(auto& i:ev.morph)
     visual.startMMAnim(*this,i.anim,i.node);
-  if(ev.groundSounds>0 && isPlayer() && (bodyState()&BodyState::BS_SNEAK)==BodyState::BS_SNEAK)
+  if(ev.groundSounds>0 && isPlayer() && (bodyStateMasked()!=BodyState::BS_SNEAK))
     world().sendPassivePerc(*this,*this,*this,PERC_ASSESSQUIETSOUND);
   if(ev.def_opt_frame>0)
     commitDamage();
@@ -2468,10 +2468,11 @@ bool Npc::startState(ScriptFn id, std::string_view wp, gtime endTime, bool noFin
   if(!wp.empty())
     hnpc->wp = wp;
 
-  if(!noFinalize) {
+  {
+    // ZS_GotoBed -> ZS_Sleep relie on clean state
     for(size_t i=0;i<PERC_Count;++i)
       setPerceptionDisable(PercType(i));
-    }
+  }
 
   if(wp=="TOT") {
     // workaround for Pedro removal script
@@ -3585,11 +3586,6 @@ bool Npc::perceptionProcess(Npc &pl) {
   if(aiQueue.size()==0)
     perceptionNextTime = owner.tickCount()+perceptionTime;
 
-  // TODO: rotate to player
-  // if(currentLookAt==nullptr && owner.script().hasImportantInfo(*this,pl,1)) {
-  //   currentLookAt = &pl;
-  //   }
-
   return ret;
   }
 
@@ -3598,6 +3594,7 @@ bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, PercType perc)
   r = r*r;
   if(quadDist>r)
     return false;
+
   if(hasPerc(perc)) {
     owner.script().invokeState(this,&pl,victum,perception[perc].func);
     return true;
@@ -3925,6 +3922,17 @@ bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
   return false;
   }
 
+bool Npc::canSeeSource() const {
+  const auto head = visual.mapHeadBone();
+  const bool ret  = owner.sound()->canSeeSource(head);
+  if(ret)
+    return ret;
+  // NOTE: B_AssessQuietSound can cause soft-lock on npc without this
+  if(currentLookAtNpc!=nullptr)
+    return canSeeNpc(*currentLookAtNpc, false);
+  return false;
+  }
+
 bool Npc::canSeeNpc(float tx, float ty, float tz, bool freeLos) const {
   SensesBit s = canSenseNpc(tx,ty,tz,freeLos,false);
   return int32_t(s&SensesBit::SENSE_SEE)!=0;
@@ -3932,7 +3940,7 @@ bool Npc::canSeeNpc(float tx, float ty, float tz, bool freeLos) const {
 
 SensesBit Npc::canSenseNpc(const Npc &oth, bool freeLos, float extRange) const {
   const auto mid     = oth.bounds().midTr;
-  const bool isNoisy = (oth.bodyState()&BodyState::BS_SNEAK)==0;
+  const bool isNoisy = (oth.bodyStateMasked()!=BodyState::BS_SNEAK);
   return canSenseNpc(mid.x,mid.y,mid.z,freeLos,isNoisy,extRange);
   }
 
