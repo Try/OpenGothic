@@ -57,10 +57,12 @@ std::initializer_list<KeyCodec::K_Key> KeyCodec::keys = {
   {Tempest::Event::K_LControl, 0x1d00},
   {Tempest::Event::K_LShift,   0x2a00},
   {Tempest::Event::K_LAlt,     0x3800},
+  {Tempest::Event::K_LCommand, 0x4800},
   // Right
   {Tempest::Event::K_RControl, 0x9d00},
   {Tempest::Event::K_RShift,   0x3600},
   {Tempest::Event::K_RAlt,     0xb800},
+  {Tempest::Event::K_RCommand, 0x4801},
   };
 
 std::initializer_list<KeyCodec::M_Key> KeyCodec::mkeys = {
@@ -378,6 +380,12 @@ string_frm<64> KeyCodec::keyToStr(Tempest::Event::KeyType k) {
     }
   if(k==Tempest::Event::K_RAlt) {
     return "RIGHT ALT";
+    }
+  if(k==Tempest::Event::K_LCommand) {
+    return "LEFT COMMAND";
+    }
+  if(k==Tempest::Event::K_RCommand) {
+    return "RIGHT COMMAND";
     }
 
   return string_frm<64>('?');
