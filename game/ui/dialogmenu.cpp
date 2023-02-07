@@ -182,15 +182,15 @@ void DialogMenu::dialogCamera(Camera& camera) {
     p0 -= p1;
 
     if(pl==other) {
-      float a = pl->rotation();
-      camera.setSpin(PointF(0,a));
+      // float a = pl->rotation();
+      // camera.setSpin(PointF(0,a));
       } else {
       float l = p0.length();
       float a = 0;
       if(curentIsPl) {
-        a = pl->rotation()+45-270;
+        a = other->rotation()-45;
         } else {
-        a = other->rotation()-45+270;
+        a = pl->rotation()+45;
         }
 
       camera.setDialogDistance(l);
@@ -261,6 +261,10 @@ void DialogMenu::aiIsClose(bool &ret) {
 
 bool DialogMenu::isActive() const {
   return (state!=State::Idle) || current.time>0;
+  }
+
+bool DialogMenu::hasContent() const {
+  return (current.time>0 || choise.size()>0);
   }
 
 bool DialogMenu::onStart(Npc &p, Npc &ot) {

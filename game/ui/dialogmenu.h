@@ -32,6 +32,7 @@ class DialogMenu : public Tempest::Widget {
 
     void aiIsClose(bool& ret);
     bool isActive() const;
+    bool hasContent() const;
 
     void print      (std::string_view msg);
     void printScreen(std::string_view msg, int x, int y, int time, const GthFont &font);

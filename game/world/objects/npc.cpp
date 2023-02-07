@@ -2039,10 +2039,14 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
       if(interactive()==nullptr) {
         visual.stopWalkAnim(*this);
+        visual.stopDlgAnim(*this);
         }
       if(act.target!=nullptr && implTurnTo(*act.target,dt)) {
         queue.pushFront(std::move(act));
+        break;
         }
+      currentLookAt    = nullptr;
+      currentLookAtNpc = nullptr;
       break;
       }
     case AI_GoToNpc:
