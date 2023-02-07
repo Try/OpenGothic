@@ -294,23 +294,17 @@ RenderPipeline Shaders::postEffect(std::string_view vsName, std::string_view fsN
   stateFsq.setZTestMode    (ztest);
   stateFsq.setZWriteEnabled(false);
 
-  char buf[256] = {};
-  std::snprintf(buf,sizeof(buf),"%.*s.vert.sprv",int(vsName.size()),vsName.data());
-  auto sh = GothicShader::get(buf);
+  auto sh = GothicShader::get(string_frm(vsName,".vert.sprv"));
   auto vs = device.shader(sh.data,sh.len);
 
-  std::snprintf(buf,sizeof(buf),"%.*s.frag.sprv",int(fsName.size()),fsName.data());
-  sh      = GothicShader::get(buf);
+  sh      = GothicShader::get(string_frm(fsName,".frag.sprv"));
   auto fs = device.shader(sh.data,sh.len);
   return device.pipeline(Triangles,stateFsq,vs,fs);
   }
 
 ComputePipeline Shaders::computeShader(std::string_view name) {
-  char buf[256] = {};
-  std::snprintf(buf,sizeof(buf),"%.*s",int(name.size()),name.data());
-
   auto& device = Resources::device();
-  auto  sh     = GothicShader::get(buf);
+  auto  sh     = GothicShader::get(name);
   return device.pipeline(device.shader(sh.data,sh.len));
   }
 
@@ -326,13 +320,10 @@ RenderPipeline Shaders::fogShader(std::string_view name) {
     state.setBlendDest(RenderState::BlendMode::OneMinusSrcAlpha);
     }
 
-  char buf[256] = {};
-  std::snprintf(buf,sizeof(buf),"%.*s.vert.sprv",int(name.size()),name.data());
-  auto sh = GothicShader::get(buf);
+  auto sh = GothicShader::get(string_frm(name,".vert.sprv"));
   auto vs = device.shader(sh.data,sh.len);
 
-  std::snprintf(buf,sizeof(buf),"%.*s.frag.sprv",int(name.size()),name.data());
-  sh      = GothicShader::get(buf);
+  sh      = GothicShader::get(string_frm(name,".frag.sprv"));
   auto fs = device.shader(sh.data,sh.len);
   return device.pipeline(Triangles,state,vs,fs);
   }
