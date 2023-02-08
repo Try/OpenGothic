@@ -46,13 +46,13 @@ class Camera final {
     void changeZoom(int delta);
     void setViewport(uint32_t w, uint32_t h);
 
-    void rotateLeft(u_int64_t dt);
-    void rotateRight(u_int64_t dt);
+    void rotateLeft(uint64_t dt);
+    void rotateRight(uint64_t dt);
 
-    void moveForward(u_int64_t dt);
-    void moveBack(u_int64_t dt);
-    void moveLeft(u_int64_t dt);
-    void moveRight(u_int64_t dt);
+    void moveForward(uint64_t dt);
+    void moveBack(uint64_t dt);
+    void moveLeft(uint64_t dt);
+    void moveRight(uint64_t dt);
 
     void setMode(Mode m);
     void setToggleEnable(bool e);
@@ -143,7 +143,7 @@ class Camera final {
     Tempest::Vec3         calcOffsetAngles(Tempest::Vec3 srcOrigin, Tempest::Vec3 dstOrigin, Tempest::Vec3 target) const;
     float                 calcCameraColision(const Tempest::Vec3& target, const Tempest::Vec3& origin, const Tempest::Vec3& rotSpin, float dist) const;
 
-    void                  implMove(Tempest::KeyEvent::KeyType t, u_int64_t dt);
+    void                  implMove(Tempest::KeyEvent::KeyType t, uint64_t dt);
     Tempest::Matrix4x4    mkView    (const Tempest::Vec3& pos, const Tempest::Vec3& spin) const;
     Tempest::Matrix4x4    mkRotation(const Tempest::Vec3& spin) const;
     void                  resetDst();

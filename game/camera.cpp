@@ -89,27 +89,27 @@ void Camera::setViewport(uint32_t w, uint32_t h) {
   vpHeight = h;
   }
 
-void Camera::rotateLeft(u_int64_t dt) {
+void Camera::rotateLeft(uint64_t dt) {
   implMove(KeyEvent::K_Q,dt);
   }
 
-void Camera::rotateRight(u_int64_t dt) {
+void Camera::rotateRight(uint64_t dt) {
   implMove(KeyEvent::K_E,dt);
   }
 
-void Camera::moveForward(u_int64_t dt) {
+void Camera::moveForward(uint64_t dt) {
   implMove(KeyEvent::K_W,dt);
   }
 
-void Camera::moveBack(u_int64_t dt) {
+void Camera::moveBack(uint64_t dt) {
   implMove(KeyEvent::K_S,dt);
   }
 
-void Camera::moveLeft(u_int64_t dt) {
+void Camera::moveLeft(uint64_t dt) {
   implMove(KeyEvent::K_A,dt);
   }
 
-void Camera::moveRight(u_int64_t dt) {
+void Camera::moveRight(uint64_t dt) {
   implMove(KeyEvent::K_D,dt);
   }
 
@@ -410,7 +410,7 @@ void Camera::clampRotation(Tempest::Vec3& spin) {
     ;//spin.x = def.minElevation;
   }
 
-void Camera::implMove(Tempest::Event::KeyType key, u_int64_t dt) {
+void Camera::implMove(Tempest::Event::KeyType key, uint64_t dt) {
   float dpos      = float(dt);
   float dRot      = dpos/15.f;
   float k         = float(M_PI/180.0);
