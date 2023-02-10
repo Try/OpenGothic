@@ -54,9 +54,7 @@ void Camera::reset(const Npc* pl) {
   src.spin     = dst.spin;
 
   cameraOffset = Vec3();
-  fixedCam     = false;
-  freezeCam    = false;
-  freeCam      = false;
+  camMarvinMod = M_Normal;
 
   calcControlPoints(-1.f);
   }
@@ -127,6 +125,32 @@ void Camera::setMode(Camera::Mode m) {
     dst.spin.y = pl->rotation();
   }
 
+void Camera::setMarvinMode(Camera::MarvinMode m) {
+  if(camMarvinMod==m)
+    return;
+  auto pl = Gothic::inst().player();
+  if(pl==nullptr)
+    return;
+  if(m==M_Free)
+    pl->setAnim(AnimationSolver::NoAnim);
+  if(m==M_Fixed) {
+    auto offset    = dst.target - pl->cameraBone();
+    float k        = float(M_PI/180.0);
+    float s        = std::sin(dst.spin.y*k), c=std::cos(dst.spin.y*k);
+    cameraOffset.x = -offset.x * c - offset.z * s;
+    cameraOffset.z = offset.x * s - offset.z * c;
+    cameraOffset.y = offset.y;
+    }
+  else if(camMarvinMod==M_Fixed) {
+    dst.target = origin;
+    }
+  camMarvinMod = m;
+  }
+
+bool Camera::isMarvinMode(Camera::MarvinMode m) const {
+  return camMarvinMod==m;
+  }
+
 void Camera::setToggleEnable(bool e) {
   tgEnable = e;
   }
@@ -148,45 +172,6 @@ void Camera::setLookBack(bool lb) {
     return;
   lbEnable = lb;
   resetDst();
-  }
-
-void Camera::setFreeze(bool f) {
-  freezeCam = f;
-  }
-
-bool Camera::isFreeze() const {
-  return freezeCam;
-  }
-
-void Camera::setFree(bool f) {
-  freeCam = f;
-  }
-
-bool Camera::isFree() const {
-  return freeCam;
-  }
-
-void Camera::setFixed(bool f) {
-  if(f==fixedCam)
-    return;
-  if(f) {
-    auto pl = Gothic::inst().player();
-    if(pl==nullptr)
-      return;
-    auto offset    = dst.target - pl->cameraBone();
-    float k        = float(M_PI/180.0);
-    float s        = std::sin(dst.spin.y*k), c=std::cos(dst.spin.y*k);
-    cameraOffset.x = -offset.x * c - offset.z * s;
-    cameraOffset.z = offset.x * s - offset.z * c;
-    cameraOffset.y = offset.y;
-    }
-  else
-    dst.target = origin;
-  fixedCam = f;
-  }
-
-bool Camera::isFixed() const {
-  return fixedCam;
   }
 
 void Camera::toggleDebug() {
@@ -544,7 +529,7 @@ void Camera::followAng(float& ang, float dest, float speed, float dtF) {
   }
 
 void Camera::tick(uint64_t dt) {
-  if(Gothic::inst().isPause() || freezeCam)
+  if(Gothic::inst().isPause() || camMarvinMod==M_Freeze)
     return;
 
   const float dtF = float(dt)/1000.f;
@@ -599,15 +584,15 @@ void Camera::calcControlPoints(float dtF) {
 
   auto target = dst.target + targetOffset;
 
-  if(!freeCam)
-  followPos(src.target,target,dtF);
+  if(camMarvinMod==M_Normal)
+    followPos(src.target,target,dtF);
 
   auto camTg = clampPos(src.target,target);
   followCamera(cameraPos,camTg,dtF);
 
   origin = cameraPos - dir*range;
 
-  if(freeCam)
+  if(camMarvinMod==M_Free)
     return;
   if(def.collision!=0) {
     range  = calcCameraColision(camTg,origin,src.spin,range);
@@ -619,12 +604,12 @@ void Camera::calcControlPoints(float dtF) {
     offsetAng = Vec3(); else
     offsetAng = calcOffsetAngles(origin,baseOrigin,dst.target);
 
-  if(fpEnable || fixedCam) {
+  if(fpEnable || camMarvinMod==M_Fixed) {
     origin    = dst.target;
     offsetAng = Vec3();
 
     Vec3 offset = {0,0,20};
-    if(fixedCam)
+    if(camMarvinMod==M_Fixed)
       offset = cameraOffset;
     Matrix4x4 rotOffsetMat;
     rotOffsetMat.identity();

@@ -244,10 +244,8 @@ void MainWindow::paintEvent(PaintEvent& event) {
   if(Gothic::inst().doClock() && world!=nullptr) {
     auto hour = world->time().hour();
     auto min  = world->time().minute();
-    char clockT[64] = {};
-    std::snprintf(clockT,sizeof(clockT),"%.d:%.d",int(hour),int(min));
-
     auto& fnt = Resources::font();
+    string_frm clockT(int(hour),":",int(min));
     fnt.drawText(p,w()-fnt.textSize(clockT).w-5,fnt.pixelSize()+5,clockT);
     }
   }
@@ -707,16 +705,16 @@ void MainWindow::onMarvinKey() {
       break;
     case Event::K_F4:
       if(Gothic::inst().isMarvinEnabled()) {
-        if(auto camera = Gothic::inst().camera())
+        if(auto camera = Gothic::inst().camera()) {
+          camera->setMarvinMode(Camera::M_Normal);
           camera->reset();
+          }
         }
       break;
     case Event::K_F5:
       if(Gothic::inst().isMarvinEnabled()) {
         if(auto camera = Gothic::inst().camera()) {
-          camera->setFreeze(true);
-          camera->setFree  (false);
-          camera->setFixed (false);
+          camera->setMarvinMode(Camera::M_Freeze);
           }
         }
       else
@@ -726,18 +724,14 @@ void MainWindow::onMarvinKey() {
     case Event::K_F6:
       if(Gothic::inst().isMarvinEnabled()) {
         if(auto camera = Gothic::inst().camera()) {
-          camera->setFree  (true);
-          camera->setFreeze(false);
-          camera->setFixed (false);
+          camera->setMarvinMode(Camera::M_Free);
           }
         }
       break;
     case Event::K_F7:
       if(Gothic::inst().isMarvinEnabled()) {
         if(auto camera = Gothic::inst().camera()) {
-          camera->setFixed (true);
-          camera->setFree  (false);
-          camera->setFreeze(false);
+          camera->setMarvinMode(Camera::M_Fixed);
           }
         }
       break;
@@ -856,7 +850,7 @@ void MainWindow::tickCamera(uint64_t dt) {
     camera.setDestSpin(spin);
     camera.setDestPosition(pos);
     }
-  else if(!camera.isFree() && !camera.isFreeze()) {
+  else if(camera.isMarvinMode(Camera::M_Normal) || camera.isMarvinMode(Camera::M_Fixed)) {
     auto spin = camera.destSpin();
     spin.y = pl->rotation();
     if(pl->isDive())

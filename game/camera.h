@@ -31,6 +31,13 @@ class Camera final {
       Dive
       };
 
+    enum MarvinMode {
+      M_Normal,
+      M_Freeze,
+      M_Free,
+      M_Fixed,
+      };
+
     struct ListenerPos {
       Tempest::Vec3 up;
       Tempest::Vec3 front;
@@ -55,6 +62,8 @@ class Camera final {
     void moveRight(uint64_t dt);
 
     void setMode(Mode m);
+    void setMarvinMode(Camera::MarvinMode m);
+    bool isMarvinMode(Camera::MarvinMode m) const;
     void setToggleEnable(bool e);
     bool isToggleEnabled() const;
 
@@ -62,15 +71,6 @@ class Camera final {
     bool isFirstPerson() const;
 
     void setLookBack(bool lb);
-
-    void setFreeze(bool f);
-    bool isFreeze() const;
-
-    void setFree(bool f);
-    bool isFree() const;
-
-    void setFixed(bool f);
-    bool isFixed() const;
 
     void toggleDebug();
 
@@ -125,11 +125,9 @@ class Camera final {
     bool                  tgEnable      = true;
     bool                  fpEnable      = false;
     bool                  lbEnable      = false;
-    bool                  freezeCam     = false;
-    bool                  freeCam       = false;
-    bool                  fixedCam      = false;
     bool                  inertiaTarget = true;
     Mode                  camMod        = Normal;
+    MarvinMode            camMarvinMod  = M_Normal;
 
     mutable int           raysCasted = 0;
 

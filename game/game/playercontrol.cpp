@@ -487,7 +487,7 @@ bool PlayerControl::tickMove(uint64_t dt) {
   Npc*  pl     = w->player();
   auto  camera = Gothic::inst().camera();
 
-  if(camera!=nullptr && camera->isFree()) {
+  if(camera!=nullptr && camera->isMarvinMode(Camera::M_Free)) {
     if(ctrl[KeyCodec::Left] || (ctrl[KeyCodec::RotateL] && ctrl[KeyCodec::Jump])) {
       camera->moveLeft(dt);
       return true;
