@@ -705,10 +705,8 @@ void MainWindow::onMarvinKey() {
       break;
     case Event::K_F4:
       if(Gothic::inst().isMarvinEnabled()) {
-        if(auto camera = Gothic::inst().camera()) {
-          camera->setMarvinMode(Camera::M_Normal);
+        if(auto camera = Gothic::inst().camera())
           camera->reset();
-          }
         }
       break;
     case Event::K_F5:
@@ -716,23 +714,21 @@ void MainWindow::onMarvinKey() {
         if(auto camera = Gothic::inst().camera()) {
           camera->setMarvinMode(Camera::M_Freeze);
           }
-        }
-      else
+        } else {
         Gothic::inst().quickSave();
+        }
       break;
 
     case Event::K_F6:
       if(Gothic::inst().isMarvinEnabled()) {
-        if(auto camera = Gothic::inst().camera()) {
+        if(auto camera = Gothic::inst().camera())
           camera->setMarvinMode(Camera::M_Free);
-          }
         }
       break;
     case Event::K_F7:
       if(Gothic::inst().isMarvinEnabled()) {
-        if(auto camera = Gothic::inst().camera()) {
+        if(auto camera = Gothic::inst().camera())
           camera->setMarvinMode(Camera::M_Fixed);
-          }
         }
       break;
     case Event::K_F8:
