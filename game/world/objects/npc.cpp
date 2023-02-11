@@ -1642,6 +1642,8 @@ bool Npc::implAiFlee(uint64_t dt) {
   owner.findWayPoint(position(),[&](const WayPoint& p) {
     if(p.useCounter()>0 || qDistTo(&p)>maxDist*maxDist)
       return false;
+    if(p.underWater)
+      return false;
     if(!canSeeNpc(p.x,p.y+10,p.z,true))
       return false;
     if(wp==nullptr || oth.qDistTo(&p)>oth.qDistTo(wp))

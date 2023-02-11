@@ -33,6 +33,8 @@ class WayPoint final {
     float dirY=0;
     float dirZ=0;
 
+    bool  underWater = false;
+
     std::string name;
 
     struct Conn final {
