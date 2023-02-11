@@ -815,7 +815,7 @@ void MainWindow::tickCamera(uint64_t dt) {
     }
   else {
     auto spin = camera.destSpin();
-    if(pl->interactive()==nullptr)
+    if(pl->interactive()==nullptr && !pl->isDown())
       spin.y = pl->rotation();
     if(pl->isDive())
       spin.x = -pl->rotationY();
