@@ -169,6 +169,7 @@ class Npc final {
     void       startFaceAnim(std::string_view anim, float intensity, uint64_t duration);
     bool       stopItemStateAnim();
     bool       hasAnim(std::string_view scheme) const;
+    bool       hasSwimAnimations() const;
     bool       isFinishingMove() const;
 
     auto       animMoveSpeed(uint64_t dt) const -> Tempest::Vec3;

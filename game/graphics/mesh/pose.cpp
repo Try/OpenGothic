@@ -753,6 +753,21 @@ uint16_t Pose::comboLength() const {
   return combo.len();
   }
 
+const Tempest::Matrix4x4 Pose::rootNode() const {
+  size_t id = 0;
+  if(skeleton->rootNodes.size())
+    id = skeleton->rootNodes[0];
+  auto& nodes = skeleton->nodes;
+  return hasSamples[id] ? mkMatrix(base[id]) : nodes[id].tr;
+  }
+
+const Matrix4x4 Pose::rootBone() const {
+  size_t id = 0;
+  if(skeleton->rootNodes.size())
+    id = skeleton->rootNodes[0];
+  return tr[id];
+  }
+
 const Tempest::Matrix4x4& Pose::bone(size_t id) const {
   return tr[id];
   }
@@ -842,13 +857,10 @@ Vec3 Pose::mkBaseTranslation() {
   if(numBones==0)
     return Vec3();
 
-  size_t id=0;
-  if(skeleton->rootNodes.size())
-    id = skeleton->rootNodes[0];
-  auto& nodes = skeleton->nodes;
-  auto  b0    = hasSamples[id] ? mkMatrix(base[id]) : nodes[id].tr;
+  auto  b0 = rootNode();
 
   float dx = b0.at(3,0);
+  //float dy = b0.at(3,1) - translateY();
   float dy = 0;
   float dz = b0.at(3,2);
 

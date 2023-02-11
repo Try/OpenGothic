@@ -74,6 +74,8 @@ class Pose final {
     uint16_t           comboLength() const;
 
     float              translateY() const { return trY; }
+    auto               rootNode() const -> const Tempest::Matrix4x4;
+    auto               rootBone() const -> const Tempest::Matrix4x4;
     auto               bone(size_t id) const -> const Tempest::Matrix4x4&;
     size_t             boneCount() const;
     size_t             findNode(std::string_view b) const;

@@ -83,6 +83,7 @@ class MoveAlgo final {
     void    tickSwim   (uint64_t dt);
     void    tickClimb  (uint64_t dt);
     void    tickJumpup (uint64_t dt);
+    bool    tickRun(uint64_t dt, MvFlags moveFlg);
 
     bool    tryMove    (float x, float y, float z);
     bool    tryMove    (float x, float y, float z, DynamicWorld::CollisionTest& out);
@@ -126,6 +127,7 @@ class MoveAlgo final {
     float   slideAngle()  const;
     float   slideAngle2() const;
     void    takeFallDamage() const;
+    void    takeDrownDamage() const;
 
     void    emitWaterSplash(float y);
 

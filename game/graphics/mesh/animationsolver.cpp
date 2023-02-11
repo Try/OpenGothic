@@ -162,15 +162,23 @@ const Animation::Sequence* AnimationSolver::implSolveAnim(AnimationSolver::Anim 
     return solveFrm("T_CASTFAIL");
   // Move
   if(a==Idle) {
+    const Animation::Sequence* s = nullptr;
     if(bool(wlkMode & WalkBit::WM_Dive))
-      return solveFrm("S_DIVE");
-    if(bool(wlkMode & WalkBit::WM_Swim))
-      return solveFrm("S_SWIM");
-    if(bool(wlkMode&WalkBit::WM_Sneak))
-      return solveFrm("S_%sSNEAK",st);
-    if(bool(wlkMode&WalkBit::WM_Walk))
-      return solveFrm("S_%sWALK",st);
-    return solveFrm("S_%sRUN",st);
+      s = solveFrm("S_DIVE");
+    else if(bool(wlkMode & WalkBit::WM_Swim))
+      s = solveFrm("S_SWIM");
+    else if(bool(wlkMode&WalkBit::WM_Sneak))
+      s = solveFrm("S_%sSNEAK",st);
+    else if(bool(wlkMode&WalkBit::WM_Walk))
+      s = solveFrm("S_%sWALK",st);
+    else
+      s = solveFrm("S_%sRUN",st);
+
+    if(s==nullptr) {
+      // make sure that 'Idle' has something at least
+      s = solveFrm("S_%sWALK",st);
+      }
+    return s;
     }
   if(a==Move)  {
     if(bool(wlkMode & WalkBit::WM_Dive)) {
@@ -178,14 +186,17 @@ const Animation::Sequence* AnimationSolver::implSolveAnim(AnimationSolver::Anim 
         return solveFrm("S_DIVEF",st); else
         return solveFrm("S_DIVE");
       }
+    const Animation::Sequence* s = nullptr;
     if(bool(wlkMode & WalkBit::WM_Swim))
-      return solveFrm("S_SWIMF",st);
-    if(bool(wlkMode & WalkBit::WM_Sneak))
-      return solveFrm("S_%sSNEAKL",st);
-    if(bool(wlkMode & WalkBit::WM_Walk))
-      return solveFrm("S_%sWALKL",st);
-    if(bool(wlkMode & WalkBit::WM_Water))
-      return solveFrm("S_%sWALKWL",st);
+      s = solveFrm("S_SWIMF",st);
+    else if(bool(wlkMode & WalkBit::WM_Sneak))
+      s = solveFrm("S_%sSNEAKL",st);
+    else if(bool(wlkMode & WalkBit::WM_Walk))
+      s = solveFrm("S_%sWALKL",st);
+    else if(bool(wlkMode & WalkBit::WM_Water))
+      s = solveFrm("S_%sWALKWL",st);
+    if(s!=nullptr)
+      return s;
     return solveFrm("S_%sRUNL",st);
     }
   if(a==MoveL) {
@@ -215,14 +226,18 @@ const Animation::Sequence* AnimationSolver::implSolveAnim(AnimationSolver::Anim 
     return solveFrm("T_%sRUNSTRAFER",st);
     }
   if(a==Anim::MoveBack) {
+    const Animation::Sequence* s = nullptr;
     if(bool(wlkMode & WalkBit::WM_Dive))
-      return solveFrm("S_DIVE");
-    if(bool(wlkMode & WalkBit::WM_Swim))
-      return solveFrm("S_SWIMB");
-    if(bool(wlkMode & WalkBit::WM_Sneak))
-      return solveFrm("S_%sSNEAKBL",st);
-    if(st==WeaponState::Fist)
-      return solveFrm("T_%sPARADEJUMPB",st);
+      s = solveFrm("S_DIVE");
+    else if(bool(wlkMode & WalkBit::WM_Swim))
+      s = solveFrm("S_SWIMB");
+    else if(bool(wlkMode & WalkBit::WM_Sneak))
+      s = solveFrm("S_%sSNEAKBL",st);
+    else if(st==WeaponState::Fist)
+      s = solveFrm("T_%sPARADEJUMPB",st);
+    if(s!=nullptr)
+      return s;
+    // This is bases on original game: if no move-back animation, even in water, game defaults to standart walk-bak
     return solveFrm("T_%sJUMPB",st);
     }
   // Rotation

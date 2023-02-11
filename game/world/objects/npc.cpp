@@ -631,11 +631,9 @@ Vec3 Npc::cameraBone(bool isFirstPerson) const {
 
   Vec3 r = {};
   if(isFirstPerson && head!=size_t(-1)) {
-    r = visual.mapBone(head);// + position();
+    r = visual.mapBone(head);
     } else {
-    if(!mvAlgo.isSwim())
-      r.y = visual.pose().translateY();
-    auto mt = visual.transform();
+    auto mt = visual.pose().rootBone();
     mt.project(r);
     }
 
@@ -970,6 +968,10 @@ bool Npc::stopItemStateAnim() {
 
 bool Npc::hasAnim(std::string_view scheme) const {
   return visual.hasAnim(scheme);
+  }
+
+bool Npc::hasSwimAnimations() const {
+  return hasAnim("S_SWIM") && hasAnim("S_SWIMF");
   }
 
 bool Npc::isFinishingMove() const {
@@ -4081,8 +4083,8 @@ void Npc::updateAnimation(uint64_t dt) {
       }
 
     if(mvAlgo.isSwim()) {
-      float chest = mvAlgo.canFlyOverWater() ? 0 : mvAlgo.waterDepthChest();
-      float y = pos.at(3,1);
+      float chest = mvAlgo.canFlyOverWater() ? 0 : (translateY()-visual.pose().rootNode().at(3,1));
+      float y     = pos.at(3,1);
       pos.set(3,1,y+chest);
       }
 
