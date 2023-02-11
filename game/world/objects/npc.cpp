@@ -2115,8 +2115,6 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       if(startState(act.func,act.s0,aiState.eTime,act.i0==0)) {
         setOther(act.target);
         setVictum(act.victum);
-        // WA: for gothic1 dialogs
-        perceptionNextTime = owner.tickCount()+perceptionTime;
         }
       break;
     case AI_PlayAnim:{
@@ -2469,8 +2467,15 @@ bool Npc::startState(ScriptFn id, std::string_view wp) {
 bool Npc::startState(ScriptFn id, std::string_view wp, gtime endTime, bool noFinalize) {
   if(!id.isValid())
     return false;
-  if(aiState.funcIni==id)
-    return false;
+
+  if(aiState.funcIni==id) {
+    if(!noFinalize) {
+      // NOTE: B_AssessQuietSound can cause soft-lock on npc without this
+      aiState.started = false;
+      }
+    hnpc->wp = wp;
+    return true;
+    }
 
   clearState(noFinalize);
   if(!wp.empty())
@@ -2498,6 +2503,8 @@ bool Npc::startState(ScriptFn id, std::string_view wp, gtime endTime, bool noFin
   aiState.eTime        = endTime;
   aiState.loopNextTime = owner.tickCount();
   aiState.hint         = st.name();
+  // WA: for gothic1 dialogs
+  perceptionNextTime   = owner.tickCount()+perceptionTime;
   return true;
   }
 
@@ -2986,7 +2993,8 @@ bool Npc::turnTo(float dx, float dz, bool anim, uint64_t dt) {
   }
 
 bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
-  step *= (float(dt)/1000.f)*60.f/100.f;
+  //step *= (float(dt)/1000.f)*60.f/100.f;
+  step *= (float(dt)/1000.f);
 
   if(dx==0.f && dz==0.f) {
     setAnimRotate(0);
@@ -3000,7 +3008,7 @@ bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
   float da = a-angle;
 
   if(noAnim || std::cos(double(da)*M_PI/180.0)>0) {
-    if(float(std::abs(int(da)%180))<=step) {
+    if(float(std::abs(int(da)%180))<=(step*2.f)) {
       setAnimRotate(0);
       setDirection(a);
       return false;
@@ -3935,7 +3943,6 @@ bool Npc::canSeeSource() const {
   const bool ret  = owner.sound()->canSeeSource(head);
   if(ret)
     return ret;
-  // NOTE: B_AssessQuietSound can cause soft-lock on npc without this
   if(currentLookAtNpc!=nullptr)
     return canSeeNpc(*currentLookAtNpc, false);
   return false;

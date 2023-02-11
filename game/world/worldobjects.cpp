@@ -228,30 +228,45 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
     if(i.isPlayer() || i.isDead())
       continue;
 
+    const uint64_t percNextTime = i.percNextTime();
+    if(percNextTime<=owner.tickCount()) {
+      i.perceptionProcess(*pl);
+      }
+
     if(i.processPolicy()==Npc::AiNormal) {
       for(auto& r:passive) {
         if(r.self==&i)
           continue;
-        float l = i.qDistTo(r.pos.x,r.pos.y,r.pos.z);
+
+        const float l     = i.qDistTo(r.pos.x,r.pos.y,r.pos.z);
+        const float range = float(std::min(i.handle().senses_range,PERC_DIST_INTERMEDIAT));
+        if(l>range*range)
+          continue;
+
+        if(i.isDown() || i.isPlayer() || !i.isAiQueueEmpty())
+          continue;
+
+        if((percNextTime>owner.tickCount()) &&
+           (r.what==PERC_ASSESSFIGHTSOUND || r.what==PERC_ASSESSQUIETSOUND)) {
+          //Log::d("");
+          //continue;
+          }
+
+        if(r.other==nullptr)
+          continue;
+
+        if(i.canSenseNpc(*r.other, true)==SensesBit::SENSE_NONE)
+          continue;
+
+        // aproximation of behavior of original G2
+        if(r.victum!=nullptr && i.canSenseNpc(*r.victum,true,float(r.other->handle().senses_range))==SensesBit::SENSE_NONE)
+          continue;
+
         if(r.item!=size_t(-1) && r.other!=nullptr)
           owner.script().setInstanceItem(*r.other,r.item);
-        const float range = float(std::min(i.handle().senses_range,PERC_DIST_INTERMEDIAT));
-        if(l<range*range && r.other!=nullptr && r.victum!=nullptr) {
-          // aproximation of behavior of original G2
-          if(!i.isDown() && !i.isPlayer() && i.isAiQueueEmpty() &&
-             i.canSenseNpc(*r.other, true)!=SensesBit::SENSE_NONE &&
-             i.canSenseNpc(*r.victum,true,float(r.other->handle().senses_range))!=SensesBit::SENSE_NONE
-            ) {
-            i.perceptionProcess(*r.other,r.victum,l,PercType(r.what));
-            }
-          }
+        i.perceptionProcess(*r.other,r.victum,l,PercType(r.what));
         }
       }
-
-    if(i.percNextTime()>owner.tickCount())
-      continue;
-
-    i.perceptionProcess(*pl);
     }
   }
 
