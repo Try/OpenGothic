@@ -35,7 +35,7 @@ class Camera final {
       M_Normal,
       M_Freeze,
       M_Free,
-      M_Fixed,
+      M_Pinned,
       };
 
     struct ListenerPos {
@@ -62,8 +62,10 @@ class Camera final {
     void moveRight(uint64_t dt);
 
     void setMode(Mode m);
-    void setMarvinMode(Camera::MarvinMode m);
-    bool isMarvinMode(Camera::MarvinMode m) const;
+    void setMarvinMode(MarvinMode m);
+    bool isMarvin() const;
+    bool isFree() const;
+
     void setToggleEnable(bool e);
     bool isToggleEnabled() const;
 
@@ -107,11 +109,12 @@ class Camera final {
       Tempest::Vec3       target = {};
       };
 
-    Tempest::Vec3         cameraPos    = {};
-    Tempest::Vec3         cameraOffset = {};
-    Tempest::Vec3         origin       = {};
-    Tempest::Vec3         rotOffset    = {};
-    Tempest::Vec3         offsetAng    = {};
+    Tempest::Vec3         cameraPos       = {};
+    Tempest::Vec3         cameraOffset    = {};
+    float                 cameraOffsetAng = 0;
+    Tempest::Vec3         origin          = {};
+    Tempest::Vec3         rotOffset       = {};
+    Tempest::Vec3         offsetAng       = {};
     State                 src, dst;
 
     float                 dlgDist   = 0;

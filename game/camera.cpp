@@ -53,9 +53,6 @@ void Camera::reset(const Npc* pl) {
 
   src.spin     = dst.spin;
 
-  cameraOffset = Vec3();
-  camMarvinMod = M_Normal;
-
   calcControlPoints(-1.f);
   }
 
@@ -121,34 +118,56 @@ void Camera::setMode(Camera::Mode m) {
   if(reset)
     resetDst();
 
-  if(auto pl = Gothic::inst().player())
-    dst.spin.y = pl->rotation();
+  if(auto pl = Gothic::inst().player()) {
+    if(camMarvinMod!=M_Freeze)
+      dst.spin.y = pl->rotation();
+    }
   }
 
 void Camera::setMarvinMode(Camera::MarvinMode m) {
   if(camMarvinMod==m)
     return;
-  auto pl = Gothic::inst().player();
-  if(pl==nullptr)
-    return;
-  if(m==M_Free)
-    pl->setAnim(AnimationSolver::NoAnim);
-  if(m==M_Fixed) {
-    auto offset    = dst.target - pl->cameraBone();
-    float k        = float(M_PI/180.0);
-    float s        = std::sin(dst.spin.y*k), c=std::cos(dst.spin.y*k);
-    cameraOffset.x = -offset.x * c - offset.z * s;
-    cameraOffset.z = offset.x * s - offset.z * c;
-    cameraOffset.y = offset.y;
-    }
-  else if(camMarvinMod==M_Fixed) {
-    dst.target = origin;
+
+  if(auto pl = Gothic::inst().player()) {
+    if(camMarvinMod==M_Pinned) {
+      dst.spin.y   = pl->rotation() - cameraOffsetAng;
+      src.spin     = dst.spin;
+      float range  = src.range*100.f;
+      Vec3  dir    = {0,0,1};
+      Matrix4x4 rotOffsetMat;
+      rotOffsetMat.identity();
+      rotOffsetMat.rotateOY(180-src.spin.y);
+      rotOffsetMat.rotateOX(src.spin.x);
+      rotOffsetMat.project(dir);
+      dst.target  = origin +dir*range;
+      src.target  = dst.target;
+      cameraPos   = src.target;
+      rotOffset.y = 0;
+      }
+    if(m==M_Pinned) {
+      float     trY          = pl->isSwim() ? 0 : -pl->translateY();
+      Vec3      offset       = {0,trY,0};
+      Matrix4x4 rotOffsetMat = pl->transform();
+      if(pl->isDive())
+        rotOffsetMat.rotateOX(pl->rotationY());
+      rotOffsetMat.inverse();
+      rotOffsetMat.translate(origin);
+      rotOffsetMat.project(offset);
+      cameraOffset    = offset;
+      cameraOffsetAng = pl->rotation() - dst.spin.y;
+      dst.spin.y      = pl->rotation();
+      src.spin        = dst.spin;
+      }
     }
   camMarvinMod = m;
   }
 
-bool Camera::isMarvinMode(Camera::MarvinMode m) const {
-  return camMarvinMod==m;
+bool Camera::isMarvin() const {
+  return camMarvinMod!=M_Normal;
+  }
+
+bool Camera::isFree() const {
+  return camMarvinMod==M_Free;
   }
 
 void Camera::setToggleEnable(bool e) {
@@ -184,6 +203,8 @@ void Camera::setSpin(const PointF &p) {
   }
 
 void Camera::setDestSpin(const PointF& p) {
+  if(camMarvinMod==M_Free || camMarvinMod==M_Freeze)
+    return;
   dst.spin = Vec3(p.x,p.y,0);
   if(dst.spin.x<-90)
     dst.spin.x = -90;
@@ -192,6 +213,8 @@ void Camera::setDestSpin(const PointF& p) {
   }
 
 void Camera::onRotateMouse(const PointF& dpos) {
+  if(camMarvinMod==M_Freeze)
+    return;
   dst.spin.x += dpos.x;
   dst.spin.y += dpos.y;
   }
@@ -388,10 +411,12 @@ const phoenix::c_camera &Camera::cameraDef() const {
   }
 
 void Camera::clampRotation(Tempest::Vec3& spin) {
-  const auto& def = cameraDef();
-  if(spin.x>def.max_elevation)
-    spin.x = def.max_elevation;
-  if(spin.x<def.min_elevation)
+  const auto& def     = cameraDef();
+  float       maxElev = isMarvin() ? 90 : def.max_elevation;
+  float       minElev = isMarvin() ? -90 : def.min_elevation;
+  if(spin.x>maxElev)
+    spin.x = maxElev;
+  if(spin.x<minElev)
     ;//spin.x = def.minElevation;
   }
 
@@ -401,6 +426,8 @@ void Camera::implMove(Tempest::Event::KeyType key, uint64_t dt) {
   float k         = float(M_PI/180.0);
   float s         = std::sin(dst.spin.y*k), c=std::cos(dst.spin.y*k);
   const auto& def = cameraDef();
+  float sx        = std::sin((dst.spin.x-def.best_elevation)*k);
+  float cx        = std::cos((dst.spin.x-def.best_elevation)*k);
 
   if(key==KeyEvent::K_A) {
     dst.target.x += dpos*c;
@@ -411,14 +438,14 @@ void Camera::implMove(Tempest::Event::KeyType key, uint64_t dt) {
     dst.target.z -= dpos*s;
     }
   if(key==KeyEvent::K_W) {
-    dst.target.x += dpos*s;
-    dst.target.z -= dpos*c;
-    dst.target.y -= dst.spin.x - def.best_elevation;
+    dst.target.x += dpos*s*cx;
+    dst.target.z -= dpos*c*cx;
+    dst.target.y -= dpos*sx;
     }
   if(key==KeyEvent::K_S) {
-    dst.target.x -= dpos*s;
-    dst.target.z += dpos*c;
-    dst.target.y += dst.spin.x - def.best_elevation;
+    dst.target.x -= dpos*s*cx;
+    dst.target.z += dpos*c*cx;
+    dst.target.y += dpos*sx;
     }
   if(key==KeyEvent::K_Q)
     dst.spin.y += dRot;
@@ -433,7 +460,8 @@ void Camera::setPosition(const Tempest::Vec3& pos) {
   }
 
 void Camera::setDestPosition(const Tempest::Vec3& pos) {
-  dst.target = pos;
+  if(camMarvinMod!=M_Free && (camMarvinMod!=M_Freeze || camMod==Dialog))
+    dst.target = pos;
   }
 
 void Camera::setDialogDistance(float d) {
@@ -529,7 +557,7 @@ void Camera::followAng(float& ang, float dest, float speed, float dtF) {
   }
 
 void Camera::tick(uint64_t dt) {
-  if(Gothic::inst().isPause() || camMarvinMod==M_Freeze)
+  if(Gothic::inst().isPause() || (camMarvinMod==M_Freeze && camMod!=Dialog))
     return;
 
   const float dtF = float(dt)/1000.f;
@@ -571,7 +599,8 @@ void Camera::calcControlPoints(float dtF) {
     }
 
   followAng(src.spin,  dst.spin+rotBest, dtF);
-  followAng(rotOffset, rotOffsetDef,     dtF);
+  if(!isMarvin())
+    followAng(rotOffset, rotOffsetDef,     dtF);
 
   Matrix4x4 rotOffsetMat;
   rotOffsetMat.identity();
@@ -584,14 +613,13 @@ void Camera::calcControlPoints(float dtF) {
 
   auto target = dst.target + targetOffset;
 
-  if(camMarvinMod==M_Normal)
+  if(camMarvinMod!=M_Free)
     followPos(src.target,target,dtF);
 
   auto camTg = clampPos(src.target,target);
   followCamera(cameraPos,camTg,dtF);
 
   origin = cameraPos - dir*range;
-
   if(camMarvinMod==M_Free)
     return;
   if(def.collision!=0) {
@@ -604,14 +632,15 @@ void Camera::calcControlPoints(float dtF) {
     offsetAng = Vec3(); else
     offsetAng = calcOffsetAngles(origin,baseOrigin,dst.target);
 
-  if(fpEnable || camMarvinMod==M_Fixed) {
+  if((fpEnable && camMarvinMod==M_Normal) || (camMarvinMod==M_Pinned && camMod!=Dialog)) {
     origin    = dst.target;
     offsetAng = Vec3();
 
     Vec3 offset = {0,0,20};
-    if(camMarvinMod==M_Fixed)
-      offset = cameraOffset;
-    Matrix4x4 rotOffsetMat;
+    if(camMarvinMod==M_Pinned) {
+      offset      = cameraOffset;
+      rotOffset.y = cameraOffsetAng;
+      }
     rotOffsetMat.identity();
     rotOffsetMat.rotateOY(180-src.spin.y);
     rotOffsetMat.project(offset);
@@ -715,6 +744,8 @@ Matrix4x4 Camera::mkRotation(const Vec3& spin) const {
   }
 
 void Camera::resetDst() {
+  if(isMarvin())
+    return;
   const auto& def = cameraDef();
   dst.spin.x = def.best_elevation;
   dst.range  = def.best_range;

@@ -162,9 +162,7 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
   for(size_t i=0; i<npcArr.size(); ++i) {
     auto& npc = *npcArr[i];
     if(npc.isPlayer()) {
-      if(Gothic::inst().camera() && Gothic::inst().camera()->isMarvinMode(Camera::M_Free)) {
-        return;
-        } else {
+      if(!(Gothic::inst().camera()!=nullptr && Gothic::inst().camera()->isFree())) {
         npc.tick(dtPlayer);
         }
       } else {

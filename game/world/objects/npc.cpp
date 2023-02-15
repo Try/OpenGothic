@@ -4058,6 +4058,9 @@ void Npc::updateTransform() {
   }
 
 void Npc::updateAnimation(uint64_t dt) {
+  auto c = Gothic::inst().camera();
+  if(isPlayer() && c!=nullptr && c->isFree())
+    return;
   if(durtyTranform) {
     const auto ground = groundNormal();
     if(lastGroundNormal!=ground) {

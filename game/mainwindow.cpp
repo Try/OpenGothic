@@ -705,30 +705,39 @@ void MainWindow::onMarvinKey() {
       break;
     case Event::K_F4:
       if(Gothic::inst().isMarvinEnabled()) {
-        if(auto camera = Gothic::inst().camera())
+        if(auto camera = Gothic::inst().camera()) {
+          camera->setMarvinMode(Camera::M_Normal);
           camera->reset();
+          }
         }
       break;
     case Event::K_F5:
-      if(Gothic::inst().isMarvinEnabled()) {
+#ifdef NDEBUG
+      if(Gothic::inst().isMarvinEnabled() && !dialogs.isActive()) {
         if(auto camera = Gothic::inst().camera()) {
           camera->setMarvinMode(Camera::M_Freeze);
           }
         } else {
         Gothic::inst().quickSave();
         }
+#else
+      Gothic::inst().quickSave();
+#endif
       break;
 
     case Event::K_F6:
-      if(Gothic::inst().isMarvinEnabled()) {
-        if(auto camera = Gothic::inst().camera())
+      if(Gothic::inst().isMarvinEnabled() && !dialogs.isActive()) {
+        auto camera = Gothic::inst().camera();
+        auto inter  = Gothic::inst().player()->interactive();
+        if(camera!=nullptr && inter==nullptr)
           camera->setMarvinMode(Camera::M_Free);
         }
       break;
     case Event::K_F7:
-      if(Gothic::inst().isMarvinEnabled()) {
-        if(auto camera = Gothic::inst().camera())
-          camera->setMarvinMode(Camera::M_Fixed);
+      if(Gothic::inst().isMarvinEnabled() && !dialogs.isActive()) {
+        if(auto camera = Gothic::inst().camera()) {
+          camera->setMarvinMode(Camera::M_Pinned);
+          }
         }
       break;
     case Event::K_F8:
@@ -846,10 +855,10 @@ void MainWindow::tickCamera(uint64_t dt) {
     camera.setDestSpin(spin);
     camera.setDestPosition(pos);
     }
-  else if(camera.isMarvinMode(Camera::M_Normal) || camera.isMarvinMode(Camera::M_Fixed)) {
+  else {
     auto spin = camera.destSpin();
     spin.y = pl->rotation();
-    if(pl->isDive())
+    if(pl->isDive() && !camera.isMarvin())
       spin.x = -pl->rotationY();
     camera.setDestSpin(spin);
     camera.setDestPosition(pos);
