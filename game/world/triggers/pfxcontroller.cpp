@@ -16,7 +16,8 @@ PfxController::PfxController(Vob* parent, World& world, const phoenix::vobs::pfx
     return;
   lifeTime = view->maxLifetime();
   pfx = PfxEmitter(world,view);
-  pfx.setActive(ctrl.initially_running);
+  // Assume that PFX is always running; otherwise oldworld.zen doesn't look as in vanilla
+  pfx.setActive(true || ctrl.initially_running);
   pfx.setLooped(true);
   pfx.setObjMatrix(transform());
   }

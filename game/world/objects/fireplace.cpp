@@ -21,7 +21,7 @@ void FirePlace::moveEvent() {
   }
 
 void FirePlace::onStateChanged() {
-  if(stateId()!=0) {
+  if(stateId()>0) {
     auto at = this->nodeTranform(fireSlot);
     fireVobtree = VobBundle(world,fireVobtreeName,Vob::Startup);
     fireVobtree.setObjMatrix(at);

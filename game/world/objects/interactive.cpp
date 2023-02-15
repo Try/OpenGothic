@@ -248,12 +248,17 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
       npc.setDirectionY(y0-y1);
       }
     auto sq = npc.setAnimAngGet(Npc::Anim::InteractFromStand);
+    if(sq==nullptr) {
+      // some  mobsi have no animations in G2 - ignore them
+      p.started    = true;
+      p.attachMode = false;
+      return;
+      }
     uint64_t t = sq==nullptr ? 0 : uint64_t(sq->totalTime());
     waitAnim   = world.tickCount()+t;
     p.started  = sq!=nullptr;
-    if (state<1)
-      setState(std::min(stateNum,state+1));
-    else
+    if(state<1)
+      setState(std::min(stateNum,state+1)); else
       setState(std::max(0,state-1));
     return;
     }
@@ -272,7 +277,7 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
     }
 
   if(isLadder()) {
-    if (state==-1) {
+    if(state==-1) {
       loopState    = true;
       reverseState = false;
       }
@@ -929,8 +934,8 @@ void Interactive::setState(int st) {
 const Animation::Sequence* Interactive::animNpc(const AnimationSolver &solver, Anim t) {
   std::string_view tag      = schemeName();
   int              st[]     = {state,state+(reverseState ? -t : t)};
-  char             ss[2][12] = {};
-  char             pointBuf[32] = {};
+  string_frm<12>   ss[2]    = {};
+  string_frm       pointBuf = {};
   std::string_view point    = "";
 
   if(t==Anim::FromStand) {
@@ -944,24 +949,22 @@ const Animation::Sequence* Interactive::animNpc(const AnimationSolver &solver, A
 
   for(auto& i:attPos)
     if(i.user!=nullptr) {
-      point = i.posTag();
-      std::snprintf(pointBuf,sizeof(pointBuf),"_%.*s",int(point.size()),point.data());
-      point = pointBuf;
+      point = string_frm("_",i.posTag());
       }
 
   st[1] = std::max(-1,std::min(st[1],stateNum));
 
-  char buf[256]={};
-  for(int i=0;i<2;++i){
+  for(int i=0;i<2;++i) {
     if(st[i]<0)
-      std::snprintf(ss[i],sizeof(ss[i]),"STAND"); else
-      std::snprintf(ss[i],sizeof(ss[i]),"S%d",st[i]);
+      ss[i] = "STAND"; else
+      ss[i] = string_frm("S",st[i]);
     }
 
+  string_frm buf = {};
   for(auto pt:{point,std::string_view()}) {
     if(st[0]==st[1])
-      std::snprintf(buf,sizeof(buf),"S_%.*s%.*s_%s",     int(tag.size()),tag.data(),int(pt.size()),pt.data(),ss[0]); else
-      std::snprintf(buf,sizeof(buf),"T_%.*s%.*s_%s_2_%s",int(tag.size()),tag.data(),int(pt.size()),pt.data(),ss[0],ss[1]);
+      buf = string_frm("S_",tag,pt,ss[0]); else
+      buf = string_frm("T_",tag,pt,"_",ss[0],"_2_",ss[1]);
     if(auto ret = solver.solveFrm(buf))
       return ret;
     }
