@@ -936,7 +936,7 @@ const Animation::Sequence* Interactive::animNpc(const AnimationSolver &solver, A
   int              st[]     = {state,state+(reverseState ? -t : t)};
   string_frm<12>   ss[2]    = {};
   string_frm       pointBuf = {};
-  std::string_view point    = "";
+  string_frm       point    = {};
 
   if(t==Anim::FromStand) {
     st[0] = -1;
@@ -961,7 +961,7 @@ const Animation::Sequence* Interactive::animNpc(const AnimationSolver &solver, A
     }
 
   string_frm buf = {};
-  for(auto pt:{point,std::string_view()}) {
+  for(auto pt:{std::string_view(point),std::string_view()}) {
     if(st[0]==st[1])
       buf = string_frm("S_",tag,pt,ss[0]); else
       buf = string_frm("T_",tag,pt,"_",ss[0],"_2_",ss[1]);
