@@ -108,7 +108,7 @@ struct Npc::TransformBack {
     }
 
   void undo(Npc& self) {
-    int32_t aivar[100]={};
+    int32_t aivar[phoenix::c_npc::aivar_count]={};
 
     auto exp      = self.hnpc->exp;
     auto exp_next = self.hnpc->exp_next;
