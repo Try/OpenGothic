@@ -77,7 +77,7 @@ void Npc::GoTo::setFlee() {
 
 struct Npc::TransformBack {
   TransformBack(Npc& self) {
-    hnpc        = self.hnpc;
+    hnpc        = std::make_shared<phoenix::c_npc>(*self.hnpc);
     invent      = std::move(self.invent);
     self.invent = Inventory(); // cleanup
 
@@ -95,8 +95,8 @@ struct Npc::TransformBack {
     }
 
   TransformBack(Npc& owner, phoenix::vm& vm, Serialize& fin) {
-    hnpc = std::make_shared<phoenix::c_npc>();
-    hnpc->user_ptr        = this;
+    hnpc           = std::make_shared<phoenix::c_npc>();
+    hnpc->user_ptr = this;
     fin.readNpc(vm, hnpc);
     invent.load(fin,owner);
     fin.read(talentsSk,talentsVl);
