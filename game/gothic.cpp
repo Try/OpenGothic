@@ -28,7 +28,7 @@ Gothic* Gothic::instance = nullptr;
 
 static bool hasMeshShader() {
   const auto& p = Resources::device().properties();
-  if(p.meshlets.meshShader)
+  if(p.meshlets.meshShader && p.meshlets.taskShader)
     return true;
   if(p.meshlets.meshShaderEmulated)
     ;//return true;

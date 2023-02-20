@@ -2,37 +2,72 @@
 
 #extension GL_EXT_control_flow_attributes:enable
 
-layout(binding = 0)      uniform sampler2D zbuffer;
-layout(binding = 1, r16) uniform writeonly image2D hiZ;
+layout(binding = 0)         uniform sampler2D zbuffer;
+layout(binding = 1, std430) buffer Atomic { uint hiZRaw[]; };
+layout(binding = 2, r16)    uniform writeonly image2D hiZ;
 
 layout(local_size_x = 16, local_size_y = 16) in;
 
-void main() {
+uint nextPot(uint x) {
+  x--;
+  x |= x >> 1;
+  x |= x >> 2;
+  x |= x >> 4;
+  x |= x >> 8;
+  x |= x >> 16;
+  x++;
+  return x;
+  }
+
+uvec2 nextPot(uvec2 v) {
+  return uvec2(nextPot(v.x), nextPot(v.y));
+  }
+
+void main_raw() {
   const ivec2 srcSz = textureSize(zbuffer,0);
   const ivec2 dstSz = imageSize(hiZ);
+  const uvec2 potSz = nextPot(srcSz);
+
   const ivec2 uv    = ivec2(gl_GlobalInvocationID.xy);
-  if(uv.x>=dstSz.x || uv.y>=dstSz.y)
+  if(uv.x>=srcSz.x || uv.y>=srcSz.y) {
     return;
-
-  ivec2 begin = ivec2((uv*srcSz)/dstSz);
-  ivec2 end   = ivec2(/*ceil*/((uv+ivec2(1,1))*srcSz/dstSz));
-  end = min(end, srcSz-ivec2(1,1));
-
-  float z = 0;
-  [[unroll]]
-  for(int i=0; i<3; ++i) {
-    [[unroll]]
-    for(int r=0; r<3; ++r) {
-      int x = begin.x+i;
-      int y = begin.y+r;
-      if(x>end.x || y>end.y)
-        continue;
-      float zbuf = texelFetch(zbuffer,ivec2(x,y),0).x;
-      z = max(z,zbuf);
-      }
     }
 
+  float z       = texelFetch(zbuffer,uv,0).x;
+  uvec2 blockSz = potSz/dstSz;
+  uvec2 at      = uvec2(uv)/blockSz;
+
+  if(at.x>=dstSz.x || at.y>=dstSz.y)
+    return;
+
+  atomicMax(hiZRaw[at.x + at.y*dstSz.x], floatBitsToUint(z));
+  }
+
+void main_resolve() {
+  const ivec2 srcSz = textureSize(zbuffer,0);
+  const ivec2 dstSz = imageSize(hiZ);
+  const uvec2 potSz = nextPot(srcSz);
+
+  const ivec2 at    = ivec2(gl_GlobalInvocationID.xy);
+  if(at.x>=dstSz.x || at.y>=dstSz.y)
+    return;
+
+  float z       = uintBitsToFloat(hiZRaw[at.x + at.y*dstSz.x]);
+  uvec2 blockSz = potSz/dstSz;
+  uvec2 uv      = uvec2(at)*blockSz;
+  if(uv.x>=srcSz.x || uv.y>=srcSz.y)
+    z = 0;
+
+  hiZRaw[at.x + at.y*dstSz.x] = 0;
   z = (1.0-z)*20.0;
-  z = z - 1.0/32768.0;
-  imageStore(hiZ, ivec2(uv), vec4(z));
+  //z = clamp(z,0,1);
+  imageStore(hiZ, ivec2(at), vec4(z - 10.0/32768.0));
+  }
+
+void main() {
+#ifdef RESOLVE
+  main_resolve();
+#else
+  main_raw();
+#endif
   }

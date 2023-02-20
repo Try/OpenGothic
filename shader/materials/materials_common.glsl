@@ -120,27 +120,38 @@ struct MorphDesc {
   uint  alpha16_intensity16;
   };
 
+struct Payload {
+  uint  baseId;
+  uint  offsets[64];
+  //uvec4 offsets;
+  };
+
 #if (MESH_TYPE==T_LANDSCAPE)
 layout(push_constant, std430) uniform UboPush {
   uint      meshletBase;
+  int       instanceCount;
   } push;
 #elif (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING)
 layout(push_constant, std430) uniform UboPush {
   uint      meshletBase;
+  int       meshletPerInstance;
   uint      firstInstance;
-  uint      padd0;
+  uint      instanceCount;
   float     fatness;
+  float     padd[3];
   } push;
 #elif (MESH_TYPE==T_MORPH)
 layout(push_constant, std430) uniform UboPush {
   uint      meshletBase;
+  int       meshletPerInstance;
   uint      firstInstance;
-  uint      padd0;
+  uint      instanceCount;
   float     fatness;
+  float     padd[3];
 
   MorphDesc morph[MAX_MORPH_LAYERS];
   } push;
-#elif (MESH_TYPE==T_PFX || MESH_TYPE==T_LANDSCAPE)
+#elif (MESH_TYPE==T_PFX)
 // no push
 #else
 #error "unknown MESH_TYPE"
@@ -201,7 +212,7 @@ layout(binding = L_GDiffuse) uniform sampler2D gbufferDiffuse;
 layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
 #endif
 
-#if defined(MESH) && !defined(SHADOW_MAP)
+#if (defined(MESH) || defined(TASK)) && !defined(SHADOW_MAP)
 layout(binding = L_HiZ)  uniform sampler2D hiZ;
 #endif
 

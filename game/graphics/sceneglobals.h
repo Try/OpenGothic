@@ -32,6 +32,7 @@ class SceneGlobals final {
     void commitUbo(uint8_t fId);
 
     void setResolution(uint32_t w, uint32_t h);
+    void setHiZ(const Tempest::Texture2d& hiZ);
     void setShadowMap(const Tempest::Texture2d* tex[]);
 
     const Tempest::Matrix4x4& viewProject() const;
@@ -80,6 +81,8 @@ class SceneGlobals final {
       float                           padd2 = 0;
       Tempest::Vec3                   pfxDepth = {};
       float                           padd3 = 0;
+      Tempest::Point                  hiZTileSize = {};
+      Tempest::Point                  screenRes = {};
       };
 
     Tempest::UniformBuffer<UboGlobal> uboGlobalPf[Resources::MaxFramesInFlight][V_Count];

@@ -10,13 +10,15 @@
 
 using namespace Tempest;
 
-static uint32_t nearestPot(uint32_t x) {
-  x = x | (x >> 1);
-  x = x | (x >> 2);
-  x = x | (x >> 4);
-  x = x | (x >> 8);
-  x = x | (x >> 16);
-  return x - (x >> 1);
+static uint32_t nextPot(uint32_t x) {
+  x--;
+  x |= x >> 1;
+  x |= x >> 2;
+  x |= x >> 4;
+  x |= x >> 8;
+  x |= x >> 16;
+  x++;
+  return x;
   }
 
 static std::string_view toStr(TextureFormat f) {
@@ -85,35 +87,37 @@ void Renderer::resetSwapchain() {
   zbufferItem    = device.zbuffer(zBufferFormat,w,h);
 
   if(Gothic::inst().doMeshShading()) {
-    uint32_t hw = nearestPot(w);
-    uint32_t hh = nearestPot(h);
+    uint32_t pw = nextPot(w);
+    uint32_t ph = nextPot(h);
 
-    hiZPot  = device.image2d(TextureFormat::R16, hw, hh, true);
-    hiZ     = StorageImage();
+    uint32_t hw = pw;
+    uint32_t hh = ph;
+    while(hw>64 || hh>64) {
+      hw = std::max(1u, (hw+1)/2u);
+      hh = std::max(1u, (hh+1)/2u);
+      }
+
+    std::vector<uint32_t> zb(hw*hh, 0);
+    hiZRaw = device.ssbo(zb);
+    hiZ    = device.image2d(TextureFormat::R16, hw, hh, true);
+
+    uboHiZRaw = device.descriptors(Shaders::inst().hiZRaw);
+    uboHiZRaw.set(0, zbuffer, smpN);
+    uboHiZRaw.set(1, hiZRaw);
+    uboHiZRaw.set(2, hiZ);
 
     uboHiZPot = device.descriptors(Shaders::inst().hiZPot);
     uboHiZPot.set(0, zbuffer, smpN);
-    uboHiZPot.set(1, hiZPot);
+    uboHiZPot.set(1, hiZRaw);
+    uboHiZPot.set(2, hiZ);
 
     uboZMip.clear();
     for(uint32_t i=0; (hw>1 && hh>1); ++i) {
       hw = std::max(1u, hw/2u);
       hh = std::max(1u, hh/2u);
       auto& ubo = uboZMip.emplace_back(device.descriptors(Shaders::inst().hiZMip));
-
-      if(hiZ.isEmpty()) {
-        ubo.set(0, hiZPot, smpN, i);
-        ubo.set(1, hiZPot, smpN, i+1);
-        } else {
-        ubo.set(0, hiZ, smpN, i);
-        ubo.set(1, hiZ, smpN, i+1);
-        }
-
-      if(hiZ.isEmpty() && (hw<=64 && hh<=64)) {
-        hiZ = device.image2d(TextureFormat::R16, hw, hh, true);
-        ubo.set(1, hiZ, smpN, 0);
-        i = uint32_t(-1);
-        }
+      ubo.set(0, hiZ, smpN, i);
+      ubo.set(1, hiZ, smpN, i+1);
       }
     }
 
@@ -122,7 +126,6 @@ void Renderer::resetSwapchain() {
       shadowMap[i] = device.zbuffer(shadowFormat,smSize,smSize);
     }
 
-  // sceneOpaque  = device.attachment(TextureFormat::RGBA8,      swapchain.w(),swapchain.h());
   sceneOpaque  = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
   sceneLinear  = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
   sceneDepth   = device.attachment(TextureFormat::R32F,       swapchain.w(),swapchain.h());
@@ -289,11 +292,11 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   if(!dbg)
     return;
 
-  // auto& tex = hiZ;
-  auto& tex = shadowMap[1];
+  auto& tex = hiZ;
+  // auto& tex = shadowMap[1];
   // auto& tex = shadowMap[0];
 
-  p.setBrush(textureCast(tex));
+  p.setBrush(Brush(textureCast(tex),Painter::Alpha,ClampMode::ClampToBorder));
   auto sz = Size(p.brush().w(),p.brush().h());
   if(sz.isEmpty())
     return;
@@ -391,10 +394,15 @@ void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
   cmd.setFramebuffer({}, {zbuffer, 1.f, Tempest::Preserve});
   wview.drawHiZ(cmd,fId);
 
-  uint32_t w = uint32_t(hiZPot.w()), h = uint32_t(hiZPot.h());
+  cmd.setFramebuffer({});
+  cmd.setUniforms(Shaders::inst().hiZRaw, uboHiZRaw);
+  cmd.dispatchThreads(uint32_t(zbuffer.w()),uint32_t(zbuffer.h()));
+
   cmd.setFramebuffer({});
   cmd.setUniforms(Shaders::inst().hiZPot, uboHiZPot);
-  cmd.dispatchThreads(w,h);
+  cmd.dispatchThreads(uint32_t(hiZ.w()),uint32_t(hiZ.h()));
+
+  uint32_t w = uint32_t(hiZ.w()), h = uint32_t(hiZ.h());
   for(uint32_t i=0; i<uboZMip.size(); ++i) {
     w = w/2;
     h = h/2;
@@ -405,7 +413,7 @@ void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
 
 void Renderer::drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
   if(Gothic::inst().doMeshShading()) {
-    cmd.setFramebuffer({{gbufDiffuse, Tempest::Discard, Tempest::Preserve},
+    cmd.setFramebuffer({{gbufDiffuse, Tempest::Vec4(),  Tempest::Preserve},
                         {gbufNormal,  Tempest::Discard, Tempest::Preserve}},
                        {zbuffer, Tempest::Preserve, Tempest::Preserve});
     } else {

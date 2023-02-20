@@ -568,6 +568,8 @@ std::vector<PackedMesh::Meshlet> PackedMesh::buildMeshlets(const phoenix::mesh* 
   heap.sort();
   std::fill(used.begin(), used.end(), false);
 
+  const bool tightPacking = true;
+
   size_t  firstUnused = 0;
   size_t  firstVert   = 0;
   Meshlet active;
@@ -588,6 +590,13 @@ std::vector<PackedMesh::Meshlet> PackedMesh::buildMeshlets(const phoenix::mesh* 
         used[triId] = true;
         }
       firstVert = r+1;
+      }
+
+    if(triId==size_t(-1) && active.indSz!=0 && !tightPacking) {
+      meshlets.push_back(std::move(active));
+      active.clear();
+      firstVert = 0;
+      continue;
       }
 
     if(triId==size_t(-1)) {
@@ -701,6 +710,8 @@ void PackedMesh::dbgUtilization(const std::vector<Meshlet>& meshlets) {
   std::snprintf(buf,sizeof(buf),"Meshlet usage: prim = %02.02f%%, vert = %02.02f%%, count = %d", procentP, procentV, int(meshlets.size()));
   Log::d(buf);
   if(procentV<25)
+    Log::d("");
+  if(usedV<usedP)
     Log::d("");
   }
 

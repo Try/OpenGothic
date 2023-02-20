@@ -92,10 +92,10 @@ class Renderer final {
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::RGBA8;
     Tempest::TextureFormat    zBufferFormat = Tempest::TextureFormat::Depth16;
 
-    Tempest::StorageImage     hiZPot;
     Tempest::StorageImage     hiZ;
+    Tempest::StorageBuffer    hiZRaw;
 
-    Tempest::DescriptorSet    uboHiZPot;
+    Tempest::DescriptorSet    uboHiZRaw, uboHiZPot;
     std::vector<Tempest::DescriptorSet> uboZMip;
 
     Tempest::DescriptorSet    uboCopy, uboCopyDepth;

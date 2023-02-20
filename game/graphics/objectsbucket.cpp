@@ -607,7 +607,8 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId, const R
         if(useMeshlets) {
           uint32_t meshletBase = uint32_t(v.iboOffset/PackedMesh::MaxInd);
           cmd.setUniforms(shader, &meshletBase, sizeof(uint32_t));
-          cmd.dispatchMesh(v.iboLength/PackedMesh::MaxInd, 1);
+          assert(0);
+          // cmd.dispatchMesh(v.iboLength/PackedMesh::MaxInd, 1);
           } else {
           cmd.draw(staticMesh->vbo, staticMesh->ibo, v.iboOffset, v.iboLength);
           }
@@ -631,10 +632,11 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId, const R
         uint32_t cnt   = applyInstancing(i,index,indSz);
         size_t   uboSz = (objType==Morph ? sizeof(UboPush) : sizeof(UboPushBase));
 
-        updatePushBlock(pushBlock,v,instance);
+        updatePushBlock(pushBlock,v,instance,cnt);
         if(useMeshlets) {
           cmd.setUniforms(shader, &pushBlock, uboSz);
-          cmd.dispatchMesh(uint32_t(v.iboLength/PackedMesh::MaxInd), cnt);
+          cmd.dispatchMeshThreads(cnt);
+          // cmd.dispatchMesh(uint32_t(v.iboLength/PackedMesh::MaxInd), cnt);
           } else {
           cmd.setUniforms(shader, &pushBlock, uboSz);
           if(objType!=Animated)
@@ -756,10 +758,12 @@ bool ObjectsBucket::isSceneInfoRequired() const {
   return mat.isSceneInfoRequired();
   }
 
-void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket::Object& v, uint32_t instance) {
-  push.meshletBase   = uint32_t(v.iboOffset/PackedMesh::MaxInd);
-  push.firstInstance = instance;
-  push.fatness       = v.fatness;
+void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket::Object& v, uint32_t instance, uint32_t instanceCount) {
+  push.meshletBase        = uint32_t(v.iboOffset/PackedMesh::MaxInd);
+  push.meshletPerInstance = int32_t (v.iboLength/PackedMesh::MaxInd);
+  push.firstInstance      = instance;
+  push.instanceCount      = instanceCount;
+  push.fatness            = v.fatness;
 
   if(objType==Morph) {
     for(size_t i=0; i<Resources::MAX_MORPH_LAYERS; ++i) {
@@ -1059,10 +1063,12 @@ void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
     switch(objType) {
       case Landscape:
       case LandscapeShadow: {
-        uint32_t meshletBase = uint32_t(v.iboOffset/PackedMesh::MaxInd);
-        cmd.setUniforms(shader, uboObj[id].ubo[fId][c], &meshletBase, sizeof(uint32_t));
+        pushBlock.meshletBase        = uint32_t(v.iboOffset/PackedMesh::MaxInd);
+        pushBlock.meshletPerInstance =  int32_t(v.iboLength/PackedMesh::MaxInd);
+        cmd.setUniforms(shader, uboObj[id].ubo[fId][c], &pushBlock, sizeof(uint32_t)*2);
         if(useMeshlets) {
-          cmd.dispatchMesh(v.iboLength/PackedMesh::MaxInd, 1);
+          //cmd.dispatchMesh(v.iboLength/PackedMesh::MaxInd, 1);
+          cmd.dispatchMeshThreads(v.iboLength/PackedMesh::MaxInd);
           } else {
           cmd.draw(staticMesh->vbo, staticMesh->ibo, v.iboOffset, v.iboLength);
           }
@@ -1085,10 +1091,11 @@ void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
           instance = v.skiningAni->offsetId();
 
         size_t uboSz = (objType==Morph ? sizeof(UboPush) : sizeof(UboPushBase));
-        updatePushBlock(pushBlock,v,instance);
+        updatePushBlock(pushBlock,v,instance,1);
         if(useMeshlets) {
           cmd.setUniforms(shader, uboObj[id].ubo[fId][c], &pushBlock, uboSz);
-          cmd.dispatchMesh(uint32_t(v.iboLength/PackedMesh::MaxInd), 1);
+          cmd.dispatchMeshThreads(1);
+          // cmd.dispatchMesh(uint32_t(v.iboLength/PackedMesh::MaxInd), 1);
           } else {
           cmd.setUniforms(shader, uboObj[id].ubo[fId][c], &pushBlock, uboSz);
           if(objType!=Animated)
@@ -1112,6 +1119,7 @@ void ObjectsBucketDyn::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, ui
       continue;
     uint32_t meshletBase = uint32_t(v.iboOffset/PackedMesh::MaxInd);
     cmd.setUniforms(*pHiZ, &meshletBase, sizeof(uint32_t));
-    cmd.dispatchMesh(v.iboLength/PackedMesh::MaxInd, 1);
+    cmd.dispatchMeshThreads(v.iboLength/PackedMesh::MaxInd);
+    // cmd.dispatchMesh(v.iboLength/PackedMesh::MaxInd, 1);
     }
   }
