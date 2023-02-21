@@ -2049,8 +2049,8 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         queue.pushFront(std::move(act));
         break;
         }
-      currentLookAt    = nullptr;
-      currentLookAtNpc = nullptr;
+      //currentLookAt    = nullptr;
+      //currentLookAtNpc = nullptr;
       break;
       }
     case AI_GoToNpc:
