@@ -2108,7 +2108,9 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         if(closeWeapon(false)) {
           stopWalkAnimation();
           }
-        if(weaponState()!=WeaponState::NoWeapon){
+
+        auto ws = weaponState();
+        if(ws!=WeaponState::NoWeapon){
           queue.pushFront(std::move(act));
           }
         }
@@ -2704,7 +2706,8 @@ void Npc::commitSpell() {
           }
         }
       if(spl==nullptr) {
-        aiPush(AiQueue::aiRemoveWeapon());
+        if(spellInfo==0)
+          aiPush(AiQueue::aiRemoveWeapon());
         } else {
         drawSpell(spl->spellId());
         }
