@@ -2049,8 +2049,10 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         queue.pushFront(std::move(act));
         break;
         }
-      //currentLookAt    = nullptr;
-      //currentLookAtNpc = nullptr;
+      // Not looking quite correct in dialogs, when npc turns around
+      // Example: Esteban dialog
+      // currentLookAt    = nullptr;
+      // currentLookAtNpc = nullptr;
       break;
       }
     case AI_GoToNpc:
@@ -3893,6 +3895,9 @@ bool Npc::isAiBusy() const {
   }
 
 void Npc::clearAiQueue() {
+  currentLookAt    = nullptr;
+  currentLookAtNpc = nullptr;
+
   aiQueue.clear();
   aiQueueOverlay.clear();
   aniWaitTime = 0;
