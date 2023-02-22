@@ -390,10 +390,10 @@ const Animation::Sequence* AnimationSolver::solveFrm(std::string_view fview, Wea
   std::snprintf(name,sizeof(name),format,weapon[int(st)],weapon[int(st)]);
   if(auto ret=solveFrm(name))
     return ret;
-  std::snprintf(name,sizeof(name),format,"");
+  std::snprintf(name,sizeof(name),format,"","");
   if(auto ret=solveFrm(name))
     return ret;
-  std::snprintf(name,sizeof(name),format,"FIST");
+  std::snprintf(name,sizeof(name),format,"FIST","");
   return solveFrm(name);
   }
 
