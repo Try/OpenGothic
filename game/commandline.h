@@ -45,10 +45,11 @@ class CommandLine {
     bool                isDebug  = false;
 #if defined(__OSX__)
     bool                isRQuery = false;
+    bool                isMeshSh = false;
 #else
     bool                isRQuery = true;
-#endif
     bool                isMeshSh = true;
+#endif
     bool                forceG1  = false;
     bool                forceG2  = false;
   };
