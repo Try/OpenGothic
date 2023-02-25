@@ -605,10 +605,7 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId, const R
       case Landscape:
       case LandscapeShadow: {
         if(useMeshlets) {
-          uint32_t meshletBase = uint32_t(v.iboOffset/PackedMesh::MaxInd);
-          cmd.setUniforms(shader, &meshletBase, sizeof(uint32_t));
           assert(0);
-          // cmd.dispatchMesh(v.iboLength/PackedMesh::MaxInd, 1);
           } else {
           cmd.draw(staticMesh->vbo, staticMesh->ibo, v.iboOffset, v.iboLength);
           }
@@ -1067,7 +1064,6 @@ void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
         pushBlock.meshletPerInstance =  int32_t(v.iboLength/PackedMesh::MaxInd);
         cmd.setUniforms(shader, uboObj[id].ubo[fId][c], &pushBlock, sizeof(uint32_t)*2);
         if(useMeshlets) {
-          //cmd.dispatchMesh(v.iboLength/PackedMesh::MaxInd, 1);
           cmd.dispatchMeshThreads(v.iboLength/PackedMesh::MaxInd);
           } else {
           cmd.draw(staticMesh->vbo, staticMesh->ibo, v.iboOffset, v.iboLength);
@@ -1111,15 +1107,18 @@ void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
 void ObjectsBucketDyn::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   if(pHiZ==nullptr || objType!=LandscapeShadow || !useMeshlets)
     return;
-  uint32_t meshletBase = 0;
-  cmd.setUniforms(*pHiZ, uboHiZ.ubo[fId][SceneGlobals::V_Shadow1], &meshletBase, sizeof(uint32_t));
+
+  cmd.setUniforms(*pHiZ, uboHiZ.ubo[fId][SceneGlobals::V_Shadow1]);
   for(size_t i=0; i<valSz; ++i) {
     auto& v = val[i];
     if(!v.isValid)
       continue;
-    uint32_t meshletBase = uint32_t(v.iboOffset/PackedMesh::MaxInd);
-    cmd.setUniforms(*pHiZ, &meshletBase, sizeof(uint32_t));
+
+    UboPush pushBlock = {};
+    pushBlock.meshletBase        = uint32_t(v.iboOffset/PackedMesh::MaxInd);
+    pushBlock.meshletPerInstance =  int32_t(v.iboLength/PackedMesh::MaxInd);
+    cmd.setUniforms(*pHiZ, &pushBlock, sizeof(uint32_t)*2);
+
     cmd.dispatchMeshThreads(v.iboLength/PackedMesh::MaxInd);
-    // cmd.dispatchMesh(v.iboLength/PackedMesh::MaxInd, 1);
     }
   }
