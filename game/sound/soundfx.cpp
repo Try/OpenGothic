@@ -61,9 +61,6 @@ void SoundFx::implLoad(std::string_view s) {
   auto& sfx = Gothic::sfx()[s];
   auto  snd = Resources::loadSoundBuffer(sfx.file);
 
-  // if(s.starts_with("SHP_AMBIENT"))
-  //   Tempest::Log::d("");
-
   if(!snd.isEmpty())
     inst.emplace_back(sfx,std::move(snd));
   loadVariants(s);

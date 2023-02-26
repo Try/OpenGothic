@@ -338,7 +338,7 @@ Sky::UboSky Sky::mkPush() {
   static float rayleighScatteringScale = 33.1f;
 
   ubo.rayleighScatteringScale = rayleighScatteringScale;
-  ubo.clipInfo                = scene.clipInfo();
+  ubo.clipInfo                = Vec3(scene.clipInfo().x,scene.clipInfo().y,scene.clipInfo().z);
   ubo.GSunIntensity           = GSunIntensity;
   ubo.exposureInv             = exposureInv;
 
