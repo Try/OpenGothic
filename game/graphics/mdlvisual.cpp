@@ -841,6 +841,14 @@ const Skeleton* MdlVisual::visualSkeleton() const {
   return skeleton;
   }
 
+std::string_view MdlVisual::visualSkeletonScheme() const {
+  if(skeleton==nullptr)
+    return "";
+  auto ret = skeleton->name();
+  auto end = ret.find(".");
+  return ret.substr(0, end);
+  }
+
 template<class View>
 void MdlVisual::syncAttaches(Attach<View>& att) {
   if(att.view.isEmpty())

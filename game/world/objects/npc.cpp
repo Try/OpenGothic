@@ -20,7 +20,7 @@
 
 using namespace Tempest;
 
-static std::string_view humansTorchOverlay = "HUMANS_TORCH.MDS";
+static std::string_view humansTorchOverlay = "_TORCH.MDS";
 
 void Npc::GoTo::save(Serialize& fout) const {
   fout.write(npc, uint8_t(flag), wp, pos);
@@ -766,13 +766,14 @@ void Npc::delOverlay(const Skeleton *sk) {
   }
 
 bool Npc::toggleTorch() {
+  string_frm overlay(visual.visualSkeletonScheme(), humansTorchOverlay);
   if(isUsingTorch()) {
     visual.setTorch(false,owner);
-    delOverlay(humansTorchOverlay);
+    delOverlay(overlay);
     return false;
     }
   visual.setTorch(true,owner);
-  addOverlay(humansTorchOverlay,0);
+  addOverlay(overlay,0);
   return true;
   }
 
@@ -780,11 +781,12 @@ void Npc::setTorch(bool use) {
   if(isUsingTorch()==use)
     return;
 
+  string_frm overlay(visual.visualSkeletonScheme(), humansTorchOverlay);
   visual.setTorch(use,owner);
   if(use) {
-    addOverlay(humansTorchOverlay,0);
+    addOverlay(overlay,0);
     } else {
-    delOverlay(humansTorchOverlay);
+    delOverlay(overlay);
     }
   }
 
@@ -800,8 +802,9 @@ void Npc::dropTorch(bool burnout) {
   if(!isUsingTorch())
     return;
 
+  string_frm overlay(visual.visualSkeletonScheme(), humansTorchOverlay);
   visual.setTorch(false,owner);
-  delOverlay(humansTorchOverlay);
+  delOverlay(overlay);
 
   size_t torchId = 0;
   if(burnout)
@@ -1019,69 +1022,72 @@ bool Npc::isInAir() const {
   }
 
 void Npc::setTalentSkill(Talent t, int32_t lvl) {
-  if(t<TALENT_MAX_G2) {
-    talentsSk[t] = lvl;
-    if(t==TALENT_1H){
-      if(lvl==0){
-        delOverlay("HUMANS_1HST1.MDS");
-        delOverlay("HUMANS_1HST2.MDS");
-        }
-      else if(lvl==1){
-        addOverlay("HUMANS_1HST1.MDS",0);
-        delOverlay("HUMANS_1HST2.MDS");
-        }
-      else if(lvl==2){
-        delOverlay("HUMANS_1HST1.MDS");
-        addOverlay("HUMANS_1HST2.MDS",0);
-        }
+  if(t>=TALENT_MAX_G2)
+    return;
+
+  talentsSk[t] = lvl;
+
+  auto scheme = visual.visualSkeletonScheme();
+  if(t==TALENT_1H){
+    if(lvl==0){
+      delOverlay(string_frm(scheme,"_1HST1.MDS"));
+      delOverlay(string_frm(scheme,"_1HST2.MDS"));
       }
-    else if(t==TALENT_2H){
-      if(lvl==0){
-        delOverlay("HUMANS_2HST1.MDS");
-        delOverlay("HUMANS_2HST2.MDS");
-        }
-      else if(lvl==1){
-        addOverlay("HUMANS_2HST1.MDS",0);
-        delOverlay("HUMANS_2HST2.MDS");
-        }
-      else if(lvl==2){
-        delOverlay("HUMANS_2HST1.MDS");
-        addOverlay("HUMANS_2HST2.MDS",0);
-        }
+    else if(lvl==1){
+      addOverlay(string_frm(scheme,"_1HST1.MDS"),0);
+      delOverlay(string_frm(scheme,"_1HST2.MDS"));
       }
-    else if(t==TALENT_BOW){
-      if(lvl==0){
-        delOverlay("HUMANS_BOWT1.MDS");
-        delOverlay("HUMANS_BOWT2.MDS");
-        }
-      else if(lvl==1){
-        addOverlay("HUMANS_BOWT1.MDS",0);
-        delOverlay("HUMANS_BOWT2.MDS");
-        }
-      else if(lvl==2){
-        delOverlay("HUMANS_BOWT1.MDS");
-        addOverlay("HUMANS_BOWT2.MDS",0);
-        }
+    else if(lvl==2){
+      delOverlay(string_frm(scheme,"_1HST1.MDS"));
+      addOverlay(string_frm(scheme,"_1HST2.MDS"),0);
       }
-    else if(t==TALENT_CROSSBOW){
-      if(lvl==0){
-        delOverlay("HUMANS_CBOWT1.MDS");
-        delOverlay("HUMANS_CBOWT2.MDS");
-        }
-      else if(lvl==1){
-        addOverlay("HUMANS_CBOWT1.MDS",0);
-        delOverlay("HUMANS_CBOWT2.MDS");
-        }
-      else if(lvl==2){
-        delOverlay("HUMANS_CBOWT1.MDS");
-        addOverlay("HUMANS_CBOWT2.MDS",0);
-        }
+    }
+  else if(t==TALENT_2H){
+    if(lvl==0){
+      delOverlay(string_frm(scheme,"_2HST1.MDS"));
+      delOverlay(string_frm(scheme,"_2HST2.MDS"));
       }
-    else if(t==TALENT_ACROBAT){
-      if(lvl==0)
-        delOverlay("HUMANS_ACROBATIC.MDS"); else
-        addOverlay("HUMANS_ACROBATIC.MDS",0);
+    else if(lvl==1){
+      addOverlay(string_frm(scheme,"_2HST1.MDS"),0);
+      delOverlay(string_frm(scheme,"_2HST2.MDS"));
       }
+    else if(lvl==2){
+      delOverlay(string_frm(scheme,"_2HST1.MDS"));
+      addOverlay(string_frm(scheme,"_2HST2.MDS"),0);
+      }
+    }
+  else if(t==TALENT_BOW){
+    if(lvl==0){
+      delOverlay(string_frm(scheme,"_BOWT1.MDS"));
+      delOverlay(string_frm(scheme,"_BOWT2.MDS"));
+      }
+    else if(lvl==1){
+      addOverlay(string_frm(scheme,"_BOWT1.MDS"),0);
+      delOverlay(string_frm(scheme,"_BOWT2.MDS"));
+      }
+    else if(lvl==2){
+      delOverlay(string_frm(scheme,"_BOWT1.MDS"));
+      addOverlay(string_frm(scheme,"_BOWT2.MDS"),0);
+      }
+    }
+  else if(t==TALENT_CROSSBOW){
+    if(lvl==0){
+      delOverlay(string_frm(scheme,"_CBOWT1.MDS"));
+      delOverlay(string_frm(scheme,"_CBOWT2.MDS"));
+      }
+    else if(lvl==1){
+      addOverlay(string_frm(scheme,"_CBOWT1.MDS"),0);
+      delOverlay(string_frm(scheme,"_CBOWT2.MDS"));
+      }
+    else if(lvl==2){
+      delOverlay(string_frm(scheme,"_CBOWT1.MDS"));
+      addOverlay(string_frm(scheme,"_CBOWT2.MDS"),0);
+      }
+    }
+  else if(t==TALENT_ACROBAT){
+    if(lvl==0)
+      delOverlay(string_frm(scheme,"_ACROBATIC.MDS")); else
+      addOverlay(string_frm(scheme,"_ACROBATIC.MDS"),0);
     }
   }
 

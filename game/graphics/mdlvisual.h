@@ -37,6 +37,7 @@ class MdlVisual final {
     void                           setVisualBody(Npc& npc, MeshObjects::Mesh&& h, MeshObjects::Mesh&& body, int32_t version);
     void                           syncAttaches();
     const Skeleton*                visualSkeleton() const;
+    std::string_view               visualSkeletonScheme() const;
 
     bool                           hasOverlay(const Skeleton*  sk) const;
     void                           addOverlay(const Skeleton*  sk, uint64_t time);
