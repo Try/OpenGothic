@@ -32,7 +32,7 @@ class Shaders {
     Tempest::RenderPipeline  tonemapping;
 
     // Compute
-    Tempest::ComputePipeline hiZPot, hiZMip;
+    Tempest::ComputePipeline hiZRaw, hiZPot, hiZMip;
 
     enum PipelineType: uint8_t {
       T_Forward,
@@ -49,7 +49,7 @@ class Shaders {
       Tempest::Shader vs;
       Tempest::Shader fs;
       Tempest::Shader tc, te;
-      Tempest::Shader me;
+      Tempest::Shader me, ts;
       void load(Tempest::Device &device, std::string_view tag, bool hasTesselation, bool hasMeshlets);
       };
 

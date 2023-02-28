@@ -14,7 +14,6 @@
 #include "ui/documentmenu.h"
 #include "ui/chapterscreen.h"
 #include "utils/versioninfo.h"
-#include "gamemusic.h"
 
 class VersionInfo;
 class CameraDefinitions;

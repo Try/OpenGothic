@@ -7,10 +7,7 @@
 #include "graphics/sceneglobals.h"
 #include "utils/string_frm.h"
 #include "world/world.h"
-#include "utils/gthfont.h"
-#include "utils/workers.h"
 #include "utils/dbgpainter.h"
-#include "bounds.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -59,15 +56,18 @@ LightGroup::Light::Light(LightGroup& owner, const phoenix::vobs::light_preset& v
 
   if(!vob.range_animation_scale.empty()) {
     l.setRange(vob.range_animation_scale,vob.range,vob.range_animation_fps,vob.range_animation_smooth);
-  } else {
+    } else {
     l.setRange(vob.range);
-  }
+    }
 
   if(!vob.color_animation_list.empty()) {
     l.setColor(vob.color_animation_list,vob.color_animation_fps,vob.color_animation_smooth);
     } else {
     l.setColor(Vec3(vob.color.r / 255.f, vob.color.g / 255.f, vob.color.b / 255.f));
     }
+
+  // if(vob.light_type==phoenix::light_mode::spot)
+  //   Log::d("");
 
   std::lock_guard<std::recursive_mutex> guard(owner.sync);
   id = owner.alloc(l.isDynamic());
@@ -81,32 +81,9 @@ LightGroup::Light::Light(LightGroup& owner, const phoenix::vobs::light_preset& v
   }
 
 LightGroup::Light::Light(LightGroup& owner, const phoenix::vobs::light& vob)
-      :owner(&owner) {
-  LightSource l;
-  l.setPosition(Vec3(vob.position.x,vob.position.y,vob.position.z));
-
-  if(!vob.range_animation_scale.empty()) {
-    l.setRange(vob.range_animation_scale,vob.range,vob.range_animation_fps,vob.range_animation_smooth);
-  } else {
-    l.setRange(vob.range);
+      :Light(owner, static_cast<const phoenix::vobs::light_preset&>(vob)) {
+  setPosition(Vec3(vob.position.x,vob.position.y,vob.position.z));
   }
-
-  if(!vob.color_animation_list.empty()) {
-    l.setColor(vob.color_animation_list,vob.color_animation_fps,vob.color_animation_smooth);
-  } else {
-    l.setColor(Vec3(vob.color.r / 255.f, vob.color.g / 255.f, vob.color.b / 255.f));
-  }
-
-  std::lock_guard<std::recursive_mutex> guard(owner.sync);
-  id = owner.alloc(l.isDynamic());
-  auto& ssbo = owner.get(id);
-  ssbo.pos   = l.position();
-  ssbo.range = l.range();
-  ssbo.color = l.color();
-
-  auto& data = owner.getL(id);
-  data = std::move(l);
-}
 
 LightGroup::Light::Light(World& owner, std::string_view preset)
   :Light(owner,owner.view()->sGlobal.lights.findPreset(preset)){

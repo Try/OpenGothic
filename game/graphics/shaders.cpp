@@ -32,6 +32,9 @@ void Shaders::ShaderSet::load(Device &device, std::string_view tag, bool hasTess
   if(hasMeshlets) {
     sh = GothicShader::get(string_frm(tag,'.',defaultWg,".mesh",".sprv"));
     me = device.shader(sh.data,sh.len);
+
+    sh = GothicShader::get(string_frm(tag,'.',defaultWg,".task",".sprv"));
+    ts = device.shader(sh.data,sh.len);
     }
   }
 
@@ -128,6 +131,7 @@ Shaders::Shaders() {
   tonemapping = postEffect("tonemapping", "tonemapping", RenderState::ZTestMode::Always);
 
   if(meshlets) {
+    hiZRaw = computeShader("hiZRaw.comp.sprv");
     hiZPot = computeShader("hiZPot.comp.sprv");
     hiZMip = computeShader("hiZMip.comp.sprv");
     }
@@ -139,10 +143,14 @@ Shaders::Shaders() {
 
     auto sh = GothicShader::get(string_frm("lnd_hiz.",defaultWg,".mesh.sprv"));
     auto ms = device.shader(sh.data,sh.len);
+
+    sh      = GothicShader::get(string_frm("lnd_hiz.",defaultWg,".task.sprv"));
+    auto ts = device.shader(sh.data,sh.len);
+
     sh      = GothicShader::get("lnd_hiz.frag.sprv");
     auto fs = device.shader(sh.data,sh.len);
 
-    lndPrePass = device.pipeline(Triangles,state,ms,fs);
+    lndPrePass = device.pipeline(state,ts,ms,fs);
     }
   {
     RenderState state;
@@ -231,7 +239,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
 
   static bool overdrawDbg = false;
   if(overdrawDbg &&
-     (alpha==Material::Solid || alpha==Material::AlphaTest) && t!=ObjectsBucket::LandscapeShadow && pt!=T_Shadow) {
+     (alpha==Material::Solid || alpha==Material::AlphaTest) && t!=ObjectsBucket::Landscape && t!=ObjectsBucket::LandscapeShadow && pt!=T_Shadow) {
     state.setBlendSource(RenderState::BlendMode::One);
     state.setBlendDest  (RenderState::BlendMode::One);
     state.setZWriteEnabled(false);
@@ -329,6 +337,9 @@ RenderPipeline Shaders::fogShader(std::string_view name) {
   }
 
 RenderPipeline Shaders::pipeline(RenderState& st, const ShaderSet &sh) const {
+  if(!sh.me.isEmpty() && !sh.ts.isEmpty()) {
+    return Resources::device().pipeline(st,sh.ts,sh.me,sh.fs);
+    }
   if(!sh.me.isEmpty()) {
     return Resources::device().pipeline(st,Shader(),sh.me,sh.fs);
     }

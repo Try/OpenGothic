@@ -131,6 +131,10 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const phoenix::vob& vo
     case phoenix::vob_type::unknown:
       return nullptr;
     case phoenix::vob_type::zCVob:
+    case phoenix::vob_type::zCVobStair:
+      return std::unique_ptr<Vob>(new StaticObj(parent,world,vob,flags));
+    case phoenix::vob_type::zCVobAnimate:
+      // NOTE: engine animates all objects anyway
       return std::unique_ptr<Vob>(new StaticObj(parent,world,vob,flags));
     case phoenix::vob_type::zCVobLevelCompo:
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
@@ -207,7 +211,23 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const phoenix::vob& vo
     case phoenix::vob_type::zCVobLight: {
       return std::unique_ptr<Vob>(new WorldLight(parent,world,reinterpret_cast<const vobs::light&>(vob),flags));
       }
-    default:
+    case phoenix::vob_type::zCCSCamera:
+    case phoenix::vob_type::zCCamTrj_KeyFrame:
+      break;
+    case phoenix::vob_type::zCZoneZFog:
+    case phoenix::vob_type::zCZoneZFogDefault:
+      break;
+    case phoenix::vob_type::zCZoneVobFarPlane:
+    case phoenix::vob_type::zCZoneVobFarPlaneDefault:
+      // wont do: no distance culling in any plans
+      break;
+    case phoenix::vob_type::zCEarthquake:
+    case phoenix::vob_type::zCVobLensFlare:
+    case phoenix::vob_type::zCVobScreenFX:
+      break;
+    case phoenix::vob_type::oCNpc:
+    case phoenix::vob_type::oCCSTrigger:
+    case phoenix::vob_type::ignored:
       break;
     }
 

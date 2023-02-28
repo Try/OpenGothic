@@ -4,6 +4,17 @@
 
 #include <cassert>
 
+static uint32_t nextPot(uint32_t x) {
+  x--;
+  x |= x >> 1;
+  x |= x >> 2;
+  x |= x >> 4;
+  x |= x >> 8;
+  x |= x >> 16;
+  x++;
+  return x;
+  }
+
 SceneGlobals::SceneGlobals()
   :lights(*this) {
   auto& device = Resources::device();
@@ -124,6 +135,17 @@ void SceneGlobals::setResolution(uint32_t w, uint32_t h) {
   if(h==0)
     h = 1;
   uboGlobal.screenResInv = Tempest::Vec2(1.f/float(w), 1.f/float(h));
+  uboGlobal.screenRes    = Tempest::Point(int(w),int(h));
+  if(hiZ!=nullptr && !hiZ->isEmpty()) {
+    uint32_t hw = nextPot(w);
+    uint32_t hh = nextPot(h);
+
+    uboGlobal.hiZTileSize = Tempest::Point(int(hw)/hiZ->w(),int(hh)/hiZ->h());
+    }
+  }
+
+void SceneGlobals::setHiZ(const Tempest::Texture2d& t) {
+  hiZ = &t;
   }
 
 void SceneGlobals::setShadowMap(const Tempest::Texture2d* tex[]) {

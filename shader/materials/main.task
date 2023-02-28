@@ -1,0 +1,162 @@
+#version 450
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+#extension GL_EXT_mesh_shader : require
+
+#include "../scalar_ops.glsl"
+
+#define TASK
+#include "materials_common.glsl"
+
+layout(local_size_x = WORKGROUP_SIZE) in;
+
+taskPayloadSharedEXT Payload payload;
+shared               uint    visibleCount;
+
+bool sphereTest(const uint objId) {
+#if (MESH_TYPE==T_LANDSCAPE)
+  const vec4 sphere = bounds[objId];
+#elif (MESH_TYPE==T_PFX)
+  const vec4 sphere = vec4(0);
+#else
+  const vec4 sphere = vec4(matrix[objId][3].xyz,bucket.bboxRadius);
+#endif
+  if(sphere.w<0.f)
+    return false;
+
+  for(int i=0; i<6; ++i) {
+    if(dot(vec4(sphere.xyz,1.0), scene.frustrum[i]) <= -sphere.w) {
+      return false;
+      }
+    }
+
+  return true;
+  }
+
+float hiZFetch(in sampler2D hiZ, in ivec2 ibbox[2]) {
+  if(ibbox[0]==ibbox[1])
+    return texelFetch(hiZ, ibbox[0], 0).x;
+
+  const uint sz  = max(ibbox[1].x-ibbox[0].x, ibbox[1].y-ibbox[0].y);
+  const int  mip = findMSB(sz - 1) + 1; // log2 of next pot
+
+  ibbox[0].x = (ibbox[0].x >> mip);
+  ibbox[0].y = (ibbox[0].y >> mip);
+
+  ivec2 hiZsize = textureSize(hiZ,mip);
+  if(!all(lessThan(ibbox[0]+ivec2(1), hiZsize)))
+    return -1;
+
+  float z =  texelFetchOffset(hiZ, ibbox[0], mip, ivec2(0,0)).x;
+  z = min(z, texelFetchOffset(hiZ, ibbox[0], mip, ivec2(0,1)).x);
+  z = min(z, texelFetchOffset(hiZ, ibbox[0], mip, ivec2(1,0)).x);
+  z = min(z, texelFetchOffset(hiZ, ibbox[0], mip, ivec2(1,1)).x);
+
+  return z;
+  }
+
+#if  !defined(SHADOW_MAP) &&  (MESH_TYPE!=T_PFX)
+bool bboxTest(const uint objId) {
+#if defined(LVL_OBJECT)
+  const vec3  b[2]   = {bucket.bbox[0].xyz, bucket.bbox[1].xyz};
+#else
+  const vec3  objPos = bounds[objId].xyz;
+  const float R      = bounds[objId].w;
+  const vec3  b[2]   = { objPos-vec3(R), objPos+vec3(R) };
+#endif
+
+  ivec2 hiZsize  = textureSize(hiZ,0);
+  ivec2 ibbox[2] = {ivec2(hiZsize), ivec2(0)};
+  float depthMin = 1;
+  for(uint i=0; i<8; ++i) {
+    const vec3 pos = vec3(b[bitfieldExtract(i,0,1)].x,
+                          b[bitfieldExtract(i,1,1)].y,
+                          b[bitfieldExtract(i,2,1)].z);
+    vec4 trPos = vec4(pos,1.0);
+#if defined(LVL_OBJECT)
+    trPos = matrix[objId]    *trPos;
+#endif
+    trPos = scene.viewProject*trPos;
+    if(trPos.z<0 || trPos.w<0.001)
+      return true;
+
+    vec3 bp = trPos.xyz/trPos.w;
+    bp.xy = bp.xy*0.5 + vec2(0.5);
+
+    ivec2 scr = ivec2(bp.xy * scene.screenRes) / scene.hiZTileSize;
+
+    ibbox[0] = min(ibbox[0], scr);
+    ibbox[1] = max(ibbox[1], scr);
+
+    depthMin = min(depthMin, bp.z);
+    }
+
+  ibbox[0] = clamp(ibbox[0], ivec2(0), hiZsize - ivec2(1));
+  ibbox[1] = clamp(ibbox[1], ivec2(0), hiZsize - ivec2(1));
+
+  float bz = depthMin;
+  bz = (1.0-bz)*20.0;
+
+  float z = hiZFetch(hiZ, ibbox);
+  if(bz < z)
+    return false;
+
+  return true;
+  }
+#else
+bool bboxTest(const uint objId) {
+  return true;
+  }
+#endif
+
+bool isVisible(const uint objId) {
+#if (MESH_TYPE!=T_PFX)
+  if(gl_GlobalInvocationID.x>=push.instanceCount)
+    return false;
+#endif
+
+#if (MESH_TYPE==T_LANDSCAPE)
+  if(!sphereTest(objId))
+    return false;
+  if(!bboxTest(objId))
+    return false;
+#elif (MESH_TYPE==T_PFX)
+  return true;
+#else
+  if(!sphereTest(objId))
+    return false;
+  if(!bboxTest(objId))
+    return false;
+#endif
+  return true;
+  }
+
+void main() {
+#if defined(LVL_OBJECT)
+  const uint objId     = gl_GlobalInvocationID.x + push.firstInstance;
+  const uint meshletSz = push.meshletPerInstance;
+#elif (MESH_TYPE==T_LANDSCAPE)
+  const uint objId     = gl_GlobalInvocationID.x + push.meshletBase;
+  const uint meshletSz = 1;
+#else
+  const uint objId     = 0;
+  const uint meshletSz = 1;
+#endif
+
+  const bool visible = isVisible(objId);
+
+  visibleCount = 0;
+  barrier();
+
+  if(visible) {
+    uint id = atomicAdd(visibleCount, 1);
+    payload.offsets[id] = objId;
+    }
+  barrier();
+
+  //payload.baseId = gl_GlobalInvocationID.x;
+  EmitMeshTasksEXT(meshletSz, visibleCount, 1);
+  }

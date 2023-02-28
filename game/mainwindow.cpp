@@ -299,7 +299,7 @@ void MainWindow::processMouse(MouseEvent& event, bool enable) {
   }
 
 void MainWindow::tickMouse() {
-  if(dialogs.isActive() || Gothic::inst().isPause()) {
+  if(dialogs.hasContent() || Gothic::inst().isPause()) {
     dMouse = Point();
     return;
     }
@@ -857,7 +857,8 @@ void MainWindow::tickCamera(uint64_t dt) {
     }
   else {
     auto spin = camera.destSpin();
-    spin.y = pl->rotation();
+    if(pl->interactive()==nullptr && !pl->isDown())
+      spin.y = pl->rotation();
     if(pl->isDive() && !camera.isMarvin())
       spin.x = -pl->rotationY();
     camera.setDestSpin(spin);

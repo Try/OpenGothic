@@ -77,7 +77,7 @@ void Npc::GoTo::setFlee() {
 
 struct Npc::TransformBack {
   TransformBack(Npc& self) {
-    hnpc        = self.hnpc;
+    hnpc        = std::make_shared<phoenix::c_npc>(*self.hnpc);
     invent      = std::move(self.invent);
     self.invent = Inventory(); // cleanup
 
@@ -95,8 +95,8 @@ struct Npc::TransformBack {
     }
 
   TransformBack(Npc& owner, phoenix::vm& vm, Serialize& fin) {
-    hnpc = std::make_shared<phoenix::c_npc>();
-    hnpc->user_ptr        = this;
+    hnpc           = std::make_shared<phoenix::c_npc>();
+    hnpc->user_ptr = this;
     fin.readNpc(vm, hnpc);
     invent.load(fin,owner);
     fin.read(talentsSk,talentsVl);
@@ -108,7 +108,7 @@ struct Npc::TransformBack {
     }
 
   void undo(Npc& self) {
-    int32_t aivar[100]={};
+    int32_t aivar[phoenix::c_npc::aivar_count]={};
 
     auto exp      = self.hnpc->exp;
     auto exp_next = self.hnpc->exp_next;
@@ -631,11 +631,9 @@ Vec3 Npc::cameraBone(bool isFirstPerson) const {
 
   Vec3 r = {};
   if(isFirstPerson && head!=size_t(-1)) {
-    r = visual.mapBone(head);// + position();
+    r = visual.mapBone(head);
     } else {
-    if(!mvAlgo.isSwim())
-      r.y = visual.pose().translateY();
-    auto mt = visual.transform();
+    auto mt = visual.pose().rootBone();
     mt.project(r);
     }
 
@@ -970,6 +968,10 @@ bool Npc::stopItemStateAnim() {
 
 bool Npc::hasAnim(std::string_view scheme) const {
   return visual.hasAnim(scheme);
+  }
+
+bool Npc::hasSwimAnimations() const {
+  return hasAnim("S_SWIM") && hasAnim("S_SWIMF");
   }
 
 bool Npc::isFinishingMove() const {
@@ -1640,6 +1642,8 @@ bool Npc::implAiFlee(uint64_t dt) {
   owner.findWayPoint(position(),[&](const WayPoint& p) {
     if(p.useCounter()>0 || qDistTo(&p)>maxDist*maxDist)
       return false;
+    if(p.underWater)
+      return false;
     if(!canSeeNpc(p.x,p.y+10,p.z,true))
       return false;
     if(wp==nullptr || oth.qDistTo(&p)>oth.qDistTo(wp))
@@ -2039,10 +2043,16 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
       if(interactive()==nullptr) {
         visual.stopWalkAnim(*this);
+        visual.stopDlgAnim(*this);
         }
       if(act.target!=nullptr && implTurnTo(*act.target,dt)) {
         queue.pushFront(std::move(act));
+        break;
         }
+      // Not looking quite correct in dialogs, when npc turns around
+      // Example: Esteban dialog
+      // currentLookAt    = nullptr;
+      // currentLookAtNpc = nullptr;
       break;
       }
     case AI_GoToNpc:
@@ -2098,7 +2108,9 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         if(closeWeapon(false)) {
           stopWalkAnimation();
           }
-        if(weaponState()!=WeaponState::NoWeapon){
+
+        auto ws = weaponState();
+        if(ws!=WeaponState::NoWeapon){
           queue.pushFront(std::move(act));
           }
         }
@@ -2107,8 +2119,6 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       if(startState(act.func,act.s0,aiState.eTime,act.i0==0)) {
         setOther(act.target);
         setVictum(act.victum);
-        // WA: for gothic1 dialogs
-        perceptionNextTime = owner.tickCount()+perceptionTime;
         }
       break;
     case AI_PlayAnim:{
@@ -2461,8 +2471,15 @@ bool Npc::startState(ScriptFn id, std::string_view wp) {
 bool Npc::startState(ScriptFn id, std::string_view wp, gtime endTime, bool noFinalize) {
   if(!id.isValid())
     return false;
-  if(aiState.funcIni==id)
-    return false;
+
+  if(aiState.funcIni==id) {
+    if(!noFinalize) {
+      // NOTE: B_AssessQuietSound can cause soft-lock on npc without this
+      aiState.started = false;
+      }
+    hnpc->wp = wp;
+    return true;
+    }
 
   clearState(noFinalize);
   if(!wp.empty())
@@ -2490,6 +2507,8 @@ bool Npc::startState(ScriptFn id, std::string_view wp, gtime endTime, bool noFin
   aiState.eTime        = endTime;
   aiState.loopNextTime = owner.tickCount();
   aiState.hint         = st.name();
+  // WA: for gothic1 dialogs
+  perceptionNextTime   = owner.tickCount()+perceptionTime;
   return true;
   }
 
@@ -2687,7 +2706,8 @@ void Npc::commitSpell() {
           }
         }
       if(spl==nullptr) {
-        aiPush(AiQueue::aiRemoveWeapon());
+        if(spellInfo==0)
+          aiPush(AiQueue::aiRemoveWeapon());
         } else {
         drawSpell(spl->spellId());
         }
@@ -2978,7 +2998,8 @@ bool Npc::turnTo(float dx, float dz, bool anim, uint64_t dt) {
   }
 
 bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
-  step *= (float(dt)/1000.f)*60.f/100.f;
+  //step *= (float(dt)/1000.f)*60.f/100.f;
+  step *= (float(dt)/1000.f);
 
   if(dx==0.f && dz==0.f) {
     setAnimRotate(0);
@@ -2992,7 +3013,7 @@ bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
   float da = a-angle;
 
   if(noAnim || std::cos(double(da)*M_PI/180.0)>0) {
-    if(float(std::abs(int(da)%180))<=step) {
+    if(float(std::abs(int(da)%180))<=(step*2.f)) {
       setAnimRotate(0);
       setDirection(a);
       return false;
@@ -3877,6 +3898,9 @@ bool Npc::isAiBusy() const {
   }
 
 void Npc::clearAiQueue() {
+  currentLookAt    = nullptr;
+  currentLookAtNpc = nullptr;
+
   aiQueue.clear();
   aiQueueOverlay.clear();
   aniWaitTime = 0;
@@ -3927,7 +3951,6 @@ bool Npc::canSeeSource() const {
   const bool ret  = owner.sound()->canSeeSource(head);
   if(ret)
     return ret;
-  // NOTE: B_AssessQuietSound can cause soft-lock on npc without this
   if(currentLookAtNpc!=nullptr)
     return canSeeNpc(*currentLookAtNpc, false);
   return false;
@@ -4080,8 +4103,8 @@ void Npc::updateAnimation(uint64_t dt) {
       }
 
     if(mvAlgo.isSwim()) {
-      float chest = mvAlgo.canFlyOverWater() ? 0 : mvAlgo.waterDepthChest();
-      float y = pos.at(3,1);
+      float chest = mvAlgo.canFlyOverWater() ? 0 : (translateY()-visual.pose().rootNode().at(3,1));
+      float y     = pos.at(3,1);
       pos.set(3,1,y+chest);
       }
 

@@ -130,8 +130,8 @@ vec4 waterColor(vec3 color, vec3 albedo, float shadow) {
   const float depth    = texelFetch(gbufferDepth,   ivec2(gl_FragCoord.xy), 0).r;
   const vec3  backOrig = texelFetch(gbufferDiffuse, ivec2(gl_FragCoord.xy), 0).rgb;
 
-  const float ground   = linearDepth(depth, scene.clipInfo);
-  const float water    = linearDepth(gl_FragCoord.z, scene.clipInfo);
+  const float ground   = linearDepth(depth, scene.clipInfo.xyz);
+  const float water    = linearDepth(gl_FragCoord.z, scene.clipInfo.xyz);
   const float dist     = -(water-ground);
   //return vec4(vec3(dist),1);
 

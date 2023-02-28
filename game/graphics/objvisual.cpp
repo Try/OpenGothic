@@ -129,7 +129,8 @@ void ObjVisual::setVisual(const phoenix::c_item& hitem, World& world, bool stati
 void ObjVisual::setVisual(const phoenix::vob& vob, World& world, bool staticDraw) {
   cleanup();
 
-  const bool enableCollision = (vob.cd_dynamic || vob.cd_static);
+  // const bool enableCollision = (vob.cd_dynamic || vob.cd_static);
+  const bool enableCollision = (vob.cd_dynamic); // collide with player
 
   // *.ZEN; *.PFX; *.TGA; *.3DS; *.MDS; *.ASC; *.MMS
   if(FileExt::hasExt(vob.visual_name,"ZEN")) {

@@ -24,6 +24,8 @@ struct SceneDesc {
   // float padd2;
   vec3  pfxDepth;
   // float padd3;
+  ivec2 hiZTileSize;
+  ivec2 screenRes;
   };
 
 #endif

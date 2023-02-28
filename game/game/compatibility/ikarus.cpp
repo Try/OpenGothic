@@ -73,6 +73,13 @@ Ikarus::Ikarus(GameScript& /*owner*/, phoenix::vm& vm) : vm(vm)
 
   vm.override_function("CALL__stdcall", [this](int address){ call__stdcall(address); });
 
+  vm.override_function("HookEngineF", [](int address, int oldInstr, int function){
+    Log::e("not implemented call [HookEngineF]");
+    });
+  vm.override_function("HookEngineI", [](int address, int oldInstr, int function){
+    Log::e("not implemented call [HookEngineI]");
+    });
+
   // vm.disAsm(vm.getDATFile().getSymbolIndexByName("MEMINT_GetAddress_Init"));
   }
 
@@ -122,7 +129,7 @@ int Ikarus::mem_getfuncptr(int func) {
     Log::e("mem_getfuncptr: invalid function ptr");
     return 0;
     }
-    return 0;
+  return 0;
   }
 
 int Ikarus::mem_readint(int address) {

@@ -15,6 +15,8 @@
 layout(local_size_x = WORKGROUP_SIZE) in;
 layout(triangles, max_vertices = MaxVert, max_primitives = MaxPrim) out;
 
+taskPayloadSharedEXT Payload payload;
+
 out gl_MeshPerVertexEXT {
   vec4 gl_Position;
   } gl_MeshVerticesEXT[];
@@ -45,12 +47,18 @@ bool sphereTest(const uint objId, const uint meshletId) {
   }
 
 #if !defined(SHADOW_MAP) && (MESH_TYPE!=T_PFX)
-shared vec3 bboxProj[8];
+shared ivec2 ibboxShared[2];
+shared uint  depthMin;
+shared uint  bboxVisible;
 bool bboxTest(const uint objId) {
   const uint laneID = gl_LocalInvocationID.x;
 
-  if(!sphereTest(objId,objId))
-    return false;
+  ivec2 hiZsize  = textureSize(hiZ,0);
+  ibboxShared[0] = ivec2(hiZsize);
+  ibboxShared[1] = ivec2(0);
+  depthMin       = floatBitsToUint(1);
+  bboxVisible    = 0;
+  barrier();
 
   if(laneID<8) {
 #if defined(LVL_OBJECT)
@@ -69,60 +77,65 @@ bool bboxTest(const uint objId) {
     trPos = matrix[objId]    *trPos;
 #endif
     trPos = scene.viewProject*trPos;
+    if(trPos.z>0 && trPos.w>0.001) {
+      vec3 bp = trPos.xyz/trPos.w;
+      bp.xy = bp.xy*0.5 + vec2(0.5);
 
-    vec3 bp = trPos.xyz/max(trPos.w,0.001);
-    bp.xy = bp.xy*0.5 + vec2(0.5);
-    bp.xy = clamp(bp.xy, vec2(0.0), vec2(1.0));
-    bboxProj[laneID] = bp;
+      ivec2 scr = ivec2(bp.xy * scene.screenRes) / scene.hiZTileSize;
+      scr = clamp(scr, ivec2(0), hiZsize - ivec2(1));
+
+      atomicMin(ibboxShared[0].x, scr.x);
+      atomicMin(ibboxShared[0].y, scr.y);
+
+      atomicMax(ibboxShared[1].x, scr.x);
+      atomicMax(ibboxShared[1].y, scr.y);
+
+      atomicMin(depthMin, floatBitsToUint(bp.z));
+      } else {
+      atomicMin(depthMin, floatBitsToUint(0));
+      }
     }
 
-  memoryBarrierShared();
   barrier();
 
-  vec3 bbox[2] = {bboxProj[0], bboxProj[0]};
-  for(int i=1; i<8; ++i) {
-    bbox[0] = min(bbox[0],bboxProj[i]);
-    bbox[1] = max(bbox[1],bboxProj[i]);
-    }
-
-  int   mip     = 0;
   ivec2 ibbox[2];
-  ivec2 hiZsize = textureSize(hiZ,mip);
-  ibbox[0] = ivec2(    (bbox[0].xy*hiZsize));
-  ibbox[1] = ivec2(ceil(bbox[1].xy*hiZsize));
-  ivec2 sz = ibbox[1]-ibbox[0];
-
-  bool visible = false;
+  ibbox[0] = ibboxShared[0];
+  ibbox[1] = ibboxShared[1];
 
   const uint maxHiZSamples = 16;
+  bool       visible       = false;
   if(laneID<maxHiZSamples) {
+    float bz      = uintBitsToFloat(depthMin);
+    bz = (1.0-bz)*20.0;
+
+    int   mip     = 0;
+    uvec2 sz      = (ibbox[1]-ibbox[0])+ivec2(1);
     [[dont_unroll]]
     while(sz.x*sz.y>maxHiZSamples) {
       ibbox[0] = ibbox[0]/2;
-      ibbox[1] = (ibbox[1]+ivec2(1))/2;
-      sz       = ibbox[1]-ibbox[0];
+      ibbox[1] = ibbox[1]/2;
+      sz       = (ibbox[1]-ibbox[0])+ivec2(1);
       mip++;
       }
 
     if(0<sz.x) {
-      ivec2 offset  = ivec2(laneID%sz.x,laneID/sz.x);
-      ivec2 at      = ibbox[0]+offset;
+      ivec2 offset = ivec2(laneID%sz.x,laneID/sz.x);
+      ivec2 at     = ibbox[0]+offset;
       if(offset.y<sz.y) {
-        float bz = bbox[0].z;
-        bz = (1.0-bz)*20.0;
         float z  = texelFetch(hiZ, at, mip).x;
         if(bz >= z)
-          visible = true;
+          atomicExchange(bboxVisible, 1);
         }
       }
     }
+  barrier();
 
-  visible = workgroupAny(visible);
+  visible = (bboxVisible!=0);
   return visible;
   }
 #endif
 
-uvec2  processMeshlet(const uint meshletId) {
+uvec2 processMeshlet(const uint meshletId) {
   const uint iboOffset = meshletId * MaxPrim + MaxPrim - 1;
   const uint bits      = indexes[iboOffset];
   uvec4 prim;
@@ -160,33 +173,135 @@ vec4  processVertex(out Varyings var, const uint objId, const uint meshletId, co
   return position;
   }
 
-void main() {
 #if defined(LVL_OBJECT)
-  const uint objId     = gl_WorkGroupID.y + push.firstInstance;
+// 2D Polyhedral Bounds of a Clipped, Perspective-Projected 3D Sphere. Michael Mara, Morgan McGuire. 2013
+// TODO: productize
+bool projectSphere(vec3 c, float r, out vec4 aabb) {
+  float P00   = 0; // scene.project[0][0];
+  float P11   = 0; // scene.project[1][1];
+  float znear = 0; // scene.clipInfo.w;
+
+  if(c.z < r + znear)
+    return false;
+
+  vec3  cr   = c * r;
+  float czr2 = c.z * c.z - r * r;
+
+  float vx   = sqrt(c.x * c.x + czr2);
+  float minx = (vx * c.x - cr.z) / (vx * c.z + cr.x);
+  float maxx = (vx * c.x + cr.z) / (vx * c.z - cr.x);
+
+  float vy = sqrt(c.y * c.y + czr2);
+  float miny = (vy * c.y - cr.z) / (vy * c.z + cr.y);
+  float maxy = (vy * c.y + cr.z) / (vy * c.z - cr.y);
+
+  aabb = vec4(minx * P00, miny * P11, maxx * P00, maxy * P11);
+  // clip space -> uv space
+  // aabb = aabb.xwzy * vec4(0.5f, -0.5f, 0.5f, -0.5f) + vec4(0.5f);
+
+  return true;
+  }
+
+void dbgBbox(const uint objId) {
+  const ivec3 v[8] = {
+    {0,0,0},{1,0,0},{1,1,0},{0,1,0},
+    {0,0,1},{1,0,1},{1,1,1},{0,1,1},
+    };
+  const int ibo[] = {
+    0, 1, 3, 3, 1, 2,
+    1, 5, 2, 2, 5, 6,
+    5, 4, 6, 6, 4, 7,
+    4, 0, 7, 7, 0, 3,
+    3, 2, 7, 7, 2, 6,
+    4, 5, 0, 0, 5, 1
+    };
+  const vec3 b[2] = {bucket.bbox[0].xyz, bucket.bbox[1].xyz};
+
+  for(int i=0; i<8; ++i) {
+    vec4 trPos;
+    const ivec3 msk  = v[i];
+    const vec3  pos  = vec3(b[msk.x].x,b[msk.y].y,b[msk.z].z);
+    trPos = matrix[objId]    *vec4(pos.xyz,1.0);
+    trPos = scene.viewProject*trPos;
+    gl_MeshVerticesEXT[i].gl_Position = trPos;
+#if defined(MAT_VARYINGS)
+    shOut             [i].uv          = vec2(0);
+#endif
+    }
+  for(int i=0; i<36; i+=3) {
+    gl_PrimitiveTriangleIndicesEXT[i] = uvec3(ibo[i+0],ibo[i+1],ibo[i+2]);
+    }
+  }
+
+void dbgSphere(const uint objId) {
+  vec4 sphere = vec4(matrix[objId][3].xyz, bucket.bboxRadius);
+  sphere.xyz = (scene.viewProject*vec4(sphere.xyz,1)).xyz;
+
+  vec4 aabb;
+  if(!projectSphere(sphere.xyz,sphere.w,aabb))
+    return;
+
+  const ivec3 v[4] = {
+    {0,0,0},{1,0,0},{1,1,0},{0,1,0},
+    };
+  const int ibo[6] = {
+    0, 1, 3, 3, 1, 2,
+    };
+
+  for(int i=0; i<4; ++i) {
+    vec4 trPos = vec4(0);
+    trPos.x = mix(aabb.x, aabb.z, v[i].x);
+    trPos.y = mix(aabb.y, aabb.w, v[i].y);
+    trPos.z = 0;
+    trPos.w = 1;
+
+    gl_MeshVerticesEXT[i].gl_Position = trPos;
+#if defined(MAT_VARYINGS)
+    shOut             [i].uv          = vec2(0);
+#endif
+    }
+  for(int i=0; i<6; i+=3) {
+    gl_PrimitiveTriangleIndicesEXT[i] = uvec3(ibo[i+0],ibo[i+1],ibo[i+2]);
+    }
+  }
+#endif
+
+uvec2 pullPayload() {
+#if defined(LVL_OBJECT)
+  //const uint objId     = gl_WorkGroupID.y + push.firstInstance;
+  const uint objId     = payload.offsets[gl_WorkGroupID.y];
   const uint meshletId = gl_WorkGroupID.x + push.meshletBase;
 #elif (MESH_TYPE==T_LANDSCAPE)
   const uint objId     = 0;
-  const uint meshletId = gl_WorkGroupID.x + push.meshletBase;
+  const uint meshletId = payload.offsets[gl_WorkGroupID.y];
+  //const uint meshletId = gl_WorkGroupID.x + push.meshletBase;
 #else
   const uint objId     = 0;
   const uint meshletId = gl_WorkGroupID.x;
 #endif
+  return uvec2(objId, meshletId);
+  }
+
+void main() {
+  const uvec2 pl        = pullPayload();
+  const uint  objId     = pl.x;
+  const uint  meshletId = pl.y;
 
 #if defined(SHADOW_MAP)
 #  if (MESH_TYPE==T_LANDSCAPE)
-  const bool visible = sphereTest(objId,meshletId);
+  const bool visible = true; //sphereTest(objId,meshletId);
 #  elif (MESH_TYPE==T_PFX)
   const bool visible = true;
 #  else
-  const bool visible = sphereTest(objId,meshletId);
+  const bool visible = true; //sphereTest(objId,meshletId);
 #  endif
 #else
 #  if (MESH_TYPE==T_LANDSCAPE)
-  const bool visible = bboxTest(meshletId);
+  const bool visible = true; //bboxTest(meshletId);
 #  elif (MESH_TYPE==T_PFX)
   const bool visible = true;
 #  else
-  const bool visible = bboxTest(objId);
+  const bool visible = true; // bboxTest(objId);
 #  endif
 #endif
 
@@ -232,44 +347,19 @@ void main() {
   }
 #endif
 
-#if (DEBUG_DRAW) && !defined(LVL_OBJECT)
+#if 0 && (DEBUG_DRAW) && !defined(LVL_OBJECT)
   for(int i=laneID; i<MaxVert; i+=gl_WorkGroupSize.x) {
     debugId[i] = meshletId;
     }
 #endif
 
-#if 0 && defined(LVL_OBJECT) && !defined(DEPTH_ONLY) && (MESH_TYPE==T_SKINING)
+#if 1 && defined(LVL_OBJECT) && !defined(DEPTH_ONLY) && (MESH_TYPE==T_SKINING)
   // DEBUG CODE
   memoryBarrierShared();
   barrier();
   if(laneID==0) {
-    const ivec3 v[8] = {
-      {0,0,0},{1,0,0},{1,1,0},{0,1,0},
-      {0,0,1},{1,0,1},{1,1,1},{0,1,1},
-      };
-    const int ibo[] = {
-      0, 1, 3, 3, 1, 2,
-      1, 5, 2, 2, 5, 6,
-      5, 4, 6, 6, 4, 7,
-      4, 0, 7, 7, 0, 3,
-      3, 2, 7, 7, 2, 6,
-      4, 5, 0, 0, 5, 1
-      };
-    const vec3 b[2] = {material.bbox[0].xyz, material.bbox[1].xyz};
-
-    for(int i=0; i<8; ++i) {
-      vec4 trPos;
-      const ivec3 msk  = v[i];
-      const vec3  pos  = vec3(b[msk.x].x,b[msk.y].y,b[msk.z].z);
-      trPos = matrix[objId]    *vec4(pos.xyz,1.0);
-      trPos = scene.viewProject*trPos;
-      gl_MeshVerticesNV[i].gl_Position = trPos;
-      shOut            [i].uv          = vec2(0);
-      }
-    gl_PrimitiveCountNV       = 6*2;
-
-    for(int i=0; i<36;++i)
-      gl_PrimitiveIndicesNV[i] = ibo[i];
+    // dbgBbox(objId);
+    dbgSphere(objId);
     }
 #endif
   }
