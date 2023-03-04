@@ -18,11 +18,11 @@ class DamageCalculator {
     struct Val final {
       Val()=default;
       Val(int32_t v,bool b):value(v),hasHit(b){}
-      Val(int32_t v,bool b,bool i):value(v),hasHit(b),invinsible(i){}
+      Val(int32_t v,bool b,bool i):value(v),hasHit(b),invincible(i){}
 
       int32_t value      = 0;
       bool    hasHit     = false;
-      bool    invinsible = false;
+      bool    invincible = false;
       };
 
     struct Damage final {

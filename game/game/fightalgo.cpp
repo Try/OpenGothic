@@ -298,9 +298,8 @@ float FightAlgo::weaponRange(GameScript &owner, const Npc &npc) {
     case WeaponState::Fist:
       return float(gv.fight_range_fist[gl]);
     case WeaponState::Bow:
-      return float((MaxBowRange*npc.hitChanse(TALENT_BOW))/100);
     case WeaponState::CBow:
-      return float((MaxBowRange*npc.hitChanse(TALENT_CROSSBOW))/100);
+      return float(MaxBowRange);
     case WeaponState::Mage:
       return float(MaxMagRange);
     }

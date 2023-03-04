@@ -50,8 +50,8 @@ class Bullet final : public DynamicWorld::BulletCallback {
     auto     damage() const -> const DamageCalculator::Damage& { return dmg; }
     void     setDamage(DamageCalculator::Damage d) { dmg=d; }
 
-    float    hitChance() const { return hitCh; }
-    void     setHitChance(float h) { hitCh=h; }
+    float    hitChanceVal() const { return hitCh; }
+    void     setHitChanceVal(float v) { hitCh=v; }
     bool     isFinished() const;
 
     float    pathLength() const;
@@ -68,7 +68,7 @@ class Bullet final : public DynamicWorld::BulletCallback {
     Npc*                      ow=nullptr;
 
     DamageCalculator::Damage  dmg     = {};
-    float                     hitCh   = 1.f;
+    float                     hitCh   = 100.f;
 
     MeshObjects::Mesh         view;
     Effect                    vfx;
