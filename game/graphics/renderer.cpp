@@ -21,16 +21,6 @@ static uint32_t nextPot(uint32_t x) {
   return x;
   }
 
-static std::string_view toStr(TextureFormat f) {
-  switch (f) {
-    case TextureFormat::Depth16:   return "Depth16";
-    case TextureFormat::Depth24x8: return "Depth24x8";
-    case TextureFormat::Depth24S8: return "Depth24S8";
-    case TextureFormat::Depth32F:  return "Depth32F";
-    default: return "?";
-    }
-  }
-
 Renderer::Renderer(Tempest::Swapchain& swapchain)
   : swapchain(swapchain) {
   auto& device = Resources::device();
@@ -62,7 +52,7 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
     }
 
   Log::i("GPU = ",device.properties().name);
-  Log::i("Depth format = ",toStr(zBufferFormat)," Shadow format = ",toStr(shadowFormat));
+  Log::i("Depth format = ", Tempest::formatName(zBufferFormat), " Shadow format = ", Tempest::formatName(shadowFormat));
 
   Gothic::inst().onSettingsChanged.bind(this,&Renderer::initSettings);
   initSettings();

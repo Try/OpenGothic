@@ -4,7 +4,6 @@
 #include <cctype>
 
 #include "game/definitions/sounddefinitions.h"
-#include "game/gamesession.h"
 #include "gothic.h"
 
 #include "resources.h"
