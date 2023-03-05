@@ -815,6 +815,8 @@ const WayPoint *World::findNextFreePoint(const Npc &npc, std::string_view name) 
   auto pos = npc.position();
   pos.y+=npc.translateY();
   auto cur = npc.currentWayPoint();
+  if(cur!=nullptr && !cur->checkName(name))
+    cur = nullptr;
   auto wp  = wmatrix->findFreePoint(pos,name,[cur,&npc](const WayPoint& wp) -> bool {
     if(wp.isLocked() || &wp==cur)
       return false;

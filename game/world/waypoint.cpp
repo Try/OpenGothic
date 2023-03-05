@@ -29,21 +29,21 @@ bool WayPoint::isFreePoint() const {
   }
 
 bool WayPoint::checkName(std::string_view n) const {
-  const char*  src = name.c_str();
-  const size_t len = n.size();
+  auto src = std::string_view(name);
 
-  if(n.size()<=name.size())
-    if(std::memcmp(name.data(),n.data(),n.size())==0)
-      return true;
+  if(src.starts_with(n))
+    return true;
 
   for(size_t i=0, i0=0; ; ++i) {
-    if(src[i]=='_' || src[i]=='\0') {
+    if(src[i]=='_' || i==name.size()) {
       const size_t len2 = i-i0;
-      if(len==len2 && std::memcmp(&src[i0],n.data(),len2)==0)
+      auto sb = src.substr(i0, len2);
+      // if(sb==n)
+      if(sb.starts_with(n))
         return true;
       i0=i+1;
       }
-    if(src[i]=='\0')
+    if(i==name.size())
       break;
     }
 
