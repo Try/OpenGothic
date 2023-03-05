@@ -31,6 +31,13 @@ class Camera final {
       Dive
       };
 
+    enum MarvinMode {
+      M_Normal,
+      M_Freeze,
+      M_Free,
+      M_Pinned,
+      };
+
     struct ListenerPos {
       Tempest::Vec3 up;
       Tempest::Vec3 front;
@@ -46,15 +53,19 @@ class Camera final {
     void changeZoom(int delta);
     void setViewport(uint32_t w, uint32_t h);
 
-    void rotateLeft ();
-    void rotateRight();
+    void rotateLeft(uint64_t dt);
+    void rotateRight(uint64_t dt);
 
-    void moveForward();
-    void moveBack();
-    void moveLeft();
-    void moveRight();
+    void moveForward(uint64_t dt);
+    void moveBack(uint64_t dt);
+    void moveLeft(uint64_t dt);
+    void moveRight(uint64_t dt);
 
     void setMode(Mode m);
+    void setMarvinMode(MarvinMode m);
+    bool isMarvin() const;
+    bool isFree() const;
+
     void setToggleEnable(bool e);
     bool isToggleEnabled() const;
 
@@ -98,10 +109,12 @@ class Camera final {
       Tempest::Vec3       target = {};
       };
 
-    Tempest::Vec3         cameraPos = {};
-    Tempest::Vec3         origin    = {};
-    Tempest::Vec3         rotOffset = {};
-    Tempest::Vec3         offsetAng = {};
+    Tempest::Vec3         cameraPos       = {};
+    Tempest::Vec3         cameraOffset    = {};
+    float                 cameraOffsetAng = 0;
+    Tempest::Vec3         origin          = {};
+    Tempest::Vec3         rotOffset       = {};
+    Tempest::Vec3         offsetAng       = {};
     State                 src, dst;
 
     float                 dlgDist   = 0;
@@ -117,6 +130,7 @@ class Camera final {
     bool                  lbEnable      = false;
     bool                  inertiaTarget = true;
     Mode                  camMod        = Normal;
+    MarvinMode            camMarvinMod  = M_Normal;
 
     mutable int           raysCasted = 0;
 
@@ -130,7 +144,7 @@ class Camera final {
     Tempest::Vec3         calcOffsetAngles(Tempest::Vec3 srcOrigin, Tempest::Vec3 dstOrigin, Tempest::Vec3 target) const;
     float                 calcCameraColision(const Tempest::Vec3& target, const Tempest::Vec3& origin, const Tempest::Vec3& rotSpin, float dist) const;
 
-    void                  implMove(Tempest::KeyEvent::KeyType t);
+    void                  implMove(Tempest::KeyEvent::KeyType t, uint64_t dt);
     Tempest::Matrix4x4    mkView    (const Tempest::Vec3& pos, const Tempest::Vec3& spin) const;
     Tempest::Matrix4x4    mkRotation(const Tempest::Vec3& spin) const;
     void                  resetDst();

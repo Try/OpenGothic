@@ -161,9 +161,13 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
 
   for(size_t i=0; i<npcArr.size(); ++i) {
     auto& npc = *npcArr[i];
-    if(npc.isPlayer())
-      npc.tick(dtPlayer); else
+    if(npc.isPlayer()) {
+      if(!(Gothic::inst().camera()!=nullptr && Gothic::inst().camera()->isFree())) {
+        npc.tick(dtPlayer);
+        }
+      } else {
       npc.tick(dt);
+      }
     }
 
   for(auto& i:routines) {

@@ -86,8 +86,17 @@ MainWindow::MainWindow(Device& device)
   funcKey[3] = Shortcut(*this,Event::M_NoModifier,Event::K_F3);
   funcKey[3].onActivated.bind(this, &MainWindow::onMarvinKey<Event::K_F3>);
 
+  funcKey[4] = Shortcut(*this,Event::M_NoModifier,Event::K_F4);
+  funcKey[4].onActivated.bind(this, &MainWindow::onMarvinKey<Event::K_F4>);
+
   funcKey[5] = Shortcut(*this,Event::M_NoModifier,Event::K_F5);
   funcKey[5].onActivated.bind(this, &MainWindow::onMarvinKey<Event::K_F5>);
+
+  funcKey[6] = Shortcut(*this,Event::M_NoModifier,Event::K_F6);
+  funcKey[6].onActivated.bind(this, &MainWindow::onMarvinKey<Event::K_F6>);
+
+  funcKey[7] = Shortcut(*this,Event::M_NoModifier,Event::K_F7);
+  funcKey[7].onActivated.bind(this, &MainWindow::onMarvinKey<Event::K_F7>);
 
   funcKey[9] = Shortcut(*this,Event::M_NoModifier,Event::K_F9);
   funcKey[9].onActivated.bind(this, &MainWindow::onMarvinKey<Event::K_F9>);
@@ -230,6 +239,14 @@ void MainWindow::paintEvent(PaintEvent& event) {
 
     auto& fnt = Resources::font();
     fnt.drawText(p,5,fnt.pixelSize()+5,fpsT);
+    }
+
+  if(Gothic::inst().doClock() && world!=nullptr) {
+    auto hour = world->time().hour();
+    auto min  = world->time().minute();
+    auto& fnt = Resources::font();
+    string_frm clockT(int(hour),":",int(min));
+    fnt.drawText(p,w()-fnt.textSize(clockT).w-5,fnt.pixelSize()+5,clockT);
     }
   }
 
@@ -687,16 +704,41 @@ void MainWindow::onMarvinKey() {
       setFullscreen(!SystemApi::isFullscreen(hwnd()));
       break;
     case Event::K_F4:
+      if(Gothic::inst().isMarvinEnabled()) {
+        if(auto camera = Gothic::inst().camera()) {
+          camera->setMarvinMode(Camera::M_Normal);
+          camera->reset();
+          }
+        }
       break;
     case Event::K_F5:
+#ifdef NDEBUG
+      if(Gothic::inst().isMarvinEnabled() && !dialogs.isActive()) {
+        if(auto camera = Gothic::inst().camera()) {
+          camera->setMarvinMode(Camera::M_Freeze);
+          }
+        } else {
+        Gothic::inst().quickSave();
+        }
+#else
       Gothic::inst().quickSave();
-      // note: camera lock
+#endif
       break;
 
     case Event::K_F6:
-      // free camera mode
+      if(Gothic::inst().isMarvinEnabled() && !dialogs.isActive()) {
+        auto camera = Gothic::inst().camera();
+        auto inter  = Gothic::inst().player()->interactive();
+        if(camera!=nullptr && inter==nullptr)
+          camera->setMarvinMode(Camera::M_Free);
+        }
       break;
     case Event::K_F7:
+      if(Gothic::inst().isMarvinEnabled() && !dialogs.isActive()) {
+        if(auto camera = Gothic::inst().camera()) {
+          camera->setMarvinMode(Camera::M_Pinned);
+          }
+        }
       break;
     case Event::K_F8:
       //player.marvinF8();
@@ -817,7 +859,7 @@ void MainWindow::tickCamera(uint64_t dt) {
     auto spin = camera.destSpin();
     if(pl->interactive()==nullptr && !pl->isDown())
       spin.y = pl->rotation();
-    if(pl->isDive())
+    if(pl->isDive() && !camera.isMarvin())
       spin.x = -pl->rotationY();
     camera.setDestSpin(spin);
     camera.setDestPosition(pos);
