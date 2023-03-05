@@ -41,6 +41,10 @@ MainWindow::MainWindow(Device& device)
   Gothic::inst().onSettingsChanged.bind(this,&MainWindow::onSettings);
   onSettings();
 
+  if(Gothic::inst().version().game==2)
+    setWindowTitle("Gothic II"); else
+    setWindowTitle("Gothic");
+
   if(!CommandLine::inst().isWindowMode())
     setFullscreen(true);
 
