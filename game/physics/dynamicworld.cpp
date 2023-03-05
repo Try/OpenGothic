@@ -160,7 +160,7 @@ struct DynamicWorld::NpcBodyList final {
       }
     }
 
-  bool rayTest(NpcBody& npc, const Tempest::Vec3& s, const Tempest::Vec3& e, float extR) {
+  bool rayTest(NpcBody& npc, const Tempest::Vec3& s, const Tempest::Vec3& e, float extR, float& proj) {
     if(!npc.enable)
       return false;
     auto  ln   = e       - s;
@@ -169,7 +169,8 @@ struct DynamicWorld::NpcBodyList final {
     float lenL = ln.length();
 
     float dot  = Tempest::Vec3::dotProduct(ln,at);
-    float proj = dot/(lenL<=0 ? 1.f : (lenL*lenL));
+
+    proj = dot/(lenL<=0 ? 1.f : (lenL*lenL));
     proj = std::max(0.f,std::min(proj,1.f));
 
     auto  nr   = ln*proj + s;
@@ -183,13 +184,24 @@ struct DynamicWorld::NpcBodyList final {
     }
 
   NpcBody* rayTest(const Tempest::Vec3& s, const Tempest::Vec3& e, float extR) {
-    for(auto i:body)
-      if(rayTest(*i.body, s, e, extR))
-        return i.body;
-    for(auto i:frozen)
-      if(i.body!=nullptr && rayTest(*i.body, s, e, extR))
-        return i.body;
-    return nullptr;
+    NpcBody* ret     = nullptr;
+    float    minProj = 2;
+
+    for(auto i:body) {
+      float proj = 0;
+      if(rayTest(*i.body, s, e, extR, proj)) {
+        if(proj<minProj)
+          ret = i.body;
+        }
+      }
+    for(auto i:frozen) {
+      float proj = 0;
+      if(i.body!=nullptr && rayTest(*i.body, s, e, extR, proj)) {
+        if(proj<minProj)
+          ret = i.body;
+        }
+      }
+    return ret;
     }
 
   bool hasCollision(const DynamicWorld::NpcItem& obj,Tempest::Vec3& normal) {
@@ -333,7 +345,8 @@ struct DynamicWorld::BulletsList final {
 
   void onMoveNpc(NpcBody& npc, NpcBodyList& list){
     for(auto& i:body) {
-      if(i.cb!=nullptr && list.rayTest(npc,i.lastPos,i.pos,i.tgRange)) {
+      float proj = 0;
+      if(i.cb!=nullptr && list.rayTest(npc,i.lastPos,i.pos,i.tgRange,proj)) {
         i.cb->onCollide(*npc.toNpc());
         }
       }

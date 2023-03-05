@@ -1444,7 +1444,7 @@ bool Npc::implAtack(uint64_t dt) {
           }
         }
       if(auto spl = activeWeapon()) {
-        if(!spl->isSpellShoot())
+        if(spl->isSpell() && !spl->isSpellShoot())
           obsticle = false;
         }
       if(obsticle) {
@@ -4086,9 +4086,10 @@ void Npc::updateTransform() {
   }
 
 void Npc::updateAnimation(uint64_t dt) {
-  auto c = Gothic::inst().camera();
-  if(isPlayer() && c!=nullptr && c->isFree())
-    return;
+  const auto camera = Gothic::inst().camera();
+  if(isPlayer() && camera!=nullptr && camera->isFree())
+    dt = 0;
+
   if(durtyTranform) {
     const auto ground = groundNormal();
     if(lastGroundNormal!=ground) {
