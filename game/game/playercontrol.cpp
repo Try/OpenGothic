@@ -905,8 +905,8 @@ void PlayerControl::processPickLock(Npc& pl, Interactive& inter, KeyCodec::Actio
 
   if(pickLockProgress<cmp.size() && std::toupper(cmp[pickLockProgress])!=ch) {
     pickLockProgress = 0;
-    const int32_t dex = pl.attribute(ATR_DEXTERITY);
-    if(dex<int32_t(script.rand(100)))  {
+    const int32_t dex = Gothic::inst().version().game==2 ? pl.attribute(ATR_DEXTERITY) : 100 - pl.talentValue(TALENT_PICKLOCK);
+    if(dex<=int32_t(script.rand(100)))  {
       script.invokePickLock(pl,0,1);
       pl.delItem(ItKE_lockpick,1);
       if(pl.inventory().itemCount(ItKE_lockpick)==0) {
