@@ -124,13 +124,12 @@ void Camera::setMode(Camera::Mode m) {
     }
   }
 
-void Camera::setMarvinMode(Camera::MarvinMode m) {
-  if(camMarvinMod==m)
+void Camera::setMarvinMode(Camera::MarvinMode nextMod) {
+  if(camMarvinMod==nextMod)
     return;
 
   if(auto pl = Gothic::inst().player()) {
     if(camMarvinMod==M_Pinned) {
-      dst.spin.y   = pl->rotation() - cameraOffsetAng;
       src.spin     = dst.spin;
       float range  = src.range*100.f;
       Vec3  dir    = {0,0,1};
@@ -144,22 +143,19 @@ void Camera::setMarvinMode(Camera::MarvinMode m) {
       cameraPos   = src.target;
       rotOffset.y = 0;
       }
-    if(m==M_Pinned) {
-      float     trY          = pl->isSwim() ? 0 : -pl->translateY();
-      Vec3      offset       = {0,trY,0};
-      Matrix4x4 rotOffsetMat = pl->transform();
-      if(pl->isDive())
-        rotOffsetMat.rotateOX(pl->rotationY());
-      rotOffsetMat.inverse();
-      rotOffsetMat.translate(origin);
-      rotOffsetMat.project(offset);
-      cameraOffset    = offset;
-      cameraOffsetAng = pl->rotation() - dst.spin.y;
-      dst.spin.y      = pl->rotation();
-      src.spin        = dst.spin;
+    if(nextMod==M_Pinned) {
+      const auto& def    = cameraDef();
+      auto        offset = origin;
+      Matrix4x4   rotMat = pl->cameraMatrix(false);
+
+      rotMat.inverse();
+      rotMat.project(offset);
+      pin.origin = offset;
+      pin.spin.x = src.spin.x - def.best_elevation;
+      pin.spin.y = src.spin.y - (pl ? pl->rotation() : 0);
       }
     }
-  camMarvinMod = m;
+  camMarvinMod = nextMod;
   }
 
 bool Camera::isMarvin() const {
@@ -526,7 +522,7 @@ void Camera::followCamera(Vec3& pos, Vec3 dest, float dtF) {
     return;
     }
 
-  float speed = def.velo_trans*100.f*dtF;
+  float speed = def.velo_trans*dtF*100.f;
   float tr    = std::min(speed,len);
   float k     = tr/len;
   pos += dp*k;
@@ -540,7 +536,7 @@ void Camera::followAng(Vec3& spin, Vec3 dest, float dtF) {
 
 void Camera::followAng(float& ang, float dest, float speed, float dtF) {
   float da    = angleMod(dest-ang);
-  float shift = da*std::min(1.f,2.f*speed*dtF);
+  float shift = da*std::min(1.f, speed*dtF*1.f);
   if(std::abs(da)<0.01f || dtF<0.f) {
     ang = dest;
     return;
@@ -620,8 +616,22 @@ void Camera::calcControlPoints(float dtF) {
   followCamera(cameraPos,camTg,dtF);
 
   origin = cameraPos - dir*range;
-  if(camMarvinMod==M_Free)
+  if(camMarvinMod==M_Free) {
     return;
+    }
+
+  const auto pl = Gothic::inst().player();
+  if(camMarvinMod==M_Pinned && camMod!=Dialog && pl!=nullptr) {
+    auto rotMat = pl->cameraMatrix(false);
+    auto offset = pin.origin;
+    rotMat.project(offset);
+    origin     = offset;
+    src.target = dst.target;
+    src.spin   = dst.spin + pin.spin;
+    offsetAng  = Vec3();
+    return;
+    }
+
   if(def.collision!=0) {
     range  = calcCameraColision(camTg,origin,src.spin,range);
     origin = cameraPos - dir*range;
@@ -632,15 +642,11 @@ void Camera::calcControlPoints(float dtF) {
     offsetAng = Vec3(); else
     offsetAng = calcOffsetAngles(origin,baseOrigin,dst.target);
 
-  if((fpEnable && camMarvinMod==M_Normal) || (camMarvinMod==M_Pinned && camMod!=Dialog)) {
+  if(fpEnable && camMarvinMod==M_Normal) {
     origin    = dst.target;
     offsetAng = Vec3();
 
     Vec3 offset = {0,0,20};
-    if(camMarvinMod==M_Pinned) {
-      offset      = cameraOffset;
-      rotOffset.y = cameraOffsetAng;
-      }
     rotOffsetMat.identity();
     rotOffsetMat.rotateOY(180-src.spin.y);
     rotOffsetMat.project(offset);

@@ -109,13 +109,18 @@ class Camera final {
       Tempest::Vec3       target = {};
       };
 
+    struct Pin {
+      Tempest::Vec3       origin = {};
+      Tempest::Vec3       spin   = {};
+      };
+
     Tempest::Vec3         cameraPos       = {};
-    Tempest::Vec3         cameraOffset    = {};
-    float                 cameraOffsetAng = 0;
     Tempest::Vec3         origin          = {};
     Tempest::Vec3         rotOffset       = {};
     Tempest::Vec3         offsetAng       = {};
     State                 src, dst;
+
+    Pin                   pin;
 
     float                 dlgDist   = 0;
     float                 userRange = 0.13f;

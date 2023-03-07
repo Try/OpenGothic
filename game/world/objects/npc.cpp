@@ -640,6 +640,14 @@ Vec3 Npc::cameraBone(bool isFirstPerson) const {
   return r;
   }
 
+Matrix4x4 Npc::cameraMatrix(bool isFirstPerson) const {
+  const size_t head = visual.pose().findNode("BIP01 HEAD");
+  if(isFirstPerson && head!=size_t(-1)) {
+    return visual.pose().bone(head);
+    }
+  return visual.pose().rootBone();
+  }
+
 float Npc::collisionRadius() const {
   return physic.radius();
   }
