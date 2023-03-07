@@ -1,10 +1,13 @@
 #include "globaleffects.h"
 
+#include <Tempest/Log>
 #include <charconv>
 
 #include "world/objects/globalfx.h"
 #include "world/world.h"
 #include "graphics/visualfx.h"
+
+using namespace Tempest;
 
 GlobalEffects::GlobalEffects(World& owner):owner(owner){
   }
@@ -123,8 +126,14 @@ GlobalFx GlobalEffects::create(std::string_view what, const std::string* argv, s
 
 GlobalFx GlobalEffects::addSlowTime(const std::string* argv, size_t argc) {
   double val[2] = {1,1};
-  for(size_t i=0; i<argc && i<2; ++i)
-    val[i] = std::stof(argv[i]);
+  for(size_t i=0; i<argc && i<2; ++i) {
+    try {
+      val[i] = std::stof(argv[i]);
+      }
+    catch(...) {
+      Log::e("invalid time.slw parameter [",i,"]: \"", argv[i], "\"");
+      }
+    }
   uint64_t v[2] = {};
   for(int i=0; i<2; ++i)
     v[i] = uint64_t(val[i]*1000);
@@ -139,16 +148,34 @@ GlobalFx GlobalEffects::addSlowTime(const std::string* argv, size_t argc) {
 GlobalFx GlobalEffects::addScreenBlend(const std::string* argv, size_t argc) {
   ScreenBlend sc;
 
-  if(0<argc)
+  if(0<argc) try {
     sc.loop   = float(std::stof(argv[0]));
-  if(1<argc)
+    }
+  catch(...) {
+    Log::e("invalid screenblend.scx parameter [0]: \"", argv[0], "\"");
+    }
+
+  if(1<argc) {
     sc.cl     = parseColor(argv[1]);
-  if(2<argc)
+    }
+
+  if(2<argc) try {
     sc.inout  = float(std::stof(argv[2]));
-  if(3<argc)
+    }
+  catch(...){
+    Log::e("invalid screenblend.scx parameter [2]: \"", argv[2], "\"");
+    }
+
+  if(3<argc) {
     sc.frames = Resources::loadTextureAnim(argv[3]);
-  if(4<argc)
+    }
+
+  if(4<argc) try {
     sc.fps    = size_t(std::stoi(argv[4]));
+    }
+  catch(...) {
+    Log::e("invalid screen-blend parameter [4]: \"", argv[4], "\"");
+    }
 
   sc.timeLoop = uint64_t(sc.loop*1000.f);
 
