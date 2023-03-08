@@ -130,7 +130,7 @@ void Bullet::onCollide(phoenix::material_group matId) {
   }
 
 void Bullet::onCollide(Npc& npc) {
-  if(&npc==origin())
+  if(&npc==origin() || isFinished())
     return;
 
   if(ow!=nullptr) {
