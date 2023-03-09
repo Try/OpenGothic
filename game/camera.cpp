@@ -31,9 +31,10 @@ static Vec3 angleMod(Vec3 a) {
   return a;
   }
 
-float Camera::maxDist        = 100;
-float Camera::baseSpeeed     = 200;
-float Camera::offsetAngleMul = 0.2f;
+float       Camera::maxDist        = 100;
+float       Camera::baseSpeeed     = 200;
+float       Camera::offsetAngleMul = 0.2f;
+const float Camera::minLength      = 0.0001f;
 
 Camera::Camera() {
   (void)inertiaTarget; // OSX warning
@@ -473,7 +474,7 @@ void Camera::followPos(Vec3& pos, Vec3 dest, float dtF) {
     return;
     }
 
-  if(len<=0.01) {
+  if(len<=minLength) {
     return;
     }
 
@@ -518,7 +519,7 @@ void Camera::followCamera(Vec3& pos, Vec3 dest, float dtF) {
     }
   auto  dp    = dest-pos;
   auto  len   = dp.length();
-  if(len<=0.01) {
+  if(len<=minLength) {
     return;
     }
 
@@ -668,7 +669,7 @@ Vec3 Camera::calcOffsetAngles(Vec3 srcOrigin, Vec3 dstOrigin, Vec3 target) const
 
   auto  dot = Vec3::dotProduct(src,dst);
   float k   = 0;
-  if(dst.length()>0.001f) {
+  if(dst.length()>minLength) {
     k = dot/dst.length();
     k = std::max(0.f,std::min(k/100.f,1.f));
     }

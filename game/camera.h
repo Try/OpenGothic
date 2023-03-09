@@ -142,6 +142,7 @@ class Camera final {
     static float          maxDist;
     static float          baseSpeeed;
     static float          offsetAngleMul;
+    static const float    minLength;
 
     void                  calcControlPoints(float dtF);
 
