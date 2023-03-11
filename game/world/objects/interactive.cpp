@@ -12,6 +12,7 @@
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "utils/dbgpainter.h"
+#include "gothic.h"
 
 Interactive::Interactive(Vob* parent, World &world, const phoenix::vobs::mob& vob, Flags flags)
   : Vob(parent,world,vob,flags) {
@@ -576,12 +577,14 @@ bool Interactive::checkUseConditions(Npc& npc) {
   auto& sc = npc.world().script();
 
   if(isPlayer) {
-    const size_t ItKE_lockpick  = world.script().findSymbolIndex("ItKE_lockpick");
-    const size_t lockPickCnt    = npc.inventory().itemCount(ItKE_lockpick);
-    const bool   canLockPick    = (npc.talentSkill(TALENT_PICKLOCK)!=0 && lockPickCnt>0);
+    const bool             g2             = Gothic::inst().version().game==2;
+    const std::string_view name           = g2 ? "ItKE_lockpick" : "itkelockpick";
+    const size_t           ItKE_lockpick  = world.script().findSymbolIndex(name);
+    const size_t           lockPickCnt    = npc.inventory().itemCount(ItKE_lockpick);
+    const bool             canLockPick    = ((!g2 || npc.talentSkill(TALENT_PICKLOCK)!=0) && lockPickCnt>0);
 
-    const size_t keyInst        = keyInstance.empty() ? size_t(-1) : world.script().findSymbolIndex(keyInstance);
-    const bool   needToPicklock = (pickLockStr.size()>0);
+    const size_t           keyInst        = keyInstance.empty() ? size_t(-1) : world.script().findSymbolIndex(keyInstance);
+    const bool             needToPicklock = (pickLockStr.size()>0);
 
     if(keyInst!=size_t(-1) && npc.itemCount(keyInst)>0)
       return true;
