@@ -313,6 +313,7 @@ void GameScript::initCommon() {
 
     auto* vtime     = vm.find_symbol_by_name("VIEW_TIME_PER_CHAR");
     viewTimePerChar = vtime != nullptr ? vtime->get_float() : 0.55f;
+    ItKE_lockpick   = vm.find_symbol_by_name("ItKE_lockpick");
     if(viewTimePerChar<=0.f)
       viewTimePerChar=0.55f;
     } else {
@@ -322,8 +323,9 @@ void GameScript::initCommon() {
       goldTxt = item->name;
       }
     //
-    tradeValMult   = 1.f;
-    viewTimePerChar=0.55f;
+    tradeValMult    = 1.f;
+    viewTimePerChar = 0.55f;
+    ItKE_lockpick   = vm.find_symbol_by_name("itkelockpick");
     }
 
   auto* gilMax = vm.find_symbol_by_name("GIL_MAX");
@@ -1367,6 +1369,10 @@ int GameScript::npcDamDiveTime() {
   if(id==nullptr)
     return 0;
   return id->get_int();
+  }
+
+uint32_t GameScript::lockPickId() const {
+  return ItKE_lockpick!=nullptr ? ItKE_lockpick->index() : 0;
   }
 
 bool GameScript::game_initgerman() {

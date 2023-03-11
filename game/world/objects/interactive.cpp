@@ -577,11 +577,10 @@ bool Interactive::checkUseConditions(Npc& npc) {
   auto& sc = npc.world().script();
 
   if(isPlayer) {
-    const bool             g2             = Gothic::inst().version().game==2;
-    const std::string_view name           = g2 ? "ItKE_lockpick" : "itkelockpick";
-    const size_t           ItKE_lockpick  = world.script().findSymbolIndex(name);
+    const bool             g1             = Gothic::inst().version().game==1;
+    const size_t           ItKE_lockpick  = world.script().lockPickId();
     const size_t           lockPickCnt    = npc.inventory().itemCount(ItKE_lockpick);
-    const bool             canLockPick    = ((!g2 || npc.talentSkill(TALENT_PICKLOCK)!=0) && lockPickCnt>0);
+    const bool             canLockPick    = ((g1 || npc.talentSkill(TALENT_PICKLOCK)!=0) && lockPickCnt>0);
 
     const size_t           keyInst        = keyInstance.empty() ? size_t(-1) : world.script().findSymbolIndex(keyInstance);
     const bool             needToPicklock = (pickLockStr.size()>0);

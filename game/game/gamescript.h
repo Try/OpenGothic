@@ -95,6 +95,9 @@ class GameScript final {
     std::string_view currencyName() const { return goldTxt; }
     int              npcDamDiveTime();
 
+    phoenix::symbol* lockPickSymbol() const { return ItKE_lockpick; }
+    uint32_t         lockPickId() const;
+
     const phoenix::c_focus&          focusNorm()  const { return cFocusNorm;  }
     const phoenix::c_focus&          focusMele()  const { return cFocusMele;  }
     const phoenix::c_focus&          focusRange() const { return cFocusRange; }
@@ -432,12 +435,13 @@ class GameScript final {
     std::unique_ptr<AiOuputPipe>                                aiDefaultPipe;
 
     QuestLog                                                    quests;
-    phoenix::symbol*                                  itMi_Gold=nullptr;
-    float                                                       tradeValMult=0.3f;
-    phoenix::symbol*                                  spellFxInstanceNames=nullptr;
-    phoenix::symbol*                                  spellFxAniLetters=nullptr;
+    phoenix::symbol*                                            itMi_Gold = nullptr;
+    phoenix::symbol*                                            ItKE_lockpick = nullptr;
+    float                                                       tradeValMult = 0.3f;
+    phoenix::symbol*                                            spellFxInstanceNames = nullptr;
+    phoenix::symbol*                                            spellFxAniLetters = nullptr;
     std::string                                                 goldTxt;
-    float                                                       viewTimePerChar=0.5;
+    float                                                       viewTimePerChar = 0.5;
     mutable std::unordered_map<std::string,uint32_t>            msgTimings;
     size_t                                                      gilCount=0;
     std::vector<int32_t>                                        gilAttitudes;
