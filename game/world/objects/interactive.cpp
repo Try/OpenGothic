@@ -416,9 +416,11 @@ std::string_view Interactive::focusName() const {
 
 bool Interactive::checkMobName(std::string_view dest) const {
   std::string_view scheme=schemeName();
-  if(scheme==dest)
-    return true;
-  return false;
+  return scheme==dest;
+  }
+
+bool Interactive::checkMobType(phoenix::vob_type type) const {
+  return vobType==type;
   }
 
 std::string_view Interactive::ownerName() const {

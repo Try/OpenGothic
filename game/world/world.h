@@ -130,7 +130,8 @@ class World final {
     void                 enableCollizionZone (CollisionZone& z);
     void                 disableCollizionZone(CollisionZone& z);
 
-    Interactive*         availableMob(const Npc &pl, std::string_view name, bool ignoreInUse = false);
+    Interactive*         availableMob(const Npc &pl, std::string_view name);
+    Interactive*         availableMob(const Npc &pl, phoenix::vob_type type);
     Interactive*         findInteractive(const Npc& pl);
     void                 setMobRoutine(gtime time, std::string_view scheme, int32_t state);
 

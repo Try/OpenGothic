@@ -363,6 +363,7 @@ class Npc final {
     GoToHint  moveHint() const { return go2.flag; }
     void      clearGoTo();
     void      stopWalking();
+    void      recalculateWayPath();
 
     bool      canSeeNpc(const Npc& oth,bool freeLos) const;
     bool      canSeeSource() const;

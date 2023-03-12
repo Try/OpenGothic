@@ -686,9 +686,7 @@ bool MoveAlgo::isClose(const Tempest::Vec3& p, float dist) {
   auto  dp  = npc.position()-p;
   dp.y = 0;
   float len = dp.quadLength();
-  if(len<dist*dist)
-    return true;
-  return false;
+  return (len<dist*dist);
   }
 
 bool MoveAlgo::startClimb(JumpStatus jump) {

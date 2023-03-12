@@ -446,8 +446,12 @@ bool World::testFocusNpc(Npc* def) {
   return wobj.testFocusNpc(*npcPlayer,def,optNpc);
   }
 
-Interactive *World::availableMob(const Npc &pl, std::string_view name, bool ignoreInUse) {
-  return wobj.availableMob(pl,name,ignoreInUse);
+Interactive *World::availableMob(const Npc &pl, std::string_view name) {
+  return wobj.availableMob(pl,name);
+  }
+
+Interactive *World::availableMob(const Npc &pl, phoenix::vob_type type) {
+  return wobj.availableMob(pl,type);
   }
 
 Interactive* World::findInteractive(const Npc& pl) {

@@ -44,6 +44,7 @@ class Interactive : public Vob {
     std::string_view    tag() const;
     std::string_view    focusName() const;
     bool                checkMobName(std::string_view dest) const;
+    bool                checkMobType(phoenix::vob_type type) const;
     std::string_view    ownerName() const;
 
     bool                overrideFocus() const;

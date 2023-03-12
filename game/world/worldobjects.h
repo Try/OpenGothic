@@ -118,7 +118,8 @@ class WorldObjects final {
 
     void           marchInteractives(DbgPainter& p) const;
 
-    Interactive*   availableMob(const Npc& pl, std::string_view name, bool ignoreInUse = false);
+    Interactive*   availableMob(const Npc& pl, std::string_view name);
+    Interactive*   availableMob(const Npc& pl, phoenix::vob_type type);
     void           setMobRoutine(gtime time, std::string_view scheme, int32_t state);
 
     void           sendPassivePerc(Npc& self,Npc& other,Npc& victum,int32_t perc);

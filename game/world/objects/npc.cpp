@@ -1341,7 +1341,7 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
   if(go2.flag==GT_No)
     return false;
 
-  if(isInAir()) {
+  if(isInAir() || (interactive()!=nullptr && interactive()->isLadder())) {
     mvAlgo.tick(dt);
     return true;
     }
@@ -1354,19 +1354,24 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
   else if(mvAlgo.isClose(go2.target(),destDist)) {
     bool finished = true;
     if(go2.flag==GT_Way) {
+      if(std::abs(go2.target().y-y)>destDist+100) {
+        recalculateWayPath();
+        mvAlgo.tick(dt);
+        return true;
+        }
       go2.wp = wayPath.pop();
       if(go2.wp!=nullptr) {
-        if(std::abs(go2.wp->x-x)+std::abs(go2.wp->z-z)<std::abs(go2.wp->y-y)) {
-          auto inter = owner.availableMob(*this,"LADDER",true);
+        attachToPoint(go2.wp);
+        if(std::abs(go2.wp->x-x)+std::abs(go2.wp->z-z)<std::abs(go2.wp->y-y) && !isMonster()) {
+          auto inter = owner.availableMob(*this,phoenix::vob_type::oCMobLadder);
           if(inter!=nullptr) {
-            auto wpoint = wayPath.last()!=nullptr ? wayPath.last() : go2.wp;
-            clearGoTo();
-            aiQueue.pushFront(AiQueue::aiGoToPoint(*wpoint));
-            aiQueue.pushFront(AiQueue::aiUseMob("LADDER",0));
-            return false;
+            auto pos = inter->nearestPoint(*this);
+            if(mvAlgo.isClose(pos,MAX_AI_USE_DISTANCE) && setInteraction(inter)) {
+              mvAlgo.tick(dt);
+              return true;
+              }
             }
           }
-        attachToPoint(go2.wp);
         finished = false;
         }
       }
@@ -2104,7 +2109,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
       }
     case AI_GoToPoint: {
-      if((currentInteract!=nullptr && currentInteract->isLadder()) || !setInteraction(nullptr)) {
+      if(!setInteraction(nullptr)) {
         queue.pushFront(std::move(act));
         break;
         }
@@ -2178,7 +2183,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_StandUpQuick:
       // NOTE: B_ASSESSTALK calls AI_StandUp, to make npc stand, if it's not on a chair or something
       if(interactive()!=nullptr) {
-        if(interactive()->isLadder() || !setInteraction(nullptr,false)) {
+        if((interactive()->isLadder() && !isPlayer()) || !setInteraction(nullptr,false)) {
           queue.pushFront(std::move(act));
           }
         break;
@@ -2238,9 +2243,6 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
           // queue.pushFront(std::move(act));
           }
         }
-
-      if(inter->isLadder())
-        break;
 
       if(currentInteract==nullptr || currentInteract->stateId()!=act.i0) {
         queue.pushFront(std::move(act));
@@ -3959,6 +3961,25 @@ void Npc::stopWalking() {
     return;
   // hard stop
   visual.stopWalkAnim(*this);
+  }
+
+void Npc::recalculateWayPath() {
+  auto target = wayPath.last();
+  if(target==nullptr)
+    return;
+  wayPath.clear();
+  go2.clear();
+  currentFp     = nullptr;
+  currentFpLock = FpLock();
+  wayPath       = owner.wayTo(*this,*target);
+  auto wpoint   = wayPath.pop();
+  if(wpoint!=nullptr) {
+    go2.set(wpoint);
+    attachToPoint(wpoint);
+    } else {
+    attachToPoint(target);
+    clearGoTo();
+    }
   }
 
 bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {

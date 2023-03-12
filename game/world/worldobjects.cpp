@@ -788,9 +788,9 @@ void WorldObjects::marchInteractives(DbgPainter &p) const {
     }
   }
 
-Interactive *WorldObjects::availableMob(const Npc &pl, std::string_view dest, bool ignoreInUse) {
-  const float  dist=100*10.f;
-  Interactive* ret =nullptr;
+Interactive *WorldObjects::availableMob(const Npc &pl, std::string_view dest) {
+  const float  dist = 100*10.f;
+  Interactive* ret  = nullptr;
 
   if(auto i = pl.interactive()){
     if(i->checkMobName(dest))
@@ -799,9 +799,35 @@ Interactive *WorldObjects::availableMob(const Npc &pl, std::string_view dest, bo
 
   float curDist=dist*dist;
   interactiveObj.find(pl.position(),dist,[&](Interactive& i){
-    if((ignoreInUse || i.isAvailable()) && i.checkMobName(dest)) {
+    if(i.isAvailable() && i.checkMobName(dest)) {
       float d = pl.qDistTo(i);
       if(d<curDist){
+        ret    = &i;
+        curDist = d;
+        }
+      }
+    return false;
+    });
+
+  if(ret==nullptr)
+    return nullptr;
+  return ret;
+  }
+
+Interactive *WorldObjects::availableMob(const Npc &pl, phoenix::vob_type type) {
+  const float  dist = 100*10.f;
+  Interactive* ret  = nullptr;
+
+  if(auto i = pl.interactive()){
+    if(i->checkMobType(type))
+      return i;
+    }
+
+  float curDist=dist*dist;
+  interactiveObj.find(pl.position(),dist,[&](Interactive& i){
+    if(i.isAvailable() && i.checkMobType(type)) {
+      float d = pl.qDistTo(i);
+      if(d<curDist) {
         ret    = &i;
         curDist = d;
         }
