@@ -216,7 +216,7 @@ vec3 sky(vec2 uv, vec3 sunDir) {
   if((sunLum.x>0 || sunLum.y>0 || sunLum.z>0) && rayIntersect(pos, view, RPlanet)>=0.0) {
     sunLum = vec3(0.0);
     }
-  lum += sunLum;
+  //lum += sunLum;
   return lum;
   }
 

@@ -106,6 +106,21 @@ Shaders::Shaders() {
   RenderState state;
   state.setCullFaceMode (RenderState::CullMode::Front);
   state.setBlendSource  (RenderState::BlendMode::One);
+  state.setBlendDest    (RenderState::BlendMode::SrcAlpha);
+  state.setZTestMode    (RenderState::ZTestMode::Equal);
+  state.setZWriteEnabled(false);
+
+  auto sh      = GothicShader::get("sun.vert.sprv");
+  auto vsLight = device.shader(sh.data,sh.len);
+  sh           = GothicShader::get("sun.frag.sprv");
+  auto fsLight = device.shader(sh.data,sh.len);
+  sun          = device.pipeline(Triangles, state, vsLight, fsLight);
+  }
+
+  {
+  RenderState state;
+  state.setCullFaceMode (RenderState::CullMode::Front);
+  state.setBlendSource  (RenderState::BlendMode::One);
   state.setBlendDest    (RenderState::BlendMode::One);
   state.setZTestMode    (RenderState::ZTestMode::Less);
 

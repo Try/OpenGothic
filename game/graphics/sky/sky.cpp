@@ -41,7 +41,13 @@ Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest:
     zMoonAlpha=255
     */
   sunImg       = Resources::loadTexture(Gothic::settingsGetS("SKY_OUTDOOR","zSunName"));
-  // auto& moon   = gothic.settingsGetS("SKY_OUTDOOR","zMoonName");
+  sunSize      = Gothic::settingsGetF("SKY_OUTDOOR","zSunSize");
+  if(sunSize<=1)
+    sunSize = 200;
+  moonImg      = Resources::loadTexture(Gothic::settingsGetS("SKY_OUTDOOR","zMoonName"));
+  moonSize     = Gothic::settingsGetF("SKY_OUTDOOR","zMoonSize");
+  if(moonSize<=1)
+    moonSize = 400;
 
   auto& device = Resources::device();
   cloudsLut    = device.image2d   (lutRGBAFormat,  2,  1);
@@ -80,12 +86,52 @@ void Sky::setupSettings() {
   //fogLut3D = device.image3d(lutFormat,160,90,512);
 
   //fogLut3D = device.image3d(lutFormat,320,176,32);
-  fogLut3D    = device.image3d(lutRGBAFormat,320,176,64);
+  fogLut3D = device.image3d(lutRGBAFormat,320,176,64);
 
   //shadowDw = device.image2d(TextureFormat::R32F,320, 32*16);
   //shadowDw = device.image2d(TextureFormat::R16, 256, 256);
   shadowDw = device.image2d(TextureFormat::R16, 512, 256);
   setupUbo();
+  }
+
+void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t frameId, bool sun) {
+  auto  m = scene.viewProject();
+  auto  d = sunLight().dir();
+
+  if(!sun) {
+    // fixed pos for now
+    d = Vec3::normalize({-1,1,0});
+    }
+
+  float w = 0;
+  m.project(d.x, d.y, d.z, w);
+
+  if(d.z<0)
+    return;
+
+  static float GMoonIntensity = 0.1f;
+
+  struct Push {
+    Tempest::Vec2 pos;
+    Tempest::Vec2 size;
+    float         GSunIntensity = 0;
+    uint32_t      isSun = 0;
+    } push;
+  push.pos  = Vec2(d.x,d.y)/d.z;
+  if(scene.zbuffer!=nullptr) {
+    push.size.x  = 2.f/float(scene.zbuffer->w());
+    push.size.y  = 2.f/float(scene.zbuffer->h());
+    }
+  push.size          *= sun ? sunSize : (moonSize*0.25f);
+  push.GSunIntensity  = sun ? GSunIntensity : GMoonIntensity;
+  push.GSunIntensity *= sun ? (1.f-isNight()) : isNight(); // HACK
+  push.isSun          = sun ? 1 : 0;
+  cmd.setUniforms(Shaders::inst().sun, sun ? uboSun : uboMoon, &push, sizeof(push));
+  cmd.draw(6);
+  }
+
+float Sky::isNight() const {
+  return 1.f-std::min(std::max(3.f*sun.dir().y,0.f),1.f);
   }
 
 void Sky::setWorld(const World& world, const std::pair<Vec3, Vec3>& bbox) {
@@ -231,6 +277,12 @@ void Sky::setupUbo() {
     uboFog3d.set(3, fogLut3D,       smpB);
     uboFog3d.set(4, *scene.zbuffer, Sampler::nearest());
     }
+
+  uboSun = device.descriptors(Shaders::inst().sun);
+  uboSun.set(0, *sunImg);
+
+  uboMoon = device.descriptors(Shaders::inst().sun);
+  uboMoon.set(0, *moonImg);
   }
 
 void Sky::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t frameId) {
@@ -293,6 +345,9 @@ void Sky::drawSky(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
     cmd.setUniforms(Shaders::inst().sky3d, uboSky3d, &ubo, sizeof(ubo)); else
     cmd.setUniforms(Shaders::inst().sky,   uboSky,   &ubo, sizeof(ubo));
   cmd.draw(Resources::fsqVbo());
+
+  drawSunMoon(cmd, fId, false);
+  drawSunMoon(cmd, fId, true);
   }
 
 void Sky::drawFog(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
@@ -333,7 +388,7 @@ Sky::UboSky Sky::mkPush() {
   ubo.dxy0[0] = t0;
   ubo.dxy1[0] = t1;
   ubo.sunDir  = sun.dir();
-  ubo.night   = 1.f-std::min(std::max(3.f*ubo.sunDir.y,0.f),1.f);
+  ubo.night   = isNight();
 
   static float rayleighScatteringScale = 33.1f;
 

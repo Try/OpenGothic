@@ -189,6 +189,8 @@ add_shader(fog.vert                  sky/sky.vert         -DFOG)
 add_shader(fog.frag                  sky/sky_egsr.frag    -DFOG)
 add_shader(sky.vert                  sky/sky.vert         "")
 add_shader(sky.frag                  sky/sky_egsr.frag    "")
+add_shader(sun.vert                  sky/sun.vert         "")
+add_shader(sun.frag                  sky/sun.frag         "")
 
 add_shader(copy.vert                 copy.vert "")
 add_shader(copy.frag                 copy.frag "")

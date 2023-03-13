@@ -60,6 +60,10 @@ class Sky final {
     const Tempest::Texture2d*     implSkyTexture(std::string_view name, bool day, size_t id);
 
     void                          setupSettings();
+    void                          drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId, bool sun);
+
+    float                         isNight() const;
+
     bool                          zFogRadial = false;
 
     LightSource                   sun;
@@ -79,9 +83,15 @@ class Sky final {
 
     bool                          lutIsInitialized = false;
 
+    Tempest::DescriptorSet        uboSun, uboMoon;
+
     const SceneGlobals&           scene;
     State                         day, night;
-    const Tempest::Texture2d*     sunImg = &Resources::fallbackBlack();
+
+    const Tempest::Texture2d*     sunImg   = &Resources::fallbackBlack();
+    float                         sunSize  = 200;
+    const Tempest::Texture2d*     moonImg  = &Resources::fallbackBlack();
+    float                         moonSize = 400;
 
     float                         minZ = 0;
     float                         GSunIntensity = 20.f;
