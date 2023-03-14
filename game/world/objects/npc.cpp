@@ -2918,7 +2918,7 @@ void Npc::moveItem(size_t id, Interactive &to, size_t count) {
 void Npc::sellItem(size_t id, Npc &to, size_t count) {
   if(id==owner.script().goldId()->index())
     return;
-  int32_t price = invent.sellPriceOf(id);
+  int32_t price = invent.sellPriceOf(id)*(int32_t)count;
   Inventory::trasfer(to.invent,invent,this,id,count,owner);
   invent.addItem(owner.script().goldId()->index(),size_t(price),owner);
   }
