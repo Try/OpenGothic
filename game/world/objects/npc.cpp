@@ -2920,7 +2920,7 @@ void Npc::sellItem(size_t id, Npc &to, size_t count) {
     return;
   int32_t price = invent.sellPriceOf(id);
   Inventory::trasfer(to.invent,invent,this,id,count,owner);
-  invent.addItem(owner.script().goldId()->index(),size_t(price),owner);
+  invent.addItem(owner.script().goldId()->index(),size_t(price)*count,owner);
   }
 
 void Npc::buyItem(size_t id, Npc &from, size_t count) {
