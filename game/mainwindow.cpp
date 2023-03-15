@@ -1053,8 +1053,8 @@ void MainWindow::render(){
       }
 
     if(!video.isActive()) {
-      tickCamera(dt);
       Gothic::inst().updateAnimation(dt);
+      tickCamera(dt);
       }
 
     if(video.isActive()) {
