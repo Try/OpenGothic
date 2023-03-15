@@ -4,7 +4,6 @@
 
 #include "game/serialize.h"
 #include "game/gamescript.h"
-#include "game/inventory.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "utils/fileext.h"

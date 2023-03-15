@@ -5,10 +5,18 @@
 
 using namespace Tempest;
 
+static Tempest::Color toColor(glm::u8vec4 v) {
+  Tempest::Color c(float(v.r)/255.f, float(v.g)/255.f, float(v.b)/255.f, float(v.a)/255.f);
+  return c;
+  }
+
 Material::Material(const phoenix::material& m, bool enableAlphaTest) {
   tex = Resources::loadTexture(m.texture);
-  if(tex==nullptr && !m.texture.empty())
-    tex = Resources::loadTexture("DEFAULT.TGA");
+  if(tex==nullptr) {
+    if(!m.texture.empty())
+      tex = Resources::loadTexture("DEFAULT.TGA"); else
+      tex = Resources::loadTexture(toColor(m.color));
+    }
 
   loadFrames(m);
 

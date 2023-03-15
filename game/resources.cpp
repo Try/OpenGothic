@@ -9,6 +9,7 @@
 #include <Tempest/SoundEffect>
 #include <Tempest/TextCodec>
 #include <Tempest/Log>
+#include <Tempest/Color>
 
 #include <phoenix/proto_mesh.hh>
 #include <phoenix/model_hierarchy.hh>
@@ -658,6 +659,25 @@ GthFont &Resources::implLoadFont(std::string_view name, FontType type) {
 const Texture2d *Resources::loadTexture(std::string_view name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadTexture(inst->texCache,name);
+  }
+
+const Texture2d* Resources::loadTexture(Tempest::Color color) {
+  if(color==Color())
+    return nullptr;
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  auto& cache = inst->pixCache;
+  auto it = cache.find(color);
+  if(it!=cache.end())
+    return it->second.get();
+
+  uint8_t iv[4] = { uint8_t(255.f*color.r()), uint8_t(255.f*color.g()), uint8_t(255.f*color.b()), uint8_t(255.f*color.a()) };
+  Pixmap p2(1,1,Pixmap::Format::RGBA);
+  std::memcpy(p2.data(),iv,4);
+
+  auto t       = std::make_unique<Texture2d>(inst->dev.texture(p2));
+  auto ret     = t.get();
+  cache[color] = std::move(t);
+  return ret;
   }
 
 const Texture2d *Resources::loadTexture(std::string_view name, int32_t iv, int32_t ic) {

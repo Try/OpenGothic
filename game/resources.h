@@ -10,6 +10,7 @@
 
 #include <tuple>
 #include <string_view>
+#include <map>
 
 #include "graphics/material.h"
 #include "sound/soundfx.h"
@@ -21,7 +22,6 @@ class Animation;
 class AttachBinder;
 class PhysicMeshShape;
 class PfxEmitterMesh;
-class SoundFx;
 class GthFont;
 
 namespace Dx8 {
@@ -92,6 +92,7 @@ class Resources final {
     static const Tempest::Texture2d& fallbackTexture();
     static const Tempest::Texture2d& fallbackBlack();
     static const Tempest::Texture2d* loadTexture(std::string_view name);
+    static const Tempest::Texture2d* loadTexture(Tempest::Color color);
     static const Tempest::Texture2d* loadTexture(std::string_view name, int32_t v, int32_t c);
     static       Tempest::Texture2d  loadTexturePm(const Tempest::Pixmap& pm);
     static auto                      loadTextureAnim(std::string_view name) -> std::vector<const Tempest::Texture2d*>;
@@ -196,6 +197,14 @@ class Resources final {
         }
       };
 
+    struct Less {
+      size_t operator()(const Tempest::Color& a, const Tempest::Color& b) const {
+        auto ta = std::make_tuple(a.r(),a.g(),a.b(),a.a());
+        auto tb = std::make_tuple(b.r(),b.g(),b.b(),b.a());
+        return ta<tb;
+        }
+      };
+
     Tempest::Device&                  dev;
     Tempest::SoundDevice              sound;
 
@@ -207,7 +216,7 @@ class Resources final {
     Tempest::VertexBuffer<VertexFsq>  fsq;
 
     TextureCache                                                      texCache;
-
+    std::map<Tempest::Color,std::unique_ptr<Tempest::Texture2d>,Less> pixCache;
     std::unordered_map<std::string,std::unique_ptr<ProtoMesh>>        aniMeshCache;
     std::unordered_map<DecalK,std::unique_ptr<ProtoMesh>,Hash>        decalMeshCache;
     std::unordered_map<std::string,std::unique_ptr<Skeleton>>         skeletonCache;
