@@ -246,7 +246,11 @@ vec4 processVertex(out Varyings shOut, uint objId, uint vboOffset) {
   shOut.color = unpackUnorm4x8(color);
 #endif
 
-  return scene.viewProject*vec4(pos,1.0);
+  vec4 ret = scene.viewProject*vec4(pos,1.0);
+#ifdef MESH
+  //ret.y = -ret.y;
+#endif
+  return ret;
   }
 
 #endif

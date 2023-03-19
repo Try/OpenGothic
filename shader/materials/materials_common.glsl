@@ -138,7 +138,9 @@ layout(push_constant, std430) uniform UboPush {
   uint      firstInstance;
   uint      instanceCount;
   float     fatness;
-  float     padd[3];
+  float     padd0;
+  float     padd1;
+  float     padd2;
   } push;
 #elif (MESH_TYPE==T_MORPH)
 layout(push_constant, std430) uniform UboPush {
@@ -147,7 +149,9 @@ layout(push_constant, std430) uniform UboPush {
   uint      firstInstance;
   uint      instanceCount;
   float     fatness;
-  float     padd[3];
+  float     padd0;
+  float     padd1;
+  float     padd2;
 
   MorphDesc morph[MAX_MORPH_LAYERS];
   } push;
