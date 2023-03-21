@@ -61,7 +61,7 @@ AiQueue::AiAction AiQueue::pop() {
 int AiQueue::aiOutputOrderId() const {
   int v = std::numeric_limits<int>::max();
   for(auto& i:aiActions)
-    if(i.i0<v && (i.act==AI_Output || i.act==AI_OutputSvm || i.act==AI_OutputSvmOverlay))
+    if(i.i0<v && (i.act==AI_Output || i.act==AI_OutputSvm || i.act==AI_OutputSvmOverlay || i.act==AI_StopProcessInfo))
       v = i.i0;
   return v;
   }
@@ -315,9 +315,10 @@ AiQueue::AiAction AiQueue::aiOutputSvmOverlay(Npc &to, std::string_view  text, i
   return a;
   }
 
-AiQueue::AiAction AiQueue::aiStopProcessInfo() {
+AiQueue::AiAction AiQueue::aiStopProcessInfo(int order) {
   AiAction a;
   a.act = AI_StopProcessInfo;
+  a.i0  = order;
   return a;
   }
 

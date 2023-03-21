@@ -77,7 +77,7 @@ class AiQueue {
     static AiAction aiOutput(Npc &to, std::string_view text, int order);
     static AiAction aiOutputSvm(Npc &to, std::string_view text, int order);
     static AiAction aiOutputSvmOverlay(Npc &to, std::string_view text, int order);
-    static AiAction aiStopProcessInfo();
+    static AiAction aiStopProcessInfo(int order);
     static AiAction aiContinueRoutine();
     static AiAction aiAlignToFp();
     static AiAction aiAlignToWp();

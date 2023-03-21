@@ -2524,8 +2524,10 @@ void GameScript::ai_output(std::shared_ptr<phoenix::c_npc> selfRef, std::shared_
 
 void GameScript::ai_stopprocessinfos(std::shared_ptr<phoenix::c_npc> selfRef) {
   auto self = findNpc(selfRef);
-  if(self)
-    self->aiPush(AiQueue::aiStopProcessInfo());
+  if(self) {
+    self->aiPush(AiQueue::aiStopProcessInfo(aiOutOrderId));
+    ++aiOutOrderId;
+    }
   }
 
 void GameScript::ai_standup(std::shared_ptr<phoenix::c_npc> selfRef) {
