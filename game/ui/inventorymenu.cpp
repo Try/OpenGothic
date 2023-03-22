@@ -108,6 +108,8 @@ void InventoryMenu::close() {
 void InventoryMenu::open(Npc &pl) {
   if(pl.isDown() || pl.isMonster() || pl.isInAir() || pl.isSlide() || (pl.interactive()!=nullptr))
     return;
+  if(pl.bodyStateMasked()==BS_UNCONSCIOUS)
+    return;
   if(pl.weaponState()!=WeaponState::NoWeapon) {
     pl.stopAnim("");
     pl.closeWeapon(false);
@@ -199,7 +201,7 @@ void InventoryMenu::onWorldChanged() {
   }
 
 void InventoryMenu::tick(uint64_t /*dt*/) {
-  if(player!=nullptr && player->isDown()) {
+  if(player!=nullptr && (player->isDown() || player->bodyStateMasked()==BS_UNCONSCIOUS)) {
     close();
     return;
     }
