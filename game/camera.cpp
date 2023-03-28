@@ -594,6 +594,9 @@ void Camera::calcControlPoints(float dtF) {
     rotBest      = Vec3();
     //spin.y += def.bestAzimuth;
     }
+  else if(Gothic::inst().version().game==1 && camMod==Ranged) {
+    rotBest = Vec3();
+    }
 
   followAng(src.spin,  dst.spin+rotBest, dtF);
   if(!isMarvin())
