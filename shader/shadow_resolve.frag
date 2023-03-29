@@ -37,10 +37,11 @@ layout(binding = 6) uniform accelerationStructureEXT topLevelAS;
 #endif
 
 #if defined(RAY_QUERY_AT)
-layout(binding  = 7) uniform sampler2D textures[];
-layout(binding  = 8,  std430) readonly buffer Vbo { float vert[];   } vbo[];
-layout(binding  = 9,  std430) readonly buffer Ibo { uint  index[];  } ibo[];
-layout(binding  = 10, std430) readonly buffer Off { uint  offset[]; } iboOff;
+layout(binding  = 7) uniform sampler   smp;
+layout(binding  = 8) uniform texture2D textures[];
+layout(binding  = 9,  std430) readonly buffer Vbo { float vert[];   } vbo[];
+layout(binding  = 10, std430) readonly buffer Ibo { uint  index[];  } ibo[];
+layout(binding  = 11, std430) readonly buffer Off { uint  offset[]; } iboOff;
 
 vec2 pullTexcoord(uint id, uint vboOffset) {
   float u = vbo[nonuniformEXT(id)].vert[vboOffset*9 + 6];
@@ -74,7 +75,7 @@ bool alphaTest(in rayQueryEXT rayQuery, uint id) {
   b.x = (1-b.y-b.z);
   vec2 uv = (b.x*uv0 + b.y*uv1 + b.z*uv2);
 
-  vec4 d = textureLod(textures[nonuniformEXT(id)],uv,0);
+  vec4 d = textureLod(sampler2D(textures[nonuniformEXT(id)], smp),uv,0);
   return (d.a>0.5);
   }
 #endif

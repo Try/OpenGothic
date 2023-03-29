@@ -419,10 +419,11 @@ void LightGroup::setupUbo() {
       u.set(3,uboBuf[i]);
       if(Gothic::inst().doRayQuery() && scene.tlas!=nullptr) {
         if(Resources::device().properties().bindless.nonUniformIndexing) {
-          u.set(6,scene.bindless.tex);
-          u.set(7,scene.bindless.vbo);
-          u.set(8,scene.bindless.ibo);
-          u.set(9,scene.bindless.iboOffset);
+          u.set(6, Sampler::bilinear());
+          u.set(7, scene.bindless.tex);
+          u.set(8, scene.bindless.vbo);
+          u.set(9, scene.bindless.ibo);
+          u.set(10,scene.bindless.iboOffset);
           }
         u.set(5,*scene.tlas);
         }
