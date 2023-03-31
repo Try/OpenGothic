@@ -3502,14 +3502,18 @@ bool Npc::shootBow(Interactive* focOverride) {
   invent.delItem(size_t(munition),1,*this);
   b.setOrigin(this);
   b.setDamage(DamageCalculator::rangeDamageValue(*this));
+
+  auto rgn = currentRangeWeapon();
   if(Gothic::inst().version().game==1) {
-    b.setHitChanceVal(float(hnpc->attribute[ATR_DEXTERITY]));
+    b.setHitChanceVal(float(hnpc->attribute[ATR_DEXTERITY])/100.f);
+    if(rgn!=nullptr && rgn->isCrossbow())
+      b.setCritChance(float(talentsVl[TALENT_CROSSBOW])/100.f); else
+      b.setCritChance(float(talentsVl[TALENT_BOW]     )/100.f);
     }
   else {
-    auto rgn = currentRangeWeapon();
     if(rgn!=nullptr && rgn->isCrossbow())
-      b.setHitChanceVal(float(hnpc->hitchance[TALENT_CROSSBOW])); else
-      b.setHitChanceVal(float(hnpc->hitchance[TALENT_BOW]     ));
+      b.setHitChanceVal(float(hnpc->hitchance[TALENT_CROSSBOW])/100.f); else
+      b.setHitChanceVal(float(hnpc->hitchance[TALENT_BOW]     )/100.f);
     }
   return true;
   }

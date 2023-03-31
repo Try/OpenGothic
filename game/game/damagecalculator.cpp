@@ -58,23 +58,21 @@ DamageCalculator::Val DamageCalculator::rangeDamage(Npc& nsrc, Npc& nother, cons
 
   if(!b.isSpell()) {
     auto& script    = nsrc.world().script();
-    int   hitChance = int(script.rand(100));
-    int   hitCh     = 0;
+    float hitChance = float(script.rand(100))/100.f;
+    float hitCh     = 0;
     bool  g2        = Gothic::inst().version().game==2;
-    float critRange = g2 ? CritBowRange : (CritBowRange + 500);
+    float refRange  = g2 ? ReferenceBowRangeG2 : ReferenceBowRangeG1;
     float skill     = b.hitChanceVal();
 
-    if(dist<critRange)
-      hitCh = int((skill - 100.f) / critRange * dist + 100.f + 0.5f); else
-      hitCh = int(skill / (critRange - float(MaxBowRange)) * (dist - float(MaxBowRange)) + 0.5f);
+    if(dist<refRange)
+      hitCh = (skill - 1.f) / refRange * dist + 1.f; else
+      hitCh = skill / (refRange - float(MaxBowRange)) * (dist - float(MaxBowRange));
 
     noHit = (dist>float(MaxBowRange) || hitCh<=hitChance);
 
-    auto w = nsrc.inventory().activeWeapon();
-    if(!g2 && !noHit && !invincible && w!=nullptr) {
-      Talent tal        = w->isCrossbow() ? TALENT_CROSSBOW : TALENT_BOW;
-      int    critChance = int(script.rand(100));
-      if(nsrc.talentValue(tal)>critChance)
+    if(!g2 && !noHit && !invincible) {
+      int critChance = int(script.rand(100));
+      if(std::lround(100.f * b.critChance())>critChance)
         dmg*=2;
       }
     }
