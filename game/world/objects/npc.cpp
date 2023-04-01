@@ -3735,7 +3735,7 @@ void Npc::addRoutine(gtime s, gtime e, uint32_t callback, const WayPoint *point)
 void Npc::excRoutine(size_t callback) {
   routines.clear();
   owner.script().invokeState(this,currentOther,currentVictum,callback);
-  aiState.eTime = gtime();
+  // aiState.eTime = gtime();
   }
 
 void Npc::multSpeed(float s) {
