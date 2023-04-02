@@ -158,14 +158,14 @@ void Effect::syncAttaches(const Matrix4x4& inPos) {
 void Effect::syncAttachesSingle(const Matrix4x4& inPos) {
   pos = inPos;
 
-  auto  emTrjMode    = VisualFx::TrajectoryNone;
-  float emTrjEaseVel = 0;
+  auto  emTrjMode       = VisualFx::TrajectoryNone;
+  float emTrjTargetElev = 0;
   Vec3  emSelfRotVel;
 
   if(root!=nullptr) {
-    emTrjMode    = root->emTrjMode;
-    emSelfRotVel = root->emSelfRotVel;
-    emTrjEaseVel = root->emTrjTargetElev;
+    emTrjMode       = root->emTrjMode;
+    emSelfRotVel    = root->emSelfRotVel;
+    emTrjTargetElev = root->emTrjTargetElev;
     if(key!=nullptr) {
       if(key->emTrjMode.has_value())
         emTrjMode    = key->emTrjMode.value();
@@ -175,11 +175,11 @@ void Effect::syncAttachesSingle(const Matrix4x4& inPos) {
     }
 
   auto p = inPos;
-  if((emTrjMode&VisualFx::Trajectory::Target) && target!=nullptr) {
-    p = target->transform();
-    }
-  else if(pose!=nullptr && boneId<pose->boneCount()) {
-    p = pose->bone(boneId);
+  if(emTrjMode != VisualFx::Trajectory::TrajectoryNone) {
+    if(pose!=nullptr && boneId<pose->boneCount())
+      p = pose->bone(boneId);
+    else if(target!=nullptr)
+      p = target->transform();
     }
   else {
     p = inPos;
@@ -194,7 +194,7 @@ void Effect::syncAttachesSingle(const Matrix4x4& inPos) {
     p.mul(m);
     }
 
-  p.set(3,1, p.at(3,1)+emTrjEaseVel);
+  p.set(3,1, p.at(3,1)+emTrjTargetElev);
   Vec3  pos3 = {p.at(3,0),p.at(3,1),p.at(3,2)};
   pfx  .setObjMatrix(p);
   light.setPosition(pos3);

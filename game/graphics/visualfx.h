@@ -102,54 +102,54 @@ class VisualFx final {
 
     const char*           dbgName = "";
     std::string           visName_S;  // ParticleFx ?
-    Tempest::Vec2	        visSize;
-    float	                visAlpha                 = 0.f;
-    Material::AlphaFunc	  visAlphaBlendFunc        = Material::AlphaFunc::Solid;
+    Tempest::Vec2         visSize;
+    float                 visAlpha                 = 0.f;
+    Material::AlphaFunc   visAlphaBlendFunc        = Material::AlphaFunc::Solid;
     float                 visTexAniFPS             = 0.f;
     bool                  visTexAniIsLooping       = false;
 
-    Trajectory	          emTrjMode                = TrajectoryNone;
-    std::string	          emTrjOriginNode;
+    Trajectory            emTrjMode                = TrajectoryNone;
+    std::string           emTrjOriginNode;
     std::string           emTrjTargetNode;
     float                 emTrjTargetRange         = 0.f;
-    float	                emTrjTargetAzi           = 0.f;
+    float                 emTrjTargetAzi           = 0.f;
     float                 emTrjTargetElev          = 0.f;
-    int32_t		            emTrjNumKeys             = 0;
-    int32_t		            emTrjNumKeysVar          = 0;
-    float	                emTrjAngleElevVar        = 0.f;
-    float	                emTrjAngleHeadVar        = 0.f;
-    float	                emTrjKeyDistVar          = 0.f;
+    int32_t               emTrjNumKeys             = 0;
+    int32_t               emTrjNumKeysVar          = 0;
+    float                 emTrjAngleElevVar        = 0.f;
+    float                 emTrjAngleHeadVar        = 0.f;
+    float                 emTrjKeyDistVar          = 0.f;
     LoopMode              emTrjLoopMode            = LoopMode::LoopModeNone;
     EaseFunc              emTrjEaseFunc            = EaseFunc::Linear;
-    float     	          emTrjEaseVel             = 0.f;
-    float	                emTrjDynUpdateDelay      = 0.f;
+    float                 emTrjEaseVel             = 0.f;
+    float                 emTrjDynUpdateDelay      = 0.f;
     bool                  emTrjDynUpdateTargetOnly = false;
 
-    const VisualFx*   	  emFXCreate               = nullptr;
+    const VisualFx*       emFXCreate               = nullptr;
     std::string           emFXInvestOrigin;
-    std::string   	      emFXInvestTarget;
+    std::string           emFXInvestTarget;
     uint64_t              emFXTriggerDelay         = 0;
     bool                  emFXCreatedOwnTrj        = false;
     Collision             emActionCollDyn          = Collision::NoResp;
     Collision             emActionCollStat         = Collision::NoResp;
     const VisualFx*       emFXCollStat             = nullptr;
-    const VisualFx* 	    emFXCollDyn              = nullptr;
+    const VisualFx*       emFXCollDyn              = nullptr;
     const VisualFx*       emFXCollDynPerc          = nullptr;
     CollisionAlign        emFXCollStatAlign        = CollisionAlign::Normal;
     CollisionAlign        emFXCollDynAlign         = CollisionAlign::Normal;
     uint64_t              emFXLifeSpan             = 0;
 
-    bool  	              emCheckCollision        = false;
+    bool                  emCheckCollision        = false;
     bool                  emAdjustShpToOrigin     = false;
     uint64_t              emInvestNextKeyDuration = 0;
-    float	                emFlyGravity            = 0.f;
+    float                 emFlyGravity            = 0.f;
     Tempest::Vec3         emSelfRotVel;
     std::string           userString[phoenix::c_fx_base::user_string_count];
     std::string           lightPresetName;
     std::string           sfxID;
-    bool    	            sfxIsAmbient            = false;
-    bool    		          sendAssessMagic         = false;
-    float	                secsPerDamage           = 0.f;
+    bool                  sfxIsAmbient            = false;
+    bool                  sendAssessMagic         = false;
+    float                 secsPerDamage           = 0.f;
 
     uint64_t              effectPrefferedTime() const;
     bool                  isMeshEmmiter() const { return emTrjOriginNode=="="; }
