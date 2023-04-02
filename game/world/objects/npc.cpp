@@ -1116,7 +1116,7 @@ int32_t Npc::talentValue(Talent t) const {
   return 0;
   }
 
-int32_t Npc::hitChanse(Talent t) const {
+int32_t Npc::hitChance(Talent t) const {
   if(t<=phoenix::c_npc::hitchance_count)
     return hnpc->hitchance[t];
   return 0;
@@ -2687,7 +2687,6 @@ void Npc::commitSpell() {
 
     auto& b = owner.shootSpell(*active, *this, currentTarget);
     b.setDamage(dmg);
-    b.setHitChance(1.f);
     b.setOrigin(this);
     b.setTarget(nullptr);
     visual.setMagicWeaponKey(owner,SpellFxKey::Init);
@@ -3506,10 +3505,17 @@ bool Npc::shootBow(Interactive* focOverride) {
   b.setDamage(DamageCalculator::rangeDamageValue(*this));
 
   auto rgn = currentRangeWeapon();
-  if(rgn!=nullptr && rgn->isCrossbow())
-    b.setHitChance(float(hnpc->hitchance[TALENT_CROSSBOW])/100.f); else
-    b.setHitChance(float(hnpc->hitchance[TALENT_BOW]     )/100.f);
-
+  if(Gothic::inst().version().game==1) {
+    b.setHitChanceVal(float(hnpc->attribute[ATR_DEXTERITY])/100.f);
+    if(rgn!=nullptr && rgn->isCrossbow())
+      b.setCritChance(float(talentsVl[TALENT_CROSSBOW])/100.f); else
+      b.setCritChance(float(talentsVl[TALENT_BOW]     )/100.f);
+    }
+  else {
+    if(rgn!=nullptr && rgn->isCrossbow())
+      b.setHitChanceVal(float(hnpc->hitchance[TALENT_CROSSBOW])/100.f); else
+      b.setHitChanceVal(float(hnpc->hitchance[TALENT_BOW]     )/100.f);
+    }
   return true;
   }
 

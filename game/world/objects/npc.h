@@ -191,7 +191,7 @@ class Npc final {
 
     void       setTalentValue(Talent t,int32_t lvl);
     int32_t    talentValue(Talent t) const;
-    int32_t    hitChanse(Talent t) const;
+    int32_t    hitChance(Talent t) const;
 
     void       setRefuseTalk(uint64_t milis);
     bool       isRefuseTalk() const;

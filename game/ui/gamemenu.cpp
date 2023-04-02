@@ -1190,7 +1190,7 @@ void GameMenu::setPlayer(const Npc &pl) {
       continue;
 
     const int sk  = pl.talentSkill(Talent(i));
-    const int val = g2 ? pl.hitChanse(Talent(i)) : pl.talentValue(Talent(i));
+    const int val = g2 ? pl.hitChance(Talent(i)) : pl.talentValue(Talent(i));
 
     set(string_frm("MENU_ITEM_TALENT_",i,"_TITLE"), str);
     set(string_frm("MENU_ITEM_TALENT_",i,"_SKILL"), strEnum(talV->get_string(size_t(i)),sk,textBuf));

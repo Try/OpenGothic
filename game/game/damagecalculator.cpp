@@ -21,7 +21,7 @@ DamageCalculator::Val DamageCalculator::damageValue(Npc& src, Npc& other, const 
     ret = swordDamage(src,other);
     }
 
-  if(ret.hasHit && !ret.invinsible)
+  if(ret.hasHit && !ret.invincible && Gothic::inst().version().game==2)
     ret.value = std::max<int32_t>(ret.value,MinDamage);
   if(other.isImmortal() || (other.isPlayer() && Gothic::inst().isGodMode()))
     ret.value = 0;
@@ -40,9 +40,9 @@ DamageCalculator::Val DamageCalculator::damageFall(Npc& npc, float speed) {
   int32_t prot        = npc.protection(::PROT_FALL);
 
   Val ret;
-  ret.invinsible = (prot<0 || npc.isImmortal() || (npc.isPlayer() && Gothic::inst().isGodMode()));
+  ret.invincible = (prot<0 || npc.isImmortal() || (npc.isPlayer() && Gothic::inst().isGodMode()));
   ret.value      = int32_t(dmgPerMeter*(height-h0)/100.f - float(prot));
-  if(ret.value<=0 || ret.invinsible) {
+  if(ret.value<=0 || ret.invincible) {
     ret.value = 0;
     return ret;
     }
@@ -51,17 +51,42 @@ DamageCalculator::Val DamageCalculator::damageFall(Npc& npc, float speed) {
   }
 
 DamageCalculator::Val DamageCalculator::rangeDamage(Npc& nsrc, Npc& nother, const Bullet& b, const CollideMask bMsk) {
-  bool invinsible = !checkDamageMask(nsrc,nother,&b);
-  if(b.pathLength() > float(MaxBowRange) * b.hitChance() && b.hitChance()<1.f)
-    return Val(0,false,invinsible);
+  float dist       = b.pathLength();
+  bool  noHit      = dist>float(MaxMagRange);
+  bool  invincible = !checkDamageMask(nsrc,nother,&b);
+  auto  dmg        = b.damage();
 
-  if(invinsible)
+  if(!b.isSpell()) {
+    auto& script    = nsrc.world().script();
+    float hitChance = float(script.rand(100))/100.f;
+    float hitCh     = 0;
+    bool  g2        = Gothic::inst().version().game==2;
+    float refRange  = g2 ? ReferenceBowRangeG2 : ReferenceBowRangeG1;
+    float skill     = b.hitChanceVal();
+
+    if(dist<refRange)
+      hitCh = (skill - 1.f) / refRange * dist + 1.f; else
+      hitCh = skill / (refRange - float(MaxBowRange)) * (dist - float(MaxBowRange));
+
+    noHit = (dist>float(MaxBowRange) || hitCh<=hitChance);
+
+    if(!g2 && !noHit && !invincible) {
+      int critChance = int(script.rand(100));
+      if(std::lround(100.f * b.critChance())>critChance)
+        dmg*=2;
+      }
+    }
+
+  if(noHit)
+    return Val(0,false,invincible);
+
+  if(invincible)
     return Val(0,true,true);
 
   if((bMsk & (COLL_APPLYDAMAGE | COLL_APPLYDOUBLEDAMAGE | COLL_APPLYHALVEDAMAGE | COLL_DOEVERYTHING))==0)
     return Val(0,true,true);
 
-  return rangeDamage(nsrc,nother,b.damage(),bMsk);
+  return rangeDamage(nsrc,nother,dmg,bMsk);
   }
 
 DamageCalculator::Val DamageCalculator::rangeDamage(Npc&, Npc& nother, Damage dmg, const CollideMask bMsk) {
@@ -72,7 +97,7 @@ DamageCalculator::Val DamageCalculator::rangeDamage(Npc&, Npc& nother, Damage dm
   if(bMsk & COLL_APPLYHALVEDAMAGE)
     dmg/=2;
 
-  int  value = 0;
+  int value = 0;
   for(unsigned int i=0; i<phoenix::damage_type::count; ++i) {
     if(dmg[size_t(i)]==0)
       continue;
@@ -88,35 +113,35 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
   if(!checkDamageMask(nsrc,nother,nullptr))
     return Val(0,true,true);
 
-  auto&  script = nsrc.world().script();
+  auto& script = nsrc.world().script();
   auto& src    = nsrc.handle();
   auto& other  = nother.handle();
 
   // Swords/Fists
   const int dtype      = damageTypeMask(nsrc);
-  uint8_t   hitCh      = TALENT_UNKNOWN;
+  Talent    tal        = TALENT_UNKNOWN;
   int       str        = nsrc.attribute(Attribute::ATR_STRENGTH);
   int       critChance = int(script.rand(100));
 
-  int  value=0;
+  int value = 0;
 
-  if(auto w = nsrc.inventory().activeWeapon()){
+  if(auto w = nsrc.inventory().activeWeapon()) {
     if(w->is2H())
-      hitCh = TALENT_2H; else
-      hitCh = TALENT_1H;
+      tal = TALENT_2H; else
+      tal = TALENT_1H;
     }
 
   if(Gothic::inst().version().game==2) {
-    if(nsrc.isMonster() && hitCh==TALENT_UNKNOWN) {
+    if(nsrc.isMonster() && tal==TALENT_UNKNOWN) {
       // regular monsters always do critical damage
       critChance = 0;
       }
 
-    for(unsigned int i=0; i<phoenix::damage_type::count; ++i){
+    for(unsigned int i=0; i<phoenix::damage_type::count; ++i) {
       if((dtype & (1<<i))==0)
         continue;
       int vd = std::max(str + src.damage[i] - other.protection[i],0);
-      if(src.hitchance[hitCh]<critChance)
+      if(src.hitchance[tal]<=critChance)
         vd = (vd-1)/10;
       if(other.protection[i]>=0) // Filter immune
         value += vd;
@@ -127,10 +152,10 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
     for(unsigned int i=0; i<phoenix::damage_type::count; ++i) {
       if((dtype & (1<<i))==0)
         continue;
-      int vd = std::max(str + src.damage[i] - other.protection[i],0);
-      if(src.hitchance[hitCh]<critChance)
-        vd = std::max(str + src.damage[i]   - other.protection[i],0); else
-        vd = std::max(str + src.damage[i]*2 - other.protection[i],0);
+      int vd = 0;
+      if(nsrc.talentValue(tal)<=critChance)
+        vd = std::max(str +   src.damage[i] - other.protection[i],0); else
+        vd = std::max(str + 2*src.damage[i] - other.protection[i],0);
       if(other.protection[i]>=0) // Filter immune
         value += vd;
       }
@@ -168,7 +193,7 @@ bool DamageCalculator::checkDamageMask(Npc& nsrc, Npc& nother, const Bullet* b) 
 
 DamageCalculator::Damage DamageCalculator::rangeDamageValue(Npc& src) {
   const int dtype = damageTypeMask(src);
-  int d = src.attribute(Attribute::ATR_DEXTERITY);
+  int d = Gothic::inst().version().game==2 ? src.attribute(Attribute::ATR_DEXTERITY) : 0;
   Damage ret={};
   for(unsigned int i=0;i<phoenix::damage_type::count;++i){
     if((dtype & (1<<i))==0)
