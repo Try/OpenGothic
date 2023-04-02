@@ -962,7 +962,11 @@ bool Npc::setAnimItem(std::string_view scheme, int state) {
     setAnim(Anim::Idle);
     return false;
     }
-  return visual.startAnimItem(*this,scheme,state);
+  if(auto sq = visual.startAnimItem(*this,scheme,state)) {
+    implAniWait(uint64_t(sq->totalTime()));
+    return true;
+    }
+  return false;
   }
 
 void Npc::stopAnim(std::string_view ani) {

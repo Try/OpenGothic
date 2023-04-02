@@ -821,15 +821,15 @@ void Pose::setAnimRotate(const AnimationSolver &solver, Npc &npc, WeaponState fi
     }
   }
 
-bool Pose::setAnimItem(const AnimationSolver &solver, Npc &npc, std::string_view scheme, int state) {
+const Animation::Sequence* Pose::setAnimItem(const AnimationSolver &solver, Npc &npc, std::string_view scheme, int state) {
   string_frm T_ID_STAND_2_S0("T_",scheme,"_STAND_2_S0");
   const Animation::Sequence *sq = solver.solveFrm(T_ID_STAND_2_S0);
   if(startAnim(solver,sq,0,BS_ITEMINTERACT,Pose::NoHint,npc.world().tickCount())) {
     itemUseSt     = 0;
     itemUseDestSt = state;
-    return true;
+    return sq;
     }
-  return false;
+  return nullptr;
   }
 
 bool Pose::stopItemStateAnim(const AnimationSolver& solver, uint64_t tickCount) {

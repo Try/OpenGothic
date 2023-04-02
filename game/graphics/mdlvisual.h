@@ -88,7 +88,7 @@ class MdlVisual final {
     const Animation::Sequence*     startAnimAndGet(Npc& npc, AnimationSolver::Anim    a, uint8_t comb, WeaponState st, WalkBit wlk);
 
     bool                           startAnim      (Npc& npc, WeaponState st);
-    bool                           startAnimItem  (Npc& npc, std::string_view scheme, int state);
+    const Animation::Sequence*     startAnimItem  (Npc& npc, std::string_view scheme, int state);
     bool                           startAnimSpell (Npc& npc, std::string_view scheme, bool invest);
     bool                           startAnimDialog(Npc& npc);
     void                           startMMAnim    (Npc& npc, std::string_view anim, std::string_view node);

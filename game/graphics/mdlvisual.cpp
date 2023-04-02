@@ -860,7 +860,7 @@ void MdlVisual::syncAttaches(Attach<View>& att) {
   att.view.setObjMatrix(p);
   }
 
-bool MdlVisual::startAnimItem(Npc &npc, std::string_view scheme, int state) {
+const Animation::Sequence* MdlVisual::startAnimItem(Npc &npc, std::string_view scheme, int state) {
   return skInst->setAnimItem(solver,npc,scheme,state);
   }
 
