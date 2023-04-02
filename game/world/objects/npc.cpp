@@ -2236,6 +2236,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       }
     case AI_UseItem: {
       if(!isStanding()) {
+        setAnim(Npc::Anim::Idle);
         queue.pushFront(std::move(act));
         break;
         }
