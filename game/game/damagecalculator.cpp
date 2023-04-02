@@ -7,7 +7,11 @@
 #include "gothic.h"
 
 // https://forum.worldofplayers.de/forum/threads/127320-Damage-System?p=2198181#post2198181
+// https://strafkolonie-online.net/forum/board/thread/1895-info-erkl%C3%A4rung-der-berechnung-der-trefferchance-im-fernkampf/
 
+static float mix(float x, float y, float a) {
+  return x + (y-x)*a;
+  }
 
 DamageCalculator::Val DamageCalculator::damageValue(Npc& src, Npc& other, const Bullet* b, bool isSpell, const DamageCalculator::Damage& splDmg, const CollideMask bMsk) {
   DamageCalculator::Val ret;
@@ -62,11 +66,15 @@ DamageCalculator::Val DamageCalculator::rangeDamage(Npc& nsrc, Npc& nother, cons
     float hitCh     = 0;
     bool  g2        = Gothic::inst().version().game==2;
     float refRange  = g2 ? ReferenceBowRangeG2 : ReferenceBowRangeG1;
-    float skill     = b.hitChanceVal();
+    float maxRange  = float(MaxBowRange);
+    float chance    = b.hitChance();
 
     if(dist<refRange)
-      hitCh = (skill - 1.f) / refRange * dist + 1.f; else
-      hitCh = skill / (refRange - float(MaxBowRange)) * (dist - float(MaxBowRange));
+      hitCh = mix(1.f, chance, (dist / refRange));
+    else if(dist<maxRange)
+      hitCh = mix(chance, 0.f, (dist-refRange) / (maxRange-refRange));
+    else
+      hitCh = 0;
 
     noHit = (dist>float(MaxBowRange) || hitCh<=hitChance);
 

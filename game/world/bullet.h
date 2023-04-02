@@ -52,10 +52,10 @@ class Bullet final : public DynamicWorld::BulletCallback {
 
     float    critChance() const { return critCh; }
     void     setCritChance(float v) { critCh=v; }
-    float    hitChanceVal() const { return hitCh; }
-    void     setHitChanceVal(float v) { hitCh=v; }
-    bool     isFinished() const;
+    float    hitChance() const { return hitCh; }
+    void     setHitChance(float v) { hitCh=v; }
 
+    bool     isFinished() const;
     float    pathLength() const;
 
   protected:
