@@ -81,8 +81,10 @@ enum {
   };
 
 enum {
-  MaxBowRange = 3500, // from Focus_Ranged
-  MaxMagRange = 3500,
+  ReferenceBowRangeG1 = 2000,
+  ReferenceBowRangeG2 = 1500,
+  MaxBowRange         = 4500,
+  MaxMagRange         = 3500, // from Focus_Ranged
   };
 
 enum BodyState:uint32_t {

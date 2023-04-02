@@ -288,6 +288,7 @@ float FightAlgo::weaponRange(GameScript &owner, const Npc &npc) {
   auto& gv  = owner.guildVal();
   auto  w   = npc.inventory().activeWeapon();
   int   add = w ? w->swordLength() : 0;
+  auto  bR  = Gothic::inst().version().game==2 ? ReferenceBowRangeG2 : ReferenceBowRangeG1;
 
   switch(npc.weaponState()) {
     case WeaponState::W1H:
@@ -298,9 +299,8 @@ float FightAlgo::weaponRange(GameScript &owner, const Npc &npc) {
     case WeaponState::Fist:
       return float(gv.fight_range_fist[gl]);
     case WeaponState::Bow:
-      return float((MaxBowRange*npc.hitChanse(TALENT_BOW))/100);
     case WeaponState::CBow:
-      return float((MaxBowRange*npc.hitChanse(TALENT_CROSSBOW))/100);
+      return float(bR);
     case WeaponState::Mage:
       return float(MaxMagRange);
     }
