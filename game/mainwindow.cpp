@@ -897,6 +897,7 @@ Camera::Mode MainWindow::solveCameraMode() const {
       return Camera::Dive;
     if(pl->isSwim())
       return Camera::Swim;
+    bool g2 = Gothic::inst().version().game==2;
     switch(pl->weaponState()){
       case WeaponState::Fist:
       case WeaponState::W1H:
@@ -904,9 +905,9 @@ Camera::Mode MainWindow::solveCameraMode() const {
         return Camera::Melee;
       case WeaponState::Bow:
       case WeaponState::CBow:
-        return Camera::Ranged;
+        return g2 ? Camera::Ranged : Camera::Normal;
       case WeaponState::Mage:
-        return Camera::Ranged;
+        return g2 ? Camera::Ranged : Camera::Melee;
       case WeaponState::NoWeapon:
         return Camera::Normal;
       }
