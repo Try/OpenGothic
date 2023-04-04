@@ -328,6 +328,10 @@ void GameScript::initCommon() {
     ItKE_lockpick   = vm.find_symbol_by_name("itkelockpick");
     }
 
+  if(auto v = vm.find_symbol_by_name("DAM_CRITICAL_MULTIPLIER")) {
+    damCriticalMultiplier = v->get_int();
+    }
+
   auto* gilMax = vm.find_symbol_by_name("GIL_MAX");
   gilCount = gilMax!=nullptr ? size_t(gilMax->get_int()) : 0;
 
@@ -1369,6 +1373,10 @@ int GameScript::npcDamDiveTime() {
   if(id==nullptr)
     return 0;
   return id->get_int();
+  }
+
+int32_t GameScript::criticalDamageMultiplyer() const {
+  return damCriticalMultiplier;
   }
 
 uint32_t GameScript::lockPickId() const {

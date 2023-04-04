@@ -63,8 +63,8 @@ class GameScript final {
     void         initDialogs ();
     void         loadDialogOU();
 
-    void initializeInstanceNpc(const std::shared_ptr<phoenix::c_npc>& npc, size_t instance);
-    void initializeInstanceItem(const std::shared_ptr<phoenix::c_item>& item, size_t instance);
+    void         initializeInstanceNpc(const std::shared_ptr<phoenix::c_npc>& npc, size_t instance);
+    void         initializeInstanceItem(const std::shared_ptr<phoenix::c_item>& item, size_t instance);
 
     void         saveQuests(Serialize& fout);
     void         loadQuests(Serialize& fin);
@@ -73,8 +73,7 @@ class GameScript final {
 
     void         resetVarPointers();
 
-    inline phoenix::vm& getVm() { return vm; }
-
+    inline auto& getVm() { return vm; }
     auto         questLog() const -> const QuestLog&;
 
     const World& world() const;
@@ -94,6 +93,7 @@ class GameScript final {
     ScriptFn         playerPercAssessMagic();
     std::string_view currencyName() const { return goldTxt; }
     int              npcDamDiveTime();
+    int32_t          criticalDamageMultiplyer() const;
 
     phoenix::symbol* lockPickSymbol() const { return ItKE_lockpick; }
     uint32_t         lockPickId() const;
@@ -419,7 +419,7 @@ class GameScript final {
     void makeCurrent(Item* w);
 
     GameSession&                                                owner;
-    phoenix::vm                                       vm;
+    phoenix::vm                                                 vm;
     std::mt19937                                                randGen;
 
     std::vector<std::unique_ptr<ScriptPlugin>>                  plugins;
@@ -429,7 +429,7 @@ class GameScript final {
     uint64_t                                                    svmBarrier=0;
 
     std::set<std::pair<size_t,size_t>>                          dlgKnownInfos;
-    std::vector<std::shared_ptr<phoenix::c_info>>     dialogsInfo;
+    std::vector<std::shared_ptr<phoenix::c_info>>               dialogsInfo;
     phoenix::messages                                           dialogs;
     std::unordered_map<size_t,AiState>                          aiStates;
     std::unique_ptr<AiOuputPipe>                                aiDefaultPipe;
@@ -442,6 +442,7 @@ class GameScript final {
     phoenix::symbol*                                            spellFxAniLetters = nullptr;
     std::string                                                 goldTxt;
     float                                                       viewTimePerChar = 0.5;
+    int32_t                                                     damCriticalMultiplier = 2;
     mutable std::unordered_map<std::string,uint32_t>            msgTimings;
     size_t                                                      gilCount=0;
     std::vector<int32_t>                                        gilAttitudes;

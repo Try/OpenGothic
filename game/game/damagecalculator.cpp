@@ -79,9 +79,10 @@ DamageCalculator::Val DamageCalculator::rangeDamage(Npc& nsrc, Npc& nother, cons
     noHit = (dist>float(MaxBowRange) || hitCh<=hitChance);
 
     if(!g2 && !noHit && !invincible) {
-      int critChance = int(script.rand(100));
+      const int32_t mul        = script.criticalDamageMultiplyer();
+      const int     critChance = int(script.rand(100));
       if(std::lround(100.f * b.critChance())>critChance)
-        dmg*=2;
+        dmg *= mul;
       }
     }
 
@@ -157,13 +158,14 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
 
     return Val(value,true);
     } else {
+    const int32_t mul = script.criticalDamageMultiplyer();
     for(unsigned int i=0; i<phoenix::damage_type::count; ++i) {
       if((dtype & (1<<i))==0)
         continue;
       int vd = 0;
       if(nsrc.talentValue(tal)<=critChance)
-        vd = std::max(str +   src.damage[i] - other.protection[i],0); else
-        vd = std::max(str + 2*src.damage[i] - other.protection[i],0);
+        vd = std::max(str +     src.damage[i] - other.protection[i],0); else
+        vd = std::max(str + mul*src.damage[i] - other.protection[i],0);
       if(other.protection[i]>=0) // Filter immune
         value += vd;
       }
