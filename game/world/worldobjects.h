@@ -79,8 +79,9 @@ class WorldObjects final {
 
     void           addTrigger(AbstractTrigger* trigger);
     void           triggerEvent(const TriggerEvent& e);
-    void           triggerOnStart(bool firstTime);
-    void           execTriggerEvent(const TriggerEvent& e);
+    bool           triggerOnStart(bool firstTime);
+    void           enableAllPfx();
+    bool           execTriggerEvent(const TriggerEvent& e);
     void           enableTicks (AbstractTrigger& t);
     void           disableTicks(AbstractTrigger& t);
     void           enableCollizionZone (CollisionZone& z);
@@ -132,7 +133,7 @@ class WorldObjects final {
       };
 
     struct MobStates {
-      std::string            scheme;
+      std::string             scheme;
       std::vector<MobRoutine> routines;
       int32_t                 curState = 0;
       int32_t                 stateByTime(gtime t) const;

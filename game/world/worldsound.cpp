@@ -5,6 +5,7 @@
 #include "camera.h"
 #include "game/definitions/musicdefinitions.h"
 #include "game/gamesession.h"
+#include "world/triggers/abstracttrigger.h"
 #include "world/objects/npc.h"
 #include "world/objects/sound.h"
 #include "sound/soundfx.h"
@@ -22,6 +23,7 @@ struct WorldSound::WSound final {
   const SoundFx* eff0 = nullptr;
   const SoundFx* eff1 = nullptr;
 
+  std::string    vobName;
   Tempest::Vec3  pos;
   float          sndRadius      = 2500;
 
@@ -83,6 +85,7 @@ void WorldSound::addZone(const phoenix::vobs::zone_music &vob) {
 
 void WorldSound::addSound(const phoenix::vobs::sound &vob) {
   WSound s;
+  s.vobName   = vob.vob_name;
   s.loop      = vob.mode==phoenix::sound_mode::loop;
   s.active    = vob.initially_playing;
   s.delay     = uint64_t(vob.random_delay * 1000);
@@ -191,6 +194,9 @@ void WorldSound::tick(Npc& player) {
     i.restartTimeout = owner.tickCount() + i.delay;
     if(i.delayVar>0)
       i.restartTimeout += uint64_t(std::rand())%i.delayVar;
+
+    if(!i.loop)
+      i.active = false;
     }
 
   tickSlot(effect);
@@ -198,6 +204,16 @@ void WorldSound::tick(Npc& player) {
   for(auto& i:freeSlot)
     tickSlot(*i.second);
   tickSoundZone(player);
+  }
+
+bool WorldSound::execTriggerEvent(const TriggerEvent& e) {
+  bool emitted=false;
+  for(auto& i:worldEff)
+    if(i.vobName==e.target) {
+      i.active = true;
+      emitted = true;
+      }
+  return emitted;
   }
 
 void WorldSound::tickSoundZone(Npc& player) {

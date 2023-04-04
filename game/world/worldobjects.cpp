@@ -7,6 +7,8 @@
 #include "world/objects/interactive.h"
 #include "world/objects/vob.h"
 #include "world/collisionzone.h"
+#include "world/triggers/pfxcontroller.h"
+#include "world/triggers/triggerworldstart.h"
 #include "world/triggers/abstracttrigger.h"
 #include "world.h"
 #include "utils/workers.h"
@@ -400,19 +402,14 @@ void WorldObjects::tickTriggers(uint64_t /*dt*/) {
   triggerEvents.clear();
 
   for(auto& e:evt)
-    execTriggerEvent(e);
+    owner.execTriggerEvent(e);
   }
 
 void WorldObjects::triggerEvent(const TriggerEvent &e) {
   triggerEvents.push_back(e);
   }
 
-void WorldObjects::execTriggerEvent(const TriggerEvent& e) {
-  if(e.timeBarrier>owner.tickCount()) {
-    triggerEvent(std::move(e));
-    return;
-    }
-
+bool WorldObjects::execTriggerEvent(const TriggerEvent& e) {
   bool emitted=false;
   for(auto& i:triggers) {
     auto& t = *i;
@@ -421,8 +418,8 @@ void WorldObjects::execTriggerEvent(const TriggerEvent& e) {
       emitted=true;
       }
     }
-  if(!emitted)
-    Log::d("unable to process trigger: \"",e.target,"\"");
+
+  return emitted;
   }
 
 void WorldObjects::updateAnimation(uint64_t dt) {
@@ -502,10 +499,24 @@ void WorldObjects::addTrigger(AbstractTrigger* tg) {
   triggers.emplace_back(tg);
   }
 
-void WorldObjects::triggerOnStart(bool firstTime) {
+bool WorldObjects::triggerOnStart(bool firstTime) {
+  bool ret = false;
   TriggerEvent evt("","",firstTime ? TriggerEvent::T_StartupFirstTime : TriggerEvent::T_Startup);
-  for(auto& i:triggers)
-    i->processOnStart(evt);
+  for(auto& i:triggers) {
+    if(auto ts = dynamic_cast<TriggerWorldStart*>(i)) {
+      ts->processEvent(evt);
+      ret = true;
+      }
+    }
+  return ret;
+  }
+
+void WorldObjects::enableAllPfx() {
+  for(auto& i:triggers) {
+    if(auto ts = dynamic_cast<PfxController*>(i)) {
+      ts->setActive(true);
+      }
+    }
   }
 
 void WorldObjects::enableTicks(AbstractTrigger& t) {

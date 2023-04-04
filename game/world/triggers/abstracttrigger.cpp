@@ -52,13 +52,6 @@ bool AbstractTrigger::isEnabled() const {
   return !disabled;
   }
 
-void AbstractTrigger::processOnStart(const TriggerEvent& evt) {
-  if(vobType==phoenix::vob_type::zCTriggerWorldStart) {
-    processEvent(evt);
-    return;
-    }
-  }
-
 void AbstractTrigger::processEvent(const TriggerEvent& evt) {
   if(emitTimeLast>0 && world.tickCount()<emitTimeLast+uint64_t(fireDelaySec*1000.f)) {
     world.triggerEvent(evt);

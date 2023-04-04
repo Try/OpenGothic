@@ -8,6 +8,7 @@
 #include "world/objects/fireplace.h"
 #include "world/objects/interactive.h"
 #include "world/objects/staticobj.h"
+#include "world/triggers/earthquake.h"
 #include "world/triggers/movetrigger.h"
 #include "world/triggers/movercontroler.h"
 #include "world/triggers/codemaster.h"
@@ -19,6 +20,7 @@
 #include "world/triggers/pfxcontroller.h"
 #include "world/triggers/trigger.h"
 #include "world/triggers/touchdamage.h"
+#include "world/triggers/cscamera.h"
 #include "world/worldlight.h"
 #include "world/world.h"
 #include "game/serialize.h"
@@ -177,6 +179,8 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const phoenix::vob& vo
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
     case phoenix::vob_type::zCMoverController:
       return std::unique_ptr<Vob>(new MoverControler(parent,world,reinterpret_cast<const vobs::mover_controller&>(vob),flags));
+    case phoenix::vob_type::zCEarthquake:
+      return std::unique_ptr<Vob>(new Earthquake(parent,world,reinterpret_cast<const vobs::earthquake&>(vob),flags));
     case phoenix::vob_type::zCVobStartpoint: {
       float dx = vob.rotation[2].x;
       float dy = vob.rotation[2].y;
@@ -212,6 +216,7 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const phoenix::vob& vo
       return std::unique_ptr<Vob>(new WorldLight(parent,world,reinterpret_cast<const vobs::light&>(vob),flags));
       }
     case phoenix::vob_type::zCCSCamera:
+      return std::unique_ptr<Vob>(new CsCamera(parent,world,reinterpret_cast<const vobs::cs_camera&>(vob),flags));
     case phoenix::vob_type::zCCamTrj_KeyFrame:
       break;
     case phoenix::vob_type::zCZoneZFog:
@@ -221,7 +226,6 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const phoenix::vob& vo
     case phoenix::vob_type::zCZoneVobFarPlaneDefault:
       // wont do: no distance culling in any plans
       break;
-    case phoenix::vob_type::zCEarthquake:
     case phoenix::vob_type::zCVobLensFlare:
     case phoenix::vob_type::zCVobScreenFX:
       break;

@@ -9,10 +9,10 @@
 
 #include <mutex>
 
-#include "game/gametime.h"
 #include "gamemusic.h"
 
 class GameSession;
+class TriggerEvent;
 class World;
 class Npc;
 class Sound;
@@ -32,6 +32,8 @@ class WorldSound final {
     void    aiOutput(const Tempest::Vec3& pos, std::string_view outputname);
 
     void    tick(Npc& player);
+    bool    execTriggerEvent(const TriggerEvent& e);
+
     bool    isInListenerRange(const Tempest::Vec3& pos, float sndRgn) const;
     bool    canSeeSource(const Tempest::Vec3& npc) const;
 

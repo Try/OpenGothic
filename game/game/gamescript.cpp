@@ -297,13 +297,13 @@ void GameScript::initCommon() {
   spellFxInstanceNames = vm.find_symbol_by_name("spellFxInstanceNames");
   spellFxAniLetters    = vm.find_symbol_by_name("spellFxAniLetters");
 
-  if (spellFxInstanceNames == nullptr || spellFxAniLetters == nullptr) {
+  if(spellFxInstanceNames==nullptr || spellFxAniLetters==nullptr) {
     throw std::runtime_error("spellFxInstanceNames and/or spellFxAniLetters not found");
     }
 
-  if(owner.version().game==2){
+  if(owner.version().game==2) {
     auto* currency = vm.find_symbol_by_name("TRADE_CURRENCY_INSTANCE");
-    itMi_Gold      = currency != nullptr ? vm.find_symbol_by_name(currency->get_string()) : nullptr;
+    itMi_Gold      = currency!=nullptr ? vm.find_symbol_by_name(currency->get_string()) : nullptr;
     if(itMi_Gold!=nullptr){ // FIXME
       auto item = vm.init_instance<phoenix::c_item>(itMi_Gold);
       goldTxt = item->name;
@@ -329,7 +329,7 @@ void GameScript::initCommon() {
     }
 
   auto* gilMax = vm.find_symbol_by_name("GIL_MAX");
-  gilCount=gilMax != nullptr ? size_t(gilMax->get_int()) : 0;
+  gilCount = gilMax!=nullptr ? size_t(gilMax->get_int()) : 0;
 
   auto* tableSz = vm.find_symbol_by_name("TAB_ANZAHL");
   auto* guilds  = vm.find_symbol_by_name("GIL_ATTITUDES");

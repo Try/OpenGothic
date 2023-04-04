@@ -13,6 +13,7 @@
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
 #include "world/objects/interactive.h"
+#include "world/triggers/abstracttrigger.h"
 #include "game/globaleffects.h"
 #include "game/serialize.h"
 #include "utils/string_frm.h"
@@ -463,7 +464,23 @@ void World::triggerEvent(const TriggerEvent &e) {
   }
 
 void World::execTriggerEvent(const TriggerEvent& e) {
-  wobj.execTriggerEvent(e);
+  if(e.timeBarrier > this->tickCount()) {
+    triggerEvent(std::move(e));
+    return;
+    }
+
+  bool emitted = wobj.execTriggerEvent(e);
+  if(!emitted) {
+    emitted = wsound.execTriggerEvent(e);
+    }
+
+  if(!emitted) {
+    if(e.target=="EVT_LEFT_ROOM_01_TRAP_MOVER_FOR_DMG_MASTER" ||
+       e.target=="EVT_LEFT_UP_01_TOGGLE_TRIGGER_01" ||
+       e.target=="EVT_RIGHT_ROOM_01_SPAWN_ROT_02_SOUND")
+      return; // known problem on dragonisland.zen, skop for now
+    Tempest::Log::d("unable to process trigger: \"",e.target,"\"");
+    }
   }
 
 void World::enableTicks(AbstractTrigger& t) {
@@ -770,7 +787,16 @@ const phoenix::c_focus& World::searchPolicy(const Npc& pl, TargetCollect& coll, 
   }
 
 void World::triggerOnStart(bool firstTime) {
-  wobj.triggerOnStart(firstTime);
+  if(wobj.triggerOnStart(firstTime))
+    return;
+  if(firstTime) {
+    /*
+     * Workaround about pfx controllers:
+     *  on dragonisland.zen they follow initially_running flags
+     *  but not on any other worlds, for unknown reason
+     */
+    wobj.enableAllPfx();
+    }
   }
 
 const WayPoint *World::findPoint(std::string_view name, bool inexact) const {

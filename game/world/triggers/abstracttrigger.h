@@ -1,6 +1,7 @@
 #pragma once
 
 #include <phoenix/vobs/misc.hh>
+#include <phoenix/vobs/trigger.hh>
 #include <string>
 
 #include "world/objects/vob.h"
@@ -50,7 +51,6 @@ class AbstractTrigger : public Vob {
     std::string_view             name() const;
     bool                         isEnabled() const;
 
-    void                         processOnStart(const TriggerEvent& evt);
     void                         processEvent(const TriggerEvent& evt);
     virtual void                 onIntersect(Npc& n);
     virtual void                 tick(uint64_t dt);

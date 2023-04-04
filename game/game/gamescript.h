@@ -150,7 +150,7 @@ class GameScript final {
     std::string_view messageByName (std::string_view id) const;
     uint32_t         messageTime   (std::string_view id) const;
 
-    void      printNothingToGet();
+    void     printNothingToGet();
     float    tradeValueMultiplier() const { return tradeValMult; }
     void     useInteractive(const std::shared_ptr<phoenix::c_npc>& hnpc, std::string_view func);
     Attitude guildAttitude(const Npc& p0,const Npc& p1) const;
