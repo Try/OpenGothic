@@ -299,9 +299,17 @@ void MoveAlgo::tickSwim(uint64_t dt) {
       if(tryMove(dp.x,water-chest-pY+float(i),dp.z))
         break;
       }
-    } else {
-    tryMove(dp.x,dp.y,dp.z);
+    return;
     }
+
+  if(!validW) {
+    setAsDive(false);
+    setAsSwim(false);
+    setInAir (ground<pos.y);
+    return;
+    }
+
+  tryMove(dp.x,dp.y,dp.z);
   }
 
 bool MoveAlgo::tickRun(uint64_t dt, MvFlags moveFlg) {
