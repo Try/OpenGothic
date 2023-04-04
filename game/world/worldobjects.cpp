@@ -511,14 +511,6 @@ bool WorldObjects::triggerOnStart(bool firstTime) {
   return ret;
   }
 
-void WorldObjects::enableAllPfx() {
-  for(auto& i:triggers) {
-    if(auto ts = dynamic_cast<PfxController*>(i)) {
-      ts->setActive(true);
-      }
-    }
-  }
-
 void WorldObjects::enableTicks(AbstractTrigger& t) {
   for(auto& i:triggersTk)
     if(i==&t)

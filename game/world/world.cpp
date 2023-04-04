@@ -787,16 +787,7 @@ const phoenix::c_focus& World::searchPolicy(const Npc& pl, TargetCollect& coll, 
   }
 
 void World::triggerOnStart(bool firstTime) {
-  if(wobj.triggerOnStart(firstTime))
-    return;
-  if(firstTime) {
-    /*
-     * Workaround about pfx controllers:
-     *  on dragonisland.zen they follow initially_running flags
-     *  but not on any other worlds, for unknown reason
-     */
-    wobj.enableAllPfx();
-    }
+  wobj.triggerOnStart(firstTime);
   }
 
 const WayPoint *World::findPoint(std::string_view name, bool inexact) const {

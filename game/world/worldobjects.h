@@ -80,7 +80,6 @@ class WorldObjects final {
     void           addTrigger(AbstractTrigger* trigger);
     void           triggerEvent(const TriggerEvent& e);
     bool           triggerOnStart(bool firstTime);
-    void           enableAllPfx();
     bool           execTriggerEvent(const TriggerEvent& e);
     void           enableTicks (AbstractTrigger& t);
     void           disableTicks(AbstractTrigger& t);

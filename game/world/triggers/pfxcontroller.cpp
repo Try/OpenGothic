@@ -9,16 +9,20 @@ PfxController::PfxController(Vob* parent, World& world, const phoenix::vobs::pfx
   :AbstractTrigger(parent,world,ctrl,flags) {
   killWhenDone = ctrl.kill_when_done;
 
-  const ParticleFx* view = Gothic::inst().loadParticleFx(ctrl.pfx_name);
-  if(view==nullptr)
-    view = Gothic::inst().loadParticleFx(ctrl.visual_name);
-  if(view==nullptr)
-    return;
-  lifeTime = view->maxLifetime();
-  pfx = PfxEmitter(world,view);
-  pfx.setActive(ctrl.initially_running);
-  pfx.setLooped(true);
-  pfx.setObjMatrix(transform());
+  if(const ParticleFx* view = Gothic::inst().loadParticleFx(ctrl.visual_name)) {
+    visual = PfxEmitter(world,view);
+    visual.setActive(true);
+    visual.setLooped(true);
+    visual.setObjMatrix(transform());
+    }
+
+  if(const ParticleFx* view = Gothic::inst().loadParticleFx(ctrl.pfx_name)) {
+    lifeTime = view->maxLifetime();
+    pfx = PfxEmitter(world,view);
+    pfx.setActive(ctrl.initially_running);
+    pfx.setLooped(true);
+    pfx.setObjMatrix(transform());
+    }
   }
 
 void PfxController::save(Serialize& fout) const {
@@ -34,10 +38,6 @@ void PfxController::load(Serialize& fin) {
 
   if(killed!=std::numeric_limits<uint64_t>::max())
     enableTicks();
-  }
-
-void PfxController::setActive(bool a) {
-  pfx.setActive(a);
   }
 
 void PfxController::onTrigger(const TriggerEvent&) {
@@ -56,6 +56,7 @@ void PfxController::onUntrigger(const TriggerEvent&) {
 
 void PfxController::moveEvent() {
   Vob::moveEvent();
+  visual.setObjMatrix(transform());
   pfx.setObjMatrix(transform());
   }
 
