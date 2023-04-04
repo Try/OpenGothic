@@ -966,7 +966,8 @@ void MoveAlgo::onGravityFailed(const DynamicWorld::CollisionTest& info, uint64_t
     }
 
   if(Tempest::Vec3::dotProduct(fallSpeed,norm)<0.f || fallCount>0) {
-    fallSpeed  = norm*0.1f;
+    float len  = fallSpeed.length()/std::max(1.f,fallCount);
+    fallSpeed  = Tempest::Vec3::normalize(norm+fallSpeed)*len*0.25f;
     fallCount  = 0;
     } else {
     fallSpeed += norm*gravity;
