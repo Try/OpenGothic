@@ -1886,8 +1886,11 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
       case phoenix::mds::event_tag_type::place_item:
         break;
       case phoenix::mds::event_tag_type::exchange_item: {
-        if(!invent.clearSlot(*this,i.slot[0],true))
-          invent.clearSlot(*this,"",true); // fallback for cooking animations
+        if(!invent.clearSlot(*this,i.slot[0],true)) {
+          // fallback for cooking animations
+          invent.putCurrentToSlot(*this,i.slot[0]);
+          invent.clearSlot(*this,"",true);
+          }
         if(auto it = invent.addItem(i.item,1,world())) {
           invent.putToSlot(*this,it->clsId(),i.slot[0]);
           }
