@@ -248,6 +248,12 @@ void Vob::saveVobTree(Serialize& fin) const {
   }
 
 void Vob::loadVobTree(Serialize& fin) {
+  if(fin.version()<43) {
+    if(vobType==phoenix::vob_type::zCEarthquake ||
+       vobType==phoenix::vob_type::zCCSCamera)
+      return;
+    }
+
   for(auto& i:child)
     i->loadVobTree(fin);
   if(vobObjectID!=uint32_t(-1) && vobType!=phoenix::vob_type::zCVob)
