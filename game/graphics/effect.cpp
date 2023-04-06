@@ -175,7 +175,7 @@ void Effect::syncAttachesSingle(const Matrix4x4& inPos) {
     }
 
   auto p = inPos;
-  if(emTrjMode != VisualFx::Trajectory::TrajectoryNone) {
+  if(true || emTrjMode != VisualFx::Trajectory::TrajectoryNone) {
     if(pose!=nullptr && boneId<pose->boneCount())
       p = pose->bone(boneId);
     else if(target!=nullptr)
