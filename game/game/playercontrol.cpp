@@ -10,8 +10,6 @@
 #include "ui/inventorymenu.h"
 #include "gothic.h"
 
-using MobsiAction=Interactive::MobsiAction;
-
 PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
   :dlg(dlg),inv(inv) {
   Gothic::inst().onSettingsChanged.bind(this,&PlayerControl::setupSettings);
@@ -57,7 +55,7 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
       return;
       }
     if(inter->isLadder()) {
-      processLadder(*pl,*inter,a);
+      ctrl[a] = true;
       return;
       }
     }
@@ -239,8 +237,7 @@ void PlayerControl::tickFocus() {
 
   auto focus = currentFocus;
   if(focus.interactive!=nullptr && interact(*focus.interactive)) {
-    if (!focus.interactive->isLadder())
-      clearInput();
+    clearInput();
     }
   else if(focus.npc!=nullptr && interact(*focus.npc)) {
     clearInput();
@@ -834,8 +831,7 @@ void PlayerControl::implMove(uint64_t dt) {
 
 void PlayerControl::implMoveMobsi(Npc& pl, uint64_t /*dt*/) {
   // animation handled in MOBSI
-  auto inter     = pl.interactive();
-  const bool g1c = Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS")!=0;
+  auto inter = pl.interactive();
 
   if(ctrl[KeyCodec::Back] && !inter->isLadder()) {
     pl.setInteraction(nullptr);
@@ -846,34 +842,22 @@ void PlayerControl::implMoveMobsi(Npc& pl, uint64_t /*dt*/) {
     return;
     }
 
-  if(inter->isStaticState() && !inter->isDetachState(pl)) {
+  if(!inter->isLadder() && inter->isStaticState() && !inter->isDetachState(pl)) {
     auto stateId = inter->stateId();
-    bool ladder  = inter->isLadder() && stateId==inter->stateCount();
-    if(inter->canQuitAtState(pl,stateId-ladder))
-      pl.setInteraction(nullptr,ladder);
+    if(inter->canQuitAtState(pl,stateId))
+      pl.setInteraction(nullptr,false);
     }
 
-  if (inter->isLadder()) {
-    if(!g1c && !ctrl[KeyCodec::ActionGeneric]) {
-      if (inter->stateId()<1) {
-        inter->nextState(pl,MobsiAction::Prev);
-        return;
-        }
-      if (inter->stateId()>inter->stateCount()-2) {
-        inter->nextState(pl,MobsiAction::Next);
-        return;
-        }
-      inter->nextState(pl,MobsiAction::Quit);
-      return;
+  if(inter->isLadder()) {
+    if(ctrl[KeyCodec::ActionGeneric]) {
+      inter->onKeyInput(KeyCodec::ActionGeneric);
+      ctrl[KeyCodec::ActionGeneric] = false;
       }
-    if(ctrl[KeyCodec::Forward]) {
-      inter->nextState(pl,MobsiAction::Next);
-      return;
+    else if(ctrl[KeyCodec::Forward]) {
+      inter->onKeyInput(KeyCodec::Forward);
       }
-    if(ctrl[KeyCodec::Back]) {
-      inter->nextState(pl,MobsiAction::Prev);
-      if (inter->stateId()==-1)
-        ctrl[KeyCodec::ActionGeneric] = false;
+    else if(ctrl[KeyCodec::Back]) {
+      inter->onKeyInput(KeyCodec::Back);
       }
     }
   }
@@ -929,26 +913,11 @@ void PlayerControl::processPickLock(Npc& pl, Interactive& inter, KeyCodec::Actio
   }
 
 void PlayerControl::processLadder(Npc& pl, Interactive& inter, KeyCodec::Action key) {
-  const bool g1c = Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS")!=0;
-  if(key==KeyCodec::ActionGeneric) {
-    ctrl[key] = true;
-    if (g1c) {
-      inter.nextState(pl,MobsiAction::Quit);
-      ctrl[key] = false;
-      }
+  if(key!=KeyCodec::ActionGeneric && key!=KeyCodec::Forward && key!=KeyCodec::Back)
     return;
-    }
-  if (!g1c && !ctrl[KeyCodec::ActionGeneric])
-    return;
-  if(key==KeyCodec::Forward) {
-    ctrl[key] = true;
-    inter.nextState(pl,MobsiAction::Next);
-    return;
-    }
-  if(key==KeyCodec::Back) {
-    ctrl[key] = true;
-    inter.nextState(pl,MobsiAction::Prev);
-    }
+
+  ctrl[key] = true;
+  inter.onKeyInput(key);
   }
 
 void PlayerControl::quitPicklock(Npc& pl) {

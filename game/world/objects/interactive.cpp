@@ -107,9 +107,9 @@ void Interactive::load(Serialize &fin) {
     std::string name;
     Npc*        user       = nullptr;
     bool        attachMode = false;
-    bool        started    = false;
+    Phase       started    = NonStarted;
 
-    fin.read(name,user,attachMode,started);
+    fin.read(name,user,attachMode,reinterpret_cast<uint8_t&>(started));
 
     for(auto& a:attPos)
       if(a.name==name) {
@@ -230,7 +230,40 @@ void Interactive::tick(uint64_t dt) {
     return;
   if(p->user==nullptr && (state==stateNum && p->attachMode))
     return;
+
+  if(isLadder() && p->started==Started)
+    return;
   implTick(*p,dt);
+  }
+
+void Interactive::onKeyInput(KeyCodec::Action act) {
+  if(world.tickCount()<waitAnim)
+    return;
+
+  Pos* p = nullptr;
+  for(auto& i:attPos) {
+    if(i.user!=nullptr) {
+      p = &i;
+      }
+    }
+  if(p==nullptr)
+    return;
+
+  auto& npc = *p->user;
+  assert(npc.isPlayer());
+
+  if(act==KeyCodec::ActionGeneric) {
+    npc.setInteraction(nullptr);
+    npc.stopAnim("");
+    p->user = nullptr;
+    return;
+    }
+
+  if(act!=KeyCodec::Forward && act!=KeyCodec::Back)
+    return;
+
+  reverseState = (act==KeyCodec::Back);
+  implTick(*p,0);
   }
 
 void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
@@ -238,29 +271,27 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
     return;
 
   Npc& npc = *p.user;
-  if(!p.started) {
+  if(p.started==NonStarted) {
     // STAND -> S0
-    if (isLadder()) {
-      float x0 = 0 , y0 = 0 , z0 = 0;
-      float x1 = 0 , y1 = 0 , z1 = 1;
-      auto mat = nodeTranform(npc,p);
-      mat.project(x0,y0,z0);
-      mat.project(x1,y1,z1);
-      npc.setDirectionY(y0-y1);
-      }
     auto sq = npc.setAnimAngGet(Npc::Anim::InteractFromStand);
     if(sq==nullptr) {
       // some  mobsi have no animations in G2 - ignore them
-      p.started    = true;
+      p.started    = Started;
       p.attachMode = false;
       return;
       }
     uint64_t t = sq==nullptr ? 0 : uint64_t(sq->totalTime());
     waitAnim   = world.tickCount()+t;
-    p.started  = sq!=nullptr;
+    p.started  = sq!=nullptr ? Started : NonStarted;
     if(state<1)
       setState(std::min(stateNum,state+1)); else
       setState(std::max(0,state-1));
+    return;
+    }
+
+  if(p.started==Quit) {
+    npc.quitIneraction();
+    p.user = nullptr;
     return;
     }
 
@@ -277,15 +308,7 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
       }
     }
 
-  if(isLadder()) {
-    if(state==-1) {
-      loopState    = true;
-      reverseState = false;
-      }
-    return;
-    }
-
-  if(!attach && state==0) {
+  if((state==0 && !attach) || (isLadder() && (attach && state>=stepsCount-1))) {
     implQuitInteract(p);
     return;
     }
@@ -328,58 +351,25 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
   loopState = (prev==state);
   }
 
-void Interactive::nextState(Npc& npc, MobsiAction act) {
-  if (act==MobsiAction::Quit) {
-    npc.stopAnim("");
-    npc.setInteraction(nullptr);
-    return;
-    }
-
-  if(world.tickCount()<waitAnim)
-    return;
-
-  const int prev = state;
-  if (act==MobsiAction::Next)
-    reverseState = false;
-  if (act==MobsiAction::Prev)
-    reverseState = true;
-  if ((act==MobsiAction::Prev && state==0) || (act==MobsiAction::Next && state==stateNum-1)) {
-    auto sq = npc.setAnimAngGet(Npc::Anim::InteractToStand);
-    if (sq==nullptr)
-      return;
-    waitAnim = world.tickCount()+uint64_t(sq->totalTime());
-    npc.setDirectionY(0);
-    if (state==0) {
-      setState(-1);
-      } else {
-      setState(stateNum);
-      }
-    return;
-    }
-  if (!setAnim(&npc,Anim::In))
-    return;
-  if (reverseState) {
-    setState(std::max(0,state-1));
-    } else {
-    setState(std::min(state+1,stateNum));
-    }
-  loopState = (prev==state);
-  }
-
 void Interactive::implQuitInteract(Interactive::Pos &p) {
   if(p.user==nullptr)
     return;
+
   Npc& npc = *p.user;
-  const Animation::Sequence* sq = nullptr;
-  if(state==0) {
-    // S0 -> STAND
-    sq = npc.setAnimAngGet(Npc::Anim::InteractToStand);
-    }
+
+  // S[i] -> STAND
+  auto sq = npc.setAnimAngGet(Npc::Anim::InteractToStand);
   if(sq==nullptr && !(npc.isDown() || npc.setAnim(Npc::Anim::Idle)))
     return;
-  npc.quitIneraction();
-  p.user      = nullptr;
-  loopState   = false;
+
+  if(npc.isDown())
+    sq = nullptr;
+  // npc.quitIneraction();
+  // p.user      = nullptr;
+
+  waitAnim  = world.tickCount() + uint64_t(sq!=nullptr ? sq->totalTime() : 0);
+  loopState = false;
+  p.started = Quit;
   }
 
 std::string_view Interactive::tag() const {
@@ -660,7 +650,7 @@ bool Interactive::isAvailable() const {
 bool Interactive::isStaticState() const {
   for(auto& i:attPos)
     if(i.user!=nullptr) {
-      if(i.attachMode)
+      if(i.attachMode && i.started==Started)
         return loopState;
       return false;
       }
@@ -678,8 +668,8 @@ bool Interactive::canQuitAtState(Npc& npc, int32_t state) const {
   if(state<0)
     return true;
 
-  auto scheme   = schemeName();
-  auto pos      = posSchemeName();
+  auto scheme = schemeName();
+  auto pos    = posSchemeName();
 
   string_frm anim;
   if(pos.empty())
@@ -739,7 +729,7 @@ bool Interactive::attach(Npc& npc, Interactive::Pos& to) {
     }
 
   to.user       = &npc;
-  to.started    = false;
+  to.started    = NonStarted;
   to.attachMode = true;
   return true;
   }
@@ -768,6 +758,9 @@ bool Interactive::dettach(Npc &npc, bool quick) {
   for(auto& i:attPos) {
     if(i.user==&npc && i.attachMode) {
       if(canQuitAtState(*i.user,state)) {
+        auto sq = npc.setAnimAngGet(Npc::Anim::InteractToStand);
+        if(sq==nullptr)
+          return false;
         i.user       = nullptr;
         i.attachMode = false;
         npc.quitIneraction();

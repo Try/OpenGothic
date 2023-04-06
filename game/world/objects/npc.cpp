@@ -3692,7 +3692,7 @@ void Npc::quitIneraction() {
     return;
   if(invTorch)
     processDefInvTorch();
-  implAniWait(visual.pose().animationTotalTime());
+  setDirectionY(0);
   currentInteract=nullptr;
   }
 

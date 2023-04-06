@@ -3,9 +3,9 @@
 #include <Tempest/Matrix4x4>
 #include "physics/physicmesh.h"
 #include "graphics/mesh/animationsolver.h"
-#include "graphics/mesh/protomesh.h"
 #include "graphics/objvisual.h"
 #include "game/inventory.h"
+#include "utils/keycodec.h"
 #include "vob.h"
 
 #include <phoenix/vobs/mob.hh>
@@ -25,12 +25,6 @@ class Interactive : public Vob {
       FromStand = 11,
       };
 
-    enum MobsiAction : uint8_t {
-      Next      = 1,
-      Prev      = 2,
-      Quit      = 3,
-      };
-
     Interactive(Vob* parent, World& world, const phoenix::vobs::mob& vob, Flags flags);
 
     void                load(Serialize& fin) override;
@@ -40,6 +34,7 @@ class Interactive : public Vob {
     void                resetPositionToTA(int32_t state);
     void                updateAnimation(uint64_t dt);
     void                tick(uint64_t dt);
+    void                onKeyInput(KeyCodec::Action act);
 
     std::string_view    tag() const;
     std::string_view    focusName() const;
@@ -83,8 +78,6 @@ class Interactive : public Vob {
     auto                animNpc(const AnimationSolver &solver, Anim t) -> const Animation::Sequence*;
     void                marchInteractives(DbgPainter& p) const;
 
-    void                nextState(Npc& npc, MobsiAction act);
-
   protected:
     Tempest::Matrix4x4  nodeTranform(std::string_view nodeName) const;
     void                moveEvent() override;
@@ -92,18 +85,24 @@ class Interactive : public Vob {
     virtual void        onStateChanged(){}
 
   private:
+    enum Phase : uint8_t {
+      NonStarted = 0,
+      Started    = 1,
+      Quit       = 2,
+      };
+
     struct Pos final {
-      std::string        name;
-      Npc*               user=nullptr;
-      bool               started=false;
-      bool               attachMode=false;
+      std::string         name;
+      Npc*                user       = nullptr;
+      Phase               started    = NonStarted;
+      bool                attachMode = false;
 
-      size_t             node=0;
-      Tempest::Matrix4x4 pos;
+      size_t              node=0;
+      Tempest::Matrix4x4  pos;
 
-      std::string_view   posTag() const;
-      bool               isAttachPoint() const;
-      bool               isDistPos() const;
+      std::string_view    posTag() const;
+      bool                isAttachPoint() const;
+      bool                isDistPos() const;
       };
 
     void                setVisual(const phoenix::vob& vob);
@@ -134,39 +133,39 @@ class Interactive : public Vob {
     Tempest::Matrix4x4  nodeTranform(const Npc &npc, const Pos &p) const;
     auto                nodePosition(const Npc &npc, const Pos &p) const -> Tempest::Vec3;
 
-    std::string                  vobName;
-    std::string                  focName;
-    std::string                  mdlVisual;
-    Tempest::Vec3                bbox[2]={};
-    std::string                  owner;
-    bool                         focOver=false;
-    bool                         showVisual=true;
-    Tempest::Vec3                displayOffset;
+    std::string         vobName;
+    std::string         focName;
+    std::string         mdlVisual;
+    Tempest::Vec3       bbox[2]={};
+    std::string         owner;
+    bool                focOver=false;
+    bool                showVisual=true;
+    Tempest::Vec3       displayOffset;
     // oCMobInter
-    int                          stateNum=0;
-    std::string                  triggerTarget;
-    std::string                  useWithItem;
-    std::string                  conditionFunc;
-    std::string                  onStateFunc;
-    bool                         rewind = false;
+    int                 stateNum=0;
+    std::string         triggerTarget;
+    std::string         useWithItem;
+    std::string         conditionFunc;
+    std::string         onStateFunc;
+    bool                rewind = false;
     //  oCMobContainer
-    bool                         locked=false;
-    std::string                  keyInstance;
-    std::string                  pickLockStr;
-    Inventory                    invent;
+    bool                locked=false;
+    std::string         keyInstance;
+    std::string         pickLockStr;
+    Inventory           invent;
     // oCMobLadder
-    int                          stepsCount = 0;
+    int                 stepsCount = 0;
 
-    int32_t                      state         = -1;
-    bool                         reverseState  = false;
-    bool                         loopState     = false;
-    bool                         isLockCracked = false;
+    int32_t             state         = -1;
+    bool                reverseState  = false;
+    bool                loopState     = false;
+    bool                isLockCracked = false;
 
-    uint64_t                     waitAnim      = 0;
-    bool                         animChanged   = false;
+    uint64_t            waitAnim      = 0;
+    bool                animChanged   = false;
 
-    std::vector<Pos>             attPos;
-    PhysicMesh                   physic;
+    std::vector<Pos>    attPos;
+    PhysicMesh          physic;
 
-    ObjVisual                    visual;
+    ObjVisual           visual;
   };

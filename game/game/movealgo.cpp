@@ -43,18 +43,21 @@ void MoveAlgo::tickMobsi(uint64_t dt) {
   if(npc.interactive()->isStaticState())
     return;
 
-  auto dp  = animMoveSpeed(dt);
+  auto dp  = npc.animMoveSpeed(dt);
   auto pos = npc.position();
   if(npc.interactive()->isLadder()) {
-    float rot    = npc.rotationRad();
-    float s      = std::sin(rot), c = std::cos(rot);
-    dp += Tempest::Vec3(s,0,-c)*npc.rotationY()*dp.y;
+    auto mat = npc.interactive()->transform();
+    Tempest::Vec3 p0 = {}, p1 = dp;
+    mat.project(p0);
+    mat.project(p1);
+    dp = p1-p0;
+    } else {
+    Tempest::Vec3 ret;
+    applyRotation(ret,dp);
+    dp = Tempest::Vec3(ret.x, 0, ret.y);
     }
-  else
-    dp.y = 0;
 
-  pos += dp;
-  npc.setPosition(pos);
+  npc.setPosition(pos+dp);
   setAsSlide(false);
   setInAir  (false);
   }
