@@ -3927,6 +3927,7 @@ bool Npc::isAiBusy() const {
 void Npc::clearAiQueue() {
   currentLookAt    = nullptr;
   currentLookAtNpc = nullptr;
+  visual.setHeadRotation(0,0);
 
   aiQueue.clear();
   aiQueueOverlay.clear();

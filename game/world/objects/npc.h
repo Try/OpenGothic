@@ -8,7 +8,6 @@
 #include "game/movealgo.h"
 #include "game/inventory.h"
 #include "game/fightalgo.h"
-#include "game/perceptionmsg.h"
 #include "game/gamescript.h"
 #include "physics/dynamicworld.h"
 #include "world/aiqueue.h"
