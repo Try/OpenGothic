@@ -9,5 +9,5 @@
 	url = https://github.com/schellingb/TinySoundFont.git
 [submodule "lib/phoenix"]
 	path = lib/phoenix
-	url = https://github.com/lmichaelis/phoenix.git
-	branch = v/1.0
+	url = https://github.com/GothicKit/phoenix.git
+	branch = main
