@@ -54,7 +54,7 @@ void MoveAlgo::tickMobsi(uint64_t dt) {
     } else {
     Tempest::Vec3 ret;
     applyRotation(ret,dp);
-    dp = Tempest::Vec3(ret.x, 0, ret.y);
+    dp = Tempest::Vec3(ret.x, 0, ret.z);
     }
 
   npc.setPosition(pos+dp);
