@@ -38,7 +38,7 @@ const char* selectDevice(const Tempest::AbstractGraphicsApi& api) {
   }
 
 std::unique_ptr<Tempest::AbstractGraphicsApi> mkApi(const CommandLine& g) {
-  Tempest::ApiFlags flg = g.isDebugMode() ? Tempest::ApiFlags::Validation : Tempest::ApiFlags::NoFlags;
+  Tempest::ApiFlags flg = g.isValidationMode() ? Tempest::ApiFlags::Validation : Tempest::ApiFlags::NoFlags;
   switch(g.graphicsApi()) {
     case CommandLine::DirectX12:
 #if defined(_MSC_VER)

@@ -23,14 +23,15 @@ class CommandLine {
     std::u16string_view modPath() const { return gmod; }
     std::u16string      nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const;
 
-    bool                isDebugMode()   const { return isDebug;  }
-    bool                isWindowMode()  const { return isWindow; }
-    bool                isRayQuery()    const { return isRQuery; }
-    bool                isMeshShading() const { return isMeshSh; }
-    bool                doStartMenu()   const { return !noMenu;  }
-    bool                doForceG1()     const { return forceG1;  }
-    bool                doForceG2()     const { return forceG2;  }
-    std::string_view    defaultSave()   const { return saveDef;  }
+    bool                isDevMode()        const { return devmode;  }
+    bool                isValidationMode() const { return isDebug;  }
+    bool                isWindowMode()     const { return isWindow; }
+    bool                isRayQuery()       const { return isRQuery; }
+    bool                isMeshShading()    const { return isMeshSh; }
+    bool                doStartMenu()      const { return !noMenu;  }
+    bool                doForceG1()        const { return forceG1;  }
+    bool                doForceG2()        const { return forceG2;  }
+    std::string_view    defaultSave()      const { return saveDef;  }
 
     std::string         wrldDef;
 
@@ -40,6 +41,7 @@ class CommandLine {
     GraphicBackend      graphics = GraphicBackend::Vulkan;
     std::u16string      gpath, gscript, gmod;
     std::string         saveDef;
+    bool                devmode  = false;
     bool                noMenu   = false;
     bool                isWindow = false;
     bool                isDebug  = false;

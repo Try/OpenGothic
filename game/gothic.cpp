@@ -45,6 +45,8 @@ Gothic::Gothic() {
 #ifndef NDEBUG
   setMarvinEnabled(true);
   setFRate(true);
+#else
+  setMarvinEnabled(CommandLine::inst().isDevMode());
 #endif
 
   wrldDef = CommandLine::inst().wrldDef;
