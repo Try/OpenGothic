@@ -4006,8 +4006,11 @@ SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, bool isNo
   SensesBit ret=SensesBit::SENSE_NONE;
   if(owner.roomAt({tx,ty,tz})==owner.roomAt({x,y,z})) {
     ret = ret | SensesBit::SENSE_SMELL;
-    if(isNoisy)
-      ret = ret | SensesBit::SENSE_HEAR;
+    }
+
+  if(isNoisy) {
+    // no need to be in same room: https://github.com/Try/OpenGothic/issues/420
+    ret = ret | SensesBit::SENSE_HEAR;
     }
 
   // npc eyesight height
