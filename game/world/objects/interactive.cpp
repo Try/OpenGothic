@@ -14,6 +14,17 @@
 #include "utils/dbgpainter.h"
 #include "gothic.h"
 
+static Npc::Anim toNpcAnim(Interactive::Anim dir) {
+  switch(dir) {
+    case Interactive::Anim::In:        return Npc::Anim::InteractIn;
+    case Interactive::Anim::Active:    return Npc::Anim::InteractIn;
+    case Interactive::Anim::Out:       return Npc::Anim::InteractOut;
+    case Interactive::Anim::ToStand:   return Npc::Anim::InteractToStand;
+    case Interactive::Anim::FromStand: return Npc::Anim::InteractFromStand;
+    }
+  return Npc::Anim::InteractIn;
+  }
+
 Interactive::Interactive(Vob* parent, World &world, const phoenix::vobs::mob& vob, Flags flags)
   : Vob(parent,world,vob,flags) {
 
@@ -273,25 +284,22 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
   Npc& npc = *p.user;
   if(p.started==NonStarted) {
     // STAND -> S0
-    auto sq = npc.setAnimAngGet(Npc::Anim::InteractFromStand);
-    if(sq==nullptr) {
+    const bool omit = (!isLadder() && reverseState);
+    if(!omit && !setAnim(&npc, Anim::FromStand)) {
       // some  mobsi have no animations in G2 - ignore them
-      p.started    = Started;
+      p.started    = Quit;
       p.attachMode = false;
       return;
       }
-    uint64_t t = sq==nullptr ? 0 : uint64_t(sq->totalTime());
-    waitAnim   = world.tickCount()+t;
-    p.started  = sq!=nullptr ? Started : NonStarted;
-    if(state<1)
-      setState(std::min(stateNum,state+1)); else
-      setState(std::max(0,state-1));
-    return;
+    loopState = false;
+    p.started = Started;
     }
 
   if(p.started==Quit) {
     npc.quitIneraction();
-    p.user = nullptr;
+    loopState = false;
+    p.user    = nullptr;
+    p.started = NonStarted;
     return;
     }
 
@@ -325,11 +333,11 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
     //   return;
     }
   else if(p.attachMode) {
-    if(!setAnim(&npc,Anim::In))
+    if(!setAnim(&npc, (reverseState ? Anim::Out : Anim::In)))
       return;
     }
   else {
-    if(!setAnim(&npc,Anim::Out))
+    if(!setAnim(&npc, (reverseState ? Anim::In : Anim::Out)))
       return;
     }
 
@@ -354,21 +362,10 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
 void Interactive::implQuitInteract(Interactive::Pos &p) {
   if(p.user==nullptr)
     return;
-
-  Npc& npc = *p.user;
-
   // S[i] -> STAND
-  auto sq = npc.setAnimAngGet(Npc::Anim::InteractToStand);
-  if(sq==nullptr && !(npc.isDown() || npc.setAnim(Npc::Anim::Idle)))
+  if(!setAnim(p.user, Anim::ToStand))
     return;
-
-  if(npc.isDown())
-    sq = nullptr;
-  // npc.quitIneraction();
-  // p.user      = nullptr;
-
-  waitAnim  = world.tickCount() + uint64_t(sq!=nullptr ? sq->totalTime() : 0);
-  loopState = false;
+  // quit will be triggered with delay depend on animation
   p.started = Quit;
   }
 
@@ -873,7 +870,9 @@ Tempest::Matrix4x4 Interactive::nodeTranform(std::string_view nodeName) const {
   }
 
 const Animation::Sequence* Interactive::setAnim(Interactive::Anim t) {
-  int  st[]     = {state,state+(reverseState ? -t : t)};
+  int  dir      = (t==Anim::Out || t==Anim::ToStand) ? -1 : 1;
+  int  st[]     = {state,state+dir};
+  //int  st[]     = {state,state+(reverseState ? -dir : dir)};
   char ss[2][12] = {};
 
   st[1] = std::max(0,std::min(st[1],stateNum));
@@ -895,9 +894,10 @@ const Animation::Sequence* Interactive::setAnim(Interactive::Anim t) {
   }
 
 bool Interactive::setAnim(Npc* npc, Anim dir) {
-  const Npc::Anim            dest = dir==Anim::Out ? Npc::Anim::InteractOut : Npc::Anim::InteractIn;
+  const Npc::Anim            dest = toNpcAnim(dir);
   const Animation::Sequence* sqNpc=nullptr;
   const Animation::Sequence* sqMob=nullptr;
+
   if(npc!=nullptr) {
     sqNpc = npc->setAnimAngGet(dest);
     if(sqNpc==nullptr && dir!=Anim::Out)
@@ -928,7 +928,7 @@ void Interactive::setState(int st) {
 
 const Animation::Sequence* Interactive::animNpc(const AnimationSolver &solver, Anim t) {
   std::string_view tag      = schemeName();
-  int              st[]     = {state,state+(reverseState ? -t : t)};
+  int              st[]     = {state,state+t};
   string_frm<12>   ss[2]    = {};
   string_frm       pointBuf = {};
   string_frm       point    = {};
