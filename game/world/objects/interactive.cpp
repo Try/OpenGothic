@@ -244,7 +244,7 @@ void Interactive::tick(uint64_t dt) {
 
   if(isLadder() && p->started==Started)
     return;
-  implTick(*p,dt);
+  implTick(*p);
   }
 
 void Interactive::onKeyInput(KeyCodec::Action act) {
@@ -274,14 +274,16 @@ void Interactive::onKeyInput(KeyCodec::Action act) {
     return;
 
   reverseState = (act==KeyCodec::Back);
-  implTick(*p,0);
+  implTick(*p);
   }
 
-void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
+void Interactive::implTick(Pos& p) {
   if(p.user==nullptr)
     return;
 
-  Npc& npc = *p.user;
+  Npc&       npc    = *p.user;
+  const bool attach = (p.attachMode^reverseState);
+
   if(p.started==NonStarted) {
     // STAND -> S0
     const bool omit = (!isLadder() && reverseState);
@@ -291,6 +293,12 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
       p.attachMode = false;
       return;
       }
+
+    if(attach)
+      setState(std::min(stateNum,state+1));
+    else if(!omit)
+      setState(std::max(0,state-1));
+
     loopState = false;
     p.started = Started;
     }
@@ -302,8 +310,6 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
     p.started = NonStarted;
     return;
     }
-
-  const bool attach = (p.attachMode^reverseState);
 
   if(!loopState) {
     if(stateNum==state && attach) {
@@ -328,18 +334,12 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
       }
     }
 
-  if((p.attachMode^reverseState) && state==stateNum){
-    // if(!setAnim(&npc,Anim::Active))
-    //   return;
-    }
-  else if(p.attachMode) {
-    if(!setAnim(&npc, (reverseState ? Anim::Out : Anim::In)))
-      return;
-    }
-  else {
-    if(!setAnim(&npc, (reverseState ? Anim::In : Anim::Out)))
-      return;
-    }
+  Anim dir = (attach ? Anim::In : Anim::Out);
+  if(state==stateNum && attach)
+    dir = Anim::Active;
+
+  if(!setAnim(&npc, dir))
+    return;
 
   if(state==0 && p.attachMode) {
     npc.world().sendPassivePerc(npc,npc,npc,PERC_ASSESSUSEMOB);
@@ -351,11 +351,9 @@ void Interactive::implTick(Pos& p, uint64_t /*dt*/) {
     }
 
   const int prev = state;
-  if(attach) {
-    setState(std::min(stateNum,state+1));
-    } else {
+  if(attach)
+    setState(std::min(stateNum,state+1)); else
     setState(std::max(0,state-1));
-    }
   loopState = (prev==state);
   }
 
@@ -870,9 +868,8 @@ Tempest::Matrix4x4 Interactive::nodeTranform(std::string_view nodeName) const {
   }
 
 const Animation::Sequence* Interactive::setAnim(Interactive::Anim t) {
-  int  dir      = (t==Anim::Out || t==Anim::ToStand) ? -1 : 1;
-  int  st[]     = {state,state+dir};
-  //int  st[]     = {state,state+(reverseState ? -dir : dir)};
+  int  dir       = (t==Anim::Out || t==Anim::ToStand) ? -1 : 1;
+  int  st[]      = {state,state+dir};
   char ss[2][12] = {};
 
   st[1] = std::max(0,std::min(st[1],stateNum));
@@ -900,7 +897,8 @@ bool Interactive::setAnim(Npc* npc, Anim dir) {
 
   if(npc!=nullptr) {
     sqNpc = npc->setAnimAngGet(dest);
-    if(sqNpc==nullptr && dir!=Anim::Out)
+    // NOTE: Book-stand has no 'out' animation
+    if(sqNpc==nullptr && !(vobType==phoenix::vob_type::oCMobInter && dir==Anim::Out))
       return false;
     }
   sqMob = setAnim(dir);

@@ -107,7 +107,7 @@ class Interactive : public Vob {
 
     void                setVisual(const phoenix::vob& vob);
     void                invokeStateFunc(Npc &npc);
-    void                implTick(Pos &p, uint64_t dt);
+    void                implTick(Pos &p);
     void                implQuitInteract(Pos &p);
     void                setPos(Npc& npc, const Tempest::Vec3& pos);
     void                setDir(Npc& npc,const Tempest::Matrix4x4& mt);
