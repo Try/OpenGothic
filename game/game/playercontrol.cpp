@@ -485,7 +485,7 @@ bool PlayerControl::tickMove(uint64_t dt) {
   Npc*  pl     = w->player();
   auto  camera = Gothic::inst().camera();
 
-  if(camera!=nullptr && camera->isFree()) {
+  if(camera!=nullptr && (camera->isFree() || pl==nullptr)) {
     rotMouse = 0;
     if(ctrl[KeyCodec::Left] || (ctrl[KeyCodec::RotateL] && ctrl[KeyCodec::Jump])) {
       camera->moveLeft(dt);
@@ -513,6 +513,10 @@ bool PlayerControl::tickMove(uint64_t dt) {
   cacheFocus = ctrl[Action::ActionGeneric];
   if(camera!=nullptr)
     camera->setLookBack(ctrl[Action::LookBack]);
+
+  if(pl==nullptr)
+    return true;
+
   implMove(dt);
 
   float runAngle = pl->runAngle();
