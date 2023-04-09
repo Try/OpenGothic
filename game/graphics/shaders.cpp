@@ -68,6 +68,7 @@ Shaders::Shaders() {
   atest   .load(device,"gbuffer_at",false,meshlets);
   ghost   .load(device,"ghost",     false,meshlets);
   emmision.load(device,"emi",       false,meshlets);
+  multiply.load(device,"mul",       false,meshlets);
 
   water   .load(device,"water",device.properties().tesselationShader,false);
 
@@ -243,11 +244,10 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
       break;
     case Material::Multiply:
     case Material::Multiply2:
-      forward  = &solidF;
-      deffered = &solid;
+      forward = &multiply;
 
-      state.setBlendSource  (RenderState::BlendMode::SrcAlpha);
-      state.setBlendDest    (RenderState::BlendMode::One);
+      state.setBlendSource  (RenderState::BlendMode::DstColor);
+      state.setBlendDest    (RenderState::BlendMode::SrcColor);
       state.setZWriteEnabled(false);
       break;
     }

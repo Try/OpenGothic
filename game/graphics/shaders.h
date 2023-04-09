@@ -74,7 +74,7 @@ class Shaders {
 
     static Shaders* instance;
 
-    MaterialTemplate solid,  atest, solidF, atestF, water, ghost, emmision;
+    MaterialTemplate solid,  atest, solidF, atestF, water, ghost, emmision, multiply;
     MaterialTemplate shadow, shadowAt;
     mutable std::list<Entry> materials;
   };

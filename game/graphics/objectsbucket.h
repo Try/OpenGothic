@@ -225,6 +225,7 @@ class ObjectsBucket {
 
     static bool               isAnimated(const Material& mat);
     bool                      isForwardShading() const;
+    bool                      isShadowmapRequired() const;
     bool                      isSceneInfoRequired() const;
     void                      updatePushBlock(UboPush& push, Object& v, uint32_t instance, uint32_t instanceCount);
     void                      reallocObjPositions();

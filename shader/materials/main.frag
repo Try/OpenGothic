@@ -197,7 +197,11 @@ vec4 diffuseTex() {
 #endif
 
 vec4 forwardShading(vec4 t) {
+#if defined(MAT_LINEAR_CLR)
   vec3  color = textureLinear(t.rgb);
+#else
+  vec3  color = t.rgb;
+#endif
   float alpha = t.a;
 
 #if defined(GHOST)

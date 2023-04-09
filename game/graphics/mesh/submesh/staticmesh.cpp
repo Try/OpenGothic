@@ -34,7 +34,7 @@ StaticMesh::StaticMesh(const Material& mat, std::vector<Resources::Vertex> cvbo,
     const size_t prim = cibo.size()/3;
 
     cvbo.resize(PackedMesh::MaxVert);
-    std::vector<uint8_t> ibo(PackedMesh::MaxInd);
+    std::vector<uint8_t> ibo(PackedMesh::MaxPrim*4);
     for(size_t i=0; i<cibo.size(); i+=3) {
       size_t at = (i/3)*4;
       ibo[at+0] = uint8_t(cibo[i+0]);
@@ -42,8 +42,11 @@ StaticMesh::StaticMesh(const Material& mat, std::vector<Resources::Vertex> cvbo,
       ibo[at+2] = uint8_t(cibo[i+2]);
       ibo[at+3] = 0;
       }
-    ibo[PackedMesh::MaxInd-2] = uint8_t(prim);
-    ibo[PackedMesh::MaxInd-1] = uint8_t(vert);
+    size_t at = (PackedMesh::MaxPrim)*4 - 4;
+    ibo[at + 0] = uint8_t(0);
+    ibo[at + 1] = uint8_t(0);
+    ibo[at + 2] = uint8_t(prim);
+    ibo[at + 3] = uint8_t(vert);
 
     ibo8 = Resources::ssbo(ibo.data(),ibo.size());
     }

@@ -360,7 +360,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v, const Material& mat, const Buck
       if(lay==SceneGlobals::V_Main || textureInShadowPass) {
         ubo.set(L_Diffuse, *mat.tex);
         }
-      if(lay==SceneGlobals::V_Main && isForwardShading() && mat.alpha!=Material::AdditiveLight) {
+      if(lay==SceneGlobals::V_Main && isShadowmapRequired()) {
         ubo.set(L_Shadow0,  *scene.shadowMap[0],Resources::shadowSampler());
         ubo.set(L_Shadow1,  *scene.shadowMap[1],Resources::shadowSampler());
         }
@@ -749,6 +749,11 @@ bool ObjectsBucket::isAnimated(const Material& mat) {
 
 bool ObjectsBucket::isForwardShading() const {
   return !mat.isSolid();
+  }
+
+bool ObjectsBucket::isShadowmapRequired() const {
+  return isForwardShading() && mat.alpha!=Material::AdditiveLight &&
+         mat.alpha!=Material::Multiply && mat.alpha!=Material::Multiply2;
   }
 
 bool ObjectsBucket::isSceneInfoRequired() const {
