@@ -18,10 +18,10 @@ class Material final {
       AlphaTest,
       Water,
       Ghost,
-      Transparent,
-      AdditiveLight,
       Multiply,
       Multiply2,
+      Transparent,
+      AdditiveLight,
       };
 
     const Tempest::Texture2d* tex=nullptr;

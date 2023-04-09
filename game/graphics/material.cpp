@@ -128,9 +128,15 @@ Material::AlphaFunc Material::loadAlphaFunc(phoenix::alpha_function zenAlpha,
     case phoenix::alpha_function::add:
       alpha = Material::AlphaFunc::AdditiveLight;
       break;
-    case phoenix::alpha_function::mul: // TODO: originally, this was `sub` and `mul`
-    case phoenix::alpha_function::mul2:
+    case phoenix::alpha_function::sub:
+      // FIXME: no such materials in game found
+      alpha = Material::AlphaFunc::AdditiveLight;
+      break;
+    case phoenix::alpha_function::mul:
       alpha = Material::AlphaFunc::Multiply;
+      break;
+    case phoenix::alpha_function::mul2:
+      alpha = Material::AlphaFunc::Multiply2;
       break;
     default:
       alpha = Material::AlphaFunc::AlphaTest;
