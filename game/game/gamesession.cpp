@@ -39,12 +39,15 @@ void GameSession::HeroStorage::putToWorld(World& owner, std::string_view wayPoin
 
   if(auto pl = owner.player()) {
     pl->load(sr,0);
-    if(auto pos = owner.findPoint(wayPoint)) {
-      pl->setPosition  (pos->x,pos->y,pos->z);
-      pl->setDirection (pos->dirX,pos->dirY,pos->dirZ);
-      pl->attachToPoint(pos);
-      pl->updateTransform();
+    auto pos = owner.findPoint(wayPoint);
+    if(pos==nullptr) {
+       // freemine.zen
+       pos = &owner.startPoint();
       }
+    pl->setPosition  (pos->x,pos->y,pos->z);
+    pl->setDirection (pos->dirX,pos->dirY,pos->dirZ);
+    pl->attachToPoint(pos);
+    pl->updateTransform();
     } else {
     auto ptr = std::make_unique<Npc>(owner,-1,wayPoint);
     ptr->load(sr,0);

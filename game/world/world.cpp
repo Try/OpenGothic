@@ -848,6 +848,10 @@ const WayPoint *World::findNextPoint(const WayPoint &pos) const {
   return wmatrix->findNextPoint(pos.position());
   }
 
+const WayPoint& World::startPoint() const {
+  return wmatrix->startPoint();
+  }
+
 const WayPoint& World::deadPoint() const {
   return wmatrix->deadPoint();
   }

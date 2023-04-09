@@ -355,22 +355,21 @@ Npc* WorldObjects::addNpc(size_t npcInstance, const Vec3& pos) {
 
 Npc* WorldObjects::insertPlayer(std::unique_ptr<Npc> &&npc, std::string_view at) {
   auto pos = owner.findPoint(at);
-  if(pos==nullptr){
-    Log::e("insertPlayer: invalid waypoint");
-    return nullptr;
+  if(pos==nullptr) {
+    Log::e("insertPlayer: invalid waypoint, using fallback");
+    // freemine.zen
+    pos = &owner.startPoint();
     }
 
-  if(pos!=nullptr && pos->isLocked()){
+  if(pos->isLocked()) {
     auto p = owner.findNextPoint(*pos);
     if(p)
       pos=p;
     }
-  if(pos!=nullptr) {
-    npc->setPosition  (pos->x,pos->y,pos->z);
-    npc->setDirection (pos->dirX,pos->dirY,pos->dirZ);
-    npc->attachToPoint(pos);
-    npc->updateTransform();
-    }
+  npc->setPosition  (pos->x,pos->y,pos->z);
+  npc->setDirection (pos->dirX,pos->dirY,pos->dirZ);
+  npc->attachToPoint(pos);
+  npc->updateTransform();
   npcArr.emplace_back(std::move(npc));
   return npcArr.back().get();
   }

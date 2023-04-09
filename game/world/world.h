@@ -68,6 +68,7 @@ class World final {
     const WayPoint*      findNextFreePoint(const Npc& pos, std::string_view name) const;
     const WayPoint*      findNextPoint(const WayPoint& pos) const;
 
+    const WayPoint&      startPoint() const;
     const WayPoint&      deadPoint() const;
 
     void                 detectNpcNear(std::function<void(Npc&)> f);
