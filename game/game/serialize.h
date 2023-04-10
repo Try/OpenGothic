@@ -70,14 +70,12 @@ class Serialize {
 
     template<class ... Arg>
     void write(const Arg& ... a){
-      int dummy[sizeof...(Arg)] = { (implWrite(a), 0)... };
-      (void)dummy;
+      (implWrite(a), ...);
       }
 
     template<class ... Arg>
     void read(Arg& ... a){
-      int dummy[sizeof...(Arg)] = { (implRead(a), 0)... };
-      (void)dummy;
+      (implRead(a), ...);
       }
 
     void readNpc(phoenix::vm& vm, std::shared_ptr<phoenix::c_npc>& npc);
