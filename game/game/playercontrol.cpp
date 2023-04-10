@@ -405,7 +405,8 @@ bool PlayerControl::canInteract() const {
   }
 
 void PlayerControl::clearInput() {
-  std::memset(ctrl, 0,sizeof(ctrl));
+  for (size_t i = 0; i < ctrl.size(); ++i)
+    ctrl[i].reset();
   std::memset(actrl,0,sizeof(actrl));
   std::memset(wctrl,0,sizeof(wctrl));
   }
