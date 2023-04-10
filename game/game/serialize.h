@@ -48,16 +48,14 @@ class Serialize {
     template<class ... Args>
     bool setEntry(const Args& ... args) {
       std::stringstream s;
-      int dummy[] = {(s << args, 0)...};
-      (void)dummy;
+      (s << ... << args);
       return implSetEntry(s.str());
       }
 
     template<class ... Args>
     uint32_t directorySize(const Args& ... args) {
       std::stringstream s;
-      int dummy[] = {(s << args, 0)...};
-      (void)dummy;
+      (s << ... << args);
       return implDirectorySize(s.str());
       }
 
