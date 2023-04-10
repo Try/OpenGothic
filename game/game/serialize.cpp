@@ -96,7 +96,9 @@ bool Serialize::implSetEntry(std::string fname) {
   entryName = std::move(fname);
   if(fout!=nullptr) {
     for(size_t i=0; i<entryName.size(); ++i) {
-      if(entryName[i]=='/' && i+1<entryName.size()) {
+      if(entryName[i]!='/' || i+1 >= entryName.size()) {
+        continue;
+        }
         const char prev = entryName[i+1];
         entryName[i+1] = '\0';
         mz_uint32 id = mz_uint32(-1);
@@ -107,7 +109,6 @@ bool Serialize::implSetEntry(std::string fname) {
           }
         entryName[i+1] = prev;
         }
-      }
     return true;
     }
   if(fin!=nullptr) {
