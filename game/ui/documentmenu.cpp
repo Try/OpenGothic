@@ -35,7 +35,7 @@ void DocumentMenu::keyDownEvent(KeyEvent &e) {
     return;
     }
 
-  if(e.key!=Event::K_ESCAPE && keycodec.tr(e)!=KeyCodec::Inventory){
+  if(e.key!=Event::K_ESCAPE && keycodec.tr(e).action!=KeyCodec::Inventory){
     e.ignore();
     return;
     }

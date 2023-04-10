@@ -246,7 +246,7 @@ void InventoryMenu::tick(uint64_t /*dt*/) {
   }
 
 void InventoryMenu::processMove(KeyEvent& e) {
-  auto key = keycodec.tr(e);
+  auto key = keycodec.tr(e).action;
   if(key==KeyCodec::Forward)
     moveUp();
   else if(key==KeyCodec::Back)
@@ -304,12 +304,12 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
 
   processMove(e);
 
-  if(keycodec.tr(e)==KeyCodec::Jump) {
+  if(keycodec.tr(e).action==KeyCodec::Jump) {
     lootMode = LootMode::Stack;
     takeTimer.start(200);
     onTakeStuff();
     }
-  else if (keycodec.tr(e)==KeyCodec::ActionGeneric || e.key==KeyEvent::K_Return) {
+  else if (keycodec.tr(e).action==KeyCodec::ActionGeneric || e.key==KeyEvent::K_Return) {
     onItemAction(Item::NSLOT);
     }
   else if((KeyEvent::K_3<=e.key && e.key<=KeyEvent::K_9) || e.key==KeyEvent::K_0) {
@@ -318,7 +318,7 @@ void InventoryMenu::keyDownEvent(KeyEvent &e) {
       slot = uint8_t(e.key-KeyEvent::K_0);
     onItemAction(slot);
     }
-  else if(e.key==KeyEvent::K_ESCAPE || keycodec.tr(e)==KeyCodec::Inventory){
+  else if(e.key==KeyEvent::K_ESCAPE || keycodec.tr(e).action==KeyCodec::Inventory){
     close();
     }
   else if(e.key==KeyEvent::K_Space) {
