@@ -10,7 +10,6 @@ class MoveTrigger : public AbstractTrigger {
   public:
     MoveTrigger(Vob* parent, World &world, const phoenix::vobs::trigger_mover& data, Flags flags);
 
-    void save(Serialize& fout) const override;
     void load(Serialize &fin) override;
 
     void onTrigger(const TriggerEvent& evt) override;
@@ -21,6 +20,8 @@ class MoveTrigger : public AbstractTrigger {
     void tick(uint64_t dt) override;
 
   private:
+    void implSaveData(Serialize& fout) const override;
+
     void moveEvent() override;
     void processTrigger(const TriggerEvent& evt, bool onTrigger);
 

@@ -164,6 +164,7 @@ void GameSession::save(Serialize &fout, std::string_view name, const Pixmap& scr
   hdr.playTime  = ticks;
   hdr.isGothic2 = Gothic::inst().version().game;
 
+  fout.reserveBytes(1 * 1024 * 1024); // 1 MB
   fout.setEntry("header");
   fout.write(hdr);
   {
@@ -173,8 +174,15 @@ void GameSession::save(Serialize &fout, std::string_view name, const Pixmap& scr
     fout.write(i.name);
   }
 
-  fout.setEntry("priview.png");
-  fout.write(screen);
+  std::vector<uint8_t> previewImage;
+  // Note: saving the preview image takes a significant amount of time.
+  // We're delegating it to an another thread and we'll get back to it later.
+  // TODO: limit the image size to save storage & time.
+  auto createPreview = std::jthread([&previewImage, &screen] {
+    previewImage.reserve(4 * 1024 * 1024);
+	Tempest::MemWriter wr(previewImage);
+    screen.save(wr, "png");
+    });
 
   fout.setEntry("game/session");
   fout.write(ticks,wrldTime,wrldTimePart,wrld->name());
@@ -198,6 +206,15 @@ void GameSession::save(Serialize &fout, std::string_view name, const Pixmap& scr
   fout.setEntry("game/daedalus");
   vm->saveVar(fout);
   Gothic::inst().setLoadingProgress(80);
+
+  // Write the preview image:
+  createPreview.join();
+  fout.setEntry("priview.png"); // TODO: change it to "preview.png" and add legacy support.
+  // Note: deliberatery using `writeBytes` instead of `write` because
+  // we want to dump the entire PNG file as is without prepending it
+  // with a size or other artifacts. The "createPreview" already contains
+  // an entire valid PNG file.
+  fout.writeBytes(previewImage.data(), previewImage.size());
   }
 
 void GameSession::setupSettings() {

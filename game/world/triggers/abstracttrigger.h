@@ -58,7 +58,6 @@ class AbstractTrigger : public Vob {
     virtual bool                 hasVolume() const;
     bool                         checkPos(const Tempest::Vec3& pos) const;
 
-    void                         save(Serialize& fout) const override;
     void                         load(Serialize &fin) override;
 
   protected:
@@ -77,6 +76,8 @@ class AbstractTrigger : public Vob {
       void onCollide(DynamicWorld::BulletBody &other) override;
       AbstractTrigger* tg;
       };
+
+    void                         implSaveData(Serialize& fout) const override;
 
     virtual void                 onTrigger(const TriggerEvent& evt);
     virtual void                 onUntrigger(const TriggerEvent& evt);

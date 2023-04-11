@@ -42,8 +42,8 @@ void CodeMaster::onTrigger(const TriggerEvent &evt) {
   world.triggerEvent(e);
   }
 
-void CodeMaster::save(Serialize& fout) const {
-  AbstractTrigger::save(fout);
+void CodeMaster::implSaveData(Serialize& fout) const {
+  AbstractTrigger::implSaveData(fout);
   fout.write(keys);
   }
 

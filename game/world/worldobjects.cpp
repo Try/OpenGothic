@@ -116,6 +116,7 @@ void WorldObjects::save(Serialize &fout) {
   fout.setEntry("worlds/",fout.worldName(),"/version");
   fout.write(Serialize::Version::Current);
 
+  fout.setEntry("worlds/",fout.worldName(),"/npc/");
   for(size_t i=0; i<npcArr.size(); ++i) {
     npcArr[i]->save(fout,i);
     }
@@ -126,7 +127,7 @@ void WorldObjects::save(Serialize &fout) {
   for(auto& i:itemArr)
     i->save(fout);
 
-  fout.setEntry("worlds/",fout.worldName(),"/mobsi");
+  fout.setEntry("worlds/",fout.worldName(),"/mobsi/");
   for(auto& i:rootVobs)
     i->saveVobTree(fout);
 

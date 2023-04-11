@@ -140,29 +140,33 @@ void Interactive::load(Serialize &fin) {
   visual.syncPhysics();
   }
 
-void Interactive::save(Serialize &fout) const {
-  Vob::save(fout);
+void Interactive::implSaveInFolder(Serialize &fout) const {
+  Vob::implSaveInFolder(fout);
+  
+  if(!invent.isEmpty()) {
+    fout.setFileName("inventory");
+    invent.save(fout);
+    }
+    
+  fout.setFileName("visual");
+  visual.save(fout,*this);
+  }
 
+void Interactive::implSaveData(Serialize& fout) const {
+  Vob::implSaveData(fout);
+  
   fout.write(vobName,focName,mdlVisual);
   fout.write(bbox[0],bbox[1],owner);
   fout.write(focOver,showVisual);
-
+  
   fout.write(stateNum,triggerTarget,useWithItem,conditionFunc,onStateFunc);
   fout.write(locked,keyInstance,pickLockStr);
   fout.write(state,reverseState,loopState,isLockCracked);
-
+  
   fout.write(uint32_t(attPos.size()));
   for(auto& i:attPos) {
     fout.write(i.name,i.user,i.attachMode,i.started);
     }
-
-  if(!invent.isEmpty()) {
-    fout.setEntry("worlds/",fout.worldName(),"/mobsi/",vobObjectID,"/inventory");
-    invent.save(fout);
-    }
-
-  fout.setEntry("worlds/",fout.worldName(),"/mobsi/",vobObjectID,"/visual");
-  visual.save(fout,*this);
   }
 
 void Interactive::postValidate() {

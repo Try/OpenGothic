@@ -48,6 +48,25 @@ class Vob {
 
     virtual void  moveEvent();
 
+    /// <summary>
+    /// Called when a serialization "cursor" is set within the folder dedicated
+    /// to this instance (will later contains the following files: "data", "visual", etc.).
+    /// Override it to save additional files in the folder.
+    /// </summary>
+    /// <param name="fout">The serialization handling object.</param>
+    virtual void                      implSaveInFolder(Serialize& fout) const;
+    
+    /// <summary>
+    /// Called when a serialization "cursor" is set to the vob's "data" file.
+    /// Override it to append custom data to the file.
+    /// </summary>
+    /// <param name="fout">The serialization handling object.</param>
+    /// <remarks>
+    /// This method is used to avoid file duplication
+    /// because of the single-pass write strategy.
+    /// </remarks>
+    virtual void                      implSaveData(Serialize& fout) const;
+
   private:
     std::vector<std::unique_ptr<Vob>> child;
 

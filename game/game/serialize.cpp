@@ -71,6 +71,76 @@ Serialize::~Serialize() {
   mz_zip_writer_end(&impl);
   }
 
+void Serialize::setFileName(std::string_view fileName) {
+  closeEntry();
+
+  auto lastSep = entryName.find_last_of('/');
+  
+  if (lastSep == std::string::npos) {
+    entryName = fileName;
+    return;
+    }
+    
+  if (lastSep != entryName.size() - 1) {
+    entryName = entryName.substr(0, lastSep + 1);
+    entryName += fileName;
+    }
+  else {
+    entryName += fileName;
+    }
+  }
+
+void Serialize::enterFolder(std::string_view folderName, bool alreadyExists) {
+  assert(!folderName.empty() && "The folder name must not be empty");
+
+  closeEntry();
+  if (entryName.size() > 0 && entryName.back() != '/') {
+    entryName = entryName.substr(0, entryName.find_last_of('/') + 1);
+    }
+
+  entryName += folderName;
+  if (entryName.back() != '/')
+    entryName += '/';
+  
+  if (alreadyExists)
+    return;
+    
+  mz_bool status = mz_zip_writer_add_mem(&impl, entryName.c_str(), NULL, 0, MZ_NO_COMPRESSION);
+  
+  if (!status)
+    throw std::runtime_error("unable to allocate entry in game archive");
+  }
+
+void Serialize::exitCurrentFolder() {
+  closeEntry();
+
+  if (entryName.empty()) {
+    return;
+    }
+  
+  // # Examples:
+  // From:    path/to/a/folder/dir_name/file_name
+  // To:      path/to/a/folder/
+  //
+  // or:
+  // 
+  // From:    path/to/a/folder/dir_name/
+  // To:      path/to/a/folder/
+  
+  bool entryWasDirectory = entryName.back() == '/';
+  if (entryWasDirectory) {
+    // Entry: path/to/a/folder/dir_name
+    entryName.pop_back();
+    }
+
+  // if wasn't a directory we have to remove two parts of a path
+  for (int r = 0; r < (entryWasDirectory ? 1 : 2); ++r) {
+    entryName = entryName.substr(0, entryName.find_last_of('/'));
+    }
+  
+  entryName += '/';
+  }
+
 std::string_view Serialize::worldName() const {
   if(ctx!=nullptr)
     return ctx->name();
@@ -82,35 +152,55 @@ void Serialize::closeEntry() {
     return;
   if(entryBuf.empty())
     return;
+  if (!entryName.empty() && entryName.back() == '/') {
+    entryBuf.clear();
+    return;
+    }
 
   mz_uint level  = entryBuf.size()>256 ? MZ_BEST_COMPRESSION : MZ_NO_COMPRESSION;
   mz_bool status = mz_zip_writer_add_mem(&impl, entryName.c_str(), entryBuf.data(), entryBuf.size(), level);
-  entryBuf .clear();
-  entryName.clear();
+  entryBuf.clear();
   if(!status)
     throw std::runtime_error("unable to write entry in game archive");
   }
 
+void ensureFoldersCreated(mz_zip_archive& archive, std::string& prevEntry, std::string& entryName) {
+  // Precalculate what folders are common with the previous entry
+  // to not check it again.
+  size_t samePrefix = 0;
+  while (samePrefix < prevEntry.size() &&
+      samePrefix < entryName.size() &&
+      prevEntry[samePrefix] == entryName[samePrefix]) {
+    ++samePrefix;
+    }
+  
+  // Start from the place that changed related to the previous entry
+  for (size_t i = samePrefix; i + 1 < entryName.size(); ++i) {
+    if (entryName[i] != '/') {
+      continue;
+      }
+    const char overwrittenChar = entryName[i + 1];
+    // Temporarily overwrite to make sure this bit is a null-terminated string
+    entryName[i + 1] = '\0';
+    mz_uint32 id = mz_uint32(-1);
+    if (!mz_zip_reader_locate_file_v2(&archive, entryName.c_str(), nullptr, 0, &id)) {
+      mz_bool status = mz_zip_writer_add_mem(&archive, entryName.c_str(), NULL, 0, MZ_NO_COMPRESSION);
+      if (!status)
+        throw std::runtime_error("unable to allocate entry in game archive");
+      }
+    // restore the overwritten character
+    entryName[i + 1] = overwrittenChar;
+    }
+  }
+
 bool Serialize::implSetEntry(std::string fname) {
   closeEntry();
-  entryName = std::move(fname);
   if(fout!=nullptr) {
-    for(size_t i=0; i<entryName.size(); ++i) {
-      if(entryName[i]!='/' || i+1 >= entryName.size()) {
-        continue;
-        }
-        const char prev = entryName[i+1];
-        entryName[i+1] = '\0';
-        mz_uint32 id = mz_uint32(-1);
-        if(!mz_zip_reader_locate_file_v2(&impl, entryName.c_str(), nullptr, 0, &id)) {
-          mz_bool status = mz_zip_writer_add_mem(&impl, entryName.c_str(), NULL, 0, MZ_NO_COMPRESSION);
-          if(!status)
-            throw std::runtime_error("unable to allocate entry in game archive");
-          }
-        entryName[i+1] = prev;
-        }
+    ensureFoldersCreated(impl, entryName, fname);
+    entryName = std::move(fname);
     return true;
     }
+  entryName = std::move(fname);
   if(fin!=nullptr) {
     mz_uint32 id = mz_uint32(-1);
     if(mz_zip_reader_locate_file_v2(&impl, entryName.c_str(), nullptr, 0, &id)) {
@@ -138,7 +228,7 @@ uint32_t Serialize::implDirectorySize(std::string e) {
     if(len>e.size() && std::memcmp(e.data(),stat.m_filename,e.size())==0) {
       auto sep = std::strchr(stat.m_filename+e.size(),'/');
       if(sep==nullptr || (sep+1)==(stat.m_filename+len))
-        ++cnt;
+      ++cnt;
       }
     }
   return cnt;
@@ -253,10 +343,8 @@ void Serialize::implRead(SaveGameHeader& p) {
   }
 
 void Serialize::implWrite(const Tempest::Pixmap& p) {
-  std::vector<uint8_t> tmp;
-  Tempest::MemWriter w{tmp};
+  Tempest::MemWriter w{entryBuf};
   p.save(w);
-  writeBytes(tmp.data(),tmp.size());
   }
 
 void Serialize::implRead(Tempest::Pixmap& p) {

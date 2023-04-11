@@ -2,6 +2,7 @@
 
 #include <Tempest/Except>
 #include <Tempest/Painter>
+#include <Tempest/MemWriter>
 
 #include <Tempest/Brush>
 #include <Tempest/Pen>
@@ -956,13 +957,23 @@ void MainWindow::saveGame(std::string_view slot, std::string_view name) {
   if(dialogs.isActive())
     return;
 
-  Gothic::inst().startSave(std::move(textureCast(tex)),[slot=std::string(slot),name=std::string(name),pm](std::unique_ptr<GameSession>&& game){
+  Gothic::inst().startSave(std::move(textureCast(tex)),[slot=std::string(slot),name=std::string(name),pm = std::move(pm)](std::unique_ptr<GameSession>&& game){
     if(!game)
       return std::move(game);
 
+    // Write everything to the memory first:
+    auto saveBuffer = std::vector<uint8_t>();
+    {
+      static constexpr size_t INITIAL_BUFFER_SIZE = 16 * 1024 * 1024;
+      saveBuffer.reserve(INITIAL_BUFFER_SIZE);
+      Tempest::MemWriter writer{saveBuffer};
+      Serialize s(writer);
+      game->save(s,name,pm);
+    }
+
+    // Write everything to the file:
     Tempest::WFile f(slot);
-    Serialize      s(f);
-    game->save(s,name,pm);
+    f.write(saveBuffer.data(), saveBuffer.size());
 
     // no print yet, because threading
     // gothic.print("Game saved");

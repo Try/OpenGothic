@@ -25,8 +25,8 @@ PfxController::PfxController(Vob* parent, World& world, const phoenix::vobs::pfx
     }
   }
 
-void PfxController::save(Serialize& fout) const {
-  AbstractTrigger::save(fout);
+void PfxController::implSaveData(Serialize& fout) const {
+  AbstractTrigger::implSaveData(fout);
   fout.write(killed,lifeTime,pfx.isActive());
   }
 

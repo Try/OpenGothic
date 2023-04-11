@@ -158,8 +158,8 @@ bool AbstractTrigger::checkPos(const Tempest::Vec3& pos) const {
   return boxNpc.checkPos(pos);
   }
 
-void AbstractTrigger::save(Serialize& fout) const {
-  Vob::save(fout);
+void AbstractTrigger::implSaveData(Serialize& fout) const {
+  Vob::implSaveData(fout);
   boxNpc.save(fout);
   fout.write(emitCount,disabled);
   fout.write(emitTimeLast);

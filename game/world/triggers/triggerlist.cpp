@@ -48,8 +48,8 @@ void TriggerList::onTrigger(const TriggerEvent&) {
     }
   }
 
-void TriggerList::save(Serialize& fout) const {
-  AbstractTrigger::save(fout);
+void TriggerList::implSaveData(Serialize& fout) const {
+  AbstractTrigger::implSaveData(fout);
   fout.write(next);
   }
 

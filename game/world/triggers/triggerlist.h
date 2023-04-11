@@ -12,8 +12,9 @@ class TriggerList : public AbstractTrigger {
 
     void onTrigger(const TriggerEvent& evt) override;
 
+  protected:
+    void implSaveData(Serialize &fout) const override;
   private:
-    void save(Serialize &fout) const override;
     void load(Serialize &fin) override;
 
     enum ProcessMode : uint8_t {

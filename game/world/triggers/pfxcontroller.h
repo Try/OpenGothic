@@ -9,9 +9,10 @@ class PfxController : public AbstractTrigger {
   public:
     PfxController(Vob* parent, World& world, const phoenix::vobs::pfx_controller& data, Flags flags);
 
-    void save(Serialize &fout) const override;
     void load(Serialize &fin) override;
 
+  protected:
+    void implSaveData(Serialize &fout) const override;
   private:
     void onTrigger(const TriggerEvent& evt) override;
     void onUntrigger(const TriggerEvent& evt) override;

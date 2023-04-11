@@ -28,7 +28,6 @@ class Interactive : public Vob {
     Interactive(Vob* parent, World& world, const phoenix::vobs::mob& vob, Flags flags);
 
     void                load(Serialize& fin) override;
-    void                save(Serialize& fout) const override;
     void                postValidate();
 
     void                resetPositionToTA(int32_t state);
@@ -83,6 +82,9 @@ class Interactive : public Vob {
     void                moveEvent() override;
     float               extendedSearchRadius() const override;
     virtual void        onStateChanged(){}
+
+    void                implSaveInFolder(Serialize& fout) const override;
+    void                implSaveData(Serialize& fout) const override;
 
   private:
     enum Phase : uint8_t {

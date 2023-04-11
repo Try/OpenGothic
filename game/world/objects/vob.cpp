@@ -261,8 +261,24 @@ void Vob::loadVobTree(Serialize& fin) {
   }
 
 void Vob::save(Serialize& fout) const {
-  fout.setEntry("worlds/",fout.worldName(),"/mobsi/",vobObjectID,"/data");
-  fout.write(uint8_t(vobType),pos,local);
+  // Ensure that the serialization "cursor" is in a valid directory.
+  // If not then there is a bug in the code.
+  // Valid directory: worlds/world_name/mobsi/
+  assert(fout.entry() == (std::string("worlds/") + std::string(fout.worldName()) + "/mobsi/") && "Invalid initial directory for the VOB.");
+
+  fout.enterFolder(std::to_string(vobObjectID));
+  this->implSaveInFolder(fout);
+  fout.exitCurrentFolder();
+  }
+
+void Vob::implSaveInFolder(Serialize& fout) const {
+  fout.setFileName("data");
+  this->implSaveData(fout);
+  // TODO: add other files here, possibly adding functions similar to "implSaveData".
+  }
+
+void Vob::implSaveData(Serialize& fout) const {
+  fout.write(uint8_t(vobType), pos, local);
   }
 
 void Vob::load(Serialize& fin) {

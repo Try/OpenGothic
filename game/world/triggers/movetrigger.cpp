@@ -54,8 +54,8 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, const phoenix::vobs::trigger
   MoveTrigger::moveEvent();
   }
 
-void MoveTrigger::save(Serialize& fout) const {
-  AbstractTrigger::save(fout);
+void MoveTrigger::implSaveData(Serialize& fout) const {
+  AbstractTrigger::implSaveData(fout);
   fout.write(pos0,uint8_t(state),sAnim,frame);
   }
 

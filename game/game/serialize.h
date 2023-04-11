@@ -30,6 +30,17 @@ class FpLock;
 class ScriptFn;
 class SaveGameHeader;
 
+
+// A bit faster than using a stringstream directly.
+inline void append(std::string& to, int arg) {
+  to += std::to_string(arg);
+  }
+
+// A bit faster than using a stringstream directly.
+inline void append(std::string& to, std::string_view str) {
+  to.append(str);
+  }
+
 class Serialize {
   public:
     enum Version : uint16_t {
@@ -45,11 +56,31 @@ class Serialize {
     uint16_t globalVersion()        const { return curVer; }
     void     setGlobalVersion(uint16_t v) { curVer = v;    }
 
+    /// <summary>
+    /// Appends/replaces the file name part of the current entry.
+    /// Example:
+    /// Before: "path/to/foo/bar"
+    /// <code>
+    /// setFileName("hello");
+    /// </code>
+    /// After: "path/to/foo/hello"
+    /// </summary>
+    /// <param name="name">The new file name</param>
+    void setFileName(std::string_view name);
+
+    /// <summary>
+    /// Makes the underlying "cursor" enter the folder.
+    /// </summary>
+    /// <param name="folderName">The folder name</param>
+    /// <param name="alreadyExists">If set to true, then the function won't try to create the folder.</param>
+    void enterFolder(std::string_view folderName, bool alreadyExists = false);
+    void exitCurrentFolder();
+
     template<class ... Args>
     bool setEntry(const Args& ... args) {
-      std::stringstream s;
-      (s << ... << args);
-      return implSetEntry(s.str());
+      std::string newEntry;
+      (append(newEntry, args), ...);
+      return implSetEntry(std::move(newEntry));
       }
 
     template<class ... Args>
@@ -77,6 +108,24 @@ class Serialize {
       }
 
     void readNpc(phoenix::vm& vm, std::shared_ptr<phoenix::c_npc>& npc);
+
+    /// <summary>
+    /// Reserves specified number of bytes in an underlying buffer.
+    /// This buffer is reset per-entry.
+    /// </summary>
+    /// <param name="numBytes">Number of bytes to reserve</param>
+    void reserveBytes(size_t numBytes) {
+      entryBuf.reserve(numBytes);
+      }
+
+    /// <summary>
+    /// Provides a read-only access to the current entry.
+    /// You can use it e.g. for a validation.
+    /// </summary>
+    /// <returns>Current entry.</returns>
+    std::string const& entry() const {
+      return entryName;
+      }
   private:
     Serialize();
 

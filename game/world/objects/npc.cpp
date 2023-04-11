@@ -179,49 +179,71 @@ Npc::~Npc(){
   }
 
 void Npc::save(Serialize &fout, size_t id) {
-  fout.setEntry("worlds/",fout.worldName(),"/npc/",id,"/data");
-  fout.write(*hnpc);
-  fout.write(body,head,vHead,vTeeth,bdColor,vColor,bdFatness);
-  fout.write(x,y,z,angle,sz);
-  fout.write(wlkMode,trGuild,talentsSk,talentsVl,refuseTalkMilis);
-  fout.write(permAttitude,tmpAttitude);
-  fout.write(perceptionTime,perceptionNextTime);
-  for(auto& i:perception)
-    fout.write(i.func);
+  // Ensure that the serialization "cursor" is in a valid directory.
+  // If not then there is a bug in the code.
+  // Valid directory: worlds/world_name/npc/
+  assert(fout.entry() == (std::string("worlds/") + std::string(fout.worldName()) + "/npc/") && "Invalid initial directory for the NPC.");
 
-  // extra state
-  fout.write(lastHitType,lastHitSpell);
-  if(currentSpellCast<uint32_t(-1))
-    fout.write(uint32_t(currentSpellCast)); else
-    fout.write(uint32_t(-1));
-  fout.write(uint8_t(castLevel),castNextTime);
-  fout.write(spellInfo);
+  // Enter a folder of name `id`
+  // Path: worlds/world_name/npc/<id>/
+  fout.enterFolder(std::to_string(id));
 
-  saveTrState(fout);
-  saveAiState(fout);
+  // Save to a file named "data":
+  // Path: worlds/world_name/npc/<id>/data
+  fout.setFileName("data");
+  {
+    fout.write(*hnpc);
+    fout.write(body,head,vHead,vTeeth,bdColor,vColor,bdFatness);
+    fout.write(x,y,z,angle,sz);
+    fout.write(wlkMode,trGuild,talentsSk,talentsVl,refuseTalkMilis);
+    fout.write(permAttitude,tmpAttitude);
+    fout.write(perceptionTime,perceptionNextTime);
+    for(auto& i:perception)
+      fout.write(i.func);
+    
+    // extra state
+    fout.write(lastHitType,lastHitSpell);
+    if(currentSpellCast<uint32_t(-1))
+      fout.write(uint32_t(currentSpellCast)); else
+      fout.write(uint32_t(-1));
+    fout.write(uint8_t(castLevel),castNextTime);
+    fout.write(spellInfo);
+    
+    saveTrState(fout);
+    saveAiState(fout);
+    
+    fout.write(currentInteract,currentOther,currentVictum);
+    fout.write(currentLookAt,currentLookAtNpc,currentTarget,nearestEnemy);
+    
+    go2.save(fout);
+    fout.write(currentFp,currentFpLock);
+    wayPath.save(fout);
+    
+    mvAlgo.save(fout);
+    fghAlgo.save(fout);
+    fout.write(lastEventTime,angleY,runAng);
+    fout.write(invTorch);
+    fout.write(isUsingTorch());
+    
+    Vec3 phyPos = physic.position();
+    fout.write(phyPos);
+  }
 
-  fout.write(currentInteract,currentOther,currentVictum);
-  fout.write(currentLookAt,currentLookAtNpc,currentTarget,nearestEnemy);
+  // Save to a file named "visual"
+  // Path: worlds/world_name/npc/<id>/visual
+  fout.setFileName("visual");
+  {
+    visual.save(fout,*this);
+  }
 
-  go2.save(fout);
-  fout.write(currentFp,currentFpLock);
-  wayPath.save(fout);
-
-  mvAlgo.save(fout);
-  fghAlgo.save(fout);
-  fout.write(lastEventTime,angleY,runAng);
-  fout.write(invTorch);
-  fout.write(isUsingTorch());
-
-  Vec3 phyPos = physic.position();
-  fout.write(phyPos);
-
-  fout.setEntry("worlds/",fout.worldName(),"/npc/",id,"/visual");
-  visual.save(fout,*this);
-
-  fout.setEntry("worlds/",fout.worldName(),"/npc/",id,"/inventory");
-  if(!invent.isEmpty() || id==size_t(-1))
-    invent.save(fout);
+  // Save to a file named "visual"
+  // Path: worlds/world_name/npc/<id>/visual
+  fout.setFileName("inventory");
+  {
+    if(!invent.isEmpty() || id==size_t(-1))
+      invent.save(fout);
+  }
+  fout.exitCurrentFolder();
   }
 
 void Npc::load(Serialize &fin, size_t id) {
