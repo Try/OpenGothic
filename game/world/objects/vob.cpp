@@ -185,8 +185,7 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const phoenix::vob& vo
       float dx = vob.rotation[2].x;
       float dy = vob.rotation[2].y;
       float dz = vob.rotation[2].z;
-      std::string vobName = vob.vob_name.empty() ? "START" : vob.vob_name;
-      world.addStartPoint(Vec3(vob.position.x,vob.position.y,vob.position.z),Vec3(dx,dy,dz),vobName);
+      world.addStartPoint(Vec3(vob.position.x,vob.position.y,vob.position.z),Vec3(dx,dy,dz),vob.vob_name);
       // FIXME
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
       }
