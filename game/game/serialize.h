@@ -1,5 +1,6 @@
 #pragma once
 
+#include <concepts>
 #include <Tempest/IDevice>
 #include <Tempest/ODevice>
 #include <Tempest/Pixmap>
@@ -32,7 +33,8 @@ class SaveGameHeader;
 
 
 // A bit faster than using a stringstream directly.
-inline void append(std::string& to, int arg) {
+template <std::integral T>
+inline void append(std::string& to, T arg) {
   to += std::to_string(arg);
   }
 
