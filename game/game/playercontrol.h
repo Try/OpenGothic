@@ -20,8 +20,8 @@ class PlayerControl final {
     PlayerControl(DialogMenu& dlg, InventoryMenu& inv);
     ~PlayerControl();
 
-    void onKeyPressed (KeyCodec::ActionMapping am, Tempest::Event::KeyType key);
-    void onKeyReleased(KeyCodec::ActionMapping am);
+    void onKeyPressed (KeyCodec::Action a, Tempest::Event::KeyType key);
+    void onKeyReleased(KeyCodec::Action a);
     bool isPressed(KeyCodec::Action a) const;
     void onRotateMouse(float dAngle);
     void onRotateMouseDy(float dAngle);
@@ -75,24 +75,7 @@ class PlayerControl final {
 
     using Action=KeyCodec::Action;
 
-    struct KeyStatus {
-      bool primary = false;
-      bool secondary = false;
-      void setEnabled(KeyCodec::Mapping mapping, bool newEnabled) {
-        if(mapping==KeyCodec::Mapping::Primary)
-		  primary = newEnabled;
-        else
-		  secondary = newEnabled;
-        }
-	  bool isEnabled() const {
-        return primary || secondary;
-        }
-      void reset() {
-        primary = secondary = false;
-        }
-	  };
-
-    KeyStatus      ctrl[Action::Last]={};
+    bool           ctrl[Action::Last]={};
     bool           wctrl[WeaponAction::Last]={};
     bool           actrl[7]={};
 

@@ -476,8 +476,7 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
 
   const char* menuEv=nullptr;
 
-  auto actionMapping = keycodec.tr(event);
-  auto act = actionMapping.action;
+  auto act = keycodec.tr(event);
   if(act==KeyCodec::Escape)
     menuEv="MENU_MAIN";
   else if(act==KeyCodec::Log)
@@ -502,7 +501,7 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
       }
     clearInput();
     }
-  player.onKeyReleased(actionMapping);
+  player.onKeyReleased(act);
   }
 
 void MainWindow::focusEvent(FocusEvent &event) {

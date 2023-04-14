@@ -32,7 +32,7 @@ void PlayerControl::setTarget(Npc *other) {
   const auto ws    = pl->weaponState();
   const bool melle = (ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H);
   if(other==nullptr) {
-    if(!(melle && ctrl[Action::ActionGeneric].isEnabled())) {
+    if(!(melle && ctrl[Action::ActionGeneric])) {
       // dont lose focus in melee combat
       pl->setTarget(nullptr);
       }
@@ -41,8 +41,7 @@ void PlayerControl::setTarget(Npc *other) {
     }
   }
 
-void PlayerControl::onKeyPressed(KeyCodec::ActionMapping am, Tempest::KeyEvent::KeyType key) {
-  auto       a    = am.action;
+void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType key) {
   auto       w    = Gothic::inst().world();
   auto       c    = Gothic::inst().camera();
   auto       pl   = w  ? w->player() : nullptr;
@@ -56,7 +55,7 @@ void PlayerControl::onKeyPressed(KeyCodec::ActionMapping am, Tempest::KeyEvent::
       return;
       }
     if(inter->isLadder()) {
-      ctrl[a].setEnabled(am.mapping, true);
+      ctrl[a] = true;
       return;
       }
     }
@@ -98,14 +97,14 @@ void PlayerControl::onKeyPressed(KeyCodec::ActionMapping am, Tempest::KeyEvent::
       }
 
     if(key==Tempest::KeyEvent::K_Return)
-      ctrl[Action::K_ENTER].primary = true;
+      ctrl[Action::K_ENTER] = true;
     }
 
   // this odd behaviour is from original game, seem more like a bug
   const bool actTunneling = (pl!=nullptr && pl->isAtackAnim());
 
   int fk = -1;
-  if((ctrl[KeyCodec::ActionGeneric].isEnabled() || actTunneling) && !g2Ctrl) {
+  if((ctrl[KeyCodec::ActionGeneric] || actTunneling) && !g2Ctrl) {
     if(a==Action::Forward) {
       if(pl!=nullptr && pl->target()!=nullptr && pl->canFinish(*pl->target()) && !pl->isAtackAnim()) {
         fk = ActKill;
@@ -131,7 +130,7 @@ void PlayerControl::onKeyPressed(KeyCodec::ActionMapping am, Tempest::KeyEvent::
         if(pl!=nullptr && pl->target()!=nullptr && pl->canFinish(*pl->target()) && !pl->isAtackAnim()) {
           fk = ActKill;
           } else {
-          if(ctrl[Action::Forward].isEnabled())
+          if(ctrl[Action::Forward])
             fk = ActMove; else
             fk = ActForward;
           }
@@ -151,20 +150,20 @@ void PlayerControl::onKeyPressed(KeyCodec::ActionMapping am, Tempest::KeyEvent::
 
   if(fk>=0) {
     std::memset(actrl,0,sizeof(actrl));
-    actrl[ActGeneric] = ctrl[KeyCodec::ActionGeneric].isEnabled();
+    actrl[ActGeneric] = ctrl[KeyCodec::ActionGeneric];
     actrl[fk]         = true;
 
-    ctrl[a].setEnabled(am.mapping, true);
+    ctrl[a] = true;
     return;
     }
 
   if(a==KeyCodec::ActionGeneric) {
     FocusAction fk = ActGeneric;
-    if(ctrl[Action::Forward].isEnabled())
+    if(ctrl[Action::Forward])
       fk = ActMove;
     std::memset(actrl,0,sizeof(actrl));
     actrl[fk] = true;
-    ctrl[a].setEnabled(am.mapping, true);
+    ctrl[a]   = true;
     return;
     }
 
@@ -187,12 +186,11 @@ void PlayerControl::onKeyPressed(KeyCodec::ActionMapping am, Tempest::KeyEvent::
   if(a==Action::K_O && Gothic::inst().isMarvinEnabled())
     marvinO();
 
-  ctrl[a].setEnabled(am.mapping, true);
+  ctrl[a] = true;
   }
 
-void PlayerControl::onKeyReleased(KeyCodec::ActionMapping am) {
-  auto a = am.action;
-  ctrl[a].setEnabled(am.mapping, false);
+void PlayerControl::onKeyReleased(KeyCodec::Action a) {
+  ctrl[a] = false;
 
   auto w  = Gothic::inst().world();
   auto pl = w ? w->player() : nullptr;
@@ -217,7 +215,7 @@ void PlayerControl::onKeyReleased(KeyCodec::ActionMapping am) {
   }
 
 bool PlayerControl::isPressed(KeyCodec::Action a) const {
-  return ctrl[a].isEnabled();
+  return ctrl[a];
   }
 
 void PlayerControl::onRotateMouse(float dAngle) {
@@ -234,7 +232,7 @@ void PlayerControl::tickFocus() {
   currentFocus = findFocus(&currentFocus);
   setTarget(currentFocus.npc);
 
-  if(!ctrl[Action::ActionGeneric].isEnabled())
+  if(!ctrl[Action::ActionGeneric])
     return;
 
   auto focus = currentFocus;
@@ -270,7 +268,7 @@ Focus PlayerControl::focus() const {
   }
 
 bool PlayerControl::hasActionFocus() const {
-  if(!ctrl[Action::ActionGeneric].isEnabled())
+  if(!ctrl[Action::ActionGeneric])
     return false;
   return currentFocus.npc!=nullptr;
   }
@@ -489,32 +487,32 @@ bool PlayerControl::tickMove(uint64_t dt) {
 
   if(camera!=nullptr && (camera->isFree() || pl==nullptr)) {
     rotMouse = 0;
-    if(ctrl[KeyCodec::Left].isEnabled() || (ctrl[KeyCodec::RotateL].isEnabled() && ctrl[KeyCodec::Jump].isEnabled())) {
+    if(ctrl[KeyCodec::Left] || (ctrl[KeyCodec::RotateL] && ctrl[KeyCodec::Jump])) {
       camera->moveLeft(dt);
       return true;
       }
-    if(ctrl[KeyCodec::Right].isEnabled() || (ctrl[KeyCodec::RotateR].isEnabled() && ctrl[KeyCodec::Jump].isEnabled())) {
+    if(ctrl[KeyCodec::Right] || (ctrl[KeyCodec::RotateR] && ctrl[KeyCodec::Jump])) {
       camera->moveRight(dt);
       return true;
       }
-    if(ctrl[KeyCodec::RotateL].isEnabled())
+    if(ctrl[KeyCodec::RotateL])
       camera->rotateLeft(dt);
-    if(ctrl[KeyCodec::RotateR].isEnabled())
+    if(ctrl[KeyCodec::RotateR])
       camera->rotateRight(dt);
-    if(ctrl[KeyCodec::Forward].isEnabled())
+    if(ctrl[KeyCodec::Forward])
       camera->moveForward(dt);
-    if(ctrl[KeyCodec::Back].isEnabled())
+    if(ctrl[KeyCodec::Back])
       camera->moveBack(dt);
     return true;
     }
 
-  if(ctrl[Action::K_F8].isEnabled() && Gothic::inst().isMarvinEnabled())
+  if(ctrl[Action::K_F8] && Gothic::inst().isMarvinEnabled())
     marvinF8(dt);
-  if(ctrl[Action::K_K].isEnabled() && Gothic::inst().isMarvinEnabled())
+  if(ctrl[Action::K_K] && Gothic::inst().isMarvinEnabled())
     marvinK(dt);
-  cacheFocus = ctrl[Action::ActionGeneric].isEnabled();
+  cacheFocus = ctrl[Action::ActionGeneric];
   if(camera!=nullptr)
-    camera->setLookBack(ctrl[Action::LookBack].isEnabled());
+    camera->setLookBack(ctrl[Action::LookBack]);
 
   if(pl==nullptr)
     return true;
@@ -549,7 +547,7 @@ void PlayerControl::implMove(uint64_t dt) {
   float rotY     = pl.rotationY();
   float rspeed   = (pl.weaponState()==WeaponState::NoWeapon ? 90.f : 180.f)*(float(dt)/1000.f);
   auto  ws       = pl.weaponState();
-  bool  allowRot = !(pl.isPrehit() || pl.isFinishingMove() || pl.bodyStateMasked()==BS_CLIMB || ctrl[KeyCodec::ActionGeneric].isEnabled());
+  bool  allowRot = !(pl.isPrehit() || pl.isFinishingMove() || pl.bodyStateMasked()==BS_CLIMB || ctrl[KeyCodec::ActionGeneric]);
 
   Npc::Anim ani = Npc::Anim::Idle;
 
@@ -618,12 +616,12 @@ void PlayerControl::implMove(uint64_t dt) {
 
   int rotation=0;
   if(allowRot) {
-    if(ctrl[KeyCodec::RotateL].isEnabled()) {
+    if(ctrl[KeyCodec::RotateL]) {
       rot += rspeed;
       rotation = -1;
       rotMouse=0;
       }
-    if(ctrl[KeyCodec::RotateR].isEnabled()) {
+    if(ctrl[KeyCodec::RotateR]) {
       rot -= rspeed;
       rotation = 1;
       rotMouse=0;
@@ -656,9 +654,9 @@ void PlayerControl::implMove(uint64_t dt) {
     return;
     }
 
-  if(ctrl[Action::K_ENTER].isEnabled()) {
+  if(ctrl[Action::K_ENTER]) {
     pl.transformBack();
-    ctrl[Action::K_ENTER].reset();
+    ctrl[Action::K_ENTER] = false;
     }
 
   if((ws==WeaponState::Bow || ws==WeaponState::CBow) && pl.hasAmunition()) {
@@ -687,7 +685,7 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   if(actrl[ActForward] || actrl[ActMove]) {
-    ctrl [Action::Forward].primary = actrl[ActMove]; // TODO: make sure it doesn't break the secondary key.
+    ctrl [Action::Forward] = actrl[ActMove];
     actrl[ActMove]         = false;
     if(ws!=WeaponState::Mage && !(g2Ctrl && (ws==WeaponState::Bow || ws==WeaponState::CBow)))
        actrl[ActForward] = false;
@@ -731,11 +729,11 @@ void PlayerControl::implMove(uint64_t dt) {
     else if(ws==WeaponState::W1H || ws==WeaponState::W2H) {
       if(actrl[ActLeft]) {
         if(pl.swingSwordL())
-          ctrl[Action::Left].reset();
+          ctrl[Action::Left] = false;
         } else
       if(actrl[ActRight]) {
         if(pl.swingSwordR())
-          ctrl[Action::Right].reset();
+          ctrl[Action::Right] = false;
         } else
       if(actrl[ActBack])
         pl.blockSword();
@@ -759,7 +757,7 @@ void PlayerControl::implMove(uint64_t dt) {
       }
     }
 
-  if(ctrl[Action::Forward].isEnabled()) {
+  if(ctrl[Action::Forward]) {
     if((pl.walkMode()&WalkBit::WM_Dive)!=WalkBit::WM_Dive) {
       ani = Npc::Anim::Move;
       } else if(pl.isDive()) {
@@ -767,7 +765,7 @@ void PlayerControl::implMove(uint64_t dt) {
       return;
       }
     }
-  else if(ctrl[Action::Back].isEnabled()) {
+  else if(ctrl[Action::Back]) {
     if((pl.walkMode()&WalkBit::WM_Dive)!=WalkBit::WM_Dive) {
       ani = Npc::Anim::MoveBack;
       } else if(pl.isDive()) {
@@ -775,12 +773,12 @@ void PlayerControl::implMove(uint64_t dt) {
       return;
       }
     }
-  else if(ctrl[Action::Left].isEnabled())
+  else if(ctrl[Action::Left])
     ani = Npc::Anim::MoveL;
-  else if(ctrl[Action::Right].isEnabled())
+  else if(ctrl[Action::Right])
     ani = Npc::Anim::MoveR;
 
-  if(ctrl[Action::Jump].isEnabled()) {
+  if(ctrl[Action::Jump]) {
     if(pl.bodyStateMasked()==BS_JUMP) {
       ani = Npc::Anim::Idle;
       }
@@ -822,7 +820,7 @@ void PlayerControl::implMove(uint64_t dt) {
     pl.setAnim(ani);
     }
 
-  setAnimRotate(pl, rot, ani==Npc::Anim::Idle ? rotation : 0, ctrl[KeyCodec::RotateL].isEnabled() || ctrl[KeyCodec::RotateR].isEnabled(), dt);
+  setAnimRotate(pl, rot, ani==Npc::Anim::Idle ? rotation : 0, ctrl[KeyCodec::RotateL] || ctrl[KeyCodec::RotateR], dt);
   if(actrl[ActGeneric] || ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR || pl.isFinishingMove()) {
     processAutoRotate(pl,rot,dt);
     }
@@ -839,7 +837,7 @@ void PlayerControl::implMoveMobsi(Npc& pl, uint64_t /*dt*/) {
   // animation handled in MOBSI
   auto inter = pl.interactive();
 
-  if(ctrl[KeyCodec::Back].isEnabled() && !inter->isLadder()) {
+  if(ctrl[KeyCodec::Back] && !inter->isLadder()) {
     pl.setInteraction(nullptr);
     return;
     }
@@ -855,14 +853,14 @@ void PlayerControl::implMoveMobsi(Npc& pl, uint64_t /*dt*/) {
     }
 
   if(inter->isLadder()) {
-    if(ctrl[KeyCodec::ActionGeneric].isEnabled()) {
+    if(ctrl[KeyCodec::ActionGeneric]) {
       inter->onKeyInput(KeyCodec::ActionGeneric);
-      ctrl[KeyCodec::ActionGeneric].reset();
+      ctrl[KeyCodec::ActionGeneric] = false;
       }
-    else if(ctrl[KeyCodec::Forward].isEnabled()) {
+    else if(ctrl[KeyCodec::Forward]) {
       inter->onKeyInput(KeyCodec::Forward);
       }
-    else if(ctrl[KeyCodec::Back].isEnabled()) {
+    else if(ctrl[KeyCodec::Back]) {
       inter->onKeyInput(KeyCodec::Back);
       }
     }
@@ -922,7 +920,7 @@ void PlayerControl::processLadder(Npc& pl, Interactive& inter, KeyCodec::Action 
   if(key!=KeyCodec::ActionGeneric && key!=KeyCodec::Forward && key!=KeyCodec::Back)
     return;
 
-  ctrl[key].primary = true; // TODO: ensure this function is used anywhere
+  ctrl[key] = true;
   inter.onKeyInput(key);
   }
 
