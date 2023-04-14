@@ -79,23 +79,35 @@ class PlayerControl final {
     static constexpr size_t NumAxes = 2;
 
     struct AxisStatus { 
+
+        /// Main direction (e.g. W or Up arrow)
         std::array<bool, 2> main;
+        
+		/// Reverse direction (e.g. S or Down arrow)
         std::array<bool, 2> reverse;
       
+		/// Returns the current axis value (scale from -1 to 1)
         auto modifier() const -> float {
           return
               this->anyMain() ? 1.f : 0.f
             + this->anyReverse() ? -1.f : 0.f;
           }
 
+        /// Returns true if only one of directions is active
+        /// (e.g. false if none or both directions are active).
         auto any() const -> bool {
           return this->modifier() != 0;
           }
       private:
+          
+        /// Is any key pressed that activates the main direction
+        /// (e.g. W or Up Arrow in Forward-Backward axis)
         auto anyMain() const -> bool {
           return this->main[0] || this->main[1];
           }
         
+		/// Is any key pressed that activates the reverse direction
+        /// (e.g. S or Down arrow in Forward-Backward axis)
         auto anyReverse() const -> bool {
           return this->reverse[0] || this->reverse[1];
           }
