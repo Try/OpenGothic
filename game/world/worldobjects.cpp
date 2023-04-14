@@ -736,12 +736,13 @@ Npc* WorldObjects::findNpc(const Npc &pl, Npc *def, const SearchOpt& opt) {
   if(def) {
     auto xopt  = opt;
     xopt.flags = SearchFlg(xopt.flags | SearchFlg::NoAngle | SearchFlg::NoRay);
-    if(def && testObj(*def,pl,xopt))
+    if(def && testObj(*def,pl,xopt) && !(def->isDead() && def->inventory().isEmpty()))
       return def;
     }
   auto r = findObj(npcArr,pl,opt);
   if(r!=nullptr && (!Gothic::inst().doHideFocus() || !r->get()->isDead() ||
-                    r->get()->inventory().iterator(Inventory::T_Ransack).isValid()))
+                    r->get()->inventory().iterator(Inventory::T_Ransack).isValid()) &&
+                    !(r->get()->isDead() && r->get()->inventory().isEmpty()))
     return r->get();
   return nullptr;
   }
