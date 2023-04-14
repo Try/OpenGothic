@@ -92,7 +92,7 @@ class PlayerControl final {
         }
 	  };
 
-    std::array<KeyStatus, Action::Last> ctrl{};
+    KeyStatus      ctrl[Action::Last]={};
     bool           wctrl[WeaponAction::Last]={};
     bool           actrl[7]={};
 
