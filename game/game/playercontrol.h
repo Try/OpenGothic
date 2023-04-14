@@ -75,6 +75,34 @@ class PlayerControl final {
 
     using Action=KeyCodec::Action;
 
+    // Forward-Backward, Right-Left
+    static constexpr size_t NumAxes = 2;
+
+    struct AxisStatus { 
+        std::array<bool, 2> main;
+        std::array<bool, 2> reverse;
+      
+        auto modifier() const -> float {
+          return
+              this->anyMain() ? 1.f : 0.f
+            + this->anyReverse() ? -1.f : 0.f;
+          }
+
+        auto any() const -> bool {
+          return this->modifier() != 0;
+          }
+      private:
+        auto anyMain() const -> bool {
+          return this->main[0] || this->main[1];
+          }
+        
+        auto anyReverse() const -> bool {
+          return this->reverse[0] || this->reverse[1];
+          }
+      };
+
+    std::array<AxisStatus, NumAxes> axes;
+    
     bool           ctrl[Action::Last]={};
     bool           wctrl[WeaponAction::Last]={};
     bool           actrl[7]={};
