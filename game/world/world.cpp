@@ -109,19 +109,21 @@ World::~World() {
   }
 
 void World::createPlayer(std::string_view cls) {
-  npcPlayer = addNpc(cls,wmatrix->startPoint().name);
-  if(npcPlayer!=nullptr) {
-    npcPlayer->setProcessPolicy(Npc::ProcessPolicy::Player);
-    game.script()->setInstanceNPC("HERO",*npcPlayer);
-    }
+  size_t id = script().findSymbolIndex(cls);
+  if(id==size_t(-1))
+    return;
+  std::string_view waypoint = wmatrix->startPoint().name;
+  auto             npc      = std::make_unique<Npc>(*this,id,waypoint);
+  npcPlayer = wobj.insertPlayer(std::move(npc),waypoint);
+  npcPlayer->setProcessPolicy(Npc::ProcessPolicy::Player);
+  game.script()->setInstanceNPC("HERO",*npcPlayer);
   }
 
 void World::insertPlayer(std::unique_ptr<Npc> &&npc, std::string_view waypoint) {
   if(npc==nullptr)
     return;
   npcPlayer = wobj.insertPlayer(std::move(npc),waypoint);
-  if(npcPlayer!=nullptr)
-    game.script()->setInstanceNPC("HERO",*npcPlayer);
+  game.script()->setInstanceNPC("HERO",*npcPlayer);
   }
 
 void World::setPlayer(Npc* npc) {
@@ -846,6 +848,10 @@ const WayPoint *World::findNextFreePoint(const Npc &npc, std::string_view name) 
 
 const WayPoint *World::findNextPoint(const WayPoint &pos) const {
   return wmatrix->findNextPoint(pos.position());
+  }
+
+const WayPoint& World::startPoint() const {
+  return wmatrix->startPoint();
   }
 
 const WayPoint& World::deadPoint() const {
