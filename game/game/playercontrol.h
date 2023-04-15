@@ -89,8 +89,8 @@ class PlayerControl final {
 		/// Returns the current axis value (scale from -1 to 1)
         auto modifier() const -> float {
           return
-              this->anyMain() ? 1.f : 0.f
-            + this->anyReverse() ? -1.f : 0.f;
+              (this->anyMain() ? 1.f : 0.f)
+            + (this->anyReverse() ? -1.f : 0.f);
           }
 
         /// Returns true if only one of directions is active
