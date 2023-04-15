@@ -27,13 +27,18 @@ class Sky final {
     void drawFog    (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
 
     const Tempest::Texture2d& skyLut()           const;
-    const Tempest::Texture2d& shadowLq()         const;
     const LightSource&        sunLight()         const { return sun; }
     const Tempest::Vec3&      ambientLight()     const { return ambient; }
     float                     sunIntensity()     const { return GSunIntensity; }
     float                     autoExposure()     const { return exposureInv; }
 
   private:
+    enum Quality : uint8_t {
+      Exponential,
+      VolumetricLQ,
+      VolumetricHQ,
+      };
+
     struct Layer final {
       const Tempest::Texture2d* texture=nullptr;
       };
@@ -64,7 +69,7 @@ class Sky final {
 
     float                         isNight() const;
 
-    bool                          zFogRadial = false;
+    Quality                       quality = Quality::Exponential;
 
     LightSource                   sun;
     Tempest::Vec3                 ambient;
@@ -74,12 +79,15 @@ class Sky final {
     Tempest::TextureFormat        lutRGBAFormat = Tempest::TextureFormat::RGBA16F;
     Tempest::Attachment           transLut, multiScatLut, viewLut, fogLut;
     Tempest::StorageImage         cloudsLut, fogLut3D, shadowDw;
+    Tempest::StorageImage         occlusionLut;
 
     Tempest::DescriptorSet        uboClouds;
     Tempest::DescriptorSet        uboTransmittance;
     Tempest::DescriptorSet        uboMultiScatLut, uboSkyViewLut;
-    Tempest::DescriptorSet        uboFogViewLut,   uboFogViewLut3d[Resources::MaxFramesInFlight], uboShadowDw;
-    Tempest::DescriptorSet        uboSky, uboSky3d, uboFog, uboFog3d;
+    Tempest::DescriptorSet        uboFogViewLut,   uboFogViewLut3d[Resources::MaxFramesInFlight];
+    Tempest::DescriptorSet        uboSky;
+    Tempest::DescriptorSet        uboFog[Resources::MaxFramesInFlight], uboFog3d[Resources::MaxFramesInFlight];
+    Tempest::DescriptorSet        uboShadowDw, uboOcclusion[Resources::MaxFramesInFlight];
 
     bool                          lutIsInitialized = false;
 

@@ -94,14 +94,17 @@ Shaders::Shaders() {
   skyTransmittance   = postEffect("sky_transmittance");
   skyMultiScattering = postEffect("sky_multi_scattering");
   skyViewLut         = postEffect("sky_view_lut");
+
   fogViewLut         = postEffect("fog_view_lut");
-  fogViewLut3D       = computeShader("fog_view_lut.comp.sprv");
+  fogViewLut3dLQ     = computeShader("fog_view_lut_lq.comp.sprv");
+  fogViewLut3dHQ     = computeShader("fog_view_lut_hq.comp.sprv");
   shadowDownsample   = computeShader("shadow_downsample.comp.sprv");
+  fogOcclusion       = computeShader("fog3d.comp.sprv");
 
   sky                = postEffect("sky");
   fog                = fogShader ("fog");
-  sky3d              = postEffect("sky3d");
-  fog3d              = fogShader ("fog3d");
+  fog3dLQ            = fogShader ("fog3d_lq");
+  fog3dHQ            = fogShader ("fog3d_hq");
 
   {
   RenderState state;

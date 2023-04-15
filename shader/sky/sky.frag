@@ -8,14 +8,6 @@ layout(binding = 0) uniform sampler2D tLUT;
 layout(binding = 1) uniform sampler2D mLUT;
 layout(binding = 2) uniform sampler2D skyLUT;
 
-#if defined(VOLUMETRIC)
-layout(binding = 3) uniform sampler3D fogLut;
-#endif
-
-#if defined(FOG)
-layout(binding = 4) uniform sampler2D depth;
-#endif
-
 layout(binding = 4) uniform sampler2D textureDayL0;
 layout(binding = 5) uniform sampler2D textureDayL1;
 layout(binding = 6) uniform sampler2D textureNightL0;
@@ -24,7 +16,6 @@ layout(binding = 7) uniform sampler2D textureNightL1;
 layout(location = 0) in  vec2 inPos;
 layout(location = 0) out vec4 outColor;
 
-#if !defined(FOG)
 vec4 clouds(vec3 at, float nightPhase, vec3 highlight,
             vec2 dxy0, vec2 dxy1,
             in sampler2D dayL1,   in sampler2D dayL0,
@@ -66,8 +57,6 @@ vec4 clouds(vec3 at, vec3 highlight) {
                 textureDayL1,textureDayL0, textureNightL1,textureNightL0);
   }
 
-#endif
-
 /*
  * Final output basically looks up the value from the skyLUT, and then adds a sun on top,
  * does some tonemapping.
@@ -83,7 +72,7 @@ vec3 atmosphere(vec3 view, vec3 sunDir) {
 
 // debug only
 vec3 transmittance(vec3 pos0, vec3 pos1) {
-  const int   steps = 32;
+  const int steps = 32;
 
   vec3  transmittance = vec3(1.0);
   vec3  dir  = pos1-pos0;
@@ -117,89 +106,6 @@ vec3 transmittanceAprox(in vec3 pos0, in vec3 pos1) {
   return exp(-length(dir)*extinction);
   }
 
-// based on: https://developer.amd.com/wordpress/media/2012/10/Wenzel-Real-time_Atmospheric_Effects_in_Games.pdf
-float volumetricFog(in vec3 pos, in vec3 pos1) {
-  vec3 dir = pos1-pos;
-  // Fog props
-  const float fogHeightDensityAtViewer = 0.5;
-  const float globalDensity            = 0.005;
-  const float heightFalloff            = 0.02;
-
-  // float fogHeightDensityAtViewer = exp(-heightFalloff * pos.z);
-  float fogInt = length(dir) * fogHeightDensityAtViewer;
-  if(abs(dir.y) > 0.01) {
-    float t = heightFalloff*dir.y;
-    fogInt *= (1.0-exp(-t))/t;
-    }
-
-  return exp(-globalDensity*fogInt);
-  }
-
-#if defined(VOLUMETRIC)
-#define MAX_DEBUG_COLORS 10
-const vec3 debugColors[MAX_DEBUG_COLORS] = {
-  vec3(1,1,1),
-  vec3(1,0,0),
-  vec3(0,1,0),
-  vec3(0,0,1),
-  vec3(1,1,0),
-  vec3(1,0,1),
-  vec3(0,1,1),
-  vec3(1,0.5,0),
-  vec3(0.5,1,0),
-  vec3(0,0.5,1),
-  };
-
-vec4 fog(vec2 uv, float z, vec3 sunDir) {
-  float dMin = 0;
-  float dMax = 0.9999;
-
-  float dZ   = linearDepth(   z, push.clipInfo);
-  float d0   = linearDepth(dMin, push.clipInfo);
-  float d1   = linearDepth(dMax, push.clipInfo);
-
-  float d    = (dZ-d0)/(d1-d0);
-  // return vec4(debugColors[min(int(d*textureSize(fogLut,0).z), textureSize(fogLut,0).z-1)%MAX_DEBUG_COLORS], 1);
-
-  // vec3  trans    = transmittance(pos0, posz);
-  // vec3  trans    = transmittance(pos0, pos1);
-
-  vec4  val      = textureLod(fogLut, vec3(uv,d), 0);
-  vec3  trans    = vec3(1.0-val.w);
-  float fogDens  = (trans.x+trans.y+trans.z)/3.0;
-
-  vec3  lum      = val.rgb;
-  return vec4(lum, fogDens);
-  }
-#else
-vec4 fog(vec2 uv, float z, vec3 sunDir) {
-  float dMin = 0.0;
-  float dMax = 1.0;
-
-  float dZ   = linearDepth(   z, push.clipInfo);
-  float d0   = linearDepth(dMin, push.clipInfo);
-  float d1   = linearDepth(dMax, push.clipInfo);
-
-  float d    = (dZ-d0)/(d1-d0);
-
-  vec3  pos0     = inverse(vec3(inPos,0));
-  vec3  posz     = inverse(vec3(inPos,z));
-
-  vec3  val      = textureLod(skyLUT, uv, 0).rgb;
-  vec3  trans    = vec3(1.0)-transmittance(pos0, posz);
-  float fogDens  = (trans.x+trans.y+trans.z)/3.0;
-
-  //return vec4(fogDens);
-
-  vec3  lum      = val.rgb;
-  lum *= clamp(d,0,1);
-#if !defined(FOG)
-  lum = vec3(0);
-#endif
-  return vec4(lum, fogDens);
-  }
-#endif
-
 vec3 sky(vec2 uv, vec3 sunDir) {
   vec3  pos      = vec3(0,RPlanet+push.plPosY,0);
   vec3  pos1     = inverse(vec3(inPos,1.0));
@@ -210,17 +116,18 @@ vec3 sky(vec2 uv, vec3 sunDir) {
   vec3 sunLum    = sunWithBloom(view, sunDir);
 
   // Use smoothstep to limit the effect, so it drops off to actual zero.
+  /*
   sunLum = smoothstep(0.002, 1.0, sunLum);
   sunLum *= textureLUT(tLUT, view, sunDir);
 
   if((sunLum.x>0 || sunLum.y>0 || sunLum.z>0) && rayIntersect(pos, view, RPlanet)>=0.0) {
     sunLum = vec3(0.0);
     }
-  //lum += sunLum;
+  lum += sunLum;
+  */
   return lum;
   }
 
-#if !defined(FOG)
 vec3 applyClouds(vec3 skyColor, vec3 sunDir) {
   vec3  pos      = vec3(0,RPlanet+push.plPosY,0);
   vec3  pos1     = inverse(vec3(inPos,1.0));
@@ -241,30 +148,18 @@ vec3 applyClouds(vec3 skyColor, vec3 sunDir) {
 
   return mix(skyColor, cloud.rgb, cloud.a);
   }
-#endif
 
 void main() {
   vec2 uv     = inPos*vec2(0.5)+vec2(0.5);
   vec3 view   = normalize(inverse(vec3(inPos,1.0)));
   vec3 sunDir = push.sunDir;
 
-#if defined(FOG)
-  const float z   = textureLod(depth,uv,0).r;
-  const vec4  val = fog(uv,z,push.sunDir);
-
-  vec3  lum = val.rgb;
-  float tr  = val.a;
-#else
   // Sky
   vec3  lum = sky(uv, sunDir);
   float tr  = 1.0;
   // Clouds
   lum = applyClouds(lum, sunDir);
-#endif
-
   lum = lum * push.GSunIntensity;
-  // lum = vec3(tr); //debug transmittance
-  outColor = vec4(lum, tr);
 
-  // outColor = vec4(val.a*2.0);
+  outColor = vec4(lum, tr);
   }
