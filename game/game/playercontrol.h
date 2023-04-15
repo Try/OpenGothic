@@ -85,7 +85,7 @@ class PlayerControl final {
         
 		/// Reverse direction (e.g. S or Down arrow)
         std::array<bool, 2> reverse;
-      
+
 		/// Returns the current axis value (scale from -1 to 1)
         auto modifier() const -> float {
           return
@@ -113,7 +113,16 @@ class PlayerControl final {
           }
       };
 
-    std::array<AxisStatus, NumAxes> axes;
+    struct MovementStatus {
+        /// Forward/backward direction
+        AxisStatus forward;
+        
+		/// Strafing right/left 
+		AxisStatus strafeRight;
+
+        /// Turning right/left
+        AxisStatus turnRight;
+      } movement;
     
     bool           ctrl[Action::Last]={};
     bool           wctrl[WeaponAction::Last]={};
