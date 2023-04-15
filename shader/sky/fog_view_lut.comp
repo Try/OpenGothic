@@ -159,7 +159,10 @@ void main() {
 
     vec3  sampleTransmittance = exp(-dd*extinction*viewDistanceScale);
 
-#ifdef COMPUTE
+#if defined(VOLUMETRIC_HQ)
+    vec3  sunTransmittance    = sunTransmittance0;
+    vec3  psiMS               = psiMS0;
+#elif defined(VOLUMETRIC_LQ)
     int   samplecount         = max(32-i/2,1);
     float shadow              = shadowFactorMS(mix(shPos0,shPos1,tPrev),
                                                mix(shPos0,shPos1,t),
