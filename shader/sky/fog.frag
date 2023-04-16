@@ -11,7 +11,7 @@
 #endif
 
 #if defined(COMPUTE)
-layout(local_size_x = 8, local_size_y = 2*8) in;
+layout(local_size_x = 1*8, local_size_y = 2*8) in;
 vec2 inPos;
 #else
 layout(location = 0) in  vec2 inPos;
@@ -31,16 +31,15 @@ layout(binding = 1) uniform sampler2D depth;
 layout(binding = 2, std140) uniform UboScene {
   SceneDesc scene;
   };
-layout(binding = 3) uniform sampler2D cloudsLUT;
 
 #if defined(VOLUMETRIC_HQ)
-layout(binding = 4) uniform sampler2D textureSm1;
+layout(binding = 3) uniform sampler2D textureSm1;
 #endif
 
 #if defined(VOLUMETRIC_HQ) && defined(COMPUTE)
-layout(binding = 5, r32ui) uniform writeonly restrict uimage2D occlusionLut;
+layout(binding = 4, r32ui) uniform writeonly restrict uimage2D occlusionLut;
 #elif defined(VOLUMETRIC_HQ)
-layout(binding = 5, r32ui) uniform readonly  restrict uimage2D occlusionLut;
+layout(binding = 4, r32ui) uniform readonly  restrict uimage2D occlusionLut;
 #endif
 
 #if defined(COMPUTE)
@@ -213,27 +212,25 @@ vec4 fog(vec2 uv, float z) {
     }
     */
 
+  // every bit = one ample of shadowmap
   const uint occlusion = imageLoad(occlusionLut, ivec2(gl_FragCoord.xy)).r;
-  if(occlusion==0x0) {
-    const float shadow = 0.05;
-    const vec4  val    = textureLod(fogLut, vec3(uv,distZ/dist), 0);
-    transmittance   = val.a;
-    scatteredLight += (val.rgb-prevVal.rgb)*shadow;
-    return vec4(scatteredLight, 1.0-transmittance);
-    }
-  if(occlusion==0xFFFFFFFF) {
-    const float shadow = 1.0;
-    const vec4  val    = textureLod(fogLut, vec3(uv,distZ/dist), 0);
-    transmittance   = val.a;
-    scatteredLight += (val.rgb-prevVal.rgb)*shadow;
-    return vec4(scatteredLight, 1.0-transmittance);
+  [[dont_unroll]]
+  for(int i=0; i<steps; i++) {
+    bool  bit    = bitfieldExtract(occlusion,i,1)!=0;
+    float shadow = bit ? 1.0 : 0.05;
+
+    {
+      // scan for consecutive range of same bits
+      uint oc = occlusion;
+      if(bit)
+        oc = oc ^ 0xFFFFFFFF;
+      oc = oc & (0xFFFFFFFF << i);
+      int lsb = findLSB(oc);
+      i = (lsb<0) ? 31 : lsb-1;
     }
 
-  [[dont_unroll]]
-  for(int i=0; i<steps; i+=1) {
-    float t      = (i+0.3)/float(steps);
-    float dd     = (t*distZ)/(dist);
-    float shadow = bitfieldExtract(occlusion,i,1)*0.95 + 0.05;
+    const float t   = (i+0.3)/float(steps);
+    const float dd  = (t*distZ)/(dist);
 
     const vec4  val = textureLod(fogLut, vec3(uv,dd), 0);
     transmittance   = val.a;
@@ -302,7 +299,7 @@ void main_comp() {
 void main() {
 #if defined(COMPUTE)
   /*
-  const uvec2 persistent = uvec2(1,1);
+  const uvec2 persistent = uvec2(1,2);
   const uvec2 baseId     = gl_WorkGroupID.xy*gl_WorkGroupSize.xy*persistent + gl_LocalInvocationID.xy;
   [[dont_unroll]]
   for(int y=0; y<persistent.y; ++y)
