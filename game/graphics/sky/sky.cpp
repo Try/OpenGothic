@@ -270,7 +270,6 @@ void Sky::setupUbo() {
       uboFog[i].set(0, fogLut,         smpB);
       uboFog[i].set(1, *scene.zbuffer, Sampler::nearest()); // NOTE: wanna here depthFetch from gles2
       uboFog[i].set(2, scene.uboGlobalPf[i][SceneGlobals::V_Main]);
-      uboFog[i].set(3, cloudsLut,      smpB);
       }
 
     if(quality==VolumetricLQ) {
@@ -290,7 +289,6 @@ void Sky::setupUbo() {
       uboFog3d[i].set(0, fogLut3D,       smpB);
       uboFog3d[i].set(1, *scene.zbuffer, Sampler::nearest());
       uboFog3d[i].set(2, scene.uboGlobalPf[i][SceneGlobals::V_Main]);
-      uboFog3d[i].set(3, cloudsLut,      smpB);
       }
 
     if(quality==VolumetricHQ) {
@@ -301,9 +299,8 @@ void Sky::setupUbo() {
       // uboOcclusion[i].set(0, fogLut3D,       smpB);
       uboOcclusion[i].set(1, *scene.zbuffer, Sampler::nearest());
       uboOcclusion[i].set(2, scene.uboGlobalPf[i][SceneGlobals::V_Main]);
-      uboOcclusion[i].set(3, cloudsLut,      smpB);
-      uboOcclusion[i].set(4, *scene.shadowMap[1], Resources::shadowSampler());
-      uboOcclusion[i].set(5, occlusionLut);
+      uboOcclusion[i].set(3, *scene.shadowMap[1], Resources::shadowSampler());
+      uboOcclusion[i].set(4, occlusionLut);
 
       uboFogViewLut3d[i] = device.descriptors(Shaders::inst().fogViewLut3dHQ);
       uboFogViewLut3d[i].set(0, transLut,     smpB);
@@ -317,9 +314,8 @@ void Sky::setupUbo() {
       uboFog3d[i].set(0, fogLut3D,       smpB);
       uboFog3d[i].set(1, *scene.zbuffer, Sampler::nearest());
       uboFog3d[i].set(2, scene.uboGlobalPf[i][SceneGlobals::V_Main]);
-      uboFog3d[i].set(3, cloudsLut,      smpB);
-      uboFog3d[i].set(4, *scene.shadowMap[1], Resources::shadowSampler());
-      uboFog3d[i].set(5, occlusionLut);
+      uboFog3d[i].set(3, *scene.shadowMap[1], Resources::shadowSampler());
+      uboFog3d[i].set(4, occlusionLut);
       }
     }
 
@@ -378,7 +374,7 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
       break;
       }
     case VolumetricHQ: {
-      const bool persistent = false;
+      const bool persistent = true;
       cmd.setFramebuffer({});
       cmd.setUniforms(Shaders::inst().fogOcclusion, uboOcclusion[frameId], &ubo, sizeof(ubo));
       if(persistent) {
