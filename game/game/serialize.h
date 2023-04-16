@@ -1,6 +1,5 @@
 #pragma once
 
-#include <concepts>
 #include <Tempest/IDevice>
 #include <Tempest/ODevice>
 #include <Tempest/Pixmap>
@@ -33,9 +32,10 @@ class SaveGameHeader;
 
 
 // A bit faster than using a stringstream directly.
-template <std::integral T>
+template <typename T>
+  requires std::is_integral_v<T>
 inline void append(std::string& to, T arg) {
-  to += std::to_string(arg);
+  to += std::to_string(static_cast<size_t>(arg));
   }
 
 // A bit faster than using a stringstream directly.
