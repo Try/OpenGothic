@@ -104,32 +104,32 @@ KeyCodec::KeyCodec() {
   setupSettings();
   }
 
-KeyCodec::Action KeyCodec::tr(Tempest::KeyEvent& e) const {
+KeyCodec::ActionMapping KeyCodec::tr(Tempest::KeyEvent const& e) const {
   int32_t code = keyToCode(e.key);
   if(e.key==Tempest::KeyEvent::K_ESCAPE)
-    return Escape;
+    return { Escape, Mapping::Primary };
   auto act = implTr(code);
-  if(act!=KeyCodec::Idle)
+  if(act.action!=KeyCodec::Idle)
     return act;
   if(Tempest::Event::K_0<e.key && e.key<=Tempest::Event::K_9)
-    return Action(Weapon+int(e.key-Tempest::Event::K_0));
+    return { Action(Weapon+int(e.key-Tempest::Event::K_0)), Mapping::Primary };
   if(Tempest::Event::K_0==e.key)
-    return Action(Weapon+10);
+    return { Action(Weapon+10), Mapping::Primary };
   if(e.key==Tempest::Event::K_F8)
-    return K_F8;
+    return { K_F8, Mapping::Primary };
   if(e.key == Tempest::Event::K_K)
-    return K_K;
+    return { K_K, Mapping::Primary };
   if(e.key == Tempest::Event::K_O)
-    return K_O;
-  return Idle;
+    return { K_O, Mapping::Primary };
+  return { Idle, Mapping::Primary };
   }
 
-KeyCodec::Action KeyCodec::tr(Tempest::MouseEvent& e) const {
+KeyCodec::ActionMapping KeyCodec::tr(Tempest::MouseEvent const& e) const {
   int32_t code = keyToCode(e.button);
   auto act = implTr(code);
-  if(act!=KeyCodec::Idle)
+  if(act.action!=KeyCodec::Idle)
     return act;
-  return Idle;
+  return { Idle, Mapping::Primary };
   }
 
 void KeyCodec::set(std::string_view sec, std::string_view opt, int32_t code) {
@@ -237,60 +237,61 @@ std::string KeyCodec::toCode(int32_t code) {
   return ret;
   }
 
-KeyCodec::Action KeyCodec::implTr(int32_t code) const {
-  if(keyEnd.is(code))
-    return Idle;
-  if(keyUp.is(code))
-    return Forward;
-  if(keyDown.is(code))
-    return Back;
-  if(keyLeft.is(code))
-    return RotateL;
-  if(keyRight.is(code))
-    return RotateR;
-  if(keyStrafeLeft.is(code))
-    return Left;
-  if(keyStrafeRight.is(code))
-    return Right;
+KeyCodec::ActionMapping KeyCodec::implTr(int32_t code) const {
+  if(auto m = keyEnd.getMapping(code))
+    return { Idle, *m };
+  if(auto m = keyUp.getMapping(code))
+    return { Forward, *m };
+  if(auto m = keyDown.getMapping(code))
+    return { Back, *m };
+  if(auto m = keyLeft.getMapping(code))
+    return { RotateL, *m };
+  if(auto m = keyRight.getMapping(code))
+    return { RotateR, *m };
+  if(auto m = keyStrafeLeft.getMapping(code))
+    return { Left, *m };
+  if(auto m = keyStrafeRight.getMapping(code))
+    return { Right, *m };
 
-  if(keyAction.is(code))
-    return ActionGeneric;
-  if(keyActionLeft.is(code))
-    return ActionLeft;
-  if(keyActionRight.is(code))
-    return ActionRight;
-  if(keyParade.is(code))
-    return Parade;
+  if(auto m = keyAction.getMapping(code))
+    return { ActionGeneric, *m };
+  if(auto m = keyActionLeft.getMapping(code))
+    return { ActionLeft, *m };
+  if(auto m = keyActionRight.getMapping(code))
+    return { ActionRight, *m };
+  if(auto m = keyParade.getMapping(code))
+    return { Parade, *m };
 
-  if(keySlow.is(code))
-    return Walk;
-  if(keySMove.is(code))
-    return Jump;
+  if(auto m = keySlow.getMapping(code))
+    return { Walk, *m };
+  if(auto m = keySMove.getMapping(code))
+    return { Jump, *m };
 
-  if(keyWeapon.is(code))
-    return Weapon;
-  if(keySneak.is(code))
-    return Sneak;
+  if(auto m = keyWeapon.getMapping(code))
+    return { Weapon, *m };
+  if(auto m = keySneak.getMapping(code))
+    return { Sneak, *m };
 
-  if(keyLook.is(code))
-    return LookBack;
-  if(keyLookFP.is(code))
-    return FirstPerson;
+  if(auto m = keyLook.getMapping(code))
+    return { LookBack, *m };
+  if(auto m = keyLookFP.getMapping(code))
+    return { FirstPerson, *m };
 
-  if(keyInventory.is(code))
-    return Inventory;
-  if(keyShowStatus.is(code))
-    return Status;
-  if(keyShowLog.is(code))
-    return Log;
-  if(keyShowMap.is(code))
-    return Map;
-  if(keyHeal.is(code))
-    return Heal;
-  if(keyPotion.is(code))
-    return Potion;
+  if(auto m = keyInventory.getMapping(code))
+    return { Inventory, *m };
+  if(auto m = keyShowStatus.getMapping(code))
+    return { Status, *m };
+  if(auto m = keyShowLog.getMapping(code))
+    return { Log, *m };
+  if(auto m = keyShowMap.getMapping(code))
+    return { Map, *m };
+  if(auto m = keyHeal.getMapping(code))
+    return { Heal, *m };
+  if(auto m = keyPotion.getMapping(code))
+    return { Potion, *m };
 
-  return Idle;
+  // TODO: don't use "Primary" as a placeholder here.
+  return { Idle, Mapping::Primary };
   }
 
 string_frm<64> KeyCodec::keysStr(std::string_view keys) {

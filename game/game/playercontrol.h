@@ -20,8 +20,8 @@ class PlayerControl final {
     PlayerControl(DialogMenu& dlg, InventoryMenu& inv);
     ~PlayerControl();
 
-    void onKeyPressed (KeyCodec::Action a, Tempest::Event::KeyType key);
-    void onKeyReleased(KeyCodec::Action a);
+    void onKeyPressed (KeyCodec::ActionMapping am, Tempest::Event::KeyType key);
+    void onKeyReleased(KeyCodec::ActionMapping am);
     bool isPressed(KeyCodec::Action a) const;
     void onRotateMouse(float dAngle);
     void onRotateMouseDy(float dAngle);
@@ -98,6 +98,12 @@ class PlayerControl final {
         auto any() const -> bool {
           return this->modifier() != 0;
           }
+
+        auto reset() -> void {
+          this->main.fill(false);
+          this->reverse.fill(false);
+          }
+
       private:
           
         /// Is any key pressed that activates the main direction
@@ -122,6 +128,13 @@ class PlayerControl final {
 
         /// Turning right/left
         AxisStatus turnRight;
+
+        /// Resets all axes to their default state.
+        auto reset() -> void {
+          this->forward.reset();
+          this->strafeRight.reset();
+          this->turnRight.reset();
+          }
       } movement;
     
     bool           ctrl[Action::Last]={};
@@ -166,4 +179,36 @@ class PlayerControl final {
     void           assignRunAngle(Npc& pl, float rotation, uint64_t dt);
     void           setAnimRotate (Npc& pl, float rotation, int anim, bool force, uint64_t dt);
     void           processAutoRotate(Npc& pl, float& rot, uint64_t dt);
+
+
+    //////////////////////////////////
+    // Helper functions for movement
+    //////////////////////////////////
+
+    auto wantsToMoveForward() const -> bool {
+      return movement.forward.modifier() > 0.f;
+      }
+    auto wantsToMoveBackward() const -> bool {
+      return movement.forward.modifier() < 0.f;
+      }
+
+    auto wantsToStrafeRight() const -> bool {
+      return movement.strafeRight.modifier() > 0.f;
+      }
+    auto wantsToStrafeLeft() const -> bool {
+      return movement.strafeRight.modifier() < 0.f;
+      }
+
+    auto wantsToTurnRight() const -> bool {
+      return movement.turnRight.modifier() > 0.f;
+      }
+    auto wantsToTurnLeft() const -> bool {
+      return movement.turnRight.modifier() < 0.f;
+      }
+
+    /// @brief Analyses the input action mapping and updates the movement status accordingly.
+    ///        Meant to be used when key is pressed or released.
+    /// @param actionMapping - the pressed/released action
+    /// @param pressed - true if the key was pressed, false if it was released
+    auto handleMovementAction(KeyCodec::ActionMapping actionMapping, bool pressed) -> void;
   };

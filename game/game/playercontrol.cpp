@@ -41,7 +41,8 @@ void PlayerControl::setTarget(Npc *other) {
     }
   }
 
-void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType key) {
+void PlayerControl::onKeyPressed(KeyCodec::ActionMapping am, Tempest::KeyEvent::KeyType key) {
+  auto       a    = am.action;
   auto       w    = Gothic::inst().world();
   auto       c    = Gothic::inst().camera();
   auto       pl   = w  ? w->player() : nullptr;
@@ -187,10 +188,14 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
     marvinO();
 
   ctrl[a] = true;
+  this->handleMovementAction(am, true);
   }
 
-void PlayerControl::onKeyReleased(KeyCodec::Action a) {
+void PlayerControl::onKeyReleased(KeyCodec::ActionMapping am) {
+  auto a = am.action;
   ctrl[a] = false;
+
+  this->handleMovementAction(am, false);
 
   auto w  = Gothic::inst().world();
   auto pl = w ? w->player() : nullptr;
@@ -212,6 +217,23 @@ void PlayerControl::onKeyReleased(KeyCodec::Action a) {
     } else {
     std::memset(actrl,0,sizeof(actrl));
     }
+  }
+
+auto PlayerControl::handleMovementAction(KeyCodec::ActionMapping actionMapping, bool pressed) -> void {
+  auto[action, mapping] = actionMapping;
+  auto mappingIndex = (mapping == KeyCodec::Mapping::Primary ? 0 : 1);
+  if (action == Action::Forward)
+    movement.forward.main[mappingIndex] = pressed;
+  else if (action == Action::Back)
+    movement.forward.reverse[mappingIndex] = pressed;
+  else if (action == Action::Right)
+    movement.strafeRight.main[mappingIndex] = pressed;
+  else if (action == Action::Left)
+    movement.strafeRight.reverse[mappingIndex] = pressed;
+  else if (action == Action::RotateR)
+    movement.turnRight.main[mappingIndex] = pressed;
+  else if (action == Action::RotateL)
+    movement.turnRight.reverse[mappingIndex] = pressed;
   }
 
 bool PlayerControl::isPressed(KeyCodec::Action a) const {
@@ -403,6 +425,7 @@ bool PlayerControl::canInteract() const {
   }
 
 void PlayerControl::clearInput() {
+  movement.reset();
   std::memset(ctrl, 0,sizeof(ctrl));
   std::memset(actrl,0,sizeof(actrl));
   std::memset(wctrl,0,sizeof(wctrl));
@@ -495,13 +518,17 @@ bool PlayerControl::tickMove(uint64_t dt) {
       camera->moveRight(dt);
       return true;
       }
-    if(ctrl[KeyCodec::RotateL])
-      camera->rotateLeft(dt);
-    if(ctrl[KeyCodec::RotateR])
+
+    auto turningModifier = movement.turnRight.modifier();
+    if(turningModifier > 0.f)
       camera->rotateRight(dt);
-    if(ctrl[KeyCodec::Forward])
+    else if(turningModifier < 0.f)
+      camera->rotateLeft(dt);
+
+    auto forwardModifier = movement.forward.modifier();
+    if(forwardModifier > 0.f)
       camera->moveForward(dt);
-    if(ctrl[KeyCodec::Back])
+    else if(forwardModifier < 0.f)
       camera->moveBack(dt);
     return true;
     }
@@ -616,12 +643,12 @@ void PlayerControl::implMove(uint64_t dt) {
 
   int rotation=0;
   if(allowRot) {
-    if(ctrl[KeyCodec::RotateL]) {
+    if(this->wantsToTurnLeft()) {
       rot += rspeed;
       rotation = -1;
       rotMouse=0;
       }
-    if(ctrl[KeyCodec::RotateR]) {
+    if(this->wantsToTurnRight()) {
       rot -= rspeed;
       rotation = 1;
       rotMouse=0;
@@ -757,7 +784,7 @@ void PlayerControl::implMove(uint64_t dt) {
       }
     }
 
-  if(ctrl[Action::Forward]) {
+  if(this->wantsToMoveForward()) {
     if((pl.walkMode()&WalkBit::WM_Dive)!=WalkBit::WM_Dive) {
       ani = Npc::Anim::Move;
       } else if(pl.isDive()) {
@@ -765,7 +792,7 @@ void PlayerControl::implMove(uint64_t dt) {
       return;
       }
     }
-  else if(ctrl[Action::Back]) {
+  else if(this->wantsToMoveBackward()) {
     if((pl.walkMode()&WalkBit::WM_Dive)!=WalkBit::WM_Dive) {
       ani = Npc::Anim::MoveBack;
       } else if(pl.isDive()) {
@@ -773,9 +800,9 @@ void PlayerControl::implMove(uint64_t dt) {
       return;
       }
     }
-  else if(ctrl[Action::Left])
+  else if(this->wantsToStrafeLeft())
     ani = Npc::Anim::MoveL;
-  else if(ctrl[Action::Right])
+  else if(this->wantsToStrafeRight())
     ani = Npc::Anim::MoveR;
 
   if(ctrl[Action::Jump]) {
@@ -820,7 +847,7 @@ void PlayerControl::implMove(uint64_t dt) {
     pl.setAnim(ani);
     }
 
-  setAnimRotate(pl, rot, ani==Npc::Anim::Idle ? rotation : 0, ctrl[KeyCodec::RotateL] || ctrl[KeyCodec::RotateR], dt);
+  setAnimRotate(pl, rot, ani==Npc::Anim::Idle ? rotation : 0, movement.turnRight.any(), dt);
   if(actrl[ActGeneric] || ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR || pl.isFinishingMove()) {
     processAutoRotate(pl,rot,dt);
     }
