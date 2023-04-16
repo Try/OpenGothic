@@ -482,13 +482,20 @@ void Renderer::drawSSAO(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd
   }
   }
 
-Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
+auto Renderer::screenshot(uint8_t frameId, std::optional<uint32_t> reqWidth) -> Tempest::Attachment {
   auto& device = Resources::device();
   device.waitIdle();
 
-  uint32_t w    = uint32_t(zbuffer.w());
-  uint32_t h    = uint32_t(zbuffer.h());
-  auto     img  = device.attachment(Tempest::TextureFormat::RGBA8,w,h);
+  auto w = uint32_t(zbuffer.w());
+  auto h = uint32_t(zbuffer.h());
+
+  if (reqWidth.has_value()) {
+    auto initialRatio = w / double(h);
+    w = *reqWidth;
+    h = uint32_t(std::ceil(w / initialRatio));
+    }
+
+  auto img = device.attachment(Tempest::TextureFormat::RGBA8,w,h);
 
   CommandBuffer cmd;
   {

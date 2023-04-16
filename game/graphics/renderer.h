@@ -30,7 +30,7 @@ class Renderer final {
 
     void dbgDraw(Tempest::Painter& painter);
 
-    Tempest::Attachment       screenshoot(uint8_t frameId);
+    auto screenshot(uint8_t frameId, std::optional<uint32_t> reqWidth=std::nullopt) -> Tempest::Attachment;
 
   private:
     void prepareUniforms();

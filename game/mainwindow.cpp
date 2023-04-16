@@ -408,7 +408,7 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
   player.onKeyPressed(act,event.key);
 
   if(event.key==Event::K_F11) {
-    auto tex = renderer.screenshoot(cmdId);
+    auto tex = renderer.screenshot(cmdId);
     auto pm  = device.readPixels(textureCast(tex));
     pm.save("dbg.png");
     }
@@ -950,8 +950,16 @@ void MainWindow::loadGame(std::string_view slot) {
   update();
   }
 
+auto saveGameScreenshotWidth(const Gothic& inst) -> uint32_t {
+  static constexpr auto DEFAULT_WIDTH = uint32_t(640);
+  static constexpr auto MINIMAL_WIDTH = uint32_t(320); // A reasonable minimal size
+
+  auto width = uint32_t(inst.settingsGetI("SAVE", "SCREENSHOT_WIDTH"));
+  return (width > 0 ? std::max(MINIMAL_WIDTH, width) : DEFAULT_WIDTH);
+  }
+
 void MainWindow::saveGame(std::string_view slot, std::string_view name) {
-  auto tex = renderer.screenshoot(cmdId);
+  auto tex = renderer.screenshot(cmdId, saveGameScreenshotWidth(Gothic::inst()));
   auto pm  = device.readPixels(textureCast(tex));
 
   if(dialogs.isActive())
