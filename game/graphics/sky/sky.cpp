@@ -20,6 +20,11 @@ static float smoothstep(float edge0, float edge1, float x) {
   return t * t * (3.f - 2.f * t);
   };
 
+static float linearstep(float edge0, float edge1, float x) {
+  float t = std::min(std::max((x - edge0) / (edge1 - edge0), 0.f), 1.f);
+  return t;
+  };
+
 Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest::Vec3, Tempest::Vec3>& bbox)
   :scene(scene) {
   auto wname  = world.name();
@@ -123,10 +128,12 @@ void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fr
   static float GMoonIntensity = 0.1f;
 
   struct Push {
-    Tempest::Vec2 pos;
-    Tempest::Vec2 size;
-    float         GSunIntensity = 0;
-    uint32_t      isSun = 0;
+    Tempest::Vec2      pos;
+    Tempest::Vec2      size;
+    Tempest::Vec3      sunDir;
+    float              GSunIntensity = 0;
+    Tempest::Matrix4x4 viewProjectInv;
+    uint32_t           isSun = 0;
     } push;
   push.pos  = Vec2(d.x,d.y)/d.z;
   if(scene.zbuffer!=nullptr) {
@@ -135,14 +142,25 @@ void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fr
     }
   push.size          *= sun ? sunSize : (moonSize*0.25f);
   push.GSunIntensity  = sun ? GSunIntensity : GMoonIntensity;
-  push.GSunIntensity *= sun ? (1.f-isNight()) : isNight(); // HACK
   push.isSun          = sun ? 1 : 0;
+  push.sunDir         = d;
+  push.viewProjectInv = scene.viewProjectInv();
+
+  // HACK
+  if(sun) {
+    float day = sunLight().dir().y;
+    float stp = linearstep(-0.07f, 0.03f, day);
+    push.GSunIntensity *= stp*stp*4.f;
+    } else {
+    push.GSunIntensity *= isNight();
+    }
+
   cmd.setUniforms(Shaders::inst().sun, sun ? uboSun : uboMoon, &push, sizeof(push));
   cmd.draw(6);
   }
 
 float Sky::isNight() const {
-  return 1.f-std::min(std::max(3.f*sun.dir().y,0.f),1.f);
+  return 1.f - linearstep(-0.15f, 0.f, sun.dir().y);
   }
 
 void Sky::setWorld(const World& world, const std::pair<Vec3, Vec3>& bbox) {
@@ -307,9 +325,11 @@ void Sky::setupUbo() {
 
   uboSun = device.descriptors(Shaders::inst().sun);
   uboSun.set(0, *sunImg);
+  uboSun.set(1, transLut, smpB);
 
   uboMoon = device.descriptors(Shaders::inst().sun);
   uboMoon.set(0, *moonImg);
+  uboMoon.set(1, transLut, smpB);
   }
 
 void Sky::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t frameId) {
@@ -358,14 +378,14 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
       break;
       }
     case VolumetricHQ: {
-      const bool persistent = true;
+      const bool persistent = false;
       cmd.setFramebuffer({});
       cmd.setUniforms(Shaders::inst().fogOcclusion, uboOcclusion[frameId], &ubo, sizeof(ubo));
       if(persistent) {
         auto sz = Shaders::inst().fogOcclusion.workGroupSize();
         int  w  = (occlusionLut.w()+sz.x-1)/sz.x;
         int  h  = (occlusionLut.h()+sz.y-1)/sz.y;
-        cmd.dispatch(uint32_t((w+4-1)/4), uint32_t((h+1-1)/1));
+        cmd.dispatch(uint32_t((w+1-1)/1), uint32_t((h+1-1)/1));
         } else{
         cmd.dispatchThreads(uint32_t(occlusionLut.w()),uint32_t(occlusionLut.h()));
         }
@@ -390,9 +410,6 @@ void Sky::drawSky(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
   auto len2 = (ubo.clipInfo.x / (ubo.clipInfo.y * 1.0 + ubo.clipInfo.z));
   (void)len2;
 
-  // if(zFogRadial)
-  //   cmd.setUniforms(Shaders::inst().sky3d, uboSky3d, &ubo, sizeof(ubo)); else
-  //   cmd.setUniforms(Shaders::inst().sky,   uboSky,   &ubo, sizeof(ubo));
   cmd.setUniforms(Shaders::inst().sky, uboSky, &ubo, sizeof(ubo));
   cmd.draw(Resources::fsqVbo());
 

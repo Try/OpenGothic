@@ -40,7 +40,7 @@ vec4 clouds(vec3 at, float nightPhase, vec3 highlight,
   night.rgb = srgbDecode(night.rgb);
 
   day.rgb   = day.rgb  *highlight;
-  night.rgb = night.rgb*highlight*4.0;
+  night.rgb = night.rgb*highlight*16.0;
 
   //day  .a   = day  .a*0.2;
   night.a   = night.a*(nightPhase);
@@ -107,16 +107,16 @@ vec3 transmittanceAprox(in vec3 pos0, in vec3 pos1) {
   }
 
 vec3 sky(vec2 uv, vec3 sunDir) {
-  vec3  pos      = vec3(0,RPlanet+push.plPosY,0);
+  vec3  pos      = vec3(0,RPlanet,0);
   vec3  pos1     = inverse(vec3(inPos,1.0));
   vec3  pos0     = inverse(vec3(inPos,0));
 
   vec3 view      = normalize(pos1);
   vec3 lum       = atmosphere  (view, sunDir);
-  vec3 sunLum    = sunWithBloom(view, sunDir);
 
   // Use smoothstep to limit the effect, so it drops off to actual zero.
   /*
+  vec3 sunLum    = sunWithBloom(view, sunDir);
   sunLum = smoothstep(0.002, 1.0, sunLum);
   sunLum *= textureLUT(tLUT, view, sunDir);
 

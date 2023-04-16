@@ -15,6 +15,7 @@ layout(push_constant, std430) uniform UboPush {
   } push;
 
 layout(location = 0) out vec2 uv;
+layout(location = 1) out vec2 outPos;
 
 const vec2 vert[] = {
    {-1,-1},{ 1,1},{1,-1},
@@ -30,5 +31,6 @@ void main() {
   float scale = 1.0 - (isSun ? length(push.sunPos)*0.25 : 0);
   vec2  pos   = v*(push.sunSz*scale) + push.sunPos;
 
+  outPos      = pos;
   gl_Position = vec4(pos, 1.0, 1.0);
   }

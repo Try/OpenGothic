@@ -11,7 +11,7 @@
 #endif
 
 #if defined(COMPUTE)
-layout(local_size_x = 8, local_size_y = 8) in;
+layout(local_size_x = 8, local_size_y = 2*8) in;
 vec2 inPos;
 #else
 layout(location = 0) in  vec2 inPos;
@@ -201,7 +201,6 @@ vec4 fog(vec2 uv, float z) {
   return vec4(0);
 #else
   //uint  occlusion      = 0xFFFFFFF0;
-  uint  occlusion      = imageLoad(occlusionLut, ivec2(gl_FragCoord.xy)).r;
   /*
   uint occlusion = 0;
   [[dont_unroll]]
@@ -214,6 +213,7 @@ vec4 fog(vec2 uv, float z) {
     }
     */
 
+  const uint occlusion = imageLoad(occlusionLut, ivec2(gl_FragCoord.xy)).r;
   if(occlusion==0x0) {
     const float shadow = 0.05;
     const vec4  val    = textureLod(fogLut, vec3(uv,distZ/dist), 0);
@@ -301,16 +301,19 @@ void main_comp() {
 
 void main() {
 #if defined(COMPUTE)
-  const uvec2 persistent = uvec2(4,1);
+  /*
+  const uvec2 persistent = uvec2(1,1);
   const uvec2 baseId     = gl_WorkGroupID.xy*gl_WorkGroupSize.xy*persistent + gl_LocalInvocationID.xy;
   [[dont_unroll]]
-  for(int x=0; x<persistent.x; ++x) {
-    invocationID = baseId + gl_WorkGroupSize.xy*uvec2(x,0);
-    if(invocationID.x>=imageSize(occlusionLut).x)
-      break;
-    main_comp();
-    }
-  //main_comp();
+  for(int y=0; y<persistent.y; ++y)
+    for(int x=0; x<persistent.x; ++x) {
+      invocationID = baseId + gl_WorkGroupSize.xy*uvec2(x,y);
+      if(invocationID.x>=imageSize(occlusionLut).x)
+        break;
+      main_comp();
+      }
+  */
+  main_comp();
 #else
   main_frag();
 #endif
