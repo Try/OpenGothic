@@ -49,6 +49,8 @@ void PlayerControl::onKeyPressed(KeyCodec::ActionMapping am, Tempest::KeyEvent::
   auto       ws   = pl ? pl->weaponState() : WeaponState::NoWeapon;
   uint8_t    slot = pl ? pl->inventory().currentSpellSlot() : Item::NSLOT;
 
+  this->handleMovementAction(am, true);
+
   if(pl!=nullptr && pl->interactive()!=nullptr && c!=nullptr && !c->isFree()) {
     auto inter = pl->interactive();
     if(inter->needToLockpick(*pl)) {
@@ -188,7 +190,6 @@ void PlayerControl::onKeyPressed(KeyCodec::ActionMapping am, Tempest::KeyEvent::
     marvinO();
 
   ctrl[a] = true;
-  this->handleMovementAction(am, true);
   }
 
 void PlayerControl::onKeyReleased(KeyCodec::ActionMapping am) {
