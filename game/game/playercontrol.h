@@ -83,10 +83,10 @@ class PlayerControl final {
         /// Main direction (e.g. W or Up arrow)
         std::array<bool, 2> main;
         
-		/// Reverse direction (e.g. S or Down arrow)
+        /// Reverse direction (e.g. S or Down arrow)
         std::array<bool, 2> reverse;
 
-		/// Returns the current axis value (scale from -1 to 1)
+        /// Returns the current axis value (scale from -1 to 1)
         auto modifier() const -> float {
           return
               (this->anyMain() ? 1.f : 0.f)
@@ -106,7 +106,7 @@ class PlayerControl final {
           return this->main[0] || this->main[1];
           }
         
-		/// Is any key pressed that activates the reverse direction
+        /// Is any key pressed that activates the reverse direction
         /// (e.g. S or Down arrow in Forward-Backward axis)
         auto anyReverse() const -> bool {
           return this->reverse[0] || this->reverse[1];
@@ -117,8 +117,8 @@ class PlayerControl final {
         /// Forward/backward direction
         AxisStatus forward;
         
-		/// Strafing right/left 
-		AxisStatus strafeRight;
+        /// Strafing right/left 
+        AxisStatus strafeRight;
 
         /// Turning right/left
         AxisStatus turnRight;
