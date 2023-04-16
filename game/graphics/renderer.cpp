@@ -488,31 +488,48 @@ auto Renderer::screenshot(uint8_t frameId, std::optional<uint32_t> reqWidth) -> 
 
   auto w = uint32_t(zbuffer.w());
   auto h = uint32_t(zbuffer.h());
-
-  if (reqWidth.has_value()) {
-    auto initialRatio = w / double(h);
-    w = *reqWidth;
-    h = uint32_t(std::ceil(w / initialRatio));
-    }
-
-  auto img = device.attachment(Tempest::TextureFormat::RGBA8,w,h);
+  auto defaultSized = device.attachment(Tempest::TextureFormat::RGBA8,w,h);
 
   CommandBuffer cmd;
   {
   auto enc = cmd.startEncoding(device);
-  draw(img,enc,frameId);
+  draw(defaultSized,enc,frameId);
   }
 
   Fence sync = device.fence();
   device.submit(cmd,sync);
   sync.wait();
-  return img;
+
+  // Should skip the downscaling part?
+  if (!reqWidth.has_value() || reqWidth.value() >= w) {
+    return defaultSized;
+    }
+
+  // Downscaled texture size:
+  auto initialRatio = w / double(h);
+  w = *reqWidth;
+  h = uint32_t(std::ceil(w / initialRatio));
+
+  auto downscaled = device.attachment(TextureFormat::RGBA8,w,h);
+
+  auto ubo = device.descriptors(Shaders::inst().copy);
+  ubo.set(0,defaultSized,Sampler::nearest());
+  {
+  auto enc = cmd.startEncoding(device);
+  enc.setFramebuffer({{downscaled,Tempest::Discard,Tempest::Preserve}});
+  enc.setUniforms(Shaders::inst().copy,ubo);
+  enc.draw(Resources::fsqVbo());
+  }
+  device.submit(cmd,sync);
+  sync.wait();
+
+  return downscaled;
 
   // debug
   auto d16     = device.attachment(TextureFormat::R16,    swapchain.w(),swapchain.h());
   auto normals = device.attachment(TextureFormat::RGBA16, swapchain.w(),swapchain.h());
 
-  auto ubo = device.descriptors(Shaders::inst().copy);
+  // auto ubo = device.descriptors(Shaders::inst().copy);
   ubo.set(0,gbufNormal,Sampler::nearest());
   {
   auto enc = cmd.startEncoding(device);
