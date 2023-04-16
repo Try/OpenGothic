@@ -954,7 +954,7 @@ auto saveGameScreenshotWidth(const Gothic& inst) -> uint32_t {
   static constexpr auto DEFAULT_WIDTH = uint32_t(640);
   static constexpr auto MINIMAL_WIDTH = uint32_t(320); // A reasonable minimal size
 
-  auto width = uint32_t(inst.settingsGetI("SAVE", "SCREENSHOT_WIDTH"));
+  auto width = uint32_t(inst.settingsGetI("SAVE", "screenshotWidth"));
   return (width > 0 ? std::max(MINIMAL_WIDTH, width) : DEFAULT_WIDTH);
   }
 
