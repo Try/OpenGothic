@@ -556,5 +556,5 @@ auto Renderer::screenshot(uint8_t frameId, std::optional<uint32_t> reqWidth) -> 
   pm  = device.readPixels(textureCast(d16));
   pm.save("zbuffer.hdr");
 
-  return img;
+  return defaultSized;
   }
