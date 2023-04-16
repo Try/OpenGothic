@@ -222,7 +222,7 @@ void PlayerControl::onKeyReleased(KeyCodec::ActionMapping am) {
 
 auto PlayerControl::handleMovementAction(KeyCodec::ActionMapping actionMapping, bool pressed) -> void {
   auto[action, mapping] = actionMapping;
-  auto mappingIndex = (mapping == KeyCodec::Mapping::Primary ? 0 : 1);
+  auto mappingIndex = (mapping == KeyCodec::Mapping::Primary ? size_t(0) : size_t(1));
   if (action == Action::Forward)
     movement.forward.main[mappingIndex] = pressed;
   else if (action == Action::Back)
