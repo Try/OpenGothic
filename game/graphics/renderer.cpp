@@ -513,7 +513,7 @@ auto Renderer::screenshot(uint8_t frameId, std::optional<uint32_t> reqWidth) -> 
   auto downscaled = device.attachment(TextureFormat::RGBA8,w,h);
 
   auto ubo = device.descriptors(Shaders::inst().copy);
-  ubo.set(0,defaultSized,Sampler::nearest());
+  ubo.set(0,defaultSized,Sampler::trillinear());
   {
   auto enc = cmd.startEncoding(device);
   enc.setFramebuffer({{downscaled,Tempest::Discard,Tempest::Preserve}});
