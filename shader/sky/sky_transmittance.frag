@@ -14,29 +14,6 @@ layout(location = 0) out vec4 outColor;
 
 const int sunTransmittanceSteps = 40;
 
-vec4 clouds(vec3 at) {
-  vec3  cloudsAt = normalize(at);
-  vec2  texc     = 2000.0*vec2(atan(cloudsAt.z,cloudsAt.y), atan(cloudsAt.x,cloudsAt.y));
-
-  vec4  cloudDL1 = textureLod(textureDayL1,  texc*0.3+push.dxy1, 10);
-  vec4  cloudDL0 = textureLod(textureDayL0,  texc*0.3+push.dxy0, 10);
-  vec4  cloudNL1 = textureLod(textureNightL1,texc*0.3+push.dxy1, 10);
-  vec4  cloudNL0 = textureLod(textureNightL0,texc*0.6+vec2(0.5), 10); // stars
-
-  vec4 day       = (cloudDL0+cloudDL1)*0.5;
-  vec4 night     = (cloudNL0+cloudNL1)*0.5;
-
-  // Clouds (LDR textures from original game) - need to adjust
-  day.rgb   = srgbDecode(day.rgb)*push.GSunIntensity;
-  day.a     = day.a*(1.0-push.night);
-
-  night.rgb = srgbDecode(night.rgb);
-  night.a   = night.a*(push.night);
-
-  vec4 color = mixClr(day,night);
-  return color;
-  }
-
 vec3 sunTransmittance(vec3 pos, vec3 sunDir) {
   if(rayIntersect(pos, sunDir, RPlanet) > 0.0)
     return vec3(0.0);
@@ -58,7 +35,7 @@ vec3 sunTransmittance(vec3 pos, vec3 sunDir) {
 
     transmittance *= exp(-dt*extinction);
     }
-  return transmittance;// * (1.0-clouds(sunDir).a);
+  return transmittance;
   }
 
 void main() {
