@@ -133,7 +133,7 @@ void PlayerControl::onKeyPressed(KeyCodec::ActionMapping am, Tempest::KeyEvent::
         if(pl!=nullptr && pl->target()!=nullptr && pl->canFinish(*pl->target()) && !pl->isAtackAnim()) {
           fk = ActKill;
           } else {
-          if(ctrl[Action::Forward])
+          if(this->wantsToMoveForward())
             fk = ActMove; else
             fk = ActForward;
           }
@@ -162,7 +162,7 @@ void PlayerControl::onKeyPressed(KeyCodec::ActionMapping am, Tempest::KeyEvent::
 
   if(a==KeyCodec::ActionGeneric) {
     FocusAction fk = ActGeneric;
-    if(ctrl[Action::Forward])
+    if(this->wantsToMoveForward())
       fk = ActMove;
     std::memset(actrl,0,sizeof(actrl));
     actrl[fk] = true;
