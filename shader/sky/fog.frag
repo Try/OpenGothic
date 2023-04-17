@@ -95,31 +95,24 @@ vec3 transmittance(vec3 pos0, vec3 pos1) {
   }
 
 #if defined(VOLUMETRIC_HQ)
-vec4 shadowSample(in sampler2D shadowMap, vec2 shPos) {
-  shPos.xy = shPos.xy*vec2(0.5,0.5)+vec2(0.5);
-  return textureGather(shadowMap,shPos);
+float shadowSample(in sampler2D shadowMap, vec2 shPos) {
+  shPos.xy = shPos.xy*vec2(0.5)+vec2(0.5);
+  return textureLod(shadowMap,shPos,0).r;
   }
 
-float shadowResolve(in vec4 sh, float z) {
-  z  = clamp(z,0,0.99);
-  sh = step(sh,vec4(z));
-  return 0.25*(sh.x+sh.y+sh.z+sh.w);
+bool calcShadow(vec3 shPos) {
+  float sh = shadowSample(textureSm1,shPos.xy);
+  return sh < shPos.z;
   }
 
-float calcShadow(vec3 shPos1) {
-  vec4  lay1 = shadowSample(textureSm1,shPos1.xy);
-  float v1   = shadowResolve(lay1,shPos1.z);
-  if(abs(shPos1.x)<1.0 && abs(shPos1.y)<1.0)
-    return v1;
-  return 1.0;
-  }
-
-float shadowFactor(vec4 shPos) {
+bool shadowFactor(vec4 shPos) {
+  if(abs(shPos.x)>=shPos.w || abs(shPos.y)>=shPos.w)
+    return true;
   return calcShadow(shPos.xyz/shPos.w);
   }
 #else
-float shadowFactor(vec4 shPos) {
-  return 1;
+bool shadowFactor(vec4 shPos) {
+  return true;
   }
 #endif
 
@@ -186,8 +179,8 @@ vec4 fog(vec2 uv, float z) {
     float t      = (i+0.3)/float(steps);
     float dd     = (t*distZ)/(dist);
     vec4  shPos  = mix(shPos0,shPos1,t+noise);
-    float shadow = shadowFactor(shPos);
-    occlusion = occlusion | ((shadow>0.5 ? 1u : 0u) << uint(i));
+    bool  shadow = shadowFactor(shPos);
+    occlusion = occlusion | ((shadow ? 1u : 0u) << uint(i));
     }
 #else
   vec3  scatteredLight = vec3(0.0);

@@ -53,20 +53,6 @@ float rayleighPhase(float cosTheta) {
   return k*(1.0+cosTheta*cosTheta);
   }
 
-vec3 sunWithBloom(vec3 view, vec3 sunDir) {
-  const float sunSolidAngle  = 2.0*M_PI/180.0;
-  const float minSunCosTheta = cos(sunSolidAngle);
-
-  float cosTheta = dot(view, sunDir);
-  if(cosTheta >= minSunCosTheta)
-    return vec3(1.0);
-
-  float offset        = minSunCosTheta - cosTheta;
-  float gaussianBloom = exp(-offset*50000.0)*0.5;
-  float invBloom      = 1.0/(0.02 + offset*300.0)*0.01;
-  return vec3(gaussianBloom+invBloom);
-  }
-
 // 4. Atmospheric model
 void scatteringValues(vec3 pos,
                       float clouds,
