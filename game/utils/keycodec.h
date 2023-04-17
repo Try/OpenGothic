@@ -17,6 +17,8 @@ class KeyCodec final {
       Primary, Secondary
       };
 
+    static constexpr auto NumMappings = 2;
+
     enum Action : uint8_t {
       Idle,
 
@@ -113,7 +115,7 @@ class KeyCodec final {
       /// @brief Determines which mapping (primary/secondary) corresponds to the given key index.
       /// @param i The key index
       /// @return Corresponding mapping or nullopt if key is not related.
-      auto getMapping(int32_t i) const -> std::optional<Mapping> {
+      auto mapping(int32_t i) const -> std::optional<Mapping> {
         if (k[0] == i)
           return Mapping::Primary;
         if (k[1] == i)
@@ -122,7 +124,7 @@ class KeyCodec final {
         }
       };
 
-    ActionMapping implTr(int32_t code) const;
+    auto implTr(int32_t code) const -> ActionMapping;
     static int  fetch(std::string_view keys, size_t s, size_t e);
     static auto keyToStr(int32_t k) -> string_frm<64>;
     static auto keyToStr(Tempest::Event::KeyType k) -> string_frm<64>;

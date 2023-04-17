@@ -242,56 +242,56 @@ std::string KeyCodec::toCode(int32_t code) {
   }
 
 KeyCodec::ActionMapping KeyCodec::implTr(int32_t code) const {
-  if(auto m = keyEnd.getMapping(code))
+  if(auto m = keyEnd.mapping(code))
     return { Idle, *m };
-  if(auto m = keyUp.getMapping(code))
+  if(auto m = keyUp.mapping(code))
     return { Forward, *m };
-  if(auto m = keyDown.getMapping(code))
+  if(auto m = keyDown.mapping(code))
     return { Back, *m };
-  if(auto m = keyLeft.getMapping(code))
+  if(auto m = keyLeft.mapping(code))
     return { RotateL, *m };
-  if(auto m = keyRight.getMapping(code))
+  if(auto m = keyRight.mapping(code))
     return { RotateR, *m };
-  if(auto m = keyStrafeLeft.getMapping(code))
+  if(auto m = keyStrafeLeft.mapping(code))
     return { Left, *m };
-  if(auto m = keyStrafeRight.getMapping(code))
+  if(auto m = keyStrafeRight.mapping(code))
     return { Right, *m };
 
-  if(auto m = keyAction.getMapping(code))
+  if(auto m = keyAction.mapping(code))
     return { ActionGeneric, *m };
-  if(auto m = keyActionLeft.getMapping(code))
+  if(auto m = keyActionLeft.mapping(code))
     return { ActionLeft, *m };
-  if(auto m = keyActionRight.getMapping(code))
+  if(auto m = keyActionRight.mapping(code))
     return { ActionRight, *m };
-  if(auto m = keyParade.getMapping(code))
+  if(auto m = keyParade.mapping(code))
     return { Parade, *m };
 
-  if(auto m = keySlow.getMapping(code))
+  if(auto m = keySlow.mapping(code))
     return { Walk, *m };
-  if(auto m = keySMove.getMapping(code))
+  if(auto m = keySMove.mapping(code))
     return { Jump, *m };
 
-  if(auto m = keyWeapon.getMapping(code))
+  if(auto m = keyWeapon.mapping(code))
     return { Weapon, *m };
-  if(auto m = keySneak.getMapping(code))
+  if(auto m = keySneak.mapping(code))
     return { Sneak, *m };
 
-  if(auto m = keyLook.getMapping(code))
+  if(auto m = keyLook.mapping(code))
     return { LookBack, *m };
-  if(auto m = keyLookFP.getMapping(code))
+  if(auto m = keyLookFP.mapping(code))
     return { FirstPerson, *m };
 
-  if(auto m = keyInventory.getMapping(code))
+  if(auto m = keyInventory.mapping(code))
     return { Inventory, *m };
-  if(auto m = keyShowStatus.getMapping(code))
+  if(auto m = keyShowStatus.mapping(code))
     return { Status, *m };
-  if(auto m = keyShowLog.getMapping(code))
+  if(auto m = keyShowLog.mapping(code))
     return { Log, *m };
-  if(auto m = keyShowMap.getMapping(code))
+  if(auto m = keyShowMap.mapping(code))
     return { Map, *m };
-  if(auto m = keyHeal.getMapping(code))
+  if(auto m = keyHeal.mapping(code))
     return { Heal, *m };
-  if(auto m = keyPotion.getMapping(code))
+  if(auto m = keyPotion.mapping(code))
     return { Potion, *m };
 
   // TODO: don't use "Primary" as a placeholder here.

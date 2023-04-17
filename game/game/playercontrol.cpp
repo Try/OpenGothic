@@ -48,7 +48,7 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
   auto       ws   = pl ? pl->weaponState() : WeaponState::NoWeapon;
   uint8_t    slot = pl ? pl->inventory().currentSpellSlot() : Item::NSLOT;
 
-  this->handleMovementAction(KeyCodec::ActionMapping(a,mapping), true);
+  handleMovementAction(KeyCodec::ActionMapping(a,mapping), true);
 
   if(pl!=nullptr && pl->interactive()!=nullptr && c!=nullptr && !c->isFree()) {
     auto inter = pl->interactive();
@@ -194,7 +194,7 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
 void PlayerControl::onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping) {
   ctrl[a] = false;
 
-  this->handleMovementAction(KeyCodec::ActionMapping(a, mapping), false);
+  handleMovementAction(KeyCodec::ActionMapping(a, mapping), false);
 
   auto w  = Gothic::inst().world();
   auto pl = w ? w->player() : nullptr;
@@ -222,17 +222,17 @@ auto PlayerControl::handleMovementAction(KeyCodec::ActionMapping actionMapping, 
   auto[action, mapping] = actionMapping;
   auto mappingIndex = (mapping == KeyCodec::Mapping::Primary ? size_t(0) : size_t(1));
   if (action == Action::Forward)
-    movement.forward.main[mappingIndex] = pressed;
+    movement.forwardBackward.main[mappingIndex] = pressed;
   else if (action == Action::Back)
-    movement.forward.reverse[mappingIndex] = pressed;
+    movement.forwardBackward.reverse[mappingIndex] = pressed;
   else if (action == Action::Right)
-    movement.strafeRight.main[mappingIndex] = pressed;
+    movement.strafeRightLeft.main[mappingIndex] = pressed;
   else if (action == Action::Left)
-    movement.strafeRight.reverse[mappingIndex] = pressed;
+    movement.strafeRightLeft.reverse[mappingIndex] = pressed;
   else if (action == Action::RotateR)
-    movement.turnRight.main[mappingIndex] = pressed;
+    movement.turnRightLeft.main[mappingIndex] = pressed;
   else if (action == Action::RotateL)
-    movement.turnRight.reverse[mappingIndex] = pressed;
+    movement.turnRightLeft.reverse[mappingIndex] = pressed;
   }
 
 bool PlayerControl::isPressed(KeyCodec::Action a) const {
@@ -518,13 +518,13 @@ bool PlayerControl::tickMove(uint64_t dt) {
       return true;
       }
 
-    auto turningModifier = movement.turnRight.modifier();
+    auto turningModifier = movement.turnRightLeft.value();
     if(turningModifier > 0.f)
       camera->rotateRight(dt);
     else if(turningModifier < 0.f)
       camera->rotateLeft(dt);
 
-    auto forwardModifier = movement.forward.modifier();
+    auto forwardModifier = movement.forwardBackward.value();
     if(forwardModifier > 0.f)
       camera->moveForward(dt);
     else if(forwardModifier < 0.f)
@@ -846,7 +846,7 @@ void PlayerControl::implMove(uint64_t dt) {
     pl.setAnim(ani);
     }
 
-  setAnimRotate(pl, rot, ani==Npc::Anim::Idle ? rotation : 0, movement.turnRight.any(), dt);
+  setAnimRotate(pl, rot, ani==Npc::Anim::Idle ? rotation : 0, movement.turnRightLeft.any(), dt);
   if(actrl[ActGeneric] || ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR || pl.isFinishingMove()) {
     processAutoRotate(pl,rot,dt);
     }

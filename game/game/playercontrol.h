@@ -75,28 +75,25 @@ class PlayerControl final {
 
     using Action=KeyCodec::Action;
 
-    // Forward-Backward, Right-Left
-    static constexpr size_t NumAxes = 2;
-
     struct AxisStatus { 
 
         /// Main direction (e.g. W or Up arrow)
-        std::array<bool, 2> main;
+        std::array<bool, KeyCodec::NumMappings> main;
         
         /// Reverse direction (e.g. S or Down arrow)
-        std::array<bool, 2> reverse;
+        std::array<bool, KeyCodec::NumMappings> reverse;
 
-        /// Returns the current axis value (scale from -1 to 1)
-        auto modifier() const -> float {
+        /// Current axis value (scale from -1 to 1)
+        auto value() const -> float {
           return
               (this->anyMain() ? 1.f : 0.f)
             + (this->anyReverse() ? -1.f : 0.f);
           }
 
-        /// Returns true if only one of directions is active
+        /// True if only one of directions is active
         /// (e.g. false if none or both directions are active).
         auto any() const -> bool {
-          return this->modifier() != 0;
+          return this->value() != 0;
           }
 
         auto reset() -> void {
@@ -109,31 +106,34 @@ class PlayerControl final {
         /// Is any key pressed that activates the main direction
         /// (e.g. W or Up Arrow in Forward-Backward axis)
         auto anyMain() const -> bool {
-          return this->main[0] || this->main[1];
+          for (auto elem : main) {
+            if (elem) return true;
+            }
+          return false;
           }
         
         /// Is any key pressed that activates the reverse direction
         /// (e.g. S or Down arrow in Forward-Backward axis)
         auto anyReverse() const -> bool {
-          return this->reverse[0] || this->reverse[1];
+          for (auto elem : reverse) {
+            if (elem) return true;
+            }
+          return false;
           }
       };
 
     struct MovementStatus {
-        /// Forward/backward direction
-        AxisStatus forward;
+        AxisStatus forwardBackward;
         
-        /// Strafing right/left 
-        AxisStatus strafeRight;
+        AxisStatus strafeRightLeft;
 
-        /// Turning right/left
-        AxisStatus turnRight;
+        AxisStatus turnRightLeft;
 
         /// Resets all axes to their default state.
         auto reset() -> void {
-          this->forward.reset();
-          this->strafeRight.reset();
-          this->turnRight.reset();
+          this->forwardBackward.reset();
+          this->strafeRightLeft.reset();
+          this->turnRightLeft.reset();
           }
       } movement;
     
@@ -186,24 +186,24 @@ class PlayerControl final {
     //////////////////////////////////
 
     auto wantsToMoveForward() const -> bool {
-      return movement.forward.modifier() > 0.f;
+      return movement.forwardBackward.value() > 0.f;
       }
     auto wantsToMoveBackward() const -> bool {
-      return movement.forward.modifier() < 0.f;
+      return movement.forwardBackward.value() < 0.f;
       }
 
     auto wantsToStrafeRight() const -> bool {
-      return movement.strafeRight.modifier() > 0.f;
+      return movement.strafeRightLeft.value() > 0.f;
       }
     auto wantsToStrafeLeft() const -> bool {
-      return movement.strafeRight.modifier() < 0.f;
+      return movement.strafeRightLeft.value() < 0.f;
       }
 
     auto wantsToTurnRight() const -> bool {
-      return movement.turnRight.modifier() > 0.f;
+      return movement.turnRightLeft.value() > 0.f;
       }
     auto wantsToTurnLeft() const -> bool {
-      return movement.turnRight.modifier() < 0.f;
+      return movement.turnRightLeft.value() < 0.f;
       }
 
     /// @brief Analyses the input action mapping and updates the movement status accordingly.
