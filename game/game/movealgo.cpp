@@ -305,7 +305,7 @@ void MoveAlgo::tickSwim(uint64_t dt) {
     return;
     }
 
-  if(!validW) {
+  if(!isDive() && !validW) {
     setAsDive(false);
     setAsSwim(false);
     setInAir (ground<pos.y);
