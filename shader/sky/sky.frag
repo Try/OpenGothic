@@ -107,24 +107,12 @@ vec3 transmittanceAprox(in vec3 pos0, in vec3 pos1) {
   }
 
 vec3 sky(vec2 uv, vec3 sunDir) {
-  vec3  pos      = vec3(0,RPlanet,0);
-  vec3  pos1     = inverse(vec3(inPos,1.0));
-  vec3  pos0     = inverse(vec3(inPos,0));
+  vec3  pos  = vec3(0,RPlanet,0);
+  vec3  pos1 = inverse(vec3(inPos,1.0));
+  vec3  pos0 = inverse(vec3(inPos,0));
 
-  vec3 view      = normalize(pos1);
-  vec3 lum       = atmosphere  (view, sunDir);
-
-  // Use smoothstep to limit the effect, so it drops off to actual zero.
-  /*
-  vec3 sunLum    = sunWithBloom(view, sunDir);
-  sunLum = smoothstep(0.002, 1.0, sunLum);
-  sunLum *= textureLUT(tLUT, view, sunDir);
-
-  if((sunLum.x>0 || sunLum.y>0 || sunLum.z>0) && rayIntersect(pos, view, RPlanet)>=0.0) {
-    sunLum = vec3(0.0);
-    }
-  lum += sunLum;
-  */
+  vec3 view  = normalize(pos1);
+  vec3 lum   = atmosphere(view, sunDir);
   return lum;
   }
 
