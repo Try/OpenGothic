@@ -77,15 +77,14 @@ class KeyCodec final {
 
     static auto   keysStr(std::string_view keys) -> string_frm<64>;
 
-    /// @brief Translates key event to a game action mapping.
+    Action        tr(Tempest::KeyEvent const& e) const;    
+    Action        tr(Tempest::MouseEvent const& e) const;
+
+    /// @brief Gets a mapping out of a key event.
     /// @param e The key event.
-    /// @return Requested action mapping.
-    ActionMapping tr(Tempest::KeyEvent const& e) const;
-    
-    /// @brief Translates mouse event to a game action mapping.
-    /// @param e The mouse event.
-    /// @return Requested action mapping.
-    ActionMapping tr(Tempest::MouseEvent const& e) const;
+    /// @return Requested mapping of an action.
+    Mapping       mapping(Tempest::KeyEvent const& e) const;
+
     void          set(std::string_view section, std::string_view key, int32_t code);
     void          setDefaultKeys(std::string_view preset);
 

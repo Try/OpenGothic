@@ -104,32 +104,36 @@ KeyCodec::KeyCodec() {
   setupSettings();
   }
 
-KeyCodec::ActionMapping KeyCodec::tr(Tempest::KeyEvent const& e) const {
+KeyCodec::Action KeyCodec::tr(Tempest::KeyEvent const& e) const {
   int32_t code = keyToCode(e.key);
   if(e.key==Tempest::KeyEvent::K_ESCAPE)
-    return { Escape, Mapping::Primary };
-  auto act = implTr(code);
-  if(act.action!=KeyCodec::Idle)
+    return Escape;
+  auto act = implTr(code).action;
+  if(act!=KeyCodec::Idle)
     return act;
   if(Tempest::Event::K_0<e.key && e.key<=Tempest::Event::K_9)
-    return { Action(Weapon+int(e.key-Tempest::Event::K_0)), Mapping::Primary };
+    return Action(Weapon+int(e.key-Tempest::Event::K_0));
   if(Tempest::Event::K_0==e.key)
-    return { Action(Weapon+10), Mapping::Primary };
+    return Action(Weapon+10);
   if(e.key==Tempest::Event::K_F8)
-    return { K_F8, Mapping::Primary };
+    return K_F8;
   if(e.key == Tempest::Event::K_K)
-    return { K_K, Mapping::Primary };
+    return K_K;
   if(e.key == Tempest::Event::K_O)
-    return { K_O, Mapping::Primary };
-  return { Idle, Mapping::Primary };
+    return K_O;
+  return Idle;
   }
 
-KeyCodec::ActionMapping KeyCodec::tr(Tempest::MouseEvent const& e) const {
+KeyCodec::Action KeyCodec::tr(Tempest::MouseEvent const& e) const {
   int32_t code = keyToCode(e.button);
-  auto act = implTr(code);
-  if(act.action!=KeyCodec::Idle)
+  auto act = implTr(code).action;
+  if(act!=KeyCodec::Idle)
     return act;
-  return { Idle, Mapping::Primary };
+  return Idle;
+  }
+
+KeyCodec::Mapping KeyCodec::mapping(Tempest::KeyEvent const& e) const {
+  return implTr(keyToCode(e.key)).mapping;
   }
 
 void KeyCodec::set(std::string_view sec, std::string_view opt, int32_t code) {

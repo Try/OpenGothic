@@ -404,7 +404,8 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
   uiKeyUp=nullptr;
 
   auto act = keycodec.tr(event);
-  player.onKeyPressed(act,event.key);
+  auto mapping = keycodec.mapping(event);
+  player.onKeyPressed(act,event.key,mapping);
 
   if(event.key==Event::K_F11) {
     auto tex = renderer.screenshoot(cmdId);
@@ -476,8 +477,8 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
 
   const char* menuEv=nullptr;
 
-  auto mapping = keycodec.tr(event);
-  auto act = mapping.action;
+  auto act = keycodec.tr(event);
+  auto mapping = keycodec.mapping(event);
   if(act==KeyCodec::Escape)
     menuEv="MENU_MAIN";
   else if(act==KeyCodec::Log)
@@ -502,7 +503,7 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
       }
     clearInput();
     }
-  player.onKeyReleased(mapping);
+  player.onKeyReleased(act, mapping);
   }
 
 void MainWindow::focusEvent(FocusEvent &event) {

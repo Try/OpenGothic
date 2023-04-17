@@ -159,7 +159,7 @@ void MenuRoot::keyUpEvent(KeyEvent &e) {
       current->onSlide(1);
     else if(e.key==Event::K_Return)
       current->onSelect();
-    else if(e.key==Event::K_ESCAPE || keyCodec.tr(e).action==current->keyClose())
+    else if(e.key==Event::K_ESCAPE || keyCodec.tr(e)==current->keyClose())
       popMenu();
     }
   }

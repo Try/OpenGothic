@@ -41,15 +41,14 @@ void PlayerControl::setTarget(Npc *other) {
     }
   }
 
-void PlayerControl::onKeyPressed(KeyCodec::ActionMapping am, Tempest::KeyEvent::KeyType key) {
-  auto       a    = am.action;
+void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType key, KeyCodec::Mapping mapping) {
   auto       w    = Gothic::inst().world();
   auto       c    = Gothic::inst().camera();
   auto       pl   = w  ? w->player() : nullptr;
   auto       ws   = pl ? pl->weaponState() : WeaponState::NoWeapon;
   uint8_t    slot = pl ? pl->inventory().currentSpellSlot() : Item::NSLOT;
 
-  this->handleMovementAction(am, true);
+  this->handleMovementAction(KeyCodec::ActionMapping(a,mapping), true);
 
   if(pl!=nullptr && pl->interactive()!=nullptr && c!=nullptr && !c->isFree()) {
     auto inter = pl->interactive();
@@ -192,11 +191,10 @@ void PlayerControl::onKeyPressed(KeyCodec::ActionMapping am, Tempest::KeyEvent::
   ctrl[a] = true;
   }
 
-void PlayerControl::onKeyReleased(KeyCodec::ActionMapping am) {
-  auto a = am.action;
+void PlayerControl::onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping) {
   ctrl[a] = false;
 
-  this->handleMovementAction(am, false);
+  this->handleMovementAction(KeyCodec::ActionMapping(a, mapping), false);
 
   auto w  = Gothic::inst().world();
   auto pl = w ? w->player() : nullptr;

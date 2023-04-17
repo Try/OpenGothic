@@ -20,8 +20,8 @@ class PlayerControl final {
     PlayerControl(DialogMenu& dlg, InventoryMenu& inv);
     ~PlayerControl();
 
-    void onKeyPressed (KeyCodec::ActionMapping am, Tempest::Event::KeyType key);
-    void onKeyReleased(KeyCodec::ActionMapping am);
+    void onKeyPressed (KeyCodec::Action a, Tempest::Event::KeyType key, KeyCodec::Mapping mapping = KeyCodec::Mapping::Primary);
+    void onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping = KeyCodec::Mapping::Primary);
     bool isPressed(KeyCodec::Action a) const;
     void onRotateMouse(float dAngle);
     void onRotateMouseDy(float dAngle);
