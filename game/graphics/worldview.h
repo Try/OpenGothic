@@ -23,7 +23,6 @@ class WorldView {
     WorldView(const World &world, const PackedMesh& wmesh);
     ~WorldView();
 
-    const Tempest::Texture2d& shadowLq() const;
     const LightSource&        mainLight() const;
     const Tempest::Vec3&      ambientLight() const;
 

@@ -58,6 +58,21 @@ vec3 srgbEncode(vec3 color){
   return pow(color,vec3(1.0/2.2));
   }
 
+// From https://gamedev.stackexchange.com/questions/96459/fast-ray-sphere-collision-code.
+float rayIntersect(vec3 v, vec3 d, float R) {
+  float b = dot(v, d);
+  float c = dot(v, v) - R*R;
+  if(c > 0.0f && b > 0.0)
+    return -1.0;
+  float discr = b*b - c;
+  if(discr < 0.0)
+    return -1.0;
+  // Special case: inside sphere, use far discriminant
+  if(discr > b*b)
+    return (-b + sqrt(discr));
+  return -b - sqrt(discr);
+  }
+
 /*
  * Final output basically looks up the value from the skyLUT, and then adds a sun on top,
  * does some tonemapping.
