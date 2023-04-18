@@ -518,16 +518,16 @@ bool PlayerControl::tickMove(uint64_t dt) {
       return true;
       }
 
-    auto turningModifier = movement.turnRightLeft.value();
-    if(turningModifier > 0.f)
+    auto turningVal = movement.turnRightLeft.value();
+    if(turningVal > 0.f)
       camera->rotateRight(dt);
-    else if(turningModifier < 0.f)
+    else if(turningVal < 0.f)
       camera->rotateLeft(dt);
 
-    auto forwardModifier = movement.forwardBackward.value();
-    if(forwardModifier > 0.f)
+    auto forwardVal = movement.forwardBackward.value();
+    if(forwardVal > 0.f)
       camera->moveForward(dt);
-    else if(forwardModifier < 0.f)
+    else if(forwardVal < 0.f)
       camera->moveBack(dt);
     return true;
     }
