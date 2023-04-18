@@ -116,15 +116,15 @@ class KeyCodec final {
       /// @param i The key index
       /// @return Corresponding mapping or nullopt if key is not related.
       auto mapping(int32_t i) const -> std::optional<Mapping> {
-        if (k[0] == i)
+        if(k[0] == i)
           return Mapping::Primary;
-        if (k[1] == i)
+        if(k[1] == i)
           return Mapping::Secondary;
         return std::nullopt;
         }
       };
 
-    auto implTr(int32_t code) const -> ActionMapping;
+    auto        implTr(int32_t code) const -> ActionMapping;
     static int  fetch(std::string_view keys, size_t s, size_t e);
     static auto keyToStr(int32_t k) -> string_frm<64>;
     static auto keyToStr(Tempest::Event::KeyType k) -> string_frm<64>;
