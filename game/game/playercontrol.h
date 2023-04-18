@@ -126,7 +126,7 @@ class PlayerControl final {
       AxisStatus turnRightLeft;
 
       /// Resets all axes to their default state.
-      auto reset() -> void {
+      void reset() {
         this->forwardBackward.reset();
         this->strafeRightLeft.reset();
         this->turnRightLeft.reset();
