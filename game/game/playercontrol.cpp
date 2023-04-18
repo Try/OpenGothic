@@ -48,7 +48,7 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
   auto       ws   = pl ? pl->weaponState() : WeaponState::NoWeapon;
   uint8_t    slot = pl ? pl->inventory().currentSpellSlot() : Item::NSLOT;
 
-  handleMovementAction(KeyCodec::ActionMapping(a,mapping), true);
+  handleMovementAction(KeyCodec::ActionMapping{a,mapping}, true);
 
   if(pl!=nullptr && pl->interactive()!=nullptr && c!=nullptr && !c->isFree()) {
     auto inter = pl->interactive();
@@ -194,7 +194,7 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
 void PlayerControl::onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping) {
   ctrl[a] = false;
 
-  handleMovementAction(KeyCodec::ActionMapping(a, mapping), false);
+  handleMovementAction(KeyCodec::ActionMapping{a, mapping}, false);
 
   auto w  = Gothic::inst().world();
   auto pl = w ? w->player() : nullptr;
