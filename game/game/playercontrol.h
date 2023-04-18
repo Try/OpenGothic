@@ -76,7 +76,6 @@ class PlayerControl final {
     using Action=KeyCodec::Action;
 
     struct AxisStatus { 
-
         /// Main direction (e.g. W or Up arrow)
         std::array<bool, KeyCodec::NumMappings> main;
         
@@ -96,18 +95,17 @@ class PlayerControl final {
           return this->value() != 0;
           }
 
-        auto reset() -> void {
+        void reset() {
           this->main.fill(false);
           this->reverse.fill(false);
           }
 
       private:
-          
         /// Is any key pressed that activates the main direction
         /// (e.g. W or Up Arrow in Forward-Backward axis)
         auto anyMain() const -> bool {
-          for (auto elem : main) {
-            if (elem) return true;
+          for(auto elem : main) {
+            if(elem) return true;
             }
           return false;
           }
@@ -115,26 +113,24 @@ class PlayerControl final {
         /// Is any key pressed that activates the reverse direction
         /// (e.g. S or Down arrow in Forward-Backward axis)
         auto anyReverse() const -> bool {
-          for (auto elem : reverse) {
-            if (elem) return true;
+          for(auto elem : reverse) {
+            if(elem) return true;
             }
           return false;
           }
       };
 
     struct MovementStatus {
-        AxisStatus forwardBackward;
-        
-        AxisStatus strafeRightLeft;
+      AxisStatus forwardBackward;  
+      AxisStatus strafeRightLeft;
+      AxisStatus turnRightLeft;
 
-        AxisStatus turnRightLeft;
-
-        /// Resets all axes to their default state.
-        auto reset() -> void {
-          this->forwardBackward.reset();
-          this->strafeRightLeft.reset();
-          this->turnRightLeft.reset();
-          }
+      /// Resets all axes to their default state.
+      auto reset() -> void {
+        this->forwardBackward.reset();
+        this->strafeRightLeft.reset();
+        this->turnRightLeft.reset();
+        }
       } movement;
     
     bool           ctrl[Action::Last]={};
