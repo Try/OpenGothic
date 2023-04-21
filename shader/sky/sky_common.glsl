@@ -1,12 +1,11 @@
 #include "../common.glsl"
 #include "../lighting/tonemapping.glsl"
 
-const float g        = 0.8;          // light concentration .76 //.45 //.6  .45 is normaL
-
 // Table 1: Coefficients of the different participating media compo-nents constituting the Earth’s atmosphere
 // These are per megameter.
 const vec3  rayleighScatteringBase = vec3(0.175, 0.409, 1.0) / 1e6;
 const float rayleighAbsorptionBase = 0.0;
+const float g                      = 0.8;          // light concentration .76 //.45 //.6  .45 is normaL
 
 const float mieScatteringBase      = 3.996 / 1e6;
 const float mieAbsorptionBase      = 4.40  / 1e6;
@@ -52,35 +51,6 @@ float miePhase(float cosTheta) {
 float rayleighPhase(float cosTheta) {
   const float k = 3.0/(16.0*M_PI);
   return k*(1.0+cosTheta*cosTheta);
-  }
-
-// From https://gamedev.stackexchange.com/questions/96459/fast-ray-sphere-collision-code.
-float rayIntersect(vec3 v, vec3 d, float R) {
-  float b = dot(v, d);
-  float c = dot(v, v) - R*R;
-  if(c > 0.0f && b > 0.0)
-    return -1.0;
-  float discr = b*b - c;
-  if(discr < 0.0)
-    return -1.0;
-  // Special case: inside sphere, use far discriminant
-  if(discr > b*b)
-    return (-b + sqrt(discr));
-  return -b - sqrt(discr);
-  }
-
-vec3 sunWithBloom(vec3 view, vec3 sunDir) {
-  const float sunSolidAngle  = 2.0*M_PI/180.0;
-  const float minSunCosTheta = cos(sunSolidAngle);
-
-  float cosTheta = dot(view, sunDir);
-  if(cosTheta >= minSunCosTheta)
-    return vec3(1.0);
-
-  float offset        = minSunCosTheta - cosTheta;
-  float gaussianBloom = exp(-offset*50000.0)*0.5;
-  float invBloom      = 1.0/(0.02 + offset*300.0)*0.01;
-  return vec3(gaussianBloom+invBloom);
   }
 
 // 4. Atmospheric model

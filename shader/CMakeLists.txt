@@ -183,21 +183,26 @@ add_shader(sky_view_lut.frag         sky/sky_view_lut.frag         "")
 add_shader(fog_view_lut.vert         sky/sky.vert                  -DFOG)
 
 add_shader(shadow_downsample.comp    sky/shadow_downsample.comp    "")
-add_shader(fog_view_lut.frag         sky/fog_view_lut.comp         -S frag -DFOG -DFRAG)
-add_shader(fog_view_lut.comp         sky/fog_view_lut.comp         -S comp -DFOG -DCOMPUTE)
 add_shader(clouds_lut.comp           sky/clouds_lut.comp           "")
 
-add_shader(fog3d.vert                sky/sky.vert         -DFOG -DVOLUMETRIC)
-add_shader(fog3d.frag                sky/sky_egsr.frag    -DFOG -DVOLUMETRIC)
-add_shader(sky3d.vert                sky/sky.vert         -DVOLUMETRIC)
-add_shader(sky3d.frag                sky/sky_egsr.frag    -DVOLUMETRIC)
+add_shader(fog_view_lut.frag         sky/fog_view_lut.comp         -S frag -DFRAG)
+add_shader(fog_view_lut_lq.comp      sky/fog_view_lut.comp         -S comp -DVOLUMETRIC_LQ -DCOMPUTE)
+add_shader(fog_view_lut_hq.comp      sky/fog_view_lut.comp         -S comp -DVOLUMETRIC_HQ -DCOMPUTE)
 
-add_shader(fog.vert                  sky/sky.vert         -DFOG)
-add_shader(fog.frag                  sky/sky_egsr.frag    -DFOG)
-add_shader(sky.vert                  sky/sky.vert         "")
-add_shader(sky.frag                  sky/sky_egsr.frag    "")
-add_shader(sun.vert                  sky/sun.vert         "")
-add_shader(sun.frag                  sky/sun.frag         "")
+add_shader(fog.vert                  sky/sky.vert "")
+add_shader(fog3d_lq.vert             sky/sky.vert "")
+add_shader(fog3d_hq.vert             sky/sky.vert "")
+add_shader(fog3d_lq.frag             sky/fog.frag -S frag -DVOLUMETRIC_LQ)
+add_shader(fog3d_hq.frag             sky/fog.frag -S frag -DVOLUMETRIC_HQ)
+add_shader(fog3d.comp                sky/fog.frag -S comp -DVOLUMETRIC_HQ -DCOMPUTE)
+
+add_shader(fog.frag                  sky/fog.frag "")
+
+add_shader(sky.vert                  sky/sky.vert "")
+add_shader(sky.frag                  sky/sky.frag "")
+
+add_shader(sun.vert                  sky/sun.vert "")
+add_shader(sun.frag                  sky/sun.frag "")
 
 add_shader(copy.vert                 copy.vert "")
 add_shader(copy.frag                 copy.frag "")

@@ -89,7 +89,7 @@ class Renderer final {
       Tempest::DescriptorSet   uboTone;
     } tonemapping;
 
-    Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::RGBA8;
+    Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::Depth16;
     Tempest::TextureFormat    zBufferFormat = Tempest::TextureFormat::Depth16;
 
     Tempest::StorageImage     hiZ;

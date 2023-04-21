@@ -305,7 +305,7 @@ void MoveAlgo::tickSwim(uint64_t dt) {
     return;
     }
 
-  if(!validW) {
+  if(!isDive() && !validW) {
     setAsDive(false);
     setAsSwim(false);
     setInAir (ground<pos.y);
@@ -970,6 +970,7 @@ void MoveAlgo::onGravityFailed(const DynamicWorld::CollisionTest& info, uint64_t
 
   if(Tempest::Vec3::dotProduct(fallSpeed,norm)<0.f || fallCount>0) {
     float len  = fallSpeed.length()/std::max(1.f,fallCount);
+    len = std::max(len, 0.4f);
     fallSpeed  = Tempest::Vec3::normalize(norm+fallSpeed)*len*0.25f;
     fallCount  = 0;
     } else {

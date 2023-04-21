@@ -4,6 +4,7 @@
 
 #define FRAGMENT
 #include "materials_common.glsl"
+#include "gerstner_wave.glsl"
 #include "../lighting/shadow_sampling.glsl"
 #include "../lighting/tonemapping.glsl"
 
@@ -115,7 +116,7 @@ vec3 ssr(vec4 orig, vec3 start, vec3 refl, float shadow) {
   return mix(sky, scene.ambient*sky, shadow*0.2);
   }
 
-vec4 waterColor(vec3 color, vec3 albedo, float shadow) {
+vec4 waterColor(vec3 color, vec3 albedo, vec3 normal, float shadow) {
   const float F   = 0.02;
   const float ior = 1.0 / 1.52; // air / water
   //return vec4(vec3(albedo.a),1);
@@ -124,8 +125,17 @@ vec4 waterColor(vec3 color, vec3 albedo, float shadow) {
   camPos.xyz /= camPos.w;
 
   const vec3  view     = normalize(shInp.pos - camPos.xyz);
-  const vec3  refl     = reflect(view, shInp.normal);
-  const vec3  refr     = refract(view, shInp.normal, ior);
+        vec3  refl     = reflect(view, normal);
+  const vec3  refr     = refract(view, normal, ior);
+
+  if(refl.y<0) {
+    refl.y = 0;
+    refl   = normalize(refl);
+    // return vec4(0,0,1,1);
+    }
+
+  const float f = fresnel(refl,normal,ior);
+  //return vec4(f,f,f,1);
 
   const float depth    = texelFetch(gbufferDepth,   ivec2(gl_FragCoord.xy), 0).r;
   const vec3  backOrig = texelFetch(gbufferDiffuse, ivec2(gl_FragCoord.xy), 0).rgb;
@@ -140,9 +150,6 @@ vec4 waterColor(vec3 color, vec3 albedo, float shadow) {
 
   vec3 sky = ssr(scr,shInp.pos,refl,shadow)*albedo;
   // return vec4(sky,1);
-
-  const float f = fresnel(refl,shInp.normal,ior);
-  //return vec4(f,f,f,1);
 
   vec3  rPos     = shInp.pos + dist*10.0*refr;
   vec4  rPosScr  = scene.viewProject*vec4(rPos,1.0);
@@ -160,6 +167,8 @@ vec4 waterColor(vec3 color, vec3 albedo, float shadow) {
 
   back = mix(back.rgb, back.rgb*color.rgb, transmittance);
   //return vec4(back,1);
+
+  //vec3 sun = vec3(pow(max(0,dot(refl, scene.sunDir)), 16.0) * scene.GSunIntensity);
 
   vec3 clr = mix(back,sky,f);
   return vec4(clr,1);
@@ -223,8 +232,15 @@ vec4 forwardShading(vec4 t) {
 
 #if defined(WATER)
   {
-    vec4 wclr = waterColor(color,vec3(0.8,0.9,1.0),shadow);
+    vec3 lx = dFdx(shInp.pos), ly = dFdy(shInp.pos);
+    float minLength = 3.0 * max(length(lx),length(ly));
+
+    Wave wave = gerstnerWave(shInp.pos, minLength);
+    vec4 wclr = waterColor(color,vec3(0.8,0.9,1.0),wave.normal,shadow);
     color  = wclr.rgb;
+    // color  = vec3(clamp(dot(scene.sunDir,wave.normal), 0.0, 1.0));
+    // color  = vec3(clamp(wave.normal.y, 0.0, 1.0));
+    // color  = vec3(minLength/1000.0);
     alpha  = wclr.a;
   }
 #endif
