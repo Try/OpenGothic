@@ -7,7 +7,7 @@ void Frustrum::make(const Matrix4x4& m, int32_t w, int32_t h) {
   height = uint32_t(h);
   mat    = m;
 
-  float clip[16], t=0;
+  float clip[16] = {}, t=0;
   std::copy(m.data(), m.data()+16, clip );
 
   f[0][0] = clip[ 3] - clip[ 0];
