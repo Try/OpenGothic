@@ -21,6 +21,12 @@ Material::Material(const phoenix::material& m, bool enableAlphaTest) {
   loadFrames(m);
 
   alpha = loadAlphaFunc(m.alpha_func,m.group,m.color.a,tex,enableAlphaTest);
+  if(alpha==Water &&
+      m.wave_mode==phoenix::wave_mode_type::none &&
+      m.texture_anim_map_mode==phoenix::animation_mapping_mode::linear) {
+    // TODO: waterfall heuristics
+    // alpha = Transparent;
+    }
 
   if(m.texture_anim_map_mode!=phoenix::animation_mapping_mode::none && tex!=nullptr) {
     auto texAniMapDir = m.texture_anim_map_dir;

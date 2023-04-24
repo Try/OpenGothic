@@ -37,7 +37,7 @@ void main() {
 
   // vec3 dPos = multiWave(shOut.pos.xz*0.001);
   if(bucket.waveMaxAmplitude>0) {
-    Wave w = gerstnerWave(shOut.pos, -1000.0);
+    Wave w = wave(shOut.pos, 0.0);
     pos          += scene.viewProject*vec4(w.offset,0);
     shOut.normal  = w.normal;
     } else {

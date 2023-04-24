@@ -233,10 +233,10 @@ vec4 forwardShading(vec4 t) {
 #if defined(WATER)
   {
     vec3 lx = dFdx(shInp.pos), ly = dFdy(shInp.pos);
-    float minLength = 3.0 * max(length(lx),length(ly));
+    float minLength = max(length(lx),length(ly));
 
-    Wave wave = gerstnerWave(shInp.pos, minLength);
-    vec4 wclr = waterColor(color,vec3(0.8,0.9,1.0),wave.normal,shadow);
+    Wave wx   = wave(shInp.pos, minLength);
+    vec4 wclr = waterColor(color,vec3(0.8,0.9,1.0),wx.normal,shadow);
     color  = wclr.rgb;
     // color  = vec3(clamp(dot(scene.sunDir,wave.normal), 0.0, 1.0));
     // color  = vec3(clamp(wave.normal.y, 0.0, 1.0));
