@@ -10,7 +10,7 @@ struct Wave {
   vec3 tangent;
   };
 
-vec2 gerWave(inout Wave w, vec2 d, float amplitude, vec2 pos, float speed, float frequency) {
+float gerWave(inout Wave w, vec2 d, float amplitude, vec2 pos, float speed, float frequency) {
   float x = dot(d, pos) * frequency + scene.tickCount32*0.001*speed;
   float a = amplitude;
 
@@ -28,10 +28,10 @@ vec2 gerWave(inout Wave w, vec2 d, float amplitude, vec2 pos, float speed, float
                          (a * sin(x)),
                    d.y * (a * cos(x)));
 
-  return vec2(a * sin(x), a);
+  return a * cos(x);
   }
 
-vec2 expWave(inout Wave w, vec2 dir, float amplitude, vec2 pos, float speed, float frequency) {
+float expWave(inout Wave w, vec2 dir, float amplitude, vec2 pos, float speed, float frequency) {
   // Based on: https://www.shadertoy.com/view/MdXyzX
   float x    = dot(dir, pos) * frequency + scene.tickCount32*0.001*speed;
 
@@ -40,13 +40,13 @@ vec2 expWave(inout Wave w, vec2 dir, float amplitude, vec2 pos, float speed, flo
 
   w.offset.y += wave;
   w.tangent  += vec3(-dir.y, dir.x,      0) * dx * frequency;
-  w.binormal += vec3(     0, dir.y, -dir.y) * dx * frequency;
+  w.binormal += vec3(     0, dir.y, -dir.x) * dx * frequency;
 
-  return vec2(wave, -dx);
+  return -dx;
   }
 
 // returns vec2 with wave height in X and its derivative in Y
-vec2 wave(inout Wave w, vec2 dir, float amplitude, vec2 pos, float speed, float frequency) {
+float wave(inout Wave w, vec2 dir, float amplitude, vec2 pos, float speed, float frequency) {
 #if 1
   return gerWave(w,dir,amplitude,pos,speed,frequency);
 #else
@@ -56,7 +56,7 @@ vec2 wave(inout Wave w, vec2 dir, float amplitude, vec2 pos, float speed, float 
 
 Wave wave(vec3 pos, float minLength) {
   const float amplitudeMin = 10;
-  const float dragMult     = 0.048;
+  const float dragMult     = 0.48;
 
 #if defined(FRAGMENT)
   const int iterations = 43;
@@ -92,10 +92,10 @@ Wave wave(vec3 pos, float minLength) {
     if(freq*minLength > 2.0)
       continue;
 
-    vec2 dir = vec2(cos(iter), sin(iter));
-    vec2 res = wave(w, dir, weight*amplitude/wsum, pos.xz, speed, freq);
+    vec2  dir = vec2(cos(iter), sin(iter));
+    float res = wave(w, dir, weight*amplitude/wsum, pos.xz, speed, freq);
 
-    pos.xz += res.y * weight * dir * dragMult;
+    pos.xz += res * weight * dir * dragMult;
 
     iter   += 12.0;
     weight *= 0.8;
