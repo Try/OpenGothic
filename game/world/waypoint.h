@@ -6,6 +6,7 @@
 #include <Tempest/Vec>
 
 class FpLock;
+class Interactive;
 
 class WayPoint final {
   public:
@@ -36,6 +37,8 @@ class WayPoint final {
     bool  underWater = false;
 
     std::string name;
+
+    Interactive* ladder = nullptr;
 
     struct Conn final {
       WayPoint* point=nullptr;

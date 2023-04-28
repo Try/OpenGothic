@@ -56,6 +56,7 @@ class WayMatrix final {
     mutable std::vector<const WayPoint*>  stk[2];
 
     void                   adjustWaypoints(std::vector<WayPoint> &wp);
+    void                   calculateLadderPoints();
 
     const FpIndex&         findFpIndex(std::string_view name) const;
     const WayPoint*        findFreePoint(float x, float y, float z, const FpIndex &ind,
