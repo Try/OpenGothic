@@ -4,7 +4,7 @@
 
 #define FRAGMENT
 #include "materials_common.glsl"
-#include "gerstner_wave.glsl"
+#include "../water/gerstner_wave.glsl"
 #include "../lighting/shadow_sampling.glsl"
 #include "../lighting/tonemapping.glsl"
 
@@ -19,6 +19,10 @@ layout(location = DEBUG_DRAW_LOC) in flat uint debugId;
 #if defined(GBUFFER)
 layout(location = 0) out vec4 outDiffuse;
 layout(location = 1) out vec4 outNormal;
+#elif defined(WATER)
+layout(location = 0) out vec4 outColor;
+layout(location = 1) out vec4 outDiffuse;
+layout(location = 2) out vec4 outNormal;
 #elif !defined(DEPTH_ONLY)
 layout(location = 0) out vec4 outColor;
 #endif
@@ -27,6 +31,12 @@ layout(location = 0) out vec4 outColor;
 float lambert() {
   vec3  normal  = normalize(shInp.normal);
   return clamp(dot(scene.sunDir,normal), 0.0, 1.0);
+  }
+
+vec3 diffuseLight() {
+  float light  = lambert();
+  float shadow = calcShadow(vec4(shInp.pos,1), 0, scene, textureSm0, textureSm1);
+  return scene.sunCl.rgb*light*shadow + scene.ambient;
   }
 
 vec4 dbgLambert() {
@@ -59,6 +69,10 @@ float intersectFrustum(const vec3 pos, const vec3 dir) {
 
 vec3 ssr(vec4 orig, vec3 start, vec3 refl, float shadow) {
   const int SSR_STEPS = 64;
+
+  const vec2 fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
+  const vec4 start4 = scene.viewProjectInv*vec4(fragCoord.x, fragCoord.y, gl_FragCoord.z, 1.0);
+  start = start4.xyz/start4.w;
 
   vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir);
   sky *= scene.GSunIntensity;
@@ -105,7 +119,7 @@ vec3 ssr(vec4 orig, vec3 start, vec3 refl, float shadow) {
       }
     }
 
-  const vec3 reflection = textureLod(gbufferDiffuse,uv,0).rgb;
+  const vec3 reflection = textureLod(sceneColor,uv,0).rgb;
   float att = min(1.0,uv.y*4.0);//*(max(0,1.0-abs(uv.x*2.0-1.0)));
   if(found)
     return mix(sky,reflection,att);
@@ -116,10 +130,9 @@ vec3 ssr(vec4 orig, vec3 start, vec3 refl, float shadow) {
   return mix(sky, scene.ambient*sky, shadow*0.2);
   }
 
-vec4 waterColor(vec3 color, vec3 albedo, vec3 normal, float shadow) {
+vec3 _waterColor(vec3 selfColor, vec3 normal, float shadow) {
   const float F   = 0.02;
   const float ior = 1.0 / 1.52; // air / water
-  //return vec4(vec3(albedo.a),1);
 
   vec4  camPos = scene.viewProjectInv*vec4(0,0,0,1.0);
   camPos.xyz /= camPos.w;
@@ -137,26 +150,26 @@ vec4 waterColor(vec3 color, vec3 albedo, vec3 normal, float shadow) {
   const float f = fresnel(refl,normal,ior);
   //return vec4(f,f,f,1);
 
-  const float depth    = texelFetch(gbufferDepth,   ivec2(gl_FragCoord.xy), 0).r;
-  const vec3  backOrig = texelFetch(gbufferDiffuse, ivec2(gl_FragCoord.xy), 0).rgb;
+  const float depth    = texelFetch(gbufferDepth, ivec2(gl_FragCoord.xy), 0).r;
+  const vec3  backOrig = texelFetch(sceneColor,   ivec2(gl_FragCoord.xy), 0).rgb;
 
   const float ground   = linearDepth(depth, scene.clipInfo.xyz);
   const float water    = linearDepth(gl_FragCoord.z, scene.clipInfo.xyz);
-  const float dist     = -(water-ground);
+  const float dist     = (ground-water);
   //return vec4(vec3(dist),1);
 
   const vec2  fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
   const vec4  scr       = vec4(fragCoord.x, fragCoord.y, gl_FragCoord.z, 1.0)/gl_FragCoord.w;
 
-  vec3 sky = ssr(scr,shInp.pos,refl,shadow)*albedo;
+  vec3 sky = ssr(scr,shInp.pos,refl,shadow);
   // return vec4(sky,1);
 
   vec3  rPos     = shInp.pos + dist*10.0*refr;
   vec4  rPosScr  = scene.viewProject*vec4(rPos,1.0);
   rPosScr.xyz /= rPosScr.w;
   vec2  p2       = rPosScr.xy*0.5+vec2(0.5);
-  vec3  back     = texture(gbufferDiffuse,p2).rgb;
-  float depth2   = texture(gbufferDepth,  p2).r;
+  vec3  back     = texture(sceneColor,   p2).rgb;
+  float depth2   = texture(gbufferDepth, p2).r;
   if(depth2<gl_FragCoord.z)
     back  = backOrig;
   //return vec4(p2,0,1);
@@ -165,19 +178,82 @@ vec4 waterColor(vec3 color, vec3 albedo, vec3 normal, float shadow) {
   float transmittance = min(1.0 - exp(-0.95 * abs(dist)*5.0), 1.0);
   //return vec4(vec3(transmittance),1);
 
-  back = mix(back.rgb, back.rgb*color.rgb, transmittance);
+  back = mix(back.rgb, back.rgb*selfColor.rgb, transmittance);
   //return vec4(back,1);
 
-  //vec3 sun = vec3(pow(max(0,dot(refl, scene.sunDir)), 16.0) * scene.GSunIntensity);
+  //vec3 sun = vec3(pow(max(0,dot(refl, scene.sunDir)), 64.0) /** scene.GSunIntensity*/);
+  vec3 sun = vec3(0);
+  {
+    const float sunSolidAngle  = 0.53*M_PI/180.0;
+    const float minSunCosTheta = cos(sunSolidAngle);
 
-  vec3 clr = mix(back,sky,f);
-  return vec4(clr,1);
+    float cosTheta = dot(refl, scene.sunDir);
+    if(cosTheta >= minSunCosTheta)
+      ;//sun = vec3(1.0);
+    float offset = minSunCosTheta - cosTheta;
+    float gaussianBloom = exp(-offset*50000.0)*0.5;
+    float invBloom = 1.0/(0.02 + offset*300.0)*0.01;
+    sun = vec3(gaussianBloom+invBloom);
+  }
+
+  vec3 clr = back*(1.0-f) + sun*f  + sky*f;
+  return clr;
+  }
+
+vec3 waterColor(vec3 selfColor, vec3 normal) {
+  const float F   = 0.02;
+  const float ior = 1.0 / 1.52; // air / water
+
+  vec4  camPos = scene.viewProjectInv*vec4(0,0,0,1.0);
+  camPos.xyz /= camPos.w;
+
+  const vec3  view   = normalize(shInp.pos - camPos.xyz);
+  const vec3  refr   = refract(view, normal, ior);
+        vec3  refl   = reflect(view, normal);
+  if(refl.y<0) {
+    refl.y = 0;
+    refl   = normalize(refl);
+    }
+
+  const float depth  = texelFetch(gbufferDepth, ivec2(gl_FragCoord.xy), 0).r;
+  const float ground = linearDepth(depth, scene.clipInfo.xyz);
+  const float water  = linearDepth(gl_FragCoord.z, scene.clipInfo.xyz);
+  //const vec3  sky    = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir) * scene.GSunIntensity;
+  const vec3  sky    = vec3(0);
+
+  vec3  back = texelFetch(sceneColor, ivec2(gl_FragCoord.xy), 0).rgb;
+  float dist = (ground-water);
+  {
+    vec3  rPos     = shInp.pos + dist*refr*1.0;
+    vec4  rPosScr  = scene.viewProject*vec4(rPos,1.0);
+    rPosScr.xyz /= rPosScr.w;
+
+    const vec2  p2 = rPosScr.xy*0.5+vec2(0.5);
+    float depth2   = textureLod(gbufferDepth, p2, 0).r;
+
+    if(depth2>gl_FragCoord.z) {
+      vec3  back2 = textureLod(sceneColor,   p2, 0).rgb;
+      back = back2;
+      }
+
+    if(depth2>depth) {
+      const float ground2 = linearDepth(depth2, scene.clipInfo.xyz);
+      dist = (ground2-water);
+      }
+  }
+
+  const float transmittance = min(1.0 - exp(-0.95 * abs(dist)*5.0), 1.0);
+  back = mix(back.rgb, back.rgb*selfColor.rgb, transmittance);
+
+  const float f   = fresnel(refl,normal,ior);
+  const vec3  clr = back*(1.0-f) + sky*f;
+  return clr;
   }
 #endif
 
 #if defined(GHOST)
 vec3 ghostColor(vec3 selfColor) {
-  vec4 back = texelFetch(gbufferDiffuse, ivec2(gl_FragCoord.xy), 0);
+  vec4 back = texelFetch(sceneColor, ivec2(gl_FragCoord.xy), 0);
   return back.rgb+selfColor;
   }
 #endif
@@ -206,11 +282,7 @@ vec4 diffuseTex() {
 #endif
 
 vec4 forwardShading(vec4 t) {
-#if defined(MAT_LINEAR_CLR)
-  vec3  color = textureLinear(t.rgb);
-#else
   vec3  color = t.rgb;
-#endif
   float alpha = t.a;
 
 #if defined(GHOST)
@@ -225,28 +297,36 @@ vec4 forwardShading(vec4 t) {
 #endif
 
 #if defined(FORWARD)
-  float light  = lambert();
-  float shadow = calcShadow(vec4(shInp.pos,1), 0, scene, textureSm0, textureSm1);
-  color *= scene.sunCl.rgb*light*shadow + scene.ambient;
-#endif
-
-#if defined(WATER)
-  {
-    vec3 lx = dFdx(shInp.pos), ly = dFdy(shInp.pos);
-    float minLength = max(length(lx),length(ly));
-
-    Wave wx   = wave(shInp.pos, minLength);
-    vec4 wclr = waterColor(color,vec3(0.8,0.9,1.0),wx.normal,shadow);
-    color  = wclr.rgb;
-    // color  = vec3(clamp(dot(scene.sunDir,wave.normal), 0.0, 1.0));
-    // color  = vec3(clamp(wave.normal.y, 0.0, 1.0));
-    // color  = vec3(minLength/1000.0);
-    alpha  = wclr.a;
-  }
+  color *= diffuseLight();
 #endif
 
   return vec4(color,alpha);
   }
+
+#if defined(WATER)
+vec4 waterShading(vec4 t, vec3 normal) {
+  vec3  color = t.rgb;
+  float alpha = t.a;
+
+#if defined(FORWARD)
+  float light  = lambert();
+  float shadow = 1;//calcShadow(vec4(shInp.pos,1), 0, scene, textureSm0, textureSm1);
+  color *= scene.sunCl.rgb*light*shadow + scene.ambient;
+  // color *= diffuseLight();
+#endif
+
+  const vec3 waterAlbedo = vec3(0.8,0.9,1.0);
+  //vec3 wclr = waterColor(color,normal,shadow) * waterAlbedo;
+  vec3 wclr = waterColor(color,normal) * waterAlbedo;
+  color  = wclr.rgb;
+  alpha  = 1;
+  // color  = vec3(clamp(dot(scene.sunDir,wave.normal), 0.0, 1.0));
+  // color  = vec3(clamp(wave.normal.y, 0.0, 1.0));
+  // color  = vec3(minLength/1000.0);
+
+  return vec4(color,alpha);
+  }
+#endif
 
 bool isFlat() {
 #if defined(GBUFFER) && (MESH_TYPE==T_LANDSCAPE)
@@ -269,7 +349,14 @@ float encodeHintBits() {
 #else
   const int atst = (0) << 2;
 #endif
-  return float(flt | atst)/255.0;
+
+#if defined(WATER)
+  const int water = (1) << 3;
+#else
+  const int water = (0) << 3;
+#endif
+
+  return float(flt | atst | water)/255.0;
   }
 
 void main() {
@@ -279,6 +366,10 @@ void main() {
   if(t.a<0.5)
     discard;
 #  endif
+#endif
+
+#if defined(MAT_LINEAR_CLR)
+  t.rgb = textureLinear(t.rgb);
 #endif
 
 #if defined(GBUFFER)
@@ -291,7 +382,21 @@ void main() {
 #endif
 #endif
 
-#if !defined(GBUFFER) && !defined(DEPTH_ONLY)
+#if defined(WATER)
+  {
+  vec3 lx = dFdx(shInp.pos), ly = dFdy(shInp.pos);
+  float minLength = max(length(lx),length(ly));
+
+  Wave  wx       = wave(shInp.pos, minLength, waveIterationsMid, waveAmplitude());
+  float len      = length(wx.offset.xy);
+  float angle    = atan(wx.offset.z, wx.offset.x)/M_PI + 0.5;
+
+  outColor       = waterShading(t,wx.normal);
+  outDiffuse.rgb = t.rgb;
+  outDiffuse.a   = encodeHintBits();
+  outNormal      = vec4(bucket.waveMaxAmplitude, len, angle, 0);
+  }
+#elif !defined(GBUFFER) && !defined(DEPTH_ONLY)
   outColor   = forwardShading(t);
 #if DEBUG_DRAW
   outColor   = vec4(debugColors[debugId%MAX_DEBUG_COLORS],1.0);

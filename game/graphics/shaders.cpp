@@ -107,6 +107,22 @@ Shaders::Shaders() {
   fog3dHQ            = fogShader ("fog3d_hq");
 
   {
+    //waterReflection  = postEffect("water_reflection");
+    RenderState state;
+    state.setCullFaceMode (RenderState::CullMode::Front);
+    state.setZTestMode    (RenderState::ZTestMode::LEqual);
+    state.setZWriteEnabled(false);
+    state.setBlendSource  (RenderState::BlendMode::One);
+    state.setBlendDest    (RenderState::BlendMode::One);
+
+    auto sh = GothicShader::get("water_reflection.vert.sprv");
+    auto vs = device.shader(sh.data,sh.len);
+    sh      = GothicShader::get("water_reflection.frag.sprv");
+    auto fs = device.shader(sh.data,sh.len);
+    waterReflection   = device.pipeline(Triangles, state, vs, fs);
+  }
+
+  {
   RenderState state;
   state.setCullFaceMode (RenderState::CullMode::Front);
   state.setBlendSource  (RenderState::BlendMode::One);

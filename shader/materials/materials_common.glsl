@@ -47,7 +47,7 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define L_MorphId  8
 #define L_Pfx      L_MorphId
 #define L_Morph    9
-#define L_GDiffuse 10
+#define L_SceneClr 10
 #define L_GDepth   11
 #define L_HiZ      12
 #define L_SkyLut   13
@@ -212,7 +212,7 @@ layout(std430, binding = L_Pfx) readonly buffer SsboMorphId {
 #endif
 
 #if defined(FRAGMENT) && (defined(WATER) || defined(GHOST))
-layout(binding = L_GDiffuse) uniform sampler2D gbufferDiffuse;
+layout(binding = L_SceneClr) uniform sampler2D sceneColor;
 layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
 #endif
 

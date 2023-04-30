@@ -140,6 +140,10 @@ void Renderer::resetSwapchain() {
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
     shadow.ubo[i] = device.descriptors(*shadow.composePso);
 
+  water.reflectionsPso = &Shaders::inst().waterReflection;
+  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
+    water.ubo[i] = device.descriptors(*water.reflectionsPso);
+
   //ssao.ssaoBuf = device.attachment(ssao.aoFormat, swapchain.w(),swapchain.h());
   ssao.ssaoBuf = device.image2d(ssao.aoFormat, swapchain.w(),swapchain.h());
   if(Gothic::inst().doRayQuery() && false) {
@@ -219,6 +223,23 @@ void Renderer::prepareUniforms() {
       u.set(4+r, shadowMap[r]);
       }
     }
+
+  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
+    auto smp = Sampler::bilinear();
+    smp.setClamping(ClampMode::MirroredRepeat);
+
+    auto smpd = Sampler::nearest();
+    smpd.setClamping(ClampMode::ClampToEdge);
+
+    auto& u = water.ubo[i];
+    u.set(0, wview->sceneGlobals().uboGlobalPf[i][SceneGlobals::V_Main]);
+    u.set(1, sceneOpaque, smp);
+    u.set(2, gbufDiffuse, smp);
+    u.set(3, gbufNormal,  smp);
+    u.set(4, zbuffer,     smpd);
+    u.set(5, wview->sky().skyLut());
+    }
+
   setupTlas(nullptr);
 
   const Texture2d* sh[Resources::ShadowLayers] = {};
@@ -340,12 +361,15 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   drawSSAO(sceneLinear,cmd,*wview);
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
   wview->drawLights     (cmd,fId);
-  wview->drawWater      (cmd,fId);
 
+  drawGWater      (cmd,fId,*wview);
+
+  cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
   wview->drawSky        (cmd,fId);
   wview->drawTranslucent(cmd,fId);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
+  drawReflections   (cmd,fId);
   wview->drawFog    (cmd,fId);
 
   cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
@@ -413,6 +437,21 @@ void Renderer::drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
                        {zbuffer, 1.f, Tempest::Preserve});
     }
   view.drawGBuffer(cmd,fId);
+  }
+
+void Renderer::drawGWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
+  cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve},
+                      {gbufDiffuse, Vec4(0,0,0,0),     Tempest::Preserve},
+                      {gbufNormal,  Tempest::Preserve, Tempest::Preserve}},
+                     {zbuffer, Tempest::Preserve, Tempest::Preserve});
+  // cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}},
+  //                    {zbuffer, Tempest::Preserve, Tempest::Preserve});
+  view.drawWater(cmd,fId);
+  }
+
+void Renderer::drawReflections(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  cmd.setUniforms(Shaders::inst().waterReflection, water.ubo[fId]);
+  cmd.draw(Resources::fsqVbo());
   }
 
 void Renderer::drawShadowMap(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
