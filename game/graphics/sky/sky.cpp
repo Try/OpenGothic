@@ -31,8 +31,8 @@ Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest:
   auto dot    = wname.rfind('.');
   auto name   = dot==std::string::npos ? wname : wname.substr(0,dot);
   for(size_t i=0;i<2;++i) {
-    day  .lay[i].texture = skyTexture(name,true, i);
-    night.lay[i].texture = skyTexture(name,false,i);
+    clouds[0].lay[i] = skyTexture(name,true, i);
+    clouds[1].lay[i] = skyTexture(name,false,i);
     }
   minZ = bbox.first.z;
   GSunIntensity = 5.f; //20.f;
@@ -230,16 +230,16 @@ void Sky::setupUbo() {
 
   uboClouds = device.descriptors(Shaders::inst().cloudsLut);
   uboClouds.set(0, cloudsLut);
-  uboClouds.set(5,*day  .lay[0].texture,smp);
-  uboClouds.set(6,*day  .lay[1].texture,smp);
-  uboClouds.set(7,*night.lay[0].texture,smp);
-  uboClouds.set(8,*night.lay[1].texture,smp);
+  uboClouds.set(5, *cloudsDay()  .lay[0],smp);
+  uboClouds.set(6, *cloudsDay()  .lay[1],smp);
+  uboClouds.set(7, *cloudsNight().lay[0],smp);
+  uboClouds.set(8, *cloudsNight().lay[1],smp);
 
   uboTransmittance = device.descriptors(Shaders::inst().skyTransmittance);
-  uboTransmittance.set(5,*day  .lay[0].texture,smp);
-  uboTransmittance.set(6,*day  .lay[1].texture,smp);
-  uboTransmittance.set(7,*night.lay[0].texture,smp);
-  uboTransmittance.set(8,*night.lay[1].texture,smp);
+  uboTransmittance.set(5,*cloudsDay()  .lay[0],smp);
+  uboTransmittance.set(6,*cloudsDay()  .lay[1],smp);
+  uboTransmittance.set(7,*cloudsNight().lay[0],smp);
+  uboTransmittance.set(8,*cloudsNight().lay[1],smp);
 
   uboMultiScatLut = device.descriptors(Shaders::inst().skyMultiScattering);
   uboMultiScatLut.set(0, transLut, smpB);
@@ -259,10 +259,10 @@ void Sky::setupUbo() {
   uboSky.set(1, multiScatLut,   smpB);
   uboSky.set(2, viewLut,        smpB);
   //uboSky.set(3, fogLut3D,       smpB);
-  uboSky.set(4,*day  .lay[0].texture,smp);
-  uboSky.set(5,*day  .lay[1].texture,smp);
-  uboSky.set(6,*night.lay[0].texture,smp);
-  uboSky.set(7,*night.lay[1].texture,smp);
+  uboSky.set(4,*cloudsDay()  .lay[0],smp);
+  uboSky.set(5,*cloudsDay()  .lay[1],smp);
+  uboSky.set(6,*cloudsNight().lay[0],smp);
+  uboSky.set(7,*cloudsNight().lay[1],smp);
 
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
     if(quality==Exponential) {

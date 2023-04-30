@@ -13,6 +13,7 @@
 
 #include "../scene.glsl"
 #include "../common.glsl"
+#include "../sky/clouds.glsl"
 
 layout(location = 0) out vec4 outColor;
 layout(location = 0) in  vec2 UV;
@@ -29,10 +30,42 @@ layout(binding = 3) uniform sampler2D gbufNormal;
 layout(binding = 4) uniform sampler2D gbufDepth;
 layout(binding = 5) uniform sampler2D zbuffer;
 
-layout(binding = 6) uniform sampler2D skyLUT;
+layout(binding =  6) uniform sampler2D skyLUT;
+layout(binding =  7) uniform sampler2D textureDayL0;
+layout(binding =  8) uniform sampler2D textureDayL1;
+layout(binding =  9) uniform sampler2D textureNightL0;
+layout(binding = 10) uniform sampler2D textureNightL1;
 
-const float F   = 0.02;
-const float ior = 1.0 / 1.52; // air / water
+vec4 clouds(vec3 at, vec3 highlight) {
+  uint  ticks = scene.tickCount32;
+  float t0    = float(ticks%90000 )/90000.f;
+  float t1    = float(ticks%270000)/270000.f;
+  float night = 0;
+
+  return clouds(at, night, highlight,
+                vec2(t0,0), vec2(t1,0),
+                textureDayL1,textureDayL0, textureNightL1,textureNightL0);
+  }
+
+vec3 applyClouds(vec3 skyColor, vec3 view, vec3 refl) {
+  vec3  pos = vec3(0,RPlanet,0);
+  float L   = rayIntersect(pos, refl, RClouds);
+
+  // TODO: http://killzone.dl.playstation.net/killzone/horizonzerodawn/presentations/Siggraph15_Schneider_Real-Time_Volumetric_Cloudscapes_of_Horizon_Zero_Dawn.pdf
+  // fake cloud scattering inspired by Henyey-Greenstein model
+  vec3 lum = vec3(0);
+  lum += textureSkyLUT(skyLUT, vec3(0,RPlanet,0), vec3( view.x, view.y*0.0, view.z), scene.sunDir);
+  lum += textureSkyLUT(skyLUT, vec3(0,RPlanet,0), vec3(-view.x, view.y*0.0, view.z), scene.sunDir);
+  lum += textureSkyLUT(skyLUT, vec3(0,RPlanet,0), vec3(-view.x, view.y*0.0,-view.z), scene.sunDir);
+  lum += textureSkyLUT(skyLUT, vec3(0,RPlanet,0), vec3( view.x, view.y*0.0,-view.z), scene.sunDir);
+  lum = lum*scene.GSunIntensity;
+
+  lum *= 5.0; //fixme?
+  //lum = vec3(1)*scene.GSunIntensity;
+
+  vec4  cloud = clouds(pos + refl*L, lum);
+  return mix(skyColor, cloud.rgb, cloud.a);
+  }
 
 float intersectPlane(const vec3 pos, const vec3 dir, const vec4 plane) {
   float dist = dot(vec4(pos,1.0), plane);
@@ -68,13 +101,10 @@ vec3 sunBloom(vec3 refl) {
   return vec3(gaussianBloom+invBloom);
   }
 
-vec3 ssr(vec4 orig, vec3 start, vec3 refl, float shadow) {
+vec3 ssr(vec4 orig, vec3 start, vec3 refl, float shadow, vec3 sky) {
   const int   SSR_STEPS = 64;
   const float ZBias     = 0.0;
   // const float ZBias     = 0.00004;
-
-  vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir);
-  sky *= scene.GSunIntensity;
 
   const float rayLen = intersectFrustum(start,refl);
   // return vec3(rayLen*0.01);
@@ -188,16 +218,19 @@ void main(void) {
     refl   = normalize(refl);
     }
 
-  const float f = fresnel(refl,normal,ior);
+  const float f = fresnel(refl,normal,IorWater);
   if(f<=0.0001) {
     discard;
     }
 
-  float shadow = 1;
-  vec3  albedo = vec3(0.8,0.9,1.0);
-  vec3  sky    = ssr(scr,start,refl,shadow)*albedo*f;
-  vec3  sun    = sunBloom(refl)*f;
+  vec3 sun = sunBloom(refl);
+  vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir) * scene.GSunIntensity;
+  sky = applyClouds(sky+sun, view, refl);
 
-  outColor = vec4(sky+sun, 0.0);
+  float shadow     = 1;
+  vec3  reflection = ssr(scr,start,refl,shadow,sky) * WaterAlbedo * f;
+
+  outColor = vec4(reflection, 0.0);
+  //outColor = vec4(sky, 0.0);
   //outColor = vec4(normal, 0.0);
   }

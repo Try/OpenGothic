@@ -225,6 +225,8 @@ void Renderer::prepareUniforms() {
     }
 
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
+    auto& sky = wview->sky();
+
     auto smp = Sampler::bilinear();
     smp.setClamping(ClampMode::MirroredRepeat);
 
@@ -238,7 +240,12 @@ void Renderer::prepareUniforms() {
     u.set(3, gbufNormal,  smp);
     u.set(4, zbuffer,     smpd);
     u.set(5, sceneDepth,  smpd);
-    u.set(6, wview->sky().skyLut());
+
+    u.set(6,  wview->sky().skyLut());
+    u.set(7, *sky.cloudsDay()  .lay[0],smp);
+    u.set(8, *sky.cloudsDay()  .lay[1],smp);
+    u.set(9, *sky.cloudsNight().lay[0],smp);
+    u.set(10,*sky.cloudsNight().lay[1],smp);
     }
 
   setupTlas(nullptr);

@@ -31,14 +31,6 @@ vec3 inverse(vec3 pos) {
   return (ret.xyz/ret.w)/100.f;
   }
 
-vec4 mixClr(vec4 s, vec4 d) {
-  float a  =  (1-s.a)*d.a + s.a;
-  if(a<=0.0)
-    return vec4(0);
-  vec3  c  = ((1-s.a)*d.a*d.rgb+s.a*s.rgb)/a;
-  return vec4(c,a);
-  }
-
 float miePhase(float cosTheta) {
   const float scale = 3.0/(8.0*M_PI);
 
