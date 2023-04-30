@@ -27,15 +27,12 @@ layout(binding = 1) uniform sampler2D sceneColor;
 layout(binding = 2) uniform sampler2D gbufDiffuse;
 layout(binding = 3) uniform sampler2D gbufNormal;
 layout(binding = 4) uniform sampler2D gbufDepth;
+layout(binding = 5) uniform sampler2D zbuffer;
 
-layout(binding = 5) uniform sampler2D skyLUT;
+layout(binding = 6) uniform sampler2D skyLUT;
 
 const float F   = 0.02;
 const float ior = 1.0 / 1.52; // air / water
-
-float interleavedGradientNoise(vec2 pixel) {
-  return fract(52.9829189f * fract(0.06711056f*float(pixel.x) + 0.00583715f*float(pixel.y)));
-  }
 
 float intersectPlane(const vec3 pos, const vec3 dir, const vec4 plane) {
   float dist = dot(vec4(pos,1.0), plane);
@@ -73,12 +70,12 @@ vec3 sunBloom(vec3 refl) {
 
 vec3 ssr(vec4 orig, vec3 start, vec3 refl, float shadow) {
   const int   SSR_STEPS = 64;
-  const float ZBias     = 0.00004;
+  const float ZBias     = 0.0;
+  // const float ZBias     = 0.00004;
 
   vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir);
   sky *= scene.GSunIntensity;
 
-  // const float rayLen = 10000;
   const float rayLen = intersectFrustum(start,refl);
   // return vec3(rayLen*0.01);
   if(rayLen<=0)
@@ -99,7 +96,7 @@ vec3 ssr(vec4 orig, vec3 start, vec3 refl, float shadow) {
       break;
 
     const vec2  p     = pos.xy*0.5+vec2(0.5);
-    const float depth = textureLod(gbufDepth,p,0).r + ZBias;
+    const float depth = textureLod(zbuffer,p,0).r + ZBias;
     if(depth==1.0)
       continue;
 
@@ -127,7 +124,7 @@ vec3 ssr(vec4 orig, vec3 start, vec3 refl, float shadow) {
   if(found)
     return mix(sky,reflection,att);
   if(occluded)
-    return sky; //mix(sky,reflection,att*(1.0-shadow));
+    return sky*0.5; //mix(sky,reflection,att*(1.0-shadow));
   return sky; //mix(sky, scene.ambient*sky, shadow*0.2);
   /*
   float att = min(1.0,uv.y*4.0);//*(max(0,1.0-abs(uv.x*2.0-1.0)));
@@ -166,7 +163,7 @@ vec3 calcNormal(vec3 pos, float waveMaxAmplitude, vec2 offset) {
 void main(void) {
   const vec2  fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
   const float depth     = texelFetch(gbufDepth,  ivec2(gl_FragCoord.xy), 0).r;
-  const vec4  nrm       = texelFetch(gbufNormal, ivec2(gl_FragCoord.xy), 0);
+  const vec3  nrm       = texelFetch(gbufNormal, ivec2(gl_FragCoord.xy), 0).rgb;
 
   const vec4  start4    = scene.viewProjectInv*vec4(fragCoord.x, fragCoord.y, depth, 1.0);
   const vec3  start     = start4.xyz/start4.w;

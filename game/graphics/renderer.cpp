@@ -237,7 +237,8 @@ void Renderer::prepareUniforms() {
     u.set(2, gbufDiffuse, smp);
     u.set(3, gbufNormal,  smp);
     u.set(4, zbuffer,     smpd);
-    u.set(5, wview->sky().skyLut());
+    u.set(5, sceneDepth,  smpd);
+    u.set(6, wview->sky().skyLut());
     }
 
   setupTlas(nullptr);

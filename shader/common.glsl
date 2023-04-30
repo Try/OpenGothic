@@ -58,6 +58,10 @@ vec3 srgbEncode(vec3 color){
   return pow(color,vec3(1.0/2.2));
   }
 
+float interleavedGradientNoise(vec2 pixel) {
+  return fract(52.9829189f * fract(0.06711056f*float(pixel.x) + 0.00583715f*float(pixel.y)));
+  }
+
 // From https://gamedev.stackexchange.com/questions/96459/fast-ray-sphere-collision-code.
 float rayIntersect(vec3 v, vec3 d, float R) {
   float b = dot(v, d);
