@@ -3,7 +3,7 @@
 
 #include "../common.glsl"
 
-const int waveIterationsHigh = 43;
+const int waveIterationsHigh = 32;//43;
 const int waveIterationsMid  = 16;
 const int waveIterationsLow  = 10;
 

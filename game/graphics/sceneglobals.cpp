@@ -102,6 +102,12 @@ void SceneGlobals::setExposure(float expInv) {
   uboGlobal.exposureInv = expInv;
   }
 
+void SceneGlobals::setSky(const Sky& s) {
+  uboGlobal.cloudsDir[0] = s.cloudsOffset(0);
+  uboGlobal.cloudsDir[1] = s.cloudsOffset(1);
+  uboGlobal.isNight      = s.isNight();
+  }
+
 void SceneGlobals::setTime(uint64_t time) {
   tickCount             = time;
   uboGlobal.waveAnim    = 2.f*float(M_PI)*float(tickCount%3000)/3000.f;

@@ -19,7 +19,7 @@ layout(location = 0) out vec4 outColor;
 
 vec4 clouds(vec3 at, vec3 highlight) {
   return clouds(at, push.night, highlight,
-                push.dxy0, push.dxy1,
+                push.cloudsDir0, push.cloudsDir1,
                 textureDayL1,textureDayL0, textureNightL1,textureNightL0);
   }
 

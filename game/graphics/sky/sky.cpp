@@ -433,6 +433,18 @@ const Texture2d& Sky::skyLut() const {
   return textureCast(viewLut);
   }
 
+Vec2 Sky::cloudsOffset(int layer) const {
+  auto ticks = scene.tickCount;
+  auto t0    = float(ticks%90000 )/90000.f;
+  auto t1    = float(ticks%270000)/270000.f;
+
+  Vec2 ret = {};
+  if(layer==0)
+    ret.x = t0; else
+    ret.x = t1;
+  return ret;
+  }
+
 Sky::UboSky Sky::mkPush() {
   UboSky ubo;
   auto v = scene.view;
@@ -447,13 +459,8 @@ Sky::UboSky Sky::mkPush() {
   ubo.viewProjectInv.mul(v);
   ubo.viewProjectInv.inverse();
 
-  //ubo.shadow1 = scene.shadowView(1);
-
-  auto ticks = scene.tickCount;
-  auto t0 = float(ticks%90000 )/90000.f;
-  auto t1 = float(ticks%270000)/270000.f;
-  ubo.dxy0[0] = t0;
-  ubo.dxy1[0] = t1;
+  ubo.dxy0    = cloudsOffset(0);
+  ubo.dxy1    = cloudsOffset(1);
   ubo.sunDir  = sun.dir();
   ubo.night   = isNight();
 

@@ -377,7 +377,8 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   wview->drawTranslucent(cmd,fId);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
-  drawReflections   (cmd,fId);
+  if(settings.zEnvMappingEnabled)
+    drawReflections(cmd,fId);
   wview->drawFog    (cmd,fId);
 
   cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});

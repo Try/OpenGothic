@@ -37,13 +37,10 @@ layout(binding =  9) uniform sampler2D textureNightL0;
 layout(binding = 10) uniform sampler2D textureNightL1;
 
 vec4 clouds(vec3 at, vec3 highlight) {
-  uint  ticks = scene.tickCount32;
-  float t0    = float(ticks%90000 )/90000.f;
-  float t1    = float(ticks%270000)/270000.f;
-  float night = 0;
+  float night = scene.isNight;
 
-  return clouds(at, night, highlight,
-                vec2(t0,0), vec2(t1,0),
+  return clouds(at*0.01, night, highlight,
+                scene.cloudsDir.xy, scene.cloudsDir.zw,
                 textureDayL1,textureDayL0, textureNightL1,textureNightL0);
   }
 
@@ -176,35 +173,44 @@ void decodeBits(float v, out bool water) {
   water = (x & (1 << 3))!=0;
   }
 
-vec3 calcNormal(vec3 pos, float waveMaxAmplitude, vec2 offset) {
-  const float amplitudeMin = 10;
-  const float amplitude    = max(amplitudeMin, waveMaxAmplitude*0.5);
+bool isGBufWater(float v) {
+  bool isWater = false;
+  decodeBits(v,isWater);
+  return isWater;
+  }
 
+float minWaveLengthQG(vec3 pos, float waveMaxAmplitude) {
   vec3 lx = dFdx(pos), ly = dFdy(pos);
   float minLength = max(length(lx),length(ly));
+  return minLength;
+  }
 
-  float ang = (offset.y-0.5)*M_PI;
-  vec2  off = vec2(cos(ang), sin(ang)) * offset.x;
+vec3 calcNormal(vec3 pos, float waveMaxAmplitude, vec2 offset, float minLength) {
+  const float ang = (offset.y-0.5)*M_PI;
+  const vec2  off = vec2(cos(ang), sin(ang)) * offset.x;
+
+  const float amplitudeMin = 10;
+  const float amplitude    = max(amplitudeMin, waveMaxAmplitude*0.5);
 
   Wave w = wave(pos - vec3(off.x,0,off.y), minLength, waveIterationsHigh, amplitude);
   return normalize(cross(w.binormal,w.tangent));
   }
 
-void main(void) {
+void main() {
   const vec2  fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
   const float depth     = texelFetch(gbufDepth,  ivec2(gl_FragCoord.xy), 0).r;
   const vec3  nrm       = texelFetch(gbufNormal, ivec2(gl_FragCoord.xy), 0).rgb;
 
   const vec4  start4    = scene.viewProjectInv*vec4(fragCoord.x, fragCoord.y, depth, 1.0);
   const vec3  start     = start4.xyz/start4.w;
-
-  const vec3  normal    = calcNormal(start,nrm.x,nrm.yz);
+  const float minLength = minWaveLengthQG(start,nrm.x); //note: use full-screen-triangle
 
   const vec4  diff      = texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0);
-  bool isWater = false;
-  decodeBits(diff.a,isWater);
-  if(!isWater)
+  if(!isGBufWater(diff.a))
     discard;
+
+  const vec3  normal    = calcNormal(start,nrm.x,nrm.yz,minLength);
+  // const vec3  normal    = vec3(0,1,0);
 
   const vec4  scr     = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
 

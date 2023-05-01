@@ -36,6 +36,8 @@ class Sky final {
 
     const State&              cloudsDay()   const { return clouds[0]; }
     const State&              cloudsNight() const { return clouds[1]; }
+    Tempest::Vec2             cloudsOffset(int layer) const;
+    float                     isNight() const;
 
   private:
     enum Quality : uint8_t {
@@ -46,8 +48,8 @@ class Sky final {
 
     struct UboSky {
       Tempest::Matrix4x4 viewProjectInv;
-      float              dxy0[2]  = {};
-      float              dxy1[2]  = {};
+      Tempest::Vec2      dxy0     = {};
+      Tempest::Vec2      dxy1     = {};
       Tempest::Vec3      sunDir   = {};
       float              night    = 1.0;
       Tempest::Vec3      clipInfo;
@@ -63,8 +65,6 @@ class Sky final {
 
     void                          setupSettings();
     void                          drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId, bool sun);
-
-    float                         isNight() const;
 
     Quality                       quality = Quality::Exponential;
 

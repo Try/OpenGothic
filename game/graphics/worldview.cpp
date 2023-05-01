@@ -189,6 +189,7 @@ void WorldView::updateLight() {
 
   sGlobal.setSunlight(gSky.sunLight(), gSky.ambientLight(), gSky.sunIntensity());
   sGlobal.setExposure(gSky.autoExposure());
+  sGlobal.setSky(gSky);
   }
 
 void WorldView::setupUbo() {

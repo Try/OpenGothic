@@ -9,6 +9,8 @@
 #include "lightgroup.h"
 #include "bindless.h"
 
+class Sky;
+
 class SceneGlobals final {
   public:
     SceneGlobals();
@@ -27,6 +29,7 @@ class SceneGlobals final {
                         const Tempest::Matrix4x4 *sh);
     void setSunlight(const LightSource& light, const Tempest::Vec3& ambient, float GSunIntensity);
     void setExposure(float expInv);
+    void setSky(const Sky& s);
 
     void setTime(uint64_t time);
     void commitUbo(uint8_t fId);
@@ -71,7 +74,7 @@ class SceneGlobals final {
       Tempest::Vec3                   clipInfo;
       uint32_t                        tickCount32 = 0;
       Tempest::Vec3                   camPos;
-      float                           padd0 = 0;
+      float                           isNight = 0;
       Tempest::Vec2                   screenResInv;
       Tempest::Vec2                   closeupShadowSlice;
 
@@ -83,6 +86,7 @@ class SceneGlobals final {
       float                           padd3 = 0;
       Tempest::Point                  hiZTileSize = {};
       Tempest::Point                  screenRes = {};
+      Tempest::Vec2                   cloudsDir[2] = {};
       };
 
     Tempest::UniformBuffer<UboGlobal> uboGlobalPf[Resources::MaxFramesInFlight][V_Count];
