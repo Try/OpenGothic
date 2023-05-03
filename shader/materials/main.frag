@@ -85,8 +85,16 @@ vec3 waterColor(vec3 selfColor, vec3 normal) {
       }
   }
 
-  const float transmittance = min(1.0 - exp(-0.95 * abs(dist)*5.0), 1.0);
-  back = mix(back.rgb, back.rgb*selfColor.rgb, transmittance);
+  /**
+    TODO: Cheap and Convincing Subsurface Scattering Look
+    https://www.slideshare.net/colinbb/colin-barrebrisebois-gdc-2011-approximating-translucency-for-a-fast-cheap-and-convincing-subsurfacescattering-look-7170855
+    */
+  const float attenuation   = min(1.0 - exp(-4.0 * dist), 1.0);
+  const float transmittance = exp(-dist*0.5);
+  back = mix(back.rgb, back.rgb*vec3(0.25,0.55,0.5), attenuation);
+  back = back.rgb * transmittance;
+
+  //back = mix(back.rgb, back.rgb*selfColor.rgb, transmittance);
 
   const float f   = fresnel(refl,normal,ior);
   const vec3  clr = back*(1.0-f);

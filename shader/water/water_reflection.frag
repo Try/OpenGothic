@@ -98,7 +98,7 @@ vec3 sunBloom(vec3 refl) {
   return vec3(gaussianBloom+invBloom);
   }
 
-vec3 ssr(vec4 orig, vec3 start, vec3 refl, float shadow, vec3 sky) {
+vec3 ssr(vec4 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
   const int   SSR_STEPS = 64;
   const float ZBias     = 0.0;
   // const float ZBias     = 0.00004;
@@ -122,18 +122,18 @@ vec3 ssr(vec4 orig, vec3 start, vec3 refl, float shadow, vec3 sky) {
     if(pos.z>=1.0)
       break;
 
-    const vec2  p     = pos.xy*0.5+vec2(0.5);
-    const float depth = textureLod(zbuffer,p,0).r + ZBias;
-    if(depth==1.0)
+    const vec2  p        = pos.xy*0.5+vec2(0.5);
+    const float smpDepth = textureLod(zbuffer,p,0).r + ZBias;
+    if(smpDepth==1.0)
       continue;
 
-    if(pos.z>depth) {
+    if(pos.z>smpDepth) {
       // screen-space data is occluded
       occluded = true;
       }
 
-    if(pos.z>depth) {
-      vec4  hit4   = scene.viewProjectInv*vec4(pos.xy,depth,1.0);
+    if(pos.z>smpDepth) {
+      vec4  hit4   = scene.viewProjectInv*vec4(pos.xy,smpDepth,1.0);
       vec3  hit    = /*normalize*/(hit4.xyz/hit4.w - start);
       float angCos = dot(hit,refl);
 
@@ -147,22 +147,23 @@ vec3 ssr(vec4 orig, vec3 start, vec3 refl, float shadow, vec3 sky) {
   // return sky;
 
   const vec3  reflection = textureLod(sceneColor,uv,0).rgb;
-  const float att        = smoothstep(-1.0, -0.8, uv.y);// min(1.0,uv.y*4.0);
+  const float att        = smoothstep(0, 0.1, uv.y);// min(1.0,uv.y*4.0);
+
   if(found)
     return mix(sky,reflection,att);
-  if(occluded)
-    return sky*0.5; //mix(sky,reflection,att*(1.0-shadow));
+
+  if(occluded || true) {
+    const float z  = texelFetch(zbuffer, ivec2(gl_FragCoord.xy), 0).r;
+    const float zs = linearDepth(z,     scene.clipInfo.xyz);
+    const float zb = linearDepth(depth, scene.clipInfo.xyz);
+    float h = zs - zb;
+    //h = 0.2 + 0.8*smoothstep(0, 1, h*0.01);
+    h = 0.1 + 0.9*smoothstep(0, 0.25, h*0.5);
+    return sky*h;
+    //return vec3(h);
+    }
+
   return sky; //mix(sky, scene.ambient*sky, shadow*0.2);
-  /*
-  float att = min(1.0,uv.y*4.0);//*(max(0,1.0-abs(uv.x*2.0-1.0)));
-  if(found)
-    return mix(sky,reflection,att);
-    //return reflection;
-  if(occluded)
-    return mix(sky,reflection,att*(1.0-shadow));
-  //return sky;
-  return mix(sky, scene.ambient*sky, shadow*0.2);
-  */
   }
 
 void decodeBits(float v, out bool water) {
@@ -225,16 +226,15 @@ void main() {
     }
 
   const float f = fresnel(refl,normal,IorWater);
-  if(f<=0.0001) {
+  if(f<=0.0001)
     discard;
-    }
 
   vec3 sun = sunBloom(refl);
   vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir) * scene.GSunIntensity;
   sky = applyClouds(sky+sun, view, refl);
 
-  float shadow     = 1;
-  vec3  reflection = ssr(scr,start,refl,shadow,sky) * WaterAlbedo * f;
+  vec3  reflection = ssr(scr,start,refl,depth,sky) * WaterAlbedo * f;
+  // vec3  reflection = ssr(scr,start,refl,depth,sky);
 
   outColor = vec4(reflection, 0.0);
   //outColor = vec4(sky, 0.0);
