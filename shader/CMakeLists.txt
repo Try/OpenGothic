@@ -172,6 +172,7 @@ add_shader(light_rq_at.frag          lighting/light.frag -DRAY_QUERY -DRAY_QUERY
 
 add_shader(water_reflection.vert     copy.vert "")
 add_shader(water_reflection.frag     water/water_reflection.frag "")
+add_shader(water_reflection_ssr.frag water/water_reflection.frag -DSSR)
 
 # Based on Scalable and Production Ready Sky and Atmosphere
 # https://sebh.github.io/publications/egsr2020.pdf

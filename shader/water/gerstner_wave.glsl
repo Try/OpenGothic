@@ -107,6 +107,7 @@ Wave wave(vec3 pos, float minLength, const int iterations, const float amplitude
     speed  *= 1.07;
     }
 
+  w.normal = normalize(cross(w.binormal,w.tangent));
   return w;
   }
 
@@ -117,12 +118,7 @@ Wave wave(vec3 pos, float minLength) {
   const int iterations = waveIterationsLow;
 #endif
 
-  Wave w = wave(pos,minLength,iterations,waveAmplitude());
-#if defined(FRAGMENT)
-  w.normal = normalize(cross(w.binormal,w.tangent));
-#endif
-
-  return w;
+  return wave(pos,minLength,iterations,waveAmplitude());
   }
 
 #endif

@@ -45,64 +45,6 @@ vec4 dbgLambert() {
   }
 #endif
 
-#if defined(WATER)
-vec3 waterColor(vec3 selfColor, vec3 normal) {
-  const float ior = IorWater;
-
-  vec4  camPos = scene.viewProjectInv*vec4(0,0,0,1.0);
-  camPos.xyz /= camPos.w;
-
-  const vec3  view   = normalize(shInp.pos - camPos.xyz);
-  const vec3  refr   = refract(view, normal, ior);
-        vec3  refl   = reflect(view, normal);
-  if(refl.y<0) {
-    refl.y = 0;
-    refl   = normalize(refl);
-    }
-
-  const float depth  = texelFetch(gbufferDepth, ivec2(gl_FragCoord.xy), 0).r;
-  const float ground = linearDepth(depth, scene.clipInfo.xyz);
-  const float water  = linearDepth(gl_FragCoord.z, scene.clipInfo.xyz);
-
-  vec3  back = texelFetch(sceneColor, ivec2(gl_FragCoord.xy), 0).rgb;
-  float dist = (ground-water);
-  {
-    vec3  rPos     = shInp.pos + dist*refr*1.0;
-    vec4  rPosScr  = scene.viewProject*vec4(rPos,1.0);
-    rPosScr.xyz /= rPosScr.w;
-
-    const vec2  p2 = rPosScr.xy*0.5+vec2(0.5);
-    float depth2   = textureLod(gbufferDepth, p2, 0).r;
-
-    if(depth2>gl_FragCoord.z) {
-      vec3  back2 = textureLod(sceneColor,   p2, 0).rgb;
-      back = back2;
-      }
-
-    if(depth2>depth) {
-      const float ground2 = linearDepth(depth2, scene.clipInfo.xyz);
-      dist = (ground2-water);
-      }
-  }
-
-  /**
-    TODO: Cheap and Convincing Subsurface Scattering Look
-    https://www.slideshare.net/colinbb/colin-barrebrisebois-gdc-2011-approximating-translucency-for-a-fast-cheap-and-convincing-subsurfacescattering-look-7170855
-    */
-  const float attenuation   = min(1.0 - exp(-4.0 * dist), 1.0);
-  const float transmittance = exp(-dist*0.5);
-  back = mix(back.rgb, back.rgb*vec3(0.25,0.55,0.5), attenuation);
-  back = back.rgb * transmittance;
-
-  //back = mix(back.rgb, back.rgb*selfColor.rgb, transmittance);
-
-  const float f   = fresnel(refl,normal,ior);
-  const vec3  clr = back*(1.0-f);
-  // gl_FrontFacing
-  return clr;
-  }
-#endif
-
 #if defined(GHOST)
 vec3 ghostColor(vec3 selfColor) {
   vec4 back = texelFetch(sceneColor, ivec2(gl_FragCoord.xy), 0);
@@ -149,7 +91,64 @@ vec4 forwardShading(vec4 t) {
   }
 
 #if defined(WATER)
-vec4 waterShading(vec4 t, vec3 normal) {
+vec3 waterColor(vec3 selfColor, vec3 normal) {
+  const float ior = IorWater;
+
+  vec4  camPos = scene.viewProjectInv*vec4(0,0,0,1.0);
+  camPos.xyz /= camPos.w;
+
+  const vec3  view   = normalize(shInp.pos - camPos.xyz);
+  const vec3  refr   = refract(view, normal, ior);
+        vec3  refl   = reflect(view, normal);
+  if(refl.y<0) {
+    refl.y = 0;
+    refl   = normalize(refl);
+    }
+
+  const float depth  = texelFetch(gbufferDepth, ivec2(gl_FragCoord.xy), 0).r;
+  const float ground = linearDepth(depth, scene.clipInfo.xyz);
+  const float water  = linearDepth(gl_FragCoord.z, scene.clipInfo.xyz);
+
+  vec3  back = texelFetch(sceneColor, ivec2(gl_FragCoord.xy), 0).rgb;
+  float dist = (ground-water);
+  {
+    vec3  rPos     = shInp.pos + dist*refr*10.0;
+    vec4  rPosScr  = scene.viewProject*vec4(rPos,1.0);
+    rPosScr.xyz /= rPosScr.w;
+
+    const vec2  p2 = rPosScr.xy*0.5+vec2(0.5);
+    float depth2   = textureLod(gbufferDepth, p2, 0).r;
+
+    if(depth2>gl_FragCoord.z) {
+      back = textureLod(sceneColor, p2, 0).rgb;
+      }
+
+    if(depth2>depth) {
+      const float ground2 = linearDepth(depth2, scene.clipInfo.xyz);
+      dist = (ground2-water);
+      }
+  }
+
+  /**
+    TODO: Cheap and Convincing Subsurface Scattering Look
+    https://www.slideshare.net/colinbb/colin-barrebrisebois-gdc-2011-approximating-translucency-for-a-fast-cheap-and-convincing-subsurfacescattering-look-7170855
+    */
+  const float attenuation   = min(1.0 - exp(-4.0 * dist), 1.0);
+  const float transmittance = exp(-dist*0.5);
+  back = mix(back.rgb, back.rgb*vec3(0.25,0.55,0.5), attenuation);
+  back = back.rgb * transmittance;
+
+  //back = mix(back.rgb, back.rgb*selfColor.rgb, transmittance);
+
+  const float f   = fresnel(refl,normal,ior);
+  const vec3  clr = back*(1.0-f);
+  // gl_FrontFacing
+  return clr;
+  }
+#endif
+
+#if defined(WATER)
+vec4 waterShading(vec4 t, const vec3 normal) {
   vec3  color = t.rgb;
   float alpha = t.a;
 
@@ -196,6 +195,15 @@ float encodeHintBits() {
   return float(flt | atst | water)/255.0;
   }
 
+vec3 encodeNormal(vec3 n) {
+  float l = length(n.xz);
+  if(l>0.0)
+    n.xz /= l;
+  n.y   = l;
+  n.xz = n.xz*0.5 + vec2(0.5);
+  return n;
+  }
+
 void main() {
 #if defined(MAT_UV)
   vec4 t = diffuseTex();
@@ -228,17 +236,15 @@ void main() {
   vec3 lx = dFdx(shInp.pos), ly = dFdy(shInp.pos);
   float minLength = max(length(lx),length(ly));
 
-  Wave  wx       = wave(shInp.pos, minLength, waveIterationsMid, waveAmplitude());
-  float len      = length(wx.offset.xy);
-  float angle    = atan(wx.offset.z, wx.offset.x)/M_PI + 0.5;
+  Wave wx = wave(shInp.pos, minLength, waveIterationsHigh, waveAmplitude());
 
-  if(!gl_FrontFacing)
-    ;//wx.normal = -wx.normal;
+  if(gl_FrontFacing)
+    wx.normal = -wx.normal;
 
   outColor       = waterShading(t,wx.normal);
   outDiffuse.rgb = t.rgb;
   outDiffuse.a   = encodeHintBits();
-  outNormal      = vec4(bucket.waveMaxAmplitude, len, angle, 0);
+  outNormal      = vec4(encodeNormal(wx.normal), 0);
   }
 #elif !defined(GBUFFER) && !defined(DEPTH_ONLY)
   outColor   = forwardShading(t);

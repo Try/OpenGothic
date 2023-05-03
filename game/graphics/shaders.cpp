@@ -106,21 +106,8 @@ Shaders::Shaders() {
   fog3dLQ            = fogShader ("fog3d_lq");
   fog3dHQ            = fogShader ("fog3d_hq");
 
-  {
-    //waterReflection  = postEffect("water_reflection");
-    RenderState state;
-    state.setCullFaceMode (RenderState::CullMode::Front);
-    state.setZTestMode    (RenderState::ZTestMode::LEqual);
-    state.setZWriteEnabled(false);
-    state.setBlendSource  (RenderState::BlendMode::One);
-    state.setBlendDest    (RenderState::BlendMode::One);
-
-    auto sh = GothicShader::get("water_reflection.vert.sprv");
-    auto vs = device.shader(sh.data,sh.len);
-    sh      = GothicShader::get("water_reflection.frag.sprv");
-    auto fs = device.shader(sh.data,sh.len);
-    waterReflection   = device.pipeline(Triangles, state, vs, fs);
-  }
+  waterReflection    = reflectionShader("water_reflection.frag.sprv");
+  waterReflectionSSR = reflectionShader("water_reflection_ssr.frag.sprv");
 
   {
   RenderState state;
@@ -368,6 +355,23 @@ RenderPipeline Shaders::fogShader(std::string_view name) {
   sh      = GothicShader::get(string_frm(name,".frag.sprv"));
   auto fs = device.shader(sh.data,sh.len);
   return device.pipeline(Triangles,state,vs,fs);
+  }
+
+RenderPipeline Shaders::reflectionShader(std::string_view name) {
+  auto& device = Resources::device();
+
+  RenderState state;
+  state.setCullFaceMode (RenderState::CullMode::Front);
+  state.setZTestMode    (RenderState::ZTestMode::LEqual);
+  state.setZWriteEnabled(false);
+  state.setBlendSource  (RenderState::BlendMode::One);
+  state.setBlendDest    (RenderState::BlendMode::One);
+
+  auto sh = GothicShader::get("water_reflection.vert.sprv");
+  auto vs = device.shader(sh.data,sh.len);
+  sh      = GothicShader::get(name);
+  auto fs = device.shader(sh.data,sh.len);
+  return device.pipeline(Triangles, state, vs, fs);
   }
 
 RenderPipeline Shaders::pipeline(RenderState& st, const ShaderSet &sh) const {

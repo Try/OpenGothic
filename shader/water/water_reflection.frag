@@ -166,6 +166,16 @@ vec3 ssr(vec4 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
   return sky; //mix(sky, scene.ambient*sky, shadow*0.2);
   }
 
+#if defined(SSR)
+vec3 reflection(vec4 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
+  return ssr(orig,start,refl,depth,sky);
+  }
+#else
+vec3 reflection(vec4 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
+  return sky;
+  }
+#endif
+
 void decodeBits(float v, out bool water) {
   int x = int(v*255+0.5);
 
@@ -180,39 +190,28 @@ bool isGBufWater(float v) {
   return isWater;
   }
 
-float minWaveLengthQG(vec3 pos, float waveMaxAmplitude) {
-  vec3 lx = dFdx(pos), ly = dFdy(pos);
-  float minLength = max(length(lx),length(ly));
-  return minLength;
-  }
-
-vec3 calcNormal(vec3 pos, float waveMaxAmplitude, vec2 offset, float minLength) {
-  const float ang = (offset.y-0.5)*M_PI;
-  const vec2  off = vec2(cos(ang), sin(ang)) * offset.x;
-
-  const float amplitudeMin = 10;
-  const float amplitude    = max(amplitudeMin, waveMaxAmplitude*0.5);
-
-  Wave w = wave(pos - vec3(off.x,0,off.y), minLength, waveIterationsHigh, amplitude);
-  return normalize(cross(w.binormal,w.tangent));
+vec3 decodeNormal(vec3 n) {
+  n.xz  = n.xz*2.0 - vec2(1.0);
+  n.xz *= n.y;
+  n.y   = sqrt(1 - n.x*n.x - n.y*n.y);// Y-up
+  return n;
+  // return vec3(0,1,0);
   }
 
 void main() {
   const vec2  fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
-  const float depth     = texelFetch(gbufDepth,  ivec2(gl_FragCoord.xy), 0).r;
-  const vec3  nrm       = texelFetch(gbufNormal, ivec2(gl_FragCoord.xy), 0).rgb;
-
-  const vec4  start4    = scene.viewProjectInv*vec4(fragCoord.x, fragCoord.y, depth, 1.0);
-  const vec3  start     = start4.xyz/start4.w;
-  const float minLength = minWaveLengthQG(start,nrm.x); //note: use full-screen-triangle
-
   const vec4  diff      = texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0);
+
   if(!isGBufWater(diff.a))
     discard;
 
-  const vec3  normal    = calcNormal(start,nrm.x,nrm.yz,minLength);
-  // const vec3  normal    = vec3(0,1,0);
+  const float depth   = texelFetch(gbufDepth,  ivec2(gl_FragCoord.xy), 0).r;
+  const vec3  nrm     = texelFetch(gbufNormal, ivec2(gl_FragCoord.xy), 0).rgb;
 
+  const vec4  start4  = scene.viewProjectInv*vec4(fragCoord.x, fragCoord.y, depth, 1.0);
+  const vec3  start   = start4.xyz/start4.w;
+
+  const vec3  normal  = decodeNormal(nrm);
   const vec4  scr     = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
 
   const vec4  camPos4 = scene.viewProjectInv*vec4(0,0,0,1.0);
@@ -233,10 +232,10 @@ void main() {
   vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir) * scene.GSunIntensity;
   sky = applyClouds(sky+sun, view, refl);
 
-  vec3  reflection = ssr(scr,start,refl,depth,sky) * WaterAlbedo * f;
-  // vec3  reflection = ssr(scr,start,refl,depth,sky);
+  vec3 r = reflection(scr,start,refl,depth,sky) * WaterAlbedo * f;
+  // vec3  r = reflection(scr,start,refl,depth,sky);
 
-  outColor = vec4(reflection, 0.0);
+  outColor = vec4(r, 0.0);
   //outColor = vec4(sky, 0.0);
   //outColor = vec4(normal, 0.0);
   }

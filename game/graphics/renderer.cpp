@@ -140,10 +140,6 @@ void Renderer::resetSwapchain() {
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
     shadow.ubo[i] = device.descriptors(*shadow.composePso);
 
-  water.reflectionsPso = &Shaders::inst().waterReflection;
-  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
-    water.ubo[i] = device.descriptors(*water.reflectionsPso);
-
   //ssao.ssaoBuf = device.attachment(ssao.aoFormat, swapchain.w(),swapchain.h());
   ssao.ssaoBuf = device.image2d(ssao.aoFormat, swapchain.w(),swapchain.h());
   if(Gothic::inst().doRayQuery() && false) {
@@ -177,6 +173,19 @@ void Renderer::resetSwapchain() {
 void Renderer::initSettings() {
   settings.zEnvMappingEnabled = Gothic::inst().settingsGetI("ENGINE","zEnvMappingEnabled")!=0;
   settings.zCloudShadowScale  = Gothic::inst().settingsGetI("ENGINE","zCloudShadowScale") !=0;
+
+  auto prev = water.reflectionsPso;
+  if(settings.zEnvMappingEnabled)
+    water.reflectionsPso = &Shaders::inst().waterReflectionSSR; else
+    water.reflectionsPso = &Shaders::inst().waterReflection;
+
+  if(water.reflectionsPso!=prev) {
+    auto& device = Resources::device();
+    device.waitIdle();
+    for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
+      water.ubo[i] = device.descriptors(*water.reflectionsPso);
+    prepareUniforms();
+    }
   }
 
 void Renderer::onWorldChanged() {
@@ -242,10 +251,10 @@ void Renderer::prepareUniforms() {
     u.set(5, sceneDepth,  smpd);
 
     u.set(6,  wview->sky().skyLut());
-    u.set(7, *sky.cloudsDay()  .lay[0],smp);
-    u.set(8, *sky.cloudsDay()  .lay[1],smp);
-    u.set(9, *sky.cloudsNight().lay[0],smp);
-    u.set(10,*sky.cloudsNight().lay[1],smp);
+    u.set(7, *sky.cloudsDay()  .lay[0],Sampler::trillinear());
+    u.set(8, *sky.cloudsDay()  .lay[1],Sampler::trillinear());
+    u.set(9, *sky.cloudsNight().lay[0],Sampler::trillinear());
+    u.set(10,*sky.cloudsNight().lay[1],Sampler::trillinear());
     }
 
   setupTlas(nullptr);
@@ -377,8 +386,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   wview->drawTranslucent(cmd,fId);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
-  if(settings.zEnvMappingEnabled)
-    drawReflections(cmd,fId);
+  drawReflections(cmd,fId);
   wview->drawFog    (cmd,fId);
 
   cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
@@ -459,7 +467,7 @@ void Renderer::drawGWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
   }
 
 void Renderer::drawReflections(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  cmd.setUniforms(Shaders::inst().waterReflection, water.ubo[fId]);
+  cmd.setUniforms(*water.reflectionsPso, water.ubo[fId]);
   cmd.draw(Resources::fsqVbo());
   }
 
