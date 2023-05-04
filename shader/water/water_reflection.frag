@@ -220,8 +220,8 @@ void main() {
   const vec3  view    = normalize(start - camPos);
         vec3  refl    = reflect(view, normal);
   if(refl.y<0) {
-    refl.y = 0;
-    refl   = normalize(refl);
+    //refl.y = 0;
+    //refl   = normalize(refl);
     }
 
   const float f = fresnel(refl,normal,IorWater);

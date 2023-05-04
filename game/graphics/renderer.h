@@ -75,7 +75,7 @@ class Renderer final {
       Tempest::DescriptorSet   ubo[Resources::MaxFramesInFlight];
     } shadow;
 
-    struct Wayer{
+    struct Water {
       Tempest::RenderPipeline* reflectionsPso = nullptr;
       Tempest::DescriptorSet   ubo[Resources::MaxFramesInFlight];
     } water;
