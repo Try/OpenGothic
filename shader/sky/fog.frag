@@ -46,10 +46,6 @@ layout(binding = 4, r32ui) uniform readonly  restrict uimage2D occlusionLut;
 uvec2 invocationID = gl_GlobalInvocationID.xy;
 #endif
 
-float interleavedGradientNoise(vec2 pixel) {
-  return fract(52.9829189f * fract(0.06711056f*float(pixel.x) + 0.00583715f*float(pixel.y)));
-  }
-
 float interleavedGradientNoise() {
 #if defined(COMPUTE)
   return interleavedGradientNoise(invocationID.xy);

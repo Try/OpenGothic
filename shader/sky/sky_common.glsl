@@ -15,8 +15,8 @@ const vec3  ozoneAbsorptionBase    = vec3(0.650, 1.881, .085) / 1e6;
 
 layout(push_constant, std430) uniform UboPush {
   mat4  viewProjectInv;
-  vec2  dxy0;
-  vec2  dxy1;
+  vec2  cloudsDir0;
+  vec2  cloudsDir1;
   vec3  sunDir;
   float night;
   vec3  clipInfo;
@@ -29,14 +29,6 @@ layout(push_constant, std430) uniform UboPush {
 vec3 inverse(vec3 pos) {
   vec4 ret = push.viewProjectInv*vec4(pos,1.0);
   return (ret.xyz/ret.w)/100.f;
-  }
-
-vec4 mixClr(vec4 s, vec4 d) {
-  float a  =  (1-s.a)*d.a + s.a;
-  if(a<=0.0)
-    return vec4(0);
-  vec3  c  = ((1-s.a)*d.a*d.rgb+s.a*s.rgb)/a;
-  return vec4(c,a);
   }
 
 float miePhase(float cosTheta) {

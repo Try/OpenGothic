@@ -8,6 +8,10 @@ const float RPlanet  = 6360e3;       // Radius of the planet in meters
 const float RClouds  = RPlanet+3000; // Clouds height in meters
 const float RAtmos   = 6460e3;       // Radius of the atmosphere in meters
 
+const float Ffresnel = 0.02;
+const float IorWater = 1.0 / 1.52; // air / water
+const vec3  WaterAlbedo = vec3(0.8,0.9,1.0);
+
 const vec3  GGroundAlbedo = vec3(0.1);
 
 float linearDepth(float d, vec3 clipInfo) {
@@ -56,6 +60,18 @@ vec3 srgbDecode(vec3 color){
 
 vec3 srgbEncode(vec3 color){
   return pow(color,vec3(1.0/2.2));
+  }
+
+vec4 mixClr(vec4 s, vec4 d) {
+  float a  =  (1-s.a)*d.a + s.a;
+  if(a<=0.0)
+    return vec4(0);
+  vec3  c  = ((1-s.a)*d.a*d.rgb+s.a*s.rgb)/a;
+  return vec4(c,a);
+  }
+
+float interleavedGradientNoise(vec2 pixel) {
+  return fract(52.9829189f * fract(0.06711056f*float(pixel.x) + 0.00583715f*float(pixel.y)));
   }
 
 // From https://gamedev.stackexchange.com/questions/96459/fast-ray-sphere-collision-code.

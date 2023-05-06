@@ -11,7 +11,9 @@ class World;
 
 class Sky final {
   public:
-    using Vertex=Resources::VertexFsq;
+    struct State final {
+      const Tempest::Texture2d* lay[2] = {};
+      };
 
     Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest::Vec3, Tempest::Vec3>& bbox);
     ~Sky();
@@ -32,6 +34,11 @@ class Sky final {
     float                     sunIntensity()     const { return GSunIntensity; }
     float                     autoExposure()     const { return exposureInv; }
 
+    const State&              cloudsDay()   const { return clouds[0]; }
+    const State&              cloudsNight() const { return clouds[1]; }
+    Tempest::Vec2             cloudsOffset(int layer) const;
+    float                     isNight() const;
+
   private:
     enum Quality : uint8_t {
       Exponential,
@@ -39,18 +46,10 @@ class Sky final {
       VolumetricHQ,
       };
 
-    struct Layer final {
-      const Tempest::Texture2d* texture=nullptr;
-      };
-
-    struct State final {
-      Layer lay[2];
-      };
-
     struct UboSky {
       Tempest::Matrix4x4 viewProjectInv;
-      float              dxy0[2]  = {};
-      float              dxy1[2]  = {};
+      Tempest::Vec2      dxy0     = {};
+      Tempest::Vec2      dxy1     = {};
       Tempest::Vec3      sunDir   = {};
       float              night    = 1.0;
       Tempest::Vec3      clipInfo;
@@ -66,8 +65,6 @@ class Sky final {
 
     void                          setupSettings();
     void                          drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId, bool sun);
-
-    float                         isNight() const;
 
     Quality                       quality = Quality::Exponential;
 
@@ -94,7 +91,7 @@ class Sky final {
     Tempest::DescriptorSet        uboSun, uboMoon;
 
     const SceneGlobals&           scene;
-    State                         day, night;
+    State                         clouds[2]; //day, night;
 
     const Tempest::Texture2d*     sunImg   = &Resources::fallbackBlack();
     float                         sunSize  = 200;

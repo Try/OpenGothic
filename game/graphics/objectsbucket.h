@@ -134,7 +134,7 @@ class ObjectsBucket {
       L_MorphId  = 8,
       L_Morph    = 9,
       L_Pfx      = L_MorphId,
-      L_GDiffuse = 10,
+      L_SceneClr = 10,
       L_GDepth   = 11,
       L_HiZ      = 12,
       L_SkyLut   = 13,

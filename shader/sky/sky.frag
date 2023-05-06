@@ -3,6 +3,7 @@
 #extension GL_GOOGLE_include_directive    : enable
 
 #include "sky_common.glsl"
+#include "clouds.glsl"
 
 layout(binding = 0) uniform sampler2D tLUT;
 layout(binding = 1) uniform sampler2D mLUT;
@@ -16,44 +17,9 @@ layout(binding = 7) uniform sampler2D textureNightL1;
 layout(location = 0) in  vec2 inPos;
 layout(location = 0) out vec4 outColor;
 
-vec4 clouds(vec3 at, float nightPhase, vec3 highlight,
-            vec2 dxy0, vec2 dxy1,
-            in sampler2D dayL1,   in sampler2D dayL0,
-            in sampler2D nightL1, in sampler2D nightL0) {
-  vec3  cloudsAt = normalize(at);
-  vec2  texc     = 2000.0*vec2(atan(cloudsAt.z,cloudsAt.y), atan(cloudsAt.x,cloudsAt.y));
-
-  vec4  cloudDL1 = texture(dayL1,   texc*0.3 + dxy1);
-  vec4  cloudDL0 = texture(dayL0,   texc*0.3 + dxy0);
-  vec4  cloudNL1 = texture(nightL1, texc*0.3 + dxy1);
-  vec4  cloudNL0 = texture(nightL0, texc*0.6 + vec2(0.5)); // stars
-
-  cloudDL0.a   = cloudDL0.a*0.2;
-  cloudDL1.a   = cloudDL1.a*0.2;
-  cloudNL1.a   = cloudNL1.a*0.1;
-
-  vec4 day       = (cloudDL0+cloudDL1)*0.5;
-  vec4 night     = (cloudNL0+cloudNL1)*0.5;
-
-  // Clouds (LDR textures from original game) - need to adjust
-  day.rgb   = srgbDecode(day.rgb);
-  night.rgb = srgbDecode(night.rgb);
-
-  day.rgb   = day.rgb  *highlight;
-  night.rgb = night.rgb*highlight*16.0;
-
-  //day  .a   = day  .a*0.2;
-  night.a   = night.a*(nightPhase);
-
-  vec4 color = mixClr(day,night);
-  // color.rgb += hday;
-
-  return color;
-  }
-
 vec4 clouds(vec3 at, vec3 highlight) {
   return clouds(at, push.night, highlight,
-                push.dxy0, push.dxy1,
+                push.cloudsDir0, push.cloudsDir1,
                 textureDayL1,textureDayL0, textureNightL1,textureNightL0);
   }
 

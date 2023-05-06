@@ -173,6 +173,19 @@ void Renderer::resetSwapchain() {
 void Renderer::initSettings() {
   settings.zEnvMappingEnabled = Gothic::inst().settingsGetI("ENGINE","zEnvMappingEnabled")!=0;
   settings.zCloudShadowScale  = Gothic::inst().settingsGetI("ENGINE","zCloudShadowScale") !=0;
+
+  auto prev = water.reflectionsPso;
+  if(settings.zEnvMappingEnabled)
+    water.reflectionsPso = &Shaders::inst().waterReflectionSSR; else
+    water.reflectionsPso = &Shaders::inst().waterReflection;
+
+  if(water.reflectionsPso!=prev) {
+    auto& device = Resources::device();
+    device.waitIdle();
+    for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
+      water.ubo[i] = device.descriptors(*water.reflectionsPso);
+    prepareUniforms();
+    }
   }
 
 void Renderer::onWorldChanged() {
@@ -219,6 +232,31 @@ void Renderer::prepareUniforms() {
       u.set(4+r, shadowMap[r]);
       }
     }
+
+  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
+    auto& sky = wview->sky();
+
+    auto smp = Sampler::bilinear();
+    smp.setClamping(ClampMode::MirroredRepeat);
+
+    auto smpd = Sampler::nearest();
+    smpd.setClamping(ClampMode::ClampToEdge);
+
+    auto& u = water.ubo[i];
+    u.set(0, wview->sceneGlobals().uboGlobalPf[i][SceneGlobals::V_Main]);
+    u.set(1, sceneOpaque, smp);
+    u.set(2, gbufDiffuse, smp);
+    u.set(3, gbufNormal,  smp);
+    u.set(4, zbuffer,     smpd);
+    u.set(5, sceneDepth,  smpd);
+
+    u.set(6,  wview->sky().skyLut());
+    u.set(7, *sky.cloudsDay()  .lay[0],Sampler::bilinear());
+    u.set(8, *sky.cloudsDay()  .lay[1],Sampler::bilinear());
+    u.set(9, *sky.cloudsNight().lay[0],Sampler::bilinear());
+    u.set(10,*sky.cloudsNight().lay[1],Sampler::bilinear());
+    }
+
   setupTlas(nullptr);
 
   const Texture2d* sh[Resources::ShadowLayers] = {};
@@ -340,12 +378,15 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   drawSSAO(sceneLinear,cmd,*wview);
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
   wview->drawLights     (cmd,fId);
-  wview->drawWater      (cmd,fId);
 
+  drawGWater      (cmd,fId,*wview);
+
+  cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
   wview->drawSky        (cmd,fId);
   wview->drawTranslucent(cmd,fId);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
+  drawReflections(cmd,fId);
   wview->drawFog    (cmd,fId);
 
   cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
@@ -413,6 +454,25 @@ void Renderer::drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
                        {zbuffer, 1.f, Tempest::Preserve});
     }
   view.drawGBuffer(cmd,fId);
+  }
+
+void Renderer::drawGWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
+  cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve},
+                      {gbufDiffuse, Vec4(0,0,0,0),     Tempest::Preserve},
+                      {gbufNormal,  Tempest::Preserve, Tempest::Preserve}},
+                     {zbuffer, Tempest::Preserve, Tempest::Preserve});
+  // cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}},
+  //                    {zbuffer, Tempest::Preserve, Tempest::Preserve});
+  view.drawWater(cmd,fId);
+  }
+
+void Renderer::drawReflections(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  cmd.setUniforms(*water.reflectionsPso, water.ubo[fId]);
+  if(Gothic::inst().doMeshShading()) {
+    cmd.dispatchMeshThreads(size_t(gbufDiffuse.w()), size_t(gbufDiffuse.h()));
+    } else {
+    cmd.draw(Resources::fsqVbo());
+    }
   }
 
 void Renderer::drawShadowMap(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
