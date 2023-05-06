@@ -251,10 +251,10 @@ void Renderer::prepareUniforms() {
     u.set(5, sceneDepth,  smpd);
 
     u.set(6,  wview->sky().skyLut());
-    u.set(7, *sky.cloudsDay()  .lay[0],Sampler::trillinear());
-    u.set(8, *sky.cloudsDay()  .lay[1],Sampler::trillinear());
-    u.set(9, *sky.cloudsNight().lay[0],Sampler::trillinear());
-    u.set(10,*sky.cloudsNight().lay[1],Sampler::trillinear());
+    u.set(7, *sky.cloudsDay()  .lay[0],Sampler::bilinear());
+    u.set(8, *sky.cloudsDay()  .lay[1],Sampler::bilinear());
+    u.set(9, *sky.cloudsNight().lay[0],Sampler::bilinear());
+    u.set(10,*sky.cloudsNight().lay[1],Sampler::bilinear());
     }
 
   setupTlas(nullptr);

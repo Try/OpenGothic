@@ -13,6 +13,8 @@
 
 #include "../scene.glsl"
 #include "../common.glsl"
+
+#define SKY_LOD 1
 #include "../sky/clouds.glsl"
 
 layout(location = 0) out vec4 outColor;
