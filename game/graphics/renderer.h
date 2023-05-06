@@ -38,11 +38,13 @@ class Renderer final {
 
     void drawHiZ          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, uint8_t fId);
     void drawGBuffer      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
+    void drawGWater       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawShadowMap    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawShadowResolve(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const WorldView& view);
     void drawSSAO         (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void draw             (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawTonemapping  (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawReflections  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void stashDepthAux    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void initSettings();
 
@@ -72,6 +74,11 @@ class Renderer final {
       Tempest::RenderPipeline* composePso = nullptr;
       Tempest::DescriptorSet   ubo[Resources::MaxFramesInFlight];
     } shadow;
+
+    struct Water {
+      Tempest::RenderPipeline* reflectionsPso = nullptr;
+      Tempest::DescriptorSet   ubo[Resources::MaxFramesInFlight];
+    } water;
 
     struct SSAO {
       Tempest::TextureFormat    aoFormat = Tempest::TextureFormat::R8;

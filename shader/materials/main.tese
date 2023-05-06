@@ -6,7 +6,7 @@ layout(triangles, fractional_odd_spacing, cw) in;
 
 #define TESSELATION
 #include "materials_common.glsl"
-#include "gerstner_wave.glsl"
+#include "../water/gerstner_wave.glsl"
 
 layout(location = 0) in  Varyings shInp[];
 layout(location = 0) out Varyings shOut;

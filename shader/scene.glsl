@@ -1,6 +1,7 @@
 #ifndef SCENE_GLSL
 #define SCENE_GLSL
 
+// std140, because uniform buffer
 struct SceneDesc {
   vec3  sunDir;
   float waveAnim;
@@ -15,7 +16,7 @@ struct SceneDesc {
   vec3  clipInfo;
   uint  tickCount32;
   vec3  camPos;
-  // float padd0;
+  float isNight;
   vec2  screenResInv;
   vec2  closeupShadowSlice;
   vec3  pfxLeft;
@@ -26,6 +27,7 @@ struct SceneDesc {
   // float padd3;
   ivec2 hiZTileSize;
   ivec2 screenRes;
+  vec4  cloudsDir;
   };
 
 #endif

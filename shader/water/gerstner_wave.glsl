@@ -3,12 +3,30 @@
 
 #include "../common.glsl"
 
+const int waveIterationsHigh = 32;//43;
+const int waveIterationsMid  = 16;
+const int waveIterationsLow  = 10;
+
 struct Wave {
   vec3 offset;
   vec3 normal;
   vec3 binormal;
   vec3 tangent;
   };
+
+float waveAmplitude(float bucketWaveMaxAmplitude) {
+  const float amplitudeMin = 10;
+  const float amplitude    = max(amplitudeMin, bucketWaveMaxAmplitude*0.5);
+  return amplitude;
+  }
+
+float waveAmplitude() {
+#if defined(WATER)
+  return waveAmplitude(bucket.waveMaxAmplitude);
+#else
+  return waveAmplitude(0);
+#endif
+  }
 
 float gerWave(inout Wave w, vec2 d, float amplitude, vec2 pos, float speed, float frequency) {
   float x = dot(d, pos) * frequency + scene.tickCount32*0.001*speed;
@@ -45,7 +63,6 @@ float expWave(inout Wave w, vec2 dir, float amplitude, vec2 pos, float speed, fl
   return -dx;
   }
 
-// returns vec2 with wave height in X and its derivative in Y
 float wave(inout Wave w, vec2 dir, float amplitude, vec2 pos, float speed, float frequency) {
 #if 1
   return gerWave(w,dir,amplitude,pos,speed,frequency);
@@ -54,21 +71,8 @@ float wave(inout Wave w, vec2 dir, float amplitude, vec2 pos, float speed, float
 #endif
   }
 
-Wave wave(vec3 pos, float minLength) {
-  const float amplitudeMin = 10;
-  const float dragMult     = 0.48;
-
-#if defined(FRAGMENT)
-  const int iterations = 43;
-#else
-  const int iterations = 13;
-#endif
-
-#if defined(WATER)
-  const float amplitude = max(amplitudeMin, bucket.waveMaxAmplitude*0.5);
-#else
-  const float amplitude = amplitudeMin;
-#endif
+Wave wave(vec3 pos, float minLength, const int iterations, const float amplitude) {
+  const float dragMult = 0.48;
 
   float wx   = 1.0;
   float wsum = 0.0;
@@ -103,11 +107,18 @@ Wave wave(vec3 pos, float minLength) {
     speed  *= 1.07;
     }
 
-#if defined(FRAGMENT)
   w.normal = normalize(cross(w.binormal,w.tangent));
+  return w;
+  }
+
+Wave wave(vec3 pos, float minLength) {
+#if defined(FRAGMENT)
+  const int iterations = waveIterationsHigh;
+#else
+  const int iterations = waveIterationsLow;
 #endif
 
-  return w;
+  return wave(pos,minLength,iterations,waveAmplitude());
   }
 
 #endif

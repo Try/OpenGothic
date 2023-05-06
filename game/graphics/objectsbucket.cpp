@@ -371,7 +371,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v, const Material& mat, const Buck
       if(lay==SceneGlobals::V_Main && isSceneInfoRequired()) {
         auto smp = Sampler::bilinear();
         smp.setClamping(ClampMode::MirroredRepeat);
-        ubo.set(L_GDiffuse, *scene.sceneColor, smp);
+        ubo.set(L_SceneClr, *scene.sceneColor, smp);
 
         smp = Sampler::nearest();
         smp.setClamping(ClampMode::ClampToEdge);
