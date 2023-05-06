@@ -171,6 +171,7 @@ add_shader(light_rq.frag             lighting/light.frag -DRAY_QUERY)
 add_shader(light_rq_at.frag          lighting/light.frag -DRAY_QUERY -DRAY_QUERY_AT)
 
 add_shader(water_reflection.vert     copy.vert "")
+add_shader(water_reflection.mesh     water/water_reflection.mesh "")
 add_shader(water_reflection.frag     water/water_reflection.frag "")
 add_shader(water_reflection_ssr.frag water/water_reflection.frag -DSSR)
 

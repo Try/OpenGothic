@@ -74,7 +74,7 @@ class Shaders {
     Tempest::RenderPipeline  postEffect(std::string_view vs, std::string_view fs, Tempest::RenderState::ZTestMode ztest = Tempest::RenderState::ZTestMode::LEqual);
     Tempest::ComputePipeline computeShader(std::string_view name);
     Tempest::RenderPipeline  fogShader (std::string_view name);
-    Tempest::RenderPipeline  reflectionShader(std::string_view name);
+    Tempest::RenderPipeline  reflectionShader(std::string_view name, bool hasMeshlets);
 
     static Shaders* instance;
 

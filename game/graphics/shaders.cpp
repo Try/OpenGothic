@@ -106,8 +106,8 @@ Shaders::Shaders() {
   fog3dLQ            = fogShader ("fog3d_lq");
   fog3dHQ            = fogShader ("fog3d_hq");
 
-  waterReflection    = reflectionShader("water_reflection.frag.sprv");
-  waterReflectionSSR = reflectionShader("water_reflection_ssr.frag.sprv");
+  waterReflection    = reflectionShader("water_reflection.frag.sprv",meshlets);
+  waterReflectionSSR = reflectionShader("water_reflection_ssr.frag.sprv",meshlets);
 
   {
   RenderState state;
@@ -357,7 +357,7 @@ RenderPipeline Shaders::fogShader(std::string_view name) {
   return device.pipeline(Triangles,state,vs,fs);
   }
 
-RenderPipeline Shaders::reflectionShader(std::string_view name) {
+RenderPipeline Shaders::reflectionShader(std::string_view name, bool hasMeshlets) {
   auto& device = Resources::device();
 
   RenderState state;
@@ -371,6 +371,12 @@ RenderPipeline Shaders::reflectionShader(std::string_view name) {
   auto vs = device.shader(sh.data,sh.len);
   sh      = GothicShader::get(name);
   auto fs = device.shader(sh.data,sh.len);
+
+  if(hasMeshlets) {
+    sh = GothicShader::get("water_reflection.mesh.sprv");
+    vs = device.shader(sh.data,sh.len);
+    }
+
   return device.pipeline(Triangles, state, vs, fs);
   }
 

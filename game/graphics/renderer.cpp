@@ -468,7 +468,11 @@ void Renderer::drawGWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
 
 void Renderer::drawReflections(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   cmd.setUniforms(*water.reflectionsPso, water.ubo[fId]);
-  cmd.draw(Resources::fsqVbo());
+  if(Gothic::inst().doMeshShading()) {
+    cmd.dispatchMeshThreads(size_t(gbufDiffuse.w()), size_t(gbufDiffuse.h()));
+    } else {
+    cmd.draw(Resources::fsqVbo());
+    }
   }
 
 void Renderer::drawShadowMap(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
