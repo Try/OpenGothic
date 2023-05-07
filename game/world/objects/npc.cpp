@@ -23,13 +23,11 @@ using namespace Tempest;
 static std::string_view humansTorchOverlay = "_TORCH.MDS";
 
 void Npc::GoTo::save(Serialize& fout) const {
-  fout.write(npc, uint8_t(flag), wp, pos, ladder);
+  fout.write(npc, uint8_t(flag), wp, pos);
   }
 
 void Npc::GoTo::load(Serialize& fin) {
-  if(fin.version()>43)
-    fin.read(npc, reinterpret_cast<uint8_t&>(flag), wp, pos, ladder); else
-    fin.read(npc, reinterpret_cast<uint8_t&>(flag), wp, pos);
+  fin.read(npc, reinterpret_cast<uint8_t&>(flag), wp, pos);
   }
 
 Vec3 Npc::GoTo::target() const {
@@ -45,10 +43,9 @@ bool Npc::GoTo::empty() const {
   }
 
 void Npc::GoTo::clear() {
-  npc    = nullptr;
-  wp     = nullptr;
-  ladder = nullptr;
-  flag   = Npc::GT_No;
+  npc  = nullptr;
+  wp   = nullptr;
+  flag = Npc::GT_No;
   }
 
 void Npc::GoTo::set(Npc* to, Npc::GoToHint hnt) {
@@ -1353,43 +1350,28 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
     return true;
     }
 
-  auto  dpos      = go2.target()-position();
-  float destDistY = 200.f;
+  auto dpos = go2.target()-position();
 
   if(go2.flag==GT_Flee) {
     // nop
     }
   else if(mvAlgo.isClose(go2.target(),destDist)) {
-    if(std::abs(dpos.y)>destDistY && recalculateWayPath()) {
-      mvAlgo.tick(dt);
-      return true;
-      }
     bool finished = true;
     if(go2.flag==GT_Way) {
-      auto wpoint = go2.wp;
-      go2.wp = wayPath.pop();
+      go2.wp = go2.wp->hasLadderConn(wayPath.first()) ? wayPath.first() : wayPath.pop();
       if(go2.wp!=nullptr) {
-        if(wpoint!=nullptr && wpoint->ladder==go2.wp->ladder)
-          go2.ladder = go2.wp->ladder;
         attachToPoint(go2.wp);
+        if(useLadder()) {
+          mvAlgo.tick(dt);
+          return true;
+          }
         finished = false;
         }
       }
     if(finished)
       clearGoTo();
     } else {
-    if(go2.ladder!=nullptr) {
-      auto pos = go2.ladder->nearestPoint(*this);
-      if(mvAlgo.isClose(pos,MAX_AI_USE_DISTANCE)) {
-        if(!go2.ladder->isAvailable())
-          setAnim(AnimationSolver::Idle);
-        else if(setInteraction(go2.ladder))
-          go2.ladder = nullptr;
-        mvAlgo.tick(dt);
-        return true;
-        }
-      }
-    if(mvAlgo.checkLastBounce() && implTurnTo(dpos.x,dpos.z,false,dt)) {
+    if(useLadder() || (mvAlgo.checkLastBounce() && implTurnTo(dpos.x,dpos.z,false,dt))) {
       mvAlgo.tick(dt);
       return true;
       }
@@ -1711,6 +1693,21 @@ bool Npc::implAiFlee(uint64_t dt) {
   go2.setFlee();
   setAnim(Anim::Move);
   return true;
+  }
+
+bool Npc::useLadder() {
+  if(go2.wp==nullptr || go2.wp!=wayPath.first())
+    return false;
+  auto inter = go2.wp->ladder;
+  auto pos   = inter->nearestPoint(*this);
+  if(mvAlgo.isClose(pos,MAX_AI_USE_DISTANCE)) {
+    if(!inter->isAvailable())
+      setAnim(AnimationSolver::Idle);
+    else if(setInteraction(inter))
+      wayPath.pop();
+    return true;
+    }
+  return false;
   }
 
 void Npc::commitDamage() {
@@ -3983,25 +3980,6 @@ void Npc::stopWalking() {
   // hard stop
   visual.stopWalkAnim(*this);
   }
-
-bool Npc::recalculateWayPath() {
-  auto target = wayPath.last()!=nullptr ? wayPath.last() : go2.wp;
-  if(target==nullptr || target->isFreePoint())
-    return false;
-  wayPath.clear();
-  go2.clear();
-  attachToPoint(nullptr);
-  wayPath     = owner.wayTo(*this,*target);
-  auto wpoint = wayPath.pop();
-  if(wpoint!=nullptr) {
-    go2.set(wpoint);
-    attachToPoint(wpoint);
-    } else {
-    attachToPoint(target);
-    clearGoTo();
-    }
-  return true;
-}
 
 bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
   const auto mid = oth.bounds().midTr;

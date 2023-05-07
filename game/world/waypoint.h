@@ -53,6 +53,7 @@ class WayPoint final {
 
     void connect(WayPoint& w);
     const std::vector<Conn>& connections() const { return conn; }
+    bool hasLadderConn(const WayPoint* w) const;
 
   private:
     mutable uint32_t useCount=0;

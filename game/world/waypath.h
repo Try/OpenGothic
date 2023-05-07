@@ -17,7 +17,8 @@ class WayPath final {
     void reverse();
 
     const WayPoint* pop();
-    const WayPoint* last() const;
+    const WayPoint* first() const;
+    const WayPoint* last()  const;
 
   private:
     std::vector<const WayPoint*> dat;

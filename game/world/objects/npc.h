@@ -361,7 +361,6 @@ class Npc final {
     void      attachToPoint(const WayPoint* p);
     GoToHint  moveHint() const { return go2.flag; }
     void      clearGoTo();
-    bool      recalculateWayPath();
     void      stopWalking();
 
     bool      canSeeNpc(const Npc& oth,bool freeLos) const;
@@ -427,11 +426,10 @@ class Npc final {
       };
 
     struct GoTo final {
-      GoToHint         flag   = GoToHint::GT_No;
-      Npc*             npc    = nullptr;
-      const WayPoint*  wp     = nullptr;
-      Interactive*     ladder = nullptr;
-      Tempest::Vec3    pos    = {};
+      GoToHint         flag = GoToHint::GT_No;
+      Npc*             npc  = nullptr;
+      const WayPoint*  wp   = nullptr;
+      Tempest::Vec3    pos  = {};
 
       void             save(Serialize& fout) const;
       void             load(Serialize&  fin);
@@ -475,6 +473,8 @@ class Npc final {
     void      implFaiWait(uint64_t dt);
     void      implSetFightMode(const Animation::EvCount& ev);
     bool      implAiFlee(uint64_t dt);
+
+    bool      useLadder();
 
     void      tickRoutine();
     void      nextAiAction(AiQueue& queue, uint64_t dt);

@@ -71,6 +71,12 @@ void WayPoint::connect(WayPoint &w) {
   conn.push_back(c);
   }
 
+bool WayPoint::hasLadderConn(const WayPoint* w) const {
+  if(w!=nullptr && w->ladder!=nullptr && w->ladder==ladder)
+    return true;
+  return false;
+  }
+
 std::string WayPoint::upcaseof(std::string_view src) {
   auto ret = std::string(src);
   for(auto& i:ret)
