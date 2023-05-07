@@ -46,7 +46,7 @@ class Interactive : public Vob {
     Tempest::Vec3       displayPosition() const;
     std::string_view    displayName() const;
 
-    auto                bBox() const { return &bbox; }
+    auto                bBox() const -> const Tempest::Vec3*;
 
     int32_t             stateId() const { return state; }
     int32_t             stateCount() const { return stateNum; }

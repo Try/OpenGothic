@@ -189,29 +189,28 @@ void WayMatrix::adjustWaypoints(std::vector<WayPoint> &wp) {
   }
 
 void WayMatrix::calculateLadderPoints() {
-  float dist   = 100.f;
-  Vec3  offset = {3.f,0,3.f};
+  static const float dist = 100.f;
   for(uint32_t i=0;;++i) {
     auto inter = world.mobsiById(i);
     if(inter==nullptr)
       break;
     if(!inter->isLadder())
       continue;
-    auto& box  = *inter->bBox();
+    auto box = inter->bBox();
     for(auto& e:edges) {
       if(e.a>=wayPoints.size() || e.b>=wayPoints.size() || e.a==e.b)
         continue;
       auto& a     = wayPoints[e.a], b    = wayPoints[e.b];
       Vec3  posA  = a.position(),   posB = b.position();
-      Vec3  dTopA = box[1] - posA + offset;
-      Vec3  dBotA = box[0] - posA - offset;
+      Vec3  dTopA = box[1] - posA;
+      Vec3  dBotA = box[0] - posA;
       Vec3  dBA   = posB - posA;
       if(dBA.x<0)
-        std::swap(dTopA.x,dBotA .x);
+        std::swap(dTopA.x,dBotA.x);
       if(dBA.y<0)
-        std::swap(dTopA.y,dBotA .y);
+        std::swap(dTopA.y,dBotA.y);
       if(dBA.z<0)
-        std::swap(dTopA.z,dBotA .z);
+        std::swap(dTopA.z,dBotA.z);
       float max = std::min({dTopA.x/dBA.x,dTopA.y/dBA.y,dTopA.z/dBA.z});
       float min = std::max({dBotA.x/dBA.x,dBotA.y/dBA.y,dBotA.z/dBA.z});
       if(max<min || max<0.f || min>1.f)

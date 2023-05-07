@@ -416,6 +416,10 @@ std::string_view Interactive::displayName() const {
   return s->get_string();
   }
 
+const Tempest::Vec3* Interactive::bBox() const {
+  return bbox;
+  }
+
 bool Interactive::setMobState(std::string_view scheme, int32_t st) {
   const bool ret = Vob::setMobState(scheme,st);
   if(state==st)
@@ -755,16 +759,12 @@ bool Interactive::attach(Npc &npc) {
 bool Interactive::dettach(Npc &npc, bool quick) {
   for(auto& i:attPos) {
     if(i.user==&npc && i.attachMode) {
-      if(canQuitAtState(*i.user,state)) {
-        auto sq = npc.setAnimAngGet(Npc::Anim::InteractToStand);
-        if(sq==nullptr && !quick)
-          return false;
-        i.user       = nullptr;
-        i.attachMode = false;
-        npc.quitIneraction();
-        return true;
-        }
-      else if(quick) {
+      if(quick || canQuitAtState(*i.user,state)) {
+        if(!quick) {
+          auto sq = npc.setAnimAngGet(Npc::Anim::InteractToStand);
+          if(sq==nullptr)
+            return false;
+          }
         i.user       = nullptr;
         i.attachMode = false;
         npc.quitIneraction();

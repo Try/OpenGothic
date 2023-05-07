@@ -3991,15 +3991,15 @@ bool Npc::recalculateWayPath() {
   wayPath.clear();
   go2.clear();
   attachToPoint(nullptr);
-  wayPath       = owner.wayTo(*this,*target);
-  auto wpoint   = wayPath.pop();
+  wayPath     = owner.wayTo(*this,*target);
+  auto wpoint = wayPath.pop();
   if(wpoint!=nullptr) {
     go2.set(wpoint);
     attachToPoint(wpoint);
-  } else {
+    } else {
     attachToPoint(target);
     clearGoTo();
-  }
+    }
   return true;
 }
 
