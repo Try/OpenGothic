@@ -7,6 +7,7 @@
 #extension GL_EXT_mesh_shader : require
 
 #include "../scalar_ops.glsl"
+#include "../common.glsl"
 
 layout(local_size_x = 8, local_size_y = 8) in;
 layout(triangles, max_vertices = 4, max_primitives = 2) out;
@@ -16,17 +17,6 @@ out gl_MeshPerVertexEXT {
   } gl_MeshVerticesEXT[];
 
 layout(binding = 2) uniform sampler2D gbufDiffuse;
-
-void decodeBits(float v, out bool water) {
-  int x = int(v*255+0.5);
-  water = (x & (1 << 3))!=0;
-  }
-
-bool isGBufWater(float v) {
-  bool isWater = false;
-  decodeBits(v,isWater);
-  return isWater;
-  }
 
 bool isWater() {
   const ivec2 size = textureSize(gbufDiffuse,0);

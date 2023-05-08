@@ -169,13 +169,6 @@ vec3 flatNormal(vec4 pos4) {
   return (cross(dx,dy));
   }
 
-void decodeBits(float v, out bool flt, out bool atst) {
-  int x = int(v*255+0.5);
-
-  flt  = (x & (1 << 1))!=0;
-  atst = (x & (1 << 2))!=0;
-  }
-
 void main(void) {
   const ivec2 fragCoord = ivec2(gl_FragCoord.xy);
   const float d         = texelFetch(depth, fragCoord, 0).r;
@@ -190,7 +183,8 @@ void main(void) {
 
   bool isFlat  = false;
   bool isATest = false;
-  decodeBits(diff.a, isFlat, isATest);
+  bool isWater = false;
+  decodeBits(diff.a, isFlat, isATest, isWater);
 
   const float light  = (isFlat ? 0 : lambert(normal));
 

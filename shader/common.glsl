@@ -74,6 +74,21 @@ float interleavedGradientNoise(vec2 pixel) {
   return fract(52.9829189f * fract(0.06711056f*float(pixel.x) + 0.00583715f*float(pixel.y)));
   }
 
+void decodeBits(float v, out bool flt, out bool atst, out bool water) {
+  int x = int(v*255+0.5);
+
+  flt   = (x & (1 << 1))!=0;
+  atst  = (x & (1 << 2))!=0;
+  water = (x & (1 << 3))!=0;
+  }
+
+bool isGBufWater(float v) {
+  bool dummy   = false;
+  bool isWater = false;
+  decodeBits(v,dummy,dummy,isWater);
+  return isWater;
+  }
+
 // From https://gamedev.stackexchange.com/questions/96459/fast-ray-sphere-collision-code.
 float rayIntersect(vec3 v, vec3 d, float R) {
   float b = dot(v, d);

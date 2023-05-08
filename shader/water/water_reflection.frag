@@ -93,7 +93,7 @@ vec3 sunBloom(vec3 refl) {
 
   float cosTheta = dot(refl, scene.sunDir);
   if(cosTheta >= minSunCosTheta)
-    ;//sun = vec3(1.0);
+    return vec3(1.0);
   float offset = minSunCosTheta - cosTheta;
   float gaussianBloom = exp(-offset*50000.0)*0.5;
   float invBloom = 1.0/(0.02 + offset*300.0)*0.01;
@@ -177,20 +177,6 @@ vec3 reflection(vec4 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
   return sky;
   }
 #endif
-
-void decodeBits(float v, out bool water) {
-  int x = int(v*255+0.5);
-
-  //flt   = (x & (1 << 1))!=0;
-  //atst  = (x & (1 << 2))!=0;
-  water = (x & (1 << 3))!=0;
-  }
-
-bool isGBufWater(float v) {
-  bool isWater = false;
-  decodeBits(v,isWater);
-  return isWater;
-  }
 
 vec3 decodeNormal(vec3 n) {
   n.xz  = n.xz*2.0 - vec2(1.0);

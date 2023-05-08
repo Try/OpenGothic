@@ -145,10 +145,11 @@ vec3 waterScatter(vec3 back, vec3 normal, float depth) {
 
   return mix(back, scatter, attenuation);
   }
-#endif
 
-#if defined(WATER)
 vec4 waterShading(vec4 t, const vec3 normal) {
+  if(gl_FrontFacing)
+    return vec4(0,1,0,1);
+
   const float ior = IorWater;
 
   vec4  camPos = scene.viewProjectInv*vec4(0,0,0,1.0);
@@ -194,7 +195,7 @@ float encodeHintBits() {
 #endif
 
 #if defined(WATER)
-  const int water = (1) << 3;
+  const int water = (gl_FrontFacing) ? 0 : (1 << 3);
 #else
   const int water = (0) << 3;
 #endif
@@ -245,8 +246,10 @@ void main() {
 
   Wave wx = wave(shInp.pos, minLength, waveIterationsHigh, waveAmplitude());
 
-  if(gl_FrontFacing)
+  if(gl_FrontFacing) {
+    // BROKEN: water mesh is two sided
     wx.normal = -wx.normal;
+    }
 
   outColor       = waterShading(t,wx.normal);
   outDiffuse.rgb = t.rgb;
