@@ -86,7 +86,9 @@ class Inventory final {
     void   unequipArmour(GameScript &vm, Npc &owner);
     void   clear(GameScript &vm, Npc &owner, bool includeMissionItm = false);
     void   clear(GameScript &vm, Interactive &owner, bool includeMissionItm = false);
+    bool   hasSpell(int32_t spl) const;
     bool   hasMissionItems() const;
+    bool   hasRangedWeaponWithAmmo() const;
 
     void   updateArmourView(Npc& owner);
     void   updateSwordView (Npc& owner);
@@ -100,7 +102,6 @@ class Inventory final {
     void   switchActiveWeaponFist();
     void   switchActiveWeapon(Npc &owner, uint8_t slot);
     void   switchActiveSpell (int32_t spell, Npc &owner);
-    Item*  spellById(int32_t splId);
 
     Item*  currentArmour()         { return armour;     }
     Item*  currentMeleeWeapon()    { return melee;      }
