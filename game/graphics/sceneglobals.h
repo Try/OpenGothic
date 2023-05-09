@@ -30,6 +30,7 @@ class SceneGlobals final {
     void setSunlight(const LightSource& light, const Tempest::Vec3& ambient, float GSunIntensity);
     void setExposure(float expInv);
     void setSky(const Sky& s);
+    void setUnderWater(bool w);
 
     void setTime(uint64_t time);
     void commitUbo(uint8_t fId);
@@ -79,7 +80,7 @@ class SceneGlobals final {
       Tempest::Vec2                   closeupShadowSlice;
 
       Tempest::Vec3                   pfxLeft  = {};
-      float                           padd1 = 0;
+      uint32_t                        underWater = 0;
       Tempest::Vec3                   pfxTop   = {};
       float                           padd2 = 0;
       Tempest::Vec3                   pfxDepth = {};

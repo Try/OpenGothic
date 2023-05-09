@@ -100,25 +100,25 @@ vec4 underWaterColorDepth(vec3 normal) {
   const vec3  view   = normalize(shInp.pos - camPos.xyz);
   const vec3  refr   = refract(view, normal, ior);
 
+  vec3        back   = texelFetch(sceneColor,   ivec2(gl_FragCoord.xy), 0).rgb;
   const float depth  = texelFetch(gbufferDepth, ivec2(gl_FragCoord.xy), 0).r;
+
   const float ground = linearDepth(depth, scene.clipInfo.xyz);
   const float water  = linearDepth(gl_FragCoord.z, scene.clipInfo.xyz);
 
-  vec3  back     = texelFetch(sceneColor, ivec2(gl_FragCoord.xy), 0).rgb;
   float dist     = (ground-water);
   vec3  rPos     = shInp.pos + dist*refr*10.0;
   vec4  rPosScr  = scene.viewProject*vec4(rPos,1.0);
   rPosScr.xyz /= rPosScr.w;
   const vec2  p2 = rPosScr.xy*0.5+vec2(0.5);
-  float depth2   = textureLod(gbufferDepth, p2, 0).r;
 
+  float depth2 = textureLod(gbufferDepth, p2, 0).r;
   if(depth2>gl_FragCoord.z) {
-    back = textureLod(sceneColor, p2, 0).rgb;
-    }
-
-  if(depth2>depth) {
+    back   = textureLod(sceneColor, p2, 0).rgb;
     const float ground2 = linearDepth(depth2, scene.clipInfo.xyz);
     dist = (ground2-water);
+    } else {
+    depth2 = depth;
     }
 
   return vec4(back,dist);
@@ -147,29 +147,30 @@ vec3 waterScatter(vec3 back, vec3 normal, float depth) {
   }
 
 vec4 waterShading(vec4 t, const vec3 normal) {
-  if(gl_FrontFacing)
-    return vec4(0,1,0,1);
+  const bool underWater = (scene.underWater!=0);
 
-  const float ior = IorWater;
+  const float ior = underWater ? IorAir : IorWater;
 
-  vec4  camPos = scene.viewProjectInv*vec4(0,0,0,1.0);
+  vec4 camPos = scene.viewProjectInv*vec4(0,0,0,1.0);
   camPos.xyz /= camPos.w;
 
   const vec3  view   = normalize(shInp.pos - camPos.xyz);
   const vec3  refr   = refract(view, normal, ior);
         vec3  refl   = reflect(view, normal);
-  if(refl.y<0) {
-    //refl.y = 0;
-    //refl   = normalize(refl);
-    }
 
-  const vec4  back = underWaterColorDepth(normal);
   const float f    = fresnel(refl,normal,ior);
 
-  vec3 color = waterScatter(back.rgb, normal, back.a) * (1.0-f);
+  if(underWater) {
+    vec3 back = texelFetch(sceneColor, ivec2(gl_FragCoord.xy), 0).rgb;
+    return vec4(back.rgb * (1.0-f),1);
+    }
+
+  const vec4 back  = underWaterColorDepth(normal);
+  const vec3 color = waterScatter(back.rgb, normal, back.a) * (1.0-f);
   // color = waterColor(color,normal) * WaterAlbedo ;
   return vec4(color,1);
   }
+
 #endif
 
 bool isFlat() {

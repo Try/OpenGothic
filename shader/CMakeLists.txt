@@ -175,6 +175,9 @@ add_shader(water_reflection.mesh     water/water_reflection.mesh "")
 add_shader(water_reflection.frag     water/water_reflection.frag "")
 add_shader(water_reflection_ssr.frag water/water_reflection.frag -DSSR)
 
+add_shader(underwater.vert           copy.vert "")
+add_shader(underwater.frag           water/underwater.frag "")
+
 # Based on Scalable and Production Ready Sky and Atmosphere
 # https://sebh.github.io/publications/egsr2020.pdf
 # https://www.shadertoy.com/view/slSXRW
@@ -209,16 +212,16 @@ add_shader(sky.frag                  sky/sky.frag "")
 add_shader(sun.vert                  sky/sun.vert "")
 add_shader(sun.frag                  sky/sun.frag "")
 
-add_shader(copy.vert                 copy.vert "")
+add_shader(copy.vert                 copy.vert -DHAS_UV)
 add_shader(copy.frag                 copy.frag "")
 
 add_shader(ssao.comp                 ssao/ssao.comp "")
 add_shader(ssao_rq.comp              ssao/ssao.comp -DRAY_QUERY)
 
-add_shader(tonemapping.vert          copy.vert "")
+add_shader(tonemapping.vert          copy.vert -DHAS_UV)
 add_shader(tonemapping.frag          tonemapping.frag "")
 
-add_shader(ssao_compose.vert         copy.vert "")
+add_shader(ssao_compose.vert         copy.vert -DHAS_UV)
 add_shader(ssao_compose.frag         ssao/ssao_compose.frag "")
 add_shader(ssao_compose_rq.frag      ssao/ssao_compose.frag -DRAY_QUERY)
 

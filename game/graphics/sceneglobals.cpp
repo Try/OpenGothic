@@ -108,6 +108,10 @@ void SceneGlobals::setSky(const Sky& s) {
   uboGlobal.isNight      = s.isNight();
   }
 
+void SceneGlobals::setUnderWater(bool w) {
+  uboGlobal.underWater = w ? 1 : 0;
+  }
+
 void SceneGlobals::setTime(uint64_t time) {
   tickCount             = time;
   uboGlobal.waveAnim    = 2.f*float(M_PI)*float(tickCount%3000)/3000.f;

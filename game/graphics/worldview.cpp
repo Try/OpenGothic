@@ -46,11 +46,12 @@ void WorldView::tick(uint64_t /*dt*/) {
 void WorldView::preFrameUpdate(const Matrix4x4& view, const Matrix4x4& proj,
                                float zNear, float zFar,
                                const Tempest::Matrix4x4* shadow,
-                               uint64_t tickCount, uint8_t fId) {
+                               uint64_t tickCount, bool isInWater, uint8_t fId) {
   visuals.updateTlas(sGlobal.bindless,fId);
 
   updateLight();
   sGlobal.setViewProject(view,proj,zNear,zFar,shadow);
+  sGlobal.setUnderWater(isInWater);
 
   pfxGroup.tick(tickCount);
   sGlobal.lights.tick(tickCount);

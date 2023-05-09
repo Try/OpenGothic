@@ -65,6 +65,7 @@ class Camera final {
     void setMarvinMode(MarvinMode m);
     bool isMarvin() const;
     bool isFree() const;
+    bool isInWater() const;
 
     void setToggleEnable(bool e);
     bool isToggleEnabled() const;
@@ -136,6 +137,7 @@ class Camera final {
     bool                  inertiaTarget = true;
     Mode                  camMod        = Normal;
     MarvinMode            camMarvinMod  = M_Normal;
+    bool                  inWater       = false;
 
     mutable int           raysCasted = 0;
 

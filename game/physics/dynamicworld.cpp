@@ -492,6 +492,11 @@ DynamicWorld::RayWaterResult DynamicWorld::waterRay(const Tempest::Vec3& from) c
   return implWaterRay(from, Tempest::Vec3(from.x,from.y+worldHeight,from.z));
   }
 
+DynamicWorld::RayWaterResult DynamicWorld::waterRay(const Tempest::Vec3& from, const Tempest::Vec3& to) const {
+  world->updateAabbs();
+  return implWaterRay(from, to);
+  }
+
 DynamicWorld::RayWaterResult DynamicWorld::implWaterRay(const Tempest::Vec3& from, const Tempest::Vec3& to) const {
   struct CallBack:btCollisionWorld::ClosestRayResultCallback {
     using ClosestRayResultCallback::ClosestRayResultCallback;

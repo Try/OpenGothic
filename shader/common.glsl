@@ -10,6 +10,7 @@ const float RAtmos   = 6460e3;       // Radius of the atmosphere in meters
 
 const float Ffresnel = 0.02;
 const float IorWater = 1.0 / 1.52; // air / water
+const float IorAir   = 1.52;       // water /air
 const vec3  WaterAlbedo = vec3(0.8,0.9,1.0);
 
 const vec3  GGroundAlbedo = vec3(0.1);

@@ -35,7 +35,7 @@ class WorldView {
     void preFrameUpdate(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& proj,
                         float zNear, float zFar,
                         const Tempest::Matrix4x4* shadow,
-                        uint64_t tickCount, uint8_t fId);
+                        uint64_t tickCount, bool isInWater, uint8_t fId);
 
     void setGbuffer(const Tempest::Texture2d& diffuse,
                     const Tempest::Texture2d& norm);

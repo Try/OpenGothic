@@ -20,7 +20,7 @@ struct SceneDesc {
   vec2  screenResInv;
   vec2  closeupShadowSlice;
   vec3  pfxLeft;
-  // float padd1;
+  uint  underWater;
   vec3  pfxTop;
   // float padd2;
   vec3  pfxDepth;

@@ -374,7 +374,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v, const Material& mat, const Buck
         ubo.set(L_SceneClr, *scene.sceneColor, smp);
 
         smp = Sampler::nearest();
-        smp.setClamping(ClampMode::ClampToEdge);
+        smp.setClamping(ClampMode::MirroredRepeat);
         ubo.set(L_GDepth, *scene.sceneDepth, smp);
         }
       if(lay==SceneGlobals::V_Main && useMeshlets) {

@@ -45,6 +45,7 @@ class Renderer final {
     void draw             (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawTonemapping  (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawReflections  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void drawUnderwater   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void stashDepthAux    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void initSettings();
 
@@ -61,6 +62,7 @@ class Renderer final {
     float                     zNear = 0;
     float                     zFar  = 0;
     Tempest::Vec3             clipInfo;
+    bool                      cameraInWater = false;
 
     Tempest::Attachment       sceneOpaque;
     Tempest::Attachment       sceneLinear;
@@ -78,6 +80,9 @@ class Renderer final {
     struct Water {
       Tempest::RenderPipeline* reflectionsPso = nullptr;
       Tempest::DescriptorSet   ubo[Resources::MaxFramesInFlight];
+
+      Tempest::RenderPipeline* underwaterPso = nullptr;
+      Tempest::DescriptorSet   underUbo[Resources::MaxFramesInFlight];
     } water;
 
     struct SSAO {

@@ -140,6 +140,10 @@ void Renderer::resetSwapchain() {
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
     shadow.ubo[i] = device.descriptors(*shadow.composePso);
 
+  water.underwaterPso = &Shaders::inst().underwater;
+  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
+    water.underUbo[i] = device.descriptors(*water.underwaterPso);
+
   //ssao.ssaoBuf = device.attachment(ssao.aoFormat, swapchain.w(),swapchain.h());
   ssao.ssaoBuf = device.image2d(ssao.aoFormat, swapchain.w(),swapchain.h());
   if(Gothic::inst().doRayQuery() && false) {
@@ -205,11 +209,12 @@ void Renderer::setCameraView(const Camera& camera) {
       shadowMatrix[i] = camera.viewShadow(wview->mainLight().dir(),i);
     }
 
-  zNear      = camera.zNear();
-  zFar       = camera.zFar();
-  clipInfo.x = zNear*zFar;
-  clipInfo.y = zNear-zFar;
-  clipInfo.z = zFar;
+  zNear         = camera.zNear();
+  zFar          = camera.zFar();
+  clipInfo.x    = zNear*zFar;
+  clipInfo.y    = zNear-zFar;
+  clipInfo.z    = zFar;
+  cameraInWater = camera.isInWater();
   }
 
 void Renderer::prepareUniforms() {
@@ -231,6 +236,12 @@ void Renderer::prepareUniforms() {
         continue;
       u.set(4+r, shadowMap[r]);
       }
+    }
+
+  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
+    auto& u = water.underUbo[i];
+    u.set(0, wview->sceneGlobals().uboGlobalPf[i][SceneGlobals::V_Main]);
+    u.set(1, zbuffer);
     }
 
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
@@ -363,7 +374,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     wview->visibilityPass(frustrum);
     }
 
-  wview->preFrameUpdate(view,proj,zNear,zFar,shadowMatrix,Gothic::inst().world()->tickCount(),fId);
+  wview->preFrameUpdate(view,proj,zNear,zFar,shadowMatrix,Gothic::inst().world()->tickCount(),cameraInWater,fId);
 
   drawHiZ(cmd,*wview,fId);
   wview->prepareSky(cmd,fId);
@@ -387,7 +398,11 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   drawReflections(cmd,fId);
-  wview->drawFog    (cmd,fId);
+  if(cameraInWater) {
+    drawUnderwater(cmd,fId);
+    } else {
+    wview->drawFog(cmd,fId);
+    }
 
   cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
   drawTonemapping(cmd);
@@ -469,10 +484,15 @@ void Renderer::drawGWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
 void Renderer::drawReflections(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   cmd.setUniforms(*water.reflectionsPso, water.ubo[fId]);
   if(Gothic::inst().doMeshShading()) {
-    cmd.dispatchMeshThreads(size_t(gbufDiffuse.w()), size_t(gbufDiffuse.h()));
+    // cmd.dispatchMeshThreads(size_t(gbufDiffuse.w()), size_t(gbufDiffuse.h()));
     } else {
     cmd.draw(Resources::fsqVbo());
     }
+  }
+
+void Renderer::drawUnderwater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  cmd.setUniforms(*water.underwaterPso, water.underUbo[fId]);
+  cmd.draw(Resources::fsqVbo());
   }
 
 void Renderer::drawShadowMap(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {

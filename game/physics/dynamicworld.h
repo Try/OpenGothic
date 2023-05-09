@@ -229,6 +229,7 @@ class DynamicWorld final {
 
     RayLandResult  landRay      (const Tempest::Vec3& from, float maxDy=0) const;
     RayWaterResult waterRay     (const Tempest::Vec3& from) const;
+    RayWaterResult waterRay     (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
 
     RayLandResult  ray          (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
     RayQueryResult rayNpc       (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
