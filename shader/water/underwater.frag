@@ -22,25 +22,16 @@ layout(binding = 0, std140) uniform UboScene {
 layout(binding = 1) uniform sampler2D zbuffer;
 
 // fixme: copy-paste
-vec4 waterScatter(vec3 back, vec3 normal, float depth) {
-  /**
-    TODO: Cheap and Convincing Subsurface Scattering Look
-    https://www.slideshare.net/colinbb/colin-barrebrisebois-gdc-2011-approximating-translucency-for-a-fast-cheap-and-convincing-subsurfacescattering-look-7170855
-    */
-  const float attenuation   = min(1.0 - exp(-4.0 * depth), 1.0);
-  const float transmittance = exp(-depth*1.5);
-
-  const float lamb = max(dot(scene.sunDir,normal), 0.0);
-
-  // vec3 scatterBase = vec3(0.25,0.55,0.5);
-  // vec3 scatterBase = vec3(0.31,0.69,0.76);
-  vec3 scatterBase = vec3(0.25,0.55,0.5)/vec3(0.94, 0.87, 0.76);
-
-  // NOTE: need to fix out HDR(overall) and use scene.GSunIntensity
-  vec3 scatter = scatterBase * lamb * scene.sunCl.rgb;
-  //scatter = scatter * transmittance;
-
-  return vec4(scatter, attenuation);
+vec4 waterScatter(vec3 back, vec3 normal, const float len) {
+  const float depth         = len / 5000.0; // 50 meters
+  const vec3  transmittance = exp(-depth * vec3(4,2,1));
+#if defined(SCATTERING)
+  const float f       = fresnel(scene.sunDir,normal,IorWater);
+  const vec3  scatter = f * scene.sunCl.rgb * scene.GSunIntensity * (1-exp(-len/20000.0));
+  return vec4(scatter*transmittance, 1);
+#else
+  return vec4(transmittance, 1);
+#endif
   }
 
 vec3 unproject(vec4 screen) {
@@ -55,10 +46,6 @@ void main() {
   const vec3  camPos    = unproject(vec4(0,0,0, 1.0));
   const vec3  wPos      = unproject(vec4(fragCoord.x, fragCoord.y, depth, 1.0));
 
-  if(depth==1.0)
-    discard;
-
-  float len   = length(wPos-camPos) * 0.0001;
-  vec4  color = waterScatter(vec3(1),vec3(0,1,0),len);
-  outColor = vec4(color.rgb*color.a, color.a);
+  const float len = length(wPos-camPos);
+  outColor = waterScatter(vec3(1),vec3(0,1,0),len);
   }

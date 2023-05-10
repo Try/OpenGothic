@@ -106,7 +106,8 @@ Shaders::Shaders() {
   fog3dLQ            = fogShader ("fog3d_lq");
   fog3dHQ            = fogShader ("fog3d_hq");
 
-  underwater         = fogShader("underwater");
+  underwaterT        = inWaterShader("underwater_t", false);
+  underwaterS        = inWaterShader("underwater_s", true);
   waterReflection    = reflectionShader("water_reflection.frag.sprv",meshlets);
   waterReflectionSSR = reflectionShader("water_reflection_ssr.frag.sprv",meshlets);
 
@@ -358,20 +359,22 @@ RenderPipeline Shaders::fogShader(std::string_view name) {
   return device.pipeline(Triangles,state,vs,fs);
   }
 
-RenderPipeline Shaders::inWaterShader(std::string_view name) {
+RenderPipeline Shaders::inWaterShader(std::string_view name, bool isScattering) {
   auto& device = Resources::device();
-  const bool dbg = false;
 
   RenderState state;
   state.setZWriteEnabled(false);
   state.setCullFaceMode(RenderState::CullMode::Front);
-  state.setBlendSource (RenderState::BlendMode::One);
-  //state.setBlendSource (RenderState::BlendMode::DstColor);
-  if(!dbg) {
-    state.setBlendDest(RenderState::BlendMode::OneMinusSrcAlpha);
+
+  if(isScattering) {
+    state.setBlendSource(RenderState::BlendMode::One);
+    state.setBlendDest  (RenderState::BlendMode::One);
+    } else {
+    state.setBlendSource(RenderState::BlendMode::Zero);
+    state.setBlendDest  (RenderState::BlendMode::SrcColor);
     }
 
-  auto sh = GothicShader::get(string_frm(name,".vert.sprv"));
+  auto sh = GothicShader::get("underwater.vert.sprv");
   auto vs = device.shader(sh.data,sh.len);
 
   sh      = GothicShader::get(string_frm(name,".frag.sprv"));

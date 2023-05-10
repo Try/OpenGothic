@@ -92,7 +92,8 @@ vec4 forwardShading(vec4 t) {
 
 #if defined(WATER)
 vec4 underWaterColorDepth(vec3 normal) {
-  const float ior = IorWater;
+  const vec2  fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
+  const float ior       = IorWater;
 
   vec4  camPos = scene.viewProjectInv*vec4(0,0,0,1.0);
   camPos.xyz /= camPos.w;
@@ -121,29 +122,26 @@ vec4 underWaterColorDepth(vec3 normal) {
     depth2 = depth;
     }
 
-  return vec4(back,dist);
+  vec4 fragPos0 = scene.viewProjectInv*vec4(fragCoord,gl_FragCoord.z,1.0);
+  fragPos0.xyz /= fragPos0.w;
+
+  //vec4 fragPos1 = scene.viewProjectInv*vec4(p2,depth2,1.0);
+  vec4 fragPos1 = scene.viewProjectInv*vec4(fragCoord,depth2,1.0);
+  fragPos1.xyz /= fragPos1.w;
+
+  //return vec4(back,length(fragPos1.xyz - fragPos0.xyz));
+  return vec4(back,length(fragPos1.xyz - shInp.pos.xyz));
   }
 
-vec3 waterScatter(vec3 back, vec3 normal, float depth) {
-  /**
-    TODO: Cheap and Convincing Subsurface Scattering Look
-    https://www.slideshare.net/colinbb/colin-barrebrisebois-gdc-2011-approximating-translucency-for-a-fast-cheap-and-convincing-subsurfacescattering-look-7170855
-    */
-  const float attenuation   = min(1.0 - exp(-4.0 * depth), 1.0);
-  const float transmittance = exp(-depth*1.5);
+vec3 waterScatter(vec3 back, vec3 normal, float len) {
+  float depth         = len / 5000.0; // 50 meters
+  vec3  transmittance = exp(-depth * vec3(4,2,1)*1.25);
+  // note: less sun light and less obsevable light
+  transmittance = transmittance*transmittance;
 
-  const float lamb = max(dot(scene.sunDir,normal), 0.0);
-
-  // vec3 scatterBase = vec3(0.25,0.55,0.5);
-  vec3 scatterBase = vec3(0.25,0.55,0.5)/vec3(0.94, 0.87, 0.76);
-
-  // NOTE: need to fix out HDR(overall) and use scene.GSunIntensity
-  vec3 scatter     = scatterBase * lamb * scene.sunCl.rgb;
-
-  back    = back * transmittance;
-  scatter = back * scatter;
-
-  return mix(back, scatter, attenuation);
+  const float f       = fresnel(scene.sunDir,normal,IorWater);
+  const vec3  scatter = f * scene.sunCl.rgb * scene.GSunIntensity * (1-exp(-len/20000.0)) * max(scene.sunDir.y, 0);
+  return (back+scatter)*transmittance;
   }
 
 vec4 waterShading(vec4 t, const vec3 normal) {

@@ -176,7 +176,8 @@ add_shader(water_reflection.frag     water/water_reflection.frag "")
 add_shader(water_reflection_ssr.frag water/water_reflection.frag -DSSR)
 
 add_shader(underwater.vert           copy.vert "")
-add_shader(underwater.frag           water/underwater.frag "")
+add_shader(underwater_t.frag         water/underwater.frag "")
+add_shader(underwater_s.frag         water/underwater.frag -DSCATTERING)
 
 # Based on Scalable and Production Ready Sky and Atmosphere
 # https://sebh.github.io/publications/egsr2020.pdf

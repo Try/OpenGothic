@@ -81,7 +81,6 @@ class Renderer final {
       Tempest::RenderPipeline* reflectionsPso = nullptr;
       Tempest::DescriptorSet   ubo[Resources::MaxFramesInFlight];
 
-      Tempest::RenderPipeline* underwaterPso = nullptr;
       Tempest::DescriptorSet   underUbo[Resources::MaxFramesInFlight];
     } water;
 
