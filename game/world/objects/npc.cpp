@@ -1361,7 +1361,7 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
       go2.wp = go2.wp->hasLadderConn(wayPath.first()) ? wayPath.first() : wayPath.pop();
       if(go2.wp!=nullptr) {
         attachToPoint(go2.wp);
-        if(useLadder()) {
+        if(setGoToLadder()) {
           mvAlgo.tick(dt);
           return true;
           }
@@ -1371,7 +1371,11 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
     if(finished)
       clearGoTo();
     } else {
-    if(useLadder() || (mvAlgo.checkLastBounce() && implTurnTo(dpos.x,dpos.z,false,dt))) {
+    if(setGoToLadder()) {
+      mvAlgo.tick(dt);
+      return true;
+      }
+    if(mvAlgo.checkLastBounce() && implTurnTo(dpos.x,dpos.z,false,dt)) {
       mvAlgo.tick(dt);
       return true;
       }
@@ -1695,7 +1699,7 @@ bool Npc::implAiFlee(uint64_t dt) {
   return true;
   }
 
-bool Npc::useLadder() {
+bool Npc::setGoToLadder() {
   if(go2.wp==nullptr || go2.wp!=wayPath.first())
     return false;
   auto inter = go2.wp->ladder;
@@ -2120,7 +2124,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
       }
     case AI_GoToPoint: {
-      if(!setInteraction(nullptr)) {
+      if(isInAir() || !setInteraction(nullptr)) {
         queue.pushFront(std::move(act));
         break;
         }

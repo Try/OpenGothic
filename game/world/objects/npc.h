@@ -474,7 +474,7 @@ class Npc final {
     void      implSetFightMode(const Animation::EvCount& ev);
     bool      implAiFlee(uint64_t dt);
 
-    bool      useLadder();
+    bool      setGoToLadder();
 
     void      tickRoutine();
     void      nextAiAction(AiQueue& queue, uint64_t dt);
