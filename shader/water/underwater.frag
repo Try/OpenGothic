@@ -24,7 +24,7 @@ layout(binding = 1) uniform sampler2D zbuffer;
 // fixme: copy-paste
 vec4 waterScatter(vec3 back, vec3 normal, const float len) {
   const float depth         = len / 5000.0; // 50 meters
-  const vec3  transmittance = exp(-depth * vec3(4,2,1));
+  const vec3  transmittance = exp(-depth * vec3(4,2,1) * 1.25);
 #if defined(SCATTERING)
   const float f       = fresnel(scene.sunDir,normal,IorWater);
   const vec3  scatter = f * scene.sunCl.rgb * scene.GSunIntensity * (1-exp(-len/20000.0));

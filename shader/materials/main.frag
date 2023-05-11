@@ -108,9 +108,10 @@ vec4 underWaterColorDepth(vec3 normal) {
   const float water  = linearDepth(gl_FragCoord.z, scene.clipInfo.xyz);
 
   float dist     = (ground-water);
-  vec3  rPos     = shInp.pos + dist*refr*10.0;
+  vec3  rPos     = shInp.pos + dist*refr;
   vec4  rPosScr  = scene.viewProject*vec4(rPos,1.0);
   rPosScr.xyz /= rPosScr.w;
+  rPosScr.xy += normal.xz*0.1; // non-physical distorsion
   const vec2  p2 = rPosScr.xy*0.5+vec2(0.5);
 
   float depth2 = textureLod(gbufferDepth, p2, 0).r;
