@@ -2796,7 +2796,9 @@ gtime Npc::endTime(const Npc::Routine &r) const {
       }
     }
   if(r.start<=time && time<r.end) {
-    return gtime(wtime.day(),r.end.hour(),r.end.minute());
+    if(r.end.hour()==0)
+      return gtime(wtime.day()+1,r.end.hour(),r.end.minute()); else
+      return gtime(wtime.day(),r.end.hour(),r.end.minute());
     }
   // error - routine is not active now
   return wtime;

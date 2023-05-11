@@ -202,6 +202,8 @@ class GameScript final {
     auto  findInfo    (size_t id) -> phoenix::c_info*;
     auto  findFocus(std::string_view name) -> phoenix::c_focus;
 
+    Npc*  globalOther();
+
     void  storeItem(Item* it);
 
     bool  aiOutput   (Npc &from, std::string_view name, bool overlay);

@@ -1277,6 +1277,14 @@ uint32_t GameScript::rand(uint32_t max) {
   return uint32_t(randGen())%max;
   }
 
+Npc* GameScript::globalOther() {
+  if(vm.global_other()->is_instance_of<phoenix::c_npc>()) {
+    auto cNpc = reinterpret_cast<phoenix::c_npc*>(vm.global_other()->get_instance().get());
+    return findNpc(cNpc);
+    }
+  return nullptr;
+  }
+
 Npc* GameScript::findNpc(phoenix::c_npc *handle) {
   if(handle==nullptr)
     return nullptr;
@@ -2520,14 +2528,13 @@ void GameScript::ai_processinfos(std::shared_ptr<phoenix::c_npc> npcRef) {
   }
 
 void GameScript::ai_output(std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> targetRef, std::string_view outputname) {
-  auto target = findNpc(targetRef);
+  auto target = targetRef==nullptr ? globalOther() : findNpc(targetRef);
   auto self   = findNpc(selfRef);
 
-  if(!self || !target)
-    return;
-
-  self->aiPush(AiQueue::aiOutput(*target,outputname,aiOutOrderId));
-  ++aiOutOrderId;
+  if(self!=nullptr && target!=nullptr) {
+    self->aiPush(AiQueue::aiOutput(*target,outputname,aiOutOrderId));
+    ++aiOutOrderId;
+    }
   }
 
 void GameScript::ai_stopprocessinfos(std::shared_ptr<phoenix::c_npc> selfRef) {
@@ -2590,7 +2597,7 @@ void GameScript::ai_turntonpc(std::shared_ptr<phoenix::c_npc> selfRef, std::shar
   }
 
 void GameScript::ai_outputsvm(std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> targetRef, std::string_view name) {
-  auto target = findNpc(targetRef);
+  auto target = targetRef==nullptr ? globalOther() : findNpc(targetRef);
   auto self   = findNpc(selfRef);
 
   if(self!=nullptr && target!=nullptr) {
@@ -2600,8 +2607,9 @@ void GameScript::ai_outputsvm(std::shared_ptr<phoenix::c_npc> selfRef, std::shar
   }
 
 void GameScript::ai_outputsvm_overlay(std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> targetRef, std::string_view name) {
-  auto target = findNpc(targetRef);
+  auto target = targetRef==nullptr ? globalOther() : findNpc(targetRef);
   auto self   = findNpc(selfRef);
+
   if(self!=nullptr && target!=nullptr) {
     self->aiPush(AiQueue::aiOutputSvmOverlay(*target,name,aiOutOrderId));
     ++aiOutOrderId;
@@ -2610,16 +2618,10 @@ void GameScript::ai_outputsvm_overlay(std::shared_ptr<phoenix::c_npc> selfRef, s
 
 void GameScript::ai_startstate(std::shared_ptr<phoenix::c_npc> selfRef, int func, int state, std::string_view wp) {
   auto  self = findNpc(selfRef);
-  auto* sOth = vm.global_other();
   auto* sVic = vm.global_victim();
   if(self!=nullptr && func>0) {
-    Npc* oth = nullptr;
+    Npc* oth = globalOther();
     Npc* vic = nullptr;
-    if(sOth->is_instance_of<phoenix::c_npc>()){
-      auto npc = reinterpret_cast<phoenix::c_npc*>(sOth->get_instance().get());
-      if(npc)
-        oth = reinterpret_cast<Npc*>(npc->user_ptr);
-      }
     if(sVic->is_instance_of<phoenix::c_npc>()){
       auto npc = reinterpret_cast<phoenix::c_npc*>(sVic->get_instance().get());
       if(npc)
