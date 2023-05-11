@@ -47,10 +47,8 @@ void MoveAlgo::tickMobsi(uint64_t dt) {
   auto pos = npc.position();
   if(npc.interactive()->isLadder()) {
     auto mat = npc.interactive()->transform();
-    Tempest::Vec3 p0 = {}, p1 = dp;
-    mat.project(p0);
-    mat.project(p1);
-    dp = p1-p0;
+    mat.project(dp);
+    dp -= npc.interactive()->position();
     } else {
     Tempest::Vec3 ret;
     applyRotation(ret,dp);

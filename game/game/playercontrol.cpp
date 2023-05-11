@@ -448,7 +448,7 @@ void PlayerControl::marvinF8(uint64_t dt) {
   pl.clearState(false);
   pl.setPosition(pos);
   pl.clearSpeed();
-  pl.quitIneraction();
+  pl.setInteraction(nullptr,true);
   pl.setAnim(AnimationSolver::Idle);
   pl.clearAiQueue();
 
@@ -472,7 +472,7 @@ void PlayerControl::marvinK(uint64_t dt) {
   pl.clearState(false);
   pl.setPosition(pos);
   pl.clearSpeed();
-  pl.quitIneraction();
+  pl.setInteraction(nullptr,true);
   // pl.setAnim(AnimationSolver::Idle); // Original G2 behaviour: K doesn't stop running
   }
 
@@ -582,14 +582,14 @@ void PlayerControl::implMove(uint64_t dt) {
   if(pl.bodyStateMasked()==BS_UNCONSCIOUS)
     return;
 
-  if(pl.interactive()!=nullptr) {
+  if(!pl.isAiQueueEmpty()) {
     runAngleDest = 0;
-    implMoveMobsi(pl,dt);
     return;
     }
 
-  if(!pl.isAiQueueEmpty()) {
+  if(pl.interactive()!=nullptr) {
     runAngleDest = 0;
+    implMoveMobsi(pl,dt);
     return;
     }
 

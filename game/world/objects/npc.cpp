@@ -1345,7 +1345,7 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
   if(go2.flag==GT_No)
     return false;
 
-  if(isInAir()) {
+  if(isInAir() || interactive()!=nullptr) {
     mvAlgo.tick(dt);
     return true;
     }
@@ -1358,16 +1358,24 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
   else if(mvAlgo.isClose(go2.target(),destDist)) {
     bool finished = true;
     if(go2.flag==GT_Way) {
-      go2.wp = wayPath.pop();
+      go2.wp = go2.wp->hasLadderConn(wayPath.first()) ? wayPath.first() : wayPath.pop();
       if(go2.wp!=nullptr) {
         attachToPoint(go2.wp);
+        if(setGoToLadder()) {
+          mvAlgo.tick(dt);
+          return true;
+          }
         finished = false;
         }
       }
     if(finished)
       clearGoTo();
     } else {
-    if(mvAlgo.checkLastBounce() && implTurnTo(dpos.x,dpos.z,false,dt)){
+    if(setGoToLadder()) {
+      mvAlgo.tick(dt);
+      return true;
+      }
+    if(mvAlgo.checkLastBounce() && implTurnTo(dpos.x,dpos.z,false,dt)) {
       mvAlgo.tick(dt);
       return true;
       }
@@ -1689,6 +1697,21 @@ bool Npc::implAiFlee(uint64_t dt) {
   go2.setFlee();
   setAnim(Anim::Move);
   return true;
+  }
+
+bool Npc::setGoToLadder() {
+  if(go2.wp==nullptr || go2.wp!=wayPath.first())
+    return false;
+  auto inter = go2.wp->ladder;
+  auto pos   = inter->nearestPoint(*this);
+  if(mvAlgo.isClose(pos,MAX_AI_USE_DISTANCE)) {
+    if(!inter->isAvailable())
+      setAnim(AnimationSolver::Idle);
+    else if(setInteraction(inter))
+      wayPath.pop();
+    return true;
+    }
+  return false;
   }
 
 void Npc::commitDamage() {
@@ -2101,7 +2124,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
       }
     case AI_GoToPoint: {
-      if(!setInteraction(nullptr)) {
+      if(isInAir() || !setInteraction(nullptr)) {
         queue.pushFront(std::move(act));
         break;
         }
@@ -2175,7 +2198,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_StandUpQuick:
       // NOTE: B_ASSESSTALK calls AI_StandUp, to make npc stand, if it's not on a chair or something
       if(interactive()!=nullptr) {
-        if(!setInteraction(nullptr,false)) {
+        if((interactive()->isLadder() && !isPlayer()) || !setInteraction(nullptr,false)) {
           queue.pushFront(std::move(act));
           }
         break;

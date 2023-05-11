@@ -6,6 +6,7 @@
 
 #include "utils/dbgpainter.h"
 #include "utils/versioninfo.h"
+#include "world/objects/interactive.h"
 #include "world.h"
 
 using namespace Tempest;
@@ -53,15 +54,17 @@ void WayMatrix::buildIndex() {
     return a->x<b->x;
     });
 
-  for(auto& i:edges){
-    if(i.a<wayPoints.size() && i.b<wayPoints.size()){
-      auto& a = wayPoints[i.a ];
+  for(auto& i:edges) {
+    if(i.a<wayPoints.size() && i.b<wayPoints.size()) {
+      auto& a = wayPoints[i.a];
       auto& b = wayPoints[i.b];
 
       a.connect(b);
       b.connect(a);
       }
     }
+
+  calculateLadderPoints();
   }
 
 const WayPoint *WayMatrix::findWayPoint(const Vec3& at, const std::function<bool(const WayPoint&)>& filter) const {
@@ -178,8 +181,47 @@ void WayMatrix::marchPoints(DbgPainter &p) const {
 
 void WayMatrix::adjustWaypoints(std::vector<WayPoint> &wp) {
   for(auto& w:wp) {
-    w.y = world.physic()->landRay(w.position()).v.y;
+    auto ray = world.physic()->landRay(w.position());
+    if(ray.hasCol)
+      w.y = ray.v.y;
     indexPoints.push_back(&w);
+    }
+  }
+
+void WayMatrix::calculateLadderPoints() {
+  static const float dist = 100.f;
+  for(uint32_t i=0;;++i) {
+    auto inter = world.mobsiById(i);
+    if(inter==nullptr)
+      break;
+    if(!inter->isLadder())
+      continue;
+    auto box = inter->bBox();
+    for(auto& e:edges) {
+      if(e.a>=wayPoints.size() || e.b>=wayPoints.size() || e.a==e.b)
+        continue;
+      auto& a     = wayPoints[e.a], b    = wayPoints[e.b];
+      Vec3  posA  = a.position(),   posB = b.position();
+      Vec3  dTopA = box[1] - posA;
+      Vec3  dBotA = box[0] - posA;
+      Vec3  dBA   = posB - posA;
+      if(dBA.x<0)
+        std::swap(dTopA.x,dBotA.x);
+      if(dBA.y<0)
+        std::swap(dTopA.y,dBotA.y);
+      if(dBA.z<0)
+        std::swap(dTopA.z,dBotA.z);
+      float max = std::min({dTopA.x/dBA.x,dTopA.y/dBA.y,dTopA.z/dBA.z});
+      float min = std::max({dBotA.x/dBA.x,dBotA.y/dBA.y,dBotA.z/dBA.z});
+      if(max<min || max<0.f || min>1.f)
+        continue;
+      float dy = 0.5f * std::abs(box[0].y+box[1].y-posA.y-posB.y);
+      if(dy<dist) {
+        wayPoints[e.a].ladder = inter;
+        wayPoints[e.b].ladder = inter;
+        break;
+        }
+      }
     }
   }
 

@@ -40,6 +40,12 @@ const WayPoint *WayPath::pop() {
   return ret;
   }
 
+const WayPoint *WayPath::first() const {
+  if(dat.size()==0)
+    return nullptr;
+  return dat[dat.size()-1];
+  }
+
 const WayPoint *WayPath::last() const {
   if(dat.size()==0)
     return nullptr;

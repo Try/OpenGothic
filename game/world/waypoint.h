@@ -6,6 +6,7 @@
 #include <Tempest/Vec>
 
 class FpLock;
+class Interactive;
 
 class WayPoint final {
   public:
@@ -37,6 +38,8 @@ class WayPoint final {
 
     std::string name;
 
+    Interactive* ladder = nullptr;
+
     struct Conn final {
       WayPoint* point=nullptr;
       int32_t   len  =0;
@@ -50,6 +53,7 @@ class WayPoint final {
 
     void connect(WayPoint& w);
     const std::vector<Conn>& connections() const { return conn; }
+    bool hasLadderConn(const WayPoint* w) const;
 
   private:
     mutable uint32_t useCount=0;

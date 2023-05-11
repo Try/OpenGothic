@@ -96,6 +96,9 @@ Interactive::Interactive(Vob* parent, World &world, const phoenix::vobs::mob& vo
       --at;
     stepsCount = std::atoi(mdlVisual.c_str()+at);
     stateNum   = stepsCount;
+
+    transform().project(displayOffset);
+    displayOffset -= position();
     }
 
   world.addInteractive(this);
@@ -242,7 +245,7 @@ void Interactive::tick(uint64_t dt) {
   if(p->user==nullptr && (state==stateNum && p->attachMode))
     return;
 
-  if(isLadder() && p->started==Started)
+  if(isLadder() && p->started==Started && p->user!=nullptr && p->user->isAiQueueEmpty())
     return;
   implTick(*p);
   }
@@ -411,6 +414,10 @@ std::string_view Interactive::displayName() const {
     return "";
 
   return s->get_string();
+  }
+
+const Tempest::Vec3* Interactive::bBox() const {
+  return bbox;
   }
 
 bool Interactive::setMobState(std::string_view scheme, int32_t st) {
@@ -752,16 +759,12 @@ bool Interactive::attach(Npc &npc) {
 bool Interactive::dettach(Npc &npc, bool quick) {
   for(auto& i:attPos) {
     if(i.user==&npc && i.attachMode) {
-      if(canQuitAtState(*i.user,state)) {
-        auto sq = npc.setAnimAngGet(Npc::Anim::InteractToStand);
-        if(sq==nullptr)
-          return false;
-        i.user       = nullptr;
-        i.attachMode = false;
-        npc.quitIneraction();
-        return true;
-        }
-      else if(quick) {
+      if(quick || canQuitAtState(*i.user,state)) {
+        if(!quick) {
+          auto sq = npc.setAnimAngGet(Npc::Anim::InteractToStand);
+          if(sq==nullptr)
+            return false;
+          }
         i.user       = nullptr;
         i.attachMode = false;
         npc.quitIneraction();
