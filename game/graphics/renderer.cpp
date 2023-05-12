@@ -73,8 +73,8 @@ void Renderer::resetSwapchain() {
   auto smpN = Sampler::nearest();
   smpN.setClamping(ClampMode::ClampToEdge);
 
-  zbuffer        = device.zbuffer(zBufferFormat,w,h);
-  zbufferItem    = device.zbuffer(zBufferFormat,w,h);
+  sceneLinear = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
+  zbuffer     = device.zbuffer(zBufferFormat,w,h);
 
   if(Gothic::inst().doMeshShading()) {
     uint32_t pw = nextPot(w);
@@ -116,18 +116,15 @@ void Renderer::resetSwapchain() {
       shadowMap[i] = device.zbuffer(shadowFormat,smSize,smSize);
     }
 
-  sceneOpaque  = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
-  sceneLinear  = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
-  sceneDepth   = device.attachment(TextureFormat::R32F,       swapchain.w(),swapchain.h());
+  sceneOpaque = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
+  sceneDepth  = device.attachment(TextureFormat::R32F,       swapchain.w(),swapchain.h());
 
-  gbufDiffuse  = device.attachment(TextureFormat::RGBA8,      swapchain.w(),swapchain.h());
-  gbufNormal   = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
+  gbufDiffuse = device.attachment(TextureFormat::RGBA8,      swapchain.w(),swapchain.h());
+  gbufNormal  = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
 
-  uboCopy = device.descriptors(Shaders::inst().copy);
-  uboCopy.set(0,sceneOpaque,Sampler::nearest());
-
-  uboCopyDepth = device.descriptors(Shaders::inst().copy);
-  uboCopyDepth.set(0, zbuffer);
+  uboStash = device.descriptors(Shaders::inst().stash);
+  uboStash.set(0,sceneLinear,Sampler::nearest());
+  uboStash.set(1,zbuffer,    Sampler::nearest());
 
   if(Gothic::inst().doRayQuery() && Resources::device().properties().bindless.nonUniformIndexing &&
      settings.shadowResolution>0)
@@ -139,6 +136,9 @@ void Renderer::resetSwapchain() {
 
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
     shadow.ubo[i] = device.descriptors(*shadow.composePso);
+
+  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
+    water.underUbo[i] = device.descriptors(Shaders::inst().underwaterT);
 
   //ssao.ssaoBuf = device.attachment(ssao.aoFormat, swapchain.w(),swapchain.h());
   ssao.ssaoBuf = device.image2d(ssao.aoFormat, swapchain.w(),swapchain.h());
@@ -152,17 +152,15 @@ void Renderer::resetSwapchain() {
     }
   ssao.uboSsao = device.descriptors(*ssao.ssaoPso);
   ssao.uboSsao.set(0, ssao.ssaoBuf);
-  ssao.uboSsao.set(1, sceneOpaque, smpN);
-  ssao.uboSsao.set(2, gbufDiffuse, smpN);
-  ssao.uboSsao.set(3, gbufNormal,  smpN);
-  ssao.uboSsao.set(4, zbuffer,     smpN);
+  ssao.uboSsao.set(1, gbufDiffuse, smpN);
+  ssao.uboSsao.set(2, gbufNormal,  smpN);
+  ssao.uboSsao.set(3, zbuffer,     smpN);
 
   ssao.uboCompose = device.descriptors(*ssao.ssaoComposePso);
-  ssao.uboCompose.set(0, sceneOpaque,  smpN);
-  ssao.uboCompose.set(1, gbufDiffuse,  smpN);
-  ssao.uboCompose.set(2, gbufNormal,   smpN);
-  ssao.uboCompose.set(3, zbuffer,      smpN);
-  ssao.uboCompose.set(4, ssao.ssaoBuf, smpN);
+  ssao.uboCompose.set(0, gbufDiffuse,  smpN);
+  ssao.uboCompose.set(1, gbufNormal,   smpN);
+  ssao.uboCompose.set(2, zbuffer,      smpN);
+  ssao.uboCompose.set(3, ssao.ssaoBuf, smpN);
 
   tonemapping.pso     = &Shaders::inst().tonemapping;
   tonemapping.uboTone = device.descriptors(*tonemapping.pso);
@@ -205,11 +203,12 @@ void Renderer::setCameraView(const Camera& camera) {
       shadowMatrix[i] = camera.viewShadow(wview->mainLight().dir(),i);
     }
 
-  zNear      = camera.zNear();
-  zFar       = camera.zFar();
-  clipInfo.x = zNear*zFar;
-  clipInfo.y = zNear-zFar;
-  clipInfo.z = zFar;
+  zNear         = camera.zNear();
+  zFar          = camera.zFar();
+  clipInfo.x    = zNear*zFar;
+  clipInfo.y    = zNear-zFar;
+  clipInfo.z    = zFar;
+  cameraInWater = camera.isInWater();
   }
 
 void Renderer::prepareUniforms() {
@@ -231,6 +230,12 @@ void Renderer::prepareUniforms() {
         continue;
       u.set(4+r, shadowMap[r]);
       }
+    }
+
+  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
+    auto& u = water.underUbo[i];
+    u.set(0, wview->sceneGlobals().uboGlobalPf[i][SceneGlobals::V_Main]);
+    u.set(1, zbuffer);
     }
 
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
@@ -298,6 +303,10 @@ void Renderer::setupTlas(const Tempest::AccelerationStructure* tlas) {
     }
   }
 
+void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
+  wview.prepareSky(cmd,fId);
+  }
+
 void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
                     VectorImage::Mesh& uiLayer, VectorImage::Mesh& numOverlay,
                     InventoryMenu& inventory) {
@@ -308,7 +317,7 @@ void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
   uiLayer.draw(cmd);
 
   if(inventory.isOpen()!=InventoryMenu::State::Closed) {
-    cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}},{zbufferItem, 1.f, Tempest::Preserve});
+    cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}},{zbuffer, 1.f, Tempest::Preserve});
     inventory.draw(cmd,cmdId);
 
     cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
@@ -363,23 +372,27 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     wview->visibilityPass(frustrum);
     }
 
-  wview->preFrameUpdate(view,proj,zNear,zFar,shadowMatrix,Gothic::inst().world()->tickCount(),fId);
+  wview->preFrameUpdate(view,proj,zNear,zFar,shadowMatrix,Gothic::inst().world()->tickCount(),cameraInWater,fId);
 
-  drawHiZ(cmd,*wview,fId);
-  wview->prepareSky(cmd,fId);
+  drawHiZ(cmd,fId,*wview);
+  prepareSky(cmd,fId,*wview);
 
-  drawGBuffer      (cmd,fId,*wview);
-  drawShadowMap    (cmd,fId,*wview);
-  drawShadowResolve(sceneOpaque,cmd,fId,*wview);
-  stashDepthAux(cmd,fId);
+  drawGBuffer  (cmd,fId,*wview);
+  drawShadowMap(cmd,fId,*wview);
 
-  wview->prepareFog(cmd,fId);
+  prepareSSAO(cmd);
+  prepareFog (cmd,fId,*wview);
 
-  drawSSAO(sceneLinear,cmd,*wview);
-  cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
-  wview->drawLights     (cmd,fId);
+  cmd.setFramebuffer({{sceneLinear, Tempest::Discard, Tempest::Preserve}});
+  drawShadowResolve(cmd,fId,*wview);
+  drawSSAO(cmd,*wview);
 
-  drawGWater      (cmd,fId,*wview);
+  stashSceneAux(cmd,fId);
+
+  cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
+  drawLights(cmd,fId,*wview);
+
+  drawGWater(cmd,fId,*wview);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
   wview->drawSky        (cmd,fId);
@@ -387,7 +400,11 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   drawReflections(cmd,fId);
-  wview->drawFog    (cmd,fId);
+  if(cameraInWater) {
+    drawUnderwater(cmd,fId);
+    } else {
+    wview->drawFog(cmd,fId);
+    }
 
   cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
   drawTonemapping(cmd);
@@ -410,21 +427,21 @@ void Renderer::drawTonemapping(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   cmd.draw(Resources::fsqVbo());
   }
 
-void Renderer::stashDepthAux(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+void Renderer::stashSceneAux(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   auto& device = Resources::device();
   if(!device.properties().hasSamplerFormat(zBufferFormat))
     return;
-  cmd.setFramebuffer({{sceneDepth, Tempest::Discard, Tempest::Preserve}});
-  cmd.setUniforms(Shaders::inst().copy, uboCopyDepth);
+  cmd.setFramebuffer({{sceneOpaque, Tempest::Discard, Tempest::Preserve}, {sceneDepth, Tempest::Discard, Tempest::Preserve}});
+  cmd.setUniforms(Shaders::inst().stash, uboStash);
   cmd.draw(Resources::fsqVbo());
   }
 
-void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, uint8_t fId) {
+void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
   if(!Gothic::inst().doMeshShading())
     return;
 
   cmd.setFramebuffer({}, {zbuffer, 1.f, Tempest::Preserve});
-  wview.drawHiZ(cmd,fId);
+  view.drawHiZ(cmd,fId);
 
   cmd.setFramebuffer({});
   cmd.setUniforms(Shaders::inst().hiZRaw, uboHiZRaw);
@@ -475,6 +492,14 @@ void Renderer::drawReflections(Tempest::Encoder<Tempest::CommandBuffer>& cmd, ui
     }
   }
 
+void Renderer::drawUnderwater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  cmd.setUniforms(Shaders::inst().underwaterT, water.underUbo[fId]);
+  cmd.draw(Resources::fsqVbo());
+
+  cmd.setUniforms(Shaders::inst().underwaterS, water.underUbo[fId]);
+  cmd.draw(Resources::fsqVbo());
+  }
+
 void Renderer::drawShadowMap(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
   if(settings.shadowResolution<=0)
     return;
@@ -486,45 +511,52 @@ void Renderer::drawShadowMap(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint
     }
   }
 
-void Renderer::drawShadowResolve(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const WorldView& view) {
+void Renderer::drawShadowResolve(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const WorldView& view) {
   static bool useDsm = true;
   if(!useDsm)
     return;
 
-  cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
-  cmd.setUniforms(*shadow.composePso,shadow.ubo[fId]);
+  struct Push {
+    Vec3 ambient;
+    } push;
+
+  if(!settings.zCloudShadowScale) {
+    push.ambient = view.ambientLight();
+    }
+
+  cmd.setUniforms(*shadow.composePso, shadow.ubo[fId], &push, sizeof(push));
   cmd.draw(Resources::fsqVbo());
   }
 
-void Renderer::drawSSAO(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, const WorldView& view) {
-  static bool useSsao = true;
+void Renderer::drawLights(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
+  wview.drawLights(cmd,fId);
+  }
 
-  if(!useSsao || !settings.zCloudShadowScale) {
-    cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
-    cmd.setUniforms(Shaders::inst().copy,uboCopy);
-    cmd.draw(Resources::fsqVbo());
+void Renderer::prepareSSAO(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
+  if(!settings.zCloudShadowScale)
     return;
-    }
-
-  {
   // ssao
   struct PushSsao {
     Matrix4x4 mvp;
     Matrix4x4 mvpInv;
-  } push;
+    } push;
   push.mvp    = viewProj;
   push.mvpInv = viewProj;
   push.mvpInv.inverse();
 
-  //cmd.setFramebuffer({{ssao.ssaoBuf, Tempest::Discard, Tempest::Preserve}});
-  //cmd.setUniforms(*ssao.ssaoPso,ssao.uboSsao,&push,sizeof(push));
-  //cmd.draw(Resources::fsqVbo());
   cmd.setFramebuffer({});
   cmd.setUniforms(*ssao.ssaoPso, ssao.uboSsao, &push, sizeof(push));
-  cmd.dispatchThreads(size_t(result.w()), size_t(result.h()));
+  cmd.dispatchThreads(size_t(ssao.ssaoBuf.w()), size_t(ssao.ssaoBuf.h()));
   }
 
-  {
+void Renderer::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
+  wview.prepareFog(cmd,fId);
+  }
+
+void Renderer::drawSSAO(Encoder<CommandBuffer>& cmd, const WorldView& view) {
+  if(!settings.zCloudShadowScale)
+    return;
+
   struct PushSsao {
     Vec3      ambient;
     float     padd0 = 0;
@@ -536,10 +568,8 @@ void Renderer::drawSSAO(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd
   push.ldir     = view.mainLight().dir();
   push.clipInfo = clipInfo;
 
-  cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
   cmd.setUniforms(*ssao.ssaoComposePso,ssao.uboCompose,&push,sizeof(push));
   cmd.draw(Resources::fsqVbo());
-  }
   }
 
 Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {

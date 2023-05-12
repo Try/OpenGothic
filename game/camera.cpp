@@ -167,6 +167,10 @@ bool Camera::isFree() const {
   return camMarvinMod==M_Free;
   }
 
+bool Camera::isInWater() const {
+  return inWater;
+  }
+
 void Camera::setToggleEnable(bool e) {
   tgEnable = e;
   }
@@ -559,15 +563,33 @@ void Camera::tick(uint64_t dt) {
 
   const float dtF = float(dt)/1000.f;
 
-  {
-  const auto& def = cameraDef();
-  dst.range = def.min_range + (def.max_range-def.min_range)*userRange;
-  const float zSpeed = 5.f;
-  const float dz     = dst.range-src.range;
-  src.range+=dz*std::min(1.f,2.f*zSpeed*dtF);
-  }
+    {
+    const auto& def = cameraDef();
+    dst.range = def.min_range + (def.max_range-def.min_range)*userRange;
+    const float zSpeed = 5.f;
+    const float dz     = dst.range-src.range;
+    src.range+=dz*std::min(1.f,2.f*zSpeed*dtF);
+    }
 
+  auto prev = origin;
   calcControlPoints(dtF);
+
+  auto world = Gothic::inst().world();
+  if(world!=nullptr) {
+    if(auto pl = world->player()) {
+      auto& physic = *world->physic();
+      if(pl->isDive()) {
+        inWater = !physic.waterRay(src.target, origin).hasCol;
+        }
+      else if(pl->isInWater()) {
+        // NOTE: find a way to avoid persistent tracking
+        inWater = inWater ^ physic.waterRay(prev, origin).hasCol;
+        }
+      else {
+        inWater = physic.waterRay(src.target, origin).hasCol;
+        }
+      }
+    }
   }
 
 void Camera::calcControlPoints(float dtF) {

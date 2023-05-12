@@ -36,16 +36,22 @@ class Renderer final {
     void prepareUniforms();
     void setupTlas(const Tempest::AccelerationStructure* tlas);
 
-    void drawHiZ          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview, uint8_t fId);
+    void prepareSky       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
+    void prepareSSAO      (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void prepareFog       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
+
+    void drawHiZ          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawGBuffer      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawGWater       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawShadowMap    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
-    void drawShadowResolve(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const WorldView& view);
-    void drawSSAO         (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
+    void drawShadowResolve(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const WorldView& view);
+    void drawLights       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
+    void drawSSAO         (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void draw             (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawTonemapping  (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawReflections  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void stashDepthAux    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void drawUnderwater   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void stashSceneAux    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void initSettings();
 
     struct Settings {
@@ -61,11 +67,13 @@ class Renderer final {
     float                     zNear = 0;
     float                     zFar  = 0;
     Tempest::Vec3             clipInfo;
+    bool                      cameraInWater = false;
+
+    Tempest::Attachment       sceneLinear;
+    Tempest::ZBuffer          zbuffer, shadowMap[Resources::ShadowLayers];
 
     Tempest::Attachment       sceneOpaque;
-    Tempest::Attachment       sceneLinear;
     Tempest::Attachment       sceneDepth;
-    Tempest::ZBuffer          zbuffer, zbufferItem, shadowMap[Resources::ShadowLayers];
 
     Tempest::Attachment       gbufDiffuse;
     Tempest::Attachment       gbufNormal;
@@ -78,6 +86,8 @@ class Renderer final {
     struct Water {
       Tempest::RenderPipeline* reflectionsPso = nullptr;
       Tempest::DescriptorSet   ubo[Resources::MaxFramesInFlight];
+
+      Tempest::DescriptorSet   underUbo[Resources::MaxFramesInFlight];
     } water;
 
     struct SSAO {
@@ -105,6 +115,7 @@ class Renderer final {
     Tempest::DescriptorSet    uboHiZRaw, uboHiZPot;
     std::vector<Tempest::DescriptorSet> uboZMip;
 
-    Tempest::DescriptorSet    uboCopy, uboCopyDepth;
+    Tempest::DescriptorSet    uboStash;
+
     Shaders                   stor;
   };

@@ -78,12 +78,28 @@ Shaders::Shaders() {
   shadow  .load(device,"shadow",   false,meshlets);
   shadowAt.load(device,"shadow_at",false,meshlets);
 
-  copy               = postEffect("copy");
+  copy  = postEffect("copy");
 
-  ssao               = computeShader("ssao.comp.sprv");
-  ssaoCompose        = postEffect("ssao_compose");
+  stash = postEffect("stash");
+
+  ssao = computeShader("ssao.comp.sprv");
   if(Gothic::inst().doRayQuery())
     ssaoRq = computeShader("ssao_rq.comp.sprv");
+  {
+    RenderState state;
+    state.setCullFaceMode (RenderState::CullMode::Front);
+    state.setBlendSource  (RenderState::BlendMode::One);
+    state.setBlendDest    (RenderState::BlendMode::One);
+    state.setZTestMode    (RenderState::ZTestMode::Less);
+    state.setZWriteEnabled(false);
+
+    auto sh      = GothicShader::get("ssao_compose.vert.sprv");
+    auto vsLight = device.shader(sh.data,sh.len);
+    sh           = GothicShader::get("ssao_compose.frag.sprv");
+    auto fsLight = device.shader(sh.data,sh.len);
+    ssaoCompose  = device.pipeline(Triangles, state, vsLight, fsLight);
+    //ssaoCompose      = postEffect("ssao_compose");
+  }
 
   shadowResolve      = postEffect("shadow_resolve");
   shadowResolveSh    = postEffect("shadow_resolve", "shadow_resolve_sh");
@@ -106,6 +122,8 @@ Shaders::Shaders() {
   fog3dLQ            = fogShader ("fog3d_lq");
   fog3dHQ            = fogShader ("fog3d_hq");
 
+  underwaterT        = inWaterShader("underwater_t", false);
+  underwaterS        = inWaterShader("underwater_s", true);
   waterReflection    = reflectionShader("water_reflection.frag.sprv",meshlets);
   waterReflectionSSR = reflectionShader("water_reflection_ssr.frag.sprv",meshlets);
 
@@ -350,6 +368,29 @@ RenderPipeline Shaders::fogShader(std::string_view name) {
     }
 
   auto sh = GothicShader::get(string_frm(name,".vert.sprv"));
+  auto vs = device.shader(sh.data,sh.len);
+
+  sh      = GothicShader::get(string_frm(name,".frag.sprv"));
+  auto fs = device.shader(sh.data,sh.len);
+  return device.pipeline(Triangles,state,vs,fs);
+  }
+
+RenderPipeline Shaders::inWaterShader(std::string_view name, bool isScattering) {
+  auto& device = Resources::device();
+
+  RenderState state;
+  state.setZWriteEnabled(false);
+  state.setCullFaceMode(RenderState::CullMode::Front);
+
+  if(isScattering) {
+    state.setBlendSource(RenderState::BlendMode::One);
+    state.setBlendDest  (RenderState::BlendMode::One);
+    } else {
+    state.setBlendSource(RenderState::BlendMode::Zero);
+    state.setBlendDest  (RenderState::BlendMode::SrcColor);
+    }
+
+  auto sh = GothicShader::get("underwater.vert.sprv");
   auto vs = device.shader(sh.data,sh.len);
 
   sh      = GothicShader::get(string_frm(name,".frag.sprv"));

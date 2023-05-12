@@ -39,6 +39,7 @@ void main() {
   if(bucket.waveMaxAmplitude>0) {
     Wave w = wave(shOut.pos, 0.0);
     pos          += scene.viewProject*vec4(w.offset,0);
+    shOut.pos    += w.offset;
     shOut.normal  = w.normal;
     } else {
     shOut.normal = normalize(shOut.normal);

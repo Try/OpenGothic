@@ -193,6 +193,9 @@ void main() {
   if(!isGBufWater(diff.a))
     discard;
 
+  const bool  underWater = (scene.underWater!=0);
+  const float ior        = underWater ? IorAir : IorWater;
+
   const float depth   = texelFetch(gbufDepth,  ivec2(gl_FragCoord.xy), 0).r;
   const vec3  nrm     = texelFetch(gbufNormal, ivec2(gl_FragCoord.xy), 0).rgb;
 
@@ -207,18 +210,17 @@ void main() {
 
   const vec3  view    = normalize(start - camPos);
         vec3  refl    = reflect(view, normal);
-  if(refl.y<0) {
-    //refl.y = 0;
-    //refl   = normalize(refl);
-    }
 
-  const float f = fresnel(refl,normal,IorWater);
+  const float f = fresnel(refl,normal,ior);
   if(f<=0.0001)
     discard;
 
-  vec3 sun = sunBloom(refl);
-  vec3 sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir) * scene.GSunIntensity;
-  sky = applyClouds(sky+sun, view, refl);
+  vec3 sky = vec3(0);
+  if(!underWater) {
+    vec3 sun = sunBloom(refl);
+    sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir) * scene.GSunIntensity;
+    sky = applyClouds(sky+sun, view, refl);
+    }
 
   vec3 r = reflection(scr,start,refl,depth,sky) * WaterAlbedo * f;
   // vec3  r = reflection(scr,start,refl,depth,sky);
