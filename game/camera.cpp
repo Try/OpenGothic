@@ -576,13 +576,18 @@ void Camera::tick(uint64_t dt) {
 
   auto world = Gothic::inst().world();
   if(world!=nullptr) {
-    auto pl = world->player();
-    if(pl!=nullptr && pl->isInAir()) {
-      // maybe marvin
-      inWater = false;
-      } else {
+    if(auto pl = world->player()) {
       auto& physic = *world->physic();
-      inWater = inWater ^ physic.waterRay(prev, origin).hasCol;
+      if(pl->isDive()) {
+        inWater = !physic.waterRay(src.target, origin).hasCol;
+        }
+      else if(pl->isInWater()) {
+        // NOTE: find a way to avoid persistent tracking
+        inWater = inWater ^ physic.waterRay(prev, origin).hasCol;
+        }
+      else {
+        inWater = physic.waterRay(src.target, origin).hasCol;
+        }
       }
     }
   }
