@@ -90,7 +90,7 @@ Shaders::Shaders() {
     state.setCullFaceMode (RenderState::CullMode::Front);
     state.setBlendSource  (RenderState::BlendMode::One);
     state.setBlendDest    (RenderState::BlendMode::One);
-    state.setZTestMode    (RenderState::ZTestMode::Less);
+    state.setZTestMode    (RenderState::ZTestMode::NoEqual);
     state.setZWriteEnabled(false);
 
     auto sh      = GothicShader::get("ssao_compose.vert.sprv");
@@ -101,10 +101,10 @@ Shaders::Shaders() {
     //ssaoCompose      = postEffect("ssao_compose");
   }
 
-  shadowResolve      = postEffect("shadow_resolve");
-  shadowResolveSh    = postEffect("shadow_resolve", "shadow_resolve_sh");
+  shadowResolve      = postEffect("shadow_resolve", "shadow_resolve",    RenderState::ZTestMode::NoEqual);
+  shadowResolveSh    = postEffect("shadow_resolve", "shadow_resolve_sh", RenderState::ZTestMode::NoEqual);
   if(Gothic::inst().doRayQuery() && Resources::device().properties().bindless.nonUniformIndexing)
-    shadowResolveRq = postEffect("shadow_resolve", "shadow_resolve_rq");
+    shadowResolveRq = postEffect("shadow_resolve", "shadow_resolve_rq", RenderState::ZTestMode::NoEqual);
 
   cloudsLut          = computeShader("clouds_lut.comp.sprv");
   skyTransmittance   = postEffect("sky_transmittance");

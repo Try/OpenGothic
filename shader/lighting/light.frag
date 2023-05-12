@@ -153,7 +153,9 @@ void main(void) {
   //outColor     = vec4(0.5,0.5,0.5,1);
   //outColor     = vec4(light,light,light,0.0);
   //outColor     = vec4(d.rgb*color*vec3(light),0.0);
-  const vec3 linear = textureLinear(d.rgb);
+
+  // devide photo-color by assumed sun intesity. Should be 1/scene.GSunIntensityMax
+  const vec3 linear = textureLinear(d.rgb) * 0.2;
   outColor     = vec4(linear*color*vec3(light),0.0);
   //if(dbg!=vec4(0))
   //  outColor = dbg;

@@ -140,7 +140,6 @@ void Renderer::resetSwapchain() {
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
     water.underUbo[i] = device.descriptors(Shaders::inst().underwaterT);
 
-  //ssao.ssaoBuf = device.attachment(ssao.aoFormat, swapchain.w(),swapchain.h());
   ssao.ssaoBuf = device.image2d(ssao.aoFormat, swapchain.w(),swapchain.h());
   if(Gothic::inst().doRayQuery() && false) {
     // disabled
@@ -383,19 +382,17 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   prepareSSAO(cmd);
   prepareFog (cmd,fId,*wview);
 
-  cmd.setFramebuffer({{sceneLinear, Tempest::Discard, Tempest::Preserve}});
+  cmd.setFramebuffer({{sceneLinear, Tempest::Discard, Tempest::Preserve}}, {zbuffer, Tempest::Readonly});
   drawShadowResolve(cmd,fId,*wview);
   drawSSAO(cmd,*wview);
+  drawLights(cmd,fId,*wview);
+  drawSky(cmd,fId,*wview);
 
   stashSceneAux(cmd,fId);
-
-  cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
-  drawLights(cmd,fId,*wview);
 
   drawGWater(cmd,fId,*wview);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
-  wview->drawSky        (cmd,fId);
   wview->drawTranslucent(cmd,fId);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
@@ -530,6 +527,10 @@ void Renderer::drawShadowResolve(Tempest::Encoder<Tempest::CommandBuffer>& cmd, 
 
 void Renderer::drawLights(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
   wview.drawLights(cmd,fId);
+  }
+
+void Renderer::drawSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
+  wview.drawSky(cmd,fId);
   }
 
 void Renderer::prepareSSAO(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {

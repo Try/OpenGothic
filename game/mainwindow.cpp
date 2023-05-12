@@ -237,11 +237,8 @@ void MainWindow::paintEvent(PaintEvent& event) {
   renderer.dbgDraw(p);
 
   if(Gothic::inst().doFrate()) {
-    const auto cam = Gothic::inst().camera();
-    const bool w   =(cam!=nullptr && cam->isInWater());
-
     char fpsT[64]={};
-    std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f %.*s %s",fps.get(),int(info.size()),info.data(), (w ? "water" : "air"));
+    std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f",fps.get());
     //string_frm fpsT("fps = ", fps.get(), " ", info);
 
     auto& fnt = Resources::font();
