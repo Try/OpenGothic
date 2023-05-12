@@ -415,7 +415,7 @@ void LightGroup::setupUbo() {
       auto& u = b->ubo[i];
       u.set(0,*scene.gbufDiffuse,Sampler::nearest());
       u.set(1,*scene.gbufNormals,Sampler::nearest());
-      u.set(2,*scene.sceneDepth, Sampler::nearest());
+      u.set(2,*scene.zbuffer,    Sampler::nearest());
       u.set(3,uboBuf[i]);
       if(Gothic::inst().doRayQuery() && scene.tlas!=nullptr) {
         if(Resources::device().properties().bindless.nonUniformIndexing) {

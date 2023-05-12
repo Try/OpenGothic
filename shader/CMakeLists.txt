@@ -160,6 +160,9 @@ add_shader(lnd_hiz.32.task           materials/main.task -DMESH_TYPE=0 -DHIZ)
 add_shader(lnd_hiz.64.task           materials/main.task -DMESH_TYPE=0 -DHIZ)
 add_shader(lnd_hiz.frag              materials/main.frag -DMESH_TYPE=0 -DHIZ)
 
+add_shader(stash.vert                copy.vert  "")
+add_shader(stash.frag                stash.frag "")
+
 add_shader(shadow_resolve.vert       copy.vert "")
 add_shader(shadow_resolve.frag       shadow_resolve.frag "")
 add_shader(shadow_resolve_sh.frag    shadow_resolve.frag -DSHADOW_MAP)

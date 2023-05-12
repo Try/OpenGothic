@@ -78,12 +78,28 @@ Shaders::Shaders() {
   shadow  .load(device,"shadow",   false,meshlets);
   shadowAt.load(device,"shadow_at",false,meshlets);
 
-  copy               = postEffect("copy");
+  copy  = postEffect("copy");
 
-  ssao               = computeShader("ssao.comp.sprv");
-  ssaoCompose        = postEffect("ssao_compose");
+  stash = postEffect("stash");
+
+  ssao = computeShader("ssao.comp.sprv");
   if(Gothic::inst().doRayQuery())
     ssaoRq = computeShader("ssao_rq.comp.sprv");
+  {
+    RenderState state;
+    state.setCullFaceMode (RenderState::CullMode::Front);
+    state.setBlendSource  (RenderState::BlendMode::One);
+    state.setBlendDest    (RenderState::BlendMode::One);
+    state.setZTestMode    (RenderState::ZTestMode::Less);
+    state.setZWriteEnabled(false);
+
+    auto sh      = GothicShader::get("ssao_compose.vert.sprv");
+    auto vsLight = device.shader(sh.data,sh.len);
+    sh           = GothicShader::get("ssao_compose.frag.sprv");
+    auto fsLight = device.shader(sh.data,sh.len);
+    ssaoCompose  = device.pipeline(Triangles, state, vsLight, fsLight);
+    //ssaoCompose      = postEffect("ssao_compose");
+  }
 
   shadowResolve      = postEffect("shadow_resolve");
   shadowResolveSh    = postEffect("shadow_resolve", "shadow_resolve_sh");

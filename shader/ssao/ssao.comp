@@ -17,13 +17,12 @@ layout(push_constant, std140) uniform PushConstant {
 
 layout(binding  = 0) uniform writeonly image2D result;
 
-layout(binding  = 1) uniform sampler2D lightingBuf;
-layout(binding  = 2) uniform sampler2D diffuse;
-layout(binding  = 3) uniform sampler2D normals;
-layout(binding  = 4) uniform sampler2D depthBuf;
+layout(binding  = 1) uniform sampler2D diffuse;
+layout(binding  = 2) uniform sampler2D normals;
+layout(binding  = 3) uniform sampler2D depthBuf;
 
 #if defined(RAY_QUERY)
-layout(binding  = 5) uniform accelerationStructureEXT topLevelAS;
+layout(binding  = 4) uniform accelerationStructureEXT topLevelAS;
 #endif
 
 const uint  numSamples = 32;
@@ -223,7 +222,7 @@ void main() {
       dbg = i;
       prev      = occlusion;
       occ      += calcOcclussion(at0, pos0, f0, i, 8);
-      occlusion = (occ.x/occ.y)*(M_PI*0.25);
+      occlusion = (occ.x/occ.y)*M_PI;
       }
     if(i==0)
       continue;

@@ -18,6 +18,10 @@
 
 layout(location = 0) out vec4 outColor;
 
+layout(push_constant, std140) uniform PushConstant {
+  vec3 ambient;
+  } push;
+
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
@@ -225,8 +229,9 @@ void main(void) {
   // vec3 linear = acesTonemapInv(srgbDecode(diff.rgb)*lcolor);
 
   vec3 linear = textureLinear(diff.rgb);
-  vec3 color  = linear*(lcolor + scene.ambient);
+  vec3 color  = linear*(lcolor + push.ambient);
 
+  //vec3 color  = linear*(lcolor + scene.ambient);
   outColor = vec4(color, 1.0);
 
   // outColor = vec4(vec3(lcolor), diff.a); // debug

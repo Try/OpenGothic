@@ -18,11 +18,10 @@ layout(push_constant, std140) uniform PushConstant {
   vec3 clipInfo;
   } ubo;
 
-layout(binding  = 0) uniform sampler2D lightingBuf;
-layout(binding  = 1) uniform sampler2D diffuse;
-layout(binding  = 2) uniform sampler2D normals;
-layout(binding  = 3) uniform sampler2D depth;
-layout(binding  = 4) uniform sampler2D ssao;
+layout(binding  = 0) uniform sampler2D diffuse;
+layout(binding  = 1) uniform sampler2D normals;
+layout(binding  = 2) uniform sampler2D depth;
+layout(binding  = 3) uniform sampler2D ssao;
 
 layout(location = 0) in  vec2 uv;
 layout(location = 0) out vec4 outColor;
@@ -67,13 +66,16 @@ float smoothSsao() {
   }
 
 void main() {
-  vec4  lbuf    = textureLod(lightingBuf,uv,0);
-  vec3  clr     = textureLod(diffuse,    uv,0).rgb;
+  vec3  diff    = textureLod(diffuse, uv, 0).rgb;
   float occ     = smoothSsao();
+  //float occ     = textureLod(ssao, uv, 0).r;
 
-  vec3  linear  = textureLinear(clr.rgb);
-  vec3  ambient = ubo.ambient;
+  vec3  linear  = textureLinear(diff);
+  vec3  lcolor  = ubo.ambient;
+
+  vec3  color   = linear*lcolor;
 
   // outColor = vec4(1-occ);
-  outColor = vec4(lbuf.rgb - clr*ambient*occ, lbuf.a);
+  outColor = vec4(color*(1-occ), 1);
+  // outColor = vec4(lbuf.rgb - clr*ambient*occ, lbuf.a);
   }

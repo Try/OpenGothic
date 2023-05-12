@@ -19,6 +19,8 @@ class Shaders {
     Tempest::RenderPipeline  shadowResolve, shadowResolveSh, shadowResolveRq;
 
     Tempest::RenderPipeline  copy;
+    Tempest::RenderPipeline  stash;
+
     Tempest::RenderPipeline  ssaoCompose;
     Tempest::ComputePipeline ssao, ssaoRq;
 
