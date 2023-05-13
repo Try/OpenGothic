@@ -82,7 +82,7 @@ Shaders::Shaders() {
 
   stash = postEffect("stash");
 
-  ssao = computeShader("ssao.comp.sprv");
+  ssao  = computeShader("ssao.comp.sprv");
   if(Gothic::inst().doRayQuery())
     ssaoRq = computeShader("ssao_rq.comp.sprv");
   {
@@ -106,6 +106,7 @@ Shaders::Shaders() {
   if(Gothic::inst().doRayQuery() && Resources::device().properties().bindless.nonUniformIndexing)
     shadowResolveRq = postEffect("shadow_resolve", "shadow_resolve_rq", RenderState::ZTestMode::NoEqual);
 
+  irradiance         = computeShader("irradiance.comp.sprv");
   cloudsLut          = computeShader("clouds_lut.comp.sprv");
   skyTransmittance   = postEffect("sky_transmittance");
   skyMultiScattering = postEffect("sky_multi_scattering");

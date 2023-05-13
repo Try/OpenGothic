@@ -136,12 +136,10 @@ void main(void) {
   if(qDist>1.0)
     discard;
 
-  vec3 d   = texelFetch(diffuse, ivec2(gl_FragCoord.xy), 0).xyz;
-  vec3 n   = texelFetch(normals, ivec2(gl_FragCoord.xy), 0).xyz;
-
+  vec3  n       = texelFetch(normals, ivec2(gl_FragCoord.xy), 0).xyz;
   vec3  normal  = normalize(n*2.0-vec3(1.0));
-  float lambert = max(0.0,-dot(normalize(ldir),normal));
 
+  float lambert = max(0.0,-dot(normalize(ldir),normal));
   float light   = (1.0-qDist)*lambert;
   //if(light<=0.001)
   //  discard;
@@ -156,6 +154,7 @@ void main(void) {
   //outColor     = vec4(d.rgb*color*vec3(light),0.0);
 
   // devide photo-color by assumed sun intesity. Should be 1/scene.GSunIntensityMax
+  const vec3 d      = texelFetch(diffuse, ivec2(gl_FragCoord.xy), 0).xyz;
   const vec3 linear = textureLinear(d.rgb) * 0.2;
   outColor     = vec4(linear*color*vec3(light),0.0);
   //if(dbg!=vec4(0))

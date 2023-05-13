@@ -24,6 +24,8 @@ class Shaders {
     Tempest::RenderPipeline  ssaoCompose;
     Tempest::ComputePipeline ssao, ssaoRq;
 
+    Tempest::ComputePipeline irradiance;
+
     // Scalable and Production Ready Sky and Atmosphere
     Tempest::RenderPipeline  skyTransmittance, skyMultiScattering;
     Tempest::RenderPipeline  skyViewLut, sky;

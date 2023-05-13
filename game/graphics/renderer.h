@@ -39,6 +39,7 @@ class Renderer final {
     void prepareSky       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void prepareSSAO      (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void prepareFog       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
+    void prepareIrradiance(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
     void drawHiZ          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawGBuffer      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
@@ -101,6 +102,13 @@ class Renderer final {
       Tempest::RenderPipeline*  ssaoComposePso = nullptr;
       Tempest::DescriptorSet    uboCompose;
     } ssao;
+
+    struct Irradiance {
+      Tempest::StorageImage     lut;
+
+      Tempest::ComputePipeline* pso = nullptr;
+      Tempest::DescriptorSet    ubo[Resources::MaxFramesInFlight];
+      } irradiance;
 
     struct Tonemapping {
       Tempest::RenderPipeline* pso = nullptr;

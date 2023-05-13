@@ -173,6 +173,8 @@ add_shader(light.frag                lighting/light.frag "")
 add_shader(light_rq.frag             lighting/light.frag -DRAY_QUERY)
 add_shader(light_rq_at.frag          lighting/light.frag -DRAY_QUERY -DRAY_QUERY_AT)
 
+add_shader(irradiance.comp           lighting/irradiance.comp "")
+
 add_shader(tonemapping.vert          copy.vert "")
 add_shader(tonemapping.frag          lighting/tonemapping.frag "")
 
