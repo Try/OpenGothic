@@ -11,8 +11,8 @@
 #extension GL_EXT_ray_flags_primitive_culling : enable
 #endif
 
-#include "../scene.glsl"
-#include "../common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
 
 layout(location = 0) out vec4 outColor;
 

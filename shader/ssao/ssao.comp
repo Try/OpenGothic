@@ -6,7 +6,7 @@
 #extension GL_EXT_ray_query : enable
 #endif
 
-#include "../common.glsl"
+#include "common.glsl"
 
 layout(local_size_x = 8, local_size_y = 8) in;
 

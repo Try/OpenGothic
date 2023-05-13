@@ -1,8 +1,8 @@
 #ifndef MATERIALS_COMMON_GLSL
 #define MATERIALS_COMMON_GLSL
 
-#include "../common.glsl"
-#include "../scene.glsl"
+#include "common.glsl"
+#include "scene.glsl"
 
 #define DEBUG_DRAW 0
 
@@ -165,11 +165,11 @@ layout(binding = L_Scene, std140) uniform UboScene {
   SceneDesc scene;
   };
 
-#if defined(LVL_OBJECT) && (defined(VERTEX) || defined(MESH) || defined(TASK))
+#if defined(LVL_OBJECT) && (defined(GL_VERTEX_SHADER) || defined(MESH) || defined(TASK))
 layout(binding = L_Matrix, std430)   readonly buffer Matrix { mat4 matrix[]; };
 #endif
 
-#if (MESH_TYPE==T_LANDSCAPE) && (defined(VERTEX) || defined(MESH) || defined(TASK))
+#if (MESH_TYPE==T_LANDSCAPE) && (defined(GL_VERTEX_SHADER) || defined(MESH) || defined(TASK))
 layout(binding = L_MeshDesc, std430) readonly buffer Inst   { vec4 bounds[]; };
 #endif
 
@@ -187,16 +187,16 @@ layout(binding = L_Ibo, std430)      readonly buffer Ibo  { uint  indexes []; };
 layout(binding = L_Vbo, std430)      readonly buffer Vbo  { float vertices[]; };
 #endif
 
-#if defined(FRAGMENT) && !(defined(DEPTH_ONLY) && !defined(ATEST))
+#if defined(GL_FRAGMENT_SHADER) && !(defined(DEPTH_ONLY) && !defined(ATEST))
 layout(binding = L_Diffuse) uniform sampler2D textureD;
 #endif
 
-#if defined(FRAGMENT) && defined(FORWARD) && !defined(DEPTH_ONLY)
+#if defined(GL_FRAGMENT_SHADER) && defined(FORWARD) && !defined(DEPTH_ONLY)
 layout(binding = L_Shadow0) uniform sampler2D textureSm0;
 layout(binding = L_Shadow1) uniform sampler2D textureSm1;
 #endif
 
-#if (MESH_TYPE==T_MORPH) && (defined(VERTEX) || defined(MESH))
+#if (MESH_TYPE==T_MORPH) && (defined(GL_VERTEX_SHADER) || defined(MESH))
 layout(std430, binding = L_MorphId) readonly buffer SsboMorphId {
   int  index[];
   } morphId;
@@ -205,13 +205,13 @@ layout(std430, binding = L_Morph) readonly buffer SsboMorph {
   } morph;
 #endif
 
-#if (MESH_TYPE==T_PFX) && (defined(VERTEX) || defined(MESH))
+#if (MESH_TYPE==T_PFX) && (defined(GL_VERTEX_SHADER) || defined(MESH))
 layout(std430, binding = L_Pfx) readonly buffer SsboMorphId {
   Particle pfx[];
   };
 #endif
 
-#if defined(FRAGMENT) && (defined(WATER) || defined(GHOST))
+#if defined(GL_FRAGMENT_SHADER) && (defined(WATER) || defined(GHOST))
 layout(binding = L_SceneClr) uniform sampler2D sceneColor;
 layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
 #endif
@@ -220,7 +220,7 @@ layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
 layout(binding = L_HiZ)  uniform sampler2D hiZ;
 #endif
 
-#if defined(FRAGMENT) && defined(WATER)
+#if defined(GL_FRAGMENT_SHADER) && defined(WATER)
 layout(binding = L_SkyLut) uniform sampler2D skyLUT;
 #endif
 

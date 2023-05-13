@@ -11,8 +11,8 @@
 #extension GL_EXT_ray_flags_primitive_culling : enable
 #endif
 
-#include "../lighting/tonemapping.glsl"
-#include "../common.glsl"
+#include "lighting/tonemapping.glsl"
+#include "common.glsl"
 
 layout(early_fragment_tests) in;
 
@@ -125,9 +125,10 @@ bool isShadow(vec3 rayOrigin, vec3 direction) {
 void main(void) {
   vec2 scr = scrPosition.xy/scrPosition.w;
   vec2 uv  = scr*0.5+vec2(0.5);
-  vec4 z   = textureLod(depth,  uv,0);
 
-  vec4 pos = ubo.mvpInv*vec4(scr.x,scr.y,z.x,1.0);
+  float z  = texelFetch(depth, ivec2(gl_FragCoord.xy), 0).x;
+
+  vec4 pos = ubo.mvpInv*vec4(scr.x,scr.y,z,1.0);
   pos.xyz/=pos.w;
   vec3  ldir  = (pos.xyz-cenPosition.xyz);
   float qDist = dot(ldir,ldir)/(cenPosition.w*cenPosition.w);
@@ -135,13 +136,13 @@ void main(void) {
   if(qDist>1.0)
     discard;
 
-  vec4 d   = textureLod(diffuse,uv,0);
-  vec4 n   = textureLod(normals,uv,0);
+  vec3 d   = texelFetch(diffuse, ivec2(gl_FragCoord.xy), 0).xyz;
+  vec3 n   = texelFetch(normals, ivec2(gl_FragCoord.xy), 0).xyz;
 
-  vec3  normal  = normalize(n.xyz*2.0-vec3(1.0));
+  vec3  normal  = normalize(n*2.0-vec3(1.0));
   float lambert = max(0.0,-dot(normalize(ldir),normal));
 
-  float light = (1.0-qDist)*lambert;
+  float light   = (1.0-qDist)*lambert;
   //if(light<=0.001)
   //  discard;
 

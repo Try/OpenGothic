@@ -57,7 +57,7 @@ function(add_shader OUTPUT SOURCE)
     OUTPUT     ${OUTPUT_FILE}
     DEPENDS    ${SOURCE_FILE} ${GLSL_SOURCES}
     COMMAND    ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/sprv/"
-    COMMAND    ${GLSLANGVALIDATOR} -V ${VARS} "${SOURCE_FILE}" -o ${OUTPUT_FILE}
+    COMMAND    ${GLSLANGVALIDATOR} -V ${VARS} -I"${CMAKE_SOURCE_DIR}/shader" "${SOURCE_FILE}" -o ${OUTPUT_FILE}
     )
 endfunction(add_shader)
 
@@ -164,14 +164,17 @@ add_shader(stash.vert                copy.vert  "")
 add_shader(stash.frag                stash.frag "")
 
 add_shader(shadow_resolve.vert       copy.vert "")
-add_shader(shadow_resolve.frag       shadow_resolve.frag "")
-add_shader(shadow_resolve_sh.frag    shadow_resolve.frag -DSHADOW_MAP)
-add_shader(shadow_resolve_rq.frag    shadow_resolve.frag -DSHADOW_MAP -DRAY_QUERY -DRAY_QUERY_AT)
+add_shader(shadow_resolve.frag       lighting/shadow_resolve.frag "")
+add_shader(shadow_resolve_sh.frag    lighting/shadow_resolve.frag -DSHADOW_MAP)
+add_shader(shadow_resolve_rq.frag    lighting/shadow_resolve.frag -DSHADOW_MAP -DRAY_QUERY -DRAY_QUERY_AT)
 
 add_shader(light.vert                lighting/light.vert "")
 add_shader(light.frag                lighting/light.frag "")
 add_shader(light_rq.frag             lighting/light.frag -DRAY_QUERY)
 add_shader(light_rq_at.frag          lighting/light.frag -DRAY_QUERY -DRAY_QUERY_AT)
+
+add_shader(tonemapping.vert          copy.vert "")
+add_shader(tonemapping.frag          lighting/tonemapping.frag "")
 
 add_shader(water_reflection.vert     copy.vert "")
 add_shader(water_reflection.mesh     water/water_reflection.mesh "")
@@ -222,16 +225,13 @@ add_shader(copy.frag                 copy.frag "")
 add_shader(ssao.comp                 ssao/ssao.comp "")
 add_shader(ssao_rq.comp              ssao/ssao.comp -DRAY_QUERY)
 
-add_shader(tonemapping.vert          copy.vert -DHAS_UV)
-add_shader(tonemapping.frag          tonemapping.frag "")
-
 add_shader(ssao_compose.vert         copy.vert -DHAS_UV)
 add_shader(ssao_compose.frag         ssao/ssao_compose.frag "")
 add_shader(ssao_compose_rq.frag      ssao/ssao_compose.frag -DRAY_QUERY)
 
-add_shader(hiZRaw.comp    hiZPot.comp    "")
-add_shader(hiZPot.comp    hiZPot.comp    -DRESOLVE)
-add_shader(hiZMip.comp    hiZMip.comp    "")
+add_shader(hiz_raw.comp              hiz/hiz_pot.comp    "")
+add_shader(hiz_pot.comp              hiz/hiz_pot.comp    -DRESOLVE)
+add_shader(hiz_mip.comp              hiz/hiz_mip.comp    "")
 
 add_custom_command(
   OUTPUT     ${HEADER} ${CPP}

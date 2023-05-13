@@ -1,5 +1,5 @@
-#include "../common.glsl"
-#include "../lighting/tonemapping.glsl"
+#include "common.glsl"
+#include "lighting/tonemapping.glsl"
 
 // Table 1: Coefficients of the different participating media compo-nents constituting the Earth’s atmosphere
 // These are per megameter.

@@ -4,7 +4,6 @@
 
 layout(vertices = 3) out;
 
-#define TESSELATION
 #include "materials_common.glsl"
 
 in gl_PerVertex {

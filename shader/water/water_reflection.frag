@@ -11,11 +11,11 @@
 #extension GL_EXT_ray_flags_primitive_culling : enable
 #endif
 
-#include "../scene.glsl"
-#include "../common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
 
 #define SKY_LOD 1
-#include "../sky/clouds.glsl"
+#include "sky/clouds.glsl"
 
 layout(location = 0) out vec4 outColor;
 
@@ -209,6 +209,10 @@ void main() {
 
   const vec3  view    = normalize(start - camPos);
         vec3  refl    = reflect(view, normal);
+  if(refl.y<0) {
+    refl.y = 0;
+    refl   = normalize(refl);
+    }
 
   const float f = fresnel(refl,normal,ior);
   if(f<=0.0001)

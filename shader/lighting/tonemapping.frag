@@ -12,18 +12,12 @@ layout(push_constant, std140) uniform PushConstant {
 
 layout(binding  = 0) uniform sampler2D textureD;
 
-layout(location = 0) in  vec2 UV;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-  vec4 t     = textureLod(textureD,UV,0);
-  vec3 color = t.rgb;
-
-  // Color grading
-  // color = pow(color, vec3(1.3));
+  vec3 color = texelFetch(textureD, ivec2(gl_FragCoord.xy), 0).rgb;
 
   // Tonemapping
-  // color = jodieReinhardTonemap(color * push.exposureInv);
   color = acesTonemap(color * push.exposureInv);
   color = srgbEncode(color);
 

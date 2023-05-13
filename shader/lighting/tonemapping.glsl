@@ -1,7 +1,7 @@
 #ifndef TONEMAPPING_GLSL
 #define TONEMAPPING_GLSL
 
-#include "../common.glsl"
+#include "common.glsl"
 
 vec3 jodieReinhardTonemapInv(vec3 c) {
   // rgb / (1 - lum(rgb))

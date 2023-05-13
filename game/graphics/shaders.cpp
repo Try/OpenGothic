@@ -171,9 +171,9 @@ Shaders::Shaders() {
   tonemapping = postEffect("tonemapping", "tonemapping", RenderState::ZTestMode::Always);
 
   if(meshlets) {
-    hiZRaw = computeShader("hiZRaw.comp.sprv");
-    hiZPot = computeShader("hiZPot.comp.sprv");
-    hiZMip = computeShader("hiZMip.comp.sprv");
+    hiZRaw = computeShader("hiz_raw.comp.sprv");
+    hiZPot = computeShader("hiz_pot.comp.sprv");
+    hiZMip = computeShader("hiz_mip.comp.sprv");
     }
 
   if(meshlets) {

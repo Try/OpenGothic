@@ -1,7 +1,7 @@
 #ifndef SHADOWSAMPLING_GLSL
 #define SHADOWSAMPLING_GLSL
 
-#include "../scene.glsl"
+#include "scene.glsl"
 
 vec4 shadowSample(in sampler2D shadowMap, vec2 shPos) {
   shPos.xy = shPos.xy*vec2(0.5,0.5)+vec2(0.5);

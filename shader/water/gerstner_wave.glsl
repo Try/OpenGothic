@@ -1,7 +1,7 @@
 #ifndef GERSTNER_WAVE_GLSL
 #define GERSTNER_WAVE_GLSL
 
-#include "../common.glsl"
+#include "common.glsl"
 
 const int waveIterationsHigh = 32;//43;
 const int waveIterationsMid  = 16;
@@ -112,7 +112,7 @@ Wave wave(vec3 pos, float minLength, const int iterations, const float amplitude
   }
 
 Wave wave(vec3 pos, float minLength) {
-#if defined(FRAGMENT)
+#if defined(GL_FRAGMENT_SHADER)
   const int iterations = waveIterationsHigh;
 #else
   const int iterations = waveIterationsLow;

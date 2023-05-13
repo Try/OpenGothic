@@ -1,9 +1,9 @@
 #ifndef VERTEX_PROCESS_GLSL
 #define VERTEX_PROCESS_GLSL
 
-#include "../common.glsl"
+#include "common.glsl"
 
-#if defined(VERTEX)
+#if defined(GL_VERTEX_SHADER)
 #if (MESH_TYPE==T_SKINING)
 layout(location = 0) in vec3 inNormal;
 layout(location = 1) in vec2 inUV;
@@ -70,7 +70,7 @@ vec4 processVertex(out Varyings shOut, uint objId, uint vboOffset) {
   vec3  dir    = pfx[objId].dir;
   vec2  uv     = vec2(0);
   vec3  normal = vec3(0);
-#elif   (MESH_TYPE==T_SKINING) && defined(VERTEX)
+#elif   (MESH_TYPE==T_SKINING) && defined(GL_VERTEX_SHADER)
   vec3  normal = inNormal;
   vec2  uv     = inUV;
   uint  color  = inColor;
@@ -92,7 +92,7 @@ vec4 processVertex(out Varyings shOut, uint objId, uint vboOffset) {
   uvec4 inId   = uvec4(unpackUnorm4x8(floatBitsToUint(vertices[id + 18]))*255.0);
   vec4  weight = vec4(vertices[id + 19], vertices[id + 20], vertices[id + 21], vertices[id + 22]);
   uvec4 boneId = uvec4(objId) + inId;
-#elif  defined(VERTEX)
+#elif  defined(GL_VERTEX_SHADER)
   vec3  pos    = inPos;
   vec3  normal = inNormal;
   vec2  uv     = inUV;

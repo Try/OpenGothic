@@ -4,7 +4,7 @@
 #extension GL_EXT_control_flow_attributes : enable
 
 #include "sky_common.glsl"
-#include "../scene.glsl"
+#include "scene.glsl"
 
 #if defined(VOLUMETRIC_LQ) || defined(VOLUMETRIC_HQ)
 #define VOLUMETRIC

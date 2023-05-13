@@ -6,8 +6,8 @@
 
 #extension GL_EXT_mesh_shader : require
 
-#include "../scalar_ops.glsl"
-#include "../common.glsl"
+#include "scalar_ops.glsl"
+#include "common.glsl"
 
 layout(local_size_x = 8, local_size_y = 8) in;
 layout(triangles, max_vertices = 4, max_primitives = 2) out;

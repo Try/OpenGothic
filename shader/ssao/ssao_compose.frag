@@ -6,8 +6,8 @@
 #extension GL_EXT_ray_query : enable
 #endif
 
-#include "../lighting/tonemapping.glsl"
-#include "../common.glsl"
+#include "lighting/tonemapping.glsl"
+#include "common.glsl"
 
 const int   KERNEL_RADIUS = 1;
 const float blurSharpness = 0.8;
