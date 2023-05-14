@@ -264,7 +264,9 @@ void main_frag() {
   vec3  lum = val.rgb;
   float tr  = val.a;
 
-  lum = lum * push.GSunIntensity;
+  lum *= push.GSunIntensity;
+  lum *= push.exposureInv;
+
   outColor = vec4(lum, tr);
   }
 #else

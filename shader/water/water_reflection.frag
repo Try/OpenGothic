@@ -58,9 +58,6 @@ vec3 applyClouds(vec3 skyColor, vec3 view, vec3 refl) {
   lum += textureSkyLUT(skyLUT, vec3(0,RPlanet,0), vec3( view.x, view.y*0.0,-view.z), scene.sunDir);
   lum = lum*scene.GSunIntensity;
 
-  lum *= 5.0; //fixme?
-  //lum = vec3(1)*scene.GSunIntensity;
-
   vec4  cloud = clouds(pos + refl*L, lum);
   return mix(skyColor, cloud.rgb, cloud.a);
   }

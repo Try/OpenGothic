@@ -131,16 +131,22 @@ void main(void) {
   vec4 pos = ubo.mvpInv*vec4(scr.x,scr.y,z,1.0);
   pos.xyz/=pos.w;
   vec3  ldir  = (pos.xyz-cenPosition.xyz);
-  float qDist = dot(ldir,ldir)/(cenPosition.w*cenPosition.w);
+  //float qDist = dot(ldir,ldir)/(cenPosition.w*cenPosition.w);
 
-  if(qDist>1.0)
+  const float distanceSquare = dot(ldir,ldir);
+  const float factor         = distanceSquare / (cenPosition.w*cenPosition.w);
+  const float smoothFactor   = max(1.0 - factor * factor, 0.0);
+
+  if(factor>1.0)
     discard;
 
   vec3  n       = texelFetch(normals, ivec2(gl_FragCoord.xy), 0).xyz;
   vec3  normal  = normalize(n*2.0-vec3(1.0));
 
+  //float light   = (1.0-qDist)*lambert;
+
   float lambert = max(0.0,-dot(normalize(ldir),normal));
-  float light   = (1.0-qDist)*lambert;
+  float light   = (lambert/max(factor, 0.1)) * (smoothFactor*smoothFactor);
   //if(light<=0.001)
   //  discard;
 
@@ -153,10 +159,13 @@ void main(void) {
   //outColor     = vec4(light,light,light,0.0);
   //outColor     = vec4(d.rgb*color*vec3(light),0.0);
 
-  // devide photo-color by assumed sun intesity. Should be 1/scene.GSunIntensityMax
   const vec3 d      = texelFetch(diffuse, ivec2(gl_FragCoord.xy), 0).xyz;
-  const vec3 linear = textureLinear(d.rgb) * 0.2;
-  outColor     = vec4(linear*color*vec3(light),0.0);
+  const vec3 linear = textureLinear(d.rgb) * PhotoLumInv;
+
+  vec3 color = linear*color*light;
+  //color *= scene.exposureInv;
+
+  outColor = vec4(color,0.0);
   //if(dbg!=vec4(0))
   //  outColor = dbg;
   }

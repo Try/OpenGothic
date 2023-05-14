@@ -28,7 +28,6 @@ class SceneGlobals final {
                         float zNear, float zFar,
                         const Tempest::Matrix4x4 *sh);
     void setSunlight(const LightSource& light, const Tempest::Vec3& ambient, float GSunIntensity);
-    void setExposure(float expInv);
     void setSky(const Sky& s);
     void setUnderWater(bool w);
 

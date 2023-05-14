@@ -98,14 +98,11 @@ void SceneGlobals::setSunlight(const LightSource& light, const Tempest::Vec3& a,
   uboGlobal.lightAmb      = {a.x,a.y,a.z};
   }
 
-void SceneGlobals::setExposure(float expInv) {
-  uboGlobal.exposureInv = expInv;
-  }
-
 void SceneGlobals::setSky(const Sky& s) {
   uboGlobal.cloudsDir[0] = s.cloudsOffset(0);
   uboGlobal.cloudsDir[1] = s.cloudsOffset(1);
   uboGlobal.isNight      = s.isNight();
+  uboGlobal.exposureInv  = s.autoExposure();
   }
 
 void SceneGlobals::setUnderWater(bool w) {

@@ -99,5 +99,7 @@ class Sky final {
     float                         moonSize = 400;
 
     float                         minZ = 0;
-    float                         GSunIntensity = 20.f;
+    float                         lumScale = 1;
+    float                         GSunIntensity  = 5.f;
+    float                         GMoonIntensity = 0.000025f;
   };

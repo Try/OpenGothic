@@ -225,13 +225,10 @@ void main(void) {
 
   const vec3  lcolor = scene.sunCl.rgb*light*shadow;
 
-  // HACK: need to preserve look-and-fill of original graphics
-  // vec3 linear = acesTonemapInv(srgbDecode(diff.rgb)*lcolor);
+  vec3 linear = textureLinear(diff.rgb) * PhotoLumInv;
+  vec3 color  = linear*(lcolor * scene.GSunIntensity + push.ambient);
+  color *= scene.exposureInv;
 
-  vec3 linear = textureLinear(diff.rgb);
-  vec3 color  = linear*(lcolor + push.ambient);
-
-  //vec3 color  = linear*(lcolor + scene.ambient);
   outColor = vec4(color, 1.0);
 
   // outColor = vec4(vec3(lcolor), diff.a); // debug

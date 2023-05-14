@@ -15,6 +15,12 @@
 
 using namespace Tempest;
 
+// https://www.slideshare.net/LukasLang/physically-based-lighting-in-unreal-engine-4
+// https://www.slideshare.net/DICEStudio/moving-frostbite-to-physically-based-rendering
+static const float DirectSunLux  = 64'000.f;
+static const float DirectMoonLux = 0.27f;
+static const float StreetLight   = 10.f;
+
 static float smoothstep(float edge0, float edge1, float x) {
   float t = std::min(std::max((x - edge0) / (edge1 - edge0), 0.f), 1.f);
   return t * t * (3.f - 2.f * t);
@@ -35,7 +41,10 @@ Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest:
     clouds[1].lay[i] = skyTexture(name,false,i);
     }
   minZ = bbox.first.z;
-  GSunIntensity = 5.f; //20.f;
+
+  lumScale       = 5.f / DirectSunLux;
+  GSunIntensity  = DirectSunLux  * lumScale;
+  GMoonIntensity = DirectMoonLux * lumScale;
 
   /*
     zSunName=unsun5.tga
@@ -125,8 +134,6 @@ void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fr
   if(d.z<0)
     return;
 
-  static float GMoonIntensity = 0.1f;
-
   struct Push {
     Tempest::Vec2      pos;
     Tempest::Vec2      size;
@@ -141,7 +148,7 @@ void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fr
     push.size.y  = 2.f/float(scene.zbuffer->h());
     }
   push.size          *= sun ? sunSize : (moonSize*0.25f);
-  push.GSunIntensity  = sun ? GSunIntensity : GMoonIntensity;
+  push.GSunIntensity  = sun ? GSunIntensity : (GMoonIntensity*10.f);
   push.isSun          = sun ? 1 : 0;
   push.sunDir         = d;
   push.viewProjectInv = scene.viewProjectInv();
@@ -190,33 +197,56 @@ void Sky::updateLight(const int64_t now) {
     pulse = -1.f + (float(now)/float(rise));
     }
 
+  {
+    float k   = float(now)/float(midnight);
+    float ax  = 360-360*std::fmod(k+0.25f,1.f);
+    ax = ax*float(M_PI/180.0);
+    sun.setDir(-std::sin(ax)*shadowLength, pulse, std::cos(ax)*shadowLength);
+  }
+
   static float sunMul = 1;
   static float ambMul = 1;
 
-  const auto ambientDay   = Vec3(0.30f,0.30f,0.30f);
-  const auto ambientNight = Vec3(0.09f,0.09f,0.13f);
+  // irradince
+  // const auto skyDay       = Vec3(0.01f, 0.18f, 0.33f)*0.2f;
+  // const auto skyNight     = Vec3(0, 0, 0.000001f)*0.2f;
+
+  const auto ambientDay   = Vec3(0.06f,0.06f,0.06f)*GSunIntensity       *5;
+  const auto ambientNight = Vec3(0.04f,0.04f,0.06f)*StreetLight*lumScale*10;
 
   const auto directDay    = Vec3(0.94f, 0.87f, 0.76f); //TODO: use tLUT to guide sky color in shader
   const auto directNight  = Vec3(0.27f, 0.05f, 0.01f);
 
-  float k = float(now)/float(midnight);
-  float a  = std::max(0.f,std::min(pulse*3.f,1.f));
+  float aDirect  = std::max(0.f,std::min(pulse*3.f,1.f));
+  float aAmbient = smoothstep(-0.1f, 0.5f, pulse);
 
-  auto clr = directNight *(1.f-a) + directDay *a;
-  ambient  = ambientNight*(1.f-a) + ambientDay*a;
+  auto clr = directNight *(1.f-aDirect ) + directDay *aDirect;
+  ambient  = ambientNight*(1.f-aAmbient) + ambientDay*aAmbient;
 
   const float sunOcclude = smoothstep(0.0f, 0.01f, sun.dir().y);
   clr = clr*sunOcclude;
 
-  float ax  = 360-360*std::fmod(k+0.25f,1.f);
-  ax = ax*float(M_PI/180.0);
-
-  sun.setDir(-std::sin(ax)*shadowLength, pulse, std::cos(ax)*shadowLength);
   sun.setColor(clr*sunMul);
   ambient = ambient*ambMul;
 
-  //exposureInv = 1.f/(smoothstep(0.f, 0.2f, std::max(sun.dir().y, 0.1f))*2.f + 0.15f);
-  exposureInv = 1.f/(smoothstep(0.f, 0.2f, std::max(sun.dir().y, 0.1f)) + 0.005f);
+  //exposureInv = 1.f/(smoothstep(0.f, 0.2f, std::max(sun.dir().y, 0.1f)) + 0.005f);
+  //exposureInv = 1.f/(smoothstep(0.f, 0.2f, std::max(sun.dir().y,  0.f)) + 0.000025f);
+
+  static float moonExp = 0.0005f;
+  static float duskExp = 0.2f;
+  float exposure = 0;
+  if(sun.dir().y>=0) {
+    exposure = smoothstep(0.f, 0.2f, sun.dir().y)*(1.f-duskExp)  + duskExp;
+    } else {
+    exposure = smoothstep(-0.2f, 0.f, sun.dir().y) * duskExp;
+    }
+  exposure += moonExp;
+
+  static float dbgExposure = -1;
+  if(dbgExposure>0)
+    exposure = dbgExposure;
+
+  exposureInv = 1.f/exposure;
   }
 
 void Sky::setupUbo() {

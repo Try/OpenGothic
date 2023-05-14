@@ -10,7 +10,9 @@ out gl_PerVertex {
 layout(push_constant, std430) uniform UboPush {
   vec2  sunPos;
   vec2  sunSz;
+  vec3  sunDir;
   float GSunIntensity;
+  mat4  viewProjectInv;
   uint  isSun;
   } push;
 

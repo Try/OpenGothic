@@ -13,10 +13,11 @@ const int   KERNEL_RADIUS = 1;
 const float blurSharpness = 0.8;
 
 layout(push_constant, std140) uniform PushConstant {
-  vec3 ambient;
-  vec3 ldir;
-  vec3 clipInfo;
-  } ubo;
+  vec3  ambient;
+  float exposureInv;
+  vec3  ldir;
+  vec3  clipInfo;
+  } push;
 
 layout(binding  = 0) uniform sampler2D gbufDiffuse;
 layout(binding  = 1) uniform sampler2D gbufNormal;
@@ -29,7 +30,7 @@ layout(location = 0) out vec4 outColor;
 
 float texLinearDepth(vec2 uv) {
   float d = textureLod(depth, uv, 0).x;
-  return linearDepth(d, ubo.clipInfo);
+  return linearDepth(d, push.clipInfo);
   }
 
 float blurFunction(vec2 uv, float r, float centerD, inout float wTotal) {
@@ -67,11 +68,11 @@ float smoothSsao() {
   }
 
 vec3 ambient() {
-  return ubo.ambient;
-  /*
-    TODO: use irradiance map
+#if 0
+  return push.ambient;
+#else
   vec3 n = texelFetch(gbufNormal, ivec2(gl_FragCoord.xy), 0).rgb;
-  n = n*2.0 - vec3(1.0);
+  n = normalize(n*2.0 - vec3(1.0));
 
   ivec3 d;
   d.x = n.x>=0 ? 1 : 0;
@@ -84,19 +85,19 @@ vec3 ambient() {
   ret += texelFetch(irradiance, ivec2(0,d.x), 0).rgb * n.x;
   ret += texelFetch(irradiance, ivec2(1,d.y), 0).rgb * n.y;
   ret += texelFetch(irradiance, ivec2(2,d.z), 0).rgb * n.z;
-  return ret + ubo.ambient;
-  */
+  return ret + push.ambient;
+#endif
   }
 
 void main() {
   vec3  diff   = texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0).rgb;
   float occ    = smoothSsao();
 
-  vec3  linear = textureLinear(diff);
+  vec3  linear = textureLinear(diff) * PhotoLumInv;
   vec3  lcolor = ambient();
 
   vec3  color  = linear*lcolor;
+  color *= push.exposureInv;
 
-  // outColor = vec4(1-occ);
   outColor = vec4(color*(1-occ), 1);
   }

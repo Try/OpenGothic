@@ -95,7 +95,6 @@ vec3 applyClouds(vec3 skyColor, vec3 sunDir) {
   lum += atmosphere  (vec3(-view.x, view.y*0.0, view.z), sunDir);
   lum += atmosphere  (vec3(-view.x, view.y*0.0,-view.z), sunDir);
   lum += atmosphere  (vec3( view.x, view.y*0.0,-view.z), sunDir);
-  lum = lum*push.GSunIntensity;
   //return lum;
 
   vec4  cloud    = clouds(pos + view*L, lum);
@@ -115,5 +114,6 @@ void main() {
   lum = applyClouds(lum, sunDir);
   lum = lum * push.GSunIntensity;
 
+  lum *= push.exposureInv;
   outColor = vec4(lum, tr);
   }
