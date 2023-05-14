@@ -56,7 +56,6 @@ vec3 applyClouds(vec3 skyColor, vec3 view, vec3 refl) {
   lum += textureSkyLUT(skyLUT, vec3(0,RPlanet,0), vec3(-view.x, view.y*0.0, view.z), scene.sunDir);
   lum += textureSkyLUT(skyLUT, vec3(0,RPlanet,0), vec3(-view.x, view.y*0.0,-view.z), scene.sunDir);
   lum += textureSkyLUT(skyLUT, vec3(0,RPlanet,0), vec3( view.x, view.y*0.0,-view.z), scene.sunDir);
-  lum = lum*scene.GSunIntensity;
 
   vec4  cloud = clouds(pos + refl*L, lum);
   return mix(skyColor, cloud.rgb, cloud.a);
@@ -217,9 +216,11 @@ void main() {
 
   vec3 sky = vec3(0);
   if(!underWater) {
-    vec3 sun = sunBloom(refl);
-    sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir) * scene.GSunIntensity;
+    vec3 sun = sunBloom(refl) * scene.isNight;
+    sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir);
     sky = applyClouds(sky+sun, view, refl);
+    sky *= scene.GSunIntensity;
+    sky *= scene.exposureInv;
     }
 
   vec3 r = reflection(scr,start,refl,depth,sky) * WaterAlbedo * f;
