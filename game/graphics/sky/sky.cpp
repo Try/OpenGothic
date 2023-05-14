@@ -229,18 +229,12 @@ void Sky::updateLight(const int64_t now) {
   sun.setColor(clr*sunMul);
   ambient = ambient*ambMul;
 
-  //exposureInv = 1.f/(smoothstep(0.f, 0.2f, std::max(sun.dir().y, 0.1f)) + 0.005f);
-  //exposureInv = 1.f/(smoothstep(0.f, 0.2f, std::max(sun.dir().y,  0.f)) + 0.000025f);
+  const  float base    = smoothstep(-0.2f, 0.2f, sun.dir().y);
+  static float exp     = 2.0f;
+  static float moonExp = 0.001f;
 
-  static float moonExp = 0.0005f;
-  static float duskExp = 0.2f;
-  float exposure = 0;
-  if(sun.dir().y>=0) {
-    exposure = smoothstep(0.f, 0.2f, sun.dir().y)*(1.f-duskExp)  + duskExp;
-    } else {
-    exposure = smoothstep(-0.2f, 0.f, sun.dir().y) * duskExp;
-    }
-  exposure += moonExp;
+  float exposure  = std::pow(base,exp);
+  exposure = exposure*(1.f-moonExp) + moonExp;
 
   static float dbgExposure = -1;
   if(dbgExposure>0)
