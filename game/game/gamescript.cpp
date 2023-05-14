@@ -1277,6 +1277,14 @@ uint32_t GameScript::rand(uint32_t max) {
   return uint32_t(randGen())%max;
   }
 
+Npc* GameScript::findNpc(phoenix::symbol* s) {
+  if(s->is_instance_of<phoenix::c_npc>()) {
+    auto cNpc = reinterpret_cast<phoenix::c_npc*>(s->get_instance().get());
+    return findNpc(cNpc);
+    }
+  return nullptr;
+  }
+
 Npc* GameScript::findNpc(phoenix::c_npc *handle) {
   if(handle==nullptr)
     return nullptr;
@@ -2188,18 +2196,13 @@ void GameScript::npc_sendpassiveperc(std::shared_ptr<phoenix::c_npc> npcRef, int
   }
 
 bool GameScript::npc_checkinfo(std::shared_ptr<phoenix::c_npc> npcRef, int imp) {
-  auto n = findNpc(npcRef);
-  if(n==nullptr)
+  auto n    = findNpc(npcRef);
+  auto hero = findNpc(vm.global_other());
+  if(n==nullptr || hero==nullptr)
     return false;
 
-  auto* hero = vm.global_other();
-  if(!hero->is_instance_of<phoenix::c_npc>()){
-    return false;
-    }
-  auto* hpl  = reinterpret_cast<phoenix::c_npc*>(hero->get_instance().get());
-  auto& pl   = *(hpl);
-  auto& npc  = n->handle();
-
+  auto& pl  = hero->handle();
+  auto& npc = n->handle();
   for(auto& info:dialogsInfo) {
     if(info->npc!=int32_t(npc.symbol_index()) || info->important!=imp)
       continue;
@@ -2523,11 +2526,13 @@ void GameScript::ai_output(std::shared_ptr<phoenix::c_npc> selfRef, std::shared_
   auto target = findNpc(targetRef);
   auto self   = findNpc(selfRef);
 
-  if(!self || !target)
-    return;
+  if(target==nullptr && owner.version().game==1)
+    target = findNpc(vm.global_other());
 
-  self->aiPush(AiQueue::aiOutput(*target,outputname,aiOutOrderId));
-  ++aiOutOrderId;
+  if(self!=nullptr && target!=nullptr) {
+    self->aiPush(AiQueue::aiOutput(*target,outputname,aiOutOrderId));
+    ++aiOutOrderId;
+    }
   }
 
 void GameScript::ai_stopprocessinfos(std::shared_ptr<phoenix::c_npc> selfRef) {
@@ -2593,6 +2598,9 @@ void GameScript::ai_outputsvm(std::shared_ptr<phoenix::c_npc> selfRef, std::shar
   auto target = findNpc(targetRef);
   auto self   = findNpc(selfRef);
 
+  if(target==nullptr && owner.version().game==1)
+    target = findNpc(vm.global_other());
+
   if(self!=nullptr && target!=nullptr) {
     self->aiPush(AiQueue::aiOutputSvm(*target,name,aiOutOrderId));
     ++aiOutOrderId;
@@ -2602,6 +2610,10 @@ void GameScript::ai_outputsvm(std::shared_ptr<phoenix::c_npc> selfRef, std::shar
 void GameScript::ai_outputsvm_overlay(std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> targetRef, std::string_view name) {
   auto target = findNpc(targetRef);
   auto self   = findNpc(selfRef);
+
+  if(target==nullptr && owner.version().game==1)
+    target = findNpc(vm.global_other());
+
   if(self!=nullptr && target!=nullptr) {
     self->aiPush(AiQueue::aiOutputSvmOverlay(*target,name,aiOutOrderId));
     ++aiOutOrderId;
@@ -2609,23 +2621,10 @@ void GameScript::ai_outputsvm_overlay(std::shared_ptr<phoenix::c_npc> selfRef, s
   }
 
 void GameScript::ai_startstate(std::shared_ptr<phoenix::c_npc> selfRef, int func, int state, std::string_view wp) {
-  auto  self = findNpc(selfRef);
-  auto* sOth = vm.global_other();
-  auto* sVic = vm.global_victim();
+  auto self = findNpc(selfRef);
   if(self!=nullptr && func>0) {
-    Npc* oth = nullptr;
-    Npc* vic = nullptr;
-    if(sOth->is_instance_of<phoenix::c_npc>()){
-      auto npc = reinterpret_cast<phoenix::c_npc*>(sOth->get_instance().get());
-      if(npc)
-        oth = reinterpret_cast<Npc*>(npc->user_ptr);
-      }
-    if(sVic->is_instance_of<phoenix::c_npc>()){
-      auto npc = reinterpret_cast<phoenix::c_npc*>(sVic->get_instance().get());
-      if(npc)
-        vic = reinterpret_cast<Npc*>(npc->user_ptr);
-      }
-
+    Npc* oth = findNpc(vm.global_other());
+    Npc* vic = findNpc(vm.global_victim());
     if(!self->isInState(ScriptFn()) && self->isPlayer()) {
       // avoid issue with B_StopMagicFreeze
       self->aiPush(AiQueue::aiStandup());
@@ -2868,11 +2867,9 @@ void GameScript::ai_pointatnpc(std::shared_ptr<phoenix::c_npc> npcRef, std::shar
   }
 
 int GameScript::ai_printscreen(std::string_view msg, int posx, int posy, std::string_view font, int timesec) {
-  auto npc = owner.player();
-  if(vm.global_self()->is_instance_of<phoenix::c_npc>()) {
-    auto* oth = reinterpret_cast<phoenix::c_npc*>(vm.global_self()->get_instance().get());
-    npc = reinterpret_cast<Npc*>(oth->user_ptr);
-    }
+  auto npc = findNpc(vm.global_self());
+  if(npc==nullptr)
+    npc = owner.player();
   if(npc==nullptr) {
     Gothic::inst().onPrintScreen(msg,posx,posy,timesec,Resources::font(font));
     return 0;
