@@ -212,7 +212,7 @@ void Sky::updateLight(const int64_t now) {
   // const auto skyNight     = Vec3(0, 0, 0.000001f)*0.2f;
 
   float dayTint = std::max(sun.dir().y, 0.f);
-  dayTint = 1.f - std::pow(1.f - dayTint,3.f)*0.9f;
+  dayTint = 0.5f - std::pow(1.f - dayTint,3.f)*0.4f;
 
   const auto  groundAlbedo = Vec3(0.4f);
   const auto  ambientNight = groundAlbedo*StreetLight*lumScale;
