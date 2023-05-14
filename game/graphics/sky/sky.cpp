@@ -211,8 +211,12 @@ void Sky::updateLight(const int64_t now) {
   // const auto skyDay       = Vec3(0.01f, 0.18f, 0.33f)*0.2f;
   // const auto skyNight     = Vec3(0, 0, 0.000001f)*0.2f;
 
-  const auto ambientDay   = Vec3(0.06f,0.06f,0.06f)*GSunIntensity       *5;
-  const auto ambientNight = Vec3(0.04f,0.04f,0.06f)*StreetLight*lumScale*10;
+  float dayTint = std::max(sun.dir().y, 0.f);
+  dayTint = 1.f - std::pow(1.f - dayTint,3.f)*0.9f;
+
+  const auto  groundAlbedo = Vec3(0.4f);
+  const auto  ambientNight = groundAlbedo*StreetLight*lumScale;
+  const auto  ambientDay   = groundAlbedo*(GSunIntensity*dayTint + StreetLight*lumScale);
 
   const auto directDay    = Vec3(0.94f, 0.87f, 0.76f); //TODO: use tLUT to guide sky color in shader
   const auto directNight  = Vec3(0.27f, 0.05f, 0.01f);
