@@ -3991,6 +3991,8 @@ bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
   const auto mid = oth.bounds().midTr;
   if(canSeeNpc(mid.x,mid.y,mid.z,freeLos))
     return true;
+  if(oth.visual.visualSkeleton()==nullptr)
+    return false;
   if(oth.visual.visualSkeleton()->BIP01_HEAD==size_t(-1))
     return false;
   auto head = oth.visual.mapHeadBone();
