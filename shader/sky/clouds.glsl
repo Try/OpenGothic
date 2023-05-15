@@ -44,4 +44,24 @@ vec4 clouds(vec3 at, float nightPhase, vec3 highlight,
   return color;
   }
 
+vec3 applyClouds(vec3 skyColor, in sampler2D skyLUT, vec3 plPos, vec3 sunDir, vec3 view, float nightPhase,
+                 vec2 dxy0, vec2 dxy1,
+                 in sampler2D dayL1,   in sampler2D dayL0,
+                 in sampler2D nightL1, in sampler2D nightL0) {
+  float L = rayIntersect(plPos, view, RClouds);
+  // TODO: http://killzone.dl.playstation.net/killzone/horizonzerodawn/presentations/Siggraph15_Schneider_Real-Time_Volumetric_Cloudscapes_of_Horizon_Zero_Dawn.pdf
+  // fake cloud scattering inspired by Henyey-Greenstein model
+  vec3 lum  = vec3(0);
+  lum += textureSkyLUT(skyLUT, plPos, vec3( view.x, view.y*0.0, view.z), sunDir);
+  lum += textureSkyLUT(skyLUT, plPos, vec3(-view.x, view.y*0.0, view.z), sunDir);
+  lum += textureSkyLUT(skyLUT, plPos, vec3(-view.x, view.y*0.0,-view.z), sunDir);
+  lum += textureSkyLUT(skyLUT, plPos, vec3( view.x, view.y*0.0,-view.z), sunDir);
+  //return lum;
+
+  vec4 cloud = clouds((plPos + view*L)*0.01, nightPhase, lum,
+                      dxy0, dxy1,
+                      dayL1,dayL0, nightL1,nightL0);
+  return mix(skyColor, cloud.rgb, cloud.a);
+  }
+
 #endif

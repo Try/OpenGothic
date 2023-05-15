@@ -1,3 +1,6 @@
+#ifndef SKY_COMMON_GLSL
+#define SKY_COMMON_GLSL
+
 #include "common.glsl"
 #include "lighting/tonemapping.glsl"
 
@@ -85,3 +88,5 @@ vec3 textureLUT(sampler2D tex, vec3 pos, vec3 sunDir) {
   uv.y = (height - RPlanet)/(RAtmos - RPlanet);
   return texture(tex, uv).rgb;
   }
+
+#endif

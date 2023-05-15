@@ -14,7 +14,7 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-#define SKY_LOD 1
+#define SKY_LOD 2
 #include "sky/clouds.glsl"
 
 layout(location = 0) out vec4 outColor;
@@ -37,28 +37,13 @@ layout(binding =  8) uniform sampler2D textureDayL1;
 layout(binding =  9) uniform sampler2D textureNightL0;
 layout(binding = 10) uniform sampler2D textureNightL1;
 
-vec4 clouds(vec3 at, vec3 highlight) {
-  float night = scene.isNight;
-
-  return clouds(at*0.01, night, highlight,
-                scene.cloudsDir.xy, scene.cloudsDir.zw,
-                textureDayL1,textureDayL0, textureNightL1,textureNightL0);
-  }
-
 vec3 applyClouds(vec3 skyColor, vec3 view, vec3 refl) {
-  vec3  pos = vec3(0,RPlanet,0);
-  float L   = rayIntersect(pos, refl, RClouds);
+  float night    = scene.isNight;
+  vec3  plPos    = vec3(0,RPlanet,0);
 
-  // TODO: http://killzone.dl.playstation.net/killzone/horizonzerodawn/presentations/Siggraph15_Schneider_Real-Time_Volumetric_Cloudscapes_of_Horizon_Zero_Dawn.pdf
-  // fake cloud scattering inspired by Henyey-Greenstein model
-  vec3 lum = vec3(0);
-  lum += textureSkyLUT(skyLUT, vec3(0,RPlanet,0), vec3( view.x, view.y*0.0, view.z), scene.sunDir);
-  lum += textureSkyLUT(skyLUT, vec3(0,RPlanet,0), vec3(-view.x, view.y*0.0, view.z), scene.sunDir);
-  lum += textureSkyLUT(skyLUT, vec3(0,RPlanet,0), vec3(-view.x, view.y*0.0,-view.z), scene.sunDir);
-  lum += textureSkyLUT(skyLUT, vec3(0,RPlanet,0), vec3( view.x, view.y*0.0,-view.z), scene.sunDir);
-
-  vec4  cloud = clouds(pos + refl*L, lum);
-  return mix(skyColor, cloud.rgb, cloud.a);
+  return applyClouds(skyColor, skyLUT, plPos, scene.sunDir, refl, night,
+                     scene.cloudsDir.xy, scene.cloudsDir.zw,
+                     textureDayL1,textureDayL0, textureNightL1,textureNightL0);
   }
 
 float intersectPlane(const vec3 pos, const vec3 dir, const vec4 plane) {
@@ -216,7 +201,7 @@ void main() {
 
   vec3 sky = vec3(0);
   if(!underWater) {
-    vec3 sun = sunBloom(refl) * scene.isNight;
+    vec3 sun = sunBloom(refl) * scene.sunCl;// (1.0-scene.isNight);
     sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir);
     sky = applyClouds(sky+sun, view, refl);
     sky *= scene.GSunIntensity;
