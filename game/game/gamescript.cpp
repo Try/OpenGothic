@@ -1829,7 +1829,7 @@ void GameScript::npc_exchangeroutine(std::shared_ptr<phoenix::c_npc> npcRef, std
 
 bool GameScript::npc_isdead(std::shared_ptr<phoenix::c_npc> npcRef) {
   auto npc = findNpc(npcRef);
-  return npc==nullptr || isDead(*npc);
+  return npc==nullptr ? false : isDead(*npc);
   }
 
 bool GameScript::npc_knowsinfo(std::shared_ptr<phoenix::c_npc> npcRef, int infoinstance) {
