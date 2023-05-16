@@ -145,7 +145,7 @@ void main(void) {
   //float light   = (1.0-qDist)*lambert;
 
   float lambert = max(0.0,-dot(normalize(ldir),normal));
-  float light   = (lambert/max(factor, 0.1)) * (smoothFactor*smoothFactor);
+  float light   = (lambert/max(factor, 0.05)) * (smoothFactor*smoothFactor);
   //if(light<=0.001)
   //  discard;
 
