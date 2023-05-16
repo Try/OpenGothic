@@ -799,8 +799,13 @@ uint64_t MainWindow::tick() {
     return 0;
     }
 
-  if(Gothic::inst().isPause())
+  video.tick();
+  if(video.isActive())
     return 0;
+
+  if(Gothic::inst().isPause()) {
+    return 0;
+    }
 
   if(dt>50)
     dt=50;
@@ -825,6 +830,10 @@ uint64_t MainWindow::tick() {
   tickMouse();
   player.tickMove(dt);
   return dt;
+  }
+
+void MainWindow::updateAnimation(uint64_t dt) {
+  Gothic::inst().updateAnimation(dt);
   }
 
 void MainWindow::tickCamera(uint64_t dt) {
@@ -1038,26 +1047,20 @@ void MainWindow::render(){
       once=false;
       }
 
-    video.tick();
-    uint64_t dt = 0;
-    if(!video.isActive()) {
-      /*
-        Note: game update goes first
-        once player position is updated, we can update the camera
-        lastly - update animation (since cameraBone ca be moved)
-        */
-      dt = tick();
-      }
+    /*
+      Note: game update goes first
+      once player position is updated, animation bones(cameraBone in particular) ca be updated
+      lastly - camera position
+      */
+    const uint64_t dt = tick();
+    updateAnimation(dt);
+    tickCamera(dt);
 
     auto& sync = fence[cmdId];
     if(!sync.wait(0)) {
-      tickCamera(dt);
+      // GPU rendering is not done, pass to next frame
+      std::this_thread::yield();
       return;
-      }
-
-    if(!video.isActive()) {
-      Gothic::inst().updateAnimation(dt);
-      tickCamera(dt);
       }
 
     if(video.isActive()) {

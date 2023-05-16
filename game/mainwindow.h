@@ -92,6 +92,7 @@ class MainWindow : public Tempest::Window {
     void render() override;
 
     uint64_t tick();
+    void     updateAnimation(uint64_t dt);
     void     tickCamera(uint64_t dt);
     void     isDialogClosed(bool& ret);
 
