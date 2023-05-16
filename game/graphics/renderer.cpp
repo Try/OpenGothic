@@ -140,7 +140,7 @@ void Renderer::resetSwapchain() {
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
     water.underUbo[i] = device.descriptors(Shaders::inst().underwaterT);
 
-  irradiance.lut = device.image2d(TextureFormat::R11G11B10UF, 3,2);
+  irradiance.lut = device.image2d(TextureFormat::RGBA32F, 3,2);
 
   ssao.ssaoBuf = device.image2d(ssao.aoFormat, swapchain.w(),swapchain.h());
   if(Gothic::inst().doRayQuery() && false) {

@@ -79,7 +79,7 @@ vec3 ambient() {
   d.y = n.y>=0 ? 1 : 0;
   d.z = n.z>=0 ? 1 : 0;
 
-  n = abs(n);
+  n = n*n;
 
   vec3 ret = vec3(0);
   ret += texelFetch(irradiance, ivec2(0,d.x), 0).rgb * n.x;

@@ -8,7 +8,7 @@
 
 layout(local_size_x = 128) in;
 
-shared vec4 samples[128][3][2]; // 12 Kb
+shared vec4 samples[gl_WorkGroupSize.x][3][2]; // 12 Kb
 
 layout(binding = 0) uniform writeonly image2D result;
 layout(binding = 1, std140) uniform UboScene {
@@ -36,25 +36,33 @@ void storeSample(vec3 dir, vec3 val) {
     float v = dir[i];
     int   d = v>=0 ? 1 : 0;
     v = abs(v);
-    samples[gl_LocalInvocationIndex][i][d] += vec4(val*v, v);
+    samples[gl_LocalInvocationIndex][i][d] += vec4(val*v, 1);
+    }
+  }
+
+void gather() {
+  const uint smpCount = 8;
+
+  for(uint i=0; i<smpCount; ++i) {
+    vec3 dir = sampleHemisphere(gl_LocalInvocationIndex*smpCount+i, gl_WorkGroupSize.x*smpCount, 0);
+
+    vec3 sky = vec3(0);
+    sky += textureSkyLUT(skyLUT, vec3(0,RPlanet,0), +dir, scene.sunDir);
+    sky += textureSkyLUT(skyLUT, vec3(0,RPlanet,0), -dir, scene.sunDir);
+    sky *= scene.GSunIntensity;
+    storeSample(dir, sky);
     }
   }
 
 void main() {
   const uint laneId = gl_LocalInvocationIndex;
-
   for(int i=0; i<3; ++i) {
     samples[laneId][i][0] = vec4(0);
     samples[laneId][i][1] = vec4(0);
     }
+  barrier();
 
-  vec3 dir = sampleHemisphere(laneId, gl_WorkGroupSize.x, 0);
-  vec3 sky = vec3(0);
-  sky += textureSkyLUT(skyLUT, vec3(0,RPlanet,0), +dir, scene.sunDir);
-  sky += textureSkyLUT(skyLUT, vec3(0,RPlanet,0), -dir, scene.sunDir);
-  sky *= scene.GSunIntensity;
-
-  storeSample(dir, sky);
+  gather();
   barrier();
 
   for(uint i=gl_WorkGroupSize.x; i>0;) {
@@ -80,4 +88,44 @@ void main() {
     imageStore(result, ivec2(laneId,0), vec4(a.rgb,1.0));
     imageStore(result, ivec2(laneId,1), vec4(b.rgb,1.0));
     }
+  }
+
+
+void main2() {
+  const uint laneId = gl_LocalInvocationIndex;
+  const vec3 N[6] = {vec3(-1,0,0), vec3(1,0,0), vec3(0,-1,0), vec3(0,1,0), vec3(0,0,-1), vec3(0,0,1)};
+
+  if(laneId>=6)
+    return;
+
+  vec3 irradiance = vec3(0.0);
+
+  vec3 normal = N[laneId];
+  vec3 up     = normal.yxz;
+  vec3 right  = normal.yzx;
+
+  float nrSamples = 0.0;
+
+  const int smpCount = 32;
+  for(int i=0; i<smpCount; ++i) {
+    for(int r=0; r<smpCount; ++r) {
+      float phi   = 2.0*M_PI*i/float(smpCount);
+      float theta = 0.5*M_PI*r/float(smpCount);
+      // spherical to cartesian (in tangent space)
+      vec3 tangentSample = vec3(sin(theta) * cos(phi),  sin(theta) * sin(phi), cos(theta));
+      // tangent space to world
+      vec3 sampleVec = tangentSample.x * right + tangentSample.y * up + tangentSample.z * normal;
+
+      vec3 smp = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), sampleVec, scene.sunDir);
+      smp *= cos(theta) * sin(theta);
+
+      irradiance += smp;
+      nrSamples++;
+      }
+    }
+
+  irradiance = M_PI * irradiance * (1.0 / float(nrSamples));
+  irradiance *= scene.GSunIntensity;
+
+  imageStore(result, ivec2(laneId/2,laneId%2), vec4(irradiance.rgb,1.0));
   }

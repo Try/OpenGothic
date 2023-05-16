@@ -67,7 +67,7 @@ Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest:
   cloudsLut    = device.image2d   (lutRGBAFormat,  2,  1);
   transLut     = device.attachment(lutRGBFormat, 256, 64);
   multiScatLut = device.attachment(lutRGBFormat,  32, 32);
-  viewLut      = device.attachment(lutRGBFormat, 128, 64);
+  viewLut      = device.attachment(Tempest::TextureFormat::RGBA32F, 128, 64);
   fogLut       = device.attachment(lutRGBFormat, 256,128);
   Gothic::inst().onSettingsChanged.bind(this,&Sky::setupSettings);
   setupSettings();
@@ -206,6 +206,8 @@ void Sky::updateLight(const int64_t now) {
 
   static float sunMul = 1;
   static float ambMul = 1;
+  // static auto  groundAlbedo = Vec3(0.34f, 0.42f, 0.26f); // Foliage(MacBeth)
+  static auto  groundAlbedo = Vec3(0.39f, 0.40f, 0.33f);
 
   // irradince
   // const auto skyDay       = Vec3(0.01f, 0.18f, 0.33f)*0.2f;
@@ -214,7 +216,6 @@ void Sky::updateLight(const int64_t now) {
   float dayTint = std::max(sun.dir().y, 0.f);
   dayTint = 0.5f - std::pow(1.f - dayTint,3.f)*0.4f;
 
-  const auto  groundAlbedo = Vec3(0.4f);
   const auto  ambientNight = groundAlbedo*StreetLight*lumScale;
   const auto  ambientDay   = groundAlbedo*(GSunIntensity*dayTint + StreetLight*lumScale);
 
