@@ -93,9 +93,8 @@ bool isShadow(vec3 rayOrigin, vec3 direction) {
     return false;
 
   uint flags = gl_RayFlagsTerminateOnFirstHitEXT;
-#if defined(RAY_QUERY_AT)
-  flags |= gl_RayFlagsNoOpaqueEXT;
-  //flags |= gl_RayFlagsCullFrontFacingTrianglesEXT;
+#if !defined(RAY_QUERY_AT)
+  flags |= gl_RayFlagsOpaqueEXT;
 #endif
 
   rayQueryEXT rayQuery;

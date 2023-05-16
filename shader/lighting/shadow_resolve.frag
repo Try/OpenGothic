@@ -107,10 +107,10 @@ float calcShadow(vec4 pos4, float bias) { return 1.0; }
 
 #if defined(RAY_QUERY)
 bool rayTest(vec3 pos, vec3  rayDirection, float tMin, float tMax, out float rayT) {
-  uint flags = gl_RayFlagsOpaqueEXT;
 #if defined(RAY_QUERY_AT)
-  flags |= gl_RayFlagsNoOpaqueEXT;
-  flags |= gl_RayFlagsCullFrontFacingTrianglesEXT;
+  uint flags = gl_RayFlagsCullFrontFacingTrianglesEXT;
+#else
+  uint flags = gl_RayFlagsOpaqueEXT;
 #endif
 
   rayQueryEXT rayQuery;

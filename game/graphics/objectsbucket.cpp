@@ -451,6 +451,8 @@ void ObjectsBucket::fillTlas(std::vector<RtInstance>& inst, std::vector<uint32_t
     ix.mat  = v.pos;
     ix.id   = uint32_t(out.tex.size()-1);
     ix.blas = v.blas;
+    if(mat.alpha==Material::AlphaTest)
+      ix.flags = Tempest::RtInstanceFlags::NonOpaque;
     inst.push_back(ix);
     }
   }
@@ -1028,16 +1030,19 @@ void ObjectsBucketDyn::fillTlas(std::vector<Tempest::RtInstance>& inst, std::vec
     ix.mat  = v.pos;
     ix.id   = uint32_t(out.tex.size()-1);
     ix.blas = v.blas;
+    if(mat[i].alpha==Material::AlphaTest)
+      ix.flags = Tempest::RtInstanceFlags::NonOpaque;
     inst.push_back(ix);
     }
   }
 
 void ObjectsBucketDyn::invalidateDyn() {
   hasDynMaterials = false;
-  for(auto& v:val) {
+  for(size_t i=0; i<CAPACITY; ++i) {
+    auto& v = val[i];
     if(!v.isValid)
       continue;
-    hasDynMaterials |= (mat->frames.size()>0);
+    hasDynMaterials |= (mat[i].frames.size()>0);
     }
   }
 
