@@ -451,7 +451,7 @@ void ObjectsBucket::fillTlas(std::vector<RtInstance>& inst, std::vector<uint32_t
     ix.mat  = v.pos;
     ix.id   = uint32_t(out.tex.size()-1);
     ix.blas = v.blas;
-    if(mat.alpha==Material::AlphaTest)
+    if(mat.alpha!=Material::Solid)
       ix.flags = Tempest::RtInstanceFlags::NonOpaque;
     inst.push_back(ix);
     }
@@ -1030,7 +1030,7 @@ void ObjectsBucketDyn::fillTlas(std::vector<Tempest::RtInstance>& inst, std::vec
     ix.mat  = v.pos;
     ix.id   = uint32_t(out.tex.size()-1);
     ix.blas = v.blas;
-    if(mat[i].alpha==Material::AlphaTest)
+    if(mat[i].alpha!=Material::Solid)
       ix.flags = Tempest::RtInstanceFlags::NonOpaque;
     inst.push_back(ix);
     }
