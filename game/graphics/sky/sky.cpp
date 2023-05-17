@@ -42,9 +42,8 @@ Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest:
     }
   minZ = bbox.first.z;
 
-  lumScale       = 5.f / DirectSunLux;
-  GSunIntensity  = DirectSunLux  * lumScale;
-  GMoonIntensity = DirectMoonLux * lumScale;
+  GSunIntensity  = DirectSunLux;
+  GMoonIntensity = DirectMoonLux;
 
   /*
     zSunName=unsun5.tga
@@ -161,6 +160,7 @@ void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fr
     } else {
     push.GSunIntensity *= isNight();
     }
+  push.GSunIntensity *= exposureInv;
 
   cmd.setUniforms(Shaders::inst().sun, sun ? uboSun : uboMoon, &push, sizeof(push));
   cmd.draw(6);
@@ -216,8 +216,8 @@ void Sky::updateLight(const int64_t now) {
   float dayTint = std::max(sun.dir().y, 0.f);
   dayTint = 0.5f - std::pow(1.f - dayTint,3.f)*0.4f;
 
-  const auto  ambientNight = groundAlbedo*StreetLight*lumScale;
-  const auto  ambientDay   = groundAlbedo*(GSunIntensity*dayTint + StreetLight*lumScale);
+  const auto  ambientNight = groundAlbedo*StreetLight;
+  const auto  ambientDay   = groundAlbedo*(GSunIntensity*dayTint + StreetLight);
 
   const auto directDay    = Vec3(0.94f, 0.87f, 0.76f); //TODO: use tLUT to guide sky color in shader
   const auto directNight  = Vec3(0.27f, 0.05f, 0.01f);
@@ -238,8 +238,10 @@ void Sky::updateLight(const int64_t now) {
   static float exp     = 2.0f;
   static float moonExp = 0.001f;
 
-  float exposure  = std::pow(base,exp);
+  float lumScale = 5.f / DirectSunLux;
+  float exposure = std::pow(base,exp);
   exposure = exposure*(1.f-moonExp) + moonExp;
+  exposure /= lumScale;
 
   static float dbgExposure = -1;
   if(dbgExposure>0)
