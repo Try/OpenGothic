@@ -168,7 +168,7 @@ void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fr
   }
 
 float Sky::isNight() const {
-  return 1.f - linearstep(-0.25f, 0.f, sun.dir().y);
+  return 1.f - linearstep(-0.18f, 0.f, sun.dir().y);
   }
 
 void Sky::setWorld(const World& world, const std::pair<Vec3, Vec3>& bbox) {
@@ -215,6 +215,7 @@ void Sky::updateLight(const int64_t now) {
   // const auto skyDay       = Vec3(0.01f, 0.18f, 0.33f)*0.2f;
   // const auto skyNight     = Vec3(0, 0, 0.000001f)*0.2f;
 
+  const float dirY = sun.dir().y;
   float dayTint = std::max(sun.dir().y, 0.f);
   dayTint = 0.5f - std::pow(1.f - dayTint,3.f)*0.4f;
 
@@ -225,7 +226,8 @@ void Sky::updateLight(const int64_t now) {
   const auto directNight  = Vec3(0.27f, 0.05f, 0.01f);
 
   float aDirect  = std::max(0.f,std::min(pulse*3.f,1.f));
-  float aAmbient = smoothstep(-0.05f, 0.5f, pulse);
+  float aAmbient = linearstep(-0.2f, 0.1f, dirY);
+  aAmbient = std::pow(aAmbient,3.f);
 
   auto clr = directNight *(1.f-aDirect ) + directDay *aDirect;
   ambient  = ambientNight*(1.f-aAmbient) + ambientDay*aAmbient;
@@ -236,7 +238,6 @@ void Sky::updateLight(const int64_t now) {
   sun.setColor(clr*sunMul);
   ambient = ambient*ambMul;
 
-  const  float dirY    = sun.dir().y;
   static float exp     = 2.0f;
   static float lbound  = -0.205f;
   static float ubound  = +0.200f;
