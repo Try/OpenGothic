@@ -263,7 +263,7 @@ bool Animation::Sequence::isDefWindow(uint64_t t) const {
   return false;
   }
 
-bool Animation::Sequence::isAtackAnim() const {
+bool Animation::Sequence::isAttackAnim() const {
   for(auto& e:data->events)
     if(e.type == phoenix::mds::event_tag_type::opt_frame)
       return true;

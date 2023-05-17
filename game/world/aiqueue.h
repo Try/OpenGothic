@@ -68,7 +68,7 @@ class AiQueue {
     static AiAction aiReadyMeleWeapon();
     static AiAction aiReadyRangeWeapon();
     static AiAction aiReadySpell(int32_t spell, int32_t mana);
-    static AiAction aiAtack();
+    static AiAction aiAttack();
     static AiAction aiFlee();
     static AiAction aiDodge();
     static AiAction aiUnEquipWeapons();

@@ -50,7 +50,7 @@ class GameScript final {
     GameScript(GameSession &owner);
     ~GameScript();
 
-    struct DlgChoise final {
+    struct DlgChoice final {
       std::string                       title;
       int32_t                           sort=0;
       uint32_t                          scriptFn=0;
@@ -113,9 +113,9 @@ class GameScript final {
     const phoenix::c_spell&                 spellDesc(int32_t splId);
     const VisualFx*                         spellVfx (int32_t splId);
 
-    auto dialogChoises(std::shared_ptr<phoenix::c_npc> self, std::shared_ptr<phoenix::c_npc> npc, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<DlgChoise>;
-    auto updateDialog (const GameScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<GameScript::DlgChoise>;
-    void exec(const DlgChoise &dlg, Npc &player, Npc &npc);
+    auto dialogChoices(std::shared_ptr<phoenix::c_npc> self, std::shared_ptr<phoenix::c_npc> npc, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<DlgChoice>;
+    auto updateDialog (const GameScript::DlgChoice &dlg, Npc &player, Npc &npc) -> std::vector<GameScript::DlgChoice>;
+    void exec(const DlgChoice &dlg, Npc &player, Npc &npc);
 
     void  printCannotUseError         (Npc &npc, int32_t atr, int32_t nValue);
     void  printCannotCastError        (Npc &npc, int32_t plM, int32_t itM);
@@ -143,7 +143,7 @@ class GameScript final {
     bool isDead       (const Npc &pl);
     bool isUnconscious(const Npc &pl);
     bool isTalk       (const Npc &pl);
-    bool isAtack      (const Npc &pl) const;
+    bool isAttack      (const Npc &pl) const;
 
     std::string_view spellCastAnim(Npc& npc, Item&  fn);
     std::string_view messageFromSvm(std::string_view id,int voice) const;
@@ -371,7 +371,7 @@ class GameScript final {
     void ai_readymeleeweapon (std::shared_ptr<phoenix::c_npc> npcRef);
     void ai_readyrangedweapon(std::shared_ptr<phoenix::c_npc> npcRef);
     void ai_readyspell       (std::shared_ptr<phoenix::c_npc> npcRef, int spell, int mana);
-    void ai_atack            (std::shared_ptr<phoenix::c_npc> npcRef);
+    void ai_attack            (std::shared_ptr<phoenix::c_npc> npcRef);
     void ai_flee             (std::shared_ptr<phoenix::c_npc> npcRef);
     void ai_dodge            (std::shared_ptr<phoenix::c_npc> npcRef);
     void ai_unequipweapons   (std::shared_ptr<phoenix::c_npc> npcRef);
@@ -410,7 +410,7 @@ class GameScript final {
 
     void exitsession         ();
 
-    void sort(std::vector<DlgChoise>& dlg);
+    void sort(std::vector<DlgChoice>& dlg);
     void setNpcInfoKnown(const phoenix::c_npc& npc, const phoenix::c_info& info);
     bool doesNpcKnowInfo(const phoenix::c_npc& npc, size_t infoInstance) const;
 

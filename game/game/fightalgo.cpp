@@ -234,7 +234,7 @@ float FightAlgo::baseDistance(const Npc& npc, const Npc& tg,  GameScript &owner)
   return baseTg + baseNpc;
   }
 
-float FightAlgo::prefferedAtackDistance(const Npc& npc, const Npc& tg,  GameScript &owner) const {
+float FightAlgo::prefferedAttackDistance(const Npc& npc, const Npc& tg,  GameScript &owner) const {
   auto&  gv      = owner.guildVal();
   float  baseTg  = float(gv.fight_range_base[tg .guild()]);
   float  baseNpc = float(gv.fight_range_base[npc.guild()]);
@@ -249,17 +249,17 @@ float FightAlgo::prefferedGDistance(const Npc& npc, const Npc& tg, GameScript &o
   return float(baseTg + baseNpc + float(gv.fight_range_g[gl])) + weaponRange(owner,npc);
   }
 
-bool FightAlgo::isInAtackRange(const Npc &npc,const Npc &tg, GameScript &owner) const {
+bool FightAlgo::isInAttackRange(const Npc &npc,const Npc &tg, GameScript &owner) const {
   auto& gv     = owner.guildVal();
   float baseTg = float(gv.fight_range_base[tg .guild()]);
   auto  dist   = npc.qDistTo(tg);
-  auto  pd     = baseTg + prefferedAtackDistance(npc,tg,owner);
+  auto  pd     = baseTg + prefferedAttackDistance(npc,tg,owner);
   return (dist<=pd*pd);
   }
 
 bool FightAlgo::isInWRange(const Npc& npc, const Npc& tg, GameScript& owner) const {
   auto dist = npc.qDistTo(tg);
-  auto pd   = prefferedAtackDistance(npc,tg,owner);
+  auto pd   = prefferedAttackDistance(npc,tg,owner);
   return (dist<=pd*pd);
   }
 

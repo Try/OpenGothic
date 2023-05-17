@@ -236,7 +236,7 @@ void GameScript::initCommon() {
   bindExternal("ai_readymeleeweapon",            &GameScript::ai_readymeleeweapon);
   bindExternal("ai_readyrangedweapon",           &GameScript::ai_readyrangedweapon);
   bindExternal("ai_readyspell",                  &GameScript::ai_readyspell);
-  bindExternal("ai_attack",                      &GameScript::ai_atack);
+  bindExternal("ai_attack",                      &GameScript::ai_attack);
   bindExternal("ai_flee",                        &GameScript::ai_flee);
   bindExternal("ai_dodge",                       &GameScript::ai_dodge);
   bindExternal("ai_unequipweapons",              &GameScript::ai_unequipweapons);
@@ -758,7 +758,7 @@ const VisualFx* GameScript::spellVfx(int32_t splId) {
   return Gothic::inst().loadVisualFx(name);
   }
 
-std::vector<GameScript::DlgChoise> GameScript::dialogChoises(std::shared_ptr<phoenix::c_npc> player,
+std::vector<GameScript::DlgChoice> GameScript::dialogChoices(std::shared_ptr<phoenix::c_npc> player,
                                                                std::shared_ptr<phoenix::c_npc> hnpc,
                                                                const std::vector<uint32_t>& except,
                                                                bool includeImp) {
@@ -771,7 +771,7 @@ std::vector<GameScript::DlgChoise> GameScript::dialogChoises(std::shared_ptr<pho
       }
     }
 
-  std::vector<DlgChoise> choise;
+  std::vector<DlgChoice> choice;
 
   for(int important=includeImp ? 1 : 0;important>=0;--important){
     for(auto& i:hDialog) {
@@ -803,35 +803,35 @@ std::vector<GameScript::DlgChoise> GameScript::dialogChoises(std::shared_ptr<pho
       if(!valid)
         continue;
 
-      DlgChoise ch;
+      DlgChoice ch;
       ch.title    = info.description;
       ch.scriptFn = uint32_t(info.information);
       ch.handle   = i;
       ch.isTrade  = info.trade!=0;
       ch.sort     = info.nr;
-      choise.emplace_back(std::move(ch));
+      choice.emplace_back(std::move(ch));
       }
-    if(!choise.empty()){
-      sort(choise);
-      return choise;
+    if(!choice.empty()){
+      sort(choice);
+      return choice;
       }
     }
-  sort(choise);
-  return choise;
+  sort(choice);
+  return choice;
   }
 
-std::vector<GameScript::DlgChoise> GameScript::updateDialog(const GameScript::DlgChoise &dlg, Npc& player,Npc& npc) {
+std::vector<GameScript::DlgChoice> GameScript::updateDialog(const GameScript::DlgChoice &dlg, Npc& player,Npc& npc) {
   if(dlg.handle==nullptr)
     return {};
   const phoenix::c_info& info = *dlg.handle;
-  std::vector<GameScript::DlgChoise>     ret;
+  std::vector<GameScript::DlgChoice>     ret;
 
   ScopeVar self (*vm.global_self(), npc.handlePtr());
   ScopeVar other(*vm.global_other(), player.handlePtr());
 
   for(size_t i=0;i<info.choices.size();++i){
     auto& sub = info.choices[i];
-    GameScript::DlgChoise ch;
+    GameScript::DlgChoice ch;
     ch.title    = sub.text;
     ch.scriptFn = uint32_t(sub.function);
     ch.handle   = dlg.handle;
@@ -844,7 +844,7 @@ std::vector<GameScript::DlgChoise> GameScript::updateDialog(const GameScript::Dl
   return ret;
   }
 
-void GameScript::exec(const GameScript::DlgChoise &dlg, Npc& player, Npc& npc) {
+void GameScript::exec(const GameScript::DlgChoice &dlg, Npc& player, Npc& npc) {
   ScopeVar self (*vm.global_self(), npc.handlePtr());
   ScopeVar other(*vm.global_other(), player.handlePtr());
 
@@ -1142,7 +1142,7 @@ bool GameScript::isTalk(const Npc &pl) {
   return pl.isState(ZS_Talk);
   }
 
-bool GameScript::isAtack(const Npc& pl) const {
+bool GameScript::isAttack(const Npc& pl) const {
   return pl.isState(ZS_Attack) || pl.isState(ZS_MM_Attack);
   }
 
@@ -2764,10 +2764,10 @@ void GameScript::ai_readyspell(std::shared_ptr<phoenix::c_npc> npcRef, int spell
     npc->aiPush(AiQueue::aiReadySpell(spell,mana));
   }
 
-void GameScript::ai_atack(std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::ai_attack(std::shared_ptr<phoenix::c_npc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
-    npc->aiPush(AiQueue::aiAtack());
+    npc->aiPush(AiQueue::aiAttack());
   }
 
 void GameScript::ai_flee(std::shared_ptr<phoenix::c_npc> npcRef) {
@@ -3014,8 +3014,8 @@ void GameScript::exitsession() {
   owner.exitSession();
   }
 
-void GameScript::sort(std::vector<GameScript::DlgChoise> &dlg) {
-  std::sort(dlg.begin(),dlg.end(),[](const GameScript::DlgChoise& l,const GameScript::DlgChoise& r){
+void GameScript::sort(std::vector<GameScript::DlgChoice> &dlg) {
+  std::sort(dlg.begin(),dlg.end(),[](const GameScript::DlgChoice& l,const GameScript::DlgChoice& r){
     return std::tie(l.sort,l.scriptFn)<std::tie(r.sort,r.scriptFn); // small hack with scriptfn to reproduce behavior of original game
     });
   }

@@ -700,7 +700,7 @@ void InventoryMenu::drawHeader(Painter &p, std::string_view title, int x, int y)
 
 void InventoryMenu::drawInfo(Painter &p) {
   const int dw   = std::min(w(),720);
-  const int dh   = infoHeight();//int(choise.size()*p.font().pixelSize())+2*padd;
+  const int dh   = infoHeight();//int(choice.size()*p.font().pixelSize())+2*padd;
   const int x    = (w()-dw)/2;
   const int y    = h()-dh-20;
 

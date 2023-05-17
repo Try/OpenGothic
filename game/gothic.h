@@ -112,8 +112,8 @@ class Gothic final {
     void         save(std::string_view slot, std::string_view usrName);
     void         load(std::string_view slot);
 
-    auto         updateDialog(const GameScript::DlgChoise& dlg, Npc& player, Npc& npc) -> std::vector<GameScript::DlgChoise>;
-    void         dialogExec  (const GameScript::DlgChoise& dlg, Npc& player, Npc& npc);
+    auto         updateDialog(const GameScript::DlgChoice& dlg, Npc& player, Npc& npc) -> std::vector<GameScript::DlgChoice>;
+    void         dialogExec  (const GameScript::DlgChoice& dlg, Npc& player, Npc& npc);
 
     void         openDialogPipe (Npc& player, Npc& npc, AiOuputPipe*& pipe);
     bool         aiIsDlgFinished();

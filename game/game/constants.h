@@ -315,7 +315,7 @@ enum Action:uint32_t {
   AI_DrawWeaponMele,
   AI_DrawWeaponRange,
   AI_DrawSpell,
-  AI_Atack,
+  AI_Attack,
   AI_Flee,
   AI_Dodge,
   AI_UnEquipWeapons,

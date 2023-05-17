@@ -74,7 +74,7 @@ class Interactive : public Vob {
     bool                isDetachState(const Npc& npc) const;
     bool                canQuitAtState(Npc& npc, int32_t state) const;
     bool                attach (Npc& npc);
-    bool                dettach(Npc& npc,bool quick);
+    bool                detach(Npc& npc,bool quick);
     bool                isAttached(const Npc& to);
 
     auto                animNpc(const AnimationSolver &solver, Anim t) -> const Animation::Sequence*;
@@ -115,7 +115,7 @@ class Interactive : public Vob {
     void                setDir(Npc& npc,const Tempest::Matrix4x4& mt);
     bool                attach(Npc& npc,Pos& to);
     void                implAddItem(std::string_view name);
-    void                autoDettachNpc();
+    void                autoDetachNpc();
     void                implChState(bool next);
     bool                checkUseConditions(Npc& npc);
 

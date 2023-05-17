@@ -110,27 +110,27 @@ const Animation::Sequence* AnimationSolver::solveAnim(AnimationSolver::Anim a, W
   }
 
 const Animation::Sequence* AnimationSolver::implSolveAnim(AnimationSolver::Anim a, WeaponState st, WalkBit wlkMode, const Pose& pose) const {
-  // Atack
+  // Attack
   if(st==WeaponState::Fist) {
-    if(a==Anim::Atack) {
+    if(a==Anim::Attack) {
       if(pose.isInAnim("S_FISTRUNL"))
         return solveFrm("T_FISTATTACKMOVE");
       return solveFrm("S_FISTATTACK");
       }
-    if(a==Anim::AtackBlock)
+    if(a==Anim::AttackBlock)
       return solveFrm("T_FISTPARADE_0");
     }
   else if(st==WeaponState::W1H || st==WeaponState::W2H) {
-    if(a==Anim::Atack && (pose.isInAnim("S_1HWALKL") || pose.isInAnim("S_1HRUNL") ||
+    if(a==Anim::Attack && (pose.isInAnim("S_1HWALKL") || pose.isInAnim("S_1HRUNL") ||
                           pose.isInAnim("S_2HWALKL") || pose.isInAnim("S_2HRUNL")))
       return solveFrm("T_%sATTACKMOVE",st);
-    if(a==Anim::AtackL)
+    if(a==Anim::AttackL)
       return solveFrm("T_%sATTACKL",st);
-    if(a==Anim::AtackR)
+    if(a==Anim::AttackR)
       return solveFrm("T_%sATTACKR",st);
-    if(a==Anim::Atack || a==Anim::AtackL || a==Anim::AtackR)
-      return solveFrm("S_%sATTACK",st); // TODO: proper atack  window
-    if(a==Anim::AtackBlock) {
+    if(a==Anim::Attack || a==Anim::AttackL || a==Anim::AttackR)
+      return solveFrm("S_%sATTACK",st); // TODO: proper attack  window
+    if(a==Anim::AttackBlock) {
       const Animation::Sequence* s=nullptr;
       switch(std::rand()%3){
         case 0: s = solveFrm("T_%sPARADE_0",   st); break;
@@ -141,7 +141,7 @@ const Animation::Sequence* AnimationSolver::implSolveAnim(AnimationSolver::Anim 
         s = solveFrm("T_%sPARADE_0",st);
       return s;
       }
-    if(a==Anim::AtackFinish)
+    if(a==Anim::AttackFinish)
       return solveFrm("T_%sSFINISH",st);
     }
   else if(st==WeaponState::Bow || st==WeaponState::CBow) {
@@ -154,7 +154,7 @@ const Animation::Sequence* AnimationSolver::implSolveAnim(AnimationSolver::Anim 
         return solveFrm("S_%sAIM",st);
       return solveFrm("S_%sRUN",st);
       }
-    if(a==Anim::Atack) {
+    if(a==Anim::Attack) {
       auto bs = pose.bodyState();
       if(bs==BS_AIMNEAR || bs==BS_AIMFAR)
         return solveFrm("S_%sSHOOT",st);

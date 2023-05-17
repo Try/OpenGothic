@@ -387,11 +387,11 @@ void GameSession::updateAnimation(uint64_t dt) {
     wrld->updateAnimation(dt);
   }
 
-std::vector<GameScript::DlgChoise> GameSession::updateDialog(const GameScript::DlgChoise &dlg, Npc& player, Npc& npc) {
+std::vector<GameScript::DlgChoice> GameSession::updateDialog(const GameScript::DlgChoice &dlg, Npc& player, Npc& npc) {
   return vm->updateDialog(dlg,player,npc);
   }
 
-void GameSession::dialogExec(const GameScript::DlgChoise &dlg, Npc& player, Npc& npc) {
+void GameSession::dialogExec(const GameScript::DlgChoice &dlg, Npc& player, Npc& npc) {
   return vm->exec(dlg,player,npc);
   }
 

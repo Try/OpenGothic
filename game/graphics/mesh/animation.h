@@ -85,7 +85,7 @@ class Animation final {
       bool                                   isDefWindow(uint64_t t) const;
       float                                  totalTime() const;
 
-      bool                                   isAtackAnim() const;
+      bool                                   isAttackAnim() const;
       bool                                   isPrehit(uint64_t sTime, uint64_t now) const;
       void                                   processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const;
       void                                   processSfx   (uint64_t barrier, uint64_t sTime, uint64_t now, Npc &npc) const;

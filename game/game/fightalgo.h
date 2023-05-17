@@ -42,10 +42,10 @@ class FightAlgo final {
     bool   fetchInstructions(Npc &npc, Npc &tg, GameScript& owner);
 
     float  baseDistance          (const Npc &npc, const Npc &tg,  GameScript &owner) const;
-    float  prefferedAtackDistance(const Npc &npc, const Npc &tg, GameScript &owner) const;
+    float  prefferedAttackDistance(const Npc &npc, const Npc &tg, GameScript &owner) const;
     float  prefferedGDistance    (const Npc &npc, const Npc &tg, GameScript &owner) const;
 
-    bool   isInAtackRange        (const Npc &npc, const Npc &tg, GameScript &owner) const;
+    bool   isInAttackRange        (const Npc &npc, const Npc &tg, GameScript &owner) const;
     bool   isInWRange            (const Npc &npc, const Npc &tg, GameScript &owner) const;
     bool   isInGRange            (const Npc &npc, const Npc &tg, GameScript &owner) const;
     bool   isInFocusAngle        (const Npc &npc, const Npc &tg) const;

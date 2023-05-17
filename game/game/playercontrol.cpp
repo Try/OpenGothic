@@ -103,12 +103,12 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
     }
 
   // this odd behaviour is from original game, seem more like a bug
-  const bool actTunneling = (pl!=nullptr && pl->isAtackAnim());
+  const bool actTunneling = (pl!=nullptr && pl->isAttackAnim());
 
   int fk = -1;
   if((ctrl[KeyCodec::ActionGeneric] || actTunneling) && !g2Ctrl) {
     if(a==Action::Forward) {
-      if(pl!=nullptr && pl->target()!=nullptr && pl->canFinish(*pl->target()) && !pl->isAtackAnim()) {
+      if(pl!=nullptr && pl->target()!=nullptr && pl->canFinish(*pl->target()) && !pl->isAttackAnim()) {
         fk = ActKill;
         } else {
         fk = ActForward;
@@ -129,7 +129,7 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
   if(g2Ctrl) {
     if(ws!=WeaponState::NoWeapon) {
       if(a==Action::ActionGeneric) {
-        if(pl!=nullptr && pl->target()!=nullptr && pl->canFinish(*pl->target()) && !pl->isAtackAnim()) {
+        if(pl!=nullptr && pl->target()!=nullptr && pl->canFinish(*pl->target()) && !pl->isAttackAnim()) {
           fk = ActKill;
           } else {
           if(this->wantsToMoveForward())
@@ -666,7 +666,7 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   pl.setDirectionY(rotY);
-  if(pl.isFaling() || pl.isSlide() || pl.isInAir()){
+  if(pl.isFalling() || pl.isSlide() || pl.isInAir()){
     pl.setDirection(rot);
     runAngleDest = 0;
     return;
@@ -685,7 +685,7 @@ void PlayerControl::implMove(uint64_t dt) {
     ctrl[Action::K_ENTER] = false;
     }
 
-  if((ws==WeaponState::Bow || ws==WeaponState::CBow) && pl.hasAmunition()) {
+  if((ws==WeaponState::Bow || ws==WeaponState::CBow) && pl.hasAmmunition()) {
     if(actrl[ActGeneric] || actrl[ActForward]) {
       if(auto other = pl.target()) {
         auto dp = other->position()-pl.position();
@@ -827,7 +827,7 @@ void PlayerControl::implMove(uint64_t dt) {
       }
     else if(pl.isStanding()) {
       auto jump = pl.tryJump();
-      if(!pl.isFaling() && !pl.isSlide() && jump.anim!=Npc::Anim::Jump){
+      if(!pl.isFalling() && !pl.isSlide() && jump.anim!=Npc::Anim::Jump){
         pl.startClimb(jump);
         return;
         }
@@ -1005,7 +1005,7 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
     if(pl.weaponState()==WeaponState::NoWeapon || other->isDown() || pl.isFinishingMove()){
       pl.setTarget(nullptr);
       }
-    else if(!pl.isAtack()) {
+    else if(!pl.isAttack()) {
       auto  dp   = other->position()-pl.position();
       auto  gl   = pl.guild();
       float step = float(pl.world().script().guildVal().turn_speed[gl]);

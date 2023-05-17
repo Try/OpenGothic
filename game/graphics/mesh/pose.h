@@ -63,7 +63,7 @@ class Pose final {
     bool               isFlyAnim() const;
     bool               isStanding() const;
     bool               isPrehit(uint64_t now) const;
-    bool               isAtackAnim() const;
+    bool               isAttackAnim() const;
     bool               isIdle() const;
     bool               isInAnim(std::string_view           sq) const;
     bool               isInAnim(const Animation::Sequence* sq) const;
