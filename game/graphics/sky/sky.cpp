@@ -225,7 +225,7 @@ void Sky::updateLight(const int64_t now) {
   const auto directDay    = Vec3(0.94f, 0.87f, 0.76f); //TODO: use tLUT to guide sky color in shader
   const auto directNight  = Vec3(0.27f, 0.05f, 0.01f);
 
-  float aDirect  = std::max(0.f,std::min(pulse*3.f,1.f));
+  float aDirect  = linearstep(-0.0f, 0.8f, dirY);
   float aAmbient = linearstep(-0.2f, 0.1f, dirY);
   aAmbient = std::pow(aAmbient,3.f);
 
@@ -243,7 +243,7 @@ void Sky::updateLight(const int64_t now) {
   static float ubound  = +0.200f;
 
   const  float base    = smoothstep(lbound, ubound, dirY);
-  static float moonExp = DirectMoonLux * lumScale;
+  static float moonExp = NightLight * lumScale;
 
   float exposure = std::pow(base,exp);
   exposure += moonExp;
