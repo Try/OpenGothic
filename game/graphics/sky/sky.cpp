@@ -19,7 +19,8 @@ using namespace Tempest;
 // https://www.slideshare.net/DICEStudio/moving-frostbite-to-physically-based-rendering
 static const float DirectSunLux  = 64'000.f;
 static const float DirectMoonLux = 0.27f;
-static const float StreetLight   = 10.f;
+// static const float StreetLight   = 10.f;
+static const float NightLight    = 0.36f;
 
 static float smoothstep(float edge0, float edge1, float x) {
   float t = std::min(std::max((x - edge0) / (edge1 - edge0), 0.f), 1.f);
@@ -147,7 +148,7 @@ void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fr
     push.size.y  = 2.f/float(scene.zbuffer->h());
     }
   push.size          *= sun ? sunSize : (moonSize*0.25f);
-  push.GSunIntensity  = sun ? GSunIntensity : (GMoonIntensity*10.f);
+  push.GSunIntensity  = sun ? GSunIntensity : (GMoonIntensity*0.5f);
   push.isSun          = sun ? 1 : 0;
   push.sunDir         = d;
   push.viewProjectInv = scene.viewProjectInv();
@@ -167,7 +168,7 @@ void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fr
   }
 
 float Sky::isNight() const {
-  return 1.f - linearstep(-0.15f, 0.f, sun.dir().y);
+  return 1.f - linearstep(-0.25f, 0.f, sun.dir().y);
   }
 
 void Sky::setWorld(const World& world, const std::pair<Vec3, Vec3>& bbox) {
@@ -208,6 +209,7 @@ void Sky::updateLight(const int64_t now) {
   static float ambMul = 1;
   // static auto  groundAlbedo = Vec3(0.34f, 0.42f, 0.26f); // Foliage(MacBeth)
   static auto  groundAlbedo = Vec3(0.39f, 0.40f, 0.33f);
+  static float lumScale = 5.f / DirectSunLux;
 
   // irradince
   // const auto skyDay       = Vec3(0.01f, 0.18f, 0.33f)*0.2f;
@@ -216,14 +218,14 @@ void Sky::updateLight(const int64_t now) {
   float dayTint = std::max(sun.dir().y, 0.f);
   dayTint = 0.5f - std::pow(1.f - dayTint,3.f)*0.4f;
 
-  const auto  ambientNight = groundAlbedo*StreetLight;
-  const auto  ambientDay   = groundAlbedo*(GSunIntensity*dayTint + StreetLight);
+  const auto ambientNight = groundAlbedo*NightLight;
+  const auto ambientDay   = groundAlbedo*(GSunIntensity*dayTint + NightLight);
 
   const auto directDay    = Vec3(0.94f, 0.87f, 0.76f); //TODO: use tLUT to guide sky color in shader
   const auto directNight  = Vec3(0.27f, 0.05f, 0.01f);
 
   float aDirect  = std::max(0.f,std::min(pulse*3.f,1.f));
-  float aAmbient = smoothstep(-0.1f, 0.5f, pulse);
+  float aAmbient = smoothstep(-0.05f, 0.5f, pulse);
 
   auto clr = directNight *(1.f-aDirect ) + directDay *aDirect;
   ambient  = ambientNight*(1.f-aAmbient) + ambientDay*aAmbient;
@@ -234,19 +236,22 @@ void Sky::updateLight(const int64_t now) {
   sun.setColor(clr*sunMul);
   ambient = ambient*ambMul;
 
-  const  float base    = smoothstep(-0.2f, 0.2f, sun.dir().y);
+  const  float dirY    = sun.dir().y;
   static float exp     = 2.0f;
-  static float moonExp = 0.001f;
+  static float lbound  = -0.205f;
+  static float ubound  = +0.200f;
 
-  float lumScale = 5.f / DirectSunLux;
+  const  float base    = smoothstep(lbound, ubound, dirY);
+  static float moonExp = DirectMoonLux * lumScale;
+
   float exposure = std::pow(base,exp);
-  exposure = exposure*(1.f-moonExp) + moonExp;
-  exposure /= lumScale;
+  exposure += moonExp;
 
   static float dbgExposure = -1;
   if(dbgExposure>0)
     exposure = dbgExposure;
 
+  exposure = exposure/lumScale;
   exposureInv = 1.f/exposure;
   }
 
