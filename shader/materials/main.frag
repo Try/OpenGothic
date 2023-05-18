@@ -89,8 +89,10 @@ vec4 forwardShading(vec4 t) {
 
 #if defined(EMISSIVE)
   color *= 10.0;
-#else
+#elif defined(MAT_LINEAR_CLR)
   color *= scene.exposureInv;
+#else
+  // nop
 #endif
 
   return vec4(color,alpha);
