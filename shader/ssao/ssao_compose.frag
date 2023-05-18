@@ -7,6 +7,7 @@
 #endif
 
 #include "lighting/tonemapping.glsl"
+#include "lighting/purkinje_shift.glsl"
 #include "common.glsl"
 
 const int   KERNEL_RADIUS = 1;
@@ -67,6 +68,7 @@ float smoothSsao() {
   return clamp(cTotal/wTotal, 0, 1);
   }
 
+
 vec3 ambient() {
 #if 0
   return push.ambient;
@@ -85,7 +87,11 @@ vec3 ambient() {
   ret += texelFetch(irradiance, ivec2(0,d.x), 0).rgb * n.x;
   ret += texelFetch(irradiance, ivec2(1,d.y), 0).rgb * n.y;
   ret += texelFetch(irradiance, ivec2(2,d.z), 0).rgb * n.z;
-  return ret + push.ambient;
+
+  ret += push.ambient;
+  ret += purkinjeShift(ret); //TODO: use it globally at tonemapping
+
+  return ret;
 #endif
   }
 

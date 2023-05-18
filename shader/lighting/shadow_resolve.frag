@@ -13,6 +13,7 @@
 
 #include "lighting/tonemapping.glsl"
 #include "lighting/shadow_sampling.glsl"
+#include "lighting/purkinje_shift.glsl"
 #include "scene.glsl"
 #include "common.glsl"
 
@@ -225,8 +226,12 @@ void main(void) {
 
   const vec3  lcolor = scene.sunCl.rgb*light*shadow;
 
-  vec3 linear = textureLinear(diff.rgb) * PhotoLumInv;
-  vec3 color  = linear*(lcolor * scene.GSunIntensity + push.ambient);
+  vec3 linear  = textureLinear(diff.rgb) * PhotoLumInv;
+  vec3 ambient = linear*push.ambient;
+
+  vec3 color   = linear*lcolor * scene.GSunIntensity;
+  color += ambient;
+  color += purkinjeShift(ambient); //TODO: use it globally at tonemapping
   color *= scene.exposureInv;
 
   outColor = vec4(color, 1.0);
