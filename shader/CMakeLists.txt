@@ -229,7 +229,7 @@ add_shader(ssao_rq.comp              ssao/ssao.comp -DRAY_QUERY)
 
 add_shader(ssao_compose.vert         copy.vert -DHAS_UV)
 add_shader(ssao_compose.frag         ssao/ssao_compose.frag "")
-add_shader(ssao_compose_rq.frag      ssao/ssao_compose.frag -DRAY_QUERY)
+add_shader(ssao_compose_ssao.frag    ssao/ssao_compose.frag -DSSAO)
 
 add_shader(hiz_raw.comp              hiz/hiz_pot.comp    "")
 add_shader(hiz_pot.comp              hiz/hiz_pot.comp    -DRESOLVE)

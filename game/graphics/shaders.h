@@ -21,7 +21,7 @@ class Shaders {
     Tempest::RenderPipeline  copy;
     Tempest::RenderPipeline  stash;
 
-    Tempest::RenderPipeline  ssaoCompose;
+    Tempest::RenderPipeline  ambientCompose, ambientComposeSsao;
     Tempest::ComputePipeline ssao, ssaoRq;
 
     Tempest::ComputePipeline irradiance;
@@ -81,6 +81,7 @@ class Shaders {
     Tempest::RenderPipeline  fogShader (std::string_view name);
     Tempest::RenderPipeline  inWaterShader   (std::string_view name, bool isScattering);
     Tempest::RenderPipeline  reflectionShader(std::string_view name, bool hasMeshlets);
+    Tempest::RenderPipeline  ambientLightShader(std::string_view name);
 
     static Shaders* instance;
 
