@@ -445,7 +445,9 @@ void Sky::drawSky(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
 
   cmd.setUniforms(Shaders::inst().sky, uboSky, &ubo, sizeof(ubo));
   cmd.draw(Resources::fsqVbo());
+  }
 
+void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fId) {
   drawSunMoon(cmd, fId, false);
   drawSunMoon(cmd, fId, true);
   }

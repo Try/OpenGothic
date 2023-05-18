@@ -408,6 +408,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   drawGWater(cmd,fId,*wview);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
+  wview->drawSunMoon(cmd,fId);
   wview->drawTranslucent(cmd,fId);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
@@ -427,11 +428,9 @@ void Renderer::drawTonemapping(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     float exposureInv = 1.0;
     };
   Push p;
-  /*
   if(auto wview = Gothic::inst().worldView()) {
     p.exposureInv = wview->sky().autoExposure();
     }
-  */
 
   cmd.setUniforms(*tonemapping.pso, tonemapping.uboTone, &p, sizeof(p));
   cmd.draw(Resources::fsqVbo());
