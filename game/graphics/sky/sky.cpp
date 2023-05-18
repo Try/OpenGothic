@@ -217,7 +217,7 @@ void Sky::updateLight(const int64_t now) {
 
   const float dirY = sun.dir().y;
   float dayTint = std::max(sun.dir().y, 0.f);
-  dayTint = 0.5f - std::pow(1.f - dayTint,3.f)*0.4f;
+  dayTint = 0.6f - std::pow(1.f - dayTint,3.f)*0.5f;
 
   const auto ambientNight = groundAlbedo*NightLight;
   const auto ambientDay   = groundAlbedo*(GSunIntensity*dayTint + NightLight);
@@ -245,7 +245,7 @@ void Sky::updateLight(const int64_t now) {
   const  float base    = smoothstep(lbound, ubound, dirY);
   static float moonExp = NightLight * lumScale;
 
-  float exposure = std::pow(base,exp);
+  float exposure = std::pow(base,exp) * 1.1f;
   exposure += moonExp;
 
   static float dbgExposure = -1;
