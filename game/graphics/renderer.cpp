@@ -562,6 +562,7 @@ void Renderer::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
   }
 
 void Renderer::prepareIrradiance(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
+  cmd.setFramebuffer({});
   cmd.setUniforms(*irradiance.pso, irradiance.ubo[fId]);
   cmd.dispatch(1);
   }
