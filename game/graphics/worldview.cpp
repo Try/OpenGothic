@@ -122,6 +122,10 @@ void WorldView::drawSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t f
   gSky.drawSky(cmd,fId);
   }
 
+void WorldView::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  gSky.drawSunMoon(cmd,fId);
+  }
+
 void WorldView::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   visuals.drawWater(cmd,fId);
   }

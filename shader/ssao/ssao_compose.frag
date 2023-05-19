@@ -2,11 +2,8 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive    : enable
 
-#if defined(RAY_QUERY)
-#extension GL_EXT_ray_query : enable
-#endif
-
 #include "lighting/tonemapping.glsl"
+#include "lighting/purkinje_shift.glsl"
 #include "common.glsl"
 
 const int   KERNEL_RADIUS = 1;
@@ -22,8 +19,11 @@ layout(push_constant, std140) uniform PushConstant {
 layout(binding  = 0) uniform sampler2D gbufDiffuse;
 layout(binding  = 1) uniform sampler2D gbufNormal;
 layout(binding  = 2) uniform sampler2D depth;
-layout(binding  = 3) uniform sampler2D ssao;
-layout(binding  = 4) uniform sampler2D irradiance;
+layout(binding  = 3) uniform sampler2D irradiance;
+
+#if defined(SSAO)
+layout(binding  = 4) uniform sampler2D ssao;
+#endif
 
 layout(location = 0) in  vec2 uv;
 layout(location = 0) out vec4 outColor;
@@ -33,6 +33,7 @@ float texLinearDepth(vec2 uv) {
   return linearDepth(d, push.clipInfo);
   }
 
+#if defined(SSAO)
 float blurFunction(vec2 uv, float r, float centerD, inout float wTotal) {
   float c = textureLod(ssao, uv, 0).r;
   float d = texLinearDepth(uv);
@@ -66,6 +67,9 @@ float smoothSsao() {
   // return 0;
   return clamp(cTotal/wTotal, 0, 1);
   }
+#else
+float smoothSsao() { return 0; }
+#endif
 
 vec3 ambient() {
 #if 0
@@ -79,13 +83,17 @@ vec3 ambient() {
   d.y = n.y>=0 ? 1 : 0;
   d.z = n.z>=0 ? 1 : 0;
 
-  n = abs(n);
+  n = n*n;
 
   vec3 ret = vec3(0);
   ret += texelFetch(irradiance, ivec2(0,d.x), 0).rgb * n.x;
   ret += texelFetch(irradiance, ivec2(1,d.y), 0).rgb * n.y;
   ret += texelFetch(irradiance, ivec2(2,d.z), 0).rgb * n.z;
-  return ret + push.ambient;
+
+  ret += push.ambient;
+  ret += purkinjeShift(ret); //TODO: use it globally at tonemapping
+
+  return ret;
 #endif
   }
 

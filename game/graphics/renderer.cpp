@@ -140,30 +140,12 @@ void Renderer::resetSwapchain() {
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
     water.underUbo[i] = device.descriptors(Shaders::inst().underwaterT);
 
-  irradiance.lut = device.image2d(TextureFormat::R11G11B10UF, 3,2);
-
+  irradiance.lut = device.image2d(TextureFormat::RGBA32F, 3,2);
   ssao.ssaoBuf = device.image2d(ssao.aoFormat, swapchain.w(),swapchain.h());
-  if(Gothic::inst().doRayQuery() && false) {
-    // disabled
-    //ssao.ssaoPso        = &Shaders::inst().ssaoRq;
-    ssao.ssaoComposePso = &Shaders::inst().ssaoCompose;
-    } else {
-    ssao.ssaoPso        = &Shaders::inst().ssao;
-    ssao.ssaoComposePso = &Shaders::inst().ssaoCompose;
-    }
+
+  ssao.ssaoPso = &Shaders::inst().ssao;
+
   ssao.uboSsao = device.descriptors(*ssao.ssaoPso);
-  ssao.uboSsao.set(0, ssao.ssaoBuf);
-  ssao.uboSsao.set(1, gbufDiffuse, smpN);
-  ssao.uboSsao.set(2, gbufNormal,  smpN);
-  ssao.uboSsao.set(3, zbuffer,     smpN);
-
-  ssao.uboCompose = device.descriptors(*ssao.ssaoComposePso);
-  ssao.uboCompose.set(0, gbufDiffuse,  smpN);
-  ssao.uboCompose.set(1, gbufNormal,   smpN);
-  ssao.uboCompose.set(2, zbuffer,      smpN);
-  ssao.uboCompose.set(3, ssao.ssaoBuf, smpN);
-  ssao.uboCompose.set(4, irradiance.lut);
-
   irradiance.pso = &Shaders::inst().irradiance;
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
     irradiance.ubo[i] = device.descriptors(*irradiance.pso);
@@ -178,16 +160,23 @@ void Renderer::initSettings() {
   settings.zEnvMappingEnabled = Gothic::inst().settingsGetI("ENGINE","zEnvMappingEnabled")!=0;
   settings.zCloudShadowScale  = Gothic::inst().settingsGetI("ENGINE","zCloudShadowScale") !=0;
 
-  auto prev = water.reflectionsPso;
+  auto prevCompose = water.reflectionsPso;
+  if(settings.zCloudShadowScale)
+    ssao.ambientComposePso = &Shaders::inst().ambientComposeSsao; else
+    ssao.ambientComposePso = &Shaders::inst().ambientCompose;
+
+  auto prevRefl = water.reflectionsPso;
   if(settings.zEnvMappingEnabled)
     water.reflectionsPso = &Shaders::inst().waterReflectionSSR; else
     water.reflectionsPso = &Shaders::inst().waterReflection;
 
-  if(water.reflectionsPso!=prev) {
+  if(ssao.ambientComposePso!=prevCompose ||
+     water.reflectionsPso  !=prevRefl) {
     auto& device = Resources::device();
     device.waitIdle();
     for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
       water.ubo[i] = device.descriptors(*water.reflectionsPso);
+    ssao.uboCompose = device.descriptors(*ssao.ambientComposePso);
     prepareUniforms();
     }
   }
@@ -221,6 +210,21 @@ void Renderer::prepareUniforms() {
   auto wview = Gothic::inst().worldView();
   if(wview==nullptr)
     return;
+
+  auto smpN = Sampler::nearest();
+  smpN.setClamping(ClampMode::ClampToEdge);
+
+  ssao.uboSsao.set(0, ssao.ssaoBuf);
+  ssao.uboSsao.set(1, gbufDiffuse, smpN);
+  ssao.uboSsao.set(2, gbufNormal,  smpN);
+  ssao.uboSsao.set(3, zbuffer,     smpN);
+
+  ssao.uboCompose.set(0, gbufDiffuse,  smpN);
+  ssao.uboCompose.set(1, gbufNormal,   smpN);
+  ssao.uboCompose.set(2, zbuffer,      smpN);
+  ssao.uboCompose.set(3, irradiance.lut);
+  if(settings.zCloudShadowScale)
+    ssao.uboCompose.set(4, ssao.ssaoBuf, smpN);
 
   tonemapping.uboTone.set(0, sceneLinear);
 
@@ -399,7 +403,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Discard, Tempest::Preserve}}, {zbuffer, Tempest::Readonly});
   drawShadowResolve(cmd,fId,*wview);
-  drawSSAO(cmd,*wview);
+  drawAmbient(cmd,*wview);
   drawLights(cmd,fId,*wview);
   drawSky(cmd,fId,*wview);
 
@@ -408,6 +412,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   drawGWater(cmd,fId,*wview);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
+  wview->drawSunMoon(cmd,fId);
   wview->drawTranslucent(cmd,fId);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
@@ -427,11 +432,9 @@ void Renderer::drawTonemapping(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     float exposureInv = 1.0;
     };
   Push p;
-  /*
   if(auto wview = Gothic::inst().worldView()) {
     p.exposureInv = wview->sky().autoExposure();
     }
-  */
 
   cmd.setUniforms(*tonemapping.pso, tonemapping.uboTone, &p, sizeof(p));
   cmd.draw(Resources::fsqVbo());
@@ -502,7 +505,7 @@ void Renderer::drawReflections(Tempest::Encoder<Tempest::CommandBuffer>& cmd, ui
     }
   }
 
-void Renderer::drawUnderwater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+void Renderer::drawUnderwater(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   cmd.setUniforms(Shaders::inst().underwaterT, water.underUbo[fId]);
   cmd.draw(Resources::fsqVbo());
 
@@ -510,7 +513,7 @@ void Renderer::drawUnderwater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uin
   cmd.draw(Resources::fsqVbo());
   }
 
-void Renderer::drawShadowMap(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
+void Renderer::drawShadowMap(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
   if(settings.shadowResolution<=0)
     return;
 
@@ -521,32 +524,23 @@ void Renderer::drawShadowMap(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint
     }
   }
 
-void Renderer::drawShadowResolve(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const WorldView& view) {
+void Renderer::drawShadowResolve(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const WorldView& view) {
   static bool useDsm = true;
   if(!useDsm)
     return;
-
-  struct Push {
-    Vec3 ambient;
-    } push;
-
-  if(!settings.zCloudShadowScale) {
-    push.ambient = view.ambientLight();
-    }
-
-  cmd.setUniforms(*shadow.composePso, shadow.ubo[fId], &push, sizeof(push));
+  cmd.setUniforms(*shadow.composePso, shadow.ubo[fId]);
   cmd.draw(Resources::fsqVbo());
   }
 
-void Renderer::drawLights(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
+void Renderer::drawLights(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
   wview.drawLights(cmd,fId);
   }
 
-void Renderer::drawSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
+void Renderer::drawSky(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
   wview.drawSky(cmd,fId);
   }
 
-void Renderer::prepareSSAO(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
+void Renderer::prepareSSAO(Encoder<Tempest::CommandBuffer>& cmd) {
   if(!settings.zCloudShadowScale)
     return;
   // ssao
@@ -572,11 +566,8 @@ void Renderer::prepareIrradiance(Tempest::Encoder<CommandBuffer>& cmd, uint8_t f
   cmd.dispatch(1);
   }
 
-void Renderer::drawSSAO(Encoder<CommandBuffer>& cmd, const WorldView& view) {
-  if(!settings.zCloudShadowScale)
-    return;
-
-  struct PushSsao {
+void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {
+  struct Push {
     Vec3      ambient;
     float     exposureInv = 1;
     Vec3      ldir;
@@ -588,7 +579,7 @@ void Renderer::drawSSAO(Encoder<CommandBuffer>& cmd, const WorldView& view) {
   push.clipInfo    = clipInfo;
   push.exposureInv = view.sky().autoExposure();
 
-  cmd.setUniforms(*ssao.ssaoComposePso,ssao.uboCompose,&push,sizeof(push));
+  cmd.setUniforms(*ssao.ambientComposePso,ssao.uboCompose,&push,sizeof(push));
   cmd.draw(Resources::fsqVbo());
   }
 

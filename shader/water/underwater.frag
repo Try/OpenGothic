@@ -27,7 +27,7 @@ vec4 waterScatter(vec3 back, vec3 normal, const float len) {
   const vec3  transmittance = exp(-depth * vec3(4,2,1) * 1.25);
 #if defined(SCATTERING)
   const float f       = fresnel(scene.sunDir,normal,IorWater);
-  const vec3  scatter = f * scene.sunCl.rgb * scene.GSunIntensity * (1-exp(-len/20000.0));
+  const vec3  scatter = f * scene.sunCl.rgb * (1-exp(-len/20000.0)) * scene.GSunIntensity * scene.exposureInv;
   return vec4(scatter*transmittance, 1);
 #else
   return vec4(transmittance, 1);

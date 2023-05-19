@@ -48,7 +48,7 @@ class Renderer final {
     void drawShadowResolve(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const WorldView& view);
     void drawLights       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawSky          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
-    void drawSSAO         (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
+    void drawAmbient      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void draw             (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawTonemapping  (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawReflections  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
@@ -99,7 +99,7 @@ class Renderer final {
       Tempest::ComputePipeline* ssaoPso = nullptr;
       Tempest::DescriptorSet    uboSsao;
 
-      Tempest::RenderPipeline*  ssaoComposePso = nullptr;
+      Tempest::RenderPipeline*  ambientComposePso = nullptr;
       Tempest::DescriptorSet    uboCompose;
     } ssao;
 

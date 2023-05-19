@@ -24,6 +24,7 @@ class Sky final {
 
     void prepareSky (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
     void drawSky    (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
+    void drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
 
     void prepareFog (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
     void drawFog    (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
@@ -99,7 +100,6 @@ class Sky final {
     float                         moonSize = 400;
 
     float                         minZ = 0;
-    float                         lumScale = 1;
     float                         GSunIntensity  = 5.f;
     float                         GMoonIntensity = 0.000025f;
   };

@@ -89,8 +89,10 @@ vec4 forwardShading(vec4 t) {
 
 #if defined(EMISSIVE)
   color *= 10.0;
-#else
+#elif defined(MAT_LINEAR_CLR)
   color *= scene.exposureInv;
+#else
+  // nop
 #endif
 
   return vec4(color,alpha);
@@ -147,8 +149,8 @@ vec3 waterScatter(vec3 back, vec3 normal, float len) {
   transmittance = transmittance*transmittance;
 
   const float f       = fresnel(scene.sunDir,normal,IorWater);
-  const vec3  scatter = f * scene.sunCl.rgb * scene.GSunIntensity * (1-exp(-len/20000.0)) * max(scene.sunDir.y, 0);
-  return (back+scatter)*transmittance;
+  const vec3  scatter = f * scene.sunCl.rgb * (1-exp(-len/20000.0)) * max(scene.sunDir.y, 0);
+  return (back + scatter*scene.GSunIntensity*scene.exposureInv)*transmittance;
   }
 
 vec4 waterShading(vec4 t, const vec3 normal) {

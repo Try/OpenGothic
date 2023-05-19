@@ -60,7 +60,8 @@ void main() {
 
   const float DirectSunLux  = 64000.f;
   const float DirectMoonLux = 0.27f;
-  const float moonInt       = 10 * DirectMoonLux/DirectSunLux;
+  const float NightLight    = 0.36f;
+  const float moonInt       = DirectMoonLux/DirectSunLux;
 
   float azimuthAngle = (uv.x - 0.5)*2.0*M_PI;
   // Non-linear mapping of altitude. See Section 5.3 of the paper.

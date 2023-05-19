@@ -85,21 +85,9 @@ Shaders::Shaders() {
   ssao  = computeShader("ssao.comp.sprv");
   if(Gothic::inst().doRayQuery())
     ssaoRq = computeShader("ssao_rq.comp.sprv");
-  {
-    RenderState state;
-    state.setCullFaceMode (RenderState::CullMode::Front);
-    state.setBlendSource  (RenderState::BlendMode::One);
-    state.setBlendDest    (RenderState::BlendMode::One);
-    state.setZTestMode    (RenderState::ZTestMode::NoEqual);
-    state.setZWriteEnabled(false);
 
-    auto sh      = GothicShader::get("ssao_compose.vert.sprv");
-    auto vsLight = device.shader(sh.data,sh.len);
-    sh           = GothicShader::get("ssao_compose.frag.sprv");
-    auto fsLight = device.shader(sh.data,sh.len);
-    ssaoCompose  = device.pipeline(Triangles, state, vsLight, fsLight);
-    //ssaoCompose      = postEffect("ssao_compose");
-  }
+  ambientCompose     = ambientLightShader("ssao_compose");
+  ambientComposeSsao = ambientLightShader("ssao_compose_ssao");
 
   shadowResolve      = postEffect("shadow_resolve", "shadow_resolve",    RenderState::ZTestMode::NoEqual);
   shadowResolveSh    = postEffect("shadow_resolve", "shadow_resolve_sh", RenderState::ZTestMode::NoEqual);
@@ -418,6 +406,24 @@ RenderPipeline Shaders::reflectionShader(std::string_view name, bool hasMeshlets
     sh = GothicShader::get("water_reflection.mesh.sprv");
     vs = device.shader(sh.data,sh.len);
     }
+
+  return device.pipeline(Triangles, state, vs, fs);
+  }
+
+RenderPipeline Shaders::ambientLightShader(std::string_view name) {
+  auto& device = Resources::device();
+
+  RenderState state;
+  state.setCullFaceMode (RenderState::CullMode::Front);
+  state.setBlendSource  (RenderState::BlendMode::One);
+  state.setBlendDest    (RenderState::BlendMode::One);
+  state.setZTestMode    (RenderState::ZTestMode::NoEqual);
+  state.setZWriteEnabled(false);
+
+  auto sh = GothicShader::get("ssao_compose.vert.sprv");
+  auto vs = device.shader(sh.data,sh.len);
+  sh      = GothicShader::get(string_frm(name,".frag.sprv"));
+  auto fs = device.shader(sh.data,sh.len);
 
   return device.pipeline(Triangles, state, vs, fs);
   }

@@ -33,10 +33,10 @@ vec4 clouds(vec3 at, float nightPhase, vec3 highlight,
   night.rgb = srgbDecode(night.rgb);
 
   day.rgb   = day.rgb  *highlight*5.0;
-  night.rgb = night.rgb*0.0004;
+  night.rgb = night.rgb*0.00001;
 
-  //day  .a   = day  .a*0.2;
-  night.a   = night.a*(nightPhase);
+  day  .a   = day  .a*(1.0-nightPhase);
+  //night.a   = night.a*(nightPhase);
 
   vec4 color = mixClr(day,night);
   // color.rgb += hday;
@@ -61,7 +61,8 @@ vec3 applyClouds(vec3 skyColor, in sampler2D skyLUT, vec3 plPos, vec3 sunDir, ve
   vec4 cloud = clouds((plPos + view*L)*0.01, nightPhase, lum,
                       dxy0, dxy1,
                       dayL1,dayL0, nightL1,nightL0);
-  return mix(skyColor, cloud.rgb, cloud.a);
+  return skyColor + cloud.rgb * cloud.a;
+  // return mix(skyColor, cloud.rgb, cloud.a);
   }
 
 #endif

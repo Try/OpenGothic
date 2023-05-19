@@ -13,14 +13,11 @@
 
 #include "lighting/tonemapping.glsl"
 #include "lighting/shadow_sampling.glsl"
+#include "lighting/purkinje_shift.glsl"
 #include "scene.glsl"
 #include "common.glsl"
 
 layout(location = 0) out vec4 outColor;
-
-layout(push_constant, std140) uniform PushConstant {
-  vec3 ambient;
-  } push;
 
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
@@ -223,12 +220,10 @@ void main(void) {
   */
 #endif
 
-  const vec3  lcolor = scene.sunCl.rgb*light*shadow;
+  const vec3 lcolor = scene.sunCl.rgb * scene.GSunIntensity * light * shadow;
+  const vec3 linear = textureLinear(diff.rgb) * PhotoLumInv;
 
-  vec3 linear = textureLinear(diff.rgb) * PhotoLumInv;
-  vec3 color  = linear*(lcolor * scene.GSunIntensity + push.ambient);
-  color *= scene.exposureInv;
-
+  vec3 color = linear*lcolor*scene.exposureInv;
   outColor = vec4(color, 1.0);
 
   // outColor = vec4(vec3(lcolor), diff.a); // debug
