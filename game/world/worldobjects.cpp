@@ -161,15 +161,14 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
       });
     }
 
+  const bool freeCam = (Gothic::inst().camera()!=nullptr && Gothic::inst().camera()->isFree());
+  const auto pl      = owner.player();
   for(size_t i=0; i<npcArr.size(); ++i) {
     auto& npc = *npcArr[i];
-    if(npc.isPlayer()) {
-      if(!(Gothic::inst().camera()!=nullptr && Gothic::inst().camera()->isFree())) {
-        npc.tick(dtPlayer);
-        }
-      } else {
-      npc.tick(dt);
-      }
+    uint64_t d = (pl==&npc ? dtPlayer : dt);
+    if(freeCam && pl==&npc)
+      continue;
+    npc.tick(d);
     }
 
   for(auto& i:routines) {
@@ -201,7 +200,6 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
       }
     }
 
-  auto pl = owner.player();
   if(pl==nullptr)
     return;
 
