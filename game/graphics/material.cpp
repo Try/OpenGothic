@@ -23,7 +23,7 @@ Material::Material(const phoenix::material& m, bool enableAlphaTest) {
   alpha = loadAlphaFunc(m.alpha_func,m.group,m.color.a,tex,enableAlphaTest);
   if(alpha==Water && m.name=="OWODWFALL_WATERFALL_01") {
     // NOTE: waterfall heuristics
-    alpha = Transparent;
+    alpha = Solid;
     }
 
   if(m.texture_anim_map_mode!=phoenix::animation_mapping_mode::none && tex!=nullptr) {
