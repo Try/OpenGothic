@@ -396,7 +396,7 @@ Focus World::findFocus(const Npc &pl, const Focus& def) {
   WorldObjects::SearchOpt optMob {policy.mob_range1,  policy.mob_range2,  policy.mob_azi,  coll };
   WorldObjects::SearchOpt optItm {policy.item_range1, policy.item_range2, policy.item_azi, coll };
 
-  auto n     = policy.npc_prio <0 ? nullptr : wobj.findNpc        (pl,def.npc,        optNpc);
+  auto n     = policy.npc_prio <0 ? nullptr : wobj.findNpcNear    (pl,def.npc,        optNpc);
   auto it    = policy.item_prio<0 ? nullptr : wobj.findItem       (pl,def.item,       optItm);
   auto inter = policy.mob_prio <0 ? nullptr : wobj.findInteractive(pl,def.interactive,optMob);
   if(pl.weaponState()!=WeaponState::NoWeapon) {

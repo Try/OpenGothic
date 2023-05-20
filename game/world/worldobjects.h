@@ -113,7 +113,7 @@ class WorldObjects final {
     bool           testFocusNpc       (const Npc &pl, Npc *def, const SearchOpt& opt);
 
     Interactive*   findInteractive(const Npc& pl, Interactive *def, const SearchOpt& opt);
-    Npc*           findNpc        (const Npc& pl, Npc* def, const SearchOpt& opt);
+    Npc*           findNpcNear    (const Npc& pl, Npc* def, const SearchOpt& opt);
     Item*          findItem       (const Npc& pl, Item* def, const SearchOpt& opt);
 
     void           marchInteractives(DbgPainter& p) const;
@@ -171,7 +171,7 @@ class WorldObjects final {
     std::vector<TriggerEvent>          triggerEvents;
 
     template<class T>
-    auto findObj(T &src, const Npc &pl, const SearchOpt& opt) -> typename std::remove_reference<decltype(src[0])>::type*;
+    auto findObj(T &src, const Npc &pl, const SearchOpt& opt) -> typename std::remove_reference<decltype(src[0])>::type;
 
     template<class T>
     bool testObj(T &src, const Npc &pl, const SearchOpt& opt);

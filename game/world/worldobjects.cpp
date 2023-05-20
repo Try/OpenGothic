@@ -729,7 +729,7 @@ Interactive* WorldObjects::findInteractive(const Npc &pl, Interactive* def, cons
   return ret;
   }
 
-Npc* WorldObjects::findNpc(const Npc &pl, Npc *def, const SearchOpt& opt) {
+Npc* WorldObjects::findNpcNear(const Npc& pl, Npc* def, const SearchOpt& opt) {
   def = validateNpc(def);
   if(def) {
     auto xopt  = opt;
@@ -737,10 +737,10 @@ Npc* WorldObjects::findNpc(const Npc &pl, Npc *def, const SearchOpt& opt) {
     if(def && testObj(*def,pl,xopt))
       return def;
     }
-  auto r = findObj(npcArr,pl,opt);
-  if(r!=nullptr && (!Gothic::inst().doHideFocus() || !r->get()->isDead() ||
-                    r->get()->inventory().iterator(Inventory::T_Ransack).isValid()))
-    return r->get();
+  auto r = findObj(npcNear,pl,opt);
+  if(r!=nullptr && (!Gothic::inst().doHideFocus() || !r->isDead() ||
+                       r->inventory().iterator(Inventory::T_Ransack).isValid()))
+    return r;
   return nullptr;
   }
 
@@ -903,6 +903,9 @@ template<class T>
 T& deref(std::unique_ptr<T>& x){ return *x; }
 
 template<class T>
+T& deref(T* x){ return *x; }
+
+template<class T>
 T& deref(T& x){ return x; }
 
 template<class T>
@@ -940,8 +943,8 @@ static bool canSee(const Npc& pl, const Item& n){
   }
 
 template<class T>
-auto WorldObjects::findObj(T &src,const Npc &pl, const SearchOpt& opt) -> typename std::remove_reference<decltype(src[0])>::type* {
-  typename std::remove_reference<decltype(src[0])>::type* ret=nullptr;
+auto WorldObjects::findObj(T &src,const Npc &pl, const SearchOpt& opt) -> typename std::remove_reference<decltype(src[0])>::type {
+  typename std::remove_reference<decltype(src[0])>::type ret=nullptr;
   float rlen = opt.rangeMax*opt.rangeMax;
   if(owner.view()==nullptr)
     return nullptr;
@@ -953,7 +956,7 @@ auto WorldObjects::findObj(T &src,const Npc &pl, const SearchOpt& opt) -> typena
     float nlen = rlen;
     if(testObj(n,pl,opt,nlen)){
       rlen = nlen;
-      ret=&n;
+      ret = n;
       }
     }
   return ret;
