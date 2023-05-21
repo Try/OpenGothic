@@ -46,6 +46,7 @@ if(APPLE)
   set(CMAKE_OSX_DEPLOYMENT_TARGET 12.0)
   enable_language(OBJCXX)
   target_link_libraries(${PROJECT_NAME} "-framework AppKit")
+  file(GLOB_RECURSE ObjCSOURCES "game/*.mm")
 endif()
 
 ## OpenGothic
@@ -53,10 +54,9 @@ endif()
 # sources
 file(GLOB_RECURSE OPENGOTHIC_SOURCES
     "game/*.h"
-    "game/*.cpp"
-    "game/*.mm")
+    "game/*.cpp")
 
-target_sources(${PROJECT_NAME} PRIVATE ${OPENGOTHIC_SOURCES} icon.rc)
+target_sources(${PROJECT_NAME} PRIVATE ${OPENGOTHIC_SOURCES} ${ObjCSOURCES} icon.rc)
 
 # shaders
 add_subdirectory(shader)
