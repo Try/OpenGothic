@@ -257,7 +257,7 @@ struct GameMenu::SavNameDialog : Dialog {
   std::string& text;
   std::string  text0;
 
-  bool                accepted = false;
+  bool         accepted = false;
   };
 
 GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, phoenix::vm &vm, std::string_view menuSection, KeyCodec::Action kClose)
