@@ -225,6 +225,8 @@ struct GameMenu::SavNameDialog : Dialog {
 
   void keyDownEvent(KeyEvent &e) override { e.accept(); }
   void keyUpEvent  (KeyEvent &e) override {
+    update();
+
     if(e.key==Event::K_ESCAPE) {
       text = text0;
       close();
