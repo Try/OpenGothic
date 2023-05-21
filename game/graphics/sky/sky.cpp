@@ -19,7 +19,7 @@ using namespace Tempest;
 // https://www.slideshare.net/DICEStudio/moving-frostbite-to-physically-based-rendering
 static const float DirectSunLux  = 64'000.f;
 static const float DirectMoonLux = 0.27f;
-// static const float StreetLight   = 10.f;
+static const float StreetLight   = 10.f;
 static const float NightLight    = 0.36f;
 
 static float smoothstep(float edge0, float edge1, float x) {
@@ -211,16 +211,14 @@ void Sky::updateLight(const int64_t now) {
   static auto  groundAlbedo = Vec3(0.39f, 0.40f, 0.33f);
   static float lumScale = 5.f / DirectSunLux;
 
-  // irradince
-  // const auto skyDay       = Vec3(0.01f, 0.18f, 0.33f)*0.2f;
-  // const auto skyNight     = Vec3(0, 0, 0.000001f)*0.2f;
 
   const float dirY = sun.dir().y;
-  float dayTint = std::max(sun.dir().y, 0.f);
-  dayTint = 0.6f - std::pow(1.f - dayTint,3.f)*0.5f;
+  float dayTint = std::max(dirY+0.2f, 0.f);
+  dayTint = 1.f - std::pow(1.f - dayTint,3.f);
+  dayTint *= 0.6f;
 
   const auto ambientNight = groundAlbedo*NightLight;
-  const auto ambientDay   = groundAlbedo*(GSunIntensity*dayTint + NightLight);
+  const auto ambientDay   = groundAlbedo*GSunIntensity*dayTint + ambientNight;
 
   const auto directDay    = Vec3(0.94f, 0.87f, 0.76f); //TODO: use tLUT to guide sky color in shader
   const auto directNight  = Vec3(0.27f, 0.05f, 0.01f);
@@ -238,15 +236,20 @@ void Sky::updateLight(const int64_t now) {
   sun.setColor(clr*sunMul);
   ambient = ambient*ambMul;
 
-  static float exp     = 2.0f;
-  static float lbound  = -0.205f;
-  static float ubound  = +0.200f;
+  float exposure = 1;
+  {
+  // exposure, based on sky
+  static float exp = 4.0f;
 
-  const  float base    = smoothstep(lbound, ubound, dirY);
-  static float moonExp = NightLight * lumScale;
+  float lsky = smoothstep(0.f, 0.2f, std::max(dirY, 0.1f));
+  lsky *= std::pow(linearstep(-0.205f, 0.02f, dirY), exp); // day-night tint
 
-  float exposure = std::pow(base,exp) * 1.1f;
-  exposure += moonExp;
+  //const float fAmbient = Vec3::dotProduct(ambient, Vec3(0.2125f, 0.7154f, 0.0721f));
+  //float lx = lsky*GSunIntensity*1.1f + fAmbient*0.5f + DirectMoonLux + NightLight;
+
+  float lx = lsky*GSunIntensity*1.1f + StreetLight*0.25f + NightLight;
+  exposure = lx/GSunIntensity;
+  }
 
   static float dbgExposure = -1;
   if(dbgExposure>0)
