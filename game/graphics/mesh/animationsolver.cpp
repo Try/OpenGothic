@@ -53,8 +53,11 @@ bool AnimationSolver::hasOverlay(const Skeleton* sk) const {
   return false;
   }
 
-void AnimationSolver::addOverlay(const Skeleton* sk,uint64_t time) {
+void AnimationSolver::addOverlay(const Skeleton* sk, uint64_t time) {
   if(sk==nullptr)
+    return;
+  // incompatible overlay
+  if(baseSk==nullptr || sk->nodes.size()!=baseSk->nodes.size())
     return;
   Overlay ov;
   ov.skeleton = sk;

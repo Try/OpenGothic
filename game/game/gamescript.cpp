@@ -1682,16 +1682,16 @@ void GameScript::mdl_applyoverlaymds(std::shared_ptr<phoenix::c_npc> npcRef, std
   if(npc!=nullptr) {
     auto skelet = Resources::loadSkeleton(overlayname);
     npc->addOverlay(skelet,0);
+    }
   }
-}
 
 void GameScript::mdl_applyoverlaymdstimed(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view overlayname, int ticks) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr && ticks>0) {
     auto skelet = Resources::loadSkeleton(overlayname);
     npc->addOverlay(skelet,uint64_t(ticks));
+    }
   }
-}
 
 void GameScript::mdl_removeoverlaymds(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view overlayname) {
   auto npc = findNpc(npcRef);

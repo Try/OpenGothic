@@ -759,7 +759,7 @@ void Npc::addOverlay(std::string_view sk, uint64_t time) {
   addOverlay(skelet,time);
   }
 
-void Npc::addOverlay(const Skeleton* sk,uint64_t time) {
+void Npc::addOverlay(const Skeleton* sk, uint64_t time) {
   if(time!=0)
     time+=owner.tickCount();
   visual.addOverlay(sk,time);
