@@ -507,7 +507,7 @@ DynamicWorld::RayWaterResult DynamicWorld::implWaterRay(const Tempest::Vec3& fro
     };
 
   CallBack callback{CollisionWorld::toMeters(from), CollisionWorld::toMeters(to)};
-  //callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal | btTriangleRaycastCallback::kF_FilterBackfaces;
+  callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal | btTriangleRaycastCallback::kF_FilterBackfaces;
 
   if(waterBody!=nullptr) {
     btTransform rayFromTrans,rayToTrans;
