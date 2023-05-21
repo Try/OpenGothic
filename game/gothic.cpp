@@ -72,7 +72,10 @@ Gothic::Gothic() {
   defaults->set("SKY_OUTDOOR", "zMoonSize",  400);
   defaults->set("SKY_OUTDOOR", "zMoonAlpha", 255);
 
-  defaults->set("RENDERER_D3D", "zFogRadial", 0);
+  auto& gpu = Resources::device().properties();
+  defaults->set("RENDERER_D3D", "zFogRadial", 1); // sunshafts
+  defaults->set("ENGINE",       "zEnvMappingEnabled", 1); // reflections
+  defaults->set("ENGINE",       "zCloudShadowScale", gpu.type==Tempest::DeviceType::Discrete); // ssao
 
   defaults->set("SOUND", "musicEnabled",  1);
   defaults->set("SOUND", "musicVolume",   0.5f);
