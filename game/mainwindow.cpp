@@ -19,7 +19,6 @@
 #include "world/objects/npc.h"
 #include "game/serialize.h"
 #include "game/globaleffects.h"
-#include "utils/crashlog.h"
 #include "utils/gthfont.h"
 #include "utils/dbgpainter.h"
 
@@ -34,7 +33,6 @@ MainWindow::MainWindow(Device& device)
     rootMenu(keycodec),inventory(keycodec),
     dialogs(inventory),document(keycodec),
     player(dialogs,inventory) {
-  CrashLog::setGpu(device.properties().name);
   for(uint8_t i=0;i<Resources::MaxFramesInFlight;++i)
     fence[i] = device.fence();
 

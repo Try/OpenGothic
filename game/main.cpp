@@ -95,11 +95,15 @@ int main(int argc,const char** argv) {
   Tempest::Log::i(appBuild);
 
   CommandLine          cmd{argc,argv};
-  auto                 api = mkApi(cmd);
+  auto                 api     = mkApi(cmd);
+  const auto           gpuName = selectDevice(*api);
+  if(gpuName!=nullptr)
+    CrashLog::setGpu(gpuName);
 
-  Tempest::Device      device{*api,selectDevice(*api)};
+  Tempest::Device      device{*api,gpuName};
+  CrashLog::setGpu(device.properties().name);
+
   Resources            resources{device};
-
   Gothic               gothic;
   GameMusic            music;
   gothic.setupGlobalScripts();
