@@ -3,6 +3,7 @@
 #include <Tempest/Log>
 #include <Tempest/TextCodec>
 #include <cstring>
+#include <filesystem>
 
 #include "utils/installdetect.h"
 #include "utils/fileutil.h"
@@ -83,6 +84,11 @@ CommandLine::CommandLine(int argc, const char** argv) {
   if(gpath.empty()) {
     InstallDetect inst;
     gpath = inst.detectG2();
+#ifdef __OSX__
+    if(!gpath.empty() && gpath==inst.applicationSupportDirectory()) {
+      std::filesystem::current_path(gpath);
+      }
+#endif
     }
 
   for(auto& i:gpath)

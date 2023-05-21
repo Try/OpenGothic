@@ -16,13 +16,24 @@ InstallDetect::InstallDetect() {
   pfiles    = programFiles(false);
   pfilesX86 = programFiles(true);
 #endif
+#ifdef __OSX__
+  appDir    = applicationSupportDirectory();
+#endif
   }
 
 std::u16string InstallDetect::detectG2() {
+#if defined(__WINDOWS__)
   auto ret = detectG2(pfiles);
   if(ret.empty())
     ret = detectG2(pfilesX86);
   return ret;
+#elif defined(__OSX__)
+  if(FileUtil::exists(appDir))
+    return appDir;
+  return u"";
+#else
+  return u"";
+#endif
   }
 
 std::u16string InstallDetect::detectG2(std::u16string pfiles) {

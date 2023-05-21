@@ -44,6 +44,8 @@ endif()
 
 if(APPLE)
   set(CMAKE_OSX_DEPLOYMENT_TARGET 12.0)
+  enable_language(OBJCXX)
+  target_link_libraries(${PROJECT_NAME} "-framework AppKit")
 endif()
 
 ## OpenGothic
@@ -51,7 +53,8 @@ endif()
 # sources
 file(GLOB_RECURSE OPENGOTHIC_SOURCES
     "game/*.h"
-    "game/*.cpp")
+    "game/*.cpp"
+    "game/*.mm")
 
 target_sources(${PROJECT_NAME} PRIVATE ${OPENGOTHIC_SOURCES} icon.rc)
 
