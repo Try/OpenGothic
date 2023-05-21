@@ -6,7 +6,6 @@
 #include "world/objects/npc.h"
 #include "world/world.h"
 #include "game/serialize.h"
-#include "utils/fileext.h"
 #include "skeleton.h"
 #include "animmath.h"
 
