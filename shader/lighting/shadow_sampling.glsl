@@ -50,12 +50,6 @@ float calcShadowMs4(in sampler2D shadowMap0, vec3 shPos0) {
   return ret * 0.25;
   }
 
-float calcShadowMs1(in sampler2D shadowMap0, vec3 shPos0) {
-  vec2 m0;
-  vec4 lay0 = shadowSample(shadowMap0,shPos0.xy, m0);
-  return shadowResolve(lay0,shPos0.z,m0);
-  }
-
 float calcShadow(in SceneDesc scene,
                  in sampler2D shadowMap0, vec3 shPos0,
                  in sampler2D shadowMap1, vec3 shPos1) {
@@ -69,7 +63,6 @@ float calcShadow(in SceneDesc scene,
     }
 
   if(abs(shPos1.x)<1.0 && abs(shPos1.y)<1.0) {
-    // return shadowResolve(lay1,shPos1.z,m1);
     return calcShadowMs4(shadowMap1,shPos1);
     }
   return 1.0;

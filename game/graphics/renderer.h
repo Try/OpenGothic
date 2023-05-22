@@ -71,6 +71,8 @@ class Renderer final {
     Tempest::Vec3             clipInfo;
     bool                      cameraInWater = false;
 
+    Tempest::Matrix4x4        viewLwc, viewProjLwc;
+
     Tempest::Attachment       sceneLinear;
     Tempest::ZBuffer          zbuffer, shadowMap[Resources::ShadowLayers];
 

@@ -59,7 +59,7 @@ void main_resolve() {
     z = 0;
 
   hiZRaw[at.x + at.y*dstSz.x] = 0;
-  z = (1.0-z)*20.0;
+  z = (1.0-z)*40.0;
   //z = clamp(z,0,1);
   imageStore(hiZ, ivec2(at), vec4(z - 10.0/32768.0));
   }

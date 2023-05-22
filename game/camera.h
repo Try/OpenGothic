@@ -98,6 +98,9 @@ class Camera final {
     Tempest::Matrix4x4 viewProj() const;
     Tempest::Matrix4x4 viewShadow(const Tempest::Vec3& ldir, size_t layer) const;
 
+    Tempest::Matrix4x4 viewLwc() const;
+    Tempest::Matrix4x4 viewProjLwc() const;
+
     ListenerPos        listenerPosition() const;
 
     float              zNear() const;

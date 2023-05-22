@@ -198,6 +198,9 @@ void Renderer::setCameraView(const Camera& camera) {
       shadowMatrix[i] = camera.viewShadow(wview->mainLight().dir(),i);
     }
 
+  viewLwc     = camera.viewLwc();
+  viewProjLwc = camera.viewProjLwc();
+
   zNear         = camera.zNear();
   zFar          = camera.zFar();
   clipInfo.x    = zNear*zFar;
@@ -389,6 +392,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     wview->visibilityPass(frustrum);
     }
 
+  wview->preFrameUpdateLwc(viewLwc, nullptr);
   wview->preFrameUpdate(view,proj,zNear,zFar,shadowMatrix,Gothic::inst().world()->tickCount(),cameraInWater,fId);
 
   drawHiZ(cmd,fId,*wview);
@@ -548,8 +552,8 @@ void Renderer::prepareSSAO(Encoder<Tempest::CommandBuffer>& cmd) {
     Matrix4x4 mvp;
     Matrix4x4 mvpInv;
     } push;
-  push.mvp    = viewProj;
-  push.mvpInv = viewProj;
+  push.mvp    = viewProjLwc;
+  push.mvpInv = viewProjLwc;
   push.mvpInv.inverse();
 
   cmd.setFramebuffer({});

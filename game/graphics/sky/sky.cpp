@@ -37,7 +37,7 @@ Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest:
   auto wname  = world.name();
   auto dot    = wname.rfind('.');
   auto name   = dot==std::string::npos ? wname : wname.substr(0,dot);
-  for(size_t i=0;i<2;++i) {
+  for(size_t i=0; i<2; ++i) {
     clouds[0].lay[i] = skyTexture(name,true, i);
     clouds[1].lay[i] = skyTexture(name,false,i);
     }
@@ -151,7 +151,7 @@ void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fr
   push.GSunIntensity  = sun ? GSunIntensity : (GMoonIntensity*0.5f);
   push.isSun          = sun ? 1 : 0;
   push.sunDir         = d;
-  push.viewProjectInv = scene.viewProjectInv();
+  push.viewProjectInv = scene.viewProjectLwcInv();
 
   // HACK
   if(sun) {
@@ -495,11 +495,10 @@ Sky::UboSky Sky::mkPush() {
   ubo.plPosY = plPos.y/100.f; //meters
   v.translate(Vec3(plPos.x,0,plPos.z));
 
-  ubo.plPosY += (-minZ)/100.f;
-
-  ubo.viewProjectInv = scene.proj;
-  ubo.viewProjectInv.mul(v);
-  ubo.viewProjectInv.inverse();
+  // NOTE: miZ is garbage in KoM
+  // ubo.plPosY += (-minZ)/100.f;
+  ubo.plPosY = std::max(ubo.plPosY, 0.f);
+  ubo.viewProjectInv = scene.viewProjectLwcInv();
 
   ubo.dxy0    = cloudsOffset(0);
   ubo.dxy1    = cloudsOffset(1);

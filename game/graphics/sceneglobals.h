@@ -27,6 +27,7 @@ class SceneGlobals final {
     void setViewProject(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& proj,
                         float zNear, float zFar,
                         const Tempest::Matrix4x4 *sh);
+    void setViewLwc(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4 *sh);
     void setSunlight(const LightSource& light, const Tempest::Vec3& ambient, float GSunIntensity);
     void setSky(const Sky& s);
     void setUnderWater(bool w);
@@ -43,10 +44,13 @@ class SceneGlobals final {
     const Tempest::Matrix4x4& viewShadow(uint8_t view) const;
     const Tempest::Vec3       clipInfo() const;
 
+    const Tempest::Matrix4x4  viewProjectLwcInv() const;
+
     uint64_t                          tickCount = 0;
     const Tempest::Texture2d*         shadowMap[2] = {};
 
     Tempest::Matrix4x4                view, proj;
+    Tempest::Matrix4x4                viewLwc;
 
     const Tempest::Texture2d*         sceneColor   = &Resources::fallbackBlack();
     const Tempest::Texture2d*         sceneDepth   = &Resources::fallbackBlack();

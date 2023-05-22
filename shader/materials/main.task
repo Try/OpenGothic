@@ -98,7 +98,7 @@ bool bboxTest(const uint objId) {
   ibbox[1] = clamp(ibbox[1], ivec2(0), hiZsize - ivec2(1));
 
   float bz = depthMin;
-  bz = (1.0-bz)*20.0;
+  bz = (1.0-bz)*40.0;
 
   float z = hiZFetch(hiZ, ibbox);
   if(bz < z)

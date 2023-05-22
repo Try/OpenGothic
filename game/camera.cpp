@@ -85,6 +85,13 @@ void Camera::setViewport(uint32_t w, uint32_t h) {
   vpHeight = h;
   }
 
+float Camera::zNear() const {
+  return 0.01f;
+  }
+float Camera::zFar() const {
+  return 85.0f;
+  }
+
 void Camera::rotateLeft(uint64_t dt) {
   implMove(KeyEvent::K_Q,dt);
   }
@@ -364,14 +371,6 @@ Camera::ListenerPos Camera::listenerPosition() const {
   pos.up    = Vec3::normalize(pos.up    - pos.pos);
   pos.front = Vec3::normalize(pos.front - pos.pos);
   return pos;
-  }
-
-float Camera::zNear() const {
-  return 0.01f;
-  }
-
-float Camera::zFar() const {
-  return 85.0f;
   }
 
 const phoenix::c_camera &Camera::cameraDef() const {
@@ -834,4 +833,15 @@ Matrix4x4 Camera::viewProj() const {
 Matrix4x4 Camera::view() const {
   auto spin = src.spin+offsetAng;
   return mkView(origin,spin);
+  }
+
+Matrix4x4 Camera::viewLwc() const {
+  auto spin = src.spin+offsetAng;
+  return mkView(Vec3(0),spin);
+  }
+
+Matrix4x4 Camera::viewProjLwc() const {
+  Matrix4x4 ret=projective();
+  ret.mul(viewLwc());
+  return ret;
   }

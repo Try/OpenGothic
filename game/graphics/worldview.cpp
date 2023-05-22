@@ -63,6 +63,10 @@ void WorldView::preFrameUpdate(const Matrix4x4& view, const Matrix4x4& proj,
   visuals .preFrameUpdate(fId);
   }
 
+void WorldView::preFrameUpdateLwc(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4* shadow) {
+  sGlobal.setViewLwc(view,shadow);
+  }
+
 void WorldView::setGbuffer(const Texture2d& diffuse, const Texture2d& norm) {
   sGlobal.gbufDiffuse = &diffuse;
   sGlobal.gbufNormals = &norm;

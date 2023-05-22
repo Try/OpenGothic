@@ -210,7 +210,7 @@ void main() {
   {
     if(at0.z>=0.999)
       eval = false; // sky
-    if(at0.z>=0.996)
+    if(at0.z>=0.998)
       maxSteps = 4; // far distance
     if(at0.z<=0.970)
       maxSteps = 4; // too close distance
