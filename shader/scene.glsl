@@ -3,11 +3,13 @@
 
 // std140, because uniform buffer
 struct SceneDesc {
-  vec3  sunDir;
-  float waveAnim;
   mat4  viewProject;
   mat4  viewProjectInv;
   mat4  viewShadow[2];
+  mat4  viewProjectLwcInv;
+  mat4  viewShadowLwc[2];
+  vec3  sunDir;
+  float waveAnim;
   vec3  ambient;
   float exposureInv;
   vec3  sunCl;

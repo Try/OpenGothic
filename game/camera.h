@@ -100,6 +100,7 @@ class Camera final {
 
     Tempest::Matrix4x4 viewLwc() const;
     Tempest::Matrix4x4 viewProjLwc() const;
+    Tempest::Matrix4x4 viewShadowLwc(const Tempest::Vec3& ldir, size_t layer) const;
 
     ListenerPos        listenerPosition() const;
 
@@ -158,6 +159,7 @@ class Camera final {
     void                  implMove(Tempest::KeyEvent::KeyType t, uint64_t dt);
     Tempest::Matrix4x4    mkView    (const Tempest::Vec3& pos, const Tempest::Vec3& spin) const;
     Tempest::Matrix4x4    mkRotation(const Tempest::Vec3& spin) const;
+    Tempest::Matrix4x4    mkViewShadow(const Tempest::Vec3& cameraPos, const Tempest::Matrix4x4& viewProj, const Tempest::Vec3& lightDir, size_t layer) const;
     void                  resetDst();
 
     void                  clampRotation(Tempest::Vec3& spin);

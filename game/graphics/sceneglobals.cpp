@@ -90,8 +90,15 @@ void SceneGlobals::setViewProject(const Tempest::Matrix4x4& v, const Tempest::Ma
   uboGlobal.pfxDepth = Tempest::Vec3::normalize({vp.at(0,2), vp.at(1,2), vp.at(2,2)});
   }
 
-void SceneGlobals::setViewLwc(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4* sh) {
+void SceneGlobals::setViewLwc(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& proj, const Tempest::Matrix4x4* sh) {
   viewLwc = view;
+
+  auto m = proj;
+  m.mul(viewLwc);
+  m.inverse();
+  uboGlobal.viewProjectLwcInv = m;
+  for(size_t i=0; i<Resources::ShadowLayers; ++i)
+    uboGlobal.viewShadowLwc[i] = sh[i];
   }
 
 void SceneGlobals::setSunlight(const LightSource& light, const Tempest::Vec3& a, float GSunIntensity) {

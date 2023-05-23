@@ -11,6 +11,8 @@
 #extension GL_EXT_ray_flags_primitive_culling : enable
 #endif
 
+#define LWC 1
+
 #include "lighting/tonemapping.glsl"
 #include "lighting/shadow_sampling.glsl"
 #include "lighting/purkinje_shift.glsl"
@@ -88,6 +90,12 @@ vec4 worldPos(ivec2 frag, float depth) {
   const vec2 fragCoord = (frag.xy*scene.screenResInv)*2.0 - vec2(1.0);
   const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
   return scene.viewProjectInv * scr;
+  }
+
+vec4 worldPosLwc(ivec2 frag, float depth) {
+  const vec2 fragCoord = (frag.xy*scene.screenResInv)*2.0 - vec2(1.0);
+  const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
+  return scene.viewProjectLwcInv * scr;
   }
 
 vec4 worldPos(float depth) {
@@ -193,16 +201,13 @@ void main(void) {
     if(dot(scene.sunDir,normal)<=0)
       shadow = 0;
 
-    const vec4 wpos = worldPos(d);
-    if(isATest) {
-      // bias to avoid self-shadow on grass
-      // wpos.xyz += 16.0*(scene.sunDir*wpos.w);
-      }
-
-    shadow = calcShadow(wpos,(isATest ? 16 : -2));
+    const vec4 lwc  = worldPosLwc(ivec2(gl_FragCoord.xy),d);
+    shadow = calcShadow(lwc,(isATest ? 16 : -2));
 #if defined(RAY_QUERY)
-    if(shadow>0.01)
+    if(shadow>0.01) {
+      const vec4 wpos = worldPos(d);
       shadow *= calcRayShadow(wpos,normal,d);
+      }
 #endif
     }
 

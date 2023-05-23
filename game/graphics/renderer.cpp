@@ -200,6 +200,10 @@ void Renderer::setCameraView(const Camera& camera) {
 
   viewLwc     = camera.viewLwc();
   viewProjLwc = camera.viewProjLwc();
+  if(auto wview=Gothic::inst().worldView()) {
+    for(size_t i=0; i<Resources::ShadowLayers; ++i)
+      shadowMatrixLwc[i] = camera.viewShadowLwc(wview->mainLight().dir(),i);
+    }
 
   zNear         = camera.zNear();
   zFar          = camera.zFar();
@@ -392,8 +396,8 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     wview->visibilityPass(frustrum);
     }
 
-  wview->preFrameUpdateLwc(viewLwc, nullptr);
   wview->preFrameUpdate(view,proj,zNear,zFar,shadowMatrix,Gothic::inst().world()->tickCount(),cameraInWater,fId);
+  wview->preFrameUpdateLwc(viewLwc, proj, shadowMatrixLwc);
 
   drawHiZ(cmd,fId,*wview);
   prepareSky(cmd,fId,*wview);

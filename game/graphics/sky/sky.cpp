@@ -434,7 +434,7 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
   }
 
 void Sky::drawSky(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
-  UboSky ubo = mkPush();
+  UboSky ubo = mkPush(true);
 
   Vec3 a(0,0,0), b(0,0,1);
   ubo.viewProjectInv.project(a);
@@ -487,18 +487,19 @@ Vec2 Sky::cloudsOffset(int layer) const {
   return ret;
   }
 
-Sky::UboSky Sky::mkPush() {
+Sky::UboSky Sky::mkPush(bool lwc) {
   UboSky ubo;
-  auto v = scene.view;
   Vec3 plPos = Vec3(0,0,0);
   scene.viewProjectInv().project(plPos);
   ubo.plPosY = plPos.y/100.f; //meters
-  v.translate(Vec3(plPos.x,0,plPos.z));
 
   // NOTE: miZ is garbage in KoM
   // ubo.plPosY += (-minZ)/100.f;
   ubo.plPosY = std::max(ubo.plPosY, 0.f);
-  ubo.viewProjectInv = scene.viewProjectLwcInv();
+
+  if(lwc)
+    ubo.viewProjectInv = scene.viewProjectLwcInv(); else
+    ubo.viewProjectInv = scene.viewProjectInv();
 
   ubo.dxy0    = cloudsOffset(0);
   ubo.dxy1    = cloudsOffset(1);

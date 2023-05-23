@@ -60,7 +60,7 @@ class Sky final {
       float              exposureInv = 0;
       };
 
-    UboSky                        mkPush();
+    UboSky                        mkPush(bool lwc=false);
     const Tempest::Texture2d*     skyTexture(std::string_view name, bool day, size_t id);
     const Tempest::Texture2d*     implSkyTexture(std::string_view name, bool day, size_t id);
 

@@ -4,6 +4,7 @@
 #extension GL_GOOGLE_include_directive    : enable
 
 #include "sky_common.glsl"
+#include "scene.glsl"
 
 layout(binding = 0) uniform sampler2D tLUT;
 layout(binding = 1) uniform sampler2D mLUT;
@@ -12,20 +13,8 @@ layout(binding = 2) uniform sampler2D cloudsLUT;
 layout(binding = 3) uniform sampler2D textureSm1;
 layout(binding = 4) uniform writeonly image3D fogLut;
 layout(binding = 5, std140) uniform UboScene {
-  vec3  sunDir;
-  // float padd0;
-  mat4  viewProject;
-  mat4  viewProjectInv;
-  mat4  viewShadow[2];
-  vec3  ambient;
-  vec4  sunCl;
-  vec4  frustrum[6];
-  vec3  clipInfo;
-  // float padd1;
-  vec3  camPos;
-  // float padd2;
-  vec2  screenResInv;
-  } scene;
+  SceneDesc scene;
+  };
 #endif
 
 #ifdef COMPUTE

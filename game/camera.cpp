@@ -234,9 +234,20 @@ Matrix4x4 Camera::projective() const {
   return ret;
   }
 
+Matrix4x4 Camera::viewShadowLwc(const Tempest::Vec3& lightDir, size_t layer) const {
+  auto vp = viewProjLwc();
+  return mkViewShadow(cameraPos-origin,vp,lightDir,layer);
+  }
+
 Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
-  Vec3  ldir = lightDir;
-  float eps  = 0.005f;
+  auto vp = viewProj();
+  return mkViewShadow(cameraPos,vp,lightDir,layer);
+  }
+
+Matrix4x4 Camera::mkViewShadow(const Vec3& cameraPos, const Tempest::Matrix4x4& viewProj, const Vec3& lightDir, size_t layer) const {
+  float rotation = (180+src.spin.y-rotOffset.y);
+  Vec3  ldir     = lightDir;
+  float eps      = 0.005f;
 
   if(std::abs(ldir.y)<eps) {
     float k = (1.f-eps*eps)/std::sqrt(ldir.x*ldir.x + ldir.z*ldir.z);
@@ -249,7 +260,7 @@ Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
   //   return viewShadow2(ldir,layer);
 
   Vec3 center = cameraPos;
-  auto vp = viewProj();
+  auto vp = viewProj;
   vp.project(center);
 
   vp.inverse();
@@ -273,8 +284,6 @@ Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
 
   float smWidthInv = 1.f/smWidth;
   float zScale     = 1.f/smDepth;
-
-  float rotation = (180+src.spin.y-rotOffset.y);
 
   Matrix4x4 view;
   view.identity();

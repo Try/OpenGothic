@@ -27,7 +27,7 @@ class SceneGlobals final {
     void setViewProject(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& proj,
                         float zNear, float zFar,
                         const Tempest::Matrix4x4 *sh);
-    void setViewLwc(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4 *sh);
+    void setViewLwc(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& proj, const Tempest::Matrix4x4 *sh);
     void setSunlight(const LightSource& light, const Tempest::Vec3& ambient, float GSunIntensity);
     void setSky(const Sky& s);
     void setUnderWater(bool w);
@@ -65,11 +65,13 @@ class SceneGlobals final {
     const Tempest::AccelerationStructure* tlas = nullptr;
 
     struct UboGlobal final {
-      Tempest::Vec3                   sunDir     = {0,0,1};
-      float                           waveAnim   = 0;
       Tempest::Matrix4x4              viewProject;
       Tempest::Matrix4x4              viewProjectInv;
       Tempest::Matrix4x4              viewShadow[Resources::ShadowLayers];
+      Tempest::Matrix4x4              viewProjectLwcInv;
+      Tempest::Matrix4x4              viewShadowLwc[Resources::ShadowLayers];
+      Tempest::Vec3                   sunDir        = {0,0,1};
+      float                           waveAnim      = 0;
       Tempest::Vec3                   lightAmb      = {0,0,0};
       float                           exposureInv   = 1;
       Tempest::Vec3                   lightCl       = {1,1,1};

@@ -72,6 +72,7 @@ class Renderer final {
     bool                      cameraInWater = false;
 
     Tempest::Matrix4x4        viewLwc, viewProjLwc;
+    Tempest::Matrix4x4        shadowMatrixLwc[Resources::ShadowLayers];
 
     Tempest::Attachment       sceneLinear;
     Tempest::ZBuffer          zbuffer, shadowMap[Resources::ShadowLayers];
