@@ -229,7 +229,7 @@ void Renderer::prepareUniforms() {
 
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
     auto& u = shadow.ubo[i];
-    u.set(0, wview->sceneGlobals().uboGlobalPf[i][SceneGlobals::V_Main]);
+    u.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     u.set(1, gbufDiffuse);
     u.set(2, gbufNormal);
     u.set(3, zbuffer);
@@ -243,14 +243,14 @@ void Renderer::prepareUniforms() {
 
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
     auto& u = water.underUbo[i];
-    u.set(0, wview->sceneGlobals().uboGlobalPf[i][SceneGlobals::V_Main]);
+    u.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     u.set(1, zbuffer);
     }
 
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
     auto& u = irradiance.ubo[i];
     u.set(0, irradiance.lut);
-    u.set(1, wview->sceneGlobals().uboGlobalPf[i][SceneGlobals::V_Main]);
+    u.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     u.set(2, wview->sky().skyLut());
     }
 
@@ -264,7 +264,7 @@ void Renderer::prepareUniforms() {
     smpd.setClamping(ClampMode::ClampToEdge);
 
     auto& u = water.ubo[i];
-    u.set(0, wview->sceneGlobals().uboGlobalPf[i][SceneGlobals::V_Main]);
+    u.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     u.set(1, sceneOpaque, smp);
     u.set(2, gbufDiffuse, smp);
     u.set(3, gbufNormal,  smp);
@@ -379,6 +379,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   wview->updateLight();
   updateCamera(*camera);
   wview->preFrameUpdate(*camera,Gothic::inst().world()->tickCount(),fId);
+  wview->prepareGlobals(cmd,fId);
 
   static bool updFr = true;
   if(updFr){

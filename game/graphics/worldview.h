@@ -34,6 +34,7 @@ class WorldView {
     void tick(uint64_t dt);
 
     void preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t fId);
+    void prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
 
     void setGbuffer(const Tempest::Texture2d& diffuse,
                     const Tempest::Texture2d& norm);

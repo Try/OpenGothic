@@ -341,7 +341,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v, const Material& mat, const Buck
       auto& ubo = v.ubo[fId][lay];
       if(ubo.isEmpty())
         continue;
-      ubo.set(L_Scene, scene.uboGlobalPf[fId][lay]);
+      ubo.set(L_Scene, scene.uboGlobal[lay]);
       if(useMeshlets && (objType==Type::Landscape || objType==Type::LandscapeShadow)) {
         ubo.set(L_MeshDesc, *instanceDesc);
         }
@@ -904,7 +904,7 @@ ObjectsBucketDyn::ObjectsBucketDyn(const Type type, const Material& mat, VisualO
       ubo.set(L_MeshDesc, *instanceDesc);
       ubo.set(L_Vbo,      staticMesh->vbo);
       ubo.set(L_Ibo,      staticMesh->ibo8);
-      ubo.set(L_Scene,    scene.uboGlobalPf[i][SceneGlobals::V_Main]);
+      ubo.set(L_Scene,    scene.uboGlobal[SceneGlobals::V_Main]);
 
       auto smp = Sampler::nearest();
       smp.setClamping(ClampMode::ClampToEdge);

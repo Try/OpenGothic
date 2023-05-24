@@ -5,7 +5,6 @@
 #include <list>
 
 #include "graphics/dynamic/frustrum.h"
-#include "lightsource.h"
 #include "lightgroup.h"
 #include "bindless.h"
 
@@ -33,6 +32,7 @@ class SceneGlobals final {
 
     void setTime(uint64_t time);
     void commitUbo(uint8_t fId);
+    void prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
 
     void setResolution(uint32_t w, uint32_t h);
     void setHiZ(const Tempest::Texture2d& hiZ);
@@ -95,6 +95,7 @@ class SceneGlobals final {
       };
 
     Tempest::UniformBuffer<UboGlobal> uboGlobalPf[Resources::MaxFramesInFlight][V_Count];
+    Tempest::StorageBuffer            uboGlobal[V_Count];
 
     LightGroup                        lights;
     Frustrum                          frustrum[V_Count];
@@ -109,6 +110,7 @@ class SceneGlobals final {
   private:
     void                              initSettings();
 
-    UboGlobal                         uboGlobal;
+    UboGlobal                         uboGlobalCpu;
+    Tempest::DescriptorSet            uboCopy[Resources::MaxFramesInFlight][V_Count];
   };
 

@@ -18,6 +18,7 @@ class Shaders {
     Tempest::RenderPipeline  lights, lightsRq;
     Tempest::RenderPipeline  shadowResolve, shadowResolveSh, shadowResolveRq;
 
+    Tempest::ComputePipeline copyBuf;
     Tempest::RenderPipeline  copy;
     Tempest::RenderPipeline  stash;
 

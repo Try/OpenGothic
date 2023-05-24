@@ -78,7 +78,8 @@ Shaders::Shaders() {
   shadow  .load(device,"shadow",   false,meshlets);
   shadowAt.load(device,"shadow_at",false,meshlets);
 
-  copy  = postEffect("copy");
+  copyBuf = computeShader("copy.comp.sprv");
+  copy    = postEffect("copy");
 
   stash = postEffect("stash");
 
