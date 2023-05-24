@@ -235,17 +235,18 @@ Matrix4x4 Camera::projective() const {
   }
 
 Matrix4x4 Camera::viewShadowLwc(const Tempest::Vec3& lightDir, size_t layer) const {
-  auto vp = viewProjLwc();
-  return mkViewShadow(cameraPos-origin,vp,lightDir,layer);
+  auto  vp       = viewProjLwc();
+  float rotation = (180+src.spin.y-rotOffset.y);
+  return mkViewShadow(cameraPos-origin,rotation,vp,lightDir,layer);
   }
 
 Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
-  auto vp = viewProj();
-  return mkViewShadow(cameraPos,vp,lightDir,layer);
+  auto  vp       = viewProj();
+  float rotation = (180+src.spin.y-rotOffset.y);
+  return mkViewShadow(cameraPos,rotation,vp,lightDir,layer);
   }
 
-Matrix4x4 Camera::mkViewShadow(const Vec3& cameraPos, const Tempest::Matrix4x4& viewProj, const Vec3& lightDir, size_t layer) const {
-  float rotation = (180+src.spin.y-rotOffset.y);
+Matrix4x4 Camera::mkViewShadow(const Vec3& cameraPos, float rotation, const Tempest::Matrix4x4& viewProj, const Vec3& lightDir, size_t layer) const {
   Vec3  ldir     = lightDir;
   float eps      = 0.005f;
 

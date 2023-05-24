@@ -847,10 +847,6 @@ void MainWindow::tickCamera(uint64_t dt) {
                              ws==WeaponState::W2H);
   auto       pos          = pl->cameraBone(camera.isFirstPerson());
 
-  if(Gothic::inst().isPause()) {
-    renderer.setCameraView(camera);
-    }
-
   const bool fs = SystemApi::isFullscreen(hwnd());
   if(!fs && mouseP[Event::ButtonLeft]) {
     camera.setSpin(camera.destSpin());
@@ -883,7 +879,6 @@ void MainWindow::tickCamera(uint64_t dt) {
   if(camera.isToggleEnabled())
     camera.setMode(solveCameraMode());
   camera.tick(dt);
-  renderer.setCameraView(camera);
   }
 
 Camera::Mode MainWindow::solveCameraMode() const {
@@ -1008,7 +1003,6 @@ void MainWindow::onWorldLoaded() {
 
   if(auto c = Gothic::inst().camera()) {
     c->setViewport(uint32_t(w()),uint32_t(h()));
-    renderer.setCameraView(*c);
     }
   renderer.onWorldChanged();
 

@@ -43,15 +43,21 @@ void WorldView::tick(uint64_t /*dt*/) {
     }
   }
 
-void WorldView::preFrameUpdate(const Matrix4x4& view, const Matrix4x4& proj,
-                               float zNear, float zFar,
-                               const Tempest::Matrix4x4* shadow,
-                               uint64_t tickCount, bool isInWater, uint8_t fId) {
+void WorldView::preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t fId) {
+  const auto ldir = gSky.sunLight().dir();
+  Tempest::Matrix4x4 shadow   [Resources::ShadowLayers];
+  Tempest::Matrix4x4 shadowLwc[Resources::ShadowLayers];
+  for(size_t i=0; i<Resources::ShadowLayers; ++i) {
+    shadow   [i] = camera.viewShadow(ldir,i);
+    shadowLwc[i] = camera.viewShadowLwc(ldir,i);
+    }
+
   visuals.updateTlas(sGlobal.bindless,fId);
 
-  updateLight();
-  sGlobal.setViewProject(view,proj,zNear,zFar,shadow);
-  sGlobal.setUnderWater(isInWater);
+  sGlobal.setSky(gSky);
+  sGlobal.setViewProject(camera.view(),camera.projective(),camera.zNear(),camera.zFar(),shadow);
+  sGlobal.setViewLwc(camera.viewLwc(),camera.projective(),shadowLwc);
+  sGlobal.setUnderWater(camera.isInWater());
 
   pfxGroup.tick(tickCount);
   sGlobal.lights.tick(tickCount);
@@ -61,10 +67,6 @@ void WorldView::preFrameUpdate(const Matrix4x4& view, const Matrix4x4& proj,
   sGlobal.lights.preFrameUpdate(fId);
   pfxGroup.preFrameUpdate(fId);
   visuals .preFrameUpdate(fId);
-  }
-
-void WorldView::preFrameUpdateLwc(const Tempest::Matrix4x4& view, const Matrix4x4& proj, const Tempest::Matrix4x4* shadow) {
-  sGlobal.setViewLwc(view,proj,shadow);
   }
 
 void WorldView::setGbuffer(const Texture2d& diffuse, const Texture2d& norm) {
@@ -195,9 +197,6 @@ const AccelerationStructure& WorldView::landscapeTlas() {
 void WorldView::updateLight() {
   const int64_t now = owner.time().timeInDay().toInt();
   gSky.updateLight(now);
-
-  sGlobal.setSunlight(gSky.sunLight(), gSky.ambientLight(), gSky.sunIntensity());
-  sGlobal.setSky(gSky);
   }
 
 void WorldView::setupUbo() {

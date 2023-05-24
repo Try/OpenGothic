@@ -22,8 +22,6 @@ class Renderer final {
     void resetSwapchain();
     void onWorldChanged();
 
-    void setCameraView(const Camera &camera);
-
     void draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
               Tempest::VectorImage::Mesh& uiLayer, Tempest::VectorImage::Mesh& numOverlay,
               InventoryMenu &inventory);
@@ -33,6 +31,7 @@ class Renderer final {
     Tempest::Attachment       screenshoot(uint8_t frameId);
 
   private:
+    void updateCamera(const Camera &camera);
     void prepareUniforms();
     void setupTlas(const Tempest::AccelerationStructure* tlas);
 
@@ -64,15 +63,9 @@ class Renderer final {
 
     Frustrum                  frustrum[SceneGlobals::V_Count];
     Tempest::Swapchain&       swapchain;
-    Tempest::Matrix4x4        view, proj, viewProj;
+    Tempest::Matrix4x4        proj, viewProj, viewProjLwc;
     Tempest::Matrix4x4        shadowMatrix[Resources::ShadowLayers];
-    float                     zNear = 0;
-    float                     zFar  = 0;
     Tempest::Vec3             clipInfo;
-    bool                      cameraInWater = false;
-
-    Tempest::Matrix4x4        viewLwc, viewProjLwc;
-    Tempest::Matrix4x4        shadowMatrixLwc[Resources::ShadowLayers];
 
     Tempest::Attachment       sceneLinear;
     Tempest::ZBuffer          zbuffer, shadowMap[Resources::ShadowLayers];

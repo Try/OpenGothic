@@ -22,11 +22,8 @@ float shadowResolve(in vec4 sh, float z) {
 
 float shadowResolve(in vec4 sh, float z, vec2 m) {
   const float bias = 0.0002;
-  z  = max(0,z);
-  sh = smoothstep(sh-vec4(bias),sh+vec4(bias),vec4(z));
-
-  //m.x = smoothstep(0,1, m.x);
-  //m.y = smoothstep(0,1, m.y);
+  z  = max(0, z);
+  sh = step(sh, vec4(z));
 
   vec2 xx = mix(sh.wz, sh.xy, m.y);
   return    mix(xx.x,  xx.y,  m.x);
@@ -70,12 +67,13 @@ float calcShadow(in SceneDesc scene,
 
 float calcShadow(in vec4 pos4, in float bias, in SceneDesc scene, in sampler2D shadowMap0, in sampler2D shadowMap1) {
   vec4 shadowPos[2];
+  vec3 offset = bias*scene.sunDir*pos4.w;
 #if defined(LWC)
-  shadowPos[0] = scene.viewShadowLwc[0]*vec4(pos4.xyz + bias*scene.sunDir*pos4.w*1.0, pos4.w);
-  shadowPos[1] = scene.viewShadowLwc[1]*vec4(pos4.xyz + bias*scene.sunDir*pos4.w*4.0, pos4.w);
+  shadowPos[0] = scene.viewShadowLwc[0]*vec4(pos4.xyz + offset*1.0, pos4.w);
+  shadowPos[1] = scene.viewShadowLwc[1]*vec4(pos4.xyz + offset*3.0, pos4.w);
 #else
-  shadowPos[0] = scene.viewShadow   [0]*vec4(pos4.xyz + bias*scene.sunDir*pos4.w*1.0, pos4.w);
-  shadowPos[1] = scene.viewShadow   [1]*vec4(pos4.xyz + bias*scene.sunDir*pos4.w*4.0, pos4.w);
+  shadowPos[0] = scene.viewShadow   [0]*vec4(pos4.xyz + offset*1.0, pos4.w);
+  shadowPos[1] = scene.viewShadow   [1]*vec4(pos4.xyz + offset*3.0, pos4.w);
 #endif
 
   vec3 shPos0  = (shadowPos[0].xyz)/shadowPos[0].w;

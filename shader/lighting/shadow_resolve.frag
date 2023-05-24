@@ -201,8 +201,13 @@ void main(void) {
     if(dot(scene.sunDir,normal)<=0)
       shadow = 0;
 
-    const vec4 lwc  = worldPosLwc(ivec2(gl_FragCoord.xy),d);
-    shadow = calcShadow(lwc,(isATest ? 16 : -2));
+#if defined(LWC)
+    const vec4 wpos  = worldPosLwc(ivec2(gl_FragCoord.xy),d);
+#else
+    const vec4 wpos  = worldPos(d);
+#endif
+
+    shadow = calcShadow(wpos,(isATest ? 8 : -1));
 #if defined(RAY_QUERY)
     if(shadow>0.01) {
       const vec4 wpos = worldPos(d);

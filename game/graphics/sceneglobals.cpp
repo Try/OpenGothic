@@ -101,19 +101,16 @@ void SceneGlobals::setViewLwc(const Tempest::Matrix4x4& view, const Tempest::Mat
     uboGlobal.viewShadowLwc[i] = sh[i];
   }
 
-void SceneGlobals::setSunlight(const LightSource& light, const Tempest::Vec3& a, float GSunIntensity) {
-  auto c = light.color();
-  uboGlobal.sunDir        = light.dir();
-  uboGlobal.lightCl       = {c.x,c.y,c.z};
-  uboGlobal.GSunIntensity = GSunIntensity;
-  uboGlobal.lightAmb      = {a.x,a.y,a.z};
-  }
-
 void SceneGlobals::setSky(const Sky& s) {
-  uboGlobal.cloudsDir[0] = s.cloudsOffset(0);
-  uboGlobal.cloudsDir[1] = s.cloudsOffset(1);
-  uboGlobal.isNight      = s.isNight();
-  uboGlobal.exposureInv  = s.autoExposure();
+  uboGlobal.sunDir        = s.sunLight().dir();
+  uboGlobal.lightCl       = s.sunLight().color();
+  uboGlobal.GSunIntensity = s.sunIntensity();
+  uboGlobal.lightAmb      = s.ambientLight();
+
+  uboGlobal.cloudsDir[0]  = s.cloudsOffset(0);
+  uboGlobal.cloudsDir[1]  = s.cloudsOffset(1);
+  uboGlobal.isNight       = s.isNight();
+  uboGlobal.exposureInv   = s.autoExposure();
   }
 
 void SceneGlobals::setUnderWater(bool w) {

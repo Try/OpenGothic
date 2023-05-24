@@ -24,7 +24,6 @@ static uint32_t nextPot(uint32_t x) {
 Renderer::Renderer(Tempest::Swapchain& swapchain)
   : swapchain(swapchain) {
   auto& device = Resources::device();
-  view.identity();
 
   static const TextureFormat sfrm[] = {
     TextureFormat::Depth16,
@@ -189,28 +188,21 @@ void Renderer::onWorldChanged() {
   prepareUniforms();
   }
 
-void Renderer::setCameraView(const Camera& camera) {
-  view     = camera.view();
-  proj     = camera.projective();
-  viewProj = camera.viewProj();
+void Renderer::updateCamera(const Camera& camera) {
+  proj        = camera.projective();
+  viewProj    = camera.viewProj();
+  viewProjLwc = camera.viewProjLwc();
+
   if(auto wview=Gothic::inst().worldView()) {
     for(size_t i=0; i<Resources::ShadowLayers; ++i)
       shadowMatrix[i] = camera.viewShadow(wview->mainLight().dir(),i);
     }
 
-  viewLwc     = camera.viewLwc();
-  viewProjLwc = camera.viewProjLwc();
-  if(auto wview=Gothic::inst().worldView()) {
-    for(size_t i=0; i<Resources::ShadowLayers; ++i)
-      shadowMatrixLwc[i] = camera.viewShadowLwc(wview->mainLight().dir(),i);
-    }
-
-  zNear         = camera.zNear();
-  zFar          = camera.zFar();
-  clipInfo.x    = zNear*zFar;
-  clipInfo.y    = zNear-zFar;
-  clipInfo.z    = zFar;
-  cameraInWater = camera.isInWater();
+  auto zNear = camera.zNear();
+  auto zFar  = camera.zFar();
+  clipInfo.x  = zNear*zFar;
+  clipInfo.y  = zNear-zFar;
+  clipInfo.z  = zFar;
   }
 
 void Renderer::prepareUniforms() {
@@ -377,11 +369,16 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   }
 
 void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
-  auto wview = Gothic::inst().worldView();
-  if(wview==nullptr) {
+  auto wview  = Gothic::inst().worldView();
+  auto camera = Gothic::inst().camera();
+  if(wview==nullptr || camera==nullptr) {
     cmd.setFramebuffer({{result, Vec4(), Tempest::Preserve}});
     return;
     }
+
+  wview->updateLight();
+  updateCamera(*camera);
+  wview->preFrameUpdate(*camera,Gothic::inst().world()->tickCount(),fId);
 
   static bool updFr = true;
   if(updFr){
@@ -395,9 +392,6 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     frustrum[SceneGlobals::V_Main].make(viewProj,zbuffer.w(),zbuffer.h());
     wview->visibilityPass(frustrum);
     }
-
-  wview->preFrameUpdate(view,proj,zNear,zFar,shadowMatrix,Gothic::inst().world()->tickCount(),cameraInWater,fId);
-  wview->preFrameUpdateLwc(viewLwc, proj, shadowMatrixLwc);
 
   drawHiZ(cmd,fId,*wview);
   prepareSky(cmd,fId,*wview);
@@ -425,7 +419,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   drawReflections(cmd,fId);
-  if(cameraInWater) {
+  if(camera->isInWater()) {
     drawUnderwater(cmd,fId);
     } else {
     wview->drawFog(cmd,fId);

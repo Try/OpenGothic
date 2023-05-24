@@ -208,7 +208,7 @@ void main() {
 
   // TODO: linear depth
   {
-    if(at0.z>=0.999)
+    if(at0.z>=0.9995)
       eval = false; // sky
     if(at0.z>=0.998)
       maxSteps = 4; // far distance
