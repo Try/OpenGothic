@@ -494,8 +494,8 @@ Sky::UboSky Sky::mkPush(bool lwc) {
   ubo.plPosY = plPos.y/100.f; //meters
 
   // NOTE: miZ is garbage in KoM
-  // ubo.plPosY += (-minZ)/100.f;
-  ubo.plPosY = std::max(ubo.plPosY, 0.f);
+  ubo.plPosY += (-minZ)/100.f;
+  ubo.plPosY  = std::clamp(ubo.plPosY, 0.f, 1000.f);
 
   if(lwc)
     ubo.viewProjectInv = scene.viewProjectLwcInv(); else
