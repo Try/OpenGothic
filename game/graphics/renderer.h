@@ -78,14 +78,13 @@ class Renderer final {
 
     struct Shadow {
       Tempest::RenderPipeline* composePso = nullptr;
-      Tempest::DescriptorSet   ubo[Resources::MaxFramesInFlight];
+      Tempest::DescriptorSet   ubo;
     } shadow;
 
     struct Water {
       Tempest::RenderPipeline* reflectionsPso = nullptr;
-      Tempest::DescriptorSet   ubo[Resources::MaxFramesInFlight];
-
-      Tempest::DescriptorSet   underUbo[Resources::MaxFramesInFlight];
+      Tempest::DescriptorSet   ubo;
+      Tempest::DescriptorSet   underUbo;
     } water;
 
     struct SSAO {
@@ -103,7 +102,7 @@ class Renderer final {
       Tempest::StorageImage     lut;
 
       Tempest::ComputePipeline* pso = nullptr;
-      Tempest::DescriptorSet    ubo[Resources::MaxFramesInFlight];
+      Tempest::DescriptorSet    ubo;
       } irradiance;
 
     struct Tonemapping {

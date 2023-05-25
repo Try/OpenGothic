@@ -304,59 +304,56 @@ void Sky::setupUbo() {
   uboSky.set(6,*cloudsNight().lay[0],smp);
   uboSky.set(7,*cloudsNight().lay[1],smp);
 
-  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
-    if(quality==Exponential) {
-      uboFog[i] = device.descriptors(Shaders::inst().fog);
-      uboFog[i].set(0, fogLut,         smpB);
-      uboFog[i].set(1, *scene.zbuffer, Sampler::nearest()); // NOTE: wanna here depthFetch from gles2
-      uboFog[i].set(2, scene.uboGlobal[SceneGlobals::V_Main]);
-      }
+  if(quality==Exponential) {
+    uboFog = device.descriptors(Shaders::inst().fog);
+    uboFog.set(0, fogLut,         smpB);
+    uboFog.set(1, *scene.zbuffer, Sampler::nearest()); // NOTE: wanna here depthFetch from gles2
+    uboFog.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
+    }
 
-    if(quality==VolumetricLQ) {
-      uboShadowDw = device.descriptors(Shaders::inst().shadowDownsample);
-      uboShadowDw.set(0, shadowDw);
-      uboShadowDw.set(1, *scene.shadowMap[1],Resources::shadowSampler());
+  if(quality==VolumetricLQ) {
+    uboShadowDw = device.descriptors(Shaders::inst().shadowDownsample);
+    uboShadowDw.set(0, shadowDw);
+    uboShadowDw.set(1, *scene.shadowMap[1],Resources::shadowSampler());
 
-      uboFogViewLut3d[i] = device.descriptors(Shaders::inst().fogViewLut3dHQ);
-      uboFogViewLut3d[i].set(0, transLut,     smpB);
-      uboFogViewLut3d[i].set(1, multiScatLut, smpB);
-      uboFogViewLut3d[i].set(2, cloudsLut,    smpB);
-      uboFogViewLut3d[i].set(3, shadowDw,     Resources::shadowSampler());
-      uboFogViewLut3d[i].set(4, fogLut3D);
-      uboFogViewLut3d[i].set(5, scene.uboGlobal[SceneGlobals::V_Main]);
+    uboFogViewLut3d = device.descriptors(Shaders::inst().fogViewLut3dHQ);
+    uboFogViewLut3d.set(0, transLut,     smpB);
+    uboFogViewLut3d.set(1, multiScatLut, smpB);
+    uboFogViewLut3d.set(2, cloudsLut,    smpB);
+    uboFogViewLut3d.set(3, shadowDw,     Resources::shadowSampler());
+    uboFogViewLut3d.set(4, fogLut3D);
+    uboFogViewLut3d.set(5, scene.uboGlobal[SceneGlobals::V_Main]);
 
-      uboFog3d[i] = device.descriptors(Shaders::inst().fog3dLQ);
-      uboFog3d[i].set(0, fogLut3D,       smpB);
-      uboFog3d[i].set(1, *scene.zbuffer, Sampler::nearest());
-      uboFog3d[i].set(2, scene.uboGlobal[SceneGlobals::V_Main]);
-      }
+    uboFog3d = device.descriptors(Shaders::inst().fog3dLQ);
+    uboFog3d.set(0, fogLut3D,       smpB);
+    uboFog3d.set(1, *scene.zbuffer, Sampler::nearest());
+    uboFog3d.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
+    }
 
-    if(quality==VolumetricHQ) {
-      auto smpLut3d = Sampler::bilinear();
-      smpLut3d.setClamping(ClampMode::ClampToEdge);
+  if(quality==VolumetricHQ) {
+    auto smpLut3d = Sampler::bilinear();
+    smpLut3d.setClamping(ClampMode::ClampToEdge);
 
-      uboOcclusion[i] = device.descriptors(Shaders::inst().fogOcclusion);
-      // uboOcclusion[i].set(0, fogLut3D,       smpB);
-      uboOcclusion[i].set(1, *scene.zbuffer, Sampler::nearest());
-      uboOcclusion[i].set(2, scene.uboGlobal[SceneGlobals::V_Main]);
-      uboOcclusion[i].set(3, *scene.shadowMap[1], Resources::shadowSampler());
-      uboOcclusion[i].set(4, occlusionLut);
+    uboOcclusion = device.descriptors(Shaders::inst().fogOcclusion);
+    uboOcclusion.set(1, *scene.zbuffer, Sampler::nearest());
+    uboOcclusion.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
+    uboOcclusion.set(3, *scene.shadowMap[1], Resources::shadowSampler());
+    uboOcclusion.set(4, occlusionLut);
 
-      uboFogViewLut3d[i] = device.descriptors(Shaders::inst().fogViewLut3dHQ);
-      uboFogViewLut3d[i].set(0, transLut,     smpB);
-      uboFogViewLut3d[i].set(1, multiScatLut, smpB);
-      uboFogViewLut3d[i].set(2, cloudsLut,    smpB);
-      uboFogViewLut3d[i].set(3, *scene.shadowMap[1], Resources::shadowSampler());
-      uboFogViewLut3d[i].set(4, fogLut3D);
-      uboFogViewLut3d[i].set(5, scene.uboGlobal[SceneGlobals::V_Main]);
+    uboFogViewLut3d = device.descriptors(Shaders::inst().fogViewLut3dHQ);
+    uboFogViewLut3d.set(0, transLut,     smpB);
+    uboFogViewLut3d.set(1, multiScatLut, smpB);
+    uboFogViewLut3d.set(2, cloudsLut,    smpB);
+    uboFogViewLut3d.set(3, *scene.shadowMap[1], Resources::shadowSampler());
+    uboFogViewLut3d.set(4, fogLut3D);
+    uboFogViewLut3d.set(5, scene.uboGlobal[SceneGlobals::V_Main]);
 
-      uboFog3d[i] = device.descriptors(Shaders::inst().fog3dHQ);
-      uboFog3d[i].set(0, fogLut3D,       smpB);
-      uboFog3d[i].set(1, *scene.zbuffer, Sampler::nearest());
-      uboFog3d[i].set(2, scene.uboGlobal[SceneGlobals::V_Main]);
-      uboFog3d[i].set(3, *scene.shadowMap[1], Resources::shadowSampler());
-      uboFog3d[i].set(4, occlusionLut);
-      }
+    uboFog3d = device.descriptors(Shaders::inst().fog3dHQ);
+    uboFog3d.set(0, fogLut3D,       smpB);
+    uboFog3d.set(1, *scene.zbuffer, Sampler::nearest());
+    uboFog3d.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
+    uboFog3d.set(3, *scene.shadowMap[1], Resources::shadowSampler());
+    uboFog3d.set(4, occlusionLut);
     }
 
   uboSun = device.descriptors(Shaders::inst().sun);
@@ -409,14 +406,14 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
       cmd.setUniforms(Shaders::inst().shadowDownsample, uboShadowDw);
       cmd.dispatchThreads(uint32_t(shadowDw.w()),uint32_t(shadowDw.h()));
 
-      cmd.setUniforms(Shaders::inst().fogViewLut3dLQ, uboFogViewLut3d[frameId], &ubo, sizeof(ubo));
+      cmd.setUniforms(Shaders::inst().fogViewLut3dLQ, uboFogViewLut3d, &ubo, sizeof(ubo));
       cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
       break;
       }
     case VolumetricHQ: {
       const bool persistent = true;
       cmd.setFramebuffer({});
-      cmd.setUniforms(Shaders::inst().fogOcclusion, uboOcclusion[frameId], &ubo, sizeof(ubo));
+      cmd.setUniforms(Shaders::inst().fogOcclusion, uboOcclusion, &ubo, sizeof(ubo));
       if(persistent) {
         auto sz = Shaders::inst().fogOcclusion.workGroupSize();
         int  w  = (occlusionLut.w()+sz.x-1)/sz.x;
@@ -426,7 +423,7 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
         cmd.dispatchThreads(uint32_t(occlusionLut.w()),uint32_t(occlusionLut.h()));
         }
 
-      cmd.setUniforms(Shaders::inst().fogViewLut3dHQ, uboFogViewLut3d[frameId], &ubo, sizeof(ubo));
+      cmd.setUniforms(Shaders::inst().fogViewLut3dHQ, uboFogViewLut3d, &ubo, sizeof(ubo));
       cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
       break;
       }
@@ -459,13 +456,13 @@ void Sky::drawFog(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
   UboSky ubo = mkPush();
   switch(quality) {
     case Exponential:
-      cmd.setUniforms(Shaders::inst().fog,     uboFog[fId],   &ubo, sizeof(ubo));
+      cmd.setUniforms(Shaders::inst().fog,     uboFog,   &ubo, sizeof(ubo));
       break;
     case VolumetricLQ:
-      cmd.setUniforms(Shaders::inst().fog3dLQ, uboFog3d[fId], &ubo, sizeof(ubo));
+      cmd.setUniforms(Shaders::inst().fog3dLQ, uboFog3d, &ubo, sizeof(ubo));
       break;
     case VolumetricHQ:
-      cmd.setUniforms(Shaders::inst().fog3dHQ, uboFog3d[fId], &ubo, sizeof(ubo));
+      cmd.setUniforms(Shaders::inst().fog3dHQ, uboFog3d, &ubo, sizeof(ubo));
       break;
     }
   cmd.draw(Resources::fsqVbo());

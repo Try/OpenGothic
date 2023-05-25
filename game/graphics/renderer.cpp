@@ -132,22 +132,17 @@ void Renderer::resetSwapchain() {
     shadow.composePso = &Shaders::inst().shadowResolveSh;
   else
     shadow.composePso = &Shaders::inst().shadowResolve;
+  shadow.ubo = device.descriptors(*shadow.composePso);
 
-  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
-    shadow.ubo[i] = device.descriptors(*shadow.composePso);
+  water.underUbo = device.descriptors(Shaders::inst().underwaterT);
 
-  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
-    water.underUbo[i] = device.descriptors(Shaders::inst().underwaterT);
+  ssao.ssaoBuf = device.image2d(ssao.aoFormat, swapchain.w(),swapchain.h());
+  ssao.ssaoPso = &Shaders::inst().ssao;
+  ssao.uboSsao = device.descriptors(*ssao.ssaoPso);
 
   irradiance.lut = device.image2d(TextureFormat::RGBA32F, 3,2);
-  ssao.ssaoBuf = device.image2d(ssao.aoFormat, swapchain.w(),swapchain.h());
-
-  ssao.ssaoPso = &Shaders::inst().ssao;
-
-  ssao.uboSsao = device.descriptors(*ssao.ssaoPso);
   irradiance.pso = &Shaders::inst().irradiance;
-  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
-    irradiance.ubo[i] = device.descriptors(*irradiance.pso);
+  irradiance.ubo = device.descriptors(*irradiance.pso);
 
   tonemapping.pso     = &Shaders::inst().tonemapping;
   tonemapping.uboTone = device.descriptors(*tonemapping.pso);
@@ -173,8 +168,7 @@ void Renderer::initSettings() {
      water.reflectionsPso  !=prevRefl) {
     auto& device = Resources::device();
     device.waitIdle();
-    for(size_t i=0; i<Resources::MaxFramesInFlight; ++i)
-      water.ubo[i] = device.descriptors(*water.reflectionsPso);
+    water.ubo       = device.descriptors(*water.reflectionsPso);
     ssao.uboCompose = device.descriptors(*ssao.ambientComposePso);
     prepareUniforms();
     }
@@ -227,34 +221,25 @@ void Renderer::prepareUniforms() {
 
   tonemapping.uboTone.set(0, sceneLinear);
 
-  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
-    auto& u = shadow.ubo[i];
-    u.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    u.set(1, gbufDiffuse);
-    u.set(2, gbufNormal);
-    u.set(3, zbuffer);
+  shadow.ubo.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  shadow.ubo.set(1, gbufDiffuse);
+  shadow.ubo.set(2, gbufNormal);
+  shadow.ubo.set(3, zbuffer);
 
-    for(size_t r=0; r<Resources::ShadowLayers; ++r) {
-      if(shadowMap[r].isEmpty())
-        continue;
-      u.set(4+r, shadowMap[r]);
-      }
+  for(size_t r=0; r<Resources::ShadowLayers; ++r) {
+    if(shadowMap[r].isEmpty())
+      continue;
+    shadow.ubo.set(4+r, shadowMap[r]);
     }
 
-  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
-    auto& u = water.underUbo[i];
-    u.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    u.set(1, zbuffer);
-    }
+  water.underUbo.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  water.underUbo.set(1, zbuffer);
 
-  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
-    auto& u = irradiance.ubo[i];
-    u.set(0, irradiance.lut);
-    u.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    u.set(2, wview->sky().skyLut());
-    }
+  irradiance.ubo.set(0, irradiance.lut);
+  irradiance.ubo.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  irradiance.ubo.set(2, wview->sky().skyLut());
 
-  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
+  {
     auto& sky = wview->sky();
 
     auto smp = Sampler::bilinear();
@@ -263,20 +248,19 @@ void Renderer::prepareUniforms() {
     auto smpd = Sampler::nearest();
     smpd.setClamping(ClampMode::ClampToEdge);
 
-    auto& u = water.ubo[i];
-    u.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    u.set(1, sceneOpaque, smp);
-    u.set(2, gbufDiffuse, smp);
-    u.set(3, gbufNormal,  smp);
-    u.set(4, zbuffer,     smpd);
-    u.set(5, sceneDepth,  smpd);
+    water.ubo.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    water.ubo.set(1, sceneOpaque, smp);
+    water.ubo.set(2, gbufDiffuse, smp);
+    water.ubo.set(3, gbufNormal,  smp);
+    water.ubo.set(4, zbuffer,     smpd);
+    water.ubo.set(5, sceneDepth,  smpd);
 
-    u.set(6,  wview->sky().skyLut());
-    u.set(7, *sky.cloudsDay()  .lay[0],Sampler::bilinear());
-    u.set(8, *sky.cloudsDay()  .lay[1],Sampler::bilinear());
-    u.set(9, *sky.cloudsNight().lay[0],Sampler::bilinear());
-    u.set(10,*sky.cloudsNight().lay[1],Sampler::bilinear());
-    }
+    water.ubo.set(6,  wview->sky().skyLut());
+    water.ubo.set(7, *sky.cloudsDay()  .lay[0],Sampler::bilinear());
+    water.ubo.set(8, *sky.cloudsDay()  .lay[1],Sampler::bilinear());
+    water.ubo.set(9, *sky.cloudsNight().lay[0],Sampler::bilinear());
+    water.ubo.set(10,*sky.cloudsNight().lay[1],Sampler::bilinear());
+  }
 
   setupTlas(nullptr);
 
@@ -306,16 +290,13 @@ void Renderer::setupTlas(const Tempest::AccelerationStructure* tlas) {
     }
 
   if(shadow.composePso==&Shaders::inst().shadowResolveRq) {
-    for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
-      auto& u = shadow.ubo[i];
-      u.set(7, Sampler::bilinear());
-      u.set(8, scene.bindless.tex);
-      u.set(9, scene.bindless.vbo);
-      u.set(10,scene.bindless.ibo);
-      u.set(11,scene.bindless.iboOffset);
+    shadow.ubo.set(7, Sampler::bilinear());
+    shadow.ubo.set(8, scene.bindless.tex);
+    shadow.ubo.set(9, scene.bindless.vbo);
+    shadow.ubo.set(10,scene.bindless.ibo);
+    shadow.ubo.set(11,scene.bindless.iboOffset);
 
-      u.set(6, *scene.tlas);
-      }
+    shadow.ubo.set(6, *scene.tlas);
     }
   }
 
@@ -500,7 +481,7 @@ void Renderer::drawGWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
   }
 
 void Renderer::drawReflections(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  cmd.setUniforms(*water.reflectionsPso, water.ubo[fId]);
+  cmd.setUniforms(*water.reflectionsPso, water.ubo);
   if(Gothic::inst().doMeshShading()) {
     cmd.dispatchMeshThreads(size_t(gbufDiffuse.w()), size_t(gbufDiffuse.h()));
     } else {
@@ -509,10 +490,10 @@ void Renderer::drawReflections(Tempest::Encoder<Tempest::CommandBuffer>& cmd, ui
   }
 
 void Renderer::drawUnderwater(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  cmd.setUniforms(Shaders::inst().underwaterT, water.underUbo[fId]);
+  cmd.setUniforms(Shaders::inst().underwaterT, water.underUbo);
   cmd.draw(Resources::fsqVbo());
 
-  cmd.setUniforms(Shaders::inst().underwaterS, water.underUbo[fId]);
+  cmd.setUniforms(Shaders::inst().underwaterS, water.underUbo);
   cmd.draw(Resources::fsqVbo());
   }
 
@@ -531,7 +512,7 @@ void Renderer::drawShadowResolve(Encoder<Tempest::CommandBuffer>& cmd, uint8_t f
   static bool useDsm = true;
   if(!useDsm)
     return;
-  cmd.setUniforms(*shadow.composePso, shadow.ubo[fId]);
+  cmd.setUniforms(*shadow.composePso, shadow.ubo);
   cmd.draw(Resources::fsqVbo());
   }
 
@@ -566,7 +547,7 @@ void Renderer::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
 
 void Renderer::prepareIrradiance(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
   cmd.setFramebuffer({});
-  cmd.setUniforms(*irradiance.pso, irradiance.ubo[fId]);
+  cmd.setUniforms(*irradiance.pso, irradiance.ubo);
   cmd.dispatch(1);
   }
 

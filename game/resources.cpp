@@ -127,7 +127,6 @@ void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs, bool modFil
       Log::e("unable to load archive: \"", TextCodec::toUtf8(i.name), "\", reason: ", err.what());
       }
     }
-  inst->gothicAssets.entries.size();
 
   //for(auto& i:gothicAssets.getKnownFiles())
   //  Log::i(i);
