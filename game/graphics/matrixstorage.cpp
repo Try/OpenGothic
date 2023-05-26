@@ -6,12 +6,12 @@
 
 using namespace Tempest;
 
-MatrixStorage::Id::Id(Id&& other)
+MatrixStorage::Id::Id(Id&& other) noexcept
   :heapPtr(other.heapPtr), rgn(other.rgn) {
   other.heapPtr = nullptr;
   }
 
-MatrixStorage::Id& MatrixStorage::Id::operator =(Id&& other) {
+MatrixStorage::Id& MatrixStorage::Id::operator =(Id&& other) noexcept {
   std::swap(heapPtr, other.heapPtr);
   std::swap(rgn,     other.rgn);
   return *this;
@@ -108,7 +108,7 @@ MatrixStorage::Id MatrixStorage::alloc(BufferHeap heap, size_t nbones) {
       }
     }
   if(retId!=size_t(-1)) {
-    auto ret = h.rgn[retId];
+    Range ret = h.rgn[retId];
     ret.size = nbones;
     h.rgn[retId].begin += nbones;
     h.rgn[retId].size  -= nbones;

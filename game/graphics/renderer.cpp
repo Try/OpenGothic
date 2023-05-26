@@ -359,8 +359,6 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
 
   wview->updateLight();
   updateCamera(*camera);
-  wview->preFrameUpdate(*camera,Gothic::inst().world()->tickCount(),fId);
-  wview->prepareGlobals(cmd,fId);
 
   static bool updFr = true;
   if(updFr){
@@ -374,6 +372,9 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     frustrum[SceneGlobals::V_Main].make(viewProj,zbuffer.w(),zbuffer.h());
     wview->visibilityPass(frustrum);
     }
+
+  wview->preFrameUpdate(*camera,Gothic::inst().world()->tickCount(),fId);
+  wview->prepareGlobals(cmd,fId);
 
   drawHiZ(cmd,fId,*wview);
   prepareSky(cmd,fId,*wview);

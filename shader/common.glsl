@@ -93,6 +93,10 @@ bool isGBufWater(float v) {
   return isWater;
   }
 
+float packHiZ(float z) {
+  return (1.0-z)*40.0;
+  }
+
 // From https://gamedev.stackexchange.com/questions/96459/fast-ray-sphere-collision-code.
 float rayIntersect(vec3 v, vec3 d, float R) {
   float b = dot(v, d);

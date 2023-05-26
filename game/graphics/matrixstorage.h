@@ -21,8 +21,8 @@ class MatrixStorage {
       public:
         Id() = default;
         Id(Heap& heap, Range rgn):heapPtr(&heap), rgn(rgn){}
-        Id(Id&& other);
-        Id& operator = (Id&& other);
+        Id(Id&& other) noexcept;
+        Id& operator = (Id&& other) noexcept;
         ~Id();
 
         const size_t   size() const     { return rgn.size;            }
