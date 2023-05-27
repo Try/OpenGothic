@@ -129,6 +129,7 @@ class Camera final {
 
     float                 dlgDist   = 0;
     float                 userRange = 0.13f;
+    float                 veloTrans = 0;
 
     Tempest::Matrix4x4    proj;
     uint32_t              vpWidth=0;
@@ -149,6 +150,7 @@ class Camera final {
     static float          baseSpeeed;
     static float          offsetAngleMul;
     static const float    minLength;
+    static float          veloAcceleration;
 
     void                  calcControlPoints(float dtF);
 

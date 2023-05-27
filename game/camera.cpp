@@ -31,10 +31,11 @@ static Vec3 angleMod(Vec3 a) {
   return a;
   }
 
-float       Camera::maxDist        = 100;
-float       Camera::baseSpeeed     = 200;
-float       Camera::offsetAngleMul = 0.2f;
-const float Camera::minLength      = 0.0001f;
+float       Camera::maxDist          = 115;
+float       Camera::baseSpeeed       = 200;
+float       Camera::veloAcceleration = 150;
+float       Camera::offsetAngleMul   = 0.2f;
+const float Camera::minLength        = 0.0001f;
 
 Camera::Camera() {
   (void)inertiaTarget; // OSX warning
@@ -482,18 +483,25 @@ void Camera::followPos(Vec3& pos, Vec3 dest, float dtF) {
   auto dp  = (dest-pos);
   auto len = dp.length();
 
-  if(dtF<0.f) {
+  if(dtF<=0.f) {
     pos = dest;
     return;
     }
 
   if(len<=minLength) {
+    // veloTrans = 0;
     return;
     }
 
+  if(veloTrans<baseSpeeed) {
+    veloTrans += veloAcceleration*dtF;
+    veloTrans  = std::min(veloTrans, baseSpeeed);
+    }
+  veloTrans = std::min(veloTrans, len/dtF);
+
   static float mul = 0.05f;
 
-  float speed = baseSpeeed*dtF;
+  float speed = veloTrans*dtF;
   float tr    = std::min(speed,len);
   float maxD  = maxDist + speed*mul;
   if(len-tr > maxD && (len-maxD)>0.0f)
@@ -502,6 +510,9 @@ void Camera::followPos(Vec3& pos, Vec3 dest, float dtF) {
     tr = (len-maxDist);
   else
     tr = std::min(speed,len);
+
+  if(len>maxD)
+    veloTrans = baseSpeeed;
 
   float k = tr/len;
   pos += dp*k;
