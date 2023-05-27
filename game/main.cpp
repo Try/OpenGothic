@@ -67,7 +67,8 @@ int main(int argc,const char** argv) {
     Tempest::Log::setOutputCallback([](Tempest::Log::Mode mode, const char* text) {
       logFile.write(text,std::strlen(text));
       logFile.write("\n",1);
-      logFile.flush();
+      if(mode==Tempest::Log::Error)
+        logFile.flush();
       });
 
     phoenix::logging::use_logger([] (phoenix::logging::level lvl, const std::string& message) {
