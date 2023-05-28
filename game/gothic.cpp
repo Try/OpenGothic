@@ -502,11 +502,11 @@ void Gothic::load(std::string_view slot) {
   onLoadGame(slot);
   }
 
-std::vector<GameScript::DlgChoise> Gothic::updateDialog(const GameScript::DlgChoise &dlg, Npc& player, Npc& npc) {
+std::vector<GameScript::DlgChoice> Gothic::updateDialog(const GameScript::DlgChoice &dlg, Npc& player, Npc& npc) {
   return game->updateDialog(dlg,player,npc);
   }
 
-void Gothic::dialogExec(const GameScript::DlgChoise &dlg, Npc& player, Npc& npc) {
+void Gothic::dialogExec(const GameScript::DlgChoice &dlg, Npc& player, Npc& npc) {
   game->dialogExec(dlg,player,npc);
   }
 

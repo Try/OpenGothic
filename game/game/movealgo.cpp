@@ -754,8 +754,8 @@ void MoveAlgo::startDive() {
     }
   }
 
-bool MoveAlgo::isFaling() const {
-  return flags&Faling;
+bool MoveAlgo::isFalling() const {
+  return flags&Falling;
   }
 
 bool MoveAlgo::isSlide() const {
@@ -914,7 +914,7 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
   if(!forward)
     return;
 
-  if(!info.preFall && npc.isAtackAnim())
+  if(!info.preFall && npc.isAttackAnim())
     return;
 
   npc.setAnimRotate(0);

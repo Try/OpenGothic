@@ -42,14 +42,14 @@ class DialogMenu : public Tempest::Widget {
 
   protected:
     void paintEvent (Tempest::PaintEvent& e) override;
-    void paintChoise(Tempest::PaintEvent& e);
+    void paintChoice(Tempest::PaintEvent& e);
 
     void mouseDownEvent (Tempest::MouseEvent& event) override;
     void mouseWheelEvent(Tempest::MouseEvent& event) override;
 
     void onSelect();
     void setupSettings();
-    bool isChoiseMenuActive() const;
+    bool isChoiceMenuActive() const;
 
   private:
     const Tempest::Texture2d* tex    =nullptr;
@@ -100,7 +100,7 @@ class DialogMenu : public Tempest::Widget {
       };
 
     bool onStart(Npc& pl,Npc& other);
-    void onEntry(const GameScript::DlgChoise& e);
+    void onEntry(const GameScript::DlgChoice& e);
     void onDoneText();
     void close();
     bool aiOutput  (Npc& npc, std::string_view msg);
@@ -121,8 +121,8 @@ class DialogMenu : public Tempest::Widget {
 
     Tempest::SoundDevice                soundDevice;
 
-    std::vector<GameScript::DlgChoise>  choise;
-    GameScript::DlgChoise               selected;
+    std::vector<GameScript::DlgChoice>  choice;
+    GameScript::DlgChoice               selected;
     Npc*                                pl   =nullptr;
     Npc*                                other=nullptr;
     size_t                              dlgSel=0;
@@ -141,5 +141,5 @@ class DialogMenu : public Tempest::Widget {
     uint64_t                            remPrint=0;
 
     bool                                dlgAnimation   = true;
-    uint64_t                            choiseAnimTime = 0;
+    uint64_t                            choiceAnimTime = 0;
   };

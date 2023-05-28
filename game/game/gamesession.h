@@ -63,8 +63,8 @@ class GameSession final {
 
     void         updateAnimation(uint64_t dt);
 
-    auto         updateDialog(const GameScript::DlgChoise &dlg, Npc &player, Npc &npc) -> std::vector<GameScript::DlgChoise>;
-    void         dialogExec(const GameScript::DlgChoise &dlg, Npc &player, Npc &npc);
+    auto         updateDialog(const GameScript::DlgChoice &dlg, Npc &player, Npc &npc) -> std::vector<GameScript::DlgChoice>;
+    void         dialogExec(const GameScript::DlgChoice &dlg, Npc &player, Npc &npc);
 
     std::string_view         messageFromSvm(std::string_view id, int voice) const;
     std::string_view         messageByName (std::string_view id) const;

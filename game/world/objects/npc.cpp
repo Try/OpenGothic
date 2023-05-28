@@ -175,7 +175,7 @@ Npc::Npc(World &owner, size_t instance, std::string_view waypoint)
 
 Npc::~Npc(){
   if(currentInteract)
-    currentInteract->dettach(*this,true);
+    currentInteract->detach(*this,true);
   }
 
 void Npc::save(Serialize &fout, size_t id) {
@@ -1021,8 +1021,8 @@ bool Npc::isFlyAnim() const {
   return visual.pose().isFlyAnim();
   }
 
-bool Npc::isFaling() const {
-  return mvAlgo.isFaling();
+bool Npc::isFalling() const {
+  return mvAlgo.isFalling();
   }
 
 bool Npc::isSlide() const {
@@ -1328,7 +1328,7 @@ bool Npc::implGoTo(uint64_t dt) {
   float dist = 0;
   if(go2.npc) {
     if(go2.flag==GT_EnemyA)
-      dist = fghAlgo.prefferedAtackDistance(*this,*go2.npc,owner.script()); else
+      dist = fghAlgo.prefferedAttackDistance(*this,*go2.npc,owner.script()); else
       dist = fghAlgo.baseDistance(*this,*go2.npc,owner.script());
     } else {
     // use smaller threshold, to avoid edge-looping in script
@@ -1389,7 +1389,7 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
   return false;
   }
 
-bool Npc::implAtack(uint64_t dt) {
+bool Npc::implAttack(uint64_t dt) {
   if(currentTarget==nullptr || isPlayer() || isTalk())
     return false;
 
@@ -1414,7 +1414,7 @@ bool Npc::implAtack(uint64_t dt) {
     }
 
   if(faiWaitTime>=owner.tickCount()) {
-    adjustAtackRotation(dt);
+    adjustAttackRotation(dt);
     mvAlgo.tick(dt,MoveAlgo::FaiMove);
     return true;
     }
@@ -1445,7 +1445,7 @@ bool Npc::implAtack(uint64_t dt) {
     }
 
   if(act==FightAlgo::MV_ATACK || act==FightAlgo::MV_ATACKL || act==FightAlgo::MV_ATACKR) {
-    static const Anim ani[4]={Anim::Atack,Anim::AtackL,Anim::AtackR};
+    static const Anim ani[4]={Anim::Attack,Anim::AttackL,Anim::AttackR};
     if((act!=FightAlgo::MV_ATACK && bodyState()!=BS_RUN) &&
        !fghAlgo.isInWRange(*this,*currentTarget,owner.script())) {
       fghAlgo.consumeAction();
@@ -1498,7 +1498,7 @@ bool Npc::implAtack(uint64_t dt) {
         }
       }
     else if(ws==WeaponState::Fist) {
-      if(doAttack(Anim::Atack) || mvAlgo.isSwim() || mvAlgo.isDive())
+      if(doAttack(Anim::Attack) || mvAlgo.isSwim() || mvAlgo.isDive())
         fghAlgo.consumeAction();
       }
     else {
@@ -1543,7 +1543,7 @@ bool Npc::implAtack(uint64_t dt) {
   if(act==FightAlgo::MV_MOVEA || act==FightAlgo::MV_MOVEG) {
     float dist = 0;
     if(act==FightAlgo::MV_MOVEA)
-      dist = fghAlgo.prefferedAtackDistance(*this,*currentTarget,owner.script()); else
+      dist = fghAlgo.prefferedAttackDistance(*this,*currentTarget,owner.script()); else
       dist = fghAlgo.prefferedGDistance(*this,*currentTarget,owner.script());
     go2.set(currentTarget,(act==FightAlgo::MV_MOVEG) ? GoToHint::GT_EnemyG : GoToHint::GT_EnemyA);
 
@@ -1582,7 +1582,7 @@ bool Npc::implAtack(uint64_t dt) {
   return true;
   }
 
-void Npc::adjustAtackRotation(uint64_t dt) {
+void Npc::adjustAttackRotation(uint64_t dt) {
   if(currentTarget!=nullptr && !currentTarget->isDown()) {
     auto ws = weaponState();
     if(!visual.pose().isInAnim("T_FISTATTACKMOVE") &&
@@ -1717,7 +1717,7 @@ bool Npc::setGoToLadder() {
 void Npc::commitDamage() {
   if(currentTarget==nullptr)
     return;
-  if(!fghAlgo.isInAtackRange(*this,*currentTarget,owner.script()))
+  if(!fghAlgo.isInAttackRange(*this,*currentTarget,owner.script()))
     return;
   if(!fghAlgo.isInFocusAngle(*this,*currentTarget))
     return;
@@ -2039,7 +2039,7 @@ void Npc::tick(uint64_t dt) {
 
   if(waitTime>=owner.tickCount() || aniWaitTime>=owner.tickCount() || outWaitTime>owner.tickCount()) {
     if(!isPlayer() && faiWaitTime<owner.tickCount())
-      adjustAtackRotation(dt);
+      adjustAttackRotation(dt);
     mvAlgo.tick(dt,MoveAlgo::WaitMove);
     return;
     }
@@ -2048,7 +2048,7 @@ void Npc::tick(uint64_t dt) {
     implLookAtNpc(dt);
     implLookAtWp(dt);
 
-    if(implAtack(dt))
+    if(implAttack(dt))
       return;
 
     if(implGoTo(dt)) {
@@ -2324,7 +2324,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
       break;
       }
-    case AI_Atack:
+    case AI_Attack:
       if(currentTarget!=nullptr && weaponState()!=WeaponState::NoWeapon){
         if(!fghAlgo.fetchInstructions(*this,*currentTarget,owner.script()))
           queue.pushFront(std::move(act));
@@ -2449,9 +2449,9 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       if(act.target==nullptr || !act.target->isUnconscious())
         break;
 
-      if(!fghAlgo.isInAtackRange(*this,*act.target,owner.script())){
+      if(!fghAlgo.isInAttackRange(*this,*act.target,owner.script())){
         queue.pushFront(std::move(act));
-        implGoTo(dt,fghAlgo.prefferedAtackDistance(*this,*act.target,owner.script()));
+        implGoTo(dt,fghAlgo.prefferedAttackDistance(*this,*act.target,owner.script()));
         }
       else if(canFinish(*act.target)){
         setTarget(act.target);
@@ -2809,7 +2809,7 @@ BodyState Npc::bodyState() const {
     return BS_DEAD;
   if(isUnconscious())
     return BS_UNCONSCIOUS;
-  if(isFaling())
+  if(isFalling())
     return BS_FALL;
 
   uint32_t s = visual.pose().bodyState();
@@ -3083,7 +3083,7 @@ bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
   }
 
 bool Npc::checkGoToNpcdistance(const Npc &other) {
-  return fghAlgo.isInAtackRange(*this,other,owner.script());
+  return fghAlgo.isInAttackRange(*this,other,owner.script());
   }
 
 size_t Npc::itemCount(size_t id) const {
@@ -3119,7 +3119,7 @@ void Npc::unequipItem(size_t item) {
   }
 
 bool Npc::canSwitchWeapon() const {
-  return !(mvAlgo.isFaling() || mvAlgo.isInAir() || mvAlgo.isSlide() || mvAlgo.isSwim());
+  return !(mvAlgo.isFalling() || mvAlgo.isInAir() || mvAlgo.isSlide() || mvAlgo.isSwim());
   }
 
 bool Npc::closeWeapon(bool noAnim) {
@@ -3230,7 +3230,7 @@ bool Npc::drawMage(uint8_t slot) {
   }
 
 bool Npc::drawSpell(int32_t spell) {
-  if(isFaling() || mvAlgo.isSwim() || bodyStateMasked()==BS_CASTING)
+  if(isFalling() || mvAlgo.isSwim() || bodyStateMasked()==BS_CASTING)
     return false;
   auto weaponSt=weaponState();
   if(weaponSt!=WeaponState::NoWeapon && weaponSt!=WeaponState::Mage) {
@@ -3259,7 +3259,7 @@ bool Npc::canFinish(Npc& oth) {
   auto ws = weaponState();
   if(ws!=WeaponState::W1H && ws!=WeaponState::W2H)
     return false;
-  if(!oth.isUnconscious() || !fghAlgo.isInAtackRange(*this,oth,owner.script()))
+  if(!oth.isUnconscious() || !fghAlgo.isInAttackRange(*this,oth,owner.script()))
     return false;
   return true;
   }
@@ -3285,7 +3285,7 @@ bool Npc::doAttack(Anim anim) {
   }
 
 void Npc::fistShoot() {
-  doAttack(Anim::Atack);
+  doAttack(Anim::Attack);
   }
 
 bool Npc::blockFist() {
@@ -3293,14 +3293,14 @@ bool Npc::blockFist() {
   if(weaponSt!=WeaponState::Fist)
     return false;
   visual.setAnimRotate(*this,0);
-  return setAnim(Anim::AtackBlock);
+  return setAnim(Anim::AttackBlock);
   }
 
 bool Npc::finishingMove() {
   if(currentTarget==nullptr || !canFinish(*currentTarget))
     return false;
 
-  if(doAttack(Anim::AtackFinish)) {
+  if(doAttack(Anim::AttackFinish)) {
     currentTarget->hnpc->attribute[ATR_HITPOINTS] = 0;
     currentTarget->checkHealth(true,false);
     owner.sendPassivePerc(*this,*this,*currentTarget,PERC_ASSESSMURDER);
@@ -3313,29 +3313,29 @@ void Npc::swingSword() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return;
-  doAttack(Anim::Atack);
+  doAttack(Anim::Attack);
   }
 
 bool Npc::swingSwordL() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return false;
-  return doAttack(Anim::AtackL);
+  return doAttack(Anim::AttackL);
   }
 
 bool Npc::swingSwordR() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return false;
-  return doAttack(Anim::AtackR);
+  return doAttack(Anim::AttackR);
   }
 
 bool Npc::blockSword() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return false;
-  return doAttack(Anim::AtackBlock);
-  // return setAnimAngGet(Anim::AtackBlock,calcAniComb())!=nullptr;
+  return doAttack(Anim::AttackBlock);
+  // return setAnimAngGet(Anim::AttackBlock,calcAniComb())!=nullptr;
   }
 
 bool Npc::beginCastSpell() {
@@ -3520,10 +3520,10 @@ bool Npc::shootBow(Interactive* focOverride) {
     }
 
   const int32_t munition = active->handle().munition;
-  if(!hasAmunition())
+  if(!hasAmmunition())
     return false;
 
-  if(!setAnim(Anim::Atack))
+  if(!setAnim(Anim::Attack))
     return false;
 
   auto itm = invent.getItem(size_t(munition));
@@ -3551,7 +3551,7 @@ bool Npc::shootBow(Interactive* focOverride) {
   return true;
   }
 
-bool Npc::hasAmunition() const {
+bool Npc::hasAmmunition() const {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return false;
@@ -3577,16 +3577,16 @@ bool Npc::isDown() const {
   return isUnconscious() || isDead();
   }
 
-bool Npc::isAtack() const {
-  return owner.script().isAtack(*this);
+bool Npc::isAttack() const {
+  return owner.script().isAttack(*this);
   }
 
 bool Npc::isTalk() const {
   return owner.script().isTalk(*this);
   }
 
-bool Npc::isAtackAnim() const {
-  return visual.pose().isAtackAnim();
+bool Npc::isAttackAnim() const {
+  return visual.pose().isAttackAnim();
   }
 
 bool Npc::isPrehit() const {
@@ -3694,7 +3694,7 @@ bool Npc::setInteraction(Interactive *id, bool quick) {
     return true;
 
   if(currentInteract!=nullptr) {
-    return currentInteract->dettach(*this,quick);
+    return currentInteract->detach(*this,quick);
     }
 
   if(id==nullptr)
@@ -3712,7 +3712,7 @@ bool Npc::setInteraction(Interactive *id, bool quick) {
   return false;
   }
 
-void Npc::quitIneraction() {
+void Npc::quitInteraction() {
   if(currentInteract==nullptr)
     return;
   if(invTorch)
@@ -3933,8 +3933,8 @@ void Npc::transformBack() {
   transformSpl.reset();
   }
 
-std::vector<GameScript::DlgChoise> Npc::dialogChoises(Npc& player,const std::vector<uint32_t> &except,bool includeImp) {
-  return owner.script().dialogChoises(player.hnpc,this->hnpc,except,includeImp);
+std::vector<GameScript::DlgChoice> Npc::dialogChoices(Npc& player,const std::vector<uint32_t> &except,bool includeImp) {
+  return owner.script().dialogChoices(player.hnpc,this->hnpc,except,includeImp);
   }
 
 bool Npc::isAiQueueEmpty() const {

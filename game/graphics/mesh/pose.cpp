@@ -648,9 +648,9 @@ bool Pose::isPrehit(uint64_t now) const {
   return false;
   }
 
-bool Pose::isAtackAnim() const {
+bool Pose::isAttackAnim() const {
   for(auto& i:lay)
-    if(i.seq->isAtackAnim())
+    if(i.seq->isAttackAnim())
       return true;
   return false;
   }

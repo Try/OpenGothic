@@ -303,7 +303,7 @@ uint32_t WorldObjects::mobsiId(const void* ptr) const {
 Npc* WorldObjects::addNpc(size_t npcInstance, std::string_view at) {
   auto pos = owner.findPoint(at);
   if(pos==nullptr)
-    Log::e("inserNpc: invalid waypoint");
+    Log::e("addNpc: invalid waypoint");
 
   Npc* npc = new Npc(owner,npcInstance,at);
   if(pos!=nullptr && pos->isLocked()){
@@ -445,7 +445,7 @@ bool WorldObjects::isTargetedBy(Npc& npc, Npc& dst) {
     return false;
   if(npc.processPolicy()!=Npc::AiNormal || npc.weaponState()==WeaponState::NoWeapon)
     return false;
-  if(!npc.isAtack())
+  if(!npc.isAttack())
     return false;
   return true;
   }

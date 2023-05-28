@@ -54,7 +54,7 @@ class MoveAlgo final {
     bool    startClimb(JumpStatus ani);
     void    startDive();
 
-    bool    isFaling()  const;
+    bool    isFalling() const;
     bool    isSlide()   const;
     bool    isInAir()   const;
     bool    isJumpup()  const;
@@ -91,7 +91,7 @@ class MoveAlgo final {
     enum Flags : uint32_t {
       NoFlags = 0,
       InAir   = 1<<1,
-      Faling  = 1<<2,
+      Falling = 1<<2,
       Slide   = 1<<3,
       JumpUp  = 1<<4,
       ClimbUp = 1<<5,

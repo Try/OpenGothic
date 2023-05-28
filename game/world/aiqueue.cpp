@@ -251,9 +251,9 @@ AiQueue::AiAction AiQueue::aiReadySpell(int32_t spell,int32_t /*mana*/) {
   return a;
   }
 
-AiQueue::AiAction AiQueue::aiAtack() {
+AiQueue::AiAction AiQueue::aiAttack() {
   AiAction a;
-  a.act = AI_Atack;
+  a.act = AI_Attack;
   return a;
   }
 

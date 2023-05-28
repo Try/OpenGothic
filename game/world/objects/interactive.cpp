@@ -307,7 +307,7 @@ void Interactive::implTick(Pos& p) {
     }
 
   if(p.started==Quit) {
-    npc.quitIneraction();
+    npc.quitInteraction();
     loopState = false;
     p.user    = nullptr;
     p.started = NonStarted;
@@ -555,7 +555,7 @@ void Interactive::implAddItem(std::string_view name) {
     }
   }
 
-void Interactive::autoDettachNpc() {
+void Interactive::autoDetachNpc() {
   for(auto& i:attPos)
     if(i.user!=nullptr) {
       if(i.user->world().aiIsDlgFinished())
@@ -756,7 +756,7 @@ bool Interactive::attach(Npc &npc) {
   return false;
   }
 
-bool Interactive::dettach(Npc &npc, bool quick) {
+bool Interactive::detach(Npc &npc, bool quick) {
   for(auto& i:attPos) {
     if(i.user==&npc && i.attachMode) {
       if(quick || canQuitAtState(*i.user,state)) {
@@ -767,7 +767,7 @@ bool Interactive::dettach(Npc &npc, bool quick) {
           }
         i.user       = nullptr;
         i.attachMode = false;
-        npc.quitIneraction();
+        npc.quitInteraction();
         return true;
         }
       else {

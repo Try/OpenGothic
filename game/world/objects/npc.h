@@ -176,7 +176,7 @@ class Npc final {
 
     bool       isJumpAnim() const;
     bool       isFlyAnim() const;
-    bool       isFaling() const;
+    bool       isFalling() const;
     bool       isSlide() const;
     bool       isInAir() const;
     bool       isStanding() const;
@@ -260,16 +260,16 @@ class Npc final {
     bool      castSpell();
     bool      aimBow();
     bool      shootBow(Interactive* focOverride = nullptr);
-    bool      hasAmunition() const;
+    bool      hasAmmunition() const;
 
     bool      isEnemy(const Npc& other) const;
     bool      isDead() const;
     bool      isUnconscious() const;
     bool      isDown() const;
-    bool      isAtack() const;
+    bool      isAttack() const;
     bool      isTalk() const;
 
-    bool      isAtackAnim() const;
+    bool      isAttackAnim() const;
     bool      isPrehit() const;
     bool      isImmortal() const;
 
@@ -284,7 +284,7 @@ class Npc final {
 
     auto      interactive() const -> Interactive* { return currentInteract; }
     bool      setInteraction(Interactive* id, bool quick=false);
-    void      quitIneraction();
+    void      quitInteraction();
     void      processDefInvTorch();
 
     auto      detectedMob() const -> Interactive*;
@@ -313,7 +313,7 @@ class Npc final {
     void      startDive();
     void      transformBack();
 
-    auto      dialogChoises(Npc &player, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<GameScript::DlgChoise>;
+    auto      dialogChoices(Npc &player, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<GameScript::DlgChoice>;
 
     phoenix::c_npc&                        handle() { return *hnpc; }
     const std::shared_ptr<phoenix::c_npc>& handlePtr() const { return hnpc; }
@@ -465,8 +465,8 @@ class Npc final {
     bool      implTurnTo (float dx, float dz, bool noAnim, uint64_t dt);
     bool      implGoTo   (uint64_t dt);
     bool      implGoTo   (uint64_t dt, float destDist);
-    bool      implAtack  (uint64_t dt);
-    void      adjustAtackRotation(uint64_t dt);
+    bool      implAttack  (uint64_t dt);
+    void      adjustAttackRotation(uint64_t dt);
     bool      implAiTick (uint64_t dt);
     void      implAiWait (uint64_t dt);
     void      implAniWait(uint64_t dt);

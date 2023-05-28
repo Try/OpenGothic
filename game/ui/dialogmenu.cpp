@@ -77,14 +77,14 @@ void DialogMenu::tick(uint64_t dt) {
     remPrint-=dt;
     }
 
-  if(isChoiseMenuActive()) {
-    if(choiseAnimTime+dt>ANIM_TIME)
-      choiseAnimTime = ANIM_TIME; else
-      choiseAnimTime+=dt;
+  if(isChoiceMenuActive()) {
+    if(choiceAnimTime+dt>ANIM_TIME)
+      choiceAnimTime = ANIM_TIME; else
+      choiceAnimTime+=dt;
     } else {
-    if(choiseAnimTime<dt)
-      choiseAnimTime = 0; else
-      choiseAnimTime-=dt;
+    if(choiceAnimTime<dt)
+      choiceAnimTime = 0; else
+      choiceAnimTime-=dt;
     }
 
   if(current.time<=dt){
@@ -92,7 +92,7 @@ void DialogMenu::tick(uint64_t dt) {
     if(dlgTrade && !haveToWaitOutput()) {
       startTrade();
       }
-    else if(choise.size()==0 && state!=State::Idle && !haveToWaitOutput()) {
+    else if(choice.size()==0 && state!=State::Idle && !haveToWaitOutput()) {
       close();
       }
     } else {
@@ -248,7 +248,7 @@ bool DialogMenu::aiClose() {
     return false;
     }
 
-  choise.clear();
+  choice.clear();
   close();
   state=State::Idle;
   update();
@@ -264,19 +264,19 @@ bool DialogMenu::isActive() const {
   }
 
 bool DialogMenu::hasContent() const {
-  return (current.time>0 || choise.size()>0);
+  return (current.time>0 || choice.size()>0);
   }
 
 bool DialogMenu::onStart(Npc &p, Npc &ot) {
-  choise         = ot.dialogChoises(p,except,state==State::PreStart);
+  choice         = ot.dialogChoices(p,except,state==State::PreStart);
   state          = State::Active;
   depth          = 0;
   curentIsPl     = true;
-  choiseAnimTime = 0;
+  choiceAnimTime = 0;
 
-  if(choise.size()>0 && choise[0].title.size()==0){
+  if(choice.size()>0 && choice[0].title.size()==0){
     // important dialog
-    onEntry(choise[0]);
+    onEntry(choice[0]);
     }
 
   dlgSel=0;
@@ -313,9 +313,9 @@ void DialogMenu::print(std::string_view msg) {
   }
 
 void DialogMenu::onDoneText() {
-  choise = Gothic::inst().updateDialog(selected,*pl,*other);
+  choice = Gothic::inst().updateDialog(selected,*pl,*other);
   dlgSel = 0;
-  if(choise.size()==0){
+  if(choice.size()==0){
     if(depth>0) {
       onStart(*pl,*other);
       } else {
@@ -333,7 +333,7 @@ void DialogMenu::close() {
   depth=0;
   dlgTrade=false;
   current.time=0;
-  choise.clear();
+  choice.clear();
   state=State::Idle;
   currentSnd = SoundEffect();
   update();
@@ -378,7 +378,7 @@ void DialogMenu::skipPhrase() {
     }
   }
 
-void DialogMenu::onEntry(const GameScript::DlgChoise &e) {
+void DialogMenu::onEntry(const GameScript::DlgChoice &e) {
   if(pl && other) {
     selected = e;
     depth    = 1;
@@ -421,7 +421,7 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
       drawTextMultiline(p,(w()-dw)/2,20,dw,dh,current.txt,curentIsPl);
     }
 
-  paintChoise(e);
+  paintChoice(e);
 
   for(size_t i=0;i<MAX_PRINT;++i){
     auto& sc  = printMsg[i];
@@ -456,26 +456,26 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
     }
   }
 
-void DialogMenu::paintChoise(PaintEvent &e) {
-  if(choise.size()==0)
+void DialogMenu::paintChoice(PaintEvent &e) {
+  if(choice.size()==0)
     return;
 
   auto& fnt = Resources::dialogFont();
   const int  padd     = 20;
   const int  dw       = std::min(w(),600);
-  const bool isActive = isChoiseMenuActive();
+  const bool isActive = isChoiceMenuActive();
 
   int  dh = padd*2;
-  for(size_t i=0;i<choise.size();++i){
+  for(size_t i=0;i<choice.size();++i){
     const GthFont* font = &fnt;
-    Size choiseTextSize = font->textSize(dw-padd, choise[i].title);
-    dh += choiseTextSize.h;
+    Size choiceTextSize = font->textSize(dw-padd, choice[i].title);
+    dh += choiceTextSize.h;
     }
 
   const int  y        = h()-dh-20;
 
-  if(tex!=nullptr && (choiseAnimTime>0 || isActive)) {
-    float k    = dlgAnimation ? (float(choiseAnimTime)/float(ANIM_TIME)) : 1.f;
+  if(tex!=nullptr && (choiceAnimTime>0 || isActive)) {
+    float k    = dlgAnimation ? (float(choiceAnimTime)/float(ANIM_TIME)) : 1.f;
     int   dlgW = int(float(dw)*k);
     int   dlgH = int(float(dh)*k);
 
@@ -485,27 +485,27 @@ void DialogMenu::paintChoise(PaintEvent &e) {
                0,0,tex->w(),tex->h());
     }
 
-  if(choiseAnimTime<ANIM_TIME && dlgAnimation)
+  if(choiceAnimTime<ANIM_TIME && dlgAnimation)
     return;
 
-  if(!isChoiseMenuActive())
+  if(!isChoiceMenuActive())
     return;
 
   int textHeightOffset = padd;
   Painter p(e);
-  for(size_t i=0;i<choise.size();++i){
+  for(size_t i=0;i<choice.size();++i){
     const GthFont* font = &fnt;
     int x = (w()-dw)/2;
     if(i==dlgSel)
       font = &Resources::font(Resources::FontType::Hi);
-    Size choiseTextSize = font->textSize(dw-padd, choise[i].title);
-    font->drawText(p,x+padd,y+padd+textHeightOffset,dw-padd,0,choise[i].title,AlignLeft);
-    textHeightOffset += choiseTextSize.h;
+    Size choiceTextSize = font->textSize(dw-padd, choice[i].title);
+    font->drawText(p,x+padd,y+padd+textHeightOffset,dw-padd,0,choice[i].title,AlignLeft);
+    textHeightOffset += choiceTextSize.h;
     }
   }
 
-bool DialogMenu::isChoiseMenuActive() const {
-  return choise.size()!=0 && current.time==0 && !haveToWaitOutput() && trade.isOpen()==InventoryMenu::State::Closed;
+bool DialogMenu::isChoiceMenuActive() const {
+  return choice.size()!=0 && current.time==0 && !haveToWaitOutput() && trade.isOpen()==InventoryMenu::State::Closed;
   }
 
 void DialogMenu::onSelect() {
@@ -513,9 +513,9 @@ void DialogMenu::onSelect() {
     return;
     }
 
-  if(dlgSel<choise.size()) {
-    onEntry(choise[dlgSel]);
-    choiseAnimTime = dlgAnimation ? ANIM_TIME : 0;
+  if(dlgSel<choice.size()) {
+    onEntry(choice[dlgSel]);
+    choiceAnimTime = dlgAnimation ? ANIM_TIME : 0;
     }
   }
 
@@ -543,7 +543,7 @@ void DialogMenu::mouseWheelEvent(MouseEvent &e) {
     dlgSel--;
   if(e.delta<0)
     dlgSel++;
-  dlgSel = (dlgSel+choise.size())%std::max<size_t>(choise.size(),1);
+  dlgSel = (dlgSel+choice.size())%std::max<size_t>(choice.size(),1);
   update();
   }
 
@@ -567,7 +567,7 @@ void DialogMenu::keyDownEvent(KeyEvent &e) {
     if(e.key==Event::K_ESCAPE){
       skipPhrase();
       }
-    dlgSel = (dlgSel+choise.size())%std::max<size_t>(choise.size(),1);
+    dlgSel = (dlgSel+choice.size())%std::max<size_t>(choice.size(),1);
     update();
     return;
     }

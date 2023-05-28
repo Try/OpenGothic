@@ -669,13 +669,13 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     case AnimationSolver::Anim::InteractFromStand:
       bs = BS_MOBINTERACT;
       break;
-    case AnimationSolver::Anim::Atack:
-    case AnimationSolver::Anim::AtackL:
-    case AnimationSolver::Anim::AtackR:
-    case AnimationSolver::Anim::AtackFinish:
+    case AnimationSolver::Anim::Attack:
+    case AnimationSolver::Anim::AttackL:
+    case AnimationSolver::Anim::AttackR:
+    case AnimationSolver::Anim::AttackFinish:
       bs = BS_HIT;
       break;
-    case AnimationSolver::Anim::AtackBlock:
+    case AnimationSolver::Anim::AttackBlock:
       bs = BS_PARADE;
       break;
     case AnimationSolver::Anim::StumbleA:
