@@ -603,9 +603,10 @@ Bullet& WorldObjects::shootBullet(const Item& itmId, const Vec3& pos, const Vec3
   bullets.emplace_back(owner,itmId,pos);
   auto& b = bullets.back();
 
+  const float rgnBias = 50.f;
   const float l = dir.length();
   b.setDirection(dir*speed/l);
-  b.setTargetRange(tgRange);
+  b.setTargetRange(tgRange + rgnBias);
   return b;
   }
 

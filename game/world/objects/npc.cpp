@@ -1445,7 +1445,13 @@ bool Npc::implAttack(uint64_t dt) {
     }
 
   if(act==FightAlgo::MV_ATACK || act==FightAlgo::MV_ATACKL || act==FightAlgo::MV_ATACKR) {
-    static const Anim ani[4]={Anim::Attack,Anim::AttackL,Anim::AttackR};
+    if(!canSeeNpc(*currentTarget,false)) {
+      adjustAttackRotation(dt);
+      mvAlgo.tick(dt,MoveAlgo::FaiMove);
+      return true;
+      }
+
+    static const Anim ani[4] = {Anim::Attack, Anim::AttackL, Anim::AttackR};
     if((act!=FightAlgo::MV_ATACK && bodyState()!=BS_RUN) &&
        !fghAlgo.isInWRange(*this,*currentTarget,owner.script())) {
       fghAlgo.consumeAction();
@@ -1479,13 +1485,9 @@ bool Npc::implAttack(uint64_t dt) {
       }
 
     if(ws==WeaponState::Mage) {
-      if(castSpell()) {
+      if(castSpell())
         fghAlgo.consumeAction();
-        }
       setAnimRotate(0);
-      setDirection(currentTarget->x-x,
-                   currentTarget->y-y,
-                   currentTarget->z-z);
       }
     else if(ws==WeaponState::Bow || ws==WeaponState::CBow) {
       if(shootBow()) {
@@ -2027,7 +2029,7 @@ void Npc::tick(uint64_t dt) {
 
   nextAiAction(aiQueueOverlay,dt);
 
-  if(tickCast())
+  if(tickCast(dt))
     return;
 
   if(!isDead()) {
@@ -3391,7 +3393,7 @@ bool Npc::beginCastSpell() {
   return true;
   }
 
-bool Npc::tickCast() {
+bool Npc::tickCast(uint64_t dt) {
   if(castLevel==CS_NoCast)
     return false;
 
@@ -3404,6 +3406,10 @@ bool Npc::tickCast() {
       currentSpellCast = size_t(-1);
       castNextTime     = 0;
       return true;
+      }
+
+    if(!isPlayer() && currentTarget!=nullptr) {
+      implTurnTo(*currentTarget,true,dt);
       }
     }
 
