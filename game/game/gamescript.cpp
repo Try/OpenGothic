@@ -1321,16 +1321,16 @@ Item *GameScript::findItemById(size_t id) {
   auto* handle = vm.find_symbol_by_index(uint32_t(id));
   if(handle==nullptr||!handle->is_instance_of<phoenix::c_item>())
     return nullptr;
-  auto hnpc = reinterpret_cast<phoenix::c_item*>(handle->get_instance().get());
-  return findItem(hnpc);
+  auto hitm = reinterpret_cast<phoenix::c_item*>(handle->get_instance().get());
+  return findItem(hitm);
   }
 
 Item* GameScript::findItemById(const std::shared_ptr<phoenix::instance>& handle) {
   if(handle==nullptr)
     return nullptr;
-  if(auto npc = dynamic_cast<const phoenix::c_item*>(handle.get())) {
-    assert(npc->user_ptr); // engine bug, if null
-    return reinterpret_cast<Item*>(npc->user_ptr);
+  if(auto itm = dynamic_cast<const phoenix::c_item*>(handle.get())) {
+    assert(itm->user_ptr); // engine bug, if null
+    return reinterpret_cast<Item*>(itm->user_ptr);
     }
   return findItemById(handle->symbol_index());
   }
