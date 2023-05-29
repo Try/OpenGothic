@@ -676,7 +676,7 @@ void PlayerControl::implMove(uint64_t dt) {
   if(casting) {
     if(!actrl[ActForward]) {
       casting = false;
-      pl.endCastSpell();
+      pl.endCastSpell(true);
       }
     return;
     }

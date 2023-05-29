@@ -254,7 +254,7 @@ class Npc final {
     bool      swingSwordR();
     bool      blockSword();
     bool      beginCastSpell();
-    void      endCastSpell();
+    void      endCastSpell(bool abort = false);
     void      setActiveSpellInfo(int32_t info);
     int32_t   activeSpellLevel() const;
     bool      castSpell();
@@ -550,6 +550,7 @@ class Npc final {
 
     // spell cast
     CastState                      castLevel        = CS_NoCast;
+    int32_t                        manaInvested     = 0;
     size_t                         currentSpellCast = size_t(-1);
     uint64_t                       castNextTime     = 0;
     int32_t                        spellInfo        = 0;

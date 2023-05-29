@@ -130,7 +130,8 @@ class GameScript final {
     void invokeState(const std::shared_ptr<phoenix::c_npc>& hnpc, const std::shared_ptr<phoenix::c_npc>& hother, const char* name);
     int  invokeState(Npc* npc, Npc* other, Npc *victum, ScriptFn fn);
     void invokeItem (Npc* npc, ScriptFn fn);
-    int  invokeMana (Npc& npc, Npc* target, Item&  fn);
+    int  invokeMana (Npc& npc, Npc* target, int mana);
+    int  invokeManaRelease (Npc& npc, Npc* target, int mana);
     void invokeSpell(Npc& npc, Npc *target, Item&  fn);
     int  invokeCond (Npc& npc, std::string_view func);
     void invokePickLock(Npc& npc, int bSuccess, int bBrokenOpen);

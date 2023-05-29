@@ -181,7 +181,7 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
         string_frm tansition("T_STAND_2_",sq->shortName);
         tr = solver.solveFrm(tansition);
         }
-      if(tr==nullptr && i.seq->shortName!=nullptr && sq->isIdle()) {
+      if(tr==nullptr && i.seq->shortName!=nullptr) {
         string_frm tansition("T_",i.seq->shortName,"_2_STAND");
         tr = solver.solveFrm(tansition);
         bs = tr ? i.bs : bs;
