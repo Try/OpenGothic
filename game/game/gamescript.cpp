@@ -1773,7 +1773,7 @@ void GameScript::mdl_applyrandomfaceani(std::shared_ptr<phoenix::c_npc> npcRef, 
   }
 
 void GameScript::wld_insertnpc(int npcInstance, std::string_view spawnpoint) {
-  if(spawnpoint.empty() || npcInstance<=0)
+  if(npcInstance<=0)
     return;
 
   auto npc = world().addNpc(size_t(npcInstance),spawnpoint);
