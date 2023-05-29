@@ -691,6 +691,7 @@ void GameScript::fixNpcPosition(Npc& npc, float angle0, float distBias) {
         return;
       }
     }
+
   npc.setPosition(pos0);
   }
 

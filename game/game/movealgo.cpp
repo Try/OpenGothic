@@ -44,7 +44,6 @@ void MoveAlgo::tickMobsi(uint64_t dt) {
     return;
 
   auto dp  = npc.animMoveSpeed(dt);
-  auto pos = npc.position();
   if(npc.interactive()->isLadder()) {
     auto mat = npc.interactive()->transform();
     mat.project(dp);
@@ -55,7 +54,14 @@ void MoveAlgo::tickMobsi(uint64_t dt) {
     dp = Tempest::Vec3(ret.x, 0, ret.z);
     }
 
-  npc.setPosition(pos+dp);
+  if(npc.interactive()->isDoor()) {
+    // some tight-door require collision-detection
+    npc.tryMove(dp);
+    } else {
+    // but chair/bed do not :)
+    auto pos = npc.position();
+    npc.setPosition(pos+dp);
+    }
   setAsSlide(false);
   setInAir  (false);
   }

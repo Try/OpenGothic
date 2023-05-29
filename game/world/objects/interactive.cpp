@@ -288,9 +288,15 @@ void Interactive::implTick(Pos& p) {
   const bool attach = (p.attachMode^reverseState);
 
   if(p.started==NonStarted) {
+    const bool omit = (!isLadder() && reverseState && state>0);
+    if(omit) {
+      loopState = false;
+      p.started = Started;
+      return;
+      }
+
     // STAND -> S0
-    const bool omit = (!isLadder() && reverseState);
-    if(!omit && !setAnim(&npc, Anim::FromStand)) {
+    if(!setAnim(&npc, Anim::FromStand)) {
       // some  mobsi have no animations in G2 - ignore them
       p.started    = Quit;
       p.attachMode = false;
@@ -298,8 +304,7 @@ void Interactive::implTick(Pos& p) {
       }
 
     if(attach)
-      setState(std::min(stateNum,state+1));
-    else if(!omit)
+      setState(std::min(stateNum,state+1)); else
       setState(std::max(0,state-1));
 
     loopState = false;
@@ -471,6 +476,10 @@ std::string_view Interactive::posSchemeName() const {
 
 bool Interactive::isContainer() const {
   return vobType==phoenix::vob_type::oCMobContainer;
+  }
+
+bool Interactive::isDoor() const {
+  return vobType==phoenix::vob_type::oCMobDoor;
   }
 
 bool Interactive::isLadder() const {
@@ -690,11 +699,7 @@ bool Interactive::attach(Npc& npc, Interactive::Pos& to) {
   float x=0, y=0, z=0;
   mat.project(x,y,z);
 
-  Tempest::Vec3 mv = {x,y-npc.translateY(),z};
-  if(!npc.testMove(mv)) {
-    // FIXME: switches on stone-arks
-    // return false;
-    }
+  const Tempest::Vec3 mv = {x,y-npc.translateY(),z};
 
   if((npc.position()-mv).quadLength()>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) {
     if(npc.isPlayer()) {
@@ -713,7 +718,9 @@ bool Interactive::attach(Npc& npc, Interactive::Pos& to) {
     npc.setCurrentItem(it);
     }
 
-  setPos(npc,mv);
+  if(!setPos(npc,mv))
+    return false;
+
   setDir(npc,mat);
 
   if(vobType==phoenix::vob_type::oCMobLadder) {
@@ -788,8 +795,15 @@ bool Interactive::isAttached(const Npc& to) {
   return false;
   }
 
-void Interactive::setPos(Npc &npc,const Tempest::Vec3& pos) {
+bool Interactive::setPos(Npc &npc,const Tempest::Vec3& pos) {
+  auto prev = npc.position();
   npc.setPosition(pos);
+  world.script().fixNpcPosition(npc,0,0);
+  if(npc.hasCollision()) {
+    npc.setPosition(prev);
+    return false;
+    }
+  return true;
   }
 
 void Interactive::setDir(Npc &npc, const Tempest::Matrix4x4 &mat) {

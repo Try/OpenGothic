@@ -56,6 +56,7 @@ class Interactive : public Vob {
     std::string_view    posSchemeName() const;
 
     bool                isContainer() const;
+    bool                isDoor() const;
     bool                isLadder() const;
     std::string_view    pickLockCode() const { return pickLockStr; }
     void                setAsCracked(bool c) { isLockCracked = c; }
@@ -111,7 +112,7 @@ class Interactive : public Vob {
     void                invokeStateFunc(Npc &npc);
     void                implTick(Pos &p);
     void                implQuitInteract(Pos &p);
-    void                setPos(Npc& npc, const Tempest::Vec3& pos);
+    bool                setPos(Npc& npc, const Tempest::Vec3& pos);
     void                setDir(Npc& npc,const Tempest::Matrix4x4& mt);
     bool                attach(Npc& npc,Pos& to);
     void                implAddItem(std::string_view name);
