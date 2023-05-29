@@ -196,9 +196,11 @@ class GameScript final {
 
     Item* findItem(phoenix::c_item* handle);
     Item* findItemById(size_t id);
+    Item* findItemById(const std::shared_ptr<phoenix::instance>& handle);
     Npc*  findNpc(phoenix::symbol* s);
     Npc*  findNpc(phoenix::c_npc*   handle);
     Npc*  findNpc(const std::shared_ptr<phoenix::c_npc>& handle);
+    Npc*  findNpcById (const std::shared_ptr<phoenix::instance>& handle);
     Npc*  findNpcById (size_t id);
     auto  findInfo    (size_t id) -> phoenix::c_info*;
     auto  findFocus(std::string_view name) -> phoenix::c_focus;

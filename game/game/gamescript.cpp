@@ -1299,6 +1299,16 @@ Npc* GameScript::findNpc(const std::shared_ptr<phoenix::c_npc>& handle) {
   return reinterpret_cast<Npc*>(handle->user_ptr);
   }
 
+Npc* GameScript::findNpcById(const std::shared_ptr<phoenix::instance>& handle) {
+  if(handle==nullptr)
+    return nullptr;
+  if(auto npc = dynamic_cast<const phoenix::c_npc*>(handle.get())) {
+    assert(npc->user_ptr); // engine bug, if null
+    return reinterpret_cast<Npc*>(npc->user_ptr);
+    }
+  return findNpcById(handle->symbol_index());
+  }
+
 Item *GameScript::findItem(phoenix::c_item* handle) {
   if(handle==nullptr)
     return nullptr;
@@ -1313,6 +1323,16 @@ Item *GameScript::findItemById(size_t id) {
     return nullptr;
   auto hnpc = reinterpret_cast<phoenix::c_item*>(handle->get_instance().get());
   return findItem(hnpc);
+  }
+
+Item* GameScript::findItemById(const std::shared_ptr<phoenix::instance>& handle) {
+  if(handle==nullptr)
+    return nullptr;
+  if(auto npc = dynamic_cast<const phoenix::c_item*>(handle.get())) {
+    assert(npc->user_ptr); // engine bug, if null
+    return reinterpret_cast<Item*>(npc->user_ptr);
+    }
+  return findItemById(handle->symbol_index());
   }
 
 Npc* GameScript::findNpcById(size_t id) {
@@ -1419,11 +1439,11 @@ void GameScript::wld_playeffect(std::string_view visual, std::shared_ptr<phoenix
     return;
     }
 
-  auto dstNpc = findNpcById(targetId->symbol_index());
-  auto srcNpc = findNpcById(sourceId->symbol_index());
+  auto dstNpc = findNpcById(targetId);
+  auto srcNpc = findNpcById(sourceId);
 
-  auto dstItm = findItemById(targetId->symbol_index());
-  auto srcItm = findItemById(sourceId->symbol_index());
+  auto dstItm = findItemById(targetId);
+  auto srcItm = findItemById(sourceId);
 
   if(srcNpc!=nullptr && dstNpc!=nullptr) {
     srcNpc->startEffect(*dstNpc,*vfx);
