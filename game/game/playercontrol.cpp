@@ -103,7 +103,8 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
     }
 
   // this odd behaviour is from original game, seem more like a bug
-  const bool actTunneling = (pl!=nullptr && pl->isAttackAnim());
+  // const bool actTunneling = (pl!=nullptr && pl->isAttackAnim());
+  const bool actTunneling = false;
 
   int fk = -1;
   if((ctrl[KeyCodec::ActionGeneric] || actTunneling) && !g2Ctrl) {
