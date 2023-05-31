@@ -576,6 +576,7 @@ void Npc::onNoHealth(bool death, HitSound sndMask) {
 
   setOther(lastHit);
   clearAiQueue();
+  attachToPoint(nullptr);
 
   const char* svm   = death ? "SVM_%d_DEAD" : "SVM_%d_AARGH";
   const char* state = death ? "ZS_Dead"     : "ZS_Unconscious";
