@@ -155,10 +155,9 @@ void SceneGlobals::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
   static_assert(sizeof(UboGlobal)%sizeof(uint32_t)==0);
 
   auto& pso = Shaders::inst().copyBuf;
-  const uint32_t size = sizeof(UboGlobal)/sizeof(uint32_t);
   for(uint8_t lay=0; lay<V_Count; ++lay) {
-    cmd.setUniforms(pso, uboCopy[fId][lay], &size, sizeof(size));
-    cmd.dispatchThreads(size);
+    cmd.setUniforms(pso, uboCopy[fId][lay]);
+    cmd.dispatchThreads(sizeof(UboGlobal)/sizeof(uint32_t));
     }
   }
 
