@@ -3469,7 +3469,7 @@ bool Npc::tickCast(uint64_t dt) {
   if(owner.version().game==1) {
     changeAttribute(ATR_MANA,-1,false);
     if(attribute(ATR_MANA)==0 && code!=SpellCode::SPL_SENDCAST) {
-      endCastSpell(true);
+      releaseSpell();
       return true;
       }
     }
@@ -3501,18 +3501,21 @@ bool Npc::tickCast(uint64_t dt) {
   return true;
   }
 
-void Npc::endCastSpell(bool abort) {
+void Npc::endCastSpell() {
   int32_t castLvl = int(castLevel)-int(CS_Invest_0);
   if(castLvl<0)
     return;
-  if(abort) {
-    const SpellCode code = SpellCode(owner.script().invokeManaRelease(*this,currentTarget,manaInvested));
-    if(code==SpellCode::SPL_SENDSTOP) {
-      castLevel = CS_Finalize;
-      return;
-      }
-    }
   castLevel = CastState(castLvl+CS_Cast_0);
+  }
+
+void Npc::releaseSpell() {
+  int32_t castLvl = int(castLevel)-int(CS_Invest_0);
+  if(castLvl<0)
+    return;
+  SpellCode code = SpellCode(owner.script().invokeManaRelease(*this,currentTarget,manaInvested));
+  if(code==SpellCode::SPL_SENDCAST)
+    castLevel = CastState(castLvl+CS_Cast_0); else
+    castLevel = CS_Finalize;
   }
 
 void Npc::setActiveSpellInfo(int32_t info) {

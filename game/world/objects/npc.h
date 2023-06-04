@@ -254,7 +254,8 @@ class Npc final {
     bool      swingSwordR();
     bool      blockSword();
     bool      beginCastSpell();
-    void      endCastSpell(bool abort = false);
+    void      endCastSpell();
+    void      releaseSpell();
     void      setActiveSpellInfo(int32_t info);
     int32_t   activeSpellLevel() const;
     bool      castSpell();
