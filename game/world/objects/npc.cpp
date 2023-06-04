@@ -194,7 +194,7 @@ void Npc::save(Serialize &fout, size_t id) {
   if(currentSpellCast<uint32_t(-1))
     fout.write(uint32_t(currentSpellCast)); else
     fout.write(uint32_t(-1));
-  fout.write(uint8_t(castLevel),castNextTime);
+  fout.write(uint8_t(castLevel),castNextTime,manaInvested);
   fout.write(spellInfo);
 
   saveTrState(fout);
@@ -253,6 +253,8 @@ void Npc::load(Serialize &fin, size_t id) {
   currentSpellCast = (currentSpellCastU32==uint32_t(-1) ? size_t(-1) : currentSpellCastU32);
   }
   fin.read(reinterpret_cast<uint8_t&>(castLevel),castNextTime,spellInfo);
+  if(fin.version()>43)
+    fin.read(manaInvested);
   loadTrState(fin);
   loadAiState(fin);
 
@@ -3478,7 +3480,7 @@ bool Npc::tickCast(uint64_t dt) {
     case SpellCode::SPL_NEXTLEVEL: {
       if(castLvl<=15)
         castLevel = CastState(castLevel+1);
-        }
+      }
     case SpellCode::SPL_RECEIVEINVEST:
     case SpellCode::SPL_STATUS_CANINVEST_NO_MANADEC: {
       auto& spl = owner.script().spellDesc(active->spellId());
