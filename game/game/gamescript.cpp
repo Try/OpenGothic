@@ -2792,7 +2792,7 @@ void GameScript::ai_readyrangedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
 
 void GameScript::ai_readyspell(std::shared_ptr<phoenix::c_npc> npcRef, int spell, int mana) {
   auto npc = findNpc(npcRef);
-  if(npc!=nullptr)
+  if(npc!=nullptr && mana>0)
     npc->aiPush(AiQueue::aiReadySpell(spell,mana));
   }
 

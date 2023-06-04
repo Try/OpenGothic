@@ -552,6 +552,7 @@ class Npc final {
     // spell cast
     CastState                      castLevel        = CS_NoCast;
     int32_t                        manaInvested     = 0;
+    int32_t                        spellMana        = 1;
     size_t                         currentSpellCast = size_t(-1);
     uint64_t                       castNextTime     = 0;
     int32_t                        spellInfo        = 0;

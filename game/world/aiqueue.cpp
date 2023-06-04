@@ -244,10 +244,11 @@ AiQueue::AiAction AiQueue::aiReadyRangeWeapon() {
   return a;
   }
 
-AiQueue::AiAction AiQueue::aiReadySpell(int32_t spell,int32_t /*mana*/) {
+AiQueue::AiAction AiQueue::aiReadySpell(int32_t spell,int32_t mana) {
   AiAction a;
   a.act = AI_DrawSpell;
   a.i0  = spell;
+  a.i1  = mana;
   return a;
   }
 

@@ -194,7 +194,7 @@ void Npc::save(Serialize &fout, size_t id) {
   if(currentSpellCast<uint32_t(-1))
     fout.write(uint32_t(currentSpellCast)); else
     fout.write(uint32_t(-1));
-  fout.write(uint8_t(castLevel),castNextTime,manaInvested);
+  fout.write(uint8_t(castLevel),castNextTime,manaInvested,spellMana);
   fout.write(spellInfo);
 
   saveTrState(fout);
@@ -254,7 +254,7 @@ void Npc::load(Serialize &fin, size_t id) {
   }
   fin.read(reinterpret_cast<uint8_t&>(castLevel),castNextTime,spellInfo);
   if(fin.version()>43)
-    fin.read(manaInvested);
+    fin.read(manaInvested,spellMana);
   loadTrState(fin);
   loadAiState(fin);
 
@@ -2327,7 +2327,8 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         const int32_t spell = act.i0;
         fghAlgo.onClearTarget();
         if(!drawSpell(spell))
-          queue.pushFront(std::move(act));
+          queue.pushFront(std::move(act)); else
+          spellMana = act.i1;
         }
       break;
       }
@@ -3474,6 +3475,11 @@ bool Npc::tickCast(uint64_t dt) {
       }
     }
 
+  if(!isPlayer() && spellMana<=manaInvested && code!=SpellCode::SPL_SENDCAST) {
+    releaseSpell();
+    return true;
+    }
+
   int32_t castLvl = int(castLevel)-int(CS_Invest_0);
 
   switch(code) {
@@ -3531,9 +3537,8 @@ int32_t Npc::activeSpellLevel() const {
   }
 
 bool Npc::castSpell() {
-  if(!beginCastSpell())
-    return true;
-  endCastSpell();
+  if(beginCastSpell())
+    return false;
   return true;
   }
 
