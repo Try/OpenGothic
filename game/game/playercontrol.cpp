@@ -711,6 +711,30 @@ void PlayerControl::implMove(uint64_t dt) {
       }
     }
 
+  if(ws==WeaponState::Mage) {
+    if(actrl[ActGeneric] || actrl[ActForward]) {
+      if(auto other = pl.target()) {
+        auto dp = other->position()-pl.position();
+        pl.turnTo(dp.x,dp.z,false,dt);
+        } else
+      if(currentFocus.interactive!=nullptr) {
+        auto dp = currentFocus.interactive->position()-pl.position();
+        pl.turnTo(dp.x,dp.z,false,dt);
+        }
+
+      if(actrl[ActLeft]) {
+        moveFocus(ActLeft);
+        actrl[ActLeft]  = false;
+        }
+      if(actrl[ActRight]) {
+        moveFocus(ActRight);
+        actrl[ActRight]  = false;
+        }
+      if(!actrl[ActForward])
+        return;
+      }
+    }
+
   if(actrl[ActForward] || actrl[ActMove]) {
     ctrl [Action::Forward] = actrl[ActMove];
     actrl[ActMove]         = false;
@@ -734,8 +758,8 @@ void PlayerControl::implMove(uint64_t dt) {
         }
       case WeaponState::Mage: {
         casting = pl.beginCastSpell();
-        if(!casting)
-          actrl[ActForward] = false;
+        actrl[ActForward] = false;
+        return;
         }
       }
     }
