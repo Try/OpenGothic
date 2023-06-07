@@ -194,7 +194,7 @@ void Npc::save(Serialize &fout, size_t id) {
   if(currentSpellCast<uint32_t(-1))
     fout.write(uint32_t(currentSpellCast)); else
     fout.write(uint32_t(-1));
-  fout.write(uint8_t(castLevel),castNextTime,manaInvested,spellMana);
+  fout.write(uint8_t(castLevel),castNextTime,manaInvested,aiExpectedInvest);
   fout.write(spellInfo);
 
   saveTrState(fout);
@@ -254,7 +254,7 @@ void Npc::load(Serialize &fin, size_t id) {
   }
   fin.read(reinterpret_cast<uint8_t&>(castLevel),castNextTime,spellInfo);
   if(fin.version()>43)
-    fin.read(manaInvested,spellMana);
+    fin.read(manaInvested,aiExpectedInvest);
   loadTrState(fin);
   loadAiState(fin);
 
@@ -1490,7 +1490,7 @@ bool Npc::implAttack(uint64_t dt) {
       }
 
     if(ws==WeaponState::Mage) {
-      if(castSpell())
+      if(!beginCastSpell())
         fghAlgo.consumeAction();
       setAnimRotate(0);
       }
@@ -2326,9 +2326,9 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       if(!isDead()) {
         const int32_t spell = act.i0;
         fghAlgo.onClearTarget();
-        if(!drawSpell(spell))
-          queue.pushFront(std::move(act)); else
-          spellMana = act.i1;
+        if(drawSpell(spell))
+          aiExpectedInvest = act.i1; else
+          queue.pushFront(std::move(act));
         }
       break;
       }
@@ -3469,14 +3469,12 @@ bool Npc::tickCast(uint64_t dt) {
 
   if(owner.version().game==1) {
     changeAttribute(ATR_MANA,-1,false);
-    if(attribute(ATR_MANA)==0 && code!=SpellCode::SPL_SENDCAST) {
-      releaseSpell();
-      return true;
-      }
+    if(!isPlayer() && code!=SpellCode::SPL_SENDCAST)
+      assert(attribute(ATR_MANA)>0);
     }
 
-  if(!isPlayer() && spellMana<=manaInvested && code!=SpellCode::SPL_SENDCAST) {
-    releaseSpell();
+  if(!isPlayer() && aiExpectedInvest<=manaInvested) {
+    endCastSpell();
     return true;
     }
 
@@ -3507,17 +3505,14 @@ bool Npc::tickCast(uint64_t dt) {
   return true;
   }
 
-void Npc::endCastSpell() {
-  int32_t castLvl = int(castLevel)-int(CS_Invest_0);
-  if(castLvl<0)
+void Npc::endCastSpell(bool playerCtrl) {
+  if(castLevel<CS_Invest_0 || castLevel>CS_Invest_Last)
     return;
-  castLevel = CastState(castLvl+CS_Cast_0);
-  }
-
-void Npc::releaseSpell() {
   int32_t castLvl = int(castLevel)-int(CS_Invest_0);
-  if(castLvl<0)
+  if(!playerCtrl) {
+    castLevel = CastState(castLvl+CS_Cast_0);
     return;
+    }
   SpellCode code = SpellCode(owner.script().invokeManaRelease(*this,currentTarget,manaInvested));
   if(code==SpellCode::SPL_SENDCAST)
     castLevel = CastState(castLvl+CS_Cast_0); else
@@ -3534,12 +3529,6 @@ int32_t Npc::activeSpellLevel() const {
   if(CS_Invest_0<=castLevel && castLevel<=CS_Invest_Last)
     return int(castLevel)-int(CS_Invest_0)+1;
   return 0;
-  }
-
-bool Npc::castSpell() {
-  if(beginCastSpell())
-    return false;
-  return true;
   }
 
 bool Npc::aimBow() {
