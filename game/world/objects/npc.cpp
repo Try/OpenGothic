@@ -436,13 +436,14 @@ float Npc::angleDir(float x, float z) {
 
 bool Npc::resetPositionToTA() {
   const auto npcType   = hnpc->type;
+  const bool g2        = owner.version().game==2;
   const bool isMainNpc = (npcType==phoenix::npc_type::main ||
-                          npcType==phoenix::npc_type::g2_oc_main ||
-                          npcType==phoenix::npc_type::g2_bl_main);
+                         (g2 && (npcType==phoenix::npc_type::g2_oc_main ||
+                          npcType==phoenix::npc_type::g2_bl_main)));
   const bool isDead = this->isDead();
 
   if(isDead && !isMainNpc && !invent.hasMissionItems()) {
-    const bool isDragon         = (owner.version().game==2 && guild()==GIL_DRAGON);
+    const bool isDragon         = (g2 && guild()==GIL_DRAGON);
     const bool isBackgroundBody = (hnpc->attribute[ATR_HITPOINTSMAX]==1);
     if(!isBackgroundBody && !isDragon)
       return false;
@@ -1239,7 +1240,9 @@ void Npc::setAttitude(Attitude att) {
   }
 
 bool Npc::isFriend() const {
-  return hnpc->type==phoenix::npc_type::g2_friend;
+  bool g2 = owner.version().game==2;
+  return ( g2 && hnpc->type==phoenix::npc_type::g2_friend) ||
+         (!g2 && hnpc->type==phoenix::npc_type::g1_friend);
   }
 
 void Npc::setTempAttitude(Attitude att) {
