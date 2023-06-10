@@ -211,7 +211,7 @@ void PlayerControl::onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping)
     }
 
   auto ws = pl==nullptr ? WeaponState::NoWeapon : pl->weaponState();
-  if(ws==WeaponState::Bow || ws==WeaponState::CBow) {
+  if(ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage) {
     if(a==KeyCodec::ActionGeneric)
       std::memset(actrl,0,sizeof(actrl));
     } else {
