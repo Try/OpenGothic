@@ -539,10 +539,13 @@ void Pose::processPfx(MdlVisual& visual, World& world, uint64_t tickCount) {
   }
 
 bool Pose::processEvents(uint64_t &barrier, uint64_t now, Animation::EvCount &ev) const {
-  if(hasEvents>0) {
-    for(auto& i:lay)
-      i.seq->processEvents(barrier,i.sAnim,now,ev);
+  if(hasEvents==0) {
+    barrier=now;
+    return false;
     }
+
+  for(auto& i:lay)
+    i.seq->processEvents(barrier,i.sAnim,now,ev);
   barrier=now;
   return hasEvents>0;
   }

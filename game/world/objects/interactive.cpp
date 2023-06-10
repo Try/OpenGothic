@@ -346,8 +346,10 @@ void Interactive::implTick(Pos& p) {
   if(state==stateNum && attach)
     dir = Anim::Active;
 
-  if(!setAnim(&npc, dir))
-    return;
+  if(!loopState) {
+    if(!setAnim(&npc, dir))
+      return;
+    }
 
   if(state==0 && p.attachMode) {
     npc.world().sendPassivePerc(npc,npc,npc,PERC_ASSESSUSEMOB);
@@ -774,11 +776,13 @@ bool Interactive::detach(Npc &npc, bool quick) {
           }
         i.user       = nullptr;
         i.attachMode = false;
+        loopState    = false;
         npc.quitInteraction();
         return true;
         }
       else {
         i.attachMode = false;
+        loopState    = false;
         return false;
         }
       return false;

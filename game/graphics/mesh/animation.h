@@ -34,8 +34,8 @@ class Animation final {
       uint8_t                        def_opt_frame=0;
       uint8_t                        groundSounds=0;
       phoenix::mds::event_fight_mode weaponCh = phoenix::mds::event_fight_mode::invalid;
-      std::vector<EvTimed> timed;
-      std::vector<EvMorph> morph;
+      std::vector<EvTimed>           timed;
+      std::vector<EvMorph>           morph;
       };
 
     struct AnimData final {
@@ -129,6 +129,7 @@ class Animation final {
     Sequence&          loadMAN(const phoenix::mds::animation& hdr, std::string_view name);
     void               setupIndex();
 
+    mutable const Sequence*                     sqHot = nullptr;
     std::vector<Sequence>                       sequences;
     std::vector<phoenix::mds::animation_alias>  ref;
     std::vector<std::string>                    mesh;

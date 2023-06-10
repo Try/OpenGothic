@@ -290,13 +290,12 @@ void Renderer::setupTlas(const Tempest::AccelerationStructure* tlas) {
     }
 
   if(shadow.composePso==&Shaders::inst().shadowResolveRq) {
+    shadow.ubo.set(6, *scene.tlas);
     shadow.ubo.set(7, Sampler::bilinear());
     shadow.ubo.set(8, scene.bindless.tex);
     shadow.ubo.set(9, scene.bindless.vbo);
     shadow.ubo.set(10,scene.bindless.ibo);
     shadow.ubo.set(11,scene.bindless.iboOffset);
-
-    shadow.ubo.set(6, *scene.tlas);
     }
   }
 

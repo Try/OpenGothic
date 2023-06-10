@@ -76,12 +76,16 @@ Animation::Animation(phoenix::model_script &p, std::string_view name, const bool
   }
 
 const Animation::Sequence* Animation::sequence(std::string_view name) const {
+  if(sqHot!=nullptr && sqHot->name==name)
+    return sqHot;
   auto it = std::lower_bound(sequences.begin(),sequences.end(),name,[](const Sequence& s,std::string_view n){
     return s.name<n;
     });
 
-  if(it!=sequences.end() && it->name==name)
+  if(it!=sequences.end() && it->name==name) {
+    sqHot = &(*it);
     return &(*it);
+    }
   return nullptr;
   }
 

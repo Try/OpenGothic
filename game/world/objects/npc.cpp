@@ -991,6 +991,8 @@ bool Npc::hasSwimAnimations() const {
   }
 
 bool Npc::isFinishingMove() const {
+  if(weaponState()==WeaponState::NoWeapon)
+    return false;
   return visual.pose().isInAnim("T_1HSFINISH") || visual.pose().isInAnim("T_2HSFINISH");
   }
 
