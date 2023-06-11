@@ -1,11 +1,9 @@
 #version 460
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_control_flow_attributes : enable
 
-#if defined(RAY_QUERY)
-#extension GL_EXT_ray_query : enable
-#endif
-
+#include "scene.glsl"
 #include "common.glsl"
 
 layout(local_size_x = 8, local_size_y = 8) in;
@@ -21,11 +19,12 @@ layout(binding  = 1) uniform sampler2D diffuse;
 layout(binding  = 2) uniform sampler2D normals;
 layout(binding  = 3) uniform sampler2D depthBuf;
 
-#if defined(RAY_QUERY)
-layout(binding  = 4) uniform accelerationStructureEXT topLevelAS;
-#endif
+layout(binding  = 4, std140) uniform UboScene {
+  SceneDesc scene;
+  };
 
 const uint  numSamples = 32;
+const uint  numIter    = 8;
 const float sphereLen  = 100;
 
 ivec2 fragCoord;
@@ -33,6 +32,7 @@ ivec2 screenSize;
 mat3  tangent;
 
 shared uint vMin, vMax, vDiff;
+shared uint shMaxSteps;
 
 bool isSolved(float occlusion, float dx) {
   vMin  = 256;
@@ -113,60 +113,30 @@ float sampleRadius(uint i, uint maxSmp) {
   return 0.5+float(i)/float(2*maxSmp);
   }
 
-#if defined(RAY_QUERY)
-bool rayTest(vec3 pos0, vec3 dp, float tMin, inout float len) {
-  float rayDistance  = len;
-  vec3  rayDirection = normalize(dp);
-  if(rayDistance<=tMin)
-    return true;
-
-  //uint flags = gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsCullNoOpaqueEXT;
-  uint flags = gl_RayFlagsOpaqueEXT;
-  rayQueryEXT rayQuery;
-  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
-                        pos0, tMin, rayDirection, rayDistance);
-
-  while(rayQueryProceedEXT(rayQuery))
-    ;
-
-  if(rayQueryGetIntersectionTypeEXT(rayQuery, true)==gl_RayQueryCommittedIntersectionNoneEXT)
-    return false;
-
-  len = rayQueryGetIntersectionTEXT(rayQuery, true);
-  return true;
-  }
-#endif
-
 vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, uint step) {
   float occlusion = 0, weightAll = 0;
 
-  for(uint i=seed; i<numSamples; i+=step) {
+  const uint maxStep = numSamples/numIter;
+
+  [[unroll]]
+  for(uint i0=0; i0<maxStep; ++i0) {
+    uint  i      = i0*step + seed;
     float r      = sampleRadius(i,numSamples);
     vec3  h      = sampleHemisphere(i,numSamples,f0);
 
     vec3  v      = tangent * h;
     vec3  at1    = project(pos0 + v*sphereLen*r);
     if(abs(at1.x)>1.0 || abs(at1.y)>1.0) {
-#if defined(RAY_QUERY)
-      vec3  pos1   = pos0 + v*sphereLen*r;
-      vec3  dp     = (pos1-pos0);
-      float len    = sphereLen*r;
-      bool  isHit  = (rayTest(pos0,v,sphereLen*0.1,len));
-
-      float lenQ   = len*len;
-      float angW   = h.z;                                   // angle attenuation.
-      float distW  = 1.0-min(lenQ/(sphereLen*sphereLen),1); // distance attenuation
-      if(isHit)
-        occlusion += angW*distW;
-      weightAll += distW;
-#endif
       continue;
       }
+
     float z      = readZ(at1.xy);
     vec3  at2    = vec3(at1.xy,z);
-    vec3  pos2   = inverse(at2);
-    vec3  dp     = (pos2-pos0);
-    bool  isHit  = (z<at1.z);
+    vec4  pos2   = mvpInv*vec4(at2,1.0);
+    pos2.xyz     = (pos2.xyz/pos2.w);
+
+    vec3  dp     = (pos2.xyz-pos0);
+    bool  isHit  = floor(z*32768.0) < floor(at1.z*32768.0);
 
     float lenQ   = dot(dp,dp);
     float angW   = h.z;                                   // angle attenuation.
@@ -179,7 +149,31 @@ vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, 
   return vec2(occlusion,weightAll);
   }
 
+int estimateMaxSteps(float z) {
+  if(z>=0.9995)
+    return 0; // sky
+
+  // NOTE: manual tuning been here
+  const float depth = linearDepth(z, scene.clipInfo);
+  if(depth < 0.25)
+    return 4;
+  if(depth < 0.5)
+    return 5;
+  if(depth <= 1)
+    return 8;
+  if(depth <= 1.5)
+    return 7;
+  if(depth <= 2)
+    return 6;
+  if(depth <= 7.0)
+     return 2;
+  return 1;
+  }
+
 void main() {
+  shMaxSteps = 0;
+  barrier();
+
   screenSize = ivec2(textureSize(depthBuf,0));
   fragCoord  = ivec2(gl_GlobalInvocationID.xy);
 
@@ -203,30 +197,23 @@ void main() {
   const uint  h0    = hash(fragCoord);
   const float f0    = M_PI*2.0*floatConstruct(h0);
 
-  int  maxSteps = 8;
-  bool eval     = true;
+  int maxSteps = estimateMaxSteps(at0.z);
+  atomicMax(shMaxSteps, maxSteps);
+  barrier();
+  // maxSteps = int(shMaxSteps);
 
-  // TODO: linear depth
-  {
-    if(at0.z>=0.9995)
-      eval = false; // sky
-    if(at0.z>=0.998)
-      maxSteps = 4; // far distance
-    if(at0.z<=0.970)
-      maxSteps = 4; // too close distance
-  }
-
-  int dbg = 0;
-  for(int i=0; i<8; ++i) {
-    if(valid && eval && i<maxSteps) {
-      dbg = i;
+  int  dbg  = 0;
+  bool eval = valid;
+  for(int i=0; i<shMaxSteps; ++i) {
+    if(eval && i<maxSteps) {
+      dbg       = i+1;
       prev      = occlusion;
-      occ      += calcOcclussion(at0, pos0, f0, i, 8);
+      occ      += calcOcclussion(at0, pos0, f0, i, numIter);
       occlusion = (occ.x/occ.y)*M_PI;
       }
+
     if(i==0)
       continue;
-
     if(isSolved(occlusion, abs(occlusion-prev))) {
       // NOTE: 'break' here cause device-lost on Intel O_o
       eval = false;

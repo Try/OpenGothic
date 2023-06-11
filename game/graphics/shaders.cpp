@@ -83,10 +83,7 @@ Shaders::Shaders() {
 
   stash = postEffect("stash");
 
-  ssao  = computeShader("ssao.comp.sprv");
-  if(Gothic::inst().doRayQuery())
-    ssaoRq = computeShader("ssao_rq.comp.sprv");
-
+  ssao               = computeShader("ssao.comp.sprv");
   ambientCompose     = ambientLightShader("ssao_compose");
   ambientComposeSsao = ambientLightShader("ssao_compose_ssao");
 

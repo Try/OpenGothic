@@ -211,6 +211,7 @@ void Renderer::prepareUniforms() {
   ssao.uboSsao.set(1, gbufDiffuse, smpN);
   ssao.uboSsao.set(2, gbufNormal,  smpN);
   ssao.uboSsao.set(3, zbuffer,     smpN);
+  ssao.uboSsao.set(4, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
 
   ssao.uboCompose.set(0, gbufDiffuse,  smpN);
   ssao.uboCompose.set(1, gbufNormal,   smpN);
@@ -284,10 +285,6 @@ void Renderer::setupTlas(const Tempest::AccelerationStructure* tlas) {
   auto& scene = wview->sceneGlobals();
   if(scene.tlas==nullptr)
     return;
-
-  if(false /*ssao.ssaoPso==&Shaders::inst().ssaoRq*/) {
-    ssao.uboSsao.set(5,wview->landscapeTlas());
-    }
 
   if(shadow.composePso==&Shaders::inst().shadowResolveRq) {
     shadow.ubo.set(6, *scene.tlas);

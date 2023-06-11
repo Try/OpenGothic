@@ -226,7 +226,6 @@ add_shader(copy.frag                 copy.frag "")
 add_shader(copy.comp                 copy.comp "")
 
 add_shader(ssao.comp                 ssao/ssao.comp "")
-add_shader(ssao_rq.comp              ssao/ssao.comp -DRAY_QUERY)
 
 add_shader(ssao_compose.vert         copy.vert -DHAS_UV)
 add_shader(ssao_compose.frag         ssao/ssao_compose.frag "")

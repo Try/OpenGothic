@@ -175,13 +175,19 @@ vec4  processVertex(out Varyings var, const uint objId, const uint meshletId, co
 
 #if defined(LVL_OBJECT)
 // 2D Polyhedral Bounds of a Clipped, Perspective-Projected 3D Sphere. Michael Mara, Morgan McGuire. 2013
+// https://zeux.io/2023/01/12/approximate-projected-bounds/
 // TODO: productize
-bool projectSphere(vec3 c, float r, out vec4 aabb) {
-  float P00   = 0; // scene.project[0][0];
-  float P11   = 0; // scene.project[1][1];
-  float znear = 0; // scene.clipInfo.w;
+bool projectSphere(vec3 c, float r, out vec4 aabb, out float depth) {
+  const float scale = 0.0009f;
+  const float zfar  = 85.0;
+  const float znear = 0.01; // scene.clipInfo.w;
+  const float  k    = zfar / (zfar - znear);
 
-  if(c.z < r + znear)
+  float P00   = scene.project[0][0];
+  float P11   = scene.project[1][1];
+  r *= scale;
+
+  if(c.z + r < znear)
     return false;
 
   vec3  cr   = c * r;
@@ -191,14 +197,15 @@ bool projectSphere(vec3 c, float r, out vec4 aabb) {
   float minx = (vx * c.x - cr.z) / (vx * c.z + cr.x);
   float maxx = (vx * c.x + cr.z) / (vx * c.z - cr.x);
 
-  float vy = sqrt(c.y * c.y + czr2);
+  float vy   = sqrt(c.y * c.y + czr2);
   float miny = (vy * c.y - cr.z) / (vy * c.z + cr.y);
   float maxy = (vy * c.y + cr.z) / (vy * c.z - cr.y);
 
-  aabb = vec4(minx * P00, miny * P11, maxx * P00, maxy * P11);
-  // clip space -> uv space
-  // aabb = aabb.xwzy * vec4(0.5f, -0.5f, 0.5f, -0.5f) + vec4(0.5f);
+  float camDepth = c.z - r;
 
+  depth = ((camDepth - znear) * k)/camDepth;
+  //znear / (c.z - r);
+  aabb  = vec4(minx * P00, miny * P11, maxx * P00, maxy * P11);
   return true;
   }
 
@@ -235,24 +242,25 @@ void dbgBbox(const uint objId) {
 
 void dbgSphere(const uint objId) {
   vec4 sphere = vec4(matrix[objId][3].xyz, bucket.bboxRadius);
-  sphere.xyz = (scene.viewProject*vec4(sphere.xyz,1)).xyz;
+  sphere.xyz = (scene.view*vec4(sphere.xyz,1)).xyz;
 
-  vec4 aabb;
-  if(!projectSphere(sphere.xyz,sphere.w,aabb))
+  vec4  aabb  = vec4(0);
+  float depth = 0;
+  if(!projectSphere(sphere.xyz,sphere.w,aabb,depth))
     return;
 
-  const ivec3 v[4] = {
-    {0,0,0},{1,0,0},{1,1,0},{0,1,0},
+  const ivec2 v[4] = {
+    {0,0},{0,1},{1,1},{1,0},
     };
   const int ibo[6] = {
-    0, 1, 3, 3, 1, 2,
+    0, 1, 2, 0, 2, 3,
     };
 
   for(int i=0; i<4; ++i) {
     vec4 trPos = vec4(0);
     trPos.x = mix(aabb.x, aabb.z, v[i].x);
     trPos.y = mix(aabb.y, aabb.w, v[i].y);
-    trPos.z = 0;
+    trPos.z = depth;
     trPos.w = 1;
 
     gl_MeshVerticesEXT[i].gl_Position = trPos;
@@ -260,8 +268,8 @@ void dbgSphere(const uint objId) {
     shOut             [i].uv          = vec2(0);
 #endif
     }
-  for(int i=0; i<6; i+=3) {
-    gl_PrimitiveTriangleIndicesEXT[i] = uvec3(ibo[i+0],ibo[i+1],ibo[i+2]);
+  for(int i=0; i<2; i++) {
+    gl_PrimitiveTriangleIndicesEXT[i] = uvec3(ibo[i*3+0],ibo[i*3+1],ibo[i*3+2]);
     }
   }
 #endif
@@ -353,7 +361,7 @@ void main() {
     }
 #endif
 
-#if 1 && defined(LVL_OBJECT) && !defined(DEPTH_ONLY) && (MESH_TYPE==T_SKINING)
+#if 0 && !defined(DEPTH_ONLY) && (MESH_TYPE==T_SKINING)
   // DEBUG CODE
   memoryBarrierShared();
   barrier();

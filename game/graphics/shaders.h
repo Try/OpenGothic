@@ -23,7 +23,7 @@ class Shaders {
     Tempest::RenderPipeline  stash;
 
     Tempest::RenderPipeline  ambientCompose, ambientComposeSsao;
-    Tempest::ComputePipeline ssao, ssaoRq;
+    Tempest::ComputePipeline ssao;
 
     Tempest::ComputePipeline irradiance;
 
