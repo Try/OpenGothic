@@ -203,7 +203,13 @@ const Tempest::Vec3 SceneGlobals::clipInfo() const {
   return uboGlobalCpu.clipInfo;
   }
 
-const Tempest::Matrix4x4  SceneGlobals::viewProjectLwcInv() const {
+const Tempest::Matrix4x4 SceneGlobals::viewProjectLwc() const {
+  auto m = proj;
+  m.mul(viewLwc);
+  return m;
+  }
+
+const Tempest::Matrix4x4 SceneGlobals::viewProjectLwcInv() const {
   auto m = proj;
   m.mul(viewLwc);
   m.inverse();

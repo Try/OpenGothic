@@ -43,6 +43,7 @@ class SceneGlobals final {
     const Tempest::Matrix4x4& viewShadow(uint8_t view) const;
     const Tempest::Vec3       clipInfo() const;
 
+    const Tempest::Matrix4x4  viewProjectLwc() const;
     const Tempest::Matrix4x4  viewProjectLwcInv() const;
 
     uint64_t                          tickCount = 0;
@@ -50,6 +51,7 @@ class SceneGlobals final {
 
     Tempest::Matrix4x4                view, proj;
     Tempest::Matrix4x4                viewLwc;
+    Tempest::Vec3                     originLwc;
 
     const Tempest::Texture2d*         sceneColor   = &Resources::fallbackBlack();
     const Tempest::Texture2d*         sceneDepth   = &Resources::fallbackBlack();

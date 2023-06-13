@@ -382,9 +382,9 @@ void LightGroup::preFrameUpdate(uint8_t fId) {
   fr.make(scene.viewProject(),1,1);
 
   Ubo ubo;
-  ubo.mvp    = scene.viewProject();
-  ubo.mvpInv = ubo.mvp;
-  ubo.mvpInv.inverse();
+  ubo.mvp       = scene.viewProject();
+  ubo.mvpLwcInv = scene.viewProjectLwcInv();
+  ubo.origin    = scene.originLwc;
   std::memcpy(ubo.fr,fr.f,sizeof(ubo.fr));
 
   uboBuf[fId].update(&ubo,0,1);

@@ -66,8 +66,9 @@ class LightGroup final {
 
     struct Ubo {
       Tempest::Matrix4x4 mvp;
-      Tempest::Matrix4x4 mvpInv;
+      Tempest::Matrix4x4 mvpLwcInv;
       float              fr[6][4] = {};
+      Tempest::Vec3      origin;
       };
 
     struct LightSsbo {

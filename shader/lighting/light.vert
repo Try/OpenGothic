@@ -13,8 +13,9 @@ struct LightSource {
 
 layout(binding = 3, std140) uniform Ubo {
   mat4  mvp;
-  mat4  mvpInv;
+  mat4  mvpLwcInv;
   vec4  fr[6];
+  vec3  origin; //lwc
   } ubo;
 
 layout(binding = 4, std140) readonly buffer SsboLighting {
@@ -23,9 +24,8 @@ layout(binding = 4, std140) readonly buffer SsboLighting {
 
 layout(location = 0) in  vec3 inPos;
 
-layout(location = 0) out vec4 scrPosition;
-layout(location = 1) out vec4 cenPosition;
-layout(location = 2) out vec3 color;
+layout(location = 0) out vec4 cenPosition;
+layout(location = 1) out vec3 color;
 
 vec3 v[8] = {
   {-1,-1,-1},
@@ -53,7 +53,6 @@ void main(void) {
   if(!testFrustrum(light.pos,light.range)) {
     // skip invisible lights, make sure that they don't turn into FQS
     gl_Position = vec4(0.0,0.0,-1.0,1.0);
-    scrPosition = vec4(0.0);
     cenPosition = vec4(0.0);
     color       = vec3(0.0);
     return;
@@ -78,8 +77,8 @@ void main(void) {
     pos = vec4(fsq.xy,0.0,1.0);
     }
 
+  //const vec3 origin = vec3(38983.9336, 4080.52637, -1888.59839);
   gl_Position = pos;
-  scrPosition = pos;
   cenPosition = vec4(light.pos,light.range);
   color       = light.color;
   }

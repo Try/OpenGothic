@@ -57,6 +57,7 @@ void WorldView::preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t
   sGlobal.setSky(gSky);
   sGlobal.setViewProject(camera.view(),camera.projective(),camera.zNear(),camera.zFar(),shadow);
   sGlobal.setViewLwc(camera.viewLwc(),camera.projective(),shadowLwc);
+  sGlobal.originLwc = camera.originLwc();
   sGlobal.setUnderWater(camera.isInWater());
 
   pfxGroup.tick(tickCount);

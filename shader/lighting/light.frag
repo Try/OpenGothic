@@ -24,8 +24,9 @@ layout(binding  = 2) uniform sampler2D depth;
 
 layout(binding  = 3, std140) uniform Ubo {
   mat4  mvp;
-  mat4  mvpInv;
+  mat4  mvpLwcInv;
   vec4  fr[6];
+  vec3  origin; //lwc
   } ubo;
 
 #if defined(RAY_QUERY)
@@ -40,9 +41,8 @@ layout(binding  = 9,  std430) readonly buffer Ibo { uint  index[];  } ibo[];
 layout(binding  = 10, std430) readonly buffer Off { uint  offset[]; } iboOff;
 #endif
 
-layout(location = 0) in vec4 scrPosition;
-layout(location = 1) in vec4 cenPosition;
-layout(location = 2) in vec3 color;
+layout(location = 0) in vec4 cenPosition;
+layout(location = 1) in vec3 color;
 
 #if defined(RAY_QUERY_AT)
 vec2 pullTexcoord(uint id, uint vboOffset) {
@@ -122,14 +122,14 @@ bool isShadow(vec3 rayOrigin, vec3 direction) {
   }
 
 void main(void) {
-  vec2 scr = scrPosition.xy/scrPosition.w;
-  vec2 uv  = scr*0.5+vec2(0.5);
+  vec2  scr = (gl_FragCoord.xy/vec2(textureSize(depth,0)))*2.0-1.0;
+  float z   = texelFetch(depth, ivec2(gl_FragCoord.xy), 0).x; //lwc?
 
-  float z  = texelFetch(depth, ivec2(gl_FragCoord.xy), 0).x;
-
-  vec4 pos = ubo.mvpInv*vec4(scr.x,scr.y,z,1.0);
+  vec4 pos = ubo.mvpLwcInv*vec4(scr.x,scr.y,z,1.0);
   pos.xyz/=pos.w;
-  vec3  ldir  = (pos.xyz-cenPosition.xyz);
+  pos.xyz += ubo.origin;
+
+  vec3 ldir = (pos.xyz-cenPosition.xyz);
   //float qDist = dot(ldir,ldir)/(cenPosition.w*cenPosition.w);
 
   const float distanceSquare = dot(ldir,ldir);
@@ -146,8 +146,6 @@ void main(void) {
 
   float lambert = max(0.0,-dot(normalize(ldir),normal));
   float light   = (lambert/max(factor, 0.05)) * (smoothFactor*smoothFactor);
-  //if(light<=0.001)
-  //  discard;
 
   pos.xyz  = pos.xyz+5.0*normal; //bias
   ldir = (pos.xyz-cenPosition.xyz);
