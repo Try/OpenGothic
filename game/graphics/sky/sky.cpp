@@ -68,7 +68,6 @@ Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest:
   transLut     = device.attachment(lutRGBFormat, 256, 64);
   multiScatLut = device.attachment(lutRGBFormat,  32, 32);
   viewLut      = device.attachment(Tempest::TextureFormat::RGBA32F, 128, 64);
-  fogLut       = device.attachment(lutRGBFormat, 256,128);
   Gothic::inst().onSettingsChanged.bind(this,&Sky::setupSettings);
   setupSettings();
   }
@@ -81,11 +80,11 @@ void Sky::setupSettings() {
   auto& device = Resources::device();
   bool  fog    = Gothic::inst().settingsGetI("RENDERER_D3D","zFogRadial")!=0;
 
-  auto q = Quality::Exponential;
+  auto q = Quality::VolumetricLQ;
   if(fog) {
     if(device.properties().hasStorageFormat(TextureFormat::R32U))
       q = Quality::VolumetricHQ; else
-      q = Quality::VolumetricLQ;
+      q = Quality::VolumetricMQ;
     }
 
   if(quality==q)
@@ -96,12 +95,13 @@ void Sky::setupSettings() {
 
   device.waitIdle();
   switch(quality) {
-    case Exponential:
-      fogLut3D     = StorageImage();
+    case None:
+    case VolumetricLQ:
+      fogLut3D     = device.image3d(lutRGBAFormat, 160, 90, 64);
       shadowDw     = StorageImage();
       occlusionLut = StorageImage();
       break;
-    case VolumetricLQ:
+    case VolumetricMQ:
       /* https://bartwronski.files.wordpress.com/2014/08/bwronski_volumetric_fog_siggraph2014.pdf
        * page 25 160*90*64 = ~720p
        */
@@ -304,14 +304,22 @@ void Sky::setupUbo() {
   uboSky.set(6,*cloudsNight().lay[0],smp);
   uboSky.set(7,*cloudsNight().lay[1],smp);
 
-  if(quality==Exponential) {
+  if(quality==VolumetricLQ) {
+    uboFogViewLut3d = device.descriptors(Shaders::inst().fogViewLut3dHQ);
+    uboFogViewLut3d.set(0, transLut,     smpB);
+    uboFogViewLut3d.set(1, multiScatLut, smpB);
+    uboFogViewLut3d.set(2, cloudsLut,    smpB);
+    uboFogViewLut3d.set(3, *scene.shadowMap[1], Resources::shadowSampler());
+    uboFogViewLut3d.set(4, fogLut3D);
+    uboFogViewLut3d.set(5, scene.uboGlobal[SceneGlobals::V_Main]);
+
     uboFog = device.descriptors(Shaders::inst().fog);
-    uboFog.set(0, fogLut,         smpB);
+    uboFog.set(0, fogLut3D, smpB);
     uboFog.set(1, *scene.zbuffer, Sampler::nearest()); // NOTE: wanna here depthFetch from gles2
     uboFog.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
     }
 
-  if(quality==VolumetricLQ) {
+  if(quality==VolumetricMQ) {
     uboShadowDw = device.descriptors(Shaders::inst().shadowDownsample);
     uboShadowDw.set(0, shadowDw);
     uboShadowDw.set(1, *scene.shadowMap[1],Resources::shadowSampler());
@@ -395,13 +403,14 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
   UboSky ubo = mkPush();
 
   switch(quality) {
-    case Exponential: {
-      cmd.setFramebuffer({{fogLut, Tempest::Discard, Tempest::Preserve}});
-      cmd.setUniforms(Shaders::inst().fogViewLut, uboFogViewLut, &ubo, sizeof(ubo));
-      cmd.draw(Resources::fsqVbo());
+    case None:
+    case VolumetricLQ: {
+      cmd.setFramebuffer({});
+      cmd.setUniforms(Shaders::inst().fogViewLut3dHQ, uboFogViewLut3d, &ubo, sizeof(ubo));
+      cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
       break;
       }
-    case VolumetricLQ: {
+    case VolumetricMQ: {
       cmd.setFramebuffer({});
       cmd.setUniforms(Shaders::inst().shadowDownsample, uboShadowDw);
       cmd.dispatchThreads(uint32_t(shadowDw.w()),uint32_t(shadowDw.h()));
@@ -411,7 +420,7 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
       break;
       }
     case VolumetricHQ: {
-      const bool persistent = true;
+      const bool persistent = false; // experimental
       cmd.setFramebuffer({});
       cmd.setUniforms(Shaders::inst().fogOcclusion, uboOcclusion, &ubo, sizeof(ubo));
       if(persistent) {
@@ -455,10 +464,11 @@ void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fI
 void Sky::drawFog(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
   UboSky ubo = mkPush();
   switch(quality) {
-    case Exponential:
+    case None:
+    case VolumetricLQ:
       cmd.setUniforms(Shaders::inst().fog,     uboFog,   &ubo, sizeof(ubo));
       break;
-    case VolumetricLQ:
+    case VolumetricMQ:
       cmd.setUniforms(Shaders::inst().fog3dLQ, uboFog3d, &ubo, sizeof(ubo));
       break;
     case VolumetricHQ:

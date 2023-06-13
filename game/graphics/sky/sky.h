@@ -42,8 +42,9 @@ class Sky final {
 
   private:
     enum Quality : uint8_t {
-      Exponential,
+      None,
       VolumetricLQ,
+      VolumetricMQ,
       VolumetricHQ,
       };
 
@@ -67,7 +68,7 @@ class Sky final {
     void                          setupSettings();
     void                          drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId, bool sun);
 
-    Quality                       quality = Quality::Exponential;
+    Quality                       quality = Quality::None;
 
     LightSource                   sun;
     Tempest::Vec3                 ambient;
@@ -75,7 +76,7 @@ class Sky final {
 
     Tempest::TextureFormat        lutRGBFormat  = Tempest::TextureFormat::R11G11B10UF;
     Tempest::TextureFormat        lutRGBAFormat = Tempest::TextureFormat::RGBA16F;
-    Tempest::Attachment           transLut, multiScatLut, viewLut, fogLut;
+    Tempest::Attachment           transLut, multiScatLut, viewLut;
     Tempest::StorageImage         cloudsLut, fogLut3D, shadowDw;
     Tempest::StorageImage         occlusionLut;
 

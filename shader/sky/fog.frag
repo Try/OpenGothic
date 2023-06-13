@@ -20,10 +20,8 @@ layout(location = 0) out vec4 outColor;
 
 #if defined(COMPUTE)
 // none
-#elif defined(VOLUMETRIC)
-layout(binding = 0) uniform sampler3D fogLut;
 #else
-layout(binding = 0) uniform sampler2D fogLut;
+layout(binding = 0) uniform sampler3D fogLut;
 #endif
 
 layout(binding = 1) uniform sampler2D depth;
@@ -53,42 +51,6 @@ float interleavedGradientNoise() {
   return interleavedGradientNoise(gl_FragCoord.xy);
 #endif
   }
-// based on: https://developer.amd.com/wordpress/media/2012/10/Wenzel-Real-time_Atmospheric_Effects_in_Games.pdf
-float volumetricFog(in vec3 pos, in vec3 pos1) {
-  vec3 dir = pos1-pos;
-  // Fog props
-  const float fogHeightDensityAtViewer = 0.5;
-  const float globalDensity            = 0.005;
-  const float heightFalloff            = 0.02;
-
-  // float fogHeightDensityAtViewer = exp(-heightFalloff * pos.z);
-  float fogInt = length(dir) * fogHeightDensityAtViewer;
-  if(abs(dir.y) > 0.01) {
-    float t = heightFalloff*dir.y;
-    fogInt *= (1.0-exp(-t))/t;
-    }
-
-  return exp(-globalDensity*fogInt);
-  }
-
-vec3 transmittance(vec3 pos0, vec3 pos1) {
-  const int   steps = 32;
-  vec3  transmittance = vec3(1.0);
-  vec3  dir  = pos1-pos0;
-  float dist = length(dir);
-  for(int i=1; i<=steps; ++i) {
-    float t      = (float(i)/steps);
-    float dt     = dist/steps;
-    vec3  newPos = pos0 + t*dir + vec3(0,RPlanet,0);
-    vec3  rayleighScattering = vec3(0);
-    vec3  extinction         = vec3(0);
-    float mieScattering      = float(0);
-    scatteringValues(newPos, 0, rayleighScattering, mieScattering, extinction);
-    transmittance *= exp(-dt*extinction);
-    }
-
-  return transmittance;
-  }
 
 #if defined(VOLUMETRIC_HQ)
 float shadowSample(in sampler2D shadowMap, vec2 shPos) {
@@ -117,38 +79,7 @@ vec3 project(mat4 m, vec3 pos) {
   return p.xyz/p.w;
   }
 
-#if defined(VOLUMETRIC_LQ)
-#define MAX_DEBUG_COLORS 10
-const vec3 debugColors[MAX_DEBUG_COLORS] = {
-  vec3(1,1,1),
-  vec3(1,0,0),
-  vec3(0,1,0),
-  vec3(0,0,1),
-  vec3(1,1,0),
-  vec3(1,0,1),
-  vec3(0,1,1),
-  vec3(1,0.5,0),
-  vec3(0.5,1,0),
-  vec3(0,0.5,1),
-  };
-
-vec4 fog(vec2 uv, float z) {
-  float dMin = 0;
-  float dMax = 0.9999;
-  float dZ   = linearDepth(   z, push.clipInfo);
-  float d0   = linearDepth(dMin, push.clipInfo);
-  float d1   = linearDepth(dMax, push.clipInfo);
-  float d    = (dZ-d0)/(d1-d0);
-  // return vec4(debugColors[min(int(d*textureSize(fogLut,0).z), textureSize(fogLut,0).z-1)%MAX_DEBUG_COLORS], 1);
-  // vec3  trans    = transmittance(pos0, posz);
-  // vec3  trans    = transmittance(pos0, pos1);
-  vec4  val      = textureLod(fogLut, vec3(uv,d), 0);
-  vec3  trans    = vec3(1.0-val.w);
-  float fogDens  = (trans.x+trans.y+trans.z)/3.0;
-  vec3  lum      = val.rgb;
-  return vec4(lum, fogDens);
-  }
-#elif defined(VOLUMETRIC_HQ)
+#if defined(VOLUMETRIC_HQ)
 vec4 fog(vec2 uv, float z) {
   const int   steps    = 32;
   const float noise    = interleavedGradientNoise()/steps;
@@ -230,25 +161,32 @@ vec4 fog(vec2 uv, float z) {
 #endif
   }
 #else
+#define MAX_DEBUG_COLORS 10
+const vec3 debugColors[MAX_DEBUG_COLORS] = {
+  vec3(1,1,1),
+  vec3(1,0,0),
+  vec3(0,1,0),
+  vec3(0,0,1),
+  vec3(1,1,0),
+  vec3(1,0,1),
+  vec3(0,1,1),
+  vec3(1,0.5,0),
+  vec3(0.5,1,0),
+  vec3(0,0.5,1),
+  };
+
 vec4 fog(vec2 uv, float z) {
-  float dMin = 0.0;
-  float dMax = 1.0;
-
-  float dZ      = linearDepth(   z, push.clipInfo);
-  float d0      = linearDepth(dMin, push.clipInfo);
-  float d1      = linearDepth(dMax, push.clipInfo);
-  float d       = (dZ-d0)/(d1-d0);
-
-  vec3  pos0    = inverse(vec3(inPos,0));
-  vec3  posz    = inverse(vec3(inPos,z));
-
-  vec3  val     = textureLod(fogLut, uv, 0).rgb;
-  vec3  trans   = vec3(1.0)-transmittance(pos0, posz);
-  float fogDens = (trans.x+trans.y+trans.z)/3.0;
-
+  float dMin = 0;
+  float dMax = 0.9999;
+  float dZ   = linearDepth(   z, push.clipInfo);
+  float d0   = linearDepth(dMin, push.clipInfo);
+  float d1   = linearDepth(dMax, push.clipInfo);
+  float d    = (dZ-d0)/(d1-d0);
+  // return vec4(debugColors[min(int(d*textureSize(fogLut,0).z), textureSize(fogLut,0).z-1)%MAX_DEBUG_COLORS], 1);
+  vec4  val      = textureLod(fogLut, vec3(uv,d), 0);
+  vec3  trans    = vec3(1.0-val.w);
+  float fogDens  = (trans.x+trans.y+trans.z)/3.0;
   vec3  lum      = val.rgb;
-  lum *= clamp(d,0,1);
-
   return vec4(lum, fogDens);
   }
 #endif
