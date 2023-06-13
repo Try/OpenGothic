@@ -356,7 +356,7 @@ void Interactive::implTick(Pos& p) {
     emitTriggerEvent();
     }
 
-  if(npc.isPlayer() && !loopState) {
+  if(npc.isPlayer() && !loopState && attach) {
     invokeStateFunc(npc);
     }
 
