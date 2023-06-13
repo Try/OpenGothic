@@ -1,6 +1,7 @@
 #include "gamesession.h"
 #include "savegameheader.h"
 
+#include <Tempest/Application>
 #include <Tempest/Log>
 #include <Tempest/MemReader>
 #include <Tempest/MemWriter>
@@ -63,12 +64,25 @@ GameSession::GameSession(std::string file) {
   setupSettings();
   setTime(gtime(8,0));
 
+  const auto time0 = Application::tickCount();
+  Log::d("LOADING: start");
   vm.reset(new GameScript(*this));
+
+  const auto time1 = Application::tickCount();
+  Log::d("LOADING: script time = ", time1-time0);
+
   setWorld(std::unique_ptr<World>(new World(*this,std::move(file),true,[&](int v){
     Gothic::inst().setLoadingProgress(int(v*0.55));
     })));
 
+  const auto time2 = Application::tickCount();
+  Log::d("LOADING: world time = ", time2-time1);
+
   vm->initDialogs();
+
+  const auto time3 = Application::tickCount();
+  Log::d("LOADING: dialog time = ", time3-time2);
+
   Gothic::inst().setLoadingProgress(70);
 
   const bool testMode=false;
@@ -97,7 +111,9 @@ GameSession::GameSession(std::string file) {
   cam->reset(wrld->player());
   Gothic::inst().setLoadingProgress(96);
   ticks = 1;
-  // wrld->setDayTime(8,0);
+
+  const auto time4 = Application::tickCount();
+  Log::d("LOADING: onStart time = ", time4-time3);
   }
 
 GameSession::GameSession(Serialize &fin) {
