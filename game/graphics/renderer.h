@@ -13,6 +13,7 @@
 
 class Camera;
 class InventoryMenu;
+class VideoWidget;
 
 class Renderer final {
   public:
@@ -24,7 +25,7 @@ class Renderer final {
 
     void draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
               Tempest::VectorImage::Mesh& uiLayer, Tempest::VectorImage::Mesh& numOverlay,
-              InventoryMenu &inventory);
+              InventoryMenu &inventory, VideoWidget& video);
 
     void dbgDraw(Tempest::Painter& painter);
 

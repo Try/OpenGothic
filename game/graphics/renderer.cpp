@@ -7,6 +7,9 @@
 #include "ui/inventorymenu.h"
 #include "camera.h"
 #include "gothic.h"
+#include "ui/videowidget.h"
+
+#include <ui/videowidget.h>
 
 using namespace Tempest;
 
@@ -302,10 +305,14 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
 
 void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
                     VectorImage::Mesh& uiLayer, VectorImage::Mesh& numOverlay,
-                    InventoryMenu& inventory) {
+                    InventoryMenu& inventory, VideoWidget& video) {
   auto& result = swapchain[imgId];
 
-  draw(result, cmd, cmdId);
+  if(!video.isActive()) {
+    draw(result, cmd, cmdId);
+    } else {
+    cmd.setFramebuffer({{result, Vec4(), Tempest::Preserve}});
+    }
   cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
   uiLayer.draw(cmd);
 

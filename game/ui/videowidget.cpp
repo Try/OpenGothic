@@ -176,7 +176,7 @@ void VideoWidget::pushVideo(std::string_view filename) {
   }
 
 bool VideoWidget::isActive() const {
-  return ctx!=nullptr;
+  return ctx!=nullptr || hasPendingVideo.load();
   }
 
 void VideoWidget::tick() {
