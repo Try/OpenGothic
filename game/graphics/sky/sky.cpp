@@ -45,7 +45,7 @@ Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest:
 
   GSunIntensity  = DirectSunLux;
   GMoonIntensity = DirectMoonLux;
-  occlusionScale = 2;
+  occlusionScale = 1;
 
   /*
     zSunName=unsun5.tga
@@ -268,8 +268,10 @@ void Sky::setupUbo() {
 
   if(quality==VolumetricHQ) {
     occlusionScale = 1;
-    if(uint32_t(scene.zbuffer->h())/2 > 1080)
+    if(uint32_t(scene.zbuffer->h()) > 1080 &&
+       device.properties().type!=DeviceType::Discrete) {
       occlusionScale = 2;
+      }
     uint32_t w = (uint32_t(scene.zbuffer->w()) + occlusionScale - 1u)/occlusionScale;
     uint32_t h = (uint32_t(scene.zbuffer->h()) + occlusionScale - 1u)/occlusionScale;
     occlusionLut = device.image2d(TextureFormat::R32U, w, h);
