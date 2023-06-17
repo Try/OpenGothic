@@ -1490,9 +1490,10 @@ bool Npc::implAttack(uint64_t dt) {
       }
 
     if(ws==WeaponState::Mage) {
-      if(!beginCastSpell())
-        fghAlgo.consumeAction();
       setAnimRotate(0);
+      if(!beginCastSpell())
+        return false;
+      fghAlgo.consumeAction();
       }
     else if(ws==WeaponState::Bow || ws==WeaponState::CBow) {
       if(shootBow()) {
