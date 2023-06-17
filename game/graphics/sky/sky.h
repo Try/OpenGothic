@@ -102,4 +102,5 @@ class Sky final {
     float                         minZ = 0;
     float                         GSunIntensity  = 5.f;
     float                         GMoonIntensity = 0.000025f;
+    uint32_t                      occlusionScale = 1;
   };

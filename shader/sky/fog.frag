@@ -44,6 +44,10 @@ layout(binding = 4, r32ui) uniform readonly  restrict uimage2D occlusionLut;
 uvec2 invocationID = gl_GlobalInvocationID.xy;
 #endif
 
+#if defined(VOLUMETRIC_HQ)
+uint occlusionScale = 1;
+#endif
+
 float interleavedGradientNoise() {
 #if defined(COMPUTE)
   return interleavedGradientNoise(invocationID.xy);
@@ -119,21 +123,9 @@ vec4 fog(vec2 uv, float z) {
   imageStore(occlusionLut, ivec2(invocationID.xy), uvec4(occlusion));
   return vec4(0);
 #else
-  //uint  occlusion      = 0xFFFFFFF0;
-  /*
-  uint occlusion = 0;
-  [[dont_unroll]]
-  for(uint i=0; i<steps; ++i) {
-    float t      = (i+0.3)/float(steps);
-    float dd     = (t*distZ)/(dist);
-    vec4  shPos  = mix(shPos0,shPos1,t+noise);
-    float shadow = shadowFactor(shPos);
-    occlusion = occlusion | ((shadow>0.5 ? 1u : 0u) << uint(i));
-    }
-    */
-
-  // every bit = one ample of shadowmap
-  const uint occlusion = imageLoad(occlusionLut, ivec2(gl_FragCoord.xy)).r;
+  // every bit = one sample of shadowmap
+  const ivec2 coord     = ivec2(gl_FragCoord.xy/occlusionScale);
+  const uint  occlusion = imageLoad(occlusionLut, coord).r;
   [[dont_unroll]]
   for(int i=0; i<steps; i++) {
     bool  bit    = bitfieldExtract(occlusion,i,1)!=0;
@@ -197,7 +189,15 @@ void main_frag() {
   vec3 view   = normalize(inverse(vec3(inPos,1.0)));
   vec3 sunDir = push.sunDir;
 
-  const float z   = textureLod(depth,uv,0).r;
+#if defined(VOLUMETRIC_HQ)
+  occlusionScale    = textureSize(depth,0).x/imageSize(occlusionLut).x;
+  // const ivec2 coord = ivec2(gl_FragCoord.xy/occlusionScale);
+  // const float z     = texelFetch(depth,ivec2(coord*occlusionScale),0).r;
+  const float z     = texelFetch(depth,ivec2(gl_FragCoord.xy),0).r;
+#else
+  const float z     = texelFetch(depth,ivec2(gl_FragCoord.xy),0).r;
+#endif
+
   const vec4  val = fog(uv,z);
   vec3  lum = val.rgb;
   float tr  = val.a;
