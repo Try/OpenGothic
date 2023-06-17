@@ -3484,11 +3484,11 @@ bool Npc::tickCast(uint64_t dt) {
     case SpellCode::SPL_NEXTLEVEL: {
       if(castLvl<=15)
         castLevel = CastState(castLevel+1);
+      visual.setMagicWeaponKey(owner,SpellFxKey::Invest,castLvl+1);
       }
     case SpellCode::SPL_RECEIVEINVEST:
     case SpellCode::SPL_STATUS_CANINVEST_NO_MANADEC: {
       auto& spl = owner.script().spellDesc(active->spellId());
-      visual.setMagicWeaponKey(owner,SpellFxKey::Invest,castLvl+1);
       castNextTime += uint64_t(spl.time_per_mana);
       break;
       }
