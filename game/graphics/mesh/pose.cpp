@@ -49,7 +49,7 @@ void Pose::save(Serialize &fout) {
   uint8_t sz=uint8_t(lay.size());
   fout.write(sz);
   for(auto& i:lay) {
-    fout.write(i.seq->name,i.sAnim,i.bs);
+    fout.write(i.seq->name,i.sAnim,i.bs,i.blendOut);
     }
   fout.write(lastUpdate);
   fout.write(combo.bits);
@@ -75,6 +75,8 @@ void Pose::load(Serialize &fin, const AnimationSolver& solver) {
   lay.resize(sz);
   for(auto& i:lay) {
     fin.read(name,i.sAnim,i.bs);
+    if(fin.version()>43)
+      fin.read(i.blendOut);
     i.seq = solver.solveFrm(name);
     }
   fin.read(lastUpdate);
@@ -185,10 +187,11 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
         bs = tr ? i.bs : bs;
         }
       onRemoveLayer(i);
-      i.seq   = tr ? tr : sq;
-      i.sAnim = tickCount;
-      i.comb  = comb;
-      i.bs    = bs;
+      i.blendOut = i.seq->blendOut;
+      i.seq      = tr ? tr : sq;
+      i.sAnim    = tickCount;
+      i.comb     = comb;
+      i.bs       = bs;
       onAddLayer(i);
       return true;
       }
@@ -362,6 +365,7 @@ bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs,
   auto* sampleA = &d.samples[size_t(frameA*idSize)];
   auto* sampleB = &d.samples[size_t(frameB*idSize)];
 
+  const uint64_t blend = std::max(s.blendOut,s.blendIn);
   for(size_t i=0; i<idSize; ++i) {
     size_t idx = d.nodeIndex[i];
     if(idx>=numBones)
@@ -384,9 +388,9 @@ bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs,
         prev      [idx] = base[idx];
         [[fallthrough]];
       case S_Valid:
-        if(now<s.blendIn) {
-          float a2 = float(now)/float(s.blendIn);
-          base[idx] = mix(base[idx],smp,a2);
+        if(now<blend) {
+          float a2 = float(now)/float(blend);
+          base[idx] = mix(prev[idx],smp,a2);
           } else {
           prev[idx] = smp;
           base[idx] = smp;

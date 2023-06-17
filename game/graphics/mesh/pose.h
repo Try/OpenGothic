@@ -90,16 +90,17 @@ class Pose final {
 
   private:
     enum SampleStatus : uint8_t {
-      S_None,
-      S_Old,
-      S_Valid,
+      S_None  = 0,
+      S_Old   = 1,
+      S_Valid = 2,
       };
 
     struct Layer final {
-      const Animation::Sequence* seq   = nullptr;
-      uint64_t                   sAnim = 0;
-      uint8_t                    comb  = 0;
-      BodyState                  bs    = BS_NONE;
+      const Animation::Sequence* seq      = nullptr;
+      uint64_t                   sAnim    = 0;
+      uint8_t                    comb     = 0;
+      uint64_t                   blendOut = 0;
+      BodyState                  bs       = BS_NONE;
       };
 
     struct ComboState {

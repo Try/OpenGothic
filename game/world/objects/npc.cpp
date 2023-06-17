@@ -2900,15 +2900,14 @@ Item* Npc::takeItem(Item& item) {
   if(item.isTorchBurn() && (isUsingTorch() || weaponState()!=WeaponState::NoWeapon))
     return nullptr;
 
-  auto dpos = item.position()-position();
-  dpos.y-=translateY();
-
   auto state = bodyStateMasked();
   if(state!=BS_STAND && state!=BS_SNEAK) {
     setAnim(Anim::Idle);
     return nullptr;
     }
 
+  auto dpos = item.position()-position();
+  dpos.y-=translateY();
   const Animation::Sequence* sq = setAnimAngGet(Npc::Anim::ItmGet,Pose::calcAniCombVert(dpos));
   if(sq==nullptr)
     return nullptr;
