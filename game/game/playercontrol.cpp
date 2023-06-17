@@ -212,7 +212,7 @@ void PlayerControl::onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping)
 
   auto ws = pl==nullptr ? WeaponState::NoWeapon : pl->weaponState();
   if(ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage) {
-    if(a==KeyCodec::ActionGeneric)
+    if(a==KeyCodec::ActionGeneric || (!g2Ctrl && ws==WeaponState::Mage && a==KeyCodec::Forward))
       std::memset(actrl,0,sizeof(actrl));
     } else {
     std::memset(actrl,0,sizeof(actrl));
@@ -674,9 +674,9 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   if(casting) {
-    if(!actrl[ActForward]) {
+    if(!actrl[ActForward] || (Gothic::inst().version().game==1 && pl.attribute(ATR_MANA)==0)) {
       casting = false;
-      pl.endCastSpell();
+      pl.endCastSpell(true);
       }
     return;
     }
@@ -758,7 +758,8 @@ void PlayerControl::implMove(uint64_t dt) {
         }
       case WeaponState::Mage: {
         casting = pl.beginCastSpell();
-        actrl[ActForward] = false;
+        if(!casting)
+          actrl[ActForward] = false;
         return;
         }
       }

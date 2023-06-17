@@ -1002,7 +1002,7 @@ void GameScript::invokeItem(Npc *npc, ScriptFn fn) {
   vm.call_function<void>(functionSymbol);
   }
 
-int GameScript::invokeMana(Npc &npc, Npc* target, Item &) {
+int GameScript::invokeMana(Npc &npc, Npc* target, int mana) {
   auto fn = vm.find_symbol_by_name("Spell_ProcessMana");
   if(fn==nullptr)
     return SpellCode::SPL_SENDSTOP;
@@ -1010,7 +1010,18 @@ int GameScript::invokeMana(Npc &npc, Npc* target, Item &) {
   ScopeVar self (*vm.global_self(),  npc.handlePtr());
   ScopeVar other(*vm.global_other(), target != nullptr ? target->handlePtr() : nullptr);
 
-  return vm.call_function<int>(fn, npc.attribute(ATR_MANA));
+  return vm.call_function<int>(fn,mana);
+  }
+
+int GameScript::invokeManaRelease(Npc &npc, Npc* target, int mana) {
+  auto fn = vm.find_symbol_by_name("Spell_ProcessMana_Release");
+  if(fn==nullptr)
+    return SpellCode::SPL_SENDSTOP;
+
+  ScopeVar self (*vm.global_self(),  npc.handlePtr());
+  ScopeVar other(*vm.global_other(), target != nullptr ? target->handlePtr() : nullptr);
+
+  return vm.call_function<int>(fn,mana);
   }
 
 void GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
@@ -2781,7 +2792,7 @@ void GameScript::ai_readyrangedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
 
 void GameScript::ai_readyspell(std::shared_ptr<phoenix::c_npc> npcRef, int spell, int mana) {
   auto npc = findNpc(npcRef);
-  if(npc!=nullptr)
+  if(npc!=nullptr && mana>0)
     npc->aiPush(AiQueue::aiReadySpell(spell,mana));
   }
 

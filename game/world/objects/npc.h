@@ -254,10 +254,9 @@ class Npc final {
     bool      swingSwordR();
     bool      blockSword();
     bool      beginCastSpell();
-    void      endCastSpell();
+    void      endCastSpell(bool playerCtrl = false);
     void      setActiveSpellInfo(int32_t info);
     int32_t   activeSpellLevel() const;
-    bool      castSpell();
     bool      aimBow();
     bool      shootBow(Interactive* focOverride = nullptr);
     bool      hasAmmunition() const;
@@ -550,6 +549,8 @@ class Npc final {
 
     // spell cast
     CastState                      castLevel        = CS_NoCast;
+    int32_t                        manaInvested     = 0;
+    int32_t                        aiExpectedInvest = 1;
     size_t                         currentSpellCast = size_t(-1);
     uint64_t                       castNextTime     = 0;
     int32_t                        spellInfo        = 0;
