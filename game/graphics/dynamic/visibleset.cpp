@@ -9,7 +9,7 @@ void VisibleSet::reset() {
   }
 
 void VisibleSet::push(size_t index, SceneGlobals::VisCamera v) {
-  int i = cnt[v].fetch_add(1);
+  int i = cnt[v].fetch_add(1, std::memory_order_acq_rel);
   id[v][i] = index;
   }
 

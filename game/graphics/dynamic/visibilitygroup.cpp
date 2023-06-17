@@ -187,9 +187,14 @@ void VisibilityGroup::buildTree(size_t node, TreeItm* begin, TreeItm* end, size_
   n.bbox.assign(bbox);
   treeNode[node] = n;
 
-  const float blockSz = 5*100;
-  const auto  boxSz   = bbox[1]-bbox[0];
-  if(sz<16 || (boxSz.x<blockSz && boxSz.y<blockSz && boxSz.z<blockSz)) {
+  const  float  blockSz     = 5*100;
+  const  auto   boxSz       = bbox[1]-bbox[0];
+  static size_t minNodeSize = 16;
+  if(sz<=minNodeSize || (boxSz.x<blockSz && boxSz.y<blockSz && boxSz.z<blockSz)) {
+    // avoid cache-line stealing, on push
+    std::sort(begin,end,[](const TreeItm& l, const TreeItm& r) {
+      return l.self->vSet < r.self->vSet;
+      });
     treeNode[node].isLeaf = true;
     return;
     }
@@ -219,7 +224,7 @@ void VisibilityGroup::buildTree(size_t node, TreeItm* begin, TreeItm* end, size_
       break;
       }
     }
-
+  
   treeNode.resize(std::max(treeNode.size(),node*2+2));
   buildTree(node*2+0, begin,      begin+sz/2, step+1);
   buildTree(node*2+1, begin+sz/2, begin+sz,   step+1);
