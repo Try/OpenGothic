@@ -252,9 +252,10 @@ void Npc::load(Serialize &fin, size_t id) {
   fin.read(currentSpellCastU32);
   currentSpellCast = (currentSpellCastU32==uint32_t(-1) ? size_t(-1) : currentSpellCastU32);
   }
-  fin.read(reinterpret_cast<uint8_t&>(castLevel),castNextTime,spellInfo);
+  fin.read(reinterpret_cast<uint8_t&>(castLevel),castNextTime);
   if(fin.version()>44)
     fin.read(manaInvested,aiExpectedInvest);
+  fin.read(spellInfo);
   loadTrState(fin);
   loadAiState(fin);
 
