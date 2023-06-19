@@ -95,8 +95,11 @@ World::World(GameSession& game, std::string_view file, bool startup, std::functi
       wobj.addRoot(vob,startup);
 
     wmatrix->buildIndex();
-    bsp = std::move(world.world_bsp_tree);
-    bspSectors.resize(bsp.sectors.size());
+    // bsp = std::move(world.world_bsp_tree);
+    bsp.nodes             = std::move(world.world_bsp_tree.nodes);
+    bsp.sectors           = std::move(world.world_bsp_tree.sectors);
+    bsp.leaf_node_indices = std::move(world.world_bsp_tree.leaf_node_indices);
+    bsp.sectorsData.resize(bsp.sectors.size());
     loadProgress(100);
     }
   catch(...) {
@@ -173,9 +176,9 @@ void World::save(Serialize &fout) {
   fout.setContext(this);
   fout.setEntry("worlds/",wname,"/world");
 
-  fout.write(uint32_t(bspSectors.size()));
-  for(size_t i=0;i<bspSectors.size();++i) {
-    fout.write(bsp.sectors[i].name,bspSectors[i].guild);
+  fout.write(uint32_t(bsp.sectorsData.size()));
+  for(size_t i=0;i<bsp.sectorsData.size();++i) {
+    fout.write(bsp.sectors[i].name,bsp.sectorsData[i].guild);
     }
 
   wobj.save(fout);
@@ -336,7 +339,7 @@ World::BspSector* World::portalAt(std::string_view tag) {
 
   for(size_t i=0;i<bsp.sectors.size();++i)
     if(bsp.sectors[i].name==tag)
-      return &bspSectors[i];
+      return &bsp.sectorsData[i];
   return nullptr;
   }
 
@@ -947,7 +950,7 @@ int32_t World::guildOfRoom(std::string_view portalName) {
   for(size_t i=0;i<bsp.sectors.size();++i) {
     auto& s = bsp.sectors[i].name;
     if(s==name)
-      return bspSectors[i].guild;
+      return bsp.sectorsData[i].guild;
     }
   return GIL_NONE;
   }

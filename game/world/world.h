@@ -35,10 +35,6 @@ class World final {
     World(GameSession& game, std::string_view file, bool startup, std::function<void(int)> loadProgress);
     ~World();
 
-    struct BspSector final {
-      int32_t guild=GIL_NONE;
-      };
-
     void                 createPlayer(std::string_view cls);
     void                 insertPlayer(std::unique_ptr<Npc>&& npc, std::string_view waypoint);
     void                 setPlayer(Npc* npc);
@@ -183,8 +179,17 @@ class World final {
     GameSession&                          game;
 
     std::unique_ptr<WayMatrix>            wmatrix;
-    phoenix::bsp_tree                     bsp;
-    std::vector<BspSector>                bspSectors;
+
+    struct BspSector final {
+      int32_t guild=GIL_NONE;
+      };
+
+    struct {
+      std::vector<phoenix::bsp_node>        nodes;
+      std::vector<phoenix::bsp_sector>      sectors;
+      std::vector<std::uint64_t>            leaf_node_indices;
+      std::vector<BspSector>                sectorsData;
+      } bsp;
 
     Npc*                                  npcPlayer=nullptr;
 
