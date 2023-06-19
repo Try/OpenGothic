@@ -151,7 +151,6 @@ class Camera final {
     static float          baseSpeeed;
     static float          offsetAngleMul;
     static const float    minLength;
-    static float          veloAcceleration;
 
     void                  calcControlPoints(float dtF);
 

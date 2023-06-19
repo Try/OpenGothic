@@ -266,8 +266,8 @@ void MoveAlgo::tickSwim(uint64_t dt) {
 
   bool  valid  = false;
   bool  validW = false;
-  auto  ground = dropRay (pos+Tempest::Vec3(0,fallThreshold,0), valid);
-  auto  water  = waterRay(pos+Tempest::Vec3(0,fallThreshold,0), &validW);
+  auto  ground = dropRay (pos+dp+Tempest::Vec3(0,fallThreshold,0), valid);
+  auto  water  = waterRay(pos+dp+Tempest::Vec3(0,fallThreshold,0), &validW);
 
   if(npc.isDead()) {
     setAsSwim(false);
@@ -326,8 +326,8 @@ bool MoveAlgo::tickRun(uint64_t dt, MvFlags moveFlg) {
 
   // moving NPC, by animation
   bool  valid   = false;
-  auto  ground  = dropRay (pos+Tempest::Vec3(0,fallThreshold,0), valid);
-  auto  water   = waterRay(pos);
+  auto  ground  = dropRay (pos+dp+Tempest::Vec3(0,fallThreshold,0), valid);
+  auto  water   = waterRay(pos+dp);
   float dY      = pos.y-ground;
   bool  onGound = true;
 
