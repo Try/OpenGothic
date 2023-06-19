@@ -547,7 +547,7 @@ void Camera::followCamera(Vec3& pos, Vec3 dest, float dtF) {
     }
 
   static float mul     = 1.f;
-  static float bestRgn = 200;
+  static float bestRgn = 10;
   float veloTrans = std::min(def.velo_trans*100, std::min(len,bestRgn)/dtF);
 
   float speed = veloTrans*dtF*mul;
