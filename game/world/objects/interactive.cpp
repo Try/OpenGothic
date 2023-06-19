@@ -484,6 +484,15 @@ bool Interactive::isDoor() const {
   return vobType==phoenix::vob_type::oCMobDoor;
   }
 
+bool Interactive::isTrueDoor(const Npc& npc) const {
+  if(!isDoor())
+    return false;
+  for(int i=1; i<=stateNum; ++i)
+    if(canQuitAtState(npc,i))
+      return true;
+  return false;
+  }
+
 bool Interactive::isLadder() const {
   return vobType==phoenix::vob_type::oCMobLadder;
   }
@@ -677,7 +686,7 @@ bool Interactive::isDetachState(const Npc& npc) const {
   return !reverseState;
   }
 
-bool Interactive::canQuitAtState(Npc& npc, int32_t state) const {
+bool Interactive::canQuitAtState(const Npc& npc, int32_t state) const {
   if(state<0)
     return true;
 

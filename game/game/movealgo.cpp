@@ -54,7 +54,7 @@ void MoveAlgo::tickMobsi(uint64_t dt) {
     dp = Tempest::Vec3(ret.x, 0, ret.z);
     }
 
-  if(npc.interactive()->isDoor()) {
+  if(npc.interactive()->isTrueDoor(npc)) {
     // some tight-door require collision-detection
     npc.tryMove(dp);
     } else {

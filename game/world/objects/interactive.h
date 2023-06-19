@@ -57,6 +57,7 @@ class Interactive : public Vob {
 
     bool                isContainer() const;
     bool                isDoor() const;
+    bool                isTrueDoor(const Npc& npc) const;
     bool                isLadder() const;
     std::string_view    pickLockCode() const { return pickLockStr; }
     void                setAsCracked(bool c) { isLockCracked = c; }
@@ -73,7 +74,7 @@ class Interactive : public Vob {
     bool                isAvailable() const;
     bool                isStaticState() const;
     bool                isDetachState(const Npc& npc) const;
-    bool                canQuitAtState(Npc& npc, int32_t state) const;
+    bool                canQuitAtState(const Npc& npc, int32_t state) const;
     bool                attach (Npc& npc);
     bool                detach(Npc& npc,bool quick);
     bool                isAttached(const Npc& to);
