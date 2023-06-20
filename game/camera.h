@@ -128,9 +128,10 @@ class Camera final {
 
     Pin                   pin;
 
-    float                 dlgDist   = 0;
-    float                 userRange = 0.13f;
-    float                 veloTrans = 0;
+    float                 dlgDist    = 0;
+    float                 userRange  = 0.13f;
+    float                 targetVelo = 0;
+    float                 veloTrans  = 0;
 
     Tempest::Matrix4x4    proj;
     uint32_t              vpWidth=0;

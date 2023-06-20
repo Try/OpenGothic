@@ -478,44 +478,6 @@ void Camera::setDialogDistance(float d) {
   dlgDist = d;
   }
 
-void Camera::followPos(Vec3& pos, Vec3 dest, float dtF) {
-  //const auto& def = cameraDef();
-
-  auto dp  = (dest-pos);
-  auto len = dp.length();
-
-  if(dtF<=0.f) {
-    pos = dest;
-    return;
-    }
-
-  if(len<=minLength) {
-    return;
-    }
-
-  float veloTrans = std::min(baseSpeeed, len/dtF);
-  float speed     = veloTrans*dtF;
-  float tr        = std::min(speed,len);
-
-  static float mul = 0.05f;
-  float maxD  = maxDist + speed*mul;
-  if(len-tr > maxD && (len-maxD)>0.0f)
-    tr = (len-maxDist);
-  else if(len-tr<maxDist && maxDist<=len)
-    tr = (len-maxDist);
-  else
-    tr = std::min(speed,len);
-
-  //tr = std::min(speed,len);
-
-  float k = tr/len;
-  pos += dp*k;
-
-  // auto len2 = (dest-pos).length();
-  // if(len2>0.f)
-  //   Log::i("lenRaw = ", len2);
-  }
-
 Vec3 Camera::clampPos(Tempest::Vec3 pos, Vec3 dest) {
   auto dp  = (dest-pos);
   auto len = dp.length();
@@ -532,28 +494,53 @@ Vec3 Camera::clampPos(Tempest::Vec3 pos, Vec3 dest) {
   return pos;
   }
 
-void Camera::followCamera(Vec3& pos, Vec3 dest, float dtF) {
+void Camera::followPos(Vec3& pos, Vec3 dest, float dtF) {
   const auto& def = cameraDef();
-  if(!def.translate)
-    return;
+
+  auto dp  = (dest-pos);
+  auto len = dp.length();
+
   if(dtF<=0.f) {
     pos = dest;
     return;
     }
-  auto  dp    = dest-pos;
-  auto  len   = dp.length();
+
   if(len<=minLength) {
     return;
     }
 
-  static float mul     = 1.f;
-  static float bestRgn = 10;
-  float veloTrans = std::min(def.velo_trans*100, std::min(len,bestRgn)/dtF);
+  targetVelo = len/dtF;
 
-  float speed = veloTrans*dtF*mul;
-  float tr    = std::min(speed,len);
-  float k     = tr/len;
+  static float mul = 0.015f;
+  float kv = def.best_range>0 ? std::min(len/def.best_range*100, 1.f) : 1.f;
+  veloTrans = kv*targetVelo*mul;
+
+  veloTrans = std::min(std::min(def.velo_trans*100, veloTrans), len/dtF);
+
+  float tr = std::min(veloTrans*dtF,len);
+  float k  = tr/len;
   pos += dp*k;
+
+    {
+    auto diff = dp*k;
+    float speed = diff.length()/dtF;
+    static float prevSpeed = 0;
+
+    if(speed > 1.f)
+      Log::i("speed: ", speed, "delta: ", std::abs(prevSpeed-speed)*dtF);
+    prevSpeed = speed;
+    }
+
+  // auto len2 = (dest-pos).length();
+  // if(len2>0.f)
+  //   Log::i("lenRaw = ", len2);
+  }
+
+void Camera::followCamera(Vec3& pos, Vec3 dest, float dtF) {
+  const auto& def = cameraDef();
+  if(!def.translate)
+    return;
+  pos = dest;
   }
 
 void Camera::followAng(Vec3& spin, Vec3 dest, float dtF) {
@@ -658,8 +645,8 @@ void Camera::calcControlPoints(float dtF) {
   if(camMarvinMod!=M_Free)
     followPos(src.target,target,dtF);
 
-  auto camTg = clampPos(src.target,target);
-  followCamera(cameraPos,camTg,dtF);
+  auto camTg = src.target;//clampPos(src.target,target);
+  followCamera(cameraPos,src.target,dtF);
 
   origin = cameraPos - dir*range;
   if(camMarvinMod==M_Free) {
@@ -825,6 +812,9 @@ void Camera::debugDraw(DbgPainter& p) {
 
   buf = string_frm("PlayerPos : ",dst.target.x, ' ', dst.target.y, ' ', dst.target.z);
   p.drawText(8,y,buf); y += fnt.pixelSize();
+
+  buf = string_frm("targetVelo : ",targetVelo);
+  p.drawText(8,y,buf); y += fnt.pixelSize()*4;
 
   buf = string_frm("Range To Player : ", (dst.target-origin).length());
   p.drawText(8,y,buf); y += fnt.pixelSize();
