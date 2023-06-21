@@ -516,17 +516,18 @@ void Camera::followPos(Vec3& pos, Vec3 dest, float dtF) {
     return;
     }
 
-  targetVelo = len/dtF;
+  static float mul2 = 10.f;
+  targetVelo = targetVelo + (len-targetVelo)*std::min(1.f,dtF*mul2);
 
-  static float mul = 0.02f;
-  float kv = def.best_range>0 ? std::min(len/def.best_range*100, 1.f) : 1.f;
-  veloTrans = kv*targetVelo*mul;
+  static float mul  = 2.1f;
+  float velo = targetVelo*mul;
 
-  veloTrans = std::min(std::min(def.velo_trans*100, veloTrans), len/dtF);
+  veloTrans = std::min(def.velo_trans*100, velo);
 
   float tr = std::min(veloTrans*dtF,len);
   float k  = tr/len;
   pos += dp*k;
+
 
     {
     auto diff = dp*k;
@@ -534,7 +535,7 @@ void Camera::followPos(Vec3& pos, Vec3 dest, float dtF) {
     static float prevSpeed = 0;
 
     if(false && speed > 1.f)
-      Log::i("speed: ", speed, "delta: ", std::abs(prevSpeed-speed)*dtF);
+      Log::i("speed: ", speed, "delta: ", std::abs(prevSpeed-speed));
     prevSpeed = speed;
     }
 
