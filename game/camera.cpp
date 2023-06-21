@@ -120,15 +120,20 @@ void Camera::setMode(Camera::Mode m) {
   if(camMod==m)
     return;
 
-  const bool reset = (m==Inventory || camMod==Inventory || camMod==Dialog || camMod==Dive);
+  const bool reset = (m==Inventory || camMod==Inventory || camMod==Dialog || camMod==Dive || m==Fall);
   camMod = m;
 
-  if(reset)
+  if(camMarvinMod==M_Freeze)
+    return;
+
+  if(reset) {
     resetDst();
+    // auto ang = calcOffsetAngles(src.target,dst.target);
+    // dst.spin.x = ang.x;
+    }
 
   if(auto pl = Gothic::inst().player()) {
-    if(camMarvinMod!=M_Freeze)
-      dst.spin.y = pl->rotation();
+    dst.spin.y = pl->rotation();
     }
   }
 
@@ -406,6 +411,8 @@ const phoenix::c_camera &Camera::cameraDef() const {
     return camd.swimCam();
   if(camMod==Dive)
     return camd.diveCam();
+  if(camMod==Fall)
+    return camd.fallCam();
   if(camMod==Mobsi) {
     std::string_view tag = "", pos = "";
     if(auto pl = Gothic::inst().player())
@@ -511,7 +518,7 @@ void Camera::followPos(Vec3& pos, Vec3 dest, float dtF) {
 
   targetVelo = len/dtF;
 
-  static float mul = 0.015f;
+  static float mul = 0.02f;
   float kv = def.best_range>0 ? std::min(len/def.best_range*100, 1.f) : 1.f;
   veloTrans = kv*targetVelo*mul;
 
@@ -526,7 +533,7 @@ void Camera::followPos(Vec3& pos, Vec3 dest, float dtF) {
     float speed = diff.length()/dtF;
     static float prevSpeed = 0;
 
-    if(speed > 1.f)
+    if(false && speed > 1.f)
       Log::i("speed: ", speed, "delta: ", std::abs(prevSpeed-speed)*dtF);
     prevSpeed = speed;
     }

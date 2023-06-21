@@ -10,10 +10,11 @@ CameraDefinitions::CameraDefinitions() {
     try {
       auto cam = vm->init_instance<phoenix::c_camera>(&s);
       cameras.emplace_back(s.name(), *cam);
-      } catch (const phoenix::script_error&) {
+      }
+    catch (const phoenix::script_error&) {
       // There was an error initializing the c_camera. Ignore it.
       }
-  });
+    });
 
   camModDialog    = getCam("CAMMODDIALOG");
   camModInventory = getCam("CAMMODINVENTORY");
@@ -26,6 +27,7 @@ CameraDefinitions::CameraDefinitions() {
   camModMage      = getCam("CAMMODMAGIC");
   camModSwim      = getCam("CAMMODSWIM");
   camModDive      = getCam("CAMMODDIVE");
+  camModFall      = getCam("CAMMODFALL");
   }
 
 const phoenix::c_camera& CameraDefinitions::mobsiCam(std::string_view tag, std::string_view pos) const {

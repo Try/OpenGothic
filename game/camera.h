@@ -28,7 +28,8 @@ class Camera final {
       Mobsi,
       Death,
       Swim,
-      Dive
+      Dive,
+      Fall,
       };
 
     enum MarvinMode {

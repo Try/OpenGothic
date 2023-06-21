@@ -155,17 +155,19 @@ void MoveAlgo::tickGravity(uint64_t dt) {
     if(!tryMove(dp.x,dp.y,dp.z,info)) {
       if(!npc.isDead())
         npc.setAnim(AnimationSolver::Fall);
-      // takeFallDamage();
       onGravityFailed(info,dt);
       fallSpeed.y = std::max(fallSpeed.y, 0.f);
       } else {
       fallSpeed.y -= gravity*float(dt);
       }
 
-    if(fallSpeed.y<-1.5f && !npc.isDead())
-      npc.setAnim(AnimationSolver::FallDeep); else
-    if(fallSpeed.y<-0.3f && !npc.isDead() && npc.bodyStateMasked()!=BS_JUMP)
+    if(fallSpeed.y<-1.5f && !npc.isDead()) {
+      npc.setAnim(AnimationSolver::FallDeep);
+      setAsFalling(true);
+      } else
+    if(fallSpeed.y<-0.3f && !npc.isDead() && npc.bodyStateMasked()!=BS_JUMP) {
       npc.setAnim(AnimationSolver::Fall);
+      }
     } else {
     if(ground+chest<water && !npc.isDead()) {
       const bool splash = isInAir();
@@ -795,6 +797,8 @@ bool MoveAlgo::isDive() const {
 void MoveAlgo::setInAir(bool f) {
   if(f==isInAir())
     return;
+  if(!f)
+    setAsFalling(false);
   if(f)
     flags=Flags(flags|InAir); else
     flags=Flags(flags&(~InAir));
@@ -855,6 +859,12 @@ void MoveAlgo::setAsDive(bool f) {
   if(f)
     flags=Flags(flags|Dive);  else
     flags=Flags(flags&(~Dive));
+  }
+
+void MoveAlgo::setAsFalling(bool f) {
+  if(f)
+    flags=Flags(flags|Falling);  else
+    flags=Flags(flags&(~Falling));
   }
 
 bool MoveAlgo::slideDir() const {
