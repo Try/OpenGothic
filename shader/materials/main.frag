@@ -226,6 +226,7 @@ void main() {
 #  if defined(ATEST)
   if(t.a<0.5)
     discard;
+  t.a = (t.a-0.5)*2.0;
 #  endif
 #endif
 
