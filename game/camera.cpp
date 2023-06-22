@@ -37,7 +37,6 @@ float       Camera::offsetAngleMul   = 0.1f;
 const float Camera::minLength        = 0.0001f;
 
 Camera::Camera() {
-  (void)inertiaTarget; // OSX warning
   }
 
 void Camera::reset() {
@@ -189,6 +188,14 @@ void Camera::setToggleEnable(bool e) {
 
 bool Camera::isToggleEnabled() const {
   return tgEnable;
+  }
+
+void Camera::setInertiaTargetEnable(bool e) {
+  inertiaTarget = e;
+  }
+
+bool Camera::isInertiaTargetEnabled() const {
+  return inertiaTarget;
   }
 
 void Camera::setFirstPerson(bool fp) {
@@ -516,19 +523,21 @@ void Camera::followPos(Vec3& pos, Vec3 dest, float dtF) {
     return;
     }
 
+  static float mul  = 2.1f;
   static float mul2 = 10.f;
   targetVelo = targetVelo + (len-targetVelo)*std::min(1.f,dtF*mul2);
 
-  static float mul  = 2.1f;
-  float velo = targetVelo*mul;
-
-  veloTrans = std::min(def.velo_trans*100, velo);
+  if(inertiaTarget) {
+    veloTrans = std::min(def.velo_trans*100, targetVelo*mul);
+    } else {
+    veloTrans = def.velo_trans*100;
+    }
 
   float tr = std::min(veloTrans*dtF,len);
   float k  = tr/len;
   pos += dp*k;
 
-
+  /*
     {
     auto diff = dp*k;
     float speed = diff.length()/dtF;
@@ -538,10 +547,7 @@ void Camera::followPos(Vec3& pos, Vec3 dest, float dtF) {
       Log::i("speed: ", speed, "delta: ", std::abs(prevSpeed-speed));
     prevSpeed = speed;
     }
-
-  // auto len2 = (dest-pos).length();
-  // if(len2>0.f)
-  //   Log::i("lenRaw = ", len2);
+  */
   }
 
 void Camera::followCamera(Vec3& pos, Vec3 dest, float dtF) {

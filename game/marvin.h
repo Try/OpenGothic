@@ -35,6 +35,7 @@ class Marvin {
       C_CamMode,
       C_ToggleCamDebug,
       C_ToggleCamera,
+      C_ToggleInertia,
 
       C_AiGoTo,
       C_GoToPos,

@@ -71,6 +71,9 @@ class Camera final {
     void setToggleEnable(bool e);
     bool isToggleEnabled() const;
 
+    void setInertiaTargetEnable(bool e);
+    bool isInertiaTargetEnabled() const;
+
     void setFirstPerson(bool fp);
     bool isFirstPerson() const;
 

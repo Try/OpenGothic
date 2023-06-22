@@ -124,6 +124,7 @@ Marvin::Marvin() {
     {"camera mode",                C_CamMode},
     {"toggle camdebug",            C_ToggleCamDebug},
     {"toggle camera",              C_ToggleCamera},
+    {"toggle inertiatarget",       C_ToggleInertia},
     {"insert %c",                  C_Insert},
     };
   }
@@ -320,6 +321,11 @@ bool Marvin::exec(std::string_view v) {
     case C_ToggleCamera: {
       if(auto c = Gothic::inst().camera())
         c->setToggleEnable(!c->isToggleEnabled());
+      return true;
+      }
+    case C_ToggleInertia: {
+      if(auto c = Gothic::inst().camera())
+        c->setInertiaTargetEnable(!c->isInertiaTargetEnabled());
       return true;
       }
     case C_Insert: {
