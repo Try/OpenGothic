@@ -100,13 +100,14 @@ class MoveAlgo final {
       Dive    = 1<<8,
       };
 
-    void    setInAir   (bool f);
-    void    setAsJumpup(bool f);
-    void    setAsClimb (bool f);
-    void    setAsSlide (bool f);
-    void    setInWater (bool f);
-    void    setAsSwim  (bool f);
-    void    setAsDive  (bool f);
+    void    setInAir    (bool f);
+    void    setAsJumpup (bool f);
+    void    setAsClimb  (bool f);
+    void    setAsSlide  (bool f);
+    void    setInWater  (bool f);
+    void    setAsSwim   (bool f);
+    void    setAsDive   (bool f);
+    void    setAsFalling(bool f);
 
     bool    slideDir() const;
     bool    isForward(const Tempest::Vec3& dp) const;

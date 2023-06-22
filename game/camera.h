@@ -28,7 +28,8 @@ class Camera final {
       Mobsi,
       Death,
       Swim,
-      Dive
+      Dive,
+      Fall,
       };
 
     enum MarvinMode {
@@ -69,6 +70,9 @@ class Camera final {
 
     void setToggleEnable(bool e);
     bool isToggleEnabled() const;
+
+    void setInertiaTargetEnable(bool e);
+    bool isInertiaTargetEnabled() const;
 
     void setFirstPerson(bool fp);
     bool isFirstPerson() const;
@@ -128,9 +132,10 @@ class Camera final {
 
     Pin                   pin;
 
-    float                 dlgDist   = 0;
-    float                 userRange = 0.13f;
-    float                 veloTrans = 0;
+    float                 dlgDist    = 0;
+    float                 userRange  = 0.13f;
+    float                 targetVelo = 0;
+    float                 veloTrans  = 0;
 
     Tempest::Matrix4x4    proj;
     uint32_t              vpWidth=0;
@@ -151,7 +156,6 @@ class Camera final {
     static float          baseSpeeed;
     static float          offsetAngleMul;
     static const float    minLength;
-    static float          veloAcceleration;
 
     void                  calcControlPoints(float dtF);
 

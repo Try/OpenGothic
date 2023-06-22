@@ -155,17 +155,19 @@ void MoveAlgo::tickGravity(uint64_t dt) {
     if(!tryMove(dp.x,dp.y,dp.z,info)) {
       if(!npc.isDead())
         npc.setAnim(AnimationSolver::Fall);
-      // takeFallDamage();
       onGravityFailed(info,dt);
       fallSpeed.y = std::max(fallSpeed.y, 0.f);
       } else {
       fallSpeed.y -= gravity*float(dt);
       }
 
-    if(fallSpeed.y<-1.5f && !npc.isDead())
-      npc.setAnim(AnimationSolver::FallDeep); else
-    if(fallSpeed.y<-0.3f && !npc.isDead() && npc.bodyStateMasked()!=BS_JUMP)
+    if(fallSpeed.y<-1.5f && !npc.isDead()) {
+      npc.setAnim(AnimationSolver::FallDeep);
+      setAsFalling(true);
+      } else
+    if(fallSpeed.y<-0.3f && !npc.isDead() && npc.bodyStateMasked()!=BS_JUMP) {
       npc.setAnim(AnimationSolver::Fall);
+      }
     } else {
     if(ground+chest<water && !npc.isDead()) {
       const bool splash = isInAir();
@@ -266,8 +268,8 @@ void MoveAlgo::tickSwim(uint64_t dt) {
 
   bool  valid  = false;
   bool  validW = false;
-  auto  ground = dropRay (pos+Tempest::Vec3(0,fallThreshold,0), valid);
-  auto  water  = waterRay(pos+Tempest::Vec3(0,fallThreshold,0), &validW);
+  auto  ground = dropRay (pos+dp+Tempest::Vec3(0,fallThreshold,0), valid);
+  auto  water  = waterRay(pos+dp+Tempest::Vec3(0,fallThreshold,0), &validW);
 
   if(npc.isDead()) {
     setAsSwim(false);
@@ -326,8 +328,8 @@ bool MoveAlgo::tickRun(uint64_t dt, MvFlags moveFlg) {
 
   // moving NPC, by animation
   bool  valid   = false;
-  auto  ground  = dropRay (pos+Tempest::Vec3(0,fallThreshold,0), valid);
-  auto  water   = waterRay(pos);
+  auto  ground  = dropRay (pos+dp+Tempest::Vec3(0,fallThreshold,0), valid);
+  auto  water   = waterRay(pos+dp);
   float dY      = pos.y-ground;
   bool  onGound = true;
 
@@ -795,6 +797,8 @@ bool MoveAlgo::isDive() const {
 void MoveAlgo::setInAir(bool f) {
   if(f==isInAir())
     return;
+  if(!f)
+    setAsFalling(false);
   if(f)
     flags=Flags(flags|InAir); else
     flags=Flags(flags&(~InAir));
@@ -855,6 +859,12 @@ void MoveAlgo::setAsDive(bool f) {
   if(f)
     flags=Flags(flags|Dive);  else
     flags=Flags(flags&(~Dive));
+  }
+
+void MoveAlgo::setAsFalling(bool f) {
+  if(f)
+    flags=Flags(flags|Falling);  else
+    flags=Flags(flags&(~Falling));
   }
 
 bool MoveAlgo::slideDir() const {
