@@ -94,7 +94,7 @@ bool isShadow(vec3 rayOrigin, vec3 direction) {
 
   uint flags = gl_RayFlagsTerminateOnFirstHitEXT;
 #if !defined(RAY_QUERY_AT)
-  flags |= gl_RayFlagsOpaqueEXT;
+  flags |= gl_RayFlagsCullNoOpaqueEXT;
 #endif
 
   rayQueryEXT rayQuery;
@@ -146,10 +146,12 @@ void main(void) {
 
   float lambert = max(0.0,-dot(normalize(ldir),normal));
   float light   = (lambert/max(factor, 0.05)) * (smoothFactor*smoothFactor);
+  if(light<0)
+    discard;
 
-  pos.xyz  = pos.xyz+5.0*normal; //bias
-  ldir = (pos.xyz-cenPosition.xyz);
-  if(light>0 && isShadow(cenPosition.xyz,ldir))
+  pos.xyz = pos.xyz+5.0*normal; //bias
+  ldir    = (pos.xyz-cenPosition.xyz);
+  if(isShadow(cenPosition.xyz,ldir))
     discard;
 
   //outColor     = vec4(0.5,0.5,0.5,1);
