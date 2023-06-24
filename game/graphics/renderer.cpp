@@ -157,6 +157,10 @@ void Renderer::initSettings() {
   settings.zEnvMappingEnabled = Gothic::inst().settingsGetI("ENGINE","zEnvMappingEnabled")!=0;
   settings.zCloudShadowScale  = Gothic::inst().settingsGetI("ENGINE","zCloudShadowScale") !=0;
 
+  settings.zVidBrightness = Gothic::inst().settingsGetF("VIDEO","zVidBrightness");
+  settings.zVidContrast   = Gothic::inst().settingsGetF("VIDEO","zVidContrast");
+  settings.zVidGamma      = Gothic::inst().settingsGetF("VIDEO","zVidGamma");
+
   auto prevCompose = water.reflectionsPso;
   if(settings.zCloudShadowScale)
     ssao.ambientComposePso = &Shaders::inst().ambientComposeSsao; else
@@ -330,8 +334,8 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   if(!dbg)
     return;
 
-  auto& tex = hiZ;
-  // auto& tex = shadowMap[1];
+  //auto& tex = hiZ;
+  auto& tex = shadowMap[1];
   // auto& tex = shadowMap[0];
 
   p.setBrush(Brush(textureCast(tex),Painter::Alpha,ClampMode::ClampToBorder));
@@ -417,12 +421,19 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
 
 void Renderer::drawTonemapping(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   struct Push {
-    float exposureInv = 1.0;
+    float exposure   = 1.0;
+    float brightness = 0;
+    float contrast   = 1;
+    float gamma      = 1.f/2.2f;
     };
   Push p;
   if(auto wview = Gothic::inst().worldView()) {
-    p.exposureInv = wview->sky().autoExposure();
+    p.exposure = wview->sky().autoExposure();
     }
+
+  p.brightness = (settings.zVidBrightness - 0.5f)*0.1f;
+  p.contrast   = std::max(1.5f - settings.zVidContrast, 0.01f);
+  p.gamma      = p.gamma/std::max(2.0f*settings.zVidGamma,  0.01f);
 
   cmd.setUniforms(*tonemapping.pso, tonemapping.uboTone, &p, sizeof(p));
   cmd.draw(Resources::fsqVbo());
@@ -558,15 +569,15 @@ void Renderer::prepareIrradiance(Tempest::Encoder<CommandBuffer>& cmd, uint8_t f
 void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {
   struct Push {
     Vec3      ambient;
-    float     exposureInv = 1;
+    float     exposure = 1;
     Vec3      ldir;
     float     padd1 = 0;
     Vec3      clipInfo;
   } push;
-  push.ambient     = view.ambientLight();
-  push.ldir        = view.mainLight().dir();
-  push.clipInfo    = clipInfo;
-  push.exposureInv = view.sky().autoExposure();
+  push.ambient  = view.ambientLight();
+  push.ldir     = view.mainLight().dir();
+  push.clipInfo = clipInfo;
+  push.exposure = view.sky().autoExposure();
 
   cmd.setUniforms(*ssao.ambientComposePso,ssao.uboCompose,&push,sizeof(push));
   cmd.draw(Resources::fsqVbo());

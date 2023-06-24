@@ -8,6 +8,9 @@
 
 layout(push_constant, std140) uniform PushConstant {
   float exposure;
+  float brightness;
+  float contrast;
+  float gamma;
   } push;
 
 layout(binding  = 0) uniform sampler2D textureD;
@@ -77,15 +80,26 @@ vec3 purkinjeShift(vec3 rgbLightHdr) {
   }
 
 void main() {
-  float exposure = push.exposure;
+  float exposure   = push.exposure;
+  float brightness = push.brightness;
+  float contrast   = push.contrast;
+  float gamma      = push.gamma;
+
   vec3  color    = texelFetch(textureD, ivec2(gl_FragCoord.xy), 0).rgb;
 
   // night shift
   // color += purkinjeShift(color/exposure)*exposure;
 
+  // Brightness & Contrast
+  color = max(vec3(0), color + vec3(brightness));
+  color = color * vec3(contrast);
+
   // Tonemapping
   color = acesTonemap(color);
-  color = srgbEncode(color);
+
+  // Gamma
+  //color = srgbEncode(color);
+  color = pow(color, vec3(gamma));
 
   outColor = vec4(color, 1.0);
   }

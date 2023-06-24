@@ -60,6 +60,10 @@ class Renderer final {
       const uint32_t shadowResolution   = 2048;
       bool           zEnvMappingEnabled = false;
       bool           zCloudShadowScale  = false;
+
+      float          zVidBrightness     = 0.5;
+      float          zVidContrast       = 0.5;
+      float          zVidGamma          = 0.5;
       } settings;
 
     Frustrum                  frustrum[SceneGlobals::V_Count];
