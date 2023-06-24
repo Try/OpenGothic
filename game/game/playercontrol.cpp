@@ -491,6 +491,8 @@ Focus PlayerControl::findFocus(Focus* prev) {
   auto w = Gothic::inst().world();
   if(w==nullptr)
     return Focus();
+  if(w->player()!=nullptr && w->player()->isDown())
+    return Focus();
   if(!cacheFocus)
     prev = nullptr;
 
