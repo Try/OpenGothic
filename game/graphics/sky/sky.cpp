@@ -162,7 +162,7 @@ void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fr
     } else {
     push.GSunIntensity *= isNight();
     }
-  push.GSunIntensity *= exposureInv;
+  push.GSunIntensity *= exposure;
 
   cmd.setUniforms(Shaders::inst().sun, sun ? uboSun : uboMoon, &push, sizeof(push));
   cmd.draw(6);
@@ -237,7 +237,7 @@ void Sky::updateLight(const int64_t now) {
   sun.setColor(clr*sunMul);
   ambient = ambient*ambMul;
 
-  float exposure = 1;
+  float exposureInv = 1;
   {
   // exposure, based on sky
   static float exp = 4.0f;
@@ -249,15 +249,15 @@ void Sky::updateLight(const int64_t now) {
   //float lx = lsky*GSunIntensity*1.1f + fAmbient*0.5f + DirectMoonLux + NightLight;
 
   float lx = lsky*GSunIntensity*1.1f + StreetLight*0.25f + NightLight;
-  exposure = lx/GSunIntensity;
+  exposureInv = lx/GSunIntensity;
   }
 
   static float dbgExposure = -1;
   if(dbgExposure>0)
-    exposure = dbgExposure;
+    exposureInv = dbgExposure;
 
-  exposure = exposure/lumScale;
-  exposureInv = 1.f/exposure;
+  exposureInv = exposureInv/lumScale;
+  exposure = 1.f/exposureInv;
   }
 
 void Sky::setupUbo() {
@@ -527,7 +527,7 @@ Sky::UboSky Sky::mkPush(bool lwc) {
   ubo.rayleighScatteringScale = rayleighScatteringScale;
   ubo.clipInfo                = Vec3(scene.clipInfo().x,scene.clipInfo().y,scene.clipInfo().z);
   ubo.GSunIntensity           = GSunIntensity;
-  ubo.exposureInv             = exposureInv;
+  ubo.exposure                = exposure;
 
   return ubo;
   }

@@ -7,7 +7,7 @@
 #include "lighting/tonemapping.glsl"
 
 layout(push_constant, std140) uniform PushConstant {
-  float exposureInv;
+  float exposure;
   } push;
 
 layout(binding  = 0) uniform sampler2D textureD;
@@ -74,26 +74,14 @@ vec3 purkinjeShift(vec3 rgbLightHdr) {
   vec4 lmsr    = rgbLightHdr * matLmsrFromRgb;
   vec3 lmsGain = 1.0/sqrt(1.0 + lmsr.xyz);
   return (lmsGain * matRgbFromLmsGain) * lmsr.w;
-  /*
-  const float K  = 45.0;   // Scaling constant
-  const float S  = 10.0;   // Static saturation
-  const float p  = 0.6189; // relative weight of L-cones
-  const float k3 = 0.6;    // Surround strength of opponent signal
-  const float rw = 0.139;  // Ratio of responses for white light
-
-  mat3 dO = (K / S) * mat3(-(k3+rw), 1+k3*rw, 0,
-                            p*k3,   (1-p)*k3, 1,
-                            p*S,     (1-p)*S, 0);
-  return vec3(0);
-  */
   }
 
 void main() {
-  float exposureInv = push.exposureInv;
-  vec3  color       = texelFetch(textureD, ivec2(gl_FragCoord.xy), 0).rgb;
+  float exposure = push.exposure;
+  vec3  color    = texelFetch(textureD, ivec2(gl_FragCoord.xy), 0).rgb;
 
   // night shift
-  // color += purkinjeShift(color/exposureInv)*exposureInv;
+  // color += purkinjeShift(color/exposure)*exposure;
 
   // Tonemapping
   color = acesTonemap(color);

@@ -75,7 +75,7 @@ class SceneGlobals final {
       Tempest::Vec3                   sunDir        = {0,0,1};
       float                           waveAnim      = 0;
       Tempest::Vec3                   lightAmb      = {1,1,1};
-      float                           exposureInv   = 1;
+      float                           exposure      = 1;
       Tempest::Vec3                   lightCl       = {0,0,0};
       float                           GSunIntensity = 0;
       Tempest::Vec4                   frustrum[6];

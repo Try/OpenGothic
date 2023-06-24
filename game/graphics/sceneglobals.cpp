@@ -119,7 +119,7 @@ void SceneGlobals::setSky(const Sky& s) {
   uboGlobalCpu.cloudsDir[0]  = s.cloudsOffset(0);
   uboGlobalCpu.cloudsDir[1]  = s.cloudsOffset(1);
   uboGlobalCpu.isNight       = s.isNight();
-  uboGlobalCpu.exposureInv   = s.autoExposure();
+  uboGlobalCpu.exposure      = s.autoExposure();
   }
 
 void SceneGlobals::setUnderWater(bool w) {

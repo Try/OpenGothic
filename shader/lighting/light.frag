@@ -162,7 +162,7 @@ void main(void) {
   const vec3 linear = textureLinear(d.rgb) * PhotoLumInv;
 
   vec3 color = linear*color*light;
-  //color *= scene.exposureInv;
+  //color *= scene.exposure;
 
   outColor = vec4(color,0.0);
   //if(dbg!=vec4(0))

@@ -94,6 +94,6 @@ void main() {
   lum = applyClouds(lum);
   lum = lum * push.GSunIntensity;
 
-  lum *= push.exposureInv;
+  lum *= push.exposure;
   outColor = vec4(lum, tr);
   }

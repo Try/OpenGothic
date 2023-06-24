@@ -233,7 +233,7 @@ void main(void) {
   const vec3 lcolor = scene.sunCl.rgb * scene.GSunIntensity * light * shadow;
   const vec3 linear = textureLinear(diff.rgb) * PhotoLumInv;
 
-  vec3 color = linear*lcolor*scene.exposureInv;
+  vec3 color = linear*lcolor*scene.exposure;
   outColor = vec4(color, 1.0);
 
   // outColor = vec4(vec3(lcolor), diff.a); // debug

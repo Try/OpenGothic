@@ -11,7 +11,7 @@ const float blurSharpness = 0.8;
 
 layout(push_constant, std140) uniform PushConstant {
   vec3  ambient;
-  float exposureInv;
+  float exposure;
   vec3  ldir;
   vec3  clipInfo;
   } push;
@@ -105,7 +105,7 @@ void main() {
   vec3  lcolor = ambient();
 
   vec3  color  = linear*lcolor;
-  color *= push.exposureInv;
+  color *= push.exposure;
 
   outColor = vec4(color*(1-occ), 1);
   }

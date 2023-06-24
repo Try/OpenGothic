@@ -203,7 +203,7 @@ void main_frag() {
   float tr  = val.a;
 
   lum *= push.GSunIntensity;
-  lum *= push.exposureInv;
+  lum *= push.exposure;
 
   outColor = vec4(lum, tr);
   }

@@ -205,7 +205,7 @@ void main() {
     sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir);
     sky = applyClouds(sky+sun, view, refl);
     sky *= scene.GSunIntensity;
-    sky *= scene.exposureInv;
+    sky *= scene.exposure;
     }
 
   vec3 r = reflection(scr,start,refl,depth,sky) * WaterAlbedo * f;

@@ -13,7 +13,7 @@ struct SceneDesc {
   vec3  sunDir;
   float waveAnim;
   vec3  ambient;
-  float exposureInv;
+  float exposure;
   vec3  sunCl;
   float GSunIntensity;
   vec4  frustrum[6];
