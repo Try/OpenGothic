@@ -6,7 +6,7 @@
 #if defined(_MSC_VER)
 #include <windows.h>
 
-void setThreadName(const char* threadName) {
+void Workers::setThreadName(const char* threadName) {
   const DWORD MS_VC_EXCEPTION = 0x406D1388;
   DWORD dwThreadID = GetCurrentThreadId();
 #pragma pack(push,8)
@@ -30,11 +30,11 @@ void setThreadName(const char* threadName) {
     }
   }
 #elif defined(__GNUC__) && !defined(__clang__)
-void setThreadName(const char* threadName){
+void Workers::setThreadName(const char* threadName){
   pthread_setname_np(pthread_self(), threadName);
   }
 #else
-void setThreadName(const char* threadName){ (void)threadName; }
+void Workers::setThreadName(const char* threadName) { (void)threadName; }
 #endif
 
 using namespace Tempest;

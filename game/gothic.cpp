@@ -419,6 +419,7 @@ void Gothic::implStartLoadSave(std::string_view banner,
   auto g = clearGame().release();
   try{
     auto l = std::thread([this,f,g,one]() noexcept {
+      Workers::setThreadName("Loading thread");
       std::unique_ptr<GameSession> game(g);
       std::unique_ptr<GameSession> next;
       auto curState = one;

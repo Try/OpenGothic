@@ -949,6 +949,8 @@ void GameMenu::updateSavTitle(GameMenu::Item& sel) {
     sel.savHdr         = std::move(hdr);
 
     if(reader.setEntry("priview.png"))
+      reader.read(sel.savPriview); // legacy
+    else if(reader.setEntry("preview.png"))
       reader.read(sel.savPriview);
     }
   catch(std::bad_alloc&) {

@@ -14,6 +14,8 @@ class Workers final {
     Workers();
     ~Workers();
 
+    static void setThreadName(const char* threadName);
+
     template<class T,class F>
     static void parallelFor(T* b, T* e, const F& func) {
       inst().runParallelFor(b,std::distance(b,e),std::thread::hardware_concurrency(),func);

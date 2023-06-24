@@ -94,6 +94,7 @@ int main(int argc,const char** argv) {
   CrashLog::setup();
 
   Tempest::Log::i(appBuild);
+  Workers::setThreadName("Main thread");
 
   CommandLine          cmd{argc,argv};
   auto                 api     = mkApi(cmd);

@@ -10,6 +10,7 @@
 #include <Tempest/MemReader>
 #include <Tempest/MemWriter>
 #include <Tempest/Log>
+#include <Tempest/Application>
 
 size_t Serialize::writeFunc(void* pOpaque, uint64_t file_ofs, const void* pBuf, size_t n) {
   auto& self = *reinterpret_cast<Serialize*>(pOpaque);
@@ -51,7 +52,13 @@ size_t Serialize::readFunc(void* pOpaque, uint64_t file_ofs, void* pBuf, size_t 
 
 Serialize::Serialize() {}
 
+//static uint64_t time0 = 0;
+
 Serialize::Serialize(Tempest::ODevice& fout) : fout(&fout) {
+  //time0 = Tempest::Application::tickCount();
+  entryBuf .resize(1*1024*1024);
+  entryName.reserve(256);
+
   impl.m_pWrite           = Serialize::writeFunc;
   impl.m_pIO_opaque       = this;
   impl.m_zip_type         = MZ_ZIP_TYPE_USER;
@@ -59,6 +66,9 @@ Serialize::Serialize(Tempest::ODevice& fout) : fout(&fout) {
   }
 
 Serialize::Serialize(Tempest::IDevice& fin) : fin(&fin) {
+  entryBuf .resize(1*1024*1024);
+  entryName.reserve(256);
+
   impl.m_pRead            = Serialize::readFunc;
   impl.m_pIO_opaque       = this;
   impl.m_zip_type         = MZ_ZIP_TYPE_USER;
@@ -67,8 +77,11 @@ Serialize::Serialize(Tempest::IDevice& fin) : fin(&fin) {
 
 Serialize::~Serialize() {
   closeEntry();
-  mz_zip_writer_finalize_archive(&impl);
-  mz_zip_writer_end(&impl);
+  if(fout!=nullptr) {
+    mz_zip_writer_finalize_archive(&impl);
+    mz_zip_writer_end(&impl);
+    //Tempest::Log::d("save time = ", Tempest::Application::tickCount()-time0);
+    }
   }
 
 std::string_view Serialize::worldName() const {
@@ -91,11 +104,19 @@ void Serialize::closeEntry() {
     throw std::runtime_error("unable to write entry in game archive");
   }
 
-bool Serialize::implSetEntry(std::string fname) {
-  closeEntry();
-  entryName = std::move(fname);
+bool Serialize::implSetEntry(std::string_view fname) {
+  size_t prefix = 0;
   if(fout!=nullptr) {
-    for(size_t i=0; i<entryName.size(); ++i) {
+    while(prefix<fname.size() && prefix<entryName.size()) {
+      if(entryName[prefix]!=fname[prefix])
+        break;
+      ++prefix;
+      }
+    }
+  closeEntry();
+  entryName = fname;
+  if(fout!=nullptr) {
+    for(size_t i=prefix; i<entryName.size(); ++i) {
       if(entryName[i]=='/' && i+1<entryName.size()) {
         const char prev = entryName[i+1];
         entryName[i+1] = '\0';
@@ -126,7 +147,7 @@ bool Serialize::implSetEntry(std::string fname) {
   return false;
   }
 
-uint32_t Serialize::implDirectorySize(std::string e) {
+uint32_t Serialize::implDirectorySize(std::string_view e) {
   // Get and print information about each file in the archive.
   uint32_t cnt = 0;
   for(mz_uint i = 0; i<mz_zip_reader_get_num_files(&impl); i++) {
@@ -253,6 +274,7 @@ void Serialize::implRead(SaveGameHeader& p) {
 
 void Serialize::implWrite(const Tempest::Pixmap& p) {
   std::vector<uint8_t> tmp;
+  tmp.reserve(4*1024*1024);
   Tempest::MemWriter w{tmp};
   p.save(w);
   writeBytes(tmp.data(),tmp.size());

@@ -95,8 +95,7 @@ class alignas(64) string_frm {
 
     template<class ... Args>
     void implFormat(char* out, size_t maxSz, size_t& at, const Args&... arg) {
-      int dummy[sizeof...(Args)] = { (implWrite(out,maxSz,at,arg), 0)... };
-      (void)dummy;
+      (implWrite(out,maxSz,at,arg),... );
       }
 
     // NOTE: const-ref is better for inline-pass in optimizer
@@ -133,6 +132,12 @@ class alignas(64) string_frm {
     void implWrite(char* out, size_t maxSz, size_t& at, unsigned arg) {
       char buf[20] = {};
       std::snprintf(buf,sizeof(buf),"%u",arg);
+      implWrite(out, maxSz, at, buf);
+      }
+
+    void implWrite(char* out, size_t maxSz, size_t& at, size_t arg) {
+      char buf[20] = {};
+      std::snprintf(buf,sizeof(buf),"%llu",uint64_t(arg));
       implWrite(out, maxSz, at, buf);
       }
 

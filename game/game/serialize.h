@@ -21,6 +21,7 @@
 
 #include "gametime.h"
 #include "constants.h"
+#include "utils/string_frm.h"
 
 class WayPoint;
 class Npc;
@@ -47,18 +48,14 @@ class Serialize {
 
     template<class ... Args>
     bool setEntry(const Args& ... args) {
-      std::stringstream s;
-      int dummy[] = {(s << args, 0)...};
-      (void)dummy;
-      return implSetEntry(s.str());
+      string_frm s(args...);
+      return implSetEntry(s);
       }
 
     template<class ... Args>
     uint32_t directorySize(const Args& ... args) {
-      std::stringstream s;
-      int dummy[] = {(s << args, 0)...};
-      (void)dummy;
-      return implDirectorySize(s.str());
+      string_frm s(args...);
+      return implDirectorySize(s);
       }
 
     void setContext(World* ctx) { this->ctx=ctx; }
@@ -70,14 +67,12 @@ class Serialize {
 
     template<class ... Arg>
     void write(const Arg& ... a){
-      int dummy[sizeof...(Arg)] = { (implWrite(a), 0)... };
-      (void)dummy;
+      (implWrite(a),... );
       }
 
     template<class ... Arg>
     void read(Arg& ... a){
-      int dummy[sizeof...(Arg)] = { (implRead(a), 0)... };
-      (void)dummy;
+      (implRead(a),... );
       }
 
     void readNpc(phoenix::vm& vm, std::shared_ptr<phoenix::c_npc>& npc);
@@ -274,8 +269,8 @@ class Serialize {
     static size_t readFunc (void *pOpaque, uint64_t file_ofs, void *pBuf, size_t n);
 
     void   closeEntry();
-    bool   implSetEntry(std::string e);
-    uint32_t implDirectorySize(std::string e);
+    bool   implSetEntry(std::string_view e);
+    uint32_t implDirectorySize(std::string_view e);
 
     uint16_t                 curVer = Version::Current;
     uint16_t                 wldVer = Version::Current;
