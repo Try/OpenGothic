@@ -198,16 +198,18 @@ void MainWindow::paintEvent(PaintEvent& event) {
       paintFocus(p,focus,vp);
 
       if(auto pl = Gothic::inst().player()){
-        float hp = float(pl->attribute(ATR_HITPOINTS))/float(pl->attribute(ATR_HITPOINTSMAX));
-        float mp = float(pl->attribute(ATR_MANA))     /float(pl->attribute(ATR_MANAMAX));
-        drawBar(p,barHp,  10,    h()-10, hp, AlignLeft  | AlignBottom);
-        drawBar(p,barMana,w()-10,h()-10, mp, AlignRight | AlignBottom);
-        if(pl->isDive()) {
-          uint32_t gl = pl->guild();
-          auto     v  = float(pl->world().script().guildVal().dive_time[gl]);
-          if(v>0) {
-            auto t = float(pl->diveTime())/1000.f;
-            drawBar(p,barMisc,w()/2,h()-10, (v-t)/(v), AlignHCenter | AlignBottom);
+        if (!Gothic::inst().isDesktop()) {
+          float hp = float(pl->attribute(ATR_HITPOINTS))/float(pl->attribute(ATR_HITPOINTSMAX));
+          float mp = float(pl->attribute(ATR_MANA))     /float(pl->attribute(ATR_MANAMAX));
+          drawBar(p,barHp,  10,    h()-10, hp, AlignLeft  | AlignBottom);
+          drawBar(p,barMana,w()-10,h()-10, mp, AlignRight | AlignBottom);
+          if(pl->isDive()) {
+            uint32_t gl = pl->guild();
+            auto     v  = float(pl->world().script().guildVal().dive_time[gl]);
+            if(v>0) {
+              auto t = float(pl->diveTime())/1000.f;
+              drawBar(p,barMisc,w()/2,h()-10, (v-t)/(v), AlignHCenter | AlignBottom);
+              }
             }
           }
         }
@@ -234,7 +236,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
 
   renderer.dbgDraw(p);
 
-  if(Gothic::inst().doFrate()) {
+  if(Gothic::inst().doFrate() && !Gothic::inst().isDesktop()) {
     char fpsT[64]={};
     std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f",fps.get());
     //string_frm fpsT("fps = ", fps.get(), " ", info);
@@ -244,11 +246,13 @@ void MainWindow::paintEvent(PaintEvent& event) {
     }
 
   if(Gothic::inst().doClock() && world!=nullptr) {
-    auto hour = world->time().hour();
-    auto min  = world->time().minute();
-    auto& fnt = Resources::font();
-    string_frm clockT(int(hour),":",int(min));
-    fnt.drawText(p,w()-fnt.textSize(clockT).w-5,fnt.pixelSize()+5,clockT);
+    if (!Gothic::inst().isDesktop()) {
+      auto hour = world->time().hour();
+      auto min  = world->time().minute();
+      auto& fnt = Resources::font();
+      string_frm clockT(int(hour),":",int(min));
+      fnt.drawText(p,w()-fnt.textSize(clockT).w-5,fnt.pixelSize()+5,clockT);
+      }
     }
   }
 
