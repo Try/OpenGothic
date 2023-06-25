@@ -262,7 +262,7 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
         if(i.canSenseNpc(*r.other, true)==SensesBit::SENSE_NONE)
           continue;
 
-        // aproximation of behavior of original G2
+        // approximation of behavior of original G2
         if(r.victum!=nullptr && i.canSenseNpc(*r.victum,true,float(r.other->handle().senses_range))==SensesBit::SENSE_NONE)
           continue;
 

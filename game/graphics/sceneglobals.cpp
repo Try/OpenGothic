@@ -53,9 +53,9 @@ SceneGlobals::~SceneGlobals() {
 void SceneGlobals::initSettings() {
   zWindEnabled = Gothic::inst().settingsGetI("ENGINE","zWindEnabled")!=0;
 
-  float peroid  = Gothic::inst().settingsGetF("ENGINE","zWindCycleTime");
-  float peroidV = Gothic::inst().settingsGetF("ENGINE","zWindCycleTimeVar");
-  windPeriod = uint64_t((peroid+peroidV)*1000.f);
+  float period  = Gothic::inst().settingsGetF("ENGINE","zWindCycleTime");
+  float periodV = Gothic::inst().settingsGetF("ENGINE","zWindCycleTimeVar");
+  windPeriod = uint64_t((period+periodV)*1000.f);
   if(windPeriod<=0) {
     windPeriod   = 1;
     zWindEnabled = false;

@@ -937,9 +937,9 @@ bool Interactive::setAnim(Npc* npc, Anim dir) {
 
   uint64_t aniT = sqNpc==nullptr ? 0 : uint64_t(sqNpc->totalTime());
   if(aniT==0) {
-    /* Note: testing shows that in vanilla only npc animation maters.
+    /* Note: testing shows that in vanilla only npc animation matters.
      * testcase: chest animation
-     * modsi timings only here for completness
+     * modsi timings only here for completeness
      */
     aniT = sqMob==nullptr ? 0 : uint64_t(sqMob->totalTime());
     }
