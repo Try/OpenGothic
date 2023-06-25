@@ -88,6 +88,9 @@ class Gothic final {
     bool         isGodMode() const { return godMode; }
     void         setGodMode(bool g) { godMode = g; }
 
+    void         toggleDesktop() { desktop = !desktop; }
+    bool         isDesktop() { return desktop; }
+
     bool         doHideFocus () const { return hideFocus; }
     bool         doFrate() const { return showFpsCounter; }
     void         setFRate(bool f) { showFpsCounter = f; }
@@ -166,6 +169,7 @@ class Gothic final {
     uint16_t                                pauseSum=0;
     bool                                    isMarvin       = false;
     bool                                    godMode        = false;
+    bool                                    desktop        = false;
     bool                                    showFpsCounter = false;
     bool                                    showTime       = false;
     bool                                    hideFocus      = false;

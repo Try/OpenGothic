@@ -95,7 +95,7 @@ Marvin::Marvin() {
     {"set time %d %d",             C_SetTime},
     {"spawnmass %d",               C_Invalid},
     {"spawnmass giga %d",          C_Invalid},
-    {"toggle desktop",             C_Invalid},
+    {"toggle desktop",             C_ToggleDesktop},
     {"toggle freepoints",          C_Invalid},
     {"toggle screen",              C_Invalid},
     {"toggle time",                C_ToggleTime},
@@ -326,6 +326,10 @@ bool Marvin::exec(std::string_view v) {
     case C_ToggleInertia: {
       if(auto c = Gothic::inst().camera())
         c->setInertiaTargetEnable(!c->isInertiaTargetEnabled());
+      return true;
+      }
+    case C_ToggleDesktop: {
+      Gothic::inst().toggleDesktop();
       return true;
       }
     case C_Insert: {

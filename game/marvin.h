@@ -26,6 +26,8 @@ class Marvin {
       // rendering
       C_ToggleFrame,
       C_ToggleTime,
+      // game
+      C_ToggleDesktop,
       // npc
       C_CheatFull,
       C_CheatGod,
