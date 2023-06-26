@@ -321,9 +321,9 @@ Matrix4x4 Camera::mkViewShadow(const Vec3& cameraPos, float rotation, const Temp
     view.set(1,1, dz*smWidthInv);
     }
 
-  // strectch shadowmap on light dir
+  // stretch shadowmap on light dir
   if(ldir.y!=0.f) {
-    // stetch view to camera
+    // stretch view to camera
     float r0 = std::fmod(rotation, 360.f);
     float r  = std::fmod(std::atan2(ldir.z,ldir.x)*180.f/float(M_PI), 360.f);
     r -= r0;

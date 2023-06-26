@@ -20,7 +20,7 @@ class Pose final {
 
     enum Flags {
       NoFlags       = 0,
-      NoTranslation = 1, // usefull for mobsi
+      NoTranslation = 1, // useful for mobsi
       };
 
     enum StartHint : uint8_t {

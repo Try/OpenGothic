@@ -476,8 +476,8 @@ void ObjectsBucket::preFrameUpdate(uint8_t fId) {
       auto  pos   = v.pos;
       float shift = v.pos[3][0]*scene.windDir.x + v.pos[3][2]*scene.windDir.y;
 
-      static const uint64_t preiod = scene.windPeriod;
-      float a = float(scene.tickCount%preiod)/float(preiod);
+      static const uint64_t period = scene.windPeriod;
+      float a = float(scene.tickCount%period)/float(period);
       a = a*2.f-1.f;
       a = std::cos(float(a*M_PI) + shift*0.0001f);
 
@@ -515,7 +515,7 @@ size_t ObjectsBucket::alloc(const StaticMesh& mesh, size_t iboOffset, size_t ibo
 
   bool useBlas = true;
   if(mat.alpha==Material::Solid && objType==Type::Landscape)
-    useBlas = false; // handles separetly
+    useBlas = false; // handles separately
 
   if(objType!=Type::Landscape && objType!=Type::Static)
     useBlas = false; // not supported

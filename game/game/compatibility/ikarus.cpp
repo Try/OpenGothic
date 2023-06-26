@@ -23,13 +23,13 @@ Ikarus::Ikarus(GameScript& /*owner*/, phoenix::vm& vm) : vm(vm)
   /*:owner(owner)*/ {
   Log::i("DMA mod detected: Ikarus");
 
-  // build-in data with assumed address
+  // built-in data with assumed address
   versionHint = 504628679; // G2
   allocator.pin(&versionHint,   GothicFirstInstructionAddress, 4, "MEMINT_ReportVersionCheck");
   allocator.pin(&oGame_Pointer, MEMINT_oGame_Pointer_Address,  4, "oGame*");
   allocator.pin(&parserProxy,   ContentParserAddress,          sizeof(parserProxy), "zCParser proxy");
 
-  // build-in data without assumed address
+  // built-in data without assumed address
   oGame_Pointer = allocator.pin(&gameProxy, 0, sizeof(gameProxy), "oGame");
 
   // Note: no inline asm

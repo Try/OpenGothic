@@ -240,7 +240,7 @@ const Animation::Sequence* AnimationSolver::implSolveAnim(AnimationSolver::Anim 
       s = solveFrm("T_%sPARADEJUMPB",st);
     if(s!=nullptr)
       return s;
-    // This is bases on original game: if no move-back animation, even in water, game defaults to standart walk-bak
+    // This is bases on original game: if no move-back animation, even in water, game defaults to standard walk-back
     return solveFrm("T_%sJUMPB",st);
     }
   // Rotation

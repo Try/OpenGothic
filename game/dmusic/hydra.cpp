@@ -351,7 +351,7 @@ std::unique_ptr<float[]> Hydra::allocSamples(const std::vector<Wave>& wave,std::
     std::strncpy(sx.sampleName,wav.info.inam.c_str(),19);
     sx.start           = tsf_u32(wavStart);
     sx.end             = tsf_u32(wavStart+wavSize);
-    sx.startLoop       = 0; // will be overriden, later
+    sx.startLoop       = 0; // will be overridden, later
     sx.endLoop         = 0;
     sx.sampleRate      = wav.wfmt.dwSamplesPerSec;
     sx.originalPitch   = uint8_t(wav.waveSample.usUnityNote);

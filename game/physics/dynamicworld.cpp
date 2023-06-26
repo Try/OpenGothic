@@ -645,7 +645,7 @@ float DynamicWorld::soundOclusion(const Tempest::Vec3& from, const Tempest::Vec3
     }
 
   float tlen = (callback.m_rayFromWorld-callback.m_rayToWorld).length();
-  // let's say: 1.5 meter wall blocks sound completly :)
+  // let's say: 1.5 meter wall blocks sound completely :)
   return (tlen*fr)/1.5f;
   }
 
