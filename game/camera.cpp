@@ -492,22 +492,6 @@ void Camera::setDialogDistance(float d) {
   dlgDist = d;
   }
 
-Vec3 Camera::clampPos(Tempest::Vec3 pos, Vec3 dest) {
-  auto dp  = (dest-pos);
-  auto len = dp.length();
-
-  if(len > maxDist && (len-maxDist)>0.f) {
-    float tr = (len-maxDist);
-    float k  = tr/len;
-    return pos + dp*k;
-    }
-
-  // auto len2 = (dest-pos).length();
-  // if(len2>0.f)
-  //   Log::i("lenClp = ", len2);
-  return pos;
-  }
-
 void Camera::followPos(Vec3& pos, Vec3 dest, float dtF) {
   const auto& def = cameraDef();
 
@@ -655,9 +639,7 @@ void Camera::calcControlPoints(float dtF) {
   rotOffsetMat.project(dir);
 
   auto target = dst.target + targetOffset;
-
-  if(camMarvinMod!=M_Free)
-    followPos(src.target,target,dtF);
+  followPos(src.target,target,dtF);
 
   auto camTg = src.target;//clampPos(src.target,target);
   followCamera(cameraPos,src.target,dtF);
