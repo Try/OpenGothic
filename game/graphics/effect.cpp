@@ -175,7 +175,12 @@ void Effect::syncAttachesSingle(const Matrix4x4& inPos) {
     }
 
   auto p = inPos;
-  if(true || emTrjMode != VisualFx::Trajectory::TrajectoryNone) {
+  if((emTrjMode & VisualFx::Trajectory::Target)==VisualFx::Trajectory::Target && target!=nullptr) {
+    // NOTE: needed for shrink-spell, light-spell
+    p.identity();
+    p.translate(target->mapBone(nodeSlot));
+    }
+  else if(true || emTrjMode != VisualFx::Trajectory::TrajectoryNone) {
     if(pose!=nullptr && boneId<pose->boneCount())
       p = pose->bone(boneId);
     else if(target!=nullptr)

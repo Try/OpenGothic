@@ -177,6 +177,7 @@ void MdlVisual::setAmmoItem(MeshObjects::Mesh&& a, std::string_view bone) {
 void MdlVisual::setMagicWeapon(Effect&& spell, World& owner) {
   auto n = std::move(pfx.view);
   n.setLooped(false);
+  n.setActive(false);
   startEffect(owner,std::move(n),0,true);
 
   pfx.view = std::move(spell);
