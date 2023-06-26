@@ -118,7 +118,6 @@ class GameMenu : public Tempest::Widget {
     void                                  updateVideo();
     void                                  setDefaultKeys(std::string_view preset);
 
-    static bool                           isInGameAndAlive();
     static QuestStat                      toStatus(std::string_view str);
     static bool                           isCompatible(const QuestLog::Quest& q, QuestStat st);
     static int32_t                        numQuests(const QuestLog* q, QuestStat st);

@@ -14,7 +14,8 @@
 #include "game/definitions/musicdefinitions.h"
 #include "game/definitions/fightaidefinitions.h"
 #include "game/definitions/particlesdefinitions.h"
-#include "game/serialize.h"
+
+#include "world/objects/npc.h"
 
 #include "utils/fileutil.h"
 #include "utils/inifile.h"
@@ -176,6 +177,13 @@ const VersionInfo& Gothic::version() const {
 
 bool Gothic::isInGame() const {
   return game!=nullptr;
+  }
+
+bool Gothic::isInGameAndAlive() const {
+  auto pl = Gothic::inst().player();
+  if(pl==nullptr || pl->isDead())
+    return false;
+  return isInGame();
   }
 
 const World *Gothic::world() const {

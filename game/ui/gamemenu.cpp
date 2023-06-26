@@ -292,7 +292,7 @@ GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, phoenix::vm &vm, std::st
     }
   setPosition(int(infoX*float(w())),int(infoY*float(h())));
 
-  setSelection(isInGameAndAlive() ? menu->default_ingame : menu->default_outgame);
+  setSelection(Gothic::inst().isInGameAndAlive() ? menu->default_ingame : menu->default_outgame);
   updateValues();
   slider = Resources::loadTexture("MENU_SLIDER_POS.TGA");
 
@@ -708,9 +708,9 @@ bool GameMenu::isSelectable(const std::shared_ptr<phoenix::c_menu_item>& item) {
 bool GameMenu::isEnabled(const std::shared_ptr<phoenix::c_menu_item>& item) {
   if(item==nullptr)
     return false;
-  if((item->flags & phoenix::c_menu_item_flags::only_ingame) && !isInGameAndAlive())
+  if((item->flags & phoenix::c_menu_item_flags::only_ingame) && !Gothic::inst().isInGameAndAlive())
     return false;
-  if((item->flags & phoenix::c_menu_item_flags::only_outgame) && isInGameAndAlive())
+  if((item->flags & phoenix::c_menu_item_flags::only_outgame) && Gothic::inst().isInGameAndAlive())
     return false;
   return true;
   }
@@ -986,13 +986,6 @@ void GameMenu::updateVideo() {
 
 void GameMenu::setDefaultKeys(std::string_view preset) {
   keyCodec.setDefaultKeys(preset);
-  }
-
-bool GameMenu::isInGameAndAlive() {
-  auto pl = Gothic::inst().player();
-  if(pl==nullptr || pl->isDead())
-    return false;
-  return Gothic::inst().isInGame();
   }
 
 bool GameMenu::implUpdateSavThumb(GameMenu::Item& sel) {

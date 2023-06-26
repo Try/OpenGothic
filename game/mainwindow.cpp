@@ -725,11 +725,14 @@ void MainWindow::onMarvinKey() {
         if(auto camera = Gothic::inst().camera()) {
           camera->setMarvinMode(Camera::M_Freeze);
           }
-        } else {
+        }
+      else if(Gothic::inst().isInGameAndAlive() && !Gothic::inst().isPause()) {
         Gothic::inst().quickSave();
         }
 #else
-      Gothic::inst().quickSave();
+      if(Gothic::inst().isInGameAndAlive() && !Gothic::inst().isPause()) {
+        Gothic::inst().quickSave();
+        }
 #endif
       break;
 
