@@ -3,6 +3,7 @@
 #include <vector>
 #include <memory>
 #include <string_view>
+#include <string>
 
 #include "game/constants.h"
 
