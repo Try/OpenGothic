@@ -89,6 +89,7 @@ class Inventory final {
     void   updateArmourView(Npc& owner);
     void   updateSwordView (Npc& owner);
     void   updateBowView   (Npc& owner);
+    void   updateShieldView(Npc& owner);
     void   updateRuneView  (Npc& owner);
     void   updateView      (Npc& owner);
 
@@ -152,16 +153,17 @@ class Inventory final {
     uint32_t                           indexOf(const Item* it) const;
     Item*                              readPtr(Serialize& fin);
 
-    Item*                              armour=nullptr;
-    Item*                              belt  =nullptr;
-    Item*                              amulet=nullptr;
-    Item*                              ringL =nullptr;
-    Item*                              ringR =nullptr;
+    Item*                              armour     = nullptr;
+    Item*                              belt       = nullptr;
+    Item*                              amulet     = nullptr;
+    Item*                              ringL      = nullptr;
+    Item*                              ringR      = nullptr;
 
-    Item**                             active=nullptr;
-    Item*                              mele  =nullptr;
-    Item*                              range =nullptr;
-    Item*                              numslot[8]={};
+    Item**                             active     = nullptr;
+    Item*                              mele       = nullptr;
+    Item*                              range      = nullptr;
+    Item*                              shield     = nullptr;
+    Item*                              numslot[8] = {};
     std::vector<MdlSlot>               mdlSlots;
     MdlSlot                            ammotSlot, stateSlot;
     int32_t                            curItem=0;

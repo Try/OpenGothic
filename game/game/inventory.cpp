@@ -1,4 +1,3 @@
-#include "damagecalculator.h"
 #include "inventory.h"
 
 #include <Tempest/Log>
@@ -81,7 +80,7 @@ void Inventory::Iterator::skipHidden() {
   }
 
 
-Inventory::Inventory() {  
+Inventory::Inventory() {
   }
 
 Inventory::~Inventory() {
@@ -124,6 +123,8 @@ void Inventory::implLoad(Npc* owner, World& world, Serialize &s) {
   ringR  = readPtr(s);
   mele   = readPtr(s);
   range  = readPtr(s);
+  if(s.version()>45)
+    shield = readPtr(s);
   for(auto& i:numslot)
     i = readPtr(s);
 
@@ -170,6 +171,7 @@ void Inventory::save(Serialize &fout) const {
   fout.write(indexOf(ringR) );
   fout.write(indexOf(mele)  );
   fout.write(indexOf(range) );
+  fout.write(indexOf(shield));
   for(auto& i:numslot)
     fout.write(indexOf(i));
 
@@ -376,6 +378,10 @@ void Inventory::unequip(Item *it, Npc &owner) {
     setSlot(range,nullptr,owner,false);
     return;
     }
+  if(shield==it) {
+    setSlot(shield,nullptr,owner,false);
+    return;
+    }
 
   for(auto& i:numslot)
     if(i==it)
@@ -404,8 +410,10 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
     }
 
   if(slot!=nullptr) {
-    auto& itData = slot->handle();
-    auto  flag   = ItmFlags(itData.main_flag);
+    auto& itData   = slot->handle();
+    auto  mainFlag = ItmFlags(itData.main_flag);
+    auto  flag     = ItmFlags(itData.flags);
+
     applyArmour(*slot,owner,-1);
     if(slot->isEquiped())
       slot->setAsEquiped(false);
@@ -413,13 +421,16 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
       applyWeaponStats(owner,*slot,-1);
     slot=nullptr;
 
-    if(flag & ITM_CAT_ARMOR){
+    if(flag & ITM_SHIELD){
+      owner.setShield(MeshObjects::Mesh());
+      }
+    else if(mainFlag & ITM_CAT_ARMOR){
       owner.updateArmour();
       }
-    else if(flag & ITM_CAT_NF){
+    else if(mainFlag & ITM_CAT_NF){
       owner.setSword(MeshObjects::Mesh());
       }
-    else if(flag & ITM_CAT_FF){
+    else if(mainFlag & ITM_CAT_FF){
       owner.setRangeWeapon(MeshObjects::Mesh());
       }
     vm.invokeItem(&owner,uint32_t(itData.on_unequip));
@@ -437,6 +448,7 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
   updateArmourView(owner);
   updateSwordView (owner);
   updateBowView   (owner);
+  updateShieldView(owner);
   if(&slot==active) {
     updateRuneView  (owner);
     applyWeaponStats(owner,*slot,1);
@@ -451,6 +463,7 @@ void Inventory::updateView(Npc& owner) {
   updateArmourView(owner);
   updateSwordView (owner);
   updateBowView   (owner);
+  updateShieldView(owner);
   updateRuneView  (owner);
 
   for(auto& i:mdlSlots) {
@@ -488,7 +501,7 @@ void Inventory::updateSwordView(Npc &owner) {
   }
 
 void Inventory::updateBowView(Npc &owner) {
-  if(range==nullptr){
+  if(range==nullptr) {
     owner.setRangeWeapon(MeshObjects::Mesh());
     return;
     }
@@ -497,6 +510,19 @@ void Inventory::updateBowView(Npc &owner) {
   if(flag & ITM_CAT_FF){
     auto  vbody  = owner.world().addView(range->handle());
     owner.setRangeWeapon(std::move(vbody));
+    }
+  }
+
+void Inventory::updateShieldView(Npc& owner) {
+  if(shield==nullptr) {
+    owner.setShield(MeshObjects::Mesh());
+    return;
+    }
+
+  auto flag = ItmFlags(shield->itemFlag());
+  if(flag & ITM_SHIELD){
+    auto  vbody  = owner.world().addView(shield->handle());
+    owner.setShield(std::move(vbody));
     }
   }
 
@@ -775,6 +801,9 @@ bool Inventory::use(size_t cls, Npc &owner, uint8_t slotHint, bool force) {
   auto  mainflag = ItmFlags(itData.main_flag);
   auto  flag     = ItmFlags(itData.flags);
 
+  if(flag & ITM_SHIELD)
+    return setSlot(shield,it,owner,force);
+
   if(mainflag & ITM_CAT_NF)
     return setSlot(mele,it,owner,force);
 
@@ -850,6 +879,7 @@ void Inventory::invalidateCond(Npc &owner) {
   invalidateCond(ringR ,owner);
   invalidateCond(mele  ,owner);
   invalidateCond(range ,owner);
+  invalidateCond(shield,owner);
   for(auto& i:numslot)
     invalidateCond(i,owner);
   }

@@ -151,6 +151,7 @@ class Npc final {
     void       updateArmour  ();
     void       setSword      (MeshObjects::Mesh&& sword);
     void       setRangeWeapon(MeshObjects::Mesh&& bow);
+    void       setShield     (MeshObjects::Mesh&& shield);
     void       setMagicWeapon(Effect&& spell);
     void       setSlotItem   (MeshObjects::Mesh&& itm, std::string_view slot);
     void       setStateItem  (MeshObjects::Mesh&& itm, std::string_view slot);

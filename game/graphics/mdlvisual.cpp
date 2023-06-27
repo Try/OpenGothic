@@ -1,7 +1,5 @@
 #include "mdlvisual.h"
-#include "objvisual.h"
 
-#include "graphics/pfx/particlefx.h"
 #include "graphics/mesh/skeleton.h"
 #include "game/serialize.h"
 #include "utils/string_frm.h"
@@ -9,6 +7,7 @@
 #include "world/objects/interactive.h"
 #include "world/objects/item.h"
 #include "world/world.h"
+#include "objvisual.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -168,6 +167,10 @@ void MdlVisual::setSword(MeshObjects::Mesh &&s) {
 
 void MdlVisual::setRangeWeapon(MeshObjects::Mesh &&b) {
   bind(bow,std::move(b),"ZS_BOW");
+  }
+
+void MdlVisual::setShield(MeshObjects::Mesh&& s) {
+  bind(shield,std::move(s),"ZS_SHIELD");
   }
 
 void MdlVisual::setAmmoItem(MeshObjects::Mesh&& a, std::string_view bone) {
@@ -425,7 +428,7 @@ Vec2 MdlVisual::headRotation() const {
 void MdlVisual::updateWeaponSkeleton(const Item* weapon, const Item* range) {
   auto st = fgtMode;
   if(st==WeaponState::W1H || st==WeaponState::W2H){
-    bind(sword,"ZS_RIGHTHAND");
+    bind(sword, "ZS_RIGHTHAND");
     } else {
     bool twoHands = weapon!=nullptr && weapon->is2H();
     bind(sword,twoHands ? "ZS_LONGSWORD" : "ZS_SWORD");
@@ -439,6 +442,8 @@ void MdlVisual::updateWeaponSkeleton(const Item* weapon, const Item* range) {
     bool cbow  = range!=nullptr && range->isCrossbow();
     bind(bow,cbow ? "ZS_CROSSBOW" : "ZS_BOW");
     }
+
+  bind(shield, st==WeaponState::W1H ? "ZS_LEFTARM" : "ZS_SHIELD");
 
   pfx.view.setActive(st==WeaponState::Mage);
   syncAttaches();
@@ -816,7 +821,7 @@ void MdlVisual::rebindAttaches(Attach<View>& mesh, const Skeleton& to) {
   }
 
 void MdlVisual::syncAttaches() {
-  MdlVisual::MeshAttach* mesh[] = {&head, &sword,&bow,&ammunition,&stateItm};
+  MdlVisual::MeshAttach* mesh[] = {&head, &sword,&shield,&bow,&ammunition,&stateItm};
   for(auto i:mesh)
     syncAttaches(*i);
   for(auto& i:item)
@@ -898,7 +903,7 @@ bool MdlVisual::startAnimDialog(Npc &npc) {
   }
 
 void MdlVisual::startMMAnim(Npc&, std::string_view anim, std::string_view bone) {
-  MdlVisual::MeshAttach* mesh[] = {&head,&sword,&bow,&ammunition,&stateItm};
+  MdlVisual::MeshAttach* mesh[] = {&head,&sword,&shield,&bow,&ammunition,&stateItm};
   for(auto i:mesh) {
     if(i->bone!=bone)
       continue;

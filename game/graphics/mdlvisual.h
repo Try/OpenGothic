@@ -49,6 +49,7 @@ class MdlVisual final {
     void                           setBody       (Npc& npc, MeshObjects::Mesh&& body, const int32_t version);
     void                           setSword      (MeshObjects::Mesh&& sword);
     void                           setRangeWeapon(MeshObjects::Mesh&& bow);
+    void                           setShield     (MeshObjects::Mesh&& shield);
     void                           setAmmoItem   (MeshObjects::Mesh&& ammo, std::string_view bone);
     void                           setSlotItem   (MeshObjects::Mesh&& itm,  std::string_view bone);
     void                           setStateItem  (MeshObjects::Mesh&& itm,  std::string_view bone);
@@ -151,7 +152,7 @@ class MdlVisual final {
     Tempest::Matrix4x4             pos;
     MeshObjects::Mesh              view;
 
-    MeshAttach                     head, sword, bow;
+    MeshAttach                     head, sword, bow, shield;
     MeshAttach                     ammunition, stateItm;
     std::vector<MeshAttach>        item;
     std::vector<MeshAttach>        attach;

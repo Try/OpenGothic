@@ -887,6 +887,11 @@ void Npc::setRangeWeapon(MeshObjects::Mesh&& b) {
   updateWeaponSkeleton();
   }
 
+void Npc::setShield(MeshObjects::Mesh&& s) {
+  visual.setShield(std::move(s));
+  updateWeaponSkeleton();
+  }
+
 void Npc::setMagicWeapon(Effect&& s) {
   s.setOrigin(this);
   visual.setMagicWeapon(std::move(s),owner);
