@@ -742,7 +742,8 @@ void PlayerControl::implMove(uint64_t dt) {
     actrl[ActMove]         = false;
     if(ws!=WeaponState::Mage && !(g2Ctrl && (ws==WeaponState::Bow || ws==WeaponState::CBow))) {
       actrl[ActForward] = false;
-      movement.reset();
+      if(!ctrl[Action::Forward])
+        movement.reset();
       }
     switch(ws) {
       case WeaponState::NoWeapon:
