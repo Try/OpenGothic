@@ -8,6 +8,7 @@
 #include "camera.h"
 #include "gothic.h"
 #include "ui/videowidget.h"
+#include "utils/string_frm.h"
 
 #include <ui/videowidget.h>
 
@@ -304,6 +305,7 @@ void Renderer::setupTlas(const Tempest::AccelerationStructure* tlas) {
   }
 
 void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
+  cmd.setDebugMarker("Sky LUT");
   wview.prepareSky(cmd,fId);
   }
 
@@ -318,13 +320,16 @@ void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
     cmd.setFramebuffer({{result, Vec4(), Tempest::Preserve}});
     }
   cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
+  cmd.setDebugMarker("UI");
   uiLayer.draw(cmd);
 
   if(inventory.isOpen()!=InventoryMenu::State::Closed) {
     cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}},{zbuffer, 1.f, Tempest::Preserve});
+    cmd.setDebugMarker("Inventory");
     inventory.draw(cmd,cmdId);
 
     cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
+    cmd.setDebugMarker("Inventory-counters");
     numOverlay.draw(cmd);
     }
   }
@@ -404,18 +409,23 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   drawGWater(cmd,fId,*wview);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
+  cmd.setDebugMarker("Sun&Moon");
   wview->drawSunMoon(cmd,fId);
+  cmd.setDebugMarker("Translucent");
   wview->drawTranslucent(cmd,fId);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   drawReflections(cmd,fId);
   if(camera->isInWater()) {
+    cmd.setDebugMarker("Underwater");
     drawUnderwater(cmd,fId);
     } else {
+    cmd.setDebugMarker("Fog");
     wview->drawFog(cmd,fId);
     }
 
   cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
+  cmd.setDebugMarker("Tonemapping");
   drawTonemapping(cmd);
   }
 
@@ -444,6 +454,7 @@ void Renderer::stashSceneAux(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint
   if(!device.properties().hasSamplerFormat(zBufferFormat))
     return;
   cmd.setFramebuffer({{sceneOpaque, Tempest::Discard, Tempest::Preserve}, {sceneDepth, Tempest::Discard, Tempest::Preserve}});
+  cmd.setDebugMarker("Stash scene");
   cmd.setUniforms(Shaders::inst().stash, uboStash);
   cmd.draw(Resources::fsqVbo());
   }
@@ -453,9 +464,11 @@ void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     return;
 
   cmd.setFramebuffer({}, {zbuffer, 1.f, Tempest::Preserve});
+  cmd.setDebugMarker("HiZ-occluders");
   view.drawHiZ(cmd,fId);
 
   cmd.setFramebuffer({});
+  cmd.setDebugMarker("HiZ");
   cmd.setUniforms(Shaders::inst().hiZRaw, uboHiZRaw);
   cmd.dispatchThreads(uint32_t(zbuffer.w()),uint32_t(zbuffer.h()));
 
@@ -482,6 +495,7 @@ void Renderer::drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
                         {gbufNormal,  Tempest::Discard, Tempest::Preserve}},
                        {zbuffer, 1.f, Tempest::Preserve});
     }
+  cmd.setDebugMarker("GBuffer");
   view.drawGBuffer(cmd,fId);
   }
 
@@ -492,10 +506,12 @@ void Renderer::drawGWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
                      {zbuffer, Tempest::Preserve, Tempest::Preserve});
   // cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}},
   //                    {zbuffer, Tempest::Preserve, Tempest::Preserve});
+  cmd.setDebugMarker("GWater");
   view.drawWater(cmd,fId);
   }
 
 void Renderer::drawReflections(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  cmd.setDebugMarker("Reflections");
   cmd.setUniforms(*water.reflectionsPso, water.ubo);
   if(Gothic::inst().doMeshShading()) {
     cmd.dispatchMeshThreads(size_t(gbufDiffuse.w()), size_t(gbufDiffuse.h()));
@@ -518,6 +534,7 @@ void Renderer::drawShadowMap(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, 
 
   for(uint8_t i=0; i<Resources::ShadowLayers; ++i) {
     cmd.setFramebuffer({}, {shadowMap[i], 0.f, Tempest::Preserve});
+    cmd.setDebugMarker(string_frm("ShadowMap #",i));
     if(view.mainLight().dir().y > Camera::minShadowY)
       view.drawShadow(cmd,fId,i);
     }
@@ -527,15 +544,18 @@ void Renderer::drawShadowResolve(Encoder<Tempest::CommandBuffer>& cmd, uint8_t f
   static bool useDsm = true;
   if(!useDsm)
     return;
+  cmd.setDebugMarker("DirectSunLight");
   cmd.setUniforms(*shadow.composePso, shadow.ubo);
   cmd.draw(Resources::fsqVbo());
   }
 
 void Renderer::drawLights(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
+  cmd.setDebugMarker("Point lights");
   wview.drawLights(cmd,fId);
   }
 
 void Renderer::drawSky(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
+  cmd.setDebugMarker("Sky");
   wview.drawSky(cmd,fId);
   }
 
@@ -552,16 +572,19 @@ void Renderer::prepareSSAO(Encoder<Tempest::CommandBuffer>& cmd) {
   push.mvpInv.inverse();
 
   cmd.setFramebuffer({});
+  cmd.setDebugMarker("SSAO");
   cmd.setUniforms(*ssao.ssaoPso, ssao.uboSsao, &push, sizeof(push));
   cmd.dispatchThreads(size_t(ssao.ssaoBuf.w()), size_t(ssao.ssaoBuf.h()));
   }
 
 void Renderer::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
+  cmd.setDebugMarker("Fog LUTs");
   wview.prepareFog(cmd,fId);
   }
 
 void Renderer::prepareIrradiance(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
   cmd.setFramebuffer({});
+  cmd.setDebugMarker("Irradiance");
   cmd.setUniforms(*irradiance.pso, irradiance.ubo);
   cmd.dispatch(1);
   }
@@ -579,6 +602,7 @@ void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {
   push.clipInfo = clipInfo;
   push.exposure = view.sky().autoExposure();
 
+  cmd.setDebugMarker("AmbientLight");
   cmd.setUniforms(*ssao.ambientComposePso,ssao.uboCompose,&push,sizeof(push));
   cmd.draw(Resources::fsqVbo());
   }
