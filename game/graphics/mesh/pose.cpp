@@ -694,6 +694,14 @@ uint64_t Pose::animationTotalTime() const {
   return ret;
   }
 
+uint64_t Pose::atkTotalTime() const {
+  uint16_t comboLen = combo.len();
+  uint64_t ret=0;
+  for(auto& i:lay)
+    ret = std::max(ret,uint64_t(i.seq->atkTotalTime(comboLen)));
+  return ret;
+  }
+
 const Animation::Sequence* Pose::continueCombo(const AnimationSolver &solver, const Animation::Sequence *sq,
                                                uint64_t tickCount) {
   if(sq==nullptr)

@@ -1430,8 +1430,9 @@ bool Npc::implAttack(uint64_t dt) {
     return true;
     }
 
-  if(!fghAlgo.hasInstructions())
+  if(!fghAlgo.hasInstructions()) {
     return false;
+    }
 
   FightAlgo::Action act = fghAlgo.nextFromQueue(*this,*currentTarget,owner.script());
 
@@ -1512,12 +1513,24 @@ bool Npc::implAttack(uint64_t dt) {
         }
       }
     else if(ws==WeaponState::Fist) {
-      if(doAttack(Anim::Attack) || mvAlgo.isSwim() || mvAlgo.isDive())
+      const auto bs = bodyStateMasked();
+      if(doAttack(Anim::Attack) || mvAlgo.isSwim() || mvAlgo.isDive()) {
+        uint64_t aniTime = visual.pose().atkTotalTime()+1;
+        implFaiWait(aniTime);
+        if(bs==BS_RUN)
+          implAniWait(aniTime);
         fghAlgo.consumeAction();
+        }
       }
     else {
-      if(doAttack(ani[act-FightAlgo::MV_ATACK]))
+      const auto bs = bodyStateMasked();
+      if(doAttack(ani[act-FightAlgo::MV_ATACK])) {
+        uint64_t aniTime = visual.pose().atkTotalTime()+1;
+        implFaiWait(aniTime);
+        if(bs==BS_RUN)
+          implAniWait(aniTime);
         fghAlgo.consumeAction();
+        }
       }
     return true;
     }
@@ -1599,10 +1612,7 @@ bool Npc::implAttack(uint64_t dt) {
 void Npc::adjustAttackRotation(uint64_t dt) {
   if(currentTarget!=nullptr && !currentTarget->isDown()) {
     auto ws = weaponState();
-    if(!visual.pose().isInAnim("T_FISTATTACKMOVE") &&
-       !visual.pose().isInAnim("T_1HATTACKMOVE")   &&
-       !visual.pose().isInAnim("T_2HATTACKMOVE")   &&
-       ws!=WeaponState::NoWeapon){
+    if(ws!=WeaponState::NoWeapon) {
       bool noAnim = !hasAutoroll();
       if(ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage)
          noAnim = true;
@@ -3067,7 +3077,7 @@ bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
     return false;
     }
 
-  if(isPrehit() || isFinishingMove() || interactive()!=nullptr)
+  if(!isRotationAllowed())
     return false;
 
   float a  = angleDir(dx,dz);
@@ -3095,6 +3105,10 @@ bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
     setAnimRotate(0);
     }
   return true;
+  }
+
+bool Npc::isRotationAllowed() const {
+  return currentInteract==nullptr && !isFinishingMove() && bodyStateMasked()!=BS_CLIMB;
   }
 
 bool Npc::checkGoToNpcdistance(const Npc &other) {
@@ -3293,7 +3307,8 @@ bool Npc::doAttack(Anim anim) {
 
   visual.setAnimRotate(*this,0);
   if(auto sq = visual.continueCombo(*this,anim,weaponSt,wlk)) {
-    implAniWait(uint64_t(sq->atkTotalTime(visual.comboLength())+1));
+    (void)sq;
+    // implAniWait(uint64_t(sq->atkTotalTime(visual.comboLength())+1));
     return true;
     }
   return false;

@@ -347,6 +347,7 @@ class Npc final {
 
     bool      turnTo  (float dx, float dz, bool anim, uint64_t dt);
     bool      rotateTo(float dx, float dz, float speed, bool anim, uint64_t dt);
+    bool      isRotationAllowed() const;
     auto      playAnimByName(std::string_view name, BodyState bs) -> const Animation::Sequence*;
 
     bool      checkGoToNpcdistance(const Npc& other);

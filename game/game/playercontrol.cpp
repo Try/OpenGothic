@@ -576,7 +576,7 @@ void PlayerControl::implMove(uint64_t dt) {
   float rotY     = pl.rotationY();
   float rspeed   = (pl.weaponState()==WeaponState::NoWeapon ? 90.f : 180.f)*(float(dt)/1000.f);
   auto  ws       = pl.weaponState();
-  bool  allowRot = !(pl.isPrehit() || pl.isFinishingMove() || pl.bodyStateMasked()==BS_CLIMB || ctrl[KeyCodec::ActionGeneric]);
+  bool  allowRot = !ctrl[KeyCodec::ActionGeneric] && pl.isRotationAllowed();
 
   Npc::Anim ani = Npc::Anim::Idle;
 
@@ -874,7 +874,9 @@ void PlayerControl::implMove(uint64_t dt) {
       pl.setAnimRotate(0);
       rotation = 0;
       }
-    pl.setAnim(ani);
+    if(ani!=Npc::Anim::Idle || !pl.isAttackAnim()) {
+      pl.setAnim(ani);
+      }
     }
 
   setAnimRotate(pl, rot, ani==Npc::Anim::Idle ? rotation : 0, movement.turnRightLeft.any(), dt);
@@ -1021,6 +1023,8 @@ void PlayerControl::setAnimRotate(Npc& pl, float rotation, int anim, bool force,
   auto& wrld   = pl.world();
 
   if(std::fabs(dangle)<100.f && !force) // 100 deg per second threshold
+    anim = 0;
+  if(anim!=0 && pl.isAttackAnim())
     anim = 0;
   if(rotationAni==anim && anim!=0)
     force = true;
