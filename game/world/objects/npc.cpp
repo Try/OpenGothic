@@ -1458,7 +1458,10 @@ bool Npc::implAttack(uint64_t dt) {
 
   if(act==FightAlgo::MV_ATACK || act==FightAlgo::MV_ATACKL || act==FightAlgo::MV_ATACKR) {
     if(!canSeeNpc(*currentTarget,false)) {
-      adjustAttackRotation(dt);
+      const auto bs = bodyStateMasked();
+      if(bs==BS_RUN)
+        setAnim(Npc::Anim::Idle); else
+        adjustAttackRotation(dt);
       mvAlgo.tick(dt,MoveAlgo::FaiMove);
       return true;
       }
@@ -1542,7 +1545,7 @@ bool Npc::implAttack(uint64_t dt) {
     }
 
   if(act==FightAlgo::MV_STRAFEL) {
-    if(setAnim(Npc::Anim::MoveL)){
+    if(setAnim(Npc::Anim::MoveL)) {
       visual.setAnimRotate(*this,0);
       implFaiWait(visual.pose().animationTotalTime());
       fghAlgo.consumeAction();
@@ -1551,7 +1554,7 @@ bool Npc::implAttack(uint64_t dt) {
     }
 
   if(act==FightAlgo::MV_STRAFER) {
-    if(setAnim(Npc::Anim::MoveR)){
+    if(setAnim(Npc::Anim::MoveR)) {
       visual.setAnimRotate(*this,0);
       implFaiWait(visual.pose().animationTotalTime());
       fghAlgo.consumeAction();

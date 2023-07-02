@@ -49,18 +49,18 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
 
   if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
     if(isInWRange(npc,tg,owner)) {
-      if(npc.bodyStateMasked()==BS_RUN && focus)
-        if(fillQueue(owner,ai.my_w_runto))
-          return;
       if(focus)
         if(fillQueue(owner,ai.my_w_focus))
+          return;
+      if(focus && npc.bodyStateMasked()==BS_RUN)
+        if(fillQueue(owner,ai.my_w_runto))
           return;
       if(fillQueue(owner,ai.my_w_nofocus))
         return;
       }
 
     if(isInGRange(npc,tg,owner)) {
-      if(npc.bodyStateMasked()==BS_RUN && focus)
+      if(focus && npc.bodyStateMasked()==BS_RUN)
         if(fillQueue(owner,ai.my_g_runto))
           return;
       if(focus)
@@ -250,10 +250,11 @@ float FightAlgo::prefferedGDistance(const Npc& npc, const Npc& tg, GameScript &o
   }
 
 bool FightAlgo::isInAttackRange(const Npc &npc,const Npc &tg, GameScript &owner) const {
-  auto& gv     = owner.guildVal();
-  float baseTg = float(gv.fight_range_base[tg .guild()]);
+  // tested in vanilla on Bloofly's:
+  //  60 weapon range (Spiked club) is not enough to hit
+  //  70 weapon range (Spiked club) is good to hit
   auto  dist   = npc.qDistTo(tg);
-  auto  pd     = baseTg + prefferedAttackDistance(npc,tg,owner);
+  auto  pd     = prefferedAttackDistance(npc,tg,owner);
   return (dist<=pd*pd);
   }
 
@@ -264,8 +265,9 @@ bool FightAlgo::isInWRange(const Npc& npc, const Npc& tg, GameScript& owner) con
   }
 
 bool FightAlgo::isInGRange(const Npc &npc, const Npc &tg, GameScript &owner) const {
-  auto dist = npc.qDistTo(tg);
-  auto pd   = prefferedGDistance(npc,tg,owner);
+  float padding = 20;
+  auto  dist    = npc.qDistTo(tg);
+  auto  pd      = prefferedGDistance(npc,tg,owner) + padding;
   return (dist<=pd*pd);
   }
 
