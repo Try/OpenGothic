@@ -71,7 +71,7 @@ class Pose final {
     uint64_t           animationTotalTime() const;
     uint64_t           atkTotalTime() const;
 
-    auto               continueCombo(const AnimationSolver &solver,const Animation::Sequence *sq,uint64_t tickCount) -> const Animation::Sequence*;
+    auto               continueCombo(const AnimationSolver &solver, const Animation::Sequence *sq, BodyState bs, uint64_t tickCount) -> const Animation::Sequence*;
     uint16_t           comboLength() const;
 
     float              translateY() const { return trY; }

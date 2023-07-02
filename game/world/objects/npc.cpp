@@ -1514,7 +1514,7 @@ bool Npc::implAttack(uint64_t dt) {
       }
     else if(ws==WeaponState::Fist) {
       const auto bs = bodyStateMasked();
-      if(doAttack(Anim::Attack) || mvAlgo.isSwim() || mvAlgo.isDive()) {
+      if(doAttack(Anim::Attack,BS_HIT) || mvAlgo.isSwim() || mvAlgo.isDive()) {
         uint64_t aniTime = visual.pose().atkTotalTime()+1;
         implFaiWait(aniTime);
         if(bs==BS_RUN)
@@ -1524,7 +1524,7 @@ bool Npc::implAttack(uint64_t dt) {
       }
     else {
       const auto bs = bodyStateMasked();
-      if(doAttack(ani[act-FightAlgo::MV_ATACK])) {
+      if(doAttack(ani[act-FightAlgo::MV_ATACK],BS_HIT)) {
         uint64_t aniTime = visual.pose().atkTotalTime()+1;
         implFaiWait(aniTime);
         if(bs==BS_RUN)
@@ -3293,7 +3293,7 @@ bool Npc::canFinish(Npc& oth) {
   return true;
   }
 
-bool Npc::doAttack(Anim anim) {
+bool Npc::doAttack(Anim anim, BodyState bs) {
   auto weaponSt=weaponState();
   if(weaponSt==WeaponState::NoWeapon || weaponSt==WeaponState::Mage)
     return false;
@@ -3301,12 +3301,15 @@ bool Npc::doAttack(Anim anim) {
   if(mvAlgo.isSwim())
     return false;
 
+  if(bs==BS_PARADE && hasState(BS_PARADE))
+    return false;
+
   auto wlk = walkMode();
   if(mvAlgo.isInWater())
     wlk = WalkBit::WM_Water;
 
   visual.setAnimRotate(*this,0);
-  if(auto sq = visual.continueCombo(*this,anim,weaponSt,wlk)) {
+  if(auto sq = visual.continueCombo(*this,anim,bs,weaponSt,wlk)) {
     (void)sq;
     // implAniWait(uint64_t(sq->atkTotalTime(visual.comboLength())+1));
     return true;
@@ -3315,7 +3318,7 @@ bool Npc::doAttack(Anim anim) {
   }
 
 void Npc::fistShoot() {
-  doAttack(Anim::Attack);
+  doAttack(Anim::Attack,BS_HIT);
   }
 
 bool Npc::blockFist() {
@@ -3330,7 +3333,7 @@ bool Npc::finishingMove() {
   if(currentTarget==nullptr || !canFinish(*currentTarget))
     return false;
 
-  if(doAttack(Anim::AttackFinish)) {
+  if(doAttack(Anim::AttackFinish,BS_HIT)) {
     currentTarget->hnpc->attribute[ATR_HITPOINTS] = 0;
     currentTarget->checkHealth(true,false);
     owner.sendPassivePerc(*this,*this,*currentTarget,PERC_ASSESSMURDER);
@@ -3343,28 +3346,28 @@ void Npc::swingSword() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return;
-  doAttack(Anim::Attack);
+  doAttack(Anim::Attack,BS_HIT);
   }
 
 bool Npc::swingSwordL() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return false;
-  return doAttack(Anim::AttackL);
+  return doAttack(Anim::AttackL,BS_HIT);
   }
 
 bool Npc::swingSwordR() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return false;
-  return doAttack(Anim::AttackR);
+  return doAttack(Anim::AttackR,BS_HIT);
   }
 
 bool Npc::blockSword() {
   auto active=invent.activeWeapon();
   if(active==nullptr)
     return false;
-  return doAttack(Anim::AttackBlock);
+  return doAttack(Anim::AttackBlock,BS_PARADE);
   // return setAnimAngGet(Anim::AttackBlock,calcAniComb())!=nullptr;
   }
 

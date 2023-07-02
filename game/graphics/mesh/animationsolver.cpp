@@ -121,16 +121,14 @@ const Animation::Sequence* AnimationSolver::implSolveAnim(AnimationSolver::Anim 
       return solveFrm("T_FISTPARADE_0");
     }
   else if(st==WeaponState::W1H || st==WeaponState::W2H) {
-    // use BS_RUN ?
-    if(a==Anim::Attack && (pose.isInAnim("S_1HWALKL") || pose.isInAnim("S_1HRUNL") ||
-                          pose.isInAnim("S_2HWALKL") || pose.isInAnim("S_2HRUNL")))
+    if(a==Anim::Attack && pose.hasState(BS_RUN))
       return solveFrm("T_%sATTACKMOVE",st);
     if(a==Anim::AttackL)
       return solveFrm("T_%sATTACKL",st);
     if(a==Anim::AttackR)
       return solveFrm("T_%sATTACKR",st);
     if(a==Anim::Attack || a==Anim::AttackL || a==Anim::AttackR)
-      return solveFrm("S_%sATTACK",st); // TODO: proper attack  window
+      return solveFrm("S_%sATTACK",st);
     if(a==Anim::AttackBlock) {
       const Animation::Sequence* s=nullptr;
       switch(std::rand()%3){

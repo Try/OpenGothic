@@ -107,7 +107,7 @@ class MdlVisual final {
     const Tempest::Matrix4x4&      transform() const { return pos; }
     float                          viewDirection() const;
 
-    const Animation::Sequence*     continueCombo(Npc& npc, AnimationSolver::Anim a, WeaponState st, WalkBit wlk);
+    const Animation::Sequence*     continueCombo(Npc& npc, AnimationSolver::Anim a, BodyState bs, WeaponState st, WalkBit wlk);
     uint16_t                       comboLength() const;
 
     Bounds                         bounds() const;

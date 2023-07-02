@@ -757,11 +757,11 @@ float MdlVisual::viewDirection() const {
   return float(std::atan2(rz,rx)) * 180.f / float(M_PI);
   }
 
-const Animation::Sequence* MdlVisual::continueCombo(Npc& npc, AnimationSolver::Anim a,
+const Animation::Sequence* MdlVisual::continueCombo(Npc& npc, AnimationSolver::Anim a, BodyState bs,
                                                     WeaponState st, WalkBit wlk)  {
   if(st==WeaponState::Fist || st==WeaponState::W1H || st==WeaponState::W2H) {
     const Animation::Sequence *sq = solver.solveAnim(a,st,wlk,*skInst);
-    if(auto ret = skInst->continueCombo(solver,sq,npc.world().tickCount()))
+    if(auto ret = skInst->continueCombo(solver,sq,bs,npc.world().tickCount()))
       return ret;
     }
   return startAnimAndGet(npc,a,0,st,wlk);

@@ -570,13 +570,13 @@ bool PlayerControl::tickMove(uint64_t dt) {
   }
 
 void PlayerControl::implMove(uint64_t dt) {
-  auto  w        = Gothic::inst().world();
-  Npc&  pl       = *w->player();
-  float rot      = pl.rotation();
-  float rotY     = pl.rotationY();
-  float rspeed   = (pl.weaponState()==WeaponState::NoWeapon ? 90.f : 180.f)*(float(dt)/1000.f);
-  auto  ws       = pl.weaponState();
-  bool  allowRot = !ctrl[KeyCodec::ActionGeneric] && pl.isRotationAllowed();
+  auto  w         = Gothic::inst().world();
+  Npc&  pl        = *w->player();
+  float rot       = pl.rotation();
+  float rotY      = pl.rotationY();
+  float rspeed    = (pl.weaponState()==WeaponState::NoWeapon ? 90.f : 180.f)*(float(dt)/1000.f);
+  auto  ws        = pl.weaponState();
+  bool  allowRot  = !ctrl[KeyCodec::ActionGeneric] && pl.isRotationAllowed();
 
   Npc::Anim ani = Npc::Anim::Idle;
 
@@ -778,28 +778,25 @@ void PlayerControl::implMove(uint64_t dt) {
 
   if(actrl[ActLeft] || actrl[ActRight] || actrl[ActBack]) {
     auto ws = pl.weaponState();
-    if(ws==WeaponState::Fist){
+    if(ws==WeaponState::Fist) {
       if(actrl[ActBack])
         pl.blockFist();
       return;
       }
     else if(ws==WeaponState::W1H || ws==WeaponState::W2H) {
-      if(actrl[ActLeft]) {
-        if(pl.swingSwordL())
-          ctrl[Action::Left] = false;
-        } else
-      if(actrl[ActRight]) {
-        if(pl.swingSwordR())
-          ctrl[Action::Right] = false;
-        } else
-      if(actrl[ActBack])
-        pl.blockSword();
-
-      //ctrl[Action::Back]  = false;
+      if(actrl[ActLeft] && pl.swingSwordL()) {
+        movement.strafeRightLeft.reset();
+        }
+      else if(actrl[ActRight] && pl.swingSwordR()) {
+        movement.strafeRightLeft.reset();
+        }
+      else if(actrl[ActBack] && pl.blockSword()) {
+        movement.forwardBackward.reset();
+        }
 
       actrl[ActLeft]  = false;
       actrl[ActRight] = false;
-      actrl[ActBack]  = false;
+      // actrl[ActBack]  = false;
       return;
       }
     else if(ws==WeaponState::Mage) {
@@ -830,10 +827,12 @@ void PlayerControl::implMove(uint64_t dt) {
       return;
       }
     }
-  else if(this->wantsToStrafeLeft())
+  else if(this->wantsToStrafeLeft()) {
     ani = Npc::Anim::MoveL;
-  else if(this->wantsToStrafeRight())
+    }
+  else if(this->wantsToStrafeRight()) {
     ani = Npc::Anim::MoveR;
+    }
 
   if(ctrl[Action::Jump]) {
     if(pl.bodyStateMasked()==BS_JUMP) {
@@ -874,9 +873,28 @@ void PlayerControl::implMove(uint64_t dt) {
       pl.setAnimRotate(0);
       rotation = 0;
       }
-    if(ani!=Npc::Anim::Idle || !pl.isAttackAnim()) {
-      pl.setAnim(ani);
+
+    if(pl.isAttackAnim()) {
+      if((ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR/* || ani==Npc::Anim::MoveBack*/) && pl.hasState(BS_RUN)) {
+        ani = Npc::Anim::Idle;
+        }
+
+      if(!pl.hasState(BS_RUN) && ani==Npc::Anim::Idle) {
+        // charge-run
+        ani = Npc::Anim::NoAnim;
+        }
+      if(ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR) {
+        // no charge to strafe transition
+        ani = Npc::Anim::NoAnim;
+        }
       }
+
+    if(pl.hasState(BS_PARADE) && (ani==Npc::Anim::Idle || ani==Npc::Anim::MoveBack)) {
+      ani = Npc::Anim::NoAnim;
+      }
+
+    if(ani!=Npc::Anim::NoAnim)
+      pl.setAnim(ani);
     }
 
   setAnimRotate(pl, rot, ani==Npc::Anim::Idle ? rotation : 0, movement.turnRightLeft.any(), dt);

@@ -384,7 +384,7 @@ class Npc final {
     bool      haveOutput() const;
     void      setAiOutputBarrier(uint64_t dt, bool overlay);
 
-    bool      doAttack(Anim anim);
+    bool      doAttack(Anim anim, BodyState bs);
     void      commitSpell();
     void      takeDamage(Npc& other, const Bullet* b);
     void      takeDamage(Npc& other, const Bullet* b, const VisualFx* vfx, int32_t splId);

@@ -703,7 +703,7 @@ uint64_t Pose::atkTotalTime() const {
   }
 
 const Animation::Sequence* Pose::continueCombo(const AnimationSolver &solver, const Animation::Sequence *sq,
-                                               uint64_t tickCount) {
+                                               BodyState bs, uint64_t tickCount) {
   if(sq==nullptr)
     return nullptr;
 
@@ -724,7 +724,7 @@ const Animation::Sequence* Pose::continueCombo(const AnimationSolver &solver, co
   size_t   id    = combo.len()*2;
 
   if(0==d.defWindow.size() || 0==d.defHitEnd.size()) {
-    if(!startAnim(solver,sq,prev->comb,prev->bs,Pose::NoHint,tickCount))
+    if(!startAnim(solver,sq,prev->comb,bs,Pose::NoHint,tickCount))
       return nullptr;
     combo = ComboState();
     return sq;
@@ -732,7 +732,7 @@ const Animation::Sequence* Pose::continueCombo(const AnimationSolver &solver, co
 
   if(sq->data->defHitEnd.size()==0) {
     // hit -> block
-    startAnim(solver,sq,prev->comb,prev->bs,Pose::Force,tickCount);
+    startAnim(solver,sq,prev->comb,bs,Pose::Force,tickCount);
     combo = ComboState();
     return sq;
     }
@@ -752,7 +752,7 @@ const Animation::Sequence* Pose::continueCombo(const AnimationSolver &solver, co
     return nullptr;
 
   if(prev->seq->name!=sq->name) {
-    startAnim(solver,sq,prev->comb,prev->bs,Pose::Force,tickCount);
+    startAnim(solver,sq,prev->comb,bs,Pose::Force,tickCount);
     combo = ComboState();
     return sq;
     }
