@@ -13,6 +13,7 @@
 #include <map>
 
 #include "graphics/material.h"
+#include "phoenix/Vfs.hh"
 #include "sound/soundfx.h"
 
 class StaticMesh;
@@ -133,7 +134,7 @@ class Resources final {
     static phoenix::buffer           getFileBuffer(std::string_view name);
     static bool                      hasFile    (std::string_view fname);
 
-    static const phoenix::vdf_file&  vdfsIndex();
+    static const phoenix::Vfs&       vdfsIndex();
 
     static const Tempest::VertexBuffer<VertexFsq>& fsqVbo();
 
@@ -210,7 +211,7 @@ class Resources final {
 
     std::recursive_mutex              sync;
     std::unique_ptr<Dx8::DirectMusic> dxMusic;
-    phoenix::vdf_file                 gothicAssets {"Root"};
+    phoenix::Vfs                      gothicAssets;
 
     std::vector<uint8_t>              fBuff, ddsBuf;
     Tempest::VertexBuffer<VertexFsq>  fsq;

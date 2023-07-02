@@ -64,7 +64,7 @@ const char* materialTag(phoenix::material_group src) {
 
 World::World(GameSession& game, std::string_view file, bool startup, std::function<void(int)> loadProgress)
   :wname(std::move(file)), game(game), wsound(game,*this), wobj(*this) {
-  const phoenix::vdf_entry* entry = Resources::vdfsIndex().find_entry(wname);
+  const auto* entry = Resources::vdfsIndex().find(wname);
 
   if(entry == nullptr) {
     Tempest::Log::e("unable to open Zen-file: \"",wname,"\"");

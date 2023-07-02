@@ -437,8 +437,8 @@ float Npc::angleDir(float x, float z) {
 bool Npc::resetPositionToTA() {
   const auto npcType   = hnpc->type;
   const bool isMainNpc = (npcType==phoenix::npc_type::main ||
-                          npcType==phoenix::npc_type::oc_main ||
-                          npcType==phoenix::npc_type::bl_main);
+                          npcType==phoenix::npc_type::g2_oc_main ||
+                          npcType==phoenix::npc_type::g2_bl_main);
   const bool isDead = this->isDead();
 
   if(isDead && !isMainNpc && !invent.hasMissionItems()) {
@@ -1243,7 +1243,7 @@ void Npc::setAttitude(Attitude att) {
   }
 
 bool Npc::isFriend() const {
-  return hnpc->type==phoenix::npc_type::friend_;
+  return hnpc->type==phoenix::npc_type::g2_friend;
   }
 
 void Npc::setTempAttitude(Attitude att) {
