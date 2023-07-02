@@ -48,6 +48,8 @@ class Gothic final {
     std::string_view defaultPlayer() const;
     std::string_view defaultSave()   const;
 
+    std::string  getGameDatName();
+
     void         setGame(std::unique_ptr<GameSession> &&w);
     auto         clearGame() -> std::unique_ptr<GameSession>;
 
@@ -175,7 +177,7 @@ class Gothic final {
     bool                                    showTime       = false;
     bool                                    hideFocus      = false;
     bool                                    isMeshSh       = false;
-    std::string                             wrldDef, plDef;
+    std::string                             wrldDef, plDef, gameDef;
 
     std::unique_ptr<IniFile>                defaults;
     std::unique_ptr<IniFile>                baseIniFile;

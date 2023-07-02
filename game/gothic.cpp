@@ -150,6 +150,9 @@ Gothic::Gothic() {
   if(plDef.empty())
     plDef = "PC_HERO";
 
+  if(gameDef.empty())
+    gameDef = "GOTHIC.DAT";
+
   onSettingsChanged.bind(this,&Gothic::setupSettings);
   setupSettings();
   }
@@ -575,6 +578,15 @@ std::string_view Gothic::defaultSave() const {
   return CommandLine::inst().defaultSave();
   }
 
+std::string Gothic::getGameDatName() {
+  if (settingsGetS("FILES","Game") != "") {
+    std::string datFile = std::string(settingsGetS("FILES","Game")) + ".DAT";
+    return datFile;
+    } else {
+    return gameDef;
+    }
+  }
+
 std::unique_ptr<phoenix::vm> Gothic::createPhoenixVm(std::string_view datFile) {
   auto byte = loadPhoenixScriptCode(datFile);
   phoenix::register_all_script_classes(byte);
@@ -615,6 +627,8 @@ phoenix::script Gothic::loadPhoenixScriptCode(std::string_view datFile) {
   }
 
 bool Gothic::settingsHasSection(std::string_view sec) {
+  if(instance->modFile != nullptr && instance->modFile->has(sec))
+    return true;
   if(instance->iniFile->has(sec))
     return true;
   if(instance->baseIniFile->has(sec))
@@ -626,6 +640,8 @@ bool Gothic::settingsHasSection(std::string_view sec) {
 int Gothic::settingsGetI(std::string_view sec, std::string_view name) {
   if(name.empty())
     return 0;
+  if(instance->modFile != nullptr && instance->modFile->has(sec,name))
+    return instance->modFile->getI(sec,name);
   if(instance->iniFile->has(sec,name))
     return instance->iniFile->getI(sec,name);
   if(instance->baseIniFile->has(sec,name))
@@ -643,6 +659,8 @@ void Gothic::settingsSetI(std::string_view sec, std::string_view name, int val) 
 std::string_view Gothic::settingsGetS(std::string_view sec, std::string_view name) {
   if(name.empty())
     return "";
+  if(instance->modFile != nullptr && instance->modFile->has(sec,name))
+    return instance->modFile->getS(sec,name);
   if(instance->iniFile->has(sec,name))
     return instance->iniFile->getS(sec,name);
   if(instance->baseIniFile->has(sec,name))
@@ -660,6 +678,8 @@ void Gothic::settingsSetS(std::string_view sec, std::string_view name, std::stri
 float Gothic::settingsGetF(std::string_view sec, std::string_view name) {
   if(name.empty())
     return 0;
+  if(instance->modFile != nullptr && instance->modFile->has(sec,name))
+    return instance->modFile->getF(sec,name);
   if(instance->iniFile->has(sec,name))
     return instance->iniFile->getF(sec,name);
   if(instance->baseIniFile->has(sec,name))
