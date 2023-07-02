@@ -791,7 +791,7 @@ void PlayerControl::implMove(uint64_t dt) {
         movement.strafeRightLeft.reset();
         }
       else if(actrl[ActBack] && pl.blockSword()) {
-        movement.forwardBackward.reset();
+        // movement.forwardBackward.reset();
         }
 
       actrl[ActLeft]  = false;
