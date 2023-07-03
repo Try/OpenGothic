@@ -155,9 +155,10 @@ Gothic::Gothic() {
   if(gameDatDef.empty())
     gameDatDef = "GOTHIC.DAT";
 
-  if(ouDef.empty())
+  if(ouDef.empty()) {
     // suffixes added later in GameScript::loadDialogOU()
     ouDef = "OU";
+    }
 
   onSettingsChanged.bind(this,&Gothic::setupSettings);
   setupSettings();
