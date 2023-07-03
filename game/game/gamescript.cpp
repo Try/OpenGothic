@@ -60,7 +60,7 @@ bool GameScript::GlobalOutput::isFinished() {
   }
 
 GameScript::GameScript(GameSession &owner)
-  :owner(owner), vm(Gothic::inst().loadPhoenixScriptCode("GOTHIC.DAT"), phoenix::execution_flag::vm_allow_null_instance_access) {
+  :owner(owner), vm(Gothic::inst().loadPhoenixScriptCode(Gothic::inst().defaultGameDatFile()), phoenix::execution_flag::vm_allow_null_instance_access) {
 
   if (vm.global_self() == nullptr || vm.global_other() == nullptr || vm.global_item() == nullptr ||
       vm.global_victim() == nullptr || vm.global_hero() == nullptr)
@@ -404,10 +404,8 @@ void GameScript::initDialogs() {
 
 void GameScript::loadDialogOU() {
   auto gCutscene = Gothic::inst().nestedPath({u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE"},Dir::FT_Dir);
-  static const char* names[] = {
-    "OU.DAT",
-    "OU.BIN",
-    };
+  std::string prefix = std::string(Gothic::inst().defaultOutputUnits());
+  std::vector<std::string> names = {prefix + ".DAT", prefix + ".BIN"};
 
   for(auto OU:names) {
     if(Resources::hasFile(OU)) {
@@ -429,7 +427,7 @@ void GameScript::loadDialogOU() {
       // loop to next possible path
       }
     }
-  Log::e("unable to load Zen-file: \"OU.DAT\" or \"OU.BIN\"");
+  Log::e("none of Zen-files for OU could be loaded");
   }
 
 void GameScript::initializeInstanceNpc(const std::shared_ptr<phoenix::c_npc>& npc, size_t instance) {

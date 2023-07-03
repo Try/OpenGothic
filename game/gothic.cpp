@@ -129,6 +129,8 @@ Gothic::Gothic() {
     if(split!=std::string::npos)
       wrldDef = wrldDef.substr(split+1);
     plDef = modFile->getS("SETTINGS","PLAYER");
+    gameDatDef = std::string(modFile->getS("FILES","GAME")) + ".DAT";
+    ouDef = modFile->getS("FILES","OUTPUTUNITS");
 
     std::u16string vdf = TextCodec::toUtf16(std::string(modFile->getS("FILES","VDF")));
     modFilter = modFile->has("FILES","VDF");
@@ -149,6 +151,14 @@ Gothic::Gothic() {
 
   if(plDef.empty())
     plDef = "PC_HERO";
+
+  if(gameDatDef.empty())
+    gameDatDef = "GOTHIC.DAT";
+
+  if(ouDef.empty()) {
+    // suffixes added later in GameScript::loadDialogOU()
+    ouDef = "OU";
+    }
 
   onSettingsChanged.bind(this,&Gothic::setupSettings);
   setupSettings();
@@ -573,6 +583,14 @@ std::string_view Gothic::defaultPlayer() const {
 
 std::string_view Gothic::defaultSave() const {
   return CommandLine::inst().defaultSave();
+  }
+
+std::string_view Gothic::defaultGameDatFile() const {
+  return gameDatDef;
+  }
+
+std::string_view Gothic::defaultOutputUnits() const {
+  return ouDef;
   }
 
 std::unique_ptr<phoenix::vm> Gothic::createPhoenixVm(std::string_view datFile) {
