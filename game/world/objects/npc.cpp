@@ -1749,6 +1749,11 @@ void Npc::commitDamage() {
   if(!fghAlgo.isInFocusAngle(*this,*currentTarget))
     return;
   currentTarget->takeDamage(*this,nullptr);
+
+  if(hasState(BS_RUN)) {
+    // TODO: https://github.com/Try/OpenGothic/issues/182
+    visual.stopWalkAnim(*this);
+    }
   }
 
 void Npc::takeDamage(Npc &other, const Bullet* b) {

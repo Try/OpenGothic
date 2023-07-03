@@ -252,9 +252,11 @@ float FightAlgo::prefferedGDistance(const Npc& npc, const Npc& tg, GameScript &o
 bool FightAlgo::isInAttackRange(const Npc &npc,const Npc &tg, GameScript &owner) const {
   // tested in vanilla on Bloofly's:
   //  60 weapon range (Spiked club) is not enough to hit
-  //  70 weapon range (Spiked club) is good to hit
+  //  70 weapon range (Rusty Sword) is good to hit
   auto  dist   = npc.qDistTo(tg);
   auto  pd     = prefferedAttackDistance(npc,tg,owner);
+  if(npc.hasState(BS_RUN))
+    pd += 20; // padding, for wolf
   return (dist<=pd*pd);
   }
 
@@ -265,7 +267,7 @@ bool FightAlgo::isInWRange(const Npc& npc, const Npc& tg, GameScript& owner) con
   }
 
 bool FightAlgo::isInGRange(const Npc &npc, const Npc &tg, GameScript &owner) const {
-  float padding = 20;
+  static float padding = 1;
   auto  dist    = npc.qDistTo(tg);
   auto  pd      = prefferedGDistance(npc,tg,owner) + padding;
   return (dist<=pd*pd);
