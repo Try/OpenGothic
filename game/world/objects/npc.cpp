@@ -1414,8 +1414,7 @@ bool Npc::implAttack(uint64_t dt) {
     return false;
     }
 
-  auto ws = weaponState();
-  if(ws==WeaponState::NoWeapon)
+  if(!fghAlgo.hasInstructions())
     return false;
 
   if(bodyStateMasked()==BS_STUMBLE) {
@@ -1429,9 +1428,7 @@ bool Npc::implAttack(uint64_t dt) {
     return true;
     }
 
-  if(!fghAlgo.hasInstructions()) {
-    return false;
-    }
+  auto ws = weaponState();
 
   FightAlgo::Action act = fghAlgo.nextFromQueue(*this,*currentTarget,owner.script());
 
@@ -2357,7 +2354,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
       }
     case AI_Attack:
-      if(currentTarget!=nullptr && weaponState()!=WeaponState::NoWeapon){
+      if(currentTarget!=nullptr) {
         if(!fghAlgo.fetchInstructions(*this,*currentTarget,owner.script()))
           queue.pushFront(std::move(act));
         }
