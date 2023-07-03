@@ -129,6 +129,8 @@ Gothic::Gothic() {
     if(split!=std::string::npos)
       wrldDef = wrldDef.substr(split+1);
     plDef = modFile->getS("SETTINGS","PLAYER");
+    gameDatDef = std::string(modFile->getS("FILES","GAME")) + ".DAT";
+    ouDef = modFile->getS("FILES","OUTPUTUNITS");
 
     std::u16string vdf = TextCodec::toUtf16(std::string(modFile->getS("FILES","VDF")));
     modFilter = modFile->has("FILES","VDF");
@@ -150,8 +152,12 @@ Gothic::Gothic() {
   if(plDef.empty())
     plDef = "PC_HERO";
 
-  if(gameDef.empty())
-    gameDef = "GOTHIC.DAT";
+  if(gameDatDef.empty())
+    gameDatDef = "GOTHIC.DAT";
+
+  if(ouDef.empty())
+    // suffixes added later in GameScript::loadDialogOU()
+    ouDef = "OU";
 
   onSettingsChanged.bind(this,&Gothic::setupSettings);
   setupSettings();
@@ -578,13 +584,12 @@ std::string_view Gothic::defaultSave() const {
   return CommandLine::inst().defaultSave();
   }
 
-std::string Gothic::getGameDatName() {
-  if (settingsGetS("FILES","Game") != "") {
-    std::string datFile = std::string(settingsGetS("FILES","Game")) + ".DAT";
-    return datFile;
-    } else {
-    return gameDef;
-    }
+std::string_view Gothic::defaultGameDatFile() const {
+  return gameDatDef;
+  }
+
+std::string_view Gothic::defaultOutputUnits() const {
+  return ouDef;
   }
 
 std::unique_ptr<phoenix::vm> Gothic::createPhoenixVm(std::string_view datFile) {
@@ -627,8 +632,6 @@ phoenix::script Gothic::loadPhoenixScriptCode(std::string_view datFile) {
   }
 
 bool Gothic::settingsHasSection(std::string_view sec) {
-  if(instance->modFile != nullptr && instance->modFile->has(sec))
-    return true;
   if(instance->iniFile->has(sec))
     return true;
   if(instance->baseIniFile->has(sec))
@@ -640,8 +643,6 @@ bool Gothic::settingsHasSection(std::string_view sec) {
 int Gothic::settingsGetI(std::string_view sec, std::string_view name) {
   if(name.empty())
     return 0;
-  if(instance->modFile != nullptr && instance->modFile->has(sec,name))
-    return instance->modFile->getI(sec,name);
   if(instance->iniFile->has(sec,name))
     return instance->iniFile->getI(sec,name);
   if(instance->baseIniFile->has(sec,name))
@@ -659,8 +660,6 @@ void Gothic::settingsSetI(std::string_view sec, std::string_view name, int val) 
 std::string_view Gothic::settingsGetS(std::string_view sec, std::string_view name) {
   if(name.empty())
     return "";
-  if(instance->modFile != nullptr && instance->modFile->has(sec,name))
-    return instance->modFile->getS(sec,name);
   if(instance->iniFile->has(sec,name))
     return instance->iniFile->getS(sec,name);
   if(instance->baseIniFile->has(sec,name))
@@ -678,8 +677,6 @@ void Gothic::settingsSetS(std::string_view sec, std::string_view name, std::stri
 float Gothic::settingsGetF(std::string_view sec, std::string_view name) {
   if(name.empty())
     return 0;
-  if(instance->modFile != nullptr && instance->modFile->has(sec,name))
-    return instance->modFile->getF(sec,name);
   if(instance->iniFile->has(sec,name))
     return instance->iniFile->getF(sec,name);
   if(instance->baseIniFile->has(sec,name))

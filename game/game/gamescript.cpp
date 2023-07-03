@@ -60,7 +60,7 @@ bool GameScript::GlobalOutput::isFinished() {
   }
 
 GameScript::GameScript(GameSession &owner)
-  :owner(owner), vm(Gothic::inst().loadPhoenixScriptCode(Gothic::inst().getGameDatName()), phoenix::execution_flag::vm_allow_null_instance_access) {
+  :owner(owner), vm(Gothic::inst().loadPhoenixScriptCode(Gothic::inst().defaultGameDatFile()), phoenix::execution_flag::vm_allow_null_instance_access) {
 
   if (vm.global_self() == nullptr || vm.global_other() == nullptr || vm.global_item() == nullptr ||
       vm.global_victim() == nullptr || vm.global_hero() == nullptr)
@@ -404,15 +404,8 @@ void GameScript::initDialogs() {
 
 void GameScript::loadDialogOU() {
   auto gCutscene = Gothic::inst().nestedPath({u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE"},Dir::FT_Dir);
-  std::string prefix = std::string(Gothic::inst().settingsGetS("FILES","OutputUnits"));
-  std::vector<std::string> names;
-  if (prefix == "") {
-    names.emplace_back("OU.DAT");
-    names.emplace_back("OU.BIN");
-    } else {
-    names.emplace_back(prefix + ".DAT");
-    names.emplace_back(prefix + ".BIN");
-    }
+  std::string prefix = std::string(Gothic::inst().defaultOutputUnits());
+  std::vector<std::string> names = {prefix + ".DAT", prefix + ".BIN"};
 
   for(auto OU:names) {
     if(Resources::hasFile(OU)) {
