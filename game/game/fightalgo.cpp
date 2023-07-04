@@ -107,8 +107,8 @@ FightAlgo::Action FightAlgo::nextFromQueue(Npc& npc, Npc& tg, GameScript& owner)
       case c_fight_ai_move::turn:
       case c_fight_ai_move::run:{
         if(isInGRange(npc,tg,owner))
-          tr[0] = MV_MOVEA; else
-          tr[0] = MV_MOVEG;
+          tr[0] = MV_MOVEG; else
+          tr[0] = MV_MOVEA;
         break;
         }
       case c_fight_ai_move::run_back:{
