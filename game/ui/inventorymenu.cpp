@@ -88,6 +88,7 @@ InventoryMenu::InventoryMenu(const KeyCodec& key)
     columsCount = 5;
 
   setFocusPolicy(NoFocus);
+  setCursorShape(CursorShape::Hidden);
   takeTimer.timeout.bind(this,&InventoryMenu::onTakeStuff);
   }
 
