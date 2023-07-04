@@ -56,7 +56,7 @@ Serialize::Serialize() {}
 
 Serialize::Serialize(Tempest::ODevice& fout) : fout(&fout) {
   //time0 = Tempest::Application::tickCount();
-  entryBuf .resize(1*1024*1024);
+  entryBuf .reserve(1*1024*1024);
   entryName.reserve(256);
 
   impl.m_pWrite           = Serialize::writeFunc;
