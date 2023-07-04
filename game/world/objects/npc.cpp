@@ -652,10 +652,6 @@ Matrix4x4 Npc::cameraMatrix(bool isFirstPerson) const {
   return visual.pose().rootBone();
   }
 
-float Npc::collisionRadius() const {
-  return physic.radius();
-  }
-
 float Npc::rotation() const {
   return angle;
   }
@@ -1749,11 +1745,6 @@ void Npc::commitDamage() {
   if(!fghAlgo.isInFocusAngle(*this,*currentTarget))
     return;
   currentTarget->takeDamage(*this,nullptr);
-
-  if(hasState(BS_RUN)) {
-    // TODO: https://github.com/Try/OpenGothic/issues/182
-    visual.stopWalkAnim(*this);
-    }
   }
 
 void Npc::takeDamage(Npc &other, const Bullet* b) {
@@ -2742,7 +2733,7 @@ void Npc::commitSpell() {
     owner.script().invokeSpell(*this,currentTarget,*active);
 
   if(active->isSpellShoot()) {
-    int   lvl = (castLevel-CS_Cast_0)+1;
+    const int lvl = (castLevel-CS_Emit_0)+1;
     DamageCalculator::Damage dmg={};
     for(size_t i=0; i<phoenix::damage_type::count; ++i)
       if((spl.damage_type&(1<<i))!=0) {
@@ -3426,8 +3417,6 @@ bool Npc::beginCastSpell() {
       }
     case SpellCode::SPL_SENDCAST:{
       castLevel = CS_Invest_0;
-      auto ani = owner.script().spellCastAnim(*this,*active);
-      visual.startAnimSpell(*this,ani,false);
       endCastSpell();
       return false;
       }
@@ -3468,19 +3457,23 @@ bool Npc::tickCast(uint64_t dt) {
       if(!visual.startAnimSpell(*this,ani,false))
         return true;
       }
-    commitSpell();
-    castLevel        = CS_Finalize;
-    currentSpellCast = size_t(-1);
-    castNextTime     = 0;
+    castLevel    = CastState(int(castLevel) + int(CS_Emit_0) - int(CS_Cast_0));
+    castNextTime = 0;
     return true;
     }
 
-  if(castLevel==CS_Finalize) {
+  if(CS_Emit_0<=castLevel && castLevel<=CS_Emit_Last) {
     // final commit
     if(isAiQueueEmpty()) {
       if(!setAnim(Npc::Anim::Idle))
         return true;
+      commitSpell();
+      castLevel = CS_Finalize;
+      // passthru to CS_Finalize
       }
+    }
+
+  if(castLevel==CS_Finalize) {
     castLevel        = CS_NoCast;
     currentSpellCast = size_t(-1);
     castNextTime     = 0;

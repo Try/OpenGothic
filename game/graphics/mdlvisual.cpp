@@ -870,7 +870,7 @@ const Animation::Sequence* MdlVisual::startAnimItem(Npc &npc, std::string_view s
   return skInst->setAnimItem(solver,npc,scheme,state);
   }
 
-bool MdlVisual::startAnimSpell(Npc &npc, std::string_view scheme, bool invest) {
+const Animation::Sequence* MdlVisual::startAnimSpell(Npc &npc, std::string_view scheme, bool invest) {
   string_frm name("");
   if(invest)
     name = string_frm("S_",scheme,"CAST"); else
@@ -878,9 +878,9 @@ bool MdlVisual::startAnimSpell(Npc &npc, std::string_view scheme, bool invest) {
 
   const Animation::Sequence *sq = solver.solveFrm(name);
   if(skInst->startAnim(solver,sq,0,BS_CASTING,Pose::NoHint,npc.world().tickCount())) {
-    return true;
+    return sq;
     }
-  return false;
+  return nullptr;
   }
 
 bool MdlVisual::startAnimDialog(Npc &npc) {

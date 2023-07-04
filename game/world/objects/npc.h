@@ -56,17 +56,21 @@ class Npc final {
 
       CS_Invest_0    = 16,
       CS_Invest_1    = 17,
-      CS_Invest_2    = 19,
-      CS_Invest_3    = 20,
-      CS_Invest_4    = 21,
-      CS_Invest_5    = 22,
-      CS_Invest_6    = 23,
+      CS_Invest_2    = 18,
+      CS_Invest_3    = 19,
+      CS_Invest_4    = 20,
+      CS_Invest_5    = 21,
+      CS_Invest_6    = 22,
       CS_Invest_Last = 31,
+
       CS_Cast_0      = 32,
       CS_Cast_1      = 33,
       CS_Cast_2      = 34,
       CS_Cast_3      = 35,
       CS_Cast_Last   = 47,
+
+      CS_Emit_0      = 48,
+      CS_Emit_Last   = 63,
       };
 
     using Anim = AnimationSolver::Anim;
@@ -90,7 +94,6 @@ class Npc final {
     auto       position()   const -> Tempest::Vec3;
     auto       cameraBone(bool isFirstPerson = false) const -> Tempest::Vec3;
     auto       cameraMatrix(bool isFirstPerson = false) const -> Tempest::Matrix4x4;
-    float      collisionRadius() const;
     float      rotation() const;
     float      rotationRad() const;
     float      rotationY() const;
