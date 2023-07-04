@@ -21,6 +21,7 @@ class CollisionWorld : public btDiscreteDynamicsWorld {
   public:
     CollisionWorld();
 
+    static float               toMeters     (const float v);
     static btVector3           toMeters     (const Tempest::Vec3& v);
     static const Tempest::Vec3 toCentimeters(const btVector3& v);
 

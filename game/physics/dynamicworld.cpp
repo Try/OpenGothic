@@ -18,7 +18,9 @@ const float DynamicWorld::ghostHeight =140;
 const float DynamicWorld::worldHeight =20000;
 
 struct DynamicWorld::HumShape:btCapsuleShape {
-  HumShape(btScalar radius, btScalar height):btCapsuleShape((height<=0.f ? 0.f : radius)*0.01f,height*0.01f) {}
+  HumShape(btScalar radius, btScalar height):btCapsuleShape(
+      CollisionWorld::toMeters(height<=0.f ? 0.f : radius),
+      CollisionWorld::toMeters(height)) {}
 
   // "human" object mush have identyty scale/rotation matrix. Only translation allowed.
   void getAabb(const btTransform& t, btVector3& aabbMin, btVector3& aabbMax) const override {
@@ -70,16 +72,17 @@ struct DynamicWorld::NpcBodyList final {
     }
 
   NpcBody* create(const Tempest::Vec3 &min, const Tempest::Vec3 &max) {
-    static const float dimMax=45.f;
+    static const float dimMax = 45.f;
+
     float dx     = max.x-min.x;
     float dz     = max.z-min.z;
-    float dim    = std::max(dx,dz);
+    float dim    = (dx+dz)*0.5f; // npc-to-landscape collision size
     float height = max.y-min.y;
 
     if(dim>dimMax)
-      dim=dimMax;
+      dim = dimMax;
 
-    btCollisionShape* shape = new HumShape(dim*0.5f,std::max(height-ghostPadding,0.f)*0.5f);
+    btCollisionShape* shape = new HumShape(dim*0.5f, std::max(height-ghostPadding,0.f)*0.5f);
     NpcBody*          obj   = new NpcBody(shape);
 
     btTransform trans;
@@ -138,8 +141,8 @@ struct DynamicWorld::NpcBodyList final {
     n.rX = dx;
     n.rZ = dz;
 
-    //n.r = std::max(dx,dz)*0.5f;
-    n.r = (dx+dz)*0.25f;
+    // n.r = (dx+dz)*0.25f;
+    n.r = std::max((dx+dz)*0.5f, dz)*0.5f;
     n.h = h;
 
     maxR = std::max(maxR,n.r);

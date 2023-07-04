@@ -79,12 +79,6 @@ float Skeleton::colisionHeight() const {
   return std::fabs(bboxCol[1].y-bboxCol[0].y);
   }
 
-float Skeleton::colisionRadius() const {
-  float x = std::fabs(bboxCol[1].x-bboxCol[0].x);
-  float y = std::fabs(bboxCol[1].z-bboxCol[0].z);
-  return std::max(x,y); //TODO
-  }
-
 void Skeleton::mkSkeleton() {
   Matrix4x4 m;
   m.identity();
