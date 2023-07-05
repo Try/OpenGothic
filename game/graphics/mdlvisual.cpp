@@ -285,7 +285,7 @@ void MdlVisual::dropWeapon(Npc& npc) {
 
   Item* itm = nullptr;
   if(fgtMode==WeaponState::W1H || fgtMode==WeaponState::W2H)
-    itm = npc.currentMeleWeapon(); else
+    itm = npc.currentMeleeWeapon(); else
     itm = npc.currentRangeWeapon();
 
   if(itm==nullptr)

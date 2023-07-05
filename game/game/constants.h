@@ -312,7 +312,7 @@ enum Action:uint32_t {
   AI_UseItem,
   AI_UseItemToState,
   AI_Teleport,
-  AI_DrawWeaponMele,
+  AI_DrawWeaponMelee,
   AI_DrawWeaponRange,
   AI_DrawSpell,
   AI_Attack,

@@ -39,7 +39,7 @@ class Inventory final {
         const Item* operator -> () const;
 
         size_t      count() const;
-        bool        isEquiped() const;
+        bool        isEquipped() const;
         uint8_t     slot() const;
 
         Iterator&   operator++();
@@ -64,7 +64,7 @@ class Inventory final {
     size_t       goldCount() const;
     size_t       itemCount(const size_t id) const;
 
-    static void  trasfer(Inventory& to, Inventory& from, Npc *fromNpc, size_t cls, size_t count, World &wrld);
+    static void  transfer(Inventory& to, Inventory& from, Npc *fromNpc, size_t cls, size_t count, World &wrld);
 
     Item*  getItem(size_t instance);
     Item*  addItem(std::unique_ptr<Item>&& p);
@@ -80,7 +80,7 @@ class Inventory final {
     void   autoEquip(Npc &owner);
     void   equipArmour         (int32_t cls, Npc &owner);
     void   equipBestArmour     (Npc &owner);
-    void   equipBestMeleWeapon (Npc &owner);
+    void   equipBestMeleeWeapon(Npc &owner);
     void   equipBestRangeWeapon(Npc &owner);
     void   unequipWeapons(GameScript &vm, Npc &owner);
     void   unequipArmour(GameScript &vm, Npc &owner);
@@ -103,7 +103,7 @@ class Inventory final {
     Item*  spellById(int32_t splId);
 
     Item*  currentArmour()         { return armour;     }
-    Item*  currentMeleWeapon()     { return mele;       }
+    Item*  currentMeleeWeapon()    { return melee;      }
     Item*  currentRangeWeapon()    { return range;      }
     Item*  currentSpell(uint8_t s) { return numslot[s]; }
     const Item*  currentSpell(uint8_t s) const { return numslot[s]; }
@@ -162,7 +162,7 @@ class Inventory final {
     Item*                              ringR      = nullptr;
 
     Item**                             active     = nullptr;
-    Item*                              mele       = nullptr;
+    Item*                              melee      = nullptr;
     Item*                              range      = nullptr;
     Item*                              shield     = nullptr;
     Item*                              numslot[8] = {};

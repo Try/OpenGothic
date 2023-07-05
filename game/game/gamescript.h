@@ -99,10 +99,10 @@ class GameScript final {
     uint32_t         lockPickId() const;
 
     const phoenix::c_focus&          focusNorm()  const { return cFocusNorm;  }
-    const phoenix::c_focus&          focusMele()  const { return cFocusMele;  }
+    const phoenix::c_focus&          focusMelee() const { return cFocusMelee; }
     const phoenix::c_focus&          focusRange() const { return cFocusRange; }
     const phoenix::c_focus&          focusMage()  const { return cFocusMage;  }
-    const phoenix::c_gil_values&     guildVal()   const { return *cGuildVal;   }
+    const phoenix::c_gil_values&     guildVal()   const { return *cGuildVal;  }
 
     phoenix::symbol*                        findSymbol(std::string_view s);
     phoenix::symbol*                        findSymbol(const size_t s);
@@ -458,6 +458,6 @@ class GameScript final {
     size_t                                                      ZS_Attack=0;
     size_t                                                      ZS_MM_Attack=0;
 
-    phoenix::c_focus                                            cFocusNorm,cFocusMele,cFocusRange,cFocusMage;
+    phoenix::c_focus                                            cFocusNorm,cFocusMelee,cFocusRange,cFocusMage;
     std::shared_ptr<phoenix::c_gil_values>            cGuildVal;
   };

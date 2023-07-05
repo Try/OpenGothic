@@ -465,7 +465,7 @@ void InventoryMenu::onItemAction(uint8_t slotHint) {
 
   if(state==State::Equip) {
     const size_t clsId = it->clsId();
-    if(it.isEquiped() && slotHint==Item::NSLOT) {
+    if(it.isEquipped() && slotHint==Item::NSLOT) {
       player->unequipItem(clsId);
       } else {
       player->useItem(clsId,slotHint,false);
@@ -636,7 +636,7 @@ void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Inventory::Iterato
                  0,0,selT->w(),selT->h());
       }
 
-    if(it.isEquiped() && selU!=nullptr){
+    if(it.isEquipped() && selU!=nullptr) {
       p.setBrush(*selU);
       p.drawRect(x,y,slotSize().w,slotSize().h,
                  0,0,selU->w(),selU->h());
