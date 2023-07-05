@@ -771,7 +771,7 @@ const phoenix::c_focus& World::searchPolicy(const Npc& pl, TargetCollect& coll, 
     case WeaponState::W1H:
     case WeaponState::W2H:
       opt = WorldObjects::NoDeath;
-      return game.script()->focusMele();
+      return game.script()->focusMelee();
     case WeaponState::Bow:
     case WeaponState::CBow:
       opt = WorldObjects::SearchFlg(WorldObjects::NoDeath | WorldObjects::NoUnconscious);

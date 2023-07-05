@@ -284,7 +284,7 @@ void GameScript::initCommon() {
   svm                  = std::make_unique<SvmDefinitions>(vm);
 
   cFocusNorm           = findFocus("Focus_Normal");
-  cFocusMele           = findFocus("Focus_Melee");
+  cFocusMelee          = findFocus("Focus_Melee");
   cFocusRange          = findFocus("Focus_Ranged");
   cFocusMage           = findFocus("Focus_Magic");
 
@@ -2045,8 +2045,8 @@ int GameScript::npc_getheighttonpc(std::shared_ptr<phoenix::c_npc> aRef, std::sh
 
 std::shared_ptr<phoenix::c_item> GameScript::npc_getequippedmeleeweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
   auto npc = findNpc(npcRef);
-  if(npc!=nullptr && npc->currentMeleWeapon() != nullptr){
-    return npc->currentMeleWeapon()->handlePtr();
+  if(npc!=nullptr && npc->currentMeleeWeapon() != nullptr) {
+    return npc->currentMeleeWeapon()->handlePtr();
     }
   return nullptr;
   }
@@ -2080,13 +2080,13 @@ bool GameScript::npc_canseenpc(std::shared_ptr<phoenix::c_npc> npcRef, std::shar
 bool GameScript::npc_hasequippedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
   auto npc = findNpc(npcRef);
   return (npc!=nullptr &&
-     (npc->currentMeleWeapon()!=nullptr ||
+     (npc->currentMeleeWeapon()!=nullptr ||
       npc->currentRangeWeapon()!=nullptr));
   }
 
 bool GameScript::npc_hasequippedmeleeweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
   auto npc = findNpc(npcRef);
-  return npc!=nullptr && npc->currentMeleWeapon()!=nullptr;
+  return npc!=nullptr && npc->currentMeleeWeapon()!=nullptr;
   }
 
 bool GameScript::npc_hasequippedrangedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
@@ -2739,7 +2739,7 @@ void GameScript::ai_equipbestarmor(std::shared_ptr<phoenix::c_npc> npcRef) {
 int GameScript::ai_equipbestmeleeweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
-    npc->aiPush(AiQueue::aiEquipBestMeleWeapon());
+    npc->aiPush(AiQueue::aiEquipBestMeleeWeapon());
   return 0;
   }
 
@@ -2779,7 +2779,7 @@ void GameScript::ai_drawweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
 void GameScript::ai_readymeleeweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
-    npc->aiPush(AiQueue::aiReadyMeleWeapon());
+    npc->aiPush(AiQueue::aiReadyMeleeWeapon());
   }
 
 void GameScript::ai_readyrangedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {

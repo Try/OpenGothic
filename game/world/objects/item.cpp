@@ -55,7 +55,7 @@ Item::Item(World &owner, Serialize &fin, Type type)
   fin.read(h->description,h->text,h->count);
   fin.read(h->inv_zbias,h->inv_rot_x,h->inv_rot_y,h->inv_rot_z,h->inv_animate);
   fin.read(amount);
-  fin.read(pos,equiped,itSlot);
+  fin.read(pos,equipped,itSlot);
   fin.read(mat);
 
   if(type!=T_Inventory) {
@@ -72,7 +72,7 @@ Item::Item(World &owner, Serialize &fin, Type type)
 
 Item::Item(Item &&it)
   : Vob(it.world), hitem(it.hitem),
-    pos(it.pos),equiped(it.equiped),itSlot(it.itSlot),view(std::move(it.view)) {
+    pos(it.pos),equipped(it.equipped),itSlot(it.itSlot),view(std::move(it.view)) {
   setLocalTransform(it.localTransform());
   physic = std::move(it.physic);
   }
@@ -93,7 +93,7 @@ void Item::save(Serialize &fout) const {
   fout.write(h.description,h.text,h.count);
   fout.write(h.inv_zbias,h.inv_rot_x,h.inv_rot_y,h.inv_rot_z,h.inv_animate);
   fout.write(amount);
-  fout.write(pos,equiped,itSlot);
+  fout.write(pos,equipped,itSlot);
   fout.write(localTransform());
   }
 
@@ -125,14 +125,14 @@ bool Item::isMission() const {
   return (uint32_t(hitem->flags)&ITM_MISSION);
   }
 
-void Item::setAsEquiped(bool e) {
+void Item::setAsEquipped(bool e) {
   if(e)
-    ++equiped; else
-    --equiped;
-  if(equiped>amount) {
+    ++equipped; else
+    --equipped;
+  if(equipped>amount) {
     Log::e("[",displayName(),"] inconsistent inventory state");
     }
-  if(equiped==0)
+  if(equipped==0)
     itSlot=NSLOT;
   }
 

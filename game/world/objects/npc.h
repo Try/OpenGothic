@@ -243,7 +243,7 @@ class Npc final {
     bool      canSwitchWeapon() const;
     bool      closeWeapon(bool noAnim);
     bool      drawWeaponFist();
-    bool      drawWeaponMele();
+    bool      drawWeaponMelee();
     bool      drawWeaponBow();
     bool      drawMage(uint8_t slot);
     bool      drawSpell(int32_t spell);
@@ -342,7 +342,7 @@ class Npc final {
     void      dropItem   (size_t id,                     size_t count=1);
     void      clearInventory();
     Item*     currentArmour();
-    Item*     currentMeleWeapon();
+    Item*     currentMeleeWeapon();
     Item*     currentRangeWeapon();
     auto      mapWeaponBone() const -> Tempest::Vec3;
     auto      mapHeadBone() const -> Tempest::Vec3;

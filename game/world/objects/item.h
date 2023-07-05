@@ -37,9 +37,9 @@ class Item : public Vob {
     void    setObjMatrix (const Tempest::Matrix4x4& m);
 
     bool    isMission() const;
-    bool    isEquiped() const  { return equiped>0; }
-    uint8_t equipCount() const { return equiped;   }
-    void    setAsEquiped(bool e);
+    bool    isEquipped() const { return equipped>0; }
+    uint8_t equipCount() const { return equipped;   }
+    void    setAsEquipped(bool e);
 
     void    setPhysicsEnable (World& w);
     void    setPhysicsDisable();
@@ -96,9 +96,9 @@ class Item : public Vob {
     std::shared_ptr<phoenix::c_item> hitem={};
     Tempest::Vec3                    pos={};
 
-    uint32_t                          amount  = 0;
-    uint8_t                           equiped = 0;
-    uint8_t                           itSlot  = NSLOT;
+    uint32_t                          amount   = 0;
+    uint8_t                           equipped = 0;
+    uint8_t                           itSlot   = NSLOT;
 
     MeshObjects::Mesh                 view;
     DynamicWorld::Item                physic;

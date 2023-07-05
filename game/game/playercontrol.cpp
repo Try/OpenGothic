@@ -603,8 +603,8 @@ void PlayerControl::implMove(uint64_t dt) {
       }
     if(wctrl[WeaponMele]) {
       bool ret=false;
-      if(pl.currentMeleWeapon()!=nullptr)
-        ret = pl.drawWeaponMele(); else
+      if(pl.currentMeleeWeapon()!=nullptr)
+        ret = pl.drawWeaponMelee(); else
         ret = pl.drawWeaponFist();
       wctrl[WeaponMele] = !ret;
       wctrlLast         = WeaponMele;

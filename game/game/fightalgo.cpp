@@ -124,45 +124,45 @@ FightAlgo::Action FightAlgo::nextFromQueue(Npc& npc, Npc& tg, GameScript& owner)
         break;
         }
       case c_fight_ai_move::attack:{
-        tr[0] = MV_ATACK;
+        tr[0] = MV_ATTACK;
         break;
         }
       case c_fight_ai_move::attack_side:{
-        tr[0] = MV_ATACKL;
-        tr[1] = MV_ATACKR;
+        tr[0] = MV_ATTACKL;
+        tr[1] = MV_ATTACKR;
         break;
         }
       case c_fight_ai_move::attack_front:{
-        tr[0] = owner.rand(2) ? MV_ATACKL : MV_ATACKR;
-        tr[1] = MV_ATACK;
+        tr[0] = owner.rand(2) ? MV_ATTACKL : MV_ATTACKR;
+        tr[1] = MV_ATTACK;
         break;
         }
       case c_fight_ai_move::attack_triple:{
         if(owner.rand(2)){
-          tr[0] = MV_ATACK;
-          tr[1] = MV_ATACKR;
-          tr[2] = MV_ATACKL;
+          tr[0] = MV_ATTACK;
+          tr[1] = MV_ATTACKR;
+          tr[2] = MV_ATTACKL;
           } else {
-          tr[0] = MV_ATACKL;
-          tr[1] = MV_ATACKR;
-          tr[2] = MV_ATACK;
+          tr[0] = MV_ATTACKL;
+          tr[1] = MV_ATTACKR;
+          tr[2] = MV_ATTACK;
           }
         break;
         }
       case c_fight_ai_move::attack_whirl:{
-        tr[0] = MV_ATACKL;
-        tr[1] = MV_ATACKR;
-        tr[2] = MV_ATACKL;
-        tr[3] = MV_ATACKR;
+        tr[0] = MV_ATTACKL;
+        tr[1] = MV_ATTACKR;
+        tr[2] = MV_ATTACKL;
+        tr[3] = MV_ATTACKR;
         break;
         }
       case c_fight_ai_move::attack_master:{
-        tr[0] = MV_ATACKL;
-        tr[1] = MV_ATACKR;
-        tr[2] = MV_ATACK;
-        tr[3] = MV_ATACK;
-        tr[4] = MV_ATACK;
-        tr[5] = MV_ATACK;
+        tr[0] = MV_ATTACKL;
+        tr[1] = MV_ATTACKR;
+        tr[2] = MV_ATTACK;
+        tr[3] = MV_ATTACK;
+        tr[4] = MV_ATTACK;
+        tr[5] = MV_ATTACK;
         break;
         }
       case c_fight_ai_move::turn_to_hit:{

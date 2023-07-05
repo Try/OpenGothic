@@ -912,7 +912,7 @@ void Npc::clearSlotItem(std::string_view slot) {
   }
 
 void Npc::updateWeaponSkeleton() {
-  visual.updateWeaponSkeleton(invent.currentMeleWeapon(),invent.currentRangeWeapon());
+  visual.updateWeaponSkeleton(invent.currentMeleeWeapon(),invent.currentRangeWeapon());
   }
 
 void Npc::setPhysic(DynamicWorld::NpcItem &&item) {
@@ -1455,7 +1455,7 @@ bool Npc::implAttack(uint64_t dt) {
     return true;
     }
 
-  if(act==FightAlgo::MV_ATACK || act==FightAlgo::MV_ATACKL || act==FightAlgo::MV_ATACKR) {
+  if(act==FightAlgo::MV_ATTACK || act==FightAlgo::MV_ATTACKL || act==FightAlgo::MV_ATTACKR) {
     if(!canSeeNpc(*currentTarget,false)) {
       const auto bs = bodyStateMasked();
       if(bs==BS_RUN)
@@ -1466,7 +1466,7 @@ bool Npc::implAttack(uint64_t dt) {
       }
 
     static const Anim ani[4] = {Anim::Attack, Anim::AttackL, Anim::AttackR};
-    if((act!=FightAlgo::MV_ATACK && bodyState()!=BS_RUN) &&
+    if((act!=FightAlgo::MV_ATTACK && bodyState()!=BS_RUN) &&
        !fghAlgo.isInWRange(*this,*currentTarget,owner.script())) {
       fghAlgo.consumeAction();
       return true;
@@ -1526,7 +1526,7 @@ bool Npc::implAttack(uint64_t dt) {
       }
     else {
       const auto bs = bodyStateMasked();
-      if(doAttack(ani[act-FightAlgo::MV_ATACK],BS_HIT)) {
+      if(doAttack(ani[act-FightAlgo::MV_ATTACK],BS_HIT)) {
         uint64_t aniTime = visual.pose().atkTotalTime()+1;
         implFaiWait(aniTime);
         if(bs==BS_RUN)
@@ -1663,7 +1663,7 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
 
   auto ws = visual.fightMode();
   if(ev.weaponCh==phoenix::mds::event_fight_mode::none && (ws==WeaponState::W1H || ws==WeaponState::W2H)) {
-    if(auto melee = invent.currentMeleWeapon()) {
+    if(auto melee = invent.currentMeleeWeapon()) {
       if(melee->handle().material==ItemMaterial::MAT_METAL)
         sfxWeapon = ::Sound(owner,::Sound::T_Regular,"UNDRAWSOUND_ME.WAV",{x,y+translateY(),z},2500,false); else
         sfxWeapon = ::Sound(owner,::Sound::T_Regular,"UNDRAWSOUND_WO.WAV",{x,y+translateY(),z},2500,false);
@@ -1671,7 +1671,7 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
       }
     }
   else if(ev.weaponCh==phoenix::mds::event_fight_mode::one_handed || ev.weaponCh==phoenix::mds::event_fight_mode::two_handed) {
-    if(auto melee = invent.currentMeleWeapon()) {
+    if(auto melee = invent.currentMeleeWeapon()) {
       if(melee->handle().material==ItemMaterial::MAT_METAL)
         sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_ME.WAV",{x,y+translateY(),z},2500,false); else
         sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_WO.WAV",{x,y+translateY(),z},2500,false);
@@ -2252,7 +2252,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       invent.equipBestArmour(*this);
       break;
     case AI_EquipMelee:
-      invent.equipBestMeleWeapon(*this);
+      invent.equipBestMeleeWeapon(*this);
       break;
     case AI_EquipRange:
       invent.equipBestRangeWeapon(*this);
@@ -2327,15 +2327,15 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_DrawWeapon:
       if(!isDead()) {
         fghAlgo.onClearTarget();
-        if(!drawWeaponMele() &&
+        if(!drawWeaponMelee() &&
            !drawWeaponBow())
           queue.pushFront(std::move(act));
         }
       break;
-    case AI_DrawWeaponMele:
+    case AI_DrawWeaponMelee:
       if(!isDead()) {
         fghAlgo.onClearTarget();
-        if(!drawWeaponMele())
+        if(!drawWeaponMelee())
           queue.pushFront(std::move(act));
         }
       break;
@@ -2871,7 +2871,7 @@ void Npc::setToFightMode(const size_t item) {
   invent.equip(item,*this,true);
   invent.switchActiveWeapon(*this,1);
 
-  auto w = invent.currentMeleWeapon();
+  auto w = invent.currentMeleeWeapon();
   if(w==nullptr || w->clsId()!=item)
     return;
 
@@ -2885,7 +2885,7 @@ void Npc::setToFightMode(const size_t item) {
   if(visual.setToFightMode(weaponSt))
     updateWeaponSkeleton();
 
-  auto& weapon = *currentMeleWeapon();
+  auto& weapon = *currentMeleeWeapon();
   auto  st     = weapon.is2H() ? WeaponState::W2H : WeaponState::W1H;
   hnpc->weapon  = (st==WeaponState::W1H ? 3:4);
   }
@@ -2968,22 +2968,22 @@ void Npc::onWldItemRemoved(const Item& itm) {
   }
 
 void Npc::addItem(size_t id, Interactive &chest, size_t count) {
-  Inventory::trasfer(invent,chest.inventory(),nullptr,id,count,owner);
+  Inventory::transfer(invent,chest.inventory(),nullptr,id,count,owner);
   }
 
 void Npc::addItem(size_t id, Npc &from, size_t count) {
-  Inventory::trasfer(invent,from.invent,&from,id,count,owner);
+  Inventory::transfer(invent,from.invent,&from,id,count,owner);
   }
 
 void Npc::moveItem(size_t id, Interactive &to, size_t count) {
-  Inventory::trasfer(to.inventory(),invent,this,id,count,owner);
+  Inventory::transfer(to.inventory(),invent,this,id,count,owner);
   }
 
 void Npc::sellItem(size_t id, Npc &to, size_t count) {
   if(id==owner.script().goldId()->index())
     return;
   int32_t price = invent.sellPriceOf(id);
-  Inventory::trasfer(to.invent,invent,this,id,count,owner);
+  Inventory::transfer(to.invent,invent,this,id,count,owner);
   invent.addItem(owner.script().goldId()->index(),size_t(price)*count,owner);
   }
 
@@ -3000,7 +3000,7 @@ void Npc::buyItem(size_t id, Npc &from, size_t count) {
     return;
     }
 
-  Inventory::trasfer(invent,from.invent,nullptr,id,count,owner);
+  Inventory::transfer(invent,from.invent,nullptr,id,count,owner);
   if(price>=0)
     invent.delItem(owner.script().goldId()->index(),size_t( price)*count,*this); else
     invent.addItem(owner.script().goldId()->index(),size_t(-price)*count,owner);
@@ -3043,8 +3043,8 @@ Item *Npc::currentArmour() {
   return invent.currentArmour();
   }
 
-Item *Npc::currentMeleWeapon() {
-  return invent.currentMeleWeapon();
+Item *Npc::currentMeleeWeapon() {
+  return invent.currentMeleeWeapon();
   }
 
 Item *Npc::currentRangeWeapon() {
@@ -3205,13 +3205,13 @@ bool Npc::drawWeaponFist() {
   return true;
   }
 
-bool Npc::drawWeaponMele() {
+bool Npc::drawWeaponMelee() {
   if(!canSwitchWeapon())
     return false;
   auto weaponSt=weaponState();
   if(weaponSt==WeaponState::Fist || weaponSt==WeaponState::W1H || weaponSt==WeaponState::W2H)
     return true;
-  if(invent.currentMeleWeapon()==nullptr)
+  if(invent.currentMeleeWeapon()==nullptr)
     return drawWeaponFist();
   if(weaponSt!=WeaponState::NoWeapon) {
     closeWeapon(false);
@@ -3221,7 +3221,7 @@ bool Npc::drawWeaponMele() {
   if(!setInteraction(nullptr,true))
     return false;
 
-  auto& weapon = *invent.currentMeleWeapon();
+  auto& weapon = *invent.currentMeleeWeapon();
   auto  st     = weapon.is2H() ? WeaponState::W2H : WeaponState::W1H;
   if(!visual.startAnim(*this,st))
     return false;

@@ -184,7 +184,7 @@ AiQueue::AiAction AiQueue::aiEquipBestArmor() {
   return a;
   }
 
-AiQueue::AiAction AiQueue::aiEquipBestMeleWeapon() {
+AiQueue::AiAction AiQueue::aiEquipBestMeleeWeapon() {
   AiAction a;
   a.act = AI_EquipMelee;
   return a;
@@ -232,9 +232,9 @@ AiQueue::AiAction AiQueue::aiDrawWeapon() {
   return a;
   }
 
-AiQueue::AiAction AiQueue::aiReadyMeleWeapon() {
+AiQueue::AiAction AiQueue::aiReadyMeleeWeapon() {
   AiAction a;
-  a.act = AI_DrawWeaponMele;
+  a.act = AI_DrawWeaponMelee;
   return a;
   }
 
