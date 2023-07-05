@@ -1334,7 +1334,7 @@ bool Npc::implTurnTo(float dx, float dz, bool noAnim, uint64_t dt) {
 bool Npc::implGoTo(uint64_t dt) {
   float dist = 0;
   if(go2.npc) {
-    if(go2.flag==GT_EnemyA)
+    if(go2.flag==GT_EnemyG)
       dist = fghAlgo.prefferedAttackDistance(*this,*go2.npc,owner.script()); else
       dist = fghAlgo.baseDistance(*this,*go2.npc,owner.script());
     } else {
@@ -1567,20 +1567,25 @@ bool Npc::implAttack(uint64_t dt) {
     }
 
   if(act==FightAlgo::MV_MOVEA || act==FightAlgo::MV_MOVEG) {
-    float dist = 0;
-    if(act==FightAlgo::MV_MOVEA)
-      dist = fghAlgo.prefferedAttackDistance(*this,*currentTarget,owner.script()); else
-      dist = fghAlgo.prefferedGDistance(*this,*currentTarget,owner.script());
     go2.set(currentTarget,(act==FightAlgo::MV_MOVEG) ? GoToHint::GT_EnemyG : GoToHint::GT_EnemyA);
 
-    if((implGoTo(dt) || implTurnTo(*currentTarget,dt)) && qDistTo(*currentTarget)>dist*dist) {
+    float dist = 0;
+    if(act==FightAlgo::MV_MOVEA)
+      dist = fghAlgo.prefferedAttackDistance(*this,*go2.npc,owner.script()); else
+      dist = fghAlgo.prefferedGDistance(*this,*go2.npc,owner.script());
+
+    static float padding = 10;
+    dist = std::max(dist-padding,0.f);
+
+    const bool isClose = (qDistTo(*currentTarget) < dist*dist);
+    if((!isClose && implGoTo(dt)) || implTurnTo(*currentTarget,dt)) {
       implAiTick(dt);
       return true;
       }
 
     go2.clear();
     fghAlgo.consumeAction();
-    aiState.loopNextTime = owner.tickCount(); //force ZS_MM_Attack_Loop call
+    aiState.loopNextTime = owner.tickCount(); // force ZS_MM_Attack_Loop call
     implAiTick(dt);
     return true;
     }

@@ -106,7 +106,7 @@ FightAlgo::Action FightAlgo::nextFromQueue(Npc& npc, Npc& tg, GameScript& owner)
     switch(queueId) {
       case c_fight_ai_move::turn:
       case c_fight_ai_move::run:{
-        if(isInGRange(npc,tg,owner))
+        if(!isInGRange(npc,tg,owner))
           tr[0] = MV_MOVEG; else
           tr[0] = MV_MOVEA;
         break;
@@ -267,9 +267,8 @@ bool FightAlgo::isInWRange(const Npc& npc, const Npc& tg, GameScript& owner) con
   }
 
 bool FightAlgo::isInGRange(const Npc &npc, const Npc &tg, GameScript &owner) const {
-  static float padding = 1;
   auto  dist    = npc.qDistTo(tg);
-  auto  pd      = prefferedGDistance(npc,tg,owner) + padding;
+  auto  pd      = prefferedGDistance(npc,tg,owner);
   return (dist<=pd*pd);
   }
 
