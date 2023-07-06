@@ -90,27 +90,30 @@ void Renderer::resetSwapchain() {
       hh = std::max(1u, (hh+1)/2u);
       }
 
-    std::vector<uint32_t> zb(hw*hh, 0);
-    hiZRaw = device.ssbo(zb);
-    hiZ    = device.image2d(TextureFormat::R16, hw, hh, true);
+    hiz.hiZ    = device.image2d(TextureFormat::R16, hw, hh, true);
+    hiz.uboPot = device.descriptors(Shaders::inst().hiZPot);
+    hiz.uboPot.set(0, zbuffer, smpN);
+    hiz.uboPot.set(1, hiz.hiZ);
 
-    uboHiZRaw = device.descriptors(Shaders::inst().hiZRaw);
-    uboHiZRaw.set(0, zbuffer, smpN);
-    uboHiZRaw.set(1, hiZRaw);
-    uboHiZRaw.set(2, hiZ);
-
-    uboHiZPot = device.descriptors(Shaders::inst().hiZPot);
-    uboHiZPot.set(0, zbuffer, smpN);
-    uboHiZPot.set(1, hiZRaw);
-    uboHiZPot.set(2, hiZ);
-
-    uboZMip.clear();
+    hiz.uboMip.clear();
     for(uint32_t i=0; (hw>1 && hh>1); ++i) {
       hw = std::max(1u, hw/2u);
       hh = std::max(1u, hh/2u);
-      auto& ubo = uboZMip.emplace_back(device.descriptors(Shaders::inst().hiZMip));
-      ubo.set(0, hiZ, smpN, i);
-      ubo.set(1, hiZ, smpN, i+1);
+      auto& ubo = hiz.uboMip.emplace_back(device.descriptors(Shaders::inst().hiZMip));
+      ubo.set(0, hiz.hiZ, smpN, i);
+      ubo.set(1, hiz.hiZ, smpN, i+1);
+      }
+
+    if(smSize>0) {
+      hiz.smProj    = device.zbuffer(shadowFormat, smSize, smSize);
+      hiz.uboReproj = device.descriptors(Shaders::inst().hiZReproj);
+      hiz.uboReproj.set(0, zbuffer, smpN);
+      // hiz.uboReproj.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+
+      hiz.hiZSm1    = device.image2d(TextureFormat::R16, 64, 64, true);
+      hiz.uboMipSm1 = device.descriptors(Shaders::inst().hiZPot);
+      hiz.uboMipSm1.set(0, hiz.smProj, smpN);
+      hiz.uboMipSm1.set(1, hiz.hiZSm1);
       }
     }
 
@@ -215,6 +218,10 @@ void Renderer::prepareUniforms() {
   auto smpN = Sampler::nearest();
   smpN.setClamping(ClampMode::ClampToEdge);
 
+  if(!hiz.uboReproj.isEmpty()) {
+    hiz.uboReproj.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    }
+
   ssao.uboSsao.set(0, ssao.ssaoBuf);
   ssao.uboSsao.set(1, gbufDiffuse, smpN);
   ssao.uboSsao.set(2, gbufNormal,  smpN);
@@ -280,7 +287,7 @@ void Renderer::prepareUniforms() {
       }
   wview->setShadowMaps(sh);
 
-  wview->setHiZ(textureCast(hiZ));
+  wview->setHiZ(textureCast(hiz.hiZ));
   wview->setGbuffer(textureCast(gbufDiffuse), textureCast(gbufNormal));
   wview->setSceneImages(textureCast(sceneOpaque), textureCast(sceneDepth), zbuffer);
   wview->setupUbo();
@@ -339,8 +346,10 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   if(!dbg)
     return;
 
-  //auto& tex = hiZ;
-  auto& tex = shadowMap[1];
+  auto& tex = hiz.hiZ;
+  // auto& tex = hiz.smProj;
+  // auto& tex = hiz.hiZSm1;
+  // auto& tex = shadowMap[1];
   // auto& tex = shadowMap[0];
 
   p.setBrush(Brush(textureCast(tex),Painter::Alpha,ClampMode::ClampToBorder));
@@ -463,26 +472,33 @@ void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   if(!Gothic::inst().doMeshShading())
     return;
 
-  cmd.setFramebuffer({}, {zbuffer, 1.f, Tempest::Preserve});
   cmd.setDebugMarker("HiZ-occluders");
+  cmd.setFramebuffer({}, {zbuffer, 1.f, Tempest::Preserve});
   view.drawHiZ(cmd,fId);
 
+  cmd.setDebugMarker("HiZ-mip");
   cmd.setFramebuffer({});
-  cmd.setDebugMarker("HiZ");
-  cmd.setUniforms(Shaders::inst().hiZRaw, uboHiZRaw);
-  cmd.dispatchThreads(uint32_t(zbuffer.w()),uint32_t(zbuffer.h()));
+  cmd.setUniforms(Shaders::inst().hiZPot, hiz.uboPot);
+  cmd.dispatch(size_t(hiz.hiZ.w()), size_t(hiz.hiZ.h()));
 
-  cmd.setFramebuffer({});
-  cmd.setUniforms(Shaders::inst().hiZPot, uboHiZPot);
-  cmd.dispatchThreads(uint32_t(hiZ.w()),uint32_t(hiZ.h()));
-
-  uint32_t w = uint32_t(hiZ.w()), h = uint32_t(hiZ.h());
-  for(uint32_t i=0; i<uboZMip.size(); ++i) {
+  uint32_t w = uint32_t(hiz.hiZ.w()), h = uint32_t(hiz.hiZ.h());
+  for(uint32_t i=0; i<hiz.uboMip.size(); ++i) {
     w = w/2;
     h = h/2;
-    cmd.setUniforms(Shaders::inst().hiZMip, uboZMip[i]);
-    cmd.dispatchThreads(std::max<size_t>(w,1),std::max<size_t>(h,1));
+    cmd.setUniforms(Shaders::inst().hiZMip, hiz.uboMip[i]);
+    cmd.dispatchThreads(std::max<uint32_t>(w,1),std::max<uint32_t>(h,1));
     }
+
+  /*
+  cmd.setDebugMarker("HiZ-shadows");
+  cmd.setFramebuffer({}, {hiz.smProj, 0, Tempest::Preserve});
+  cmd.setUniforms(Shaders::inst().hiZReproj, hiz.uboReproj);
+  cmd.dispatchMeshThreads(zbuffer.size());
+
+  cmd.setFramebuffer({});
+  cmd.setUniforms(Shaders::inst().hiZPot, hiz.uboMipSm1);
+  cmd.dispatch(size_t(hiz.hiZSm1.w()), size_t(hiz.hiZSm1.h()));
+  */
   }
 
 void Renderer::drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
@@ -514,7 +530,7 @@ void Renderer::drawReflections(Tempest::Encoder<Tempest::CommandBuffer>& cmd, ui
   cmd.setDebugMarker("Reflections");
   cmd.setUniforms(*water.reflectionsPso, water.ubo);
   if(Gothic::inst().doMeshShading()) {
-    cmd.dispatchMeshThreads(size_t(gbufDiffuse.w()), size_t(gbufDiffuse.h()));
+    cmd.dispatchMeshThreads(gbufDiffuse.size());
     } else {
     cmd.draw(Resources::fsqVbo());
     }
@@ -574,7 +590,7 @@ void Renderer::prepareSSAO(Encoder<Tempest::CommandBuffer>& cmd) {
   cmd.setFramebuffer({});
   cmd.setDebugMarker("SSAO");
   cmd.setUniforms(*ssao.ssaoPso, ssao.uboSsao, &push, sizeof(push));
-  cmd.dispatchThreads(size_t(ssao.ssaoBuf.w()), size_t(ssao.ssaoBuf.h()));
+  cmd.dispatchThreads(ssao.ssaoBuf.size());
   }
 
 void Renderer::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {

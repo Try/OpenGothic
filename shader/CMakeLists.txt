@@ -231,9 +231,11 @@ add_shader(ssao_compose.vert         copy.vert -DHAS_UV)
 add_shader(ssao_compose.frag         ssao/ssao_compose.frag "")
 add_shader(ssao_compose_ssao.frag    ssao/ssao_compose.frag -DSSAO)
 
-add_shader(hiz_raw.comp              hiz/hiz_pot.comp    "")
-add_shader(hiz_pot.comp              hiz/hiz_pot.comp    -DRESOLVE)
-add_shader(hiz_mip.comp              hiz/hiz_mip.comp    "")
+add_shader(hiz_mip.comp              hiz/hiz_mip.comp "")
+add_shader(hiz_pot.comp              hiz/hiz_pot.comp "")
+
+add_shader(hiz_reproject.mesh        hiz/hiz_reproject.mesh "")
+add_shader(hiz_reproject.frag        hiz/hiz_reproject.frag "")
 
 add_custom_command(
   OUTPUT     ${HEADER} ${CPP}

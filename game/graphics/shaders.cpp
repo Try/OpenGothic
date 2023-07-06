@@ -158,9 +158,20 @@ Shaders::Shaders() {
   tonemapping = postEffect("tonemapping", "tonemapping", RenderState::ZTestMode::Always);
 
   if(meshlets) {
-    hiZRaw = computeShader("hiz_raw.comp.sprv");
     hiZPot = computeShader("hiz_pot.comp.sprv");
     hiZMip = computeShader("hiz_mip.comp.sprv");
+    }
+
+  if(meshlets) {
+    RenderState state;
+    state.setCullFaceMode(RenderState::CullMode::Front);
+    state.setZTestMode   (RenderState::ZTestMode::Greater);
+
+    auto sh = GothicShader::get("hiz_reproject.mesh.sprv");
+    auto ms = device.shader(sh.data,sh.len);
+    sh = GothicShader::get("hiz_reproject.frag.sprv");
+    auto fs = device.shader(sh.data,sh.len);
+    hiZReproj = device.pipeline(state,Shader(),ms,fs);
     }
 
   if(meshlets) {

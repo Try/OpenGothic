@@ -422,7 +422,7 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
     case VolumetricMQ: {
       cmd.setFramebuffer({});
       cmd.setUniforms(Shaders::inst().shadowDownsample, uboShadowDw);
-      cmd.dispatchThreads(uint32_t(shadowDw.w()),uint32_t(shadowDw.h()));
+      cmd.dispatchThreads(shadowDw.size());
 
       cmd.setUniforms(Shaders::inst().fogViewLut3dLQ, uboFogViewLut3d, &ubo, sizeof(ubo));
       cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
@@ -438,7 +438,7 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
         int  h  = (occlusionLut.h()+sz.y-1)/sz.y;
         cmd.dispatch(uint32_t((w+1-1)/1), uint32_t((h+1-1)/1));
         } else{
-        cmd.dispatchThreads(uint32_t(occlusionLut.w()),uint32_t(occlusionLut.h()));
+        cmd.dispatchThreads(occlusionLut.size());
         }
 
       cmd.setUniforms(Shaders::inst().fogViewLut3dHQ, uboFogViewLut3d, &ubo, sizeof(ubo));

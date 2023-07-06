@@ -156,6 +156,7 @@ void SceneGlobals::commitUbo(uint8_t fId) {
 void SceneGlobals::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   static_assert(sizeof(UboGlobal)%sizeof(uint32_t)==0);
 
+  cmd.setDebugMarker("Update globals");
   auto& pso = Shaders::inst().copyBuf;
   for(uint8_t lay=0; lay<V_Count; ++lay) {
     cmd.setUniforms(pso, uboCopy[fId][lay]);

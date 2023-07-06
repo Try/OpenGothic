@@ -115,14 +115,20 @@ class Renderer final {
       Tempest::DescriptorSet   uboTone;
     } tonemapping;
 
+    struct {
+      Tempest::StorageImage     hiZ;
+      Tempest::DescriptorSet    uboRaw, uboPot;
+      std::vector<Tempest::DescriptorSet> uboMip;
+
+      Tempest::ZBuffer          smProj;
+      Tempest::DescriptorSet    uboReproj;
+
+      Tempest::StorageImage     hiZSm1;
+      Tempest::DescriptorSet    uboMipSm1;
+    } hiz;
+
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::Depth16;
     Tempest::TextureFormat    zBufferFormat = Tempest::TextureFormat::Depth16;
-
-    Tempest::StorageImage     hiZ;
-    Tempest::StorageBuffer    hiZRaw;
-
-    Tempest::DescriptorSet    uboHiZRaw, uboHiZPot;
-    std::vector<Tempest::DescriptorSet> uboZMip;
 
     Tempest::DescriptorSet    uboStash;
 

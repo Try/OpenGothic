@@ -41,8 +41,9 @@ class Shaders {
 
     Tempest::RenderPipeline  tonemapping;
 
-    // Compute
-    Tempest::ComputePipeline hiZRaw, hiZPot, hiZMip;
+    // HiZ
+    Tempest::ComputePipeline hiZPot, hiZMip;
+    Tempest::RenderPipeline  hiZReproj;
 
     enum PipelineType: uint8_t {
       T_Forward,
