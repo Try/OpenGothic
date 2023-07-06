@@ -373,7 +373,17 @@ Matrix4x4 Camera::mkViewShadow(const Vec3& cameraPos, float rotation, const Temp
 
     proj.mul(view);
     view = proj;
-    }
+  }
+
+  {
+  Matrix4x4 proj;
+  proj.identity();
+  proj.scale(1,1,-1);
+  proj.set(3,2, 1);
+
+  proj.mul(view);
+  view = proj;
+  }
 
   return view;
   }

@@ -40,8 +40,8 @@ vec4 shadowSample(in sampler2D shadowMap, vec2 shPos) {
   }
 
 float shadowResolve(in vec4 sh, float z) {
-  z  = clamp(z,0,0.99);
-  sh = step(sh,vec4(z));
+  z  = clamp(z,0.01,1);
+  sh = step(vec4(z),sh);
   return 0.25*(sh.x+sh.y+sh.z+sh.w);
   }
 

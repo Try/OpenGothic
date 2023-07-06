@@ -15,15 +15,15 @@ vec4 shadowSample(in sampler2D shadowMap, vec2 shPos, out vec2 m) {
   }
 
 float shadowResolve(in vec4 sh, float z) {
-  z  = max(0,z);
-  sh = step(sh,vec4(z));
+  z  = min(1,z);
+  sh = step(vec4(z),sh);
   return 0.25*(sh.x+sh.y+sh.z+sh.w);
   }
 
 float shadowResolve(in vec4 sh, float z, vec2 m) {
-  const float bias = 0.0002;
+  // const float bias = 0.0002;
   z  = max(0, z);
-  sh = step(sh, vec4(z));
+  sh = step(vec4(z), sh);
 
   vec2 xx = mix(sh.wz, sh.xy, m.y);
   return    mix(xx.x,  xx.y,  m.x);
@@ -55,7 +55,7 @@ float calcShadow(in SceneDesc scene,
   vec4 lay1   = shadowSample(shadowMap1,shPos1.xy, m1);
   lay1.x = max(max(lay1.x,lay1.y), max(lay1.z,lay1.w));
 
-  if(abs(shPos0.x)<0.99 && abs(shPos0.y)<0.99 && lay1.x<minMax[1]) {
+  if(abs(shPos0.x)<0.99 && abs(shPos0.y)<0.99 && lay1.x>minMax[1]) {
     return calcShadowMs4(shadowMap0,shPos0);
     }
 

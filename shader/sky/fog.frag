@@ -64,7 +64,7 @@ float shadowSample(in sampler2D shadowMap, vec2 shPos) {
 
 bool calcShadow(vec3 shPos) {
   float sh = shadowSample(textureSm1,shPos.xy);
-  return sh < shPos.z;
+  return sh > shPos.z;
   }
 
 bool shadowFactor(vec4 shPos) {

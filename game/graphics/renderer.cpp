@@ -357,9 +357,9 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
     return;
 
   // auto& tex = hiz.hiZ;
-  auto& tex = hiz.smProj;
+  // auto& tex = hiz.smProj;
   // auto& tex = hiz.hiZSm1;
-  // auto& tex = shadowMap[1];
+  auto& tex = shadowMap[1];
   // auto& tex = shadowMap[0];
 
   p.setBrush(Brush(textureCast(tex),Painter::Alpha,ClampMode::ClampToBorder));
@@ -567,7 +567,7 @@ void Renderer::drawShadowMap(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, 
     return;
 
   for(uint8_t i=0; i<Resources::ShadowLayers; ++i) {
-    cmd.setFramebuffer({}, {shadowMap[i], 0.f, Tempest::Preserve});
+    cmd.setFramebuffer({}, {shadowMap[i], 1.f, Tempest::Preserve});
     cmd.setDebugMarker(string_frm("ShadowMap #",i));
     if(view.mainLight().dir().y > Camera::minShadowY)
       view.drawShadow(cmd,fId,i);
