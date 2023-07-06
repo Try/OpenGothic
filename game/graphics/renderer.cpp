@@ -104,7 +104,6 @@ void Renderer::resetSwapchain() {
       ubo.set(1, hiz.hiZ, smpN, i+1);
       }
 
-    /*
     if(smSize>0) {
       hiz.smProj    = device.zbuffer(shadowFormat, smSize, smSize);
       hiz.uboReproj = device.descriptors(Shaders::inst().hiZReproj);
@@ -115,7 +114,17 @@ void Renderer::resetSwapchain() {
       hiz.uboPotSm1 = device.descriptors(Shaders::inst().hiZPot);
       hiz.uboPotSm1.set(0, hiz.smProj, smpN);
       hiz.uboPotSm1.set(1, hiz.hiZSm1);
-      }*/
+
+      hw = hh = 64;
+      hiz.uboMipSm1.clear();
+      for(uint32_t i=0; (hw>1 && hh>1); ++i) {
+        hw = std::max(1u, hw/2u);
+        hh = std::max(1u, hh/2u);
+        auto& ubo = hiz.uboMipSm1.emplace_back(device.descriptors(Shaders::inst().hiZMip));
+        ubo.set(0, hiz.hiZSm1, smpN, i);
+        ubo.set(1, hiz.hiZSm1, smpN, i+1);
+        }
+      }
     }
 
   if(smSize>0) {
@@ -347,8 +356,8 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   if(!dbg)
     return;
 
-  auto& tex = hiz.hiZ;
-  // auto& tex = hiz.smProj;
+  // auto& tex = hiz.hiZ;
+  auto& tex = hiz.smProj;
   // auto& tex = hiz.hiZSm1;
   // auto& tex = shadowMap[1];
   // auto& tex = shadowMap[0];
@@ -497,8 +506,16 @@ void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.dispatchMeshThreads(zbuffer.size());
 
   cmd.setFramebuffer({});
-  cmd.setUniforms(Shaders::inst().hiZPot, hiz.uboMipSm1);
+  cmd.setUniforms(Shaders::inst().hiZPot, hiz.uboPotSm1);
   cmd.dispatch(size_t(hiz.hiZSm1.w()), size_t(hiz.hiZSm1.h()));
+
+  w = uint32_t(hiz.hiZSm1.w()), h = uint32_t(hiz.hiZSm1.h());
+  for(uint32_t i=0; i<hiz.uboMipSm1.size(); ++i) {
+    w = w/2;
+    h = h/2;
+    cmd.setUniforms(Shaders::inst().hiZMip, hiz.uboMipSm1[i]);
+    cmd.dispatchThreads(std::max<uint32_t>(w,1),std::max<uint32_t>(h,1));
+    }
   */
   }
 

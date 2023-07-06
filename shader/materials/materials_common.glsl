@@ -220,8 +220,4 @@ layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
 layout(binding = L_HiZ)  uniform sampler2D hiZ;
 #endif
 
-#if defined(GL_FRAGMENT_SHADER) && defined(WATER)
-layout(binding = L_SkyLut) uniform sampler2D skyLUT;
-#endif
-
 #endif

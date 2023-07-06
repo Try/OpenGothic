@@ -382,9 +382,6 @@ void ObjectsBucket::uboSetCommon(Descriptors& v, const Material& mat, const Buck
         smp.setClamping(ClampMode::ClampToEdge);
         ubo.set(L_HiZ, *scene.hiZ, smp);
         }
-      if(lay==SceneGlobals::V_Main && mat.alpha==Material::Water) {
-        ubo.set(L_SkyLut, *scene.skyLut);
-        }
       }
     uboSetSkeleton(v,fId);
     }

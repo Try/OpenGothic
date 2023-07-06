@@ -137,7 +137,6 @@ class ObjectsBucket {
       L_SceneClr = 10,
       L_GDepth   = 11,
       L_HiZ      = 12,
-      L_SkyLut   = 13,
       };
 
     struct ShLight final {

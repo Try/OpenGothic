@@ -125,7 +125,7 @@ class Renderer final {
 
       Tempest::StorageImage     hiZSm1;
       Tempest::DescriptorSet    uboPotSm1;
-      //std::vector<Tempest::DescriptorSet> uboMipSm1;
+      std::vector<Tempest::DescriptorSet> uboMipSm1;
     } hiz;
 
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::Depth16;

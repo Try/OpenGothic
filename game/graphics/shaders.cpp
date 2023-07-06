@@ -70,7 +70,8 @@ Shaders::Shaders() {
   emmision.load(device,"emi",       false,meshlets);
   multiply.load(device,"mul",       false,meshlets);
 
-  water   .load(device,"water",device.properties().tesselationShader,false);
+  water    .load(device,"water",false,false);
+  waterTess.load(device,"water",device.properties().tesselationShader,false);
 
   solidF  .load(device,"",  false,meshlets);
   atestF  .load(device,"at",false,meshlets);
@@ -244,7 +245,9 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
       shadow   = &shadowAt;
       break;
     case Material::Water:
-      forward  = &water;
+      if(mat.waveMaxAmplitude>0.f)
+        forward  = &waterTess; else
+        forward  = &water;
       break;
     case Material::Ghost:
       forward  = &ghost;
