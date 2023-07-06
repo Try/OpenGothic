@@ -104,6 +104,7 @@ void Renderer::resetSwapchain() {
       ubo.set(1, hiz.hiZ, smpN, i+1);
       }
 
+    /*
     if(smSize>0) {
       hiz.smProj    = device.zbuffer(shadowFormat, smSize, smSize);
       hiz.uboReproj = device.descriptors(Shaders::inst().hiZReproj);
@@ -111,10 +112,10 @@ void Renderer::resetSwapchain() {
       // hiz.uboReproj.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
 
       hiz.hiZSm1    = device.image2d(TextureFormat::R16, 64, 64, true);
-      hiz.uboMipSm1 = device.descriptors(Shaders::inst().hiZPot);
-      hiz.uboMipSm1.set(0, hiz.smProj, smpN);
-      hiz.uboMipSm1.set(1, hiz.hiZSm1);
-      }
+      hiz.uboPotSm1 = device.descriptors(Shaders::inst().hiZPot);
+      hiz.uboPotSm1.set(0, hiz.smProj, smpN);
+      hiz.uboPotSm1.set(1, hiz.hiZSm1);
+      }*/
     }
 
   if(smSize>0) {

@@ -117,14 +117,15 @@ class Renderer final {
 
     struct {
       Tempest::StorageImage     hiZ;
-      Tempest::DescriptorSet    uboRaw, uboPot;
+      Tempest::DescriptorSet    uboPot;
       std::vector<Tempest::DescriptorSet> uboMip;
 
       Tempest::ZBuffer          smProj;
       Tempest::DescriptorSet    uboReproj;
 
       Tempest::StorageImage     hiZSm1;
-      Tempest::DescriptorSet    uboMipSm1;
+      Tempest::DescriptorSet    uboPotSm1;
+      //std::vector<Tempest::DescriptorSet> uboMipSm1;
     } hiz;
 
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::Depth16;

@@ -47,13 +47,13 @@ float hiZFetch(in sampler2D hiZ, in ivec2 ibbox[2]) {
   ibbox[0].y = (ibbox[0].y >> mip);
 
   ivec2 hiZsize = textureSize(hiZ,mip);
-  if(!all(lessThan(ibbox[0]+ivec2(1), hiZsize)))
-    return -1;
-
   float z =  texelFetchOffset(hiZ, ibbox[0], mip, ivec2(0,0)).x;
-  z = min(z, texelFetchOffset(hiZ, ibbox[0], mip, ivec2(0,1)).x);
-  z = min(z, texelFetchOffset(hiZ, ibbox[0], mip, ivec2(1,0)).x);
-  z = min(z, texelFetchOffset(hiZ, ibbox[0], mip, ivec2(1,1)).x);
+  if(ibbox[0].x+1<hiZsize.x)
+    z = min(z, texelFetchOffset(hiZ, ibbox[0], mip, ivec2(1,0)).x);
+  if(ibbox[0].y+1<hiZsize.y)
+    z = min(z, texelFetchOffset(hiZ, ibbox[0], mip, ivec2(0,1)).x);
+  if(ibbox[0].x+1<hiZsize.x && ibbox[0].y+1<hiZsize.y)
+    z = min(z, texelFetchOffset(hiZ, ibbox[0], mip, ivec2(1,1)).x);
 
   return z;
   }
