@@ -39,9 +39,10 @@ void main() {
 
   float z = 0;
   const ivec2 at0 = ivec2(gl_WorkGroupID.xy) * tileSz;
-  for(int x=0; x<tileSz.x; x+=int(gl_WorkGroupSize.x)) {
-    for(int y=0; y<tileSz.y; y+=int(gl_WorkGroupSize.y)) {
-      ivec2 at = at0 + ivec2(x,y)*ivec2(gl_WorkGroupSize.xy);
+  const ivec2 xy0 = ivec2(gl_LocalInvocationID.xy);
+  for(int x=xy0.x; x<tileSz.x; x+=int(gl_WorkGroupSize.x)) {
+    for(int y=xy0.y; y<tileSz.y; y+=int(gl_WorkGroupSize.y)) {
+      ivec2 at = at0 + ivec2(x,y);
       if(any(greaterThanEqual(at,srcSz)))
         continue;
       float zv = texelFetch(zbuffer, at, 0).r;
