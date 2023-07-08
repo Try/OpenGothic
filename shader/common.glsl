@@ -94,7 +94,8 @@ bool isGBufWater(float v) {
   }
 
 float packHiZ(float z) {
-  return (1.0-z)*40.0;
+  // return z;
+  return (z-0.95)*20.0;
   }
 
 // From https://gamedev.stackexchange.com/questions/96459/fast-ray-sphere-collision-code.

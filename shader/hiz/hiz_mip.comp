@@ -20,9 +20,9 @@ void main() {
   srcUV1 = min(srcUV1, srcSz-ivec2(1,1));
 
   float z =  imageLoad(mip0, ivec2(srcUV0.x,srcUV0.y)).x;
-  z = min(z, imageLoad(mip0, ivec2(srcUV1.x,srcUV0.y)).x);
-  z = min(z, imageLoad(mip0, ivec2(srcUV0.x,srcUV1.y)).x);
-  z = min(z, imageLoad(mip0, ivec2(srcUV1.x,srcUV1.y)).x);
+  z = max(z, imageLoad(mip0, ivec2(srcUV1.x,srcUV0.y)).x);
+  z = max(z, imageLoad(mip0, ivec2(srcUV0.x,srcUV1.y)).x);
+  z = max(z, imageLoad(mip0, ivec2(srcUV1.x,srcUV1.y)).x);
 
   imageStore(mip1, dstUV, vec4(z));
   }
