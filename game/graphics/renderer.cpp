@@ -96,7 +96,7 @@ void Renderer::resetSwapchain() {
     hiz.uboPot.set(1, hiz.hiZ);
 
     hiz.uboMip.clear();
-    for(uint32_t i=0; (hw>1 && hh>1); ++i) {
+    for(uint32_t i=0; (hw>1 || hh>1); ++i) {
       hw = std::max(1u, hw/2u);
       hh = std::max(1u, hh/2u);
       auto& ubo = hiz.uboMip.emplace_back(device.descriptors(Shaders::inst().hiZMip));
@@ -117,7 +117,7 @@ void Renderer::resetSwapchain() {
 
       hw = hh = 64;
       hiz.uboMipSm1.clear();
-      for(uint32_t i=0; (hw>1 && hh>1); ++i) {
+      for(uint32_t i=0; (hw>1 || hh>1); ++i) {
         hw = std::max(1u, hw/2u);
         hh = std::max(1u, hh/2u);
         auto& ubo = hiz.uboMipSm1.emplace_back(device.descriptors(Shaders::inst().hiZMip));
@@ -356,28 +356,32 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   if(!dbg)
     return;
 
-  // auto& tex = hiz.hiZ;
-  // auto& tex = hiz.smProj;
-  // auto& tex = hiz.hiZSm1;
-  auto& tex = shadowMap[1];
-  // auto& tex = shadowMap[0];
+  std::vector<const Texture2d*> tex;
+  //tex.push_back(&textureCast(hiz.hiZ));
+  tex.push_back(&textureCast(hiz.smProj));
+  //tex.push_back(&textureCast(hiz.hiZSm1));
+  tex.push_back(&textureCast(shadowMap[1]));
+  //tex.push_back(&textureCast(shadowMap[0]));
 
-  p.setBrush(Brush(textureCast(tex),Painter::Alpha,ClampMode::ClampToBorder));
-  auto sz = Size(p.brush().w(),p.brush().h());
-  if(sz.isEmpty())
-    return;
-
-  const int size = 200;
-  while(sz.w<size && sz.h<size) {
-    sz.w *= 2;
-    sz.h *= 2;
+  int left = 10;
+  for(auto& t:tex) {
+    p.setBrush(Brush(*t,Painter::Alpha,ClampMode::ClampToBorder));
+    auto sz = Size(p.brush().w(),p.brush().h());
+    if(sz.isEmpty())
+      continue;
+    const int size = 200;
+    while(sz.w<size && sz.h<size) {
+      sz.w *= 2;
+      sz.h *= 2;
+      }
+    while(sz.w>size*2 || sz.h>size*2) {
+      sz.w = (sz.w+1)/2;
+      sz.h = (sz.h+1)/2;
+      }
+    p.drawRect(left,50,sz.w,sz.h,
+               0,0,p.brush().w(),p.brush().h());
+    left += (sz.w+10);
     }
-  while(sz.w>size*2 || sz.h>size*2) {
-    sz.w = (sz.w+1)/2;
-    sz.h = (sz.h+1)/2;
-    }
-  p.drawRect(10,50,sz.w,sz.h,
-             0,0,p.brush().w(),p.brush().h());
   }
 
 void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
@@ -408,15 +412,18 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   wview->prepareGlobals(cmd,fId);
 
   drawHiZ(cmd,fId,*wview);
-  prepareSky(cmd,fId,*wview);
+  // drawHiZSm(cmd,fId,*wview);
 
   drawGBuffer  (cmd,fId,*wview);
+
+  drawHiZSm(cmd,fId,*wview);
   drawShadowMap(cmd,fId,*wview);
 
   prepareSSAO(cmd);
   prepareFog (cmd,fId,*wview);
   prepareIrradiance(cmd,fId);
 
+  prepareSky(cmd,fId,*wview);
   cmd.setFramebuffer({{sceneLinear, Tempest::Discard, Tempest::Preserve}}, {zbuffer, Tempest::Readonly});
   drawShadowResolve(cmd,fId,*wview);
   drawAmbient(cmd,*wview);
@@ -498,17 +505,25 @@ void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     cmd.setUniforms(Shaders::inst().hiZMip, hiz.uboMip[i]);
     cmd.dispatchThreads(std::max<uint32_t>(w,1),std::max<uint32_t>(h,1));
     }
+  }
+
+void Renderer::drawHiZSm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
+  if(!Gothic::inst().doMeshShading())
+    return;
 
   cmd.setDebugMarker("HiZ-shadows");
   cmd.setFramebuffer({}, {hiz.smProj, 0.f, Tempest::Preserve});
   cmd.setUniforms(Shaders::inst().hiZReproj, hiz.uboReproj);
-  cmd.dispatchMeshThreads(zbuffer.size());
+
+  const int sz = 64;
+  const int gw = (zbuffer.w()+sz-1)/sz, gh = (zbuffer.h()+sz-1)/sz;
+  cmd.dispatchMesh(size_t(gw), size_t(gh));
 
   cmd.setFramebuffer({});
   cmd.setUniforms(Shaders::inst().hiZPot, hiz.uboPotSm1);
   cmd.dispatch(size_t(hiz.hiZSm1.w()), size_t(hiz.hiZSm1.h()));
 
-  w = uint32_t(hiz.hiZSm1.w()), h = uint32_t(hiz.hiZSm1.h());
+  uint32_t w = uint32_t(hiz.hiZSm1.w()), h = uint32_t(hiz.hiZSm1.h());
   for(uint32_t i=0; i<hiz.uboMipSm1.size(); ++i) {
     w = w/2;
     h = h/2;

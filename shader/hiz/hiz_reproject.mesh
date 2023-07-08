@@ -12,7 +12,7 @@ layout(binding = 1, std140) uniform UboScene {
   SceneDesc scene;
   };
 
-layout(local_size_x = 16, local_size_y = 16) in;
+layout(local_size_x = 8, local_size_y = 8) in;
 layout(triangles, max_vertices = 8, max_primitives = 12) out;
 
 out gl_MeshPerVertexEXT {
@@ -32,32 +32,54 @@ const int ibo[] = {
   4, 5, 0, 0, 5, 1
   };
 
-shared uint tileZint;
+shared uint tileZintMax;
+//shared uint tileZintMin;
+
+const uvec2 tileSize = uvec2(64,64);
+
+void sampleDepth() {
+  const ivec2 size = textureSize(depth,0);
+
+  float zmax = 0;
+  for(uint x=0; x<tileSize.x; x+=gl_WorkGroupSize.x) {
+    for(uint y=0; y<tileSize.y; y+=gl_WorkGroupSize.y) {
+      uvec2 at = gl_WorkGroupID.xy*tileSize + uvec2(x,y) + gl_LocalInvocationID.xy;
+      if(all(lessThan(at,size))) {
+        float z = texelFetch(depth, ivec2(at), 0).r;
+        //atomicMin(tileZintMin, floatBitsToUint(z));
+        zmax = max(zmax, z);
+        }
+      }
+    }
+  atomicMax(tileZintMax, floatBitsToUint(zmax));
+  }
 
 void main() {
-  tileZint = 0;
+  //tileZintMin = floatBitsToUint(1);
+  tileZintMax = 0;
   barrier();
 
-  const ivec2 size = textureSize(depth,0);
-  if(all(lessThan(gl_GlobalInvocationID.xy,size))) {
-    float z = texelFetch(depth, ivec2(gl_GlobalInvocationID.xy), 0).r;
-    atomicMax(tileZint, floatBitsToUint(z));
-    }
+  sampleDepth();
   barrier();
 
-  const float tileZ = uintBitsToFloat(tileZint);
+  const float tileZMin = 0;//uintBitsToFloat(tileZintMin);
+  const float tileZMax = uintBitsToFloat(tileZintMax);
+
+  //ivec2 scr = ivec2(bp.xy * scene.screenRes) / scene.hiZTileSize;
 
   SetMeshOutputsEXT(8, 12);
-  const uint id = gl_LocalInvocationIndex;
+  const uint  id   = gl_LocalInvocationIndex;
+  const ivec2 size = textureSize(depth,0);
   if(gl_LocalInvocationIndex<8) {
-    vec2 xy0 = vec2(gl_WorkGroupID.xy * gl_WorkGroupSize.xy)/vec2(size);
-    vec2 xy1 = vec2(gl_WorkGroupID.xy * gl_WorkGroupSize.xy + gl_WorkGroupSize.xy)/vec2(size);
+    vec2 xy0 = vec2(gl_WorkGroupID.xy * tileSize)/vec2(size);
+    vec2 xy1 = vec2(gl_WorkGroupID.xy * tileSize + tileSize)/vec2(size);
 
     vec3 pos = v[id];
     pos.xy = mix(xy0, xy1, pos.xy);
     pos.xy = pos.xy*2.0 - vec2(1);
     if(id>=4)
-      pos.z = tileZ;
+      pos.z = tileZMax; else
+      pos.z = tileZMin;
 
     const vec4 pos4 = scene.viewProjectInv * vec4(pos,1);
     gl_MeshVerticesEXT[id].gl_Position = scene.viewShadow[1] * pos4;

@@ -229,11 +229,6 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
   state.setZTestMode   (RenderState::ZTestMode::LEqual);
   //state.setZTestMode   (RenderState::ZTestMode::Less);
 
-  if(pt==PipelineType::T_Shadow) {
-    // state.setZTestMode(RenderState::ZTestMode::Greater); //FIXME
-    // state.setCullFaceMode(RenderState::CullMode::Back);
-    }
-
   switch(alpha) {
     case Material::Solid:
       forward  = &solidF;

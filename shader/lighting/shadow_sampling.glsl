@@ -22,7 +22,7 @@ float shadowResolve(in vec4 sh, float z) {
 
 float shadowResolve(in vec4 sh, float z, vec2 m) {
   // const float bias = 0.0002;
-  z  = max(0, z);
+  z  = min(1, z);
   sh = step(vec4(z), sh);
 
   vec2 xx = mix(sh.wz, sh.xy, m.y);

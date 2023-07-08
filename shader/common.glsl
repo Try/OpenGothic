@@ -94,7 +94,10 @@ bool isGBufWater(float v) {
   }
 
 float packHiZ(float z) {
-  return (1.0-z)*40.0;
+  // in main view: usfull depth range is ~0.95-1.0
+  // return (z-0.95)*20.0;
+
+  return z;
   }
 
 // From https://gamedev.stackexchange.com/questions/96459/fast-ray-sphere-collision-code.
