@@ -129,7 +129,7 @@ Gothic::Gothic() {
     if(split!=std::string::npos)
       wrldDef = wrldDef.substr(split+1);
     plDef = modFile->getS("SETTINGS","PLAYER");
-    gameDatDef = std::string(modFile->getS("FILES","GAME")) + ".DAT";
+    gameDatDef = std::string(modFile->getS("FILES","GAME"));
     ouDef = modFile->getS("FILES","OUTPUTUNITS");
 
     std::u16string vdf = TextCodec::toUtf16(std::string(modFile->getS("FILES","VDF")));
@@ -153,7 +153,8 @@ Gothic::Gothic() {
     plDef = "PC_HERO";
 
   if(gameDatDef.empty())
-    gameDatDef = "GOTHIC.DAT";
+    gameDatDef = "GOTHIC";
+  gameDatDef += ".DAT";
 
   if(ouDef.empty()) {
     // suffixes added later in GameScript::loadDialogOU()
