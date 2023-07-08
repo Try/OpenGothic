@@ -60,7 +60,7 @@ bool GameScript::GlobalOutput::isFinished() {
   }
 
 GameScript::GameScript(GameSession &owner)
-  :owner(owner), vm(Gothic::inst().loadPhoenixScriptCode(Gothic::inst().defaultGameDatFile()), phoenix::execution_flag::vm_allow_null_instance_access) {
+  :owner(owner), vm(Gothic::inst().loadScript(Gothic::inst().defaultGameDatFile()), phoenix::execution_flag::vm_allow_null_instance_access) {
 
   if (vm.global_self() == nullptr || vm.global_other() == nullptr || vm.global_item() == nullptr ||
       vm.global_victim() == nullptr || vm.global_hero() == nullptr)

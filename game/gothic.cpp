@@ -452,8 +452,8 @@ void Gothic::implStartLoadSave(std::string_view banner,
         Tempest::Log::e("loading error: out of memory");
         loadingFlag.compare_exchange_strong(curState,err);
         }
-      catch(std::system_error&){
-        Tempest::Log::e("loading error: unable to open file");
+      catch(std::system_error& e){
+        Tempest::Log::e("loading error: ", e.what());
         loadingFlag.compare_exchange_strong(curState,err);
         }
       catch(std::runtime_error& e){
@@ -595,32 +595,23 @@ std::string_view Gothic::defaultOutputUnits() const {
   }
 
 std::unique_ptr<phoenix::vm> Gothic::createPhoenixVm(std::string_view datFile) {
-  auto byte = loadPhoenixScriptCode(datFile);
-  phoenix::register_all_script_classes(byte);
+  auto sc = loadScript(datFile);
+  phoenix::register_all_script_classes(sc);
 
-  auto vm = std::make_unique<phoenix::vm>(std::move(byte), phoenix::execution_flag::vm_allow_null_instance_access);
+  auto vm = std::make_unique<phoenix::vm>(std::move(sc), phoenix::execution_flag::vm_allow_null_instance_access);
   setupVmCommonApi(*vm);
   return vm;
   }
 
-std::vector<uint8_t> Gothic::loadScriptCode(std::string_view datFile) {
-  if(Resources::hasFile(datFile))
-    return Resources::getFileData(datFile);
-
-  auto gscript = CommandLine::inst().scriptPath();
-  char16_t str16[256] = {};
-  for(size_t i=0; i<datFile.size() && i<255; ++i)
-    str16[i] = char16_t(datFile[i]);
-  auto path = caseInsensitiveSegment(gscript,str16,Dir::FT_File);
-  Tempest::RFile f(path);
-  std::vector<uint8_t> ret(f.size());
-  f.read(ret.data(),ret.size());
-  return ret;
-  }
-
-phoenix::script Gothic::loadPhoenixScriptCode(std::string_view datFile) {
+phoenix::script Gothic::loadScript(std::string_view datFile) {
   if(Resources::hasFile(datFile)) {
     auto buf = Resources::getFileBuffer(datFile);
+    return phoenix::script::parse(buf);
+    }
+
+  const size_t segment = datFile.find_last_of("\\/");
+  if(segment!=std::string::npos && Resources::hasFile(datFile.substr(segment+1))) {
+    auto buf = Resources::getFileBuffer(datFile.substr(segment+1));
     return phoenix::script::parse(buf);
     }
 

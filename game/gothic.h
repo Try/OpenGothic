@@ -148,8 +148,7 @@ class Gothic final {
 
     std::u16string                        nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const;
     std::unique_ptr<phoenix::vm>          createPhoenixVm(std::string_view datFile);
-    std::vector<uint8_t>                  loadScriptCode(std::string_view datFile);
-    phoenix::script                       loadPhoenixScriptCode(std::string_view datFile);
+    phoenix::script                       loadScript(std::string_view datFile);
     void                                  setupVmCommonApi(phoenix::vm &vm);
 
     static const FightAi&                 fai();
