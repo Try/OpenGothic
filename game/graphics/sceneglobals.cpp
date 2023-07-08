@@ -143,8 +143,15 @@ void SceneGlobals::commitUbo(uint8_t fId) {
   for(size_t i=V_Shadow0; i<V_Count; ++i) {
     auto& ubo = perView[i];
     ubo = uboGlobalCpu;
-    if(i!=V_Main)
+    if(i!=V_Main) {
       ubo.viewProject = uboGlobalCpu.viewShadow[i-V_Shadow0];
+      }
+    if(i==V_Shadow1 && hiZSm1!=nullptr && !hiZSm1->isEmpty() && shadowMap[1]!=nullptr) {
+      uint32_t hw = nextPot(uint32_t(shadowMap[1]->w()));
+      uint32_t hh = nextPot(uint32_t(shadowMap[1]->h()));
+      ubo.screenRes   = Tempest::Point(shadowMap[1]->w(), shadowMap[1]->h());
+      ubo.hiZTileSize = Tempest::Point(int(hw)/hiZSm1->w(),int(hh)/hiZSm1->h());
+      }
     std::memcpy(ubo.frustrum, frustrum[i].f, sizeof(ubo.frustrum));
     }
 
@@ -174,13 +181,13 @@ void SceneGlobals::setResolution(uint32_t w, uint32_t h) {
   if(hiZ!=nullptr && !hiZ->isEmpty()) {
     uint32_t hw = nextPot(w);
     uint32_t hh = nextPot(h);
-
     uboGlobalCpu.hiZTileSize = Tempest::Point(int(hw)/hiZ->w(),int(hh)/hiZ->h());
     }
   }
 
-void SceneGlobals::setHiZ(const Tempest::Texture2d& t) {
-  hiZ = &t;
+void SceneGlobals::setHiZ(const Tempest::Texture2d& t, const Tempest::Texture2d& sm1) {
+  hiZ    = &t;
+  hiZSm1 = &sm1;
   }
 
 void SceneGlobals::setShadowMap(const Tempest::Texture2d* tex[]) {

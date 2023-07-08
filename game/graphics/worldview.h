@@ -39,7 +39,7 @@ class WorldView {
     void setGbuffer(const Tempest::Texture2d& diffuse,
                     const Tempest::Texture2d& norm);
     void setShadowMaps (const Tempest::Texture2d* shadow[]);
-    void setHiZ(const Tempest::Texture2d& hiZ);
+    void setHiZ(const Tempest::Texture2d& hiZ, const Tempest::Texture2d& hiZSm1);
     void setSceneImages(const Tempest::Texture2d& clr, const Tempest::Texture2d& depthAux, const Tempest::ZBuffer& depthNative);
 
     void setupUbo();

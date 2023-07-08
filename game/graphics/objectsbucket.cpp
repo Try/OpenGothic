@@ -377,10 +377,20 @@ void ObjectsBucket::uboSetCommon(Descriptors& v, const Material& mat, const Buck
         smp.setClamping(ClampMode::MirroredRepeat);
         ubo.set(L_GDepth, *scene.sceneDepth, smp);
         }
-      if(lay==SceneGlobals::V_Main && useMeshlets) {
+      if(useMeshlets) {
         auto smp = Sampler::nearest();
         smp.setClamping(ClampMode::ClampToEdge);
-        ubo.set(L_HiZ, *scene.hiZ, smp);
+        switch(lay) {
+          case SceneGlobals::V_Main:
+            ubo.set(L_HiZ, *scene.hiZ, smp);
+            break;
+          case SceneGlobals::V_Shadow0:
+            ubo.set(L_HiZ, *scene.hiZSm0, smp);
+            break;
+          case SceneGlobals::V_Shadow1:
+            ubo.set(L_HiZ, *scene.hiZSm1, smp);
+            break;
+          }
         }
       }
     uboSetSkeleton(v,fId);
@@ -905,7 +915,7 @@ ObjectsBucketDyn::ObjectsBucketDyn(const Type type, const Material& mat, VisualO
 
       auto smp = Sampler::nearest();
       smp.setClamping(ClampMode::ClampToEdge);
-      ubo.set(L_HiZ,      *scene.hiZ, smp);
+      ubo.set(L_HiZ, *scene.hiZ, smp);
       }
     }
   }
@@ -995,7 +1005,7 @@ void ObjectsBucketDyn::setupUbo() {
         continue;
       auto smp = Sampler::nearest();
       smp.setClamping(ClampMode::ClampToEdge);
-      ubo.set(L_HiZ,      *scene.hiZ, smp);
+      ubo.set(L_HiZ, *scene.hiZ, smp);
       }
     }
   }

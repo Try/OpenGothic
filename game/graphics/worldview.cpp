@@ -89,8 +89,8 @@ void WorldView::setShadowMaps(const Tempest::Texture2d* sh[]) {
   sGlobal.setShadowMap(shadow);
   }
 
-void WorldView::setHiZ(const Tempest::Texture2d& hiZ) {
-  sGlobal.setHiZ(hiZ);
+void WorldView::setHiZ(const Tempest::Texture2d& hiZ, const Tempest::Texture2d& hiZSm1) {
+  sGlobal.setHiZ(hiZ,hiZSm1);
   }
 
 void WorldView::setSceneImages(const Tempest::Texture2d& clr, const Tempest::Texture2d& depthAux, const Tempest::ZBuffer& depthNative) {

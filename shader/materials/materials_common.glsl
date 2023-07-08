@@ -216,7 +216,7 @@ layout(binding = L_SceneClr) uniform sampler2D sceneColor;
 layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
 #endif
 
-#if (defined(MESH) || defined(TASK)) && !defined(SHADOW_MAP)
+#if (defined(MESH) || defined(TASK))
 layout(binding = L_HiZ)  uniform sampler2D hiZ;
 #endif
 

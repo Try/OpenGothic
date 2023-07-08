@@ -297,7 +297,7 @@ void Renderer::prepareUniforms() {
       }
   wview->setShadowMaps(sh);
 
-  wview->setHiZ(textureCast(hiz.hiZ));
+  wview->setHiZ(textureCast(hiz.hiZ), textureCast(hiz.hiZSm1));
   wview->setGbuffer(textureCast(gbufDiffuse), textureCast(gbufNormal));
   wview->setSceneImages(textureCast(sceneOpaque), textureCast(sceneDepth), zbuffer);
   wview->setupUbo();
@@ -352,7 +352,7 @@ void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
   }
 
 void Renderer::dbgDraw(Tempest::Painter& p) {
-  static bool dbg = false;
+  static bool dbg = true;
   if(!dbg)
     return;
 
@@ -499,9 +499,8 @@ void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     cmd.dispatchThreads(std::max<uint32_t>(w,1),std::max<uint32_t>(h,1));
     }
 
-  /*
   cmd.setDebugMarker("HiZ-shadows");
-  cmd.setFramebuffer({}, {hiz.smProj, 0, Tempest::Preserve});
+  cmd.setFramebuffer({}, {hiz.smProj, 0.f, Tempest::Preserve});
   cmd.setUniforms(Shaders::inst().hiZReproj, hiz.uboReproj);
   cmd.dispatchMeshThreads(zbuffer.size());
 
@@ -516,7 +515,6 @@ void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     cmd.setUniforms(Shaders::inst().hiZMip, hiz.uboMipSm1[i]);
     cmd.dispatchThreads(std::max<uint32_t>(w,1),std::max<uint32_t>(h,1));
     }
-  */
   }
 
 void Renderer::drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {

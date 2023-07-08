@@ -165,7 +165,7 @@ Shaders::Shaders() {
 
   if(meshlets) {
     RenderState state;
-    state.setCullFaceMode(RenderState::CullMode::Front);
+    state.setCullFaceMode(RenderState::CullMode::Back);
     state.setZTestMode   (RenderState::ZTestMode::Greater);
 
     auto sh = GothicShader::get("hiz_reproject.mesh.sprv");

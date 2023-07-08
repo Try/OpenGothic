@@ -35,7 +35,7 @@ class SceneGlobals final {
     void prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
 
     void setResolution(uint32_t w, uint32_t h);
-    void setHiZ(const Tempest::Texture2d& hiZ);
+    void setHiZ(const Tempest::Texture2d& hiZ, const Tempest::Texture2d& hiZSm1);
     void setShadowMap(const Tempest::Texture2d* tex[]);
 
     const Tempest::Matrix4x4& viewProject() const;
@@ -61,6 +61,8 @@ class SceneGlobals final {
     const Tempest::Texture2d*         gbufNormals  = &Resources::fallbackBlack();
 
     const Tempest::Texture2d*         hiZ          = &Resources::fallbackTexture();
+    const Tempest::Texture2d*         hiZSm0       = &Resources::fallbackTexture();
+    const Tempest::Texture2d*         hiZSm1       = &Resources::fallbackTexture();
     const Tempest::Texture2d*         skyLut       = &Resources::fallbackTexture();
 
     const Tempest::AccelerationStructure* tlas = nullptr;
