@@ -391,89 +391,71 @@ void PackedMesh::packPhysics(const phoenix::mesh& mesh, PkgType type) {
   auto& ibo = mesh.polygons.vertex_indices;
   vertices.reserve(vbo.size());
 
-  std::unordered_map<uint32_t,size_t> icache;
   auto& mid = mesh.polygons.material_indices;
   auto& mat = mesh.materials;
 
-  static const phoenix::material_group mats[] = {
-    phoenix::material_group::undefined,
-    phoenix::material_group::metal,
-    phoenix::material_group::stone,
-    phoenix::material_group::wood,
-    phoenix::material_group::earth,
-    phoenix::material_group::water,
-    phoenix::material_group::snow,
-    phoenix::material_group::none,
-  };
-
-  for(auto i : mats) {
-    SubMesh sub;
-    sub.material.name  = "";
-    sub.material.group = i;
-    sub.iboOffset      = indices.size();
-
-    for(size_t r=0; r<ibo.size(); ++r) {
-      auto& m = mat[size_t(mid[r/3u])];
-      if(m.group!=i || m.disable_collision)
-        continue;
-      if(m.name.find(':')!=std::string::npos)
-        continue; // named material - add them later
-
-      uint32_t index = ibo[r];
-      auto     rx    = icache.find(index);
-      if(rx!=icache.end()) {
-        indices.push_back(uint32_t(rx->second));
-        } else {
-        Vertex vx = {};
-        vx.pos[0] = vbo[index].x;
-        vx.pos[1] = vbo[index].y;
-        vx.pos[2] = vbo[index].z;
-
-        size_t val = vertices.size();
-        vertices.emplace_back(vx);
-        indices.push_back(uint32_t(val));
-        icache[index] = uint32_t(val);
-        }
-      }
-
-    sub.iboLength = indices.size()-sub.iboOffset;
-    if(sub.iboLength>0)
-      subMeshes.emplace_back(std::move(sub));
-    }
-
-  icache.reserve(ibo.size());
-  indices.reserve(ibo.size());
-  for(size_t i=0; i<mat.size(); ++i) {
-    auto& m = mat[i];
+  std::vector<Prim> prim;
+  prim.reserve(ibo.size()/3);
+  for(size_t i=0; i<mid.size(); ++i) {
+    auto& m = mat[mid[i]];
     if(m.disable_collision)
       continue;
-    if(m.name.find(':')==std::string::npos)
-      continue; // only named materials
+    Prim p;
+    p.primId = i*3;
+    if(m.name.find(':')==std::string::npos) {
+      // unnamed materials - can merge them
+      p.mat   = uint8_t(m.group);
+      } else {
+      // offset named materials
+      p.mat   = uint32_t(phoenix::material_group::none) + mid[i];
+      }
+    prim.push_back(p);
+    }
+
+  std::sort(prim.begin(), prim.end(), [](const Prim& a, const Prim& b){
+    return std::tie(a.mat) < std::tie(b.mat);
+    });
+
+  std::unordered_map<uint32_t,size_t> icache;
+  icache.rehash(size_t(std::sqrt(ibo.size())));
+
+  indices.reserve(ibo.size());
+  for(size_t i=0; i<prim.size();) {
+    const auto mId = prim[i].mat;
 
     SubMesh sub;
-    sub.material.name  = m.name;
-    sub.material.group = m.group;
-    sub.iboOffset      = indices.size();
+    sub.iboOffset = indices.size();
 
-    for(size_t r=0; r<ibo.size(); ++r) {
-      if(size_t(mid[r/3u])!=i)
-        continue;
-      uint32_t index = ibo[r];
-      auto     rx    = icache.find(index);
-      if(rx!=icache.end()) {
-        indices.push_back(uint32_t(rx->second));
-        } else {
-        Vertex vx = {};
-        vx.pos[0] = vbo[index].x;
-        vx.pos[1] = vbo[index].y;
-        vx.pos[2] = vbo[index].z;
+    if(mId < size_t(phoenix::material_group::none)) {
+      sub.material.name  = "";
+      sub.material.group = phoenix::material_group(mId);
+      } else {
+      auto& m = mat[mId-size_t(phoenix::material_group::none)];
+      sub.material.name  = m.name;
+      sub.material.group = m.group;
+      }
 
-        size_t val = vertices.size();
-        vertices.emplace_back(vx);
-        indices.push_back(uint32_t(val));
-        icache[index] = uint32_t(val);
+    for(; i<prim.size() && prim[i].mat==mId; ++i) {
+      auto pr = prim[i].primId;
+      for(size_t r=0; r<3; ++r) {
+        uint32_t index = ibo[pr+r];
+        auto     rx    = icache.find(index);
+        if(rx!=icache.end()) {
+          indices.push_back(uint32_t(rx->second));
+          } else {
+          Vertex vx = {};
+          vx.pos[0] = vbo[index].x;
+          vx.pos[1] = vbo[index].y;
+          vx.pos[2] = vbo[index].z;
+
+          size_t val = vertices.size();
+          vertices.emplace_back(vx);
+          indices.push_back(uint32_t(val));
+          icache[index] = uint32_t(val);
+          }
         }
       }
+
     sub.iboLength = indices.size()-sub.iboOffset;
     if(sub.iboLength>0)
       subMeshes.emplace_back(std::move(sub));

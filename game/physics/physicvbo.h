@@ -3,8 +3,9 @@
 #include <vector>
 #include <cstdint>
 
-#include "graphics/mesh/protomesh.h"
+#include <phoenix/material.hh>
 #include "physics/physics.h"
+#include "resources.h"
 
 class PackedMesh;
 
@@ -27,7 +28,7 @@ class PhysicVbo : public btTriangleIndexVertexArray {
 
     void                    adjustMesh();
 
-    std::string_view validateSectorName(std::string_view name) const;
+    std::string_view        validateSectorName(std::string_view name) const;
 
   private:
     PhysicVbo(const std::vector<Vertex>& v);
