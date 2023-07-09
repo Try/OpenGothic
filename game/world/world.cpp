@@ -80,7 +80,7 @@ World::World(GameSession& game, std::string_view file, bool startup, std::functi
     auto& worldMesh = world.world_mesh;
     {
       PackedMesh vmesh(worldMesh,PackedMesh::PK_VisualLnd);
-      wview.reset   (new WorldView(*this,vmesh));
+      wview.reset(new WorldView(*this,vmesh));
     }
 
     loadProgress(50);

@@ -395,7 +395,7 @@ void PackedMesh::packPhysics(const phoenix::mesh& mesh, PkgType type) {
   auto& mat = mesh.materials;
 
   std::vector<Prim> prim;
-  prim.reserve(ibo.size()/3);
+  prim.reserve(mid.size());
   for(size_t i=0; i<mid.size(); ++i) {
     auto& m = mat[mid[i]];
     if(m.disable_collision)
@@ -465,17 +465,31 @@ void PackedMesh::packPhysics(const phoenix::mesh& mesh, PkgType type) {
 void PackedMesh::packMeshletsLnd(const phoenix::mesh& mesh) {
   auto& ibo  = mesh.polygons.vertex_indices;
   auto& feat = mesh.polygons.feature_indices;
-  auto& mat  = mesh.polygons.material_indices;
+  auto& mid  = mesh.polygons.material_indices;
+
+  std::vector<Prim> prim;
+  prim.reserve(mid.size());
+  for(size_t i=0; i<mid.size(); ++i) {
+    Prim p;
+    p.primId = i*3;
+    p.mat    = mid[i];
+    prim.push_back(p);
+    }
+  std::sort(prim.begin(), prim.end(), [](const Prim& a, const Prim& b){
+    return std::tie(a.mat) < std::tie(b.mat);
+    });
 
   PrimitiveHeap heap;
-  heap.reserve(ibo.size()/3);
-  std::vector<bool> used(ibo.size()/3,false);
+  heap.reserve(mid.size());
+  std::vector<bool> used(mid.size(),false);
 
-  for(size_t mId=0; mId<mesh.materials.size(); ++mId) {
+  for(size_t i=0; i<prim.size();) {
+    const auto mId = prim[i].mat;
+
     heap.clear();
-    for(size_t id=0; id<ibo.size(); id+=3) {
-      if(size_t(mat[id/3u])!=mId)
-        continue;
+    for(; i<prim.size() && prim[i].mat==mId; ++i) {
+      const size_t id = prim[i].primId;
+
       auto a = mkUInt64(ibo[id+0],feat[id+0]);
       auto b = mkUInt64(ibo[id+1],feat[id+1]);
       auto c = mkUInt64(ibo[id+2],feat[id+2]);
