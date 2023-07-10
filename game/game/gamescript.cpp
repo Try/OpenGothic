@@ -414,6 +414,13 @@ void GameScript::loadDialogOU() {
       return;
       }
 
+    const size_t segment = OU.find_last_of("\\/");
+    if(segment!=std::string::npos && Resources::hasFile(OU.substr(segment+1))) {
+      auto buf = Resources::getFileBuffer(OU.substr(segment+1));
+      dialogs = phoenix::messages::parse(buf);
+      return;
+      }
+
     char16_t str16[256] = {};
     for(size_t i=0; OU[i] && i<255; ++i)
       str16[i] = char16_t(OU[i]);
