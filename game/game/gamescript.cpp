@@ -1185,12 +1185,12 @@ uint32_t GameScript::messageTime(std::string_view id) const {
     return time;
 
   string_frm name(id,".WAV");
-  auto  s   = Resources::loadSoundBuffer(name);
+  auto s = Resources::loadSoundBuffer(name);
   if(s.timeLength()>0) {
     time = uint32_t(s.timeLength());
     } else {
     auto txt  = messageByName(id);
-    time = uint32_t(float(txt.length())*viewTimePerChar);
+    time = uint32_t(float(txt.length())*viewTimePerChar*1000.f);
     }
   return time;
   }
