@@ -28,9 +28,6 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
   auto& ai = Gothic::fai()[size_t(npc.handle().fight_tactic)];
   auto  ws = npc.weaponState();
 
-  if(ws==WeaponState::NoWeapon)
-    return;
-
   if(hitFlg) {
     hitFlg = false;
     if(fillQueue(owner,ai.my_w_strafe))
