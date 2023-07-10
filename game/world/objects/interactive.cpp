@@ -156,7 +156,7 @@ void Interactive::save(Serialize &fout) const {
 
   fout.write(uint32_t(attPos.size()));
   for(auto& i:attPos) {
-    fout.write(i.name,i.user,i.attachMode,i.started);
+    fout.write(i.name,i.user,i.attachMode,uint8_t(i.started));
     }
 
   if(!invent.isEmpty()) {
