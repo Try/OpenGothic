@@ -1430,9 +1430,10 @@ bool Npc::implAttack(uint64_t dt) {
 
   auto ws = weaponState();
   // vanilla behavior, required for orcs in G1 orcgraveyard
-  if(ws==WeaponState::NoWeapon)
-    drawWeaponMelee();
-  ws = weaponState();
+  if(ws==WeaponState::NoWeapon) {
+    if(drawWeaponMelee())
+      return true;
+    }
 
   FightAlgo::Action act = fghAlgo.nextFromQueue(*this,*currentTarget,owner.script());
 
