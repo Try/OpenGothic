@@ -106,16 +106,19 @@ DamageCalculator::Val DamageCalculator::rangeDamage(Npc&, Npc& nother, Damage dm
   if(bMsk & COLL_APPLYHALVEDAMAGE)
     dmg/=2;
 
-  int value = 0;
+  int  value = 0;
+  bool invincible = true;
   for(unsigned int i=0; i<phoenix::damage_type::count; ++i) {
     if(dmg[size_t(i)]==0)
       continue;
     int vd = std::max(dmg[size_t(i)] - other.protection[i],0);
-    if(other.protection[i]>=0) // Filter immune
+    if(other.protection[i]>=0) { // Filter immune
       value  += vd;
+      invincible = false;
+      }
     }
 
-  return Val(value,true);
+  return Val(value,true,invincible);
   }
 
 DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
@@ -146,18 +149,22 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
       critChance = 0;
       }
 
+    bool invincible = true;
     for(unsigned int i=0; i<phoenix::damage_type::count; ++i) {
       if((dtype & (1<<i))==0)
         continue;
       int vd = std::max(str + src.damage[i] - other.protection[i],0);
       if(src.hitchance[tal]<=critChance)
         vd = (vd-1)/10;
-      if(other.protection[i]>=0) // Filter immune
+      if(other.protection[i]>=0) { // Filter immune
         value += vd;
+        invincible = false;
+        }
       }
 
-    return Val(value,true);
+    return Val(value,true,invincible);
     } else {
+    bool invincible = true;
     const int32_t mul = script.criticalDamageMultiplyer();
     for(unsigned int i=0; i<phoenix::damage_type::count; ++i) {
       if((dtype & (1<<i))==0)
@@ -166,11 +173,13 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
       if(nsrc.talentValue(tal)<=critChance)
         vd = std::max(str +     src.damage[i] - other.protection[i],0); else
         vd = std::max(str + mul*src.damage[i] - other.protection[i],0);
-      if(other.protection[i]>=0) // Filter immune
+      if(other.protection[i]>=0) { // Filter immune
         value += vd;
+        invincible = false;
+        }
       }
 
-    return Val(value,true);
+    return Val(value,true,invincible);
     }
   }
 
