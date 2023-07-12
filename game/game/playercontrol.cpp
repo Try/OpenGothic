@@ -883,14 +883,11 @@ void PlayerControl::implMove(uint64_t dt) {
         // charge-run
         ani = Npc::Anim::NoAnim;
         }
-      if(ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR) {
+      if((ani==Npc::Anim::MoveL || ani==Npc::Anim::MoveR) &&
+          pl.hasState(BS_STAND) && pl.hasState(BS_HIT)) {
         // no charge to strafe transition
         ani = Npc::Anim::NoAnim;
         }
-      }
-
-    if(pl.hasState(BS_PARADE) && (ani==Npc::Anim::Idle || ani==Npc::Anim::MoveBack)) {
-      ani = Npc::Anim::NoAnim;
       }
 
     if(ani!=Npc::Anim::NoAnim)
