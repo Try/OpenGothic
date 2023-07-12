@@ -291,8 +291,12 @@ std::unique_ptr<Npc> World::takeHero() {
   return wobj.takeNpc(npcPlayer);
   }
 
-Npc *World::findNpcByInstance(size_t instance) {
-  return wobj.findNpcByInstance(instance);
+Item* World::findItemByInstance(size_t instance, uint32_t n) {
+  return wobj.findItemByInstance(instance,n);
+  }
+
+Npc *World::findNpcByInstance(size_t instance, uint32_t n) {
+  return wobj.findNpcByInstance(instance,n);
   }
 
 std::string_view World::roomAt(const Tempest::Vec3& p) {

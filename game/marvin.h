@@ -43,7 +43,9 @@ class Marvin {
 
       C_AiGoTo,
       C_GoToPos,
+      C_GoToVob,
       C_GoToWayPoint,
+      C_GoToCamera,
 
       C_SetTime,
 
@@ -77,6 +79,7 @@ class Marvin {
     bool   addItemOrNpcBySymbolName(World* world, std::string_view name, const Tempest::Vec3& at);
     bool   printVariable           (World* world, std::string_view name);
     bool   setTime                 (World& world, std::string_view hh, std::string_view mm);
+    bool   goToVob                 (World& world, Npc& player, Camera& c, std::string_view name, uint32_t nr);
 
     std::vector<Cmd> cmd;
   };
