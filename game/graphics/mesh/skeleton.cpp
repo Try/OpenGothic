@@ -58,6 +58,13 @@ size_t Skeleton::findNode(std::string_view name, size_t def) const {
   return def;
   }
 
+size_t Skeleton::findRootNode() const {
+  for(size_t i=0;i<nodes.size();++i)
+    if(nodes[i].parent==size_t(-1))
+      return i;
+  return size_t(-1);
+  }
+
 const Animation::Sequence* Skeleton::sequence(std::string_view name) const {
   if(anim!=nullptr)
     return anim->sequence(name);

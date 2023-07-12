@@ -2866,6 +2866,14 @@ bool Npc::hasState(BodyState s) const {
   return false;
   }
 
+bool Npc::hasStateFlag(BodyState flg) const {
+  if(visual.pose().hasStateFlag(flg))
+    return true;
+  if(auto i = interactive())
+    return flg==(i->stateMask() & (BS_FLAG_MASK|BS_MOD_MASK));
+  return false;
+  }
+
 void Npc::setToFightMode(const size_t item) {
   if(invent.itemCount(item)==0)
     addItem(item,1);

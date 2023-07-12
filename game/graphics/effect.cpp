@@ -290,6 +290,10 @@ void Effect::bindAttaches(const Pose& p, const Skeleton& to) {
   skeleton = &to;
   pose     = &p;
   boneId   = to.findNode(nodeSlot);
+  if(boneId==size_t(-1)) {
+    // case: VOB_MAGICBURN
+    boneId = to.findRootNode();
+    }
   if(root!=nullptr && root->isMeshEmmiter())
     pfx.setMesh(meshEmitter,pose);
   }

@@ -233,6 +233,7 @@ class Npc final {
     BodyState bodyState() const;
     BodyState bodyStateMasked() const;
     bool      hasState(BodyState s) const;
+    bool      hasStateFlag(BodyState flg) const;
 
     void      setToFightMode(const size_t item);
     void      setToFistMode();

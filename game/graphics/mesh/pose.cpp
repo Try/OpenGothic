@@ -125,6 +125,13 @@ bool Pose::hasState(BodyState s) const {
   return false;
   }
 
+bool Pose::hasStateFlag(BodyState f) const {
+  for(auto& i:lay)
+    if((i.bs & (BS_FLAG_MASK | BS_MOD_MASK))==f)
+      return true;
+  return false;
+  }
+
 void Pose::setSkeleton(const Skeleton* sk) {
   if(skeleton==sk)
     return;

@@ -2398,10 +2398,7 @@ bool GameScript::npc_hasbodyflag(std::shared_ptr<phoenix::c_npc> npcRef, int bod
   auto npc = findNpc(npcRef);
   if(npc==nullptr)
     return false;
-
-  int32_t st = npc->bodyState()&BS_MAX_FLAGS;
-  bodyflag&=BS_MAX_FLAGS;
-  return bool(bodyflag&st);
+  return npc->hasStateFlag(BodyState(bodyflag));
   }
 
 int GameScript::npc_getlasthitspellid(std::shared_ptr<phoenix::c_npc> npcRef) {
