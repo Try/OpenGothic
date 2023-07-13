@@ -65,6 +65,13 @@ Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest:
     moonSize = 400;
 
   auto& device = Resources::device();
+
+  // crappy rasbery-pi like hardware
+  if(!device.properties().hasStorageFormat(lutRGBAFormat))
+    lutRGBAFormat = Tempest::TextureFormat::RGBA8;
+  if(!device.properties().hasStorageFormat(lutRGBFormat))
+    lutRGBFormat = Tempest::TextureFormat::RGBA8;
+
   cloudsLut    = device.image2d   (lutRGBAFormat,  2,  1);
   transLut     = device.attachment(lutRGBFormat, 256, 64);
   multiScatLut = device.attachment(lutRGBFormat,  32, 32);
