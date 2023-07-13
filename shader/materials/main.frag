@@ -79,6 +79,10 @@ vec4 forwardShading(vec4 t) {
   vec3  color = t.rgb;
   float alpha = t.a;
 
+#if defined(ATEST)
+  alpha = (alpha-0.5)*2.0;
+#endif
+
 #if defined(GHOST)
   color = ghostColor(t.rgb);
 #endif
@@ -226,7 +230,6 @@ void main() {
 #  if defined(ATEST)
   if(t.a<0.5)
     discard;
-  t.a = (t.a-0.5)*2.0;
 #  endif
 #endif
 
