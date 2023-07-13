@@ -1571,13 +1571,15 @@ bool Npc::implAttack(uint64_t dt) {
     return true;
     }
 
-  if(act==FightAlgo::MV_MOVEA || act==FightAlgo::MV_MOVEG) {
-    go2.set(currentTarget,(act==FightAlgo::MV_MOVEG) ? GoToHint::GT_EnemyG : GoToHint::GT_EnemyA);
+  if(act==FightAlgo::MV_MOVEA || act==FightAlgo::MV_MOVEG ||
+      act==FightAlgo::MV_TURNA || act==FightAlgo::MV_TURNG) {
+    go2.set(currentTarget,(act==FightAlgo::MV_MOVEG || act==FightAlgo::MV_TURNG) ?
+                             GoToHint::GT_EnemyG : GoToHint::GT_EnemyA);
 
     float dist = 0;
-    if(act==FightAlgo::MV_MOVEA)
-      dist = fghAlgo.prefferedAttackDistance(*this,*go2.npc,owner.script()); else
-      dist = fghAlgo.prefferedGDistance(*this,*go2.npc,owner.script());
+    if(act==FightAlgo::MV_MOVEG || act==FightAlgo::MV_TURNG)
+      dist = fghAlgo.prefferedGDistance(*this,*go2.npc,owner.script()); else
+      dist = fghAlgo.prefferedAttackDistance(*this,*go2.npc,owner.script());
 
     static float padding = 10;
     dist = std::max(dist-padding,0.f);
@@ -1588,10 +1590,14 @@ bool Npc::implAttack(uint64_t dt) {
       return true;
       }
 
+    if(act!=FightAlgo::MV_TURNA && act!=FightAlgo::MV_TURNG)
+      setAnim(Anim::Idle);
     go2.clear();
     fghAlgo.consumeAction();
     aiState.loopNextTime = owner.tickCount(); // force ZS_MM_Attack_Loop call
     implAiTick(dt);
+
+    //auto next = fghAlgo.nextFromQueue(*this,*currentTarget,owner.script());
     return true;
     }
 

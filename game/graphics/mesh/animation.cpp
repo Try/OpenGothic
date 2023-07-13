@@ -243,7 +243,7 @@ float Animation::Sequence::atkTotalTime(uint16_t comboLen) const {
 bool Animation::Sequence::canInterrupt(uint64_t now, uint64_t sTime, uint16_t comboLen) const {
   const uint16_t cId = uint16_t(comboLen*2u);
   if(animCls==Animation::Transition) {
-    if(size_t(cId+1)<data->defWindow.size() && data->defWindow.size()>0 /*&& !data->defHitEnd.empty()*/) {
+    if(size_t(cId+1)<data->defWindow.size() && data->defWindow.size()>0 && !data->defHitEnd.empty()) {
       return !((now-sTime)<=data->defWindow[cId+0]);
       }
     return false;

@@ -102,6 +102,10 @@ FightAlgo::Action FightAlgo::nextFromQueue(Npc& npc, Npc& tg, GameScript& owner)
   if(tr[0]==MV_NULL) {
     switch(queueId) {
       case c_fight_ai_move::turn:
+        if(!isInGRange(npc,tg,owner))
+          tr[0] = MV_TURNG; else
+          tr[0] = MV_TURNA;
+        break;
       case c_fight_ai_move::run:{
         if(!isInGRange(npc,tg,owner))
           tr[0] = MV_MOVEG; else

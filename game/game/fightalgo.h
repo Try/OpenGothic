@@ -29,6 +29,8 @@ class FightAlgo final {
       MV_WAIT     = 10,
       MV_WAITLONG = 11,
       MV_TURN2HIT = 12,
+      MV_TURNA    = 13,
+      MV_TURNG    = 14,
 
       MV_MAX      = 6
       };
