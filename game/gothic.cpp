@@ -63,7 +63,7 @@ Gothic::Gothic() {
   defaults->set("GAME", "invCatOrder",         "COMBAT,POTION,FOOD,ARMOR,MAGIC,RUNE,DOCS,OTHER,NONE");
   defaults->set("GAME", "invMaxColumns",       5);
   defaults->set("GAME", "animatedWindows",     1);
-  defaults->set("GAME", "useGothic1Controls",  0);
+  defaults->set("GAME", "useGothic1Controls",  1);
   defaults->set("GAME", "highlightMeleeFocus", 0);
 
   defaults->set("SKY_OUTDOOR", "zSunName",   "unsun5.tga");

@@ -21,7 +21,11 @@ PlayerControl::~PlayerControl() {
   }
 
 void PlayerControl::setupSettings() {
-  g2Ctrl = Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS")==0;
+  if(Gothic::inst().version().game==2) {
+    g2Ctrl = Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS")==0;
+    } else {
+    g2Ctrl = false;
+    }
   }
 
 void PlayerControl::setTarget(Npc *other) {
