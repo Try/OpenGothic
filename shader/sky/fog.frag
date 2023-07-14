@@ -176,9 +176,8 @@ vec4 fog(vec2 uv, float z) {
   float d    = (dZ-d0)/(d1-d0);
   // return vec4(debugColors[min(int(d*textureSize(fogLut,0).z), textureSize(fogLut,0).z-1)%MAX_DEBUG_COLORS], 1);
   vec4  val      = textureLod(fogLut, vec3(uv,d), 0);
-  vec3  trans    = vec3(1.0-val.w);
-  float fogDens  = (trans.x+trans.y+trans.z)/3.0;
   vec3  lum      = val.rgb;
+  float fogDens  = (1.0-val.w);
   return vec4(lum, fogDens);
   }
 #endif
