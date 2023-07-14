@@ -1,7 +1,7 @@
 #include "world.h"
 
-#include <fstream>
 #include <functional>
+#include <future>
 #include <cctype>
 
 #include <Tempest/Log>
@@ -76,30 +76,39 @@ World::World(GameSession& game, std::string_view file, bool startup, std::functi
     auto world = phoenix::world::parse(buf, version().game == 1 ? phoenix::game_version::gothic_1
                                                                 : phoenix::game_version::gothic_2);
     loadProgress(20);
-
     auto& worldMesh = world.world_mesh;
-    {
-      PackedMesh vmesh(worldMesh,PackedMesh::PK_VisualLnd);
-      wview.reset(new WorldView(*this,vmesh));
-    }
 
+    auto wdynamicFut = std::async(std::launch::async, [&]() {
+      return std::unique_ptr<DynamicWorld>(new DynamicWorld(*this,worldMesh));
+      });
+    auto wviewFut = std::async(std::launch::async, [&]() {
+      PackedMesh vmesh(worldMesh,PackedMesh::PK_VisualLnd);
+      return std::unique_ptr<WorldView>(new WorldView(*this,vmesh));
+      });
+
+    loadProgress(30);
+
+    {
+      bsp.nodes             = std::move(world.world_bsp_tree.nodes);
+      bsp.sectors           = std::move(world.world_bsp_tree.sectors);
+      bsp.leaf_node_indices = std::move(world.world_bsp_tree.leaf_node_indices);
+      bsp.sectorsData.resize(bsp.sectors.size());
+      world.world_bsp_tree = phoenix::bsp_tree();
+    }
     loadProgress(50);
-    wdynamic.reset(new DynamicWorld(*this,worldMesh));
+
+    wview = wviewFut.get();
+    loadProgress(60);
+
+    wdynamic = wdynamicFut.get();
     loadProgress(70);
 
     globFx.reset(new GlobalEffects(*this));
-
     wmatrix.reset(new WayMatrix(*this,world.world_way_net));
-
     for(auto& vob:world.world_vobs)
       wobj.addRoot(vob,startup);
 
     wmatrix->buildIndex();
-    // bsp = std::move(world.world_bsp_tree);
-    bsp.nodes             = std::move(world.world_bsp_tree.nodes);
-    bsp.sectors           = std::move(world.world_bsp_tree.sectors);
-    bsp.leaf_node_indices = std::move(world.world_bsp_tree.leaf_node_indices);
-    bsp.sectorsData.resize(bsp.sectors.size());
     loadProgress(100);
     }
   catch(...) {
