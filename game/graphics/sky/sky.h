@@ -83,7 +83,7 @@ class Sky final {
     Tempest::DescriptorSet        uboClouds;
     Tempest::DescriptorSet        uboTransmittance;
     Tempest::DescriptorSet        uboMultiScatLut, uboSkyViewLut;
-    Tempest::DescriptorSet        uboFogViewLut,   uboFogViewLut3d;
+    Tempest::DescriptorSet        uboFogViewLut3d;
     Tempest::DescriptorSet        uboSky, uboFog, uboFog3d;
     Tempest::DescriptorSet        uboShadowDw, uboOcclusion;
 

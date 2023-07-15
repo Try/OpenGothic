@@ -305,11 +305,6 @@ void Sky::setupUbo() {
   uboSkyViewLut.set(1, multiScatLut, smpB);
   uboSkyViewLut.set(2, cloudsLut,    smpB);
 
-  uboFogViewLut = device.descriptors(Shaders::inst().fogViewLut);
-  uboFogViewLut.set(0, transLut,       smpB);
-  uboFogViewLut.set(1, multiScatLut,   smpB);
-  uboFogViewLut.set(2, cloudsLut,      smpB);
-
   uboSky = device.descriptors(Shaders::inst().sky);
   uboSky.set(0, transLut,       smpB);
   uboSky.set(1, multiScatLut,   smpB);
