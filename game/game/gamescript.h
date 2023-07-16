@@ -233,6 +233,7 @@ class GameScript final {
     int  wld_getformerplayerportalguild();
     void wld_setguildattitude (int gil1, int att, int gil2);
     int  wld_getguildattitude (int g1, int g0);
+    void wld_exchangeguildattitudes (std::string_view name);
     bool wld_istime           (int hour0, int min0, int hour1, int min1);
     bool wld_isfpavailable    (std::shared_ptr<phoenix::c_npc> self, std::string_view name);
     bool wld_isnextfpavailable(std::shared_ptr<phoenix::c_npc> self, std::string_view name);
@@ -276,6 +277,7 @@ class GameScript final {
     void npc_setrefusetalk   (std::shared_ptr<phoenix::c_npc> npcRef, int timeSec);
     bool npc_refusetalk      (std::shared_ptr<phoenix::c_npc> npcRef);
     int  npc_hasitems        (std::shared_ptr<phoenix::c_npc> npcRef, int itemId);
+    bool npc_hasspell        (std::shared_ptr<phoenix::c_npc> npcRef, int splId);
     int  npc_getinvitem      (std::shared_ptr<phoenix::c_npc> npcRef, int itemId);
     int  npc_removeinvitem   (std::shared_ptr<phoenix::c_npc> npcRef, int itemId);
     int  npc_removeinvitems  (std::shared_ptr<phoenix::c_npc> npcRef, int itemId, int amount);
@@ -316,7 +318,10 @@ class GameScript final {
     int  npc_getportalguild  (std::shared_ptr<phoenix::c_npc> npcRef);
     bool npc_isinplayersroom (std::shared_ptr<phoenix::c_npc> npcRef);
     std::shared_ptr<phoenix::c_item> npc_getreadiedweapon(std::shared_ptr<phoenix::c_npc> npcRef);
+    bool npc_hasreadiedweapon(std::shared_ptr<phoenix::c_npc> npcRef);
     bool npc_hasreadiedmeleeweapon(std::shared_ptr<phoenix::c_npc> npcRef);
+    bool npc_hasreadiedrangedweapon(std::shared_ptr<phoenix::c_npc> npcRef);
+    bool npc_hasrangedweaponwithammo(std::shared_ptr<phoenix::c_npc> npcRef);
     int  npc_isdrawingspell  (std::shared_ptr<phoenix::c_npc> npcRef);
     int  npc_isdrawingweapon (std::shared_ptr<phoenix::c_npc> npcRef);
     void npc_perceiveall     (std::shared_ptr<phoenix::c_npc> npcRef);
@@ -351,6 +356,7 @@ class GameScript final {
     void ai_lookat           (std::shared_ptr<phoenix::c_npc> selfRef, std::string_view waypoint);
     void ai_lookatnpc        (std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> npcRef);
     void ai_removeweapon     (std::shared_ptr<phoenix::c_npc> npcRef);
+    void ai_unreadyspell     (std::shared_ptr<phoenix::c_npc> npcRef);
     void ai_turntonpc        (std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> npcRef);
     void ai_outputsvm        (std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> targetRef, std::string_view name);
     void ai_outputsvm_overlay(std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> targetRef, std::string_view name);
@@ -448,6 +454,7 @@ class GameScript final {
     float                                                       viewTimePerChar = 0.5;
     int32_t                                                     damCriticalMultiplier = 2;
     mutable std::unordered_map<std::string,uint32_t>            msgTimings;
+    size_t                                                      gilTblSize=0;
     size_t                                                      gilCount=0;
     std::vector<int32_t>                                        gilAttitudes;
     int                                                         aiOutOrderId=0;

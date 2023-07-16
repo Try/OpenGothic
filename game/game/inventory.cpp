@@ -575,6 +575,13 @@ void Inventory::clear(GameScript& vm, Interactive& owner, bool includeMissionItm
   items = std::move(used); // Gothic don't clear items, which are in use
   }
 
+bool Inventory::hasSpell(int32_t splId) const {
+  for(auto& i:items)
+    if(i->spellId()==splId)
+      return true;
+  return false;
+  }
+
 bool Inventory::hasMissionItems() const {
   for(auto& i:items)
     if(i->isMission())
@@ -586,6 +593,20 @@ const Item *Inventory::activeWeapon() const {
   if(active!=nullptr)
     return *active;
   return nullptr;
+  }
+
+bool Inventory::hasRangedWeaponWithAmmo() const {
+  uint32_t munition = 0;
+  for(auto& i:items) {
+    uint32_t cls = uint32_t(i->handle().munition);
+    if(cls>0 && cls!=munition) {
+      for(auto& it:items)
+        if(it->clsId()==cls)
+          return true;
+      munition = cls;
+      }
+    }
+  return false;
   }
 
 Item *Inventory::activeWeapon() {
@@ -639,14 +660,6 @@ void Inventory::switchActiveSpell(int32_t spell, Npc& owner) {
       updateRuneView(owner);
       return;
       }
-  }
-
-Item* Inventory::spellById(int32_t splId) {
-  for(auto& i:items)
-    if(i->spellId()==splId){
-      return i.get();
-      }
-  return nullptr;
   }
 
 uint8_t Inventory::currentSpellSlot() const {
