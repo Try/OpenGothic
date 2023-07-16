@@ -1591,9 +1591,9 @@ int Video::getValue(Sources b) {
   return ret;
   }
 
-int Video::readDctCoeffs(BitStream& gb, int32_t block[64],
+int Video::readDctCoeffs(BitStream& gb, int32_t block[],
                          const uint8_t *scan, int& coef_count,
-                         int coef_idx[64], int q) {
+                         int coef_idx[], int q) {
   int coef_list[128] = {};
   int mode_list[128] = {};
   int t, ccoef, mode, sign;
@@ -1683,8 +1683,8 @@ int Video::readDctCoeffs(BitStream& gb, int32_t block[64],
   }
 
 
-void Video::unquantizeDctCoeffs(int32_t block[64], const uint32_t quant[64],
-                                int coef_count, int coef_idx[64],
+void Video::unquantizeDctCoeffs(int32_t block[], const uint32_t quant[],
+                                int coef_count, int coef_idx[],
                                 const uint8_t *scan) {
   block[0] = int(block[0] * quant[0]) >> 11;
   for(int i = 0; i < coef_count; i++) {
@@ -1693,7 +1693,7 @@ void Video::unquantizeDctCoeffs(int32_t block[64], const uint32_t quant[64],
     }
   }
 
-void Video::readResidue(BitStream& gb, int16_t block[64], int masks_count) {
+void Video::readResidue(BitStream& gb, int16_t block[], int masks_count) {
   int coef_list[128];
   int mode_list[128];
   int sign;
