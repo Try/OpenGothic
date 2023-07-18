@@ -39,7 +39,7 @@ SceneGlobals::SceneGlobals()
   auto& copy = Shaders::inst().copyBuf;
   for(uint8_t fId=0; fId<Resources::MaxFramesInFlight; ++fId)
     for(uint8_t lay=0; lay<V_Count; ++lay) {
-      uboGlobalPf[fId][lay] = device.ubo<UboGlobal>(nullptr,1);
+      uboGlobalPf[fId][lay] = device.ubo(UboGlobal());
       uboCopy[fId][lay] = device.descriptors(copy);
       uboCopy[fId][lay].set(0, uboGlobal[lay]);
       uboCopy[fId][lay].set(1, uboGlobalPf[fId][lay]);
@@ -138,7 +138,7 @@ void SceneGlobals::setTime(uint64_t time) {
 
 void SceneGlobals::commitUbo(uint8_t fId) {
   UboGlobal perView[V_Count];
-  uboGlobalPf[fId][V_Main].update(&uboGlobalCpu,0,1);
+  uboGlobalPf[fId][V_Main].update(&uboGlobalCpu);
 
   for(size_t i=V_Shadow0; i<V_Count; ++i) {
     auto& ubo = perView[i];
@@ -149,7 +149,7 @@ void SceneGlobals::commitUbo(uint8_t fId) {
     }
 
   for(size_t i=0; i<V_Count; ++i) {
-    uboGlobalPf[fId][i].update(&perView[i],0,1);
+    uboGlobalPf[fId][i].update(&perView[i]);
     }
   }
 

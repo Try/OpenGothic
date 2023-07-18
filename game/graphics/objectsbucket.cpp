@@ -332,7 +332,7 @@ ObjectsBucket::Bucket ObjectsBucket::allocBucketDesc(const Material& mat) {
     ubo.bbox[1]    = Vec4(bbox[1].x,bbox[1].y,bbox[1].z,0.f);
     }
 
-  return device.ubo<BucketDesc>(BufferHeap::Device,&ubo,1);
+  return device.ubo<BucketDesc>(BufferHeap::Device,ubo);
   }
 
 void ObjectsBucket::uboSetCommon(Descriptors& v, const Material& mat, const Bucket& bucket) {

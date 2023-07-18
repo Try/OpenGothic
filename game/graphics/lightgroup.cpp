@@ -178,7 +178,7 @@ LightGroup::LightGroup(const SceneGlobals& scene)
   :scene(scene) {
   auto& device = Resources::device();
   for(auto& u:uboBuf)
-    u = device.ubo<Ubo>(nullptr,1);
+    u = device.ubo(Ubo());
 
   LightBucket* bucket[2] = {&bucketSt, &bucketDyn};
   for(auto b:bucket) {
@@ -387,7 +387,7 @@ void LightGroup::preFrameUpdate(uint8_t fId) {
   ubo.origin    = scene.originLwc;
   std::memcpy(ubo.fr,fr.f,sizeof(ubo.fr));
 
-  uboBuf[fId].update(&ubo,0,1);
+  uboBuf[fId].update(&ubo);
   }
 
 void LightGroup::draw(Encoder<CommandBuffer>& cmd, uint8_t fId) {
