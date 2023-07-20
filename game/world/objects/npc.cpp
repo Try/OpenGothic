@@ -435,17 +435,13 @@ float Npc::angleDir(float x, float z) {
   }
 
 bool Npc::resetPositionToTA() {
-  const auto npcType   = hnpc->type;
-  const bool g2        = owner.version().game==2;
-  const bool isMainNpc = (npcType==phoenix::npc_type::main ||
-                         (g2 && (npcType==phoenix::npc_type::g2_oc_main ||
-                          npcType==phoenix::npc_type::g2_bl_main)));
+  const bool g2     = owner.version().game==2;
   const bool isDead = this->isDead();
 
-  if(isDead && !isMainNpc && !invent.hasMissionItems()) {
+  if(isDead && !invent.hasMissionItems()) {
     const bool isDragon         = (g2 && guild()==GIL_DRAGON);
     const bool isBackgroundBody = (hnpc->attribute[ATR_HITPOINTSMAX]==1);
-    if(!isBackgroundBody && !isDragon)
+    if(!isBackgroundBody && !isDragon && hnpc->id!=0)
       return false;
     }
 
