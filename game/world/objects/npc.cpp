@@ -441,7 +441,7 @@ bool Npc::resetPositionToTA() {
   if(isDead && !invent.hasMissionItems()) {
     const bool isDragon         = (g2 && guild()==GIL_DRAGON);
     const bool isBackgroundBody = (hnpc->attribute[ATR_HITPOINTSMAX]==1);
-    if(!isBackgroundBody && !isDragon && hnpc->id!=0)
+    if(!isBackgroundBody && !isDragon)
       return false;
     }
 
