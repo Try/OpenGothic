@@ -76,7 +76,7 @@ Resources::Resources(Tempest::Device &device)
   ddsBuf.reserve(8*1024*1024);
 
   {
-  Pixmap pm(1,1,Pixmap::Format::RGBA);
+  Pixmap pm(1,1,Pixmap::Format::RGBA8);
   uint8_t* pix = reinterpret_cast<uint8_t*>(pm.data());
   pix[0]=255;
   pix[3]=255;
@@ -84,7 +84,7 @@ Resources::Resources(Tempest::Device &device)
   }
 
   {
-  Pixmap pm(1,1,Pixmap::Format::RGBA);
+  Pixmap pm(1,1,Pixmap::Format::RGBA8);
   fbZero = device.texture(pm);
   }
   }
@@ -311,7 +311,7 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
         auto rgba = tex.as_rgba8(0);
 
         try {
-          Tempest::Pixmap    pm(tex.width(), tex.height(), Tempest::Pixmap::Format::RGBA);
+          Tempest::Pixmap    pm(tex.width(), tex.height(), Tempest::Pixmap::Format::RGBA8);
           std::memcpy(pm.data(), rgba.data(), rgba.size());
 
           std::unique_ptr<Texture2d> t{new Texture2d(dev.texture(pm))};
@@ -678,7 +678,7 @@ const Texture2d* Resources::loadTexture(Tempest::Color color) {
     return it->second.get();
 
   uint8_t iv[4] = { uint8_t(255.f*color.r()), uint8_t(255.f*color.g()), uint8_t(255.f*color.b()), uint8_t(255.f*color.a()) };
-  Pixmap p2(1,1,Pixmap::Format::RGBA);
+  Pixmap p2(1,1,Pixmap::Format::RGBA8);
   std::memcpy(p2.data(),iv,4);
 
   auto t       = std::make_unique<Texture2d>(inst->dev.texture(p2));
@@ -744,7 +744,7 @@ std::vector<const Texture2d*> Resources::loadTextureAnim(std::string_view name) 
 
 Texture2d Resources::loadTexturePm(const Pixmap &pm) {
   if(pm.isEmpty()) {
-    Pixmap p2(1,1,Pixmap::Format::R);
+    Pixmap p2(1,1,Pixmap::Format::R8);
     std::memset(p2.data(),0,1);
     return inst->dev.texture(p2);
     }

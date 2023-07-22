@@ -106,7 +106,7 @@ struct VideoWidget::Context {
   void advance() {
     auto& f = vid.nextFrame();
     if(pm.w()!=f.width() || pm.h()!=f.height())
-      pm = Pixmap(f.width(),f.height(),Pixmap::Format::RGBA);
+      pm = Pixmap(f.width(),f.height(),Pixmap::Format::RGBA8);
 
     yuvToRgba(f,pm);
     for(size_t i=0; i<vid.audioCount(); ++i)
