@@ -79,9 +79,11 @@ World::World(GameSession& game, std::string_view file, bool startup, std::functi
     auto& worldMesh = world.world_mesh;
 
     auto wdynamicFut = std::async(std::launch::async, [&]() {
+      Workers::setThreadName("Loading: BVH thread");
       return std::unique_ptr<DynamicWorld>(new DynamicWorld(*this,worldMesh));
       });
     auto wviewFut = std::async(std::launch::async, [&]() {
+      Workers::setThreadName("Loading: PackedMesh thread");
       PackedMesh vmesh(worldMesh,PackedMesh::PK_VisualLnd);
       return std::unique_ptr<WorldView>(new WorldView(*this,vmesh));
       });
