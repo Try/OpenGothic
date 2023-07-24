@@ -21,6 +21,7 @@ class SoundDefinitions;
 class VisualFxDefinitions;
 class ParticlesDefinitions;
 class MusicDefinitions;
+class FightAi;
 class IniFile;
 
 class Gothic final {

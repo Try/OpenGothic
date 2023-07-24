@@ -2,6 +2,7 @@
 
 #include <Tempest/Log>
 
+#include "game/definitions/fightaidefinitions.h"
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
 #include "gothic.h"
