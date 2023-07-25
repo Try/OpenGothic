@@ -13,10 +13,13 @@ class Mem32 {
 
     ptr32_t pin  (void* mem, ptr32_t address, uint32_t size, const char* comment = nullptr);
     ptr32_t alloc(uint32_t size);
+    ptr32_t alloc(uint32_t address, uint32_t size, const char* comment = nullptr);
     void    free (ptr32_t at);
 
-    void    writeInt(ptr32_t address, int32_t v);
-    int32_t readInt (ptr32_t address);
+    bool    isValid(ptr32_t address);
+
+    void    writeInt (ptr32_t address, int32_t v);
+    int32_t readInt  (ptr32_t address);
     void    copyBytes(ptr32_t src, ptr32_t dst, uint32_t size);
 
   private:

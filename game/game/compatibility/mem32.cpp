@@ -68,6 +68,13 @@ Mem32::ptr32_t Mem32::pin(void* mem, ptr32_t address, uint32_t size, const char*
   return 0;
   }
 
+Mem32::ptr32_t Mem32::alloc(uint32_t address, uint32_t size, const char* comment) {
+  auto ret = pin(std::calloc(size,1), address, size, comment);
+  auto rgn = translate(address);
+  rgn->status = S_Allocated;
+  return ret;
+  }
+
 Mem32::ptr32_t Mem32::alloc(uint32_t size) {
   size = ((size+memAlign-1)/memAlign)*memAlign;
 
@@ -106,6 +113,13 @@ void Mem32::free(ptr32_t address) {
     return;
     }
   Log::e("mem_free: heap block wan't allocated by script: ", reinterpret_cast<void*>(uint64_t(address)));
+  }
+
+bool Mem32::isValid(ptr32_t address) {
+  auto rgn = translate(address);
+  if(rgn==nullptr || rgn->status==S_Unused)
+    return false;
+  return true;
   }
 
 void Mem32::compactage() {
