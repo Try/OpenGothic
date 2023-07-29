@@ -636,6 +636,8 @@ void Inventory::switchActiveWeapon(Npc& owner,uint8_t slot) {
     next=&range;
   if(3<=slot && slot<=10)
     next=&numslot[slot-3];
+  if(next==active)
+    return;
   if(next!=nullptr && *next!=nullptr)
     active=next;
 
