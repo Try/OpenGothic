@@ -318,10 +318,10 @@ void GameScript::initCommon() {
     tradeValMult   = tradeMul != nullptr ? tradeMul->get_float() : 1.0f;
 
     auto* vtime     = vm.find_symbol_by_name("VIEW_TIME_PER_CHAR");
-    viewTimePerChar = vtime != nullptr ? vtime->get_float() : 0.55f;
+    viewTimePerChar = vtime != nullptr ? vtime->get_float() : 550.f;
     ItKE_lockpick   = vm.find_symbol_by_name("ItKE_lockpick");
     if(viewTimePerChar<=0.f)
-      viewTimePerChar=0.55f;
+      viewTimePerChar = 550.f;
     } else {
     itMi_Gold      = vm.find_symbol_by_name("ItMiNugget");
     if(itMi_Gold!=nullptr) { // FIXME
@@ -330,7 +330,7 @@ void GameScript::initCommon() {
       }
     //
     tradeValMult    = 1.f;
-    viewTimePerChar = 0.55f;
+    viewTimePerChar = 550.f;
     ItKE_lockpick   = vm.find_symbol_by_name("itkelockpick");
     }
 
@@ -1188,7 +1188,7 @@ uint32_t GameScript::messageTime(std::string_view id) const {
     time = uint32_t(s.timeLength());
     } else {
     auto txt  = messageByName(id);
-    time = uint32_t(float(txt.length())*viewTimePerChar*1000.f);
+    time = uint32_t(float(txt.length())*viewTimePerChar);
     }
   return time;
   }
