@@ -384,11 +384,14 @@ void GameScript::initCommon() {
       }
     }
 
-  if(Ikarus::isRequired(vm)) {
-    plugins.emplace_back(std::make_unique<Ikarus>(*this,vm));
+  Ikarus* ikarus = nullptr;
+  if(Ikarus::isRequired(vm) || LeGo::isRequired(vm)) {
+    auto ik = std::make_unique<Ikarus>(*this,vm);
+    ikarus = ik.get();
+    plugins.emplace_back(std::move(ik));
     }
   if(LeGo::isRequired(vm)) {
-    plugins.emplace_back(std::make_unique<LeGo>(*this,vm));
+    plugins.emplace_back(std::make_unique<LeGo>(*this,*ikarus,vm));
     }
   }
 
@@ -1285,7 +1288,6 @@ phoenix::vm GameScript::createVm(Gothic& gothic) {
   auto exef   = phoenix::execution_flag::vm_allow_null_instance_access;
   if(Ikarus::isRequired(script)) {
     exef |= phoenix::execution_flag::vm_ignore_const_specifier;
-    exef |= phoenix::execution_flag::vm_allow_loop_traps;
     }
   return phoenix::vm(std::move(script), exef);
   }

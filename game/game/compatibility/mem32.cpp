@@ -1,6 +1,7 @@
 #include "mem32.h"
 
 #include <Tempest/Log>
+#include <cassert>
 #include <cstring>
 #include <algorithm>
 
@@ -75,6 +76,16 @@ Mem32::ptr32_t Mem32::alloc(uint32_t address, uint32_t size, const char* comment
   return ret;
   }
 
+Mem32::ptr32_t Mem32::realloc(uint32_t address, uint32_t size) {
+  auto rgn = translate(address);
+  if(rgn==nullptr) {
+    Log::e("realloc: address translation failure: ", reinterpret_cast<void*>(uint64_t(address)));
+    return 0;
+    }
+  assert(false && "realloc");
+  return address;
+  }
+
 Mem32::ptr32_t Mem32::alloc(uint32_t size) {
   size = ((size+memAlign-1)/memAlign)*memAlign;
 
@@ -117,7 +128,7 @@ void Mem32::free(ptr32_t address) {
 
 bool Mem32::isValid(ptr32_t address) {
   auto rgn = translate(address);
-  if(rgn==nullptr || rgn->status==S_Unused)
+  if(rgn==nullptr)
     return false;
   return true;
   }
@@ -138,7 +149,7 @@ void Mem32::compactage() {
 
 void Mem32::writeInt(ptr32_t address, int32_t v) {
   auto rgn = translate(address);
-  if(rgn==nullptr || rgn->status==S_Unused) {
+  if(rgn==nullptr) {
     Log::e("mem_writeint: address translation failure: ", reinterpret_cast<void*>(uint64_t(address)));
     return;
     }
@@ -149,8 +160,8 @@ void Mem32::writeInt(ptr32_t address, int32_t v) {
 
 int32_t Mem32::readInt(ptr32_t address) {
   auto rgn = translate(address);
-  if(rgn==nullptr || rgn->status==S_Unused) {
-    Log::e("mem_readint: address translation failure: ", reinterpret_cast<void*>(uint64_t(address)));
+  if(rgn==nullptr) {
+    Log::e("mem_readint:  address translation failure: ", reinterpret_cast<void*>(uint64_t(address)));
     return 0;
     }
   address -= rgn->address;
@@ -190,7 +201,7 @@ void Mem32::copyBytes(ptr32_t psrc, ptr32_t pdst, uint32_t size) {
 
 Mem32::Region* Mem32::translate(ptr32_t address) {
   for(auto& rgn:region) {
-    if(rgn.address<=address && address<rgn.address+rgn.size)
+    if(rgn.address<=address && address<rgn.address+rgn.size && rgn.status!=S_Unused)
       return &rgn;
     }
   return nullptr;

@@ -3,10 +3,12 @@
 #include <Tempest/Application>
 #include <Tempest/Log>
 
+#include <charconv>
 #include <cstddef>
 #include <phoenix/vobs/misc.hh>
 
 #include "game/gamescript.h"
+#include "gothic.h"
 
 using namespace Tempest;
 
@@ -23,11 +25,8 @@ enum {
   MEMINT_gameMan_Pointer_Address      = 9185624,  //0x8C2958
 
   MEMINT_SENDTOSPY_IMPLEMENTATION_ZERR_G2 = 9231568,
-  };
 
-struct Ikarus::memory_instance : public phoenix::instance {
-  explicit memory_instance(ptr32_t address):address(address){}
-  ptr32_t address;
+  OCNPC__ENABLE_EQUIPBESTWEAPONS = 7626662, //0x745FA6
   };
 
 Ikarus::Ikarus(GameScript& /*owner*/, phoenix::vm& vm) : vm(vm) {
@@ -35,9 +34,9 @@ Ikarus::Ikarus(GameScript& /*owner*/, phoenix::vm& vm) : vm(vm) {
 
   // built-in data with assumed address
   versionHint = 504628679; // G2
-  allocator.pin(&versionHint,   GothicFirstInstructionAddress,           4, "MEMINT_ReportVersionCheck");
-  allocator.pin(&oGame_Pointer, MEMINT_oGame_Pointer_Address,            4, "oGame*");
-  allocator.pin(&parserProxy,   ContentParserAddress,                    sizeof(parserProxy), "zCParser proxy");
+  allocator.pin(&versionHint,   GothicFirstInstructionAddress, 4, "MEMINT_ReportVersionCheck");
+  allocator.pin(&oGame_Pointer, MEMINT_oGame_Pointer_Address,  4, "oGame*");
+  allocator.pin(&parserProxy,   ContentParserAddress,          sizeof(parserProxy), "zCParser proxy");
 
   // built-in data without assumed address
   oGame_Pointer = allocator.pin(&gameProxy, 0, sizeof(gameProxy), "oGame");
@@ -46,6 +45,11 @@ Ikarus::Ikarus(GameScript& /*owner*/, phoenix::vm& vm) : vm(vm) {
 
   // ## Builtin instances
   allocator.alloc(MEMINT_SENDTOSPY_IMPLEMENTATION_ZERR_G2, 64, "ZERROR");
+
+  allocator.alloc(0x723ee2, 6,  "unknown, pick-lock related"); // CoM: INIT_RANDOMIZEPICKLOCKS_GAMESTART
+  allocator.alloc(0x70b6bc, 4,  "unknown"); // CoM: INIT_ARMORUNLOCKINNPCOVERRIDE
+  allocator.alloc(0x70af4b, 20, "unknown");
+  allocator.alloc(OCNPC__ENABLE_EQUIPBESTWEAPONS, 18, "OCNPC__ENABLE_EQUIPBESTWEAPONS");
 
   // Note: no inline asm
   // TODO: Make sure this actually works!
@@ -63,9 +67,11 @@ Ikarus::Ikarus(GameScript& /*owner*/, phoenix::vm& vm) : vm(vm) {
   vm.override_function("MEMINT_SetupExceptionHandler", [this](){ mem_setupexceptionhandler(); });
   vm.override_function("MEMINT_ReplaceSlowFunctions",  [    ](){ });
   vm.override_function("MEM_GetAddress_Init",          [this](){ mem_getaddress_init(); });
-  vm.override_function("MEM_PrintStackTrace",          [this](){ mem_printstacktrace_implementation(); });
-  vm.override_function("MEM_GetFuncPtr",               [this](int func){ return mem_getfuncptr(func); });
-  vm.override_function("MEM_GetFuncId",                [this](int func){ return mem_getfuncid(func); });
+  vm.override_function("MEM_PrintStackTrace",          [this](){ mem_printstacktrace_implementation();   });
+  vm.override_function("MEM_GetFuncOffset",            [this](int func){ return mem_getfuncoffset(func); });
+  vm.override_function("MEM_GetFuncID",                [this](int sym) { return mem_getfuncid(sym);      });
+  vm.override_function("MEM_CallByID",                 [this](int sym) { return mem_callbyid(sym);       });
+  vm.override_function("MEM_GetFuncPtr",               [this](int sym) { return mem_getfuncptr(sym);     });
   vm.override_function("MEM_ReplaceFunc",              [this](int dest, int func){ mem_replacefunc(dest, func); });
   vm.override_function("MEM_SearchVobByName",          [this](std::string_view name){ return mem_searchvobbyname(name); });
   vm.override_function("MEM_GetSymbolIndex",           [this](std::string_view name){ return mem_getsymbolindex(name); });
@@ -89,18 +95,32 @@ Ikarus::Ikarus(GameScript& /*owner*/, phoenix::vm& vm) : vm(vm) {
   vm.override_function("_^",                  [this](int address)          { return mem_ptrtoinst(ptr32_t(address)); });
 
   // ## Preliminary MEM_Alloc and MEM_Free ##
-  vm.override_function("MEM_Alloc", [this](int amount ) -> int { return mem_alloc(amount);  });
-  vm.override_function("MEM_Free",  [this](int address)        { mem_free(address);  });
-  vm.register_memory_trap([this](int32_t val, size_t i, const std::shared_ptr<phoenix::instance>& inst, phoenix::symbol& sym) { mem_trap_i32( val, i, inst, sym); });
+  vm.override_function("MEM_Alloc",   [this](int amount )                      { return mem_alloc(amount);               });
+  vm.override_function("MEM_Free",    [this](int address)                      { mem_free(address);                      });
+  vm.override_function("MEM_Realloc", [this](int address, int oldsz, int size) { return mem_realloc(address,oldsz,size); });
+  vm.register_memory_trap([this](int32_t val, size_t i, const std::shared_ptr<phoenix::instance>& inst, phoenix::symbol& sym) { mem_trap_i32(val, i, inst, sym); });
   vm.register_memory_trap([this](size_t i, const std::shared_ptr<phoenix::instance>& inst, phoenix::symbol& sym) { return mem_trap_i32(i, inst, sym); });
+  vm.register_memory_trap([this](std::string_view val, size_t i, const std::shared_ptr<phoenix::instance>& inst, phoenix::symbol& sym) { mem_trap_s(val, i, inst, sym); });
+  vm.register_memory_trap([this](size_t i, const std::shared_ptr<phoenix::instance>& inst, phoenix::symbol& sym) -> const std::string& { return mem_trap_s(i, inst, sym); });
 
   // ## Control-flow ##
   vm.override_function("repeat", [this](phoenix::vm& vm) { return repeat(vm);    });
-  vm.register_loop_trap([this](phoenix::symbol& i)       { return loop_trap(&i); });
+  vm.override_function("while",  [this](phoenix::vm& vm) { return while_(vm);    });
+  vm.register_access_trap([this](phoenix::symbol& i)     { return loop_trap(&i); });
 
   // ## Strings
   vm.override_function("STR_SubStr", [this](std::string_view str, int start, int count){ return str_substr(str,start,count); });
   vm.override_function("STR_Len",    [this](std::string_view str){ return str_len(str); });
+  vm.override_function("STR_ToInt",  [this](std::string_view str){ return str_toint(str); });
+
+  // ## Ini-file
+  vm.override_function("MEM_GetGothOpt",           [this](std::string_view sec, std::string_view opt) { return mem_getgothopt(sec,opt);       });
+  vm.override_function("MEM_GetModOpt",            [this](std::string_view sec, std::string_view opt) { return mem_getmodopt(sec,opt);        });
+  vm.override_function("MEM_GothOptSectionExists", [this](std::string_view sec)                       { return mem_gothoptaectionexists(sec); });
+  vm.override_function("MEM_GothOptExists",        [this](std::string_view sec, std::string_view opt) { return mem_gothoptexists(sec,opt);    });
+  vm.override_function("MEM_ModOptSectionExists",  [this](std::string_view sec)                       { return mem_modoptsectionexists(sec);  });
+  vm.override_function("MEM_ModOptExists",         [this](std::string_view sec, std::string_view opt) { return mem_modoptexists(sec,opt);     });
+  vm.override_function("MEM_SetGothOpt",           [this](std::string_view sec, std::string_view opt, std::string_view v) { return mem_setgothopt(sec,opt,v); });
 
   vm.override_function("CALL__stdcall",  [this](int address){ call__stdcall(address); });
   vm.override_function("HASH",           [this](int v){ return hash(v); });
@@ -120,6 +140,17 @@ Ikarus::Ikarus(GameScript& /*owner*/, phoenix::vm& vm) : vm(vm) {
   // ## Constants
   if(auto v = vm.find_symbol_by_name("CurrSymbolTableLength")) {
     v->set_int(int(vm.symbols().size()));
+    }
+
+  // ## Traps
+  if(auto end = vm.find_symbol_by_name("END")) {
+    end->set_access_trap_enable(true);
+    }
+  if(auto break_ = vm.find_symbol_by_name("BREAK")) {
+    break_->set_access_trap_enable(true);
+    }
+  if(auto continue_ = vm.find_symbol_by_name("CONTINUE")) {
+    continue_->set_access_trap_enable(true);
     }
   }
 
@@ -172,18 +203,40 @@ void Ikarus::mem_printstacktrace_implementation() {
   Log::e("[end of stacktrace]");
   }
 
-int Ikarus::mem_getfuncptr(int func) {
+int Ikarus::mem_getfuncoffset(int func) {
   auto* sym  = vm.find_symbol_by_index(uint32_t(func));
   if(sym == nullptr || sym->type() != phoenix::datatype::function) {
     Log::e("mem_getfuncptr: invalid function ptr");
     return 0;
     }
-  return 0;
+  return int(sym->address());
   }
 
 int Ikarus::mem_getfuncid(int func) {
   auto* sym = vm.find_symbol_by_index(uint32_t(func));
-  Log::d("mem_getfuncid: ", (sym!=nullptr) ? sym->name() : "");
+  while(sym!=nullptr && !sym->is_const()) {
+    func = sym->get_int();
+    sym = vm.find_symbol_by_index(uint32_t(func));
+    }
+  return func;
+  }
+
+void Ikarus::mem_callbyid(int symbId) {
+  auto* sym = vm.find_symbol_by_index(uint32_t(symbId));
+  if(sym==nullptr) {
+    Log::e("MEM_CallByID: Provided symbol is not callable (not function, prototype or instance): ", sym->name());
+    return;
+    }
+  vm.call_function(sym);
+  }
+
+int Ikarus::mem_getfuncptr(int func) {
+  // NOTE: need to put .text section into 32-bit space, to get proper pointers
+  auto* sym = vm.find_symbol_by_index(uint32_t(func));
+  while(sym!=nullptr && !sym->is_const()) {
+    func = sym->get_int();
+    sym = vm.find_symbol_by_index(uint32_t(func));
+    }
   return func;
   }
 
@@ -247,6 +300,48 @@ int Ikarus::str_len(std::string_view str) {
   return int(str.length());
   }
 
+int Ikarus::str_toint(std::string_view str) {
+  int ret = 0;
+  auto err = std::from_chars(str.data(), str.data()+str.size(), ret).ec;
+  if(err==std::errc())
+    return ret;
+  Log::d("STR_ToInt: cannot convert string: ", str);
+  return 0;
+  }
+
+std::string Ikarus::mem_getgothopt(std::string_view section, std::string_view option) {
+  return std::string(Gothic::inst().settingsGetS(section, option));
+  }
+
+std::string Ikarus::mem_getmodopt(std::string_view section, std::string_view option) {
+  Log::e("TODO: mem_getmodopt(", section, ", ", option, ")");
+  return "";
+  }
+
+bool Ikarus::mem_gothoptaectionexists(std::string_view section) {
+  Log::e("TODO: mem_gothoptaectionexists(", section, ")");
+  return false;
+  }
+
+bool Ikarus::mem_gothoptexists(std::string_view section, std::string_view option) {
+  Log::e("TODO: mem_gothoptexists(", section, ", ", option, ")");
+  return false;
+  }
+
+bool Ikarus::mem_modoptsectionexists(std::string_view section) {
+  Log::e("TODO: mem_modoptsectionexists(", section, ")");
+  return false;
+  }
+
+bool Ikarus::mem_modoptexists(std::string_view section, std::string_view option) {
+  Log::e("TODO: mem_modoptexists(", section, ", ", option, ")");
+  return false;
+  }
+
+void Ikarus::mem_setgothopt(std::string_view section, std::string_view option, std::string_view value) {
+  Log::e("TODO: mem_setgothopt(", section, ", ", option, ", ", value, ")");
+  }
+
 void Ikarus::call__stdcall(int address) {
   (void)address;
   }
@@ -281,6 +376,11 @@ void Ikarus::mem_free(int ptr) {
   allocator.free(Mem32::ptr32_t(ptr));
   }
 
+int Ikarus::mem_realloc(int address, int oldsz, int size) {
+  auto ptr = allocator.realloc(Mem32::ptr32_t(address), uint32_t(size));
+  return int32_t(ptr);
+  }
+
 std::shared_ptr<phoenix::instance> Ikarus::mem_ptrtoinst(ptr32_t address) {
   return std::make_shared<memory_instance>(address);
   }
@@ -299,25 +399,89 @@ int32_t Ikarus::mem_trap_i32(size_t i, const std::shared_ptr<phoenix::instance>&
   return allocator.readInt(addr);
   }
 
+void Ikarus::mem_trap_s(std::string_view v, size_t i, const std::shared_ptr<phoenix::instance>& inst, phoenix::symbol& sym) {
+  assert(i==0); // TODO: arrays
+  memory_instance& m = dynamic_cast<memory_instance&>(*inst);
+  ptr32_t addr = m.address + ptr32_t(sym.offset_as_member()) + ptr32_t(i*4u);
+  (void)addr;
+  // allocator.writeInt(addr, 0);
+  }
+
+const std::string& Ikarus::mem_trap_s(size_t i, const std::shared_ptr<phoenix::instance>& inst, phoenix::symbol& sym) {
+  assert(i==0); // TODO: arrays
+  memory_instance& m = dynamic_cast<memory_instance&>(*inst);
+  ptr32_t addr = m.address + ptr32_t(sym.offset_as_member()) + ptr32_t(i*4u);
+
+  Log::d("mem_trap: ", sym.name());
+  (void)addr;
+  static std::string empty;
+  return empty;
+  }
+
 phoenix::naked_call Ikarus::repeat(phoenix::vm& vm) {
   const int        len = vm.pop_int();
   phoenix::symbol* i   = std::get<phoenix::symbol*>(vm.pop_reference());
   // Log::i("repeat: ", i->get_int(), " < ", len);
   if(i->get_int() < len) {
-    loop_start.push_back({vm.pc() - 5*2, i});
+    loop_start.push_back({vm.pc(), i, len});
     return phoenix::naked_call();
     }
+  loop_out(vm);
+  return phoenix::naked_call();
+  }
 
+phoenix::naked_call Ikarus::while_(phoenix::vm& vm) {
+  const int cond = vm.pop_int();
+  // Log::i("while: ", cond);
+  if(cond !=0) {
+    loop_start.push_back({vm.pc() - 5*2, nullptr});
+    return phoenix::naked_call();
+    }
+  loop_out(vm);
+  return phoenix::naked_call();
+  }
+
+void Ikarus::loop_trap(phoenix::symbol* i) {
+  auto instr = vm.instruction_at(vm.pc());
+  if(instr.op != phoenix::opcode::pushv)
+    return; // Ikarus keywords are always use pushv
+
+  // Log::i("end");
+  if(loop_start.size()==0) {
+    Log::e("bad loop end");
+    return;
+    }
+
+  const auto ret = loop_start.back();
+  loop_start.pop_back();
+  if(ret.i!=nullptr) {
+    ret.i->set_int(ret.i->get_int()+1);
+    vm.push_reference(ret.i);
+    vm.push_int(ret.loopLen);
+    }
+
+  auto trap = vm.instruction_at(vm.pc());
+  vm.unsafe_jump(ret.pc-trap.size);
+  }
+
+void Ikarus::loop_out(phoenix::vm& vm) {
   auto end = vm.find_symbol_by_name("END");
   auto rep = vm.find_symbol_by_name("REPEAT");
+  auto whl = vm.find_symbol_by_name("WHILE");
 
-  int depth = 1;
+  uint32_t repAddr = (rep!=nullptr ? rep->address() : uint32_t(-1));
+  uint32_t whlAddr = (whl!=nullptr ? whl->address() : uint32_t(-1));
+
+  int depth = 0;
   for(uint32_t i=vm.pc(); i<vm.size(); ) {
     const auto inst = vm.instruction_at(i);
     if(inst.op==phoenix::opcode::pushv && vm.find_symbol_by_index(inst.symbol)==end) {
       depth--;
       }
-    else if(inst.op==phoenix::opcode::bl && vm.find_symbol_by_index(inst.symbol)==rep) {
+    else if(inst.op==phoenix::opcode::bl && inst.address==repAddr) {
+      depth++;
+      }
+    else if(inst.op==phoenix::opcode::bl && inst.address==whlAddr) {
       depth++;
       }
     i += inst.size;
@@ -327,15 +491,4 @@ phoenix::naked_call Ikarus::repeat(phoenix::vm& vm) {
       break;
       }
     }
-  return phoenix::naked_call();
-  }
-
-void Ikarus::loop_trap(phoenix::symbol* i) {
-  // Log::i("end");
-  const auto ret = loop_start.back();
-  loop_start.pop_back();
-  ret.i->set_int(ret.i->get_int()+1);
-
-  auto trap = vm.instruction_at(vm.pc());
-  vm.unsafe_jump(ret.pc-trap.size);
   }

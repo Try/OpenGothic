@@ -5,7 +5,7 @@
 
 using namespace Tempest;
 
-LeGo::LeGo(GameScript& /*owner*/, phoenix::vm& vm) {
+LeGo::LeGo(GameScript& /*owner*/, Ikarus& ikarus, phoenix::vm& vm) : ikarus(ikarus), vm(vm) {
   Log::i("DMA mod detected: LeGo");
 
   // ## FrameFunctions
@@ -31,17 +31,31 @@ LeGo::LeGo(GameScript& /*owner*/, phoenix::vm& vm) {
     Log::e("not implemented call [PRINT_FIXPS]");
     });
 
-  vm.override_function("BUFFLIST_INIT", [](){
-    // too much stuff inside it
-    Log::e("not implemented call [BUFFLIST_INIT]");
+  // ## PermMem
+  vm.override_function("CREATE", [this](int inst) { return create(inst); });
+
+  vm.override_function("LOCALS", [](){
+    //NOTE: push local-variables to in-flight memory and restore at function end
+    Log::e("TODO: LeGo-LOCALS.");
     });
-  //
-  vm.override_function("_PM_CREATEFOREACHTABLE", [](){});
   }
 
 bool LeGo::isRequired(phoenix::vm& vm) {
   return
       vm.find_symbol_by_name("LeGo_InitFlags") != nullptr &&
       vm.find_symbol_by_name("LeGo_Init") != nullptr &&
-      Ikarus::isRequired(vm);
+         Ikarus::isRequired(vm);
+  }
+
+int LeGo::create(int instId) {
+  auto* sym  = vm.find_symbol_by_index(uint32_t(instId));
+  if(sym==nullptr) {
+    Log::e("LeGo::create invalid symbold id (",instId,")");
+    return 0;
+    }
+
+  auto  ptr  = ikarus.mem_alloc(128);
+  auto  inst = std::make_shared<Ikarus::memory_instance>(ptr);
+  vm.unsafe_call(sym);
+  return ptr;
   }

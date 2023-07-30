@@ -14,6 +14,7 @@ class Mem32 {
     ptr32_t pin  (void* mem, ptr32_t address, uint32_t size, const char* comment = nullptr);
     ptr32_t alloc(uint32_t size);
     ptr32_t alloc(uint32_t address, uint32_t size, const char* comment = nullptr);
+    ptr32_t realloc(uint32_t address, uint32_t size);
     void    free (ptr32_t at);
 
     bool    isValid(ptr32_t address);
