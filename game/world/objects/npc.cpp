@@ -3262,7 +3262,7 @@ bool Npc::drawWeaponBow() {
   if(!visual.startAnim(*this,st))
     return false;
   invent.switchActiveWeapon(*this,2);
-  hnpc->weapon = (st==WeaponState::W1H ? 5:6);
+  hnpc->weapon = (st==WeaponState::Bow ? 5:6);
   return true;
   }
 

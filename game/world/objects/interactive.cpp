@@ -449,6 +449,7 @@ void Interactive::invokeStateFunc(Npc& npc) {
   if(loopState)
     return;
 
+  // TODO: hero only?
   string_frm func(onStateFunc,"_S",state);
   auto& sc = npc.world().script();
   sc.useInteractive(npc.handlePtr(), func);

@@ -28,7 +28,14 @@ std::string_view SvmDefinitions::find(std::string_view speech, int intId) {
     auto* i = vm.find_symbol_by_name(name);
     if(i==nullptr)
       return "";
-    return i->get_string(0,svm[size_t(id)]);
+    try {
+      return i->get_string(0,svm[size_t(id)]);
+      }
+    catch(phoenix::unbound_member_access&) {
+      // https://github.com/GothicKit/phoenix/issues/58
+      // need to support user-defined classes
+      return "";
+      }
     }
 
   return "";
