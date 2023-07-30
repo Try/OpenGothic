@@ -43,6 +43,7 @@ class Pose final {
                                  uint8_t comb, BodyState bs,
                                  StartHint hint, uint64_t tickCount);
     bool               stopAnim(std::string_view name);
+    bool               stopAnimBlended(std::string_view name, uint64_t tickCount);
     bool               stopWalkAnim();
     void               interrupt();
     void               stopAllAnim();
@@ -100,6 +101,7 @@ class Pose final {
     struct Layer final {
       const Animation::Sequence* seq      = nullptr;
       uint64_t                   sAnim    = 0;
+      uint64_t                   eAnim    = std::numeric_limits<uint64_t>::max();
       uint8_t                    comb     = 0;
       uint64_t                   blendOut = 0;
       BodyState                  bs       = BS_NONE;
@@ -118,7 +120,7 @@ class Pose final {
     void implMkSkeleton(const Tempest::Matrix4x4 &mt);
     void implMkSkeleton(const Tempest::Matrix4x4 &mt, size_t parent);
 
-    bool updateFrame(const Animation::Sequence &s, BodyState bs, uint64_t barrier, uint64_t sTime, uint64_t now);
+    bool updateFrame(const Animation::Sequence &s, BodyState bs, uint64_t sAnim, uint64_t eAnim, uint64_t now);
 
     const Animation::Sequence* solveNext(const AnimationSolver& solver, const Layer& lay);
 

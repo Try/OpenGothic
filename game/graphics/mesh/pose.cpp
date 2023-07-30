@@ -197,6 +197,7 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
       i.blendOut = i.seq->blendOut;
       i.seq      = tr ? tr : sq;
       i.sAnim    = tickCount;
+      i.eAnim    = std::numeric_limits<uint64_t>::max();
       i.comb     = comb;
       i.bs       = bs;
       onAddLayer(i);
@@ -224,6 +225,29 @@ bool Pose::stopAnim(std::string_view name) {
       }
     }
   lay.resize(ret);
+  return done;
+  }
+
+bool Pose::stopAnimBlended(std::string_view name, uint64_t tickCount) {
+  bool done=false;
+  for(size_t i=0; i<lay.size();++i) {
+    auto& l = lay[i];
+    bool rm = (name.empty() || l.seq->name==name);
+    if(itemUseSt!=0 && l.bs==BS_ITEMINTERACT)
+      rm = false;
+
+    if(rm) {
+      if(l.eAnim==std::numeric_limits<uint64_t>::max()) {
+        // We need to move the `eAnim` back a little if the `blendIn` hasn't been finished yet
+        const uint64_t animCur = tickCount-l.sAnim;
+        if(animCur<l.seq->blendIn)
+          l.eAnim = tickCount+uint64_t(float(animCur)*float(l.seq->blendOut)/float(l.seq->blendIn));
+        else
+          l.eAnim = tickCount+l.seq->blendOut;
+        }
+      done = true;
+      }
+    }
   return done;
   }
 
@@ -265,13 +289,20 @@ void Pose::stopAllAnim() {
   }
 
 void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
-  if(hasTransitions==0)
+  if(hasTransitions==0 && rotation == nullptr)
     return;
 
   size_t ret    = 0;
   bool   doSort = false;
   for(size_t i=0; i<lay.size(); ++i) {
     const auto& l = lay[i];
+
+    if(l.seq->animCls==Animation::Loop && tickCount>=l.eAnim) {
+      needToUpdate = true;
+      onRemoveLayer(lay[i]);
+      continue;
+      }
+
     if(l.seq->animCls==Animation::Transition && l.seq->isFinished(tickCount,l.sAnim,combo.len())) {
       auto next = solveNext(solver,l);
       if(next!=l.seq) {
@@ -284,6 +315,7 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
           doSort       = lay[i].seq->layer!=next->layer;
           lay[i].seq   = next;
           lay[i].sAnim = tickCount;
+          lay[i].eAnim = std::numeric_limits<uint64_t>::max();
           // WA for swampshark animation
           if((lay[i].bs & BS_MAX)==BS_STUMBLE)
             lay[i].bs = BodyState(lay[i].bs & (~BS_MAX));
@@ -323,7 +355,7 @@ bool Pose::update(uint64_t tickCount) {
         if(auto sx = i.seq->comb[size_t(i.comb-1)])
           seq = sx;
         }
-      needToUpdate |= updateFrame(*seq,i.bs,lastUpdate,i.sAnim,tickCount);
+      needToUpdate |= updateFrame(*seq,i.bs,i.sAnim,i.eAnim,tickCount);
       }
     lastUpdate = tickCount;
     }
@@ -336,8 +368,8 @@ bool Pose::update(uint64_t tickCount) {
   return false;
   }
 
-bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs,
-                       uint64_t barrier, uint64_t sTime, uint64_t now) {
+bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs, 
+                       uint64_t sAnim, uint64_t eAnim, uint64_t now) {
   auto&        d         = *s.data;
   const size_t numFrames = d.numFrames;
   const size_t idSize    = d.nodeIndex.size();
@@ -346,11 +378,8 @@ bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs,
   if(numFrames==1 && !needToUpdate)
     return false;
 
-  (void)barrier;
-  now = now-sTime;
-
   float    fpsRate = d.fpsRate;
-  uint64_t frame   = uint64_t(float(now)*fpsRate);
+  uint64_t frame   = uint64_t(float(now-sAnim)*fpsRate);
   uint64_t frameA  = frame/1000;
   uint64_t frameB  = frame/1000+1; //next
 
@@ -372,7 +401,12 @@ bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs,
   auto* sampleA = &d.samples[size_t(frameA*idSize)];
   auto* sampleB = &d.samples[size_t(frameB*idSize)];
 
-  const uint64_t blend = std::max(s.blendOut,s.blendIn);
+  float a2 = 1.f;
+  if(eAnim-now<s.blendOut)
+    a2 = float(eAnim-now)/float(s.blendOut);
+  else if(now-sAnim<s.blendIn)
+    a2 = float(now-sAnim)/float(s.blendIn);
+
   for(size_t i=0; i<idSize; ++i) {
     size_t idx = d.nodeIndex[i];
     if(idx>=numBones)
@@ -395,9 +429,8 @@ bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs,
         prev      [idx] = base[idx];
         [[fallthrough]];
       case S_Valid:
-        if(now<blend) {
-          float a2 = float(now)/float(blend);
-          base[idx] = mix(prev[idx],smp,a2);
+        if(a2<1.f) {
+          base[idx] = mix(prev[idx], smp, a2);
           } else {
           prev[idx] = smp;
           base[idx] = smp;
@@ -815,10 +848,8 @@ Vec2 Pose::headRotation() const {
 void Pose::setAnimRotate(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, int dir) {
   const Animation::Sequence *sq = nullptr;
   if(dir==0) {
-    if(rotation!=nullptr) {
-      if(stopAnim(rotation->name))
-        rotation = nullptr;
-      }
+    if(rotation!=nullptr)
+      stopAnimBlended(rotation->name, npc.world().tickCount());
     return;
     }
   if(bodyState()!=BS_STAND)
@@ -831,7 +862,7 @@ void Pose::setAnimRotate(const AnimationSolver &solver, Npc &npc, WeaponState fi
   if(rotation!=nullptr) {
     if(sq!=nullptr && rotation->name==sq->name)
       return;
-    if(!stopAnim(rotation->name))
+    if(!stopAnimBlended(rotation->name, npc.world().tickCount()))
       return;
     }
   if(sq==nullptr)
@@ -865,6 +896,7 @@ bool Pose::stopItemStateAnim(const AnimationSolver& solver, uint64_t tickCount) 
       onRemoveLayer(i);
       i.seq   = next;
       i.sAnim = tickCount;
+      i.eAnim = std::numeric_limits<uint64_t>::max();
       onAddLayer(i);
       }
   return true;
