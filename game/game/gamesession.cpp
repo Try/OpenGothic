@@ -439,7 +439,7 @@ void GameSession::initScripts(bool firstTime) {
     vm->getVm().call_function("startup_global");
 
   if(vm->hasSymbolName("init_global"))
-    vm->getVm().call_function("init_global");
+    vm->getVm().call_function("init_global"); // call before world gets loaded?
 
   if(firstTime) {
     string_frm startup("startup_", name);

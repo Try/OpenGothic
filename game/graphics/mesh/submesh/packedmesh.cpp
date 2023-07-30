@@ -483,6 +483,10 @@ void PackedMesh::packMeshletsLnd(const phoenix::mesh& mesh) {
   heap.reserve(mid.size());
   std::vector<bool> used(mid.size(),false);
 
+  vertices.reserve(mesh.vertices.size());
+  indices .reserve(ibo.size());
+  indices8.reserve(ibo.size());
+  meshletBounds.reserve(prim.size()/MaxPrim);
   for(size_t i=0; i<prim.size();) {
     const auto mId = prim[i].mat;
 
