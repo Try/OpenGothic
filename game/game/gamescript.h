@@ -73,6 +73,7 @@ class GameScript final {
     const World& world() const;
     World&       world();
     uint64_t     tickCount() const;
+    void         tick(uint64_t dt);
 
     uint32_t     rand(uint32_t max);
     void         removeItem(Item& it);

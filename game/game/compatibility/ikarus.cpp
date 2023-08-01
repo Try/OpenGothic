@@ -39,9 +39,13 @@ Ikarus::Ikarus(GameScript& /*owner*/, phoenix::vm& vm) : vm(vm) {
   allocator.pin(&parserProxy,   ContentParserAddress,          sizeof(parserProxy), "zCParser proxy");
 
   // built-in data without assumed address
-  oGame_Pointer = allocator.pin(&gameProxy, 0, sizeof(gameProxy), "oGame");
+  oGame_Pointer = allocator.pin(&gameProxy, sizeof(gameProxy), "oGame");
+  gameProxy._ZCSESSION_WORLD = allocator.alloc(148);
 
-  symbolsPtr = allocator.alloc(uint32_t(vm.symbols().size() * sizeof(phoenix::symbol)));
+  symbolsPtr    = allocator.alloc(uint32_t(vm.symbols().size() * sizeof(phoenix::symbol)));
+
+  parserProxy.symtab_table.numInArray = int32_t(vm.symbols().size());
+  parserProxy.symtab_table.numAlloc   = 0;//parserProxy.symtab_table.numInArray;
 
   // ## Builtin instances
   allocator.alloc(MEMINT_SENDTOSPY_IMPLEMENTATION_ZERR_G2, 64, "ZERROR");
@@ -73,6 +77,9 @@ Ikarus::Ikarus(GameScript& /*owner*/, phoenix::vm& vm) : vm(vm) {
   vm.override_function("MEM_CallByID",                 [this](int sym) { return mem_callbyid(sym);       });
   vm.override_function("MEM_GetFuncPtr",               [this](int sym) { return mem_getfuncptr(sym);     });
   vm.override_function("MEM_ReplaceFunc",              [this](int dest, int func){ mem_replacefunc(dest, func); });
+  vm.override_function("MEM_GetFuncIdByOffset",        [this](int off) { return mem_getfuncidbyoffset(off); });
+  vm.override_function("MEM_AssignInst",               [this](int sym, int ptr) { mem_assigninst(sym, ptr); });
+
   vm.override_function("MEM_SearchVobByName",          [this](std::string_view name){ return mem_searchvobbyname(name); });
   vm.override_function("MEM_GetSymbolIndex",           [this](std::string_view name){ return mem_getsymbolindex(name); });
   vm.override_function("MEM_GetSymbolByIndex",         [this](int index){ return mem_getsymbolbyindex(index); });
@@ -152,6 +159,10 @@ Ikarus::Ikarus(GameScript& /*owner*/, phoenix::vm& vm) : vm(vm) {
   if(auto continue_ = vm.find_symbol_by_name("CONTINUE")) {
     continue_->set_access_trap_enable(true);
     }
+
+  // if(auto fn = vm.find_symbol_by_name("SETINITIALTIMEINWORLD")) {
+  //   fn->set_access_trap_enable(true);
+  //   }
   }
 
 bool Ikarus::isRequired(phoenix::script& vm) {
@@ -197,6 +208,20 @@ void Ikarus::mem_replacefunc(int dest, int func) {
   //bin[sd.address]->address = func;
   }
 
+int Ikarus::mem_getfuncidbyoffset(int off) {
+  Log::e("TODO: mem_getfuncidbyoffset ", off);
+  return 0;
+  }
+
+void Ikarus::mem_assigninst(int index, int ptr) {
+  auto* sym  = vm.find_symbol_by_index(uint32_t(index));
+  if(sym==nullptr) {
+    Log::e("MEM_AssignInst: Invalid instance: ",index);
+    return;
+    }
+  sym->set_instance(std::make_shared<memory_instance>(ptr32_t(ptr)));
+  }
+
 void Ikarus::mem_printstacktrace_implementation() {
   Log::e("[start of stacktrace]");
   vm.print_stack_trace();
@@ -205,6 +230,10 @@ void Ikarus::mem_printstacktrace_implementation() {
 
 int Ikarus::mem_getfuncoffset(int func) {
   auto* sym  = vm.find_symbol_by_index(uint32_t(func));
+  while(sym!=nullptr && !sym->is_const()) {
+    func = sym->get_int();
+    sym = vm.find_symbol_by_index(uint32_t(func));
+    }
   if(sym == nullptr || sym->type() != phoenix::datatype::function) {
     Log::e("mem_getfuncptr: invalid function ptr");
     return 0;
@@ -368,6 +397,10 @@ int Ikarus::_takeref_f(float val) {
   }
 
 int Ikarus::mem_alloc(int amount) {
+  if(amount==0) {
+    Log::d("alocation zero bytes");
+    return 0;
+    }
   auto ptr = allocator.alloc(uint32_t(amount));
   return int32_t(ptr);
   }
@@ -382,6 +415,8 @@ int Ikarus::mem_realloc(int address, int oldsz, int size) {
   }
 
 std::shared_ptr<phoenix::instance> Ikarus::mem_ptrtoinst(ptr32_t address) {
+  if(address==0)
+    Log::d("mem_ptrtoinst: address is null");
   return std::make_shared<memory_instance>(address);
   }
 

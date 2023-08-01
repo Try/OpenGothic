@@ -27,17 +27,29 @@ class Ikarus : public ScriptPlugin {
 
   private:
     struct oGame {
-      int data[16] = {};
+      int     _VTBL;
+      ptr32_t _ZCSESSION_CSMAN  = 0;
+      ptr32_t _ZCSESSION_WORLD  = 0;
+      ptr32_t _ZCSESSION_CAMERA = 0;
+
+      uint8_t padd0[276] = {};
+
+      ptr32_t INFOMAN = 0;
+      };
+
+    struct zCArray {
+      ptr32_t ptr = 0;
+      int32_t numAlloc   = 0;
+      int32_t numInArray = 0;
       };
 
     struct zCParser {
-      uint8_t padd0[24] = {};
-      ptr32_t symtab_table_array = 0;        // 24
-      uint8_t padd1[8] = {};
-      ptr32_t sorted_symtab_table_array = 0; // 36
-      uint8_t padd2[32] = {};
-      ptr32_t stack = 0;                     // 72
-      ptr32_t stack_stackPtr = 0;            // 76
+      uint8_t  padd0[24] = {};
+      zCArray  symtab_table;                  // 24
+      ptr32_t  sorted_symtab_table_array = 0; // 36
+      uint8_t  padd2[32] = {};
+      ptr32_t  stack = 0;                     // 72
+      ptr32_t  stack_stackPtr = 0;            // 76
       };
 
     std::string mem_getcommandline();
@@ -51,6 +63,9 @@ class Ikarus : public ScriptPlugin {
     void        mem_callbyid                      (int symbId);
     int         mem_getfuncptr                    (int symbId);
     void        mem_replacefunc                   (int dest, int func);
+    int         mem_getfuncidbyoffset             (int off);
+    void        mem_assigninst                    (int sym, int ptr);
+
     int         mem_searchvobbyname               (std::string_view name);
     int         mem_getsymbolindex                (std::string_view name);
     int         mem_getsymbolbyindex              (int index);
@@ -109,9 +124,10 @@ class Ikarus : public ScriptPlugin {
     std::vector<Loop> loop_start;
 
     uint32_t     versionHint   = 0;
+    zCParser     parserProxy;
+
     ptr32_t      oGame_Pointer = 0;
     oGame        gameProxy;
-    zCParser     parserProxy;
 
     ptr32_t      symbolsPtr = 0;
   };

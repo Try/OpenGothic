@@ -1300,6 +1300,11 @@ uint64_t GameScript::tickCount() const {
   return owner.tickCount();
   }
 
+void GameScript::tick(uint64_t dt) {
+  for(auto& i:plugins)
+    i->tick(dt);
+  }
+
 uint32_t GameScript::rand(uint32_t max) {
   return uint32_t(randGen())%max;
   }

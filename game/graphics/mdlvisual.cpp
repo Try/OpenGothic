@@ -854,7 +854,7 @@ std::string_view MdlVisual::visualSkeletonScheme() const {
   if(skeleton==nullptr)
     return "";
   auto ret = skeleton->name();
-  auto end = ret.find(".");
+  auto end = ret.find_first_of("._");
   return ret.substr(0, end);
   }
 
