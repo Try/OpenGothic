@@ -833,6 +833,7 @@ Tempest::Vec3 Npc::animMoveSpeed(uint64_t dt) const {
 
 void Npc::setVisual(const Skeleton* v) {
   visual.setVisual(v);
+  invalidateTalentOverlays();
   }
 
 void Npc::setVisualBody(int32_t headTexNr, int32_t teethTexNr, int32_t bodyTexNr, int32_t bodyTexColor,
@@ -1037,13 +1038,19 @@ bool Npc::isInAir() const {
   return mvAlgo.isInAir();
   }
 
-void Npc::setTalentSkill(Talent t, int32_t lvl) {
-  if(t>=TALENT_MAX_G2)
+void Npc::invalidateTalentOverlays() {
+  const Talent tl[] = {TALENT_1H, TALENT_2H, TALENT_BOW, TALENT_CROSSBOW, TALENT_ACROBAT};
+  for(Talent i:tl) {
+    invalidateTalentOverlays(i);
+    }
+  }
+
+void Npc::invalidateTalentOverlays(Talent t) {
+  const auto scheme = visual.visualSkeletonScheme();
+  if(scheme.empty())
     return;
 
-  talentsSk[t] = lvl;
-
-  auto scheme = visual.visualSkeletonScheme();
+  const auto lvl = talentsSk[t];
   if(t==TALENT_1H){
     if(lvl==0){
       delOverlay(string_frm(scheme,"_1HST1.MDS"));
@@ -1105,6 +1112,13 @@ void Npc::setTalentSkill(Talent t, int32_t lvl) {
       delOverlay(string_frm(scheme,"_ACROBATIC.MDS")); else
       addOverlay(string_frm(scheme,"_ACROBATIC.MDS"),0);
     }
+  }
+
+void Npc::setTalentSkill(Talent t, int32_t lvl) {
+  if(t>=TALENT_MAX_G2)
+    return;
+  talentsSk[t] = lvl;
+  invalidateTalentOverlays(t);
   }
 
 int32_t Npc::talentSkill(Talent t) const {

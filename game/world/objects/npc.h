@@ -192,6 +192,9 @@ class Npc final {
     void       setTalentSkill(Talent t,int32_t lvl);
     int32_t    talentSkill(Talent t) const;
 
+    void       invalidateTalentOverlays(Talent t);
+    void       invalidateTalentOverlays();
+
     void       setTalentValue(Talent t,int32_t lvl);
     int32_t    talentValue(Talent t) const;
     int32_t    hitChance(Talent t) const;

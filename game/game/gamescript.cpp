@@ -1710,7 +1710,7 @@ void GameScript::mdl_setvisualbody(std::shared_ptr<phoenix::c_npc> npcRef, std::
     return;
 
   npc->setVisualBody(headTexNr,teethTexNr,bodyTexNr,bodyTexColor,body,head);
-  if(armor>=0) {
+  if(armor>0) {
     if(npc->itemCount(uint32_t(armor))==0)
       npc->addItem(uint32_t(armor),1);
     npc->useItem(uint32_t(armor),Item::NSLOT,true);
