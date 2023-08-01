@@ -86,6 +86,7 @@ class GameSession final {
       };
 
     bool         isWorldKnown(std::string_view name) const;
+    void         initPerceptions();
     void         initScripts(bool firstTime);
     auto         implChangeWorld(std::unique_ptr<GameSession> &&game, std::string_view world, std::string_view wayPoint) -> std::unique_ptr<GameSession>;
     auto         findStorage(std::string_view name) -> const WorldStateStorage&;
