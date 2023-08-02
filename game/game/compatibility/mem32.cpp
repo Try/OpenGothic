@@ -3,6 +3,7 @@
 #include <Tempest/Log>
 #include <cstring>
 #include <algorithm>
+#include <cstddef>
 
 using namespace Tempest;
 
