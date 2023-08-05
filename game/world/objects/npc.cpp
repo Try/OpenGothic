@@ -461,32 +461,8 @@ bool Npc::resetPositionToTA() {
 
   auto& rot = currentRoutine();
   auto  at  = rot.point;
-
-  if(at==nullptr) {
-    const auto time  = owner.time().timeInDay();
-    const auto day   = gtime(24,0).toInt();
-    int64_t    delta = std::numeric_limits<int64_t>::max();
-
-    // closest time-point
-    for(auto& i:routines) {
-      int64_t d=0;
-      if(i.start<i.end) {
-        d = time.toInt()-i.start.toInt();
-        } else {
-        d = time.toInt()-i.end.toInt();
-        }
-      if(d<=0)
-        d+=day;
-
-      if(i.point && d<delta) {
-        at    = i.point;
-        delta = d;
-        }
-      }
-
-    if(at==nullptr)
-      return false;
-    }
+  if(at==nullptr)
+    return false;
 
   if(at->isLocked() && !isDead){
     auto p = owner.findNextPoint(*at);
@@ -2823,12 +2799,39 @@ void Npc::commitSpell() {
 const Npc::Routine& Npc::currentRoutine() const {
   auto time = owner.time();
   time = gtime(int32_t(time.hour()),int32_t(time.minute()));
-  for(auto& i:routines){
+  for(auto& i:routines) {
+    if(i.point==nullptr)
+      continue;
     if(i.end<i.start && (time<i.end || i.start<=time))
       return i;
     if(i.start<=time && time<i.end)
       return i;
     }
+
+  static std::set<int32_t> s;
+  if(routines.size()>0 && s.find(hnpc->id)==s.end()) {
+    s.insert(hnpc->id);
+    auto sym = owner.script().findSymbol(*hnpc);
+    Log::e("no valid routine found [",sym->name(),", time: ",time.hour(),":",time.minute(),"]");
+    }
+
+  // take previous routine
+  const auto     day   = gtime(24,0).toInt();
+  const Routine* prevR = nullptr;
+  int64_t        delta = std::numeric_limits<int64_t>::max();
+  time = time.timeInDay();
+  for(auto& i:routines) {
+    int64_t d = time.toInt() - i.end.toInt();
+    if(d<0)
+      d += day;
+    if(i.point && d<=delta && d>0) {
+      prevR = &i;
+      delta = d;
+      }
+    }
+
+  if(prevR!=nullptr)
+    return *prevR;
 
   static Routine r;
   return r;
@@ -2838,16 +2841,13 @@ gtime Npc::endTime(const Npc::Routine &r) const {
   auto wtime = owner.time();
   auto time  = gtime(int32_t(wtime.hour()),int32_t(wtime.minute()));
 
-  if(r.end<r.start){
-    if(r.start<=time) {
-      return gtime(wtime.day()+1,r.end.hour(),r.end.minute());
-      }
-    if(time<r.end) {
+  if(r.end<r.start) {
+    if(time<r.end)
       return gtime(wtime.day(),r.end.hour(),r.end.minute());
-      }
+    return gtime(wtime.day()+1,r.end.hour(),r.end.minute());
     }
-  if(r.start<=time && time<r.end) {
-    if(r.end.hour()==0)
+  if(r.start<r.end) {
+    if(r.end.hour()==0 || r.end<time)
       return gtime(wtime.day()+1,r.end.hour(),r.end.minute()); else
       return gtime(wtime.day(),r.end.hour(),r.end.minute());
     }
