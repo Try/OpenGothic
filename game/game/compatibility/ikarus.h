@@ -79,8 +79,8 @@ class Ikarus : public ScriptPlugin {
     // pointers
     std::shared_ptr<phoenix::instance> mem_ptrtoinst(ptr32_t address);
 
-    void        mem_trap_i32(int32_t, size_t, const std::shared_ptr<phoenix::instance>&, phoenix::symbol&);
-    int32_t     mem_trap_i32(size_t, const std::shared_ptr<phoenix::instance>&, phoenix::symbol&);
+    void        mem_trap_32(const void* data32, size_t, const std::shared_ptr<phoenix::instance>&, phoenix::symbol&);
+    void        mem_trap_32(void* data32, size_t, const std::shared_ptr<phoenix::instance>&, phoenix::symbol&);
 
     void        mem_trap_s(std::string_view s, size_t, const std::shared_ptr<phoenix::instance>&, phoenix::symbol&);
     auto        mem_trap_s(size_t, const std::shared_ptr<phoenix::instance>&, phoenix::symbol&) -> const std::string&;
