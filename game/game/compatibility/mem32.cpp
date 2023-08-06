@@ -260,7 +260,7 @@ bool Mem32::implRealloc(ptr32_t address, uint32_t nsize) {
         rgn.real = next;
       Region frgn(address+nsize, rgn.size-nsize);
       rgn.size = nsize;
-      region.insert(region.begin()+ssize_t(i+1), frgn);
+      region.insert(region.begin() + intptr_t(i + 1), frgn);
       return true;
       }
 
