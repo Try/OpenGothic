@@ -47,24 +47,13 @@ Supported systems are:
 1. If not already done install Gothic via Wine/Proton or copy the game files from a Windows installation.
 2. You can download a build from [CI](https://ci.appveyor.com/project/Try/opengothic/history) and extract into a folder of your choice. Alternatively OpenGothic can be built manually. For Arch the [AUR](https://aur.archlinux.org/packages/opengothic) provides a 3rd party package.
 
-3. Open `Gothic2Notr.sh`:
+3. Run `Gothic2Notr.sh -g "~/PlayOnLinux's virtual drives/Gothic2_gog/drive_c/Gothic II"` (example path, use path to your Gothic installation instead)
 
-   ```bash
-   #!/usr/bin/env bash
-   DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-   export LD_LIBRARY_PATH="$DIR:$LD_LIBRARY_PATH"
-   export DYLD_LIBRARY_PATH="$DIR:$DYLD_LIBRARY_PATH"
-   if [[ $DEBUGGER != "" ]]; then
-     exec $DEBUGGER --args "$DIR/Gothic2Notr" "$@"
-   else
-     exec "$DIR/Gothic2Notr" "$@"
-   fi
-   ```
-   Use `-g` parameter and change the line `exec "$DIR/Gothic2Notr" "$@"` to reflect your Gothic path e.g.
+   You can edit `Gothic2Notr.sh` and change the line `exec "$DIR/Gothic2Notr" "$@"` to
 
    `exec "$DIR/Gothic2Notr" "$@" -g "~/PlayOnLinux's virtual drives/Gothic2_gog/drive_c/Gothic II"`
 
-4. Run `Gothic2Notr.sh`
+   to not have to enter path manually every time. Then run `Gothic2Notr.sh` without arguments to start.
 
 ### MacOS
 1. If not already done install Gothic. Instructions how to obtain the game files can be found [here](https://macsourceports.com/faq#getgamedata). OpenGothic comes with auto-path detection if your Gothic files are in `"~/Library/Application Support/OpenGothic"`.
