@@ -11,9 +11,11 @@ The goal of this project is to make a feature complete Gothic game client compat
 #### Work in progress
 [![Build status](https://ci.appveyor.com/api/projects/status/github/Try/opengothic?svg=true)](https://ci.appveyor.com/project/Try/opengothic)
 
-The original game has been replicated fully; you can complete both the main quest and the addon. OpenGothic runs reasonably well except on Low-End devices such as Raspberry-Pi. Check out the [bugtracker](https://github.com/Try/OpenGothic/issues) for a list of known issues.
-
 Development is focused on Gothic 2 and new features are not tested for Gothic 1 compatibility. While Gothic 1 is not officially supported pull requests that fix Gothic 1 — and general — bugs are welcome.
+
+The original game has been replicated fully; you can complete both the main quest and the addon. Check out the [bugtracker](https://github.com/Try/OpenGothic/issues) for a list of known issues.
+
+OpenGothic is designed to utilize features of modern graphic hardware and api's like mesh shaders or ray tracing. Not mandatory but don't expect OpenGothic to run well on low-end or outdated graphic cards.
 
 #### Prerequisites
 
@@ -35,7 +37,7 @@ Supported systems are:
     * Alternatively a recent test build from [CI](https://ci.appveyor.com/project/Try/opengothic/history)
 3. Run `Gothic2Notr.exe`.
 
-   If nothing happens check if a crash file (`crash.log`) has been created and look for the line `--crashlog(std::logic_error(gothic not found!))---`. In this case OpenGothic fails to find your Gothic installation and you have to explicitly specify its location via `-g` paramter. Either you create a shortcut to `Gothic2Notr.exe` and change the target line in Properties to e.g.
+   If nothing happens check `log.txt` and look for the line `invalid gothic path`. In this case OpenGothic fails to find your Gothic installation and you have to explicitly specify its location via `-g` paramter. Either you create a shortcut to `Gothic2Notr.exe` and change the target line in Properties to e.g.
 
    `Gothic2Notr.exe -g "C:\Program Files (x86)\Steam\steamapps\common\Gothic II"`
 
@@ -44,8 +46,6 @@ Supported systems are:
 ### Linux
 1. If not already done install Gothic via Wine/Proton or copy the game files from a Windows installation.
 2. You can download a build from [CI](https://ci.appveyor.com/project/Try/opengothic/history) and extract into a folder of your choice. Alternatively OpenGothic can be built manually. For Arch the [AUR](https://aur.archlinux.org/packages/opengothic) provides a 3rd party package.
-
-   It's also possible to run the [Pre-Release](https://github.com/Try/opengothic/releases/latest) for Windows via Wine/Proton with little performance  impact in case the other options don't suit you.
 
 3. Open `Gothic2Notr.sh`:
 
@@ -150,8 +150,9 @@ Executables can be located at `OpenGothic/build/opengothic`.
 ## Available Graphic options
 
 *  SSAO (mapped to `Cloud Shadows`)
-*  Radial Fog
-*  Raytracing (commandline option, off by default for igpu's and non-capabale hardware, add `-rt=1` to enable)
+*  Volumetric fog (mapped to `Radial Fog`)
+*  Reflections
+*  Ray tracing (commandline option, setting affects only capable hardware, off by default for igpu's, add `-rt 1` to enable)
 
 Rendering distance is not customizable.
 
@@ -164,7 +165,7 @@ Rendering distance is not customizable.
 | `-w <worldname.zen>`   | startup world; newworld.zen is default                           |
 | `-save q`              | load the quick save on start                                     |
 | `-save <number>`       | load a specified save-game slot on start                         |
-| `-v -validation`       | enable validation mode                                           |
+| `-v -validation`       | enable validation layers for graphics api                        |
 | `-dx12`                | force DirectX 12 renderer instead of Vulkan (Windows only)       |
 | `-g1`                  | assume a Gothic 1 installation                                   |
 | `-g2`                  | assume a Gothic 2 installation                                   |
