@@ -12,36 +12,37 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, phoenix::vm& vm_) : owner(owner), 
   Log::i("DMA mod detected: LeGo");
 
   // ## FrameFunctions
-  vm.override_function("_FF_Create", [this](int function, int delay, int cycles, int hasData, int data, bool gametime) {
+  vm.override_function("_FF_Create", [this](phoenix::func function, int delay, int cycles,
+                                            int hasData, int data, bool gametime) {
     return _FF_Create(function, delay, cycles, hasData, data, gametime);
     });
-  vm.override_function("FF_RemoveData", [this](int function, int data){
+  vm.override_function("FF_RemoveData", [this](phoenix::func function, int data){
     return FF_RemoveData(function, data);
     });
-  vm.override_function("FF_ActiveData", [this](int function, int data){
+  vm.override_function("FF_ActiveData", [this](phoenix::func function, int data){
     return FF_ActiveData(function, data);
     });
-  vm.override_function("FF_Active", [this](int function){
+  vm.override_function("FF_Active", [this](phoenix::func function){
     return FF_Active(function);
     });
 
   // HookEngine
-  vm.override_function("HookEngineF", [this](int address, int oldInstr, int function) {
-    auto sym  = vm.find_symbol_by_index(uint32_t(function));
+  vm.override_function("HookEngineF", [](int address, int oldInstr, phoenix::func function) {
+    auto sym  = function.value;
     auto name = sym==nullptr ? "" : sym->name().c_str();
     Log::e("not implemented call [HookEngineF] (", reinterpret_cast<void*>(uint64_t(address)),
            " -> ", name, ")");
     });
-  vm.override_function("HookEngineI", [this](int address, int oldInstr, int function){
-    auto sym  = vm.find_symbol_by_index(uint32_t(function));
+  vm.override_function("HookEngineI", [](int address, int oldInstr, phoenix::func function){
+    auto sym  = function.value;
     auto name = sym==nullptr ? "" : sym->name().c_str();
     Log::e("not implemented call [HookEngineI] (", reinterpret_cast<void*>(uint64_t(address)),
            " -> ", name, ")");
     });
 
   // console commands
-  vm.override_function("CC_Register", [this](int func, std::string_view prefix, std::string_view desc){
-    auto sym  = vm.find_symbol_by_index(uint32_t(func));
+  vm.override_function("CC_Register", [](phoenix::func func, std::string_view prefix, std::string_view desc){
+    auto sym  = func.value;
     auto name = sym==nullptr ? "" : sym->name().c_str();
     Log::e("not implemented call [CC_Register] (", prefix, " -> ", name, ")");
     });
@@ -119,18 +120,9 @@ void LeGo::tick(uint64_t dt) {
     }
   }
 
-void LeGo::_FF_Create(int func, int delay, int cycles, int hasData, int data, bool gametime) {
-  auto* sym = vm.find_symbol_by_index(uint32_t(func));
-  while(sym!=nullptr && !sym->is_const()) {
-    func = sym->get_int();
-    sym = vm.find_symbol_by_index(uint32_t(func));
-    }
-  if(sym == nullptr || sym->type() != phoenix::datatype::function) {
-    Log::e("_FF_Create: invalid function ptr");
-    return;
-    }
+void LeGo::_FF_Create(phoenix::func func, int delay, int cycles, int hasData, int data, bool gametime) {
   FFItem itm;
-  itm.fncID    = sym->index();
+  itm.fncID    = func.value->index();
   itm.cycles   = cycles;
   itm.delay    = std::max(delay, 0);
   itm.data     = data;
@@ -146,66 +138,54 @@ void LeGo::_FF_Create(int func, int delay, int cycles, int hasData, int data, bo
   frameFunc.emplace_back(itm);
   }
 
-void LeGo::FF_Remove(int function) {
+void LeGo::FF_Remove(phoenix::func function) {
 
   }
 
-void LeGo::FF_RemoveAll(int function) {
+void LeGo::FF_RemoveAll(phoenix::func function) {
 
   }
 
-void LeGo::FF_RemoveData(int func, int data) {
-  auto* sym = vm.find_symbol_by_index(uint32_t(func));
-  while(sym!=nullptr && !sym->is_const()) {
-    func = sym->get_int();
-    sym = vm.find_symbol_by_index(uint32_t(func));
-    }
-  if(sym == nullptr || sym->type() != phoenix::datatype::function) {
+void LeGo::FF_RemoveData(phoenix::func func, int data) {
+  auto* sym = func.value;
+  if(sym == nullptr) {
     Log::e("FF_RemoveData: invalid function ptr");
     return;
     }
 
   size_t nsz = 0;
   for(size_t i=0; i<frameFunc.size(); ++i) {
-    if(frameFunc[i].fncID==uint32_t(func) && frameFunc[i].data==data)
+    if(frameFunc[i].fncID==sym->index() && frameFunc[i].data==data)
       continue;
     frameFunc[nsz] = frameFunc[i];
-    ++func;
+    ++nsz;
     }
   frameFunc.resize(nsz);
   }
 
-bool LeGo::FF_ActiveData(int func, int data) {
-  auto* sym = vm.find_symbol_by_index(uint32_t(func));
-  while(sym!=nullptr && !sym->is_const()) {
-    func = sym->get_int();
-    sym = vm.find_symbol_by_index(uint32_t(func));
-    }
-  if(sym == nullptr || sym->type() != phoenix::datatype::function) {
+bool LeGo::FF_ActiveData(phoenix::func func, int data) {
+  auto* sym = func.value;
+  if(sym == nullptr) {
     Log::e("FF_ActiveData: invalid function ptr");
     return false;
     }
 
   for(auto& f:frameFunc) {
-    if(f.fncID==uint32_t(func) && f.data==data)
+    if(f.fncID==sym->index() && f.data==data)
       return true;
     }
   return false;
   }
 
-bool LeGo::FF_Active(int func) {
-  auto* sym = vm.find_symbol_by_index(uint32_t(func));
-  while(sym!=nullptr && !sym->is_const()) {
-    func = sym->get_int();
-    sym = vm.find_symbol_by_index(uint32_t(func));
-    }
-  if(sym == nullptr || sym->type() != phoenix::datatype::function) {
+bool LeGo::FF_Active(phoenix::func func) {
+  auto* sym = func.value;
+  if(sym == nullptr) {
     Log::e("FF_Active: invalid function ptr");
     return false;
     }
 
   for(auto& f:frameFunc) {
-    if(f.fncID==uint32_t(func))
+    if(f.fncID==sym->index())
       return true;
     }
   return false;

@@ -72,11 +72,11 @@ Ikarus::Ikarus(GameScript& /*owner*/, phoenix::vm& vm) : vm(vm) {
   vm.override_function("MEMINT_ReplaceSlowFunctions",  [    ](){ });
   vm.override_function("MEM_GetAddress_Init",          [this](){ mem_getaddress_init(); });
   vm.override_function("MEM_PrintStackTrace",          [this](){ mem_printstacktrace_implementation();   });
-  vm.override_function("MEM_GetFuncOffset",            [this](int func){ return mem_getfuncoffset(func); });
-  vm.override_function("MEM_GetFuncID",                [this](int sym) { return mem_getfuncid(sym);      });
+  vm.override_function("MEM_GetFuncOffset",            [this](phoenix::func func){ return mem_getfuncoffset(func); });
+  vm.override_function("MEM_GetFuncID",                [this](phoenix::func sym) { return mem_getfuncid(sym);      });
   vm.override_function("MEM_CallByID",                 [this](int sym) { return mem_callbyid(sym);       });
   vm.override_function("MEM_GetFuncPtr",               [this](int sym) { return mem_getfuncptr(sym);     });
-  vm.override_function("MEM_ReplaceFunc",              [this](int dest, int func){ mem_replacefunc(dest, func); });
+  vm.override_function("MEM_ReplaceFunc",              [this](phoenix::func dest, phoenix::func func){ mem_replacefunc(dest, func); });
   vm.override_function("MEM_GetFuncIdByOffset",        [this](int off) { return mem_getfuncidbyoffset(off); });
   vm.override_function("MEM_AssignInst",               [this](int sym, int ptr) { mem_assigninst(sym, ptr); });
 
@@ -189,20 +189,11 @@ void Ikarus::mem_sendtospy(int cat, std::string_view msg) {
 
 void Ikarus::mem_getaddress_init() { /* nop */ }
 
-void Ikarus::mem_replacefunc(int dest, int func) {
-  auto* sf      = vm.find_symbol_by_index(uint32_t(func));
-  auto* sd      = vm.find_symbol_by_index(uint32_t(dest));
-
-  if(sf == nullptr || sf->type() != phoenix::datatype::function) {
-    Log::e("mem_replacefunc: invalid function ptr");
-    return;
-    }
-  if(sd == nullptr || sd->type() != phoenix::datatype::function) {
-    Log::e("mem_replacefunc: invalid function ptr");
-    return;
-    }
-
+void Ikarus::mem_replacefunc(phoenix::func dest, phoenix::func func) {
+  auto* sf  = func.value;
+  auto* sd  = dest.value;
   Log::d("mem_replacefunc: ",sd->name()," -> ",sf->name());
+
   //auto& bin = vm.getDATFile().rawCode();
   //bin[sd.address]->op      = EParOp_Jump;
   //bin[sd.address]->address = func;
@@ -228,26 +219,17 @@ void Ikarus::mem_printstacktrace_implementation() {
   Log::e("[end of stacktrace]");
   }
 
-int Ikarus::mem_getfuncoffset(int func) {
-  auto* sym  = vm.find_symbol_by_index(uint32_t(func));
-  while(sym!=nullptr && !sym->is_const()) {
-    func = sym->get_int();
-    sym = vm.find_symbol_by_index(uint32_t(func));
-    }
-  if(sym == nullptr || sym->type() != phoenix::datatype::function) {
+int Ikarus::mem_getfuncoffset(phoenix::func func) {
+  auto* sym = func.value;
+  if(sym == nullptr) {
     Log::e("mem_getfuncptr: invalid function ptr");
     return 0;
     }
   return int(sym->address());
   }
 
-int Ikarus::mem_getfuncid(int func) {
-  auto* sym = vm.find_symbol_by_index(uint32_t(func));
-  while(sym!=nullptr && !sym->is_const()) {
-    func = sym->get_int();
-    sym = vm.find_symbol_by_index(uint32_t(func));
-    }
-  return func;
+int Ikarus::mem_getfuncid(phoenix::func func) {
+  return int(func.value->index());
   }
 
 void Ikarus::mem_callbyid(int symbId) {

@@ -58,11 +58,11 @@ class Ikarus : public ScriptPlugin {
     void        mem_setupexceptionhandler         ();
     void        mem_getaddress_init               ();
     void        mem_printstacktrace_implementation();
-    int         mem_getfuncoffset                 (int func);
-    int         mem_getfuncid                     (int func);
+    int         mem_getfuncoffset                 (phoenix::func func);
+    int         mem_getfuncid                     (phoenix::func func);
     void        mem_callbyid                      (int symbId);
     int         mem_getfuncptr                    (int symbId);
-    void        mem_replacefunc                   (int dest, int func);
+    void        mem_replacefunc                   (phoenix::func dest, phoenix::func func);
     int         mem_getfuncidbyoffset             (int off);
     void        mem_assigninst                    (int sym, int ptr);
 
