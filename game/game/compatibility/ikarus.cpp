@@ -403,32 +403,28 @@ std::shared_ptr<phoenix::instance> Ikarus::mem_ptrtoinst(ptr32_t address) {
   }
 
 void Ikarus::mem_trap_32(const void* data32, size_t i, const std::shared_ptr<phoenix::instance>& inst, phoenix::symbol& sym) {
-  assert(i==0); // TODO: arrays
   memory_instance& m = dynamic_cast<memory_instance&>(*inst);
-  ptr32_t addr = m.address + ptr32_t(sym.offset_as_member()) + ptr32_t(i*4u);
+  ptr32_t addr = m.address + ptr32_t(sym.offset_as_member()) + ptr32_t(i*sym.class_size());
   allocator.writeInt(addr, *reinterpret_cast<const int32_t*>(data32));
   }
 
 void Ikarus::mem_trap_32(void* data32, size_t i, const std::shared_ptr<phoenix::instance>& inst, phoenix::symbol& sym) {
-  assert(i==0); // TODO: arrays
   memory_instance& m = dynamic_cast<memory_instance&>(*inst);
-  ptr32_t addr = m.address + ptr32_t(sym.offset_as_member()) + ptr32_t(i*4u);
+  ptr32_t addr = m.address + ptr32_t(sym.offset_as_member()) + ptr32_t(i*sym.class_size());
   int32_t v = allocator.readInt(addr);
   std::memcpy(data32, &v, 4);
   }
 
 void Ikarus::mem_trap_s(std::string_view v, size_t i, const std::shared_ptr<phoenix::instance>& inst, phoenix::symbol& sym) {
-  assert(i==0); // TODO: arrays
   memory_instance& m = dynamic_cast<memory_instance&>(*inst);
-  ptr32_t addr = m.address + ptr32_t(sym.offset_as_member()) + ptr32_t(i*4u);
+  ptr32_t addr = m.address + ptr32_t(sym.offset_as_member()) + ptr32_t(i*sym.class_size());
   (void)addr;
   // allocator.writeInt(addr, 0);
   }
 
 const std::string& Ikarus::mem_trap_s(size_t i, const std::shared_ptr<phoenix::instance>& inst, phoenix::symbol& sym) {
-  assert(i==0); // TODO: arrays
   memory_instance& m = dynamic_cast<memory_instance&>(*inst);
-  ptr32_t addr = m.address + ptr32_t(sym.offset_as_member()) + ptr32_t(i*4u);
+  ptr32_t addr = m.address + ptr32_t(sym.offset_as_member()) + ptr32_t(i*sym.class_size());
 
   Log::d("mem_trap: ", sym.name());
   (void)addr;
