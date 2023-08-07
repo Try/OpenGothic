@@ -72,20 +72,28 @@ bool LeGo::isRequired(phoenix::vm& vm) {
   }
 
 int LeGo::create(int instId) {
-  auto* sym  = vm.find_symbol_by_index(uint32_t(instId));
-  if (sym != nullptr && sym->type() == phoenix::datatype::instance) {
-    sym = vm.find_symbol_by_index(sym->parent());
+  auto *sym = vm.find_symbol_by_index(uint32_t(instId));
+  auto *cls = sym;
+  if(sym != nullptr && sym->type() == phoenix::datatype::instance) {
+    cls = vm.find_symbol_by_index(sym->parent());
     }
 
-  if(sym==nullptr) {
-    Log::e("LeGo::create invalid symbold id (",instId,")");
+  if(cls == nullptr) {
+    Log::e("LeGo::create invalid symbold id (", instId, ")");
     return 0;
     }
 
-  auto sz   = sym->class_size();
-  auto ptr  = ikarus.mem_alloc(int32_t(sz));
+  auto sz = cls->class_size();
+  auto ptr = ikarus.mem_alloc(int32_t(sz));
   auto inst = std::make_shared<Ikarus::memory_instance>(ptr);
+
+  auto self = vm.find_symbol_by_name("SELF");
+  auto prev = self != nullptr ? self->get_instance() : nullptr;
+  if(self!=nullptr)
+    self->set_instance(inst);
   vm.unsafe_call(sym);
+  if(self!=nullptr)
+    self->set_instance(prev);
   return ptr;
   }
 
