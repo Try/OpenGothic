@@ -330,7 +330,7 @@ void Interactive::implTick(Pos& p) {
       }
     }
 
-  if((state==0 && !attach) || (isLadder() && (attach && state>=stepsCount-1))) {
+  if((state<=0 && !attach) || (isLadder() && (attach && state>=stepsCount-1))) {
     implQuitInteract(p);
     return;
     }
