@@ -2,6 +2,7 @@
 #include "utils/string_frm.h"
 
 SvmDefinitions::SvmDefinitions(phoenix::vm& vm):vm(vm) {
+    vm.register_as_opaque("C_SVM");
   }
 
 SvmDefinitions::~SvmDefinitions() {
@@ -17,9 +18,9 @@ std::string_view SvmDefinitions::find(std::string_view speech, int intId) {
 
     if(svm[id] == nullptr) {
       auto* i = vm.find_symbol_by_name(name);
-      if(i == nullptr)
-        return "";
-      svm[id] = vm.init_instance<phoenix::c_svm>(i);
+      if (i == nullptr)
+          return "";
+      svm[id] = vm.init_opaque_instance(i);
       }
 
     speech = speech.substr(1);
@@ -28,14 +29,7 @@ std::string_view SvmDefinitions::find(std::string_view speech, int intId) {
     auto* i = vm.find_symbol_by_name(name);
     if(i==nullptr)
       return "";
-    try {
-      return i->get_string(0,svm[size_t(id)]);
-      }
-    catch(phoenix::unbound_member_access&) {
-      // https://github.com/GothicKit/phoenix/issues/58
-      // need to support user-defined classes
-      return "";
-      }
+    return i->get_string(0,svm[size_t(id)]);
     }
 
   return "";

@@ -774,6 +774,9 @@ std::u16string Gothic::nestedPath(const std::initializer_list<const char16_t*> &
 void Gothic::setupVmCommonApi(phoenix::vm &vm) {
   vm.register_default_external([](std::string_view name) { notImplementedRoutine(std::string {name}); });
 
+  if (auto sym = vm.find_symbol_by_name("C_SVM"))
+    vm.register_as_opaque(sym);
+
   vm.register_external("concatstrings", [](std::string_view a, std::string_view b) { return Gothic::concatstrings(a, b);});
   vm.register_external("inttostring",   [](int i)   { return Gothic::inttostring(i);   });
   vm.register_external("floattostring", [](float f) { return Gothic::floattostring(f); });
@@ -782,7 +785,6 @@ void Gothic::setupVmCommonApi(phoenix::vm &vm) {
 
   vm.register_external("hlp_strcmp",    [](std::string_view a, std::string_view b) { return Gothic::hlp_strcmp(a, b); });
   vm.register_external("hlp_random",    [this](int max) { return hlp_random(max); });
-
 
   vm.register_external("introducechapter", [this](std::string_view title, std::string_view subtitle, std::string_view img, std::string_view sound, int time){ introducechapter(title, subtitle, img, sound, time); });
   vm.register_external("playvideo",        [this](std::string_view name){ return playvideo(name); });

@@ -29,6 +29,33 @@ enum {
   OCNPC__ENABLE_EQUIPBESTWEAPONS = 7626662, //0x745FA6
   };
 
+void Ikarus::memory_instance::read32(void* data32, const phoenix::symbol &sym, size_t index) {
+  ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index*sym.class_size());
+  int32_t v    = owner.allocator.readInt(addr);
+  std::memcpy(data32, &v, 4);
+  }
+
+void Ikarus::memory_instance::write32(const void *data32, const phoenix::symbol &sym, size_t index) {
+  ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index*sym.class_size());
+  owner.allocator.writeInt(addr, *reinterpret_cast<const int32_t*>(data32));
+  }
+
+void Ikarus::memory_instance::write(std::string_view str, const phoenix::symbol& sym, size_t index) {
+  ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index*sym.class_size());
+  (void)addr;
+  Log::d("memory_instance: ", sym.name());
+  // allocator.writeInt(addr, 0);
+  }
+
+const std::string& Ikarus::memory_instance::read(const phoenix::symbol& sym, size_t index) {
+  ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index*sym.class_size());
+
+  Log::d("memory_instance: ", sym.name());
+  (void)addr;
+  static std::string empty;
+  return empty;
+  }
+
 Ikarus::Ikarus(GameScript& /*owner*/, phoenix::vm& vm) : vm(vm) {
   Log::i("DMA mod detected: Ikarus");
 
@@ -105,10 +132,6 @@ Ikarus::Ikarus(GameScript& /*owner*/, phoenix::vm& vm) : vm(vm) {
   vm.override_function("MEM_Alloc",   [this](int amount )                      { return mem_alloc(amount);               });
   vm.override_function("MEM_Free",    [this](int address)                      { mem_free(address);                      });
   vm.override_function("MEM_Realloc", [this](int address, int oldsz, int size) { return mem_realloc(address,oldsz,size); });
-  vm.register_memory_trap_write([this](const void* val, size_t i, const std::shared_ptr<phoenix::instance>& inst, phoenix::symbol& sym) { return mem_trap_32(val, i, inst, sym); });
-  vm.register_memory_trap_read ([this](void* val, size_t i, const std::shared_ptr<phoenix::instance>& inst, phoenix::symbol& sym) { return mem_trap_32(val, i, inst, sym); });
-  vm.register_memory_trap_write([this](std::string_view val, size_t i, const std::shared_ptr<phoenix::instance>& inst, phoenix::symbol& sym) { mem_trap_s(val, i, inst, sym); });
-  vm.register_memory_trap_read ([this](size_t i, const std::shared_ptr<phoenix::instance>& inst, phoenix::symbol& sym) -> const std::string& { return mem_trap_s(i, inst, sym); });
 
   // ## Control-flow ##
   vm.override_function("repeat", [this](phoenix::vm& vm) { return repeat(vm);    });
@@ -209,8 +232,8 @@ void Ikarus::mem_assigninst(int index, int ptr) {
   if(sym==nullptr) {
     Log::e("MEM_AssignInst: Invalid instance: ",index);
     return;
-    }
-  sym->set_instance(std::make_shared<memory_instance>(ptr32_t(ptr)));
+  }
+  sym->set_instance(std::make_shared<memory_instance>(*this, ptr32_t(ptr)));
   }
 
 void Ikarus::mem_printstacktrace_implementation() {
@@ -399,37 +422,7 @@ int Ikarus::mem_realloc(int address, int oldsz, int size) {
 std::shared_ptr<phoenix::instance> Ikarus::mem_ptrtoinst(ptr32_t address) {
   if(address==0)
     Log::d("mem_ptrtoinst: address is null");
-  return std::make_shared<memory_instance>(address);
-  }
-
-void Ikarus::mem_trap_32(const void* data32, size_t i, const std::shared_ptr<phoenix::instance>& inst, phoenix::symbol& sym) {
-  memory_instance& m = dynamic_cast<memory_instance&>(*inst);
-  ptr32_t addr = m.address + ptr32_t(sym.offset_as_member()) + ptr32_t(i*sym.class_size());
-  allocator.writeInt(addr, *reinterpret_cast<const int32_t*>(data32));
-  }
-
-void Ikarus::mem_trap_32(void* data32, size_t i, const std::shared_ptr<phoenix::instance>& inst, phoenix::symbol& sym) {
-  memory_instance& m = dynamic_cast<memory_instance&>(*inst);
-  ptr32_t addr = m.address + ptr32_t(sym.offset_as_member()) + ptr32_t(i*sym.class_size());
-  int32_t v = allocator.readInt(addr);
-  std::memcpy(data32, &v, 4);
-  }
-
-void Ikarus::mem_trap_s(std::string_view v, size_t i, const std::shared_ptr<phoenix::instance>& inst, phoenix::symbol& sym) {
-  memory_instance& m = dynamic_cast<memory_instance&>(*inst);
-  ptr32_t addr = m.address + ptr32_t(sym.offset_as_member()) + ptr32_t(i*sym.class_size());
-  (void)addr;
-  // allocator.writeInt(addr, 0);
-  }
-
-const std::string& Ikarus::mem_trap_s(size_t i, const std::shared_ptr<phoenix::instance>& inst, phoenix::symbol& sym) {
-  memory_instance& m = dynamic_cast<memory_instance&>(*inst);
-  ptr32_t addr = m.address + ptr32_t(sym.offset_as_member()) + ptr32_t(i*sym.class_size());
-
-  Log::d("mem_trap: ", sym.name());
-  (void)addr;
-  static std::string empty;
-  return empty;
+  return std::make_shared<memory_instance>(*this, address);
   }
 
 phoenix::naked_call Ikarus::repeat(phoenix::vm& vm) {

@@ -15,10 +15,22 @@ class Ikarus : public ScriptPlugin {
 
     using ptr32_t = Mem32::ptr32_t;
 
-    struct memory_instance : public phoenix::instance {
-      explicit memory_instance(ptr32_t address):address(address){}
-      ptr32_t address;
-      };
+    struct memory_instance : public phoenix::transient_instance
+    {
+        explicit memory_instance(Ikarus &owner, ptr32_t address)
+            : owner(owner)
+            , address(address)
+        {}
+
+        void read32(void *data32, phoenix::symbol const &sym, size_t index) override;
+        void write32(const void *data32, phoenix::symbol const &sym, size_t index) override;
+
+        void write(std::string_view str, phoenix::symbol const &sym, size_t index) override;
+        const std::string &read(phoenix::symbol const &sym, size_t index) override;
+
+        Ikarus &owner;
+        ptr32_t address;
+    };
 
     //  MEM_Alloc and MEM_Free ##
     int  mem_alloc  (int amount);
@@ -78,12 +90,6 @@ class Ikarus : public ScriptPlugin {
     std::string mem_readstring    (int address);
     // pointers
     std::shared_ptr<phoenix::instance> mem_ptrtoinst(ptr32_t address);
-
-    void        mem_trap_32(const void* data32, size_t, const std::shared_ptr<phoenix::instance>&, phoenix::symbol&);
-    void        mem_trap_32(void* data32, size_t, const std::shared_ptr<phoenix::instance>&, phoenix::symbol&);
-
-    void        mem_trap_s(std::string_view s, size_t, const std::shared_ptr<phoenix::instance>&, phoenix::symbol&);
-    auto        mem_trap_s(size_t, const std::shared_ptr<phoenix::instance>&, phoenix::symbol&) -> const std::string&;
 
     // ## Basic zCParser related functions ##
     int         _takeref    (int val);

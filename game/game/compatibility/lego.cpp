@@ -85,7 +85,7 @@ int LeGo::create(int instId) {
 
   auto sz = cls->class_size();
   auto ptr = ikarus.mem_alloc(int32_t(sz));
-  auto inst = std::make_shared<Ikarus::memory_instance>(ptr);
+  auto inst = std::make_shared<Ikarus::memory_instance>(ikarus, ptr);
 
   auto self = vm.find_symbol_by_name("SELF");
   auto prev = self != nullptr ? self->get_instance() : nullptr;
