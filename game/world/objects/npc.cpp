@@ -2808,13 +2808,6 @@ const Npc::Routine& Npc::currentRoutine() const {
       return i;
     }
 
-  static std::set<int32_t> s;
-  if(routines.size()>0 && s.find(hnpc->id)==s.end()) {
-    s.insert(hnpc->id);
-    auto sym = owner.script().findSymbol(*hnpc);
-    Log::e("no valid routine found [",sym->name(),", time: ",time.hour(),":",time.minute(),"]");
-    }
-
   // take previous routine
   const auto     day   = gtime(24,0).toInt();
   const Routine* prevR = nullptr;

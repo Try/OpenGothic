@@ -734,10 +734,6 @@ phoenix::symbol* GameScript::findSymbol(const size_t s) {
   return vm.find_symbol_by_index(uint32_t(s));
   }
 
-phoenix::symbol* GameScript::findSymbol(const phoenix::instance& inst) {
-  return vm.find_symbol_by_instance(inst);
-  }
-
 size_t GameScript::findSymbolIndex(std::string_view name) {
   auto sym = vm.find_symbol_by_name(name);
   return sym == nullptr ? size_t(-1) : sym->index();

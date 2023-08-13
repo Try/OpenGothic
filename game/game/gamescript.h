@@ -100,7 +100,6 @@ class GameScript final {
 
     phoenix::symbol*             findSymbol(std::string_view s);
     phoenix::symbol*             findSymbol(const size_t s);
-    phoenix::symbol*             findSymbol(const phoenix::instance& inst);
     size_t                       findSymbolIndex(std::string_view s);
     size_t                       symbolsCount() const;
 
