@@ -142,7 +142,7 @@ void Renderer::resetSwapchain() {
   uboStash.set(0,sceneLinear,Sampler::nearest());
   uboStash.set(1,zbuffer,    Sampler::nearest());
 
-  if(Gothic::inst().doRayQuery() && Resources::device().properties().bindless.nonUniformIndexing &&
+  if(Gothic::inst().doRayQuery() && Resources::device().properties().descriptors.nonUniformIndexing &&
      settings.shadowResolution>0)
     shadow.composePso = &Shaders::inst().shadowResolveRq;
   else if(settings.shadowResolution>0)

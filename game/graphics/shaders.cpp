@@ -90,7 +90,7 @@ Shaders::Shaders() {
 
   shadowResolve      = postEffect("shadow_resolve", "shadow_resolve",    RenderState::ZTestMode::NoEqual);
   shadowResolveSh    = postEffect("shadow_resolve", "shadow_resolve_sh", RenderState::ZTestMode::NoEqual);
-  if(Gothic::inst().doRayQuery() && Resources::device().properties().bindless.nonUniformIndexing)
+  if(Gothic::inst().doRayQuery() && Resources::device().properties().descriptors.nonUniformIndexing)
     shadowResolveRq = postEffect("shadow_resolve", "shadow_resolve_rq", RenderState::ZTestMode::NoEqual);
 
   irradiance         = computeShader("irradiance.comp.sprv");
@@ -144,7 +144,7 @@ Shaders::Shaders() {
   auto fsLight = device.shader(sh.data,sh.len);
   lights       = device.pipeline(Triangles, state, vsLight, fsLight);
   if(Gothic::inst().doRayQuery()) {
-    if(Resources::device().properties().bindless.nonUniformIndexing) {
+    if(Resources::device().properties().descriptors.nonUniformIndexing) {
       sh      = GothicShader::get("light_rq_at.frag.sprv");
       fsLight = device.shader(sh.data,sh.len);
       } else {
