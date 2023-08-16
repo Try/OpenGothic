@@ -40,14 +40,14 @@ void Ikarus::memory_instance::write32(const void *data32, const phoenix::symbol 
   owner.allocator.writeInt(addr, *reinterpret_cast<const int32_t*>(data32));
   }
 
-void Ikarus::memory_instance::write(std::string_view str, const phoenix::symbol& sym, size_t index) {
+void Ikarus::memory_instance::write_string(std::string_view str, const phoenix::symbol& sym, size_t index) {
   ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index*sym.class_size());
   (void)addr;
   Log::d("memory_instance: ", sym.name());
   // allocator.writeInt(addr, 0);
   }
 
-const std::string& Ikarus::memory_instance::read(const phoenix::symbol& sym, size_t index) {
+const std::string& Ikarus::memory_instance::read_string(const phoenix::symbol& sym, size_t index) {
   ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index*sym.class_size());
 
   Log::d("memory_instance: ", sym.name());

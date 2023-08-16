@@ -15,22 +15,18 @@ class Ikarus : public ScriptPlugin {
 
     using ptr32_t = Mem32::ptr32_t;
 
-    struct memory_instance : public phoenix::transient_instance
-    {
-        explicit memory_instance(Ikarus &owner, ptr32_t address)
-            : owner(owner)
-            , address(address)
-        {}
+    struct memory_instance : public phoenix::transient_instance {
+      explicit memory_instance(Ikarus &owner, ptr32_t address) : owner(owner), address(address) {}
 
-        void read32(void *data32, phoenix::symbol const &sym, size_t index) override;
-        void write32(const void *data32, phoenix::symbol const &sym, size_t index) override;
+      void read32(void *data32, phoenix::symbol const &sym, size_t index) override;
+      void write32(const void *data32, phoenix::symbol const &sym, size_t index) override;
 
-        void write(std::string_view str, phoenix::symbol const &sym, size_t index) override;
-        const std::string &read(phoenix::symbol const &sym, size_t index) override;
+      void write_string(std::string_view str, phoenix::symbol const &sym, size_t index) override;
+      const std::string &read_string(phoenix::symbol const &sym, size_t index) override;
 
-        Ikarus &owner;
-        ptr32_t address;
-    };
+      Ikarus &owner;
+      ptr32_t address = 0;
+      };
 
     //  MEM_Alloc and MEM_Free ##
     int  mem_alloc  (int amount);
