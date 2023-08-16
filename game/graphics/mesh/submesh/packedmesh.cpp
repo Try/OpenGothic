@@ -100,7 +100,7 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices,
     indices[iboSz+i] = uint32_t(vboSz+indSz/3);
     }
 
-  if(Gothic::inst().doMeshShading()) {
+  if(Gothic::options().doMeshShading) {
     size_t iboSz8 = indices8.size();
     indices8.resize(iboSz8 + MaxPrim*4);
     for(size_t i=0; i<indSz; i+=3) {
@@ -205,7 +205,7 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices, std::vector<Verte
     indices[iboSz+i] = uint32_t(vboSz+indSz/3);
     }
 
-  if(Gothic::inst().doMeshShading()) {
+  if(Gothic::options().doMeshShading) {
     size_t iboSz8 = indices8.size();
     indices8.resize(iboSz8 + MaxPrim*4);
     for(size_t i=0; i<indSz; i+=3) {

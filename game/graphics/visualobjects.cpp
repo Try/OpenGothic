@@ -244,7 +244,7 @@ void VisualObjects::updateTlas(Bindless& out, uint8_t fId) {
     return;
   needtoInvalidateTlas = false;
 
-  if(!Gothic::inst().doRayQuery())
+  if(!Gothic::options().doRayQuery)
     return;
 
   std::vector<Tempest::RtInstance> inst;

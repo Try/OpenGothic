@@ -79,7 +79,7 @@ void Renderer::resetSwapchain() {
   sceneLinear = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
   zbuffer     = device.zbuffer(zBufferFormat,w,h);
 
-  if(Gothic::inst().doMeshShading()) {
+  if(Gothic::options().doMeshShading) {
     uint32_t pw = nextPot(w);
     uint32_t ph = nextPot(h);
 
@@ -142,7 +142,7 @@ void Renderer::resetSwapchain() {
   uboStash.set(0,sceneLinear,Sampler::nearest());
   uboStash.set(1,zbuffer,    Sampler::nearest());
 
-  if(Gothic::inst().doRayQuery() && Resources::device().properties().descriptors.nonUniformIndexing &&
+  if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing &&
      settings.shadowResolution>0)
     shadow.composePso = &Shaders::inst().shadowResolveRq;
   else if(settings.shadowResolution>0)
@@ -483,7 +483,7 @@ void Renderer::stashSceneAux(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint
   }
 
 void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
-  if(!Gothic::inst().doMeshShading())
+  if(!Gothic::options().doMeshShading)
     return;
 
   cmd.setDebugMarker("HiZ-occluders");
@@ -524,7 +524,7 @@ void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   }
 
 void Renderer::drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
-  if(Gothic::inst().doMeshShading()) {
+  if(Gothic::options().doMeshShading) {
     cmd.setFramebuffer({{gbufDiffuse, Tempest::Vec4(),  Tempest::Preserve},
                         {gbufNormal,  Tempest::Discard, Tempest::Preserve}},
                        {zbuffer, Tempest::Preserve, Tempest::Preserve});
@@ -551,7 +551,7 @@ void Renderer::drawGWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
 void Renderer::drawReflections(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   cmd.setDebugMarker("Reflections");
   cmd.setUniforms(*water.reflectionsPso, water.ubo);
-  if(Gothic::inst().doMeshShading()) {
+  if(Gothic::options().doMeshShading) {
     cmd.dispatchMeshThreads(gbufDiffuse.size());
     } else {
     cmd.draw(Resources::fsqVbo());

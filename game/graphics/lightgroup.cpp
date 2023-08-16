@@ -332,7 +332,7 @@ LightSource& LightGroup::getL(size_t id) {
   }
 
 RenderPipeline& LightGroup::shader() const {
-  if(Gothic::inst().doRayQuery())
+  if(Gothic::options().doRayQuery)
     return Shaders::inst().lightsRq;
   return Shaders::inst().lights;
   }
@@ -394,7 +394,7 @@ void LightGroup::draw(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   static bool light = true;
   if(!light)
     return;
-  if(Gothic::inst().doRayQuery() && scene.tlas==nullptr)
+  if(Gothic::options().doRayQuery && scene.tlas==nullptr)
     return;
 
   auto& p = shader();
@@ -417,7 +417,7 @@ void LightGroup::setupUbo() {
       u.set(1,*scene.gbufNormals,Sampler::nearest());
       u.set(2,*scene.zbuffer,    Sampler::nearest());
       u.set(3,uboBuf[i]);
-      if(Gothic::inst().doRayQuery() && scene.tlas!=nullptr) {
+      if(Gothic::options().doRayQuery && scene.tlas!=nullptr) {
         if(Resources::device().properties().descriptors.nonUniformIndexing) {
           u.set(6, Sampler::bilinear());
           u.set(7, scene.bindless.tex);

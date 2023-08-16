@@ -163,7 +163,7 @@ ObjectsBucket::ObjectsBucket(const Type type, const Material& mat, VisualObjects
   useSharedUbo        = (mat.frames.size()==0);
   textureInShadowPass = (mat.alpha==Material::AlphaTest);
   usePositionsSsbo    = (type==Type::Static || type==Type::Movable || type==Type::Morph);
-  useMeshlets         = (Gothic::inst().doMeshShading() && !mat.isTesselated() && (type!=Type::Pfx));
+  useMeshlets         = (Gothic::options().doMeshShading && !mat.isTesselated() && (type!=Type::Pfx));
 
   pMain               = Shaders::inst().materialPipeline(mat,objType, isForwardShading() ? Shaders::T_Forward : Shaders::T_Deffered);
   pShadow             = Shaders::inst().materialPipeline(mat,objType, Shaders::T_Shadow);
@@ -190,7 +190,7 @@ bool ObjectsBucket::isCompatible(const Type t, const Material& mat,
     }
 
   if(type==Landscape) {
-    if(Gothic::inst().doMeshShading()) {
+    if(Gothic::options().doMeshShading) {
       return objType==type && mat.alpha==this->mat.alpha && desc==instanceDesc;
       }
     return mat==this->mat;

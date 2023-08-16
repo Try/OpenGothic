@@ -62,7 +62,7 @@ Shaders::Shaders() {
   instance = this;
   auto& device = Resources::device();
 
-  const bool meshlets = Gothic::inst().doMeshShading();
+  const bool meshlets = Gothic::options().doMeshShading;
 
   solid   .load(device,"gbuffer",   false,meshlets);
   atest   .load(device,"gbuffer_at",false,meshlets);
@@ -90,7 +90,7 @@ Shaders::Shaders() {
 
   shadowResolve      = postEffect("shadow_resolve", "shadow_resolve",    RenderState::ZTestMode::NoEqual);
   shadowResolveSh    = postEffect("shadow_resolve", "shadow_resolve_sh", RenderState::ZTestMode::NoEqual);
-  if(Gothic::inst().doRayQuery() && Resources::device().properties().descriptors.nonUniformIndexing)
+  if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing)
     shadowResolveRq = postEffect("shadow_resolve", "shadow_resolve_rq", RenderState::ZTestMode::NoEqual);
 
   irradiance         = computeShader("irradiance.comp.sprv");
@@ -143,7 +143,7 @@ Shaders::Shaders() {
   sh           = GothicShader::get("light.frag.sprv");
   auto fsLight = device.shader(sh.data,sh.len);
   lights       = device.pipeline(Triangles, state, vsLight, fsLight);
-  if(Gothic::inst().doRayQuery()) {
+  if(Gothic::options().doRayQuery) {
     if(Resources::device().properties().descriptors.nonUniformIndexing) {
       sh      = GothicShader::get("light_rq_at.frag.sprv");
       fsLight = device.shader(sh.data,sh.len);

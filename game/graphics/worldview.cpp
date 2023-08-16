@@ -13,7 +13,7 @@ WorldView::WorldView(const World& world, const PackedMesh& wmesh)
   : owner(world),gSky(sGlobal,world,wmesh.bbox()),visuals(sGlobal,wmesh.bbox()),
     objGroup(visuals),pfxGroup(*this,sGlobal,visuals),land(visuals,wmesh) {
   pfxGroup.resetTicks();
-  if(Gothic::inst().doRayQuery())
+  if(Gothic::options().doRayQuery)
     tlasLand = Resources::device().tlas({{Matrix4x4::mkIdentity(),0,Tempest::RtInstanceFlags::Opaque,&land.rt.blas}});
   visuals.setLandscapeBlas(&land.rt.blas);
   visuals.onTlasChanged.bind(this,&WorldView::setupTlas);

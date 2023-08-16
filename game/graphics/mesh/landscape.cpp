@@ -9,7 +9,7 @@ using namespace Tempest;
 
 Landscape::Landscape(VisualObjects& visual, const PackedMesh &packed)
   :mesh(packed) {
-  if(Gothic::inst().doMeshShading())
+  if(Gothic::options().doMeshShading)
     meshletDesc = Resources::ssbo(packed.meshletBounds.data(),packed.meshletBounds.size()*sizeof(packed.meshletBounds[0]));
 
   auto& device = Resources::device();
@@ -25,7 +25,7 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &packed)
       continue;
 
     Block b;
-    if(Gothic::inst().doRayQuery()) {
+    if(Gothic::options().doRayQuery) {
       if(material.alpha!=Material::Solid) {
         mesh.sub[i].blas = device.blas(mesh.vbo,mesh.ibo,sub.iboOffset,sub.iboLength);
         } else {
@@ -44,12 +44,12 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &packed)
     blocks.emplace_back(std::move(b));
     }
 
-  if(Gothic::inst().doRayQuery() && ibo.size()>0) {
+  if(Gothic::options().doRayQuery && ibo.size()>0) {
     rt.ibo  = Resources::ibo(ibo.data(),ibo.size());
     rt.blas = device.blas(mesh.vbo,rt.ibo);
     }
 
-  if(Gothic::inst().doMeshShading()) {
+  if(Gothic::options().doMeshShading) {
     auto boundsSolid = packed.meshletBounds;
     for(auto& i:packed.subMeshes) {
       auto material = Resources::loadMaterial(i.material,true);

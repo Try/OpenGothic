@@ -43,6 +43,12 @@ Gothic::Gothic() {
   showFpsCounter = systemPackIniFile->getI("DEBUG","Show_FPS_Counter");
   hideFocus      = systemPackIniFile->getI("PARAMETERS","HideFocus");
 
+  if(Resources::device().properties().raytracing.rayQuery)
+    opts.doRayQuery = CommandLine::inst().isRayQuery();
+
+  if(hasMeshShader())
+    opts.doMeshShading = CommandLine::inst().isMeshShading();
+
 #ifndef NDEBUG
   setMarvinEnabled(true);
   setFRate(true);
@@ -51,8 +57,6 @@ Gothic::Gothic() {
 #endif
 
   wrldDef = CommandLine::inst().wrldDef;
-  if(hasMeshShader())
-    isMeshSh = CommandLine::inst().isMeshShading();
 
   baseIniFile.reset(new IniFile(nestedPath({u"system",u"Gothic.ini"},Dir::FT_File)));
   iniFile    .reset(new IniFile(u"Gothic.ini"));
@@ -382,14 +386,8 @@ void Gothic::setMarvinEnabled(bool m) {
   isMarvin = m;
   }
 
-bool Gothic::doRayQuery() const {
-  if(!Resources::device().properties().raytracing.rayQuery)
-    return false;
-  return CommandLine::inst().isRayQuery();
-  }
-
-bool Gothic::doMeshShading() const {
-  return isMeshSh;
+const Gothic::Options& Gothic::options() {
+  return instance->opts;
   }
 
 Gothic::LoadState Gothic::checkLoading() const {
