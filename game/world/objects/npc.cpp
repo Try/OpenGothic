@@ -445,13 +445,14 @@ bool Npc::resetPositionToTA() {
       return false;
     }
 
-  invent.clearSlot(*this,"",false);
+  invent.clearSlot(*this,"",currentInteract!=nullptr);
+  if(!isPlayer())
+    setInteraction(nullptr,true);
+
   if(routines.size()==0)
     return true;
 
   attachToPoint(nullptr);
-  if(!isPlayer())
-    setInteraction(nullptr,true);
   clearAiQueue();
 
   if(!isDead) {
