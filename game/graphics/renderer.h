@@ -34,7 +34,7 @@ class Renderer final {
   private:
     void updateCamera(const Camera &camera);
     void prepareUniforms();
-    void setupTlas(const Tempest::AccelerationStructure* tlas);
+    void prepareRtUniforms();
 
     void prepareSky       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void prepareSSAO      (Tempest::Encoder<Tempest::CommandBuffer>& cmd);

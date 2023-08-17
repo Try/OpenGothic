@@ -9,8 +9,6 @@ using namespace Tempest;
 
 InventoryRenderer::InventoryRenderer()
   :visual(scene,std::pair<Vec3,Vec3>()),itmGroup(visual) {
-  scene.tlasEnabled = false;
-
   Tempest::Matrix4x4 p, mv, shMv[Resources::ShadowLayers];
   p.identity();
   mv.identity();

@@ -40,6 +40,11 @@ class Gothic final {
       FailedSave = 5
       };
 
+    struct Options {
+      bool doRayQuery    = false;
+      bool doMeshShading = false;
+      };
+
     auto         version() const -> const VersionInfo&;
 
     bool         isInGame() const;
@@ -89,21 +94,20 @@ class Gothic final {
     bool         isMarvinEnabled() const;
     void         setMarvinEnabled(bool m);
 
+    static auto  options() -> const Options&;
+    bool         doHideFocus () const { return hideFocus; }
+
     bool         isGodMode() const { return godMode; }
     void         setGodMode(bool g) { godMode = g; }
 
     void         toggleDesktop() { desktop = !desktop; }
     bool         isDesktop() { return desktop; }
 
-    bool         doHideFocus () const { return hideFocus; }
     bool         doFrate() const { return showFpsCounter; }
     void         setFRate(bool f) { showFpsCounter = f; }
 
     bool         doClock() const { return showTime; }
     void         setClock(bool t) { showTime = t; }
-
-    bool         doRayQuery() const;
-    bool         doMeshShading() const;
 
     LoadState    checkLoading() const;
     bool         finishLoading();
@@ -168,6 +172,7 @@ class Gothic final {
 
   private:
     VersionInfo                             vinfo;
+    Options                                 opts;
     std::mt19937                            randGen;
     uint16_t                                pauseSum=0;
     bool                                    isMarvin       = false;
@@ -176,7 +181,7 @@ class Gothic final {
     bool                                    showFpsCounter = false;
     bool                                    showTime       = false;
     bool                                    hideFocus      = false;
-    bool                                    isMeshSh       = false;
+
     std::string                             wrldDef, plDef, gameDatDef, ouDef;
 
     std::unique_ptr<IniFile>                defaults;

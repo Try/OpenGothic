@@ -79,7 +79,7 @@ void Renderer::resetSwapchain() {
   sceneLinear = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
   zbuffer     = device.zbuffer(zBufferFormat,w,h);
 
-  if(Gothic::inst().doMeshShading()) {
+  if(Gothic::options().doMeshShading) {
     uint32_t pw = nextPot(w);
     uint32_t ph = nextPot(h);
 
@@ -142,7 +142,7 @@ void Renderer::resetSwapchain() {
   uboStash.set(0,sceneLinear,Sampler::nearest());
   uboStash.set(1,zbuffer,    Sampler::nearest());
 
-  if(Gothic::inst().doRayQuery() && Resources::device().properties().bindless.nonUniformIndexing &&
+  if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing &&
      settings.shadowResolution>0)
     shadow.composePso = &Shaders::inst().shadowResolveRq;
   else if(settings.shadowResolution>0)
@@ -196,10 +196,6 @@ void Renderer::initSettings() {
   }
 
 void Renderer::onWorldChanged() {
-  auto wview = Gothic::inst().worldView();
-  if(wview!=nullptr) {
-    wview->onTlasChanged.bind(this,&Renderer::setupTlas);
-    }
   prepareUniforms();
   }
 
@@ -288,8 +284,6 @@ void Renderer::prepareUniforms() {
     water.ubo.set(10,*sky.cloudsNight().lay[1],Sampler::bilinear());
   }
 
-  setupTlas(nullptr);
-
   const Texture2d* sh[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
     if(!shadowMap[i].isEmpty()) {
@@ -300,24 +294,24 @@ void Renderer::prepareUniforms() {
   wview->setHiZ(textureCast(hiz.hiZ));
   wview->setGbuffer(textureCast(gbufDiffuse), textureCast(gbufNormal));
   wview->setSceneImages(textureCast(sceneOpaque), textureCast(sceneDepth), zbuffer);
-  wview->setupUbo();
+  wview->prepareUniforms();
   }
 
-void Renderer::setupTlas(const Tempest::AccelerationStructure* tlas) {
+void Renderer::prepareRtUniforms() {
   auto wview = Gothic::inst().worldView();
   if(wview==nullptr)
     return;
   auto& scene = wview->sceneGlobals();
-  if(scene.tlas==nullptr)
+  if(scene.rtScene.tlas.isEmpty())
     return;
 
   if(shadow.composePso==&Shaders::inst().shadowResolveRq) {
-    shadow.ubo.set(6, *scene.tlas);
+    shadow.ubo.set(6, scene.rtScene.tlas);
     shadow.ubo.set(7, Sampler::bilinear());
-    shadow.ubo.set(8, scene.bindless.tex);
-    shadow.ubo.set(9, scene.bindless.vbo);
-    shadow.ubo.set(10,scene.bindless.ibo);
-    shadow.ubo.set(11,scene.bindless.iboOffset);
+    shadow.ubo.set(8, scene.rtScene.tex);
+    shadow.ubo.set(9, scene.rtScene.vbo);
+    shadow.ubo.set(10,scene.rtScene.ibo);
+    shadow.ubo.set(11,scene.rtScene.iboOffset);
     }
   }
 
@@ -391,6 +385,9 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     cmd.setFramebuffer({{result, Vec4(), Tempest::Preserve}});
     return;
     }
+
+  if(wview->updateRtScene())
+    prepareRtUniforms();
 
   wview->updateLight();
   updateCamera(*camera);
@@ -483,7 +480,7 @@ void Renderer::stashSceneAux(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint
   }
 
 void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
-  if(!Gothic::inst().doMeshShading())
+  if(!Gothic::options().doMeshShading)
     return;
 
   cmd.setDebugMarker("HiZ-occluders");
@@ -524,7 +521,7 @@ void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   }
 
 void Renderer::drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
-  if(Gothic::inst().doMeshShading()) {
+  if(Gothic::options().doMeshShading) {
     cmd.setFramebuffer({{gbufDiffuse, Tempest::Vec4(),  Tempest::Preserve},
                         {gbufNormal,  Tempest::Discard, Tempest::Preserve}},
                        {zbuffer, Tempest::Preserve, Tempest::Preserve});
@@ -551,7 +548,7 @@ void Renderer::drawGWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
 void Renderer::drawReflections(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   cmd.setDebugMarker("Reflections");
   cmd.setUniforms(*water.reflectionsPso, water.ubo);
-  if(Gothic::inst().doMeshShading()) {
+  if(Gothic::options().doMeshShading) {
     cmd.dispatchMeshThreads(gbufDiffuse.size());
     } else {
     cmd.draw(Resources::fsqVbo());

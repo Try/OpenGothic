@@ -163,7 +163,7 @@ ObjectsBucket::ObjectsBucket(const Type type, const Material& mat, VisualObjects
   useSharedUbo        = (mat.frames.size()==0);
   textureInShadowPass = (mat.alpha==Material::AlphaTest);
   usePositionsSsbo    = (type==Type::Static || type==Type::Movable || type==Type::Morph);
-  useMeshlets         = (Gothic::inst().doMeshShading() && !mat.isTesselated() && (type!=Type::Pfx));
+  useMeshlets         = (Gothic::options().doMeshShading && !mat.isTesselated() && (type!=Type::Pfx));
 
   pMain               = Shaders::inst().materialPipeline(mat,objType, isForwardShading() ? Shaders::T_Forward : Shaders::T_Deffered);
   pShadow             = Shaders::inst().materialPipeline(mat,objType, Shaders::T_Shadow);
@@ -190,7 +190,7 @@ bool ObjectsBucket::isCompatible(const Type t, const Material& mat,
     }
 
   if(type==Landscape) {
-    if(Gothic::inst().doMeshShading()) {
+    if(Gothic::options().doMeshShading) {
       return objType==type && mat.alpha==this->mat.alpha && desc==instanceDesc;
       }
     return mat==this->mat;
@@ -419,7 +419,7 @@ ObjectsBucket::Descriptors& ObjectsBucket::objUbo(size_t objId) {
   return uboShared;
   }
 
-void ObjectsBucket::setupUbo() {
+void ObjectsBucket::prepareUniforms() {
   uboSetCommon(uboShared,mat,bucketShared);
   }
 
@@ -428,29 +428,12 @@ void ObjectsBucket::invalidateUbo(uint8_t fId) {
     uboSetSkeleton(uboShared,fId);
   }
 
-void ObjectsBucket::fillTlas(std::vector<RtInstance>& inst, std::vector<uint32_t>& iboOff, Bindless& out) {
+void ObjectsBucket::fillTlas(RtScene& out) {
   for(size_t i=0; i<CAPACITY; ++i) {
     auto& v = val[i];
     if(!v.isValid || v.blas==nullptr)
       continue;
-
-    if(mat.tex!=out.tex.back() ||
-       &staticMesh->vbo!=out.vbo.back() ||
-       &staticMesh->ibo!=out.ibo.back() ||
-       uint32_t(v.iboOffset/3)!=iboOff.back()) {
-      out.tex.push_back(mat.tex);
-      out.vbo.push_back(&staticMesh->vbo);
-      out.ibo.push_back(&staticMesh->ibo);
-      iboOff.push_back(uint32_t(v.iboOffset/3));
-      }
-
-    RtInstance ix;
-    ix.mat  = v.pos;
-    ix.id   = uint32_t(out.tex.size()-1);
-    ix.blas = v.blas;
-    if(mat.alpha!=Material::Solid)
-      ix.flags = Tempest::RtInstanceFlags::NonOpaque;
-    inst.push_back(ix);
+    out.addInstance(v.pos, *v.blas, mat, *staticMesh, v.iboOffset);
     }
   }
 
@@ -981,8 +964,8 @@ const Material& ObjectsBucketDyn::material(size_t i) const {
   return mat[i];
   }
 
-void ObjectsBucketDyn::setupUbo() {
-  ObjectsBucket::setupUbo();
+void ObjectsBucketDyn::prepareUniforms() {
+  ObjectsBucket::prepareUniforms();
 
   for(size_t i=0; i<CAPACITY; ++i) {
     uboSetCommon(uboObj[i],mat[i],bucketObj[i]);
@@ -1007,29 +990,12 @@ void ObjectsBucketDyn::invalidateUbo(uint8_t fId) {
     uboSetSkeleton(v,fId);
   }
 
-void ObjectsBucketDyn::fillTlas(std::vector<Tempest::RtInstance>& inst, std::vector<uint32_t>& iboOff, Bindless& out) {
+void ObjectsBucketDyn::fillTlas(RtScene& out) {
   for(size_t i=0; i<CAPACITY; ++i) {
     auto& v = val[i];
     if(!v.isValid || v.blas==nullptr)
       continue;
-
-    if(mat[i].tex!=out.tex.back() ||
-       &staticMesh->vbo!=out.vbo.back() ||
-       &staticMesh->ibo!=out.ibo.back() ||
-       uint32_t(v.iboOffset/3)!=iboOff.back()) {
-      out.tex.push_back(mat[i].tex);
-      out.vbo.push_back(&staticMesh->vbo);
-      out.ibo.push_back(&staticMesh->ibo);
-      iboOff.push_back(uint32_t(v.iboOffset/3));
-      }
-
-    RtInstance ix;
-    ix.mat  = v.pos;
-    ix.id   = uint32_t(out.tex.size()-1);
-    ix.blas = v.blas;
-    if(mat[i].alpha!=Material::Solid)
-      ix.flags = Tempest::RtInstanceFlags::NonOpaque;
-    inst.push_back(ix);
+    out.addInstance(v.pos, *v.blas, mat[i], *staticMesh, v.iboOffset);
     }
   }
 

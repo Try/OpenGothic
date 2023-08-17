@@ -124,7 +124,7 @@ void Sky::setupSettings() {
       break;
     }
   //fogLut3D = device.image3d(lutRGBAFormat,1,1,1);
-  setupUbo();
+  prepareUniforms();
   }
 
 void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t frameId, bool sun) {
@@ -267,7 +267,7 @@ void Sky::updateLight(const int64_t now) {
   exposure = 1.f/exposureInv;
   }
 
-void Sky::setupUbo() {
+void Sky::prepareUniforms() {
   auto& device = Resources::device();
   auto  smp    = Sampler::trillinear();
   auto  smpB   = Sampler::bilinear();

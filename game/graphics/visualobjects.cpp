@@ -3,7 +3,7 @@
 #include <Tempest/Log>
 
 #include "graphics/mesh/submesh/animmesh.h"
-#include "gothic.h"
+#include "graphics/mesh/landscape.h"
 
 using namespace Tempest;
 
@@ -81,9 +81,9 @@ const Tempest::StorageBuffer& VisualObjects::matrixSsbo(Tempest::BufferHeap heap
   return matrix.ssbo(heap, fId);
   }
 
-void VisualObjects::setupUbo() {
+void VisualObjects::prepareUniforms() {
   for(auto& c:buckets)
-    c->setupUbo();
+    c->prepareUniforms();
   }
 
 void VisualObjects::preFrameUpdate(uint8_t fId) {
@@ -155,11 +155,6 @@ void VisualObjects::recycle(Tempest::DescriptorSet&& del) {
   if(del.isEmpty())
     return;
   recycled[recycledId].emplace_back(std::move(del));
-  }
-
-void VisualObjects::setLandscapeBlas(const Tempest::AccelerationStructure* blas) {
-  landBlas             = blas;
-  needtoInvalidateTlas = true;
   }
 
 void VisualObjects::mkIndex() {
@@ -239,37 +234,15 @@ void VisualObjects::commitUbo(uint8_t fId) {
     c->invalidateUbo(fId);
   }
 
-void VisualObjects::updateTlas(Bindless& out, uint8_t fId) {
-  if(!needtoInvalidateTlas || !globals.tlasEnabled)
-    return;
+bool VisualObjects::updateRtScene(RtScene& out, const Landscape& land) {
+  if(!needtoInvalidateTlas)
+    return false;
   needtoInvalidateTlas = false;
 
-  if(!Gothic::inst().doRayQuery())
-    return;
-
-  std::vector<Tempest::RtInstance> inst;
-  std::vector<uint32_t>            iboOff;
-  out.tex.clear();
-  out.vbo.clear();
-  out.ibo.clear();
-  if(landBlas!=nullptr) {
-    Tempest::RtInstance ix;
-    ix.mat  = Matrix4x4::mkIdentity();
-    ix.blas = landBlas;
-    inst.push_back(ix);
-    out.tex.push_back(&Resources::fallbackBlack());
-    out.vbo.push_back(nullptr);
-    out.ibo.push_back(nullptr);
-    iboOff.push_back(0);
-    }
+  land.fillTlas(out);
   for(auto& c:buckets)
-    c->fillTlas(inst,iboOff,out);
+    c->fillTlas(out);
 
-  auto& device = Resources::device();
-  device.waitIdle();
-
-  out.iboOffset = device.ssbo(iboOff);
-  tlas = device.tlas(inst);
-
-  onTlasChanged(&tlas);
+  out.buildTlas();
+  return true;
   }

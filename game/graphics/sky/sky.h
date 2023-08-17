@@ -18,7 +18,7 @@ class Sky final {
     Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest::Vec3, Tempest::Vec3>& bbox);
     ~Sky();
 
-    void setupUbo();
+    void prepareUniforms();
     void setWorld   (const World& world, const std::pair<Tempest::Vec3, Tempest::Vec3>& bbox);
     void updateLight(const int64_t now);
 

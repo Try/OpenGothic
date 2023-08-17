@@ -49,7 +49,7 @@ void Pose::save(Serialize &fout) {
   uint8_t sz=uint8_t(lay.size());
   fout.write(sz);
   for(auto& i:lay) {
-    fout.write(i.seq->name,i.sAnim,i.bs,i.blendOut);
+    fout.write(i.seq->name,i.sAnim,i.bs,i.sBlend);
     }
   fout.write(lastUpdate);
   fout.write(combo.bits);
@@ -76,7 +76,7 @@ void Pose::load(Serialize &fin, const AnimationSolver& solver) {
   for(auto& i:lay) {
     fin.read(name,i.sAnim,i.bs);
     if(fin.version()>43)
-      fin.read(i.blendOut);
+      fin.read(i.sBlend);
     i.seq = solver.solveFrm(name);
     }
   fin.read(lastUpdate);
@@ -194,9 +194,9 @@ bool Pose::startAnim(const AnimationSolver& solver, const Animation::Sequence *s
         bs = tr ? i.bs : bs;
         }
       onRemoveLayer(i);
-      i.blendOut = i.seq->blendOut;
       i.seq      = tr ? tr : sq;
       i.sAnim    = tickCount;
+      i.sBlend   = 0;
       i.comb     = comb;
       i.bs       = bs;
       onAddLayer(i);
@@ -323,7 +323,7 @@ bool Pose::update(uint64_t tickCount) {
         if(auto sx = i.seq->comb[size_t(i.comb-1)])
           seq = sx;
         }
-      needToUpdate |= updateFrame(*seq,i.bs,lastUpdate,i.sAnim,tickCount);
+      needToUpdate |= updateFrame(*seq,i.bs,i.sBlend,lastUpdate,i.sAnim,tickCount);
       }
     lastUpdate = tickCount;
     }
@@ -336,7 +336,7 @@ bool Pose::update(uint64_t tickCount) {
   return false;
   }
 
-bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs,
+bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs, uint64_t sBlend,
                        uint64_t barrier, uint64_t sTime, uint64_t now) {
   auto&        d         = *s.data;
   const size_t numFrames = d.numFrames;
@@ -372,7 +372,9 @@ bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs,
   auto* sampleA = &d.samples[size_t(frameA*idSize)];
   auto* sampleB = &d.samples[size_t(frameB*idSize)];
 
-  const uint64_t blend = std::max(s.blendOut,s.blendIn);
+  const uint64_t blendMax = std::max(s.blendOut,s.blendIn);
+  const uint64_t blend    = std::max<uint64_t>(0, now-sBlend);
+
   for(size_t i=0; i<idSize; ++i) {
     size_t idx = d.nodeIndex[i];
     if(idx>=numBones)
@@ -395,8 +397,9 @@ bool Pose::updateFrame(const Animation::Sequence &s, BodyState bs,
         prev      [idx] = base[idx];
         [[fallthrough]];
       case S_Valid:
-        if(now<blend) {
-          float a2 = float(now)/float(blend);
+        if(blend < blendMax) {
+          float a2 = float(blend)/float(blendMax);
+          assert(0.f<=a2 && a2<=1.f);
           base[idx] = mix(prev[idx],smp,a2);
           } else {
           prev[idx] = smp;
@@ -513,10 +516,6 @@ void Pose::onAddLayer(const Pose::Layer& l) {
   if(l.seq->animCls==Animation::Transition)
     hasTransitions++;
   needToUpdate = true;
-
-  for(auto id:l.seq->data->nodeIndex)
-    if(hasSamples[id]==S_Valid)
-      hasSamples[id] = S_Old;
   }
 
 void Pose::onRemoveLayer(const Pose::Layer &l) {
@@ -528,6 +527,16 @@ void Pose::onRemoveLayer(const Pose::Layer &l) {
     hasTransitions--;
   if(l.seq->isFly())
     isFlyCombined--;
+
+  for(auto id:l.seq->data->nodeIndex)
+    if(hasSamples[id]==S_Valid)
+      hasSamples[id] = S_Old;
+
+  for(auto& lx : lay) {
+    if(&lx==&l)
+      break;
+    lx.sBlend = lastUpdate-lx.sAnim;
+    }
   }
 
 bool Pose::hasLayerEvents(const Pose::Layer& l) {

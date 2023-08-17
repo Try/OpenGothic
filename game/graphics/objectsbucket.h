@@ -16,7 +16,7 @@
 #include "graphics/dynamic/visibleset.h"
 
 class Pose;
-class Bindless;
+class RtScene;
 class VisualObjects;
 
 class ObjectsBucket {
@@ -110,9 +110,9 @@ class ObjectsBucket {
     size_t                    alloc(const Bounds& bounds);
     void                      free(const size_t objId);
 
-    virtual void              setupUbo();
+    virtual void              prepareUniforms();
     virtual void              invalidateUbo(uint8_t fId);
-    virtual void              fillTlas(std::vector<Tempest::RtInstance>& inst, std::vector<uint32_t>& iboOff, Bindless& out);
+    virtual void              fillTlas(RtScene& out);
 
     virtual void              preFrameUpdate(uint8_t fId);
     virtual void              drawHiZ    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
@@ -290,9 +290,9 @@ class ObjectsBucketDyn : public ObjectsBucket {
     void         setPfxData  (size_t i, const Tempest::StorageBuffer* ssbo, uint8_t fId) override;
     const Material& material(size_t i) const override;
 
-    void         setupUbo() override;
+    void         prepareUniforms() override;
     void         invalidateUbo(uint8_t fId) override;
-    void         fillTlas(std::vector<Tempest::RtInstance>& inst, std::vector<uint32_t>& iboOff, Bindless& out) override;
+    void         fillTlas(RtScene& out) override;
 
     void         invalidateDyn();
 
