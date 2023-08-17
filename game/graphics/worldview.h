@@ -29,8 +29,6 @@ class WorldView {
 
     bool isInPfxRange(const Tempest::Vec3& pos) const;
 
-    Tempest::Signal<void(const Tempest::AccelerationStructure* tlas)> onTlasChanged;
-
     void tick(uint64_t dt);
 
     void preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t fId);
@@ -42,13 +40,13 @@ class WorldView {
     void setHiZ(const Tempest::Texture2d& hiZ);
     void setSceneImages(const Tempest::Texture2d& clr, const Tempest::Texture2d& depthAux, const Tempest::ZBuffer& depthNative);
 
-    void setupUbo();
-    void setupTlas(const Tempest::AccelerationStructure* tlas);
+    void prepareUniforms();
 
     void dbgLights    (DbgPainter& p) const;
     void prepareSky   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void prepareFog   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void updateLight();
+    bool updateRtScene();
 
     void visibilityPass(const Frustrum fr[]);
     void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
@@ -69,7 +67,6 @@ class WorldView {
     MeshObjects::Mesh   addStaticView(std::string_view visual);
     MeshObjects::Mesh   addDecalView (const phoenix::vob& vob);
 
-    const Tempest::AccelerationStructure& landscapeTlas();
     const SceneGlobals&  sceneGlobals() const { return sGlobal; }
     const Sky&           sky() const { return gSky; }
 
@@ -82,8 +79,6 @@ class WorldView {
     MeshObjects   objGroup;
     PfxObjects    pfxGroup;
     Landscape     land;
-
-    Tempest::AccelerationStructure tlasLand;
 
     bool needToUpdateCmd(uint8_t frameId) const;
     void invalidateCmd();

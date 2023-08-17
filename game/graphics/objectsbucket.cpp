@@ -419,7 +419,7 @@ ObjectsBucket::Descriptors& ObjectsBucket::objUbo(size_t objId) {
   return uboShared;
   }
 
-void ObjectsBucket::setupUbo() {
+void ObjectsBucket::prepareUniforms() {
   uboSetCommon(uboShared,mat,bucketShared);
   }
 
@@ -428,7 +428,7 @@ void ObjectsBucket::invalidateUbo(uint8_t fId) {
     uboSetSkeleton(uboShared,fId);
   }
 
-void ObjectsBucket::fillTlas(std::vector<RtInstance>& inst, std::vector<uint32_t>& iboOff, Bindless& out) {
+void ObjectsBucket::fillTlas(std::vector<RtInstance>& inst, std::vector<uint32_t>& iboOff, RtScene& out) {
   for(size_t i=0; i<CAPACITY; ++i) {
     auto& v = val[i];
     if(!v.isValid || v.blas==nullptr)
@@ -981,8 +981,8 @@ const Material& ObjectsBucketDyn::material(size_t i) const {
   return mat[i];
   }
 
-void ObjectsBucketDyn::setupUbo() {
-  ObjectsBucket::setupUbo();
+void ObjectsBucketDyn::prepareUniforms() {
+  ObjectsBucket::prepareUniforms();
 
   for(size_t i=0; i<CAPACITY; ++i) {
     uboSetCommon(uboObj[i],mat[i],bucketObj[i]);
@@ -1007,7 +1007,7 @@ void ObjectsBucketDyn::invalidateUbo(uint8_t fId) {
     uboSetSkeleton(v,fId);
   }
 
-void ObjectsBucketDyn::fillTlas(std::vector<Tempest::RtInstance>& inst, std::vector<uint32_t>& iboOff, Bindless& out) {
+void ObjectsBucketDyn::fillTlas(std::vector<Tempest::RtInstance>& inst, std::vector<uint32_t>& iboOff, RtScene& out) {
   for(size_t i=0; i<CAPACITY; ++i) {
     auto& v = val[i];
     if(!v.isValid || v.blas==nullptr)

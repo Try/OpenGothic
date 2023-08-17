@@ -5,7 +5,7 @@
 #include "objectsbucket.h"
 
 class SceneGlobals;
-class Bindless;
+class RtScene;
 class AnimMesh;
 class Sky;
 
@@ -28,7 +28,7 @@ class VisualObjects final {
     MatrixStorage::Id   getMatrixes(Tempest::BufferHeap heap, size_t boneCnt);
     auto                matrixSsbo (Tempest::BufferHeap heap, uint8_t fId) const -> const Tempest::StorageBuffer&;
 
-    void setupUbo();
+    void prepareUniforms();
     void preFrameUpdate (uint8_t fId);
     void visibilityPass (const Frustrum fr[]);
 
@@ -42,21 +42,18 @@ class VisualObjects final {
     void resetTlas();
     void recycle(Tempest::DescriptorSet&& del);
 
-    void updateTlas(Bindless& out, uint8_t fId);
-
+    bool updateRtScene(RtScene& out);
     void setLandscapeBlas(const Tempest::AccelerationStructure* blas);
-    Tempest::Signal<void(const Tempest::AccelerationStructure* tlas)> onTlasChanged;
 
   private:
-    ObjectsBucket&                  getBucket(ObjectsBucket::Type type, const Material& mat,
-                                              const StaticMesh* st, const AnimMesh* anim, const Tempest::StorageBuffer* desc);
+    ObjectsBucket& getBucket(ObjectsBucket::Type type, const Material& mat,
+                             const StaticMesh* st, const AnimMesh* anim, const Tempest::StorageBuffer* desc);
+    void           mkIndex();
+    void           commitUbo(uint8_t fId);
 
-    void                            mkIndex();
-    void                            commitUbo(uint8_t fId);
-
-    const SceneGlobals&             globals;
-    VisibilityGroup                 visGroup;
-    MatrixStorage                   matrix;
+    const SceneGlobals&                         globals;
+    VisibilityGroup                             visGroup;
+    MatrixStorage                               matrix;
 
     std::vector<std::unique_ptr<ObjectsBucket>> buckets;
     std::vector<ObjectsBucket*>                 index;
@@ -66,7 +63,6 @@ class VisualObjects final {
     uint8_t                                     recycledId = 0;
 
     bool                                        needtoInvalidateTlas = false;
-    Tempest::AccelerationStructure              tlas;
     const Tempest::AccelerationStructure*       landBlas = nullptr;
 
   friend class ObjectsBucket;

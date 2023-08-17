@@ -6,7 +6,7 @@
 
 #include "graphics/dynamic/frustrum.h"
 #include "lightgroup.h"
-#include "bindless.h"
+#include "rtscene.h"
 
 class Sky;
 
@@ -63,8 +63,6 @@ class SceneGlobals final {
     const Tempest::Texture2d*         hiZ          = &Resources::fallbackTexture();
     const Tempest::Texture2d*         skyLut       = &Resources::fallbackTexture();
 
-    const Tempest::AccelerationStructure* tlas = nullptr;
-
     struct UboGlobal final {
       Tempest::Matrix4x4              viewProject;
       Tempest::Matrix4x4              viewProjectInv;
@@ -107,8 +105,7 @@ class SceneGlobals final {
     Tempest::Vec2                     windDir = {0,1};
     uint64_t                          windPeriod = 6000;
 
-    bool                              tlasEnabled = true;
-    Bindless                          bindless;
+    RtScene                           rtScene;
 
   private:
     void                              initSettings();

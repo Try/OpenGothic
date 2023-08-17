@@ -196,10 +196,6 @@ void Renderer::initSettings() {
   }
 
 void Renderer::onWorldChanged() {
-  auto wview = Gothic::inst().worldView();
-  if(wview!=nullptr) {
-    wview->onTlasChanged.bind(this,&Renderer::setupTlas);
-    }
   prepareUniforms();
   }
 
@@ -288,8 +284,6 @@ void Renderer::prepareUniforms() {
     water.ubo.set(10,*sky.cloudsNight().lay[1],Sampler::bilinear());
   }
 
-  setupTlas(nullptr);
-
   const Texture2d* sh[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
     if(!shadowMap[i].isEmpty()) {
@@ -300,24 +294,24 @@ void Renderer::prepareUniforms() {
   wview->setHiZ(textureCast(hiz.hiZ));
   wview->setGbuffer(textureCast(gbufDiffuse), textureCast(gbufNormal));
   wview->setSceneImages(textureCast(sceneOpaque), textureCast(sceneDepth), zbuffer);
-  wview->setupUbo();
+  wview->prepareUniforms();
   }
 
-void Renderer::setupTlas(const Tempest::AccelerationStructure* tlas) {
+void Renderer::prepareRtUniforms() {
   auto wview = Gothic::inst().worldView();
   if(wview==nullptr)
     return;
   auto& scene = wview->sceneGlobals();
-  if(scene.tlas==nullptr)
+  if(scene.rtScene.tlas.isEmpty())
     return;
 
   if(shadow.composePso==&Shaders::inst().shadowResolveRq) {
-    shadow.ubo.set(6, *scene.tlas);
+    shadow.ubo.set(6, scene.rtScene.tlas);
     shadow.ubo.set(7, Sampler::bilinear());
-    shadow.ubo.set(8, scene.bindless.tex);
-    shadow.ubo.set(9, scene.bindless.vbo);
-    shadow.ubo.set(10,scene.bindless.ibo);
-    shadow.ubo.set(11,scene.bindless.iboOffset);
+    shadow.ubo.set(8, scene.rtScene.tex);
+    shadow.ubo.set(9, scene.rtScene.vbo);
+    shadow.ubo.set(10,scene.rtScene.ibo);
+    shadow.ubo.set(11,scene.rtScene.iboOffset);
     }
   }
 
@@ -391,6 +385,9 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
     cmd.setFramebuffer({{result, Vec4(), Tempest::Preserve}});
     return;
     }
+
+  if(wview->updateRtScene())
+    prepareRtUniforms();
 
   wview->updateLight();
   updateCamera(*camera);

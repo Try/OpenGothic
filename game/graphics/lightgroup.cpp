@@ -394,8 +394,6 @@ void LightGroup::draw(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   static bool light = true;
   if(!light)
     return;
-  if(Gothic::options().doRayQuery && scene.tlas==nullptr)
-    return;
 
   auto& p = shader();
   if(bucketSt.data.size()>0) {
@@ -408,7 +406,7 @@ void LightGroup::draw(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     }
   }
 
-void LightGroup::setupUbo() {
+void LightGroup::prepareUniforms() {
   LightBucket* bucket[2] = {&bucketSt, &bucketDyn};
   for(auto b:bucket) {
     for(int i=0;i<Resources::MaxFramesInFlight;++i) {
@@ -417,16 +415,23 @@ void LightGroup::setupUbo() {
       u.set(1,*scene.gbufNormals,Sampler::nearest());
       u.set(2,*scene.zbuffer,    Sampler::nearest());
       u.set(3,uboBuf[i]);
-      if(Gothic::options().doRayQuery && scene.tlas!=nullptr) {
-        if(Resources::device().properties().descriptors.nonUniformIndexing) {
-          u.set(6, Sampler::bilinear());
-          u.set(7, scene.bindless.tex);
-          u.set(8, scene.bindless.vbo);
-          u.set(9, scene.bindless.ibo);
-          u.set(10,scene.bindless.iboOffset);
-          }
-        u.set(5,*scene.tlas);
+      }
+    }
+  }
+
+void LightGroup::prepareRtUniforms() {
+  LightBucket* bucket[2] = {&bucketSt, &bucketDyn};
+  for(auto b:bucket) {
+    for(int i=0;i<Resources::MaxFramesInFlight;++i) {
+      auto& u = b->ubo[i];
+      if(Resources::device().properties().descriptors.nonUniformIndexing) {
+        u.set(6, Sampler::bilinear());
+        u.set(7, scene.rtScene.tex);
+        u.set(8, scene.rtScene.vbo);
+        u.set(9, scene.rtScene.ibo);
+        u.set(10,scene.rtScene.iboOffset);
         }
+      u.set(5,scene.rtScene.tlas);
       }
     }
   }

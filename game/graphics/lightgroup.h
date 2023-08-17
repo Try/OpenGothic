@@ -49,11 +49,13 @@ class LightGroup final {
       };
 
     void   dbgLights(DbgPainter& p) const;
-
     void   tick(uint64_t time);
+
     void   preFrameUpdate(uint8_t fId);
+    void   prepareUniforms();
+    void   prepareRtUniforms();
+
     void   draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void   setupUbo();
 
   private:
     using Vertex = Resources::VertexL;

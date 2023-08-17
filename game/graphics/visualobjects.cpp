@@ -3,7 +3,6 @@
 #include <Tempest/Log>
 
 #include "graphics/mesh/submesh/animmesh.h"
-#include "gothic.h"
 
 using namespace Tempest;
 
@@ -81,9 +80,9 @@ const Tempest::StorageBuffer& VisualObjects::matrixSsbo(Tempest::BufferHeap heap
   return matrix.ssbo(heap, fId);
   }
 
-void VisualObjects::setupUbo() {
+void VisualObjects::prepareUniforms() {
   for(auto& c:buckets)
-    c->setupUbo();
+    c->prepareUniforms();
   }
 
 void VisualObjects::preFrameUpdate(uint8_t fId) {
@@ -239,13 +238,10 @@ void VisualObjects::commitUbo(uint8_t fId) {
     c->invalidateUbo(fId);
   }
 
-void VisualObjects::updateTlas(Bindless& out, uint8_t fId) {
-  if(!needtoInvalidateTlas || !globals.tlasEnabled)
-    return;
+bool VisualObjects::updateRtScene(RtScene& out) {
+  if(!needtoInvalidateTlas)
+    return false;
   needtoInvalidateTlas = false;
-
-  if(!Gothic::options().doRayQuery)
-    return;
 
   std::vector<Tempest::RtInstance> inst;
   std::vector<uint32_t>            iboOff;
@@ -269,7 +265,6 @@ void VisualObjects::updateTlas(Bindless& out, uint8_t fId) {
   device.waitIdle();
 
   out.iboOffset = device.ssbo(iboOff);
-  tlas = device.tlas(inst);
-
-  onTlasChanged(&tlas);
+  out.tlas      = device.tlas(inst);
+  return true;
   }
