@@ -29,25 +29,39 @@ enum {
   OCNPC__ENABLE_EQUIPBESTWEAPONS = 7626662, //0x745FA6
   };
 
-void Ikarus::memory_instance::read32(void* data32, const phoenix::symbol &sym, size_t index) {
+void Ikarus::memory_instance::set_int(const phoenix::symbol &sym, uint16_t index, int32_t value) {
   ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index*sym.class_size());
-  int32_t v    = owner.allocator.readInt(addr);
-  std::memcpy(data32, &v, 4);
+  owner.allocator.writeInt(addr, value);
   }
 
-void Ikarus::memory_instance::write32(const void *data32, const phoenix::symbol &sym, size_t index) {
-  ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index*sym.class_size());
-  owner.allocator.writeInt(addr, *reinterpret_cast<const int32_t*>(data32));
+int32_t Ikarus::memory_instance::get_int(const phoenix::symbol& sym, uint16_t index) {
+  ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index * sym.class_size());
+  int32_t v = owner.allocator.readInt(addr);
+  return v;
   }
 
-void Ikarus::memory_instance::write_string(std::string_view str, const phoenix::symbol& sym, size_t index) {
+void Ikarus::memory_instance::set_float(const phoenix::symbol& sym, uint16_t index, float value) {
+  ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index*sym.class_size());
+  owner.allocator.writeInt(addr, *reinterpret_cast<const int32_t*>(&value));
+  }
+
+float Ikarus::memory_instance::get_float(const phoenix::symbol& sym, uint16_t index) {
+  ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index * sym.class_size());
+  int32_t v = owner.allocator.readInt(addr);
+
+  float f = 0;
+  std::memcpy(&f, &v, 4);
+  return f;
+  }
+
+void Ikarus::memory_instance::set_string(const phoenix::symbol& sym, uint16_t index, std::string_view value) {
   ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index*sym.class_size());
   (void)addr;
   Log::d("memory_instance: ", sym.name());
   // allocator.writeInt(addr, 0);
   }
 
-const std::string& Ikarus::memory_instance::read_string(const phoenix::symbol& sym, size_t index) {
+const std::string& Ikarus::memory_instance::get_string(const phoenix::symbol& sym, uint16_t index) {
   ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index*sym.class_size());
 
   Log::d("memory_instance: ", sym.name());
@@ -55,6 +69,7 @@ const std::string& Ikarus::memory_instance::read_string(const phoenix::symbol& s
   static std::string empty;
   return empty;
   }
+
 
 Ikarus::Ikarus(GameScript& /*owner*/, phoenix::vm& vm) : vm(vm) {
   Log::i("DMA mod detected: Ikarus");

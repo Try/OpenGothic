@@ -18,11 +18,14 @@ class Ikarus : public ScriptPlugin {
     struct memory_instance : public phoenix::transient_instance {
       explicit memory_instance(Ikarus &owner, ptr32_t address) : owner(owner), address(address) {}
 
-      void read32(void *data32, phoenix::symbol const &sym, size_t index) override;
-      void write32(const void *data32, phoenix::symbol const &sym, size_t index) override;
+      void set_int(phoenix::symbol const& sym, uint16_t index, std::int32_t value) override;
+      std::int32_t get_int(phoenix::symbol const& sym, uint16_t index) override;
 
-      void write_string(std::string_view str, phoenix::symbol const &sym, size_t index) override;
-      const std::string &read_string(phoenix::symbol const &sym, size_t index) override;
+      void set_float(phoenix::symbol const& sym, uint16_t index, float value) override;
+      float get_float(phoenix::symbol const& sym, uint16_t index) override;
+
+      void set_string(phoenix::symbol const& sym, uint16_t index, std::string_view value) override;
+      const std::string& get_string(phoenix::symbol const& sym, uint16_t index) override;
 
       Ikarus &owner;
       ptr32_t address = 0;
