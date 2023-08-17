@@ -112,7 +112,7 @@ class ObjectsBucket {
 
     virtual void              prepareUniforms();
     virtual void              invalidateUbo(uint8_t fId);
-    virtual void              fillTlas(std::vector<Tempest::RtInstance>& inst, std::vector<uint32_t>& iboOff, RtScene& out);
+    virtual void              fillTlas(RtScene& out);
 
     virtual void              preFrameUpdate(uint8_t fId);
     virtual void              drawHiZ    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
@@ -292,7 +292,7 @@ class ObjectsBucketDyn : public ObjectsBucket {
 
     void         prepareUniforms() override;
     void         invalidateUbo(uint8_t fId) override;
-    void         fillTlas(std::vector<Tempest::RtInstance>& inst, std::vector<uint32_t>& iboOff, RtScene& out) override;
+    void         fillTlas(RtScene& out) override;
 
     void         invalidateDyn();
 

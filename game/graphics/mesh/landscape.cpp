@@ -69,3 +69,9 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &packed)
                                   meshletSolidDesc,Bounds(),ObjectsBucket::LandscapeShadow);
     }
   }
+
+void Landscape::fillTlas(RtScene& out) const {
+  if(rt.blas.isEmpty())
+    return;
+  out.addInstance(rt.blas);
+  }

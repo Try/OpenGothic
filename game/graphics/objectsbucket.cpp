@@ -428,29 +428,12 @@ void ObjectsBucket::invalidateUbo(uint8_t fId) {
     uboSetSkeleton(uboShared,fId);
   }
 
-void ObjectsBucket::fillTlas(std::vector<RtInstance>& inst, std::vector<uint32_t>& iboOff, RtScene& out) {
+void ObjectsBucket::fillTlas(RtScene& out) {
   for(size_t i=0; i<CAPACITY; ++i) {
     auto& v = val[i];
     if(!v.isValid || v.blas==nullptr)
       continue;
-
-    if(mat.tex!=out.tex.back() ||
-       &staticMesh->vbo!=out.vbo.back() ||
-       &staticMesh->ibo!=out.ibo.back() ||
-       uint32_t(v.iboOffset/3)!=iboOff.back()) {
-      out.tex.push_back(mat.tex);
-      out.vbo.push_back(&staticMesh->vbo);
-      out.ibo.push_back(&staticMesh->ibo);
-      iboOff.push_back(uint32_t(v.iboOffset/3));
-      }
-
-    RtInstance ix;
-    ix.mat  = v.pos;
-    ix.id   = uint32_t(out.tex.size()-1);
-    ix.blas = v.blas;
-    if(mat.alpha!=Material::Solid)
-      ix.flags = Tempest::RtInstanceFlags::NonOpaque;
-    inst.push_back(ix);
+    out.addInstance(v.pos, *v.blas, mat, *staticMesh, v.iboOffset);
     }
   }
 
@@ -1007,29 +990,12 @@ void ObjectsBucketDyn::invalidateUbo(uint8_t fId) {
     uboSetSkeleton(v,fId);
   }
 
-void ObjectsBucketDyn::fillTlas(std::vector<Tempest::RtInstance>& inst, std::vector<uint32_t>& iboOff, RtScene& out) {
+void ObjectsBucketDyn::fillTlas(RtScene& out) {
   for(size_t i=0; i<CAPACITY; ++i) {
     auto& v = val[i];
     if(!v.isValid || v.blas==nullptr)
       continue;
-
-    if(mat[i].tex!=out.tex.back() ||
-       &staticMesh->vbo!=out.vbo.back() ||
-       &staticMesh->ibo!=out.ibo.back() ||
-       uint32_t(v.iboOffset/3)!=iboOff.back()) {
-      out.tex.push_back(mat[i].tex);
-      out.vbo.push_back(&staticMesh->vbo);
-      out.ibo.push_back(&staticMesh->ibo);
-      iboOff.push_back(uint32_t(v.iboOffset/3));
-      }
-
-    RtInstance ix;
-    ix.mat  = v.pos;
-    ix.id   = uint32_t(out.tex.size()-1);
-    ix.blas = v.blas;
-    if(mat[i].alpha!=Material::Solid)
-      ix.flags = Tempest::RtInstanceFlags::NonOpaque;
-    inst.push_back(ix);
+    out.addInstance(v.pos, *v.blas, mat[i], *staticMesh, v.iboOffset);
     }
   }
 

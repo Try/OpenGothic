@@ -3,6 +3,7 @@
 #include <Tempest/Log>
 
 #include "graphics/mesh/submesh/animmesh.h"
+#include "graphics/mesh/landscape.h"
 
 using namespace Tempest;
 
@@ -156,11 +157,6 @@ void VisualObjects::recycle(Tempest::DescriptorSet&& del) {
   recycled[recycledId].emplace_back(std::move(del));
   }
 
-void VisualObjects::setLandscapeBlas(const Tempest::AccelerationStructure* blas) {
-  landBlas             = blas;
-  needtoInvalidateTlas = true;
-  }
-
 void VisualObjects::mkIndex() {
   if(index.size()!=0)
     return;
@@ -238,33 +234,15 @@ void VisualObjects::commitUbo(uint8_t fId) {
     c->invalidateUbo(fId);
   }
 
-bool VisualObjects::updateRtScene(RtScene& out) {
+bool VisualObjects::updateRtScene(RtScene& out, const Landscape& land) {
   if(!needtoInvalidateTlas)
     return false;
   needtoInvalidateTlas = false;
 
-  std::vector<Tempest::RtInstance> inst;
-  std::vector<uint32_t>            iboOff;
-  out.tex.clear();
-  out.vbo.clear();
-  out.ibo.clear();
-  if(landBlas!=nullptr) {
-    Tempest::RtInstance ix;
-    ix.mat  = Matrix4x4::mkIdentity();
-    ix.blas = landBlas;
-    inst.push_back(ix);
-    out.tex.push_back(&Resources::fallbackBlack());
-    out.vbo.push_back(nullptr);
-    out.ibo.push_back(nullptr);
-    iboOff.push_back(0);
-    }
+  land.fillTlas(out);
   for(auto& c:buckets)
-    c->fillTlas(inst,iboOff,out);
+    c->fillTlas(out);
 
-  auto& device = Resources::device();
-  device.waitIdle();
-
-  out.iboOffset = device.ssbo(iboOff);
-  out.tlas      = device.tlas(inst);
+  out.buildTlas();
   return true;
   }

@@ -13,7 +13,6 @@ WorldView::WorldView(const World& world, const PackedMesh& wmesh)
   : owner(world),gSky(sGlobal,world,wmesh.bbox()),visuals(sGlobal,wmesh.bbox()),
     objGroup(visuals),pfxGroup(*this,sGlobal,visuals),land(visuals,wmesh) {
   pfxGroup.resetTicks();
-  visuals.setLandscapeBlas(&land.rt.blas);
   }
 
 WorldView::~WorldView() {
@@ -198,7 +197,7 @@ void WorldView::updateLight() {
 bool WorldView::updateRtScene() {
   if(!Gothic::inst().options().doRayQuery)
     return false;
-  if(!visuals.updateRtScene(sGlobal.rtScene))
+  if(!visuals.updateRtScene(sGlobal.rtScene, land))
     return false;
   // assume device-idle, if RT scene was recreated
   sGlobal.lights.prepareRtUniforms();

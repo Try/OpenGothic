@@ -6,8 +6,9 @@
 
 class SceneGlobals;
 class RtScene;
-class AnimMesh;
+class Landscape;
 class Sky;
+class AnimMesh;
 
 class VisualObjects final {
   public:
@@ -42,8 +43,7 @@ class VisualObjects final {
     void resetTlas();
     void recycle(Tempest::DescriptorSet&& del);
 
-    bool updateRtScene(RtScene& out);
-    void setLandscapeBlas(const Tempest::AccelerationStructure* blas);
+    bool updateRtScene(RtScene& out, const Landscape& land);
 
   private:
     ObjectsBucket& getBucket(ObjectsBucket::Type type, const Material& mat,
@@ -63,7 +63,6 @@ class VisualObjects final {
     uint8_t                                     recycledId = 0;
 
     bool                                        needtoInvalidateTlas = false;
-    const Tempest::AccelerationStructure*       landBlas = nullptr;
 
   friend class ObjectsBucket;
   friend class ObjectsBucket::Item;
