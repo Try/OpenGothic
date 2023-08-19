@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <vector>
 #include <memory>
 
@@ -12,11 +13,17 @@ class Mem32 {
     static constexpr uint32_t memAlign = 8;
 
     ptr32_t pin  (void* mem, ptr32_t address, uint32_t size, const char* comment = nullptr);
+    ptr32_t pin  (void* mem, uint32_t size, const char* comment = nullptr);
+
     ptr32_t alloc(uint32_t size);
+    ptr32_t alloc(ptr32_t address, uint32_t size, const char* comment = nullptr);
+
     void    free (ptr32_t at);
 
-    void    writeInt(ptr32_t address, int32_t v);
-    int32_t readInt (ptr32_t address);
+    ptr32_t realloc(ptr32_t address, uint32_t size);
+
+    void    writeInt (ptr32_t address, int32_t v);
+    int32_t readInt  (ptr32_t address);
     void    copyBytes(ptr32_t src, ptr32_t dst, uint32_t size);
 
   private:
@@ -29,13 +36,18 @@ class Mem32 {
     struct Region {
       Region();
       Region(ptr32_t b, uint32_t sz):address(b),size(sz){}
-      ptr32_t     address = 0;
-      uint32_t    size    = 0;
-      void*       real    = nullptr;
-      const char* comment = nullptr;
-      Status      status  = S_Unused;
+
+      //std::function<void(ptr32_t offset)> callback;
+      ptr32_t                             address = 0;
+      uint32_t                            size    = 0;
+      void*                               real    = nullptr;
+      const char*                         comment = nullptr;
+      Status                              status  = S_Unused;
       };
 
+    Region*  implAlloc(uint32_t size);
+    Region*  implAllocAt(ptr32_t address, uint32_t size);
+    bool     implRealloc(ptr32_t address, uint32_t size);
     Region*  translate(ptr32_t address);
     void     compactage();
 

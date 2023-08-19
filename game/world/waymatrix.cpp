@@ -26,15 +26,6 @@ WayMatrix::WayMatrix(World &world, const phoenix::way_net &dat)
     }
 
   edges = dat.edges;
-
-  for(auto& i:wayPoints)
-    if(i.name.find("START")==0)
-      startPoints.push_back(i);
-
-  for(auto& i:wayPoints)
-    if(i.name.find("START")!=std::string::npos)
-      startPoints.push_back(i);
-
   stk[0].reserve(256);
   stk[1].reserve(256);
   }
@@ -50,6 +41,7 @@ void WayMatrix::buildIndex() {
 
   for(auto& i:freePoints)
     fpInd.push_back(&i);
+
   std::sort(fpInd.begin(),fpInd.end(),[](const WayPoint* a,const WayPoint* b){
     return a->x<b->x;
     });
@@ -116,16 +108,17 @@ void WayMatrix::addStartPoint(const Vec3& pos, const Vec3& dir, std::string_view
   }
 
 const WayPoint &WayMatrix::startPoint() const {
-  for(auto& i:startPoints)
+  if(startPoints.size()>0)
+    return startPoints[0];
+
+  for(auto& i:freePoints)
     if(i.name=="START_GOTHIC2")
       return i;
 
-  for(auto& i:startPoints)
+  for(auto& i:freePoints)
     if(i.name=="START")
       return i;
 
-  if(startPoints.size()>0)
-    return startPoints.back();
   static WayPoint p(Vec3(),"START");
   return p;
   }
@@ -141,9 +134,11 @@ const WayPoint& WayMatrix::deadPoint() const {
 const WayPoint* WayMatrix::findPoint(std::string_view name, bool inexact) const {
   if(name.empty())
     return nullptr;
-  for(auto& i:startPoints)
-    if(name==i.name)
-      return &i;
+  for(size_t i=0; i<startPoints.size(); ++i) {
+    auto& sp = startPoints[startPoints.size()-1-i];
+    if(name==sp.name)
+      return &sp;
+    }
   auto it = std::lower_bound(indexPoints.begin(),indexPoints.end(),name,[](const WayPoint* a, std::string_view b){
       return a->name<b;
     });
@@ -162,7 +157,15 @@ void WayMatrix::marchPoints(DbgPainter &p) const {
   if(!ddraw)
     return;
   static bool fp = true;
-  auto& points = fp ? freePoints : wayPoints;
+  static bool sp = true;
+  auto *ppoints = &wayPoints;
+  if (fp)
+    ppoints = &freePoints;
+  if (sp)
+    ppoints = &startPoints;
+
+  auto &points = *ppoints;
+  int id = 0;
   for(auto& i:points) {
     float x = i.x, y = i.y, z = i.z;
     p.mvp.project(x,y,z);
@@ -175,7 +178,8 @@ void WayMatrix::marchPoints(DbgPainter &p) const {
     p.setBrush(Tempest::Color(1,0,0,1));
     p.painter.drawRect(int(x),int(y),4,4);
 
-    p.drawText(int(x),int(y),i.name.c_str());
+    p.drawText(int(x),int(y),(i.name+" #"+std::to_string(id)).c_str());
+    ++id;
     }
   }
 

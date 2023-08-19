@@ -1,6 +1,7 @@
 #include "mem32.h"
 
 #include <Tempest/Log>
+#include <cassert>
 #include <cstring>
 #include <algorithm>
 #include <cstddef>
@@ -26,70 +27,51 @@ Mem32::~Mem32() {
   }
 
 Mem32::ptr32_t Mem32::pin(void* mem, ptr32_t address, uint32_t size, const char* comment) {
-  for(size_t i=0; i<region.size(); ++i) {
-    auto& rgn = region[i];
+  if(auto rgn = implAllocAt(address,size)) {
+    rgn->size    = size;
+    rgn->real    = mem;
+    rgn->status  = S_Pin;
+    rgn->comment = comment;
+    return address;
+    }
+  return 0;
+  }
 
-    if(address!=0) {
-      if(!(rgn.address<=address && address+size<=rgn.address+rgn.size))
-        continue;
-      } else {
-      if(rgn.size<size)
-        continue;
-      }
+Mem32::ptr32_t Mem32::pin(void* mem, uint32_t size, const char* comment) {
+  if(auto rgn = implAlloc(size)) {
+    rgn->size    = size;
+    rgn->real    = mem;
+    rgn->status  = S_Pin;
+    rgn->comment = comment;
+    return rgn->address;
+    }
+  return 0;
+  }
 
-    if(rgn.status!=S_Unused) {
-      Log::e("failed to pin a ",size," bytes of memory: block is in use");
+Mem32::ptr32_t Mem32::alloc(ptr32_t address, uint32_t size, const char* comment) {
+  if(auto rgn = implAllocAt(address,size)) {
+    rgn->real = std::calloc(size,1);
+    if(rgn->real==nullptr) {
+      compactage();
       return 0;
       }
-
-    if(address==0)
-      address = region[i].address;
-
-    if(region[i].address<address) {
-      uint32_t off = (address-region[i].address);
-      auto p2 = region[i];
-      p2.address+=off;
-      p2.size   -=off;
-      region.insert(region.begin()+ptrdiff_t(i+1),p2);
-      region[i].size = off;
-      ++i;
-      }
-    if(size!=region[i].size) {
-      auto p2 = region[i];
-      p2.address+=size;
-      p2.size   -=size;
-      region.insert(region.begin()+ptrdiff_t(i+1),p2);
-      }
-
-    region[i].size    = size;
-    region[i].real    = mem;
-    region[i].status  = S_Pin;
-    region[i].comment = comment;
+    rgn->size    = size;
+    rgn->status  = S_Allocated;
+    rgn->comment = comment;
+    return address;
     }
   return 0;
   }
 
 Mem32::ptr32_t Mem32::alloc(uint32_t size) {
-  size = ((size+memAlign-1)/memAlign)*memAlign;
-
-  for(size_t i=0; i<region.size(); ++i) {
-    if(region[i].status!=S_Unused || region[i].size<size)
-      continue;
-    if(size!=region[i].size) {
-      auto p2 = region[i];
-      p2.address+=size;
-      p2.size   -=size;
-      region.insert(region.begin()+ptrdiff_t(i+1),p2);
-      }
-    region[i].size   = size;
-    region[i].real   = std::calloc(size,1);
-    if(region[i].real!=nullptr) {
-      region[i].status = S_Allocated;
-      return region[i].address;
-      } else {
+  if(auto rgn = implAlloc(size)) {
+    rgn->real = std::calloc(size,1);
+    if(rgn->real==nullptr) {
       compactage();
       return 0;
       }
+    rgn->status = S_Allocated;
+    return rgn->address;
     }
   return 0;
   }
@@ -125,7 +107,7 @@ void Mem32::compactage() {
 
 void Mem32::writeInt(ptr32_t address, int32_t v) {
   auto rgn = translate(address);
-  if(rgn==nullptr || rgn->status==S_Unused) {
+  if(rgn==nullptr) {
     Log::e("mem_writeint: address translation failure: ", reinterpret_cast<void*>(uint64_t(address)));
     return;
     }
@@ -136,8 +118,8 @@ void Mem32::writeInt(ptr32_t address, int32_t v) {
 
 int32_t Mem32::readInt(ptr32_t address) {
   auto rgn = translate(address);
-  if(rgn==nullptr || rgn->status==S_Unused) {
-    Log::e("mem_readint: address translation failure: ", reinterpret_cast<void*>(uint64_t(address)));
+  if(rgn==nullptr) {
+    Log::e("mem_readint:  address translation failure: ", reinterpret_cast<void*>(uint64_t(address)));
     return 0;
     }
   address -= rgn->address;
@@ -175,9 +157,139 @@ void Mem32::copyBytes(ptr32_t psrc, ptr32_t pdst, uint32_t size) {
               sz);
   }
 
+Mem32::Region* Mem32::implAlloc(uint32_t size) {
+  size = ((size+memAlign-1)/memAlign)*memAlign;
+
+  for(size_t i=0; i<region.size(); ++i) {
+    if(region[i].status!=S_Unused || region[i].size<size)
+      continue;
+    if(size!=region[i].size) {
+      auto p2 = region[i];
+      p2.address+=size;
+      p2.size   -=size;
+      region.insert(region.begin()+ptrdiff_t(i+1),p2);
+      }
+    region[i].size = size;
+    return &region[i];
+    }
+
+  return nullptr;
+  }
+
+Mem32::ptr32_t Mem32::realloc(ptr32_t address, uint32_t size) {
+  size = ((size+memAlign-1)/memAlign)*memAlign;
+  if(implRealloc(address,size))
+    return address;
+
+  auto next = implAlloc(size);
+  if(next==nullptr)
+    return 0;
+
+  auto src = translate(address);
+  if(src==nullptr) {
+    if(address!=0)
+      Log::e("realloc: address translation failure: ", reinterpret_cast<void*>(uint64_t(address)));
+    return next->address;
+    }
+
+  next->status  = S_Allocated;
+  next->real    = src->real;
+  next->comment = src->comment;
+
+  src->real     = nullptr;
+  src->status   = S_Unused;
+
+  auto ret = next->address;
+  compactage();
+  return ret;
+  }
+
+Mem32::Region* Mem32::implAllocAt(ptr32_t address, uint32_t size) {
+  for(size_t i=0; i<region.size(); ++i) {
+    auto& rgn = region[i];
+
+    if(address!=0) {
+      if(!(rgn.address<=address && address+size<=rgn.address+rgn.size))
+        continue;
+      } else {
+      if(rgn.size<size)
+        continue;
+      }
+
+    if(rgn.status!=S_Unused) {
+      Log::e("failed to pin a ",size," bytes of memory: block is in use");
+      return 0;
+      }
+
+    if(address==0)
+      address = region[i].address;
+
+    if(region[i].address<address) {
+      uint32_t off = (address-region[i].address);
+      auto p2 = region[i];
+      p2.address+=off;
+      p2.size   -=off;
+      region.insert(region.begin()+ptrdiff_t(i+1),p2);
+      region[i].size = off;
+      ++i;
+      }
+    if(size!=region[i].size) {
+      auto p2 = region[i];
+      p2.address+=size;
+      p2.size   -=size;
+      region.insert(region.begin()+ptrdiff_t(i+1),p2);
+      }
+
+    return &region[i];
+    }
+  return nullptr;
+  }
+
+bool Mem32::implRealloc(ptr32_t address, uint32_t nsize) {
+  // NOTE: in place only
+  for(size_t i=0; i<region.size(); ++i) {
+    auto& rgn = region[i];
+    if(rgn.address!=address)
+      continue;
+
+    if(nsize==rgn.size)
+      return true;
+
+    if(nsize<rgn.size) {
+      if(auto next = std::realloc(rgn.real, nsize))
+        rgn.real = next;
+      Region frgn(address+nsize, rgn.size-nsize);
+      rgn.size = nsize;
+      region.insert(region.begin() + intptr_t(i + 1), frgn);
+      return true;
+      }
+
+    if(i+1==region.size())
+      return false; // can't expand
+
+    auto& rgn2 = region[i+1];
+    if(rgn2.status==S_Unused && rgn.size + rgn2.size>=nsize) {
+      auto next = std::realloc(rgn.real, nsize);
+      if(next==nullptr)
+        return false;
+      rgn2.address += (nsize-rgn.size);
+      rgn2.size    -= (nsize-rgn.size);
+      rgn.real      = next;
+      rgn.size      = nsize;
+      if(rgn2.size==0)
+        compactage();
+      return true;
+      }
+
+    return false;
+    }
+  return false;
+  }
+
 Mem32::Region* Mem32::translate(ptr32_t address) {
+  // TODO: binary-search
   for(auto& rgn:region) {
-    if(rgn.address<=address && address<rgn.address+rgn.size)
+    if(rgn.address<=address && address<rgn.address+rgn.size && rgn.status!=S_Unused)
       return &rgn;
     }
   return nullptr;

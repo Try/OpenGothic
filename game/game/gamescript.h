@@ -55,7 +55,6 @@ class GameScript final {
       phoenix::c_info* handle   = nullptr;
       };
 
-
     bool         hasSymbolName(std::string_view fn);
 
     void         initializeInstanceNpc(const std::shared_ptr<phoenix::c_npc>& npc, size_t instance);
@@ -74,6 +73,7 @@ class GameScript final {
     const World& world() const;
     World&       world();
     uint64_t     tickCount() const;
+    void         tick(uint64_t dt);
 
     uint32_t     rand(uint32_t max);
     void         removeItem(Item& it);
@@ -208,6 +208,7 @@ class GameScript final {
 
     bool searchScheme(std::string_view sc, std::string_view listName);
 
+    static phoenix::vm createVm(Gothic& gothic);
 
     bool game_initgerman     ();
     bool game_initenglish    ();

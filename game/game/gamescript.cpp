@@ -59,9 +59,9 @@ bool GameScript::GlobalOutput::isFinished() {
   return true;
   }
 
-GameScript::GameScript(GameSession &owner)
-  :owner(owner), vm(Gothic::inst().loadScript(Gothic::inst().defaultGameDatFile()), phoenix::execution_flag::vm_allow_null_instance_access) {
 
+GameScript::GameScript(GameSession &owner)
+    :owner(owner), vm(createVm(Gothic::inst())) {
   if (vm.global_self() == nullptr || vm.global_other() == nullptr || vm.global_item() == nullptr ||
       vm.global_victim() == nullptr || vm.global_hero() == nullptr)
     throw std::runtime_error("Cannot find script symbol SELF, OTHER, ITEM, VICTIM, or HERO! Cannot proceed!");
@@ -384,11 +384,14 @@ void GameScript::initCommon() {
       }
     }
 
-  if(Ikarus::isRequired(vm)) {
-    plugins.emplace_back(std::make_unique<Ikarus>(*this,vm));
+  Ikarus* ikarus = nullptr;
+  if(Ikarus::isRequired(vm) || LeGo::isRequired(vm)) {
+    auto ik = std::make_unique<Ikarus>(*this,vm);
+    ikarus = ik.get();
+    plugins.emplace_back(std::move(ik));
     }
   if(LeGo::isRequired(vm)) {
-    plugins.emplace_back(std::make_unique<LeGo>(*this,vm));
+    plugins.emplace_back(std::make_unique<LeGo>(*this,*ikarus,vm));
     }
   }
 
@@ -1280,12 +1283,26 @@ bool GameScript::searchScheme(std::string_view sc, std::string_view listName) {
   return false;
   }
 
+phoenix::vm GameScript::createVm(Gothic& gothic) {
+  auto script = gothic.loadScript(gothic.defaultGameDatFile());
+  auto exef   = phoenix::execution_flag::vm_allow_null_instance_access;
+  if(Ikarus::isRequired(script)) {
+    exef |= phoenix::execution_flag::vm_ignore_const_specifier;
+    }
+  return phoenix::vm(std::move(script), exef);
+  }
+
 bool GameScript::hasSymbolName(std::string_view name) {
   return vm.find_symbol_by_name(name)!=nullptr;
   }
 
 uint64_t GameScript::tickCount() const {
   return owner.tickCount();
+  }
+
+void GameScript::tick(uint64_t dt) {
+  for(auto& i:plugins)
+    i->tick(dt);
   }
 
 uint32_t GameScript::rand(uint32_t max) {
