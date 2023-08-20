@@ -35,7 +35,7 @@ bool WayPoint::checkName(std::string_view n) const {
     return true;
 
   for(size_t i=0, i0=0; ; ++i) {
-    if(src[i]=='_' || i==name.size()) {
+    if(i==name.size() || src[i]=='_') {
       const size_t len2 = i-i0;
       auto sb = src.substr(i0, len2);
       // if(sb==n)
