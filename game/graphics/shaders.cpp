@@ -162,7 +162,7 @@ Shaders::Shaders() {
     hiZMip = computeShader("hiz_mip.comp.sprv");
     }
 
-  if(meshlets) {
+  if(meshlets && device.properties().meshlets.maxGroupSize.x>=256) {
     RenderState state;
     state.setCullFaceMode(RenderState::CullMode::Front);
     state.setZTestMode   (RenderState::ZTestMode::Greater);
