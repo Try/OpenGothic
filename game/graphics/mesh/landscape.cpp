@@ -13,7 +13,8 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &packed)
     meshletDesc = Resources::ssbo(packed.meshletBounds.data(),packed.meshletBounds.size()*sizeof(packed.meshletBounds[0]));
 
   auto& device = Resources::device();
-  std::vector<uint32_t> ibo;
+  std::vector<RtGeometry> opaque;
+
   blocks.reserve(packed.subMeshes.size());
   for(size_t i=0; i<packed.subMeshes.size(); ++i) {
     auto& sub      = packed.subMeshes[i];
@@ -29,11 +30,8 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &packed)
       if(material.alpha!=Material::Solid) {
         mesh.sub[i].blas = device.blas(mesh.vbo,mesh.ibo,sub.iboOffset,sub.iboLength);
         } else {
-        size_t iboSz = ibo.size();
-        ibo.resize(ibo.size()+sub.iboLength);
-        for(size_t id=0; id<sub.iboLength; ++id)
-          ibo[iboSz+id] = packed.indices[sub.iboOffset+id];
-        // TODO: proper blas support
+        // NOTE: generalize handling of ObjectsBucket::Landscape / ObjectsBucket::Static
+        opaque.push_back(RtGeometry{mesh.vbo,mesh.ibo,sub.iboOffset,sub.iboLength});
         }
       }
 
@@ -44,9 +42,8 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &packed)
     blocks.emplace_back(std::move(b));
     }
 
-  if(Gothic::options().doRayQuery && ibo.size()>0) {
-    rt.ibo  = Resources::ibo(ibo.data(),ibo.size());
-    rt.blas = device.blas(mesh.vbo,rt.ibo);
+  if(Gothic::options().doRayQuery && opaque.size()>0) {
+    rt.blas = device.blas(opaque);
     }
 
   if(Gothic::options().doMeshShading) {

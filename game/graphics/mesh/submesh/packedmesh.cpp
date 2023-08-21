@@ -401,7 +401,7 @@ void PackedMesh::packPhysics(const phoenix::mesh& mesh, PkgType type) {
     if(m.disable_collision)
       continue;
     Prim p;
-    p.primId = i*3;
+    p.primId = uint32_t(i*3);
     if(m.name.find(':')==std::string::npos) {
       // unnamed materials - can merge them
       p.mat   = uint8_t(m.group);
@@ -471,7 +471,7 @@ void PackedMesh::packMeshletsLnd(const phoenix::mesh& mesh) {
   prim.reserve(mid.size());
   for(size_t i=0; i<mid.size(); ++i) {
     Prim p;
-    p.primId = i*3;
+    p.primId = uint32_t(i*3);
     p.mat    = mid[i];
     prim.push_back(p);
     }
@@ -492,7 +492,7 @@ void PackedMesh::packMeshletsLnd(const phoenix::mesh& mesh) {
 
     heap.clear();
     for(; i<prim.size() && prim[i].mat==mId; ++i) {
-      const size_t id = prim[i].primId;
+      const uint32_t id = prim[i].primId;
 
       auto a = mkUInt64(ibo[id+0],feat[id+0]);
       auto b = mkUInt64(ibo[id+1],feat[id+1]);

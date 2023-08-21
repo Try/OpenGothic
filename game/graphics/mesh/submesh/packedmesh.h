@@ -67,8 +67,8 @@ class PackedMesh {
     Tempest::Vec3 mBbox[2];
 
     struct Prim {
-      size_t  primId = 0;
-      size_t  mat    = 0;
+      uint32_t primId = 0;
+      uint32_t mat    = 0;
       };
 
     struct SkeletalData {
