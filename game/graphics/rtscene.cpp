@@ -7,14 +7,37 @@ using namespace Tempest;
 RtScene::RtScene() {
   }
 
+void RtScene::notifyTlas(const Material& mat, Category cat) const {
+  if(cat!=Landscape && cat!=Static)
+    return; // not supported
+  if(mat.alpha!=Material::Solid && mat.alpha!=Material::AlphaTest)
+    return; // not supported
+  needToUpdate = true;
+  }
+
+bool RtScene::isUpdateRequired() const {
+  return needToUpdate;
+  }
+
 void RtScene::addInstance(const Matrix4x4& pos, const AccelerationStructure& blas,
-                          const Material& mat, const StaticMesh& mesh, size_t fistIndex) {
-  if(mat.tex!=build.tex.back() || &mesh.vbo!=build.vbo.back() || &mesh.ibo!=build.ibo.back() ||
-     uint32_t(fistIndex/3)!=build.iboOff.back()) {
+                          const Material& mat, const StaticMesh& mesh, size_t firstIndex, size_t iboLength,
+                          Category cat) {
+  if(cat!=Landscape && cat!=Static)
+    return; // not supported
+  if(mat.alpha!=Material::Solid && mat.alpha!=Material::AlphaTest)
+    return; // not supported
+
+  if(mat.alpha==Material::Solid && (cat==Landscape /*|| cat==Static*/)) {
+    build.staticOpaque.push_back({mesh.vbo, mesh.ibo, firstIndex, iboLength});
+    return;
+    }
+
+  if(build.tex.empty() || (mat.tex!=build.tex.back() || &mesh.vbo!=build.vbo.back() || &mesh.ibo!=build.ibo.back() ||
+                            uint32_t(firstIndex/3)!=build.iboOff.back())) {
     build.tex   .push_back(mat.tex);
     build.vbo   .push_back(&mesh.vbo);
     build.ibo   .push_back(&mesh.ibo);
-    build.iboOff.push_back(uint32_t(fistIndex/3));
+    build.iboOff.push_back(uint32_t(firstIndex/3));
     }
 
   RtInstance ix;
@@ -41,6 +64,10 @@ void RtScene::addInstance(const Tempest::AccelerationStructure& blas) {
 void RtScene::buildTlas() {
   auto& device = Resources::device();
   device.waitIdle();
+  needToUpdate = false;
+
+  blasStaticOpaque = device.blas(build.staticOpaque);
+  addInstance(blasStaticOpaque);
 
   tex       = std::move(build.tex);
   vbo       = std::move(build.vbo);

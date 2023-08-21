@@ -29,6 +29,8 @@ class VisualObjects final {
     MatrixStorage::Id   getMatrixes(Tempest::BufferHeap heap, size_t boneCnt);
     auto                matrixSsbo (Tempest::BufferHeap heap, uint8_t fId) const -> const Tempest::StorageBuffer&;
 
+    void recycle(Tempest::DescriptorSet&& del);
+
     void prepareUniforms();
     void preFrameUpdate (uint8_t fId);
     void visibilityPass (const Frustrum fr[]);
@@ -40,10 +42,9 @@ class VisualObjects final {
     void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
 
     void resetIndex();
-    void resetTlas();
-    void recycle(Tempest::DescriptorSet&& del);
+    void notifyTlas(const Material& m, RtScene::Category cat);
 
-    bool updateRtScene(RtScene& out, const Landscape& land);
+    bool updateRtScene(RtScene& out);
 
   private:
     ObjectsBucket& getBucket(ObjectsBucket::Type type, const Material& mat,
@@ -61,8 +62,6 @@ class VisualObjects final {
 
     std::vector<Tempest::DescriptorSet>         recycled[Resources::MaxFramesInFlight];
     uint8_t                                     recycledId = 0;
-
-    bool                                        needtoInvalidateTlas = false;
 
   friend class ObjectsBucket;
   friend class ObjectsBucket::Item;

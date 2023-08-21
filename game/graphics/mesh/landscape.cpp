@@ -13,7 +13,6 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &packed)
     meshletDesc = Resources::ssbo(packed.meshletBounds.data(),packed.meshletBounds.size()*sizeof(packed.meshletBounds[0]));
 
   auto& device = Resources::device();
-  std::vector<RtGeometry> opaque;
 
   blocks.reserve(packed.subMeshes.size());
   for(size_t i=0; i<packed.subMeshes.size(); ++i) {
@@ -27,12 +26,7 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &packed)
 
     Block b;
     if(Gothic::options().doRayQuery) {
-      if(material.alpha!=Material::Solid) {
-        mesh.sub[i].blas = device.blas(mesh.vbo,mesh.ibo,sub.iboOffset,sub.iboLength);
-        } else {
-        // NOTE: generalize handling of ObjectsBucket::Landscape / ObjectsBucket::Static
-        opaque.push_back(RtGeometry{mesh.vbo,mesh.ibo,sub.iboOffset,sub.iboLength});
-        }
+      mesh.sub[i].blas = device.blas(mesh.vbo,mesh.ibo,sub.iboOffset,sub.iboLength);
       }
 
     Bounds bbox;
@@ -40,10 +34,6 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &packed)
     b.mesh = visual.get(mesh,material,sub.iboOffset,sub.iboLength,meshletDesc,bbox,ObjectsBucket::Landscape);
     b.mesh.setObjMatrix(Matrix4x4::mkIdentity());
     blocks.emplace_back(std::move(b));
-    }
-
-  if(Gothic::options().doRayQuery && opaque.size()>0) {
-    rt.blas = device.blas(opaque);
     }
 
   if(Gothic::options().doMeshShading) {
@@ -65,10 +55,4 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &packed)
     solidBlock.mesh  = visual.get(mesh,matSh,0,mesh.ibo.size(),
                                   meshletSolidDesc,Bounds(),ObjectsBucket::LandscapeShadow);
     }
-  }
-
-void Landscape::fillTlas(RtScene& out) const {
-  if(rt.blas.isEmpty())
-    return;
-  out.addInstance(rt.blas);
   }

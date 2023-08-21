@@ -197,7 +197,7 @@ void WorldView::updateLight() {
 bool WorldView::updateRtScene() {
   if(!Gothic::inst().options().doRayQuery)
     return false;
-  if(!visuals.updateRtScene(sGlobal.rtScene, land))
+  if(!visuals.updateRtScene(sGlobal.rtScene))
     return false;
   // assume device-idle, if RT scene was recreated
   sGlobal.lights.prepareRtUniforms();

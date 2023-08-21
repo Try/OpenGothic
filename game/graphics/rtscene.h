@@ -13,8 +13,18 @@ class RtScene {
   public:
     RtScene();
 
+    enum Category : uint8_t {
+      None,
+      Landscape,
+      Static,
+      Movable,
+      };
+
+    void notifyTlas(const Material& m, RtScene::Category cat) const;
+    bool isUpdateRequired() const;
+
     void addInstance(const Tempest::Matrix4x4& pos, const Tempest::AccelerationStructure& blas,
-                     const Material& mat, const StaticMesh& mesh, size_t fistIndex);
+                     const Material& mat, const StaticMesh& mesh, size_t firstIndex, size_t iboLength, Category cat);
     void addInstance(const Tempest::AccelerationStructure& blas);
     void buildTlas();
 
@@ -33,6 +43,11 @@ class RtScene {
       std::vector<const Tempest::StorageBuffer*> ibo;
       std::vector<uint32_t>                      iboOff;
       std::vector<Tempest::RtInstance>           inst;
+
+      std::vector<Tempest::RtGeometry>           staticOpaque;
       } build;
+
+    Tempest::AccelerationStructure blasStaticOpaque;
+    mutable bool                   needToUpdate = true;
   };
 

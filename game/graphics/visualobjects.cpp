@@ -3,7 +3,6 @@
 #include <Tempest/Log>
 
 #include "graphics/mesh/submesh/animmesh.h"
-#include "graphics/mesh/landscape.h"
 
 using namespace Tempest;
 
@@ -147,8 +146,8 @@ void VisualObjects::resetIndex() {
   index.clear();
   }
 
-void VisualObjects::resetTlas() {
-  needtoInvalidateTlas = true;
+void VisualObjects::notifyTlas(const Material& m, RtScene::Category cat) {
+  globals.rtScene.notifyTlas(m,cat);
   }
 
 void VisualObjects::recycle(Tempest::DescriptorSet&& del) {
@@ -234,12 +233,10 @@ void VisualObjects::commitUbo(uint8_t fId) {
     c->invalidateUbo(fId);
   }
 
-bool VisualObjects::updateRtScene(RtScene& out, const Landscape& land) {
-  if(!needtoInvalidateTlas)
+bool VisualObjects::updateRtScene(RtScene& out) {
+  if(!out.isUpdateRequired())
     return false;
-  needtoInvalidateTlas = false;
 
-  land.fillTlas(out);
   for(auto& c:buckets)
     c->fillTlas(out);
 

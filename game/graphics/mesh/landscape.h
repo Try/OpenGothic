@@ -16,8 +16,6 @@ class Landscape final {
   public:
     Landscape(VisualObjects& visual, const PackedMesh& wmesh);
 
-    void fillTlas(RtScene& out) const;
-
   private:
     using Item = ObjectsBucket::Item;
 
@@ -25,11 +23,6 @@ class Landscape final {
       Item                           mesh;
       Tempest::AccelerationStructure blas;
       };
-
-    struct RayTrace {
-      Tempest::IndexBuffer<uint32_t> ibo;
-      Tempest::AccelerationStructure blas;
-      } rt;
 
     std::vector<Block>     blocks;
     StaticMesh             mesh;

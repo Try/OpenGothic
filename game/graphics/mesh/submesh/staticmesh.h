@@ -45,6 +45,8 @@ class StaticMesh {
       const Tempest::StorageBuffer* samples = nullptr;
       };
 
+    const Tempest::AccelerationStructure* blas(size_t iboOffset, size_t iboLen) const;
+
     Tempest::VertexBuffer<Vertex>   vbo;
     Tempest::IndexBuffer<uint32_t>  ibo;
     Tempest::StorageBuffer          ibo8;

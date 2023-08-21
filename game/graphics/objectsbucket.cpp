@@ -33,6 +33,19 @@ static Matrix4x4 dummyMatrix() {
   return mat;
   }
 
+static RtScene::Category toRtCategory(ObjectsBucket::Type t) {
+  switch (t) {
+    case ObjectsBucket::LandscapeShadow: return RtScene::None;
+    case ObjectsBucket::Landscape:       return RtScene::Landscape;
+    case ObjectsBucket::Static:          return RtScene::Static;
+    case ObjectsBucket::Movable:         return RtScene::Movable;
+    case ObjectsBucket::Animated:        return RtScene::None;
+    case ObjectsBucket::Pfx:             return RtScene::None;
+    case ObjectsBucket::Morph:           return RtScene::None;
+    }
+  return RtScene::None;
+  }
+
 void ObjectsBucket::Item::setObjMatrix(const Tempest::Matrix4x4 &mt) {
   owner->setObjMatrix(id,mt);
   }
@@ -294,7 +307,7 @@ void ObjectsBucket::postAlloc(Object& obj, size_t /*objId*/) {
 void ObjectsBucket::implFree(const size_t objId) {
   auto& v = val[objId];
   if(v.blas!=nullptr)
-    owner.resetTlas();
+    owner.notifyTlas(material(objId), toRtCategory(objType));
 
   v.visibility = VisibilityGroup::Token();
   v.isValid    = false;
@@ -433,7 +446,7 @@ void ObjectsBucket::fillTlas(RtScene& out) {
     auto& v = val[i];
     if(!v.isValid || v.blas==nullptr)
       continue;
-    out.addInstance(v.pos, *v.blas, mat, *staticMesh, v.iboOffset);
+    out.addInstance(v.pos, *v.blas, mat, *staticMesh, v.iboOffset, v.iboLength, toRtCategory(objType));
     }
   }
 
@@ -493,24 +506,17 @@ size_t ObjectsBucket::alloc(const StaticMesh& mesh, size_t iboOffset, size_t ibo
   v->iboOffset = iboOffset;
   v->iboLength = iboLen;
 
-  bool useBlas = true;
-  if(mat.alpha==Material::Solid && objType==Type::Landscape)
-    useBlas = false; // handles separately
-
-  if(objType!=Type::Landscape && objType!=Type::Static)
-    useBlas = false; // not supported
+  bool useBlas = toRtCategory(objType)!=RtScene::None;
   if(mat.isGhost)
     useBlas = false;
   if(mat.alpha!=Material::Solid && mat.alpha!=Material::AlphaTest && mat.alpha!=Material::Transparent)
     useBlas = false;
 
   if(useBlas) {
-    for(auto& i:mesh.sub)
-      if(i.iboOffset==iboOffset && i.iboLength==iboLen && !i.blas.isEmpty()) {
-        v->blas = &i.blas;
-        owner.resetTlas();
-        break;
-        }
+    if(auto b = mesh.blas(iboOffset, iboLen)) {
+      v->blas = b;
+      owner.notifyTlas(mat, toRtCategory(objType));
+      }
     }
   postAlloc(*v,size_t(std::distance(val,v)));
   return size_t(std::distance(val,v));
@@ -637,7 +643,7 @@ void ObjectsBucket::setObjMatrix(size_t i, const Matrix4x4& m) {
     objPositions.set(m,i);
 
   if(v.blas!=nullptr)
-    owner.resetTlas();
+    owner.notifyTlas(material(i), toRtCategory(objType));
   }
 
 void ObjectsBucket::setBounds(size_t i, const Bounds& b) {
@@ -995,7 +1001,7 @@ void ObjectsBucketDyn::fillTlas(RtScene& out) {
     auto& v = val[i];
     if(!v.isValid || v.blas==nullptr)
       continue;
-    out.addInstance(v.pos, *v.blas, mat[i], *staticMesh, v.iboOffset);
+    out.addInstance(v.pos, *v.blas, mat[i], *staticMesh, v.iboOffset, v.iboLength, toRtCategory(objType));
     }
   }
 
