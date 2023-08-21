@@ -1,5 +1,7 @@
 #include "rtscene.h"
 
+#include <Tempest/Log>
+
 #include "graphics/mesh/submesh/staticmesh.h"
 
 using namespace Tempest;
@@ -32,12 +34,14 @@ void RtScene::addInstance(const Matrix4x4& pos, const AccelerationStructure& bla
     return;
     }
 
+  const uint32_t firstPrimitive = uint32_t(firstIndex/3);
+
   if(build.tex.empty() || (mat.tex!=build.tex.back() || &mesh.vbo!=build.vbo.back() || &mesh.ibo!=build.ibo.back() ||
-                            uint32_t(firstIndex/3)!=build.iboOff.back())) {
+                            firstPrimitive!=build.iboOff.back())) {
     build.tex   .push_back(mat.tex);
     build.vbo   .push_back(&mesh.vbo);
     build.ibo   .push_back(&mesh.ibo);
-    build.iboOff.push_back(uint32_t(firstIndex/3));
+    build.iboOff.push_back(firstPrimitive);
     }
 
   RtInstance ix;

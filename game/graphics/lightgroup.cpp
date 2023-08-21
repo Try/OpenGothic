@@ -424,14 +424,14 @@ void LightGroup::prepareRtUniforms() {
   for(auto b:bucket) {
     for(int i=0;i<Resources::MaxFramesInFlight;++i) {
       auto& u = b->ubo[i];
+      u.set(6,scene.rtScene.tlas);
       if(Resources::device().properties().descriptors.nonUniformIndexing) {
-        u.set(6, Sampler::bilinear());
-        u.set(7, scene.rtScene.tex);
-        u.set(8, scene.rtScene.vbo);
-        u.set(9, scene.rtScene.ibo);
-        u.set(10,scene.rtScene.iboOffset);
+        u.set(7, Sampler::bilinear());
+        u.set(8, scene.rtScene.tex);
+        u.set(9, scene.rtScene.vbo);
+        u.set(10,scene.rtScene.ibo);
+        u.set(11,scene.rtScene.iboOffset);
         }
-      u.set(5,scene.rtScene.tlas);
       }
     }
   }

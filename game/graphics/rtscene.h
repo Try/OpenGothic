@@ -20,6 +20,11 @@ class RtScene {
       Movable,
       };
 
+    struct InstanceId {
+      uint32_t bucket;
+      uint32_t firstPrimitive;
+      };
+
     void notifyTlas(const Material& m, RtScene::Category cat) const;
     bool isUpdateRequired() const;
 

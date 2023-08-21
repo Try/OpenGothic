@@ -24,13 +24,14 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &packed)
     if(material.tex==nullptr || material.tex->isEmpty())
       continue;
 
-    Block b;
     if(Gothic::options().doRayQuery) {
       mesh.sub[i].blas = device.blas(mesh.vbo,mesh.ibo,sub.iboOffset,sub.iboLength);
       }
 
     Bounds bbox;
     bbox.assign(packed.vertices,packed.indices,sub.iboOffset,sub.iboLength);
+
+    Block b;
     b.mesh = visual.get(mesh,material,sub.iboOffset,sub.iboLength,meshletDesc,bbox,ObjectsBucket::Landscape);
     b.mesh.setObjMatrix(Matrix4x4::mkIdentity());
     blocks.emplace_back(std::move(b));
