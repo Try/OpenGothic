@@ -312,7 +312,7 @@ void Renderer::prepareRtUniforms() {
     shadow.ubo.set(8, scene.rtScene.tex);
     shadow.ubo.set(9, scene.rtScene.vbo);
     shadow.ubo.set(10,scene.rtScene.ibo);
-    shadow.ubo.set(11,scene.rtScene.iboOffset);
+    shadow.ubo.set(11,scene.rtScene.rtDesc);
     }
   }
 

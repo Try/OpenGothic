@@ -20,8 +20,8 @@ class RtScene {
       Movable,
       };
 
-    struct InstanceId {
-      uint32_t bucket;
+    struct RtObjectDesc {
+      uint32_t instanceId;
       uint32_t firstPrimitive;
       };
 
@@ -30,7 +30,6 @@ class RtScene {
 
     void addInstance(const Tempest::Matrix4x4& pos, const Tempest::AccelerationStructure& blas,
                      const Material& mat, const StaticMesh& mesh, size_t firstIndex, size_t iboLength, Category cat);
-    void addInstance(const Tempest::AccelerationStructure& blas);
     void buildTlas();
 
     Tempest::AccelerationStructure             tlas;
@@ -39,20 +38,33 @@ class RtScene {
     std::vector<const Tempest::Texture2d*>     tex;
     std::vector<const Tempest::StorageBuffer*> vbo;
     std::vector<const Tempest::StorageBuffer*> ibo;
-    Tempest::StorageBuffer                     iboOffset;
+    Tempest::StorageBuffer                     rtDesc;
 
   private:
+    struct BuildBlas {
+      std::vector<Tempest::RtGeometry> geom;
+      std::vector<RtObjectDesc>        rtDesc;
+      };
+
     struct Build {
       std::vector<const Tempest::Texture2d*>     tex;
       std::vector<const Tempest::StorageBuffer*> vbo;
       std::vector<const Tempest::StorageBuffer*> ibo;
-      std::vector<uint32_t>                      iboOff;
+
+      std::vector<RtObjectDesc>                  rtDesc;
       std::vector<Tempest::RtInstance>           inst;
 
-      std::vector<Tempest::RtGeometry>           staticOpaque;
-      } build;
+      BuildBlas                                  staticOpaque;
+      BuildBlas                                  staticAt;
+      };
 
+    uint32_t aquireBucketId(const Material& mat, const StaticMesh& mesh);
+    void     addInstance(const BuildBlas& build, Tempest::AccelerationStructure& blas, Tempest::RtInstanceFlags flags);
+
+    Build                          build;
     Tempest::AccelerationStructure blasStaticOpaque;
+    Tempest::AccelerationStructure blasStaticAt;
+
     mutable bool                   needToUpdate = true;
   };
 

@@ -21,6 +21,19 @@ bool RtScene::isUpdateRequired() const {
   return needToUpdate;
   }
 
+uint32_t RtScene::aquireBucketId(const Material& mat, const StaticMesh& mesh) {
+  for(size_t i=build.tex.size(); i>0; ) {
+    --i;
+    if(mat.tex!=build.tex[i] || &mesh.vbo!=build.vbo[i] || &mesh.ibo!=build.ibo[i])
+      continue;
+    return uint32_t(i);
+    }
+  build.tex.push_back(mat.tex);
+  build.vbo.push_back(&mesh.vbo);
+  build.ibo.push_back(&mesh.ibo);
+  return uint32_t(build.tex.size()-1);
+  }
+
 void RtScene::addInstance(const Matrix4x4& pos, const AccelerationStructure& blas,
                           const Material& mat, const StaticMesh& mesh, size_t firstIndex, size_t iboLength,
                           Category cat) {
@@ -29,40 +42,47 @@ void RtScene::addInstance(const Matrix4x4& pos, const AccelerationStructure& bla
   if(mat.alpha!=Material::Solid && mat.alpha!=Material::AlphaTest)
     return; // not supported
 
-  if(mat.alpha==Material::Solid && (cat==Landscape /*|| cat==Static*/)) {
-    build.staticOpaque.push_back({mesh.vbo, mesh.ibo, firstIndex, iboLength});
-    return;
-    }
-
+  const uint32_t bucketId       = aquireBucketId(mat,mesh);
   const uint32_t firstPrimitive = uint32_t(firstIndex/3);
 
-  if(build.tex.empty() || (mat.tex!=build.tex.back() || &mesh.vbo!=build.vbo.back() || &mesh.ibo!=build.ibo.back() ||
-                            firstPrimitive!=build.iboOff.back())) {
-    build.tex   .push_back(mat.tex);
-    build.vbo   .push_back(&mesh.vbo);
-    build.ibo   .push_back(&mesh.ibo);
-    build.iboOff.push_back(firstPrimitive);
-    }
+  RtObjectDesc desc = {};
+  desc.instanceId     = bucketId;
+  desc.firstPrimitive = firstPrimitive;
 
   RtInstance ix;
   ix.mat  = pos;
-  ix.id   = uint32_t(build.tex.size()-1);
+  ix.id   = uint32_t(build.rtDesc.size());
   ix.blas = &blas;
   if(mat.alpha!=Material::Solid)
     ix.flags = Tempest::RtInstanceFlags::NonOpaque;
+
+  if(mat.alpha==Material::Solid && (cat==Landscape /*|| cat==Static*/)) {
+    build.staticOpaque.geom  .push_back({mesh.vbo, mesh.ibo, firstIndex, iboLength});
+    build.staticOpaque.rtDesc.push_back(desc);
+    return;
+    }
+  if(mat.alpha==Material::AlphaTest && (cat==Landscape /*|| cat==Static*/)) {
+    build.staticAt.geom  .push_back({mesh.vbo, mesh.ibo, firstIndex, iboLength});
+    build.staticAt.rtDesc.push_back(desc);
+    return;
+    }
+
   build.inst.push_back(ix);
+  build.rtDesc.push_back(desc);
   }
 
-void RtScene::addInstance(const Tempest::AccelerationStructure& blas) {
-  build.tex   .push_back(&Resources::fallbackBlack());
-  build.vbo   .push_back(nullptr);
-  build.ibo   .push_back(nullptr);
-  build.iboOff.push_back(0);
+void RtScene::addInstance(const BuildBlas& ctx, Tempest::AccelerationStructure& blas, RtInstanceFlags flags) {
+  auto& device = Resources::device();
+  blas = device.blas(ctx.geom);
 
   Tempest::RtInstance ix;
-  ix.mat  = Matrix4x4::mkIdentity();
-  ix.blas = &blas;
+  ix.mat   = Matrix4x4::mkIdentity();
+  ix.id    = uint32_t(build.rtDesc.size());
+  ix.flags = flags;
+  ix.blas  = &blas;
   build.inst.push_back(ix);
+
+  build.rtDesc.insert(build.rtDesc.end(), ctx.rtDesc.begin(), ctx.rtDesc.end());
   }
 
 void RtScene::buildTlas() {
@@ -70,14 +90,15 @@ void RtScene::buildTlas() {
   device.waitIdle();
   needToUpdate = false;
 
-  blasStaticOpaque = device.blas(build.staticOpaque);
-  addInstance(blasStaticOpaque);
+  addInstance(build.staticOpaque, blasStaticOpaque, Tempest::RtInstanceFlags::Opaque);
+  addInstance(build.staticAt, blasStaticAt, Tempest::RtInstanceFlags::NonOpaque);
 
-  tex       = std::move(build.tex);
-  vbo       = std::move(build.vbo);
-  ibo       = std::move(build.ibo);
-  iboOffset = device.ssbo(build.iboOff);
-  tlas      = device.tlas(build.inst);
+  tex    = std::move(build.tex);
+  vbo    = std::move(build.vbo);
+  ibo    = std::move(build.ibo);
+  rtDesc = device.ssbo(build.rtDesc);
+  tlas   = device.tlas(build.inst);
 
   build = Build();
   }
+

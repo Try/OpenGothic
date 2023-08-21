@@ -430,7 +430,7 @@ void LightGroup::prepareRtUniforms() {
         u.set(8, scene.rtScene.tex);
         u.set(9, scene.rtScene.vbo);
         u.set(10,scene.rtScene.ibo);
-        u.set(11,scene.rtScene.iboOffset);
+        u.set(11,scene.rtScene.rtDesc);
         }
       }
     }

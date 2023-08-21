@@ -6,11 +6,15 @@ layout(binding  = 6) uniform accelerationStructureEXT topLevelAS;
 #endif
 
 #if defined(RAY_QUERY_AT)
+struct RtObjectDesc {
+  uint instanceId; // "real" id
+  uint firstPrimitive;
+  };
 layout(binding  = 7) uniform sampler   smp;
 layout(binding  = 8) uniform texture2D textures[];
 layout(binding  = 9,  std430) readonly buffer Vbo { float vert[];   } vbo[];
 layout(binding  = 10, std430) readonly buffer Ibo { uint  index[];  } ibo[];
-layout(binding  = 11, std430) readonly buffer Off { uint  offset[]; } iboOff;
+layout(binding  = 11, std430) readonly buffer Off { RtObjectDesc rtDesc[]; };
 #endif
 
 #if defined(RAY_QUERY_AT)
@@ -28,18 +32,27 @@ uvec3 pullTrinagleIds(uint id, uint primitiveID) {
   return index;
   }
 
+RtObjectDesc pullRtDesc(in rayQueryEXT rayQuery) {
+  const bool commited = false;
+  uint id = 0;
+  id += rayQueryGetIntersectionInstanceCustomIndexEXT(rayQuery, commited);
+  id += rayQueryGetIntersectionGeometryIndexEXT(rayQuery, commited);
+  return rtDesc[id];
+  }
+
 bool isOpaqueHit(in rayQueryEXT rayQuery) {
-  const bool  commited    = false;
+  const bool  commited     = false;
 
-  const uint  id          = rayQueryGetIntersectionInstanceCustomIndexEXT(rayQuery, commited);
+  RtObjectDesc desc        = pullRtDesc(rayQuery);
+  const uint   id          = desc.instanceId;
+  const uint   primOffset  = desc.firstPrimitive;
 
-  const uint  primOffset  = iboOff.offset[id];
-  const uint  primitiveID = rayQueryGetIntersectionPrimitiveIndexEXT(rayQuery, commited) + primOffset;
-  const uvec3 index       = pullTrinagleIds(id,primitiveID);
+  const uint   primitiveID = rayQueryGetIntersectionPrimitiveIndexEXT(rayQuery, commited) + primOffset;
+  const uvec3  index       = pullTrinagleIds(id,primitiveID);
 
-  const vec2  uv0         = pullTexcoord(id,index.x);
-  const vec2  uv1         = pullTexcoord(id,index.y);
-  const vec2  uv2         = pullTexcoord(id,index.z);
+  const vec2   uv0         = pullTexcoord(id,index.x);
+  const vec2   uv1         = pullTexcoord(id,index.y);
+  const vec2   uv2         = pullTexcoord(id,index.z);
 
   vec3 b = vec3(0,rayQueryGetIntersectionBarycentricsEXT(rayQuery, commited));
   b.x = (1-b.y-b.z);
