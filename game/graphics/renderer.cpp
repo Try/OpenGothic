@@ -165,6 +165,7 @@ void Renderer::resetSwapchain() {
   tonemapping.uboTone = device.descriptors(*tonemapping.pso);
 
   prepareUniforms();
+  prepareRtUniforms();
   }
 
 void Renderer::initSettings() {
