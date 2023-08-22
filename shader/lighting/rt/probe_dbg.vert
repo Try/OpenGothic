@@ -49,9 +49,10 @@ void main() {
   Probe p = probe[gl_InstanceIndex];
   //p.pos = vec3(0);
 
-  float range = 2.5;
+  float range = 5;
   vec3  vert  = v[index[gl_VertexIndex]];
 
   gl_Position = scene.viewProject * vec4(p.pos + vert * range, 1.0);
   color       = p.color;
+  center      = p.pos;
   }
