@@ -45,6 +45,10 @@ class Shaders {
     Tempest::ComputePipeline hiZPot, hiZMip;
     Tempest::RenderPipeline  hiZReproj;
 
+    // GI
+    Tempest::RenderPipeline  probeDbg;
+    Tempest::ComputePipeline probeClear, probeAlocation0, probeAlocation1;
+
     enum PipelineType: uint8_t {
       T_Forward,
       T_Deffered,

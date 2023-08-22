@@ -236,6 +236,13 @@ add_shader(hiz_pot.comp              hiz/hiz_pot.comp "")
 add_shader(hiz_reproject.mesh        hiz/hiz_reproject.mesh "")
 add_shader(hiz_reproject.frag        hiz/hiz_reproject.frag "")
 
+add_shader(probe_dbg.vert            lighting/rt/probe_dbg.vert "")
+add_shader(probe_dbg.frag            lighting/rt/probe_dbg.frag "")
+
+add_shader(probe_clear.comp          lighting/rt/probe_allocation.comp -DCLEAR)
+add_shader(probe_allocation0.comp    lighting/rt/probe_allocation.comp -DPREPASS)
+add_shader(probe_allocation1.comp    lighting/rt/probe_allocation.comp -DALLOC)
+
 add_custom_command(
   OUTPUT     ${HEADER} ${CPP}
   DEPENDS    ${OPENGOTHIC_SHADERS_SPRV}

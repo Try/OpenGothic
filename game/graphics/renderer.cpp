@@ -164,6 +164,18 @@ void Renderer::resetSwapchain() {
   tonemapping.pso     = &Shaders::inst().tonemapping;
   tonemapping.uboTone = device.descriptors(*tonemapping.pso);
 
+  if(settings.giEnabled) {
+    gi.uboDbg         = DescriptorSet();
+
+    gi.probeClearPso  = &Shaders::inst().probeClear;
+    gi.probeAlloc0Pso = &Shaders::inst().probeAlocation0;
+    gi.probeAlloc1Pso = &Shaders::inst().probeAlocation1;
+    gi.uboProbes      = device.descriptors(*gi.probeAlloc0Pso);
+
+    gi.hashTable      = device.ssbo(nullptr, 2'097'152*sizeof(uint32_t)); // 8MB
+    gi.probes         = device.ssbo(nullptr, 8*1024*1024); // ~26K
+    }
+
   prepareUniforms();
   prepareRtUniforms();
   }
@@ -284,6 +296,16 @@ void Renderer::prepareUniforms() {
     water.ubo.set(9, *sky.cloudsNight().lay[0],Sampler::bilinear());
     water.ubo.set(10,*sky.cloudsNight().lay[1],Sampler::bilinear());
   }
+
+  if(settings.giEnabled) {
+    gi.uboProbes.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    gi.uboProbes.set(1, gbufDiffuse, Sampler::nearest());
+    gi.uboProbes.set(2, gbufNormal,  Sampler::nearest());
+    gi.uboProbes.set(3, zbuffer,     Sampler::nearest());
+
+    gi.uboProbes.set(4, gi.hashTable);
+    gi.uboProbes.set(5, gi.probes);
+    }
 
   const Texture2d* sh[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
@@ -418,6 +440,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   prepareSSAO(cmd);
   prepareFog (cmd,fId,*wview);
   prepareIrradiance(cmd,fId);
+  prepareGi(cmd,fId);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Discard, Tempest::Preserve}}, {zbuffer, Tempest::Readonly});
   drawShadowResolve(cmd,fId,*wview);
@@ -434,6 +457,8 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   wview->drawSunMoon(cmd,fId);
   cmd.setDebugMarker("Translucent");
   wview->drawTranslucent(cmd,fId);
+
+  drawProbesDbg(cmd, fId);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   drawReflections(cmd,fId);
@@ -623,6 +648,38 @@ void Renderer::prepareIrradiance(Tempest::Encoder<CommandBuffer>& cmd, uint8_t f
   cmd.setDebugMarker("Irradiance");
   cmd.setUniforms(*irradiance.pso, irradiance.ubo);
   cmd.dispatch(1);
+  }
+
+void Renderer::prepareGi(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  cmd.setFramebuffer({});
+  cmd.setDebugMarker("GI-Alloc");
+
+  cmd.setUniforms(*gi.probeClearPso, gi.uboProbes);
+  cmd.dispatchThreads(gi.hashTable.byteSize()/sizeof(uint32_t));
+
+  cmd.setUniforms(*gi.probeAlloc0Pso, gi.uboProbes);
+  cmd.dispatchThreads(sceneDepth.size());
+
+  cmd.setUniforms(*gi.probeAlloc1Pso, gi.uboProbes);
+  cmd.dispatchThreads(sceneDepth.size());
+  }
+
+void Renderer::drawProbesDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  auto& device = Resources::device();
+  auto& pso    = Shaders::inst().probeDbg;
+
+  if(auto wview=Gothic::inst().worldView()) {
+    if(gi.uboDbg.isEmpty()) {
+      gi.uboDbg = device.descriptors(pso);
+      gi.uboDbg.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+      gi.uboDbg.set(1, gi.probes);
+      }
+    }
+
+  cmd.setDebugMarker("GI-dbg");
+  const size_t cnt = (gi.probes.byteSize()-sizeof(uint32_t))/(sizeof(float)*8);
+  cmd.setUniforms(pso, gi.uboDbg);
+  cmd.draw(36, 0, cnt);
   }
 
 void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {

@@ -174,6 +174,22 @@ Shaders::Shaders() {
     hiZReproj = device.pipeline(state,Shader(),ms,fs);
     }
 
+  if(Gothic::options().doRayQuery) {
+    RenderState state;
+    state.setCullFaceMode(RenderState::CullMode::NoCull);
+    state.setZTestMode   (RenderState::ZTestMode::Less);
+
+    auto sh = GothicShader::get("probe_dbg.vert.sprv");
+    auto vs = device.shader(sh.data,sh.len);
+    sh = GothicShader::get("probe_dbg.frag.sprv");
+    auto fs = device.shader(sh.data,sh.len);
+    probeDbg = device.pipeline(Triangles,state,vs,fs);
+
+    probeClear      = computeShader("probe_clear.comp.sprv");
+    probeAlocation0 = computeShader("probe_allocation0.comp.sprv");
+    probeAlocation1 = computeShader("probe_allocation1.comp.sprv");
+    }
+
   if(meshlets) {
     RenderState state;
     state.setCullFaceMode(RenderState::CullMode::Front);

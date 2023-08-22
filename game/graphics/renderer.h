@@ -40,6 +40,7 @@ class Renderer final {
     void prepareSSAO      (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void prepareFog       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void prepareIrradiance(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void prepareGi        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
     void drawHiZ          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawGBuffer      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
@@ -53,6 +54,8 @@ class Renderer final {
     void drawTonemapping  (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawReflections  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawUnderwater   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+
+    void drawProbesDbg    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void stashSceneAux    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void initSettings();
 
@@ -60,6 +63,7 @@ class Renderer final {
       const uint32_t shadowResolution   = 2048;
       bool           zEnvMappingEnabled = false;
       bool           zCloudShadowScale  = false;
+      bool           giEnabled          = true;
 
       float          zVidBrightness     = 0.5;
       float          zVidContrast       = 0.5;
@@ -127,6 +131,18 @@ class Renderer final {
       Tempest::DescriptorSet    uboPotSm1;
       std::vector<Tempest::DescriptorSet> uboMipSm1;
     } hiz;
+
+    struct {
+      Tempest::DescriptorSet    uboDbg;
+
+      Tempest::ComputePipeline* probeClearPso  = nullptr;
+      Tempest::ComputePipeline* probeAlloc0Pso = nullptr;
+      Tempest::ComputePipeline* probeAlloc1Pso = nullptr;
+      Tempest::DescriptorSet    uboProbes;
+
+      Tempest::StorageBuffer    hashTable;
+      Tempest::StorageBuffer    probes;
+    } gi;
 
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::Depth16;
     Tempest::TextureFormat    zBufferFormat = Tempest::TextureFormat::Depth16;
