@@ -2,15 +2,6 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : enable
 
-#if defined(RAY_QUERY)
-#extension GL_EXT_ray_query : enable
-#endif
-
-#if defined(RAY_QUERY_AT)
-#extension GL_EXT_nonuniform_qualifier : enable
-#extension GL_EXT_ray_flags_primitive_culling : enable
-#endif
-
 #include "scene.glsl"
 #include "common.glsl"
 

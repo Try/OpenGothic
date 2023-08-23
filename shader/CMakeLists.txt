@@ -242,6 +242,7 @@ add_shader(probe_dbg.frag            lighting/rt/probe_dbg.frag "")
 add_shader(probe_clear.comp          lighting/rt/probe_allocation.comp -DCLEAR)
 add_shader(probe_allocation0.comp    lighting/rt/probe_allocation.comp -DPREPASS)
 add_shader(probe_allocation1.comp    lighting/rt/probe_allocation.comp -DALLOC)
+add_shader(probe_trace.comp          lighting/rt/probe_trace.comp      -DRAY_QUERY -DRAY_QUERY_AT)
 
 add_custom_command(
   OUTPUT     ${HEADER} ${CPP}

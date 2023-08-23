@@ -172,6 +172,9 @@ void Renderer::resetSwapchain() {
     gi.probeAlloc1Pso = &Shaders::inst().probeAlocation1;
     gi.uboProbes      = device.descriptors(*gi.probeAlloc0Pso);
 
+    gi.probeTracePso  = &Shaders::inst().probeTrace;
+    gi.uboTrace       = device.descriptors(*gi.probeTracePso);
+
     gi.hashTable      = device.ssbo(nullptr, 2'097'152*sizeof(uint32_t)); // 8MB
     gi.probes         = device.ssbo(nullptr, 8*1024*1024); // ~26K
     }
@@ -305,6 +308,13 @@ void Renderer::prepareUniforms() {
 
     gi.uboProbes.set(4, gi.hashTable);
     gi.uboProbes.set(5, gi.probes);
+
+    gi.uboTrace.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+
+    gi.uboTrace.set(2, wview->sky().skyLut(), Sampler::bilinear());
+    gi.uboTrace.set(3, shadowMap[1], Sampler::bilinear());
+    gi.uboTrace.set(4, gi.hashTable);
+    gi.uboTrace.set(5, gi.probes);
     }
 
   const Texture2d* sh[Resources::ShadowLayers] = {};
@@ -335,6 +345,15 @@ void Renderer::prepareRtUniforms() {
     shadow.ubo.set(9, scene.rtScene.vbo);
     shadow.ubo.set(10,scene.rtScene.ibo);
     shadow.ubo.set(11,scene.rtScene.rtDesc);
+    }
+
+  if(!gi.uboTrace.isEmpty()) {
+    gi.uboTrace.set(6, scene.rtScene.tlas);
+    gi.uboTrace.set(7, Sampler::bilinear());
+    gi.uboTrace.set(8, scene.rtScene.tex);
+    gi.uboTrace.set(9, scene.rtScene.vbo);
+    gi.uboTrace.set(10,scene.rtScene.ibo);
+    gi.uboTrace.set(11,scene.rtScene.rtDesc);
     }
   }
 
@@ -651,6 +670,8 @@ void Renderer::prepareIrradiance(Tempest::Encoder<CommandBuffer>& cmd, uint8_t f
   }
 
 void Renderer::prepareGi(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  if(!settings.giEnabled)
+    return;
   cmd.setFramebuffer({});
   cmd.setDebugMarker("GI-Alloc");
 
@@ -662,9 +683,15 @@ void Renderer::prepareGi(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t 
 
   cmd.setUniforms(*gi.probeAlloc1Pso, gi.uboProbes);
   cmd.dispatchThreads(sceneDepth.size());
+
+  cmd.setDebugMarker("GI-Trace");
+  cmd.setUniforms(*gi.probeTracePso, gi.uboTrace);
+  cmd.dispatch(1024*4); // dispath indirect? :(
   }
 
 void Renderer::drawProbesDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  if(!settings.giEnabled)
+    return;
   auto& device = Resources::device();
   auto& pso    = Shaders::inst().probeDbg;
 
@@ -677,7 +704,7 @@ void Renderer::drawProbesDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint
     }
 
   cmd.setDebugMarker("GI-dbg");
-  const size_t cnt = (gi.probes.byteSize()-sizeof(uint32_t))/(sizeof(float)*8);
+  const size_t cnt = (gi.probes.byteSize()-sizeof(uint32_t))/(sizeof(float)*28);
   cmd.setUniforms(pso, gi.uboDbg);
   cmd.draw(36, 0, cnt);
   }

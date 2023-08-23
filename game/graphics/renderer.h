@@ -140,6 +140,9 @@ class Renderer final {
       Tempest::ComputePipeline* probeAlloc1Pso = nullptr;
       Tempest::DescriptorSet    uboProbes;
 
+      Tempest::ComputePipeline* probeTracePso = nullptr;
+      Tempest::DescriptorSet    uboTrace;
+
       Tempest::StorageBuffer    hashTable;
       Tempest::StorageBuffer    probes;
     } gi;

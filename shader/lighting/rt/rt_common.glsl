@@ -2,8 +2,23 @@
 #define RT_COMMON_GLSL
 
 #if defined(RAY_QUERY)
+#extension GL_EXT_ray_query                   : enable
+#extension GL_EXT_ray_flags_primitive_culling : enable
+#endif
+
+#if defined(RAY_QUERY_AT)
+#extension GL_EXT_nonuniform_qualifier : enable
+#endif
+
+#if defined(RAY_QUERY)
 layout(binding  = 6) uniform accelerationStructureEXT topLevelAS;
 #endif
+
+struct HitDesc {
+  uint instanceId;
+  uint primitiveId;
+  vec3 baryCoord;
+  };
 
 #if defined(RAY_QUERY_AT)
 struct RtObjectDesc {
@@ -24,6 +39,13 @@ vec2 pullTexcoord(uint id, uint vboOffset) {
   return vec2(u,v);
   }
 
+vec3 pullNormal(uint id, uint vboOffset) {
+  float x = vbo[nonuniformEXT(id)].vert[vboOffset*9 + 3];
+  float y = vbo[nonuniformEXT(id)].vert[vboOffset*9 + 4];
+  float z = vbo[nonuniformEXT(id)].vert[vboOffset*9 + 5];
+  return vec3(x,y,z);
+  }
+
 uvec3 pullTrinagleIds(uint id, uint primitiveID) {
   uvec3 index;
   index.x = ibo[nonuniformEXT(id)].index[primitiveID*3+0];
@@ -32,33 +54,72 @@ uvec3 pullTrinagleIds(uint id, uint primitiveID) {
   return index;
   }
 
-RtObjectDesc pullRtDesc(in rayQueryEXT rayQuery) {
+HitDesc pullHitDesc(in rayQueryEXT rayQuery) {
   const bool commited = false;
-  uint id = 0;
-  id += rayQueryGetIntersectionInstanceCustomIndexEXT(rayQuery, commited);
-  id += rayQueryGetIntersectionGeometryIndexEXT(rayQuery, commited);
-  return rtDesc[id];
+  uint descId = 0;
+  descId += rayQueryGetIntersectionInstanceCustomIndexEXT(rayQuery, commited);
+  descId += rayQueryGetIntersectionGeometryIndexEXT(rayQuery, commited);
+
+  const RtObjectDesc desc = rtDesc[descId];
+
+  HitDesc d;
+  d.instanceId = desc.instanceId;
+
+  d.primitiveId  = rayQueryGetIntersectionPrimitiveIndexEXT(rayQuery, commited);
+  d.primitiveId += desc.firstPrimitive;
+
+  d.baryCoord = vec3(0,rayQueryGetIntersectionBarycentricsEXT(rayQuery, commited));
+  d.baryCoord.x = (1-d.baryCoord.y-d.baryCoord.z);
+
+  return d;
+  }
+
+HitDesc pullCommitedHitDesc(in rayQueryEXT rayQuery) {
+  const bool commited = true;
+  uint descId = 0;
+  descId += rayQueryGetIntersectionInstanceCustomIndexEXT(rayQuery, commited);
+  descId += rayQueryGetIntersectionGeometryIndexEXT(rayQuery, commited);
+
+  const RtObjectDesc desc = rtDesc[descId];
+
+  HitDesc d;
+  d.instanceId = desc.instanceId;
+
+  d.primitiveId  = rayQueryGetIntersectionPrimitiveIndexEXT(rayQuery, commited);
+  d.primitiveId += desc.firstPrimitive;
+
+  d.baryCoord = vec3(0,rayQueryGetIntersectionBarycentricsEXT(rayQuery, commited));
+  d.baryCoord.x = (1-d.baryCoord.y-d.baryCoord.z);
+
+  return d;
+  }
+
+vec4 resolveHit(in HitDesc hit) {
+  const uint   id    = hit.instanceId;
+  const uvec3  index = pullTrinagleIds(id,hit.primitiveId);
+
+  const vec2   uv0   = pullTexcoord(id,index.x);
+  const vec2   uv1   = pullTexcoord(id,index.y);
+  const vec2   uv2   = pullTexcoord(id,index.z);
+
+  vec3 b  = hit.baryCoord;
+  vec2 uv = (b.x*uv0 + b.y*uv1 + b.z*uv2);
+
+  return textureLod(sampler2D(textures[nonuniformEXT(id)], smp),uv,0);
+  }
+
+vec4 resolveHit(in rayQueryEXT rayQuery) {
+  HitDesc hit = pullHitDesc(rayQuery);
+  return resolveHit(hit);
+  }
+
+vec4 resolveCommitedHit(in rayQueryEXT rayQuery) {
+  HitDesc hit = pullCommitedHitDesc(rayQuery);
+  return resolveHit(hit);
   }
 
 bool isOpaqueHit(in rayQueryEXT rayQuery) {
-  const bool  commited     = false;
-
-  RtObjectDesc desc        = pullRtDesc(rayQuery);
-  const uint   id          = desc.instanceId;
-  const uint   primOffset  = desc.firstPrimitive;
-
-  const uint   primitiveID = rayQueryGetIntersectionPrimitiveIndexEXT(rayQuery, commited) + primOffset;
-  const uvec3  index       = pullTrinagleIds(id,primitiveID);
-
-  const vec2   uv0         = pullTexcoord(id,index.x);
-  const vec2   uv1         = pullTexcoord(id,index.y);
-  const vec2   uv2         = pullTexcoord(id,index.z);
-
-  vec3 b = vec3(0,rayQueryGetIntersectionBarycentricsEXT(rayQuery, commited));
-  b.x = (1-b.y-b.z);
-  vec2 uv = (b.x*uv0 + b.y*uv1 + b.z*uv2);
-
-  vec4 d = textureLod(sampler2D(textures[nonuniformEXT(id)], smp),uv,0);
+  vec4 d = resolveHit(rayQuery);
   return (d.a>0.5);
   }
 #endif

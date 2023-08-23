@@ -188,6 +188,7 @@ Shaders::Shaders() {
     probeClear      = computeShader("probe_clear.comp.sprv");
     probeAlocation0 = computeShader("probe_allocation0.comp.sprv");
     probeAlocation1 = computeShader("probe_allocation1.comp.sprv");
+    probeTrace      = computeShader("probe_trace.comp.sprv");
     }
 
   if(meshlets) {

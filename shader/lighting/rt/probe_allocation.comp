@@ -3,6 +3,7 @@
 #extension GL_EXT_control_flow_attributes : enable
 #extension GL_GOOGLE_include_directive    : enable
 
+#include "lighting/rt/probe_common.glsl"
 #include "scene.glsl"
 #include "common.glsl"
 
@@ -15,9 +16,9 @@ layout(local_size_x = 8, local_size_y = 8) in;
 const int MAX_DEBUG_COLORS = 10;
 const vec3 debugColors[MAX_DEBUG_COLORS] = {
   vec3(1,1,1),
-  vec3(0,0,1),
-  vec3(0,1,0),
   vec3(1,0,0),
+  vec3(0,1,0),
+  vec3(0,0,1),
   vec3(1,1,0),
   vec3(1,0,1),
   vec3(0,1,1),
@@ -26,16 +27,9 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
   vec3(0,0.5,1),
   };
 
-const float gridStep = 50;
 
 struct Hash {
   uint value;
-  };
-
-struct Probe {
-  vec3 pos;
-  uint tid;
-  vec3 color;
   };
 
 layout(binding = 0, std140) uniform UboScene {
@@ -46,29 +40,25 @@ layout(binding = 1) uniform sampler2D diffuse;
 layout(binding = 2) uniform sampler2D normals;
 layout(binding = 3) uniform sampler2D depth;
 layout(binding = 4, std430) buffer Hbo { Hash hashTable[]; };
-layout(binding = 5, std430) buffer Pbo { uint probeCount; Probe probe[]; };
+layout(binding = 5, std430) buffer Pbo { ProbesHeader probeHeader; Probe probe[]; };
 
 ivec2 screenSize, fragCoord;
 uint  threadId;
 
-uint hash(ivec3 pos) {
-  return (pos.x * 18397) + (pos.y * 20483) + (pos.z * 29303);
-  }
-
 void processProbe(ivec3 gridPos, vec3 pos, int lod) {
-  const uint h = hash(gridPos) % hashTable.length();
+  const uint h = probePositionHash(gridPos) % hashTable.length();
 #if defined(PREPASS)
   atomicMin(hashTable[h].value, threadId);
 #else
   if(hashTable[h].value != threadId)
     return;
-  const uint cursor = atomicAdd(probeCount, 1);
+  const uint cursor = atomicAdd(probeHeader.count, 1);
   if(cursor>=probe.length())
     return;
   Probe p;
-  p.pos   = pos;
-  p.tid   = threadId;
-  p.color = debugColors[lod%MAX_DEBUG_COLORS]; //vec3(0,0,1);
+  p.pos         = pos;
+  //p.tid   = threadId;
+  p.color[0][0] = debugColors[lod%MAX_DEBUG_COLORS]; //vec3(0,0,1);
 
   probe[cursor] = p;
 #endif
@@ -116,7 +106,7 @@ void main_alloc() {
   const vec3  pos     = unprojectDepth(z);
 
   const int   lod     = lodFromDist(dist);
-  const float step    = gridStep*(1 << lod);
+  const float step    = probeGridStep*(1 << lod);
   const vec3  gridPos = pos/step;
   const ivec3 pLow    = ivec3(floor(gridPos));
   const ivec3 pHigh   = ivec3(ceil (gridPos));
@@ -150,8 +140,11 @@ void main_clear() {
   if(laneID<hashTable.length()) {
     hashTable[laneID].value = 0xFFFFFFFF;
     }
-  if(laneID==0)
-    probeCount = 0;
+
+  if(laneID==0) {
+    probeHeader.count    = 0;
+    probeHeader.iterator = 0;
+    }
   }
 
 void main() {

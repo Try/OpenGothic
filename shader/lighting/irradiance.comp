@@ -47,10 +47,13 @@ void gather() {
     vec3 dir = sampleHemisphere(gl_LocalInvocationIndex*smpCount+i, gl_WorkGroupSize.x*smpCount, 0);
 
     vec3 sky = vec3(0);
-    sky += textureSkyLUT(skyLUT, vec3(0,RPlanet,0), +dir, scene.sunDir);
-    sky += textureSkyLUT(skyLUT, vec3(0,RPlanet,0), -dir, scene.sunDir);
+    sky  = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), +dir, scene.sunDir);
     sky *= scene.GSunIntensity;
-    storeSample(dir, sky);
+    storeSample(+dir, sky);
+
+    sky  = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), -dir, scene.sunDir);
+    sky *= scene.GSunIntensity;
+    storeSample(-dir, sky);
     }
   }
 

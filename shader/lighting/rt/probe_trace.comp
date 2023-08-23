@@ -1,0 +1,185 @@
+#version 460
+
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_GOOGLE_include_directive    : enable
+
+#include "lighting/rt/probe_common.glsl"
+#include "lighting/rt/rt_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 64) in;
+
+shared vec4 samples[gl_WorkGroupSize.x][3][2]; // 6 Kb
+shared uint shProbeId;
+
+struct Hash {
+  uint value;
+  };
+
+layout(binding = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 2) uniform sampler2D skyLUT;
+layout(binding = 3) uniform sampler2D textureSm1;
+
+layout(binding = 4, std430) buffer Hbo { Hash hashTable[]; };
+layout(binding = 5, std430) buffer Pbo { ProbesHeader probeHeader; Probe probe[]; };
+
+float shadowResolve(in vec4 sh, float z) {
+  z  = clamp(z,0,0.99);
+  sh = step(sh,vec4(z));
+  return 0.25*(sh.x+sh.y+sh.z+sh.w);
+  }
+
+vec4 shadowSample(in sampler2D shadowMap, vec2 shPos) {
+  shPos.xy = shPos.xy*vec2(0.5,0.5)+vec2(0.5);
+  return textureGather(shadowMap,shPos);
+  }
+
+float calcShadow(vec3 shPos1) {
+  //shPos1.y = max(0,shPos1.y);
+  vec4  lay1 = shadowSample(textureSm1,shPos1.xy);
+  float v1   = shadowResolve(lay1,shPos1.z);
+  if(abs(shPos1.x)<1.0 && abs(shPos1.y)<1.0)
+    return v1;
+  return 1.0;
+  }
+
+float shadowFactor(vec4 shPos) {
+  return calcShadow(shPos.xyz/shPos.w);
+  }
+
+// Sample i-th point from Hammersley point set of NumSamples points total.
+// See: http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
+vec2 sampleHammersley(uint i, uint numSamples) {
+  uint  bits = bitfieldReverse(i);
+  float vdc  = float(bits) * 2.3283064365386963e-10; // / 0x100000000
+  return vec2(float(i)/float(numSamples), vdc);
+  }
+
+vec3 sampleHemisphere(uint i, uint numSamples, float offsetAng) {
+  const vec2  xi  = sampleHammersley(i,numSamples);
+  const float u1p = sqrt(max(0.0, 1.0 - xi.y*xi.y));
+  const float a   = M_PI*2.0*xi.x + offsetAng;
+  return vec3(cos(a) * u1p, xi.y, sin(a) * u1p);
+  }
+
+vec4 sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const vec3 sunDir) {
+  uint  flags        = gl_RayFlagsSkipAABBEXT;
+  float tMin         = 1;
+  float rayDistance  = 200*100; // Lumen rt-probe uses 200-meters range
+
+  rayQueryEXT rayQuery;
+  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
+                        rayOrigin, tMin, rayDirection, rayDistance);
+  rayQueryProceedShadow(rayQuery); // NOTE: fix naming
+
+  if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT) {
+    vec3 skyClr = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), rayDirection, sunDir) * scene.GSunIntensity;
+    return vec4(skyClr, 0);
+    }
+
+  const HitDesc hit   = pullCommitedHitDesc(rayQuery);
+  const uint    id    = hit.instanceId;
+  const uvec3   index = pullTrinagleIds(id,hit.primitiveId);
+
+  const vec2    uv0   = pullTexcoord(id,index.x);
+  const vec2    uv1   = pullTexcoord(id,index.y);
+  const vec2    uv2   = pullTexcoord(id,index.z);
+
+  const vec3    nr0   = pullNormal(id,index.x);
+  const vec3    nr1   = pullNormal(id,index.y);
+  const vec3    nr2   = pullNormal(id,index.z);
+
+  const vec3    pos   = rayOrigin + rayQueryGetIntersectionTEXT(rayQuery, true)*rayDirection;
+
+  vec3 b  = hit.baryCoord;
+  vec2 uv = (b.x*uv0 + b.y*uv1 + b.z*uv2);
+  vec3 nr = normalize(b.x*nr0 + b.y*nr1 + b.z*nr2);
+
+  float sh = shadowFactor(scene.viewShadow[1]*vec4(pos,1));
+
+  // TODO: complex lighting
+  float lamb = max(0, dot(nr, sunDir)) * scene.GSunIntensity * sh;
+  vec3  diff = textureLod(sampler2D(textures[nonuniformEXT(id)], smp),uv,0).rgb;
+
+  return vec4(diff*lamb, 1);
+  }
+
+void storeSample(vec3 dir, vec3 val) {
+  for(int i=0; i<3; ++i) {
+    float v = dir[i];
+    int   d = v>=0 ? 1 : 0;
+    v = abs(v);
+    samples[gl_LocalInvocationIndex][i][d] += vec4(val*v, 1);
+    }
+  }
+
+void gather(const vec3 origin) {
+  const uint smpCount = 2;
+
+  for(uint i=0; i<smpCount; ++i) {
+    vec3 dir = sampleHemisphere(gl_LocalInvocationIndex*smpCount+i, gl_WorkGroupSize.x*smpCount, 0);
+    vec4 clr = vec4(0);
+
+    clr = sampleScene(origin, +dir, scene.sunDir);
+    storeSample(+dir, clr.rgb);
+
+    clr = sampleScene(origin, -dir, scene.sunDir);
+    storeSample(-dir, clr.rgb);
+    }
+  }
+
+void processProbe(const uint probeId) {
+  const uint laneId  = gl_LocalInvocationIndex;
+  for(int i=0; i<3; ++i) {
+    samples[laneId][i][0] = vec4(0);
+    samples[laneId][i][1] = vec4(0);
+    }
+  barrier();
+
+  const vec3 origin = probe[probeId].pos;
+  gather(origin);
+  barrier();
+
+  for(uint i=gl_WorkGroupSize.x; i>0;) {
+    i /= 2;
+    if(laneId<i) {
+      for(int r=0; r<3; ++r) {
+        samples[laneId][r][0] += samples[laneId+i][r][0];
+        samples[laneId][r][1] += samples[laneId+i][r][1];
+        }
+      }
+    barrier();
+    }
+
+  if(laneId<3) {
+    vec4 a = samples[0][laneId][0];
+    vec4 b = samples[0][laneId][1];
+
+    if(a.w>0)
+      a.rgb /= a.w;
+    if(b.w>0)
+      b.rgb /= b.w;
+
+    vec3 c = vec3(0);
+    c[laneId] = 1;
+    probe[probeId].color[laneId][0] = a.rgb;
+    probe[probeId].color[laneId][1] = b.rgb;
+    }
+  }
+
+void main() {
+  //const uint probeId = gl_WorkGroupID.x;
+  while(true) {
+    if(gl_LocalInvocationIndex==0)
+      shProbeId = atomicAdd(probeHeader.iterator, 1);
+    barrier();
+    const uint probeId = shProbeId;
+    if(probeId>=probeHeader.count)
+      return;
+    processProbe(probeId);
+    barrier();
+    }
+  }
