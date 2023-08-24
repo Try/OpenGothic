@@ -49,6 +49,7 @@ class Shaders {
     Tempest::RenderPipeline  probeDbg;
     Tempest::ComputePipeline probeClear, probeAlocation0, probeAlocation1;
     Tempest::ComputePipeline probeTrace;
+    Tempest::RenderPipeline  probeDraw;
 
     enum PipelineType: uint8_t {
       T_Forward,

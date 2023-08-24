@@ -101,7 +101,7 @@ void main() {
   vec3  diff   = texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0).rgb;
   float occ    = smoothSsao();
 
-  vec3  linear = textureLinear(diff) * PhotoLumInv;
+  vec3  linear = textureLinear(diff);
   vec3  lcolor = ambient();
 
   vec3  color  = linear*lcolor;

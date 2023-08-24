@@ -5,6 +5,7 @@
 
 #include "lighting/rt/probe_common.glsl"
 #include "lighting/rt/rt_common.glsl"
+#include "lighting/tonemapping.glsl"
 #include "scene.glsl"
 #include "common.glsl"
 
@@ -12,6 +13,7 @@ layout(local_size_x = 64) in;
 
 shared vec4 samples[gl_WorkGroupSize.x][3][2]; // 6 Kb
 shared uint shProbeId;
+shared bool badbit;
 
 struct Hash {
   uint value;
@@ -76,8 +78,14 @@ vec4 sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const vec3 sunDi
   rayQueryProceedShadow(rayQuery); // NOTE: fix naming
 
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT) {
-    vec3 skyClr = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), rayDirection, sunDir) * scene.GSunIntensity;
-    return vec4(skyClr, 0);
+    const vec3  lcolor = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), rayDirection, sunDir) * scene.GSunIntensity;
+    return vec4(lcolor, 0);
+    }
+
+  const bool face = false; //(rayQueryGetIntersectionFrontFaceEXT(rayQuery, true));
+  if(face) {
+    badbit = true;
+    return vec4(0);
     }
 
   const HitDesc hit   = pullCommitedHitDesc(rayQuery);
@@ -98,13 +106,21 @@ vec4 sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const vec3 sunDi
   vec2 uv = (b.x*uv0 + b.y*uv1 + b.z*uv2);
   vec3 nr = normalize(b.x*nr0 + b.y*nr1 + b.z*nr2);
 
-  float sh = shadowFactor(scene.viewShadow[1]*vec4(pos,1));
+  vec4  shCoord = scene.viewShadow[1]*vec4(pos,1);
+  float shadow  = shadowFactor(shCoord);
 
-  // TODO: complex lighting
-  float lamb = max(0, dot(nr, sunDir)) * scene.GSunIntensity * sh;
-  vec3  diff = textureLod(sampler2D(textures[nonuniformEXT(id)], smp),uv,0).rgb;
+  // TODO: rt-shadow lighting
+  const float lambert = max(0, dot(nr, sunDir));
+  const vec3  diff    = textureLod(sampler2D(textures[nonuniformEXT(id)], smp),uv,0).rgb;
 
-  return vec4(diff*lamb, 1);
+  const vec3  lcolor = scene.sunCl.rgb * scene.GSunIntensity * lambert * shadow;
+  const vec3  linear = textureLinear(diff.rgb);
+
+  vec3 color = linear*lcolor;
+  color += linear*scene.ambient; // no proper multi-bounce yet
+  color *= 100; // HACK
+
+  return vec4(color, 1);
   }
 
 void storeSample(vec3 dir, vec3 val) {
@@ -137,11 +153,21 @@ void processProbe(const uint probeId) {
     samples[laneId][i][0] = vec4(0);
     samples[laneId][i][1] = vec4(0);
     }
+  badbit = false;
   barrier();
 
   const vec3 origin = probe[probeId].pos;
   gather(origin);
   barrier();
+
+  if(badbit && laneId<3) {
+    vec3 c = vec3(1,0,0);
+    probe[probeId].color[laneId][0] = c;
+    probe[probeId].color[laneId][1] = c;
+    probe[probeId].badbit = 1;
+    }
+  if(badbit)
+    return;
 
   for(uint i=gl_WorkGroupSize.x; i>0;) {
     i /= 2;
@@ -163,10 +189,15 @@ void processProbe(const uint probeId) {
     if(b.w>0)
       b.rgb /= b.w;
 
-    vec3 c = vec3(0);
-    c[laneId] = 1;
     probe[probeId].color[laneId][0] = a.rgb;
     probe[probeId].color[laneId][1] = b.rgb;
+    probe[probeId].badbit           = 0;
+    }
+
+  if(laneId==0) {
+    const vec3 gridPos = probe[probeId].pos/probeGridStep;
+    const uint h       = probePositionHash(ivec3(gridPos)) % hashTable.length();
+    hashTable[h].value = probeId;
     }
   }
 

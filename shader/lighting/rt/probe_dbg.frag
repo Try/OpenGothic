@@ -30,21 +30,6 @@ vec3 lodColor(const in Probe p, vec3 norm) {
   return p.color[0][0]*light;
   }
 
-vec3 irradiance(const in Probe p, vec3 n) {
-  ivec3 d;
-  d.x = n.x>=0 ? 1 : 0;
-  d.y = n.y>=0 ? 1 : 0;
-  d.z = n.z>=0 ? 1 : 0;
-
-  n = n*n;
-
-  vec3 ret = vec3(0);
-  ret += p.color[0][d.x].rgb * n.x;
-  ret += p.color[1][d.y].rgb * n.y;
-  ret += p.color[2][d.z].rgb * n.z;
-  return ret * scene.exposure;
-  }
-
 void main(void) {
   vec3 pos1 = unprojectDepth(gl_FragCoord.z);
   vec3 pos0 = unprojectDepth(0);
@@ -60,7 +45,9 @@ void main(void) {
 
   vec3 norm = normalize((pos0+view*t) - p.pos);
   // vec3 clr  = lodColor(p, norm);
-  vec3 clr  = irradiance(p, norm);
+  vec3 clr  = probeReadAmbient(p, norm) * scene.exposure;
+  if(p.badbit!=0)
+    clr = vec3(1,0,0);
 
   outColor = vec4(clr,1.0);
   // outColor = vec4(1,0,0,1.0);

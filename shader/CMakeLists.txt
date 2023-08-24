@@ -31,7 +31,10 @@ function(add_shader OUTPUT SOURCE)
   set(OPENGOTHIC_SHADERS      ${OPENGOTHIC_SHADERS}      ${SOURCE_FILE} PARENT_SCOPE)
   set(OPENGOTHIC_SHADERS_SPRV ${OPENGOTHIC_SHADERS_SPRV} ${OUTPUT_FILE} PARENT_SCOPE)
 
-  list(SUBLIST ARGV 2 -1 VARS)
+  list(LENGTH ARGV ARGC)
+  if(ARGC GREATER 2)
+    list(SUBLIST ARGV 2 -1 VARS)
+  endif()
 
   if("${OUTPUT}" MATCHES "\.(mesh)")
     list(APPEND VARS "--target-env" "spirv1.4")
@@ -243,6 +246,11 @@ add_shader(probe_clear.comp          lighting/rt/probe_allocation.comp -DCLEAR)
 add_shader(probe_allocation0.comp    lighting/rt/probe_allocation.comp -DPREPASS)
 add_shader(probe_allocation1.comp    lighting/rt/probe_allocation.comp -DALLOC)
 add_shader(probe_trace.comp          lighting/rt/probe_trace.comp      -DRAY_QUERY -DRAY_QUERY_AT)
+
+add_shader(probe_ambient.vert        copy.vert)
+add_shader(probe_ambient.frag        lighting/rt/probe_allocation.comp -S frag -DDRAW)
+
+#add_shader(probe_ambient.frag        lighting/rt/probe_ambient.frag "")
 
 add_custom_command(
   OUTPUT     ${HEADER} ${CPP}

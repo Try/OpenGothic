@@ -87,7 +87,7 @@ void main(void) {
   //outColor     = vec4(d.rgb*color*vec3(light),0.0);
 
   const vec3 d      = texelFetch(diffuse, ivec2(gl_FragCoord.xy), 0).xyz;
-  const vec3 linear = textureLinear(d.rgb) * PhotoLumInv;
+  const vec3 linear = textureLinear(d.rgb);
 
   vec3 color = linear*color*light;
   //color *= scene.exposure;

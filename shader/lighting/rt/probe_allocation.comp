@@ -4,10 +4,13 @@
 #extension GL_GOOGLE_include_directive    : enable
 
 #include "lighting/rt/probe_common.glsl"
+#include "lighting/tonemapping.glsl"
 #include "scene.glsl"
 #include "common.glsl"
 
-#if defined(CLEAR)
+#if defined(DRAW)
+layout(location = 0) out vec4 outColor;
+#elif defined(CLEAR)
 layout(local_size_x = 64) in;
 #else
 layout(local_size_x = 8, local_size_y = 8) in;
@@ -27,7 +30,6 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
   vec3(0,0.5,1),
   };
 
-
 struct Hash {
   uint value;
   };
@@ -44,25 +46,9 @@ layout(binding = 5, std430) buffer Pbo { ProbesHeader probeHeader; Probe probe[]
 
 ivec2 screenSize, fragCoord;
 uint  threadId;
-
-void processProbe(ivec3 gridPos, vec3 pos, int lod) {
-  const uint h = probePositionHash(gridPos) % hashTable.length();
-#if defined(PREPASS)
-  atomicMin(hashTable[h].value, threadId);
-#else
-  if(hashTable[h].value != threadId)
-    return;
-  const uint cursor = atomicAdd(probeHeader.count, 1);
-  if(cursor>=probe.length())
-    return;
-  Probe p;
-  p.pos         = pos;
-  //p.tid   = threadId;
-  p.color[0][0] = debugColors[lod%MAX_DEBUG_COLORS]; //vec3(0,0,1);
-
-  probe[cursor] = p;
+#if defined(DRAW)
+vec4  colorSum = vec4(0);
 #endif
-  }
 
 vec3 unprojectDepth(const float z) {
   const vec2  inPos = vec2(2*fragCoord+ivec2(1,1))/vec2(screenSize)-vec2(1,1);
@@ -88,9 +74,49 @@ int lodFromDist(const float depth) {
   return 3;
   }
 
-void main_alloc() {
-  screenSize = ivec2(textureSize(depth,0));
+void processProbe(ivec3 gridPos, vec3 pos, int lod, vec3 pixelPos, vec3 pixelNorm) {
+  const uint h = probePositionHash(gridPos) % hashTable.length();
+#if defined(PREPASS)
+  atomicMin(hashTable[h].value, threadId);
+#elif defined(ALLOC)
+  if(hashTable[h].value != threadId)
+    return;
+  hashTable[h].value = 0xFFFFFFFF; // FIXME: atomic-cas?
+
+  const uint cursor = atomicAdd(probeHeader.count, 1);
+  if(cursor>=probe.length())
+    return;
+  Probe p;
+  p.pos         = pos;
+  probe[cursor] = p;
+#elif defined(DRAW)
+  const uint  cursor = hashTable[h].value;
+  if(cursor>=probeHeader.count)
+    return;
+
+  const Probe p      = probe[cursor];
+  const vec3  ldir   = p.pos-pixelPos;
+
+  if(dot(ldir, pixelNorm)<0)
+    ;
+
+  // const float weight = 1;
+  // const float weight = 2000.0/max(dot(ldir,ldir), 0.2);
+  const float weight = max(0, dot(ldir, pixelNorm)) * (2000.0/max(dot(ldir,ldir), 0.2));
+
+  colorSum.rgb += probeReadAmbient(p, pixelNorm) * weight;
+  colorSum.w   += weight;
+#endif
+  }
+
+void main_process() {
+#if defined(DRAW)
+  outColor   = vec4(0);
+  fragCoord  = ivec2(gl_FragCoord.xy);
+#else
   fragCoord  = ivec2(gl_GlobalInvocationID.xy);
+#endif
+  screenSize = ivec2(textureSize(depth,0));
   threadId   = fragCoord.x + fragCoord.y*screenSize.x;
 
   const bool valid = all(lessThan(fragCoord, screenSize));
@@ -102,8 +128,9 @@ void main_alloc() {
   if(z>=0.99995)
     return; // sky
 
+  const float bias    = 2.0;
   const float dist    = linearDepth(z, scene.clipInfo);
-  const vec3  pos     = unprojectDepth(z);
+  const vec3  pos     = unprojectDepth(z) + norm*bias;
 
   const int   lod     = lodFromDist(dist);
   const float step    = probeGridStep*(1 << lod);
@@ -111,7 +138,7 @@ void main_alloc() {
   const ivec3 pLow    = ivec3(floor(gridPos));
   const ivec3 pHigh   = ivec3(ceil (gridPos));
 
-  //processProbe(ivec3(round(gridPos)), pos, lod);
+  //processProbe(ivec3(round(gridPos)), pos, lod, pos, norm);
 
   [[unroll]]
   for(int x=0; x<=1; ++x) {
@@ -127,13 +154,23 @@ void main_alloc() {
         if(dot(dir,norm)<=0)
           continue;
 
-        processProbe(px, wpos, lod);
-        //processProbe(px, pos, lod);
+        processProbe(px*(1 << lod), wpos, lod, pos, norm);
         }
       }
     }
+#if defined(DRAW)
+  const vec3 diff   = texelFetch(diffuse,fragCoord,0).rgb;
+  const vec3 linear = textureLinear(diff.rgb);
+
+  vec3 color = colorSum.rgb/max(colorSum.w,0.001);
+  color *= linear;
+  color *= scene.exposure;
+  // color *= 50; // HACK
+  outColor = vec4(color, 1);
+#endif
   }
 
+#if defined(GL_COMPUTE_SHADER)
 void main_clear() {
   const uint laneID = gl_GlobalInvocationID.x;
 
@@ -146,11 +183,12 @@ void main_clear() {
     probeHeader.iterator = 0;
     }
   }
+#endif
 
 void main() {
 #if defined(CLEAR)
   main_clear();
 #else
-  main_alloc();
+  main_process();
 #endif
   }

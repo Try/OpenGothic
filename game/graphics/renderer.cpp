@@ -175,6 +175,9 @@ void Renderer::resetSwapchain() {
     gi.probeTracePso  = &Shaders::inst().probeTrace;
     gi.uboTrace       = device.descriptors(*gi.probeTracePso);
 
+    gi.probeDrawPso   = &Shaders::inst().probeDraw;
+    gi.uboDraw        = device.descriptors(*gi.probeDrawPso);
+
     gi.hashTable      = device.ssbo(nullptr, 2'097'152*sizeof(uint32_t)); // 8MB
     gi.probes         = device.ssbo(nullptr, 8*1024*1024); // ~26K
     }
@@ -190,6 +193,9 @@ void Renderer::initSettings() {
   settings.zVidBrightness = Gothic::inst().settingsGetF("VIDEO","zVidBrightness");
   settings.zVidContrast   = Gothic::inst().settingsGetF("VIDEO","zVidContrast");
   settings.zVidGamma      = Gothic::inst().settingsGetF("VIDEO","zVidGamma");
+
+  if(!Gothic::options().doRayQuery)
+    settings.giEnabled = false;
 
   auto prevCompose = water.reflectionsPso;
   if(settings.zCloudShadowScale)
@@ -305,16 +311,21 @@ void Renderer::prepareUniforms() {
     gi.uboProbes.set(1, gbufDiffuse, Sampler::nearest());
     gi.uboProbes.set(2, gbufNormal,  Sampler::nearest());
     gi.uboProbes.set(3, zbuffer,     Sampler::nearest());
-
     gi.uboProbes.set(4, gi.hashTable);
     gi.uboProbes.set(5, gi.probes);
 
     gi.uboTrace.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-
     gi.uboTrace.set(2, wview->sky().skyLut(), Sampler::bilinear());
     gi.uboTrace.set(3, shadowMap[1], Sampler::bilinear());
     gi.uboTrace.set(4, gi.hashTable);
     gi.uboTrace.set(5, gi.probes);
+
+    gi.uboDraw.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    gi.uboDraw.set(1, gbufDiffuse, Sampler::nearest());
+    gi.uboDraw.set(2, gbufNormal,  Sampler::nearest());
+    gi.uboDraw.set(3, zbuffer,     Sampler::nearest());
+    gi.uboDraw.set(4, gi.hashTable);
+    gi.uboDraw.set(5, gi.probes);
     }
 
   const Texture2d* sh[Resources::ShadowLayers] = {};
@@ -692,6 +703,11 @@ void Renderer::prepareGi(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t 
 void Renderer::drawProbesDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   if(!settings.giEnabled)
     return;
+
+  static bool enable = false;
+  if(!enable)
+    return;
+
   auto& device = Resources::device();
   auto& pso    = Shaders::inst().probeDbg;
 
@@ -710,6 +726,13 @@ void Renderer::drawProbesDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint
   }
 
 void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {
+  if(settings.giEnabled) {
+    cmd.setDebugMarker("AmbientLight");
+    cmd.setUniforms(*gi.probeDrawPso, gi.uboDraw);
+    cmd.draw(Resources::fsqVbo());
+    return;
+    }
+
   struct Push {
     Vec3      ambient;
     float     exposure = 1;

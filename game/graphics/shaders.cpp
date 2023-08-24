@@ -189,6 +189,16 @@ Shaders::Shaders() {
     probeAlocation0 = computeShader("probe_allocation0.comp.sprv");
     probeAlocation1 = computeShader("probe_allocation1.comp.sprv");
     probeTrace      = computeShader("probe_trace.comp.sprv");
+
+    state.setBlendSource  (RenderState::BlendMode::One);
+    state.setBlendDest    (RenderState::BlendMode::One);
+    state.setZTestMode    (RenderState::ZTestMode::Always);
+    state.setZWriteEnabled(false);
+    sh = GothicShader::get("probe_ambient.vert.sprv");
+    vs = device.shader(sh.data,sh.len);
+    sh = GothicShader::get("probe_ambient.frag.sprv");
+    fs = device.shader(sh.data,sh.len);
+    probeDraw = device.pipeline(Triangles,state,vs,fs);
     }
 
   if(meshlets) {

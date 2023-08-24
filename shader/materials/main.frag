@@ -238,7 +238,7 @@ void main() {
 #endif
 
 #if defined(MAT_LINEAR_CLR)
-  t.rgb = textureLinear(t.rgb) * PhotoLumInv;
+  t.rgb = textureLinear(t.rgb);
 #endif
 
 #if defined(GBUFFER)
