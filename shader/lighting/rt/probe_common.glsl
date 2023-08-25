@@ -5,15 +5,21 @@ struct Hash {
   uint value;
   };
 
+const uint BAD_BIT    = 0x1;
+const uint REUSE_BIT  = 0x2;
+const uint TRACED_BIT = 0x4;
+
 struct Probe {
   vec3 pos;
-  uint badbit;
-  vec3 color[3][2];
+  uint bits;
+  vec3 color[3][2];  // HL2-cube
+  //uvec2 gbuffer[128]; // x: normal[xy]; w - color[rgb]; normal[z]
   };
 
 struct ProbesHeader {
   uint count;
   uint iterator;
+  uint tracedCount;
   };
 
 const float dbgViewRadius = 5;
@@ -38,7 +44,7 @@ vec3 probeReadAmbient(const in Probe p, vec3 n) {
   return ret;
   }
 
-int probeGridLodFromDist(const float depth) {
+int  probeGridLodFromDist(const float depth) {
   // NOTE: manual tuning been here
   if(depth < 0.25)
     return 0;

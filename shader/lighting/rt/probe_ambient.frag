@@ -15,7 +15,7 @@ layout(binding  = 0, std140) uniform UboScene {
 layout(binding  = 1) uniform sampler2D gbufDiffuse;
 layout(binding  = 2) uniform sampler2D gbufNormal;
 layout(binding  = 3) uniform sampler2D depth;
-layout(binding  = 4, std430) buffer Hbo { Hash hashTable[]; };
+layout(binding  = 4, std430) buffer Hbo0 { Hash hashTable[]; };
 layout(binding  = 5, std430) readonly buffer Pbo { ProbesHeader probeHeader; Probe probe[]; };
 
 layout(location = 0) out vec4 outColor;
@@ -39,7 +39,7 @@ void processProbe(ivec3 gridPos, vec3 pos, int lod, vec3 pixelPos, vec3 pixelNor
   const Probe p    = probe[cursor];
   const vec3  ldir = p.pos-pixelPos;
 
-  if(p.badbit!=0 && !ignoreBad)
+  if((p.bits & BAD_BIT)!=0 && !ignoreBad)
     return;
   if(dot(ldir, pixelNorm)<=0)
     return;

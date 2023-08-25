@@ -46,7 +46,7 @@ void main(void) {
   vec3 norm = normalize((pos0+view*t) - p.pos);
   // vec3 clr  = lodColor(p, norm);
   vec3 clr  = probeReadAmbient(p, norm) * scene.exposure;
-  if(p.badbit!=0)
+  if((p.bits & BAD_BIT)!=0)
     clr = vec3(1,0,0);
 
   outColor = vec4(clr,1.0);

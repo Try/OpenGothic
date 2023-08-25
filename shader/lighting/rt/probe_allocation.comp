@@ -8,7 +8,7 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-#if defined(CLEAR)
+#if defined(CLEAR) || defined(GC)
 layout(local_size_x = 64) in;
 #else
 layout(local_size_x = 8, local_size_y = 8) in;
@@ -35,8 +35,10 @@ layout(binding = 0, std140) uniform UboScene {
 layout(binding = 1) uniform sampler2D diffuse;
 layout(binding = 2) uniform sampler2D normals;
 layout(binding = 3) uniform sampler2D depth;
-layout(binding = 4, std430) buffer Hbo { Hash hashTable[]; };
-layout(binding = 5, std430) buffer Pbo { ProbesHeader probeHeader; Probe probe[]; };
+layout(binding = 4, std430) buffer Hbo0 { uint voteTable[]; };
+layout(binding = 5, std430) buffer Hbo  { Hash hashTable[]; };
+layout(binding = 6, std430) buffer Pbo  { ProbesHeader probeHeader; Probe probe[]; };
+layout(binding = 7, std430) buffer Fbo0 { int cursor; uint list[]; } freeList;
 
 ivec2 screenSize, fragCoord;
 uint  threadId;
@@ -48,20 +50,49 @@ vec3 unprojectDepth(const float z) {
   return (ret.xyz/ret.w);
   }
 
+uint allocProbe() {
+  int cursor = atomicAdd(freeList.cursor, -1) - 1;
+  if(cursor>=0)
+    return freeList.list[cursor];
+  return atomicAdd(probeHeader.count, 1);
+  }
+
+bool reuseProbe(const uint h, vec3 pos) {
+  const uint probeId = hashTable[h].value;
+  if(probeId>=probeHeader.count)
+    return false;
+
+  Probe p = probe[probeId];
+  const vec3 dp = (p.pos - pos);
+  if(dot(dp,dp)>1.0 || (p.bits & TRACED_BIT)==0)
+    return false; // NOTE: reconstructed position may jitter a little
+
+  probe[probeId].bits |= REUSE_BIT;
+  return true;
+  }
+
 void processProbe(ivec3 gridPos, vec3 pos, int lod, vec3 pixelPos, vec3 pixelNorm) {
   const uint h = probeGridPosHash(gridPos) % hashTable.length();
-#if defined(PREPASS)
-  atomicMin(hashTable[h].value, threadId);
-#elif defined(ALLOC)
-  if(hashTable[h].value != threadId)
+#if defined(VOTE)
+  atomicMin(voteTable[h], threadId);
+#elif defined(REUSE)
+  if(voteTable[h] != threadId)
     return;
-  hashTable[h].value = 0xFFFFFFFF; // atomic-cas?
+  if(reuseProbe(h, pos)) {
+    voteTable[h] = 0xFFFFFFFF;
+    return;
+    }
+#elif defined(ALLOC)
+  if(voteTable[h] != threadId)
+    return;
+  voteTable[h] = 0xFFFFFFFF;
 
-  const uint cursor = atomicAdd(probeHeader.count, 1);
+  const uint cursor = allocProbe();
   if(cursor>=probe.length())
     return;
   Probe p;
   p.pos         = pos;
+  p.bits        = 0;
   probe[cursor] = p;
 #endif
   }
@@ -101,19 +132,35 @@ void main_process() {
 void main_clear() {
   const uint laneID = gl_GlobalInvocationID.x;
 
-  if(laneID<hashTable.length()) {
-    hashTable[laneID].value = 0xFFFFFFFF;
+  if(laneID<voteTable.length()) {
+    voteTable[laneID] = 0xFFFFFFFF;
     }
 
   if(laneID==0) {
-    probeHeader.count    = 0;
-    probeHeader.iterator = 0;
+    probeHeader.count       = min(probeHeader.count, probe.length());
+    probeHeader.iterator    = 0;
+    probeHeader.tracedCount = 0;
+    freeList.cursor         = 0;
     }
+  }
+
+void main_gc() {
+  const uint probeId = gl_GlobalInvocationID.x;
+  if(probeId>=probeHeader.count)
+    return;
+
+  if((probe[probeId].bits & REUSE_BIT)!=0)
+    return;
+
+  const uint cursor = atomicAdd(freeList.cursor, 1);
+  freeList.list[cursor] = probeId;
   }
 
 void main() {
 #if defined(CLEAR)
   main_clear();
+#elif defined(GC)
+  main_gc();
 #else
   main_process();
 #endif

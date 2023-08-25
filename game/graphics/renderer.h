@@ -135,9 +135,11 @@ class Renderer final {
     struct {
       Tempest::DescriptorSet    uboDbg;
 
-      Tempest::ComputePipeline* probeClearPso  = nullptr;
-      Tempest::ComputePipeline* probeAlloc0Pso = nullptr;
-      Tempest::ComputePipeline* probeAlloc1Pso = nullptr;
+      Tempest::ComputePipeline* probeClearPso = nullptr;
+      Tempest::ComputePipeline* probeVotePso  = nullptr;
+      Tempest::ComputePipeline* probeReusePso = nullptr;
+      Tempest::ComputePipeline* probeGCPso    = nullptr;
+      Tempest::ComputePipeline* probeAllocPso = nullptr;
       Tempest::DescriptorSet    uboProbes;
 
       Tempest::ComputePipeline* probeTracePso = nullptr;
@@ -146,7 +148,7 @@ class Renderer final {
       Tempest::RenderPipeline*  probeDrawPso = nullptr;
       Tempest::DescriptorSet    uboDraw;
 
-      Tempest::StorageBuffer    hashTable;
+      Tempest::StorageBuffer    voteTable, hashTable, freeList;
       Tempest::StorageBuffer    probes;
     } gi;
 

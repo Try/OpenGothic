@@ -167,6 +167,17 @@ void gather(const vec3 origin) {
 
 void processProbe(const uint probeId) {
   const uint laneId  = gl_LocalInvocationIndex;
+  const bool cached  = ((probe[probeId].bits & TRACED_BIT)!=0);
+
+  barrier();
+  if(cached) {
+    probe[probeId].bits &= ~REUSE_BIT;
+    return;
+    }
+
+  if(laneId==0)
+    atomicAdd(probeHeader.tracedCount, 1); // stat counter
+
   for(int i=0; i<3; ++i) {
     samples[laneId][i][0] = vec4(0);
     samples[laneId][i][1] = vec4(0);
@@ -175,6 +186,7 @@ void processProbe(const uint probeId) {
   barrier();
 
   const vec3 origin = probe[probeId].pos;
+
   gather(origin);
   barrier();
 
@@ -183,7 +195,7 @@ void processProbe(const uint probeId) {
     vec3 c = vec3(1,0,0);
     probe[probeId].color[laneId][0] = c;
     probe[probeId].color[laneId][1] = c;
-    probe[probeId].badbit           = 1;
+    probe[probeId].bits            |= BAD_BIT;
     }
   if(badbit)
     return;
@@ -210,7 +222,7 @@ void processProbe(const uint probeId) {
 
     probe[probeId].color[laneId][0] = a.rgb;
     probe[probeId].color[laneId][1] = b.rgb;
-    probe[probeId].badbit           = 0;
+    probe[probeId].bits             = TRACED_BIT; // newly computed
     }
 
   if(laneId==0) {

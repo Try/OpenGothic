@@ -185,10 +185,12 @@ Shaders::Shaders() {
     auto fs = device.shader(sh.data,sh.len);
     probeDbg = device.pipeline(Triangles,state,vs,fs);
 
-    probeClear      = computeShader("probe_clear.comp.sprv");
-    probeAlocation0 = computeShader("probe_allocation0.comp.sprv");
-    probeAlocation1 = computeShader("probe_allocation1.comp.sprv");
-    probeTrace      = computeShader("probe_trace.comp.sprv");
+    probeClear     = computeShader("probe_clear.comp.sprv");
+    probeVote      = computeShader("probe_vote.comp.sprv");
+    probeReuse     = computeShader("probe_reuse.comp.sprv");
+    probeGC        = computeShader("probe_gc.comp.sprv");
+    probeAlocation = computeShader("probe_allocation.comp.sprv");
+    probeTrace     = computeShader("probe_trace.comp.sprv");
 
     state.setBlendSource  (RenderState::BlendMode::One);
     state.setBlendDest    (RenderState::BlendMode::SrcAlpha);  // for debugging

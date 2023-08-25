@@ -168,9 +168,11 @@ void Renderer::resetSwapchain() {
     gi.uboDbg         = DescriptorSet();
 
     gi.probeClearPso  = &Shaders::inst().probeClear;
-    gi.probeAlloc0Pso = &Shaders::inst().probeAlocation0;
-    gi.probeAlloc1Pso = &Shaders::inst().probeAlocation1;
-    gi.uboProbes      = device.descriptors(*gi.probeAlloc0Pso);
+    gi.probeVotePso   = &Shaders::inst().probeVote;
+    gi.probeReusePso  = &Shaders::inst().probeReuse;
+    gi.probeAllocPso  = &Shaders::inst().probeAlocation;
+    gi.probeGCPso     = &Shaders::inst().probeGC;
+    gi.uboProbes      = device.descriptors(*gi.probeAllocPso);
 
     gi.probeTracePso  = &Shaders::inst().probeTrace;
     gi.uboTrace       = device.descriptors(*gi.probeTracePso);
@@ -180,7 +182,13 @@ void Renderer::resetSwapchain() {
 
     if(gi.hashTable.isEmpty()) {
       gi.hashTable      = device.ssbo(nullptr, 2'097'152*sizeof(uint32_t)); // 8MB
+      gi.voteTable      = device.ssbo(nullptr, gi.hashTable.byteSize());
       gi.probes         = device.ssbo(nullptr, 8*1024*1024); // ~26K
+      gi.freeList       = device.ssbo(nullptr, gi.probes.byteSize()); // TODO: fine size
+
+      uint32_t zero = 0;
+      gi.probes  .update(&zero, 0, sizeof(uint32_t));
+      gi.freeList.update(&zero, 0, sizeof(uint32_t));
       }
     }
 
@@ -313,8 +321,10 @@ void Renderer::prepareUniforms() {
     gi.uboProbes.set(1, gbufDiffuse, Sampler::nearest());
     gi.uboProbes.set(2, gbufNormal,  Sampler::nearest());
     gi.uboProbes.set(3, zbuffer,     Sampler::nearest());
-    gi.uboProbes.set(4, gi.hashTable);
-    gi.uboProbes.set(5, gi.probes);
+    gi.uboProbes.set(4, gi.voteTable);
+    gi.uboProbes.set(5, gi.hashTable);
+    gi.uboProbes.set(6, gi.probes);
+    gi.uboProbes.set(7, gi.freeList);
 
     gi.uboTrace.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     gi.uboTrace.set(2, wview->sky().skyLut(), Sampler::bilinear());
@@ -697,16 +707,22 @@ void Renderer::prepareGi(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t 
     cmd.setUniforms(*gi.probeClearPso, gi.uboProbes);
     cmd.dispatchThreads(gi.hashTable.byteSize()/sizeof(uint32_t));
 
-    cmd.setUniforms(*gi.probeAlloc0Pso, gi.uboProbes);
+    cmd.setUniforms(*gi.probeVotePso, gi.uboProbes);
     cmd.dispatchThreads(sceneDepth.size());
 
-    cmd.setUniforms(*gi.probeAlloc1Pso, gi.uboProbes);
+    cmd.setUniforms(*gi.probeReusePso, gi.uboProbes);
+    cmd.dispatchThreads(sceneDepth.size());
+
+    cmd.setUniforms(*gi.probeGCPso, gi.uboProbes);
+    cmd.dispatch(1024);
+
+    cmd.setUniforms(*gi.probeAllocPso, gi.uboProbes);
     cmd.dispatchThreads(sceneDepth.size());
     }
 
   cmd.setDebugMarker("GI-Trace");
   cmd.setUniforms(*gi.probeTracePso, gi.uboTrace);
-  cmd.dispatch(1024*4); // dispath indirect? :(
+  cmd.dispatch(1024); // dispath indirect? :(
   }
 
 void Renderer::drawProbesDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {

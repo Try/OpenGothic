@@ -243,8 +243,10 @@ add_shader(probe_dbg.vert            lighting/rt/probe_dbg.vert)
 add_shader(probe_dbg.frag            lighting/rt/probe_dbg.frag)
 
 add_shader(probe_clear.comp          lighting/rt/probe_allocation.comp -DCLEAR)
-add_shader(probe_allocation0.comp    lighting/rt/probe_allocation.comp -DPREPASS)
-add_shader(probe_allocation1.comp    lighting/rt/probe_allocation.comp -DALLOC)
+add_shader(probe_vote.comp           lighting/rt/probe_allocation.comp -DVOTE)
+add_shader(probe_reuse.comp          lighting/rt/probe_allocation.comp -DREUSE)
+add_shader(probe_gc.comp             lighting/rt/probe_allocation.comp -DGC)
+add_shader(probe_allocation.comp     lighting/rt/probe_allocation.comp -DALLOC)
 add_shader(probe_trace.comp          lighting/rt/probe_trace.comp      -DRAY_QUERY -DRAY_QUERY_AT)
 
 add_shader(probe_ambient.vert        copy.vert)
