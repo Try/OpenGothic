@@ -17,6 +17,7 @@ const vec3  GGroundAlbedo = vec3(0.1);
 
 // devide photo-color by assumed sun intesity. Should be 1/scene.GSunIntensityMax
 const float PhotoLumInv   = 0.2;
+const float PhotoLum      = 5;
 
 float linearDepth(float d, vec3 clipInfo) {
   // z_n * z_f,  z_n - z_f, z_f

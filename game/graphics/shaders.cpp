@@ -191,7 +191,7 @@ Shaders::Shaders() {
     probeTrace      = computeShader("probe_trace.comp.sprv");
 
     state.setBlendSource  (RenderState::BlendMode::One);
-    state.setBlendDest    (RenderState::BlendMode::One);
+    state.setBlendDest    (RenderState::BlendMode::SrcAlpha);  // for debugging
     state.setZTestMode    (RenderState::ZTestMode::Always);
     state.setZWriteEnabled(false);
     sh = GothicShader::get("probe_ambient.vert.sprv");

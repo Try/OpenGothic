@@ -178,8 +178,10 @@ void Renderer::resetSwapchain() {
     gi.probeDrawPso   = &Shaders::inst().probeDraw;
     gi.uboDraw        = device.descriptors(*gi.probeDrawPso);
 
-    gi.hashTable      = device.ssbo(nullptr, 2'097'152*sizeof(uint32_t)); // 8MB
-    gi.probes         = device.ssbo(nullptr, 8*1024*1024); // ~26K
+    if(gi.hashTable.isEmpty()) {
+      gi.hashTable      = device.ssbo(nullptr, 2'097'152*sizeof(uint32_t)); // 8MB
+      gi.probes         = device.ssbo(nullptr, 8*1024*1024); // ~26K
+      }
     }
 
   prepareUniforms();
@@ -653,6 +655,8 @@ void Renderer::drawSky(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldV
 void Renderer::prepareSSAO(Encoder<Tempest::CommandBuffer>& cmd) {
   if(!settings.zCloudShadowScale)
     return;
+  if(settings.giEnabled)
+    return; // not quite implemented
   // ssao
   struct PushSsao {
     Matrix4x4 mvp;
@@ -683,17 +687,22 @@ void Renderer::prepareIrradiance(Tempest::Encoder<CommandBuffer>& cmd, uint8_t f
 void Renderer::prepareGi(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   if(!settings.giEnabled)
     return;
+
+  static bool alloc = true;
+
   cmd.setFramebuffer({});
   cmd.setDebugMarker("GI-Alloc");
 
-  cmd.setUniforms(*gi.probeClearPso, gi.uboProbes);
-  cmd.dispatchThreads(gi.hashTable.byteSize()/sizeof(uint32_t));
+  if(alloc) {
+    cmd.setUniforms(*gi.probeClearPso, gi.uboProbes);
+    cmd.dispatchThreads(gi.hashTable.byteSize()/sizeof(uint32_t));
 
-  cmd.setUniforms(*gi.probeAlloc0Pso, gi.uboProbes);
-  cmd.dispatchThreads(sceneDepth.size());
+    cmd.setUniforms(*gi.probeAlloc0Pso, gi.uboProbes);
+    cmd.dispatchThreads(sceneDepth.size());
 
-  cmd.setUniforms(*gi.probeAlloc1Pso, gi.uboProbes);
-  cmd.dispatchThreads(sceneDepth.size());
+    cmd.setUniforms(*gi.probeAlloc1Pso, gi.uboProbes);
+    cmd.dispatchThreads(sceneDepth.size());
+    }
 
   cmd.setDebugMarker("GI-Trace");
   cmd.setUniforms(*gi.probeTracePso, gi.uboTrace);

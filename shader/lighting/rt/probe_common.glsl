@@ -1,6 +1,10 @@
 #ifndef PROBE_COMMON_GLSL
 #define PROBE_COMMON_GLSL
 
+struct Hash {
+  uint value;
+  };
+
 struct Probe {
   vec3 pos;
   uint badbit;
@@ -15,7 +19,7 @@ struct ProbesHeader {
 const float dbgViewRadius = 5;
 const float probeGridStep = 50;
 
-uint probePositionHash(ivec3 gridPos) {
+uint probeGridPosHash(ivec3 gridPos) {
   return (gridPos.x * 18397) + (gridPos.y * 20483) + (gridPos.z * 29303);
   }
 
@@ -32,6 +36,66 @@ vec3 probeReadAmbient(const in Probe p, vec3 n) {
   ret += p.color[1][d.y].rgb * n.y;
   ret += p.color[2][d.z].rgb * n.z;
   return ret;
+  }
+
+int probeGridLodFromDist(const float depth) {
+  // NOTE: manual tuning been here
+  if(depth < 0.25)
+    return 0;
+  if(depth < 0.5)
+    return 0;
+  if(depth <= 1)
+    return 0;
+  if(depth <= 1.5)
+    return 0;
+  if(depth <= 6.0)
+    return 1;
+  if(depth <= 9.0)
+    return 2;
+  return 3;
+  }
+
+
+struct probeQuery {
+  int   lod;
+  float step;
+  ivec3 pLow, pHigh;
+
+  int   iterator;
+  ivec3 px;
+  };
+
+void probeQueryInitialize(out probeQuery q, vec3 pos, int lod) {
+  const float step    = probeGridStep*(1 << lod);
+  const vec3  gridPos = pos/step;
+
+  q.pLow     = ivec3(floor(gridPos));
+  q.pHigh    = ivec3(ceil (gridPos));
+  q.iterator = 0;
+  q.step     = step;
+  q.lod      = lod;
+  }
+
+bool probeQueryProceed(inout probeQuery q) {
+  bool x = (q.iterator & 0x1)!=0;
+  bool y = (q.iterator & 0x2)!=0;
+  bool z = (q.iterator & 0x4)!=0;
+
+  ivec3 px = ivec3(x ? q.pLow.x : q.pHigh.x,
+                   y ? q.pLow.y : q.pHigh.y,
+                   z ? q.pLow.z : q.pHigh.z);
+
+  q.px      = px;
+  q.iterator++;
+  return q.iterator<=8;
+  }
+
+vec3 probeQueryWorldPos(in probeQuery q) {
+  return q.px*q.step;
+  }
+
+ivec3 probeQueryGridPos(in probeQuery q) {
+  return q.px*(1 << q.lod);
   }
 
 #endif
