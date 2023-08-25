@@ -167,7 +167,7 @@ void gather(const vec3 origin) {
 
 void processProbe(const uint probeId) {
   const uint laneId  = gl_LocalInvocationIndex;
-  const bool cached  = ((probe[probeId].bits & TRACED_BIT)!=0);
+  const bool cached  = ((probe[probeId].bits & (TRACED_BIT | FREE_BIT))!=0);
 
   barrier();
   if(cached) {
