@@ -67,6 +67,11 @@ void gather(vec3 pos, vec3 norm, int lod, bool ignoreBad) {
     }
   }
 
+vec3 textureAlbedo(vec3 diff) {
+  return textureLinear(diff) * PhotoLum;
+  //return srgbDecode(diff.rgb);
+  }
+
 void main() {
   const float z = texelFetch(depth,ivec2(gl_FragCoord.xy),0).x;
   if(z>=0.99995)
@@ -86,15 +91,11 @@ void main() {
     gather(pos, norm, lod, true);
     }
 
-  const vec3 linear = textureLinear(diff);
-  // const vec3 linear = acesTonemapInv(srgbDecode(diff));
-  // const vec3 linear = srgbDecode(diff);
-  // const vec3 linear = vec3(1);
+  const vec3 linear = textureAlbedo(diff);
 
   vec3 color = colorSum.rgb/max(colorSum.w,0.000001);
   color *= linear;
   color *= scene.exposure;
-  color *= 25;
   // color = linear;
   outColor = vec4(color, 1);
   }

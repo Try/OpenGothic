@@ -216,6 +216,7 @@ void Sky::updateLight(const int64_t now) {
   static float sunMul = 1;
   static float ambMul = 1;
   // static auto  groundAlbedo = Vec3(0.34f, 0.42f, 0.26f); // Foliage(MacBeth)
+  // static auto  groundAlbedo = Vec3(0.47f); // Neutral5 (MacBeth)
   static auto  groundAlbedo = Vec3(0.39f, 0.40f, 0.33f);
   static float lumScale = 5.f / DirectSunLux;
 

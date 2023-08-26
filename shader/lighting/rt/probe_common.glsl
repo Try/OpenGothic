@@ -5,10 +5,11 @@ struct Hash {
   uint value;
   };
 
-const uint FREE_BIT   = 0x1;
+const uint UNUSED_BIT = 0x1;
 const uint TRACED_BIT = 0x2;
 const uint REUSE_BIT  = 0x4;
 const uint BAD_BIT    = 0x8;
+const uint NEW_BIT    = 0x10; //for debug view
 
 struct Probe {
   vec3 pos;

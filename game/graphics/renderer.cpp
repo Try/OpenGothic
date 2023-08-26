@@ -185,11 +185,11 @@ void Renderer::resetSwapchain() {
       gi.voteTable      = device.ssbo(nullptr, gi.hashTable.byteSize());
       gi.probes         = device.ssbo(nullptr, 8*1024*1024); // ~26K
       gi.freeList       = device.ssbo(nullptr, gi.probes.byteSize()); // TODO: fine size
-
-      uint32_t zero = 0;
-      gi.probes  .update(&zero, 0, sizeof(uint32_t));
-      gi.freeList.update(&zero, 0, sizeof(uint32_t));
       }
+
+    uint32_t zero = 0;
+    gi.probes  .update(&zero, 0, sizeof(uint32_t));
+    gi.freeList.update(&zero, 0, sizeof(uint32_t));
     }
 
   prepareUniforms();

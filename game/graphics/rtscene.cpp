@@ -47,7 +47,10 @@ void RtScene::addInstance(const Matrix4x4& pos, const AccelerationStructure& bla
 
   RtObjectDesc desc = {};
   desc.instanceId     = bucketId;
-  desc.firstPrimitive = firstPrimitive;
+  desc.firstPrimitive = firstPrimitive & 0x00FFFFFF; // 24 bit for primmitive + 8 for utility
+
+  if(mat.alpha==Material::Solid)
+    desc.bits |= 0x1;
 
   RtInstance ix;
   ix.mat  = pos;

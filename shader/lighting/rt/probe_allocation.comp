@@ -152,7 +152,7 @@ void main_gc() {
   if((probe[probeId].bits & REUSE_BIT)!=0)
     return;
 
-  probe[probeId].bits |= FREE_BIT;
+  probe[probeId].bits |= UNUSED_BIT;
   const uint cursor = atomicAdd(freeList.cursor, 1);
   freeList.list[cursor] = probeId;
   }

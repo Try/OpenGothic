@@ -18,6 +18,7 @@ struct HitDesc {
   uint instanceId;
   uint primitiveId;
   vec3 baryCoord;
+  bool opaque;
   };
 
 #if defined(RAY_QUERY_AT)
@@ -27,9 +28,9 @@ struct RtObjectDesc {
   };
 layout(binding  = 7) uniform sampler   smp;
 layout(binding  = 8) uniform texture2D textures[];
-layout(binding  = 9,  std430) readonly buffer Vbo { float vert[];   } vbo[];
-layout(binding  = 10, std430) readonly buffer Ibo { uint  index[];  } ibo[];
-layout(binding  = 11, std430) readonly buffer Off { RtObjectDesc rtDesc[]; };
+layout(binding  = 9,  std430) readonly buffer Vbo  { float vert[];   } vbo[];
+layout(binding  = 10, std430) readonly buffer Ibo  { uint  index[];  } ibo[];
+layout(binding  = 11, std430) readonly buffer Desc { RtObjectDesc rtDesc[]; };
 #endif
 
 #if defined(RAY_QUERY_AT)
@@ -66,10 +67,12 @@ HitDesc pullHitDesc(in rayQueryEXT rayQuery) {
   d.instanceId = desc.instanceId;
 
   d.primitiveId  = rayQueryGetIntersectionPrimitiveIndexEXT(rayQuery, commited);
-  d.primitiveId += desc.firstPrimitive;
+  d.primitiveId += desc.firstPrimitive & 0x00FFFFFF;
 
-  d.baryCoord = vec3(0,rayQueryGetIntersectionBarycentricsEXT(rayQuery, commited));
-  d.baryCoord.x = (1-d.baryCoord.y-d.baryCoord.z);
+  d.baryCoord    = vec3(0,rayQueryGetIntersectionBarycentricsEXT(rayQuery, commited));
+  d.baryCoord.x  = (1-d.baryCoord.y-d.baryCoord.z);
+
+  d.opaque       = (desc.firstPrimitive & 0x01000000)!=0;
 
   return d;
   }
@@ -86,10 +89,12 @@ HitDesc pullCommitedHitDesc(in rayQueryEXT rayQuery) {
   d.instanceId = desc.instanceId;
 
   d.primitiveId  = rayQueryGetIntersectionPrimitiveIndexEXT(rayQuery, commited);
-  d.primitiveId += desc.firstPrimitive;
+  d.primitiveId += desc.firstPrimitive & 0x00FFFFFF;
 
-  d.baryCoord = vec3(0,rayQueryGetIntersectionBarycentricsEXT(rayQuery, commited));
-  d.baryCoord.x = (1-d.baryCoord.y-d.baryCoord.z);
+  d.baryCoord    = vec3(0,rayQueryGetIntersectionBarycentricsEXT(rayQuery, commited));
+  d.baryCoord.x  = (1-d.baryCoord.y-d.baryCoord.z);
+
+  d.opaque       = (desc.firstPrimitive & 0x01000000)!=0;
 
   return d;
   }

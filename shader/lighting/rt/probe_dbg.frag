@@ -48,6 +48,8 @@ void main(void) {
   vec3 clr  = probeReadAmbient(p, norm) * scene.exposure;
   if((p.bits & BAD_BIT)!=0)
     clr = vec3(1,0,0);
+  if((p.bits & NEW_BIT)!=0)
+    clr = vec3(0,1,0);
 
   outColor = vec4(clr,1.0);
   // outColor = vec4(1,0,0,1.0);
