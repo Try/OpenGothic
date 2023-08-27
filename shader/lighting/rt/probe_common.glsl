@@ -11,21 +11,31 @@ const uint REUSE_BIT  = 0x4;
 const uint BAD_BIT    = 0x8;
 const uint NEW_BIT    = 0x10; //for debug view
 
-struct Probe {
-  vec3 pos;
-  uint bits;
-  vec3 color[3][2];  // HL2-cube
-  //uvec2 gbuffer[128]; // x: normal[xy]; w - color[rgb]; normal[z]
-  };
-
-struct ProbesHeader {
+struct ProbesHeader { // 64 bytes
   uint count;
   uint iterator;
   uint tracedCount;
+  uint padd0;
+  uint padd1[12];
+  //uint padd2[16];
+  };
+
+struct Probe { // 128 bytes
+  vec3 pos;
+  uint bits;
+  uint pNext;
+  uint padd1[3];
+  vec4 color[3][2];  // HL2-cube
+  };
+
+struct ProbeGBuffer {
+  uvec2 gbuffer[128]; // x: normal[xy]; w - color[rgb]; normal[z]
   };
 
 const float dbgViewRadius = 5;
 const float probeGridStep = 50;
+const float probeCageBias = 5.0;
+const float probeBadHitT  = 4.5;
 
 uint probeGridPosHash(ivec3 gridPos) {
   return (gridPos.x * 18397) + (gridPos.y * 20483) + (gridPos.z * 29303);

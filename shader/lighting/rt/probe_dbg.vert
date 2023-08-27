@@ -10,9 +10,11 @@ layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
 layout(binding = 1, std430) readonly buffer Pbo { ProbesHeader probeHeader; Probe probe[]; };
+layout(binding = 2, std430) buffer Hbo0 { Hash hashTable[]; };
 
 layout(location = 0) out vec3      center;
 layout(location = 1) out flat uint instanceIndex;
+layout(location = 2) out flat uint isHashed;
 
 
 const vec3 v[8] = {
@@ -37,17 +39,23 @@ const uint index[36] = {
   };
 
 void main() {
-  if(gl_InstanceIndex>=probeHeader.count) {
+  const uint probeId = gl_InstanceIndex;
+  if(probeId>=probeHeader.count) {
     gl_Position = vec4(0);
     return;
     }
 
-  Probe p = probe[gl_InstanceIndex];
+  Probe p = probe[probeId];
   //p.pos = vec3(0);
 
   vec3  vert  = v[index[gl_VertexIndex]];
 
   gl_Position   = scene.viewProject * vec4(p.pos + vert * dbgViewRadius, 1.0);
   center        = p.pos;
-  instanceIndex = gl_InstanceIndex;
+  instanceIndex = probeId;
+
+  const vec3 gridPos = probe[probeId].pos/probeGridStep;
+  const uint h       = probeGridPosHash(ivec3(gridPos)) % hashTable.length();
+  const uint cursor  = hashTable[h].value;
+  isHashed = (cursor==probeId) ? 1 : 0;
   }

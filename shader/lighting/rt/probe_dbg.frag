@@ -14,6 +14,7 @@ layout(binding = 1, std430) readonly buffer Pbo { ProbesHeader probeHeader; Prob
 
 layout(location = 0) in  vec3 center;
 layout(location = 1) in  flat uint instanceIndex;
+layout(location = 2) in  flat uint isHashed;
 
 layout(location = 0) out vec4 outColor;
 
@@ -27,7 +28,7 @@ vec3 unprojectDepth(float z) {
 vec3 lodColor(const in Probe p, vec3 norm) {
   float lamb  = max(dot(scene.sunDir, norm), 0);
   float light = lamb*0.7+0.3;
-  return p.color[0][0]*light;
+  return p.color[0][0].rgb*light;
   }
 
 void main(void) {
@@ -50,6 +51,9 @@ void main(void) {
     clr = vec3(1,0,0);
   if((p.bits & NEW_BIT)!=0)
     clr = vec3(0,1,0);
+
+  if(isHashed==0)
+    clr = vec3(0,0,1);
 
   outColor = vec4(clr,1.0);
   // outColor = vec4(1,0,0,1.0);

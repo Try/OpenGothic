@@ -110,21 +110,22 @@ vec4 sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const vec3 sunDi
   rayQueryProceedShadow(rayQuery); // NOTE: fix naming
 
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT) {
-    if(rayDirection.y<-0.9)
+    if(rayDirection.y<-0.75)
       atomicAdd(badHits, 1); // shoot to ground and hit nothing
     return vec4(resolveMiss(rayOrigin, rayDirection, sunDir), 1);
     }
 
-  const float rayT   = rayQueryGetIntersectionTEXT(rayQuery, true);
-  const bool  face   = false; // (rayQueryGetIntersectionFrontFaceEXT(rayQuery, true)); //note: not working on vegetation
-  const bool  badbit = (face || rayT<5.0);
+  const HitDesc hit    = pullCommitedHitDesc(rayQuery);
+
+  const float   rayT   = rayQueryGetIntersectionTEXT(rayQuery, true);
+  const bool    face   = false; // (rayQueryGetIntersectionFrontFaceEXT(rayQuery, true)); //note: not working on vegetation
+  const bool    badbit = (face || rayT<probeBadHitT) && hit.opaque;
 
   if(badbit) {
     atomicAdd(badHits, 1);
     return vec4(0);
     }
 
-  const HitDesc hit   = pullCommitedHitDesc(rayQuery);
   const uint    id    = hit.instanceId;
   const uvec3   index = pullTrinagleIds(id,hit.primitiveId);
 
@@ -174,12 +175,26 @@ void gather(const vec3 origin) {
     }
   }
 
+void hashmapInsert(uint probeId) {
+  const vec3 gridPos = probe[probeId].pos/probeGridStep;
+  const uint h       = probeGridPosHash(ivec3(gridPos)) % hashTable.length();
+  //hashTable[h].value = probeId;
+  //return;
+
+  uint pNext = atomicExchange(hashTable[h].value, probeId);
+  if(pNext>=probeHeader.count || pNext==probeId)
+    pNext = 0xFFFFFFFF;
+  probe[probeId].pNext = pNext;
+  }
+
 void processProbe(const uint probeId) {
   const uint laneId = gl_LocalInvocationIndex;
   const bool skip   = ((probe[probeId].bits & (TRACED_BIT | UNUSED_BIT))!=0);
 
   barrier();
   if(skip) {
+    if(laneId==0 && (probe[probeId].bits & TRACED_BIT)!=0)
+      hashmapInsert(probeId);
     probe[probeId].bits &= ~(REUSE_BIT | NEW_BIT);
     return;
     }
@@ -220,8 +235,8 @@ void processProbe(const uint probeId) {
     if(b.w>0)
       b.rgb /= b.w;
 
-    probe[probeId].color[laneId][0] = a.rgb * M_PI;
-    probe[probeId].color[laneId][1] = b.rgb * M_PI;
+    probe[probeId].color[laneId][0].rgb = a.rgb * M_PI;
+    probe[probeId].color[laneId][1].rgb = b.rgb * M_PI;
     }
 
   if(laneId==0) {
@@ -232,11 +247,8 @@ void processProbe(const uint probeId) {
       }
     }
 
-  if(laneId==0) {
-    const vec3 gridPos = probe[probeId].pos/probeGridStep;
-    const uint h       = probeGridPosHash(ivec3(gridPos)) % hashTable.length();
-    hashTable[h].value = probeId;
-    }
+  if(laneId==0)
+    hashmapInsert(probeId);
   }
 
 void main() {

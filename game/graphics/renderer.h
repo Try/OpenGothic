@@ -133,6 +133,7 @@ class Renderer final {
     } hiz;
 
     struct {
+      const uint32_t            maxProbes = 65535-1;
       Tempest::DescriptorSet    uboDbg;
 
       Tempest::ComputePipeline* probeClearPso = nullptr;

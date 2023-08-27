@@ -180,11 +180,13 @@ void Renderer::resetSwapchain() {
     gi.probeDrawPso   = &Shaders::inst().probeDraw;
     gi.uboDraw        = device.descriptors(*gi.probeDrawPso);
 
+    const uint32_t maxProbes = gi.maxProbes;
     if(gi.hashTable.isEmpty()) {
       gi.hashTable      = device.ssbo(nullptr, 2'097'152*sizeof(uint32_t)); // 8MB
       gi.voteTable      = device.ssbo(nullptr, gi.hashTable.byteSize());
-      gi.probes         = device.ssbo(nullptr, 8*1024*1024); // ~26K
-      gi.freeList       = device.ssbo(nullptr, gi.probes.byteSize()); // TODO: fine size
+      gi.probes         = device.ssbo(nullptr, maxProbes*128 + 64);        // probes and header
+      gi.freeList       = device.ssbo(nullptr, maxProbes*sizeof(uint32_t) + sizeof(int32_t));
+      // gi.probesGBuff    = device.image3d(TextureFormat::RGBA8, maxProbes*16, 8, 2); // 16x8 tile
       }
 
     uint32_t zero = 0;
@@ -714,7 +716,7 @@ void Renderer::prepareGi(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t 
     cmd.dispatchThreads(sceneDepth.size());
 
     cmd.setUniforms(*gi.probeGCPso, gi.uboProbes);
-    cmd.dispatch(1024);
+    cmd.dispatchThreads(gi.maxProbes);
 
     cmd.setUniforms(*gi.probeAllocPso, gi.uboProbes);
     cmd.dispatchThreads(sceneDepth.size());
@@ -741,13 +743,13 @@ void Renderer::drawProbesDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint
       gi.uboDbg = device.descriptors(pso);
       gi.uboDbg.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
       gi.uboDbg.set(1, gi.probes);
+      gi.uboDbg.set(2, gi.hashTable);
       }
     }
 
   cmd.setDebugMarker("GI-dbg");
-  const size_t cnt = (gi.probes.byteSize()-sizeof(uint32_t))/(sizeof(float)*28);
   cmd.setUniforms(pso, gi.uboDbg);
-  cmd.draw(36, 0, cnt);
+  cmd.draw(36, 0, gi.maxProbes);
   }
 
 void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {

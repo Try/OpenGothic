@@ -35,10 +35,10 @@ layout(binding = 0, std140) uniform UboScene {
 layout(binding = 1) uniform sampler2D diffuse;
 layout(binding = 2) uniform sampler2D normals;
 layout(binding = 3) uniform sampler2D depth;
-layout(binding = 4, std430) buffer Hbo0 { uint voteTable[]; };
-layout(binding = 5, std430) buffer Hbo  { Hash hashTable[]; };
-layout(binding = 6, std430) buffer Pbo  { ProbesHeader probeHeader; Probe probe[]; };
-layout(binding = 7, std430) buffer Fbo0 { int cursor; uint list[]; } freeList;
+layout(binding = 4, std430) buffer          Hbo0 { uint voteTable[]; };
+layout(binding = 5, std430) readonly buffer Hbo  { Hash hashTable[]; };
+layout(binding = 6, std430) buffer          Pbo  { ProbesHeader probeHeader; Probe probe[]; };
+layout(binding = 7, std430) buffer          Fbo0 { int cursor; uint list[]; } freeList;
 
 ivec2 screenSize, fragCoord;
 uint  threadId;
@@ -68,6 +68,7 @@ bool reuseProbe(const uint h, vec3 pos) {
     return false; // NOTE: reconstructed position may jitter a little
 
   probe[probeId].bits |= REUSE_BIT;
+  probe[probeId].pNext = 0xFFFFFFFF;
   return true;
   }
 
@@ -93,6 +94,7 @@ void processProbe(ivec3 gridPos, vec3 pos, int lod, vec3 pixelPos, vec3 pixelNor
   Probe p;
   p.pos         = pos;
   p.bits        = 0;
+  p.pNext       = 0xFFFFFFFF;
   probe[cursor] = p;
 #endif
   }
@@ -111,9 +113,8 @@ void main_process() {
   if(z>=0.99995)
     return; // sky
 
-  const float bias = 2.0;
   const float dist = linearDepth(z, scene.clipInfo);
-  const vec3  pos  = unprojectDepth(z) + norm*bias;
+  const vec3  pos  = unprojectDepth(z) + norm*probeCageBias;
   const int   lod  = probeGridLodFromDist(dist);
 
   probeQuery pq;
@@ -130,13 +131,13 @@ void main_process() {
   }
 
 void main_clear() {
-  const uint laneID = gl_GlobalInvocationID.x;
+  const uint threadID = gl_GlobalInvocationID.x;
 
-  if(laneID<voteTable.length()) {
-    voteTable[laneID] = 0xFFFFFFFF;
+  if(threadID<voteTable.length()) {
+    voteTable[threadID] = 0xFFFFFFFF;
     }
 
-  if(laneID==0) {
+  if(threadID==0) {
     probeHeader.count       = min(probeHeader.count, probe.length());
     probeHeader.iterator    = 0;
     probeHeader.tracedCount = 0;
@@ -148,6 +149,8 @@ void main_gc() {
   const uint probeId = gl_GlobalInvocationID.x;
   if(probeId>=probeHeader.count)
     return;
+
+  probe[probeId].pNext = 0xFFFFFFFF;
 
   if((probe[probeId].bits & REUSE_BIT)!=0)
     return;

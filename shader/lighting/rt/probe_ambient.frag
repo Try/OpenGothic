@@ -6,6 +6,7 @@
 
 #include "lighting/rt/probe_common.glsl"
 #include "lighting/tonemapping.glsl"
+#include "lighting/purkinje_shift.glsl"
 #include "scene.glsl"
 #include "common.glsl"
 
@@ -30,19 +31,66 @@ vec3 unprojectDepth(const float z) {
   return (ret.xyz/ret.w);
   }
 
-void processProbe(ivec3 gridPos, vec3 pos, int lod, vec3 pixelPos, vec3 pixelNorm, bool ignoreBad) {
-  const uint h      = probeGridPosHash(gridPos) % hashTable.length();
-  const uint cursor = hashTable[h].value;
-  if(cursor>=probeHeader.count)
+Probe mkZeroProbe() {
+  Probe px;
+  px.color[0][0] = vec4(0);
+  px.color[0][1] = vec4(0);
+  px.color[1][0] = vec4(0);
+  px.color[1][1] = vec4(0);
+  px.color[2][0] = vec4(0);
+  px.color[2][1] = vec4(0);
+  px.bits        = UNUSED_BIT;
+  return px;
+  }
+
+Probe readProbe(const ivec3 gridPos, const vec3 wpos) {
+  const uint h       = probeGridPosHash(gridPos) % hashTable.length();
+  uint       probeId = hashTable[h].value;
+
+  [[loop]]
+  for(int i=0; i<8; ++i) {
+    if(probeId>=probeHeader.count)
+      return mkZeroProbe();
+
+    const Probe p = probe[probeId];
+    if((p.bits & TRACED_BIT)==0)
+      return p;
+
+    const vec3 dp = wpos - p.pos;
+    if(dot(dp,dp)>1.0) {
+      probeId = p.pNext;
+      continue;
+      }
+    return p;
+    }
+
+  return mkZeroProbe();
+  }
+
+void processProbe(ivec3 gridPos, vec3 wpos, int lod, vec3 pixelPos, vec3 pixelNorm, bool ignoreBad) {
+  const vec3 ldir = wpos-pixelPos;
+  if(dot(ldir, pixelNorm)<=0)
     return;
 
-  const Probe p    = probe[cursor];
-  const vec3  ldir = p.pos-pixelPos;
+  const Probe p = readProbe(gridPos, wpos);
+  if((p.bits & TRACED_BIT)==0)
+    return;
 
   if((p.bits & BAD_BIT)!=0 && !ignoreBad)
     return;
-  if(dot(ldir, pixelNorm)<=0)
-    return;
+
+  vec3 dp = wpos - p.pos;
+  if(dot(dp,dp)>1.0) {
+    // debug
+    // colorSum += vec4(vec3(0,0,1)*scene.GSunIntensity,1);
+    // return; // position is not what was expeted - hash collision
+    }
+
+  if(ivec3(p.pos/probeGridStep)!=gridPos) {
+    // debug
+    // colorSum += vec4(vec3(0,0,1)*scene.GSunIntensity,1);
+    // return;
+    }
 
   float weight = 1;
   // cosine weight from https://advances.realtimerendering.com/s2015/SIGGRAPH_2015_Remedy_Notes.pdf
@@ -56,12 +104,12 @@ void processProbe(ivec3 gridPos, vec3 pos, int lod, vec3 pixelPos, vec3 pixelNor
   }
 
 void gather(vec3 pos, vec3 norm, int lod, bool ignoreBad) {
+  colorSum = vec4(0);
+
   probeQuery pq;
   probeQueryInitialize(pq, pos, lod);
   while(probeQueryProceed(pq)) {
-    vec3 wpos = probeQueryWorldPos(pq);
-    vec3 dir  = (wpos-pos);
-
+    vec3  wpos = probeQueryWorldPos(pq);
     ivec3 gPos = probeQueryGridPos(pq);
     processProbe(gPos, wpos, lod, pos, norm, ignoreBad);
     }
@@ -80,21 +128,27 @@ void main() {
   const vec3  diff = texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0).rgb;
   const vec3  norm = normalize(texelFetch(gbufNormal,ivec2(gl_FragCoord.xy),0).xyz*2.0-vec3(1.0));
 
-  const float bias = 2.0;
   const float dist = linearDepth(z, scene.clipInfo);
-  const vec3  pos  = unprojectDepth(z) + norm*bias;
+  const vec3  pos  = unprojectDepth(z) + norm*probeCageBias;
   const int   lod  = probeGridLodFromDist(dist);
 
   gather(pos, norm, lod, false);
   if(colorSum.w<=0.000001) {
-    // maybe all probes do have bad-bit, check one LOD above for data
     gather(pos, norm, lod, true);
+    }
+
+  if(colorSum.w<=0.000001) {
+    // debug
+    // colorSum = vec4(vec3(1,0,0)*scene.GSunIntensity,1);
+    colorSum = vec4(0,0,0,1);
     }
 
   const vec3 linear = textureAlbedo(diff);
 
   vec3 color = colorSum.rgb/max(colorSum.w,0.000001);
   color *= linear;
+  // night shift
+  color += purkinjeShift(color);
   color *= scene.exposure;
   // color = linear;
   outColor = vec4(color, 1);
