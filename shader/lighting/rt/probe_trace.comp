@@ -68,14 +68,18 @@ vec3 textureAlbedo(vec3 diff) {
   return textureLinear(diff) * PhotoLum;
   }
 
-vec3 resolveHit(const vec3 rayOrigin, const vec3 rayDirection, const vec3 sunDir, in vec3 diff, vec3 normal, bool opaque, float shadow) {
-  vec3 albedo = textureAlbedo(diff);
-
-  const float dt      = dot(normal, sunDir);
-  const float lambert = max(opaque ? 0 : 0.2, dt);
+vec3 resolveHit(const vec3 rayOrigin, const vec3 rayDirection, const vec3 sunDir, in vec3 diff, vec3 normal, bool opaque, float shMap) {
   // if(!opaque)
   //   return vec3(1,0,0) * scene.GSunIntensity; else
   //   return vec3(0,0,1) * scene.GSunIntensity;
+
+  const vec3  albedo  = textureAlbedo(diff);
+  const float dt      = dot(normal, sunDir);
+
+  // atificial lit on vegetation, as RT can't capture small bright light leaks from the trees
+  const float lambert = max(opaque ? 0 : 0.2, dt);
+  // avoid ultra-dark spits in woods
+  const float shadow  = max(0.2, shMap);
 
   const vec3  lcolor  = (scene.sunCl.rgb * scene.GSunIntensity * lambert * shadow);
   const vec3  ambient = scene.ambient * 0.25; // no proper multi-bounce yet
