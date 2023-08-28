@@ -189,7 +189,7 @@ void Renderer::resetSwapchain() {
       gi.voteTable       = device.ssbo(nullptr, gi.hashTable.byteSize());
       gi.probes          = device.ssbo(nullptr, maxProbes*128 + 64);        // probes and header
       gi.freeList        = device.ssbo(nullptr, maxProbes*sizeof(uint32_t) + sizeof(int32_t));
-      gi.probesGBuffDiff = device.image2d(TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16); // 16x8 tile
+      gi.probesGBuffDiff = device.image2d(TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16); // 16x16 tile
       gi.probesGBuffNorm = device.image2d(TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16);
       gi.probesGBuffRayT = device.image2d(TextureFormat::R16,   gi.atlasDim*16, gi.atlasDim*16);
       }
@@ -721,8 +721,9 @@ void Renderer::prepareGi(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t 
   cmd.setDebugMarker("GI-Alloc");
 
   if(alloc) {
+    const size_t maxHash = gi.hashTable.byteSize()/sizeof(uint32_t);
     cmd.setUniforms(*gi.probeClearPso, gi.uboProbes);
-    cmd.dispatchThreads(gi.hashTable.byteSize()/sizeof(uint32_t));
+    cmd.dispatchThreads(maxHash);
 
     cmd.setUniforms(*gi.probeVotePso, gi.uboProbes);
     cmd.dispatchThreads(sceneDepth.size());
@@ -731,6 +732,7 @@ void Renderer::prepareGi(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t 
     cmd.dispatchThreads(sceneDepth.size());
 
     cmd.setUniforms(*gi.probeGCPso, gi.uboProbes);
+    //cmd.dispatchThreads(std::max<size_t>(maxHash, gi.maxProbes));
     cmd.dispatchThreads(gi.maxProbes);
 
     cmd.setUniforms(*gi.probeAllocPso, gi.uboProbes);

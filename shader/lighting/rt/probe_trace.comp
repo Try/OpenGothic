@@ -31,12 +31,11 @@ vec3 textureAlbedo(vec3 diff) {
   return textureLinear(diff) * PhotoLum;
   }
 
-void storeGbuffer(const uint probeId, uint sampleId, vec3 diff, vec3 norm, float rayT, bool opaque, bool badbit) {
-  if(norm!=vec3(0)) { // miss
-    norm = norm*0.5+vec3(0.5);
-    }
+void storeGbuffer(const uint probeId, uint sampleId, vec3 diff, vec3 norm, float rayT,
+                  bool opaque, bool badbit, bool sky) {
+  norm = norm*0.5+vec3(0.5);
 
-  const uint  bits = (opaque ? 0x1 : 0x0) | (badbit ? 0x2 : 0x0);
+  const uint  bits = (opaque ? 0x1 : 0x0) | (badbit ? 0x2 : 0x0) | (sky ? 0x4 : 0x0);
   const float r    = (rayT/probeRayDistance);
 
   const ivec2 uv   = gbufferCoord(probeId, sampleId);
@@ -58,7 +57,7 @@ void sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const uint probe
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT) {
     if(rayDirection.y<-0.75)
       atomicAdd(badHits, 1); // shoot to ground and hit nothing
-    storeGbuffer(probeId, sampleId, vec3(0,0,1), vec3(0), probeRayDistance, false, false);
+    storeGbuffer(probeId, sampleId, vec3(0,0,1), vec3(0), probeRayDistance, false, false, true);
     return;
     }
 
@@ -91,7 +90,7 @@ void sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const uint probe
 
   const vec3  diff  = textureLod(sampler2D(textures[nonuniformEXT(id)], smp),uv,0).rgb;
 
-  storeGbuffer(probeId, sampleId, diff, nr, rayT, hit.opaque, badbit);
+  storeGbuffer(probeId, sampleId, diff, nr, rayT, hit.opaque, badbit, false);
   }
 
 void gather(const uint probeId, const vec3 origin) {
@@ -116,6 +115,9 @@ void trace(const uint probeId) {
   }
 
 void hashmapInsert(const uint probeId) {
+  if(gl_LocalInvocationIndex!=0)
+    return;
+
   const vec3 gridPos = probe[probeId].pos/probeGridStep;
   const uint h       = probeGridPosHash(ivec3(gridPos)) % hashTable.length();
   //hashTable[h].value = probeId;
@@ -129,22 +131,23 @@ void hashmapInsert(const uint probeId) {
 
 void processProbe(const uint probeId) {
   const uint laneId = gl_LocalInvocationIndex;
-  const bool skip   = ((probe[probeId].bits & (TRACED_BIT | UNUSED_BIT))!=0);
 
-  barrier();
-  if(skip) {
-    if(laneId==0 && (probe[probeId].bits & TRACED_BIT)!=0)
-      hashmapInsert(probeId);
+  if((probe[probeId].bits & UNUSED_BIT)!=0) {
     probe[probeId].bits &= ~(REUSE_BIT | NEW_BIT);
     return;
     }
 
-  if(laneId==0)
-    atomicAdd(probeHeader.tracedCount, 1); // stat counter
+  if((probe[probeId].bits & TRACED_BIT)!=0) {
+    probe[probeId].bits &= ~(REUSE_BIT | NEW_BIT);
+    hashmapInsert(probeId);
+    return;
+    }
 
   badHits = 0;
   barrier();
 
+  if(laneId==0)
+    atomicAdd(probeHeader.tracedCount, 1); // stat counter
   trace(probeId);
   barrier();
 
@@ -157,8 +160,7 @@ void processProbe(const uint probeId) {
       }
     }
 
-  if(laneId==0)
-    hashmapInsert(probeId);
+  hashmapInsert(probeId);
   }
 
 void main() {

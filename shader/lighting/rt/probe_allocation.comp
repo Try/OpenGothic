@@ -68,6 +68,7 @@ bool reuseProbe(const uint h, vec3 pos) {
     return false; // NOTE: reconstructed position may jitter a little
 
   probe[probeId].bits |= REUSE_BIT;
+  probe[probeId].bits &= ~UNUSED_BIT;
   return true;
   }
 
@@ -146,16 +147,15 @@ void main_clear() {
   }
 
 void main_gc() {
+  // if(gl_GlobalInvocationID.x<hashTable.length())
+  //  hashTable[gl_GlobalInvocationID.x].value = 0xFFFFFFFF;
   const uint probeId = gl_GlobalInvocationID.x;
   if(probeId>=probeHeader.count)
     return;
 
   probe[probeId].pNext = 0xFFFFFFFF;
-
-  if((probe[probeId].bits & REUSE_BIT)!=0) {
-    probe[probeId].bits &= ~UNUSED_BIT;
+  if((probe[probeId].bits & REUSE_BIT)!=0)
     return;
-    }
 
   probe[probeId].bits |= UNUSED_BIT;
   const uint cursor = atomicAdd(freeList.cursor, 1);
