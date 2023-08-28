@@ -12,111 +12,54 @@
 layout(local_size_x = 64) in;
 
 const  uint samplesCount = 2;
-shared vec4 samples[gl_WorkGroupSize.x][3][2]; // 6 Kb
+const  uint samplesTotal = gl_WorkGroupSize.x*samplesCount*2; // 2 directions
+
 shared uint shProbeId;
 shared uint badHits;
 
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
-layout(binding = 2) uniform sampler2D skyLUT;
-layout(binding = 3) uniform sampler2D textureSm1;
+layout(binding = 1) uniform writeonly image2D gbufferDiff;
+layout(binding = 2) uniform writeonly image2D gbufferNorm;
+layout(binding = 3) uniform writeonly image2D gbufferRayT;
 
 layout(binding = 4, std430) buffer Hbo { Hash hashTable[]; };
 layout(binding = 5, std430) buffer Pbo { ProbesHeader probeHeader; Probe probe[]; };
-
-float shadowResolve(in vec4 sh, float z) {
-  z  = clamp(z,0,0.99);
-  sh = step(sh,vec4(z));
-  return 0.25*(sh.x+sh.y+sh.z+sh.w);
-  }
-
-vec4 shadowSample(in sampler2D shadowMap, vec2 shPos) {
-  shPos.xy = shPos.xy*vec2(0.5,0.5)+vec2(0.5);
-  return textureGather(shadowMap,shPos);
-  }
-
-float calcShadow(vec3 shPos1) {
-  //shPos1.y = max(0,shPos1.y);
-  vec4  lay1 = shadowSample(textureSm1,shPos1.xy);
-  float v1   = shadowResolve(lay1,shPos1.z);
-  if(abs(shPos1.x)<1.0 && abs(shPos1.y)<1.0)
-    return v1;
-  return 1.0;
-  }
-
-float shadowFactor(vec4 shPos) {
-  return calcShadow(shPos.xyz/shPos.w);
-  }
-
-// Sample i-th point from Hammersley point set of NumSamples points total.
-// See: http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
-vec2 sampleHammersley(uint i, uint numSamples) {
-  uint  bits = bitfieldReverse(i);
-  float vdc  = float(bits) * 2.3283064365386963e-10; // / 0x100000000
-  return vec2(float(i)/float(numSamples), vdc);
-  }
-
-vec3 sampleHemisphere(uint i, uint numSamples, float offsetAng) {
-  const vec2  xi  = sampleHammersley(i,numSamples);
-  const float u1p = sqrt(max(0.0, 1.0 - xi.y*xi.y));
-  const float a   = M_PI*2.0*xi.x + offsetAng;
-  return vec3(cos(a) * u1p, xi.y, sin(a) * u1p);
-  }
 
 vec3 textureAlbedo(vec3 diff) {
   return textureLinear(diff) * PhotoLum;
   }
 
-vec3 resolveHit(const vec3 rayOrigin, const vec3 rayDirection, const vec3 sunDir, in vec3 diff, vec3 normal, bool opaque, float shMap) {
-  // if(!opaque)
-  //   return vec3(1,0,0) * scene.GSunIntensity; else
-  //   return vec3(0,0,1) * scene.GSunIntensity;
-
-  const vec3  albedo  = textureAlbedo(diff);
-  const float dt      = dot(normal, sunDir);
-
-  // atificial lit on vegetation, as RT can't capture small bright light leaks from the trees
-  const float lambert = max(opaque ? 0 : 0.2, dt);
-  // avoid ultra-dark spits in woods
-  const float shadow  = max(0.2, shMap);
-
-  const vec3  lcolor  = (scene.sunCl.rgb * scene.GSunIntensity * lambert * shadow);
-  const vec3  ambient = scene.ambient * 0.25; // no proper multi-bounce yet
-  const vec3  atmo    = vec3(0.01) * scene.sunCl.rgb * scene.GSunIntensity;
-
-  vec3 color = vec3(0);
-  color += lcolor;
-  color += ambient;
-  //color += atmo;
-  return albedo*color;
-  }
-
-vec3 resolveMiss(const vec3 rayOrigin, const vec3 rayDirection, const vec3 sunDir) {
-  if(rayDirection.y<0.001) {
-    // return resolveHit(rayOrigin, rayDirection, sunDir, vec3(0.15), sunDir, 1);
+void storeGbuffer(const uint probeId, uint sampleId, vec3 diff, vec3 norm, float rayT, bool opaque, bool badbit) {
+  if(norm!=vec3(0)) { // miss
+    norm = norm*0.5+vec3(0.5);
     }
-  const vec3 lcolor = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), rayDirection, sunDir) * scene.GSunIntensity;
-  const vec3 atmo   = vec3(0.05) * scene.sunCl.rgb * scene.GSunIntensity; // MS-Lut?
-  return lcolor + atmo;
-  // return vec3(1, 0, 0)*scene.GSunIntensity;
+
+  const uint  bits = (opaque ? 0x1 : 0x0) | (badbit ? 0x2 : 0x0);
+  const float r    = (rayT/probeRayDistance);
+
+  const ivec2 uv   = gbufferCoord(probeId, sampleId);
+  imageStore(gbufferDiff, uv, vec4(diff, bits/255.0));
+  imageStore(gbufferNorm, uv, vec4(norm, 0));
+  imageStore(gbufferRayT, uv, vec4(r,    0,0,0));
   }
 
-vec4 sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const vec3 sunDir) {
+void sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const uint probeId, uint sampleId) {
   // CullFront due to vegetation
-  uint  flags        = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullFrontFacingTrianglesEXT;// | gl_RayFlagsCullNoOpaqueEXT;
-  float tMin         = 1;
-  float rayDistance  = 200*100; // Lumen rt-probe uses 200-meters range
+  uint  flags = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullFrontFacingTrianglesEXT;// | gl_RayFlagsCullNoOpaqueEXT;
+  float tMin  = 1;
 
   rayQueryEXT rayQuery;
   rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
-                        rayOrigin, tMin, rayDirection, rayDistance);
+                        rayOrigin, tMin, rayDirection, probeRayDistance);
   rayQueryProceedShadow(rayQuery); // NOTE: fix naming
 
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT) {
     if(rayDirection.y<-0.75)
       atomicAdd(badHits, 1); // shoot to ground and hit nothing
-    return vec4(resolveMiss(rayOrigin, rayDirection, sunDir), 1);
+    storeGbuffer(probeId, sampleId, vec3(0,0,1), vec3(0), probeRayDistance, false, false);
+    return;
     }
 
   const HitDesc hit    = pullCommitedHitDesc(rayQuery);
@@ -127,59 +70,52 @@ vec4 sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const vec3 sunDi
 
   if(badbit) {
     atomicAdd(badHits, 1);
-    return vec4(0);
+    // storeGbuffer(probeId, sampleId, vec3(0), vec3(0,0,1), rayT, false, true);
+    // return;
     }
 
-  const uint    id    = hit.instanceId;
-  const uvec3   index = pullTrinagleIds(id,hit.primitiveId);
+  const uint  id    = hit.instanceId;
+  const uvec3 index = pullTrinagleIds(id,hit.primitiveId);
 
-  const vec2    uv0   = pullTexcoord(id,index.x);
-  const vec2    uv1   = pullTexcoord(id,index.y);
-  const vec2    uv2   = pullTexcoord(id,index.z);
+  const vec2  uv0   = pullTexcoord(id,index.x);
+  const vec2  uv1   = pullTexcoord(id,index.y);
+  const vec2  uv2   = pullTexcoord(id,index.z);
 
-  const vec3    nr0   = pullNormal(id,index.x);
-  const vec3    nr1   = pullNormal(id,index.y);
-  const vec3    nr2   = pullNormal(id,index.z);
+  const vec3  nr0   = pullNormal(id,index.x);
+  const vec3  nr1   = pullNormal(id,index.y);
+  const vec3  nr2   = pullNormal(id,index.z);
 
-  const vec3    pos   = rayOrigin + rayT*rayDirection;
+  const vec3  b     = hit.baryCoord;
+  const vec2  uv    = (b.x*uv0 + b.y*uv1 + b.z*uv2);
+  const vec3  nr    = normalize(b.x*nr0 + b.y*nr1 + b.z*nr2);
 
-  vec3 b  = hit.baryCoord;
-  vec2 uv = (b.x*uv0 + b.y*uv1 + b.z*uv2);
-  vec3 nr = normalize(b.x*nr0 + b.y*nr1 + b.z*nr2);
+  const vec3  diff  = textureLod(sampler2D(textures[nonuniformEXT(id)], smp),uv,0).rgb;
 
-  // TODO: rt-shadow lighting
-  vec4  shCoord = scene.viewShadow[1]*vec4(pos,1);
-  float shadow  = shadowFactor(shCoord);
-
-  const vec3 diff = textureLod(sampler2D(textures[nonuniformEXT(id)], smp),uv,0).rgb;
-  return vec4(resolveHit(rayOrigin, rayDirection, sunDir, diff, nr, hit.opaque, shadow), (badbit ? 0 : 1));
+  storeGbuffer(probeId, sampleId, diff, nr, rayT, hit.opaque, badbit);
   }
 
-void storeSample(vec3 dir, vec3 val) {
-  for(int i=0; i<3; ++i) {
-    float v = dir[i];
-    int   d = v>=0 ? 1 : 0;
-    v = abs(v);
-    samples[gl_LocalInvocationIndex][i][d] += vec4(val*v, 1);
-    }
-  }
-
-void gather(const vec3 origin) {
+void gather(const uint probeId, const vec3 origin) {
   for(uint i=0; i<samplesCount; ++i) {
-    vec3 dir = sampleHemisphere(gl_LocalInvocationIndex*samplesCount+i, gl_WorkGroupSize.x*samplesCount, 0);
-    vec4 clr = vec4(0);
+    uint sampleId = gl_LocalInvocationIndex*samplesCount+i;
+    vec3 dir      = sampleHemisphere(sampleId, gl_WorkGroupSize.x*samplesCount, 0);
 
-    clr = sampleScene(origin, +dir, scene.sunDir);
-    if(clr.a>0)
-      storeSample(+dir, clr.rgb);
-
-    clr = sampleScene(origin, -dir, scene.sunDir);
-    if(clr.a>0)
-      storeSample(-dir, clr.rgb);
+    sampleScene(origin, +dir, probeId, sampleId+0);
+    sampleScene(origin, -dir, probeId, sampleId+1);
     }
   }
 
-void hashmapInsert(uint probeId) {
+void trace(const uint probeId) {
+  const vec3 origin = probe[probeId].pos;
+  for(uint i=0; i<samplesCount; ++i) {
+    uint sampleId = (gl_LocalInvocationIndex*samplesCount+i)*2;
+    vec3 dir      = sampleHemisphere(sampleId, samplesTotal, 0);
+
+    sampleScene(origin, +dir, probeId, sampleId+0);
+    sampleScene(origin, -dir, probeId, sampleId+1);
+    }
+  }
+
+void hashmapInsert(const uint probeId) {
   const vec3 gridPos = probe[probeId].pos/probeGridStep;
   const uint h       = probeGridPosHash(ivec3(gridPos)) % hashTable.length();
   //hashTable[h].value = probeId;
@@ -206,43 +142,13 @@ void processProbe(const uint probeId) {
   if(laneId==0)
     atomicAdd(probeHeader.tracedCount, 1); // stat counter
 
-  for(int i=0; i<3; ++i) {
-    samples[laneId][i][0] = vec4(0);
-    samples[laneId][i][1] = vec4(0);
-    }
   badHits = 0;
   barrier();
 
-  const vec3 origin = probe[probeId].pos;
-
-  gather(origin);
+  trace(probeId);
   barrier();
 
   const bool badbit = (badHits>(gl_WorkGroupSize.x*samplesCount*2)/4);
-  for(uint i=gl_WorkGroupSize.x; i>0;) {
-    i /= 2;
-    if(laneId<i) {
-      for(int r=0; r<3; ++r) {
-        samples[laneId][r][0] += samples[laneId+i][r][0];
-        samples[laneId][r][1] += samples[laneId+i][r][1];
-        }
-      }
-    barrier();
-    }
-
-  if(laneId<3) {
-    vec4 a = samples[0][laneId][0];
-    vec4 b = samples[0][laneId][1];
-
-    if(a.w>0)
-      a.rgb /= a.w;
-    if(b.w>0)
-      b.rgb /= b.w;
-
-    probe[probeId].color[laneId][0].rgb = a.rgb * M_PI;
-    probe[probeId].color[laneId][1].rgb = b.rgb * M_PI;
-    }
-
   if(laneId==0) {
     probe[probeId].bits = TRACED_BIT | NEW_BIT; // newly computed
     if(badbit) {

@@ -248,6 +248,7 @@ add_shader(probe_reuse.comp          lighting/rt/probe_allocation.comp -DREUSE)
 add_shader(probe_gc.comp             lighting/rt/probe_allocation.comp -DGC)
 add_shader(probe_allocation.comp     lighting/rt/probe_allocation.comp -DALLOC)
 add_shader(probe_trace.comp          lighting/rt/probe_trace.comp      -DRAY_QUERY -DRAY_QUERY_AT)
+add_shader(probe_lighting.comp       lighting/rt/probe_lighting.comp)
 
 add_shader(probe_ambient.vert        copy.vert)
 add_shader(probe_ambient.frag        lighting/rt/probe_ambient.frag)

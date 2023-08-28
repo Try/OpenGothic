@@ -48,7 +48,7 @@ class Shaders {
     // GI
     Tempest::RenderPipeline  probeDbg;
     Tempest::ComputePipeline probeClear, probeVote, probeReuse, probeGC, probeAlocation;
-    Tempest::ComputePipeline probeTrace;
+    Tempest::ComputePipeline probeTrace, probeLighting;
     Tempest::RenderPipeline  probeDraw;
 
     enum PipelineType: uint8_t {

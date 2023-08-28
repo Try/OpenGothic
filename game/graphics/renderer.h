@@ -133,7 +133,8 @@ class Renderer final {
     } hiz;
 
     struct {
-      const uint32_t            maxProbes = 65535-1;
+      const uint32_t            atlasDim  = 255; // sqrt(maxProbes)
+      const uint32_t            maxProbes = atlasDim*atlasDim; //65025
       Tempest::DescriptorSet    uboDbg;
 
       Tempest::ComputePipeline* probeClearPso = nullptr;
@@ -146,11 +147,17 @@ class Renderer final {
       Tempest::ComputePipeline* probeTracePso = nullptr;
       Tempest::DescriptorSet    uboTrace;
 
+      Tempest::ComputePipeline* probeLightPso = nullptr;
+      Tempest::DescriptorSet    uboLight;
+
       Tempest::RenderPipeline*  probeDrawPso = nullptr;
       Tempest::DescriptorSet    uboDraw;
 
       Tempest::StorageBuffer    voteTable, hashTable, freeList;
       Tempest::StorageBuffer    probes;
+      Tempest::StorageImage     probesGBuffDiff;
+      Tempest::StorageImage     probesGBuffNorm;
+      Tempest::StorageImage     probesGBuffRayT;
     } gi;
 
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::Depth16;

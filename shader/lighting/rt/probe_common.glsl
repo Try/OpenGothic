@@ -14,8 +14,8 @@ const uint NEW_BIT    = 0x10; //for debug view
 struct ProbesHeader { // 64 bytes
   uint count;
   uint iterator;
+  uint iterator2;
   uint tracedCount;
-  uint padd0;
   uint padd1[12];
   //uint padd2[16];
   };
@@ -28,14 +28,19 @@ struct Probe { // 128 bytes
   vec4 color[3][2];  // HL2-cube
   };
 
-struct ProbeGBuffer {
-  uvec2 gbuffer[128]; // x: normal[xy]; w - color[rgb]; normal[z]
-  };
+const float dbgViewRadius    = 5;
+const float probeGridStep    = 50;
+const float probeCageBias    = 5.0;
+const float probeBadHitT     = 4.5;
+const float probeRayDistance = 200*100; // Lumen rt-probe uses 200-meters range
 
-const float dbgViewRadius = 5;
-const float probeGridStep = 50;
-const float probeCageBias = 5.0;
-const float probeBadHitT  = 4.5;
+ivec2 gbufferCoord(const uint probeId, const uint sampleId) {
+  uint x = (probeId     ) & 0xFF;
+  uint y = (probeId >> 8) & 0xFF;
+  x = (x << 4) + ((sampleId     ) & 0xF);
+  y = (y << 4) + ((sampleId >> 4) & 0xF);
+  return ivec2(x,y);
+  }
 
 uint probeGridPosHash(ivec3 gridPos) {
   return (gridPos.x * 18397) + (gridPos.y * 20483) + (gridPos.z * 29303);

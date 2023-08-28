@@ -145,4 +145,20 @@ vec3 textureSkyLUT(in sampler2D skyLUT, const vec3 viewPos, vec3 rayDir, vec3 su
   return textureLod(skyLUT, uv, 0).rgb;
   }
 
+// Sample i-th point from Hammersley point set of NumSamples points total.
+// See: http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
+vec2 sampleHammersley(uint i, uint numSamples) {
+  uint  bits = bitfieldReverse(i);
+  float vdc  = float(bits) * 2.3283064365386963e-10; // / 0x100000000
+  return vec2(float(i)/float(numSamples), vdc);
+  }
+
+// Uniform sampling
+vec3 sampleHemisphere(uint i, uint numSamples, float offsetAng) {
+  const vec2  xi  = sampleHammersley(i,numSamples);
+  const float u1p = sqrt(max(0.0, 1.0 - xi.y*xi.y));
+  const float a   = M_PI*2.0*xi.x + offsetAng;
+  return vec3(cos(a) * u1p, xi.y, sin(a) * u1p);
+  }
+
 #endif

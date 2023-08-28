@@ -191,6 +191,7 @@ Shaders::Shaders() {
     probeGC        = computeShader("probe_gc.comp.sprv");
     probeAlocation = computeShader("probe_allocation.comp.sprv");
     probeTrace     = computeShader("probe_trace.comp.sprv");
+    probeLighting  = computeShader("probe_lighting.comp.sprv");
 
     state.setBlendSource  (RenderState::BlendMode::One);
     state.setBlendDest    (RenderState::BlendMode::SrcAlpha);  // for debugging

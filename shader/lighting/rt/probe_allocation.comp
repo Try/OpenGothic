@@ -68,7 +68,6 @@ bool reuseProbe(const uint h, vec3 pos) {
     return false; // NOTE: reconstructed position may jitter a little
 
   probe[probeId].bits |= REUSE_BIT;
-  probe[probeId].pNext = 0xFFFFFFFF;
   return true;
   }
 
@@ -140,6 +139,7 @@ void main_clear() {
   if(threadID==0) {
     probeHeader.count       = min(probeHeader.count, probe.length());
     probeHeader.iterator    = 0;
+    probeHeader.iterator2   = 0;
     probeHeader.tracedCount = 0;
     freeList.cursor         = 0;
     }
@@ -152,8 +152,10 @@ void main_gc() {
 
   probe[probeId].pNext = 0xFFFFFFFF;
 
-  if((probe[probeId].bits & REUSE_BIT)!=0)
+  if((probe[probeId].bits & REUSE_BIT)!=0) {
+    probe[probeId].bits &= ~UNUSED_BIT;
     return;
+    }
 
   probe[probeId].bits |= UNUSED_BIT;
   const uint cursor = atomicAdd(freeList.cursor, 1);

@@ -177,16 +177,21 @@ void Renderer::resetSwapchain() {
     gi.probeTracePso  = &Shaders::inst().probeTrace;
     gi.uboTrace       = device.descriptors(*gi.probeTracePso);
 
+    gi.probeLightPso  = &Shaders::inst().probeLighting;
+    gi.uboLight       = device.descriptors(*gi.probeLightPso);
+
     gi.probeDrawPso   = &Shaders::inst().probeDraw;
     gi.uboDraw        = device.descriptors(*gi.probeDrawPso);
 
     const uint32_t maxProbes = gi.maxProbes;
     if(gi.hashTable.isEmpty()) {
-      gi.hashTable      = device.ssbo(nullptr, 2'097'152*sizeof(uint32_t)); // 8MB
-      gi.voteTable      = device.ssbo(nullptr, gi.hashTable.byteSize());
-      gi.probes         = device.ssbo(nullptr, maxProbes*128 + 64);        // probes and header
-      gi.freeList       = device.ssbo(nullptr, maxProbes*sizeof(uint32_t) + sizeof(int32_t));
-      // gi.probesGBuff    = device.image3d(TextureFormat::RGBA8, maxProbes*16, 8, 2); // 16x8 tile
+      gi.hashTable       = device.ssbo(nullptr, 2'097'152*sizeof(uint32_t)); // 8MB
+      gi.voteTable       = device.ssbo(nullptr, gi.hashTable.byteSize());
+      gi.probes          = device.ssbo(nullptr, maxProbes*128 + 64);        // probes and header
+      gi.freeList        = device.ssbo(nullptr, maxProbes*sizeof(uint32_t) + sizeof(int32_t));
+      gi.probesGBuffDiff = device.image2d(TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16); // 16x8 tile
+      gi.probesGBuffNorm = device.image2d(TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16);
+      gi.probesGBuffRayT = device.image2d(TextureFormat::R16,   gi.atlasDim*16, gi.atlasDim*16);
       }
 
     uint32_t zero = 0;
@@ -329,10 +334,20 @@ void Renderer::prepareUniforms() {
     gi.uboProbes.set(7, gi.freeList);
 
     gi.uboTrace.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    gi.uboTrace.set(2, wview->sky().skyLut(), Sampler::bilinear());
-    gi.uboTrace.set(3, shadowMap[1], Sampler::bilinear());
+    gi.uboTrace.set(1, gi.probesGBuffDiff);
+    gi.uboTrace.set(2, gi.probesGBuffNorm);
+    gi.uboTrace.set(3, gi.probesGBuffRayT);
     gi.uboTrace.set(4, gi.hashTable);
     gi.uboTrace.set(5, gi.probes);
+
+    gi.uboLight.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    gi.uboLight.set(1, gi.probesGBuffDiff, Sampler::nearest());
+    gi.uboLight.set(2, gi.probesGBuffNorm, Sampler::nearest());
+    gi.uboLight.set(3, gi.probesGBuffRayT, Sampler::nearest());
+    gi.uboLight.set(4, wview->sky().skyLut(), Sampler::bilinear());
+    gi.uboLight.set(5, shadowMap[1], Sampler::bilinear());
+    gi.uboLight.set(6, gi.hashTable);
+    gi.uboLight.set(7, gi.probes);
 
     gi.uboDraw.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     gi.uboDraw.set(1, gbufDiffuse, Sampler::nearest());
@@ -725,6 +740,10 @@ void Renderer::prepareGi(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t 
   cmd.setDebugMarker("GI-Trace");
   cmd.setUniforms(*gi.probeTracePso, gi.uboTrace);
   cmd.dispatch(1024); // dispath indirect? :(
+
+  cmd.setDebugMarker("GI-Lighting");
+  cmd.setUniforms(*gi.probeLightPso, gi.uboLight);
+  cmd.dispatch(1024);
   }
 
 void Renderer::drawProbesDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {

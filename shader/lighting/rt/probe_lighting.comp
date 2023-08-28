@@ -1,0 +1,191 @@
+#version 460
+
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_GOOGLE_include_directive    : enable
+
+#include "lighting/rt/probe_common.glsl"
+// #include "lighting/rt/rt_common.glsl"
+#include "lighting/tonemapping.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 64) in;
+
+const  uint samplesCount = 2;
+const  uint samplesTotal = gl_WorkGroupSize.x*samplesCount*2;
+
+shared vec4 samples[gl_WorkGroupSize.x][3][2]; // 6 Kb
+shared uint shProbeId;
+
+layout(binding = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 1) uniform sampler2D gbufferDiff;
+layout(binding = 2) uniform sampler2D gbufferNorm;
+layout(binding = 3) uniform sampler2D gbufferRayT;
+
+layout(binding = 4) uniform sampler2D skyLUT;
+layout(binding = 5) uniform sampler2D textureSm1;
+
+layout(binding = 6, std430) buffer Hbo { Hash hashTable[]; };
+layout(binding = 7, std430) buffer Pbo { ProbesHeader probeHeader; Probe probe[]; };
+
+float shadowResolve(in vec4 sh, float z) {
+  z  = clamp(z,0,0.99);
+  sh = step(sh,vec4(z));
+  return 0.25*(sh.x+sh.y+sh.z+sh.w);
+  }
+
+vec4 shadowSample(in sampler2D shadowMap, vec2 shPos) {
+  shPos.xy = shPos.xy*vec2(0.5,0.5)+vec2(0.5);
+  return textureGather(shadowMap,shPos);
+  }
+
+float calcShadow(vec3 shPos1) {
+  //shPos1.y = max(0,shPos1.y);
+  vec4  lay1 = shadowSample(textureSm1,shPos1.xy);
+  float v1   = shadowResolve(lay1,shPos1.z);
+  if(abs(shPos1.x)<1.0 && abs(shPos1.y)<1.0)
+    return v1;
+  return 1.0;
+  }
+
+float shadowFactor(vec4 shPos) {
+  return calcShadow(shPos.xyz/shPos.w);
+  }
+
+void storeSample(vec3 dir, vec4 val) {
+  if(val.a==0)
+    return;
+  for(int i=0; i<3; ++i) {
+    float v = dir[i];
+    int   d = v>=0 ? 1 : 0;
+    v = abs(v);
+    samples[gl_LocalInvocationIndex][i][d] += vec4(val.rgb*v, 1);
+    }
+  }
+
+vec3 textureAlbedo(vec3 diff) {
+  return textureLinear(diff) * PhotoLum;
+  }
+
+vec3 resolveHit(const vec3 rayOrigin, const vec3 rayDirection, in vec3 diff, vec3 normal, bool opaque, float shMap) {
+  const vec3  albedo  = textureAlbedo(diff);
+  const float dt      = dot(normal, scene.sunDir);
+
+  // atificial lit on vegetation, as RT can't capture small bright light leaks from the trees
+  const float lambert = max(opaque ? 0 : 0.2, dt);
+  // avoid ultra-dark spits in woods
+  const float shadow  = max(0.2, shMap);
+
+  const vec3  lcolor  = (scene.sunCl.rgb * scene.GSunIntensity * lambert * shadow);
+  const vec3  ambient = scene.ambient * 0.25; // no proper multi-bounce yet
+  const vec3  atmo    = vec3(0.01) * scene.sunCl.rgb * scene.GSunIntensity;
+
+  vec3 color = vec3(0);
+  color += lcolor;
+  color += ambient;
+  //color += atmo;
+  return albedo*color;
+  }
+
+vec3 resolveMiss(const vec3 rayOrigin, const vec3 rayDirection) {
+  const vec3 lcolor = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), rayDirection, scene.sunDir) * scene.GSunIntensity;
+  const vec3 atmo   = vec3(0.05) * scene.sunCl.rgb * scene.GSunIntensity; // MS-Lut?
+  return lcolor + atmo;
+  // return vec3(1, 0, 0)*scene.GSunIntensity;
+  }
+
+vec4 processSample(const vec3 rayOrigin, const vec3 rayDirection, uint probeId, uint sampleId) {
+  const ivec2 uv   = gbufferCoord(probeId, sampleId);
+  const vec4  diff = texelFetch(gbufferDiff, uv, 0);
+  const vec4  nr   = texelFetch(gbufferNorm, uv, 0);
+  const float rt   = texelFetch(gbufferRayT, uv, 0).r;
+
+  if(nr.xyz==vec3(0))
+    return vec4(resolveMiss(rayOrigin, rayDirection), 1);
+
+  const uint  bits = uint(diff.a*255.0+0.5);  //(opaque ? 0x1 : 0x0) | (badbit ? 0x2 : 0x0);
+  const float rayT = rt * probeRayDistance;   // fixme
+  const vec3  pos  = rayOrigin + rayT*rayDirection;
+
+  // TODO: rt-shadow lighting
+  vec4  shCoord = scene.viewShadow[1]*vec4(pos,1);
+  float shadow  = shadowFactor(shCoord);
+
+  const bool opaque = (bits & 0x1)!=0;
+  const bool badbit = (bits & 0x2)!=0;
+  if(badbit)
+    ;//return vec4(0);
+  return vec4(resolveHit(rayOrigin, rayDirection, diff.rgb, nr.xyz*2.0-vec3(1), opaque, shadow), 1);
+  }
+
+void processLighting(const uint probeId) {
+  const vec3 origin = probe[probeId].pos;
+
+  for(uint i=0; i<samplesCount; ++i) {
+    uint sampleId = (gl_LocalInvocationIndex*samplesCount+i)*2;
+    vec3 dir      = sampleHemisphere(sampleId, samplesTotal, 0);
+    vec4 clr      = vec4(0);
+
+    clr = processSample(origin, +dir, probeId, sampleId+0);
+    storeSample(+dir, clr);
+
+    clr = processSample(origin, -dir, probeId, sampleId+1);
+    storeSample(-dir, clr);
+    }
+  }
+
+void processProbe(const uint probeId) {
+  const uint laneId = gl_LocalInvocationIndex;
+  const bool skip   = ((probe[probeId].bits & UNUSED_BIT)!=0);
+
+  if(skip && true)
+    return;
+
+  for(int i=0; i<3; ++i) {
+    samples[laneId][i][0] = vec4(0);
+    samples[laneId][i][1] = vec4(0);
+    }
+  barrier();
+
+  processLighting(probeId);
+  barrier();
+
+  for(uint i=gl_WorkGroupSize.x; i>0;) {
+    i /= 2;
+    if(laneId<i) {
+      for(int r=0; r<3; ++r) {
+        samples[laneId][r][0] += samples[laneId+i][r][0];
+        samples[laneId][r][1] += samples[laneId+i][r][1];
+        }
+      }
+    barrier();
+    }
+
+  if(laneId<3) {
+    vec4 a = samples[0][laneId][0];
+    vec4 b = samples[0][laneId][1];
+
+    if(a.w>0)
+      a.rgb /= a.w;
+    if(b.w>0)
+      b.rgb /= b.w;
+
+    probe[probeId].color[laneId][0].rgb = a.rgb * M_PI;
+    probe[probeId].color[laneId][1].rgb = b.rgb * M_PI;
+    }
+  }
+
+void main() {
+  while(true) {
+    if(gl_LocalInvocationIndex==0)
+      shProbeId = atomicAdd(probeHeader.iterator2, 1);
+    barrier();
+    const uint probeId = shProbeId;
+    if(probeId>=probeHeader.count)
+      return;
+    processProbe(probeId);
+    barrier();
+    }
+  }
