@@ -22,6 +22,7 @@ layout(binding  = 5, std430) readonly buffer Pbo { ProbesHeader probeHeader; Pro
 layout(location = 0) out vec4 outColor;
 
 vec4 colorSum = vec4(0);
+bool err      = false;
 
 vec3 unprojectDepth(const float z) {
   const vec2  screenSize = ivec2(textureSize(depth,0));
@@ -53,8 +54,13 @@ Probe readProbe(const ivec3 gridPos, const vec3 wpos) {
       return mkZeroProbe();
 
     const Probe p = probe[probeId];
-    if((p.bits & TRACED_BIT)==0)
-      return p;
+    if((p.bits & UNUSED_BIT)!=0)
+      err = true;
+
+    if((p.bits & TRACED_BIT)==0) {
+      probeId = p.pNext;
+      continue;
+      }
 
     const vec3 dp = wpos - p.pos;
     if(dot(dp,dp)>1.0) {
@@ -134,7 +140,7 @@ void main() {
 
   gather(pos, norm, lod, false);
   if(colorSum.w<=0.000001) {
-    gather(pos, norm, lod, true);
+    // gather(pos, norm, lod, true);
     }
 
   if(colorSum.w<=0.000001) {
@@ -152,4 +158,7 @@ void main() {
   color *= scene.exposure;
   // color = linear;
   outColor = vec4(color, 1);
+
+  if(err)
+    outColor = vec4(1,0,0,0);
   }

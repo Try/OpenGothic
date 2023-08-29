@@ -37,10 +37,8 @@ void main(void) {
   vec3 view = normalize(pos1-pos0);
 
   float t = rayIntersect(pos0-center, view, dbgViewRadius);
-  if(t<0) {
-    outColor = vec4(1,0,0,0);
+  if(t<0)
     discard;
-    }
 
   Probe p = probe[instanceIndex];
 
@@ -51,6 +49,8 @@ void main(void) {
     clr = vec3(1,0,0);
   if((p.bits & NEW_BIT)!=0)
     clr = vec3(0,1,0);
+  if((p.bits & UNUSED_BIT)!=0)
+    clr = vec3(1,0,1);
 
   if(isHashed==0)
     clr = vec3(0,0,1);

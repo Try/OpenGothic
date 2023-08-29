@@ -186,9 +186,9 @@ Shaders::Shaders() {
     probeDbg = device.pipeline(Triangles,state,vs,fs);
 
     probeClear     = computeShader("probe_clear.comp.sprv");
+    probeClearHash = computeShader("probe_clear_hash.comp.sprv");
     probeVote      = computeShader("probe_vote.comp.sprv");
-    probeReuse     = computeShader("probe_reuse.comp.sprv");
-    probeGC        = computeShader("probe_gc.comp.sprv");
+    probePrune     = computeShader("probe_prune.comp.sprv");
     probeAlocation = computeShader("probe_allocation.comp.sprv");
     probeTrace     = computeShader("probe_trace.comp.sprv");
     probeLighting  = computeShader("probe_lighting.comp.sprv");

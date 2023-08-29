@@ -8,25 +8,7 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-#if defined(CLEAR) || defined(GC)
-layout(local_size_x = 64) in;
-#else
 layout(local_size_x = 8, local_size_y = 8) in;
-#endif
-
-const int MAX_DEBUG_COLORS = 10;
-const vec3 debugColors[MAX_DEBUG_COLORS] = {
-  vec3(1,1,1),
-  vec3(1,0,0),
-  vec3(0,1,0),
-  vec3(0,0,1),
-  vec3(1,1,0),
-  vec3(1,0,1),
-  vec3(0,1,1),
-  vec3(1,0.5,0),
-  vec3(0.5,1,0),
-  vec3(0,0.5,1),
-  };
 
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
@@ -62,27 +44,25 @@ bool reuseProbe(const uint h, vec3 pos) {
   if(probeId>=probeHeader.count)
     return false;
 
-  Probe p = probe[probeId];
-  const vec3 dp = (p.pos - pos);
-  if(dot(dp,dp)>1.0 || (p.bits & TRACED_BIT)==0)
-    return false; // NOTE: reconstructed position may jitter a little
+  [[loop]]
+  for(int i=0; i<8; ++i) {
+    Probe p = probe[probeId];
+    const vec3 dp = (p.pos - pos);
+    if(dot(dp,dp)>1.0 || (p.bits & TRACED_BIT)==0)
+      continue; // NOTE: reconstructed position may jitter a little
+    atomicOr(probe[probeId].bits, REUSE_BIT);
+    return true;
+    }
 
-  probe[probeId].bits |= REUSE_BIT;
-  probe[probeId].bits &= ~UNUSED_BIT;
-  return true;
+  return false;
   }
 
 void processProbe(ivec3 gridPos, vec3 pos, int lod, vec3 pixelPos, vec3 pixelNorm) {
   const uint h = probeGridPosHash(gridPos) % hashTable.length();
 #if defined(VOTE)
+  if(reuseProbe(h, pos))
+    return;
   atomicMin(voteTable[h], threadId);
-#elif defined(REUSE)
-  if(voteTable[h] != threadId)
-    return;
-  if(reuseProbe(h, pos)) {
-    voteTable[h] = 0xFFFFFFFF;
-    return;
-    }
 #elif defined(ALLOC)
   if(voteTable[h] != threadId)
     return;
@@ -99,7 +79,7 @@ void processProbe(ivec3 gridPos, vec3 pos, int lod, vec3 pixelPos, vec3 pixelNor
 #endif
   }
 
-void main_process() {
+void main() {
   fragCoord  = ivec2(gl_GlobalInvocationID.xy);
   screenSize = ivec2(textureSize(depth,0));
   threadId   = fragCoord.x + fragCoord.y*screenSize.x;
@@ -128,46 +108,4 @@ void main_process() {
     ivec3 gPos = probeQueryGridPos(pq);
     processProbe(gPos, wpos, lod, pos, norm);
     }
-  }
-
-void main_clear() {
-  const uint threadID = gl_GlobalInvocationID.x;
-
-  if(threadID<voteTable.length()) {
-    voteTable[threadID] = 0xFFFFFFFF;
-    }
-
-  if(threadID==0) {
-    probeHeader.count       = min(probeHeader.count, probe.length());
-    probeHeader.iterator    = 0;
-    probeHeader.iterator2   = 0;
-    probeHeader.tracedCount = 0;
-    freeList.cursor         = 0;
-    }
-  }
-
-void main_gc() {
-  // if(gl_GlobalInvocationID.x<hashTable.length())
-  //  hashTable[gl_GlobalInvocationID.x].value = 0xFFFFFFFF;
-  const uint probeId = gl_GlobalInvocationID.x;
-  if(probeId>=probeHeader.count)
-    return;
-
-  probe[probeId].pNext = 0xFFFFFFFF;
-  if((probe[probeId].bits & REUSE_BIT)!=0)
-    return;
-
-  probe[probeId].bits |= UNUSED_BIT;
-  const uint cursor = atomicAdd(freeList.cursor, 1);
-  freeList.list[cursor] = probeId;
-  }
-
-void main() {
-#if defined(CLEAR)
-  main_clear();
-#elif defined(GC)
-  main_gc();
-#else
-  main_process();
-#endif
   }

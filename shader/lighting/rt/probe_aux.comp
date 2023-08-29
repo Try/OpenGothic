@@ -1,0 +1,66 @@
+#version 450
+
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_GOOGLE_include_directive    : enable
+
+#include "lighting/rt/probe_common.glsl"
+#include "lighting/tonemapping.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 64) in;
+
+layout(binding = 0, std430) buffer Hbo0 { uint voteTable[]; };
+layout(binding = 1, std430) buffer Hbo  { Hash hashTable[]; };
+layout(binding = 2, std430) buffer Pbo  { ProbesHeader probeHeader; Probe probe[]; };
+layout(binding = 3, std430) buffer Fbo0 { int cursor; uint list[]; } freeList;
+
+void main_clear() {
+  const uint threadID = gl_GlobalInvocationID.x;
+
+  if(threadID<voteTable.length()) {
+    voteTable[threadID] = 0xFFFFFFFF;
+    }
+
+  if(threadID==0) {
+    probeHeader.count       = min(probeHeader.count, probe.length());
+    probeHeader.iterator    = 0;
+    probeHeader.iterator2   = 0;
+    probeHeader.tracedCount = 0;
+    freeList.cursor         = 0;
+    }
+  }
+
+void main_hash() {
+  const uint threadID = gl_GlobalInvocationID.x;
+
+  if(threadID<hashTable.length()) {
+    hashTable[threadID].value = 0xFFFFFFFF;
+    }
+  }
+
+void main_prune() {
+  const uint probeId = gl_GlobalInvocationID.x;
+  if(probeId>=probeHeader.count)
+    return;
+
+  probe[probeId].pNext = 0xFFFFFFFF;
+  if((probe[probeId].bits & REUSE_BIT)!=0) {
+    probe[probeId].bits &= ~(REUSE_BIT | UNUSED_BIT);
+    return;
+    }
+
+  probe[probeId].bits |= UNUSED_BIT;
+  const uint cursor = atomicAdd(freeList.cursor, 1);
+  freeList.list[cursor] = probeId;
+  }
+
+void main() {
+#if defined(CLEAR)
+  main_clear();
+#elif defined(CLEAR_HASH)
+  main_hash();
+#elif defined(PRUNE)
+  main_prune();
+#endif
+  }

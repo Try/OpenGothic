@@ -137,11 +137,13 @@ class Renderer final {
       const uint32_t            maxProbes = atlasDim*atlasDim; //65025
       Tempest::DescriptorSet    uboDbg;
 
-      Tempest::ComputePipeline* probeClearPso = nullptr;
-      Tempest::ComputePipeline* probeVotePso  = nullptr;
-      Tempest::ComputePipeline* probeReusePso = nullptr;
-      Tempest::ComputePipeline* probeGCPso    = nullptr;
-      Tempest::ComputePipeline* probeAllocPso = nullptr;
+      Tempest::ComputePipeline* probeClearPso  = nullptr;
+      Tempest::ComputePipeline* probeClearHPso = nullptr;
+      Tempest::DescriptorSet    uboClear;
+
+      Tempest::ComputePipeline* probeVotePso   = nullptr;
+      Tempest::ComputePipeline* probePrunePso  = nullptr;
+      Tempest::ComputePipeline* probeAllocPso  = nullptr;
       Tempest::DescriptorSet    uboProbes;
 
       Tempest::ComputePipeline* probeTracePso = nullptr;
@@ -158,6 +160,7 @@ class Renderer final {
       Tempest::StorageImage     probesGBuffDiff;
       Tempest::StorageImage     probesGBuffNorm;
       Tempest::StorageImage     probesGBuffRayT;
+      bool                      fisrtFrame = false;
     } gi;
 
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::Depth16;

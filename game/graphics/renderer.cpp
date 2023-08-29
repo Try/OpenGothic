@@ -168,10 +168,12 @@ void Renderer::resetSwapchain() {
     gi.uboDbg         = DescriptorSet();
 
     gi.probeClearPso  = &Shaders::inst().probeClear;
+    gi.probeClearHPso = &Shaders::inst().probeClearHash;
+    gi.uboClear       = device.descriptors(*gi.probeClearPso);
+
     gi.probeVotePso   = &Shaders::inst().probeVote;
-    gi.probeReusePso  = &Shaders::inst().probeReuse;
     gi.probeAllocPso  = &Shaders::inst().probeAlocation;
-    gi.probeGCPso     = &Shaders::inst().probeGC;
+    gi.probePrunePso  = &Shaders::inst().probePrune;
     gi.uboProbes      = device.descriptors(*gi.probeAllocPso);
 
     gi.probeTracePso  = &Shaders::inst().probeTrace;
@@ -192,6 +194,7 @@ void Renderer::resetSwapchain() {
       gi.probesGBuffDiff = device.image2d(TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16); // 16x16 tile
       gi.probesGBuffNorm = device.image2d(TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16);
       gi.probesGBuffRayT = device.image2d(TextureFormat::R16,   gi.atlasDim*16, gi.atlasDim*16);
+      gi.fisrtFrame      = true;
       }
 
     uint32_t zero = 0;
@@ -324,6 +327,11 @@ void Renderer::prepareUniforms() {
   }
 
   if(settings.giEnabled) {
+    gi.uboClear.set(0, gi.voteTable);
+    gi.uboClear.set(1, gi.hashTable);
+    gi.uboClear.set(2, gi.probes);
+    gi.uboClear.set(3, gi.freeList);
+
     gi.uboProbes.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     gi.uboProbes.set(1, gbufDiffuse, Sampler::nearest());
     gi.uboProbes.set(2, gbufNormal,  Sampler::nearest());
@@ -715,24 +723,26 @@ void Renderer::prepareGi(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t 
   if(!settings.giEnabled)
     return;
 
-  static bool alloc = true;
+  const size_t maxHash = gi.hashTable.byteSize()/sizeof(uint32_t);
 
   cmd.setFramebuffer({});
   cmd.setDebugMarker("GI-Alloc");
 
+  if(gi.fisrtFrame) {
+    cmd.setUniforms(*gi.probeClearHPso, gi.uboClear);
+    cmd.dispatchThreads(maxHash);
+    gi.fisrtFrame = false;
+    }
+
+  static bool alloc = true;
   if(alloc) {
-    const size_t maxHash = gi.hashTable.byteSize()/sizeof(uint32_t);
-    cmd.setUniforms(*gi.probeClearPso, gi.uboProbes);
+    cmd.setUniforms(*gi.probeClearPso, gi.uboClear);
     cmd.dispatchThreads(maxHash);
 
     cmd.setUniforms(*gi.probeVotePso, gi.uboProbes);
     cmd.dispatchThreads(sceneDepth.size());
 
-    cmd.setUniforms(*gi.probeReusePso, gi.uboProbes);
-    cmd.dispatchThreads(sceneDepth.size());
-
-    cmd.setUniforms(*gi.probeGCPso, gi.uboProbes);
-    //cmd.dispatchThreads(std::max<size_t>(maxHash, gi.maxProbes));
+    cmd.setUniforms(*gi.probePrunePso, gi.uboClear);
     cmd.dispatchThreads(gi.maxProbes);
 
     cmd.setUniforms(*gi.probeAllocPso, gi.uboProbes);
@@ -744,6 +754,9 @@ void Renderer::prepareGi(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t 
   cmd.dispatch(1024); // dispath indirect? :(
 
   cmd.setDebugMarker("GI-Lighting");
+  cmd.setUniforms(*gi.probeClearHPso, gi.uboClear);
+  cmd.dispatchThreads(maxHash);
+
   cmd.setUniforms(*gi.probeLightPso, gi.uboLight);
   cmd.dispatch(1024);
   }

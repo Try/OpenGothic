@@ -92,7 +92,12 @@ vec3 resolveHit(const vec3 rayOrigin, const vec3 rayDirection, in vec3 diff, vec
 vec3 resolveMiss(const vec3 rayOrigin, const vec3 rayDirection) {
   const vec3 lcolor = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), rayDirection, scene.sunDir) * scene.GSunIntensity;
   const vec3 atmo   = vec3(0.05) * scene.sunCl.rgb * scene.GSunIntensity; // MS-Lut?
-  return lcolor + atmo;
+
+  vec3 color = vec3(0);
+  color += lcolor;
+  //color += ambient;
+  color += atmo;
+  return color;
   // return vec3(1, 0, 0)*scene.GSunIntensity;
   }
 
@@ -140,12 +145,27 @@ void processLighting(const uint probeId) {
     }
   }
 
+void hashmapInsert(const uint probeId) {
+  const vec3 gridPos = probe[probeId].pos/probeGridStep;
+  const uint h       = probeGridPosHash(ivec3(gridPos)) % hashTable.length();
+  //hashTable[h].value = probeId;
+  //return;
+
+  uint pNext = atomicExchange(hashTable[h].value, probeId);
+  probe[probeId].pNext = pNext;
+  }
+
 void processProbe(const uint probeId) {
   const uint laneId = gl_LocalInvocationIndex;
-  const bool skip   = ((probe[probeId].bits & TRACED_BIT)==0); // NOTE: UNUSED_BIT is not 100% relieble yet
+
+  const bool traced = ((probe[probeId].bits & TRACED_BIT)!=0);
+  const bool skip   = ((probe[probeId].bits & UNUSED_BIT)!=0);
 
   if(skip)
     return;
+
+  if(traced && laneId==0)
+    hashmapInsert(probeId);
 
   for(int i=0; i<3; ++i) {
     samples[laneId][i][0] = vec4(0);

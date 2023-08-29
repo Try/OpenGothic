@@ -104,6 +104,9 @@ void gather(const uint probeId, const vec3 origin) {
   }
 
 void trace(const uint probeId) {
+  if(gl_LocalInvocationIndex==0)
+    atomicAdd(probeHeader.tracedCount, 1); // stat counter
+
   const vec3 origin = probe[probeId].pos;
   for(uint i=0; i<samplesCount; ++i) {
     uint sampleId = (gl_LocalInvocationIndex*samplesCount+i)*2;
@@ -114,40 +117,17 @@ void trace(const uint probeId) {
     }
   }
 
-void hashmapInsert(const uint probeId) {
-  if(gl_LocalInvocationIndex!=0)
-    return;
-
-  const vec3 gridPos = probe[probeId].pos/probeGridStep;
-  const uint h       = probeGridPosHash(ivec3(gridPos)) % hashTable.length();
-  //hashTable[h].value = probeId;
-  //return;
-
-  uint pNext = atomicExchange(hashTable[h].value, probeId);
-  if(pNext>=probeHeader.count || pNext==probeId)
-    pNext = 0xFFFFFFFF;
-  probe[probeId].pNext = pNext;
-  }
-
 void processProbe(const uint probeId) {
   const uint laneId = gl_LocalInvocationIndex;
 
-  if((probe[probeId].bits & UNUSED_BIT)!=0) {
-    probe[probeId].bits &= ~(REUSE_BIT | NEW_BIT);
-    return;
-    }
-
   if((probe[probeId].bits & TRACED_BIT)!=0) {
-    probe[probeId].bits &= ~(REUSE_BIT | NEW_BIT);
-    hashmapInsert(probeId);
+    probe[probeId].bits &= ~NEW_BIT;
     return;
     }
 
   badHits = 0;
   barrier();
 
-  if(laneId==0)
-    atomicAdd(probeHeader.tracedCount, 1); // stat counter
   trace(probeId);
   barrier();
 
@@ -159,8 +139,6 @@ void processProbe(const uint probeId) {
       probe[probeId].bits |= BAD_BIT;
       }
     }
-
-  hashmapInsert(probeId);
   }
 
 void main() {
