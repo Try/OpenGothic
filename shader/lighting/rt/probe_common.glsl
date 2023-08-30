@@ -16,7 +16,8 @@ struct ProbesHeader { // 64 bytes
   uint iterator;
   uint iterator2;
   uint tracedCount;
-  uint padd1[12];
+  uint watch; //debug
+  uint padd1[11];
   //uint padd2[16];
   };
 

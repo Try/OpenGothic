@@ -327,6 +327,9 @@ void Renderer::prepareUniforms() {
   }
 
   if(settings.giEnabled) {
+    auto smpN = Sampler::nearest();
+    smpN.setClamping(ClampMode::ClampToEdge);
+
     gi.uboClear.set(0, gi.voteTable);
     gi.uboClear.set(1, gi.hashTable);
     gi.uboClear.set(2, gi.probes);
@@ -358,11 +361,12 @@ void Renderer::prepareUniforms() {
     gi.uboLight.set(7, gi.probes);
 
     gi.uboDraw.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    gi.uboDraw.set(1, gbufDiffuse, Sampler::nearest());
-    gi.uboDraw.set(2, gbufNormal,  Sampler::nearest());
-    gi.uboDraw.set(3, zbuffer,     Sampler::nearest());
-    gi.uboDraw.set(4, gi.hashTable);
-    gi.uboDraw.set(5, gi.probes);
+    gi.uboDraw.set(1, gbufDiffuse,  Sampler::nearest());
+    gi.uboDraw.set(2, gbufNormal,   Sampler::nearest());
+    gi.uboDraw.set(3, zbuffer,      Sampler::nearest());
+    gi.uboDraw.set(4, ssao.ssaoBuf, smpN);
+    gi.uboDraw.set(5, gi.hashTable);
+    gi.uboDraw.set(6, gi.probes);
     }
 
   const Texture2d* sh[Resources::ShadowLayers] = {};
@@ -690,8 +694,6 @@ void Renderer::drawSky(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldV
 void Renderer::prepareSSAO(Encoder<Tempest::CommandBuffer>& cmd) {
   if(!settings.zCloudShadowScale)
     return;
-  if(settings.giEnabled)
-    return; // not quite implemented
   // ssao
   struct PushSsao {
     Matrix4x4 mvp;
@@ -735,10 +737,10 @@ void Renderer::prepareGi(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t 
     }
 
   static bool alloc = true;
-  if(alloc) {
-    cmd.setUniforms(*gi.probeClearPso, gi.uboClear);
-    cmd.dispatchThreads(maxHash);
+  cmd.setUniforms(*gi.probeClearPso, gi.uboClear);
+  cmd.dispatchThreads(maxHash);
 
+  if(alloc) {
     cmd.setUniforms(*gi.probeVotePso, gi.uboProbes);
     cmd.dispatchThreads(sceneDepth.size());
 

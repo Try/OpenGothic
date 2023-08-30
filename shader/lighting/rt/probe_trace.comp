@@ -46,7 +46,7 @@ void storeGbuffer(const uint probeId, uint sampleId, vec3 diff, vec3 norm, float
 
 void sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const uint probeId, uint sampleId) {
   // CullFront due to vegetation
-  uint  flags = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullFrontFacingTrianglesEXT;// | gl_RayFlagsCullNoOpaqueEXT;
+  uint  flags = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullBackFacingTrianglesEXT;// | gl_RayFlagsCullNoOpaqueEXT;
   float tMin  = 1;
 
   rayQueryEXT rayQuery;
@@ -64,13 +64,13 @@ void sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const uint probe
   const HitDesc hit    = pullCommitedHitDesc(rayQuery);
 
   const float   rayT   = rayQueryGetIntersectionTEXT(rayQuery, true);
-  const bool    face   = false; // (rayQueryGetIntersectionFrontFaceEXT(rayQuery, true)); //note: not working on vegetation
+  const bool    face   = !(rayQueryGetIntersectionFrontFaceEXT(rayQuery, true)); //note: not working on vegetation
   const bool    badbit = (face || rayT<probeBadHitT) && hit.opaque;
 
   if(badbit) {
     atomicAdd(badHits, 1);
-    // storeGbuffer(probeId, sampleId, vec3(0), vec3(0,0,1), rayT, false, true);
-    // return;
+    storeGbuffer(probeId, sampleId, vec3(0.1), vec3(0,1,0), rayT, hit.opaque, badbit, false);
+    return;
     }
 
   const uint  id    = hit.instanceId;
@@ -131,7 +131,7 @@ void processProbe(const uint probeId) {
   trace(probeId);
   barrier();
 
-  const bool badbit = (badHits>(gl_WorkGroupSize.x*samplesCount*2)/4);
+  const bool badbit = (badHits > 6);
   if(laneId==0) {
     probe[probeId].bits = TRACED_BIT | NEW_BIT; // newly computed
     if(badbit) {

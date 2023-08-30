@@ -206,6 +206,6 @@ void main() {
     }
 
   if(valid)
-    imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(occlusion));
+    imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(2.0*occlusion));
   // imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(float(dbg+1)/255.0));
   }

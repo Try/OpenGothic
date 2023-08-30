@@ -133,8 +133,8 @@ class Renderer final {
     } hiz;
 
     struct {
-      const uint32_t            atlasDim  = 255; // sqrt(maxProbes)
-      const uint32_t            maxProbes = atlasDim*atlasDim; //65025
+      const uint32_t            atlasDim  = 256; // sqrt(maxProbes)
+      const uint32_t            maxProbes = atlasDim*atlasDim; // 65536
       Tempest::DescriptorSet    uboDbg;
 
       Tempest::ComputePipeline* probeClearPso  = nullptr;

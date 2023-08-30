@@ -45,12 +45,12 @@ float calcShadow(vec3 shPos1) {
   //shPos1.y = max(0,shPos1.y);
   vec4  lay1 = shadowSample(textureSm1,shPos1.xy);
   float v1   = shadowResolve(lay1,shPos1.z);
-  if(abs(shPos1.x)<1.0 && abs(shPos1.y)<1.0)
-    return v1;
-  return 1.0;
+  return v1;
   }
 
 float shadowFactor(vec4 shPos) {
+  if(abs(shPos.x)>=shPos.w && abs(shPos.y)>=shPos.w)
+    return 1;
   return calcShadow(shPos.xyz/shPos.w);
   }
 
@@ -71,32 +71,39 @@ vec3 textureAlbedo(vec3 diff) {
 
 vec3 resolveHit(const vec3 rayOrigin, const vec3 rayDirection, in vec3 diff, vec3 normal, bool opaque, float shMap) {
   const vec3  albedo  = textureAlbedo(diff);
-  const float dt      = dot(normal, scene.sunDir);
 
-  // atificial lit on vegetation, as RT can't capture small bright light leaks from the trees
-  const float lambert = max(opaque ? 0 : 0.2, dt);
+  float dt = dot(normal, scene.sunDir);
+  if(!opaque) {
+    // atificial lit on vegetation, as RT can't capture small bright light leaks from the trees
+    dt = dt*0.5 + 0.5;
+    }
+
+  const float lambert = max(0, dt); //max(opaque ? 0 : 0.2, dt);
   // avoid ultra-dark spits in woods
   const float shadow  = max(0.2, shMap);
 
-  const vec3  lcolor  = (scene.sunCl.rgb * scene.GSunIntensity * lambert * shadow);
-  const vec3  ambient = scene.ambient * 0.25; // no proper multi-bounce yet
-  const vec3  atmo    = vec3(0.01) * scene.sunCl.rgb * scene.GSunIntensity;
+  const vec3  lcolor  = scene.sunCl.rgb * scene.GSunIntensity * lambert * shadow;
+  const vec3  ambient = scene.ambient; // no proper multi-bounce yet
+  const vec3  atmo    = vec3(0.05) * scene.sunCl.rgb * scene.GSunIntensity;
 
   vec3 color = vec3(0);
   color += lcolor;
-  color += ambient;
+  color += ambient * 2.0;
   //color += atmo;
   return albedo*color;
+
+  //return scene.ambient;
   }
 
 vec3 resolveMiss(const vec3 rayOrigin, const vec3 rayDirection) {
-  const vec3 lcolor = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), rayDirection, scene.sunDir) * scene.GSunIntensity;
-  const vec3 atmo   = vec3(0.05) * scene.sunCl.rgb * scene.GSunIntensity; // MS-Lut?
+  const vec3 lcolor  = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), rayDirection, scene.sunDir) * scene.GSunIntensity;
+  const vec3 ambient = scene.ambient; // no proper multi-bounce yet
+  const vec3 atmo    = vec3(0.05) * scene.sunCl.rgb * scene.GSunIntensity; // MS-Lut?
 
   vec3 color = vec3(0);
   color += lcolor;
-  //color += ambient;
-  color += atmo;
+  // color += ambient;
+  // color += atmo;
   return color;
   // return vec3(1, 0, 0)*scene.GSunIntensity;
   }
@@ -109,8 +116,12 @@ vec4 processSample(const vec3 rayOrigin, const vec3 rayDirection, uint probeId, 
   const uint  bits = uint(diff.a*255.0+0.5);  //(opaque ? 0x1 : 0x0) | (badbit ? 0x2 : 0x0);
   const bool  sky  = (bits & 0x4)!=0;
 
-  if(sky)
-    return vec4(resolveMiss(rayOrigin, rayDirection), 1);
+  if(sky) {
+    vec3 dir = rayDirection;
+    // dir.y = max(0, dir.y);
+    // dir = normalize(dir);
+    return vec4(resolveMiss(rayOrigin, dir), 1);
+    }
 
   const float rayT = rt * probeRayDistance;
   const vec3  pos  = rayOrigin + rayT*rayDirection;
@@ -126,7 +137,11 @@ vec4 processSample(const vec3 rayOrigin, const vec3 rayDirection, uint probeId, 
   const vec3 norm = normalize(nr.xyz*2.0-vec3(1));
   if(nr.xyz==vec3(0))
     return vec4(1,0,0,0) * scene.GSunIntensity; // bug?
-  return vec4(resolveHit(rayOrigin, rayDirection, diff.rgb, norm, opaque, shadow), 1);
+
+  vec3 hit = resolveHit(rayOrigin, rayDirection, diff.rgb, norm, opaque, shadow);
+  if(!opaque)
+    hit = (hit*0.75 + resolveMiss(rayOrigin, rayDirection)*0.25);
+  return vec4(hit, 1);
   }
 
 void processLighting(const uint probeId) {
@@ -196,8 +211,9 @@ void processProbe(const uint probeId) {
     if(b.w>0)
       b.rgb /= b.w;
 
-    probe[probeId].color[laneId][0].rgb = a.rgb * M_PI;
-    probe[probeId].color[laneId][1].rgb = b.rgb * M_PI;
+    // Need to mul by 2, because it's uniform sampling; https://www.rorydriscoll.com/2009/01/07/better-sampling/
+    probe[probeId].color[laneId][0].rgb = a.rgb*2.0;
+    probe[probeId].color[laneId][1].rgb = b.rgb*2.0;
     }
   }
 

@@ -10,7 +10,7 @@
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
-layout(binding = 1, std430) readonly buffer Pbo { ProbesHeader probeHeader; Probe probe[]; };
+layout(binding = 1, std430) /*readonly*/ buffer Pbo { ProbesHeader probeHeader; Probe probe[]; };
 
 layout(location = 0) in  vec3 center;
 layout(location = 1) in  flat uint instanceIndex;
@@ -36,8 +36,15 @@ void main(void) {
   vec3 pos0 = unprojectDepth(0);
   vec3 view = normalize(pos1-pos0);
 
+  vec4 sp = scene.viewProject * vec4(center, 1.0);
+  sp.xyz /= sp.w;
+
+  bool watch = abs(sp.x)<0.05 && abs(sp.y)<0.05;
+  if(watch)
+    probeHeader.watch = instanceIndex;
+
   float t = rayIntersect(pos0-center, view, dbgViewRadius);
-  if(t<0)
+  if(t<0 && !watch)
     discard;
 
   Probe p = probe[instanceIndex];
@@ -49,9 +56,6 @@ void main(void) {
     clr = vec3(1,0,0);
   if((p.bits & NEW_BIT)!=0)
     clr = vec3(0,1,0);
-  if((p.bits & UNUSED_BIT)!=0)
-    clr = vec3(1,0,1);
-
   if(isHashed==0)
     clr = vec3(0,0,1);
 

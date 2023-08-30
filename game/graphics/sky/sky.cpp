@@ -266,6 +266,10 @@ void Sky::updateLight(const int64_t now) {
 
   exposureInv = exposureInv/lumScale;
   exposure = 1.f/exposureInv;
+
+  static float mulExposure = -1;
+  if(mulExposure>0)
+    exposure *= mulExposure;
   }
 
 void Sky::prepareUniforms() {

@@ -9,8 +9,8 @@
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
-layout(binding = 1, std430) readonly buffer Pbo { ProbesHeader probeHeader; Probe probe[]; };
-layout(binding = 2, std430) buffer Hbo0 { Hash hashTable[]; };
+layout(binding = 1, std430) readonly buffer Pbo  { ProbesHeader probeHeader; Probe probe[]; };
+layout(binding = 2, std430) readonly buffer Hbo0 { Hash hashTable[]; };
 
 layout(location = 0) out vec3      center;
 layout(location = 1) out flat uint instanceIndex;
@@ -46,9 +46,12 @@ void main() {
     }
 
   Probe p = probe[probeId];
-  //p.pos = vec3(0);
+  if((p.bits & UNUSED_BIT)!=0){
+    gl_Position = vec4(0);
+    return;
+    }
 
-  vec3  vert  = v[index[gl_VertexIndex]];
+  const vec3 vert = v[index[gl_VertexIndex]];
 
   gl_Position   = scene.viewProject * vec4(p.pos + vert * dbgViewRadius, 1.0);
   center        = p.pos;

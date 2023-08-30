@@ -73,8 +73,8 @@ void main() {
     if(b.w>0)
       b.rgb /= b.w;
 
-    imageStore(result, ivec2(laneId,0), vec4(a.rgb * M_PI,1.0));
-    imageStore(result, ivec2(laneId,1), vec4(b.rgb * M_PI,1.0));
+    imageStore(result, ivec2(laneId,0), vec4(a.rgb*2.0,1.0));
+    imageStore(result, ivec2(laneId,1), vec4(b.rgb*2.0,1.0));
     }
   }
 

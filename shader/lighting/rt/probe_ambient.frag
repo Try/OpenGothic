@@ -10,14 +10,20 @@
 #include "scene.glsl"
 #include "common.glsl"
 
+#define SSAO 1
+const int   KERNEL_RADIUS = 1;
+const float blurSharpness = 0.8;
+
 layout(binding  = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
 layout(binding  = 1) uniform sampler2D gbufDiffuse;
 layout(binding  = 2) uniform sampler2D gbufNormal;
 layout(binding  = 3) uniform sampler2D depth;
-layout(binding  = 4, std430) buffer Hbo0 { Hash hashTable[]; };
-layout(binding  = 5, std430) readonly buffer Pbo { ProbesHeader probeHeader; Probe probe[]; };
+layout(binding  = 4) uniform sampler2D ssao;
+
+layout(binding  = 5, std430) readonly buffer Hbo0 { Hash hashTable[]; };
+layout(binding  = 6, std430) readonly buffer Pbo  { ProbesHeader probeHeader; Probe probe[]; };
 
 layout(location = 0) out vec4 outColor;
 
@@ -31,6 +37,50 @@ vec3 unprojectDepth(const float z) {
   const vec4  ret        = scene.viewProjectInv*pos;
   return (ret.xyz/ret.w);
   }
+
+float texLinearDepth(vec2 uv) {
+  float d = textureLod(depth, uv, 0).x;
+  return linearDepth(d, scene.clipInfo);
+  }
+
+#if defined(SSAO)
+float blurFunction(vec2 uv, float r, float centerD, inout float wTotal) {
+  float c = textureLod(ssao, uv, 0).r;
+  float d = texLinearDepth(uv);
+
+  const float blurSigma   = float(KERNEL_RADIUS) * 0.5;
+  const float blurFalloff = 1.0/(2.0*blurSigma*blurSigma);
+
+  float ddiff = (d - centerD) * blurSharpness;
+  float w     = exp2(-r*r*blurFalloff - ddiff*ddiff);
+  wTotal += w;
+
+  return c*w;
+  }
+
+float smoothSsao() {
+  vec2  uv      = (gl_FragCoord.xy / vec2(textureSize(depth,0)));
+  float centerC = textureLod(ssao, uv, 0).r;
+  float centerD = texLinearDepth(uv);
+
+  float cTotal  = centerC;
+  float wTotal  = 1.0;
+
+  vec2 invRes = vec2(1.0)/vec2(textureSize(ssao,0));
+  for(float i=-KERNEL_RADIUS; i<=KERNEL_RADIUS; ++i)
+    for(float r=-KERNEL_RADIUS; r<=KERNEL_RADIUS; ++r) {
+      if((i==0 && r==0)) // || (abs(i)==KERNEL_RADIUS && abs(r)==KERNEL_RADIUS))
+        continue;
+      vec2 at = uv + invRes * vec2(i,r);
+      cTotal += blurFunction(at, r, centerD, wTotal);
+      }
+
+  // return 0;
+  return clamp(cTotal/wTotal, 0, 1);
+  }
+#else
+float smoothSsao() { return 0; }
+#endif
 
 Probe mkZeroProbe() {
   Probe px;
@@ -140,7 +190,7 @@ void main() {
 
   gather(pos, norm, lod, false);
   if(colorSum.w<=0.000001) {
-    // gather(pos, norm, lod, true);
+    gather(pos, norm, lod, true);
     }
 
   if(colorSum.w<=0.000001) {
@@ -149,16 +199,18 @@ void main() {
     colorSum = vec4(0,0,0,1);
     }
 
-  const vec3 linear = textureAlbedo(diff);
+  const vec3  linear = textureAlbedo(diff);
+  const float ao     = smoothSsao();
 
   vec3 color = colorSum.rgb/max(colorSum.w,0.000001);
   color *= linear;
+  color *= (1-ao);
   // night shift
   color += purkinjeShift(color);
   color *= scene.exposure;
   // color = linear;
   outColor = vec4(color, 1);
 
-  if(err)
-    outColor = vec4(1,0,0,0);
+  // if(err)
+  //   outColor = vec4(1,0,0,0);
   }
