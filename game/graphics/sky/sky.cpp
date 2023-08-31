@@ -256,7 +256,7 @@ void Sky::updateLight(const int64_t now) {
   //const float fAmbient = Vec3::dotProduct(ambient, Vec3(0.2125f, 0.7154f, 0.0721f));
   //float lx = lsky*GSunIntensity*1.1f + fAmbient*0.5f + DirectMoonLux + NightLight;
 
-  float lx = lsky*GSunIntensity*1.1f + StreetLight*0.25f + NightLight;
+  float lx = lsky*GSunIntensity*1.5f + StreetLight*0.5f + NightLight;
   exposureInv = lx/GSunIntensity;
   }
 

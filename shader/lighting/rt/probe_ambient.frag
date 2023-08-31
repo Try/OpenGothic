@@ -38,6 +38,14 @@ vec3 unprojectDepth(const float z) {
   return (ret.xyz/ret.w);
   }
 
+int probeGridComputeLod() {
+  ivec2 fragCoord  = ivec2(gl_FragCoord.xy);
+  ivec2 screenSize = textureSize(depth,0);
+
+  const float z = texelFetch(depth,fragCoord,0).x;
+  return probeGridComputeLod(fragCoord, screenSize, z, scene.viewProjectInv);
+  }
+
 float texLinearDepth(vec2 uv) {
   float d = textureLod(depth, uv, 0).x;
   return linearDepth(d, scene.clipInfo);
@@ -171,22 +179,16 @@ void gather(vec3 pos, vec3 norm, int lod, bool ignoreBad) {
     }
   }
 
-vec3 textureAlbedo(vec3 diff) {
-  return textureLinear(diff) * PhotoLum;
-  //return srgbDecode(diff.rgb);
-  }
-
 void main() {
   const float z = texelFetch(depth,ivec2(gl_FragCoord.xy),0).x;
   if(z>=0.99995)
     discard; // sky
 
-  const vec3  diff = texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0).rgb;
-  const vec3  norm = normalize(texelFetch(gbufNormal,ivec2(gl_FragCoord.xy),0).xyz*2.0-vec3(1.0));
+  const vec3 diff = texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0).rgb;
+  const vec3 norm = normalize(texelFetch(gbufNormal,ivec2(gl_FragCoord.xy),0).xyz*2.0-vec3(1.0));
 
-  const float dist = linearDepth(z, scene.clipInfo);
-  const vec3  pos  = unprojectDepth(z) + norm*probeCageBias;
-  const int   lod  = probeGridLodFromDist(dist);
+  const vec3 pos  = unprojectDepth(z) + norm*probeCageBias;
+  const int  lod  = probeGridComputeLod();
 
   gather(pos, norm, lod, false);
   if(colorSum.w<=0.000001) {
@@ -199,8 +201,9 @@ void main() {
     colorSum = vec4(0,0,0,1);
     }
 
-  const vec3  linear = textureAlbedo(diff);
-  const float ao     = smoothSsao();
+  // const vec3  linear = vec3(1);
+  const vec3  linear = textureLinear(diff);
+  const float ao     = 0;//smoothSsao();
 
   vec3 color = colorSum.rgb/max(colorSum.w,0.000001);
   color *= linear;

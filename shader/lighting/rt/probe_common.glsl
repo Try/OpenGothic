@@ -29,9 +29,9 @@ struct Probe { // 128 bytes
   vec4 color[3][2];  // HL2-cube
   };
 
-const float dbgViewRadius    = 5;
-const float probeGridStep    = 50;
-const float probeCageBias    = 5.0;
+const float dbgViewRadius    = 3;
+const float probeGridStep    = 25;
+const float probeCageBias    = 2.5;
 const float probeBadHitT     = 4.5;
 const float probeRayDistance = 200*100; // Lumen rt-probe uses 200-meters range
 
@@ -62,23 +62,18 @@ vec3 probeReadAmbient(const in Probe p, vec3 n) {
   return ret;
   }
 
-int  probeGridLodFromDist(const float depth) {
-  // NOTE: manual tuning been here
-  if(depth < 0.25)
-    return 0;
-  if(depth < 0.5)
-    return 0;
-  if(depth <= 1)
-    return 0;
-  if(depth <= 1.5)
-    return 0;
-  if(depth <= 6.0)
-    return 1;
-  if(depth <= 9.0)
-    return 2;
-  return 3;
-  }
+int probeGridComputeLod(ivec2 fragCoord, ivec2 screenSize, float z, mat4 viewProjectInv) {
+  const vec2  inPosL = vec2(2*(fragCoord+ivec2(-1,0))+ivec2(1,1))/vec2(screenSize) - vec2(1,1);
+  const vec2  inPosR = vec2(2*(fragCoord+ivec2(+1,0))+ivec2(1,1))/vec2(screenSize) - vec2(1,1);
 
+  const vec4  posL   = viewProjectInv*vec4(inPosL.xy,z,1);
+  const vec4  posR   = viewProjectInv*vec4(inPosR.xy,z,1);
+
+  const float dp     = distance(posL.xyz/posL.w, posR.xyz/posR.w)/probeGridStep;
+
+  const int ilog     = max(0, 3+int(log2(dp)));
+  return int(ilog);
+  }
 
 struct probeQuery {
   int   lod;

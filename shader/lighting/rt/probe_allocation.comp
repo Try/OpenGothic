@@ -32,6 +32,11 @@ vec3 unprojectDepth(const float z) {
   return (ret.xyz/ret.w);
   }
 
+int probeGridComputeLod() {
+  const float z = texelFetch(depth,fragCoord,0).x;
+  return probeGridComputeLod(fragCoord, screenSize, z, scene.viewProjectInv);
+  }
+
 uint allocProbe() {
   int cursor = atomicAdd(freeList.cursor, -1) - 1;
   if(cursor>=0)
@@ -93,9 +98,8 @@ void main() {
   if(z>=0.99995)
     return; // sky
 
-  const float dist = linearDepth(z, scene.clipInfo);
-  const vec3  pos  = unprojectDepth(z) + norm*probeCageBias;
-  const int   lod  = probeGridLodFromDist(dist);
+  const vec3 pos = unprojectDepth(z) + norm*probeCageBias;
+  const int  lod = probeGridComputeLod();
 
   probeQuery pq;
   probeQueryInitialize(pq, pos, lod);

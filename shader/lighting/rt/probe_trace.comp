@@ -27,10 +27,6 @@ layout(binding = 3) uniform writeonly image2D gbufferRayT;
 layout(binding = 4, std430) buffer Hbo { Hash hashTable[]; };
 layout(binding = 5, std430) buffer Pbo { ProbesHeader probeHeader; Probe probe[]; };
 
-vec3 textureAlbedo(vec3 diff) {
-  return textureLinear(diff) * PhotoLum;
-  }
-
 void storeGbuffer(const uint probeId, uint sampleId, vec3 diff, vec3 norm, float rayT,
                   bool opaque, bool badbit, bool sky) {
   norm = norm*0.5+vec3(0.5);

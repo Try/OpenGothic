@@ -238,6 +238,7 @@ void Renderer::initSettings() {
   }
 
 void Renderer::onWorldChanged() {
+  gi.fisrtFrame = false;
   prepareUniforms();
   }
 
