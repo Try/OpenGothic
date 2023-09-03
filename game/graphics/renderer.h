@@ -160,6 +160,7 @@ class Renderer final {
       Tempest::StorageImage     probesGBuffDiff;
       Tempest::StorageImage     probesGBuffNorm;
       Tempest::StorageImage     probesGBuffRayT;
+      Tempest::StorageImage     probesLighting;
       bool                      fisrtFrame = false;
     } gi;
 

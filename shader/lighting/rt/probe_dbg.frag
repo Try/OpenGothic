@@ -10,7 +10,8 @@
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
-layout(binding = 1, std430) /*readonly*/ buffer Pbo { ProbesHeader probeHeader; Probe probe[]; };
+layout(binding = 1) uniform sampler2D probesLighting;
+layout(binding = 2, std430) /*readonly*/ buffer Pbo { ProbesHeader probeHeader; Probe probe[]; };
 
 layout(location = 0) in  vec3 center;
 layout(location = 1) in  flat uint instanceIndex;
@@ -28,7 +29,7 @@ vec3 unprojectDepth(float z) {
 vec3 lodColor(const in Probe p, vec3 norm) {
   float lamb  = max(dot(scene.sunDir, norm), 0);
   float light = lamb*0.7+0.3;
-  return p.color[0][0].rgb*light;
+  return vec3(light);
   }
 
 void main(void) {
@@ -51,7 +52,7 @@ void main(void) {
 
   vec3 norm = normalize((pos0+view*t) - p.pos);
   // vec3 clr  = lodColor(p, norm);
-  vec3 clr  = probeReadAmbient(p, norm) * scene.exposure;
+  vec3 clr  = probeReadAmbient(probesLighting, instanceIndex, norm) * scene.exposure;
   if((p.bits & BAD_BIT)!=0)
     clr = vec3(1,0,0);
   if((p.bits & NEW_BIT)!=0)

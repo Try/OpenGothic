@@ -189,11 +189,12 @@ void Renderer::resetSwapchain() {
     if(gi.hashTable.isEmpty()) {
       gi.hashTable       = device.ssbo(nullptr, 2'097'152*sizeof(uint32_t)); // 8MB
       gi.voteTable       = device.ssbo(nullptr, gi.hashTable.byteSize());
-      gi.probes          = device.ssbo(nullptr, maxProbes*128 + 64);        // probes and header
+      gi.probes          = device.ssbo(nullptr, maxProbes*32 + 64);        // probes and header
       gi.freeList        = device.ssbo(nullptr, maxProbes*sizeof(uint32_t) + sizeof(int32_t));
       gi.probesGBuffDiff = device.image2d(TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16); // 16x16 tile
       gi.probesGBuffNorm = device.image2d(TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16);
       gi.probesGBuffRayT = device.image2d(TextureFormat::R16,   gi.atlasDim*16, gi.atlasDim*16);
+      gi.probesLighting  = device.image2d(TextureFormat::R11G11B10UF, gi.atlasDim*3, gi.atlasDim*2);
       gi.fisrtFrame      = true;
       }
 
@@ -353,21 +354,23 @@ void Renderer::prepareUniforms() {
     gi.uboTrace.set(5, gi.probes);
 
     gi.uboLight.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    gi.uboLight.set(1, gi.probesGBuffDiff, Sampler::nearest());
-    gi.uboLight.set(2, gi.probesGBuffNorm, Sampler::nearest());
-    gi.uboLight.set(3, gi.probesGBuffRayT, Sampler::nearest());
-    gi.uboLight.set(4, wview->sky().skyLut(), Sampler::bilinear());
-    gi.uboLight.set(5, shadowMap[1], Sampler::bilinear());
-    gi.uboLight.set(6, gi.hashTable);
-    gi.uboLight.set(7, gi.probes);
+    gi.uboLight.set(1, gi.probesLighting);
+    gi.uboLight.set(2, gi.probesGBuffDiff, Sampler::nearest());
+    gi.uboLight.set(3, gi.probesGBuffNorm, Sampler::nearest());
+    gi.uboLight.set(4, gi.probesGBuffRayT, Sampler::nearest());
+    gi.uboLight.set(5, wview->sky().skyLut(), Sampler::bilinear());
+    gi.uboLight.set(6, shadowMap[1], Sampler::bilinear());
+    gi.uboLight.set(7, gi.hashTable);
+    gi.uboLight.set(8, gi.probes);
 
     gi.uboDraw.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    gi.uboDraw.set(1, gbufDiffuse,  Sampler::nearest());
-    gi.uboDraw.set(2, gbufNormal,   Sampler::nearest());
-    gi.uboDraw.set(3, zbuffer,      Sampler::nearest());
-    gi.uboDraw.set(4, ssao.ssaoBuf, smpN);
-    gi.uboDraw.set(5, gi.hashTable);
-    gi.uboDraw.set(6, gi.probes);
+    gi.uboDraw.set(1, gi.probesLighting);
+    gi.uboDraw.set(2, gbufDiffuse,  Sampler::nearest());
+    gi.uboDraw.set(3, gbufNormal,   Sampler::nearest());
+    gi.uboDraw.set(4, zbuffer,      Sampler::nearest());
+    gi.uboDraw.set(5, ssao.ssaoBuf, smpN);
+    gi.uboDraw.set(6, gi.hashTable);
+    gi.uboDraw.set(7, gi.probes);
     }
 
   const Texture2d* sh[Resources::ShadowLayers] = {};
@@ -779,8 +782,9 @@ void Renderer::drawProbesDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint
     if(gi.uboDbg.isEmpty()) {
       gi.uboDbg = device.descriptors(pso);
       gi.uboDbg.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-      gi.uboDbg.set(1, gi.probes);
-      gi.uboDbg.set(2, gi.hashTable);
+      gi.uboDbg.set(1, gi.probesLighting);
+      gi.uboDbg.set(2, gi.probes);
+      gi.uboDbg.set(3, gi.hashTable);
       }
     }
 

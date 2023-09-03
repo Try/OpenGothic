@@ -43,7 +43,7 @@ void storeGbuffer(const uint probeId, uint sampleId, vec3 diff, vec3 norm, float
 void sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const uint probeId, uint sampleId) {
   // CullFront due to vegetation
   uint  flags = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullBackFacingTrianglesEXT;// | gl_RayFlagsCullNoOpaqueEXT;
-  float tMin  = 1;
+  float tMin  = 0;
 
   rayQueryEXT rayQuery;
   rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
@@ -61,7 +61,8 @@ void sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const uint probe
 
   const float   rayT   = rayQueryGetIntersectionTEXT(rayQuery, true);
   const bool    face   = !(rayQueryGetIntersectionFrontFaceEXT(rayQuery, true)); //note: not working on vegetation
-  const bool    badbit = (face || rayT<probeBadHitT) && hit.opaque;
+  const bool    badbit = (rayT<probeBadHitT && hit.opaque) ||
+                         (face && rayT<probeGridStep && hit.opaque);
 
   if(badbit) {
     atomicAdd(badHits, 1);
@@ -84,7 +85,9 @@ void sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const uint probe
   const vec2  uv    = (b.x*uv0 + b.y*uv1 + b.z*uv2);
   const vec3  nr    = normalize(b.x*nr0 + b.y*nr1 + b.z*nr2);
 
-  const vec3  diff  = textureLod(sampler2D(textures[nonuniformEXT(id)], smp),uv,0).rgb;
+  vec3 diff  = textureLod(sampler2D(textures[nonuniformEXT(id)], smp),uv,0).rgb;
+  if(hit.opaque && face)
+    diff = vec3(0.01);
 
   storeGbuffer(probeId, sampleId, diff, nr, rayT, hit.opaque, badbit, false);
   }

@@ -21,18 +21,17 @@ struct ProbesHeader { // 64 bytes
   //uint padd2[16];
   };
 
-struct Probe { // 128 bytes
+struct Probe { // 32 bytes
   vec3 pos;
   uint bits;
   uint pNext;
   uint padd1[3];
-  vec4 color[3][2];  // HL2-cube
   };
 
 const float dbgViewRadius    = 3;
 const float probeGridStep    = 25;
 const float probeCageBias    = 2.5;
-const float probeBadHitT     = 4.5;
+const float probeBadHitT     = 1.0;
 const float probeRayDistance = 200*100; // Lumen rt-probe uses 200-meters range
 
 ivec2 gbufferCoord(const uint probeId, const uint sampleId) {
@@ -43,11 +42,20 @@ ivec2 gbufferCoord(const uint probeId, const uint sampleId) {
   return ivec2(x,y);
   }
 
+ivec2 lightBufferCoord(const uint probeId) {
+  uint x = (probeId     ) & 0xFF;
+  uint y = (probeId >> 8) & 0xFF;
+  x = (x * 3);
+  y = (y * 2);
+  return ivec2(x,y);
+  }
+
 uint probeGridPosHash(ivec3 gridPos) {
   return (gridPos.x * 18397) + (gridPos.y * 20483) + (gridPos.z * 29303);
   }
 
-vec3 probeReadAmbient(const in Probe p, vec3 n) {
+vec3 probeReadAmbient(in sampler2D irradiance, uint id, vec3 n) {
+  ivec2 uv = lightBufferCoord(id);
   ivec3 d;
   d.x = n.x>=0 ? 1 : 0;
   d.y = n.y>=0 ? 1 : 0;
@@ -56,9 +64,9 @@ vec3 probeReadAmbient(const in Probe p, vec3 n) {
   n = n*n;
 
   vec3 ret = vec3(0);
-  ret += p.color[0][d.x].rgb * n.x;
-  ret += p.color[1][d.y].rgb * n.y;
-  ret += p.color[2][d.z].rgb * n.z;
+  ret += texelFetch(irradiance, uv + ivec2(0,d.x), 0).rgb * n.x;
+  ret += texelFetch(irradiance, uv + ivec2(1,d.y), 0).rgb * n.y;
+  ret += texelFetch(irradiance, uv + ivec2(2,d.z), 0).rgb * n.z;
   return ret;
   }
 

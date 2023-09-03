@@ -17,13 +17,14 @@ const float blurSharpness = 0.8;
 layout(binding  = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
-layout(binding  = 1) uniform sampler2D gbufDiffuse;
-layout(binding  = 2) uniform sampler2D gbufNormal;
-layout(binding  = 3) uniform sampler2D depth;
-layout(binding  = 4) uniform sampler2D ssao;
+layout(binding  = 1) uniform sampler2D probesLighting;
+layout(binding  = 2) uniform sampler2D gbufDiffuse;
+layout(binding  = 3) uniform sampler2D gbufNormal;
+layout(binding  = 4) uniform sampler2D depth;
+layout(binding  = 5) uniform sampler2D ssao;
 
-layout(binding  = 5, std430) readonly buffer Hbo0 { Hash hashTable[]; };
-layout(binding  = 6, std430) readonly buffer Pbo  { ProbesHeader probeHeader; Probe probe[]; };
+layout(binding  = 6, std430) readonly buffer Hbo0 { Hash hashTable[]; };
+layout(binding  = 7, std430) readonly buffer Pbo  { ProbesHeader probeHeader; Probe probe[]; };
 
 layout(location = 0) out vec4 outColor;
 
@@ -92,17 +93,11 @@ float smoothSsao() { return 0; }
 
 Probe mkZeroProbe() {
   Probe px;
-  px.color[0][0] = vec4(0);
-  px.color[0][1] = vec4(0);
-  px.color[1][0] = vec4(0);
-  px.color[1][1] = vec4(0);
-  px.color[2][0] = vec4(0);
-  px.color[2][1] = vec4(0);
-  px.bits        = UNUSED_BIT;
+  px.bits = UNUSED_BIT;
   return px;
   }
 
-Probe readProbe(const ivec3 gridPos, const vec3 wpos) {
+Probe readProbe(const ivec3 gridPos, const vec3 wpos, out uint id) {
   const uint h       = probeGridPosHash(gridPos) % hashTable.length();
   uint       probeId = hashTable[h].value;
 
@@ -125,6 +120,7 @@ Probe readProbe(const ivec3 gridPos, const vec3 wpos) {
       probeId = p.pNext;
       continue;
       }
+    id = probeId;
     return p;
     }
 
@@ -136,7 +132,8 @@ void processProbe(ivec3 gridPos, vec3 wpos, int lod, vec3 pixelPos, vec3 pixelNo
   if(dot(ldir, pixelNorm)<=0)
     return;
 
-  const Probe p = readProbe(gridPos, wpos);
+  uint probeId = 0;
+  const Probe p = readProbe(gridPos, wpos, probeId);
   if((p.bits & TRACED_BIT)==0)
     return;
 
@@ -159,11 +156,15 @@ void processProbe(ivec3 gridPos, vec3 wpos, int lod, vec3 pixelPos, vec3 pixelNo
   float weight = 1;
   // cosine weight from https://advances.realtimerendering.com/s2015/SIGGRAPH_2015_Remedy_Notes.pdf
   weight *= max(0.01, dot(normalize(ldir), pixelNorm));
-  // distnace based weight
-  weight *= 1.0/max(length(ldir), 20);
 
-  // weight *= 1.0/max(length(ldir), 0.00001);
-  colorSum.rgb += probeReadAmbient(p, pixelNorm) * weight;
+  // distnace based weight
+  // weight *= 1.0/(0.001 + dot(ldir,ldir));
+  vec3 dxx = sqrt(abs(ldir));
+  weight *= 1.0/(0.001 + dxx.x);
+  weight *= 1.0/(0.001 + dxx.y);
+  weight *= 1.0/(0.001 + dxx.z);
+
+  colorSum.rgb += probeReadAmbient(probesLighting, probeId, pixelNorm) * weight;
   colorSum.w   += weight;
   }
 
@@ -195,7 +196,7 @@ void main() {
     gather(pos, norm, lod, true);
     }
 
-  if(colorSum.w<=0.000001) {
+  if(colorSum.w<=0.0) {
     // debug
     // colorSum = vec4(vec3(1,0,0)*scene.GSunIntensity,1);
     colorSum = vec4(0,0,0,1);
@@ -203,10 +204,11 @@ void main() {
 
   // const vec3  linear = vec3(1);
   const vec3  linear = textureLinear(diff);
-  const float ao     = 0;//smoothSsao();
+  const float ao     = smoothSsao();
 
   vec3 color = colorSum.rgb/max(colorSum.w,0.000001);
   color *= linear;
+  color *= 2; //hack
   color *= (1-ao);
   // night shift
   color += purkinjeShift(color);
