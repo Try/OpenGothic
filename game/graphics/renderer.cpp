@@ -169,6 +169,7 @@ void Renderer::resetSwapchain() {
 
     gi.probeClearPso  = &Shaders::inst().probeClear;
     gi.probeClearHPso = &Shaders::inst().probeClearHash;
+    gi.probeMakeHPso  = &Shaders::inst().probeMakeHash;
     gi.uboClear       = device.descriptors(*gi.probeClearPso);
 
     gi.probeVotePso   = &Shaders::inst().probeVote;
@@ -360,8 +361,9 @@ void Renderer::prepareUniforms() {
     gi.uboLight.set(4, gi.probesGBuffRayT, Sampler::nearest());
     gi.uboLight.set(5, wview->sky().skyLut(), Sampler::bilinear());
     gi.uboLight.set(6, shadowMap[1], Sampler::bilinear());
-    gi.uboLight.set(7, gi.hashTable);
-    gi.uboLight.set(8, gi.probes);
+    gi.uboLight.set(7, gi.probesLighting, Sampler::nearest());
+    gi.uboLight.set(8, gi.hashTable);
+    gi.uboLight.set(9, gi.probes);
 
     gi.uboDraw.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     gi.uboDraw.set(1, gi.probesLighting);
@@ -449,10 +451,10 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
     return;
 
   std::vector<const Texture2d*> tex;
-  tex.push_back(&textureCast(hiz.hiZ));
+  //tex.push_back(&textureCast(hiz.hiZ));
   //tex.push_back(&textureCast(hiz.smProj));
   //tex.push_back(&textureCast(hiz.hiZSm1));
-  //tex.push_back(&textureCast(shadowMap[1]));
+  tex.push_back(&textureCast(shadowMap[1]));
   //tex.push_back(&textureCast(shadowMap[0]));
 
   int left = 10;
@@ -759,10 +761,13 @@ void Renderer::prepareGi(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t 
   cmd.setUniforms(*gi.probeTracePso, gi.uboTrace);
   cmd.dispatch(1024); // dispath indirect? :(
 
-  cmd.setDebugMarker("GI-Lighting");
+  cmd.setDebugMarker("GI-HashMap");
   cmd.setUniforms(*gi.probeClearHPso, gi.uboClear);
   cmd.dispatchThreads(maxHash);
+  cmd.setUniforms(*gi.probeMakeHPso, gi.uboClear);
+  cmd.dispatchThreads(gi.maxProbes);
 
+  cmd.setDebugMarker("GI-Lighting");
   cmd.setUniforms(*gi.probeLightPso, gi.uboLight);
   cmd.dispatch(1024);
   }

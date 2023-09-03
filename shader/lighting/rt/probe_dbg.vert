@@ -13,8 +13,9 @@ layout(binding = 2, std430) readonly buffer Pbo  { ProbesHeader probeHeader; Pro
 layout(binding = 3, std430) readonly buffer Hbo0 { Hash hashTable[]; };
 
 layout(location = 0) out vec3      center;
-layout(location = 1) out flat uint instanceIndex;
-layout(location = 2) out flat uint isHashed;
+layout(location = 1) out float     radius;
+layout(location = 2) out flat uint instanceIndex;
+layout(location = 3) out flat uint isHashed;
 
 
 const vec3 v[8] = {
@@ -52,8 +53,10 @@ void main() {
     }
 
   const vec3 vert = v[index[gl_VertexIndex]];
+  const vec4 pp = scene.viewProject * vec4(p.pos, 1.0);
 
-  gl_Position   = scene.viewProject * vec4(p.pos + vert * dbgViewRadius, 1.0);
+  radius        = dbgViewRadius * pp.w;
+  gl_Position   = scene.viewProject * vec4(p.pos + vert * radius, 1.0);
   center        = p.pos;
   instanceIndex = probeId;
 

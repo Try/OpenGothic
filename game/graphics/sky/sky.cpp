@@ -17,7 +17,7 @@ using namespace Tempest;
 
 // https://www.slideshare.net/LukasLang/physically-based-lighting-in-unreal-engine-4
 // https://www.slideshare.net/DICEStudio/moving-frostbite-to-physically-based-rendering
-static const float DirectSunLux  = 64'000.f;
+static const float DirectSunLux  = 85'000.f; // 64'000.f;
 static const float DirectMoonLux = 0.27f;
 static const float StreetLight   = 10.f;
 static const float NightLight    = 0.36f;
@@ -256,7 +256,7 @@ void Sky::updateLight(const int64_t now) {
   //const float fAmbient = Vec3::dotProduct(ambient, Vec3(0.2125f, 0.7154f, 0.0721f));
   //float lx = lsky*GSunIntensity*1.1f + fAmbient*0.5f + DirectMoonLux + NightLight;
 
-  float lx = lsky*GSunIntensity*1.5f + StreetLight*0.5f + NightLight;
+  float lx = lsky*GSunIntensity*1.5f + StreetLight*0.1f + NightLight;
   exposureInv = lx/GSunIntensity;
   }
 

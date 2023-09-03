@@ -139,6 +139,7 @@ class Renderer final {
 
       Tempest::ComputePipeline* probeClearPso  = nullptr;
       Tempest::ComputePipeline* probeClearHPso = nullptr;
+      Tempest::ComputePipeline* probeMakeHPso  = nullptr;
       Tempest::DescriptorSet    uboClear;
 
       Tempest::ComputePipeline* probeVotePso   = nullptr;

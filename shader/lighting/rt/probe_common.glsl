@@ -36,7 +36,7 @@ const float probeRayDistance = 200*100; // Lumen rt-probe uses 200-meters range
 
 ivec2 gbufferCoord(const uint probeId, const uint sampleId) {
   uint x = (probeId     ) & 0xFF;
-  uint y = (probeId >> 8) & 0xFF;
+  uint y = (probeId >> 8);
   x = (x << 4) + ((sampleId     ) & 0xF);
   y = (y << 4) + ((sampleId >> 4) & 0xF);
   return ivec2(x,y);

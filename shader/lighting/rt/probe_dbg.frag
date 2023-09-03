@@ -13,9 +13,10 @@ layout(binding = 0, std140) uniform UboScene {
 layout(binding = 1) uniform sampler2D probesLighting;
 layout(binding = 2, std430) /*readonly*/ buffer Pbo { ProbesHeader probeHeader; Probe probe[]; };
 
-layout(location = 0) in  vec3 center;
-layout(location = 1) in  flat uint instanceIndex;
-layout(location = 2) in  flat uint isHashed;
+layout(location = 0) in  vec3  center;
+layout(location = 1) in  float radius;
+layout(location = 2) in  flat uint instanceIndex;
+layout(location = 3) in  flat uint isHashed;
 
 layout(location = 0) out vec4 outColor;
 
@@ -40,11 +41,11 @@ void main(void) {
   vec4 sp = scene.viewProject * vec4(center, 1.0);
   sp.xyz /= sp.w;
 
-  bool watch = abs(sp.x)<0.05 && abs(sp.y)<0.05;
+  bool watch = false; //abs(sp.x)<0.05 && abs(sp.y)<0.05;
   if(watch)
     probeHeader.watch = instanceIndex;
 
-  float t = rayIntersect(pos0-center, view, dbgViewRadius);
+  float t = rayIntersect(pos0-center, view, radius);
   if(t<0 && !watch)
     discard;
 

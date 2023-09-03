@@ -10,7 +10,7 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-#define SSAO 1
+// #define SSAO 1
 const int   KERNEL_RADIUS = 1;
 const float blurSharpness = 0.8;
 
@@ -203,12 +203,12 @@ void main() {
     }
 
   // const vec3  linear = vec3(1);
-  const vec3  linear = textureLinear(diff);
+  const vec3  linear = textureLinear(diff); //  * Fd_Lambert is accounted in integration
   const float ao     = smoothSsao();
 
   vec3 color = colorSum.rgb/max(colorSum.w,0.000001);
   color *= linear;
-  color *= 2; //hack
+  // color *= 2; //hack
   color *= (1-ao);
   // night shift
   color += purkinjeShift(color);

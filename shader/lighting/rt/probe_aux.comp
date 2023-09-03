@@ -15,6 +15,15 @@ layout(binding = 1, std430) buffer Hbo  { Hash hashTable[]; };
 layout(binding = 2, std430) buffer Pbo  { ProbesHeader probeHeader; Probe probe[]; };
 layout(binding = 3, std430) buffer Fbo0 { int cursor; uint list[]; } freeList;
 
+
+void hashmapInsert(const uint probeId) {
+  const vec3 gridPos = probe[probeId].pos/probeGridStep;
+  const uint h       = probeGridPosHash(ivec3(gridPos)) % hashTable.length();
+
+  uint pNext = atomicExchange(hashTable[h].value, probeId);
+  probe[probeId].pNext = pNext;
+  }
+
 void main_clear() {
   const uint threadID = gl_GlobalInvocationID.x;
 
@@ -31,7 +40,7 @@ void main_clear() {
     }
   }
 
-void main_hash() {
+void main_clrHash() {
   const uint threadID = gl_GlobalInvocationID.x;
 
   if(threadID<hashTable.length()) {
@@ -55,11 +64,28 @@ void main_prune() {
   freeList.list[cursor] = probeId;
   }
 
+void main_mkHash() {
+  const uint probeId = gl_GlobalInvocationID.x;
+  if(probeId>=probeHeader.count)
+    return;
+
+  const bool traced = ((probe[probeId].bits & TRACED_BIT)!=0);
+  const bool skip   = ((probe[probeId].bits & UNUSED_BIT)!=0);
+
+  if(skip)
+    return;
+
+  if(traced)
+    hashmapInsert(probeId);
+  }
+
 void main() {
 #if defined(CLEAR)
   main_clear();
 #elif defined(CLEAR_HASH)
-  main_hash();
+  main_clrHash();
+#elif defined(MAKE_HASH)
+  main_mkHash();
 #elif defined(PRUNE)
   main_prune();
 #endif

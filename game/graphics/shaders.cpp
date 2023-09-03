@@ -187,6 +187,7 @@ Shaders::Shaders() {
 
     probeClear     = computeShader("probe_clear.comp.sprv");
     probeClearHash = computeShader("probe_clear_hash.comp.sprv");
+    probeMakeHash  = computeShader("probe_make_hash.comp.sprv");
     probeVote      = computeShader("probe_vote.comp.sprv");
     probePrune     = computeShader("probe_prune.comp.sprv");
     probeAlocation = computeShader("probe_allocation.comp.sprv");

@@ -244,6 +244,7 @@ add_shader(probe_dbg.frag            lighting/rt/probe_dbg.frag)
 
 add_shader(probe_clear.comp          lighting/rt/probe_aux.comp        -DCLEAR)
 add_shader(probe_clear_hash.comp     lighting/rt/probe_aux.comp        -DCLEAR_HASH)
+add_shader(probe_make_hash.comp      lighting/rt/probe_aux.comp        -DMAKE_HASH)
 add_shader(probe_prune.comp          lighting/rt/probe_aux.comp        -DPRUNE)
 add_shader(probe_vote.comp           lighting/rt/probe_allocation.comp -DVOTE)
 add_shader(probe_allocation.comp     lighting/rt/probe_allocation.comp -DALLOC)

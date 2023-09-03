@@ -42,7 +42,7 @@ vec3 textureLinear(vec3 rgb) {
 #else
   vec3 linear = (srgbDecode(rgb)*0.78);
 #endif
-  return acesTonemapInv(linear);
+  return acesTonemapInv(linear)*1.25;
   }
 
 #endif
