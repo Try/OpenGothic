@@ -78,8 +78,9 @@ void processProbe(ivec3 gridPos, vec3 pos, int lod, vec3 pixelPos, vec3 pixelNor
     return;
   Probe p;
   p.pos         = pos;
-  p.bits        = 0;
   p.pNext       = 0xFFFFFFFF;
+  p.normal      = normalize(pixelNorm);
+  p.bits        = 0;
   probe[cursor] = p;
 #endif
   }

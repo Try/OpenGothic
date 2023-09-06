@@ -215,19 +215,20 @@ add_shader(fog3d_lq.frag             sky/fog.frag -S frag -DVOLUMETRIC_LQ)
 add_shader(fog3d_hq.frag             sky/fog.frag -S frag -DVOLUMETRIC_HQ)
 add_shader(fog3d.comp                sky/fog.frag -S comp -DVOLUMETRIC_HQ -DCOMPUTE)
 
-add_shader(fog.frag                  sky/fog.frag "")
+add_shader(fog.frag                  sky/fog.frag)
 
-add_shader(sky.vert                  sky/sky.vert "")
-add_shader(sky.frag                  sky/sky.frag "")
+add_shader(sky.vert                  sky/sky.vert)
+add_shader(sky.frag                  sky/sky.frag)
 
-add_shader(sun.vert                  sky/sun.vert "")
-add_shader(sun.frag                  sky/sun.frag "")
+add_shader(sun.vert                  sky/sun.vert)
+add_shader(sun.frag                  sky/sun.frag)
 
 add_shader(copy.vert                 copy.vert -DHAS_UV)
-add_shader(copy.frag                 copy.frag "")
-add_shader(copy.comp                 copy.comp "")
+add_shader(copy.frag                 copy.frag)
+add_shader(copy.comp                 copy.comp)
+add_shader(copy_img.comp             copy_img.comp)
 
-add_shader(ssao.comp                 ssao/ssao.comp "")
+add_shader(ssao.comp                 ssao/ssao.comp)
 
 add_shader(ssao_compose.vert         copy.vert -DHAS_UV)
 add_shader(ssao_compose.frag         ssao/ssao_compose.frag "")

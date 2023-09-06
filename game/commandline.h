@@ -27,6 +27,7 @@ class CommandLine {
     bool                isValidationMode() const { return isDebug;  }
     bool                isWindowMode()     const { return isWindow; }
     bool                isRayQuery()       const { return isRQuery; }
+    bool                isRtGi()           const { return isGi;     }
     bool                isMeshShading()    const { return isMeshSh; }
     bool                doStartMenu()      const { return !noMenu;  }
     bool                doForceG1()        const { return forceG1;  }
@@ -52,6 +53,7 @@ class CommandLine {
     bool                isRQuery = true;
     bool                isMeshSh = true;
 #endif
+    bool                isGi     = false;
     bool                forceG1  = false;
     bool                forceG2  = false;
   };

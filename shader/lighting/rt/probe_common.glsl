@@ -18,20 +18,19 @@ struct ProbesHeader { // 64 bytes
   uint tracedCount;
   uint watch; //debug
   uint padd1[11];
-  //uint padd2[16];
   };
 
 struct Probe { // 32 bytes
   vec3 pos;
-  uint bits;
   uint pNext;
-  uint padd1[3];
+  vec3 normal;
+  uint bits;
   };
 
 const float dbgViewRadius    = 3;
 const float probeGridStep    = 25;
 const float probeCageBias    = 2.5;
-const float probeBadHitT     = 1.0;
+const float probeBadHitT     = 25/5.0;
 const float probeRayDistance = 200*100; // Lumen rt-probe uses 200-meters range
 
 ivec2 gbufferCoord(const uint probeId, const uint sampleId) {
@@ -54,9 +53,34 @@ uint probeGridPosHash(ivec3 gridPos) {
   return (gridPos.x * 18397) + (gridPos.y * 20483) + (gridPos.z * 29303);
   }
 
-vec3 probeReadAmbient(in sampler2D irradiance, uint id, vec3 n) {
-  ivec2 uv = lightBufferCoord(id);
+mat3 probeTbn(vec3 norm) {
+  return mat3(1,0,0, 0,1,0, 0,0,1);
+
+  // return mat3(-1,0,0, 0,-1,0, 0,0,-1);
+  // return mat3(0,0,1, 1,0,0, 0,1,0);
+
+  //norm = normalize(vec3(0,1,0));
+  vec3 up = abs(norm.y) < 0.999f ? vec3(0.0f, 1.0f, 0.0f) : vec3(0.0f, 0.0f, 1.0f);
+
+  mat3 tangent;
+  tangent[0] = normalize(cross(norm, up));
+  tangent[1] = norm; // Y-up
+  tangent[2] = cross(tangent[0], norm);
+  return tangent;
+  }
+
+vec3 probeReadAmbient(in sampler2D irradiance, uint id, vec3 nx, vec3 probeNorm) {
+  ivec2 uv  = lightBufferCoord(id);
   ivec3 d;
+
+  mat3  tbn = inverse(probeTbn(probeNorm));
+  vec3  n   = tbn * nx;
+  // n.x = dot(tbn[0], nx);
+  // n.y = dot(tbn[1], nx);
+  // n.z = dot(tbn[2], nx);
+
+  //return n;
+
   d.x = n.x>=0 ? 1 : 0;
   d.y = n.y>=0 ? 1 : 0;
   d.z = n.z>=0 ? 1 : 0;

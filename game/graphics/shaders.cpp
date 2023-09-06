@@ -80,6 +80,7 @@ Shaders::Shaders() {
   shadowAt.load(device,"shadow_at",false,meshlets);
 
   copyBuf = computeShader("copy.comp.sprv");
+  copyImg = computeShader("copy_img.comp.sprv");
   copy    = postEffect("copy");
 
   stash = postEffect("stash");

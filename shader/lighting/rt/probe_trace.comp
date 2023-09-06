@@ -12,7 +12,7 @@
 layout(local_size_x = 64) in;
 
 const  uint samplesCount = 2;
-const  uint samplesTotal = gl_WorkGroupSize.x*samplesCount*2; // 2 directions
+const  uint samplesTotal = gl_WorkGroupSize.x*samplesCount;
 
 shared uint shProbeId;
 shared uint badHits;
@@ -28,10 +28,10 @@ layout(binding = 4, std430) buffer Hbo { Hash hashTable[]; };
 layout(binding = 5, std430) buffer Pbo { ProbesHeader probeHeader; Probe probe[]; };
 
 void storeGbuffer(const uint probeId, uint sampleId, vec3 diff, vec3 norm, float rayT,
-                  bool opaque, bool badbit, bool sky) {
+                  bool opaque, bool badbit, bool sky, bool semiSky) {
   norm = norm*0.5+vec3(0.5);
 
-  const uint  bits = (opaque ? 0x1 : 0x0) | (badbit ? 0x2 : 0x0) | (sky ? 0x4 : 0x0);
+  const uint  bits = (opaque ? 0x1 : 0x0) | (badbit ? 0x2 : 0x0) | (sky ? 0x4 : 0x0) | (semiSky ? 0x8 : 0x0);
   const float r    = (rayT/probeRayDistance);
 
   const ivec2 uv   = gbufferCoord(probeId, sampleId);
@@ -40,9 +40,21 @@ void storeGbuffer(const uint probeId, uint sampleId, vec3 diff, vec3 norm, float
   imageStore(gbufferRayT, uv, vec4(r,    0,0,0));
   }
 
+bool skyRay(const vec3 rayOrigin, const vec3 rayDirection, uint flags, float tMin) {
+  flags |= gl_RayFlagsCullNoOpaqueEXT;
+
+  rayQueryEXT rayQuery;
+  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
+                        rayOrigin, tMin, rayDirection, probeRayDistance);
+  rayQueryProceedShadow(rayQuery);
+  if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT)
+    return true;
+  return false;
+  }
+
 void sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const uint probeId, uint sampleId) {
-  // CullFront due to vegetation
-  uint  flags = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullBackFacingTrianglesEXT;// | gl_RayFlagsCullNoOpaqueEXT;
+  // CullBack due to vegetation
+  uint  flags = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullBackFacingTrianglesEXT; // | gl_RayFlagsCullNoOpaqueEXT;
   float tMin  = 0;
 
   rayQueryEXT rayQuery;
@@ -53,22 +65,23 @@ void sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const uint probe
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT) {
     if(rayDirection.y<-0.75)
       atomicAdd(badHits, 1); // shoot to ground and hit nothing
-    storeGbuffer(probeId, sampleId, vec3(0,0,1), vec3(0), probeRayDistance, false, false, true);
+    storeGbuffer(probeId, sampleId, vec3(0,0,1), vec3(0), probeRayDistance, false, false, true, true);
     return;
     }
 
   const HitDesc hit    = pullCommitedHitDesc(rayQuery);
 
   const float   rayT   = rayQueryGetIntersectionTEXT(rayQuery, true);
-  const bool    face   = !(rayQueryGetIntersectionFrontFaceEXT(rayQuery, true)); //note: not working on vegetation
-  const bool    badbit = (rayT<probeBadHitT && hit.opaque) ||
-                         (face && rayT<probeGridStep && hit.opaque);
+  const bool    face   = !(rayQueryGetIntersectionFrontFaceEXT(rayQuery, true)); //NOTE: not working on vegetation
+  const bool    badbit = (rayT<probeBadHitT) || (face && hit.opaque);
 
   if(badbit) {
     atomicAdd(badHits, 1);
-    storeGbuffer(probeId, sampleId, vec3(0.1), vec3(0,1,0), rayT, hit.opaque, badbit, false);
+    storeGbuffer(probeId, sampleId, vec3(0.1), vec3(0,1,0), rayT, hit.opaque, badbit, false, false);
     return;
     }
+
+  const bool  skybit = (!hit.opaque && skyRay(rayOrigin,rayDirection,flags,tMin));
 
   const uint  id    = hit.instanceId;
   const uvec3 index = pullTrinagleIds(id,hit.primitiveId);
@@ -89,16 +102,19 @@ void sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const uint probe
   if(hit.opaque && face)
     diff = vec3(0.01);
 
-  storeGbuffer(probeId, sampleId, diff, nr, rayT, hit.opaque, badbit, false);
+  storeGbuffer(probeId, sampleId, diff, nr, rayT, hit.opaque, badbit, false, skybit);
   }
 
 void gather(const uint probeId, const vec3 origin) {
+  const mat3 tbn = probeTbn(probe[probeId].normal);
+
   for(uint i=0; i<samplesCount; ++i) {
     uint sampleId = gl_LocalInvocationIndex*samplesCount+i;
     vec3 dir      = sampleHemisphere(sampleId, gl_WorkGroupSize.x*samplesCount, 0);
 
-    sampleScene(origin, +dir, probeId, sampleId+0);
-    sampleScene(origin, -dir, probeId, sampleId+1);
+    dir = tbn * dir;
+    sampleScene(origin, +dir, probeId, sampleId*2+0);
+    sampleScene(origin, -dir, probeId, sampleId*2+1);
     }
   }
 
@@ -130,7 +146,7 @@ void processProbe(const uint probeId) {
   trace(probeId);
   barrier();
 
-  const bool badbit = (badHits > 6);
+  const bool badbit = (badHits > 16);
   if(laneId==0) {
     probe[probeId].bits = TRACED_BIT | NEW_BIT; // newly computed
     if(badbit) {

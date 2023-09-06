@@ -43,8 +43,10 @@ Gothic::Gothic() {
   showFpsCounter = systemPackIniFile->getI("DEBUG","Show_FPS_Counter");
   hideFocus      = systemPackIniFile->getI("PARAMETERS","HideFocus");
 
-  if(Resources::device().properties().raytracing.rayQuery)
+  if(Resources::device().properties().raytracing.rayQuery) {
     opts.doRayQuery = CommandLine::inst().isRayQuery();
+    opts.doRtGi     = CommandLine::inst().isRtGi();
+    }
 
   if(hasMeshShader())
     opts.doMeshShading = CommandLine::inst().isMeshShading();

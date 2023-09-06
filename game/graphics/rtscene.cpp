@@ -48,7 +48,6 @@ void RtScene::addInstance(const Matrix4x4& pos, const AccelerationStructure& bla
   RtObjectDesc desc = {};
   desc.instanceId     = bucketId;
   desc.firstPrimitive = firstPrimitive & 0x00FFFFFF; // 24 bit for primmitive + 8 for utility
-
   if(mat.alpha==Material::Solid)
     desc.bits |= 0x1;
 
@@ -58,7 +57,7 @@ void RtScene::addInstance(const Matrix4x4& pos, const AccelerationStructure& bla
   ix.blas = &blas;
   if(mat.alpha!=Material::Solid)
     ix.flags = RtInstanceFlags::NonOpaque; else
-    ix.flags = RtInstanceFlags::CullDisable;
+    ix.flags = RtInstanceFlags::Opaque | RtInstanceFlags::CullDisable;
   ix.flags = ix.flags | RtInstanceFlags::CullFlip;
 
   if(mat.alpha==Material::Solid && (cat==Landscape /*|| cat==Static*/)) {
@@ -95,8 +94,8 @@ void RtScene::buildTlas() {
   device.waitIdle();
   needToUpdate = false;
 
-  addInstance(build.staticOpaque, blasStaticOpaque, Tempest::RtInstanceFlags::Opaque);
-  addInstance(build.staticAt, blasStaticAt, Tempest::RtInstanceFlags::NonOpaque | RtInstanceFlags::CullDisable);
+  addInstance(build.staticOpaque, blasStaticOpaque, Tempest::RtInstanceFlags::Opaque | RtInstanceFlags::CullDisable);
+  addInstance(build.staticAt, blasStaticAt, Tempest::RtInstanceFlags::NonOpaque);
 
   tex    = std::move(build.tex);
   vbo    = std::move(build.vbo);

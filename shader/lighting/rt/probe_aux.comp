@@ -15,7 +15,6 @@ layout(binding = 1, std430) buffer Hbo  { Hash hashTable[]; };
 layout(binding = 2, std430) buffer Pbo  { ProbesHeader probeHeader; Probe probe[]; };
 layout(binding = 3, std430) buffer Fbo0 { int cursor; uint list[]; } freeList;
 
-
 void hashmapInsert(const uint probeId) {
   const vec3 gridPos = probe[probeId].pos/probeGridStep;
   const uint h       = probeGridPosHash(ivec3(gridPos)) % hashTable.length();

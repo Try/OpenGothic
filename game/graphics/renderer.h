@@ -29,7 +29,7 @@ class Renderer final {
 
     void dbgDraw(Tempest::Painter& painter);
 
-    Tempest::Attachment       screenshoot(uint8_t frameId);
+    Tempest::Attachment screenshoot(uint8_t frameId);
 
   private:
     void updateCamera(const Camera &camera);
@@ -58,6 +58,7 @@ class Renderer final {
     void drawProbesDbg    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void stashSceneAux    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void initSettings();
+    void toggleGi();
 
     struct Settings {
       const uint32_t shadowResolution   = 2048;
@@ -147,6 +148,8 @@ class Renderer final {
       Tempest::ComputePipeline* probeAllocPso  = nullptr;
       Tempest::DescriptorSet    uboProbes;
 
+      Tempest::DescriptorSet    uboPrevIrr, uboZeroIrr;
+
       Tempest::ComputePipeline* probeTracePso = nullptr;
       Tempest::DescriptorSet    uboTrace;
 
@@ -162,6 +165,7 @@ class Renderer final {
       Tempest::StorageImage     probesGBuffNorm;
       Tempest::StorageImage     probesGBuffRayT;
       Tempest::StorageImage     probesLighting;
+      Tempest::StorageImage     probesLightingPrev;
       bool                      fisrtFrame = false;
     } gi;
 

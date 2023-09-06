@@ -1,0 +1,21 @@
+#version 460
+
+#extension GL_EXT_samplerless_texture_functions : enable
+
+layout(local_size_x = 8, local_size_x = 8) in;
+
+layout(binding = 0) uniform writeonly image2D   dst;
+layout(binding = 1) uniform           texture2D src;
+
+void main() {
+  ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 dstSize   = ivec2(imageSize(dst));
+
+  const bool valid = all(lessThan(fragCoord, dstSize));
+  if(!valid)
+    return;
+
+  ivec2 srcUV = fragCoord % textureSize(src,0);
+  vec4  s     = texelFetch(src, srcUV, 0);
+  imageStore(dst, fragCoord, s);
+  }

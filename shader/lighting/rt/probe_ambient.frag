@@ -28,8 +28,9 @@ layout(binding  = 7, std430) readonly buffer Pbo  { ProbesHeader probeHeader; Pr
 
 layout(location = 0) out vec4 outColor;
 
-vec4 colorSum = vec4(0);
-bool err      = false;
+vec4 colorSum  = vec4(0);
+//vec2 harmonicR = vec2(0);
+bool err       = false;
 
 vec3 unprojectDepth(const float z) {
   const vec2  screenSize = ivec2(textureSize(depth,0));
@@ -116,7 +117,8 @@ Probe readProbe(const ivec3 gridPos, const vec3 wpos, out uint id) {
       }
 
     const vec3 dp = wpos - p.pos;
-    if(dot(dp,dp)>1.0) {
+    if(dot(dp,dp)>probeGridStep*probeGridStep) {
+    // if(ivec3(p.pos/probeGridStep)!=gridPos) {
       probeId = p.pNext;
       continue;
       }
@@ -164,8 +166,10 @@ void processProbe(ivec3 gridPos, vec3 wpos, int lod, vec3 pixelPos, vec3 pixelNo
   weight *= 1.0/(0.001 + dxx.y);
   weight *= 1.0/(0.001 + dxx.z);
 
-  colorSum.rgb += probeReadAmbient(probesLighting, probeId, pixelNorm) * weight;
+  colorSum.rgb += probeReadAmbient(probesLighting, probeId, pixelNorm, p.normal) * weight;
   colorSum.w   += weight;
+  // harmonicR.r += p.hR * weight;
+  // harmonicR.g += weight;
   }
 
 void gather(vec3 pos, vec3 norm, int lod, bool ignoreBad) {
@@ -208,14 +212,15 @@ void main() {
 
   vec3 color = colorSum.rgb/max(colorSum.w,0.000001);
   color *= linear;
-  // color *= 2; //hack
+  // color *= 2.0; //hack
   color *= (1-ao);
   // night shift
   color += purkinjeShift(color);
   color *= scene.exposure;
-  // color = linear;
   outColor = vec4(color, 1);
 
+  // outColor = vec4(srgbEncode(linear), 0);
+  // outColor = vec4(0.001 * vec3(harmonicR.r/max(harmonicR.g, 0.000001)), 0);
   // if(err)
   //   outColor = vec4(1,0,0,0);
   }

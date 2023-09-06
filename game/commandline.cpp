@@ -74,6 +74,11 @@ CommandLine::CommandLine(int argc, const char** argv) {
       if(i<argc)
         isRQuery = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
       }
+    else if(arg=="-gi") {
+      ++i;
+      if(i<argc)
+        isGi = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
+      }
     else if(arg=="-ms") {
       ++i;
       if(i<argc)

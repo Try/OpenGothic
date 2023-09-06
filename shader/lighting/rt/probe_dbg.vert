@@ -55,7 +55,7 @@ void main() {
   const vec3 vert = v[index[gl_VertexIndex]];
   const vec4 pp = scene.viewProject * vec4(p.pos, 1.0);
 
-  radius        = dbgViewRadius * pp.w;
+  radius        = dbgViewRadius;// * pp.w;
   gl_Position   = scene.viewProject * vec4(p.pos + vert * radius, 1.0);
   center        = p.pos;
   instanceIndex = probeId;
