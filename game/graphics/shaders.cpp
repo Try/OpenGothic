@@ -186,6 +186,7 @@ Shaders::Shaders() {
     auto fs = device.shader(sh.data,sh.len);
     probeDbg = device.pipeline(Triangles,state,vs,fs);
 
+    probeInit      = computeShader("probe_init.comp.sprv");
     probeClear     = computeShader("probe_clear.comp.sprv");
     probeClearHash = computeShader("probe_clear_hash.comp.sprv");
     probeMakeHash  = computeShader("probe_make_hash.comp.sprv");

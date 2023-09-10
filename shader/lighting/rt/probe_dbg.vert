@@ -10,7 +10,7 @@ layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
 layout(binding = 2, std430) readonly buffer Pbo  { ProbesHeader probeHeader; Probe probe[]; };
-layout(binding = 3, std430) readonly buffer Hbo0 { Hash hashTable[]; };
+layout(binding = 3, std430) readonly buffer Hbo0 { uint hashTable[]; };
 
 layout(location = 0) out vec3      center;
 layout(location = 1) out float     radius;
@@ -62,6 +62,6 @@ void main() {
 
   const vec3 gridPos = probe[probeId].pos/probeGridStep;
   const uint h       = probeGridPosHash(ivec3(gridPos)) % hashTable.length();
-  const uint cursor  = hashTable[h].value;
+  const uint cursor  = hashTable[h];
   isHashed = (cursor==probeId) ? 1 : 0;
   }

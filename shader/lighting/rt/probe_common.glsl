@@ -1,10 +1,6 @@
 #ifndef PROBE_COMMON_GLSL
 #define PROBE_COMMON_GLSL
 
-struct Hash {
-  uint value;
-  };
-
 const uint UNUSED_BIT = 0x1;
 const uint TRACED_BIT = 0x2;
 const uint REUSE_BIT  = 0x4;
@@ -73,14 +69,16 @@ vec3 probeReadAmbient(in sampler2D irradiance, uint id, vec3 nx, vec3 probeNorm)
   ivec2 uv  = lightBufferCoord(id);
   ivec3 d;
 
-  mat3  tbn = inverse(probeTbn(probeNorm));
-  vec3  n   = tbn * nx;
+  // mat3  tbn = inverse(probeTbn(probeNorm));
+  // vec3  n   = tbn * nx;
+
   // n.x = dot(tbn[0], nx);
   // n.y = dot(tbn[1], nx);
   // n.z = dot(tbn[2], nx);
 
   //return n;
 
+  vec3  n = nx;
   d.x = n.x>=0 ? 1 : 0;
   d.y = n.y>=0 ? 1 : 0;
   d.z = n.z>=0 ? 1 : 0;

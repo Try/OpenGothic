@@ -138,6 +138,8 @@ class Renderer final {
       const uint32_t            maxProbes = atlasDim*atlasDim; // 65536
       Tempest::DescriptorSet    uboDbg;
 
+      Tempest::ComputePipeline* probeInitPso   = nullptr;
+
       Tempest::ComputePipeline* probeClearPso  = nullptr;
       Tempest::ComputePipeline* probeClearHPso = nullptr;
       Tempest::ComputePipeline* probeMakeHPso  = nullptr;

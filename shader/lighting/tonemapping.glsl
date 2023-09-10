@@ -38,16 +38,16 @@ vec3 acesTonemapInv(vec3 x) {
 const float sunlightMul = 0.285;
 // HACK: need to preserve look-and-fill of original graphics
 vec3 textureLinear(vec3 rgb) {
+  const vec3 linear = srgbDecode(rgb);
 #if defined(EMISSIVE)
-  vec3 linear = (srgbDecode(rgb)*1.00); // emissive objects, spells
-  return acesTonemapInv(linear);
+  // emissive objects, spells
+  return acesTonemapInv(linear)*1.5;
 #else
-  vec3 linear = (srgbDecode(rgb));
   // return vec3(0.52, 0.41, 0.36); // wood
   // return vec3(0.33, 0.34, 0.18); // leaves
   // return vec3(0.9);
   // return acesTonemapInv(linear*0.8);
-  return (acesTonemapInv(linear*0.78)*3.5); // adjusted to have 'realistic' albedo values
+  return acesTonemapInv(linear*0.78+0.001)*3.5; // adjusted to have 'realistic' albedo values
 #endif
   }
 

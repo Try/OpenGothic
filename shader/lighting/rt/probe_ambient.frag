@@ -10,7 +10,7 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-// #define SSAO 1
+#define SSAO 1
 const int   KERNEL_RADIUS = 1;
 const float blurSharpness = 0.8;
 
@@ -23,7 +23,7 @@ layout(binding  = 3) uniform sampler2D gbufNormal;
 layout(binding  = 4) uniform sampler2D depth;
 layout(binding  = 5) uniform sampler2D ssao;
 
-layout(binding  = 6, std430) readonly buffer Hbo0 { Hash hashTable[]; };
+layout(binding  = 6, std430) readonly buffer Hbo0 { uint hashTable[]; };
 layout(binding  = 7, std430) readonly buffer Pbo  { ProbesHeader probeHeader; Probe probe[]; };
 
 layout(location = 0) out vec4 outColor;
@@ -100,7 +100,7 @@ Probe mkZeroProbe() {
 
 Probe readProbe(const ivec3 gridPos, const vec3 wpos, out uint id) {
   const uint h       = probeGridPosHash(gridPos) % hashTable.length();
-  uint       probeId = hashTable[h].value;
+  uint       probeId = hashTable[h];
 
   [[loop]]
   for(int i=0; i<8; ++i) {
@@ -157,7 +157,10 @@ void processProbe(ivec3 gridPos, vec3 wpos, int lod, vec3 pixelPos, vec3 pixelNo
 
   float weight = 1;
   // cosine weight from https://advances.realtimerendering.com/s2015/SIGGRAPH_2015_Remedy_Notes.pdf
-  weight *= max(0.01, dot(normalize(ldir), pixelNorm));
+  // weight *= max(0.01, dot(normalize(ldir), pixelNorm));
+
+  // wrap weight https://www.jcgt.org/published/0008/02/01/paper-lowres.pdf
+  weight *= max(0.0, dot(normalize(ldir), pixelNorm))*0.5 + 0.5;
 
   // distnace based weight
   // weight *= 1.0/(0.001 + dot(ldir,ldir));
@@ -165,6 +168,8 @@ void processProbe(ivec3 gridPos, vec3 wpos, int lod, vec3 pixelPos, vec3 pixelNo
   weight *= 1.0/(0.001 + dxx.x);
   weight *= 1.0/(0.001 + dxx.y);
   weight *= 1.0/(0.001 + dxx.z);
+  if((p.bits & BAD_BIT)!=0)
+    weight *= 0.1;
 
   colorSum.rgb += probeReadAmbient(probesLighting, probeId, pixelNorm, p.normal) * weight;
   colorSum.w   += weight;
@@ -186,7 +191,7 @@ void gather(vec3 pos, vec3 norm, int lod, bool ignoreBad) {
 
 void main() {
   const float z = texelFetch(depth,ivec2(gl_FragCoord.xy),0).x;
-  if(z>=0.99995)
+  if(z>=1.0)
     discard; // sky
 
   const vec3 diff = texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0).rgb;
@@ -200,10 +205,11 @@ void main() {
     gather(pos, norm, lod, true);
     }
 
-  if(colorSum.w<=0.0) {
+  if(colorSum.w<=0.000001) {
     // debug
     // colorSum = vec4(vec3(1,0,0)*scene.GSunIntensity,1);
-    colorSum = vec4(0,0,0,1);
+    colorSum.rgb = probeReadAmbient(probesLighting, 0, norm, vec3(0,1,0));
+    colorSum.w   = 1;
     }
 
   // const vec3  linear = vec3(1);
@@ -212,7 +218,6 @@ void main() {
 
   vec3 color = colorSum.rgb/max(colorSum.w,0.000001);
   color *= linear;
-  // color *= 2.0; //hack
   color *= (1-ao);
   // night shift
   color += purkinjeShift(color);

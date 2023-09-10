@@ -154,7 +154,16 @@ vec2 sampleHammersley(uint i, uint numSamples) {
 vec3 sampleHemisphere(uint i, uint numSamples, float offsetAng) {
   const vec2  xi  = sampleHammersley(i,numSamples);
   const float u   = 1-xi.x;
-  const float u1p = sqrt(max(0.0, 1.0 - u*u));
+  const float u1p = sqrt(1.0 - u*u);
+  const float a   = M_PI*2.0*xi.y + offsetAng;
+  return vec3(cos(a) * u1p, xi.x, sin(a) * u1p);
+  }
+
+// Cosine sampling
+vec3 sampleHemisphereCos(uint i, uint numSamples, float offsetAng) {
+  const vec2  xi  = sampleHammersley(i,numSamples);
+  const float u   = sqrt(1 - xi.x);
+  const float u1p = sqrt(1 - u*u);
   const float a   = M_PI*2.0*xi.y + offsetAng;
   return vec3(cos(a) * u1p, xi.x, sin(a) * u1p);
   }

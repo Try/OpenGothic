@@ -243,6 +243,7 @@ add_shader(hiz_reproject.frag        hiz/hiz_reproject.frag "")
 add_shader(probe_dbg.vert            lighting/rt/probe_dbg.vert)
 add_shader(probe_dbg.frag            lighting/rt/probe_dbg.frag)
 
+add_shader(probe_init.comp           lighting/rt/probe_aux.comp        -DINIT)
 add_shader(probe_clear.comp          lighting/rt/probe_aux.comp        -DCLEAR)
 add_shader(probe_clear_hash.comp     lighting/rt/probe_aux.comp        -DCLEAR_HASH)
 add_shader(probe_make_hash.comp      lighting/rt/probe_aux.comp        -DMAKE_HASH)

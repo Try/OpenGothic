@@ -29,7 +29,7 @@ layout(binding = 5) uniform sampler2D skyLUT;
 layout(binding = 6) uniform sampler2D textureSm1;
 layout(binding = 7) uniform sampler2D probesLightingPrev;
 
-layout(binding = 8, std430) buffer Hbo { Hash hashTable[]; };
+layout(binding = 8, std430) buffer Hbo { uint hashTable[]; };
 layout(binding = 9, std430) buffer Pbo { ProbesHeader probeHeader; Probe probe[]; };
 
 float shadowResolve(in vec4 sh, float z) {
@@ -101,7 +101,7 @@ vec3 resolveSecondBounce(vec3 pos, vec3 norm, uint selfProbeId) {
 
   const ivec3 gridPos = ivec3(round(pos/(probeGridStep*2)));
   const uint  h       = probeGridPosHash(gridPos) % hashTable.length();
-  uint        probeId = hashTable[h].value;
+  uint        probeId = hashTable[h];
 
   [[loop]]
   for(int i=0; i<8; ++i) {
@@ -192,9 +192,6 @@ void processProbe(const uint probeId) {
 
   if(skip)
     return;
-
-  if(traced && laneId==0)
-    ; //hashmapInsert(probeId);
 
   for(int i=0; i<3; ++i) {
     samples[laneId][i][0] = vec4(0);

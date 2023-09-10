@@ -90,7 +90,7 @@ vec3 ambient() {
   ret += texelFetch(irradiance, ivec2(1,d.y), 0).rgb * n.y;
   ret += texelFetch(irradiance, ivec2(2,d.z), 0).rgb * n.z;
 
-  ret += push.ambient;
+  ret = ret*0.5 + push.ambient*0.5;
   ret += purkinjeShift(ret); //TODO: use it globally at tonemapping
 
   return ret;

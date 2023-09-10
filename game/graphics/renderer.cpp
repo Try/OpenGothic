@@ -168,6 +168,8 @@ void Renderer::resetSwapchain() {
   if(settings.giEnabled) {
     gi.uboDbg         = DescriptorSet();
 
+    gi.probeInitPso   = &Shaders::inst().probeInit;
+
     gi.probeClearPso  = &Shaders::inst().probeClear;
     gi.probeClearHPso = &Shaders::inst().probeClearHash;
     gi.probeMakeHPso  = &Shaders::inst().probeMakeHash;
@@ -244,7 +246,7 @@ void Renderer::toggleGi() {
   if(!Gothic::options().doRtGi)
     return;
   settings.giEnabled = !settings.giEnabled;
-  gi.fisrtFrame = false;
+  gi.fisrtFrame = true;
 
   auto& device = Resources::device();
   device.waitIdle();
@@ -252,7 +254,7 @@ void Renderer::toggleGi() {
   }
 
 void Renderer::onWorldChanged() {
-  gi.fisrtFrame = false;
+  gi.fisrtFrame = true;
   prepareUniforms();
   }
 
@@ -534,7 +536,6 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
 
   prepareSSAO(cmd);
   prepareFog (cmd,fId,*wview);
-  prepareIrradiance(cmd,fId);
   prepareGi(cmd,fId);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Discard, Tempest::Preserve}}, {zbuffer, Tempest::Readonly});
@@ -746,15 +747,23 @@ void Renderer::prepareIrradiance(Tempest::Encoder<CommandBuffer>& cmd, uint8_t f
   }
 
 void Renderer::prepareGi(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  if(!settings.giEnabled)
+  if(!settings.giEnabled) {
+    prepareIrradiance(cmd,fId);
+    return;
+    }
+
+  if(!settings.zCloudShadowScale)
     return;
 
   const size_t maxHash = gi.hashTable.byteSize()/sizeof(uint32_t);
 
   cmd.setFramebuffer({});
-  cmd.setDebugMarker("GI-Alloc");
 
   if(gi.fisrtFrame) {
+    cmd.setDebugMarker("GI-Init");
+    cmd.setUniforms(*gi.probeInitPso, gi.uboClear);
+    cmd.dispatch(1);
+
     cmd.setUniforms(*gi.probeClearHPso, gi.uboClear);
     cmd.dispatchThreads(maxHash);
 
@@ -764,6 +773,7 @@ void Renderer::prepareGi(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t 
     }
 
   static bool alloc = true;
+  cmd.setDebugMarker("GI-Alloc");
   cmd.setUniforms(*gi.probeClearPso, gi.uboClear);
   cmd.dispatchThreads(maxHash);
 
@@ -823,7 +833,7 @@ void Renderer::drawProbesDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint
   }
 
 void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {
-  if(settings.giEnabled) {
+  if(settings.giEnabled && settings.zCloudShadowScale) {
     cmd.setDebugMarker("AmbientLight");
     cmd.setUniforms(*gi.probeDrawPso, gi.uboDraw);
     cmd.draw(Resources::fsqVbo());

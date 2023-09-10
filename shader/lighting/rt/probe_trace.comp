@@ -24,7 +24,7 @@ layout(binding = 1) uniform writeonly image2D gbufferDiff;
 layout(binding = 2) uniform writeonly image2D gbufferNorm;
 layout(binding = 3) uniform writeonly image2D gbufferRayT;
 
-layout(binding = 4, std430) buffer Hbo { Hash hashTable[]; };
+layout(binding = 4, std430) buffer Hbo { uint hashTable[]; };
 layout(binding = 5, std430) buffer Pbo { ProbesHeader probeHeader; Probe probe[]; };
 
 void storeGbuffer(const uint probeId, uint sampleId, vec3 diff, vec3 norm, float rayT,
@@ -55,7 +55,7 @@ bool skyRay(const vec3 rayOrigin, const vec3 rayDirection, uint flags, float tMi
 void sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const uint probeId, uint sampleId) {
   // CullBack due to vegetation
   uint  flags = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullBackFacingTrianglesEXT; // | gl_RayFlagsCullNoOpaqueEXT;
-  float tMin  = 0;
+  float tMin  = 1;
 
   rayQueryEXT rayQuery;
   rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
@@ -119,6 +119,15 @@ void gather(const uint probeId, const vec3 origin) {
   }
 
 void trace(const uint probeId) {
+  if(probeId==0) {
+    for(uint i=0; i<samplesCount; ++i) {
+      uint sampleId = (gl_LocalInvocationIndex*samplesCount+i)*2;
+      storeGbuffer(probeId, sampleId+0, vec3(0,0,1), vec3(0), probeRayDistance, false, false, true, true);
+      storeGbuffer(probeId, sampleId+1, vec3(0,0,1), vec3(0), probeRayDistance, false, false, true, true);
+      }
+    return;
+    }
+
   if(gl_LocalInvocationIndex==0)
     atomicAdd(probeHeader.tracedCount, 1); // stat counter
 

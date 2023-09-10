@@ -48,7 +48,7 @@ class Shaders {
 
     // GI
     Tempest::RenderPipeline  probeDbg;
-    Tempest::ComputePipeline probeClear, probeClearHash, probeMakeHash;
+    Tempest::ComputePipeline probeInit, probeClear, probeClearHash, probeMakeHash;
     Tempest::ComputePipeline probeVote, probePrune, probeAlocation;
     Tempest::ComputePipeline probeTrace, probeLighting;
     Tempest::RenderPipeline  probeDraw;

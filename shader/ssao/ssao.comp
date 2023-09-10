@@ -107,7 +107,7 @@ vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, 
   for(uint i0=0; i0<maxStep; ++i0) {
     uint  i      = i0*step + seed;
     float r      = sampleRadius(i,numSamples);
-    vec3  h      = sampleHemisphere(i,numSamples,f0).xzy;
+    vec3  h      = sampleHemisphereCos(i,numSamples,f0).xzy;
 
     vec3  v      = tangent * h;
     vec3  at1    = project(pos0 + v*sphereLen*r);
@@ -124,10 +124,9 @@ vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, 
     bool  isHit  = floor(z*32768.0) < floor(at1.z*32768.0);
 
     float lenQ   = dot(dp,dp);
-    float angW   = h.z;                                   // angle attenuation.
     float distW  = 1.0-min(lenQ/(sphereLen*sphereLen),1); // distance attenuation
     if(isHit)
-      occlusion += angW*distW;
+      occlusion += distW;
     weightAll += distW;
     }
 
@@ -194,7 +193,7 @@ void main() {
       dbg       = i+1;
       prev      = occlusion;
       occ      += calcOcclussion(at0, pos0, f0, i, numIter);
-      occlusion = (occ.x/occ.y)*M_PI;
+      occlusion = (occ.x/occ.y);
       }
 
     if(i==0)

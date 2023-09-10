@@ -222,9 +222,10 @@ void Sky::updateLight(const int64_t now) {
 
 
   const float dirY = sun.dir().y;
-  float dayTint = std::max(dirY+0.2f, 0.f);
-  dayTint = 1.f - std::pow(1.f - dayTint,3.f);
-  dayTint *= 0.1f;
+  // float dayTint = std::max(dirY+0.2f, 0.f);
+  // dayTint = 1.f - std::pow(1.f - dayTint,3.f);
+  // dayTint *= 0.1f;
+  float dayTint = std::max(dirY+0.01f, 0.f) * 0.1f;
 
   const auto ambientNight = groundAlbedo*NightLight*0;
   const auto ambientDay   = groundAlbedo*GSunIntensity*dayTint + ambientNight;
