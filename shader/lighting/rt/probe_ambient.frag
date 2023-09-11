@@ -116,9 +116,7 @@ Probe readProbe(const ivec3 gridPos, const vec3 wpos, out uint id) {
       continue;
       }
 
-    const vec3 dp = wpos - p.pos;
-    if(dot(dp,dp)>probeGridStep*probeGridStep) {
-    // if(ivec3(p.pos/probeGridStep)!=gridPos) {
+    if(!probeIsSame(p.pos, wpos, 0)) {
       probeId = p.pNext;
       continue;
       }
@@ -129,7 +127,7 @@ Probe readProbe(const ivec3 gridPos, const vec3 wpos, out uint id) {
   return mkZeroProbe();
   }
 
-void processProbe(ivec3 gridPos, vec3 wpos, int lod, vec3 pixelPos, vec3 pixelNorm, bool ignoreBad) {
+void processProbe(ivec3 gridPos, vec3 wpos, int lod, vec3 pixelPos, vec3 pixelNorm) {
   const vec3 ldir = wpos-pixelPos;
   if(dot(ldir, pixelNorm)<=0)
     return;
@@ -137,9 +135,6 @@ void processProbe(ivec3 gridPos, vec3 wpos, int lod, vec3 pixelPos, vec3 pixelNo
   uint probeId = 0;
   const Probe p = readProbe(gridPos, wpos, probeId);
   if((p.bits & TRACED_BIT)==0)
-    return;
-
-  if((p.bits & BAD_BIT)!=0 && !ignoreBad)
     return;
 
   vec3 dp = wpos - p.pos;
@@ -157,27 +152,21 @@ void processProbe(ivec3 gridPos, vec3 wpos, int lod, vec3 pixelPos, vec3 pixelNo
 
   float weight = 1;
   // cosine weight from https://advances.realtimerendering.com/s2015/SIGGRAPH_2015_Remedy_Notes.pdf
-  // weight *= max(0.01, dot(normalize(ldir), pixelNorm));
+  weight *= max(0.01, dot(normalize(ldir), pixelNorm));
 
   // wrap weight https://www.jcgt.org/published/0008/02/01/paper-lowres.pdf
-  weight *= max(0.0, dot(normalize(ldir), pixelNorm))*0.5 + 0.5;
+  // weight *= max(0.0, dot(normalize(ldir), pixelNorm))*0.5 + 0.5;
 
   // distnace based weight
-  // weight *= 1.0/(0.001 + dot(ldir,ldir));
-  vec3 dxx = sqrt(abs(ldir));
-  weight *= 1.0/(0.001 + dxx.x);
-  weight *= 1.0/(0.001 + dxx.y);
-  weight *= 1.0/(0.001 + dxx.z);
+  weight *= 1.0/(dot(ldir,ldir) + 0.00001);
   if((p.bits & BAD_BIT)!=0)
-    weight *= 0.1;
+    weight *= 0.00001;
 
   colorSum.rgb += probeReadAmbient(probesLighting, probeId, pixelNorm, p.normal) * weight;
   colorSum.w   += weight;
-  // harmonicR.r += p.hR * weight;
-  // harmonicR.g += weight;
   }
 
-void gather(vec3 pos, vec3 norm, int lod, bool ignoreBad) {
+void gather(vec3 basePos, vec3 pos, vec3 norm, int lod) {
   colorSum = vec4(0);
 
   probeQuery pq;
@@ -185,11 +174,12 @@ void gather(vec3 pos, vec3 norm, int lod, bool ignoreBad) {
   while(probeQueryProceed(pq)) {
     vec3  wpos = probeQueryWorldPos(pq);
     ivec3 gPos = probeQueryGridPos(pq);
-    processProbe(gPos, wpos, lod, pos, norm, ignoreBad);
+    processProbe(gPos, wpos, lod, basePos, norm);
     }
   }
 
 void main() {
+  const float minW = uintBitsToFloat(0x00000008);
   const float z = texelFetch(depth,ivec2(gl_FragCoord.xy),0).x;
   if(z>=1.0)
     discard; // sky
@@ -197,28 +187,28 @@ void main() {
   const vec3 diff = texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0).rgb;
   const vec3 norm = normalize(texelFetch(gbufNormal,ivec2(gl_FragCoord.xy),0).xyz*2.0-vec3(1.0));
 
-  const vec3 pos  = unprojectDepth(z) + norm*probeCageBias;
-  const int  lod  = probeGridComputeLod();
+  const vec3 basePos = unprojectDepth(z);
+  const vec3 pos     = basePos + norm*probeCageBias;
+  const int  lod     = probeGridComputeLod();
 
-  gather(pos, norm, lod, false);
-  if(colorSum.w<=0.000001) {
-    gather(pos, norm, lod, true);
-    }
+  gather(basePos, pos, norm, lod);
 
-  if(colorSum.w<=0.000001) {
+  if(colorSum.w<=minW) {
     // debug
     // colorSum = vec4(vec3(1,0,0)*scene.GSunIntensity,1);
     colorSum.rgb = probeReadAmbient(probesLighting, 0, norm, vec3(0,1,0));
     colorSum.w   = 1;
+    } else {
+    colorSum.rgb = colorSum.rgb/max(colorSum.w,minW);
     }
 
   // const vec3  linear = vec3(1);
   const vec3  linear = textureLinear(diff); //  * Fd_Lambert is accounted in integration
   const float ao     = smoothSsao();
 
-  vec3 color = colorSum.rgb/max(colorSum.w,0.000001);
+  vec3 color = colorSum.rgb;
   color *= linear;
-  color *= (1-ao);
+  // color *= (1-ao);
   // night shift
   color += purkinjeShift(color);
   color *= scene.exposure;

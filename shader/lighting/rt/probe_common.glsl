@@ -105,6 +105,17 @@ int probeGridComputeLod(ivec2 fragCoord, ivec2 screenSize, float z, mat4 viewPro
   return int(ilog);
   }
 
+bool probeIsSame(vec3 ppos, vec3 expectedPos, int lod) {
+  // NOTE: reconstructed position may jitter a little
+  vec3 dp = (ppos - expectedPos);
+  if(dot(dp,dp)>1.0)
+    return false;
+  return true;
+  // const float step = probeGridStep*(1 << lod);
+  // const vec3  dp   = abs(ppos - expectedPos);
+  // return all(lessThan(dp, vec3(step)));
+  }
+
 struct probeQuery {
   int   lod;
   float step;

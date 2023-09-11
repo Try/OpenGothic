@@ -55,7 +55,7 @@ bool skyRay(const vec3 rayOrigin, const vec3 rayDirection, uint flags, float tMi
 void sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const uint probeId, uint sampleId) {
   // CullBack due to vegetation
   uint  flags = gl_RayFlagsSkipAABBEXT | gl_RayFlagsCullBackFacingTrianglesEXT; // | gl_RayFlagsCullNoOpaqueEXT;
-  float tMin  = 1;
+  float tMin  = 0;
 
   rayQueryEXT rayQuery;
   rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
@@ -63,40 +63,40 @@ void sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const uint probe
   rayQueryProceedShadow(rayQuery); // NOTE: fix naming
 
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT) {
-    if(rayDirection.y<-0.75)
+    const bool skybit = true;
+    if(rayDirection.y<-0.75) {
+      const bool badbit = true;
       atomicAdd(badHits, 1); // shoot to ground and hit nothing
-    storeGbuffer(probeId, sampleId, vec3(0,0,1), vec3(0), probeRayDistance, false, false, true, true);
+      storeGbuffer(probeId, sampleId, vec3(0,0,1), vec3(0), probeRayDistance, true, badbit, true, skybit);
+      } else {
+      const bool badbit = false;
+      storeGbuffer(probeId, sampleId, vec3(0,0,1), vec3(0), probeRayDistance, true, badbit, true, skybit);
+      }
     return;
     }
 
   const HitDesc hit    = pullCommitedHitDesc(rayQuery);
 
-  const float   rayT   = rayQueryGetIntersectionTEXT(rayQuery, true);
-  const bool    face   = !(rayQueryGetIntersectionFrontFaceEXT(rayQuery, true)); //NOTE: not working on vegetation
-  const bool    badbit = (rayT<probeBadHitT) || (face && hit.opaque);
-
-  if(badbit) {
-    atomicAdd(badHits, 1);
-    storeGbuffer(probeId, sampleId, vec3(0.1), vec3(0,1,0), rayT, hit.opaque, badbit, false, false);
-    return;
-    }
+  const float rayT   = rayQueryGetIntersectionTEXT(rayQuery, true);
+  const bool  face   = !(rayQueryGetIntersectionFrontFaceEXT(rayQuery, true)); //NOTE: not working on vegetation
+  const bool  badbit = (rayT<probeBadHitT) || (face && hit.opaque);
 
   const bool  skybit = (!hit.opaque && skyRay(rayOrigin,rayDirection,flags,tMin));
 
-  const uint  id    = hit.instanceId;
-  const uvec3 index = pullTrinagleIds(id,hit.primitiveId);
+  const uint  id     = hit.instanceId;
+  const uvec3 index  = pullTrinagleIds(id,hit.primitiveId);
 
-  const vec2  uv0   = pullTexcoord(id,index.x);
-  const vec2  uv1   = pullTexcoord(id,index.y);
-  const vec2  uv2   = pullTexcoord(id,index.z);
+  const vec2  uv0    = pullTexcoord(id,index.x);
+  const vec2  uv1    = pullTexcoord(id,index.y);
+  const vec2  uv2    = pullTexcoord(id,index.z);
 
-  const vec3  nr0   = pullNormal(id,index.x);
-  const vec3  nr1   = pullNormal(id,index.y);
-  const vec3  nr2   = pullNormal(id,index.z);
+  const vec3  nr0    = pullNormal(id,index.x);
+  const vec3  nr1    = pullNormal(id,index.y);
+  const vec3  nr2    = pullNormal(id,index.z);
 
-  const vec3  b     = hit.baryCoord;
-  const vec2  uv    = (b.x*uv0 + b.y*uv1 + b.z*uv2);
-  const vec3  nr    = normalize(b.x*nr0 + b.y*nr1 + b.z*nr2);
+  const vec3  b      = hit.baryCoord;
+  const vec2  uv     = (b.x*uv0 + b.y*uv1 + b.z*uv2);
+  const vec3  nr     = normalize(b.x*nr0 + b.y*nr1 + b.z*nr2);
 
   vec3 diff  = textureLod(sampler2D(textures[nonuniformEXT(id)], smp),uv,0).rgb;
   if(hit.opaque && face)
@@ -133,11 +133,11 @@ void trace(const uint probeId) {
 
   const vec3 origin = probe[probeId].pos;
   for(uint i=0; i<samplesCount; ++i) {
-    uint sampleId = (gl_LocalInvocationIndex*samplesCount+i)*2;
+    uint sampleId = gl_LocalInvocationIndex*samplesCount+i;
     vec3 dir      = sampleHemisphere(sampleId, samplesTotal, 0);
 
-    sampleScene(origin, +dir, probeId, sampleId+0);
-    sampleScene(origin, -dir, probeId, sampleId+1);
+    sampleScene(origin, +dir, probeId, sampleId*2+0);
+    sampleScene(origin, -dir, probeId, sampleId*2+1);
     }
   }
 
@@ -155,7 +155,7 @@ void processProbe(const uint probeId) {
   trace(probeId);
   barrier();
 
-  const bool badbit = (badHits > 16);
+  const bool badbit = (badHits > 6);
   if(laneId==0) {
     probe[probeId].bits = TRACED_BIT | NEW_BIT; // newly computed
     if(badbit) {
