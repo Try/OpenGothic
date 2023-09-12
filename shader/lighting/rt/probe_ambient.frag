@@ -204,8 +204,8 @@ void main() {
     colorSum.rgb = colorSum.rgb/max(colorSum.w,minW);
     }
 
-  const vec3  linear = vec3(1);
-  // const vec3  linear = textureLinear(diff); //  * Fd_Lambert is accounted in integration
+  //const vec3  linear = vec3(1);
+  const vec3  linear = textureLinear(diff); //  * Fd_Lambert is accounted in integration
   const float ao     = smoothSsao();
 
   vec3 color = colorSum.rgb;
@@ -214,7 +214,7 @@ void main() {
   // night shift
   color += purkinjeShift(color);
   color *= scene.exposure;
-  outColor = vec4(color, 0);
+  outColor = vec4(color, 1);
 
   // outColor = vec4(srgbEncode(linear), 0);
   // outColor = vec4(0.001 * vec3(harmonicR.r/max(harmonicR.g, 0.000001)), 0);
