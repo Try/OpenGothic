@@ -73,6 +73,7 @@ vec3 resolveHit(const vec3 rayOrigin, const vec3 rayDirection, float rayT, vec3 
   if(!opaque) {
     // atificial lit on vegetation, as RT can't capture small bright light leaks from the trees
     // dt = dt*0.5 + 0.5;
+    // dt = abs(dt);
     }
 
   const float lambert = max(0, dt); //max(opaque ? 0 : 0.2, dt);
@@ -131,15 +132,15 @@ vec4 processSample(const vec3 rayOrigin, const vec3 rayDirection, uint probeId, 
   const vec4  diff   = texelFetch(gbufferDiff, uv, 0);
   const vec4  nr     = texelFetch(gbufferNorm, uv, 0);
   const float rt     = texelFetch(gbufferRayT, uv, 0).r;
-  const uint  bits   = uint(diff.a*255.0+0.5);  //(opaque ? 0x1 : 0x0) | (badbit ? 0x2 : 0x0);
+  const uint  bits   = uint(diff.a*255.0+0.5);
   const bool  sky    = (bits & 0x4)!=0;
   const bool  badbit = (bits & 0x2)!=0;
 
   if(sky) {
     vec3 hit = resolveMiss(rayOrigin, rayDirection);
-    if(badbit)
-      hit *= 0.001;
-    return vec4(hit, (badbit ? 0 : 1));
+    // if(badbit)
+    //   hit *= 0.001;
+    return vec4(hit, badbit ? 0 : 1);
     }
 
   const bool opaque  = (bits & 0x1)!=0;

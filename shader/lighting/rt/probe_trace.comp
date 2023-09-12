@@ -34,6 +34,9 @@ void storeGbuffer(const uint probeId, uint sampleId, vec3 diff, vec3 norm, float
   const uint  bits = (opaque ? 0x1 : 0x0) | (badbit ? 0x2 : 0x0) | (sky ? 0x4 : 0x0) | (semiSky ? 0x8 : 0x0);
   const float r    = (rayT/probeRayDistance);
 
+  if(badbit)
+    atomicAdd(badHits, 1);
+
   const ivec2 uv   = gbufferCoord(probeId, sampleId);
   imageStore(gbufferDiff, uv, vec4(diff, bits/255.0));
   imageStore(gbufferNorm, uv, vec4(norm, 0));
@@ -64,18 +67,12 @@ void sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const uint probe
 
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT) {
     const bool skybit = true;
-    if(rayDirection.y<-0.75) {
-      const bool badbit = true;
-      atomicAdd(badHits, 1); // shoot to ground and hit nothing
-      storeGbuffer(probeId, sampleId, vec3(0,0,1), vec3(0), probeRayDistance, true, badbit, true, skybit);
-      } else {
-      const bool badbit = false;
-      storeGbuffer(probeId, sampleId, vec3(0,0,1), vec3(0), probeRayDistance, true, badbit, true, skybit);
-      }
+    const bool badbit = (rayDirection.y<-0.9);
+    storeGbuffer(probeId, sampleId, vec3(0,0,1), vec3(0), probeRayDistance, true, badbit, true, skybit);
     return;
     }
 
-  const HitDesc hit    = pullCommitedHitDesc(rayQuery);
+  const HitDesc hit = pullCommitedHitDesc(rayQuery);
 
   const float rayT   = rayQueryGetIntersectionTEXT(rayQuery, true);
   const bool  face   = !(rayQueryGetIntersectionFrontFaceEXT(rayQuery, true)); //NOTE: not working on vegetation
@@ -98,9 +95,7 @@ void sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const uint probe
   const vec2  uv     = (b.x*uv0 + b.y*uv1 + b.z*uv2);
   const vec3  nr     = normalize(b.x*nr0 + b.y*nr1 + b.z*nr2);
 
-  vec3 diff  = textureLod(sampler2D(textures[nonuniformEXT(id)], smp),uv,0).rgb;
-  if(hit.opaque && face)
-    diff = vec3(0.01);
+  const vec3  diff   = textureLod(sampler2D(textures[nonuniformEXT(id)], smp),uv,0).rgb;
 
   storeGbuffer(probeId, sampleId, diff, nr, rayT, hit.opaque, badbit, false, skybit);
   }
@@ -155,7 +150,7 @@ void processProbe(const uint probeId) {
   trace(probeId);
   barrier();
 
-  const bool badbit = (badHits > 6);
+  const bool badbit = (badHits > 16);
   if(laneId==0) {
     probe[probeId].bits = TRACED_BIT | NEW_BIT; // newly computed
     if(badbit) {
