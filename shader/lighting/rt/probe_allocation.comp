@@ -100,9 +100,9 @@ void main() {
   if(z>=0.999995)
     return; // sky
 
-  const vec3 basePos = unprojectDepth(z);
-  const vec3 pos     = basePos + norm*probeCageBias;
   const int  lod     = probeGridComputeLod();
+  const vec3 basePos = unprojectDepth(z);
+  const vec3 pos     = basePos + norm*probeCageBias; //*(1<<lod);
 
   probeQuery pq;
   probeQueryInitialize(pq, pos, lod);

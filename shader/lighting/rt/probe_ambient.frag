@@ -33,8 +33,10 @@ vec4 colorSum  = vec4(0);
 bool err       = false;
 
 vec3 unprojectDepth(const float z) {
+  const ivec2 fragCoord  = ivec2(gl_FragCoord.xy);
   const vec2  screenSize = ivec2(textureSize(depth,0));
-  const vec2  inPos      = vec2(2*gl_FragCoord.xy+ivec2(1,1))/vec2(screenSize)-vec2(1,1);
+
+  const vec2  inPos      = vec2(2*fragCoord+ivec2(1,1))/vec2(screenSize)-vec2(1,1);
   const vec4  pos        = vec4(inPos.xy,z,1);
   const vec4  ret        = scene.viewProjectInv*pos;
   return (ret.xyz/ret.w);
@@ -44,6 +46,7 @@ int probeGridComputeLod() {
   ivec2 fragCoord  = ivec2(gl_FragCoord.xy);
   ivec2 screenSize = textureSize(depth,0);
 
+  // must be exactly same as in allocation !
   const float z = texelFetch(depth,fragCoord,0).x;
   return probeGridComputeLod(fragCoord, screenSize, z, scene.viewProjectInv);
   }
@@ -160,8 +163,8 @@ void processProbe(ivec3 gridPos, vec3 wpos, int lod, vec3 pixelPos, vec3 pixelNo
   // distnace based weight
   weight *= 1.0/(dot(ldir,ldir) + 0.00001);
   if((p.bits & BAD_BIT)!=0) {
-    // weight *= 0.00001;
-    weight = min(weight, 0.00001);
+    weight *= 0.00001;
+    // weight = min(weight, 0.00001);
     }
 
   colorSum.rgb += probeReadAmbient(probesLighting, probeId, pixelNorm, p.normal) * weight;
@@ -182,16 +185,16 @@ void gather(vec3 basePos, vec3 pos, vec3 norm, int lod) {
 
 void main() {
   const float minW = uintBitsToFloat(0x00000008);
-  const float z = texelFetch(depth,ivec2(gl_FragCoord.xy),0).x;
+  const float z    = texelFetch(depth,ivec2(gl_FragCoord.xy),0).x;
   if(z>=1.0)
     discard; // sky
 
   const vec3 diff = texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0).rgb;
   const vec3 norm = normalize(texelFetch(gbufNormal,ivec2(gl_FragCoord.xy),0).xyz*2.0-vec3(1.0));
 
+  const int  lod     = probeGridComputeLod();
   const vec3 basePos = unprojectDepth(z);
   const vec3 pos     = basePos + norm*probeCageBias;
-  const int  lod     = probeGridComputeLod();
 
   gather(basePos, pos, norm, lod);
 
@@ -201,7 +204,7 @@ void main() {
     colorSum.rgb = probeReadAmbient(probesLighting, 0, norm, vec3(0,1,0));
     colorSum.w   = 1;
     } else {
-    colorSum.rgb = colorSum.rgb/max(colorSum.w,minW);
+    colorSum.rgb = colorSum.rgb/max(colorSum.w, minW);
     }
 
   //const vec3  linear = vec3(1);
