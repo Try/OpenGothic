@@ -31,7 +31,10 @@ function(add_shader OUTPUT SOURCE)
   set(OPENGOTHIC_SHADERS      ${OPENGOTHIC_SHADERS}      ${SOURCE_FILE} PARENT_SCOPE)
   set(OPENGOTHIC_SHADERS_SPRV ${OPENGOTHIC_SHADERS_SPRV} ${OUTPUT_FILE} PARENT_SCOPE)
 
-  list(SUBLIST ARGV 2 -1 VARS)
+  list(LENGTH ARGV ARGC)
+  if(ARGC GREATER 2)
+    list(SUBLIST ARGV 2 -1 VARS)
+  endif()
 
   if("${OUTPUT}" MATCHES "\.(mesh)")
     list(APPEND VARS "--target-env" "spirv1.4")
@@ -212,19 +215,20 @@ add_shader(fog3d_lq.frag             sky/fog.frag -S frag -DVOLUMETRIC_LQ)
 add_shader(fog3d_hq.frag             sky/fog.frag -S frag -DVOLUMETRIC_HQ)
 add_shader(fog3d.comp                sky/fog.frag -S comp -DVOLUMETRIC_HQ -DCOMPUTE)
 
-add_shader(fog.frag                  sky/fog.frag "")
+add_shader(fog.frag                  sky/fog.frag)
 
-add_shader(sky.vert                  sky/sky.vert "")
-add_shader(sky.frag                  sky/sky.frag "")
+add_shader(sky.vert                  sky/sky.vert)
+add_shader(sky.frag                  sky/sky.frag)
 
-add_shader(sun.vert                  sky/sun.vert "")
-add_shader(sun.frag                  sky/sun.frag "")
+add_shader(sun.vert                  sky/sun.vert)
+add_shader(sun.frag                  sky/sun.frag)
 
 add_shader(copy.vert                 copy.vert -DHAS_UV)
-add_shader(copy.frag                 copy.frag "")
-add_shader(copy.comp                 copy.comp "")
+add_shader(copy.frag                 copy.frag)
+add_shader(copy.comp                 copy.comp)
+add_shader(copy_img.comp             copy_img.comp)
 
-add_shader(ssao.comp                 ssao/ssao.comp "")
+add_shader(ssao.comp                 ssao/ssao.comp)
 
 add_shader(ssao_compose.vert         copy.vert -DHAS_UV)
 add_shader(ssao_compose.frag         ssao/ssao_compose.frag "")
@@ -235,6 +239,22 @@ add_shader(hiz_pot.comp              hiz/hiz_pot.comp "")
 
 add_shader(hiz_reproject.mesh        hiz/hiz_reproject.mesh "")
 add_shader(hiz_reproject.frag        hiz/hiz_reproject.frag "")
+
+add_shader(probe_dbg.vert            lighting/rt/probe_dbg.vert)
+add_shader(probe_dbg.frag            lighting/rt/probe_dbg.frag)
+
+add_shader(probe_init.comp           lighting/rt/probe_aux.comp        -DINIT)
+add_shader(probe_clear.comp          lighting/rt/probe_aux.comp        -DCLEAR)
+add_shader(probe_clear_hash.comp     lighting/rt/probe_aux.comp        -DCLEAR_HASH)
+add_shader(probe_make_hash.comp      lighting/rt/probe_aux.comp        -DMAKE_HASH)
+add_shader(probe_prune.comp          lighting/rt/probe_aux.comp        -DPRUNE)
+add_shader(probe_vote.comp           lighting/rt/probe_allocation.comp -DVOTE)
+add_shader(probe_allocation.comp     lighting/rt/probe_allocation.comp -DALLOC)
+add_shader(probe_trace.comp          lighting/rt/probe_trace.comp      -DRAY_QUERY -DRAY_QUERY_AT)
+add_shader(probe_lighting.comp       lighting/rt/probe_lighting.comp)
+
+add_shader(probe_ambient.vert        copy.vert)
+add_shader(probe_ambient.frag        lighting/rt/probe_ambient.frag)
 
 add_custom_command(
   OUTPUT     ${HEADER} ${CPP}

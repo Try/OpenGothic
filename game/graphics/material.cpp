@@ -13,9 +13,12 @@ static Tempest::Color toColor(glm::u8vec4 v) {
 Material::Material(const phoenix::material& m, bool enableAlphaTest) {
   tex = Resources::loadTexture(m.texture);
   if(tex==nullptr) {
-    if(!m.texture.empty())
-      tex = Resources::loadTexture("DEFAULT.TGA"); else
+    if(!m.texture.empty()) {
+      tex = Resources::loadTexture("DEFAULT.TGA");
+      } else {
       tex = Resources::loadTexture(toColor(m.color));
+      enableAlphaTest &= (m.color.a!=255);
+      }
     }
 
   loadFrames(m);

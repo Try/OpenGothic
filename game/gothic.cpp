@@ -43,18 +43,24 @@ Gothic::Gothic() {
   showFpsCounter = systemPackIniFile->getI("DEBUG","Show_FPS_Counter");
   hideFocus      = systemPackIniFile->getI("PARAMETERS","HideFocus");
 
-  if(Resources::device().properties().raytracing.rayQuery)
-    opts.doRayQuery = CommandLine::inst().isRayQuery();
-
-  if(hasMeshShader())
-    opts.doMeshShading = CommandLine::inst().isMeshShading();
-
 #ifndef NDEBUG
   setMarvinEnabled(true);
   setFRate(true);
 #else
   setMarvinEnabled(CommandLine::inst().isDevMode());
 #endif
+
+  auto& gpu = Resources::device().properties();
+  if(gpu.raytracing.rayQuery) {
+    opts.doRayQuery = CommandLine::inst().isRayQuery();
+    if(gpu.tex2d.maxSize>=4096 && gpu.hasStorageFormat(R11G11B10UF) && gpu.hasStorageFormat(R16)) {
+      opts.doRtGi = CommandLine::inst().isRtGi();
+      }
+    }
+
+  if(hasMeshShader()) {
+    opts.doMeshShading = CommandLine::inst().isMeshShading();
+    }
 
   wrldDef = CommandLine::inst().wrldDef;
 
@@ -77,7 +83,6 @@ Gothic::Gothic() {
   defaults->set("SKY_OUTDOOR", "zMoonSize",  400);
   defaults->set("SKY_OUTDOOR", "zMoonAlpha", 255);
 
-  auto& gpu = Resources::device().properties();
   defaults->set("RENDERER_D3D", "zFogRadial", 1); // sunshafts
   defaults->set("ENGINE",       "zEnvMappingEnabled", 1); // reflections
   defaults->set("ENGINE",       "zCloudShadowScale", gpu.type==Tempest::DeviceType::Discrete); // ssao

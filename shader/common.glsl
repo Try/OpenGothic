@@ -14,9 +14,7 @@ const float IorAir   = 1.52;       // water /air
 const vec3  WaterAlbedo = vec3(0.8,0.9,1.0);
 
 const vec3  GGroundAlbedo = vec3(0.1);
-
-// devide photo-color by assumed sun intesity. Should be 1/scene.GSunIntensityMax
-const float PhotoLumInv   = 0.2;
+const float Fd_Lambert    = (1.0/M_PI);
 
 float linearDepth(float d, vec3 clipInfo) {
   // z_n * z_f,  z_n - z_f, z_f
@@ -142,6 +140,32 @@ vec3 textureSkyLUT(in sampler2D skyLUT, const vec3 viewPos, vec3 rayDir, vec3 su
   float v  = 0.5 + 0.5*sign(altitudeAngle)*sqrt(abs(altitudeAngle)*2.0/M_PI);
   vec2  uv = vec2(azimuthAngle / (2.0*M_PI), v);
   return textureLod(skyLUT, uv, 0).rgb;
+  }
+
+// Sample i-th point from Hammersley point set of NumSamples points total.
+// See: http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
+vec2 sampleHammersley(uint i, uint numSamples) {
+  uint  bits = bitfieldReverse(i);
+  float vdc  = float(bits) * 2.3283064365386963e-10; // / 0x100000000
+  return vec2(float(i)/float(numSamples), vdc);
+  }
+
+// Uniform sampling
+vec3 sampleHemisphere(uint i, uint numSamples, float offsetAng) {
+  const vec2  xi  = sampleHammersley(i,numSamples);
+  const float u   = 1-xi.x;
+  const float u1p = sqrt(1.0 - u*u);
+  const float a   = M_PI*2.0*xi.y + offsetAng;
+  return vec3(cos(a) * u1p, xi.x, sin(a) * u1p);
+  }
+
+// Cosine sampling
+vec3 sampleHemisphereCos(uint i, uint numSamples, float offsetAng) {
+  const vec2  xi  = sampleHammersley(i,numSamples);
+  const float u   = sqrt(1 - xi.x);
+  const float u1p = sqrt(1 - u*u);
+  const float a   = M_PI*2.0*xi.y + offsetAng;
+  return vec3(cos(a) * u1p, xi.x, sin(a) * u1p);
   }
 
 #endif

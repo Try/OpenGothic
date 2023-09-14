@@ -46,6 +46,9 @@ class Marvin {
       C_SetTime,
 
       C_Insert,
+
+      // opengothic specific
+      C_ToggleGI,
       };
 
     struct Cmd {

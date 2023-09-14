@@ -88,11 +88,11 @@ vec4 forwardShading(vec4 t) {
 #endif
 
 #if defined(FORWARD)
-  color *= diffuseLight();
+  color *= diffuseLight() * Fd_Lambert;
 #endif
 
 #if defined(EMISSIVE)
-  color *= 10.0;
+  color *= 2.0;
 #elif defined(MAT_LINEAR_CLR)
   color *= scene.exposure;
 #else
@@ -238,11 +238,10 @@ void main() {
 #endif
 
 #if defined(MAT_LINEAR_CLR)
-  t.rgb = textureLinear(t.rgb) * PhotoLumInv;
+  t.rgb = textureLinear(t.rgb);
 #endif
 
 #if defined(GBUFFER)
-  // outDiffuse.rgb = vec3(1);
   outDiffuse.rgb = t.rgb;
   outDiffuse.a   = encodeHintBits();
   outNormal      = vec4(shInp.normal*0.5 + vec3(0.5),1.0);

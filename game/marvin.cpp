@@ -126,6 +126,8 @@ Marvin::Marvin() {
     {"toggle camera",              C_ToggleCamera},
     {"toggle inertiatarget",       C_ToggleInertia},
     {"insert %c",                  C_Insert},
+
+    {"toggle gi",                  C_ToggleGI},
     };
   }
 
@@ -352,6 +354,10 @@ bool Marvin::exec(std::string_view v) {
         return false;
       return printVariable(world, ret.argv[0]);
       }
+
+    case C_ToggleGI:
+      Gothic::inst().toggleGi();
+      return true;
     }
 
   return true;

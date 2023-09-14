@@ -47,14 +47,18 @@ void RtScene::addInstance(const Matrix4x4& pos, const AccelerationStructure& bla
 
   RtObjectDesc desc = {};
   desc.instanceId     = bucketId;
-  desc.firstPrimitive = firstPrimitive;
+  desc.firstPrimitive = firstPrimitive & 0x00FFFFFF; // 24 bit for primmitive + 8 for utility
+  if(mat.alpha==Material::Solid)
+    desc.bits |= 0x1;
 
   RtInstance ix;
   ix.mat  = pos;
   ix.id   = uint32_t(build.rtDesc.size());
   ix.blas = &blas;
   if(mat.alpha!=Material::Solid)
-    ix.flags = Tempest::RtInstanceFlags::NonOpaque;
+    ix.flags = RtInstanceFlags::NonOpaque; else
+    ix.flags = RtInstanceFlags::Opaque | RtInstanceFlags::CullDisable;
+  ix.flags = ix.flags | RtInstanceFlags::CullFlip;
 
   if(mat.alpha==Material::Solid && (cat==Landscape /*|| cat==Static*/)) {
     build.staticOpaque.geom  .push_back({mesh.vbo, mesh.ibo, firstIndex, iboLength});
@@ -78,7 +82,7 @@ void RtScene::addInstance(const BuildBlas& ctx, Tempest::AccelerationStructure& 
   Tempest::RtInstance ix;
   ix.mat   = Matrix4x4::mkIdentity();
   ix.id    = uint32_t(build.rtDesc.size());
-  ix.flags = flags;
+  ix.flags = flags | RtInstanceFlags::CullFlip;
   ix.blas  = &blas;
   build.inst.push_back(ix);
 
@@ -90,7 +94,7 @@ void RtScene::buildTlas() {
   device.waitIdle();
   needToUpdate = false;
 
-  addInstance(build.staticOpaque, blasStaticOpaque, Tempest::RtInstanceFlags::Opaque);
+  addInstance(build.staticOpaque, blasStaticOpaque, Tempest::RtInstanceFlags::Opaque | RtInstanceFlags::CullDisable);
   addInstance(build.staticAt, blasStaticAt, Tempest::RtInstanceFlags::NonOpaque);
 
   tex    = std::move(build.tex);

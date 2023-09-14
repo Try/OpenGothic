@@ -4,6 +4,7 @@
 
 #include "lighting/tonemapping.glsl"
 #include "lighting/purkinje_shift.glsl"
+#include "scene.glsl"
 #include "common.glsl"
 
 const int   KERNEL_RADIUS = 1;
@@ -16,13 +17,16 @@ layout(push_constant, std140) uniform PushConstant {
   vec3  clipInfo;
   } push;
 
-layout(binding  = 0) uniform sampler2D gbufDiffuse;
-layout(binding  = 1) uniform sampler2D gbufNormal;
-layout(binding  = 2) uniform sampler2D depth;
-layout(binding  = 3) uniform sampler2D irradiance;
+layout(binding  = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding  = 1) uniform sampler2D gbufDiffuse;
+layout(binding  = 2) uniform sampler2D gbufNormal;
+layout(binding  = 3) uniform sampler2D depth;
+layout(binding  = 4) uniform sampler2D irradiance;
 
 #if defined(SSAO)
-layout(binding  = 4) uniform sampler2D ssao;
+layout(binding  = 5) uniform sampler2D ssao;
 #endif
 
 layout(location = 0) in  vec2 uv;
@@ -30,7 +34,7 @@ layout(location = 0) out vec4 outColor;
 
 float texLinearDepth(vec2 uv) {
   float d = textureLod(depth, uv, 0).x;
-  return linearDepth(d, push.clipInfo);
+  return linearDepth(d, scene.clipInfo);
   }
 
 #if defined(SSAO)
@@ -71,9 +75,9 @@ float smoothSsao() {
 float smoothSsao() { return 0; }
 #endif
 
-vec3 ambient() {
+vec3 skyIrradiance() {
 #if 0
-  return push.ambient;
+  return scene.ambient * scene.sunCl.rgb;
 #else
   vec3 n = texelFetch(gbufNormal, ivec2(gl_FragCoord.xy), 0).rgb;
   n = normalize(n*2.0 - vec3(1.0));
@@ -90,22 +94,29 @@ vec3 ambient() {
   ret += texelFetch(irradiance, ivec2(1,d.y), 0).rgb * n.y;
   ret += texelFetch(irradiance, ivec2(2,d.z), 0).rgb * n.z;
 
-  ret += push.ambient;
-  ret += purkinjeShift(ret); //TODO: use it globally at tonemapping
-
   return ret;
 #endif
   }
 
 void main() {
-  vec3  diff   = texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0).rgb;
-  float occ    = smoothSsao();
+  const vec3  diff = texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0).rgb;
+  const vec3  norm = normalize(texelFetch(gbufNormal,ivec2(gl_FragCoord.xy),0).xyz*2.0-vec3(1.0));
 
-  vec3  linear = textureLinear(diff) * PhotoLumInv;
-  vec3  lcolor = ambient();
+  // const vec3  linear = vec3(1);
+  const vec3  linear = textureLinear(diff); //  * Fd_Lambert is accounted in integration
+  const float ao     = smoothSsao();
 
-  vec3  color  = linear*lcolor;
+  vec3 ambient = scene.ambient * scene.sunCl.rgb;
+  vec3 sky     = skyIrradiance() * 0.7;
+
+  vec3 lcolor  = mix(ambient, sky, norm.y*0.5+0.5); //lcolor*0.5 + push.ambient*0.5;
+
+  vec3 color = lcolor.rgb;
+  color *= linear;
+  color *= (1-ao);
+  // night shift
+  color += purkinjeShift(color); //TODO: use it globally at tonemapping
   color *= push.exposure;
 
-  outColor = vec4(color*(1-occ), 1);
+  outColor = vec4(color, 1);
   }

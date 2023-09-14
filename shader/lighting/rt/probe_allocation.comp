@@ -1,0 +1,118 @@
+#version 450
+
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_GOOGLE_include_directive    : enable
+
+#include "lighting/rt/probe_common.glsl"
+#include "lighting/tonemapping.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(binding = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+
+layout(binding = 1) uniform sampler2D gbufDiffuse;
+layout(binding = 2) uniform sampler2D gbufNormal;
+layout(binding = 3) uniform sampler2D depth;
+layout(binding = 4, std430) buffer          Hbo0 { uint voteTable[]; };
+layout(binding = 5, std430) readonly buffer Hbo  { uint hashTable[]; };
+layout(binding = 6, std430) buffer          Pbo  { ProbesHeader probeHeader; Probe probe[]; };
+layout(binding = 7, std430) buffer          Fbo0 { int cursor; uint list[]; } freeList;
+
+ivec2 screenSize, fragCoord;
+uint  threadId;
+
+vec3 unprojectDepth(const float z) {
+  const vec2  inPos = vec2(2*fragCoord+ivec2(1,1))/vec2(screenSize)-vec2(1,1);
+  const vec4  pos   = vec4(inPos.xy,z,1);
+  const vec4  ret   = scene.viewProjectInv*pos;
+  return (ret.xyz/ret.w);
+  }
+
+int probeGridComputeLod() {
+  const float z = texelFetch(depth,fragCoord,0).x;
+  return probeGridComputeLod(fragCoord, screenSize, z, scene.viewProjectInv);
+  }
+
+uint allocProbe() {
+  int cursor = atomicAdd(freeList.cursor, -1) - 1;
+  if(cursor>=0)
+    return freeList.list[cursor];
+  return atomicAdd(probeHeader.count, 1);
+  }
+
+bool reuseProbe(const uint h, vec3 pos, int lod) {
+  const uint probeId = hashTable[h];
+  if(probeId>=probeHeader.count)
+    return false;
+
+  [[loop]]
+  for(int i=0; i<8; ++i) {
+    Probe p = probe[probeId];
+    if((p.bits & TRACED_BIT)==0)
+      continue;
+    if(!probeIsSame(p.pos, pos, lod))
+      continue;
+    atomicOr(probe[probeId].bits, REUSE_BIT);
+    return true;
+    }
+
+  return false;
+  }
+
+void processProbe(ivec3 gridPos, vec3 pos, int lod, vec3 pixelPos, vec3 pixelNorm) {
+  const uint h = probeGridPosHash(gridPos) % hashTable.length();
+#if defined(VOTE)
+  if(reuseProbe(h, pos, lod))
+    return;
+  atomicMin(voteTable[h], threadId);
+#elif defined(ALLOC)
+  if(voteTable[h] != threadId)
+    return;
+  voteTable[h] = 0xFFFFFFFF;
+
+  const uint cursor = allocProbe();
+  if(cursor>=probe.length())
+    return;
+  Probe p;
+  p.pos         = pos;
+  p.pNext       = 0xFFFFFFFF;
+  p.normal      = pixelNorm;
+  p.bits        = 0;
+  probe[cursor] = p;
+#endif
+  }
+
+void main() {
+  fragCoord  = ivec2(gl_GlobalInvocationID.xy);
+  screenSize = ivec2(textureSize(depth,0));
+  threadId   = fragCoord.x + fragCoord.y*screenSize.x;
+
+  const bool valid = all(lessThan(fragCoord, screenSize));
+  if(!valid)
+    return;
+
+  vec3  norm = normalize(texelFetch(gbufNormal,fragCoord,0).xyz*2.0-vec3(1.0));
+  float z    = texelFetch(depth,fragCoord,0).x;
+  if(z>=0.999995)
+    return; // sky
+
+  const int  lod     = probeGridComputeLod();
+  const vec3 basePos = unprojectDepth(z);
+  const vec3 pos     = basePos + norm*probeCageBias; //*(1<<lod);
+
+  probeQuery pq;
+  probeQueryInitialize(pq, pos, lod);
+  while(probeQueryProceed(pq)) {
+    vec3 wpos = probeQueryWorldPos(pq);
+    vec3 dir  = (wpos-basePos);
+    if(dot(dir,norm) < -0.1)
+      continue;
+
+    ivec3 gPos = probeQueryGridPos(pq);
+    processProbe(gPos, wpos, lod, basePos, norm);
+    }
+  }

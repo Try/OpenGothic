@@ -22,7 +22,8 @@ class RtScene {
 
     struct RtObjectDesc {
       uint32_t instanceId;
-      uint32_t firstPrimitive;
+      uint32_t firstPrimitive : 24;
+      uint32_t bits: 8;
       };
 
     void notifyTlas(const Material& m, RtScene::Category cat) const;

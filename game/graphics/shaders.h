@@ -19,6 +19,7 @@ class Shaders {
     Tempest::RenderPipeline  shadowResolve, shadowResolveSh, shadowResolveRq;
 
     Tempest::ComputePipeline copyBuf;
+    Tempest::ComputePipeline copyImg;
     Tempest::RenderPipeline  copy;
     Tempest::RenderPipeline  stash;
 
@@ -44,6 +45,13 @@ class Shaders {
     // HiZ
     Tempest::ComputePipeline hiZPot, hiZMip;
     Tempest::RenderPipeline  hiZReproj;
+
+    // GI
+    Tempest::RenderPipeline  probeDbg;
+    Tempest::ComputePipeline probeInit, probeClear, probeClearHash, probeMakeHash;
+    Tempest::ComputePipeline probeVote, probePrune, probeAlocation;
+    Tempest::ComputePipeline probeTrace, probeLighting;
+    Tempest::RenderPipeline  probeDraw;
 
     enum PipelineType: uint8_t {
       T_Forward,

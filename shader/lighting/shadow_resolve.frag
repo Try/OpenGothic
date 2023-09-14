@@ -2,15 +2,6 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : enable
 
-#if defined(RAY_QUERY)
-#extension GL_EXT_ray_query : enable
-#endif
-
-#if defined(RAY_QUERY_AT)
-#extension GL_EXT_nonuniform_qualifier : enable
-#extension GL_EXT_ray_flags_primitive_culling : enable
-#endif
-
 #define LWC 1
 
 #include "lighting/rt/rt_common.glsl"
@@ -66,7 +57,7 @@ float calcShadow(vec4 pos4, float bias) { return 1.0; }
 #if defined(RAY_QUERY)
 bool rayTest(vec3 pos, vec3  rayDirection, float tMin, float tMax, out float rayT) {
 #if defined(RAY_QUERY_AT)
-  uint flags = gl_RayFlagsCullFrontFacingTrianglesEXT;
+  uint flags = gl_RayFlagsCullBackFacingTrianglesEXT;
 #else
   uint flags = gl_RayFlagsOpaqueEXT;
 #endif
@@ -171,11 +162,11 @@ void main(void) {
   */
 #endif
 
-  const vec3 lcolor = scene.sunCl.rgb * scene.GSunIntensity * light * shadow;
-  const vec3 linear = textureLinear(diff.rgb) * PhotoLumInv;
+  const vec3 lcolor = scene.sunCl.rgb * scene.GSunIntensity * sunlightMul * Fd_Lambert * light * shadow;
+  const vec3 linear = textureLinear(diff.rgb);
 
   vec3 color = linear*lcolor*scene.exposure;
-  outColor = vec4(color, 1.0);
+  outColor = vec4(color, 0.0);
 
   // outColor = vec4(vec3(lcolor), diff.a); // debug
   // if(diff.a>0)

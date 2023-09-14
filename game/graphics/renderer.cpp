@@ -58,6 +58,7 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
   Log::i("Depth format = ", Tempest::formatName(zBufferFormat), " Shadow format = ", Tempest::formatName(shadowFormat));
 
   Gothic::inst().onSettingsChanged.bind(this,&Renderer::initSettings);
+  Gothic::inst().toggleGi.bind(this, &Renderer::toggleGi);
   initSettings();
   }
 
@@ -164,6 +165,48 @@ void Renderer::resetSwapchain() {
   tonemapping.pso     = &Shaders::inst().tonemapping;
   tonemapping.uboTone = device.descriptors(*tonemapping.pso);
 
+  if(settings.giEnabled) {
+    gi.uboDbg         = DescriptorSet();
+
+    gi.probeInitPso   = &Shaders::inst().probeInit;
+
+    gi.probeClearPso  = &Shaders::inst().probeClear;
+    gi.probeClearHPso = &Shaders::inst().probeClearHash;
+    gi.probeMakeHPso  = &Shaders::inst().probeMakeHash;
+    gi.uboClear       = device.descriptors(*gi.probeClearPso);
+
+    gi.probeVotePso   = &Shaders::inst().probeVote;
+    gi.probeAllocPso  = &Shaders::inst().probeAlocation;
+    gi.probePrunePso  = &Shaders::inst().probePrune;
+    gi.uboProbes      = device.descriptors(*gi.probeAllocPso);
+
+    gi.uboZeroIrr     = device.descriptors(Shaders::inst().copyImg);
+    gi.uboPrevIrr     = device.descriptors(Shaders::inst().copyImg);
+
+    gi.probeTracePso  = &Shaders::inst().probeTrace;
+    gi.uboTrace       = device.descriptors(*gi.probeTracePso);
+
+    gi.probeLightPso  = &Shaders::inst().probeLighting;
+    gi.uboLight       = device.descriptors(*gi.probeLightPso);
+
+    gi.probeDrawPso   = &Shaders::inst().probeDraw;
+    gi.uboDraw        = device.descriptors(*gi.probeDrawPso);
+
+    const uint32_t maxProbes = gi.maxProbes;
+    if(gi.hashTable.isEmpty()) {
+      gi.hashTable          = device.ssbo(nullptr, 2'097'152*sizeof(uint32_t)); // 8MB
+      gi.voteTable          = device.ssbo(nullptr, gi.hashTable.byteSize());
+      gi.probes             = device.ssbo(nullptr, maxProbes*32 + 64);        // probes and header
+      gi.freeList           = device.ssbo(nullptr, maxProbes*sizeof(uint32_t) + sizeof(int32_t));
+      gi.probesGBuffDiff    = device.image2d(TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16); // 16x16 tile
+      gi.probesGBuffNorm    = device.image2d(TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16);
+      gi.probesGBuffRayT    = device.image2d(TextureFormat::R16,   gi.atlasDim*16, gi.atlasDim*16);
+      gi.probesLighting     = device.image2d(TextureFormat::R11G11B10UF, gi.atlasDim*3, gi.atlasDim*2);
+      gi.probesLightingPrev = device.image2d(TextureFormat::R11G11B10UF, uint32_t(gi.probesLighting.w()), uint32_t(gi.probesLighting.h()));
+      gi.fisrtFrame          = true;
+      }
+    }
+
   prepareUniforms();
   prepareRtUniforms();
   }
@@ -172,9 +215,12 @@ void Renderer::initSettings() {
   settings.zEnvMappingEnabled = Gothic::inst().settingsGetI("ENGINE","zEnvMappingEnabled")!=0;
   settings.zCloudShadowScale  = Gothic::inst().settingsGetI("ENGINE","zCloudShadowScale") !=0;
 
-  settings.zVidBrightness = Gothic::inst().settingsGetF("VIDEO","zVidBrightness");
-  settings.zVidContrast   = Gothic::inst().settingsGetF("VIDEO","zVidContrast");
-  settings.zVidGamma      = Gothic::inst().settingsGetF("VIDEO","zVidGamma");
+  settings.zVidBrightness     = Gothic::inst().settingsGetF("VIDEO","zVidBrightness");
+  settings.zVidContrast       = Gothic::inst().settingsGetF("VIDEO","zVidContrast");
+  settings.zVidGamma          = Gothic::inst().settingsGetF("VIDEO","zVidGamma");
+
+  if(!Gothic::options().doRtGi)
+    settings.giEnabled = false;
 
   auto prevCompose = water.reflectionsPso;
   if(settings.zCloudShadowScale)
@@ -196,7 +242,19 @@ void Renderer::initSettings() {
     }
   }
 
+void Renderer::toggleGi() {
+  if(!Gothic::options().doRtGi)
+    return;
+  settings.giEnabled = !settings.giEnabled;
+  gi.fisrtFrame = true;
+
+  auto& device = Resources::device();
+  device.waitIdle();
+  prepareUniforms();
+  }
+
 void Renderer::onWorldChanged() {
+  gi.fisrtFrame = true;
   prepareUniforms();
   }
 
@@ -235,12 +293,13 @@ void Renderer::prepareUniforms() {
   ssao.uboSsao.set(3, zbuffer,     smpN);
   ssao.uboSsao.set(4, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
 
-  ssao.uboCompose.set(0, gbufDiffuse,  smpN);
-  ssao.uboCompose.set(1, gbufNormal,   smpN);
-  ssao.uboCompose.set(2, zbuffer,      smpN);
-  ssao.uboCompose.set(3, irradiance.lut);
+  ssao.uboCompose.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  ssao.uboCompose.set(1, gbufDiffuse,  smpN);
+  ssao.uboCompose.set(2, gbufNormal,   smpN);
+  ssao.uboCompose.set(3, zbuffer,      smpN);
+  ssao.uboCompose.set(4, irradiance.lut);
   if(settings.zCloudShadowScale)
-    ssao.uboCompose.set(4, ssao.ssaoBuf, smpN);
+    ssao.uboCompose.set(5, ssao.ssaoBuf, smpN);
 
   tonemapping.uboTone.set(0, sceneLinear);
 
@@ -285,6 +344,58 @@ void Renderer::prepareUniforms() {
     water.ubo.set(10,*sky.cloudsNight().lay[1],Sampler::bilinear());
   }
 
+  if(settings.giEnabled) {
+    auto smpN = Sampler::nearest();
+    smpN.setClamping(ClampMode::ClampToEdge);
+
+    gi.uboClear.set(0, gi.voteTable);
+    gi.uboClear.set(1, gi.hashTable);
+    gi.uboClear.set(2, gi.probes);
+    gi.uboClear.set(3, gi.freeList);
+
+    gi.uboProbes.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    gi.uboProbes.set(1, gbufDiffuse, Sampler::nearest());
+    gi.uboProbes.set(2, gbufNormal,  Sampler::nearest());
+    gi.uboProbes.set(3, zbuffer,     Sampler::nearest());
+    gi.uboProbes.set(4, gi.voteTable);
+    gi.uboProbes.set(5, gi.hashTable);
+    gi.uboProbes.set(6, gi.probes);
+    gi.uboProbes.set(7, gi.freeList);
+
+    gi.uboTrace.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    gi.uboTrace.set(1, gi.probesGBuffDiff);
+    gi.uboTrace.set(2, gi.probesGBuffNorm);
+    gi.uboTrace.set(3, gi.probesGBuffRayT);
+    gi.uboTrace.set(4, gi.hashTable);
+    gi.uboTrace.set(5, gi.probes);
+
+    gi.uboPrevIrr.set(0, gi.probesLighting);
+    gi.uboZeroIrr.set(1, Resources::fallbackBlack());
+
+    gi.uboPrevIrr.set(0, gi.probesLighting);
+    gi.uboPrevIrr.set(1, gi.probesLightingPrev);
+
+    gi.uboLight.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    gi.uboLight.set(1, gi.probesLighting);
+    gi.uboLight.set(2, gi.probesGBuffDiff, Sampler::nearest());
+    gi.uboLight.set(3, gi.probesGBuffNorm, Sampler::nearest());
+    gi.uboLight.set(4, gi.probesGBuffRayT, Sampler::nearest());
+    gi.uboLight.set(5, wview->sky().skyLut(), Sampler::bilinear());
+    gi.uboLight.set(6, shadowMap[1], Sampler::bilinear());
+    gi.uboLight.set(7, gi.probesLightingPrev, Sampler::nearest());
+    gi.uboLight.set(8, gi.hashTable);
+    gi.uboLight.set(9, gi.probes);
+
+    gi.uboDraw.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    gi.uboDraw.set(1, gi.probesLighting);
+    gi.uboDraw.set(2, gbufDiffuse,  Sampler::nearest());
+    gi.uboDraw.set(3, gbufNormal,   Sampler::nearest());
+    gi.uboDraw.set(4, zbuffer,      Sampler::nearest());
+    gi.uboDraw.set(5, ssao.ssaoBuf, smpN);
+    gi.uboDraw.set(6, gi.hashTable);
+    gi.uboDraw.set(7, gi.probes);
+    }
+
   const Texture2d* sh[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
     if(!shadowMap[i].isEmpty()) {
@@ -313,6 +424,15 @@ void Renderer::prepareRtUniforms() {
     shadow.ubo.set(9, scene.rtScene.vbo);
     shadow.ubo.set(10,scene.rtScene.ibo);
     shadow.ubo.set(11,scene.rtScene.rtDesc);
+    }
+
+  if(!gi.uboTrace.isEmpty()) {
+    gi.uboTrace.set(6, scene.rtScene.tlas);
+    gi.uboTrace.set(7, Sampler::bilinear());
+    gi.uboTrace.set(8, scene.rtScene.tex);
+    gi.uboTrace.set(9, scene.rtScene.vbo);
+    gi.uboTrace.set(10,scene.rtScene.ibo);
+    gi.uboTrace.set(11,scene.rtScene.rtDesc);
     }
   }
 
@@ -352,10 +472,10 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
     return;
 
   std::vector<const Texture2d*> tex;
-  tex.push_back(&textureCast(hiz.hiZ));
+  //tex.push_back(&textureCast(hiz.hiZ));
   //tex.push_back(&textureCast(hiz.smProj));
   //tex.push_back(&textureCast(hiz.hiZSm1));
-  //tex.push_back(&textureCast(shadowMap[1]));
+  tex.push_back(&textureCast(shadowMap[1]));
   //tex.push_back(&textureCast(shadowMap[0]));
 
   int left = 10;
@@ -417,7 +537,7 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
 
   prepareSSAO(cmd);
   prepareFog (cmd,fId,*wview);
-  prepareIrradiance(cmd,fId);
+  prepareGi(cmd,fId);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Discard, Tempest::Preserve}}, {zbuffer, Tempest::Readonly});
   drawShadowResolve(cmd,fId,*wview);
@@ -434,6 +554,8 @@ void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>
   wview->drawSunMoon(cmd,fId);
   cmd.setDebugMarker("Translucent");
   wview->drawTranslucent(cmd,fId);
+
+  drawProbesDbg(cmd, fId);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   drawReflections(cmd,fId);
@@ -625,7 +747,100 @@ void Renderer::prepareIrradiance(Tempest::Encoder<CommandBuffer>& cmd, uint8_t f
   cmd.dispatch(1);
   }
 
+void Renderer::prepareGi(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  if(!settings.giEnabled) {
+    prepareIrradiance(cmd,fId);
+    return;
+    }
+
+  if(!settings.zCloudShadowScale)
+    return;
+
+  const size_t maxHash = gi.hashTable.byteSize()/sizeof(uint32_t);
+
+  cmd.setFramebuffer({});
+
+  if(gi.fisrtFrame) {
+    cmd.setDebugMarker("GI-Init");
+    cmd.setUniforms(*gi.probeInitPso, gi.uboClear);
+    cmd.dispatch(1);
+
+    cmd.setUniforms(*gi.probeClearHPso, gi.uboClear);
+    cmd.dispatchThreads(maxHash);
+
+    cmd.setUniforms(Shaders::inst().copyImg, gi.uboZeroIrr);
+    cmd.dispatchThreads(gi.probesLighting.size());
+    gi.fisrtFrame = false;
+    }
+
+  static bool alloc = true;
+  cmd.setDebugMarker("GI-Alloc");
+  cmd.setUniforms(*gi.probeClearPso, gi.uboClear);
+  cmd.dispatchThreads(maxHash);
+
+  if(alloc) {
+    cmd.setUniforms(*gi.probeVotePso, gi.uboProbes);
+    cmd.dispatchThreads(sceneDepth.size());
+
+    cmd.setUniforms(*gi.probePrunePso, gi.uboClear);
+    cmd.dispatchThreads(gi.maxProbes);
+
+    cmd.setUniforms(*gi.probeAllocPso, gi.uboProbes);
+    cmd.dispatchThreads(sceneDepth.size());
+    }
+
+  cmd.setDebugMarker("GI-Trace");
+  cmd.setUniforms(*gi.probeTracePso, gi.uboTrace);
+  cmd.dispatch(1024); // dispath indirect? :(
+
+  cmd.setDebugMarker("GI-HashMap");
+  cmd.setUniforms(*gi.probeClearHPso, gi.uboClear);
+  cmd.dispatchThreads(maxHash);
+  cmd.setUniforms(*gi.probeMakeHPso, gi.uboClear);
+  cmd.dispatchThreads(gi.maxProbes);
+
+  cmd.setDebugMarker("GI-Lighting");
+  cmd.setUniforms(Shaders::inst().copyImg, gi.uboPrevIrr);
+  cmd.dispatchThreads(gi.probesLighting.size());
+
+  cmd.setUniforms(*gi.probeLightPso, gi.uboLight);
+  cmd.dispatch(1024);
+  }
+
+void Renderer::drawProbesDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  if(!settings.giEnabled)
+    return;
+
+  static bool enable = false;
+  if(!enable)
+    return;
+
+  auto& device = Resources::device();
+  auto& pso    = Shaders::inst().probeDbg;
+
+  if(auto wview=Gothic::inst().worldView()) {
+    if(gi.uboDbg.isEmpty()) {
+      gi.uboDbg = device.descriptors(pso);
+      gi.uboDbg.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+      gi.uboDbg.set(1, gi.probesLighting);
+      gi.uboDbg.set(2, gi.probes);
+      gi.uboDbg.set(3, gi.hashTable);
+      }
+    }
+
+  cmd.setDebugMarker("GI-dbg");
+  cmd.setUniforms(pso, gi.uboDbg);
+  cmd.draw(36, 0, gi.maxProbes);
+  }
+
 void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {
+  if(settings.giEnabled && settings.zCloudShadowScale) {
+    cmd.setDebugMarker("AmbientLight");
+    cmd.setUniforms(*gi.probeDrawPso, gi.uboDraw);
+    cmd.draw(Resources::fsqVbo());
+    return;
+    }
+
   struct Push {
     Vec3      ambient;
     float     exposure = 1;

@@ -80,21 +80,6 @@ float floatConstruct(uint m) {
   return f - 1.0;                        // Range [0:1]
   }
 
-// Sample i-th point from Hammersley point set of NumSamples points total.
-// See: http://holger.dammertz.org/stuff/notes_HammersleyOnHemisphere.html
-vec2 sampleHammersley(uint i, uint numSamples) {
-  uint bits = bitfieldReverse(i);
-  float vdc = float(bits) * 2.3283064365386963e-10; // / 0x100000000
-  return vec2(float(i)/float(numSamples), vdc);
-  }
-
-vec3 sampleHemisphere(uint i, uint numSamples, float offsetAng) {
-  const vec2  xi  = sampleHammersley(i,numSamples);
-  const float u1p = sqrt(max(0.0, 1.0 - xi.y*xi.y));
-  const float a   = M_PI*2.0*xi.x + offsetAng;
-  return vec3(cos(a) * u1p, sin(a) * u1p, xi.y);
-  }
-
 vec3 inverse(vec3 pos) {
   vec4 ret = mvpInv*vec4(pos,1.0);
   return (ret.xyz/ret.w);
@@ -122,7 +107,7 @@ vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, 
   for(uint i0=0; i0<maxStep; ++i0) {
     uint  i      = i0*step + seed;
     float r      = sampleRadius(i,numSamples);
-    vec3  h      = sampleHemisphere(i,numSamples,f0);
+    vec3  h      = sampleHemisphereCos(i,numSamples,f0).xzy;
 
     vec3  v      = tangent * h;
     vec3  at1    = project(pos0 + v*sphereLen*r);
@@ -139,10 +124,9 @@ vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, 
     bool  isHit  = floor(z*32768.0) < floor(at1.z*32768.0);
 
     float lenQ   = dot(dp,dp);
-    float angW   = h.z;                                   // angle attenuation.
     float distW  = 1.0-min(lenQ/(sphereLen*sphereLen),1); // distance attenuation
     if(isHit)
-      occlusion += angW*distW;
+      occlusion += distW;
     weightAll += distW;
     }
 
@@ -209,7 +193,7 @@ void main() {
       dbg       = i+1;
       prev      = occlusion;
       occ      += calcOcclussion(at0, pos0, f0, i, numIter);
-      occlusion = (occ.x/occ.y)*M_PI;
+      occlusion = (occ.x/occ.y);
       }
 
     if(i==0)
@@ -221,6 +205,6 @@ void main() {
     }
 
   if(valid)
-    imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(occlusion));
+    imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(2.0*occlusion));
   // imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(float(dbg+1)/255.0));
   }

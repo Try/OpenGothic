@@ -80,6 +80,7 @@ Shaders::Shaders() {
   shadowAt.load(device,"shadow_at",false,meshlets);
 
   copyBuf = computeShader("copy.comp.sprv");
+  copyImg = computeShader("copy_img.comp.sprv");
   copy    = postEffect("copy");
 
   stash = postEffect("stash");
@@ -172,6 +173,38 @@ Shaders::Shaders() {
     sh = GothicShader::get("hiz_reproject.frag.sprv");
     auto fs = device.shader(sh.data,sh.len);
     hiZReproj = device.pipeline(state,Shader(),ms,fs);
+    }
+
+  if(Gothic::options().doRayQuery) {
+    RenderState state;
+    state.setCullFaceMode(RenderState::CullMode::NoCull);
+    state.setZTestMode   (RenderState::ZTestMode::Less);
+
+    auto sh = GothicShader::get("probe_dbg.vert.sprv");
+    auto vs = device.shader(sh.data,sh.len);
+    sh = GothicShader::get("probe_dbg.frag.sprv");
+    auto fs = device.shader(sh.data,sh.len);
+    probeDbg = device.pipeline(Triangles,state,vs,fs);
+
+    probeInit      = computeShader("probe_init.comp.sprv");
+    probeClear     = computeShader("probe_clear.comp.sprv");
+    probeClearHash = computeShader("probe_clear_hash.comp.sprv");
+    probeMakeHash  = computeShader("probe_make_hash.comp.sprv");
+    probeVote      = computeShader("probe_vote.comp.sprv");
+    probePrune     = computeShader("probe_prune.comp.sprv");
+    probeAlocation = computeShader("probe_allocation.comp.sprv");
+    probeTrace     = computeShader("probe_trace.comp.sprv");
+    probeLighting  = computeShader("probe_lighting.comp.sprv");
+
+    state.setBlendSource  (RenderState::BlendMode::One);
+    state.setBlendDest    (RenderState::BlendMode::SrcAlpha);  // for debugging
+    state.setZTestMode    (RenderState::ZTestMode::Always);
+    state.setZWriteEnabled(false);
+    sh = GothicShader::get("probe_ambient.vert.sprv");
+    vs = device.shader(sh.data,sh.len);
+    sh = GothicShader::get("probe_ambient.frag.sprv");
+    fs = device.shader(sh.data,sh.len);
+    probeDraw = device.pipeline(Triangles,state,vs,fs);
     }
 
   if(meshlets) {
@@ -427,7 +460,7 @@ RenderPipeline Shaders::ambientLightShader(std::string_view name) {
   RenderState state;
   state.setCullFaceMode (RenderState::CullMode::Front);
   state.setBlendSource  (RenderState::BlendMode::One);
-  state.setBlendDest    (RenderState::BlendMode::One);
+  state.setBlendDest    (RenderState::BlendMode::SrcAlpha); // debug
   state.setZTestMode    (RenderState::ZTestMode::NoEqual);
   state.setZWriteEnabled(false);
 

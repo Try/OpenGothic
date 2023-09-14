@@ -42,6 +42,7 @@ class Gothic final {
 
     struct Options {
       bool doRayQuery    = false;
+      bool doRtGi        = false;
       bool doMeshShading = false;
       };
 
@@ -108,6 +109,8 @@ class Gothic final {
 
     bool         doClock() const { return showTime; }
     void         setClock(bool t) { showTime = t; }
+
+    Tempest::Signal<void()> toggleGi;
 
     LoadState    checkLoading() const;
     bool         finishLoading();

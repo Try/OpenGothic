@@ -159,5 +159,6 @@ Rendering distance is not customizable.
 | `-g1`                  | assume a Gothic 1 installation                                   |
 | `-g2`                  | assume a Gothic 2 installation                                   |
 | `-rt <boolean>`        | explicitly enable or disable ray-query                           |
+| `-gi <boolean>`        | explicitly enable or disable ray-traced global illumination      |
 | `-ms <boolean>`        | explicitly enable or disable meshlets                            |
 | `-window`              | windowed debugging mode (not to be used for playing)             |

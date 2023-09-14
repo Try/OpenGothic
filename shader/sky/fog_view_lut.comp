@@ -39,12 +39,12 @@ float calcShadow(vec3 shPos1) {
   //shPos1.y = max(0,shPos1.y);
   vec4  lay1 = shadowSample(textureSm1,shPos1.xy);
   float v1   = shadowResolve(lay1,shPos1.z);
-  if(abs(shPos1.x)<1.0 && abs(shPos1.y)<1.0)
-    return v1;
-  return 1.0;
+  return v1;
   }
 
 float shadowFactor(vec4 shPos) {
+  if(abs(shPos.x)>=shPos.w && abs(shPos.y)>=shPos.w)
+    return 1;
   return calcShadow(shPos.xyz/shPos.w);
   }
 

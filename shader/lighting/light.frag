@@ -2,15 +2,6 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive    : enable
 
-#if defined(RAY_QUERY)
-#extension GL_EXT_ray_query : enable
-#endif
-
-#if defined(RAY_QUERY_AT)
-#extension GL_EXT_nonuniform_qualifier : enable
-#extension GL_EXT_ray_flags_primitive_culling : enable
-#endif
-
 #include "lighting/rt/rt_common.glsl"
 #include "lighting/tonemapping.glsl"
 #include "common.glsl"
@@ -96,9 +87,9 @@ void main(void) {
   //outColor     = vec4(d.rgb*color*vec3(light),0.0);
 
   const vec3 d      = texelFetch(diffuse, ivec2(gl_FragCoord.xy), 0).xyz;
-  const vec3 linear = textureLinear(d.rgb) * PhotoLumInv;
+  const vec3 linear = textureLinear(d.rgb);
 
-  vec3 color = linear*color*light;
+  vec3 color = linear*color*Fd_Lambert*light*0.2;
   //color *= scene.exposure;
 
   outColor = vec4(color,0.0);

@@ -1,0 +1,115 @@
+#version 450
+
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_GOOGLE_include_directive    : enable
+
+#include "lighting/rt/probe_common.glsl"
+#include "lighting/tonemapping.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 64) in;
+
+layout(binding = 0, std430) buffer Hbo0 { uint voteTable[]; };
+layout(binding = 1, std430) buffer Hbo  { uint hashTable[]; };
+layout(binding = 2, std430) buffer Pbo  { ProbesHeader probeHeader; Probe probe[]; };
+layout(binding = 3, std430) buffer Fbo0 { int cursor; uint list[]; } freeList;
+
+void hashmapInsert(const uint probeId) {
+  const vec3 gridPos = probe[probeId].pos/probeGridStep;
+  const uint h       = probeGridPosHash(ivec3(gridPos)) % hashTable.length();
+
+  uint pNext = atomicExchange(hashTable[h], probeId);
+  probe[probeId].pNext = pNext;
+  }
+
+void main_init() {
+  const uint threadID = gl_GlobalInvocationID.x;
+
+  if(threadID==0) {
+    probeHeader.count       = 1; // probe zero is clear sky
+    probeHeader.iterator    = 0;
+    probeHeader.iterator2   = 0;
+    probeHeader.tracedCount = 0;
+    freeList.cursor         = 0;
+
+    Probe p;
+    p.pos    = vec3(0);
+    p.pNext  = 0xFFFFFFFF;
+    p.normal = vec3(0,1,0);
+    p.bits   = 0;
+    probe[0] = p;
+    }
+  }
+
+void main_clear() {
+  const uint threadID = gl_GlobalInvocationID.x;
+
+  if(threadID<voteTable.length()) {
+    voteTable[threadID] = 0xFFFFFFFF;
+    }
+
+  if(threadID==0) {
+    probeHeader.count       = min(probeHeader.count, probe.length());
+    probeHeader.iterator    = 0;
+    probeHeader.iterator2   = 0;
+    probeHeader.tracedCount = 0;
+    freeList.cursor         = 0;
+    }
+  }
+
+void main_clrHash() {
+  const uint threadID = gl_GlobalInvocationID.x;
+
+  if(threadID<hashTable.length()) {
+    hashTable[threadID] = 0xFFFFFFFF;
+    }
+  }
+
+void main_prune() {
+  const uint probeId = gl_GlobalInvocationID.x;
+  if(probeId>=probeHeader.count)
+    return;
+
+  if(probeId==0)
+    return; // sky
+
+  probe[probeId].pNext = 0xFFFFFFFF;
+  if((probe[probeId].bits & REUSE_BIT)!=0) {
+    probe[probeId].bits &= ~(REUSE_BIT | UNUSED_BIT);
+    return;
+    }
+
+  probe[probeId].bits |= UNUSED_BIT;
+  const uint cursor = atomicAdd(freeList.cursor, 1);
+  freeList.list[cursor] = probeId;
+  }
+
+void main_mkHash() {
+  const uint probeId = gl_GlobalInvocationID.x;
+  if(probeId>=probeHeader.count)
+    return;
+
+  const bool traced = ((probe[probeId].bits & TRACED_BIT)!=0);
+  const bool skip   = ((probe[probeId].bits & UNUSED_BIT)!=0);
+
+  if(skip)
+    return;
+
+  if(traced && probeId!=0)
+    hashmapInsert(probeId);
+  }
+
+void main() {
+#if defined(INIT)
+  main_init();
+#elif defined(CLEAR)
+  main_clear();
+#elif defined(CLEAR_HASH)
+  main_clrHash();
+#elif defined(MAKE_HASH)
+  main_mkHash();
+#elif defined(PRUNE)
+  main_prune();
+#endif
+  }
