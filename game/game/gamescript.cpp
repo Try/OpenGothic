@@ -1865,7 +1865,7 @@ bool GameScript::npc_wasinstate(std::shared_ptr<phoenix::c_npc> npcRef, int stat
 
 int GameScript::npc_getdisttowp(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view wpname) {
   auto  npc = findNpc(npcRef);
-  auto* wp  = world().findPoint(wpname);
+  auto* wp  = world().findPoint(wpname, false);
 
   if(npc!=nullptr && wp!=nullptr){
     float ret = std::sqrt(npc->qDistTo(wp));
