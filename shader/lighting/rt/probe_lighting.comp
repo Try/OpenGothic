@@ -162,7 +162,7 @@ vec4 processSample(const vec3 rayOrigin, const vec3 rayDirection, uint probeId, 
   hit += albedo*bounce2;
   if(semiSky) {
     // avoid pitch-black lighting in forrest
-    hit = (hit*0.8 + resolveMiss(rayOrigin, rayDirection)*0.2);
+    hit = (hit*0.65 + resolveMiss(rayOrigin, rayDirection)*0.35);
     //hit = vec3(1,0,0)*scene.GSunIntensity;
     }
 
