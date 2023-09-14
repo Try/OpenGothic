@@ -120,7 +120,7 @@ vec3 resolveSecondBounce(vec3 pos, vec3 norm, uint selfProbeId) {
 
   // probeId = selfProbeId;
   // return vec3(0.01,0,0)*scene.GSunIntensity;
-  return scene.ambient;
+  return scene.ambient * scene.sunCl.rgb;
   // return resolveMiss(pos, -norm);
   // return vec3(0);
   }

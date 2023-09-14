@@ -207,13 +207,13 @@ void main() {
     colorSum.rgb = colorSum.rgb/max(colorSum.w, minW);
     }
 
-  //const vec3  linear = vec3(1);
+  // const vec3  linear = vec3(1);
   const vec3  linear = textureLinear(diff); //  * Fd_Lambert is accounted in integration
   const float ao     = smoothSsao();
 
   vec3 color = colorSum.rgb;
   color *= linear;
-  // color *= (1-ao);
+  color *= (1-ao);
   // night shift
   color += purkinjeShift(color);
   color *= scene.exposure;

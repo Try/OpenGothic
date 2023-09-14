@@ -25,6 +25,18 @@ void storeSample(vec3 dir, vec3 val) {
     }
   }
 
+vec3 resolveMiss(const vec3 rayOrigin, const vec3 rayDirection) {
+  // PERF: need to preload sky lut early in shader
+  const vec3 lcolor  = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), rayDirection, scene.sunDir) * scene.GSunIntensity;
+  const vec3 ambient = scene.ambient; // no proper multi-bounce yet
+  const vec3 atmo    = vec3(0.03) * scene.sunCl.rgb * scene.GSunIntensity; // clouds-Lut?
+
+  vec3 color = vec3(0);
+  color += lcolor;
+  color += atmo;
+  return color;
+  }
+
 void gather() {
   const uint smpCount = 8;
 
@@ -32,12 +44,10 @@ void gather() {
     vec3 dir = sampleHemisphere(gl_LocalInvocationIndex*smpCount+i, gl_WorkGroupSize.x*smpCount, 0);
 
     vec3 sky = vec3(0);
-    sky  = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), +dir, scene.sunDir);
-    sky *= scene.GSunIntensity;
+    sky = resolveMiss(vec3(0), +dir);
     storeSample(+dir, sky);
 
-    sky  = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), -dir, scene.sunDir);
-    sky *= scene.GSunIntensity;
+    sky = resolveMiss(vec3(0), -dir);
     storeSample(-dir, sky);
     }
   }

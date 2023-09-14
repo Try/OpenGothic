@@ -293,12 +293,13 @@ void Renderer::prepareUniforms() {
   ssao.uboSsao.set(3, zbuffer,     smpN);
   ssao.uboSsao.set(4, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
 
-  ssao.uboCompose.set(0, gbufDiffuse,  smpN);
-  ssao.uboCompose.set(1, gbufNormal,   smpN);
-  ssao.uboCompose.set(2, zbuffer,      smpN);
-  ssao.uboCompose.set(3, irradiance.lut);
+  ssao.uboCompose.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  ssao.uboCompose.set(1, gbufDiffuse,  smpN);
+  ssao.uboCompose.set(2, gbufNormal,   smpN);
+  ssao.uboCompose.set(3, zbuffer,      smpN);
+  ssao.uboCompose.set(4, irradiance.lut);
   if(settings.zCloudShadowScale)
-    ssao.uboCompose.set(4, ssao.ssaoBuf, smpN);
+    ssao.uboCompose.set(5, ssao.ssaoBuf, smpN);
 
   tonemapping.uboTone.set(0, sceneLinear);
 
