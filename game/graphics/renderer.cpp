@@ -748,13 +748,10 @@ void Renderer::prepareIrradiance(Tempest::Encoder<CommandBuffer>& cmd, uint8_t f
   }
 
 void Renderer::prepareGi(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  if(!settings.giEnabled) {
+  if(!settings.giEnabled || !settings.zCloudShadowScale) {
     prepareIrradiance(cmd,fId);
     return;
     }
-
-  if(!settings.zCloudShadowScale)
-    return;
 
   const size_t maxHash = gi.hashTable.byteSize()/sizeof(uint32_t);
 
