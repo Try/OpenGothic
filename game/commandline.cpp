@@ -60,8 +60,11 @@ CommandLine::CommandLine(int argc, const char** argv) {
     else if(arg=="-g1") {
       forceG1 = true;
       }
-    else if(arg=="-g2") {
+    else if(arg=="-g2c") {
       forceG2 = true;
+      }
+    else if(arg=="-g2") {
+      forceG2NR = true;
       }
     else if(arg=="-dx12") {
       graphics = GraphicBackend::DirectX12;

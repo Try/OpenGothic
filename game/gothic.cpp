@@ -713,13 +713,20 @@ void Gothic::detectGothicVersion() {
     vinfo.game = 1; else
     vinfo.game = 2;
 
-  if(CommandLine::inst().doForceG1())
-    vinfo.game = 1;
-  else if(CommandLine::inst().doForceG2())
-    vinfo.game = 2;
-
   if(vinfo.game==2) {
     vinfo.patch = baseIniFile->getI("GAME","PATCHVERSION");
+    }
+
+  if(CommandLine::inst().doForceG1()) {
+    vinfo.game = 1;
+    }
+  else if(CommandLine::inst().doForceG2()) {
+    vinfo.game  = 2;
+    vinfo.patch = 0;
+    }
+  else if(CommandLine::inst().doForceG2NR()) {
+    vinfo.game  = 2;
+    vinfo.patch = 5;
     }
   }
 
