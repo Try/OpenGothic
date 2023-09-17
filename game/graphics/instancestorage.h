@@ -27,7 +27,7 @@ class InstanceStorage {
         ~Id();
 
         const size_t   size() const     { return rgn.asize;           }
-        const uint32_t offsetId() const { return uint32_t(rgn.begin)/sizeof(Tempest::Matrix4x4); }
+        const uint32_t offsetId() const { return uint32_t(rgn.begin/sizeof(Tempest::Matrix4x4)); }
         void           set(const Tempest::Matrix4x4* anim);
         void           set(const Tempest::Matrix4x4& obj, size_t offset);
 
