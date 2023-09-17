@@ -115,6 +115,7 @@ InstanceStorage::Id InstanceStorage::alloc(BufferHeap heap, const size_t size) {
   for(size_t i=0; i<h.rgn.size(); ++i) {
     if(h.rgn[i].size==nsize) {
       auto ret = h.rgn[i];
+      ret.asize = size;
       h.rgn.erase(h.rgn.begin()+intptr_t(i));
       return Id(h,ret);
       }
