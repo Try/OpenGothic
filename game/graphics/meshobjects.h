@@ -80,7 +80,7 @@ class MeshObjects final {
         std::unique_ptr<Item[]> sub;
         size_t                  subCount=0;
 
-        std::unique_ptr<MatrixStorage::Id> anim;
+        std::unique_ptr<InstanceStorage::Id> anim;
 
         const ProtoMesh*        proto   =nullptr;
         const Skeleton*         skeleton=nullptr;

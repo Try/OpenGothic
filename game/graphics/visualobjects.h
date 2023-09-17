@@ -23,11 +23,11 @@ class VisualObjects final {
                             const Bounds& bbox, ObjectsBucket::Type bucket);
     ObjectsBucket::Item get(const AnimMesh& mesh, const Material& mat,
                             size_t iboOff, size_t iboLen,
-                            const MatrixStorage::Id& anim);
+                            const InstanceStorage::Id& anim);
     ObjectsBucket::Item get(const Material& mat);
 
-    MatrixStorage::Id   getMatrixes(Tempest::BufferHeap heap, size_t boneCnt);
-    auto                matrixSsbo (Tempest::BufferHeap heap, uint8_t fId) const -> const Tempest::StorageBuffer&;
+    InstanceStorage::Id alloc(Tempest::BufferHeap heap, size_t size);
+    auto                instanceSsbo(Tempest::BufferHeap heap, uint8_t fId) const -> const Tempest::StorageBuffer&;
 
     void recycle(Tempest::DescriptorSet&& del);
 
@@ -54,7 +54,7 @@ class VisualObjects final {
 
     const SceneGlobals&                         globals;
     VisibilityGroup                             visGroup;
-    MatrixStorage                               matrix;
+    InstanceStorage                               matrix;
 
     std::vector<std::unique_ptr<ObjectsBucket>> buckets;
     std::vector<ObjectsBucket*>                 index;

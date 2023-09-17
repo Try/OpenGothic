@@ -12,17 +12,6 @@
 
 using namespace Tempest;
 
-static uint32_t nextPot(uint32_t v) {
-  v--;
-  v |= v >> 1;
-  v |= v >> 2;
-  v |= v >> 4;
-  v |= v >> 8;
-  v |= v >> 16;
-  v++;
-  return v;
-  }
-
 static Matrix4x4 dummyMatrix() {
   auto mat = Matrix4x4::mkIdentity();
   mat.set(0,0, 0.f);
@@ -319,7 +308,7 @@ void ObjectsBucket::implFree(const size_t objId) {
 
   if(valSz==0) {
     owner.resetIndex();
-    objPositions = MatrixStorage::Id();
+    objPositions = InstanceStorage::Id();
     } else {
     objPositions.set(dummyMatrix(),objId);
     }
@@ -401,7 +390,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v, const Material& mat, const Buck
   }
 
 void ObjectsBucket::uboSetSkeleton(Descriptors& v, uint8_t fId) {
-  auto& ssbo = owner.matrixSsbo(ssboHeap(),fId);
+  auto& ssbo = owner.instanceSsbo(ssboHeap(),fId);
   if(ssbo.byteSize()==0 || objType==Type::Landscape || objType==Type::LandscapeShadow || objType==Type::Pfx)
     return;
 
@@ -523,7 +512,7 @@ size_t ObjectsBucket::alloc(const StaticMesh& mesh, size_t iboOffset, size_t ibo
   }
 
 size_t ObjectsBucket::alloc(const AnimMesh& mesh, size_t iboOffset, size_t iboLen,
-                            const MatrixStorage::Id& anim) {
+                            const InstanceStorage::Id& anim) {
   Object* v = &implAlloc(mesh.bbox,mat);
   v->iboOffset  = iboOffset;
   v->iboLength  = iboLen;
@@ -795,10 +784,10 @@ void ObjectsBucket::reallocObjPositions() {
         break;
         }
 
-    auto sz   = nextPot(uint32_t(valLen));
     auto heap = ssboHeap();
-    if(objPositions.size()!=sz || heap!=objPositions.heap()) {
-      objPositions = owner.getMatrixes(heap, sz);
+    auto size = valLen*sizeof(Matrix4x4);
+    if(objPositions.size()!=size || heap!=objPositions.heap()) {
+      objPositions = owner.alloc(heap, size);
       for(size_t i=0; i<valLen; ++i)
         objPositions.set(val[i].pos,i);
       }

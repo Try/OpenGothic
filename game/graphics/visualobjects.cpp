@@ -52,7 +52,7 @@ ObjectsBucket::Item VisualObjects::get(const StaticMesh& mesh, const Material& m
 
 ObjectsBucket::Item VisualObjects::get(const AnimMesh &mesh, const Material& mat,
                                        size_t iboOff, size_t iboLen,
-                                       const MatrixStorage::Id& anim) {
+                                       const InstanceStorage::Id& anim) {
   if(mat.tex==nullptr) {
     Tempest::Log::e("no texture?!");
     return ObjectsBucket::Item();
@@ -72,11 +72,11 @@ ObjectsBucket::Item VisualObjects::get(const Material& mat) {
   return ObjectsBucket::Item(bucket,id);
   }
 
-MatrixStorage::Id VisualObjects::getMatrixes(BufferHeap heap, size_t boneCnt) {
-  return matrix.alloc(heap, boneCnt);
+InstanceStorage::Id VisualObjects::alloc(BufferHeap heap, size_t size) {
+  return matrix.alloc(heap, size);
   }
 
-const Tempest::StorageBuffer& VisualObjects::matrixSsbo(Tempest::BufferHeap heap, uint8_t fId) const {
+const Tempest::StorageBuffer& VisualObjects::instanceSsbo(Tempest::BufferHeap heap, uint8_t fId) const {
   return matrix.ssbo(heap, fId);
   }
 

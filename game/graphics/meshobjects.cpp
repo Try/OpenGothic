@@ -153,7 +153,7 @@ MeshObjects::Mesh::Mesh(MeshObjects& owner, const ProtoMesh& mesh,
     bonesCount = std::max(bonesCount,mesh.skined[i].bonesCount);
 
   if(bonesCount>0)
-    anim.reset(new MatrixStorage::Id(owner.parent.getMatrixes(Tempest::BufferHeap::Upload, bonesCount)));
+    anim.reset(new InstanceStorage::Id(owner.parent.alloc(Tempest::BufferHeap::Upload, bonesCount*sizeof(Tempest::Matrix4x4))));
 
   for(size_t i=0; i<mesh.skined.size(); ++i) {
     auto& skin = mesh.skined[i];

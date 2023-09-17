@@ -9,7 +9,7 @@
 #include "material.h"
 #include "resources.h"
 #include "sceneglobals.h"
-#include "matrixstorage.h"
+#include "instancestorage.h"
 #include "graphics/mesh/submesh/staticmesh.h"
 #include "graphics/mesh/submesh/animmesh.h"
 #include "graphics/dynamic/visibilitygroup.h"
@@ -106,7 +106,7 @@ class ObjectsBucket {
     size_t                    alloc(const StaticMesh& mesh, size_t iboOffset, size_t iboLen, const Bounds& bounds,
                                     const Material& mat);
     size_t                    alloc(const AnimMesh& mesh, size_t iboOffset, size_t iboLen,
-                                    const MatrixStorage::Id& anim);
+                                    const InstanceStorage::Id& anim);
     size_t                    alloc(const Bounds& bounds);
     void                      free(const size_t objId);
 
@@ -197,7 +197,7 @@ class ObjectsBucket {
       float                                 windIntensity = 0;
       uint64_t                              timeShift=0;
 
-      const MatrixStorage::Id*              skiningAni = nullptr;
+      const InstanceStorage::Id*            skiningAni = nullptr;
       MorphAnim                             morphAnim[Resources::MAX_MORPH_LAYERS];
       const Tempest::AccelerationStructure* blas = nullptr;
 
@@ -254,7 +254,7 @@ class ObjectsBucket {
 
     Object                    val[CAPACITY];
     size_t                    valSz = 0;
-    MatrixStorage::Id         objPositions;
+    InstanceStorage::Id       objPositions;
 
     bool                      useMeshlets         = false;
     bool                      textureInShadowPass = false;

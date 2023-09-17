@@ -1,39 +1,55 @@
-#include "matrixstorage.h"
+#include "instancestorage.h"
 
 #include <cstdint>
 
-#include "graphics/mesh/pose.h"
+static uint32_t nextPot(uint32_t v) {
+  v--;
+  v |= v >> 1;
+  v |= v >> 2;
+  v |= v >> 4;
+  v |= v >> 8;
+  v |= v >> 16;
+  v++;
+  return v;
+  }
+
+static uint32_t alignAs(uint32_t sz, uint32_t alignment) {
+  return ((sz+alignment-1)/alignment)*alignment;
+  }
 
 using namespace Tempest;
 
-MatrixStorage::Id::Id(Id&& other) noexcept
+InstanceStorage::Id::Id(Id&& other) noexcept
   :heapPtr(other.heapPtr), rgn(other.rgn) {
   other.heapPtr = nullptr;
   }
 
-MatrixStorage::Id& MatrixStorage::Id::operator =(Id&& other) noexcept {
+InstanceStorage::Id& InstanceStorage::Id::operator =(Id&& other) noexcept {
   std::swap(heapPtr, other.heapPtr);
   std::swap(rgn,     other.rgn);
   return *this;
   }
 
-MatrixStorage::Id::~Id() {
+InstanceStorage::Id::~Id() {
   if(heapPtr!=nullptr)
     heapPtr->owner->free(*heapPtr, rgn);
   }
 
-void MatrixStorage::Id::set(const Tempest::Matrix4x4* mat) {
+void InstanceStorage::Id::set(const Tempest::Matrix4x4* mat) {
   if(heapPtr!=nullptr) {
-    std::memcpy(heapPtr->data.data()+rgn.begin, mat, rgn.size*sizeof(Tempest::Matrix4x4));
+    auto data = reinterpret_cast<Matrix4x4*>(heapPtr->data.data() + rgn.begin);
+    std::memcpy(data, mat, rgn.asize);
     for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i)
       heapPtr->durty[i].store(true);
     }
   }
 
-void MatrixStorage::Id::set(const Tempest::Matrix4x4& obj, size_t offset) {
+void InstanceStorage::Id::set(const Tempest::Matrix4x4& obj, size_t offset) {
   if(heapPtr==nullptr)
     return;
-  heapPtr->data[rgn.begin+offset] = obj;
+
+  auto data = reinterpret_cast<Matrix4x4*>(heapPtr->data.data() + rgn.begin);
+  data[offset] = obj;
 
   if(heapPtr==&heapPtr->owner->upload)
     return;
@@ -41,33 +57,33 @@ void MatrixStorage::Id::set(const Tempest::Matrix4x4& obj, size_t offset) {
     heapPtr->durty[i].store(true);
   }
 
-const StorageBuffer& MatrixStorage::Id::ssbo(uint8_t fId) const {
+const StorageBuffer& InstanceStorage::Id::ssbo(uint8_t fId) const {
   if(heapPtr!=nullptr)
     return heapPtr->gpu[fId];
   static StorageBuffer ssbo;
   return ssbo;
   }
 
-BufferHeap MatrixStorage::Id::heap() const {
+BufferHeap InstanceStorage::Id::heap() const {
   if(heapPtr!=nullptr)
     return heapPtr==&heapPtr->owner->device ? BufferHeap::Device : BufferHeap::Upload;
   return BufferHeap::Upload;
   }
 
 
-MatrixStorage::MatrixStorage() {
-  upload.data.reserve(2048);
-  upload.data.resize(1);
-  upload.data[0].identity();
+InstanceStorage::InstanceStorage() {
+  upload.data.reserve(131072);
+  upload.data.resize(sizeof(Matrix4x4));
+  reinterpret_cast<Matrix4x4*>(upload.data.data())->identity();
   upload.owner = this;
 
-  device.data.reserve(2048);
-  device.data.resize(1);
-  device.data[0].identity();
+  device.data.reserve(131072);
+  device.data.resize(sizeof(Matrix4x4));
+  reinterpret_cast<Matrix4x4*>(device.data.data())->identity();
   device.owner = this;
   }
 
-bool MatrixStorage::commit(uint8_t fId) {
+bool InstanceStorage::commit(uint8_t fId) {
   bool ret = commit(upload,fId);
   if(device.durty[fId].load()) {
     ret |= commit(device,fId);
@@ -76,9 +92,9 @@ bool MatrixStorage::commit(uint8_t fId) {
   return ret;
   }
 
-bool MatrixStorage::commit(Heap& heap, uint8_t fId) {
+bool InstanceStorage::commit(Heap& heap, uint8_t fId) {
   auto&  obj = heap.gpu[fId];
-  size_t sz  = heap.data.size() * sizeof(Tempest::Matrix4x4);
+  size_t sz  = heap.data.size();
   if(obj.byteSize()==sz) {
     obj.update(heap.data);
     return false;
@@ -89,13 +105,15 @@ bool MatrixStorage::commit(Heap& heap, uint8_t fId) {
   return true;
   }
 
-MatrixStorage::Id MatrixStorage::alloc(BufferHeap heap, size_t nbones) {
-  if(nbones==0)
+InstanceStorage::Id InstanceStorage::alloc(BufferHeap heap, const size_t size) {
+  if(size==0)
     return Id(upload,Range());
+
+  const auto nsize = alignAs(nextPot(uint32_t(size)), alignment);
 
   auto& h = (heap==BufferHeap::Upload ? upload : device);
   for(size_t i=0; i<h.rgn.size(); ++i) {
-    if(h.rgn[i].size==nbones) {
+    if(h.rgn[i].size==nsize) {
       auto ret = h.rgn[i];
       h.rgn.erase(h.rgn.begin()+intptr_t(i));
       return Id(h,ret);
@@ -103,34 +121,36 @@ MatrixStorage::Id MatrixStorage::alloc(BufferHeap heap, size_t nbones) {
     }
   size_t retId = size_t(-1);
   for(size_t i=0; i<h.rgn.size(); ++i) {
-    if(h.rgn[i].size>nbones && (retId==size_t(-1) || h.rgn[i].size<h.rgn[retId].size)) {
+    if(h.rgn[i].size>nsize && (retId==size_t(-1) || h.rgn[i].size<h.rgn[retId].size)) {
       retId = i;
       }
     }
   if(retId!=size_t(-1)) {
     Range ret = h.rgn[retId];
-    ret.size = nbones;
-    h.rgn[retId].begin += nbones;
-    h.rgn[retId].size  -= nbones;
+    ret.size  = nsize;
+    ret.asize = size;
+    h.rgn[retId].begin += nsize;
+    h.rgn[retId].size  -= nsize;
     return Id(h,ret);
     }
   Range r;
   r.begin = h.data.size();
-  r.size  = nbones;
-  h.data.resize(h.data.size()+r.size);
+  r.size  = nsize;
+  r.asize = size;
+  h.data.resize(h.data.size()+nsize);
   return Id(h,r);
   }
 
-const Tempest::StorageBuffer& MatrixStorage::ssbo(Tempest::BufferHeap heap, uint8_t fId) const {
+const Tempest::StorageBuffer& InstanceStorage::ssbo(Tempest::BufferHeap heap, uint8_t fId) const {
   if(heap==BufferHeap::Upload)
     return upload.gpu[fId];
   return device.gpu[fId];
   }
 
-void MatrixStorage::free(Heap& heap, const Range& r) {
+void InstanceStorage::free(Heap& heap, const Range& r) {
   for(auto& i:heap.rgn) {
     if(i.begin+i.size==r.begin) {
-      i.size+=r.size;
+      i.size  += r.size;
       return;
       }
     if(r.begin+r.size==i.begin) {
