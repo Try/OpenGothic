@@ -240,7 +240,6 @@ class ObjectsBucket {
     virtual const Material&   material(size_t i) const;
     std::pair<uint32_t,uint32_t> meshSlice(size_t i) const;
 
-    Tempest::BufferHeap       ssboHeap() const;
     static Type               sanitizeType(const Type t, const Material& mat, const StaticMesh* st);
 
     const Type                objType          = Type::Landscape;

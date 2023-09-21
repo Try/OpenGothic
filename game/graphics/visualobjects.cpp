@@ -72,12 +72,12 @@ ObjectsBucket::Item VisualObjects::get(const Material& mat) {
   return ObjectsBucket::Item(bucket,id);
   }
 
-InstanceStorage::Id VisualObjects::alloc(BufferHeap heap, size_t size) {
-  return matrix.alloc(heap, size);
+InstanceStorage::Id VisualObjects::alloc(size_t size) {
+  return instanceMem.alloc(size);
   }
 
-const Tempest::StorageBuffer& VisualObjects::instanceSsbo(Tempest::BufferHeap heap, uint8_t fId) const {
-  return matrix.ssbo(heap, fId);
+const Tempest::StorageBuffer& VisualObjects::instanceSsbo() const {
+  return instanceMem.ssbo();
   }
 
 void VisualObjects::prepareUniforms() {
@@ -86,14 +86,9 @@ void VisualObjects::prepareUniforms() {
   }
 
 void VisualObjects::preFrameUpdate(uint8_t fId) {
-  recycledId = fId;
-  recycled[fId].clear();
-
-  //mkTlas(fId);
   mkIndex();
   for(auto& c:buckets)
     c->preFrameUpdate(fId);
-  commitUbo(fId);
   }
 
 void VisualObjects::visibilityPass(const Frustrum fr[]) {
@@ -148,12 +143,6 @@ void VisualObjects::resetIndex() {
 
 void VisualObjects::notifyTlas(const Material& m, RtScene::Category cat) {
   globals.rtScene.notifyTlas(m,cat);
-  }
-
-void VisualObjects::recycle(Tempest::DescriptorSet&& del) {
-  if(del.isEmpty())
-    return;
-  recycled[recycledId].emplace_back(std::move(del));
   }
 
 void VisualObjects::mkIndex() {
@@ -225,8 +214,8 @@ void VisualObjects::mkIndex() {
   */
   }
 
-void VisualObjects::commitUbo(uint8_t fId) {
-  bool sk = matrix.commit(fId);
+void VisualObjects::prepareGlobals(Encoder<CommandBuffer>& cmd, uint8_t fId) {
+  bool sk = instanceMem.commit(cmd, fId);
   if(!sk)
     return;
   for(auto& c:buckets)

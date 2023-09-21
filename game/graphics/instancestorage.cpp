@@ -1,6 +1,11 @@
 #include "instancestorage.h"
+#include "shaders.h"
 
+#include <Tempest/Log>
 #include <cstdint>
+#include <atomic>
+
+using namespace Tempest;
 
 static uint32_t nextPot(uint32_t v) {
   v--;
@@ -17,139 +22,178 @@ static uint32_t alignAs(uint32_t sz, uint32_t alignment) {
   return ((sz+alignment-1)/alignment)*alignment;
   }
 
+static void store(uint32_t& v, uint32_t x) {
+  //std::atomic_store(&v, x);
+  static_assert(sizeof(std::atomic<uint32_t>)==sizeof(uint32_t));
+  reinterpret_cast<std::atomic<uint32_t>&>(v).store(x);
+  }
+
 using namespace Tempest;
 
 InstanceStorage::Id::Id(Id&& other) noexcept
-  :heapPtr(other.heapPtr), rgn(other.rgn) {
-  other.heapPtr = nullptr;
+  :owner(other.owner), rgn(other.rgn) {
+  other.owner = nullptr;
   }
 
-InstanceStorage::Id& InstanceStorage::Id::operator =(Id&& other) noexcept {
-  std::swap(heapPtr, other.heapPtr);
-  std::swap(rgn,     other.rgn);
+InstanceStorage::Id& InstanceStorage::Id::operator = (Id&& other) noexcept {
+  std::swap(owner, other.owner);
+  std::swap(rgn,   other.rgn);
   return *this;
   }
 
 InstanceStorage::Id::~Id() {
-  if(heapPtr!=nullptr)
-    heapPtr->owner->free(*heapPtr, rgn);
+  if(owner!=nullptr)
+    owner->free(rgn);
   }
 
 void InstanceStorage::Id::set(const Tempest::Matrix4x4* mat) {
-  if(heapPtr!=nullptr) {
-    auto data = reinterpret_cast<Matrix4x4*>(heapPtr->data.data() + rgn.begin);
-    std::memcpy(data, mat, rgn.asize);
-    for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i)
-      heapPtr->durty[i].store(true);
-    }
+  if(owner==nullptr)
+    return;
+
+  auto data = reinterpret_cast<Matrix4x4*>(owner->dataCpu.data() + rgn.begin);
+  std::memcpy(data, mat, rgn.asize);
+
+  for(size_t i=0; i<rgn.asize; i+=64)
+    store(owner->durty[(rgn.begin+i)/64], 1);
   }
 
 void InstanceStorage::Id::set(const Tempest::Matrix4x4& obj, size_t offset) {
-  if(heapPtr==nullptr)
+  if(owner==nullptr)
     return;
 
-  auto data = reinterpret_cast<Matrix4x4*>(heapPtr->data.data() + rgn.begin);
+  auto data = reinterpret_cast<Matrix4x4*>(owner->dataCpu.data() + rgn.begin);
+  if(data[offset] == obj)
+    return;
   data[offset] = obj;
-
-  if(heapPtr==&heapPtr->owner->upload)
-    return;
-  for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i)
-    heapPtr->durty[i].store(true);
-  }
-
-const StorageBuffer& InstanceStorage::Id::ssbo(uint8_t fId) const {
-  if(heapPtr!=nullptr)
-    return heapPtr->gpu[fId];
-  static StorageBuffer ssbo;
-  return ssbo;
-  }
-
-BufferHeap InstanceStorage::Id::heap() const {
-  if(heapPtr!=nullptr)
-    return heapPtr==&heapPtr->owner->device ? BufferHeap::Device : BufferHeap::Upload;
-  return BufferHeap::Upload;
+  store(owner->durty[(rgn.begin+offset*sizeof(Matrix4x4))/64], 1);
   }
 
 
 InstanceStorage::InstanceStorage() {
-  upload.data.reserve(131072);
-  upload.data.resize(sizeof(Matrix4x4));
-  reinterpret_cast<Matrix4x4*>(upload.data.data())->identity();
-  upload.owner = this;
+  dataCpu.reserve(131072);
+  dataCpu.resize(sizeof(Matrix4x4));
+  reinterpret_cast<Matrix4x4*>(dataCpu.data())->identity();
 
-  device.data.reserve(131072);
-  device.data.resize(sizeof(Matrix4x4));
-  reinterpret_cast<Matrix4x4*>(device.data.data())->identity();
-  device.owner = this;
-  }
+  patchCpu.reserve(4*1024*1024);
+  patchBlock.reserve(1024);
 
-bool InstanceStorage::commit(uint8_t fId) {
-  bool ret = commit(upload,fId);
-  if(device.durty[fId].load()) {
-    ret |= commit(device,fId);
-    device.durty[fId].store(false);
-    }
-  return ret;
-  }
-
-bool InstanceStorage::commit(Heap& heap, uint8_t fId) {
-  auto&  obj = heap.gpu[fId];
-  size_t sz  = heap.data.size();
-  if(obj.byteSize()==sz) {
-    obj.update(heap.data);
-    return false;
-    }
-  auto  bh     = (&heap==&upload ? BufferHeap::Upload : BufferHeap::Device);
   auto& device = Resources::device();
-  obj = device.ssbo(bh,heap.data.data(),sz);
-  return true;
+  for(auto& d:desc)
+    d = device.descriptors(Shaders::inst().path);
   }
 
-InstanceStorage::Id InstanceStorage::alloc(BufferHeap heap, const size_t size) {
+bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
+  auto& device = Resources::device();
+
+  if(dataGpu.byteSize()!=dataCpu.size()) {
+    Resources::recycle(std::move(dataGpu));
+    dataGpu = device.ssbo(BufferHeap::Device,dataCpu);
+    std::memset(durty.data(), 0, durty.size()*sizeof(uint32_t));
+    for(auto& i:resizeBit)
+      i = true;
+    resizeBit[fId] = false;
+    return true;
+    }
+
+  const bool resized = resizeBit[fId];
+  resizeBit[fId] = false;
+
+  patchBlock.clear();
+  size_t payloadSize = 0;
+  for(size_t i=0; i<durty.size(); ++i) {
+    if(durty[i]==0)
+      continue;
+    auto begin = i;
+    while(i<durty.size()) {
+      if(durty[i]==0)
+        break;
+      durty[i] = 0;
+      ++i;
+      }
+
+    Path p = {};
+    p.src  = uint32_t(payloadSize);
+    p.dst  = uint32_t(begin*64u);
+    p.size = uint32_t((i-begin)*64u);
+    patchBlock.push_back(p);
+    payloadSize += p.size;
+    }
+
+  if(patchBlock.size()==0)
+    return resized;
+
+  auto& path = patchGpu[fId];
+  const size_t headerSize = patchBlock.size()*sizeof(Path);
+  if(path.byteSize() < headerSize + payloadSize) {
+    path = device.ssbo(BufferHeap::Upload, nullptr, headerSize + payloadSize);
+    }
+
+  patchCpu.resize(headerSize + payloadSize);
+  for(auto& i:patchBlock) {
+    i.src += uint32_t(headerSize);
+    std::memcpy(patchCpu.data()+i.src, dataCpu.data() + i.dst, i.size);
+
+    // uint's in shader
+    i.src  /= 4;
+    i.dst  /= 4;
+    i.size /= 4;
+    }
+  std::memcpy(patchCpu.data(), patchBlock.data(), headerSize);
+  path.update(patchCpu);
+
+  auto& d = desc[fId];
+  d.set(0, dataGpu);
+  d.set(1, path);
+
+  cmd.setFramebuffer({});
+  cmd.setUniforms(Shaders::inst().path, d);
+  cmd.dispatch(patchBlock.size());
+  return resized;
+  }
+
+InstanceStorage::Id InstanceStorage::alloc(const size_t size) {
   if(size==0)
-    return Id(upload,Range());
+    return Id(*this,Range());
 
   const auto nsize = alignAs(nextPot(uint32_t(size)), alignment);
-
-  auto& h = (heap==BufferHeap::Upload ? upload : device);
-  for(size_t i=0; i<h.rgn.size(); ++i) {
-    if(h.rgn[i].size==nsize) {
-      auto ret = h.rgn[i];
+  for(size_t i=0; i<rgn.size(); ++i) {
+    if(rgn[i].size==nsize) {
+      auto ret = rgn[i];
       ret.asize = size;
-      h.rgn.erase(h.rgn.begin()+intptr_t(i));
-      return Id(h,ret);
+      rgn.erase(rgn.begin()+intptr_t(i));
+      return Id(*this,ret);
       }
     }
   size_t retId = size_t(-1);
-  for(size_t i=0; i<h.rgn.size(); ++i) {
-    if(h.rgn[i].size>nsize && (retId==size_t(-1) || h.rgn[i].size<h.rgn[retId].size)) {
+  for(size_t i=0; i<rgn.size(); ++i) {
+    if(rgn[i].size>nsize && (retId==size_t(-1) || rgn[i].size<rgn[retId].size)) {
       retId = i;
       }
     }
   if(retId!=size_t(-1)) {
-    Range ret = h.rgn[retId];
+    Range ret = rgn[retId];
     ret.size  = nsize;
     ret.asize = size;
-    h.rgn[retId].begin += nsize;
-    h.rgn[retId].size  -= nsize;
-    return Id(h,ret);
+    rgn[retId].begin += nsize;
+    rgn[retId].size  -= nsize;
+    return Id(*this,ret);
     }
   Range r;
-  r.begin = h.data.size();
+  r.begin = dataCpu.size();
   r.size  = nsize;
   r.asize = size;
-  h.data.resize(h.data.size()+nsize);
-  return Id(h,r);
+  dataCpu.resize(dataCpu.size()+nsize);
+
+  durty.resize((dataCpu.size()+64-1)/64, uint32_t(-1));
+  return Id(*this,r);
   }
 
-const Tempest::StorageBuffer& InstanceStorage::ssbo(Tempest::BufferHeap heap, uint8_t fId) const {
-  if(heap==BufferHeap::Upload)
-    return upload.gpu[fId];
-  return device.gpu[fId];
+const Tempest::StorageBuffer& InstanceStorage::ssbo() const {
+  return dataGpu;
   }
 
-void InstanceStorage::free(Heap& heap, const Range& r) {
-  for(auto& i:heap.rgn) {
+void InstanceStorage::free(const Range& r) {
+  for(auto& i:rgn) {
     if(i.begin+i.size==r.begin) {
       i.size  += r.size;
       return;
@@ -160,8 +204,8 @@ void InstanceStorage::free(Heap& heap, const Range& r) {
       return;
       }
     }
-  auto at = std::lower_bound(heap.rgn.begin(),heap.rgn.end(),r,[](const Range& l, const Range& r){
+  auto at = std::lower_bound(rgn.begin(),rgn.end(),r,[](const Range& l, const Range& r){
     return l.begin<r.begin;
     });
-  heap.rgn.insert(at,r);
+  rgn.insert(at,r);
   }

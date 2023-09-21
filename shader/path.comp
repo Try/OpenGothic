@@ -1,0 +1,28 @@
+#version 460
+
+layout(local_size_x = 64) in;
+
+struct Path {
+  uint src;
+  uint dst;
+  uint size;
+  };
+
+layout(binding = 0, std430) writeonly buffer Output {
+  uint dst[];
+  };
+
+layout(binding = 1, std430) readonly buffer Input {
+  uint src[];
+  };
+
+void main() {
+  Path p;
+  p.src  = src[gl_WorkGroupID.x*3+0];
+  p.dst  = src[gl_WorkGroupID.x*3+1];
+  p.size = src[gl_WorkGroupID.x*3+2];
+
+  for(uint i=gl_LocalInvocationID.x; i<p.size; i+=gl_WorkGroupSize.x) {
+    dst[p.dst + i] = src[p.src + i];
+    }
+  }

@@ -499,7 +499,7 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
     }
   }
 
-void Renderer::draw(Tempest::Attachment& result, Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
+void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, uint8_t fId) {
   auto wview  = Gothic::inst().worldView();
   auto camera = Gothic::inst().camera();
   if(wview==nullptr || camera==nullptr) {

@@ -26,13 +26,13 @@ class VisualObjects final {
                             const InstanceStorage::Id& anim);
     ObjectsBucket::Item get(const Material& mat);
 
-    InstanceStorage::Id alloc(Tempest::BufferHeap heap, size_t size);
-    auto                instanceSsbo(Tempest::BufferHeap heap, uint8_t fId) const -> const Tempest::StorageBuffer&;
-
-    void recycle(Tempest::DescriptorSet&& del);
+    InstanceStorage::Id alloc(size_t size);
+    auto                instanceSsbo() const -> const Tempest::StorageBuffer&;
 
     void prepareUniforms();
     void preFrameUpdate (uint8_t fId);
+    void prepareGlobals (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+
     void visibilityPass (const Frustrum fr[]);
 
     void drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
@@ -50,18 +50,14 @@ class VisualObjects final {
     ObjectsBucket& getBucket(ObjectsBucket::Type type, const Material& mat,
                              const StaticMesh* st, const AnimMesh* anim, const Tempest::StorageBuffer* desc);
     void           mkIndex();
-    void           commitUbo(uint8_t fId);
 
     const SceneGlobals&                         globals;
     VisibilityGroup                             visGroup;
-    InstanceStorage                               matrix;
+    InstanceStorage                             instanceMem;
 
     std::vector<std::unique_ptr<ObjectsBucket>> buckets;
     std::vector<ObjectsBucket*>                 index;
     size_t                                      lastSolidBucket = 0;
-
-    std::vector<Tempest::DescriptorSet>         recycled[Resources::MaxFramesInFlight];
-    uint8_t                                     recycledId = 0;
 
   friend class ObjectsBucket;
   friend class ObjectsBucket::Item;

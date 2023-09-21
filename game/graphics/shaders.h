@@ -20,6 +20,7 @@ class Shaders {
 
     Tempest::ComputePipeline copyBuf;
     Tempest::ComputePipeline copyImg;
+    Tempest::ComputePipeline path;
     Tempest::RenderPipeline  copy;
     Tempest::RenderPipeline  stash;
 

@@ -83,7 +83,9 @@ Shaders::Shaders() {
   copyImg = computeShader("copy_img.comp.sprv");
   copy    = postEffect("copy");
 
-  stash = postEffect("stash");
+  path    = computeShader("path.comp.sprv");
+
+  stash   = postEffect("stash");
 
   ssao               = computeShader("ssao.comp.sprv");
   ambientCompose     = ambientLightShader("ssao_compose");

@@ -1063,6 +1063,7 @@ void MainWindow::render(){
       std::this_thread::yield();
       return;
       }
+    Resources::resetRecycled(cmdId);
 
     if(video.isActive()) {
       video.paint(device,cmdId);

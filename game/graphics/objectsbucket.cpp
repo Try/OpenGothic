@@ -243,15 +243,6 @@ const void* ObjectsBucket::meshPointer() const {
   return animMesh;
   }
 
-BufferHeap ObjectsBucket::ssboHeap() const {
-  if(windAnim)
-    return BufferHeap::Upload;
-  auto heap = BufferHeap::Upload;
-  if(objType==Type::Landscape || objType==Type::Static)
-    heap = BufferHeap::Device;
-  return heap;
-  }
-
 ObjectsBucket::Object& ObjectsBucket::implAlloc(const Bounds& bounds, const Material& /*mat*/) {
   Object* v = nullptr;
   for(size_t i=0; i<CAPACITY; ++i) {
@@ -390,7 +381,7 @@ void ObjectsBucket::uboSetCommon(Descriptors& v, const Material& mat, const Buck
   }
 
 void ObjectsBucket::uboSetSkeleton(Descriptors& v, uint8_t fId) {
-  auto& ssbo = owner.instanceSsbo(ssboHeap(),fId);
+  auto& ssbo = owner.instanceSsbo();
   if(ssbo.byteSize()==0 || objType==Type::Landscape || objType==Type::LandscapeShadow || objType==Type::Pfx)
     return;
 
@@ -784,10 +775,9 @@ void ObjectsBucket::reallocObjPositions() {
         break;
         }
 
-    auto heap = ssboHeap();
     auto size = valLen*sizeof(Matrix4x4);
-    if(objPositions.size()!=size || heap!=objPositions.heap()) {
-      objPositions = owner.alloc(heap, size);
+    if(objPositions.size()!=size) {
+      objPositions = owner.alloc(size);
       for(size_t i=0; i<valLen; ++i)
         objPositions.set(val[i].pos,i);
       }
@@ -922,7 +912,7 @@ void ObjectsBucketDyn::implFree(const size_t objId) {
   for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i)
     for(uint8_t lay=SceneGlobals::V_Shadow0; lay<SceneGlobals::V_Count; ++lay) {
       auto& set = uboObj[objId].ubo[i][lay];
-      owner.recycle(std::move(set));
+      Resources::recycle(std::move(set));
       }
   ObjectsBucket::implFree(objId);
   invalidateDyn();

@@ -129,6 +129,10 @@ class Resources final {
       return inst->dev.blas(b,i,offset,size);
       }
 
+    static void resetRecycled(uint8_t fId);
+    static void recycle(Tempest::DescriptorSet&& ds);
+    static void recycle(Tempest::StorageBuffer&& ssbo);
+
     static std::vector<uint8_t>      getFileData(std::string_view name);
     static bool                      getFileData(std::string_view name, std::vector<uint8_t>& dat);
     static phoenix::buffer           getFileBuffer(std::string_view name);
@@ -215,6 +219,13 @@ class Resources final {
 
     std::vector<uint8_t>              fBuff, ddsBuf;
     Tempest::VertexBuffer<VertexFsq>  fsq;
+
+    struct DeleteQueue {
+      std::vector<Tempest::DescriptorSet> ds;
+      std::vector<Tempest::StorageBuffer> ssbo;
+      };
+    DeleteQueue recycled[MaxFramesInFlight];
+    uint8_t     recycledId = 0;
 
     TextureCache                                                      texCache;
     std::map<Tempest::Color,std::unique_ptr<Tempest::Texture2d>,Less> pixCache;

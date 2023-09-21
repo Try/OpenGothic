@@ -15,13 +15,12 @@ class InstanceStorage {
       size_t size  = 0;
       size_t asize = 0;
       };
-    struct Heap;
 
   public:
     class Id {
       public:
         Id() = default;
-        Id(Heap& heap, Range rgn):heapPtr(&heap), rgn(rgn){}
+        Id(InstanceStorage& owner, Range rgn):owner(&owner), rgn(rgn){}
         Id(Id&& other) noexcept;
         Id& operator = (Id&& other) noexcept;
         ~Id();
@@ -31,32 +30,42 @@ class InstanceStorage {
         void           set(const Tempest::Matrix4x4* anim);
         void           set(const Tempest::Matrix4x4& obj, size_t offset);
 
-        const Tempest::StorageBuffer& ssbo(uint8_t fId) const;
-        Tempest::BufferHeap           heap() const;
-
       private:
-        Heap* heapPtr = nullptr;
-        Range rgn;
+        InstanceStorage* owner = nullptr;
+        Range            rgn;
       };
 
     InstanceStorage();
 
-    Id   alloc(Tempest::BufferHeap heap, const size_t size);
-    auto ssbo (Tempest::BufferHeap heap, uint8_t fId) const -> const Tempest::StorageBuffer&;
-    bool commit(uint8_t fId);
+    Id   alloc(const size_t size);
+    auto ssbo () const -> const Tempest::StorageBuffer&;
+    bool commit(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
   private:
     static constexpr size_t alignment = 64;
 
-    bool commit(Heap& heap, uint8_t fId);
-    void free(Heap& heap, const Range& r);
+    void free(const Range& r);
 
-    struct Heap {
-      InstanceStorage*                  owner = nullptr;
-      std::vector<Range>              rgn;
-      std::vector<uint8_t>            data;
-      Tempest::StorageBuffer          gpu[Resources::MaxFramesInFlight];
-      std::atomic_bool                durty[Resources::MaxFramesInFlight] = {};
+    struct Path {
+      uint32_t src;
+      uint32_t dst;
+      uint32_t size;
       };
-    Heap upload, device;
+
+    struct DeleteLater {
+      std::vector<Tempest::StorageBuffer> ssbo;
+      };
+
+    std::vector<Range>     rgn;
+    std::vector<uint32_t>  durty;
+
+    Tempest::StorageBuffer patchGpu[Resources::MaxFramesInFlight];
+    std::vector<uint8_t>   patchCpu;
+    std::vector<Path>      patchBlock;
+
+    Tempest::StorageBuffer dataGpu;
+    std::vector<uint8_t>   dataCpu;
+
+    Tempest::DescriptorSet desc[Resources::MaxFramesInFlight];
+    bool                   resizeBit[Resources::MaxFramesInFlight] = {};
   };

@@ -810,6 +810,27 @@ const Resources::VobTree* Resources::loadVobBundle(std::string_view name) {
   return inst->implLoadVobBundle(name);
   }
 
+void Resources::resetRecycled(uint8_t fId) {
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  inst->recycledId = fId;
+  inst->recycled[fId].ds.clear();
+  inst->recycled[fId].ssbo.clear();
+  }
+
+void Resources::recycle(Tempest::DescriptorSet&& ds) {
+  if(ds.isEmpty())
+    return;
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  inst->recycled[inst->recycledId].ds.emplace_back(std::move(ds));
+  }
+
+void Resources::recycle(Tempest::StorageBuffer&& ssbo) {
+  if(ssbo.isEmpty())
+    return;
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  inst->recycled[inst->recycledId].ssbo.emplace_back(std::move(ssbo));
+  }
+
 const Resources::VobTree* Resources::implLoadVobBundle(std::string_view filename) {
   auto cname = std::string(filename);
   auto i     = zenCache.find(cname);

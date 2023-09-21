@@ -65,7 +65,8 @@ void WorldView::preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t
   }
 
 void WorldView::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  sGlobal.prepareGlobals(cmd,fId);
+  sGlobal.prepareGlobals(cmd, fId);
+  visuals.prepareGlobals(cmd, fId);
   }
 
 void WorldView::setGbuffer(const Texture2d& diffuse, const Texture2d& norm) {
