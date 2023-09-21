@@ -11,6 +11,7 @@
 #include "common.glsl"
 
 #define SSAO 1
+
 const int   KERNEL_RADIUS = 1;
 const float blurSharpness = 0.8;
 

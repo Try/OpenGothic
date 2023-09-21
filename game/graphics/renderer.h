@@ -57,6 +57,8 @@ class Renderer final {
 
     void drawProbesDbg    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void stashSceneAux    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+
+    void initGiData();
     void initSettings();
     void toggleGi();
 
@@ -64,7 +66,7 @@ class Renderer final {
       const uint32_t shadowResolution   = 2048;
       bool           zEnvMappingEnabled = false;
       bool           zCloudShadowScale  = false;
-      bool           giEnabled          = true;
+      bool           giEnabled          = false;
 
       float          zVidBrightness     = 0.5;
       float          zVidContrast       = 0.5;

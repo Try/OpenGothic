@@ -53,9 +53,7 @@ Gothic::Gothic() {
   auto& gpu = Resources::device().properties();
   if(gpu.raytracing.rayQuery) {
     opts.doRayQuery = CommandLine::inst().isRayQuery();
-    if(gpu.tex2d.maxSize>=4096 && gpu.hasStorageFormat(R11G11B10UF) && gpu.hasStorageFormat(R16)) {
-      opts.doRtGi = CommandLine::inst().isRtGi();
-      }
+    opts.doRtGi     = opts.doRayQuery && CommandLine::inst().isRtGi();
     }
 
   if(hasMeshShader()) {

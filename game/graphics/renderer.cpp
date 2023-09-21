@@ -165,48 +165,7 @@ void Renderer::resetSwapchain() {
   tonemapping.pso     = &Shaders::inst().tonemapping;
   tonemapping.uboTone = device.descriptors(*tonemapping.pso);
 
-  if(settings.giEnabled) {
-    gi.uboDbg         = DescriptorSet();
-
-    gi.probeInitPso   = &Shaders::inst().probeInit;
-
-    gi.probeClearPso  = &Shaders::inst().probeClear;
-    gi.probeClearHPso = &Shaders::inst().probeClearHash;
-    gi.probeMakeHPso  = &Shaders::inst().probeMakeHash;
-    gi.uboClear       = device.descriptors(*gi.probeClearPso);
-
-    gi.probeVotePso   = &Shaders::inst().probeVote;
-    gi.probeAllocPso  = &Shaders::inst().probeAlocation;
-    gi.probePrunePso  = &Shaders::inst().probePrune;
-    gi.uboProbes      = device.descriptors(*gi.probeAllocPso);
-
-    gi.uboZeroIrr     = device.descriptors(Shaders::inst().copyImg);
-    gi.uboPrevIrr     = device.descriptors(Shaders::inst().copyImg);
-
-    gi.probeTracePso  = &Shaders::inst().probeTrace;
-    gi.uboTrace       = device.descriptors(*gi.probeTracePso);
-
-    gi.probeLightPso  = &Shaders::inst().probeLighting;
-    gi.uboLight       = device.descriptors(*gi.probeLightPso);
-
-    gi.probeDrawPso   = &Shaders::inst().probeDraw;
-    gi.uboDraw        = device.descriptors(*gi.probeDrawPso);
-
-    const uint32_t maxProbes = gi.maxProbes;
-    if(gi.hashTable.isEmpty()) {
-      gi.hashTable          = device.ssbo(nullptr, 2'097'152*sizeof(uint32_t)); // 8MB
-      gi.voteTable          = device.ssbo(nullptr, gi.hashTable.byteSize());
-      gi.probes             = device.ssbo(nullptr, maxProbes*32 + 64);        // probes and header
-      gi.freeList           = device.ssbo(nullptr, maxProbes*sizeof(uint32_t) + sizeof(int32_t));
-      gi.probesGBuffDiff    = device.image2d(TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16); // 16x16 tile
-      gi.probesGBuffNorm    = device.image2d(TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16);
-      gi.probesGBuffRayT    = device.image2d(TextureFormat::R16,   gi.atlasDim*16, gi.atlasDim*16);
-      gi.probesLighting     = device.image2d(TextureFormat::R11G11B10UF, gi.atlasDim*3, gi.atlasDim*2);
-      gi.probesLightingPrev = device.image2d(TextureFormat::R11G11B10UF, uint32_t(gi.probesLighting.w()), uint32_t(gi.probesLighting.h()));
-      gi.fisrtFrame          = true;
-      }
-    }
-
+  initGiData();
   prepareUniforms();
   prepareRtUniforms();
   }
@@ -219,8 +178,7 @@ void Renderer::initSettings() {
   settings.zVidContrast       = Gothic::inst().settingsGetF("VIDEO","zVidContrast");
   settings.zVidGamma          = Gothic::inst().settingsGetF("VIDEO","zVidGamma");
 
-  if(!Gothic::options().doRtGi)
-    settings.giEnabled = false;
+  settings.giEnabled = Gothic::options().doRtGi;
 
   auto prevCompose = water.reflectionsPso;
   if(settings.zCloudShadowScale)
@@ -243,14 +201,21 @@ void Renderer::initSettings() {
   }
 
 void Renderer::toggleGi() {
-  if(!Gothic::options().doRtGi)
+  auto& device = Resources::device();
+  if(!Gothic::options().doRayQuery)
     return;
+
+  auto prop = device.properties();
+  if(prop.tex2d.maxSize<4096 || !prop.hasStorageFormat(R11G11B10UF) || !prop.hasStorageFormat(R16))
+    return;
+
   settings.giEnabled = !settings.giEnabled;
   gi.fisrtFrame = true;
 
-  auto& device = Resources::device();
   device.waitIdle();
+  initGiData();
   prepareUniforms();
+  prepareRtUniforms();
   }
 
 void Renderer::onWorldChanged() {
@@ -369,7 +334,7 @@ void Renderer::prepareUniforms() {
     gi.uboTrace.set(4, gi.hashTable);
     gi.uboTrace.set(5, gi.probes);
 
-    gi.uboPrevIrr.set(0, gi.probesLighting);
+    gi.uboZeroIrr.set(0, gi.probesLighting);
     gi.uboZeroIrr.set(1, Resources::fallbackBlack());
 
     gi.uboPrevIrr.set(0, gi.probesLighting);
@@ -600,6 +565,52 @@ void Renderer::stashSceneAux(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint
   cmd.setDebugMarker("Stash scene");
   cmd.setUniforms(Shaders::inst().stash, uboStash);
   cmd.draw(Resources::fsqVbo());
+  }
+
+void Renderer::initGiData() {
+  if(!settings.giEnabled)
+    return;
+
+  auto& device = Resources::device();
+
+  gi.uboDbg         = DescriptorSet();
+  gi.probeInitPso   = &Shaders::inst().probeInit;
+
+  gi.probeClearPso  = &Shaders::inst().probeClear;
+  gi.probeClearHPso = &Shaders::inst().probeClearHash;
+  gi.probeMakeHPso  = &Shaders::inst().probeMakeHash;
+  gi.uboClear       = device.descriptors(*gi.probeClearPso);
+
+  gi.probeVotePso   = &Shaders::inst().probeVote;
+  gi.probeAllocPso  = &Shaders::inst().probeAlocation;
+  gi.probePrunePso  = &Shaders::inst().probePrune;
+  gi.uboProbes      = device.descriptors(*gi.probeAllocPso);
+
+  gi.uboZeroIrr     = device.descriptors(Shaders::inst().copyImg);
+  gi.uboPrevIrr     = device.descriptors(Shaders::inst().copyImg);
+
+  gi.probeTracePso  = &Shaders::inst().probeTrace;
+  gi.uboTrace       = device.descriptors(*gi.probeTracePso);
+
+  gi.probeLightPso  = &Shaders::inst().probeLighting;
+  gi.uboLight       = device.descriptors(*gi.probeLightPso);
+
+  gi.probeDrawPso   = &Shaders::inst().probeDraw;
+  gi.uboDraw        = device.descriptors(*gi.probeDrawPso);
+
+  const uint32_t maxProbes = gi.maxProbes;
+  if(gi.hashTable.isEmpty()) {
+    gi.hashTable          = device.ssbo(nullptr, 2'097'152*sizeof(uint32_t)); // 8MB
+    gi.voteTable          = device.ssbo(nullptr, gi.hashTable.byteSize());
+    gi.probes             = device.ssbo(nullptr, maxProbes*32 + 64);        // probes and header
+    gi.freeList           = device.ssbo(nullptr, maxProbes*sizeof(uint32_t) + sizeof(int32_t));
+    gi.probesGBuffDiff    = device.image2d(TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16); // 16x16 tile
+    gi.probesGBuffNorm    = device.image2d(TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16);
+    gi.probesGBuffRayT    = device.image2d(TextureFormat::R16,   gi.atlasDim*16, gi.atlasDim*16);
+    gi.probesLighting     = device.image2d(TextureFormat::R11G11B10UF, gi.atlasDim*3, gi.atlasDim*2);
+    gi.probesLightingPrev = device.image2d(TextureFormat::R11G11B10UF, uint32_t(gi.probesLighting.w()), uint32_t(gi.probesLighting.h()));
+    gi.fisrtFrame          = true;
+    }
   }
 
 void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
