@@ -70,14 +70,15 @@ void Renderer::resetSwapchain() {
   auto& device = Resources::device();
   device.waitIdle();
 
-  const uint32_t w      = swapchain.w();
-  const uint32_t h      = swapchain.h();
+  const auto     res    = internalResolution();
+  const uint32_t w      = uint32_t(res.w);
+  const uint32_t h      = uint32_t(res.h);
   const uint32_t smSize = settings.shadowResolution;
 
   auto smpN = Sampler::nearest();
   smpN.setClamping(ClampMode::ClampToEdge);
 
-  sceneLinear = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
+  sceneLinear = device.attachment(TextureFormat::R11G11B10UF,w,h);
   zbuffer     = device.zbuffer(zBufferFormat,w,h);
 
   if(Gothic::options().doMeshShading) {
@@ -133,11 +134,11 @@ void Renderer::resetSwapchain() {
       shadowMap[i] = device.zbuffer(shadowFormat,smSize,smSize);
     }
 
-  sceneOpaque = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
-  sceneDepth  = device.attachment(TextureFormat::R32F,       swapchain.w(),swapchain.h());
+  sceneOpaque = device.attachment(TextureFormat::R11G11B10UF,w,h);
+  sceneDepth  = device.attachment(TextureFormat::R32F,       w,h);
 
-  gbufDiffuse = device.attachment(TextureFormat::RGBA8,      swapchain.w(),swapchain.h());
-  gbufNormal  = device.attachment(TextureFormat::R11G11B10UF,swapchain.w(),swapchain.h());
+  gbufDiffuse = device.attachment(TextureFormat::RGBA8,      w,h);
+  gbufNormal  = device.attachment(TextureFormat::R11G11B10UF,w,h);
 
   uboStash = device.descriptors(Shaders::inst().stash);
   uboStash.set(0,sceneLinear,Sampler::nearest());
@@ -154,7 +155,7 @@ void Renderer::resetSwapchain() {
 
   water.underUbo = device.descriptors(Shaders::inst().underwaterT);
 
-  ssao.ssaoBuf = device.image2d(ssao.aoFormat, swapchain.w(),swapchain.h());
+  ssao.ssaoBuf = device.image2d(ssao.aoFormat, w,h);
   ssao.ssaoPso = &Shaders::inst().ssao;
   ssao.uboSsao = device.descriptors(*ssao.ssaoPso);
 
@@ -178,7 +179,13 @@ void Renderer::initSettings() {
   settings.zVidContrast       = Gothic::inst().settingsGetF("VIDEO","zVidContrast");
   settings.zVidGamma          = Gothic::inst().settingsGetF("VIDEO","zVidGamma");
 
-  settings.giEnabled = Gothic::options().doRtGi;
+  settings.giEnabled          = Gothic::options().doRtGi;
+
+  auto prevVidResIndex = settings.vidResIndex;
+  settings.vidResIndex = Gothic::inst().settingsGetF("INTERNAL","vidResIndex");
+  if(prevVidResIndex!=settings.vidResIndex) {
+    resetSwapchain();
+    }
 
   auto prevCompose = water.reflectionsPso;
   if(settings.zCloudShadowScale)
@@ -917,4 +924,12 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   pm.save("zbuffer.hdr");
 
   return img;
+  }
+
+Size Renderer::internalResolution() const {
+  if(settings.vidResIndex==0)
+     return Size(int(swapchain.w()), int(swapchain.h()));
+  if(settings.vidResIndex==1)
+    return Size(int(3*swapchain.w()/4), int(3*swapchain.h()/4));
+  return Size(int(swapchain.w()/2), int(swapchain.h()/2));
   }

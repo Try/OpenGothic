@@ -845,14 +845,16 @@ void GameMenu::execChgOption(Item &item, int slideDx) {
     v  = std::max(0.f,std::min(v+float(slideDx)*0.03f,1.f));
     Gothic::settingsSetF(sec, opt, v);
     }
-  if(item.handle->type==phoenix::c_menu_item_type::choicebox && slideDx==0) {
+  if(item.handle->type==phoenix::c_menu_item_type::choicebox) {
     updateItem(item);
-    item.value += 1; // next value
+    const int cnt = int(strEnumSize(item.handle->text[0]));
+    if(slideDx==0 && cnt==2)
+      slideDx = 1; // QoL: on/off toggle
 
-    int cnt = int(strEnumSize(item.handle->text[0]));
+    item.value += slideDx; // next value
     if(cnt>0)
-      item.value%=cnt; else
-      item.value =0;
+      item.value = (item.value+cnt) % cnt; else
+      item.value = 0;
     Gothic::settingsSetI(sec, opt, item.value);
     }
   }
@@ -981,7 +983,7 @@ void GameMenu::updateSavThumb(GameMenu::Item &sel) {
 
 void GameMenu::updateVideo() {
   set("MENUITEM_VID_DEVICE_CHOICE",     Resources::renderer());
-  set("MENUITEM_VID_RESOLUTION_CHOICE", "");
+  set("MENUITEM_VID_RESOLUTION_CHOICE", "full|75%|half");
   }
 
 void GameMenu::setDefaultKeys(std::string_view preset) {

@@ -178,8 +178,8 @@ add_shader(light_rq_at.frag          lighting/light.frag -DRAY_QUERY -DRAY_QUERY
 
 add_shader(irradiance.comp           lighting/irradiance.comp "")
 
-add_shader(tonemapping.vert          copy.vert "")
 add_shader(tonemapping.frag          lighting/tonemapping.frag "")
+add_shader(tonemapping.vert          copy.vert -DHAS_UV)
 
 add_shader(water_reflection.vert     copy.vert "")
 add_shader(water_reflection.mesh     water/water_reflection.mesh "")

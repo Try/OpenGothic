@@ -11,6 +11,10 @@ MenuRoot::MenuRoot(KeyCodec& keyCodec)
   :keyCodec(keyCodec) {
   setCursorShape(CursorShape::Hidden);
   vm = Gothic::inst().createPhoenixVm("MENU.DAT");
+
+  vm->register_external("apply_options_video",[](){
+    Log::d("TODO: apply_options_video");
+    });
   }
 
 MenuRoot::~MenuRoot() {

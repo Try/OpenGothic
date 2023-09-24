@@ -15,6 +15,7 @@ layout(push_constant, std140) uniform PushConstant {
 
 layout(binding  = 0) uniform sampler2D textureD;
 
+layout(location = 0) in  vec2 uv;
 layout(location = 0) out vec4 outColor;
 
 // https://advances.realtimerendering.com/s2021/jpatry_advances2021/index.html
@@ -107,7 +108,7 @@ void main() {
   float contrast   = push.contrast;
   float gamma      = push.gamma;
 
-  vec3  color    = texelFetch(textureD, ivec2(gl_FragCoord.xy), 0).rgb;
+  vec3  color      = textureLod(textureD, uv, 0).rgb;
   {
     // outColor = vec4(color, 1.0);
     // return;

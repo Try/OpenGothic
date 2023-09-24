@@ -32,7 +32,9 @@ class Renderer final {
     Tempest::Attachment screenshoot(uint8_t frameId);
 
   private:
+    Tempest::Size internalResolution() const;
     void updateCamera(const Camera &camera);
+
     void prepareUniforms();
     void prepareRtUniforms();
 
@@ -71,6 +73,8 @@ class Renderer final {
       float          zVidBrightness     = 0.5;
       float          zVidContrast       = 0.5;
       float          zVidGamma          = 0.5;
+
+      float          vidResIndex        = 0;
       } settings;
 
     Frustrum                  frustrum[SceneGlobals::V_Count];
