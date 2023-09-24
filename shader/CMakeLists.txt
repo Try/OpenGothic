@@ -154,8 +154,8 @@ add_uber_shader(ani "-DMESH_TYPE=2")
 add_uber_shader(mph "-DMESH_TYPE=3")
 add_uber_shader(pfx "-DMESH_TYPE=4")
 
-add_shader(item.vert                 inventory/item.vert "")
-add_shader(item.frag                 inventory/item.frag "")
+add_shader(item.vert                 inventory/item.vert)
+add_shader(item.frag                 inventory/item.frag)
 
 add_shader(lnd_hiz.32.mesh           materials/main.mesh -DMESH_TYPE=0 -DHIZ)
 add_shader(lnd_hiz.64.mesh           materials/main.mesh -DMESH_TYPE=0 -DHIZ)
@@ -163,27 +163,27 @@ add_shader(lnd_hiz.32.task           materials/main.task -DMESH_TYPE=0 -DHIZ)
 add_shader(lnd_hiz.64.task           materials/main.task -DMESH_TYPE=0 -DHIZ)
 add_shader(lnd_hiz.frag              materials/main.frag -DMESH_TYPE=0 -DHIZ)
 
-add_shader(stash.vert                copy.vert  "")
-add_shader(stash.frag                stash.frag "")
+add_shader(stash.vert                copy.vert)
+add_shader(stash.frag                stash.frag)
 
-add_shader(shadow_resolve.vert       copy.vert "")
-add_shader(shadow_resolve.frag       lighting/shadow_resolve.frag "")
+add_shader(shadow_resolve.vert       copy.vert)
+add_shader(shadow_resolve.frag       lighting/shadow_resolve.frag)
 add_shader(shadow_resolve_sh.frag    lighting/shadow_resolve.frag -DSHADOW_MAP)
 add_shader(shadow_resolve_rq.frag    lighting/shadow_resolve.frag -DSHADOW_MAP -DRAY_QUERY -DRAY_QUERY_AT)
 
-add_shader(light.vert                lighting/light.vert "")
-add_shader(light.frag                lighting/light.frag "")
+add_shader(light.vert                lighting/light.vert)
+add_shader(light.frag                lighting/light.frag)
 add_shader(light_rq.frag             lighting/light.frag -DRAY_QUERY)
 add_shader(light_rq_at.frag          lighting/light.frag -DRAY_QUERY -DRAY_QUERY_AT)
 
-add_shader(irradiance.comp           lighting/irradiance.comp "")
+add_shader(irradiance.comp           lighting/irradiance.comp)
 
-add_shader(tonemapping.frag          lighting/tonemapping.frag "")
 add_shader(tonemapping.vert          copy.vert -DHAS_UV)
+add_shader(tonemapping.frag          lighting/tonemapping.frag)
 
-add_shader(water_reflection.vert     copy.vert "")
-add_shader(water_reflection.mesh     water/water_reflection.mesh "")
-add_shader(water_reflection.frag     water/water_reflection.frag "")
+add_shader(water_reflection.vert     copy.vert)
+add_shader(water_reflection.mesh     water/water_reflection.mesh)
+add_shader(water_reflection.frag     water/water_reflection.frag)
 add_shader(water_reflection_ssr.frag water/water_reflection.frag -DSSR)
 
 add_shader(underwater.vert           copy.vert "")
@@ -193,17 +193,17 @@ add_shader(underwater_s.frag         water/underwater.frag -DSCATTERING)
 # Based on Scalable and Production Ready Sky and Atmosphere
 # https://sebh.github.io/publications/egsr2020.pdf
 # https://www.shadertoy.com/view/slSXRW
-add_shader(sky_transmittance.vert    sky/sky.vert                  "")
-add_shader(sky_transmittance.frag    sky/sky_transmittance.frag    "")
-add_shader(sky_multi_scattering.vert sky/sky.vert                  "")
-add_shader(sky_multi_scattering.frag sky/sky_multi_scattering.frag "")
+add_shader(sky_transmittance.vert    sky/sky.vert)
+add_shader(sky_transmittance.frag    sky/sky_transmittance.frag)
+add_shader(sky_multi_scattering.vert sky/sky.vert)
+add_shader(sky_multi_scattering.frag sky/sky_multi_scattering.frag)
 
-add_shader(sky_view_lut.vert         sky/sky.vert                  "")
-add_shader(sky_view_lut.frag         sky/sky_view_lut.frag         "")
-add_shader(fog_view_lut.vert         sky/sky.vert                  -DFOG)
+add_shader(sky_view_lut.vert         sky/sky.vert)
+add_shader(sky_view_lut.frag         sky/sky_view_lut.frag)
+add_shader(fog_view_lut.vert         sky/sky.vert -DFOG)
 
-add_shader(shadow_downsample.comp    sky/shadow_downsample.comp    "")
-add_shader(clouds_lut.comp           sky/clouds_lut.comp           "")
+add_shader(shadow_downsample.comp    sky/shadow_downsample.comp)
+add_shader(clouds_lut.comp           sky/clouds_lut.comp)
 
 add_shader(fog_view_lut_lq.comp      sky/fog_view_lut.comp -DVOLUMETRIC_LQ -DCOMPUTE)
 add_shader(fog_view_lut_hq.comp      sky/fog_view_lut.comp -DVOLUMETRIC_HQ -DCOMPUTE)
@@ -232,14 +232,14 @@ add_shader(path.comp                 path.comp)
 add_shader(ssao.comp                 ssao/ssao.comp)
 
 add_shader(ssao_compose.vert         copy.vert -DHAS_UV)
-add_shader(ssao_compose.frag         ssao/ssao_compose.frag "")
+add_shader(ssao_compose.frag         ssao/ssao_compose.frag)
 add_shader(ssao_compose_ssao.frag    ssao/ssao_compose.frag -DSSAO)
 
-add_shader(hiz_mip.comp              hiz/hiz_mip.comp "")
-add_shader(hiz_pot.comp              hiz/hiz_pot.comp "")
+add_shader(hiz_mip.comp              hiz/hiz_mip.comp)
+add_shader(hiz_pot.comp              hiz/hiz_pot.comp)
 
-add_shader(hiz_reproject.mesh        hiz/hiz_reproject.mesh "")
-add_shader(hiz_reproject.frag        hiz/hiz_reproject.frag "")
+add_shader(hiz_reproject.mesh        hiz/hiz_reproject.mesh)
+add_shader(hiz_reproject.frag        hiz/hiz_reproject.frag)
 
 add_shader(probe_dbg.vert            lighting/rt/probe_dbg.vert)
 add_shader(probe_dbg.frag            lighting/rt/probe_dbg.frag)
