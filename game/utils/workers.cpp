@@ -39,6 +39,8 @@ void Workers::setThreadName(const char* threadName) { (void)threadName; }
 
 using namespace Tempest;
 
+const size_t Workers::taskPerThread = 128;
+
 Workers::Workers() {
   size_t id=0;
   for(auto& i:th) {
@@ -50,8 +52,9 @@ Workers::Workers() {
   }
 
 Workers::~Workers() {
-  running   = false;
-  workTasks = MAX_THREADS;
+  running  = false;
+  workSet  = nullptr;
+  workSize = MAX_THREADS;
   execWork();
   for(auto& i:th)
     i.join();
@@ -62,6 +65,15 @@ Workers &Workers::inst() {
   return w;
   }
 
+uint8_t Workers::maxThreads() {
+  int32_t th = int32_t(std::thread::hardware_concurrency())-1;
+  if(th<=0)
+    th = 1;
+  if(th>MAX_THREADS)
+    return MAX_THREADS;
+  return uint8_t(th);
+  }
+
 void Workers::threadFunc(size_t id) {
   {
   string_frm tname("Workers [",int(id),"]");
@@ -69,44 +81,96 @@ void Workers::threadFunc(size_t id) {
   }
 
   while(true) {
+    /*
     {
     std::unique_lock<std::mutex> lck(sync);
     while(!workInc[id])
       workWait.wait(lck);
     workInc[id]=false;
     }
+   */
+    sem.acquire();
 
     if(!running) {
-      workDone.fetch_add(1);
+      taskDone.fetch_add(1);
       return;
       }
 
-    size_t b = std::min((id  )*batchSize, workSize);
-    size_t e = std::min((id+1)*batchSize, workSize);
-    // Log::d("worker: id = ",id," [",b, ", ",e,"]");
-
-    if(b!=e) {
-      void* d = workSet + b*workEltSize;
-      workFunc(d,e-b);
+    if(workSet==nullptr) {
+      auto idx = progressIt.fetch_add(1);
+      workFunc(workSet+idx, 1);
+      } else {
+      taskLoop();
       }
 
-    if(size_t(workDone.fetch_add(1)+1)==workTasks)
+    if(size_t(taskDone.fetch_add(1)+1)==taskCount)
       std::this_thread::yield();
     }
   }
 
+uint32_t Workers::taskLoop() {
+  uint32_t count = 0;
+  while(true) {
+    size_t b = size_t(progressIt.fetch_add(taskPerThread));
+    size_t e = std::min(b+taskPerThread, workSize);
+    if(e<=b)
+      break;
+
+    void* d = workSet + b*workEltSize;
+    workFunc(d,e-b);
+    count += uint32_t(e-b);
+    }
+  return count;
+  }
+
 void Workers::execWork() {
+  if(workSize==0)
+    return;
+
+  if(workSet!=nullptr) {
+    const auto maxTheads = maxThreads();
+    taskCount = (workSize+taskPerThread-1)/taskPerThread;
+    if(taskCount>maxTheads)
+      taskCount = maxTheads;
+    } else {
+    taskCount = workSize;
+    }
+
+  if(running && taskCount==1) {
+    workFunc(workSet, workSize);
+    return;
+    }
+
+  const auto minElts = 2048;
+  if(workSet!=nullptr && workSize<=minElts && true) {
+    workFunc(workSet, workSize);
+    return;
+    }
+
+  progressIt.store(0);
+  taskDone.store(0);
+
+  sem.release(ptrdiff_t(taskCount));
+  /*
   {
     std::unique_lock<std::mutex> lck(sync);
     for(size_t i=0; i<workTasks; ++i)
       workInc[i]=true;
     workWait.notify_all();
   }
-  std::this_thread::yield();
+  */
+
+  uint32_t cnt = 0;
+  if(workSet==nullptr) {
+    std::this_thread::yield();
+    } else {
+    cnt = taskLoop();
+    }
+  (void)cnt;
 
   while(true) {
-    int expect = int(workTasks);
-    if(workDone.compare_exchange_strong(expect,0,std::memory_order::acq_rel))
+    int expect = int(taskCount);
+    if(taskDone.compare_exchange_strong(expect,0,std::memory_order::acq_rel))
       break;
     std::this_thread::yield();
     }
