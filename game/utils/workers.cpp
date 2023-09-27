@@ -39,7 +39,7 @@ void Workers::setThreadName(const char* threadName) { (void)threadName; }
 
 using namespace Tempest;
 
-const size_t Workers::taskPerThread = 128;
+const size_t Workers::taskPerThread = 16;
 
 Workers::Workers() {
   size_t id=0;
@@ -55,7 +55,7 @@ Workers::~Workers() {
   running  = false;
   workSet  = nullptr;
   workSize = MAX_THREADS;
-  execWork();
+  execWork(minWorkSize<void,void>());
   for(auto& i:th)
     i.join();
   }
@@ -81,15 +81,15 @@ void Workers::threadFunc(size_t id) {
   }
 
   while(true) {
-    /*
     {
     std::unique_lock<std::mutex> lck(sync);
-    while(!workInc[id])
+    auto cnt = workTbd.fetch_add(int32_t(-1));
+    if(cnt <= 0) {
       workWait.wait(lck);
-    workInc[id]=false;
+      continue;
+      }
     }
-   */
-    sem.acquire();
+
 
     if(!running) {
       taskDone.fetch_add(1);
@@ -123,17 +123,17 @@ uint32_t Workers::taskLoop() {
   return count;
   }
 
-void Workers::execWork() {
+void Workers::execWork(uint32_t& minElts) {
   if(workSize==0)
     return;
 
   if(workSet!=nullptr) {
     const auto maxTheads = maxThreads();
-    taskCount = (workSize+taskPerThread-1)/taskPerThread;
+    taskCount = uint32_t(workSize+taskPerThread-1)/taskPerThread;
     if(taskCount>maxTheads)
       taskCount = maxTheads;
     } else {
-    taskCount = workSize;
+    taskCount = uint32_t(workSize);
     }
 
   if(running && taskCount==1) {
@@ -141,32 +141,31 @@ void Workers::execWork() {
     return;
     }
 
-  const auto minElts = 2048;
+  //static uint32_t minElts = 128;
+
   if(workSet!=nullptr && workSize<=minElts && true) {
     workFunc(workSet, workSize);
+    if(minElts > workSize*2)
+      minElts = 0;
     return;
     }
 
   progressIt.store(0);
   taskDone.store(0);
 
-  sem.release(ptrdiff_t(taskCount));
-  /*
   {
-    std::unique_lock<std::mutex> lck(sync);
-    for(size_t i=0; i<workTasks; ++i)
-      workInc[i]=true;
-    workWait.notify_all();
+  std::unique_lock<std::mutex> lck(sync);
+  workTbd.store(int32_t(taskCount));
+  workWait.notify_all();
   }
-  */
 
-  uint32_t cnt = 0;
   if(workSet==nullptr) {
     std::this_thread::yield();
     } else {
-    cnt = taskLoop();
+    uint32_t cnt = taskLoop();
+    // horrible workaround for high threads overhead on Intel
+    minElts = std::clamp(minElts, cnt*2, cnt*4);
     }
-  (void)cnt;
 
   while(true) {
     int expect = int(taskCount);

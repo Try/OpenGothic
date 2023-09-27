@@ -7,7 +7,6 @@
 #include <atomic>
 #include <algorithm>
 #include <condition_variable>
-#include <semaphore>
 #include <new>
 
 class Workers final {
@@ -43,9 +42,16 @@ class Workers final {
     enum { MAX_THREADS=16 };
 
     void            threadFunc(size_t id);
-    void            execWork();
+    void            execWork(uint32_t& minWorkSize);
     uint32_t        taskLoop();
     static Workers& inst();
+
+    template<class T,class F>
+    static uint32_t&  minWorkSize() {
+      static uint32_t data = 0;
+      return data;
+      }
+
 
     template<class T,class F>
     void runParallelFor(T* data, size_t sz, const F& func) {
@@ -59,7 +65,7 @@ class Workers final {
           func(tdata[i]);
         };
 
-      execWork();
+      execWork(minWorkSize<T,F>());
       }
 
     template<class F>
@@ -71,26 +77,23 @@ class Workers final {
       workFunc = [&func](void* data, size_t sz) {
         func(reinterpret_cast<uintptr_t>(data));
         };
-      execWork();
+      execWork(minWorkSize<void,F>());
       }
 
     static const size_t               taskPerThread;
-
     bool                              running=true;
 
-    std::thread                       th     [MAX_THREADS];
-    bool                              workInc[MAX_THREADS] = {};
+    std::thread                       th[MAX_THREADS];
 
-    std::counting_semaphore<MAX_THREADS> sem{0};
+    std::mutex                        sync;
+    std::condition_variable           workWait;
+    std::atomic_int32_t               workTbd{0};
 
     uint8_t*                          workSet=nullptr;
     size_t                            workSize=0, workEltSize=0;
     std::function<void(void*,size_t)> workFunc;
 
-    // std::mutex                        sync;
-    // std::condition_variable           workWait;
-
     std::atomic_int                   progressIt{0};
-    size_t                            taskCount=0;
+    uint32_t                          taskCount = 0;
     std::atomic_int                   taskDone{0};
   };
