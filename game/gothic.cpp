@@ -64,6 +64,9 @@ Gothic::Gothic() {
 
   baseIniFile.reset(new IniFile(nestedPath({u"system",u"Gothic.ini"},Dir::FT_File)));
   iniFile    .reset(new IniFile(u"Gothic.ini"));
+  if(!iniFile->has("INTERNAL", "vidResIndex")) {
+    iniFile->set("INTERNAL", "vidResIndex", 0); // full-res
+    }
   {
   defaults.reset(new IniFile());
   defaults->set("GAME", "enableMouse",         1);
@@ -84,6 +87,7 @@ Gothic::Gothic() {
   defaults->set("RENDERER_D3D", "zFogRadial", 1); // sunshafts
   defaults->set("ENGINE",       "zEnvMappingEnabled", 1); // reflections
   defaults->set("ENGINE",       "zCloudShadowScale", gpu.type==Tempest::DeviceType::Discrete); // ssao
+  defaults->set("INTERNAL",     "vidResIndex", 0); // full-res
 
   defaults->set("SOUND", "musicEnabled",  1);
   defaults->set("SOUND", "musicVolume",   0.5f);

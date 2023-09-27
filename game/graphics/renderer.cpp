@@ -273,7 +273,11 @@ void Renderer::prepareUniforms() {
   if(settings.zCloudShadowScale)
     ssao.uboCompose.set(5, ssao.ssaoBuf, smpN);
 
-  tonemapping.uboTone.set(0, sceneLinear);
+  {
+    auto smpB = Sampler::bilinear();
+    smpB.setClamping(ClampMode::ClampToEdge);
+    tonemapping.uboTone.set(0, sceneLinear, smpB);
+  }
 
   shadow.ubo.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
   shadow.ubo.set(1, gbufDiffuse);
