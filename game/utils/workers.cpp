@@ -129,7 +129,7 @@ void Workers::execWork(uint32_t& minElts) {
 
   if(workSet!=nullptr) {
     const auto maxTheads = maxThreads();
-    taskCount = uint32_t(workSize+taskPerThread-1)/taskPerThread;
+    taskCount = uint32_t((workSize+taskPerThread-1)/taskPerThread);
     if(taskCount>maxTheads)
       taskCount = maxTheads;
     } else {
