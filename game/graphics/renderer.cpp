@@ -59,6 +59,8 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
 
   Gothic::inst().onSettingsChanged.bind(this,&Renderer::initSettings);
   Gothic::inst().toggleGi.bind(this, &Renderer::toggleGi);
+
+  settings.giEnabled = Gothic::options().doRtGi;
   initSettings();
   }
 
@@ -178,8 +180,6 @@ void Renderer::initSettings() {
   settings.zVidBrightness     = Gothic::inst().settingsGetF("VIDEO","zVidBrightness");
   settings.zVidContrast       = Gothic::inst().settingsGetF("VIDEO","zVidContrast");
   settings.zVidGamma          = Gothic::inst().settingsGetF("VIDEO","zVidGamma");
-
-  settings.giEnabled          = Gothic::options().doRtGi;
 
   auto prevVidResIndex = settings.vidResIndex;
   settings.vidResIndex = Gothic::inst().settingsGetF("INTERNAL","vidResIndex");
