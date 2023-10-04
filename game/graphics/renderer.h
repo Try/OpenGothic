@@ -85,6 +85,7 @@ class Renderer final {
 
     Tempest::Attachment       sceneLinear;
     Tempest::ZBuffer          zbuffer, shadowMap[Resources::ShadowLayers];
+    Tempest::ZBuffer          zbufferUi;
 
     Tempest::Attachment       sceneOpaque;
     Tempest::Attachment       sceneDepth;

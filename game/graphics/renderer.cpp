@@ -80,8 +80,11 @@ void Renderer::resetSwapchain() {
   auto smpN = Sampler::nearest();
   smpN.setClamping(ClampMode::ClampToEdge);
 
-  sceneLinear = device.attachment(TextureFormat::R11G11B10UF,w,h);
-  zbuffer     = device.zbuffer(zBufferFormat,w,h);
+  sceneLinear    = device.attachment(TextureFormat::R11G11B10UF,w,h);
+  zbuffer        = device.zbuffer(zBufferFormat,w,h);
+  if(w!=swapchain.w() || h!=swapchain.h())
+    zbufferUi = device.zbuffer(zBufferFormat, swapchain.w(), swapchain.h()); else
+    zbufferUi = ZBuffer();
 
   if(Gothic::options().doMeshShading) {
     uint32_t pw = nextPot(w);
@@ -432,7 +435,8 @@ void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
   uiLayer.draw(cmd);
 
   if(inventory.isOpen()!=InventoryMenu::State::Closed) {
-    cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}},{zbuffer, 1.f, Tempest::Preserve});
+    auto& zb = (zbufferUi.isEmpty() ? zbuffer : zbufferUi);
+    cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}},{zb, 1.f, Tempest::Preserve});
     cmd.setDebugMarker("Inventory");
     inventory.draw(cmd,cmdId);
 
