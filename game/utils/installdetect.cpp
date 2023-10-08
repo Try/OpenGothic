@@ -16,7 +16,7 @@ InstallDetect::InstallDetect() {
   pfiles    = programFiles(false);
   pfilesX86 = programFiles(true);
 #endif
-#ifdef __OSX__
+#if defined(__OSX__) || defined(__IOS__)
   appDir    = applicationSupportDirectory();
 #endif
   }
@@ -27,7 +27,7 @@ std::u16string InstallDetect::detectG2() {
   if(ret.empty())
     ret = detectG2(pfilesX86);
   return ret;
-#elif defined(__OSX__)
+#elif defined(__OSX__) || defined(__IOS__)
   if(FileUtil::exists(appDir))
     return appDir;
   return u"";

@@ -10,7 +10,7 @@
 #include <Tempest/DirectX12Api>
 #endif
 
-#if defined(__OSX__)
+#if defined(__OSX__) || defined(__IOS__)
 #include <Tempest/MetalApi>
 #endif
 
@@ -47,14 +47,14 @@ std::unique_ptr<Tempest::AbstractGraphicsApi> mkApi(const CommandLine& g) {
       break;
 #endif
     case CommandLine::Vulkan:
-#if !defined(__OSX__)
+#if !defined(__OSX__) && !defined(__IOS__)
       return std::make_unique<Tempest::VulkanApi>(flg);
 #else
       break;
 #endif
     }
 
-#if defined(__OSX__)
+#if defined(__OSX__) || defined(__IOS__)
   return std::make_unique<Tempest::MetalApi>(flg);
 #else
   return std::make_unique<Tempest::VulkanApi>(flg);
