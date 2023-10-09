@@ -154,7 +154,7 @@ class Gothic final {
     std::string_view                      messageByName (std::string_view id) const;
     uint32_t                              messageTime   (std::string_view id) const;
 
-    std::u16string                        nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const;
+    static std::u16string                 nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type);
     std::unique_ptr<phoenix::vm>          createPhoenixVm(std::string_view datFile);
     phoenix::script                       loadScript(std::string_view datFile);
     void                                  setupVmCommonApi(phoenix::vm &vm);

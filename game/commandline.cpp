@@ -118,6 +118,7 @@ CommandLine::CommandLine(int argc, const char** argv) {
   }
 
 const CommandLine& CommandLine::inst() {
+  assert(instance!=nullptr);
   return *instance;
   }
 

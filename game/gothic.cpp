@@ -181,6 +181,7 @@ Gothic::~Gothic() {
   }
 
 Gothic& Gothic::inst() {
+  assert(instance!=nullptr);
   return *instance;
   }
 
@@ -779,7 +780,7 @@ std::unique_ptr<DocumentMenu::Show>& Gothic::getDocument(int id) {
   return empty;
   }
 
-std::u16string Gothic::nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) const {
+std::u16string Gothic::nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type) {
   return CommandLine::inst().nestedPath(name,type);
   }
 

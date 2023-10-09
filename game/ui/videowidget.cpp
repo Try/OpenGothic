@@ -201,7 +201,7 @@ void VideoWidget::tick() {
     hasPendingVideo.store(false);
   }
 
-  auto path  = Gothic::inst().nestedPath({u"_work",u"Data",u"Video"},Dir::FT_Dir);
+  auto path  = Gothic::nestedPath({u"_work",u"Data",u"Video"},Dir::FT_Dir);
   auto fname = TextCodec::toUtf16(filename.c_str());
   auto f     = FileUtil::caseInsensitiveSegment(path,fname.c_str(),Dir::FT_File);
   if(!FileUtil::exists(f)) {

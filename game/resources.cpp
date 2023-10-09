@@ -65,12 +65,12 @@ Resources::Resources(Tempest::Device &device)
 
   dxMusic.reset(new Dx8::DirectMusic());
   // G2
-  dxMusic->addPath(Gothic::inst().nestedPath({u"_work",u"Data",u"Music",u"newworld"},  Dir::FT_Dir));
-  dxMusic->addPath(Gothic::inst().nestedPath({u"_work",u"Data",u"Music",u"AddonWorld"},Dir::FT_Dir));
+  dxMusic->addPath(Gothic::nestedPath({u"_work",u"Data",u"Music",u"newworld"},  Dir::FT_Dir));
+  dxMusic->addPath(Gothic::nestedPath({u"_work",u"Data",u"Music",u"AddonWorld"},Dir::FT_Dir));
   // G1
-  dxMusic->addPath(Gothic::inst().nestedPath({u"_work",u"Data",u"Music",u"dungeon"},  Dir::FT_Dir));
-  dxMusic->addPath(Gothic::inst().nestedPath({u"_work",u"Data",u"Music",u"menu_men"}, Dir::FT_Dir));
-  dxMusic->addPath(Gothic::inst().nestedPath({u"_work",u"Data",u"Music",u"orchestra"},Dir::FT_Dir));
+  dxMusic->addPath(Gothic::nestedPath({u"_work",u"Data",u"Music",u"dungeon"},  Dir::FT_Dir));
+  dxMusic->addPath(Gothic::nestedPath({u"_work",u"Data",u"Music",u"menu_men"}, Dir::FT_Dir));
+  dxMusic->addPath(Gothic::nestedPath({u"_work",u"Data",u"Music",u"orchestra"},Dir::FT_Dir));
 
   fBuff .reserve(8*1024*1024);
   ddsBuf.reserve(8*1024*1024);

@@ -43,7 +43,7 @@ class IniFile final {
     auto  find      (std::string_view sec, std::string_view name) -> Value&;
     auto  find      (std::string_view sec, std::string_view name, bool autoCreate) -> Value*;
     int   getI      (const Value& v) const;
-    float getF(const Value& v) const;
+    float getF      (const Value& v) const;
 
     std::vector<Section> sec;
     std::u16string       fileName;

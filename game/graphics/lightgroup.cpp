@@ -212,7 +212,7 @@ LightGroup::LightGroup(const SceneGlobals& scene)
   vbo = device.vbo(v,8);
 
   try {
-    auto filename = Gothic::inst().nestedPath({u"_work", u"Data", u"Presets", u"LIGHTPRESETS.ZEN"}, Dir::FT_File);
+    auto filename = Gothic::nestedPath({u"_work", u"Data", u"Presets", u"LIGHTPRESETS.ZEN"}, Dir::FT_File);
     auto buf = phoenix::buffer::mmap(filename);
     auto zen = phoenix::archive_reader::open(buf);
 

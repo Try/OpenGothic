@@ -404,7 +404,7 @@ void GameScript::initDialogs() {
   }
 
 void GameScript::loadDialogOU() {
-  auto gCutscene = Gothic::inst().nestedPath({u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE"},Dir::FT_Dir);
+  auto gCutscene = Gothic::nestedPath({u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE"},Dir::FT_Dir);
   std::string prefix = std::string(Gothic::inst().defaultOutputUnits());
   std::vector<std::string> names = {prefix + ".DAT", prefix + ".BIN"};
 
