@@ -64,6 +64,11 @@ Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest:
   moonSize     = Gothic::settingsGetF("SKY_OUTDOOR","zMoonSize");
   if(moonSize<=1)
     moonSize = 400;
+    
+  if(sunImg==nullptr)
+    sunImg = &Resources::fallbackBlack();
+  if(moonImg==nullptr)
+    moonImg = &Resources::fallbackBlack();
 
   auto& device = Resources::device();
 
