@@ -81,6 +81,7 @@ class Workers final {
       }
 
     static const size_t               taskPerThread;
+    static const size_t               taskPerStep;
     bool                              running=true;
 
     std::thread                       th[MAX_THREADS];

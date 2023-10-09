@@ -39,7 +39,8 @@ void Workers::setThreadName(const char* threadName) { (void)threadName; }
 
 using namespace Tempest;
 
-const size_t Workers::taskPerThread = 16;
+const size_t Workers::taskPerThread = 256;
+const size_t Workers::taskPerStep   = 16;
 
 Workers::Workers() {
   size_t id=0;
@@ -90,7 +91,6 @@ void Workers::threadFunc(size_t id) {
       }
     }
 
-
     if(!running) {
       taskDone.fetch_add(1);
       return;
@@ -111,8 +111,8 @@ void Workers::threadFunc(size_t id) {
 uint32_t Workers::taskLoop() {
   uint32_t count = 0;
   while(true) {
-    size_t b = size_t(progressIt.fetch_add(taskPerThread));
-    size_t e = std::min(b+taskPerThread, workSize);
+    size_t b = size_t(progressIt.fetch_add(taskPerStep));
+    size_t e = std::min(b+taskPerStep, workSize);
     if(e<=b)
       break;
 
@@ -132,6 +132,7 @@ void Workers::execWork(uint32_t& minElts) {
     taskCount = uint32_t((workSize+taskPerThread-1)/taskPerThread);
     if(taskCount>maxTheads)
       taskCount = maxTheads;
+    //taskCount = 1;
     } else {
     taskCount = uint32_t(workSize);
     }
@@ -141,7 +142,7 @@ void Workers::execWork(uint32_t& minElts) {
     return;
     }
 
-  //static uint32_t minElts = 128;
+  minElts = std::max<uint32_t>(minElts, taskPerThread);
 
   if(workSet!=nullptr && workSize<=minElts && true) {
     workFunc(workSet, workSize);
@@ -156,15 +157,21 @@ void Workers::execWork(uint32_t& minElts) {
   {
   std::unique_lock<std::mutex> lck(sync);
   workTbd.store(int32_t(taskCount));
-  workWait.notify_all();
+  if(workSet!=nullptr) {
+    // relaxed notification
+    // for(size_t i=0; i<taskCount; ++i)
+    workWait.notify_one();
+    } else {
+    workWait.notify_all();
+    }
   }
 
   if(workSet==nullptr) {
     std::this_thread::yield();
     } else {
-    uint32_t cnt = taskLoop();
+    uint32_t cnt = taskLoop(); (void)cnt;
     // horrible workaround for high threads overhead on Intel
-    minElts = std::clamp(minElts, cnt*2, cnt*4);
+    // minElts = std::clamp(minElts, cnt*2, cnt*4);
     }
 
   while(true) {
