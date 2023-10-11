@@ -10,11 +10,12 @@
 #include <Tempest/DirectX12Api>
 #endif
 
-#if defined(__OSX__) || defined(__IOS__)
+#if defined(__APPLE__)
 #include <Tempest/MetalApi>
 #endif
 
 #include "utils/crashlog.h"
+#include "utils/installdetect.h"
 #include "mainwindow.h"
 #include "gothic.h"
 #include "build.h"
@@ -62,6 +63,13 @@ std::unique_ptr<Tempest::AbstractGraphicsApi> mkApi(const CommandLine& g) {
   }
 
 int main(int argc,const char** argv) {
+#if defined(__IOS__)
+  {
+    auto appdir = InstallDetect::applicationSupportDirectory();
+    std::filesystem::current_path(appdir);
+  }
+#endif
+
   try {
     static Tempest::WFile logFile("log.txt");
     Tempest::Log::setOutputCallback([](Tempest::Log::Mode mode, const char* text) {

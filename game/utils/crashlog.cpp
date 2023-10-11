@@ -7,7 +7,8 @@
 #include <csignal>
 #include <fstream>
 #include <cstring>
-#ifdef __LINUX__
+
+#if defined(__LINUX__) || defined(__APPLE__)
 #include <execinfo.h> // backtrace
 #include <dlfcn.h>    // dladdr
 #include <cxxabi.h>   // __cxa_demangle
@@ -107,7 +108,7 @@ void CrashLog::dumpStack(const char *sig) {
 #ifdef __WINDOWS__
   traceback.collect(0);
   traceback.log(db, std::cout);
-#elif __LINUX__
+#elif defined(__LINUX__) || defined(__APPLE__)
   tracebackLinux(std::cout);
 #endif
   std::cout << std::endl;
@@ -118,13 +119,14 @@ void CrashLog::dumpStack(const char *sig) {
   writeSysInfo(fout);
 #ifdef __WINDOWS__
   traceback.log(db, fout);
-#elif __LINUX__
+#elif defined(__LINUX__) || defined(__APPLE__)
   tracebackLinux(fout);
 #endif
+  fout.flush();
   }
 
 void CrashLog::tracebackLinux(std::ostream &out) {
-  #ifdef __LINUX__
+#if defined(__LINUX__) || defined(__APPLE__)
   // inspired by https://gist.github.com/fmela/591333/36faca4c2f68f7483cd0d3a357e8a8dd5f807edf (BSD)
   void *callstack[64] = {};
   char **symbols = nullptr;
@@ -154,7 +156,7 @@ void CrashLog::tracebackLinux(std::ostream &out) {
       }
     free(symbols);
     }
-  #endif
+#endif
   }
 
 void CrashLog::writeSysInfo(std::ostream &fout) {
