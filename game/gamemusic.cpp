@@ -1,4 +1,4 @@
-﻿#include "gamemusic.h"
+#include "gamemusic.h"
 #include "gothic.h"
 
 #include <Tempest/Sound>
@@ -71,6 +71,11 @@ struct GameMusic::MusicProducer : Tempest::SoundProducer {
       }
     catch(std::runtime_error&) {
       Log::e("unable to load sound: \"",theme.file,"\"");
+      stopMusic();
+      }
+    catch(std::bad_alloc&) {
+      Log::e("out of memory for sound: \"",theme.file,"\"");
+      stopMusic();
       }
     }
 
