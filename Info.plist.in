@@ -32,6 +32,8 @@
 	<string>${MACOSX_BUNDLE_COPYRIGHT}</string>
   <key>UIFileSharingEnabled</key>
   <true/>
+  <key>LSSupportsOpeningDocumentsInPlace</key>
+  <true/>
   <key>com.apple.developer.kernel.increased-memory-limit</key>
   <true/>
 </dict>

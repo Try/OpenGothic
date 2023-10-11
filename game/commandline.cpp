@@ -93,7 +93,7 @@ CommandLine::CommandLine(int argc, const char** argv) {
   if(gpath.empty()) {
     InstallDetect inst;
     gpath = inst.detectG2();
-#if defined(__OSX__) || defined(__IOS__)
+#if defined(__APPLE__)
     if(!gpath.empty() && gpath==inst.applicationSupportDirectory()) {
       std::filesystem::current_path(gpath);
       }

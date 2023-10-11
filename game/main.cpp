@@ -48,14 +48,14 @@ std::unique_ptr<Tempest::AbstractGraphicsApi> mkApi(const CommandLine& g) {
       break;
 #endif
     case CommandLine::Vulkan:
-#if !defined(__OSX__) && !defined(__IOS__)
+#if !defined(__APPLE__)
       return std::make_unique<Tempest::VulkanApi>(flg);
 #else
       break;
 #endif
     }
 
-#if defined(__OSX__) || defined(__IOS__)
+#if defined(__APPLE__)
   return std::make_unique<Tempest::MetalApi>(flg);
 #else
   return std::make_unique<Tempest::VulkanApi>(flg);
