@@ -4,6 +4,7 @@
 #include <Tempest/TextCodec>
 #include <cstring>
 #include <filesystem>
+#include <cassert>
 
 #include "utils/installdetect.h"
 #include "utils/fileutil.h"
