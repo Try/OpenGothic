@@ -6,7 +6,7 @@
 class CrashLog final {
   public:
     static void setup();
-    static void setGpu(const char* name);
+    static void setGpu(std::string_view name);
 
     static void dumpStack(const char* sig);
 

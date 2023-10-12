@@ -14,14 +14,17 @@
 #include <Tempest/MetalApi>
 #endif
 
-#include "utils/crashlog.h"
+#if defined(__IOS__)
 #include "utils/installdetect.h"
+#endif
+
+#include "utils/crashlog.h"
 #include "mainwindow.h"
 #include "gothic.h"
 #include "build.h"
 #include "commandline.h"
 
-const char* selectDevice(const Tempest::AbstractGraphicsApi& api) {
+std::string_view selectDevice(const Tempest::AbstractGraphicsApi& api) {
   auto d = api.devices();
 
   static Tempest::Device::Props p;
@@ -35,7 +38,7 @@ const char* selectDevice(const Tempest::AbstractGraphicsApi& api) {
     p = d[0];
     return p.name;
     }
-  return nullptr;
+  return "";
   }
 
 std::unique_ptr<Tempest::AbstractGraphicsApi> mkApi(const CommandLine& g) {
@@ -107,8 +110,7 @@ int main(int argc,const char** argv) {
   CommandLine          cmd{argc,argv};
   auto                 api     = mkApi(cmd);
   const auto           gpuName = selectDevice(*api);
-  if(gpuName!=nullptr)
-    CrashLog::setGpu(gpuName);
+  CrashLog::setGpu(gpuName);
 
   Tempest::Device      device{*api,gpuName};
   CrashLog::setGpu(device.properties().name);

@@ -90,8 +90,10 @@ void CrashLog::setup() {
   std::set_terminate(terminateHandler);
   }
 
-void CrashLog::setGpu(const char *name) {
-  std::strncpy(gpuName,name,sizeof(gpuName)-1);
+void CrashLog::setGpu(std::string_view name) {
+  if(name.empty())
+    return;
+  std::strncpy(gpuName,name.data(),sizeof(gpuName)-1);
   }
 
 void CrashLog::dumpStack(const char *sig) {
