@@ -32,6 +32,9 @@ MainWindow::MainWindow(Device& device)
     atlas(device),renderer(swapchain),
     rootMenu(keycodec),inventory(keycodec),
     dialogs(inventory),document(keycodec),
+#if defined(__MOBILE_PLATFORM__)
+    mobileUi(player),
+#endif
     player(dialogs,inventory) {
   for(uint8_t i=0;i<Resources::MaxFramesInFlight;++i)
     fence[i] = device.fence();
@@ -120,6 +123,9 @@ MainWindow::~MainWindow() {
   takeWidget(&document);
   takeWidget(&video);
   takeWidget(&rootMenu);
+#if defined(__MOBILE_PLATFORM__)
+  takeWidget(&mobileUi);
+#endif
   removeAllWidgets();
   // unload
   Gothic::inst().setGame(std::unique_ptr<GameSession>());
@@ -133,6 +139,9 @@ void MainWindow::setupUi() {
   addWidget(&chapter);
   addWidget(&video);
   addWidget(&rootMenu);
+#if defined(__MOBILE_PLATFORM__)
+  addWidget(&mobileUi);
+#endif
 
   rootMenu.setMainMenu();
 
