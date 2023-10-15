@@ -23,6 +23,7 @@ class GameMenu : public Tempest::Widget {
   public:
     GameMenu(MenuRoot& owner, KeyCodec& keyCodec, phoenix::vm& vm, std::string_view menuSection, KeyCodec::Action keyClose);
     ~GameMenu() override;
+    void resetVm(phoenix::vm* vm);
 
     void setPlayer(const Npc& pl);
 
@@ -63,7 +64,7 @@ class GameMenu : public Tempest::Widget {
 
     MenuRoot&                             owner;
     KeyCodec&                             keyCodec;
-    phoenix::vm&                vm;
+    phoenix::vm*                          vm = nullptr;
     Tempest::Timer                        timer;
     const Tempest::Texture2d*             up   = nullptr;
     const Tempest::Texture2d*             down = nullptr;

@@ -15,6 +15,22 @@ using namespace FileUtil;
 
 static CommandLine* instance = nullptr;
 
+static const char16_t* toString(ScriptLang lang) {
+  switch(lang) {
+    case ScriptLang::EN: return u"Scripts_EN";
+    case ScriptLang::DE: return u"Scripts_DE";
+    case ScriptLang::PL: return u"Scripts_PL";
+    case ScriptLang::RU: return u"Scripts_RU";
+    case ScriptLang::FR: return u"Scripts_FR";
+    case ScriptLang::ES: return u"Scripts_ES";
+    case ScriptLang::IT: return u"Scripts_IT";
+    case ScriptLang::CZ: return u"Scripts_CZ";
+    case ScriptLang::NONE:
+      break;
+    }
+  return u"Scripts";
+  }
+
 CommandLine::CommandLine(int argc, const char** argv) {
   instance = this;
   if(argc<1)
@@ -107,7 +123,9 @@ CommandLine::CommandLine(int argc, const char** argv) {
   if(gpath.size()>0 && gpath.back()!='/')
     gpath.push_back('/');
 
-  gscript = nestedPath({u"_work",u"Data",u"Scripts",u"_compiled"},Dir::FT_Dir);
+  gscript   = nestedPath({u"_work",u"Data",u"Scripts",   u"_compiled"},Dir::FT_Dir);
+  gcutscene = nestedPath({u"_work",u"Data",u"Scripts",   u"content",u"CUTSCENE"},Dir::FT_Dir);
+
   gmod    = TextCodec::toUtf16(std::string(mod));
   if(!gmod.empty())
     gmod = nestedPath({u"system",gmod.c_str()},Dir::FT_File);
@@ -131,8 +149,22 @@ std::u16string_view CommandLine::rootPath() const {
   return gpath;
   }
 
-std::u16string_view CommandLine::scriptPath() const {
+std::u16string CommandLine::scriptPath() const {
   return gscript;
+  }
+
+std::u16string CommandLine::scriptPath(ScriptLang lang) const {
+  const char16_t* scripts = toString(lang);
+  return nestedPath({u"_work",u"Data",scripts,u"_compiled"},Dir::FT_Dir);
+  }
+
+std::u16string CommandLine::cutscenePath() const {
+  return gcutscene;
+  }
+
+std::u16string CommandLine::cutscenePath(ScriptLang lang) const {
+  const char16_t* scripts = toString(lang);
+  return nestedPath({u"_work",u"Data",scripts},Dir::FT_Dir);
   }
 
 std::u16string CommandLine::nestedPath(const std::initializer_list<const char16_t*>& name, Tempest::Dir::FileType type) const {

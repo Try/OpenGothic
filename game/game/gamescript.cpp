@@ -17,6 +17,7 @@
 #include "world/triggers/abstracttrigger.h"
 #include "graphics/visualfx.h"
 #include "utils/fileutil.h"
+#include "commandline.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -66,16 +67,19 @@ GameScript::GameScript(GameSession &owner)
       vm.global_victim() == nullptr || vm.global_hero() == nullptr)
     throw std::runtime_error("Cannot find script symbol SELF, OTHER, ITEM, VICTIM, or HERO! Cannot proceed!");
 
+  vmLang = Gothic::inst().settingsGetI("GAME", "language");
   phoenix::register_all_script_classes(vm);
   vm.register_exception_handler(phoenix::lenient_vm_exception_handler);
   Gothic::inst().setupVmCommonApi(vm);
   aiDefaultPipe.reset(new GlobalOutput(*this));
   initCommon();
+  initSettings();
+  Gothic::inst().onSettingsChanged.bind(this,&GameScript::initSettings);
   }
 
 GameScript::~GameScript() {
+  Gothic::inst().onSettingsChanged.ubind(this,&GameScript::initSettings);
   }
-
 
 void GameScript::initCommon() {
   bindExternal("hlp_random",                     &GameScript::hlp_random);
@@ -395,16 +399,25 @@ void GameScript::initCommon() {
     }
   }
 
+void GameScript::initSettings() {
+  auto lang = Gothic::inst().settingsGetI("GAME", "language");
+  if(vmLang!=lang) {
+    vmLang = lang;
+    //vm     = createVm(Gothic::inst());
+    initDialogs();
+    }
+  }
+
 void GameScript::initDialogs() {
   loadDialogOU();
 
+  dialogsInfo.clear();
   vm.enumerate_instances_by_class_name("C_INFO", [this](phoenix::symbol& sym){
     dialogsInfo.push_back(vm.init_instance<phoenix::c_info>(&sym));
     });
   }
 
 void GameScript::loadDialogOU() {
-  auto gCutscene = Gothic::nestedPath({u"_work",u"Data",u"Scripts",u"content",u"CUTSCENE"},Dir::FT_Dir);
   std::string prefix = std::string(Gothic::inst().defaultOutputUnits());
   std::vector<std::string> names = {prefix + ".DAT", prefix + ".BIN"};
 
@@ -425,7 +438,14 @@ void GameScript::loadDialogOU() {
     char16_t str16[256] = {};
     for(size_t i=0; OU[i] && i<255; ++i)
       str16[i] = char16_t(OU[i]);
-    std::u16string full = FileUtil::caseInsensitiveSegment(gCutscene,str16,Dir::FT_File);
+
+    auto gcutscene = CommandLine::inst().cutscenePath();
+    auto full      = FileUtil::caseInsensitiveSegment(gcutscene,str16,Dir::FT_File);
+    if(!FileUtil::exists(std::u16string(full)) && vmLang>=0) {
+      gcutscene = CommandLine::inst().cutscenePath(ScriptLang(vmLang));
+      full      = FileUtil::caseInsensitiveSegment(gcutscene,str16,Dir::FT_File);
+      }
+
     try {
       auto buf = phoenix::buffer::mmap(full);
       dialogs = phoenix::messages::parse(buf);
@@ -978,12 +998,13 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
   ScopeVar victum(*vm.global_victim(), vic != nullptr ? vic->handlePtr() : nullptr);
 
   auto* sym = vm.find_symbol_by_index(uint32_t(fn.ptr));
-  int ret = 0;
+  int   ret = 0;
   if(sym!=nullptr && sym->rtype() == phoenix::datatype::integer) {
     ret = vm.call_function<int>(sym);
     }
   else if(sym!=nullptr) {
     vm.call_function<void>(sym);
+    ret = 0;
     }
 
   if(vm.global_other()->is_instance_of<phoenix::c_npc>()){
@@ -1284,7 +1305,8 @@ bool GameScript::searchScheme(std::string_view sc, std::string_view listName) {
   }
 
 phoenix::vm GameScript::createVm(Gothic& gothic) {
-  auto script = gothic.loadScript(gothic.defaultGameDatFile());
+  auto lang   = gothic.settingsGetI("GAME", "language");
+  auto script = gothic.loadScript(gothic.defaultGameDatFile(), ScriptLang(lang));
   auto exef   = phoenix::execution_flag::vm_allow_null_instance_access;
   if(Ikarus::isRequired(script)) {
     exef |= phoenix::execution_flag::vm_ignore_const_specifier;

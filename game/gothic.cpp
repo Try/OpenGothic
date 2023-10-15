@@ -77,6 +77,10 @@ Gothic::Gothic() {
   defaults->set("GAME", "useGothic1Controls",  1);
   defaults->set("GAME", "highlightMeleeFocus", 0);
 
+  // switch related language options
+  defaults->set("GAME", "language", -1);
+  defaults->set("GAME", "voice",    -1);
+
   defaults->set("SKY_OUTDOOR", "zSunName",   "unsun5.tga");
   defaults->set("SKY_OUTDOOR", "zSunSize",   200);
   defaults->set("SKY_OUTDOOR", "zSunAlpha",  230);
@@ -600,8 +604,8 @@ std::string_view Gothic::defaultOutputUnits() const {
   return ouDef;
   }
 
-std::unique_ptr<phoenix::vm> Gothic::createPhoenixVm(std::string_view datFile) {
-  auto sc = loadScript(datFile);
+std::unique_ptr<phoenix::vm> Gothic::createPhoenixVm(std::string_view datFile, const ScriptLang lang) {
+  auto sc = loadScript(datFile, lang);
   phoenix::register_all_script_classes(sc);
 
   auto vm = std::make_unique<phoenix::vm>(std::move(sc), phoenix::execution_flag::vm_allow_null_instance_access);
@@ -609,7 +613,7 @@ std::unique_ptr<phoenix::vm> Gothic::createPhoenixVm(std::string_view datFile) {
   return vm;
   }
 
-phoenix::script Gothic::loadScript(std::string_view datFile) {
+phoenix::script Gothic::loadScript(std::string_view datFile, const ScriptLang lang) {
   if(Resources::hasFile(datFile)) {
     auto buf = Resources::getFileBuffer(datFile);
     return phoenix::script::parse(buf);
@@ -621,11 +625,25 @@ phoenix::script Gothic::loadScript(std::string_view datFile) {
     return phoenix::script::parse(buf);
     }
 
-  auto gscript = CommandLine::inst().scriptPath();
   char16_t str16[256] = {};
   for(size_t i=0; i<datFile.size() && i<255; ++i)
     str16[i] = char16_t(datFile[i]);
-  auto path = caseInsensitiveSegment(gscript,str16,Dir::FT_File);
+
+  auto gscript = CommandLine::inst().scriptPath();
+  auto path    = caseInsensitiveSegment(gscript,str16,Dir::FT_File);
+  if(!FileUtil::exists(path) && int(lang)>=0) {
+    gscript = CommandLine::inst().scriptPath(lang);
+    path    = caseInsensitiveSegment(gscript,str16,Dir::FT_File);
+    }
+  if(!FileUtil::exists(path) && int(lang)>=0) {
+    datFile = datFile.substr(segment+1);
+    for(size_t i=0; i<datFile.size() && i<255; ++i)
+      str16[i] = char16_t(datFile[i]);
+    str16[datFile.size()] = u'\0';
+    gscript = CommandLine::inst().scriptPath(lang);
+    path    = caseInsensitiveSegment(gscript,str16,Dir::FT_File);
+    }
+
   auto buf = phoenix::buffer::mmap(path);
   return phoenix::script::parse(buf);
   }

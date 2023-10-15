@@ -10,14 +10,38 @@ using namespace Tempest;
 MenuRoot::MenuRoot(KeyCodec& keyCodec)
   :keyCodec(keyCodec) {
   setCursorShape(CursorShape::Hidden);
-  vm = Gothic::inst().createPhoenixVm("MENU.DAT");
 
-  vm->register_external("apply_options_video",[](){
-    Log::d("TODO: apply_options_video");
-    });
+  Gothic::inst().onSettingsChanged.bind(this,&MenuRoot::initSettings);
+  initSettings();
   }
 
 MenuRoot::~MenuRoot() {
+  Gothic::inst().onSettingsChanged.ubind(this,&MenuRoot::initSettings);
+  }
+
+void MenuRoot::initSettings() {
+  const auto lang = Gothic::inst().settingsGetI("GAME", "language");
+  if(lang==vmLang && vm!=nullptr)
+    return;
+
+  // clear pointer to vm-objects
+  for(auto& i:menuStack)
+    i->resetVm(nullptr);
+  if(current!=nullptr)
+    current->resetVm(nullptr);
+
+  vmLang = lang;
+  vm     = Gothic::inst().createPhoenixVm("MENU.DAT", ScriptLang(vmLang));
+  vm->register_external("apply_options_video",[](){
+    Log::d("TODO: apply_options_video");
+    });
+
+  for(auto& i:menuStack)
+    i->resetVm(vm.get());
+  if(current!=nullptr)
+    current->resetVm(vm.get());
+
+  update();
   }
 
 void MenuRoot::setMainMenu() {
@@ -49,7 +73,7 @@ void MenuRoot::pushMenu(GameMenu *w) {
     addWidget(w);
     w->onTick();
     }
-  current=w;
+  current = w;
   }
 
 void MenuRoot::popMenu() {

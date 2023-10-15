@@ -188,6 +188,7 @@ class GameScript final {
       }
 
     void  initCommon();
+    void  initSettings();
     void  loadDialogOU();
 
     Item* findItem(phoenix::c_item* handle);
@@ -427,6 +428,7 @@ class GameScript final {
 
     GameSession&                                                owner;
     phoenix::vm                                                 vm;
+    int32_t                                                     vmLang = -1;
     std::mt19937                                                randGen;
 
     std::vector<std::unique_ptr<ScriptPlugin>>                  plugins;

@@ -37,7 +37,11 @@ class MenuRoot : public Tempest::Widget {
     void mouseUpEvent   (Tempest::MouseEvent& event) override;
 
   private:
-    std::unique_ptr<phoenix::vm>  vm;
+    void initSettings();
+
+    std::unique_ptr<phoenix::vm>           vm;
+    int32_t                                vmLang = -1;
+
     GameMenu*                              current=nullptr;
     std::vector<std::unique_ptr<GameMenu>> menuStack;
     KeyCodec&                              keyCodec;

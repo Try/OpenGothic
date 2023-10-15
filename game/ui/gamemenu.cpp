@@ -261,7 +261,7 @@ struct GameMenu::SavNameDialog : Dialog {
   };
 
 GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, phoenix::vm &vm, std::string_view menuSection, KeyCodec::Action kClose)
-  :owner(owner), keyCodec(keyCodec), vm(vm), kClose(kClose) {
+  :owner(owner), keyCodec(keyCodec), vm(&vm), kClose(kClose) {
   setCursorShape(CursorShape::Hidden);
   timer.timeout.bind(this,&GameMenu::onTick);
   timer.start(100);
@@ -269,7 +269,7 @@ GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, phoenix::vm &vm, std::st
   textBuf.reserve(64);
 
   auto* menuSectionSymbol = vm.find_symbol_by_name(menuSection);
-  if (menuSectionSymbol != nullptr) {
+  if(menuSectionSymbol!=nullptr) {
     menu = vm.init_instance<phoenix::c_menu>(menuSectionSymbol);
     } else {
     Tempest::Log::e("Cannot initialize menu ", menuSection, ": Symbol not found.");
@@ -296,8 +296,8 @@ GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, phoenix::vm &vm, std::st
   updateValues();
   slider = Resources::loadTexture("MENU_SLIDER_POS.TGA");
 
-  up   = Resources::loadTexture("O.TGA");
-  down = Resources::loadTexture("U.TGA");
+  up     = Resources::loadTexture("O.TGA");
+  down   = Resources::loadTexture("U.TGA");
 
   Gothic::inst().pushPause();
   }
@@ -306,6 +306,17 @@ GameMenu::~GameMenu() {
   Gothic::flushSettings();
   Gothic::inst().popPause();
   Resources::device().waitIdle(); // safe-delete savethumb
+  }
+
+void GameMenu::resetVm(phoenix::vm* inVm) {
+  vm = inVm;
+  for(int i=0; i<phoenix::c_menu::item_count; ++i){
+    hItems[i].handle = nullptr;
+    }
+  if(vm==nullptr)
+    return;
+  initItems();
+  updateValues();
   }
 
 GameMenu::QuestStat GameMenu::toStatus(std::string_view str) {
@@ -343,9 +354,9 @@ void GameMenu::initItems() {
 
     hItems[i].name = menu->items[i];
 
-    auto* menuItemSymbol = vm.find_symbol_by_name(hItems[i].name);
+    auto* menuItemSymbol = vm->find_symbol_by_name(hItems[i].name);
     if (menuItemSymbol != nullptr) {
-      hItems[i].handle = vm.init_instance<phoenix::c_menu_item>(menuItemSymbol);
+      hItems[i].handle = vm->init_instance<phoenix::c_menu_item>(menuItemSymbol);
       } else {
       Tempest::Log::e("Cannot initialize menu item ", hItems[i].name, ": Symbol not found.");
       hItems[i].handle = std::make_shared<phoenix::c_menu_item>();
@@ -795,8 +806,8 @@ void GameMenu::execSingle(Item &it, int slideDx) {
         exitFlag = true;
         break;
       case c_menu_item_select_action::start_menu:
-        if(vm.find_symbol_by_name(onSelAction_S[i]) != nullptr)
-          owner.pushMenu(new GameMenu(owner,keyCodec,vm,onSelAction_S[i],keyClose()));
+        if(vm->find_symbol_by_name(onSelAction_S[i]) != nullptr)
+          owner.pushMenu(new GameMenu(owner,keyCodec,*vm,onSelAction_S[i],keyClose()));
         break;
       case c_menu_item_select_action::start_item:
         break;
@@ -825,9 +836,9 @@ void GameMenu::execSingle(Item &it, int slideDx) {
     }
 
   if(onEventAction[int(c_menu_item_select_event::execute)]>0){
-    auto* sym = vm.find_symbol_by_index(uint32_t(onEventAction[int(c_menu_item_select_event::execute)]));
+    auto* sym = vm->find_symbol_by_index(uint32_t(onEventAction[int(c_menu_item_select_event::execute)]));
     if (sym != nullptr)
-      vm.call_function(sym);
+      vm->call_function(sym);
     }
 
   execChgOption(it,slideDx);
