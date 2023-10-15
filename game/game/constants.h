@@ -447,4 +447,9 @@ inline const char* MaterialGroupNames[] = {
   "EARTH",
   "WATER",
   "SNOW",
-};
+  };
+
+enum AiStateCode : int32_t {
+  LOOP_CONTINUE = 0,
+  LOOP_END      = 1,
+  };

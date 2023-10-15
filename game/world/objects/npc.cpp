@@ -2619,21 +2619,21 @@ void Npc::tickRoutine() {
   if(aiState.started) {
     if(aiState.loopNextTime<=owner.tickCount()){
       aiState.loopNextTime+=1000; // one tick per second?
-      int loop = 0;
+      int loop = LOOP_CONTINUE;
       if(aiState.funcLoop.isValid()) {
         loop = owner.script().invokeState(this,currentOther,currentVictum,aiState.funcLoop);
         } else {
-        // ZS_DEATH   have no looping, in G1, G2 classic
-        // ZS_GETMEAT have no looping, at all
+        // ZS_DEATH   have no loop-function, in G1, G2-classic
+        // ZS_GETMEAT have no loop-function, in G2-notr
         loop = owner.version().hasZSStateLoop() ? 1 : 0;
         }
 
       if(aiState.eTime<=owner.time()) {
         if(!isTalk()) {
-          loop=1; // have to hack ZS_Talk bugs
+          loop = LOOP_END; // have to hack ZS_Talk bugs
           }
         }
-      if(loop!=0) {
+      if(loop!=LOOP_CONTINUE) {
         clearState(false);
         currentOther  = nullptr;
         currentVictum = nullptr;
