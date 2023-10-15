@@ -892,9 +892,8 @@ bool MdlVisual::startAnimDialog(Npc &npc) {
   if(npc.bodyStateMasked()!=BS_STAND)
     return true;
 
-  //const int countG1 = 21;
-  const int countG2 = 11;
-  const int id      = std::rand()%countG2 + 1;
+  const uint16_t count = Gothic::inst().version().dialogGestureCount();
+  const int      id    = std::rand()%count + 1;
 
   char name[32]={};
   std::snprintf(name,sizeof(name),"T_DIALOGGESTURE_%02d",id);
@@ -921,9 +920,8 @@ void MdlVisual::startFaceAnim(Npc& npc, std::string_view anim, float intensity, 
   }
 
 void MdlVisual::stopDlgAnim(Npc& npc) {
-  //const int countG1 = 21;
-  const int countG2 = 11;
-  for(uint16_t i=0; i<countG2; i++){
+  const uint16_t count = Gothic::inst().version().dialogGestureCount();
+  for(uint16_t i=0; i<count; i++){
     char buf[32]={};
     std::snprintf(buf,sizeof(buf),"T_DIALOGGESTURE_%02d",i+1);
     skInst->stopAnim(buf);
