@@ -2142,7 +2142,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
       auto fp = owner.findNextFreePoint(*this,act.s0);
       if(fp!=nullptr) {
-        currentFp       = nullptr;
+        currentFp       = fp;
         currentFpLock   = FpLock(*fp);
         go2.set(fp,GoToHint::GT_NextFp);
         wayPath.clear();
