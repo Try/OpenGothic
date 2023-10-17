@@ -130,7 +130,7 @@ void MenuRoot::mouseDownEvent(MouseEvent& event) {
     if(event.button==Event::ButtonRight) {
       popMenu();
       } else {
-      current->onSelect();
+      current->onKeyboard(KeyCodec::ActionGeneric);
       }
     } else {
     event.ignore();
@@ -143,9 +143,9 @@ void MenuRoot::mouseUpEvent(MouseEvent&) {
 void MenuRoot::mouseWheelEvent(MouseEvent &event) {
   if(current!=nullptr) {
     if(event.delta>0)
-      current->onMove(-1); else
+      current->onKeyboard(KeyCodec::Forward); else
     if(event.delta<0)
-      current->onMove(1);
+      current->onKeyboard(KeyCodec::Back);
     } else {
     event.ignore();
     }
@@ -178,15 +178,15 @@ void MenuRoot::keyDownEvent(KeyEvent &e) {
 void MenuRoot::keyUpEvent(KeyEvent &e) {
   if(current!=nullptr) {
     if(e.key==Event::K_W || e.key==Event::K_Up)
-      current->onMove(-1);
+      current->onKeyboard(KeyCodec::Forward);
     else if(e.key==Event::K_S || e.key==Event::K_Down)
-      current->onMove(1);
+      current->onKeyboard(KeyCodec::Back);
     else if(e.key==Event::K_A || e.key==Event::K_Left)
-      current->onSlide(-1);
+      current->onKeyboard(KeyCodec::Left);
     else if(e.key==Event::K_D || e.key==Event::K_Right)
-      current->onSlide(1);
+      current->onKeyboard(KeyCodec::Right);
     else if(e.key==Event::K_Return)
-      current->onSelect();
+      current->onKeyboard(KeyCodec::ActionGeneric);
     else if(e.key==Event::K_ESCAPE || keyCodec.tr(e)==current->keyClose())
       popMenu();
     }

@@ -580,24 +580,32 @@ void GameMenu::resizeEvent(SizeEvent &) {
   onTick();
   }
 
-void GameMenu::onMove(int dy) {
-  Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx("MENU_BROWSE"));
-  setSelection(int(curItem)+dy, dy>0 ? 1 : -1);
-  if(auto s = selectedItem())
-    updateSavThumb(*s);
-  update();
-  }
+void GameMenu::onKeyboard(KeyCodec::Action key) {
+  auto sel = selectedItem();
+  if(sel!=nullptr && isHorSelectable(sel->handle)) {
+    if(key==KeyCodec::Left)
+      key = KeyCodec::Forward;
+    else if(key==KeyCodec::Right)
+      key = KeyCodec::Back;
+    }
 
-void GameMenu::onSelect() {
-  if(auto sel=selectedItem()){
+  if(key==KeyCodec::Forward || key==KeyCodec::Back) {
+    Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx("MENU_BROWSE"));
+    const int dy = (key==KeyCodec::Forward) ? -1 : +1;
+    setSelection(int(curItem)+dy, dy);
+    if(auto s = selectedItem())
+      updateSavThumb(*s);
+    update();
+    }
+
+  if((key==KeyCodec::Left || key==KeyCodec::Right) && sel!=nullptr) {
+    const int dx = (key==KeyCodec::Left) ? -1 : +1;
+    exec(*sel, dx);
+    }
+
+  if(key==KeyCodec::ActionGeneric && sel!=nullptr) {
     Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx("MENU_SELECT"));
     exec(*sel,0);
-    }
-  }
-
-void GameMenu::onSlide(int dx) {
-  if(auto sel=selectedItem()){
-    exec(*sel,dx);
     }
   }
 
@@ -714,6 +722,10 @@ const GthFont& GameMenu::getTextFont(const GameMenu::Item &it) {
 
 bool GameMenu::isSelectable(const std::shared_ptr<phoenix::c_menu_item>& item) {
   return item != nullptr && (item->flags & phoenix::c_menu_item_flags::selectable) && !isHidden(item);
+  }
+
+bool GameMenu::isHorSelectable(const std::shared_ptr<phoenix::c_menu_item>& item) {
+  return item != nullptr && (item->flags & phoenix::c_menu_item_flags::hor_selectable) && !isHidden(item);
   }
 
 bool GameMenu::isEnabled(const std::shared_ptr<phoenix::c_menu_item>& item) {

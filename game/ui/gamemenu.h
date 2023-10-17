@@ -27,9 +27,7 @@ class GameMenu : public Tempest::Widget {
 
     void setPlayer(const Npc& pl);
 
-    void onMove (int dy);
-    void onSlide(int dx);
-    void onSelect();
+    void onKeyboard(KeyCodec::Action k);
     void onTick();
     void processMusicTheme();
 
@@ -95,7 +93,9 @@ class GameMenu : public Tempest::Widget {
     void                                  initItems();
     void                                  getText(const Item &it, std::vector<char>& out);
     const GthFont&                        getTextFont(const Item &it);
+
     static bool                           isSelectable(const std::shared_ptr<phoenix::c_menu_item>& item);
+    static bool                           isHorSelectable(const std::shared_ptr<phoenix::c_menu_item>& item);
     static bool                           isEnabled(const std::shared_ptr<phoenix::c_menu_item>& item);
     static bool                           isHidden(const std::shared_ptr<phoenix::c_menu_item>& item);
 
