@@ -106,10 +106,11 @@ void main() {
   const vec3  linear = textureLinear(diff); //  * Fd_Lambert is accounted in integration
   const float ao     = smoothSsao();
 
-  vec3 ambient = scene.ambient * scene.sunCl.rgb;
-  vec3 sky     = skyIrradiance() * 0.7;
+  vec3 ambient = scene.ambient * scene.sunCl.rgb * 0.25;
+  vec3 sky     = skyIrradiance();
 
-  vec3 lcolor  = mix(ambient, sky, norm.y*0.5+0.5); //lcolor*0.5 + push.ambient*0.5;
+  // vec3 lcolor  = mix(ambient, sky, norm.y*0.5+0.5);
+  vec3 lcolor  = mix(ambient, sky, max(0, norm.y*0.5));
 
   vec3 color = lcolor.rgb;
   color *= linear;

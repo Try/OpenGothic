@@ -73,13 +73,13 @@ vec3 resolveHit(const vec3 rayOrigin, const vec3 rayDirection, float rayT, vec3 
   if(!opaque) {
     // atificial lit on vegetation, as RT can't capture small bright light leaks from the trees
     // dt = dt*0.5 + 0.5;
-    // dt = abs(dt);
+    dt = abs(dt);
     }
 
   const float lambert = max(0, dt); //max(opaque ? 0 : 0.2, dt);
   // avoid ultra-dark spits in woods
   const float shadow  = max(0, shMap);
-  const vec3  lcolor  = scene.sunCl.rgb * scene.GSunIntensity * sunlightMul * Fd_Lambert * lambert * shadow;
+  const vec3  lcolor  = scene.sunCl.rgb * scene.GSunIntensity * Fd_Lambert * lambert * shadow;
 
   return albedo*lcolor;
   //return scene.ambient;
@@ -87,19 +87,13 @@ vec3 resolveHit(const vec3 rayOrigin, const vec3 rayDirection, float rayT, vec3 
 
 vec3 resolveMiss(const vec3 rayOrigin, const vec3 rayDirection) {
   // PERF: need to preload sky lut early in shader
-  const vec3 lcolor  = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), rayDirection, scene.sunDir) * scene.GSunIntensity;
-  const vec3 ambient = scene.ambient; // no proper multi-bounce yet
-  const vec3 atmo    = vec3(0.03) * scene.sunCl.rgb * scene.GSunIntensity; // clouds-Lut?
-
-  vec3 color = vec3(0);
-  color += lcolor;
-  color += atmo;
-  return color;
+  return textureSkyLUT(skyLUT, vec3(0,RPlanet,0), rayDirection, scene.sunDir) * scene.GSunIntensity;
   }
 
 vec3 resolveSecondBounce(vec3 pos, vec3 norm, uint selfProbeId) {
-  // return scene.ambient;
+  return scene.ambient * scene.sunCl.rgb * Fd_LambertInv;
 
+  // doesn't look coherent yet - need to keep offscreen data for long term
   const ivec3 gridPos = ivec3(round(pos/(probeGridStep*1)));
   const uint  h       = probeGridPosHash(gridPos) % hashTable.length();
   uint        probeId = hashTable[h];
@@ -120,7 +114,7 @@ vec3 resolveSecondBounce(vec3 pos, vec3 norm, uint selfProbeId) {
 
   // probeId = selfProbeId;
   // return vec3(0.01,0,0)*scene.GSunIntensity;
-  return scene.ambient * scene.sunCl.rgb;
+  return scene.ambient * scene.sunCl.rgb * Fd_LambertInv;
   // return resolveMiss(pos, -norm);
   // return vec3(0);
   }
@@ -162,7 +156,7 @@ vec4 processSample(const vec3 rayOrigin, const vec3 rayDirection, uint probeId, 
   hit += albedo*bounce2;
   if(semiSky) {
     // avoid pitch-black lighting in forrest
-    hit = (hit*0.65 + resolveMiss(rayOrigin, rayDirection)*0.35);
+    hit = (hit*0.25 + resolveMiss(rayOrigin, rayDirection)*0.75);
     //hit = vec3(1,0,0)*scene.GSunIntensity;
     }
 

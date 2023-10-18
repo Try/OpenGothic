@@ -15,6 +15,7 @@ const vec3  WaterAlbedo = vec3(0.8,0.9,1.0);
 
 const vec3  GGroundAlbedo = vec3(0.1);
 const float Fd_Lambert    = (1.0/M_PI);
+const float Fd_LambertInv = (M_PI);
 
 float linearDepth(float d, vec3 clipInfo) {
   // z_n * z_f,  z_n - z_f, z_f

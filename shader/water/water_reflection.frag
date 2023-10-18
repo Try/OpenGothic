@@ -28,7 +28,7 @@ layout(binding =  8) uniform sampler2D textureDayL1;
 layout(binding =  9) uniform sampler2D textureNightL0;
 layout(binding = 10) uniform sampler2D textureNightL1;
 
-vec3 applyClouds(vec3 skyColor, vec3 view, vec3 refl) {
+vec3 applyClouds(vec3 skyColor, vec3 refl) {
   float night    = scene.isNight;
   vec3  plPos    = vec3(0,RPlanet,0);
 
@@ -194,7 +194,7 @@ void main() {
   if(!underWater) {
     vec3 sun = sunBloom(refl) * scene.sunCl;// (1.0-scene.isNight);
     sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir);
-    sky = applyClouds(sky+sun, view, refl);
+    // sky = applyClouds(sky+sun, refl);
     sky *= scene.GSunIntensity;
     sky *= scene.exposure;
     }

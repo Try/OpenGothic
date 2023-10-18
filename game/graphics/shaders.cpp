@@ -98,9 +98,10 @@ Shaders::Shaders() {
 
   irradiance         = computeShader("irradiance.comp.sprv");
   cloudsLut          = computeShader("clouds_lut.comp.sprv");
-  skyTransmittance   = postEffect("sky_transmittance");
-  skyMultiScattering = postEffect("sky_multi_scattering");
-  skyViewLut         = postEffect("sky_view_lut");
+  skyTransmittance   = postEffect("sky", "sky_transmittance");
+  skyMultiScattering = postEffect("sky", "sky_multi_scattering");
+  skyViewLut         = postEffect("sky", "sky_view_lut");
+  skyViewCldLut      = postEffect("sky", "sky_view_clouds_lut");
 
   fogViewLut3dLQ     = computeShader("fog_view_lut_lq.comp.sprv");
   fogViewLut3dHQ     = computeShader("fog_view_lut_hq.comp.sprv");
@@ -402,7 +403,7 @@ RenderPipeline Shaders::fogShader(std::string_view name) {
     state.setBlendDest(RenderState::BlendMode::OneMinusSrcAlpha);
     }
 
-  auto sh = GothicShader::get(string_frm(name,".vert.sprv"));
+  auto sh = GothicShader::get("sky.vert.sprv");
   auto vs = device.shader(sh.data,sh.len);
 
   sh      = GothicShader::get(string_frm(name,".frag.sprv"));

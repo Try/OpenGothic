@@ -30,7 +30,6 @@ layout(binding  = 7, std430) readonly buffer Pbo  { ProbesHeader probeHeader; Pr
 layout(location = 0) out vec4 outColor;
 
 vec4 colorSum  = vec4(0);
-//vec2 harmonicR = vec2(0);
 bool err       = false;
 
 vec3 unprojectDepth(const float z) {
@@ -208,7 +207,7 @@ void main() {
     colorSum.rgb = colorSum.rgb/max(colorSum.w, minW);
     }
 
-  // const vec3  linear = vec3(1);
+  //const vec3  linear = vec3(1);
   const vec3  linear = textureLinear(diff); //  * Fd_Lambert is accounted in integration
   const float ao     = smoothSsao();
 

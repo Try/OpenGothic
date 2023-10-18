@@ -193,14 +193,12 @@ add_shader(underwater_s.frag         water/underwater.frag -DSCATTERING)
 # Based on Scalable and Production Ready Sky and Atmosphere
 # https://sebh.github.io/publications/egsr2020.pdf
 # https://www.shadertoy.com/view/slSXRW
-add_shader(sky_transmittance.vert    sky/sky.vert)
-add_shader(sky_transmittance.frag    sky/sky_transmittance.frag)
-add_shader(sky_multi_scattering.vert sky/sky.vert)
-add_shader(sky_multi_scattering.frag sky/sky_multi_scattering.frag)
+add_shader(sky.vert                  sky/sky.vert)
 
-add_shader(sky_view_lut.vert         sky/sky.vert)
+add_shader(sky_transmittance.frag    sky/sky_transmittance.frag)
+add_shader(sky_multi_scattering.frag sky/sky_multi_scattering.frag)
 add_shader(sky_view_lut.frag         sky/sky_view_lut.frag)
-add_shader(fog_view_lut.vert         sky/sky.vert -DFOG)
+add_shader(sky_view_clouds_lut.frag  sky/sky_view_clouds_lut.frag)
 
 add_shader(shadow_downsample.comp    sky/shadow_downsample.comp)
 add_shader(clouds_lut.comp           sky/clouds_lut.comp)
@@ -208,16 +206,11 @@ add_shader(clouds_lut.comp           sky/clouds_lut.comp)
 add_shader(fog_view_lut_lq.comp      sky/fog_view_lut.comp -DVOLUMETRIC_LQ -DCOMPUTE)
 add_shader(fog_view_lut_hq.comp      sky/fog_view_lut.comp -DVOLUMETRIC_HQ -DCOMPUTE)
 
-add_shader(fog.vert                  sky/sky.vert "")
-add_shader(fog3d_lq.vert             sky/sky.vert "")
-add_shader(fog3d_hq.vert             sky/sky.vert "")
 add_shader(fog3d_lq.frag             sky/fog.frag -S frag -DVOLUMETRIC_LQ)
 add_shader(fog3d_hq.frag             sky/fog.frag -S frag -DVOLUMETRIC_HQ)
 add_shader(fog3d.comp                sky/fog.frag -S comp -DVOLUMETRIC_HQ -DCOMPUTE)
 
 add_shader(fog.frag                  sky/fog.frag)
-
-add_shader(sky.vert                  sky/sky.vert)
 add_shader(sky.frag                  sky/sky.frag)
 
 add_shader(sun.vert                  sky/sun.vert)

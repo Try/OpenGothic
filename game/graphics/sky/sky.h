@@ -30,6 +30,7 @@ class Sky final {
     void drawFog    (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
 
     const Tempest::Texture2d& skyLut()           const;
+    const Tempest::Texture2d& clearSkyLut()      const;
     const LightSource&        sunLight()         const { return sun; }
     const Tempest::Vec3&      ambientLight()     const { return ambient; }
     float                     sunIntensity()     const { return GSunIntensity; }
@@ -76,13 +77,13 @@ class Sky final {
 
     Tempest::TextureFormat        lutRGBFormat  = Tempest::TextureFormat::R11G11B10UF;
     Tempest::TextureFormat        lutRGBAFormat = Tempest::TextureFormat::RGBA16F;
-    Tempest::Attachment           transLut, multiScatLut, viewLut;
+    Tempest::Attachment           transLut, multiScatLut, viewLut, viewCldLut;
     Tempest::StorageImage         cloudsLut, fogLut3D, shadowDw;
     Tempest::StorageImage         occlusionLut;
 
     Tempest::DescriptorSet        uboClouds;
-    Tempest::DescriptorSet        uboTransmittance;
-    Tempest::DescriptorSet        uboMultiScatLut, uboSkyViewLut;
+    Tempest::DescriptorSet        uboTransmittance, uboMultiScatLut;
+    Tempest::DescriptorSet        uboSkyViewLut, uboSkyViewCldLut;
     Tempest::DescriptorSet        uboFogViewLut3d;
     Tempest::DescriptorSet        uboSky, uboFog, uboFog3d;
     Tempest::DescriptorSet        uboShadowDw, uboOcclusion;

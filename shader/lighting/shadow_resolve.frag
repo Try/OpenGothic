@@ -162,10 +162,11 @@ void main(void) {
   */
 #endif
 
-  const vec3 lcolor = scene.sunCl.rgb * scene.GSunIntensity * sunlightMul * Fd_Lambert * light * shadow;
+  const vec3 lcolor = scene.sunCl.rgb * scene.GSunIntensity * Fd_Lambert * light * shadow;
   const vec3 linear = textureLinear(diff.rgb);
 
   vec3 color = linear*lcolor*scene.exposure;
+  color *= (1.0/M_PI); // magic constant, non motivated by physics
   outColor = vec4(color, 0.0);
 
   // outColor = vec4(vec3(lcolor), diff.a); // debug
