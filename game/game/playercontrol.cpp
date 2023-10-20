@@ -852,7 +852,7 @@ void PlayerControl::implMove(uint64_t dt) {
       auto& g  = w->script().guildVal();
       auto  gl = pl.guild();
 
-      if(0<=gl && gl<GIL_MAX) {
+      if(0<=gl && gl<GIL_MAX && pl.isStanding()) {
         MoveAlgo::JumpStatus jump;
         jump.anim   = Npc::Anim::JumpUp;
         jump.height = float(g.jumpup_height[gl])+pl.position().y;
