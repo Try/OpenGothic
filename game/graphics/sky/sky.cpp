@@ -19,10 +19,11 @@ using namespace Tempest;
 // https://www.slideshare.net/DICEStudio/moving-frostbite-to-physically-based-rendering
 // static const float DirectSunLux  = 64'000.f; // 85'000.f;
 static const float DirectSunLux  = 143'000.f;
-//static const float ShadowSunLux  =  10'000.f;
 static const float DirectMoonLux = 0.27f;
-static const float StreetLight   = 10.f;
 static const float NightLight    = 0.36f;
+
+// static const float ShadowSunLux  =  10'000.f;
+// static const float StreetLight   = 10.f;
 
 static float smoothstep(float edge0, float edge1, float x) {
   float t = std::min(std::max((x - edge0) / (edge1 - edge0), 0.f), 1.f);
