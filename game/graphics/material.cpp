@@ -145,7 +145,8 @@ Material::AlphaFunc Material::loadAlphaFunc(phoenix::alpha_function zenAlpha,
     case phoenix::alpha_function::mul2:
       alpha = Material::AlphaFunc::Multiply2;
       break;
-    default:
+    case phoenix::alpha_function::default_:
+    case phoenix::alpha_function::none:
       alpha = Material::AlphaFunc::AlphaTest;
       break;
     }
@@ -154,10 +155,15 @@ Material::AlphaFunc Material::loadAlphaFunc(phoenix::alpha_function zenAlpha,
     alpha = Material::AlphaFunc::Water;
 
   if(alpha==Material::AlphaFunc::AlphaTest || alpha==Material::AlphaFunc::Transparent) {
-    if(tex!=nullptr && tex->format()==Tempest::TextureFormat::DXT1) {
-      if(clrAlpha==255)
-        alpha = Material::AlphaFunc::Solid; else
-        alpha = Material::AlphaFunc::Transparent;
+    if(tex!=nullptr && tex->format()==Tempest::TextureFormat::DXT1 && clrAlpha==255) {
+      alpha = Material::AlphaFunc::Solid;
+      }
+    }
+
+  if(alpha==Material::AlphaFunc::AlphaTest || alpha==Material::AlphaFunc::AdditiveLight) {
+    // castle wall in G1 (OW_DIRTDECAL.TGA) has alpha==0, set it to mul for now
+    if(clrAlpha==0) {
+      alpha = Material::AlphaFunc::Multiply;
       }
     }
 

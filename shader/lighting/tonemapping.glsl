@@ -40,7 +40,7 @@ vec3 textureLinear(vec3 rgb) {
   const vec3 linear = srgbDecode(rgb);
 #if defined(EMISSIVE)
   // emissive objects, spells
-  return acesTonemapInv(linear)*1.5;
+  return acesTonemapInv(linear);
 #else
   // return vec3(0.52, 0.41, 0.36); // wood
   // return vec3(0.33, 0.34, 0.18); // leaves
