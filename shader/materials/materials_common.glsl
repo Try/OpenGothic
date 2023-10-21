@@ -179,6 +179,7 @@ layout(binding = L_Bucket, std140) uniform BucketDesc {
   ivec2 texAniMapDirPeriod;
   float bboxRadius;
   float waveMaxAmplitude;
+  float alphaWeight;
   } bucket;
 #endif
 

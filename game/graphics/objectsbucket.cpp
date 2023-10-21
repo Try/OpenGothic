@@ -312,6 +312,7 @@ ObjectsBucket::Bucket ObjectsBucket::allocBucketDesc(const Material& mat) {
   BucketDesc ubo;
   ubo.texAniMapDirPeriod = mat.texAniMapDirPeriod;
   ubo.waveMaxAmplitude   = mat.waveMaxAmplitude;
+  ubo.alphaWeight        = mat.alphaWeight;
   if(staticMesh!=nullptr) {
     auto& bbox     = staticMesh->bbox.bbox;
     ubo.bboxRadius = staticMesh->bbox.rConservative;

@@ -172,6 +172,7 @@ class ObjectsBucket {
       Tempest::Point texAniMapDirPeriod;
       float          bboxRadius = 0;
       float          waveMaxAmplitude = 0;
+      float          alphaWeight = 1;
       };
 
     struct Descriptors final {

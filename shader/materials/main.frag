@@ -83,6 +83,10 @@ vec4 forwardShading(vec4 t) {
   alpha = (alpha-0.5)*2.0;
 #endif
 
+#if defined(LVL_OBJECT)
+  alpha *= bucket.alphaWeight;
+#endif
+
 #if defined(GHOST)
   color = ghostColor(t.rgb);
 #endif

@@ -27,6 +27,7 @@ class Material final {
     const Tempest::Texture2d* tex=nullptr;
     std::vector<const Tempest::Texture2d*> frames;
     AlphaFunc                 alpha            = AlphaTest;
+    float                     alphaWeight      = 1;
     Tempest::Point            texAniMapDirPeriod;
     uint64_t                  texAniFPSInv     = 1;
     bool                      isGhost          = false;
