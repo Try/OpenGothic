@@ -30,8 +30,8 @@ environment:
 for:
   -
     matrix:
-    only:
-      - job_group: Builds
+      only:
+        - job_group: Builds
 
     install:
     - ps: >-
