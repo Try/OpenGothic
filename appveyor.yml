@@ -50,6 +50,7 @@ for:
           }
 
         if($IsWindows) {
+          echo $env:WIN_RELEASE
           # debug
           # $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
@@ -115,7 +116,7 @@ for:
           cp "C:\msys64\mingw64\bin\libstdc++-6.dll"      "libstdc++-6.dll"
           cp "C:\msys64\mingw64\bin\libwinpthread-1.dll"  "libwinpthread-1.dll"
 
-          if ($WIN_RELEASE) {
+          if ($env:WIN_RELEASE) {
             $NAME = 'opengothic_win.zip'
             } else {
             $NAME = 'opengothic_win_vs2022.zip'
