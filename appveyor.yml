@@ -28,7 +28,8 @@ environment:
       job_depends_on: Builds
 
 for:
-  - matrix:
+  -
+    matrix:
     only:
       - job_group: Builds
 
@@ -156,7 +157,8 @@ for:
       - path: build/opengothic/opengothic_osx.zip
         name: archive_osx
   
-  - matrix:
+  -
+    matrix:
       only:
         - job_name: Deploy
 
