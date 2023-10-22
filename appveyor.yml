@@ -50,7 +50,6 @@ for:
           }
 
         if($IsWindows) {
-          echo $env:WIN_RELEASE
           # debug
           # $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
@@ -162,6 +161,9 @@ for:
     matrix:
       only:
         - job_name: Deploy
+  
+    build_script:
+      - echo "Nothing to build today"
 
     deploy:
       release: opengothic-v$(appveyor_build_version)
