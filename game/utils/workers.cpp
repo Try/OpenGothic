@@ -39,7 +39,7 @@ void Workers::setThreadName(const char* threadName) { (void)threadName; }
 
 using namespace Tempest;
 
-const size_t Workers::taskPerThread = 256;
+const size_t Workers::taskPerThread = 128;
 const size_t Workers::taskPerStep   = 16;
 
 Workers::Workers() {
@@ -84,11 +84,8 @@ void Workers::threadFunc(size_t id) {
   while(true) {
     {
     std::unique_lock<std::mutex> lck(sync);
-    auto cnt = workTbd.fetch_add(int32_t(-1));
-    if(cnt <= 0) {
-      workWait.wait(lck);
-      continue;
-      }
+    workWait.wait(lck, [this]() { return workTbd>0; });
+    --workTbd;
     }
 
     if(!running) {
@@ -103,8 +100,9 @@ void Workers::threadFunc(size_t id) {
       taskLoop();
       }
 
-    if(size_t(taskDone.fetch_add(1)+1)==taskCount)
-      std::this_thread::yield();
+    taskDone.fetch_add(1);
+    // if(size_t(taskDone.fetch_add(1)+1)==taskCount)
+    //   std::this_thread::yield();
     }
   }
 
@@ -156,28 +154,25 @@ void Workers::execWork(uint32_t& minElts) {
 
   {
   std::unique_lock<std::mutex> lck(sync);
-  workTbd.store(int32_t(taskCount));
-  if(workSet!=nullptr) {
-    // relaxed notification
-    // for(size_t i=0; i<taskCount; ++i)
-    workWait.notify_one();
-    } else {
-    workWait.notify_all();
-    }
+  workTbd = int32_t(taskCount);
   }
+  //std::this_thread::yield();
+  workWait.notify_all();
 
+  uint32_t cnt = 0;
   if(workSet==nullptr) {
     std::this_thread::yield();
     } else {
-    uint32_t cnt = taskLoop(); (void)cnt;
-    // horrible workaround for high threads overhead on Intel
-    // minElts = std::clamp(minElts, cnt*2, cnt*4);
+    // std::this_thread::yield();
+    cnt = taskLoop(); (void)cnt;
     }
 
   while(true) {
     int expect = int(taskCount);
-    if(taskDone.compare_exchange_strong(expect,0,std::memory_order::acq_rel))
+    if(taskDone.load()==expect) {
+      taskDone.store(0);
       break;
+      }
     std::this_thread::yield();
     }
   }
