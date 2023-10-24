@@ -114,6 +114,8 @@ class ObjectsBucket {
     virtual void              invalidateUbo(uint8_t fId);
     virtual void              fillTlas(RtScene& out);
 
+    void                      preFrameUpdateWind (uint8_t fId, const bool* upd);
+    void                      preFrameUpdateMorph(uint8_t fId, const bool* upd);
     virtual void              preFrameUpdate(uint8_t fId);
     virtual void              drawHiZ    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
     void                      draw       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
@@ -154,16 +156,18 @@ class ObjectsBucket {
       uint16_t intensity;
       };
 
-    struct UboPushBase {
+    struct UboPush {
       uint32_t  meshletBase        = 0;
       int32_t   meshletPerInstance = 0;
       uint32_t  firstInstance      = 0;
       uint32_t  instanceCount      = 0;
       float     fatness            = 0;
-      float     padd[3]            = {};
+      uint32_t  morphPtr           = 0;
+      uint32_t  skelPtr            = 0;
+      uint32_t  padd1              = {};
       };
 
-    struct UboPush : UboPushBase {
+    struct MorphData {
       MorphDesc morph[Resources::MAX_MORPH_LAYERS];
       };
 
@@ -227,7 +231,7 @@ class ObjectsBucket {
     bool                      isForwardShading() const;
     bool                      isShadowmapRequired() const;
     bool                      isSceneInfoRequired() const;
-    void                      updatePushBlock(UboPush& push, Object& v, uint32_t instance, uint32_t instanceCount);
+    void                      updatePushBlock(UboPush& push, Object& v, uint32_t instance, uint32_t id, uint32_t instanceCount);
     void                      reallocObjPositions();
     void                      invalidateInstancing();
     uint32_t                  applyInstancing(size_t& i, const size_t* index, size_t indSz) const;
@@ -255,6 +259,8 @@ class ObjectsBucket {
     Object                    val[CAPACITY];
     size_t                    valSz = 0;
     InstanceStorage::Id       objPositions;
+    InstanceStorage::Id       objMorphAnim;
+    InstanceStorage::Id       objSkelAnim;
 
     bool                      useMeshlets         = false;
     bool                      textureInShadowPass = false;

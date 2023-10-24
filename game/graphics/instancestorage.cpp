@@ -22,10 +22,17 @@ static uint32_t alignAs(uint32_t sz, uint32_t alignment) {
   return ((sz+alignment-1)/alignment)*alignment;
   }
 
-static void store(uint32_t& v, uint32_t x) {
-  //std::atomic_store(&v, x);
+static void bitSet(std::vector<uint32_t>& b, size_t id) {
   static_assert(sizeof(std::atomic<uint32_t>)==sizeof(uint32_t));
-  reinterpret_cast<std::atomic<uint32_t>&>(v).store(x);
+  auto& bits = b[id/32];
+  id %= 32;
+  reinterpret_cast<std::atomic<uint32_t>&>(bits).fetch_or(1u << id, std::memory_order_relaxed);
+  }
+
+static bool bitAt(std::vector<uint32_t>& b, size_t id) {
+  auto bits = b[id/32];
+  id %= 32;
+  return bits & (1u << id);
   }
 
 using namespace Tempest;
@@ -54,7 +61,7 @@ void InstanceStorage::Id::set(const Tempest::Matrix4x4* mat) {
   std::memcpy(data, mat, rgn.asize);
 
   for(size_t i=0; i<rgn.asize; i+=64)
-    store(owner->durty[(rgn.begin+i)/64], 1);
+    bitSet(owner->durty, (rgn.begin+i)/64);
   }
 
 void InstanceStorage::Id::set(const Tempest::Matrix4x4& obj, size_t offset) {
@@ -65,7 +72,29 @@ void InstanceStorage::Id::set(const Tempest::Matrix4x4& obj, size_t offset) {
   if(data[offset] == obj)
     return;
   data[offset] = obj;
-  store(owner->durty[(rgn.begin+offset*sizeof(Matrix4x4))/64], 1);
+  bitSet(owner->durty, (rgn.begin+offset*sizeof(Matrix4x4))/64);
+  }
+
+void InstanceStorage::Id::set(const void* data, size_t offset, size_t size) {
+  if(owner==nullptr)
+    return;
+
+  auto src = reinterpret_cast<const uint8_t*>(data);
+  auto dst = (owner->dataCpu.data() + rgn.begin + offset);
+
+  if((offset%64)==0) {
+    for(size_t i=0; i<size; i+=64) {
+      for(size_t r=0; r<64 && i+r<size; ++r) {
+        dst[i+r] = src[i+r];
+        }
+      bitSet(owner->durty, (rgn.begin + offset + i)/64);
+      }
+    } else {
+    for(size_t i=0; i<size; ++i) {
+      dst[i] = src[i];
+      bitSet(owner->durty, (rgn.begin + offset + i)/64);
+      }
+    }
   }
 
 
@@ -85,6 +114,7 @@ InstanceStorage::InstanceStorage() {
 bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   auto& device = Resources::device();
 
+  std::atomic_thread_fence(std::memory_order_acquire);
   if(dataGpu.byteSize()!=dataCpu.size()) {
     Resources::recycle(std::move(dataGpu));
     dataGpu = device.ssbo(BufferHeap::Device,dataCpu);
@@ -100,14 +130,13 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
 
   patchBlock.clear();
   size_t payloadSize = 0;
-  for(size_t i=0; i<durty.size(); ++i) {
-    if(durty[i]==0)
+  for(size_t i = 0, len = durty.size(); i<len; ++i) {
+    if(!bitAt(durty,i))
       continue;
-    auto begin = i;
-    while(i<durty.size()) {
-      if(durty[i]==0)
+    auto begin = i; ++i;
+    while(i<len) {
+      if(!bitAt(durty,i))
         break;
-      durty[i] = 0;
       ++i;
       }
 
@@ -118,6 +147,7 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     patchBlock.push_back(p);
     payloadSize += p.size;
     }
+  std::memset(durty.data(), 0, durty.size()*sizeof(durty[0]));
 
   if(patchBlock.size()==0)
     return resized;

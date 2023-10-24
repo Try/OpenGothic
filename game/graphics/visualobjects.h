@@ -27,6 +27,7 @@ class VisualObjects final {
     ObjectsBucket::Item get(const Material& mat);
 
     InstanceStorage::Id alloc(size_t size);
+    bool                realloc(InstanceStorage::Id& id, size_t size);
     auto                instanceSsbo() const -> const Tempest::StorageBuffer&;
 
     void prepareUniforms();

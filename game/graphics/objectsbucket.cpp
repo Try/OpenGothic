@@ -300,6 +300,8 @@ void ObjectsBucket::implFree(const size_t objId) {
   if(valSz==0) {
     owner.resetIndex();
     objPositions = InstanceStorage::Id();
+    objMorphAnim = InstanceStorage::Id();
+    objSkelAnim  = InstanceStorage::Id();
     } else {
     objPositions.set(dummyMatrix(),objId);
     }
@@ -431,20 +433,10 @@ void ObjectsBucket::fillTlas(RtScene& out) {
     }
   }
 
-void ObjectsBucket::preFrameUpdate(uint8_t fId) {
+void ObjectsBucket::preFrameUpdateWind(uint8_t fId, const bool* upd) {
   if(!windAnim || !scene.zWindEnabled)
     return;
-
-  bool upd[CAPACITY] = {};
-  for(uint8_t ic=0; ic<SceneGlobals::V_Count; ++ic) {
-    const auto    c     = SceneGlobals::VisCamera(ic);
-    const size_t  indSz = visSet.count(c);
-    const size_t* index = visSet.index(c);
-    for(size_t i=0; i<indSz; ++i)
-      upd[index[i]] = true;
-    }
-
-  for(size_t i=0; i<CAPACITY; ++i) {
+  for(size_t i=0; i<valSz; ++i) {
     auto& v = val[i];
     if(upd[i] && v.wind!=phoenix::animation_mode::none) {
       auto  pos   = v.pos;
@@ -481,6 +473,54 @@ void ObjectsBucket::preFrameUpdate(uint8_t fId) {
     }
   }
 
+void ObjectsBucket::preFrameUpdateMorph(uint8_t fId, const bool* upd) {
+  if(objType!=Morph)
+    return;
+  for(size_t i=0; i<valSz; ++i) {
+    auto& v = val[i];
+    if(!upd[i])
+      continue;
+
+    MorphData data = {};
+    for(size_t i=0; i<Resources::MAX_MORPH_LAYERS; ++i) {
+      auto&    ani  = v.morphAnim[i];
+      auto&    anim = (*staticMesh->morph.anim)[ani.id];
+      uint64_t time = (scene.tickCount-ani.timeStart);
+
+      float    alpha     = float(time%anim.tickPerFrame)/float(anim.tickPerFrame);
+      float    intensity = ani.intensity;
+
+      if(scene.tickCount>ani.timeUntil)
+        intensity = 0;
+
+      const uint32_t samplesPerFrame = uint32_t(anim.samplesPerFrame);
+      data.morph[i].indexOffset = uint32_t(anim.index);
+      data.morph[i].sample0     = uint32_t((time/anim.tickPerFrame+0)%anim.numFrames)*samplesPerFrame;
+      data.morph[i].sample1     = uint32_t((time/anim.tickPerFrame+1)%anim.numFrames)*samplesPerFrame;
+      data.morph[i].alpha       = uint16_t(alpha*uint16_t(-1));
+      data.morph[i].intensity   = uint16_t(intensity*uint16_t(-1));
+      }
+    objMorphAnim.set(&data, i*sizeof(data), sizeof(data));
+    }
+  }
+
+void ObjectsBucket::preFrameUpdate(uint8_t fId) {
+  if((!windAnim || !scene.zWindEnabled) && objType!=Morph)
+    return;
+
+  bool upd[CAPACITY] = {};
+  for(uint8_t ic=0; ic<SceneGlobals::V_Count; ++ic) {
+    const auto    c     = SceneGlobals::VisCamera(ic);
+    const size_t  indSz = visSet.count(c);
+    const size_t* index = visSet.index(c);
+    for(size_t i=0; i<indSz; ++i)
+      upd[index[i]] = true;
+    }
+
+  preFrameUpdateWind (fId, upd);
+  preFrameUpdateMorph(fId, upd);
+  }
+
 size_t ObjectsBucket::alloc(const StaticMesh& mesh, size_t iboOffset, size_t iboLen,
                             const Bounds& bounds, const Material& mat) {
   Object* v = &implAlloc(bounds,mat);
@@ -509,8 +549,12 @@ size_t ObjectsBucket::alloc(const AnimMesh& mesh, size_t iboOffset, size_t iboLe
   v->iboOffset  = iboOffset;
   v->iboLength  = iboLen;
   v->skiningAni = &anim;
-  postAlloc(*v,size_t(std::distance(val,v)));
-  return size_t(std::distance(val,v));
+
+  const auto     id    = size_t(std::distance(val,v));
+  const uint32_t aniId = anim.offsetId<Matrix4x4>();
+  objSkelAnim.set(&aniId, id*sizeof(uint32_t), sizeof(uint32_t));
+  postAlloc(*v,id);
+  return id;
   }
 
 size_t ObjectsBucket::alloc(const Bounds& bounds) {
@@ -590,24 +634,17 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId, const R
       case Movable:
       case Morph:
       case Animated: {
-        uint32_t instance = 0;
-        if(objType!=Animated)
-          instance = objPositions.offsetId()+uint32_t(id); else
-          instance = v.skiningAni->offsetId();
-
-        uint32_t cnt   = applyInstancing(i,index,indSz);
-        size_t   uboSz = (objType==Morph ? sizeof(UboPush) : sizeof(UboPushBase));
-
-        updatePushBlock(pushBlock,v,instance,cnt);
+        uint32_t instance = objPositions.offsetId<Matrix4x4>() + uint32_t(id);
+        uint32_t cnt      = applyInstancing(i,index,indSz);
+        updatePushBlock(pushBlock,v,instance,uint32_t(id),cnt);
         if(useMeshlets) {
-          cmd.setUniforms(shader, &pushBlock, uboSz);
+          cmd.setUniforms(shader, &pushBlock, sizeof(UboPush));
           cmd.dispatchMeshThreads(cnt);
-          // cmd.dispatchMesh(uint32_t(v.iboLength/PackedMesh::MaxInd), cnt);
           } else {
-          cmd.setUniforms(shader, &pushBlock, uboSz);
+          cmd.setUniforms(shader, &pushBlock, sizeof(UboPush));
           if(objType!=Animated)
-            cmd.draw(staticMesh->vbo, staticMesh->ibo, v.iboOffset, v.iboLength, instance, cnt); else
-            cmd.draw(animMesh  ->vbo, animMesh  ->ibo, v.iboOffset, v.iboLength, instance, cnt);
+            cmd.draw(staticMesh->vbo, staticMesh->ibo, v.iboOffset, v.iboLength, 0, cnt); else
+            cmd.draw(animMesh  ->vbo, animMesh  ->ibo, v.iboOffset, v.iboLength, 0, cnt);
           }
         break;
         }
@@ -729,33 +766,17 @@ bool ObjectsBucket::isSceneInfoRequired() const {
   return mat.isSceneInfoRequired();
   }
 
-void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket::Object& v, uint32_t instance, uint32_t instanceCount) {
+void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket::Object& v,
+                                    uint32_t instance, uint32_t id, uint32_t instanceCount) {
   push.meshletBase        = uint32_t(v.iboOffset/PackedMesh::MaxInd);
   push.meshletPerInstance = int32_t (v.iboLength/PackedMesh::MaxInd);
   push.firstInstance      = instance;
   push.instanceCount      = instanceCount;
   push.fatness            = v.fatness;
-
-  if(objType==Morph) {
-    for(size_t i=0; i<Resources::MAX_MORPH_LAYERS; ++i) {
-      auto&    ani  = v.morphAnim[i];
-      auto&    anim = (*staticMesh->morph.anim)[ani.id];
-      uint64_t time = (scene.tickCount-ani.timeStart);
-
-      float    alpha     = float(time%anim.tickPerFrame)/float(anim.tickPerFrame);
-      float    intensity = ani.intensity;
-
-      if(scene.tickCount>ani.timeUntil)
-        intensity = 0;
-
-      const uint32_t samplesPerFrame = uint32_t(anim.samplesPerFrame);
-      push.morph[i].indexOffset = uint32_t(anim.index);
-      push.morph[i].sample0     = uint32_t((time/anim.tickPerFrame+0)%anim.numFrames)*samplesPerFrame;
-      push.morph[i].sample1     = uint32_t((time/anim.tickPerFrame+1)%anim.numFrames)*samplesPerFrame;
-      push.morph[i].alpha       = uint16_t(alpha*uint16_t(-1));
-      push.morph[i].intensity   = uint16_t(intensity*uint16_t(-1));
-      }
-    }
+  push.morphPtr           = objMorphAnim.offsetId<MorphDesc>() + uint32_t(id*Resources::MAX_MORPH_LAYERS);
+  push.skelPtr            = objSkelAnim.offsetId<uint32_t>()   + uint32_t(id);
+  if(objSkelAnim.size()>0)
+    Log::d("");
   }
 
 void ObjectsBucket::reallocObjPositions() {
@@ -776,11 +797,25 @@ void ObjectsBucket::reallocObjPositions() {
         break;
         }
 
-    auto size = valLen*sizeof(Matrix4x4);
-    if(objPositions.size()!=size) {
-      objPositions = owner.alloc(size);
+    if(owner.realloc(objPositions, valLen*sizeof(Matrix4x4))) {
       for(size_t i=0; i<valLen; ++i)
         objPositions.set(val[i].pos,i);
+      }
+
+    if(objType==Morph && owner.realloc(objMorphAnim, valSz*sizeof(MorphData))) {
+      const MorphData d = {};
+      for(size_t i=0; i<valSz; ++i) {
+        objMorphAnim.set(&d, i*sizeof(d), sizeof(d));
+        }
+      }
+    }
+
+  if(objType==Animated && owner.realloc(objSkelAnim, valSz*sizeof(uint32_t))) {
+    for(size_t i=0; i<valSz; ++i) {
+      if(val[i].skiningAni==nullptr)
+        continue;
+      const uint32_t aniId = val[i].skiningAni->offsetId<Matrix4x4>();
+      objSkelAnim.set(&aniId, i*sizeof(uint32_t), sizeof(uint32_t));
       }
     }
   }
@@ -804,15 +839,13 @@ void ObjectsBucket::invalidateInstancing() {
       instancingType = NoInstancing;
     if(vx.fatness!=ref.fatness)
       instancingType = NoInstancing;
-    if(vx.skiningAni!=ref.skiningAni)
-      instancingType = NoInstancing;
     }
 
   if(instancingType==Normal && pref!=nullptr) {
     if(staticMesh!=nullptr && staticMesh->ibo.size()<=PackedMesh::MaxInd){
       instancingType = Aggressive;
       }
-    if(useMeshlets && animMesh==nullptr) {
+    if(useMeshlets) {
       instancingType = Aggressive;
       }
     }
@@ -885,14 +918,20 @@ void ObjectsBucketDyn::preFrameUpdate(uint8_t fId) {
   if(!hasDynMaterials)
     return;
 
+  bool upd[CAPACITY] = {};
   for(uint8_t ic=0; ic<SceneGlobals::V_Count; ++ic) {
     const auto    c     = SceneGlobals::VisCamera(ic);
     const size_t  indSz = visSet.count(c);
     const size_t* index = visSet.index(c);
-    for(size_t i=0; i<indSz; ++i) {
-      auto& v = val[index[i]];
-      uboSetDynamic(uboObj[index[i]],v,fId);
-      }
+    for(size_t i=0; i<indSz; ++i)
+      upd[index[i]] = true;
+    }
+
+  for(size_t i=0; i<valSz; ++i) {
+    if(!upd[i])
+      continue;
+    auto& v = val[i];
+    uboSetDynamic(uboObj[i],v,fId);
     }
   }
 
@@ -1040,22 +1079,16 @@ void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
       case Movable:
       case Morph:
       case Animated:  {
-        uint32_t instance = 0;
-        if(objType!=Animated)
-          instance = objPositions.offsetId()+uint32_t(id); else
-          instance = v.skiningAni->offsetId();
-
-        size_t uboSz = (objType==Morph ? sizeof(UboPush) : sizeof(UboPushBase));
-        updatePushBlock(pushBlock,v,instance,1);
+        uint32_t instance = objPositions.offsetId<Matrix4x4>() + uint32_t(id);
+        updatePushBlock(pushBlock,v,instance,uint32_t(id),1);
         if(useMeshlets) {
-          cmd.setUniforms(shader, uboObj[id].ubo[fId][c], &pushBlock, uboSz);
+          cmd.setUniforms(shader, uboObj[id].ubo[fId][c], &pushBlock, sizeof(UboPush));
           cmd.dispatchMeshThreads(1);
-          // cmd.dispatchMesh(uint32_t(v.iboLength/PackedMesh::MaxInd), 1);
           } else {
-          cmd.setUniforms(shader, uboObj[id].ubo[fId][c], &pushBlock, uboSz);
+          cmd.setUniforms(shader, uboObj[id].ubo[fId][c], &pushBlock, sizeof(UboPush));
           if(objType!=Animated)
-            cmd.draw(staticMesh->vbo, staticMesh->ibo, v.iboOffset, v.iboLength, instance, 1); else
-            cmd.draw(animMesh  ->vbo, animMesh  ->ibo, v.iboOffset, v.iboLength, instance, 1);
+            cmd.draw(staticMesh->vbo, staticMesh->ibo, v.iboOffset, v.iboLength, 0, 1); else
+            cmd.draw(animMesh  ->vbo, animMesh  ->ibo, v.iboOffset, v.iboLength, 0, 1);
           }
         break;
         }

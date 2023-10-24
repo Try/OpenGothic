@@ -29,112 +29,6 @@ layout(location = 0) out Varyings shOut[];  // [max_vertices]
 layout(location = DEBUG_DRAW_LOC) out flat uint debugId[];
 #endif
 
-bool sphereTest(const uint objId, const uint meshletId) {
-  const uint laneID = gl_LocalInvocationID.x;
-#if (MESH_TYPE==T_LANDSCAPE)
-  const vec4 sphere = bounds[meshletId];
-#elif (MESH_TYPE==T_PFX)
-  const vec4 sphere = vec4(0);
-#else
-  const vec4 sphere = vec4(matrix[objId][3].xyz,bucket.bboxRadius);
-#endif
-  bool invisible = (sphere.w<0.f);
-  if(laneID<6 && dot(vec4(sphere.xyz,1.0), scene.frustrum[laneID]) <= -sphere.w) {
-    invisible = true;
-    }
-  invisible = workgroupAny(invisible);
-  return !invisible;
-  }
-
-#if !defined(SHADOW_MAP) && (MESH_TYPE!=T_PFX)
-shared ivec2 ibboxShared[2];
-shared uint  depthMin;
-shared uint  bboxVisible;
-bool bboxTest(const uint objId) {
-  const uint laneID = gl_LocalInvocationID.x;
-
-  ivec2 hiZsize  = textureSize(hiZ,0);
-  ibboxShared[0] = ivec2(hiZsize);
-  ibboxShared[1] = ivec2(0);
-  depthMin       = floatBitsToUint(1);
-  bboxVisible    = 0;
-  barrier();
-
-  if(laneID<8) {
-#if defined(LVL_OBJECT)
-    const vec3  b[2]   = {bucket.bbox[0].xyz, bucket.bbox[1].xyz};
-#else
-    const vec3  objPos = bounds[objId].xyz;
-    const float R      = bounds[objId].w;
-    const vec3  b[2]   = { objPos-vec3(R), objPos+vec3(R) };
-#endif
-    const vec3  pos    = vec3(b[bitfieldExtract(laneID,0,1)].x,
-                              b[bitfieldExtract(laneID,1,1)].y,
-                              b[bitfieldExtract(laneID,2,1)].z);
-
-    vec4 trPos = vec4(pos,1.0);
-#if defined(LVL_OBJECT)
-    trPos = matrix[objId]    *trPos;
-#endif
-    trPos = scene.viewProject*trPos;
-    if(trPos.z>0 && trPos.w>0.001) {
-      vec3 bp = trPos.xyz/trPos.w;
-      bp.xy = bp.xy*0.5 + vec2(0.5);
-
-      ivec2 scr = ivec2(bp.xy * scene.screenRes) / scene.hiZTileSize;
-      scr = clamp(scr, ivec2(0), hiZsize - ivec2(1));
-
-      atomicMin(ibboxShared[0].x, scr.x);
-      atomicMin(ibboxShared[0].y, scr.y);
-
-      atomicMax(ibboxShared[1].x, scr.x);
-      atomicMax(ibboxShared[1].y, scr.y);
-
-      atomicMin(depthMin, floatBitsToUint(bp.z));
-      } else {
-      atomicMin(depthMin, floatBitsToUint(0));
-      }
-    }
-
-  barrier();
-
-  ivec2 ibbox[2];
-  ibbox[0] = ibboxShared[0];
-  ibbox[1] = ibboxShared[1];
-
-  const uint maxHiZSamples = 16;
-  bool       visible       = false;
-  if(laneID<maxHiZSamples) {
-    float bz      = uintBitsToFloat(depthMin);
-    bz = (1.0-bz)*20.0;
-
-    int   mip     = 0;
-    uvec2 sz      = (ibbox[1]-ibbox[0])+ivec2(1);
-    [[dont_unroll]]
-    while(sz.x*sz.y>maxHiZSamples) {
-      ibbox[0] = ibbox[0]/2;
-      ibbox[1] = ibbox[1]/2;
-      sz       = (ibbox[1]-ibbox[0])+ivec2(1);
-      mip++;
-      }
-
-    if(0<sz.x) {
-      ivec2 offset = ivec2(laneID%sz.x,laneID/sz.x);
-      ivec2 at     = ibbox[0]+offset;
-      if(offset.y<sz.y) {
-        float z  = texelFetch(hiZ, at, mip).x;
-        if(bz >= z)
-          atomicExchange(bboxVisible, 1);
-        }
-      }
-    }
-  barrier();
-
-  visible = (bboxVisible!=0);
-  return visible;
-  }
-#endif
-
 uvec2 processMeshlet(const uint meshletId) {
   const uint iboOffset = meshletId * MaxPrim + MaxPrim - 1;
   const uint bits      = indexes[iboOffset];
@@ -165,10 +59,16 @@ uvec3 processPrimitive(const uint meshletId, const uint outId) {
   return prim;
   }
 
-vec4  processVertex(out Varyings var, const uint objId, const uint meshletId, const uint outId) {
-  const uint vboOffset = meshletId * MaxVert + outId;
+vec4  processVertex(out Varyings var, uint instanceOffset, const uint meshletId, const uint laneID) {
+  const uint vboOffset = meshletId * MaxVert + laneID;
 
-  vec4 position = processVertex(var, objId, vboOffset);
+#if (MESH_TYPE==T_PFX)
+  const Vertex vert = pullVertex(instanceOffset);
+#else
+  const Vertex vert = pullVertex(vboOffset);
+#endif
+
+  vec4 position = processVertex(var, vert, instanceOffset, vboOffset);
   // position.y = -position.y;
   return position;
   }
@@ -228,7 +128,7 @@ void dbgBbox(const uint objId) {
     vec4 trPos;
     const ivec3 msk  = v[i];
     const vec3  pos  = vec3(b[msk.x].x,b[msk.y].y,b[msk.z].z);
-    trPos = matrix[objId]    *vec4(pos.xyz,1.0);
+    trPos = pullMatrix(objId)*vec4(pos.xyz,1.0);
     trPos = scene.viewProject*trPos;
     gl_MeshVerticesEXT[i].gl_Position = trPos;
 #if defined(MAT_VARYINGS)
@@ -241,7 +141,7 @@ void dbgBbox(const uint objId) {
   }
 
 void dbgSphere(const uint objId) {
-  vec4 sphere = vec4(matrix[objId][3].xyz, bucket.bboxRadius);
+  vec4 sphere = vec4(pullMatrix(objId)[3].xyz, bucket.bboxRadius);
   sphere.xyz = (scene.view*vec4(sphere.xyz,1)).xyz;
 
   vec4  aabb  = vec4(0);
@@ -276,57 +176,37 @@ void dbgSphere(const uint objId) {
 
 uvec2 pullPayload() {
 #if defined(LVL_OBJECT)
-  //const uint objId     = gl_WorkGroupID.y + push.firstInstance;
-  const uint objId     = payload.offsets[gl_WorkGroupID.y];
-  const uint meshletId = gl_WorkGroupID.x + push.meshletBase;
+  const uint instanceOffset = payload.offsets[gl_WorkGroupID.y];
+  const uint meshletId      = gl_WorkGroupID.x + push.meshletBase;
 #elif (MESH_TYPE==T_LANDSCAPE)
-  const uint objId     = 0;
-  const uint meshletId = payload.offsets[gl_WorkGroupID.y];
-  //const uint meshletId = gl_WorkGroupID.x + push.meshletBase;
+  const uint instanceOffset = 0;
+  const uint meshletId      = payload.offsets[gl_WorkGroupID.y] + push.meshletBase;
 #else
-  const uint objId     = 0;
-  const uint meshletId = gl_WorkGroupID.x;
+  const uint instanceOffset = 0;
+  const uint meshletId      = gl_WorkGroupID.x;
 #endif
-  return uvec2(objId, meshletId);
+  return uvec2(instanceOffset, meshletId);
   }
 
 void main() {
-  const uvec2 pl        = pullPayload();
-  const uint  objId     = pl.x;
-  const uint  meshletId = pl.y;
+  const uvec2 pl         = pullPayload();
+  const uint  instanceId = pl.x;
+  const uint  meshletId  = pl.y;
 
-#if defined(SHADOW_MAP)
-#  if (MESH_TYPE==T_LANDSCAPE)
-  const bool visible = true; //sphereTest(objId,meshletId);
-#  elif (MESH_TYPE==T_PFX)
-  const bool visible = true;
-#  else
-  const bool visible = true; //sphereTest(objId,meshletId);
-#  endif
-#else
-#  if (MESH_TYPE==T_LANDSCAPE)
-  const bool visible = true; //bboxTest(meshletId);
-#  elif (MESH_TYPE==T_PFX)
-  const bool visible = true;
-#  else
-  const bool visible = true; // bboxTest(objId);
-#  endif
-#endif
-
+  /*
   if(!visible) {
     // NOTE: produces compiller error on DX
-    // SetMeshOutputsEXT(0, 0);
-    // return;
+    SetMeshOutputsEXT(0, 0);
+    return;
     }
+  */
 
-  const uvec2 mesh      = visible ? processMeshlet(meshletId) : uvec2(0);
+  const uvec2 mesh      = processMeshlet(meshletId);
   const uint  vertCount = mesh.x;
   const uint  primCount = mesh.y;
 
   // Alloc outputs
   SetMeshOutputsEXT(vertCount, primCount);
-  if(!visible)
-    return;
 
   Varyings var;
   const uint laneID = gl_LocalInvocationIndex;
@@ -335,7 +215,7 @@ void main() {
   if(laneID<primCount)
     gl_PrimitiveTriangleIndicesEXT[laneID] = processPrimitive(meshletId, laneID);
   if(laneID<vertCount)
-    gl_MeshVerticesEXT[laneID].gl_Position = processVertex(var, objId, meshletId, laneID);
+    gl_MeshVerticesEXT[laneID].gl_Position = processVertex(var, instanceId, meshletId, laneID);
 #if defined(MAT_VARYINGS)
   if(laneID<vertCount)
     shOut[laneID]                          = var;
@@ -347,7 +227,7 @@ void main() {
     if(id<primCount)
       gl_PrimitiveTriangleIndicesEXT[id] = processPrimitive(meshletId, id);
     if(id<vertCount)
-      gl_MeshVerticesEXT[id].gl_Position = processVertex(var, objId, meshletId, id);
+      gl_MeshVerticesEXT[id].gl_Position = processVertex(var, instanceId, meshletId, id);
 #if defined(MAT_VARYINGS)
     if(laneID<vertCount)
       shOut[id]                          = var;

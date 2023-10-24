@@ -24,7 +24,7 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #endif
 
 #define MAX_NUM_SKELETAL_NODES 96
-#define MAX_MORPH_LAYERS       3
+#define MAX_MORPH_LAYERS       4
 #define MaxVert                64
 #define MaxPrim                64
 #define MaxInd                 (MaxPrim*3)
@@ -131,29 +131,16 @@ layout(push_constant, std430) uniform UboPush {
   uint      meshletBase;
   int       instanceCount;
   } push;
-#elif (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING)
+#elif (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING) || (MESH_TYPE==T_MORPH)
 layout(push_constant, std430) uniform UboPush {
   uint      meshletBase;
   int       meshletPerInstance;
   uint      firstInstance;
   uint      instanceCount;
   float     fatness;
-  float     padd0;
-  float     padd1;
-  float     padd2;
-  } push;
-#elif (MESH_TYPE==T_MORPH)
-layout(push_constant, std430) uniform UboPush {
-  uint      meshletBase;
-  int       meshletPerInstance;
-  uint      firstInstance;
-  uint      instanceCount;
-  float     fatness;
-  float     padd0;
-  float     padd1;
-  float     padd2;
-
-  MorphDesc morph[MAX_MORPH_LAYERS];
+  uint      morphPtr;
+  uint      skelPtr;
+  uint      padd2;
   } push;
 #elif (MESH_TYPE==T_PFX)
 // no push
@@ -166,7 +153,54 @@ layout(binding = L_Scene, std140) uniform UboScene {
   };
 
 #if defined(LVL_OBJECT) && (defined(GL_VERTEX_SHADER) || defined(MESH) || defined(TASK))
-layout(binding = L_Matrix, std430)   readonly buffer Matrix { mat4 matrix[]; };
+//layout(binding = L_Matrix, std430)   readonly buffer Matrix { mat4 matrix[]; };
+layout(binding = L_Matrix, std430)   readonly buffer Matrix { uint instanceMem[]; };
+mat4 pullMatrix(uint i) {
+  i *= 16;
+  mat4 ret;
+  ret[0][0] = uintBitsToFloat(instanceMem[i+0]);
+  ret[0][1] = uintBitsToFloat(instanceMem[i+1]);
+  ret[0][2] = uintBitsToFloat(instanceMem[i+2]);
+  ret[0][3] = uintBitsToFloat(instanceMem[i+3]);
+  ret[1][0] = uintBitsToFloat(instanceMem[i+4]);
+  ret[1][1] = uintBitsToFloat(instanceMem[i+5]);
+  ret[1][2] = uintBitsToFloat(instanceMem[i+6]);
+  ret[1][3] = uintBitsToFloat(instanceMem[i+7]);
+  ret[2][0] = uintBitsToFloat(instanceMem[i+8]);
+  ret[2][1] = uintBitsToFloat(instanceMem[i+9]);
+  ret[2][2] = uintBitsToFloat(instanceMem[i+10]);
+  ret[2][3] = uintBitsToFloat(instanceMem[i+11]);
+  ret[3][0] = uintBitsToFloat(instanceMem[i+12]);
+  ret[3][1] = uintBitsToFloat(instanceMem[i+13]);
+  ret[3][2] = uintBitsToFloat(instanceMem[i+14]);
+  ret[3][3] = uintBitsToFloat(instanceMem[i+15]);
+  return ret;
+  }
+
+MorphDesc pullMorphDesc(uint i) {
+  i *= 4;
+  MorphDesc ret;
+  ret.indexOffset         = instanceMem[i+0];
+  ret.sample0             = instanceMem[i+1];
+  ret.sample1             = instanceMem[i+2];
+  ret.alpha16_intensity16 = instanceMem[i+3];
+  return ret;
+  }
+
+uint pullSkelId(uint i) {
+  return instanceMem[i];
+  }
+
+vec3 pullPosition(uint objId, uint instanceOffset) {
+#if (MESH_TYPE==T_SKINING)
+  uint posPtr = pullSkelId(push.skelPtr + instanceOffset);
+  return pullMatrix(posPtr)[3].xyz;
+#elif defined(LVL_OBJECT)
+  uint posPtr = objId;
+  return pullMatrix(posPtr)[3].xyz;
+#endif
+  return vec3(0);
+  }
 #endif
 
 #if (MESH_TYPE==T_LANDSCAPE) && (defined(GL_VERTEX_SHADER) || defined(MESH) || defined(TASK))
