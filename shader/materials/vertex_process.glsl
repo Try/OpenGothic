@@ -99,7 +99,7 @@ Vertex pullVertex(uint id) {
 
 #if (MESH_TYPE==T_MORPH)
 vec3 morphOffset(int i, uint instanceId, uint vertexIndex) {
-  MorphDesc md        = pullMorphDesc(push.morphPtr + instanceId*MAX_MORPH_LAYERS + i);
+  MorphDesc md        = pullMorphDesc(push.animPtr + instanceId*MAX_MORPH_LAYERS + i);
   vec2      ai        = unpackUnorm2x16(md.alpha16_intensity16);
   float     alpha     = ai.x;
   float     intensity = ai.y;
@@ -137,12 +137,19 @@ void rotate(out vec3 rx, out vec3 ry, float a, in vec3 x, in vec3 y){
 
 vec4 processVertex(out Varyings shOut, in Vertex v, uint instanceId, uint vboOffset) {
 #if (MESH_TYPE==T_SKINING)
-  uint skelId = pullSkelId(instanceId + push.skelPtr);
-  mat4 objMat = pullMatrix(skelId);
+  //uint skelId = pullSkelId(instanceId + push.animPtr);
+  //mat4 objMat = pullMatrix(skelId);
+#elif (MESH_TYPE==T_PFX)
+  //uint objId  = instanceId;
+#elif defined(LVL_OBJECT)
+  //mat4 objMat = pullMatrix(instanceId + push.firstInstance);
+#endif
+
+
+#if defined(LVL_OBJECT)
+  mat4  objMat   = pullPositionMatrix(instanceId);
 #elif (MESH_TYPE==T_PFX)
   uint objId  = instanceId;
-#elif defined(LVL_OBJECT)
-  mat4 objMat = pullMatrix(instanceId + push.firstInstance);
 #endif
 
   // Position offsets
@@ -256,6 +263,7 @@ vec4 processVertex(out Varyings shOut, in Vertex v, uint instanceId, uint vboOff
 #if (MESH_TYPE==T_SKINING)
   vec3 pos = vec3(0);
   {
+    const uint  skelId = pullSkelId(instanceId + push.animPtr);
     const uvec4 boneId = v.boneId + uvec4(skelId);
 
     dpos = (objMat*vec4(dpos,0)).xyz;

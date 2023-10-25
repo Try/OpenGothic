@@ -177,10 +177,10 @@ void dbgSphere(const uint objId) {
 uvec2 pullPayload() {
 #if defined(LVL_OBJECT)
   const uint instanceOffset = payload.offsets[gl_WorkGroupID.y];
-  const uint meshletId      = gl_WorkGroupID.x + push.meshletBase;
+  const uint meshletId      = gl_WorkGroupID.x + push.firstMeshlet;
 #elif (MESH_TYPE==T_LANDSCAPE)
   const uint instanceOffset = 0;
-  const uint meshletId      = payload.offsets[gl_WorkGroupID.y] + push.meshletBase;
+  const uint meshletId      = payload.offsets[gl_WorkGroupID.y] + push.firstMeshlet;
 #else
   const uint instanceOffset = 0;
   const uint meshletId      = gl_WorkGroupID.x;

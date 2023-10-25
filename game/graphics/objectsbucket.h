@@ -102,6 +102,8 @@ class ObjectsBucket {
     const void*               meshPointer()   const;
     VisibleSet&               visibilitySet() { return visSet; };
 
+    const Tempest::RenderPipeline* pso() const { return pMain; }
+
     size_t                    size()          const { return valSz;      }
     size_t                    alloc(const StaticMesh& mesh, size_t iboOffset, size_t iboLen, const Bounds& bounds,
                                     const Material& mat);
@@ -162,13 +164,19 @@ class ObjectsBucket {
       uint32_t  firstInstance      = 0;
       uint32_t  instanceCount      = 0;
       float     fatness            = 0;
-      uint32_t  morphPtr           = 0;
-      uint32_t  skelPtr            = 0;
+      uint32_t  animPtr            = 0;
+      uint32_t  padd0              = {};
       uint32_t  padd1              = {};
       };
 
     struct MorphData {
       MorphDesc morph[Resources::MAX_MORPH_LAYERS];
+      };
+
+    struct InstanceDesc {
+      float    pos[4][3] = {};
+      float    fatness   = 0;
+      uint32_t aniPtr    = 0;
       };
 
     struct BucketDesc final {
@@ -214,7 +222,7 @@ class ObjectsBucket {
     virtual Object&           implAlloc(const Bounds& bounds, const Material& mat);
     virtual void              postAlloc(Object& obj, size_t objId);
     virtual void              implFree(const size_t objId);
-    Bucket                    allocBucketDesc(const Material& mat);
+    Bucket                    allocBucketDesc(const Bounds& bounds, const Material& mat);
 
     void                      uboSetCommon  (Descriptors& v, const Material& mat, const Bucket& bucket);
     void                      uboSetSkeleton(Descriptors& v, uint8_t fId);

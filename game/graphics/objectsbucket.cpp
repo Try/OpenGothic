@@ -172,7 +172,7 @@ ObjectsBucket::ObjectsBucket(const Type type, const Material& mat, VisualObjects
 
   if(useSharedUbo) {
     uboShared.alloc(*this);
-    bucketShared = allocBucketDesc(mat);
+    bucketShared = allocBucketDesc(Bounds(),mat);
     uboSetCommon(uboShared,mat,bucketShared);
     }
   }
@@ -308,20 +308,26 @@ void ObjectsBucket::implFree(const size_t objId) {
   invalidateInstancing();
   }
 
-ObjectsBucket::Bucket ObjectsBucket::allocBucketDesc(const Material& mat) {
+ObjectsBucket::Bucket ObjectsBucket::allocBucketDesc(const Bounds& bounds, const Material& mat) {
   auto& device = Resources::device();
 
   BucketDesc ubo;
   ubo.texAniMapDirPeriod = mat.texAniMapDirPeriod;
   ubo.waveMaxAmplitude   = mat.waveMaxAmplitude;
   ubo.alphaWeight        = mat.alphaWeight;
-  if(staticMesh!=nullptr) {
+  if(bounds.r>0) {
+    auto& bbox     = bounds.bbox;
+    ubo.bboxRadius = bounds.rConservative;
+    ubo.bbox[0]    = Vec4(bbox[0].x,bbox[0].y,bbox[0].z,0.f);
+    ubo.bbox[1]    = Vec4(bbox[1].x,bbox[1].y,bbox[1].z,0.f);
+    }
+  else if(staticMesh!=nullptr) {
     auto& bbox     = staticMesh->bbox.bbox;
     ubo.bboxRadius = staticMesh->bbox.rConservative;
     ubo.bbox[0]    = Vec4(bbox[0].x,bbox[0].y,bbox[0].z,0.f);
     ubo.bbox[1]    = Vec4(bbox[1].x,bbox[1].y,bbox[1].z,0.f);
     }
-  if(animMesh!=nullptr) {
+  else if(animMesh!=nullptr) {
     auto& bbox     = animMesh->bbox.bbox;
     ubo.bboxRadius = animMesh->bbox.rConservative;
     ubo.bbox[0]    = Vec4(bbox[0].x,bbox[0].y,bbox[0].z,0.f);
@@ -773,10 +779,11 @@ void ObjectsBucket::updatePushBlock(ObjectsBucket::UboPush& push, ObjectsBucket:
   push.firstInstance      = instance;
   push.instanceCount      = instanceCount;
   push.fatness            = v.fatness;
-  push.morphPtr           = objMorphAnim.offsetId<MorphDesc>() + uint32_t(id*Resources::MAX_MORPH_LAYERS);
-  push.skelPtr            = objSkelAnim.offsetId<uint32_t>()   + uint32_t(id);
-  if(objSkelAnim.size()>0)
-    Log::d("");
+
+  if(!objMorphAnim.isEmpty())
+    push.animPtr = objMorphAnim.offsetId<MorphDesc>() + uint32_t(id*Resources::MAX_MORPH_LAYERS);
+  else if(!objSkelAnim.isEmpty())
+    push.animPtr = objSkelAnim.offsetId<uint32_t>() + uint32_t(id);
   }
 
 void ObjectsBucket::reallocObjPositions() {
@@ -941,7 +948,7 @@ ObjectsBucket::Object& ObjectsBucketDyn::implAlloc(const Bounds& bounds, const M
   const size_t id = size_t(std::distance(val,&obj));
   uboObj   [id].alloc(*this);
   mat      [id] = m;
-  bucketObj[id] = allocBucketDesc(mat[id]);
+  bucketObj[id] = allocBucketDesc(bounds, mat[id]);
 
   uboSetCommon(uboObj[id],mat[id],bucketObj[id]);
   invalidateDyn();

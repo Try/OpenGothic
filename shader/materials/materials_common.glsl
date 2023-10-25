@@ -128,19 +128,19 @@ struct Payload {
 
 #if (MESH_TYPE==T_LANDSCAPE)
 layout(push_constant, std430) uniform UboPush {
-  uint      meshletBase;
-  int       instanceCount;
+  uint      firstMeshlet;
+  int       meshletCount;
   } push;
 #elif (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING) || (MESH_TYPE==T_MORPH)
 layout(push_constant, std430) uniform UboPush {
-  uint      meshletBase;
-  int       meshletPerInstance;
+  uint      firstMeshlet;
+  int       meshletCount;
   uint      firstInstance;
   uint      instanceCount;
   float     fatness;
-  uint      morphPtr;
-  uint      skelPtr;
-  uint      padd2;
+  uint      animPtr;
+  uint      padd0;
+  uint      padd1;
   } push;
 #elif (MESH_TYPE==T_PFX)
 // no push
@@ -191,15 +191,25 @@ uint pullSkelId(uint i) {
   return instanceMem[i];
   }
 
-vec3 pullPosition(uint objId, uint instanceOffset) {
+vec3 pullPosition(uint instanceId) {
 #if (MESH_TYPE==T_SKINING)
-  uint posPtr = pullSkelId(push.skelPtr + instanceOffset);
-  return pullMatrix(posPtr)[3].xyz;
+  uint skelId = pullSkelId(instanceId + push.animPtr);
+  return pullMatrix(skelId)[3].xyz;
 #elif defined(LVL_OBJECT)
-  uint posPtr = objId;
-  return pullMatrix(posPtr)[3].xyz;
+  return pullMatrix(instanceId + push.firstInstance)[3].xyz;
 #endif
   return vec3(0);
+  }
+
+mat4 pullPositionMatrix(uint instanceId) {
+#if (MESH_TYPE==T_SKINING)
+  uint skelId = pullSkelId(instanceId + push.animPtr);
+  return pullMatrix(skelId);
+#elif defined(LVL_OBJECT)
+  return pullMatrix(instanceId + push.firstInstance);
+#else
+  return mat4(0);
+#endif
   }
 #endif
 
