@@ -77,10 +77,7 @@ InstanceStorage::Id VisualObjects::alloc(size_t size) {
   }
 
 bool VisualObjects::realloc(InstanceStorage::Id& id, size_t size) {
-  if(id.size()==size)
-    return false;
-  id = instanceMem.alloc(size);
-  return true;
+  return instanceMem.realloc(id, size);
   }
 
 const Tempest::StorageBuffer& VisualObjects::instanceSsbo() const {

@@ -98,8 +98,8 @@ Vertex pullVertex(uint id) {
   }
 
 #if (MESH_TYPE==T_MORPH)
-vec3 morphOffset(int i, uint instanceId, uint vertexIndex) {
-  MorphDesc md        = pullMorphDesc(push.animPtr + instanceId*MAX_MORPH_LAYERS + i);
+vec3 morphOffset(uint animPtr, uint vertexIndex) {
+  MorphDesc md        = pullMorphDesc(animPtr);
   vec2      ai        = unpackUnorm2x16(md.alpha16_intensity16);
   float     alpha     = ai.x;
   float     intensity = ai.y;
@@ -136,39 +136,22 @@ void rotate(out vec3 rx, out vec3 ry, float a, in vec3 x, in vec3 y){
 #endif
 
 vec4 processVertex(out Varyings shOut, in Vertex v, uint instanceId, uint vboOffset) {
-#if (MESH_TYPE==T_SKINING)
-  //uint skelId = pullSkelId(instanceId + push.animPtr);
-  //mat4 objMat = pullMatrix(skelId);
-#elif (MESH_TYPE==T_PFX)
-  //uint objId  = instanceId;
-#elif defined(LVL_OBJECT)
-  //mat4 objMat = pullMatrix(instanceId + push.firstInstance);
-#endif
-
-
 #if defined(LVL_OBJECT)
-  mat4  objMat   = pullPositionMatrix(instanceId);
+  Instance obj   = pullInstance(instanceId);
 #elif (MESH_TYPE==T_PFX)
-  uint objId  = instanceId;
+  uint     objId = instanceId;
 #endif
 
   // Position offsets
-  vec3 dpos   = vec3(0);
 #if (MESH_TYPE==T_MORPH)
   for(int i=0; i<MAX_MORPH_LAYERS; ++i)
-    dpos += morphOffset(i,instanceId,vboOffset);
-#endif
-#if defined(LVL_OBJECT)
-  dpos += v.normal*push.fatness;
+    v.pos += morphOffset(obj.animPtr+i, vboOffset);
 #endif
 
   // Normals
   vec3 normal = vec3(0);
-#if (MESH_TYPE==T_SKINING)
-  normal = (objMat*vec4(v.normal,0)).xyz;
-  normal = vec3(normal.z,normal.y,-normal.x);
-#elif (MESH_TYPE==T_OBJ || MESH_TYPE==T_MORPH)
-  normal = (objMat*vec4(v.normal,0)).xyz;
+#if defined(LVL_OBJECT)
+  normal = obj.mat*vec4(v.normal,0);
 #else
   normal = v.normal;
 #endif
@@ -261,24 +244,23 @@ vec4 processVertex(out Varyings shOut, in Vertex v, uint instanceId, uint vboOff
 
   // Position
 #if (MESH_TYPE==T_SKINING)
-  vec3 pos = vec3(0);
+  vec3 pos  = vec3(0);
+  vec3 dpos = normal*obj.fatness;
   {
-    const uint  skelId = pullSkelId(instanceId + push.animPtr);
-    const uvec4 boneId = v.boneId + uvec4(skelId);
+    const uvec4 boneId = v.boneId + uvec4(obj.animPtr);
 
-    dpos = (objMat*vec4(dpos,0)).xyz;
-    dpos = vec3(dpos.z,dpos.y,-dpos.x);
+    const vec3  t0 = (pullMatrix(boneId.x)*vec4(v.pos0,1.0)).xyz;
+    const vec3  t1 = (pullMatrix(boneId.y)*vec4(v.pos1,1.0)).xyz;
+    const vec3  t2 = (pullMatrix(boneId.z)*vec4(v.pos2,1.0)).xyz;
+    const vec3  t3 = (pullMatrix(boneId.w)*vec4(v.pos3,1.0)).xyz;
 
-    vec3 t0   = (pullMatrix(boneId.x)*vec4(v.pos0,1.0)).xyz;
-    vec3 t1   = (pullMatrix(boneId.y)*vec4(v.pos1,1.0)).xyz;
-    vec3 t2   = (pullMatrix(boneId.z)*vec4(v.pos2,1.0)).xyz;
-    vec3 t3   = (pullMatrix(boneId.w)*vec4(v.pos3,1.0)).xyz;
     pos = (t0*v.weight.x + t1*v.weight.y + t2*v.weight.z + t3*v.weight.w) + dpos;
   }
 #elif (MESH_TYPE==T_OBJ || MESH_TYPE==T_MORPH)
-  vec3 pos = (objMat*vec4(v.pos+dpos,1.0)).xyz;
+  vec3 dpos = normal*obj.fatness;
+  vec3 pos  = obj.mat*vec4(v.pos,1.0)  + dpos;
 #else
-  vec3 pos = v.pos;
+  vec3 pos  = v.pos;
 #endif
 
 #if defined(MAT_UV)

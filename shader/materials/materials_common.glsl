@@ -120,6 +120,14 @@ struct MorphDesc {
   uint  alpha16_intensity16;
   };
 
+struct Instance {
+  mat4x3 mat;
+  float  fatness;
+  uint   animPtr;
+  uint   padd0;
+  uint   padd1;
+  };
+
 struct Payload {
   uint  baseId;
   uint  offsets[64];
@@ -137,10 +145,6 @@ layout(push_constant, std430) uniform UboPush {
   int       meshletCount;
   uint      firstInstance;
   uint      instanceCount;
-  float     fatness;
-  uint      animPtr;
-  uint      padd0;
-  uint      padd1;
   } push;
 #elif (MESH_TYPE==T_PFX)
 // no push
@@ -154,7 +158,7 @@ layout(binding = L_Scene, std140) uniform UboScene {
 
 #if defined(LVL_OBJECT) && (defined(GL_VERTEX_SHADER) || defined(MESH) || defined(TASK))
 //layout(binding = L_Matrix, std430)   readonly buffer Matrix { mat4 matrix[]; };
-layout(binding = L_Matrix, std430)   readonly buffer Matrix { uint instanceMem[]; };
+layout(binding = L_Matrix, std430)   readonly buffer InstanceMem { uint instanceMem[]; };
 mat4 pullMatrix(uint i) {
   i *= 16;
   mat4 ret;
@@ -177,6 +181,29 @@ mat4 pullMatrix(uint i) {
   return ret;
   }
 
+Instance pullInstance(uint i) {
+#if defined(LVL_OBJECT)
+  i += push.firstInstance;
+#endif
+  i *= 16;
+  Instance ret;
+  ret.mat[0][0] = uintBitsToFloat(instanceMem[i+0]);
+  ret.mat[0][1] = uintBitsToFloat(instanceMem[i+1]);
+  ret.mat[0][2] = uintBitsToFloat(instanceMem[i+2]);
+  ret.mat[1][0] = uintBitsToFloat(instanceMem[i+3]);
+  ret.mat[1][1] = uintBitsToFloat(instanceMem[i+4]);
+  ret.mat[1][2] = uintBitsToFloat(instanceMem[i+5]);
+  ret.mat[2][0] = uintBitsToFloat(instanceMem[i+6]);
+  ret.mat[2][1] = uintBitsToFloat(instanceMem[i+7]);
+  ret.mat[2][2] = uintBitsToFloat(instanceMem[i+8]);
+  ret.mat[3][0] = uintBitsToFloat(instanceMem[i+9]);
+  ret.mat[3][1] = uintBitsToFloat(instanceMem[i+10]);
+  ret.mat[3][2] = uintBitsToFloat(instanceMem[i+11]);
+  ret.fatness   = uintBitsToFloat(instanceMem[i+12]);
+  ret.animPtr   = instanceMem[i+13];
+  return ret;
+  }
+
 MorphDesc pullMorphDesc(uint i) {
   i *= 4;
   MorphDesc ret;
@@ -187,28 +214,11 @@ MorphDesc pullMorphDesc(uint i) {
   return ret;
   }
 
-uint pullSkelId(uint i) {
-  return instanceMem[i];
-  }
-
 vec3 pullPosition(uint instanceId) {
-#if (MESH_TYPE==T_SKINING)
-  uint skelId = pullSkelId(instanceId + push.animPtr);
-  return pullMatrix(skelId)[3].xyz;
-#elif defined(LVL_OBJECT)
-  return pullMatrix(instanceId + push.firstInstance)[3].xyz;
-#endif
-  return vec3(0);
-  }
-
-mat4 pullPositionMatrix(uint instanceId) {
-#if (MESH_TYPE==T_SKINING)
-  uint skelId = pullSkelId(instanceId + push.animPtr);
-  return pullMatrix(skelId);
-#elif defined(LVL_OBJECT)
-  return pullMatrix(instanceId + push.firstInstance);
+#if defined(LVL_OBJECT)
+  return pullInstance(instanceId).mat[3];
 #else
-  return mat4(0);
+  return vec3(0);
 #endif
   }
 #endif

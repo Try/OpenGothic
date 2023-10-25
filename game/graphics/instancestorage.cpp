@@ -60,8 +60,8 @@ void InstanceStorage::Id::set(const Tempest::Matrix4x4* mat) {
   auto data = reinterpret_cast<Matrix4x4*>(owner->dataCpu.data() + rgn.begin);
   std::memcpy(data, mat, rgn.asize);
 
-  for(size_t i=0; i<rgn.asize; i+=64)
-    bitSet(owner->durty, (rgn.begin+i)/64);
+  for(size_t i=0; i<rgn.asize; i+=blockSz)
+    bitSet(owner->durty, (rgn.begin+i)/blockSz);
   }
 
 void InstanceStorage::Id::set(const Tempest::Matrix4x4& obj, size_t offset) {
@@ -72,7 +72,7 @@ void InstanceStorage::Id::set(const Tempest::Matrix4x4& obj, size_t offset) {
   if(data[offset] == obj)
     return;
   data[offset] = obj;
-  bitSet(owner->durty, (rgn.begin+offset*sizeof(Matrix4x4))/64);
+  bitSet(owner->durty, (rgn.begin+offset*sizeof(Matrix4x4))/blockSz);
   }
 
 void InstanceStorage::Id::set(const void* data, size_t offset, size_t size) {
@@ -82,17 +82,17 @@ void InstanceStorage::Id::set(const void* data, size_t offset, size_t size) {
   auto src = reinterpret_cast<const uint8_t*>(data);
   auto dst = (owner->dataCpu.data() + rgn.begin + offset);
 
-  if((offset%64)==0) {
-    for(size_t i=0; i<size; i+=64) {
-      for(size_t r=0; r<64 && i+r<size; ++r) {
+  if((offset%blockSz)==0) {
+    for(size_t i=0; i<size; i+=blockSz) {
+      for(size_t r=0; r<blockSz && i+r<size; ++r) {
         dst[i+r] = src[i+r];
         }
-      bitSet(owner->durty, (rgn.begin + offset + i)/64);
+      bitSet(owner->durty, (rgn.begin + offset + i)/blockSz);
       }
     } else {
     for(size_t i=0; i<size; ++i) {
       dst[i] = src[i];
-      bitSet(owner->durty, (rgn.begin + offset + i)/64);
+      bitSet(owner->durty, (rgn.begin + offset + i)/blockSz);
       }
     }
   }
@@ -142,8 +142,8 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
 
     Path p = {};
     p.src  = uint32_t(payloadSize);
-    p.dst  = uint32_t(begin*64u);
-    p.size = uint32_t((i-begin)*64u);
+    p.dst  = uint32_t(begin*blockSz);
+    p.size = uint32_t((i-begin)*blockSz);
     patchBlock.push_back(p);
     payloadSize += p.size;
     }
@@ -214,8 +214,32 @@ InstanceStorage::Id InstanceStorage::alloc(const size_t size) {
   r.asize = size;
   dataCpu.resize(dataCpu.size()+nsize);
 
-  durty.resize((dataCpu.size()+64-1)/64, uint32_t(-1));
+  durty.resize((dataCpu.size()+blockSz-1)/blockSz, uint32_t(-1));
   return Id(*this,r);
+  }
+
+bool InstanceStorage::realloc(Id& id, const size_t size) {
+  if(size==0) {
+    if(id.isEmpty())
+      return false;
+    id = Id(*this,Range());
+    return true;
+    }
+
+  if(size<=id.rgn.size) {
+    id.rgn.asize = size;
+    return false;
+    }
+
+  auto next = alloc(size);
+
+  auto data = dataCpu.data();
+  std::memcpy(data+next.rgn.begin, data+id.rgn.begin, id.rgn.asize);
+  for(size_t i=0; i<id.rgn.asize; ++i) {
+    bitSet(durty, (next.rgn.begin + i)/blockSz);
+    }
+  id = std::move(next);
+  return true;
   }
 
 const Tempest::StorageBuffer& InstanceStorage::ssbo() const {

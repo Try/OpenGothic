@@ -122,13 +122,14 @@ void dbgBbox(const uint objId) {
     3, 2, 7, 7, 2, 6,
     4, 5, 0, 0, 5, 1
     };
-  const vec3 b[2] = {bucket.bbox[0].xyz, bucket.bbox[1].xyz};
+  const vec3     b[2] = {bucket.bbox[0].xyz, bucket.bbox[1].xyz};
+  const Instance obj  = pullInstance(objId);
 
   for(int i=0; i<8; ++i) {
     vec4 trPos;
     const ivec3 msk  = v[i];
     const vec3  pos  = vec3(b[msk.x].x,b[msk.y].y,b[msk.z].z);
-    trPos = pullMatrix(objId)*vec4(pos.xyz,1.0);
+    trPos = vec4(obj.mat*vec4(pos.xyz,1.0), 1.0);
     trPos = scene.viewProject*trPos;
     gl_MeshVerticesEXT[i].gl_Position = trPos;
 #if defined(MAT_VARYINGS)
@@ -141,7 +142,7 @@ void dbgBbox(const uint objId) {
   }
 
 void dbgSphere(const uint objId) {
-  vec4 sphere = vec4(pullMatrix(objId)[3].xyz, bucket.bboxRadius);
+  vec4 sphere = vec4(pullPosition(objId), bucket.bboxRadius);
   sphere.xyz = (scene.view*vec4(sphere.xyz,1)).xyz;
 
   vec4  aabb  = vec4(0);

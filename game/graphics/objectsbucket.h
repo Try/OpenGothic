@@ -159,14 +159,10 @@ class ObjectsBucket {
       };
 
     struct UboPush {
-      uint32_t  meshletBase        = 0;
-      int32_t   meshletPerInstance = 0;
-      uint32_t  firstInstance      = 0;
-      uint32_t  instanceCount      = 0;
-      float     fatness            = 0;
-      uint32_t  animPtr            = 0;
-      uint32_t  padd0              = {};
-      uint32_t  padd1              = {};
+      uint32_t  firstMeshlet  = 0;
+      int32_t   meshletCount  = 0;
+      uint32_t  firstInstance = 0;
+      uint32_t  instanceCount = 0;
       };
 
     struct MorphData {
@@ -174,9 +170,12 @@ class ObjectsBucket {
       };
 
     struct InstanceDesc {
+      void     setPosition(const Tempest::Matrix4x4& m);
       float    pos[4][3] = {};
       float    fatness   = 0;
-      uint32_t aniPtr    = 0;
+      uint32_t animPtr   = 0;
+      uint32_t padd0     = {};
+      uint32_t padd1     = {};
       };
 
     struct BucketDesc final {
@@ -240,6 +239,8 @@ class ObjectsBucket {
     bool                      isShadowmapRequired() const;
     bool                      isSceneInfoRequired() const;
     void                      updatePushBlock(UboPush& push, Object& v, uint32_t instance, uint32_t id, uint32_t instanceCount);
+
+    void                      updateInstance(size_t instance, const Object& v);
     void                      reallocObjPositions();
     void                      invalidateInstancing();
     uint32_t                  applyInstancing(size_t& i, const size_t* index, size_t indSz) const;
@@ -265,10 +266,10 @@ class ObjectsBucket {
     VisibleSet                visSet;
 
     Object                    val[CAPACITY];
-    size_t                    valSz = 0;
-    InstanceStorage::Id       objPositions;
+    size_t                    valSz  = 0; // count
+    size_t                    valLen = 0; // last valid index
+    InstanceStorage::Id       objInstances;
     InstanceStorage::Id       objMorphAnim;
-    InstanceStorage::Id       objSkelAnim;
 
     bool                      useMeshlets         = false;
     bool                      textureInShadowPass = false;

@@ -62,7 +62,7 @@ float hiZFetch(in sampler2D hiZ, in ivec2 ibbox[2]) {
 bool bboxTest(const uint instanceId) {
 #if defined(LVL_OBJECT)
   const vec3  b[2]   = {bucket.bbox[0].xyz, bucket.bbox[1].xyz};
-  const mat4  objMat = pullPositionMatrix(instanceId);
+  Instance    obj    = pullInstance(instanceId);
 #else
   const vec3  objPos = bounds[instanceId + push.firstMeshlet].xyz;
   const float R      = bounds[instanceId + push.firstMeshlet].w;
@@ -78,7 +78,7 @@ bool bboxTest(const uint instanceId) {
                           b[bitfieldExtract(i,2,1)].z);
     vec4 trPos = vec4(pos,1.0);
 #if defined(LVL_OBJECT)
-    trPos = objMat*trPos;
+    trPos = vec4(obj.mat*trPos, 1.0);
 #endif
     trPos = scene.viewProject*trPos;
     if(trPos.z<0 || trPos.w<0.001)

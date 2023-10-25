@@ -16,6 +16,8 @@ class InstanceStorage {
       size_t asize = 0;
       };
 
+    static constexpr size_t blockSz = 64;
+
   public:
     class Id {
       public:
@@ -38,11 +40,13 @@ class InstanceStorage {
       private:
         InstanceStorage* owner = nullptr;
         Range            rgn;
+      friend class InstanceStorage;
       };
 
     InstanceStorage();
 
     Id   alloc(const size_t size);
+    bool realloc(Id& id, const size_t size);
     auto ssbo () const -> const Tempest::StorageBuffer&;
     bool commit(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
