@@ -82,6 +82,9 @@ void InstanceStorage::Id::set(const void* data, size_t offset, size_t size) {
   auto src = reinterpret_cast<const uint8_t*>(data);
   auto dst = (owner->dataCpu.data() + rgn.begin + offset);
 
+  if(std::memcmp(src, dst, size)==0)
+    return;
+
   if((offset%blockSz)==0) {
     for(size_t i=0; i<size; i+=blockSz) {
       for(size_t r=0; r<blockSz && i+r<size; ++r) {
@@ -138,6 +141,18 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
       if(!bitAt(durty,i))
         break;
       ++i;
+      }
+
+    uint32_t size    = (uint32_t((i-begin)*blockSz));
+    uint32_t chunkSz = 256;
+    while(size>0) {
+      Path p = {};
+      p.src  = uint32_t(payloadSize);
+      p.dst  = uint32_t(begin*blockSz);
+      p.size = std::min<uint32_t>(size, chunkSz);
+      patchBlock.push_back(p);
+      payloadSize += p.size;
+      size        -= p.size;
       }
 
     Path p = {};

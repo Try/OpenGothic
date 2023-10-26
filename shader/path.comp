@@ -1,6 +1,6 @@
 #version 460
 
-layout(local_size_x = 64) in;
+layout(local_size_x = 32) in;
 
 struct Path {
   uint src;

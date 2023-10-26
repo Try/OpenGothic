@@ -157,8 +157,8 @@ layout(binding = L_Scene, std140) uniform UboScene {
   };
 
 #if defined(LVL_OBJECT) && (defined(GL_VERTEX_SHADER) || defined(MESH) || defined(TASK))
-//layout(binding = L_Matrix, std430)   readonly buffer Matrix { mat4 matrix[]; };
-layout(binding = L_Matrix, std430)   readonly buffer InstanceMem { uint instanceMem[]; };
+layout(binding = L_Matrix, std430) readonly buffer InstanceMem { uint instanceMem[]; };
+
 mat4 pullMatrix(uint i) {
   i *= 16;
   mat4 ret;
@@ -238,8 +238,8 @@ layout(binding = L_Bucket, std140) uniform BucketDesc {
 #endif
 
 #if defined(MESH) || defined(TASK)
-layout(binding = L_Ibo, std430)      readonly buffer Ibo  { uint  indexes []; };
-layout(binding = L_Vbo, std430)      readonly buffer Vbo  { float vertices[]; };
+layout(binding = L_Ibo, std430) readonly buffer Ibo  { uint  indexes []; };
+layout(binding = L_Vbo, std430) readonly buffer Vbo  { float vertices[]; };
 #endif
 
 #if defined(GL_FRAGMENT_SHADER) && !(defined(DEPTH_ONLY) && !defined(ATEST))
@@ -252,16 +252,16 @@ layout(binding = L_Shadow1) uniform sampler2D textureSm1;
 #endif
 
 #if (MESH_TYPE==T_MORPH) && (defined(GL_VERTEX_SHADER) || defined(MESH))
-layout(std430, binding = L_MorphId) readonly buffer SsboMorphId {
+layout(binding = L_MorphId, std430) readonly buffer SsboMorphId {
   int  index[];
   } morphId;
-layout(std430, binding = L_Morph) readonly buffer SsboMorph {
+layout(binding = L_Morph, std430) readonly buffer SsboMorph {
   vec4 samples[];
   } morph;
 #endif
 
 #if (MESH_TYPE==T_PFX) && (defined(GL_VERTEX_SHADER) || defined(MESH))
-layout(std430, binding = L_Pfx) readonly buffer SsboMorphId {
+layout(binding = L_Pfx, std430) readonly buffer SsboMorphId {
   Particle pfx[];
   };
 #endif
