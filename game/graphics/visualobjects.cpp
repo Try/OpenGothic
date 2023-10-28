@@ -226,6 +226,10 @@ void VisualObjects::prepareGlobals(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     c->invalidateUbo(fId);
   }
 
+void VisualObjects::postFrameupdate() {
+  instanceMem.join();
+  }
+
 bool VisualObjects::updateRtScene(RtScene& out) {
   if(!out.isUpdateRequired())
     return false;

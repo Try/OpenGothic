@@ -4,6 +4,7 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/UniformBuffer>
 
+#include <future>
 #include <vector>
 
 #include "resources.h"
@@ -44,16 +45,19 @@ class InstanceStorage {
       };
 
     InstanceStorage();
+    ~InstanceStorage();
 
     Id   alloc(const size_t size);
     bool realloc(Id& id, const size_t size);
     auto ssbo () const -> const Tempest::StorageBuffer&;
     bool commit(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void join();
 
   private:
     static constexpr size_t alignment = 64;
 
     void free(const Range& r);
+    void uploadMain();
 
     struct Path {
       uint32_t dst;
@@ -77,4 +81,9 @@ class InstanceStorage {
 
     Tempest::DescriptorSet desc[Resources::MaxFramesInFlight];
     bool                   resizeBit[Resources::MaxFramesInFlight] = {};
+
+    std::thread             uploadTh;
+    std::mutex              sync;
+    std::condition_variable uploadCnd;
+    int32_t                 uploadFId = -1;
   };

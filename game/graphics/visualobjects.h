@@ -33,6 +33,7 @@ class VisualObjects final {
     void prepareUniforms();
     void preFrameUpdate (uint8_t fId);
     void prepareGlobals (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void postFrameupdate();
 
     void visibilityPass (const Frustrum fr[]);
 

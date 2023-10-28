@@ -1,9 +1,11 @@
 #include "instancestorage.h"
 #include "shaders.h"
+#include "utils/workers.h"
 
 #include <Tempest/Log>
 #include <cstdint>
 #include <atomic>
+#include <future>
 
 using namespace Tempest;
 
@@ -112,6 +114,17 @@ InstanceStorage::InstanceStorage() {
   auto& device = Resources::device();
   for(auto& d:desc)
     d = device.descriptors(Shaders::inst().path);
+
+  uploadTh = std::thread([this](){ uploadMain(); });
+  }
+
+InstanceStorage::~InstanceStorage() {
+  {
+    std::unique_lock<std::mutex> lck(sync);
+    uploadFId = Resources::MaxFramesInFlight;
+  }
+  uploadCnd.notify_one();
+  uploadTh.join();
   }
 
 bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
@@ -127,6 +140,7 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     resizeBit[fId] = false;
     return true;
     }
+  join();
 
   const bool resized = resizeBit[fId];
   resizeBit[fId] = false;
@@ -164,12 +178,7 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   if(patchBlock.size()==0)
     return resized;
 
-  auto& path = patchGpu[fId];
   const size_t headerSize = patchBlock.size()*sizeof(Path);
-  if(path.byteSize() < headerSize + payloadSize) {
-    path = device.ssbo(BufferHeap::Upload, nullptr, headerSize + payloadSize);
-    }
-
   patchCpu.resize(headerSize + payloadSize);
   for(auto& i:patchBlock) {
     i.src += uint32_t(headerSize);
@@ -181,16 +190,35 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     i.size /= 4;
     }
   std::memcpy(patchCpu.data(), patchBlock.data(), headerSize);
-  path.update(patchCpu);
 
   auto& d = desc[fId];
-  d.set(0, dataGpu);
-  d.set(1, path);
+  auto& path = patchGpu[fId];
+  if(path.byteSize() < headerSize + payloadSize) {
+    path = device.ssbo(BufferHeap::Upload, nullptr, headerSize + payloadSize);
+
+    d.set(0, dataGpu);
+    d.set(1, path);
+    }
+
+  {
+    std::unique_lock<std::mutex> lck(sync);
+    uploadFId = fId;
+  }
+  uploadCnd.notify_one();
+  //path.update(patchCpu);
 
   cmd.setFramebuffer({});
   cmd.setUniforms(Shaders::inst().path, d);
   cmd.dispatch(patchBlock.size());
   return resized;
+  }
+
+void InstanceStorage::join() {
+  while(true) {
+    std::unique_lock<std::mutex> lck(sync);
+    if(uploadFId<0)
+      break;
+    }
   }
 
 InstanceStorage::Id InstanceStorage::alloc(const size_t size) {
@@ -274,4 +302,19 @@ void InstanceStorage::free(const Range& r) {
     return l.begin<r.begin;
     });
   rgn.insert(at,r);
+  }
+
+void InstanceStorage::uploadMain() {
+  Workers::setThreadName("InstanceStorage upload");
+  while(true) {
+    std::unique_lock<std::mutex> lck(sync);
+    uploadCnd.wait(lck);
+    if(uploadFId==Resources::MaxFramesInFlight)
+      break;
+    if(uploadFId<0)
+      continue;
+
+    patchGpu[uploadFId].update(patchCpu);
+    uploadFId = -1;
+    }
   }
