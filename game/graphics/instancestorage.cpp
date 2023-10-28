@@ -143,24 +143,21 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
       ++i;
       }
 
-    uint32_t size    = (uint32_t((i-begin)*blockSz));
+    uint32_t size    = uint32_t((i-begin)*blockSz);
     uint32_t chunkSz = 256;
-    while(size>0) {
-      Path p = {};
-      p.src  = uint32_t(payloadSize);
-      p.dst  = uint32_t(begin*blockSz);
-      p.size = std::min<uint32_t>(size, chunkSz);
-      patchBlock.push_back(p);
-      payloadSize += p.size;
-      size        -= p.size;
-      }
 
     Path p = {};
-    p.src  = uint32_t(payloadSize);
     p.dst  = uint32_t(begin*blockSz);
-    p.size = uint32_t((i-begin)*blockSz);
-    patchBlock.push_back(p);
-    payloadSize += p.size;
+    p.src  = uint32_t(payloadSize);
+    while(size>0) {
+      p.size = std::min<uint32_t>(size, chunkSz);
+      size        -= p.size;
+      patchBlock.push_back(p);
+
+      payloadSize += p.size;
+      p.dst       += p.size;
+      p.src       += p.size;
+      }
     }
   std::memset(durty.data(), 0, durty.size()*sizeof(durty[0]));
 

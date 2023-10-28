@@ -56,8 +56,8 @@ class InstanceStorage {
     void free(const Range& r);
 
     struct Path {
-      uint32_t src;
       uint32_t dst;
+      uint32_t src;
       uint32_t size;
       };
 
