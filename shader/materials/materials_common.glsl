@@ -157,6 +157,7 @@ layout(binding = L_Scene, std140) uniform UboScene {
   };
 
 #if defined(LVL_OBJECT) && (defined(GL_VERTEX_SHADER) || defined(MESH) || defined(TASK))
+// NOTE: need to support binding overlap
 layout(binding = L_Matrix, std430) readonly buffer InstanceMem { uint instanceMem[]; };
 
 mat4 pullMatrix(uint i) {

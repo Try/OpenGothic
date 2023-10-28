@@ -321,7 +321,19 @@ void VisibilityGroup::testStaticObjects(const Frustrum f[], SceneGlobals::VisCam
   auto  visible = f[c].testBbox(n.bbox.bbox[0],n.bbox.bbox[1]);
 
   if(n.isLeaf || visible==Frustrum::T_Full) {
-    setVisible(SceneGlobals::VisCamera(c),begin,end);
+    // setVisible(SceneGlobals::VisCamera(c),begin,end);
+    for(auto i=begin; i!=end; ++i) {
+      auto& v = *i->self->vSet;
+      auto& t = *i->self;
+      auto& b = t.bbox;
+      if(t.updateBbox) {
+        t.bbox.setObjMatrix(t.pos);
+        t.updateBbox = false;
+        }
+      if(!f[c].testPoint(b.midTr, b.r))
+        continue;
+      v.push(i->self->id, c);
+      }
     return;
     }
   if(visible==Frustrum::T_Invisible) {

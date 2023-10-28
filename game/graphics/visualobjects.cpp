@@ -172,23 +172,18 @@ void VisualObjects::mkIndex() {
     if(lm.alphaOrder()>rm.alphaOrder())
       return false;
 
-    const int lt = l->type()==ObjectsBucket::Landscape ? 0 : 1;
-    const int rt = r->type()==ObjectsBucket::Landscape ? 0 : 1;
+    const int lt    = l->type()==ObjectsBucket::Landscape ? 0 : 1;
+    const int rt    = r->type()==ObjectsBucket::Landscape ? 0 : 1;
 
-    if(lt<rt)
-      return true;
-    if(lt>rt)
-      return false;
+    const bool lpso = l->pso();
+    const bool rpso = r->pso();
 
-    auto lv = l->meshPointer();
-    auto rv = r->meshPointer();
-    if(lv<rv)
-      return true;
-    if(lv>rv)
-      return false;
+    const auto lv   = l->meshPointer();
+    const auto rv   = r->meshPointer();
 
-    return lm.tex < rm.tex;
+    return std::tie(lt, lpso, lv, lm.tex) < std::tie(rt, rpso, rv, rm.tex);
     });
+
   lastSolidBucket = index.size();
   for(size_t i=0;i<index.size();++i) {
     auto c = index[i];

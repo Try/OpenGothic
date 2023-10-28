@@ -14,7 +14,6 @@
 
 #include "graphics/material.h"
 #include "phoenix/Vfs.hh"
-#include "sound/soundfx.h"
 
 class StaticMesh;
 class ProtoMesh;
@@ -43,13 +42,11 @@ class Resources final {
       Red
       };
 
-    enum {
-      MaxFramesInFlight = 2,
-      ShadowLayers      = 2,
-      };
+    static constexpr uint8_t MaxFramesInFlight     = 2u;
+    static constexpr uint8_t ShadowLayers          = 2u;
 
-    static const size_t MAX_NUM_SKELETAL_NODES = 96;
-    static const size_t MAX_MORPH_LAYERS       = 4;
+    static constexpr size_t MAX_NUM_SKELETAL_NODES = 96;
+    static constexpr size_t MAX_MORPH_LAYERS       = 4;
 
     struct Vertex {
       float    pos[3];
