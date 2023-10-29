@@ -357,10 +357,10 @@ void LightGroup::tick(uint64_t time) {
     ssbo.pos   = light.position();
     ssbo.color = light.currentColor();
     ssbo.range = light.currentRange();
-
-    for(auto& updated:bucketDyn.updated)
-      updated = false;
     }
+
+  for(auto& updated:bucketDyn.updated)
+    updated = false;
   }
 
 void LightGroup::preFrameUpdate(uint8_t fId) {

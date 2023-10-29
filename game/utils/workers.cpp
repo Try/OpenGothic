@@ -67,7 +67,7 @@ Workers &Workers::inst() {
   }
 
 uint8_t Workers::maxThreads() {
-  int32_t th = int32_t(std::thread::hardware_concurrency())-1;
+  int32_t th = int32_t(std::thread::hardware_concurrency());
   if(th<=0)
     th = 1;
   if(th>MAX_THREADS)
@@ -128,9 +128,11 @@ void Workers::execWork(uint32_t& minElts) {
   if(workSet!=nullptr) {
     const auto maxTheads = maxThreads();
     taskCount = uint32_t((workSize+taskPerThread-1)/taskPerThread);
+    taskCount--; // main thread also do tasks
     if(taskCount>maxTheads)
       taskCount = maxTheads;
-    //taskCount = 1;
+    if(taskCount<=0)
+      taskCount = 1;
     } else {
     taskCount = uint32_t(workSize);
     }
@@ -156,14 +158,12 @@ void Workers::execWork(uint32_t& minElts) {
   std::unique_lock<std::mutex> lck(sync);
   workTbd = int32_t(taskCount);
   }
-  //std::this_thread::yield();
   workWait.notify_all();
 
   uint32_t cnt = 0;
   if(workSet==nullptr) {
     std::this_thread::yield();
     } else {
-    // std::this_thread::yield();
     cnt = taskLoop(); (void)cnt;
     }
 
