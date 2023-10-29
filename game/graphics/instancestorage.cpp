@@ -111,10 +111,6 @@ InstanceStorage::InstanceStorage() {
   patchCpu.reserve(4*1024*1024);
   patchBlock.reserve(1024);
 
-  auto& device = Resources::device();
-  for(auto& d:desc)
-    d = device.descriptors(Shaders::inst().path);
-
   uploadTh = std::thread([this](){ uploadMain(); });
   }
 
@@ -131,16 +127,17 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   auto& device = Resources::device();
 
   std::atomic_thread_fence(std::memory_order_acquire);
+  join();
+
   if(dataGpu.byteSize()!=dataCpu.size()) {
     Resources::recycle(std::move(dataGpu));
     dataGpu = device.ssbo(BufferHeap::Device,dataCpu);
     std::memset(durty.data(), 0, durty.size()*sizeof(uint32_t));
     for(auto& i:resizeBit)
       i = true;
-    resizeBit[fId] = false;
+    prepareUniforms();
     return true;
     }
-  join();
 
   const bool resized = resizeBit[fId];
   resizeBit[fId] = false;
@@ -191,13 +188,11 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     }
   std::memcpy(patchCpu.data(), patchBlock.data(), headerSize);
 
-  auto& d = desc[fId];
-  auto& path = patchGpu[fId];
+  auto& d     = desc[fId];
+  auto& path  = patchGpu[fId];
   if(path.byteSize() < headerSize + payloadSize) {
-    path = device.ssbo(BufferHeap::Upload, nullptr, headerSize + payloadSize);
-
-    d.set(0, dataGpu);
-    d.set(1, path);
+    path  = device.ssbo(BufferHeap::Upload, nullptr, headerSize + payloadSize);
+    prepareUniforms();
     }
 
   {
@@ -316,5 +311,22 @@ void InstanceStorage::uploadMain() {
 
     patchGpu[uploadFId].update(patchCpu);
     uploadFId = -1;
+    }
+  }
+
+void InstanceStorage::prepareUniforms() {
+  auto& device = Resources::device();
+
+  for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i) {
+    auto& d     = desc[i];
+    auto& path  = patchGpu[i];
+    Resources::recycle(std::move(d));
+
+    if(dataGpu.isEmpty() || path.isEmpty())
+      continue;
+
+    d = device.descriptors(Shaders::inst().path);
+    d.set(0, dataGpu);
+    d.set(1, path);
     }
   }

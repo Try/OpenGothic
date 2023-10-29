@@ -58,6 +58,7 @@ class InstanceStorage {
 
     void free(const Range& r);
     void uploadMain();
+    void prepareUniforms();
 
     struct Path {
       uint32_t dst;
@@ -69,18 +70,18 @@ class InstanceStorage {
       std::vector<Tempest::StorageBuffer> ssbo;
       };
 
-    std::vector<Range>     rgn;
-    std::vector<uint32_t>  durty;
+    std::vector<Range>      rgn;
+    std::vector<uint32_t>   durty;
 
-    Tempest::StorageBuffer patchGpu[Resources::MaxFramesInFlight];
-    std::vector<uint8_t>   patchCpu;
-    std::vector<Path>      patchBlock;
+    Tempest::StorageBuffer  patchGpu[Resources::MaxFramesInFlight];
+    std::vector<uint8_t>    patchCpu;
+    std::vector<Path>       patchBlock;
 
-    Tempest::StorageBuffer dataGpu;
-    std::vector<uint8_t>   dataCpu;
+    Tempest::StorageBuffer  dataGpu;
+    std::vector<uint8_t>    dataCpu;
 
-    Tempest::DescriptorSet desc[Resources::MaxFramesInFlight];
-    bool                   resizeBit[Resources::MaxFramesInFlight] = {};
+    Tempest::DescriptorSet  desc[Resources::MaxFramesInFlight];
+    bool                    resizeBit[Resources::MaxFramesInFlight] = {};
 
     std::thread             uploadTh;
     std::mutex              sync;

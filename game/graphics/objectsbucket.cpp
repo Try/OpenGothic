@@ -291,11 +291,11 @@ void ObjectsBucket::postAlloc(Object& obj, size_t objId) {
     assert(obj.iboOffset%PackedMesh::MaxInd==0);
     assert(obj.iboLength%PackedMesh::MaxInd==0);
     }
-  updateInstance(objId, obj);
   if(objType==Morph) {
     MorphData d ={};
     objMorphAnim.set(&d, objId*sizeof(d), sizeof(d));
     }
+  updateInstance(objId, obj);
   invalidateInstancing();
   }
 
@@ -324,9 +324,9 @@ void ObjectsBucket::implFree(const size_t objId) {
     owner.resetIndex();
     objInstances = InstanceStorage::Id();
     objMorphAnim = InstanceStorage::Id();
-    } else {
-    updateInstance(objId, v);
     }
+
+  updateInstance(objId, v);
   invalidateInstancing();
   }
 
