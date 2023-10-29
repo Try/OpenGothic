@@ -16,13 +16,13 @@ layout(local_size_x = WORKGROUP_SIZE) in;
 taskPayloadSharedEXT Payload payload;
 shared               uint    visibleCount;
 
-bool sphereTest(const uint objId) {
+bool sphereTest(const uint instanceId) {
 #if (MESH_TYPE==T_LANDSCAPE)
-  const vec4 sphere = bounds[objId];
+  const vec4 sphere = bounds[instanceId + push.firstMeshlet];
 #elif (MESH_TYPE==T_PFX)
   const vec4 sphere = vec4(0);
 #else
-  const vec4 sphere = vec4(matrix[objId][3].xyz,bucket.bboxRadius);
+  const vec4 sphere = vec4(pullPosition(instanceId), bucket.bboxRadius);
 #endif
   if(sphere.w<0.f)
     return false;
@@ -59,12 +59,13 @@ float hiZFetch(in sampler2D hiZ, in ivec2 ibbox[2]) {
   }
 
 #if !defined(SHADOW_MAP) && (MESH_TYPE!=T_PFX)
-bool bboxTest(const uint objId) {
+bool bboxTest(const uint instanceId) {
 #if defined(LVL_OBJECT)
   const vec3  b[2]   = {bucket.bbox[0].xyz, bucket.bbox[1].xyz};
+  Instance    obj    = pullInstance(instanceId);
 #else
-  const vec3  objPos = bounds[objId].xyz;
-  const float R      = bounds[objId].w;
+  const vec3  objPos = bounds[instanceId + push.firstMeshlet].xyz;
+  const float R      = bounds[instanceId + push.firstMeshlet].w;
   const vec3  b[2]   = { objPos-vec3(R), objPos+vec3(R) };
 #endif
 
@@ -77,7 +78,7 @@ bool bboxTest(const uint objId) {
                           b[bitfieldExtract(i,2,1)].z);
     vec4 trPos = vec4(pos,1.0);
 #if defined(LVL_OBJECT)
-    trPos = matrix[objId]    *trPos;
+    trPos = vec4(obj.mat*trPos, 1.0);
 #endif
     trPos = scene.viewProject*trPos;
     if(trPos.z<0 || trPos.w<0.001)
@@ -104,28 +105,31 @@ bool bboxTest(const uint objId) {
   return true;
   }
 #else
-bool bboxTest(const uint objId) {
+bool bboxTest(const uint instanceId) {
   return true;
   }
 #endif
 
-bool isVisible(const uint objId) {
-#if (MESH_TYPE!=T_PFX)
-  if(gl_GlobalInvocationID.x>=push.instanceCount)
+bool isVisible(const uint instanceId) {
+#if defined(LVL_OBJECT)
+  if(instanceId>=push.instanceCount)
+    return false;
+#elif (MESH_TYPE==T_LANDSCAPE)
+  if(instanceId>=push.meshletCount)
     return false;
 #endif
 
 #if (MESH_TYPE==T_LANDSCAPE)
-  if(!sphereTest(objId))
+  if(!sphereTest(instanceId))
     return false;
-  if(!bboxTest(objId))
+  if(!bboxTest(instanceId))
     return false;
 #elif (MESH_TYPE==T_PFX)
   return true;
 #else
-  if(!sphereTest(objId))
+  if(!sphereTest(instanceId))
     return false;
-  if(!bboxTest(objId))
+  if(!bboxTest(instanceId))
     return false;
 #endif
   return true;
@@ -133,24 +137,19 @@ bool isVisible(const uint objId) {
 
 void main() {
 #if defined(LVL_OBJECT)
-  const uint objId     = gl_GlobalInvocationID.x + push.firstInstance;
-  const uint meshletSz = push.meshletPerInstance;
-#elif (MESH_TYPE==T_LANDSCAPE)
-  const uint objId     = gl_GlobalInvocationID.x + push.meshletBase;
-  const uint meshletSz = 1;
+  const uint meshletSz = push.meshletCount;
 #else
-  const uint objId     = 0;
   const uint meshletSz = 1;
 #endif
 
-  const bool visible = isVisible(objId);
+  const bool visible = isVisible(gl_GlobalInvocationID.x);
 
   visibleCount = 0;
   barrier();
 
   if(visible) {
     uint id = atomicAdd(visibleCount, 1);
-    payload.offsets[id] = objId;
+    payload.offsets[id] = gl_GlobalInvocationID.x;
     }
   barrier();
 

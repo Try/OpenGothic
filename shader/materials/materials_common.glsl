@@ -24,7 +24,7 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #endif
 
 #define MAX_NUM_SKELETAL_NODES 96
-#define MAX_MORPH_LAYERS       3
+#define MAX_MORPH_LAYERS       4
 #define MaxVert                64
 #define MaxPrim                64
 #define MaxInd                 (MaxPrim*3)
@@ -120,6 +120,14 @@ struct MorphDesc {
   uint  alpha16_intensity16;
   };
 
+struct Instance {
+  mat4x3 mat;
+  float  fatness;
+  uint   animPtr;
+  uint   padd0;
+  uint   padd1;
+  };
+
 struct Payload {
   uint  baseId;
   uint  offsets[64];
@@ -128,32 +136,15 @@ struct Payload {
 
 #if (MESH_TYPE==T_LANDSCAPE)
 layout(push_constant, std430) uniform UboPush {
-  uint      meshletBase;
-  int       instanceCount;
+  uint      firstMeshlet;
+  int       meshletCount;
   } push;
-#elif (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING)
+#elif (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING) || (MESH_TYPE==T_MORPH)
 layout(push_constant, std430) uniform UboPush {
-  uint      meshletBase;
-  int       meshletPerInstance;
+  uint      firstMeshlet;
+  int       meshletCount;
   uint      firstInstance;
   uint      instanceCount;
-  float     fatness;
-  float     padd0;
-  float     padd1;
-  float     padd2;
-  } push;
-#elif (MESH_TYPE==T_MORPH)
-layout(push_constant, std430) uniform UboPush {
-  uint      meshletBase;
-  int       meshletPerInstance;
-  uint      firstInstance;
-  uint      instanceCount;
-  float     fatness;
-  float     padd0;
-  float     padd1;
-  float     padd2;
-
-  MorphDesc morph[MAX_MORPH_LAYERS];
   } push;
 #elif (MESH_TYPE==T_PFX)
 // no push
@@ -166,7 +157,71 @@ layout(binding = L_Scene, std140) uniform UboScene {
   };
 
 #if defined(LVL_OBJECT) && (defined(GL_VERTEX_SHADER) || defined(MESH) || defined(TASK))
-layout(binding = L_Matrix, std430)   readonly buffer Matrix { mat4 matrix[]; };
+// NOTE: need to support binding overlap
+layout(binding = L_Matrix, std430) readonly buffer InstanceMem { uint instanceMem[]; };
+
+mat4 pullMatrix(uint i) {
+  i *= 16;
+  mat4 ret;
+  ret[0][0] = uintBitsToFloat(instanceMem[i+0]);
+  ret[0][1] = uintBitsToFloat(instanceMem[i+1]);
+  ret[0][2] = uintBitsToFloat(instanceMem[i+2]);
+  ret[0][3] = uintBitsToFloat(instanceMem[i+3]);
+  ret[1][0] = uintBitsToFloat(instanceMem[i+4]);
+  ret[1][1] = uintBitsToFloat(instanceMem[i+5]);
+  ret[1][2] = uintBitsToFloat(instanceMem[i+6]);
+  ret[1][3] = uintBitsToFloat(instanceMem[i+7]);
+  ret[2][0] = uintBitsToFloat(instanceMem[i+8]);
+  ret[2][1] = uintBitsToFloat(instanceMem[i+9]);
+  ret[2][2] = uintBitsToFloat(instanceMem[i+10]);
+  ret[2][3] = uintBitsToFloat(instanceMem[i+11]);
+  ret[3][0] = uintBitsToFloat(instanceMem[i+12]);
+  ret[3][1] = uintBitsToFloat(instanceMem[i+13]);
+  ret[3][2] = uintBitsToFloat(instanceMem[i+14]);
+  ret[3][3] = uintBitsToFloat(instanceMem[i+15]);
+  return ret;
+  }
+
+Instance pullInstance(uint i) {
+#if defined(LVL_OBJECT)
+  i += push.firstInstance;
+#endif
+  i *= 16;
+  Instance ret;
+  ret.mat[0][0] = uintBitsToFloat(instanceMem[i+0]);
+  ret.mat[0][1] = uintBitsToFloat(instanceMem[i+1]);
+  ret.mat[0][2] = uintBitsToFloat(instanceMem[i+2]);
+  ret.mat[1][0] = uintBitsToFloat(instanceMem[i+3]);
+  ret.mat[1][1] = uintBitsToFloat(instanceMem[i+4]);
+  ret.mat[1][2] = uintBitsToFloat(instanceMem[i+5]);
+  ret.mat[2][0] = uintBitsToFloat(instanceMem[i+6]);
+  ret.mat[2][1] = uintBitsToFloat(instanceMem[i+7]);
+  ret.mat[2][2] = uintBitsToFloat(instanceMem[i+8]);
+  ret.mat[3][0] = uintBitsToFloat(instanceMem[i+9]);
+  ret.mat[3][1] = uintBitsToFloat(instanceMem[i+10]);
+  ret.mat[3][2] = uintBitsToFloat(instanceMem[i+11]);
+  ret.fatness   = uintBitsToFloat(instanceMem[i+12]);
+  ret.animPtr   = instanceMem[i+13];
+  return ret;
+  }
+
+MorphDesc pullMorphDesc(uint i) {
+  i *= 4;
+  MorphDesc ret;
+  ret.indexOffset         = instanceMem[i+0];
+  ret.sample0             = instanceMem[i+1];
+  ret.sample1             = instanceMem[i+2];
+  ret.alpha16_intensity16 = instanceMem[i+3];
+  return ret;
+  }
+
+vec3 pullPosition(uint instanceId) {
+#if defined(LVL_OBJECT)
+  return pullInstance(instanceId).mat[3];
+#else
+  return vec3(0);
+#endif
+  }
 #endif
 
 #if (MESH_TYPE==T_LANDSCAPE) && (defined(GL_VERTEX_SHADER) || defined(MESH) || defined(TASK))
@@ -184,8 +239,8 @@ layout(binding = L_Bucket, std140) uniform BucketDesc {
 #endif
 
 #if defined(MESH) || defined(TASK)
-layout(binding = L_Ibo, std430)      readonly buffer Ibo  { uint  indexes []; };
-layout(binding = L_Vbo, std430)      readonly buffer Vbo  { float vertices[]; };
+layout(binding = L_Ibo, std430) readonly buffer Ibo  { uint  indexes []; };
+layout(binding = L_Vbo, std430) readonly buffer Vbo  { float vertices[]; };
 #endif
 
 #if defined(GL_FRAGMENT_SHADER) && !(defined(DEPTH_ONLY) && !defined(ATEST))
@@ -198,16 +253,16 @@ layout(binding = L_Shadow1) uniform sampler2D textureSm1;
 #endif
 
 #if (MESH_TYPE==T_MORPH) && (defined(GL_VERTEX_SHADER) || defined(MESH))
-layout(std430, binding = L_MorphId) readonly buffer SsboMorphId {
+layout(binding = L_MorphId, std430) readonly buffer SsboMorphId {
   int  index[];
   } morphId;
-layout(std430, binding = L_Morph) readonly buffer SsboMorph {
+layout(binding = L_Morph, std430) readonly buffer SsboMorph {
   vec4 samples[];
   } morph;
 #endif
 
 #if (MESH_TYPE==T_PFX) && (defined(GL_VERTEX_SHADER) || defined(MESH))
-layout(std430, binding = L_Pfx) readonly buffer SsboMorphId {
+layout(binding = L_Pfx, std430) readonly buffer SsboMorphId {
   Particle pfx[];
   };
 #endif

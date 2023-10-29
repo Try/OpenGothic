@@ -27,11 +27,13 @@ class VisualObjects final {
     ObjectsBucket::Item get(const Material& mat);
 
     InstanceStorage::Id alloc(size_t size);
+    bool                realloc(InstanceStorage::Id& id, size_t size);
     auto                instanceSsbo() const -> const Tempest::StorageBuffer&;
 
     void prepareUniforms();
     void preFrameUpdate (uint8_t fId);
     void prepareGlobals (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void postFrameupdate();
 
     void visibilityPass (const Frustrum fr[]);
 

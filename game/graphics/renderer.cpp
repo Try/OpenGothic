@@ -550,6 +550,8 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
   cmd.setDebugMarker("Tonemapping");
   drawTonemapping(cmd);
+
+  wview->postFrameupdate();
   }
 
 void Renderer::drawTonemapping(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {

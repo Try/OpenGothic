@@ -248,6 +248,11 @@ Shaders& Shaders::inst() {
   }
 
 const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBucket::Type t, PipelineType pt) const {
+  if(t==ObjectsBucket::Static) {
+    // same shader
+    t = ObjectsBucket::Movable;
+    }
+
   const auto alpha = (mat.isGhost ? Material::Ghost : mat.alpha);
 
   for(auto& i:materials) {

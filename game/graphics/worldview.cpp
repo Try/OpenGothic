@@ -213,3 +213,7 @@ void WorldView::prepareUniforms() {
   gSky.prepareUniforms();
   visuals.prepareUniforms();
   }
+
+void WorldView::postFrameupdate() {
+  visuals.postFrameupdate();
+  }

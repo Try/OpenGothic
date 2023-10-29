@@ -1,10 +1,10 @@
 #version 460
 
-layout(local_size_x = 64) in;
+layout(local_size_x = 32) in;
 
 struct Path {
-  uint src;
   uint dst;
+  uint src;
   uint size;
   };
 
@@ -18,9 +18,14 @@ layout(binding = 1, std430) readonly buffer Input {
 
 void main() {
   Path p;
-  p.src  = src[gl_WorkGroupID.x*3+0];
-  p.dst  = src[gl_WorkGroupID.x*3+1];
+  p.dst  = src[gl_WorkGroupID.x*3+0];
+  p.src  = src[gl_WorkGroupID.x*3+1];
   p.size = src[gl_WorkGroupID.x*3+2];
+
+  // p.src  = src[gl_WorkGroupID.x*2+0];
+  // p.dst  = src[gl_WorkGroupID.x*2+1];
+  // p.size = p.src & 0xFFFF0000;
+  // p.src  &= 0x0000FFFF;
 
   for(uint i=gl_LocalInvocationID.x; i<p.size; i+=gl_WorkGroupSize.x) {
     dst[p.dst + i] = src[p.src + i];

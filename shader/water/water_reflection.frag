@@ -165,7 +165,7 @@ void main() {
     discard;
 
   const bool  underWater = (scene.underWater!=0);
-  const float ior        = underWater ? IorAir : IorWater;
+  const float ior        = (underWater ? IorAir : IorWater);
 
   const float depth   = texelFetch(gbufDepth,  ivec2(gl_FragCoord.xy), 0).r;
   const vec3  nrm     = texelFetch(gbufNormal, ivec2(gl_FragCoord.xy), 0).rgb;

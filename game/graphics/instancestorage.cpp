@@ -1,9 +1,11 @@
 #include "instancestorage.h"
 #include "shaders.h"
+#include "utils/workers.h"
 
 #include <Tempest/Log>
 #include <cstdint>
 #include <atomic>
+#include <future>
 
 using namespace Tempest;
 
@@ -22,10 +24,17 @@ static uint32_t alignAs(uint32_t sz, uint32_t alignment) {
   return ((sz+alignment-1)/alignment)*alignment;
   }
 
-static void store(uint32_t& v, uint32_t x) {
-  //std::atomic_store(&v, x);
+static void bitSet(std::vector<uint32_t>& b, size_t id) {
   static_assert(sizeof(std::atomic<uint32_t>)==sizeof(uint32_t));
-  reinterpret_cast<std::atomic<uint32_t>&>(v).store(x);
+  auto& bits = b[id/32];
+  id %= 32;
+  reinterpret_cast<std::atomic<uint32_t>&>(bits).fetch_or(1u << id, std::memory_order_relaxed);
+  }
+
+static bool bitAt(std::vector<uint32_t>& b, size_t id) {
+  auto bits = b[id/32];
+  id %= 32;
+  return bits & (1u << id);
   }
 
 using namespace Tempest;
@@ -53,8 +62,8 @@ void InstanceStorage::Id::set(const Tempest::Matrix4x4* mat) {
   auto data = reinterpret_cast<Matrix4x4*>(owner->dataCpu.data() + rgn.begin);
   std::memcpy(data, mat, rgn.asize);
 
-  for(size_t i=0; i<rgn.asize; i+=64)
-    store(owner->durty[(rgn.begin+i)/64], 1);
+  for(size_t i=0; i<rgn.asize; i+=blockSz)
+    bitSet(owner->durty, (rgn.begin+i)/blockSz);
   }
 
 void InstanceStorage::Id::set(const Tempest::Matrix4x4& obj, size_t offset) {
@@ -65,7 +74,32 @@ void InstanceStorage::Id::set(const Tempest::Matrix4x4& obj, size_t offset) {
   if(data[offset] == obj)
     return;
   data[offset] = obj;
-  store(owner->durty[(rgn.begin+offset*sizeof(Matrix4x4))/64], 1);
+  bitSet(owner->durty, (rgn.begin+offset*sizeof(Matrix4x4))/blockSz);
+  }
+
+void InstanceStorage::Id::set(const void* data, size_t offset, size_t size) {
+  if(owner==nullptr)
+    return;
+
+  auto src = reinterpret_cast<const uint8_t*>(data);
+  auto dst = (owner->dataCpu.data() + rgn.begin + offset);
+
+  if(std::memcmp(src, dst, size)==0)
+    return;
+
+  if((offset%blockSz)==0) {
+    for(size_t i=0; i<size; i+=blockSz) {
+      for(size_t r=0; r<blockSz && i+r<size; ++r) {
+        dst[i+r] = src[i+r];
+        }
+      bitSet(owner->durty, (rgn.begin + offset + i)/blockSz);
+      }
+    } else {
+    for(size_t i=0; i<size; ++i) {
+      dst[i] = src[i];
+      bitSet(owner->durty, (rgn.begin + offset + i)/blockSz);
+      }
+    }
   }
 
 
@@ -77,13 +111,23 @@ InstanceStorage::InstanceStorage() {
   patchCpu.reserve(4*1024*1024);
   patchBlock.reserve(1024);
 
-  auto& device = Resources::device();
-  for(auto& d:desc)
-    d = device.descriptors(Shaders::inst().path);
+  uploadTh = std::thread([this](){ uploadMain(); });
+  }
+
+InstanceStorage::~InstanceStorage() {
+  {
+    std::unique_lock<std::mutex> lck(sync);
+    uploadFId = Resources::MaxFramesInFlight;
+  }
+  uploadCnd.notify_one();
+  uploadTh.join();
   }
 
 bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   auto& device = Resources::device();
+
+  std::atomic_thread_fence(std::memory_order_acquire);
+  join();
 
   if(dataGpu.byteSize()!=dataCpu.size()) {
     Resources::recycle(std::move(dataGpu));
@@ -91,7 +135,7 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     std::memset(durty.data(), 0, durty.size()*sizeof(uint32_t));
     for(auto& i:resizeBit)
       i = true;
-    resizeBit[fId] = false;
+    prepareUniforms();
     return true;
     }
 
@@ -100,34 +144,38 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
 
   patchBlock.clear();
   size_t payloadSize = 0;
-  for(size_t i=0; i<durty.size(); ++i) {
-    if(durty[i]==0)
+  for(size_t i = 0, len = durty.size(); i<len; ++i) {
+    if(!bitAt(durty,i))
       continue;
-    auto begin = i;
-    while(i<durty.size()) {
-      if(durty[i]==0)
+    auto begin = i; ++i;
+    while(i<len) {
+      if(!bitAt(durty,i))
         break;
-      durty[i] = 0;
       ++i;
       }
 
+    uint32_t size    = uint32_t((i-begin)*blockSz);
+    uint32_t chunkSz = 256;
+
     Path p = {};
+    p.dst  = uint32_t(begin*blockSz);
     p.src  = uint32_t(payloadSize);
-    p.dst  = uint32_t(begin*64u);
-    p.size = uint32_t((i-begin)*64u);
-    patchBlock.push_back(p);
-    payloadSize += p.size;
+    while(size>0) {
+      p.size = std::min<uint32_t>(size, chunkSz);
+      size        -= p.size;
+      patchBlock.push_back(p);
+
+      payloadSize += p.size;
+      p.dst       += p.size;
+      p.src       += p.size;
+      }
     }
+  std::memset(durty.data(), 0, durty.size()*sizeof(durty[0]));
 
   if(patchBlock.size()==0)
     return resized;
 
-  auto& path = patchGpu[fId];
   const size_t headerSize = patchBlock.size()*sizeof(Path);
-  if(path.byteSize() < headerSize + payloadSize) {
-    path = device.ssbo(BufferHeap::Upload, nullptr, headerSize + payloadSize);
-    }
-
   patchCpu.resize(headerSize + payloadSize);
   for(auto& i:patchBlock) {
     i.src += uint32_t(headerSize);
@@ -139,16 +187,33 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     i.size /= 4;
     }
   std::memcpy(patchCpu.data(), patchBlock.data(), headerSize);
-  path.update(patchCpu);
 
-  auto& d = desc[fId];
-  d.set(0, dataGpu);
-  d.set(1, path);
+  auto& d     = desc[fId];
+  auto& path  = patchGpu[fId];
+  if(path.byteSize() < headerSize + payloadSize) {
+    path  = device.ssbo(BufferHeap::Upload, nullptr, headerSize + payloadSize);
+    prepareUniforms();
+    }
+
+  {
+    std::unique_lock<std::mutex> lck(sync);
+    uploadFId = fId;
+  }
+  uploadCnd.notify_one();
+  //path.update(patchCpu);
 
   cmd.setFramebuffer({});
   cmd.setUniforms(Shaders::inst().path, d);
   cmd.dispatch(patchBlock.size());
   return resized;
+  }
+
+void InstanceStorage::join() {
+  while(true) {
+    std::unique_lock<std::mutex> lck(sync);
+    if(uploadFId<0)
+      break;
+    }
   }
 
 InstanceStorage::Id InstanceStorage::alloc(const size_t size) {
@@ -184,8 +249,32 @@ InstanceStorage::Id InstanceStorage::alloc(const size_t size) {
   r.asize = size;
   dataCpu.resize(dataCpu.size()+nsize);
 
-  durty.resize((dataCpu.size()+64-1)/64, uint32_t(-1));
+  durty.resize((dataCpu.size()+blockSz-1)/blockSz, uint32_t(-1));
   return Id(*this,r);
+  }
+
+bool InstanceStorage::realloc(Id& id, const size_t size) {
+  if(size==0) {
+    if(id.isEmpty())
+      return false;
+    id = Id(*this,Range());
+    return true;
+    }
+
+  if(size<=id.rgn.size) {
+    id.rgn.asize = size;
+    return false;
+    }
+
+  auto next = alloc(size);
+
+  auto data = dataCpu.data();
+  std::memcpy(data+next.rgn.begin, data+id.rgn.begin, id.rgn.asize);
+  for(size_t i=0; i<id.rgn.asize; ++i) {
+    bitSet(durty, (next.rgn.begin + i)/blockSz);
+    }
+  id = std::move(next);
+  return true;
   }
 
 const Tempest::StorageBuffer& InstanceStorage::ssbo() const {
@@ -208,4 +297,36 @@ void InstanceStorage::free(const Range& r) {
     return l.begin<r.begin;
     });
   rgn.insert(at,r);
+  }
+
+void InstanceStorage::uploadMain() {
+  Workers::setThreadName("InstanceStorage upload");
+  while(true) {
+    std::unique_lock<std::mutex> lck(sync);
+    uploadCnd.wait(lck);
+    if(uploadFId==Resources::MaxFramesInFlight)
+      break;
+    if(uploadFId<0)
+      continue;
+
+    patchGpu[uploadFId].update(patchCpu);
+    uploadFId = -1;
+    }
+  }
+
+void InstanceStorage::prepareUniforms() {
+  auto& device = Resources::device();
+
+  for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i) {
+    auto& d     = desc[i];
+    auto& path  = patchGpu[i];
+    Resources::recycle(std::move(d));
+
+    if(dataGpu.isEmpty() || path.isEmpty())
+      continue;
+
+    d = device.descriptors(Shaders::inst().path);
+    d.set(0, dataGpu);
+    d.set(1, path);
+    }
   }

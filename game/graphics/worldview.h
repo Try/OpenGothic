@@ -41,6 +41,7 @@ class WorldView {
     void setSceneImages(const Tempest::Texture2d& clr, const Tempest::Texture2d& depthAux, const Tempest::ZBuffer& depthNative);
 
     void prepareUniforms();
+    void postFrameupdate();
 
     void dbgLights    (DbgPainter& p) const;
     void prepareSky   (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
