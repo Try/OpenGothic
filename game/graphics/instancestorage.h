@@ -17,7 +17,8 @@ class InstanceStorage {
       size_t asize = 0;
       };
 
-    static constexpr size_t blockSz = 64;
+    static constexpr size_t blockSz   = 64;
+    static constexpr size_t alignment = 64;
 
   public:
     class Id {
@@ -54,8 +55,6 @@ class InstanceStorage {
     void join();
 
   private:
-    static constexpr size_t alignment = 64;
-
     void free(const Range& r);
     void uploadMain();
     void prepareUniforms();
@@ -72,6 +71,7 @@ class InstanceStorage {
 
     std::vector<Range>      rgn;
     std::vector<uint32_t>   durty;
+    size_t                  blockCnt = 0;
 
     Tempest::StorageBuffer  patchGpu[Resources::MaxFramesInFlight];
     std::vector<uint8_t>    patchCpu;

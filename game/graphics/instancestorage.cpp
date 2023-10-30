@@ -109,7 +109,7 @@ InstanceStorage::InstanceStorage() {
   reinterpret_cast<Matrix4x4*>(dataCpu.data())->identity();
 
   patchCpu.reserve(4*1024*1024);
-  patchBlock.reserve(1024);
+  patchBlock.reserve(16*1024);
 
   uploadTh = std::thread([this](){ uploadMain(); });
   }
@@ -144,11 +144,15 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
 
   patchBlock.clear();
   size_t payloadSize = 0;
-  for(size_t i = 0, len = durty.size(); i<len; ++i) {
+  for(size_t i = 0; i<blockCnt; ++i) {
+    if(i%32==0 && durty[i/32]==0) {
+      i+=31;
+      continue;
+      }
     if(!bitAt(durty,i))
       continue;
     auto begin = i; ++i;
-    while(i<len) {
+    while(i<blockCnt) {
       if(!bitAt(durty,i))
         break;
       ++i;
@@ -161,7 +165,7 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     p.dst  = uint32_t(begin*blockSz);
     p.src  = uint32_t(payloadSize);
     while(size>0) {
-      p.size = std::min<uint32_t>(size, chunkSz);
+      p.size       = std::min<uint32_t>(size, chunkSz);
       size        -= p.size;
       patchBlock.push_back(p);
 
@@ -249,7 +253,8 @@ InstanceStorage::Id InstanceStorage::alloc(const size_t size) {
   r.asize = size;
   dataCpu.resize(dataCpu.size()+nsize);
 
-  durty.resize((dataCpu.size()+blockSz-1)/blockSz, uint32_t(-1));
+  blockCnt = (dataCpu.size()+blockSz-1)/blockSz;
+  durty.resize((blockCnt+32-1)/32, 0);
   return Id(*this,r);
   }
 
