@@ -15,7 +15,7 @@ class SoundFx {
     SoundFx(SoundFx&&)=default;
     SoundFx& operator=(SoundFx&&)=default;
 
-    Tempest::SoundEffect getEffect(Tempest::SoundDevice& dev, bool& loop) const;
+    Tempest::SoundEffect load(Tempest::SoundDevice& dev, bool& loop) const;
 
   private:
     struct SoundVar {

@@ -249,11 +249,23 @@ WorldView *GameSession::view() const {
   }
 
 Tempest::SoundEffect GameSession::loadSound(const Tempest::Sound &raw) {
-  return sound.load(raw);
+  try {
+    return sound.load(raw);
+    }
+  catch(std::bad_alloc&) {
+    Tempest::Log::d("Exceeding OpenAL source limit");
+    return Tempest::SoundEffect();
+    }
   }
 
 Tempest::SoundEffect GameSession::loadSound(const SoundFx &fx, bool& looped) {
-  return fx.getEffect(sound,looped);
+  try {
+    return fx.load(sound,looped);
+    }
+  catch(std::bad_alloc&) {
+    Tempest::Log::d("Exceeding OpenAL source limit");
+    return Tempest::SoundEffect();
+    }
   }
 
 Npc* GameSession::player() {
