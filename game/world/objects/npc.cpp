@@ -2270,7 +2270,13 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         break;
         }
 
-      if(inter!=currentInteract) {
+      if(currentInteract!=nullptr && inter!=currentInteract) {
+        setInteraction(nullptr);
+        queue.pushFront(std::move(act));
+        break;
+        }
+
+      if(inter!=nullptr) {
         auto pos = inter->nearestPoint(*this);
         auto dp  = pos-position();
         dp.y = 0;
