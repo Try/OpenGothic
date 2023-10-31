@@ -89,9 +89,8 @@ void InstanceStorage::Id::set(const void* data, size_t offset, size_t size) {
 
   if((offset%blockSz)==0) {
     for(size_t i=0; i<size; i+=blockSz) {
-      for(size_t r=0; r<blockSz && i+r<size; ++r) {
-        dst[i+r] = src[i+r];
-        }
+      const size_t sz = std::min(blockSz, size-i);
+      std::memcpy(dst+i, src+i, sz);
       bitSet(owner->durty, (rgn.begin + offset + i)/blockSz);
       }
     } else {
@@ -272,6 +271,10 @@ bool InstanceStorage::realloc(Id& id, const size_t size) {
     }
 
   auto next = alloc(size);
+  if(id.isEmpty()) {
+    id = std::move(next);
+    return true;
+    }
 
   auto data = dataCpu.data();
   std::memcpy(data+next.rgn.begin, data+id.rgn.begin, id.rgn.asize);

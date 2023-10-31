@@ -1,6 +1,5 @@
 #pragma once
 
-#include "physics/physicmesh.h"
 #include "graphics/objvisual.h"
 #include "vob.h"
 

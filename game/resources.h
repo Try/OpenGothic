@@ -49,7 +49,7 @@ class Resources final {
       };
 
     static const size_t MAX_NUM_SKELETAL_NODES = 96;
-    static const size_t MAX_MORPH_LAYERS       = 3;
+    static const size_t MAX_MORPH_LAYERS       = 4;
 
     struct Vertex {
       float    pos[3];

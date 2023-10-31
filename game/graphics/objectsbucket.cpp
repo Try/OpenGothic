@@ -292,6 +292,8 @@ void ObjectsBucket::postAlloc(Object& obj, size_t objId) {
     assert(obj.iboLength%PackedMesh::MaxInd==0);
     }
   if(objType==Morph) {
+    for(auto& i:obj.morphAnim)
+      i = MorphAnim();
     MorphData d ={};
     objMorphAnim.set(&d, objId*sizeof(d), sizeof(d));
     }
@@ -518,8 +520,10 @@ void ObjectsBucket::preFrameUpdateMorph(uint8_t fId, const bool* upd) {
       float    alpha     = float(time%anim.tickPerFrame)/float(anim.tickPerFrame);
       float    intensity = ani.intensity;
 
-      if(scene.tickCount>ani.timeUntil)
-        intensity = 0;
+      if(scene.tickCount>ani.timeUntil) {
+        data.morph[i].intensity = 0;
+        continue;
+        }
 
       const uint32_t samplesPerFrame = uint32_t(anim.samplesPerFrame);
       data.morph[i].indexOffset = uint32_t(anim.index);
@@ -827,8 +831,13 @@ void ObjectsBucket::reallocObjPositions() {
     }
 
   owner.realloc(objInstances, valLen*sizeof(InstanceDesc));
-  if(objType==Morph)
-    owner.realloc(objMorphAnim, valLen*sizeof(MorphData));
+  if(objType==Morph && owner.realloc(objMorphAnim, valLen*sizeof(MorphData))){
+    for(size_t i=0; i<valLen; ++i) {
+      if(!val[i].isValid)
+        continue;
+      updateInstance(i, val[i]);
+      }
+    }
   }
 
 void ObjectsBucket::invalidateInstancing() {
