@@ -1211,8 +1211,9 @@ uint32_t GameScript::messageTime(std::string_view id) const {
   if(s.timeLength()>0) {
     time = uint32_t(s.timeLength());
     } else {
-    auto txt  = messageByName(id);
+    auto txt = messageByName(id);
     time = uint32_t(float(txt.length())*viewTimePerChar);
+    time = std::min(time, 16000u);
     }
   return time;
   }
