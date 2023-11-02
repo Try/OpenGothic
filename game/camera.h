@@ -68,6 +68,9 @@ class Camera final {
     bool isFree() const;
     bool isInWater() const;
 
+    void setCsEvent(bool e);
+    bool hasCsEvent() const;
+
     void setToggleEnable(bool e);
     bool isToggleEnabled() const;
 
@@ -86,6 +89,8 @@ class Camera final {
 
     Tempest::PointF    spin()     const;
     Tempest::PointF    destSpin() const;
+
+    Tempest::Vec3      destPosition() const;
 
     void               setSpin(const Tempest::PointF& p);
     void               setDestSpin(const Tempest::PointF& p);
@@ -141,6 +146,7 @@ class Camera final {
     uint32_t              vpWidth=0;
     uint32_t              vpHeight=0;
 
+    bool                  csEvent       = false;
     bool                  dbg           = false;
     bool                  tgEnable      = true;
     bool                  fpEnable      = false;

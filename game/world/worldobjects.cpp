@@ -161,7 +161,8 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
       });
     }
 
-  const bool freeCam = (Gothic::inst().camera()!=nullptr && Gothic::inst().camera()->isFree());
+  auto       camera  = Gothic::inst().camera();
+  const bool freeCam = (camera!=nullptr && (camera->isFree() || camera->hasCsEvent()));
   const auto pl      = owner.player();
   for(size_t i=0; i<npcArr.size(); ++i) {
     auto& npc = *npcArr[i];

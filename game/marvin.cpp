@@ -7,6 +7,7 @@
 
 #include "utils/string_frm.h"
 #include "world/objects/npc.h"
+#include "world/triggers/abstracttrigger.h"
 #include "camera.h"
 #include "gothic.h"
 
@@ -125,6 +126,7 @@ Marvin::Marvin() {
     {"toggle camdebug",            C_ToggleCamDebug},
     {"toggle camera",              C_ToggleCamera},
     {"toggle inertiatarget",       C_ToggleInertia},
+    {"ztoggle timedemo",           C_ZToggleTimeDemo},
     {"insert %c",                  C_Insert},
 
     {"toggle gi",                  C_ToggleGI},
@@ -328,6 +330,14 @@ bool Marvin::exec(std::string_view v) {
     case C_ToggleInertia: {
       if(auto c = Gothic::inst().camera())
         c->setInertiaTargetEnable(!c->isInertiaTargetEnabled());
+      return true;
+      }
+    case C_ZToggleTimeDemo: {
+      World* world = Gothic::inst().world();
+      if(world==nullptr)
+        return false;
+      const TriggerEvent evt("TIMEDEMO","",world->tickCount(),TriggerEvent::T_Trigger);
+      world->triggerEvent(evt);
       return true;
       }
     case C_ToggleDesktop: {

@@ -204,7 +204,8 @@ void MainWindow::paintEvent(PaintEvent& event) {
       p.setBrush(Color(1.0));
 
       auto focus = world->validateFocus(player.focus());
-      paintFocus(p,focus,vp);
+      if(!camera.hasCsEvent())
+        paintFocus(p,focus,vp);
 
       if(auto pl = Gothic::inst().player()){
         if (!Gothic::inst().isDesktop()) {
@@ -336,7 +337,7 @@ void MainWindow::tickMouse() {
   if(camLookaroundInverse)
     dpScaled.y *= -1.f;
 
-  if(auto camera = Gothic::inst().camera())
+  if(auto camera = Gothic::inst().camera(); !camera->hasCsEvent())
     camera->onRotateMouse(PointF(dpScaled.y,-dpScaled.x));
   if(!inventory.isActive()) {
     player.onRotateMouse  (-dpScaled.x);
@@ -863,36 +864,38 @@ void MainWindow::tickCamera(uint64_t dt) {
                              ws==WeaponState::W2H);
   auto       pos          = pl->cameraBone(camera.isFirstPerson());
 
-  const bool fs = SystemApi::isFullscreen(hwnd());
-  if(!fs && mouseP[Event::ButtonLeft]) {
-    camera.setSpin(camera.destSpin());
-    camera.setDestPosition(pos);
-    }
-  else if(dialogs.isActive() && !dialogs.isMobsiDialog()) {
-    dialogs.dialogCamera(camera);
-    }
-  else if(inventory.isActive()) {
-    camera.setDestPosition(pos);
-    }
-  else if(player.focus().npc!=nullptr && meleeFocus) {
-    auto spin = camera.destSpin();
-    spin.y = pl->rotation();
-    camera.setDestSpin(spin);
-    camera.setDestPosition(pos);
-    }
-  else {
-    auto spin = camera.destSpin();
-    if(pl->interactive()==nullptr && !pl->isDown())
+  if(!camera.hasCsEvent()) {
+    const bool fs = SystemApi::isFullscreen(hwnd());
+    if(!fs && mouseP[Event::ButtonLeft]) {
+      camera.setSpin(camera.destSpin());
+      camera.setDestPosition(pos);
+      }
+    else if(dialogs.isActive() && !dialogs.isMobsiDialog()) {
+      dialogs.dialogCamera(camera);
+      }
+    else if(inventory.isActive()) {
+      camera.setDestPosition(pos);
+      }
+    else if(player.focus().npc!=nullptr && meleeFocus) {
+      auto spin = camera.destSpin();
       spin.y = pl->rotation();
-    if(pl->isDive() && !camera.isMarvin())
-      spin.x = -pl->rotationY();
-    camera.setDestSpin(spin);
-    camera.setDestPosition(pos);
+      camera.setDestSpin(spin);
+      camera.setDestPosition(pos);
+      }
+    else {
+      auto spin = camera.destSpin();
+      if(pl->interactive()==nullptr && !pl->isDown())
+        spin.y = pl->rotation();
+      if(pl->isDive() && !camera.isMarvin())
+        spin.x = -pl->rotationY();
+      camera.setDestSpin(spin);
+      camera.setDestPosition(pos);
+      }
     }
 
   if(dt==0)
     return;
-  if(camera.isToggleEnabled())
+  if(camera.isToggleEnabled() && !camera.hasCsEvent())
     camera.setMode(solveCameraMode());
   camera.tick(dt);
   }
@@ -976,6 +979,8 @@ void MainWindow::saveGame(std::string_view slot, std::string_view name) {
   auto pm  = device.readPixels(textureCast(tex));
 
   if(dialogs.isActive())
+    return;
+  if(auto c = Gothic::inst().camera(); c!=nullptr && c->hasCsEvent())
     return;
 
   Gothic::inst().startSave(std::move(textureCast(tex)),[slot=std::string(slot),name=std::string(name),pm](std::unique_ptr<GameSession>&& game){

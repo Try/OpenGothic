@@ -52,6 +52,9 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
   auto       ws   = pl ? pl->weaponState() : WeaponState::NoWeapon;
   uint8_t    slot = pl ? pl->inventory().currentSpellSlot() : Item::NSLOT;
 
+  if(c!=nullptr && c->hasCsEvent())
+    return;
+
   handleMovementAction(KeyCodec::ActionMapping{a,mapping}, true);
 
   if(pl!=nullptr && pl->interactive()!=nullptr && c!=nullptr && !c->isFree()) {
@@ -513,6 +516,9 @@ bool PlayerControl::tickMove(uint64_t dt) {
 
   Npc*  pl     = w->player();
   auto  camera = Gothic::inst().camera();
+
+  if(camera!=nullptr && camera->hasCsEvent())
+    return true;
 
   if(camera!=nullptr && (camera->isFree() || pl==nullptr)) {
     rotMouse = 0;

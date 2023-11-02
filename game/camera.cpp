@@ -182,6 +182,14 @@ bool Camera::isInWater() const {
   return inWater;
   }
 
+bool Camera::hasCsEvent() const {
+  return csEvent;
+  }
+
+void Camera::setCsEvent(bool e) {
+  csEvent = e;
+  }
+
 void Camera::setToggleEnable(bool e) {
   tgEnable = e;
   }
@@ -624,6 +632,11 @@ void Camera::calcControlPoints(float dtF) {
     rotBest      = Vec3();
     //spin.y += def.bestAzimuth;
     }
+  if(hasCsEvent()) {
+    range        = 0;
+    rotOffset    = Vec3();
+    rotOffsetDef = Vec3();
+    }
 
   followAng(src.spin,  dst.spin+rotBest, dtF);
   if(!isMarvin())
@@ -645,7 +658,7 @@ void Camera::calcControlPoints(float dtF) {
   followCamera(cameraPos,src.target,dtF);
 
   origin = cameraPos - dir*range;
-  if(camMarvinMod==M_Free) {
+  if(camMarvinMod==M_Free || hasCsEvent()) {
     return;
     }
 
@@ -827,6 +840,10 @@ PointF Camera::spin() const {
 
 PointF Camera::destSpin() const {
   return PointF(dst.spin.x,dst.spin.y);
+  }
+
+Vec3 Camera::destPosition() const {
+  return dst.target;
   }
 
 Matrix4x4 Camera::viewProj() const {
