@@ -124,6 +124,8 @@ class World final {
     void                 execTriggerEvent(const TriggerEvent& e);
     void                 enableTicks (AbstractTrigger& t);
     void                 disableTicks(AbstractTrigger& t);
+    void                 setCurrentCs(CsCamera* cs);
+    CsCamera*            currentCs() const;
     void                 enableCollizionZone (CollisionZone& z);
     void                 disableCollizionZone(CollisionZone& z);
 

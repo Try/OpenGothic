@@ -162,7 +162,7 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
     }
 
   auto       camera  = Gothic::inst().camera();
-  const bool freeCam = (camera!=nullptr && (camera->isFree() || camera->hasCsEvent()));
+  const bool freeCam = (camera!=nullptr && (camera->isFree() || currentCs()!=nullptr));
   const auto pl      = owner.player();
   for(size_t i=0; i<npcArr.size(); ++i) {
     auto& npc = *npcArr[i];
@@ -525,6 +525,14 @@ void WorldObjects::disableTicks(AbstractTrigger& t) {
       triggersTk.pop_back();
       return;
       }
+  }
+
+void WorldObjects::setCurrentCs(CsCamera* cs) {
+  currentCsCamera = cs;
+  }
+
+CsCamera* WorldObjects::currentCs() const {
+  return currentCsCamera;
   }
 
 void WorldObjects::enableCollizionZone(CollisionZone& z) {

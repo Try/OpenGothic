@@ -11,38 +11,34 @@ class CsCamera : public AbstractTrigger {
 
   private:
     struct KeyFrame {
-      float         time  = 0;
-      Tempest::Vec3 c[4]  = {};
-      float arcLength(float t0 = 0, float t1 = 1);
+      float         time = 0;
+      Tempest::Vec3 c[4] = {};
       };
 
-    struct CamSpline {
-      float                 t;
-      float                 dist;
+    struct KbSpline {
       float                 c[3]     = {};
-      std::vector<KeyFrame> keyframe = {};
-      uint32_t size() { return uint32_t(keyframe.size()); }
-      float    nextDist(float t);
-      KeyFrame& operator [](const size_t n) { return keyframe[n]; }
+      float                 splTime  = 0;
+      std::vector<KeyFrame> keyframe;
+      size_t size() const { return keyframe.size(); }
+      auto   position() const -> Tempest::Vec3;
+      void   setSplTime(float t);
+      float  applyMotionScaling(float t) const;
       };
 
     void onTrigger(const TriggerEvent& evt) override;
     void onUntrigger(const TriggerEvent& evt) override;
     void tick(uint64_t dt) override;
 
-    void init(const phoenix::vobs::cs_camera& cam);
     void clear();
 
-    auto position(CamSpline& cs) -> Tempest::Vec3;
-    auto spin(const Tempest::Vec3& d) -> Tempest::PointF;
+    auto position() -> Tempest::Vec3;
+    auto spin(Tempest::Vec3& d) -> Tempest::PointF;
 
-    static inline uint8_t   activeEvents;
-                  bool      active       = false;
-                  bool      godMode;
-
-                  float     duration;
-                  float     delay;
-                  float     time;
-                  CamSpline posSpline    = {};
-                  CamSpline targetSpline = {};
+    bool     active       = false;
+    bool     godMode;
+    float    duration;
+    float    delay;
+    float    time;
+    KbSpline posSpline    = {};
+    KbSpline targetSpline = {};
   };

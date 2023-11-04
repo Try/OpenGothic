@@ -204,8 +204,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
       p.setBrush(Color(1.0));
 
       auto focus = world->validateFocus(player.focus());
-      if(!camera.hasCsEvent())
-        paintFocus(p,focus,vp);
+      paintFocus(p,focus,vp);
 
       if(auto pl = Gothic::inst().player()){
         if (!Gothic::inst().isDesktop()) {
@@ -315,7 +314,8 @@ void MainWindow::processMouse(MouseEvent& event, bool enable) {
   }
 
 void MainWindow::tickMouse() {
-  if(dialogs.hasContent() || Gothic::inst().isPause()) {
+  auto world = Gothic::inst().world();
+  if(dialogs.hasContent() || Gothic::inst().isPause() || (world!=nullptr && world->currentCs()!=nullptr)) {
     dMouse = Point();
     return;
     }
@@ -337,7 +337,8 @@ void MainWindow::tickMouse() {
   if(camLookaroundInverse)
     dpScaled.y *= -1.f;
 
-  if(auto camera = Gothic::inst().camera(); !camera->hasCsEvent())
+  auto camera = Gothic::inst().camera();
+  if(camera!=nullptr)
     camera->onRotateMouse(PointF(dpScaled.y,-dpScaled.x));
   if(!inventory.isActive()) {
     player.onRotateMouse  (-dpScaled.x);
@@ -532,7 +533,7 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
 
   auto world = Gothic::inst().world();
   auto pl    = world==nullptr ? nullptr : world->player();
-  if(pl==nullptr)
+  if(pl==nullptr || world->currentCs()!=nullptr)
     return;
 
   auto pos = focus.displayPosition();
@@ -852,9 +853,10 @@ void MainWindow::updateAnimation(uint64_t dt) {
   }
 
 void MainWindow::tickCamera(uint64_t dt) {
+  auto world   = Gothic::inst().world();
   auto pcamera = Gothic::inst().camera();
   auto pl      = Gothic::inst().player();
-  if(pcamera==nullptr || pl==nullptr)
+  if(world==nullptr || pcamera==nullptr || pl==nullptr)
     return;
 
   auto&      camera       = *pcamera;
@@ -864,7 +866,7 @@ void MainWindow::tickCamera(uint64_t dt) {
                              ws==WeaponState::W2H);
   auto       pos          = pl->cameraBone(camera.isFirstPerson());
 
-  if(!camera.hasCsEvent()) {
+  if(world->currentCs()==nullptr) {
     const bool fs = SystemApi::isFullscreen(hwnd());
     if(!fs && mouseP[Event::ButtonLeft]) {
       camera.setSpin(camera.destSpin());
@@ -895,7 +897,7 @@ void MainWindow::tickCamera(uint64_t dt) {
 
   if(dt==0)
     return;
-  if(camera.isToggleEnabled() && !camera.hasCsEvent())
+  if(camera.isToggleEnabled() && world->currentCs()==nullptr)
     camera.setMode(solveCameraMode());
   camera.tick(dt);
   }
@@ -980,7 +982,7 @@ void MainWindow::saveGame(std::string_view slot, std::string_view name) {
 
   if(dialogs.isActive())
     return;
-  if(auto c = Gothic::inst().camera(); c!=nullptr && c->hasCsEvent())
+  if(auto w = Gothic::inst().world(); w!=nullptr && w->currentCs()!=nullptr)
     return;
 
   Gothic::inst().startSave(std::move(textureCast(tex)),[slot=std::string(slot),name=std::string(name),pm](std::unique_ptr<GameSession>&& game){

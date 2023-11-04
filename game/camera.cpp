@@ -182,14 +182,6 @@ bool Camera::isInWater() const {
   return inWater;
   }
 
-bool Camera::hasCsEvent() const {
-  return csEvent;
-  }
-
-void Camera::setCsEvent(bool e) {
-  csEvent = e;
-  }
-
 void Camera::setToggleEnable(bool e) {
   tgEnable = e;
   }
@@ -632,7 +624,8 @@ void Camera::calcControlPoints(float dtF) {
     rotBest      = Vec3();
     //spin.y += def.bestAzimuth;
     }
-  if(hasCsEvent()) {
+  auto world = Gothic::inst().world();
+  if(world!=nullptr && world->currentCs()!=nullptr) {
     range        = 0;
     rotOffset    = Vec3();
     rotOffsetDef = Vec3();
@@ -658,7 +651,7 @@ void Camera::calcControlPoints(float dtF) {
   followCamera(cameraPos,src.target,dtF);
 
   origin = cameraPos - dir*range;
-  if(camMarvinMod==M_Free || hasCsEvent()) {
+  if(camMarvinMod==M_Free || (world!=nullptr && world->currentCs()!=nullptr)) {
     return;
     }
 
