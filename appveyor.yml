@@ -10,7 +10,7 @@ environment:
       job_group: Builds
       WIN_RELEASE: true
 
-    - APPVEYOR_BUILD_WORKER_IMAGE: macos-bigsur
+    - APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
       GENERATOR: "Ninja"
       job_group: Builds
 
