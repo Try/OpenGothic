@@ -4,25 +4,25 @@ configuration:
 environment:
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019  # used as mingw
-      GENERATOR: "Ninja"
-      CC:         C:/msys64/mingw64/bin/gcc.exe
-      CXX:        C:/msys64/mingw64/bin/g++.exe
-      job_group: Builds
+      GENERATOR:   "Ninja"
+      CC:          C:/msys64/mingw64/bin/gcc.exe
+      CXX:         C:/msys64/mingw64/bin/g++.exe
+      job_group:   Builds
       WIN_RELEASE: true
 
     - APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
-      GENERATOR: "Ninja"
-      job_group: Builds
+      GENERATOR:   "Ninja"
+      job_group:   Builds
 
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
-      GENERATOR: "Ninja"
-      VCVARSALL: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvarsall.bat"
-      PLATFORM:  x64
-      job_group: Builds
+      GENERATOR:   "Ninja"
+      VCVARSALL:   "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvarsall.bat"
+      PLATFORM:    x64
+      job_group:   Builds
 
     - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
-      GENERATOR: ""
-      job_group: Builds
+      GENERATOR:   ""
+      job_group:   Builds
 
     - job_name: Deploy
       job_depends_on: Builds
@@ -153,7 +153,7 @@ for:
       - path: build/opengothic/opengothic_win.zip
         name: archive_win
       - path: build/opengothic/opengothic_linux.zip
-        name: _linux
+        name: archive_linux
       - path: build/opengothic/opengothic_osx.zip
         name: archive_osx
   
@@ -171,7 +171,7 @@ for:
       provider: GitHub
       auth_token:
         secure: YLdtUMsAcc8FUr3kgwhQW7nkl5jDpLKbelvzWzzTWUfAiDd92Kd15rjlDJVEEFzo
-      artifact: /archive.*/
+      artifact: /opengothic_*/
       draft: true
       force_update: false
       prerelease: true
