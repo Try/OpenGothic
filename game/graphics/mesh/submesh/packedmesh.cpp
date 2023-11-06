@@ -256,6 +256,15 @@ bool PackedMesh::Meshlet::insert(const Vert& a, const Vert& b, const Vert& c) {
   if(vSz>MaxVert)
     return false;
 
+  if(vSz==vertSz) {
+    for(size_t i=0; i<indSz; i+=3) {
+      if(indexes[i+0]==ea && indexes[i+1]==eb && indexes[i+2]==ec) {
+        // duplicant?
+        return true;
+        }
+      }
+    }
+
   indexes[indSz+0] = ea;
   indexes[indSz+1] = eb;
   indexes[indSz+2] = ec;
@@ -582,12 +591,15 @@ std::vector<PackedMesh::Meshlet> PackedMesh::buildMeshlets(const phoenix::mesh* 
       auto i = active.vert[r];
       auto e = heap.equal_range(mkUInt64(i.first,i.second));
       for(auto it = e.first; it!=e.second; ++it) {
-        if(used[it->second/3])
+        auto id = it->second/3;
+        if(used[id])
           continue;
-        triId = it->second/3;
-        if(!addTriangle(active,mesh,proto_mesh,triId))
-          break;
-        used[triId] = true;
+        if(addTriangle(active,mesh,proto_mesh,id)) {
+          used[id] = true;
+          continue;
+          }
+        triId = id;
+        break;
         }
       firstVert = r+1;
       }
@@ -616,14 +628,14 @@ std::vector<PackedMesh::Meshlet> PackedMesh::buildMeshlets(const phoenix::mesh* 
       continue;
       }
 
-    if(active.indSz!=0)
+    if(active.indSz!=0) {
       meshlets.push_back(std::move(active));
+      active.clear();
+      firstVert = 0;
+      }
 
     if(triId==size_t(-1))
       break;
-
-    active.clear();
-    firstVert = 0;
     }
 
   return meshlets;
