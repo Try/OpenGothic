@@ -171,7 +171,7 @@ for:
       provider: GitHub
       auth_token:
         secure: YLdtUMsAcc8FUr3kgwhQW7nkl5jDpLKbelvzWzzTWUfAiDd92Kd15rjlDJVEEFzo
-      artifact: /*opengothic_*/
+      artifact: /.*opengothic_.*/
       draft: true
       force_update: false
       prerelease: true
