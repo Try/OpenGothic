@@ -151,11 +151,11 @@ for:
       - path: build/opengothic/opengothic_win_vs2022.zip
         name: vs2022_win
       - path: build/opengothic/opengothic_win.zip
-        name: archive_win
+        name: opengothic_win
       - path: build/opengothic/opengothic_linux.zip
-        name: archive_linux
+        name: opengothic_linux
       - path: build/opengothic/opengothic_osx.zip
-        name: archive_osx
+        name: opengothic_osx
   
   -
     matrix:
