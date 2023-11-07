@@ -171,11 +171,11 @@ for:
       provider: GitHub
       auth_token:
         secure: YLdtUMsAcc8FUr3kgwhQW7nkl5jDpLKbelvzWzzTWUfAiDd92Kd15rjlDJVEEFzo
-      artifact: /.*opengothic_.*/
+      artifact: /.*/
       draft: true
       force_update: false
       prerelease: true
       tag: opengothic-v$(appveyor_build_version)
       on:
         branch: $(APPVEYOR_REPO_TAG_NAME)
-        appveyor_repo_tag: true # deploy on tag push only
+        appveyor_repo_tag: false # deploy on tag push only
