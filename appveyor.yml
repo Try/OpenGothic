@@ -151,6 +151,7 @@ for:
     build_script:
       - ps: >-
           echo "Nothing to build today"
+
           if($IsWindows) {
             # debug
             $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
