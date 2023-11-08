@@ -171,7 +171,7 @@ for:
       provider: GitHub
       auth_token:
         secure: YLdtUMsAcc8FUr3kgwhQW7nkl5jDpLKbelvzWzzTWUfAiDd92Kd15rjlDJVEEFzo
-      artifact: build\opengothic\opengothic_win.zip
+      artifact: opengothic_win
       draft: true
       force_update: false
       prerelease: true
