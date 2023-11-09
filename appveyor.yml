@@ -1,173 +1,137 @@
 configuration:
   - release
-
 environment:
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019  # used as mingw
-      GENERATOR:   "Ninja"
-      CC:          C:/msys64/mingw64/bin/gcc.exe
-      CXX:         C:/msys64/mingw64/bin/g++.exe
-      job_group:   Builds
-      WIN_RELEASE: true
+      GENERATOR:  "Ninja"
+      RELEASABLE: true
+      CC:         C:/msys64/mingw64/bin/gcc.exe
+      CXX:        C:/msys64/mingw64/bin/g++.exe
+    - APPVEYOR_BUILD_WORKER_IMAGE: macos-bigsur
+      GENERATOR:  "Ninja"
+      RELEASABLE: true
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2022
+      GENERATOR: "Ninja"
+      RELEASABLE: false
+      VCVARSALL: "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvarsall.bat"
+      PLATFORM:  x64
+    - APPVEYOR_BUILD_WORKER_IMAGE: Ubuntu2004
+      GENERATOR: ""
+      RELEASABLE: false
+install:
+- ps: >-
+    $VK_SDK = '1.3.231.1'
+    if($IsLinux) {
+      sudo apt-get update
+      sudo apt-get --yes install libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
+      # Vulkan SDK
+      $env:VULKAN_SDK      = "$env:APPVEYOR_BUILD_FOLDER/VulkanSDK/$VK_SDK/x86_64"
+      $env:VK_LAYER_PATH   = "$env:VULKAN_SDK/etc/vulkan/explicit_layers.d"
+      $env:LD_LIBRARY_PATH = "$env:VULKAN_SDK/lib"
+      Invoke-WebRequest -Uri https://sdk.lunarg.com/sdk/download/$VK_SDK/linux/vulkansdk-linux-x86_64-$VK_SDK.tar.gz -OutFile VulkanSDK.tar.gz
+      mkdir VulkanSDK
+      tar -xzf VulkanSDK.tar.gz -C ./VulkanSDK
+      }
+    if($IsWindows) {
+      # debug
+      # $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+      # Vulkan SDK
+      $env:VULKAN_SDK = "C:/VulkanSDK/$VK_SDK"
+      Invoke-WebRequest -Uri https://sdk.lunarg.com/sdk/download/$VK_SDK/windows/VulkanSDK-$VK_SDK-Installer.exe -OutFile VulkanSDK.exe
+      ./VulkanSDK.exe --accept-licenses --default-answer --confirm-command install
+      }
+    if($IsLinux) {
+      # GLSL compiller
+      mkdir glslang
+      cd glslang
+      Invoke-WebRequest -Uri https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-linux-Release.zip -OutFile glslang-master.zip
+      7z x glslang-master.zip
+      cd ..
+      $env:PATH += ":$env:APPVEYOR_BUILD_FOLDER/glslang/bin"
+      }
+    if($IsWindows) {
+      mkdir glslang
+      cd glslang
+      Invoke-WebRequest -Uri https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-windows-x64-Release.zip -OutFile glslang-master.zip
+      7z x glslang-master.zip
+      cd ..
+      $env:PATH += ";$env:APPVEYOR_BUILD_FOLDER\glslang\bin"
+      }
+    if($IsMacOS) {
+      brew install glslang
+      }
+before_build:
+- ps: >-
+    git submodule -q update --init --recursive
+    mkdir build
+    if($IsWindows) {
+      $env:PATH += ";C:/msys64/mingw64/bin;C:/Qt/Tools/QtCreator/bin"
+      }
+    echo '#pragma once'                                                               | Out-File "game/build.h" -Encoding utf8
+    echo "static const char* appBuild = `"OpenGothic v$env:appveyor_build_version`";" | Out-File "game/build.h" -Encoding utf8 -Append
+build_script:
+  - cmake --version
+  - cmd: if NOT "%VCVARSALL%" == "" call "%VCVARSALL%" %PLATFORM%
+  - cmd: cmake -H. -Bbuild -G "%GENERATOR%" -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DCMAKE_SH=CMAKE_SH-NOTFOUND
+  - sh:  cmake -H. -Bbuild                  -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo
+  - cmake --build ./build --target Gothic2Notr
+after_build:
+- ps: >-
+    cd build
+    cd opengothic
+  if($RELEASABLE) {
+      $BASE_NAME = 'opengothic'
+    } else {
+      $BASE_NAME = 'devbuild'
+      }
+    if($IsWindows) {
+      echo gothic-win64-v$env:appveyor_build_version | Out-File "VERSION" -Encoding utf8
+      cp "C:\msys64\mingw64\bin\libgcc_s_seh-1.dll"   "libgcc_s_seh-1.dll"
+      cp "C:\msys64\mingw64\bin\libstdc++-6.dll"      "libstdc++-6.dll"
+      cp "C:\msys64\mingw64\bin\libwinpthread-1.dll"  "libwinpthread-1.dll"
+      $NAME = $BASE_NAME + '_win.zip'
+      7z a $NAME    VERSION
+      7z a $NAME -r "*.exe"
+      7z a $NAME -r "*.dll"
+      7z a $NAME -r "*.bat"
+      }
+    if($IsLinux) {
+      echo gothic-linux-v$env:appveyor_build_version | Out-File "VERSION" -Encoding utf8
+      $NAME = $BASE_NAME + '_linux.zip'
+      7z a $NAME    VERSION
+      7z a $NAME    "*.so"
+      7z a $NAME    "Gothic2Notr"
+      7z a $NAME    "Gothic2Notr.sh"
+      }
+    if($IsMacOS) {
+      echo gothic-osx-v$env:appveyor_build_version | Out-File "VERSION" -Encoding utf8
+      $NAME = $BASE_NAME + '_osx.zip'
+      7z a $NAME    VERSION
+      7z a $NAME    "*.dylib"
+      7z a $NAME    "Gothic2Notr"
+      7z a $NAME    "Gothic2Notr.sh"
+      }
+artifacts:
+  - path: build/opengothic/opengothic_win.zip
+    name: archive_win
+  - path: build/opengothic/devbuild_win.zip
+    name: devbuild_win_vs2022
+  - path: build/opengothic/opengothic_linux.zip
+    name: archive_linux
+  - path: build/opengothic/opengothic_osx.zip
+    name: archive_osx
 
-    - job_name: Deploy
-      job_depends_on: Builds
-
-for:
-  -
-    matrix:
-      only:
-        - job_group: Builds
-
-    install:
-    - ps: >-
-        $VK_SDK = '1.3.231.1'
-
-        if($IsLinux) {
-          sudo apt-get update
-          sudo apt-get --yes install libvulkan-dev libasound2-dev libx11-dev libxcursor-dev
-          # Vulkan SDK
-          $env:VULKAN_SDK      = "$env:APPVEYOR_BUILD_FOLDER/VulkanSDK/$VK_SDK/x86_64"
-          $env:VK_LAYER_PATH   = "$env:VULKAN_SDK/etc/vulkan/explicit_layers.d"
-          $env:LD_LIBRARY_PATH = "$env:VULKAN_SDK/lib"
-          Invoke-WebRequest -Uri https://sdk.lunarg.com/sdk/download/$VK_SDK/linux/vulkansdk-linux-x86_64-$VK_SDK.tar.gz -OutFile VulkanSDK.tar.gz
-          mkdir VulkanSDK
-          tar -xzf VulkanSDK.tar.gz -C ./VulkanSDK
-          }
-
-        if($IsWindows) {
-          # debug
-          # $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-
-          # Vulkan SDK
-          $env:VULKAN_SDK = "C:/VulkanSDK/$VK_SDK"
-          Invoke-WebRequest -Uri https://sdk.lunarg.com/sdk/download/$VK_SDK/windows/VulkanSDK-$VK_SDK-Installer.exe -OutFile VulkanSDK.exe
-          ./VulkanSDK.exe --accept-licenses --default-answer --confirm-command install
-          }
-
-        if($IsLinux) {
-          # GLSL compiller
-          mkdir glslang
-          cd glslang
-          Invoke-WebRequest -Uri https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-linux-Release.zip -OutFile glslang-master.zip
-          7z x glslang-master.zip
-          cd ..
-          $env:PATH += ":$env:APPVEYOR_BUILD_FOLDER/glslang/bin"
-          }
-
-        if($IsWindows) {
-          mkdir glslang
-          cd glslang
-          Invoke-WebRequest -Uri https://github.com/KhronosGroup/glslang/releases/download/master-tot/glslang-master-windows-x64-Release.zip -OutFile glslang-master.zip
-          7z x glslang-master.zip
-          cd ..
-          $env:PATH += ";$env:APPVEYOR_BUILD_FOLDER\glslang\bin"
-          }
-
-        if($IsMacOS) {
-          brew install glslang
-          }
-
-    before_build:
-    - ps: >-
-        git submodule -q update --init --recursive
-
-        mkdir build
-
-        if($IsWindows) {
-          $env:PATH += ";C:/msys64/mingw64/bin;C:/Qt/Tools/QtCreator/bin"
-          }
-
-        echo '#pragma once'                                                               | Out-File "game/build.h" -Encoding utf8
-
-        echo "static const char* appBuild = `"OpenGothic v$env:appveyor_build_version`";" | Out-File "game/build.h" -Encoding utf8 -Append
-
-    build_script:
-      - cmake --version
-      - cmd: if NOT "%VCVARSALL%" == "" call "%VCVARSALL%" %PLATFORM%
-      - cmd: cmake -H. -Bbuild -G "%GENERATOR%" -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo -DCMAKE_SH=CMAKE_SH-NOTFOUND
-      - sh:  cmake -H. -Bbuild                  -DCMAKE_BUILD_TYPE:STRING=RelWithDebInfo
-      - cmake --build ./build --target Gothic2Notr
-
-    after_build:
-    - ps: >-
-        cd build
-
-        cd opengothic
-
-        if($IsWindows) {
-          echo gothic-win64-v$env:appveyor_build_version | Out-File "VERSION" -Encoding utf8
-          cp "C:\msys64\mingw64\bin\libgcc_s_seh-1.dll"   "libgcc_s_seh-1.dll"
-          cp "C:\msys64\mingw64\bin\libstdc++-6.dll"      "libstdc++-6.dll"
-          cp "C:\msys64\mingw64\bin\libwinpthread-1.dll"  "libwinpthread-1.dll"
-
-          if ($env:WIN_RELEASE) {
-            $NAME = 'opengothic_win.zip'
-            } else {
-            $NAME = 'opengothic_win_vs2022.zip'
-            }
-
-          7z a $NAME    VERSION
-          7z a $NAME -r "*.exe"
-          7z a $NAME -r "*.dll"
-          7z a $NAME -r "*.bat"
-          }
-
-        if($IsLinux) {
-          echo gothic-linux-v$env:appveyor_build_version | Out-File "VERSION" -Encoding utf8
-
-          $NAME = 'opengothic_linux.zip'
-          7z a $NAME    VERSION
-          7z a $NAME    "*.so"
-          7z a $NAME    "Gothic2Notr"
-          7z a $NAME    "Gothic2Notr.sh"
-          }
-
-        if($IsMacOS) {
-          echo gothic-osx-v$env:appveyor_build_version | Out-File "VERSION" -Encoding utf8
-
-          $NAME = 'opengothic_osx.zip'
-          7z a $NAME    VERSION
-          7z a $NAME    "*.dylib"
-          7z a $NAME    "Gothic2Notr"
-          7z a $NAME    "Gothic2Notr.sh"
-          }
-
-    artifacts:
-      - path: build/opengothic/opengothic_win_vs2022.zip
-        name: vs2022_win
-      - path: build/opengothic/opengothic_win.zip
-        name: opengothic_win
-      - path: build/opengothic/opengothic_linux.zip
-        name: opengothic_linux
-      - path: build/opengothic/opengothic_osx.zip
-        name: opengothic_osx
-  
-  -
-    matrix:
-      only:
-        - job_name: Deploy
-  
-    build_script:
-      - ps: >-
-          echo "Deploy"
-
-          if($IsWindows) {
-            # debug
-            # $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
-            }
-
-    deploy:
-      release: opengothic-v$(appveyor_build_version)
-      description: 'no release description'
-      provider: GitHub
-      auth_token:
-        secure: YLdtUMsAcc8FUr3kgwhQW7nkl5jDpLKbelvzWzzTWUfAiDd92Kd15rjlDJVEEFzo
-      artifact: build/opengothic/opengothic_win.zip
-      draft: true
-      force_update: false
-      prerelease: true
-      tag: opengothic-v$(appveyor_build_version)
-      on:
-        # branch: $(APPVEYOR_REPO_TAG_NAME)
-        appveyor_repo_tag: false # deploy on tag push only
+deploy:
+  release: opengothic-v$(appveyor_build_version)
+  description: 'no release description'
+  provider: GitHub
+  auth_token:
+    secure: YLdtUMsAcc8FUr3kgwhQW7nkl5jDpLKbelvzWzzTWUfAiDd92Kd15rjlDJVEEFzo
+  artifact: /archive.*/
+  draft: true
+  force_update: false
+  prerelease: true
+  tag: opengothic-v$(appveyor_build_version)
+  on:
+    # branch: $(APPVEYOR_REPO_TAG_NAME)
+    appveyor_repo_tag: false       # deploy on tag push only
