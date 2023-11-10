@@ -99,7 +99,7 @@ after_build:
 
     cd opengothic
 
-    if($RELEASABLE) {
+    if($env:RELEASABLE) {
       $BASE_NAME = 'opengothic'
       } else {
       $BASE_NAME = 'devbuild'
