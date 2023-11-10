@@ -9,7 +9,7 @@ environment:
       CC:         C:/msys64/mingw64/bin/gcc.exe
       CXX:        C:/msys64/mingw64/bin/g++.exe
 
-    - APPVEYOR_BUILD_WORKER_IMAGE: macos-bigsur
+    - APPVEYOR_BUILD_WORKER_IMAGE: macos-monterey
       GENERATOR:  "Ninja"
       RELEASABLE: true
 
