@@ -98,6 +98,7 @@ after_build:
     cd build
 
     cd opengothic
+
     if($RELEASABLE) {
       $BASE_NAME = 'opengothic'
       } else {
