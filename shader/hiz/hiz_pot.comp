@@ -52,7 +52,9 @@ void main() {
   atomicMax(depthSh, floatBitsToUint(z));
   barrier();
 
-  z = uintBitsToFloat(depthSh);
-  z = packHiZ(z);
-  imageStore(hiZ, ivec2(gl_WorkGroupID.xy), vec4(z + 1.0/32768.0));
+  if(gl_LocalInvocationID.xy == uvec2(0)) {
+    z = uintBitsToFloat(depthSh);
+    z = packHiZ(z);
+    imageStore(hiZ, ivec2(gl_WorkGroupID.xy), vec4(z + 1.0/32768.0));
+    }
   }

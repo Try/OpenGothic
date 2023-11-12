@@ -87,6 +87,8 @@ void Renderer::resetSwapchain() {
     zbufferUi = ZBuffer();
 
   if(Gothic::options().doMeshShading) {
+    hiz.atomicImg = device.properties().hasAtomicFormat(TextureFormat::R32U);
+
     uint32_t pw = nextPot(w);
     uint32_t ph = nextPot(h);
 
@@ -97,19 +99,35 @@ void Renderer::resetSwapchain() {
       hh = std::max(1u, (hh+1)/2u);
       }
 
-    hiz.hiZ    = device.image2d(TextureFormat::R16, hw, hh, true);
-    hiz.uboPot = device.descriptors(Shaders::inst().hiZPot);
+    hiz.hiZ       = device.image2d(TextureFormat::R16,  hw, hh, true);
+    hiz.uboPot    = device.descriptors(Shaders::inst().hiZPot);
     hiz.uboPot.set(0, zbuffer, smpN);
     hiz.uboPot.set(1, hiz.hiZ);
 
-    hiz.uboMip.clear();
-    for(uint32_t i=0; (hw>1 || hh>1); ++i) {
-      hw = std::max(1u, hw/2u);
-      hh = std::max(1u, hh/2u);
-      auto& ubo = hiz.uboMip.emplace_back(device.descriptors(Shaders::inst().hiZMip));
-      ubo.set(0, hiz.hiZ, smpN, i);
-      ubo.set(1, hiz.hiZ, smpN, i+1);
+    hiz.uboMip = device.descriptors(Shaders::inst().hiZMip);
+    if(hiz.atomicImg) {
+      // TODO: zero-initialize image in engine
+      hiz.counter = device.image2d(TextureFormat::R32U, std::max(hw/4, 1u), std::max(hh/4, 1u), false);
+      auto cmd  = device.commandBuffer();
+      auto sync = device.fence();
+      auto ds   = device.descriptors(Shaders::inst().hiZInit);
+      {
+        ds.set(0, hiz.counter);
+        auto enc = cmd.startEncoding(device);
+        enc.setUniforms(Shaders::inst().hiZInit, ds);
+        enc.dispatchThreads(hiz.counter.size());
       }
+      device.submit(cmd, sync);
+      sync.wait();
+      hiz.uboMip.set(0, hiz.counter, Sampler::nearest(), 0);
+      } else {
+      std::vector<uint32_t> tmp(std::max(hw/4, 1u)*std::max(hh/4, 1u));
+      hiz.counterBuf = device.ssbo(tmp); // TODO: zero-initialize buffers
+      hiz.uboMip.set(0, hiz.counterBuf);
+      }
+    const uint32_t maxBind = 9, mip = hiz.hiZ.mipCount();
+    for(uint32_t i=0; i<maxBind; ++i)
+      hiz.uboMip.set(1+i, hiz.hiZ, Sampler::nearest(), std::min(i, mip-1));
 
     if(smSize>0) {
       hiz.smProj    = device.zbuffer(shadowFormat, smSize, smSize);
@@ -121,16 +139,7 @@ void Renderer::resetSwapchain() {
       hiz.uboPotSm1 = device.descriptors(Shaders::inst().hiZPot);
       hiz.uboPotSm1.set(0, hiz.smProj, smpN);
       hiz.uboPotSm1.set(1, hiz.hiZSm1);
-
-      hw = hh = 64;
-      hiz.uboMipSm1.clear();
-      for(uint32_t i=0; (hw>1 || hh>1); ++i) {
-        hw = std::max(1u, hw/2u);
-        hh = std::max(1u, hh/2u);
-        auto& ubo = hiz.uboMipSm1.emplace_back(device.descriptors(Shaders::inst().hiZMip));
-        ubo.set(0, hiz.hiZSm1, smpN, i);
-        ubo.set(1, hiz.hiZSm1, smpN, i+1);
-        }
+      hiz.uboMipSm1 = Tempest::DescriptorSet();
       }
     }
 
@@ -509,8 +518,8 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   wview->preFrameUpdate(*camera,Gothic::inst().world()->tickCount(),fId);
   wview->prepareGlobals(cmd,fId);
 
-  drawHiZ(cmd,fId,*wview);
   prepareSky(cmd,fId,*wview);
+  drawHiZ(cmd,fId,*wview);
 
   drawGBuffer  (cmd,fId,*wview);
   drawShadowMap(cmd,fId,*wview);
@@ -643,13 +652,9 @@ void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.setUniforms(Shaders::inst().hiZPot, hiz.uboPot);
   cmd.dispatch(size_t(hiz.hiZ.w()), size_t(hiz.hiZ.h()));
 
-  uint32_t w = uint32_t(hiz.hiZ.w()), h = uint32_t(hiz.hiZ.h());
-  for(uint32_t i=0; i<hiz.uboMip.size(); ++i) {
-    w = w/2;
-    h = h/2;
-    cmd.setUniforms(Shaders::inst().hiZMip, hiz.uboMip[i]);
-    cmd.dispatchThreads(std::max<uint32_t>(w,1),std::max<uint32_t>(h,1));
-    }
+  uint32_t w = uint32_t(hiz.hiZ.w()), h = uint32_t(hiz.hiZ.h()), mip = hiz.hiZ.mipCount();
+  cmd.setUniforms(Shaders::inst().hiZMip, hiz.uboMip, &mip, sizeof(mip));
+  cmd.dispatchThreads(w,h);
 
   /*
   cmd.setDebugMarker("HiZ-shadows");
@@ -686,6 +691,10 @@ void Renderer::drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
   }
 
 void Renderer::drawGWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
+  static bool water = true;
+  if(!water)
+    return;
+
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve},
                       {gbufDiffuse, Vec4(0,0,0,0),     Tempest::Preserve},
                       {gbufNormal,  Tempest::Preserve, Tempest::Preserve}},

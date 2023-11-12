@@ -44,7 +44,7 @@ class Shaders {
     Tempest::RenderPipeline  tonemapping;
 
     // HiZ
-    Tempest::ComputePipeline hiZPot, hiZMip;
+    Tempest::ComputePipeline hiZPot, hiZMip, hiZInit;
     Tempest::RenderPipeline  hiZReproj;
 
     // GI

@@ -228,6 +228,8 @@ add_shader(ssao_compose.vert         copy.vert -DHAS_UV)
 add_shader(ssao_compose.frag         ssao/ssao_compose.frag)
 add_shader(ssao_compose_ssao.frag    ssao/ssao_compose.frag -DSSAO)
 
+add_shader(hiz_init.comp             hiz/hiz_mip.comp -DATOMIC_IMG -DCLEAR)
+add_shader(hiz_mip_img.comp          hiz/hiz_mip.comp -DATOMIC_IMG)
 add_shader(hiz_mip.comp              hiz/hiz_mip.comp)
 add_shader(hiz_pot.comp              hiz/hiz_pot.comp)
 

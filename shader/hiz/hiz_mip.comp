@@ -1,28 +1,144 @@
 #version 450
 
-#extension GL_EXT_control_flow_attributes:enable
-
-layout(binding = 0, r16) uniform readonly  image2D mip0;
-layout(binding = 1)      uniform writeonly image2D mip1;
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_EXT_samplerless_texture_functions : enable
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
-void main() {
-  const ivec2 srcSz = imageSize(mip0);
-  const ivec2 dstSz = imageSize(mip1);
+#if defined(ATOMIC_IMG)
+layout(binding = 0, r32ui)    uniform coherent uimage2D  counters;
+#else
+layout(binding = 0, std430)   buffer  coherent Cbo { uint counters[]; };
+#endif
+#if !defined(CLEAR)
+layout(binding = 1, r16)      uniform coherent image2D   mip0;
+layout(binding = 2, r16)      uniform coherent image2D   mip1;
+layout(binding = 3, r16)      uniform coherent image2D   mip2;
+layout(binding = 4, r16)      uniform coherent image2D   mip3;
+layout(binding = 5, r16)      uniform coherent image2D   mip4;
+layout(binding = 6, r16)      uniform coherent image2D   mip5;
+layout(binding = 7, r16)      uniform coherent image2D   mip6;
+layout(binding = 8, r16)      uniform coherent image2D   mip7;
+layout(binding = 9, r16)      uniform coherent image2D   mip8;
 
-  ivec2 dstUV  = ivec2(gl_GlobalInvocationID.xy);
-  if(dstUV.x>=dstSz.x || dstUV.x>=dstSz.x)
-    return;
+layout(push_constant, std140) uniform PushConstant {
+  uint mipCount;
+  };
+#endif
 
-  ivec2 srcUV0 = dstUV*2;
-  ivec2 srcUV1 = dstUV*2 + ivec2(1,1);
+#if !defined(ATOMIC_IMG)
+uint countersW = max(imageSize(mip0).x/4, 1);
+#endif
+
+#if !defined(CLEAR)
+float load(int mip, ivec2 uv) {
+  switch(mip) {
+    case 0: return imageLoad(mip0, uv).x;
+    case 1: return imageLoad(mip1, uv).x;
+    case 2: return imageLoad(mip2, uv).x;
+    case 3: return imageLoad(mip3, uv).x;
+    case 4: return imageLoad(mip4, uv).x;
+    case 5: return imageLoad(mip5, uv).x;
+    case 6: return imageLoad(mip6, uv).x;
+    case 7: return imageLoad(mip7, uv).x;
+    case 8: return imageLoad(mip8, uv).x;
+    }
+  return -1;
+  }
+
+void store(int mip, ivec2 uv, float z) {
+  switch(mip) {
+    case 1:
+      imageStore(mip1, uv, vec4(z));
+      break;
+    case 2:
+      imageStore(mip2, uv, vec4(z));
+      break;
+    case 3:
+      imageStore(mip3, uv, vec4(z));
+      break;
+    case 4:
+      imageStore(mip4, uv, vec4(z));
+      break;
+    case 5:
+      imageStore(mip5, uv, vec4(z));
+      break;
+    case 6:
+      imageStore(mip6, uv, vec4(z));
+      break;
+    case 7:
+      imageStore(mip7, uv, vec4(z));
+      break;
+    case 8:
+      imageStore(mip8, uv, vec4(z));
+      break;
+    }
+  }
+
+float gather(int mip, ivec2 srcUV0) {
+  ivec2 srcSz  = imageSize(mip0);
+  ivec2 srcUV1 = srcUV0 + ivec2(1,1);
   srcUV1 = min(srcUV1, srcSz-ivec2(1,1));
 
-  float z =  imageLoad(mip0, ivec2(srcUV0.x,srcUV0.y)).x;
-  z = max(z, imageLoad(mip0, ivec2(srcUV1.x,srcUV0.y)).x);
-  z = max(z, imageLoad(mip0, ivec2(srcUV0.x,srcUV1.y)).x);
-  z = max(z, imageLoad(mip0, ivec2(srcUV1.x,srcUV1.y)).x);
+  float z00 = load(mip, ivec2(srcUV0.x,srcUV0.y));
+  float z01 = load(mip, ivec2(srcUV1.x,srcUV0.y));
+  float z10 = load(mip, ivec2(srcUV0.x,srcUV1.y));
+  float z11 = load(mip, ivec2(srcUV1.x,srcUV1.y));
 
-  imageStore(mip1, dstUV, vec4(z));
+  return max(max(z00, z01), max(z10, z11));
   }
+
+uint addCounter(int mip, ivec2 uv) {
+  uint bit     = (mip-1)*3;
+#if defined(ATOMIC_IMG)
+  uint counter = imageAtomicAdd(counters, uv, 1u << bit);
+#else
+  uint counter = atomicAdd(counters[uv.x + uv.y*countersW], 1u << bit);
+#endif
+  counter = (counter >> bit) & 0x3;
+  return counter+1;
+  }
+
+void clearCounter(int mip, ivec2 uv) {
+  uint bits = 0x7u << ((mip-1)*3);
+#if defined(ATOMIC_IMG)
+  imageAtomicAnd(counters, uv, ~bits);
+#else
+  atomicAnd(counters[uv.x + uv.y*countersW], ~bits);
+#endif
+  }
+#endif
+
+#if defined(CLEAR)
+void main() {
+  const ivec2 uv    = ivec2(gl_GlobalInvocationID.xy);
+  const ivec2 dstSz = imageSize(counters);
+  if(uv.x<dstSz.x && uv.y<dstSz.y)
+    imageStore(counters, uv, uvec4(0));
+  }
+#else
+void main() {
+  const ivec2 group = ivec2(gl_WorkGroupID.xy);
+  const ivec2 gsize = ivec2(gl_WorkGroupSize.xy);
+  const ivec2 local = ivec2(gl_LocalInvocationID.xy);
+
+  ivec2 uv    = group * gsize + local;
+  ivec2 dstSz = imageSize(mip1);
+  for(int mip = 1; mip<mipCount && mip<9; mip++) {
+    if(uv.x>=dstSz.x || uv.y>=dstSz.y)
+      return;
+
+    const float z = gather(mip-1, uv*2);
+    store(mip, uv, z);
+    memoryBarrierImage();
+
+    uint  counter = addCounter(mip, uv/2);
+    ivec2 area    = min(ivec2(2), dstSz - (uv/2)*2);
+    if(counter!=area.x*area.y)
+      return;
+    clearCounter(mip, uv/2);
+    uv    = uv/2;
+    dstSz = max(ivec2(1,1), dstSz/2);
+    }
+  }
+#endif

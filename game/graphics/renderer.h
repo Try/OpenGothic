@@ -129,15 +129,19 @@ class Renderer final {
 
     struct {
       Tempest::StorageImage     hiZ;
+      Tempest::StorageImage     counter;
+      Tempest::StorageBuffer    counterBuf;
+
+      bool                      atomicImg = false;
       Tempest::DescriptorSet    uboPot;
-      std::vector<Tempest::DescriptorSet> uboMip;
+      Tempest::DescriptorSet    uboMip;
 
       Tempest::ZBuffer          smProj;
       Tempest::DescriptorSet    uboReproj;
 
       Tempest::StorageImage     hiZSm1;
       Tempest::DescriptorSet    uboPotSm1;
-      std::vector<Tempest::DescriptorSet> uboMipSm1;
+      Tempest::DescriptorSet    uboMipSm1;
     } hiz;
 
     struct {
