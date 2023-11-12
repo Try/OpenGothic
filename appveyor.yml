@@ -149,7 +149,7 @@ artifacts:
     name: archive_osx
 
 deploy:
-  release: opengothic-v$env:appveyor_build_version
+  release: opengothic-v${APPVEYOR_BUILD_VERSION}
   description: 'no release description'
   provider: GitHub
   auth_token:
@@ -158,7 +158,7 @@ deploy:
   draft: true
   force_update: false
   prerelease: true
-  tag: opengothic-v$(appveyor_build_version)
+  tag: opengothic-v${APPVEYOR_BUILD_VERSION}
   # on:
     # branch: $(APPVEYOR_REPO_TAG_NAME)
     # appveyor_repo_tag: true       # deploy on tag push only
