@@ -149,7 +149,7 @@ artifacts:
     name: archive_osx
 
 deploy:
-  release: opengothic-v${appveyor_build_version}
+  release: opengothic-v$env:appveyor_build_version
   description: 'no release description'
   provider: GitHub
   auth_token:
