@@ -159,6 +159,5 @@ deploy:
   force_update: false
   prerelease: true
   tag: opengothic-v${APPVEYOR_BUILD_VERSION}
-  # on:
-    # branch: $(APPVEYOR_REPO_TAG_NAME)
-    # appveyor_repo_tag: true       # deploy on tag push only
+  on:
+    appveyor_repo_tag: true       # deploy on tag push only
