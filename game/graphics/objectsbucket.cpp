@@ -384,7 +384,8 @@ void ObjectsBucket::uboSetCommon(Descriptors& v, const Material& mat, const Buck
           }
         }
       if(lay==SceneGlobals::V_Main || textureInShadowPass) {
-        ubo.set(L_Diffuse, *mat.tex);
+        auto smp = (lay==SceneGlobals::V_Main) ? Sampler::anisotrophy() : Sampler::trillinear();
+        ubo.set(L_Diffuse, *mat.tex, smp);
         }
       if(lay==SceneGlobals::V_Main && isShadowmapRequired()) {
         ubo.set(L_Shadow0,  *scene.shadowMap[0],Resources::shadowSampler());
@@ -627,9 +628,10 @@ void ObjectsBucket::drawCommon(Encoder<CommandBuffer>& cmd, uint8_t fId, const R
     return;
 
   if(useMeshlets) {
-    if(objType==Landscape && c==SceneGlobals::V_Shadow1 && !textureInShadowPass)
+    const bool isShadow = (c==SceneGlobals::V_Shadow0 || c==SceneGlobals::V_Shadow1 || isHiZPass);
+    if(objType==Landscape && isShadow)
       return;
-    if(objType==LandscapeShadow && c!=SceneGlobals::V_Shadow1)
+    if(objType==LandscapeShadow && !isShadow)
       return;
     }
 
@@ -1061,7 +1063,7 @@ void ObjectsBucketDyn::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
     return;
 
   if(useMeshlets && !textureInShadowPass) {
-    const bool isShadow = (c==SceneGlobals::V_Shadow1 || isHiZPass);
+    const bool isShadow = (c==SceneGlobals::V_Shadow0 || c==SceneGlobals::V_Shadow1 || isHiZPass);
     if(objType==Landscape && isShadow)
       return;
     if(objType==LandscapeShadow && !isShadow)
