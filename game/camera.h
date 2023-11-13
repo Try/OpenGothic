@@ -30,6 +30,7 @@ class Camera final {
       Swim,
       Dive,
       Fall,
+      Cutscene,
       };
 
     enum MarvinMode {
@@ -67,6 +68,7 @@ class Camera final {
     bool isMarvin() const;
     bool isFree() const;
     bool isInWater() const;
+    bool isCutscene() const;
 
     void setToggleEnable(bool e);
     bool isToggleEnabled() const;

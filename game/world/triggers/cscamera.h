@@ -29,16 +29,14 @@ class CsCamera : public AbstractTrigger {
     void onUntrigger(const TriggerEvent& evt) override;
     void tick(uint64_t dt) override;
 
-    void clear();
-
     auto position() -> Tempest::Vec3;
     auto spin(Tempest::Vec3& d) -> Tempest::PointF;
 
     bool     active       = false;
-    bool     godMode;
-    float    duration;
-    float    delay;
-    float    time;
+    bool     godMode      = false;
+    float    duration     = 0;
+    float    delay        = 0;
+    float    time         = 0;
     KbSpline posSpline    = {};
     KbSpline targetSpline = {};
   };

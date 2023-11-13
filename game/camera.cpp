@@ -182,6 +182,10 @@ bool Camera::isInWater() const {
   return inWater;
   }
 
+bool Camera::isCutscene() const {
+  return camMod==Camera::Mode::Cutscene;
+  }
+
 void Camera::setToggleEnable(bool e) {
   tgEnable = e;
   }

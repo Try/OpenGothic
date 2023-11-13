@@ -81,56 +81,60 @@ void CsCamera::onTrigger(const TriggerEvent& evt) {
   if(active || posSpline.size()==0)
     return;
 
-  auto world = Gothic::inst().world();
+  if(auto cs = world.currentCs()) {
+    cs->onUntrigger(evt);
+    }
+
+  auto& camera = world.gameSession().camera();
+  if(!camera.isCutscene()) {
+    camera.reset();
+    camera.setMode(Camera::Mode::Cutscene);
+    }
+
   active               = true;
   time                 = 0;
   posSpline.splTime    = 0;
   targetSpline.splTime = 0;
-  if(world->currentCs()==nullptr) {
-    auto camera = Gothic::inst().camera();
-    camera->reset();
-    camera->setMode(Camera::Mode::Normal);
-    godMode = Gothic::inst().isGodMode();
-    Gothic::inst().setGodMode(true);
-    }
-  world->setCurrentCs(this);
+  godMode              = Gothic::inst().isGodMode();
+  Gothic::inst().setGodMode(true);
+  world.setCurrentCs(this);
   enableTicks();
   }
 
 void CsCamera::onUntrigger(const TriggerEvent& evt) {
-  clear();
-  }
-
-void CsCamera::clear() {
   if(!active)
     return;
   active = false;
   disableTicks();
-  auto world = Gothic::inst().world();
-  if(world->currentCs()==this) {
-    auto camera = Gothic::inst().camera();
-    world->setCurrentCs(nullptr);
-    camera->reset();
-    Gothic::inst().setGodMode(godMode);
-    }
+  if(world.currentCs()!=this)
+    return;
+
+  world.setCurrentCs(nullptr);
+  Gothic::inst().setGodMode(godMode);
+
+  auto& camera = world.gameSession().camera();
+  camera.setMode(Camera::Mode::Normal);
+  camera.reset();
   }
 
 void CsCamera::tick(uint64_t dt) {
-  auto world = Gothic::inst().world();
   time += float(dt)/1000.f;
 
-  if(time>duration+delay || world->currentCs()!=this) {
-    clear();
+  if(time>duration+delay) {
+    TriggerEvent e("","",TriggerEvent::T_Untrigger);
+    onUntrigger(e);
     return;
     }
 
   if(time>duration)
     return;
 
-  auto camera = Gothic::inst().camera();
-  auto cPos   = position();
-  camera->setPosition(cPos);
-  camera->setSpin(spin(cPos));
+  auto& camera = world.gameSession().camera();
+  if(camera.isCutscene()) {
+    auto cPos   = position();
+    camera.setPosition(cPos);
+    camera.setSpin(spin(cPos));
+    }
   }
 
 Vec3 CsCamera::position() {

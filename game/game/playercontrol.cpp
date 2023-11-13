@@ -52,7 +52,7 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
   auto       ws   = pl ? pl->weaponState() : WeaponState::NoWeapon;
   uint8_t    slot = pl ? pl->inventory().currentSpellSlot() : Item::NSLOT;
 
-  if(w!=nullptr && w->currentCs()!=nullptr)
+  if(c!=nullptr && c->isCutscene())
     return;
 
   handleMovementAction(KeyCodec::ActionMapping{a,mapping}, true);
@@ -496,9 +496,12 @@ void PlayerControl::marvinO() {
 
 Focus PlayerControl::findFocus(Focus* prev) {
   auto w = Gothic::inst().world();
+  auto c = Gothic::inst().camera();
   if(w==nullptr)
     return Focus();
   if(w->player()!=nullptr && w->player()->isDown())
+    return Focus();
+  if(c!=nullptr && c->isCutscene())
     return Focus();
   if(!cacheFocus)
     prev = nullptr;
@@ -517,7 +520,7 @@ bool PlayerControl::tickMove(uint64_t dt) {
   Npc*  pl     = w->player();
   auto  camera = Gothic::inst().camera();
 
-  if(w->currentCs()!=nullptr)
+  if(camera!=nullptr && camera->isCutscene())
     return true;
 
   if(camera!=nullptr && (camera->isFree() || pl==nullptr)) {

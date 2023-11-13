@@ -162,7 +162,7 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
     }
 
   auto       camera  = Gothic::inst().camera();
-  const bool freeCam = (camera!=nullptr && (camera->isFree() || currentCs()!=nullptr));
+  const bool freeCam = (camera!=nullptr && camera->isFree());
   const auto pl      = owner.player();
   for(size_t i=0; i<npcArr.size(); ++i) {
     auto& npc = *npcArr[i];

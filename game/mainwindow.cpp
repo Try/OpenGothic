@@ -314,8 +314,8 @@ void MainWindow::processMouse(MouseEvent& event, bool enable) {
   }
 
 void MainWindow::tickMouse() {
-  auto world = Gothic::inst().world();
-  if(dialogs.hasContent() || Gothic::inst().isPause() || (world!=nullptr && world->currentCs()!=nullptr)) {
+  auto camera = Gothic::inst().camera();
+  if(dialogs.hasContent() || Gothic::inst().isPause() || camera==nullptr || camera->isCutscene()) {
     dMouse = Point();
     return;
     }
@@ -337,9 +337,7 @@ void MainWindow::tickMouse() {
   if(camLookaroundInverse)
     dpScaled.y *= -1.f;
 
-  auto camera = Gothic::inst().camera();
-  if(camera!=nullptr)
-    camera->onRotateMouse(PointF(dpScaled.y,-dpScaled.x));
+  camera->onRotateMouse(PointF(dpScaled.y,-dpScaled.x));
   if(!inventory.isActive()) {
     player.onRotateMouse  (-dpScaled.x);
     player.onRotateMouseDy(-dpScaled.y);
@@ -533,7 +531,7 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
 
   auto world = Gothic::inst().world();
   auto pl    = world==nullptr ? nullptr : world->player();
-  if(pl==nullptr || world->currentCs()!=nullptr)
+  if(pl==nullptr)
     return;
 
   auto pos = focus.displayPosition();
@@ -853,10 +851,9 @@ void MainWindow::updateAnimation(uint64_t dt) {
   }
 
 void MainWindow::tickCamera(uint64_t dt) {
-  auto world   = Gothic::inst().world();
   auto pcamera = Gothic::inst().camera();
   auto pl      = Gothic::inst().player();
-  if(world==nullptr || pcamera==nullptr || pl==nullptr)
+  if(pcamera==nullptr || pl==nullptr)
     return;
 
   auto&      camera       = *pcamera;
@@ -866,7 +863,7 @@ void MainWindow::tickCamera(uint64_t dt) {
                              ws==WeaponState::W2H);
   auto       pos          = pl->cameraBone(camera.isFirstPerson());
 
-  if(world->currentCs()==nullptr) {
+  if(!camera.isCutscene()) {
     const bool fs = SystemApi::isFullscreen(hwnd());
     if(!fs && mouseP[Event::ButtonLeft]) {
       camera.setSpin(camera.destSpin());
@@ -897,7 +894,7 @@ void MainWindow::tickCamera(uint64_t dt) {
 
   if(dt==0)
     return;
-  if(camera.isToggleEnabled() && world->currentCs()==nullptr)
+  if(camera.isToggleEnabled() && !camera.isCutscene())
     camera.setMode(solveCameraMode());
   camera.tick(dt);
   }
