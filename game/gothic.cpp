@@ -93,6 +93,10 @@ Gothic::Gothic() {
   defaults->set("ENGINE",       "zCloudShadowScale", gpu.type==Tempest::DeviceType::Discrete); // ssao
   defaults->set("INTERNAL",     "vidResIndex", 0); // full-res
 
+  defaults->set("VIDEO", "zVidBrightness", 0.5f);
+  defaults->set("VIDEO", "zVidContrast",   0.5f);
+  defaults->set("VIDEO", "zVidGamma",      0.5f);
+
   defaults->set("SOUND", "musicEnabled",  1);
   defaults->set("SOUND", "musicVolume",   0.5f);
   defaults->set("SOUND", "soundVolume",   0.5f);
