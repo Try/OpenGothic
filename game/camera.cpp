@@ -624,6 +624,12 @@ void Camera::calcControlPoints(float dtF) {
     rotBest      = Vec3();
     //spin.y += def.bestAzimuth;
     }
+  auto world = Gothic::inst().world();
+  if(world!=nullptr && world->currentCs()!=nullptr) {
+    range        = 0;
+    rotOffset    = Vec3();
+    rotOffsetDef = Vec3();
+    }
 
   followAng(src.spin,  dst.spin+rotBest, dtF);
   if(!isMarvin())
@@ -645,7 +651,7 @@ void Camera::calcControlPoints(float dtF) {
   followCamera(cameraPos,src.target,dtF);
 
   origin = cameraPos - dir*range;
-  if(camMarvinMod==M_Free) {
+  if(camMarvinMod==M_Free || (world!=nullptr && world->currentCs()!=nullptr)) {
     return;
     }
 
@@ -827,6 +833,10 @@ PointF Camera::spin() const {
 
 PointF Camera::destSpin() const {
   return PointF(dst.spin.x,dst.spin.y);
+  }
+
+Vec3 Camera::destPosition() const {
+  return dst.target;
   }
 
 Matrix4x4 Camera::viewProj() const {

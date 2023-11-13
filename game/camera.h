@@ -87,6 +87,8 @@ class Camera final {
     Tempest::PointF    spin()     const;
     Tempest::PointF    destSpin() const;
 
+    Tempest::Vec3      destPosition() const;
+
     void               setSpin(const Tempest::PointF& p);
     void               setDestSpin(const Tempest::PointF& p);
 

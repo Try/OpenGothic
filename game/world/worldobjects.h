@@ -20,6 +20,7 @@ class World;
 class Serialize;
 class TriggerEvent;
 class AbstractTrigger;
+class CsCamera;
 class CollisionZone;
 
 class WorldObjects final {
@@ -83,6 +84,8 @@ class WorldObjects final {
     bool           execTriggerEvent(const TriggerEvent& e);
     void           enableTicks (AbstractTrigger& t);
     void           disableTicks(AbstractTrigger& t);
+    void           setCurrentCs(CsCamera* cs);
+    CsCamera*      currentCs() const;
     void           enableCollizionZone (CollisionZone& z);
     void           disableCollizionZone(CollisionZone& z);
 
@@ -169,6 +172,7 @@ class WorldObjects final {
     std::vector<AbstractTrigger*>      triggersTk;
     std::vector<PerceptionMsg>         sndPerc;
     std::vector<TriggerEvent>          triggerEvents;
+    CsCamera*                          currentCsCamera = nullptr;
 
     template<class T>
     auto findObj(T &src, const Npc &pl, const SearchOpt& opt) -> typename std::remove_reference<decltype(src[0])>::type;

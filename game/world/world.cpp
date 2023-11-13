@@ -507,6 +507,14 @@ void World::disableTicks(AbstractTrigger& t) {
   wobj.disableTicks(t);
   }
 
+void World::setCurrentCs(CsCamera* cs) {
+  wobj.setCurrentCs(cs);
+  }
+
+CsCamera* World::currentCs() const {
+  return wobj.currentCs();
+  }
+
 void World::enableCollizionZone(CollisionZone& z) {
   wobj.enableCollizionZone(z);
   }
