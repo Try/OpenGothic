@@ -15,6 +15,34 @@ static uint64_t mkUInt64(uint32_t a, uint32_t b) {
   return (uint64_t(a)<<32) | uint64_t(b);
   };
 
+static bool isVisuallySame(const phoenix::material& a, const phoenix::material& b) {
+  return
+          // a.name                         == b.name && // mat name
+    a.group                        == b.group &&
+    a.color                        == b.color &&
+    a.smooth_angle                 == b.smooth_angle &&
+    a.texture                      == b.texture &&
+    a.texture_scale                == b.texture_scale &&
+    a.texture_anim_fps             == b.texture_anim_fps &&
+    a.texture_anim_map_mode        == b.texture_anim_map_mode &&
+    a.texture_anim_map_dir         == b.texture_anim_map_dir &&
+    // a.disable_collision            == b.disable_collision &&
+    // a.disable_lightmap             == b.disable_lightmap &&
+    // a.dont_collapse                == b.dont_collapse &&
+    a.detail_object                == b.detail_object &&
+    a.detail_texture_scale         == b.detail_texture_scale &&
+    a.force_occluder               == b.force_occluder &&
+    a.environment_mapping          == b.environment_mapping &&
+    a.environment_mapping_strength == b.environment_mapping_strength &&
+    a.wave_mode                    == b.wave_mode &&
+    a.wave_speed                   == b.wave_speed &&
+    a.wave_max_amplitude           == b.wave_max_amplitude &&
+    a.wave_grid_size               == b.wave_grid_size &&
+    a.ignore_sun                   == b.ignore_sun &&
+    // a.alpha_func                   == b.alpha_func &&
+    a.default_mapping              == b.default_mapping;
+  }
+
 struct PackedMesh::PrimitiveHeap {
   using value_type = std::pair<uint64_t,uint32_t>;
   using iterator   = std::vector<value_type>::iterator;
@@ -63,6 +91,10 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices,
                                 const phoenix::mesh& mesh) {
   if(indSz==0)
     return;
+
+  if(!validate())
+    return;
+
   instances.push_back(bounds);
 
   auto& vbo = mesh.vertices;  // xyz
@@ -82,7 +114,7 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices,
     vx.norm[2] = v.normal.z;
     vx.uv[0]   = v.texture.x;
     vx.uv[1]   = v.texture.y;
-    vx.color   = v.light;
+    vx.color   = 0xFF; //TODO: materialId // v.light;
     vertices[vboSz+i] = vx;
     }
   for(size_t i=vertSz; i<MaxVert; ++i) {
@@ -91,7 +123,7 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices,
     }
 
   size_t iboSz  = indices.size();
-  indices .resize(iboSz  + MaxInd );
+  indices.resize(iboSz + MaxInd);
   for(size_t i=0; i<indSz; ++i) {
     indices[iboSz+i] = uint32_t(vboSz)+indexes[i];
     }
@@ -223,6 +255,20 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices, std::vector<Verte
       indices8[at+3] = vertSz;
       }
     }
+  }
+
+bool PackedMesh::Meshlet::validate() const {
+  return true;
+  /*
+  // debug code
+  for(int i=0; i<indSz; ++i) {
+    for(int r=i+1; r<indSz; ++r) {
+      if(indexes[i]==indexes[r])
+        return true;
+      }
+    }
+  return false;
+  */
   }
 
 bool PackedMesh::Meshlet::insert(const Vert& a, const Vert& b, const Vert& c) {
@@ -476,12 +522,27 @@ void PackedMesh::packMeshletsLnd(const phoenix::mesh& mesh) {
   auto& feat = mesh.polygons.feature_indices;
   auto& mid  = mesh.polygons.material_indices;
 
+  std::vector<uint32_t> mat(mesh.materials.size());
+  for(size_t i=0; i<mesh.materials.size(); ++i)
+    mat[i] = uint32_t(i);
+
+  for(size_t i=0; i<mesh.materials.size(); ++i) {
+    for(size_t r=i+1; r<mesh.materials.size(); ++r) {
+      if(mat[i]==mat[r])
+        continue;
+      auto& a = mesh.materials[i];
+      auto& b = mesh.materials[r];
+      if(isVisuallySame(a,b))
+        mat[r] = mat[i];
+      }
+    }
+
   std::vector<Prim> prim;
   prim.reserve(mid.size());
   for(size_t i=0; i<mid.size(); ++i) {
     Prim p;
     p.primId = uint32_t(i*3);
-    p.mat    = mid[i];
+    p.mat    = mat[mid[i]];
     prim.push_back(p);
     }
   std::sort(prim.begin(), prim.end(), [](const Prim& a, const Prim& b){
@@ -605,6 +666,7 @@ std::vector<PackedMesh::Meshlet> PackedMesh::buildMeshlets(const phoenix::mesh* 
       }
 
     if(triId==size_t(-1) && active.indSz!=0 && !tightPacking) {
+      // active.validate();
       meshlets.push_back(std::move(active));
       active.clear();
       firstVert = 0;
@@ -629,6 +691,7 @@ std::vector<PackedMesh::Meshlet> PackedMesh::buildMeshlets(const phoenix::mesh* 
       }
 
     if(active.indSz!=0) {
+      // active.validate();
       meshlets.push_back(std::move(active));
       active.clear();
       firstVert = 0;
