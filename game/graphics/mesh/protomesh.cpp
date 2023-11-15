@@ -56,8 +56,8 @@ ProtoMesh::ProtoMesh(PackedMesh&& pm, const std::vector<phoenix::morph_animation
     samplesCnt += i.samples.size();
     }
 
-  morphIndex   = Resources::ssbo(nullptr, indexSz*aniList.size());
-  morphSamples = Resources::ssbo(nullptr, samplesCnt*sizeof(Vec4));
+  morphIndex   = Resources::ssbo(Tempest::Uninitialized, indexSz*aniList.size());
+  morphSamples = Resources::ssbo(Tempest::Uninitialized, samplesCnt*sizeof(Vec4));
 
   std::vector<int32_t> remapId;
   std::vector<Vec4>    samples;

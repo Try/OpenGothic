@@ -46,7 +46,7 @@ struct PackedMesh::PrimitiveHeap {
     auto l = std::lower_bound(data.begin(), data.end(), v, [](const value_type& x, uint64_t v){
       return x.first<v;
       });
-    auto r = l++;
+    auto r = l; ++r;
     while(r!=data.end()) {
       if(r->first>v)
         break;

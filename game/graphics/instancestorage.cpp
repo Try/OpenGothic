@@ -191,10 +191,10 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     }
   std::memcpy(patchCpu.data(), patchBlock.data(), headerSize);
 
-  auto& d     = desc[fId];
-  auto& path  = patchGpu[fId];
+  auto& d    = desc[fId];
+  auto& path = patchGpu[fId];
   if(path.byteSize() < headerSize + payloadSize) {
-    path  = device.ssbo(BufferHeap::Upload, nullptr, headerSize + payloadSize);
+    path  = device.ssbo(BufferHeap::Upload, Uninitialized, headerSize + payloadSize);
     prepareUniforms();
     }
 

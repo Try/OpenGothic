@@ -10,7 +10,6 @@ layout(binding = 0, r32ui)    uniform coherent uimage2D  counters;
 #else
 layout(binding = 0, std430)   buffer  coherent Cbo { uint counters[]; };
 #endif
-#if !defined(CLEAR)
 layout(binding = 1, r16)      uniform coherent image2D   mip0;
 layout(binding = 2, r16)      uniform coherent image2D   mip1;
 layout(binding = 3, r16)      uniform coherent image2D   mip2;
@@ -24,13 +23,11 @@ layout(binding = 9, r16)      uniform coherent image2D   mip8;
 layout(push_constant, std140) uniform PushConstant {
   uint mipCount;
   };
-#endif
 
 #if !defined(ATOMIC_IMG)
 uint countersW = max(imageSize(mip0).x/4, 1);
 #endif
 
-#if !defined(CLEAR)
 float load(int mip, ivec2 uv) {
   switch(mip) {
     case 0: return imageLoad(mip0, uv).x;
@@ -107,16 +104,7 @@ void clearCounter(int mip, ivec2 uv) {
   atomicAnd(counters[uv.x + uv.y*countersW], ~bits);
 #endif
   }
-#endif
 
-#if defined(CLEAR)
-void main() {
-  const ivec2 uv    = ivec2(gl_GlobalInvocationID.xy);
-  const ivec2 dstSz = imageSize(counters);
-  if(uv.x<dstSz.x && uv.y<dstSz.y)
-    imageStore(counters, uv, uvec4(0));
-  }
-#else
 void main() {
   const ivec2 group = ivec2(gl_WorkGroupID.xy);
   const ivec2 gsize = ivec2(gl_WorkGroupSize.xy);
@@ -141,4 +129,3 @@ void main() {
     dstSz = max(ivec2(1,1), dstSz/2);
     }
   }
-#endif

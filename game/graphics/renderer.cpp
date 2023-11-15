@@ -106,23 +106,10 @@ void Renderer::resetSwapchain() {
 
     hiz.uboMip = device.descriptors(Shaders::inst().hiZMip);
     if(hiz.atomicImg) {
-      // TODO: zero-initialize image in engine
       hiz.counter = device.image2d(TextureFormat::R32U, std::max(hw/4, 1u), std::max(hh/4, 1u), false);
-      auto cmd  = device.commandBuffer();
-      auto sync = device.fence();
-      auto ds   = device.descriptors(Shaders::inst().hiZInit);
-      {
-        ds.set(0, hiz.counter);
-        auto enc = cmd.startEncoding(device);
-        enc.setUniforms(Shaders::inst().hiZInit, ds);
-        enc.dispatchThreads(hiz.counter.size());
-      }
-      device.submit(cmd, sync);
-      sync.wait();
       hiz.uboMip.set(0, hiz.counter, Sampler::nearest(), 0);
       } else {
-      std::vector<uint32_t> tmp(std::max(hw/4, 1u)*std::max(hh/4, 1u));
-      hiz.counterBuf = device.ssbo(tmp); // TODO: zero-initialize buffers
+      hiz.counterBuf = device.ssbo(Tempest::Uninitialized, std::max(hw/4, 1u)*std::max(hh/4, 1u)*sizeof(uint32_t));
       hiz.uboMip.set(0, hiz.counterBuf);
       }
     const uint32_t maxBind = 9, mip = hiz.hiZ.mipCount();

@@ -162,8 +162,6 @@ Shaders::Shaders() {
   tonemapping = postEffect("tonemapping", "tonemapping", RenderState::ZTestMode::Always);
 
   if(meshlets) {
-    if(device.properties().hasAtomicFormat(TextureFormat::R32U))
-      hiZInit = computeShader("hiz_init.comp.sprv");
     hiZPot    = computeShader("hiz_pot.comp.sprv");
     if(device.properties().hasAtomicFormat(TextureFormat::R32U))
       hiZMip = computeShader("hiz_mip_img.comp.sprv"); else
