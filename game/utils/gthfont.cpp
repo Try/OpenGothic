@@ -5,10 +5,13 @@
 
 using namespace Tempest;
 
+GthFont::GthFont():fnt("", 16, {}) {
+  }
 
 GthFont::GthFont(phoenix::buffer data, std::string_view ftex, const Color &cl)
   :fnt(phoenix::font::parse(data)), color(cl) {
-  tex = Resources::loadTexture(ftex);
+  fnt.height = std::max(fnt.height, 1u); // avoid division by zero
+  tex        = Resources::loadTexture(ftex);
   }
 
 int GthFont::pixelSize() const {
@@ -147,6 +150,10 @@ Size GthFont::textSize(const uint8_t* b, const uint8_t* e) const {
         ++i;
       y+=h;
       x=0;
+      }
+    else if(id>=fnt.glyphs.size()) {
+      x += 10;
+      ++i;
       }
     else {
       int w = fnt.glyphs[id].width;

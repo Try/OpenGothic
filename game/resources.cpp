@@ -619,11 +619,12 @@ GthFont &Resources::implLoadFont(std::string_view name, FontType type) {
   if(it!=gothicFnt.end())
     return *(*it).second;
 
-  char file[256]={};
-  for(size_t i=0; i<256 && cname[i];++i) {
-    if(cname[i]=='.')
+  std::string_view file = name;
+  for(size_t i=0; i<name.size();++i) {
+    if(name[i]=='.') {
+      file = name.substr(0, i);
       break;
-    file[i] = cname[i];
+      }
     }
 
   string_frm tex, fnt;
@@ -660,8 +661,14 @@ GthFont &Resources::implLoadFont(std::string_view name, FontType type) {
     }
 
   const auto* entry = Resources::vdfsIndex().find(fnt);
-  if(entry == nullptr)
-    throw std::runtime_error("failed to open resource: " + std::string{fnt});
+  if(entry == nullptr) {
+    Log::e("failed to open resource: ", fnt);
+    // throw std::runtime_error("failed to open resource: " + std::string{fnt});
+    auto ptr   = std::make_unique<GthFont>();
+    GthFont* f = ptr.get();
+    gothicFnt[std::make_pair(std::move(cname),type)] = std::move(ptr);
+    return *f;
+    }
 
   auto ptr   = std::make_unique<GthFont>(entry->open(),tex,color);
   GthFont* f = ptr.get();

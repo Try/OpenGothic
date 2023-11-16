@@ -6,6 +6,7 @@
 
 class GthFont final {
   public:
+    GthFont();
     GthFont(phoenix::buffer data, std::string_view ftex, const Tempest::Color &cl);
     GthFont(const GthFont&) = delete;
 
