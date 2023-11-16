@@ -42,9 +42,12 @@ class Gothic final {
       };
 
     struct Options {
-      bool doRayQuery    = false;
-      bool doRtGi        = false;
-      bool doMeshShading = false;
+      bool  doRayQuery    = false;
+      bool  doRtGi        = false;
+      bool  doMeshShading = false;
+
+      bool  hideFocus     = false;
+      float cameraFov     = 67.5f;
       };
 
     auto         version() const -> const VersionInfo&;
@@ -97,7 +100,6 @@ class Gothic final {
     void         setMarvinEnabled(bool m);
 
     static auto  options() -> const Options&;
-    bool         doHideFocus () const { return hideFocus; }
 
     bool         isGodMode() const { return godMode; }
     void         setGodMode(bool g) { godMode = g; }
@@ -184,7 +186,6 @@ class Gothic final {
     bool                                    desktop        = false;
     bool                                    showFpsCounter = false;
     bool                                    showTime       = false;
-    bool                                    hideFocus      = false;
 
     std::string                             wrldDef, plDef, gameDatDef, ouDef;
 

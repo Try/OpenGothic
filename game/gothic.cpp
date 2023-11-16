@@ -41,7 +41,11 @@ Gothic::Gothic() {
 
   systemPackIniFile.reset(new IniFile(nestedPath({u"system",u"SystemPack.ini"},Dir::FT_File)));
   showFpsCounter = systemPackIniFile->getI("DEBUG","Show_FPS_Counter");
-  hideFocus      = systemPackIniFile->getI("PARAMETERS","HideFocus");
+  opts.hideFocus = systemPackIniFile->getI("PARAMETERS","HideFocus");
+  opts.cameraFov = systemPackIniFile->getF("PARAMETERS","VerticalFOV");
+  if(opts.cameraFov<1.f) {
+    opts.cameraFov = 67.5;
+    }
 
 #ifndef NDEBUG
   setMarvinEnabled(true);

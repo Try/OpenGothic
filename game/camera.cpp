@@ -79,7 +79,8 @@ void Camera::changeZoom(int delta) {
   }
 
 void Camera::setViewport(uint32_t w, uint32_t h) {
-  proj.perspective(65.f, float(w)/float(h), zNear(), zFar());
+  const float fov = Gothic::inst().options().cameraFov;
+  proj.perspective(fov, float(w)/float(h), zNear(), zFar());
   vpWidth  = w;
   vpHeight = h;
   }
