@@ -160,6 +160,9 @@ void Renderer::resetSwapchain() {
   ssao.ssaoPso = &Shaders::inst().ssao;
   ssao.uboSsao = device.descriptors(*ssao.ssaoPso);
 
+  ssao.ssaoBlur = device.image2d(ssao.aoFormat, w,h);
+  ssao.uboBlur  = device.descriptors(Shaders::inst().ssaoBlur);
+
   irradiance.lut = device.image2d(TextureFormat::RGBA32F, 3,2);
   irradiance.pso = &Shaders::inst().irradiance;
   irradiance.ubo = device.descriptors(*irradiance.pso);
@@ -264,13 +267,17 @@ void Renderer::prepareUniforms() {
   ssao.uboSsao.set(3, zbuffer,     smpN);
   ssao.uboSsao.set(4, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
 
+  ssao.uboBlur.set(0, ssao.ssaoBlur);
+  ssao.uboBlur.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  ssao.uboBlur.set(2, ssao.ssaoBuf);
+  ssao.uboBlur.set(3, zbuffer, smpN);
+
   ssao.uboCompose.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
   ssao.uboCompose.set(1, gbufDiffuse,  smpN);
   ssao.uboCompose.set(2, gbufNormal,   smpN);
-  ssao.uboCompose.set(3, zbuffer,      smpN);
-  ssao.uboCompose.set(4, irradiance.lut);
+  ssao.uboCompose.set(3, irradiance.lut);
   if(settings.zCloudShadowScale)
-    ssao.uboCompose.set(5, ssao.ssaoBuf, smpN);
+    ssao.uboCompose.set(4, ssao.ssaoBlur, smpN);
 
   {
     auto smpB = Sampler::bilinear();
@@ -757,6 +764,9 @@ void Renderer::prepareSSAO(Encoder<Tempest::CommandBuffer>& cmd) {
   cmd.setDebugMarker("SSAO");
   cmd.setUniforms(*ssao.ssaoPso, ssao.uboSsao, &push, sizeof(push));
   cmd.dispatchThreads(ssao.ssaoBuf.size());
+
+  cmd.setUniforms(Shaders::inst().ssaoBlur, ssao.uboBlur);
+  cmd.dispatchThreads(ssao.ssaoBuf.size());
   }
 
 void Renderer::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
@@ -865,13 +875,8 @@ void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {
   struct Push {
     Vec3      ambient;
     float     exposure = 1;
-    Vec3      ldir;
-    float     padd1 = 0;
-    Vec3      clipInfo;
-  } push;
+    } push;
   push.ambient  = view.ambientLight();
-  push.ldir     = view.mainLight().dir();
-  push.clipInfo = clipInfo;
   push.exposure = view.sky().autoExposure();
 
   cmd.setDebugMarker("AmbientLight");

@@ -108,6 +108,9 @@ class Renderer final {
       Tempest::TextureFormat    aoFormat = Tempest::TextureFormat::R8;
       Tempest::StorageImage     ssaoBuf;
 
+      Tempest::DescriptorSet    uboBlur;
+      Tempest::StorageImage     ssaoBlur;
+
       Tempest::ComputePipeline* ssaoPso = nullptr;
       Tempest::DescriptorSet    uboSsao;
 

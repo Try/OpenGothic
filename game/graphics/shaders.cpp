@@ -88,6 +88,7 @@ Shaders::Shaders() {
   stash   = postEffect("stash");
 
   ssao               = computeShader("ssao.comp.sprv");
+  ssaoBlur           = computeShader("ssao_blur.comp.sprv");
   ambientCompose     = ambientLightShader("ssao_compose");
   ambientComposeSsao = ambientLightShader("ssao_compose_ssao");
 

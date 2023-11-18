@@ -223,6 +223,7 @@ add_shader(copy_img.comp             copy_img.comp)
 add_shader(path.comp                 path.comp)
 
 add_shader(ssao.comp                 ssao/ssao.comp)
+add_shader(ssao_blur.comp            ssao/ssao_blur.comp)
 
 add_shader(ssao_compose.vert         copy.vert -DHAS_UV)
 add_shader(ssao_compose.frag         ssao/ssao_compose.frag)
