@@ -1109,7 +1109,7 @@ size_t GameMenu::strEnumSize(std::string_view en) {
     if(en[i]=='#' || en[i]=='|') {
       cnt += en[i]=='|' ? 2 : 1;
       i++;
-      for(;en[i];++i) {
+      for(;i<en.size();++i) {
         if(en[i]=='|')
           cnt++;
         }
