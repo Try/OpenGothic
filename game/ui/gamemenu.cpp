@@ -1073,7 +1073,7 @@ std::string_view GameMenu::strEnum(std::string_view en, int id, std::vector<char
       break;
       }
 
-  for(;en[i];++i){
+  for(;i<en.size();++i){
     size_t b=i;
     for(size_t r=i; r<en.size(); ++r,++i)
       if(en[r]=='|')
