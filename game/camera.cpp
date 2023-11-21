@@ -79,17 +79,57 @@ void Camera::changeZoom(int delta) {
   }
 
 void Camera::setViewport(uint32_t w, uint32_t h) {
+  // static float scale = 0.0009f;
+  // static float scale = 0.001f;
+  static float scale = 0.01f;
+
   const float fov = Gothic::inst().options().cameraFov;
   proj.perspective(fov, float(w)/float(h), zNear(), zFar());
+
+  float znear = zNear(), zfar = zFar(), aspect = float(w)/float(h);
+  double fovy_rads = fov*M_PI/180.0;
+    {
+    float  h         = float(1.0 / tan(fovy_rads * 0.5));
+    float  w         = h / aspect;
+    float  a         = zfar / (zfar - znear);
+    float  b         = (-znear * zfar) / (zfar - znear);
+
+    proj = Matrix4x4(w, 0, 0, 0,
+                     0, h, 0, 0,
+                     0, 0, a, b,
+                     0, 0, 1, 0);
+    }
+
+    {
+    float  h         = float(1.0 / tan(fovy_rads * 0.5));
+    float  w         = h / aspect;
+    float  a         = zfar / (zfar - znear);
+    float  b         = (-znear * zfar) / (zfar - znear);
+    // float a = -znear / (zfar - znear);
+    // float b = (znear * zfar) / (zfar - znear);
+    // float  a         = 1;
+    // float  b         = -znear;
+
+    proj = Matrix4x4(w, 0, 0, 0,
+                     0, h, 0, 0,
+                     0, 0, a, b,
+                     0, 0, 1, 0);
+    }
+
+  proj.scale(scale);
   vpWidth  = w;
   vpHeight = h;
   }
 
 float Camera::zNear() const {
-  return 0.01f;
+  // static float near = 0.01f;
+  static float near = 0.25f;
+  return near;
   }
+
 float Camera::zFar() const {
-  return 85.0f;
+  static float far = 1000.0f;
+  return far;
   }
 
 void Camera::rotateLeft(uint64_t dt) {
@@ -727,8 +767,8 @@ float Camera::calcCameraColision(const Vec3& target, const Vec3& origin, const V
   if(world==nullptr)
     return dist;
 
-  float minDist = 20;
-  float padding = 20;
+  static float minDist = 20;
+  static float padding = 20;
 
   auto& physic = *world->physic();
   Matrix4x4 vinv=projective();
@@ -767,12 +807,9 @@ float Camera::calcCameraColision(const Vec3& target, const Vec3& origin, const V
   }
 
 Matrix4x4 Camera::mkView(const Vec3& pos, const Vec3& spin) const {
-  static float scale = 0.0009f;
-
   Matrix4x4 view;
   view.identity();
   view.scale(-1,-1,-1);
-  view.scale(scale);
 
   view.mul(mkRotation(spin));
   view.translate(-pos);

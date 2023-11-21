@@ -103,7 +103,7 @@ vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, 
 
   const uint maxStep = numSamples/numIter;
 
-  [[unroll]]
+  [[loop]]
   for(uint i0=0; i0<maxStep; ++i0) {
     uint  i      = i0*step + seed;
     float r      = sampleRadius(i,numSamples);
@@ -116,17 +116,23 @@ vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, 
       }
 
     float z      = readZ(at1.xy);
+    bool  isHit  = floor(z*32768.0) < floor(at1.z*32768.0);
+    if(!isHit) {
+      float lenQ   = r*r;
+      float distW  = 1.0-min(lenQ/(sphereLen*sphereLen),1); // distance attenuation
+      weightAll += distW;
+      continue;
+      }
+
     vec3  at2    = vec3(at1.xy,z);
     vec4  pos2   = mvpInv*vec4(at2,1.0);
     pos2.xyz     = (pos2.xyz/pos2.w);
 
     vec3  dp     = (pos2.xyz-pos0);
-    bool  isHit  = floor(z*32768.0) < floor(at1.z*32768.0);
-
     float lenQ   = dot(dp,dp);
     float distW  = 1.0-min(lenQ/(sphereLen*sphereLen),1); // distance attenuation
-    if(isHit)
-      occlusion += distW;
+
+    occlusion += distW;
     weightAll += distW;
     }
 
@@ -134,22 +140,22 @@ vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, 
   }
 
 int estimateMaxSteps(float z) {
-  if(z>=0.9995)
+  if(z>=0.999)
     return 0; // sky
 
   // NOTE: manual tuning been here
-  const float depth = linearDepth(z, scene.clipInfo);
-  if(depth < 0.25)
+  const float depth = packHiZ(z); // linearDepth(z, scene.clipInfo);
+  if(depth < 0.05)
     return 4;
-  if(depth < 0.5)
+  if(depth < 0.6)
     return 5;
-  if(depth <= 1)
+  if(depth <= 0.8)
     return 8;
-  if(depth <= 1.5)
+  if(depth <= 0.9)
     return 7;
-  if(depth <= 2)
-    return 6;
-  if(depth <= 7.0)
+  if(depth <= 0.95)
+    return 4;
+  if(depth <= 0.99)
      return 2;
   return 1;
   }
