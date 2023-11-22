@@ -22,6 +22,7 @@ layout(binding  = 2) uniform sampler2D ssao;
 layout(binding  = 3) uniform sampler2D depth;
 
 shared vec2 samples[LANE_SIZE][LANE_SIZE];
+shared uint sSsaoMax;
 
 vec2 sampleAt(ivec2 at) {
   at += ivec2(KERNEL_RADIUS);
@@ -33,15 +34,39 @@ void sampleAt(ivec2 at, vec2 s) {
   samples[at.x][at.y] = s;
   }
 
-float texLinearDepth(vec2 uv) {
-  float d = textureLod(depth, uv, 0).x;
-  return linearDepth(d, scene.clipInfo);
+vec2 blurPass(ivec2 res, ivec2 dir) {
+  const float R2     = (KERNEL_RADIUS*KERNEL_RADIUS);
+  const vec2  center = sampleAt(ivec2(gl_LocalInvocationID.xy));
+
+  if(gl_GlobalInvocationID.x>=res.x || gl_GlobalInvocationID.y>=res.y)
+    return center;
+
+  float cTotal = center.x;
+  float wTotal = 1.0;
+  for(int i=-KERNEL_RADIUS; i<=KERNEL_RADIUS; ++i) {
+    if(i==0)
+      continue;
+    ivec2 at    = ivec2(gl_LocalInvocationID.xy) + ivec2(i,i)*dir;
+    vec2  smp   = sampleAt(at);
+
+    float ddiff = (smp.y - center.y) * blurSharpness;
+    float w     = exp2(-R2*blurFalloff - ddiff*ddiff);
+
+    cTotal += w*smp.x;
+    wTotal += w;
+    }
+  return vec2(clamp(cTotal/wTotal, 0, 1), center.y);
   }
 
 void main() {
-  const ivec2 res = ivec2(textureSize(depth,0).xy);
+  sSsaoMax = 0;
+  barrier();
 
+  const ivec2 res      = ivec2(textureSize(depth,0).xy);
   const ivec2 groupxXY = ivec2(gl_WorkGroupID.xy * gl_WorkGroupSize.xy);
+
+  float ssaoMax  = 0;
+  vec3  clipInfo = scene.clipInfo;
   for(uint i=gl_LocalInvocationID.x; i<LANE_SIZE; i+=gl_WorkGroupSize.x)
     for(uint r=gl_LocalInvocationID.y; r<LANE_SIZE; r+=gl_WorkGroupSize.y) {
       ivec2 xy = ivec2(i,r) - ivec2(KERNEL_RADIUS);
@@ -49,39 +74,33 @@ void main() {
       vec2  uv = (at+vec2(0.5)) / vec2(res);
 
       float c  = textureLod(ssao, uv, 0).r;
-      float d  = texLinearDepth(uv);
+      float d  = textureLod(depth, uv, 0).x;
+
+      d = linearDepth(d, clipInfo);
       sampleAt(xy, vec2(c,d));
+      ssaoMax = max(ssaoMax, c);
       }
+
+  if(ssaoMax>0)
+    atomicMax(sSsaoMax, floatBitsToUint(ssaoMax));
 
   barrier();
 
-  if(gl_GlobalInvocationID.x>=res.x || gl_GlobalInvocationID.y>=res.y)
+  ssaoMax = uintBitsToFloat(sSsaoMax);
+  if(ssaoMax<0.001 && gl_GlobalInvocationID.x<res.x && gl_GlobalInvocationID.y<res.y) {
+    imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(0));
     return;
+    }
 
-  vec2  center = sampleAt(ivec2(gl_LocalInvocationID.xy));
-  float cTotal = center.x;
-  float wTotal = 1.0;
+  vec2 hor = blurPass(res, ivec2(1,0));
+  {
+    barrier();
+    sampleAt(ivec2(gl_LocalInvocationID.xy), hor);
+    barrier();
+  }
+  vec2 vert = blurPass(res, ivec2(0,1));
+  imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(vert.x));
 
-  const float R2  = (KERNEL_RADIUS*KERNEL_RADIUS);
-
-  for(int i=-KERNEL_RADIUS; i<=KERNEL_RADIUS; ++i)
-    for(int r=-KERNEL_RADIUS; r<=KERNEL_RADIUS; ++r) {
-      if(i==0 && r==0)
-        continue;
-
-      ivec2 at    = ivec2(gl_LocalInvocationID.xy) + ivec2(i,r);
-      vec2  smp   = sampleAt(at);
-
-      float ddiff = (smp.y - center.y) * blurSharpness;
-      float w     = exp2(-R2*blurFalloff - ddiff*ddiff);
-
-      cTotal += w*smp.x;
-      wTotal += w;
-      }
-
-  float v = clamp(cTotal/wTotal, 0, 1);
-  imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(v));
-
-  //float c  = textureLod(ssao, vec2(gl_GlobalInvocationID.xy+vec2(0.5))/vec2(res), 0).r;
-  //imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(c));
+  // float c  = textureLod(ssao, vec2(gl_GlobalInvocationID.xy+vec2(0.5))/vec2(res), 0).r;
+  // imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(c));
   }

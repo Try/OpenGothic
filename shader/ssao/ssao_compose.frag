@@ -76,5 +76,5 @@ void main() {
   color *= push.exposure;
 
   outColor = vec4(color, 1);
-  //outColor = vec4(vec3(ao), 1);
+  // outColor = vec4(vec3(1-ao), 0);
   }

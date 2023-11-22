@@ -370,10 +370,10 @@ void Renderer::prepareUniforms() {
 
     gi.uboDraw.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     gi.uboDraw.set(1, gi.probesLighting);
-    gi.uboDraw.set(2, gbufDiffuse,  Sampler::nearest());
-    gi.uboDraw.set(3, gbufNormal,   Sampler::nearest());
-    gi.uboDraw.set(4, zbuffer,      Sampler::nearest());
-    gi.uboDraw.set(5, ssao.ssaoBuf, smpN);
+    gi.uboDraw.set(2, gbufDiffuse,   Sampler::nearest());
+    gi.uboDraw.set(3, gbufNormal,    Sampler::nearest());
+    gi.uboDraw.set(4, zbuffer,       Sampler::nearest());
+    gi.uboDraw.set(5, ssao.ssaoBlur, smpN);
     gi.uboDraw.set(6, gi.hashTable);
     gi.uboDraw.set(7, gi.probes);
     }

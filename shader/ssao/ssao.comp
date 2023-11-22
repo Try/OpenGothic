@@ -23,37 +23,46 @@ layout(binding  = 4, std140) uniform UboScene {
   SceneDesc scene;
   };
 
-const uint  numSamples = 32;
-const uint  numIter    = 8;
-const float sphereLen  = 100;
+const uint  numSamples     = 32;
+const uint  numIter        = 8;
+const uint  samplesPerStep = numSamples/numIter;
+const float sphereLen      = 100;
+const float unorm16        = 65025;
 
 ivec2 fragCoord;
 ivec2 screenSize;
 mat3  tangent;
 
-shared uint vMin, vMax, vDiff;
 shared uint shMaxSteps;
 
-bool isSolved(float occlusion, float dx) {
-  vMin  = 256;
-  vMax  = 0;
+shared uint vAvg, vDiff;
+bool isSolved(float occlusion, int samples, bool eval) {
+  vAvg  = 0;
   vDiff = 0;
   barrier();
 
-  if(occlusion>=0) {
-    uint v = uint(occlusion*255+0.5);
-    uint d = uint(dx       *255+0.5);
-
-    atomicMin(vMin,  v);
-    atomicMax(vMax,  v);
-    atomicMax(vDiff, d);
+  if(occlusion>0.001) {
+    uint v = uint(occlusion*unorm16);
+    atomicAdd(vAvg, v);
     }
-  memoryBarrierShared();
   barrier();
 
-  uint diff = vMax - vMin;
+  if(eval) {
+    float avg  = float(vAvg)/float(gl_WorkGroupSize.x*gl_WorkGroupSize.y*unorm16);
+    float diff = abs(occlusion - avg);
+    atomicMax(vDiff, floatBitsToUint(diff));
+    }
+  barrier();
 
-  return (diff<4) || (vDiff<4);
+  float diff = uintBitsToFloat(vDiff);
+  float th   = 0.0;
+  if(samples>=12)
+    th = 0.001;
+  if(samples>=16)
+    th = 0.01;
+  if(samples>=24)
+    th = 0.1;
+  return diff<=th;
   }
 
 uint hash(uint x) {
@@ -101,10 +110,8 @@ float sampleRadius(uint i, uint maxSmp) {
 vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, uint step) {
   float occlusion = 0, weightAll = 0;
 
-  const uint maxStep = numSamples/numIter;
-
-  [[unroll]]
-  for(uint i0=0; i0<maxStep; ++i0) {
+  [[loop]]
+  for(uint i0=0; i0<samplesPerStep; ++i0) {
     uint  i      = i0*step + seed;
     float r      = sampleRadius(i,numSamples);
     vec3  h      = sampleHemisphereCos(i,numSamples,f0).xzy;
@@ -116,15 +123,22 @@ vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, 
       }
 
     float z      = readZ(at1.xy);
+    bool  isHit  = floor(z*32768.0+0.5) < floor(at1.z*32768.0);
+    if(true && !isHit) {
+      float lenQ   = r*r;
+      float distW  = 1.0-min(lenQ/(sphereLen*sphereLen),1); // distance attenuation
+      weightAll += distW;
+      continue;
+      }
+
     vec3  at2    = vec3(at1.xy,z);
     vec4  pos2   = mvpInv*vec4(at2,1.0);
     pos2.xyz     = (pos2.xyz/pos2.w);
 
     vec3  dp     = (pos2.xyz-pos0);
-    bool  isHit  = floor(z*32768.0) < floor(at1.z*32768.0);
-
     float lenQ   = dot(dp,dp);
     float distW  = 1.0-min(lenQ/(sphereLen*sphereLen),1); // distance attenuation
+
     if(isHit)
       occlusion += distW;
     weightAll += distW;
@@ -134,24 +148,11 @@ vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, 
   }
 
 int estimateMaxSteps(float z) {
-  if(z>=0.9995)
+  if(z>=1.0)
     return 0; // sky
-
-  // NOTE: manual tuning been here
-  const float depth = linearDepth(z, scene.clipInfo);
-  if(depth < 0.25)
-    return 4;
-  if(depth < 0.5)
-    return 5;
-  if(depth <= 1)
-    return 8;
-  if(depth <= 1.5)
-    return 7;
-  if(depth <= 2)
-    return 6;
-  if(depth <= 7.0)
-     return 2;
-  return 1;
+  if(z>=0.999)
+    return 1; // almost sky
+  return int(numIter);
   }
 
 void main() {
@@ -184,27 +185,31 @@ void main() {
   int maxSteps = estimateMaxSteps(at0.z);
   atomicMax(shMaxSteps, maxSteps);
   barrier();
-  // maxSteps = int(shMaxSteps);
 
+  // maxSteps = int(shMaxSteps);
   int  dbg  = 0;
+  int  smp  = int(samplesPerStep);
   bool eval = valid;
   for(int i=0; i<shMaxSteps; ++i) {
     if(eval && i<maxSteps) {
       dbg       = i+1;
+      smp      += int(samplesPerStep);
       prev      = occlusion;
       occ      += calcOcclussion(at0, pos0, f0, i, numIter);
       occlusion = (occ.x/occ.y);
       }
 
-    if(i==0)
-      continue;
-    if(isSolved(occlusion, abs(occlusion-prev))) {
+    if(isSolved(occlusion,smp,(i<maxSteps))) {
       // NOTE: 'break' here cause device-lost on Intel O_o
       eval = false;
       }
     }
 
-  if(valid)
+  if(valid) {
     imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(2.0*occlusion));
-  // imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(float(dbg+1)/255.0));
+
+    // imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(float(dbg)/10.0));
+    // imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(float(smp)/100.0));
+    // imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(uintBitsToFloat(vDiff)));
+    }
   }
