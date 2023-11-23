@@ -1,11 +1,15 @@
 #include "workers.h"
 #include "utils/string_frm.h"
 
+#include <Tempest/Platform>
 #include <Tempest/Log>
 
-#if defined(_MSC_VER)
+#if defined(__WINDOWS__)
 #include <windows.h>
+#include <processthreadsapi.h>
+#endif
 
+#if defined(_MSC_VER)
 void Workers::setThreadName(const char* threadName) {
   const DWORD MS_VC_EXCEPTION = 0x406D1388;
   DWORD dwThreadID = GetCurrentThreadId();
@@ -28,6 +32,23 @@ void Workers::setThreadName(const char* threadName) {
     }
   __except(EXCEPTION_EXECUTE_HANDLER) {
     }
+  }
+#elif defined(__WINDOWS__)
+void Workers::setThreadName(const char* threadName) {
+#if defined(__GNUC__)
+  pthread_setname_np(pthread_self(), threadName);
+#endif
+  auto k32 = GetModuleHandleA("Kernel32");
+  auto fn  = GetProcAddress(k32, "SetThreadDescription");
+  if(fn==nullptr)
+    return;
+
+  // nsight does not care about pthread_setname_np
+  WCHAR wname[64] = {};
+  for(size_t i=0; i<63 && threadName[i]; ++i)
+    wname[i] = WCHAR(threadName[i]);
+  auto SetThreadDescription = reinterpret_cast<HRESULT(WINAPI*)(HANDLE,PCWSTR)>(fn);
+  SetThreadDescription(GetCurrentThread(), wname);
   }
 #elif defined(__GNUC__) && !defined(__clang__)
 void Workers::setThreadName(const char* threadName){
