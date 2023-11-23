@@ -9,8 +9,8 @@
 layout(local_size_x = 8, local_size_y = 8) in;
 
 layout(push_constant, std140) uniform PushConstant {
-  mat4 mvp;
-  mat4 mvpInv;
+  mat4 proj;
+  mat4 projInv;
   };
 
 layout(binding  = 0) uniform writeonly image2D result;
@@ -89,14 +89,22 @@ float floatConstruct(uint m) {
   return f - 1.0;                        // Range [0:1]
   }
 
-vec3 inverse(vec3 pos) {
-  vec4 ret = mvpInv*vec4(pos,1.0);
-  return (ret.xyz/ret.w);
+vec3 unproject(vec3 pos) {
+  vec4 o;
+  o.x = pos.x * projInv[0][0];
+  o.y = pos.y * projInv[1][1];
+  o.z = pos.z * projInv[2][2] + projInv[3][2];
+  o.w = pos.z * projInv[2][3] + projInv[3][3];
+  return o.xyz/o.w;
   }
 
 vec3 project(vec3 pos) {
-  vec4 ret = mvp*vec4(pos,1.0);
-  return (ret.xyz/ret.w);
+  vec4 o;
+  o.x = pos.x * proj[0][0];
+  o.y = pos.y * proj[1][1];
+  o.z = pos.z * proj[2][2] + proj[3][2];
+  o.w = pos.z * proj[2][3] + proj[3][3];
+  return o.xyz/o.w;
   }
 
 float readZ(in vec2 posf) {
@@ -124,20 +132,20 @@ vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, 
 
     float z      = readZ(at1.xy);
     bool  isHit  = floor(z*32768.0+0.5) < floor(at1.z*32768.0);
-    if(true && !isHit) {
+    float distW  = 1;
+
+     // distance attenuation
+    if(isHit) {
+      vec3  at2    = vec3(at1.xy,z);
+      vec3  pos2   = unproject(at2);
+      vec3  dp     = (pos2.xyz-pos0);
+      float lenQ   = dot(dp,dp);
+
+      distW = 1.0-min(lenQ/(sphereLen*sphereLen),1);
+      } else {
       float lenQ   = r*r;
-      float distW  = 1.0-min(lenQ/(sphereLen*sphereLen),1); // distance attenuation
-      weightAll += distW;
-      continue;
+      distW  = 1.0-min(lenQ,1);
       }
-
-    vec3  at2    = vec3(at1.xy,z);
-    vec4  pos2   = mvpInv*vec4(at2,1.0);
-    pos2.xyz     = (pos2.xyz/pos2.w);
-
-    vec3  dp     = (pos2.xyz-pos0);
-    float lenQ   = dot(dp,dp);
-    float distW  = 1.0-min(lenQ/(sphereLen*sphereLen),1); // distance attenuation
 
     if(isHit)
       occlusion += distW;
@@ -166,6 +174,8 @@ void main() {
 
   if(valid) {
     vec3 norm = normalize(texelFetch(normals,fragCoord,0).xyz*2.0-vec3(1.0));
+    norm = (scene.view * vec4(norm,0)).xyz;
+
     // Compute a tangent frame and rotate the half vector to world space
     vec3 up   = abs(norm.z) < 0.999f ? vec3(0.0f, 0.0f, 1.0f) : vec3(1.0f, 0.0f, 0.0f);
     tangent[0] = normalize(cross(up, norm));
@@ -178,7 +188,7 @@ void main() {
 
   const vec2  inPos = vec2(2*fragCoord+ivec2(1,1))/vec2(screenSize)-vec2(1,1);
   const vec3  at0   = vec3(inPos.xy,readZ(inPos.xy));
-  const vec3  pos0  = inverse(at0);
+  const vec3  pos0  = unproject(at0);
   const uint  h0    = hash(fragCoord);
   const float f0    = M_PI*2.0*floatConstruct(h0);
 

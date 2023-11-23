@@ -753,12 +753,12 @@ void Renderer::prepareSSAO(Encoder<Tempest::CommandBuffer>& cmd) {
     return;
   // ssao
   struct PushSsao {
-    Matrix4x4 mvp;
-    Matrix4x4 mvpInv;
+    Matrix4x4 proj;
+    Matrix4x4 projInv;
     } push;
-  push.mvp    = viewProjLwc;
-  push.mvpInv = viewProjLwc;
-  push.mvpInv.inverse();
+  push.proj    = proj;
+  push.projInv = proj;
+  push.projInv.inverse();
 
   cmd.setFramebuffer({});
   cmd.setDebugMarker("SSAO");
