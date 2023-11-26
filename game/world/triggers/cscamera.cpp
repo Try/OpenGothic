@@ -47,8 +47,14 @@ CsCamera::CsCamera(Vob* parent, World& world, const phoenix::vobs::cs_camera& ca
 
     if(size<2)
       continue;
-    assert(spl->keyframe.front().time==0);
-    assert(spl->keyframe.back().time==duration);
+
+    if(spl->keyframe.front().time!=0) {
+      Log::e("CsCamera \"",cam.vob_name,"\": invalid first frame");
+      }
+    if(spl->keyframe.back().time!=duration) {
+      Log::e("CsCamera \"",cam.vob_name,"\": invalid sequence duration");
+      }
+
     const float slow   = 0;
     const float linear = duration;
     const float fast   = 2 * duration;
