@@ -36,7 +36,7 @@ float lambert() {
 vec3 diffuseLight() {
   float light  = lambert();
   float shadow = calcShadow(vec4(shInp.pos,1), 0, scene, textureSm0, textureSm1);
-  return scene.sunCl.rgb*light*shadow + scene.ambient;
+  return scene.sunCl.rgb*light*shadow + scene.ambient * scene.sunCl.rgb;
   }
 
 vec4 dbgLambert() {
@@ -202,6 +202,19 @@ bool isFlat() {
   return false;
   }
 
+#if defined(GBUFFER)
+vec3 flatNormal() {
+#if defined(GBUFFER) && (MESH_TYPE==T_LANDSCAPE)
+  vec3 pos   = shInp.pos;
+  vec3 dx    = dFdx(pos);
+  vec3 dy    = dFdy(pos);
+  return normalize(cross(dx,dy));
+#else
+  return shInp.normal;
+#endif
+  }
+#endif
+
 float encodeHintBits() {
   const int flt  = (isFlat() ? 1 : 0) << 1;
 #if defined(ATEST)
@@ -248,9 +261,10 @@ void main() {
 #if defined(GBUFFER)
   outDiffuse.rgb = t.rgb;
   outDiffuse.a   = encodeHintBits();
-  outNormal      = vec4(shInp.normal*0.5 + vec3(0.5),1.0);
+  outNormal      = vec4(shInp.normal*0.5 + vec3(0.5), 1.0);
+  // outNormal      = vec4(flatNormal()*0.5 + vec3(0.5), 1.0);
 #if DEBUG_DRAW
-  outDiffuse.rgb *= debugColors[debugId%MAX_DEBUG_COLORS];
+  outDiffuse.rgb *= debugColors[debugId%debugColors.length()];
 #endif
 #endif
 

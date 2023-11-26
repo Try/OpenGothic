@@ -247,8 +247,8 @@ void Sky::updateLight(const int64_t now) {
   //const auto ambientNight = groundAlbedo*NightLight*0;
   //const auto ambientDay   = groundAlbedo*ShadowSunLux*dayTint;
 
-  const auto ambientNight = groundAlbedo*NightLight;
-  const auto ambientDay   = groundAlbedo*DirectSunLux*dayTint * 0.2f;
+  const auto ambientNight = groundAlbedo*NightLight*0.25;
+  const auto ambientDay   = groundAlbedo*DirectSunLux*dayTint * 0.2f*0.25;
 
   const auto directDay    = Vec3(0.94f, 0.87f, 0.76f); //TODO: use tLUT to guide sky color in shader
   const auto directNight  = Vec3(0.27f, 0.05f, 0.01f);

@@ -28,7 +28,7 @@ void storeSample(vec3 dir, vec3 val) {
 vec3 resolveMiss(const vec3 rayOrigin, const vec3 rayDirection) {
   // PERF: need to preload sky lut early in shader
   const vec3 lcolor  = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), rayDirection, scene.sunDir) * scene.GSunIntensity;
-  const vec3 ambient = scene.ambient; // no proper multi-bounce yet
+  const vec3 ambient = 4.0 * scene.ambient; // no proper multi-bounce yet
 
   vec3 color = vec3(0);
   color += lcolor;

@@ -41,7 +41,7 @@ bool isSolved(float occlusion, int samples, bool eval) {
   vDiff = 0;
   barrier();
 
-  if(occlusion>0.001) {
+  if(occlusion>0) {
     uint v = uint(occlusion*unorm16);
     atomicAdd(vAvg, v);
     }
@@ -57,36 +57,35 @@ bool isSolved(float occlusion, int samples, bool eval) {
   float diff = uintBitsToFloat(vDiff);
   float th   = 0.0;
   if(samples>=12)
-    th = 0.001;
-  if(samples>=16)
-    th = 0.01;
-  if(samples>=24)
     th = 0.1;
+  if(samples>=16)
+    th = 0.2;
+  if(samples>=24)
+    th = 0.4;
   return diff<=th;
   }
 
-uint hash(uint x) {
-  x += ( x << 10u );
-  x ^= ( x >>  6u );
-  x += ( x <<  3u );
-  x ^= ( x >> 11u );
-  x += ( x << 15u );
-  return x;
+int estimateMaxSteps(float z) {
+  if(z>=1.0)
+    return 0; // sky
+  if(z>=0.999)
+    return 1; // almost sky
+  return int(numIter);
   }
 
-uint hash(uvec2 v) {
-  return hash(v.x ^ hash(v.y));
-  }
+shared vec3 shNormal;
+int estimateMinSteps(vec3 n) {
+  if(gl_LocalInvocationID.xy==uvec2(4)) {
+    shNormal = n;
+    }
+  vDiff = 4;
+  barrier();
 
-float floatConstruct(uint m) {
-  const uint ieeeMantissa = 0x007FFFFFu; // binary32 mantissa bitmask
-  const uint ieeeOne      = 0x3F800000u; // 1.0 in IEEE binary32
+  if(dot(shNormal, n)<0.99)
+    vDiff = 8;
+  barrier();
 
-  m &= ieeeMantissa;                     // Keep only mantissa bits (fractional part)
-  m |= ieeeOne;                          // Add fractional part to 1.0
-
-  float  f = uintBitsToFloat( m );       // Range [1:2]
-  return f - 1.0;                        // Range [0:1]
+  return int(vDiff);
   }
 
 vec3 unproject(vec3 pos) {
@@ -132,20 +131,27 @@ vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, 
 
     float z      = readZ(at1.xy);
     bool  isHit  = floor(z*32768.0+0.5) < floor(at1.z*32768.0);
-    float distW  = 1;
+    float distQ  = 1;
+    float u      = 0.5;
 
-     // distance attenuation
+    // distance attenuation
     if(isHit) {
-      vec3  at2    = vec3(at1.xy,z);
-      vec3  pos2   = unproject(at2);
-      vec3  dp     = (pos2.xyz-pos0);
-      float lenQ   = dot(dp,dp);
-
-      distW = 1.0-min(lenQ/(sphereLen*sphereLen),1);
+      vec3  at2  = vec3(at1.xy,z);
+      vec3  pos2 = unproject(at2);
+      vec3  dp   = (pos2.xyz-pos0);
+      float lenQ = dot(dp,dp);
+      distQ = min(lenQ/(sphereLen*sphereLen),1);
       } else {
-      float lenQ   = r*r;
-      distW  = 1.0-min(lenQ,1);
+      distQ  = (r*r);
       }
+
+    const float factor       = distQ;
+    const float smoothFactor = max(1.0 - factor * factor, 0.0);
+
+    const float distW = (1.0/max(factor, u)) * (smoothFactor*smoothFactor);
+
+    // distW = 1.0/max(0.2,distW);
+    // distW = pow(max(1.0 - distW, 0), 2);
 
     if(isHit)
       occlusion += distW;
@@ -153,14 +159,6 @@ vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, 
     }
 
   return vec2(occlusion,weightAll);
-  }
-
-int estimateMaxSteps(float z) {
-  if(z>=1.0)
-    return 0; // sky
-  if(z>=0.999)
-    return 1; // almost sky
-  return int(numIter);
   }
 
 void main() {
@@ -171,10 +169,20 @@ void main() {
   fragCoord  = ivec2(gl_GlobalInvocationID.xy);
 
   const bool valid = all(lessThan(fragCoord, screenSize));
+  const vec2 inPos = vec2(2*fragCoord+ivec2(1,1))/vec2(screenSize)-vec2(1,1);
+  vec3 norm = vec3(0);
+
+  const vec3 camPos = unproject(vec3(0,0,0));
+  const vec3 at0    = vec3(inPos.xy,readZ(inPos.xy));
+  const vec3 pos0   = unproject(at0);
 
   if(valid) {
-    vec3 norm = normalize(texelFetch(normals,fragCoord,0).xyz*2.0-vec3(1.0));
+    const vec3 view = (pos0 - camPos);
+
+    norm = normalize(texelFetch(normals,fragCoord,0).xyz*2.0-vec3(1.0));
     norm = (scene.view * vec4(norm,0)).xyz;
+    // if(dot(norm,view)>0)
+    //   norm = -norm;
 
     // Compute a tangent frame and rotate the half vector to world space
     vec3 up   = abs(norm.z) < 0.999f ? vec3(0.0f, 0.0f, 1.0f) : vec3(1.0f, 0.0f, 0.0f);
@@ -184,13 +192,9 @@ void main() {
     }
 
   float occlusion = -1, prev= -1;
-  vec2  occ       = vec2(0,0.0001);
+  vec2  occ       = vec2(0,0.00001);
 
-  const vec2  inPos = vec2(2*fragCoord+ivec2(1,1))/vec2(screenSize)-vec2(1,1);
-  const vec3  at0   = vec3(inPos.xy,readZ(inPos.xy));
-  const vec3  pos0  = unproject(at0);
-  const uint  h0    = hash(fragCoord);
-  const float f0    = M_PI*2.0*floatConstruct(h0);
+  const float f0 = M_PI*2.0*interleavedGradientNoise(fragCoord);
 
   int maxSteps = estimateMaxSteps(at0.z);
   atomicMax(shMaxSteps, maxSteps);
@@ -199,6 +203,7 @@ void main() {
   // maxSteps = int(shMaxSteps);
   int  dbg  = 0;
   int  smp  = int(samplesPerStep);
+  int  smin = estimateMinSteps(norm);
   bool eval = valid;
   for(int i=0; i<shMaxSteps; ++i) {
     if(eval && i<maxSteps) {
@@ -209,10 +214,11 @@ void main() {
       occlusion = (occ.x/occ.y);
       }
 
-    if(isSolved(occlusion,smp,(i<maxSteps))) {
-      // NOTE: 'break' here cause device-lost on Intel O_o
-      eval = false;
-      }
+    int samples = (i+1)*int(samplesPerStep);
+    if(samples<smin)
+      continue;
+    if(isSolved(occlusion,samples,(i<maxSteps)))
+      break;
     }
 
   if(valid) {
