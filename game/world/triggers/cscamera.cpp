@@ -49,10 +49,10 @@ CsCamera::CsCamera(Vob* parent, World& world, const phoenix::vobs::cs_camera& ca
       continue;
 
     if(spl->keyframe.front().time!=0) {
-      Log::e("CsCamera \"",cam.vob_name,"\": invalid first frame");
+      Log::e("CsCamera: \"",cam.vob_name,"\" - invalid first frame");
       }
     if(spl->keyframe.back().time!=duration) {
-      Log::e("CsCamera \"",cam.vob_name,"\": invalid sequence duration");
+      Log::e("CsCamera: \"",cam.vob_name,"\" - invalid sequence duration");
       }
 
     const float slow   = 0;
