@@ -3,7 +3,6 @@
 #include <Tempest/Event>
 #include <Tempest/Matrix4x4>
 #include <Tempest/Point>
-#include <array>
 
 #include <phoenix/ext/daedalus_classes.hh>
 
@@ -128,10 +127,10 @@ class Camera final {
       Tempest::Vec3       spin   = {};
       };
 
-    Tempest::Vec3         cameraPos       = {};
-    Tempest::Vec3         origin          = {};
-    Tempest::Vec3         rotOffset       = {};
-    Tempest::Vec3         offsetAng       = {};
+    Tempest::Vec3         cameraPos = {};
+    Tempest::Vec3         origin    = {};
+    Tempest::Vec3         rotOffset = {};
+    Tempest::Vec3         offsetAng = {};
     State                 src, dst;
 
     Pin                   pin;
@@ -144,6 +143,7 @@ class Camera final {
     Tempest::Matrix4x4    proj;
     uint32_t              vpWidth=0;
     uint32_t              vpHeight=0;
+    float                 depthNear = 0;
 
     bool                  dbg           = false;
     bool                  tgEnable      = true;
@@ -165,7 +165,7 @@ class Camera final {
 
     Tempest::Vec3         calcOffsetAngles(const Tempest::Vec3& srcOrigin, const Tempest::Vec3& target) const;
     Tempest::Vec3         calcOffsetAngles(Tempest::Vec3 srcOrigin, Tempest::Vec3 dstOrigin, Tempest::Vec3 target) const;
-    float                 calcCameraColision(const Tempest::Vec3& target, const Tempest::Vec3& origin, const Tempest::Vec3& rotSpin, float dist) const;
+    Tempest::Vec3         calcCameraColision(const Tempest::Vec3& target, const Tempest::Vec3& origin, const Tempest::Vec3& rotSpin, float dist) const;
 
     void                  implMove(Tempest::KeyEvent::KeyType t, uint64_t dt);
     Tempest::Matrix4x4    mkView    (const Tempest::Vec3& pos, const Tempest::Vec3& spin) const;
