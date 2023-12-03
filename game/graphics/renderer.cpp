@@ -304,8 +304,6 @@ void Renderer::prepareUniforms() {
   irradiance.ubo.set(2, wview->sky().skyLut());
 
   {
-    auto& sky = wview->sky();
-
     auto smp = Sampler::bilinear();
     smp.setClamping(ClampMode::MirroredRepeat);
 
@@ -318,12 +316,7 @@ void Renderer::prepareUniforms() {
     water.ubo.set(3, gbufNormal,  smp);
     water.ubo.set(4, zbuffer,     smpd);
     water.ubo.set(5, sceneDepth,  smpd);
-
-    water.ubo.set(6,  wview->sky().skyLut());
-    water.ubo.set(7, *sky.cloudsDay()  .lay[0],Sampler::bilinear());
-    water.ubo.set(8, *sky.cloudsDay()  .lay[1],Sampler::bilinear());
-    water.ubo.set(9, *sky.cloudsNight().lay[0],Sampler::bilinear());
-    water.ubo.set(10,*sky.cloudsNight().lay[1],Sampler::bilinear());
+    water.ubo.set(6, wview->sky().skyLut());
   }
 
   if(settings.giEnabled) {

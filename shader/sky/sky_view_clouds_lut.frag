@@ -47,6 +47,8 @@ void main() {
     adjV = coord*coord;
     }
 
+  azimuthAngle += atan(push.sunDir.z, push.sunDir.x) + 0.5*M_PI;
+
   const float height        = length(viewPos);
   const vec3  up            = viewPos / height;
   const float horizonAngle  = safeacos(sqrt(height*height - RPlanet*RPlanet) / height) - 0.5*M_PI;

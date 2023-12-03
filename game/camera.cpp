@@ -86,10 +86,13 @@ void Camera::setViewport(uint32_t w, uint32_t h) {
   }
 
 float Camera::zNear() const {
-  return 0.01f;
+  static float near = 10.f;
+  return near;
   }
+
 float Camera::zFar() const {
-  return 85.0f;
+  static float far = 100000.0f;
+  return far;
   }
 
 void Camera::rotateLeft(uint64_t dt) {
@@ -687,6 +690,7 @@ void Camera::calcControlPoints(float dtF) {
     offsetAng = Vec3();
 
     Vec3 offset = {0,0,20};
+    Matrix4x4 rotOffsetMat;
     rotOffsetMat.identity();
     rotOffsetMat.rotateOY(180-src.spin.y);
     rotOffsetMat.project(offset);

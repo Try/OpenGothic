@@ -23,24 +23,11 @@ layout(binding = 4) uniform sampler2D gbufDepth;
 layout(binding = 5) uniform sampler2D zbuffer;
 
 layout(binding =  6) uniform sampler2D skyLUT;
-layout(binding =  7) uniform sampler2D textureDayL0;
-layout(binding =  8) uniform sampler2D textureDayL1;
-layout(binding =  9) uniform sampler2D textureNightL0;
-layout(binding = 10) uniform sampler2D textureNightL1;
-
-vec3 applyClouds(vec3 skyColor, vec3 refl) {
-  float night    = scene.isNight;
-  vec3  plPos    = vec3(0,RPlanet,0);
-
-  return applyClouds(skyColor, skyLUT, plPos, scene.sunDir, refl, night,
-                     scene.cloudsDir.xy, scene.cloudsDir.zw,
-                     textureDayL1,textureDayL0, textureNightL1,textureNightL0);
-  }
 
 float intersectPlane(const vec3 pos, const vec3 dir, const vec4 plane) {
   float dist = dot(vec4(pos,1.0), plane);
   float step = -dot(plane.xyz,dir);
-  if(abs(step)<0.0001)
+  if(abs(step)<=0.0)
     return 0;
   return dist/step;
   }
@@ -71,27 +58,28 @@ vec3 sunBloom(vec3 refl) {
   return vec3(gaussianBloom+invBloom);
   }
 
-vec3 ssr(vec4 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
+vec3 ssr(vec3 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
   const int   SSR_STEPS = 64;
   const float ZBias     = 0.0;
-  // const float ZBias     = 0.00004;
 
   const float rayLen = intersectFrustum(start,refl);
   // return vec3(rayLen*0.01);
   if(rayLen<=0)
     return sky;
 
-  const vec4  dest = scene.viewProject*vec4(start+refl*rayLen, 1.0);
-  const float off  = interleavedGradientNoise(gl_FragCoord.xy);
+  const vec4  dest4 = scene.viewProject*vec4(start+refl*rayLen, 1.0);
+  const vec3  dest  = dest4.xyz/dest4.w;
+  const float off   = interleavedGradientNoise(gl_FragCoord.xy);
 
-  vec2 uv       = (orig.xy/orig.w)*0.5+vec2(0.5);
+  vec2 uv       = orig.xy*0.5+vec2(0.5);
   bool found    = false;
   bool occluded = false;
 
   for(int i=1; i<=SSR_STEPS; ++i) {
     const float t     = (float(i+off)/SSR_STEPS);
-    const vec4  pos4  = mix(orig,dest,t*t);
-    const vec3  pos   = pos4.xyz/pos4.w;
+    // const vec4  pos4  = mix(orig,dest,t*t*t*t);
+    // const vec3  pos   = pos4.xyz/pos4.w;
+    const vec3  pos   = mix(orig,dest,t*t);
     if(pos.z>=1.0)
       break;
 
@@ -110,7 +98,7 @@ vec3 ssr(vec4 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
       vec3  hit    = /*normalize*/(hit4.xyz/hit4.w - start);
       float angCos = dot(hit,refl);
 
-      if(angCos>0.0) {
+      if(angCos>0.0 || i==1) {
         uv    = p;
         found = true;
         break;
@@ -120,7 +108,7 @@ vec3 ssr(vec4 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
   // return sky;
 
   const vec3  reflection = textureLod(sceneColor,uv,0).rgb;
-  const float att        = smoothstep(0, 0.1, uv.y);// min(1.0,uv.y*4.0);
+  const float att        = smoothstep(0, 0.1, uv.y);
 
   if(found)
     return mix(sky,reflection,att);
@@ -130,8 +118,8 @@ vec3 ssr(vec4 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
     const float zs = linearDepth(z,     scene.clipInfo.xyz);
     const float zb = linearDepth(depth, scene.clipInfo.xyz);
     float h = zs - zb;
-    //h = 0.2 + 0.8*smoothstep(0, 1, h*0.01);
-    h = 0.1 + 0.9*smoothstep(0, 0.25, h*0.5);
+    // float h = 1;
+    h = 0.1 + 0.9*smoothstep(0, 0.25, h*0.005);
     return sky*h;
     //return vec3(h);
     }
@@ -140,11 +128,11 @@ vec3 ssr(vec4 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
   }
 
 #if defined(SSR)
-vec3 reflection(vec4 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
+vec3 reflection(vec3 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
   return ssr(orig,start,refl,depth,sky);
   }
 #else
-vec3 reflection(vec4 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
+vec3 reflection(vec3 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
   return sky;
   }
 #endif
@@ -192,14 +180,13 @@ void main() {
 
   vec3 sky = vec3(0);
   if(!underWater) {
-    vec3 sun = sunBloom(refl) * scene.sunCl;// (1.0-scene.isNight);
+    vec3 sun = sunBloom(refl) * scene.sunCl;
     sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir);
-    // sky = applyClouds(sky+sun, refl);
     sky *= scene.GSunIntensity;
     sky *= scene.exposure;
     }
 
-  vec3 r = reflection(scr,start,refl,depth,sky) * WaterAlbedo * f;
+  vec3 r = reflection(scr.xyz/scr.w,start,refl,depth,sky) * WaterAlbedo * f;
   // vec3  r = reflection(scr,start,refl,depth,sky);
 
   outColor = vec4(r, 0.0);
