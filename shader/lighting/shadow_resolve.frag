@@ -79,7 +79,7 @@ bool rayTest(vec3 pos, float tMin, float tMax) {
 
 float calcRayShadow(vec4 pos4, vec3 normal, float depth) {
   vec4 sp = scene.viewShadow[1]*pos4;
-  if(all(lessThan(abs(sp.xy)+0.001,vec2(abs(sp.w)))))
+  if(all(lessThan(abs(sp.xy/sp.w), vec2(0.999))))
     return 1.0;
 
   // NOTE: shadow is still leaking! Need to develop pso.depthClampEnable to fix it.
