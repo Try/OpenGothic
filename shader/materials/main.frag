@@ -107,11 +107,20 @@ vec4 forwardShading(vec4 t) {
   }
 
 #if defined(WATER)
+float unproject(float depth) {
+  mat4 projInv = scene.projectInv;
+  vec4 o;
+  o.z = depth * projInv[2][2] + projInv[3][2];
+  o.w = depth * projInv[2][3] + projInv[3][3];
+  return o.z/o.w;
+  }
+
 vec4 underWaterColorDepth(vec3 normal) {
   const vec2  fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
   const float ior       = IorWater;
+  //return vec4(0);
 
-  vec4  camPos = scene.viewProjectInv*vec4(0,0,0,1.0);
+  vec4  camPos = scene.viewProjectInv*vec4(0,0,0.0,1.0);
   camPos.xyz /= camPos.w;
 
   const vec3  view   = normalize(shInp.pos - camPos.xyz);
@@ -120,29 +129,21 @@ vec4 underWaterColorDepth(vec3 normal) {
   vec3        back   = texelFetch(sceneColor,   ivec2(gl_FragCoord.xy), 0).rgb;
   const float depth  = texelFetch(gbufferDepth, ivec2(gl_FragCoord.xy), 0).r;
 
-  const float ground = linearDepth(depth, scene.clipInfo.xyz);
-  const float water  = linearDepth(gl_FragCoord.z, scene.clipInfo.xyz);
+  const float ground = unproject(depth);
+  const float water  = unproject(gl_FragCoord.z);
+  float       dist   = (ground-water);
 
-  float dist     = (ground-water);
-  vec3  rPos     = shInp.pos + dist*refr;
-  vec4  rPosScr  = scene.viewProject*vec4(rPos,1.0);
-  rPosScr.xyz /= rPosScr.w;
-  rPosScr.xy += normal.xz*0.1; // non-physical distorsion
-  const vec2  p2 = rPosScr.xy*0.5+vec2(0.5);
+  const vec2 p2 = (gl_FragCoord.xy*scene.screenResInv) + normal.xz * min(dist*0.01,1.0) * 0.1;
 
   float depth2 = textureLod(gbufferDepth, p2, 0).r;
   if(depth2>gl_FragCoord.z) {
     back   = textureLod(sceneColor, p2, 0).rgb;
-    const float ground2 = linearDepth(depth2, scene.clipInfo.xyz);
+    const float ground2 = unproject(depth2);
     dist = (ground2-water);
     } else {
     depth2 = depth;
     }
 
-  vec4 fragPos0 = scene.viewProjectInv*vec4(fragCoord,gl_FragCoord.z,1.0);
-  fragPos0.xyz /= fragPos0.w;
-
-  //vec4 fragPos1 = scene.viewProjectInv*vec4(p2,depth2,1.0);
   vec4 fragPos1 = scene.viewProjectInv*vec4(fragCoord,depth2,1.0);
   fragPos1.xyz /= fragPos1.w;
 

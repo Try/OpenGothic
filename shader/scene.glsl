@@ -10,6 +10,7 @@ struct SceneDesc {
   mat4  viewShadowLwc[2];
   mat4  view;
   mat4  project;
+  mat4  projectInv;
   vec3  sunDir;
   float waveAnim;
   vec3  ambient;

@@ -73,6 +73,8 @@ void SceneGlobals::setViewProject(const Tempest::Matrix4x4& v, const Tempest::Ma
 
   uboGlobalCpu.view           = v;
   uboGlobalCpu.project        = p;
+  uboGlobalCpu.projectInv     = p;
+  uboGlobalCpu.projectInv.inverse();
   uboGlobalCpu.viewProject    = vp;
   uboGlobalCpu.viewProjectInv = vp;
   uboGlobalCpu.viewProjectInv.inverse();
