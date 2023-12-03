@@ -236,9 +236,9 @@ void main() {
   }
 #endif
 
-#if 0 && (DEBUG_DRAW) && !defined(LVL_OBJECT)
-  for(int i=laneID; i<MaxVert; i+=gl_WorkGroupSize.x) {
-    debugId[i] = meshletId;
+#if 1 && (DEBUG_DRAW)
+  for(uint i=laneID; i<MaxVert; i+=gl_WorkGroupSize.x) {
+    debugId[i] = uint(meshletId);
     }
 #endif
 
