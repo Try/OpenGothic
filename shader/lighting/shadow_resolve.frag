@@ -17,9 +17,9 @@ layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
 
-layout(binding = 1) uniform sampler2D diffuse;
-layout(binding = 2) uniform sampler2D normals;
-layout(binding = 3) uniform sampler2D depth;
+layout(binding = 1) uniform sampler2D  gbufDiffuse;
+layout(binding = 2) uniform usampler2D gbufNormal;
+layout(binding = 3) uniform sampler2D  depth;
 
 #if defined(SHADOW_MAP)
 layout(binding = 4) uniform sampler2D textureSm0;
@@ -117,9 +117,8 @@ void main(void) {
     return;
     }
 
-  const vec4  diff   = texelFetch(diffuse, fragCoord, 0);
-  const vec4  nrm    = texelFetch(normals, fragCoord, 0);
-  const vec3  normal = normalize(nrm.xyz*2.0-vec3(1.0));
+  const vec4  diff   = texelFetch(gbufDiffuse, fragCoord, 0);
+  const vec3  normal = normalFetch(gbufNormal, fragCoord);
 
   bool isFlat  = false;
   bool isATest = false;

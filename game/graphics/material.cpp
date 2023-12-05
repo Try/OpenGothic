@@ -41,7 +41,7 @@ Material::Material(const phoenix::material& m, bool enableAlphaTest) {
     waveMaxAmplitude = m.wave_max_amplitude;
 
   if(m.environment_mapping!=0)
-    envMapping = m.environment_mapping_strength;
+    ; // envMapping = m.environment_mapping_strength;
   }
 
 Material::Material(const phoenix::vob& vob) {
@@ -100,7 +100,8 @@ bool Material::operator ==(const Material& other) const {
          texAniMapDirPeriod==other.texAniMapDirPeriod &&
          texAniFPSInv==other.texAniFPSInv &&
          isGhost==other.isGhost &&
-         waveMaxAmplitude==other.waveMaxAmplitude;
+         waveMaxAmplitude==other.waveMaxAmplitude &&
+         envMapping==other.envMapping;
   }
 
 bool Material::isSolid() const {

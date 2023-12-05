@@ -18,11 +18,11 @@ layout(location = DEBUG_DRAW_LOC) in flat uint debugId;
 
 #if defined(GBUFFER)
 layout(location = 0) out vec4 outDiffuse;
-layout(location = 1) out vec4 outNormal;
+layout(location = 1) out uint outNormal;
 #elif defined(WATER)
 layout(location = 0) out vec4 outColor;
 layout(location = 1) out vec4 outDiffuse;
-layout(location = 2) out vec4 outNormal;
+layout(location = 2) out uint outNormal;
 #elif !defined(DEPTH_ONLY)
 layout(location = 0) out vec4 outColor;
 #endif
@@ -226,20 +226,14 @@ float encodeHintBits() {
 
 #if defined(WATER)
   const int water = (gl_FrontFacing) ? 0 : (1 << 3);
+#elif defined(LVL_OBJECT)
+  // const int water = (bucket.envMapping>0.01 ? 1 : 0) << 3;
+  const int water = (0) << 3;
 #else
   const int water = (0) << 3;
 #endif
 
   return float(flt | atst | water)/255.0;
-  }
-
-vec3 encodeNormal(vec3 n) {
-  float l = length(n.xz);
-  if(l>0.0)
-    n.xz /= l;
-  n.y   = l;
-  n.xz = n.xz*0.5 + vec2(0.5);
-  return n;
   }
 
 void main() {
@@ -262,7 +256,7 @@ void main() {
 #if defined(GBUFFER)
   outDiffuse.rgb = t.rgb;
   outDiffuse.a   = encodeHintBits();
-  outNormal      = vec4(shInp.normal*0.5 + vec3(0.5), 1.0);
+  outNormal      = encodeNormal(shInp.normal);
   // outNormal      = vec4(flatNormal()*0.5 + vec3(0.5), 1.0);
 #if DEBUG_DRAW
   outDiffuse.rgb *= debugColors[debugId%debugColors.length()];
@@ -284,7 +278,7 @@ void main() {
   outColor       = waterShading(t,wx.normal);
   outDiffuse.rgb = t.rgb;
   outDiffuse.a   = encodeHintBits();
-  outNormal      = vec4(encodeNormal(wx.normal), 0);
+  outNormal      = encodeNormal(wx.normal);
   }
 #elif !defined(GBUFFER) && !defined(DEPTH_ONLY)
   outColor   = forwardShading(t);

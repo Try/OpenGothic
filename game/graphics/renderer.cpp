@@ -138,8 +138,8 @@ void Renderer::resetSwapchain() {
   sceneOpaque = device.attachment(TextureFormat::R11G11B10UF,w,h);
   sceneDepth  = device.attachment(TextureFormat::R32F,       w,h);
 
-  gbufDiffuse = device.attachment(TextureFormat::RGBA8,      w,h);
-  gbufNormal  = device.attachment(TextureFormat::R11G11B10UF,w,h);
+  gbufDiffuse = device.attachment(TextureFormat::RGBA8,w,h);
+  gbufNormal  = device.attachment(TextureFormat::R32U, w,h);
 
   uboStash = device.descriptors(Shaders::inst().stash);
   uboStash.set(0,sceneLinear,Sampler::nearest());
@@ -286,9 +286,9 @@ void Renderer::prepareUniforms() {
   }
 
   shadow.ubo.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-  shadow.ubo.set(1, gbufDiffuse);
-  shadow.ubo.set(2, gbufNormal);
-  shadow.ubo.set(3, zbuffer);
+  shadow.ubo.set(1, gbufDiffuse, Sampler::nearest());
+  shadow.ubo.set(2, gbufNormal,  Sampler::nearest());
+  shadow.ubo.set(3, zbuffer,     Sampler::nearest());
 
   for(size_t r=0; r<Resources::ShadowLayers; ++r) {
     if(shadowMap[r].isEmpty())
@@ -312,8 +312,8 @@ void Renderer::prepareUniforms() {
 
     water.ubo.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     water.ubo.set(1, sceneOpaque, smp);
-    water.ubo.set(2, gbufDiffuse, smp);
-    water.ubo.set(3, gbufNormal,  smp);
+    water.ubo.set(2, gbufDiffuse, smpd);
+    water.ubo.set(3, gbufNormal,  smpd);
     water.ubo.set(4, zbuffer,     smpd);
     water.ubo.set(5, sceneDepth,  smpd);
     water.ubo.set(6, wview->sky().skyLut());
@@ -683,7 +683,7 @@ void Renderer::drawGWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
     return;
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve},
-                      {gbufDiffuse, Vec4(0,0,0,0),     Tempest::Preserve},
+                      {gbufDiffuse, Tempest::Preserve, Tempest::Preserve},
                       {gbufNormal,  Tempest::Preserve, Tempest::Preserve}},
                      {zbuffer, Tempest::Preserve, Tempest::Preserve});
   // cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}},

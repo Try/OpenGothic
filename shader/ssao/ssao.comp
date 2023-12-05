@@ -15,9 +15,9 @@ layout(push_constant, std140) uniform PushConstant {
 
 layout(binding  = 0) uniform writeonly image2D result;
 
-layout(binding  = 1) uniform sampler2D diffuse;
-layout(binding  = 2) uniform sampler2D normals;
-layout(binding  = 3) uniform sampler2D depthBuf;
+layout(binding  = 1) uniform sampler2D  gbufDiffuse;
+layout(binding  = 2) uniform usampler2D gbufNormal;
+layout(binding  = 3) uniform sampler2D  depthBuf;
 
 layout(binding  = 4, std140) uniform UboScene {
   SceneDesc scene;
@@ -89,21 +89,11 @@ int estimateMinSteps(vec3 n) {
   }
 
 vec3 unproject(vec3 pos) {
-  vec4 o;
-  o.x = pos.x * projInv[0][0];
-  o.y = pos.y * projInv[1][1];
-  o.z = pos.z * projInv[2][2] + projInv[3][2];
-  o.w = pos.z * projInv[2][3] + projInv[3][3];
-  return o.xyz/o.w;
+  return projectiveUnproject(projInv, pos);
   }
 
 vec3 project(vec3 pos) {
-  vec4 o;
-  o.x = pos.x * proj[0][0];
-  o.y = pos.y * proj[1][1];
-  o.z = pos.z * proj[2][2] + proj[3][2];
-  o.w = pos.z * proj[2][3] + proj[3][3];
-  return o.xyz/o.w;
+  return projectiveProject(proj, pos);
   }
 
 float readZ(in vec2 posf) {
@@ -179,7 +169,7 @@ void main() {
   if(valid) {
     const vec3 view = (pos0 - camPos);
 
-    norm = normalize(texelFetch(normals,fragCoord,0).xyz*2.0-vec3(1.0));
+    norm = normalFetch(gbufNormal, fragCoord);
     norm = (scene.view * vec4(norm,0)).xyz;
     // if(dot(norm,view)>0)
     //   norm = -norm;

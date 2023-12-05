@@ -339,6 +339,7 @@ ObjectsBucket::Bucket ObjectsBucket::allocBucketDesc(const Bounds& bounds, const
   ubo.texAniMapDirPeriod = mat.texAniMapDirPeriod;
   ubo.waveMaxAmplitude   = mat.waveMaxAmplitude;
   ubo.alphaWeight        = mat.alphaWeight;
+  ubo.envMapping         = mat.envMapping;
   if(bounds.r>0) {
     auto& bbox     = bounds.bbox;
     ubo.bboxRadius = bounds.rConservative;

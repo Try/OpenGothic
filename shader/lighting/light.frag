@@ -10,9 +10,9 @@ layout(early_fragment_tests) in;
 
 layout(location = 0) out vec4 outColor;
 
-layout(binding  = 0) uniform sampler2D diffuse;
-layout(binding  = 1) uniform sampler2D normals;
-layout(binding  = 2) uniform sampler2D depth;
+layout(binding  = 0) uniform sampler2D  gbufDiffuse;
+layout(binding  = 1) uniform usampler2D gbufNormal;
+layout(binding  = 2) uniform sampler2D  depth;
 
 layout(binding  = 3, std140) uniform Ubo {
   mat4  mvp;
@@ -67,9 +67,7 @@ void main(void) {
   if(factor>1.0)
     discard;
 
-  vec3  n       = texelFetch(normals, ivec2(gl_FragCoord.xy), 0).xyz;
-  vec3  normal  = normalize(n*2.0-vec3(1.0));
-
+  const vec3  normal = normalFetch(gbufNormal, ivec2(gl_FragCoord.xy));
   //float light   = (1.0-qDist)*lambert;
 
   float lambert = max(0.0,-dot(normalize(ldir),normal));
@@ -86,7 +84,7 @@ void main(void) {
   //outColor     = vec4(light,light,light,0.0);
   //outColor     = vec4(d.rgb*color*vec3(light),0.0);
 
-  const vec3 d      = texelFetch(diffuse, ivec2(gl_FragCoord.xy), 0).xyz;
+  const vec3 d      = texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0).xyz;
   const vec3 linear = textureLinear(d.rgb);
 
   vec3 color = linear*color*Fd_Lambert*light*0.2;

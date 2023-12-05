@@ -5,9 +5,6 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-#define SKY_LOD 2
-#include "sky/clouds.glsl"
-
 layout(location = 0) out vec4 outColor;
 
 layout(binding = 0, std140) uniform UboScene {
@@ -16,11 +13,11 @@ layout(binding = 0, std140) uniform UboScene {
 
 #include "gerstner_wave.glsl"
 
-layout(binding = 1) uniform sampler2D sceneColor;
-layout(binding = 2) uniform sampler2D gbufDiffuse;
-layout(binding = 3) uniform sampler2D gbufNormal;
-layout(binding = 4) uniform sampler2D gbufDepth;
-layout(binding = 5) uniform sampler2D zbuffer;
+layout(binding = 1) uniform sampler2D  sceneColor;
+layout(binding = 2) uniform sampler2D  gbufDiffuse;
+layout(binding = 3) uniform usampler2D gbufNormal;
+layout(binding = 4) uniform sampler2D  gbufDepth;
+layout(binding = 5) uniform sampler2D  zbuffer;
 
 layout(binding =  6) uniform sampler2D skyLUT;
 
@@ -113,11 +110,15 @@ vec3 ssr(vec3 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
   if(found)
     return mix(sky,reflection,att);
 
-  if(occluded || true) {
+  if(occluded || false) {
     const float z  = texelFetch(zbuffer, ivec2(gl_FragCoord.xy), 0).r;
-    const float zs = linearDepth(z,     scene.clipInfo.xyz);
-    const float zb = linearDepth(depth, scene.clipInfo.xyz);
-    float h = zs - zb;
+
+    const vec3 zs = projectiveUnproject(scene.projectInv, vec3(orig.xy, z    ));
+    const vec3 zb = projectiveUnproject(scene.projectInv, vec3(orig.xy, depth));
+
+    // const float zs = linearDepth(z,     scene.clipInfo.xyz);
+    // const float zb = linearDepth(depth, scene.clipInfo.xyz);
+    float h = length(zs - zb)*0.1;
     // float h = 1;
     h = 0.1 + 0.9*smoothstep(0, 0.25, h*0.005);
     return sky*h;
@@ -137,14 +138,6 @@ vec3 reflection(vec3 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
   }
 #endif
 
-vec3 decodeNormal(vec3 n) {
-  n.xz  = n.xz*2.0 - vec2(1.0);
-  n.xz *= n.y;
-  n.y   = sqrt(1 - n.x*n.x - n.y*n.y);// Y-up
-  return n;
-  // return vec3(0,1,0);
-  }
-
 void main() {
   const vec2  fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
   const vec4  diff      = texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0);
@@ -155,13 +148,12 @@ void main() {
   const bool  underWater = (scene.underWater!=0);
   const float ior        = (underWater ? IorAir : IorWater);
 
-  const float depth   = texelFetch(gbufDepth,  ivec2(gl_FragCoord.xy), 0).r;
-  const vec3  nrm     = texelFetch(gbufNormal, ivec2(gl_FragCoord.xy), 0).rgb;
+  const float depth   = texelFetch (gbufDepth,  ivec2(gl_FragCoord.xy), 0).r;
+  const vec3  normal  = normalFetch(gbufNormal, ivec2(gl_FragCoord.xy));
 
   const vec4  start4  = scene.viewProjectInv*vec4(fragCoord.x, fragCoord.y, depth, 1.0);
   const vec3  start   = start4.xyz/start4.w;
 
-  const vec3  normal  = decodeNormal(nrm);
   const vec4  scr     = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
 
   const vec4  camPos4 = scene.viewProjectInv*vec4(0,0,0,1.0);
@@ -169,7 +161,7 @@ void main() {
 
   const vec3  view    = normalize(start - camPos);
         vec3  refl    = reflect(view, normal);
-  if(refl.y<0) {
+  if(refl.y<0 && !underWater) {
     refl.y = 0;
     refl   = normalize(refl);
     }

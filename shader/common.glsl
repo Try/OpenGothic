@@ -169,4 +169,57 @@ vec3 sampleHemisphereCos(uint i, uint numSamples, float offsetAng) {
   return vec3(cos(a) * u1p, xi.x, sin(a) * u1p);
   }
 
+vec3 projectiveUnproject(in mat4 projectiveInv, in vec3 pos) {
+  vec4 o;
+  o.x = pos.x * projectiveInv[0][0];
+  o.y = pos.y * projectiveInv[1][1];
+  o.z = pos.z * projectiveInv[2][2] + projectiveInv[3][2];
+  o.w = pos.z * projectiveInv[2][3] + projectiveInv[3][3];
+  return o.xyz/o.w;
+  }
+
+vec3 projectiveProject(in mat4 projective, in vec3 pos) {
+  vec4 o;
+  o.x = pos.x * projective[0][0];
+  o.y = pos.y * projective[1][1];
+  o.z = pos.z * projective[2][2] + projective[3][2];
+  o.w = pos.z * projective[2][3] + projective[3][3];
+  return o.xyz/o.w;
+  }
+
+vec2 msign( vec2 v ) {
+  return vec2( (v.x>=0.0) ? 1.0 : -1.0,
+               (v.y>=0.0) ? 1.0 : -1.0 );
+  }
+
+// https://www.shadertoy.com/view/llfcRl
+uint octahedral_32( in vec3 nor ) {
+  nor.xy /= (abs(nor.x) + abs(nor.y) + abs(nor.z));
+  nor.xy  = (nor.z >= 0.0) ? (nor.xy) : (1.0-abs(nor.yx))*msign(nor.xy);
+  return packSnorm2x16(nor.xy);
+  }
+
+vec3 i_octahedral_32( uint data ) {
+  // Rune Stubbe's version
+  vec2 v   = unpackSnorm2x16(data);
+  vec3 nor = vec3(v, 1.0 - abs(v.x) - abs(v.y));
+  float t = max(-nor.z, 0.0);
+  nor.x += (nor.x>0.0) ? -t : t;
+  nor.y += (nor.y>0.0) ? -t : t;
+  return normalize(nor);
+  }
+
+uint encodeNormal(vec3 n) {
+  return octahedral_32(n);
+  }
+
+vec3 decodeNormal(uint n) {
+  return i_octahedral_32(n);
+  }
+
+vec3 normalFetch(in usampler2D gbufNormal, ivec2 p) {
+  const uint n = texelFetch(gbufNormal, p, 0).r;
+  return decodeNormal(n);
+  }
+
 #endif

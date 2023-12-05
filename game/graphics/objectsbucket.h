@@ -184,6 +184,7 @@ class ObjectsBucket {
       float          bboxRadius = 0;
       float          waveMaxAmplitude = 0;
       float          alphaWeight = 1;
+      float          envMapping = 0;
       };
 
     struct Descriptors final {

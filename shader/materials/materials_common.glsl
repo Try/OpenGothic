@@ -235,6 +235,7 @@ layout(binding = L_Bucket, std140) uniform BucketDesc {
   float bboxRadius;
   float waveMaxAmplitude;
   float alphaWeight;
+  float envMapping;
   } bucket;
 #endif
 

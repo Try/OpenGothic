@@ -18,11 +18,11 @@ const float blurSharpness = 0.8;
 layout(binding  = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
-layout(binding  = 1) uniform sampler2D probesLighting;
-layout(binding  = 2) uniform sampler2D gbufDiffuse;
-layout(binding  = 3) uniform sampler2D gbufNormal;
-layout(binding  = 4) uniform sampler2D depth;
-layout(binding  = 5) uniform sampler2D ssao;
+layout(binding  = 1) uniform sampler2D  probesLighting;
+layout(binding  = 2) uniform sampler2D  gbufDiffuse;
+layout(binding  = 3) uniform usampler2D gbufNormal;
+layout(binding  = 4) uniform sampler2D  depth;
+layout(binding  = 5) uniform sampler2D  ssao;
 
 layout(binding  = 6, std430) readonly buffer Hbo0 { uint hashTable[]; };
 layout(binding  = 7, std430) readonly buffer Pbo  { ProbesHeader probeHeader; Probe probe[]; };
@@ -189,8 +189,8 @@ void main() {
   if(z>=1.0)
     discard; // sky
 
-  const vec3 diff = texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0).rgb;
-  const vec3 norm = normalize(texelFetch(gbufNormal,ivec2(gl_FragCoord.xy),0).xyz*2.0-vec3(1.0));
+  const vec3 diff    = texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0).rgb;
+  const vec3 norm    = normalFetch(gbufNormal, ivec2(gl_FragCoord.xy));
 
   const int  lod     = probeGridComputeLod();
   const vec3 basePos = unprojectDepth(z);
