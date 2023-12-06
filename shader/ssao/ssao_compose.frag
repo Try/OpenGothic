@@ -15,9 +15,9 @@ layout(push_constant, std140) uniform PushConstant {
 layout(binding  = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
-layout(binding  = 1) uniform sampler2D gbufDiffuse;
-layout(binding  = 2) uniform sampler2D gbufNormal;
-layout(binding  = 3) uniform sampler2D irradiance;
+layout(binding  = 1) uniform sampler2D  gbufDiffuse;
+layout(binding  = 2) uniform usampler2D gbufNormal;
+layout(binding  = 3) uniform sampler2D  irradiance;
 #if defined(SSAO)
 layout(binding  = 4) uniform sampler2D ssao;
 #endif
@@ -55,8 +55,10 @@ vec3 skyIrradiance() {
   }
 
 void main() {
-  const vec3  diff = texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0).rgb;
-  const vec3  norm = normalize(texelFetch(gbufNormal,ivec2(gl_FragCoord.xy),0).xyz*2.0-vec3(1.0));
+  const ivec2 fragCoord = ivec2(gl_FragCoord.xy);
+
+  const vec3  diff = texelFetch(gbufDiffuse, fragCoord, 0).rgb;
+  const vec3  norm = normalFetch(gbufNormal, fragCoord);
 
   // const vec3  linear = vec3(1);
   const vec3  linear = textureLinear(diff); //  * Fd_Lambert is accounted in integration
