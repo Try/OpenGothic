@@ -683,8 +683,8 @@ void Renderer::drawGWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
     return;
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve},
-                      {gbufDiffuse, Tempest::Preserve, Tempest::Preserve},
-                      {gbufNormal,  Tempest::Preserve, Tempest::Preserve}},
+                      {gbufDiffuse, Vec4(0,0,0,0),     Tempest::Preserve},
+                      {gbufNormal,  Vec4(0,0,0,0),     Tempest::Preserve}},
                      {zbuffer, Tempest::Preserve, Tempest::Preserve});
   // cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}},
   //                    {zbuffer, Tempest::Preserve, Tempest::Preserve});
