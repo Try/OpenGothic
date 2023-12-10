@@ -56,8 +56,9 @@ vec3 sunBloom(vec3 refl) {
   }
 
 vec3 ssr(vec3 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
-  const int   SSR_STEPS = 64;
-  const float ZBias     = 0.0;
+  const int   SSR_STEPS     = 64;
+  const int   SSR_OCCLUSION = 50;
+  const float ZBias         = 0.0;
 
   const float rayLen = intersectFrustum(start,refl);
   // return vec3(rayLen*0.01);
@@ -69,14 +70,13 @@ vec3 ssr(vec3 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
   const float off   = interleavedGradientNoise(gl_FragCoord.xy);
 
   vec2 uv       = orig.xy*0.5+vec2(0.5);
+  vec2 uvAlt    = uv;
   bool found    = false;
-  bool occluded = false;
+  int  occluded = 0;
 
   for(int i=1; i<=SSR_STEPS; ++i) {
-    const float t     = (float(i+off)/SSR_STEPS);
-    // const vec4  pos4  = mix(orig,dest,t*t*t*t);
-    // const vec3  pos   = pos4.xyz/pos4.w;
-    const vec3  pos   = mix(orig,dest,t*t);
+    const float t   = (float(i+off)/SSR_STEPS);
+    const vec3  pos = mix(orig,dest,t*t);
     if(pos.z>=1.0)
       break;
 
@@ -85,24 +85,28 @@ vec3 ssr(vec3 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
     if(smpDepth==1.0)
       continue;
 
-    if(pos.z>smpDepth) {
+    if(smpDepth > pos.z)
+      continue; // futher away, than expected
+
+    vec4  hit4   = scene.viewProjectInv*vec4(pos.xy,smpDepth,1.0);
+    vec3  hit    = /*normalize*/(hit4.xyz/hit4.w - start);
+    float angCos = dot(hit,refl);
+
+    if(angCos<0.0) {
       // screen-space data is occluded
-      occluded = true;
+      occluded++;
+      uvAlt = p;
+      continue;
       }
 
-    if(pos.z>smpDepth) {
-      vec4  hit4   = scene.viewProjectInv*vec4(pos.xy,smpDepth,1.0);
-      vec3  hit    = /*normalize*/(hit4.xyz/hit4.w - start);
-      float angCos = dot(hit,refl);
-
-      if(angCos>0.0 || i==1) {
-        uv    = p;
-        found = true;
-        break;
-        }
-      }
+    uv    = p;
+    found = true;
+    break;
     }
+
   // return sky;
+  if(!found)
+    uv = uvAlt;
 
   const vec3  reflection = textureLod(sceneColor,uv,0).rgb;
   const float att        = smoothstep(0, 0.1, uv.y);
@@ -110,14 +114,12 @@ vec3 ssr(vec3 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
   if(found)
     return mix(sky,reflection,att);
 
-  if(occluded || false) {
+  if(occluded>SSR_OCCLUSION) {
     const float z  = texelFetch(zbuffer, ivec2(gl_FragCoord.xy), 0).r;
 
     const vec3 zs = projectiveUnproject(scene.projectInv, vec3(orig.xy, z    ));
     const vec3 zb = projectiveUnproject(scene.projectInv, vec3(orig.xy, depth));
 
-    // const float zs = linearDepth(z,     scene.clipInfo.xyz);
-    // const float zb = linearDepth(depth, scene.clipInfo.xyz);
     float h = length(zs - zb)*0.1;
     // float h = 1;
     h = 0.1 + 0.9*smoothstep(0, 0.25, h*0.005);
