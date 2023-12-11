@@ -46,11 +46,12 @@ Gothic::Gothic() {
   if(opts.cameraFov<1.f) {
     opts.cameraFov = 67.5;
     }
-  opts.interfaceScale = systemPackIniFile->getF("INTERFACE","Scale");
+  opts.interfaceScale = systemPackIniFile->getF("INTERFACE","Scale",0);
   if(opts.interfaceScale<=0) {
     opts.interfaceScale = 1;
     }
-
+  opts.inventoryCellSize = systemPackIniFile->getI("INTERFACE","InventoryCellSize",opts.inventoryCellSize);
+  opts.inventoryCellSize = std::max(opts.inventoryCellSize, 10);
 
 #ifndef NDEBUG
   setMarvinEnabled(true);

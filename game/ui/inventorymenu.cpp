@@ -427,7 +427,8 @@ void InventoryMenu::paintNumOverlay(PaintEvent& e) {
 
 Size InventoryMenu::slotSize() const {
   const float scale = Gothic::options().interfaceScale;
-  return Size(int(70*scale),int(70*scale));
+  const float cell  = float(Gothic::options().inventoryCellSize);
+  return Size(int(cell*scale),int(cell*scale));
   }
 
 int InventoryMenu::infoHeight() const {

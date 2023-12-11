@@ -13,9 +13,9 @@ class IniFile final {
 
     bool  has (std::string_view sec);
     bool  has (std::string_view sec, std::string_view name);
-    int   getI(std::string_view sec, std::string_view name);
+    int   getI(std::string_view sec, std::string_view name, int idef = 0);
     void  set (std::string_view sec, std::string_view name, int ival);
-    float getF(std::string_view sec, std::string_view name);
+    float getF(std::string_view sec, std::string_view name, float fdef = 0);
     void  set (std::string_view sec, std::string_view name, float fval);
 
     auto  getS(std::string_view sec, std::string_view name) -> std::string_view;

@@ -42,13 +42,14 @@ class Gothic final {
       };
 
     struct Options {
-      bool  doRayQuery     = false;
-      bool  doRtGi         = false;
-      bool  doMeshShading  = false;
+      bool  doRayQuery        = false;
+      bool  doRtGi            = false;
+      bool  doMeshShading     = false;
 
-      bool  hideFocus      = false;
-      float cameraFov      = 67.5f;
-      float interfaceScale = 1;
+      bool  hideFocus         = false;
+      float cameraFov         = 67.5f;
+      float interfaceScale    = 1;
+      int   inventoryCellSize = 70;
       };
 
     auto         version() const -> const VersionInfo&;

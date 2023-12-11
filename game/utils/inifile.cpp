@@ -80,10 +80,10 @@ bool IniFile::has(std::string_view s, std::string_view name) {
   return (nullptr != find(s,name,false));
   }
 
-int IniFile::getI(std::string_view s, std::string_view name) {
+int IniFile::getI(std::string_view s, std::string_view name, int idef) {
   if(auto* val = find(s,name,false))
     return getI(*val);
-  return 0;
+  return idef;
   }
 
 void IniFile::set(std::string_view sec, std::string_view name, int ival) {
@@ -94,10 +94,10 @@ void IniFile::set(std::string_view sec, std::string_view name, int ival) {
   changeFlag = true;
   }
 
-float IniFile::getF(std::string_view s, std::string_view name) {
+float IniFile::getF(std::string_view s, std::string_view name, float fdef) {
   if(auto* val = find(s,name,false))
     return getF(*val);
-  return 0;
+  return fdef;
   }
 
 void IniFile::set(std::string_view sec, std::string_view name, float fval) {
