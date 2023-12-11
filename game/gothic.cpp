@@ -53,6 +53,10 @@ Gothic::Gothic() {
   opts.inventoryCellSize = systemPackIniFile->getI("INTERFACE","InventoryCellSize",opts.inventoryCellSize);
   opts.inventoryCellSize = std::max(opts.inventoryCellSize, 10);
 
+  opts.showHealthBar     = !(systemPackIniFile->getI("INTERFACE","HideHealthBar",0)!=0);
+  opts.showManaBar       = uint8_t(std::clamp(systemPackIniFile->getI("INTERFACE","ShowManaBar",1), 0, 2));
+  opts.showSwimBar       = uint8_t(std::clamp(systemPackIniFile->getI("INTERFACE","ShowSwimBar",1), 0, 2));
+
 #ifndef NDEBUG
   setMarvinEnabled(true);
   setFRate(true);

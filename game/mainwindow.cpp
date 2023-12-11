@@ -208,11 +208,19 @@ void MainWindow::paintEvent(PaintEvent& event) {
 
       if(auto pl = Gothic::inst().player()){
         if (!Gothic::inst().isDesktop()) {
-          float hp = float(pl->attribute(ATR_HITPOINTS))/float(pl->attribute(ATR_HITPOINTSMAX));
-          float mp = float(pl->attribute(ATR_MANA))     /float(pl->attribute(ATR_MANAMAX));
-          drawBar(p,barHp,  10,    h()-10, hp, AlignLeft  | AlignBottom);
-          drawBar(p,barMana,w()-10,h()-10, mp, AlignRight | AlignBottom);
-          if(pl->isDive()) {
+          auto& opt = Gothic::options();
+          float hp  = float(pl->attribute(ATR_HITPOINTS))/float(pl->attribute(ATR_HITPOINTSMAX));
+          float mp  = float(pl->attribute(ATR_MANA))     /float(pl->attribute(ATR_MANAMAX));
+
+          bool showHealthBar = opt.showHealthBar;
+          bool showManaBar   = (opt.showManaBar==2) || (opt.showManaBar==1 && (pl->weaponState()==WeaponState::Mage || inventory.isActive()));
+          bool showSwimBar   = (opt.showSwimBar==2) || (opt.showSwimBar==1 && pl->isDive());
+
+          if(showHealthBar)
+            drawBar(p,barHp, 10, h()-10, hp, AlignLeft | AlignBottom);
+          if(showManaBar)
+            drawBar(p,barMana, w()-10, h()-10, mp, AlignRight | AlignBottom);
+          if(showSwimBar) {
             uint32_t gl = pl->guild();
             auto     v  = float(pl->world().script().guildVal().dive_time[gl]);
             if(v>0) {
@@ -626,7 +634,7 @@ void MainWindow::drawBar(Painter &p, const Tempest::Texture2d* bar, int x, int y
   if(barBack==nullptr || bar==nullptr)
     return;
   const float scale   = Gothic::options().interfaceScale;
-  const float destW   = 180.f*scale*float(std::min(w(),800))/800.f;
+  const float destW   = 200.f*scale*float(std::min(w(),800))/800.f;
   const float k       = float(destW)/float(std::max(barBack->w(),1));
   const float destH   = float(barBack->h())*k;
   const float destHin = float(destH)*24.f/32.f;
