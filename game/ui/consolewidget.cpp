@@ -6,6 +6,7 @@
 
 #include "utils/gthfont.h"
 #include "resources.h"
+#include "gothic.h"
 #include "build.h"
 
 using namespace Tempest;
@@ -51,7 +52,9 @@ struct ConsoleWidget::Overlay : public Tempest::UiOverlay {
   };
 
 ConsoleWidget::ConsoleWidget() {
-  setSizeHint(1024,256);
+  const float scale = Gothic::options().interfaceScale;
+
+  setSizeHint(int(1024*scale), int(256*scale));
   setMargins(Margin(8,8,8,8));
   setSizePolicy(Fixed);
 
@@ -110,6 +113,7 @@ void ConsoleWidget::paintEvent(PaintEvent& e) {
 
   auto& fnt = Resources::font();
   int   y   = h() - margins().bottom;
+
   for(size_t i=log.size(); i>0;) {
     --i;
     fnt.drawText(p, margins().left, y, log[i]);

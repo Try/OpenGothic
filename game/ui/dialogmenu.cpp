@@ -119,42 +119,34 @@ void DialogMenu::drawTextMultiline(Painter &p, int x, int y, int w, int h, std::
   }
 
 Size DialogMenu::processTextMultiline(Painter* p, int x, int y, int w, int h, std::string_view txt, bool isPl) {
-  const int pdd=10;
+  const float scale = Gothic::options().interfaceScale;
+  const int   pdd   = int(10*scale);
 
+  auto fnt = Resources::font();
   Size ret = {0,0};
-  if(isPl) {
-    auto& fnt = Resources::font();
-    y+=fnt.pixelSize();
-    if(p!=nullptr) {
-      fnt.drawText(*p,x+pdd, y,
-                   w-2*pdd, h, txt, Tempest::AlignHCenter);
-      }
-    auto sz = fnt.textSize(w,txt);
-    ret.w  = std::max(ret.w,sz.w);
-    ret.h += sz.h;
-    } else {
-    if(other!=nullptr){
-      auto& fnt = Resources::font();
-      y+=fnt.pixelSize();
-      auto txt  = other->displayName();
-      auto sz   = fnt.textSize(w,txt.data());
-      if(p!=nullptr)
-        fnt.drawText(*p,x+(w-sz.w)/2,y,txt.data());
-      h-=int(sz.h);
-      ret.w  = std::max(ret.w,sz.w);
-      ret.h += sz.h;
-      }
-    auto& fnt = Resources::font(Resources::FontType::Yellow);
-    y+=fnt.pixelSize();
-    ret.h += fnt.pixelSize();
-    if(p!=nullptr) {
-      fnt.drawText(*p,x+pdd, y,
-                   w-2*pdd, h, txt, Tempest::AlignHCenter);
-      }
-    auto sz = fnt.textSize(w,txt);
+  if(!isPl && other!=nullptr) {
+    y += fnt.pixelSize();
+    auto txt  = other->displayName();
+    auto sz   = fnt.textSize(w,txt.data());
+    if(p!=nullptr)
+      fnt.drawText(*p,x+(w-sz.w)/2,y,txt.data());
+    h     -= int(sz.h);
     ret.w  = std::max(ret.w,sz.w);
     ret.h += sz.h;
     }
+
+  fnt = Resources::font(isPl ? Resources::FontType::Normal : Resources::FontType::Yellow);
+
+  y     += fnt.pixelSize();
+  ret.h += fnt.pixelSize();
+  if(p!=nullptr) {
+    fnt.drawText(*p,x+pdd, y,
+                 w-2*pdd, h, txt, Tempest::AlignHCenter);
+    }
+  auto sz = fnt.textSize(w,txt);
+  ret.w  = std::max(ret.w,sz.w);
+  ret.h += sz.h;
+
   return ret;
   }
 
@@ -391,10 +383,12 @@ void DialogMenu::onEntry(const GameScript::DlgChoice &e) {
   }
 
 void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
+  const float scale = Gothic::options().interfaceScale;
+
   Painter p(e);
   const uint64_t da = dlgAnimation ? ANIM_TIME : 0;
-  const int      dw = std::min(w(),600);
-  const int      dh = 100;
+  const int      dw = std::min(w(),int(600*scale));
+  const int      dh = int(100*scale);
 
   if(current.time>0 && trade.isOpen()==InventoryMenu::State::Closed) {
     if(ambient!=nullptr) {
@@ -460,19 +454,19 @@ void DialogMenu::paintChoice(PaintEvent &e) {
   if(choice.size()==0)
     return;
 
-  auto& fnt = Resources::dialogFont();
-  const int  padd     = 20;
-  const int  dw       = std::min(w(),600);
-  const bool isActive = isChoiceMenuActive();
+  const float scale    = Gothic::options().interfaceScale;
+  const int   padd     = int(20*scale);
+  const int   dw       = std::min(w(),int(600*scale));
+  const bool  isActive = isChoiceMenuActive();
 
   int  dh = padd*2;
   for(size_t i=0;i<choice.size();++i){
-    const GthFont* font = &fnt;
-    Size choiceTextSize = font->textSize(dw-padd, choice[i].title);
+    auto fnt = Resources::dialogFont();
+    Size choiceTextSize = fnt.textSize(dw-padd, choice[i].title);
     dh += choiceTextSize.h;
     }
 
-  const int  y        = h()-dh-20;
+  const int  y        = h()-dh-int(20*scale);
 
   if(tex!=nullptr && (choiceAnimTime>0 || isActive)) {
     float k    = dlgAnimation ? (float(choiceAnimTime)/float(ANIM_TIME)) : 1.f;
@@ -494,12 +488,14 @@ void DialogMenu::paintChoice(PaintEvent &e) {
   int textHeightOffset = padd;
   Painter p(e);
   for(size_t i=0;i<choice.size();++i){
-    const GthFont* font = &fnt;
-    int x = (w()-dw)/2;
+    GthFont fnt;
     if(i==dlgSel)
-      font = &Resources::font(Resources::FontType::Hi);
-    Size choiceTextSize = font->textSize(dw-padd, choice[i].title);
-    font->drawText(p,x+padd,y+padd+textHeightOffset,dw-padd,0,choice[i].title,AlignLeft);
+      fnt = Resources::font(Resources::FontType::Hi); else
+      fnt = Resources::dialogFont();
+
+    int x = (w()-dw)/2;
+    Size choiceTextSize = fnt.textSize(dw-padd, choice[i].title);
+    fnt.drawText(p,x+padd,y+padd+textHeightOffset,dw-padd,0,choice[i].title,AlignLeft);
     textHeightOffset += choiceTextSize.h;
     }
   }

@@ -233,11 +233,11 @@ const GthFont& Resources::font() {
   return font("font_old_10_white.tga",FontType::Normal);
   }
 
-const GthFont &Resources::font(Resources::FontType type) {
+const GthFont& Resources::font(Resources::FontType type) {
   return font("font_old_10_white.tga",type);
   }
 
-const GthFont &Resources::font(std::string_view fname, FontType type) {
+const GthFont& Resources::font(std::string_view fname, FontType type) {
   if(fname.empty())
     return font();
   return inst->implLoadFont(fname,type);
@@ -671,6 +671,7 @@ GthFont &Resources::implLoadFont(std::string_view name, FontType type) {
     }
 
   auto ptr   = std::make_unique<GthFont>(entry->open(),tex,color);
+  ptr->setScale(Gothic::options().interfaceScale);
   GthFont* f = ptr.get();
   gothicFnt[std::make_pair(std::move(cname),type)] = std::move(ptr);
   return *f;

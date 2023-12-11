@@ -8,9 +8,14 @@ class GthFont final {
   public:
     GthFont();
     GthFont(phoenix::buffer data, std::string_view ftex, const Tempest::Color &cl);
-    GthFont(const GthFont&) = delete;
+    GthFont(const GthFont&) = default;
+    GthFont(GthFont&&)      = default;
+
+    GthFont& operator = (const GthFont&) = default;
+    GthFont& operator = (GthFont&&)      = default;
 
     int  pixelSize() const;
+    void setScale(float s);
 
     void drawText(Tempest::Painter& p, int x, int y, int w, int h, std::string_view txt, Tempest::AlignFlag align, int firstLine=0) const;
     void drawText(Tempest::Painter& p, int x, int y, std::string_view txt) const;
@@ -22,9 +27,11 @@ class GthFont final {
     auto lineCount(int w, std::string_view txt) const -> int32_t;
 
   private:
-    phoenix::font             fnt;
-    const Tempest::Texture2d* tex=nullptr;
-    Tempest::Color            color;
+    std::shared_ptr<phoenix::font> pfnt;
+    const Tempest::Texture2d*      tex       = nullptr;
+    uint32_t                       fntHeight = 0;
+    float                          scale     = 0;
+    Tempest::Color                 color;
 
     const uint8_t* getLine(const uint8_t* txt, int bw, int &width) const;
     const uint8_t* getWord(const uint8_t* txt, int &width, int &space) const;

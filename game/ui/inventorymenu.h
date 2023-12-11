@@ -58,11 +58,11 @@ class InventoryMenu : public Tempest::Widget {
     void  keyUpEvent    (Tempest::KeyEvent&   e) override;
 
   protected:
-    void paintEvent     (Tempest::PaintEvent& e) override;
+    void  paintEvent     (Tempest::PaintEvent& e) override;
 
-    void mouseDownEvent (Tempest::MouseEvent& event) override;
-    void mouseUpEvent   (Tempest::MouseEvent& event) override;
-    void mouseWheelEvent(Tempest::MouseEvent& event) override;
+    void  mouseDownEvent (Tempest::MouseEvent& event) override;
+    void  mouseUpEvent   (Tempest::MouseEvent& event) override;
+    void  mouseWheelEvent(Tempest::MouseEvent& event) override;
 
   private:
     struct Page;

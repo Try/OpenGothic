@@ -537,8 +537,8 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
   auto pos = focus.displayPosition();
   vp.project(pos.x,pos.y,pos.z);
 
-  int   ix = int((0.5f*pos.x+0.5f)*float(w()));
-  int   iy = int((0.5f*pos.y+0.5f)*float(h()));
+  int   ix  = int((0.5f*pos.x+0.5f)*float(w()));
+  int   iy  = int((0.5f*pos.y+0.5f)*float(h()));
   auto& fnt = Resources::font();
 
   auto tsize = fnt.textSize(focus.displayName());
@@ -625,10 +625,12 @@ void MainWindow::paintFocus(Painter& p, Rect rect) {
 void MainWindow::drawBar(Painter &p, const Tempest::Texture2d* bar, int x, int y, float v, AlignFlag flg) {
   if(barBack==nullptr || bar==nullptr)
     return;
-  const float destW   = 180.f*float(std::min(w(),800))/800.f;
+  const float scale   = Gothic::options().interfaceScale;
+  const float destW   = 180.f*scale*float(std::min(w(),800))/800.f;
   const float k       = float(destW)/float(std::max(barBack->w(),1));
   const float destH   = float(barBack->h())*k;
-  const float destHin = float(destH)*0.95f;
+  const float destHin = float(destH)*24.f/32.f;
+  //const float destHin = 20;//float(destH)*24.f/32.f;
 
   v = std::max(0.f,std::min(v,1.f));
   if(flg & AlignRight)
@@ -641,10 +643,10 @@ void MainWindow::drawBar(Painter &p, const Tempest::Texture2d* bar, int x, int y
   p.setBrush(*barBack);
   p.drawRect(x,y,int(destW),int(destH), 0,0,barBack->w(),barBack->h());
 
-  int   dy = int(0.5f*k*(float(barBack->h())-destHin));
+  int   dy = int(0.5f*(destH-destHin));
   float pd = 9.f*k;
   p.setBrush(*bar);
-  p.drawRect(x+int(pd),y+dy,int(float(destW-pd*2)*v),int(k*destHin),
+  p.drawRect(x+int(pd),y+dy,int(float(destW-pd*2)*v),int(destHin),
              0,0,bar->w(),bar->h());
   }
 

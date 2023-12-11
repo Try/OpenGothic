@@ -49,22 +49,23 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
   if(!active)
     return;
 
+  const float scale = Gothic::options().interfaceScale;
   float mw = 0, mh = 0;
   for(auto& i:document.pages){
     auto back = Resources::loadTexture((i.flg&F_Backgr) ? i.img : document.img);
     if(!back)
       continue;
-    mw += float(back->w());
-    mh = std::max(mh,float(back->h()));
+    mw += float(back->w())*scale;
+    mh = std::max(mh,float(back->h())*scale);
     }
 
-  float k = std::min(1.f,float(800+document.margins.xMargin())/std::max(mw,1.f));
+  float k  = std::min(1.f,float(800.f+float(document.margins.xMargin()))*scale/std::max(mw,1.f));
 
-  int  x  = (w()-int(k*mw))/2, y = (h()-int(mh))/2;
-  auto pl = Gothic::inst().player();
+  int   x  = (w()-int(k*mw))/2, y = (h()-int(mh))/2;
+  auto  pl = Gothic::inst().player();
 
   Painter p(e);
-  for(auto& i:document.pages){
+  for(auto& i:document.pages) {
     const GthFont* fnt = nullptr;
     if(i.flg&F_Font)
       fnt = &Resources::font(i.font); else
@@ -74,12 +75,18 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
     auto back = Resources::loadTexture((i.flg&F_Backgr) ? i.img : document.img);
     if(!back)
       continue;
-    auto& mgr = (i.flg&F_Margin) ? i.margins : document.margins;
 
-    const int w = int(k*float(back->w()));
+    auto mgr = (i.flg&F_Margin) ? i.margins : document.margins;
+    mgr.left   = int(float(mgr.left)  *scale);
+    mgr.right  = int(float(mgr.right) *scale);
+    mgr.top    = int(float(mgr.top)   *scale);
+    mgr.bottom = int(float(mgr.bottom)*scale);
+
+    const int w = int(k*scale*float(back->w()));
+    const int h = int(  scale*float(back->h()));
 
     p.setBrush(*back);
-    p.drawRect(x,y,w,back->h(),
+    p.drawRect(x,y,w,h,
                0,0,back->w(),back->h());
 
     p.setBrush(Color(0.04f,0.04f,0.04f,1));

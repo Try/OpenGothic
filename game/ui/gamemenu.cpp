@@ -374,6 +374,7 @@ void GameMenu::initItems() {
 void GameMenu::paintEvent(PaintEvent &e) {
   Painter p(e);
   p.setScissor(-x(),-y(),owner.w(),owner.h());
+
   if(back) {
     p.setBrush(*back);
     p.drawRect(0,0,w(),h(),
@@ -385,19 +386,22 @@ void GameMenu::paintEvent(PaintEvent &e) {
 
   if(menu->flags & phoenix::c_menu_flags::show_info) {
     if(auto sel=selectedItem()) {
-      auto& fnt  = Resources::font();
       auto& item = sel->handle;
       if(item->text->size()>0) {
-        std::string_view txt = item->text[1];
-        int tw = fnt.textSize(txt).w;
-        fnt.drawText(p,(w()-tw)/2,h()-7,txt);
+        auto             fnt   = Resources::font();
+        std::string_view txt   = item->text[1];
+        int              tw    = fnt.textSize(txt).w;
+        const float      scale = Gothic::options().interfaceScale;
+
+        fnt.drawText(p,(w()-tw)/2,h()-int(7*scale),txt);
         }
       }
     }
 
   if(owner.hasVersionLine()) {
-    auto& fnt = Resources::font();
-    fnt.drawText(p, w()-fnt.textSize(appBuild).w-25, h()-25, appBuild);
+    auto&       fnt   = Resources::font();
+    const float scale = Gothic::options().interfaceScale;
+    fnt.drawText(p, w()-fnt.textSize(appBuild).w-int(25*scale), h()-int(25*scale), appBuild);
     }
   }
 
@@ -414,10 +418,10 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
   const int32_t dimx = (item->dim_x!=-1) ? item->dim_x : 8192;
   const int32_t dimy = (item->dim_y!=-1) ? item->dim_y : 750;
 
-  const int x   = int(float(w()*item->pos_x)/scriptDiv);
-  const int y   = int(float(h()*item->pos_y)/scriptDiv);
-  int       szX = int(float(w()*dimx       )/scriptDiv);
-  int       szY = int(float(h()*dimy       )/scriptDiv);
+  const int   x     = int(float(w()*item->pos_x)/scriptDiv);
+  const int   y     = int(float(h()*item->pos_y)/scriptDiv);
+  int         szX   = int(float(w()*dimx       )/scriptDiv);
+  int         szY   = int(float(h()*dimy       )/scriptDiv);
 
   if(hItem.img && !hItem.img->isEmpty()) {
     p.setBrush(*hItem.img);
@@ -425,10 +429,9 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
                0,0,hItem.img->w(),hItem.img->h());
     }
 
-  auto& fnt = getTextFont(hItem);
-
-  int tw = szX;
-  int th = szY;
+  auto fnt = getTextFont(hItem);
+  int  tw  = szX;
+  int  th  = szY;
 
   AlignFlag txtAlign=NoAlign;
   if(flags & phoenix::c_menu_item_flags::centered) {
@@ -526,11 +529,11 @@ void GameMenu::drawSlider(Painter& p, Item& it, int x, int y, int sw, int sh) {
 
 void GameMenu::drawQuestList(Painter& p, Item& it, int x, int y, int w, int h,
                              const QuestLog& log, QuestStat st) {
-  int     itY        = y;
-  int32_t listId     = -1;
-  int32_t listLen    = numQuests(&log,st);
-  int32_t listBegin  = it.scroll;
-  int32_t listEnd    = listLen;
+  int     itY       = y;
+  int32_t listId    = -1;
+  int32_t listLen   = numQuests(&log,st);
+  int32_t listBegin = it.scroll;
+  int32_t listEnd   = listLen;
 
   for(size_t i=0; i<log.questCount(); i++) {
     auto& quest = log.quest(log.questCount()-i-1);
@@ -545,7 +548,7 @@ void GameMenu::drawQuestList(Painter& p, Item& it, int x, int y, int w, int h,
       ft = Resources::FontType::Hi;
 
     auto& fnt = Resources::font(it.handle->fontname,ft);
-    auto  sz  = fnt.textSize(w,quest.name);
+    auto sz  = fnt.textSize(w,quest.name);
     if(itY+sz.h>h+y) {
       listEnd = listId;
       break;
@@ -618,9 +621,14 @@ void GameMenu::onTick() {
   const float wx = float(owner.w());
   const float wy = float(owner.h());
 
-  if(menu->flags & phoenix::c_menu_flags::dont_scale_dimension)
-    resize(int(float(menu->dim_x)/scriptDiv*fx),int(float(menu->dim_y)/scriptDiv*fy)); else
-    resize(int(float(menu->dim_x)/scriptDiv*wx),int(float(menu->dim_y)/scriptDiv*wy));
+  const float scale = Gothic::options().interfaceScale;
+  Size size = {0, 0};
+  if(menu->flags & phoenix::c_menu_flags::dont_scale_dimension) {
+    size = {int(float(menu->dim_x)*fx*scale/scriptDiv),int(float(menu->dim_y)*fy*scale/scriptDiv)};
+    } else {
+    size = {int(float(menu->dim_x)*wx*scale/scriptDiv),int(float(menu->dim_y)*wy*scale/scriptDiv)};
+    }
+  resize(size);
 
   if(menu->flags & phoenix::c_menu_flags::align_center) {
     setPosition((owner.w()-w())/2, (owner.h()-h())/2);
@@ -713,6 +721,7 @@ void GameMenu::getText(const Item& it, std::vector<char> &out) {
   }
 
 const GthFont& GameMenu::getTextFont(const GameMenu::Item &it) {
+  GthFont ret;
   if(!isEnabled(it.handle))
     return Resources::font(it.handle->fontname,Resources::FontType::Disabled);
   if(&it==selectedItem())

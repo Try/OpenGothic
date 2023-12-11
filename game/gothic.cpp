@@ -46,6 +46,11 @@ Gothic::Gothic() {
   if(opts.cameraFov<1.f) {
     opts.cameraFov = 67.5;
     }
+  opts.interfaceScale = systemPackIniFile->getF("INTERFACE","Scale");
+  if(opts.interfaceScale<=0) {
+    opts.interfaceScale = 1;
+    }
+
 
 #ifndef NDEBUG
   setMarvinEnabled(true);
