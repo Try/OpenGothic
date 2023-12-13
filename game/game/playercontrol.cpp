@@ -413,14 +413,6 @@ void PlayerControl::toggleSneakMode() {
     pl->setWalkMode(pl->walkMode()^WalkBit::WM_Sneak);
   }
 
-WeaponState PlayerControl::weaponState() const {
-  auto w = Gothic::inst().world();
-  if(w==nullptr || w->player()==nullptr)
-    return WeaponState::NoWeapon;
-  auto pl = w->player();
-  return pl->weaponState();
-  }
-
 bool PlayerControl::canInteract() const {
   auto w = Gothic::inst().world();
   if(w==nullptr || w->player()==nullptr)
@@ -559,6 +551,8 @@ bool PlayerControl::tickMove(uint64_t dt) {
   if(pl==nullptr)
     return true;
 
+  static const float speedRotX = 750.f;
+  rotMouse = std::min(abs(rotMouse), speedRotX*dtF) * (rotMouse>=0 ? 1 : -1);
   implMove(dt);
 
   float runAngle = pl->runAngle();

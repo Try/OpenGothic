@@ -867,7 +867,7 @@ void MainWindow::tickCamera(uint64_t dt) {
     return;
 
   auto&      camera       = *pcamera;
-  const auto ws           = player.weaponState();
+  const auto ws           = pl->weaponState();
   const bool meleeFocus   = (ws==WeaponState::Fist ||
                              ws==WeaponState::W1H  ||
                              ws==WeaponState::W2H);

@@ -20,31 +20,30 @@ class PlayerControl final {
     PlayerControl(DialogMenu& dlg, InventoryMenu& inv);
     ~PlayerControl();
 
-    void onKeyPressed (KeyCodec::Action a, Tempest::Event::KeyType key, KeyCodec::Mapping mapping = KeyCodec::Mapping::Primary);
-    void onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping = KeyCodec::Mapping::Primary);
-    bool isPressed(KeyCodec::Action a) const;
-    void onRotateMouse(float dAngle);
-    void onRotateMouseDy(float dAngle);
+    void  onKeyPressed (KeyCodec::Action a, Tempest::Event::KeyType key, KeyCodec::Mapping mapping = KeyCodec::Mapping::Primary);
+    void  onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping = KeyCodec::Mapping::Primary);
+    bool  isPressed(KeyCodec::Action a) const;
+    void  onRotateMouse(float dAngle);
+    void  onRotateMouseDy(float dAngle);
 
-    void changeZoom(int delta);
-    void tickFocus();
-    void clearFocus();
+    void  changeZoom(int delta);
+    void  tickFocus();
+    void  clearFocus();
 
-    bool interact(Interactive& it);
-    bool interact(Npc&         other);
-    bool interact(Item&        item);
+    bool  interact(Interactive& it);
+    bool  interact(Npc&         other);
+    bool  interact(Item&        item);
 
-    void clearInput();
+    void  clearInput();
 
-    void setTarget(Npc* other);
-    void actionFocus(Npc& other);
-    void emptyFocus();
+    void  setTarget(Npc* other);
+    void  actionFocus(Npc& other);
+    void  emptyFocus();
 
     Focus focus() const;
     bool  hasActionFocus() const;
 
     bool  tickMove(uint64_t dt);
-    auto  weaponState() const -> WeaponState;
 
   private:
     enum WeaponAction : uint8_t {
