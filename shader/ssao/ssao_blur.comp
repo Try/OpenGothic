@@ -7,7 +7,7 @@
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
-const int   KERNEL_RADIUS = 1;
+const int   KERNEL_RADIUS = 3;
 const float blurSharpness = 0.8;
 
 const uint  LANE_SIZE     = gl_WorkGroupSize.x + KERNEL_RADIUS*2 + 1;
@@ -34,7 +34,7 @@ void sampleAt(ivec2 at, vec2 s) {
   samples[at.x][at.y] = s;
   }
 
-vec2 blurPass(ivec2 res, ivec2 dir) {
+vec2 blurPass(ivec2 pAt, ivec2 res, ivec2 dir) {
   const float R2     = (KERNEL_RADIUS*KERNEL_RADIUS);
   const vec2  center = sampleAt(ivec2(gl_LocalInvocationID.xy));
 
@@ -46,7 +46,7 @@ vec2 blurPass(ivec2 res, ivec2 dir) {
   for(int i=-KERNEL_RADIUS; i<=KERNEL_RADIUS; ++i) {
     if(i==0)
       continue;
-    ivec2 at    = ivec2(gl_LocalInvocationID.xy) + ivec2(i,i)*dir;
+    ivec2 at    = pAt + ivec2(i,i)*dir;
     vec2  smp   = sampleAt(at);
 
     float ddiff = (smp.y - center.y) * blurSharpness;
@@ -87,18 +87,22 @@ void main() {
   barrier();
 
   ssaoMax = uintBitsToFloat(sSsaoMax);
-  if(ssaoMax<0.001 && gl_GlobalInvocationID.x<res.x && gl_GlobalInvocationID.y<res.y) {
-    imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(0));
-    return;
+  if(ssaoMax<0.001) {
+    if(gl_GlobalInvocationID.x<res.x && gl_GlobalInvocationID.y<res.y)
+      imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(0));
+    return; // uniform exit
     }
+  barrier();
 
-  vec2 hor = blurPass(res, ivec2(1,0));
+  for(uint r=gl_LocalInvocationID.y; r<LANE_SIZE; r+=gl_WorkGroupSize.y)
   {
-    barrier();
-    sampleAt(ivec2(gl_LocalInvocationID.xy), hor);
-    barrier();
+    ivec2 at  = ivec2(gl_LocalInvocationID.x, r);
+    vec2  hor = blurPass(at, res, ivec2(1,0));
+    sampleAt(at, hor);
   }
-  vec2 vert = blurPass(res, ivec2(0,1));
+  barrier();
+
+  vec2 vert = blurPass(ivec2(gl_LocalInvocationID.xy), res, ivec2(0,1));
   imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(vert.x));
 
   // float c  = textureLod(ssao, vec2(gl_GlobalInvocationID.xy+vec2(0.5))/vec2(res), 0).r;

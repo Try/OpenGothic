@@ -151,6 +151,35 @@ vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, 
   return vec2(occlusion,weightAll);
   }
 
+vec3 reconstructNormal(const vec3 at0, in vec2 uv){
+  vec2 uv0 = uv; // center
+
+  vec2 uvL = uv - vec2(2, 0) / vec2(screenSize); // left
+  vec2 uvR = uv + vec2(2, 0) / vec2(screenSize); // right
+  vec2 uvT = uv - vec2(0, 2) / vec2(screenSize); // top
+  vec2 uvB = uv + vec2(0, 2) / vec2(screenSize); // bottom
+
+  const vec3 atL = vec3(uvL.xy,readZ(uvL.xy));
+  const vec3 atR = vec3(uvR.xy,readZ(uvR.xy));
+  const vec3 atT = vec3(uvT.xy,readZ(uvT.xy));
+  const vec3 atB = vec3(uvB.xy,readZ(uvB.xy));
+
+  const bool bestL    = (abs(atL.z - at0.z) < abs(atR.z - at0.z));
+  const bool bestT    = (abs(atT.z - at0.z) < abs(atB.z - at0.z));
+
+  const vec3 bestHor  = bestL ? atL : atR;
+  const vec3 bestVert = bestT ? atT : atB;
+
+  vec3 P0 = unproject(at0);
+  vec3 P1 = unproject(bestHor);
+  vec3 P2 = unproject(bestVert);
+
+  vec3 normal = normalize(cross(P2 - P0, P1 - P0));
+  if(bestL != bestT)
+    return -normal;
+  return normal;
+  }
+
 void main() {
   shMaxSteps = 0;
   barrier();
@@ -169,10 +198,9 @@ void main() {
   if(valid) {
     const vec3 view = (pos0 - camPos);
 
-    norm = normalFetch(gbufNormal, fragCoord);
-    norm = (scene.view * vec4(norm,0)).xyz;
-    // if(dot(norm,view)>0)
-    //   norm = -norm;
+    // norm = normalFetch(gbufNormal, fragCoord);
+    // norm = (scene.view * vec4(norm,0)).xyz;
+    norm = reconstructNormal(at0, inPos.xy);
 
     // Compute a tangent frame and rotate the half vector to world space
     vec3 up   = abs(norm.z) < 0.999f ? vec3(0.0f, 0.0f, 1.0f) : vec3(1.0f, 0.0f, 0.0f);
