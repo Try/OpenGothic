@@ -161,7 +161,13 @@ void MoveAlgo::tickGravity(uint64_t dt) {
       fallSpeed.y -= gravity*float(dt);
       }
 
-    if(fallSpeed.y<-1.5f && !npc.isDead()) {
+    auto  gl       = npc.guild();
+    auto  h0       = float(npc.world().script().guildVal().falldown_height[gl]);
+    float gravity  = DynamicWorld::gravity;
+    float fallTime = fallSpeed.y/gravity;
+    float height   = 0.5f*std::abs(gravity)*fallTime*fallTime;
+
+    if(height>h0 && !npc.isDead()) {
       npc.setAnim(AnimationSolver::FallDeep);
       setAsFalling(true);
       } else
