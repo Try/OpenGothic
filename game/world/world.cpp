@@ -144,9 +144,9 @@ void World::setPlayer(Npc* npc) {
   if(npc==nullptr)
     return;
   npcPlayer->setProcessPolicy(Npc::ProcessPolicy::AiNormal);
-  if (!npcPlayer->isDead()) {
+  if(!npcPlayer->isDead()) {
     npcPlayer->resumeAiRoutine();
-  }
+    }
   
   npc->setProcessPolicy(Npc::ProcessPolicy::Player);
   npc->clearState(true);
