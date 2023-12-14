@@ -446,11 +446,11 @@ void PlayerControl::marvinF8(uint64_t dt) {
   pl.changeAttribute(ATR_HITPOINTS,pl.attribute(ATR_HITPOINTSMAX),false);
   pl.changeAttribute(ATR_MANA,     pl.attribute(ATR_MANAMAX),     false);
   pl.clearState(false);
-  pl.setPosition(pos);
   pl.clearSpeed();
+  pl.clearAiQueue();
+  pl.setPosition(pos);
   pl.setInteraction(nullptr,true);
   pl.setAnim(AnimationSolver::Idle);
-  pl.clearAiQueue();
 
   if(auto c = Gothic::inst().camera())
     c->reset();
@@ -470,8 +470,8 @@ void PlayerControl::marvinK(uint64_t dt) {
   pos += dp * 6000 * float(dt) / 1000.f;
 
   pl.clearState(false);
-  pl.setPosition(pos);
   pl.clearSpeed();
+  pl.setPosition(pos);
   pl.setInteraction(nullptr,true);
   // pl.setAnim(AnimationSolver::Idle); // Original G2 behaviour: K doesn't stop running
   }

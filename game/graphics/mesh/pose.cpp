@@ -90,6 +90,9 @@ void Pose::load(Serialize &fin, const AnimationSolver& solver) {
       rotation = i.seq;
     }
   fin.read(itemUseSt,itemUseDestSt);
+  hasEvents = 0;
+  isFlyCombined = 0;
+  hasTransitions = 0;
   for(auto& i:lay)
     onAddLayer(i);
   fin.read(headRotX,headRotY);
