@@ -71,7 +71,13 @@ vec4 diffuseTex() {
 #else
   const vec2 uv = shInp.uv;
 #endif
-  return texture(textureD,uv);
+  vec4 tex = texture(textureD,uv);
+
+#if defined(LVL_OBJECT)
+  tex.a *= bucket.alphaWeight;
+#endif
+
+  return tex;
   }
 #endif
 
@@ -83,16 +89,24 @@ vec4 forwardShading(vec4 t) {
   alpha = (alpha-0.5)*2.0;
 #endif
 
-#if defined(LVL_OBJECT)
-  alpha *= bucket.alphaWeight;
-#endif
-
 #if defined(GHOST)
   color = ghostColor(t.rgb);
 #endif
 
+#if defined(MAT_LINEAR_CLR)
+  color = textureLinear(color.rgb);
+#endif
+
 #if defined(FORWARD)
-  color *= diffuseLight() * Fd_Lambert;
+  // color *= diffuseLight() * Fd_Lambert;
+  const float light   = lambert();
+  const float shadow  = calcShadow(vec4(shInp.pos,1), 0, scene, textureSm0, textureSm1);
+
+  vec3  lcolor  = scene.sunCl.rgb * scene.GSunIntensity * Fd_Lambert * light * shadow;
+  vec3  ambient = scene.ambient * scene.sunCl.rgb;
+  lcolor *= (1.0/M_PI); // magic constant, non motivated by physics
+
+  color = color*(lcolor + ambient);
 #endif
 
 #if defined(EMISSIVE)
@@ -174,7 +188,7 @@ vec4 waterShading(vec4 t, const vec3 normal) {
   const vec3  refr   = refract(view, normal, ior);
         vec3  refl   = reflect(view, normal);
 
-  const float f    = fresnel(refl,normal,ior);
+  const float f      = fresnel(refl,normal,ior);
 
   if(underWater) {
     vec3 back = texelFetch(sceneColor, ivec2(gl_FragCoord.xy), 0).rgb;
@@ -247,10 +261,6 @@ void main() {
 
 #if defined(MAT_COLOR)
   t *= shInp.color;
-#endif
-
-#if defined(MAT_LINEAR_CLR)
-  t.rgb = textureLinear(t.rgb);
 #endif
 
 #if defined(GBUFFER)
