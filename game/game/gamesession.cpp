@@ -44,14 +44,24 @@ void GameSession::HeroStorage::putToWorld(World& owner, std::string_view wayPoin
        // freemine.zen
        pos = &owner.startPoint();
       }
-    pl->setPosition  (pos->x,pos->y,pos->z);
-    pl->setDirection (pos->dirX,pos->dirY,pos->dirZ);
     pl->attachToPoint(pos);
-    pl->updateTransform();
     } else {
     auto ptr = std::make_unique<Npc>(owner,-1,wayPoint);
     ptr->load(sr,0);
     owner.insertPlayer(std::move(ptr),wayPoint);
+    }
+
+  if(auto pl = owner.player()) {
+    if(auto pos = pl->currentWayPoint()) {
+      pl->setPosition  (pos->x,pos->y,pos->z);
+      pl->setDirection (pos->dirX,pos->dirY,pos->dirZ);
+      }
+    if(pl->isInAir()) {
+      pl->stopAnim("");
+      pl->setAnim(Npc::Anim::Idle);
+      }
+    pl->clearSpeed();
+    pl->updateTransform();
     }
   }
 
