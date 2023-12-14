@@ -626,8 +626,10 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
   BodyState bs = BS_NONE;
   switch(a) {
     case AnimationSolver::Anim::NoAnim:
-    case AnimationSolver::Anim::Fallen:
       bs = BS_NONE;
+      break;
+    case AnimationSolver::Anim::Fallen:
+      bs = BS_LIE;
       break;
     case AnimationSolver::Anim::Idle:
     case AnimationSolver::Anim::MagNoMana:

@@ -583,13 +583,14 @@ void PlayerControl::implMove(uint64_t dt) {
   float rotY      = pl.rotationY();
   float rspeed    = (pl.weaponState()==WeaponState::NoWeapon ? 90.f : 180.f)*(float(dt)/1000.f);
   auto  ws        = pl.weaponState();
+  auto  bs        = pl.bodyStateMasked();
   bool  allowRot  = !ctrl[KeyCodec::ActionGeneric] && pl.isRotationAllowed();
 
   Npc::Anim ani = Npc::Anim::Idle;
 
-  if(pl.bodyStateMasked()==BS_DEAD)
+  if(bs==BS_DEAD)
     return;
-  if(pl.bodyStateMasked()==BS_UNCONSCIOUS)
+  if(bs==BS_UNCONSCIOUS)
     return;
 
   if(!pl.isAiQueueEmpty()) {
@@ -821,7 +822,8 @@ void PlayerControl::implMove(uint64_t dt) {
   if(this->wantsToMoveForward()) {
     if((pl.walkMode()&WalkBit::WM_Dive)!=WalkBit::WM_Dive) {
       ani = Npc::Anim::Move;
-      } else if(pl.isDive()) {
+      }
+    else if(pl.isDive()) {
       pl.setDirectionY(rotY - rspeed);
       return;
       }
@@ -895,6 +897,11 @@ void PlayerControl::implMove(uint64_t dt) {
         // no charge to strafe transition
         ani = Npc::Anim::NoAnim;
         }
+      }
+
+    if(bs==BS_LIE) {
+      ani = (ani==Npc::Anim::Move) ? Npc::Anim::Idle : Npc::Anim::Fallen;
+      rot = pl.rotation();
       }
 
     if(ani!=Npc::Anim::NoAnim)

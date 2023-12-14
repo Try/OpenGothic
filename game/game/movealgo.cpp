@@ -169,10 +169,12 @@ void MoveAlgo::tickGravity(uint64_t dt) {
 
     if(height>h0 && !npc.isDead()) {
       npc.setAnim(AnimationSolver::FallDeep);
+      npc.setAnimRotate(0);
       setAsFalling(true);
       } else
     if(fallSpeed.y<-0.3f && !npc.isDead() && npc.bodyStateMasked()!=BS_JUMP) {
       npc.setAnim(AnimationSolver::Fall);
+      npc.setAnimRotate(0);
       }
     } else {
     if(ground+chest<water && !npc.isDead()) {
