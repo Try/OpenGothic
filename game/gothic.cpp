@@ -90,6 +90,7 @@ Gothic::Gothic() {
   defaults->set("GAME", "animatedWindows",     1);
   defaults->set("GAME", "useGothic1Controls",  1);
   defaults->set("GAME", "highlightMeleeFocus", 0);
+  defaults->set("GAME", "useQuickSaveKeys",    1);
 
   // switch related language options
   defaults->set("GAME", "language", -1);
