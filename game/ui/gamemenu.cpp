@@ -979,8 +979,9 @@ void GameMenu::updateSavTitle(GameMenu::Item& sel) {
     Serialize reader(fin);
     reader.setEntry("header");
     reader.read(hdr);
-    sel.handle->text[0] = hdr.name;
-    sel.savHdr         = std::move(hdr);
+    if(id!=0 || sel.handle->text[0].empty())
+      sel.handle->text[0] = hdr.name;
+    sel.savHdr = std::move(hdr);
 
     if(reader.setEntry("priview.png"))
       reader.read(sel.savPriview); // legacy
