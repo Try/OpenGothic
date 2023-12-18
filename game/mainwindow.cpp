@@ -779,7 +779,8 @@ void MainWindow::onMarvinKey() {
         if(runtimeMode==R_Normal)
           runtimeMode = R_Suspended; else
           runtimeMode = R_Normal;
-        } else {
+        }
+      else if(!Gothic::inst().isPause()) {
         Gothic::inst().quickLoad();
         }
       break;
