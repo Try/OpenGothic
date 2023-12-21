@@ -738,22 +738,23 @@ void MainWindow::onMarvinKey() {
           }
         }
       break;
-    case Event::K_F5:
+    case Event::K_F5: {
+      const bool useQuickSaveKeys = Gothic::settingsGetI("GAME", "useQuickSaveKeys")!=0;
 #ifdef NDEBUG
-      if(Gothic::inst().isMarvinEnabled() && !dialogs.isActive()) {
+      const bool debug = false;
+#else
+      const bool debug = true;
+#endif
+      if(!debug && Gothic::inst().isMarvinEnabled() && !dialogs.isActive()) {
         if(auto camera = Gothic::inst().camera()) {
           camera->setMarvinMode(Camera::M_Freeze);
           }
         }
-      else if(Gothic::inst().isInGameAndAlive() && !Gothic::inst().isPause()) {
+      else if(Gothic::inst().isInGameAndAlive() && !Gothic::inst().isPause() && useQuickSaveKeys) {
         Gothic::inst().quickSave();
         }
-#else
-      if(Gothic::inst().isInGameAndAlive() && !Gothic::inst().isPause()) {
-        Gothic::inst().quickSave();
-        }
-#endif
       break;
+      }
 
     case Event::K_F6:
       if(Gothic::inst().isMarvinEnabled() && !dialogs.isActive()) {
@@ -774,16 +775,18 @@ void MainWindow::onMarvinKey() {
       //player.marvinF8();
       break;
 
-    case Event::K_F9:
+    case Event::K_F9: {
+      const bool useQuickSaveKeys = Gothic::settingsGetI("GAME", "useQuickSaveKeys")!=0;
       if(Gothic::inst().isMarvinEnabled()) {
         if(runtimeMode==R_Normal)
           runtimeMode = R_Suspended; else
           runtimeMode = R_Normal;
         }
-      else if(!Gothic::inst().isPause()) {
+      else if(!Gothic::inst().isPause() && useQuickSaveKeys) {
         Gothic::inst().quickLoad();
         }
       break;
+      }
     case Event::K_F10:
       if(runtimeMode==R_Suspended)
         runtimeMode = R_Step;
