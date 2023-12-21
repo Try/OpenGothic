@@ -23,7 +23,17 @@ void TouchInput::mouseDownEvent(Tempest::MouseEvent& e) {
     return;
     }
 
+  mpos = e.pos();
   ctrl.onKeyPressed(KeyCodec::Forward, KeyEvent::K_NoKey);
+  }
+
+void TouchInput::mouseDragEvent(Tempest::MouseEvent& e) {
+  auto dp = e.pos() - mpos;
+  mpos = e.pos();
+  if(std::abs(dp.x)>0) {
+    const float scale = 4.f;
+    ctrl.onRotateMouse(float(-dp.x) * scale);
+    }
   }
 
 void TouchInput::mouseUpEvent(Tempest::MouseEvent& e) {

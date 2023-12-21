@@ -10,9 +10,12 @@ class TouchInput : public Tempest::Widget {
 
     void paintEvent(Tempest::PaintEvent& e);
     void mouseDownEvent(Tempest::MouseEvent& e);
+    void mouseDragEvent(Tempest::MouseEvent& e);
     void mouseUpEvent(Tempest::MouseEvent& e);
 
   private:
     PlayerControl& ctrl;
+
+    Tempest::Point mpos;
   };
 

@@ -127,6 +127,11 @@ void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs, bool modFil
         Log::e("skip compressed archive: \"", TextCodec::toUtf8(i.name), "\"");
         continue;
         }
+#ifndef __IOS__
+      // causes OOM on iPhone7
+      if(i.name.find(u"Speech")!=std::string::npos)
+        continue;
+#endif
       in.rewind();
       inst->gothicAssets.mount_disk(in, phoenix::VfsOverwriteBehavior::OLDER);
       }
