@@ -44,7 +44,7 @@ CommandLine::CommandLine(int argc, const char** argv) {
         Log::e("-game specified twice");
       mod = arg.substr(6);
       }
-    if(arg=="-g") {
+    else if(arg=="-g") {
       ++i;
       if(i<argc)
         gpath.assign(argv[i],argv[i]+std::strlen(argv[i]));
@@ -103,6 +103,9 @@ CommandLine::CommandLine(int argc, const char** argv) {
       ++i;
       if(i<argc)
         isMeshSh = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
+      }
+    else {
+      Log::i("unreacognized commandline option: \"", arg, "\"");
       }
     }
 
