@@ -503,6 +503,40 @@ Focus PlayerControl::findFocus(Focus* prev) {
   return w->findFocus(Focus());
   }
 
+bool PlayerControl::tickCameraMove(uint64_t dt) {
+  auto w = Gothic::inst().world();
+  if(w==nullptr)
+    return false;
+
+  Npc*  pl     = w->player();
+  auto  camera = Gothic::inst().camera();
+  if(camera==nullptr || (pl!=nullptr && !camera->isFree()))
+    return false;
+
+  rotMouse = 0;
+  if(ctrl[KeyCodec::Left] || (ctrl[KeyCodec::RotateL] && ctrl[KeyCodec::Jump])) {
+    camera->moveLeft(dt);
+    return true;
+    }
+  if(ctrl[KeyCodec::Right] || (ctrl[KeyCodec::RotateR] && ctrl[KeyCodec::Jump])) {
+    camera->moveRight(dt);
+    return true;
+    }
+
+  auto turningVal = movement.turnRightLeft.value();
+  if(turningVal > 0.f)
+    camera->rotateRight(dt);
+  else if(turningVal < 0.f)
+    camera->rotateLeft(dt);
+
+  auto forwardVal = movement.forwardBackward.value();
+  if(forwardVal > 0.f)
+    camera->moveForward(dt);
+  else if(forwardVal < 0.f)
+    camera->moveBack(dt);
+  return true;
+  }
+
 bool PlayerControl::tickMove(uint64_t dt) {
   auto w = Gothic::inst().world();
   if(w==nullptr)
@@ -515,30 +549,8 @@ bool PlayerControl::tickMove(uint64_t dt) {
   if(camera!=nullptr && camera->isCutscene())
     return true;
 
-  if(camera!=nullptr && (camera->isFree() || pl==nullptr)) {
-    rotMouse = 0;
-    if(ctrl[KeyCodec::Left] || (ctrl[KeyCodec::RotateL] && ctrl[KeyCodec::Jump])) {
-      camera->moveLeft(dt);
-      return true;
-      }
-    if(ctrl[KeyCodec::Right] || (ctrl[KeyCodec::RotateR] && ctrl[KeyCodec::Jump])) {
-      camera->moveRight(dt);
-      return true;
-      }
-
-    auto turningVal = movement.turnRightLeft.value();
-    if(turningVal > 0.f)
-      camera->rotateRight(dt);
-    else if(turningVal < 0.f)
-      camera->rotateLeft(dt);
-
-    auto forwardVal = movement.forwardBackward.value();
-    if(forwardVal > 0.f)
-      camera->moveForward(dt);
-    else if(forwardVal < 0.f)
-      camera->moveBack(dt);
+  if(tickCameraMove(dt))
     return true;
-    }
 
   if(ctrl[Action::K_F8] && Gothic::inst().isMarvinEnabled())
     marvinF8(dt);

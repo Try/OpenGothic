@@ -843,7 +843,13 @@ uint64_t MainWindow::tick() {
     dt = 1000/60; //60 fps
     }
   else if(runtimeMode==R_Suspended) {
-    return 0;
+    auto camera = Gothic::inst().camera();
+    if(camera!=nullptr && camera->isFree()) {
+      player.tickCameraMove(dt);
+      tickMouse();
+      }
+    update();
+    return dt;
     }
 
   dialogs.tick(dt);
@@ -857,6 +863,7 @@ uint64_t MainWindow::tick() {
     clearInput();
   tickMouse();
   player.tickMove(dt);
+  update();
   return dt;
   }
 

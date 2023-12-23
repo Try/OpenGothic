@@ -68,6 +68,9 @@ void DialogMenu::tick(uint64_t dt) {
     return;
     }
 
+  if(remPrint>0 || choiceAnimTime>0 || current.time>0 || pscreen.size()>0)
+    update();
+
   if(remPrint<dt) {
     for(size_t i=1;i<MAX_PRINT;++i)
       printMsg[i-1u]=printMsg[i];
@@ -109,7 +112,7 @@ void DialogMenu::tick(uint64_t dt) {
       }
     }
 
-  update();
+  // update();
   }
 
 void DialogMenu::drawTextMultiline(Painter &p, int x, int y, int w, int h, std::string_view txt, bool isPl) {
