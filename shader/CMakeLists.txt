@@ -166,10 +166,14 @@ add_shader(lnd_hiz.frag              materials/main.frag -DMESH_TYPE=0 -DHIZ)
 add_shader(stash.vert                copy.vert)
 add_shader(stash.frag                stash.frag)
 
-add_shader(shadow_resolve.vert       copy.vert)
-add_shader(shadow_resolve.frag       lighting/shadow_resolve.frag)
-add_shader(shadow_resolve_sh.frag    lighting/shadow_resolve.frag -DSHADOW_MAP)
-add_shader(shadow_resolve_rq.frag    lighting/shadow_resolve.frag -DSHADOW_MAP -DRAY_QUERY -DRAY_QUERY_AT)
+add_shader(direct_light.vert         copy.vert)
+add_shader(direct_light.frag         lighting/direct_light.frag)
+add_shader(direct_light_sh.frag      lighting/direct_light.frag -DSHADOW_MAP)
+add_shader(direct_light_rq.frag      lighting/direct_light.frag -DSHADOW_MAP -DRAY_QUERY -DRAY_QUERY_AT)
+
+add_shader(ambient_light_ssao.vert   copy.vert -DHAS_UV)
+add_shader(ambient_light.frag        lighting/ambient_light.frag)
+add_shader(ambient_light_ssao.frag   lighting/ambient_light.frag -DSSAO)
 
 add_shader(light.vert                lighting/light.vert)
 add_shader(light.frag                lighting/light.frag)
@@ -177,6 +181,7 @@ add_shader(light_rq.frag             lighting/light.frag -DRAY_QUERY)
 add_shader(light_rq_at.frag          lighting/light.frag -DRAY_QUERY -DRAY_QUERY_AT)
 
 add_shader(irradiance.comp           lighting/irradiance.comp)
+add_shader(sky_exposure.comp         lighting/sky_exposure.comp)
 
 add_shader(tonemapping.vert          copy.vert -DHAS_UV)
 add_shader(tonemapping.frag          lighting/tonemapping.frag)
@@ -224,10 +229,6 @@ add_shader(path.comp                 path.comp)
 
 add_shader(ssao.comp                 ssao/ssao.comp)
 add_shader(ssao_blur.comp            ssao/ssao_blur.comp)
-
-add_shader(ssao_compose.vert         copy.vert -DHAS_UV)
-add_shader(ssao_compose.frag         ssao/ssao_compose.frag)
-add_shader(ssao_compose_ssao.frag    ssao/ssao_compose.frag -DSSAO)
 
 add_shader(hiz_mip_img.comp          hiz/hiz_mip.comp -DATOMIC_IMG)
 add_shader(hiz_mip.comp              hiz/hiz_mip.comp)

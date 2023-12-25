@@ -18,15 +18,8 @@ const vec3  ozoneAbsorptionBase    = vec3(0.650, 1.881, .085) / 1e6;
 
 layout(push_constant, std430) uniform UboPush {
   mat4  viewProjectInv;
-  vec2  cloudsDir0;
-  vec2  cloudsDir1;
-  vec3  sunDir;
-  float night;
-  vec3  clipInfo;
   float plPosY;
   float rayleighScatteringScale;
-  float GSunIntensity;
-  float exposure;
   } push;
 
 vec3 inverse(vec3 pos) {

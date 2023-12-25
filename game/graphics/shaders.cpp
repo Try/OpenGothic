@@ -87,15 +87,16 @@ Shaders::Shaders() {
 
   stash   = postEffect("stash");
 
-  ssao               = computeShader("ssao.comp.sprv");
-  ssaoBlur           = computeShader("ssao_blur.comp.sprv");
-  ambientCompose     = ambientLightShader("ssao_compose");
-  ambientComposeSsao = ambientLightShader("ssao_compose_ssao");
+  ssao             = computeShader("ssao.comp.sprv");
+  ssaoBlur         = computeShader("ssao_blur.comp.sprv");
 
-  shadowResolve      = postEffect("shadow_resolve", "shadow_resolve",    RenderState::ZTestMode::NoEqual);
-  shadowResolveSh    = postEffect("shadow_resolve", "shadow_resolve_sh", RenderState::ZTestMode::NoEqual);
+  directLight      = postEffect("direct_light", "direct_light",    RenderState::ZTestMode::NoEqual);
+  directLightSh    = postEffect("direct_light", "direct_light_sh", RenderState::ZTestMode::NoEqual);
   if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing)
-    shadowResolveRq = postEffect("shadow_resolve", "shadow_resolve_rq", RenderState::ZTestMode::NoEqual);
+    directLightRq  = postEffect("direct_light", "direct_light_rq", RenderState::ZTestMode::NoEqual);
+
+  ambientLight     = ambientLightShader("ambient_light");
+  ambientLightSsao = ambientLightShader("ambient_light_ssao");
 
   irradiance         = computeShader("irradiance.comp.sprv");
   cloudsLut          = computeShader("clouds_lut.comp.sprv");
@@ -108,6 +109,8 @@ Shaders::Shaders() {
   fogViewLut3dHQ     = computeShader("fog_view_lut_hq.comp.sprv");
   shadowDownsample   = computeShader("shadow_downsample.comp.sprv");
   fogOcclusion       = computeShader("fog3d.comp.sprv");
+
+  skyExposure        = computeShader("sky_exposure.comp.sprv");
 
   sky                = postEffect("sky");
   fog                = fogShader ("fog");
@@ -210,7 +213,7 @@ Shaders::Shaders() {
     vs = device.shader(sh.data,sh.len);
     sh = GothicShader::get("probe_ambient.frag.sprv");
     fs = device.shader(sh.data,sh.len);
-    probeDraw = device.pipeline(Triangles,state,vs,fs);
+    probeAmbient = device.pipeline(Triangles,state,vs,fs);
     }
 
   if(meshlets) {

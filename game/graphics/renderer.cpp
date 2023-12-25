@@ -147,12 +147,12 @@ void Renderer::resetSwapchain() {
 
   if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing &&
      settings.shadowResolution>0)
-    shadow.composePso = &Shaders::inst().shadowResolveRq;
+    shadow.directLightPso = &Shaders::inst().directLightRq;
   else if(settings.shadowResolution>0)
-    shadow.composePso = &Shaders::inst().shadowResolveSh;
+    shadow.directLightPso = &Shaders::inst().directLightSh;
   else
-    shadow.composePso = &Shaders::inst().shadowResolve;
-  shadow.ubo = device.descriptors(*shadow.composePso);
+    shadow.directLightPso = &Shaders::inst().directLight;
+  shadow.ubo = device.descriptors(*shadow.directLightPso);
 
   water.underUbo = device.descriptors(Shaders::inst().underwaterT);
 
@@ -166,6 +166,9 @@ void Renderer::resetSwapchain() {
   irradiance.lut = device.image2d(TextureFormat::RGBA32F, 3,2);
   irradiance.pso = &Shaders::inst().irradiance;
   irradiance.ubo = device.descriptors(*irradiance.pso);
+
+  skyExp.pso = &Shaders::inst().skyExposure;
+  skyExp.ubo = device.descriptors(*skyExp.pso);
 
   tonemapping.pso     = &Shaders::inst().tonemapping;
   tonemapping.uboTone = device.descriptors(*tonemapping.pso);
@@ -191,20 +194,20 @@ void Renderer::initSettings() {
 
   auto prevCompose = water.reflectionsPso;
   if(settings.zCloudShadowScale)
-    ssao.ambientComposePso = &Shaders::inst().ambientComposeSsao; else
-    ssao.ambientComposePso = &Shaders::inst().ambientCompose;
+    ssao.ambientLightPso = &Shaders::inst().ambientLightSsao; else
+    ssao.ambientLightPso = &Shaders::inst().ambientLight;
 
   auto prevRefl = water.reflectionsPso;
   if(settings.zEnvMappingEnabled)
     water.reflectionsPso = &Shaders::inst().waterReflectionSSR; else
     water.reflectionsPso = &Shaders::inst().waterReflection;
 
-  if(ssao.ambientComposePso!=prevCompose ||
+  if(ssao.ambientLightPso!=prevCompose ||
      water.reflectionsPso  !=prevRefl) {
     auto& device = Resources::device();
     device.waitIdle();
     water.ubo       = device.descriptors(*water.reflectionsPso);
-    ssao.uboCompose = device.descriptors(*ssao.ambientComposePso);
+    ssao.uboCompose = device.descriptors(*ssao.ambientLightPso);
     prepareUniforms();
     }
   }
@@ -282,7 +285,9 @@ void Renderer::prepareUniforms() {
   {
     auto smpB = Sampler::bilinear();
     smpB.setClamping(ClampMode::ClampToEdge);
-    tonemapping.uboTone.set(0, sceneLinear, smpB);
+
+    tonemapping.uboTone.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    tonemapping.uboTone.set(1, sceneLinear, smpB);
   }
 
   shadow.ubo.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
@@ -302,6 +307,9 @@ void Renderer::prepareUniforms() {
   irradiance.ubo.set(0, irradiance.lut);
   irradiance.ubo.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
   irradiance.ubo.set(2, wview->sky().skyLut());
+
+  skyExp.ubo.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  skyExp.ubo.set(1, wview->sky().skyLut());
 
   {
     auto smp = Sampler::bilinear();
@@ -361,14 +369,14 @@ void Renderer::prepareUniforms() {
     gi.uboLight.set(8, gi.hashTable);
     gi.uboLight.set(9, gi.probes);
 
-    gi.uboDraw.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    gi.uboDraw.set(1, gi.probesLighting);
-    gi.uboDraw.set(2, gbufDiffuse,   Sampler::nearest());
-    gi.uboDraw.set(3, gbufNormal,    Sampler::nearest());
-    gi.uboDraw.set(4, zbuffer,       Sampler::nearest());
-    gi.uboDraw.set(5, ssao.ssaoBlur, smpN);
-    gi.uboDraw.set(6, gi.hashTable);
-    gi.uboDraw.set(7, gi.probes);
+    gi.uboCompose.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    gi.uboCompose.set(1, gi.probesLighting);
+    gi.uboCompose.set(2, gbufDiffuse,   Sampler::nearest());
+    gi.uboCompose.set(3, gbufNormal,    Sampler::nearest());
+    gi.uboCompose.set(4, zbuffer,       Sampler::nearest());
+    gi.uboCompose.set(5, ssao.ssaoBlur, smpN);
+    gi.uboCompose.set(6, gi.hashTable);
+    gi.uboCompose.set(7, gi.probes);
     }
 
   const Texture2d* sh[Resources::ShadowLayers] = {};
@@ -392,7 +400,7 @@ void Renderer::prepareRtUniforms() {
   if(scene.rtScene.tlas.isEmpty())
     return;
 
-  if(shadow.composePso==&Shaders::inst().shadowResolveRq) {
+  if(shadow.directLightPso==&Shaders::inst().directLightRq) {
     shadow.ubo.set(6, scene.rtScene.tlas);
     shadow.ubo.set(7, Sampler::bilinear());
     shadow.ubo.set(8, scene.rtScene.tex);
@@ -511,6 +519,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   drawGBuffer  (cmd,fId,*wview);
   drawShadowMap(cmd,fId,*wview);
 
+  prepareExposure(cmd,fId,*wview);
   prepareSSAO(cmd);
   prepareFog (cmd,fId,*wview);
   prepareGi(cmd,fId);
@@ -550,18 +559,14 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   wview->postFrameupdate();
   }
 
-void Renderer::drawTonemapping(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
+void Renderer::drawTonemapping(Encoder<CommandBuffer>& cmd) {
   struct Push {
-    float exposure   = 1.0;
     float brightness = 0;
     float contrast   = 1;
     float gamma      = 1.f/2.2f;
     };
-  Push p;
-  if(auto wview = Gothic::inst().worldView()) {
-    p.exposure = wview->sky().autoExposure();
-    }
 
+  Push p;
   p.brightness = (settings.zVidBrightness - 0.5f)*0.1f;
   p.contrast   = std::max(1.5f - settings.zVidContrast, 0.01f);
   p.gamma      = p.gamma/std::max(2.0f*settings.zVidGamma,  0.01f);
@@ -570,7 +575,7 @@ void Renderer::drawTonemapping(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   cmd.draw(Resources::fsqVbo());
   }
 
-void Renderer::stashSceneAux(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+void Renderer::stashSceneAux(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   auto& device = Resources::device();
   if(!device.properties().hasSamplerFormat(zBufferFormat))
     return;
@@ -586,30 +591,30 @@ void Renderer::initGiData() {
 
   auto& device = Resources::device();
 
-  gi.uboDbg         = DescriptorSet();
-  gi.probeInitPso   = &Shaders::inst().probeInit;
+  gi.uboDbg          = DescriptorSet();
+  gi.probeInitPso    = &Shaders::inst().probeInit;
 
-  gi.probeClearPso  = &Shaders::inst().probeClear;
-  gi.probeClearHPso = &Shaders::inst().probeClearHash;
-  gi.probeMakeHPso  = &Shaders::inst().probeMakeHash;
-  gi.uboClear       = device.descriptors(*gi.probeClearPso);
+  gi.probeClearPso   = &Shaders::inst().probeClear;
+  gi.probeClearHPso  = &Shaders::inst().probeClearHash;
+  gi.probeMakeHPso   = &Shaders::inst().probeMakeHash;
+  gi.uboClear        = device.descriptors(*gi.probeClearPso);
 
-  gi.probeVotePso   = &Shaders::inst().probeVote;
-  gi.probeAllocPso  = &Shaders::inst().probeAlocation;
-  gi.probePrunePso  = &Shaders::inst().probePrune;
-  gi.uboProbes      = device.descriptors(*gi.probeAllocPso);
+  gi.probeVotePso    = &Shaders::inst().probeVote;
+  gi.probeAllocPso   = &Shaders::inst().probeAlocation;
+  gi.probePrunePso   = &Shaders::inst().probePrune;
+  gi.uboProbes       = device.descriptors(*gi.probeAllocPso);
 
-  gi.uboZeroIrr     = device.descriptors(Shaders::inst().copyImg);
-  gi.uboPrevIrr     = device.descriptors(Shaders::inst().copyImg);
+  gi.uboZeroIrr      = device.descriptors(Shaders::inst().copyImg);
+  gi.uboPrevIrr      = device.descriptors(Shaders::inst().copyImg);
 
-  gi.probeTracePso  = &Shaders::inst().probeTrace;
-  gi.uboTrace       = device.descriptors(*gi.probeTracePso);
+  gi.probeTracePso   = &Shaders::inst().probeTrace;
+  gi.uboTrace        = device.descriptors(*gi.probeTracePso);
 
-  gi.probeLightPso  = &Shaders::inst().probeLighting;
-  gi.uboLight       = device.descriptors(*gi.probeLightPso);
+  gi.probeLightPso   = &Shaders::inst().probeLighting;
+  gi.uboLight        = device.descriptors(*gi.probeLightPso);
 
-  gi.probeDrawPso   = &Shaders::inst().probeDraw;
-  gi.uboDraw        = device.descriptors(*gi.probeDrawPso);
+  gi.ambientLightPso = &Shaders::inst().probeAmbient;
+  gi.uboCompose      = device.descriptors(*gi.ambientLightPso);
 
   const uint32_t maxProbes = gi.maxProbes;
   if(gi.hashTable.isEmpty()) {
@@ -626,7 +631,7 @@ void Renderer::initGiData() {
     }
   }
 
-void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
+void Renderer::drawHiZ(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
   if(!Gothic::options().doMeshShading)
     return;
 
@@ -663,7 +668,7 @@ void Renderer::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   */
   }
 
-void Renderer::drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
+void Renderer::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
   if(Gothic::options().doMeshShading) {
     cmd.setFramebuffer({{gbufDiffuse, Tempest::Vec4(),  Tempest::Preserve},
                         {gbufNormal,  Tempest::Discard, Tempest::Preserve}},
@@ -677,7 +682,7 @@ void Renderer::drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
   view.drawGBuffer(cmd,fId);
   }
 
-void Renderer::drawGWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
+void Renderer::drawGWater(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
   static bool water = true;
   if(!water)
     return;
@@ -692,7 +697,7 @@ void Renderer::drawGWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
   view.drawWater(cmd,fId);
   }
 
-void Renderer::drawReflections(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+void Renderer::drawReflections(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   cmd.setDebugMarker("Reflections");
   cmd.setUniforms(*water.reflectionsPso, water.ubo);
   if(Gothic::options().doMeshShading) {
@@ -702,7 +707,7 @@ void Renderer::drawReflections(Tempest::Encoder<Tempest::CommandBuffer>& cmd, ui
     }
   }
 
-void Renderer::drawUnderwater(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+void Renderer::drawUnderwater(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   cmd.setUniforms(Shaders::inst().underwaterT, water.underUbo);
   cmd.draw(Resources::fsqVbo());
 
@@ -710,7 +715,7 @@ void Renderer::drawUnderwater(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId)
   cmd.draw(Resources::fsqVbo());
   }
 
-void Renderer::drawShadowMap(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
+void Renderer::drawShadowMap(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
   if(settings.shadowResolution<=0)
     return;
 
@@ -722,26 +727,26 @@ void Renderer::drawShadowMap(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, 
     }
   }
 
-void Renderer::drawShadowResolve(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const WorldView& view) {
+void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, uint8_t fId, const WorldView& view) {
   static bool useDsm = true;
   if(!useDsm)
     return;
   cmd.setDebugMarker("DirectSunLight");
-  cmd.setUniforms(*shadow.composePso, shadow.ubo);
+  cmd.setUniforms(*shadow.directLightPso, shadow.ubo);
   cmd.draw(Resources::fsqVbo());
   }
 
-void Renderer::drawLights(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
+void Renderer::drawLights(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
   cmd.setDebugMarker("Point lights");
   wview.drawLights(cmd,fId);
   }
 
-void Renderer::drawSky(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
+void Renderer::drawSky(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
   cmd.setDebugMarker("Sky");
   wview.drawSky(cmd,fId);
   }
 
-void Renderer::prepareSSAO(Encoder<Tempest::CommandBuffer>& cmd) {
+void Renderer::prepareSSAO(Encoder<CommandBuffer>& cmd) {
   if(!settings.zCloudShadowScale)
     return;
   // ssao
@@ -762,19 +767,19 @@ void Renderer::prepareSSAO(Encoder<Tempest::CommandBuffer>& cmd) {
   cmd.dispatchThreads(ssao.ssaoBuf.size());
   }
 
-void Renderer::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
+void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
   cmd.setDebugMarker("Fog LUTs");
   wview.prepareFog(cmd,fId);
   }
 
-void Renderer::prepareIrradiance(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
+void Renderer::prepareIrradiance(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   cmd.setFramebuffer({});
   cmd.setDebugMarker("Irradiance");
   cmd.setUniforms(*irradiance.pso, irradiance.ubo);
   cmd.dispatch(1);
   }
 
-void Renderer::prepareGi(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+void Renderer::prepareGi(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   if(!settings.giEnabled || !settings.zCloudShadowScale) {
     prepareIrradiance(cmd,fId);
     return;
@@ -831,7 +836,36 @@ void Renderer::prepareGi(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t 
   cmd.dispatch(1024);
   }
 
-void Renderer::drawProbesDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+void Renderer::prepareExposure(Encoder<CommandBuffer>& cmd, uint8_t fId, const WorldView& view) {
+  struct Push {
+    float baseL = 30;
+    };
+  Push push;
+
+  // art-tuning
+  {
+    // from 21:43 to 21:49
+    static float maxY = -0.14f;
+    static float minY = -0.195f;
+    const  float nowY = view.sky().sunLight().dir().y;
+    if(minY<=nowY && nowY<=maxY) {
+      float dt = float(nowY-minY)/float(maxY-minY);
+      dt = std::sin(float(dt*M_PI));
+      push.baseL += dt*150.f;
+      }
+  }
+
+  static float scale = 0;
+  if(scale>0)
+    push.baseL = scale;
+
+  cmd.setFramebuffer({});
+  cmd.setDebugMarker("Exposure");
+  cmd.setUniforms(*skyExp.pso, skyExp.ubo, &push, sizeof(push));
+  cmd.dispatch(1);
+  }
+
+void Renderer::drawProbesDbg(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   if(!settings.giEnabled)
     return;
 
@@ -860,20 +894,13 @@ void Renderer::drawProbesDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint
 void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {
   if(settings.giEnabled && settings.zCloudShadowScale) {
     cmd.setDebugMarker("AmbientLight");
-    cmd.setUniforms(*gi.probeDrawPso, gi.uboDraw);
+    cmd.setUniforms(*gi.ambientLightPso, gi.uboCompose);
     cmd.draw(Resources::fsqVbo());
     return;
     }
 
-  struct Push {
-    Vec3      ambient;
-    float     exposure = 1;
-    } push;
-  push.ambient  = view.ambientLight();
-  push.exposure = view.sky().autoExposure();
-
   cmd.setDebugMarker("AmbientLight");
-  cmd.setUniforms(*ssao.ambientComposePso,ssao.uboCompose,&push,sizeof(push));
+  cmd.setUniforms(*ssao.ambientLightPso,ssao.uboCompose);
   cmd.draw(Resources::fsqVbo());
   }
 

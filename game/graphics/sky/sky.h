@@ -34,7 +34,6 @@ class Sky final {
     const LightSource&        sunLight()         const { return sun; }
     const Tempest::Vec3&      ambientLight()     const { return ambient; }
     float                     sunIntensity()     const { return GSunIntensity; }
-    float                     autoExposure()     const { return exposure; }
 
     const State&              cloudsDay()   const { return clouds[0]; }
     const State&              cloudsNight() const { return clouds[1]; }
@@ -51,15 +50,8 @@ class Sky final {
 
     struct UboSky {
       Tempest::Matrix4x4 viewProjectInv;
-      Tempest::Vec2      dxy0     = {};
-      Tempest::Vec2      dxy1     = {};
-      Tempest::Vec3      sunDir   = {};
-      float              night    = 1.0;
-      Tempest::Vec3      clipInfo;
-      float              plPosY   = 0.0;
+      float              plPosY = 0.0;
       float              rayleighScatteringScale = 0;
-      float              GSunIntensity = 0;
-      float              exposure = 0;
       };
 
     UboSky                        mkPush(bool lwc=false);
@@ -73,7 +65,6 @@ class Sky final {
 
     LightSource                   sun;
     Tempest::Vec3                 ambient;
-    float                         exposure = 1;
 
     Tempest::TextureFormat        lutRGBFormat  = Tempest::TextureFormat::R11G11B10UF;
     Tempest::TextureFormat        lutRGBAFormat = Tempest::TextureFormat::RGBA16F;
@@ -101,7 +92,7 @@ class Sky final {
     float                         moonSize = 400;
 
     float                         minZ = 0;
-    float                         GSunIntensity  = 5.f;
-    float                         GMoonIntensity = 0.000025f;
+    float                         GSunIntensity  = 0;
+    float                         GMoonIntensity = 0;
     uint32_t                      occlusionScale = 1;
   };

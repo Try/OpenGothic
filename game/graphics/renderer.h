@@ -43,6 +43,7 @@ class Renderer final {
     void prepareFog       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void prepareIrradiance(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void prepareGi        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void prepareExposure  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const WorldView& view);
 
     void drawHiZ          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawGBuffer      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
@@ -94,7 +95,7 @@ class Renderer final {
     Tempest::Attachment       gbufNormal;
 
     struct Shadow {
-      Tempest::RenderPipeline* composePso = nullptr;
+      Tempest::RenderPipeline* directLightPso = nullptr;
       Tempest::DescriptorSet   ubo;
     } shadow;
 
@@ -114,7 +115,7 @@ class Renderer final {
       Tempest::ComputePipeline* ssaoPso = nullptr;
       Tempest::DescriptorSet    uboSsao;
 
-      Tempest::RenderPipeline*  ambientComposePso = nullptr;
+      Tempest::RenderPipeline*  ambientLightPso = nullptr;
       Tempest::DescriptorSet    uboCompose;
     } ssao;
 
@@ -124,6 +125,11 @@ class Renderer final {
       Tempest::ComputePipeline* pso = nullptr;
       Tempest::DescriptorSet    ubo;
       } irradiance;
+
+    struct SkyExp {
+      Tempest::ComputePipeline* pso = nullptr;
+      Tempest::DescriptorSet    ubo;
+      } skyExp;
 
     struct Tonemapping {
       Tempest::RenderPipeline* pso = nullptr;
@@ -172,8 +178,8 @@ class Renderer final {
       Tempest::ComputePipeline* probeLightPso = nullptr;
       Tempest::DescriptorSet    uboLight;
 
-      Tempest::RenderPipeline*  probeDrawPso = nullptr;
-      Tempest::DescriptorSet    uboDraw;
+      Tempest::RenderPipeline*  ambientLightPso = nullptr;
+      Tempest::DescriptorSet    uboCompose;
 
       Tempest::StorageBuffer    voteTable, hashTable, freeList;
       Tempest::StorageBuffer    probes;

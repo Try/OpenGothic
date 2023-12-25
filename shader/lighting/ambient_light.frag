@@ -7,11 +7,6 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-layout(push_constant, std140) uniform PushConstant {
-  vec3  ambient;
-  float exposure;
-  } push;
-
 layout(binding  = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
@@ -33,7 +28,7 @@ float textureSsao() { return 0; }
 
 vec3 skyIrradiance() {
 #if 0
-  return scene.ambient * scene.sunCl.rgb;
+  return scene.ambient * scene.sunColor;
 #else
   vec3 n = texelFetch(gbufNormal, ivec2(gl_FragCoord.xy), 0).rgb;
   n = normalize(n*2.0 - vec3(1.0));
@@ -54,6 +49,10 @@ vec3 skyIrradiance() {
 #endif
   }
 
+float grayscale(vec3 color) {
+  return dot(color, vec3(0.2125, 0.7154, 0.0721));
+  }
+
 void main() {
   const ivec2 fragCoord = ivec2(gl_FragCoord.xy);
 
@@ -64,18 +63,22 @@ void main() {
   const vec3  linear = textureLinear(diff); //  * Fd_Lambert is accounted in integration
   const float ao     = textureSsao();
 
-  vec3 ambient = scene.ambient * scene.sunCl.rgb;
+  vec3 ambient = scene.ambient * scene.sunColor;
   vec3 sky     = skyIrradiance();
 
-  // vec3 lcolor  = mix(ambient, sky, norm.y*0.5+0.5);
-  vec3 lcolor  = mix(ambient, sky, max(0, norm.y*0.5));
+  vec3 lcolor  = mix(ambient, sky, max(0, 0.25 + norm.y*0.25));
+  // vec3 lcolor  = ambient + sky*clamp(norm.y*0.5, 0,1);
 
   vec3 color = lcolor.rgb;
   color *= linear;
   color *= (1-ao);
+
+  // outColor = vec4(vec3(grayscale(color)), 0);
+  // return;
+
   // night shift
   color += purkinjeShift(color); //TODO: use it globally at tonemapping
-  color *= push.exposure;
+  color *= scene.exposure;
 
   outColor = vec4(color, 1);
   // outColor = vec4(vec3(1-ao), 0);

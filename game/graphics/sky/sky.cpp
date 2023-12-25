@@ -20,8 +20,8 @@ using namespace Tempest;
 // static const float DirectSunLux  = 64'000.f; // 85'000.f;
 static const float DirectSunLux  = 143'000.f;
 static const float DirectMoonLux = 0.27f;
-static const float NightLight    = 0.36f;
 
+// static const float NightLight    = 0.36f;
 // static const float ShadowSunLux  =  10'000.f;
 // static const float StreetLight   = 10.f;
 
@@ -137,18 +137,19 @@ void Sky::setupSettings() {
   }
 
 void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t frameId, bool sun) {
-  auto  m = scene.viewProject();
-  auto  d = sunLight().dir();
+  auto  m  = scene.viewProject();
+  auto  d  = sunLight().dir();
 
   if(!sun) {
     // fixed pos for now
     d = Vec3::normalize({-1,1,0});
     }
 
-  float w = 0;
-  m.project(d.x, d.y, d.z, w);
+  auto  dx = d;
+  float w  = 0;
+  m.project(dx.x, dx.y, dx.z, w);
 
-  if(d.z<0)
+  if(dx.z<0)
     return;
 
   struct Push {
@@ -159,13 +160,13 @@ void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fr
     Tempest::Matrix4x4 viewProjectInv;
     uint32_t           isSun = 0;
     } push;
-  push.pos  = Vec2(d.x,d.y)/d.z;
+  push.pos  = Vec2(dx.x,dx.y)/dx.z;
   if(scene.zbuffer!=nullptr) {
     push.size.x  = 2.f/float(scene.zbuffer->w());
     push.size.y  = 2.f/float(scene.zbuffer->h());
     }
   push.size          *= sun ? sunSize : (moonSize*0.25f);
-  push.GSunIntensity  = sun ? GSunIntensity : (GMoonIntensity*0.5f);
+  push.GSunIntensity  = sun ? (GSunIntensity*0.3f) : (GMoonIntensity*0.3f);
   push.isSun          = sun ? 1 : 0;
   push.sunDir         = d;
   push.viewProjectInv = scene.viewProjectLwcInv();
@@ -178,7 +179,7 @@ void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fr
     } else {
     push.GSunIntensity *= isNight();
     }
-  push.GSunIntensity *= exposure;
+  // push.GSunIntensity *= exposure;
 
   cmd.setUniforms(Shaders::inst().sun, sun ? uboSun : uboMoon, &push, sizeof(push));
   cmd.draw(6);
@@ -198,7 +199,6 @@ void Sky::updateLight(const int64_t now) {
   const int64_t meridian     = gtime(13, 9).toInt();
   const int64_t set          = gtime(21,33).toInt();
   const int64_t midnight     = gtime(1,0,0).toInt();
-  //const int64_t now          = owner.time().timeInDay().toInt();
   const float   shadowLength = 0.56f;
 
   float pulse = 0.f;
@@ -236,62 +236,29 @@ void Sky::updateLight(const int64_t now) {
   // static auto  groundAlbedo = Vec3(0.34f, 0.42f, 0.26f); // Foliage(MacBeth)
   static auto  groundAlbedo = Vec3(0.47f); // Neutral5 (MacBeth)
   // static auto  groundAlbedo = Vec3(0.39f, 0.40f, 0.33f);
-  static float lumScale = 5.f / DirectSunLux;
 
   const float dirY = sun.dir().y;
-  // float dayTint = std::max(dirY+0.2f, 0.f);
-  // dayTint = 1.f - std::pow(1.f - dayTint,3.f);
-  // dayTint *= 0.1f;
-  float dayTint = std::max(dirY+0.01f, 0.f);
+  // float dayTint = std::max(dirY+0.01f, 0.f);
 
   //const auto ambientNight = groundAlbedo*NightLight*0;
   //const auto ambientDay   = groundAlbedo*ShadowSunLux*dayTint;
 
-  const auto ambientNight = groundAlbedo*NightLight*0.25;
-  const auto ambientDay   = groundAlbedo*DirectSunLux*dayTint * 0.2f*0.25;
+  //const auto ambientNight = groundAlbedo*NightLight*0.25;
+  //const auto ambientDay   = groundAlbedo*DirectSunLux*dayTint * 0.2f*0.25;
 
   const auto directDay    = Vec3(0.94f, 0.87f, 0.76f); //TODO: use tLUT to guide sky color in shader
   const auto directNight  = Vec3(0.27f, 0.05f, 0.01f);
 
   float aDirect  = linearstep(-0.0f, 0.8f, dirY);
-  float aAmbient = linearstep(-0.2f, 0.1f, dirY);
-  aAmbient = std::pow(aAmbient,3.f);
 
   auto clr = directNight *(1.f-aDirect ) + directDay *aDirect;
-  ambient  = ambientNight + ambientDay;
-  // ambient  = ambientNight*(1.f-aAmbient) + ambientDay*aAmbient;
+  ambient =  groundAlbedo*DirectSunLux*0.05f*aDirect + 0.0005f;
 
   const float sunOcclude = smoothstep(0.0f, 0.01f, sun.dir().y);
   clr = clr*sunOcclude;
 
   sun.setColor(clr*sunMul);
   ambient = ambient*ambMul;
-
-  float exposureInv = 1;
-  {
-  // exposure, based on sky
-  static float exp = 4.0f;
-
-  float lsky = smoothstep(0.f, 0.2f, std::max(dirY, 0.1f));
-  lsky *= std::pow(linearstep(-0.205f, 0.02f, dirY), exp); // day-night tint
-
-  const float fAmbient = Vec3::dotProduct(ambient, Vec3(0.2125f, 0.7154f, 0.0721f));
-  float lx = lsky*GSunIntensity*1.1f + fAmbient*0.9f + DirectMoonLux + NightLight;
-
-  //float lx = lsky*GSunIntensity*1.5f + StreetLight*0.15f + NightLight;
-  exposureInv = lx/GSunIntensity;
-  }
-
-  static float dbgExposure = -1;
-  if(dbgExposure>0)
-    exposureInv = dbgExposure;
-
-  exposureInv = exposureInv/lumScale;
-  exposure = 1.f/exposureInv;
-
-  static float mulExposure = -1;
-  if(mulExposure>0)
-    exposure *= mulExposure;
   }
 
 void Sky::prepareUniforms() {
@@ -328,9 +295,10 @@ void Sky::prepareUniforms() {
   uboMultiScatLut.set(0, transLut, smpB);
 
   uboSkyViewLut = device.descriptors(Shaders::inst().skyViewLut);
-  uboSkyViewLut.set(0, transLut,     smpB);
-  uboSkyViewLut.set(1, multiScatLut, smpB);
-  uboSkyViewLut.set(2, cloudsLut,    smpB);
+  uboSkyViewLut.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
+  uboSkyViewLut.set(1, transLut,     smpB);
+  uboSkyViewLut.set(2, multiScatLut, smpB);
+  uboSkyViewLut.set(3, cloudsLut,    smpB);
 
   uboSkyViewCldLut = device.descriptors(Shaders::inst().skyViewCldLut);
   uboSkyViewCldLut.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
@@ -341,10 +309,10 @@ void Sky::prepareUniforms() {
   uboSkyViewCldLut.set(5,*cloudsNight().lay[1],smp);
 
   uboSky = device.descriptors(Shaders::inst().sky);
-  uboSky.set(0, transLut,       smpB);
-  uboSky.set(1, multiScatLut,   smpB);
-  uboSky.set(2, viewLut,        smpB);
-  //uboSky.set(3, fogLut3D,       smpB);
+  uboSky.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
+  uboSky.set(1, transLut,       smpB);
+  uboSky.set(2, multiScatLut,   smpB);
+  uboSky.set(3, viewLut,        smpB);
   uboSky.set(4,*cloudsDay()  .lay[0],smp);
   uboSky.set(5,*cloudsDay()  .lay[1],smp);
   uboSky.set(6,*cloudsNight().lay[0],smp);
@@ -411,12 +379,14 @@ void Sky::prepareUniforms() {
     }
 
   uboSun = device.descriptors(Shaders::inst().sun);
-  uboSun.set(0, *sunImg);
-  uboSun.set(1, transLut, smpB);
+  uboSun.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
+  uboSun.set(1, *sunImg);
+  uboSun.set(2, transLut, smpB);
 
   uboMoon = device.descriptors(Shaders::inst().sun);
-  uboMoon.set(0, *moonImg);
-  uboMoon.set(1, transLut, smpB);
+  uboMoon.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
+  uboMoon.set(1, *moonImg);
+  uboMoon.set(2, transLut, smpB);
   }
 
 void Sky::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t frameId) {
@@ -491,17 +461,6 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
 
 void Sky::drawSky(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
   UboSky ubo = mkPush(true);
-
-  Vec3 a(0,0,0), b(0,0,1);
-  ubo.viewProjectInv.project(a);
-  ubo.viewProjectInv.project(b);
-  auto dv = b-a;
-  auto len = dv.length();
-  (void)len;
-
-  auto len2 = (ubo.clipInfo.x / (ubo.clipInfo.y * 1.0 + ubo.clipInfo.z));
-  (void)len2;
-
   cmd.setUniforms(Shaders::inst().sky, uboSky, &ubo, sizeof(ubo));
   cmd.draw(Resources::fsqVbo());
   }
@@ -562,18 +521,8 @@ Sky::UboSky Sky::mkPush(bool lwc) {
     ubo.viewProjectInv = scene.viewProjectLwcInv(); else
     ubo.viewProjectInv = scene.viewProjectInv();
 
-  ubo.dxy0    = cloudsOffset(0);
-  ubo.dxy1    = cloudsOffset(1);
-  ubo.sunDir  = sun.dir();
-  ubo.night   = isNight();
-
   static float rayleighScatteringScale = 33.1f;
-
   ubo.rayleighScatteringScale = rayleighScatteringScale;
-  ubo.clipInfo                = Vec3(scene.clipInfo().x,scene.clipInfo().y,scene.clipInfo().z);
-  ubo.GSunIntensity           = GSunIntensity;
-  ubo.exposure                = exposure;
-
   return ubo;
   }
 

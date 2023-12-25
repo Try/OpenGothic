@@ -170,9 +170,9 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 vec4 fog(vec2 uv, float z) {
   float dMin = 0;
   float dMax = 0.9999;
-  float dZ   = linearDepth(   z, push.clipInfo);
-  float d0   = linearDepth(dMin, push.clipInfo);
-  float d1   = linearDepth(dMax, push.clipInfo);
+  float dZ   = linearDepth(   z, scene.clipInfo);
+  float d0   = linearDepth(dMin, scene.clipInfo);
+  float d1   = linearDepth(dMax, scene.clipInfo);
   float d    = (dZ-d0)/(d1-d0);
   // return vec4(debugColors[min(int(d*textureSize(fogLut,0).z), textureSize(fogLut,0).z-1)%MAX_DEBUG_COLORS], 1);
   vec4  val      = textureLod(fogLut, vec3(uv,d), 0);
@@ -186,7 +186,7 @@ vec4 fog(vec2 uv, float z) {
 void main_frag() {
   vec2 uv     = inPos*vec2(0.5)+vec2(0.5);
   vec3 view   = normalize(inverse(vec3(inPos,1.0)));
-  vec3 sunDir = push.sunDir;
+  vec3 sunDir = scene.sunDir;
 
 #if defined(VOLUMETRIC_HQ)
   occlusionScale    = textureSize(depth,0).x/imageSize(occlusionLut).x;
@@ -201,8 +201,8 @@ void main_frag() {
   vec3  lum = val.rgb;
   float tr  = val.a;
 
-  lum *= push.GSunIntensity;
-  lum *= push.exposure;
+  lum *= scene.GSunIntensity;
+  lum *= scene.exposure;
 
   outColor = vec4(lum, tr);
   }
@@ -217,7 +217,7 @@ void main_comp() {
 
   vec2  uv     = inPos*vec2(0.5)+vec2(0.5);
   vec3  view   = normalize(inverse(vec3(inPos,1.0)));
-  vec3  sunDir = push.sunDir;
+  vec3  sunDir = scene.sunDir;
   float z      = textureLod(depth,uv,0).r;
 
   fog(uv,z);

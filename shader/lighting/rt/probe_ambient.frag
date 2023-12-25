@@ -12,9 +12,6 @@
 
 #define SSAO 1
 
-const int   KERNEL_RADIUS = 1;
-const float blurSharpness = 0.8;
-
 layout(binding  = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
@@ -55,45 +52,6 @@ float texLinearDepth(vec2 uv) {
   float d = textureLod(depth, uv, 0).x;
   return linearDepth(d, scene.clipInfo);
   }
-
-#if defined(SSAO)
-float blurFunction(vec2 uv, float r, float centerD, inout float wTotal) {
-  float c = textureLod(ssao, uv, 0).r;
-  float d = texLinearDepth(uv);
-
-  const float blurSigma   = float(KERNEL_RADIUS) * 0.5;
-  const float blurFalloff = 1.0/(2.0*blurSigma*blurSigma);
-
-  float ddiff = (d - centerD) * blurSharpness;
-  float w     = exp2(-r*r*blurFalloff - ddiff*ddiff);
-  wTotal += w;
-
-  return c*w;
-  }
-
-float smoothSsao() {
-  vec2  uv      = (gl_FragCoord.xy / vec2(textureSize(depth,0)));
-  float centerC = textureLod(ssao, uv, 0).r;
-  float centerD = texLinearDepth(uv);
-
-  float cTotal  = centerC;
-  float wTotal  = 1.0;
-
-  vec2 invRes = vec2(1.0)/vec2(textureSize(ssao,0));
-  for(float i=-KERNEL_RADIUS; i<=KERNEL_RADIUS; ++i)
-    for(float r=-KERNEL_RADIUS; r<=KERNEL_RADIUS; ++r) {
-      if((i==0 && r==0)) // || (abs(i)==KERNEL_RADIUS && abs(r)==KERNEL_RADIUS))
-        continue;
-      vec2 at = uv + invRes * vec2(i,r);
-      cTotal += blurFunction(at, r, centerD, wTotal);
-      }
-
-  // return 0;
-  return clamp(cTotal/wTotal, 0, 1);
-  }
-#else
-float smoothSsao() { return 0; }
-#endif
 
 Probe mkZeroProbe() {
   Probe px;
@@ -183,6 +141,15 @@ void gather(vec3 basePos, vec3 pos, vec3 norm, int lod) {
     }
   }
 
+#if defined(SSAO)
+float textureSsao() {
+  vec2  uv = (gl_FragCoord.xy / vec2(textureSize(depth,0)));
+  return textureLod(ssao, uv, 0).r;
+  }
+#else
+float textureSsao() { return 0; }
+#endif
+
 void main() {
   const float minW = uintBitsToFloat(0x00000008);
   const float z    = texelFetch(depth,ivec2(gl_FragCoord.xy),0).x;
@@ -207,11 +174,12 @@ void main() {
     colorSum.rgb = colorSum.rgb/max(colorSum.w, minW);
     }
 
-  //const vec3  linear = vec3(1);
+  // const vec3  linear = vec3(1);
   const vec3  linear = textureLinear(diff); //  * Fd_Lambert is accounted in integration
-  const float ao     = smoothSsao();
+  const float ao     = textureSsao();
+  vec3 lcolor = colorSum.rgb;
 
-  vec3 color = colorSum.rgb;
+  vec3 color  = lcolor;
   color *= linear;
   color *= (1-ao);
   // night shift

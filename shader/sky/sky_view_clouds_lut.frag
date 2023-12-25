@@ -47,7 +47,7 @@ void main() {
     adjV = coord*coord;
     }
 
-  azimuthAngle += atan(push.sunDir.z, push.sunDir.x) + 0.5*M_PI;
+  azimuthAngle += atan(scene.sunDir.z, scene.sunDir.x) + 0.5*M_PI;
 
   const float height        = length(viewPos);
   const vec3  up            = viewPos / height;
@@ -55,7 +55,7 @@ void main() {
   const float altitudeAngle = adjV*0.5*M_PI - horizonAngle;
 
   float cosAltitude = cos(altitudeAngle);
-  float sunAltitude = (0.5*M_PI) - acos(dot(push.sunDir, up));
+  float sunAltitude = (0.5*M_PI) - acos(dot(scene.sunDir, up));
 
   vec3  sunDir      = vec3(0.0, sin(sunAltitude), -cos(sunAltitude));
   vec3  rayDir      = vec3(cosAltitude*sin(azimuthAngle), sin(altitudeAngle), -cosAltitude*cos(azimuthAngle));

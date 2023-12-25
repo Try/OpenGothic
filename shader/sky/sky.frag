@@ -3,11 +3,15 @@
 #extension GL_GOOGLE_include_directive    : enable
 
 #include "sky_common.glsl"
+#include "scene.glsl"
 #include "clouds.glsl"
 
-layout(binding = 0) uniform sampler2D tLUT;
-layout(binding = 1) uniform sampler2D mLUT;
-layout(binding = 2) uniform sampler2D skyLUT;
+layout(binding  = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 1) uniform sampler2D tLUT;
+layout(binding = 2) uniform sampler2D mLUT;
+layout(binding = 3) uniform sampler2D skyLUT;
 
 layout(binding = 4) uniform sampler2D textureDayL0;
 layout(binding = 5) uniform sampler2D textureDayL1;
@@ -73,27 +77,27 @@ vec3 sky(vec2 uv, vec3 sunDir) {
   }
 
 vec3 applyClouds(vec3 skyColor) {
-  float night    = push.night;
+  float night    = scene.isNight;
   vec3  plPos    = vec3(0,RPlanet+push.plPosY,0);
   vec3  pos1     = inverse(vec3(inPos,1.0));
   vec3  viewDir  = normalize(pos1);
-  return applyClouds(skyColor, skyLUT, plPos, push.sunDir, viewDir, night,
-                     push.cloudsDir0, push.cloudsDir1,
+  return applyClouds(skyColor, skyLUT, plPos, scene.sunDir, viewDir, night,
+                     scene.cloudsDir.xy, scene.cloudsDir.zw,
                      textureDayL1,textureDayL0, textureNightL1,textureNightL0);
   }
 
 void main() {
   vec2 uv     = inPos*vec2(0.5)+vec2(0.5);
   vec3 view   = normalize(inverse(vec3(inPos,1.0)));
-  vec3 sunDir = push.sunDir;
+  vec3 sunDir = scene.sunDir;
 
   // Sky
   vec3  lum = sky(uv, sunDir);
   float tr  = 1.0;
   // Clouds
   lum = applyClouds(lum);
-  lum = lum * push.GSunIntensity;
+  lum = lum * scene.GSunIntensity;
 
-  lum *= push.exposure;
+  lum *= scene.exposure;
   outColor = vec4(lum, tr);
   }

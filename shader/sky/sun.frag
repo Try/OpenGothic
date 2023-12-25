@@ -3,10 +3,14 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive    : enable
 
+#include "scene.glsl"
 #include "common.glsl"
 
-layout(binding = 0) uniform sampler2D sunSprite;
-layout(binding = 1) uniform sampler2D tLUT;
+layout(binding = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 1) uniform sampler2D sunSprite;
+layout(binding = 2) uniform sampler2D tLUT;
 
 layout(push_constant, std430) uniform UboPush {
   vec2  sunPos;
@@ -52,6 +56,7 @@ void main() {
     }
 
   lum *= push.GSunIntensity;
+  lum *= scene.exposure;
 
   if(rayIntersect(pos, view, RPlanet)>=0.0) {
     lum = vec3(0.0);

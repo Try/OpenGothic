@@ -16,7 +16,8 @@ class Shaders {
     static Shaders& inst();
 
     Tempest::RenderPipeline  lights, lightsRq;
-    Tempest::RenderPipeline  shadowResolve, shadowResolveSh, shadowResolveRq;
+    Tempest::RenderPipeline  directLight,  directLightSh, directLightRq;
+    Tempest::RenderPipeline  ambientLight, ambientLightSsao;
 
     Tempest::ComputePipeline copyBuf;
     Tempest::ComputePipeline copyImg;
@@ -24,7 +25,6 @@ class Shaders {
     Tempest::RenderPipeline  copy;
     Tempest::RenderPipeline  stash;
 
-    Tempest::RenderPipeline  ambientCompose, ambientComposeSsao;
     Tempest::ComputePipeline ssao, ssaoBlur;
 
     Tempest::ComputePipeline irradiance;
@@ -37,6 +37,7 @@ class Shaders {
     Tempest::RenderPipeline  sun;
     Tempest::ComputePipeline cloudsLut, fogOcclusion;
     Tempest::ComputePipeline fogViewLut3dLQ, fogViewLut3dHQ, shadowDownsample;
+    Tempest::ComputePipeline skyExposure;
 
     Tempest::RenderPipeline  underwaterT, underwaterS;
     Tempest::RenderPipeline  waterReflection, waterReflectionSSR;
@@ -52,7 +53,7 @@ class Shaders {
     Tempest::ComputePipeline probeInit, probeClear, probeClearHash, probeMakeHash;
     Tempest::ComputePipeline probeVote, probePrune, probeAlocation;
     Tempest::ComputePipeline probeTrace, probeLighting;
-    Tempest::RenderPipeline  probeDraw;
+    Tempest::RenderPipeline  probeAmbient;
 
     enum PipelineType: uint8_t {
       T_Forward,

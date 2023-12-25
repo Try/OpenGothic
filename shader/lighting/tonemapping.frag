@@ -3,17 +3,20 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : enable
 
+#include "scene.glsl"
 #include "common.glsl"
 #include "lighting/tonemapping.glsl"
 
 layout(push_constant, std140) uniform PushConstant {
-  float exposure;
   float brightness;
   float contrast;
   float gamma;
   } push;
 
-layout(binding  = 0) uniform sampler2D textureD;
+layout(binding  = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding  = 1) uniform sampler2D textureD;
 
 layout(location = 0) in  vec2 uv;
 layout(location = 0) out vec4 outColor;
@@ -103,7 +106,7 @@ vec3 colorTemperatureToRGB(const in float temperature){
   }
 
 void main() {
-  float exposure   = push.exposure;
+  float exposure   = scene.exposure;
   float brightness = push.brightness;
   float contrast   = push.contrast;
   float gamma      = push.gamma;
@@ -119,8 +122,12 @@ void main() {
     // return;
   }
 
-  // night shift
-  // color += purkinjeShift(color/exposure)*exposure;
+  {
+    // night shift
+    // const vec3 shift = purkinjeShift(color/exposure)*exposure;
+    // color += shift;
+    // color += vec3(0,0, shift.b);
+  }
 
   // Brightness & Contrast
   color = max(vec3(0), color + vec3(brightness));

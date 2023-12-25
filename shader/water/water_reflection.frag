@@ -174,7 +174,7 @@ void main() {
 
   vec3 sky = vec3(0);
   if(!underWater) {
-    vec3 sun = sunBloom(refl) * scene.sunCl;
+    vec3 sun = sunBloom(refl) * scene.sunColor;
     sky = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), refl, scene.sunDir);
     sky *= scene.GSunIntensity;
     sky *= scene.exposure;
