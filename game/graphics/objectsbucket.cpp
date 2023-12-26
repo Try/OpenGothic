@@ -906,7 +906,7 @@ const Material& ObjectsBucket::material(size_t i) const {
   }
 
 std::pair<uint32_t, uint32_t> ObjectsBucket::meshSlice(size_t i) const {
-  return std::pair<uint32_t, uint32_t>(val[i].iboOffset, val[i].iboLength);
+  return std::make_pair(uint32_t(val[i].iboOffset), uint32_t(val[i].iboLength));
   }
 
 
