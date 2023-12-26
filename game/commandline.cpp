@@ -5,6 +5,10 @@
 #include <cstring>
 #include <cassert>
 
+#if defined(__APPLE__)
+#include <filesystem>
+#endif
+
 #include "utils/installdetect.h"
 #include "utils/fileutil.h"
 #include "utils/string_frm.h"
