@@ -1,7 +1,6 @@
 #include "marvin.h"
 
 #include <charconv>
-#include <initializer_list>
 #include <cstdint>
 #include <cctype>
 
@@ -435,8 +434,9 @@ bool Marvin::setTime(World& world, std::string_view hh, std::string_view mm) {
     return false;
 
   err = std::from_chars(mm.data(), mm.data()+mm.size(), mv, 10).ec;
-  if(err!=std::errc())
-    return false;
+  if(err!=std::errc()) {
+    mv = 0;
+    }
 
   if(hv<0 || hv>=24 || mv<0 || mv>=60)
     return false;
