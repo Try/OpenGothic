@@ -29,6 +29,8 @@ class Sky final {
     void prepareFog (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
     void drawFog    (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
 
+    void prepareExposure(Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
+
     const Tempest::Texture2d& skyLut()           const;
     const Tempest::Texture2d& clearSkyLut()      const;
     const LightSource&        sunLight()         const { return sun; }
@@ -78,6 +80,7 @@ class Sky final {
     Tempest::DescriptorSet        uboFogViewLut3d;
     Tempest::DescriptorSet        uboSky, uboFog, uboFog3d;
     Tempest::DescriptorSet        uboShadowDw, uboOcclusion;
+    Tempest::DescriptorSet        uboExp;
 
     bool                          lutIsInitialized = false;
 

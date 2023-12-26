@@ -38,7 +38,7 @@ vec3 diffuseLight() {
   float shadow = calcShadow(vec4(shInp.pos,1), 0, scene, textureSm0, textureSm1);
 
   vec3  lcolor  = scene.sunColor * scene.GSunIntensity * Fd_Lambert * light * shadow;
-  vec3  ambient = scene.sunColor * scene.ambient + vec3(0.0005); // TODO: irradiance
+  vec3  ambient = scene.ambient; // TODO: irradiance
   lcolor *= (1.0/M_PI); // magic constant, non motivated by physics
 
   return lcolor + ambient;

@@ -167,9 +167,6 @@ void Renderer::resetSwapchain() {
   irradiance.pso = &Shaders::inst().irradiance;
   irradiance.ubo = device.descriptors(*irradiance.pso);
 
-  skyExp.pso = &Shaders::inst().skyExposure;
-  skyExp.ubo = device.descriptors(*skyExp.pso);
-
   tonemapping.pso     = &Shaders::inst().tonemapping;
   tonemapping.uboTone = device.descriptors(*tonemapping.pso);
 
@@ -307,9 +304,6 @@ void Renderer::prepareUniforms() {
   irradiance.ubo.set(0, irradiance.lut);
   irradiance.ubo.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
   irradiance.ubo.set(2, wview->sky().skyLut());
-
-  skyExp.ubo.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-  skyExp.ubo.set(1, wview->sky().skyLut());
 
   {
     auto smp = Sampler::bilinear();
@@ -836,33 +830,9 @@ void Renderer::prepareGi(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   cmd.dispatch(1024);
   }
 
-void Renderer::prepareExposure(Encoder<CommandBuffer>& cmd, uint8_t fId, const WorldView& view) {
-  struct Push {
-    float baseL = 30;
-    };
-  Push push;
-
-  // art-tuning
-  {
-    // from 21:43 to 21:49
-    static float maxY = -0.14f;
-    static float minY = -0.195f;
-    const  float nowY = view.sky().sunLight().dir().y;
-    if(minY<=nowY && nowY<=maxY) {
-      float dt = float(nowY-minY)/float(maxY-minY);
-      dt = std::sin(float(dt*M_PI));
-      push.baseL += dt*150.f;
-      }
-  }
-
-  static float scale = 0;
-  if(scale>0)
-    push.baseL = scale;
-
-  cmd.setFramebuffer({});
+void Renderer::prepareExposure(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
   cmd.setDebugMarker("Exposure");
-  cmd.setUniforms(*skyExp.pso, skyExp.ubo, &push, sizeof(push));
-  cmd.dispatch(1);
+  wview.prepareExposure(cmd,fId);
   }
 
 void Renderer::drawProbesDbg(Encoder<CommandBuffer>& cmd, uint8_t fId) {

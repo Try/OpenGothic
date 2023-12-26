@@ -62,8 +62,9 @@ void scatteringValues(vec3 pos,
   vec3  ozoneAbsorption    = ozoneAbsorptionBase*ozoneDistribution;
 
   // Clouds Ah-Hook
-  mieScattering      *= exp( clouds*3.0); // (1.0+clouds*4.0);
-  rayleighScattering *= exp(-clouds*3.0); // (1.0-clouds*0.5);
+  clouds = max(0, clouds-0.2); // 0.33 in LH
+  mieScattering      *= exp( clouds*5.0); // (1.0+clouds*4.0);
+  rayleighScattering *= exp(-clouds*5.0); // (1.0-clouds*0.5);
 
   extinction = rayleighScattering + rayleighAbsorption +
                mieScattering + mieAbsorption +

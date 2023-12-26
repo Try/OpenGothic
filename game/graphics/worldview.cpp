@@ -106,6 +106,10 @@ void WorldView::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
   gSky.prepareFog(cmd,frameId);
   }
 
+void WorldView::prepareExposure(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId) {
+  gSky.prepareExposure(cmd, frameId);
+  }
+
 void WorldView::visibilityPass(const Frustrum fr[]) {
   for(uint8_t i=0; i<SceneGlobals::V_Count; ++i)
     sGlobal.frustrum[i] = fr[i];

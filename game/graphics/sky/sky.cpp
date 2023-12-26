@@ -234,30 +234,21 @@ void Sky::updateLight(const int64_t now) {
   static float sunMul = 1;
   static float ambMul = 1;
   // static auto  groundAlbedo = Vec3(0.34f, 0.42f, 0.26f); // Foliage(MacBeth)
-  static auto  groundAlbedo = Vec3(0.47f); // Neutral5 (MacBeth)
   // static auto  groundAlbedo = Vec3(0.39f, 0.40f, 0.33f);
+  static auto  groundAlbedo = Vec3(0.47f); // Neutral5 (MacBeth)
 
   const float dirY = sun.dir().y;
   // float dayTint = std::max(dirY+0.01f, 0.f);
 
-  //const auto ambientNight = groundAlbedo*NightLight*0;
-  //const auto ambientDay   = groundAlbedo*ShadowSunLux*dayTint;
-
-  //const auto ambientNight = groundAlbedo*NightLight*0.25;
-  //const auto ambientDay   = groundAlbedo*DirectSunLux*dayTint * 0.2f*0.25;
-
-  const auto directDay    = Vec3(0.94f, 0.87f, 0.76f); //TODO: use tLUT to guide sky color in shader
-  const auto directNight  = Vec3(0.27f, 0.05f, 0.01f);
-
-  float aDirect  = linearstep(-0.0f, 0.8f, dirY);
-
-  auto clr = directNight *(1.f-aDirect ) + directDay *aDirect;
-  ambient =  groundAlbedo*DirectSunLux*0.05f*aDirect + 0.0005f;
-
+  const float aDirect    = linearstep(-0.0f, 0.8f, dirY);
   const float sunOcclude = smoothstep(0.0f, 0.01f, sun.dir().y);
-  clr = clr*sunOcclude;
 
-  sun.setColor(clr*sunMul);
+  Vec3 direct;
+  direct  = Vec3(1.0f)   * sunOcclude   * float(1.0/M_PI);
+  ambient = groundAlbedo * DirectSunLux * aDirect*0.05f;
+  // ambient = groundAlbedo*DirectSunLux*aDirect*0.157f + 0.0005f;
+
+  sun.setColor(direct*sunMul);
   ambient = ambient*ambMul;
   }
 
@@ -387,6 +378,12 @@ void Sky::prepareUniforms() {
   uboMoon.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
   uboMoon.set(1, *moonImg);
   uboMoon.set(2, transLut, smpB);
+
+  uboExp = device.descriptors(Shaders::inst().skyExposure);
+  uboExp.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
+  uboExp.set(1, viewCldLut);
+  uboExp.set(2, transLut,  smpB);
+  uboExp.set(3, cloudsLut, smpB);
   }
 
 void Sky::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t frameId) {
@@ -485,6 +482,34 @@ void Sky::drawFog(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
       break;
     }
   cmd.draw(Resources::fsqVbo());
+  }
+
+void Sky::prepareExposure(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t frameId) {
+  struct Push {
+    float baseL = 30;
+    };
+  Push push;
+
+  // art-tuning
+  {
+    // from 21:43 to 21:49
+    static float maxY = -0.14f;
+    static float minY = -0.195f;
+    const  float nowY = sunLight().dir().y;
+    if(minY<=nowY && nowY<=maxY) {
+      float dt = float(nowY-minY)/float(maxY-minY);
+      dt = std::sin(float(dt*M_PI));
+      push.baseL += dt*150.f;
+      }
+  }
+
+  static float scale = 0;
+  if(scale>0)
+    push.baseL = scale;
+
+  cmd.setFramebuffer({});
+  cmd.setUniforms(Shaders::inst().skyExposure, uboExp, &push, sizeof(push));
+  cmd.dispatch(1);
   }
 
 const Texture2d& Sky::skyLut() const {

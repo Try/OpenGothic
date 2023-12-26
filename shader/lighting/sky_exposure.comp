@@ -6,22 +6,22 @@
 #include "scene.glsl"
 #include "common.glsl"
 
+layout(local_size_x = 128) in;
+
 layout(push_constant, std430) uniform UboPush {
   float baseL;
   } push;
-
-layout(local_size_x = 128) in;
-
-const uint NumInvocations = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
-const uint HistMid        = (NumInvocations/2);
-
-shared uint minLum, maxLum;
-shared uint histogram[NumInvocations];
-
 layout(binding = 0, std140) buffer UboScene {
   SceneDesc scene;
   };
 layout(binding = 1) uniform sampler2D skyLUT;
+layout(binding = 2) uniform sampler2D tLUT;
+layout(binding = 3) uniform sampler2D cloudsLUT;
+
+const uint NumInvocations = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+const uint HistMid        = (NumInvocations/2);
+
+shared uint histogram[NumInvocations];
 
 void hInsert(float v) {
   uint value = floatBitsToUint(v);
@@ -37,19 +37,15 @@ float luminosity(vec3 color) {
   return dot(color, vec3(0.2125, 0.7154, 0.0721));
   }
 
-void processMinMax(vec3 val) {
+void processValue(vec3 val) {
   float lx = luminosity(val);
   hInsert(lx);
-
-  uint  lu = floatBitsToUint(lx);
-  atomicMin(minLum, lu);
-  atomicMax(maxLum, lu);
   }
 
 vec3 resolveMiss(const vec3 rayOrigin, const vec3 rayDirection) {
   // PERF: need to preload sky lut early in shader
   const vec3 lcolor  = textureSkyLUT(skyLUT, vec3(0,RPlanet,0), rayDirection, scene.sunDir) * scene.GSunIntensity;
-  const vec3 ambient = scene.ambient * scene.sunColor;
+  const vec3 ambient = scene.ambient;
 
   vec3 color = vec3(0);
   color += lcolor;
@@ -64,16 +60,26 @@ void gather() {
 
     vec3 sky = vec3(0);
     sky = resolveMiss(vec3(0), +dir);
-    processMinMax(sky);
+    processValue(sky);
 
     //sky = resolveMiss(vec3(0), -dir);
-    //processMinMax(sky);
+    //processValue(sky);
     }
   }
 
+// 5.5.2. LUT parameterization
+vec3 textureLUT(sampler2D tex, vec3 pos, vec3 sunDir) {
+  float height   = length(pos);
+  vec3  up       = pos / height;
+  float cosAngle = dot(sunDir, up);
+
+  vec2 uv;
+  uv.x = 0.5 + 0.5*cosAngle;
+  uv.y = (height - RPlanet)/(RAtmos - RPlanet);
+  return texture(tex, uv).rgb;
+  }
+
 void main() {
-  minLum = -1;
-  maxLum = 0;
   histogram[gl_LocalInvocationIndex] = -1;
   barrier();
 
@@ -81,12 +87,19 @@ void main() {
   barrier();
 
   if(gl_LocalInvocationIndex==0) {
-    // float vmin = uintBitsToFloat(minLum);
-    // float vmax = uintBitsToFloat(maxLum);
     float vmin = uintBitsToFloat(histogram[HistMid-1]);
     float vmax = uintBitsToFloat(histogram[HistMid-0]);
 
     float lum = (vmax+vmin) * 0.5;
     scene.exposure = 1.0 / max(lum*push.baseL, 0.000005);
+
+    const vec3  pos    = vec3(0, RPlanet+1, 0);
+    const vec3  tr     = textureLUT(tLUT, pos, scene.sunDir).rgb;
+    const float clouds = textureLod(cloudsLUT, vec2(scene.isNight,0), 0).a;
+
+    const vec3  mul    = tr * (1.0 - pow(clouds, 4));
+
+    scene.sunColor = scene.sunColor * mul;
+    scene.ambient  = scene.ambient  * mul  + vec3(0.0005); // TODO: irradiance;
     }
   }
