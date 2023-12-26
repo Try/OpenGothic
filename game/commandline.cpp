@@ -3,7 +3,6 @@
 #include <Tempest/Log>
 #include <Tempest/TextCodec>
 #include <cstring>
-#include <filesystem>
 #include <cassert>
 
 #include "utils/installdetect.h"
@@ -134,8 +133,12 @@ CommandLine::CommandLine(int argc, const char** argv) {
     gmod = nestedPath({u"system",gmod.c_str()},Dir::FT_File);
 
   if(!validateGothicPath()) {
-    Log::e("invalid gothic path: \"",TextCodec::toUtf8(gpath),"\"");
-    throw std::logic_error("gothic not found!"); //TODO: user-friendly message-box
+    if(gpath.empty()) {
+      Log::e("Gothic path is not provided. Please use command line argument -g <path>");
+      } else {
+      Log::e("Invalid gothic path: \"",TextCodec::toUtf8(gpath),"\"");
+      }
+    throw GothicNotFoundException("gothic not found!"); // TODO: user-friendly message-box
     }
   }
 

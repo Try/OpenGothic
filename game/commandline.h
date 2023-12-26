@@ -4,11 +4,15 @@
 #include <Tempest/Dir>
 
 #include <cstdint>
+#include <stdexcept>
 #include <string>
 
 #include "game/constants.h"
 
 class VersionInfo;
+class GothicNotFoundException : std::logic_error {
+  using logic_error::logic_error;
+  };
 
 class CommandLine {
   public:

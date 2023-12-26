@@ -1,4 +1,5 @@
 #include "crashlog.h"
+#include "commandline.h"
 
 #include <Tempest/Platform>
 
@@ -57,6 +58,10 @@ static void terminateHandler() {
   if(p) {
     try {
       std::rethrow_exception(p);
+      }
+    catch (GothicNotFoundException& ) {
+      std::signal(SIGABRT, SIG_DFL); // avoid recursion
+      std::abort();
       }
     catch (std::system_error& e) {
       std::snprintf(msg,sizeof(msg),"std::system_error(%s)",e.what());
