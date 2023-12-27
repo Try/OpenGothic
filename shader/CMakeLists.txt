@@ -171,7 +171,7 @@ add_shader(direct_light.frag         lighting/direct_light.frag)
 add_shader(direct_light_sh.frag      lighting/direct_light.frag -DSHADOW_MAP)
 add_shader(direct_light_rq.frag      lighting/direct_light.frag -DSHADOW_MAP -DRAY_QUERY -DRAY_QUERY_AT)
 
-add_shader(ambient_light_ssao.vert   copy.vert -DHAS_UV)
+add_shader(ambient_light.vert        copy.vert -DHAS_UV)
 add_shader(ambient_light.frag        lighting/ambient_light.frag)
 add_shader(ambient_light_ssao.frag   lighting/ambient_light.frag -DSSAO)
 

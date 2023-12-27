@@ -478,7 +478,7 @@ RenderPipeline Shaders::ambientLightShader(std::string_view name) {
   state.setZTestMode    (RenderState::ZTestMode::NoEqual);
   state.setZWriteEnabled(false);
 
-  auto sh = GothicShader::get("ssao_compose.vert.sprv");
+  auto sh = GothicShader::get("ambient_light.vert.sprv");
   auto vs = device.shader(sh.data,sh.len);
   sh      = GothicShader::get(string_frm(name,".frag.sprv"));
   auto fs = device.shader(sh.data,sh.len);

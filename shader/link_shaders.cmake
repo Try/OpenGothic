@@ -30,7 +30,7 @@ foreach(i ${SOURCES})
   file(APPEND ${HEADER} "  if(\"${NAME}\"==name)\n")
   file(APPEND ${HEADER} "    return ${CLEAN_NAME};\n")
 endforeach()
-file(APPEND ${HEADER} "  throw std::runtime_error(\"\");\n")
+file(APPEND ${HEADER} "  throw std::runtime_error(\"shader not found: \"+std::string(name));\n")
 file(APPEND ${HEADER} "  }\n")
 
 file(WRITE ${CPP}
