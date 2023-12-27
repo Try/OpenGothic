@@ -8,6 +8,7 @@ set(CPP    "${CMAKE_CURRENT_BINARY_DIR}/sprv/shader.cpp")
 file(WRITE ${HEADER}
   "#include <cstdint>\n"
   "#include <string_view>\n"
+  "#include <string>\n"
   "#include <stdexcept>\n"
   "\n"
   "struct GothicShader {\n"
