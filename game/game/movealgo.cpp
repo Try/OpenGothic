@@ -358,8 +358,16 @@ bool MoveAlgo::tickRun(uint64_t dt, MvFlags moveFlg) {
     setAsSlide(false);
     }
   else if(0.f<=dY && dY<fallThreshold) {
+    const bool walk = bool(npc.walkMode()&WalkBit::WM_Walk);
     DynamicWorld::CollisionTest info;
     if(onGound && testSlide(pos+dp+Tempest::Vec3(0,fallThreshold,0),info)) {
+      if(walk) {
+        DynamicWorld::CollisionTest info;
+        info.normal  = dp;
+        info.preFall = true;
+        onMoveFailed(dp,info,dt);
+        return true;
+        }
       if(!tryMove(dp.x,-dY,dp.z,info))
         onMoveFailed(dp,info,dt);
       setAsSlide(true);
