@@ -539,7 +539,7 @@ void GameScript::loadVar(Serialize &fin) {
         for (unsigned j = 0; j < size; ++j) {
             fin.read(v);
             if (s != nullptr && !s->is_member() && !s->is_const()) {
-                s->set_int(v, j);
+                s->set_int(v, static_cast<uint16_t>(j));
             }
         }
 
@@ -556,7 +556,7 @@ void GameScript::loadVar(Serialize &fin) {
         for (unsigned j = 0; j < size; ++j) {
             fin.read(v);
             if (s != nullptr && !s->is_member() && !s->is_const()) {
-                s->set_float(v, j);
+                s->set_float(v, static_cast<uint16_t>(j));
             }
         }
 
@@ -573,7 +573,7 @@ void GameScript::loadVar(Serialize &fin) {
         for (unsigned j = 0; j < size; ++j) {
             fin.read(v);
             if (s != nullptr && !s->is_member() && !s->is_const()) {
-                s->set_string(v, j);
+                s->set_string(v, static_cast<uint16_t>(j));
             }
         }
 
@@ -634,7 +634,7 @@ void GameScript::saveSym(Serialize &fout, phoenix::symbol &i) {
         fout.write(i.type(), i.name(), i.count());
 
         for (unsigned j = 0; j < i.count(); ++j)
-          fout.write(i.get_int(j));
+          fout.write(i.get_int(static_cast<uint16_t>(j)));
         return;
         }
       break;
@@ -643,7 +643,7 @@ void GameScript::saveSym(Serialize &fout, phoenix::symbol &i) {
         fout.write(i.type(), i.name(), i.count());
 
         for (unsigned j = 0; j < i.count(); ++j)
-          fout.write(i.get_float(j));
+          fout.write(i.get_float(static_cast<uint16_t>(j)));
         return;
         }
       break;
@@ -652,7 +652,7 @@ void GameScript::saveSym(Serialize &fout, phoenix::symbol &i) {
         fout.write(i.type(), i.name(), i.count());
 
         for (unsigned j = 0; j < i.count(); ++j)
-          fout.write(i.get_string(j));
+          fout.write(i.get_string(static_cast<uint16_t>(j)));
         return;
         }
       break;
@@ -775,12 +775,12 @@ const AiState& GameScript::aiState(ScriptFn id) {
   }
 
 const phoenix::c_spell& GameScript::spellDesc(int32_t splId) {
-  auto& tag = spellFxInstanceNames->get_string(size_t(splId));
+  auto& tag = spellFxInstanceNames->get_string(static_cast<uint16_t>(splId));
   return spells->find(tag);
   }
 
 const VisualFx* GameScript::spellVfx(int32_t splId) {
-  auto& tag = spellFxInstanceNames->get_string(size_t(splId));
+  auto& tag = spellFxInstanceNames->get_string(static_cast<uint16_t>(splId));
   string_frm name("spellFX_",tag);
   return Gothic::inst().loadVisualFx(name);
   }
@@ -1052,7 +1052,7 @@ int GameScript::invokeManaRelease(Npc &npc, Npc* target, int mana) {
   }
 
 void GameScript::invokeSpell(Npc &npc, Npc* target, Item &it) {
-  auto&      tag = spellFxInstanceNames->get_string(size_t(it.spellId()));
+  auto&      tag = spellFxInstanceNames->get_string(static_cast<uint16_t>(it.spellId()));
   string_frm name("Spell_Cast_",tag);
   auto       fn = vm.find_symbol_by_name(name);
   if(fn==nullptr)
@@ -1144,7 +1144,7 @@ void GameScript::playerHotLameHeal(Npc& pl) {
 std::string_view GameScript::spellCastAnim(Npc&, Item &it) {
   if(spellFxAniLetters==nullptr)
     return "FIB";
-  return spellFxAniLetters->get_string(size_t(it.spellId()));
+  return spellFxAniLetters->get_string(static_cast<uint16_t>(it.spellId()));
   }
 
 bool GameScript::aiOutput(Npc &npc, std::string_view outputname, bool overlay) {
@@ -1558,8 +1558,8 @@ void GameScript::wld_exchangeguildattitudes(std::string_view name) {
     return;
   for(size_t i=0;i<gilTblSize;++i)
     for(size_t r=0;r<gilTblSize;++r) {
-      gilAttitudes[i*gilCount+r] = guilds->get_int(i*gilTblSize+r);
-      gilAttitudes[r*gilCount+i] = guilds->get_int(r*gilTblSize+i);
+      gilAttitudes[i*gilCount+r] = guilds->get_int(static_cast<uint16_t>(i * gilTblSize + r));
+      gilAttitudes[r*gilCount+i] = guilds->get_int(static_cast<uint16_t>(r * gilTblSize + i));
       }
   }
 

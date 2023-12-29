@@ -120,13 +120,7 @@ void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs, bool modFil
 
   for(auto& i:archives) {
     try {
-      const uint32_t UNION_VDF_VERSION = 160;
       auto in     = phoenix::buffer::mmap(i.name);
-      auto header = phoenix::vdf_header::read(in);
-      if(header.version==UNION_VDF_VERSION) {
-        Log::e("skip compressed archive: \"", TextCodec::toUtf8(i.name), "\"");
-        continue;
-        }
 #ifdef __IOS__
       // causes OOM on iPhone7
       if(i.name.find(u"Speech")!=std::string::npos)
@@ -135,7 +129,7 @@ void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs, bool modFil
       in.rewind();
       inst->gothicAssets.mount_disk(in, phoenix::VfsOverwriteBehavior::OLDER);
       }
-    catch(const phoenix::vdfs_signature_error& err) {
+    catch(const zenkit::VfsBrokenDiskError& err) {
       Log::e("unable to load archive: \"", TextCodec::toUtf8(i.name), "\", reason: ", err.what());
       }
     catch(const std::exception& err) {
@@ -856,7 +850,7 @@ const Resources::VobTree* Resources::implLoadVobBundle(std::string_view filename
   if(i!=zenCache.end())
     return i->second.get();
 
-  std::vector<std::unique_ptr<phoenix::vob>> bundle;
+  std::vector<std::shared_ptr<phoenix::vob>> bundle;
   try {
     const auto* entry = Resources::vdfsIndex().find(cname);
     if(entry == nullptr)

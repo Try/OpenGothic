@@ -20,15 +20,19 @@ CsCamera::CsCamera(Vob* parent, World& world, const phoenix::vobs::cs_camera& ca
   duration = cam.total_duration;
   delay    = cam.auto_untrigger_last_delay;
 
-  for(uint32_t i=0;i<cam.frames.size();++i) {
-    auto&    f   = cam.frames[i];
-    KeyFrame kF;
-    kF.c[3]  = Vec3(f->original_pose[3][0],f->original_pose[3][1],f->original_pose[3][2]);
-    kF.time  = f->time;
-    if(i<uint32_t(cam.position_count))
-      posSpline.keyframe.push_back(std::move(kF)); else
-      targetSpline.keyframe.push_back(std::move(kF));
-    }
+  for (auto& f : cam.trajectory_frames) {
+      KeyFrame kF;
+      kF.c[3]  = Vec3(f->original_pose[3][0],f->original_pose[3][1],f->original_pose[3][2]);
+      kF.time  = f->time;
+      posSpline.keyframe.push_back(kF);
+  }
+
+  for (auto& f : cam.trajectory_frames) {
+      KeyFrame kF;
+      kF.c[3]  = Vec3(f->original_pose[3][0],f->original_pose[3][1],f->original_pose[3][2]);
+      kF.time  = f->time;
+      targetSpline.keyframe.push_back(kF);
+  }
 
   for(auto spl : {&posSpline,&targetSpline}) {
     uint32_t size = uint32_t(spl->size());
@@ -58,10 +62,16 @@ CsCamera::CsCamera(Vob* parent, World& world, const phoenix::vobs::cs_camera& ca
     const float slow   = 0;
     const float linear = duration;
     const float fast   = 2 * duration;
-    uint32_t    start  = spl==&posSpline ? 0 : uint32_t(cam.position_count);
-    uint32_t    end    = spl==&posSpline ? uint32_t(cam.position_count-1) : uint32_t(cam.frames.size()-1);
-    auto        mType0 = cam.frames[start]->motion_type;
-    auto        mType1 = cam.frames[end]->motion_type;
+
+    phoenix::camera_motion mType0, mType1;
+    if (spl == &posSpline) {
+      mType0 = cam.trajectory_frames[0]->motion_type;
+      mType1 = cam.trajectory_frames.back()->motion_type;
+    } else {
+      mType0 = cam.target_frames[0]->motion_type;
+      mType1 = cam.target_frames.back()->motion_type;
+    }
+
     float       d0     = slow;
     float       d1     = slow;
     if(mType0!=phoenix::camera_motion::slow && mType1!=phoenix::camera_motion::slow) {

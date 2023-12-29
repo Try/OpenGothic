@@ -29,7 +29,7 @@ std::string_view SvmDefinitions::find(std::string_view speech, int intId) {
     auto* i = vm.find_symbol_by_name(name);
     if(i==nullptr)
       return "";
-    return i->get_string(0,svm[size_t(id)]);
+    return i->get_string(0,svm[size_t(id)].get());
     }
 
   return "";

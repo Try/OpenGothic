@@ -3,6 +3,8 @@
 #include <Tempest/Dir>
 #include <Tempest/Log>
 
+#include <phoenix/archive.hh>
+
 #include "graphics/shaders.h"
 #include "graphics/sceneglobals.h"
 #include "utils/string_frm.h"

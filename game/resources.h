@@ -5,7 +5,7 @@
 #include <Tempest/Device>
 #include <Tempest/SoundDevice>
 
-#include <phoenix/vdfs.hh>
+#include <phoenix/Vfs.hh>
 #include <phoenix/world/vob_tree.hh>
 
 #include <tuple>
@@ -13,7 +13,6 @@
 #include <map>
 
 #include "graphics/material.h"
-#include "phoenix/Vfs.hh"
 #include "sound/soundfx.h"
 
 class StaticMesh;
@@ -77,7 +76,7 @@ class Resources final {
       Tempest::Vec3 color;
       };
 
-    using VobTree = std::vector<std::unique_ptr<phoenix::vob>>;
+    using VobTree = std::vector<std::shared_ptr<phoenix::vob>>;
 
     static Tempest::Device&          device() { return inst->dev; }
     static const char*               renderer();
