@@ -193,8 +193,9 @@ Animation::Sequence::Sequence(const phoenix::mds::animation& hdr, std::string_vi
   if(entry==nullptr)
     return;
 
-  phoenix::buffer reader = entry->open();
-  auto p                 = phoenix::animation::parse(reader);
+  auto reader = entry->open_read();
+  zenkit::ModelAnimation p;
+  p.load(reader.get());
 
   data = std::make_shared<AnimData>();
   askName    = hdr.name;

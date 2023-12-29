@@ -424,14 +424,14 @@ void GameScript::loadDialogOU() {
   for(auto OU:names) {
     if(Resources::hasFile(OU)) {
       auto buf = Resources::getFileBuffer(OU);
-      dialogs = phoenix::messages::parse(buf);
+      dialogs.load(buf.get());
       return;
       }
 
     const size_t segment = OU.find_last_of("\\/");
     if(segment!=std::string::npos && Resources::hasFile(OU.substr(segment+1))) {
       auto buf = Resources::getFileBuffer(OU.substr(segment+1));
-      dialogs = phoenix::messages::parse(buf);
+      dialogs.load(buf.get());
       return;
       }
 
@@ -447,8 +447,8 @@ void GameScript::loadDialogOU() {
       }
 
     try {
-      auto buf = phoenix::buffer::mmap(full);
-      dialogs = phoenix::messages::parse(buf);
+      auto buf = zenkit::Read::from(full);
+      dialogs.load(buf.get());
       return;
       }
     catch(...){

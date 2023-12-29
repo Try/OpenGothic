@@ -126,8 +126,7 @@ void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs, bool modFil
       if(i.name.find(u"Speech")!=std::string::npos)
         continue;
 #endif
-      in.rewind();
-      inst->gothicAssets.mount_disk(in, phoenix::VfsOverwriteBehavior::OLDER);
+      inst->gothicAssets.mount_disk(i.name, phoenix::VfsOverwriteBehavior::OLDER);
       }
     catch(const zenkit::VfsBrokenDiskError& err) {
       Log::e("unable to load archive: \"", TextCodec::toUtf8(i.name), "\", reason: ", err.what());
@@ -162,8 +161,12 @@ bool Resources::getFileData(std::string_view name, std::vector<uint8_t> &dat) {
     return false;
 
   // TODO: This should return a buffer!
-  phoenix::buffer reader = entry->open();
-  dat.assign((uint8_t*) reader.array(), (uint8_t*) reader.array() + reader.limit());
+  auto reader = entry->open_read();
+
+  reader->seek(0, zenkit::Whence::END);
+  dat.resize(reader->tell());
+  reader->seek(0, zenkit::Whence::BEG);
+  reader->read(dat.data(), dat.size());
 
   return true;
   }
@@ -174,11 +177,11 @@ std::vector<uint8_t> Resources::getFileData(std::string_view name) {
   return data;
   }
 
-phoenix::buffer Resources::getFileBuffer(std::string_view name) {
+std::unique_ptr<zenkit::Read> Resources::getFileBuffer(std::string_view name) {
   const auto* entry = Resources::vdfsIndex().find(name);
   if (entry == nullptr)
     throw std::runtime_error("failed to open resource: " + std::string{name});
-  return entry->open();
+  return entry->open_read();
   }
 
 const char* Resources::renderer() {
@@ -299,17 +302,20 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
       return it->second.get();
 
     if(const auto* entry = Resources::vdfsIndex().find(name)) {
-      auto reader = entry->open();
-      auto tex = phoenix::texture::parse(reader);
+      zenkit::Texture tex;
+
+      auto reader = entry->open_read();
+      tex.load(reader.get());
 
       if (tex.format() == phoenix::tex_dxt1 ||
           tex.format() == phoenix::tex_dxt2 ||
           tex.format() == phoenix::tex_dxt3 ||
           tex.format() == phoenix::tex_dxt4 ||
           tex.format() == phoenix::tex_dxt5) {
-        auto dds = phoenix::texture_to_dds(tex);
+        auto dds = zenkit::to_dds(tex);
+        auto ddsRead = zenkit::Read::from(dds);
 
-        auto t = implLoadTexture(cache, std::string(cname), dds);
+        auto t = implLoadTexture(cache, std::string(cname), ddsRead.get());
         if(t!=nullptr)
           return t;
         } else {
@@ -331,17 +337,23 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
     }
 
   if(auto* entry = Resources::vdfsIndex().find(cname)) {
-    phoenix::buffer reader = entry->open();
-    return implLoadTexture(cache,std::string(cname),reader);
+    auto reader = entry->open_read();
+    return implLoadTexture(cache,std::string(cname),reader.get());
     }
 
   cache[name]=nullptr;
   return nullptr;
   }
 
-Texture2d *Resources::implLoadTexture(TextureCache& cache, std::string&& name, const phoenix::buffer& data) {
+Texture2d *Resources::implLoadTexture(TextureCache& cache, std::string&& name, zenkit::Read* data) {
   try {
-    Tempest::MemReader rd((uint8_t*)data.array(),data.limit());
+    std::vector<uint8_t> raw;
+    data->seek(0, zenkit::Whence::END);
+    raw.resize(data->tell());
+    data->seek(0, zenkit::Whence::BEG);
+    data->read(raw.data(), raw.size());
+
+    Tempest::MemReader rd((uint8_t*)raw.data(), raw.size());
     Tempest::Pixmap    pm(rd);
 
     std::unique_ptr<Texture2d> t{new Texture2d(dev.texture(pm))};
@@ -378,8 +390,11 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     const auto* entry = Resources::vdfsIndex().find(name);
     if(entry == nullptr)
       return nullptr;
-    auto reader = entry->open();
-    auto zmsh = phoenix::proto_mesh::parse(reader);
+
+    zenkit::MultiResolutionMesh zmsh;
+
+    auto reader = entry->open_read();
+    zmsh.load(reader.get());
 
     if(zmsh.sub_meshes.empty())
       return nullptr;
@@ -395,8 +410,10 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     if(entry == nullptr)
       throw std::runtime_error("failed to open resource: " + name);
 
-    auto reader = entry->open();
-    auto zmm = phoenix::morph_mesh::parse(reader);
+    zenkit::MorphMesh zmm;
+    auto reader = entry->open_read();
+    zmm.load(reader.get());
+
     if(zmm.mesh.sub_meshes.empty())
       return nullptr;
 
@@ -409,7 +426,7 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     if(anim==nullptr)
       return nullptr;
 
-    std::optional<phoenix::model_mesh> mdm {};
+    std::optional<zenkit::ModelMesh> mdm {};
 
     auto mesh   = std::string(anim->defaultMesh());
 
@@ -418,8 +435,9 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
 
     if(hasFile(mesh)) {
       const auto* entry = Resources::vdfsIndex().find(mesh);
-      auto reader = entry->open();
-      mdm = phoenix::model_mesh::parse(reader);
+      auto reader = entry->open_read();
+      mdm.emplace();
+      mdm->load(reader.get());
       }
 
     if(anim->defaultMesh().empty())
@@ -429,8 +447,10 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     const auto* entry = Resources::vdfsIndex().find(mesh);
     if(entry==nullptr)
       throw std::runtime_error("failed to open resource: " + mesh);
-    auto reader = entry->open();
-    auto mdh = phoenix::model_hierarchy::parse(reader);
+
+    zenkit::ModelHierarchy mdh;
+    auto reader = entry->open_read();
+    mdh.load(reader.get());
 
     std::unique_ptr<Skeleton> sk{new Skeleton(mdh,anim,name)};
     std::unique_ptr<ProtoMesh> t;
@@ -451,8 +471,10 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     if(entry == nullptr)
       return nullptr;
 
-    auto reader = entry->open();
-    auto mdm = phoenix::model_mesh::parse(reader);
+    zenkit::ModelMesh mdm;
+    auto reader = entry->open_read();
+    mdm.load(reader.get());
+
     std::unique_ptr<ProtoMesh> t{new ProtoMesh(std::move(mdm),nullptr,name)};
     return t;
     }
@@ -464,8 +486,9 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     const auto* entry = Resources::vdfsIndex().find(name);
     if(entry == nullptr)
       throw std::runtime_error("failed to open resource: " + name);
-    auto reader = entry->open();
-    auto mdm = phoenix::model::parse(reader);
+    zenkit::Model mdm;
+    auto reader = entry->open_read();
+    mdm.load(reader.get());
 
     std::unique_ptr<Skeleton> sk{new Skeleton(mdm.hierarchy,nullptr,name)};
     std::unique_ptr<ProtoMesh> t{new ProtoMesh(mdm,std::move(sk),name)};
@@ -493,8 +516,9 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(std::string_view name) {
 
     const auto* entry = Resources::vdfsIndex().find(cname);
     if (entry == nullptr) return nullptr;
-    auto reader = entry->open();
-    auto zmsh = phoenix::proto_mesh::parse(reader);
+    zenkit::MultiResolutionMesh zmsh;
+    auto reader = entry->open_read();
+    zmsh.load(reader.get());
 
     if(zmsh.sub_meshes.empty())
       return nullptr;
@@ -511,8 +535,9 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(std::string_view name) {
     const auto* entry = Resources::vdfsIndex().find(cname);
     if(entry == nullptr)
       throw std::runtime_error("failed to open resource: " + cname);
-    auto reader = entry->open();
-    auto mdm = phoenix::model_mesh::parse(reader);
+    zenkit::ModelMesh mdm;
+    auto reader = entry->open_read();
+    mdm.load(reader.get());
 
     ret = std::unique_ptr<PfxEmitterMesh>(new PfxEmitterMesh(std::move(mdm)));
     return ret.get();
@@ -574,17 +599,14 @@ std::unique_ptr<Animation> Resources::implLoadAnimation(std::string name) {
   const auto* entry = Resources::vdfsIndex().find(name);
   if(entry == nullptr)
     return nullptr;
-  phoenix::buffer reader = entry->open();
 
-  if(FileExt::hasExt(name,"MSB")) {
-    auto p = phoenix::model_script::parse(reader);
-    return std::unique_ptr<Animation>{new Animation(p,name.substr(0,name.size()-4),false)};
+  if(FileExt::hasExt(name,"MSB") || FileExt::hasExt(name,"MDS")) {
+    zenkit::ModelScript mds;
+    auto reader = entry->open_read();
+    mds.load(reader.get());
+    return std::unique_ptr<Animation>{new Animation(mds,name.substr(0,name.size()-4),false)};
     }
 
-  if(FileExt::hasExt(name,"MDS")) {
-    auto p = phoenix::model_script::parse(reader);
-    return std::unique_ptr<Animation>{new Animation(p,name.substr(0,name.size()-4),true)};
-    }
   return nullptr;
   }
 
@@ -669,7 +691,7 @@ GthFont &Resources::implLoadFont(std::string_view name, FontType type) {
     return *f;
     }
 
-  auto ptr   = std::make_unique<GthFont>(entry->open(),tex,color);
+  auto ptr   = std::make_unique<GthFont>(entry->open_read().get(),tex,color);
   ptr->setScale(Gothic::options().interfaceScale);
   GthFont* f = ptr.get();
   gothicFnt[std::make_pair(std::move(cname),type)] = std::move(ptr);
@@ -855,9 +877,12 @@ const Resources::VobTree* Resources::implLoadVobBundle(std::string_view filename
     const auto* entry = Resources::vdfsIndex().find(cname);
     if(entry == nullptr)
       throw std::runtime_error("failed to open resource: " + cname);
-    auto reader = entry->open();
-    auto wrld = phoenix::world::parse(reader, Gothic::inst().version().game==1 ? phoenix::game_version::gothic_1
-                                                                               : phoenix::game_version::gothic_2);
+
+    zenkit::World wrld;
+
+    auto reader = entry->open_read();
+    wrld.load(reader.get(), Gothic::inst().version().game==1 ? phoenix::game_version::gothic_1
+                                                           : phoenix::game_version::gothic_2);
 
     bundle = std::move(wrld.world_vobs);
     }

@@ -215,10 +215,10 @@ LightGroup::LightGroup(const SceneGlobals& scene)
 
   try {
     auto filename = Gothic::nestedPath({u"_work", u"Data", u"Presets", u"LIGHTPRESETS.ZEN"}, Dir::FT_File);
-    auto buf = phoenix::buffer::mmap(filename);
-    auto zen = phoenix::archive_reader::open(buf);
+    auto buf = zenkit::Read::from(filename);
+    auto zen = zenkit::ReadArchive::from(buf.get());
 
-    phoenix::archive_object obj {};
+    zenkit::ArchiveObject obj {};
     auto count = zen->read_int();
     for(int i = 0; i < count; ++i) {
       zen->read_object_begin(obj);

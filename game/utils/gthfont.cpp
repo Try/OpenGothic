@@ -8,8 +8,9 @@ using namespace Tempest;
 GthFont::GthFont():pfnt(new phoenix::font("", 16, {})) {
   }
 
-GthFont::GthFont(phoenix::buffer data, std::string_view ftex, const Color &cl)
-  :pfnt(new phoenix::font(phoenix::font::parse(data))), color(cl) {
+GthFont::GthFont(zenkit::Read* data, std::string_view ftex, const Color &cl)
+  :pfnt(std::make_shared<zenkit::Font>()), color(cl) {
+  pfnt->load(data);
   tex = Resources::loadTexture(ftex);
   setScale(1);
   }
