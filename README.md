@@ -6,6 +6,8 @@ The goal of this project is to make a feature complete Gothic game client compat
 
 ----
 [![Latest build](https://img.shields.io/github/release-pre/Try/opengothic?style=for-the-badge)](https://github.com/Try/opengothic/releases/latest)
+[![](https://dcbadge.vercel.app/api/server/G9XvcFQnn6)](https://discord.gg/G9XvcFQnn6)
+
 ![Screenshoot](scr0.png)
 
 #### Work in progress
@@ -15,7 +17,7 @@ Development is focused on Gothic 2 and new features are not tested for Gothic 1 
 
 The original game has been replicated fully; you can complete both the main quest and the addon. Check out the [bugtracker](https://github.com/Try/OpenGothic/issues) for a list of known issues.
 
-OpenGothic is designed to utilize features of modern graphic hardware and api's like mesh shaders or ray tracing. Not mandatory but don't expect OpenGothic to run well on low-end or outdated graphic cards.
+OpenGothic is designed to utilize features of modern graphic hardware and api's like mesh shaders or ray tracing. While mesh-shader not mandatory, yet don't expect OpenGothic to run well on low-end or outdated graphic cards.
 
 #### Prerequisites
 
