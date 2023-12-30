@@ -9,6 +9,7 @@
 #include "scene.glsl"
 #include "common.glsl"
 
+layout(primitive_culling);
 layout(local_size_x = 64) in;
 
 const  uint samplesCount = 2;
