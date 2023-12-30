@@ -127,8 +127,6 @@ class MoveAlgo final {
     float   stepHeight()  const;
     float   slideAngle()  const;
     float   slideAngle2() const;
-    void    takeFallDamage() const;
-    void    takeDrownDamage() const;
 
     void    emitWaterSplash(float y);
 

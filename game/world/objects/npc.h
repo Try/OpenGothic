@@ -181,6 +181,7 @@ class Npc final {
     bool       isJumpAnim() const;
     bool       isFlyAnim() const;
     bool       isFalling() const;
+    bool       isFallingDeep() const;
     bool       isSlide() const;
     bool       isInAir() const;
     bool       isStanding() const;
@@ -271,6 +272,7 @@ class Npc final {
 
     bool      isEnemy(const Npc& other) const;
     bool      isDead() const;
+    bool      isLie() const;
     bool      isUnconscious() const;
     bool      isDown() const;
     bool      isAttack() const;
@@ -494,6 +496,8 @@ class Npc final {
     bool      hasAutoroll() const;
     void      stopWalkAnimation();
     void      takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32_t splId, bool isSpell);
+    void      takeFallDamage(const Tempest::Vec3& fallSpeed);
+    void      takeDrownDamage();
 
     void      dropTorch(bool burnout = false);
 

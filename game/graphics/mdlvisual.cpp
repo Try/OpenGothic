@@ -614,8 +614,9 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
     return nullptr;
 
   bool forceAnim=false;
-  if(a==AnimationSolver::Anim::DeadA || a==AnimationSolver::Anim::UnconsciousA ||
-     a==AnimationSolver::Anim::DeadB || a==AnimationSolver::Anim::UnconsciousB) {
+  if(a==AnimationSolver::Anim::DeadA        || a==AnimationSolver::Anim::DeadB ||
+     a==AnimationSolver::Anim::UnconsciousA || a==AnimationSolver::Anim::UnconsciousB ||
+     a==AnimationSolver::Anim::FallDeepA    || a==AnimationSolver::Anim::FallDeepB) {
     skInst->stopAllAnim();
     forceAnim = true;
     }
@@ -629,6 +630,8 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
       bs = BS_NONE;
       break;
     case AnimationSolver::Anim::Fallen:
+    case AnimationSolver::Anim::FallenA:
+    case AnimationSolver::Anim::FallenB:
       bs = BS_LIE;
       break;
     case AnimationSolver::Anim::Idle:
@@ -651,6 +654,8 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
       break;
     case AnimationSolver::Anim::Fall:
     case AnimationSolver::Anim::FallDeep:
+    case AnimationSolver::Anim::FallDeepA:
+    case AnimationSolver::Anim::FallDeepB:
       bs = BS_FALL;
       break;
     case AnimationSolver::Anim::Jump:

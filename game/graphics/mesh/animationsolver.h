@@ -30,6 +30,8 @@ class AnimationSolver final {
       RotR,
       Fall,
       FallDeep,
+      FallDeepA,
+      FallDeepB,
 
       Jump,
       JumpUpLow,
@@ -37,6 +39,8 @@ class AnimationSolver final {
       JumpUp,
       JumpHang,
       Fallen,
+      FallenA,
+      FallenB,
       SlideA,
       SlideB,
 

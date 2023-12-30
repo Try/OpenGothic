@@ -912,7 +912,7 @@ void PlayerControl::implMove(uint64_t dt) {
       }
 
     if(bs==BS_LIE) {
-      ani = (ani==Npc::Anim::Move) ? Npc::Anim::Idle : Npc::Anim::Fallen;
+      ani = (ani==Npc::Anim::Move) ? Npc::Anim::Idle : Npc::Anim::NoAnim;
       rot = pl.rotation();
       }
 

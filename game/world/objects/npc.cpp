@@ -1007,6 +1007,10 @@ bool Npc::isFalling() const {
   return mvAlgo.isFalling();
   }
 
+bool Npc::isFallingDeep() const {
+  return mvAlgo.isInAir() && (visual.pose().isInAnim("S_FALL") || visual.pose().isInAnim("S_FALLB"));
+  }
+
 bool Npc::isSlide() const {
   return mvAlgo.isSlide();
   }
@@ -1404,7 +1408,8 @@ bool Npc::implAttack(uint64_t dt) {
   if(!fghAlgo.hasInstructions())
     return false;
 
-  if(bodyStateMasked()==BS_STUMBLE) {
+  const auto bs = bodyStateMasked();
+  if(bs==BS_STUMBLE || bs==BS_LIE || isInAir()) {
     mvAlgo.tick(dt,MoveAlgo::FaiMove);
     return true;
     }
@@ -1446,7 +1451,6 @@ bool Npc::implAttack(uint64_t dt) {
 
   if(act==FightAlgo::MV_ATTACK || act==FightAlgo::MV_ATTACKL || act==FightAlgo::MV_ATTACKR) {
     if(!canSeeNpc(*currentTarget,false)) {
-      const auto bs = bodyStateMasked();
       if(bs==BS_RUN)
         setAnim(Npc::Anim::Idle); else
         adjustAttackRotation(dt);
@@ -1504,7 +1508,6 @@ bool Npc::implAttack(uint64_t dt) {
         }
       }
     else if(ws==WeaponState::Fist) {
-      const auto bs = bodyStateMasked();
       if(doAttack(Anim::Attack,BS_HIT) || mvAlgo.isSwim() || mvAlgo.isDive()) {
         uint64_t aniTime = visual.pose().atkTotalTime()+1;
         implFaiWait(aniTime);
@@ -1514,7 +1517,6 @@ bool Npc::implAttack(uint64_t dt) {
         }
       }
     else {
-      const auto bs = bodyStateMasked();
       if(doAttack(ani[act-FightAlgo::MV_ATTACK],BS_HIT)) {
         uint64_t aniTime = visual.pose().atkTotalTime()+1;
         implFaiWait(aniTime);
@@ -1686,6 +1688,9 @@ bool Npc::implAiFlee(uint64_t dt) {
   if(currentTarget==nullptr)
     return true;
 
+  if(isFalling())
+    return true;
+
   auto& oth = *currentTarget;
 
   const WayPoint* wp      = nullptr;
@@ -1833,7 +1838,10 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
         visual.setAnimRotate(*this,0);
         visual.interrupt(); // TODO: put down in pipeline, at Pose and merge with setAnimAngGet
         }
-      setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB);
+
+      if(damageType & (1<<phoenix::damage_type::fly))
+        setAnimAngGet(lastHitType=='A' ? Anim::FallDeepA : Anim::FallDeepB); else
+        setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB);
       }
     }
 
@@ -1857,8 +1865,37 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
       }
     }
 
-  if(damageType & (1<<phoenix::damage_type::fly))
+  if((damageType & (1<<phoenix::damage_type::fly)) && !isLie()) {
     mvAlgo.accessDamFly(x-other.x,z-other.z); // throw enemy
+    }
+  }
+
+void Npc::takeFallDamage(const Vec3& fallSpeed) {
+  if(bodyStateMasked()==BS_FALL) {
+    if(!isFallingDeep()) {
+      // small fall
+      setAnim(Anim::Idle);
+      } else {
+      const float a  = angleDir(-fallSpeed.x,-fallSpeed.z);
+      const float da = a-angle;
+      if(std::cos(da*M_PI/180.0)<0 || Vec2(fallSpeed.x,fallSpeed.z).length()<0.1f)
+        lastHitType='A'; else
+        lastHitType='B';
+      setAnim(lastHitType=='A' ? Anim::FallenA : Anim::FallenB);
+      }
+    }
+  auto dmg = DamageCalculator::damageFall(*this,fallSpeed.length());
+  if(!dmg.hasHit)
+    return;
+  int32_t hp = attribute(ATR_HITPOINTS);
+  if(hp>dmg.value) {
+    emitSoundSVM("SVM_%d_AARGH");
+    }
+  changeAttribute(ATR_HITPOINTS,-dmg.value,false);
+  }
+
+void Npc::takeDrownDamage() {
+  changeAttribute(Attribute::ATR_HITPOINTS, -attribute(Attribute::ATR_HITPOINTSMAX), false);
   }
 
 Npc *Npc::updateNearestEnemy() {
@@ -2071,6 +2108,12 @@ void Npc::tick(uint64_t dt) {
     }
 
   if(!isDown()) {
+    if(bodyStateMasked()==BS_LIE && !isPlayer()) {
+      setAnim(Npc::Anim::Idle);
+      mvAlgo.tick(dt,MoveAlgo::WaitMove);
+      return;
+      }
+
     implLookAtNpc(dt);
     implLookAtWp(dt);
 
@@ -3141,7 +3184,8 @@ bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
   }
 
 bool Npc::isRotationAllowed() const {
-  return currentInteract==nullptr && !isFinishingMove() && bodyStateMasked()!=BS_CLIMB;
+  auto bs = bodyStateMasked();
+  return currentInteract==nullptr && !isFinishingMove() && bs!=BS_CLIMB && bs!=BS_LIE && !isFallingDeep();
   }
 
 bool Npc::checkGoToNpcdistance(const Npc &other) {
@@ -3660,6 +3704,10 @@ bool Npc::isEnemy(const Npc &other) const {
 
 bool Npc::isDead() const {
   return owner.script().isDead(*this);
+  }
+
+bool Npc::isLie() const {
+  return bodyStateMasked()==BS_LIE;
   }
 
 bool Npc::isUnconscious() const {
@@ -4185,7 +4233,7 @@ bool Npc::canSeeItem(const Item& it, bool freeLos) const {
 
 bool Npc::isAlignedToGround() const {
   auto gl = guild();
-  return (owner.script().guildVal().surface_align[gl]!=0) || isDead();
+  return (owner.script().guildVal().surface_align[gl]!=0) || isDead() || isLie();
   }
 
 Vec3 Npc::groundNormal() const {
