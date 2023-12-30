@@ -940,7 +940,7 @@ Camera::Mode MainWindow::solveCameraMode() const {
       return Camera::Dive;
     if(pl->isSwim())
       return Camera::Swim;
-    if(pl->isFalling())
+    if(pl->isFallingDeep())
       return Camera::Fall;
     bool g2 = Gothic::inst().version().game==2;
     switch(pl->weaponState()){
