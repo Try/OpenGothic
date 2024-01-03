@@ -2108,7 +2108,7 @@ void Npc::tick(uint64_t dt) {
     }
 
   if(!isDown()) {
-    if(bodyStateMasked()==BS_LIE && !isPlayer()) {
+    if(bodyStateMasked()==BS_LIE && currentInteract==nullptr && !isPlayer()) {
       setAnim(Npc::Anim::Idle);
       mvAlgo.tick(dt,MoveAlgo::WaitMove);
       return;
@@ -2323,7 +2323,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         auto pos = inter->nearestPoint(*this);
         auto dp  = pos-position();
         dp.y = 0;
-        if(dp.quadLength()>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) { // too far
+        if(currentInteract==nullptr && dp.quadLength()>MAX_AI_USE_DISTANCE*MAX_AI_USE_DISTANCE) { // too far
           go2.set(pos);
           // go to MOBSI and then complete AI_UseMob
           queue.pushFront(std::move(act));
@@ -2336,7 +2336,10 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
 
       if(currentInteract==nullptr || currentInteract->stateId()!=act.i0) {
         queue.pushFront(std::move(act));
+        return;
         }
+
+      go2.clear();
       break;
       }
     case AI_UseItem: {
