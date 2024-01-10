@@ -140,10 +140,16 @@ Executables can be located at `OpenGothic/build/opengothic`.
 
 ## Available Graphic options
 
-*  SSAO (mapped to `Cloud Shadows`)
-*  Volumetric fog (mapped to `Radial Fog`)
-*  Reflections
-*  Ray tracing (commandline option, setting affects only capable hardware, off by default for igpu's, add `-rt 1` to enable)
+Game menu in gothic is done by scripting. While orignal graphics settings do not apply to current-gen graphics, engine redefines meaning for some of tweakables:
+
+* `Settings` -> `Extended configuration`
+  *  `Cloud Shadows` mapped to SSAO.
+  *  `Radial Fog` mapped to "Volumetric fog"
+  *  `Reflections` reused, for screen space reflections
+* `Settings` -> `Video settings`
+  *  Internal rendering resolution, for 3D, can be altered here. UI and text is always rendered at full resolution.
+* Application command line:
+  *  Ray tracing: setting affects only capable hardware, off by default for igpu's, add `-rt 1` to enable
 
 Rendering distance is not customizable.
 
