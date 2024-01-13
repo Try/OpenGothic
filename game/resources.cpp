@@ -431,13 +431,14 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     FileExt::exchangeExt(mesh,nullptr,"MDM") ||
     FileExt::exchangeExt(mesh,"ASC",  "MDM");
 
-    if(anim->defaultMesh().empty())
-      mesh = name;
-    FileExt::assignExt(mesh,"MDH");
+    auto mdhName = std::string(anim->defaultMesh());
+    if(mdhName.empty())
+      mdhName = name;
+    FileExt::assignExt(mdhName,"MDH");
 
-    const auto* entry = Resources::vdfsIndex().find(mesh);
+    const auto* entry = Resources::vdfsIndex().find(mdhName);
     if(entry==nullptr)
-      throw std::runtime_error("failed to open resource: " + mesh);
+      throw std::runtime_error("failed to open resource: " + mdhName);
 
     zenkit::ModelHierarchy mdh;
     auto reader = entry->open_read();
