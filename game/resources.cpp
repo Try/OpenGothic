@@ -315,7 +315,7 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
         auto dds = zenkit::to_dds(tex);
         auto ddsRead = zenkit::Read::from(dds);
 
-        auto t = implLoadTexture(cache, std::string(cname), ddsRead.get());
+        auto t = implLoadTexture(cache, std::string(cname), *ddsRead);
         if(t!=nullptr)
           return t;
         } else {
@@ -338,20 +338,20 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
 
   if(auto* entry = Resources::vdfsIndex().find(cname)) {
     auto reader = entry->open_read();
-    return implLoadTexture(cache,std::string(cname),reader.get());
+    return implLoadTexture(cache,std::string(cname),*reader);
     }
 
   cache[name]=nullptr;
   return nullptr;
   }
 
-Texture2d *Resources::implLoadTexture(TextureCache& cache, std::string&& name, zenkit::Read* data) {
+Texture2d *Resources::implLoadTexture(TextureCache& cache, std::string&& name, zenkit::Read& data) {
   try {
     std::vector<uint8_t> raw;
-    data->seek(0, zenkit::Whence::END);
-    raw.resize(data->tell());
-    data->seek(0, zenkit::Whence::BEG);
-    data->read(raw.data(), raw.size());
+    data.seek(0, zenkit::Whence::END);
+    raw.resize(data.tell());
+    data.seek(0, zenkit::Whence::BEG);
+    data.read(raw.data(), raw.size());
 
     Tempest::MemReader rd((uint8_t*)raw.data(), raw.size());
     Tempest::Pixmap    pm(rd);
@@ -426,19 +426,10 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
     if(anim==nullptr)
       return nullptr;
 
-    std::optional<zenkit::ModelMesh> mdm {};
-
     auto mesh   = std::string(anim->defaultMesh());
 
     FileExt::exchangeExt(mesh,nullptr,"MDM") ||
     FileExt::exchangeExt(mesh,"ASC",  "MDM");
-
-    if(hasFile(mesh)) {
-      const auto* entry = Resources::vdfsIndex().find(mesh);
-      auto reader = entry->open_read();
-      mdm.emplace();
-      mdm->load(reader.get());
-      }
 
     if(anim->defaultMesh().empty())
       mesh = name;
@@ -454,10 +445,17 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
 
     std::unique_ptr<Skeleton> sk{new Skeleton(mdh,anim,name)};
     std::unique_ptr<ProtoMesh> t;
-    if(mdm)
-      t.reset(new ProtoMesh(std::move(*mdm),std::move(sk),name));
+
+    if(const auto* entry = Resources::vdfsIndex().find(mesh)) {
+      auto reader = entry->open_read();
+
+      zenkit::ModelMesh mdm {};
+      mdm.load(reader.get());
+      t.reset(new ProtoMesh(mdm,std::move(sk),name));
+      }
     else
-      t.reset(new ProtoMesh(std::move(mdh),std::move(sk),name));
+      t.reset(new ProtoMesh(mdh,std::move(sk),name));
+
     return t;
     }
 
