@@ -51,6 +51,8 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define L_GDepth   11
 #define L_HiZ      12
 #define L_SkyLut   13
+#define L_Payload  14
+#define L_Sampler  15
 
 #define PfxOrientationNone       0
 #define PfxOrientationVelocity   1
@@ -134,7 +136,25 @@ struct Payload {
   //uvec4 offsets;
   };
 
-#if (MESH_TYPE==T_LANDSCAPE)
+struct IndirectCmd {
+  uint vertexCount;
+  uint instanceCount;
+  uint firstVertex;
+  uint firstInstance;
+  uint writeOffset;
+  };
+
+struct LandscapeCluster {
+  vec4  sphere;
+  uint  bucketId;
+  };
+
+#if defined(CLUSTER)
+layout(push_constant, std430) uniform UboPush {
+  uint      firstMeshlet;
+  int       meshletCount;
+  } push;
+#elif (MESH_TYPE==T_LANDSCAPE)
 layout(push_constant, std430) uniform UboPush {
   uint      firstMeshlet;
   int       meshletCount;
@@ -156,7 +176,7 @@ layout(binding = L_Scene, std140) uniform UboScene {
   SceneDesc scene;
   };
 
-#if defined(LVL_OBJECT) && (defined(GL_VERTEX_SHADER) || defined(MESH) || defined(TASK))
+#if defined(LVL_OBJECT) && (defined(GL_VERTEX_SHADER) || defined(MESH) || defined(TASK) || defined(CLUSTER))
 // NOTE: need to support binding overlap
 layout(binding = L_Matrix, std430) readonly buffer InstanceMem { uint instanceMem[]; };
 
@@ -224,8 +244,8 @@ vec3 pullPosition(uint instanceId) {
   }
 #endif
 
-#if (MESH_TYPE==T_LANDSCAPE) && (defined(GL_VERTEX_SHADER) || defined(MESH) || defined(TASK))
-layout(binding = L_MeshDesc, std430) readonly buffer Inst   { vec4 bounds[]; };
+#if (MESH_TYPE==T_LANDSCAPE) && (defined(TASK) || defined(CULL))
+layout(binding = L_MeshDesc, std430) readonly buffer Inst { LandscapeCluster clusters[]; };
 #endif
 
 #if (defined(LVL_OBJECT) || defined(WATER))
@@ -237,15 +257,24 @@ layout(binding = L_Bucket, std140) uniform BucketDesc {
   float alphaWeight;
   float envMapping;
   } bucket;
+#elif (MESH_TYPE==T_LANDSCAPE)
+layout(binding = L_Bucket, std430) buffer BucketDesc {
+  IndirectCmd cmd[];
+  };
 #endif
 
-#if defined(MESH) || defined(TASK)
+#if defined(MESH) || defined(CLUSTER)
 layout(binding = L_Ibo, std430) readonly buffer Ibo  { uint  indexes []; };
 layout(binding = L_Vbo, std430) readonly buffer Vbo  { float vertices[]; };
 #endif
 
 #if defined(GL_FRAGMENT_SHADER) && !(defined(DEPTH_ONLY) && !defined(ATEST))
+#  if defined(BINDLESS)
+layout(binding = L_Diffuse) uniform texture2D textureD[];
+layout(binding = L_Sampler) uniform sampler   samplerMain;
+#  else
 layout(binding = L_Diffuse) uniform sampler2D textureD;
+  #endif
 #endif
 
 #if defined(GL_FRAGMENT_SHADER) && defined(FORWARD) && !defined(DEPTH_ONLY)
@@ -273,8 +302,14 @@ layout(binding = L_SceneClr) uniform sampler2D sceneColor;
 layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
 #endif
 
-#if (defined(MESH) || defined(TASK)) && !defined(SHADOW_MAP)
+#if (defined(TASK) || defined(CULL)) && !defined(SHADOW_MAP)
 layout(binding = L_HiZ)  uniform sampler2D hiZ;
+#endif
+
+#if defined(CULL) || defined(CLUSTER)
+layout(binding = L_Payload, std430) buffer SsboGlob {
+  uint meshlets[];
+  } globalPayload;
 #endif
 
 #endif

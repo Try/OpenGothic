@@ -87,6 +87,25 @@ Shaders::Shaders() {
 
   stash   = postEffect("stash");
 
+  clusterInit = computeShader("cluster_init.comp.sprv");
+  clusterTask = computeShader("cluster_task.comp.sprv");
+  {
+    RenderState state;
+    state.setCullFaceMode (RenderState::CullMode::Front);
+    state.setZTestMode    (RenderState::ZTestMode::Less);
+    state.setZWriteEnabled(true);
+
+    auto sh = GothicShader::get("cluster_vert.vert.sprv");
+    auto vs = device.shader(sh.data,sh.len);
+    sh      = GothicShader::get("gbuffer.frag.sprv");
+    auto fs = device.shader(sh.data,sh.len);
+    clusterGBuf = device.pipeline(Triangles, state, vs, fs);
+
+    sh = GothicShader::get("gbuffer_at.frag.sprv");
+    fs = device.shader(sh.data,sh.len);
+    clusterGBufAt = device.pipeline(Triangles, state, vs, fs);
+  }
+
   ssao             = computeShader("ssao.comp.sprv");
   ssaoBlur         = computeShader("ssao_blur.comp.sprv");
 
@@ -165,7 +184,7 @@ Shaders::Shaders() {
 
   tonemapping = postEffect("tonemapping", "tonemapping", RenderState::ZTestMode::Always);
 
-  if(meshlets) {
+  if(meshlets || 1) {
     hiZPot    = computeShader("hiz_pot.comp.sprv");
     if(device.properties().hasAtomicFormat(TextureFormat::R32U))
       hiZMip = computeShader("hiz_mip_img.comp.sprv"); else

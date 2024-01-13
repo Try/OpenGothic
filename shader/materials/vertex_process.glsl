@@ -3,7 +3,7 @@
 
 #include "common.glsl"
 
-#if defined(GL_VERTEX_SHADER)
+#if defined(GL_VERTEX_SHADER) && !defined(CLUSTER)
 #if (MESH_TYPE==T_SKINING)
 layout(location = 0) in vec3 inNormal;
 layout(location = 1) in vec2 inUV;
@@ -20,14 +20,14 @@ layout(location = 8) in vec4 inWeight;
 layout(location = 0) in vec3 inPos;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inUV;
-layout(location = 3) in uint inColor;
+layout(location = 3) in uint inTextureId;
 #endif
 #endif
 
 struct Vertex {
 #if (MESH_TYPE==T_LANDSCAPE) || (MESH_TYPE==T_OBJ) || (MESH_TYPE==T_MORPH)
   vec3  pos;
-  uint  color;
+  uint  textureId;
   vec3  normal;
   vec2  uv;
 #elif(MESH_TYPE==T_SKINING)
@@ -61,7 +61,7 @@ Vertex pullVertex(uint id) {
   ret.dir    = pfx[id].dir;
   ret.uv     = vec2(0);
   ret.normal = vec3(0);
-#elif   (MESH_TYPE==T_SKINING) && defined(GL_VERTEX_SHADER)
+#elif   (MESH_TYPE==T_SKINING) && defined(GL_VERTEX_SHADER) && !defined(CLUSTER)
   ret.normal = inNormal;
   ret.uv     = inUV;
   ret.color  = inColor;
@@ -82,17 +82,17 @@ Vertex pullVertex(uint id) {
   ret.pos3   = vec3(vertices[id + 15], vertices[id + 16], vertices[id + 17]);
   ret.boneId = uvec4(unpackUnorm4x8(floatBitsToUint(vertices[id + 18]))*255.0);
   ret.weight = vec4(vertices[id + 19], vertices[id + 20], vertices[id + 21], vertices[id + 22]);
-#elif  defined(GL_VERTEX_SHADER)
-  ret.pos    = inPos;
-  ret.normal = inNormal;
-  ret.uv     = inUV;
-  ret.color  = inColor;
+#elif  defined(GL_VERTEX_SHADER) && !defined(CLUSTER)
+  ret.pos        = inPos;
+  ret.normal     = inNormal;
+  ret.uv         = inUV;
+  ret.textureId  = inTextureId;
 #elif  defined(MESH)
   id *= 9;
-  ret.pos    = vec3(vertices[id + 0], vertices[id + 1], vertices[id + 2]);
-  ret.normal = vec3(vertices[id + 3], vertices[id + 4], vertices[id + 5]);
-  ret.uv     = vec2(vertices[id + 6], vertices[id + 7]);
-  ret.color  = floatBitsToUint(vertices[id + 8]);
+  ret.pos       = vec3(vertices[id + 0], vertices[id + 1], vertices[id + 2]);
+  ret.normal    = vec3(vertices[id + 3], vertices[id + 4], vertices[id + 5]);
+  ret.uv        = vec2(vertices[id + 6], vertices[id + 7]);
+  ret.textureId = floatBitsToUint(vertices[id + 8]);
 #endif
   return ret;
   }

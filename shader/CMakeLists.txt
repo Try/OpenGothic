@@ -154,6 +154,12 @@ add_uber_shader(ani "-DMESH_TYPE=2")
 add_uber_shader(mph "-DMESH_TYPE=3")
 add_uber_shader(pfx "-DMESH_TYPE=4")
 
+add_shader(cluster_init.comp         materials/cluster_init.comp)
+add_shader(cluster_task.comp         materials/cluster_task.comp "-DMESH_TYPE=0")
+add_shader(cluster_vert.vert         materials/cluster_vert.vert "-DMESH_TYPE=0" -DBINDLESS)
+add_shader(gbuffer.frag              materials/main.frag         "-DMESH_TYPE=0" -DBINDLESS -DGBUFFER)
+add_shader(gbuffer_at.frag           materials/main.frag         "-DMESH_TYPE=0" -DBINDLESS -DGBUFFER -DATEST)
+
 add_shader(item.vert                 inventory/item.vert)
 add_shader(item.frag                 inventory/item.frag)
 

@@ -4,26 +4,26 @@
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_EXT_control_flow_attributes : enable
 
-#extension GL_EXT_mesh_shader : require
-
 #include "scalar_ops.glsl"
 
-#define TASK
+#define CULL
 #include "materials_common.glsl"
 
-layout(local_size_x = WORKGROUP_SIZE) in;
+layout(local_size_x = 64) in;
 
-taskPayloadSharedEXT Payload payload;
-shared               uint    visibleCount;
+shared uint visibleCount;
+shared uint writeOffset;
+
+#if (MESH_TYPE==T_LANDSCAPE)
+LandscapeCluster cluster;
+#endif
+
+LandscapeCluster pullCluster(const uint instanceId) {
+  return clusters[instanceId + push.firstMeshlet];
+  }
 
 bool sphereTest(const uint instanceId) {
-#if (MESH_TYPE==T_LANDSCAPE)
-  const vec4 sphere = clusters[instanceId + push.firstMeshlet].sphere;
-#elif (MESH_TYPE==T_PFX)
-  const vec4 sphere = vec4(0);
-#else
-  const vec4 sphere = vec4(pullPosition(instanceId), bucket.bboxRadius);
-#endif
+  const vec4 sphere = cluster.sphere;
   if(sphere.w<0.f)
     return false;
 
@@ -64,8 +64,8 @@ bool bboxTest(const uint instanceId) {
   const vec3  b[2]   = {bucket.bbox[0].xyz, bucket.bbox[1].xyz};
   Instance    obj    = pullInstance(instanceId);
 #else
-  const vec3  objPos = clusters[instanceId + push.firstMeshlet].sphere.xyz;
-  const float R      = clusters[instanceId + push.firstMeshlet].sphere.w;
+  const vec3  objPos = cluster.sphere.xyz;
+  const float R      = cluster.sphere.w;
   const vec3  b[2]   = { objPos-vec3(R), objPos+vec3(R) };
 #endif
 
@@ -146,22 +146,47 @@ bool isVisible(const uint instanceId) {
 
 void main() {
 #if defined(LVL_OBJECT)
-  const uint meshletSz = push.meshletCount;
+  const uint meshletSz  = push.meshletCount;
+  const uint instanceId = gl_GlobalInvocationID.x;
 #else
-  const uint meshletSz = 1;
+  const uint meshletSz  = 1;
+  const uint instanceId = gl_GlobalInvocationID.x;
 #endif
 
-  const bool visible = isVisible(gl_GlobalInvocationID.x);
+#if (MESH_TYPE==T_LANDSCAPE)
+  if(instanceId<push.meshletCount)
+    cluster = pullCluster(instanceId);
+#elif (MESH_TYPE==T_PFX)
+  cluster.sphere = vec4(0);
+#else
+  if(instanceId<push.instanceCount)
+    cluster.sphere = vec4(pullPosition(instanceId), bucket.bboxRadius);
+#endif
 
+  const bool visible = isVisible(instanceId);
+  if(visible) {
+    uint writeOffset =  cmd[cluster.bucketId].writeOffset;
+    writeOffset      += atomicAdd(cmd[cluster.bucketId].instanceCount, 1);
+    globalPayload.meshlets[writeOffset] = gl_GlobalInvocationID.x;
+    }
+
+  /*
   visibleCount = 0;
   barrier();
 
-  if(visible) {
-    uint id = atomicAdd(visibleCount, 1);
-    payload.offsets[id] = gl_GlobalInvocationID.x;
+  uint id = -1;
+  if(visible)
+    id = atomicAdd(visibleCount, 1);
+  barrier();
+
+  if(gl_LocalInvocationIndex==0) {
+    writeOffset =  globalPayload.cmd[cluster.bucketId].writeOffset;
+    writeOffset += atomicAdd(globalPayload.cmd[cluster.bucketId].instanceCount, visibleCount);
     }
   barrier();
 
-  //payload.baseId = gl_GlobalInvocationID.x;
-  EmitMeshTasksEXT(meshletSz, visibleCount, 1);
+  if(visible) {
+    globalPayload.meshlets[writeOffset + id] = gl_GlobalInvocationID.x;
+    }
+    */
   }

@@ -48,6 +48,10 @@ class Shaders {
     Tempest::ComputePipeline hiZPot, hiZMip;
     Tempest::RenderPipeline  hiZReproj;
 
+    // Cluster
+    Tempest::ComputePipeline clusterInit, clusterTask;
+    Tempest::RenderPipeline  clusterGBuf, clusterGBufAt;
+
     // GI
     Tempest::RenderPipeline  probeDbg;
     Tempest::ComputePipeline probeInit, probeClear, probeClearHash, probeMakeHash;

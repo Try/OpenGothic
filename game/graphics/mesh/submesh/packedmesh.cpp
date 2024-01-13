@@ -4,7 +4,6 @@
 #include <Tempest/Log>
 #include <fstream>
 #include <algorithm>
-#include <unordered_set>
 
 #include "game/compatibility/phoenix.h"
 #include "gothic.h"
@@ -87,14 +86,16 @@ struct PackedMesh::PrimitiveHeap {
 void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices,
                                 std::vector<uint32_t>& indices,
                                 std::vector<uint8_t>& indices8,
-                                std::vector<Bounds>& instances,
-                                const phoenix::mesh& mesh) {
+                                std::vector<Cluster>& instances,
+                                const phoenix::mesh& mesh,
+                                uint32_t mId) {
   if(indSz==0)
     return;
 
   if(!validate())
     return;
 
+  bounds.bucketId = mId;
   instances.push_back(bounds);
 
   auto& vbo = mesh.vertices;  // xyz
@@ -114,7 +115,7 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices,
     vx.norm[2] = v.normal.z;
     vx.uv[0]   = v.texture.x;
     vx.uv[1]   = v.texture.y;
-    vx.color   = 0xFF; //TODO: materialId // v.light;
+    vx.color   = mId;
     vertices[vboSz+i] = vx;
     }
   for(size_t i=vertSz; i<MaxVert; ++i) {
@@ -132,7 +133,7 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices,
     indices[iboSz+i] = uint32_t(vboSz+indSz/3);
     }
 
-  if(Gothic::options().doMeshShading) {
+  if(Gothic::options().doMeshShading || true) {
     size_t iboSz8 = indices8.size();
     indices8.resize(iboSz8 + MaxPrim*4);
     for(size_t i=0; i<indSz; i+=3) {
@@ -584,7 +585,7 @@ void PackedMesh::packMeshletsLnd(const phoenix::mesh& mesh) {
     pack.material  = mesh.materials[mId];
     pack.iboOffset = indices.size();
     for(auto& i:meshlets)
-      i.flush(vertices,indices,indices8,meshletBounds,mesh);
+      i.flush(vertices,indices,indices8,meshletBounds,mesh,uint32_t(subMeshes.size()));
     pack.iboLength = indices.size() - pack.iboOffset;
     if(pack.iboLength>0)
       subMeshes.push_back(std::move(pack));

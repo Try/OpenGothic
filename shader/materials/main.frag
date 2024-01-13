@@ -3,13 +3,20 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : enable
 
+#if defined(BINDLESS)
+#extension GL_EXT_nonuniform_qualifier : enable
+#endif
+
 #include "materials_common.glsl"
 #include "water/gerstner_wave.glsl"
 #include "lighting/shadow_sampling.glsl"
 #include "lighting/tonemapping.glsl"
 
-#if defined(MAT_VARYINGS)
-layout(location = 0) in Varyings shInp;
+#if defined(BINDLESS) && defined(MAT_VARYINGS)
+layout(location = 0) in flat uint textureId;
+layout(location = 1) in Varyings  shInp;
+#elif defined(MAT_VARYINGS)
+layout(location = 0) in Varyings  shInp;
 #endif
 
 #if DEBUG_DRAW
@@ -76,7 +83,12 @@ vec4 diffuseTex() {
 #else
   const vec2 uv = shInp.uv;
 #endif
+
+#if defined(BINDLESS)
+  vec4 tex = texture(sampler2D(textureD[nonuniformEXT(textureId)], samplerMain),uv);
+#else
   vec4 tex = texture(textureD,uv);
+#endif
 
 #if defined(LVL_OBJECT)
   tex.a *= bucket.alphaWeight;

@@ -51,9 +51,10 @@ class WorldView {
     bool updateRtScene();
 
     void visibilityPass(const Frustrum fr[]);
+    void visibilityPass (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, uint8_t layer);
-    void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, uint8_t pass);
     void drawSky        (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void drawSunMoon    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void drawFog        (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
@@ -71,6 +72,7 @@ class WorldView {
 
     const SceneGlobals&  sceneGlobals() const { return sGlobal; }
     const Sky&           sky() const { return gSky; }
+    const Landscape&     landscape() const { return land; }
 
   private:
     const World&  owner;
