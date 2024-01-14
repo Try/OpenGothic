@@ -7,7 +7,7 @@
 using namespace Tempest;
 
 VisualObjects::VisualObjects(const SceneGlobals& globals, const std::pair<Vec3, Vec3>& bbox)
-  : globals(globals), visGroup(bbox) {
+    : globals(globals), visGroup(bbox), drawMem(globals) {
   }
 
 VisualObjects::~VisualObjects() {
@@ -72,6 +72,12 @@ ObjectsBucket::Item VisualObjects::get(const Material& mat) {
   return ObjectsBucket::Item(bucket,id);
   }
 
+DrawStorage::Item VisualObjects::getDr(const StaticMesh& mesh, const Material& mat,
+                                       size_t iboOff, size_t iboLen, const Tempest::StorageBuffer& desc,
+                                       DrawStorage::Type bucket) {
+  return drawMem.alloc(mesh, mat, iboOff, iboLen, desc, bucket);
+  }
+
 InstanceStorage::Id VisualObjects::alloc(size_t size) {
   return instanceMem.alloc(size);
   }
@@ -85,6 +91,7 @@ const Tempest::StorageBuffer& VisualObjects::instanceSsbo() const {
   }
 
 void VisualObjects::prepareUniforms() {
+  drawMem.prepareUniforms();
   for(auto& c:buckets)
     c->prepareUniforms();
   }
@@ -97,6 +104,10 @@ void VisualObjects::preFrameUpdate(uint8_t fId) {
 
 void VisualObjects::visibilityPass(const Frustrum fr[]) {
   visGroup.pass(fr);
+  }
+
+void VisualObjects::visibilityPass (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId) {
+  drawMem.visibilityPass(cmd, fId);
   }
 
 void VisualObjects::drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {
@@ -117,7 +128,12 @@ void VisualObjects::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& enc, uin
     }
   }
 
-void VisualObjects::drawGBuffer(Tempest::Encoder<CommandBuffer>& enc, uint8_t fId) {
+void VisualObjects::drawGBuffer(Tempest::Encoder<CommandBuffer>& enc, uint8_t fId, uint8_t pass) {
+  if(pass==0) {
+    drawMem.drawGBuffer(enc, fId);
+    return;
+    }
+
   for(size_t i=0;i<lastSolidBucket;++i) {
     auto c = index[i];
     c->drawGBuffer(enc,fId);
@@ -125,6 +141,8 @@ void VisualObjects::drawGBuffer(Tempest::Encoder<CommandBuffer>& enc, uint8_t fI
   }
 
 void VisualObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer) {
+  drawMem.drawShadow(enc, fId, layer);
+
   for(size_t i=0;i<lastSolidBucket;++i) {
     auto c = index[i];
     c->drawShadow(enc,fId,layer);

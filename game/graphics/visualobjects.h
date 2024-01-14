@@ -3,6 +3,7 @@
 #include <Tempest/Signal>
 
 #include "objectsbucket.h"
+#include "drawstorage.h"
 
 class SceneGlobals;
 class RtScene;
@@ -26,6 +27,10 @@ class VisualObjects final {
                             const InstanceStorage::Id& anim);
     ObjectsBucket::Item get(const Material& mat);
 
+    DrawStorage::Item   getDr(const StaticMesh& mesh, const Material& mat,
+                              size_t iboOff, size_t iboLen, const Tempest::StorageBuffer& desc,
+                              DrawStorage::Type bucket);
+
     InstanceStorage::Id alloc(size_t size);
     bool                realloc(InstanceStorage::Id& id, size_t size);
     auto                instanceSsbo() const -> const Tempest::StorageBuffer&;
@@ -36,10 +41,11 @@ class VisualObjects final {
     void postFrameupdate();
 
     void visibilityPass (const Frustrum fr[]);
+    void visibilityPass (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
 
     void drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
     void drawWater      (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
-    void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
+    void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, uint8_t pass);
     void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer);
     void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
 
@@ -56,6 +62,7 @@ class VisualObjects final {
     const SceneGlobals&                         globals;
     VisibilityGroup                             visGroup;
     InstanceStorage                             instanceMem;
+    DrawStorage                                 drawMem;
 
     std::vector<std::unique_ptr<ObjectsBucket>> buckets;
     std::vector<ObjectsBucket*>                 index;

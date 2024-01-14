@@ -59,8 +59,6 @@ vec4  processVertex(out Varyings var, uint instanceOffset, const uint meshletId,
   const Vertex vert = pullVertex(vboOffset);
 #endif
 
-  textureId = vert.textureId;
-
   vec4 position = processVertex(var, vert, instanceOffset, vboOffset);
   // position.y = -position.y;
   return position;
@@ -80,12 +78,6 @@ uvec2 pullPayload() {
 
 #if defined(GL_VERTEX_SHADER)
 void vertexShader() {
-  /*
-  if(gl_InstanceIndex>=globalPayload.instanceCount) {
-    gl_Position = vec4(-1);
-    return;
-    }
-  */
   const uvec2 pl         = pullPayload();
   const uint  instanceId = pl.x;
   const uint  meshletId  = pl.y;
@@ -93,6 +85,10 @@ void vertexShader() {
   const uvec2 mesh      = processMeshlet(meshletId);
   const uint  vertCount = mesh.x;
   const uint  primCount = mesh.y;
+
+#if (MESH_TYPE==T_LANDSCAPE)
+  textureId = pullCluster(meshletId).bucketId;
+#endif
 
   const uint  laneID    = gl_VertexIndex/3;
 

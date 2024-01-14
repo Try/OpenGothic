@@ -6,6 +6,7 @@
 
 #include "scalar_ops.glsl"
 
+#define CLUSTER
 #define CULL
 #include "materials_common.glsl"
 
@@ -17,10 +18,6 @@ shared uint writeOffset;
 #if (MESH_TYPE==T_LANDSCAPE)
 LandscapeCluster cluster;
 #endif
-
-LandscapeCluster pullCluster(const uint instanceId) {
-  return clusters[instanceId + push.firstMeshlet];
-  }
 
 bool sphereTest(const uint instanceId) {
   const vec4 sphere = cluster.sphere;
@@ -165,8 +162,8 @@ void main() {
 
   const bool visible = isVisible(instanceId);
   if(visible) {
-    uint writeOffset =  cmd[cluster.bucketId].writeOffset;
-    writeOffset      += atomicAdd(cmd[cluster.bucketId].instanceCount, 1);
+    uint writeOffset =  cmd[cluster.commandColorId].writeOffset;
+    writeOffset      += atomicAdd(cmd[cluster.commandColorId].instanceCount, 1);
     globalPayload.meshlets[writeOffset] = gl_GlobalInvocationID.x;
     }
 

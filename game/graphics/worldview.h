@@ -70,9 +70,9 @@ class WorldView {
     MeshObjects::Mesh   addStaticView(std::string_view visual);
     MeshObjects::Mesh   addDecalView (const phoenix::vob& vob);
 
-    const SceneGlobals&  sceneGlobals() const { return sGlobal; }
-    const Sky&           sky() const { return gSky; }
-    const Landscape&     landscape() const { return land; }
+    const SceneGlobals& sceneGlobals() const { return sGlobal; }
+    const Sky&          sky() const { return gSky; }
+    const Landscape&    landscape() const { return land; }
 
   private:
     const World&  owner;

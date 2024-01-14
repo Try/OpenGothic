@@ -95,7 +95,7 @@ Shaders::Shaders() {
     state.setZTestMode    (RenderState::ZTestMode::Less);
     state.setZWriteEnabled(true);
 
-    auto sh = GothicShader::get("cluster_vert.vert.sprv");
+    auto sh = GothicShader::get("cluster_vert_c.vert.sprv");
     auto vs = device.shader(sh.data,sh.len);
     sh      = GothicShader::get("gbuffer.frag.sprv");
     auto fs = device.shader(sh.data,sh.len);
@@ -104,6 +104,22 @@ Shaders::Shaders() {
     sh = GothicShader::get("gbuffer_at.frag.sprv");
     fs = device.shader(sh.data,sh.len);
     clusterGBufAt = device.pipeline(Triangles, state, vs, fs);
+  }
+  {
+    RenderState state;
+    state.setCullFaceMode (RenderState::CullMode::Back);
+    state.setZTestMode    (RenderState::ZTestMode::Less);
+    state.setZWriteEnabled(true);
+
+    auto sh = GothicShader::get("cluster_vert_d.vert.sprv");
+    auto vs = device.shader(sh.data,sh.len);
+    sh      = GothicShader::get("shadow.frag.sprv");
+    auto fs = device.shader(sh.data,sh.len);
+    clusterDepth = device.pipeline(Triangles, state, vs, fs);
+
+    sh = GothicShader::get("shadow_at.frag.sprv");
+    fs = device.shader(sh.data,sh.len);
+    clusterDepthAt = device.pipeline(Triangles, state, vs, fs);
   }
 
   ssao             = computeShader("ssao.comp.sprv");

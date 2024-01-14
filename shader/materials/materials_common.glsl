@@ -146,7 +146,10 @@ struct IndirectCmd {
 
 struct LandscapeCluster {
   vec4  sphere;
+  uint  commandColorId;
+  uint  commandDepthId;
   uint  bucketId;
+  uint  padd0;
   };
 
 #if defined(CLUSTER)
@@ -244,8 +247,12 @@ vec3 pullPosition(uint instanceId) {
   }
 #endif
 
-#if (MESH_TYPE==T_LANDSCAPE) && (defined(TASK) || defined(CULL))
+#if (MESH_TYPE==T_LANDSCAPE) && (defined(TASK) || defined(CLUSTER))
 layout(binding = L_MeshDesc, std430) readonly buffer Inst { LandscapeCluster clusters[]; };
+
+LandscapeCluster pullCluster(const uint instanceId) {
+  return clusters[instanceId];
+  }
 #endif
 
 #if (defined(LVL_OBJECT) || defined(WATER))

@@ -50,7 +50,8 @@ class Shaders {
 
     // Cluster
     Tempest::ComputePipeline clusterInit, clusterTask;
-    Tempest::RenderPipeline  clusterGBuf, clusterGBufAt;
+    Tempest::RenderPipeline  clusterGBuf,  clusterGBufAt;
+    Tempest::RenderPipeline  clusterDepth, clusterDepthAt;
 
     // GI
     Tempest::RenderPipeline  probeDbg;

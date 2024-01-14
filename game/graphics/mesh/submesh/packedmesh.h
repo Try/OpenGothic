@@ -39,9 +39,11 @@ class PackedMesh {
 
     struct Cluster final {
       Tempest::Vec3 pos;
-      float         r        = 0;
-      uint32_t      bucketId = 0;
-      uint32_t      padd[3]  = {};
+      float         r              = 0;
+      uint32_t      commandColorId = 0;
+      uint32_t      commandDepthId = 0;
+      uint32_t      bucketId       = 0;
+      uint32_t      padd0          = {};
       };
 
     std::vector<Vertex>   vertices;

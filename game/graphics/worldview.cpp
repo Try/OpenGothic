@@ -118,7 +118,7 @@ void WorldView::visibilityPass(const Frustrum fr[]) {
 
 void WorldView::visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   cmd.setDebugMarker("Visibility");
-  land.visibilityPass(cmd, fId);
+  visuals.visibilityPass(cmd, fId);
   }
 
 void WorldView::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
@@ -130,14 +130,7 @@ void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId, ui
   }
 
 void WorldView::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId, uint8_t pass) {
-  switch(pass) {
-    case 0:
-      land.drawGBuffer(cmd, fId);
-      break;
-    case 1:
-      visuals.drawGBuffer(cmd, fId);
-      break;
-    }
+  visuals.drawGBuffer(cmd, fId, pass);
   }
 
 void WorldView::drawSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
@@ -228,7 +221,6 @@ void WorldView::prepareUniforms() {
   sGlobal.lights.prepareUniforms();
   gSky.prepareUniforms();
   visuals.prepareUniforms();
-  land.prepareUniforms(sGlobal);
   }
 
 void WorldView::postFrameupdate() {
