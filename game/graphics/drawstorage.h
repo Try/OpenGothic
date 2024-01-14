@@ -61,9 +61,9 @@ class DrawStorage {
                size_t iboOff, size_t iboLen, const Tempest::StorageBuffer& desc, Type bucket);
 
     void prepareUniforms();
-    void visibilityPass (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
-    void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
-    void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer);
+    void visibilityPass (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer);
 
   private:
     enum UboLinkpackage : uint8_t {
@@ -93,7 +93,7 @@ class DrawStorage {
       uint32_t iboOff        = 0;
       uint32_t iboLen        = 0;
       uint32_t bucketId      = 0;
-      uint32_t cmdId         = 0;
+      uint32_t cmdId         = uint32_t(-1);
       };
 
     struct IndirectCmd {
@@ -110,6 +110,11 @@ class DrawStorage {
       Material          mat;
       };
 
+    struct TaskCmd {
+      const Tempest::StorageBuffer*  clusters = nullptr;
+      Tempest::DescriptorSet         desc;
+      };
+
     struct DrawCmd {
       const Tempest::RenderPipeline* pso          = nullptr;
       const Tempest::StorageBuffer*  clusters     = nullptr;
@@ -121,25 +126,31 @@ class DrawStorage {
       uint32_t                       maxClusters  = 0;
       };
 
+    struct View {
+      std::vector<DrawCmd>           cmd;
+      std::vector<DrawCmd*>          ord;
+      Tempest::StorageBuffer         indirectCmd;
+      };
+
     void                           free(size_t id);
 
     void                           commit();
     const Tempest::RenderPipeline* pipeline (const Material& m);
-    uint32_t                       commandId(const Material& m, const Tempest::StorageBuffer* clusters, uint32_t bucketId);
-
     uint32_t                       bucketId (const Material& m, const StaticMesh& mesh);
+
+    uint32_t                       commandId(const Material& m, const Tempest::StorageBuffer* clusters, uint32_t bucketId);
+    uint32_t                       commandId(View& view, const Material& m, const Tempest::StorageBuffer* clusters, uint32_t bucketId);
 
     const SceneGlobals&            globals;
     bool                           commited = false;
+    std::vector<TaskCmd>           tasks;
 
     std::vector<Object>            objects;
     std::vector<Bucket>            buckets;
 
     uint32_t                       clusterTotal = 0;
-    Tempest::DescriptorSet         descInit, descTask;
+    Tempest::DescriptorSet         descInit;
 
     Tempest::StorageBuffer         visClusters, indirectCmd;
-    Tempest::DescriptorSet         desc, descClr, descRes;
-    std::vector<DrawCmd>           cmd;
-    std::vector<DrawCmd*>          cmdOrder;
+    View                           main, shadow;
   };
