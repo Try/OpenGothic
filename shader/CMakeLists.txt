@@ -156,6 +156,7 @@ add_uber_shader(pfx "-DMESH_TYPE=4")
 
 add_shader(cluster_init.comp         materials/cluster_init.comp)
 add_shader(cluster_task.comp         materials/cluster_task.comp "-DMESH_TYPE=0")
+add_shader(cluster_task_hiz.comp     materials/cluster_task.comp "-DMESH_TYPE=0" -DHIZ)
 # cluster geometry
 add_shader(cluster_vert_c.vert       materials/cluster_vert.vert "-DMESH_TYPE=0" -DBINDLESS)
 add_shader(cluster_vert_d.vert       materials/cluster_vert.vert "-DMESH_TYPE=0" -DBINDLESS -DEPTH_ONLY)

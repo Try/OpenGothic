@@ -146,10 +146,10 @@ struct IndirectCmd {
 
 struct LandscapeCluster {
   vec4  sphere;
-  uint  commandColorId;
-  uint  commandDepthId;
+  uint  commandId;
   uint  bucketId;
   uint  padd0;
+  uint  padd1;
   };
 
 #if defined(CLUSTER)

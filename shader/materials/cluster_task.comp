@@ -55,7 +55,7 @@ float hiZFetch(in sampler2D hiZ, in ivec2 ibbox[2]) {
   return z;
   }
 
-#if !defined(SHADOW_MAP) && (MESH_TYPE!=T_PFX)
+#if defined(HIZ) && (MESH_TYPE!=T_PFX)
 bool bboxTest(const uint instanceId) {
 #if defined(LVL_OBJECT)
   const vec3  b[2]   = {bucket.bbox[0].xyz, bucket.bbox[1].xyz};
@@ -162,8 +162,8 @@ void main() {
 
   const bool visible = isVisible(instanceId);
   if(visible) {
-    uint writeOffset =  cmd[cluster.commandColorId].writeOffset;
-    writeOffset      += atomicAdd(cmd[cluster.commandColorId].instanceCount, 1);
+    uint writeOffset =  cmd[cluster.commandId].writeOffset;
+    writeOffset      += atomicAdd(cmd[cluster.commandId].instanceCount, 1);
     globalPayload.meshlets[writeOffset] = gl_GlobalInvocationID.x;
     }
 

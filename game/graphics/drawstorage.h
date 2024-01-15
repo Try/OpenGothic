@@ -9,10 +9,10 @@
 #include <utility>
 
 #include "material.h"
+#include "sceneglobals.h"
 
 class StaticMesh;
 class AnimMesh;
-class SceneGlobals;
 
 class DrawStorage {
   public:
@@ -111,35 +111,36 @@ class DrawStorage {
       };
 
     struct TaskCmd {
+      SceneGlobals::VisCamera        viewport = SceneGlobals::V_Main;
       const Tempest::StorageBuffer*  clusters = nullptr;
       Tempest::DescriptorSet         desc;
       };
 
     struct DrawCmd {
-      const Tempest::RenderPipeline* pso          = nullptr;
+      const Tempest::RenderPipeline* psoColor     = nullptr;
+      const Tempest::RenderPipeline* psoDepth     = nullptr;
       const Tempest::StorageBuffer*  clusters     = nullptr;
       uint32_t                       bucketId     = 0; // bindfull only
 
-      Tempest::DescriptorSet         desc;
+      Tempest::DescriptorSet         desc[SceneGlobals::V_Count];
       Material::AlphaFunc            alpha        = Material::Solid;
       uint32_t                       firstCluster = 0;
       uint32_t                       maxClusters  = 0;
       };
 
     struct View {
-      std::vector<DrawCmd>           cmd;
-      std::vector<DrawCmd*>          ord;
-      Tempest::StorageBuffer         indirectCmd;
+      Tempest::DescriptorSet         descInit;
+      Tempest::StorageBuffer         visClusters, indirectCmd;
       };
 
     void                           free(size_t id);
 
     void                           commit();
-    const Tempest::RenderPipeline* pipeline (const Material& m);
-    uint32_t                       bucketId (const Material& m, const StaticMesh& mesh);
+    const Tempest::RenderPipeline* pipelineColor(const Material& m);
+    const Tempest::RenderPipeline* pipelineDepth(const Material& m);
 
+    uint32_t                       bucketId (const Material& m, const StaticMesh& mesh);
     uint32_t                       commandId(const Material& m, const Tempest::StorageBuffer* clusters, uint32_t bucketId);
-    uint32_t                       commandId(View& view, const Material& m, const Tempest::StorageBuffer* clusters, uint32_t bucketId);
 
     const SceneGlobals&            globals;
     bool                           commited = false;
@@ -149,8 +150,10 @@ class DrawStorage {
     std::vector<Bucket>            buckets;
 
     uint32_t                       clusterTotal = 0;
-    Tempest::DescriptorSet         descInit;
+    // Tempest::DescriptorSet         descInit;
+    // Tempest::StorageBuffer         visClusters, indirectCmd;
 
-    Tempest::StorageBuffer         visClusters, indirectCmd;
-    View                           main, shadow;
+    std::vector<DrawCmd>           cmd;
+    std::vector<DrawCmd*>          ord;
+    View                           views[SceneGlobals::V_Count];
   };

@@ -2,7 +2,6 @@
 
 #include <Tempest/Matrix4x4>
 #include <Tempest/Vec>
-#include <list>
 
 #include "graphics/dynamic/frustrum.h"
 #include "lightgroup.h"

@@ -40,9 +40,8 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &packed)
       b.draw = visual.getDr(mesh,material,sub.iboOffset,sub.iboLength,meshletDesc,DrawStorage::Landscape);
       b.draw.setObjMatrix(Matrix4x4::mkIdentity());
       for(size_t r=0; r<len; ++r) {
-        meshletDescCpu[id+r].commandColorId = b.draw.commandId();
-        meshletDescCpu[id+r].commandDepthId = 0;
-        meshletDescCpu[id+r].bucketId       = b.draw.bucketId();
+        meshletDescCpu[id+r].commandId = b.draw.commandId();
+        meshletDescCpu[id+r].bucketId  = b.draw.bucketId();
         }
       blocks.emplace_back(std::move(b));
       continue;

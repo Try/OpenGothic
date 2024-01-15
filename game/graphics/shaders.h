@@ -3,6 +3,7 @@
 #include <Tempest/RenderPipeline>
 #include <Tempest/Shader>
 #include <Tempest/Device>
+#include <list>
 
 #include "graphics/objectsbucket.h"
 
@@ -49,7 +50,7 @@ class Shaders {
     Tempest::RenderPipeline  hiZReproj;
 
     // Cluster
-    Tempest::ComputePipeline clusterInit, clusterTask;
+    Tempest::ComputePipeline clusterInit, clusterTask, clusterTaskHiZ;
     Tempest::RenderPipeline  clusterGBuf,  clusterGBufAt;
     Tempest::RenderPipeline  clusterDepth, clusterDepthAt;
 

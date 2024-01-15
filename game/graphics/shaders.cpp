@@ -87,8 +87,9 @@ Shaders::Shaders() {
 
   stash   = postEffect("stash");
 
-  clusterInit = computeShader("cluster_init.comp.sprv");
-  clusterTask = computeShader("cluster_task.comp.sprv");
+  clusterInit    = computeShader("cluster_init.comp.sprv");
+  clusterTask    = computeShader("cluster_task.comp.sprv");
+  clusterTaskHiZ = computeShader("cluster_task_hiz.comp.sprv");
   {
     RenderState state;
     state.setCullFaceMode (RenderState::CullMode::Front);
@@ -107,8 +108,8 @@ Shaders::Shaders() {
   }
   {
     RenderState state;
-    state.setCullFaceMode (RenderState::CullMode::Back);
-    state.setZTestMode    (RenderState::ZTestMode::Less);
+    state.setCullFaceMode (RenderState::CullMode::Front);
+    state.setZTestMode    (RenderState::ZTestMode::Greater);
     state.setZWriteEnabled(true);
 
     auto sh = GothicShader::get("cluster_vert_d.vert.sprv");
