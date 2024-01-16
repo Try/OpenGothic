@@ -31,7 +31,7 @@ layout(location = DEBUG_DRAW_LOC) out flat uint debugId[];
 
 uvec2 processMeshlet(const uint meshletId) {
   const uint iboOffset = meshletId * MaxPrim + MaxPrim - 1;
-  const uint bits      = indexes[iboOffset];
+  const uint bits      = ibo.indexes[iboOffset];
   uvec4 prim;
   prim.x = ((bits >>  0) & 0xFF);
   prim.y = ((bits >>  8) & 0xFF);
@@ -51,7 +51,7 @@ uvec2 processMeshlet(const uint meshletId) {
 
 uvec3 processPrimitive(const uint meshletId, const uint outId) {
   const uint iboOffset = meshletId * MaxPrim + outId;
-  const uint bits      = indexes[iboOffset];
+  const uint bits      = ibo.indexes[iboOffset];
   uvec3 prim;
   prim.x = ((bits >>  0) & 0xFF);
   prim.y = ((bits >>  8) & 0xFF);

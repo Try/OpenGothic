@@ -28,8 +28,13 @@ class VisualObjects final {
     ObjectsBucket::Item get(const Material& mat);
 
     DrawStorage::Item   getDr(const StaticMesh& mesh, const Material& mat,
-                              size_t iboOff, size_t iboLen, const Tempest::StorageBuffer& desc,
-                              DrawStorage::Type bucket);
+                              size_t iboOffset, size_t iboLength, bool staticDraw);
+    DrawStorage::Item   getDr(const AnimMesh& mesh, const Material& mat,
+                              size_t iboOff, size_t iboLen,
+                              const InstanceStorage::Id& anim);
+    DrawStorage::Item   getDr(const StaticMesh& mesh, const Material& mat,
+                              size_t iboOff, size_t iboLen, const PackedMesh::Cluster* cluster,
+                              DrawStorage::Type type);
 
     InstanceStorage::Id alloc(size_t size);
     bool                realloc(InstanceStorage::Id& id, size_t size);

@@ -36,8 +36,7 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define T_PFX       4
 
 #define L_Scene    0
-#define L_Matrix   1
-#define L_MeshDesc L_Matrix
+#define L_Instance 1
 #define L_Bucket   2
 #define L_Ibo      3
 #define L_Vbo      4
@@ -87,8 +86,8 @@ struct Varyings {
   vec3 normal;
 #endif
 
-#if defined(FORWARD) || (MESH_TYPE==T_LANDSCAPE)
-  vec3 pos;
+#if defined(FORWARD) || (MESH_TYPE==T_LANDSCAPE && !defined(BINDLESS))
+  vec3 pos; // TODO: reenable for bindless
 #endif
 
 #if defined(MAT_COLOR)
@@ -144,12 +143,21 @@ struct IndirectCmd {
   uint writeOffset;
   };
 
-struct LandscapeCluster {
+struct Cluster {
   vec4  sphere;
-  uint  commandId;
-  uint  bucketId;
-  uint  padd0;
-  uint  padd1;
+  uint  bucketId_commandId;
+  uint  firstMeshlet;
+  int   meshletCount;
+  uint  instanceId;
+  };
+
+struct Bucket {
+  vec4  bbox[2];
+  ivec2 texAniMapDirPeriod;
+  float bboxRadius;
+  float waveMaxAmplitude;
+  float alphaWeight;
+  float envMapping;
   };
 
 #if defined(CLUSTER)
@@ -179,10 +187,79 @@ layout(binding = L_Scene, std140) uniform UboScene {
   SceneDesc scene;
   };
 
-#if defined(LVL_OBJECT) && (defined(GL_VERTEX_SHADER) || defined(MESH) || defined(TASK) || defined(CLUSTER))
-// NOTE: need to support binding overlap
-layout(binding = L_Matrix, std430) readonly buffer InstanceMem { uint instanceMem[]; };
+#if defined(BINDLESS)
+layout(binding = L_Ibo,      std430) readonly buffer Ibo  { uint    indexes [];    } ibo[];
+layout(binding = L_Vbo,      std430) readonly buffer Vbo  { float   vertices[];    } vbo[];
+//layout(binding = L_Bucket,   std140) readonly buffer Bbo  { Bucket  bucket[];      };
+layout(binding = L_Diffuse)          uniform  texture2D textureD[];
+layout(binding = L_Sampler)          uniform  sampler   samplerMain;
+#endif
 
+#if defined(BINDLESS) || defined(CULL)
+layout(binding = L_Instance, std430) readonly buffer Mem  { uint    instanceMem[]; };
+layout(binding = L_Bucket,   std140) readonly buffer Bbo  { Bucket  bucket[];      };
+layout(binding = L_Payload,  std430) readonly buffer Pbo  { uvec4   payload[];     };
+#endif
+
+#if defined(LVL_OBJECT) && (defined(GL_VERTEX_SHADER) || defined(MESH) || defined(TASK)) && !defined(BINDLESS)
+// NOTE: need to support binding overlap
+layout(binding = L_Instance, std430) readonly buffer InstanceMem { uint instanceMem[]; };
+#endif
+
+#if (MESH_TYPE==T_LANDSCAPE && defined(TASK))
+layout(binding = L_Instance, std430) readonly buffer Inst { Cluster clusters[]; };
+#endif
+
+#if (defined(LVL_OBJECT) || defined(WATER)) && !defined(BINDLESS)
+layout(binding = L_Bucket, std140) uniform BucketDesc {
+  vec4  bbox[2];
+  ivec2 texAniMapDirPeriod;
+  float bboxRadius;
+  float waveMaxAmplitude;
+  float alphaWeight;
+  float envMapping;
+  } bucket;
+#endif
+
+#if defined(MESH) && !defined(BINDLESS)
+layout(binding = L_Ibo,    std430) readonly buffer Ibo  { uint  indexes []; } ibo;
+layout(binding = L_Vbo,    std430) readonly buffer Vbo  { float vertices[]; } vbo;
+#endif
+
+#if defined(GL_FRAGMENT_SHADER) && !(defined(DEPTH_ONLY) && !defined(ATEST)) && !defined(BINDLESS)
+layout(binding = L_Diffuse) uniform sampler2D textureD;
+#endif
+
+#if defined(GL_FRAGMENT_SHADER) && defined(FORWARD) && !defined(DEPTH_ONLY)
+layout(binding = L_Shadow0) uniform sampler2D textureSm0;
+layout(binding = L_Shadow1) uniform sampler2D textureSm1;
+#endif
+
+#if (MESH_TYPE==T_MORPH) && (defined(GL_VERTEX_SHADER) || defined(MESH))
+layout(binding = L_MorphId, std430) readonly buffer SsboMorphId {
+  int  index[];
+  } morphId;
+layout(binding = L_Morph, std430) readonly buffer SsboMorph {
+  vec4 samples[];
+  } morph;
+#endif
+
+#if (MESH_TYPE==T_PFX) && (defined(GL_VERTEX_SHADER) || defined(MESH))
+layout(binding = L_Pfx, std430) readonly buffer SsboMorphId {
+  Particle pfx[];
+  };
+#endif
+
+#if defined(GL_FRAGMENT_SHADER) && (defined(WATER) || defined(GHOST))
+layout(binding = L_SceneClr) uniform sampler2D sceneColor;
+layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
+#endif
+
+#if defined(TASK) && !defined(SHADOW_MAP)
+layout(binding = L_HiZ)  uniform sampler2D hiZ;
+#endif
+
+#if (defined(LVL_OBJECT) && (defined(GL_VERTEX_SHADER) || defined(MESH) || defined(TASK))) || defined(CLUSTER)
 mat4 pullMatrix(uint i) {
   i *= 16;
   mat4 ret;
@@ -206,7 +283,7 @@ mat4 pullMatrix(uint i) {
   }
 
 Instance pullInstance(uint i) {
-#if defined(LVL_OBJECT)
+#if defined(LVL_OBJECT) && !defined(CLUSTER)
   i += push.firstInstance;
 #endif
   i *= 16;
@@ -245,78 +322,6 @@ vec3 pullPosition(uint instanceId) {
   return vec3(0);
 #endif
   }
-#endif
-
-#if (MESH_TYPE==T_LANDSCAPE) && (defined(TASK) || defined(CLUSTER))
-layout(binding = L_MeshDesc, std430) readonly buffer Inst { LandscapeCluster clusters[]; };
-
-LandscapeCluster pullCluster(const uint instanceId) {
-  return clusters[instanceId];
-  }
-#endif
-
-#if (defined(LVL_OBJECT) || defined(WATER))
-layout(binding = L_Bucket, std140) uniform BucketDesc {
-  vec4  bbox[2];
-  ivec2 texAniMapDirPeriod;
-  float bboxRadius;
-  float waveMaxAmplitude;
-  float alphaWeight;
-  float envMapping;
-  } bucket;
-#elif (MESH_TYPE==T_LANDSCAPE)
-layout(binding = L_Bucket, std430) buffer BucketDesc {
-  IndirectCmd cmd[];
-  };
-#endif
-
-#if defined(MESH) || defined(CLUSTER)
-layout(binding = L_Ibo, std430) readonly buffer Ibo  { uint  indexes []; };
-layout(binding = L_Vbo, std430) readonly buffer Vbo  { float vertices[]; };
-#endif
-
-#if defined(GL_FRAGMENT_SHADER) && !(defined(DEPTH_ONLY) && !defined(ATEST))
-#  if defined(BINDLESS)
-layout(binding = L_Diffuse) uniform texture2D textureD[];
-layout(binding = L_Sampler) uniform sampler   samplerMain;
-#  else
-layout(binding = L_Diffuse) uniform sampler2D textureD;
-  #endif
-#endif
-
-#if defined(GL_FRAGMENT_SHADER) && defined(FORWARD) && !defined(DEPTH_ONLY)
-layout(binding = L_Shadow0) uniform sampler2D textureSm0;
-layout(binding = L_Shadow1) uniform sampler2D textureSm1;
-#endif
-
-#if (MESH_TYPE==T_MORPH) && (defined(GL_VERTEX_SHADER) || defined(MESH))
-layout(binding = L_MorphId, std430) readonly buffer SsboMorphId {
-  int  index[];
-  } morphId;
-layout(binding = L_Morph, std430) readonly buffer SsboMorph {
-  vec4 samples[];
-  } morph;
-#endif
-
-#if (MESH_TYPE==T_PFX) && (defined(GL_VERTEX_SHADER) || defined(MESH))
-layout(binding = L_Pfx, std430) readonly buffer SsboMorphId {
-  Particle pfx[];
-  };
-#endif
-
-#if defined(GL_FRAGMENT_SHADER) && (defined(WATER) || defined(GHOST))
-layout(binding = L_SceneClr) uniform sampler2D sceneColor;
-layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
-#endif
-
-#if (defined(TASK) || defined(CULL)) && !defined(SHADOW_MAP)
-layout(binding = L_HiZ)  uniform sampler2D hiZ;
-#endif
-
-#if defined(CULL) || defined(CLUSTER)
-layout(binding = L_Payload, std430) buffer SsboGlob {
-  uint meshlets[];
-  } globalPayload;
 #endif
 
 #endif

@@ -96,15 +96,21 @@ Shaders::Shaders() {
     state.setZTestMode    (RenderState::ZTestMode::Less);
     state.setZWriteEnabled(true);
 
-    auto sh = GothicShader::get("cluster_vert_c.vert.sprv");
-    auto vs = device.shader(sh.data,sh.len);
-    sh      = GothicShader::get("gbuffer.frag.sprv");
+    auto shObj = GothicShader::get("cluster_vert_obj_c.vert.sprv");
+    auto vsObj = device.shader(shObj.data,shObj.len);
+
+    auto shLnd = GothicShader::get("cluster_vert_lnd_c.vert.sprv");
+    auto vsLnd = device.shader(shLnd.data,shLnd.len);
+
+    auto sh = GothicShader::get("gbuffer.frag.sprv");
     auto fs = device.shader(sh.data,sh.len);
-    clusterGBuf = device.pipeline(Triangles, state, vs, fs);
+    clusterLndGBuf = device.pipeline(Triangles, state, vsLnd, fs);
+    clusterObjGBuf = device.pipeline(Triangles, state, vsObj, fs);
 
     sh = GothicShader::get("gbuffer_at.frag.sprv");
     fs = device.shader(sh.data,sh.len);
-    clusterGBufAt = device.pipeline(Triangles, state, vs, fs);
+    clusterLndGBufAt = device.pipeline(Triangles, state, vsLnd, fs);
+    clusterObjGBufAt = device.pipeline(Triangles, state, vsObj, fs);
   }
   {
     RenderState state;
@@ -112,7 +118,7 @@ Shaders::Shaders() {
     state.setZTestMode    (RenderState::ZTestMode::Greater);
     state.setZWriteEnabled(true);
 
-    auto sh = GothicShader::get("cluster_vert_d.vert.sprv");
+    auto sh = GothicShader::get("cluster_vert_lnd_d.vert.sprv");
     auto vs = device.shader(sh.data,sh.len);
     sh      = GothicShader::get("shadow.frag.sprv");
     auto fs = device.shader(sh.data,sh.len);

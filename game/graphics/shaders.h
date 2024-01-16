@@ -51,7 +51,8 @@ class Shaders {
 
     // Cluster
     Tempest::ComputePipeline clusterInit, clusterTask, clusterTaskHiZ;
-    Tempest::RenderPipeline  clusterGBuf,  clusterGBufAt;
+    Tempest::RenderPipeline  clusterLndGBuf,  clusterLndGBufAt;
+    Tempest::RenderPipeline  clusterObjGBuf,  clusterObjGBufAt;
     Tempest::RenderPipeline  clusterDepth, clusterDepthAt;
 
     // GI

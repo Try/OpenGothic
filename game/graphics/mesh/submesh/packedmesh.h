@@ -39,11 +39,7 @@ class PackedMesh {
 
     struct Cluster final {
       Tempest::Vec3 pos;
-      float         r         = 0;
-      uint32_t      commandId = 0;
-      uint32_t      bucketId  = 0;
-      uint32_t      padd0     = {};
-      uint32_t      padd1     = {};
+      float         r = 0;
       };
 
     std::vector<Vertex>   vertices;
@@ -54,8 +50,8 @@ class PackedMesh {
     std::vector<SubMesh>  subMeshes;
     std::vector<Cluster>  meshletBounds;
 
-    std::vector<uint32_t>    verticesId; // only for morph meshes
-    bool                     isUsingAlphaTest = true;
+    std::vector<uint32_t> verticesId; // only for morph meshes
+    bool                  isUsingAlphaTest = true;
 
     PackedMesh(const phoenix::proto_mesh& mesh, PkgType type);
     PackedMesh(const phoenix::mesh& mesh, PkgType type);
@@ -90,7 +86,7 @@ class PackedMesh {
 
       void    flush(std::vector<Vertex>& vertices,
                     std::vector<uint32_t>& indices, std::vector<uint8_t>& indices8,
-                    std::vector<Cluster>& instances, const phoenix::mesh& mesh, uint32_t mId);
+                    std::vector<Cluster>& instances, const phoenix::mesh& mesh);
 
       void    flush(std::vector<Vertex>& vertices, std::vector<VertexA>& verticesA,
                     std::vector<uint32_t>& indices, std::vector<uint8_t>& indices8,

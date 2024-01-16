@@ -29,6 +29,4 @@ class Landscape final {
     std::vector<Block>     blocks;
     StaticMesh             mesh;
     Tempest::StorageBuffer meshletDesc;
-
-    Tempest::StorageBuffer meshletDescBase;
   };

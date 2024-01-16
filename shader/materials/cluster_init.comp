@@ -1,11 +1,11 @@
 #version 450
 
 #extension GL_GOOGLE_include_directive : enable
-
-#define CULL
 #include "materials/materials_common.glsl"
 
 layout(local_size_x = 32) in;
+
+layout(binding = 1, std430) buffer IndirectBuf  { IndirectCmd cmd[];         };
 
 void initIndirectCmd(inout IndirectCmd cmd) {
   }

@@ -5,12 +5,9 @@
 #include <Tempest/DescriptorSet>
 #include <Tempest/UniformBuffer>
 
-#include <vector>
-#include <list>
-
 #include "graphics/mesh/protomesh.h"
 #include "graphics/mesh/submesh/staticmesh.h"
-#include "graphics/mesh/submesh/animmesh.h"
+#include "drawstorage.h"
 #include "objectsbucket.h"
 
 class VisualObjects;
@@ -20,7 +17,8 @@ class LightSource;
 
 class MeshObjects final {
   private:
-    using Item = ObjectsBucket::Item;
+    using Item = DrawStorage::Item;
+    // using Item = ObjectsBucket::Item;
 
   public:
     MeshObjects(VisualObjects& parent);

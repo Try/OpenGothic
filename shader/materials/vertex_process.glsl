@@ -20,14 +20,14 @@ layout(location = 8) in vec4 inWeight;
 layout(location = 0) in vec3 inPos;
 layout(location = 1) in vec3 inNormal;
 layout(location = 2) in vec2 inUV;
-layout(location = 3) in uint inTextureId;
+layout(location = 3) in uint inColor;
 #endif
 #endif
 
 struct Vertex {
 #if (MESH_TYPE==T_LANDSCAPE) || (MESH_TYPE==T_OBJ) || (MESH_TYPE==T_MORPH)
   vec3  pos;
-  uint  textureId;
+  uint  color;
   vec3  normal;
   vec2  uv;
 #elif(MESH_TYPE==T_SKINING)
@@ -51,7 +51,13 @@ struct Vertex {
 #endif
   };
 
+#if defined(BINDLESS)
+Vertex pullVertex(uint bucketId, uint id) {
+  const uint vi = nonuniformEXT(bucketId);
+#else
 Vertex pullVertex(uint id) {
+#endif
+
   Vertex ret;
 #if   (MESH_TYPE==T_PFX)
   ret.pos    = pfx[id].pos;
@@ -61,7 +67,18 @@ Vertex pullVertex(uint id) {
   ret.dir    = pfx[id].dir;
   ret.uv     = vec2(0);
   ret.normal = vec3(0);
-#elif   (MESH_TYPE==T_SKINING) && defined(GL_VERTEX_SHADER) && !defined(CLUSTER)
+#elif (MESH_TYPE==T_SKINING) && defined(BINDLESS)
+  id *=23;
+  ret.normal = vec3(vbo[vi].vertices[id + 0], vbo[vi].vertices[id + 1], vbo[vi].vertices[id + 2]);
+  ret.uv     = vec2(vbo[vi].vertices[id + 3], vbo[vi].vertices[id + 4]);
+  ret.color  = floatBitsToUint(vbo[vi].vertices[id + 5]);
+  ret.pos0   = vec3(vbo[vi].vertices[id +  6], vbo[vi].vertices[id +  7], vbo[vi].vertices[id +  8]);
+  ret.pos1   = vec3(vbo[vi].vertices[id +  9], vbo[vi].vertices[id + 10], vbo[vi].vertices[id + 11]);
+  ret.pos2   = vec3(vbo[vi].vertices[id + 12], vbo[vi].vertices[id + 13], vbo[vi].vertices[id + 14]);
+  ret.pos3   = vec3(vbo[vi].vertices[id + 15], vbo[vi].vertices[id + 16], vbo[vi].vertices[id + 17]);
+  ret.boneId = uvec4(unpackUnorm4x8(floatBitsToUint(vbo[vi].vertices[id + 18]))*255.0);
+  ret.weight = vec4(vbo[vi].vertices[id + 19], vbo[vi].vertices[id + 20], vbo[vi].vertices[id + 21], vbo[vi].vertices[id + 22]);
+#elif (MESH_TYPE==T_SKINING) && defined(GL_VERTEX_SHADER) && !defined(CLUSTER)
   ret.normal = inNormal;
   ret.uv     = inUV;
   ret.color  = inColor;
@@ -73,26 +90,32 @@ Vertex pullVertex(uint id) {
   ret.weight = inWeight;
 #elif (MESH_TYPE==T_SKINING) && defined(MESH)
   id *=23;
-  ret.normal = vec3(vertices[id + 0], vertices[id + 1], vertices[id + 2]);
-  ret.uv     = vec2(vertices[id + 3], vertices[id + 4]);
-  ret.color  = floatBitsToUint(vertices[id + 5]);
-  ret.pos0   = vec3(vertices[id +  6], vertices[id +  7], vertices[id +  8]);
-  ret.pos1   = vec3(vertices[id +  9], vertices[id + 10], vertices[id + 11]);
-  ret.pos2   = vec3(vertices[id + 12], vertices[id + 13], vertices[id + 14]);
-  ret.pos3   = vec3(vertices[id + 15], vertices[id + 16], vertices[id + 17]);
-  ret.boneId = uvec4(unpackUnorm4x8(floatBitsToUint(vertices[id + 18]))*255.0);
-  ret.weight = vec4(vertices[id + 19], vertices[id + 20], vertices[id + 21], vertices[id + 22]);
-#elif  defined(GL_VERTEX_SHADER) && !defined(CLUSTER)
-  ret.pos        = inPos;
-  ret.normal     = inNormal;
-  ret.uv         = inUV;
-  ret.textureId  = inTextureId;
-#elif  defined(MESH)
+  ret.normal = vec3(vbo.vertices[id + 0], vbo.vertices[id + 1], vbo.vertices[id + 2]);
+  ret.uv     = vec2(vbo.vertices[id + 3], vbo.vertices[id + 4]);
+  ret.color  = floatBitsToUint(vbo.vertices[id + 5]);
+  ret.pos0   = vec3(vbo.vertices[id +  6], vbo.vertices[id +  7], vbo.vertices[id +  8]);
+  ret.pos1   = vec3(vbo.vertices[id +  9], vbo.vertices[id + 10], vbo.vertices[id + 11]);
+  ret.pos2   = vec3(vbo.vertices[id + 12], vbo.vertices[id + 13], vbo.vertices[id + 14]);
+  ret.pos3   = vec3(vbo.vertices[id + 15], vbo.vertices[id + 16], vbo.vertices[id + 17]);
+  ret.boneId = uvec4(unpackUnorm4x8(floatBitsToUint(vbo.vertices[id + 18]))*255.0);
+  ret.weight = vec4(vbo.vertices[id + 19], vbo.vertices[id + 20], vbo.vertices[id + 21], vbo.vertices[id + 22]);
+#elif defined(BINDLESS)
   id *= 9;
-  ret.pos       = vec3(vertices[id + 0], vertices[id + 1], vertices[id + 2]);
-  ret.normal    = vec3(vertices[id + 3], vertices[id + 4], vertices[id + 5]);
-  ret.uv        = vec2(vertices[id + 6], vertices[id + 7]);
-  ret.textureId = floatBitsToUint(vertices[id + 8]);
+  ret.pos    = vec3(vbo[vi].vertices[id + 0], vbo[vi].vertices[id + 1], vbo[vi].vertices[id + 2]);
+  ret.normal = vec3(vbo[vi].vertices[id + 3], vbo[vi].vertices[id + 4], vbo[vi].vertices[id + 5]);
+  ret.uv     = vec2(vbo[vi].vertices[id + 6], vbo[vi].vertices[id + 7]);
+  ret.color  = floatBitsToUint(vbo[vi].vertices[id + 8]);
+#elif defined(GL_VERTEX_SHADER) && !defined(CLUSTER)
+  ret.pos    = inPos;
+  ret.normal = inNormal;
+  ret.uv     = inUV;
+  ret.color  = inColor;
+#elif defined(MESH)
+  id *= 9;
+  ret.pos    = vec3(vbo.vertices[id + 0], vbo.vertices[id + 1], vbo.vertices[id + 2]);
+  ret.normal = vec3(vbo.vertices[id + 3], vbo.vertices[id + 4], vbo.vertices[id + 5]);
+  ret.uv     = vec2(vbo.vertices[id + 6], vbo.vertices[id + 7]);
+  ret.color  = floatBitsToUint(vbo.vertices[id + 8]);
 #endif
   return ret;
   }
@@ -271,7 +294,7 @@ vec4 processVertex(out Varyings shOut, in Vertex v, uint instanceId, uint vboOff
   shOut.normal = normal;
 #endif
 
-#if defined(FORWARD) || (MESH_TYPE==T_LANDSCAPE)
+#if defined(FORWARD) || (MESH_TYPE==T_LANDSCAPE && !defined(BINDLESS))
   shOut.pos    = pos;
 #endif
 

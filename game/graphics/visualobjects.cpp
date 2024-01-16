@@ -7,7 +7,7 @@
 using namespace Tempest;
 
 VisualObjects::VisualObjects(const SceneGlobals& globals, const std::pair<Vec3, Vec3>& bbox)
-    : globals(globals), visGroup(bbox), drawMem(globals) {
+    : globals(globals), visGroup(bbox), drawMem(*this, globals) {
   }
 
 VisualObjects::~VisualObjects() {
@@ -73,9 +73,32 @@ ObjectsBucket::Item VisualObjects::get(const Material& mat) {
   }
 
 DrawStorage::Item VisualObjects::getDr(const StaticMesh& mesh, const Material& mat,
-                                       size_t iboOff, size_t iboLen, const Tempest::StorageBuffer& desc,
-                                       DrawStorage::Type bucket) {
-  return drawMem.alloc(mesh, mat, iboOff, iboLen, desc, bucket);
+                                       size_t iboOff, size_t iboLen,
+                                       bool staticDraw) {
+  if(mat.tex==nullptr) {
+    Log::e("no texture?!");
+    return DrawStorage::Item();
+    }
+
+  const DrawStorage::Type bucket = (staticDraw ? DrawStorage::Static : DrawStorage::Movable);
+  return drawMem.alloc(mesh, mat, iboOff, iboLen, bucket);
+  }
+
+DrawStorage::Item VisualObjects::getDr(const AnimMesh& mesh, const Material& mat,
+                                       size_t iboOff, size_t iboLen,
+                                       const InstanceStorage::Id& anim) {
+  if(mat.tex==nullptr) {
+    Log::e("no texture?!");
+    return DrawStorage::Item();
+    }
+
+  return drawMem.alloc(mesh, mat, anim, iboOff, iboLen, DrawStorage::Animated);
+  }
+
+DrawStorage::Item VisualObjects::getDr(const StaticMesh& mesh, const Material& mat,
+                                       size_t iboOff, size_t iboLen, const PackedMesh::Cluster* cluster,
+                                       DrawStorage::Type type) {
+  return drawMem.alloc(mesh, mat, iboOff, iboLen, cluster, type);
   }
 
 InstanceStorage::Id VisualObjects::alloc(size_t size) {
@@ -211,30 +234,13 @@ void VisualObjects::mkIndex() {
       }
     }
   visGroup.buildVSetIndex(index);
-  /*
-  std::unordered_set<std::string> uniqTex;
-  std::unordered_set<const void*> uniqMesh;
-  for(size_t i=0; i<index.size(); ++i) {
-    auto& b = index[i];
-    const char* name = "ObjectsBucket   ";
-    if(dynamic_cast<ObjectsBucketDyn*>(b)!=nullptr)
-      name = "ObjectsBucketDyn";
-    char ind[32] = {};
-    std::snprintf(ind,32,"%04d",int(i));
-    char size[32] = {};
-    std::snprintf(size,32,"%03d",int(b->size()));
-    Log::d(name,"[",ind,"] size = ",size," ",b->meshPointer()," ",b->material().debugHint);
-    uniqTex .insert(b->material().debugHint);
-    uniqMesh.insert(b->meshPointer());
-    }
-  Log::d("uniqTex: ",uniqTex.size()," uniqMesh:",uniqMesh.size());
-  */
   }
 
 void VisualObjects::prepareGlobals(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   bool sk = instanceMem.commit(cmd, fId);
   if(!sk)
     return;
+  drawMem.invalidateUbo();
   for(auto& c:buckets)
     c->invalidateUbo(fId);
   }

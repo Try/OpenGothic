@@ -4,6 +4,10 @@
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_EXT_control_flow_attributes : enable
 
+#if defined(BINDLESS)
+#extension GL_EXT_nonuniform_qualifier : enable
+#endif
+
 #define CLUSTER
 #define MESH
 #include "materials_common.glsl"
@@ -20,9 +24,9 @@ layout(location = 1) out Varyings  shOut;
 layout(location = 0) out Varyings shOut;
 #endif
 
-uvec2 processMeshlet(const uint meshletId) {
+uvec2 processMeshlet(const uint meshletId, const uint bucketId) {
   const uint iboOffset = meshletId * MaxPrim + MaxPrim - 1;
-  const uint bits      = indexes[iboOffset];
+  const uint bits      = ibo[nonuniformEXT(bucketId)].indexes[iboOffset];
   uvec4 prim;
   prim.x = ((bits >>  0) & 0xFF);
   prim.y = ((bits >>  8) & 0xFF);
@@ -40,9 +44,9 @@ uvec2 processMeshlet(const uint meshletId) {
   return uvec2(vertCount, primCount);
   }
 
-uvec3 processPrimitive(const uint meshletId, const uint outId) {
+uvec3 processPrimitive(const uint meshletId, const uint bucketId, const uint outId) {
   const uint iboOffset = meshletId * MaxPrim + outId;
-  const uint bits      = indexes[iboOffset];
+  const uint bits      = ibo[nonuniformEXT(bucketId)].indexes[iboOffset];
   uvec3 prim;
   prim.x = ((bits >>  0) & 0xFF);
   prim.y = ((bits >>  8) & 0xFF);
@@ -50,56 +54,41 @@ uvec3 processPrimitive(const uint meshletId, const uint outId) {
   return prim;
   }
 
-vec4  processVertex(out Varyings var, uint instanceOffset, const uint meshletId, const uint laneID) {
+vec4  processVertex(out Varyings var, uint instanceOffset, const uint meshletId, const uint bucketId, const uint laneID) {
   const uint vboOffset = meshletId * MaxVert + laneID;
-
 #if (MESH_TYPE==T_PFX)
   const Vertex vert = pullVertex(instanceOffset);
 #else
-  const Vertex vert = pullVertex(vboOffset);
+  const Vertex vert = pullVertex(bucketId, vboOffset);
 #endif
-
-  vec4 position = processVertex(var, vert, instanceOffset, vboOffset);
-  // position.y = -position.y;
-  return position;
-  }
-
-uvec2 pullPayload() {
-#if defined(LVL_OBJECT)
-  ///
-#elif (MESH_TYPE==T_LANDSCAPE)
-  const uint instanceOffset = 0;
-  const uint meshletId      = globalPayload.meshlets[gl_InstanceIndex + push.firstMeshlet];
-#else
-  ///
-#endif
-  return uvec2(instanceOffset, meshletId);
+  return processVertex(var, vert, instanceOffset, vboOffset);
   }
 
 #if defined(GL_VERTEX_SHADER)
 void vertexShader() {
-  const uvec2 pl         = pullPayload();
-  const uint  instanceId = pl.x;
-  const uint  meshletId  = pl.y;
+  const uvec4 task       = payload[gl_InstanceIndex + push.firstMeshlet];
 
-  const uvec2 mesh      = processMeshlet(meshletId);
-  const uint  vertCount = mesh.x;
-  const uint  primCount = mesh.y;
+  const uint  instanceId = task.x;
+  const uint  meshletId  = task.y;
+  const uint  bucketId   = task.z;
 
-#if (MESH_TYPE==T_LANDSCAPE)
-  textureId = pullCluster(meshletId).bucketId;
-#endif
+  const uvec2 mesh       = processMeshlet(meshletId, bucketId);
+  const uint  vertCount  = mesh.x;
+  const uint  primCount  = mesh.y;
 
-  const uint  laneID    = gl_VertexIndex/3;
-
+  const uint  laneID     = gl_VertexIndex/3;
   if(laneID>=primCount) {
-    gl_Position = vec4(-1);
+    gl_Position = vec4(-1,-1,0,1);
     return;
     }
 
+#if defined(BINDLESS) && defined(MAT_VARYINGS)
+  textureId = bucketId;
+#endif
+
   Varyings var;
-  uint idx    = processPrimitive(meshletId, laneID)[gl_VertexIndex%3];
-  gl_Position = processVertex(var, instanceId, meshletId, idx);
+  uint idx    = processPrimitive(meshletId, bucketId, laneID)[gl_VertexIndex%3];
+  gl_Position = processVertex(var, instanceId, meshletId, bucketId, idx);
 #if defined(MAT_VARYINGS)
   shOut       = var;
 #endif

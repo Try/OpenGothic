@@ -5,33 +5,17 @@
 #extension GL_EXT_control_flow_attributes : enable
 
 #include "scalar_ops.glsl"
-
-#define CLUSTER
-#define CULL
 #include "materials_common.glsl"
 
 layout(local_size_x = 64) in;
 
-shared uint visibleCount;
-shared uint writeOffset;
+layout(binding = 1, std430) buffer IndirectBuf  { IndirectCmd cmd[];         };
+layout(binding = 2, std430) readonly buffer Cbo { Cluster     clusters[];    };
+layout(binding = 3, std430) buffer SsboGlob     { uvec4       payload[];     };
+layout(binding = 4, std430) readonly buffer Mem { uint        instanceMem[]; };
+layout(binding = 5)         uniform sampler2D hiZ;
 
-#if (MESH_TYPE==T_LANDSCAPE)
-LandscapeCluster cluster;
-#endif
-
-bool sphereTest(const uint instanceId) {
-  const vec4 sphere = cluster.sphere;
-  if(sphere.w<0.f)
-    return false;
-
-  for(int i=0; i<6; ++i) {
-    if(dot(vec4(sphere.xyz,1.0), scene.frustrum[i]) <= -sphere.w) {
-      return false;
-      }
-    }
-
-  return true;
-  }
+Cluster cluster;
 
 float hiZFetch(in sampler2D hiZ, in ivec2 ibbox[2]) {
   if(ibbox[0]==ibbox[1])
@@ -55,7 +39,66 @@ float hiZFetch(in sampler2D hiZ, in ivec2 ibbox[2]) {
   return z;
   }
 
-#if defined(HIZ) && (MESH_TYPE!=T_PFX)
+bool sphereTest(const vec4 sphere) {
+  if(sphere.w<0.f)
+    return false;
+
+  for(int i=0; i<6; ++i) {
+    if(dot(vec4(sphere.xyz,1.0), scene.frustrum[i]) <= -sphere.w) {
+      return false;
+      }
+    }
+
+  return true;
+  }
+
+bool hiZTest(ivec4 ibbox, float depthMin) {
+  ivec2 bbox[2] = {ibbox.xy, ibbox.zw};
+  float bz      = packHiZ(depthMin);
+  float z       = hiZFetch(hiZ, bbox);
+  if(bz > z)
+    return false;
+  return true;
+  }
+
+ivec4 bboxCluster(out float depthMin) {
+  const vec3  objPos = cluster.sphere.xyz;
+  const float R      = cluster.sphere.w;
+  const vec3  b[2]   = { objPos-vec3(R), objPos+vec3(R) };
+
+  vec2  sbbox[2] = {vec2(1), vec2(-1)};
+  depthMin = 1;
+  for(uint i=0; i<8; ++i) {
+    const vec3 pos = vec3(b[bitfieldExtract(i,0,1)].x,
+                          b[bitfieldExtract(i,1,1)].y,
+                          b[bitfieldExtract(i,2,1)].z);
+    vec4 trPos = vec4(pos,1.0);
+    trPos = scene.viewProject*trPos;
+    if(trPos.z<0 || trPos.w<0.001) {
+      depthMin = 0;
+      continue;
+      }
+
+    vec3 bp = trPos.xyz/trPos.w;
+    bp.xy = bp.xy*0.5 + vec2(0.5);
+
+    sbbox[0] = min(sbbox[0], bp.xy);
+    sbbox[1] = max(sbbox[1], bp.xy);
+
+    depthMin = min(depthMin, bp.z);
+    }
+
+  ivec2 hiZsize = textureSize(hiZ,0);
+  ivec2 ibbox[2];
+  ibbox[0] = ivec2(sbbox[0] * scene.screenRes) / scene.hiZTileSize;
+  ibbox[1] = ivec2(sbbox[1] * scene.screenRes) / scene.hiZTileSize;
+  ibbox[0] = clamp(ibbox[0], ivec2(0), hiZsize - ivec2(1));
+  ibbox[1] = clamp(ibbox[1], ivec2(0), hiZsize - ivec2(1));
+
+  return ivec4(ibbox[0], ibbox[1]);
+  }
+
+#if defined(HIZ) && 0
 bool bboxTest(const uint instanceId) {
 #if defined(LVL_OBJECT)
   const vec3  b[2]   = {bucket.bbox[0].xyz, bucket.bbox[1].xyz};
@@ -116,74 +159,34 @@ bool bboxTest(const uint instanceId) {
   }
 #endif
 
-bool isVisible(const uint instanceId) {
-#if defined(LVL_OBJECT)
-  if(instanceId>=push.instanceCount)
-    return false;
-#elif (MESH_TYPE==T_LANDSCAPE)
-  if(instanceId>=push.meshletCount)
-    return false;
+void runCluster(const uint clusterId) {
+  cluster = clusters[clusterId];
+  if(!sphereTest(cluster.sphere))
+    return;
+
+  const uint commandId  = cluster.bucketId_commandId & 0xFFFF;
+  const uint bucketId   = cluster.bucketId_commandId >> 16;
+  const uint instanceId = cluster.instanceId;
+  const uint meshletId  = cluster.firstMeshlet;
+
+#if defined(HIZ)
+  {
+  float depthMin = 1;
+  ivec4 bbox     = bboxCluster(depthMin);
+  if(!hiZTest(bbox, depthMin))
+    return;
+  }
 #endif
 
-#if (MESH_TYPE==T_LANDSCAPE)
-  if(!sphereTest(instanceId))
-    return false;
-  if(!bboxTest(instanceId))
-    return false;
-#elif (MESH_TYPE==T_PFX)
-  return true;
-#else
-  if(!sphereTest(instanceId))
-    return false;
-  if(!bboxTest(instanceId))
-    return false;
-#endif
-  return true;
+  uint writeOffset = cmd[commandId].writeOffset;
+  writeOffset      += atomicAdd(cmd[commandId].instanceCount, cluster.meshletCount);
+
+  for(int i=0; i<cluster.meshletCount; ++i)
+    payload[writeOffset+i] = uvec4(instanceId, meshletId+i, bucketId, 0);
   }
 
 void main() {
-#if defined(LVL_OBJECT)
-  const uint meshletSz  = push.meshletCount;
-  const uint instanceId = gl_GlobalInvocationID.x;
-#else
-  const uint meshletSz  = 1;
-  const uint instanceId = gl_GlobalInvocationID.x;
-#endif
-
-#if (MESH_TYPE==T_LANDSCAPE)
-  if(instanceId<push.meshletCount)
-    cluster = pullCluster(instanceId);
-#elif (MESH_TYPE==T_PFX)
-  cluster.sphere = vec4(0);
-#else
-  if(instanceId<push.instanceCount)
-    cluster.sphere = vec4(pullPosition(instanceId), bucket.bboxRadius);
-#endif
-
-  const bool visible = isVisible(instanceId);
-  if(visible) {
-    uint writeOffset =  cmd[cluster.commandId].writeOffset;
-    writeOffset      += atomicAdd(cmd[cluster.commandId].instanceCount, 1);
-    globalPayload.meshlets[writeOffset] = gl_GlobalInvocationID.x;
-    }
-
-  /*
-  visibleCount = 0;
-  barrier();
-
-  uint id = -1;
-  if(visible)
-    id = atomicAdd(visibleCount, 1);
-  barrier();
-
-  if(gl_LocalInvocationIndex==0) {
-    writeOffset =  globalPayload.cmd[cluster.bucketId].writeOffset;
-    writeOffset += atomicAdd(globalPayload.cmd[cluster.bucketId].instanceCount, visibleCount);
-    }
-  barrier();
-
-  if(visible) {
-    globalPayload.meshlets[writeOffset + id] = gl_GlobalInvocationID.x;
-    }
-    */
+  const uint clusterId = gl_GlobalInvocationID.x;
+  if(clusterId<push.meshletCount)
+    runCluster(clusterId);
   }
