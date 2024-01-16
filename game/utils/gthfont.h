@@ -6,7 +6,7 @@
 class GthFont final {
   public:
     GthFont();
-    GthFont(zenkit::Read* data, std::string_view ftex, const Tempest::Color &cl);
+    GthFont(zenkit::Read& data, std::string_view ftex, const Tempest::Color &cl);
     GthFont(const GthFont&) = default;
     GthFont(GthFont&&)      = default;
 
