@@ -66,17 +66,27 @@ vec3 ghostColor(vec3 selfColor) {
 
 #if defined(MAT_UV)
 vec4 diffuseTex() {
+#if defined(BINDLESS)
+  ivec2 texAniMapDirPeriod = bucket[textureId].texAniMapDirPeriod;
+  float alphaWeight        = bucket[textureId].alphaWeight;
+#elif (defined(LVL_OBJECT) || defined(WATER))
+  ivec2 texAniMapDirPeriod = bucket.texAniMapDirPeriod;
+  float alphaWeight        = bucket.alphaWeight;
+#else
+  // N/A
+#endif
+
 #if (defined(LVL_OBJECT) || defined(WATER))
   vec2 texAnim = vec2(0);
   {
     // FIXME: this not suppose to run for every-single material
-    if(bucket.texAniMapDirPeriod.x!=0) {
-      uint fract = scene.tickCount32 % abs(bucket.texAniMapDirPeriod.x);
-      texAnim.x  = float(fract)/float(bucket.texAniMapDirPeriod.x);
+    if(texAniMapDirPeriod.x!=0) {
+      uint fract = scene.tickCount32 % abs(texAniMapDirPeriod.x);
+      texAnim.x  = float(fract)/float(texAniMapDirPeriod.x);
       }
-    if(bucket.texAniMapDirPeriod.y!=0) {
-      uint fract = scene.tickCount32 % abs(bucket.texAniMapDirPeriod.y);
-      texAnim.y  = float(fract)/float(bucket.texAniMapDirPeriod.y);
+    if(texAniMapDirPeriod.y!=0) {
+      uint fract = scene.tickCount32 % abs(texAniMapDirPeriod.y);
+      texAnim.y  = float(fract)/float(texAniMapDirPeriod.y);
       }
   }
   const vec2 uv = shInp.uv + texAnim;
@@ -91,7 +101,7 @@ vec4 diffuseTex() {
 #endif
 
 #if defined(LVL_OBJECT)
-  tex.a *= bucket.alphaWeight;
+  tex.a *= alphaWeight;
 #endif
 
   return tex;

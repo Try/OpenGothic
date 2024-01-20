@@ -6,6 +6,7 @@
 #include <list>
 
 #include "graphics/objectsbucket.h"
+#include "graphics/drawstorage.h"
 
 class Material;
 
@@ -51,9 +52,6 @@ class Shaders {
 
     // Cluster
     Tempest::ComputePipeline clusterInit, clusterTask, clusterTaskHiZ;
-    Tempest::RenderPipeline  clusterLndGBuf,  clusterLndGBufAt;
-    Tempest::RenderPipeline  clusterObjGBuf,  clusterObjGBufAt;
-    Tempest::RenderPipeline  clusterDepth, clusterDepthAt;
 
     // GI
     Tempest::RenderPipeline  probeDbg;
@@ -69,6 +67,8 @@ class Shaders {
       };
 
     const Tempest::RenderPipeline* materialPipeline(const Material& desc, ObjectsBucket::Type t, PipelineType pt) const;
+    const Tempest::RenderPipeline* materialPipeline(const Material& desc, DrawStorage::Type t, PipelineType pt) const;
+
     Tempest::RenderPipeline lndPrePass;
     Tempest::RenderPipeline inventory;
 
@@ -107,4 +107,5 @@ class Shaders {
     MaterialTemplate solid,  atest, solidF, atestF, water, waterTess, ghost, emmision, multiply;
     MaterialTemplate shadow, shadowAt;
     mutable std::list<Entry> materials;
+    mutable std::list<Entry> materialsDr;
   };

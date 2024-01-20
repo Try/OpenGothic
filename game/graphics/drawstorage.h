@@ -17,6 +17,7 @@
 class StaticMesh;
 class AnimMesh;
 class VisualObjects;
+class Camera;
 
 class DrawStorage {
   public:
@@ -78,6 +79,9 @@ class DrawStorage {
     Item alloc(const StaticMesh& mesh, const Material& mat,
                size_t iboOff, size_t iboLen, const PackedMesh::Cluster* cluster, Type type);
 
+    void dbgDraw(Tempest::Painter& p, Tempest::Vec2 wsz);
+
+    bool commit();
     void prepareUniforms();
     void invalidateUbo();
 
@@ -92,7 +96,8 @@ class DrawStorage {
       T_Clusters = 2,
       T_Payload  = 3,
       T_Instance = 4,
-      T_HiZ      = 5,
+      T_Bucket   = 5,
+      T_HiZ      = 6,
       };
 
     enum UboLinkpackage : uint8_t {
@@ -130,12 +135,28 @@ class DrawStorage {
 
       Tempest::Matrix4x4  pos;
       InstanceStorage::Id objInstance;
+      InstanceStorage::Id objMorphAnim;
       Type                type      = Type::Landscape;
       uint32_t            iboOff    = 0;
       uint32_t            iboLen    = 0;
+      uint32_t            animPtr   = 0;
       uint16_t            bucketId  = 0;
       uint16_t            cmdId     = uint16_t(-1);
       uint32_t            clusterId = 0;
+      float               fatness   = 0;
+      bool                isGhost   = false;
+      };
+
+    struct MorphDesc final {
+      uint32_t indexOffset = 0;
+      uint32_t sample0     = 0;
+      uint32_t sample1     = 0;
+      uint16_t alpha       = 0;
+      uint16_t intensity   = 0;
+      };
+
+    struct MorphData {
+      MorphDesc morph[Resources::MAX_MORPH_LAYERS];
       };
 
     struct InstanceDesc {
@@ -168,6 +189,7 @@ class DrawStorage {
       float          waveMaxAmplitude = 0;
       float          alphaWeight      = 1;
       float          envMapping       = 0;
+      uint32_t       padd[2]          = {};
       };
 
     struct TaskCmd {
@@ -195,9 +217,8 @@ class DrawStorage {
     void                           free(size_t id);
     void                           updateInstance(size_t id);
 
-    void                           commit();
-    const Tempest::RenderPipeline* pipelineColor(const Material& m, Type type);
-    const Tempest::RenderPipeline* pipelineDepth(const Material& m, Type type);
+    bool                           commitCommands();
+    bool                           commitBuckets();
 
     size_t                         implAlloc();
     uint16_t                       bucketId (const Material& m, const StaticMesh& mesh);
@@ -206,14 +227,19 @@ class DrawStorage {
     uint32_t                       clusterId(const PackedMesh::Cluster* cluster, size_t firstMeshlet, size_t meshletCount, uint16_t bucketId, uint16_t commandId);
     uint32_t                       clusterId(const Bucket&  bucket,  size_t firstMeshlet, size_t meshletCount, uint16_t bucketId, uint16_t commandId);
 
+    void                           dbgDraw(Tempest::Painter& p, Tempest::Vec2 wsz, const Camera& cam, const Cluster& c);
+    void                           dbgDrawBBox(Tempest::Painter& p, Tempest::Vec2 wsz, const Camera& cam, const Cluster& c);
+
     VisualObjects&                 owner;
     const SceneGlobals&            scene;
     bool                           commited = false;
     std::vector<TaskCmd>           tasks;
 
     std::vector<Object>            objects;
+
     std::vector<Bucket>            buckets;
     Tempest::StorageBuffer         bucketsGpu;
+    bool                           bucketsDurtyBit = false;
 
     size_t                         totalPayload = 0;
     std::vector<Cluster>           clusters;
@@ -221,5 +247,6 @@ class DrawStorage {
 
     std::vector<DrawCmd>           cmd;
     std::vector<DrawCmd*>          ord;
+    bool                           cmdDurtyBit = false;
     View                           views[SceneGlobals::V_Count];
   };

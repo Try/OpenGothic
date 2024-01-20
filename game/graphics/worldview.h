@@ -70,6 +70,8 @@ class WorldView {
     MeshObjects::Mesh   addStaticView(std::string_view visual);
     MeshObjects::Mesh   addDecalView (const phoenix::vob& vob);
 
+    void                dbgClusters(Tempest::Painter& p, Tempest::Vec2 wsz);
+
     const SceneGlobals& sceneGlobals() const { return sGlobal; }
     const Sky&          sky() const { return gSky; }
     const Landscape&    landscape() const { return land; }

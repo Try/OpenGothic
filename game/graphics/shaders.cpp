@@ -90,44 +90,6 @@ Shaders::Shaders() {
   clusterInit    = computeShader("cluster_init.comp.sprv");
   clusterTask    = computeShader("cluster_task.comp.sprv");
   clusterTaskHiZ = computeShader("cluster_task_hiz.comp.sprv");
-  {
-    RenderState state;
-    state.setCullFaceMode (RenderState::CullMode::Front);
-    state.setZTestMode    (RenderState::ZTestMode::Less);
-    state.setZWriteEnabled(true);
-
-    auto shObj = GothicShader::get("cluster_vert_obj_c.vert.sprv");
-    auto vsObj = device.shader(shObj.data,shObj.len);
-
-    auto shLnd = GothicShader::get("cluster_vert_lnd_c.vert.sprv");
-    auto vsLnd = device.shader(shLnd.data,shLnd.len);
-
-    auto sh = GothicShader::get("gbuffer.frag.sprv");
-    auto fs = device.shader(sh.data,sh.len);
-    clusterLndGBuf = device.pipeline(Triangles, state, vsLnd, fs);
-    clusterObjGBuf = device.pipeline(Triangles, state, vsObj, fs);
-
-    sh = GothicShader::get("gbuffer_at.frag.sprv");
-    fs = device.shader(sh.data,sh.len);
-    clusterLndGBufAt = device.pipeline(Triangles, state, vsLnd, fs);
-    clusterObjGBufAt = device.pipeline(Triangles, state, vsObj, fs);
-  }
-  {
-    RenderState state;
-    state.setCullFaceMode (RenderState::CullMode::Front);
-    state.setZTestMode    (RenderState::ZTestMode::Greater);
-    state.setZWriteEnabled(true);
-
-    auto sh = GothicShader::get("cluster_vert_lnd_d.vert.sprv");
-    auto vs = device.shader(sh.data,sh.len);
-    sh      = GothicShader::get("shadow.frag.sprv");
-    auto fs = device.shader(sh.data,sh.len);
-    clusterDepth = device.pipeline(Triangles, state, vs, fs);
-
-    sh = GothicShader::get("shadow_at.frag.sprv");
-    fs = device.shader(sh.data,sh.len);
-    clusterDepthAt = device.pipeline(Triangles, state, vs, fs);
-  }
 
   ssao             = computeShader("ssao.comp.sprv");
   ssaoBlur         = computeShader("ssao_blur.comp.sprv");
@@ -415,6 +377,93 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
       break;
     }
 
+  return &b.pipeline;
+  }
+
+const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage::Type t, PipelineType pt) const {
+  if(t==DrawStorage::Static) {
+    // same shader
+    t = DrawStorage::Movable;
+    }
+
+  if(mat.alpha==Material::Transparent || mat.alpha==Material::AdditiveLight)
+    return nullptr; // TODO
+
+  if(pt==PipelineType::T_Shadow && !mat.isSolid()) {
+    return nullptr;
+    }
+
+  const auto alpha = (mat.isGhost ? Material::Ghost : mat.alpha);
+
+  for(auto& i:materialsDr) {
+    if(i.alpha==alpha && DrawStorage::Type(i.type)==t && i.pipelineType==pt)
+      return &i.pipeline;
+    }
+
+  RenderState state;
+  state.setCullFaceMode(RenderState::CullMode::Front);
+  state.setZTestMode   (RenderState::ZTestMode::LEqual);
+  //state.setZTestMode   (RenderState::ZTestMode::Less);
+
+  if(pt==PipelineType::T_Shadow) {
+    state.setZTestMode(RenderState::ZTestMode::Greater); //FIXME
+    }
+
+  const char* vsTok = "";
+  const char* fsTok = "";
+  const char* vsS   = "";
+  const char* fsS   = (alpha==Material::Solid) ? "" : "_at";
+  switch(t) {
+    case DrawStorage::Landscape:
+      vsTok = "lnd";
+      fsTok = "lnd";
+      break;
+    case DrawStorage::Static:
+    case DrawStorage::Movable:
+      vsTok = "obj";
+      fsTok = "obj";
+      break;
+    case DrawStorage::Animated:
+      vsTok = "ani";
+      fsTok = "obj";
+      break;
+    case DrawStorage::Pfx:
+      assert(0);
+      break;
+    case DrawStorage::Morph:
+      vsTok = "mph";
+      fsTok = "obj";
+      break;
+    }
+
+  const char* typeS = "";
+  switch(pt) {
+    case T_Forward:
+      typeS = "_f";
+      break;
+    case T_Deffered:
+      typeS = "_c";
+      break;
+    case T_Shadow:
+      typeS = "_d";
+      vsS   = (alpha==Material::Solid) ? "" : "_at";
+      break;
+    }
+
+  auto& device = Resources::device();
+
+  auto shVs = GothicShader::get(string_frm("cluster_", vsTok, typeS, vsS, ".vert.sprv"));
+  auto shFs = GothicShader::get(string_frm("cluster_", fsTok, typeS, fsS, ".frag.sprv"));
+
+  auto vs = device.shader(shVs.data,shVs.len);
+  auto fs = device.shader(shFs.data,shFs.len);
+
+  materialsDr.emplace_front();
+  auto& b = materialsDr.front();
+  b.alpha        = alpha;
+  b.type         = ObjectsBucket::Type(t);
+  b.pipelineType = pt;
+  b.pipeline     = device.pipeline(Triangles, state, vs, fs);
   return &b.pipeline;
   }
 

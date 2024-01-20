@@ -13,9 +13,49 @@ layout(binding = 1, std430) buffer IndirectBuf  { IndirectCmd cmd[];         };
 layout(binding = 2, std430) readonly buffer Cbo { Cluster     clusters[];    };
 layout(binding = 3, std430) buffer SsboGlob     { uvec4       payload[];     };
 layout(binding = 4, std430) readonly buffer Mem { uint        instanceMem[]; };
-layout(binding = 5)         uniform sampler2D hiZ;
+layout(binding = 5, std140) readonly buffer Bbo { Bucket      bucket[];      };
+layout(binding = 6)         uniform sampler2D hiZ;
 
-Cluster cluster;
+layout(push_constant, std430) uniform UboPush {
+  uint      firstMeshlet;
+  int       meshletCount;
+  float     znear;
+  } push;
+
+Instance pullInstance(uint i) {
+  i *= 16;
+  Instance ret;
+  ret.mat[0][0] = uintBitsToFloat(instanceMem[i+0]);
+  ret.mat[0][1] = uintBitsToFloat(instanceMem[i+1]);
+  ret.mat[0][2] = uintBitsToFloat(instanceMem[i+2]);
+  ret.mat[1][0] = uintBitsToFloat(instanceMem[i+3]);
+  ret.mat[1][1] = uintBitsToFloat(instanceMem[i+4]);
+  ret.mat[1][2] = uintBitsToFloat(instanceMem[i+5]);
+  ret.mat[2][0] = uintBitsToFloat(instanceMem[i+6]);
+  ret.mat[2][1] = uintBitsToFloat(instanceMem[i+7]);
+  ret.mat[2][2] = uintBitsToFloat(instanceMem[i+8]);
+  ret.mat[3][0] = uintBitsToFloat(instanceMem[i+9]);
+  ret.mat[3][1] = uintBitsToFloat(instanceMem[i+10]);
+  ret.mat[3][2] = uintBitsToFloat(instanceMem[i+11]);
+  ret.fatness   = uintBitsToFloat(instanceMem[i+12]);
+  ret.animPtr   = instanceMem[i+13];
+  return ret;
+  }
+
+float min(float x0, float x1, float x2, float x3,
+          float x4, float x5, float x6, float x7) {
+  return min(x0, min(x1, min(x2, min(x3, min(x4, min(x5, min(x6, x7)))))));
+  }
+
+vec2 min(vec2 x0, vec2 x1, vec2 x2, vec2 x3,
+         vec2 x4, vec2 x5, vec2 x6, vec2 x7) {
+  return min(x0, min(x1, min(x2, min(x3, min(x4, min(x5, min(x6, x7)))))));
+  }
+
+vec2 max(vec2 x0, vec2 x1, vec2 x2, vec2 x3,
+         vec2 x4, vec2 x5, vec2 x6, vec2 x7) {
+  return max(x0, max(x1, max(x2, max(x3, max(x4, max(x5, max(x6, x7)))))));
+  }
 
 float hiZFetch(in sampler2D hiZ, in ivec2 ibbox[2]) {
   if(ibbox[0]==ibbox[1])
@@ -39,7 +79,134 @@ float hiZFetch(in sampler2D hiZ, in ivec2 ibbox[2]) {
   return z;
   }
 
-bool sphereTest(const vec4 sphere) {
+
+bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
+  if(sphere.w<0.f)
+    return false;
+
+  const vec3  c     = (scene.view * vec4(sphere.xyz, 1)).xyz;
+  const float R     = sphere.w;
+  const float znear = push.znear;
+
+  float z = c.z + R;
+  depthMin  = scene.project[3][2]/z + scene.project[2][2];
+
+  if(c.z - R < znear) {
+    depthMin = 0;
+    aabb     = vec4(0,0,1,1);
+    return true;
+    }
+
+  float P00 = scene.project[0][0];
+  float P11 = scene.project[1][1];
+
+  vec3  cr   = c * R;
+  float czr2 = c.z * c.z - R * R;
+
+  float vx   = sqrt(c.x * c.x + czr2);
+  float minx = (vx * c.x - cr.z) / (vx * c.z + cr.x);
+  float maxx = (vx * c.x + cr.z) / (vx * c.z - cr.x);
+
+  float vy   = sqrt(c.y * c.y + czr2);
+  float miny = (vy * c.y - cr.z) / (vy * c.z + cr.y);
+  float maxy = (vy * c.y + cr.z) / (vy * c.z - cr.y);
+
+  aabb = vec4(minx * P00, miny * P11, maxx * P00, maxy * P11);
+  aabb = aabb*0.5 + vec4(0.5);
+  return true;
+  }
+
+bool projectBox(vec3 bmin, vec3 bmax, out vec4 aabb) {
+  mat4        viewProjection = scene.viewProject;
+  const float znear          = push.znear;
+
+  vec4 SX = vec4(bmax.x - bmin.x, 0.0, 0.0, 0.0) * viewProjection;
+  vec4 SY = vec4(0.0, bmax.y - bmin.y, 0.0, 0.0) * viewProjection;
+  vec4 SZ = vec4(0.0, 0.0, bmax.z - bmin.z, 0.0) * viewProjection;
+
+  vec4 P0 = vec4(bmin.x, bmin.y, bmin.z, 1.0) * viewProjection;
+  vec4 P1 = P0 + SZ;
+  vec4 P2 = P0 + SY;
+  vec4 P3 = P2 + SZ;
+  vec4 P4 = P0 + SX;
+  vec4 P5 = P4 + SZ;
+  vec4 P6 = P4 + SY;
+  vec4 P7 = P6 + SZ;
+
+  if(min(P0.w, P1.w, P2.w, P3.w, P4.w, P5.w, P6.w, P7.w) < znear) {
+    return false;
+    }
+
+  aabb.xy = min(
+        P0.xy / P0.w, P1.xy / P1.w, P2.xy / P2.w, P3.xy / P3.w,
+        P4.xy / P4.w, P5.xy / P5.w, P6.xy / P6.w, P7.xy / P7.w);
+  aabb.zw = max(
+        P0.xy / P0.w, P1.xy / P1.w, P2.xy / P2.w, P3.xy / P3.w,
+        P4.xy / P4.w, P5.xy / P5.w, P6.xy / P6.w, P7.xy / P7.w);
+  return true;
+  }
+
+bool projectInstance(const Cluster cluster, out vec4 aabb, out float depthMin) {
+  const uint  bId        = cluster.bucketId_commandId >> 16;
+  const uint  instanceId = cluster.instanceId;
+
+  const vec3  b[2]       = {bucket[bId].bbox[0].xyz, bucket[bId].bbox[1].xyz};
+  Instance    obj        = pullInstance(instanceId);
+  const float znear      = push.znear;
+
+  {
+    vec4 trPos = vec4(0,0,0, 1.0);
+    trPos = vec4(obj.mat*trPos, 1.0);
+    trPos = scene.viewProject * trPos;
+    float R = 100;//bucket[bId].bboxRadius;
+
+    //vec3 pos = trPos.xyz/trPos.w;
+    vec3 pos = cluster.sphere.xyz;
+    return projectSphere(vec4(pos, R), aabb, depthMin);
+  }
+
+  aabb     = vec4(1, 1, -1, -1);
+  depthMin = 1;
+  for(uint i=0; i<8; ++i) {
+    const vec3 pos = vec3(b[bitfieldExtract(i,0,1)].x,
+                          b[bitfieldExtract(i,1,1)].y,
+                          b[bitfieldExtract(i,2,1)].z);
+    vec4 trPos = vec4(pos,1.0);
+    trPos = vec4(obj.mat*trPos, 1.0);
+    trPos = scene.viewProject*trPos;
+    if(trPos.w<znear || false) {
+      depthMin = 0;
+      aabb     = vec4(0,0,1,1);
+      return true;
+      }
+
+    vec3 bp = trPos.xyz/trPos.w;
+
+    aabb.xy  = min(aabb.xy,  bp.xy);
+    aabb.zw  = max(aabb.zw,  bp.xy);
+    depthMin = min(depthMin, bp.z);
+    }
+
+  aabb = aabb*0.5 + vec4(0.5);
+  return true;
+  }
+
+bool hiZTest(vec4 sbbox, float depthMin) {
+  ivec2 hiZsize = textureSize(hiZ,0);
+  ivec2 ibbox[2];
+  ibbox[0] = ivec2(sbbox.xy * scene.screenRes) / scene.hiZTileSize;
+  ibbox[1] = ivec2(sbbox.zw * scene.screenRes) / scene.hiZTileSize;
+  ibbox[0] = clamp(ibbox[0], ivec2(0), hiZsize - ivec2(1));
+  ibbox[1] = clamp(ibbox[1], ivec2(0), hiZsize - ivec2(1));
+
+  float bz      = packHiZ(depthMin);
+  float z       = hiZFetch(hiZ, ibbox);
+  if(bz > z)
+    return false;
+  return true;
+  }
+
+bool frustrumTest(const vec4 sphere) {
   if(sphere.w<0.f)
     return false;
 
@@ -52,131 +219,37 @@ bool sphereTest(const vec4 sphere) {
   return true;
   }
 
-bool hiZTest(ivec4 ibbox, float depthMin) {
-  ivec2 bbox[2] = {ibbox.xy, ibbox.zw};
-  float bz      = packHiZ(depthMin);
-  float z       = hiZFetch(hiZ, bbox);
-  if(bz > z)
-    return false;
-  return true;
+
+bool projectCluster(const Cluster cluster, out vec4 aabb, out float depthMin) {
+  if(cluster.instanceId==0xFFFFFFFF)
+    return projectSphere(cluster.sphere, aabb, depthMin);
+  return projectSphere(cluster.sphere, aabb, depthMin);
+  // return projectBox(cluster, aabb, depthMin);
+  // return projectInstance(cluster, aabb, depthMin);
   }
-
-ivec4 bboxCluster(out float depthMin) {
-  const vec3  objPos = cluster.sphere.xyz;
-  const float R      = cluster.sphere.w;
-  const vec3  b[2]   = { objPos-vec3(R), objPos+vec3(R) };
-
-  vec2  sbbox[2] = {vec2(1), vec2(-1)};
-  depthMin = 1;
-  for(uint i=0; i<8; ++i) {
-    const vec3 pos = vec3(b[bitfieldExtract(i,0,1)].x,
-                          b[bitfieldExtract(i,1,1)].y,
-                          b[bitfieldExtract(i,2,1)].z);
-    vec4 trPos = vec4(pos,1.0);
-    trPos = scene.viewProject*trPos;
-    if(trPos.z<0 || trPos.w<0.001) {
-      depthMin = 0;
-      continue;
-      }
-
-    vec3 bp = trPos.xyz/trPos.w;
-    bp.xy = bp.xy*0.5 + vec2(0.5);
-
-    sbbox[0] = min(sbbox[0], bp.xy);
-    sbbox[1] = max(sbbox[1], bp.xy);
-
-    depthMin = min(depthMin, bp.z);
-    }
-
-  ivec2 hiZsize = textureSize(hiZ,0);
-  ivec2 ibbox[2];
-  ibbox[0] = ivec2(sbbox[0] * scene.screenRes) / scene.hiZTileSize;
-  ibbox[1] = ivec2(sbbox[1] * scene.screenRes) / scene.hiZTileSize;
-  ibbox[0] = clamp(ibbox[0], ivec2(0), hiZsize - ivec2(1));
-  ibbox[1] = clamp(ibbox[1], ivec2(0), hiZsize - ivec2(1));
-
-  return ivec4(ibbox[0], ibbox[1]);
-  }
-
-#if defined(HIZ) && 0
-bool bboxTest(const uint instanceId) {
-#if defined(LVL_OBJECT)
-  const vec3  b[2]   = {bucket.bbox[0].xyz, bucket.bbox[1].xyz};
-  Instance    obj    = pullInstance(instanceId);
-#else
-  const vec3  objPos = cluster.sphere.xyz;
-  const float R      = cluster.sphere.w;
-  const vec3  b[2]   = { objPos-vec3(R), objPos+vec3(R) };
-#endif
-
-  ivec2 hiZsize  = textureSize(hiZ,0);
-  ivec2 ibbox[2] = {ivec2(hiZsize), ivec2(0)};
-  vec2  sbbox[2] = {vec2(1), vec2(-1)};
-  float depthMin = 1;
-  for(uint i=0; i<8; ++i) {
-    const vec3 pos = vec3(b[bitfieldExtract(i,0,1)].x,
-                          b[bitfieldExtract(i,1,1)].y,
-                          b[bitfieldExtract(i,2,1)].z);
-    vec4 trPos = vec4(pos,1.0);
-#if defined(LVL_OBJECT)
-    trPos = vec4(obj.mat*trPos, 1.0);
-#endif
-    trPos = scene.viewProject*trPos;
-    if(trPos.z<0 || trPos.w<0.001)
-      return true;
-
-    vec3 bp = trPos.xyz/trPos.w;
-    bp.xy = bp.xy*0.5 + vec2(0.5);
-
-    ivec2 scr = ivec2(bp.xy * scene.screenRes) / scene.hiZTileSize;
-
-    ibbox[0] = min(ibbox[0], scr);
-    ibbox[1] = max(ibbox[1], scr);
-
-    sbbox[0] = min(sbbox[0], bp.xy);
-    sbbox[1] = max(sbbox[1], bp.xy);
-
-    depthMin = min(depthMin, bp.z);
-    }
-
-  sbbox[0] *= scene.screenRes;
-  sbbox[1] *= scene.screenRes;
-  if(round(sbbox[0])==round(sbbox[1]))
-    return false;
-
-  ibbox[0] = clamp(ibbox[0], ivec2(0), hiZsize - ivec2(1));
-  ibbox[1] = clamp(ibbox[1], ivec2(0), hiZsize - ivec2(1));
-
-  float bz = packHiZ(depthMin);
-  float z  = hiZFetch(hiZ, ibbox);
-  if(bz > z)
-    return false;
-  return true;
-  }
-#else
-bool bboxTest(const uint instanceId) {
-  return true;
-  }
-#endif
 
 void runCluster(const uint clusterId) {
-  cluster = clusters[clusterId];
-  if(!sphereTest(cluster.sphere))
+  const Cluster cluster = clusters[clusterId];
+  if(cluster.sphere.w<=0.f)
+    return; // disabled or deleted
+
+  if(!frustrumTest(cluster.sphere))
     return;
+
+  vec4  aabb     = vec4(0);
+  float depthMin = 1;
+  if(!projectCluster(cluster, aabb, depthMin))
+    ;//return;
+
+#if defined(HIZ)
+  if(!hiZTest(aabb, depthMin))
+    ;//return;
+#endif
 
   const uint commandId  = cluster.bucketId_commandId & 0xFFFF;
   const uint bucketId   = cluster.bucketId_commandId >> 16;
   const uint instanceId = cluster.instanceId;
   const uint meshletId  = cluster.firstMeshlet;
-
-#if defined(HIZ)
-  {
-  float depthMin = 1;
-  ivec4 bbox     = bboxCluster(depthMin);
-  if(!hiZTest(bbox, depthMin))
-    return;
-  }
-#endif
 
   uint writeOffset = cmd[commandId].writeOffset;
   writeOffset      += atomicAdd(cmd[commandId].instanceCount, cluster.meshletCount);

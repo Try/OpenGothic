@@ -177,7 +177,7 @@ layout(push_constant, std430) uniform UboPush {
   uint      firstInstance;
   uint      instanceCount;
   } push;
-#elif (MESH_TYPE==T_PFX)
+#elif (MESH_TYPE==T_PFX) || (MESH_TYPE==255)
 // no push
 #else
 #error "unknown MESH_TYPE"
@@ -190,12 +190,11 @@ layout(binding = L_Scene, std140) uniform UboScene {
 #if defined(BINDLESS)
 layout(binding = L_Ibo,      std430) readonly buffer Ibo  { uint    indexes [];    } ibo[];
 layout(binding = L_Vbo,      std430) readonly buffer Vbo  { float   vertices[];    } vbo[];
-//layout(binding = L_Bucket,   std140) readonly buffer Bbo  { Bucket  bucket[];      };
 layout(binding = L_Diffuse)          uniform  texture2D textureD[];
 layout(binding = L_Sampler)          uniform  sampler   samplerMain;
 #endif
 
-#if defined(BINDLESS) || defined(CULL)
+#if defined(BINDLESS) || defined(CLUSTER)
 layout(binding = L_Instance, std430) readonly buffer Mem  { uint    instanceMem[]; };
 layout(binding = L_Bucket,   std140) readonly buffer Bbo  { Bucket  bucket[];      };
 layout(binding = L_Payload,  std430) readonly buffer Pbo  { uvec4   payload[];     };

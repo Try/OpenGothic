@@ -59,6 +59,8 @@ class VisualObjects final {
 
     bool updateRtScene(RtScene& out);
 
+    void dbgClusters(Tempest::Painter& p, Tempest::Vec2 wsz);
+
   private:
     ObjectsBucket& getBucket(ObjectsBucket::Type type, const Material& mat,
                              const StaticMesh* st, const AnimMesh* anim, const Tempest::StorageBuffer* desc);

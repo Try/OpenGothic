@@ -199,6 +199,10 @@ MeshObjects::Mesh WorldView::addDecalView(const phoenix::vob& vob) {
   return MeshObjects::Mesh();
   }
 
+void WorldView::dbgClusters(Tempest::Painter& p, Vec2 wsz) {
+  visuals.dbgClusters(p, wsz);
+  }
+
 void WorldView::updateLight() {
   const int64_t now = owner.time().timeInDay().toInt();
   gSky.updateLight(now);

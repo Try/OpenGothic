@@ -238,6 +238,7 @@ void VisualObjects::mkIndex() {
 
 void VisualObjects::prepareGlobals(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   bool sk = instanceMem.commit(cmd, fId);
+  sk |= drawMem.commit();
   if(!sk)
     return;
   drawMem.invalidateUbo();
@@ -258,4 +259,8 @@ bool VisualObjects::updateRtScene(RtScene& out) {
 
   out.buildTlas();
   return true;
+  }
+
+void VisualObjects::dbgClusters(Tempest::Painter& p, Vec2 wsz) {
+  drawMem.dbgDraw(p, wsz);
   }

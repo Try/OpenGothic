@@ -154,20 +154,34 @@ add_uber_shader(ani "-DMESH_TYPE=2")
 add_uber_shader(mph "-DMESH_TYPE=3")
 add_uber_shader(pfx "-DMESH_TYPE=4")
 
+# cluster culling
 add_shader(cluster_init.comp         materials/cluster_init.comp)
-add_shader(cluster_task.comp         materials/cluster_task.comp)
-add_shader(cluster_task_hiz.comp     materials/cluster_task.comp -DHIZ)
-# cluster geometry
-add_shader(cluster_vert_lnd_c.vert   materials/cluster_vert.vert "-DMESH_TYPE=0" -DBINDLESS)
-add_shader(cluster_vert_lnd_d.vert   materials/cluster_vert.vert "-DMESH_TYPE=0" -DBINDLESS -DEPTH_ONLY)
+add_shader(cluster_task.comp         materials/cluster_task.comp "-DMESH_TYPE=255")
+add_shader(cluster_task_hiz.comp     materials/cluster_task.comp "-DMESH_TYPE=255" -DHIZ)
 
-add_shader(cluster_vert_obj_c.vert   materials/cluster_vert.vert "-DMESH_TYPE=1" -DBINDLESS)
-add_shader(cluster_vert_obj_d.vert   materials/cluster_vert.vert "-DMESH_TYPE=1" -DBINDLESS -DEPTH_ONLY)
+# cluster geometry
+add_shader(cluster_lnd_c.vert        materials/cluster_vert.vert "-DMESH_TYPE=0" -DBINDLESS)
+add_shader(cluster_lnd_d.vert        materials/cluster_vert.vert "-DMESH_TYPE=0" -DBINDLESS -DDEPTH_ONLY)
+add_shader(cluster_lnd_d_at.vert     materials/cluster_vert.vert "-DMESH_TYPE=0" -DBINDLESS -DDEPTH_ONLY -DATEST)
+
+add_shader(cluster_obj_c.vert        materials/cluster_vert.vert "-DMESH_TYPE=1" -DBINDLESS)
+add_shader(cluster_obj_d.vert        materials/cluster_vert.vert "-DMESH_TYPE=1" -DBINDLESS -DDEPTH_ONLY)
+add_shader(cluster_obj_d_at.vert     materials/cluster_vert.vert "-DMESH_TYPE=1" -DBINDLESS -DDEPTH_ONLY -DATEST)
+
+add_shader(cluster_ani_c.vert        materials/cluster_vert.vert "-DMESH_TYPE=2" -DBINDLESS)
+add_shader(cluster_ani_d.vert        materials/cluster_vert.vert "-DMESH_TYPE=2" -DBINDLESS -DDEPTH_ONLY)
+add_shader(cluster_ani_d_at.vert     materials/cluster_vert.vert "-DMESH_TYPE=2" -DBINDLESS -DDEPTH_ONLY -DATEST)
+
 # cluster frag
-add_shader(gbuffer.frag              materials/main.frag         "-DMESH_TYPE=0" -DBINDLESS -DGBUFFER)
-add_shader(gbuffer_at.frag           materials/main.frag         "-DMESH_TYPE=0" -DBINDLESS -DGBUFFER -DATEST)
-add_shader(shadow.frag               materials/main.frag         "-DMESH_TYPE=0" -DBINDLESS -DEPTH_ONLY)
-add_shader(shadow_at.frag            materials/main.frag         "-DMESH_TYPE=0" -DBINDLESS -DEPTH_ONLY -DATEST)
+add_shader(cluster_lnd_c.frag        materials/main.frag         "-DMESH_TYPE=0" -DBINDLESS -DGBUFFER)
+add_shader(cluster_lnd_c_at.frag     materials/main.frag         "-DMESH_TYPE=0" -DBINDLESS -DGBUFFER -DATEST)
+add_shader(cluster_lnd_d.frag        materials/main.frag         "-DMESH_TYPE=0" -DBINDLESS -DDEPTH_ONLY)
+add_shader(cluster_lnd_d_at.frag     materials/main.frag         "-DMESH_TYPE=0" -DBINDLESS -DDEPTH_ONLY -DATEST)
+
+add_shader(cluster_obj_c.frag        materials/main.frag         "-DMESH_TYPE=1" -DBINDLESS -DGBUFFER)
+add_shader(cluster_obj_c_at.frag     materials/main.frag         "-DMESH_TYPE=1" -DBINDLESS -DGBUFFER -DATEST)
+add_shader(cluster_obj_d.frag        materials/main.frag         "-DMESH_TYPE=1" -DBINDLESS -DDEPTH_ONLY)
+add_shader(cluster_obj_d_at.frag     materials/main.frag         "-DMESH_TYPE=1" -DBINDLESS -DDEPTH_ONLY -DATEST)
 
 add_shader(item.vert                 inventory/item.vert)
 add_shader(item.frag                 inventory/item.frag)
