@@ -81,9 +81,6 @@ float hiZFetch(in sampler2D hiZ, in ivec2 ibbox[2]) {
 
 
 bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
-  if(sphere.w<0.f)
-    return false;
-
   const vec3  c     = (scene.view * vec4(sphere.xyz, 1)).xyz;
   const float R     = sphere.w;
   const float znear = push.znear;
@@ -154,17 +151,6 @@ bool projectInstance(const Cluster cluster, out vec4 aabb, out float depthMin) {
   Instance    obj        = pullInstance(instanceId);
   const float znear      = push.znear;
 
-  {
-    vec4 trPos = vec4(0,0,0, 1.0);
-    trPos = vec4(obj.mat*trPos, 1.0);
-    trPos = scene.viewProject * trPos;
-    float R = 100;//bucket[bId].bboxRadius;
-
-    //vec3 pos = trPos.xyz/trPos.w;
-    vec3 pos = cluster.sphere.xyz;
-    return projectSphere(vec4(pos, R), aabb, depthMin);
-  }
-
   aabb     = vec4(1, 1, -1, -1);
   depthMin = 1;
   for(uint i=0; i<8; ++i) {
@@ -223,9 +209,9 @@ bool frustrumTest(const vec4 sphere) {
 bool projectCluster(const Cluster cluster, out vec4 aabb, out float depthMin) {
   if(cluster.instanceId==0xFFFFFFFF)
     return projectSphere(cluster.sphere, aabb, depthMin);
-  return projectSphere(cluster.sphere, aabb, depthMin);
+  // return projectSphere(cluster.sphere, aabb, depthMin);
   // return projectBox(cluster, aabb, depthMin);
-  // return projectInstance(cluster, aabb, depthMin);
+  return projectInstance(cluster, aabb, depthMin);
   }
 
 void runCluster(const uint clusterId) {
@@ -239,11 +225,11 @@ void runCluster(const uint clusterId) {
   vec4  aabb     = vec4(0);
   float depthMin = 1;
   if(!projectCluster(cluster, aabb, depthMin))
-    ;//return;
+    return;
 
 #if defined(HIZ)
   if(!hiZTest(aabb, depthMin))
-    ;//return;
+    return;
 #endif
 
   const uint commandId  = cluster.bucketId_commandId & 0xFFFF;
