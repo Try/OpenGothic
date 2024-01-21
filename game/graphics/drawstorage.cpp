@@ -134,6 +134,10 @@ DrawStorage::Item DrawStorage::alloc(const StaticMesh& mesh, const Material& mat
 
   Object& obj = objects[id];
 
+  if(mesh.morph.anim!=nullptr) {
+    type = DrawStorage::Morph;
+    }
+
   obj.type      = type;
   obj.iboOff    = uint32_t(iboOff);
   obj.iboLen    = uint32_t(iboLen);
@@ -338,14 +342,19 @@ void DrawStorage::invalidateUbo() {
 
   std::vector<const Tempest::Texture2d*>     tex;
   std::vector<const Tempest::StorageBuffer*> vbo, ibo;
+  std::vector<const Tempest::StorageBuffer*> morphId, morph;
   for(auto& i:buckets) {
     tex.push_back(i.mat.tex);
     if(i.staticMesh!=nullptr) {
-      ibo.push_back(&i.staticMesh->ibo8);
-      vbo.push_back(&i.staticMesh->vbo);
+      ibo    .push_back(&i.staticMesh->ibo8);
+      vbo    .push_back(&i.staticMesh->vbo);
+      morphId.push_back(i.staticMesh->morph.index);
+      morph  .push_back(i.staticMesh->morph.samples);
       } else {
-      ibo.push_back(&i.animMesh->ibo8);
-      vbo.push_back(&i.animMesh->vbo);
+      ibo    .push_back(&i.animMesh->ibo8);
+      vbo    .push_back(&i.animMesh->vbo);
+      morphId.push_back(nullptr);
+      morph  .push_back(nullptr);
       }
     }
 
@@ -360,7 +369,7 @@ void DrawStorage::invalidateUbo() {
     for(uint8_t v=0; v<SceneGlobals::V_Count; ++v) {
       if(i.desc[v].isEmpty())
         continue;
-      auto& mem = (i.type==Type::Landscape) ? clustersGpu : owner.instanceSsbo();
+      auto& mem    = (i.type==Type::Landscape) ? clustersGpu : owner.instanceSsbo();
 
       i.desc[v].set(L_Scene,    scene.uboGlobal[v]);
       i.desc[v].set(L_Instance, mem);
@@ -370,6 +379,23 @@ void DrawStorage::invalidateUbo() {
       i.desc[v].set(L_Bucket,   bucketsGpu);
       i.desc[v].set(L_Payload,  views[v].visClusters);
       i.desc[v].set(L_Sampler,  Sampler::anisotrophy());
+
+      if(i.type==Morph) {
+        i.desc[v].set(L_MorphId,  morphId);
+        i.desc[v].set(L_Morph,    morph);
+        }
+
+      const bool isSceneInfoRequired = (i.alpha==Material::Water || i.alpha==Material::Ghost || i.alpha==Material::Ghost);
+
+      if(v==SceneGlobals::V_Main && isSceneInfoRequired) {
+        auto smp = Sampler::bilinear();
+        smp.setClamping(ClampMode::MirroredRepeat);
+        i.desc[v].set(L_SceneClr, *scene.sceneColor, smp);
+
+        smp = Sampler::nearest();
+        smp.setClamping(ClampMode::MirroredRepeat);
+        i.desc[v].set(L_GDepth, *scene.sceneDepth, smp);
+        }
       }
     }
   }
@@ -398,6 +424,29 @@ void DrawStorage::visibilityPass(Encoder<CommandBuffer>& cmd, uint8_t frameId) {
     }
   }
 
+void DrawStorage::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  //return;
+  /*
+  struct Push { uint32_t firstMeshlet; uint32_t meshletCount; } push = {};
+
+  auto  viewId = SceneGlobals::V_Main;
+  auto& view   = views[viewId];
+  for(size_t i=0; i<ord.size(); ++i) {
+    auto& cx = *ord[i];
+    if(cx.desc[viewId].isEmpty())
+      continue;
+    if(cx.alpha!=Material::Water)
+      continue;
+    auto id  = size_t(std::distance(this->cmd.data(), &cx));
+    push.firstMeshlet = cx.firstPayload;
+    push.meshletCount = cx.maxPayload;
+
+    cmd.setUniforms(*cx.psoHiZ, cx.desc[viewId], &push, sizeof(push));
+    cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
+    }
+  */
+  }
+
 void DrawStorage::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t frameId) {
   //return;
   struct Push { uint32_t firstMeshlet; uint32_t meshletCount; } push = {};
@@ -407,6 +456,8 @@ void DrawStorage::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t frameId) {
   for(size_t i=0; i<ord.size(); ++i) {
     auto& cx = *ord[i];
     if(cx.desc[viewId].isEmpty())
+      continue;
+    if(cx.alpha!=Material::Solid && cx.alpha!=Material::AlphaTest)
       continue;
     auto id  = size_t(std::distance(this->cmd.data(), &cx));
     push.firstMeshlet = cx.firstPayload;
@@ -432,6 +483,31 @@ void DrawStorage::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint
     push.meshletCount = cx.maxPayload;
 
     cmd.setUniforms(*cx.psoDepth, cx.desc[viewId], &push, sizeof(push));
+    cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
+    }
+  }
+
+void DrawStorage::drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {
+
+  }
+
+void DrawStorage::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  //return;
+  struct Push { uint32_t firstMeshlet; uint32_t meshletCount; } push = {};
+
+  auto  viewId = SceneGlobals::V_Main;
+  auto& view   = views[viewId];
+  for(size_t i=0; i<ord.size(); ++i) {
+    auto& cx = *ord[i];
+    if(cx.desc[viewId].isEmpty())
+      continue;
+    if(cx.alpha!=Material::Water)
+      continue;
+    auto id  = size_t(std::distance(this->cmd.data(), &cx));
+    push.firstMeshlet = cx.firstPayload;
+    push.meshletCount = cx.maxPayload;
+
+    cmd.setUniforms(*cx.psoColor, cx.desc[viewId], &push, sizeof(push));
     cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
     }
   }
@@ -483,7 +559,8 @@ uint16_t DrawStorage::bucketId(const Material& mat, const AnimMesh& mesh) {
 uint16_t DrawStorage::commandId(const Material& m, Type type, uint32_t bucketId) {
   auto pMain  = Shaders::inst().materialPipeline(m, type, Shaders::T_Deffered);
   auto pDepth = Shaders::inst().materialPipeline(m, type, Shaders::T_Shadow);
-  if(pMain==nullptr && pDepth==nullptr)
+  auto pHiZ   = Shaders::inst().materialPipeline(m, type, Shaders::T_Depth);
+  if(pMain==nullptr && pDepth==nullptr && pHiZ==nullptr)
     return uint16_t(-1);
 
   const bool bindless = true;
@@ -502,7 +579,8 @@ uint16_t DrawStorage::commandId(const Material& m, Type type, uint32_t bucketId)
   DrawCmd cx;
   cx.psoColor    = pMain;
   cx.psoDepth    = pDepth;
-  cx.bucketId    = bindless ? 0 : bucketId;
+  cx.psoHiZ      = pHiZ;
+  cx.bucketId    = bindless ? 0xFFFFFFFF : bucketId;
   cx.type        = type;
   cx.alpha       = m.alpha;
   if(cx.psoColor!=nullptr) {
@@ -551,7 +629,7 @@ uint32_t DrawStorage::clusterId(const Bucket& bucket, size_t firstMeshlet, size_
 
   Cluster& c = clusters.back();
   if(bucket.staticMesh!=nullptr)
-    c.r = bucket.staticMesh->bbox.rConservative; else
+    c.r = bucket.staticMesh->bbox.rConservative + bucket.mat.waveMaxAmplitude; else
     c.r = bucket.animMesh->bbox.rConservative;
   c.bucketId     = bucketId;
   c.commandId    = commandId;

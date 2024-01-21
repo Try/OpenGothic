@@ -86,8 +86,8 @@ struct Varyings {
   vec3 normal;
 #endif
 
-#if defined(FORWARD) || (MESH_TYPE==T_LANDSCAPE && !defined(BINDLESS))
-  vec3 pos; // TODO: reenable for bindless
+#if defined(FORWARD) || defined(WATER) || (MESH_TYPE==T_LANDSCAPE)
+  vec3 pos;
 #endif
 
 #if defined(MAT_COLOR)
@@ -194,6 +194,11 @@ layout(binding = L_Diffuse)          uniform  texture2D textureD[];
 layout(binding = L_Sampler)          uniform  sampler   samplerMain;
 #endif
 
+#if defined(BINDLESS) && (MESH_TYPE==T_MORPH)
+layout(binding = L_MorphId,  std430) readonly buffer MId  { int     index[];       } morphId[];
+layout(binding = L_Morph,    std430) readonly buffer MSmp { vec4    samples[];     } morph[];
+#endif
+
 #if defined(BINDLESS) || defined(CLUSTER)
 layout(binding = L_Instance, std430) readonly buffer Mem  { uint    instanceMem[]; };
 layout(binding = L_Bucket,   std140) readonly buffer Bbo  { Bucket  bucket[];      };
@@ -234,7 +239,7 @@ layout(binding = L_Shadow0) uniform sampler2D textureSm0;
 layout(binding = L_Shadow1) uniform sampler2D textureSm1;
 #endif
 
-#if (MESH_TYPE==T_MORPH) && (defined(GL_VERTEX_SHADER) || defined(MESH))
+#if (MESH_TYPE==T_MORPH) && (defined(GL_VERTEX_SHADER) || defined(MESH)) && !defined(BINDLESS)
 layout(binding = L_MorphId, std430) readonly buffer SsboMorphId {
   int  index[];
   } morphId;

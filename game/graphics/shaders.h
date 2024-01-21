@@ -61,6 +61,7 @@ class Shaders {
     Tempest::RenderPipeline  probeAmbient;
 
     enum PipelineType: uint8_t {
+      T_Depth,
       T_Forward,
       T_Deffered,
       T_Shadow,

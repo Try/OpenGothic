@@ -120,8 +120,29 @@ Vertex pullVertex(uint id) {
   return ret;
   }
 
-#if (MESH_TYPE==T_MORPH)
-vec3 morphOffset(uint animPtr, uint vertexIndex) {
+#if (MESH_TYPE==T_MORPH) && defined(BINDLESS)
+vec3 morphOffset(uint bucketId, uint animPtr, uint vertexIndex) {
+  MorphDesc md        = pullMorphDesc(animPtr);
+  vec2      ai        = unpackUnorm2x16(md.alpha16_intensity16);
+  float     alpha     = ai.x;
+  float     intensity = ai.y;
+  if(intensity<=0)
+    return vec3(0);
+
+  uint  vId   = vertexIndex + md.indexOffset;
+  int   index = morphId[nonuniformEXT(bucketId)].index[vId];
+  if(index<0)
+    return vec3(0);
+
+  uint  f0 = md.sample0;
+  uint  f1 = md.sample1;
+  vec3  a  = morph[nonuniformEXT(bucketId)].samples[f0 + index].xyz;
+  vec3  b  = morph[nonuniformEXT(bucketId)].samples[f1 + index].xyz;
+
+  return mix(a,b,alpha) * intensity;
+  }
+#elif (MESH_TYPE==T_MORPH)
+vec3 morphOffset(uint bucketId, uint animPtr, uint vertexIndex) {
   MorphDesc md        = pullMorphDesc(animPtr);
   vec2      ai        = unpackUnorm2x16(md.alpha16_intensity16);
   float     alpha     = ai.x;
@@ -158,7 +179,7 @@ void rotate(out vec3 rx, out vec3 ry, float a, in vec3 x, in vec3 y){
   }
 #endif
 
-vec4 processVertex(out Varyings shOut, in Vertex v, uint instanceId, uint vboOffset) {
+vec4 processVertex(out Varyings shOut, in Vertex v, uint bucketId, uint instanceId, uint vboOffset) {
 #if defined(LVL_OBJECT)
   Instance obj   = pullInstance(instanceId);
 #elif (MESH_TYPE==T_PFX)
@@ -168,7 +189,7 @@ vec4 processVertex(out Varyings shOut, in Vertex v, uint instanceId, uint vboOff
   // Position offsets
 #if (MESH_TYPE==T_MORPH)
   for(int i=0; i<MAX_MORPH_LAYERS; ++i)
-    v.pos += morphOffset(obj.animPtr+i, vboOffset);
+    v.pos += morphOffset(bucketId, obj.animPtr+i, vboOffset);
 #endif
 
   // Normals
@@ -294,7 +315,7 @@ vec4 processVertex(out Varyings shOut, in Vertex v, uint instanceId, uint vboOff
   shOut.normal = normal;
 #endif
 
-#if defined(FORWARD) || (MESH_TYPE==T_LANDSCAPE && !defined(BINDLESS))
+#if defined(FORWARD) || (MESH_TYPE==T_LANDSCAPE)
   shOut.pos    = pos;
 #endif
 

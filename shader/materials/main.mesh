@@ -68,7 +68,7 @@ vec4  processVertex(out Varyings var, uint instanceOffset, const uint meshletId,
   const Vertex vert = pullVertex(vboOffset);
 #endif
 
-  vec4 position = processVertex(var, vert, instanceOffset, vboOffset);
+  vec4 position = processVertex(var, vert, 0, instanceOffset, vboOffset);
   // position.y = -position.y;
   return position;
   }

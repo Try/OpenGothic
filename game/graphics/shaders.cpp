@@ -345,6 +345,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBuck
       temp = deffered;
       break;
     case T_Shadow:
+    case T_Depth:
       temp = shadow;
       break;
     }
@@ -385,9 +386,6 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage
     // same shader
     t = DrawStorage::Movable;
     }
-
-  if(mat.alpha==Material::Transparent || mat.alpha==Material::AdditiveLight)
-    return nullptr; // TODO
 
   if(pt==PipelineType::T_Shadow && !mat.isSolid()) {
     return nullptr;
@@ -436,34 +434,59 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage
       break;
     }
 
-  const char* typeS = "";
+  const char* typeVs = "";
+  const char* typeFs = "";
   switch(pt) {
+    case T_Depth:
+      typeFs = "_d";
+      typeVs = "_d";
+      vsS   = (alpha==Material::Solid) ? "" : "_at";
+      break;
     case T_Forward:
-      typeS = "_f";
+      typeVs = "_f";
+      typeFs = "_f";
       break;
     case T_Deffered:
-      typeS = "_c";
+      typeVs = "_c";
+      typeFs = "_c";
       break;
     case T_Shadow:
-      typeS = "_d";
-      vsS   = (alpha==Material::Solid) ? "" : "_at";
+      typeVs = "_d";
+      typeFs = "_d";
+      vsS    = (alpha==Material::Solid) ? "" : "_at";
       break;
     }
 
-  auto& device = Resources::device();
-
-  auto shVs = GothicShader::get(string_frm("cluster_", vsTok, typeS, vsS, ".vert.sprv"));
-  auto shFs = GothicShader::get(string_frm("cluster_", fsTok, typeS, fsS, ".frag.sprv"));
-
-  auto vs = device.shader(shVs.data,shVs.len);
-  auto fs = device.shader(shFs.data,shFs.len);
+  if(mat.alpha==Material::Water)
+    typeFs = "_w";
 
   materialsDr.emplace_front();
   auto& b = materialsDr.front();
   b.alpha        = alpha;
   b.type         = ObjectsBucket::Type(t);
   b.pipelineType = pt;
-  b.pipeline     = device.pipeline(Triangles, state, vs, fs);
+
+  auto& device = Resources::device();
+  if(mat.isTesselated() && device.properties().tesselationShader && false) {
+    auto shVs = GothicShader::get(string_frm("cluster_", vsTok, typeVs, vsS, ".vert.sprv"));
+    auto shTc = GothicShader::get(string_frm("cluster_water_f.tesc.sprv"));
+    auto shTe = GothicShader::get(string_frm("cluster_water_f.tese.sprv"));
+    auto shFs = GothicShader::get(string_frm("cluster_", fsTok, typeFs, fsS, ".frag.sprv"));
+
+    auto vs = device.shader(shVs.data,shVs.len);
+    auto tc = device.shader(shTc.data,shTc.len);
+    auto te = device.shader(shTe.data,shTe.len);
+    auto fs = device.shader(shFs.data,shFs.len);
+    b.pipeline = device.pipeline(Triangles, state, vs, tc, te, fs);
+    } else {
+    auto shVs = GothicShader::get(string_frm("cluster_", vsTok, typeVs, vsS, ".vert.sprv"));
+    auto shFs = GothicShader::get(string_frm("cluster_", fsTok, typeFs, fsS, ".frag.sprv"));
+
+    auto vs = device.shader(shVs.data,shVs.len);
+    auto fs = device.shader(shFs.data,shFs.len);
+    b.pipeline = device.pipeline(Triangles, state, vs, fs);
+    }
+
   return &b.pipeline;
   }
 

@@ -29,20 +29,9 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &packed)
       mesh.sub[i].blas = device.blas(mesh.vbo,mesh.ibo,sub.iboOffset,sub.iboLength);
       }
 
-    if(material.alpha==Material::Solid || material.alpha==Material::AlphaTest) {
-      Block b;
-      b.draw = visual.getDr(mesh,material,sub.iboOffset,sub.iboLength,&packed.meshletBounds[id],DrawStorage::Landscape);
-      b.draw.setObjMatrix(Matrix4x4::mkIdentity());
-      blocks.emplace_back(std::move(b));
-      continue;
-      }
-
-    Bounds bbox;
-    bbox.assign(packed.vertices,packed.indices,sub.iboOffset,sub.iboLength);
-
     Block b;
-    b.mesh = visual.get(mesh,material,sub.iboOffset,sub.iboLength,meshletDesc,bbox,ObjectsBucket::Landscape);
-    b.mesh.setObjMatrix(Matrix4x4::mkIdentity());
+    b.draw = visual.getDr(mesh,material,sub.iboOffset,sub.iboLength,&packed.meshletBounds[id],DrawStorage::Landscape);
+    b.draw.setObjMatrix(Matrix4x4::mkIdentity());
     blocks.emplace_back(std::move(b));
     }
   }

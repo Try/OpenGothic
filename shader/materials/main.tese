@@ -7,8 +7,17 @@ layout(triangles, fractional_odd_spacing, cw) in;
 #include "materials_common.glsl"
 #include "water/gerstner_wave.glsl"
 
+#if defined(BINDLESS) && defined(MAT_VARYINGS)
+layout(location = 0) in  flat uint bucketIdIn[];
+layout(location = 1) in  Varyings  shInp[];
+
+layout(location = 0) out flat uint bucketId;
+layout(location = 1) out Varyings  shOut;
+#else
+const uint bucketId = 0;
 layout(location = 0) in  Varyings shInp[];
 layout(location = 0) out Varyings shOut;
+#endif
 
 vec2 interpolate(vec2 v0, vec2 v1, vec2 v2) {
   return gl_TessCoord.x*v0 + gl_TessCoord.y*v1 + gl_TessCoord.z*v2;
@@ -34,8 +43,18 @@ void main() {
 
   vec4 pos           = interpolate(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position);
 
+#if defined(BINDLESS)
+  bucketId = bucketIdIn[0];
+#endif
+
+#if defined(BINDLESS)
+    const float waveMaxAmplitude = bucket[bucketId].waveMaxAmplitude;
+#else
+    const float waveMaxAmplitude = bucket.waveMaxAmplitude;
+#endif
+
   // vec3 dPos = multiWave(shOut.pos.xz*0.001);
-  if(bucket.waveMaxAmplitude>0) {
+  if(waveMaxAmplitude>0) {
     Wave w = wave(shOut.pos, 0.0);
     pos          += scene.viewProject*vec4(w.offset,0);
     shOut.pos    += w.offset;

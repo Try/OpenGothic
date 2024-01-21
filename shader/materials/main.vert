@@ -34,7 +34,7 @@ void main() {
 #endif
 
   Varyings var;
-  gl_Position = processVertex(var, vert, gl_InstanceIndex, gl_VertexIndex);
+  gl_Position = processVertex(var, vert, 0, gl_InstanceIndex, gl_VertexIndex);
   // gl_Position = processVertex(var, objId, gl_InstanceIndex, gl_VertexIndex);
 #if defined(MAT_VARYINGS)
   shOut = var;

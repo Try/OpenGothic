@@ -143,6 +143,8 @@ void VisualObjects::drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& en
   }
 
 void VisualObjects::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {
+  drawMem.drawWater(enc, fId);
+
   for(size_t i=lastSolidBucket;i<index.size();++i) {
     auto c = index[i];
     if(c->material().alpha!=Material::AlphaFunc::Water)
@@ -151,11 +153,8 @@ void VisualObjects::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& enc, uin
     }
   }
 
-void VisualObjects::drawGBuffer(Tempest::Encoder<CommandBuffer>& enc, uint8_t fId, uint8_t pass) {
-  if(pass==0) {
-    drawMem.drawGBuffer(enc, fId);
-    return;
-    }
+void VisualObjects::drawGBuffer(Tempest::Encoder<CommandBuffer>& enc, uint8_t fId) {
+  drawMem.drawGBuffer(enc, fId);
 
   for(size_t i=0;i<lastSolidBucket;++i) {
     auto c = index[i];
@@ -173,13 +172,7 @@ void VisualObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& enc, ui
   }
 
 void VisualObjects::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {
-  for(size_t i=0;i<lastSolidBucket;++i) {
-    auto c = index[i];
-    if(c->type()!=ObjectsBucket::LandscapeShadow)
-      continue;
-    c->drawHiZ(enc,fId);
-    return;
-    }
+  drawMem.drawHiZ(enc, fId);
   }
 
 void VisualObjects::resetIndex() {

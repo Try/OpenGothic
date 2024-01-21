@@ -508,10 +508,10 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
 
   prepareSky(cmd,fId,*wview);
 
-  drawGBuffer  (cmd,fId,*wview, 0);
-  buildHiZ     (cmd,fId);
-  drawGBuffer  (cmd,fId,*wview, 1);
-  //buildHiZ     (cmd,fId); TODO: phase 2
+  //drawHiZ    (cmd,fId,*wview);
+  //buildHiZ   (cmd,fId);
+  drawGBuffer(cmd,fId,*wview);
+  buildHiZ   (cmd,fId);
 
   drawShadowMap(cmd,fId,*wview);
 
@@ -634,34 +634,6 @@ void Renderer::drawHiZ(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view
   cmd.setDebugMarker("HiZ-occluders");
   cmd.setFramebuffer({}, {zbuffer, 1.f, Tempest::Preserve});
   view.drawHiZ(cmd,fId);
-
-  cmd.setDebugMarker("HiZ-mip");
-  cmd.setFramebuffer({});
-  cmd.setUniforms(Shaders::inst().hiZPot, hiz.uboPot);
-  cmd.dispatch(size_t(hiz.hiZ.w()), size_t(hiz.hiZ.h()));
-
-  uint32_t w = uint32_t(hiz.hiZ.w()), h = uint32_t(hiz.hiZ.h()), mip = hiz.hiZ.mipCount();
-  cmd.setUniforms(Shaders::inst().hiZMip, hiz.uboMip, &mip, sizeof(mip));
-  cmd.dispatchThreads(w,h);
-
-  /*
-  cmd.setDebugMarker("HiZ-shadows");
-  cmd.setFramebuffer({}, {hiz.smProj, 0, Tempest::Preserve});
-  cmd.setUniforms(Shaders::inst().hiZReproj, hiz.uboReproj);
-  cmd.dispatchMeshThreads(zbuffer.size());
-
-  cmd.setFramebuffer({});
-  cmd.setUniforms(Shaders::inst().hiZPot, hiz.uboPotSm1);
-  cmd.dispatch(size_t(hiz.hiZSm1.w()), size_t(hiz.hiZSm1.h()));
-
-  w = uint32_t(hiz.hiZSm1.w()), h = uint32_t(hiz.hiZSm1.h());
-  for(uint32_t i=0; i<hiz.uboMipSm1.size(); ++i) {
-    w = w/2;
-    h = h/2;
-    cmd.setUniforms(Shaders::inst().hiZMip, hiz.uboMipSm1[i]);
-    cmd.dispatchThreads(std::max<uint32_t>(w,1),std::max<uint32_t>(h,1));
-    }
-  */
   }
 
 void Renderer::buildHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
@@ -675,18 +647,12 @@ void Renderer::buildHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t f
   cmd.dispatchThreads(w,h);
   }
 
-void Renderer::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view, uint8_t pass) {
-  cmd.setDebugMarker(string_frm("GBuffer #", pass));
-  if(pass==0) {
-    cmd.setFramebuffer({{gbufDiffuse, Tempest::Discard, Tempest::Preserve},
-                        {gbufNormal,  Tempest::Discard, Tempest::Preserve}},
-                       {zbuffer, 1.f, Tempest::Preserve});
-    } else {
-    cmd.setFramebuffer({{gbufDiffuse, Tempest::Preserve, Tempest::Preserve},
-                        {gbufNormal,  Tempest::Preserve, Tempest::Preserve}},
-                       {zbuffer, Tempest::Preserve, Tempest::Preserve});
-    }
-  view.drawGBuffer(cmd,fId,pass);
+void Renderer::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
+  cmd.setDebugMarker("GBuffer");
+  cmd.setFramebuffer({{gbufDiffuse, Tempest::Discard, Tempest::Preserve},
+                      {gbufNormal,  Tempest::Discard, Tempest::Preserve}},
+                     {zbuffer, 1.f, Tempest::Preserve});
+  view.drawGBuffer(cmd,fId);
   }
 
 void Renderer::drawGWater(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view) {

@@ -88,6 +88,9 @@ class DrawStorage {
     void visibilityPass (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer);
+    void drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
+    void drawWater      (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
+    void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
 
   private:
     enum TaskLinkpackage : uint8_t {
@@ -200,6 +203,7 @@ class DrawStorage {
     struct DrawCmd {
       const Tempest::RenderPipeline* psoColor     = nullptr;
       const Tempest::RenderPipeline* psoDepth     = nullptr;
+      const Tempest::RenderPipeline* psoHiZ       = nullptr;
       uint32_t                       bucketId     = 0; // bindfull only
       Type                           type         = Type::Landscape;
 

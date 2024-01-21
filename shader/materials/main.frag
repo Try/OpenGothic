@@ -13,9 +13,10 @@
 #include "lighting/tonemapping.glsl"
 
 #if defined(BINDLESS) && defined(MAT_VARYINGS)
-layout(location = 0) in flat uint textureId;
+layout(location = 0) in flat uint bucketId;
 layout(location = 1) in Varyings  shInp;
 #elif defined(MAT_VARYINGS)
+const uint bucketId = 0;
 layout(location = 0) in Varyings  shInp;
 #endif
 
@@ -67,8 +68,8 @@ vec3 ghostColor(vec3 selfColor) {
 #if defined(MAT_UV)
 vec4 diffuseTex() {
 #if defined(BINDLESS)
-  ivec2 texAniMapDirPeriod = bucket[textureId].texAniMapDirPeriod;
-  float alphaWeight        = bucket[textureId].alphaWeight;
+  ivec2 texAniMapDirPeriod = bucket[bucketId].texAniMapDirPeriod;
+  float alphaWeight        = bucket[bucketId].alphaWeight;
 #elif (defined(LVL_OBJECT) || defined(WATER))
   ivec2 texAniMapDirPeriod = bucket.texAniMapDirPeriod;
   float alphaWeight        = bucket.alphaWeight;
@@ -95,7 +96,7 @@ vec4 diffuseTex() {
 #endif
 
 #if defined(BINDLESS)
-  vec4 tex = texture(sampler2D(textureD[nonuniformEXT(textureId)], samplerMain),uv);
+  vec4 tex = texture(sampler2D(textureD[nonuniformEXT(bucketId)], samplerMain),uv);
 #else
   vec4 tex = texture(textureD,uv);
 #endif
@@ -223,7 +224,7 @@ vec4 waterShading(vec4 t, const vec3 normal) {
 #endif
 
 bool isFlat() {
-#if defined(GBUFFER) && (MESH_TYPE==T_LANDSCAPE && !defined(BINDLESS))
+#if defined(GBUFFER) && (MESH_TYPE==T_LANDSCAPE)
   {
     // TODO: reeenable
     vec3 pos   = shInp.pos;
@@ -239,7 +240,7 @@ bool isFlat() {
 
 #if defined(GBUFFER)
 vec3 flatNormal() {
-#if defined(GBUFFER) && (MESH_TYPE==T_LANDSCAPE && !defined(BINDLESS))
+#if defined(GBUFFER) && (MESH_TYPE==T_LANDSCAPE)
   vec3 pos   = shInp.pos; // TODO: reeenable
   vec3 dx    = dFdx(pos);
   vec3 dy    = dFdy(pos);
@@ -295,10 +296,16 @@ void main() {
 
 #if defined(WATER)
   {
+#if defined(BINDLESS)
+    const float waveMaxAmplitude = bucket[bucketId].waveMaxAmplitude;
+#else
+    const float waveMaxAmplitude = bucket.waveMaxAmplitude;
+#endif
+
   vec3 lx = dFdx(shInp.pos), ly = dFdy(shInp.pos);
   float minLength = max(length(lx),length(ly));
 
-  Wave wx = wave(shInp.pos, minLength, waveIterationsHigh, waveAmplitude());
+  Wave wx = wave(shInp.pos, minLength, waveIterationsHigh, waveAmplitude(waveMaxAmplitude));
 
   if(gl_FrontFacing) {
     // BROKEN: water mesh is two sided

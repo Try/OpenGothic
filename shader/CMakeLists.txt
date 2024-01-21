@@ -172,16 +172,27 @@ add_shader(cluster_ani_c.vert        materials/cluster_vert.vert "-DMESH_TYPE=2"
 add_shader(cluster_ani_d.vert        materials/cluster_vert.vert "-DMESH_TYPE=2" -DBINDLESS -DDEPTH_ONLY)
 add_shader(cluster_ani_d_at.vert     materials/cluster_vert.vert "-DMESH_TYPE=2" -DBINDLESS -DDEPTH_ONLY -DATEST)
 
+add_shader(cluster_mph_c.vert        materials/cluster_vert.vert "-DMESH_TYPE=3" -DBINDLESS)
+add_shader(cluster_mph_d.vert        materials/cluster_vert.vert "-DMESH_TYPE=3" -DBINDLESS -DDEPTH_ONLY)
+add_shader(cluster_mph_d_at.vert     materials/cluster_vert.vert "-DMESH_TYPE=3" -DBINDLESS -DDEPTH_ONLY -DATEST)
+
+add_shader(cluster_water_f.tesc      materials/main.tesc         "-DMESH_TYPE=0" -DBINDLESS -DFORWARD -DWATER)
+add_shader(cluster_water_f.tese      materials/main.tese         "-DMESH_TYPE=0" -DBINDLESS -DFORWARD -DWATER)
+
 # cluster frag
 add_shader(cluster_lnd_c.frag        materials/main.frag         "-DMESH_TYPE=0" -DBINDLESS -DGBUFFER)
 add_shader(cluster_lnd_c_at.frag     materials/main.frag         "-DMESH_TYPE=0" -DBINDLESS -DGBUFFER -DATEST)
 add_shader(cluster_lnd_d.frag        materials/main.frag         "-DMESH_TYPE=0" -DBINDLESS -DDEPTH_ONLY)
 add_shader(cluster_lnd_d_at.frag     materials/main.frag         "-DMESH_TYPE=0" -DBINDLESS -DDEPTH_ONLY -DATEST)
+add_shader(cluster_lnd_w.frag        materials/main.frag         "-DMESH_TYPE=0" -DBINDLESS -DWATER)
+add_shader(cluster_lnd_w_at.frag     materials/main.frag         "-DMESH_TYPE=0" -DBINDLESS -DWATER -DATEST)
 
 add_shader(cluster_obj_c.frag        materials/main.frag         "-DMESH_TYPE=1" -DBINDLESS -DGBUFFER)
 add_shader(cluster_obj_c_at.frag     materials/main.frag         "-DMESH_TYPE=1" -DBINDLESS -DGBUFFER -DATEST)
 add_shader(cluster_obj_d.frag        materials/main.frag         "-DMESH_TYPE=1" -DBINDLESS -DDEPTH_ONLY)
 add_shader(cluster_obj_d_at.frag     materials/main.frag         "-DMESH_TYPE=1" -DBINDLESS -DDEPTH_ONLY -DATEST)
+add_shader(cluster_obj_w.frag        materials/main.frag         "-DMESH_TYPE=1" -DBINDLESS -DWATER)
+add_shader(cluster_obj_w_at.frag     materials/main.frag         "-DMESH_TYPE=1" -DBINDLESS -DWATER -DATEST)
 
 add_shader(item.vert                 inventory/item.vert)
 add_shader(item.frag                 inventory/item.frag)

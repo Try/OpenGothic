@@ -61,7 +61,7 @@ vec4  processVertex(out Varyings var, uint instanceOffset, const uint meshletId,
 #else
   const Vertex vert = pullVertex(bucketId, vboOffset);
 #endif
-  return processVertex(var, vert, instanceOffset, vboOffset);
+  return processVertex(var, vert, bucketId, instanceOffset, vboOffset);
   }
 
 #if defined(GL_VERTEX_SHADER)

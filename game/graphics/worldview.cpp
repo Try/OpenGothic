@@ -129,8 +129,8 @@ void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId, ui
   visuals.drawShadow(cmd,fId,layer);
   }
 
-void WorldView::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId, uint8_t pass) {
-  visuals.drawGBuffer(cmd, fId, pass);
+void WorldView::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
+  visuals.drawGBuffer(cmd, fId);
   }
 
 void WorldView::drawSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
