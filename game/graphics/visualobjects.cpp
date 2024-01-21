@@ -129,8 +129,8 @@ void VisualObjects::visibilityPass(const Frustrum fr[]) {
   visGroup.pass(fr);
   }
 
-void VisualObjects::visibilityPass (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId) {
-  drawMem.visibilityPass(cmd, fId);
+void VisualObjects::visibilityPass (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId, int pass) {
+  drawMem.visibilityPass(cmd, fId, pass);
   }
 
 void VisualObjects::drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {

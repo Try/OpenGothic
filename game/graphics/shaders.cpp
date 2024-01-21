@@ -87,9 +87,10 @@ Shaders::Shaders() {
 
   stash   = postEffect("stash");
 
-  clusterInit    = computeShader("cluster_init.comp.sprv");
-  clusterTask    = computeShader("cluster_task.comp.sprv");
-  clusterTaskHiZ = computeShader("cluster_task_hiz.comp.sprv");
+  clusterInit      = computeShader("cluster_init.comp.sprv");
+  clusterTask      = computeShader("cluster_task.comp.sprv");
+  clusterTaskHiZ   = computeShader("cluster_task_hiz.comp.sprv");
+  clusterTaskHiZCr = computeShader("cluster_task_hiz_cr.comp.sprv");
 
   ssao             = computeShader("ssao.comp.sprv");
   ssaoBlur         = computeShader("ssao_blur.comp.sprv");

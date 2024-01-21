@@ -46,7 +46,7 @@ class VisualObjects final {
     void postFrameupdate();
 
     void visibilityPass (const Frustrum fr[]);
-    void visibilityPass (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void visibilityPass (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, int pass);
 
     void drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
     void drawWater      (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);

@@ -19,6 +19,7 @@ class SceneGlobals final {
       V_Shadow1    = 1,
       V_ShadowLast = 1,
       V_Main       = 2,
+      V_HiZ        = 3,
       V_Count
       };
 

@@ -499,19 +499,21 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
       frustrum[SceneGlobals::V_Shadow1].clear();
       }
     frustrum[SceneGlobals::V_Main].make(viewProj,zbuffer.w(),zbuffer.h());
+    frustrum[SceneGlobals::V_HiZ] = frustrum[SceneGlobals::V_Main];
     wview->visibilityPass(frustrum);
     }
 
   wview->preFrameUpdate(*camera,Gothic::inst().world()->tickCount(),fId);
   wview->prepareGlobals(cmd,fId);
-  wview->visibilityPass(cmd, fId);
 
+  wview->visibilityPass(cmd, fId, 0);
   prepareSky(cmd,fId,*wview);
 
-  //drawHiZ    (cmd,fId,*wview);
-  //buildHiZ   (cmd,fId);
+  drawHiZ (cmd,fId,*wview);
+  buildHiZ(cmd,fId);
+
+  wview->visibilityPass(cmd, fId, 1);
   drawGBuffer(cmd,fId,*wview);
-  buildHiZ   (cmd,fId);
 
   drawShadowMap(cmd,fId,*wview);
 
@@ -628,9 +630,6 @@ void Renderer::initGiData() {
   }
 
 void Renderer::drawHiZ(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
-  if(!Gothic::options().doMeshShading)
-    return;
-
   cmd.setDebugMarker("HiZ-occluders");
   cmd.setFramebuffer({}, {zbuffer, 1.f, Tempest::Preserve});
   view.drawHiZ(cmd,fId);
@@ -651,7 +650,7 @@ void Renderer::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& 
   cmd.setDebugMarker("GBuffer");
   cmd.setFramebuffer({{gbufDiffuse, Tempest::Discard, Tempest::Preserve},
                       {gbufNormal,  Tempest::Discard, Tempest::Preserve}},
-                     {zbuffer, 1.f, Tempest::Preserve});
+                     {zbuffer, Tempest::Preserve, Tempest::Preserve});
   view.drawGBuffer(cmd,fId);
   }
 

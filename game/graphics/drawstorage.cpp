@@ -276,7 +276,10 @@ bool DrawStorage::commitCommands() {
   for(auto& i:tasks) {
     Resources::recycle(std::move(i.desc));
     if(i.viewport==SceneGlobals::V_Main)
-      i.desc = device.descriptors(Shaders::inst().clusterTaskHiZ); else
+      i.desc = device.descriptors(Shaders::inst().clusterTaskHiZ);
+    else if(i.viewport==SceneGlobals::V_HiZ)
+      i.desc = device.descriptors(Shaders::inst().clusterTaskHiZCr);
+    else
       i.desc = device.descriptors(Shaders::inst().clusterTask);
     i.desc.set(T_Clusters, clustersGpu);
     i.desc.set(T_Indirect, views[i.viewport].indirectCmd);
@@ -400,42 +403,54 @@ void DrawStorage::invalidateUbo() {
     }
   }
 
-void DrawStorage::visibilityPass(Encoder<CommandBuffer>& cmd, uint8_t frameId) {
+void DrawStorage::visibilityPass(Encoder<CommandBuffer>& cmd, uint8_t frameId, int pass) {
   static bool freeze = false;
   if(freeze)
     return;
 
-  for(auto& v:views) {
-    if(this->cmd.empty())
-      continue;
-    cmd.setUniforms(Shaders::inst().clusterInit, v.descInit);
-    cmd.dispatchThreads(this->cmd.size());
+  cmd.setFramebuffer({});
+  if(pass==0) {
+    for(auto& v:views) {
+      if(this->cmd.empty())
+        continue;
+      cmd.setUniforms(Shaders::inst().clusterInit, v.descInit);
+      cmd.dispatchThreads(this->cmd.size());
+      }
     }
 
   for(auto& i:tasks) {
+    if(i.viewport==SceneGlobals::V_HiZ && pass!=0)
+      continue;
+    if(i.viewport!=SceneGlobals::V_HiZ && pass==0)
+      continue;
     struct Push { uint32_t firstMeshlet; uint32_t meshletCount; float znear; } push = {};
     push.firstMeshlet = 0;
     push.meshletCount = uint32_t(clusters.size());
     push.znear        = scene.znear;
 
-    auto& pso = (i.viewport==SceneGlobals::V_Main) ? Shaders::inst().clusterTaskHiZ : Shaders::inst().clusterTask;
-    cmd.setUniforms(pso, i.desc, &push, sizeof(push));
+    auto* pso = &Shaders::inst().clusterTask;
+    if(i.viewport==SceneGlobals::V_Main)
+      pso = &Shaders::inst().clusterTaskHiZ;
+    else if(i.viewport==SceneGlobals::V_HiZ)
+      pso = &Shaders::inst().clusterTaskHiZCr;
+    cmd.setUniforms(*pso, i.desc, &push, sizeof(push));
     cmd.dispatchThreads(push.meshletCount);
     }
   }
 
 void DrawStorage::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   //return;
-  /*
   struct Push { uint32_t firstMeshlet; uint32_t meshletCount; } push = {};
 
-  auto  viewId = SceneGlobals::V_Main;
+  auto  viewId = SceneGlobals::V_HiZ;
   auto& view   = views[viewId];
   for(size_t i=0; i<ord.size(); ++i) {
     auto& cx = *ord[i];
     if(cx.desc[viewId].isEmpty())
       continue;
-    if(cx.alpha!=Material::Water)
+    if(cx.alpha!=Material::Solid && cx.alpha!=Material::AlphaTest)
+      continue;
+    if(cx.type!=Landscape && cx.type!=Static)
       continue;
     auto id  = size_t(std::distance(this->cmd.data(), &cx));
     push.firstMeshlet = cx.firstPayload;
@@ -444,7 +459,6 @@ void DrawStorage::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
     cmd.setUniforms(*cx.psoHiZ, cx.desc[viewId], &push, sizeof(push));
     cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
     }
-  */
   }
 
 void DrawStorage::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t frameId) {
@@ -566,7 +580,7 @@ uint16_t DrawStorage::commandId(const Material& m, Type type, uint32_t bucketId)
   const bool bindless = true;
 
   for(size_t i=0; i<cmd.size(); ++i) {
-    if(cmd[i].psoColor!=pMain || cmd[i].psoDepth!=pDepth)
+    if(cmd[i].psoColor!=pMain || cmd[i].psoDepth!=pDepth || cmd[i].psoHiZ!=pHiZ)
       continue;
     if(!bindless && cmd[i].bucketId != bucketId)
       continue;
@@ -589,6 +603,9 @@ uint16_t DrawStorage::commandId(const Material& m, Type type, uint32_t bucketId)
   if(cx.psoDepth!=nullptr) {
     cx.desc[SceneGlobals::V_Shadow0] = device.descriptors(*cx.psoDepth);
     cx.desc[SceneGlobals::V_Shadow1] = device.descriptors(*cx.psoDepth);
+    }
+  if(cx.psoHiZ!=nullptr) {
+    cx.desc[SceneGlobals::V_HiZ] = device.descriptors(*cx.psoHiZ);
     }
   cmd.push_back(std::move(cx));
   cmdDurtyBit = true;

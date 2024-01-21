@@ -144,7 +144,7 @@ void SceneGlobals::commitUbo(uint8_t fId) {
   for(size_t i=V_Shadow0; i<V_Count; ++i) {
     auto& ubo = perView[i];
     ubo = uboGlobalCpu;
-    if(i!=V_Main)
+    if(V_Shadow0<=i && i<=V_ShadowLast)
       ubo.viewProject = uboGlobalCpu.viewShadow[i-V_Shadow0];
     std::memcpy(ubo.frustrum, frustrum[i].f, sizeof(ubo.frustrum));
     }

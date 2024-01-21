@@ -116,9 +116,9 @@ void WorldView::visibilityPass(const Frustrum fr[]) {
   visuals.visibilityPass(fr);
   }
 
-void WorldView::visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+void WorldView::visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int pass) {
   cmd.setDebugMarker("Visibility");
-  visuals.visibilityPass(cmd, fId);
+  visuals.visibilityPass(cmd, fId, pass);
   }
 
 void WorldView::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {

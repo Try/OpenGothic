@@ -42,21 +42,6 @@ Instance pullInstance(uint i) {
   return ret;
   }
 
-float min(float x0, float x1, float x2, float x3,
-          float x4, float x5, float x6, float x7) {
-  return min(x0, min(x1, min(x2, min(x3, min(x4, min(x5, min(x6, x7)))))));
-  }
-
-vec2 min(vec2 x0, vec2 x1, vec2 x2, vec2 x3,
-         vec2 x4, vec2 x5, vec2 x6, vec2 x7) {
-  return min(x0, min(x1, min(x2, min(x3, min(x4, min(x5, min(x6, x7)))))));
-  }
-
-vec2 max(vec2 x0, vec2 x1, vec2 x2, vec2 x3,
-         vec2 x4, vec2 x5, vec2 x6, vec2 x7) {
-  return max(x0, max(x1, max(x2, max(x3, max(x4, max(x5, max(x6, x7)))))));
-  }
-
 float hiZFetch(in sampler2D hiZ, in ivec2 ibbox[2]) {
   if(ibbox[0]==ibbox[1])
     return texelFetch(hiZ, ibbox[0], 0).x;
@@ -85,14 +70,14 @@ bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
   const float R     = sphere.w;
   const float znear = push.znear;
 
-  float z = c.z + R;
-  depthMin  = scene.project[3][2]/z + scene.project[2][2];
-
   if(c.z - R < znear) {
     depthMin = 0;
     aabb     = vec4(0,0,1,1);
     return true;
     }
+
+  float z = c.z - R;
+  depthMin  = scene.project[3][2]/z + scene.project[2][2];
 
   float P00 = scene.project[0][0];
   float P11 = scene.project[1][1];
@@ -113,33 +98,38 @@ bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
   return true;
   }
 
-bool projectBox(vec3 bmin, vec3 bmax, out vec4 aabb) {
-  mat4        viewProjection = scene.viewProject;
-  const float znear          = push.znear;
+bool _projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
+  const vec3  objPos = sphere.xyz;
+  const float R      = sphere.w;
+  const vec3  b[2]   = { objPos-vec3(R), objPos+vec3(R) };
+  const float znear  = push.znear;
 
-  vec4 SX = vec4(bmax.x - bmin.x, 0.0, 0.0, 0.0) * viewProjection;
-  vec4 SY = vec4(0.0, bmax.y - bmin.y, 0.0, 0.0) * viewProjection;
-  vec4 SZ = vec4(0.0, 0.0, bmax.z - bmin.z, 0.0) * viewProjection;
+  aabb     = vec4(1, 1, -1, -1);
+  depthMin = 1;
+  for(uint i=0; i<8; ++i) {
+    const vec3 pos = vec3(b[bitfieldExtract(i,0,1)].x,
+                          b[bitfieldExtract(i,1,1)].y,
+                          b[bitfieldExtract(i,2,1)].z);
+    vec4 trPos = vec4(pos,1.0);
+    trPos = scene.viewProject*trPos;
+    if(trPos.w<znear) {
+      depthMin = 0;
+      aabb     = vec4(0,0,1,1);
+      return true;
+      }
 
-  vec4 P0 = vec4(bmin.x, bmin.y, bmin.z, 1.0) * viewProjection;
-  vec4 P1 = P0 + SZ;
-  vec4 P2 = P0 + SY;
-  vec4 P3 = P2 + SZ;
-  vec4 P4 = P0 + SX;
-  vec4 P5 = P4 + SZ;
-  vec4 P6 = P4 + SY;
-  vec4 P7 = P6 + SZ;
+    vec3 bp = trPos.xyz/trPos.w;
 
-  if(min(P0.w, P1.w, P2.w, P3.w, P4.w, P5.w, P6.w, P7.w) < znear) {
-    return false;
+    aabb.xy  = min(aabb.xy,  bp.xy);
+    aabb.zw  = max(aabb.zw,  bp.xy);
+    depthMin = min(depthMin, bp.z);
     }
 
-  aabb.xy = min(
-        P0.xy / P0.w, P1.xy / P1.w, P2.xy / P2.w, P3.xy / P3.w,
-        P4.xy / P4.w, P5.xy / P5.w, P6.xy / P6.w, P7.xy / P7.w);
-  aabb.zw = max(
-        P0.xy / P0.w, P1.xy / P1.w, P2.xy / P2.w, P3.xy / P3.w,
-        P4.xy / P4.w, P5.xy / P5.w, P6.xy / P6.w, P7.xy / P7.w);
+  const vec3 c = (scene.view * vec4(sphere.xyz, 1)).xyz;
+  float z = c.z - R;
+  depthMin  = scene.project[3][2]/z + scene.project[2][2];
+
+  aabb = aabb*0.5 + vec4(0.5);
   return true;
   }
 
@@ -160,7 +150,7 @@ bool projectInstance(const Cluster cluster, out vec4 aabb, out float depthMin) {
     vec4 trPos = vec4(pos,1.0);
     trPos = vec4(obj.mat*trPos, 1.0);
     trPos = scene.viewProject*trPos;
-    if(trPos.w<znear || false) {
+    if(trPos.w<znear) {
       depthMin = 0;
       aabb     = vec4(0,0,1,1);
       return true;
@@ -178,6 +168,9 @@ bool projectInstance(const Cluster cluster, out vec4 aabb, out float depthMin) {
   }
 
 bool hiZTest(vec4 sbbox, float depthMin) {
+  if(depthMin<=0)
+    return true;
+
   ivec2 hiZsize = textureSize(hiZ,0);
   ivec2 ibbox[2];
   ibbox[0] = ivec2(sbbox.xy * scene.screenRes) / scene.hiZTileSize;
@@ -210,7 +203,6 @@ bool projectCluster(const Cluster cluster, out vec4 aabb, out float depthMin) {
   if(cluster.instanceId==0xFFFFFFFF)
     return projectSphere(cluster.sphere, aabb, depthMin);
   // return projectSphere(cluster.sphere, aabb, depthMin);
-  // return projectBox(cluster, aabb, depthMin);
   return projectInstance(cluster, aabb, depthMin);
   }
 
@@ -226,6 +218,14 @@ void runCluster(const uint clusterId) {
   float depthMin = 1;
   if(!projectCluster(cluster, aabb, depthMin))
     return;
+
+#if defined(LARGE)
+  {
+    vec2 sz = (aabb.zw - aabb.xy)*textureSize(hiZ, 0);
+    if(sz.x*sz.y<=3)
+      return;
+  }
+#endif
 
 #if defined(HIZ)
   if(!hiZTest(aabb, depthMin))
