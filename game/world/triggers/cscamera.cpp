@@ -27,7 +27,7 @@ CsCamera::CsCamera(Vob* parent, World& world, const phoenix::vobs::cs_camera& ca
       posSpline.keyframe.push_back(kF);
   }
 
-  for (auto& f : cam.trajectory_frames) {
+  for (auto& f : cam.target_frames) {
       KeyFrame kF;
       kF.c[3]  = Vec3(f->original_pose[3][0],f->original_pose[3][1],f->original_pose[3][2]);
       kF.time  = f->time;
