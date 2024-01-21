@@ -690,7 +690,7 @@ GthFont &Resources::implLoadFont(std::string_view name, FontType type) {
     return *f;
     }
 
-  auto ptr   = std::make_unique<GthFont>(entry->open_read().get(),tex,color);
+  auto ptr   = std::make_unique<GthFont>(*entry->open_read(),tex,color);
   ptr->setScale(Gothic::options().interfaceScale);
   GthFont* f = ptr.get();
   gothicFnt[std::make_pair(std::move(cname),type)] = std::move(ptr);
