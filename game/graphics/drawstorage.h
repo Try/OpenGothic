@@ -82,6 +82,7 @@ class DrawStorage {
     void dbgDraw(Tempest::Painter& p, Tempest::Vec2 wsz);
 
     bool commit();
+    void preFrameUpdate(uint8_t fId);
     void prepareUniforms();
     void invalidateUbo();
 
@@ -133,12 +134,20 @@ class DrawStorage {
       uint32_t      instanceId   = 0;
       };
 
+    struct MorphAnim {
+      size_t   id        = 0;
+      uint64_t timeStart = 0;
+      uint64_t timeUntil = 0;
+      float    intensity = 0;
+      };
+
     struct Object {
       bool     isEmpty() const { return cmdId==uint16_t(-1); }
 
       Tempest::Matrix4x4  pos;
       InstanceStorage::Id objInstance;
       InstanceStorage::Id objMorphAnim;
+
       Type                type      = Type::Landscape;
       uint32_t            iboOff    = 0;
       uint32_t            iboLen    = 0;
@@ -146,6 +155,10 @@ class DrawStorage {
       uint16_t            bucketId  = 0;
       uint16_t            cmdId     = uint16_t(-1);
       uint32_t            clusterId = 0;
+
+      MorphAnim           morphAnim[Resources::MAX_MORPH_LAYERS];
+      phoenix::animation_mode wind = phoenix::animation_mode::none;
+      float               windIntensity = 0;
       float               fatness   = 0;
       bool                isGhost   = false;
       };
@@ -219,10 +232,17 @@ class DrawStorage {
       };
 
     void                           free(size_t id);
-    void                           updateInstance(size_t id);
+    void                           updateInstance(size_t id, Tempest::Matrix4x4* pos = nullptr);
+    void                           updateClusters(size_t idReason);
+
+    void                           startMMAnim(size_t i, std::string_view animName, float intensity, uint64_t timeUntil);
+
+    void                           preFrameUpdateWind(uint8_t fId);
+    void                           preFrameUpdateMorph(uint8_t fId);
 
     bool                           commitCommands();
     bool                           commitBuckets();
+    bool                           commitClusters();
 
     size_t                         implAlloc();
     uint16_t                       bucketId (const Material& m, const StaticMesh& mesh);
@@ -236,10 +256,12 @@ class DrawStorage {
 
     VisualObjects&                 owner;
     const SceneGlobals&            scene;
-    bool                           commited = false;
     std::vector<TaskCmd>           tasks;
 
     std::vector<Object>            objects;
+    std::vector<uint32_t>          objectDurty;
+    std::unordered_set<size_t>     objectsWind;
+    std::unordered_set<size_t>     objectsMorph;
 
     std::vector<Bucket>            buckets;
     Tempest::StorageBuffer         bucketsGpu;
@@ -248,6 +270,7 @@ class DrawStorage {
     size_t                         totalPayload = 0;
     std::vector<Cluster>           clusters;
     Tempest::StorageBuffer         clustersGpu;
+    bool                           clustersDurtyBit = false;
 
     std::vector<DrawCmd>           cmd;
     std::vector<DrawCmd*>          ord;

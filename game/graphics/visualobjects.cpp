@@ -121,6 +121,7 @@ void VisualObjects::prepareUniforms() {
 
 void VisualObjects::preFrameUpdate(uint8_t fId) {
   mkIndex();
+  drawMem.preFrameUpdate(fId);
   for(auto& c:buckets)
     c->preFrameUpdate(fId);
   }

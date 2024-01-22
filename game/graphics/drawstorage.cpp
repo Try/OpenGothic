@@ -20,6 +20,7 @@ void DrawStorage::Item::setObjMatrix(const Tempest::Matrix4x4& pos) {
   if(owner!=nullptr) {
     owner->objects[id].pos = pos;
     owner->updateInstance(id);
+    owner->updateClusters(id);
     }
   }
 
@@ -37,10 +38,31 @@ void DrawStorage::Item::setFatness(float f) {
   }
 
 void DrawStorage::Item::setWind(phoenix::animation_mode m, float intensity) {
+  if(owner==nullptr)
+    return;
+
+  if(intensity!=0 && m==phoenix::animation_mode::none) {
+    m = phoenix::animation_mode::wind2;
+    }
+
+  auto& obj = owner->objects[id];
+
+  const auto prev = obj.wind;
+  obj.wind          = m;
+  obj.windIntensity = intensity;
+
+  if(prev==m)
+    return;
+
+  if(prev!=phoenix::animation_mode::none)
+    owner->objectsWind.erase(id);
+  if(m!=phoenix::animation_mode::none)
+    owner->objectsWind.insert(id);
   }
 
 void DrawStorage::Item::startMMAnim(std::string_view anim, float intensity, uint64_t timeUntil) {
-  //assert(0);
+  if(owner!=nullptr)
+    owner->startMMAnim(id, anim, intensity, timeUntil);
   }
 
 void DrawStorage::Item::setPfxData(const Tempest::StorageBuffer* ssbo, uint8_t fId) {
@@ -120,6 +142,8 @@ DrawStorage::Item DrawStorage::alloc(const StaticMesh& mesh, const Material& mat
 
   if(obj.isEmpty())
     return Item(); // null command
+  for(size_t i=0, sz = (iboLen/PackedMesh::MaxInd); i<sz; ++i)
+    updateClusters(obj.clusterId + i);
   return Item(*this, id);
   }
 
@@ -153,8 +177,11 @@ DrawStorage::Item DrawStorage::alloc(const StaticMesh& mesh, const Material& mat
   if(type==Morph) {
     obj.objMorphAnim = owner.alloc(sizeof(MorphData));
     obj.animPtr      = obj.objMorphAnim.offsetId<MorphData>();
+    const MorphData d = {};
+    obj.objMorphAnim.set(&d, 0, sizeof(d));
     }
 
+  updateClusters(obj.clusterId);
   updateInstance(id);
   return Item(*this, id);
   }
@@ -183,12 +210,12 @@ DrawStorage::Item DrawStorage::alloc(const AnimMesh& mesh, const Material& mat, 
   obj.objInstance = owner.alloc(sizeof(InstanceDesc));
   clusters[obj.clusterId].instanceId = obj.objInstance.offsetId<InstanceDesc>();
 
+  updateClusters(obj.clusterId);
   updateInstance(id);
   return Item(*this, id);
   }
 
 void DrawStorage::free(size_t id) {
-  commited = false;
   cmdDurtyBit = true;
 
   Object& obj = objects[id];
@@ -202,6 +229,9 @@ void DrawStorage::free(size_t id) {
     clusters[obj.clusterId + i].meshletCount = 0;
     }
 
+  if(obj.wind!=phoenix::animation_mode::none)
+    objectsWind.insert(id);
+
   obj = Object();
   while(objects.size()>0) {
     if(!objects.back().isEmpty())
@@ -210,27 +240,83 @@ void DrawStorage::free(size_t id) {
     }
   }
 
-void DrawStorage::updateInstance(size_t id) {
+void DrawStorage::updateInstance(size_t id, Matrix4x4* pos) {
   auto& obj = objects[id];
   if(obj.type==Landscape)
     return;
 
   InstanceDesc d;
-  d.setPosition(obj.pos);
+  d.setPosition(pos==nullptr ? obj.pos : *pos);
   d.animPtr = obj.animPtr;
   d.fatness = obj.fatness;
-
   obj.objInstance.set(&d, 0, sizeof(d));
 
-  if(!obj.objMorphAnim.isEmpty()) {
-    MorphData d;
-    obj.objMorphAnim.set(&d, 0, sizeof(d));
+  auto cId = obj.clusterId;
+  clusters[cId].pos = Vec3(obj.pos[3][0], obj.pos[3][1], obj.pos[3][2]);
+  }
+
+void DrawStorage::updateClusters(size_t id) {
+  objectDurty.resize((clusters.size() + 32 - 1)/32);
+  objectDurty[id/32] |= uint32_t(1u << (id%32));
+  clustersDurtyBit = true;
+  }
+
+void DrawStorage::startMMAnim(size_t i, std::string_view animName, float intensity, uint64_t timeUntil) {
+  auto& obj        = objects[i];
+  auto  staticMesh = buckets[obj.bucketId].staticMesh;
+  if(staticMesh==nullptr || staticMesh->morph.anim==nullptr)
+    return;
+
+  auto&  anim = *staticMesh->morph.anim;
+  size_t id   = size_t(-1);
+  for(size_t i=0; i<anim.size(); ++i)
+    if(anim[i].name==animName) {
+      id = i;
+      break;
+      }
+
+  if(id==size_t(-1))
+    return;
+
+  objectsMorph.insert(id);
+
+  auto& m = anim[id];
+  if(timeUntil==uint64_t(-1) && m.duration>0)
+    timeUntil = scene.tickCount + m.duration;
+
+  // extend time of anim
+  for(auto& i:obj.morphAnim) {
+    if(i.id!=id || i.timeUntil<scene.tickCount)
+      continue;
+    i.timeUntil = timeUntil;
+    i.intensity = intensity;
+    return;
     }
 
-  auto cId = objects[id].clusterId;
-  clusters[cId].pos = Vec3(obj.pos[3][0], obj.pos[3][1], obj.pos[3][2]);
+  // find same layer
+  for(auto& i:obj.morphAnim) {
+    if(i.timeUntil<scene.tickCount)
+      continue;
+    if(anim[i.id].layer!=m.layer)
+      continue;
+    i.id        = id;
+    i.timeUntil = timeUntil;
+    i.intensity = intensity;
+    return;
+    }
 
-  commited = false;
+  size_t nId = 0;
+  for(size_t i=0; i<Resources::MAX_MORPH_LAYERS; ++i) {
+    if(obj.morphAnim[nId].timeStart<=obj.morphAnim[i].timeStart)
+      continue;
+    nId = i;
+    }
+
+  auto& ani = obj.morphAnim[nId];
+  ani.id        = id;
+  ani.timeStart = scene.tickCount;
+  ani.timeUntil = timeUntil;
+  ani.intensity = intensity;
   }
 
 bool DrawStorage::commitCommands() {
@@ -270,21 +356,6 @@ bool DrawStorage::commitCommands() {
     v.descInit.set(T_Indirect, v.indirectCmd);
     }
 
-  Resources::recycle(std::move(clustersGpu));
-  clustersGpu  = device.ssbo(clusters);
-
-  for(auto& i:tasks) {
-    Resources::recycle(std::move(i.desc));
-    if(i.viewport==SceneGlobals::V_Main)
-      i.desc = device.descriptors(Shaders::inst().clusterTaskHiZ);
-    else if(i.viewport==SceneGlobals::V_HiZ)
-      i.desc = device.descriptors(Shaders::inst().clusterTaskHiZCr);
-    else
-      i.desc = device.descriptors(Shaders::inst().clusterTask);
-    i.desc.set(T_Clusters, clustersGpu);
-    i.desc.set(T_Indirect, views[i.viewport].indirectCmd);
-    i.desc.set(T_Payload,  views[i.viewport].visClusters);
-    }
   return true;
   }
 
@@ -321,18 +392,32 @@ bool DrawStorage::commitBuckets() {
   return true;
   }
 
+bool DrawStorage::commitClusters() {
+  if(!clustersDurtyBit)
+    return false;
+  clustersDurtyBit = false;
+
+  auto& device = Resources::device();
+  if(clustersGpu.byteSize() == clusters.size()*sizeof(clusters[0])) {
+    // TODO: patch cs job
+    return false;
+    }
+
+  Resources::recycle(std::move(clustersGpu));
+  clustersGpu  = device.ssbo(clusters);
+
+  return true;
+  }
+
 bool DrawStorage::commit() {
   bool ret = false;
   ret |= commitCommands();
   ret |= commitBuckets();
-
-  commited = true;
+  ret |= commitClusters();
   return ret;
   }
 
 void DrawStorage::prepareUniforms() {
-  if(!commited)
-    return;
   invalidateUbo();
   }
 
@@ -341,7 +426,7 @@ void DrawStorage::invalidateUbo() {
     return;
 
   auto& device = Resources::device();
-  device.waitIdle();
+  device.waitIdle(); // TODO
 
   std::vector<const Tempest::Texture2d*>     tex;
   std::vector<const Tempest::StorageBuffer*> vbo, ibo;
@@ -362,6 +447,17 @@ void DrawStorage::invalidateUbo() {
     }
 
   for(auto& i:tasks) {
+    Resources::recycle(std::move(i.desc));
+    if(i.viewport==SceneGlobals::V_Main)
+      i.desc = device.descriptors(Shaders::inst().clusterTaskHiZ);
+    else if(i.viewport==SceneGlobals::V_HiZ)
+      i.desc = device.descriptors(Shaders::inst().clusterTaskHiZCr);
+    else
+      i.desc = device.descriptors(Shaders::inst().clusterTask);
+    i.desc.set(T_Clusters, clustersGpu);
+    i.desc.set(T_Indirect, views[i.viewport].indirectCmd);
+    i.desc.set(T_Payload,  views[i.viewport].visClusters);
+
     i.desc.set(T_Scene,    scene.uboGlobal[i.viewport]);
     i.desc.set(T_Instance, owner.instanceSsbo());
     i.desc.set(T_Bucket,   bucketsGpu);
@@ -388,7 +484,7 @@ void DrawStorage::invalidateUbo() {
         i.desc[v].set(L_Morph,    morph);
         }
 
-      const bool isSceneInfoRequired = (i.alpha==Material::Water || i.alpha==Material::Ghost || i.alpha==Material::Ghost);
+      const bool isSceneInfoRequired = (i.alpha==Material::Water || i.alpha==Material::Ghost);
 
       if(v==SceneGlobals::V_Main && isSceneInfoRequired) {
         auto smp = Sampler::bilinear();
@@ -526,9 +622,88 @@ void DrawStorage::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8
     }
   }
 
-size_t DrawStorage::implAlloc() {
-  commited = false;
+void DrawStorage::preFrameUpdate(uint8_t fId) {
+  preFrameUpdateWind(fId);
+  preFrameUpdateMorph(fId);
+  }
 
+void DrawStorage::preFrameUpdateWind(uint8_t fId) {
+  if(!scene.zWindEnabled)
+    return;
+
+  for(auto id:objectsWind) {
+    auto& i     = objects[id];
+    auto  pos   = i.pos;
+    float shift = i.pos[3][0]*scene.windDir.x + i.pos[3][2]*scene.windDir.y;
+
+    static const uint64_t period = scene.windPeriod;
+    float a = float(scene.tickCount%period)/float(period);
+    a = a*2.f-1.f;
+    a = std::cos(float(a*M_PI) + shift*0.0001f);
+
+    switch(i.wind) {
+      case phoenix::animation_mode::wind:
+        // tree. note: mods tent to bump Intensity to insane values
+        if(i.windIntensity>0.f)
+          a *= 0.03f; else
+          a *= 0;
+        break;
+      case phoenix::animation_mode::wind2:
+        // grass
+        if(i.windIntensity<=1.0)
+          a *= i.windIntensity * 0.1f; else
+          a *= 0;
+        break;
+      case phoenix::animation_mode::none:
+      default:
+        // error
+        a = 0.f;
+        break;
+      }
+    pos[1][0] += scene.windDir.x*a;
+    pos[1][2] += scene.windDir.y*a;
+
+    updateInstance(id, &pos);
+    }
+  }
+
+void DrawStorage::preFrameUpdateMorph(uint8_t fId) {
+  for(auto& obj:objects) {
+    if(obj.type!=Morph)
+      continue;
+
+    MorphData data = {};
+    for(size_t i=0; i<Resources::MAX_MORPH_LAYERS; ++i) {
+      auto&    ani  = obj.morphAnim[i];
+      auto&    bk   = buckets[obj.bucketId];
+      auto&    anim = (*bk.staticMesh->morph.anim)[ani.id];
+      uint64_t time = (scene.tickCount-ani.timeStart);
+
+      float    alpha     = float(time%anim.tickPerFrame)/float(anim.tickPerFrame);
+      float    intensity = ani.intensity;
+
+      if(scene.tickCount>ani.timeUntil) {
+        data.morph[i].intensity = 0;
+        continue;
+        }
+
+      const uint32_t samplesPerFrame = uint32_t(anim.samplesPerFrame);
+      data.morph[i].indexOffset = uint32_t(anim.index);
+      data.morph[i].sample0     = uint32_t((time/anim.tickPerFrame+0)%anim.numFrames)*samplesPerFrame;
+      data.morph[i].sample1     = uint32_t((time/anim.tickPerFrame+1)%anim.numFrames)*samplesPerFrame;
+      data.morph[i].alpha       = uint16_t(alpha*uint16_t(-1));
+      data.morph[i].intensity   = uint16_t(intensity*uint16_t(-1));
+      }
+
+    obj.objMorphAnim.set(&data, 0, sizeof(data));
+    }
+
+  for(auto i=objectsMorph.begin(); i!=objectsMorph.end(); ) {
+    i = objectsMorph.erase(i);
+    }
+  }
+
+size_t DrawStorage::implAlloc() {
   for(size_t i=0; i<objects.size(); ++i) {
     if(objects[i].isEmpty()) {
       return i;
