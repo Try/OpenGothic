@@ -16,25 +16,16 @@ class VisualObjects final {
     VisualObjects(const SceneGlobals& globals, const std::pair<Tempest::Vec3, Tempest::Vec3>& bbox);
     ~VisualObjects();
 
-    ObjectsBucket::Item get(const StaticMesh& mesh, const Material& mat,
-                            size_t iboOffset, size_t iboLength, bool staticDraw);
-    ObjectsBucket::Item get(const StaticMesh& mesh, const Material& mat,
-                            size_t iboOff, size_t iboLen,
-                            const Tempest::StorageBuffer& desc,
-                            const Bounds& bbox, ObjectsBucket::Type bucket);
-    ObjectsBucket::Item get(const AnimMesh& mesh, const Material& mat,
-                            size_t iboOff, size_t iboLen,
-                            const InstanceStorage::Id& anim);
     ObjectsBucket::Item get(const Material& mat);
 
-    DrawStorage::Item   getDr(const StaticMesh& mesh, const Material& mat,
-                              size_t iboOffset, size_t iboLength, bool staticDraw);
-    DrawStorage::Item   getDr(const AnimMesh& mesh, const Material& mat,
-                              size_t iboOff, size_t iboLen,
-                              const InstanceStorage::Id& anim);
-    DrawStorage::Item   getDr(const StaticMesh& mesh, const Material& mat,
-                              size_t iboOff, size_t iboLen, const PackedMesh::Cluster* cluster,
-                              DrawStorage::Type type);
+    DrawStorage::Item   get(const StaticMesh& mesh, const Material& mat,
+                            size_t iboOffset, size_t iboLength, bool staticDraw);
+    DrawStorage::Item   get(const AnimMesh& mesh, const Material& mat,
+                          size_t iboOff, size_t iboLen,
+                          const InstanceStorage::Id& anim);
+    DrawStorage::Item   get(const StaticMesh& mesh, const Material& mat,
+                            size_t iboOff, size_t iboLen, const PackedMesh::Cluster* cluster,
+                            DrawStorage::Type type);
 
     InstanceStorage::Id alloc(size_t size);
     bool                realloc(InstanceStorage::Id& id, size_t size);

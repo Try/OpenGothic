@@ -22,46 +22,6 @@ ObjectsBucket& VisualObjects::getBucket(ObjectsBucket::Type type, const Material
   return *buckets.back();
   }
 
-ObjectsBucket::Item VisualObjects::get(const StaticMesh& mesh, const Material& mat,
-                                       size_t iboOffset, size_t iboLength,
-                                       bool staticDraw) {
-  if(mat.tex==nullptr) {
-    Log::e("no texture?!");
-    return ObjectsBucket::Item();
-    }
-
-  const ObjectsBucket::Type type = (staticDraw ? ObjectsBucket::Static : ObjectsBucket::Movable);
-
-  auto&        bucket = getBucket(type,mat,&mesh,nullptr,nullptr);
-  const size_t id     = bucket.alloc(mesh,iboOffset,iboLength,mesh.bbox,mat);
-  return ObjectsBucket::Item(bucket,id);
-  }
-
-ObjectsBucket::Item VisualObjects::get(const StaticMesh& mesh, const Material& mat,
-                                       size_t iboOff, size_t iboLen,
-                                       const Tempest::StorageBuffer& desc,
-                                       const Bounds& bbox, ObjectsBucket::Type type) {
-  if(mat.tex==nullptr) {
-    Tempest::Log::e("no texture?!");
-    return ObjectsBucket::Item();
-    }
-  auto&        bucket = getBucket(type,mat,&mesh,nullptr,&desc);
-  const size_t id     = bucket.alloc(mesh,iboOff,iboLen,bbox,mat);
-  return ObjectsBucket::Item(bucket,id);
-  }
-
-ObjectsBucket::Item VisualObjects::get(const AnimMesh &mesh, const Material& mat,
-                                       size_t iboOff, size_t iboLen,
-                                       const InstanceStorage::Id& anim) {
-  if(mat.tex==nullptr) {
-    Tempest::Log::e("no texture?!");
-    return ObjectsBucket::Item();
-    }
-  auto&        bucket = getBucket(ObjectsBucket::Animated,mat,nullptr,&mesh,nullptr);
-  const size_t id     = bucket.alloc(mesh,iboOff,iboLen,anim);
-  return ObjectsBucket::Item(bucket,id);
-  }
-
 ObjectsBucket::Item VisualObjects::get(const Material& mat) {
   if(mat.tex==nullptr) {
     Tempest::Log::e("no texture?!");
@@ -72,9 +32,9 @@ ObjectsBucket::Item VisualObjects::get(const Material& mat) {
   return ObjectsBucket::Item(bucket,id);
   }
 
-DrawStorage::Item VisualObjects::getDr(const StaticMesh& mesh, const Material& mat,
-                                       size_t iboOff, size_t iboLen,
-                                       bool staticDraw) {
+DrawStorage::Item VisualObjects::get(const StaticMesh& mesh, const Material& mat,
+                                     size_t iboOff, size_t iboLen,
+                                     bool staticDraw) {
   if(mat.tex==nullptr) {
     Log::e("no texture?!");
     return DrawStorage::Item();
@@ -84,9 +44,9 @@ DrawStorage::Item VisualObjects::getDr(const StaticMesh& mesh, const Material& m
   return drawMem.alloc(mesh, mat, iboOff, iboLen, bucket);
   }
 
-DrawStorage::Item VisualObjects::getDr(const AnimMesh& mesh, const Material& mat,
-                                       size_t iboOff, size_t iboLen,
-                                       const InstanceStorage::Id& anim) {
+DrawStorage::Item VisualObjects::get(const AnimMesh& mesh, const Material& mat,
+                                     size_t iboOff, size_t iboLen,
+                                     const InstanceStorage::Id& anim) {
   if(mat.tex==nullptr) {
     Log::e("no texture?!");
     return DrawStorage::Item();
@@ -95,9 +55,9 @@ DrawStorage::Item VisualObjects::getDr(const AnimMesh& mesh, const Material& mat
   return drawMem.alloc(mesh, mat, anim, iboOff, iboLen, DrawStorage::Animated);
   }
 
-DrawStorage::Item VisualObjects::getDr(const StaticMesh& mesh, const Material& mat,
-                                       size_t iboOff, size_t iboLen, const PackedMesh::Cluster* cluster,
-                                       DrawStorage::Type type) {
+DrawStorage::Item VisualObjects::get(const StaticMesh& mesh, const Material& mat,
+                                     size_t iboOff, size_t iboLen, const PackedMesh::Cluster* cluster,
+                                     DrawStorage::Type type) {
   return drawMem.alloc(mesh, mat, iboOff, iboLen, cluster, type);
   }
 

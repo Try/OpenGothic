@@ -222,7 +222,9 @@ void runCluster(const uint clusterId) {
 #if defined(LARGE)
   {
     vec2 sz = (aabb.zw - aabb.xy)*textureSize(hiZ, 0);
-    if(sz.x*sz.y<=3)
+    // if(sz.x*sz.y<4)
+    //   return;
+    if(sz.x*sz.y<16 && cluster.instanceId!=0xFFFFFFFF)
       return;
   }
 #endif

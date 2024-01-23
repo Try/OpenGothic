@@ -37,7 +37,7 @@ MeshObjects::Item MeshObjects::implGet(const StaticMesh &mesh, const StaticMesh:
       Tempest::Log::e("texture not found: \"",s.texName,"\"");
     return MeshObjects::Item();
     }
-  return parent.getDr(mesh,mat,s.iboOffset,s.iboLength,staticDraw);
+  return parent.get(mesh,mat,s.iboOffset,s.iboLength,staticDraw);
   }
 
 const Tempest::Texture2d *MeshObjects::solveTex(const Tempest::Texture2d *def, std::string_view format, int32_t v, int32_t c) {
@@ -161,7 +161,7 @@ MeshObjects::Mesh::Mesh(MeshObjects& owner, const ProtoMesh& mesh,
       Material mat = m.material;
       mat.tex=owner.solveTex(mat.tex,m.texName,texVar,bodyColor);
       if(mat.tex!=nullptr) {
-        sub[subCount] = owner.parent.getDr(skin,mat,m.iboOffset,m.iboSize,*anim);
+        sub[subCount] = owner.parent.get(skin,mat,m.iboOffset,m.iboSize,*anim);
         ++subCount;
         } else {
         if(!m.texName.empty())

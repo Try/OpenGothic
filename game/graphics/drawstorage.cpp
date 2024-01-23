@@ -175,8 +175,8 @@ DrawStorage::Item DrawStorage::alloc(const StaticMesh& mesh, const Material& mat
   clusters[obj.clusterId].instanceId = obj.objInstance.offsetId<InstanceDesc>();
 
   if(type==Morph) {
-    obj.objMorphAnim = owner.alloc(sizeof(MorphData));
-    obj.animPtr      = obj.objMorphAnim.offsetId<MorphData>();
+    obj.objMorphAnim = owner.alloc(sizeof(MorphDesc)*Resources::MAX_MORPH_LAYERS);
+    obj.animPtr      = obj.objMorphAnim.offsetId<MorphDesc>();
     const MorphData d = {};
     obj.objMorphAnim.set(&d, 0, sizeof(d));
     }
