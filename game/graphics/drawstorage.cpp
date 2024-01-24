@@ -16,6 +16,52 @@ static const T& dummy() {
   return t;
   }
 
+template<class T>
+size_t DrawStorage::FreeList<T>::alloc(size_t count) {
+  size_t bestFit = size_t(-1), bfDiff = size_t(-1);
+  for(size_t i=0; i<freeList.size(); ++i) {
+    auto f  = freeList[i];
+    auto sz = (f.end - f.begin);
+    if(sz==count) {
+      freeList.erase(freeList.begin()+int(i));
+      return f.begin;
+      }
+    if(sz<count)
+      continue;
+    if(sz-count < bfDiff)
+      bestFit = i;
+    }
+
+  if(bestFit != size_t(-1)) {
+    auto& f = freeList[bestFit];
+    f.end -= count;
+    return f.end;
+    }
+
+  size_t ret = data.size();
+  data.resize(data.size() + count);
+  return ret;
+  }
+
+template<class T>
+void DrawStorage::FreeList<T>::free(size_t id, size_t count) {
+  Range r = {id, id+count};
+  auto at = std::lower_bound(freeList.begin(),freeList.end(),r,[](const Range& l, const Range& r){
+    return l.begin<r.begin;
+    });
+  at = freeList.insert(at,r);
+  auto next = at+1;
+  if(next!=freeList.end() && at->end==next->begin) {
+    next->begin = at->begin;
+    at = freeList.erase(at);
+    }
+  if(at!=freeList.begin() && at->begin==(at-1)->end) {
+    auto prev = (at-1);
+    prev->end = at->end;
+    at = freeList.erase(at);
+    }
+  }
+
 void DrawStorage::Item::setObjMatrix(const Tempest::Matrix4x4& pos) {
   if(owner!=nullptr) {
     owner->objects[id].pos = pos;
@@ -117,6 +163,7 @@ DrawStorage::DrawStorage(VisualObjects& owner, const SceneGlobals& globals) : ow
     tasks.emplace_back(std::move(cmd));
     }
   objectsMorph.reserve(512);
+  objectsFree.reserve(256);
   }
 
 DrawStorage::~DrawStorage() {
@@ -224,8 +271,9 @@ void DrawStorage::free(size_t id) {
     clusters[obj.clusterId + i]              = Cluster();
     clusters[obj.clusterId + i].r            = -1;
     clusters[obj.clusterId + i].meshletCount = 0;
-    markClusters(obj.clusterId);
+    markClusters(obj.clusterId + i);
     }
+  clusters.free(obj.clusterId, numCluster);
 
   if(obj.wind==phoenix::animation_mode::none)
     objectsWind.erase(id);
@@ -237,7 +285,10 @@ void DrawStorage::free(size_t id) {
     if(!objects.back().isEmpty())
       break;
     objects.pop_back();
+    objectsFree.erase(objects.size());
     }
+  if(id<objects.size())
+    objectsFree.insert(id);
   }
 
 void DrawStorage::updateInstance(size_t id, Matrix4x4* pos) {
@@ -262,7 +313,7 @@ void DrawStorage::updateInstance(size_t id, Matrix4x4* pos) {
 void DrawStorage::markClusters(size_t id, size_t count) {
   // fixme: thread-safe
   for(size_t i=0; i<count; ++i) {
-    clusterDurty[id/32] |= uint32_t(1u << (id%32));
+    clustersDurty[id/32] |= uint32_t(1u << (id%32));
     id++;
     }
   clustersDurtyBit = true;
@@ -411,19 +462,19 @@ bool DrawStorage::commitClusters(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     }
 
   Resources::recycle(std::move(clustersGpu));
-  clustersGpu  = device.ssbo(clusters);
-  std::fill(clusterDurty.begin(), clusterDurty.end(), 0x0);
+  clustersGpu  = device.ssbo(clusters.data);
+  std::fill(clustersDurty.begin(), clustersDurty.end(), 0x0);
   return true;
   }
 
 void DrawStorage::patchClusters(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   std::vector<uint32_t> header; //FXME
   std::vector<Cluster>  patch;
-  for(size_t i=0; i<clusterDurty.size(); ++i) {
-    if(clusterDurty[i]==0x0)
+  for(size_t i=0; i<clustersDurty.size(); ++i) {
+    if(clustersDurty[i]==0x0)
       continue;
-    const uint32_t mask = clusterDurty[i];
-    clusterDurty[i] = 0x0;
+    const uint32_t mask = clustersDurty[i];
+    clustersDurty[i] = 0x0;
 
     for(size_t r=0; r<32; ++r) {
       if((mask & (1u<<r))==0)
@@ -756,9 +807,10 @@ void DrawStorage::preFrameUpdateMorph(uint8_t fId) {
   }
 
 size_t DrawStorage::implAlloc() {
-  for(size_t i=0; i<objects.size(); ++i) {
-    if(objects[i].isEmpty())
-      return i;
+  if(!objectsFree.empty()) {
+    auto id = *objectsFree.begin();
+    objectsFree.erase(objectsFree.begin());
+    return id;
     }
 
   objects.resize(objects.size()+1);
@@ -842,9 +894,7 @@ uint32_t DrawStorage::clusterId(const PackedMesh::Cluster* cx, size_t firstMeshl
   if(commandId==uint16_t(-1))
     return uint32_t(-1);
 
-  auto ret = clusters.size();
-  clusters.resize(ret + meshletCount);
-
+  const auto ret = clusters.alloc(meshletCount);
   for(size_t i=0; i<meshletCount; ++i) {
     Cluster c;
     c.pos          = cx[i].pos;
@@ -858,7 +908,7 @@ uint32_t DrawStorage::clusterId(const PackedMesh::Cluster* cx, size_t firstMeshl
     clusters[ret+i] = c;
     }
 
-  clusterDurty.resize((clusters.size() + 32 - 1)/32);
+  clustersDurty.resize((clusters.size() + 32 - 1)/32);
   markClusters(ret, meshletCount);
 
   cmd[commandId].maxPayload  += uint32_t(meshletCount);
@@ -869,10 +919,9 @@ uint32_t DrawStorage::clusterId(const Bucket& bucket, size_t firstMeshlet, size_
   if(commandId==uint16_t(-1))
     return uint32_t(-1);
 
-  auto ret = clusters.size();
-  clusters.resize(ret + 1);
+  const auto ret = clusters.alloc(1);
 
-  Cluster& c = clusters.back();
+  Cluster& c = clusters[ret];
   if(bucket.staticMesh!=nullptr)
     c.r = bucket.staticMesh->bbox.rConservative + bucket.mat.waveMaxAmplitude; else
     c.r = bucket.animMesh->bbox.rConservative;
@@ -882,7 +931,7 @@ uint32_t DrawStorage::clusterId(const Bucket& bucket, size_t firstMeshlet, size_
   c.meshletCount = uint32_t(meshletCount);
   c.instanceId   = uint32_t(-1);
 
-  clusterDurty.resize((clusters.size() + 32 - 1)/32);
+  clustersDurty.resize((clusters.size() + 32 - 1)/32);
   markClusters(ret, 1);
 
   cmd[commandId].maxPayload  += uint32_t(meshletCount);
@@ -1003,3 +1052,4 @@ void DrawStorage::dbgDrawBBox(Tempest::Painter& p, Tempest::Vec2 wsz, const Came
   p.drawRect(int(aabb.x), int(aabb.y), int(aabb.z-aabb.x), int(aabb.w-aabb.y));
   */
   }
+

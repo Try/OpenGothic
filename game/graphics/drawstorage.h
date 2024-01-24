@@ -124,6 +124,24 @@ class DrawStorage {
       L_Sampler  = 15,
       };
 
+    struct Range {
+      size_t begin = 0;
+      size_t end   = 0;
+      };
+
+    template<class T>
+    class FreeList {
+      public:
+        const size_t size() const { return data.size(); }
+        T& operator[](size_t i) { return data[i]; }
+
+        size_t alloc(size_t count=1);
+        void   free(size_t i, size_t count=1);
+
+        std::vector<T>     data;
+        std::vector<Range> freeList;
+      };
+
     struct Cluster final {
       Tempest::Vec3 pos;
       float         r            = 0;
@@ -268,6 +286,7 @@ class DrawStorage {
     std::vector<Object>            objects;
     std::unordered_set<size_t>     objectsWind;
     std::unordered_set<size_t>     objectsMorph;
+    std::unordered_set<size_t>     objectsFree;
     Patch                          patch[Resources::MaxFramesInFlight];
 
     std::vector<Bucket>            buckets;
@@ -275,9 +294,9 @@ class DrawStorage {
     bool                           bucketsDurtyBit = false;
 
     size_t                         totalPayload = 0;
-    std::vector<Cluster>           clusters;
+    FreeList<Cluster>              clusters;
     Tempest::StorageBuffer         clustersGpu;
-    std::vector<uint32_t>          clusterDurty;
+    std::vector<uint32_t>          clustersDurty;
     bool                           clustersDurtyBit = false;
 
     std::vector<DrawCmd>           cmd;
