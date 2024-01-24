@@ -156,6 +156,7 @@ add_uber_shader(pfx "-DMESH_TYPE=4")
 
 # cluster culling
 add_shader(cluster_init.comp         materials/cluster_init.comp)
+add_shader(cluster_patch.comp        materials/cluster_patch.comp)
 add_shader(cluster_task.comp         materials/cluster_task.comp "-DMESH_TYPE=255")
 add_shader(cluster_task_hiz.comp     materials/cluster_task.comp "-DMESH_TYPE=255" -DHIZ)
 add_shader(cluster_task_hiz_cr.comp  materials/cluster_task.comp "-DMESH_TYPE=255" -DHIZ -DLARGE)

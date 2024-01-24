@@ -20,7 +20,6 @@ void DrawStorage::Item::setObjMatrix(const Tempest::Matrix4x4& pos) {
   if(owner!=nullptr) {
     owner->objects[id].pos = pos;
     owner->updateInstance(id);
-    owner->updateClusters(id);
     }
   }
 
@@ -117,6 +116,7 @@ DrawStorage::DrawStorage(VisualObjects& owner, const SceneGlobals& globals) : ow
     cmd.viewport = SceneGlobals::VisCamera(v);
     tasks.emplace_back(std::move(cmd));
     }
+  objectsMorph.reserve(512);
   }
 
 DrawStorage::~DrawStorage() {
@@ -142,8 +142,7 @@ DrawStorage::Item DrawStorage::alloc(const StaticMesh& mesh, const Material& mat
 
   if(obj.isEmpty())
     return Item(); // null command
-  for(size_t i=0, sz = (iboLen/PackedMesh::MaxInd); i<sz; ++i)
-    updateClusters(obj.clusterId + i);
+  markClusters(obj.clusterId, iboLen/PackedMesh::MaxInd);
   return Item(*this, id);
   }
 
@@ -181,7 +180,6 @@ DrawStorage::Item DrawStorage::alloc(const StaticMesh& mesh, const Material& mat
     obj.objMorphAnim.set(&d, 0, sizeof(d));
     }
 
-  updateClusters(obj.clusterId);
   updateInstance(id);
   return Item(*this, id);
   }
@@ -210,7 +208,6 @@ DrawStorage::Item DrawStorage::alloc(const AnimMesh& mesh, const Material& mat, 
   obj.objInstance = owner.alloc(sizeof(InstanceDesc));
   clusters[obj.clusterId].instanceId = obj.objInstance.offsetId<InstanceDesc>();
 
-  updateClusters(obj.clusterId);
   updateInstance(id);
   return Item(*this, id);
   }
@@ -227,10 +224,13 @@ void DrawStorage::free(size_t id) {
     clusters[obj.clusterId + i]              = Cluster();
     clusters[obj.clusterId + i].r            = -1;
     clusters[obj.clusterId + i].meshletCount = 0;
+    markClusters(obj.clusterId);
     }
 
-  if(obj.wind!=phoenix::animation_mode::none)
-    objectsWind.insert(id);
+  if(obj.wind==phoenix::animation_mode::none)
+    objectsWind.erase(id);
+  if(obj.type==Morph)
+    objectsMorph.erase(id);
 
   obj = Object();
   while(objects.size()>0) {
@@ -251,13 +251,20 @@ void DrawStorage::updateInstance(size_t id, Matrix4x4* pos) {
   d.fatness = obj.fatness;
   obj.objInstance.set(&d, 0, sizeof(d));
 
-  auto cId = obj.clusterId;
-  clusters[cId].pos = Vec3(obj.pos[3][0], obj.pos[3][1], obj.pos[3][2]);
+  auto cId  = obj.clusterId;
+  auto npos = Vec3(obj.pos[3][0], obj.pos[3][1], obj.pos[3][2]);
+  if(clusters[cId].pos != npos) {
+    clusters[cId].pos = npos;
+    markClusters(cId);
+    }
   }
 
-void DrawStorage::updateClusters(size_t id) {
-  objectDurty.resize((clusters.size() + 32 - 1)/32);
-  objectDurty[id/32] |= uint32_t(1u << (id%32));
+void DrawStorage::markClusters(size_t id, size_t count) {
+  // fixme: thread-safe
+  for(size_t i=0; i<count; ++i) {
+    clusterDurty[id/32] |= uint32_t(1u << (id%32));
+    id++;
+    }
   clustersDurtyBit = true;
   }
 
@@ -278,7 +285,7 @@ void DrawStorage::startMMAnim(size_t i, std::string_view animName, float intensi
   if(id==size_t(-1))
     return;
 
-  objectsMorph.insert(id);
+  objectsMorph.insert(i);
 
   auto& m = anim[id];
   if(timeUntil==uint64_t(-1) && m.duration>0)
@@ -392,28 +399,77 @@ bool DrawStorage::commitBuckets() {
   return true;
   }
 
-bool DrawStorage::commitClusters() {
+bool DrawStorage::commitClusters(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   if(!clustersDurtyBit)
     return false;
   clustersDurtyBit = false;
 
   auto& device = Resources::device();
   if(clustersGpu.byteSize() == clusters.size()*sizeof(clusters[0])) {
-    // TODO: patch cs job
+    patchClusters(cmd, fId);
     return false;
     }
 
   Resources::recycle(std::move(clustersGpu));
   clustersGpu  = device.ssbo(clusters);
-
+  std::fill(clusterDurty.begin(), clusterDurty.end(), 0x0);
   return true;
   }
 
-bool DrawStorage::commit() {
+void DrawStorage::patchClusters(Encoder<CommandBuffer>& cmd, uint8_t fId) {
+  std::vector<uint32_t> header; //FXME
+  std::vector<Cluster>  patch;
+  for(size_t i=0; i<clusterDurty.size(); ++i) {
+    if(clusterDurty[i]==0x0)
+      continue;
+    const uint32_t mask = clusterDurty[i];
+    clusterDurty[i] = 0x0;
+
+    for(size_t r=0; r<32; ++r) {
+      if((mask & (1u<<r))==0)
+        continue;
+      size_t idx = i*32 + r;
+      if(idx>=clusters.size())
+        continue;
+      patch.push_back(clusters[idx]);
+      header.push_back(uint32_t(idx));
+      }
+    }
+
+  if(header.empty())
+    return;
+
+  auto& device = Resources::device();
+  auto& p = this->patch[fId];
+  if(p.desc.isEmpty())
+    p.desc = device.descriptors(Shaders::inst().clusterPath);
+
+  p.desc.set(0, clustersGpu);
+  if(header.size()*sizeof(header[0]) < p.indices.byteSize()) {
+    p.indices.update(header);
+    } else {
+    p.indices = device.ssbo(BufferHeap::Upload, header);
+    p.desc.set(2, p.indices);
+    }
+
+  if(patch.size()*sizeof(patch[0]) < p.data.byteSize()) {
+    p.data.update(patch);
+    } else {
+    p.data = device.ssbo(BufferHeap::Upload, patch);
+    p.desc.set(1, p.data);
+    }
+
+  const uint32_t count = uint32_t(header.size());
+  cmd.setFramebuffer({});
+  cmd.setUniforms(Shaders::inst().clusterPath, p.desc, &count, sizeof(count));
+  cmd.dispatchThreads(count);
+  }
+
+bool DrawStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   bool ret = false;
   ret |= commitCommands();
   ret |= commitBuckets();
-  ret |= commitClusters();
+  ret |= commitClusters(cmd, fId);
   return ret;
   }
 
@@ -668,9 +724,9 @@ void DrawStorage::preFrameUpdateWind(uint8_t fId) {
   }
 
 void DrawStorage::preFrameUpdateMorph(uint8_t fId) {
-  for(auto& obj:objects) {
-    if(obj.type!=Morph)
-      continue;
+  for(auto it=objectsMorph.begin(); it!=objectsMorph.end(); ) {
+    auto& obj = objects[*it];
+    it = objectsMorph.erase(it);
 
     MorphData data = {};
     for(size_t i=0; i<Resources::MAX_MORPH_LAYERS; ++i) {
@@ -697,17 +753,12 @@ void DrawStorage::preFrameUpdateMorph(uint8_t fId) {
 
     obj.objMorphAnim.set(&data, 0, sizeof(data));
     }
-
-  for(auto i=objectsMorph.begin(); i!=objectsMorph.end(); ) {
-    i = objectsMorph.erase(i);
-    }
   }
 
 size_t DrawStorage::implAlloc() {
   for(size_t i=0; i<objects.size(); ++i) {
-    if(objects[i].isEmpty()) {
+    if(objects[i].isEmpty())
       return i;
-      }
     }
 
   objects.resize(objects.size()+1);
@@ -807,6 +858,8 @@ uint32_t DrawStorage::clusterId(const PackedMesh::Cluster* cx, size_t firstMeshl
     clusters[ret+i] = c;
     }
 
+  clusterDurty.resize((clusters.size() + 32 - 1)/32);
+  markClusters(ret, meshletCount);
 
   cmd[commandId].maxPayload  += uint32_t(meshletCount);
   return uint32_t(ret);
@@ -828,6 +881,9 @@ uint32_t DrawStorage::clusterId(const Bucket& bucket, size_t firstMeshlet, size_
   c.firstMeshlet = uint32_t(firstMeshlet);
   c.meshletCount = uint32_t(meshletCount);
   c.instanceId   = uint32_t(-1);
+
+  clusterDurty.resize((clusters.size() + 32 - 1)/32);
+  markClusters(ret, 1);
 
   cmd[commandId].maxPayload  += uint32_t(meshletCount);
   return uint32_t(ret);

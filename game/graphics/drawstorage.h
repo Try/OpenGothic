@@ -81,7 +81,7 @@ class DrawStorage {
 
     void dbgDraw(Tempest::Painter& p, Tempest::Vec2 wsz);
 
-    bool commit();
+    bool commit(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void preFrameUpdate(uint8_t fId);
     void prepareUniforms();
     void invalidateUbo();
@@ -231,9 +231,15 @@ class DrawStorage {
       Tempest::StorageBuffer         visClusters, indirectCmd;
       };
 
+    struct Patch {
+      Tempest::DescriptorSet         desc;
+      Tempest::StorageBuffer         indices;
+      Tempest::StorageBuffer         data;
+      };
+
     void                           free(size_t id);
     void                           updateInstance(size_t id, Tempest::Matrix4x4* pos = nullptr);
-    void                           updateClusters(size_t idReason);
+    void                           markClusters(size_t id, size_t count = 1);
 
     void                           startMMAnim(size_t i, std::string_view animName, float intensity, uint64_t timeUntil);
 
@@ -242,7 +248,8 @@ class DrawStorage {
 
     bool                           commitCommands();
     bool                           commitBuckets();
-    bool                           commitClusters();
+    bool                           commitClusters(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void                           patchClusters(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
     size_t                         implAlloc();
     uint16_t                       bucketId (const Material& m, const StaticMesh& mesh);
@@ -259,9 +266,9 @@ class DrawStorage {
     std::vector<TaskCmd>           tasks;
 
     std::vector<Object>            objects;
-    std::vector<uint32_t>          objectDurty;
     std::unordered_set<size_t>     objectsWind;
     std::unordered_set<size_t>     objectsMorph;
+    Patch                          patch[Resources::MaxFramesInFlight];
 
     std::vector<Bucket>            buckets;
     Tempest::StorageBuffer         bucketsGpu;
@@ -270,6 +277,7 @@ class DrawStorage {
     size_t                         totalPayload = 0;
     std::vector<Cluster>           clusters;
     Tempest::StorageBuffer         clustersGpu;
+    std::vector<uint32_t>          clusterDurty;
     bool                           clustersDurtyBit = false;
 
     std::vector<DrawCmd>           cmd;

@@ -192,7 +192,7 @@ void VisualObjects::mkIndex() {
 
 void VisualObjects::prepareGlobals(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   bool sk = instanceMem.commit(cmd, fId);
-  sk |= drawMem.commit();
+  sk |= drawMem.commit(cmd, fId);
   if(!sk)
     return;
   drawMem.invalidateUbo();

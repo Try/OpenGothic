@@ -51,7 +51,8 @@ class Shaders {
     Tempest::RenderPipeline  hiZReproj;
 
     // Cluster
-    Tempest::ComputePipeline clusterInit, clusterTask, clusterTaskHiZ, clusterTaskHiZCr;
+    Tempest::ComputePipeline clusterInit, clusterPath;
+    Tempest::ComputePipeline clusterTask, clusterTaskHiZ, clusterTaskHiZCr;
 
     // GI
     Tempest::RenderPipeline  probeDbg;

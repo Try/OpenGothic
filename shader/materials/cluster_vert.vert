@@ -21,7 +21,7 @@ out gl_PerVertex {
 layout(location = 0) out flat uint textureId;
 layout(location = 1) out Varyings  shOut;
 #elif defined(MAT_VARYINGS)
-layout(location = 0) out Varyings shOut;
+layout(location = 0) out Varyings  shOut;
 #endif
 
 uvec2 processMeshlet(const uint meshletId, const uint bucketId) {
