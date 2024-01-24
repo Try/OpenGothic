@@ -73,7 +73,8 @@ void Camera::changeZoom(int delta) {
   if(fpEnable)
     return;
   if(delta>0)
-    userRange-=0.02f; else
+    userRange-=0.02f;
+  else if(delta<0)
     userRange+=0.02f;
   userRange = std::max(0.f,std::min(userRange,1.f));
   }
