@@ -44,6 +44,17 @@ class Shaders {
 
     Tempest::RenderPipeline  tonemapping;
 
+    enum class FxaaPreset : int {
+        FXAA_OFF,
+        FXAA_CONSOLE,
+        FXAA_PC_LOW,
+        FXAA_PC_MEDIUM,
+        FXAA_PC_HIGH,
+        FXAA_PC_EXTREME,
+        LAST
+    };
+    Tempest::RenderPipeline fxaaPresets[static_cast<int>(FxaaPreset::LAST)];
+
     // HiZ
     Tempest::ComputePipeline hiZPot, hiZMip;
     Tempest::RenderPipeline  hiZReproj;

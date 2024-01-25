@@ -46,6 +46,8 @@ class Gothic final {
       bool  doRtGi              = false;
       bool  doMeshShading       = false;
 
+      uint32_t fxaaPreset       = 0;
+
       bool  hideFocus           = false;
       float cameraFov           = 67.5f;
       float interfaceScale      = 1;

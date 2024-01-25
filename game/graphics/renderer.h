@@ -55,6 +55,7 @@ class Renderer final {
     void drawAmbient      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void draw             (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawTonemapping  (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawFxaa         (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawReflections  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawUnderwater   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
@@ -87,6 +88,8 @@ class Renderer final {
     Tempest::Attachment       sceneLinear;
     Tempest::ZBuffer          zbuffer, shadowMap[Resources::ShadowLayers];
     Tempest::ZBuffer          zbufferUi;
+
+    Tempest::Attachment       sceneTonemapped;
 
     Tempest::Attachment       sceneOpaque;
     Tempest::Attachment       sceneDepth;
@@ -130,6 +133,11 @@ class Renderer final {
       Tempest::RenderPipeline* pso = nullptr;
       Tempest::DescriptorSet   uboTone;
     } tonemapping;
+
+    struct Fxaa {
+        Tempest::RenderPipeline* pso = nullptr;
+        Tempest::DescriptorSet ubo;
+    } fxaa;
 
     struct {
       Tempest::StorageImage     hiZ;

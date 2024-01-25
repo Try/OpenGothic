@@ -74,6 +74,8 @@ Gothic::Gothic() {
     opts.doMeshShading = CommandLine::inst().isMeshShading();
     }
 
+  opts.fxaaPreset = CommandLine::inst().getFxaaPreset();
+
   wrldDef = CommandLine::inst().wrldDef;
 
   baseIniFile.reset(new IniFile(nestedPath({u"system",u"Gothic.ini"},Dir::FT_File)));

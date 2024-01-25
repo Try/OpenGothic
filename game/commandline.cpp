@@ -97,6 +97,18 @@ CommandLine::CommandLine(int argc, const char** argv) {
       if(i<argc)
         isRQuery = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
       }
+    else if(arg=="-fxaa") {
+        ++i;
+        if (i < argc) {
+            try {
+                fxaaPreset = std::stoul(std::string(argv[i]));
+            }
+            catch (const std::exception& e)
+            {
+                Log::i("failed to read fxaa preset: \"", std::string(argv[i]), "\"");
+            }
+        }
+      }
     else if(arg=="-gi") {
       ++i;
       if(i<argc)

@@ -165,6 +165,14 @@ Shaders::Shaders() {
 
   tonemapping = postEffect("tonemapping", "tonemapping", RenderState::ZTestMode::Always);
 
+  auto fxaaZTestMode = RenderState::ZTestMode::Always;
+  fxaaPresets[static_cast<int32_t>(Shaders::FxaaPreset::FXAA_OFF)] = Tempest::RenderPipeline();
+  fxaaPresets[static_cast<int32_t>(Shaders::FxaaPreset::FXAA_CONSOLE)] = postEffect("fxaa", "fxaa_quality_0", fxaaZTestMode);
+  fxaaPresets[static_cast<int32_t>(Shaders::FxaaPreset::FXAA_PC_LOW)] = postEffect("fxaa", "fxaa_quality_1", fxaaZTestMode);
+  fxaaPresets[static_cast<int32_t>(Shaders::FxaaPreset::FXAA_PC_MEDIUM)] = postEffect("fxaa", "fxaa_quality_2", fxaaZTestMode);
+  fxaaPresets[static_cast<int32_t>(Shaders::FxaaPreset::FXAA_PC_HIGH)] = postEffect("fxaa", "fxaa_quality_3", fxaaZTestMode);
+  fxaaPresets[static_cast<int32_t>(Shaders::FxaaPreset::FXAA_PC_EXTREME)] = postEffect("fxaa", "fxaa_quality_4", fxaaZTestMode);
+
   if(meshlets) {
     hiZPot    = computeShader("hiz_pot.comp.sprv");
     if(device.properties().hasAtomicFormat(TextureFormat::R32U))
