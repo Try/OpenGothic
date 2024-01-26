@@ -101,7 +101,7 @@ CommandLine::CommandLine(int argc, const char** argv) {
         ++i;
         if (i < argc) {
             try {
-                fxaaPreset = std::stoul(std::string(argv[i]));
+                fxaaPreset = static_cast<uint32_t>(std::stoul(std::string(argv[i])));
             }
             catch (const std::exception& e)
             {
