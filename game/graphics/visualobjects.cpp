@@ -6,30 +6,11 @@
 
 using namespace Tempest;
 
-VisualObjects::VisualObjects(const SceneGlobals& globals, const std::pair<Vec3, Vec3>& bbox)
-    : globals(globals), visGroup(bbox), drawMem(*this, globals) {
+VisualObjects::VisualObjects(const SceneGlobals& scene, const std::pair<Vec3, Vec3>& bbox)
+    : scene(scene), drawMem(*this, scene), visGroup(bbox) {
   }
 
 VisualObjects::~VisualObjects() {
-  }
-
-ObjectsBucket& VisualObjects::getBucket(ObjectsBucket::Type type, const Material& mat,
-                                        const StaticMesh* st, const AnimMesh* anim, const StorageBuffer* desc) {
-  for(auto& i:buckets)
-    if(i->size()<ObjectsBucket::CAPACITY && i->isCompatible(type,mat,st,anim,desc))
-      return *i;
-  buckets.emplace_back(ObjectsBucket::mkBucket(type,mat,*this,globals,st,anim,desc));
-  return *buckets.back();
-  }
-
-ObjectsBucket::Item VisualObjects::get(const Material& mat) {
-  if(mat.tex==nullptr) {
-    Tempest::Log::e("no texture?!");
-    return ObjectsBucket::Item();
-    }
-  auto&        bucket = getBucket(ObjectsBucket::Pfx,mat,nullptr,nullptr,nullptr);
-  const size_t id     = bucket.alloc(Bounds());
-  return ObjectsBucket::Item(bucket,id);
   }
 
 DrawStorage::Item VisualObjects::get(const StaticMesh& mesh, const Material& mat,
@@ -39,7 +20,6 @@ DrawStorage::Item VisualObjects::get(const StaticMesh& mesh, const Material& mat
     Log::e("no texture?!");
     return DrawStorage::Item();
     }
-
   const DrawStorage::Type bucket = (staticDraw ? DrawStorage::Static : DrawStorage::Movable);
   return drawMem.alloc(mesh, mat, iboOff, iboLen, bucket);
   }
@@ -51,8 +31,7 @@ DrawStorage::Item VisualObjects::get(const AnimMesh& mesh, const Material& mat,
     Log::e("no texture?!");
     return DrawStorage::Item();
     }
-
-  return drawMem.alloc(mesh, mat, anim, iboOff, iboLen, DrawStorage::Animated);
+  return drawMem.alloc(mesh, mat, anim, iboOff, iboLen);
   }
 
 DrawStorage::Item VisualObjects::get(const StaticMesh& mesh, const Material& mat,
@@ -75,15 +54,10 @@ const Tempest::StorageBuffer& VisualObjects::instanceSsbo() const {
 
 void VisualObjects::prepareUniforms() {
   drawMem.prepareUniforms();
-  for(auto& c:buckets)
-    c->prepareUniforms();
   }
 
 void VisualObjects::preFrameUpdate(uint8_t fId) {
-  mkIndex();
   drawMem.preFrameUpdate(fId);
-  for(auto& c:buckets)
-    c->preFrameUpdate(fId);
   }
 
 void VisualObjects::visibilityPass(const Frustrum fr[]) {
@@ -95,99 +69,27 @@ void VisualObjects::visibilityPass (Tempest::Encoder<Tempest::CommandBuffer> &cm
   }
 
 void VisualObjects::drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {
-  for(size_t i=lastSolidBucket;i<index.size();++i) {
-    auto c = index[i];
-    if(c->material().alpha==Material::AlphaFunc::Water)
-      continue;
-    c->draw(enc,fId);
-    }
+  drawMem.drawTranslucent(enc, fId);
   }
 
 void VisualObjects::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {
   drawMem.drawWater(enc, fId);
-
-  for(size_t i=lastSolidBucket;i<index.size();++i) {
-    auto c = index[i];
-    if(c->material().alpha!=Material::AlphaFunc::Water)
-      continue;
-    c->draw(enc,fId);
-    }
   }
 
 void VisualObjects::drawGBuffer(Tempest::Encoder<CommandBuffer>& enc, uint8_t fId) {
   drawMem.drawGBuffer(enc, fId);
-
-  for(size_t i=0;i<lastSolidBucket;++i) {
-    auto c = index[i];
-    c->drawGBuffer(enc,fId);
-    }
   }
 
 void VisualObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer) {
   drawMem.drawShadow(enc, fId, layer);
-
-  for(size_t i=0;i<lastSolidBucket;++i) {
-    auto c = index[i];
-    c->drawShadow(enc,fId,layer);
-    }
   }
 
 void VisualObjects::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {
   drawMem.drawHiZ(enc, fId);
   }
 
-void VisualObjects::resetIndex() {
-  index.clear();
-  }
-
 void VisualObjects::notifyTlas(const Material& m, RtScene::Category cat) {
-  globals.rtScene.notifyTlas(m,cat);
-  }
-
-void VisualObjects::mkIndex() {
-  if(index.size()!=0)
-    return;
-  index.reserve(buckets.size());
-  index.resize(buckets.size());
-  size_t id=0;
-  for(auto& i:buckets) {
-    if(i->size()==0)
-      continue;
-    index[id] = i.get();
-    ++id;
-    }
-  index.resize(id);
-
-  std::sort(index.begin(),index.end(),[](const ObjectsBucket* l,const ObjectsBucket* r) {
-    auto& lm = l->material();
-    auto& rm = r->material();
-
-    if(lm.alphaOrder()<rm.alphaOrder())
-      return true;
-    if(lm.alphaOrder()>rm.alphaOrder())
-      return false;
-
-    const int lt    = l->type()==ObjectsBucket::Landscape ? 0 : 1;
-    const int rt    = r->type()==ObjectsBucket::Landscape ? 0 : 1;
-
-    const bool lpso = l->pso();
-    const bool rpso = r->pso();
-
-    const auto lv   = l->meshPointer();
-    const auto rv   = r->meshPointer();
-
-    return std::tie(lt, lpso, lv, lm.tex) < std::tie(rt, rpso, rv, rm.tex);
-    });
-
-  lastSolidBucket = index.size();
-  for(size_t i=0;i<index.size();++i) {
-    auto c = index[i];
-    if(!c->material().isSolid()) {
-      lastSolidBucket = i;
-      break;
-      }
-    }
-  visGroup.buildVSetIndex(index);
+  scene.rtScene.notifyTlas(m,cat);
   }
 
 void VisualObjects::prepareGlobals(Encoder<CommandBuffer>& cmd, uint8_t fId) {
@@ -196,8 +98,6 @@ void VisualObjects::prepareGlobals(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   if(!sk)
     return;
   drawMem.invalidateUbo();
-  for(auto& c:buckets)
-    c->invalidateUbo(fId);
   }
 
 void VisualObjects::postFrameupdate() {
@@ -206,11 +106,8 @@ void VisualObjects::postFrameupdate() {
 
 bool VisualObjects::updateRtScene(RtScene& out) {
   if(!out.isUpdateRequired())
-    return false;
-
-  for(auto& c:buckets)
-    c->fillTlas(out);
-
+    return false;  
+  drawMem.fillTlas(out);
   out.buildTlas();
   return true;
   }

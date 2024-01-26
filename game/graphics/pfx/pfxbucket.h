@@ -14,7 +14,7 @@ class PfxBucket {
   public:
     using Vertex = Resources::Vertex;
 
-    PfxBucket(const ParticleFx &decl, PfxObjects& parent, VisualObjects& visual);
+    PfxBucket(const ParticleFx &decl, PfxObjects& parent, const SceneGlobals& scene, VisualObjects& visual);
     ~PfxBucket();
 
     enum AllocState: uint8_t {
@@ -54,7 +54,13 @@ class PfxBucket {
     PfxObjects&                 parent;
 
     bool                        isEmpty() const;
+
+    void                        prepareUniforms(const SceneGlobals& scene);
+
     void                        preFrameUpdate(uint8_t fId);
+    void                        drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void                        drawShadow     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer);
+    void                        drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
     size_t                      allocEmitter();
     void                        freeEmitter(size_t& id);
@@ -64,6 +70,22 @@ class PfxBucket {
     void                        buildSsbo();
 
   private:
+    enum UboLinkpackage : uint8_t {
+      L_Scene    = 0,
+      L_Matrix   = 1,
+      L_MeshDesc = L_Matrix,
+      L_Bucket   = 2,
+      L_Ibo      = 3,
+      L_Vbo      = 4,
+      L_Diffuse  = 5,
+      L_Shadow0  = 6,
+      L_Shadow1  = 7,
+      L_Pfx      = 8,
+      L_SceneClr = 10,
+      L_GDepth   = 11,
+      L_HiZ      = 12,
+      };
+
     struct Block final {
       bool          allocated = false;
       uint64_t      timeTotal = 0;
@@ -87,6 +109,21 @@ class PfxBucket {
 
       float         lifeTime() const;
       };
+
+    struct Draw {
+      const Tempest::RenderPipeline* pMain   = nullptr;
+      const Tempest::RenderPipeline* pShadow = nullptr;
+
+      Tempest::DescriptorSet         ubo[SceneGlobals::V_Count];
+      Tempest::StorageBuffer         pfxGpu;
+
+      bool                      isEmpty() const;
+      void                      prepareUniforms(const SceneGlobals& scene, const Material& mat);
+      void                      preframeUpdate(const SceneGlobals& scene, const Material& mat);
+      void                      setPfxData(const Tempest::StorageBuffer& ssbo);
+      };
+
+    void                        drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, SceneGlobals::VisCamera view, const Draw& itm);
 
     void                        tickEmit(Block& p, ImplEmitter& emitter, uint64_t emited);
     bool                        shrink();
@@ -116,12 +153,10 @@ class PfxBucket {
 
     VisualObjects&              visual;
 
-    ObjectsBucket::Item         item;
-    Tempest::StorageBuffer      pfxGpu[Resources::MaxFramesInFlight];
+    Draw                        item  [Resources::MaxFramesInFlight];
     std::vector<PfxState>       pfxCpu;
 
-    ObjectsBucket::Item         itemTrl;
-    Tempest::StorageBuffer      trlGpu[Resources::MaxFramesInFlight];
+    Draw                        itemTrl[Resources::MaxFramesInFlight];
     std::vector<PfxState>       trlCpu;
 
     uint64_t                    maxTrlTime = 0;

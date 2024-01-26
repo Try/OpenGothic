@@ -16,8 +16,6 @@ class VisualObjects final {
     VisualObjects(const SceneGlobals& globals, const std::pair<Tempest::Vec3, Tempest::Vec3>& bbox);
     ~VisualObjects();
 
-    ObjectsBucket::Item get(const Material& mat);
-
     DrawStorage::Item   get(const StaticMesh& mesh, const Material& mat,
                             size_t iboOffset, size_t iboLength, bool staticDraw);
     DrawStorage::Item   get(const AnimMesh& mesh, const Material& mat,
@@ -45,26 +43,17 @@ class VisualObjects final {
     void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId, int layer);
     void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
 
-    void resetIndex();
     void notifyTlas(const Material& m, RtScene::Category cat);
-
     bool updateRtScene(RtScene& out);
 
     void dbgClusters(Tempest::Painter& p, Tempest::Vec2 wsz);
 
   private:
-    ObjectsBucket& getBucket(ObjectsBucket::Type type, const Material& mat,
-                             const StaticMesh* st, const AnimMesh* anim, const Tempest::StorageBuffer* desc);
-    void           mkIndex();
+    const SceneGlobals& scene;
+    InstanceStorage     instanceMem;
+    DrawStorage         drawMem;
 
-    const SceneGlobals&                         globals;
-    VisibilityGroup                             visGroup;
-    InstanceStorage                             instanceMem;
-    DrawStorage                                 drawMem;
-
-    std::vector<std::unique_ptr<ObjectsBucket>> buckets;
-    std::vector<ObjectsBucket*>                 index;
-    size_t                                      lastSolidBucket = 0;
+    VisibilityGroup     visGroup; // TODO: remove
 
   friend class ObjectsBucket;
   friend class ObjectsBucket::Item;

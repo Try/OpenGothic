@@ -409,10 +409,63 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage
     state.setZTestMode(RenderState::ZTestMode::Greater); //FIXME
     }
 
+  switch(alpha) {
+    case Material::Solid:
+    case Material::AlphaTest:
+    case Material::Water:
+    case Material::Ghost:
+      break;
+    case Material::Transparent:
+      state.setBlendSource  (RenderState::BlendMode::SrcAlpha); // premultiply in shader
+      state.setBlendDest    (RenderState::BlendMode::OneMinusSrcAlpha);
+      state.setZWriteEnabled(false);
+      break;
+    case Material::AdditiveLight:
+      state.setBlendSource  (RenderState::BlendMode::SrcAlpha);
+      state.setBlendDest    (RenderState::BlendMode::One);
+      state.setZWriteEnabled(false);
+      break;
+    case Material::Multiply:
+    case Material::Multiply2:
+      state.setBlendSource  (RenderState::BlendMode::DstColor);
+      state.setBlendDest    (RenderState::BlendMode::SrcColor);
+      state.setZWriteEnabled(false);
+      break;
+    }
+
+  static bool overdrawDbg = false;
+  if(overdrawDbg &&
+      (alpha==Material::Solid || alpha==Material::AlphaTest) && t!=DrawStorage::Landscape && pt!=T_Shadow) {
+    state.setBlendSource(RenderState::BlendMode::One);
+    state.setBlendDest  (RenderState::BlendMode::One);
+    state.setZWriteEnabled(false);
+    state.setZTestMode(RenderState::ZTestMode::Always);
+    }
+
   const char* vsTok = "";
   const char* fsTok = "";
   const char* vsS   = "";
-  const char* fsS   = (alpha==Material::Solid) ? "" : "_at";
+  const char* fsS   = "";
+
+  switch(alpha) {
+    case Material::Solid:
+      fsS = "";
+      break;
+    case Material::AlphaTest:
+      fsS = "_at";
+      break;
+    case Material::Water:
+    case Material::Ghost:
+    case Material::Multiply:
+    case Material::Multiply2:
+    case Material::Transparent:
+      fsS = "";
+      break;
+    case Material::AdditiveLight:
+      fsS = (pt==T_Forward) ? "_em" : "";
+      break;
+    }
+
   switch(t) {
     case DrawStorage::Landscape:
       vsTok = "lnd";
@@ -428,7 +481,8 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage
       fsTok = "obj";
       break;
     case DrawStorage::Pfx:
-      assert(0);
+      vsTok = nullptr;
+      fsTok = "obj";
       break;
     case DrawStorage::Morph:
       vsTok = "mph";
@@ -469,7 +523,16 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage
   b.pipelineType = pt;
 
   auto& device = Resources::device();
-  if(mat.isTesselated() && device.properties().tesselationShader && false) {
+  if(t==DrawStorage::Pfx) {
+    auto type = (mat.alpha==Material::AdditiveLight || mat.alpha==Material::Multiply || mat.alpha==Material::Multiply2) ? "" : "_f";
+    auto shVs = GothicShader::get(string_frm("pfx_vert", type ,".vert.sprv"));
+    auto shFs = GothicShader::get(string_frm("pfx", typeFs, fsS, ".frag.sprv"));
+
+    auto vs = device.shader(shVs.data,shVs.len);
+    auto fs = device.shader(shFs.data,shFs.len);
+    b.pipeline = device.pipeline(Triangles, state, vs, fs);
+    }
+  else if(mat.isTesselated() && device.properties().tesselationShader && false) {
     auto shVs = GothicShader::get(string_frm("cluster_", vsTok, typeVs, vsS, ".vert.sprv"));
     auto shTc = GothicShader::get(string_frm("cluster_water_f.tesc.sprv"));
     auto shTe = GothicShader::get(string_frm("cluster_water_f.tese.sprv"));
@@ -480,7 +543,8 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage
     auto te = device.shader(shTe.data,shTe.len);
     auto fs = device.shader(shFs.data,shFs.len);
     b.pipeline = device.pipeline(Triangles, state, vs, tc, te, fs);
-    } else {
+    }
+  else {
     auto shVs = GothicShader::get(string_frm("cluster_", vsTok, typeVs, vsS, ".vert.sprv"));
     auto shFs = GothicShader::get(string_frm("cluster_", fsTok, typeFs, fsS, ".frag.sprv"));
 

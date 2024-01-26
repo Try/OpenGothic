@@ -232,7 +232,7 @@ DrawStorage::Item DrawStorage::alloc(const StaticMesh& mesh, const Material& mat
   }
 
 DrawStorage::Item DrawStorage::alloc(const AnimMesh& mesh, const Material& mat, const InstanceStorage::Id& anim,
-                                     size_t iboOff, size_t iboLen, Type bucket) {
+                                     size_t iboOff, size_t iboLen) {
   // return Item();
   // 64x64 meshlets
   assert(iboOff%PackedMesh::MaxInd==0);
@@ -662,6 +662,10 @@ void DrawStorage::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
     cmd.setUniforms(*cx.psoHiZ, cx.desc[viewId], &push, sizeof(push));
     cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
     }
+  }
+
+void DrawStorage::fillTlas(RtScene& out) {
+
   }
 
 void DrawStorage::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t frameId) {

@@ -196,6 +196,18 @@ add_shader(cluster_obj_d_at.frag     materials/main.frag         "-DMESH_TYPE=1"
 add_shader(cluster_obj_w.frag        materials/main.frag         "-DMESH_TYPE=1" -DBINDLESS -DWATER)
 add_shader(cluster_obj_w_at.frag     materials/main.frag         "-DMESH_TYPE=1" -DBINDLESS -DWATER -DATEST)
 
+# pfx
+add_shader(pfx_vert.vert             materials/pfx.vert          "-DMESH_TYPE=4") # no position varying
+add_shader(pfx_vert_f.vert           materials/pfx.vert          "-DMESH_TYPE=4" -DFORWARD)
+add_shader(pfx_c.frag                materials/main.frag         "-DMESH_TYPE=4" -DGBUFFER)
+add_shader(pfx_c_at.frag             materials/main.frag         "-DMESH_TYPE=4" -DGBUFFER -DATEST)
+add_shader(pfx_f.frag                materials/main.frag         "-DMESH_TYPE=4" -DFORWARD)
+add_shader(pfx_f_at.frag             materials/main.frag         "-DMESH_TYPE=4" -DFORWARD  -DMAT_LINEAR_CLR -DATEST)
+add_shader(pfx_f_em.frag             materials/main.frag         "-DMESH_TYPE=4" -DEMISSIVE -DMAT_LINEAR_CLR)
+add_shader(pfx_f_gh.frag             materials/main.frag         "-DMESH_TYPE=4" -DFORWARD  -DMAT_LINEAR_CLR -DGHOST)
+add_shader(pfx_d.frag                materials/main.frag         "-DMESH_TYPE=4" -DDEPTH_ONLY)
+add_shader(pfx_d_at.frag             materials/main.frag         "-DMESH_TYPE=4" -DDEPTH_ONLY -DATEST)
+
 add_shader(item.vert                 inventory/item.vert)
 add_shader(item.frag                 inventory/item.frag)
 

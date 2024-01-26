@@ -127,10 +127,12 @@ void WorldView::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t f
 
 void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId, uint8_t layer) {
   visuals.drawShadow(cmd,fId,layer);
+  pfxGroup.drawShadow(cmd,fId,layer);
   }
 
 void WorldView::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
   visuals.drawGBuffer(cmd, fId);
+  pfxGroup.drawGBuffer(cmd, fId);
   }
 
 void WorldView::drawSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
@@ -147,6 +149,7 @@ void WorldView::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
 
 void WorldView::drawTranslucent(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
   visuals.drawTranslucent(cmd,fId);
+  pfxGroup.drawTranslucent(cmd, fId);
   }
 
 void WorldView::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
@@ -224,6 +227,7 @@ void WorldView::prepareUniforms() {
   sGlobal.skyLut = &gSky.skyLut();
   sGlobal.lights.prepareUniforms();
   gSky.prepareUniforms();
+  pfxGroup.prepareUniforms();
   visuals.prepareUniforms();
   }
 

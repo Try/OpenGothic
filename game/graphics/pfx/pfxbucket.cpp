@@ -1,6 +1,7 @@
 #include "pfxbucket.h"
 
 #include "graphics/mesh/submesh/pfxemittermesh.h"
+#include "graphics/shaders.h"
 #include "pfxobjects.h"
 #include "particlefx.h"
 
@@ -29,13 +30,70 @@ float PfxBucket::ParState::lifeTime() const {
 
 std::mt19937 PfxBucket::rndEngine;
 
-PfxBucket::PfxBucket(const ParticleFx &decl, PfxObjects& parent, VisualObjects& visual)
+void PfxBucket::Draw::setPfxData(const Tempest::StorageBuffer& ssbo) {
+  if(ssbo.isEmpty())
+    return;
+
+  for(auto& i:ubo)
+    if(!i.isEmpty())
+      i.set(L_Pfx, ssbo);
+  }
+
+bool PfxBucket::Draw::isEmpty() const {
+  return (pfxGpu.byteSize()==0);
+  }
+
+void PfxBucket::Draw::prepareUniforms(const SceneGlobals& scene, const Material& mat) {
+  const bool isForwardShading    = !mat.isSolid();
+  const bool textureInShadowPass = (mat.alpha==Material::AlphaTest);
+  const bool isShadowmapRequired = isForwardShading && mat.alpha!=Material::AdditiveLight &&
+                                   mat.alpha!=Material::Multiply && mat.alpha!=Material::Multiply2;
+  const bool isSceneInfoRequired = mat.isSceneInfoRequired();
+
+  for(size_t view=0; view<SceneGlobals::V_Count; ++view) {
+    auto& ubo = this->ubo[view];
+    if(ubo.isEmpty())
+      continue;
+    ubo.set(L_Scene, scene.uboGlobal[view]);
+    if(view==SceneGlobals::V_Main || textureInShadowPass) {
+      auto smp = (view==SceneGlobals::V_Main) ? Sampler::anisotrophy() : Sampler::trillinear();
+      ubo.set(L_Diffuse, *mat.tex, smp);
+      }
+    if(view==SceneGlobals::V_Main && isShadowmapRequired) {
+      ubo.set(L_Shadow0,  *scene.shadowMap[0],Resources::shadowSampler());
+      ubo.set(L_Shadow1,  *scene.shadowMap[1],Resources::shadowSampler());
+      }
+    if(view==SceneGlobals::V_Main && isSceneInfoRequired) {
+      auto smp = Sampler::bilinear();
+      smp.setClamping(ClampMode::MirroredRepeat);
+      ubo.set(L_SceneClr, *scene.sceneColor, smp);
+
+      smp = Sampler::nearest();
+      smp.setClamping(ClampMode::MirroredRepeat);
+      ubo.set(L_GDepth, *scene.sceneDepth, smp);
+      }
+    }
+  }
+
+void PfxBucket::Draw::preframeUpdate(const SceneGlobals& scene, const Material& mat) {
+  if(mat.frames.size()==0 || mat.texAniFPSInv==0)
+    return;
+
+  const bool textureInShadowPass = (mat.alpha==Material::AlphaTest);
+
+  for(size_t view=0; view<SceneGlobals::V_Count; ++view) {
+    auto& ubo = this->ubo[SceneGlobals::V_Main];
+
+    auto frame = 0u;// size_t((obj.timeShift+scene.tickCount)/mat.texAniFPSInv);
+    auto t = mat.frames[frame%mat.frames.size()];
+    if(view==SceneGlobals::V_Main || textureInShadowPass) {
+      ubo.set(L_Diffuse, *t);
+      }
+    }
+  }
+
+PfxBucket::PfxBucket(const ParticleFx &decl, PfxObjects& parent, const SceneGlobals& scene, VisualObjects& visual)
   :decl(decl), parent(parent), visual(visual)  {
-  item = visual.get(decl.visMaterial);
-
-  if(!item.isEmpty())
-    item.setObjMatrix(Matrix4x4::mkIdentity());
-
   uint64_t lt      = decl.maxLifetime();
   uint64_t pps     = uint64_t(std::ceil(decl.maxPps()));
   uint64_t reserve = (lt*pps+1000-1)/1000;
@@ -43,13 +101,50 @@ PfxBucket::PfxBucket(const ParticleFx &decl, PfxObjects& parent, VisualObjects& 
   if(blockSize==0)
     blockSize=1;
 
+  auto& device = Resources::device();
+  for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
+    auto& item = this->item[i];
+    if(decl.visMaterial.tex==nullptr)
+      continue;
+
+    const bool isForwardShading = !decl.visMaterial.isSolid();
+    item.pMain   = Shaders::inst().materialPipeline(decl.visMaterial, DrawStorage::Pfx, isForwardShading ? Shaders::T_Forward : Shaders::T_Deffered);
+    item.pShadow = Shaders::inst().materialPipeline(decl.visMaterial, DrawStorage::Pfx, Shaders::T_Shadow);
+
+    if(item.pMain!=nullptr) {
+      item.ubo[SceneGlobals::V_Main]    = device.descriptors(*item.pMain);
+      }
+    if(item.pShadow!=nullptr) {
+      item.ubo[SceneGlobals::V_Shadow0] = device.descriptors(*item.pShadow);
+      item.ubo[SceneGlobals::V_Shadow1] = device.descriptors(*item.pShadow);
+      }
+    item.prepareUniforms(scene, decl.visMaterial);
+    }
+
   if(decl.hasTrails()) {
     maxTrlTime = uint64_t(decl.trlFadeSpeed*1000.f);
 
     Material mat = decl.visMaterial;
     mat.tex = decl.trlTexture;
-    itemTrl = visual.get(mat);
-    itemTrl.setObjMatrix(Matrix4x4::mkIdentity());
+
+    for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
+      auto& item = this->itemTrl[i];
+      if(mat.tex==nullptr)
+        continue;
+
+      const bool isForwardShading = !decl.visMaterial.isSolid();
+      item.pMain   = Shaders::inst().materialPipeline(mat, DrawStorage::Pfx, isForwardShading ? Shaders::T_Forward : Shaders::T_Deffered);
+      item.pShadow = Shaders::inst().materialPipeline(mat, DrawStorage::Pfx, Shaders::T_Shadow);
+
+      if(item.pMain!=nullptr) {
+        item.ubo[SceneGlobals::V_Main]    = device.descriptors(*item.pMain);
+        }
+      if(item.pShadow!=nullptr) {
+        item.ubo[SceneGlobals::V_Shadow0] = device.descriptors(*item.pShadow);
+        item.ubo[SceneGlobals::V_Shadow1] = device.descriptors(*item.pShadow);
+        }
+      item.prepareUniforms(scene, mat);
+      }
     }
   }
 
@@ -58,7 +153,9 @@ PfxBucket::~PfxBucket() {
 
 bool PfxBucket::isEmpty() const {
   for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
-    if(pfxGpu[i].byteSize()>0)
+    if(!item[i].isEmpty())
+      return false;
+    if(!itemTrl[i].isEmpty())
       return false;
     }
   return impl.size()==0;
@@ -510,35 +607,6 @@ void PfxBucket::tickEmit(Block& p, ImplEmitter& emitter, uint64_t emited) {
     }
   }
 
-void PfxBucket::preFrameUpdate(uint8_t fId) {
-  auto& device = Resources::device();
-
-  if(!item.isEmpty()) {
-    // hidden staging under the hood
-    auto& ssbo = pfxGpu[fId];
-    if(pfxCpu.size()*sizeof(PfxBucket::PfxState)!=ssbo.byteSize()) {
-      auto heap = decl.isDecal() ? BufferHeap::Device : BufferHeap::Upload;
-      ssbo = device.ssbo(heap,pfxCpu);
-      item.setPfxData(&ssbo,fId);
-      } else {
-      if(!decl.isDecal() || forceUpdate[fId]) {
-        ssbo.update(pfxCpu);
-        forceUpdate[fId] = false;
-        }
-      }
-    }
-
-  if(!itemTrl.isEmpty()) {
-    auto& ssbo = trlGpu[fId];
-    if(trlCpu.size()*sizeof(PfxBucket::PfxState)!=ssbo.byteSize()) {
-      ssbo = device.ssbo(BufferHeap::Upload,trlCpu);
-      itemTrl.setPfxData(&ssbo,fId);
-      } else {
-      ssbo.update(trlCpu);
-      }
-    }
-  }
-
 void PfxBucket::buildSsbo() {
   buildSsboTrails();
 
@@ -676,4 +744,81 @@ uint32_t PfxBucket::mkTrailColor(float clA) const {
   uint32_t cl;
   std::memcpy(&cl,&color,sizeof(cl));
   return cl;
+  }
+
+void PfxBucket::prepareUniforms(const SceneGlobals& scene) {
+  for(auto& i:item)
+    i.prepareUniforms(scene, decl.visMaterial);
+  for(auto& i:itemTrl) {
+    auto m = decl.visMaterial;
+    m.tex = decl.trlTexture;
+    i.prepareUniforms(scene, m);
+    }
+  }
+
+void PfxBucket::preFrameUpdate(uint8_t fId) {
+  auto& device = Resources::device();
+
+  if(item[fId].pMain!=nullptr || item[fId].pShadow!=nullptr) {
+    // hidden staging under the hood
+    auto& ssbo = item[fId].pfxGpu;
+    if(pfxCpu.size()*sizeof(PfxBucket::PfxState)!=ssbo.byteSize()) {
+      auto heap = decl.isDecal() ? BufferHeap::Device : BufferHeap::Upload;
+      ssbo = device.ssbo(heap,pfxCpu);
+      item[fId].setPfxData(ssbo);
+      } else {
+      if(!decl.isDecal() || forceUpdate[fId]) {
+        ssbo.update(pfxCpu);
+        forceUpdate[fId] = false;
+        }
+      }
+    }
+
+  if(itemTrl[fId].pMain!=nullptr || itemTrl[fId].pShadow!=nullptr) {
+    auto& ssbo = itemTrl[fId].pfxGpu;
+    if(trlCpu.size()*sizeof(PfxBucket::PfxState)!=ssbo.byteSize()) {
+      ssbo = device.ssbo(BufferHeap::Upload, trlCpu);
+      itemTrl[fId].setPfxData(ssbo);
+      } else {
+      ssbo.update(trlCpu);
+      }
+    }
+  }
+
+void PfxBucket::drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  // TODO
+  }
+
+void PfxBucket::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer) {
+  auto view = SceneGlobals::VisCamera(SceneGlobals::V_Shadow0 + layer);
+  drawCommon(cmd, view, item[fId]);
+  drawCommon(cmd, view, itemTrl[fId]);
+  }
+
+void PfxBucket::drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  drawCommon(cmd, SceneGlobals::V_Main, item[fId]);
+  drawCommon(cmd, SceneGlobals::V_Main, itemTrl[fId]);
+  }
+
+void PfxBucket::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, SceneGlobals::VisCamera view, const Draw& itm) {
+  if(itm.pfxGpu.isEmpty())
+    return;
+
+  const RenderPipeline* pso = nullptr;
+  switch(view) {
+    case SceneGlobals::V_Shadow0:
+    case SceneGlobals::V_Shadow1:
+      pso = itm.pShadow;
+      break;
+    case SceneGlobals::V_Main:
+      pso = itm.pMain;
+      break;
+    case SceneGlobals::V_HiZ:
+    case SceneGlobals::V_Count:
+      break;
+    }
+  if(pso==nullptr)
+    return;
+  cmd.setUniforms(*pso, itm.ubo[view]);
+  cmd.draw(6, 0, itm.pfxGpu.byteSize()/sizeof(PfxState));
   }

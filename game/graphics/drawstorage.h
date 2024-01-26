@@ -18,6 +18,7 @@ class StaticMesh;
 class AnimMesh;
 class VisualObjects;
 class Camera;
+class RtScene;
 
 class DrawStorage {
   public:
@@ -73,7 +74,7 @@ class DrawStorage {
     ~DrawStorage();
 
     Item alloc(const AnimMesh& mesh, const Material& mat, const InstanceStorage::Id& anim,
-               size_t iboOff, size_t iboLen, Type type);
+               size_t iboOff, size_t iboLen);
     Item alloc(const StaticMesh& mesh, const Material& mat,
                size_t iboOff, size_t iboLen, Type type);
     Item alloc(const StaticMesh& mesh, const Material& mat,
@@ -92,6 +93,8 @@ class DrawStorage {
     void drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
     void drawWater      (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
     void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
+
+    void fillTlas(RtScene& out);
 
   private:
     enum TaskLinkpackage : uint8_t {

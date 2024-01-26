@@ -2,7 +2,6 @@
 
 #include <Tempest/Log>
 #include <cstring>
-#include <cassert>
 
 #include "graphics/sceneglobals.h"
 
@@ -54,6 +53,11 @@ bool PfxObjects::isInPfxRange(const Vec3& pos) const {
   return dp.quadLength()<viewRage*viewRage;
   }
 
+void PfxObjects::prepareUniforms() {
+  for(auto& i:bucket)
+    i.prepareUniforms(scene);
+  }
+
 void PfxObjects::preFrameUpdate(uint8_t fId) {
   for(auto i=bucket.begin(), end = bucket.end(); i!=end; ) {
     if(i->isEmpty()) {
@@ -67,11 +71,26 @@ void PfxObjects::preFrameUpdate(uint8_t fId) {
     i.preFrameUpdate(fId);
   }
 
+void PfxObjects::drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  for(auto& i:bucket)
+    i.drawGBuffer(cmd, fId);
+  }
+
+void PfxObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer) {
+  for(auto& i:bucket)
+    i.drawShadow(cmd, fId, layer);
+  }
+
+void PfxObjects::drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  for(auto& i:bucket)
+    i.drawTranslucent(cmd, fId);
+  }
+
 PfxBucket& PfxObjects::getBucket(const ParticleFx &decl) {
   for(auto& i:bucket)
     if(&i.decl==&decl)
       return i;
-  bucket.emplace_back(decl,*this,visual);
+  bucket.emplace_back(decl,*this,scene,visual);
   return bucket.back();
   }
 

@@ -43,6 +43,7 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
   if(owner->mat.isGhost==g)
     return;
 
+  /*
   auto m = owner->mat;
   m.isGhost = g;
   auto&  bucket = owner->owner.getBucket(owner->objType,m,owner->staticMesh,owner->animMesh,owner->instanceDesc);
@@ -85,6 +86,7 @@ void ObjectsBucket::Item::setAsGhost(bool g) {
     setPfxData(v.pfx[i],i);
 
   oldOw->free(oldId);
+  */
   }
 
 void ObjectsBucket::Item::setFatness(float f) {
@@ -262,7 +264,7 @@ ObjectsBucket::Object& ObjectsBucket::implAlloc(const Bounds& bounds, const Mate
     }
 
   if(valSz==0)
-    owner.resetIndex();
+    ; // owner.resetIndex();
 
   ++valSz;
   v->timeShift  = uint64_t(0-scene.tickCount);
@@ -323,7 +325,7 @@ void ObjectsBucket::implFree(const size_t objId) {
       }
 
   if(valSz==0) {
-    owner.resetIndex();
+    // owner.resetIndex();
     objInstances = InstanceStorage::Id();
     objMorphAnim = InstanceStorage::Id();
     }
