@@ -224,9 +224,8 @@ vec4 waterShading(vec4 t, const vec3 normal) {
 #endif
 
 bool isFlat() {
-#if defined(GBUFFER) && (MESH_TYPE==T_LANDSCAPE)
+#if defined(GBUFFER) && defined(FLAT_NORMAL)
   {
-    // TODO: reeenable
     vec3 pos   = shInp.pos;
     vec3 dx    = dFdx(pos);
     vec3 dy    = dFdy(pos);
@@ -240,8 +239,8 @@ bool isFlat() {
 
 #if defined(GBUFFER)
 vec3 flatNormal() {
-#if defined(GBUFFER) && (MESH_TYPE==T_LANDSCAPE)
-  vec3 pos   = shInp.pos; // TODO: reeenable
+#if defined(FLAT_NORMAL)
+  vec3 pos   = shInp.pos;
   vec3 dx    = dFdx(pos);
   vec3 dy    = dFdy(pos);
   return normalize(cross(dx,dy));

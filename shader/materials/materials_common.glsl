@@ -58,6 +58,10 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define L_SceneClr 12
 #define L_GDepth   13
 
+#ifndef MESH_TYPE
+#define MESH_TYPE 255
+#endif
+
 #if (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING || MESH_TYPE==T_MORPH)
 #define LVL_OBJECT 1
 #endif
@@ -75,7 +79,7 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define MAT_NORMAL 1
 #endif
 
-#if defined(FORWARD) || defined(WATER) || (MESH_TYPE==T_LANDSCAPE) || defined(WATER)
+#if defined(FORWARD) || defined(WATER) || defined(FLAT_NORMAL) || defined(WATER)
 #define MAT_POSITION 1
 #endif
 
