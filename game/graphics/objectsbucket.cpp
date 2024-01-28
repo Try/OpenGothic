@@ -177,8 +177,8 @@ ObjectsBucket::ObjectsBucket(const Type type, const Material& mat, VisualObjects
   usePositionsSsbo    = (type==Type::Static || type==Type::Movable || type==Type::Animated || type==Type::Morph);
   useMeshlets         = (Gothic::options().doMeshShading && !mat.isTesselated() && (type!=Type::Pfx));
 
-  pMain               = Shaders::inst().materialPipeline(mat,objType, isForwardShading() ? Shaders::T_Forward : Shaders::T_Deffered);
-  pShadow             = Shaders::inst().materialPipeline(mat,objType, Shaders::T_Shadow);
+  // pMain               = Shaders::inst().materialPipeline(mat,objType, Shaders::T_Main);
+  // pShadow             = Shaders::inst().materialPipeline(mat,objType, Shaders::T_Shadow);
 
   if(useSharedUbo) {
     uboShared.alloc(*this);
@@ -917,7 +917,7 @@ ObjectsBucketDyn::ObjectsBucketDyn(const Type type, const Material& mat, VisualO
   :ObjectsBucket(type,mat,owner,scene,st,anim,desc) {
   if(useMeshlets && objType==Type::LandscapeShadow) {
     auto& device = Resources::device();
-    pHiZ = &Shaders::inst().lndPrePass;
+    //pHiZ = &Shaders::inst().lndPrePass;
     for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i) {
       auto& ubo = uboHiZ.ubo[i][SceneGlobals::V_Shadow1];
       ubo = device.descriptors(pHiZ->layout());

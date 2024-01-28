@@ -38,46 +38,11 @@ void Shaders::ShaderSet::load(Device &device, std::string_view tag, bool hasTess
     }
   }
 
-void Shaders::MaterialTemplate::load(Device &device, std::string_view tag, bool hasTesselation, bool hasMeshlets) {
-  string_frm flnd = "lnd";
-  string_frm fobj = "obj";
-  string_frm fani = "ani";
-  string_frm fmph = "mph";
-  string_frm fpfx = "pfx";
-  if(!tag.empty()) {
-    flnd = string_frm("lnd_",tag);
-    fobj = string_frm("obj_",tag);
-    fani = string_frm("ani_",tag);
-    fmph = string_frm("mph_",tag);
-    fpfx = string_frm("pfx_",tag);
-    }
-  lnd.load(device,flnd,hasTesselation,hasMeshlets);
-  obj.load(device,fobj,hasTesselation,hasMeshlets);
-  ani.load(device,fani,hasTesselation,hasMeshlets);
-  mph.load(device,fmph,hasTesselation,hasMeshlets);
-  pfx.load(device,fpfx,hasTesselation,false);
-  }
-
 Shaders::Shaders() {
   instance = this;
   auto& device = Resources::device();
 
   const bool meshlets = Gothic::options().doMeshShading;
-
-  solid   .load(device,"gbuffer",   false,meshlets);
-  atest   .load(device,"gbuffer_at",false,meshlets);
-  ghost   .load(device,"ghost",     false,meshlets);
-  emmision.load(device,"emi",       false,meshlets);
-  multiply.load(device,"mul",       false,meshlets);
-
-  water    .load(device,"water",false,false);
-  waterTess.load(device,"water",device.properties().tesselationShader,false);
-
-  solidF  .load(device,"",  false,meshlets);
-  atestF  .load(device,"at",false,meshlets);
-
-  shadow  .load(device,"shadow",   false,meshlets);
-  shadowAt.load(device,"shadow_at",false,meshlets);
 
   copyBuf = computeShader("copy.comp.sprv");
   copyImg = computeShader("copy_img.comp.sprv");
@@ -222,22 +187,6 @@ Shaders::Shaders() {
     probeAmbient = device.pipeline(Triangles,state,vs,fs);
     }
 
-  if(meshlets) {
-    RenderState state;
-    state.setCullFaceMode(RenderState::CullMode::Front);
-    state.setZTestMode   (RenderState::ZTestMode::Less);
-
-    auto sh = GothicShader::get(string_frm("lnd_hiz.",defaultWg,".mesh.sprv"));
-    auto ms = device.shader(sh.data,sh.len);
-
-    sh      = GothicShader::get(string_frm("lnd_hiz.",defaultWg,".task.sprv"));
-    auto ts = device.shader(sh.data,sh.len);
-
-    sh      = GothicShader::get("lnd_hiz.frag.sprv");
-    auto fs = device.shader(sh.data,sh.len);
-
-    lndPrePass = device.pipeline(state,ts,ms,fs);
-    }
   {
     RenderState state;
     state.setCullFaceMode(RenderState::CullMode::Front);
@@ -257,130 +206,6 @@ Shaders::~Shaders() {
 
 Shaders& Shaders::inst() {
   return *instance;
-  }
-
-const RenderPipeline* Shaders::materialPipeline(const Material& mat, ObjectsBucket::Type t, PipelineType pt) const {
-  if(t==ObjectsBucket::Static) {
-    // same shader
-    t = ObjectsBucket::Movable;
-    }
-
-  const auto alpha = (mat.isGhost ? Material::Ghost : mat.alpha);
-
-  for(auto& i:materials) {
-    if(i.alpha==alpha && i.type==t && i.pipelineType==pt)
-      return &i.pipeline;
-    }
-
-  const MaterialTemplate* forward  = nullptr;
-  const MaterialTemplate* deffered = nullptr;
-  const MaterialTemplate* shadow   = nullptr;
-
-  RenderState state;
-  state.setCullFaceMode(RenderState::CullMode::Front);
-  state.setZTestMode   (RenderState::ZTestMode::LEqual);
-  //state.setZTestMode   (RenderState::ZTestMode::Less);
-
-  if(pt==PipelineType::T_Shadow) {
-    state.setZTestMode(RenderState::ZTestMode::Greater); //FIXME
-    }
-
-  switch(alpha) {
-    case Material::Solid:
-      forward  = &solidF;
-      deffered = &solid;
-      shadow   = &this->shadow;
-      break;
-    case Material::AlphaTest:
-      forward  = &atestF;
-      deffered = &atest;
-      shadow   = &shadowAt;
-      break;
-    case Material::Water:
-      if(mat.waveMaxAmplitude>0.f)
-        forward  = &waterTess; else
-        forward  = &water;
-      break;
-    case Material::Ghost:
-      forward  = &ghost;
-      break;
-    case Material::Transparent:
-      forward  = &solidF;
-      deffered = nullptr;
-
-      state.setBlendSource  (RenderState::BlendMode::SrcAlpha); // premultiply in shader
-      state.setBlendDest    (RenderState::BlendMode::OneMinusSrcAlpha);
-      state.setZWriteEnabled(false);
-      break;
-    case Material::AdditiveLight:
-      forward = &emmision;
-
-      state.setBlendSource  (RenderState::BlendMode::SrcAlpha);
-      state.setBlendDest    (RenderState::BlendMode::One);
-      state.setZWriteEnabled(false);
-      break;
-    case Material::Multiply:
-    case Material::Multiply2:
-      forward = &multiply;
-
-      state.setBlendSource  (RenderState::BlendMode::DstColor);
-      state.setBlendDest    (RenderState::BlendMode::SrcColor);
-      state.setZWriteEnabled(false);
-      break;
-    }
-
-  static bool overdrawDbg = false;
-  if(overdrawDbg &&
-     (alpha==Material::Solid || alpha==Material::AlphaTest) && t!=ObjectsBucket::Landscape && t!=ObjectsBucket::LandscapeShadow && pt!=T_Shadow) {
-    state.setBlendSource(RenderState::BlendMode::One);
-    state.setBlendDest  (RenderState::BlendMode::One);
-    state.setZWriteEnabled(false);
-    state.setZTestMode(RenderState::ZTestMode::Always);
-    }
-
-  const MaterialTemplate* temp = nullptr;
-  switch(pt) {
-    case T_Forward:
-      temp = forward;
-      break;
-    case T_Deffered:
-      temp = deffered;
-      break;
-    case T_Shadow:
-    case T_Depth:
-      temp = shadow;
-      break;
-    }
-
-  if(temp==nullptr)
-    return nullptr;
-
-  materials.emplace_front();
-  auto& b = materials.front();
-  b.alpha        = alpha;
-  b.type         = t;
-  b.pipelineType = pt;
-  switch(t) {
-    case ObjectsBucket::Landscape:
-    case ObjectsBucket::LandscapeShadow:
-      b.pipeline = pipeline(state,temp->lnd);
-      break;
-    case ObjectsBucket::Static:
-    case ObjectsBucket::Movable:
-      b.pipeline = pipeline(state,temp->obj);
-      break;
-    case ObjectsBucket::Morph:
-      b.pipeline = pipeline(state,temp->mph);
-      break;
-    case ObjectsBucket::Animated:
-      b.pipeline = pipeline(state,temp->ani);
-      break;
-    case ObjectsBucket::Pfx:
-      b.pipeline = pipeline(state,temp->pfx);
-      break;
-    }
-
-  return &b.pipeline;
   }
 
 const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage::Type t, PipelineType pt) const {
@@ -444,27 +269,6 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage
 
   const char* vsTok = "";
   const char* fsTok = "";
-  const char* vsS   = "";
-  const char* fsS   = "";
-
-  switch(alpha) {
-    case Material::Solid:
-      fsS = "";
-      break;
-    case Material::AlphaTest:
-      fsS = "_at";
-      break;
-    case Material::Water:
-    case Material::Ghost:
-    case Material::Multiply:
-    case Material::Multiply2:
-    case Material::Transparent:
-      fsS = "";
-      break;
-    case Material::AdditiveLight:
-      fsS = (pt==T_Forward) ? "_em" : "";
-      break;
-    }
 
   switch(t) {
     case DrawStorage::Landscape:
@@ -481,8 +285,8 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage
       fsTok = "obj";
       break;
     case DrawStorage::Pfx:
-      vsTok = nullptr;
-      fsTok = "obj";
+      vsTok = "pfx";
+      fsTok = "pfx";
       break;
     case DrawStorage::Morph:
       vsTok = "mph";
@@ -493,28 +297,58 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage
   const char* typeVs = "";
   const char* typeFs = "";
   switch(pt) {
-    case T_Depth:
-      typeFs = "_d";
-      typeVs = "_d";
-      vsS   = (alpha==Material::Solid) ? "" : "_at";
-      break;
-    case T_Forward:
-      typeVs = "_f";
-      typeFs = "_f";
-      break;
-    case T_Deffered:
-      typeVs = "_c";
-      typeFs = "_c";
-      break;
     case T_Shadow:
-      typeVs = "_d";
-      typeFs = "_d";
-      vsS    = (alpha==Material::Solid) ? "" : "_at";
+    case T_Depth: {
+      switch(alpha) {
+        case Material::Solid:
+        case Material::Water:
+        case Material::Ghost:
+        case Material::Multiply:
+        case Material::Multiply2:
+        case Material::Transparent:
+        case Material::AdditiveLight:
+          typeVs = "_d";
+          typeFs = "_d";
+          break;
+        case Material::AlphaTest:
+          typeVs = "_d_at";
+          typeFs = "_d_at";
+          break;
+        }
       break;
+      }
+    case T_Main:{
+      switch(alpha) {
+        case Material::Solid:
+          typeVs = "";
+          typeFs = "_g";
+          break;
+        case Material::AlphaTest:
+          typeVs = "";
+          typeFs = "_g_at";
+          break;
+        case Material::Transparent:
+          typeVs = "";
+          typeFs = "_f";
+          break;
+        case Material::Multiply:
+        case Material::Multiply2:
+        case Material::AdditiveLight:
+          typeVs = "";
+          typeFs = "_e";
+          break;
+        case Material::Water:
+          typeVs = "";
+          typeFs = "_w";
+          break;
+        case Material::Ghost:
+          typeVs = "";
+          typeFs = "_x";
+          break;
+        }
+      break;
+      }
     }
-
-  if(mat.alpha==Material::Water)
-    typeFs = "_w";
 
   materialsDr.emplace_front();
   auto& b = materialsDr.front();
@@ -523,20 +357,11 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage
   b.pipelineType = pt;
 
   auto& device = Resources::device();
-  if(t==DrawStorage::Pfx) {
-    auto type = (mat.alpha==Material::AdditiveLight || mat.alpha==Material::Multiply || mat.alpha==Material::Multiply2) ? "" : "_f";
-    auto shVs = GothicShader::get(string_frm("pfx_vert", type ,".vert.sprv"));
-    auto shFs = GothicShader::get(string_frm("pfx", typeFs, fsS, ".frag.sprv"));
-
-    auto vs = device.shader(shVs.data,shVs.len);
-    auto fs = device.shader(shFs.data,shFs.len);
-    b.pipeline = device.pipeline(Triangles, state, vs, fs);
-    }
-  else if(mat.isTesselated() && device.properties().tesselationShader && false) {
-    auto shVs = GothicShader::get(string_frm("cluster_", vsTok, typeVs, vsS, ".vert.sprv"));
-    auto shTc = GothicShader::get(string_frm("cluster_water_f.tesc.sprv"));
-    auto shTe = GothicShader::get(string_frm("cluster_water_f.tese.sprv"));
-    auto shFs = GothicShader::get(string_frm("cluster_", fsTok, typeFs, fsS, ".frag.sprv"));
+  if(mat.isTesselated() && device.properties().tesselationShader && t!=DrawStorage::Pfx && false) {
+    auto shVs = GothicShader::get(string_frm("main_", vsTok, typeVs, ".vert.sprv"));
+    auto shTc = GothicShader::get(string_frm("main_water_f.tesc.sprv"));
+    auto shTe = GothicShader::get(string_frm("main_water_f.tese.sprv"));
+    auto shFs = GothicShader::get(string_frm("main_", fsTok, typeFs, ".frag.sprv"));
 
     auto vs = device.shader(shVs.data,shVs.len);
     auto tc = device.shader(shTc.data,shTc.len);
@@ -545,8 +370,8 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage
     b.pipeline = device.pipeline(Triangles, state, vs, tc, te, fs);
     }
   else {
-    auto shVs = GothicShader::get(string_frm("cluster_", vsTok, typeVs, vsS, ".vert.sprv"));
-    auto shFs = GothicShader::get(string_frm("cluster_", fsTok, typeFs, fsS, ".frag.sprv"));
+    auto shVs = GothicShader::get(string_frm("main_", vsTok, typeVs, ".vert.sprv"));
+    auto shFs = GothicShader::get(string_frm("main_", fsTok, typeFs, ".frag.sprv"));
 
     auto vs = device.shader(shVs.data,shVs.len);
     auto fs = device.shader(shFs.data,shFs.len);

@@ -57,7 +57,6 @@ class DrawStorage {
         void     setFatness  (float f);
         void     setWind     (phoenix::animation_mode m, float intensity);
         void     startMMAnim (std::string_view anim, float intensity, uint64_t timeUntil);
-        void     setPfxData  (const Tempest::StorageBuffer* ssbo, uint8_t fId);
 
         const Material&    material() const;
         const Bounds&      bounds()   const;
@@ -99,32 +98,30 @@ class DrawStorage {
   private:
     enum TaskLinkpackage : uint8_t {
       T_Scene    = 0,
-      T_Indirect = 1,
-      T_Clusters = 2,
-      T_Payload  = 3,
-      T_Instance = 4,
-      T_Bucket   = 5,
+      T_Payload  = 1,
+      T_Instance = 2,
+      T_Bucket   = 3,
+      T_Indirect = 4,
+      T_Clusters = 5,
       T_HiZ      = 6,
       };
 
     enum UboLinkpackage : uint8_t {
       L_Scene    = 0,
-      L_Instance = 1,
-      L_Bucket   = 2,
-      L_Ibo      = 3,
-      L_Vbo      = 4,
-      L_Diffuse  = 5,
-      L_Shadow0  = 6,
-      L_Shadow1  = 7,
-      L_MorphId  = 8,
-      L_Morph    = 9,
-      L_Pfx      = L_MorphId,
-      L_SceneClr = 10,
-      L_GDepth   = 11,
-      L_HiZ      = 12, //NOTE: remove it
-      L_SkyLut   = 13,
-      L_Payload  = 14,
-      L_Sampler  = 15,
+      L_Payload  = 1,
+      L_Instance = 2,
+      L_Pfx      = L_Instance,
+      L_Bucket   = 3,
+      L_Ibo      = 4,
+      L_Vbo      = 5,
+      L_Diffuse  = 6,
+      L_Sampler  = 7,
+      L_Shadow0  = 8,
+      L_Shadow1  = 9,
+      L_MorphId  = 10,
+      L_Morph    = 11,
+      L_SceneClr = 12,
+      L_GDepth   = 13,
       };
 
     struct Range {
@@ -245,6 +242,12 @@ class DrawStorage {
       Material::AlphaFunc            alpha        = Material::Solid;
       uint32_t                       firstPayload = 0;
       uint32_t                       maxPayload   = 0;
+
+
+      bool                           isForwardShading() const;
+      bool                           isShadowmapRequired() const;
+      bool                           isSceneInfoRequired() const;
+      bool                           isTextureInShadowPass() const;
       };
 
     struct View {
@@ -260,6 +263,7 @@ class DrawStorage {
 
     void                           free(size_t id);
     void                           updateInstance(size_t id, Tempest::Matrix4x4* pos = nullptr);
+    void                           updateRtAs(size_t id);
     void                           markClusters(size_t id, size_t count = 1);
 
     void                           startMMAnim(size_t i, std::string_view animName, float intensity, uint64_t timeUntil);

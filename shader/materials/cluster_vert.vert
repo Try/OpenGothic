@@ -13,12 +13,17 @@
 #include "materials_common.glsl"
 #include "vertex_process.glsl"
 
+layout(push_constant, std430) uniform Push {
+  uint      firstMeshlet;
+  int       meshletCount;
+  } push;
+
 out gl_PerVertex {
   vec4 gl_Position;
   };
 
 #if defined(BINDLESS) && defined(MAT_VARYINGS)
-layout(location = 0) out flat uint textureId;
+layout(location = 0) out flat uint bucketIdOut;
 layout(location = 1) out Varyings  shOut;
 #elif defined(MAT_VARYINGS)
 layout(location = 0) out Varyings  shOut;
@@ -83,7 +88,7 @@ void vertexShader() {
     }
 
 #if defined(BINDLESS) && defined(MAT_VARYINGS)
-  textureId = bucketId;
+  bucketIdOut = bucketId;
 #endif
 
   Varyings var;

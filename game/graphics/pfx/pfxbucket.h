@@ -72,18 +72,20 @@ class PfxBucket {
   private:
     enum UboLinkpackage : uint8_t {
       L_Scene    = 0,
-      L_Matrix   = 1,
-      L_MeshDesc = L_Matrix,
-      L_Bucket   = 2,
-      L_Ibo      = 3,
-      L_Vbo      = 4,
-      L_Diffuse  = 5,
-      L_Shadow0  = 6,
-      L_Shadow1  = 7,
-      L_Pfx      = 8,
-      L_SceneClr = 10,
-      L_GDepth   = 11,
-      L_HiZ      = 12,
+      L_Payload  = 1,
+      L_Instance = 2,
+      L_Pfx      = L_Instance,
+      L_Bucket   = 3,
+      L_Ibo      = 4,
+      L_Vbo      = 5,
+      L_Diffuse  = 6,
+      L_Sampler  = 7,
+      L_Shadow0  = 8,
+      L_Shadow1  = 9,
+      L_MorphId  = 10,
+      L_Morph    = 11,
+      L_SceneClr = 12,
+      L_GDepth   = 13,
       };
 
     struct Block final {

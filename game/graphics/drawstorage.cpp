@@ -16,6 +16,18 @@ static const T& dummy() {
   return t;
   }
 
+static RtScene::Category toRtCategory(DrawStorage::Type t) {
+  switch (t) {
+    case DrawStorage::Landscape: return RtScene::Landscape;
+    case DrawStorage::Static:    return RtScene::Static;
+    case DrawStorage::Movable:   return RtScene::Movable;
+    case DrawStorage::Animated:  return RtScene::None;
+    case DrawStorage::Pfx:       return RtScene::None;
+    case DrawStorage::Morph:     return RtScene::None;
+    }
+  return RtScene::None;
+  }
+
 template<class T>
 size_t DrawStorage::FreeList<T>::alloc(size_t count) {
   size_t bestFit = size_t(-1), bfDiff = size_t(-1);
@@ -64,7 +76,10 @@ void DrawStorage::FreeList<T>::free(size_t id, size_t count) {
 
 void DrawStorage::Item::setObjMatrix(const Tempest::Matrix4x4& pos) {
   if(owner!=nullptr) {
-    owner->objects[id].pos = pos;
+    auto& obj = owner->objects[id];
+    if(obj.pos!=pos)
+      owner->updateRtAs(id);
+    obj.pos = pos;
     owner->updateInstance(id);
     }
   }
@@ -110,9 +125,6 @@ void DrawStorage::Item::startMMAnim(std::string_view anim, float intensity, uint
     owner->startMMAnim(id, anim, intensity, timeUntil);
   }
 
-void DrawStorage::Item::setPfxData(const Tempest::StorageBuffer* ssbo, uint8_t fId) {
-  assert(0);
-  }
 
 const Material& DrawStorage::Item::material() const {
   if(owner==nullptr)
@@ -147,6 +159,21 @@ std::pair<uint32_t, uint32_t> DrawStorage::Item::meshSlice() const {
   return std::make_pair(obj.iboOff, obj.iboLen);
   }
 
+bool DrawStorage::DrawCmd::isForwardShading() const {
+  return Material::isForwardShading(alpha);
+  }
+
+bool DrawStorage::DrawCmd::isShadowmapRequired() const {
+  return Material::isShadowmapRequired(alpha);
+  }
+
+bool DrawStorage::DrawCmd::isSceneInfoRequired() const {
+  return Material::isSceneInfoRequired(alpha);
+  }
+
+bool DrawStorage::DrawCmd::isTextureInShadowPass() const {
+  return Material::isTextureInShadowPass(alpha);
+  }
 
 void DrawStorage::InstanceDesc::setPosition(const Tempest::Matrix4x4& m) {
   for(int i=0; i<4; ++i)
@@ -190,6 +217,7 @@ DrawStorage::Item DrawStorage::alloc(const StaticMesh& mesh, const Material& mat
   if(obj.isEmpty())
     return Item(); // null command
   markClusters(obj.clusterId, iboLen/PackedMesh::MaxInd);
+  updateRtAs(id);
   return Item(*this, id);
   }
 
@@ -228,6 +256,7 @@ DrawStorage::Item DrawStorage::alloc(const StaticMesh& mesh, const Material& mat
     }
 
   updateInstance(id);
+  updateRtAs(id);
   return Item(*this, id);
   }
 
@@ -256,6 +285,7 @@ DrawStorage::Item DrawStorage::alloc(const AnimMesh& mesh, const Material& mat, 
   clusters[obj.clusterId].instanceId = obj.objInstance.offsetId<InstanceDesc>();
 
   updateInstance(id);
+  updateRtAs(id);
   return Item(*this, id);
   }
 
@@ -307,6 +337,26 @@ void DrawStorage::updateInstance(size_t id, Matrix4x4* pos) {
   if(clusters[cId].pos != npos) {
     clusters[cId].pos = npos;
     markClusters(cId);
+    }
+  }
+
+void DrawStorage::updateRtAs(size_t id) {
+  auto& obj = objects[id];
+  auto& mat = buckets[obj.bucketId].mat;
+
+  bool useBlas = toRtCategory(obj.type)!=RtScene::None;
+  if(mat.alpha==Material::Ghost)
+    useBlas = false;
+  if(mat.alpha!=Material::Solid && mat.alpha!=Material::AlphaTest && mat.alpha!=Material::Transparent)
+    useBlas = false;
+
+  if(!useBlas)
+    return;
+
+  auto& mesh = *buckets[obj.bucketId].staticMesh;
+  if(auto b = mesh.blas(obj.iboOff, obj.iboLen)) {
+    (void)b;
+    owner.notifyTlas(mat, toRtCategory(obj.type));
     }
   }
 
@@ -586,14 +636,21 @@ void DrawStorage::invalidateUbo() {
       i.desc[v].set(L_Payload,  views[v].visClusters);
       i.desc[v].set(L_Sampler,  Sampler::anisotrophy());
 
+      if(v==SceneGlobals::V_Main || i.isTextureInShadowPass()) {
+        // i.desc[v].set(L_Diffuse, tex);
+        }
+
+      if(v==SceneGlobals::V_Main && i.isShadowmapRequired()) {
+        // i.desc[v].set(L_Shadow0, *scene.shadowMap[0],Resources::shadowSampler());
+        // i.desc[v].set(L_Shadow1, *scene.shadowMap[1],Resources::shadowSampler());
+        }
+
       if(i.type==Morph) {
         i.desc[v].set(L_MorphId,  morphId);
         i.desc[v].set(L_Morph,    morph);
         }
 
-      const bool isSceneInfoRequired = (i.alpha==Material::Water || i.alpha==Material::Ghost);
-
-      if(v==SceneGlobals::V_Main && isSceneInfoRequired) {
+      if(v==SceneGlobals::V_Main && i.isSceneInfoRequired()) {
         auto smp = Sampler::bilinear();
         smp.setClamping(ClampMode::MirroredRepeat);
         i.desc[v].set(L_SceneClr, *scene.sceneColor, smp);
@@ -602,6 +659,21 @@ void DrawStorage::invalidateUbo() {
         smp.setClamping(ClampMode::MirroredRepeat);
         i.desc[v].set(L_GDepth, *scene.sceneDepth, smp);
         }
+      }
+    }
+  }
+
+void DrawStorage::fillTlas(RtScene& out) {
+  for(auto& obj:objects) {
+    if(obj.isEmpty())
+      continue;
+    auto& bucket = buckets[obj.bucketId];
+    auto* mesh   = bucket.staticMesh;
+    auto& mat    = bucket.mat;
+    if(mesh==nullptr)
+      continue;
+    if(auto blas = mesh->blas(obj.iboOff, obj.iboLen)) {
+      out.addInstance(obj.pos, *blas, mat, *mesh, obj.iboOff, obj.iboLen, toRtCategory(obj.type));
       }
     }
   }
@@ -642,7 +714,7 @@ void DrawStorage::visibilityPass(Encoder<CommandBuffer>& cmd, uint8_t frameId, i
   }
 
 void DrawStorage::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  //return;
+  return;
   struct Push { uint32_t firstMeshlet; uint32_t meshletCount; } push = {};
 
   auto  viewId = SceneGlobals::V_HiZ;
@@ -662,10 +734,6 @@ void DrawStorage::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
     cmd.setUniforms(*cx.psoHiZ, cx.desc[viewId], &push, sizeof(push));
     cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
     }
-  }
-
-void DrawStorage::fillTlas(RtScene& out) {
-
   }
 
 void DrawStorage::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t frameId) {
@@ -690,7 +758,7 @@ void DrawStorage::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t frameId) {
   }
 
 void DrawStorage::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer) {
-  //return;
+  // return;
   struct Push { uint32_t firstMeshlet; uint32_t meshletCount; } push = {};
 
   auto  viewId = (SceneGlobals::V_Shadow0+layer);
@@ -713,7 +781,7 @@ void DrawStorage::drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& enc,
   }
 
 void DrawStorage::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  //return;
+  // return;
   struct Push { uint32_t firstMeshlet; uint32_t meshletCount; } push = {};
 
   auto  viewId = SceneGlobals::V_Main;
@@ -853,7 +921,7 @@ uint16_t DrawStorage::bucketId(const Material& mat, const AnimMesh& mesh) {
   }
 
 uint16_t DrawStorage::commandId(const Material& m, Type type, uint32_t bucketId) {
-  auto pMain  = Shaders::inst().materialPipeline(m, type, Shaders::T_Deffered);
+  auto pMain  = Shaders::inst().materialPipeline(m, type, Shaders::T_Main);
   auto pDepth = Shaders::inst().materialPipeline(m, type, Shaders::T_Shadow);
   auto pHiZ   = Shaders::inst().materialPipeline(m, type, Shaders::T_Depth);
   if(pMain==nullptr && pDepth==nullptr && pHiZ==nullptr)

@@ -9,11 +9,12 @@
 
 layout(local_size_x = 64) in;
 
-layout(binding = 1, std430) buffer IndirectBuf  { IndirectCmd cmd[];         };
-layout(binding = 2, std430) readonly buffer Cbo { Cluster     clusters[];    };
-layout(binding = 3, std430) buffer SsboGlob     { uvec4       payload[];     };
-layout(binding = 4, std430) readonly buffer Mem { uint        instanceMem[]; };
-layout(binding = 5, std140) readonly buffer Bbo { Bucket      bucket[];      };
+layout(binding = 1, std430) buffer SsboGlob     { uvec4       payload[];     };
+layout(binding = 2, std430) readonly buffer Mem { uint        instanceMem[]; };
+layout(binding = 3, std140) readonly buffer Bbo { Bucket      bucket[];      };
+
+layout(binding = 4, std430) buffer IndirectBuf  { IndirectCmd cmd[];         };
+layout(binding = 5, std430) readonly buffer Cbo { Cluster     clusters[];    };
 layout(binding = 6)         uniform sampler2D hiZ;
 
 layout(push_constant, std430) uniform UboPush {

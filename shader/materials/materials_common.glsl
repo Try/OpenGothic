@@ -4,6 +4,13 @@
 #include "common.glsl"
 #include "scene.glsl"
 
+/*
+  GBUFFER | FORWARD | DEPTH_ONLY | WATER | EMISSIVE | GHOST
+  VT_COLOR
+  ATEST
+  BINDLESS
+*/
+
 #define DEBUG_DRAW 0
 
 #if DEBUG_DRAW
@@ -36,44 +43,47 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define T_PFX       4
 
 #define L_Scene    0
-#define L_Instance 1
-#define L_Bucket   2
-#define L_Ibo      3
-#define L_Vbo      4
-#define L_Diffuse  5
-#define L_Shadow0  6
-#define L_Shadow1  7
-#define L_MorphId  8
-#define L_Pfx      L_MorphId
-#define L_Morph    9
-#define L_SceneClr 10
-#define L_GDepth   11
-#define L_HiZ      12
-#define L_SkyLut   13
-#define L_Payload  14
-#define L_Sampler  15
-
-#define PfxOrientationNone       0
-#define PfxOrientationVelocity   1
-#define PfxOrientationVelocity3d 2
+#define L_Payload  1
+#define L_Instance 2
+#define L_Pfx      L_Instance
+#define L_Bucket   3
+#define L_Ibo      4
+#define L_Vbo      5
+#define L_Diffuse  6
+#define L_Sampler  7
+#define L_Shadow0  8
+#define L_Shadow1  9
+#define L_MorphId  10
+#define L_Morph    11
+#define L_SceneClr 12
+#define L_GDepth   13
 
 #if (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING || MESH_TYPE==T_MORPH)
 #define LVL_OBJECT 1
 #endif
 
-#if defined(HIZ) || defined(SHADOW_MAP)
-#define DEPTH_ONLY 1
+#if defined(FORWARD) || defined(EMISSIVE) || defined(GHOST)
+#define MAT_LINEAR_CLR 1
 #endif
 
+// Varying defines (derived)
 #if !defined(DEPTH_ONLY) || defined(ATEST)
 #define MAT_UV 1
 #endif
 
-#if !defined(DEPTH_ONLY) && (MESH_TYPE==T_PFX)
+#if !defined(DEPTH_ONLY)
+#define MAT_NORMAL 1
+#endif
+
+#if defined(FORWARD) || defined(WATER) || (MESH_TYPE==T_LANDSCAPE) || defined(WATER)
+#define MAT_POSITION 1
+#endif
+
+#if defined(VT_COLOR) && !defined(DEPTH_ONLY)
 #define MAT_COLOR 1
 #endif
 
-#if defined(MAT_UV) || !defined(DEPTH_ONLY) || defined(FORWARD) || defined(MAT_COLOR)
+#if defined(MAT_UV) || defined(MAT_NORMAL) || defined(MAT_POSITION) || defined(MAT_COLOR)
 #define MAT_VARYINGS 1
 #endif
 
@@ -82,12 +92,12 @@ struct Varyings {
   vec2 uv;
 #endif
 
-#if !defined(DEPTH_ONLY)
+#if defined(MAT_NORMAL)
   vec3 normal;
 #endif
 
-#if defined(FORWARD) || defined(WATER) || (MESH_TYPE==T_LANDSCAPE)
-  vec3 pos;
+#if defined(MAT_POSITION)
+  vec3 pos; // NOTE: per-primitve normal and shadow projection. need to remove
 #endif
 
 #if defined(MAT_COLOR)
@@ -103,15 +113,6 @@ struct Light {
   vec4  pos;
   vec3  color;
   float range;
-  };
-
-struct Particle {
-  vec3  pos;
-  uint  color;
-  vec3  size;
-  uint  bits0;
-  vec3  dir;
-  uint  colorB;
   };
 
 struct MorphDesc {
@@ -160,38 +161,23 @@ struct Bucket {
   float envMapping;
   };
 
-#if defined(CLUSTER)
-layout(push_constant, std430) uniform UboPush {
-  uint      firstMeshlet;
-  int       meshletCount;
-  } push;
-#elif (MESH_TYPE==T_LANDSCAPE)
-layout(push_constant, std430) uniform UboPush {
-  uint      firstMeshlet;
-  int       meshletCount;
-  } push;
-#elif (MESH_TYPE==T_OBJ || MESH_TYPE==T_SKINING) || (MESH_TYPE==T_MORPH)
-layout(push_constant, std430) uniform UboPush {
-  uint      firstMeshlet;
-  int       meshletCount;
-  uint      firstInstance;
-  uint      instanceCount;
-  } push;
-#elif (MESH_TYPE==T_PFX) || (MESH_TYPE==255)
-// no push
-#else
-#error "unknown MESH_TYPE"
-#endif
-
 layout(binding = L_Scene, std140) uniform UboScene {
   SceneDesc scene;
   };
+
+#if defined(BINDLESS) || defined(CLUSTER)
+layout(binding = L_Instance, std430) readonly buffer Mem  { uint    instanceMem[]; };
+layout(binding = L_Payload,  std430) readonly buffer Pbo  { uvec4   payload[];     };
+layout(binding = L_Bucket,   std140) readonly buffer Bbo  { Bucket  bucket[];      };
+#endif
 
 #if defined(BINDLESS)
 layout(binding = L_Ibo,      std430) readonly buffer Ibo  { uint    indexes [];    } ibo[];
 layout(binding = L_Vbo,      std430) readonly buffer Vbo  { float   vertices[];    } vbo[];
 layout(binding = L_Diffuse)          uniform  texture2D textureD[];
 layout(binding = L_Sampler)          uniform  sampler   samplerMain;
+#else
+layout(binding = L_Diffuse)          uniform  sampler2D textureD;
 #endif
 
 #if defined(BINDLESS) && (MESH_TYPE==T_MORPH)
@@ -199,59 +185,9 @@ layout(binding = L_MorphId,  std430) readonly buffer MId  { int     index[];    
 layout(binding = L_Morph,    std430) readonly buffer MSmp { vec4    samples[];     } morph[];
 #endif
 
-#if defined(BINDLESS) || defined(CLUSTER)
-layout(binding = L_Instance, std430) readonly buffer Mem  { uint    instanceMem[]; };
-layout(binding = L_Bucket,   std140) readonly buffer Bbo  { Bucket  bucket[];      };
-layout(binding = L_Payload,  std430) readonly buffer Pbo  { uvec4   payload[];     };
-#endif
-
-#if defined(LVL_OBJECT) && (defined(GL_VERTEX_SHADER) || defined(MESH) || defined(TASK)) && !defined(BINDLESS)
-// NOTE: need to support binding overlap
-layout(binding = L_Instance, std430) readonly buffer InstanceMem { uint instanceMem[]; };
-#endif
-
-#if (MESH_TYPE==T_LANDSCAPE && defined(TASK))
-layout(binding = L_Instance, std430) readonly buffer Inst { Cluster clusters[]; };
-#endif
-
-#if (defined(LVL_OBJECT) || defined(WATER)) && !defined(BINDLESS)
-layout(binding = L_Bucket, std140) uniform BucketDesc {
-  vec4  bbox[2];
-  ivec2 texAniMapDirPeriod;
-  float bboxRadius;
-  float waveMaxAmplitude;
-  float alphaWeight;
-  float envMapping;
-  } bucket;
-#endif
-
-#if defined(MESH) && !defined(BINDLESS)
-layout(binding = L_Ibo,    std430) readonly buffer Ibo  { uint  indexes []; } ibo;
-layout(binding = L_Vbo,    std430) readonly buffer Vbo  { float vertices[]; } vbo;
-#endif
-
-#if defined(GL_FRAGMENT_SHADER) && !(defined(DEPTH_ONLY) && !defined(ATEST)) && !defined(BINDLESS)
-layout(binding = L_Diffuse) uniform sampler2D textureD;
-#endif
-
 #if defined(GL_FRAGMENT_SHADER) && defined(FORWARD) && !defined(DEPTH_ONLY)
 layout(binding = L_Shadow0) uniform sampler2D textureSm0;
 layout(binding = L_Shadow1) uniform sampler2D textureSm1;
-#endif
-
-#if (MESH_TYPE==T_MORPH) && (defined(GL_VERTEX_SHADER) || defined(MESH)) && !defined(BINDLESS)
-layout(binding = L_MorphId, std430) readonly buffer SsboMorphId {
-  int  index[];
-  } morphId;
-layout(binding = L_Morph, std430) readonly buffer SsboMorph {
-  vec4 samples[];
-  } morph;
-#endif
-
-#if (MESH_TYPE==T_PFX) && (defined(GL_VERTEX_SHADER) || defined(MESH))
-layout(binding = L_Pfx, std430) readonly buffer SsboMorphId {
-  Particle pfx[];
-  };
 #endif
 
 #if defined(GL_FRAGMENT_SHADER) && (defined(WATER) || defined(GHOST))
@@ -259,11 +195,7 @@ layout(binding = L_SceneClr) uniform sampler2D sceneColor;
 layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
 #endif
 
-#if defined(TASK) && !defined(SHADOW_MAP)
-layout(binding = L_HiZ)  uniform sampler2D hiZ;
-#endif
-
-#if (defined(LVL_OBJECT) && (defined(GL_VERTEX_SHADER) || defined(MESH) || defined(TASK))) || defined(CLUSTER)
+#if defined(BINDLESS) || defined(CLUSTER)
 mat4 pullMatrix(uint i) {
   i *= 16;
   mat4 ret;
@@ -287,9 +219,6 @@ mat4 pullMatrix(uint i) {
   }
 
 Instance pullInstance(uint i) {
-#if defined(LVL_OBJECT) && !defined(CLUSTER)
-  i += push.firstInstance;
-#endif
   i *= 16;
   Instance ret;
   ret.mat[0][0] = uintBitsToFloat(instanceMem[i+0]);

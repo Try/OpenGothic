@@ -63,15 +63,12 @@ class Shaders {
 
     enum PipelineType: uint8_t {
       T_Depth,
-      T_Forward,
-      T_Deffered,
       T_Shadow,
+      T_Main,
       };
 
-    const Tempest::RenderPipeline* materialPipeline(const Material& desc, ObjectsBucket::Type t, PipelineType pt) const;
     const Tempest::RenderPipeline* materialPipeline(const Material& desc, DrawStorage::Type t, PipelineType pt) const;
 
-    Tempest::RenderPipeline lndPrePass;
     Tempest::RenderPipeline inventory;
 
   private:
@@ -83,16 +80,11 @@ class Shaders {
       void load(Tempest::Device &device, std::string_view tag, bool hasTesselation, bool hasMeshlets);
       };
 
-    struct MaterialTemplate {
-      ShaderSet lnd, obj, ani, mph, pfx;
-      void load(Tempest::Device& device, std::string_view tag, bool hasTesselation=false, bool hasMeshlets=false);
-      };
-
     struct Entry {
       Tempest::RenderPipeline pipeline;
       Material::AlphaFunc     alpha        = Material::Solid;
       ObjectsBucket::Type     type         = ObjectsBucket::Static;
-      PipelineType            pipelineType = PipelineType::T_Forward;
+      PipelineType            pipelineType = PipelineType::T_Main;
       };
 
     Tempest::RenderPipeline  pipeline(Tempest::RenderState& st, const ShaderSet &fs) const;
@@ -106,8 +98,6 @@ class Shaders {
 
     static Shaders* instance;
 
-    MaterialTemplate solid,  atest, solidF, atestF, water, waterTess, ghost, emmision, multiply;
-    MaterialTemplate shadow, shadowAt;
     mutable std::list<Entry> materials;
     mutable std::list<Entry> materialsDr;
   };

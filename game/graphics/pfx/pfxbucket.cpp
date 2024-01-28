@@ -44,26 +44,20 @@ bool PfxBucket::Draw::isEmpty() const {
   }
 
 void PfxBucket::Draw::prepareUniforms(const SceneGlobals& scene, const Material& mat) {
-  const bool isForwardShading    = !mat.isSolid();
-  const bool textureInShadowPass = (mat.alpha==Material::AlphaTest);
-  const bool isShadowmapRequired = isForwardShading && mat.alpha!=Material::AdditiveLight &&
-                                   mat.alpha!=Material::Multiply && mat.alpha!=Material::Multiply2;
-  const bool isSceneInfoRequired = mat.isSceneInfoRequired();
-
   for(size_t view=0; view<SceneGlobals::V_Count; ++view) {
     auto& ubo = this->ubo[view];
     if(ubo.isEmpty())
       continue;
     ubo.set(L_Scene, scene.uboGlobal[view]);
-    if(view==SceneGlobals::V_Main || textureInShadowPass) {
+    if(view==SceneGlobals::V_Main || mat.isTextureInShadowPass()) {
       auto smp = (view==SceneGlobals::V_Main) ? Sampler::anisotrophy() : Sampler::trillinear();
       ubo.set(L_Diffuse, *mat.tex, smp);
       }
-    if(view==SceneGlobals::V_Main && isShadowmapRequired) {
+    if(view==SceneGlobals::V_Main && mat.isShadowmapRequired()) {
       ubo.set(L_Shadow0,  *scene.shadowMap[0],Resources::shadowSampler());
       ubo.set(L_Shadow1,  *scene.shadowMap[1],Resources::shadowSampler());
       }
-    if(view==SceneGlobals::V_Main && isSceneInfoRequired) {
+    if(view==SceneGlobals::V_Main && mat.isSceneInfoRequired()) {
       auto smp = Sampler::bilinear();
       smp.setClamping(ClampMode::MirroredRepeat);
       ubo.set(L_SceneClr, *scene.sceneColor, smp);
@@ -107,8 +101,7 @@ PfxBucket::PfxBucket(const ParticleFx &decl, PfxObjects& parent, const SceneGlob
     if(decl.visMaterial.tex==nullptr)
       continue;
 
-    const bool isForwardShading = !decl.visMaterial.isSolid();
-    item.pMain   = Shaders::inst().materialPipeline(decl.visMaterial, DrawStorage::Pfx, isForwardShading ? Shaders::T_Forward : Shaders::T_Deffered);
+    item.pMain   = Shaders::inst().materialPipeline(decl.visMaterial, DrawStorage::Pfx, Shaders::T_Main);
     item.pShadow = Shaders::inst().materialPipeline(decl.visMaterial, DrawStorage::Pfx, Shaders::T_Shadow);
 
     if(item.pMain!=nullptr) {
@@ -132,8 +125,7 @@ PfxBucket::PfxBucket(const ParticleFx &decl, PfxObjects& parent, const SceneGlob
       if(mat.tex==nullptr)
         continue;
 
-      const bool isForwardShading = !decl.visMaterial.isSolid();
-      item.pMain   = Shaders::inst().materialPipeline(mat, DrawStorage::Pfx, isForwardShading ? Shaders::T_Forward : Shaders::T_Deffered);
+      item.pMain   = Shaders::inst().materialPipeline(mat, DrawStorage::Pfx, Shaders::T_Main);
       item.pShadow = Shaders::inst().materialPipeline(mat, DrawStorage::Pfx, Shaders::T_Shadow);
 
       if(item.pMain!=nullptr) {
