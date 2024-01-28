@@ -83,7 +83,7 @@ void vertexShader() {
 
   const uint  laneID     = gl_VertexIndex/3;
   if(laneID>=primCount) {
-    gl_Position = vec4(-1,-1,0,1);
+    gl_Position = vec4(uintBitsToFloat(0x7fc00000));
     return;
     }
 

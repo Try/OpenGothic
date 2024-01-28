@@ -214,7 +214,10 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage
     t = DrawStorage::Movable;
     }
 
-  if(pt==PipelineType::T_Shadow && !mat.isSolid()) {
+  if(pt!=PipelineType::T_Main && !mat.isSolid()) {
+    return nullptr;
+    }
+  if(pt!=PipelineType::T_Main && mat.alpha==Material::Water) {
     return nullptr;
     }
 
@@ -357,10 +360,10 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage
   b.pipelineType = pt;
 
   auto& device = Resources::device();
-  if(mat.isTesselated() && device.properties().tesselationShader && t!=DrawStorage::Pfx && false) {
+  if(mat.isTesselated() && device.properties().tesselationShader && t==DrawStorage::Landscape && true) {
     auto shVs = GothicShader::get(string_frm("main_", vsTok, typeVs, ".vert.sprv"));
-    auto shTc = GothicShader::get(string_frm("main_water_f.tesc.sprv"));
-    auto shTe = GothicShader::get(string_frm("main_water_f.tese.sprv"));
+    auto shTc = GothicShader::get(string_frm("main_", vsTok, typeVs, ".tesc.sprv"));
+    auto shTe = GothicShader::get(string_frm("main_", vsTok, typeVs, ".tese.sprv"));
     auto shFs = GothicShader::get(string_frm("main_", fsTok, typeFs, ".frag.sprv"));
 
     auto vs = device.shader(shVs.data,shVs.len);

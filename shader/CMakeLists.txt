@@ -158,6 +158,8 @@ add_shader(cluster_task_hiz_cr.comp  materials/cluster_task.comp -DHIZ -DLARGE)
 add_shader(main_lnd.vert          materials/main.vert  "-DMESH_TYPE=0" -DBINDLESS -DFLAT_NORMAL)
 add_shader(main_lnd_d.vert        materials/main.vert  "-DMESH_TYPE=0" -DBINDLESS -DFLAT_NORMAL -DDEPTH_ONLY)
 add_shader(main_lnd_d_at.vert     materials/main.vert  "-DMESH_TYPE=0" -DBINDLESS -DFLAT_NORMAL -DDEPTH_ONLY -DATEST)
+add_shader(main_lnd.tesc          materials/main.tesc  "-DMESH_TYPE=0" -DBINDLESS -DFORWARD -DWATER)
+add_shader(main_lnd.tese          materials/main.tese  "-DMESH_TYPE=0" -DBINDLESS -DFORWARD -DWATER)
 add_shader(main_obj.vert          materials/main.vert  "-DMESH_TYPE=1" -DBINDLESS)
 add_shader(main_obj_d.vert        materials/main.vert  "-DMESH_TYPE=1" -DBINDLESS -DDEPTH_ONLY)
 add_shader(main_obj_d_at.vert     materials/main.vert  "-DMESH_TYPE=1" -DBINDLESS -DDEPTH_ONLY -DATEST)
@@ -167,8 +169,6 @@ add_shader(main_ani_d_at.vert     materials/main.vert  "-DMESH_TYPE=2" -DBINDLES
 add_shader(main_mph.vert          materials/main.vert  "-DMESH_TYPE=3" -DBINDLESS)
 add_shader(main_mph_d.vert        materials/main.vert  "-DMESH_TYPE=3" -DBINDLESS -DDEPTH_ONLY)
 add_shader(main_mph_d_at.vert     materials/main.vert  "-DMESH_TYPE=3" -DBINDLESS -DDEPTH_ONLY -DATEST)
-add_shader(main_water_f.tesc      materials/main.tesc  "-DMESH_TYPE=0" -DBINDLESS -DFORWARD -DWATER)
-add_shader(main_water_f.tese      materials/main.tese  "-DMESH_TYPE=0" -DBINDLESS -DFORWARD -DWATER)
 
 # frag
 add_shader(main_lnd_g.frag        materials/main.frag  -DBINDLESS -DFLAT_NORMAL -DGBUFFER)
