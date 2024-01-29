@@ -44,6 +44,8 @@ bool PfxBucket::Draw::isEmpty() const {
   }
 
 void PfxBucket::Draw::prepareUniforms(const SceneGlobals& scene, const Material& mat) {
+  timeShift = uint64_t(0-scene.tickCount);
+
   for(size_t view=0; view<SceneGlobals::V_Count; ++view) {
     auto& ubo = this->ubo[view];
     if(ubo.isEmpty())
@@ -69,7 +71,7 @@ void PfxBucket::Draw::prepareUniforms(const SceneGlobals& scene, const Material&
     }
   }
 
-void PfxBucket::Draw::preframeUpdate(const SceneGlobals& scene, const Material& mat) {
+void PfxBucket::Draw::preFrameUpdate(const SceneGlobals& scene, const Material& mat) {
   if(mat.frames.size()==0 || mat.texAniFPSInv==0)
     return;
 
@@ -78,8 +80,8 @@ void PfxBucket::Draw::preframeUpdate(const SceneGlobals& scene, const Material& 
   for(size_t view=0; view<SceneGlobals::V_Count; ++view) {
     auto& ubo = this->ubo[SceneGlobals::V_Main];
 
-    auto frame = 0u;// size_t((obj.timeShift+scene.tickCount)/mat.texAniFPSInv);
-    auto t = mat.frames[frame%mat.frames.size()];
+    auto frame = size_t((timeShift+scene.tickCount)/mat.texAniFPSInv);
+    auto t     = mat.frames[frame%mat.frames.size()];
     if(view==SceneGlobals::V_Main || textureInShadowPass) {
       ubo.set(L_Diffuse, *t);
       }
@@ -748,7 +750,7 @@ void PfxBucket::prepareUniforms(const SceneGlobals& scene) {
     }
   }
 
-void PfxBucket::preFrameUpdate(uint8_t fId) {
+void PfxBucket::preFrameUpdate(const SceneGlobals& scene, uint8_t fId) {
   auto& device = Resources::device();
 
   if(item[fId].pMain!=nullptr || item[fId].pShadow!=nullptr) {
@@ -775,25 +777,38 @@ void PfxBucket::preFrameUpdate(uint8_t fId) {
       ssbo.update(trlCpu);
       }
     }
+
+  item[fId].preFrameUpdate(scene, decl.visMaterial);
+  // itemTrl[fId].preFrameUpdate(scene, m); // not needed
   }
 
 void PfxBucket::drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  // TODO
+  for(auto i:{Material::Solid, Material::AlphaTest}) {
+    drawCommon(cmd, item[fId],    SceneGlobals::V_Main, i);
+    drawCommon(cmd, itemTrl[fId], SceneGlobals::V_Main, i);
+    }
   }
 
 void PfxBucket::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer) {
   auto view = SceneGlobals::VisCamera(SceneGlobals::V_Shadow0 + layer);
-  drawCommon(cmd, view, item[fId]);
-  drawCommon(cmd, view, itemTrl[fId]);
+  for(auto i:{Material::Solid, Material::AlphaTest}) {
+    drawCommon(cmd, item[fId],    view, i);
+    drawCommon(cmd, itemTrl[fId], view, i);
+    }
   }
 
 void PfxBucket::drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  drawCommon(cmd, SceneGlobals::V_Main, item[fId]);
-  drawCommon(cmd, SceneGlobals::V_Main, itemTrl[fId]);
+  for(auto i:{/*Material::Water, */Material::Multiply, Material::Multiply2, Material::Transparent, Material::AdditiveLight, Material::Ghost}) {
+    drawCommon(cmd, item[fId],    SceneGlobals::V_Main, i);
+    drawCommon(cmd, itemTrl[fId], SceneGlobals::V_Main, i);
+    }
   }
 
-void PfxBucket::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, SceneGlobals::VisCamera view, const Draw& itm) {
+void PfxBucket::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const Draw& itm, SceneGlobals::VisCamera view, Material::AlphaFunc func) {
   if(itm.pfxGpu.isEmpty())
+    return;
+
+  if(decl.visMaterial.alpha!=func)
     return;
 
   const RenderPipeline* pso = nullptr;

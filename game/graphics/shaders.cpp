@@ -331,17 +331,20 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage
           typeFs = "_g_at";
           break;
         case Material::Transparent:
-          typeVs = "";
+          typeVs = "_f";
           typeFs = "_f";
           break;
         case Material::Multiply:
         case Material::Multiply2:
+          typeVs = "";
+          typeFs = "_e";
+          break;
         case Material::AdditiveLight:
           typeVs = "";
           typeFs = "_e";
           break;
         case Material::Water:
-          typeVs = "";
+          typeVs = "_f";
           typeFs = "_w";
           break;
         case Material::Ghost:

@@ -86,7 +86,7 @@ void DrawStorage::Item::setObjMatrix(const Tempest::Matrix4x4& pos) {
 
 void DrawStorage::Item::setAsGhost(bool g) {
   if(owner!=nullptr) {
-    owner->objects[id].isGhost = g;
+    owner->setAsGhost(id, g);
     }
   }
 
@@ -124,7 +124,6 @@ void DrawStorage::Item::startMMAnim(std::string_view anim, float intensity, uint
   if(owner!=nullptr)
     owner->startMMAnim(id, anim, intensity, timeUntil);
   }
-
 
 const Material& DrawStorage::Item::material() const {
   if(owner==nullptr)
@@ -213,6 +212,7 @@ DrawStorage::Item DrawStorage::alloc(const StaticMesh& mesh, const Material& mat
   obj.bucketId  = bucketId(mat, mesh);
   obj.cmdId     = commandId(mat, type, obj.bucketId);
   obj.clusterId = clusterId(cluster, iboOff/PackedMesh::MaxInd, iboLen/PackedMesh::MaxInd, obj.bucketId, obj.cmdId);
+  obj.alpha     = mat.alpha;
 
   if(obj.isEmpty())
     return Item(); // null command
@@ -242,6 +242,8 @@ DrawStorage::Item DrawStorage::alloc(const StaticMesh& mesh, const Material& mat
   obj.bucketId  = bucketId(mat, mesh);
   obj.cmdId     = commandId(mat, obj.type, obj.bucketId);
   obj.clusterId = clusterId(buckets[obj.bucketId], iboOff/PackedMesh::MaxInd, iboLen/PackedMesh::MaxInd, obj.bucketId, obj.cmdId);
+  obj.alpha     = mat.alpha;
+
   if(obj.isEmpty())
     return Item(); // null command
 
@@ -277,9 +279,10 @@ DrawStorage::Item DrawStorage::alloc(const AnimMesh& mesh, const Material& mat, 
   obj.bucketId  = bucketId(mat, mesh);
   obj.cmdId     = commandId(mat, obj.type, obj.bucketId);
   obj.clusterId = clusterId(buckets[obj.bucketId], iboOff/PackedMesh::MaxInd, iboLen/PackedMesh::MaxInd, obj.bucketId, obj.cmdId);
+  obj.alpha     = mat.alpha;
+
   if(obj.isEmpty())
     return Item(); // null command
-
   obj.animPtr     = anim.offsetId<Matrix4x4>();
   obj.objInstance = owner.alloc(sizeof(InstanceDesc));
   clusters[obj.clusterId].instanceId = obj.objInstance.offsetId<InstanceDesc>();
@@ -427,6 +430,37 @@ void DrawStorage::startMMAnim(size_t i, std::string_view animName, float intensi
   ani.intensity = intensity;
   }
 
+void DrawStorage::setAsGhost(size_t id, bool g) {
+  auto& obj= objects[id];
+  if(obj.isGhost==g)
+    return;
+
+  auto& bx  = buckets[obj.bucketId];
+  auto& cx  = cmd[obj.cmdId];
+  auto  mat = bx.mat;
+
+  const uint32_t meshletCount = (obj.iboLen/PackedMesh::MaxInd);
+  cmd[obj.cmdId].maxPayload -= meshletCount;
+
+  mat.alpha   = g ? Material::Ghost : obj.alpha;
+  obj.isGhost = g;
+
+  if(bx.staticMesh!=nullptr)
+    obj.bucketId = bucketId(mat, *bx.staticMesh); else
+    obj.bucketId = bucketId(mat, *bx.animMesh);
+
+  obj.cmdId = commandId(mat, cx.type, obj.bucketId);
+  cmd[obj.cmdId].maxPayload += meshletCount;
+
+  cmdDurtyBit = true;
+  const uint32_t numCluster = (obj.type==Landscape ? meshletCount : 1);
+  for(size_t i=0; i<numCluster; ++i) {
+    clusters[obj.clusterId + i].commandId = obj.cmdId;
+    clusters[obj.clusterId + i].bucketId  = obj.bucketId;
+    markClusters(obj.clusterId + i);
+    }
+  }
+
 bool DrawStorage::commitCommands() {
   if(!cmdDurtyBit)
     return false;
@@ -447,9 +481,7 @@ bool DrawStorage::commitCommands() {
   ord.resize(cmd.size());
   for(size_t i=0; i<cmd.size(); ++i)
     ord[i] = &cmd[i];
-  std::sort(ord.begin(), ord.end(), [](const DrawCmd* l, const DrawCmd* r){
-    return l->alpha < r->alpha;
-    });
+  std::sort(ord.begin(), ord.end(), cmpDraw);
 
   auto& device = Resources::device();
   for(auto& v:views) {
@@ -625,7 +657,7 @@ void DrawStorage::invalidateUbo() {
     for(uint8_t v=0; v<SceneGlobals::V_Count; ++v) {
       if(i.desc[v].isEmpty())
         continue;
-      auto& mem    = (i.type==Type::Landscape) ? clustersGpu : owner.instanceSsbo();
+      auto& mem = (i.type==Type::Landscape) ? clustersGpu : owner.instanceSsbo();
 
       i.desc[v].set(L_Scene,    scene.uboGlobal[v]);
       i.desc[v].set(L_Instance, mem);
@@ -637,12 +669,12 @@ void DrawStorage::invalidateUbo() {
       i.desc[v].set(L_Sampler,  Sampler::anisotrophy());
 
       if(v==SceneGlobals::V_Main || i.isTextureInShadowPass()) {
-        // i.desc[v].set(L_Diffuse, tex);
+        //i.desc[v].set(L_Diffuse, tex);
         }
 
       if(v==SceneGlobals::V_Main && i.isShadowmapRequired()) {
-        // i.desc[v].set(L_Shadow0, *scene.shadowMap[0],Resources::shadowSampler());
-        // i.desc[v].set(L_Shadow1, *scene.shadowMap[1],Resources::shadowSampler());
+        i.desc[v].set(L_Shadow0, *scene.shadowMap[0],Resources::shadowSampler());
+        i.desc[v].set(L_Shadow1, *scene.shadowMap[1],Resources::shadowSampler());
         }
 
       if(i.type==Morph) {
@@ -714,7 +746,7 @@ void DrawStorage::visibilityPass(Encoder<CommandBuffer>& cmd, uint8_t frameId, i
   }
 
 void DrawStorage::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  return;
+  // return;
   struct Push { uint32_t firstMeshlet; uint32_t meshletCount; } push = {};
 
   auto  viewId = SceneGlobals::V_HiZ;
@@ -731,74 +763,80 @@ void DrawStorage::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
     push.firstMeshlet = cx.firstPayload;
     push.meshletCount = cx.maxPayload;
 
-    cmd.setUniforms(*cx.psoHiZ, cx.desc[viewId], &push, sizeof(push));
+    cmd.setUniforms(*cx.pHiZ, cx.desc[viewId], &push, sizeof(push));
     cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
     }
   }
 
-void DrawStorage::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t frameId) {
-  //return;
-  struct Push { uint32_t firstMeshlet; uint32_t meshletCount; } push = {};
-
-  auto  viewId = SceneGlobals::V_Main;
-  auto& main   = views[viewId];
-  for(size_t i=0; i<ord.size(); ++i) {
-    auto& cx = *ord[i];
-    if(cx.desc[viewId].isEmpty())
-      continue;
-    if(cx.alpha!=Material::Solid && cx.alpha!=Material::AlphaTest)
-      continue;
-    auto id  = size_t(std::distance(this->cmd.data(), &cx));
-    push.firstMeshlet = cx.firstPayload;
-    push.meshletCount = cx.maxPayload;
-
-    cmd.setUniforms(*cx.psoColor, cx.desc[viewId], &push, sizeof(push));
-    cmd.drawIndirect(main.indirectCmd, sizeof(IndirectCmd)*id);
+void DrawStorage::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t fId) {
+  // return;
+  for(auto i:{Material::Solid, Material::AlphaTest}) {
+    drawCommon(cmd, fId, SceneGlobals::V_Main, i);
+    drawCommon(cmd, fId, SceneGlobals::V_Main, i);
     }
   }
 
 void DrawStorage::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer) {
   // return;
-  struct Push { uint32_t firstMeshlet; uint32_t meshletCount; } push = {};
-
-  auto  viewId = (SceneGlobals::V_Shadow0+layer);
-  auto& view   = views[viewId];
-  for(size_t i=0; i<ord.size(); ++i) {
-    auto& cx = *ord[i];
-    if(cx.desc[viewId].isEmpty())
-      continue;
-    auto id  = size_t(std::distance(this->cmd.data(), &cx));
-    push.firstMeshlet = cx.firstPayload;
-    push.meshletCount = cx.maxPayload;
-
-    cmd.setUniforms(*cx.psoDepth, cx.desc[viewId], &push, sizeof(push));
-    cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
+  auto view = SceneGlobals::VisCamera(SceneGlobals::V_Shadow0 + layer);
+  for(auto i:{Material::Solid, Material::AlphaTest}) {
+    drawCommon(cmd, fId, view, i);
+    drawCommon(cmd, fId, view, i);
     }
   }
 
-void DrawStorage::drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId) {
-
+void DrawStorage::drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  // return;
+  for(auto i:{Material::Multiply, Material::Multiply2, Material::Transparent, Material::AdditiveLight, Material::Ghost}) {
+    drawCommon(cmd, fId, SceneGlobals::V_Main, i);
+    }
   }
 
 void DrawStorage::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   // return;
+  drawCommon(cmd, fId, SceneGlobals::V_Main, Material::Water);
+  }
+
+void DrawStorage::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, SceneGlobals::VisCamera viewId, Material::AlphaFunc func) {
   struct Push { uint32_t firstMeshlet; uint32_t meshletCount; } push = {};
 
-  auto  viewId = SceneGlobals::V_Main;
-  auto& view   = views[viewId];
+  auto& view = views[viewId];
+  // auto  b    = std::lower_bound(ord.begin(), ord.end(), cmpDraw);
+  // auto  e    = std::upper_bound(ord.begin(), ord.end(), cmpDraw);
   for(size_t i=0; i<ord.size(); ++i) {
     auto& cx = *ord[i];
     if(cx.desc[viewId].isEmpty())
       continue;
-    if(cx.alpha!=Material::Water)
+    if(cx.alpha!=func)
       continue;
+
+    const RenderPipeline* pso = nullptr;
+    switch(viewId) {
+      case SceneGlobals::V_Shadow0:
+      case SceneGlobals::V_Shadow1:
+        pso = cx.pShadow;
+        break;
+      case SceneGlobals::V_Main:
+        pso = cx.pMain;
+        break;
+      case SceneGlobals::V_HiZ:
+      case SceneGlobals::V_Count:
+        break;
+      }
+    if(pso==nullptr)
+      continue;
+
     auto id  = size_t(std::distance(this->cmd.data(), &cx));
     push.firstMeshlet = cx.firstPayload;
     push.meshletCount = cx.maxPayload;
 
-    cmd.setUniforms(*cx.psoColor, cx.desc[viewId], &push, sizeof(push));
+    cmd.setUniforms(*pso, cx.desc[viewId], &push, sizeof(push));
     cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
     }
+  }
+
+bool DrawStorage::cmpDraw(const DrawCmd* l, const DrawCmd* r) {
+  return l->alpha < r->alpha;
   }
 
 void DrawStorage::preFrameUpdate(uint8_t fId) {
@@ -921,16 +959,16 @@ uint16_t DrawStorage::bucketId(const Material& mat, const AnimMesh& mesh) {
   }
 
 uint16_t DrawStorage::commandId(const Material& m, Type type, uint32_t bucketId) {
-  auto pMain  = Shaders::inst().materialPipeline(m, type, Shaders::T_Main);
-  auto pDepth = Shaders::inst().materialPipeline(m, type, Shaders::T_Shadow);
-  auto pHiZ   = Shaders::inst().materialPipeline(m, type, Shaders::T_Depth);
-  if(pMain==nullptr && pDepth==nullptr && pHiZ==nullptr)
+  auto pMain   = Shaders::inst().materialPipeline(m, type, Shaders::T_Main);
+  auto pShadow = Shaders::inst().materialPipeline(m, type, Shaders::T_Shadow);
+  auto pHiZ    = Shaders::inst().materialPipeline(m, type, Shaders::T_Depth);
+  if(pMain==nullptr && pShadow==nullptr && pHiZ==nullptr)
     return uint16_t(-1);
 
   const bool bindless = true;
 
   for(size_t i=0; i<cmd.size(); ++i) {
-    if(cmd[i].psoColor!=pMain || cmd[i].psoDepth!=pDepth || cmd[i].psoHiZ!=pHiZ)
+    if(cmd[i].pMain!=pMain || cmd[i].pShadow!=pShadow || cmd[i].pHiZ!=pHiZ)
       continue;
     if(!bindless && cmd[i].bucketId != bucketId)
       continue;
@@ -941,21 +979,21 @@ uint16_t DrawStorage::commandId(const Material& m, Type type, uint32_t bucketId)
 
   auto& device = Resources::device();
   DrawCmd cx;
-  cx.psoColor    = pMain;
-  cx.psoDepth    = pDepth;
-  cx.psoHiZ      = pHiZ;
+  cx.pMain       = pMain;
+  cx.pShadow     = pShadow;
+  cx.pHiZ        = pHiZ;
   cx.bucketId    = bindless ? 0xFFFFFFFF : bucketId;
   cx.type        = type;
   cx.alpha       = m.alpha;
-  if(cx.psoColor!=nullptr) {
-    cx.desc[SceneGlobals::V_Main] = device.descriptors(*cx.psoColor);
+  if(cx.pMain!=nullptr) {
+    cx.desc[SceneGlobals::V_Main] = device.descriptors(*cx.pMain);
     }
-  if(cx.psoDepth!=nullptr) {
-    cx.desc[SceneGlobals::V_Shadow0] = device.descriptors(*cx.psoDepth);
-    cx.desc[SceneGlobals::V_Shadow1] = device.descriptors(*cx.psoDepth);
+  if(cx.pShadow!=nullptr) {
+    cx.desc[SceneGlobals::V_Shadow0] = device.descriptors(*cx.pShadow);
+    cx.desc[SceneGlobals::V_Shadow1] = device.descriptors(*cx.pShadow);
     }
-  if(cx.psoHiZ!=nullptr) {
-    cx.desc[SceneGlobals::V_HiZ] = device.descriptors(*cx.psoHiZ);
+  if(cx.pHiZ!=nullptr) {
+    cx.desc[SceneGlobals::V_HiZ] = device.descriptors(*cx.pHiZ);
     }
   cmd.push_back(std::move(cx));
   cmdDurtyBit = true;

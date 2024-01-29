@@ -89,9 +89,9 @@ class DrawStorage {
     void visibilityPass (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int pass);
     void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer);
-    void drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
-    void drawWater      (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
-    void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
+    void drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void drawWater      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
     void fillTlas(RtScene& out);
 
@@ -174,6 +174,7 @@ class DrawStorage {
       uint16_t            cmdId     = uint16_t(-1);
       uint32_t            clusterId = 0;
 
+      Material::AlphaFunc alpha = Material::Solid;
       MorphAnim           morphAnim[Resources::MAX_MORPH_LAYERS];
       phoenix::animation_mode wind = phoenix::animation_mode::none;
       float               windIntensity = 0;
@@ -232,9 +233,9 @@ class DrawStorage {
       };
 
     struct DrawCmd {
-      const Tempest::RenderPipeline* psoColor     = nullptr;
-      const Tempest::RenderPipeline* psoDepth     = nullptr;
-      const Tempest::RenderPipeline* psoHiZ       = nullptr;
+      const Tempest::RenderPipeline* pMain        = nullptr;
+      const Tempest::RenderPipeline* pShadow      = nullptr;
+      const Tempest::RenderPipeline* pHiZ         = nullptr;
       uint32_t                       bucketId     = 0; // bindfull only
       Type                           type         = Type::Landscape;
 
@@ -267,9 +268,13 @@ class DrawStorage {
     void                           markClusters(size_t id, size_t count = 1);
 
     void                           startMMAnim(size_t i, std::string_view animName, float intensity, uint64_t timeUntil);
+    void                           setAsGhost(size_t i, bool g);
 
     void                           preFrameUpdateWind(uint8_t fId);
     void                           preFrameUpdateMorph(uint8_t fId);
+
+    void                           drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, SceneGlobals::VisCamera view, Material::AlphaFunc func);
+    static bool                    cmpDraw(const DrawCmd* l, const DrawCmd* r);
 
     bool                           commitCommands();
     bool                           commitBuckets();

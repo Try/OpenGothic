@@ -57,7 +57,7 @@ class PfxBucket {
 
     void                        prepareUniforms(const SceneGlobals& scene);
 
-    void                        preFrameUpdate(uint8_t fId);
+    void                        preFrameUpdate(const SceneGlobals& scene, uint8_t fId);
     void                        drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void                        drawShadow     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer);
     void                        drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
@@ -118,14 +118,15 @@ class PfxBucket {
 
       Tempest::DescriptorSet         ubo[SceneGlobals::V_Count];
       Tempest::StorageBuffer         pfxGpu;
+      uint64_t                       timeShift = 0;
 
       bool                      isEmpty() const;
       void                      prepareUniforms(const SceneGlobals& scene, const Material& mat);
-      void                      preframeUpdate(const SceneGlobals& scene, const Material& mat);
+      void                      preFrameUpdate(const SceneGlobals& scene, const Material& mat);
       void                      setPfxData(const Tempest::StorageBuffer& ssbo);
       };
 
-    void                        drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, SceneGlobals::VisCamera view, const Draw& itm);
+    void                        drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const Draw& itm, SceneGlobals::VisCamera view, Material::AlphaFunc func);
 
     void                        tickEmit(Block& p, ImplEmitter& emitter, uint64_t emited);
     bool                        shrink();

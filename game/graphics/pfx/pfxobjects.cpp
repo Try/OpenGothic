@@ -68,7 +68,7 @@ void PfxObjects::preFrameUpdate(uint8_t fId) {
     }
 
   for(auto& i:bucket)
-    i.preFrameUpdate(fId);
+    i.preFrameUpdate(scene, fId);
   }
 
 void PfxObjects::drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {

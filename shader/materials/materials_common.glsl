@@ -66,10 +66,6 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define LVL_OBJECT 1
 #endif
 
-#if defined(FORWARD) || defined(EMISSIVE) || defined(GHOST)
-#define MAT_LINEAR_CLR 1
-#endif
-
 // Varying defines (derived)
 #if !defined(DEPTH_ONLY) || defined(ATEST)
 #define MAT_UV 1
@@ -79,7 +75,7 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define MAT_NORMAL 1
 #endif
 
-#if defined(FORWARD) || defined(WATER) || defined(FLAT_NORMAL) || defined(WATER)
+#if defined(FLAT_NORMAL) || defined(FORWARD) || defined(WATER)
 #define MAT_POSITION 1
 #endif
 
