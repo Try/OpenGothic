@@ -18,12 +18,10 @@ class Landscape final {
     Landscape(VisualObjects& visual, const PackedMesh& wmesh);
 
   private:
-    using Item   = ObjectsBucket::Item;
-    using DrItem = DrawStorage::Item;
+    using Item = DrawStorage::Item;
 
     struct Block {
-      Item     mesh;
-      DrItem   draw;
+      Item mesh;
       };
 
     std::vector<Block>     blocks;

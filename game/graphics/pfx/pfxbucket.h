@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "graphics/pfx/pfxobjects.h"
-#include "graphics/objectsbucket.h"
 #include "resources.h"
 
 class ParticleFx;

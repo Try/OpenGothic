@@ -5,7 +5,6 @@
 #include <Tempest/Device>
 #include <list>
 
-#include "graphics/objectsbucket.h"
 #include "graphics/drawstorage.h"
 
 class Material;

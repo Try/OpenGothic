@@ -196,6 +196,9 @@ DrawStorage::DrawStorage(VisualObjects& owner, const SceneGlobals& globals) : ow
     }
   objectsMorph.reserve(512);
   objectsFree.reserve(256);
+
+  scratch.header.reserve(1024);
+  scratch.patch .reserve(1024);
   }
 
 DrawStorage::~DrawStorage() {
@@ -556,8 +559,12 @@ bool DrawStorage::commitClusters(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   }
 
 void DrawStorage::patchClusters(Encoder<CommandBuffer>& cmd, uint8_t fId) {
-  std::vector<uint32_t> header; //FXME
-  std::vector<Cluster>  patch;
+  std::vector<uint32_t>& header = scratch.header;
+  std::vector<Cluster>&  patch  = scratch.patch;
+
+  header.clear();
+  patch.clear();
+
   for(size_t i=0; i<clustersDurty.size(); ++i) {
     if(clustersDurty[i]==0x0)
       continue;

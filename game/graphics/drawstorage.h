@@ -262,6 +262,11 @@ class DrawStorage {
       Tempest::StorageBuffer         data;
       };
 
+    struct ScratchPatch {
+      std::vector<uint32_t> header;
+      std::vector<Cluster>  patch;
+      };
+
     void                           free(size_t id);
     void                           updateInstance(size_t id, Tempest::Matrix4x4* pos = nullptr);
     void                           updateRtAs(size_t id);
@@ -300,6 +305,7 @@ class DrawStorage {
     std::unordered_set<size_t>     objectsMorph;
     std::unordered_set<size_t>     objectsFree;
     Patch                          patch[Resources::MaxFramesInFlight];
+    ScratchPatch                   scratch;
 
     std::vector<Bucket>            buckets;
     Tempest::StorageBuffer         bucketsGpu;

@@ -7,7 +7,7 @@
 using namespace Tempest;
 
 VisualObjects::VisualObjects(const SceneGlobals& scene, const std::pair<Vec3, Vec3>& bbox)
-    : scene(scene), drawMem(*this, scene), visGroup(bbox) {
+    : scene(scene), drawMem(*this, scene) {
   }
 
 VisualObjects::~VisualObjects() {

@@ -1,8 +1,5 @@
 #pragma once
 
-#include <Tempest/Signal>
-
-#include "objectsbucket.h"
 #include "drawstorage.h"
 
 class SceneGlobals;
@@ -51,10 +48,5 @@ class VisualObjects final {
     const SceneGlobals& scene;
     InstanceStorage     instanceMem;
     DrawStorage         drawMem;
-
-    VisibilityGroup     visGroup; // TODO: remove
-
-  friend class ObjectsBucket;
-  friend class ObjectsBucket::Item;
   };
 
