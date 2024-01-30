@@ -120,14 +120,15 @@ vec4 diffuseTex() {
 #if defined(BINDLESS)
   ivec2 texAniMapDirPeriod = bucket[bucketId].texAniMapDirPeriod;
   float alphaWeight        = bucket[bucketId].alphaWeight;
-#elif (defined(LVL_OBJECT) || defined(WATER))
+#elif !defined(SIMPLE_MAT) && (MESH_TYPE!=T_PFX)
   ivec2 texAniMapDirPeriod = bucket.texAniMapDirPeriod;
   float alphaWeight        = bucket.alphaWeight;
 #else
-  // N/A
+  ivec2 texAniMapDirPeriod = ivec2(0);
+  float alphaWeight        = 1;
 #endif
 
-#if (defined(LVL_OBJECT) || defined(WATER))
+#if !defined(SIMPLE_MAT)
   vec2 texAnim = vec2(0);
   {
     // FIXME: this not suppose to run for every-single material
@@ -151,7 +152,7 @@ vec4 diffuseTex() {
   vec4 tex = texture(textureD,uv);
 #endif
 
-#if defined(LVL_OBJECT)
+#if !defined(SIMPLE_MAT)
   tex.a *= alphaWeight;
 #endif
 

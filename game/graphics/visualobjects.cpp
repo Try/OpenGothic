@@ -60,10 +60,6 @@ void VisualObjects::preFrameUpdate(uint8_t fId) {
   drawMem.preFrameUpdate(fId);
   }
 
-void VisualObjects::visibilityPass(const Frustrum fr[]) {
-  visGroup.pass(fr);
-  }
-
 void VisualObjects::visibilityPass (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId, int pass) {
   drawMem.visibilityPass(cmd, fId, pass);
   }

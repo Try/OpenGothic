@@ -10,33 +10,9 @@
 
 using namespace Tempest;
 
-static constexpr uint32_t defaultWg = 64;
+//static constexpr uint32_t defaultWg = 64;
 
 Shaders* Shaders::instance = nullptr;
-
-void Shaders::ShaderSet::load(Device &device, std::string_view tag, bool hasTesselation, bool hasMeshlets) {
-  auto sh = GothicShader::get(string_frm(tag,'.',"frag",".sprv"));
-  fs = device.shader(sh.data,sh.len);
-
-  sh = GothicShader::get(string_frm(tag,'.',"vert",".sprv"));
-  vs = device.shader(sh.data,sh.len);
-
-  if(hasTesselation) {
-    auto sh = GothicShader::get(string_frm(tag,'.',"tesc",".sprv"));
-    tc = device.shader(sh.data,sh.len);
-
-    sh = GothicShader::get(string_frm(tag,'.',"tese",".sprv"));
-    te = device.shader(sh.data,sh.len);
-    }
-
-  if(hasMeshlets) {
-    sh = GothicShader::get(string_frm(tag,'.',defaultWg,".mesh",".sprv"));
-    me = device.shader(sh.data,sh.len);
-
-    sh = GothicShader::get(string_frm(tag,'.',defaultWg,".task",".sprv"));
-    ts = device.shader(sh.data,sh.len);
-    }
-  }
 
 Shaders::Shaders() {
   instance = this;
@@ -223,8 +199,8 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage
 
   const auto alpha = (mat.isGhost ? Material::Ghost : mat.alpha);
 
-  for(auto& i:materialsDr) {
-    if(i.alpha==alpha && DrawStorage::Type(i.type)==t && i.pipelineType==pt)
+  for(auto& i:materials) {
+    if(i.alpha==alpha && i.type==t && i.pipelineType==pt)
       return &i.pipeline;
     }
 
@@ -297,69 +273,70 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage
       break;
     }
 
+  const char* typeVsM = nullptr;
+  const char* typeVsD = nullptr;
+  const char* typeFsM = nullptr;
+  const char* typeFsD = nullptr;
+
+  switch(alpha) {
+    case Material::Solid:
+      typeVsM = "";
+      typeFsM = "_g";
+      typeVsD = "_d";
+      typeFsD = "_d";
+      if(t==DrawStorage::Landscape && !mat.isTexcoordAnim())
+        typeFsM = "_g_s";
+      break;
+    case Material::AlphaTest:
+      typeVsM = "";
+      typeFsM = "_g_at";
+      typeVsD = "_d_at";
+      typeFsD = "_d_at";
+      break;
+    case Material::Transparent:
+      typeVsM = "_f";
+      typeFsM = "_f";
+      break;
+    case Material::Multiply:
+    case Material::Multiply2:
+      typeVsM = "";
+      typeFsM = "_e";
+      break;
+    case Material::AdditiveLight:
+      typeVsM = "";
+      typeFsM = "_e";
+      break;
+    case Material::Water:
+      typeVsM = "_f";
+      typeFsM = "_w";
+      break;
+    case Material::Ghost:
+      typeVsM = "";
+      typeFsM = "_x";
+      break;
+    }
+
   const char* typeVs = "";
   const char* typeFs = "";
   switch(pt) {
     case T_Shadow:
-    case T_Depth: {
-      switch(alpha) {
-        case Material::Solid:
-        case Material::Water:
-        case Material::Ghost:
-        case Material::Multiply:
-        case Material::Multiply2:
-        case Material::Transparent:
-        case Material::AdditiveLight:
-          typeVs = "_d";
-          typeFs = "_d";
-          break;
-        case Material::AlphaTest:
-          typeVs = "_d_at";
-          typeFs = "_d_at";
-          break;
-        }
+    case T_Depth:
+      typeVs = typeVsD;
+      typeFs = typeFsD;
       break;
-      }
-    case T_Main:{
-      switch(alpha) {
-        case Material::Solid:
-          typeVs = "";
-          typeFs = "_g";
-          break;
-        case Material::AlphaTest:
-          typeVs = "";
-          typeFs = "_g_at";
-          break;
-        case Material::Transparent:
-          typeVs = "_f";
-          typeFs = "_f";
-          break;
-        case Material::Multiply:
-        case Material::Multiply2:
-          typeVs = "";
-          typeFs = "_e";
-          break;
-        case Material::AdditiveLight:
-          typeVs = "";
-          typeFs = "_e";
-          break;
-        case Material::Water:
-          typeVs = "_f";
-          typeFs = "_w";
-          break;
-        case Material::Ghost:
-          typeVs = "";
-          typeFs = "_x";
-          break;
-        }
+    case T_Main:
+      typeVs = typeVsM;
+      typeFs = typeFsM;
       break;
-      }
     }
 
-  materialsDr.emplace_front();
-  auto& b = materialsDr.front();
+  if(typeVs==nullptr || typeFs==nullptr)
+    return nullptr;
+
+  materials.emplace_front();
+  auto& b = materials.front();
   b.alpha        = alpha;
-  b.type         = ObjectsBucket::Type(t);
+  b.type         = t;
   b.pipelineType = pt;
 
   auto& device = Resources::device();
@@ -495,17 +472,4 @@ RenderPipeline Shaders::ambientLightShader(std::string_view name) {
   auto fs = device.shader(sh.data,sh.len);
 
   return device.pipeline(Triangles, state, vs, fs);
-  }
-
-RenderPipeline Shaders::pipeline(RenderState& st, const ShaderSet &sh) const {
-  if(!sh.me.isEmpty() && !sh.ts.isEmpty()) {
-    return Resources::device().pipeline(st,sh.ts,sh.me,sh.fs);
-    }
-  if(!sh.me.isEmpty()) {
-    return Resources::device().pipeline(st,Shader(),sh.me,sh.fs);
-    }
-  if(!sh.tc.isEmpty() && !sh.te.isEmpty()) {
-    return Resources::device().pipeline(Triangles,st,sh.vs,sh.tc,sh.te,sh.fs);
-    }
-  return Resources::device().pipeline(Triangles,st,sh.vs,sh.fs);
   }

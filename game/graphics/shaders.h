@@ -15,6 +15,12 @@ class Shaders {
     Shaders();
     ~Shaders();
 
+    enum PipelineType: uint8_t {
+      T_Depth,
+      T_Shadow,
+      T_Main,
+      };
+
     static Shaders& inst();
 
     Tempest::RenderPipeline  lights, lightsRq;
@@ -61,33 +67,18 @@ class Shaders {
     Tempest::ComputePipeline probeTrace, probeLighting;
     Tempest::RenderPipeline  probeAmbient;
 
-    enum PipelineType: uint8_t {
-      T_Depth,
-      T_Shadow,
-      T_Main,
-      };
+    Tempest::RenderPipeline  inventory;
 
     const Tempest::RenderPipeline* materialPipeline(const Material& desc, DrawStorage::Type t, PipelineType pt) const;
 
-    Tempest::RenderPipeline inventory;
-
   private:
-    struct ShaderSet {
-      Tempest::Shader vs;
-      Tempest::Shader fs;
-      Tempest::Shader tc, te;
-      Tempest::Shader me, ts;
-      void load(Tempest::Device &device, std::string_view tag, bool hasTesselation, bool hasMeshlets);
-      };
-
     struct Entry {
       Tempest::RenderPipeline pipeline;
       Material::AlphaFunc     alpha        = Material::Solid;
-      ObjectsBucket::Type     type         = ObjectsBucket::Static;
+      DrawStorage::Type       type         = DrawStorage::Static;
       PipelineType            pipelineType = PipelineType::T_Main;
       };
 
-    Tempest::RenderPipeline  pipeline(Tempest::RenderState& st, const ShaderSet &fs) const;
     Tempest::RenderPipeline  postEffect(std::string_view name);
     Tempest::RenderPipeline  postEffect(std::string_view vs, std::string_view fs, Tempest::RenderState::ZTestMode ztest = Tempest::RenderState::ZTestMode::LEqual);
     Tempest::ComputePipeline computeShader(std::string_view name);
@@ -99,5 +90,4 @@ class Shaders {
     static Shaders* instance;
 
     mutable std::list<Entry> materials;
-    mutable std::list<Entry> materialsDr;
   };

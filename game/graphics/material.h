@@ -40,6 +40,7 @@ class Material final {
 
     bool isSolid() const;
     bool isTesselated() const;
+    bool isTexcoordAnim() const;
     int  alphaOrder() const { return alphaOrder(alpha,isGhost); }
 
     bool isForwardShading()      const { return isForwardShading(alpha);      }

@@ -113,7 +113,6 @@ void WorldView::prepareExposure(Tempest::Encoder<Tempest::CommandBuffer>& cmd, u
 void WorldView::visibilityPass(const Frustrum fr[]) {
   for(uint8_t i=0; i<SceneGlobals::V_Count; ++i)
     sGlobal.frustrum[i] = fr[i];
-  visuals.visibilityPass(fr);
   }
 
 void WorldView::visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int pass) {
