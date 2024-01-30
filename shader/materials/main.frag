@@ -199,17 +199,17 @@ void mainEmissive(vec4 t) {
 
 #if defined(GHOST)
 void mainGhost(vec4 t) {
-  vec3  color  = textureLinear(t.rgb) * 10.0;
+  vec3  color  = textureLinear(t.rgb) * 5.0;
   vec3  normal = normalize(shInp.normal);
 
   normal = (scene.viewProject*vec4(normal,0.0)).xyz;
 
   vec2  fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
-  fragCoord += normal.xy * 0.05;
+  fragCoord += normal.xy * 0.01;
 
   vec4 back = textureLod(sceneColor, (fragCoord*0.5+0.5), 0);
 
-  outColor = vec4(mix(back.rgb * color, color, 0.002), t.a);
+  outColor = vec4(mix(back.rgb * color, back.rgb, vec3(0.6)), t.a);
   }
 #endif
 

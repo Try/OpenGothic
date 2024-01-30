@@ -135,6 +135,12 @@ const Material& DrawStorage::Item::material() const {
 const Bounds& DrawStorage::Item::bounds() const {
   if(owner==nullptr)
     return dummy<Bounds>();
+  auto  bId = owner->objects[id].bucketId;
+  auto& bx  = owner->buckets[bId];
+  if(bx.staticMesh!=nullptr)
+    return bx.staticMesh->bbox;
+  if(bx.animMesh!=nullptr)
+    return bx.animMesh->bbox;
   return dummy<Bounds>();
   }
 
