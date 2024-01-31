@@ -449,18 +449,18 @@ void VisualObjects::setAsGhost(size_t id, bool g) {
   }
 
 void VisualObjects::prepareUniforms() {
-  drawCmd.invalidateUbo(); // TODO
+  drawCmd.prepareUniforms();
   }
 
 void VisualObjects::prepareGlobals(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   bool sk = false;
   sk |= instanceMem.commit(cmd, fId);
   sk |= bucketsMem.commit(cmd, fId);
-  sk |= drawCmd.commit();
   sk |= clusters.commit(cmd, fId);
+  sk |= drawCmd.commit();
   if(!sk)
     return;
-  drawCmd.invalidateUbo();
+  drawCmd.updateUniforms();
   }
 
 void VisualObjects::preFrameUpdate(uint8_t fId) {

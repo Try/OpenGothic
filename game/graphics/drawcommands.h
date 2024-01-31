@@ -50,7 +50,8 @@ class DrawCommands {
     uint16_t commandId(const Material& m, Type type, uint32_t bucketId);
     void     addClusters(uint16_t cmdId, uint32_t meshletCount);
 
-    void     invalidateUbo();
+    void     prepareUniforms();
+    void     updateUniforms();
 
     void     visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int pass);
     void     drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
@@ -104,6 +105,7 @@ class DrawCommands {
       };
 
     static bool              cmpDraw(const DrawCmd* l, const DrawCmd* r);
+    void                     updateTasksUniforms();
 
     VisualObjects&           owner;
     DrawBuckets&             buckets;
@@ -113,7 +115,7 @@ class DrawCommands {
     std::vector<TaskCmd>     tasks;
     std::vector<DrawCmd>     cmd;
     std::vector<DrawCmd*>    ord;
-    size_t                   totalPayload = 0;
     bool                     cmdDurtyBit = false;
+
     View                     views[SceneGlobals::V_Count];
   };

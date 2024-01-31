@@ -39,6 +39,10 @@ DrawCommands::DrawCommands(VisualObjects& owner, DrawBuckets& buckets, DrawClust
 DrawCommands::~DrawCommands() {
   }
 
+bool DrawCommands::cmpDraw(const DrawCmd* l, const DrawCmd* r) {
+  return l->alpha < r->alpha;
+  }
+
 uint16_t DrawCommands::commandId(const Material& m, Type type, uint32_t bucketId) {
   auto pMain   = Shaders::inst().materialPipeline(m, type, Shaders::T_Main);
   auto pShadow = Shaders::inst().materialPipeline(m, type, Shaders::T_Shadow);
@@ -91,7 +95,7 @@ bool DrawCommands::commit() {
     return false;
   cmdDurtyBit = false;
 
-  totalPayload = 0;
+  size_t totalPayload = 0;
   for(auto& i:cmd) {
     i.firstPayload = uint32_t(totalPayload);
     totalPayload  += i.maxPayload;
@@ -124,16 +128,40 @@ bool DrawCommands::commit() {
   return true;
   }
 
-bool DrawCommands::cmpDraw(const DrawCmd* l, const DrawCmd* r) {
-  return l->alpha < r->alpha;
+void DrawCommands::prepareUniforms() {
+  // TODO
+  updateUniforms();
   }
 
-void DrawCommands::invalidateUbo() {
+void DrawCommands::updateTasksUniforms() {
+  auto& device = Resources::device();
+  for(auto& i:tasks) {
+    Resources::recycle(std::move(i.desc));
+    if(i.viewport==SceneGlobals::V_Main)
+      i.desc = device.descriptors(Shaders::inst().clusterTaskHiZ);
+    else if(i.viewport==SceneGlobals::V_HiZ)
+      i.desc = device.descriptors(Shaders::inst().clusterTaskHiZCr);
+    else
+      i.desc = device.descriptors(Shaders::inst().clusterTask);
+    i.desc.set(T_Clusters, clusters.ssbo());
+    i.desc.set(T_Indirect, views[i.viewport].indirectCmd);
+    i.desc.set(T_Payload,  views[i.viewport].visClusters);
+
+    i.desc.set(T_Scene,    scene.uboGlobal[i.viewport]);
+    i.desc.set(T_Instance, owner.instanceSsbo());
+    i.desc.set(T_Bucket,   buckets.ssbo());
+    i.desc.set(T_HiZ,      *scene.hiZ);
+    }
+  }
+
+void DrawCommands::updateUniforms() {
   if(owner.instanceSsbo().isEmpty())
     return;
 
   auto& device = Resources::device();
   device.waitIdle(); // TODO
+
+  updateTasksUniforms();
 
   std::vector<const Tempest::Texture2d*>     tex;
   std::vector<const Tempest::StorageBuffer*> vbo, ibo;
@@ -151,24 +179,6 @@ void DrawCommands::invalidateUbo() {
       morphId.push_back(nullptr);
       morph  .push_back(nullptr);
       }
-    }
-
-  for(auto& i:tasks) {
-    Resources::recycle(std::move(i.desc));
-    if(i.viewport==SceneGlobals::V_Main)
-      i.desc = device.descriptors(Shaders::inst().clusterTaskHiZ);
-    else if(i.viewport==SceneGlobals::V_HiZ)
-      i.desc = device.descriptors(Shaders::inst().clusterTaskHiZCr);
-    else
-      i.desc = device.descriptors(Shaders::inst().clusterTask);
-    i.desc.set(T_Clusters, clusters.ssbo());
-    i.desc.set(T_Indirect, views[i.viewport].indirectCmd);
-    i.desc.set(T_Payload,  views[i.viewport].visClusters);
-
-    i.desc.set(T_Scene,    scene.uboGlobal[i.viewport]);
-    i.desc.set(T_Instance, owner.instanceSsbo());
-    i.desc.set(T_Bucket,   buckets.ssbo());
-    i.desc.set(T_HiZ,      *scene.hiZ);
     }
 
   for(auto& i:cmd) {
