@@ -15,6 +15,7 @@
 #include "graphics/instancestorage.h"
 #include "graphics/drawbuckets.h"
 #include "graphics/drawclusters.h"
+#include "graphics/drawcommands.h"
 
 class StaticMesh;
 class AnimMesh;
@@ -24,14 +25,7 @@ class RtScene;
 
 class DrawStorage {
   public:
-    enum Type : uint8_t {
-      Landscape,
-      Static,
-      Movable,
-      Animated,
-      Pfx,
-      Morph,
-      };
+    using Type = DrawCommands::Type;
 
     class Item final {
       public:
@@ -71,7 +65,7 @@ class DrawStorage {
         size_t       id    = 0;
       };
 
-    DrawStorage(VisualObjects& owner, const SceneGlobals& globals);
+    DrawStorage(VisualObjects& owner, const SceneGlobals& scene);
     ~DrawStorage();
 
     Item alloc(const AnimMesh& mesh, const Material& mat, const InstanceStorage::Id& anim,
@@ -205,7 +199,6 @@ class DrawStorage {
       uint32_t                       firstPayload = 0;
       uint32_t                       maxPayload   = 0;
 
-
       bool                           isForwardShading() const;
       bool                           isShadowmapRequired() const;
       bool                           isSceneInfoRequired() const;
@@ -213,8 +206,8 @@ class DrawStorage {
       };
 
     struct View {
-      Tempest::DescriptorSet         descInit;
-      Tempest::StorageBuffer         visClusters, indirectCmd;
+      Tempest::DescriptorSet descInit;
+      Tempest::StorageBuffer visClusters, indirectCmd;
       };
 
     void                           free(size_t id);
@@ -228,13 +221,11 @@ class DrawStorage {
     void                           preFrameUpdateMorph(uint8_t fId);
 
     void                           drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, SceneGlobals::VisCamera view, Material::AlphaFunc func);
-    static bool                    cmpDraw(const DrawCmd* l, const DrawCmd* r);
 
-    bool                           commitCommands();
     void                           patchClusters(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
     size_t                         implAlloc();
-    uint16_t                       commandId(const Material& m, Type type, uint32_t bucketId);
+
     uint32_t                       clusterId(const PackedMesh::Cluster* cluster, size_t firstMeshlet, size_t meshletCount, uint16_t bucketId, uint16_t commandId);
     uint32_t                       clusterId(const Bucket&  bucket,  size_t firstMeshlet, size_t meshletCount, uint16_t bucketId, uint16_t commandId);
 
@@ -250,11 +241,15 @@ class DrawStorage {
     std::unordered_set<size_t>     objectsFree;
 
     DrawClusters                   clusters;
+    DrawCommands                   cmd;
 
+    /*
     std::vector<TaskCmd>           tasks;
     std::vector<DrawCmd>           cmd;
     std::vector<DrawCmd*>          ord;
+
     size_t                         totalPayload = 0;
     bool                           cmdDurtyBit = false;
     View                           views[SceneGlobals::V_Count];
+    */
   };

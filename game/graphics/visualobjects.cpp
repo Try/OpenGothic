@@ -20,7 +20,7 @@ DrawStorage::Item VisualObjects::get(const StaticMesh& mesh, const Material& mat
     Log::e("no texture?!");
     return DrawStorage::Item();
     }
-  const DrawStorage::Type bucket = (staticDraw ? DrawStorage::Static : DrawStorage::Movable);
+  const auto bucket = (staticDraw ? DrawCommands::Static : DrawCommands::Movable);
   return drawMem.alloc(mesh, mat, iboOff, iboLen, bucket);
   }
 

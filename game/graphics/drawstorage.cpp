@@ -18,12 +18,12 @@ static const T& dummy() {
 
 static RtScene::Category toRtCategory(DrawStorage::Type t) {
   switch (t) {
-    case DrawStorage::Landscape: return RtScene::Landscape;
-    case DrawStorage::Static:    return RtScene::Static;
-    case DrawStorage::Movable:   return RtScene::Movable;
-    case DrawStorage::Animated:  return RtScene::None;
-    case DrawStorage::Pfx:       return RtScene::None;
-    case DrawStorage::Morph:     return RtScene::None;
+    case DrawCommands::Landscape: return RtScene::Landscape;
+    case DrawCommands::Static:    return RtScene::Static;
+    case DrawCommands::Movable:   return RtScene::Movable;
+    case DrawCommands::Animated:  return RtScene::None;
+    case DrawCommands::Pfx:       return RtScene::None;
+    case DrawCommands::Morph:     return RtScene::None;
     }
   return RtScene::None;
   }
@@ -140,13 +140,7 @@ void DrawStorage::InstanceDesc::setPosition(const Tempest::Matrix4x4& m) {
   }
 
 
-DrawStorage::DrawStorage(VisualObjects& owner, const SceneGlobals& globals) : owner(owner), scene(globals) {
-  tasks.clear();
-  for(uint8_t v=0; v<SceneGlobals::V_Count; ++v) {
-    TaskCmd cmd;
-    cmd.viewport = SceneGlobals::VisCamera(v);
-    tasks.emplace_back(std::move(cmd));
-    }
+DrawStorage::DrawStorage(VisualObjects& owner, const SceneGlobals& scene) : owner(owner), scene(scene), cmd(owner, clusters, scene) {
   objectsMorph.reserve(512);
   objectsFree.reserve(256);
   }
@@ -169,7 +163,7 @@ DrawStorage::Item DrawStorage::alloc(const StaticMesh& mesh, const Material& mat
   obj.iboOff    = uint32_t(iboOff);
   obj.iboLen    = uint32_t(iboLen);
   obj.bucketId  = owner.alloc(mat, mesh);
-  obj.cmdId     = commandId(mat, type, obj.bucketId.toInt());
+  obj.cmdId     = cmd.commandId(mat, type, obj.bucketId.toInt());
   obj.clusterId = clusterId(cluster, iboOff/PackedMesh::MaxInd, iboLen/PackedMesh::MaxInd, obj.bucketId.toInt(), obj.cmdId);
   obj.alpha     = mat.alpha;
 
@@ -191,14 +185,14 @@ DrawStorage::Item DrawStorage::alloc(const StaticMesh& mesh, const Material& mat
   Object& obj = objects[id];
 
   if(mesh.morph.anim!=nullptr) {
-    type = DrawStorage::Morph;
+    type = DrawCommands::Morph;
     }
 
   obj.type      = type;
   obj.iboOff    = uint32_t(iboOff);
   obj.iboLen    = uint32_t(iboLen);
   obj.bucketId  = owner.alloc(mat, mesh);
-  obj.cmdId     = commandId(mat, obj.type, obj.bucketId.toInt());
+  obj.cmdId     = cmd.commandId(mat, obj.type, obj.bucketId.toInt());
   obj.clusterId = clusterId(*obj.bucketId, iboOff/PackedMesh::MaxInd, iboLen/PackedMesh::MaxInd, obj.bucketId.toInt(), obj.cmdId);
   obj.alpha     = mat.alpha;
 
@@ -208,7 +202,7 @@ DrawStorage::Item DrawStorage::alloc(const StaticMesh& mesh, const Material& mat
   obj.objInstance = owner.alloc(sizeof(InstanceDesc));
   clusters[obj.clusterId].instanceId = obj.objInstance.offsetId<InstanceDesc>();
 
-  if(type==Morph) {
+  if(type==DrawCommands::Morph) {
     obj.objMorphAnim = owner.alloc(sizeof(MorphDesc)*Resources::MAX_MORPH_LAYERS);
     obj.animPtr      = obj.objMorphAnim.offsetId<MorphDesc>();
     const MorphData d = {};
@@ -235,7 +229,7 @@ DrawStorage::Item DrawStorage::alloc(const AnimMesh& mesh, const Material& mat, 
   obj.iboOff    = uint32_t(iboOff);
   obj.iboLen    = uint32_t(iboLen);
   obj.bucketId  = owner.alloc(mat, mesh);
-  obj.cmdId     = commandId(mat, obj.type, obj.bucketId.toInt());
+  obj.cmdId     = cmd.commandId(mat, obj.type, obj.bucketId.toInt());
   obj.clusterId = clusterId(*obj.bucketId, iboOff/PackedMesh::MaxInd, iboLen/PackedMesh::MaxInd, obj.bucketId.toInt(), obj.cmdId);
   obj.alpha     = mat.alpha;
 
@@ -251,18 +245,17 @@ DrawStorage::Item DrawStorage::alloc(const AnimMesh& mesh, const Material& mat, 
   }
 
 void DrawStorage::free(size_t id) {
-  cmdDurtyBit = true;
-
   Object& obj = objects[id];
-  const uint32_t meshletCount = (obj.iboLen/PackedMesh::MaxInd);
-  cmd[obj.cmdId].maxPayload -= meshletCount;
 
-  const uint32_t numCluster = (obj.type==Landscape ? meshletCount : 1);
+  const uint32_t meshletCount = (obj.iboLen/PackedMesh::MaxInd);
+  const uint32_t numCluster = (obj.type==DrawCommands::Landscape ? meshletCount : 1);
+
+  cmd.addClusters(obj.cmdId, -meshletCount);
   clusters.free(obj.clusterId, numCluster);
 
   if(obj.wind==phoenix::animation_mode::none)
     objectsWind.erase(id);
-  if(obj.type==Morph)
+  if(obj.type==DrawCommands::Morph)
     objectsMorph.erase(id);
 
   obj = Object();
@@ -278,7 +271,7 @@ void DrawStorage::free(size_t id) {
 
 void DrawStorage::updateInstance(size_t id, Matrix4x4* pos) {
   auto& obj = objects[id];
-  if(obj.type==Landscape)
+  if(obj.type==DrawCommands::Landscape)
     return;
 
   InstanceDesc d;
@@ -383,7 +376,7 @@ void DrawStorage::setAsGhost(size_t id, bool g) {
   auto  mat = bx.mat;
 
   const uint32_t meshletCount = (obj.iboLen/PackedMesh::MaxInd);
-  cmd[obj.cmdId].maxPayload -= meshletCount;
+  cmd.addClusters(obj.cmdId, -meshletCount);
 
   mat.alpha   = g ? Material::Ghost : obj.alpha;
   obj.isGhost = g;
@@ -392,11 +385,10 @@ void DrawStorage::setAsGhost(size_t id, bool g) {
     obj.bucketId = owner.alloc(mat, *bx.staticMesh); else
     obj.bucketId = owner.alloc(mat, *bx.animMesh);
 
-  obj.cmdId = commandId(mat, cx.type, obj.bucketId.toInt());
-  cmd[obj.cmdId].maxPayload += meshletCount;
+  obj.cmdId = cmd.commandId(mat, cx.type, obj.bucketId.toInt());
+  cmd.addClusters(obj.cmdId, +meshletCount);
 
-  cmdDurtyBit = true;
-  const uint32_t numCluster = (obj.type==Landscape ? meshletCount : 1);
+  const uint32_t numCluster = (obj.type==DrawCommands::Landscape ? meshletCount : 1);
   for(size_t i=0; i<numCluster; ++i) {
     clusters[obj.clusterId + i].commandId = obj.cmdId;
     clusters[obj.clusterId + i].bucketId  = obj.bucketId.toInt();
@@ -404,48 +396,10 @@ void DrawStorage::setAsGhost(size_t id, bool g) {
     }
   }
 
-bool DrawStorage::commitCommands() {
-  if(!cmdDurtyBit)
-    return false;
-  cmdDurtyBit = false;
-
-  totalPayload = 0;
-  for(auto& i:cmd) {
-    i.firstPayload = uint32_t(totalPayload);
-    totalPayload  += i.maxPayload;
-    }
-
-  std::vector<IndirectCmd> cx(cmd.size());
-  for(size_t i=0; i<cmd.size(); ++i) {
-    cx[i].vertexCount = PackedMesh::MaxInd;
-    cx[i].writeOffset = cmd[i].firstPayload;
-    }
-
-  ord.resize(cmd.size());
-  for(size_t i=0; i<cmd.size(); ++i)
-    ord[i] = &cmd[i];
-  std::sort(ord.begin(), ord.end(), cmpDraw);
-
-  auto& device = Resources::device();
-  for(auto& v:views) {
-    Resources::recycle(std::move(v.visClusters));
-    Resources::recycle(std::move(v.indirectCmd));
-    Resources::recycle(std::move(v.descInit));
-
-    v.visClusters = device.ssbo(nullptr, totalPayload*sizeof(uint32_t)*4);
-    v.indirectCmd = device.ssbo(cx.data(), sizeof(IndirectCmd)*cx.size());
-
-    v.descInit = device.descriptors(Shaders::inst().clusterInit);
-    v.descInit.set(T_Indirect, v.indirectCmd);
-    }
-
-  return true;
-  }
-
-bool DrawStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
+bool DrawStorage::commit(Encoder<CommandBuffer>& c, uint8_t fId) {
   bool ret = false;
-  ret |= commitCommands();
-  ret |= clusters.commit(cmd, fId);
+  ret |= cmd.commit();
+  ret |= clusters.commit(c, fId);
   return ret;
   }
 
@@ -454,88 +408,7 @@ void DrawStorage::prepareUniforms() {
   }
 
 void DrawStorage::invalidateUbo() {
-  if(owner.instanceSsbo().isEmpty())
-    return;
-
-  auto& device = Resources::device();
-  device.waitIdle(); // TODO
-
-  std::vector<const Tempest::Texture2d*>     tex;
-  std::vector<const Tempest::StorageBuffer*> vbo, ibo;
-  std::vector<const Tempest::StorageBuffer*> morphId, morph;
-  for(auto& i:owner.buckets()) {
-    tex.push_back(i.mat.tex);
-    if(i.staticMesh!=nullptr) {
-      ibo    .push_back(&i.staticMesh->ibo8);
-      vbo    .push_back(&i.staticMesh->vbo);
-      morphId.push_back(i.staticMesh->morph.index);
-      morph  .push_back(i.staticMesh->morph.samples);
-      } else {
-      ibo    .push_back(&i.animMesh->ibo8);
-      vbo    .push_back(&i.animMesh->vbo);
-      morphId.push_back(nullptr);
-      morph  .push_back(nullptr);
-      }
-    }
-
-  for(auto& i:tasks) {
-    Resources::recycle(std::move(i.desc));
-    if(i.viewport==SceneGlobals::V_Main)
-      i.desc = device.descriptors(Shaders::inst().clusterTaskHiZ);
-    else if(i.viewport==SceneGlobals::V_HiZ)
-      i.desc = device.descriptors(Shaders::inst().clusterTaskHiZCr);
-    else
-      i.desc = device.descriptors(Shaders::inst().clusterTask);
-    i.desc.set(T_Clusters, clusters.ssbo());
-    i.desc.set(T_Indirect, views[i.viewport].indirectCmd);
-    i.desc.set(T_Payload,  views[i.viewport].visClusters);
-
-    i.desc.set(T_Scene,    scene.uboGlobal[i.viewport]);
-    i.desc.set(T_Instance, owner.instanceSsbo());
-    i.desc.set(T_Bucket,   owner.bucketsSsbo());
-    i.desc.set(T_HiZ,      *scene.hiZ);
-    }
-
-  for(auto& i:cmd) {
-    for(uint8_t v=0; v<SceneGlobals::V_Count; ++v) {
-      if(i.desc[v].isEmpty())
-        continue;
-      auto& mem = (i.type==Type::Landscape) ? clusters.ssbo() : owner.instanceSsbo();
-
-      i.desc[v].set(L_Scene,    scene.uboGlobal[v]);
-      i.desc[v].set(L_Instance, mem);
-      i.desc[v].set(L_Ibo,      ibo);
-      i.desc[v].set(L_Vbo,      vbo);
-      i.desc[v].set(L_Diffuse,  tex);
-      i.desc[v].set(L_Bucket,   owner.bucketsSsbo());
-      i.desc[v].set(L_Payload,  views[v].visClusters);
-      i.desc[v].set(L_Sampler,  Sampler::anisotrophy());
-
-      if(v==SceneGlobals::V_Main || i.isTextureInShadowPass()) {
-        //i.desc[v].set(L_Diffuse, tex);
-        }
-
-      if(v==SceneGlobals::V_Main && i.isShadowmapRequired()) {
-        i.desc[v].set(L_Shadow0, *scene.shadowMap[0],Resources::shadowSampler());
-        i.desc[v].set(L_Shadow1, *scene.shadowMap[1],Resources::shadowSampler());
-        }
-
-      if(i.type==Morph) {
-        i.desc[v].set(L_MorphId,  morphId);
-        i.desc[v].set(L_Morph,    morph);
-        }
-
-      if(v==SceneGlobals::V_Main && i.isSceneInfoRequired()) {
-        auto smp = Sampler::bilinear();
-        smp.setClamping(ClampMode::MirroredRepeat);
-        i.desc[v].set(L_SceneClr, *scene.sceneColor, smp);
-
-        smp = Sampler::nearest();
-        smp.setClamping(ClampMode::MirroredRepeat);
-        i.desc[v].set(L_GDepth, *scene.sceneDepth, smp);
-        }
-      }
-    }
+  cmd.invalidateUbo();
   }
 
 void DrawStorage::fillTlas(RtScene& out) {
@@ -553,62 +426,12 @@ void DrawStorage::fillTlas(RtScene& out) {
     }
   }
 
-void DrawStorage::visibilityPass(Encoder<CommandBuffer>& cmd, uint8_t frameId, int pass) {
-  static bool freeze = false;
-  if(freeze)
-    return;
-
-  cmd.setFramebuffer({});
-  if(pass==0) {
-    for(auto& v:views) {
-      if(this->cmd.empty())
-        continue;
-      cmd.setUniforms(Shaders::inst().clusterInit, v.descInit);
-      cmd.dispatchThreads(this->cmd.size());
-      }
-    }
-
-  for(auto& i:tasks) {
-    if(i.viewport==SceneGlobals::V_HiZ && pass!=0)
-      continue;
-    if(i.viewport!=SceneGlobals::V_HiZ && pass==0)
-      continue;
-    struct Push { uint32_t firstMeshlet; uint32_t meshletCount; float znear; } push = {};
-    push.firstMeshlet = 0;
-    push.meshletCount = uint32_t(clusters.size());
-    push.znear        = scene.znear;
-
-    auto* pso = &Shaders::inst().clusterTask;
-    if(i.viewport==SceneGlobals::V_Main)
-      pso = &Shaders::inst().clusterTaskHiZ;
-    else if(i.viewport==SceneGlobals::V_HiZ)
-      pso = &Shaders::inst().clusterTaskHiZCr;
-    cmd.setUniforms(*pso, i.desc, &push, sizeof(push));
-    cmd.dispatchThreads(push.meshletCount);
-    }
+void DrawStorage::visibilityPass(Encoder<CommandBuffer>& c, uint8_t fId, int pass) {
+  cmd.visibilityPass(c, fId, pass);
   }
 
-void DrawStorage::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  // return;
-  struct Push { uint32_t firstMeshlet; uint32_t meshletCount; } push = {};
-
-  auto  viewId = SceneGlobals::V_HiZ;
-  auto& view   = views[viewId];
-  for(size_t i=0; i<ord.size(); ++i) {
-    auto& cx = *ord[i];
-    if(cx.desc[viewId].isEmpty())
-      continue;
-    if(cx.alpha!=Material::Solid && cx.alpha!=Material::AlphaTest)
-      continue;
-    if(cx.type!=Landscape && cx.type!=Static)
-      continue;
-    auto id  = size_t(std::distance(this->cmd.data(), &cx));
-    push.firstMeshlet = cx.firstPayload;
-    push.meshletCount = cx.maxPayload;
-
-    cmd.setUniforms(*cx.pHiZ, cx.desc[viewId], &push, sizeof(push));
-    cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
-    }
+void DrawStorage::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& c, uint8_t fId) {
+  cmd.drawHiZ(c, fId);
   }
 
 void DrawStorage::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t fId) {
@@ -640,46 +463,8 @@ void DrawStorage::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8
   drawCommon(cmd, fId, SceneGlobals::V_Main, Material::Water);
   }
 
-void DrawStorage::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, SceneGlobals::VisCamera viewId, Material::AlphaFunc func) {
-  struct Push { uint32_t firstMeshlet; uint32_t meshletCount; } push = {};
-
-  auto& view = views[viewId];
-  // auto  b    = std::lower_bound(ord.begin(), ord.end(), cmpDraw);
-  // auto  e    = std::upper_bound(ord.begin(), ord.end(), cmpDraw);
-  for(size_t i=0; i<ord.size(); ++i) {
-    auto& cx = *ord[i];
-    if(cx.desc[viewId].isEmpty())
-      continue;
-    if(cx.alpha!=func)
-      continue;
-
-    const RenderPipeline* pso = nullptr;
-    switch(viewId) {
-      case SceneGlobals::V_Shadow0:
-      case SceneGlobals::V_Shadow1:
-        pso = cx.pShadow;
-        break;
-      case SceneGlobals::V_Main:
-        pso = cx.pMain;
-        break;
-      case SceneGlobals::V_HiZ:
-      case SceneGlobals::V_Count:
-        break;
-      }
-    if(pso==nullptr)
-      continue;
-
-    auto id  = size_t(std::distance(this->cmd.data(), &cx));
-    push.firstMeshlet = cx.firstPayload;
-    push.meshletCount = cx.maxPayload;
-
-    cmd.setUniforms(*pso, cx.desc[viewId], &push, sizeof(push));
-    cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
-    }
-  }
-
-bool DrawStorage::cmpDraw(const DrawCmd* l, const DrawCmd* r) {
-  return l->alpha < r->alpha;
+void DrawStorage::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& c, uint8_t fId, SceneGlobals::VisCamera viewId, Material::AlphaFunc func) {
+  cmd.drawCommon(c, fId, viewId, func);
   }
 
 void DrawStorage::preFrameUpdate(uint8_t fId) {
@@ -770,54 +555,12 @@ size_t DrawStorage::implAlloc() {
   return objects.size()-1;
   }
 
-uint16_t DrawStorage::commandId(const Material& m, Type type, uint32_t bucketId) {
-  auto pMain   = Shaders::inst().materialPipeline(m, type, Shaders::T_Main);
-  auto pShadow = Shaders::inst().materialPipeline(m, type, Shaders::T_Shadow);
-  auto pHiZ    = Shaders::inst().materialPipeline(m, type, Shaders::T_Depth);
-  if(pMain==nullptr && pShadow==nullptr && pHiZ==nullptr)
-    return uint16_t(-1);
-
-  const bool bindless = true;
-
-  for(size_t i=0; i<cmd.size(); ++i) {
-    if(cmd[i].pMain!=pMain || cmd[i].pShadow!=pShadow || cmd[i].pHiZ!=pHiZ)
-      continue;
-    if(!bindless && cmd[i].bucketId != bucketId)
-      continue;
-    return uint16_t(i);
-    }
-
-  auto ret = uint16_t(cmd.size());
-
-  auto& device = Resources::device();
-  DrawCmd cx;
-  cx.pMain       = pMain;
-  cx.pShadow     = pShadow;
-  cx.pHiZ        = pHiZ;
-  cx.bucketId    = bindless ? 0xFFFFFFFF : bucketId;
-  cx.type        = type;
-  cx.alpha       = m.alpha;
-  if(cx.pMain!=nullptr) {
-    cx.desc[SceneGlobals::V_Main] = device.descriptors(*cx.pMain);
-    }
-  if(cx.pShadow!=nullptr) {
-    cx.desc[SceneGlobals::V_Shadow0] = device.descriptors(*cx.pShadow);
-    cx.desc[SceneGlobals::V_Shadow1] = device.descriptors(*cx.pShadow);
-    }
-  if(cx.pHiZ!=nullptr) {
-    cx.desc[SceneGlobals::V_HiZ] = device.descriptors(*cx.pHiZ);
-    }
-  cmd.push_back(std::move(cx));
-  cmdDurtyBit = true;
-  return ret;
-  }
-
 uint32_t DrawStorage::clusterId(const PackedMesh::Cluster* cx, size_t firstMeshlet, size_t meshletCount, uint16_t bucketId, uint16_t commandId) {
   if(commandId==uint16_t(-1))
     return uint32_t(-1);
 
   const auto ret = clusters.alloc(cx, firstMeshlet, meshletCount, bucketId, commandId);
-  cmd[commandId].maxPayload  += uint32_t(meshletCount);
+  cmd.addClusters(commandId, uint32_t(meshletCount));
   return uint32_t(ret);
   }
 
@@ -826,7 +569,7 @@ uint32_t DrawStorage::clusterId(const Bucket& bucket, size_t firstMeshlet, size_
     return uint32_t(-1);
 
   const auto ret = clusters.alloc(bucket, firstMeshlet, meshletCount, bucketId, commandId);
-  cmd[commandId].maxPayload  += uint32_t(meshletCount);
+  cmd.addClusters(commandId, uint32_t(meshletCount));
   return uint32_t(ret);
   }
 

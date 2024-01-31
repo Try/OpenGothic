@@ -74,7 +74,7 @@ class Shaders {
     struct Entry {
       Tempest::RenderPipeline pipeline;
       Material::AlphaFunc     alpha        = Material::Solid;
-      DrawStorage::Type       type         = DrawStorage::Static;
+      DrawCommands::Type      type         = DrawCommands::Static;
       PipelineType            pipelineType = PipelineType::T_Main;
       };
 

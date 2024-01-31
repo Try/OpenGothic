@@ -30,7 +30,7 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &packed)
       }
 
     Block b;
-    b.mesh = visual.get(mesh,material,sub.iboOffset,sub.iboLength,&packed.meshletBounds[id],DrawStorage::Landscape);
+    b.mesh = visual.get(mesh,material,sub.iboOffset,sub.iboLength,&packed.meshletBounds[id],DrawCommands::Landscape);
     b.mesh.setObjMatrix(Matrix4x4::mkIdentity());
     blocks.emplace_back(std::move(b));
     }

@@ -103,8 +103,8 @@ PfxBucket::PfxBucket(const ParticleFx &decl, PfxObjects& parent, const SceneGlob
     if(decl.visMaterial.tex==nullptr)
       continue;
 
-    item.pMain   = Shaders::inst().materialPipeline(decl.visMaterial, DrawStorage::Pfx, Shaders::T_Main);
-    item.pShadow = Shaders::inst().materialPipeline(decl.visMaterial, DrawStorage::Pfx, Shaders::T_Shadow);
+    item.pMain   = Shaders::inst().materialPipeline(decl.visMaterial, DrawCommands::Pfx, Shaders::T_Main);
+    item.pShadow = Shaders::inst().materialPipeline(decl.visMaterial, DrawCommands::Pfx, Shaders::T_Shadow);
 
     if(item.pMain!=nullptr) {
       item.ubo[SceneGlobals::V_Main]    = device.descriptors(*item.pMain);
@@ -127,8 +127,8 @@ PfxBucket::PfxBucket(const ParticleFx &decl, PfxObjects& parent, const SceneGlob
       if(mat.tex==nullptr)
         continue;
 
-      item.pMain   = Shaders::inst().materialPipeline(mat, DrawStorage::Pfx, Shaders::T_Main);
-      item.pShadow = Shaders::inst().materialPipeline(mat, DrawStorage::Pfx, Shaders::T_Shadow);
+      item.pMain   = Shaders::inst().materialPipeline(mat, DrawCommands::Pfx, Shaders::T_Main);
+      item.pShadow = Shaders::inst().materialPipeline(mat, DrawCommands::Pfx, Shaders::T_Shadow);
 
       if(item.pMain!=nullptr) {
         item.ubo[SceneGlobals::V_Main]    = device.descriptors(*item.pMain);

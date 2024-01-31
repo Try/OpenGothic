@@ -185,9 +185,9 @@ Shaders& Shaders::inst() {
   }
 
 const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage::Type t, PipelineType pt) const {
-  if(t==DrawStorage::Static) {
+  if(t==DrawCommands::Static) {
     // same shader
-    t = DrawStorage::Movable;
+    t = DrawCommands::Movable;
     }
 
   if(pt!=PipelineType::T_Main && !mat.isSolid()) {
@@ -239,7 +239,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage
 
   static bool overdrawDbg = false;
   if(overdrawDbg &&
-      (alpha==Material::Solid || alpha==Material::AlphaTest) && t!=DrawStorage::Landscape && pt!=T_Shadow) {
+      (alpha==Material::Solid || alpha==Material::AlphaTest) && t!=DrawCommands::Landscape && pt!=T_Shadow) {
     state.setBlendSource(RenderState::BlendMode::One);
     state.setBlendDest  (RenderState::BlendMode::One);
     state.setZWriteEnabled(false);
@@ -250,24 +250,24 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage
   const char* fsTok = "";
 
   switch(t) {
-    case DrawStorage::Landscape:
+    case DrawCommands::Landscape:
       vsTok = "lnd";
       fsTok = "lnd";
       break;
-    case DrawStorage::Static:
-    case DrawStorage::Movable:
+    case DrawCommands::Static:
+    case DrawCommands::Movable:
       vsTok = "obj";
       fsTok = "obj";
       break;
-    case DrawStorage::Animated:
+    case DrawCommands::Animated:
       vsTok = "ani";
       fsTok = "obj";
       break;
-    case DrawStorage::Pfx:
+    case DrawCommands::Pfx:
       vsTok = "pfx";
       fsTok = "pfx";
       break;
-    case DrawStorage::Morph:
+    case DrawCommands::Morph:
       vsTok = "mph";
       fsTok = "obj";
       break;
@@ -284,7 +284,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage
       typeFsM = "_g";
       typeVsD = "_d";
       typeFsD = "_d";
-      if(t==DrawStorage::Landscape && !mat.isTexcoordAnim())
+      if(t==DrawCommands::Landscape && !mat.isTexcoordAnim())
         typeFsM = "_g_s";
       break;
     case Material::AlphaTest:
@@ -340,7 +340,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage
   b.pipelineType = pt;
 
   auto& device = Resources::device();
-  if(mat.isTesselated() && device.properties().tesselationShader && t==DrawStorage::Landscape && true) {
+  if(mat.isTesselated() && device.properties().tesselationShader && t==DrawCommands::Landscape && true) {
     auto shVs = GothicShader::get(string_frm("main_", vsTok, typeVs, ".vert.sprv"));
     auto shTc = GothicShader::get(string_frm("main_", vsTok, typeVs, ".tesc.sprv"));
     auto shTe = GothicShader::get(string_frm("main_", vsTok, typeVs, ".tese.sprv"));
