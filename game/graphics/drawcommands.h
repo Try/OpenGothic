@@ -8,6 +8,7 @@
 #include "sceneglobals.h"
 
 class VisualObjects;
+class DrawBuckets;
 class DrawClusters;
 
 class DrawCommands {
@@ -40,7 +41,7 @@ class DrawCommands {
       bool                           isTextureInShadowPass() const;
       };
 
-    DrawCommands(VisualObjects& owner, DrawClusters& clusters, const SceneGlobals& scene);
+    DrawCommands(VisualObjects& owner, DrawBuckets& buckets, DrawClusters& clusters, const SceneGlobals& scene);
     ~DrawCommands();
 
     const DrawCmd& operator[](size_t i) const { return cmd[i]; }
@@ -105,6 +106,7 @@ class DrawCommands {
     static bool              cmpDraw(const DrawCmd* l, const DrawCmd* r);
 
     VisualObjects&           owner;
+    DrawBuckets&             buckets;
     DrawClusters&            clusters;
     const SceneGlobals&      scene;
 

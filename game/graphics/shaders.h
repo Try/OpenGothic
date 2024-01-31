@@ -5,9 +5,8 @@
 #include <Tempest/Device>
 #include <list>
 
-#include "graphics/drawstorage.h"
-
-class Material;
+#include "graphics/drawcommands.h"
+#include "material.h"
 
 class Shaders {
   public:
@@ -68,7 +67,7 @@ class Shaders {
 
     Tempest::RenderPipeline  inventory;
 
-    const Tempest::RenderPipeline* materialPipeline(const Material& desc, DrawStorage::Type t, PipelineType pt) const;
+    const Tempest::RenderPipeline* materialPipeline(const Material& desc, DrawCommands::Type t, PipelineType pt) const;
 
   private:
     struct Entry {

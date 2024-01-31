@@ -184,7 +184,7 @@ Shaders& Shaders::inst() {
   return *instance;
   }
 
-const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawStorage::Type t, PipelineType pt) const {
+const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommands::Type t, PipelineType pt) const {
   if(t==DrawCommands::Static) {
     // same shader
     t = DrawCommands::Movable;

@@ -7,16 +7,15 @@
 
 #include "graphics/mesh/protomesh.h"
 #include "graphics/mesh/submesh/staticmesh.h"
-#include "drawstorage.h"
+#include "visualobjects.h"
 
-class VisualObjects;
 class Pose;
 class ProtoMesh;
 class LightSource;
 
 class MeshObjects final {
   private:
-    using Item = DrawStorage::Item;
+    using Item = VisualObjects::Item;
 
   public:
     MeshObjects(VisualObjects& parent);

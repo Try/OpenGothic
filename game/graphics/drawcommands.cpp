@@ -26,7 +26,8 @@ bool DrawCommands::DrawCmd::isTextureInShadowPass() const {
   }
 
 
-DrawCommands::DrawCommands(VisualObjects& owner, DrawClusters& clusters, const SceneGlobals& scene) : owner(owner), clusters(clusters), scene(scene) {
+DrawCommands::DrawCommands(VisualObjects& owner, DrawBuckets& buckets, DrawClusters& clusters, const SceneGlobals& scene)
+    : owner(owner), buckets(buckets), clusters(clusters), scene(scene) {
   tasks.clear();
   for(uint8_t v=0; v<SceneGlobals::V_Count; ++v) {
     TaskCmd cmd;
@@ -137,7 +138,7 @@ void DrawCommands::invalidateUbo() {
   std::vector<const Tempest::Texture2d*>     tex;
   std::vector<const Tempest::StorageBuffer*> vbo, ibo;
   std::vector<const Tempest::StorageBuffer*> morphId, morph;
-  for(auto& i:owner.buckets()) {
+  for(auto& i:buckets.buckets()) {
     tex.push_back(i.mat.tex);
     if(i.staticMesh!=nullptr) {
       ibo    .push_back(&i.staticMesh->ibo8);
@@ -166,7 +167,7 @@ void DrawCommands::invalidateUbo() {
 
     i.desc.set(T_Scene,    scene.uboGlobal[i.viewport]);
     i.desc.set(T_Instance, owner.instanceSsbo());
-    i.desc.set(T_Bucket,   owner.bucketsSsbo());
+    i.desc.set(T_Bucket,   buckets.ssbo());
     i.desc.set(T_HiZ,      *scene.hiZ);
     }
 
@@ -181,7 +182,7 @@ void DrawCommands::invalidateUbo() {
       i.desc[v].set(L_Ibo,      ibo);
       i.desc[v].set(L_Vbo,      vbo);
       i.desc[v].set(L_Diffuse,  tex);
-      i.desc[v].set(L_Bucket,   owner.bucketsSsbo());
+      i.desc[v].set(L_Bucket,   buckets.ssbo());
       i.desc[v].set(L_Payload,  views[v].visClusters);
       i.desc[v].set(L_Sampler,  Sampler::anisotrophy());
 

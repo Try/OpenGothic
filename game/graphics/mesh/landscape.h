@@ -4,21 +4,17 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/UniformBuffer>
 
-#include "graphics/drawstorage.h"
+#include "graphics/visualobjects.h"
 #include "graphics/meshobjects.h"
 
-class World;
-class SceneGlobals;
-class LightSource;
 class PackedMesh;
-class WorldView;
 
 class Landscape final {
   public:
     Landscape(VisualObjects& visual, const PackedMesh& wmesh);
 
   private:
-    using Item = DrawStorage::Item;
+    using Item = VisualObjects::Item;
 
     struct Block {
       Item mesh;
