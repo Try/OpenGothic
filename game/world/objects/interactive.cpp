@@ -517,7 +517,7 @@ uint32_t Interactive::stateMask() const {
 bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
   for(auto& i:attPos){
     auto pos = nodePosition(npc,i);
-    if(npc.canSeeNpc(pos.x,pos.y,pos.z,freeLos))
+    if(npc.canSeePos(pos.x,pos.y,pos.z,freeLos))
       return true;
     }
 
@@ -528,7 +528,7 @@ bool Interactive::canSeeNpc(const Npc& npc, bool freeLos) const {
     float x = pos.x;
     float y = pos.y;
     float z = pos.z;
-    if(npc.canSeeNpc(x,y,z,freeLos))
+    if(npc.canSeePos(x,y,z,freeLos))
       return true;
     }
   return false;
