@@ -13,6 +13,8 @@
 #include "graphics/material.h"
 #include "graphics/sceneglobals.h"
 #include "graphics/instancestorage.h"
+#include "graphics/drawbuckets.h"
+#include "graphics/drawclusters.h"
 
 class StaticMesh;
 class AnimMesh;
@@ -124,33 +126,8 @@ class DrawStorage {
       L_GDepth   = 13,
       };
 
-    struct Range {
-      size_t begin = 0;
-      size_t end   = 0;
-      };
-
-    template<class T>
-    class FreeList {
-      public:
-        const size_t size() const { return data.size(); }
-        T& operator[](size_t i) { return data[i]; }
-
-        size_t alloc(size_t count=1);
-        void   free(size_t i, size_t count=1);
-
-        std::vector<T>     data;
-        std::vector<Range> freeList;
-      };
-
-    struct Cluster final {
-      Tempest::Vec3 pos;
-      float         r            = 0;
-      uint16_t      commandId    = 0;
-      uint16_t      bucketId     = 0;
-      uint32_t      firstMeshlet = 0;
-      uint32_t      meshletCount = 0;
-      uint32_t      instanceId   = 0;
-      };
+    using Bucket  = DrawBuckets::Bucket;
+    using Cluster = DrawClusters::Cluster;
 
     struct MorphAnim {
       size_t   id        = 0;
@@ -170,7 +147,7 @@ class DrawStorage {
       uint32_t            iboOff    = 0;
       uint32_t            iboLen    = 0;
       uint32_t            animPtr   = 0;
-      uint16_t            bucketId  = 0;
+      DrawBuckets::Id     bucketId;
       uint16_t            cmdId     = uint16_t(-1);
       uint32_t            clusterId = 0;
 
@@ -211,22 +188,6 @@ class DrawStorage {
       uint32_t writeOffset   = 0;
       };
 
-    struct Bucket {
-      const StaticMesh* staticMesh = nullptr;
-      const AnimMesh*   animMesh   = nullptr;
-      Material          mat;
-      };
-
-    struct BucketGpu final {
-      Tempest::Vec4  bbox[2];
-      Tempest::Point texAniMapDirPeriod;
-      float          bboxRadius       = 0;
-      float          waveMaxAmplitude = 0;
-      float          alphaWeight      = 1;
-      float          envMapping       = 0;
-      uint32_t       padd[2]          = {};
-      };
-
     struct TaskCmd {
       SceneGlobals::VisCamera        viewport = SceneGlobals::V_Main;
       Tempest::DescriptorSet         desc;
@@ -256,21 +217,9 @@ class DrawStorage {
       Tempest::StorageBuffer         visClusters, indirectCmd;
       };
 
-    struct Patch {
-      Tempest::DescriptorSet         desc;
-      Tempest::StorageBuffer         indices;
-      Tempest::StorageBuffer         data;
-      };
-
-    struct ScratchPatch {
-      std::vector<uint32_t> header;
-      std::vector<Cluster>  patch;
-      };
-
     void                           free(size_t id);
     void                           updateInstance(size_t id, Tempest::Matrix4x4* pos = nullptr);
     void                           updateRtAs(size_t id);
-    void                           markClusters(size_t id, size_t count = 1);
 
     void                           startMMAnim(size_t i, std::string_view animName, float intensity, uint64_t timeUntil);
     void                           setAsGhost(size_t i, bool g);
@@ -282,13 +231,9 @@ class DrawStorage {
     static bool                    cmpDraw(const DrawCmd* l, const DrawCmd* r);
 
     bool                           commitCommands();
-    bool                           commitBuckets();
-    bool                           commitClusters(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void                           patchClusters(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
     size_t                         implAlloc();
-    uint16_t                       bucketId (const Material& m, const StaticMesh& mesh);
-    uint16_t                       bucketId (const Material& m, const AnimMesh&   mesh);
     uint16_t                       commandId(const Material& m, Type type, uint32_t bucketId);
     uint32_t                       clusterId(const PackedMesh::Cluster* cluster, size_t firstMeshlet, size_t meshletCount, uint16_t bucketId, uint16_t commandId);
     uint32_t                       clusterId(const Bucket&  bucket,  size_t firstMeshlet, size_t meshletCount, uint16_t bucketId, uint16_t commandId);
@@ -298,27 +243,18 @@ class DrawStorage {
 
     VisualObjects&                 owner;
     const SceneGlobals&            scene;
-    std::vector<TaskCmd>           tasks;
 
     std::vector<Object>            objects;
     std::unordered_set<size_t>     objectsWind;
     std::unordered_set<size_t>     objectsMorph;
     std::unordered_set<size_t>     objectsFree;
-    Patch                          patch[Resources::MaxFramesInFlight];
-    ScratchPatch                   scratch;
 
-    std::vector<Bucket>            buckets;
-    Tempest::StorageBuffer         bucketsGpu;
-    bool                           bucketsDurtyBit = false;
+    DrawClusters                   clusters;
 
-    size_t                         totalPayload = 0;
-    FreeList<Cluster>              clusters;
-    Tempest::StorageBuffer         clustersGpu;
-    std::vector<uint32_t>          clustersDurty;
-    bool                           clustersDurtyBit = false;
-
+    std::vector<TaskCmd>           tasks;
     std::vector<DrawCmd>           cmd;
     std::vector<DrawCmd*>          ord;
+    size_t                         totalPayload = 0;
     bool                           cmdDurtyBit = false;
     View                           views[SceneGlobals::V_Count];
   };

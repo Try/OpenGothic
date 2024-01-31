@@ -1,5 +1,6 @@
 #pragma once
 
+#include "drawbuckets.h"
 #include "drawstorage.h"
 
 class SceneGlobals;
@@ -26,6 +27,11 @@ class VisualObjects final {
     bool                realloc(InstanceStorage::Id& id, size_t size);
     auto                instanceSsbo() const -> const Tempest::StorageBuffer&;
 
+    DrawBuckets::Id     alloc(const Material& mat, const StaticMesh& mesh);
+    DrawBuckets::Id     alloc(const Material& mat, const AnimMesh&   mesh);
+    auto                bucketsSsbo() const -> const Tempest::StorageBuffer&;
+    auto                buckets() -> const std::vector<DrawBuckets::Bucket>&;
+
     void prepareUniforms();
     void preFrameUpdate (uint8_t fId);
     void prepareGlobals (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
@@ -47,6 +53,7 @@ class VisualObjects final {
   private:
     const SceneGlobals& scene;
     InstanceStorage     instanceMem;
+    DrawBuckets         bucketsMem;
     DrawStorage         drawMem;
   };
 

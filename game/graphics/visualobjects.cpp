@@ -52,6 +52,22 @@ const Tempest::StorageBuffer& VisualObjects::instanceSsbo() const {
   return instanceMem.ssbo();
   }
 
+DrawBuckets::Id VisualObjects::alloc(const Material& mat, const StaticMesh& mesh) {
+  return bucketsMem.alloc(mat, mesh);
+  }
+
+DrawBuckets::Id VisualObjects::alloc(const Material& mat, const AnimMesh& mesh) {
+  return bucketsMem.alloc(mat, mesh);
+  }
+
+const Tempest::StorageBuffer& VisualObjects::bucketsSsbo() const {
+  return bucketsMem.ssbo();
+  }
+
+const std::vector<DrawBuckets::Bucket>& VisualObjects::buckets() {
+  return bucketsMem.buckets();
+  }
+
 void VisualObjects::prepareUniforms() {
   drawMem.prepareUniforms();
   }
@@ -90,6 +106,7 @@ void VisualObjects::notifyTlas(const Material& m, RtScene::Category cat) {
 
 void VisualObjects::prepareGlobals(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   bool sk = instanceMem.commit(cmd, fId);
+  sk |= bucketsMem.commit(cmd, fId);
   sk |= drawMem.commit(cmd, fId);
   if(!sk)
     return;

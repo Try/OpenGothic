@@ -28,52 +28,6 @@ static RtScene::Category toRtCategory(DrawStorage::Type t) {
   return RtScene::None;
   }
 
-template<class T>
-size_t DrawStorage::FreeList<T>::alloc(size_t count) {
-  size_t bestFit = size_t(-1), bfDiff = size_t(-1);
-  for(size_t i=0; i<freeList.size(); ++i) {
-    auto f  = freeList[i];
-    auto sz = (f.end - f.begin);
-    if(sz==count) {
-      freeList.erase(freeList.begin()+int(i));
-      return f.begin;
-      }
-    if(sz<count)
-      continue;
-    if(sz-count < bfDiff)
-      bestFit = i;
-    }
-
-  if(bestFit != size_t(-1)) {
-    auto& f = freeList[bestFit];
-    f.end -= count;
-    return f.end;
-    }
-
-  size_t ret = data.size();
-  data.resize(data.size() + count);
-  return ret;
-  }
-
-template<class T>
-void DrawStorage::FreeList<T>::free(size_t id, size_t count) {
-  Range r = {id, id+count};
-  auto at = std::lower_bound(freeList.begin(),freeList.end(),r,[](const Range& l, const Range& r){
-    return l.begin<r.begin;
-    });
-  at = freeList.insert(at,r);
-  auto next = at+1;
-  if(next!=freeList.end() && at->end==next->begin) {
-    next->begin = at->begin;
-    at = freeList.erase(at);
-    }
-  if(at!=freeList.begin() && at->begin==(at-1)->end) {
-    auto prev = (at-1);
-    prev->end = at->end;
-    at = freeList.erase(at);
-    }
-  }
-
 void DrawStorage::Item::setObjMatrix(const Tempest::Matrix4x4& pos) {
   if(owner!=nullptr) {
     auto& obj = owner->objects[id];
@@ -128,15 +82,14 @@ void DrawStorage::Item::startMMAnim(std::string_view anim, float intensity, uint
 const Material& DrawStorage::Item::material() const {
   if(owner==nullptr)
     return dummy<Material>();
-  auto b = owner->objects[id].bucketId;
-  return owner->buckets[b].mat;
+  auto& bx = *owner->objects[id].bucketId;
+  return bx.mat;
   }
 
 const Bounds& DrawStorage::Item::bounds() const {
   if(owner==nullptr)
     return dummy<Bounds>();
-  auto  bId = owner->objects[id].bucketId;
-  auto& bx  = owner->buckets[bId];
+  auto& bx = *owner->objects[id].bucketId;
   if(bx.staticMesh!=nullptr)
     return bx.staticMesh->bbox;
   if(bx.animMesh!=nullptr)
@@ -153,8 +106,8 @@ Matrix4x4 DrawStorage::Item::position() const {
 const StaticMesh* DrawStorage::Item::mesh() const {
   if(owner==nullptr)
     return nullptr;
-  auto b = owner->objects[id].bucketId;
-  return owner->buckets[b].staticMesh;
+  auto& bx = *owner->objects[id].bucketId;
+  return bx.staticMesh;
   }
 
 std::pair<uint32_t, uint32_t> DrawStorage::Item::meshSlice() const {
@@ -196,9 +149,6 @@ DrawStorage::DrawStorage(VisualObjects& owner, const SceneGlobals& globals) : ow
     }
   objectsMorph.reserve(512);
   objectsFree.reserve(256);
-
-  scratch.header.reserve(1024);
-  scratch.patch .reserve(1024);
   }
 
 DrawStorage::~DrawStorage() {
@@ -218,14 +168,13 @@ DrawStorage::Item DrawStorage::alloc(const StaticMesh& mesh, const Material& mat
   obj.type      = Type::Landscape;
   obj.iboOff    = uint32_t(iboOff);
   obj.iboLen    = uint32_t(iboLen);
-  obj.bucketId  = bucketId(mat, mesh);
-  obj.cmdId     = commandId(mat, type, obj.bucketId);
-  obj.clusterId = clusterId(cluster, iboOff/PackedMesh::MaxInd, iboLen/PackedMesh::MaxInd, obj.bucketId, obj.cmdId);
+  obj.bucketId  = owner.alloc(mat, mesh);
+  obj.cmdId     = commandId(mat, type, obj.bucketId.toInt());
+  obj.clusterId = clusterId(cluster, iboOff/PackedMesh::MaxInd, iboLen/PackedMesh::MaxInd, obj.bucketId.toInt(), obj.cmdId);
   obj.alpha     = mat.alpha;
 
   if(obj.isEmpty())
     return Item(); // null command
-  markClusters(obj.clusterId, iboLen/PackedMesh::MaxInd);
   updateRtAs(id);
   return Item(*this, id);
   }
@@ -248,9 +197,9 @@ DrawStorage::Item DrawStorage::alloc(const StaticMesh& mesh, const Material& mat
   obj.type      = type;
   obj.iboOff    = uint32_t(iboOff);
   obj.iboLen    = uint32_t(iboLen);
-  obj.bucketId  = bucketId(mat, mesh);
-  obj.cmdId     = commandId(mat, obj.type, obj.bucketId);
-  obj.clusterId = clusterId(buckets[obj.bucketId], iboOff/PackedMesh::MaxInd, iboLen/PackedMesh::MaxInd, obj.bucketId, obj.cmdId);
+  obj.bucketId  = owner.alloc(mat, mesh);
+  obj.cmdId     = commandId(mat, obj.type, obj.bucketId.toInt());
+  obj.clusterId = clusterId(*obj.bucketId, iboOff/PackedMesh::MaxInd, iboLen/PackedMesh::MaxInd, obj.bucketId.toInt(), obj.cmdId);
   obj.alpha     = mat.alpha;
 
   if(obj.isEmpty())
@@ -285,9 +234,9 @@ DrawStorage::Item DrawStorage::alloc(const AnimMesh& mesh, const Material& mat, 
   obj.type      = Type::Animated;
   obj.iboOff    = uint32_t(iboOff);
   obj.iboLen    = uint32_t(iboLen);
-  obj.bucketId  = bucketId(mat, mesh);
-  obj.cmdId     = commandId(mat, obj.type, obj.bucketId);
-  obj.clusterId = clusterId(buckets[obj.bucketId], iboOff/PackedMesh::MaxInd, iboLen/PackedMesh::MaxInd, obj.bucketId, obj.cmdId);
+  obj.bucketId  = owner.alloc(mat, mesh);
+  obj.cmdId     = commandId(mat, obj.type, obj.bucketId.toInt());
+  obj.clusterId = clusterId(*obj.bucketId, iboOff/PackedMesh::MaxInd, iboLen/PackedMesh::MaxInd, obj.bucketId.toInt(), obj.cmdId);
   obj.alpha     = mat.alpha;
 
   if(obj.isEmpty())
@@ -309,12 +258,6 @@ void DrawStorage::free(size_t id) {
   cmd[obj.cmdId].maxPayload -= meshletCount;
 
   const uint32_t numCluster = (obj.type==Landscape ? meshletCount : 1);
-  for(size_t i=0; i<numCluster; ++i) {
-    clusters[obj.clusterId + i]              = Cluster();
-    clusters[obj.clusterId + i].r            = -1;
-    clusters[obj.clusterId + i].meshletCount = 0;
-    markClusters(obj.clusterId + i);
-    }
   clusters.free(obj.clusterId, numCluster);
 
   if(obj.wind==phoenix::animation_mode::none)
@@ -348,13 +291,13 @@ void DrawStorage::updateInstance(size_t id, Matrix4x4* pos) {
   auto npos = Vec3(obj.pos[3][0], obj.pos[3][1], obj.pos[3][2]);
   if(clusters[cId].pos != npos) {
     clusters[cId].pos = npos;
-    markClusters(cId);
+    clusters.markClusters(cId);
     }
   }
 
 void DrawStorage::updateRtAs(size_t id) {
   auto& obj = objects[id];
-  auto& mat = buckets[obj.bucketId].mat;
+  auto& mat = obj.bucketId->mat;
 
   bool useBlas = toRtCategory(obj.type)!=RtScene::None;
   if(mat.alpha==Material::Ghost)
@@ -365,25 +308,16 @@ void DrawStorage::updateRtAs(size_t id) {
   if(!useBlas)
     return;
 
-  auto& mesh = *buckets[obj.bucketId].staticMesh;
+  auto& mesh = *obj.bucketId->staticMesh;
   if(auto b = mesh.blas(obj.iboOff, obj.iboLen)) {
     (void)b;
     owner.notifyTlas(mat, toRtCategory(obj.type));
     }
   }
 
-void DrawStorage::markClusters(size_t id, size_t count) {
-  // fixme: thread-safe
-  for(size_t i=0; i<count; ++i) {
-    clustersDurty[id/32] |= uint32_t(1u << (id%32));
-    id++;
-    }
-  clustersDurtyBit = true;
-  }
-
 void DrawStorage::startMMAnim(size_t i, std::string_view animName, float intensity, uint64_t timeUntil) {
   auto& obj        = objects[i];
-  auto  staticMesh = buckets[obj.bucketId].staticMesh;
+  auto  staticMesh = obj.bucketId->staticMesh;
   if(staticMesh==nullptr || staticMesh->morph.anim==nullptr)
     return;
 
@@ -444,7 +378,7 @@ void DrawStorage::setAsGhost(size_t id, bool g) {
   if(obj.isGhost==g)
     return;
 
-  auto& bx  = buckets[obj.bucketId];
+  auto& bx  = *obj.bucketId;
   auto& cx  = cmd[obj.cmdId];
   auto  mat = bx.mat;
 
@@ -455,18 +389,18 @@ void DrawStorage::setAsGhost(size_t id, bool g) {
   obj.isGhost = g;
 
   if(bx.staticMesh!=nullptr)
-    obj.bucketId = bucketId(mat, *bx.staticMesh); else
-    obj.bucketId = bucketId(mat, *bx.animMesh);
+    obj.bucketId = owner.alloc(mat, *bx.staticMesh); else
+    obj.bucketId = owner.alloc(mat, *bx.animMesh);
 
-  obj.cmdId = commandId(mat, cx.type, obj.bucketId);
+  obj.cmdId = commandId(mat, cx.type, obj.bucketId.toInt());
   cmd[obj.cmdId].maxPayload += meshletCount;
 
   cmdDurtyBit = true;
   const uint32_t numCluster = (obj.type==Landscape ? meshletCount : 1);
   for(size_t i=0; i<numCluster; ++i) {
     clusters[obj.clusterId + i].commandId = obj.cmdId;
-    clusters[obj.clusterId + i].bucketId  = obj.bucketId;
-    markClusters(obj.clusterId + i);
+    clusters[obj.clusterId + i].bucketId  = obj.bucketId.toInt();
+    clusters.markClusters(obj.clusterId + i);
     }
   }
 
@@ -508,114 +442,10 @@ bool DrawStorage::commitCommands() {
   return true;
   }
 
-bool DrawStorage::commitBuckets() {
-  if(!bucketsDurtyBit)
-    return false;
-  bucketsDurtyBit = false;
-
-  std::vector<BucketGpu> bucket;
-  for(auto& i:buckets) {
-    BucketGpu bx;
-    bx.texAniMapDirPeriod = i.mat.texAniMapDirPeriod;
-    bx.waveMaxAmplitude   = i.mat.waveMaxAmplitude;
-    bx.alphaWeight        = i.mat.alphaWeight;
-    bx.envMapping         = i.mat.envMapping;
-    if(i.staticMesh!=nullptr) {
-      auto& bbox    = i.staticMesh->bbox.bbox;
-      bx.bboxRadius = i.staticMesh->bbox.rConservative;
-      bx.bbox[0]    = Vec4(bbox[0].x,bbox[0].y,bbox[0].z,0.f);
-      bx.bbox[1]    = Vec4(bbox[1].x,bbox[1].y,bbox[1].z,0.f);
-      }
-    else if(i.animMesh!=nullptr) {
-      auto& bbox    = i.animMesh->bbox.bbox;
-      bx.bboxRadius = i.animMesh->bbox.rConservative;
-      bx.bbox[0]    = Vec4(bbox[0].x,bbox[0].y,bbox[0].z,0.f);
-      bx.bbox[1]    = Vec4(bbox[1].x,bbox[1].y,bbox[1].z,0.f);
-      }
-    bucket.push_back(bx);
-    }
-
-  auto& device = Resources::device();
-  Resources::recycle(std::move(bucketsGpu));
-  bucketsGpu = device.ssbo(bucket);
-  return true;
-  }
-
-bool DrawStorage::commitClusters(Encoder<CommandBuffer>& cmd, uint8_t fId) {
-  if(!clustersDurtyBit)
-    return false;
-  clustersDurtyBit = false;
-
-  auto& device = Resources::device();
-  if(clustersGpu.byteSize() == clusters.size()*sizeof(clusters[0])) {
-    patchClusters(cmd, fId);
-    return false;
-    }
-
-  Resources::recycle(std::move(clustersGpu));
-  clustersGpu  = device.ssbo(clusters.data);
-  std::fill(clustersDurty.begin(), clustersDurty.end(), 0x0);
-  return true;
-  }
-
-void DrawStorage::patchClusters(Encoder<CommandBuffer>& cmd, uint8_t fId) {
-  std::vector<uint32_t>& header = scratch.header;
-  std::vector<Cluster>&  patch  = scratch.patch;
-
-  header.clear();
-  patch.clear();
-
-  for(size_t i=0; i<clustersDurty.size(); ++i) {
-    if(clustersDurty[i]==0x0)
-      continue;
-    const uint32_t mask = clustersDurty[i];
-    clustersDurty[i] = 0x0;
-
-    for(size_t r=0; r<32; ++r) {
-      if((mask & (1u<<r))==0)
-        continue;
-      size_t idx = i*32 + r;
-      if(idx>=clusters.size())
-        continue;
-      patch.push_back(clusters[idx]);
-      header.push_back(uint32_t(idx));
-      }
-    }
-
-  if(header.empty())
-    return;
-
-  auto& device = Resources::device();
-  auto& p = this->patch[fId];
-  if(p.desc.isEmpty())
-    p.desc = device.descriptors(Shaders::inst().clusterPath);
-
-  p.desc.set(0, clustersGpu);
-  if(header.size()*sizeof(header[0]) < p.indices.byteSize()) {
-    p.indices.update(header);
-    } else {
-    p.indices = device.ssbo(BufferHeap::Upload, header);
-    p.desc.set(2, p.indices);
-    }
-
-  if(patch.size()*sizeof(patch[0]) < p.data.byteSize()) {
-    p.data.update(patch);
-    } else {
-    p.data = device.ssbo(BufferHeap::Upload, patch);
-    p.desc.set(1, p.data);
-    }
-
-  const uint32_t count = uint32_t(header.size());
-  cmd.setFramebuffer({});
-  cmd.setUniforms(Shaders::inst().clusterPath, p.desc, &count, sizeof(count));
-  cmd.dispatchThreads(count);
-  }
-
 bool DrawStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   bool ret = false;
   ret |= commitCommands();
-  ret |= commitBuckets();
-  ret |= commitClusters(cmd, fId);
+  ret |= clusters.commit(cmd, fId);
   return ret;
   }
 
@@ -633,7 +463,7 @@ void DrawStorage::invalidateUbo() {
   std::vector<const Tempest::Texture2d*>     tex;
   std::vector<const Tempest::StorageBuffer*> vbo, ibo;
   std::vector<const Tempest::StorageBuffer*> morphId, morph;
-  for(auto& i:buckets) {
+  for(auto& i:owner.buckets()) {
     tex.push_back(i.mat.tex);
     if(i.staticMesh!=nullptr) {
       ibo    .push_back(&i.staticMesh->ibo8);
@@ -656,13 +486,13 @@ void DrawStorage::invalidateUbo() {
       i.desc = device.descriptors(Shaders::inst().clusterTaskHiZCr);
     else
       i.desc = device.descriptors(Shaders::inst().clusterTask);
-    i.desc.set(T_Clusters, clustersGpu);
+    i.desc.set(T_Clusters, clusters.ssbo());
     i.desc.set(T_Indirect, views[i.viewport].indirectCmd);
     i.desc.set(T_Payload,  views[i.viewport].visClusters);
 
     i.desc.set(T_Scene,    scene.uboGlobal[i.viewport]);
     i.desc.set(T_Instance, owner.instanceSsbo());
-    i.desc.set(T_Bucket,   bucketsGpu);
+    i.desc.set(T_Bucket,   owner.bucketsSsbo());
     i.desc.set(T_HiZ,      *scene.hiZ);
     }
 
@@ -670,14 +500,14 @@ void DrawStorage::invalidateUbo() {
     for(uint8_t v=0; v<SceneGlobals::V_Count; ++v) {
       if(i.desc[v].isEmpty())
         continue;
-      auto& mem = (i.type==Type::Landscape) ? clustersGpu : owner.instanceSsbo();
+      auto& mem = (i.type==Type::Landscape) ? clusters.ssbo() : owner.instanceSsbo();
 
       i.desc[v].set(L_Scene,    scene.uboGlobal[v]);
       i.desc[v].set(L_Instance, mem);
       i.desc[v].set(L_Ibo,      ibo);
       i.desc[v].set(L_Vbo,      vbo);
       i.desc[v].set(L_Diffuse,  tex);
-      i.desc[v].set(L_Bucket,   bucketsGpu);
+      i.desc[v].set(L_Bucket,   owner.bucketsSsbo());
       i.desc[v].set(L_Payload,  views[v].visClusters);
       i.desc[v].set(L_Sampler,  Sampler::anisotrophy());
 
@@ -712,7 +542,7 @@ void DrawStorage::fillTlas(RtScene& out) {
   for(auto& obj:objects) {
     if(obj.isEmpty())
       continue;
-    auto& bucket = buckets[obj.bucketId];
+    auto& bucket = *obj.bucketId;
     auto* mesh   = bucket.staticMesh;
     auto& mat    = bucket.mat;
     if(mesh==nullptr)
@@ -905,7 +735,7 @@ void DrawStorage::preFrameUpdateMorph(uint8_t fId) {
     MorphData data = {};
     for(size_t i=0; i<Resources::MAX_MORPH_LAYERS; ++i) {
       auto&    ani  = obj.morphAnim[i];
-      auto&    bk   = buckets[obj.bucketId];
+      auto&    bk   = *obj.bucketId;//buckets[obj.bucketId];
       auto&    anim = (*bk.staticMesh->morph.anim)[ani.id];
       uint64_t time = (scene.tickCount-ani.timeStart);
 
@@ -938,37 +768,6 @@ size_t DrawStorage::implAlloc() {
 
   objects.resize(objects.size()+1);
   return objects.size()-1;
-  }
-
-uint16_t DrawStorage::bucketId(const Material& mat, const StaticMesh& mesh) {
-  for(size_t i=0; i<buckets.size(); ++i) {
-    auto& b = buckets[i];
-    if(b.staticMesh==&mesh && b.mat==mat)
-      return uint16_t(i);
-    }
-
-  Bucket bx;
-  bx.staticMesh = &mesh;
-  bx.mat        = mat;
-  buckets.emplace_back(std::move(bx));
-  bucketsDurtyBit = true;
-  return uint16_t(buckets.size()-1);
-  }
-
-uint16_t DrawStorage::bucketId(const Material& mat, const AnimMesh& mesh) {
-  for(size_t i=0; i<buckets.size(); ++i) {
-    auto& b = buckets[i];
-    if(b.animMesh==&mesh && b.mat==mat)
-      return uint16_t(i);
-    }
-
-  Bucket bx;
-  bx.animMesh = &mesh;
-  bx.mat      = mat;
-
-  bucketsDurtyBit = true;
-  buckets.emplace_back(std::move(bx));
-  return uint16_t(buckets.size()-1);
   }
 
 uint16_t DrawStorage::commandId(const Material& m, Type type, uint32_t bucketId) {
@@ -1017,23 +816,7 @@ uint32_t DrawStorage::clusterId(const PackedMesh::Cluster* cx, size_t firstMeshl
   if(commandId==uint16_t(-1))
     return uint32_t(-1);
 
-  const auto ret = clusters.alloc(meshletCount);
-  for(size_t i=0; i<meshletCount; ++i) {
-    Cluster c;
-    c.pos          = cx[i].pos;
-    c.r            = cx[i].r;
-    c.bucketId     = bucketId;
-    c.commandId    = commandId;
-    c.firstMeshlet = uint32_t(firstMeshlet + i);
-    c.meshletCount = 1;
-    c.instanceId   = uint32_t(-1);
-
-    clusters[ret+i] = c;
-    }
-
-  clustersDurty.resize((clusters.size() + 32 - 1)/32);
-  markClusters(ret, meshletCount);
-
+  const auto ret = clusters.alloc(cx, firstMeshlet, meshletCount, bucketId, commandId);
   cmd[commandId].maxPayload  += uint32_t(meshletCount);
   return uint32_t(ret);
   }
@@ -1042,21 +825,7 @@ uint32_t DrawStorage::clusterId(const Bucket& bucket, size_t firstMeshlet, size_
   if(commandId==uint16_t(-1))
     return uint32_t(-1);
 
-  const auto ret = clusters.alloc(1);
-
-  Cluster& c = clusters[ret];
-  if(bucket.staticMesh!=nullptr)
-    c.r = bucket.staticMesh->bbox.rConservative + bucket.mat.waveMaxAmplitude; else
-    c.r = bucket.animMesh->bbox.rConservative;
-  c.bucketId     = bucketId;
-  c.commandId    = commandId;
-  c.firstMeshlet = uint32_t(firstMeshlet);
-  c.meshletCount = uint32_t(meshletCount);
-  c.instanceId   = uint32_t(-1);
-
-  clustersDurty.resize((clusters.size() + 32 - 1)/32);
-  markClusters(ret, 1);
-
+  const auto ret = clusters.alloc(bucket, firstMeshlet, meshletCount, bucketId, commandId);
   cmd[commandId].maxPayload  += uint32_t(meshletCount);
   return uint32_t(ret);
   }
