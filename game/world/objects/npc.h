@@ -374,9 +374,8 @@ class Npc final {
 
     bool      canSeeNpc(const Npc& oth,bool freeLos) const;
     bool      canSeeSource() const;
-    bool      canSeeNpc(float x,float y,float z,bool freeLos) const;
-    auto      canSenseNpc(const Npc& oth,bool freeLos, float extRange=0.f) const -> SensesBit;
-    auto      canSenseNpc(float x,float y,float z,bool freeLos,bool isNoisy,float extRange=0.f) const -> SensesBit;
+    bool      canSeePos(float x,float y,float z,bool freeLos) const;
+    bool      canSenseNpc(const Npc& oth,bool freeLos, float extRange=0.f) const;
 
     bool      canSeeItem(const Item& it,bool freeLos) const;
 

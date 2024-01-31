@@ -846,7 +846,7 @@ const WayPoint *World::findFreePoint(const Npc &npc, std::string_view name) cons
   return wmatrix->findFreePoint(pos,name,[&npc](const WayPoint& wp) -> bool {
     if(wp.isLocked())
       return false;
-    if(!npc.canSeeNpc(wp.x,wp.y+10,wp.z,true))
+    if(!npc.canSeePos(wp.x,wp.y+10,wp.z,true))
       return false;
     return true;
     });
@@ -869,7 +869,7 @@ const WayPoint *World::findNextFreePoint(const Npc &npc, std::string_view name) 
   auto wp  = wmatrix->findFreePoint(pos,name,[cur,&npc](const WayPoint& wp) -> bool {
     if(wp.isLocked() || &wp==cur)
       return false;
-    if(!npc.canSeeNpc(wp.x,wp.y+10,wp.z,true))
+    if(!npc.canSeePos(wp.x,wp.y+10,wp.z,true))
       return false;
     return true;
     });
@@ -911,7 +911,7 @@ WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
     return wmatrix->wayTo(&begin,1,p,end);
     }
   auto near = wmatrix->findWayPoint(p, [&npc](const WayPoint &wp) {
-    if(!npc.canSeeNpc(wp.x,wp.y+10,wp.z,true))
+    if(!npc.canSeePos(wp.x,wp.y+10,wp.z,true))
       return false;
     return true;
     });
@@ -925,7 +925,7 @@ WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
   wpoint.push_back(near);
   for(auto& i:near->connections()) {
     auto p = i.point->position();
-    if(npc.canSeeNpc(p.x,p.y+10,p.z,true))
+    if(npc.canSeePos(p.x,p.y+10,p.z,true))
       wpoint.push_back(i.point);
     }
 

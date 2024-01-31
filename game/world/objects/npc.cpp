@@ -1703,7 +1703,7 @@ bool Npc::implAiFlee(uint64_t dt) {
       return false;
     if(p.underWater)
       return false;
-    if(!canSeeNpc(p.x,p.y+10,p.z,true))
+    if(!canSeePos(p.x,p.y+10,p.z,true))
       return false;
     if(wp==nullptr || oth.qDistTo(&p)>oth.qDistTo(wp))
       wp = &p;
@@ -1907,7 +1907,7 @@ Npc *Npc::updateNearestEnemy() {
   Npc*  ret  = nullptr;
   float dist = std::numeric_limits<float>::max();
   if(nearestEnemy!=nullptr &&
-     (!nearestEnemy->isDown() && (canSenseNpc(*nearestEnemy,true)&SensesBit::SENSE_SEE)!=SensesBit::SENSE_NONE)) {
+    !nearestEnemy->isDown() && canSenseNpc(*nearestEnemy,true)) {
     ret  = nearestEnemy;
     dist = qDistTo(*ret);
     }
@@ -1917,7 +1917,7 @@ Npc *Npc::updateNearestEnemy() {
       return;
 
     float d = qDistTo(n);
-    if(d<dist && (canSenseNpc(n,true)&SensesBit::SENSE_SEE)!=SensesBit::SENSE_NONE) {
+    if(d<dist && canSenseNpc(n,true)) {
       ret  = &n;
       dist = d;
       }
@@ -1938,7 +1938,7 @@ Npc* Npc::updateNearestBody() {
       return;
 
     float d = qDistTo(n);
-    if(d<dist && (canSenseNpc(n,true)&SensesBit::SENSE_SEE)!=SensesBit::SENSE_NONE) {
+    if(d<dist && canSenseNpc(n,true)) {
       ret  = &n;
       dist = d;
       }
@@ -2061,7 +2061,7 @@ void Npc::tickAnimationTags() {
 
   for(auto& i:ev.morph)
     visual.startMMAnim(*this,i.anim,i.node);
-  if(ev.groundSounds>0 && isPlayer() && (bodyStateMasked()!=BodyState::BS_SNEAK))
+  if(ev.groundSounds>0 && isPlayer() && (wlkMode&WalkBit::WM_Sneak)!=WalkBit::WM_Sneak)
     world().sendPassivePerc(*this,*this,*this,PERC_ASSESSQUIETSOUND);
   if(ev.def_opt_frame>0)
     commitDamage();
@@ -3779,7 +3779,7 @@ bool Npc::perceptionProcess(Npc &pl) {
     }
 
   const float quadDist = pl.qDistTo(*this);
-  if(hasPerc(PERC_ASSESSPLAYER) && canSenseNpc(pl,false)!=SensesBit::SENSE_NONE) {
+  if(hasPerc(PERC_ASSESSPLAYER) && canSenseNpc(pl,false)) {
     if(perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSPLAYER)) {
       ret = true;
       }
@@ -4136,10 +4136,10 @@ void Npc::stopWalking() {
 
 bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
   const auto mid = oth.bounds().midTr;
-  if(canSeeNpc(mid.x,mid.y,mid.z,freeLos))
+  if(canSeePos(mid.x,mid.y,mid.z,freeLos))
     return true;
   const auto ppos = oth.physic.position();
-  if(oth.isDown() && canSeeNpc(ppos.x,ppos.y,ppos.z,freeLos)) {
+  if(oth.isDown() && canSeePos(ppos.x,ppos.y,ppos.z,freeLos)) {
     // mid of dead npc may endedup inside a wall; extra check for physical center
     return true;
     }
@@ -4148,7 +4148,7 @@ bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
   if(oth.visual.visualSkeleton()->BIP01_HEAD==size_t(-1))
     return false;
   auto head = oth.visual.mapHeadBone();
-  if(canSeeNpc(head.x,head.y,head.z,freeLos))
+  if(canSeePos(head.x,head.y,head.z,freeLos))
     return true;
   return false;
   }
@@ -4163,49 +4163,39 @@ bool Npc::canSeeSource() const {
   return false;
   }
 
-bool Npc::canSeeNpc(float tx, float ty, float tz, bool freeLos) const {
-  SensesBit s = canSenseNpc(tx,ty,tz,freeLos,false);
-  return int32_t(s&SensesBit::SENSE_SEE)!=0;
-  }
+bool Npc::canSeePos(float tx, float ty, float tz, bool freeLos) const {
+  const float range = float(hnpc->senses_range);
+  if(qDistTo(tx,ty,tz)>range*range)
+    return false;
 
-SensesBit Npc::canSenseNpc(const Npc &oth, bool freeLos, float extRange) const {
-  const auto mid     = oth.bounds().midTr;
-  const bool isNoisy = (oth.bodyStateMasked()!=BodyState::BS_SNEAK);
-  return canSenseNpc(mid.x,mid.y,mid.z,freeLos,isNoisy,extRange);
-  }
-
-SensesBit Npc::canSenseNpc(float tx, float ty, float tz, bool freeLos, bool isNoisy, float extRange) const {
   DynamicWorld* w = owner.physic();
   static const double ref = std::cos(100*M_PI/180.0); // spec requires +-100 view angle range
-
-  const float range = float(hnpc->senses_range)+extRange;
-  if(qDistTo(tx,ty,tz)>range*range)
-    return SensesBit::SENSE_NONE;
-
-  SensesBit ret=SensesBit::SENSE_NONE;
-  if(owner.roomAt({tx,ty,tz})==owner.roomAt({x,y,z})) {
-    ret = ret | SensesBit::SENSE_SMELL;
-    }
-
-  if(isNoisy) {
-    // no need to be in same room: https://github.com/Try/OpenGothic/issues/420
-    ret = ret | SensesBit::SENSE_HEAR;
-    }
-
   // npc eyesight height
-  auto head = visual.mapHeadBone();
+  auto head   = visual.mapHeadBone();
+  bool ret = false;
   if(!freeLos) {
     float dx  = x-tx, dz=z-tz;
     float dir = angleDir(dx,dz);
     float da  = float(M_PI)*(visual.viewDirection()-dir)/180.f;
     if(double(std::cos(da))<=ref)
-      if(!w->ray(head, Vec3(tx,ty,tz)).hasCol)
-        ret = ret | SensesBit::SENSE_SEE;
+      ret = !w->ray(head, Vec3(tx,ty,tz)).hasCol;
     } else {
-    if(!w->ray(head, Vec3(tx,ty,tz)).hasCol)
-      ret = ret | SensesBit::SENSE_SEE;
+    ret = !w->ray(head, Vec3(tx,ty,tz)).hasCol;
     }
-  return ret & SensesBit(hnpc->senses);
+  return ret;
+  }
+
+bool Npc::canSenseNpc(const Npc& oth, bool freeLos, float extRange) const {
+  const auto  mid    = oth.bounds().midTr;
+  const float range  = float(hnpc->senses_range)+extRange;
+  SensesBit   senses = SensesBit(hnpc->senses);
+  if(qDistTo(mid.x,mid.y,mid.z)>range*range)
+    return false;
+  if((senses&SensesBit::SENSE_SMELL)==SensesBit::SENSE_SMELL)
+    return true;
+  if((senses&SensesBit::SENSE_SEE)==SensesBit::SENSE_SEE && canSeePos(mid.x,mid.y,mid.z,freeLos))
+    return true;
+  return false;
   }
 
 bool Npc::canSeeItem(const Item& it, bool freeLos) const {
