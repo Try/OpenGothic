@@ -57,6 +57,7 @@ uint16_t DrawCommands::commandId(const Material& m, Type type, uint32_t bucketId
       continue;
     if(!bindless && cmd[i].bucketId != bucketId)
       continue;
+
     return uint16_t(i);
     }
 
@@ -96,9 +97,21 @@ bool DrawCommands::commit() {
   cmdDurtyBit = false;
 
   size_t totalPayload = 0;
+  bool   layChg       = false;
   for(auto& i:cmd) {
+    layChg |= (i.firstPayload != uint32_t(totalPayload));
     i.firstPayload = uint32_t(totalPayload);
     totalPayload  += i.maxPayload;
+    }
+
+  totalPayload = (totalPayload + 255) & ~size_t(255);
+  const size_t visClustersSz = totalPayload*sizeof(uint32_t)*4;
+
+  auto& v      = views[0];
+  bool  cmdChg = true; //v.indirectCmd.byteSize()!=sizeof(IndirectCmd)*cmd.size();
+  bool  visChg = v.visClusters.byteSize()!=visClustersSz;
+  if(!layChg && !visChg) {
+    //return false;
     }
 
   std::vector<IndirectCmd> cx(cmd.size());
@@ -114,15 +127,23 @@ bool DrawCommands::commit() {
 
   auto& device = Resources::device();
   for(auto& v:views) {
-    Resources::recycle(std::move(v.visClusters));
-    Resources::recycle(std::move(v.indirectCmd));
+    if(visChg) {
+      Resources::recycle(std::move(v.visClusters));
+      v.visClusters = device.ssbo(nullptr, visClustersSz);
+      }
+    if(cmdChg) {
+      Resources::recycle(std::move(v.indirectCmd));
+      v.indirectCmd = device.ssbo(cx.data(), sizeof(IndirectCmd)*cx.size());
+      }
+
     Resources::recycle(std::move(v.descInit));
-
-    v.visClusters = device.ssbo(nullptr, totalPayload*sizeof(uint32_t)*4);
-    v.indirectCmd = device.ssbo(cx.data(), sizeof(IndirectCmd)*cx.size());
-
     v.descInit = device.descriptors(Shaders::inst().clusterInit);
     v.descInit.set(T_Indirect, v.indirectCmd);
+    }
+
+  if(!visChg) {
+    updateTasksUniforms();
+    return false;
     }
 
   return true;
