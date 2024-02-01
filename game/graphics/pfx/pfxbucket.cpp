@@ -72,7 +72,7 @@ void PfxBucket::Draw::prepareUniforms(const SceneGlobals& scene, const Material&
   }
 
 void PfxBucket::Draw::preFrameUpdate(const SceneGlobals& scene, const Material& mat) {
-  if(mat.frames.size()==0 || mat.texAniFPSInv==0)
+  if(!mat.hasFrameAnimation())
     return;
 
   const bool textureInShadowPass = (mat.alpha==Material::AlphaTest);

@@ -107,6 +107,7 @@ class VisualObjects final {
       DrawBuckets::Id     bucketId;
       uint16_t            cmdId     = uint16_t(-1);
       uint32_t            clusterId = 0;
+      uint64_t            timeShift = 0;
 
       Material::AlphaFunc alpha = Material::Solid;
       MorphAnim           morphAnim[Resources::MAX_MORPH_LAYERS];

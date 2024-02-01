@@ -41,6 +41,8 @@ class DrawBuckets {
     Id   alloc(const Material& mat, const StaticMesh& mesh);
     Id   alloc(const Material& mat, const AnimMesh&   mesh);
 
+    const Bucket& operator[](size_t i) { return bucketsCpu[i]; }
+
     auto ssbo() const -> const Tempest::StorageBuffer& { return bucketsGpu; }
     auto buckets() -> const std::vector<Bucket>&;
 

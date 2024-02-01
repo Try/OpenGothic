@@ -43,10 +43,11 @@ class Material final {
     bool isTexcoordAnim() const;
     int  alphaOrder() const { return alphaOrder(alpha,isGhost); }
 
-    bool isForwardShading()      const { return isForwardShading(alpha);      }
-    bool isSceneInfoRequired()   const { return isSceneInfoRequired(alpha);   }
-    bool isShadowmapRequired()   const { return isShadowmapRequired(alpha);   }
-    bool isTextureInShadowPass() const { return isTextureInShadowPass(alpha); }
+    bool hasFrameAnimation()     const { return !frames.empty() && texAniFPSInv!=0; }
+    bool isForwardShading()      const { return isForwardShading(alpha);            }
+    bool isSceneInfoRequired()   const { return isSceneInfoRequired(alpha);         }
+    bool isShadowmapRequired()   const { return isShadowmapRequired(alpha);         }
+    bool isTextureInShadowPass() const { return isTextureInShadowPass(alpha);       }
 
     static bool isForwardShading(AlphaFunc alpha);
     static bool isSceneInfoRequired(AlphaFunc alpha);

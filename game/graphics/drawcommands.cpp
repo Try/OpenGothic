@@ -50,14 +50,16 @@ uint16_t DrawCommands::commandId(const Material& m, Type type, uint32_t bucketId
   if(pMain==nullptr && pShadow==nullptr && pHiZ==nullptr)
     return uint16_t(-1);
 
-  const bool bindless = true;
+  const bool bindless  = true;
+  const bool dedicated = m.hasFrameAnimation() || !bindless;
 
   for(size_t i=0; i<cmd.size(); ++i) {
     if(cmd[i].pMain!=pMain || cmd[i].pShadow!=pShadow || cmd[i].pHiZ!=pHiZ)
       continue;
-    if(!bindless && cmd[i].bucketId != bucketId)
+    if(!bindless && cmd[i].bucketId!=bucketId)
       continue;
-
+    if(m.hasFrameAnimation() && cmd[i].bucketId!=bucketId)
+      continue;
     return uint16_t(i);
     }
 
@@ -68,7 +70,7 @@ uint16_t DrawCommands::commandId(const Material& m, Type type, uint32_t bucketId
   cx.pMain       = pMain;
   cx.pShadow     = pShadow;
   cx.pHiZ        = pHiZ;
-  cx.bucketId    = bindless ? 0xFFFFFFFF : bucketId;
+  cx.bucketId    = dedicated ? 0xFFFFFFFF : bucketId;
   cx.type        = type;
   cx.alpha       = m.alpha;
   if(cx.pMain!=nullptr) {
@@ -149,11 +151,6 @@ bool DrawCommands::commit() {
   return true;
   }
 
-void DrawCommands::prepareUniforms() {
-  // TODO
-  updateUniforms();
-  }
-
 void DrawCommands::updateTasksUniforms() {
   auto& device = Resources::device();
   for(auto& i:tasks) {
@@ -175,14 +172,9 @@ void DrawCommands::updateTasksUniforms() {
     }
   }
 
-void DrawCommands::updateUniforms() {
-  if(owner.instanceSsbo().isEmpty())
-    return;
-
+void DrawCommands::updateCommandUniforms() {
   auto& device = Resources::device();
   device.waitIdle(); // TODO
-
-  updateTasksUniforms();
 
   std::vector<const Tempest::Texture2d*>     tex;
   std::vector<const Tempest::StorageBuffer*> vbo, ibo;
@@ -209,12 +201,12 @@ void DrawCommands::updateUniforms() {
       auto& mem = (i.type==Type::Landscape) ? clusters.ssbo() : owner.instanceSsbo();
 
       i.desc[v].set(L_Scene,    scene.uboGlobal[v]);
+      i.desc[v].set(L_Payload,  views[v].visClusters);
       i.desc[v].set(L_Instance, mem);
+      i.desc[v].set(L_Bucket,   buckets.ssbo());
       i.desc[v].set(L_Ibo,      ibo);
       i.desc[v].set(L_Vbo,      vbo);
       i.desc[v].set(L_Diffuse,  tex);
-      i.desc[v].set(L_Bucket,   buckets.ssbo());
-      i.desc[v].set(L_Payload,  views[v].visClusters);
       i.desc[v].set(L_Sampler,  Sampler::anisotrophy());
 
       if(v==SceneGlobals::V_Main || i.isTextureInShadowPass()) {
@@ -242,6 +234,19 @@ void DrawCommands::updateUniforms() {
         }
       }
     }
+  }
+
+void DrawCommands::prepareUniforms() {
+  // TODO
+  updateUniforms();
+  }
+
+void DrawCommands::updateUniforms() {
+  if(owner.instanceSsbo().isEmpty())
+    return;
+
+  updateTasksUniforms();
+  updateCommandUniforms();
   }
 
 void DrawCommands::visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int pass) {

@@ -106,6 +106,7 @@ class DrawCommands {
 
     static bool              cmpDraw(const DrawCmd* l, const DrawCmd* r);
     void                     updateTasksUniforms();
+    void                     updateCommandUniforms();
 
     VisualObjects&           owner;
     DrawBuckets&             buckets;

@@ -213,6 +213,7 @@ VisualObjects::Item VisualObjects::get(const StaticMesh& mesh, const Material& m
   obj.cmdId     = drawCmd.commandId(mat, obj.type, obj.bucketId.toInt());
   obj.clusterId = clusterId(*obj.bucketId, iboOff/PackedMesh::MaxInd, iboLen/PackedMesh::MaxInd, obj.bucketId.toInt(), obj.cmdId);
   obj.alpha     = mat.alpha;
+  obj.timeShift = -scene.tickCount;
 
   if(obj.isEmpty())
     return Item(); // null command
@@ -256,6 +257,7 @@ VisualObjects::Item VisualObjects::get(const AnimMesh& mesh, const Material& mat
   obj.cmdId     = drawCmd.commandId(mat, obj.type, obj.bucketId.toInt());
   obj.clusterId = clusterId(*obj.bucketId, iboOff/PackedMesh::MaxInd, iboLen/PackedMesh::MaxInd, obj.bucketId.toInt(), obj.cmdId);
   obj.alpha     = mat.alpha;
+  obj.timeShift = -scene.tickCount;
 
   if(obj.isEmpty())
     return Item(); // null command
@@ -287,6 +289,7 @@ VisualObjects::Item VisualObjects::get(const StaticMesh& mesh, const Material& m
   obj.cmdId     = drawCmd.commandId(mat, type, obj.bucketId.toInt());
   obj.clusterId = clusterId(cluster, iboOff/PackedMesh::MaxInd, iboLen/PackedMesh::MaxInd, obj.bucketId.toInt(), obj.cmdId);
   obj.alpha     = mat.alpha;
+  obj.timeShift = -scene.tickCount;
 
   if(obj.isEmpty())
     return Item(); // null command
