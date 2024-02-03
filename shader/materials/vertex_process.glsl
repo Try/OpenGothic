@@ -53,7 +53,7 @@ struct Vertex {
 
 #if defined(BINDLESS)
 Vertex pullVertex(uint bucketId, uint id) {
-  const uint vi = nonuniformEXT(bucketId);
+  nonuniformEXT uint vi = (bucketId);
 #else
 Vertex pullVertex(uint id) {
 #endif
