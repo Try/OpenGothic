@@ -333,6 +333,8 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
   if(typeVs==nullptr || typeFs==nullptr)
     return nullptr;
 
+  const char* bindless = "_bindless";
+
   materials.emplace_front();
   auto& b = materials.front();
   b.alpha        = alpha;
@@ -341,10 +343,10 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
 
   auto& device = Resources::device();
   if(mat.isTesselated() && device.properties().tesselationShader && t==DrawCommands::Landscape && false) {
-    auto shVs = GothicShader::get(string_frm("main_", vsTok, typeVs, ".vert.sprv"));
-    auto shTc = GothicShader::get(string_frm("main_", vsTok, typeVs, ".tesc.sprv"));
-    auto shTe = GothicShader::get(string_frm("main_", vsTok, typeVs, ".tese.sprv"));
-    auto shFs = GothicShader::get(string_frm("main_", fsTok, typeFs, ".frag.sprv"));
+    auto shVs = GothicShader::get(string_frm("main_", vsTok, typeVs, bindless, ".vert.sprv"));
+    auto shTc = GothicShader::get(string_frm("main_", vsTok, typeVs, bindless, ".tesc.sprv"));
+    auto shTe = GothicShader::get(string_frm("main_", vsTok, typeVs, bindless, ".tese.sprv"));
+    auto shFs = GothicShader::get(string_frm("main_", fsTok, typeFs, bindless, ".frag.sprv"));
 
     auto vs = device.shader(shVs.data,shVs.len);
     auto tc = device.shader(shTc.data,shTc.len);
@@ -353,8 +355,8 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
     b.pipeline = device.pipeline(Triangles, state, vs, tc, te, fs);
     }
   else if(Gothic::options().doMeshShading && t!=DrawCommands::Pfx) {
-    auto shMs = GothicShader::get(string_frm("main_", vsTok, typeVs, ".mesh.sprv"));
-    auto shFs = GothicShader::get(string_frm("main_", fsTok, typeFs, ".frag.sprv"));
+    auto shMs = GothicShader::get(string_frm("main_", vsTok, typeVs, bindless, ".mesh.sprv"));
+    auto shFs = GothicShader::get(string_frm("main_", fsTok, typeFs, bindless, ".frag.sprv"));
 
     auto ms = device.shader(shMs.data,shMs.len);
     auto fs = device.shader(shFs.data,shFs.len);

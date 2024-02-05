@@ -277,11 +277,7 @@ vec4 waterShading(vec4 t, const vec3 normal) {
   }
 
 void mainWater(vec4 t) {
-#if defined(BINDLESS)
   const float waveMaxAmplitude = bucket[bucketId].waveMaxAmplitude;
-#else
-  const float waveMaxAmplitude = bucket.waveMaxAmplitude;
-#endif
 
   vec3 lx = dFdx(shInp.pos), ly = dFdy(shInp.pos);
   float minLength = max(length(lx),length(ly));

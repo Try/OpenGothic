@@ -174,8 +174,10 @@ layout(binding = L_Ibo,      std430) readonly buffer Ibo  { uint    indexes []; 
 layout(binding = L_Vbo,      std430) readonly buffer Vbo  { float   vertices[];    } vbo[];
 #endif
 
+#if defined(GL_FRAGMENT_SHADER) && defined(MAT_UV)
 layout(binding = L_Diffuse)          uniform  texture2D textureMain[];
 layout(binding = L_Sampler)          uniform  sampler   samplerMain;
+#endif
 
 #if (MESH_TYPE==T_MORPH)
 layout(binding = L_MorphId,  std430) readonly buffer MId  { int     index[];       } morphId[];
@@ -183,13 +185,13 @@ layout(binding = L_Morph,    std430) readonly buffer MSmp { vec4    samples[];  
 #endif
 
 #if defined(GL_FRAGMENT_SHADER) && defined(FORWARD) && !defined(DEPTH_ONLY)
-layout(binding = L_Shadow0) uniform sampler2D textureSm0;
-layout(binding = L_Shadow1) uniform sampler2D textureSm1;
+layout(binding = L_Shadow0)          uniform sampler2D textureSm0;
+layout(binding = L_Shadow1)          uniform sampler2D textureSm1;
 #endif
 
 #if defined(GL_FRAGMENT_SHADER) && (defined(WATER) || defined(GHOST))
-layout(binding = L_SceneClr) uniform sampler2D sceneColor;
-layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
+layout(binding = L_SceneClr)         uniform sampler2D sceneColor;
+layout(binding = L_GDepth  )         uniform sampler2D gbufferDepth;
 #endif
 
 #if !defined(CLUSTER) && (MESH_TYPE!=T_PFX)

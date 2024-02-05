@@ -26,14 +26,18 @@ class DrawCommands {
       const Tempest::RenderPipeline* pMain        = nullptr;
       const Tempest::RenderPipeline* pShadow      = nullptr;
       const Tempest::RenderPipeline* pHiZ         = nullptr;
-      uint32_t                       bucketId     = 0; // bindfull only
       Type                           type         = Type::Landscape;
 
-      Tempest::DescriptorSet         desc[SceneGlobals::V_Count];
       Material::AlphaFunc            alpha        = Material::Solid;
       uint32_t                       firstPayload = 0;
       uint32_t                       maxPayload   = 0;
 
+      // bindless only
+      Tempest::DescriptorSet         desc[SceneGlobals::V_Count];
+
+      // bindfull only
+      uint32_t                       bucketId     = 0;
+      Tempest::DescriptorSet         descB[SceneGlobals::V_Count][Resources::MaxFramesInFlight];
 
       bool                           isForwardShading() const;
       bool                           isShadowmapRequired() const;

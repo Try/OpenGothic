@@ -208,11 +208,10 @@ void DrawCommands::updateCommandUniforms() {
       i.desc[v].set(L_Bucket,   buckets.ssbo());
       i.desc[v].set(L_Ibo,      ibo);
       i.desc[v].set(L_Vbo,      vbo);
-      i.desc[v].set(L_Diffuse,  tex);
-      i.desc[v].set(L_Sampler,  Sampler::anisotrophy());
 
       if(v==SceneGlobals::V_Main || i.isTextureInShadowPass()) {
-        //i.desc[v].set(L_Diffuse, tex);
+        i.desc[v].set(L_Diffuse, tex);
+        i.desc[v].set(L_Sampler,  Sampler::anisotrophy());
         }
 
       if(v==SceneGlobals::V_Main && i.isShadowmapRequired()) {

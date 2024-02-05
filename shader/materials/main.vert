@@ -36,11 +36,19 @@ layout(location = 0) out Varyings  shOut;
 #elif defined(BINDLESS) && defined(MAT_VARYINGS)
 layout(location = 0) out flat uint bucketIdOut[]; //TODO: per-primitive
 layout(location = 1) out Varyings  shOut[];
+#elif defined(MAT_VARYINGS)
+layout(location = 1) out Varyings  shOut[];
 #endif
 
 uvec2 processMeshlet(const uint meshletId, const uint bucketId) {
+#if defined(BINDLESS)
+  nonuniformEXT uint bId = bucketId;
+#else
+  const         uint bId = 0;
+#endif
+
   const uint iboOffset = meshletId * MaxPrim + MaxPrim - 1;
-  const uint bits      = ibo[nonuniformEXT(bucketId)].indexes[iboOffset];
+  const uint bits      = ibo[bId].indexes[iboOffset];
   uvec4 prim;
   prim.x = ((bits >>  0) & 0xFF);
   prim.y = ((bits >>  8) & 0xFF);
@@ -59,8 +67,14 @@ uvec2 processMeshlet(const uint meshletId, const uint bucketId) {
   }
 
 uvec3 processPrimitive(const uint meshletId, const uint bucketId, const uint outId) {
+#if defined(BINDLESS)
+  nonuniformEXT uint bId = bucketId;
+#else
+  const         uint bId = 0;
+#endif
+
   const uint iboOffset = meshletId * MaxPrim + outId;
-  const uint bits      = ibo[nonuniformEXT(bucketId)].indexes[iboOffset];
+  const uint bits      = ibo[bId].indexes[iboOffset];
   uvec3 prim;
   prim.x = ((bits >>  0) & 0xFF);
   prim.y = ((bits >>  8) & 0xFF);

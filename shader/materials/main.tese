@@ -11,12 +11,13 @@ layout(triangles, fractional_odd_spacing, cw) in;
 layout(location = 0) in  flat uint bucketIdIn[];
 layout(location = 1) in  Varyings  shInp[];
 
-layout(location = 0) out flat uint bucketId;
+layout(location = 0) out flat uint bucketIdOut;
 layout(location = 1) out Varyings  shOut;
+uint       bucketId = bucketIdIn[0];
 #else
-const uint bucketId = 0;
 layout(location = 0) in  Varyings shInp[];
 layout(location = 0) out Varyings shOut;
+const uint bucketId = 0;
 #endif
 
 vec2 interpolate(vec2 v0, vec2 v1, vec2 v2) {
@@ -44,14 +45,10 @@ void main() {
   vec4 pos           = interpolate(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position);
 
 #if defined(BINDLESS)
-  bucketId = bucketIdIn[0];
+  bucketIdOut = bucketId;
 #endif
 
-#if defined(BINDLESS)
-    const float waveMaxAmplitude = bucket[bucketId].waveMaxAmplitude;
-#else
-    const float waveMaxAmplitude = bucket.waveMaxAmplitude;
-#endif
+  const float waveMaxAmplitude = bucket[bucketId].waveMaxAmplitude;
 
   // vec3 dPos = multiWave(shOut.pos.xz*0.001);
   if(waveMaxAmplitude>0) {
