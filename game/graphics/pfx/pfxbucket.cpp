@@ -53,7 +53,8 @@ void PfxBucket::Draw::prepareUniforms(const SceneGlobals& scene, const Material&
     ubo.set(L_Scene, scene.uboGlobal[view]);
     if(view==SceneGlobals::V_Main || mat.isTextureInShadowPass()) {
       auto smp = (view==SceneGlobals::V_Main) ? Sampler::anisotrophy() : Sampler::trillinear();
-      ubo.set(L_Diffuse, *mat.tex, smp);
+      ubo.set(L_Diffuse, *mat.tex);
+      ubo.set(L_Sampler, smp);
       }
     if(view==SceneGlobals::V_Main && mat.isShadowmapRequired()) {
       ubo.set(L_Shadow0,  *scene.shadowMap[0],Resources::shadowSampler());

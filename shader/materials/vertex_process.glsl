@@ -3,27 +3,6 @@
 
 #include "common.glsl"
 
-#if defined(GL_VERTEX_SHADER) && !defined(CLUSTER)
-#if (MESH_TYPE==T_SKINING)
-layout(location = 0) in vec3 inNormal;
-layout(location = 1) in vec2 inUV;
-layout(location = 2) in uint inColor;
-layout(location = 3) in vec3 inPos0;
-layout(location = 4) in vec3 inPos1;
-layout(location = 5) in vec3 inPos2;
-layout(location = 6) in vec3 inPos3;
-layout(location = 7) in uint inId;
-layout(location = 8) in vec4 inWeight;
-#elif (MESH_TYPE==T_PFX)
-// none
-#else
-layout(location = 0) in vec3 inPos;
-layout(location = 1) in vec3 inNormal;
-layout(location = 2) in vec2 inUV;
-layout(location = 3) in uint inColor;
-#endif
-#endif
-
 struct Vertex {
 #if (MESH_TYPE==T_LANDSCAPE) || (MESH_TYPE==T_OBJ) || (MESH_TYPE==T_MORPH)
   vec3  pos;
@@ -51,23 +30,14 @@ struct Vertex {
 #endif
   };
 
-#if defined(BINDLESS)
 Vertex pullVertex(uint bucketId, uint id) {
-  nonuniformEXT uint vi = (bucketId);
+#if defined(BINDLESS)
+  nonuniformEXT uint vi = bucketId;
 #else
-Vertex pullVertex(uint id) {
+  const         uint vi = 0;
 #endif
-
   Vertex ret;
-#if   (MESH_TYPE==T_PFX)
-  ret.pos    = pfx[id].pos;
-  ret.color  = pfx[id].color;
-  ret.size   = pfx[id].size;
-  ret.bits0  = pfx[id].bits0;
-  ret.dir    = pfx[id].dir;
-  ret.uv     = vec2(0);
-  ret.normal = vec3(0);
-#elif (MESH_TYPE==T_SKINING) && defined(BINDLESS)
+#if (MESH_TYPE==T_SKINING)
   id *=23;
   ret.normal = vec3(vbo[vi].vertices[id + 0], vbo[vi].vertices[id + 1], vbo[vi].vertices[id + 2]);
   ret.uv     = vec2(vbo[vi].vertices[id + 3], vbo[vi].vertices[id + 4]);
@@ -78,50 +48,25 @@ Vertex pullVertex(uint id) {
   ret.pos3   = vec3(vbo[vi].vertices[id + 15], vbo[vi].vertices[id + 16], vbo[vi].vertices[id + 17]);
   ret.boneId = uvec4(unpackUnorm4x8(floatBitsToUint(vbo[vi].vertices[id + 18]))*255.0);
   ret.weight = vec4(vbo[vi].vertices[id + 19], vbo[vi].vertices[id + 20], vbo[vi].vertices[id + 21], vbo[vi].vertices[id + 22]);
-#elif (MESH_TYPE==T_SKINING) && defined(GL_VERTEX_SHADER) && !defined(CLUSTER)
-  ret.normal = inNormal;
-  ret.uv     = inUV;
-  ret.color  = inColor;
-  ret.pos0   = inPos0;
-  ret.pos1   = inPos1;
-  ret.pos2   = inPos2;
-  ret.pos3   = inPos3;
-  ret.boneId = uvec4(unpackUnorm4x8(inId)*255.0);
-  ret.weight = inWeight;
-#elif (MESH_TYPE==T_SKINING) && defined(MESH)
-  id *=23;
-  ret.normal = vec3(vbo.vertices[id + 0], vbo.vertices[id + 1], vbo.vertices[id + 2]);
-  ret.uv     = vec2(vbo.vertices[id + 3], vbo.vertices[id + 4]);
-  ret.color  = floatBitsToUint(vbo.vertices[id + 5]);
-  ret.pos0   = vec3(vbo.vertices[id +  6], vbo.vertices[id +  7], vbo.vertices[id +  8]);
-  ret.pos1   = vec3(vbo.vertices[id +  9], vbo.vertices[id + 10], vbo.vertices[id + 11]);
-  ret.pos2   = vec3(vbo.vertices[id + 12], vbo.vertices[id + 13], vbo.vertices[id + 14]);
-  ret.pos3   = vec3(vbo.vertices[id + 15], vbo.vertices[id + 16], vbo.vertices[id + 17]);
-  ret.boneId = uvec4(unpackUnorm4x8(floatBitsToUint(vbo.vertices[id + 18]))*255.0);
-  ret.weight = vec4(vbo.vertices[id + 19], vbo.vertices[id + 20], vbo.vertices[id + 21], vbo.vertices[id + 22]);
-#elif defined(BINDLESS)
+#elif (MESH_TYPE==T_LANDSCAPE) || (MESH_TYPE==T_OBJ) || (MESH_TYPE==T_MORPH)
   id *= 9;
   ret.pos    = vec3(vbo[vi].vertices[id + 0], vbo[vi].vertices[id + 1], vbo[vi].vertices[id + 2]);
   ret.normal = vec3(vbo[vi].vertices[id + 3], vbo[vi].vertices[id + 4], vbo[vi].vertices[id + 5]);
   ret.uv     = vec2(vbo[vi].vertices[id + 6], vbo[vi].vertices[id + 7]);
   ret.color  = floatBitsToUint(vbo[vi].vertices[id + 8]);
-#elif defined(GL_VERTEX_SHADER) && !defined(CLUSTER)
-  ret.pos    = inPos;
-  ret.normal = inNormal;
-  ret.uv     = inUV;
-  ret.color  = inColor;
-#elif defined(MESH)
-  id *= 9;
-  ret.pos    = vec3(vbo.vertices[id + 0], vbo.vertices[id + 1], vbo.vertices[id + 2]);
-  ret.normal = vec3(vbo.vertices[id + 3], vbo.vertices[id + 4], vbo.vertices[id + 5]);
-  ret.uv     = vec2(vbo.vertices[id + 6], vbo.vertices[id + 7]);
-  ret.color  = floatBitsToUint(vbo.vertices[id + 8]);
+#else
+#error "unknown mesh type"
 #endif
   return ret;
   }
 
-#if (MESH_TYPE==T_MORPH) && defined(BINDLESS)
+#if (MESH_TYPE==T_MORPH)
 vec3 morphOffset(uint bucketId, uint animPtr, uint vertexIndex) {
+#if defined(BINDLESS)
+  nonuniformEXT uint i = bucketId;
+#else
+  const         uint i = 0;
+#endif
   MorphDesc md        = pullMorphDesc(animPtr);
   vec2      ai        = unpackUnorm2x16(md.alpha16_intensity16);
   float     alpha     = ai.x;
@@ -130,35 +75,14 @@ vec3 morphOffset(uint bucketId, uint animPtr, uint vertexIndex) {
     return vec3(0);
 
   uint  vId   = vertexIndex + md.indexOffset;
-  int   index = morphId[nonuniformEXT(bucketId)].index[vId];
+  int   index = morphId[i].index[vId];
   if(index<0)
     return vec3(0);
 
   uint  f0 = md.sample0;
   uint  f1 = md.sample1;
-  vec3  a  = morph[nonuniformEXT(bucketId)].samples[f0 + index].xyz;
-  vec3  b  = morph[nonuniformEXT(bucketId)].samples[f1 + index].xyz;
-
-  return mix(a,b,alpha) * intensity;
-  }
-#elif (MESH_TYPE==T_MORPH)
-vec3 morphOffset(uint bucketId, uint animPtr, uint vertexIndex) {
-  MorphDesc md        = pullMorphDesc(animPtr);
-  vec2      ai        = unpackUnorm2x16(md.alpha16_intensity16);
-  float     alpha     = ai.x;
-  float     intensity = ai.y;
-  if(intensity<=0)
-    return vec3(0);
-
-  uint  vId   = vertexIndex + md.indexOffset;
-  int   index = morphId.index[vId];
-  if(index<0)
-    return vec3(0);
-
-  uint  f0 = md.sample0;
-  uint  f1 = md.sample1;
-  vec3  a  = morph.samples[f0 + index].xyz;
-  vec3  b  = morph.samples[f1 + index].xyz;
+  vec3  a  = morph[i].samples[f0 + index].xyz;
+  vec3  b  = morph[i].samples[f1 + index].xyz;
 
   return mix(a,b,alpha) * intensity;
   }

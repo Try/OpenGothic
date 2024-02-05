@@ -3,17 +3,13 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : enable
 
-#if defined(BINDLESS)
-#extension GL_EXT_nonuniform_qualifier : enable
-#endif
-
 #include "materials_common.glsl"
 #include "water/gerstner_wave.glsl"
 #include "lighting/shadow_sampling.glsl"
 #include "lighting/tonemapping.glsl"
 
 #if defined(BINDLESS) && defined(MAT_VARYINGS)
-layout(location = 0) in flat uint bucketId;
+layout(location = 0) in nonuniformEXT flat uint bucketId;
 layout(location = 1) in Varyings  shInp;
 #elif defined(MAT_VARYINGS)
 const uint bucketId = 0;
@@ -117,12 +113,9 @@ vec4 dbgLambert() {
 
 #if defined(MAT_UV)
 vec4 diffuseTex() {
-#if defined(BINDLESS)
+#if !defined(SIMPLE_MAT) && (MESH_TYPE!=T_PFX)
   ivec2 texAniMapDirPeriod = bucket[bucketId].texAniMapDirPeriod;
   float alphaWeight        = bucket[bucketId].alphaWeight;
-#elif !defined(SIMPLE_MAT) && (MESH_TYPE!=T_PFX)
-  ivec2 texAniMapDirPeriod = bucket.texAniMapDirPeriod;
-  float alphaWeight        = bucket.alphaWeight;
 #else
   ivec2 texAniMapDirPeriod = ivec2(0);
   float alphaWeight        = 1;
@@ -146,11 +139,7 @@ vec4 diffuseTex() {
   const vec2 uv = shInp.uv;
 #endif
 
-#if defined(BINDLESS)
-  vec4 tex = texture(sampler2D(textureD[nonuniformEXT(bucketId)], samplerMain),uv);
-#else
-  vec4 tex = texture(textureD,uv);
-#endif
+  vec4 tex = texture(sampler2D(textureMain[bucketId], samplerMain),uv);
 
 #if !defined(SIMPLE_MAT)
   tex.a *= alphaWeight;

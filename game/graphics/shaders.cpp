@@ -340,7 +340,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
   b.pipelineType = pt;
 
   auto& device = Resources::device();
-  if(mat.isTesselated() && device.properties().tesselationShader && t==DrawCommands::Landscape && true) {
+  if(mat.isTesselated() && device.properties().tesselationShader && t==DrawCommands::Landscape && false) {
     auto shVs = GothicShader::get(string_frm("main_", vsTok, typeVs, ".vert.sprv"));
     auto shTc = GothicShader::get(string_frm("main_", vsTok, typeVs, ".tesc.sprv"));
     auto shTe = GothicShader::get(string_frm("main_", vsTok, typeVs, ".tese.sprv"));
@@ -351,6 +351,14 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
     auto te = device.shader(shTe.data,shTe.len);
     auto fs = device.shader(shFs.data,shFs.len);
     b.pipeline = device.pipeline(Triangles, state, vs, tc, te, fs);
+    }
+  else if(Gothic::options().doMeshShading && t!=DrawCommands::Pfx) {
+    auto shMs = GothicShader::get(string_frm("main_", vsTok, typeVs, ".mesh.sprv"));
+    auto shFs = GothicShader::get(string_frm("main_", fsTok, typeFs, ".frag.sprv"));
+
+    auto ms = device.shader(shMs.data,shMs.len);
+    auto fs = device.shader(shFs.data,shFs.len);
+    b.pipeline = device.pipeline(state, Shader(), ms, fs);
     }
   else {
     auto shVs = GothicShader::get(string_frm("main_", vsTok, typeVs, ".vert.sprv"));

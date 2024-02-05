@@ -4,29 +4,38 @@
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_EXT_control_flow_attributes : enable
 
-#if defined(BINDLESS)
-#extension GL_EXT_nonuniform_qualifier : enable
-#endif
-
-#define CLUSTER
-#define MESH
 #include "materials_common.glsl"
 #include "vertex_process.glsl"
+
+#if !defined(GL_VERTEX_SHADER)
+#extension GL_EXT_mesh_shader : enable
+layout(local_size_x = 64) in;
+layout(triangles, max_vertices = MaxVert, max_primitives = MaxPrim) out;
+#endif
 
 layout(push_constant, std430) uniform Push {
   uint      firstMeshlet;
   int       meshletCount;
   } push;
 
+#if defined(GL_VERTEX_SHADER)
 out gl_PerVertex {
   vec4 gl_Position;
   };
+#else
+out gl_MeshPerVertexEXT {
+  vec4 gl_Position;
+  } gl_MeshVerticesEXT[];
+#endif
 
-#if defined(BINDLESS) && defined(MAT_VARYINGS)
+#if defined(GL_VERTEX_SHADER) && defined(BINDLESS) && defined(MAT_VARYINGS)
 layout(location = 0) out flat uint bucketIdOut;
 layout(location = 1) out Varyings  shOut;
-#elif defined(MAT_VARYINGS)
+#elif defined(GL_VERTEX_SHADER) && defined(MAT_VARYINGS)
 layout(location = 0) out Varyings  shOut;
+#elif defined(BINDLESS) && defined(MAT_VARYINGS)
+layout(location = 0) out flat uint bucketIdOut[]; //TODO: per-primitive
+layout(location = 1) out Varyings  shOut[];
 #endif
 
 uvec2 processMeshlet(const uint meshletId, const uint bucketId) {
@@ -70,9 +79,7 @@ vec4  processVertex(out Varyings var, uint instanceOffset, const uint meshletId,
   }
 
 #if defined(GL_VERTEX_SHADER)
-void vertexShader() {
-  const uvec4 task       = payload[gl_InstanceIndex + push.firstMeshlet];
-
+void vertexShader(const uvec4 task) {
   const uint  instanceId = task.x;
   const uint  meshletId  = task.y;
   const uint  bucketId   = task.z;
@@ -98,10 +105,49 @@ void vertexShader() {
   shOut       = var;
 #endif
   }
+#else
+void meshShader(const uvec4 task) {
+  const uint  instanceId = task.x;
+  const uint  meshletId  = task.y;
+  const uint  bucketId   = task.z;
+
+  const uvec2 mesh       = processMeshlet(meshletId, bucketId);
+  const uint  vertCount  = mesh.x;
+  const uint  primCount  = mesh.y;
+
+  const uint  laneID     = gl_LocalInvocationIndex;
+
+  // Alloc outputs
+  SetMeshOutputsEXT(vertCount, primCount);
+
+#if defined(BINDLESS) && defined(MAT_VARYINGS)
+  bucketIdOut[laneID] = bucketId;
+#endif
+
+  Varyings var;
+  if(laneID<primCount)
+    gl_PrimitiveTriangleIndicesEXT[laneID] = processPrimitive(meshletId, bucketId, laneID);
+  if(laneID<vertCount)
+    gl_MeshVerticesEXT[laneID].gl_Position = processVertex(var, instanceId, meshletId, bucketId, laneID);
+#if defined(MAT_VARYINGS)
+  if(laneID<vertCount)
+    shOut[laneID]                          = var;
+#endif
+  }
 #endif
 
 void main() {
 #if defined(GL_VERTEX_SHADER)
-  vertexShader();
+  const uint workIndex = gl_InstanceIndex;
+#else
+  const uint workIndex = gl_WorkGroupID.x;
+#endif
+
+  const uvec4 task       = payload[workIndex + push.firstMeshlet];
+
+#if defined(GL_VERTEX_SHADER)
+  vertexShader(task);
+#else
+  meshShader(task);
 #endif
   }

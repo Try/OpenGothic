@@ -4,6 +4,10 @@
 #include "common.glsl"
 #include "scene.glsl"
 
+#if defined(BINDLESS)
+#extension GL_EXT_nonuniform_qualifier : enable
+#endif
+
 /*
   GBUFFER | FORWARD | DEPTH_ONLY | WATER | EMISSIVE | GHOST
   VT_COLOR
@@ -42,21 +46,21 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define T_MORPH     3
 #define T_PFX       4
 
-#define L_Scene    0
-#define L_Payload  1
-#define L_Instance 2
-#define L_Pfx      L_Instance
-#define L_Bucket   3
-#define L_Ibo      4
-#define L_Vbo      5
-#define L_Diffuse  6
-#define L_Sampler  7
-#define L_Shadow0  8
-#define L_Shadow1  9
-#define L_MorphId  10
-#define L_Morph    11
-#define L_SceneClr 12
-#define L_GDepth   13
+const uint L_Scene    = 0;
+const uint L_Payload  = 1;
+const uint L_Instance = 2;
+const uint L_Pfx      = L_Instance;
+const uint L_Bucket   = 3;
+const uint L_Ibo      = 4;
+const uint L_Vbo      = 5;
+const uint L_Diffuse  = 6;
+const uint L_Sampler  = 7;
+const uint L_Shadow0  = 8;
+const uint L_Shadow1  = 9;
+const uint L_MorphId  = 10;
+const uint L_Morph    = 11;
+const uint L_SceneClr = 12;
+const uint L_GDepth   = 13;
 
 #ifndef MESH_TYPE
 #define MESH_TYPE 255
@@ -130,12 +134,6 @@ struct Instance {
   uint   padd1;
   };
 
-struct Payload {
-  uint  baseId;
-  uint  offsets[64];
-  //uvec4 offsets;
-  };
-
 struct IndirectCmd {
   uint vertexCount;
   uint instanceCount;
@@ -165,22 +163,21 @@ layout(binding = L_Scene, std140) uniform UboScene {
   SceneDesc scene;
   };
 
-#if defined(BINDLESS) || defined(CLUSTER)
+#if !defined(CLUSTER) && (MESH_TYPE!=T_PFX)
 layout(binding = L_Instance, std430) readonly buffer Mem  { uint    instanceMem[]; };
 layout(binding = L_Payload,  std430) readonly buffer Pbo  { uvec4   payload[];     };
 layout(binding = L_Bucket,   std140) readonly buffer Bbo  { Bucket  bucket[];      };
 #endif
 
-#if defined(BINDLESS)
+#if !defined(CLUSTER) && (MESH_TYPE!=T_PFX)
 layout(binding = L_Ibo,      std430) readonly buffer Ibo  { uint    indexes [];    } ibo[];
 layout(binding = L_Vbo,      std430) readonly buffer Vbo  { float   vertices[];    } vbo[];
-layout(binding = L_Diffuse)          uniform  texture2D textureD[];
-layout(binding = L_Sampler)          uniform  sampler   samplerMain;
-#else
-layout(binding = L_Diffuse)          uniform  sampler2D textureD;
 #endif
 
-#if defined(BINDLESS) && (MESH_TYPE==T_MORPH)
+layout(binding = L_Diffuse)          uniform  texture2D textureMain[];
+layout(binding = L_Sampler)          uniform  sampler   samplerMain;
+
+#if (MESH_TYPE==T_MORPH)
 layout(binding = L_MorphId,  std430) readonly buffer MId  { int     index[];       } morphId[];
 layout(binding = L_Morph,    std430) readonly buffer MSmp { vec4    samples[];     } morph[];
 #endif
@@ -195,7 +192,7 @@ layout(binding = L_SceneClr) uniform sampler2D sceneColor;
 layout(binding = L_GDepth  ) uniform sampler2D gbufferDepth;
 #endif
 
-#if defined(BINDLESS) || defined(CLUSTER)
+#if !defined(CLUSTER) && (MESH_TYPE!=T_PFX)
 mat4 pullMatrix(uint i) {
   i *= 16;
   mat4 ret;

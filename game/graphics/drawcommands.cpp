@@ -6,6 +6,8 @@
 #include "graphics/visualobjects.h"
 #include "shaders.h"
 
+#include "gothic.h"
+
 using namespace Tempest;
 
 
@@ -259,7 +261,8 @@ void DrawCommands::visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
     for(auto& v:views) {
       if(this->cmd.empty())
         continue;
-      cmd.setUniforms(Shaders::inst().clusterInit, v.descInit);
+      const uint32_t isMeshShader = (Gothic::options().doMeshShading ? 1 : 0);
+      cmd.setUniforms(Shaders::inst().clusterInit, v.descInit, &isMeshShader, sizeof(isMeshShader));
       cmd.dispatchThreads(this->cmd.size());
       }
     }
@@ -288,8 +291,10 @@ void DrawCommands::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
   // return;
   struct Push { uint32_t firstMeshlet; uint32_t meshletCount; } push = {};
 
-  auto  viewId = SceneGlobals::V_HiZ;
-  auto& view   = views[viewId];
+  const bool mesh   = Gothic::options().doMeshShading;
+  auto       viewId = SceneGlobals::V_HiZ;
+  auto&      view   = views[viewId];
+
   for(size_t i=0; i<ord.size(); ++i) {
     auto& cx = *ord[i];
     if(cx.desc[viewId].isEmpty())
@@ -303,14 +308,17 @@ void DrawCommands::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
     push.meshletCount = cx.maxPayload;
 
     cmd.setUniforms(*cx.pHiZ, cx.desc[viewId], &push, sizeof(push));
-    cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
+    if(mesh)
+      cmd.dispatchMeshIndirect(view.indirectCmd, sizeof(IndirectCmd)*id + sizeof(uint32_t)); else
+      cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
     }
   }
 
 void DrawCommands::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, SceneGlobals::VisCamera viewId, Material::AlphaFunc func) {
   struct Push { uint32_t firstMeshlet; uint32_t meshletCount; } push = {};
 
-  auto& view = views[viewId];
+  const bool mesh = Gothic::options().doMeshShading;
+  auto&      view = views[viewId];
   // auto  b    = std::lower_bound(ord.begin(), ord.end(), cmpDraw);
   // auto  e    = std::upper_bound(ord.begin(), ord.end(), cmpDraw);
   for(size_t i=0; i<ord.size(); ++i) {
@@ -341,6 +349,8 @@ void DrawCommands::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uin
     push.meshletCount = cx.maxPayload;
 
     cmd.setUniforms(*pso, cx.desc[viewId], &push, sizeof(push));
-    cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
+    if(mesh)
+      cmd.dispatchMeshIndirect(view.indirectCmd, sizeof(IndirectCmd)*id + sizeof(uint32_t)); else
+      cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
     }
   }
