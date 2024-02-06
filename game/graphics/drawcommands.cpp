@@ -27,6 +27,10 @@ bool DrawCommands::DrawCmd::isTextureInShadowPass() const {
   return Material::isTextureInShadowPass(alpha);
   }
 
+bool DrawCommands::DrawCmd::isBindless() const {
+  return bucketId==uint32_t(-1);
+  }
+
 
 DrawCommands::DrawCommands(VisualObjects& owner, DrawBuckets& buckets, DrawClusters& clusters, const SceneGlobals& scene)
     : owner(owner), buckets(buckets), clusters(clusters), scene(scene) {
@@ -46,14 +50,14 @@ bool DrawCommands::cmpDraw(const DrawCmd* l, const DrawCmd* r) {
   }
 
 uint16_t DrawCommands::commandId(const Material& m, Type type, uint32_t bucketId) {
-  auto pMain   = Shaders::inst().materialPipeline(m, type, Shaders::T_Main);
-  auto pShadow = Shaders::inst().materialPipeline(m, type, Shaders::T_Shadow);
-  auto pHiZ    = Shaders::inst().materialPipeline(m, type, Shaders::T_Depth);
+  const bool bindlessSys = Gothic::inst().options().doBindless;
+  const bool bindless    = bindlessSys && !m.hasFrameAnimation();
+
+  auto pMain    = Shaders::inst().materialPipeline(m, type, Shaders::T_Main,   bindless);
+  auto pShadow  = Shaders::inst().materialPipeline(m, type, Shaders::T_Shadow, bindless);
+  auto pHiZ     = Shaders::inst().materialPipeline(m, type, Shaders::T_Depth,  bindless);
   if(pMain==nullptr && pShadow==nullptr && pHiZ==nullptr)
     return uint16_t(-1);
-
-  const bool bindless  = true;
-  const bool dedicated = m.hasFrameAnimation() || !bindless;
 
   for(size_t i=0; i<cmd.size(); ++i) {
     if(cmd[i].pMain!=pMain || cmd[i].pShadow!=pShadow || cmd[i].pHiZ!=pHiZ)
@@ -72,7 +76,7 @@ uint16_t DrawCommands::commandId(const Material& m, Type type, uint32_t bucketId
   cx.pMain       = pMain;
   cx.pShadow     = pShadow;
   cx.pHiZ        = pHiZ;
-  cx.bucketId    = dedicated ? 0xFFFFFFFF : bucketId;
+  cx.bucketId    = bindless ? 0xFFFFFFFF : bucketId;
   cx.type        = type;
   cx.alpha       = m.alpha;
   if(cx.pMain!=nullptr) {
@@ -200,18 +204,27 @@ void DrawCommands::updateCommandUniforms() {
     for(uint8_t v=0; v<SceneGlobals::V_Count; ++v) {
       if(i.desc[v].isEmpty())
         continue;
+      auto  bId = i.bucketId;
       auto& mem = (i.type==Type::Landscape) ? clusters.ssbo() : owner.instanceSsbo();
 
       i.desc[v].set(L_Scene,    scene.uboGlobal[v]);
       i.desc[v].set(L_Payload,  views[v].visClusters);
       i.desc[v].set(L_Instance, mem);
-      i.desc[v].set(L_Bucket,   buckets.ssbo());
-      i.desc[v].set(L_Ibo,      ibo);
-      i.desc[v].set(L_Vbo,      vbo);
+      i.desc[v].set(L_Bucket,   buckets.ssbo()); // FIXME: need offset for non-bindless
+
+      if(i.isBindless()) {
+        i.desc[v].set(L_Ibo,      ibo);
+        i.desc[v].set(L_Vbo,      vbo);
+        } else {
+        i.desc[v].set(L_Ibo,      *ibo[bId]);
+        i.desc[v].set(L_Vbo,      *vbo[bId]);
+        }
 
       if(v==SceneGlobals::V_Main || i.isTextureInShadowPass()) {
-        i.desc[v].set(L_Diffuse, tex);
-        i.desc[v].set(L_Sampler,  Sampler::anisotrophy());
+        if(i.isBindless())
+          i.desc[v].set(L_Diffuse, tex); else
+          i.desc[v].set(L_Diffuse, *tex[bId]);
+        i.desc[v].set(L_Sampler, Sampler::anisotrophy());
         }
 
       if(v==SceneGlobals::V_Main && i.isShadowmapRequired()) {
@@ -219,9 +232,13 @@ void DrawCommands::updateCommandUniforms() {
         i.desc[v].set(L_Shadow1, *scene.shadowMap[1],Resources::shadowSampler());
         }
 
-      if(i.type==Morph) {
+      if(i.type==Morph && i.isBindless()) {
         i.desc[v].set(L_MorphId,  morphId);
         i.desc[v].set(L_Morph,    morph);
+        }
+      else if(i.type==Morph) {
+        i.desc[v].set(L_MorphId,  *morphId[bId]);
+        i.desc[v].set(L_Morph,    *morph[bId]);
         }
 
       if(v==SceneGlobals::V_Main && i.isSceneInfoRequired()) {

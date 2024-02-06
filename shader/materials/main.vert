@@ -37,7 +37,7 @@ layout(location = 0) out Varyings  shOut;
 layout(location = 0) out flat uint bucketIdOut[]; //TODO: per-primitive
 layout(location = 1) out Varyings  shOut[];
 #elif defined(MAT_VARYINGS)
-layout(location = 1) out Varyings  shOut[];
+layout(location = 0) out Varyings  shOut[];
 #endif
 
 uvec2 processMeshlet(const uint meshletId, const uint bucketId) {

@@ -184,7 +184,7 @@ Shaders& Shaders::inst() {
   return *instance;
   }
 
-const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommands::Type t, PipelineType pt) const {
+const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommands::Type t, PipelineType pt, bool bl) const {
   if(t==DrawCommands::Static) {
     // same shader
     t = DrawCommands::Movable;
@@ -333,7 +333,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
   if(typeVs==nullptr || typeFs==nullptr)
     return nullptr;
 
-  const char* bindless = "_bindless";
+  const char* bindless = bl ? "_bindless" : "_slot";
 
   materials.emplace_front();
   auto& b = materials.front();
@@ -361,6 +361,14 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
     auto ms = device.shader(shMs.data,shMs.len);
     auto fs = device.shader(shFs.data,shFs.len);
     b.pipeline = device.pipeline(state, Shader(), ms, fs);
+    }
+  else if(t!=DrawCommands::Pfx) {
+    auto shVs = GothicShader::get(string_frm("main_", vsTok, typeVs, bindless, ".vert.sprv"));
+    auto shFs = GothicShader::get(string_frm("main_", fsTok, typeFs, bindless, ".frag.sprv"));
+
+    auto vs = device.shader(shVs.data,shVs.len);
+    auto fs = device.shader(shFs.data,shFs.len);
+    b.pipeline = device.pipeline(Triangles, state, vs, fs);
     }
   else {
     auto shVs = GothicShader::get(string_frm("main_", vsTok, typeVs, ".vert.sprv"));

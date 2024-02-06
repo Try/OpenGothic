@@ -36,6 +36,13 @@ static bool hasMeshShader() {
   return false;
   }
 
+static bool hasBindless() {
+  const auto& p = Resources::device().properties();
+  if(p.descriptors.nonUniformIndexing && p.descriptors.maxTexture>=65000 && p.descriptors.maxStorage>=65000)
+    return true;
+  return false;
+  }
+
 Gothic::Gothic() {
   instance = this;
 
@@ -72,6 +79,10 @@ Gothic::Gothic() {
 
   if(hasMeshShader()) {
     opts.doMeshShading = CommandLine::inst().isMeshShading();
+    }
+
+  if(hasBindless()) {
+    opts.doBindless = CommandLine::inst().isBindless();
     }
 
   wrldDef = CommandLine::inst().wrldDef;

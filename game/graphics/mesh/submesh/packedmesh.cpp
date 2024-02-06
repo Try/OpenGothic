@@ -614,7 +614,7 @@ void PackedMesh::packMeshletsObj(const phoenix::proto_mesh& mesh, PkgType type,
       for(int x=0; x<3; ++x) {
         auto& wedge = sm.wedges[ibo[x]];
         auto vert = mkUInt64(wedge.index,ibo[x]);
-        heap.push_back(std::make_pair(vert,i*3));
+        heap.push_back(std::make_pair(vert,uint32_t(i*3)));
         }
       }
 

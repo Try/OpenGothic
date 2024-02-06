@@ -67,7 +67,7 @@ class Shaders {
 
     Tempest::RenderPipeline  inventory;
 
-    const Tempest::RenderPipeline* materialPipeline(const Material& desc, DrawCommands::Type t, PipelineType pt) const;
+    const Tempest::RenderPipeline* materialPipeline(const Material& desc, DrawCommands::Type t, PipelineType pt, bool bindless) const;
 
   private:
     struct Entry {

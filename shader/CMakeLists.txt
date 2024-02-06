@@ -204,7 +204,7 @@ add_shader(main_lnd_f_slot.tese      materials/main.tese  "-DMESH_TYPE=0" -DWATE
 add_shader(main_lnd_f_bindless.tesc  materials/main.tesc  "-DMESH_TYPE=0" -DBINDLESS -DWATER)
 add_shader(main_lnd_f_bindless.tese  materials/main.tese  "-DMESH_TYPE=0" -DBINDLESS -DWATER)
 
-# materials
+# materials landscape
 add_frag_shader(main_lnd_g     -DFLAT_NORMAL -DGBUFFER -DSIMPLE_MAT)
 add_frag_shader(main_lnd_g_s   -DFLAT_NORMAL -DGBUFFER)
 add_frag_shader(main_lnd_g_at  -DFLAT_NORMAL -DGBUFFER -DATEST)
@@ -216,6 +216,7 @@ add_frag_shader(main_lnd_w     -DFLAT_NORMAL -DWATER)
 add_frag_shader(main_lnd_d     -DFLAT_NORMAL -DDEPTH_ONLY)
 add_frag_shader(main_lnd_d_at  -DFLAT_NORMAL -DDEPTH_ONLY -DATEST)
 
+# materials objects
 add_frag_shader(main_obj_g     -DGBUFFER)
 add_frag_shader(main_obj_g_at  -DGBUFFER -DATEST)
 add_frag_shader(main_obj_f     -DFORWARD)
@@ -226,21 +227,22 @@ add_frag_shader(main_obj_d     -DDEPTH_ONLY)
 add_frag_shader(main_obj_d_at  -DDEPTH_ONLY -DATEST)
 
 # pfx geometry
-add_shader(main_pfx.vert             materials/pfx.vert   -DVT_COLOR)
-add_shader(main_pfx_f.vert           materials/pfx.vert   -DFORWARD    -DVT_COLOR)
-add_shader(main_pfx_d.vert           materials/pfx.vert   -DDEPTH_ONLY -DVT_COLOR)
-add_shader(main_pfx_d_at.vert        materials/pfx.vert   -DDEPTH_ONLY -DVT_COLOR -DATEST)
-# pfx frag
-add_shader(main_pfx_g.frag           materials/main.frag  "-DMESH_TYPE=4" -DGBUFFER    -DVT_COLOR)
-add_shader(main_pfx_g_at.frag        materials/main.frag  "-DMESH_TYPE=4" -DGBUFFER    -DVT_COLOR -DATEST)
-add_shader(main_pfx_f.frag           materials/main.frag  "-DMESH_TYPE=4" -DFORWARD    -DVT_COLOR)
-add_shader(main_pfx_f_at.frag        materials/main.frag  "-DMESH_TYPE=4" -DFORWARD    -DVT_COLOR -DATEST)
-add_shader(main_pfx_e.frag           materials/main.frag  "-DMESH_TYPE=4" -DEMISSIVE   -DVT_COLOR)
-add_shader(main_pfx_e_at.frag        materials/main.frag  "-DMESH_TYPE=4" -DEMISSIVE   -DVT_COLOR -DATEST)
-add_shader(main_pfx_x.frag           materials/main.frag  "-DMESH_TYPE=4" -DGHOST      -DVT_COLOR)
-add_shader(main_pfx_x_at.frag        materials/main.frag  "-DMESH_TYPE=4" -DGHOST      -DVT_COLOR -DATEST)
-add_shader(main_pfx_d.frag           materials/main.frag  "-DMESH_TYPE=4" -DDEPTH_ONLY -DVT_COLOR)
-add_shader(main_pfx_d_at.frag        materials/main.frag  "-DMESH_TYPE=4" -DDEPTH_ONLY -DVT_COLOR -DATEST)
+add_shader(main_pfx.vert       materials/pfx.vert   -DVT_COLOR)
+add_shader(main_pfx_f.vert     materials/pfx.vert   -DFORWARD    -DVT_COLOR)
+add_shader(main_pfx_d.vert     materials/pfx.vert   -DDEPTH_ONLY -DVT_COLOR)
+add_shader(main_pfx_d_at.vert  materials/pfx.vert   -DDEPTH_ONLY -DVT_COLOR -DATEST)
+# materials pfx
+add_shader(main_pfx_g.frag     materials/main.frag  "-DMESH_TYPE=4" -DGBUFFER    -DVT_COLOR)
+add_shader(main_pfx_g_at.frag  materials/main.frag  "-DMESH_TYPE=4" -DGBUFFER    -DVT_COLOR -DATEST)
+add_shader(main_pfx_f.frag     materials/main.frag  "-DMESH_TYPE=4" -DFORWARD    -DVT_COLOR)
+add_shader(main_pfx_f_at.frag  materials/main.frag  "-DMESH_TYPE=4" -DFORWARD    -DVT_COLOR -DATEST)
+add_shader(main_pfx_e.frag     materials/main.frag  "-DMESH_TYPE=4" -DEMISSIVE   -DVT_COLOR)
+add_shader(main_pfx_e_at.frag  materials/main.frag  "-DMESH_TYPE=4" -DEMISSIVE   -DVT_COLOR -DATEST)
+add_shader(main_pfx_x.frag     materials/main.frag  "-DMESH_TYPE=4" -DGHOST      -DVT_COLOR)
+add_shader(main_pfx_x_at.frag  materials/main.frag  "-DMESH_TYPE=4" -DGHOST      -DVT_COLOR -DATEST)
+add_shader(main_pfx_d.frag     materials/main.frag  "-DMESH_TYPE=4" -DDEPTH_ONLY -DVT_COLOR)
+add_shader(main_pfx_d_at.frag  materials/main.frag  "-DMESH_TYPE=4" -DDEPTH_ONLY -DVT_COLOR -DATEST)
+
 
 add_shader(item.vert                 inventory/item.vert)
 add_shader(item.frag                 inventory/item.frag)

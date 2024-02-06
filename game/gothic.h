@@ -45,6 +45,7 @@ class Gothic final {
       bool  doRayQuery          = false;
       bool  doRtGi              = false;
       bool  doMeshShading       = false;
+      bool  doBindless          = false;
 
       bool  hideFocus           = false;
       float cameraFov           = 67.5f;

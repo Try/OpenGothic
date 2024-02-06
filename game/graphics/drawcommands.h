@@ -37,12 +37,13 @@ class DrawCommands {
 
       // bindfull only
       uint32_t                       bucketId     = 0;
-      Tempest::DescriptorSet         descB[SceneGlobals::V_Count][Resources::MaxFramesInFlight];
+      Tempest::DescriptorSet         descFr[SceneGlobals::V_Count][Resources::MaxFramesInFlight];
 
       bool                           isForwardShading() const;
       bool                           isShadowmapRequired() const;
       bool                           isSceneInfoRequired() const;
       bool                           isTextureInShadowPass() const;
+      bool                           isBindless() const;
       };
 
     DrawCommands(VisualObjects& owner, DrawBuckets& buckets, DrawClusters& clusters, const SceneGlobals& scene);
