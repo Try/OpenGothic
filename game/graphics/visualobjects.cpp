@@ -549,9 +549,11 @@ void VisualObjects::visibilityPass(Tempest::Encoder<Tempest::CommandBuffer> &cmd
 
 void VisualObjects::drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   // return;
-  for(auto i:{Material::Multiply, Material::Multiply2, Material::Transparent, Material::AdditiveLight, Material::Ghost}) {
-    drawCmd.drawCommon(cmd, fId, SceneGlobals::V_Main, i);
-    }
+  drawCmd.drawCommon(cmd, fId, SceneGlobals::V_Main, Material::Multiply);
+  drawCmd.drawCommon(cmd, fId, SceneGlobals::V_Main, Material::Multiply2);
+  drawCmd.drawCommon(cmd, fId, SceneGlobals::V_Main, Material::Ghost);
+  drawCmd.drawCommon(cmd, fId, SceneGlobals::V_Main, Material::AdditiveLight);
+  drawCmd.drawCommon(cmd, fId, SceneGlobals::V_Main, Material::Transparent);
   }
 
 void VisualObjects::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
@@ -561,19 +563,15 @@ void VisualObjects::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uin
 
 void VisualObjects::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
   // return;
-  for(auto i:{Material::Solid, Material::AlphaTest}) {
-    drawCmd.drawCommon(cmd, fId, SceneGlobals::V_Main, i);
-    drawCmd.drawCommon(cmd, fId, SceneGlobals::V_Main, i);
-    }
+  drawCmd.drawCommon(cmd, fId, SceneGlobals::V_Main, Material::Solid);
+  drawCmd.drawCommon(cmd, fId, SceneGlobals::V_Main, Material::AlphaTest);
   }
 
 void VisualObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer) {
   // return;
   auto view = SceneGlobals::VisCamera(SceneGlobals::V_Shadow0 + layer);
-  for(auto i:{Material::Solid, Material::AlphaTest}) {
-    drawCmd.drawCommon(cmd, fId, view, i);
-    drawCmd.drawCommon(cmd, fId, view, i);
-    }
+  drawCmd.drawCommon(cmd, fId, view, Material::Solid);
+  drawCmd.drawCommon(cmd, fId, view, Material::AlphaTest);
   }
 
 void VisualObjects::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
