@@ -76,6 +76,7 @@ class Shaders {
       DrawCommands::Type      type         = DrawCommands::Static;
       PipelineType            pipelineType = PipelineType::T_Main;
       bool                    bindless     = false;
+      bool                    trivial      = false;
       };
 
     Tempest::RenderPipeline  postEffect(std::string_view name);

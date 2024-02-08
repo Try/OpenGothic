@@ -136,7 +136,7 @@ vec4 processVertex(out Varyings shOut, in Vertex v, uint bucketId, uint instance
   }
 #elif (MESH_TYPE==T_OBJ || MESH_TYPE==T_MORPH)
   vec3 dpos = normal*obj.fatness;
-  vec3 pos  = obj.mat*vec4(v.pos,1.0)  + dpos;
+  vec3 pos  = obj.mat*vec4(v.pos,1.0) + dpos;
 #else
   vec3 pos  = v.pos;
 #endif

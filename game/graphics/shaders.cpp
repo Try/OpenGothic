@@ -1,6 +1,7 @@
 #include "shaders.h"
 
 #include <Tempest/Device>
+#include <Tempest/Log>
 
 #include "gothic.h"
 #include "resources.h"
@@ -197,10 +198,11 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
     return nullptr;
     }
 
-  const auto alpha = (mat.isGhost ? Material::Ghost : mat.alpha);
+  const auto alpha   = (mat.isGhost ? Material::Ghost : mat.alpha);
+  const bool trivial = (!mat.hasUvAnimation() && alpha==Material::Solid && t==DrawCommands::Landscape);
 
   for(auto& i:materials) {
-    if(i.alpha==alpha && i.type==t && i.pipelineType==pt && i.bindless==bl)
+    if(i.alpha==alpha && i.type==t && i.pipelineType==pt && i.bindless==bl && i.trivial==trivial)
       return &i.pipeline;
     }
 
@@ -284,7 +286,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
       typeFsM = "_g";
       typeVsD = "_d";
       typeFsD = "_d";
-      if(t==DrawCommands::Landscape && !mat.isTexcoordAnim())
+      if(trivial)
         typeFsM = "_g_s";
       break;
     case Material::AlphaTest:
@@ -341,6 +343,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
   b.type         = t;
   b.pipelineType = pt;
   b.bindless     = bl;
+  b.trivial      = trivial;
 
   auto& device = Resources::device();
   if(mat.isTesselated() && device.properties().tesselationShader && t==DrawCommands::Landscape && false) {

@@ -104,7 +104,7 @@ void vertexShader(const uvec4 task) {
     return;
     }
 
-#if defined(BINDLESS) && defined(MAT_VARYINGS)
+#if defined(MAT_VARYINGS)
   bucketIdOut = bucketId;
 #endif
 

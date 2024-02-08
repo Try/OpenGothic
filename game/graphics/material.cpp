@@ -133,10 +133,6 @@ bool Material::isTesselated() const {
   return (alpha==Material::Water);
   }
 
-bool Material::isTexcoordAnim() const {
-  return texAniMapDirPeriod != Point();
-  }
-
 int Material::alphaOrder(AlphaFunc a, bool ghost) {
   if(ghost)
     return Ghost;

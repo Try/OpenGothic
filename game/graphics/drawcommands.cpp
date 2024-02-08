@@ -221,7 +221,7 @@ void DrawCommands::updateCommandUniforms() {
         desc[v].set(L_Scene,    scene.uboGlobal[v]);
         desc[v].set(L_Payload,  views[v].visClusters);
         desc[v].set(L_Instance, mem);
-        desc[v].set(L_Bucket,   buckets.ssbo()); // FIXME: need offset for non-bindless
+        desc[v].set(L_Bucket,   buckets.ssbo());
 
         if(cx.isBindless()) {
           desc[v].set(L_Ibo,    ibo);

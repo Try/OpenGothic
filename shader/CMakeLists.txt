@@ -130,8 +130,8 @@ add_shader(main_lnd_f_bindless.tesc  materials/main.tesc  "-DMESH_TYPE=0" -DBIND
 add_shader(main_lnd_f_bindless.tese  materials/main.tese  "-DMESH_TYPE=0" -DBINDLESS -DWATER)
 
 # materials landscape
-add_frag_shader(main_lnd_g     -DFLAT_NORMAL -DGBUFFER -DSIMPLE_MAT)
-add_frag_shader(main_lnd_g_s   -DFLAT_NORMAL -DGBUFFER)
+add_frag_shader(main_lnd_g_s   -DFLAT_NORMAL -DGBUFFER -DSIMPLE_MAT)
+add_frag_shader(main_lnd_g     -DFLAT_NORMAL -DGBUFFER)
 add_frag_shader(main_lnd_g_at  -DFLAT_NORMAL -DGBUFFER -DATEST)
 add_frag_shader(main_lnd_g_tx  -DFLAT_NORMAL -DGBUFFER)
 add_frag_shader(main_lnd_f     -DFLAT_NORMAL -DFORWARD)
