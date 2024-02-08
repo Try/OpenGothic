@@ -8,12 +8,9 @@
 #include "lighting/shadow_sampling.glsl"
 #include "lighting/tonemapping.glsl"
 
-#if defined(BINDLESS) && defined(MAT_VARYINGS)
-layout(location = 0) in nonuniformEXT flat uint bucketId;
+#if defined(MAT_VARYINGS)
+layout(location = 0) in flat uint bucketId;
 layout(location = 1) in Varyings  shInp;
-#elif defined(MAT_VARYINGS)
-const uint bucketId = 0;
-layout(location = 0) in Varyings  shInp;
 #endif
 
 #if DEBUG_DRAW
@@ -139,7 +136,13 @@ vec4 diffuseTex() {
   const vec2 uv = shInp.uv;
 #endif
 
-  vec4 tex = texture(sampler2D(textureMain[bucketId], samplerMain),uv);
+#if defined(BINDLESS)
+  nonuniformEXT uint tId = bucketId;
+#else
+  const         uint tId = 0;
+#endif
+
+  vec4 tex = texture(sampler2D(textureMain[tId], samplerMain),uv);
 
 #if !defined(SIMPLE_MAT)
   tex.a *= alphaWeight;

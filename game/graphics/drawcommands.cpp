@@ -1,5 +1,7 @@
 #include "drawcommands.h"
 
+#include <Tempest/Log>
+
 #include "graphics/mesh/submesh/animmesh.h"
 #include "graphics/mesh/submesh/staticmesh.h"
 #include "graphics/mesh/submesh/packedmesh.h"
@@ -64,8 +66,6 @@ uint16_t DrawCommands::commandId(const Material& m, Type type, uint32_t bucketId
       continue;
     if(!bindless && cmd[i].bucketId!=bucketId)
       continue;
-    if(m.hasFrameAnimation() && cmd[i].bucketId!=bucketId)
-      continue;
     return uint16_t(i);
     }
 
@@ -79,16 +79,24 @@ uint16_t DrawCommands::commandId(const Material& m, Type type, uint32_t bucketId
   cx.bucketId    = bindless ? 0xFFFFFFFF : bucketId;
   cx.type        = type;
   cx.alpha       = m.alpha;
-  if(cx.pMain!=nullptr) {
-    cx.desc[SceneGlobals::V_Main] = device.descriptors(*cx.pMain);
+
+  for(uint8_t fId=0; fId<Resources::MaxFramesInFlight; ++fId) {
+    auto& desc = cx.isBindless() ? cx.desc : cx.descFr[fId];
+    if(cx.pMain!=nullptr) {
+      desc[SceneGlobals::V_Main] = device.descriptors(*cx.pMain);
+      }
+    if(cx.pShadow!=nullptr) {
+      desc[SceneGlobals::V_Shadow0] = device.descriptors(*cx.pShadow);
+      desc[SceneGlobals::V_Shadow1] = device.descriptors(*cx.pShadow);
+      }
+    if(cx.pHiZ!=nullptr) {
+      desc[SceneGlobals::V_HiZ] = device.descriptors(*cx.pHiZ);
+      }
+
+    if(cx.isBindless())
+      break;
     }
-  if(cx.pShadow!=nullptr) {
-    cx.desc[SceneGlobals::V_Shadow0] = device.descriptors(*cx.pShadow);
-    cx.desc[SceneGlobals::V_Shadow1] = device.descriptors(*cx.pShadow);
-    }
-  if(cx.pHiZ!=nullptr) {
-    cx.desc[SceneGlobals::V_HiZ] = device.descriptors(*cx.pHiZ);
-    }
+
   cmd.push_back(std::move(cx));
   cmdDurtyBit = true;
   return ret;
@@ -122,11 +130,12 @@ bool DrawCommands::commit() {
     //return false;
     }
 
-  std::vector<IndirectCmd> cx(cmd.size());
+  std::vector<IndirectCmd> cx(cmd.size()+1);
   for(size_t i=0; i<cmd.size(); ++i) {
     cx[i].vertexCount = PackedMesh::MaxInd;
     cx[i].writeOffset = cmd[i].firstPayload;
     }
+  cx.back().writeOffset = uint32_t(totalPayload);
 
   ord.resize(cmd.size());
   for(size_t i=0; i<cmd.size(); ++i)
@@ -200,56 +209,62 @@ void DrawCommands::updateCommandUniforms() {
       }
     }
 
-  for(auto& i:cmd) {
-    for(uint8_t v=0; v<SceneGlobals::V_Count; ++v) {
-      if(i.desc[v].isEmpty())
-        continue;
-      auto  bId = i.bucketId;
-      auto& mem = (i.type==Type::Landscape) ? clusters.ssbo() : owner.instanceSsbo();
+  for(auto& cx:cmd) {
+    for(uint8_t fId=0; fId<Resources::MaxFramesInFlight; ++fId) {
+      for(uint8_t v=0; v<SceneGlobals::V_Count; ++v) {
+        auto& desc = cx.isBindless() ? cx.desc : cx.descFr[fId];
+        if(desc[v].isEmpty())
+          continue;
 
-      i.desc[v].set(L_Scene,    scene.uboGlobal[v]);
-      i.desc[v].set(L_Payload,  views[v].visClusters);
-      i.desc[v].set(L_Instance, mem);
-      i.desc[v].set(L_Bucket,   buckets.ssbo()); // FIXME: need offset for non-bindless
+        auto  bId = cx.bucketId;
+        auto& mem = (cx.type==Type::Landscape) ? clusters.ssbo() : owner.instanceSsbo();
+        desc[v].set(L_Scene,    scene.uboGlobal[v]);
+        desc[v].set(L_Payload,  views[v].visClusters);
+        desc[v].set(L_Instance, mem);
+        desc[v].set(L_Bucket,   buckets.ssbo()); // FIXME: need offset for non-bindless
 
-      if(i.isBindless()) {
-        i.desc[v].set(L_Ibo,      ibo);
-        i.desc[v].set(L_Vbo,      vbo);
-        } else {
-        i.desc[v].set(L_Ibo,      *ibo[bId]);
-        i.desc[v].set(L_Vbo,      *vbo[bId]);
+        if(cx.isBindless()) {
+          desc[v].set(L_Ibo,    ibo);
+          desc[v].set(L_Vbo,    vbo);
+          } else {
+          desc[v].set(L_Ibo,    *ibo[bId]);
+          desc[v].set(L_Vbo,    *vbo[bId]);
+          }
+
+        if(v==SceneGlobals::V_Main || cx.isTextureInShadowPass()) {
+          if(cx.isBindless())
+            desc[v].set(L_Diffuse, tex); else
+            desc[v].set(L_Diffuse, *tex[bId]);
+          desc[v].set(L_Sampler, Sampler::anisotrophy());
+          }
+
+        if(v==SceneGlobals::V_Main && cx.isShadowmapRequired()) {
+          desc[v].set(L_Shadow0, *scene.shadowMap[0],Resources::shadowSampler());
+          desc[v].set(L_Shadow1, *scene.shadowMap[1],Resources::shadowSampler());
+          }
+
+        if(cx.type==Morph && cx.isBindless()) {
+          desc[v].set(L_MorphId,  morphId);
+          desc[v].set(L_Morph,    morph);
+          }
+        else if(cx.type==Morph) {
+          desc[v].set(L_MorphId,  *morphId[bId]);
+          desc[v].set(L_Morph,    *morph[bId]);
+          }
+
+        if(v==SceneGlobals::V_Main && cx.isSceneInfoRequired()) {
+          auto smp = Sampler::bilinear();
+          smp.setClamping(ClampMode::MirroredRepeat);
+          desc[v].set(L_SceneClr, *scene.sceneColor, smp);
+
+          smp = Sampler::nearest();
+          smp.setClamping(ClampMode::MirroredRepeat);
+          desc[v].set(L_GDepth, *scene.sceneDepth, smp);
+          }
         }
 
-      if(v==SceneGlobals::V_Main || i.isTextureInShadowPass()) {
-        if(i.isBindless())
-          i.desc[v].set(L_Diffuse, tex); else
-          i.desc[v].set(L_Diffuse, *tex[bId]);
-        i.desc[v].set(L_Sampler, Sampler::anisotrophy());
-        }
-
-      if(v==SceneGlobals::V_Main && i.isShadowmapRequired()) {
-        i.desc[v].set(L_Shadow0, *scene.shadowMap[0],Resources::shadowSampler());
-        i.desc[v].set(L_Shadow1, *scene.shadowMap[1],Resources::shadowSampler());
-        }
-
-      if(i.type==Morph && i.isBindless()) {
-        i.desc[v].set(L_MorphId,  morphId);
-        i.desc[v].set(L_Morph,    morph);
-        }
-      else if(i.type==Morph) {
-        i.desc[v].set(L_MorphId,  *morphId[bId]);
-        i.desc[v].set(L_Morph,    *morph[bId]);
-        }
-
-      if(v==SceneGlobals::V_Main && i.isSceneInfoRequired()) {
-        auto smp = Sampler::bilinear();
-        smp.setClamping(ClampMode::MirroredRepeat);
-        i.desc[v].set(L_SceneClr, *scene.sceneColor, smp);
-
-        smp = Sampler::nearest();
-        smp.setClamping(ClampMode::MirroredRepeat);
-        i.desc[v].set(L_GDepth, *scene.sceneDepth, smp);
-        }
+      if(cx.isBindless())
+        break;
       }
     }
   }
@@ -257,6 +272,30 @@ void DrawCommands::updateCommandUniforms() {
 void DrawCommands::prepareUniforms() {
   // TODO
   updateUniforms();
+  }
+
+void DrawCommands::preFrameUpdate(uint8_t fId) {
+  for(auto& cx:cmd) {
+    if(cx.isBindless())
+      continue;
+
+    auto& desc = cx.descFr[fId];
+    for(uint8_t v=0; v<SceneGlobals::V_Count; ++v) {
+      if(desc[v].isEmpty())
+        continue;
+
+      auto& bucket = buckets[cx.bucketId];
+      auto& mat    = bucket.mat;
+      if(mat.hasFrameAnimation()) {
+        uint64_t timeShift = 0;
+        auto  frame  = size_t((timeShift+scene.tickCount)/mat.texAniFPSInv);
+        auto  t     = mat.frames[frame%mat.frames.size()];
+        if(v==SceneGlobals::V_Main || mat.isTextureInShadowPass()) {
+          desc[v].set(L_Diffuse, *t);
+          }
+        }
+      }
+    }
   }
 
 void DrawCommands::updateUniforms() {
@@ -313,17 +352,20 @@ void DrawCommands::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
 
   for(size_t i=0; i<ord.size(); ++i) {
     auto& cx = *ord[i];
-    if(cx.desc[viewId].isEmpty())
-      continue;
     if(cx.alpha!=Material::Solid && cx.alpha!=Material::AlphaTest)
       continue;
     if(cx.type!=Landscape && cx.type!=Static)
       continue;
+
+    auto& desc = cx.isBindless() ? cx.desc : cx.descFr[fId];
+    if(desc[viewId].isEmpty())
+      continue;
+
     auto id  = size_t(std::distance(this->cmd.data(), &cx));
     push.firstMeshlet = cx.firstPayload;
     push.meshletCount = cx.maxPayload;
 
-    cmd.setUniforms(*cx.pHiZ, cx.desc[viewId], &push, sizeof(push));
+    cmd.setUniforms(*cx.pHiZ, desc[viewId], &push, sizeof(push));
     if(mesh)
       cmd.dispatchMeshIndirect(view.indirectCmd, sizeof(IndirectCmd)*id + sizeof(uint32_t)); else
       cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
@@ -339,9 +381,11 @@ void DrawCommands::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uin
   // auto  e    = std::upper_bound(ord.begin(), ord.end(), cmpDraw);
   for(size_t i=0; i<ord.size(); ++i) {
     auto& cx = *ord[i];
-    if(cx.desc[viewId].isEmpty())
-      continue;
     if(cx.alpha!=func)
+      continue;
+
+    auto& desc = cx.isBindless() ? cx.desc : cx.descFr[fId];
+    if(desc[viewId].isEmpty())
       continue;
 
     const RenderPipeline* pso = nullptr;
@@ -364,7 +408,7 @@ void DrawCommands::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uin
     push.firstMeshlet = cx.firstPayload;
     push.meshletCount = cx.maxPayload;
 
-    cmd.setUniforms(*pso, cx.desc[viewId], &push, sizeof(push));
+    cmd.setUniforms(*pso, desc[viewId], &push, sizeof(push));
     if(mesh)
       cmd.dispatchMeshIndirect(view.indirectCmd, sizeof(IndirectCmd)*id + sizeof(uint32_t)); else
       cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);

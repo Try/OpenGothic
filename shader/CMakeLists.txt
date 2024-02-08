@@ -72,80 +72,6 @@ endfunction(add_shader)
 #   ATEST      - use alpha test
 #   WATER      - water material
 #   GHOST      - ghost material
-#   G1         - hint for gothic1 shader
-function(add_uber_shader OUTPUT)
-  list(SUBLIST ARGV 1 -1 VARS)
-  add_shader(${OUTPUT}_shadow.vert           materials/main.vert ${VARS} -DSHADOW_MAP)
-  add_shader(${OUTPUT}_shadow.32.mesh        materials/main.mesh ${VARS} -DSHADOW_MAP)
-  add_shader(${OUTPUT}_shadow.64.mesh        materials/main.mesh ${VARS} -DSHADOW_MAP)
-  add_shader(${OUTPUT}_shadow.32.task        materials/main.task ${VARS} -DSHADOW_MAP)
-  add_shader(${OUTPUT}_shadow.64.task        materials/main.task ${VARS} -DSHADOW_MAP)
-  add_shader(${OUTPUT}_shadow.frag           materials/main.frag ${VARS} -DSHADOW_MAP)
-
-  add_shader(${OUTPUT}_shadow_at.vert        materials/main.vert ${VARS} -DSHADOW_MAP -DATEST)
-  add_shader(${OUTPUT}_shadow_at.32.mesh     materials/main.mesh ${VARS} -DSHADOW_MAP -DATEST)
-  add_shader(${OUTPUT}_shadow_at.64.mesh     materials/main.mesh ${VARS} -DSHADOW_MAP -DATEST)
-  add_shader(${OUTPUT}_shadow_at.32.task     materials/main.task ${VARS} -DSHADOW_MAP -DATEST)
-  add_shader(${OUTPUT}_shadow_at.64.task     materials/main.task ${VARS} -DSHADOW_MAP -DATEST)
-  add_shader(${OUTPUT}_shadow_at.frag        materials/main.frag ${VARS} -DSHADOW_MAP -DATEST)
-
-  add_shader(${OUTPUT}.vert                  materials/main.vert ${VARS} -DFORWARD)
-  add_shader(${OUTPUT}.32.mesh               materials/main.mesh ${VARS} -DFORWARD)
-  add_shader(${OUTPUT}.64.mesh               materials/main.mesh ${VARS} -DFORWARD)
-  add_shader(${OUTPUT}.32.task               materials/main.task ${VARS} -DFORWARD)
-  add_shader(${OUTPUT}.64.task               materials/main.task ${VARS} -DFORWARD)
-  add_shader(${OUTPUT}.frag                  materials/main.frag ${VARS} -DFORWARD -DMAT_LINEAR_CLR)
-
-  add_shader(${OUTPUT}_at.vert               materials/main.vert ${VARS} -DFORWARD -DATEST)
-  add_shader(${OUTPUT}_at.32.mesh            materials/main.mesh ${VARS} -DFORWARD -DATEST)
-  add_shader(${OUTPUT}_at.64.mesh            materials/main.mesh ${VARS} -DFORWARD -DATEST)
-  add_shader(${OUTPUT}_at.32.task            materials/main.task ${VARS} -DFORWARD -DATEST)
-  add_shader(${OUTPUT}_at.64.task            materials/main.task ${VARS} -DFORWARD -DATEST)
-  add_shader(${OUTPUT}_at.frag               materials/main.frag ${VARS} -DFORWARD -DATEST -DMAT_LINEAR_CLR)
-
-  add_shader(${OUTPUT}_emi.vert              materials/main.vert ${VARS})
-  add_shader(${OUTPUT}_emi.32.mesh           materials/main.mesh ${VARS} -DWG_SIZE=32)
-  add_shader(${OUTPUT}_emi.64.mesh           materials/main.mesh ${VARS} -DWG_SIZE=64)
-  add_shader(${OUTPUT}_emi.32.task           materials/main.task ${VARS} -DWG_SIZE=32)
-  add_shader(${OUTPUT}_emi.64.task           materials/main.task ${VARS} -DWG_SIZE=64)
-  add_shader(${OUTPUT}_emi.frag              materials/main.frag ${VARS} -DEMISSIVE -DMAT_LINEAR_CLR)
-
-  add_shader(${OUTPUT}_mul.vert              materials/main.vert ${VARS})
-  add_shader(${OUTPUT}_mul.32.mesh           materials/main.mesh ${VARS} -DWG_SIZE=32)
-  add_shader(${OUTPUT}_mul.64.mesh           materials/main.mesh ${VARS} -DWG_SIZE=64)
-  add_shader(${OUTPUT}_mul.32.task           materials/main.task ${VARS} -DWG_SIZE=32)
-  add_shader(${OUTPUT}_mul.64.task           materials/main.task ${VARS} -DWG_SIZE=64)
-  add_shader(${OUTPUT}_mul.frag              materials/main.frag ${VARS})
-
-  add_shader(${OUTPUT}_gbuffer.vert          materials/main.vert ${VARS} -DGBUFFER)
-  add_shader(${OUTPUT}_gbuffer.32.mesh       materials/main.mesh ${VARS} -DGBUFFER)
-  add_shader(${OUTPUT}_gbuffer.64.mesh       materials/main.mesh ${VARS} -DGBUFFER)
-  add_shader(${OUTPUT}_gbuffer.32.task       materials/main.task ${VARS} -DGBUFFER)
-  add_shader(${OUTPUT}_gbuffer.64.task       materials/main.task ${VARS} -DGBUFFER)
-  add_shader(${OUTPUT}_gbuffer.frag          materials/main.frag ${VARS} -DGBUFFER)
-
-  add_shader(${OUTPUT}_gbuffer_at.vert       materials/main.vert ${VARS} -DGBUFFER -DATEST)
-  add_shader(${OUTPUT}_gbuffer_at.32.mesh    materials/main.mesh ${VARS} -DGBUFFER -DATEST)
-  add_shader(${OUTPUT}_gbuffer_at.64.mesh    materials/main.mesh ${VARS} -DGBUFFER -DATEST)
-  add_shader(${OUTPUT}_gbuffer_at.32.task    materials/main.task ${VARS} -DGBUFFER -DATEST)
-  add_shader(${OUTPUT}_gbuffer_at.64.task    materials/main.task ${VARS} -DGBUFFER -DATEST)
-  add_shader(${OUTPUT}_gbuffer_at.frag       materials/main.frag ${VARS} -DGBUFFER -DATEST)
-
-  add_shader(${OUTPUT}_water.vert            materials/main.vert ${VARS} -DFORWARD -DWATER)
-  add_shader(${OUTPUT}_water.tesc            materials/main.tesc ${VARS} -DFORWARD -DWATER)
-  add_shader(${OUTPUT}_water.tese            materials/main.tese ${VARS} -DFORWARD -DWATER)
-  add_shader(${OUTPUT}_water.frag            materials/main.frag ${VARS} -DFORWARD -DWATER -DMAT_LINEAR_CLR)
-
-  add_shader(${OUTPUT}_ghost.vert            materials/main.vert ${VARS} -DFORWARD -DGHOST)
-  add_shader(${OUTPUT}_ghost.32.mesh         materials/main.mesh ${VARS} -DFORWARD -DGHOST)
-  add_shader(${OUTPUT}_ghost.64.mesh         materials/main.mesh ${VARS} -DFORWARD -DGHOST)
-  add_shader(${OUTPUT}_ghost.32.task         materials/main.task ${VARS} -DFORWARD -DGHOST)
-  add_shader(${OUTPUT}_ghost.64.task         materials/main.task ${VARS} -DFORWARD -DGHOST)
-  add_shader(${OUTPUT}_ghost.frag            materials/main.frag ${VARS} -DFORWARD -DGHOST -DMAT_LINEAR_CLR)
-
-  set(OPENGOTHIC_SHADERS      ${OPENGOTHIC_SHADERS}      PARENT_SCOPE)
-  set(OPENGOTHIC_SHADERS_SPRV ${OPENGOTHIC_SHADERS_SPRV} PARENT_SCOPE)
-endfunction(add_uber_shader)
 
 function(add_geom_shader OUTPUT)
   list(SUBLIST ARGV 1 -1 VARS)
@@ -168,7 +94,6 @@ function(add_frag_shader OUTPUT)
   set(OPENGOTHIC_SHADERS      ${OPENGOTHIC_SHADERS}      PARENT_SCOPE)
   set(OPENGOTHIC_SHADERS_SPRV ${OPENGOTHIC_SHADERS_SPRV} PARENT_SCOPE)
 endfunction(add_frag_shader)
-
 
 # cluster culling
 add_shader(cluster_init.comp         materials/cluster_init.comp)

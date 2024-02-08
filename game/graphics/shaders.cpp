@@ -200,7 +200,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
   const auto alpha = (mat.isGhost ? Material::Ghost : mat.alpha);
 
   for(auto& i:materials) {
-    if(i.alpha==alpha && i.type==t && i.pipelineType==pt)
+    if(i.alpha==alpha && i.type==t && i.pipelineType==pt && i.bindless==bl)
       return &i.pipeline;
     }
 
@@ -340,6 +340,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
   b.alpha        = alpha;
   b.type         = t;
   b.pipelineType = pt;
+  b.bindless     = bl;
 
   auto& device = Resources::device();
   if(mat.isTesselated() && device.properties().tesselationShader && t==DrawCommands::Landscape && false) {

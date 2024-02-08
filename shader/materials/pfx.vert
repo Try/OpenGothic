@@ -42,7 +42,8 @@ out gl_PerVertex {
   vec4 gl_Position;
   };
 #if defined(MAT_VARYINGS)
-layout(location = 0) out Varyings shOut;
+layout(location = 0) out flat uint bucketId;
+layout(location = 1) out Varyings  shOut;
 #endif
 
 #if DEBUG_DRAW
@@ -191,6 +192,7 @@ void main() {
   Varyings var;
   gl_Position = processVertex(var, vert, gl_InstanceIndex, gl_VertexIndex);
 #if defined(MAT_VARYINGS)
-  shOut = var;
+  bucketId = 0;
+  shOut    = var;
 #endif
   }

@@ -141,6 +141,7 @@ std::pair<uint32_t, uint32_t> VisualObjects::Item::meshSlice() const {
 
 VisualObjects::VisualObjects(const SceneGlobals& scene, const std::pair<Vec3, Vec3>& bbox)
     : scene(scene), drawCmd(*this, bucketsMem, clusters, scene) {
+  objectsMorph.reserve(1024);
   }
 
 VisualObjects::~VisualObjects() {
@@ -469,6 +470,7 @@ void VisualObjects::prepareGlobals(Encoder<CommandBuffer>& cmd, uint8_t fId) {
 void VisualObjects::preFrameUpdate(uint8_t fId) {
   preFrameUpdateWind(fId);
   preFrameUpdateMorph(fId);
+  drawCmd.preFrameUpdate(fId);
   }
 
 void VisualObjects::preFrameUpdateWind(uint8_t fId) {

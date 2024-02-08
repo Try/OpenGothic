@@ -37,7 +37,7 @@ class DrawCommands {
 
       // bindfull only
       uint32_t                       bucketId     = 0;
-      Tempest::DescriptorSet         descFr[SceneGlobals::V_Count][Resources::MaxFramesInFlight];
+      Tempest::DescriptorSet         descFr[Resources::MaxFramesInFlight][SceneGlobals::V_Count];
 
       bool                           isForwardShading() const;
       bool                           isShadowmapRequired() const;
@@ -56,6 +56,7 @@ class DrawCommands {
     void     addClusters(uint16_t cmdId, uint32_t meshletCount);
 
     void     prepareUniforms();
+    void     preFrameUpdate(uint8_t fId);
     void     updateUniforms();
 
     void     visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int pass);

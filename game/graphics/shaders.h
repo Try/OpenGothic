@@ -75,6 +75,7 @@ class Shaders {
       Material::AlphaFunc     alpha        = Material::Solid;
       DrawCommands::Type      type         = DrawCommands::Static;
       PipelineType            pipelineType = PipelineType::T_Main;
+      bool                    bindless     = false;
       };
 
     Tempest::RenderPipeline  postEffect(std::string_view name);

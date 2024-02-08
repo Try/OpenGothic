@@ -28,16 +28,12 @@ out gl_MeshPerVertexEXT {
   } gl_MeshVerticesEXT[];
 #endif
 
-#if defined(GL_VERTEX_SHADER) && defined(BINDLESS) && defined(MAT_VARYINGS)
+#if defined(GL_VERTEX_SHADER) && defined(MAT_VARYINGS)
 layout(location = 0) out flat uint bucketIdOut;
 layout(location = 1) out Varyings  shOut;
-#elif defined(GL_VERTEX_SHADER) && defined(MAT_VARYINGS)
-layout(location = 0) out Varyings  shOut;
-#elif defined(BINDLESS) && defined(MAT_VARYINGS)
+#elif defined(MAT_VARYINGS)
 layout(location = 0) out flat uint bucketIdOut[]; //TODO: per-primitive
 layout(location = 1) out Varyings  shOut[];
-#elif defined(MAT_VARYINGS)
-layout(location = 0) out Varyings  shOut[];
 #endif
 
 uvec2 processMeshlet(const uint meshletId, const uint bucketId) {
@@ -134,7 +130,7 @@ void meshShader(const uvec4 task) {
   // Alloc outputs
   SetMeshOutputsEXT(vertCount, primCount);
 
-#if defined(BINDLESS) && defined(MAT_VARYINGS)
+#if defined(MAT_VARYINGS)
   bucketIdOut[laneID] = bucketId;
 #endif
 
