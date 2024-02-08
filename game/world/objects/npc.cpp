@@ -3919,6 +3919,10 @@ void Npc::excRoutine(size_t callback) {
   routines.clear();
   owner.script().invokeState(this,currentOther,currentVictum,callback);
   // aiState.eTime = gtime();
+
+  // imitate B_StartOtherRoutine's npc teleport behavior
+  if(aiPolicy>ProcessPolicy::AiNormal)
+    resetPositionToTA();
   }
 
 void Npc::multSpeed(float s) {
