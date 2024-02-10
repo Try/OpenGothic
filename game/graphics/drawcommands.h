@@ -44,6 +44,7 @@ class DrawCommands {
       bool                           isSceneInfoRequired() const;
       bool                           isTextureInShadowPass() const;
       bool                           isBindless() const;
+      bool                           isMeshShader() const;
       };
 
     DrawCommands(VisualObjects& owner, DrawBuckets& buckets, DrawClusters& clusters, const SceneGlobals& scene);

@@ -33,6 +33,15 @@ bool DrawCommands::DrawCmd::isBindless() const {
   return bucketId==uint32_t(-1);
   }
 
+bool DrawCommands::DrawCmd::isMeshShader() const {
+  auto& opt = Gothic::inst().options();
+  if(!opt.doMeshShading)
+    return false;
+  if(Material::isTesselated(alpha) && Resources::device().properties().tesselationShader)
+    return false;
+  return true;
+  }
+
 
 DrawCommands::DrawCommands(VisualObjects& owner, DrawBuckets& buckets, DrawClusters& clusters, const SceneGlobals& scene)
     : owner(owner), buckets(buckets), clusters(clusters), scene(scene) {
@@ -130,10 +139,9 @@ bool DrawCommands::commit() {
     //return false;
     }
 
-  const bool gmesh = Gothic::options().doMeshShading;
   std::vector<IndirectCmd> cx(cmd.size()+1);
   for(size_t i=0; i<cmd.size(); ++i) {
-    auto mesh = gmesh && !Material::isTesselated(cmd[i].alpha);
+    auto mesh = cmd[i].isMeshShader();
 
     cx[i].vertexCount   = PackedMesh::MaxInd;
     cx[i].writeOffset   = cmd[i].firstPayload;
@@ -352,7 +360,6 @@ void DrawCommands::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
   // return;
   struct Push { uint32_t firstMeshlet; uint32_t meshletCount; } push = {};
 
-  const bool mesh   = Gothic::options().doMeshShading;
   auto       viewId = SceneGlobals::V_HiZ;
   auto&      view   = views[viewId];
 
@@ -372,7 +379,7 @@ void DrawCommands::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
     push.meshletCount = cx.maxPayload;
 
     cmd.setUniforms(*cx.pHiZ, desc[viewId], &push, sizeof(push));
-    if(mesh)
+    if(cx.isMeshShader())
       cmd.dispatchMeshIndirect(view.indirectCmd, sizeof(IndirectCmd)*id + sizeof(uint32_t)); else
       cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
     }
@@ -381,7 +388,6 @@ void DrawCommands::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
 void DrawCommands::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, SceneGlobals::VisCamera viewId, Material::AlphaFunc func) {
   struct Push { uint32_t firstMeshlet; uint32_t meshletCount; } push = {};
 
-  const bool mesh = Gothic::options().doMeshShading;
   auto&      view = views[viewId];
   // auto  b    = std::lower_bound(ord.begin(), ord.end(), cmpDraw);
   // auto  e    = std::upper_bound(ord.begin(), ord.end(), cmpDraw);
@@ -415,7 +421,7 @@ void DrawCommands::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uin
     push.meshletCount = cx.maxPayload;
 
     cmd.setUniforms(*pso, desc[viewId], &push, sizeof(push));
-    if(mesh && !Material::isTesselated(cx.alpha))
+    if(cx.isMeshShader())
       cmd.dispatchMeshIndirect(view.indirectCmd, sizeof(IndirectCmd)*id + sizeof(uint32_t)); else
       cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
     }
