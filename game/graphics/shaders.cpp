@@ -346,7 +346,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
   b.trivial      = trivial;
 
   auto& device = Resources::device();
-  if(mat.isTesselated() && device.properties().tesselationShader && t==DrawCommands::Landscape && false) {
+  if(mat.isTesselated() && device.properties().tesselationShader && t==DrawCommands::Landscape && true) {
     auto shVs = GothicShader::get(string_frm("main_", vsTok, typeVs, bindless, ".vert.sprv"));
     auto shTc = GothicShader::get(string_frm("main_", vsTok, typeVs, bindless, ".tesc.sprv"));
     auto shTe = GothicShader::get(string_frm("main_", vsTok, typeVs, bindless, ".tese.sprv"));

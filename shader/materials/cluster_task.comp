@@ -101,41 +101,6 @@ bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
   return true;
   }
 
-bool _projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
-  const vec3  objPos = sphere.xyz;
-  const float R      = sphere.w;
-  const vec3  b[2]   = { objPos-vec3(R), objPos+vec3(R) };
-  const float znear  = push.znear;
-
-  aabb     = vec4(1, 1, -1, -1);
-  depthMin = 1;
-  for(uint i=0; i<8; ++i) {
-    const vec3 pos = vec3(b[bitfieldExtract(i,0,1)].x,
-                          b[bitfieldExtract(i,1,1)].y,
-                          b[bitfieldExtract(i,2,1)].z);
-    vec4 trPos = vec4(pos,1.0);
-    trPos = scene.viewProject*trPos;
-    if(trPos.w<znear) {
-      depthMin = 0;
-      aabb     = vec4(0,0,1,1);
-      return true;
-      }
-
-    vec3 bp = trPos.xyz/trPos.w;
-
-    aabb.xy  = min(aabb.xy,  bp.xy);
-    aabb.zw  = max(aabb.zw,  bp.xy);
-    depthMin = min(depthMin, bp.z);
-    }
-
-  const vec3 c = (scene.view * vec4(sphere.xyz, 1)).xyz;
-  float z = c.z - R;
-  depthMin  = scene.project[3][2]/z + scene.project[2][2];
-
-  aabb = aabb*0.5 + vec4(0.5);
-  return true;
-  }
-
 bool projectInstance(const Cluster cluster, out vec4 aabb, out float depthMin) {
   const uint  bId        = cluster.bucketId_commandId >> 16;
   const uint  instanceId = cluster.instanceId;

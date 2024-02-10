@@ -126,7 +126,7 @@ bool Material::isTextureInShadowPass(AlphaFunc alpha) {
   return (alpha==Material::AlphaTest);
   }
 
-bool Material::isTesselated() const {
+bool Material::isTesselated(AlphaFunc alpha) {
   // if(alpha!=Material::Water)
   //   return false;
   // return waveMaxAmplitude!=0.f;

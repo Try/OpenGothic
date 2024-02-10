@@ -130,10 +130,15 @@ bool DrawCommands::commit() {
     //return false;
     }
 
+  const bool gmesh = Gothic::options().doMeshShading;
   std::vector<IndirectCmd> cx(cmd.size()+1);
   for(size_t i=0; i<cmd.size(); ++i) {
-    cx[i].vertexCount = PackedMesh::MaxInd;
-    cx[i].writeOffset = cmd[i].firstPayload;
+    auto mesh = gmesh && !Material::isTesselated(cmd[i].alpha);
+
+    cx[i].vertexCount   = PackedMesh::MaxInd;
+    cx[i].writeOffset   = cmd[i].firstPayload;
+    cx[i].firstVertex   = mesh ? 1 : 0;
+    cx[i].firstInstance = mesh ? 1 : 0;
     }
   cx.back().writeOffset = uint32_t(totalPayload);
 
@@ -155,6 +160,7 @@ bool DrawCommands::commit() {
 
     Resources::recycle(std::move(v.descInit));
     v.descInit = device.descriptors(Shaders::inst().clusterInit);
+    //v.descInit.set(T_Bucket,   buckets.ssbo());
     v.descInit.set(T_Indirect, v.indirectCmd);
     }
 
@@ -409,7 +415,7 @@ void DrawCommands::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uin
     push.meshletCount = cx.maxPayload;
 
     cmd.setUniforms(*pso, desc[viewId], &push, sizeof(push));
-    if(mesh)
+    if(mesh && !Material::isTesselated(cx.alpha))
       cmd.dispatchMeshIndirect(view.indirectCmd, sizeof(IndirectCmd)*id + sizeof(uint32_t)); else
       cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
     }

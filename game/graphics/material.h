@@ -39,16 +39,17 @@ class Material final {
     bool operator == (const Material& other) const;
 
     bool isSolid() const;
-    bool isTesselated() const;
     int  alphaOrder() const { return alphaOrder(alpha,isGhost); }
 
     bool hasFrameAnimation()     const { return !frames.empty() && texAniFPSInv!=0;    }
     bool hasUvAnimation()        const { return texAniMapDirPeriod!=Tempest::Point(0); }
+    bool isTesselated()          const { return isTesselated(alpha);                   }
     bool isForwardShading()      const { return isForwardShading(alpha);               }
     bool isSceneInfoRequired()   const { return isSceneInfoRequired(alpha);            }
     bool isShadowmapRequired()   const { return isShadowmapRequired(alpha);            }
     bool isTextureInShadowPass() const { return isTextureInShadowPass(alpha);          }
 
+    static bool isTesselated(AlphaFunc alpha);
     static bool isForwardShading(AlphaFunc alpha);
     static bool isSceneInfoRequired(AlphaFunc alpha);
     static bool isShadowmapRequired(AlphaFunc alpha);

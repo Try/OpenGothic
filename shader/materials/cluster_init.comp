@@ -9,6 +9,7 @@ layout(push_constant, std430) uniform UboPush {
   uint isMeshShader;
   };
 
+// layout(binding = 3, std140) readonly buffer Bbo { Bucket      bucket[];      };
 layout(binding = 4, std430) buffer IndirectBuf  { IndirectCmd cmd[];         };
 
 void initIndirectCmd(inout IndirectCmd cmd) {
@@ -19,9 +20,8 @@ void main() {
   if(i>=cmd.length())
     return;
 
-  // const uint isMeshShader = 0;
   cmd[i].vertexCount   = 64*3;
   cmd[i].instanceCount = 0;
-  cmd[i].firstVertex   = isMeshShader;
-  cmd[i].firstInstance = isMeshShader;
+  // cmd[i].firstVertex   = isMeshShader;
+  // cmd[i].firstInstance = isMeshShader;
   }
