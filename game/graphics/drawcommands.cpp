@@ -56,10 +56,6 @@ DrawCommands::DrawCommands(VisualObjects& owner, DrawBuckets& buckets, DrawClust
 DrawCommands::~DrawCommands() {
   }
 
-bool DrawCommands::cmpDraw(const DrawCmd* l, const DrawCmd* r) {
-  return l->alpha < r->alpha;
-  }
-
 uint16_t DrawCommands::commandId(const Material& m, Type type, uint32_t bucketId) {
   const bool bindlessSys = Gothic::inst().options().doBindless;
   const bool bindless    = bindlessSys && !m.hasFrameAnimation();
@@ -129,7 +125,7 @@ bool DrawCommands::commit() {
     totalPayload  += i.maxPayload;
     }
 
-  totalPayload = (totalPayload + 255) & ~size_t(255);
+  totalPayload = (totalPayload + 0xFF) & ~size_t(0xFF);
   const size_t visClustersSz = totalPayload*sizeof(uint32_t)*4;
 
   auto& v      = views[0];
@@ -153,7 +149,9 @@ bool DrawCommands::commit() {
   ord.resize(cmd.size());
   for(size_t i=0; i<cmd.size(); ++i)
     ord[i] = &cmd[i];
-  std::sort(ord.begin(), ord.end(), cmpDraw);
+  std::sort(ord.begin(), ord.end(), [](const DrawCmd* l, const DrawCmd* r){
+    return l->alpha < r->alpha;
+    });
 
   auto& device = Resources::device();
   for(auto& v:views) {
@@ -230,11 +228,10 @@ void DrawCommands::updateCommandUniforms() {
         if(desc[v].isEmpty())
           continue;
 
-        auto  bId = cx.bucketId;
-        auto& mem = (cx.type==Type::Landscape) ? clusters.ssbo() : owner.instanceSsbo();
+        auto bId = cx.bucketId;
         desc[v].set(L_Scene,    scene.uboGlobal[v]);
         desc[v].set(L_Payload,  views[v].visClusters);
-        desc[v].set(L_Instance, mem);
+        desc[v].set(L_Instance, owner.instanceSsbo());
         desc[v].set(L_Bucket,   buckets.ssbo());
 
         if(cx.isBindless()) {
@@ -253,8 +250,8 @@ void DrawCommands::updateCommandUniforms() {
           }
 
         if(v==SceneGlobals::V_Main && cx.isShadowmapRequired()) {
-          desc[v].set(L_Shadow0, *scene.shadowMap[0],Resources::shadowSampler());
-          desc[v].set(L_Shadow1, *scene.shadowMap[1],Resources::shadowSampler());
+          desc[v].set(L_Shadow0, *scene.shadowMap[0], Resources::shadowSampler());
+          desc[v].set(L_Shadow1, *scene.shadowMap[1], Resources::shadowSampler());
           }
 
         if(cx.type==Morph && cx.isBindless()) {
@@ -284,11 +281,13 @@ void DrawCommands::updateCommandUniforms() {
   }
 
 void DrawCommands::prepareUniforms() {
-  // TODO
-  updateUniforms();
+  if(owner.instanceSsbo().isEmpty())
+    return;
+  updateTasksUniforms();
+  updateCommandUniforms();
   }
 
-void DrawCommands::preFrameUpdate(uint8_t fId) {
+void DrawCommands::updateUniforms(uint8_t fId) {
   for(auto& cx:cmd) {
     if(cx.isBindless())
       continue;
@@ -300,6 +299,8 @@ void DrawCommands::preFrameUpdate(uint8_t fId) {
 
       auto& bucket = buckets[cx.bucketId];
       auto& mat    = bucket.mat;
+
+      // desc[v].set(L_Instance, owner.instanceSsbo());
       if(mat.hasFrameAnimation()) {
         uint64_t timeShift = 0;
         auto  frame  = size_t((timeShift+scene.tickCount)/mat.texAniFPSInv);
@@ -310,14 +311,6 @@ void DrawCommands::preFrameUpdate(uint8_t fId) {
         }
       }
     }
-  }
-
-void DrawCommands::updateUniforms() {
-  if(owner.instanceSsbo().isEmpty())
-    return;
-
-  updateTasksUniforms();
-  updateCommandUniforms();
   }
 
 void DrawCommands::visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int pass) {
@@ -388,12 +381,20 @@ void DrawCommands::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
 void DrawCommands::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, SceneGlobals::VisCamera viewId, Material::AlphaFunc func) {
   struct Push { uint32_t firstMeshlet; uint32_t meshletCount; } push = {};
 
-  auto&      view = views[viewId];
-  // auto  b    = std::lower_bound(ord.begin(), ord.end(), cmpDraw);
-  // auto  e    = std::upper_bound(ord.begin(), ord.end(), cmpDraw);
-  for(size_t i=0; i<ord.size(); ++i) {
-    auto& cx = *ord[i];
+  auto b = std::lower_bound(ord.begin(), ord.end(), func, [](const DrawCmd* l, Material::AlphaFunc f){
+    return l->alpha < f;
+    });
+  auto e = std::upper_bound(ord.begin(), ord.end(), func, [](Material::AlphaFunc f, const DrawCmd* r){
+    return f < r->alpha;
+    });
+
+  auto& view = views[viewId];
+  for(auto i=b; i!=e; ++i) {
+    auto& cx = **i;
     if(cx.alpha!=func)
+      continue;
+
+    if(cx.maxPayload==0)
       continue;
 
     auto& desc = cx.isBindless() ? cx.desc : cx.descFr[fId];

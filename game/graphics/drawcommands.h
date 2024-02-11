@@ -57,8 +57,7 @@ class DrawCommands {
     void     addClusters(uint16_t cmdId, uint32_t meshletCount);
 
     void     prepareUniforms();
-    void     preFrameUpdate(uint8_t fId);
-    void     updateUniforms();
+    void     updateUniforms(uint8_t fId);
 
     void     visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int pass);
     void     drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
@@ -111,7 +110,6 @@ class DrawCommands {
       Tempest::StorageBuffer visClusters, indirectCmd;
       };
 
-    static bool              cmpDraw(const DrawCmd* l, const DrawCmd* r);
     void                     updateTasksUniforms();
     void                     updateCommandUniforms();
 

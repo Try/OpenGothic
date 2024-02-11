@@ -456,21 +456,20 @@ void VisualObjects::prepareUniforms() {
   drawCmd.prepareUniforms();
   }
 
-void VisualObjects::prepareGlobals(Encoder<CommandBuffer>& cmd, uint8_t fId) {
-  bool sk = false;
-  sk |= instanceMem.commit(cmd, fId);
-  sk |= bucketsMem.commit(cmd, fId);
-  sk |= clusters.commit(cmd, fId);
-  sk |= drawCmd.commit();
-  if(!sk)
-    return;
-  drawCmd.updateUniforms();
+void VisualObjects::prepareGlobals(Encoder<CommandBuffer>& enc, uint8_t fId) {
+  bool mem = instanceMem.commit(enc, fId);
+  bool buk = bucketsMem.commit(enc, fId);
+  bool cs  = clusters.commit(enc, fId);
+  bool cmd = drawCmd.commit();
+
+  if(mem | buk || cs || cmd)
+    drawCmd.prepareUniforms();
+  drawCmd.updateUniforms(fId);
   }
 
 void VisualObjects::preFrameUpdate(uint8_t fId) {
   preFrameUpdateWind(fId);
   preFrameUpdateMorph(fId);
-  drawCmd.preFrameUpdate(fId);
   }
 
 void VisualObjects::preFrameUpdateWind(uint8_t fId) {

@@ -132,14 +132,9 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     Resources::recycle(std::move(dataGpu));
     dataGpu = device.ssbo(BufferHeap::Device,dataCpu);
     std::memset(durty.data(), 0, durty.size()*sizeof(uint32_t));
-    for(auto& i:resizeBit)
-      i = true;
     prepareUniforms();
     return true;
     }
-
-  const bool resized = resizeBit[fId];
-  resizeBit[fId] = false;
 
   patchBlock.clear();
   size_t payloadSize = 0;
@@ -176,7 +171,7 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   std::memset(durty.data(), 0, durty.size()*sizeof(durty[0]));
 
   if(patchBlock.size()==0)
-    return resized;
+    return false;
 
   const size_t headerSize = patchBlock.size()*sizeof(Path);
   patchCpu.resize(headerSize + payloadSize);
@@ -208,7 +203,7 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   cmd.setFramebuffer({});
   cmd.setUniforms(Shaders::inst().path, d);
   cmd.dispatch(patchBlock.size());
-  return resized;
+  return false;
   }
 
 void InstanceStorage::join() {
@@ -250,7 +245,11 @@ InstanceStorage::Id InstanceStorage::alloc(const size_t size) {
   r.begin = dataCpu.size();
   r.size  = nsize;
   r.asize = size;
-  dataCpu.resize(dataCpu.size()+nsize);
+
+  size_t dataSize = (dataCpu.size() + nsize);
+  dataSize = (dataSize + 0xFFF) & ~size_t(0xFFF);
+  dataSize = std::max<size_t>(1024, dataSize); // avoid null SSBO
+  dataCpu.resize(dataSize);
 
   blockCnt = (dataCpu.size()+blockSz-1)/blockSz;
   durty.resize((blockCnt+32-1)/32, 0);
