@@ -646,13 +646,17 @@ std::unique_ptr<phoenix::vm> Gothic::createPhoenixVm(std::string_view datFile, c
 phoenix::script Gothic::loadScript(std::string_view datFile, const ScriptLang lang) {
   if(Resources::hasFile(datFile)) {
     auto buf = Resources::getFileBuffer(datFile);
-    return phoenix::script::parse(buf);
+    zenkit::DaedalusScript script;
+    script.load(buf.get());
+    return script;
     }
 
   const size_t segment = datFile.find_last_of("\\/");
   if(segment!=std::string::npos && Resources::hasFile(datFile.substr(segment+1))) {
     auto buf = Resources::getFileBuffer(datFile.substr(segment+1));
-    return phoenix::script::parse(buf);
+    zenkit::DaedalusScript script;
+    script.load(buf.get());
+    return script;
     }
 
   char16_t str16[256] = {};
@@ -674,8 +678,10 @@ phoenix::script Gothic::loadScript(std::string_view datFile, const ScriptLang la
     path    = caseInsensitiveSegment(gscript,str16,Dir::FT_File);
     }
 
-  auto buf = phoenix::buffer::mmap(path);
-  return phoenix::script::parse(buf);
+  auto buf = zenkit::Read::from(path);
+  zenkit::DaedalusScript script;
+  script.load(buf.get());
+  return script;
   }
 
 bool Gothic::settingsHasSection(std::string_view sec) {

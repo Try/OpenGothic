@@ -94,6 +94,7 @@ int main(int argc,const char** argv) {
           Tempest::Log::i("[phoenix] ", message);
           break;
         case phoenix::logging::level::debug:
+        case phoenix::logging::level::TRACE:
           Tempest::Log::d("[phoenix] ", message);
           break;
         }

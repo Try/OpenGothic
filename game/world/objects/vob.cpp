@@ -231,7 +231,6 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const phoenix::vob& vo
       break;
     case phoenix::vob_type::oCNpc:
     case phoenix::vob_type::oCCSTrigger:
-    case phoenix::vob_type::ignored:
       break;
     }
 
