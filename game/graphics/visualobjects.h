@@ -5,6 +5,8 @@
 #include "drawcommands.h"
 #include "instancestorage.h"
 
+#include <unordered_set>
+
 class SceneGlobals;
 class Camera;
 class RtScene;
