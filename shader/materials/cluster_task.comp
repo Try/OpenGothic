@@ -1,0 +1,221 @@
+#version 450
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+#define CLUSTER 1
+
+#include "scalar_ops.glsl"
+#include "materials_common.glsl"
+
+layout(local_size_x = 64) in;
+
+layout(binding = 1, std430) buffer SsboGlob     { uvec4       payload[];     };
+layout(binding = 2, std430) readonly buffer Mem { uint        instanceMem[]; };
+layout(binding = 3, std140) readonly buffer Bbo { Bucket      bucket[];      };
+
+layout(binding = 4, std430) buffer IndirectBuf  { IndirectCmd cmd[];         };
+layout(binding = 5, std430) readonly buffer Cbo { Cluster     clusters[];    };
+layout(binding = 6)         uniform sampler2D hiZ;
+
+layout(push_constant, std430) uniform UboPush {
+  uint      firstMeshlet;
+  int       meshletCount;
+  float     znear;
+  } push;
+
+Instance pullInstance(uint i) {
+  i *= 16;
+  Instance ret;
+  ret.mat[0][0] = uintBitsToFloat(instanceMem[i+0]);
+  ret.mat[0][1] = uintBitsToFloat(instanceMem[i+1]);
+  ret.mat[0][2] = uintBitsToFloat(instanceMem[i+2]);
+  ret.mat[1][0] = uintBitsToFloat(instanceMem[i+3]);
+  ret.mat[1][1] = uintBitsToFloat(instanceMem[i+4]);
+  ret.mat[1][2] = uintBitsToFloat(instanceMem[i+5]);
+  ret.mat[2][0] = uintBitsToFloat(instanceMem[i+6]);
+  ret.mat[2][1] = uintBitsToFloat(instanceMem[i+7]);
+  ret.mat[2][2] = uintBitsToFloat(instanceMem[i+8]);
+  ret.mat[3][0] = uintBitsToFloat(instanceMem[i+9]);
+  ret.mat[3][1] = uintBitsToFloat(instanceMem[i+10]);
+  ret.mat[3][2] = uintBitsToFloat(instanceMem[i+11]);
+  ret.fatness   = uintBitsToFloat(instanceMem[i+12]);
+  ret.animPtr   = instanceMem[i+13];
+  return ret;
+  }
+
+float hiZFetch(in sampler2D hiZ, in ivec2 ibbox[2]) {
+  if(ibbox[0]==ibbox[1])
+    return texelFetch(hiZ, ibbox[0], 0).x;
+
+  const uint sz  = max(ibbox[1].x-ibbox[0].x, ibbox[1].y-ibbox[0].y);
+  const int  mip = findMSB(sz - 1) + 1; // log2 of next pot
+
+  ibbox[0].x = (ibbox[0].x >> mip);
+  ibbox[0].y = (ibbox[0].y >> mip);
+
+  ivec2 hiZsize = textureSize(hiZ,mip);
+  float z =  texelFetchOffset(hiZ, ibbox[0], mip, ivec2(0,0)).x;
+  if(ibbox[0].x+1<hiZsize.x)
+    z = max(z, texelFetchOffset(hiZ, ibbox[0], mip, ivec2(1,0)).x);
+  if(ibbox[0].y+1<hiZsize.y)
+    z = max(z, texelFetchOffset(hiZ, ibbox[0], mip, ivec2(0,1)).x);
+  if(ibbox[0].x+1<hiZsize.x && ibbox[0].y+1<hiZsize.y)
+    z = max(z, texelFetchOffset(hiZ, ibbox[0], mip, ivec2(1,1)).x);
+
+  return z;
+  }
+
+
+bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
+  const vec3  c     = (scene.view * vec4(sphere.xyz, 1)).xyz;
+  const float R     = sphere.w;
+  const float znear = push.znear;
+
+  if(c.z - R < znear) {
+    depthMin = 0;
+    aabb     = vec4(0,0,1,1);
+    return true;
+    }
+
+  float z = c.z - R;
+  depthMin  = scene.project[3][2]/z + scene.project[2][2];
+
+  float P00 = scene.project[0][0];
+  float P11 = scene.project[1][1];
+
+  vec3  cr   = c * R;
+  float czr2 = c.z * c.z - R * R;
+
+  float vx   = sqrt(c.x * c.x + czr2);
+  float minx = (vx * c.x - cr.z) / (vx * c.z + cr.x);
+  float maxx = (vx * c.x + cr.z) / (vx * c.z - cr.x);
+
+  float vy   = sqrt(c.y * c.y + czr2);
+  float miny = (vy * c.y - cr.z) / (vy * c.z + cr.y);
+  float maxy = (vy * c.y + cr.z) / (vy * c.z - cr.y);
+
+  aabb = vec4(minx * P00, miny * P11, maxx * P00, maxy * P11);
+  aabb = aabb*0.5 + vec4(0.5);
+  return true;
+  }
+
+bool projectInstance(const Cluster cluster, out vec4 aabb, out float depthMin) {
+  const uint  bId        = cluster.bucketId_commandId >> 16;
+  const uint  instanceId = cluster.instanceId;
+
+  const vec3  b[2]       = {bucket[bId].bbox[0].xyz, bucket[bId].bbox[1].xyz};
+  Instance    obj        = pullInstance(instanceId);
+  const float znear      = push.znear;
+
+  aabb     = vec4(1, 1, -1, -1);
+  depthMin = 1;
+  for(uint i=0; i<8; ++i) {
+    const vec3 pos = vec3(b[bitfieldExtract(i,0,1)].x,
+                          b[bitfieldExtract(i,1,1)].y,
+                          b[bitfieldExtract(i,2,1)].z);
+    vec4 trPos = vec4(pos,1.0);
+    trPos = vec4(obj.mat*trPos, 1.0);
+    trPos = scene.viewProject*trPos;
+    if(trPos.w<znear) {
+      depthMin = 0;
+      aabb     = vec4(0,0,1,1);
+      return true;
+      }
+
+    vec3 bp = trPos.xyz/trPos.w;
+
+    aabb.xy  = min(aabb.xy,  bp.xy);
+    aabb.zw  = max(aabb.zw,  bp.xy);
+    depthMin = min(depthMin, bp.z);
+    }
+
+  aabb = aabb*0.5 + vec4(0.5);
+  return true;
+  }
+
+bool hiZTest(vec4 sbbox, float depthMin) {
+  if(depthMin<=0)
+    return true;
+
+  ivec2 hiZsize = textureSize(hiZ,0);
+  ivec2 ibbox[2];
+  ibbox[0] = ivec2(sbbox.xy * scene.screenRes) / scene.hiZTileSize;
+  ibbox[1] = ivec2(sbbox.zw * scene.screenRes) / scene.hiZTileSize;
+  ibbox[0] = clamp(ibbox[0], ivec2(0), hiZsize - ivec2(1));
+  ibbox[1] = clamp(ibbox[1], ivec2(0), hiZsize - ivec2(1));
+
+  float bz      = packHiZ(depthMin);
+  float z       = hiZFetch(hiZ, ibbox);
+  if(bz > z)
+    return false;
+  return true;
+  }
+
+bool frustrumTest(const vec4 sphere) {
+  if(sphere.w<0.f)
+    return false;
+
+  for(int i=0; i<6; ++i) {
+    if(dot(vec4(sphere.xyz,1.0), scene.frustrum[i]) <= -sphere.w) {
+      return false;
+      }
+    }
+
+  return true;
+  }
+
+
+bool projectCluster(const Cluster cluster, out vec4 aabb, out float depthMin) {
+  if(cluster.instanceId==0xFFFFFFFF)
+    return projectSphere(cluster.sphere, aabb, depthMin);
+  // return projectSphere(cluster.sphere, aabb, depthMin);
+  return projectInstance(cluster, aabb, depthMin);
+  }
+
+void runCluster(const uint clusterId) {
+  const Cluster cluster = clusters[clusterId];
+  if(cluster.sphere.w<=0.f)
+    return; // disabled or deleted
+
+  if(!frustrumTest(cluster.sphere))
+    return;
+
+  vec4  aabb     = vec4(0);
+  float depthMin = 1;
+  if(!projectCluster(cluster, aabb, depthMin))
+    return;
+
+#if defined(LARGE)
+  {
+    vec2 sz = (aabb.zw - aabb.xy)*textureSize(hiZ, 0);
+    // if(sz.x*sz.y<4)
+    //   return;
+    if(sz.x*sz.y<16 && cluster.instanceId!=0xFFFFFFFF)
+      return;
+  }
+#endif
+
+#if defined(HIZ)
+  if(!hiZTest(aabb, depthMin))
+    return;
+#endif
+
+  const uint commandId  = cluster.bucketId_commandId & 0xFFFF;
+  const uint bucketId   = cluster.bucketId_commandId >> 16;
+  const uint instanceId = cluster.instanceId;
+  const uint meshletId  = cluster.firstMeshlet;
+
+  uint writeOffset = cmd[commandId].writeOffset;
+  writeOffset      += atomicAdd(cmd[commandId].instanceCount, cluster.meshletCount);
+
+  for(int i=0; i<cluster.meshletCount; ++i)
+    payload[writeOffset+i] = uvec4(instanceId, meshletId+i, bucketId, 0);
+  }
+
+void main() {
+  const uint clusterId = gl_GlobalInvocationID.x;
+  if(clusterId<push.meshletCount)
+    runCluster(clusterId);
+  }

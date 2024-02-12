@@ -51,6 +51,7 @@ class WorldView {
     bool updateRtScene();
 
     void visibilityPass(const Frustrum fr[]);
+    void visibilityPass (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, int pass);
     void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, uint8_t layer);
     void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
@@ -69,8 +70,11 @@ class WorldView {
     MeshObjects::Mesh   addStaticView(std::string_view visual);
     MeshObjects::Mesh   addDecalView (const phoenix::vob& vob);
 
-    const SceneGlobals&  sceneGlobals() const { return sGlobal; }
-    const Sky&           sky() const { return gSky; }
+    void                dbgClusters(Tempest::Painter& p, Tempest::Vec2 wsz);
+
+    const SceneGlobals& sceneGlobals() const { return sGlobal; }
+    const Sky&          sky() const { return gSky; }
+    const Landscape&    landscape() const { return land; }
 
   private:
     const World&  owner;

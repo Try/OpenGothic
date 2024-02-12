@@ -10,8 +10,11 @@ in gl_PerVertex {
   vec4 gl_Position;
   } gl_in[gl_MaxPatchVertices];
 
-layout(location = 0) in  Varyings shInp[];
-layout(location = 0) out Varyings shOut[];
+layout(location = 0) in  flat uint bucketIdIn[];
+layout(location = 1) in  Varyings  shInp[];
+
+layout(location = 0) out flat uint bucketId[];
+layout(location = 1) out Varyings  shOut[];
 
 const int MAX_INNER = 16;
 const int MAX_OUTER = 16;
@@ -48,6 +51,8 @@ void main() {
     gl_TessLevelOuter[1] = tessFactor(pos0,pos2);
     gl_TessLevelOuter[2] = tessFactor(pos0,pos1);
     }
+
+  bucketId[gl_InvocationID]           = bucketIdIn[gl_InvocationID];
 
   gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
   shOut[gl_InvocationID]              = shInp[gl_InvocationID];

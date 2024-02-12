@@ -6,8 +6,6 @@
 #include <phoenix/material.hh>
 
 #include <Tempest/Vec>
-#include <unordered_map>
-#include <map>
 #include <utility>
 
 #include "resources.h"
@@ -39,7 +37,7 @@ class PackedMesh {
       size_t            iboLength = 0;
       };
 
-    struct Bounds final {
+    struct Cluster final {
       Tempest::Vec3 pos;
       float         r = 0;
       };
@@ -50,10 +48,10 @@ class PackedMesh {
     std::vector<uint8_t>  indices8;
 
     std::vector<SubMesh>  subMeshes;
-    std::vector<Bounds>   meshletBounds;
+    std::vector<Cluster>  meshletBounds;
 
-    std::vector<uint32_t>    verticesId; // only for morph meshes
-    bool                     isUsingAlphaTest = true;
+    std::vector<uint32_t> verticesId; // only for morph meshes
+    bool                  isUsingAlphaTest = true;
 
     PackedMesh(const phoenix::proto_mesh& mesh, PkgType type);
     PackedMesh(const phoenix::mesh& mesh, PkgType type);
@@ -84,11 +82,11 @@ class PackedMesh {
       uint8_t       indexes[MaxInd ] = {};
       uint8_t       vertSz           = 0;
       uint8_t       indSz            = 0;
-      Bounds        bounds;
+      Cluster       bounds;
 
       void    flush(std::vector<Vertex>& vertices,
                     std::vector<uint32_t>& indices, std::vector<uint8_t>& indices8,
-                    std::vector<Bounds>& instances, const phoenix::mesh& mesh);
+                    std::vector<Cluster>& instances, const phoenix::mesh& mesh);
 
       void    flush(std::vector<Vertex>& vertices, std::vector<VertexA>& verticesA,
                     std::vector<uint32_t>& indices, std::vector<uint8_t>& indices8,

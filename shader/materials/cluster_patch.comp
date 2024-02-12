@@ -1,0 +1,29 @@
+#version 460
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_GOOGLE_include_directive : enable
+
+layout(local_size_x = 64) in;
+
+struct Cluster {
+  vec4  sphere;
+  uint  bucketId_commandId;
+  uint  firstMeshlet;
+  int   meshletCount;
+  uint  instanceId;
+  };
+
+layout(binding = 0, std430) writeonly buffer Dst { Cluster dst[];     };
+layout(binding = 1, std430) readonly  buffer Src { Cluster src[];     };
+layout(binding = 2, std430) readonly  buffer Idx { uint    indices[]; };
+
+layout(push_constant, std430) uniform UboPush {
+  uint clusterCount;
+  };
+
+void main() {
+  if(gl_GlobalInvocationID.x >= clusterCount)
+    return;
+  const uint id = indices[gl_GlobalInvocationID.x];
+  dst[id] = src[gl_GlobalInvocationID.x];
+  }

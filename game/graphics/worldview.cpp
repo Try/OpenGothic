@@ -113,7 +113,11 @@ void WorldView::prepareExposure(Tempest::Encoder<Tempest::CommandBuffer>& cmd, u
 void WorldView::visibilityPass(const Frustrum fr[]) {
   for(uint8_t i=0; i<SceneGlobals::V_Count; ++i)
     sGlobal.frustrum[i] = fr[i];
-  visuals.visibilityPass(fr);
+  }
+
+void WorldView::visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int pass) {
+  cmd.setDebugMarker("Visibility");
+  visuals.visibilityPass(cmd, fId, pass);
   }
 
 void WorldView::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
@@ -122,10 +126,12 @@ void WorldView::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t f
 
 void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId, uint8_t layer) {
   visuals.drawShadow(cmd,fId,layer);
+  pfxGroup.drawShadow(cmd,fId,layer);
   }
 
 void WorldView::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
-  visuals.drawGBuffer(cmd,fId);
+  visuals.drawGBuffer(cmd, fId);
+  pfxGroup.drawGBuffer(cmd, fId);
   }
 
 void WorldView::drawSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
@@ -142,6 +148,7 @@ void WorldView::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
 
 void WorldView::drawTranslucent(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
   visuals.drawTranslucent(cmd,fId);
+  pfxGroup.drawTranslucent(cmd, fId);
   }
 
 void WorldView::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
@@ -194,6 +201,10 @@ MeshObjects::Mesh WorldView::addDecalView(const phoenix::vob& vob) {
   return MeshObjects::Mesh();
   }
 
+void WorldView::dbgClusters(Tempest::Painter& p, Vec2 wsz) {
+  visuals.dbgClusters(p, wsz);
+  }
+
 void WorldView::updateLight() {
   const int64_t now = owner.time().timeInDay().toInt();
   gSky.updateLight(now);
@@ -215,6 +226,7 @@ void WorldView::prepareUniforms() {
   sGlobal.skyLut = &gSky.skyLut();
   sGlobal.lights.prepareUniforms();
   gSky.prepareUniforms();
+  pfxGroup.prepareUniforms();
   visuals.prepareUniforms();
   }
 

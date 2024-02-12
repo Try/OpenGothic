@@ -18,7 +18,7 @@ shared               uint    visibleCount;
 
 bool sphereTest(const uint instanceId) {
 #if (MESH_TYPE==T_LANDSCAPE)
-  const vec4 sphere = bounds[instanceId + push.firstMeshlet];
+  const vec4 sphere = clusters[instanceId + push.firstMeshlet].sphere;
 #elif (MESH_TYPE==T_PFX)
   const vec4 sphere = vec4(0);
 #else
@@ -64,8 +64,8 @@ bool bboxTest(const uint instanceId) {
   const vec3  b[2]   = {bucket.bbox[0].xyz, bucket.bbox[1].xyz};
   Instance    obj    = pullInstance(instanceId);
 #else
-  const vec3  objPos = bounds[instanceId + push.firstMeshlet].xyz;
-  const float R      = bounds[instanceId + push.firstMeshlet].w;
+  const vec3  objPos = clusters[instanceId + push.firstMeshlet].sphere.xyz;
+  const float R      = clusters[instanceId + push.firstMeshlet].sphere.w;
   const vec3  b[2]   = { objPos-vec3(R), objPos+vec3(R) };
 #endif
 

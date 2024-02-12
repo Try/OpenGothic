@@ -2,7 +2,6 @@
 
 #include <Tempest/Matrix4x4>
 #include <Tempest/Vec>
-#include <list>
 
 #include "graphics/dynamic/frustrum.h"
 #include "lightgroup.h"
@@ -20,6 +19,7 @@ class SceneGlobals final {
       V_Shadow1    = 1,
       V_ShadowLast = 1,
       V_Main       = 2,
+      V_HiZ        = 3,
       V_Count
       };
 
@@ -52,6 +52,7 @@ class SceneGlobals final {
     Tempest::Matrix4x4                view, proj;
     Tempest::Matrix4x4                viewLwc;
     Tempest::Vec3                     originLwc;
+    float                             znear = 0;
 
     const Tempest::Texture2d*         sceneColor   = &Resources::fallbackBlack();
     const Tempest::Texture2d*         sceneDepth   = &Resources::fallbackBlack();

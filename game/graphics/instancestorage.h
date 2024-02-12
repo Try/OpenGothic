@@ -81,7 +81,6 @@ class InstanceStorage {
     std::vector<uint8_t>    dataCpu;
 
     Tempest::DescriptorSet  desc[Resources::MaxFramesInFlight];
-    bool                    resizeBit[Resources::MaxFramesInFlight] = {};
 
     std::thread             uploadTh;
     std::mutex              sync;

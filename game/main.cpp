@@ -29,7 +29,7 @@ std::string_view selectDevice(const Tempest::AbstractGraphicsApi& api) {
 
   static Tempest::Device::Props p;
   for(auto& i:d)
-    //if(i.type==Tempest::DeviceType::Integrated) {
+    // if(i.type==Tempest::DeviceType::Integrated) {
     if(i.type==Tempest::DeviceType::Discrete) {
       p = i;
       return p.name;

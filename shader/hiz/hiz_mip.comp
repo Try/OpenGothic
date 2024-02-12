@@ -72,16 +72,11 @@ void store(int mip, ivec2 uv, float z) {
     }
   }
 
-float gather(int mip, ivec2 srcUV0) {
-  ivec2 srcSz  = imageSize(mip0);
-  ivec2 srcUV1 = srcUV0 + ivec2(1,1);
-  srcUV1 = min(srcUV1, srcSz-ivec2(1,1));
-
+float gather(int mip, ivec2 srcUV0, ivec2 srcUV1) {
   float z00 = load(mip, ivec2(srcUV0.x,srcUV0.y));
-  float z01 = load(mip, ivec2(srcUV1.x,srcUV0.y));
-  float z10 = load(mip, ivec2(srcUV0.x,srcUV1.y));
+  float z01 = load(mip, ivec2(srcUV0.x,srcUV1.y));
+  float z10 = load(mip, ivec2(srcUV1.x,srcUV0.y));
   float z11 = load(mip, ivec2(srcUV1.x,srcUV1.y));
-
   return max(max(z00, z01), max(z10, z11));
   }
 
@@ -111,12 +106,13 @@ void main() {
   const ivec2 local = ivec2(gl_LocalInvocationID.xy);
 
   ivec2 uv    = group * gsize + local;
+  ivec2 srcSz = imageSize(mip0);
   ivec2 dstSz = imageSize(mip1);
   for(int mip = 1; mip<mipCount && mip<9; mip++) {
     if(uv.x>=dstSz.x || uv.y>=dstSz.y)
       return;
 
-    const float z = gather(mip-1, uv*2);
+    const float z = gather(mip-1, uv*2, min(uv*2+1, srcSz-1));
     store(mip, uv, z);
     memoryBarrierImage();
 
@@ -127,5 +123,6 @@ void main() {
     clearCounter(mip, uv/2);
     uv    = uv/2;
     dstSz = max(ivec2(1,1), dstSz/2);
+    srcSz = max(ivec2(1,1), srcSz/2);
     }
   }
