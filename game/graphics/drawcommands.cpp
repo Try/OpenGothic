@@ -246,7 +246,8 @@ void DrawCommands::updateCommandUniforms() {
           if(cx.isBindless())
             desc[v].set(L_Diffuse, tex); else
             desc[v].set(L_Diffuse, *tex[bId]);
-          desc[v].set(L_Sampler, Sampler::anisotrophy());
+          auto smp = (v==SceneGlobals::V_Main) ? Sampler::anisotrophy() : Sampler::trillinear();
+          desc[v].set(L_Sampler, smp);
           }
 
         if(v==SceneGlobals::V_Main && cx.isShadowmapRequired()) {
