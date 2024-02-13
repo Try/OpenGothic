@@ -108,11 +108,25 @@ bool Material::isSolid() const {
   return !isGhost && (alpha==Material::Solid || alpha==Material::AlphaTest);
   }
 
-bool Material::isSceneInfoRequired() const {
-  return isGhost || alpha==Material::Water || alpha==Material::Ghost;
+bool Material::isForwardShading(AlphaFunc alpha) {
+  return alpha!=Material::Solid && alpha!=Material::AlphaTest && alpha!=Material::Ghost;
   }
 
-bool Material::isTesselated() const {
+bool Material::isSceneInfoRequired(AlphaFunc alpha) {
+  return alpha==Material::Water || alpha==Material::Ghost;
+  }
+
+bool Material::isShadowmapRequired(AlphaFunc alpha) {
+  return isForwardShading(alpha) &&
+         alpha!=Material::AdditiveLight && alpha!=Material::Multiply && alpha!=Material::Multiply2 &&
+         alpha!=Material::Water;
+  }
+
+bool Material::isTextureInShadowPass(AlphaFunc alpha) {
+  return (alpha==Material::AlphaTest);
+  }
+
+bool Material::isTesselated(AlphaFunc alpha) {
   // if(alpha!=Material::Water)
   //   return false;
   // return waveMaxAmplitude!=0.f;

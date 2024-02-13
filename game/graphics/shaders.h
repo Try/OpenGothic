@@ -3,15 +3,21 @@
 #include <Tempest/RenderPipeline>
 #include <Tempest/Shader>
 #include <Tempest/Device>
+#include <list>
 
-#include "graphics/objectsbucket.h"
-
-class Material;
+#include "graphics/drawcommands.h"
+#include "material.h"
 
 class Shaders {
   public:
     Shaders();
     ~Shaders();
+
+    enum PipelineType: uint8_t {
+      T_Depth,
+      T_Shadow,
+      T_Main,
+      };
 
     static Shaders& inst();
 
@@ -59,6 +65,10 @@ class Shaders {
     Tempest::ComputePipeline hiZPot, hiZMip;
     Tempest::RenderPipeline  hiZReproj;
 
+    // Cluster
+    Tempest::ComputePipeline clusterInit, clusterPath;
+    Tempest::ComputePipeline clusterTask, clusterTaskHiZ, clusterTaskHiZCr;
+
     // GI
     Tempest::RenderPipeline  probeDbg;
     Tempest::ComputePipeline probeInit, probeClear, probeClearHash, probeMakeHash;
@@ -66,38 +76,20 @@ class Shaders {
     Tempest::ComputePipeline probeTrace, probeLighting;
     Tempest::RenderPipeline  probeAmbient;
 
-    enum PipelineType: uint8_t {
-      T_Forward,
-      T_Deffered,
-      T_Shadow,
-      };
+    Tempest::RenderPipeline  inventory;
 
-    const Tempest::RenderPipeline* materialPipeline(const Material& desc, ObjectsBucket::Type t, PipelineType pt) const;
-    Tempest::RenderPipeline lndPrePass;
-    Tempest::RenderPipeline inventory;
+    const Tempest::RenderPipeline* materialPipeline(const Material& desc, DrawCommands::Type t, PipelineType pt, bool bindless) const;
 
   private:
-    struct ShaderSet {
-      Tempest::Shader vs;
-      Tempest::Shader fs;
-      Tempest::Shader tc, te;
-      Tempest::Shader me, ts;
-      void load(Tempest::Device &device, std::string_view tag, bool hasTesselation, bool hasMeshlets);
-      };
-
-    struct MaterialTemplate {
-      ShaderSet lnd, obj, ani, mph, pfx;
-      void load(Tempest::Device& device, std::string_view tag, bool hasTesselation=false, bool hasMeshlets=false);
-      };
-
     struct Entry {
       Tempest::RenderPipeline pipeline;
       Material::AlphaFunc     alpha        = Material::Solid;
-      ObjectsBucket::Type     type         = ObjectsBucket::Static;
-      PipelineType            pipelineType = PipelineType::T_Forward;
+      DrawCommands::Type      type         = DrawCommands::Static;
+      PipelineType            pipelineType = PipelineType::T_Main;
+      bool                    bindless     = false;
+      bool                    trivial      = false;
       };
 
-    Tempest::RenderPipeline  pipeline(Tempest::RenderState& st, const ShaderSet &fs) const;
     Tempest::RenderPipeline  postEffect(std::string_view name);
     Tempest::RenderPipeline  postEffect(std::string_view vs, std::string_view fs, Tempest::RenderState::ZTestMode ztest = Tempest::RenderState::ZTestMode::LEqual);
     Tempest::ComputePipeline computeShader(std::string_view name);
@@ -108,7 +100,5 @@ class Shaders {
 
     static Shaders* instance;
 
-    MaterialTemplate solid,  atest, solidF, atestF, water, waterTess, ghost, emmision, multiply;
-    MaterialTemplate shadow, shadowAt;
     mutable std::list<Entry> materials;
   };

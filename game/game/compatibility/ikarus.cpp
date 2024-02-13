@@ -34,7 +34,7 @@ void Ikarus::memory_instance::set_int(const phoenix::symbol &sym, uint16_t index
   owner.allocator.writeInt(addr, value);
   }
 
-int32_t Ikarus::memory_instance::get_int(const phoenix::symbol& sym, uint16_t index) {
+int32_t Ikarus::memory_instance::get_int(const phoenix::symbol& sym, uint16_t index) const {
   ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index * sym.class_size());
   int32_t v = owner.allocator.readInt(addr);
   return v;
@@ -45,7 +45,7 @@ void Ikarus::memory_instance::set_float(const phoenix::symbol& sym, uint16_t ind
   owner.allocator.writeInt(addr, *reinterpret_cast<const int32_t*>(&value));
   }
 
-float Ikarus::memory_instance::get_float(const phoenix::symbol& sym, uint16_t index) {
+float Ikarus::memory_instance::get_float(const phoenix::symbol& sym, uint16_t index) const {
   ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index * sym.class_size());
   int32_t v = owner.allocator.readInt(addr);
 
@@ -61,7 +61,7 @@ void Ikarus::memory_instance::set_string(const phoenix::symbol& sym, uint16_t in
   // allocator.writeInt(addr, 0);
   }
 
-const std::string& Ikarus::memory_instance::get_string(const phoenix::symbol& sym, uint16_t index) {
+const std::string& Ikarus::memory_instance::get_string(const phoenix::symbol& sym, uint16_t index) const {
   ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index*sym.class_size());
 
   Log::d("memory_instance: ", sym.name());

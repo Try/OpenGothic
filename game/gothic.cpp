@@ -36,6 +36,13 @@ static bool hasMeshShader() {
   return false;
   }
 
+static bool hasBindless() {
+  const auto& p = Resources::device().properties();
+  if(p.descriptors.nonUniformIndexing && p.descriptors.maxTexture>=65000 && p.descriptors.maxStorage>=65000)
+    return true;
+  return false;
+  }
+
 Gothic::Gothic() {
   instance = this;
 
@@ -75,7 +82,11 @@ Gothic::Gothic() {
     }
 
   opts.fxaaPreset = CommandLine::inst().getFxaaPreset();
-
+  
+  if(hasBindless()) {
+    opts.doBindless = CommandLine::inst().isBindless();
+    }
+  
   wrldDef = CommandLine::inst().wrldDef;
 
   baseIniFile.reset(new IniFile(nestedPath({u"system",u"Gothic.ini"},Dir::FT_File)));
@@ -637,13 +648,17 @@ std::unique_ptr<phoenix::vm> Gothic::createPhoenixVm(std::string_view datFile, c
 phoenix::script Gothic::loadScript(std::string_view datFile, const ScriptLang lang) {
   if(Resources::hasFile(datFile)) {
     auto buf = Resources::getFileBuffer(datFile);
-    return phoenix::script::parse(buf);
+    zenkit::DaedalusScript script;
+    script.load(buf.get());
+    return script;
     }
 
   const size_t segment = datFile.find_last_of("\\/");
   if(segment!=std::string::npos && Resources::hasFile(datFile.substr(segment+1))) {
     auto buf = Resources::getFileBuffer(datFile.substr(segment+1));
-    return phoenix::script::parse(buf);
+    zenkit::DaedalusScript script;
+    script.load(buf.get());
+    return script;
     }
 
   char16_t str16[256] = {};
@@ -665,8 +680,10 @@ phoenix::script Gothic::loadScript(std::string_view datFile, const ScriptLang la
     path    = caseInsensitiveSegment(gscript,str16,Dir::FT_File);
     }
 
-  auto buf = phoenix::buffer::mmap(path);
-  return phoenix::script::parse(buf);
+  auto buf = zenkit::Read::from(path);
+  zenkit::DaedalusScript script;
+  script.load(buf.get());
+  return script;
   }
 
 bool Gothic::settingsHasSection(std::string_view sec) {

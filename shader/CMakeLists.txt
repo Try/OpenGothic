@@ -72,96 +72,105 @@ endfunction(add_shader)
 #   ATEST      - use alpha test
 #   WATER      - water material
 #   GHOST      - ghost material
-#   G1         - hint for gothic1 shader
-function(add_uber_shader OUTPUT)
+
+function(add_geom_shader OUTPUT)
   list(SUBLIST ARGV 1 -1 VARS)
-  add_shader(${OUTPUT}_shadow.vert           materials/main.vert ${VARS} -DSHADOW_MAP)
-  add_shader(${OUTPUT}_shadow.32.mesh        materials/main.mesh ${VARS} -DSHADOW_MAP)
-  add_shader(${OUTPUT}_shadow.64.mesh        materials/main.mesh ${VARS} -DSHADOW_MAP)
-  add_shader(${OUTPUT}_shadow.32.task        materials/main.task ${VARS} -DSHADOW_MAP)
-  add_shader(${OUTPUT}_shadow.64.task        materials/main.task ${VARS} -DSHADOW_MAP)
-  add_shader(${OUTPUT}_shadow.frag           materials/main.frag ${VARS} -DSHADOW_MAP)
 
-  add_shader(${OUTPUT}_shadow_at.vert        materials/main.vert ${VARS} -DSHADOW_MAP -DATEST)
-  add_shader(${OUTPUT}_shadow_at.32.mesh     materials/main.mesh ${VARS} -DSHADOW_MAP -DATEST)
-  add_shader(${OUTPUT}_shadow_at.64.mesh     materials/main.mesh ${VARS} -DSHADOW_MAP -DATEST)
-  add_shader(${OUTPUT}_shadow_at.32.task     materials/main.task ${VARS} -DSHADOW_MAP -DATEST)
-  add_shader(${OUTPUT}_shadow_at.64.task     materials/main.task ${VARS} -DSHADOW_MAP -DATEST)
-  add_shader(${OUTPUT}_shadow_at.frag        materials/main.frag ${VARS} -DSHADOW_MAP -DATEST)
-
-  add_shader(${OUTPUT}.vert                  materials/main.vert ${VARS} -DFORWARD)
-  add_shader(${OUTPUT}.32.mesh               materials/main.mesh ${VARS} -DFORWARD)
-  add_shader(${OUTPUT}.64.mesh               materials/main.mesh ${VARS} -DFORWARD)
-  add_shader(${OUTPUT}.32.task               materials/main.task ${VARS} -DFORWARD)
-  add_shader(${OUTPUT}.64.task               materials/main.task ${VARS} -DFORWARD)
-  add_shader(${OUTPUT}.frag                  materials/main.frag ${VARS} -DFORWARD -DMAT_LINEAR_CLR)
-
-  add_shader(${OUTPUT}_at.vert               materials/main.vert ${VARS} -DFORWARD -DATEST)
-  add_shader(${OUTPUT}_at.32.mesh            materials/main.mesh ${VARS} -DFORWARD -DATEST)
-  add_shader(${OUTPUT}_at.64.mesh            materials/main.mesh ${VARS} -DFORWARD -DATEST)
-  add_shader(${OUTPUT}_at.32.task            materials/main.task ${VARS} -DFORWARD -DATEST)
-  add_shader(${OUTPUT}_at.64.task            materials/main.task ${VARS} -DFORWARD -DATEST)
-  add_shader(${OUTPUT}_at.frag               materials/main.frag ${VARS} -DFORWARD -DATEST -DMAT_LINEAR_CLR)
-
-  add_shader(${OUTPUT}_emi.vert              materials/main.vert ${VARS})
-  add_shader(${OUTPUT}_emi.32.mesh           materials/main.mesh ${VARS} -DWG_SIZE=32)
-  add_shader(${OUTPUT}_emi.64.mesh           materials/main.mesh ${VARS} -DWG_SIZE=64)
-  add_shader(${OUTPUT}_emi.32.task           materials/main.task ${VARS} -DWG_SIZE=32)
-  add_shader(${OUTPUT}_emi.64.task           materials/main.task ${VARS} -DWG_SIZE=64)
-  add_shader(${OUTPUT}_emi.frag              materials/main.frag ${VARS} -DEMISSIVE -DMAT_LINEAR_CLR)
-
-  add_shader(${OUTPUT}_mul.vert              materials/main.vert ${VARS})
-  add_shader(${OUTPUT}_mul.32.mesh           materials/main.mesh ${VARS} -DWG_SIZE=32)
-  add_shader(${OUTPUT}_mul.64.mesh           materials/main.mesh ${VARS} -DWG_SIZE=64)
-  add_shader(${OUTPUT}_mul.32.task           materials/main.task ${VARS} -DWG_SIZE=32)
-  add_shader(${OUTPUT}_mul.64.task           materials/main.task ${VARS} -DWG_SIZE=64)
-  add_shader(${OUTPUT}_mul.frag              materials/main.frag ${VARS})
-
-  add_shader(${OUTPUT}_gbuffer.vert          materials/main.vert ${VARS} -DGBUFFER)
-  add_shader(${OUTPUT}_gbuffer.32.mesh       materials/main.mesh ${VARS} -DGBUFFER)
-  add_shader(${OUTPUT}_gbuffer.64.mesh       materials/main.mesh ${VARS} -DGBUFFER)
-  add_shader(${OUTPUT}_gbuffer.32.task       materials/main.task ${VARS} -DGBUFFER)
-  add_shader(${OUTPUT}_gbuffer.64.task       materials/main.task ${VARS} -DGBUFFER)
-  add_shader(${OUTPUT}_gbuffer.frag          materials/main.frag ${VARS} -DGBUFFER)
-
-  add_shader(${OUTPUT}_gbuffer_at.vert       materials/main.vert ${VARS} -DGBUFFER -DATEST)
-  add_shader(${OUTPUT}_gbuffer_at.32.mesh    materials/main.mesh ${VARS} -DGBUFFER -DATEST)
-  add_shader(${OUTPUT}_gbuffer_at.64.mesh    materials/main.mesh ${VARS} -DGBUFFER -DATEST)
-  add_shader(${OUTPUT}_gbuffer_at.32.task    materials/main.task ${VARS} -DGBUFFER -DATEST)
-  add_shader(${OUTPUT}_gbuffer_at.64.task    materials/main.task ${VARS} -DGBUFFER -DATEST)
-  add_shader(${OUTPUT}_gbuffer_at.frag       materials/main.frag ${VARS} -DGBUFFER -DATEST)
-
-  add_shader(${OUTPUT}_water.vert            materials/main.vert ${VARS} -DFORWARD -DWATER)
-  add_shader(${OUTPUT}_water.tesc            materials/main.tesc ${VARS} -DFORWARD -DWATER)
-  add_shader(${OUTPUT}_water.tese            materials/main.tese ${VARS} -DFORWARD -DWATER)
-  add_shader(${OUTPUT}_water.frag            materials/main.frag ${VARS} -DFORWARD -DWATER -DMAT_LINEAR_CLR)
-
-  add_shader(${OUTPUT}_ghost.vert            materials/main.vert ${VARS} -DFORWARD -DGHOST)
-  add_shader(${OUTPUT}_ghost.32.mesh         materials/main.mesh ${VARS} -DFORWARD -DGHOST)
-  add_shader(${OUTPUT}_ghost.64.mesh         materials/main.mesh ${VARS} -DFORWARD -DGHOST)
-  add_shader(${OUTPUT}_ghost.32.task         materials/main.task ${VARS} -DFORWARD -DGHOST)
-  add_shader(${OUTPUT}_ghost.64.task         materials/main.task ${VARS} -DFORWARD -DGHOST)
-  add_shader(${OUTPUT}_ghost.frag            materials/main.frag ${VARS} -DFORWARD -DGHOST -DMAT_LINEAR_CLR)
+  add_shader("${OUTPUT}_slot.vert"      materials/main.vert  -S vert ${VARS})
+  add_shader("${OUTPUT}_slot.mesh"      materials/main.vert  -S mesh ${VARS})
+  add_shader("${OUTPUT}_bindless.vert"  materials/main.vert  -S vert ${VARS} -DBINDLESS)
+  add_shader("${OUTPUT}_bindless.mesh"  materials/main.vert  -S mesh ${VARS} -DBINDLESS)
 
   set(OPENGOTHIC_SHADERS      ${OPENGOTHIC_SHADERS}      PARENT_SCOPE)
   set(OPENGOTHIC_SHADERS_SPRV ${OPENGOTHIC_SHADERS_SPRV} PARENT_SCOPE)
-endfunction(add_uber_shader)
+endfunction(add_geom_shader)
 
-# shaders
-add_uber_shader(lnd "-DMESH_TYPE=0")
-add_uber_shader(obj "-DMESH_TYPE=1")
-add_uber_shader(ani "-DMESH_TYPE=2")
-add_uber_shader(mph "-DMESH_TYPE=3")
-add_uber_shader(pfx "-DMESH_TYPE=4")
+function(add_frag_shader OUTPUT)
+  list(SUBLIST ARGV 1 -1 VARS)
+
+  add_shader("${OUTPUT}_slot.frag"         materials/main.frag  ${VARS})
+  add_shader("${OUTPUT}_bindless.frag"     materials/main.frag  ${VARS} -DBINDLESS)
+
+  set(OPENGOTHIC_SHADERS      ${OPENGOTHIC_SHADERS}      PARENT_SCOPE)
+  set(OPENGOTHIC_SHADERS_SPRV ${OPENGOTHIC_SHADERS_SPRV} PARENT_SCOPE)
+endfunction(add_frag_shader)
+
+# cluster culling
+add_shader(cluster_init.comp         materials/cluster_init.comp)
+add_shader(cluster_patch.comp        materials/cluster_patch.comp)
+add_shader(cluster_task.comp         materials/cluster_task.comp)
+add_shader(cluster_task_hiz.comp     materials/cluster_task.comp -DHIZ)
+add_shader(cluster_task_hiz_cr.comp  materials/cluster_task.comp -DHIZ -DLARGE)
+
+# mesh & vertex
+add_geom_shader(main_lnd       "-DMESH_TYPE=0" -DFLAT_NORMAL)
+add_geom_shader(main_lnd_f     "-DMESH_TYPE=0" -DFLAT_NORMAL -DFORWARD)
+add_geom_shader(main_lnd_d     "-DMESH_TYPE=0" -DFLAT_NORMAL -DDEPTH_ONLY)
+add_geom_shader(main_lnd_d_at  "-DMESH_TYPE=0" -DFLAT_NORMAL -DDEPTH_ONLY -DATEST)
+
+add_geom_shader(main_obj       "-DMESH_TYPE=1")
+add_geom_shader(main_obj_f     "-DMESH_TYPE=1" -DFORWARD)
+add_geom_shader(main_obj_d     "-DMESH_TYPE=1" -DDEPTH_ONLY)
+add_geom_shader(main_obj_d_at  "-DMESH_TYPE=1" -DDEPTH_ONLY -DATEST)
+
+add_geom_shader(main_ani       "-DMESH_TYPE=2")
+add_geom_shader(main_ani_f     "-DMESH_TYPE=2" -DFORWARD)
+add_geom_shader(main_ani_d     "-DMESH_TYPE=2" -DDEPTH_ONLY)
+add_geom_shader(main_ani_d_at  "-DMESH_TYPE=2" -DDEPTH_ONLY -DATEST)
+
+add_geom_shader(main_mph       "-DMESH_TYPE=3")
+add_geom_shader(main_mph_f     "-DMESH_TYPE=3" -DFORWARD)
+add_geom_shader(main_mph_d     "-DMESH_TYPE=3" -DDEPTH_ONLY)
+add_geom_shader(main_mph_d_at  "-DMESH_TYPE=3" -DDEPTH_ONLY -DATEST)
+
+# tesselation
+add_shader(main_lnd_f_slot.tesc      materials/main.tesc  "-DMESH_TYPE=0" -DWATER)
+add_shader(main_lnd_f_slot.tese      materials/main.tese  "-DMESH_TYPE=0" -DWATER)
+add_shader(main_lnd_f_bindless.tesc  materials/main.tesc  "-DMESH_TYPE=0" -DBINDLESS -DWATER)
+add_shader(main_lnd_f_bindless.tese  materials/main.tese  "-DMESH_TYPE=0" -DBINDLESS -DWATER)
+
+# materials landscape
+add_frag_shader(main_lnd_g_s   -DFLAT_NORMAL -DGBUFFER -DSIMPLE_MAT)
+add_frag_shader(main_lnd_g     -DFLAT_NORMAL -DGBUFFER)
+add_frag_shader(main_lnd_g_at  -DFLAT_NORMAL -DGBUFFER -DATEST)
+add_frag_shader(main_lnd_g_tx  -DFLAT_NORMAL -DGBUFFER)
+add_frag_shader(main_lnd_f     -DFLAT_NORMAL -DFORWARD)
+add_frag_shader(main_lnd_e     -DFLAT_NORMAL -DEMISSIVE)
+add_frag_shader(main_lnd_x     -DFLAT_NORMAL -DGHOST)
+add_frag_shader(main_lnd_w     -DFLAT_NORMAL -DWATER)
+add_frag_shader(main_lnd_d     -DFLAT_NORMAL -DDEPTH_ONLY)
+add_frag_shader(main_lnd_d_at  -DFLAT_NORMAL -DDEPTH_ONLY -DATEST)
+
+# materials objects
+add_frag_shader(main_obj_g     -DGBUFFER)
+add_frag_shader(main_obj_g_at  -DGBUFFER -DATEST)
+add_frag_shader(main_obj_f     -DFORWARD)
+add_frag_shader(main_obj_e     -DEMISSIVE)
+add_frag_shader(main_obj_w     -DWATER)
+add_frag_shader(main_obj_x     -DGHOST)
+add_frag_shader(main_obj_d     -DDEPTH_ONLY)
+add_frag_shader(main_obj_d_at  -DDEPTH_ONLY -DATEST)
+
+# pfx geometry
+add_shader(main_pfx.vert       materials/pfx.vert   -DVT_COLOR)
+add_shader(main_pfx_f.vert     materials/pfx.vert   -DFORWARD    -DVT_COLOR)
+add_shader(main_pfx_d.vert     materials/pfx.vert   -DDEPTH_ONLY -DVT_COLOR)
+add_shader(main_pfx_d_at.vert  materials/pfx.vert   -DDEPTH_ONLY -DVT_COLOR -DATEST)
+# materials pfx
+add_shader(main_pfx_g.frag     materials/main.frag  "-DMESH_TYPE=4" -DGBUFFER    -DVT_COLOR)
+add_shader(main_pfx_g_at.frag  materials/main.frag  "-DMESH_TYPE=4" -DGBUFFER    -DVT_COLOR -DATEST)
+add_shader(main_pfx_f.frag     materials/main.frag  "-DMESH_TYPE=4" -DFORWARD    -DVT_COLOR)
+add_shader(main_pfx_f_at.frag  materials/main.frag  "-DMESH_TYPE=4" -DFORWARD    -DVT_COLOR -DATEST)
+add_shader(main_pfx_e.frag     materials/main.frag  "-DMESH_TYPE=4" -DEMISSIVE   -DVT_COLOR)
+add_shader(main_pfx_e_at.frag  materials/main.frag  "-DMESH_TYPE=4" -DEMISSIVE   -DVT_COLOR -DATEST)
+add_shader(main_pfx_x.frag     materials/main.frag  "-DMESH_TYPE=4" -DGHOST      -DVT_COLOR)
+add_shader(main_pfx_x_at.frag  materials/main.frag  "-DMESH_TYPE=4" -DGHOST      -DVT_COLOR -DATEST)
+add_shader(main_pfx_d.frag     materials/main.frag  "-DMESH_TYPE=4" -DDEPTH_ONLY -DVT_COLOR)
+add_shader(main_pfx_d_at.frag  materials/main.frag  "-DMESH_TYPE=4" -DDEPTH_ONLY -DVT_COLOR -DATEST)
+
 
 add_shader(item.vert                 inventory/item.vert)
 add_shader(item.frag                 inventory/item.frag)
-
-add_shader(lnd_hiz.32.mesh           materials/main.mesh -DMESH_TYPE=0 -DHIZ)
-add_shader(lnd_hiz.64.mesh           materials/main.mesh -DMESH_TYPE=0 -DHIZ)
-add_shader(lnd_hiz.32.task           materials/main.task -DMESH_TYPE=0 -DHIZ)
-add_shader(lnd_hiz.64.task           materials/main.task -DMESH_TYPE=0 -DHIZ)
-add_shader(lnd_hiz.frag              materials/main.frag -DMESH_TYPE=0 -DHIZ)
 
 add_shader(stash.vert                copy.vert)
 add_shader(stash.frag                stash.frag)

@@ -106,7 +106,7 @@ class WorldObjects final {
 
     void           addInteractive(Interactive*         obj);
     void           addStatic     (StaticObj*           obj);
-    void           addRoot       (const std::unique_ptr<phoenix::vob>& vob, bool startup);
+    void           addRoot       (const std::shared_ptr<phoenix::vob>& vob, bool startup);
     void           invalidateVobIndex();
 
     Interactive*   validateInteractive(Interactive *def);

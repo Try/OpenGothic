@@ -5,7 +5,7 @@
 #include <Tempest/Device>
 #include <Tempest/SoundDevice>
 
-#include <phoenix/vdfs.hh>
+#include <phoenix/Vfs.hh>
 #include <phoenix/world/vob_tree.hh>
 
 #include <tuple>
@@ -13,7 +13,6 @@
 #include <map>
 
 #include "graphics/material.h"
-#include "phoenix/Vfs.hh"
 #include "sound/soundfx.h"
 
 class StaticMesh;
@@ -77,7 +76,7 @@ class Resources final {
       Tempest::Vec3 color;
       };
 
-    using VobTree = std::vector<std::unique_ptr<phoenix::vob>>;
+    using VobTree = std::vector<std::shared_ptr<phoenix::vob>>;
 
     static Tempest::Device&          device() { return inst->dev; }
     static const char*               renderer();
@@ -136,7 +135,7 @@ class Resources final {
 
     static std::vector<uint8_t>      getFileData(std::string_view name);
     static bool                      getFileData(std::string_view name, std::vector<uint8_t>& dat);
-    static phoenix::buffer           getFileBuffer(std::string_view name);
+    static std::unique_ptr<zenkit::Read> getFileBuffer(std::string_view name);
     static bool                      hasFile    (std::string_view fname);
 
     static const phoenix::Vfs&       vdfsIndex();
@@ -172,7 +171,7 @@ class Resources final {
     void                  detectVdf(std::vector<Archive>& ret, const std::u16string& root);
 
     Tempest::Texture2d*   implLoadTexture(TextureCache& cache, std::string_view cname);
-    Tempest::Texture2d*   implLoadTexture(TextureCache& cache, std::string &&name, const phoenix::buffer& data);
+    Tempest::Texture2d*   implLoadTexture(TextureCache& cache, std::string &&name, zenkit::Read& data);
     ProtoMesh*            implLoadMesh(std::string_view name);
     std::unique_ptr<ProtoMesh> implLoadMeshMain(std::string name);
     std::unique_ptr<Animation> implLoadAnimation(std::string name);

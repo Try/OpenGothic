@@ -94,11 +94,11 @@ endif()
 
 # phoenix
 set(BUILD_SQUISH_WITH_SSE2     OFF CACHE INTERNAL "")
-set(PHOENIX_DISABLE_SANITIZERS ON  CACHE INTERNAL "")
-set(PHOENIX_LOG_LEVEL "3")
+set(ZK_ENABLE_ASAN             OFF CACHE INTERNAL "")
+set(ZK_ENABLE_DEPRECATION      OFF CACHE INTERNAL "")
 
 add_subdirectory(lib/phoenix)
-target_link_libraries(${PROJECT_NAME} phoenix)
+target_link_libraries(${PROJECT_NAME} zenkit)
 
 # TinySoundFont
 add_definitions(-DTSF_NO_STDIO)

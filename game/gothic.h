@@ -45,6 +45,7 @@ class Gothic final {
       bool  doRayQuery          = false;
       bool  doRtGi              = false;
       bool  doMeshShading       = false;
+      bool  doBindless          = false;
 
       uint32_t fxaaPreset       = 0;
 

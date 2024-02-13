@@ -9,7 +9,8 @@
 #include "lighting/tonemapping.glsl"
 
 #if defined(MAT_VARYINGS)
-layout(location = 0) in Varyings shInp;
+layout(location = 0) in flat uint bucketId;
+layout(location = 1) in Varyings  shInp;
 #endif
 
 #if DEBUG_DRAW
@@ -25,6 +26,63 @@ layout(location = 1) out vec4 outDiffuse;
 layout(location = 2) out uint outNormal;
 #elif !defined(DEPTH_ONLY)
 layout(location = 0) out vec4 outColor;
+#endif
+
+#if defined(WATER) || defined(GHOST)
+float unproject(float depth) {
+  mat4 projInv = scene.projectInv;
+  vec4 o;
+  o.z = depth * projInv[2][2] + projInv[3][2];
+  o.w = depth * projInv[2][3] + projInv[3][3];
+  return o.z/o.w;
+  }
+#endif
+
+bool isFlat() {
+#if defined(GBUFFER) && defined(FLAT_NORMAL)
+  {
+    vec3 pos   = shInp.pos;
+    vec3 dx    = dFdx(pos);
+    vec3 dy    = dFdy(pos);
+    vec3 flatN = (cross(dx,dy));
+    if(dot(normalize(flatN),scene.sunDir)<=0.01)
+      return true;
+  }
+#endif
+  return false;
+  }
+
+float encodeHintBits() {
+  const int flt  = (isFlat() ? 1 : 0) << 1;
+#if defined(ATEST)
+  const int atst = (1) << 2;
+#else
+  const int atst = (0) << 2;
+#endif
+
+#if defined(WATER)
+  const int water = (gl_FrontFacing) ? 0 : (1 << 3);
+#elif defined(LVL_OBJECT)
+  // const int water = (bucket.envMapping>0.01 ? 1 : 0) << 3;
+  const int water = (0) << 3;
+#else
+  const int water = (0) << 3;
+#endif
+
+  return float(flt | atst | water)/255.0;
+  }
+
+#if defined(GBUFFER)
+vec3 flatNormal() {
+#if defined(FLAT_NORMAL)
+  vec3 pos   = shInp.pos;
+  vec3 dx    = dFdx(pos);
+  vec3 dy    = dFdy(pos);
+  return normalize(cross(dx,dy));
+#else
+  return shInp.normal;
+#endif
+  }
 #endif
 
 #if defined(FORWARD)
@@ -50,43 +108,64 @@ vec4 dbgLambert() {
   }
 #endif
 
-#if defined(GHOST)
-vec3 ghostColor(vec3 selfColor) {
-  vec4 back = texelFetch(sceneColor, ivec2(gl_FragCoord.xy), 0);
-  return back.rgb+selfColor;
-  }
-#endif
-
 #if defined(MAT_UV)
 vec4 diffuseTex() {
-#if (defined(LVL_OBJECT) || defined(WATER))
+#if !defined(SIMPLE_MAT) && (MESH_TYPE!=T_PFX)
+  ivec2 texAniMapDirPeriod = bucket[bucketId].texAniMapDirPeriod;
+  float alphaWeight        = bucket[bucketId].alphaWeight;
+#else
+  ivec2 texAniMapDirPeriod = ivec2(0);
+  float alphaWeight        = 1;
+#endif
+
+#if !defined(SIMPLE_MAT)
   vec2 texAnim = vec2(0);
   {
     // FIXME: this not suppose to run for every-single material
-    if(bucket.texAniMapDirPeriod.x!=0) {
-      uint fract = scene.tickCount32 % abs(bucket.texAniMapDirPeriod.x);
-      texAnim.x  = float(fract)/float(bucket.texAniMapDirPeriod.x);
+    if(texAniMapDirPeriod.x!=0) {
+      uint fract = scene.tickCount32 % abs(texAniMapDirPeriod.x);
+      texAnim.x  = float(fract)/float(texAniMapDirPeriod.x);
       }
-    if(bucket.texAniMapDirPeriod.y!=0) {
-      uint fract = scene.tickCount32 % abs(bucket.texAniMapDirPeriod.y);
-      texAnim.y  = float(fract)/float(bucket.texAniMapDirPeriod.y);
+    if(texAniMapDirPeriod.y!=0) {
+      uint fract = scene.tickCount32 % abs(texAniMapDirPeriod.y);
+      texAnim.y  = float(fract)/float(texAniMapDirPeriod.y);
       }
   }
   const vec2 uv = shInp.uv + texAnim;
 #else
   const vec2 uv = shInp.uv;
 #endif
-  vec4 tex = texture(textureD,uv);
 
-#if defined(LVL_OBJECT)
-  tex.a *= bucket.alphaWeight;
+#if defined(BINDLESS)
+  nonuniformEXT uint tId = bucketId;
+#else
+  const         uint tId = 0;
+#endif
+
+  vec4 tex = texture(sampler2D(textureMain[tId], samplerMain),uv);
+
+#if !defined(SIMPLE_MAT)
+  tex.a *= alphaWeight;
 #endif
 
   return tex;
   }
 #endif
 
-vec4 forwardShading(vec4 t) {
+#if defined(GBUFFER)
+void mainGBuffer(vec4 t) {
+  outDiffuse.rgb = t.rgb;
+  outDiffuse.a   = encodeHintBits();
+  outNormal      = encodeNormal(shInp.normal);
+  // outNormal      = vec4(flatNormal()*0.5 + vec3(0.5), 1.0);
+#if DEBUG_DRAW
+  outDiffuse.rgb *= debugColors[debugId%debugColors.length()];
+#endif
+  }
+#endif
+
+#if defined(FORWARD)
+void mainForward(vec4 t) {
   vec3  color = t.rgb;
   float alpha = t.a;
 
@@ -94,38 +173,40 @@ vec4 forwardShading(vec4 t) {
   alpha = (alpha-0.5)*2.0;
 #endif
 
-#if defined(GHOST)
-  color = ghostColor(t.rgb);
-#endif
-
-#if defined(MAT_LINEAR_CLR)
   color = textureLinear(color.rgb);
-#endif
-
-#if defined(FORWARD)
   color *= diffuseLight();
+  color *= scene.exposure;
+
+  outColor = vec4(color,alpha);
+  }
 #endif
 
 #if defined(EMISSIVE)
+void mainEmissive(vec4 t) {
+  vec3 color = textureLinear(t.rgb);
   color *= 3.0;
-#elif defined(MAT_LINEAR_CLR)
-  color *= scene.exposure;
-#else
-  // nop
+
+  outColor = vec4(color,t.a);
+  }
 #endif
 
-  return vec4(color,alpha);
+#if defined(GHOST)
+void mainGhost(vec4 t) {
+  vec3  color  = textureLinear(t.rgb) * 5.0;
+  vec3  normal = normalize(shInp.normal);
+
+  normal = (scene.viewProject*vec4(normal,0.0)).xyz;
+
+  vec2  fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
+  fragCoord += normal.xy * 0.01;
+
+  vec4 back = textureLod(sceneColor, (fragCoord*0.5+0.5), 0);
+
+  outColor = vec4(mix(back.rgb * color, back.rgb, vec3(0.6)), t.a);
   }
+#endif
 
 #if defined(WATER)
-float unproject(float depth) {
-  mat4 projInv = scene.projectInv;
-  vec4 o;
-  o.z = depth * projInv[2][2] + projInv[3][2];
-  o.w = depth * projInv[2][3] + projInv[3][3];
-  return o.z/o.w;
-  }
-
 vec4 underWaterColorDepth(vec3 normal) {
   const vec2  fragCoord = (gl_FragCoord.xy*scene.screenResInv)*2.0-vec2(1.0);
   const float ior       = IorWater;
@@ -198,54 +279,25 @@ vec4 waterShading(vec4 t, const vec3 normal) {
   return vec4(color,1);
   }
 
-#endif
+void mainWater(vec4 t) {
+  const float waveMaxAmplitude = bucket[bucketId].waveMaxAmplitude;
 
-bool isFlat() {
-#if defined(GBUFFER) && (MESH_TYPE==T_LANDSCAPE)
-  {
-    vec3 pos   = shInp.pos;
-    vec3 dx    = dFdx(pos);
-    vec3 dy    = dFdy(pos);
-    vec3 flatN = (cross(dx,dy));
-    if(dot(normalize(flatN),scene.sunDir)<=0.01)
-      return true;
+  vec3 lx = dFdx(shInp.pos), ly = dFdy(shInp.pos);
+  float minLength = max(length(lx),length(ly));
+
+  Wave wx = wave(shInp.pos, minLength, waveIterationsHigh, waveAmplitude(waveMaxAmplitude));
+
+  if(gl_FrontFacing) {
+    // BROKEN: water mesh is two sided
+    wx.normal = -wx.normal;
+    }
+
+  outColor       = waterShading(t,wx.normal);
+  outDiffuse.rgb = t.rgb;
+  outDiffuse.a   = encodeHintBits();
+  outNormal      = encodeNormal(wx.normal);
   }
 #endif
-  return false;
-  }
-
-#if defined(GBUFFER)
-vec3 flatNormal() {
-#if defined(GBUFFER) && (MESH_TYPE==T_LANDSCAPE)
-  vec3 pos   = shInp.pos;
-  vec3 dx    = dFdx(pos);
-  vec3 dy    = dFdy(pos);
-  return normalize(cross(dx,dy));
-#else
-  return shInp.normal;
-#endif
-  }
-#endif
-
-float encodeHintBits() {
-  const int flt  = (isFlat() ? 1 : 0) << 1;
-#if defined(ATEST)
-  const int atst = (1) << 2;
-#else
-  const int atst = (0) << 2;
-#endif
-
-#if defined(WATER)
-  const int water = (gl_FrontFacing) ? 0 : (1 << 3);
-#elif defined(LVL_OBJECT)
-  // const int water = (bucket.envMapping>0.01 ? 1 : 0) << 3;
-  const int water = (0) << 3;
-#else
-  const int water = (0) << 3;
-#endif
-
-  return float(flt | atst | water)/255.0;
-  }
 
 void main() {
 #if defined(MAT_UV)
@@ -261,34 +313,17 @@ void main() {
 #endif
 
 #if defined(GBUFFER)
-  outDiffuse.rgb = t.rgb;
-  outDiffuse.a   = encodeHintBits();
-  outNormal      = encodeNormal(shInp.normal);
-  // outNormal      = vec4(flatNormal()*0.5 + vec3(0.5), 1.0);
-#if DEBUG_DRAW
-  outDiffuse.rgb *= debugColors[debugId%debugColors.length()];
+  mainGBuffer(t);
+#elif defined(WATER)
+  mainWater(t);
+#elif defined(FORWARD) && !defined(DEPTH_ONLY)
+  mainForward(t);
+#elif defined(EMISSIVE) && !defined(DEPTH_ONLY)
+  mainEmissive(t);
+#elif defined(GHOST) && !defined(DEPTH_ONLY)
+  mainGhost(t);
 #endif
-#endif
 
-#if defined(WATER)
-  {
-  vec3 lx = dFdx(shInp.pos), ly = dFdy(shInp.pos);
-  float minLength = max(length(lx),length(ly));
-
-  Wave wx = wave(shInp.pos, minLength, waveIterationsHigh, waveAmplitude());
-
-  if(gl_FrontFacing) {
-    // BROKEN: water mesh is two sided
-    wx.normal = -wx.normal;
-    }
-
-  outColor       = waterShading(t,wx.normal);
-  outDiffuse.rgb = t.rgb;
-  outDiffuse.a   = encodeHintBits();
-  outNormal      = encodeNormal(wx.normal);
-  }
-#elif !defined(GBUFFER) && !defined(DEPTH_ONLY)
-  outColor   = forwardShading(t);
 #if DEBUG_DRAW
   outColor   = vec4(debugColors[debugId%MAX_DEBUG_COLORS],1.0);
 #endif
@@ -301,5 +336,4 @@ void main() {
   //vec3 shPos0  = (shInp.shadowPos[0].xyz)/shInp.shadowPos[0].w;
   //outColor   = vec4(vec3(shPos0.xy,0),1.0);
   //outColor = dbgLambert();
-#endif
   }

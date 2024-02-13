@@ -28,7 +28,12 @@ class PfxObjects final {
     void       tick(uint64_t ticks);
     bool       isInPfxRange(const Tempest::Vec3& pos) const;
 
+    void       prepareUniforms();
     void       preFrameUpdate(uint8_t fId);
+
+    void       drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void       drawShadow     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer);
+    void       drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
   private:
     struct SpriteEmitter {

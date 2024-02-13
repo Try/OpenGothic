@@ -37,7 +37,7 @@ StaticMesh::StaticMesh(const Material& mat, std::vector<Resources::Vertex> cvbo,
   assert(cvbo.size()<=PackedMesh::MaxVert);
   assert(cibo.size()<=PackedMesh::MaxInd);
 
-  if(Gothic::options().doMeshShading) {
+  if(Gothic::options().doMeshShading || true) {
     const size_t vert = cvbo.size();
     const size_t prim = cibo.size()/3;
 
@@ -65,7 +65,8 @@ StaticMesh::StaticMesh(const Material& mat, std::vector<Resources::Vertex> cvbo,
   for(size_t i=0;i<1;++i) {
     sub[i].texName   = "";
     sub[i].material  = mat;
-    sub[i].iboLength = Gothic::options().doMeshShading ? PackedMesh::MaxInd : ibo.size();
+    //sub[i].iboLength = Gothic::options().doMeshShading ? PackedMesh::MaxInd : ibo.size();
+    sub[i].iboLength = PackedMesh::MaxInd;
     if(Gothic::options().doRayQuery)
       sub[i].blas = Resources::blas(vbo, ibo, 0, ibo.size());
     }

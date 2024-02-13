@@ -271,6 +271,10 @@ void MainWindow::paintEvent(PaintEvent& event) {
       fnt.drawText(p,w()-fnt.textSize(clockT).w-5,fnt.pixelSize()+5,clockT);
       }
     }
+
+  if(auto wx = Gothic::inst().worldView()) {
+    wx->dbgClusters(p, Vec2(float(w()), float(h())));
+    }
   }
 
 void MainWindow::resizeEvent(SizeEvent&) {

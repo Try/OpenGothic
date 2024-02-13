@@ -119,6 +119,12 @@ CommandLine::CommandLine(int argc, const char** argv) {
       if(i<argc)
         isMeshSh = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
       }
+    else if(arg=="-bl") {
+      // not to document - debug only
+      ++i;
+      if(i<argc)
+        isBindlessSh = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
+      }
     else {
       Log::i("unreacognized commandline option: \"", arg, "\"");
       }

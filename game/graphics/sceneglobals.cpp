@@ -3,8 +3,6 @@
 #include "graphics/shaders.h"
 #include "gothic.h"
 
-#include <cassert>
-
 static uint32_t nextPot(uint32_t x) {
   x--;
   x |= x >> 1;
@@ -84,6 +82,7 @@ void SceneGlobals::setViewProject(const Tempest::Matrix4x4& v, const Tempest::Ma
   uboGlobalCpu.clipInfo.x = zNear*zFar;
   uboGlobalCpu.clipInfo.y = zNear-zFar;
   uboGlobalCpu.clipInfo.z = zFar;
+  znear                   = zNear;
 
   uboGlobalCpu.camPos = Tempest::Vec3(0,0,1);
   uboGlobalCpu.viewProjectInv.project(uboGlobalCpu.camPos);
@@ -145,7 +144,7 @@ void SceneGlobals::commitUbo(uint8_t fId) {
   for(size_t i=V_Shadow0; i<V_Count; ++i) {
     auto& ubo = perView[i];
     ubo = uboGlobalCpu;
-    if(i!=V_Main)
+    if(V_Shadow0<=i && i<=V_ShadowLast)
       ubo.viewProject = uboGlobalCpu.viewShadow[i-V_Shadow0];
     std::memcpy(ubo.frustrum, frustrum[i].f, sizeof(ubo.frustrum));
     }

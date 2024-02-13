@@ -19,13 +19,13 @@ class Ikarus : public ScriptPlugin {
       explicit memory_instance(Ikarus &owner, ptr32_t address) : owner(owner), address(address) {}
 
       void set_int(phoenix::symbol const& sym, uint16_t index, std::int32_t value) override;
-      std::int32_t get_int(phoenix::symbol const& sym, uint16_t index) override;
+      std::int32_t get_int(phoenix::symbol const& sym, uint16_t index) const override;
 
       void set_float(phoenix::symbol const& sym, uint16_t index, float value) override;
-      float get_float(phoenix::symbol const& sym, uint16_t index) override;
+      float get_float(phoenix::symbol const& sym, uint16_t index) const override;
 
       void set_string(phoenix::symbol const& sym, uint16_t index, std::string_view value) override;
-      const std::string& get_string(phoenix::symbol const& sym, uint16_t index) override;
+      const std::string& get_string(phoenix::symbol const& sym, uint16_t index) const override;
 
       Ikarus &owner;
       ptr32_t address = 0;

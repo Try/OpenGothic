@@ -103,6 +103,9 @@ void RtScene::buildTlas() {
   rtDesc = device.ssbo(build.rtDesc);
   tlas   = device.tlas(build.inst);
 
+  if(build.rtDesc.empty())
+    rtDesc = device.ssbo(nullptr, sizeof(build.rtDesc[0]));
+
   build = Build();
   }
 

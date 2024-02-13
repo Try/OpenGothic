@@ -21,8 +21,8 @@ float waveAmplitude(float bucketWaveMaxAmplitude) {
   }
 
 float waveAmplitude() {
-#if defined(WATER)
-  return waveAmplitude(bucket.waveMaxAmplitude);
+#if defined(WATER) && !defined(BINDLESS)
+  return waveAmplitude(bucket[0].waveMaxAmplitude);
 #else
   return waveAmplitude(0);
 #endif
