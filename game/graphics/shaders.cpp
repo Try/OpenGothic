@@ -113,12 +113,10 @@ Shaders::Shaders() {
 
   tonemapping = postEffect("tonemapping", "tonemapping", RenderState::ZTestMode::Always);
 
-  if(meshlets || 1) {
-    hiZPot    = computeShader("hiz_pot.comp.sprv");
-    if(device.properties().hasAtomicFormat(TextureFormat::R32U))
-      hiZMip = computeShader("hiz_mip_img.comp.sprv"); else
-      hiZMip = computeShader("hiz_mip.comp.sprv");
-    }
+  hiZPot    = computeShader("hiz_pot.comp.sprv");
+  if(device.properties().hasAtomicFormat(TextureFormat::R32U))
+    hiZMip = computeShader("hiz_mip_img.comp.sprv"); else
+    hiZMip = computeShader("hiz_mip.comp.sprv");
 
   if(meshlets && device.properties().meshlets.maxGroupSize.x>=256) {
     RenderState state;
