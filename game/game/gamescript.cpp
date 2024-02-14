@@ -999,7 +999,7 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
 
   auto* sym = vm.find_symbol_by_index(uint32_t(fn.ptr));
   int   ret = 0;
-  if(sym!=nullptr && sym->rtype() == phoenix::datatype::integer) {
+  if(sym!=nullptr && sym->rtype() == zenkit::DaedalusDataType::integer) {
     ret = vm.call_function<int>(sym);
     }
   else if(sym!=nullptr) {
@@ -1007,8 +1007,8 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
     ret = 0;
     }
 
-  if(vm.global_other()->is_instance_of<phoenix::c_npc>()){
-    auto oth2 = reinterpret_cast<phoenix::c_npc*>(vm.global_other()->get_instance().get());
+  if(vm.global_other()->is_instance_of<zenkit::INpc>()){
+    auto oth2 = reinterpret_cast<zenkit::INpc*>(vm.global_other()->get_instance().get());
     if(oth!=nullptr && oth2!=&oth->handle()) {
       Npc* other = findNpc(oth2);
       npc->setOther(other);
@@ -1226,7 +1226,7 @@ void GameScript::printNothingToGet() {
   vm.call_function<void>(id);
   }
 
-void GameScript::useInteractive(const std::shared_ptr<phoenix::c_npc>& hnpc, std::string_view func) {
+void GameScript::useInteractive(const std::shared_ptr<zenkit::INpc>& hnpc, std::string_view func) {
   auto fn = vm.find_symbol_by_name(func);
   if(fn == nullptr)
     return;
@@ -1278,7 +1278,7 @@ void GameScript::onWldItemRemoved(const Item& itm) {
   onWldInstanceRemoved(&itm.handle());
   }
 
-void GameScript::onWldInstanceRemoved(const phoenix::instance* obj) {
+void GameScript::onWldInstanceRemoved(const zenkit::DaedalusInstance* obj) {
   vm.find_symbol_by_instance(*obj)->set_instance(nullptr);
   }
 
@@ -1333,21 +1333,21 @@ uint32_t GameScript::rand(uint32_t max) {
   }
 
 Npc* GameScript::findNpc(zenkit::DaedalusSymbol* s) {
-  if(s->is_instance_of<phoenix::c_npc>()) {
-    auto cNpc = reinterpret_cast<phoenix::c_npc*>(s->get_instance().get());
+  if(s->is_instance_of<zenkit::INpc>()) {
+    auto cNpc = reinterpret_cast<zenkit::INpc*>(s->get_instance().get());
     return findNpc(cNpc);
     }
   return nullptr;
   }
 
-Npc* GameScript::findNpc(phoenix::c_npc *handle) {
+Npc* GameScript::findNpc(zenkit::INpc *handle) {
   if(handle==nullptr)
     return nullptr;
   assert(handle->user_ptr); // engine bug, if null
   return reinterpret_cast<Npc*>(handle->user_ptr);
   }
 
-Npc* GameScript::findNpc(const std::shared_ptr<phoenix::c_npc>& handle) {
+Npc* GameScript::findNpc(const std::shared_ptr<zenkit::INpc>& handle) {
   if(handle==nullptr)
     return nullptr;
   assert(handle->user_ptr); // engine bug, if null
@@ -1357,14 +1357,14 @@ Npc* GameScript::findNpc(const std::shared_ptr<phoenix::c_npc>& handle) {
 Npc* GameScript::findNpcById(const std::shared_ptr<zenkit::DaedalusInstance>& handle) {
   if(handle==nullptr)
     return nullptr;
-  if(auto npc = dynamic_cast<const phoenix::c_npc*>(handle.get())) {
+  if(auto npc = dynamic_cast<const zenkit::INpc*>(handle.get())) {
     assert(npc->user_ptr); // engine bug, if null
     return reinterpret_cast<Npc*>(npc->user_ptr);
     }
   return findNpcById(handle->symbol_index());
   }
 
-Item *GameScript::findItem(phoenix::c_item* handle) {
+Item *GameScript::findItem(zenkit::IItem* handle) {
   if(handle==nullptr)
     return nullptr;
   auto& itData = *handle;
@@ -1374,16 +1374,16 @@ Item *GameScript::findItem(phoenix::c_item* handle) {
 
 Item *GameScript::findItemById(size_t id) {
   auto* handle = vm.find_symbol_by_index(uint32_t(id));
-  if(handle==nullptr||!handle->is_instance_of<phoenix::c_item>())
+  if(handle==nullptr||!handle->is_instance_of<zenkit::IItem>())
     return nullptr;
-  auto hitm = reinterpret_cast<phoenix::c_item*>(handle->get_instance().get());
+  auto hitm = reinterpret_cast<zenkit::IItem*>(handle->get_instance().get());
   return findItem(hitm);
   }
 
 Item* GameScript::findItemById(const std::shared_ptr<zenkit::DaedalusInstance>& handle) {
   if(handle==nullptr)
     return nullptr;
-  if(auto itm = dynamic_cast<const phoenix::c_item*>(handle.get())) {
+  if(auto itm = dynamic_cast<const zenkit::IItem*>(handle.get())) {
     assert(itm->user_ptr); // engine bug, if null
     return reinterpret_cast<Item*>(itm->user_ptr);
     }
@@ -1392,26 +1392,26 @@ Item* GameScript::findItemById(const std::shared_ptr<zenkit::DaedalusInstance>& 
 
 Npc* GameScript::findNpcById(size_t id) {
   auto* handle = vm.find_symbol_by_index(uint32_t(id));
-  if(handle==nullptr || !handle->is_instance_of<phoenix::c_npc>())
+  if(handle==nullptr || !handle->is_instance_of<zenkit::INpc>())
     return nullptr;
 
-  auto hnpc = reinterpret_cast<phoenix::c_npc*>(handle->get_instance().get());
+  auto hnpc = reinterpret_cast<zenkit::INpc*>(handle->get_instance().get());
   if(hnpc==nullptr) {
     auto obj = world().findNpcByInstance(id);
     handle->set_instance(obj ? obj->handlePtr() : nullptr);
-    hnpc = reinterpret_cast<phoenix::c_npc*>(handle->get_instance().get());
+    hnpc = reinterpret_cast<zenkit::INpc*>(handle->get_instance().get());
     }
   return findNpc(hnpc);
   }
 
-phoenix::c_info* GameScript::findInfo(size_t id) {
+zenkit::IInfo* GameScript::findInfo(size_t id) {
   auto* sym = vm.find_symbol_by_index(uint32_t(id));
-  if(sym==nullptr||!sym->is_instance_of<phoenix::c_info>())
+  if(sym==nullptr||!sym->is_instance_of<zenkit::IInfo>())
     return nullptr;
   auto* h = sym->get_instance().get();
   if(h==nullptr)
     Log::e("invalid c_info object: \"",sym->name(),"\"");
-  return reinterpret_cast<phoenix::c_info*>(h);
+  return reinterpret_cast<zenkit::IInfo*>(h);
   }
 
 void GameScript::removeItem(Item &it) {
@@ -1576,7 +1576,7 @@ bool GameScript::wld_istime(int hour0, int min0, int hour1, int min1) {
     return 0;
   }
 
-bool GameScript::wld_isfpavailable(std::shared_ptr<phoenix::c_npc> self, std::string_view name) {
+bool GameScript::wld_isfpavailable(std::shared_ptr<zenkit::INpc> self, std::string_view name) {
   if(self==nullptr){
     return false;
     }
@@ -1585,7 +1585,7 @@ bool GameScript::wld_isfpavailable(std::shared_ptr<phoenix::c_npc> self, std::st
   return wp != nullptr;
   }
 
-bool GameScript::wld_isnextfpavailable(std::shared_ptr<phoenix::c_npc> self, std::string_view name) {
+bool GameScript::wld_isnextfpavailable(std::shared_ptr<zenkit::INpc> self, std::string_view name) {
   if(self==nullptr){
     return false;
     }
@@ -1593,7 +1593,7 @@ bool GameScript::wld_isnextfpavailable(std::shared_ptr<phoenix::c_npc> self, std
   return fp != nullptr;
   }
 
-bool GameScript::wld_ismobavailable(std::shared_ptr<phoenix::c_npc> self, std::string_view name) {
+bool GameScript::wld_ismobavailable(std::shared_ptr<zenkit::INpc> self, std::string_view name) {
   if(self==nullptr){
     return false;
     }
@@ -1606,7 +1606,7 @@ void GameScript::wld_setmobroutine(int h, int m, std::string_view name, int st) 
   world().setMobRoutine(gtime(h,m), name, st);
   }
 
-int GameScript::wld_getmobstate(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view scheme) {
+int GameScript::wld_getmobstate(std::shared_ptr<zenkit::INpc> npcRef, std::string_view scheme) {
   auto npc = findNpc(npcRef);
 
   if(npc==nullptr) {
@@ -1625,7 +1625,7 @@ void GameScript::wld_assignroomtoguild(std::string_view name, int g) {
   world().assignRoomToGuild(name,g);
   }
 
-bool GameScript::wld_detectnpc(std::shared_ptr<phoenix::c_npc> npcRef, int inst, int state, int guild) {
+bool GameScript::wld_detectnpc(std::shared_ptr<zenkit::INpc> npcRef, int inst, int state, int guild) {
   auto npc = findNpc(npcRef);
   if(npc==nullptr) {
     return false;
@@ -1651,7 +1651,7 @@ bool GameScript::wld_detectnpc(std::shared_ptr<phoenix::c_npc> npcRef, int inst,
   return ret != nullptr;
   }
 
-bool GameScript::wld_detectnpcex(std::shared_ptr<phoenix::c_npc> npcRef, int inst, int state, int guild, int player) {
+bool GameScript::wld_detectnpcex(std::shared_ptr<zenkit::INpc> npcRef, int inst, int state, int guild, int player) {
   auto npc = findNpc(npcRef);
   if(npc==nullptr) {
     return false;
@@ -1677,7 +1677,7 @@ bool GameScript::wld_detectnpcex(std::shared_ptr<phoenix::c_npc> npcRef, int ins
   return ret != nullptr;
   }
 
-bool GameScript::wld_detectitem(std::shared_ptr<phoenix::c_npc> npcRef, int flags) {
+bool GameScript::wld_detectitem(std::shared_ptr<zenkit::INpc> npcRef, int flags) {
   auto npc = findNpc(npcRef);
   if(npc==nullptr) {
     return false;
@@ -1700,7 +1700,7 @@ bool GameScript::wld_detectitem(std::shared_ptr<phoenix::c_npc> npcRef, int flag
   return ret != nullptr;
   }
 
-void GameScript::wld_spawnnpcrange(std::shared_ptr<phoenix::c_npc> npcRef, int clsId, int count, float lifeTime) {
+void GameScript::wld_spawnnpcrange(std::shared_ptr<zenkit::INpc> npcRef, int clsId, int count, float lifeTime) {
   auto at = findNpc(npcRef);
   if(at==nullptr || clsId<=0)
     return;
@@ -1737,14 +1737,14 @@ bool GameScript::wld_israining() {
   return false;
   }
 
-void GameScript::mdl_setvisual(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view visual) {
+void GameScript::mdl_setvisual(std::shared_ptr<zenkit::INpc> npcRef, std::string_view visual) {
   auto npc = findNpc(npcRef);
   if(npc==nullptr)
     return;
   npc->setVisual(visual);
   }
 
-void GameScript::mdl_setvisualbody(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view body, int bodyTexNr, int bodyTexColor, std::string_view head, int headTexNr, int teethTexNr, int armor) {
+void GameScript::mdl_setvisualbody(std::shared_ptr<zenkit::INpc> npcRef, std::string_view body, int bodyTexNr, int bodyTexColor, std::string_view head, int headTexNr, int teethTexNr, int armor) {
   auto npc = findNpc(npcRef);
   if(npc==nullptr)
     return;
@@ -1757,13 +1757,13 @@ void GameScript::mdl_setvisualbody(std::shared_ptr<phoenix::c_npc> npcRef, std::
     }
   }
 
-void GameScript::mdl_setmodelfatness(std::shared_ptr<phoenix::c_npc> npcRef, float fat) {
+void GameScript::mdl_setmodelfatness(std::shared_ptr<zenkit::INpc> npcRef, float fat) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->setFatness(fat);
   }
 
-void GameScript::mdl_applyoverlaymds(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view overlayname) {
+void GameScript::mdl_applyoverlaymds(std::shared_ptr<zenkit::INpc> npcRef, std::string_view overlayname) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr) {
     auto skelet = Resources::loadSkeleton(overlayname);
@@ -1771,7 +1771,7 @@ void GameScript::mdl_applyoverlaymds(std::shared_ptr<phoenix::c_npc> npcRef, std
     }
   }
 
-void GameScript::mdl_applyoverlaymdstimed(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view overlayname, int ticks) {
+void GameScript::mdl_applyoverlaymdstimed(std::shared_ptr<zenkit::INpc> npcRef, std::string_view overlayname, int ticks) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr && ticks>0) {
     auto skelet = Resources::loadSkeleton(overlayname);
@@ -1779,7 +1779,7 @@ void GameScript::mdl_applyoverlaymdstimed(std::shared_ptr<phoenix::c_npc> npcRef
     }
   }
 
-void GameScript::mdl_removeoverlaymds(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view overlayname) {
+void GameScript::mdl_removeoverlaymds(std::shared_ptr<zenkit::INpc> npcRef, std::string_view overlayname) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr) {
     auto skelet = Resources::loadSkeleton(overlayname);
@@ -1787,18 +1787,18 @@ void GameScript::mdl_removeoverlaymds(std::shared_ptr<phoenix::c_npc> npcRef, st
   }
 }
 
-void GameScript::mdl_setmodelscale(std::shared_ptr<phoenix::c_npc> npcRef, float x, float y, float z) {
+void GameScript::mdl_setmodelscale(std::shared_ptr<zenkit::INpc> npcRef, float x, float y, float z) {
   auto npc = findNpc(npcRef);
   if(npcRef!=nullptr)
     npc->setScale(x,y,z);
   }
 
-void GameScript::mdl_startfaceani(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view ani, float intensity, float time) {
+void GameScript::mdl_startfaceani(std::shared_ptr<zenkit::INpc> npcRef, std::string_view ani, float intensity, float time) {
   if(npcRef!=nullptr)
     findNpc(npcRef.get())->startFaceAnim(ani,intensity,uint64_t(time*1000.f));
   }
 
-void GameScript::mdl_applyrandomani(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view s1, std::string_view s0) {
+void GameScript::mdl_applyrandomani(std::shared_ptr<zenkit::INpc> npcRef, std::string_view s1, std::string_view s0) {
   (void)npcRef;
   (void)s1;
   (void)s0;
@@ -1810,7 +1810,7 @@ void GameScript::mdl_applyrandomani(std::shared_ptr<phoenix::c_npc> npcRef, std:
     }
   }
 
-void GameScript::mdl_applyrandomanifreq(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view s1, float f0) {
+void GameScript::mdl_applyrandomanifreq(std::shared_ptr<zenkit::INpc> npcRef, std::string_view s1, float f0) {
   (void)f0;
   (void)s1;
   (void)npcRef;
@@ -1822,7 +1822,7 @@ void GameScript::mdl_applyrandomanifreq(std::shared_ptr<phoenix::c_npc> npcRef, 
     }
   }
 
-void GameScript::mdl_applyrandomfaceani(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view name, float timeMin, float timeMinVar, float timeMax, float timeMaxVar, float probMin) {
+void GameScript::mdl_applyrandomfaceani(std::shared_ptr<zenkit::INpc> npcRef, std::string_view name, float timeMin, float timeMinVar, float timeMax, float timeMaxVar, float probMin) {
   (void)probMin;
   (void)timeMaxVar;
   (void)timeMax;
@@ -1854,39 +1854,39 @@ void GameScript::wld_insertitem(int itemInstance, std::string_view spawnpoint) {
   world().addItem(size_t(itemInstance),spawnpoint);
   }
 
-void GameScript::npc_settofightmode(std::shared_ptr<phoenix::c_npc> npcRef, int weaponSymbol) {
+void GameScript::npc_settofightmode(std::shared_ptr<zenkit::INpc> npcRef, int weaponSymbol) {
   if(npcRef!=nullptr && weaponSymbol>=0)
     findNpc(npcRef.get())->setToFightMode(size_t(weaponSymbol));
   }
 
-void GameScript::npc_settofistmode(std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::npc_settofistmode(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->setToFistMode();
   }
 
-bool GameScript::npc_isinstate(std::shared_ptr<phoenix::c_npc> npcRef, int stateFn) {
+bool GameScript::npc_isinstate(std::shared_ptr<zenkit::INpc> npcRef, int stateFn) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     return npc->isState(uint32_t(stateFn));
   return false;
   }
 
-bool GameScript::npc_isinroutine(std::shared_ptr<phoenix::c_npc> npcRef, int stateFn) {
+bool GameScript::npc_isinroutine(std::shared_ptr<zenkit::INpc> npcRef, int stateFn) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     return npc->isRoutine(uint32_t(stateFn));
   return false;
   }
 
-bool GameScript::npc_wasinstate(std::shared_ptr<phoenix::c_npc> npcRef, int stateFn) {
+bool GameScript::npc_wasinstate(std::shared_ptr<zenkit::INpc> npcRef, int stateFn) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     return npc->wasInState(uint32_t(stateFn));
   return false;
   }
 
-int GameScript::npc_getdisttowp(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view wpname) {
+int GameScript::npc_getdisttowp(std::shared_ptr<zenkit::INpc> npcRef, std::string_view wpname) {
   auto  npc = findNpc(npcRef);
   auto* wp  = world().findPoint(wpname, false);
 
@@ -1900,7 +1900,7 @@ int GameScript::npc_getdisttowp(std::shared_ptr<phoenix::c_npc> npcRef, std::str
     }
   }
 
-void GameScript::npc_exchangeroutine(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view rname) {
+void GameScript::npc_exchangeroutine(std::shared_ptr<zenkit::INpc> npcRef, std::string_view rname) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr) {
     auto& v = npc->handle();
@@ -1913,64 +1913,64 @@ void GameScript::npc_exchangeroutine(std::shared_ptr<phoenix::c_npc> npcRef, std
     }
   }
 
-bool GameScript::npc_isdead(std::shared_ptr<phoenix::c_npc> npcRef) {
+bool GameScript::npc_isdead(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   return npc==nullptr || isDead(*npc);
   }
 
-bool GameScript::npc_knowsinfo(std::shared_ptr<phoenix::c_npc> npcRef, int infoinstance) {
+bool GameScript::npc_knowsinfo(std::shared_ptr<zenkit::INpc> npcRef, int infoinstance) {
   auto npc = findNpc(npcRef);
   if(!npc)
     return false;
 
-  phoenix::c_npc& vnpc = npc->handle();
+  zenkit::INpc& vnpc = npc->handle();
   return doesNpcKnowInfo(vnpc, uint32_t(infoinstance));
   }
 
-void GameScript::npc_settalentskill(std::shared_ptr<phoenix::c_npc> npcRef, int t, int lvl) {
+void GameScript::npc_settalentskill(std::shared_ptr<zenkit::INpc> npcRef, int t, int lvl) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->setTalentSkill(Talent(t),lvl);
   }
 
-int GameScript::npc_gettalentskill(std::shared_ptr<phoenix::c_npc> npcRef, int skillId) {
+int GameScript::npc_gettalentskill(std::shared_ptr<zenkit::INpc> npcRef, int skillId) {
   auto npc = findNpc(npcRef);
   return npc==nullptr ? 0 : npc->talentSkill(Talent(skillId));
   }
 
-void GameScript::npc_settalentvalue(std::shared_ptr<phoenix::c_npc> npcRef, int t, int lvl) {
+void GameScript::npc_settalentvalue(std::shared_ptr<zenkit::INpc> npcRef, int t, int lvl) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->setTalentValue(Talent(t),lvl);
   }
 
-int GameScript::npc_gettalentvalue(std::shared_ptr<phoenix::c_npc> npcRef, int skillId) {
+int GameScript::npc_gettalentvalue(std::shared_ptr<zenkit::INpc> npcRef, int skillId) {
   auto npc = findNpc(npcRef);
   return npc==nullptr ? 0 : npc->talentValue(Talent(skillId));
   }
 
-void GameScript::npc_setrefusetalk(std::shared_ptr<phoenix::c_npc> npcRef, int timeSec) {
+void GameScript::npc_setrefusetalk(std::shared_ptr<zenkit::INpc> npcRef, int timeSec) {
   auto npc = findNpc(npcRef);
   if(npc)
     npc->setRefuseTalk(uint64_t(std::max(timeSec*1000,0)));
   }
 
-bool GameScript::npc_refusetalk(std::shared_ptr<phoenix::c_npc> npcRef) {
+bool GameScript::npc_refusetalk(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   return npc && npc->isRefuseTalk();
   }
 
-int GameScript::npc_hasitems(std::shared_ptr<phoenix::c_npc> npcRef, int itemId) {
+int GameScript::npc_hasitems(std::shared_ptr<zenkit::INpc> npcRef, int itemId) {
   auto npc = findNpc(npcRef);
   return npc!=nullptr ? int(npc->itemCount(uint32_t(itemId))) : 0;
   }
 
-bool GameScript::npc_hasspell(std::shared_ptr<phoenix::c_npc> npcRef, int splId) {
+bool GameScript::npc_hasspell(std::shared_ptr<zenkit::INpc> npcRef, int splId) {
   auto npc = findNpc(npcRef);
   return npc!=nullptr && npc->inventory().hasSpell(splId);
   }
 
-int GameScript::npc_getinvitem(std::shared_ptr<phoenix::c_npc> npcRef, int itemId) {
+int GameScript::npc_getinvitem(std::shared_ptr<zenkit::INpc> npcRef, int itemId) {
   auto npc = findNpc(npcRef);
   auto itm = npc==nullptr ? nullptr : npc->getItem(uint32_t(itemId));
   storeItem(itm);
@@ -1980,14 +1980,14 @@ int GameScript::npc_getinvitem(std::shared_ptr<phoenix::c_npc> npcRef, int itemI
   return -1;
   }
 
-int GameScript::npc_removeinvitem(std::shared_ptr<phoenix::c_npc> npcRef, int itemId) {
+int GameScript::npc_removeinvitem(std::shared_ptr<zenkit::INpc> npcRef, int itemId) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->delItem(uint32_t(itemId),1);
   return 0;
   }
 
-int GameScript::npc_removeinvitems(std::shared_ptr<phoenix::c_npc> npcRef, int itemId, int amount) {
+int GameScript::npc_removeinvitems(std::shared_ptr<zenkit::INpc> npcRef, int itemId, int amount) {
   auto npc = findNpc(npcRef);
 
   if(npc!=nullptr && amount>0)
@@ -1996,7 +1996,7 @@ int GameScript::npc_removeinvitems(std::shared_ptr<phoenix::c_npc> npcRef, int i
   return 0;
   }
 
-int GameScript::npc_getbodystate(std::shared_ptr<phoenix::c_npc> npcRef) {
+int GameScript::npc_getbodystate(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
 
   if(npc!=nullptr)
@@ -2004,12 +2004,12 @@ int GameScript::npc_getbodystate(std::shared_ptr<phoenix::c_npc> npcRef) {
   return int32_t(0);
   }
 
-std::shared_ptr<phoenix::c_npc> GameScript::npc_getlookattarget(std::shared_ptr<phoenix::c_npc> npcRef) {
+std::shared_ptr<zenkit::INpc> GameScript::npc_getlookattarget(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   return npc && npc->lookAtTarget() ? npc->lookAtTarget()->handlePtr() : nullptr;
   }
 
-int GameScript::npc_getdisttonpc(std::shared_ptr<phoenix::c_npc> aRef, std::shared_ptr<phoenix::c_npc> bRef) {
+int GameScript::npc_getdisttonpc(std::shared_ptr<zenkit::INpc> aRef, std::shared_ptr<zenkit::INpc> bRef) {
   auto a = findNpc(aRef);
   auto b = findNpc(bRef);
 
@@ -2022,30 +2022,30 @@ int GameScript::npc_getdisttonpc(std::shared_ptr<phoenix::c_npc> aRef, std::shar
   return int(ret);
   }
 
-bool GameScript::npc_hasequippedarmor(std::shared_ptr<phoenix::c_npc> npcRef) {
+bool GameScript::npc_hasequippedarmor(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   return npc!=nullptr && npc->currentArmour()!=nullptr;
   }
 
-void GameScript::npc_setperctime(std::shared_ptr<phoenix::c_npc> npcRef, float sec) {
+void GameScript::npc_setperctime(std::shared_ptr<zenkit::INpc> npcRef, float sec) {
   auto npc = findNpc(npcRef);
   if(npc)
     npc->setPerceptionTime(uint64_t(sec*1000));
   }
 
-void GameScript::npc_percenable(std::shared_ptr<phoenix::c_npc> npcRef, int pr, int fn) {
+void GameScript::npc_percenable(std::shared_ptr<zenkit::INpc> npcRef, int pr, int fn) {
   auto npc = findNpc(npcRef);
   if(npc && fn>=0)
     npc->setPerceptionEnable(PercType(pr),size_t(fn));
   }
 
-void GameScript::npc_percdisable(std::shared_ptr<phoenix::c_npc> npcRef, int pr) {
+void GameScript::npc_percdisable(std::shared_ptr<zenkit::INpc> npcRef, int pr) {
   auto npc = findNpc(npcRef);
   if(npc)
     npc->setPerceptionDisable(PercType(pr));
   }
 
-std::string GameScript::npc_getnearestwp(std::shared_ptr<phoenix::c_npc> npcRef) {
+std::string GameScript::npc_getnearestwp(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   auto wp  = npc ? world().findWayPoint(npc->position()) : nullptr;
   if(wp)
@@ -2054,37 +2054,37 @@ std::string GameScript::npc_getnearestwp(std::shared_ptr<phoenix::c_npc> npcRef)
     return "";
   }
 
-void GameScript::npc_clearaiqueue(std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::npc_clearaiqueue(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc)
     npc->clearAiQueue();
   }
 
-bool GameScript::npc_isplayer(std::shared_ptr<phoenix::c_npc> npcRef) {
+bool GameScript::npc_isplayer(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   return npc && npc->isPlayer();
   }
 
-int GameScript::npc_getstatetime(std::shared_ptr<phoenix::c_npc> npcRef) {
+int GameScript::npc_getstatetime(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc)
     return int32_t(npc->stateTime()/1000);
   return 0;
   }
 
-void GameScript::npc_setstatetime(std::shared_ptr<phoenix::c_npc> npcRef, int val) {
+void GameScript::npc_setstatetime(std::shared_ptr<zenkit::INpc> npcRef, int val) {
   auto npc = findNpc(npcRef);
   if(npc)
     npc->setStateTime(val*1000);
   }
 
-void GameScript::npc_changeattribute(std::shared_ptr<phoenix::c_npc> npcRef, int atr, int val) {
+void GameScript::npc_changeattribute(std::shared_ptr<zenkit::INpc> npcRef, int atr, int val) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr && atr>=0)
     npc->changeAttribute(Attribute(atr),val,false);
   }
 
-bool GameScript::npc_isonfp(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view val) {
+bool GameScript::npc_isonfp(std::shared_ptr<zenkit::INpc> npcRef, std::string_view val) {
   auto npc = findNpc(npcRef);
   if(npc==nullptr)
     return false;
@@ -2095,7 +2095,7 @@ bool GameScript::npc_isonfp(std::shared_ptr<phoenix::c_npc> npcRef, std::string_
   return w->isFreePoint();
   }
 
-int GameScript::npc_getheighttonpc(std::shared_ptr<phoenix::c_npc> aRef, std::shared_ptr<phoenix::c_npc> bRef) {
+int GameScript::npc_getheighttonpc(std::shared_ptr<zenkit::INpc> aRef, std::shared_ptr<zenkit::INpc> bRef) {
   auto a = findNpc(aRef);
   auto b = findNpc(bRef);
   float ret = 0;
@@ -2104,7 +2104,7 @@ int GameScript::npc_getheighttonpc(std::shared_ptr<phoenix::c_npc> aRef, std::sh
   return int32_t(ret);
   }
 
-std::shared_ptr<phoenix::c_item> GameScript::npc_getequippedmeleeweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+std::shared_ptr<zenkit::IItem> GameScript::npc_getequippedmeleeweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr && npc->currentMeleeWeapon() != nullptr) {
     return npc->currentMeleeWeapon()->handlePtr();
@@ -2112,7 +2112,7 @@ std::shared_ptr<phoenix::c_item> GameScript::npc_getequippedmeleeweapon(std::sha
   return nullptr;
   }
 
-std::shared_ptr<phoenix::c_item> GameScript::npc_getequippedrangedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+std::shared_ptr<zenkit::IItem> GameScript::npc_getequippedrangedweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr && npc->currentRangeWeapon() != nullptr){
     return npc->currentRangeWeapon()->handlePtr();
@@ -2120,7 +2120,7 @@ std::shared_ptr<phoenix::c_item> GameScript::npc_getequippedrangedweapon(std::sh
   return nullptr;
   }
 
-std::shared_ptr<phoenix::c_item> GameScript::npc_getequippedarmor(std::shared_ptr<phoenix::c_npc> npcRef) {
+std::shared_ptr<zenkit::IItem> GameScript::npc_getequippedarmor(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr && npc->currentArmour()!=nullptr){
     return npc->currentArmour()->handlePtr();
@@ -2128,7 +2128,7 @@ std::shared_ptr<phoenix::c_item> GameScript::npc_getequippedarmor(std::shared_pt
   return nullptr;
   }
 
-bool GameScript::npc_canseenpc(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_npc> otherRef) {
+bool GameScript::npc_canseenpc(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::INpc> otherRef) {
   auto other = findNpc(otherRef);
   auto npc   = findNpc(npcRef);
   bool ret   = false;
@@ -2138,24 +2138,24 @@ bool GameScript::npc_canseenpc(std::shared_ptr<phoenix::c_npc> npcRef, std::shar
   return ret;
   }
 
-bool GameScript::npc_hasequippedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+bool GameScript::npc_hasequippedweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   return (npc!=nullptr &&
      (npc->currentMeleeWeapon()!=nullptr ||
       npc->currentRangeWeapon()!=nullptr));
   }
 
-bool GameScript::npc_hasequippedmeleeweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+bool GameScript::npc_hasequippedmeleeweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   return npc!=nullptr && npc->currentMeleeWeapon()!=nullptr;
   }
 
-bool GameScript::npc_hasequippedrangedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+bool GameScript::npc_hasequippedrangedweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   return npc!=nullptr && npc->currentRangeWeapon()!=nullptr;
   }
 
-int GameScript::npc_getactivespell(std::shared_ptr<phoenix::c_npc> npcRef) {
+int GameScript::npc_getactivespell(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc==nullptr)
     return -1;
@@ -2168,7 +2168,7 @@ int GameScript::npc_getactivespell(std::shared_ptr<phoenix::c_npc> npcRef) {
   return w->spellId();
   }
 
-bool GameScript::npc_getactivespellisscroll(std::shared_ptr<phoenix::c_npc> npcRef) {
+bool GameScript::npc_getactivespellisscroll(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc==nullptr)
     return false;
@@ -2180,7 +2180,7 @@ bool GameScript::npc_getactivespellisscroll(std::shared_ptr<phoenix::c_npc> npcR
   return true;
   }
 
-bool GameScript::npc_canseenpcfreelos(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_npc> otherRef) {
+bool GameScript::npc_canseenpcfreelos(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::INpc> otherRef) {
   auto npc = findNpc(npcRef);
   auto oth = findNpc(otherRef);
 
@@ -2190,7 +2190,7 @@ bool GameScript::npc_canseenpcfreelos(std::shared_ptr<phoenix::c_npc> npcRef, st
   return false;
   }
 
-bool GameScript::npc_isinfightmode(std::shared_ptr<phoenix::c_npc> npcRef, int modeI) {
+bool GameScript::npc_isinfightmode(std::shared_ptr<zenkit::INpc> npcRef, int modeI) {
   auto npc  = findNpc(npcRef);
   auto mode = FightMode(modeI);
 
@@ -2218,7 +2218,7 @@ bool GameScript::npc_isinfightmode(std::shared_ptr<phoenix::c_npc> npcRef, int m
   return ret;
   }
 
-void GameScript::npc_settarget(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_npc> otherRef) {
+void GameScript::npc_settarget(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::INpc> otherRef) {
   auto oth = findNpc(otherRef);
   auto npc = findNpc(npcRef);
   if(npc)
@@ -2232,7 +2232,7 @@ void GameScript::npc_settarget(std::shared_ptr<phoenix::c_npc> npcRef, std::shar
  * - return: current target saved -> TRUE
  * no target saved -> FALSE
  */
-bool GameScript::npc_gettarget(std::shared_ptr<phoenix::c_npc> npcRef) {
+bool GameScript::npc_gettarget(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   auto s   = vm.global_other();
 
@@ -2245,7 +2245,7 @@ bool GameScript::npc_gettarget(std::shared_ptr<phoenix::c_npc> npcRef) {
   return false;
   }
 
-bool GameScript::npc_getnexttarget(std::shared_ptr<phoenix::c_npc> npcRef) {
+bool GameScript::npc_getnexttarget(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   Npc* ret = nullptr;
 
@@ -2277,7 +2277,7 @@ bool GameScript::npc_getnexttarget(std::shared_ptr<phoenix::c_npc> npcRef) {
     }
   }
 
-void GameScript::npc_sendpassiveperc(std::shared_ptr<phoenix::c_npc> npcRef, int id, std::shared_ptr<phoenix::c_npc> victimRef, std::shared_ptr<phoenix::c_npc> otherRef) {
+void GameScript::npc_sendpassiveperc(std::shared_ptr<zenkit::INpc> npcRef, int id, std::shared_ptr<zenkit::INpc> victimRef, std::shared_ptr<zenkit::INpc> otherRef) {
   auto other  = findNpc(otherRef);
   auto victum = findNpc(victimRef);
   auto npc    = findNpc(npcRef);
@@ -2286,7 +2286,7 @@ void GameScript::npc_sendpassiveperc(std::shared_ptr<phoenix::c_npc> npcRef, int
     world().sendPassivePerc(*npc,*other,*victum,id);
   }
 
-bool GameScript::npc_checkinfo(std::shared_ptr<phoenix::c_npc> npcRef, int imp) {
+bool GameScript::npc_checkinfo(std::shared_ptr<zenkit::INpc> npcRef, int imp) {
   auto n    = findNpc(npcRef);
   auto hero = findNpc(vm.global_other());
   if(n==nullptr || hero==nullptr)
@@ -2313,7 +2313,7 @@ bool GameScript::npc_checkinfo(std::shared_ptr<phoenix::c_npc> npcRef, int imp) 
   return false;
   }
 
-int GameScript::npc_getportalguild(std::shared_ptr<phoenix::c_npc> npcRef) {
+int GameScript::npc_getportalguild(std::shared_ptr<zenkit::INpc> npcRef) {
   int32_t g   = GIL_NONE;
   auto    npc = findNpc(npcRef);
   if(npc!=nullptr)
@@ -2321,7 +2321,7 @@ int GameScript::npc_getportalguild(std::shared_ptr<phoenix::c_npc> npcRef) {
   return g;
   }
 
-bool GameScript::npc_isinplayersroom(std::shared_ptr<phoenix::c_npc> npcRef) {
+bool GameScript::npc_isinplayersroom(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   auto pl  = world().player();
 
@@ -2334,7 +2334,7 @@ bool GameScript::npc_isinplayersroom(std::shared_ptr<phoenix::c_npc> npcRef) {
   return false;
   }
 
-std::shared_ptr<phoenix::c_item> GameScript::npc_getreadiedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+std::shared_ptr<zenkit::IItem> GameScript::npc_getreadiedweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc==nullptr) {
     return 0;
@@ -2349,7 +2349,7 @@ std::shared_ptr<phoenix::c_item> GameScript::npc_getreadiedweapon(std::shared_pt
     }
   }
 
-bool GameScript::npc_hasreadiedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+bool GameScript::npc_hasreadiedweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc==nullptr)
     return false;
@@ -2358,7 +2358,7 @@ bool GameScript::npc_hasreadiedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
           ws==WeaponState::Bow || ws==WeaponState::CBow);
   }
 
-bool GameScript::npc_hasreadiedmeleeweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+bool GameScript::npc_hasreadiedmeleeweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc==nullptr) {
     return false;
@@ -2367,7 +2367,7 @@ bool GameScript::npc_hasreadiedmeleeweapon(std::shared_ptr<phoenix::c_npc> npcRe
   return ws==WeaponState::W1H || ws==WeaponState::W2H;
   }
 
-bool GameScript::npc_hasreadiedrangedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+bool GameScript::npc_hasreadiedrangedweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc==nullptr)
     return false;
@@ -2375,12 +2375,12 @@ bool GameScript::npc_hasreadiedrangedweapon(std::shared_ptr<phoenix::c_npc> npcR
   return ws==WeaponState::Bow || ws==WeaponState::CBow;
   }
 
-bool GameScript::npc_hasrangedweaponwithammo(std::shared_ptr<phoenix::c_npc> npcRef) {
+bool GameScript::npc_hasrangedweaponwithammo(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   return npc!=nullptr && npc->inventory().hasRangedWeaponWithAmmo();
   }
 
-int GameScript::npc_isdrawingspell(std::shared_ptr<phoenix::c_npc> npcRef) {
+int GameScript::npc_isdrawingspell(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc==nullptr)
     return 0;
@@ -2393,7 +2393,7 @@ int GameScript::npc_isdrawingspell(std::shared_ptr<phoenix::c_npc> npcRef) {
   return int32_t(ret->clsId());
   }
 
-int GameScript::npc_isdrawingweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+int GameScript::npc_isdrawingweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc==nullptr)
     return 0;
@@ -2406,37 +2406,37 @@ int GameScript::npc_isdrawingweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
   return int32_t(ret->clsId());
   }
 
-void GameScript::npc_perceiveall(std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::npc_perceiveall(std::shared_ptr<zenkit::INpc> npcRef) {
   (void)npcRef; // nop
   }
 
-void GameScript::npc_stopani(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view name) {
+void GameScript::npc_stopani(std::shared_ptr<zenkit::INpc> npcRef, std::string_view name) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->stopAnim(name);
   }
 
-int GameScript::npc_settrueguild(std::shared_ptr<phoenix::c_npc> npcRef, int gil) {
+int GameScript::npc_settrueguild(std::shared_ptr<zenkit::INpc> npcRef, int gil) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->setTrueGuild(gil);
   return 0;
   }
 
-int GameScript::npc_gettrueguild(std::shared_ptr<phoenix::c_npc> npcRef) {
+int GameScript::npc_gettrueguild(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     return npc->trueGuild();
   return int32_t(GIL_NONE);
   }
 
-void GameScript::npc_clearinventory(std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::npc_clearinventory(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->clearInventory();
   }
 
-int GameScript::npc_getattitude(std::shared_ptr<phoenix::c_npc> aRef, std::shared_ptr<phoenix::c_npc> bRef) {
+int GameScript::npc_getattitude(std::shared_ptr<zenkit::INpc> aRef, std::shared_ptr<zenkit::INpc> bRef) {
   auto a = findNpc(aRef);
   auto b = findNpc(bRef);
 
@@ -2447,7 +2447,7 @@ int GameScript::npc_getattitude(std::shared_ptr<phoenix::c_npc> aRef, std::share
   return ATT_NEUTRAL;
   }
 
-int GameScript::npc_getpermattitude(std::shared_ptr<phoenix::c_npc> aRef, std::shared_ptr<phoenix::c_npc> bRef) {
+int GameScript::npc_getpermattitude(std::shared_ptr<zenkit::INpc> aRef, std::shared_ptr<zenkit::INpc> bRef) {
   auto a = findNpc(aRef);
   auto b = findNpc(bRef);
 
@@ -2458,26 +2458,26 @@ int GameScript::npc_getpermattitude(std::shared_ptr<phoenix::c_npc> aRef, std::s
   return ATT_NEUTRAL;
   }
 
-void GameScript::npc_setattitude(std::shared_ptr<phoenix::c_npc> npcRef, int att) {
+void GameScript::npc_setattitude(std::shared_ptr<zenkit::INpc> npcRef, int att) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->setAttitude(Attitude(att));
   }
 
-void GameScript::npc_settempattitude(std::shared_ptr<phoenix::c_npc> npcRef, int att) {
+void GameScript::npc_settempattitude(std::shared_ptr<zenkit::INpc> npcRef, int att) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->setTempAttitude(Attitude(att));
   }
 
-bool GameScript::npc_hasbodyflag(std::shared_ptr<phoenix::c_npc> npcRef, int bodyflag) {
+bool GameScript::npc_hasbodyflag(std::shared_ptr<zenkit::INpc> npcRef, int bodyflag) {
   auto npc = findNpc(npcRef);
   if(npc==nullptr)
     return false;
   return npc->hasStateFlag(BodyState(bodyflag));
   }
 
-int GameScript::npc_getlasthitspellid(std::shared_ptr<phoenix::c_npc> npcRef) {
+int GameScript::npc_getlasthitspellid(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc==nullptr){
     return 0;
@@ -2485,7 +2485,7 @@ int GameScript::npc_getlasthitspellid(std::shared_ptr<phoenix::c_npc> npcRef) {
   return npc->lastHitSpellId();
   }
 
-int GameScript::npc_getlasthitspellcat(std::shared_ptr<phoenix::c_npc> npcRef) {
+int GameScript::npc_getlasthitspellcat(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc==nullptr)
     return SPELL_GOOD;
@@ -2495,13 +2495,13 @@ int GameScript::npc_getlasthitspellcat(std::shared_ptr<phoenix::c_npc> npcRef) {
   return spell.spell_type;
   }
 
-void GameScript::npc_playani(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view name) {
+void GameScript::npc_playani(std::shared_ptr<zenkit::INpc> npcRef, std::string_view name) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->playAnimByName(name,BS_NONE);
   }
 
-bool GameScript::npc_isdetectedmobownedbynpc(std::shared_ptr<phoenix::c_npc> usrRef, std::shared_ptr<phoenix::c_npc> npcRef) {
+bool GameScript::npc_isdetectedmobownedbynpc(std::shared_ptr<zenkit::INpc> usrRef, std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   auto usr = findNpc(usrRef);
 
@@ -2513,7 +2513,7 @@ bool GameScript::npc_isdetectedmobownedbynpc(std::shared_ptr<phoenix::c_npc> usr
   return false;
   }
 
-bool GameScript::npc_isdetectedmobownedbyguild(std::shared_ptr<phoenix::c_npc> npcRef, int guild) {
+bool GameScript::npc_isdetectedmobownedbyguild(std::shared_ptr<zenkit::INpc> npcRef, int guild) {
   static bool first=true;
   if(first){
     Log::e("not implemented call [npc_isdetectedmobownedbyguild]");
@@ -2532,7 +2532,7 @@ bool GameScript::npc_isdetectedmobownedbyguild(std::shared_ptr<phoenix::c_npc> n
   return false;
   }
 
-std::string GameScript::npc_getdetectedmob(std::shared_ptr<phoenix::c_npc> npcRef) {
+std::string GameScript::npc_getdetectedmob(std::shared_ptr<zenkit::INpc> npcRef) {
   auto usr = findNpc(npcRef);
   if(usr!=nullptr && usr->detectedMob()!=nullptr){
     auto i = usr->detectedMob();
@@ -2541,7 +2541,7 @@ std::string GameScript::npc_getdetectedmob(std::shared_ptr<phoenix::c_npc> npcRe
   return "";
   }
 
-bool GameScript::npc_ownedbynpc(std::shared_ptr<phoenix::c_item> itmRef, std::shared_ptr<phoenix::c_npc> npcRef) {
+bool GameScript::npc_ownedbynpc(std::shared_ptr<zenkit::IItem> itmRef, std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   auto itm = findItem(itmRef.get());
   if(itm==nullptr || npc==nullptr) {
@@ -2552,7 +2552,7 @@ bool GameScript::npc_ownedbynpc(std::shared_ptr<phoenix::c_item> itmRef, std::sh
   return sym != nullptr && npc->handlePtr()==sym->get_instance();
   }
 
-bool GameScript::npc_canseesource(std::shared_ptr<phoenix::c_npc> npcRef) {
+bool GameScript::npc_canseesource(std::shared_ptr<zenkit::INpc> npcRef) {
   auto self = findNpc(npcRef);
   if(!self)
     return false;
@@ -2560,7 +2560,7 @@ bool GameScript::npc_canseesource(std::shared_ptr<phoenix::c_npc> npcRef) {
   return self->canSeeSource();
   }
 
-int GameScript::npc_getdisttoitem(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_item> itmRef) {
+int GameScript::npc_getdisttoitem(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::IItem> itmRef) {
   auto itm = findItem(itmRef.get());
   auto npc = findNpc(npcRef);
   if(itm==nullptr || npc==nullptr) {
@@ -2570,7 +2570,7 @@ int GameScript::npc_getdisttoitem(std::shared_ptr<phoenix::c_npc> npcRef, std::s
   return int32_t(dp.length());
   }
 
-int GameScript::npc_getheighttoitem(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_item> itmRef) {
+int GameScript::npc_getheighttoitem(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::IItem> itmRef) {
   auto itm = findItem(itmRef.get());
   auto npc = findNpc(npcRef);
   if(itm==nullptr || npc==nullptr) {
@@ -2580,7 +2580,7 @@ int GameScript::npc_getheighttoitem(std::shared_ptr<phoenix::c_npc> npcRef, std:
   return std::abs(dp);
   }
 
-int GameScript::npc_getdisttoplayer(std::shared_ptr<phoenix::c_npc> npcRef) {
+int GameScript::npc_getdisttoplayer(std::shared_ptr<zenkit::INpc> npcRef) {
   auto pl  = world().player();
   auto npc = findNpc(npcRef);
   if(pl==nullptr || npc==nullptr) {
@@ -2594,7 +2594,7 @@ int GameScript::npc_getdisttoplayer(std::shared_ptr<phoenix::c_npc> npcRef) {
   return int32_t(l);
   }
 
-int GameScript::npc_getactivespellcat(std::shared_ptr<phoenix::c_npc> npcRef) {
+int GameScript::npc_getactivespellcat(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc==nullptr)
     return SPELL_GOOD;
@@ -2608,14 +2608,14 @@ int GameScript::npc_getactivespellcat(std::shared_ptr<phoenix::c_npc> npcRef) {
   return spell.spell_type;
   }
 
-int GameScript::npc_setactivespellinfo(std::shared_ptr<phoenix::c_npc> npcRef, int v) {
+int GameScript::npc_setactivespellinfo(std::shared_ptr<zenkit::INpc> npcRef, int v) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->setActiveSpellInfo(v);
   return 0;
   }
 
-int GameScript::npc_getactivespelllevel(std::shared_ptr<phoenix::c_npc> npcRef) {
+int GameScript::npc_getactivespelllevel(std::shared_ptr<zenkit::INpc> npcRef) {
   int  v   = 0;
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
@@ -2623,7 +2623,7 @@ int GameScript::npc_getactivespelllevel(std::shared_ptr<phoenix::c_npc> npcRef) 
   return v;
   }
 
-void GameScript::ai_processinfos(std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::ai_processinfos(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   auto pl  = owner.player();
   if(pl!=nullptr && npc!=nullptr) {
@@ -2632,7 +2632,7 @@ void GameScript::ai_processinfos(std::shared_ptr<phoenix::c_npc> npcRef) {
     }
   }
 
-void GameScript::ai_output(std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> targetRef, std::string_view outputname) {
+void GameScript::ai_output(std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> targetRef, std::string_view outputname) {
   auto target = findNpc(targetRef);
   auto self   = findNpc(selfRef);
 
@@ -2645,7 +2645,7 @@ void GameScript::ai_output(std::shared_ptr<phoenix::c_npc> selfRef, std::shared_
     }
   }
 
-void GameScript::ai_stopprocessinfos(std::shared_ptr<phoenix::c_npc> selfRef) {
+void GameScript::ai_stopprocessinfos(std::shared_ptr<zenkit::INpc> selfRef) {
   auto self = findNpc(selfRef);
   if(self) {
     self->aiPush(AiQueue::aiStopProcessInfo(aiOutOrderId));
@@ -2653,64 +2653,64 @@ void GameScript::ai_stopprocessinfos(std::shared_ptr<phoenix::c_npc> selfRef) {
     }
   }
 
-void GameScript::ai_standup(std::shared_ptr<phoenix::c_npc> selfRef) {
+void GameScript::ai_standup(std::shared_ptr<zenkit::INpc> selfRef) {
   auto self = findNpc(selfRef);
   if(self!=nullptr)
     self->aiPush(AiQueue::aiStandup());
   }
 
-void GameScript::ai_standupquick(std::shared_ptr<phoenix::c_npc> selfRef) {
+void GameScript::ai_standupquick(std::shared_ptr<zenkit::INpc> selfRef) {
   auto self = findNpc(selfRef);
   if(self!=nullptr)
     self->aiPush(AiQueue::aiStandupQuick());
   }
 
-void GameScript::ai_continueroutine(std::shared_ptr<phoenix::c_npc> selfRef) {
+void GameScript::ai_continueroutine(std::shared_ptr<zenkit::INpc> selfRef) {
   auto self = findNpc(selfRef);
   if(self!=nullptr)
     self->aiPush(AiQueue::aiContinueRoutine());
   }
 
-void GameScript::ai_stoplookat(std::shared_ptr<phoenix::c_npc> selfRef) {
+void GameScript::ai_stoplookat(std::shared_ptr<zenkit::INpc> selfRef) {
   auto self = findNpc(selfRef);
   if(self!=nullptr)
     self->aiPush(AiQueue::aiStopLookAt());
   }
 
-void GameScript::ai_lookat(std::shared_ptr<phoenix::c_npc> selfRef, std::string_view waypoint) {
+void GameScript::ai_lookat(std::shared_ptr<zenkit::INpc> selfRef, std::string_view waypoint) {
   auto self = findNpc(selfRef);
   auto to  = world().findPoint(waypoint);
   if(self!=nullptr)
     self->aiPush(AiQueue::aiLookAt(to));
   }
 
-void GameScript::ai_lookatnpc(std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::ai_lookatnpc(std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc  = findNpc(npcRef);
   auto self = findNpc(selfRef);
   if(self!=nullptr)
     self->aiPush(AiQueue::aiLookAtNpc(npc));
   }
 
-void GameScript::ai_removeweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::ai_removeweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiRemoveWeapon());
   }
 
-void GameScript::ai_unreadyspell(std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::ai_unreadyspell(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiRemoveWeapon());
   }
 
-void GameScript::ai_turntonpc(std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::ai_turntonpc(std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc  = findNpc(npcRef);
   auto self = findNpc(selfRef);
   if(self!=nullptr)
     self->aiPush(AiQueue::aiTurnToNpc(npc));
   }
 
-void GameScript::ai_outputsvm(std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> targetRef, std::string_view name) {
+void GameScript::ai_outputsvm(std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> targetRef, std::string_view name) {
   auto target = findNpc(targetRef);
   auto self   = findNpc(selfRef);
 
@@ -2723,7 +2723,7 @@ void GameScript::ai_outputsvm(std::shared_ptr<phoenix::c_npc> selfRef, std::shar
     }
   }
 
-void GameScript::ai_outputsvm_overlay(std::shared_ptr<phoenix::c_npc> selfRef, std::shared_ptr<phoenix::c_npc> targetRef, std::string_view name) {
+void GameScript::ai_outputsvm_overlay(std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> targetRef, std::string_view name) {
   auto target = findNpc(targetRef);
   auto self   = findNpc(selfRef);
 
@@ -2736,7 +2736,7 @@ void GameScript::ai_outputsvm_overlay(std::shared_ptr<phoenix::c_npc> selfRef, s
     }
   }
 
-void GameScript::ai_startstate(std::shared_ptr<phoenix::c_npc> selfRef, int func, int state, std::string_view wp) {
+void GameScript::ai_startstate(std::shared_ptr<zenkit::INpc> selfRef, int func, int state, std::string_view wp) {
   auto self = findNpc(selfRef);
   if(self!=nullptr && func>0) {
     Npc* oth = findNpc(vm.global_other());
@@ -2752,13 +2752,13 @@ void GameScript::ai_startstate(std::shared_ptr<phoenix::c_npc> selfRef, int func
     }
   }
 
-void GameScript::ai_playani(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view name) {
+void GameScript::ai_playani(std::shared_ptr<zenkit::INpc> npcRef, std::string_view name) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiPlayAnim(name));
   }
 
-void GameScript::ai_setwalkmode(std::shared_ptr<phoenix::c_npc> npcRef, int modeBits) {
+void GameScript::ai_setwalkmode(std::shared_ptr<zenkit::INpc> npcRef, int modeBits) {
   int32_t weaponBit = 0x80;
   auto npc = findNpc(npcRef);
 
@@ -2768,25 +2768,25 @@ void GameScript::ai_setwalkmode(std::shared_ptr<phoenix::c_npc> npcRef, int mode
     }
   }
 
-void GameScript::ai_wait(std::shared_ptr<phoenix::c_npc> npcRef, float ms) {
+void GameScript::ai_wait(std::shared_ptr<zenkit::INpc> npcRef, float ms) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr && ms>0)
     npc->aiPush(AiQueue::aiWait(uint64_t(ms*1000)));
   }
 
-void GameScript::ai_waitms(std::shared_ptr<phoenix::c_npc> npcRef, int ms) {
+void GameScript::ai_waitms(std::shared_ptr<zenkit::INpc> npcRef, int ms) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr && ms>0)
     npc->aiPush(AiQueue::aiWait(uint64_t(ms)));
   }
 
-void GameScript::ai_aligntowp(std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::ai_aligntowp(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc)
     npc->aiPush(AiQueue::aiAlignToWp());
   }
 
-void GameScript::ai_gotowp(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view waypoint) {
+void GameScript::ai_gotowp(std::shared_ptr<zenkit::INpc> npcRef, std::string_view waypoint) {
   auto npc = findNpc(npcRef);
 
   auto to = world().findPoint(waypoint);
@@ -2794,7 +2794,7 @@ void GameScript::ai_gotowp(std::shared_ptr<phoenix::c_npc> npcRef, std::string_v
     npc->aiPush(AiQueue::aiGoToPoint(*to));
   }
 
-void GameScript::ai_gotofp(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view waypoint) {
+void GameScript::ai_gotofp(std::shared_ptr<zenkit::INpc> npcRef, std::string_view waypoint) {
   auto npc = findNpc(npcRef);
 
   if(npc) {
@@ -2804,178 +2804,178 @@ void GameScript::ai_gotofp(std::shared_ptr<phoenix::c_npc> npcRef, std::string_v
     }
   }
 
-void GameScript::ai_playanibs(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view ani, int bs) {
+void GameScript::ai_playanibs(std::shared_ptr<zenkit::INpc> npcRef, std::string_view ani, int bs) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiPlayAnimBs(ani,BodyState(bs)));
   }
 
-void GameScript::ai_equiparmor(std::shared_ptr<phoenix::c_npc> npcRef, int id) {
+void GameScript::ai_equiparmor(std::shared_ptr<zenkit::INpc> npcRef, int id) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiEquipArmor(id));
   }
 
-void GameScript::ai_equipbestarmor(std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::ai_equipbestarmor(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiEquipBestArmor());
   }
 
-int GameScript::ai_equipbestmeleeweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+int GameScript::ai_equipbestmeleeweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiEquipBestMeleeWeapon());
   return 0;
   }
 
-int GameScript::ai_equipbestrangedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+int GameScript::ai_equipbestrangedweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiEquipBestRangeWeapon());
   return 0;
   }
 
-bool GameScript::ai_usemob(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view tg, int state) {
+bool GameScript::ai_usemob(std::shared_ptr<zenkit::INpc> npcRef, std::string_view tg, int state) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiUseMob(tg,state));
   return 0;
   }
 
-void GameScript::ai_teleport(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view tg) {
+void GameScript::ai_teleport(std::shared_ptr<zenkit::INpc> npcRef, std::string_view tg) {
   auto npc = findNpc(npcRef);
   auto pt  = world().findPoint(tg);
   if(npc!=nullptr && pt!=nullptr)
     npc->aiPush(AiQueue::aiTeleport(*pt));
   }
 
-void GameScript::ai_stoppointat(std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::ai_stoppointat(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiStopPointAt());
   }
 
-void GameScript::ai_drawweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::ai_drawweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiDrawWeapon());
   }
 
-void GameScript::ai_readymeleeweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::ai_readymeleeweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiReadyMeleeWeapon());
   }
 
-void GameScript::ai_readyrangedweapon(std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::ai_readyrangedweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiReadyRangeWeapon());
   }
 
-void GameScript::ai_readyspell(std::shared_ptr<phoenix::c_npc> npcRef, int spell, int mana) {
+void GameScript::ai_readyspell(std::shared_ptr<zenkit::INpc> npcRef, int spell, int mana) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr && mana>0)
     npc->aiPush(AiQueue::aiReadySpell(spell,mana));
   }
 
-void GameScript::ai_attack(std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::ai_attack(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiAttack());
   }
 
-void GameScript::ai_flee(std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::ai_flee(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiFlee());
   }
 
-void GameScript::ai_dodge(std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::ai_dodge(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiDodge());
   }
 
-void GameScript::ai_unequipweapons(std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::ai_unequipweapons(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiUnEquipWeapons());
   }
 
-void GameScript::ai_unequiparmor(std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::ai_unequiparmor(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiUnEquipArmor());
   }
 
-void GameScript::ai_gotonpc(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_npc> toRef) {
+void GameScript::ai_gotonpc(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::INpc> toRef) {
   auto to  = findNpc(toRef);
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiGoToNpc(to));
   }
 
-void GameScript::ai_gotonextfp(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view to) {
+void GameScript::ai_gotonextfp(std::shared_ptr<zenkit::INpc> npcRef, std::string_view to) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiGoToNextFp(to));
   }
 
-void GameScript::ai_aligntofp(std::shared_ptr<phoenix::c_npc> npcRef) {
+void GameScript::ai_aligntofp(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiAlignToFp());
   }
 
-void GameScript::ai_useitem(std::shared_ptr<phoenix::c_npc> npcRef, int item) {
+void GameScript::ai_useitem(std::shared_ptr<zenkit::INpc> npcRef, int item) {
   auto npc = findNpc(npcRef);
   if(npc)
     npc->aiPush(AiQueue::aiUseItem(item));
   }
 
-void GameScript::ai_useitemtostate(std::shared_ptr<phoenix::c_npc> npcRef, int item, int state) {
+void GameScript::ai_useitemtostate(std::shared_ptr<zenkit::INpc> npcRef, int item, int state) {
   auto npc = findNpc(npcRef);
   if(npc)
     npc->aiPush(AiQueue::aiUseItemToState(item,state));
   }
 
-void GameScript::ai_setnpcstostate(std::shared_ptr<phoenix::c_npc> npcRef, int state, int radius) {
+void GameScript::ai_setnpcstostate(std::shared_ptr<zenkit::INpc> npcRef, int state, int radius) {
   auto npc = findNpc(npcRef);
   if(npc && state>0)
     npc->aiPush(AiQueue::aiSetNpcsToState(size_t(state),radius));
   }
 
-void GameScript::ai_finishingmove(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_npc> othRef) {
+void GameScript::ai_finishingmove(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::INpc> othRef) {
   auto oth = findNpc(othRef);
   auto npc = findNpc(npcRef);
   if(npc!=nullptr && oth!=nullptr)
     npc->aiPush(AiQueue::aiFinishingMove(*oth));
   }
 
-void GameScript::ai_takeitem(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_item> itmRef) {
+void GameScript::ai_takeitem(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::IItem> itmRef) {
   auto itm = findItem(itmRef.get());
   auto npc = findNpc(npcRef);
   if(npc!=nullptr && itm!=nullptr)
     npc->aiPush(AiQueue::aiTakeItem(*itm));
   }
 
-void GameScript::ai_gotoitem(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_item> itmRef) {
+void GameScript::ai_gotoitem(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::IItem> itmRef) {
   auto itm = findItem(itmRef.get());
   auto npc = findNpc(npcRef);
   if(npc!=nullptr && itm!=nullptr)
     npc->aiPush(AiQueue::aiGotoItem(*itm));
   }
 
-void GameScript::ai_pointat(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view waypoint) {
+void GameScript::ai_pointat(std::shared_ptr<zenkit::INpc> npcRef, std::string_view waypoint) {
   auto npc = findNpc(npcRef);
   auto to  = world().findPoint(waypoint);
   if(npc!=nullptr && to!=nullptr)
     npc->aiPush(AiQueue::aiPointAt(*to));
   }
 
-void GameScript::ai_pointatnpc(std::shared_ptr<phoenix::c_npc> npcRef, std::shared_ptr<phoenix::c_npc> otherRef) {
+void GameScript::ai_pointatnpc(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::INpc> otherRef) {
   auto other = findNpc(otherRef);
   auto npc   = findNpc(npcRef);
   if(npc!=nullptr && other!=nullptr)
@@ -2998,7 +2998,7 @@ int GameScript::mob_hasitems(std::string_view tag, int item) {
   return int(world().hasItems(tag,uint32_t(item)));
   }
 
-void GameScript::ta_min(std::shared_ptr<phoenix::c_npc> npcRef, int start_h, int start_m, int stop_h, int stop_m, int action, std::string_view waypoint) {
+void GameScript::ta_min(std::shared_ptr<zenkit::INpc> npcRef, int start_h, int start_m, int stop_h, int stop_m, int action, std::string_view waypoint) {
   auto npc = findNpc(npcRef);
   auto at  = world().findPoint(waypoint);
 
@@ -3023,7 +3023,7 @@ void GameScript::log_addentry(std::string_view topicName, std::string_view entry
   quests.addEntry(topicName,entry);
   }
 
-void GameScript::equipitem(std::shared_ptr<phoenix::c_npc> npcRef, int cls) {
+void GameScript::equipitem(std::shared_ptr<zenkit::INpc> npcRef, int cls) {
   auto self = findNpc(npcRef);
   if(self!=nullptr) {
     if(self->itemCount(uint32_t(cls))==0)
@@ -3032,7 +3032,7 @@ void GameScript::equipitem(std::shared_ptr<phoenix::c_npc> npcRef, int cls) {
     }
   }
 
-void GameScript::createinvitem(std::shared_ptr<phoenix::c_npc> npcRef, int itemInstance) {
+void GameScript::createinvitem(std::shared_ptr<zenkit::INpc> npcRef, int itemInstance) {
   auto self = findNpc(npcRef);
   if(self!=nullptr) {
     Item* itm = self->addItem(uint32_t(itemInstance),1);
@@ -3040,7 +3040,7 @@ void GameScript::createinvitem(std::shared_ptr<phoenix::c_npc> npcRef, int itemI
     }
   }
 
-void GameScript::createinvitems(std::shared_ptr<phoenix::c_npc> npcRef, int itemInstance, int amount) {
+void GameScript::createinvitems(std::shared_ptr<zenkit::INpc> npcRef, int itemInstance, int amount) {
   auto self = findNpc(npcRef);
   if(self!=nullptr && amount>0) {
     Item* itm = self->addItem(uint32_t(itemInstance),size_t(amount));
@@ -3058,12 +3058,12 @@ int GameScript::hlp_random(int bound) {
   return int32_t(randGen() % mod);
   }
 
-bool GameScript::hlp_isvalidnpc(std::shared_ptr<phoenix::c_npc> npcRef) {
+bool GameScript::hlp_isvalidnpc(std::shared_ptr<zenkit::INpc> npcRef) {
   auto self = findNpc(npcRef);
   return self != nullptr;
   }
 
-bool GameScript::hlp_isitem(std::shared_ptr<phoenix::c_item> itemRef, int instanceSymbol) {
+bool GameScript::hlp_isitem(std::shared_ptr<zenkit::IItem> itemRef, int instanceSymbol) {
   auto item = findItem(itemRef.get());
   if(item!=nullptr){
     auto& v = item->handle();
@@ -3073,12 +3073,12 @@ bool GameScript::hlp_isitem(std::shared_ptr<phoenix::c_item> itemRef, int instan
     }
   }
 
-bool GameScript::hlp_isvaliditem(std::shared_ptr<phoenix::c_item> itemRef) {
+bool GameScript::hlp_isvaliditem(std::shared_ptr<zenkit::IItem> itemRef) {
   auto item = findItem(itemRef.get());
   return item!=nullptr;
   }
 
-std::shared_ptr<phoenix::c_npc> GameScript::hlp_getnpc(int instanceSymbol) {
+std::shared_ptr<zenkit::INpc> GameScript::hlp_getnpc(int instanceSymbol) {
   auto npc = findNpcById(uint32_t(instanceSymbol));
   if(npc != nullptr)
     return npc->handlePtr();
@@ -3090,7 +3090,7 @@ void GameScript::info_addchoice(int infoInstance, std::string_view text, int fun
   auto info = findInfo(uint32_t(infoInstance));
   if(info==nullptr)
     return;
-  phoenix::c_info_choice choice {};
+  zenkit::IInfoChoice choice {};
   choice.text     = text;
   choice.function = func;
   info->add_choice(choice);
@@ -3114,7 +3114,7 @@ void GameScript::snd_play(std::string_view fileS) {
   Gothic::inst().emitGlobalSound(file);
   }
 
-void GameScript::snd_play3d(std::shared_ptr<phoenix::c_npc> npcRef, std::string_view fileS) {
+void GameScript::snd_play3d(std::shared_ptr<zenkit::INpc> npcRef, std::string_view fileS) {
   std::string file {fileS};
   Npc*        npc  = findNpc(npcRef);
   if(npc==nullptr)
@@ -3136,12 +3136,12 @@ void GameScript::sort(std::vector<GameScript::DlgChoice> &dlg) {
     });
   }
 
-void GameScript::setNpcInfoKnown(const phoenix::c_npc& npc, const phoenix::c_info &info) {
+void GameScript::setNpcInfoKnown(const zenkit::INpc& npc, const zenkit::IInfo& info) {
   auto id = std::make_pair(vm.find_symbol_by_instance(npc)->index(),vm.find_symbol_by_instance(info)->index());
   dlgKnownInfos.insert(id);
   }
 
-bool GameScript::doesNpcKnowInfo(const phoenix::c_npc& npc, size_t infoInstance) const {
+bool GameScript::doesNpcKnowInfo(const zenkit::INpc& npc, size_t infoInstance) const {
   auto id = std::make_pair(vm.find_symbol_by_instance(npc)->index(),infoInstance);
   return dlgKnownInfos.find(id)!=dlgKnownInfos.end();
   }

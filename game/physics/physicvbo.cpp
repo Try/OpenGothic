@@ -27,11 +27,11 @@ PhysicVbo::PhysicVbo(const std::vector<btVector3>* v)
   :vert(*v) {
   }
 
-void PhysicVbo::addIndex(const std::vector<uint32_t>& index, size_t iboOff, size_t iboLen, phoenix::material_group material) {
+void PhysicVbo::addIndex(const std::vector<uint32_t>& index, size_t iboOff, size_t iboLen, zenkit::MaterialGroup material) {
   addIndex(index,iboOff,iboLen,material,nullptr);
   }
 
-void PhysicVbo::addIndex(const std::vector<uint32_t>& index, size_t iboOff, size_t iboLen, phoenix::material_group material,
+void PhysicVbo::addIndex(const std::vector<uint32_t>& index, size_t iboOff, size_t iboLen, zenkit::MaterialGroup material,
                          const char* sector) {
   if(iboLen==0)
     return;
@@ -74,7 +74,7 @@ void PhysicVbo::addSegment(size_t indexSize, size_t offset, zenkit::MaterialGrou
 zenkit::MaterialGroup PhysicVbo::materialId(size_t segment) const {
   if(segment<segments.size())
     return segments[segment].mat;
-  return phoenix::material_group::undefined;
+  return zenkit::MaterialGroup::undefined;
   }
 
 const char* PhysicVbo::sectorName(size_t segment) const {

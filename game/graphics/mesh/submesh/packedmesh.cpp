@@ -14,7 +14,7 @@ static uint64_t mkUInt64(uint32_t a, uint32_t b) {
   return (uint64_t(a)<<32) | uint64_t(b);
   };
 
-static bool isVisuallySame(const phoenix::material& a, const phoenix::material& b) {
+static bool isVisuallySame(const zenkit::Material& a, const zenkit::Material& b) {
   return
           // a.name                         == b.name && // mat name
     a.group                        == b.group &&
@@ -87,7 +87,7 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices,
                                 std::vector<uint32_t>& indices,
                                 std::vector<uint8_t>& indices8,
                                 std::vector<Cluster>& instances,
-                                const phoenix::mesh& mesh) {
+                                const zenkit::Mesh& mesh) {
   if(indSz==0)
     return;
 
@@ -174,7 +174,7 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices, std::vector<Verte
     verticesA.resize(vboSz+MaxVert);
     }
 
-  indices .resize(iboSz  + MaxInd);
+  indices.resize(iboSz + MaxInd);
 
   if(verticesId!=nullptr)
     verticesId->resize(vboSz+MaxVert);
@@ -631,8 +631,8 @@ void PackedMesh::packMeshletsObj(const zenkit::MultiResolutionMesh& mesh, PkgTyp
     }
   }
 
-std::vector<PackedMesh::Meshlet> PackedMesh::buildMeshlets(const phoenix::mesh* mesh,
-                                                           const phoenix::sub_mesh* proto_mesh,
+std::vector<PackedMesh::Meshlet> PackedMesh::buildMeshlets(const zenkit::Mesh* mesh,
+                                                           const zenkit::SubMesh* proto_mesh,
                                                            PrimitiveHeap& heap, std::vector<bool>& used) {
   heap.sort();
   std::fill(used.begin(), used.end(), false);

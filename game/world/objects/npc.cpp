@@ -77,7 +77,7 @@ void Npc::GoTo::setFlee() {
 
 struct Npc::TransformBack {
   TransformBack(Npc& self) {
-    hnpc        = std::make_shared<phoenix::c_npc>(*self.hnpc);
+    hnpc        = std::make_shared<zenkit::INpc>(*self.hnpc);
     invent      = std::move(self.invent);
     self.invent = Inventory(); // cleanup
 
@@ -94,8 +94,8 @@ struct Npc::TransformBack {
     skeleton = self.visual.visualSkeleton();
     }
 
-  TransformBack(Npc& owner, phoenix::vm& vm, Serialize& fin) {
-    hnpc           = std::make_shared<phoenix::c_npc>();
+  TransformBack(Npc& owner, zenkit::DaedalusVm& vm, Serialize& fin) {
+    hnpc           = std::make_shared<zenkit::INpc>();
     hnpc->user_ptr = this;
     fin.readNpc(vm, hnpc);
     invent.load(fin,owner);
@@ -108,7 +108,7 @@ struct Npc::TransformBack {
     }
 
   void undo(Npc& self) {
-    int32_t aivar[phoenix::c_npc::aivar_count]={};
+    int32_t aivar[zenkit::INpc::aivar_count]={};
 
     auto exp      = self.hnpc->exp;
     auto exp_next = self.hnpc->exp_next;
@@ -143,7 +143,7 @@ struct Npc::TransformBack {
     fout.write(skeleton!=nullptr ? skeleton->name() : "");
     }
 
-  std::shared_ptr<phoenix::c_npc> hnpc={};
+  std::shared_ptr<zenkit::INpc>   hnpc={};
   Inventory                       invent;
   int32_t                         talentsSk[TALENT_MAX_G2]={};
   int32_t                         talentsVl[TALENT_MAX_G2]={};
@@ -160,7 +160,7 @@ Npc::Npc(World &owner, size_t instance, std::string_view waypoint)
   :owner(owner),mvAlgo(*this) {
   outputPipe          = owner.script().openAiOuput();
 
-  hnpc = std::make_shared<phoenix::c_npc>();
+  hnpc = std::make_shared<zenkit::INpc>();
   hnpc->user_ptr        = this;
 
   if(instance==size_t(-1))
@@ -227,7 +227,7 @@ void Npc::save(Serialize &fout, size_t id) {
 void Npc::load(Serialize &fin, size_t id) {
   fin.setEntry("worlds/",fin.worldName(),"/npc/",id,"/data");
 
-  hnpc = std::make_shared<phoenix::c_npc>();
+  hnpc = std::make_shared<zenkit::INpc>();
   hnpc->user_ptr        = this;
   fin.readNpc(owner.script().getVm(), hnpc);
   fin.read(body,head,vHead,vTeeth,bdColor,vColor,bdFatness);
@@ -1120,7 +1120,7 @@ int32_t Npc::talentValue(Talent t) const {
   }
 
 int32_t Npc::hitChance(Talent t) const {
-  if(t<=phoenix::c_npc::hitchance_count)
+  if(t<=zenkit::INpc::hitchance_count)
     return hnpc->hitchance[t];
   return 0;
   }
@@ -1232,8 +1232,8 @@ void Npc::setAttitude(Attitude att) {
 
 bool Npc::isFriend() const {
   bool g2 = owner.version().game==2;
-  return ( g2 && hnpc->type==phoenix::npc_type::g2_friend) ||
-         (!g2 && hnpc->type==phoenix::npc_type::g1_friend);
+  return ( g2 && hnpc->type==zenkit::NpcType::g2_friend) ||
+         (!g2 && hnpc->type==zenkit::NpcType::g1_friend);
   }
 
 void Npc::setTempAttitude(Attitude att) {
@@ -1659,7 +1659,7 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
     return;
 
   auto ws = visual.fightMode();
-  if(ev.weaponCh==phoenix::mds::event_fight_mode::none && (ws==WeaponState::W1H || ws==WeaponState::W2H)) {
+  if(ev.weaponCh==zenkit::MdsFightMode::none && (ws==WeaponState::W1H || ws==WeaponState::W2H)) {
     if(auto melee = invent.currentMeleeWeapon()) {
       if(melee->handle().material==ItemMaterial::MAT_METAL)
         sfxWeapon = ::Sound(owner,::Sound::T_Regular,"UNDRAWSOUND_ME.WAV",{x,y+translateY(),z},2500,false); else
@@ -1667,7 +1667,7 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
       sfxWeapon.play();
       }
     }
-  else if(ev.weaponCh==phoenix::mds::event_fight_mode::one_handed || ev.weaponCh==phoenix::mds::event_fight_mode::two_handed) {
+  else if(ev.weaponCh==zenkit::MdsFightMode::one_handed || ev.weaponCh==zenkit::MdsFightMode::two_handed) {
     if(auto melee = invent.currentMeleeWeapon()) {
       if(melee->handle().material==ItemMaterial::MAT_METAL)
         sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_ME.WAV",{x,y+translateY(),z},2500,false); else
@@ -1675,7 +1675,7 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
       sfxWeapon.play();
       }
     }
-  else if(ev.weaponCh==phoenix::mds::event_fight_mode::bow || ev.weaponCh==phoenix::mds::event_fight_mode::crossbow) {
+  else if(ev.weaponCh==zenkit::MdsFightMode::bow || ev.weaponCh==zenkit::MdsFightMode::crossbow) {
     sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_BOW",{x,y+translateY(),z},2500,false);
     sfxWeapon.play();
     }
@@ -1810,7 +1810,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     auto& spl  = owner.script().spellDesc(splId);
     splCat     = SpellCategory(spl.spell_type);
     damageType = spl.damage_type;
-    for(size_t i=0; i<phoenix::damage_type::count; ++i)
+    for(size_t i=0; i<zenkit::DamageType::count; ++i)
       if((damageType&(1<<i))!=0)
         dmg[i] = spl.damage_per_level;
     }
@@ -1839,7 +1839,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
         visual.interrupt(); // TODO: put down in pipeline, at Pose and merge with setAnimAngGet
         }
 
-      if(damageType & (1<<phoenix::damage_type::fly))
+      if(damageType & (1<<zenkit::DamageType::FLY))
         setAnimAngGet(lastHitType=='A' ? Anim::FallDeepA : Anim::FallDeepB); else
         setAnimAngGet(lastHitType=='A' ? Anim::StumbleA : Anim::StumbleB);
       }
@@ -1865,7 +1865,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
       }
     }
 
-  if((damageType & (1<<phoenix::damage_type::fly)) && !isLie()) {
+  if((damageType & (1<<zenkit::DamageType::FLY)) && !isLie()) {
     mvAlgo.accessDamFly(x-other.x,z-other.z); // throw enemy
     }
   }
@@ -1954,24 +1954,24 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
 
   for(auto& i:ev.timed) {
     switch(i.def) {
-      case phoenix::mds::event_tag_type::create_item: {
+      case zenkit::MdsEventType::create_item: {
         if(auto it = invent.addItem(i.item,1,world())) {
           invent.putToSlot(*this,it->clsId(),i.slot[0]);
           }
         break;
         }
-      case phoenix::mds::event_tag_type::insert_item: {
+      case zenkit::MdsEventType::insert_item: {
         invent.putCurrentToSlot(*this,i.slot[0]);
         break;
         }
-      case phoenix::mds::event_tag_type::remove_item:
-      case phoenix::mds::event_tag_type::destroy_item: {
-        invent.clearSlot(*this, "", i.def != phoenix::mds::event_tag_type::remove_item);
+      case zenkit::MdsEventType::remove_item:
+      case zenkit::MdsEventType::destroy_item: {
+        invent.clearSlot(*this, "", i.def != zenkit::MdsEventType::remove_item);
         break;
         }
-      case phoenix::mds::event_tag_type::place_item:
+      case zenkit::MdsEventType::place_item:
         break;
-      case phoenix::mds::event_tag_type::exchange_item: {
+      case zenkit::MdsEventType::exchange_item: {
         if(!invent.clearSlot(*this,i.slot[0],true)) {
           // fallback for cooking animations
           invent.putCurrentToSlot(*this,i.slot[0]);
@@ -1982,9 +1982,9 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
           }
         break;
         }
-      case phoenix::mds::event_tag_type::fight_mode:
+      case zenkit::MdsEventType::fight_mode:
         break;
-      case phoenix::mds::event_tag_type::place_munition: {
+      case zenkit::MdsEventType::place_munition: {
         auto active=invent.activeWeapon();
         if(active!=nullptr) {
           const int32_t munition = active->handle().munition;
@@ -1992,40 +1992,40 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
           }
         break;
         }
-      case phoenix::mds::event_tag_type::remove_munition: {
+      case zenkit::MdsEventType::remove_munition: {
         invent.putAmmunition(*this,0,"");
         break;
         }
-      case phoenix::mds::event_tag_type::draw_torch:
+      case zenkit::MdsEventType::draw_torch:
         setTorch(true);
         break;
-      case phoenix::mds::event_tag_type::inventory_torch:
+      case zenkit::MdsEventType::inventory_torch:
         processDefInvTorch();
         break;
-      case phoenix::mds::event_tag_type::drop_torch:
+      case zenkit::MdsEventType::drop_torch:
         dropTorch();
         break;
-      case phoenix::mds::event_tag_type::draw_sound:
+      case zenkit::MdsEventType::draw_sound:
         break;
-      case phoenix::mds::event_tag_type::undraw_sound:
+      case zenkit::MdsEventType::undraw_sound:
         break;
-      case phoenix::mds::event_tag_type::swap_mesh:
+      case zenkit::MdsEventType::swap_mesh:
         break;
-      case phoenix::mds::event_tag_type::hit_limb:
+      case zenkit::MdsEventType::hit_limb:
         break;
-      case phoenix::mds::event_tag_type::hit_direction:
+      case zenkit::MdsEventType::hit_direction:
         break;
-      case phoenix::mds::event_tag_type::dam_multiply:
+      case zenkit::MdsEventType::dam_multiply:
         break;
-      case phoenix::mds::event_tag_type::par_frame:
+      case zenkit::MdsEventType::par_frame:
         break;
-      case phoenix::mds::event_tag_type::opt_frame:
+      case zenkit::MdsEventType::opt_frame:
         break;
-      case phoenix::mds::event_tag_type::hit_end:
+      case zenkit::MdsEventType::hit_end:
         break;
-      case phoenix::mds::event_tag_type::window:
+      case zenkit::MdsEventType::window:
         break;
-      case phoenix::mds::event_tag_type::unknown:
+      case zenkit::MdsEventType::unknown:
         break;
       }
     }
@@ -2790,7 +2790,7 @@ void Npc::commitSpell() {
   if(active->isSpellShoot()) {
     const int lvl = (castLevel-CS_Emit_0)+1;
     DamageCalculator::Damage dmg={};
-    for(size_t i=0; i<phoenix::damage_type::count; ++i)
+    for(size_t i=0; i<zenkit::DamageType::count; ++i)
       if((spl.damage_type&(1<<i))!=0) {
         dmg[i] = spl.damage_per_level*lvl;
         }
@@ -3738,7 +3738,7 @@ bool Npc::isPrehit() const {
   }
 
 bool Npc::isImmortal() const {
-  return hnpc->flags & phoenix::npc_flag::immortal;
+  return hnpc->flags & zenkit::NpcFlag::immortal;
   }
 
 void Npc::setPerceptionTime(uint64_t time) {
