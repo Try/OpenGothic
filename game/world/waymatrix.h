@@ -16,7 +16,7 @@ class DbgPainter;
 
 class WayMatrix final {
   public:
-    WayMatrix(World& owner,const phoenix::way_net& dat);
+    WayMatrix(World& owner, const zenkit::WayNet& dat);
 
     const WayPoint* findWayPoint (const Tempest::Vec3& at, const std::function<bool(const WayPoint&)>& filter) const;
     const WayPoint* findFreePoint(const Tempest::Vec3& at, std::string_view name, const std::function<bool(const WayPoint&)>& filter) const;
@@ -38,7 +38,7 @@ class WayMatrix final {
     World&                 world;
     float                  distanceThreshold = 20.f*100.f;
 
-    std::vector<phoenix::way_edge> edges;
+    std::vector<zenkit::WayEdge> edges;
 
     std::vector<WayPoint>  wayPoints;
     std::vector<WayPoint>  freePoints, startPoints;

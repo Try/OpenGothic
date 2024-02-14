@@ -43,22 +43,22 @@ class FightAlgo final {
     bool   hasInstructions() const;
     bool   fetchInstructions(Npc &npc, Npc &tg, GameScript& owner);
 
-    float  baseDistance          (const Npc &npc, const Npc &tg,  GameScript &owner) const;
+    float  baseDistance           (const Npc &npc, const Npc &tg,  GameScript &owner) const;
     float  prefferedAttackDistance(const Npc &npc, const Npc &tg, GameScript &owner) const;
-    float  prefferedGDistance    (const Npc &npc, const Npc &tg, GameScript &owner) const;
+    float  prefferedGDistance     (const Npc &npc, const Npc &tg, GameScript &owner) const;
 
     bool   isInAttackRange        (const Npc &npc, const Npc &tg, GameScript &owner) const;
-    bool   isInWRange            (const Npc &npc, const Npc &tg, GameScript &owner) const;
-    bool   isInGRange            (const Npc &npc, const Npc &tg, GameScript &owner) const;
-    bool   isInFocusAngle        (const Npc &npc, const Npc &tg) const;
+    bool   isInWRange             (const Npc &npc, const Npc &tg, GameScript &owner) const;
+    bool   isInGRange             (const Npc &npc, const Npc &tg, GameScript &owner) const;
+    bool   isInFocusAngle         (const Npc &npc, const Npc &tg) const;
 
   private:
     void   fillQueue(Npc &npc, Npc &tg, GameScript& owner);
-    bool   fillQueue(GameScript& owner,const phoenix::c_fight_ai& src);
+    bool   fillQueue(GameScript& owner, const zenkit::IFightAi& src);
 
     static float  weaponRange(GameScript &owner,const Npc &npc);
 
-    phoenix::c_fight_ai_move           queueId=phoenix::c_fight_ai_move::nop;
-    Action                             tr   [MV_MAX]={};
-    bool                               hitFlg=false;
+    zenkit::FightAiMove queueId = zenkit::FightAiMove::nop;
+    Action              tr   [MV_MAX]={};
+    bool                hitFlg=false;
   };

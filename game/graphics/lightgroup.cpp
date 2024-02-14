@@ -51,7 +51,7 @@ LightGroup::Light::Light(LightGroup& owner)
   id = owner.alloc(true);
   }
 
-LightGroup::Light::Light(LightGroup& owner, const phoenix::vobs::light_preset& vob)
+LightGroup::Light::Light(LightGroup& owner, const zenkit::LightPreset& vob)
   :owner(&owner) {
   LightSource l;
   l.setPosition(Vec3(0, 0, 0));
@@ -68,7 +68,7 @@ LightGroup::Light::Light(LightGroup& owner, const phoenix::vobs::light_preset& v
     l.setColor(Vec3(vob.color.r / 255.f, vob.color.g / 255.f, vob.color.b / 255.f));
     }
 
-  // if(vob.light_type==phoenix::light_mode::spot)
+  // if(vob.light_type==zenkit::LightType::spot)
   //   Log::d("");
 
   std::lock_guard<std::recursive_mutex> guard(owner.sync);
@@ -82,8 +82,8 @@ LightGroup::Light::Light(LightGroup& owner, const phoenix::vobs::light_preset& v
   data = std::move(l);
   }
 
-LightGroup::Light::Light(LightGroup& owner, const phoenix::vobs::light& vob)
-      :Light(owner, static_cast<const phoenix::vobs::light_preset&>(vob)) {
+LightGroup::Light::Light(LightGroup& owner, const zenkit::VLight& vob)
+      :Light(owner, static_cast<const zenkit::LightPreset&>(vob)) {
   setPosition(Vec3(vob.position.x,vob.position.y,vob.position.z));
   }
 
@@ -92,12 +92,12 @@ LightGroup::Light::Light(World& owner, std::string_view preset)
   setTimeOffset(owner.tickCount());
   }
 
-LightGroup::Light::Light(World& owner, const phoenix::vobs::light_preset& vob)
+LightGroup::Light::Light(World& owner, const zenkit::LightPreset& vob)
   :Light(owner.view()->sGlobal.lights,vob) {
   setTimeOffset(owner.tickCount());
   }
 
-LightGroup::Light::Light(World& owner, const phoenix::vobs::light& vob)
+LightGroup::Light::Light(World& owner, const zenkit::VLight& vob)
   :Light(owner.view()->sGlobal.lights,vob){
   setTimeOffset(owner.tickCount());
 }
@@ -223,10 +223,10 @@ LightGroup::LightGroup(const SceneGlobals& scene)
     for(int i = 0; i < count; ++i) {
       zen->read_object_begin(obj);
 
-      presets.push_back(phoenix::vobs::light_preset::parse(
+      presets.push_back(zenkit::LightPreset::parse(
           *zen,
-          Gothic::inst().version().game == 1 ? phoenix::game_version::gothic_1
-                                             : phoenix::game_version::gothic_2));
+          Gothic::inst().version().game == 1 ? zenkit::GameVersion::gothic_1
+                                             : zenkit::GameVersion::gothic_2));
 
       if(!zen->read_object_end()) {
         zen->skip_object(true);
@@ -339,14 +339,14 @@ RenderPipeline& LightGroup::shader() const {
   return Shaders::inst().lights;
   }
 
-const phoenix::vobs::light_preset& LightGroup::findPreset(std::string_view preset) const {
+const zenkit::LightPreset& LightGroup::findPreset(std::string_view preset) const {
   for(auto& i:presets) {
     if(i.preset!=preset)
       continue;
     return i;
     }
   Log::e("unknown light preset: \"",preset,"\"");
-  static phoenix::vobs::light_preset zero {};
+  static zenkit::LightPreset zero {};
   return zero;
   }
 

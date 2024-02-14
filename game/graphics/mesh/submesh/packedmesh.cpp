@@ -155,7 +155,7 @@ void PackedMesh::Meshlet::flush(std::vector<Vertex>& vertices, std::vector<Verte
                                 std::vector<uint32_t>& indices, std::vector<uint8_t>& indices8,
                                 std::vector<uint32_t>* verticesId,
                                 const std::vector<glm::vec3>& vboList,
-                                const std::vector<phoenix::wedge>& wedgeList,
+                                const std::vector<zenkit::MeshWedge>& wedgeList,
                                 const std::vector<SkeletalData>* skeletal) {
   if(indSz==0)
     return;
@@ -328,11 +328,11 @@ void PackedMesh::Meshlet::clear() {
   indSz  = 0;
   }
 
-void PackedMesh::Meshlet::updateBounds(const phoenix::mesh& mesh) {
+void PackedMesh::Meshlet::updateBounds(const zenkit::Mesh& mesh) {
   updateBounds(mesh.vertices);
   }
 
-void PackedMesh::Meshlet::updateBounds(const phoenix::proto_mesh& mesh) {
+void PackedMesh::Meshlet::updateBounds(const zenkit::MultiResolutionMesh& mesh) {
   updateBounds(mesh.positions);
   }
 
@@ -390,7 +390,7 @@ void PackedMesh::Meshlet::merge(const Meshlet& other) {
   vertSz = uint8_t(vertSz+other.vertSz);
   }
 
-PackedMesh::PackedMesh(const phoenix::mesh& mesh, PkgType type) {
+PackedMesh::PackedMesh(const zenkit::Mesh& mesh, PkgType type) {
   if(type==PK_VisualLnd || type==PK_Visual) {
     packMeshletsLnd(mesh);
     computeBbox();
@@ -403,7 +403,7 @@ PackedMesh::PackedMesh(const phoenix::mesh& mesh, PkgType type) {
     }
   }
 
-PackedMesh::PackedMesh(const phoenix::proto_mesh& mesh, PkgType type) {
+PackedMesh::PackedMesh(const zenkit::MultiResolutionMesh& mesh, PkgType type) {
   subMeshes.resize(mesh.sub_meshes.size());
   isUsingAlphaTest = mesh.alpha_test;
   {
@@ -415,7 +415,7 @@ PackedMesh::PackedMesh(const phoenix::proto_mesh& mesh, PkgType type) {
   packMeshletsObj(mesh,type,nullptr);
   }
 
-PackedMesh::PackedMesh(const phoenix::softskin_mesh& skinned) {
+PackedMesh::PackedMesh(const zenkit::SoftSkinMesh& skinned) {
   auto& mesh = skinned.mesh;
   subMeshes.resize(mesh.sub_meshes.size());
   {
@@ -440,7 +440,7 @@ PackedMesh::PackedMesh(const phoenix::softskin_mesh& skinned) {
   packMeshletsObj(mesh,PK_Visual,&vertices);
   }
 
-void PackedMesh::packPhysics(const phoenix::mesh& mesh, PkgType type) {
+void PackedMesh::packPhysics(const zenkit::Mesh& mesh, PkgType type) {
   auto& vbo = mesh.vertices;
   auto& ibo = mesh.polygons.vertex_indices;
   vertices.reserve(vbo.size());
@@ -461,7 +461,7 @@ void PackedMesh::packPhysics(const phoenix::mesh& mesh, PkgType type) {
       p.mat   = uint8_t(m.group);
       } else {
       // offset named materials
-      p.mat   = uint32_t(phoenix::material_group::none) + mid[i];
+      p.mat   = uint32_t(zenkit::MaterialGroup::NONE) + mid[i];
       }
     prim.push_back(p);
     }
@@ -480,11 +480,11 @@ void PackedMesh::packPhysics(const phoenix::mesh& mesh, PkgType type) {
     SubMesh sub;
     sub.iboOffset = indices.size();
 
-    if(mId < size_t(phoenix::material_group::none)) {
+    if(mId < size_t(zenkit::MaterialGroup::NONE)) {
       sub.material.name  = "";
-      sub.material.group = phoenix::material_group(mId);
+      sub.material.group = zenkit::MaterialGroup(mId);
       } else {
-      auto& m = mat[mId-size_t(phoenix::material_group::none)];
+      auto& m = mat[mId-size_t(zenkit::MaterialGroup::NONE)];
       sub.material.name  = m.name;
       sub.material.group = m.group;
       }
@@ -516,7 +516,7 @@ void PackedMesh::packPhysics(const phoenix::mesh& mesh, PkgType type) {
     }
   }
 
-void PackedMesh::packMeshletsLnd(const phoenix::mesh& mesh) {
+void PackedMesh::packMeshletsLnd(const zenkit::Mesh& mesh) {
   auto& ibo  = mesh.polygons.vertex_indices;
   auto& feat = mesh.polygons.feature_indices;
   auto& mid  = mesh.polygons.material_indices;
@@ -592,7 +592,7 @@ void PackedMesh::packMeshletsLnd(const phoenix::mesh& mesh) {
     }
   }
 
-void PackedMesh::packMeshletsObj(const phoenix::proto_mesh& mesh, PkgType type,
+void PackedMesh::packMeshletsObj(const zenkit::MultiResolutionMesh& mesh, PkgType type,
                                  const std::vector<SkeletalData>* skeletal) {
   auto* vId = (type==PK_VisualMorph) ? &verticesId : nullptr;
 
@@ -703,7 +703,7 @@ std::vector<PackedMesh::Meshlet> PackedMesh::buildMeshlets(const phoenix::mesh* 
   return meshlets;
   }
 
-bool PackedMesh::addTriangle(Meshlet& dest, const phoenix::mesh* mesh, const phoenix::sub_mesh* sm, size_t id) {
+bool PackedMesh::addTriangle(Meshlet& dest, const zenkit::Mesh* mesh, const zenkit::SubMesh* sm, size_t id) {
   if(mesh!=nullptr) {
     size_t id3  = id*3;
     auto&  ibo  = mesh->polygons.vertex_indices;
@@ -789,7 +789,7 @@ void PackedMesh::dbgUtilization(const std::vector<Meshlet>& meshlets) {
     Log::d("");
   }
 
-void PackedMesh::dbgMeshlets(const phoenix::mesh& mesh, const std::vector<Meshlet*>& meshlets) {
+void PackedMesh::dbgMeshlets(const zenkit::Mesh& mesh, const std::vector<Meshlet*>& meshlets) {
   std::ofstream out("dbg.obj");
 
   size_t off = 1;

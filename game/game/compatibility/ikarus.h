@@ -9,23 +9,23 @@ class GameScript;
 
 class Ikarus : public ScriptPlugin {
   public:
-    Ikarus(GameScript& owner, phoenix::vm& vm);
+    Ikarus(GameScript& owner, zenkit::DaedalusVm& vm);
 
-    static bool isRequired(phoenix::script& vm);
+    static bool isRequired(zenkit::DaedalusScript& vm);
 
     using ptr32_t = Mem32::ptr32_t;
 
-    struct memory_instance : public phoenix::transient_instance {
+    struct memory_instance : public zenkit::DaedalusTransientInstance {
       explicit memory_instance(Ikarus &owner, ptr32_t address) : owner(owner), address(address) {}
 
-      void set_int(phoenix::symbol const& sym, uint16_t index, std::int32_t value) override;
-      std::int32_t get_int(phoenix::symbol const& sym, uint16_t index) const override;
+      void set_int(zenkit::DaedalusSymbol const& sym, uint16_t index, std::int32_t value) override;
+      std::int32_t get_int(zenkit::DaedalusSymbol const& sym, uint16_t index) const override;
 
-      void set_float(phoenix::symbol const& sym, uint16_t index, float value) override;
-      float get_float(phoenix::symbol const& sym, uint16_t index) const override;
+      void set_float(zenkit::DaedalusSymbol const& sym, uint16_t index, float value) override;
+      float get_float(zenkit::DaedalusSymbol const& sym, uint16_t index) const override;
 
-      void set_string(phoenix::symbol const& sym, uint16_t index, std::string_view value) override;
-      const std::string& get_string(phoenix::symbol const& sym, uint16_t index) const override;
+      void set_string(zenkit::DaedalusSymbol const& sym, uint16_t index, std::string_view value) override;
+      const std::string& get_string(zenkit::DaedalusSymbol const& sym, uint16_t index) const override;
 
       Ikarus &owner;
       ptr32_t address = 0;
@@ -69,11 +69,11 @@ class Ikarus : public ScriptPlugin {
     void        mem_setupexceptionhandler         ();
     void        mem_getaddress_init               ();
     void        mem_printstacktrace_implementation();
-    int         mem_getfuncoffset                 (phoenix::func func);
-    int         mem_getfuncid                     (phoenix::func func);
+    int         mem_getfuncoffset                 (zenkit::DaedalusFunction func);
+    int         mem_getfuncid                     (zenkit::DaedalusFunction func);
     void        mem_callbyid                      (int symbId);
     int         mem_getfuncptr                    (int symbId);
-    void        mem_replacefunc                   (phoenix::func dest, phoenix::func func);
+    void        mem_replacefunc                   (zenkit::DaedalusFunction dest, zenkit::DaedalusFunction func);
     int         mem_getfuncidbyoffset             (int off);
     void        mem_assigninst                    (int sym, int ptr);
 
@@ -88,7 +88,7 @@ class Ikarus : public ScriptPlugin {
     void        mem_copybytes     (int src, int dst, int size);
     std::string mem_readstring    (int address);
     // pointers
-    std::shared_ptr<phoenix::instance> mem_ptrtoinst(ptr32_t address);
+    std::shared_ptr<zenkit::DaedalusInstance> mem_ptrtoinst(ptr32_t address);
 
     // ## Basic zCParser related functions ##
     int         _takeref    (int val);
@@ -110,21 +110,21 @@ class Ikarus : public ScriptPlugin {
     void        mem_setgothopt          (std::string_view section, std::string_view option, std::string_view value);
 
     // control-flow
-    phoenix::naked_call repeat   (phoenix::vm& vm);
-    phoenix::naked_call while_   (phoenix::vm& vm);
-    void                loop_trap(phoenix::symbol* i);
-    void                loop_out(phoenix::vm& vm);
+    zenkit::DaedalusNakedCall repeat   (zenkit::DaedalusVm& vm);
+    zenkit::DaedalusNakedCall while_   (zenkit::DaedalusVm& vm);
+    void                      loop_trap(zenkit::DaedalusSymbol* i);
+    void                      loop_out (zenkit::DaedalusVm& vm);
 
     void call__stdcall(int address);
     int  hash(int x);
 
-    phoenix::vm& vm;
-    Mem32        allocator;
+    zenkit::DaedalusVm& vm;
+    Mem32               allocator;
     
     struct Loop {
-      uint32_t         pc = 0;
-      phoenix::symbol* i  = nullptr;
-      int32_t          loopLen = 0;
+      uint32_t                pc = 0;
+      zenkit::DaedalusSymbol* i  = nullptr;
+      int32_t                 loopLen = 0;
       };
     std::vector<Loop> loop_start;
 

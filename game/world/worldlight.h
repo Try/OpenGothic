@@ -5,7 +5,7 @@
 
 class WorldLight : public Vob {
   public:
-    WorldLight(Vob* parent, World& world, const phoenix::vobs::light& vob, Flags flags);
+    WorldLight(Vob* parent, World& world, const zenkit::VLight& vob, Flags flags);
 
   private:
     void  moveEvent() override;

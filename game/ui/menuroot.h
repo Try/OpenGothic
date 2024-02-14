@@ -39,7 +39,7 @@ class MenuRoot : public Tempest::Widget {
   private:
     void initSettings();
 
-    std::unique_ptr<phoenix::vm>           vm;
+    std::unique_ptr<zenkit::DaedalusVm>    vm;
     int32_t                                vmLang = -1;
 
     GameMenu*                              current=nullptr;

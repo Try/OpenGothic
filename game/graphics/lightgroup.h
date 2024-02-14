@@ -18,11 +18,11 @@ class LightGroup final {
     class Light final {
       public:
         Light() = default;
-        Light(LightGroup& owner, const phoenix::vobs::light& vob);
-        Light(LightGroup& owner, const phoenix::vobs::light_preset& vob);
+        Light(LightGroup& owner, const zenkit::VLight& vob);
+        Light(LightGroup& owner, const zenkit::LightPreset& vob);
         Light(LightGroup& owner);
-        Light(World& owner, const phoenix::vobs::light_preset& vob);
-        Light(World& owner, const phoenix::vobs::light& vob);
+        Light(World& owner, const zenkit::VLight& vob);
+        Light(World& owner, const zenkit::LightPreset& vob);
         Light(World& owner, std::string_view preset);
         Light(World& owner);
 
@@ -93,18 +93,18 @@ class LightGroup final {
       void                     free(size_t id);
       };
 
-    size_t                             alloc(bool dynamic);
-    void                               free(size_t id);
+    size_t                     alloc(bool dynamic);
+    void                       free(size_t id);
 
-    LightSsbo&                         get (size_t id);
-    LightSource&                       getL(size_t id);
+    LightSsbo&                 get (size_t id);
+    LightSource&               getL(size_t id);
 
-    Tempest::RenderPipeline&           shader() const;
+    Tempest::RenderPipeline&   shader() const;
 
-    const phoenix::vobs::light_preset& findPreset(std::string_view preset) const;
+    const zenkit::LightPreset& findPreset(std::string_view preset) const;
 
-    const SceneGlobals&                      scene;
-    std::vector<phoenix::vobs::light_preset> presets;
+    const SceneGlobals&                  scene;
+    std::vector<zenkit::LightPreset>     presets;
 
     Tempest::UniformBuffer<Ubo>          uboBuf[Resources::MaxFramesInFlight];
 

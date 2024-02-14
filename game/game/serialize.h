@@ -75,7 +75,8 @@ class Serialize {
       (implRead(a),... );
       }
 
-    void readNpc(phoenix::vm& vm, std::shared_ptr<phoenix::c_npc>& npc);
+    void readNpc(zenkit::DaedalusVm& vm, std::shared_ptr<zenkit::INpc>& npc);
+
   private:
     Serialize();
 
@@ -104,8 +105,8 @@ class Serialize {
     void implWrite(float  i)    { writeBytes(&i,sizeof(i)); }
     void implRead (float& i)    { readBytes (&i,sizeof(i)); }
 
-    void implWrite(phoenix::datatype  i)    { write((uint32_t) i); }
-    void implRead (phoenix::datatype& i)    { read((uint32_t&) i); }
+    void implWrite(zenkit::DaedalusDataType  i)    { write((uint32_t) i); }
+    void implRead (zenkit::DaedalusDataType& i)    { read((uint32_t&) i); }
 
     template<class T, std::enable_if_t<!std::is_same<T,uint32_t>::value && !std::is_same<T,uint64_t>::value && std::is_same<T,size_t>::value,bool> = true>
     void implWrite(T ) = delete;
@@ -135,8 +136,8 @@ class Serialize {
     void implWrite(const Tempest::Matrix4x4& i) { writeBytes(&i,sizeof(i)); }
     void implRead (Tempest::Matrix4x4& i)       { readBytes (&i,sizeof(i)); }
 
-    void implWrite(const phoenix::animation_sample& i);
-    void implRead (phoenix::animation_sample& i);
+    void implWrite(const zenkit::AnimationSample& i);
+    void implRead (zenkit::AnimationSample& i);
 
     // strings
     void implWrite(const std::string&              s);
@@ -244,7 +245,7 @@ class Serialize {
     void implWrite(const Tempest::Pixmap& p);
     void implRead (Tempest::Pixmap&       p);
 
-    void implWrite(const phoenix::c_npc& h);
+    void implWrite(const zenkit::INpc& h);
 
     void implWrite(const FpLock& fp);
     void implRead (FpLock& fp);

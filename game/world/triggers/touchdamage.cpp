@@ -4,7 +4,7 @@
 #include "world/world.h"
 #include "game/serialize.h"
 
-TouchDamage::TouchDamage(Vob* parent, World &world, const phoenix::vobs::touch_damage& dmg, Flags flags)
+TouchDamage::TouchDamage(Vob* parent, World &world, const zenkit::VTouchDamage& dmg, Flags flags)
   :AbstractTrigger(parent,world,dmg,flags) {
   barrier = dmg.barrier;
   blunt = dmg.blunt;
@@ -33,18 +33,18 @@ void TouchDamage::tick(uint64_t dt) {
     return;
 
   for(auto npc:intersections()) {
-    bool mask[phoenix::damage_type::count] = {};
-    mask[phoenix::damage_type::barrier] = barrier;
-    mask[phoenix::damage_type::blunt]   = blunt;
-    mask[phoenix::damage_type::edge]    = edge;
-    mask[phoenix::damage_type::fire]    = fire;
-    mask[phoenix::damage_type::fly]     = fly;
-    mask[phoenix::damage_type::magic]   = magic;
-    mask[phoenix::damage_type::point]   = point;
-    mask[phoenix::damage_type::fall]    = fall;
+    bool mask[zenkit::DamageType::count] = {};
+    mask[zenkit::DamageType::barrier] = barrier;
+    mask[zenkit::DamageType::blunt]   = blunt;
+    mask[zenkit::DamageType::edge]    = edge;
+    mask[zenkit::DamageType::fire]    = fire;
+    mask[zenkit::DamageType::fly]     = fly;
+    mask[zenkit::DamageType::magic]   = magic;
+    mask[zenkit::DamageType::point]   = point;
+    mask[zenkit::DamageType::fall]    = fall;
 
     auto& hnpc = npc->handle();
-    for(size_t i=0; i<phoenix::damage_type::count; ++i) {
+    for(size_t i=0; i<zenkit::DamageType::count; ++i) {
       if(!mask[i])
         continue;
       takeDamage(*npc,int32_t(damage),hnpc.protection[i]);

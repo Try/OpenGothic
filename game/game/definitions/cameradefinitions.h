@@ -6,27 +6,27 @@ class CameraDefinitions final {
   public:
     CameraDefinitions();
 
-    const phoenix::c_camera& dialogCam()    const { return camModDialog;    }
-    const phoenix::c_camera& inventoryCam() const { return camModInventory; }
-    const phoenix::c_camera& stdCam()       const { return camModNormal; }
-    const phoenix::c_camera& fpCam()        const { return camModFp;     }
-    const phoenix::c_camera& backCam()      const { return camModBack;   }
-    const phoenix::c_camera& meleeCam()     const { return camModMelee;  }
-    const phoenix::c_camera& rangeCam()     const { return camModRange;  }
-    const phoenix::c_camera& mageCam()      const { return camModMage;   }
-    const phoenix::c_camera& deathCam()     const { return camModDeath;  }
-    const phoenix::c_camera& swimCam()      const { return camModSwim;   }
-    const phoenix::c_camera& diveCam()      const { return camModDive;   }
-    const phoenix::c_camera& fallCam()      const { return camModFall;   }
-    const phoenix::c_camera& mobsiCam(std::string_view tag, std::string_view pos) const;
+    const zenkit::ICamera& dialogCam()    const { return camModDialog;    }
+    const zenkit::ICamera& inventoryCam() const { return camModInventory; }
+    const zenkit::ICamera& stdCam()       const { return camModNormal; }
+    const zenkit::ICamera& fpCam()        const { return camModFp;     }
+    const zenkit::ICamera& backCam()      const { return camModBack;   }
+    const zenkit::ICamera& meleeCam()     const { return camModMelee;  }
+    const zenkit::ICamera& rangeCam()     const { return camModRange;  }
+    const zenkit::ICamera& mageCam()      const { return camModMage;   }
+    const zenkit::ICamera& deathCam()     const { return camModDeath;  }
+    const zenkit::ICamera& swimCam()      const { return camModSwim;   }
+    const zenkit::ICamera& diveCam()      const { return camModDive;   }
+    const zenkit::ICamera& fallCam()      const { return camModFall;   }
+    const zenkit::ICamera& mobsiCam(std::string_view tag, std::string_view pos) const;
 
   private:
-    phoenix::c_camera getCam(std::string_view name);
+    zenkit::ICamera getCam(std::string_view name);
 
-    std::vector<std::pair<std::string, phoenix::c_camera>> cameras;
-    const phoenix::c_camera* find(std::string_view name) const;
+    std::vector<std::pair<std::string, zenkit::ICamera>> cameras;
+    const zenkit::ICamera* find(std::string_view name) const;
 
-    phoenix::c_camera camModNormal, camModFp, camModBack;
-    phoenix::c_camera camModDialog, camModInventory, camModDeath, camModSwim, camModDive, camModFall;
-    phoenix::c_camera camModMelee, camModRange, camModMage;
+    zenkit::ICamera camModNormal, camModFp, camModBack;
+    zenkit::ICamera camModDialog, camModInventory, camModDeath, camModSwim, camModDive, camModFall;
+    zenkit::ICamera camModMelee, camModRange, camModMage;
   };

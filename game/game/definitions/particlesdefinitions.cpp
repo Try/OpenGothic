@@ -58,7 +58,7 @@ const ParticleFx* ParticlesDefinitions::implGet(const ParticleFx& base, const Vi
   return elt.first->second.get();
   }
 
-std::shared_ptr<phoenix::c_particle_fx> ParticlesDefinitions::implGetDirect(std::string_view name, bool relaxed) {
+std::shared_ptr<zenkit::IParticleEffect> ParticlesDefinitions::implGetDirect(std::string_view name, bool relaxed) {
   if(!vm || name.empty())
     return nullptr;
 
@@ -69,7 +69,7 @@ std::shared_ptr<phoenix::c_particle_fx> ParticlesDefinitions::implGetDirect(std:
     return nullptr;
     }
 
-  auto ret = std::make_shared<phoenix::c_particle_fx>();
+  auto ret = std::make_shared<zenkit::IParticleEffect>();
   ret->vis_tex_is_quadpoly = 1; // seem to be default
   vm->init_instance(ret, id);
   return ret;

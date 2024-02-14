@@ -8,9 +8,9 @@ class SoundDefinitions final {
   public:
     SoundDefinitions();
 
-    const phoenix::c_sfx& operator[](std::string_view name) const;
+    const zenkit::ISoundEffect& operator [](std::string_view name) const;
 
   private:
-    std::unordered_map<std::string, std::shared_ptr<phoenix::c_sfx>> sfx;
+    std::unordered_map<std::string, std::shared_ptr<zenkit::ISoundEffect>> sfx;
   };
 

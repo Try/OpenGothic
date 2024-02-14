@@ -7,13 +7,13 @@
 
 class SvmDefinitions final {
   public:
-    SvmDefinitions(phoenix::vm& vm);
+    SvmDefinitions(zenkit::DaedalusVm& vm);
     ~SvmDefinitions();
 
     std::string_view find(std::string_view speech, int id);
 
   private:
-    phoenix::vm&                                    vm;
-    std::vector<std::shared_ptr<phoenix::instance>> svm;
+    zenkit::DaedalusVm&                                    vm;
+    std::vector<std::shared_ptr<zenkit::DaedalusInstance>> svm;
   };
 

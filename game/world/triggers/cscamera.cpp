@@ -6,13 +6,13 @@
 
 using namespace Tempest;
 
-CsCamera::CsCamera(Vob* parent, World& world, const phoenix::vobs::cs_camera& cam, Flags flags)
+CsCamera::CsCamera(Vob* parent, World& world, const zenkit::VCutsceneCamera& cam, Flags flags)
   :AbstractTrigger(parent,world,cam,flags) {
 
   if(cam.position_count<1 || cam.total_duration<0)
     return;
 
-  if(cam.trajectory_for==phoenix::camera_trajectory::object || cam.target_trajectory_for==phoenix::camera_trajectory::object) {
+  if(cam.trajectory_for==zenkit::CameraCoordinateReference::object || cam.target_trajectory_for==zenkit::CameraCoordinateReference::object) {
     Log::d("Object camera not implemented, \"", name() , "\"");
     return;
     }
@@ -63,7 +63,7 @@ CsCamera::CsCamera(Vob* parent, World& world, const phoenix::vobs::cs_camera& ca
     const float linear = duration;
     const float fast   = 2 * duration;
 
-    phoenix::camera_motion mType0, mType1;
+    zenkit::CameraMotion mType0, mType1;
     if(spl == &posSpline) {
       mType0 = cam.trajectory_frames[0]->motion_type;
       mType1 = cam.trajectory_frames.back()->motion_type;
@@ -72,17 +72,17 @@ CsCamera::CsCamera(Vob* parent, World& world, const phoenix::vobs::cs_camera& ca
       mType1 = cam.target_frames.back()->motion_type;
       }
 
-    float       d0     = slow;
-    float       d1     = slow;
-    if(mType0!=phoenix::camera_motion::slow && mType1!=phoenix::camera_motion::slow) {
+    float d0 = slow;
+    float d1 = slow;
+    if(mType0!=zenkit::CameraMotion::slow && mType1!=zenkit::CameraMotion::slow) {
       d0 = linear;
       d1 = linear;
       }
-    else if(mType0==phoenix::camera_motion::slow && mType1!=phoenix::camera_motion::slow) {
+    else if(mType0==zenkit::CameraMotion::slow && mType1!=zenkit::CameraMotion::slow) {
       d0 = slow;
       d1 = fast;
       }
-    else if(mType0!=phoenix::camera_motion::slow && mType1==phoenix::camera_motion::slow) {
+    else if(mType0!=zenkit::CameraMotion::slow && mType1==zenkit::CameraMotion::slow) {
       d0 = fast;
       d1 = slow;
       }

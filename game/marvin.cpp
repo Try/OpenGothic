@@ -382,7 +382,7 @@ bool Marvin::addItemOrNpcBySymbolName(World* world, std::string_view name, const
   if(sym==nullptr||sym->parent()==uint32_t(-1))
     return false;
 
-  if(sym->type()!=phoenix::datatype::instance)
+  if(sym->type()!=zenkit::DaedalusDataType::instance)
     return false;
 
   const auto* cls = sym;
@@ -407,16 +407,16 @@ bool Marvin::printVariable(World* world, std::string_view name) {
   if(sym==nullptr)
     return false;
   switch(sym->type()) {
-    case phoenix::datatype::integer:
+    case zenkit::DaedalusDataType::integer:
       buf = string_frm(name," = ",sym->get_int(0));
       break;
-    case phoenix::datatype::float_:
+    case zenkit::DaedalusDataType::float_:
       buf = string_frm(name," = ",sym->get_float(0));
       break;
-    case phoenix::datatype::string:
+    case zenkit::DaedalusDataType::string:
       buf = string_frm(name," = ",sym->get_string(0));
       break;
-    case phoenix::datatype::instance:
+    case zenkit::DaedalusDataType::instance:
       buf = string_frm(name," = ",sym->get_instance().get());
       break;
     default:

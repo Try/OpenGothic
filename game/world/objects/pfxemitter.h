@@ -19,7 +19,7 @@ class PfxEmitter {
     PfxEmitter(World& world, std::string_view name);
     PfxEmitter(World& world, const ParticleFx* decl);
     PfxEmitter(PfxObjects& obj, const ParticleFx* vob);
-    PfxEmitter(World& world, const phoenix::vob& vob);
+    PfxEmitter(World& world, const zenkit::VirtualObject& vob);
     ~PfxEmitter();
     PfxEmitter(PfxEmitter&&);
     PfxEmitter& operator=(PfxEmitter&& b);

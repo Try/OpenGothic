@@ -84,62 +84,62 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
   fillQueue(owner,ai.my_w_nofocus);
   }
 
-bool FightAlgo::fillQueue(GameScript& owner,const phoenix::c_fight_ai &src) {
+bool FightAlgo::fillQueue(GameScript& owner, const zenkit::IFightAi& src) {
   uint32_t sz=0;
-  for(size_t i=0;i<phoenix::c_fight_ai::move_count;++i){
-    if(src.move[i]==phoenix::c_fight_ai_move::nop)
+  for(size_t i=0; i<zenkit::IFightAi::move_count; ++i){
+    if(src.move[i]==zenkit::FightAiMove::nop)
       break;
     sz++;
     }
   if(sz==0)
     return false;
-  queueId = phoenix::c_fight_ai_move(src.move[owner.rand(sz)]);
-  return queueId!=phoenix::c_fight_ai_move::nop;
+  queueId = zenkit::FightAiMove(src.move[owner.rand(sz)]);
+  return queueId!=zenkit::FightAiMove::nop;
   }
 
 FightAlgo::Action FightAlgo::nextFromQueue(Npc& npc, Npc& tg, GameScript& owner) {
-  using phoenix::c_fight_ai_move;
+  using zenkit::FightAiMove;
 
   if(tr[0]==MV_NULL) {
     switch(queueId) {
-      case c_fight_ai_move::turn:
+      case FightAiMove::turn:
         if(!isInGRange(npc,tg,owner))
           tr[0] = MV_TURNG; else
           tr[0] = MV_TURNA;
         break;
-      case c_fight_ai_move::run:{
+      case FightAiMove::run:{
         if(!isInGRange(npc,tg,owner))
           tr[0] = MV_MOVEG; else
           tr[0] = MV_MOVEA;
         break;
         }
-      case c_fight_ai_move::run_back:{
+      case FightAiMove::run_back:{
         tr[0] = MV_NULL; //TODO
         break;
         }
-      case c_fight_ai_move::jump_back:{
+      case FightAiMove::jump_back:{
         tr[0] = MV_JUMPBACK;
         break;
         }
-      case c_fight_ai_move::strafe:{
+      case FightAiMove::strafe:{
         tr[0] = owner.rand(2) ? MV_STRAFEL : MV_STRAFER;
         break;
         }
-      case c_fight_ai_move::attack:{
+      case FightAiMove::attack:{
         tr[0] = MV_ATTACK;
         break;
         }
-      case c_fight_ai_move::attack_side:{
+      case FightAiMove::attack_side:{
         tr[0] = MV_ATTACKL;
         tr[1] = MV_ATTACKR;
         break;
         }
-      case c_fight_ai_move::attack_front:{
+      case FightAiMove::attack_front:{
         tr[0] = owner.rand(2) ? MV_ATTACKL : MV_ATTACKR;
         tr[1] = MV_ATTACK;
         break;
         }
-      case c_fight_ai_move::attack_triple:{
+      case FightAiMove::attack_triple:{
         if(owner.rand(2)){
           tr[0] = MV_ATTACK;
           tr[1] = MV_ATTACKR;
@@ -151,14 +151,14 @@ FightAlgo::Action FightAlgo::nextFromQueue(Npc& npc, Npc& tg, GameScript& owner)
           }
         break;
         }
-      case c_fight_ai_move::attack_whirl:{
+      case FightAiMove::attack_whirl:{
         tr[0] = MV_ATTACKL;
         tr[1] = MV_ATTACKR;
         tr[2] = MV_ATTACKL;
         tr[3] = MV_ATTACKR;
         break;
         }
-      case c_fight_ai_move::attack_master:{
+      case FightAiMove::attack_master:{
         tr[0] = MV_ATTACKL;
         tr[1] = MV_ATTACKR;
         tr[2] = MV_ATTACK;
@@ -167,35 +167,35 @@ FightAlgo::Action FightAlgo::nextFromQueue(Npc& npc, Npc& tg, GameScript& owner)
         tr[5] = MV_ATTACK;
         break;
         }
-      case c_fight_ai_move::turn_to_hit:{
+      case FightAiMove::turn_to_hit:{
         tr[0] = MV_TURN2HIT;
         break;
         }
-      case c_fight_ai_move::parry:{
+      case FightAiMove::parry:{
         tr[0] = MV_BLOCK;
         break;
         }
-      case c_fight_ai_move::stand_up:{
+      case FightAiMove::stand_up:{
         break;
         }
-      case c_fight_ai_move::wait:
-      case c_fight_ai_move::wait_ext:{
+      case FightAiMove::wait:
+      case FightAiMove::wait_ext:{
         tr[0] = MV_WAIT;
         break;
         }
-      case c_fight_ai_move::wait_longer:{
+      case FightAiMove::wait_longer:{
         tr[0] = MV_WAITLONG;
         break;
         }
       default: {
-        static std::set<c_fight_ai_move> inst;
+        static std::set<FightAiMove> inst;
         if(inst.find(queueId)==inst.end()) {
           Tempest::Log::d("unrecognized FAI instruction: ", int(queueId));
           inst.insert(queueId);
           }
         }
       }
-    queueId=phoenix::c_fight_ai_move::nop;
+    queueId = FightAiMove::nop;
     }
   return tr[0];
   }
@@ -206,7 +206,7 @@ bool FightAlgo::hasInstructions() const {
 
 bool FightAlgo::fetchInstructions(Npc &npc, Npc &tg, GameScript& owner) {
   fillQueue(npc,tg,owner);
-  if(queueId==phoenix::c_fight_ai_move::nop)
+  if(queueId==zenkit::FightAiMove::nop)
     return false;
   nextFromQueue(npc,tg,owner);
   return true;
@@ -219,7 +219,7 @@ void FightAlgo::consumeAction() {
   }
 
 void FightAlgo::onClearTarget() {
-  queueId = phoenix::c_fight_ai_move::nop;
+  queueId = zenkit::FightAiMove::nop;
   tr[0]   = MV_NULL;
   }
 

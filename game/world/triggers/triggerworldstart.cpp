@@ -4,7 +4,7 @@
 
 #include "world/world.h"
 
-TriggerWorldStart::TriggerWorldStart(Vob* parent, World &world, const phoenix::vobs::trigger_world_start& trg, Flags flags)
+TriggerWorldStart::TriggerWorldStart(Vob* parent, World &world, const zenkit::VTriggerWorldStart& trg, Flags flags)
   :AbstractTrigger(parent,world,trg,flags){
   fireOnlyFirstTime = trg.fire_once;
   target = trg.target;

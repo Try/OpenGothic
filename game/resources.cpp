@@ -126,7 +126,7 @@ void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs, bool modFil
       if(i.name.find(u"Speech")!=std::string::npos)
         continue;
 #endif
-      inst->gothicAssets.mount_disk(i.name, phoenix::VfsOverwriteBehavior::OLDER);
+      inst->gothicAssets.mount_disk(i.name, zenkit::VfsOverwriteBehavior::OLDER);
       }
     catch(const zenkit::VfsBrokenDiskError& err) {
       Log::e("unable to load archive: \"", TextCodec::toUtf8(i.name), "\", reason: ", err.what());
@@ -253,7 +253,7 @@ const Texture2d &Resources::fallbackBlack() {
   return inst->fbZero;
   }
 
-const phoenix::Vfs& Resources::vdfsIndex() {
+const zenkit::Vfs& Resources::vdfsIndex() {
   return inst->gothicAssets;
   }
 
@@ -545,7 +545,7 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(std::string_view name) {
   return nullptr;
   }
 
-ProtoMesh* Resources::implDecalMesh(const phoenix::vob& vob) {
+ProtoMesh* Resources::implDecalMesh(const zenkit::VirtualObject& vob) {
   DecalK key;
   key.mat         = Material(vob);
   key.sX          = vob.visual_decal->dimension.x;
@@ -785,7 +785,7 @@ Texture2d Resources::loadTexturePm(const Pixmap &pm) {
   return inst->dev.texture(pm);
   }
 
-Material Resources::loadMaterial(const phoenix::material& src, bool enableAlphaTest) {
+Material Resources::loadMaterial(const zenkit::Material& src, bool enableAlphaTest) {
   return Material(src,enableAlphaTest);
   }
 
@@ -834,7 +834,7 @@ Dx8::PatternList Resources::loadDxMusic(std::string_view name) {
   return inst->implLoadDxMusic(name);
   }
 
-const ProtoMesh* Resources::decalMesh(const phoenix::vob& vob) {
+const ProtoMesh* Resources::decalMesh(const zenkit::VirtualObject& vob) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implDecalMesh(vob);
   }

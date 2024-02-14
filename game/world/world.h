@@ -92,12 +92,12 @@ class World final {
     GlobalFx             addGlobalEffect(std::string_view what, uint64_t len, const std::string* argv, size_t argc);
     MeshObjects::Mesh    addView(std::string_view visual) const;
     MeshObjects::Mesh    addView(std::string_view visual, int32_t headTex, int32_t teetTex, int32_t bodyColor) const;
-    MeshObjects::Mesh    addView(const phoenix::c_item& itm);
+    MeshObjects::Mesh    addView(const zenkit::IItem& itm);
     MeshObjects::Mesh    addView(const ProtoMesh* visual);
     MeshObjects::Mesh    addAtachView (const ProtoMesh::Attach& visual, const int32_t version);
     MeshObjects::Mesh    addStaticView(const ProtoMesh* visual, bool staticDraw);
     MeshObjects::Mesh    addStaticView(std::string_view visual);
-    MeshObjects::Mesh    addDecalView (const phoenix::vob& vob);
+    MeshObjects::Mesh    addDecalView (const zenkit::VirtualObject& vob);
 
     void                 updateAnimation(uint64_t dt);
     void                 resetPositionToTA();
@@ -145,7 +145,7 @@ class World final {
     Npc*                 addNpc     (size_t itemInstance,   std::string_view     at);
     Npc*                 addNpc     (size_t itemInstance,   const Tempest::Vec3& at);
     Item*                addItem    (size_t itemInstance,   std::string_view     at);
-    Item*                addItem    (const phoenix::vobs::item& vob);
+    Item*                addItem    (const zenkit::VItem& vob);
     Item*                addItem    (size_t itemInstance, const Tempest::Vec3&      pos);
     Item*                addItemDyn (size_t itemInstance, const Tempest::Matrix4x4& pos, size_t owner);
     auto                 takeItem(Item& it) -> std::unique_ptr<Item>;
@@ -164,19 +164,19 @@ class World final {
     void                 addDlgSound(std::string_view s, const Tempest::Vec3& pos, float range, uint64_t &timeLen);
 
     Sound                addWeaponHitEffect(Npc&         src, const Bullet* srcArrow, Npc&  reciver);
-    Sound                addWeaponBlkEffect(ItemMaterial src, ItemMaterial           reciver, const Tempest::Matrix4x4& pos);
-    Sound                addLandHitEffect  (ItemMaterial src, phoenix::material_group reciver, const Tempest::Matrix4x4& pos);
+    Sound                addWeaponBlkEffect(ItemMaterial src, ItemMaterial          reciver, const Tempest::Matrix4x4& pos);
+    Sound                addLandHitEffect  (ItemMaterial src, zenkit::MaterialGroup reciver, const Tempest::Matrix4x4& pos);
 
     void                 addTrigger    (AbstractTrigger* trigger);
     void                 addInteractive(Interactive* inter);
     void                 addStartPoint (const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name);
     void                 addFreePoint  (const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name);
-    void                 addSound      (const phoenix::vob& vob);
+    void                 addSound      (const zenkit::VirtualObject& vob);
 
     void                 invalidateVobIndex();
 
   private:
-    const phoenix::c_focus&     searchPolicy(const Npc& pl, TargetCollect& coll, WorldObjects::SearchFlg& opt) const;
+    const zenkit::IFocus& searchPolicy(const Npc& pl, TargetCollect& coll, WorldObjects::SearchFlg& opt) const;
     std::string                           wname;
     GameSession&                          game;
 
@@ -187,10 +187,10 @@ class World final {
       };
 
     struct {
-      std::vector<phoenix::bsp_node>        nodes;
-      std::vector<phoenix::bsp_sector>      sectors;
-      std::vector<std::uint64_t>            leaf_node_indices;
-      std::vector<BspSector>                sectorsData;
+      std::vector<zenkit::BspNode>        nodes;
+      std::vector<zenkit::BspSector>      sectors;
+      std::vector<std::uint64_t>          leaf_node_indices;
+      std::vector<BspSector>              sectorsData;
       } bsp;
 
     Npc*                                  npcPlayer=nullptr;
@@ -202,7 +202,7 @@ class World final {
     WorldObjects                          wobj;
     std::unique_ptr<Npc>                  lvlInspector;
 
-    auto         roomAt(const phoenix::bsp_node &node) -> std::string_view;
+    auto         roomAt(const zenkit::BspNode &node) -> std::string_view;
     auto         portalAt(std::string_view tag) -> BspSector*;
 
     void         initScripts(bool firstTime);

@@ -634,16 +634,16 @@ std::string_view Gothic::defaultOutputUnits() const {
   return ouDef;
   }
 
-std::unique_ptr<phoenix::vm> Gothic::createPhoenixVm(std::string_view datFile, const ScriptLang lang) {
+std::unique_ptr<zenkit::DaedalusVm> Gothic::createPhoenixVm(std::string_view datFile, const ScriptLang lang) {
   auto sc = loadScript(datFile, lang);
-  phoenix::register_all_script_classes(sc);
+  zenkit::register_all_script_classes(sc);
 
-  auto vm = std::make_unique<phoenix::vm>(std::move(sc), phoenix::execution_flag::vm_allow_null_instance_access);
+  auto vm = std::make_unique<zenkit::DaedalusVm>(std::move(sc), zenkit::DaedalusVmExecutionFlag::vm_allow_null_instance_access);
   setupVmCommonApi(*vm);
   return vm;
   }
 
-phoenix::script Gothic::loadScript(std::string_view datFile, const ScriptLang lang) {
+zenkit::DaedalusScript Gothic::loadScript(std::string_view datFile, const ScriptLang lang) {
   if(Resources::hasFile(datFile)) {
     auto buf = Resources::getFileBuffer(datFile);
     zenkit::DaedalusScript script;
@@ -838,7 +838,7 @@ std::u16string Gothic::nestedPath(const std::initializer_list<const char16_t*> &
   return CommandLine::inst().nestedPath(name,type);
   }
 
-void Gothic::setupVmCommonApi(phoenix::vm &vm) {
+void Gothic::setupVmCommonApi(zenkit::DaedalusVm& vm) {
   vm.register_default_external([](std::string_view name) { notImplementedRoutine(std::string {name}); });
 
   if (auto sym = vm.find_symbol_by_name("C_SVM"))

@@ -25,7 +25,7 @@ static Npc::Anim toNpcAnim(Interactive::Anim dir) {
   return Npc::Anim::InteractIn;
   }
 
-Interactive::Interactive(Vob* parent, World &world, const phoenix::vobs::mob& vob, Flags flags)
+Interactive::Interactive(Vob* parent, World &world, const zenkit::VMovableObject& vob, Flags flags)
   : Vob(parent,world,vob,flags) {
 
   vobName       = vob.vob_name;
@@ -187,7 +187,7 @@ void Interactive::resetPositionToTA(int32_t state) {
   setState(state);
   }
 
-void Interactive::setVisual(const phoenix::vob& vob) {
+void Interactive::setVisual(const zenkit::VirtualObject& vob) {
   visual.setVisual(vob,world,true);
   visual.setObjMatrix(transform());
   visual.setInteractive(this);

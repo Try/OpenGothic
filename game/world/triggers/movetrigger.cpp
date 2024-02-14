@@ -8,7 +8,7 @@
 
 using namespace Tempest;
 
-MoveTrigger::MoveTrigger(Vob* parent, World& world, const phoenix::vobs::trigger_mover& mover, Flags flags)
+MoveTrigger::MoveTrigger(Vob* parent, World& world, const zenkit::VMover& mover, Flags flags)
   :AbstractTrigger(parent,world,mover,flags) {
   mover_keyframes = mover.keyframes;
   behavior = mover.behavior;
@@ -45,7 +45,7 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, const phoenix::vobs::trigger
     keyframes[i].ticks    = uint64_t(keyframes[i].position/mover.speed);
     if(keyframes[i].ticks==0) {
       keyframes[i].ticks = uint64_t(1.f/mover.speed);
-      if(mover.behavior==phoenix::mover_behavior::loop)
+      if(mover.behavior==zenkit::MoverBehavior::LOOP)
         keyframes[i].ticks = 10000; // HACK: windmil
       }
     }
@@ -118,7 +118,7 @@ void MoveTrigger::onTrigger(const TriggerEvent& e) {
   }
 
 void MoveTrigger::onUntrigger(const TriggerEvent& e) {
-  if(behavior==phoenix::mover_behavior::trigger_control)
+  if(behavior==zenkit::MoverBehavior::trigger_control)
     processTrigger(e,false);
   }
 
@@ -136,7 +136,7 @@ void MoveTrigger::processTrigger(const TriggerEvent& e, bool onTrigger) {
 
   std::string_view snd = sfxOpenStart;
   switch(behavior) {
-    case phoenix::mover_behavior::toggle: {
+    case zenkit::MoverBehavior::toggle: {
       if(frame+1==mover_keyframes.size()) {
         state = Close;
         } else {
@@ -144,21 +144,21 @@ void MoveTrigger::processTrigger(const TriggerEvent& e, bool onTrigger) {
         }
       break;
       }
-    case phoenix::mover_behavior::trigger_control: {
+    case zenkit::MoverBehavior::trigger_control: {
       if(onTrigger)
         state = Open; else
         state = Close;
       break;
       }
-    case phoenix::mover_behavior::open_timed: {
+    case zenkit::MoverBehavior::open_timed: {
       state = Open;
       break;
       }
-    case phoenix::mover_behavior::loop: {
+    case zenkit::MoverBehavior::loop: {
       state = Loop;
       break;
       }
-    case phoenix::mover_behavior::single_keys: {
+    case zenkit::MoverBehavior::single_keys: {
       state = NextKey;
       break;
       }
@@ -267,7 +267,7 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
       snd = sfxCloseEnd;
     if(prev==NextKey)
       snd = "";
-    if(behavior==phoenix::mover_behavior::open_timed && prev==Open) {
+    if(behavior==zenkit::MoverBehavior::open_timed && prev==Open) {
       state = OpenTimed;
       sAnim = world.tickCount();
       // override view

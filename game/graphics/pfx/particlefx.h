@@ -13,8 +13,8 @@ class PfxEmitterMesh;
 
 class ParticleFx final {
   public:
-    ParticleFx(const Material& mat, const phoenix::vob& vob);
-    ParticleFx(const phoenix::c_particle_fx& src, std::string_view name);
+    ParticleFx(const Material& mat, const zenkit::VirtualObject& vob);
+    ParticleFx(const zenkit::IParticleEffect& src, std::string_view name);
     ParticleFx(const ParticleFx& proto, const VisualFx::Key& key);
 
     enum class EmitterType:uint8_t {

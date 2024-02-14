@@ -9,7 +9,7 @@ using namespace Tempest;
 WayPoint::WayPoint() {
   }
 
-WayPoint::WayPoint(const phoenix::way_point &dat)
+WayPoint::WayPoint(const zenkit::WayPoint &dat)
   : x(dat.position.x),y(dat.position.y),z(dat.position.z),
     dirX(dat.direction.x),dirY(dat.direction.y),dirZ(dat.direction.z),
     underWater(dat.under_water),

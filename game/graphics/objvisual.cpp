@@ -114,7 +114,7 @@ void ObjVisual::setType(Type t) {
   type = t;
   }
 
-void ObjVisual::setVisual(const phoenix::c_item& hitem, World& world, bool staticDraw) {
+void ObjVisual::setVisual(const zenkit::IItem& hitem, World& world, bool staticDraw) {
   cleanup();
 
   if(FileExt::hasExt(hitem.visual,"ZEN")) {
@@ -126,7 +126,7 @@ void ObjVisual::setVisual(const phoenix::c_item& hitem, World& world, bool stati
     }
   }
 
-void ObjVisual::setVisual(const phoenix::vob& vob, World& world, bool staticDraw) {
+void ObjVisual::setVisual(const zenkit::VirtualObject& vob, World& world, bool staticDraw) {
   cleanup();
 
   // const bool enableCollision = (vob.cd_dynamic || vob.cd_static);
@@ -138,7 +138,7 @@ void ObjVisual::setVisual(const phoenix::vob& vob, World& world, bool staticDraw
     bundle = VobBundle(world,vob.visual_name,(staticDraw ? Vob::Static : Vob::None));
     }
   else if(FileExt::hasExt(vob.visual_name,"PFX") || FileExt::hasExt(vob.visual_name,"TGA")) {
-    if(vob.sprite_camera_facing_mode==phoenix::sprite_alignment::none && FileExt::hasExt(vob.visual_name,"TGA")) {
+    if(vob.sprite_camera_facing_mode==zenkit::SpriteAlignment::none && FileExt::hasExt(vob.visual_name,"TGA")) {
       setType(M_Mesh);
       mesh.view = world.addDecalView(vob);
       } else {
@@ -158,7 +158,7 @@ void ObjVisual::setVisual(const phoenix::vob& vob, World& world, bool staticDraw
       mesh.view = world.addStaticView(view,staticDraw);
       mesh.view.setWind(vob.anim_mode,vob.anim_strength);
       }
-    if(vob.show_visual && enableCollision && vob.anim_mode!=phoenix::animation_mode::wind2) {
+    if(vob.show_visual && enableCollision && vob.anim_mode!=zenkit::AnimationType::wind2) {
       mesh.physic = PhysicMesh(*view,*world.physic(),false);
       }
     }

@@ -7,7 +7,7 @@ class World;
 
 class CsCamera : public AbstractTrigger {
   public:
-    CsCamera(Vob* parent, World& world, const phoenix::vobs::cs_camera& data, Flags flags);
+    CsCamera(Vob* parent, World& world, const zenkit::VCutsceneCamera& data, Flags flags);
 
   private:
     struct KeyFrame {

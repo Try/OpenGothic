@@ -63,7 +63,7 @@ class MoveAlgo final {
     bool    isSwim()    const;
     bool    isDive()    const;
 
-    phoenix::material_group groundMaterial() const;
+    zenkit::MaterialGroup groundMaterial() const;
     auto    groundNormal() const -> Tempest::Vec3;
 
     auto    portalName() -> std::string_view;

@@ -20,7 +20,7 @@ namespace phoenix_compat {
   {
     struct SubMesh
     {
-      phoenix::material material;
+      zenkit::Material material;
       size_t           indexOffset = 0;
       size_t           indexSize   = 0;
     };
@@ -30,8 +30,8 @@ namespace phoenix_compat {
     std::vector<uint32_t>       indices;
     std::vector<SubMesh>        subMeshes;
   };
-
-  phoenix::bounding_box get_total_aabb(const phoenix::softskin_mesh&);
-
-  PackedSkeletalMesh pack_softskin_mesh(const phoenix::softskin_mesh&);
+  
+  zenkit::AxisAlignedBoundingBox get_total_aabb(const zenkit::SoftSkinMesh&);
+  
+  PackedSkeletalMesh pack_softskin_mesh(const zenkit::SoftSkinMesh&);
 }

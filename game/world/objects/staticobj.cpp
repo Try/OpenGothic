@@ -7,7 +7,7 @@
 
 using namespace Tempest;
 
-StaticObj::StaticObj(Vob* parent, World& world, const phoenix::vob& vob, Flags flags)
+StaticObj::StaticObj(Vob* parent, World& world, const zenkit::VirtualObject& vob, Flags flags)
   : Vob(parent, world, vob, flags) {
   visual.setVisual(vob,world,(flags & Flags::Static));
   visual.setObjMatrix(transform());

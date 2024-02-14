@@ -1,6 +1,6 @@
 #pragma once
 
-#include <phoenix/world/way_net.hh>
+#include <zenkit/world/WayNet.hh>
 
 #include <limits>
 #include <Tempest/Vec>
@@ -11,7 +11,7 @@ class Interactive;
 class WayPoint final {
   public:
     WayPoint();
-    WayPoint(const phoenix::way_point& dat);
+    WayPoint(const zenkit::WayPoint& dat);
     WayPoint(const Tempest::Vec3& pos, std::string_view name);
     WayPoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name);
     WayPoint(const WayPoint&)=default;

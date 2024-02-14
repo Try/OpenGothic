@@ -34,7 +34,7 @@ PfxEmitter::PfxEmitter(PfxObjects& owner, const ParticleFx* decl) {
     shpMesh = owner.world.addView(decl->shpMesh_S,0,0,0);
   }
 
-PfxEmitter::PfxEmitter(World& world, const phoenix::vob& vob) {
+PfxEmitter::PfxEmitter(World& world, const zenkit::VirtualObject& vob) {
   auto& owner = world.view()->pfxGroup;
   if(FileExt::hasExt(vob.visual_name,"PFX")) {
     auto decl = Gothic::inst().loadParticleFx(vob.visual_name);

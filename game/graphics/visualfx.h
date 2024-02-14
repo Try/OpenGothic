@@ -13,7 +13,7 @@ class World;
 
 class VisualFx final {
   public:
-    VisualFx(const phoenix::c_fx_base& src, phoenix::vm& tmpVm, std::string_view name);
+    VisualFx(const zenkit::IEffectBase& src, zenkit::DaedalusVm& tmpVm, std::string_view name);
 
     enum Collision : uint8_t {
       NoCollision = 0,
@@ -57,7 +57,7 @@ class VisualFx final {
     class Key {
       public:
         Key() = default;
-        Key(const phoenix::c_particle_fx_emit_key& k);
+        Key(const zenkit::IParticleEffectEmitKey& k);
 
         // vars which influence all particles all time
         const ParticleFx* visName = nullptr;
@@ -144,7 +144,7 @@ class VisualFx final {
     uint64_t              emInvestNextKeyDuration = 0;
     float                 emFlyGravity            = 0.f;
     Tempest::Vec3         emSelfRotVel;
-    std::string           userString[phoenix::c_fx_base::user_string_count];
+    std::string           userString[zenkit::IEffectBase::user_string_count];
     std::string           lightPresetName;
     std::string           sfxID;
     bool                  sfxIsAmbient            = false;

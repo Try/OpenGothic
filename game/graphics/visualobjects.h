@@ -40,7 +40,7 @@ class VisualObjects final {
       void     setObjMatrix(const Tempest::Matrix4x4& mt);
       void     setAsGhost  (bool g);
       void     setFatness  (float f);
-      void     setWind     (phoenix::animation_mode m, float intensity);
+      void     setWind     (zenkit::AnimationType m, float intensity);
       void     startMMAnim (std::string_view anim, float intensity, uint64_t timeUntil);
 
       const Material&    material() const;
@@ -113,7 +113,7 @@ class VisualObjects final {
 
       Material::AlphaFunc alpha = Material::Solid;
       MorphAnim           morphAnim[Resources::MAX_MORPH_LAYERS];
-      phoenix::animation_mode wind = phoenix::animation_mode::none;
+      zenkit::AnimationType wind = zenkit::AnimationType::none;
       float               windIntensity = 0;
       float               fatness   = 0;
       bool                isGhost   = false;

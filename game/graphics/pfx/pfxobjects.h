@@ -5,7 +5,6 @@
 
 #include <memory>
 #include <list>
-#include <random>
 
 #include "world/objects/pfxemitter.h"
 #include "graphics/visualobjects.h"
@@ -37,14 +36,14 @@ class PfxObjects final {
 
   private:
     struct SpriteEmitter {
-      phoenix::sprite_alignment   visualCamAlign = phoenix::sprite_alignment::none;
+      zenkit::SpriteAlignment     visualCamAlign = zenkit::SpriteAlignment::none;
       int32_t                     zBias          = 0;
       Tempest::Vec2               decalDim = {};
       std::unique_ptr<ParticleFx> pfx;
       };
 
     PfxBucket&                    getBucket(const ParticleFx& decl);
-    PfxBucket&                    getBucket(const Material& mat, const phoenix::vob& vob);
+    PfxBucket&                    getBucket(const Material& mat, const zenkit::VirtualObject& vob);
 
     WorldView&                    world;
     const SceneGlobals&           scene;

@@ -19,10 +19,10 @@ class Animation final {
       };
 
     struct EvTimed final {
-      phoenix::mds::event_tag_type def = phoenix::mds::event_tag_type::unknown;
-      std::string_view             item;
-      std::string_view             slot[2] = {};
-      uint64_t                     time    = 0;
+      zenkit::MdsEventType def = zenkit::MdsEventType::unknown;
+      std::string_view     item;
+      std::string_view     slot[2] = {};
+      uint64_t             time    = 0;
       };
 
     struct EvMorph final {
@@ -31,18 +31,18 @@ class Animation final {
       };
 
     struct EvCount final {
-      uint8_t                        def_opt_frame=0;
-      uint8_t                        groundSounds=0;
-      phoenix::mds::event_fight_mode weaponCh = phoenix::mds::event_fight_mode::invalid;
-      std::vector<EvTimed>           timed;
-      std::vector<EvMorph>           morph;
+      uint8_t              def_opt_frame = 0;
+      uint8_t              groundSounds = 0;
+      zenkit::MdsFightMode weaponCh = zenkit::MdsFightMode::invalid;
+      std::vector<EvTimed> timed;
+      std::vector<EvMorph> morph;
       };
 
     struct AnimData final {
       Tempest::Vec3                               translate={};
       Tempest::Vec3                               moveTr={};
 
-      std::vector<phoenix::animation_sample>      samples;
+      std::vector<zenkit::AnimationSample>        samples;
       std::vector<uint32_t>                       nodeIndex;
       std::vector<Tempest::Vec3>                  tr;
       bool                                        hasMoveTr=false;
@@ -52,14 +52,14 @@ class Animation final {
       float                                       fpsRate   =60.f;
       uint32_t                                    numFrames =0;
 
-      std::vector<phoenix::mds::event_sfx_ground> gfx;
-      std::vector<phoenix::mds::event_sfx>        sfx;
-      std::vector<phoenix::mds::event_pfx>        pfx;
-      std::vector<phoenix::mds::event_pfx_stop>   pfxStop;
-      std::vector<phoenix::mds::model_tag>        tag;
-      std::vector<phoenix::mds::event_tag>        events;
+      std::vector<zenkit::MdsSoundEffectGround>   gfx;
+      std::vector<zenkit::MdsSoundEffect>         sfx;
+      std::vector<zenkit::MdsParticleEffect>      pfx;
+      std::vector<zenkit::MdsParticleEffectStop>  pfxStop;
+      std::vector<zenkit::MdsModelTag>            tag;
+      std::vector<zenkit::MdsEventTag>            events;
 
-      std::vector<phoenix::mds::event_morph_animate> mmStartAni;
+      std::vector<zenkit::MdsMorphAnimation>      mmStartAni;
 
       std::vector<uint64_t>                       defHitEnd;   // hit-end time
       std::vector<uint64_t>                       defParFrame;
@@ -71,12 +71,12 @@ class Animation final {
 
     struct Sequence final {
       Sequence()=default;
-      Sequence(const phoenix::mds::animation& hdr, std::string_view name);
+      Sequence(const zenkit::MdsAnimation& hdr, std::string_view name);
 
-      bool                                   isRotate() const { return bool(flags & phoenix::mds::af_rotate); }
-      bool                                   isMove()   const { return bool(flags & phoenix::mds::af_move);   }
-      bool                                   isFly()    const { return bool(flags & phoenix::mds::af_fly);    }
-      bool                                   isIdle()   const { return bool(flags & phoenix::mds::af_idle);   }
+      bool                                   isRotate() const { return bool(flags & zenkit::AnimationFlags::ROTATE); }
+      bool                                   isMove()   const { return bool(flags & zenkit::AnimationFlags::MOVE);   }
+      bool                                   isFly()    const { return bool(flags & zenkit::AnimationFlags::FLY);    }
+      bool                                   isIdle()   const { return bool(flags & zenkit::AnimationFlags::IDLE);   }
       bool                                   isFinished(uint64_t now, uint64_t sTime, uint16_t comboLen) const;
       float                                  atkTotalTime(uint16_t comboLen) const;
       bool                                   canInterrupt(uint64_t now, uint64_t sTime, uint16_t comboLen) const;
@@ -98,7 +98,7 @@ class Animation final {
       std::string                            name, askName;
       const char*                            shortName = nullptr;
       uint32_t                               layer     = 0;
-      phoenix::mds::animation_flags          flags     = phoenix::mds::af_none;
+      zenkit::AnimationFlags                 flags     = zenkit::AnimationFlags::NONE;
       uint64_t                               blendIn   = 0;
       uint64_t                               blendOut  = 0;
       AnimClass                              animCls   = Transition;
@@ -113,12 +113,12 @@ class Animation final {
 
       private:
         void                                 setupMoveTr();
-        static void                          processEvent(const phoenix::mds::event_tag& e, EvCount& ev, uint64_t time);
+        static void                          processEvent(const zenkit::MdsEventTag& e, EvCount& ev, uint64_t time);
         bool                                 extractFrames(uint64_t &frameA, uint64_t &frameB, bool &invert, uint64_t barrier, uint64_t sTime, uint64_t now) const;
       };
 
 
-    Animation(phoenix::model_script &p, std::string_view name, bool ignoreErrChunks);
+    Animation(zenkit::ModelScript &p, std::string_view name, bool ignoreErrChunks);
 
     const Sequence*    sequence(std::string_view name) const;
     const Sequence*    sequenceAsc(std::string_view name) const;
@@ -126,12 +126,12 @@ class Animation final {
     std::string_view   defaultMesh() const;
 
   private:
-    Sequence&          loadMAN(const phoenix::mds::animation& hdr, std::string_view name);
+    Sequence&          loadMAN(const zenkit::MdsAnimation& hdr, std::string_view name);
     void               setupIndex();
 
-    mutable const Sequence*                     sqHot = nullptr;
-    std::vector<Sequence>                       sequences;
-    std::vector<phoenix::mds::animation_alias>  ref;
-    std::vector<std::string>                    mesh;
-    phoenix::mds::skeleton                      meshDef;
+    mutable const Sequence*                  sqHot = nullptr;
+    std::vector<Sequence>                    sequences;
+    std::vector<zenkit::MdsAnimationAlias>   ref;
+    std::vector<std::string>                 mesh;
+    zenkit::MdsSkeleton                      meshDef;
   };

@@ -10,7 +10,7 @@ static Tempest::Color toColor(glm::u8vec4 v) {
   return c;
   }
 
-Material::Material(const phoenix::material& m, bool enableAlphaTest) {
+Material::Material(const zenkit::Material& m, bool enableAlphaTest) {
   tex = Resources::loadTexture(m.texture);
   if(tex==nullptr) {
     if(!m.texture.empty()) {
@@ -29,7 +29,7 @@ Material::Material(const phoenix::material& m, bool enableAlphaTest) {
     alpha = Solid;
     }
 
-  if(m.texture_anim_map_mode!=phoenix::animation_mapping_mode::none && tex!=nullptr) {
+  if(m.texture_anim_map_mode!=zenkit::AnimationMapping::none && tex!=nullptr) {
     auto texAniMapDir = m.texture_anim_map_dir;
     if(texAniMapDir.x!=0.f)
       texAniMapDirPeriod.x = int(1.f/texAniMapDir.x);
@@ -37,14 +37,14 @@ Material::Material(const phoenix::material& m, bool enableAlphaTest) {
       texAniMapDirPeriod.y = int(1.f/texAniMapDir.y);
     }
 
-  if(m.wave_mode!=phoenix::wave_mode_type::none)
+  if(m.wave_mode!=zenkit::WaveMode::none)
     waveMaxAmplitude = m.wave_max_amplitude;
 
   if(m.environment_mapping!=0)
     ; // envMapping = m.environment_mapping_strength;
   }
 
-Material::Material(const phoenix::vob& vob) {
+Material::Material(const zenkit::VirtualObject& vob) {
   tex = Resources::loadTexture(vob.visual_name);
   if(tex==nullptr && !vob.visual_name.empty())
     tex = Resources::loadTexture("DEFAULT.TGA");
@@ -52,7 +52,7 @@ Material::Material(const phoenix::vob& vob) {
   frames       = Resources::loadTextureAnim(vob.visual_name);
 
   texAniFPSInv = 1000/std::max<size_t>(frames.size(),1);
-  alpha        = loadAlphaFunc(vob.visual_decal->alpha_func,phoenix::material_group::undefined,vob.visual_decal->alpha_weight,tex,true);
+  alpha        = loadAlphaFunc(vob.visual_decal->alpha_func, zenkit::MaterialGroup::undefined, vob.visual_decal->alpha_weight, tex, true);
   alphaWeight  = float(vob.visual_decal->alpha_weight)/255.f;
 
   if(vob.visual_decal->texture_anim_fps>0)
@@ -60,7 +60,7 @@ Material::Material(const phoenix::vob& vob) {
     texAniFPSInv = 1;
   }
 
-Material::Material(const phoenix::c_particle_fx& src) {
+Material::Material(const zenkit::IParticleEffect& src) {
   tex    = Resources::loadTexture(src.vis_name_s);
   frames = Resources::loadTextureAnim(src.vis_name_s);
   if(src.vis_tex_ani_fps>0)
@@ -139,36 +139,36 @@ int Material::alphaOrder(AlphaFunc a, bool ghost) {
   return a;
   }
 
-Material::AlphaFunc Material::loadAlphaFunc(phoenix::alpha_function zenAlpha,
-                                            phoenix::material_group matGroup,
+Material::AlphaFunc Material::loadAlphaFunc(zenkit::AlphaFunction zenAlpha,
+                                            zenkit::MaterialGroup matGroup,
                                             uint8_t clrAlpha,
                                             const Tempest::Texture2d* tex,
                                             bool enableAlphaTest) {
   Material::AlphaFunc alpha = Material::AlphaFunc::AlphaTest;
   switch(zenAlpha) {
-    case phoenix::alpha_function::blend:
+    case zenkit::AlphaFunction::blend:
       alpha = Material::AlphaFunc::Transparent;
       break;
-    case phoenix::alpha_function::add:
+    case zenkit::AlphaFunction::add:
       alpha = Material::AlphaFunc::AdditiveLight;
       break;
-    case phoenix::alpha_function::sub:
+    case zenkit::AlphaFunction::sub:
       // FIXME: no such materials in game found
       alpha = Material::AlphaFunc::AdditiveLight;
       break;
-    case phoenix::alpha_function::mul:
+    case zenkit::AlphaFunction::mul:
       alpha = Material::AlphaFunc::Multiply;
       break;
-    case phoenix::alpha_function::mul2:
+    case zenkit::AlphaFunction::mul2:
       alpha = Material::AlphaFunc::Multiply2;
       break;
-    case phoenix::alpha_function::default_:
-    case phoenix::alpha_function::none:
+    case zenkit::AlphaFunction::default_:
+    case zenkit::AlphaFunction::none:
       alpha = Material::AlphaFunc::AlphaTest;
       break;
     }
 
-  if(matGroup == phoenix::material_group::water)
+  if(matGroup == zenkit::MaterialGroup::water)
     alpha = Material::AlphaFunc::Water;
 
   if(clrAlpha!=255 && alpha==Material::AlphaFunc::Solid) {
@@ -194,7 +194,7 @@ Material::AlphaFunc Material::loadAlphaFunc(phoenix::alpha_function zenAlpha,
   return alpha;
   }
 
-void Material::loadFrames(const phoenix::material& m) {
+void Material::loadFrames(const zenkit::Material& m) {
   frames = Resources::loadTextureAnim(m.texture);
   if(m.texture_anim_fps > 0)
     texAniFPSInv = uint64_t(1.0f / m.texture_anim_fps); else

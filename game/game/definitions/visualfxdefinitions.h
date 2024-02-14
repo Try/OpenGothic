@@ -16,8 +16,8 @@ class VisualFxDefinitions final {
     const VisualFx *get(std::string_view name);
 
   private:
-    std::unique_ptr<phoenix::vm>                   vm;
+    std::unique_ptr<zenkit::DaedalusVm>                       vm;
     std::unordered_map<std::string,std::unique_ptr<VisualFx>> vfx;
 
-    std::shared_ptr<phoenix::c_fx_base> implGet(std::string_view name);
+    std::shared_ptr<zenkit::IEffectBase> implGet(std::string_view name);
   };

@@ -13,7 +13,7 @@ using namespace Tempest;
 Item::Item(World &owner, size_t itemInstance, Type type)
   :Vob(owner) {
   assert(itemInstance!=size_t(-1));
-  hitem = std::make_shared<phoenix::c_item>();
+  hitem = std::make_shared<zenkit::IItem>();
   hitem->user_ptr=this;
   owner.script().initializeInstanceItem(hitem, itemInstance);
   setCount(1);
@@ -28,7 +28,7 @@ Item::Item(World &owner, size_t itemInstance, Type type)
 Item::Item(World &owner, Serialize &fin, Type type)
   :Vob(owner) {
   auto& h = hitem;
-  h = std::make_shared<phoenix::c_item>();
+  h = std::make_shared<zenkit::IItem>();
   h->user_ptr = this;
 
   Tempest::Matrix4x4 mat;
@@ -150,7 +150,7 @@ void Item::setPhysicsEnable(const MeshObjects::Mesh& view) {
   if(view.nodesCount()==0)
     return;
   auto& p = *world.physic();
-  physic = p.dynamicObj(transform(),view.bounds(),phoenix::material_group(hitem->material));
+  physic = p.dynamicObj(transform(),view.bounds(),zenkit::MaterialGroup(hitem->material));
   physic.setItem(this);
   }
 
@@ -160,7 +160,7 @@ void Item::setPhysicsEnable(const ProtoMesh* mesh) {
   auto& p = *world.physic();
   Bounds b;
   b.assign(mesh->bbox);
-  physic = p.dynamicObj(transform(),b,phoenix::material_group(hitem->material));
+  physic = p.dynamicObj(transform(),b,zenkit::MaterialGroup(hitem->material));
   physic.setItem(this);
   }
 
@@ -284,7 +284,7 @@ bool Item::checkCond(const Npc &other) const {
   }
 
 bool Item::checkCondUse(const Npc &other, int32_t &a, int32_t &nv) const {
-  for(size_t i=0;i<phoenix::c_item::condition_count;++i){
+  for(size_t i=0;i<zenkit::IItem::condition_count;++i){
     auto atr = Attribute(hitem->cond_atr[i]);
     if(other.attribute(atr)<hitem->cond_value[i] && hitem->cond_value[i]!=0) {
       a  = atr;

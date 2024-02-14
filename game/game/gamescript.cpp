@@ -24,7 +24,7 @@ using namespace Tempest;
 
 template <typename T>
 struct ScopeVar final {
-  ScopeVar(phoenix::symbol& sym, const std::shared_ptr<T>& h) : prev(sym.get_instance()), sym(sym) {
+  ScopeVar(zenkit::DaedalusSymbol& sym, const std::shared_ptr<T>& h) : prev(sym.get_instance()), sym(sym) {
     sym.set_instance(h);
     }
 
@@ -33,8 +33,8 @@ struct ScopeVar final {
     sym.set_instance(prev);
     }
 
-  std::shared_ptr<phoenix::instance> prev;
-  phoenix::symbol&                   sym;
+  std::shared_ptr<zenkit::DaedalusInstance> prev;
+  zenkit::DaedalusSymbol&                   sym;
   };
 
 
@@ -68,8 +68,8 @@ GameScript::GameScript(GameSession &owner)
     throw std::runtime_error("Cannot find script symbol SELF, OTHER, ITEM, VICTIM, or HERO! Cannot proceed!");
 
   vmLang = Gothic::inst().settingsGetI("GAME", "language");
-  phoenix::register_all_script_classes(vm);
-  vm.register_exception_handler(phoenix::lenient_vm_exception_handler);
+  zenkit::register_all_script_classes(vm);
+  vm.register_exception_handler(zenkit::lenient_vm_exception_handler);
   Gothic::inst().setupVmCommonApi(vm);
   aiDefaultPipe.reset(new GlobalOutput(*this));
   initCommon();
@@ -315,7 +315,7 @@ void GameScript::initCommon() {
     auto* currency = vm.find_symbol_by_name("TRADE_CURRENCY_INSTANCE");
     itMi_Gold      = currency!=nullptr ? vm.find_symbol_by_name(currency->get_string()) : nullptr;
     if(itMi_Gold!=nullptr){ // FIXME
-      auto item = vm.init_instance<phoenix::c_item>(itMi_Gold);
+      auto item = vm.init_instance<zenkit::IItem>(itMi_Gold);
       goldTxt = item->name;
       }
     auto* tradeMul = vm.find_symbol_by_name("TRADE_VALUE_MULTIPLIER");
@@ -329,7 +329,7 @@ void GameScript::initCommon() {
     } else {
     itMi_Gold      = vm.find_symbol_by_name("ItMiNugget");
     if(itMi_Gold!=nullptr) { // FIXME
-      auto item = vm.init_instance<phoenix::c_item>(itMi_Gold);
+      auto item = vm.init_instance<zenkit::IItem>(itMi_Gold);
       goldTxt = item->name;
       }
     //
@@ -352,7 +352,7 @@ void GameScript::initCommon() {
 
   auto id = vm.find_symbol_by_name("Gil_Values");
   if(id!=nullptr){
-    cGuildVal = vm.init_instance<phoenix::c_gil_values>(id);
+    cGuildVal = vm.init_instance<zenkit::IGuildValues>(id);
     for(size_t i=0;i<Guild::GIL_PUBLIC;++i){
       cGuildVal->water_depth_knee   [i]=cGuildVal->water_depth_knee   [Guild::GIL_HUMAN];
       cGuildVal->water_depth_chest  [i]=cGuildVal->water_depth_chest  [Guild::GIL_HUMAN];
@@ -412,8 +412,8 @@ void GameScript::initDialogs() {
   loadDialogOU();
 
   dialogsInfo.clear();
-  vm.enumerate_instances_by_class_name("C_INFO", [this](phoenix::symbol& sym){
-    dialogsInfo.push_back(vm.init_instance<phoenix::c_info>(&sym));
+  vm.enumerate_instances_by_class_name("C_INFO", [this](zenkit::DaedalusSymbol& sym){
+    dialogsInfo.push_back(vm.init_instance<zenkit::IInfo>(&sym));
     });
   }
 
@@ -458,7 +458,7 @@ void GameScript::loadDialogOU() {
   Log::e("none of Zen-files for OU could be loaded");
   }
 
-void GameScript::initializeInstanceNpc(const std::shared_ptr<phoenix::c_npc>& npc, size_t instance) {
+void GameScript::initializeInstanceNpc(const std::shared_ptr<zenkit::INpc>& npc, size_t instance) {
   auto sym = vm.find_symbol_by_index(uint32_t(instance));
 
   if(sym == nullptr) {
@@ -478,7 +478,7 @@ void GameScript::initializeInstanceNpc(const std::shared_ptr<phoenix::c_npc>& np
     }
   }
 
-void GameScript::initializeInstanceItem(const std::shared_ptr<phoenix::c_item>& item, size_t instance) {
+void GameScript::initializeInstanceItem(const std::shared_ptr<zenkit::IItem>& item, size_t instance) {
   auto sym = vm.find_symbol_by_index(uint32_t(instance));
 
   if(sym == nullptr) {
@@ -525,44 +525,44 @@ void GameScript::loadVar(Serialize &fin) {
   uint32_t sz=0;
   fin.read(sz);
   for(size_t i=0;i<sz;++i){
-    auto t= (uint32_t) phoenix::datatype::void_;
+    auto t = uint32_t(zenkit::DaedalusDataType::void_);
     fin.read(t);
-    switch(phoenix::datatype(t)) {
-      case phoenix::datatype::integer:{
+    switch(zenkit::DaedalusDataType(t)) {
+      case zenkit::DaedalusDataType::integer:{
         fin.read(name);
         auto* s = findSymbol(name);
 
         uint32_t size;
         fin.read(size);
 
-        int v;
-        for (unsigned j = 0; j < size; ++j) {
-            fin.read(v);
-            if (s != nullptr && !s->is_member() && !s->is_const()) {
-                s->set_int(v, uint16_t(j));
+        int v = 0;
+        for(unsigned j = 0; j < size; ++j) {
+          fin.read(v);
+          if (s != nullptr && !s->is_member() && !s->is_const()) {
+            s->set_int(v, uint16_t(j));
             }
-        }
+          }
 
         break;
         }
-      case phoenix::datatype::float_:{
+      case zenkit::DaedalusDataType::float_:{
         fin.read(name);
         auto* s = findSymbol(name);
 
         uint32_t size;
         fin.read(size);
 
-        float v;
+        float v = 0;
         for (unsigned j = 0; j < size; ++j) {
-            fin.read(v);
-            if (s != nullptr && !s->is_member() && !s->is_const()) {
-                s->set_float(v, uint16_t(j));
+          fin.read(v);
+          if (s != nullptr && !s->is_member() && !s->is_const()) {
+            s->set_float(v, uint16_t(j));
             }
-        }
+          }
 
         break;
         }
-      case phoenix::datatype::string:{
+      case zenkit::DaedalusDataType::string:{
         fin.read(name);
         auto* s = findSymbol(name);
 
@@ -571,15 +571,15 @@ void GameScript::loadVar(Serialize &fin) {
 
         std::string v;
         for (unsigned j = 0; j < size; ++j) {
-            fin.read(v);
-            if (s != nullptr && !s->is_member() && !s->is_const()) {
-                s->set_string(v, uint16_t(j));
+          fin.read(v);
+          if (s != nullptr && !s->is_member() && !s->is_const()) {
+            s->set_string(v, uint16_t(j));
             }
-        }
+          }
 
         break;
         }
-      case phoenix::datatype::instance:{
+      case zenkit::DaedalusDataType::instance:{
         uint8_t dataClass=0;
         fin.read(dataClass);
         if(dataClass>0){
@@ -607,8 +607,8 @@ void GameScript::loadVar(Serialize &fin) {
           }
         break;
         }
-        default:
-          break;
+      default:
+        break;
       }
     }
   }
@@ -616,7 +616,7 @@ void GameScript::loadVar(Serialize &fin) {
 void GameScript::resetVarPointers() {
   for(uint32_t i=0;i<vm.symbols().size();++i){
     auto* s = vm.find_symbol_by_index(i); // never returns nullptr
-    if(s->is_instance_of<phoenix::c_npc>() || s->is_instance_of<phoenix::c_item>()){
+    if(s->is_instance_of<zenkit::INpc>() || s->is_instance_of<zenkit::IItem>()){
       s->set_instance(nullptr);
       }
     }
@@ -626,10 +626,10 @@ const QuestLog& GameScript::questLog() const {
   return quests;
   }
 
-void GameScript::saveSym(Serialize &fout, phoenix::symbol &i) {
+void GameScript::saveSym(Serialize &fout, zenkit::DaedalusSymbol& i) {
   auto& w = world();
   switch(i.type()) {
-    case phoenix::datatype::integer:
+    case zenkit::DaedalusDataType::integer:
       if(i.count()>0 && !i.is_member() && !i.is_const()){
         fout.write(i.type(), i.name(), i.count());
 
@@ -638,7 +638,7 @@ void GameScript::saveSym(Serialize &fout, phoenix::symbol &i) {
         return;
         }
       break;
-    case phoenix::datatype::float_:
+    case zenkit::DaedalusDataType::float_:
       if(i.count()>0 && !i.is_member() && !i.is_const()){
         fout.write(i.type(), i.name(), i.count());
 
@@ -647,7 +647,7 @@ void GameScript::saveSym(Serialize &fout, phoenix::symbol &i) {
         return;
         }
       break;
-    case phoenix::datatype::string:
+    case zenkit::DaedalusDataType::string:
       if(i.count()>0 && !i.is_member() && !i.is_const()){
         fout.write(i.type(), i.name(), i.count());
 
@@ -656,36 +656,36 @@ void GameScript::saveSym(Serialize &fout, phoenix::symbol &i) {
         return;
         }
       break;
-    case phoenix::datatype::instance:
+    case zenkit::DaedalusDataType::instance:
       fout.write(i.type());
 
-      if(i.is_instance_of<phoenix::c_npc>()){
-        auto hnpc = reinterpret_cast<const phoenix::c_npc*>(i.get_instance().get());
+      if(i.is_instance_of<zenkit::INpc>()){
+        auto hnpc = reinterpret_cast<const zenkit::INpc*>(i.get_instance().get());
         auto npc  = reinterpret_cast<const Npc*>(hnpc==nullptr ? nullptr : hnpc->user_ptr);
         fout.write(uint8_t(1),i.name(),world().npcId(npc));
         }
-      else if(i.is_instance_of<phoenix::c_item>()){
-          auto     item = reinterpret_cast<const phoenix::c_item*>(i.get_instance().get());
-          uint32_t id   = w.itmId(item);
-          if(id!=uint32_t(-1) || item==nullptr) {
-              fout.write(uint8_t(2),i.name(),id);
+      else if(i.is_instance_of<zenkit::IItem>()){
+        auto     item = reinterpret_cast<const zenkit::IItem*>(i.get_instance().get());
+        uint32_t id   = w.itmId(item);
+        if(id!=uint32_t(-1) || item==nullptr) {
+          fout.write(uint8_t(2),i.name(),id);
           } else {
-              uint32_t idNpc = uint32_t(-1);
-              for(uint32_t r=0; r<w.npcCount(); ++r) {
-                  auto& n = *w.npcById(r);
-                  if(n.itemCount(item->symbol_index())>0) {
-                      idNpc = r;
-                      fout.write(uint8_t(3),i.name(),idNpc,uint32_t(item->symbol_index()));
-                      break;
-                  }
+          uint32_t idNpc = uint32_t(-1);
+          for(uint32_t r=0; r<w.npcCount(); ++r) {
+            auto& n = *w.npcById(r);
+            if(n.itemCount(item->symbol_index())>0) {
+              idNpc = r;
+              fout.write(uint8_t(3),i.name(),idNpc,uint32_t(item->symbol_index()));
+              break;
               }
-              if(idNpc==uint32_t(-1))
-                  fout.write(uint8_t(2),i.name(),uint32_t(-1));
+            }
+          if(idNpc==uint32_t(-1))
+            fout.write(uint8_t(2),i.name(),uint32_t(-1));
           }
         }
-      else if(i.is_instance_of<phoenix::c_focus>() ||
-              i.is_instance_of<phoenix::c_gil_values>() ||
-              i.is_instance_of<phoenix::c_info>()) {
+      else if(i.is_instance_of<zenkit::IFocus>() ||
+              i.is_instance_of<zenkit::IGuildValues>() ||
+              i.is_instance_of<zenkit::IInfo>()) {
         fout.write(uint8_t(0));
         }
       else {
@@ -695,7 +695,7 @@ void GameScript::saveSym(Serialize &fout, phoenix::symbol &i) {
     default:
       break;
     }
-  fout.write((uint32_t) phoenix::datatype::void_);
+  fout.write(uint32_t(zenkit::DaedalusDataType::void_));
   }
 
 void GameScript::fixNpcPosition(Npc& npc, float angle0, float distBias) {
@@ -729,13 +729,14 @@ World &GameScript::world() {
   return *owner.world();
   }
 
-phoenix::c_focus GameScript::findFocus(std::string_view name) {
+zenkit::IFocus GameScript::findFocus(std::string_view name) {
   auto id = vm.find_symbol_by_name(name);
   if(id==nullptr)
     return {};
   try {
-    return *vm.init_instance<phoenix::c_focus>(id);
-    } catch (const phoenix::script_error&) {
+    return *vm.init_instance<zenkit::IFocus>(id);
+    }
+  catch(const zenkit::DaedalusScriptError&) {
     return {};
     }
   }
@@ -749,11 +750,11 @@ void GameScript::storeItem(Item *itm) {
     }
   }
 
-phoenix::symbol* GameScript::findSymbol(std::string_view s) {
+zenkit::DaedalusSymbol* GameScript::findSymbol(std::string_view s) {
   return vm.find_symbol_by_name(s);
   }
 
-phoenix::symbol* GameScript::findSymbol(const size_t s) {
+zenkit::DaedalusSymbol* GameScript::findSymbol(const size_t s) {
   return vm.find_symbol_by_index(uint32_t(s));
   }
 
@@ -774,7 +775,7 @@ const AiState& GameScript::aiState(ScriptFn id) {
   return ins.first->second;
   }
 
-const phoenix::c_spell& GameScript::spellDesc(int32_t splId) {
+const zenkit::ISpell& GameScript::spellDesc(int32_t splId) {
   auto& tag = spellFxInstanceNames->get_string(uint16_t(splId));
   return spells->find(tag);
   }
@@ -785,13 +786,13 @@ const VisualFx* GameScript::spellVfx(int32_t splId) {
   return Gothic::inst().loadVisualFx(name);
   }
 
-std::vector<GameScript::DlgChoice> GameScript::dialogChoices(std::shared_ptr<phoenix::c_npc> player,
-                                                               std::shared_ptr<phoenix::c_npc> hnpc,
-                                                               const std::vector<uint32_t>& except,
-                                                               bool includeImp) {
+std::vector<GameScript::DlgChoice> GameScript::dialogChoices(std::shared_ptr<zenkit::INpc> player,
+                                                             std::shared_ptr<zenkit::INpc> hnpc,
+                                                             const std::vector<uint32_t>& except,
+                                                             bool includeImp) {
   ScopeVar self (*vm.global_self(),  hnpc);
   ScopeVar other(*vm.global_other(), player);
-  std::vector<phoenix::c_info*> hDialog;
+  std::vector<zenkit::IInfo*> hDialog;
   for(auto& info : dialogsInfo) {
     if(info->npc==static_cast<int>(hnpc->symbol_index())) {
       hDialog.push_back(info.get());
@@ -799,10 +800,9 @@ std::vector<GameScript::DlgChoice> GameScript::dialogChoices(std::shared_ptr<pho
     }
 
   std::vector<DlgChoice> choice;
-
   for(int important=includeImp ? 1 : 0;important>=0;--important){
     for(auto& i:hDialog) {
-      const phoenix::c_info& info = *i;
+      const zenkit::IInfo& info = *i;
       if(info.important!=important)
         continue;
       bool npcKnowsInfo = doesNpcKnowInfo(*player,vm.find_symbol_by_instance(info)->index());
@@ -850,8 +850,8 @@ std::vector<GameScript::DlgChoice> GameScript::dialogChoices(std::shared_ptr<pho
 std::vector<GameScript::DlgChoice> GameScript::updateDialog(const GameScript::DlgChoice &dlg, Npc& player,Npc& npc) {
   if(dlg.handle==nullptr)
     return {};
-  const phoenix::c_info& info = *dlg.handle;
-  std::vector<GameScript::DlgChoice>     ret;
+  const zenkit::IInfo&               info = *dlg.handle;
+  std::vector<GameScript::DlgChoice> ret;
 
   ScopeVar self (*vm.global_self(), npc.handlePtr());
   ScopeVar other(*vm.global_other(), player.handlePtr());
@@ -875,7 +875,7 @@ void GameScript::exec(const GameScript::DlgChoice &dlg, Npc& player, Npc& npc) {
   ScopeVar self (*vm.global_self(), npc.handlePtr());
   ScopeVar other(*vm.global_other(), player.handlePtr());
 
-  phoenix::c_info& info = *dlg.handle;
+  zenkit::IInfo& info = *dlg.handle;
 
   if(&player!=&npc)
     player.stopAnim("");
@@ -967,7 +967,7 @@ void GameScript::printMobTooFar(Npc& npc) {
   vm.call_function<void>(id);
   }
 
-void GameScript::invokeState(const std::shared_ptr<phoenix::c_npc>& hnpc, const std::shared_ptr<phoenix::c_npc>& oth, const char *name) {
+void GameScript::invokeState(const std::shared_ptr<zenkit::INpc>& hnpc, const std::shared_ptr<zenkit::INpc>& oth, const char *name) {
   auto id = vm.find_symbol_by_name(name);
   if(id==nullptr)
     return;
@@ -1305,14 +1305,14 @@ bool GameScript::searchScheme(std::string_view sc, std::string_view listName) {
   return false;
   }
 
-phoenix::vm GameScript::createVm(Gothic& gothic) {
+zenkit::DaedalusVm GameScript::createVm(Gothic& gothic) {
   auto lang   = gothic.settingsGetI("GAME", "language");
   auto script = gothic.loadScript(gothic.defaultGameDatFile(), ScriptLang(lang));
-  auto exef   = phoenix::execution_flag::vm_allow_null_instance_access;
+  auto exef   = zenkit::DaedalusVmExecutionFlag::vm_allow_null_instance_access;
   if(Ikarus::isRequired(script)) {
-    exef |= phoenix::execution_flag::vm_ignore_const_specifier;
+    exef |= zenkit::DaedalusVmExecutionFlag::vm_ignore_const_specifier;
     }
-  return phoenix::vm(std::move(script), exef);
+  return zenkit::DaedalusVm(std::move(script), exef);
   }
 
 bool GameScript::hasSymbolName(std::string_view name) {
@@ -1332,7 +1332,7 @@ uint32_t GameScript::rand(uint32_t max) {
   return uint32_t(randGen())%max;
   }
 
-Npc* GameScript::findNpc(phoenix::symbol* s) {
+Npc* GameScript::findNpc(zenkit::DaedalusSymbol* s) {
   if(s->is_instance_of<phoenix::c_npc>()) {
     auto cNpc = reinterpret_cast<phoenix::c_npc*>(s->get_instance().get());
     return findNpc(cNpc);
@@ -1354,7 +1354,7 @@ Npc* GameScript::findNpc(const std::shared_ptr<phoenix::c_npc>& handle) {
   return reinterpret_cast<Npc*>(handle->user_ptr);
   }
 
-Npc* GameScript::findNpcById(const std::shared_ptr<phoenix::instance>& handle) {
+Npc* GameScript::findNpcById(const std::shared_ptr<zenkit::DaedalusInstance>& handle) {
   if(handle==nullptr)
     return nullptr;
   if(auto npc = dynamic_cast<const phoenix::c_npc*>(handle.get())) {
@@ -1380,7 +1380,7 @@ Item *GameScript::findItemById(size_t id) {
   return findItem(hitm);
   }
 
-Item* GameScript::findItemById(const std::shared_ptr<phoenix::instance>& handle) {
+Item* GameScript::findItemById(const std::shared_ptr<zenkit::DaedalusInstance>& handle) {
   if(handle==nullptr)
     return nullptr;
   if(auto itm = dynamic_cast<const phoenix::c_item*>(handle.get())) {
@@ -1482,7 +1482,7 @@ int GameScript::wld_getday() {
   return int(owner.time().day());
   }
 
-void GameScript::wld_playeffect(std::string_view visual, std::shared_ptr<phoenix::instance> sourceId, std::shared_ptr<phoenix::instance> targetId, int effectLevel, int damage, int damageType, int isProjectile) {
+void GameScript::wld_playeffect(std::string_view visual, std::shared_ptr<zenkit::DaedalusInstance> sourceId, std::shared_ptr<zenkit::DaedalusInstance> targetId, int effectLevel, int damage, int damageType, int isProjectile) {
   if(isProjectile!=0 || damageType!=0 || damage!=0 || effectLevel!=0) {
     // TODO
     Log::i("effect not implemented [",visual.data(),"]");
@@ -3048,7 +3048,7 @@ void GameScript::createinvitems(std::shared_ptr<phoenix::c_npc> npcRef, int item
     }
   }
 
-int GameScript::hlp_getinstanceid(std::shared_ptr<phoenix::instance> instance) {
+int GameScript::hlp_getinstanceid(std::shared_ptr<zenkit::DaedalusInstance> instance) {
   // Log::d("hlp_getinstanceid: name \"",handle.name,"\" not found");
   return instance == nullptr ? -1 : int(instance->symbol_index());
   }

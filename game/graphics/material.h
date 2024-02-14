@@ -2,16 +2,17 @@
 
 #include <Tempest/Texture2d>
 
-#include <phoenix/material.hh>
-#include <phoenix/world/vob_tree.hh>
-#include <phoenix/ext/daedalus_classes.hh>
+#include <zenkit/Material.hh>
+#include <zenkit/world/VobTree.hh>
+#include <zenkit/DaedalusScript.hh>
+#include <zenkit/addon/daedalus.hh>
 
 class Material final {
   public:
     Material()=default;
-    Material(const phoenix::material& m, bool enableAlphaTest);
-    Material(const phoenix::vob& vob);
-    Material(const phoenix::c_particle_fx &src);
+    Material(const zenkit::Material& m, bool enableAlphaTest);
+    Material(const zenkit::VirtualObject& vob);
+    Material(const zenkit::IParticleEffect &src);
 
     enum AlphaFunc:uint8_t {
       Solid,
@@ -58,8 +59,8 @@ class Material final {
   private:
     static int alphaOrder(AlphaFunc a, bool ghost);
 
-    static AlphaFunc loadAlphaFunc(phoenix::alpha_function zenAlpha, phoenix::material_group matGroup,
+    static AlphaFunc loadAlphaFunc(zenkit::AlphaFunction zenAlpha, zenkit::MaterialGroup matGroup,
                                    uint8_t alpha, const Tempest::Texture2d* tex, bool enableAlphaTest);
-    void             loadFrames(const phoenix::material& m);
+    void             loadFrames(const zenkit::Material& m);
   };
 

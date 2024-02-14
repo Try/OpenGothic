@@ -260,7 +260,7 @@ struct GameMenu::SavNameDialog : Dialog {
   bool         accepted = false;
   };
 
-GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, phoenix::vm &vm, std::string_view menuSection, KeyCodec::Action kClose)
+GameMenu::GameMenu(MenuRoot &owner, KeyCodec& keyCodec, zenkit::DaedalusVm& vm, std::string_view menuSection, KeyCodec::Action kClose)
   :owner(owner), keyCodec(keyCodec), vm(&vm), kClose(kClose) {
   setCursorShape(CursorShape::Hidden);
   timer.timeout.bind(this,&GameMenu::onTick);
@@ -308,7 +308,7 @@ GameMenu::~GameMenu() {
   Resources::device().waitIdle(); // safe-delete savethumb
   }
 
-void GameMenu::resetVm(phoenix::vm* inVm) {
+void GameMenu::resetVm(zenkit::DaedalusVm* inVm) {
   vm = inVm;
   for(int i=0; i<phoenix::c_menu::item_count; ++i){
     hItems[i].handle = nullptr;
@@ -729,15 +729,15 @@ const GthFont& GameMenu::getTextFont(const GameMenu::Item &it) {
   return Resources::font(it.handle->fontname);
   }
 
-bool GameMenu::isSelectable(const std::shared_ptr<phoenix::c_menu_item>& item) {
+bool GameMenu::isSelectable(const std::shared_ptr<zenkit::IMenuItem>& item) {
   return item != nullptr && (item->flags & phoenix::c_menu_item_flags::selectable) && !isHidden(item);
   }
 
-bool GameMenu::isHorSelectable(const std::shared_ptr<phoenix::c_menu_item>& item) {
+bool GameMenu::isHorSelectable(const std::shared_ptr<zenkit::IMenuItem>& item) {
   return item != nullptr && (item->flags & phoenix::c_menu_item_flags::hor_selectable) && !isHidden(item);
   }
 
-bool GameMenu::isEnabled(const std::shared_ptr<phoenix::c_menu_item>& item) {
+bool GameMenu::isEnabled(const std::shared_ptr<zenkit::IMenuItem>& item) {
   if(item==nullptr)
     return false;
   if((item->flags & phoenix::c_menu_item_flags::only_ingame) && !Gothic::inst().isInGameAndAlive())
@@ -747,7 +747,7 @@ bool GameMenu::isEnabled(const std::shared_ptr<phoenix::c_menu_item>& item) {
   return true;
   }
 
-bool GameMenu::isHidden(const std::shared_ptr<phoenix::c_menu_item>& item) {
+bool GameMenu::isHidden(const std::shared_ptr<zenkit::IMenuItem>& item) {
   if(item==nullptr)
     return false;
   if(item->hide_if_option_set.empty())

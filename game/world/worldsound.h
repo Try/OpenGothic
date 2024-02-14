@@ -23,9 +23,9 @@ class WorldSound final {
     WorldSound(GameSession& game, World& world);
     ~WorldSound();
 
-    void    setDefaultZone(const phoenix::vobs::zone_music &vob);
-    void    addZone       (const phoenix::vobs::zone_music &vob);
-    void    addSound      (const phoenix::vobs::sound &vob);
+    void    setDefaultZone(const zenkit::VZoneMusic& vob);
+    void    addZone       (const zenkit::VZoneMusic& vob);
+    void    addSound      (const zenkit::VSound&     vob);
 
     Sound   addDlgSound(std::string_view s, const Tempest::Vec3& pos, float range, uint64_t &timeLen);
 

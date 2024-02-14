@@ -22,10 +22,10 @@ class ProtoMesh {
     using Vertex = Resources::VertexA;
 
     ProtoMesh(PackedMesh&&  pm, std::string_view fname);
-    ProtoMesh(PackedMesh&&  pm, const std::vector<phoenix::morph_animation>& aniList, std::string_view fname);
-    ProtoMesh(const phoenix::model& lib, std::unique_ptr<Skeleton>&& sk, std::string_view fname);
-    ProtoMesh(const phoenix::model_hierarchy& lib, std::unique_ptr<Skeleton>&& sk, std::string_view fname);
-    ProtoMesh(const phoenix::model_mesh& lib, std::unique_ptr<Skeleton>&& sk, std::string_view fname);
+    ProtoMesh(PackedMesh&&  pm, const std::vector<zenkit::MorphAnimation>& aniList, std::string_view fname);
+    ProtoMesh(const zenkit::Model& lib, std::unique_ptr<Skeleton>&& sk, std::string_view fname);
+    ProtoMesh(const zenkit::ModelHierarchy& lib, std::unique_ptr<Skeleton>&& sk, std::string_view fname);
+    ProtoMesh(const zenkit::ModelMesh& lib, std::unique_ptr<Skeleton>&& sk, std::string_view fname);
     ProtoMesh(const Material& mat, std::vector<Resources::Vertex> vbo, std::vector<uint32_t> ibo); //decals
     ProtoMesh(ProtoMesh&&)=delete;
     ProtoMesh& operator=(ProtoMesh&&)=delete;
@@ -93,11 +93,11 @@ class ProtoMesh {
 
   private:
     void                           setupScheme(std::string_view s);
-    void                           remap(const phoenix::morph_animation& a,
+    void                           remap(const zenkit::MorphAnimation& a,
                                          const std::vector<uint32_t>& vertId,
                                          std::vector<int32_t>& remapId,
                                          std::vector<Tempest::Vec4>& samples,
                                          size_t idOffset);
 
-    Morph                          mkAnimation(const phoenix::morph_animation& a);
+    Morph                          mkAnimation(const zenkit::MorphAnimation& a);
   };

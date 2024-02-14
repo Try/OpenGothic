@@ -165,9 +165,9 @@ class Gothic final {
     uint32_t                              messageTime   (std::string_view id) const;
 
     static std::u16string                 nestedPath(const std::initializer_list<const char16_t*> &name, Tempest::Dir::FileType type);
-    std::unique_ptr<phoenix::vm>          createPhoenixVm(std::string_view datFile, const ScriptLang lang = ScriptLang::NONE);
-    phoenix::script                       loadScript(std::string_view datFile, const ScriptLang lang);
-    void                                  setupVmCommonApi(phoenix::vm &vm);
+    std::unique_ptr<zenkit::DaedalusVm>   createPhoenixVm(std::string_view datFile, const ScriptLang lang = ScriptLang::NONE);
+    zenkit::DaedalusScript                loadScript(std::string_view datFile, const ScriptLang lang);
+    void                                  setupVmCommonApi(zenkit::DaedalusVm &vm);
 
     static const FightAi&                 fai();
     static const SoundDefinitions&        sfx();

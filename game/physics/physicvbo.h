@@ -19,9 +19,9 @@ class PhysicVbo : public btTriangleIndexVertexArray {
     PhysicVbo(const PhysicVbo&)=delete;
     PhysicVbo(PhysicVbo&&)=delete;
 
-    void                    addIndex(const std::vector<uint32_t>& index, size_t iboOff, size_t iboLen, phoenix::material_group material);
-    void                    addIndex(const std::vector<uint32_t>& index, size_t iboOff, size_t iboLen, phoenix::material_group material, const char* sector);
-    phoenix::material_group materialId(size_t segment) const;
+    void                    addIndex(const std::vector<uint32_t>& index, size_t iboOff, size_t iboLen, zenkit::MaterialGroup material);
+    void                    addIndex(const std::vector<uint32_t>& index, size_t iboOff, size_t iboLen, zenkit::MaterialGroup material, const char* sector);
+    zenkit::MaterialGroup   materialId(size_t segment) const;
     auto                    sectorName(size_t segment) const -> const char*;
     bool                    useQuantization() const;
     bool                    isEmpty() const;
@@ -33,13 +33,13 @@ class PhysicVbo : public btTriangleIndexVertexArray {
   private:
     PhysicVbo(const std::vector<Vertex>& v);
 
-    void addSegment(size_t indexSize,size_t offset,phoenix::material_group material,const char* sector);
+    void addSegment(size_t indexSize,size_t offset, zenkit::MaterialGroup material, const char* sector);
 
     struct Segment {
-      size_t                  off;
-      int                     size;
-      phoenix::material_group mat;
-      const char*             sector=nullptr;
+      size_t                off;
+      int                   size;
+      zenkit::MaterialGroup mat;
+      const char*           sector=nullptr;
       };
 
     std::vector<btVector3>        vStorage;

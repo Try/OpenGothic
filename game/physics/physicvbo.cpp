@@ -49,7 +49,7 @@ void PhysicVbo::addIndex(const std::vector<uint32_t>& index, size_t iboOff, size
   adjustMesh();
   }
 
-void PhysicVbo::addSegment(size_t indexSize, size_t offset, phoenix::material_group material, const char* sector) {
+void PhysicVbo::addSegment(size_t indexSize, size_t offset, zenkit::MaterialGroup material, const char* sector) {
   btIndexedMesh meshIndex={};
   meshIndex.m_numTriangles = int(indexSize/3);
   meshIndex.m_numVertices  = int32_t(vert.size());
@@ -71,7 +71,7 @@ void PhysicVbo::addSegment(size_t indexSize, size_t offset, phoenix::material_gr
   segments.push_back(sgm);
   }
 
-phoenix::material_group PhysicVbo::materialId(size_t segment) const {
+zenkit::MaterialGroup PhysicVbo::materialId(size_t segment) const {
   if(segment<segments.size())
     return segments[segment].mat;
   return phoenix::material_group::undefined;

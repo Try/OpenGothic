@@ -23,26 +23,27 @@ const FightAi::FA& FightAi::operator[](size_t i) const {
   return tmp;
   }
 
-phoenix::c_fight_ai FightAi::loadAi(phoenix::vm& vm, std::string_view name) {
+zenkit::IFightAi FightAi::loadAi(zenkit::DaedalusVm& vm, std::string_view name) {
   auto id = vm.find_symbol_by_name(name);
   if(id==nullptr)
     return {};
 
   try {
-    auto fai = vm.init_instance<phoenix::c_fight_ai>(id);
+    auto fai = vm.init_instance<zenkit::IFightAi>(id);
     return *fai;
-    } catch (const phoenix::script_error&) {
+    }
+  catch(const zenkit::DaedalusScriptError&) {
     // There was an error during initialization. Ignore it.
     }
 
   return {};
   }
 
-FightAi::FA FightAi::loadAi(phoenix::vm &vm, size_t id) {
+FightAi::FA FightAi::loadAi(zenkit::DaedalusVm &vm, size_t id) {
   FA ret={};
 
   string_frm name("FA_ENEMY_PREHIT_",int(id));
-  ret.enemy_prehit      = loadAi(vm,name);
+  ret.enemy_prehit = loadAi(vm,name);
 
   name = string_frm("FA_ENEMY_STORMPREHIT_",int(id));
   ret.enemy_stormprehit = loadAi(vm,name);

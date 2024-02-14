@@ -6,13 +6,13 @@
 CameraDefinitions::CameraDefinitions() {
   auto vm = Gothic::inst().createPhoenixVm("Camera.dat");
 
-  vm->enumerate_instances_by_class_name("CCAMSYS", [this, &vm](phoenix::symbol& s) {
+  vm->enumerate_instances_by_class_name("CCAMSYS", [this, &vm](zenkit::DaedalusSymbol& s) {
     try {
-      auto cam = vm->init_instance<phoenix::c_camera>(&s);
+      auto cam = vm->init_instance<zenkit::ICamera>(&s);
       cameras.emplace_back(s.name(), *cam);
       }
-    catch (const phoenix::script_error&) {
-      // There was an error initializing the c_camera. Ignore it.
+    catch(const zenkit::DaedalusScriptError&) {
+      // There was an error initializing the ICamera. Ignore it.
       }
     });
 
@@ -30,7 +30,7 @@ CameraDefinitions::CameraDefinitions() {
   camModFall      = getCam("CAMMODFALL");
   }
 
-const phoenix::c_camera& CameraDefinitions::mobsiCam(std::string_view tag, std::string_view pos) const {
+const zenkit::ICamera& CameraDefinitions::mobsiCam(std::string_view tag, std::string_view pos) const {
   if(!pos.empty()) {
     string_frm name("CAMMODMOB",tag,'_',pos);
     if(auto* c = find(name))
@@ -45,7 +45,7 @@ const phoenix::c_camera& CameraDefinitions::mobsiCam(std::string_view tag, std::
   return camModNormal;
   }
 
-phoenix::c_camera CameraDefinitions::getCam(std::string_view name) {
+zenkit::ICamera CameraDefinitions::getCam(std::string_view name) {
   for(auto& i:cameras)
     if(i.first==name)
       return i.second;
@@ -53,7 +53,7 @@ phoenix::c_camera CameraDefinitions::getCam(std::string_view name) {
   return {};
   }
 
-const phoenix::c_camera* CameraDefinitions::find(std::string_view name) const {
+const zenkit::ICamera* CameraDefinitions::find(std::string_view name) const {
   for(auto& i:cameras)
     if(i.first==name)
       return &i.second;
