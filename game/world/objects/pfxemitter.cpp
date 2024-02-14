@@ -36,8 +36,8 @@ PfxEmitter::PfxEmitter(PfxObjects& owner, const ParticleFx* decl) {
 
 PfxEmitter::PfxEmitter(World& world, const zenkit::VirtualObject& vob) {
   auto& owner = world.view()->pfxGroup;
-  if(FileExt::hasExt(vob.visual_name,"PFX")) {
-    auto decl = Gothic::inst().loadParticleFx(vob.visual_name);
+  if(FileExt::hasExt(vob.visual->name,"PFX")) {
+    auto decl = Gothic::inst().loadParticleFx(vob.visual->name);
     if(decl==nullptr || decl->visMaterial.tex==nullptr)
       return;
     std::lock_guard<std::recursive_mutex> guard(owner.sync);

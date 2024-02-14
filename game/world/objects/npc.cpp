@@ -1232,8 +1232,8 @@ void Npc::setAttitude(Attitude att) {
 
 bool Npc::isFriend() const {
   bool g2 = owner.version().game==2;
-  return ( g2 && hnpc->type==zenkit::NpcType::g2_friend) ||
-         (!g2 && hnpc->type==zenkit::NpcType::g1_friend);
+  return ( g2 && hnpc->type==zenkit::NpcType::G2_FRIEND) ||
+         (!g2 && hnpc->type==zenkit::NpcType::G1_FRIEND);
   }
 
 void Npc::setTempAttitude(Attitude att) {
@@ -1659,7 +1659,7 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
     return;
 
   auto ws = visual.fightMode();
-  if(ev.weaponCh==zenkit::MdsFightMode::none && (ws==WeaponState::W1H || ws==WeaponState::W2H)) {
+  if(ev.weaponCh==zenkit::MdsFightMode::NONE && (ws==WeaponState::W1H || ws==WeaponState::W2H)) {
     if(auto melee = invent.currentMeleeWeapon()) {
       if(melee->handle().material==ItemMaterial::MAT_METAL)
         sfxWeapon = ::Sound(owner,::Sound::T_Regular,"UNDRAWSOUND_ME.WAV",{x,y+translateY(),z},2500,false); else
@@ -1667,7 +1667,7 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
       sfxWeapon.play();
       }
     }
-  else if(ev.weaponCh==zenkit::MdsFightMode::one_handed || ev.weaponCh==zenkit::MdsFightMode::two_handed) {
+  else if(ev.weaponCh==zenkit::MdsFightMode::SINGLE_HANDED || ev.weaponCh==zenkit::MdsFightMode::DUAL_HANDED) {
     if(auto melee = invent.currentMeleeWeapon()) {
       if(melee->handle().material==ItemMaterial::MAT_METAL)
         sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_ME.WAV",{x,y+translateY(),z},2500,false); else
@@ -1675,7 +1675,7 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
       sfxWeapon.play();
       }
     }
-  else if(ev.weaponCh==zenkit::MdsFightMode::bow || ev.weaponCh==zenkit::MdsFightMode::crossbow) {
+  else if(ev.weaponCh==zenkit::MdsFightMode::BOW || ev.weaponCh==zenkit::MdsFightMode::CROSSBOW) {
     sfxWeapon = ::Sound(owner,::Sound::T_Regular,"DRAWSOUND_BOW",{x,y+translateY(),z},2500,false);
     sfxWeapon.play();
     }
@@ -1954,24 +1954,24 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
 
   for(auto& i:ev.timed) {
     switch(i.def) {
-      case zenkit::MdsEventType::create_item: {
+      case zenkit::MdsEventType::ITEM_CREATE: {
         if(auto it = invent.addItem(i.item,1,world())) {
           invent.putToSlot(*this,it->clsId(),i.slot[0]);
           }
         break;
         }
-      case zenkit::MdsEventType::insert_item: {
+      case zenkit::MdsEventType::ITEM_INSERT: {
         invent.putCurrentToSlot(*this,i.slot[0]);
         break;
         }
-      case zenkit::MdsEventType::remove_item:
-      case zenkit::MdsEventType::destroy_item: {
-        invent.clearSlot(*this, "", i.def != zenkit::MdsEventType::remove_item);
+      case zenkit::MdsEventType::ITEM_REMOVE:
+      case zenkit::MdsEventType::ITEM_DESTROY: {
+        invent.clearSlot(*this, "", i.def != zenkit::MdsEventType::ITEM_REMOVE);
         break;
         }
-      case zenkit::MdsEventType::place_item:
+      case zenkit::MdsEventType::ITEM_PLACE:
         break;
-      case zenkit::MdsEventType::exchange_item: {
+      case zenkit::MdsEventType::ITEM_EXCHANGE: {
         if(!invent.clearSlot(*this,i.slot[0],true)) {
           // fallback for cooking animations
           invent.putCurrentToSlot(*this,i.slot[0]);
@@ -1982,9 +1982,9 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
           }
         break;
         }
-      case zenkit::MdsEventType::fight_mode:
+      case zenkit::MdsEventType::SET_FIGHT_MODE:
         break;
-      case zenkit::MdsEventType::place_munition: {
+      case zenkit::MdsEventType::MUNITION_PLACE: {
         auto active=invent.activeWeapon();
         if(active!=nullptr) {
           const int32_t munition = active->handle().munition;
@@ -1992,40 +1992,40 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
           }
         break;
         }
-      case zenkit::MdsEventType::remove_munition: {
+      case zenkit::MdsEventType::MUNITION_REMOVE: {
         invent.putAmmunition(*this,0,"");
         break;
         }
-      case zenkit::MdsEventType::draw_torch:
+      case zenkit::MdsEventType::TORCH_DRAW:
         setTorch(true);
         break;
-      case zenkit::MdsEventType::inventory_torch:
+      case zenkit::MdsEventType::TORCH_INVENTORY:
         processDefInvTorch();
         break;
-      case zenkit::MdsEventType::drop_torch:
+      case zenkit::MdsEventType::TORCH_DROP:
         dropTorch();
         break;
-      case zenkit::MdsEventType::draw_sound:
+      case zenkit::MdsEventType::SOUND_DRAW:
         break;
-      case zenkit::MdsEventType::undraw_sound:
+      case zenkit::MdsEventType::SOUND_UNDRAW:
         break;
-      case zenkit::MdsEventType::swap_mesh:
+      case zenkit::MdsEventType::MESH_SWAP:
         break;
-      case zenkit::MdsEventType::hit_limb:
+      case zenkit::MdsEventType::HIT_LIMB:
         break;
-      case zenkit::MdsEventType::hit_direction:
+      case zenkit::MdsEventType::HIT_DIRECTION:
         break;
-      case zenkit::MdsEventType::dam_multiply:
+      case zenkit::MdsEventType::DAMAGE_MULTIPLIER:
         break;
-      case zenkit::MdsEventType::par_frame:
+      case zenkit::MdsEventType::PARRY_FRAME:
         break;
-      case zenkit::MdsEventType::opt_frame:
+      case zenkit::MdsEventType::OPTIMAL_FRAME:
         break;
-      case zenkit::MdsEventType::hit_end:
+      case zenkit::MdsEventType::HIT_END:
         break;
-      case zenkit::MdsEventType::window:
+      case zenkit::MdsEventType::COMBO_WINDOW:
         break;
-      case zenkit::MdsEventType::unknown:
+      case zenkit::MdsEventType::UNKNOWN:
         break;
       }
     }
@@ -3738,7 +3738,7 @@ bool Npc::isPrehit() const {
   }
 
 bool Npc::isImmortal() const {
-  return hnpc->flags & zenkit::NpcFlag::immortal;
+  return hnpc->flags & zenkit::NpcFlag::IMMORTAL;
   }
 
 void Npc::setPerceptionTime(uint64_t time) {

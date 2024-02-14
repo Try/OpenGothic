@@ -34,14 +34,14 @@ void TouchDamage::tick(uint64_t dt) {
 
   for(auto npc:intersections()) {
     bool mask[zenkit::DamageType::count] = {};
-    mask[zenkit::DamageType::barrier] = barrier;
-    mask[zenkit::DamageType::blunt]   = blunt;
-    mask[zenkit::DamageType::edge]    = edge;
-    mask[zenkit::DamageType::fire]    = fire;
-    mask[zenkit::DamageType::fly]     = fly;
-    mask[zenkit::DamageType::magic]   = magic;
-    mask[zenkit::DamageType::point]   = point;
-    mask[zenkit::DamageType::fall]    = fall;
+    mask[zenkit::DamageType::BARRIER] = barrier;
+    mask[zenkit::DamageType::BLUNT]   = blunt;
+    mask[zenkit::DamageType::EDGE]    = edge;
+    mask[zenkit::DamageType::FIRE]    = fire;
+    mask[zenkit::DamageType::FLY]     = fly;
+    mask[zenkit::DamageType::MAGIC]   = magic;
+    mask[zenkit::DamageType::POINT]   = point;
+    mask[zenkit::DamageType::FALL]    = fall;
 
     auto& hnpc = npc->handle();
     for(size_t i=0; i<zenkit::DamageType::count; ++i) {

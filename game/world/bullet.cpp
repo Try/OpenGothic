@@ -117,7 +117,7 @@ void Bullet::onMove() {
 void Bullet::onCollide(zenkit::MaterialGroup matId) {
   if(isFinished())
     return;
-  if(matId != zenkit::MaterialGroup::none) {
+  if(matId != zenkit::MaterialGroup::NONE) {
     if(material < ItemMaterial::MAT_COUNT) {
       auto s = wrld->addLandHitEffect(ItemMaterial(material),matId,obj->matrix());
       s.play();

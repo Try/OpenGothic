@@ -113,7 +113,7 @@ class VisualObjects final {
 
       Material::AlphaFunc alpha = Material::Solid;
       MorphAnim           morphAnim[Resources::MAX_MORPH_LAYERS];
-      zenkit::AnimationType wind = zenkit::AnimationType::none;
+      zenkit::AnimationType wind = zenkit::AnimationType::NONE;
       float               windIntensity = 0;
       float               fatness   = 0;
       bool                isGhost   = false;

@@ -18,7 +18,7 @@ void TriggerList::onTrigger(const TriggerEvent&) {
     return;
 
   switch(listProcess) {
-    case zenkit::TriggerBatchMode::all: {
+    case zenkit::TriggerBatchMode::ALL: {
       uint64_t offset = 0;
       for(auto& i:targets) {
         offset += uint64_t(i.delay*1000);
@@ -28,7 +28,7 @@ void TriggerList::onTrigger(const TriggerEvent&) {
         }
       break;
       }
-    case zenkit::TriggerBatchMode::next: {
+    case zenkit::TriggerBatchMode::NEXT: {
       auto& i = targets[next];
       next = (next+1)%uint32_t(targets.size());
 
@@ -37,7 +37,7 @@ void TriggerList::onTrigger(const TriggerEvent&) {
       world.execTriggerEvent(ex);
       break;
       }
-    case zenkit::TriggerBatchMode::random: {
+    case zenkit::TriggerBatchMode::RANDOM: {
       auto& i = targets[world.script().rand(uint32_t(targets.size()))];
 
       uint64_t time = world.tickCount()+uint64_t(i.delay*1000);

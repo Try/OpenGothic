@@ -19,7 +19,7 @@ class Animation final {
       };
 
     struct EvTimed final {
-      zenkit::MdsEventType def = zenkit::MdsEventType::unknown;
+      zenkit::MdsEventType def = zenkit::MdsEventType::UNKNOWN;
       std::string_view     item;
       std::string_view     slot[2] = {};
       uint64_t             time    = 0;
@@ -33,7 +33,7 @@ class Animation final {
     struct EvCount final {
       uint8_t              def_opt_frame = 0;
       uint8_t              groundSounds = 0;
-      zenkit::MdsFightMode weaponCh = zenkit::MdsFightMode::invalid;
+      zenkit::MdsFightMode weaponCh = zenkit::MdsFightMode::INVALID;
       std::vector<EvTimed> timed;
       std::vector<EvMorph> morph;
       };

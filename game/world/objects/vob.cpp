@@ -129,7 +129,7 @@ void Vob::recalculateTransform() {
 
 std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const zenkit::VirtualObject& vob, Flags flags) {
   switch(vob.type) {
-    case zenkit::VirtualObjectType::unknown:
+    case zenkit::VirtualObjectType::UNKNOWN:
       return nullptr;
     case zenkit::VirtualObjectType::zCVob:
     case zenkit::VirtualObjectType::zCVobStair:

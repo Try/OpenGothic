@@ -133,7 +133,7 @@ class DynamicWorld final {
     struct RayLandResult {
       Tempest::Vec3           v={};
       Tempest::Vec3           n={};
-      zenkit::MaterialGroup   mat    = zenkit::MaterialGroup::undefined;
+      zenkit::MaterialGroup   mat    = zenkit::MaterialGroup::UNDEFINED;
       bool                    hasCol = false;
       float                   hitFraction = 0;
 

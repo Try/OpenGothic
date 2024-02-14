@@ -58,7 +58,7 @@ class FightAlgo final {
 
     static float  weaponRange(GameScript &owner,const Npc &npc);
 
-    zenkit::FightAiMove queueId = zenkit::FightAiMove::nop;
+    zenkit::FightAiMove queueId = zenkit::FightAiMove::NOP;
     Action              tr   [MV_MAX]={};
     bool                hitFlg=false;
   };

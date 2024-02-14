@@ -38,7 +38,7 @@ class TriggerEvent final {
     Type              type        = T_Trigger;
     uint64_t          timeBarrier = 0;
     struct {
-      zenkit::MoverMessageType msg = zenkit::MoverMessageType::fixed_direct;
+      zenkit::MoverMessageType msg = zenkit::MoverMessageType::FIXED_DIRECT;
       int32_t                  key = 0;
       } move;
   };

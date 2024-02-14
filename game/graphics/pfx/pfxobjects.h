@@ -36,7 +36,7 @@ class PfxObjects final {
 
   private:
     struct SpriteEmitter {
-      zenkit::SpriteAlignment     visualCamAlign = zenkit::SpriteAlignment::none;
+      zenkit::SpriteAlignment     visualCamAlign = zenkit::SpriteAlignment::NONE;
       int32_t                     zBias          = 0;
       Tempest::Vec2               decalDim = {};
       std::unique_ptr<ParticleFx> pfx;
