@@ -3,7 +3,7 @@
 #include <Tempest/Painter>
 #include <Tempest/Log>
 
-#include <phoenix/vobs/mob.hh>
+#include <zenkit/vobs/MovableObject.hh>
 
 #include "game/serialize.h"
 #include "graphics/mesh/skeleton.h"

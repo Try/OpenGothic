@@ -1,6 +1,6 @@
 #pragma once
 
-#include <phoenix/vm.hh>
+#include <zenkit/DaedalusVm.hh>
 
 #include "scriptplugin.h"
 #include "mem32.h"

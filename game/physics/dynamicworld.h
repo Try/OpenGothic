@@ -1,6 +1,6 @@
 #pragma once
 
-#include <phoenix/mesh.hh>
+#include <zenkit/Mesh.hh>
 
 #include <Tempest/Matrix4x4>
 #include <memory>

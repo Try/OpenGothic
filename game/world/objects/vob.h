@@ -3,7 +3,7 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Vec>
 
-#include <phoenix/world/vob_tree.hh>
+#include <zenkit/world/VobTree.hh>
 
 class World;
 class Serialize;

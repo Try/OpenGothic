@@ -3,7 +3,7 @@
 #include <Tempest/Painter>
 #include <Tempest/Matrix4x4>
 
-#include <phoenix/world/way_net.hh>
+#include <zenkit/world/WayNet.hh>
 
 #include <vector>
 #include <functional>

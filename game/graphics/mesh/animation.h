@@ -1,7 +1,7 @@
 #pragma once
 
-#include <phoenix/model_script.hh>
-#include <phoenix/animation.hh>
+#include <zenkit/ModelScript.hh>
+#include <zenkit/ModelAnimation.hh>
 
 #include <Tempest/Vec>
 #include <memory>

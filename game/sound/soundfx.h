@@ -4,7 +4,7 @@
 #include <Tempest/Sound>
 #include <vector>
 
-#include <phoenix/ext/daedalus_classes.hh>
+#include <zenkit/addon/daedalus.hh>
 
 class GSoundEffect;
 

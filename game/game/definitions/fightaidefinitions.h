@@ -1,7 +1,7 @@
 #pragma once
 
-#include <phoenix/vm.hh>
-#include <phoenix/ext/daedalus_classes.hh>
+#include <zenkit/DaedalusVm.hh>
+#include <zenkit/addon/daedalus.hh>
 
 class FightAi final {
   public:

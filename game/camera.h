@@ -4,7 +4,7 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Point>
 
-#include <phoenix/ext/daedalus_classes.hh>
+#include <zenkit/addon/daedalus.hh>
 
 class World;
 class Npc;

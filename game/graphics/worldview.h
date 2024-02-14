@@ -3,7 +3,7 @@
 #include <Tempest/Device>
 #include <Tempest/Shader>
 
-#include <phoenix/world/vob_tree.hh>
+#include <zenkit/world/VobTree.hh>
 
 #include "graphics/mesh/landscape.h"
 #include "graphics/meshobjects.h"

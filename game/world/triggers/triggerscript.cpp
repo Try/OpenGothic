@@ -1,8 +1,8 @@
-#include <phoenix/vobs/trigger.hh>
-
 #include "triggerscript.h"
 
+#include <zenkit/vobs/Trigger.hh>
 #include <Tempest/Log>
+
 #include "world/world.h"
 
 TriggerScript::TriggerScript(Vob* parent, World &world, const zenkit::VTriggerScript& data, Flags flags)

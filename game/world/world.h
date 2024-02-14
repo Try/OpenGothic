@@ -6,7 +6,7 @@
 #include <string>
 #include <functional>
 
-#include <phoenix/world.hh>
+#include <zenkit/World.hh>
 
 #include "graphics/worldview.h"
 #include "graphics/lightgroup.h"

@@ -1,6 +1,6 @@
-#include <phoenix/vobs/mob.hh>
-
 #include "fireplace.h"
+
+#include <zenkit/vobs/MovableObject.hh>
 
 FirePlace::FirePlace(Vob* parent, World& world, const zenkit::VFire& vob, Flags flags)
   : Interactive(parent,world,vob,flags){

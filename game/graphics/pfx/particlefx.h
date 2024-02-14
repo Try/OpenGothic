@@ -2,7 +2,7 @@
 
 #include <Tempest/RenderState>
 
-#include <phoenix/ext/daedalus_classes.hh>
+#include <zenkit/addon/daedalus.hh>
 
 #include <Tempest/Texture2d>
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <phoenix/vobs/misc.hh>
-#include <phoenix/vobs/trigger.hh>
+#include <zenkit/vobs/Misc.hh>
+#include <zenkit/vobs/Trigger.hh>
 #include <string>
 
 #include "world/objects/vob.h"

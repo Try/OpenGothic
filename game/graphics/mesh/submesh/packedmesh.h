@@ -1,9 +1,9 @@
 #pragma once
 
-#include <phoenix/mesh.hh>
-#include <phoenix/proto_mesh.hh>
-#include <phoenix/softskin_mesh.hh>
-#include <phoenix/material.hh>
+#include <zenkit/Mesh.hh>
+#include <zenkit/MultiResolutionMesh.hh>
+#include <zenkit/SoftSkinMesh.hh>
+#include <zenkit/Material.hh>
 
 #include <Tempest/Vec>
 #include <utility>

@@ -5,10 +5,10 @@
 #include <Tempest/Device>
 #include <Tempest/Matrix4x4>
 
-#include <phoenix/model.hh>
-#include <phoenix/model_mesh.hh>
-#include <phoenix/model_hierarchy.hh>
-#include <phoenix/morph_mesh.hh>
+#include <zenkit/Model.hh>
+#include <zenkit/ModelMesh.hh>
+#include <zenkit/ModelHierarchy.hh>
+#include <zenkit/MorphMesh.hh>
 
 #include "graphics/mesh/submesh/staticmesh.h"
 #include "graphics/mesh/submesh/animmesh.h"

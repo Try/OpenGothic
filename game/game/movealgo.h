@@ -1,10 +1,9 @@
 #pragma once
 
 #include <cstdint>
-#include <array>
 #include <limits>
 
-#include <phoenix/material.hh>
+#include <zenkit/Material.hh>
 
 #include <Tempest/Point>
 

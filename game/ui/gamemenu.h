@@ -5,8 +5,8 @@
 #include <Tempest/Timer>
 #include <Tempest/Color>
 
-#include <phoenix/vm.hh>
-#include <phoenix/ext/daedalus_classes.hh>
+#include <zenkit/DaedalusVm.hh>
+#include <zenkit/addon/daedalus.hh>
 
 #include <memory>
 

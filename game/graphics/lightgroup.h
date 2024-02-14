@@ -1,8 +1,7 @@
 #pragma once
 
 #include <Tempest/CommandBuffer>
-#include <phoenix/vobs/light.hh>
-#include <memory>
+#include <zenkit/vobs/Light.hh>
 
 #include "lightsource.h"
 #include "resources.h"

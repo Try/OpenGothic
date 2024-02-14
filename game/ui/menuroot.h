@@ -2,8 +2,8 @@
 
 #include <Tempest/Widget>
 
-#include <phoenix/vm.hh>
-#include <phoenix/ext/daedalus_classes.hh>
+#include <zenkit/DaedalusVm.hh>
+#include <zenkit/addon/daedalus.hh>
 
 #include "utils/keycodec.h"
 

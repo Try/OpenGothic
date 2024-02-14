@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include <phoenix/model_mesh.hh>
+#include <zenkit/ModelMesh.hh>
 
 #include <Tempest/Point>
 

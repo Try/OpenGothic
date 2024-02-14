@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include <phoenix/ext/daedalus_classes.hh>
+#include <zenkit/addon/daedalus.hh>
 
 class Npc;
 class GameScript;

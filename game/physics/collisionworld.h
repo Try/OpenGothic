@@ -3,7 +3,7 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Vec>
 
-#include <phoenix/material.hh>
+#include <zenkit/Material.hh>
 
 #include <memory>
 #include <vector>

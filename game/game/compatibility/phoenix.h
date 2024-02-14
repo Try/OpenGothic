@@ -2,8 +2,8 @@
 
 #include <Tempest/Vec>
 
-#include <phoenix/material.hh>
-#include <phoenix/softskin_mesh.hh>
+#include <zenkit/Material.hh>
+#include <zenkit/SoftSkinMesh.hh>
 
 namespace phoenix_compat {
   struct SkeletalVertex

@@ -1,6 +1,6 @@
-#include <phoenix/vobs/trigger.hh>
-
 #include "zonetrigger.h"
+
+#include <zenkit/vobs/Trigger.hh>
 
 #include "world/objects/npc.h"
 #include "world/world.h"

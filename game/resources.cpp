@@ -11,15 +11,14 @@
 #include <Tempest/Log>
 #include <Tempest/Color>
 
-#include <phoenix/proto_mesh.hh>
-#include <phoenix/model_hierarchy.hh>
-#include <phoenix/model.hh>
-#include <phoenix/model_script.hh>
-#include <phoenix/material.hh>
-#include <phoenix/texture.hh>
-#include <phoenix/ext/dds_convert.hh>
-
-#include <fstream>
+#include <zenkit/MultiResolutionMesh.hh>
+#include <zenkit/ModelHierarchy.hh>
+#include <zenkit/Model.hh>
+#include <zenkit/ModelScript.hh>
+#include <zenkit/Material.hh>
+#include <zenkit/Texture.hh>
+#include <zenkit/addon/texcvt.hh>
+#include <zenkit/Texture.hh>
 
 #include "graphics/mesh/submesh/pfxemittermesh.h"
 #include "graphics/mesh/submesh/packedmesh.h"
@@ -307,11 +306,11 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
       auto reader = entry->open_read();
       tex.load(reader.get());
 
-      if (tex.format() == phoenix::tex_dxt1 ||
-          tex.format() == phoenix::tex_dxt2 ||
-          tex.format() == phoenix::tex_dxt3 ||
-          tex.format() == phoenix::tex_dxt4 ||
-          tex.format() == phoenix::tex_dxt5) {
+      if (tex.format() == zenkit::TextureFormat::DXT1 ||
+          tex.format() == zenkit::TextureFormat::DXT2 ||
+          tex.format() == zenkit::TextureFormat::DXT3 ||
+          tex.format() == zenkit::TextureFormat::DXT4 ||
+          tex.format() == zenkit::TextureFormat::DXT5) {
         auto dds = zenkit::to_dds(tex);
         auto ddsRead = zenkit::Read::from(dds);
 
@@ -871,7 +870,7 @@ const Resources::VobTree* Resources::implLoadVobBundle(std::string_view filename
   if(i!=zenCache.end())
     return i->second.get();
 
-  std::vector<std::shared_ptr<phoenix::vob>> bundle;
+  std::vector<std::shared_ptr<zenkit::VirtualObject>> bundle;
   try {
     const auto* entry = Resources::vdfsIndex().find(cname);
     if(entry == nullptr)

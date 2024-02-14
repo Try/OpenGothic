@@ -8,16 +8,14 @@
 
 #include <vector>
 #include <cstdint>
-#include <array>
 #include <type_traits>
-#include <sstream>
 #include <ctime>
 
 #include <miniz.h>
 
-#include <phoenix/vm.hh>
-#include <phoenix/ext/daedalus_classes.hh>
-#include <phoenix/animation.hh>
+#include <zenkit/DaedalusVm.hh>
+#include <zenkit/addon/daedalus.hh>
+#include <zenkit/ModelAnimation.hh>
 
 #include "gametime.h"
 #include "constants.h"

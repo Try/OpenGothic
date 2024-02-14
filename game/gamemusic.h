@@ -1,6 +1,6 @@
 #pragma once
 
-#include <phoenix/ext/daedalus_classes.hh>
+#include <zenkit/addon/daedalus.hh>
 
 #include <memory>
 

@@ -7,7 +7,7 @@
 #include <Tempest/Signal>
 #include <Tempest/Dir>
 
-#include <phoenix/vm.hh>
+#include <zenkit/DaedalusVm.hh>
 
 #include "game/gamesession.h"
 #include "world/world.h"

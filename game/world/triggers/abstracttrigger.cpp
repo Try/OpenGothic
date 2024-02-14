@@ -2,7 +2,7 @@
 
 #include <Tempest/Log>
 
-#include <phoenix/vobs/trigger.hh>
+#include <zenkit/vobs/Trigger.hh>
 
 #include "world/objects/npc.h"
 #include "world/world.h"

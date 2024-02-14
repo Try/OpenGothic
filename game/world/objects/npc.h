@@ -17,7 +17,7 @@
 #include <cstdint>
 #include <string>
 
-#include <phoenix/ext/daedalus_classes.hh>
+#include <zenkit/addon/daedalus.hh>
 
 class Interactive;
 class WayPoint;

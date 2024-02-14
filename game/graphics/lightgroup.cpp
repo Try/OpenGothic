@@ -3,7 +3,7 @@
 #include <Tempest/Dir>
 #include <Tempest/Log>
 
-#include <phoenix/archive.hh>
+#include <zenkit/Archive.hh>
 
 #include "graphics/shaders.h"
 #include "graphics/sceneglobals.h"

@@ -5,7 +5,7 @@
 
 #include <charconv>
 #include <cstddef>
-#include <phoenix/vobs/misc.hh>
+#include <zenkit/vobs/Misc.hh>
 
 #include "game/gamescript.h"
 #include "gothic.h"

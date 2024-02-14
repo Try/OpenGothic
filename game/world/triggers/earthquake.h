@@ -1,6 +1,5 @@
 #pragma once
 
-#include <phoenix/vobs/camera.hh>
 #include "abstracttrigger.h"
 
 class World;

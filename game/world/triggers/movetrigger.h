@@ -1,6 +1,6 @@
 #pragma once
 
-#include <phoenix/vobs/trigger.hh>
+#include <zenkit/vobs/Trigger.hh>
 
 #include "graphics/meshobjects.h"
 #include "physics/physicmesh.h"

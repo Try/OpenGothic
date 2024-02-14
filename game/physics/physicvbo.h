@@ -3,7 +3,8 @@
 #include <vector>
 #include <cstdint>
 
-#include <phoenix/material.hh>
+#include <zenkit/Material.hh>
+
 #include "physics/physics.h"
 #include "resources.h"
 

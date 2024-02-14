@@ -1,6 +1,6 @@
-#include <phoenix/vobs/trigger.hh>
-
 #include "triggerworldstart.h"
+
+#include <zenkit/vobs/Trigger.hh>
 
 #include "world/world.h"
 

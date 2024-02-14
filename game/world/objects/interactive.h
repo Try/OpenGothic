@@ -1,14 +1,14 @@
 #pragma once
 
 #include <Tempest/Matrix4x4>
+#include <zenkit/vobs/MovableObject.hh>
+
 #include "physics/physicmesh.h"
 #include "graphics/mesh/animationsolver.h"
 #include "graphics/objvisual.h"
 #include "game/inventory.h"
 #include "utils/keycodec.h"
 #include "vob.h"
-
-#include <phoenix/vobs/mob.hh>
 
 class Npc;
 class World;
