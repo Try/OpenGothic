@@ -85,14 +85,18 @@ bool DrawClusters::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     return false;
   clustersDurtyBit = false;
 
+  size_t csize = clusters.size()*sizeof(clusters[0]);
+  csize = (csize + 0xFFF) & size_t(~0xFFF);
+
   auto& device = Resources::device();
-  if(clustersGpu.byteSize() == clusters.size()*sizeof(clusters[0])) {
+  if(clustersGpu.byteSize() == csize) {
     patchClusters(cmd, fId);
     return false;
     }
 
   Resources::recycle(std::move(clustersGpu));
-  clustersGpu  = device.ssbo(clusters);
+  clustersGpu  = device.ssbo(Tempest::Uninitialized, csize);
+  clustersGpu.update(clusters);
   std::fill(clustersDurty.begin(), clustersDurty.end(), 0x0);
   return true;
   }
