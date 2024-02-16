@@ -81,7 +81,7 @@ Gothic::Gothic() {
     opts.doMeshShading = CommandLine::inst().isMeshShading();
     }
 
-  opts.fxaaPreset = CommandLine::inst().getFxaaPreset();
+  opts.fxaaPreset = CommandLine::inst().fxaaPreset();
   
   if(hasBindless()) {
     opts.doBindless = CommandLine::inst().isBindless();

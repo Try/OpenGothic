@@ -72,6 +72,7 @@ class Renderer final {
       bool           zEnvMappingEnabled = false;
       bool           zCloudShadowScale  = false;
       bool           giEnabled          = false;
+      bool           fxaaEnabled        = false;
 
       float          zVidBrightness     = 0.5;
       float          zVidContrast       = 0.5;
@@ -89,8 +90,6 @@ class Renderer final {
     Tempest::Attachment       sceneLinear;
     Tempest::ZBuffer          zbuffer, shadowMap[Resources::ShadowLayers];
     Tempest::ZBuffer          zbufferUi;
-
-    Tempest::Attachment       sceneTonemapped;
 
     Tempest::Attachment       sceneOpaque;
     Tempest::Attachment       sceneDepth;
@@ -136,8 +135,9 @@ class Renderer final {
     } tonemapping;
 
     struct Fxaa {
-        Tempest::RenderPipeline* pso = nullptr;
-        Tempest::DescriptorSet ubo;
+      Tempest::RenderPipeline* pso = nullptr;
+      Tempest::DescriptorSet ubo;
+      Tempest::Attachment sceneTonemapped;
     } fxaa;
 
     struct {

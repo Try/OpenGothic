@@ -465,3 +465,13 @@ enum class ScriptLang : int32_t {
   IT   = 6,
   CZ   = 7,
   };
+
+enum class FxaaPreset : int {
+  OFF,
+  CONSOLE,
+  PC_LOW,
+  PC_MEDIUM,
+  PC_HIGH,
+  PC_EXTREME,
+  PRESETS_COUNT
+};

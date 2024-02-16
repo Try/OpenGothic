@@ -7,6 +7,7 @@
 
 #include "graphics/drawcommands.h"
 #include "material.h"
+#include "game/constants.h"
 
 class Shaders {
   public:
@@ -50,16 +51,7 @@ class Shaders {
 
     Tempest::RenderPipeline  tonemapping;
 
-    enum class FxaaPreset : int {
-        FXAA_OFF,
-        FXAA_CONSOLE,
-        FXAA_PC_LOW,
-        FXAA_PC_MEDIUM,
-        FXAA_PC_HIGH,
-        FXAA_PC_EXTREME,
-        LAST
-    };
-    Tempest::RenderPipeline fxaaPresets[static_cast<int>(FxaaPreset::LAST)];
+    Tempest::RenderPipeline fxaaPresets[static_cast<int>(FxaaPreset::PRESETS_COUNT)];
 
     // HiZ
     Tempest::ComputePipeline hiZPot, hiZMip;

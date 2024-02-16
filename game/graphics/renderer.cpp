@@ -61,6 +61,7 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
   Gothic::inst().toggleGi.bind(this, &Renderer::toggleGi);
 
   settings.giEnabled = Gothic::options().doRtGi;
+  settings.fxaaEnabled = Gothic::options().fxaaPreset > 0;
   initSettings();
   }
 
@@ -81,7 +82,11 @@ void Renderer::resetSwapchain() {
   smpN.setClamping(ClampMode::ClampToEdge);
 
   sceneLinear    = device.attachment(TextureFormat::R11G11B10UF,w,h);
-  sceneTonemapped = device.attachment(TextureFormat::RGBA8, w, h);
+
+  if (settings.fxaaEnabled) {
+    fxaa.sceneTonemapped = device.attachment(TextureFormat::RGBA8, w, h);
+    }
+ 
   zbuffer        = device.zbuffer(zBufferFormat,w,h);
   if(w!=swapchain.w() || h!=swapchain.h())
     zbufferUi = device.zbuffer(zBufferFormat, swapchain.w(), swapchain.h()); else
@@ -169,7 +174,7 @@ void Renderer::resetSwapchain() {
   tonemapping.pso     = &Shaders::inst().tonemapping;
   tonemapping.uboTone = device.descriptors(*tonemapping.pso);
 
-  uint32_t availableFxaaPreset = std::clamp(Gothic::options().fxaaPreset, 0u, static_cast<uint32_t>(Shaders::FxaaPreset::LAST) - 1);
+  uint32_t availableFxaaPreset = Gothic::options().fxaaPreset;
   fxaa.pso = &Shaders::inst().fxaaPresets[availableFxaaPreset];
   fxaa.ubo = device.descriptors(*fxaa.pso);
 
@@ -290,11 +295,10 @@ void Renderer::prepareUniforms() {
     tonemapping.uboTone.set(1, sceneLinear, smpB);
   }
 
-  {
-      auto smpB = Sampler::bilinear();
-      smpB.setClamping(ClampMode::ClampToEdge);
-
-      fxaa.ubo.set(0, sceneTonemapped, smpB);
+  if (settings.fxaaEnabled) {
+    auto smpB = Sampler::bilinear();
+    smpB.setClamping(ClampMode::ClampToEdge);
+    fxaa.ubo.set(0, fxaa.sceneTonemapped, smpB);
   }
 
   shadow.ubo.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
@@ -566,7 +570,8 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   auto* tonemappingRt = &result;
 
   if (isFxaaOn) {
-  	tonemappingRt = &sceneTonemapped;
+    assert(!fxaa.sceneTonemapped.isEmpty());
+    tonemappingRt = &fxaa.sceneTonemapped;
     }
 
   cmd.setFramebuffer({{*tonemappingRt, Tempest::Discard, Tempest::Preserve}});
