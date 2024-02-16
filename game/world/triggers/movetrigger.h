@@ -1,6 +1,6 @@
 #pragma once
 
-#include <phoenix/vobs/trigger.hh>
+#include <zenkit/vobs/Trigger.hh>
 
 #include "graphics/meshobjects.h"
 #include "physics/physicmesh.h"
@@ -8,7 +8,7 @@
 
 class MoveTrigger : public AbstractTrigger {
   public:
-    MoveTrigger(Vob* parent, World &world, const phoenix::vobs::trigger_mover& data, Flags flags);
+    MoveTrigger(Vob* parent, World &world, const zenkit::VMover& data, Flags flags);
 
     void save(Serialize& fout) const override;
     void load(Serialize &fin) override;
@@ -45,21 +45,20 @@ class MoveTrigger : public AbstractTrigger {
       uint64_t ticks    = 0;
       };
 
-    Tempest::Matrix4x4                     pos0;
-    MeshObjects::Mesh                      view;
-    PhysicMesh                             physic;
-    std::vector<KeyLen>                    keyframes;
-    std::vector<phoenix::animation_sample> mover_keyframes;
-    phoenix::mover_behavior                behavior;
-    std::string                            sfxOpenStart;
-    std::string                            sfxOpenEnd;
-    std::string                            sfxCloseEnd;
-    std::string                            sfxMoving;
-    std::string                            visualName;
-    float                                  stayOpenTimeSec;
+    Tempest::Matrix4x4                   pos0;
+    MeshObjects::Mesh                    view;
+    PhysicMesh                           physic;
+    std::vector<KeyLen>                  keyframes;
+    std::vector<zenkit::AnimationSample> mover_keyframes;
+    zenkit::MoverBehavior                behavior;
+    std::string                          sfxOpenStart;
+    std::string                          sfxOpenEnd;
+    std::string                          sfxCloseEnd;
+    std::string                          sfxMoving;
+    std::string                          visualName;
+    float                                stayOpenTimeSec;
 
-    State                    state     = Idle;
-    uint64_t                 sAnim     = 0;
-
-    uint32_t                 frame     = 0;
+    State                                state     = Idle;
+    uint64_t                             sAnim     = 0;
+    uint32_t                             frame     = 0;
   };

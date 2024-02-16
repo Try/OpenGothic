@@ -16,9 +16,8 @@
 
 #include <cstdint>
 #include <string>
-#include <deque>
 
-#include <phoenix/ext/daedalus_classes.hh>
+#include <zenkit/addon/daedalus.hh>
 
 class Interactive;
 class WayPoint;
@@ -324,8 +323,8 @@ class Npc final {
 
     auto      dialogChoices(Npc &player, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<GameScript::DlgChoice>;
 
-    phoenix::c_npc&                        handle() { return *hnpc; }
-    const std::shared_ptr<phoenix::c_npc>& handlePtr() const { return hnpc; }
+    zenkit::INpc&                        handle() { return *hnpc; }
+    const std::shared_ptr<zenkit::INpc>& handlePtr() const { return hnpc; }
 
     auto      inventory() const -> const Inventory& { return invent; }
     size_t    itemCount  (size_t id) const;
@@ -516,7 +515,7 @@ class Npc final {
 
     World&                         owner;
     // main props
-    std::shared_ptr<phoenix::c_npc> hnpc={};
+    std::shared_ptr<zenkit::INpc>  hnpc={};
     float                          x=0.f;
     float                          y=0.f;
     float                          z=0.f;

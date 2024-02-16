@@ -113,6 +113,7 @@ Shaders::Shaders() {
 
   tonemapping = postEffect("tonemapping", "tonemapping", RenderState::ZTestMode::Always);
 
+
   auto fxaaZTestMode = RenderState::ZTestMode::Always;
   fxaaPresets[static_cast<int32_t>(FxaaPreset::OFF)] = Tempest::RenderPipeline();
   fxaaPresets[static_cast<int32_t>(FxaaPreset::CONSOLE)] = postEffect("fxaa", "fxaa_quality_0", fxaaZTestMode);
@@ -121,12 +122,11 @@ Shaders::Shaders() {
   fxaaPresets[static_cast<int32_t>(FxaaPreset::PC_HIGH)] = postEffect("fxaa", "fxaa_quality_3", fxaaZTestMode);
   fxaaPresets[static_cast<int32_t>(FxaaPreset::PC_EXTREME)] = postEffect("fxaa", "fxaa_quality_4", fxaaZTestMode);
 
-  if(meshlets || 1) {
-    hiZPot    = computeShader("hiz_pot.comp.sprv");
-    if(device.properties().hasAtomicFormat(TextureFormat::R32U))
-      hiZMip = computeShader("hiz_mip_img.comp.sprv"); else
-      hiZMip = computeShader("hiz_mip.comp.sprv");
-    }
+  hiZPot    = computeShader("hiz_pot.comp.sprv");
+  if(device.properties().hasAtomicFormat(TextureFormat::R32U))
+    hiZMip = computeShader("hiz_mip_img.comp.sprv"); else
+    hiZMip = computeShader("hiz_mip.comp.sprv");
+
 
   if(meshlets && device.properties().meshlets.maxGroupSize.x>=256) {
     RenderState state;

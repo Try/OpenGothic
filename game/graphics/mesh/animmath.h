@@ -3,7 +3,7 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Point>
 
-#include <phoenix/animation.hh>
+#include <zenkit/ModelAnimation.hh>
 
-phoenix::animation_sample mix(const phoenix::animation_sample& x,const phoenix::animation_sample& y,float a);
-Tempest::Matrix4x4        mkMatrix(const phoenix::animation_sample& s);
+zenkit::AnimationSample mix(const zenkit::AnimationSample& x, const zenkit::AnimationSample& y, float a);
+Tempest::Matrix4x4      mkMatrix(const zenkit::AnimationSample& s);

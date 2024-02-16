@@ -69,12 +69,12 @@ void VisualObjects::Item::setFatness(float f) {
     }
   }
 
-void VisualObjects::Item::setWind(phoenix::animation_mode m, float intensity) {
+void VisualObjects::Item::setWind(zenkit::AnimationType m, float intensity) {
   if(owner==nullptr)
     return;
 
-  if(intensity!=0 && m==phoenix::animation_mode::none) {
-    m = phoenix::animation_mode::wind2;
+  if(intensity!=0 && m==zenkit::AnimationType::none) {
+    m = zenkit::AnimationType::wind2;
     }
 
   auto& obj = owner->objects[id];
@@ -86,9 +86,9 @@ void VisualObjects::Item::setWind(phoenix::animation_mode m, float intensity) {
   if(prev==m)
     return;
 
-  if(prev!=phoenix::animation_mode::none)
+  if(prev!=zenkit::AnimationType::none)
     owner->objectsWind.erase(id);
-  if(m!=phoenix::animation_mode::none)
+  if(m!=zenkit::AnimationType::none)
     owner->objectsWind.insert(id);
   }
 
@@ -318,7 +318,7 @@ void VisualObjects::free(size_t id) {
   drawCmd.addClusters(obj.cmdId, -meshletCount);
   clusters.free(obj.clusterId, numCluster);
 
-  if(obj.wind==phoenix::animation_mode::none)
+  if(obj.wind==zenkit::AnimationType::none)
     objectsWind.erase(id);
   if(obj.type==DrawCommands::Morph)
     objectsMorph.erase(id);
@@ -487,19 +487,19 @@ void VisualObjects::preFrameUpdateWind(uint8_t fId) {
     a = std::cos(float(a*M_PI) + shift*0.0001f);
 
     switch(i.wind) {
-      case phoenix::animation_mode::wind:
+      case zenkit::AnimationType::wind:
         // tree. note: mods tent to bump Intensity to insane values
         if(i.windIntensity>0.f)
           a *= 0.03f; else
           a *= 0;
         break;
-      case phoenix::animation_mode::wind2:
+      case zenkit::AnimationType::wind2:
         // grass
         if(i.windIntensity<=1.0)
           a *= i.windIntensity * 0.1f; else
           a *= 0;
         break;
-      case phoenix::animation_mode::none:
+      case zenkit::AnimationType::none:
       default:
         // error
         a = 0.f;

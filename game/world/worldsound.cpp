@@ -67,14 +67,14 @@ WorldSound::WorldSound(GameSession &game, World& owner)
 WorldSound::~WorldSound() {
   }
 
-void WorldSound::setDefaultZone(const phoenix::vobs::zone_music &vob) {
+void WorldSound::setDefaultZone(const zenkit::VZoneMusic &vob) {
   def.reset(new Zone());
   def->bbox[0] = {vob.bbox.min.x, vob.bbox.min.y, vob.bbox.min.z};
   def->bbox[1] = {vob.bbox.max.x, vob.bbox.max.y, vob.bbox.max.z};
   def->name    = vob.vob_name;
   }
 
-void WorldSound::addZone(const phoenix::vobs::zone_music &vob) {
+void WorldSound::addZone(const zenkit::VZoneMusic &vob) {
   Zone z;
   z.bbox[0] = {vob.bbox.min.x, vob.bbox.min.y, vob.bbox.min.z};
   z.bbox[1] = {vob.bbox.max.x, vob.bbox.max.y, vob.bbox.max.z};
@@ -83,10 +83,10 @@ void WorldSound::addZone(const phoenix::vobs::zone_music &vob) {
   zones.emplace_back(std::move(z));
   }
 
-void WorldSound::addSound(const phoenix::vobs::sound &vob) {
+void WorldSound::addSound(const zenkit::VSound &vob) {
   WSound s;
   s.vobName   = vob.vob_name;
-  s.loop      = vob.mode==phoenix::sound_mode::loop;
+  s.loop      = vob.mode==zenkit::SoundMode::loop;
   s.active    = vob.initially_playing;
   s.delay     = uint64_t(vob.random_delay * 1000);
   s.delayVar  = uint64_t(vob.random_delay_var * 1000);
@@ -95,8 +95,8 @@ void WorldSound::addSound(const phoenix::vobs::sound &vob) {
   s.pos       = {vob.position.x,vob.position.y,vob.position.z};
   s.sndRadius = vob.radius;
 
-  if(vob.type==phoenix::vob_type::zCVobSoundDaytime) {
-    auto& prDay = (const phoenix::vobs::sound_daytime&) vob;
+  if(vob.type==zenkit::VirtualObjectType::zCVobSoundDaytime) {
+    auto& prDay = (const zenkit::VSoundDaytime&) vob;
     float b     = prDay.start_time;
     float e     = prDay.end_time;
 

@@ -4,7 +4,7 @@
 
 using namespace Tempest;
 
-Earthquake::Earthquake(Vob* parent, World& world, const phoenix::vobs::earthquake& data, Flags flags)
+Earthquake::Earthquake(Vob* parent, World& world, const zenkit::VEarthquake& data, Flags flags)
   : AbstractTrigger(parent,world,data,flags) {
   }
 

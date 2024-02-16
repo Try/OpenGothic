@@ -1,5 +1,6 @@
 #pragma once
-#include <phoenix/font.hh>
+
+#include <zenkit/Font.hh>
 
 #include <Tempest/Painter>
 
@@ -26,7 +27,7 @@ class GthFont final {
     auto lineCount(int w, std::string_view txt) const -> int32_t;
 
   private:
-    std::shared_ptr<phoenix::font> pfnt;
+    std::shared_ptr<zenkit::Font>  pfnt;
     const Tempest::Texture2d*      tex       = nullptr;
     uint32_t                       fntHeight = 0;
     float                          scale     = 0;

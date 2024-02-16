@@ -3,7 +3,7 @@
 #include <Tempest/Device>
 #include <Tempest/Shader>
 
-#include <phoenix/world/vob_tree.hh>
+#include <zenkit/world/VobTree.hh>
 
 #include "graphics/mesh/landscape.h"
 #include "graphics/meshobjects.h"
@@ -68,7 +68,7 @@ class WorldView {
     MeshObjects::Mesh   addAtachView (const ProtoMesh::Attach& visual, const int32_t version);
     MeshObjects::Mesh   addStaticView(const ProtoMesh* visual, bool staticDraw = false);
     MeshObjects::Mesh   addStaticView(std::string_view visual);
-    MeshObjects::Mesh   addDecalView (const phoenix::vob& vob);
+    MeshObjects::Mesh   addDecalView (const zenkit::VirtualObject& vob);
 
     void                dbgClusters(Tempest::Painter& p, Tempest::Vec2 wsz);
 

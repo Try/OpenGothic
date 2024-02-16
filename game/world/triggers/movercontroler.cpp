@@ -2,7 +2,7 @@
 
 #include "world/world.h"
 
-MoverControler::MoverControler(Vob* parent, World &world, const phoenix::vobs::mover_controller& ctrl, Flags flags)
+MoverControler::MoverControler(Vob* parent, World &world, const zenkit::VMoverController& ctrl, Flags flags)
   :AbstractTrigger(parent,world,ctrl,flags) {
   target = ctrl.target;
   message = ctrl.message;

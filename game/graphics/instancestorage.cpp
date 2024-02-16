@@ -104,7 +104,7 @@ void InstanceStorage::Id::set(const void* data, size_t offset, size_t size) {
 
 InstanceStorage::InstanceStorage() {
   dataCpu.reserve(131072);
-  dataCpu.resize(sizeof(Matrix4x4));
+  dataCpu.resize(sizeof(Matrix4x4)); // also avoid null-ssbo
   reinterpret_cast<Matrix4x4*>(dataCpu.data())->identity();
 
   patchCpu.reserve(4*1024*1024);
@@ -128,9 +128,11 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   std::atomic_thread_fence(std::memory_order_acquire);
   join();
 
-  if(dataGpu.byteSize()!=dataCpu.size()) {
+  const size_t dataSize = (dataCpu.size() + 0xFFF) & ~size_t(0xFFF);
+  if(dataGpu.byteSize()!=dataSize) {
     Resources::recycle(std::move(dataGpu));
-    dataGpu = device.ssbo(BufferHeap::Device,dataCpu);
+    dataGpu = device.ssbo(BufferHeap::Device,Tempest::Uninitialized,dataSize);
+    dataGpu.update(dataCpu);
     std::memset(durty.data(), 0, durty.size()*sizeof(uint32_t));
     prepareUniforms();
     return true;
@@ -246,10 +248,7 @@ InstanceStorage::Id InstanceStorage::alloc(const size_t size) {
   r.size  = nsize;
   r.asize = size;
 
-  size_t dataSize = (dataCpu.size() + nsize);
-  dataSize = (dataSize + 0xFFF) & ~size_t(0xFFF);
-  dataSize = std::max<size_t>(1024, dataSize); // avoid null SSBO
-  dataCpu.resize(dataSize);
+  dataCpu.resize(dataCpu.size() + nsize);
 
   blockCnt = (dataCpu.size()+blockSz-1)/blockSz;
   durty.resize((blockCnt+32-1)/32, 0);

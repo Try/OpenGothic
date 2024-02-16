@@ -1,9 +1,9 @@
 #pragma once
 
-#include <phoenix/mesh.hh>
-#include <phoenix/proto_mesh.hh>
-#include <phoenix/softskin_mesh.hh>
-#include <phoenix/material.hh>
+#include <zenkit/Mesh.hh>
+#include <zenkit/MultiResolutionMesh.hh>
+#include <zenkit/SoftSkinMesh.hh>
+#include <zenkit/Material.hh>
 
 #include <Tempest/Vec>
 #include <utility>
@@ -32,9 +32,9 @@ class PackedMesh {
       };
 
     struct SubMesh final {
-      phoenix::material material;
-      size_t            iboOffset = 0;
-      size_t            iboLength = 0;
+      zenkit::Material material;
+      size_t           iboOffset = 0;
+      size_t           iboLength = 0;
       };
 
     struct Cluster final {
@@ -53,9 +53,9 @@ class PackedMesh {
     std::vector<uint32_t> verticesId; // only for morph meshes
     bool                  isUsingAlphaTest = true;
 
-    PackedMesh(const phoenix::proto_mesh& mesh, PkgType type);
-    PackedMesh(const phoenix::mesh& mesh, PkgType type);
-    PackedMesh(const phoenix::softskin_mesh&  mesh);
+    PackedMesh(const zenkit::MultiResolutionMesh& mesh, PkgType type);
+    PackedMesh(const zenkit::Mesh& mesh, PkgType type);
+    PackedMesh(const zenkit::SoftSkinMesh& mesh);
 
     void debug(std::ostream &out) const;
 
@@ -86,19 +86,19 @@ class PackedMesh {
 
       void    flush(std::vector<Vertex>& vertices,
                     std::vector<uint32_t>& indices, std::vector<uint8_t>& indices8,
-                    std::vector<Cluster>& instances, const phoenix::mesh& mesh);
+                    std::vector<Cluster>& instances, const zenkit::Mesh& mesh);
 
       void    flush(std::vector<Vertex>& vertices, std::vector<VertexA>& verticesA,
                     std::vector<uint32_t>& indices, std::vector<uint8_t>& indices8,
                     std::vector<uint32_t>* verticesId, const std::vector<glm::vec3>& vbo,
-                    const std::vector<phoenix::wedge>& wedgeList,
+                    const std::vector<zenkit::MeshWedge>& wedgeList,
                     const std::vector<SkeletalData>* skeletal);
       bool    validate() const;
 
       bool    insert(const Vert& a, const Vert& b, const Vert& c);
       void    clear();
-      void    updateBounds(const phoenix::mesh& mesh);
-      void    updateBounds(const phoenix::proto_mesh& mesh);
+      void    updateBounds(const zenkit::Mesh& mesh);
+      void    updateBounds(const zenkit::MultiResolutionMesh& mesh);
       void    updateBounds(const std::vector<glm::vec3>& vbo);
       bool    canMerge(const Meshlet& other) const;
       bool    hasIntersection(const Meshlet& other) const;
@@ -106,19 +106,19 @@ class PackedMesh {
       void    merge(const Meshlet& other);
       };
 
-    bool   addTriangle(Meshlet& dest, const phoenix::mesh* mesh, const phoenix::sub_mesh* proto_mesh, size_t id);
+    bool   addTriangle(Meshlet& dest, const zenkit::Mesh* mesh, const zenkit::SubMesh* proto_mesh, size_t id);
 
-    void   packPhysics(const phoenix::mesh& mesh,PkgType type);
-    void   packMeshletsLnd(const phoenix::mesh& mesh);
-    void   packMeshletsObj(const phoenix::proto_mesh& mesh, PkgType type,
+    void   packPhysics(const zenkit::Mesh& mesh, PkgType type);
+    void   packMeshletsLnd(const zenkit::Mesh& mesh);
+    void   packMeshletsObj(const zenkit::MultiResolutionMesh& mesh, PkgType type,
                            const std::vector<SkeletalData>* skeletal);
 
-    std::vector<Meshlet> buildMeshlets(const phoenix::mesh* mesh, const phoenix::sub_mesh* proto_mesh,
+    std::vector<Meshlet> buildMeshlets(const zenkit::Mesh* mesh, const zenkit::SubMesh* proto_mesh,
                                        PrimitiveHeap& heap, std::vector<bool>& used);
 
     void   computeBbox();
 
     void   dbgUtilization(const std::vector<Meshlet>& meshlets);
-    void   dbgMeshlets(const phoenix::mesh& mesh, const std::vector<Meshlet*>& meshlets);
+    void   dbgMeshlets(const zenkit::Mesh& mesh, const std::vector<Meshlet*>& meshlets);
   };
 

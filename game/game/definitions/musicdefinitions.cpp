@@ -9,15 +9,15 @@ using namespace Tempest;
 MusicDefinitions::MusicDefinitions() {
   vm = Gothic::inst().createPhoenixVm("Music.dat");
 
-  vm->enumerate_instances_by_class_name("C_MusicTheme", [this](phoenix::symbol& s) {
-    themes.push_back(vm->init_instance<phoenix::c_music_theme>(&s));
-  });
+  vm->enumerate_instances_by_class_name("C_MusicTheme", [this](zenkit::DaedalusSymbol& s) {
+    themes.push_back(vm->init_instance<zenkit::IMusicTheme>(&s));
+    });
   }
 
 MusicDefinitions::~MusicDefinitions() {
   }
 
-const phoenix::c_music_theme* MusicDefinitions::operator[](std::string_view name) const {
+const zenkit::IMusicTheme* MusicDefinitions::operator [](std::string_view name) const {
   if(!vm)
     return nullptr;
 

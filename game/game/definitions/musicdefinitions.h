@@ -1,7 +1,7 @@
 #pragma once
 
-#include <phoenix/vm.hh>
-#include <phoenix/ext/daedalus_classes.hh>
+#include <zenkit/DaedalusVm.hh>
+#include <zenkit/addon/daedalus.hh>
 
 #include <memory>
 
@@ -10,9 +10,9 @@ class MusicDefinitions final {
     MusicDefinitions();
     ~MusicDefinitions();
 
-    const phoenix::c_music_theme* operator[](std::string_view name) const;
+    const zenkit::IMusicTheme* operator[](std::string_view name) const;
 
   private:
-    std::unique_ptr<phoenix::vm>  vm;
-    std::vector<std::shared_ptr<phoenix::c_music_theme>> themes;
+    std::unique_ptr<zenkit::DaedalusVm>  vm;
+    std::vector<std::shared_ptr<zenkit::IMusicTheme>> themes;
   };

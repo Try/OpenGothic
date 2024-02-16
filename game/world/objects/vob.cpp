@@ -31,7 +31,7 @@ Vob::Vob(World& owner)
   : world(owner) {
   }
 
-Vob::Vob(Vob* parent, World& owner, const phoenix::vob& vob, Flags flags)
+Vob::Vob(Vob* parent, World& owner, const zenkit::VirtualObject& vob, Flags flags)
   : world(owner), vobType(vob.type), vobObjectID(vob.id), parent(parent) {
 
   glm::mat4x4 worldMatrix = vob.rotation;
@@ -106,14 +106,14 @@ void Vob::recalculateTransform() {
     }
   if(old!=position() && !isDynamic()) {
     switch(vobType) {
-      case phoenix::vob_type::oCMOB:
-      case phoenix::vob_type::oCMobBed:
-      case phoenix::vob_type::oCMobDoor:
-      case phoenix::vob_type::oCMobInter:
-      case phoenix::vob_type::oCMobContainer:
-      case phoenix::vob_type::oCMobSwitch:
-      case phoenix::vob_type::oCMobLadder:
-      case phoenix::vob_type::oCMobWheel:
+      case zenkit::VirtualObjectType::oCMOB:
+      case zenkit::VirtualObjectType::oCMobBed:
+      case zenkit::VirtualObjectType::oCMobDoor:
+      case zenkit::VirtualObjectType::oCMobInter:
+      case zenkit::VirtualObjectType::oCMobContainer:
+      case zenkit::VirtualObjectType::oCMobSwitch:
+      case zenkit::VirtualObjectType::oCMobLadder:
+      case zenkit::VirtualObjectType::oCMobWheel:
         world.invalidateVobIndex();
         break;
       default:
@@ -127,61 +127,60 @@ void Vob::recalculateTransform() {
   }
 
 
-std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const phoenix::vob& vob, Flags flags) {
-  namespace vobs = phoenix::vobs;
+std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const zenkit::VirtualObject& vob, Flags flags) {
   switch(vob.type) {
-    case phoenix::vob_type::unknown:
+    case zenkit::VirtualObjectType::UNKNOWN:
       return nullptr;
-    case phoenix::vob_type::zCVob:
-    case phoenix::vob_type::zCVobStair:
+    case zenkit::VirtualObjectType::zCVob:
+    case zenkit::VirtualObjectType::zCVobStair:
       return std::unique_ptr<Vob>(new StaticObj(parent,world,vob,flags));
-    case phoenix::vob_type::zCVobAnimate:
+    case zenkit::VirtualObjectType::zCVobAnimate:
       // NOTE: engine animates all objects anyway
       return std::unique_ptr<Vob>(new StaticObj(parent,world,vob,flags));
-    case phoenix::vob_type::zCVobLevelCompo:
+    case zenkit::VirtualObjectType::zCVobLevelCompo:
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
-    case phoenix::vob_type::oCMobFire:
-      return std::unique_ptr<Vob>(new FirePlace(parent,world,reinterpret_cast<const vobs::mob_fire&>(vob),flags));
-    case phoenix::vob_type::oCMOB:
+    case zenkit::VirtualObjectType::oCMobFire:
+      return std::unique_ptr<Vob>(new FirePlace(parent,world,reinterpret_cast<const zenkit::VFire&>(vob),flags));
+    case zenkit::VirtualObjectType::oCMOB:
       // Irdotar bow-triggers
       // focusOverride=true
-      return std::unique_ptr<Vob>(new Interactive(parent,world,reinterpret_cast<const vobs::mob&>(vob),flags));
-    case phoenix::vob_type::oCMobInter:
-    case phoenix::vob_type::oCMobBed:
-    case phoenix::vob_type::oCMobDoor:
-    case phoenix::vob_type::oCMobContainer:
-    case phoenix::vob_type::oCMobSwitch:
-    case phoenix::vob_type::oCMobLadder:
-    case phoenix::vob_type::oCMobWheel:
-      return std::unique_ptr<Vob>(new Interactive(parent,world,reinterpret_cast<const vobs::mob&>(vob),flags));
+      return std::unique_ptr<Vob>(new Interactive(parent,world,reinterpret_cast<const zenkit::VMovableObject&>(vob),flags));
+    case zenkit::VirtualObjectType::oCMobInter:
+    case zenkit::VirtualObjectType::oCMobBed:
+    case zenkit::VirtualObjectType::oCMobDoor:
+    case zenkit::VirtualObjectType::oCMobContainer:
+    case zenkit::VirtualObjectType::oCMobSwitch:
+    case zenkit::VirtualObjectType::oCMobLadder:
+    case zenkit::VirtualObjectType::oCMobWheel:
+      return std::unique_ptr<Vob>(new Interactive(parent,world,reinterpret_cast<const zenkit::VMovableObject&>(vob),flags));
 
-    case phoenix::vob_type::zCMover:
-      return std::unique_ptr<Vob>(new MoveTrigger(parent,world,reinterpret_cast<const vobs::trigger_mover&>(vob),flags));
-    case phoenix::vob_type::zCCodeMaster:
-      return std::unique_ptr<Vob>(new CodeMaster(parent,world,reinterpret_cast<const vobs::code_master&>(vob),flags));
-    case phoenix::vob_type::zCTriggerList:
-      return std::unique_ptr<Vob>(new TriggerList(parent,world,reinterpret_cast<const vobs::trigger_list&>(vob),flags));
-    case phoenix::vob_type::oCTriggerScript:
-      return std::unique_ptr<Vob>(new TriggerScript(parent,world,reinterpret_cast<const vobs::trigger_script&>(vob),flags));
-    case phoenix::vob_type::zCTriggerWorldStart:
-      return std::unique_ptr<Vob>(new TriggerWorldStart(parent,world,reinterpret_cast<const vobs::trigger_world_start&>(vob),flags));
-    case phoenix::vob_type::oCTriggerChangeLevel:
-      return std::unique_ptr<Vob>(new ZoneTrigger(parent,world,reinterpret_cast<const vobs::trigger_change_level&>(vob),flags));
-    case phoenix::vob_type::zCTrigger:
+    case zenkit::VirtualObjectType::zCMover:
+      return std::unique_ptr<Vob>(new MoveTrigger(parent,world,reinterpret_cast<const zenkit::VMover&>(vob),flags));
+    case zenkit::VirtualObjectType::zCCodeMaster:
+      return std::unique_ptr<Vob>(new CodeMaster(parent,world,reinterpret_cast<const zenkit::VCodeMaster&>(vob),flags));
+    case zenkit::VirtualObjectType::zCTriggerList:
+      return std::unique_ptr<Vob>(new TriggerList(parent,world,reinterpret_cast<const zenkit::VTriggerList&>(vob),flags));
+    case zenkit::VirtualObjectType::oCTriggerScript:
+      return std::unique_ptr<Vob>(new TriggerScript(parent,world,reinterpret_cast<const zenkit::VTriggerScript&>(vob),flags));
+    case zenkit::VirtualObjectType::zCTriggerWorldStart:
+      return std::unique_ptr<Vob>(new TriggerWorldStart(parent,world,reinterpret_cast<const zenkit::VTriggerWorldStart&>(vob),flags));
+    case zenkit::VirtualObjectType::oCTriggerChangeLevel:
+      return std::unique_ptr<Vob>(new ZoneTrigger(parent,world,reinterpret_cast<const zenkit::VTriggerChangeLevel&>(vob),flags));
+    case zenkit::VirtualObjectType::zCTrigger:
       return std::unique_ptr<Vob>(new Trigger(parent,world,vob,flags));
-    case phoenix::vob_type::zCMessageFilter:
-      return std::unique_ptr<Vob>(new MessageFilter(parent,world,reinterpret_cast<const vobs::message_filter&>(vob),flags));
-    case phoenix::vob_type::zCPFXController:
-      return std::unique_ptr<Vob>(new PfxController(parent,world,reinterpret_cast<const vobs::pfx_controller&>(vob),flags));
-    case phoenix::vob_type::oCTouchDamage:
-      return std::unique_ptr<Vob>(new TouchDamage(parent,world,reinterpret_cast<const vobs::touch_damage&>(vob),flags));
-    case phoenix::vob_type::zCTriggerUntouch:
+    case zenkit::VirtualObjectType::zCMessageFilter:
+      return std::unique_ptr<Vob>(new MessageFilter(parent,world,reinterpret_cast<const zenkit::VMessageFilter&>(vob),flags));
+    case zenkit::VirtualObjectType::zCPFXController:
+      return std::unique_ptr<Vob>(new PfxController(parent,world,reinterpret_cast<const zenkit::VParticleEffectController&>(vob),flags));
+    case zenkit::VirtualObjectType::oCTouchDamage:
+      return std::unique_ptr<Vob>(new TouchDamage(parent,world,reinterpret_cast<const zenkit::VTouchDamage&>(vob),flags));
+    case zenkit::VirtualObjectType::zCTriggerUntouch:
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
-    case phoenix::vob_type::zCMoverController:
-      return std::unique_ptr<Vob>(new MoverControler(parent,world,reinterpret_cast<const vobs::mover_controller&>(vob),flags));
-    case phoenix::vob_type::zCEarthquake:
-      return std::unique_ptr<Vob>(new Earthquake(parent,world,reinterpret_cast<const vobs::earthquake&>(vob),flags));
-    case phoenix::vob_type::zCVobStartpoint: {
+    case zenkit::VirtualObjectType::zCMoverController:
+      return std::unique_ptr<Vob>(new MoverControler(parent,world,reinterpret_cast<const zenkit::VMoverController&>(vob),flags));
+    case zenkit::VirtualObjectType::zCEarthquake:
+      return std::unique_ptr<Vob>(new Earthquake(parent,world,reinterpret_cast<const zenkit::VEarthquake&>(vob),flags));
+    case zenkit::VirtualObjectType::zCVobStartpoint: {
       float dx = vob.rotation[2].x;
       float dy = vob.rotation[2].y;
       float dz = vob.rotation[2].z;
@@ -189,7 +188,7 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const phoenix::vob& vo
       // FIXME
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
       }
-    case phoenix::vob_type::zCVobSpot: {
+    case zenkit::VirtualObjectType::zCVobSpot: {
       float dx = vob.rotation[2].x;
       float dy = vob.rotation[2].y;
       float dz = vob.rotation[2].z;
@@ -197,40 +196,40 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const phoenix::vob& vo
       // FIXME
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
       }
-    case phoenix::vob_type::oCItem: {
+    case zenkit::VirtualObjectType::oCItem: {
       if(flags)
-        world.addItem(reinterpret_cast<const vobs::item&>(vob));
+        world.addItem(reinterpret_cast<const zenkit::VItem&>(vob));
       // FIXME
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
       }
 
-    case phoenix::vob_type::zCVobSound:
-    case phoenix::vob_type::zCVobSoundDaytime:
-    case phoenix::vob_type::oCZoneMusic:
-    case phoenix::vob_type::oCZoneMusicDefault: {
+    case zenkit::VirtualObjectType::zCVobSound:
+    case zenkit::VirtualObjectType::zCVobSoundDaytime:
+    case zenkit::VirtualObjectType::oCZoneMusic:
+    case zenkit::VirtualObjectType::oCZoneMusicDefault: {
       world.addSound(vob);
       // FIXME
       return std::unique_ptr<Vob>(new Vob(parent,world,vob,flags));
       }
-    case phoenix::vob_type::zCVobLight: {
-      return std::unique_ptr<Vob>(new WorldLight(parent,world,reinterpret_cast<const vobs::light&>(vob),flags));
+    case zenkit::VirtualObjectType::zCVobLight: {
+      return std::unique_ptr<Vob>(new WorldLight(parent,world,reinterpret_cast<const zenkit::VLight&>(vob),flags));
       }
-    case phoenix::vob_type::zCCSCamera:
-      return std::unique_ptr<Vob>(new CsCamera(parent,world,reinterpret_cast<const vobs::cs_camera&>(vob),flags));
-    case phoenix::vob_type::zCCamTrj_KeyFrame:
+    case zenkit::VirtualObjectType::zCCSCamera:
+      return std::unique_ptr<Vob>(new CsCamera(parent,world,reinterpret_cast<const zenkit::VCutsceneCamera&>(vob),flags));
+    case zenkit::VirtualObjectType::zCCamTrj_KeyFrame:
       break;
-    case phoenix::vob_type::zCZoneZFog:
-    case phoenix::vob_type::zCZoneZFogDefault:
+    case zenkit::VirtualObjectType::zCZoneZFog:
+    case zenkit::VirtualObjectType::zCZoneZFogDefault:
       break;
-    case phoenix::vob_type::zCZoneVobFarPlane:
-    case phoenix::vob_type::zCZoneVobFarPlaneDefault:
+    case zenkit::VirtualObjectType::zCZoneVobFarPlane:
+    case zenkit::VirtualObjectType::zCZoneVobFarPlaneDefault:
       // wont do: no distance culling in any plans
       break;
-    case phoenix::vob_type::zCVobLensFlare:
-    case phoenix::vob_type::zCVobScreenFX:
+    case zenkit::VirtualObjectType::zCVobLensFlare:
+    case zenkit::VirtualObjectType::zCVobScreenFX:
       break;
-    case phoenix::vob_type::oCNpc:
-    case phoenix::vob_type::oCCSTrigger:
+    case zenkit::VirtualObjectType::oCNpc:
+    case zenkit::VirtualObjectType::oCCSTrigger:
       break;
     }
 
@@ -240,7 +239,7 @@ std::unique_ptr<Vob> Vob::load(Vob* parent, World& world, const phoenix::vob& vo
 void Vob::saveVobTree(Serialize& fin) const {
   for(auto& i:child)
     i->saveVobTree(fin);
-  if(vobType==phoenix::vob_type::zCVob)
+  if(vobType==zenkit::VirtualObjectType::zCVob)
     return;
   if(vobObjectID!=uint32_t(-1))
     save(fin);
@@ -248,14 +247,14 @@ void Vob::saveVobTree(Serialize& fin) const {
 
 void Vob::loadVobTree(Serialize& fin) {
   if(fin.version()<43) {
-    if(vobType==phoenix::vob_type::zCEarthquake ||
-       vobType==phoenix::vob_type::zCCSCamera)
+    if(vobType==zenkit::VirtualObjectType::zCEarthquake ||
+       vobType==zenkit::VirtualObjectType::zCCSCamera)
       return;
     }
 
   for(auto& i:child)
     i->loadVobTree(fin);
-  if(vobObjectID!=uint32_t(-1) && vobType!=phoenix::vob_type::zCVob)
+  if(vobObjectID!=uint32_t(-1) && vobType!=zenkit::VirtualObjectType::zCVob)
     load(fin);
   }
 

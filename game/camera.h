@@ -4,7 +4,7 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Point>
 
-#include <phoenix/ext/daedalus_classes.hh>
+#include <zenkit/addon/daedalus.hh>
 
 class World;
 class Npc;
@@ -181,5 +181,5 @@ class Camera final {
     void                  followAng   (Tempest::Vec3& spin, Tempest::Vec3 dest, float dtF);
     static void           followAng   (float& ang, float dest, float speed, float dtF);
 
-    const phoenix::c_camera& cameraDef() const;
+    const zenkit::ICamera& cameraDef() const;
   };

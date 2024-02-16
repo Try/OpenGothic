@@ -8,32 +8,32 @@
 
 using namespace Tempest;
 
-LeGo::LeGo(GameScript& owner, Ikarus& ikarus, phoenix::vm& vm_) : owner(owner), ikarus(ikarus), vm(vm_) {
+LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(owner), ikarus(ikarus), vm(vm_) {
   Log::i("DMA mod detected: LeGo");
 
   // ## FrameFunctions
-  vm.override_function("_FF_Create", [this](phoenix::func function, int delay, int cycles,
+  vm.override_function("_FF_Create", [this](zenkit::DaedalusFunction function, int delay, int cycles,
                                             int hasData, int data, bool gametime) {
     return _FF_Create(function, delay, cycles, hasData, data, gametime);
     });
-  vm.override_function("FF_RemoveData", [this](phoenix::func function, int data){
+  vm.override_function("FF_RemoveData", [this](zenkit::DaedalusFunction function, int data){
     return FF_RemoveData(function, data);
     });
-  vm.override_function("FF_ActiveData", [this](phoenix::func function, int data){
+  vm.override_function("FF_ActiveData", [this](zenkit::DaedalusFunction function, int data){
     return FF_ActiveData(function, data);
     });
-  vm.override_function("FF_Active", [this](phoenix::func function){
+  vm.override_function("FF_Active", [this](zenkit::DaedalusFunction function){
     return FF_Active(function);
     });
 
   // HookEngine
-  vm.override_function("HookEngineF", [](int address, int oldInstr, phoenix::func function) {
+  vm.override_function("HookEngineF", [](int address, int oldInstr, zenkit::DaedalusFunction function) {
     auto sym  = function.value;
     auto name = sym==nullptr ? "" : sym->name().c_str();
     Log::e("not implemented call [HookEngineF] (", reinterpret_cast<void*>(uint64_t(address)),
            " -> ", name, ")");
     });
-  vm.override_function("HookEngineI", [](int address, int oldInstr, phoenix::func function){
+  vm.override_function("HookEngineI", [](int address, int oldInstr, zenkit::DaedalusFunction function){
     auto sym  = function.value;
     auto name = sym==nullptr ? "" : sym->name().c_str();
     Log::e("not implemented call [HookEngineI] (", reinterpret_cast<void*>(uint64_t(address)),
@@ -41,7 +41,7 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, phoenix::vm& vm_) : owner(owner), 
     });
 
   // console commands
-  vm.override_function("CC_Register", [](phoenix::func func, std::string_view prefix, std::string_view desc){
+  vm.override_function("CC_Register", [](zenkit::DaedalusFunction func, std::string_view prefix, std::string_view desc){
     auto sym  = func.value;
     auto name = sym==nullptr ? "" : sym->name().c_str();
     Log::e("not implemented call [CC_Register] (", prefix, " -> ", name, ")");
@@ -64,7 +64,7 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, phoenix::vm& vm_) : owner(owner), 
     });
   }
 
-bool LeGo::isRequired(phoenix::vm& vm) {
+bool LeGo::isRequired(zenkit::DaedalusVm& vm) {
   return
       vm.find_symbol_by_name("LeGo_InitFlags") != nullptr &&
       vm.find_symbol_by_name("LeGo_Init") != nullptr &&
@@ -74,7 +74,7 @@ bool LeGo::isRequired(phoenix::vm& vm) {
 int LeGo::create(int instId) {
   auto *sym = vm.find_symbol_by_index(uint32_t(instId));
   auto *cls = sym;
-  if(sym != nullptr && sym->type() == phoenix::datatype::instance) {
+  if(sym != nullptr && sym->type() == zenkit::DaedalusDataType::instance) {
     cls = vm.find_symbol_by_index(sym->parent());
     }
 
@@ -128,7 +128,7 @@ void LeGo::tick(uint64_t dt) {
     }
   }
 
-void LeGo::_FF_Create(phoenix::func func, int delay, int cycles, int hasData, int data, bool gametime) {
+void LeGo::_FF_Create(zenkit::DaedalusFunction func, int delay, int cycles, int hasData, int data, bool gametime) {
   FFItem itm;
   itm.fncID    = func.value->index();
   itm.cycles   = cycles;
@@ -146,15 +146,15 @@ void LeGo::_FF_Create(phoenix::func func, int delay, int cycles, int hasData, in
   frameFunc.emplace_back(itm);
   }
 
-void LeGo::FF_Remove(phoenix::func function) {
+void LeGo::FF_Remove(zenkit::DaedalusFunction function) {
 
   }
 
-void LeGo::FF_RemoveAll(phoenix::func function) {
+void LeGo::FF_RemoveAll(zenkit::DaedalusFunction function) {
 
   }
 
-void LeGo::FF_RemoveData(phoenix::func func, int data) {
+void LeGo::FF_RemoveData(zenkit::DaedalusFunction func, int data) {
   auto* sym = func.value;
   if(sym == nullptr) {
     Log::e("FF_RemoveData: invalid function ptr");
@@ -171,7 +171,7 @@ void LeGo::FF_RemoveData(phoenix::func func, int data) {
   frameFunc.resize(nsz);
   }
 
-bool LeGo::FF_ActiveData(phoenix::func func, int data) {
+bool LeGo::FF_ActiveData(zenkit::DaedalusFunction func, int data) {
   auto* sym = func.value;
   if(sym == nullptr) {
     Log::e("FF_ActiveData: invalid function ptr");
@@ -185,7 +185,7 @@ bool LeGo::FF_ActiveData(phoenix::func func, int data) {
   return false;
   }
 
-bool LeGo::FF_Active(phoenix::func func) {
+bool LeGo::FF_Active(zenkit::DaedalusFunction func) {
   auto* sym = func.value;
   if(sym == nullptr) {
     Log::e("FF_Active: invalid function ptr");

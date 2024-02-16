@@ -1,8 +1,8 @@
-#include <phoenix/vobs/mob.hh>
-
 #include "fireplace.h"
 
-FirePlace::FirePlace(Vob* parent, World& world, const phoenix::vobs::mob_fire& vob, Flags flags)
+#include <zenkit/vobs/MovableObject.hh>
+
+FirePlace::FirePlace(Vob* parent, World& world, const zenkit::VFire& vob, Flags flags)
   : Interactive(parent,world,vob,flags){
   fireVobtreeName = vob.vob_tree;
   fireSlot        = vob.slot;

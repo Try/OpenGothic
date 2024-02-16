@@ -11,15 +11,14 @@
 #include <Tempest/Log>
 #include <Tempest/Color>
 
-#include <phoenix/proto_mesh.hh>
-#include <phoenix/model_hierarchy.hh>
-#include <phoenix/model.hh>
-#include <phoenix/model_script.hh>
-#include <phoenix/material.hh>
-#include <phoenix/texture.hh>
-#include <phoenix/ext/dds_convert.hh>
-
-#include <fstream>
+#include <zenkit/MultiResolutionMesh.hh>
+#include <zenkit/ModelHierarchy.hh>
+#include <zenkit/Model.hh>
+#include <zenkit/ModelScript.hh>
+#include <zenkit/Material.hh>
+#include <zenkit/Texture.hh>
+#include <zenkit/addon/texcvt.hh>
+#include <zenkit/Texture.hh>
 
 #include "graphics/mesh/submesh/pfxemittermesh.h"
 #include "graphics/mesh/submesh/packedmesh.h"
@@ -126,7 +125,7 @@ void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs, bool modFil
       if(i.name.find(u"Speech")!=std::string::npos)
         continue;
 #endif
-      inst->gothicAssets.mount_disk(i.name, phoenix::VfsOverwriteBehavior::OLDER);
+      inst->gothicAssets.mount_disk(i.name, zenkit::VfsOverwriteBehavior::OLDER);
       }
     catch(const zenkit::VfsBrokenDiskError& err) {
       Log::e("unable to load archive: \"", TextCodec::toUtf8(i.name), "\", reason: ", err.what());
@@ -253,7 +252,7 @@ const Texture2d &Resources::fallbackBlack() {
   return inst->fbZero;
   }
 
-const phoenix::Vfs& Resources::vdfsIndex() {
+const zenkit::Vfs& Resources::vdfsIndex() {
   return inst->gothicAssets;
   }
 
@@ -307,11 +306,11 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
       auto reader = entry->open_read();
       tex.load(reader.get());
 
-      if (tex.format() == phoenix::tex_dxt1 ||
-          tex.format() == phoenix::tex_dxt2 ||
-          tex.format() == phoenix::tex_dxt3 ||
-          tex.format() == phoenix::tex_dxt4 ||
-          tex.format() == phoenix::tex_dxt5) {
+      if (tex.format() == zenkit::TextureFormat::DXT1 ||
+          tex.format() == zenkit::TextureFormat::DXT2 ||
+          tex.format() == zenkit::TextureFormat::DXT3 ||
+          tex.format() == zenkit::TextureFormat::DXT4 ||
+          tex.format() == zenkit::TextureFormat::DXT5) {
         auto dds = zenkit::to_dds(tex);
         auto ddsRead = zenkit::Read::from(dds);
 
@@ -545,7 +544,7 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(std::string_view name) {
   return nullptr;
   }
 
-ProtoMesh* Resources::implDecalMesh(const phoenix::vob& vob) {
+ProtoMesh* Resources::implDecalMesh(const zenkit::VirtualObject& vob) {
   DecalK key;
   key.mat         = Material(vob);
   key.sX          = vob.visual_decal->dimension.x;
@@ -785,7 +784,7 @@ Texture2d Resources::loadTexturePm(const Pixmap &pm) {
   return inst->dev.texture(pm);
   }
 
-Material Resources::loadMaterial(const phoenix::material& src, bool enableAlphaTest) {
+Material Resources::loadMaterial(const zenkit::Material& src, bool enableAlphaTest) {
   return Material(src,enableAlphaTest);
   }
 
@@ -834,7 +833,7 @@ Dx8::PatternList Resources::loadDxMusic(std::string_view name) {
   return inst->implLoadDxMusic(name);
   }
 
-const ProtoMesh* Resources::decalMesh(const phoenix::vob& vob) {
+const ProtoMesh* Resources::decalMesh(const zenkit::VirtualObject& vob) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implDecalMesh(vob);
   }
@@ -871,7 +870,7 @@ const Resources::VobTree* Resources::implLoadVobBundle(std::string_view filename
   if(i!=zenCache.end())
     return i->second.get();
 
-  std::vector<std::shared_ptr<phoenix::vob>> bundle;
+  std::vector<std::shared_ptr<zenkit::VirtualObject>> bundle;
   try {
     const auto* entry = Resources::vdfsIndex().find(cname);
     if(entry == nullptr)

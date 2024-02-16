@@ -54,7 +54,7 @@ class MdlVisual final {
     void                           setSlotItem   (MeshObjects::Mesh&& itm,  std::string_view bone);
     void                           setStateItem  (MeshObjects::Mesh&& itm,  std::string_view bone);
     void                           clearSlotItem (std::string_view bone);
-    bool                           setFightMode  (phoenix::mds::event_fight_mode mode);
+    bool                           setFightMode  (zenkit::MdsFightMode mode);
     void                           dropWeapon    (Npc& owner);
 
     void                           setMagicWeapon(Effect&& spell, World& owner);
@@ -63,7 +63,7 @@ class MdlVisual final {
     void                           startEffect (World& owner, Effect&& pfx, int32_t slot, bool noSlot);
     void                           stopEffect  (const VisualFx& vfx);
     void                           stopEffect  (int32_t slot);
-    void                           setNpcEffect(World& owner, Npc& npc, std::string_view s, phoenix::npc_flag flags);
+    void                           setNpcEffect(World& owner, Npc& npc, std::string_view s, zenkit::NpcFlag flags);
     void                           setFatness  (float f);
     void                           emitBlockEffect(Npc& dst, Npc& src);
 

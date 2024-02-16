@@ -2,16 +2,15 @@
 
 #include <Tempest/Matrix4x4>
 
-#include <phoenix/model_hierarchy.hh>
+#include <zenkit/ModelHierarchy.hh>
 
 #include <vector>
-#include <array>
 
 #include "animation.h"
 
 class Skeleton final {
   public:
-    Skeleton(const phoenix::model_hierarchy& src, const Animation* anim, std::string_view name);
+    Skeleton(const zenkit::ModelHierarchy& src, const Animation* anim, std::string_view name);
 
     struct Node final {
       size_t             parent=size_t(-1);

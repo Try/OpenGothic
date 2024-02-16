@@ -61,7 +61,7 @@ class Bullet final : public DynamicWorld::BulletCallback {
   protected:
     void     onStop() override;
     void     onMove() override;
-    void     onCollide(phoenix::material_group matId) override;
+    void     onCollide(zenkit::MaterialGroup matId) override;
     void     onCollide(Npc& other) override;
 
   private:

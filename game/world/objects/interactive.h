@@ -1,14 +1,14 @@
 #pragma once
 
 #include <Tempest/Matrix4x4>
+#include <zenkit/vobs/MovableObject.hh>
+
 #include "physics/physicmesh.h"
 #include "graphics/mesh/animationsolver.h"
 #include "graphics/objvisual.h"
 #include "game/inventory.h"
 #include "utils/keycodec.h"
 #include "vob.h"
-
-#include <phoenix/vobs/mob.hh>
 
 class Npc;
 class World;
@@ -25,7 +25,7 @@ class Interactive : public Vob {
       FromStand = 11,
       };
 
-    Interactive(Vob* parent, World& world, const phoenix::vobs::mob& vob, Flags flags);
+    Interactive(Vob* parent, World& world, const zenkit::VMovableObject& vob, Flags flags);
 
     void                load(Serialize& fin) override;
     void                save(Serialize& fout) const override;
@@ -109,7 +109,7 @@ class Interactive : public Vob {
       bool                isDistPos() const;
       };
 
-    void                setVisual(const phoenix::vob& vob);
+    void                setVisual(const zenkit::VirtualObject& vob);
     void                invokeStateFunc(Npc &npc);
     void                implTick(Pos &p);
     void                implQuitInteract(Pos &p);

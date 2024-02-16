@@ -11,7 +11,7 @@
 
 using namespace Tempest;
 
-WayMatrix::WayMatrix(World &world, const phoenix::way_net &dat)
+WayMatrix::WayMatrix(World &world, const zenkit::WayNet& dat)
   :world(world) {
   // scripting doc says 20m, but number seems to be incorrect
   if(world.version().game==2) {

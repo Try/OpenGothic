@@ -1,6 +1,6 @@
 #pragma once
 
-#include <phoenix/ext/daedalus_classes.hh>
+#include <zenkit/addon/daedalus.hh>
 
 #include "graphics/objvisual.h"
 #include "graphics/meshobjects.h"
@@ -80,10 +80,10 @@ class Item : public Vob {
     bool                checkCondUse (const Npc& other,int32_t& atr,int32_t& nv) const;
     bool                checkCondRune(const Npc& other,int32_t& cPl,int32_t& cIt) const;
 
-    const phoenix::c_item&                   handle() const { return *hitem; }
-    phoenix::c_item&                         handle() { return *hitem; }
-    const std::shared_ptr<phoenix::c_item>&  handlePtr()    { return hitem; }
-    size_t                                   clsId() const;
+    const zenkit::IItem&                   handle() const { return *hitem; }
+    zenkit::IItem&                         handle() { return *hitem; }
+    const std::shared_ptr<zenkit::IItem>&  handlePtr()    { return hitem; }
+    size_t                                 clsId() const;
 
   protected:
     void                moveEvent() override;
@@ -93,13 +93,13 @@ class Item : public Vob {
   private:
     void                updateMatrix();
 
-    std::shared_ptr<phoenix::c_item> hitem={};
-    Tempest::Vec3                    pos={};
+    std::shared_ptr<zenkit::IItem> hitem={};
+    Tempest::Vec3                  pos={};
 
-    uint32_t                          amount   = 0;
-    uint8_t                           equipped = 0;
-    uint8_t                           itSlot   = NSLOT;
+    uint32_t                       amount   = 0;
+    uint8_t                        equipped = 0;
+    uint8_t                        itSlot   = NSLOT;
 
-    MeshObjects::Mesh                 view;
-    DynamicWorld::Item                physic;
+    MeshObjects::Mesh              view;
+    DynamicWorld::Item             physic;
   };

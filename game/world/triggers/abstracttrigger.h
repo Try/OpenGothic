@@ -1,7 +1,7 @@
 #pragma once
 
-#include <phoenix/vobs/misc.hh>
-#include <phoenix/vobs/trigger.hh>
+#include <zenkit/vobs/Misc.hh>
+#include <zenkit/vobs/Trigger.hh>
 #include <string>
 
 #include "world/objects/vob.h"
@@ -38,14 +38,14 @@ class TriggerEvent final {
     Type              type        = T_Trigger;
     uint64_t          timeBarrier = 0;
     struct {
-      phoenix::mover_message_type msg = phoenix::mover_message_type::fixed_direct;
-      int32_t                     key = 0;
+      zenkit::MoverMessageType msg = zenkit::MoverMessageType::FIXED_DIRECT;
+      int32_t                  key = 0;
       } move;
   };
 
 class AbstractTrigger : public Vob {
   public:
-    AbstractTrigger(Vob* parent, World& world, const phoenix::vob& data, Flags flags);
+    AbstractTrigger(Vob* parent, World& world, const zenkit::VirtualObject& data, Flags flags);
     virtual ~AbstractTrigger();
 
     std::string_view             name() const;

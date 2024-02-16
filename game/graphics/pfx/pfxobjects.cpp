@@ -94,7 +94,7 @@ PfxBucket& PfxObjects::getBucket(const ParticleFx &decl) {
   return bucket.back();
   }
 
-PfxBucket& PfxObjects::getBucket(const Material& mat, const phoenix::vob& vob) {
+PfxBucket& PfxObjects::getBucket(const Material& mat, const zenkit::VirtualObject& vob) {
   for(auto& i:spriteEmit)
     if(i.pfx->visMaterial==mat &&
        i.visualCamAlign==vob.sprite_camera_facing_mode &&

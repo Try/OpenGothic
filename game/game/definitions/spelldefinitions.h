@@ -1,16 +1,16 @@
 #pragma once
 
-#include <phoenix/vm.hh>
-#include <phoenix/ext/daedalus_classes.hh>
+#include <zenkit/DaedalusVm.hh>
+#include <zenkit/addon/daedalus.hh>
 
 class SpellDefinitions final {
   public:
-    SpellDefinitions(phoenix::vm &vm);
+    SpellDefinitions(zenkit::DaedalusVm &vm);
     ~SpellDefinitions();
 
-    const phoenix::c_spell& find(std::string_view instanceName) const;
+    const zenkit::ISpell& find(std::string_view instanceName) const;
 
   private:
-    phoenix::vm&                                   vm;
-    std::vector<std::shared_ptr<phoenix::c_spell>> spl;
+    zenkit::DaedalusVm&                          vm;
+    std::vector<std::shared_ptr<zenkit::ISpell>> spl;
   };

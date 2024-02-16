@@ -27,7 +27,7 @@ static uint64_t frameClamp(int32_t frame,uint32_t first,uint32_t numFrames,uint3
   return uint64_t(frame)-first;
   }
 
-Animation::Animation(phoenix::model_script &p, std::string_view name, const bool ignoreErrChunks) {
+Animation::Animation(zenkit::ModelScript& p, std::string_view name, const bool ignoreErrChunks) {
   ref = std::move(p.aliases);
 
   for(auto& ani : p.animations) {
@@ -107,7 +107,7 @@ std::string_view Animation::defaultMesh() const {
   return "";
   }
 
-Animation::Sequence& Animation::loadMAN(const phoenix::mds::animation& hdr, std::string_view name) {
+Animation::Sequence& Animation::loadMAN(const zenkit::MdsAnimation& hdr, std::string_view name) {
   sequences.emplace_back(hdr,name);
   auto& ret = sequences.back();
   if(ret.data==nullptr) {
@@ -137,7 +137,7 @@ void Animation::setupIndex() {
     ani.flags    = r.flags;
     ani.blendIn  = uint64_t(1000 * r.blend_in);
     ani.blendOut = uint64_t(1000 * r.blend_out);
-    ani.reverse  = r.direction != phoenix::mds::animation_direction::forward;
+    ani.reverse  = r.direction != zenkit::AnimationDirection::forward;
     ani.next     = r.next;
     sequences.emplace_back(std::move(ani));
     }
@@ -188,7 +188,7 @@ void Animation::setupIndex() {
   }
 
 
-Animation::Sequence::Sequence(const phoenix::mds::animation& hdr, std::string_view fname) {
+Animation::Sequence::Sequence(const zenkit::MdsAnimation& hdr, std::string_view fname) {
   const auto* entry = Resources::vdfsIndex().find(fname);
   if(entry==nullptr)
     return;
@@ -204,7 +204,7 @@ Animation::Sequence::Sequence(const phoenix::mds::animation& hdr, std::string_vi
   blendIn    = uint64_t(1000*hdr.blend_in);
   blendOut   = uint64_t(1000*hdr.blend_out);
   next       = hdr.next;
-  reverse    = hdr.direction != phoenix::mds::animation_direction::forward;
+  reverse    = hdr.direction != zenkit::AnimationDirection::forward;
 
   data->firstFrame = uint32_t(hdr.first_frame);
   data->lastFrame  = uint32_t(hdr.last_frame);
@@ -277,7 +277,7 @@ bool Animation::Sequence::isDefWindow(uint64_t t) const {
 
 bool Animation::Sequence::isAttackAnim() const {
   for(auto& e:data->events)
-    if(e.type == phoenix::mds::event_tag_type::opt_frame)
+    if(e.type == zenkit::MdsEventType::opt_frame)
       return true;
   return false;
   }
@@ -291,7 +291,7 @@ bool Animation::Sequence::isPrehit(uint64_t sTime, uint64_t now) const {
   int64_t frame = int64_t(float(now-sTime)*d.fpsRate/1000.f);
 
   for(auto& e:data->events)
-    if(e.type == phoenix::mds::event_tag_type::opt_frame)
+    if(e.type == zenkit::MdsEventType::opt_frame)
       for(auto i : e.frames)
         if(int64_t(i) > frame)
           return true;
@@ -390,7 +390,7 @@ void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64
   float fpsRate = d.fpsRate;
 
   for(auto& e:d.events) {
-    if(e.type == phoenix::mds::event_tag_type::opt_frame) {
+    if(e.type == zenkit::MdsEventType::opt_frame) {
       for(auto i:e.frames) {
         uint64_t fr = frameClamp(i,d.firstFrame,d.numFrames,d.lastFrame);
         if((frameA<=fr && fr<frameB) ^ invert)
@@ -420,16 +420,16 @@ void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64
     }
   }
 
-void Animation::Sequence::processEvent(const phoenix::mds::event_tag &e, Animation::EvCount &ev, uint64_t time) {
+void Animation::Sequence::processEvent(const zenkit::MdsEventTag& e, Animation::EvCount &ev, uint64_t time) {
   switch(e.type) {
-    case phoenix::mds::event_tag_type::opt_frame:
+    case zenkit::MdsEventType::opt_frame:
       ev.def_opt_frame++;
       break;
-    case phoenix::mds::event_tag_type::fight_mode:
+    case zenkit::MdsEventType::fight_mode:
       ev.weaponCh = e.fight_mode;
       break;
-    case phoenix::mds::event_tag_type::create_item:
-    case phoenix::mds::event_tag_type::exchange_item:{
+    case zenkit::MdsEventType::create_item:
+    case zenkit::MdsEventType::exchange_item:{
       EvTimed ex;
       ex.def     = e.type;
       ex.item    = e.item;
@@ -438,10 +438,10 @@ void Animation::Sequence::processEvent(const phoenix::mds::event_tag &e, Animati
       ev.timed.push_back(ex);
       break;
       }
-    case phoenix::mds::event_tag_type::insert_item:
-    case phoenix::mds::event_tag_type::remove_item:
-    case phoenix::mds::event_tag_type::destroy_item:
-    case phoenix::mds::event_tag_type::place_item: {
+    case zenkit::MdsEventType::insert_item:
+    case zenkit::MdsEventType::remove_item:
+    case zenkit::MdsEventType::destroy_item:
+    case zenkit::MdsEventType::place_item: {
       EvTimed ex;
       ex.def     = e.type;
       ex.slot[0] = e.slot;
@@ -449,8 +449,8 @@ void Animation::Sequence::processEvent(const phoenix::mds::event_tag &e, Animati
       ev.timed.push_back(ex);
       break;
       }
-    case phoenix::mds::event_tag_type::place_munition:
-    case phoenix::mds::event_tag_type::remove_munition: {
+    case zenkit::MdsEventType::place_munition:
+    case zenkit::MdsEventType::remove_munition: {
       EvTimed ex;
       ex.def     = e.type;
       ex.slot[0] = e.slot;
@@ -458,7 +458,7 @@ void Animation::Sequence::processEvent(const phoenix::mds::event_tag &e, Animati
       ev.timed.push_back(ex);
       break;
       }
-    case phoenix::mds::event_tag_type::swap_mesh: {
+    case zenkit::MdsEventType::swap_mesh: {
       EvTimed ex;
       ex.def     = e.type;
       ex.slot[0] = e.slot;
@@ -467,9 +467,9 @@ void Animation::Sequence::processEvent(const phoenix::mds::event_tag &e, Animati
       ev.timed.push_back(ex);
       break;
       }
-    case phoenix::mds::event_tag_type::draw_torch:
-    case phoenix::mds::event_tag_type::inventory_torch:
-    case phoenix::mds::event_tag_type::drop_torch: {
+    case zenkit::MdsEventType::draw_torch:
+    case zenkit::MdsEventType::inventory_torch:
+    case zenkit::MdsEventType::drop_torch: {
       EvTimed ex;
       ex.def     = e.type;
       ex.slot[0] = e.slot;
@@ -586,22 +586,22 @@ void Animation::AnimData::setupEvents(float fpsRate) {
 
   int hasOptFrame = std::numeric_limits<int>::max();
   for(size_t i=0; i<events.size(); ++i)
-    if(events[i].type==phoenix::mds::event_tag_type::opt_frame) {
+    if(events[i].type==zenkit::MdsEventType::opt_frame) {
       hasOptFrame = std::min(hasOptFrame, events[i].frames[0]);
       }
 
   for(size_t i=0; i<events.size(); ++i)
-    if(events[i].type==phoenix::mds::event_tag_type::opt_frame && events[i].frames[0]!=hasOptFrame) {
+    if(events[i].type==zenkit::MdsEventType::opt_frame && events[i].frames[0]!=hasOptFrame) {
       events[i] = std::move(events.back());
       events.pop_back();
       }
 
   for(auto& r:events) {
-    if(r.type==phoenix::mds::event_tag_type::hit_end)
+    if(r.type==zenkit::MdsEventType::hit_end)
       setupTime(defHitEnd,r.frames,fpsRate);
-    if(r.type==phoenix::mds::event_tag_type::par_frame)
+    if(r.type==zenkit::MdsEventType::par_frame)
       setupTime(defParFrame,r.frames,fpsRate);
-    if(r.type==phoenix::mds::event_tag_type::window)
+    if(r.type==zenkit::MdsEventType::window)
       setupTime(defWindow,r.frames,fpsRate);
     }
   }

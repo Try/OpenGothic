@@ -1,7 +1,7 @@
 #include "svmdefinitions.h"
 #include "utils/string_frm.h"
 
-SvmDefinitions::SvmDefinitions(phoenix::vm& vm):vm(vm) {
+SvmDefinitions::SvmDefinitions(zenkit::DaedalusVm& vm):vm(vm) {
     vm.register_as_opaque("C_SVM");
   }
 

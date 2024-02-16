@@ -239,31 +239,31 @@ void MdlVisual::clearSlotItem(std::string_view bone) {
     }
   }
 
-bool MdlVisual::setFightMode(phoenix::mds::event_fight_mode mode) {
-  WeaponState f=WeaponState::NoWeapon;
+bool MdlVisual::setFightMode(zenkit::MdsFightMode mode) {
+  WeaponState f = WeaponState::NoWeapon;
 
   switch(mode) {
-    case phoenix::mds::event_fight_mode::invalid:
+    case zenkit::MdsFightMode::invalid:
       return false;
-    case phoenix::mds::event_fight_mode::none:
+    case zenkit::MdsFightMode::none:
       f=WeaponState::NoWeapon;
       break;
-    case phoenix::mds::event_fight_mode::fist:
+    case zenkit::MdsFightMode::fist:
       f=WeaponState::Fist;
       break;
-    case phoenix::mds::event_fight_mode::one_handed:
+    case zenkit::MdsFightMode::one_handed:
       f=WeaponState::W1H;
       break;
-    case phoenix::mds::event_fight_mode::two_handed:
+    case zenkit::MdsFightMode::two_handed:
       f=WeaponState::W2H;
       break;
-    case phoenix::mds::event_fight_mode::bow:
+    case zenkit::MdsFightMode::bow:
       f=WeaponState::Bow;
       break;
-    case phoenix::mds::event_fight_mode::crossbow:
+    case zenkit::MdsFightMode::crossbow:
       f=WeaponState::CBow;
       break;
-    case phoenix::mds::event_fight_mode::magic:
+    case zenkit::MdsFightMode::magic:
       f=WeaponState::Mage;
       break;
     }
@@ -350,7 +350,7 @@ void MdlVisual::stopEffect(int32_t slot) {
     }
   }
 
-void MdlVisual::setNpcEffect(World& owner, Npc& npc, std::string_view s, phoenix::npc_flag flags) {
+void MdlVisual::setNpcEffect(World& owner, Npc& npc, std::string_view s, zenkit::NpcFlag flags) {
   if(hnpcVisualName!=s) {
     hnpcVisualName = s;
     auto vfx = Gothic::inst().loadVisualFx(s);
@@ -366,7 +366,7 @@ void MdlVisual::setNpcEffect(World& owner, Npc& npc, std::string_view s, phoenix
     hnpcVisual.view.setMesh(&view);
     }
 
-  const bool nextGhost = (flags & phoenix::npc_flag::ghost);
+  const bool nextGhost = (flags & zenkit::NpcFlag::ghost);
   if(hnpcFlagGhost!=nextGhost) {
     hnpcFlagGhost=nextGhost;
     view.setAsGhost(hnpcFlagGhost);
@@ -458,7 +458,7 @@ void MdlVisual::setTorch(bool t, World& owner) {
   if(torchId==size_t(-1))
     return;
 
-  auto hitem = std::make_shared<phoenix::c_item>();
+  auto hitem = std::make_shared<zenkit::IItem>();
   owner.script().initializeInstanceItem(hitem, torchId);
   torch.view.reset(new ObjVisual());
   torch.view->setVisual(*hitem,owner,false);

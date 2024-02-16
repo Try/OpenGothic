@@ -562,7 +562,7 @@ void WorldObjects::stopEffect(const VisualFx& vfx) {
     i->stopEffect(vfx);
   }
 
-Item* WorldObjects::addItem(const phoenix::vobs::item& vob) {
+Item* WorldObjects::addItem(const zenkit::VItem& vob) {
   size_t inst = owner.script().findSymbolIndex(vob.instance);
   Item*  it   = addItem(inst,"");
   if(it==nullptr)
@@ -686,7 +686,7 @@ void WorldObjects::addStatic(StaticObj* obj) {
   objStatic.push_back(obj);
   }
 
-void WorldObjects::addRoot(const std::shared_ptr<phoenix::vob>& vob, bool startup) {
+void WorldObjects::addRoot(const std::shared_ptr<zenkit::VirtualObject>& vob, bool startup) {
   auto p = Vob::load(nullptr,owner,*vob,(startup ? Vob::Startup : Vob::None) | Vob::Static);
   if(p==nullptr)
     return;
@@ -934,7 +934,7 @@ static bool checkFlag(Npc& n,WorldObjects::SearchFlg f){
   }
 
 static bool checkFlag(Interactive& i,WorldObjects::SearchFlg f){
-  if(bool(f&WorldObjects::FcOverride)!=i.overrideFocus())
+  if(bool(f&WorldObjects::FcOverride) && !i.overrideFocus())
     return false;
   return true;
   }

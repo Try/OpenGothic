@@ -6,8 +6,8 @@ static float mix(float x,float y,float a){
   return x+(y-x)*a;
   }
 
-phoenix::animation_sample mix(const phoenix::animation_sample& x,const phoenix::animation_sample& y,float a) {
-  phoenix::animation_sample r {};
+zenkit::AnimationSample mix(const zenkit::AnimationSample& x, const zenkit::AnimationSample& y, float a) {
+  zenkit::AnimationSample r {};
 
   r.rotation   = glm::slerp(x.rotation,y.rotation,a);
 
@@ -39,7 +39,7 @@ static Tempest::Matrix4x4 mkMatrix(float x,float y,float z,float w,
   return Tempest::Matrix4x4(reinterpret_cast<float*>(m));
   }
 
-Tempest::Matrix4x4 mkMatrix(const phoenix::animation_sample& s) {
+Tempest::Matrix4x4 mkMatrix(const zenkit::AnimationSample& s) {
   return mkMatrix(s.rotation.x,s.rotation.y,s.rotation.z,s.rotation.w,
                   s.position.x,s.position.y,s.position.z);
   }

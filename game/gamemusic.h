@@ -1,6 +1,6 @@
 #pragma once
 
-#include <phoenix/ext/daedalus_classes.hh>
+#include <zenkit/addon/daedalus.hh>
 
 #include <memory>
 
@@ -30,7 +30,7 @@ class GameMusic final {
     void      setEnabled(bool e);
     bool      isEnabled() const;
     void      setMusic(Music m);
-    void      setMusic(const phoenix::c_music_theme &theme, Tags t);
+    void      setMusic(const zenkit::IMusicTheme &theme, Tags t);
     void      stopMusic();
 
   private:

@@ -5,7 +5,7 @@
 
 using namespace Tempest;
 
-GthFont::GthFont():pfnt(new phoenix::font("", 16, {})) {
+GthFont::GthFont():pfnt(new zenkit::Font("", 16, {})) {
   }
 
 GthFont::GthFont(zenkit::Read& data, std::string_view ftex, const Color &cl)

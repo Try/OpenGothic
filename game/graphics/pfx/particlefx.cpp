@@ -7,7 +7,7 @@
 
 using namespace Tempest;
 
-ParticleFx::ParticleFx(const Material& mat, const phoenix::vob& vob) {
+ParticleFx::ParticleFx(const Material& mat, const zenkit::VirtualObject& vob) {
   dbgName          = vob.visual_name;
 
   ppsValue         = -1;
@@ -28,13 +28,13 @@ ParticleFx::ParticleFx(const Material& mat, const phoenix::vob& vob) {
   visSizeEndScale  = 1;
   visAlphaStart    = 1;
   visAlphaEnd      = 1;
-  visYawAlign      = vob.sprite_camera_facing_mode==phoenix::sprite_alignment::yaw;
+  visYawAlign      = vob.sprite_camera_facing_mode==zenkit::SpriteAlignment::yaw;
   visZBias         = vob.bias!=0;
 
   useEmittersFOR   = true;
   }
 
-ParticleFx::ParticleFx(const phoenix::c_particle_fx &src, std::string_view name)
+ParticleFx::ParticleFx(const zenkit::IParticleEffect& src, std::string_view name)
   :dbgName(name) {
   ppsValue            = std::max(0.f,src.pps_value);
   ppsScaleKeys        = loadArr(src.pps_scale_keys_s);

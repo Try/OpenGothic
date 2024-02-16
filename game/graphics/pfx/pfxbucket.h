@@ -2,6 +2,7 @@
 
 #include <Tempest/VertexBuffer>
 #include <vector>
+#include <random>
 
 #include "graphics/pfx/pfxobjects.h"
 #include "resources.h"
