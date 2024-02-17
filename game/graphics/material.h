@@ -35,12 +35,9 @@ class Material final {
     float                     waveMaxAmplitude = 0;
     float                     envMapping       = 0;
 
-    bool operator <  (const Material& other) const;
-    bool operator >  (const Material& other) const;
     bool operator == (const Material& other) const;
 
     bool isSolid() const;
-    int  alphaOrder() const { return alphaOrder(alpha,isGhost); }
 
     bool hasFrameAnimation()     const { return !frames.empty() && texAniFPSInv!=0;    }
     bool hasUvAnimation()        const { return texAniMapDirPeriod!=Tempest::Point(0); }
@@ -57,10 +54,9 @@ class Material final {
     static bool isTextureInShadowPass(AlphaFunc alpha);
 
   private:
-    static int alphaOrder(AlphaFunc a, bool ghost);
-
     static AlphaFunc loadAlphaFunc(zenkit::AlphaFunction zenAlpha, zenkit::MaterialGroup matGroup,
                                    uint8_t alpha, const Tempest::Texture2d* tex, bool enableAlphaTest);
     void             loadFrames(const zenkit::Material& m);
+    void             loadFrames(const std::string_view fr, float fps);
   };
 

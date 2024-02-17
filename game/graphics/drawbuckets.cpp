@@ -38,8 +38,9 @@ DrawBuckets::Id DrawBuckets::alloc(const Material& mat, const StaticMesh& mesh) 
   Bucket bx;
   bx.staticMesh = &mesh;
   bx.mat        = mat;
-  bucketsCpu.emplace_back(std::move(bx));
+
   bucketsDurtyBit = true;
+  bucketsCpu.emplace_back(std::move(bx));
   return Id(this, bucketsCpu.size()-1);
   }
 

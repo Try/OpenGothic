@@ -29,7 +29,7 @@ Material::Material(const zenkit::Material& m, bool enableAlphaTest) {
     alpha = Solid;
     }
 
-  if(m.texture_anim_map_mode!=zenkit::AnimationMapping::none && tex!=nullptr) {
+  if(m.texture_anim_map_mode!=zenkit::AnimationMapping::NONE && tex!=nullptr) {
     auto texAniMapDir = m.texture_anim_map_dir;
     if(texAniMapDir.x!=0.f)
       texAniMapDirPeriod.x = int(1.f/texAniMapDir.x);
@@ -48,53 +48,23 @@ Material::Material(const zenkit::VirtualObject& vob) {
   tex = Resources::loadTexture(vob.visual_name);
   if(tex==nullptr && !vob.visual_name.empty())
     tex = Resources::loadTexture("DEFAULT.TGA");
+  loadFrames(vob.visual_name, vob.visual_decal->texture_anim_fps);
 
-  frames       = Resources::loadTextureAnim(vob.visual_name);
-
-  texAniFPSInv = 1000/std::max<size_t>(frames.size(),1);
   alpha        = loadAlphaFunc(vob.visual_decal->alpha_func, zenkit::MaterialGroup::undefined, vob.visual_decal->alpha_weight, tex, true);
   alphaWeight  = float(vob.visual_decal->alpha_weight)/255.f;
-
-  if(vob.visual_decal->texture_anim_fps>0)
-    texAniFPSInv = uint64_t(1000.f/vob.visual_decal->texture_anim_fps); else
-    texAniFPSInv = 1;
   }
 
 Material::Material(const zenkit::IParticleEffect& src) {
-  tex    = Resources::loadTexture(src.vis_name_s);
-  frames = Resources::loadTextureAnim(src.vis_name_s);
-  if(src.vis_tex_ani_fps>0)
-    texAniFPSInv = uint64_t(1000.f/src.vis_tex_ani_fps); else
-    texAniFPSInv = 1;
+  tex = Resources::loadTexture(src.vis_name_s);
+  loadFrames(src.vis_name_s, src.vis_tex_ani_fps);
+
   //TODO: visTexAniIsLooping
-
   alpha = Parser::loadAlpha(src.vis_alpha_func_s);
-  }
-
-bool Material::operator < (const Material& other) const {
-  auto a0 = alphaOrder(alpha,isGhost);
-  auto a1 = alphaOrder(other.alpha,other.isGhost);
-
-  if(a0<a1)
-    return true;
-  if(a0>a1)
-    return false;
-  return tex<other.tex;
-  }
-
-bool Material::operator >(const Material& other) const {
-  auto a0 = alphaOrder(alpha,isGhost);
-  auto a1 = alphaOrder(other.alpha,other.isGhost);
-
-  if(a0>a1)
-    return true;
-  if(a0<a1)
-    return false;
-  return tex>other.tex;
   }
 
 bool Material::operator ==(const Material& other) const {
   return tex==other.tex &&
+         frames==other.frames &&
          alpha==other.alpha &&
          alphaWeight==other.alphaWeight &&
          texAniMapDirPeriod==other.texAniMapDirPeriod &&
@@ -131,12 +101,6 @@ bool Material::isTesselated(AlphaFunc alpha) {
   //   return false;
   // return waveMaxAmplitude!=0.f;
   return (alpha==Material::Water);
-  }
-
-int Material::alphaOrder(AlphaFunc a, bool ghost) {
-  if(ghost)
-    return Ghost;
-  return a;
   }
 
 Material::AlphaFunc Material::loadAlphaFunc(zenkit::AlphaFunction zenAlpha,
@@ -184,7 +148,7 @@ Material::AlphaFunc Material::loadAlphaFunc(zenkit::AlphaFunction zenAlpha,
   if(alpha==Material::AlphaFunc::AlphaTest || alpha==Material::AlphaFunc::AdditiveLight) {
     // castle wall in G1 (OW_DIRTDECAL.TGA) has alpha==0, set it to mul for now
     // if(clrAlpha==0) {
-    //    alpha = Material::AlphaFunc::Multiply;
+    //   alpha = Material::AlphaFunc::Multiply;
     //   }
     }
 
@@ -195,8 +159,14 @@ Material::AlphaFunc Material::loadAlphaFunc(zenkit::AlphaFunction zenAlpha,
   }
 
 void Material::loadFrames(const zenkit::Material& m) {
-  frames = Resources::loadTextureAnim(m.texture);
-  if(m.texture_anim_fps > 0)
-    texAniFPSInv = uint64_t(1.0f / m.texture_anim_fps); else
-    texAniFPSInv = 1;
+  loadFrames(m.texture, m.texture_anim_fps);
+  }
+
+void Material::loadFrames(const std::string_view fr, float fps) {
+  frames = Resources::loadTextureAnim(fr);
+  if(frames.empty())
+    return;
+  if(fps > 0)
+    texAniFPSInv = uint64_t(1000.0f / fps); else
+    texAniFPSInv = 1000/std::max<size_t>(frames.size(),1);
   }

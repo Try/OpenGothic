@@ -5,7 +5,6 @@
 #include <Tempest/Log>
 #include <cstdint>
 #include <atomic>
-#include <future>
 
 using namespace Tempest;
 

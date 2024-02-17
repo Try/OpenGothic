@@ -73,9 +73,11 @@ void VisualObjects::Item::setWind(zenkit::AnimationType m, float intensity) {
   if(owner==nullptr)
     return;
 
-  if(intensity!=0 && m==zenkit::AnimationType::none) {
+  if(intensity!=0 && m==zenkit::AnimationType::none)
     m = zenkit::AnimationType::wind2;
-    }
+
+  if(intensity==0)
+    m = zenkit::AnimationType::none;
 
   auto& obj = owner->objects[id];
 
@@ -453,6 +455,7 @@ void VisualObjects::setAsGhost(size_t id, bool g) {
   }
 
 void VisualObjects::prepareUniforms() {
+  drawCmd.updateTasksUniforms();
   drawCmd.prepareUniforms();
   }
 
@@ -462,8 +465,12 @@ void VisualObjects::prepareGlobals(Encoder<CommandBuffer>& enc, uint8_t fId) {
   bool cs  = clusters.commit(enc, fId);
   bool cmd = drawCmd.commit();
 
-  if(mem | buk || cs || cmd)
+  if(cs)
+    drawCmd.updateTasksUniforms();
+
+  if(mem || buk|| cmd)
     drawCmd.prepareUniforms();
+
   drawCmd.updateUniforms(fId);
   }
 
@@ -476,35 +483,38 @@ void VisualObjects::preFrameUpdateWind(uint8_t fId) {
   if(!scene.zWindEnabled)
     return;
 
-  for(auto id:objectsWind) {
-    auto& i     = objects[id];
-    auto  pos   = i.pos;
-    float shift = i.pos[3][0]*scene.windDir.x + i.pos[3][2]*scene.windDir.y;
+  const uint64_t period = scene.windPeriod;
+  float ax = float(scene.tickCount%period)/float(period);
+  ax = ax*2.f-1.f;
 
-    static const uint64_t period = scene.windPeriod;
-    float a = float(scene.tickCount%period)/float(period);
-    a = a*2.f-1.f;
-    a = std::cos(float(a*M_PI) + shift*0.0001f);
+  for(auto id:objectsWind) {
+    auto& i = objects[id];
+    float m = 0;
 
     switch(i.wind) {
       case zenkit::AnimationType::wind:
         // tree. note: mods tent to bump Intensity to insane values
         if(i.windIntensity>0.f)
-          a *= 0.03f; else
-          a *= 0;
+          m = 0.03f; else
+          m = 0;
         break;
       case zenkit::AnimationType::wind2:
         // grass
-        if(i.windIntensity<=1.0)
-          a *= i.windIntensity * 0.1f; else
-          a *= 0;
+        if(i.windIntensity>0.f && i.windIntensity<=1.0)
+          m = i.windIntensity * 0.1f; else
+          m = 0;
         break;
       case zenkit::AnimationType::none:
       default:
         // error
-        a = 0.f;
+        m = 0.f;
         break;
       }
+
+    auto  pos   = i.pos;
+    float shift = i.pos[3][0]*scene.windDir.x + i.pos[3][2]*scene.windDir.y;
+    const float a = m * std::cos(float(ax*M_PI) + shift*0.0001f);
+
     pos[1][0] += scene.windDir.x*a;
     pos[1][2] += scene.windDir.y*a;
 

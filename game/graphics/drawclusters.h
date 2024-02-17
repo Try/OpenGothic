@@ -60,7 +60,7 @@ class DrawClusters {
     std::vector<Range>             freeList;
     Tempest::StorageBuffer         clustersGpu;
     std::vector<uint32_t>          clustersDurty;
-    bool                           clustersDurtyBit = false;
+    std::atomic_bool               clustersDurtyBit {false};
 
     ScratchPatch                   scratch;
 

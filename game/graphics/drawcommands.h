@@ -58,6 +58,7 @@ class DrawCommands {
 
     void     prepareUniforms();
     void     updateUniforms(uint8_t fId);
+    void     updateTasksUniforms();
 
     void     visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int pass);
     void     drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
@@ -110,7 +111,6 @@ class DrawCommands {
       Tempest::StorageBuffer visClusters, indirectCmd;
       };
 
-    void                     updateTasksUniforms();
     void                     updateCommandUniforms();
 
     VisualObjects&           owner;

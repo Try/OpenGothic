@@ -85,6 +85,7 @@ bool DrawClusters::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     return false;
   clustersDurtyBit = false;
 
+  std::atomic_thread_fence(std::memory_order_acquire);
   size_t csize = clusters.size()*sizeof(clusters[0]);
   csize = (csize + 0xFFF) & size_t(~0xFFF);
 
@@ -181,10 +182,11 @@ void DrawClusters::patchClusters(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   }
 
 void DrawClusters::markClusters(size_t id, size_t count) {
-  // fixme: thread-safe
   for(size_t i=0; i<count; ++i) {
-    clustersDurty[id/32] |= uint32_t(1u << (id%32));
+    static_assert(sizeof(std::atomic<uint32_t>)==sizeof(uint32_t));
+    auto& bits = clustersDurty[id/32];
+    reinterpret_cast<std::atomic<uint32_t>&>(bits).fetch_or(1u << (id%32), std::memory_order_relaxed);
     id++;
     }
-  clustersDurtyBit = true;
+  clustersDurtyBit.store(true);
   }

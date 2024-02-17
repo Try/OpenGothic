@@ -170,10 +170,9 @@ bool DrawCommands::commit() {
     v.descInit.set(T_Indirect, v.indirectCmd);
     }
 
-  if(!visChg) {
-    updateTasksUniforms();
+  updateTasksUniforms();
+  if(!visChg)
     return false;
-    }
 
   return true;
   }
@@ -282,9 +281,7 @@ void DrawCommands::updateCommandUniforms() {
   }
 
 void DrawCommands::prepareUniforms() {
-  if(owner.instanceSsbo().isEmpty())
-    return;
-  updateTasksUniforms();
+  // updateTasksUniforms();
   updateCommandUniforms();
   }
 
