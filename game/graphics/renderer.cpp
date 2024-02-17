@@ -295,11 +295,11 @@ void Renderer::prepareUniforms() {
     tonemapping.uboTone.set(1, sceneLinear, smpB);
   }
 
-  if (settings.fxaaEnabled) {
+  if(settings.fxaaEnabled) {
     auto smpB = Sampler::bilinear();
     smpB.setClamping(ClampMode::ClampToEdge);
     fxaa.ubo.set(0, fxaa.sceneTonemapped, smpB);
-  }
+    }
 
   shadow.ubo.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
   shadow.ubo.set(1, gbufDiffuse, Sampler::nearest());
@@ -569,7 +569,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   auto isFxaaOn = !fxaa.pso->isEmpty();
   auto* tonemappingRt = &result;
 
-  if (isFxaaOn) {
+  if(isFxaaOn) {
     assert(!fxaa.sceneTonemapped.isEmpty());
     tonemappingRt = &fxaa.sceneTonemapped;
     }
@@ -578,10 +578,10 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   cmd.setDebugMarker("Tonemapping");
   drawTonemapping(cmd);
 
-  if (isFxaaOn) {
-  	cmd.setFramebuffer({ {result, Tempest::Discard, Tempest::Preserve} });
-  	cmd.setDebugMarker("Fxaa");
-  	drawFxaa(cmd);
+  if(isFxaaOn) {
+    cmd.setFramebuffer({ {result, Tempest::Discard, Tempest::Preserve} });
+    cmd.setDebugMarker("Fxaa");
+    drawFxaa(cmd);
     }
 
   wview->postFrameupdate();

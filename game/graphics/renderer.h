@@ -136,8 +136,8 @@ class Renderer final {
 
     struct Fxaa {
       Tempest::RenderPipeline* pso = nullptr;
-      Tempest::DescriptorSet ubo;
-      Tempest::Attachment sceneTonemapped;
+      Tempest::DescriptorSet   ubo;
+      Tempest::Attachment      sceneTonemapped;
     } fxaa;
 
     struct {

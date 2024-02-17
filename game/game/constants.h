@@ -466,7 +466,7 @@ enum class ScriptLang : int32_t {
   CZ   = 7,
   };
 
-enum class FxaaPreset : int {
+enum class FxaaPreset : uint32_t {
   OFF,
   CONSOLE,
   PC_LOW,
@@ -474,4 +474,4 @@ enum class FxaaPreset : int {
   PC_HIGH,
   PC_EXTREME,
   PRESETS_COUNT
-};
+  };

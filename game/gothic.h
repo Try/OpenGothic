@@ -42,21 +42,21 @@ class Gothic final {
       };
 
     struct Options {
-      bool  doRayQuery          = false;
-      bool  doRtGi              = false;
-      bool  doMeshShading       = false;
-      bool  doBindless          = false;
+      bool     doRayQuery        = false;
+      bool     doRtGi            = false;
+      bool     doMeshShading     = false;
+      bool     doBindless        = false;
 
-      uint32_t fxaaPreset       = 0;
+      uint32_t fxaaPreset        = 0;
 
-      bool  hideFocus           = false;
-      float cameraFov           = 67.5f;
-      float interfaceScale      = 1;
-      int   inventoryCellSize   = 70;
+      bool     hideFocus         = false;
+      float    cameraFov         = 67.5f;
+      float    interfaceScale    = 1;
+      int      inventoryCellSize = 70;
 
-      bool    showHealthBar     = true;
-      uint8_t showManaBar       = 2;
-      uint8_t showSwimBar       = 1;
+      bool     showHealthBar     = true;
+      uint8_t  showManaBar       = 2;
+      uint8_t  showSwimBar       = 1;
       };
 
     auto         version() const -> const VersionInfo&;

@@ -51,7 +51,8 @@ class Shaders {
 
     Tempest::RenderPipeline  tonemapping;
 
-    Tempest::RenderPipeline fxaaPresets[static_cast<int>(FxaaPreset::PRESETS_COUNT)];
+    // AA
+    Tempest::RenderPipeline  fxaaPresets[uint32_t(FxaaPreset::PRESETS_COUNT)];
 
     // HiZ
     Tempest::ComputePipeline hiZPot, hiZMip;

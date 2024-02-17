@@ -101,13 +101,12 @@ CommandLine::CommandLine(int argc, const char** argv) {
       }
     else if(arg=="-fxaa") {
       ++i;
-      if (i < argc) {
+      if(i < argc) {
         try {
-          fxaaPresetId = static_cast<uint32_t>(std::stoul(std::string(argv[i])));
-          fxaaPresetId = std::clamp(fxaaPresetId, 0u, static_cast<uint32_t>(FxaaPreset::PRESETS_COUNT) - 1);
+          fxaaPresetId = uint32_t(std::stoul(std::string(argv[i])));
+          fxaaPresetId = std::clamp(fxaaPresetId, 0u, uint32_t(FxaaPreset::PRESETS_COUNT)-1u);
           }
-        catch (const std::exception& e)
-        {
+        catch (const std::exception& e) {
           Log::i("failed to read fxaa preset: \"", std::string(argv[i]), "\"");
           }
         }
