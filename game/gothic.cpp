@@ -81,10 +81,12 @@ Gothic::Gothic() {
     opts.doMeshShading = CommandLine::inst().isMeshShading();
     }
 
+  opts.fxaaPreset = CommandLine::inst().fxaaPreset();
+  
   if(hasBindless()) {
     opts.doBindless = CommandLine::inst().isBindless();
     }
-
+  
   wrldDef = CommandLine::inst().wrldDef;
 
   baseIniFile.reset(new IniFile(nestedPath({u"system",u"Gothic.ini"},Dir::FT_File)));

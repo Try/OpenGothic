@@ -9,6 +9,8 @@
 #include <filesystem>
 #endif
 
+#include <algorithm>
+
 #include "utils/installdetect.h"
 #include "utils/fileutil.h"
 #include "utils/string_frm.h"
@@ -96,6 +98,19 @@ CommandLine::CommandLine(int argc, const char** argv) {
       ++i;
       if(i<argc)
         isRQuery = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
+      }
+    else if(arg=="-fxaa") {
+      ++i;
+      if (i < argc) {
+        try {
+          fxaaPresetId = static_cast<uint32_t>(std::stoul(std::string(argv[i])));
+          fxaaPresetId = std::clamp(fxaaPresetId, 0u, static_cast<uint32_t>(FxaaPreset::PRESETS_COUNT) - 1);
+          }
+        catch (const std::exception& e)
+        {
+          Log::i("failed to read fxaa preset: \"", std::string(argv[i]), "\"");
+          }
+        }
       }
     else if(arg=="-gi") {
       ++i;

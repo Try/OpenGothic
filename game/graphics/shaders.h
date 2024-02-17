@@ -7,6 +7,7 @@
 
 #include "graphics/drawcommands.h"
 #include "material.h"
+#include "game/constants.h"
 
 class Shaders {
   public:
@@ -49,6 +50,8 @@ class Shaders {
     Tempest::RenderPipeline  waterReflection, waterReflectionSSR;
 
     Tempest::RenderPipeline  tonemapping;
+
+    Tempest::RenderPipeline fxaaPresets[static_cast<int>(FxaaPreset::PRESETS_COUNT)];
 
     // HiZ
     Tempest::ComputePipeline hiZPot, hiZMip;

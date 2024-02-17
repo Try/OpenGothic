@@ -61,6 +61,7 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
   Gothic::inst().toggleGi.bind(this, &Renderer::toggleGi);
 
   settings.giEnabled = Gothic::options().doRtGi;
+  settings.fxaaEnabled = Gothic::options().fxaaPreset > 0;
   initSettings();
   }
 
@@ -81,6 +82,11 @@ void Renderer::resetSwapchain() {
   smpN.setClamping(ClampMode::ClampToEdge);
 
   sceneLinear    = device.attachment(TextureFormat::R11G11B10UF,w,h);
+
+  if (settings.fxaaEnabled) {
+    fxaa.sceneTonemapped = device.attachment(TextureFormat::RGBA8, w, h);
+    }
+ 
   zbuffer        = device.zbuffer(zBufferFormat,w,h);
   if(w!=swapchain.w() || h!=swapchain.h())
     zbufferUi = device.zbuffer(zBufferFormat, swapchain.w(), swapchain.h()); else
@@ -167,6 +173,10 @@ void Renderer::resetSwapchain() {
 
   tonemapping.pso     = &Shaders::inst().tonemapping;
   tonemapping.uboTone = device.descriptors(*tonemapping.pso);
+
+  uint32_t availableFxaaPreset = Gothic::options().fxaaPreset;
+  fxaa.pso = &Shaders::inst().fxaaPresets[availableFxaaPreset];
+  fxaa.ubo = device.descriptors(*fxaa.pso);
 
   initGiData();
   prepareUniforms();
@@ -283,6 +293,12 @@ void Renderer::prepareUniforms() {
 
     tonemapping.uboTone.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     tonemapping.uboTone.set(1, sceneLinear, smpB);
+  }
+
+  if (settings.fxaaEnabled) {
+    auto smpB = Sampler::bilinear();
+    smpB.setClamping(ClampMode::ClampToEdge);
+    fxaa.ubo.set(0, fxaa.sceneTonemapped, smpB);
   }
 
   shadow.ubo.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
@@ -550,9 +566,23 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     wview->drawFog(cmd,fId);
     }
 
-  cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
+  auto isFxaaOn = !fxaa.pso->isEmpty();
+  auto* tonemappingRt = &result;
+
+  if (isFxaaOn) {
+    assert(!fxaa.sceneTonemapped.isEmpty());
+    tonemappingRt = &fxaa.sceneTonemapped;
+    }
+
+  cmd.setFramebuffer({{*tonemappingRt, Tempest::Discard, Tempest::Preserve}});
   cmd.setDebugMarker("Tonemapping");
   drawTonemapping(cmd);
+
+  if (isFxaaOn) {
+  	cmd.setFramebuffer({ {result, Tempest::Discard, Tempest::Preserve} });
+  	cmd.setDebugMarker("Fxaa");
+  	drawFxaa(cmd);
+    }
 
   wview->postFrameupdate();
   }
@@ -570,6 +600,32 @@ void Renderer::drawTonemapping(Encoder<CommandBuffer>& cmd) {
   p.gamma      = p.gamma/std::max(2.0f*settings.zVidGamma,  0.01f);
 
   cmd.setUniforms(*tonemapping.pso, tonemapping.uboTone, &p, sizeof(p));
+  cmd.draw(Resources::fsqVbo());
+  }
+
+void Renderer::drawFxaa(Encoder<CommandBuffer>& cmd) {
+
+  struct PushConstantsFxaa {
+    float fxaaInverseSharpnessCoeff;
+    float fxaaQualitySubpix;
+    float fxaaQualityEdgeThreshold;
+    float fxaaQualityEdgeThresholdMin;
+    float fxaaConsoleEdgeSharpness;
+    float fxaaConsoleEdgeThreshold;
+    float fxaaConsoleEdgeThresholdMin;
+    } pushConstantsFxaa;
+
+
+  // for now filled with default values (see Fxaa3_11.h)
+  pushConstantsFxaa.fxaaInverseSharpnessCoeff = 0.5f;
+  pushConstantsFxaa.fxaaQualitySubpix = 0.75f;
+  pushConstantsFxaa.fxaaQualityEdgeThreshold = 0.166f;
+  pushConstantsFxaa.fxaaQualityEdgeThresholdMin = 0.0833f;
+  pushConstantsFxaa.fxaaConsoleEdgeSharpness = 8.f;
+  pushConstantsFxaa.fxaaConsoleEdgeThreshold = 0.125f;
+  pushConstantsFxaa.fxaaConsoleEdgeThresholdMin = 0.05f;
+
+  cmd.setUniforms(*fxaa.pso, fxaa.ubo, &pushConstantsFxaa, sizeof(pushConstantsFxaa));
   cmd.draw(Resources::fsqVbo());
   }
 
