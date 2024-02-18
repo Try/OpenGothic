@@ -798,8 +798,12 @@ void Gothic::setupSettings() {
 
   auto ord  = Gothic::settingsGetS("GAME","invCatOrder");
   while(!ord.empty()) {
-    auto l    = ord.find(',');
+    auto l    = ord.find_first_of(" \t,");
     auto name = ord.substr(0,l);
+
+    if(l!=std::string::npos)
+      ord = ord.substr(l+1); else
+      ord = std::string_view();
 
     ItmFlags v = ITM_CAT_NONE;
     if(name=="COMBAT")
@@ -823,9 +827,6 @@ void Gothic::setupSettings() {
     else
       continue;
     inventoryOrder.push_back(v);
-    if(l==std::string::npos)
-      break;
-    ord = ord.substr(l+1);
     }
   }
 
