@@ -797,35 +797,36 @@ void Gothic::setupSettings() {
   sndDev.setGlobalVolume(soundVolume);
 
   auto ord  = Gothic::settingsGetS("GAME","invCatOrder");
-  while(!ord.empty()) {
-    auto l    = ord.find(',');
-    auto name = ord.substr(0,l);
+  while(!ord.empty()) {    
+      auto l    = ord.find(',');
+      auto name = ord.substr(0,l);
 
-    ItmFlags v = ITM_CAT_NONE;
-    if(name=="COMBAT")
-      v = ItmFlags(ITM_CAT_NF|ITM_CAT_FF|ITM_CAT_MUN);
-    else if(name=="POTION")
-      v = ITM_CAT_POTION;
-    else if(name=="FOOD")
-      v = ITM_CAT_FOOD;
-    else if(name=="ARMOR")
-      v = ITM_CAT_ARMOR;
-    else if(name=="MAGIC")
-      v = ITM_CAT_MAGIC;
-    else if(name=="RUNE")
-      v = ITM_CAT_RUNE;
-    else if(name=="DOCS")
-      v = ITM_CAT_DOCS;
-    else if(name=="OTHER")
-      v = ITM_CAT_LIGHT;
-    else if(name=="NONE")
-      v = ITM_CAT_NONE;
-    else
-      continue;
-    inventoryOrder.push_back(v);
-    if(l==std::string::npos)
-      break;
-    ord = ord.substr(l+1);
+      auto first = name.find_first_not_of(" ");
+      auto last = name.find_last_not_of(" ");
+      if (first!=std::string::npos && last!=std::string::npos)
+        name = name.substr(first, last - first + 1);
+
+      if(name=="COMBAT")
+        inventoryOrder.push_back(ItmFlags(ITM_CAT_NF|ITM_CAT_FF|ITM_CAT_MUN));
+      else if(name=="POTION")
+        inventoryOrder.push_back(ITM_CAT_POTION);
+      else if(name=="FOOD")
+        inventoryOrder.push_back(ITM_CAT_FOOD);
+      else if(name=="ARMOR")
+        inventoryOrder.push_back(ITM_CAT_ARMOR);
+      else if(name=="MAGIC")
+        inventoryOrder.push_back(ITM_CAT_MAGIC);
+      else if(name=="RUNE")
+        inventoryOrder.push_back(ITM_CAT_RUNE);
+      else if(name=="DOCS")
+        inventoryOrder.push_back(ITM_CAT_DOCS);
+      else if(name=="OTHER")
+        inventoryOrder.push_back(ITM_CAT_LIGHT);
+      else if(name=="NONE")
+        inventoryOrder.push_back(ITM_CAT_NONE);
+      if(l==std::string::npos)
+        break;
+      ord = ord.substr(l+1);
     }
   }
 
