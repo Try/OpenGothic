@@ -52,7 +52,7 @@ void PfxBucket::Draw::prepareUniforms(const SceneGlobals& scene, const Material&
       continue;
     ubo.set(L_Scene, scene.uboGlobal[view]);
     if(view==SceneGlobals::V_Main || mat.isTextureInShadowPass()) {
-      auto smp = (view==SceneGlobals::V_Main) ? Sampler::anisotrophy() : Sampler::trillinear();
+      auto smp = SceneGlobals::isShadowView(SceneGlobals::VisCamera(view)) ? Sampler::trillinear() : Sampler::anisotrophy();
       ubo.set(L_Diffuse, *mat.tex);
       ubo.set(L_Sampler, smp);
       }

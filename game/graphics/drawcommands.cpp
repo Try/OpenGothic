@@ -12,7 +12,6 @@
 
 using namespace Tempest;
 
-
 bool DrawCommands::DrawCmd::isForwardShading() const {
   return Material::isForwardShading(alpha);
   }
@@ -245,7 +244,7 @@ void DrawCommands::updateCommandUniforms() {
           if(cx.isBindless())
             desc[v].set(L_Diffuse, tex); else
             desc[v].set(L_Diffuse, *tex[bId]);
-          auto smp = (v==SceneGlobals::V_Main) ? Sampler::anisotrophy() : Sampler::trillinear();
+          auto smp = SceneGlobals::isShadowView(SceneGlobals::VisCamera(v)) ? Sampler::trillinear() : Sampler::anisotrophy();
           desc[v].set(L_Sampler, smp);
           }
 

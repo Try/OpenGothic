@@ -23,6 +23,8 @@ class SceneGlobals final {
       V_Count
       };
 
+    static bool isShadowView(VisCamera v);
+
     void setViewProject(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& proj,
                         float zNear, float zFar,
                         const Tempest::Matrix4x4 *sh);

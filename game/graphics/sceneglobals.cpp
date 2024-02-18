@@ -48,6 +48,19 @@ SceneGlobals::~SceneGlobals() {
   Gothic::inst().onSettingsChanged.ubind(this,&SceneGlobals::initSettings);
   }
 
+bool SceneGlobals::isShadowView(VisCamera v) {
+  switch (v) {
+    case V_Shadow0:
+    case V_Shadow1:
+      return true;
+    case V_Main:
+    case V_HiZ:
+    case V_Count:
+      return false;
+    }
+  return false;
+  }
+
 void SceneGlobals::initSettings() {
   zWindEnabled = Gothic::inst().settingsGetI("ENGINE","zWindEnabled")!=0;
 
