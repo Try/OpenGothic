@@ -1150,6 +1150,8 @@ int32_t Npc::attribute(Attribute a) const {
 void Npc::changeAttribute(Attribute a, int32_t val, bool allowUnconscious) {
   if(a>=ATR_MAX || val==0)
     return;
+  if(isPlayer() && Gothic::inst().isGodMode() && val<0 && a==ATR_HITPOINTS)
+    return;
 
   hnpc->attribute[a]+=val;
   if(hnpc->attribute[a]<0)
@@ -2073,7 +2075,7 @@ void Npc::tick(uint64_t dt) {
   if(!visual.pose().hasAnim())
     setAnim(AnimationSolver::Idle);
 
-  if(isDive() && !(isPlayer() && Gothic::inst().isGodMode())) {
+  if(isDive()) {
     uint32_t gl = guild();
     int32_t  v  = world().script().guildVal().dive_time[gl]*1000;
     int32_t  t  = diveTime();
