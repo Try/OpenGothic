@@ -27,7 +27,7 @@ DamageCalculator::Val DamageCalculator::damageValue(Npc& src, Npc& other, const 
 
   if(ret.hasHit && !ret.invincible && Gothic::inst().version().game==2)
     ret.value = std::max<int32_t>(ret.value,MinDamage);
-  if(other.isImmortal() || (other.isPlayer() && Gothic::inst().isGodMode()))
+  if(other.isImmortal())
     ret.value = 0;
   return ret;
   }
@@ -44,7 +44,7 @@ DamageCalculator::Val DamageCalculator::damageFall(Npc& npc, float speed) {
   int32_t prot        = npc.protection(::PROT_FALL);
 
   Val ret;
-  ret.invincible = (prot<0 || npc.isImmortal() || (npc.isPlayer() && Gothic::inst().isGodMode()));
+  ret.invincible = (prot<0 || npc.isImmortal());
   ret.value      = int32_t(dmgPerMeter*(height-h0)/100.f - float(prot));
   if(ret.value<=0 || ret.invincible) {
     ret.value = 0;
