@@ -43,10 +43,11 @@ class WorldView {
     void prepareUniforms();
     void postFrameupdate();
 
-    void dbgLights      (DbgPainter& p) const;
-    void prepareSky     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void prepareFog     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void prepareExposure(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void dbgLights        (DbgPainter& p) const;
+    void prepareSky       (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void prepareFog       (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void prepareIrradiance(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void prepareExposure  (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void updateLight();
     bool updateRtScene();
 

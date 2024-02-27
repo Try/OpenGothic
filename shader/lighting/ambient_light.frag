@@ -1,6 +1,7 @@
 #version 460
-#extension GL_ARB_separate_shader_objects : enable
-#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects       : enable
+#extension GL_GOOGLE_include_directive          : enable
+#extension GL_EXT_samplerless_texture_functions : enable
 
 #include "lighting/tonemapping.glsl"
 #include "lighting/purkinje_shift.glsl"
@@ -12,7 +13,7 @@ layout(binding  = 0, std140) uniform UboScene {
   };
 layout(binding  = 1) uniform sampler2D  gbufDiffuse;
 layout(binding  = 2) uniform usampler2D gbufNormal;
-layout(binding  = 3) uniform sampler2D  irradiance;
+layout(binding  = 3) uniform texture2D  irradiance;
 #if defined(SSAO)
 layout(binding  = 4) uniform sampler2D ssao;
 #endif

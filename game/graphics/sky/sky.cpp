@@ -80,11 +80,12 @@ Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest:
   if(!device.properties().hasStorageFormat(lutRGBFormat))
     lutRGBFormat = Tempest::TextureFormat::RGBA8;
 
-  cloudsLut    = device.image2d   (lutRGBAFormat,  2,  1);
-  transLut     = device.attachment(lutRGBFormat, 256, 64);
-  multiScatLut = device.attachment(lutRGBFormat,  32, 32);
-  viewLut      = device.attachment(Tempest::TextureFormat::RGBA32F, 128, 64);
-  viewCldLut   = device.attachment(Tempest::TextureFormat::RGBA32F, 512, 256);
+  cloudsLut     = device.image2d   (lutRGBAFormat,  2,  1);
+  transLut      = device.attachment(lutRGBFormat, 256, 64);
+  multiScatLut  = device.attachment(lutRGBFormat,  32, 32);
+  viewLut       = device.attachment(Tempest::TextureFormat::RGBA32F, 128, 64);
+  viewCldLut    = device.attachment(Tempest::TextureFormat::RGBA32F, 512, 256);
+  irradianceLut = device.image2d(TextureFormat::RGBA32F, 3,2);
   Gothic::inst().onSettingsChanged.bind(this,&Sky::setupSettings);
   setupSettings();
   }
@@ -240,13 +241,12 @@ void Sky::updateLight(const int64_t now) {
   const float dirY = sun.dir().y;
   // float dayTint = std::max(dirY+0.01f, 0.f);
 
-  const float aDirect    = linearstep(-0.0f, 0.8f, dirY);
-  const float sunOcclude = smoothstep(0.0f, 0.01f, sun.dir().y);
+  const  float aDirect    = linearstep(-0.0f, 0.8f, dirY);
+  const  float sunOcclude = smoothstep(0.0f, 0.01f, sun.dir().y);
 
   Vec3 direct;
-  direct  = Vec3(1.0f)   * sunOcclude   * float(1.0/M_PI);
-  ambient = groundAlbedo * DirectSunLux * aDirect*0.05f;
-  // ambient = groundAlbedo*DirectSunLux*aDirect*0.157f + 0.0005f;
+  direct  = Vec3(1.0f)   * DirectSunLux;
+  ambient = groundAlbedo * DirectSunLux * aDirect * sunOcclude * 0.05f;// * scale;
 
   sun.setColor(direct*sunMul);
   ambient = ambient*ambMul;
@@ -379,11 +379,17 @@ void Sky::prepareUniforms() {
   uboMoon.set(1, *moonImg);
   uboMoon.set(2, transLut, smpB);
 
+  uboIrradiance = device.descriptors(Shaders::inst().irradiance);
+  uboIrradiance.set(0, irradianceLut);
+  uboIrradiance.set(1, scene.uboGlobal[SceneGlobals::V_Main]);
+  uboIrradiance.set(2, viewCldLut);
+
   uboExp = device.descriptors(Shaders::inst().skyExposure);
   uboExp.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
   uboExp.set(1, viewCldLut);
   uboExp.set(2, transLut,  smpB);
   uboExp.set(3, cloudsLut, smpB);
+  uboExp.set(4, irradianceLut);
   }
 
 void Sky::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t frameId) {
@@ -484,28 +490,38 @@ void Sky::drawFog(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
   cmd.draw(Resources::fsqVbo());
   }
 
+void Sky::prepareIrradiance(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t frameId) {
+  cmd.setFramebuffer({});
+  cmd.setUniforms(Shaders::inst().irradiance, uboIrradiance);
+  cmd.dispatch(1);
+  }
+
 void Sky::prepareExposure(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t frameId) {
   struct Push {
-    float baseL = 30;
+    float baseL        = 0.0;
+    float sunOcclusion = 1.0;
     };
   Push push;
-
+  push.sunOcclusion = smoothstep(0.0f, 0.01f, sun.dir().y);
   // art-tuning
   {
+    static float add = 100;
     // from 21:43 to 21:49
-    static float maxY = -0.14f;
-    static float minY = -0.195f;
+    static float maxY = +0.05f;
+    static float minY = -0.165f;
     const  float nowY = sunLight().dir().y;
     if(minY<=nowY && nowY<=maxY) {
       float dt = float(nowY-minY)/float(maxY-minY);
-      dt = std::sin(float(dt*M_PI));
-      push.baseL += dt*150.f;
+      dt = 1.f-std::abs(dt-0.5f)*2.f;
+      push.baseL += dt*dt*add;
       }
   }
 
-  static float scale = 0;
-  if(scale>0)
-    push.baseL = scale;
+  static float override = 0;
+  static float add      = 0.05f;
+  if(override>0)
+    push.baseL = override;
+  push.baseL += add;
 
   cmd.setFramebuffer({});
   cmd.setUniforms(Shaders::inst().skyExposure, uboExp, &push, sizeof(push));
@@ -514,6 +530,10 @@ void Sky::prepareExposure(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_
 
 const Texture2d& Sky::skyLut() const {
   return textureCast(viewCldLut);
+  }
+
+const Texture2d& Sky::irradiance() const {
+  return textureCast(irradianceLut);
   }
 
 const Texture2d& Sky::clearSkyLut() const {

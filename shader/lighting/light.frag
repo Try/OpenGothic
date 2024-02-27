@@ -67,12 +67,12 @@ void main(void) {
   if(factor>1.0)
     discard;
 
-  const vec3  normal = normalFetch(gbufNormal, ivec2(gl_FragCoord.xy));
+  const vec3 normal = normalFetch(gbufNormal, ivec2(gl_FragCoord.xy));
   //float light   = (1.0-qDist)*lambert;
 
   float lambert = max(0.0,-dot(normalize(ldir),normal));
   float light   = (lambert/max(factor, 0.05)) * (smoothFactor*smoothFactor);
-  if(light<0)
+  if(light<=0.0)
     discard;
 
   pos.xyz = pos.xyz+5.0*normal; //bias
@@ -91,6 +91,4 @@ void main(void) {
   //color *= scene.exposure;
 
   outColor = vec4(color,0.0);
-  //if(dbg!=vec4(0))
-  //  outColor = dbg;
   }

@@ -95,7 +95,7 @@ vec3 diffuseLight() {
   float light  = lambert();
   float shadow = calcShadow(vec4(shInp.pos,1), 0, scene, textureSm0, textureSm1);
 
-  vec3  lcolor  = scene.sunColor * scene.GSunIntensity * Fd_Lambert * light * shadow;
+  vec3  lcolor  = scene.sunColor * Fd_Lambert * light * shadow;
   vec3  ambient = scene.ambient; // TODO: irradiance
   lcolor *= (1.0/M_PI); // magic constant, non motivated by physics
 
@@ -148,6 +148,7 @@ vec4 diffuseTex() {
   tex.a *= alphaWeight;
 #endif
 
+  // return vec4(1,1,1, tex.a);
   return tex;
   }
 #endif
@@ -251,7 +252,7 @@ vec3 waterScatter(vec3 back, vec3 normal, float len) {
 
   const float f       = fresnel(scene.sunDir,normal,IorWater);
   const vec3  scatter = f * scene.sunColor * (1-exp(-len/20000.0)) * max(scene.sunDir.y, 0);
-  return (back + scatter*scene.GSunIntensity*scene.exposure)*transmittance;
+  return (back + scatter*scene.exposure)*transmittance;
   }
 
 vec4 waterShading(vec4 t, const vec3 normal) {

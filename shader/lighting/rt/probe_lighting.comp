@@ -17,7 +17,7 @@ const  uint samplesTotal = gl_WorkGroupSize.x*samplesCount;
 shared vec4 samples[gl_WorkGroupSize.x][3][2]; // 6 Kb
 shared uint shProbeId;
 
-layout(binding = 0, std140) uniform UboScene {
+layout(binding = 0, std140) readonly buffer UboScene {
   SceneDesc scene;
   };
 layout(binding = 1) uniform writeonly image2D probesLighting;
@@ -77,9 +77,8 @@ vec3 resolveHit(const vec3 rayOrigin, const vec3 rayDirection, float rayT, vec3 
     }
 
   const float lambert = max(0, dt); //max(opaque ? 0 : 0.2, dt);
-  // avoid ultra-dark spots in woods
   const float shadow  = max(0, shMap);
-  const vec3  lcolor  = scene.sunColor * scene.GSunIntensity * Fd_Lambert * lambert * shadow;
+  const vec3  lcolor  = scene.sunColor * Fd_Lambert * lambert * shadow;
 
   return albedo*lcolor;
   //return scene.sunColor * scene.ambient;
@@ -87,7 +86,7 @@ vec3 resolveHit(const vec3 rayOrigin, const vec3 rayDirection, float rayT, vec3 
 
 vec3 resolveMiss(const vec3 rayOrigin, const vec3 rayDirection) {
   // PERF: need to preload sky lut early in shader
-  return textureSkyLUT(skyLUT, vec3(0,RPlanet,0), rayDirection, scene.sunDir) * scene.GSunIntensity;
+  return textureSkyLUT(skyLUT, vec3(0,RPlanet,0), rayDirection, scene.sunDir) * scene.GSunIntensity * GColorScale;
   }
 
 vec3 resolveSecondBounce(vec3 pos, vec3 norm, uint selfProbeId) {

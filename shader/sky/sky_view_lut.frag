@@ -62,9 +62,9 @@ void main() {
   const vec2 uv       = inPos*vec2(0.5)+vec2(0.5);
   const vec3 viewPos  = vec3(0.0, RPlanet + push.plPosY, 0.0);
 
-  const float DirectSunLux  = 143000.f;
+  const float DirectSunLux  = scene.GSunIntensity;
   const float DirectMoonLux = 0.27f;
-  const float NightLight    = 0.36f;
+  // const float NightLight    = 0.36f;
   const float moonInt       = DirectMoonLux/DirectSunLux;
 
   float azimuthAngle = (uv.x - 0.5)*2.0*M_PI;

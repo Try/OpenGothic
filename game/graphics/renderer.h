@@ -41,7 +41,7 @@ class Renderer final {
     void prepareSky       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void prepareSSAO      (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void prepareFog       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
-    void prepareIrradiance(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void prepareIrradiance(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview);
     void prepareGi        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void prepareExposure  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
 
@@ -121,13 +121,6 @@ class Renderer final {
       Tempest::RenderPipeline*  ambientLightPso = nullptr;
       Tempest::DescriptorSet    uboCompose;
     } ssao;
-
-    struct Irradiance {
-      Tempest::StorageImage     lut;
-
-      Tempest::ComputePipeline* pso = nullptr;
-      Tempest::DescriptorSet    ubo;
-      } irradiance;
 
     struct Tonemapping {
       Tempest::RenderPipeline* pso = nullptr;

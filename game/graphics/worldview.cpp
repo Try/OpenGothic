@@ -106,6 +106,10 @@ void WorldView::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
   gSky.prepareFog(cmd,frameId);
   }
 
+void WorldView::prepareIrradiance(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId) {
+  gSky.prepareIrradiance(cmd, frameId);
+  }
+
 void WorldView::prepareExposure(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId) {
   gSky.prepareExposure(cmd, frameId);
   }

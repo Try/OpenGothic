@@ -167,10 +167,6 @@ void Renderer::resetSwapchain() {
   ssao.ssaoBlur = device.image2d(ssao.aoFormat, w,h);
   ssao.uboBlur  = device.descriptors(Shaders::inst().ssaoBlur);
 
-  irradiance.lut = device.image2d(TextureFormat::RGBA32F, 3,2);
-  irradiance.pso = &Shaders::inst().irradiance;
-  irradiance.ubo = device.descriptors(*irradiance.pso);
-
   tonemapping.pso     = &Shaders::inst().tonemapping;
   tonemapping.uboTone = device.descriptors(*tonemapping.pso);
 
@@ -283,7 +279,7 @@ void Renderer::prepareUniforms() {
   ssao.uboCompose.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
   ssao.uboCompose.set(1, gbufDiffuse,  smpN);
   ssao.uboCompose.set(2, gbufNormal,   smpN);
-  ssao.uboCompose.set(3, irradiance.lut);
+  ssao.uboCompose.set(3, wview->sky().irradiance());
   if(settings.zCloudShadowScale)
     ssao.uboCompose.set(4, ssao.ssaoBlur, smpN);
 
@@ -314,10 +310,6 @@ void Renderer::prepareUniforms() {
 
   water.underUbo.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
   water.underUbo.set(1, zbuffer);
-
-  irradiance.ubo.set(0, irradiance.lut);
-  irradiance.ubo.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-  irradiance.ubo.set(2, wview->sky().skyLut());
 
   {
     auto smp = Sampler::bilinear();
@@ -363,8 +355,8 @@ void Renderer::prepareUniforms() {
     gi.uboZeroIrr.set(0, gi.probesLighting);
     gi.uboZeroIrr.set(1, Resources::fallbackBlack());
 
-    gi.uboPrevIrr.set(0, gi.probesLighting);
-    gi.uboPrevIrr.set(1, gi.probesLightingPrev);
+    gi.uboPrevIrr.set(0, gi.probesLightingPrev);
+    gi.uboPrevIrr.set(1, gi.probesLighting);
 
     gi.uboLight.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     gi.uboLight.set(1, gi.probesLighting);
@@ -533,6 +525,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
 
   drawShadowMap(cmd,fId,*wview);
 
+  prepareIrradiance(cmd,fId,*wview);
   prepareExposure(cmd,fId,*wview);
   prepareSSAO(cmd);
   prepareFog (cmd,fId,*wview);
@@ -704,8 +697,8 @@ void Renderer::buildHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t f
 
 void Renderer::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
   cmd.setDebugMarker("GBuffer");
-  cmd.setFramebuffer({{gbufDiffuse, Tempest::Discard, Tempest::Preserve},
-                      {gbufNormal,  Tempest::Discard, Tempest::Preserve}},
+  cmd.setFramebuffer({{gbufDiffuse, Tempest::Vec4(), Tempest::Preserve},
+                      {gbufNormal,  Tempest::Vec4(), Tempest::Preserve}},
                      {zbuffer, Tempest::Preserve, Tempest::Preserve});
   view.drawGBuffer(cmd,fId);
   }
@@ -800,16 +793,13 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, Wor
   wview.prepareFog(cmd,fId);
   }
 
-void Renderer::prepareIrradiance(Encoder<CommandBuffer>& cmd, uint8_t fId) {
-  cmd.setFramebuffer({});
+void Renderer::prepareIrradiance(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
   cmd.setDebugMarker("Irradiance");
-  cmd.setUniforms(*irradiance.pso, irradiance.ubo);
-  cmd.dispatch(1);
+  wview.prepareIrradiance(cmd, fId);
   }
 
 void Renderer::prepareGi(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   if(!settings.giEnabled || !settings.zCloudShadowScale) {
-    prepareIrradiance(cmd,fId);
     return;
     }
 
@@ -896,6 +886,10 @@ void Renderer::drawProbesDbg(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   }
 
 void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {
+  static bool enable = true;
+  if(!enable)
+    return;
+
   if(settings.giEnabled && settings.zCloudShadowScale) {
     cmd.setDebugMarker("AmbientLight");
     cmd.setUniforms(*gi.ambientLightPso, gi.uboCompose);
