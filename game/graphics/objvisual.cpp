@@ -158,7 +158,9 @@ void ObjVisual::setVisual(const zenkit::VirtualObject& vob, World& world, bool s
       mesh.view = world.addStaticView(view,staticDraw);
       mesh.view.setWind(vob.anim_mode,vob.anim_strength);
       }
-    if(vob.show_visual && enableCollision && vob.anim_mode!=zenkit::AnimationType::wind2) {
+
+    const bool windy = (vob.anim_mode!=zenkit::AnimationType::none && vob.anim_strength>0);
+    if(vob.show_visual && enableCollision && !windy) {
       mesh.physic = PhysicMesh(*view,*world.physic(),false);
       }
     }
