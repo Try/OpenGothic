@@ -3779,7 +3779,7 @@ bool Npc::perceptionProcess(Npc &pl) {
     }
 
   const float quadDist = pl.qDistTo(*this);
-  if(hasPerc(PERC_ASSESSPLAYER) && (canSenseNpc(pl,false) & SensesBit::SENSE_SEE)==SensesBit::SENSE_SEE) {
+  if(hasPerc(PERC_ASSESSPLAYER) && canSenseNpc(pl,false)!=SensesBit::SENSE_NONE) {
     if(perceptionProcess(pl,nullptr,quadDist,PERC_ASSESSPLAYER)) {
       ret = true;
       }
