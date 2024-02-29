@@ -46,7 +46,7 @@ vec3 textureLinear(vec3 rgb) {
   // return vec3(0.33, 0.34, 0.18); // leaves
   // return vec3(0.9);
   // return acesTonemapInv(linear*0.8);
-  return acesTonemapInv(linear*0.78+0.001)*Fd_LambertInv; // adjusted to have 'realistic' albedo values
+  return acesTonemapInv(linear*0.78+0.001)*GColorScaleInv; // adjusted to have 'realistic' albedo values
 #endif
   }
 

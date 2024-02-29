@@ -17,7 +17,7 @@ const  uint samplesTotal = gl_WorkGroupSize.x*samplesCount;
 shared vec4 samples[gl_WorkGroupSize.x][3][2]; // 6 Kb
 shared uint shProbeId;
 
-layout(binding = 0, std140) readonly buffer UboScene {
+layout(binding = 0, std140) readonly buffer UboScene { // ubo is broken on NVidia?
   SceneDesc scene;
   };
 layout(binding = 1) uniform writeonly image2D probesLighting;
@@ -68,7 +68,9 @@ void storeSample(vec3 dir, vec4 val) {
     }
   }
 
-vec3 resolveHit(const vec3 rayOrigin, const vec3 rayDirection, float rayT, vec3 albedo, vec3 normal, bool opaque, float shMap) {
+vec3 resolveHit(const vec3 rayOrigin, const vec3 rayDirection, float rayT, vec3 normal, bool opaque, float shMap) {
+  // return 1.0 * scene.ambient;
+
   float dt = dot(normal, scene.sunDir);
   if(!opaque) {
     // atificial lit on vegetation, as RT can't capture small bright light leaks from the trees
@@ -78,9 +80,9 @@ vec3 resolveHit(const vec3 rayOrigin, const vec3 rayDirection, float rayT, vec3 
 
   const float lambert = max(0, dt); //max(opaque ? 0 : 0.2, dt);
   const float shadow  = max(0, shMap);
-  const vec3  lcolor  = scene.sunColor * Fd_Lambert * lambert * shadow;
+  const vec3  lcolor  = scene.sunColor * Fd_Lambert * lambert * shadow * GColorScale;
 
-  return albedo*lcolor;
+  return lcolor;
   //return scene.sunColor * scene.ambient;
   }
 
@@ -90,7 +92,7 @@ vec3 resolveMiss(const vec3 rayOrigin, const vec3 rayDirection) {
   }
 
 vec3 resolveSecondBounce(vec3 pos, vec3 norm, uint selfProbeId) {
-  return 4.0 * scene.ambient * Fd_LambertInv;
+  return scene.ambient;
 
   // doesn't look coherent yet - need to keep offscreen data for long term
   const ivec3 gridPos = ivec3(round(pos/(probeGridStep*1)));
@@ -140,20 +142,24 @@ vec4 processSample(const vec3 rayOrigin, const vec3 rayDirection, uint probeId, 
   const bool opaque  = (bits & 0x1)!=0;
   const bool semiSky = (bits & 0x8)!=0;
 
-  const vec3  albedo  = textureLinear(diff.rgb) * Fd_Lambert;
+  const vec3  albedo  = textureLinear(diff.rgb);
   const vec3  norm    = normalize(nr.xyz*2.0-vec3(1));
 
   const float rayT    = rt * probeRayDistance;
   const vec3  pos     = rayOrigin + rayT*rayDirection;
 
-  const vec3  bounce2 = resolveSecondBounce(pos, -rayDirection, probeId);
-
   // TODO: rt-shadow lighting ?
   vec4  shCoord = scene.viewShadow[1]*vec4(pos,1);
   float shadow  = shadowFactor(shCoord);
 
-  vec3 hit = resolveHit(rayOrigin, rayDirection, rayT, albedo, norm, opaque, shadow);
-  hit += albedo*bounce2;
+  vec3 hit = vec3(0);
+  hit += albedo * resolveHit(rayOrigin, rayDirection, rayT, norm, opaque, shadow);
+  hit += albedo * resolveSecondBounce(pos, -rayDirection, probeId);
+  // hit += albedo * resolveHit(rayOrigin, rayDirection, rayT, norm, opaque, shadow);
+  // hit += albedo * resolveSecondBounce(pos, -rayDirection, probeId) / max(1.0 - albedo, 0.1);
+
+  // hit = resolveSecondBounce(pos, -rayDirection, probeId);
+
   if(semiSky) {
     // avoid pitch-black lighting in forrest
     hit = (hit*0.25 + resolveMiss(rayOrigin, rayDirection)*0.75);

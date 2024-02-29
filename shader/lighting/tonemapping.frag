@@ -113,7 +113,7 @@ void main() {
 
   vec3  color      = textureLod(textureD, uv, 0).rgb;
   {
-    // outColor = vec4(color, 1.0);
+    // outColor = vec4(srgbEncode(color), 1);
     // return;
   }
 

@@ -246,7 +246,7 @@ void Sky::updateLight(const int64_t now) {
 
   Vec3 direct;
   direct  = Vec3(1.0f)   * DirectSunLux;
-  ambient = groundAlbedo * DirectSunLux * aDirect * sunOcclude * 0.05f;// * scale;
+  ambient = groundAlbedo * DirectSunLux * aDirect * sunOcclude * 0.03f;// * scale;
 
   sun.setColor(direct*sunMul);
   ambient = ambient*ambMul;

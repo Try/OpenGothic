@@ -20,7 +20,8 @@ const float Fd_LambertInv = (M_PI);
 /* Color value is multiplied to achive adequate albedo and correctness in GI.
  * Need to scale it back, when material receives direct light.
  */
-const float GColorScale   = (1.0/M_PI);
+const float GColorScaleInv = (6);
+const float GColorScale    = (1.0/GColorScaleInv);
 
 float linearDepth(float d, vec3 clipInfo) {
   // z_n * z_f,  z_n - z_f, z_f
