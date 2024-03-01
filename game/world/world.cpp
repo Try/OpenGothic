@@ -475,6 +475,10 @@ Interactive* World::findInteractive(const Npc& pl) {
   return wobj.findInteractive(pl,nullptr,optMvMob);
   }
 
+void World::triggerDeferred(AbstractTrigger& t) {
+  wobj.triggerDeferred(t);
+  }
+
 void World::triggerEvent(const TriggerEvent &e) {
   wobj.triggerEvent(e);
   }

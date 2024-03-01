@@ -80,6 +80,7 @@ class WorldObjects final {
 
     void           addTrigger(AbstractTrigger* trigger);
     void           triggerEvent(const TriggerEvent& e);
+    void           triggerDeferred(AbstractTrigger& t);
     bool           triggerOnStart(bool firstTime);
     bool           execTriggerEvent(const TriggerEvent& e);
     void           enableTicks (AbstractTrigger& t);
@@ -170,6 +171,7 @@ class WorldObjects final {
     std::vector<AbstractTrigger*>      triggers;
     std::vector<AbstractTrigger*>      triggersZn;
     std::vector<AbstractTrigger*>      triggersTk;
+    std::vector<AbstractTrigger*>      triggersDeferredTk;
     std::vector<PerceptionMsg>         sndPerc;
     std::vector<TriggerEvent>          triggerEvents;
     CsCamera*                          currentCsCamera = nullptr;

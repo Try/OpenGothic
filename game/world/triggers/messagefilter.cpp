@@ -22,27 +22,27 @@ void MessageFilter::exec(zenkit::MessageFilterAction eval) {
     case zenkit::MessageFilterAction::none:
       break;
     case zenkit::MessageFilterAction::trigger: {
-      TriggerEvent e(target,vobName,TriggerEvent::T_Trigger);
+      TriggerEvent e(target,vobName,world.tickCount(),TriggerEvent::T_Trigger);
       world.execTriggerEvent(e);
       break;
       }
     case zenkit::MessageFilterAction::untrigger: {
-      TriggerEvent e(target,vobName,TriggerEvent::T_Untrigger);
+      TriggerEvent e(target,vobName,world.tickCount(),TriggerEvent::T_Untrigger);
       world.execTriggerEvent(e);
       break;
       }
     case zenkit::MessageFilterAction::enable: {
-      TriggerEvent e(target,vobName,TriggerEvent::T_Enable);
+      TriggerEvent e(target,vobName,world.tickCount(),TriggerEvent::T_Enable);
       world.execTriggerEvent(e);
       break;
       }
     case zenkit::MessageFilterAction::disable:{
-      TriggerEvent e(target,vobName,TriggerEvent::T_Disable);
+      TriggerEvent e(target,vobName,world.tickCount(),TriggerEvent::T_Disable);
       world.execTriggerEvent(e);
       break;
       }
     case zenkit::MessageFilterAction::toggle:{
-      TriggerEvent e(target,vobName,TriggerEvent::T_ToggleEnable);
+      TriggerEvent e(target,vobName,world.tickCount(),TriggerEvent::T_ToggleEnable);
       world.execTriggerEvent(e);
       break;
       }

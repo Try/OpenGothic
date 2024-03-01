@@ -32,7 +32,8 @@ AbstractTrigger::AbstractTrigger(Vob* parent, World &world, const zenkit::Virtua
      data.type == VirtualObjectType::oCTriggerScript      || data.type == VirtualObjectType::zCMover ||
      data.type == VirtualObjectType::oCTriggerChangeLevel || data.type == VirtualObjectType::oCCSTrigger) {
     auto& trigger = reinterpret_cast<const zenkit::VTrigger&>(data);
-    fireDelaySec = trigger.fire_delay_sec;
+    fireDelaySec = uint64_t(trigger.fire_delay_sec*1000.f);
+    reTriggerDelaySec = uint64_t(trigger.retrigger_delay_sec*1000.f);
     maxActivationCount = uint32_t(trigger.max_activation_count);
     filterFlags = trigger.filter_flags;
     triggerFlags = trigger.flags;
@@ -52,13 +53,26 @@ bool AbstractTrigger::isEnabled() const {
   return !disabled;
   }
 
+bool AbstractTrigger::isDeferred() const {
+  return evtDeferred.timeBarrier>world.tickCount();
+  }
+
 void AbstractTrigger::processEvent(const TriggerEvent& evt) {
-  if(emitTimeLast>0 && world.tickCount()<emitTimeLast+uint64_t(fireDelaySec*1000.f)) {
-    world.triggerEvent(evt);
+  if(isDeferred())
+    return;
+  if(emitTimeLast>0 && world.tickCount()<emitTimeLast+reTriggerDelaySec)
+    return;
+  if(fireDelaySec>0) {
+    evtDeferred = evt;
+    evtDeferred.timeBarrier += fireDelaySec;
+    triggerDeferred();
     return;
     }
-  emitTimeLast = world.tickCount();
+  execEvent(evt);
+}
 
+void AbstractTrigger::execEvent(const TriggerEvent& evt) {
+  emitTimeLast = world.tickCount();
   switch(evt.type) {
     case TriggerEvent::T_Startup:
     case TriggerEvent::T_StartupFirstTime:
@@ -138,12 +152,20 @@ void AbstractTrigger::onIntersect(Npc& n) {
 
   if(boxNpc.intersections().size()==1) {
     // enableTicks();
-    TriggerEvent e("","",TriggerEvent::T_Activate);
+    TriggerEvent e(target,"",world.tickCount(),TriggerEvent::T_Activate);
     processEvent(e);
     }
   }
 
 void AbstractTrigger::tick(uint64_t) {
+}
+
+void AbstractTrigger::tickDeferred(uint64_t) {
+  if(isDeferred()) {
+    triggerDeferred();
+    return;
+    }
+  execEvent(evtDeferred);
   }
 
 bool AbstractTrigger::hasVolume() const {
@@ -163,6 +185,7 @@ void AbstractTrigger::save(Serialize& fout) const {
   boxNpc.save(fout);
   fout.write(emitCount,disabled);
   fout.write(emitTimeLast);
+  evtDeferred.save(fout);
   }
 
 void AbstractTrigger::load(Serialize& fin) {
@@ -170,6 +193,11 @@ void AbstractTrigger::load(Serialize& fin) {
   boxNpc.load(fin);
   fin.read(emitCount,disabled);
   fin.read(emitTimeLast);
+  if(fin.version()>46) {
+    evtDeferred.load(fin);
+    if(evtDeferred.timeBarrier>world.tickCount())
+      triggerDeferred();
+    }
   }
 
 void AbstractTrigger::enableTicks() {
@@ -178,6 +206,10 @@ void AbstractTrigger::enableTicks() {
 
 void AbstractTrigger::disableTicks() {
   world.disableTicks(*this);
+  }
+
+void AbstractTrigger::triggerDeferred() {
+  world.triggerDeferred(*this);
   }
 
 const std::vector<Npc*>& AbstractTrigger::intersections() const {

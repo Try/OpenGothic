@@ -14,6 +14,6 @@ void TriggerWorldStart::onTrigger(const TriggerEvent &ev) {
   if(fireOnlyFirstTime && ev.type!=TriggerEvent::T_StartupFirstTime)
     return;
 
-  TriggerEvent e(target,vobName,TriggerEvent::T_Trigger);
+  TriggerEvent e(target,vobName,world.tickCount(),TriggerEvent::T_Trigger);
   world.execTriggerEvent(e);
   }

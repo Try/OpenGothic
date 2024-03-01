@@ -50,10 +50,12 @@ class AbstractTrigger : public Vob {
 
     std::string_view             name() const;
     bool                         isEnabled() const;
-
+    bool                         isDeferred() const;
     void                         processEvent(const TriggerEvent& evt);
+    void                         execEvent(const TriggerEvent& evt);
     virtual void                 onIntersect(Npc& n);
     virtual void                 tick(uint64_t dt);
+    void                         tickDeferred(uint64_t dt);
 
     virtual bool                 hasVolume() const;
     bool                         checkPos(const Tempest::Vec3& pos) const;
@@ -89,16 +91,20 @@ class AbstractTrigger : public Vob {
     void                         disableTicks();
     const std::vector<Npc*>&     intersections() const;
 
+    void                         triggerDeferred();
+
   private:
     Cb                           callback;
     DynamicWorld::BBoxBody       box;
     CollisionZone                boxNpc;
     Tempest::Vec3                bboxSize, bboxOrigin;
 
-    float                        fireDelaySec = 0;
+    uint64_t                     fireDelaySec = 0;
+    uint64_t                     reTriggerDelaySec = 0;
     uint32_t                     maxActivationCount = 0;
     uint32_t                     triggerFlags = 0;
     uint32_t                     filterFlags = 0;
+    TriggerEvent                 evtDeferred = {};
 
     uint32_t                     emitCount = 0;
     bool                         disabled  = false;

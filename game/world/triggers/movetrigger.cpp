@@ -258,7 +258,7 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
     disableTicks();
 
     if(!target.empty()) {
-      TriggerEvent e(target,vobName,TriggerEvent::T_Activate);
+      TriggerEvent e(target,vobName,world.tickCount(),TriggerEvent::T_Activate);
       world.triggerEvent(e);
       }
 

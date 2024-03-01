@@ -186,6 +186,11 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
   for(auto i:triggersTk)
     i->tick(dt);
 
+  auto triggers = std::move(triggersDeferredTk);
+  triggersDeferredTk.clear();
+  for(auto i:triggers)
+    i->tickDeferred(dt);
+
   bullets.remove_if([](Bullet& b){
     return b.isFinished();
     });
@@ -396,14 +401,31 @@ void WorldObjects::tickNear(uint64_t /*dt*/) {
   }
 
 void WorldObjects::tickTriggers(uint64_t /*dt*/) {
-  auto evt = std::move(triggerEvents);
-  triggerEvents.clear();
+  if(triggerEvents.empty())
+    return;
+
+  std::vector<TriggerEvent> evt;
+  uint64_t time = owner.tickCount();
+  std::erase_if(triggerEvents,[&evt,time](const TriggerEvent& e) {
+    if(e.timeBarrier<=time) {
+      evt.push_back(e);
+      return true;
+      }
+    return false;
+  });
 
   for(auto& e:evt)
     owner.execTriggerEvent(e);
   }
 
+void WorldObjects::triggerDeferred(AbstractTrigger& t) {
+  triggersDeferredTk.push_back(&t);
+}
+
 void WorldObjects::triggerEvent(const TriggerEvent &e) {
+  for(auto& i:triggerEvents)
+    if(i.target==e.target)
+      return;
   triggerEvents.push_back(e);
   }
 
