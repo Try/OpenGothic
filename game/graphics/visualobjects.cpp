@@ -64,6 +64,8 @@ void VisualObjects::Item::setAsGhost(bool g) {
 
 void VisualObjects::Item::setFatness(float f) {
   if(owner!=nullptr) {
+    if(owner->objects[id].fatness == f)
+      return;
     owner->objects[id].fatness = f;
     owner->updateInstance(id);
     }
@@ -157,7 +159,7 @@ void VisualObjects::updateInstance(size_t id, Matrix4x4* pos) {
   InstanceDesc d;
   d.setPosition(pos==nullptr ? obj.pos : *pos);
   d.animPtr = obj.animPtr;
-  d.fatness = obj.fatness;
+  d.fatness = obj.fatness*0.5f;
   obj.objInstance.set(&d, 0, sizeof(d));
 
   auto cId  = obj.clusterId;
