@@ -8,7 +8,7 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-layout(local_size_x = 8, local_size_y = 8) in;
+layout(local_size_x = 16, local_size_y = 8) in;
 
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
@@ -21,6 +21,8 @@ layout(binding = 4, std430) buffer          Hbo0 { uint voteTable[]; };
 layout(binding = 5, std430) readonly buffer Hbo  { uint hashTable[]; };
 layout(binding = 6, std430) buffer          Pbo  { ProbesHeader probeHeader; Probe probe[]; };
 layout(binding = 7, std430) buffer          Fbo0 { int cursor; uint list[]; } freeList;
+
+shared ivec3 pLow, pHigh;
 
 ivec2 screenSize, fragCoord;
 uint  threadId;
@@ -104,8 +106,21 @@ void main() {
   const vec3 basePos = unprojectDepth(z);
   const vec3 pos     = basePos + norm*probeCageBias; //*(1<<lod);
 
+
   probeQuery pq;
   probeQueryInitialize(pq, pos, lod);
+  if(gl_LocalInvocationID==uvec3(0)) {
+    pLow  = pq.pLow;
+    pHigh = pq.pHigh;
+    }
+  barrier();
+
+#if 1
+  if(gl_LocalInvocationID!=uvec3(0) && pLow==pq.pLow && pHigh==pq.pHigh) {
+    return;
+    }
+#endif
+
   while(probeQueryProceed(pq)) {
     vec3 wpos = probeQueryWorldPos(pq);
     vec3 dir  = (wpos-basePos);
