@@ -92,7 +92,7 @@ vec3 resolveMiss(const vec3 rayOrigin, const vec3 rayDirection) {
   }
 
 vec3 resolveSecondBounce(vec3 pos, vec3 norm, uint selfProbeId) {
-  return scene.ambient;
+  return scene.ambient;// * 2.0;
 
   // doesn't look coherent yet - need to keep offscreen data for long term
   const ivec3 gridPos = ivec3(round(pos/(probeGridStep*1)));
@@ -115,8 +115,7 @@ vec3 resolveSecondBounce(vec3 pos, vec3 norm, uint selfProbeId) {
 
   // probeId = selfProbeId;
   // return vec3(0.01,0,0)*scene.GSunIntensity;
-  const vec3 ambient = scene.ambient;
-  return ambient * 4.0 * Fd_LambertInv;
+  return scene.ambient;
   // return resolveMiss(pos, -norm);
   // return vec3(0);
   }

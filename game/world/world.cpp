@@ -494,7 +494,7 @@ void World::execTriggerEvent(const TriggerEvent& e) {
     if(e.target=="EVT_LEFT_ROOM_01_TRAP_MOVER_FOR_DMG_MASTER" ||
        e.target=="EVT_LEFT_UP_01_TOGGLE_TRIGGER_01" ||
        e.target=="EVT_RIGHT_ROOM_01_SPAWN_ROT_02_SOUND")
-      return; // known problem on dragonisland.zen, skop for now
+      return; // known problem on dragonisland.zen, skip for now
     Tempest::Log::d("unable to process trigger: \"",e.target,"\"");
     }
   }

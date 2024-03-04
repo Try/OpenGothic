@@ -114,6 +114,7 @@ void main() {
   vec3  color      = textureLod(textureD, uv, 0).rgb;
   {
     // outColor = vec4(srgbEncode(color), 1);
+    // outColor = vec4(color, 1);
     // return;
   }
 
@@ -134,7 +135,7 @@ void main() {
   color = color * vec3(contrast);
 
   // Tonemapping
-  color = acesTonemap(color);
+  color = acesTonemap(color)*1.28;
 
   // Gamma
   //color = srgbEncode(color);

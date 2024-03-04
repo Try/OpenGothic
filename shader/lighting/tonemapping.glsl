@@ -42,10 +42,12 @@ vec3 textureLinear(vec3 rgb) {
   // emissive objects, spells
   return acesTonemapInv(linear);
 #else
+  // return vec3(0.58, 0.49, 0.46); // brick
   // return vec3(0.52, 0.41, 0.36); // wood
-  // return vec3(0.33, 0.34, 0.18); // leaves
+  // return vec3(0.48, 0.53, 0.30); // grass
   // return vec3(0.9);
   // return acesTonemapInv(linear*0.8);
+  // return acesTonemapInv(linear*0.78+0.001);
   return acesTonemapInv(linear*0.78+0.001)*GColorScaleInv; // adjusted to have 'realistic' albedo values
 #endif
   }
