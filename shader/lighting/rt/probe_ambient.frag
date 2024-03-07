@@ -4,6 +4,8 @@
 #extension GL_GOOGLE_include_directive    : enable
 #extension GL_EXT_control_flow_attributes : enable
 
+//#extension GL_KHR_shader_subgroup_vote : enable
+
 #include "lighting/rt/probe_common.glsl"
 #include "lighting/tonemapping.glsl"
 #include "lighting/purkinje_shift.glsl"
@@ -134,6 +136,10 @@ void gather(vec3 basePos, vec3 pos, vec3 norm, int lod) {
 
   probeQuery pq;
   probeQueryInitialize(pq, pos, lod);
+
+  // if(subgroupAllEqual(pq.pLow) && subgroupAllEqual(pq.pHigh))
+  //   return;
+
   while(probeQueryProceed(pq)) {
     vec3  wpos = probeQueryWorldPos(pq);
     ivec3 gPos = probeQueryGridPos(pq);
@@ -151,17 +157,15 @@ float textureSsao() { return 0; }
 #endif
 
 void main() {
-  const float minW = uintBitsToFloat(0x00000008);
-  const float z    = texelFetch(depth,ivec2(gl_FragCoord.xy),0).x;
-  if(z>=1.0)
-    discard; // sky
+  const float minW    = uintBitsToFloat(0x00000008);
+  const float z       = texelFetch(depth,ivec2(gl_FragCoord.xy),0).x;
 
-  const vec3 diff    = texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0).rgb;
-  const vec3 norm    = normalFetch(gbufNormal, ivec2(gl_FragCoord.xy));
+  const vec3  diff    = texelFetch(gbufDiffuse, ivec2(gl_FragCoord.xy), 0).rgb;
+  const vec3  norm    = normalFetch(gbufNormal, ivec2(gl_FragCoord.xy));
 
-  const int  lod     = probeGridComputeLod();
-  const vec3 basePos = unprojectDepth(z);
-  const vec3 pos     = basePos + norm*probeCageBias;
+  const int   lod     = probeGridComputeLod();
+  const vec3  basePos = unprojectDepth(z);
+  const vec3  pos     = basePos + norm*probeCageBias;
 
   gather(basePos, pos, norm, lod);
 

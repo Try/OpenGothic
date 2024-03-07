@@ -161,7 +161,7 @@ Shaders::Shaders() {
 
     state.setBlendSource  (RenderState::BlendMode::One);
     state.setBlendDest    (RenderState::BlendMode::SrcAlpha);  // for debugging
-    state.setZTestMode    (RenderState::ZTestMode::Always);
+    state.setZTestMode    (RenderState::ZTestMode::NoEqual);
     state.setZWriteEnabled(false);
     sh = GothicShader::get("probe_ambient.vert.sprv");
     vs = device.shader(sh.data,sh.len);

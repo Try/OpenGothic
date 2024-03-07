@@ -11,6 +11,7 @@ layout(push_constant, std140) uniform PushConstant {
   float brightness;
   float contrast;
   float gamma;
+  float mulExposure;
   } push;
 
 layout(binding  = 0, std140) uniform UboScene {
@@ -119,6 +120,11 @@ void main() {
   }
 
   {
+    // outColor = vec4(vec3(luminance(color/exposure)/100000.0), 1);
+    // return;
+  }
+
+  {
     // outColor = vec4(colorTemperatureToRGB(luminance(color) / push.exposure), 1);
     // return;
   }
@@ -130,12 +136,14 @@ void main() {
     // color += vec3(0,0, shift.b);
   }
 
+  color *= push.mulExposure;
+
   // Brightness & Contrast
   color = max(vec3(0), color + vec3(brightness));
   color = color * vec3(contrast);
 
   // Tonemapping
-  color = acesTonemap(color)*1.28;
+  color = acesTonemap(color);
 
   // Gamma
   //color = srgbEncode(color);

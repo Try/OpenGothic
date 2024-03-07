@@ -585,12 +585,17 @@ void Renderer::drawTonemapping(Encoder<CommandBuffer>& cmd) {
     float brightness = 0;
     float contrast   = 1;
     float gamma      = 1.f/2.2f;
+    float mul        = 1;
     };
 
   Push p;
   p.brightness = (settings.zVidBrightness - 0.5f)*0.1f;
   p.contrast   = std::max(1.5f - settings.zVidContrast, 0.01f);
   p.gamma      = p.gamma/std::max(2.0f*settings.zVidGamma,  0.01f);
+
+  static float mul = 1.f;
+  if(mul>0)
+    p.mul = mul;
 
   cmd.setUniforms(*tonemapping.pso, tonemapping.uboTone, &p, sizeof(p));
   cmd.draw(Resources::fsqVbo());

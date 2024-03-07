@@ -27,7 +27,7 @@ void storeSample(vec3 dir, vec3 val) {
 
 vec3 resolveMiss(const vec3 rayOrigin, const vec3 rayDirection) {
   // PERF: need to preload sky lut early in shader
-  return textureSkyLUT(skyLUT, vec3(0,RPlanet,0), rayDirection, scene.sunDir) * scene.GSunIntensity * GColorScale;
+  return textureSkyLUT(skyLUT, vec3(0,RPlanet,0), rayDirection, scene.sunDir) * scene.GSunIntensity;
   }
 
 void gather() {

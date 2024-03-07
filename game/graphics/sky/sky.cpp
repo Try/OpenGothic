@@ -17,12 +17,23 @@ using namespace Tempest;
 
 // https://www.slideshare.net/LukasLang/physically-based-lighting-in-unreal-engine-4
 // https://www.slideshare.net/DICEStudio/moving-frostbite-to-physically-based-rendering
-// static const float DirectSunLux  = 64'000.f; // 85'000.f;
-static const float DirectSunLux  = 143'000.f;
-static const float DirectMoonLux = 0.27f;
+
+/* https://physicallybased.info
+ * The changing color of the Sun over the course of the day is mainly a result of the scattering of sunlight
+ * and is not due to changes in black-body radiation. The solar illuminance constant is equal to 128 000 lux,
+ * but atmospheric extinction brings the number of lux down to around 100 000 lux.
+ *
+ * clear sky    = 6000 lx
+ * sky overcast = 2000 lx
+ *
+ * opaque       = (100'000/pi)*NdotL = 31'800*NdotL
+ *
+ */
+static const float DirectSunLux  = 128'000.f;
+static const float DirectMoonLux = 1.f;
 
 // static const float NightLight    = 0.36f;
-// static const float ShadowSunLux  =  10'000.f;
+// static const float ShadowSunLux  = 10'000.f;
 // static const float StreetLight   = 10.f;
 
 static float smoothstep(float edge0, float edge1, float x) {
@@ -236,17 +247,22 @@ void Sky::updateLight(const int64_t now) {
   static float ambMul = 1;
   // static auto  groundAlbedo = Vec3(0.34f, 0.42f, 0.26f); // Foliage(MacBeth)
   // static auto  groundAlbedo = Vec3(0.39f, 0.40f, 0.33f);
-  static auto  groundAlbedo = Vec3(0.47f); // Neutral5 (MacBeth)
+  static auto  groundAlbedo = Vec3(0.3f); // aligned to sky-shading
 
-  const float dirY = sun.dir().y;
+  // const float dirY = sun.dir().y;
   // float dayTint = std::max(dirY+0.01f, 0.f);
 
-  const  float aDirect    = linearstep(-0.0f, 0.8f, dirY);
+  // const  float aDirect    = linearstep(-0.0f, 0.8f, dirY);
   const  float sunOcclude = smoothstep(0.0f, 0.01f, sun.dir().y);
 
   Vec3 direct;
-  direct  = Vec3(1.0f)   * DirectSunLux;
-  ambient = groundAlbedo * DirectSunLux * aDirect * sunOcclude * 0.02f;
+  direct  = DirectSunLux * Vec3(1.0f);
+  ambient = DirectSunLux * float(1.0/M_PI) * groundAlbedo * sunOcclude;
+  // ambient *= 0.78f; // atmosphere transmission is in shader
+  ambient *= 0.68f;   // NdoL prediction
+  ambient *= 0.5;     // maybe in shadow or maybe not
+  ambient *= 2.0;     // 2*pi, pi accounted in shader
+  ambient += Vec3(0.01f); // should avoid zeros
 
   sun.setColor(direct*sunMul);
   ambient = ambient*ambMul;

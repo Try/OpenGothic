@@ -13,15 +13,9 @@ const float IorWater = 1.0 / 1.52; // air / water
 const float IorAir   = 1.52;       // water /air
 const vec3  WaterAlbedo = vec3(0.8,0.9,1.0);
 
-const vec3  GGroundAlbedo = vec3(0.1);
+const vec3  GGroundAlbedo = vec3(0.3);
 const float Fd_Lambert    = (1.0/M_PI);
 const float Fd_LambertInv = (M_PI);
-
-/* Color value is multiplied to achive adequate albedo and correctness in GI.
- * Need to scale it back, when material receives direct light.
- */
-const float GColorScaleInv = 8;//(6);
-const float GColorScale    = (1.0/GColorScaleInv);
 
 float linearDepth(float d, vec3 clipInfo) {
   // z_n * z_f,  z_n - z_f, z_f

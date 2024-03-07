@@ -42,14 +42,22 @@ vec3 textureLinear(vec3 rgb) {
   // emissive objects, spells
   return acesTonemapInv(linear);
 #else
+  // NOTE: in theory, need to be same as textureAlbedo, but game does't look like gothic then :(
+  return acesTonemapInv(linear*0.78+0.001)*2.0;
+#endif
+  }
+
+vec3 textureAlbedo(vec3 rgb) {
   // return vec3(0.58, 0.49, 0.46); // brick
+  // return vec3(0.26, 0.11, 0.06); // brick2
   // return vec3(0.52, 0.41, 0.36); // wood
   // return vec3(0.48, 0.53, 0.30); // grass
+  // return vec3(0.44, 0.39, 0.23); // sand
   // return vec3(0.9);
   // return acesTonemapInv(linear*0.8);
   // return acesTonemapInv(linear*0.78+0.001);
-  return acesTonemapInv(linear*0.78+0.001)*GColorScaleInv; // adjusted to have 'realistic' albedo values
-#endif
+  const vec3 linear = srgbDecode(rgb);
+  return acesTonemapInv(linear*0.78+0.001)*5.0; // adjusted to have 'realistic' albedo values
   }
 
 #endif

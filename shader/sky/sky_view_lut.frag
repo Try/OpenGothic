@@ -63,7 +63,7 @@ void main() {
   const vec3 viewPos  = vec3(0.0, RPlanet + push.plPosY, 0.0);
 
   const float DirectSunLux  = scene.GSunIntensity;
-  const float DirectMoonLux = 0.27f;
+  const float DirectMoonLux = 0.32f;
   // const float NightLight    = 0.36f;
   const float moonInt       = DirectMoonLux/DirectSunLux;
 

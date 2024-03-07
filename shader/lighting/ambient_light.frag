@@ -61,17 +61,18 @@ void main() {
   const vec3  norm = normalFetch(gbufNormal, fragCoord);
 
   // const vec3  linear = vec3(1);
-  const vec3  linear = textureLinear(diff); //  * Fd_Lambert is accounted in integration
+  const vec3  linear = textureLinear(diff);
   const float ao     = textureSsao();
 
   vec3 ambient = scene.ambient;
   vec3 sky     = skyIrradiance();
 
-  vec3 lcolor  = mix(ambient, sky, max(0, 0.25 + norm.y*0.25));
+  //vec3 lcolor  = mix(ambient, sky, max(0, norm.y*0.8));
+  vec3 lcolor  = (ambient + sky)*0.5;
   // vec3 lcolor  = ambient + sky*clamp(norm.y*0.5, 0,1);
 
   vec3 color = lcolor.rgb;
-  color *= linear;
+  color *= linear;  // * Fd_Lambert is accounted in integration
   color *= (1-ao);
 
   // outColor = vec4(vec3(grayscale(color)), 0);
