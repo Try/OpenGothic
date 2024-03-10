@@ -94,6 +94,10 @@ void WorldObjects::load(Serialize &fin) {
   for(auto& i:rootVobs)
     i->loadVobTree(fin);
 
+  for(auto& i:triggers)
+    if(i->hasDelayerEvents())
+      triggersDef.push_back(i);
+
   fin.setEntry("worlds/",fin.worldName(),"/triggerEvents");
   fin.read(sz);
   triggerEvents.resize(sz);
