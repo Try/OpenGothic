@@ -32,11 +32,12 @@ AbstractTrigger::AbstractTrigger(Vob* parent, World &world, const zenkit::Virtua
      data.type == VirtualObjectType::oCTriggerScript      || data.type == VirtualObjectType::zCMover ||
      data.type == VirtualObjectType::oCTriggerChangeLevel || data.type == VirtualObjectType::oCCSTrigger) {
     auto& trigger = reinterpret_cast<const zenkit::VTrigger&>(data);
-    fireDelaySec = trigger.fire_delay_sec;
+    fireDelay          = uint64_t(trigger.fire_delay_sec*1000.f);
+    retriggerDelay     = uint64_t(trigger.retrigger_delay_sec*1000.f);
     maxActivationCount = uint32_t(trigger.max_activation_count);
-    filterFlags = trigger.filter_flags;
-    triggerFlags = trigger.flags;
-    target = trigger.target;
+    filterFlags        = trigger.filter_flags;
+    triggerFlags       = trigger.flags;
+    target             = trigger.target;
     }
 
   world.addTrigger(this);
@@ -52,12 +53,33 @@ bool AbstractTrigger::isEnabled() const {
   return !disabled;
   }
 
+void AbstractTrigger::processDelayedEvents() {
+  auto evt = std::move(delayedEvents);
+  for(auto& i:evt) {
+    if(world.tickCount()<i.timeBarrier) {
+      delayedEvents.push_back(i);
+      continue;
+      }
+    implProcessEvent(i, true);
+    }
+  }
+
 void AbstractTrigger::processEvent(const TriggerEvent& evt) {
-  if(emitTimeLast>0 && world.tickCount()<emitTimeLast+uint64_t(fireDelaySec*1000.f)) {
+  implProcessEvent(evt, false);
+  }
+
+void AbstractTrigger::implProcessEvent(const TriggerEvent& evt, bool delayed) {
+  if(emitTimeLast>0 && world.tickCount()<emitTimeLast+retriggerDelay) {
     world.triggerEvent(evt);
     return;
     }
   emitTimeLast = world.tickCount();
+
+  if(fireDelay>0 && !delayed) {
+    TriggerEvent ex(evt.target, evt.emitter, world.tickCount() + fireDelay, evt.type);
+    delayedEvents.push_back(std::move(ex));
+    return;
+    }
 
   switch(evt.type) {
     case TriggerEvent::T_Startup:
@@ -163,6 +185,11 @@ void AbstractTrigger::save(Serialize& fout) const {
   boxNpc.save(fout);
   fout.write(emitCount,disabled);
   fout.write(emitTimeLast);
+
+  fout.write(uint32_t(delayedEvents.size()));
+  for(auto& i:delayedEvents) {
+    i.save(fout);
+    }
   }
 
 void AbstractTrigger::load(Serialize& fin) {
@@ -170,6 +197,19 @@ void AbstractTrigger::load(Serialize& fin) {
   boxNpc.load(fin);
   fin.read(emitCount,disabled);
   fin.read(emitTimeLast);
+
+  if(fin.version()>=47) {
+    uint32_t size = 0;
+    fin.read(size);
+    delayedEvents.resize(size);
+    for(auto& i:delayedEvents) {
+      i.load(fin);
+      }
+    }
+  }
+
+bool AbstractTrigger::hasDelayerEvents() const {
+  return delayedEvents.size()>0;
   }
 
 void AbstractTrigger::enableTicks() {

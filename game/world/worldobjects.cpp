@@ -395,7 +395,13 @@ void WorldObjects::tickNear(uint64_t /*dt*/) {
     }
   }
 
+void WorldObjects::triggerEvent(const TriggerEvent &e) {
+  triggerEvents.push_back(e);
+  }
+
 void WorldObjects::tickTriggers(uint64_t /*dt*/) {
+  execDelayedEvents();
+
   auto evt = std::move(triggerEvents);
   triggerEvents.clear();
 
@@ -403,18 +409,28 @@ void WorldObjects::tickTriggers(uint64_t /*dt*/) {
     owner.execTriggerEvent(e);
   }
 
-void WorldObjects::triggerEvent(const TriggerEvent &e) {
-  triggerEvents.push_back(e);
+void WorldObjects::execDelayedEvents() {
+  auto def = std::move(triggersDef);
+  for(auto i:def) {
+    i->processDelayedEvents();
+    if(i->hasDelayerEvents())
+      triggersDef.push_back(i);
+    }
   }
 
 bool WorldObjects::execTriggerEvent(const TriggerEvent& e) {
   bool emitted=false;
+
   for(auto& i:triggers) {
     auto& t = *i;
-    if(t.name()==e.target) { // NOTE: trigger name is not unique - more then one trigger can be activated
-      t.processEvent(e);
-      emitted=true;
-      }
+    if(t.name()!=e.target)
+      continue; // NOTE: trigger name is not unique - more then one trigger can be activated
+
+    const bool hadDelayedEvt = t.hasDelayerEvents();
+    t.processEvent(e);
+    if(!hadDelayedEvt && t.hasDelayerEvents())
+      triggersDef.push_back(&t);
+    emitted = true;
     }
 
   return emitted;
