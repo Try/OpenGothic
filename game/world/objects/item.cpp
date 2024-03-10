@@ -183,8 +183,8 @@ Tempest::Vec3 Item::position() const {
 Vec3 Item::midPosition() const {
   auto b = view.bounds();
   auto v = (b.bbox[1]-b.bbox[0])*0.5;
-  transform().project(v);
-  return v;
+  // transform().project(v); // doesn't work for Karibik mod
+  return pos + v;
   }
 
 bool Item::isGold() const {
