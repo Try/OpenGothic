@@ -60,6 +60,11 @@ class SceneGlobals final {
     const Tempest::Texture2d*         sceneDepth   = &Resources::fallbackBlack();
     const Tempest::Texture2d*         zbuffer      = &Resources::fallbackBlack();
 
+    const Tempest::StorageImage*      shadowPage   = nullptr;
+    const Tempest::StorageImage*      shadowOffset = nullptr;
+    const Tempest::StorageImage*      shadowMask   = nullptr;
+    const Tempest::StorageBuffer*     shadowPixels = nullptr;
+
     const Tempest::Texture2d*         gbufDiffuse  = &Resources::fallbackBlack();
     const Tempest::Texture2d*         gbufNormals  = &Resources::fallbackBlack();
 

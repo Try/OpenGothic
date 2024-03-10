@@ -140,6 +140,8 @@ add_frag_shader(main_lnd_x     -DFLAT_NORMAL -DGHOST)
 add_frag_shader(main_lnd_w     -DFLAT_NORMAL -DWATER)
 add_frag_shader(main_lnd_d     -DFLAT_NORMAL -DDEPTH_ONLY)
 add_frag_shader(main_lnd_d_at  -DFLAT_NORMAL -DDEPTH_ONLY -DATEST)
+add_frag_shader(main_lnd_s     -DFLAT_NORMAL -DDEPTH_ONLY -DCS_SHADOW)
+add_frag_shader(main_lnd_s_at  -DFLAT_NORMAL -DDEPTH_ONLY -DATEST -DCS_SHADOW)
 
 # materials objects
 add_frag_shader(main_obj_g     -DGBUFFER)
@@ -150,6 +152,8 @@ add_frag_shader(main_obj_w     -DWATER)
 add_frag_shader(main_obj_x     -DGHOST)
 add_frag_shader(main_obj_d     -DDEPTH_ONLY)
 add_frag_shader(main_obj_d_at  -DDEPTH_ONLY -DATEST)
+add_frag_shader(main_obj_s     -DDEPTH_ONLY -DCS_SHADOW)
+add_frag_shader(main_obj_s_at  -DDEPTH_ONLY -DATEST -DCS_SHADOW)
 
 # pfx geometry
 add_shader(main_pfx.vert       materials/pfx.vert   -DVT_COLOR)
@@ -167,7 +171,6 @@ add_shader(main_pfx_x.frag     materials/main.frag  "-DMESH_TYPE=4" -DGHOST     
 add_shader(main_pfx_x_at.frag  materials/main.frag  "-DMESH_TYPE=4" -DGHOST      -DVT_COLOR -DATEST)
 add_shader(main_pfx_d.frag     materials/main.frag  "-DMESH_TYPE=4" -DDEPTH_ONLY -DVT_COLOR)
 add_shader(main_pfx_d_at.frag  materials/main.frag  "-DMESH_TYPE=4" -DDEPTH_ONLY -DVT_COLOR -DATEST)
-
 
 add_shader(item.vert                 inventory/item.vert)
 add_shader(item.frag                 inventory/item.frag)
@@ -245,6 +248,11 @@ add_shader(hiz_pot.comp              hiz/hiz_pot.comp)
 
 add_shader(hiz_reproject.mesh        hiz/hiz_reproject.mesh)
 add_shader(hiz_reproject.frag        hiz/hiz_reproject.frag)
+
+add_shader(shadow_clear_pages.comp   shadows/shadow_mark_pages.comp -DCLEAR)
+add_shader(shadow_mark_pages.comp    shadows/shadow_mark_pages.comp -DALLOC)
+add_shader(shadow_mark_pages2.comp   shadows/shadow_mark_pages.comp -DALLOC2)
+add_shader(shadow_write_pages.comp   shadows/shadow_mark_pages.comp -DWRITEOUT)
 
 add_shader(probe_dbg.vert            lighting/rt/probe_dbg.vert)
 add_shader(probe_dbg.frag            lighting/rt/probe_dbg.frag)

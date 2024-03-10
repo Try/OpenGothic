@@ -134,6 +134,14 @@ void Renderer::resetSwapchain() {
     hiz.uboMipSm1 = Tempest::DescriptorSet();
     }
 
+  if(vsm.enable && smSize>0) {
+    vsm.pages   = device.image2d(TextureFormat::R32U, smSize, smSize);
+    vsm.offsets = device.image2d(TextureFormat::R32U, smSize, smSize);
+    vsm.mask    = device.image2d(TextureFormat::R8, w, h);
+    vsm.pixels  = device.ssbo(nullptr, (w*h + 1)*sizeof(uint32_t));
+    vsm.ubo     = device.descriptors(Shaders::inst().shadowPages);
+    }
+
   if(smSize>0) {
     for(int i=0; i<Resources::ShadowLayers; ++i)
       shadowMap[i] = device.zbuffer(shadowFormat,smSize,smSize);
@@ -327,6 +335,16 @@ void Renderer::prepareUniforms() {
     water.ubo.set(6, wview->sky().skyLut());
   }
 
+  {
+    vsm.ubo.set(0, vsm.pages);
+    vsm.ubo.set(1, vsm.offsets);
+    vsm.ubo.set(2, vsm.mask);
+    vsm.ubo.set(3, vsm.pixels);
+    vsm.ubo.set(4, gbufNormal, Sampler::nearest());
+    vsm.ubo.set(5, zbuffer,    Sampler::nearest());
+    vsm.ubo.set(6, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  }
+
   if(settings.giEnabled) {
     auto smpN = Sampler::nearest();
     smpN.setClamping(ClampMode::ClampToEdge);
@@ -389,6 +407,7 @@ void Renderer::prepareUniforms() {
   wview->setHiZ(textureCast(hiz.hiZ));
   wview->setGbuffer(textureCast(gbufDiffuse), textureCast(gbufNormal));
   wview->setSceneImages(textureCast(sceneOpaque), textureCast(sceneDepth), zbuffer);
+  wview->setVsmImages(vsm.pages, vsm.offsets, vsm.mask, vsm.pixels);
   wview->prepareUniforms();
   }
 
@@ -451,11 +470,12 @@ void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
   }
 
 void Renderer::dbgDraw(Tempest::Painter& p) {
-  static bool dbg = false;
+  static bool dbg = true;
   if(!dbg)
     return;
 
   std::vector<const Texture2d*> tex;
+  tex.push_back(&textureCast(vsm.mask));
   //tex.push_back(&textureCast(hiz.hiZ));
   //tex.push_back(&textureCast(hiz.smProj));
   //tex.push_back(&textureCast(hiz.hiZSm1));
@@ -522,6 +542,8 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
 
   wview->visibilityPass(cmd, fId, 1);
   drawGBuffer(cmd,fId,*wview);
+
+  markShadowPages(cmd, fId, *wview);
 
   drawShadowMap(cmd,fId,*wview);
 
@@ -723,6 +745,26 @@ void Renderer::drawGWater(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& v
   view.drawWater(cmd,fId);
   }
 
+void Renderer::markShadowPages(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
+  if(!vsm.enable)
+    return;
+  cmd.setFramebuffer({});
+  cmd.setDebugMarker("SM-Pages");
+
+  cmd.setUniforms(Shaders::inst().shadowPagesClr, vsm.ubo);
+  cmd.dispatchThreads(size_t(std::max(vsm.pages.w(),vsm.mask.w())),
+                      size_t(std::max(vsm.pages.h(),vsm.mask.h())));
+
+  cmd.setUniforms(Shaders::inst().shadowPages, vsm.ubo);
+  cmd.dispatchThreads(zbuffer.size());
+
+  cmd.setUniforms(Shaders::inst().shadowPages2, vsm.ubo);
+  cmd.dispatchThreads(vsm.pages.size());
+
+  cmd.setUniforms(Shaders::inst().shadowWrite, vsm.ubo);
+  cmd.dispatchThreads(zbuffer.size());
+  }
+
 void Renderer::drawReflections(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   cmd.setDebugMarker("Reflections");
   cmd.setUniforms(*water.reflectionsPso, water.ubo);
@@ -745,7 +787,7 @@ void Renderer::drawShadowMap(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView
   if(settings.shadowResolution<=0)
     return;
 
-  for(uint8_t i=0; i<Resources::ShadowLayers; ++i) {
+  for(uint8_t i=1; i<Resources::ShadowLayers; ++i) {
     cmd.setFramebuffer({}, {shadowMap[i], 0.f, Tempest::Preserve});
     cmd.setDebugMarker(string_frm("ShadowMap #",i));
     if(view.mainLight().dir().y > Camera::minShadowY)

@@ -138,6 +138,11 @@ Shaders::Shaders() {
     hiZReproj = device.pipeline(state,Shader(),ms,fs);
     }
 
+  shadowPagesClr = computeShader("shadow_clear_pages.comp.sprv");
+  shadowPages    = computeShader("shadow_mark_pages.comp.sprv");
+  shadowPages2   = computeShader("shadow_mark_pages2.comp.sprv");
+  shadowWrite    = computeShader("shadow_write_pages.comp.sprv");
+
   if(Gothic::options().doRayQuery) {
     RenderState state;
     state.setCullFaceMode(RenderState::CullMode::NoCull);
@@ -191,7 +196,7 @@ Shaders& Shaders::inst() {
   return *instance;
   }
 
-const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommands::Type t, PipelineType pt, bool bl) const {
+const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommands::Type t, PipelineType pt, Flag flags) const {
   if(t==DrawCommands::Static) {
     // same shader
     t = DrawCommands::Movable;
@@ -208,7 +213,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
   const bool trivial = (!mat.hasUvAnimation() && alpha==Material::Solid && t==DrawCommands::Landscape);
 
   for(auto& i:materials) {
-    if(i.alpha==alpha && i.type==t && i.pipelineType==pt && i.bindless==bl && i.trivial==trivial)
+    if(i.alpha==alpha && i.type==t && i.pipelineType==pt && i.flags==flags && i.trivial==trivial)
       return &i.pipeline;
     }
 
@@ -286,12 +291,13 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
   const char* typeFsM = nullptr;
   const char* typeFsD = nullptr;
 
+  const bool vsm = (flags & F_FTS);
   switch(alpha) {
     case Material::Solid:
       typeVsM = "";
       typeFsM = "_g";
       typeVsD = "_d";
-      typeFsD = "_d";
+      typeFsD = vsm ? "_s" : "_d";
       if(trivial)
         typeFsM = "_g_s";
       break;
@@ -299,7 +305,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
       typeVsM = "";
       typeFsM = "_g_at";
       typeVsD = "_d_at";
-      typeFsD = "_d_at";
+      typeFsD = vsm ? "_s_at" : "_d_at";
       break;
     case Material::Transparent:
       typeVsM = "_f";
@@ -341,14 +347,14 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
   if(typeVs==nullptr || typeFs==nullptr)
     return nullptr;
 
-  const char* bindless = bl ? "_bindless" : "_slot";
+  const char* bindless = (flags & F_Bindless) ? "_bindless" : "_slot";
 
   materials.emplace_front();
   auto& b = materials.front();
   b.alpha        = alpha;
   b.type         = t;
   b.pipelineType = pt;
-  b.bindless     = bl;
+  b.flags        = flags;
   b.trivial      = trivial;
 
   auto& device = Resources::device();

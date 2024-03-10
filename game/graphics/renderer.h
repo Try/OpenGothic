@@ -49,6 +49,7 @@ class Renderer final {
     void buildHiZ         (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawGBuffer      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawGWater       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
+    void markShadowPages  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawShadowMap    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawShadowResolve(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const WorldView& view);
     void drawLights       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
@@ -149,6 +150,14 @@ class Renderer final {
       Tempest::DescriptorSet    uboPotSm1;
       Tempest::DescriptorSet    uboMipSm1;
     } hiz;
+
+    struct {
+      bool                      enable = true;
+      Tempest::StorageImage     pages, offsets;
+      Tempest::StorageImage     mask;
+      Tempest::StorageBuffer    pixels;
+      Tempest::DescriptorSet    ubo;
+    } vsm;
 
     struct {
       const uint32_t            atlasDim  = 256; // sqrt(maxProbes)

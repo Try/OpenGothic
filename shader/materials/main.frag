@@ -1,7 +1,8 @@
 #version 450
 
-#extension GL_ARB_separate_shader_objects : enable
+//#extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_samplerless_texture_functions : enable
 
 #include "materials_common.glsl"
 #include "water/gerstner_wave.glsl"
@@ -300,6 +301,21 @@ void mainWater(vec4 t) {
   }
 #endif
 
+#if defined(CS_SHADOW)
+void mainShadow() {
+  uint count = texelFetch(shadowPage,   ivec2(gl_FragCoord.xy), 0).x;
+  uint ptr   = texelFetch(shadowOffset, ivec2(gl_FragCoord.xy), 0).x;
+
+  for(uint i=0; i<count; ++i) {
+    uint  p  = smPixels.pixels[ptr + i];
+    ivec2 at = ivec2(p&0xFFFF, (p>>16)&0xFFFF);
+    imageStore(shadowMask, at, uvec4(1));
+    }
+  if(count==0)
+    discard;
+  }
+#endif
+
 void main() {
 #if defined(MAT_UV)
   vec4 t = diffuseTex();
@@ -323,6 +339,8 @@ void main() {
   mainEmissive(t);
 #elif defined(GHOST) && !defined(DEPTH_ONLY)
   mainGhost(t);
+#elif defined(CS_SHADOW)
+  mainShadow();
 #endif
 
 #if DEBUG_DRAW

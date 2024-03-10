@@ -91,6 +91,10 @@ class DrawCommands {
       L_Morph    = 11,
       L_SceneClr = 12,
       L_GDepth   = 13,
+      L_SmPage   = 14,
+      L_SmOffsets= 15,
+      L_SmMask   = 16,
+      L_SmPixels = 17,
       };
 
     struct IndirectCmd {

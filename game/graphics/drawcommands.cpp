@@ -59,9 +59,13 @@ uint16_t DrawCommands::commandId(const Material& m, Type type, uint32_t bucketId
   const bool bindlessSys = Gothic::inst().options().doBindless;
   const bool bindless    = bindlessSys && !m.hasFrameAnimation();
 
-  auto pMain    = Shaders::inst().materialPipeline(m, type, Shaders::T_Main,   bindless);
-  auto pShadow  = Shaders::inst().materialPipeline(m, type, Shaders::T_Shadow, bindless);
-  auto pHiZ     = Shaders::inst().materialPipeline(m, type, Shaders::T_Depth,  bindless);
+  Shaders::Flag flags = Shaders::F_None;
+  if(bindless)
+    flags = Shaders::Flag(flags | Shaders::F_Bindless);
+
+  auto pMain   = Shaders::inst().materialPipeline(m, type, Shaders::T_Main,   flags);
+  auto pShadow = Shaders::inst().materialPipeline(m, type, Shaders::T_Shadow, Shaders::Flag(flags | Shaders::F_FTS));
+  auto pHiZ    = Shaders::inst().materialPipeline(m, type, Shaders::T_Depth,  flags);
   if(pMain==nullptr && pShadow==nullptr && pHiZ==nullptr)
     return uint16_t(-1);
 
@@ -270,6 +274,13 @@ void DrawCommands::updateCommandUniforms() {
           smp = Sampler::nearest();
           smp.setClamping(ClampMode::MirroredRepeat);
           desc[v].set(L_GDepth, *scene.sceneDepth, smp);
+          }
+
+        if(v<=SceneGlobals::V_ShadowLast && scene.shadowPage!=nullptr) {
+          desc[v].set(L_SmPage,   *scene.shadowPage);
+          desc[v].set(L_SmOffsets,*scene.shadowOffset);
+          desc[v].set(L_SmMask,   *scene.shadowMask);
+          desc[v].set(L_SmPixels, *scene.shadowPixels);
           }
         }
 

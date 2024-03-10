@@ -39,6 +39,7 @@ class WorldView {
     void setShadowMaps (const Tempest::Texture2d* shadow[]);
     void setHiZ(const Tempest::Texture2d& hiZ);
     void setSceneImages(const Tempest::Texture2d& clr, const Tempest::Texture2d& depthAux, const Tempest::ZBuffer& depthNative);
+    void setVsmImages(const Tempest::StorageImage& page, const Tempest::StorageImage& offset, const Tempest::StorageImage& mask, const Tempest::StorageBuffer& pixels);
 
     void prepareUniforms();
     void postFrameupdate();

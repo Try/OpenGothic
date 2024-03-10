@@ -61,6 +61,10 @@ const uint L_MorphId  = 10;
 const uint L_Morph    = 11;
 const uint L_SceneClr = 12;
 const uint L_GDepth   = 13;
+const uint L_SmPage   = 14;
+const uint L_SmOffsets= 15;
+const uint L_SmMask   = 16;
+const uint L_SmPixels = 17;
 
 #ifndef MESH_TYPE
 #define MESH_TYPE 255
@@ -192,6 +196,17 @@ layout(binding = L_Shadow1)          uniform sampler2D textureSm1;
 #if defined(GL_FRAGMENT_SHADER) && (defined(WATER) || defined(GHOST))
 layout(binding = L_SceneClr)         uniform sampler2D sceneColor;
 layout(binding = L_GDepth  )         uniform sampler2D gbufferDepth;
+#endif
+
+#if defined(GL_FRAGMENT_SHADER) && defined(CS_SHADOW)
+layout(binding = L_SmPage)           uniform utexture2D shadowPage;
+layout(binding = L_SmOffsets)        uniform utexture2D shadowOffset;
+layout(binding = L_SmMask, r8)       uniform image2D    shadowMask;
+layout(binding = L_SmPixels, std430) buffer Pixels {
+  uint counter;
+  uint pixels[];
+  } smPixels;
+
 #endif
 
 #if !defined(CLUSTER) && (MESH_TYPE!=T_PFX)

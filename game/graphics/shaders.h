@@ -49,6 +49,11 @@ class Shaders {
     Tempest::RenderPipeline  underwaterT, underwaterS;
     Tempest::RenderPipeline  waterReflection, waterReflectionSSR;
 
+    // VSM
+    Tempest::ComputePipeline shadowPagesClr;
+    Tempest::ComputePipeline shadowPages, shadowPages2;
+    Tempest::ComputePipeline shadowWrite;
+
     Tempest::RenderPipeline  tonemapping;
 
     // AA
@@ -71,7 +76,12 @@ class Shaders {
 
     Tempest::RenderPipeline  inventory;
 
-    const Tempest::RenderPipeline* materialPipeline(const Material& desc, DrawCommands::Type t, PipelineType pt, bool bindless) const;
+    enum Flag : uint8_t {
+      F_None     = 0x0,
+      F_Bindless = 0x1,
+      F_FTS      = 0x2
+      };
+    const Tempest::RenderPipeline* materialPipeline(const Material& desc, DrawCommands::Type t, PipelineType pt, Flag flags) const;
 
   private:
     struct Entry {
@@ -79,7 +89,7 @@ class Shaders {
       Material::AlphaFunc     alpha        = Material::Solid;
       DrawCommands::Type      type         = DrawCommands::Static;
       PipelineType            pipelineType = PipelineType::T_Main;
-      bool                    bindless     = false;
+      Flag                    flags        = F_None;
       bool                    trivial      = false;
       };
 

@@ -94,6 +94,13 @@ void WorldView::setSceneImages(const Tempest::Texture2d& clr, const Tempest::Tex
   sGlobal.zbuffer    = &textureCast(depthNative);
   }
 
+void WorldView::setVsmImages(const Tempest::StorageImage& page, const Tempest::StorageImage& offset, const Tempest::StorageImage& mask, const Tempest::StorageBuffer& pixels) {
+  sGlobal.shadowPage   = &page;
+  sGlobal.shadowOffset = &offset;
+  sGlobal.shadowMask   = &mask;
+  sGlobal.shadowPixels = &pixels;
+  }
+
 void WorldView::dbgLights(DbgPainter& p) const {
   sGlobal.lights.dbgLights(p);
   }
