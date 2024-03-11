@@ -95,7 +95,7 @@ void WorldObjects::load(Serialize &fin) {
     i->loadVobTree(fin);
 
   for(auto& i:triggers)
-    if(i->hasDelayerEvents())
+    if(i->hasDelayedEvents())
       triggersDef.push_back(i);
 
   fin.setEntry("worlds/",fin.worldName(),"/triggerEvents");
@@ -417,7 +417,7 @@ void WorldObjects::execDelayedEvents() {
   auto def = std::move(triggersDef);
   for(auto i:def) {
     i->processDelayedEvents();
-    if(i->hasDelayerEvents())
+    if(i->hasDelayedEvents())
       triggersDef.push_back(i);
     }
   }
@@ -430,9 +430,9 @@ bool WorldObjects::execTriggerEvent(const TriggerEvent& e) {
     if(t.name()!=e.target)
       continue; // NOTE: trigger name is not unique - more then one trigger can be activated
 
-    const bool hadDelayedEvt = t.hasDelayerEvents();
+    const bool hadDelayedEvt = t.hasDelayedEvents();
     t.processEvent(e);
-    if(!hadDelayedEvt && t.hasDelayerEvents())
+    if(!hadDelayedEvt && t.hasDelayedEvents())
       triggersDef.push_back(&t);
     emitted = true;
     }

@@ -50,7 +50,7 @@ class AbstractTrigger : public Vob {
 
     std::string_view             name() const;
     bool                         isEnabled() const;
-    bool                         hasDelayerEvents() const;
+    bool                         hasDelayedEvents() const;
 
     void                         processDelayedEvents();
     void                         processEvent(const TriggerEvent& evt);

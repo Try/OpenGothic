@@ -70,7 +70,7 @@ void AbstractTrigger::processEvent(const TriggerEvent& evt) {
 
 void AbstractTrigger::implProcessEvent(const TriggerEvent& evt, bool delayed) {
   if(emitTimeLast>0 && world.tickCount()<emitTimeLast+retriggerDelay) {
-    world.triggerEvent(evt);
+    // need to discard event
     return;
     }
   emitTimeLast = world.tickCount();
@@ -208,7 +208,7 @@ void AbstractTrigger::load(Serialize& fin) {
     }
   }
 
-bool AbstractTrigger::hasDelayerEvents() const {
+bool AbstractTrigger::hasDelayedEvents() const {
   return delayedEvents.size()>0;
   }
 
