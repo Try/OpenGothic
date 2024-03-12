@@ -28,7 +28,11 @@ static bool compareNoCase(std::string_view a, std::string_view b) {
 IniFile::IniFile(std::u16string_view file) {
   fileName = std::u16string(file);
   if(!FileUtil::exists(fileName)) {
-    Log::e("no *.ini file in path - using default settings");
+    char name[256] = {};
+    size_t li = fileName.find_last_of('/') + 1;
+    for(size_t i=li; i<255 && i<file.size(); ++i)
+      name[i-li] = char(file.data()[i]);
+    Log::e("no \"", name, "\" file in path - using default settings");
     return;
     }
 
@@ -165,7 +169,11 @@ char IniFile::implSpace(std::istream &s) {
 std::string IniFile::implName(std::istream &s) {
   std::string name;
   char ch=char(s.peek());
-  while(ch!=']' && ch!='=' && ch!='\n' && ch!='\r' && ch!=';' && !s.eof()){
+  while(ch==' ' && !s.eof()) {
+    s.get(ch);
+    ch=char(s.peek());
+    }
+  while(ch!=']' && ch!='=' && ch!='\n' && ch!='\r' && ch!=';' && ch!=' ' && !s.eof()){
     name.push_back(ch);
     s.get(ch);
     ch=char(s.peek());
