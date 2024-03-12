@@ -72,7 +72,6 @@ void AbstractTrigger::processEvent(const TriggerEvent& evt) {
     // need to discard event
     return;
     }
-  emitTimeLast = world.tickCount();
   if(fireDelay>0) {
     TriggerEvent ex(evt.target, evt.emitter, world.tickCount() + fireDelay, evt.type);
     delayedEvent = std::move(ex);
@@ -82,6 +81,7 @@ void AbstractTrigger::processEvent(const TriggerEvent& evt) {
   }
 
 void AbstractTrigger::implProcessEvent(const TriggerEvent& evt) {
+  emitTimeLast = world.tickCount();
   switch(evt.type) {
     case TriggerEvent::T_Startup:
     case TriggerEvent::T_StartupFirstTime:
