@@ -54,33 +54,34 @@ bool AbstractTrigger::isEnabled() const {
   }
 
 void AbstractTrigger::processDelayedEvents() {
-  auto evt = std::move(delayedEvents);
-  for(auto& i:evt) {
-    if(world.tickCount()<i.timeBarrier) {
-      delayedEvents.push_back(i);
-      continue;
-      }
-    implProcessEvent(i, true);
-    }
+  if(!hasDelayedEvents())
+    return;
+  if(world.tickCount()<delayedEvent.timeBarrier)
+    return;
+  auto evt = std::move(delayedEvent);
+  delayedEvent = TriggerEvent();
+  implProcessEvent(evt);
   }
 
 void AbstractTrigger::processEvent(const TriggerEvent& evt) {
-  implProcessEvent(evt, false);
-  }
-
-void AbstractTrigger::implProcessEvent(const TriggerEvent& evt, bool delayed) {
-  if(emitTimeLast>0 && world.tickCount()<emitTimeLast+retriggerDelay) {
+  if(hasDelayedEvents()) {
+    // discard, if already have pending
+    return;
+    }
+  if(0!=emitTimeLast && world.tickCount()<emitTimeLast+retriggerDelay) {
     // need to discard event
     return;
     }
   emitTimeLast = world.tickCount();
-
-  if(fireDelay>0 && !delayed) {
+  if(fireDelay>0) {
     TriggerEvent ex(evt.target, evt.emitter, world.tickCount() + fireDelay, evt.type);
-    delayedEvents.push_back(std::move(ex));
+    delayedEvent = std::move(ex);
     return;
     }
+  implProcessEvent(evt);
+  }
 
+void AbstractTrigger::implProcessEvent(const TriggerEvent& evt) {
   switch(evt.type) {
     case TriggerEvent::T_Startup:
     case TriggerEvent::T_StartupFirstTime:
@@ -186,10 +187,7 @@ void AbstractTrigger::save(Serialize& fout) const {
   fout.write(emitCount,disabled);
   fout.write(emitTimeLast);
 
-  fout.write(uint32_t(delayedEvents.size()));
-  for(auto& i:delayedEvents) {
-    i.save(fout);
-    }
+  delayedEvent.save(fout);
   }
 
 void AbstractTrigger::load(Serialize& fin) {
@@ -199,17 +197,12 @@ void AbstractTrigger::load(Serialize& fin) {
   fin.read(emitTimeLast);
 
   if(fin.version()>=47) {
-    uint32_t size = 0;
-    fin.read(size);
-    delayedEvents.resize(size);
-    for(auto& i:delayedEvents) {
-      i.load(fin);
-      }
+    delayedEvent.load(fin);
     }
   }
 
 bool AbstractTrigger::hasDelayedEvents() const {
-  return delayedEvents.size()>0;
+  return !delayedEvent.target.empty();
   }
 
 void AbstractTrigger::enableTicks() {

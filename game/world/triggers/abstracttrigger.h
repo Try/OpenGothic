@@ -91,7 +91,7 @@ class AbstractTrigger : public Vob {
     void                         disableTicks();
     const std::vector<Npc*>&     intersections() const;
 
-    void                         implProcessEvent(const TriggerEvent& evt, bool delayed);
+    void                         implProcessEvent(const TriggerEvent& evt);
 
   private:
     Cb                           callback;
@@ -109,7 +109,7 @@ class AbstractTrigger : public Vob {
     bool                         disabled  = false;
     uint64_t                     emitTimeLast = 0;
 
-    std::vector<TriggerEvent>    delayedEvents;
+    TriggerEvent                 delayedEvent;
 
   protected:
     std::string                  vobName;
