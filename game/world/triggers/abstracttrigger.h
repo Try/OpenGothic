@@ -110,6 +110,7 @@ class AbstractTrigger : public Vob {
     uint64_t                     emitTimeLast = 0;
 
     TriggerEvent                 delayedEvent;
+    bool                         ticksEnabled = false;
 
   protected:
     std::string                  vobName;

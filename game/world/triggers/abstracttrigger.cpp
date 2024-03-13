@@ -188,6 +188,7 @@ void AbstractTrigger::save(Serialize& fout) const {
   fout.write(emitTimeLast);
 
   delayedEvent.save(fout);
+  fout.write(ticksEnabled);
   }
 
 void AbstractTrigger::load(Serialize& fin) {
@@ -196,8 +197,12 @@ void AbstractTrigger::load(Serialize& fin) {
   fin.read(emitCount,disabled);
   fin.read(emitTimeLast);
 
-  if(fin.version()>=47) {
+  if(fin.version()>=47)
     delayedEvent.load(fin);
+  if(fin.version()>=48) {
+    fin.read(ticksEnabled);
+    if(ticksEnabled)
+      world.enableTicks(*this);
     }
   }
 
@@ -206,10 +211,16 @@ bool AbstractTrigger::hasDelayedEvents() const {
   }
 
 void AbstractTrigger::enableTicks() {
+  if(ticksEnabled)
+    return;
+  ticksEnabled = true;
   world.enableTicks(*this);
   }
 
 void AbstractTrigger::disableTicks() {
+  if(!ticksEnabled)
+    return;
+  ticksEnabled = false;
   world.disableTicks(*this);
   }
 
