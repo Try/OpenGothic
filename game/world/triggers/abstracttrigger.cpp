@@ -12,8 +12,6 @@ using namespace Tempest;
 
 AbstractTrigger::AbstractTrigger(Vob* parent, World &world, const zenkit::VirtualObject& data, Flags flags)
   : Vob(parent,world,data,flags & (~Flags::Static)), callback(this), vobName(data.vob_name) {
-  if(!hasFlag(StartEnabled))
-    ;//disabled = true;
   bboxSize   = Vec3(data.bbox.max.x-data.bbox.min.x,data.bbox.max.y-data.bbox.min.y,data.bbox.max.z-data.bbox.min.z)*0.5f;
   bboxOrigin = Vec3(data.bbox.max.x+data.bbox.min.x,data.bbox.max.y+data.bbox.min.y,data.bbox.max.z+data.bbox.min.z)*0.5f;
   bboxOrigin = bboxOrigin - position();
@@ -38,6 +36,7 @@ AbstractTrigger::AbstractTrigger(Vob* parent, World &world, const zenkit::Virtua
     filterFlags        = trigger.filter_flags;
     triggerFlags       = trigger.flags;
     target             = trigger.target;
+    disabled           = !trigger.start_enabled;
     }
 
   world.addTrigger(this);
