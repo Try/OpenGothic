@@ -52,7 +52,7 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
   auto       ws   = pl ? pl->weaponState() : WeaponState::NoWeapon;
   uint8_t    slot = pl ? pl->inventory().currentSpellSlot() : Item::NSLOT;
 
-  if(w->isCutsceneLock())
+  if(w!=nullptr && w->isCutsceneLock())
     return;
 
   handleMovementAction(KeyCodec::ActionMapping{a,mapping}, true);
