@@ -52,7 +52,7 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
   auto       ws   = pl ? pl->weaponState() : WeaponState::NoWeapon;
   uint8_t    slot = pl ? pl->inventory().currentSpellSlot() : Item::NSLOT;
 
-  if(c!=nullptr && c->isCutscene())
+  if(w->isCutsceneLock())
     return;
 
   handleMovementAction(KeyCodec::ActionMapping{a,mapping}, true);
@@ -546,8 +546,8 @@ bool PlayerControl::tickMove(uint64_t dt) {
   Npc*  pl     = w->player();
   auto  camera = Gothic::inst().camera();
 
-  if(camera!=nullptr && camera->isCutscene())
-    return true;
+  if(w->isCutsceneLock())
+    clearInput();
 
   if(tickCameraMove(dt))
     return true;

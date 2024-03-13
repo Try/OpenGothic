@@ -8,7 +8,6 @@ using namespace Tempest;
 
 CsCamera::CsCamera(Vob* parent, World& world, const zenkit::VCutsceneCamera& cam, Flags flags)
   :AbstractTrigger(parent,world,cam,flags) {
-
   if(cam.position_count<1 || cam.total_duration<0)
     return;
 
@@ -19,6 +18,7 @@ CsCamera::CsCamera(Vob* parent, World& world, const zenkit::VCutsceneCamera& cam
 
   duration = cam.total_duration;
   delay    = cam.auto_untrigger_last_delay;
+  playerMovable = cam.auto_player_movable;
 
   for(auto& f : cam.trajectory_frames) {
     KeyFrame kF;
@@ -91,6 +91,10 @@ CsCamera::CsCamera(Vob* parent, World& world, const zenkit::VCutsceneCamera& cam
     spl->c[1] =  3*duration - 2*d0 - d1;
     spl->c[2] = d0;
     }
+  }
+
+bool CsCamera::isPlayerMovable() const {
+  return playerMovable;
   }
 
 void CsCamera::onTrigger(const TriggerEvent& evt) {

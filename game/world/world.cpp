@@ -515,6 +515,12 @@ CsCamera* World::currentCs() const {
   return wobj.currentCs();
   }
 
+bool World::isCutsceneLock() const {
+  if(auto cs = wobj.currentCs())
+    return cs->isPlayerMovable();
+  return false;
+  }
+
 void World::enableCollizionZone(CollisionZone& z) {
   wobj.enableCollizionZone(z);
   }

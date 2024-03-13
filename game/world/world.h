@@ -126,6 +126,7 @@ class World final {
     void                 disableTicks(AbstractTrigger& t);
     void                 setCurrentCs(CsCamera* cs);
     CsCamera*            currentCs() const;
+    bool                 isCutsceneLock() const;
     void                 enableCollizionZone (CollisionZone& z);
     void                 disableCollizionZone(CollisionZone& z);
 

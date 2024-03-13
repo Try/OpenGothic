@@ -10,6 +10,8 @@ class CsCamera : public AbstractTrigger {
   public:
     CsCamera(Vob* parent, World& world, const zenkit::VCutsceneCamera& data, Flags flags);
 
+    bool isPlayerMovable() const;
+
   private:
     struct KeyFrame {
       float         time = 0;
@@ -40,4 +42,5 @@ class CsCamera : public AbstractTrigger {
     float    time         = 0;
     KbSpline posSpline    = {};
     KbSpline targetSpline = {};
+    bool     playerMovable = false;
   };
