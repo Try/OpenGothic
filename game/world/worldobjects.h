@@ -78,14 +78,16 @@ class WorldObjects final {
     Interactive&   mobsi(size_t i)       { return **(interactiveObj.begin()+i); }
     uint32_t       mobsiId(const void* ptr) const;
 
+    void           setCurrentCs(CsCamera* cs);
+    CsCamera*      currentCs() const;
+
     void           addTrigger(AbstractTrigger* trigger);
     void           triggerEvent(const TriggerEvent& e);
     bool           triggerOnStart(bool firstTime);
+    void           execDelayedEvents();
     bool           execTriggerEvent(const TriggerEvent& e);
     void           enableTicks (AbstractTrigger& t);
     void           disableTicks(AbstractTrigger& t);
-    void           setCurrentCs(CsCamera* cs);
-    CsCamera*      currentCs() const;
     void           enableCollizionZone (CollisionZone& z);
     void           disableCollizionZone(CollisionZone& z);
 
@@ -170,6 +172,7 @@ class WorldObjects final {
     std::vector<AbstractTrigger*>      triggers;
     std::vector<AbstractTrigger*>      triggersZn;
     std::vector<AbstractTrigger*>      triggersTk;
+    std::vector<AbstractTrigger*>      triggersDef;
     std::vector<PerceptionMsg>         sndPerc;
     std::vector<TriggerEvent>          triggerEvents;
     CsCamera*                          currentCsCamera = nullptr;

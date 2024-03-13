@@ -32,11 +32,12 @@ AbstractTrigger::AbstractTrigger(Vob* parent, World &world, const zenkit::Virtua
      data.type == VirtualObjectType::oCTriggerScript      || data.type == VirtualObjectType::zCMover ||
      data.type == VirtualObjectType::oCTriggerChangeLevel || data.type == VirtualObjectType::oCCSTrigger) {
     auto& trigger = reinterpret_cast<const zenkit::VTrigger&>(data);
-    fireDelaySec = trigger.fire_delay_sec;
+    fireDelay          = uint64_t(trigger.fire_delay_sec*1000.f);
+    retriggerDelay     = uint64_t(trigger.retrigger_delay_sec*1000.f);
     maxActivationCount = uint32_t(trigger.max_activation_count);
-    filterFlags = trigger.filter_flags;
-    triggerFlags = trigger.flags;
-    target = trigger.target;
+    filterFlags        = trigger.filter_flags;
+    triggerFlags       = trigger.flags;
+    target             = trigger.target;
     }
 
   world.addTrigger(this);
@@ -52,13 +53,35 @@ bool AbstractTrigger::isEnabled() const {
   return !disabled;
   }
 
+void AbstractTrigger::processDelayedEvents() {
+  if(!hasDelayedEvents())
+    return;
+  if(world.tickCount()<delayedEvent.timeBarrier)
+    return;
+  auto evt = std::move(delayedEvent);
+  delayedEvent = TriggerEvent();
+  implProcessEvent(evt);
+  }
+
 void AbstractTrigger::processEvent(const TriggerEvent& evt) {
-  if(emitTimeLast>0 && world.tickCount()<emitTimeLast+uint64_t(fireDelaySec*1000.f)) {
-    world.triggerEvent(evt);
+  if(hasDelayedEvents()) {
+    // discard, if already have pending
     return;
     }
-  emitTimeLast = world.tickCount();
+  if(0!=emitTimeLast && world.tickCount()<emitTimeLast+retriggerDelay) {
+    // need to discard event
+    return;
+    }
+  if(fireDelay>0) {
+    TriggerEvent ex(evt.target, evt.emitter, world.tickCount() + fireDelay, evt.type);
+    delayedEvent = std::move(ex);
+    return;
+    }
+  implProcessEvent(evt);
+  }
 
+void AbstractTrigger::implProcessEvent(const TriggerEvent& evt) {
+  emitTimeLast = world.tickCount();
   switch(evt.type) {
     case TriggerEvent::T_Startup:
     case TriggerEvent::T_StartupFirstTime:
@@ -163,6 +186,8 @@ void AbstractTrigger::save(Serialize& fout) const {
   boxNpc.save(fout);
   fout.write(emitCount,disabled);
   fout.write(emitTimeLast);
+
+  delayedEvent.save(fout);
   }
 
 void AbstractTrigger::load(Serialize& fin) {
@@ -170,6 +195,14 @@ void AbstractTrigger::load(Serialize& fin) {
   boxNpc.load(fin);
   fin.read(emitCount,disabled);
   fin.read(emitTimeLast);
+
+  if(fin.version()>=47) {
+    delayedEvent.load(fin);
+    }
+  }
+
+bool AbstractTrigger::hasDelayedEvents() const {
+  return !delayedEvent.target.empty();
   }
 
 void AbstractTrigger::enableTicks() {
