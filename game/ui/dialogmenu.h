@@ -36,6 +36,7 @@ class DialogMenu : public Tempest::Widget {
 
     void print      (std::string_view msg);
     void printScreen(std::string_view msg, int x, int y, int time, const GthFont &font);
+    void drawMsg    (Tempest::Painter& p, int offsetY);
 
     void keyDownEvent   (Tempest::KeyEvent&   event) override;
     void keyUpEvent     (Tempest::KeyEvent&   event) override;
@@ -70,7 +71,7 @@ class DialogMenu : public Tempest::Widget {
       };
 
     enum {
-      MAX_PRINT = 5,
+      MAX_PRINT = 3,
       ANIM_TIME = 200,
       };
 

@@ -561,6 +561,8 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
     iy = h();
   fnt.drawText(p,ix,iy,focus.displayName());
 
+  drawMsg(p);
+
   if(focus.npc!=nullptr && !focus.npc->isDead()) {
     float hp = float(focus.npc->attribute(ATR_HITPOINTS))/float(focus.npc->attribute(ATR_HITPOINTSMAX));
     drawBar(p,barHp, w()/2,10, hp, AlignHCenter|AlignTop);
@@ -660,6 +662,16 @@ void MainWindow::drawBar(Painter &p, const Tempest::Texture2d* bar, int x, int y
   p.setBrush(*bar);
   p.drawRect(x+int(pd),y+dy,int(float(destW-pd*2)*v),int(destHin),
              0,0,bar->w(),bar->h());
+  }
+
+void MainWindow::drawMsg(Tempest::Painter& p) {
+  const float scale   = Gothic::options().interfaceScale;
+  const float destW   = 200.f*scale*float(std::min(w(),800))/800.f;
+  const float k       = float(destW)/float(std::max(barBack->w(),1));
+  const float destH   = float(barBack->h())*k;
+
+  const int y = 10 + int(destH) + 10;
+  dialogs.drawMsg(p, y);
   }
 
 void MainWindow::drawProgress(Painter &p, int x, int y, int w, int h, float v) {

@@ -290,6 +290,19 @@ void DialogMenu::printScreen(std::string_view msg, int x, int y, int time, const
   update();
   }
 
+void DialogMenu::drawMsg(Tempest::Painter& p, int offsetY) {
+  for(size_t i=0;i<MAX_PRINT;++i){
+    auto& sc  = printMsg[i];
+    if(sc.font==nullptr)
+      continue;
+
+    auto& fnt = *sc.font;
+    auto  sz  = fnt.textSize(sc.txt);
+    int   x   = (w()-sz.w)/2;
+    fnt.drawText(p, x, offsetY + int(i*2+1)*sz.h, sc.txt);
+    }
+  }
+
 void DialogMenu::print(std::string_view msg) {
   if(msg.empty())
     return;
@@ -419,17 +432,6 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
     }
 
   paintChoice(e);
-
-  for(size_t i=0;i<MAX_PRINT;++i){
-    auto& sc  = printMsg[i];
-    if(sc.font==nullptr)
-      continue;
-
-    auto& fnt = *sc.font;
-    auto  sz  = fnt.textSize(sc.txt);
-    int   x   = (w()-sz.w)/2;
-    fnt.drawText(p, x, int(i*2+2)*sz.h, sc.txt);
-    }
 
   for(size_t i=0;i<pscreen.size();++i){
     auto& sc   = pscreen[i];

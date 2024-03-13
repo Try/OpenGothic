@@ -66,7 +66,8 @@ class MainWindow : public Tempest::Window {
     void paintFocus     (Tempest::Painter& p, const Focus& fc, const Tempest::Matrix4x4& vp);
     void paintFocus     (Tempest::Painter& p, Tempest::Rect rect);
 
-    void drawBar(Tempest::Painter& p, const Tempest::Texture2d *bar, int x, int y, float v, Tempest::AlignFlag flg);   
+    void drawBar(Tempest::Painter& p, const Tempest::Texture2d *bar, int x, int y, float v, Tempest::AlignFlag flg);
+    void drawMsg(Tempest::Painter& p);
     void drawProgress(Tempest::Painter& p, int x, int y, int w, int h, float v);
     void drawLoading (Tempest::Painter& p,int x,int y,int w,int h);
     void drawSaving  (Tempest::Painter& p);
