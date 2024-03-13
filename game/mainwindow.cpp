@@ -561,7 +561,7 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
     iy = h();
   fnt.drawText(p,ix,iy,focus.displayName());
 
-  if(focus.npc!=nullptr) {
+  if(focus.npc!=nullptr && !focus.npc->isDead()) {
     float hp = float(focus.npc->attribute(ATR_HITPOINTS))/float(focus.npc->attribute(ATR_HITPOINTSMAX));
     drawBar(p,barHp, w()/2,10, hp, AlignHCenter|AlignTop);
     }
