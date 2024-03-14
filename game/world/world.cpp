@@ -14,6 +14,7 @@
 #include "world/objects/item.h"
 #include "world/objects/interactive.h"
 #include "world/triggers/abstracttrigger.h"
+#include "world/triggers/cscamera.h"
 #include "game/globaleffects.h"
 #include "game/serialize.h"
 #include "utils/string_frm.h"
@@ -493,7 +494,8 @@ void World::execTriggerEvent(const TriggerEvent& e) {
   if(!emitted) {
     if(e.target=="EVT_LEFT_ROOM_01_TRAP_MOVER_FOR_DMG_MASTER" ||
        e.target=="EVT_LEFT_UP_01_TOGGLE_TRIGGER_01" ||
-       e.target=="EVT_RIGHT_ROOM_01_SPAWN_ROT_02_SOUND")
+       e.target=="EVT_RIGHT_ROOM_01_SPAWN_ROT_02_SOUND" ||
+       e.target=="NULL")
       return; // known problem on dragonisland.zen, skip for now
     Tempest::Log::d("unable to process trigger: \"",e.target,"\"");
     }
@@ -517,7 +519,7 @@ CsCamera* World::currentCs() const {
 
 bool World::isCutsceneLock() const {
   if(auto cs = wobj.currentCs())
-    return cs->isPlayerMovable();
+    return !cs->isPlayerMovable();
   return false;
   }
 
