@@ -19,29 +19,29 @@ void MessageFilter::onUntrigger(const TriggerEvent&) {
 
 void MessageFilter::exec(zenkit::MessageFilterAction eval) {
   switch(eval) {
-    case zenkit::MessageFilterAction::none:
+    case zenkit::MessageFilterAction::NONE:
       break;
-    case zenkit::MessageFilterAction::trigger: {
+    case zenkit::MessageFilterAction::TRIGGER: {
       TriggerEvent e(target,vobName,TriggerEvent::T_Trigger);
       world.execTriggerEvent(e);
       break;
       }
-    case zenkit::MessageFilterAction::untrigger: {
+    case zenkit::MessageFilterAction::UNTRIGGER: {
       TriggerEvent e(target,vobName,TriggerEvent::T_Untrigger);
       world.execTriggerEvent(e);
       break;
       }
-    case zenkit::MessageFilterAction::enable: {
+    case zenkit::MessageFilterAction::ENABLE: {
       TriggerEvent e(target,vobName,TriggerEvent::T_Enable);
       world.execTriggerEvent(e);
       break;
       }
-    case zenkit::MessageFilterAction::disable:{
+    case zenkit::MessageFilterAction::DISABLE:{
       TriggerEvent e(target,vobName,TriggerEvent::T_Disable);
       world.execTriggerEvent(e);
       break;
       }
-    case zenkit::MessageFilterAction::toggle:{
+    case zenkit::MessageFilterAction::TOGGLE:{
       TriggerEvent e(target,vobName,TriggerEvent::T_ToggleEnable);
       world.execTriggerEvent(e);
       break;

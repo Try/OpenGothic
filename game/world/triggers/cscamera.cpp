@@ -16,8 +16,9 @@ CsCamera::CsCamera(Vob* parent, World& world, const zenkit::VCutsceneCamera& cam
     return;
     }
 
-  duration = cam.total_duration;
-  delay    = cam.auto_untrigger_last_delay;
+  durationF     = cam.total_duration;
+  duration      = uint64_t(cam.total_duration * 1000.f);
+  delay         = uint64_t(cam.auto_untrigger_last_delay * 1000.f);
   playerMovable = cam.auto_player_movable;
 
   for(auto& f : cam.trajectory_frames) {
@@ -55,13 +56,13 @@ CsCamera::CsCamera(Vob* parent, World& world, const zenkit::VCutsceneCamera& cam
     if(spl->keyframe.front().time!=0) {
       Log::e("CsCamera: \"",cam.vob_name,"\" - invalid first frame");
       }
-    if(spl->keyframe.back().time!=duration) {
+    if(spl->keyframe.back().time!=durationF) {
       Log::e("CsCamera: \"",cam.vob_name,"\" - invalid sequence duration");
       }
 
     const float slow   = 0;
-    const float linear = duration;
-    const float fast   = 2 * duration;
+    const float linear = durationF;
+    const float fast   = 2 * durationF;
 
     zenkit::CameraMotion mType0, mType1;
     if(spl == &posSpline) {
@@ -87,8 +88,8 @@ CsCamera::CsCamera(Vob* parent, World& world, const zenkit::VCutsceneCamera& cam
       d1 = slow;
       }
 
-    spl->c[0] = -2*duration +   d0 + d1;
-    spl->c[1] =  3*duration - 2*d0 - d1;
+    spl->c[0] = -2*durationF +   d0 + d1;
+    spl->c[1] =  3*durationF - 2*d0 - d1;
     spl->c[2] = d0;
     }
   }
@@ -102,7 +103,9 @@ void CsCamera::onTrigger(const TriggerEvent& evt) {
     return;
 
   if(auto cs = world.currentCs()) {
-    cs->onUntrigger(evt);
+    if(cs->time!=0)
+      cs->onUntrigger(evt); else
+      return;
     }
 
   auto& camera = world.gameSession().camera();
@@ -138,7 +141,7 @@ void CsCamera::onUntrigger(const TriggerEvent& evt) {
   }
 
 void CsCamera::tick(uint64_t dt) {
-  time += float(dt)/1000.f;
+  time += dt;
 
   if(time>duration+delay) {
     TriggerEvent e("","",TriggerEvent::T_Untrigger);
@@ -162,7 +165,7 @@ Vec3 CsCamera::position() {
   if(posSpline.size()==1) {
     pos = posSpline.keyframe[0].c[3];
     } else {
-    posSpline.setSplTime(time/duration);
+    posSpline.setSplTime(float(time)/float(duration));
     pos = posSpline.position();
     }
   return pos;
@@ -174,7 +177,7 @@ PointF CsCamera::spin(Tempest::Vec3& d) {
   else if(targetSpline.size()==1)
     d = targetSpline.keyframe[0].c[3] - d;
   else if(targetSpline.size()>1) {
-    targetSpline.setSplTime(time/duration);
+    targetSpline.setSplTime(float(time)/float(duration));
     d = targetSpline.position() - d;
     }
 

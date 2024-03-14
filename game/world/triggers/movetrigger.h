@@ -28,7 +28,6 @@ class MoveTrigger : public AbstractTrigger {
     void emitSound   (std::string_view snd, bool freeSlot=true);
     void advanceAnim (uint32_t f0, uint32_t f1, float alpha);
 
-    float pathLength() const;
     void invalidateView();
 
     enum State : int32_t {
@@ -41,7 +40,6 @@ class MoveTrigger : public AbstractTrigger {
       };
 
     struct KeyLen {
-      float    position = 0;
       uint64_t ticks    = 0;
       };
 
@@ -49,7 +47,7 @@ class MoveTrigger : public AbstractTrigger {
     MeshObjects::Mesh                    view;
     PhysicMesh                           physic;
     std::vector<KeyLen>                  keyframes;
-    std::vector<zenkit::AnimationSample> mover_keyframes;
+    std::vector<zenkit::AnimationSample> moverKeyFrames;
     zenkit::MoverBehavior                behavior;
     std::string                          sfxOpenStart;
     std::string                          sfxOpenEnd;

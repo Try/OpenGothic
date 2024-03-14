@@ -1,15 +1,20 @@
 #include "codemaster.h"
 
+#include <Tempest/Log>
+
 #include "world/world.h"
 #include "game/serialize.h"
 
 CodeMaster::CodeMaster(Vob* parent, World &world, const zenkit::VCodeMaster& cm, Flags flags)
   :AbstractTrigger(parent,world,cm,flags), keys(cm.slaves.size()) {
-  target = cm.target;
-  slaves = cm.slaves;
-  ordered = cm.ordered;
+  target              = cm.target;
+  slaves              = cm.slaves;
+  ordered             = cm.ordered;
   firstFalseIsFailure = cm.first_false_is_failure;
-  failureTarget = cm.failure_target;
+  failureTarget       = cm.failure_target;
+  untriggeredCancels  = cm.untriggered_cancels;
+  if(untriggeredCancels)
+    Tempest::Log::d("zCCodeMaster::untriggeredCancels is not implemented. Vob: \"", vobName, "\"");
   }
 
 void CodeMaster::onTrigger(const TriggerEvent &evt) {

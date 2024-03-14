@@ -19,8 +19,9 @@ class CodeMaster : public AbstractTrigger {
 
     std::vector<bool>        keys;
     std::vector<std::string> slaves;
-    bool                     ordered;
-    bool                     firstFalseIsFailure;
+    bool                     ordered = false;
+    bool                     firstFalseIsFailure = false;
     std::string              failureTarget;
+    bool                     untriggeredCancels = false;
   };
 

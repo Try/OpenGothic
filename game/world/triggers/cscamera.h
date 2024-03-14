@@ -35,12 +35,13 @@ class CsCamera : public AbstractTrigger {
     auto position() -> Tempest::Vec3;
     auto spin(Tempest::Vec3& d) -> Tempest::PointF;
 
-    bool     active       = false;
-    bool     godMode      = false;
-    float    duration     = 0;
-    float    delay        = 0;
-    float    time         = 0;
-    KbSpline posSpline    = {};
-    KbSpline targetSpline = {};
+    bool     active        = false;
+    bool     godMode       = false;
     bool     playerMovable = false;
+    float    durationF     = 0;
+    uint64_t duration      = 0;
+    uint64_t delay         = 0;
+    uint64_t time          = 0;
+    KbSpline posSpline     = {};
+    KbSpline targetSpline  = {};
   };
