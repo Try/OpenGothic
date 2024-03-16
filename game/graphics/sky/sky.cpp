@@ -194,7 +194,7 @@ void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fr
   // push.GSunIntensity *= exposure;
 
   cmd.setUniforms(Shaders::inst().sun, sun ? uboSun : uboMoon, &push, sizeof(push));
-  cmd.draw(6);
+  cmd.draw(nullptr, 0, 6);
   }
 
 float Sky::isNight() const {

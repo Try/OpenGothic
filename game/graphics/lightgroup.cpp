@@ -200,19 +200,6 @@ LightGroup::LightGroup(const SceneGlobals& scene)
     };
   ibo = device.ibo(index,36);
 
-  static const Vec3 v[8] = {
-    {-1,-1,-1},
-    { 1,-1,-1},
-    { 1, 1,-1},
-    {-1, 1,-1},
-
-    {-1,-1, 1},
-    { 1,-1, 1},
-    { 1, 1, 1},
-    {-1, 1, 1},
-    };
-  vbo = device.vbo(v,8);
-
   try {
     auto filename = Gothic::nestedPath({u"_work", u"Data", u"Presets", u"LIGHTPRESETS.ZEN"}, Dir::FT_File);
     auto buf = zenkit::Read::from(filename);
@@ -400,11 +387,11 @@ void LightGroup::draw(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   auto& p = shader();
   if(bucketSt.data.size()>0) {
     cmd.setUniforms(p,bucketSt.ubo[fId]);
-    cmd.draw(vbo,ibo, 0,ibo.size(), 0,bucketSt.data.size());
+    cmd.draw(nullptr,ibo, 0,ibo.size(), 0,bucketSt.data.size());
     }
   if(bucketDyn.data.size()>0) {
     cmd.setUniforms(p,bucketDyn.ubo[fId]);
-    cmd.draw(vbo,ibo, 0,ibo.size(), 0,bucketDyn.data.size());
+    cmd.draw(nullptr,ibo, 0,ibo.size(), 0,bucketDyn.data.size());
     }
   }
 

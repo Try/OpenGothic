@@ -22,8 +22,6 @@ layout(binding = 4, std140) readonly buffer SsboLighting {
   LightSource data[];
   } lights;
 
-layout(location = 0) in  vec3 inPos;
-
 layout(location = 0) out vec4 cenPosition;
 layout(location = 1) out vec3 color;
 
@@ -58,6 +56,7 @@ void main(void) {
     return;
     }
 
+  const vec3 inPos = v[gl_VertexIndex];
   vec4 pos = ubo.mvp*vec4(light.pos+inPos*light.range, 1.0);
 
   int neg = 0;

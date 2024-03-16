@@ -887,7 +887,7 @@ void Renderer::drawProbesDbg(Encoder<CommandBuffer>& cmd, uint8_t fId) {
 
   cmd.setDebugMarker("GI-dbg");
   cmd.setUniforms(pso, gi.uboDbg);
-  cmd.draw(36, 0, gi.maxProbes);
+  cmd.draw(nullptr, 0, 36, 0, gi.maxProbes);
   }
 
 void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {

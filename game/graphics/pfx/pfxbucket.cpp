@@ -828,5 +828,5 @@ void PfxBucket::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
   if(pso==nullptr)
     return;
   cmd.setUniforms(*pso, itm.ubo[view]);
-  cmd.draw(6, 0, itm.pfxGpu.byteSize()/sizeof(PfxState));
+  cmd.draw(nullptr, 0, 6, 0, itm.pfxGpu.byteSize()/sizeof(PfxState));
   }

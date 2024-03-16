@@ -108,7 +108,6 @@ class LightGroup final {
     Tempest::UniformBuffer<Ubo>          uboBuf[Resources::MaxFramesInFlight];
 
     Tempest::IndexBuffer<uint16_t>       ibo;
-    Tempest::VertexBuffer<Tempest::Vec3> vbo;
 
     std::recursive_mutex                 sync;
     LightBucket                          bucketSt, bucketDyn;
