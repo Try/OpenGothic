@@ -178,7 +178,7 @@ void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fr
     push.size.y  = 2.f/float(scene.zbuffer->h());
     }
   push.size          *= sun ? sunSize : (moonSize*0.25f);
-  push.GSunIntensity  = sun ? (GSunIntensity*0.3f) : (GMoonIntensity*0.3f);
+  push.GSunIntensity  = sun ? (GSunIntensity*0.3f) : (GMoonIntensity*0.05f);
   push.isSun          = sun ? 1 : 0;
   push.sunDir         = d;
   push.viewProjectInv = scene.viewProjectLwcInv();
@@ -262,6 +262,7 @@ void Sky::updateLight(const int64_t now) {
   ambient *= 0.68f;   // NdoL prediction
   ambient *= 0.5;     // maybe in shadow or maybe not
   ambient *= 2.0;     // 2*pi, pi accounted in shader
+  ambient *= 0.25;    // ???
   ambient += Vec3(0.01f); // should avoid zeros
 
   sun.setColor(direct*sunMul);

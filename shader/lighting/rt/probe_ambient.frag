@@ -179,15 +179,14 @@ void main() {
     }
 
   // const vec3  linear = vec3(1);
-  const vec3  linear = textureLinear(diff); //  * Fd_Lambert is accounted in integration
+  const vec3  linear = textureAlbedo(diff);
   const float ao     = textureSsao();
-  vec3 lcolor = colorSum.rgb;
 
-  vec3 color  = lcolor;
+  vec3 color = colorSum.rgb; //  * Fd_Lambert is accounted in integration
   color *= linear;
   color *= (1-ao);
   // night shift
-  color += purkinjeShift(color);
+  color += vec3(0,0,purkinjeShift(color).b);
   color *= scene.exposure;
   outColor = vec4(color, 1);
 

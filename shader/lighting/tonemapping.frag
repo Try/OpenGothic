@@ -136,6 +136,11 @@ void main() {
     // color += vec3(0,0, shift.b);
   }
 
+  // float Llocal  = exp(luminance(color));
+  // float Lglobal = exp(1.0);
+  // float L       = mix(Lglobal, Llocal, 0.5);
+  // color /= max(1.0, 0.9 * exp2(L));
+
   color *= push.mulExposure;
 
   // Brightness & Contrast
