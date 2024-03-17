@@ -25,7 +25,7 @@ layout(binding = 4, std140) readonly buffer SsboLighting {
 layout(location = 0) out vec4 cenPosition;
 layout(location = 1) out vec3 color;
 
-vec3 v[8] = {
+vec3 v[] = {
   {-1,-1,-1},
   { 1,-1,-1},
   { 1, 1,-1},
@@ -56,9 +56,6 @@ void main(void) {
     return;
     }
 
-  const vec3 inPos = v[gl_VertexIndex];
-  vec4 pos = ubo.mvp*vec4(light.pos+inPos*light.range, 1.0);
-
   int neg = 0;
   for(int i=0;i<8;++i) {
     vec3 at  = light.pos + v[i]*light.range;
@@ -70,10 +67,16 @@ void main(void) {
     // TODO: list of fsq lights
     }
 
+  const vec3 inPos = v[gl_VertexIndex];
+  vec4 pos = vec4(0);
   if(neg>0 && neg<8) {
     // transform close lights into FSQ
-    vec3 fsq = inPos;
-    pos = vec4(fsq.xy,0.0,1.0);
+    vec2 fsq = vec2(inPos.x, -inPos.y);
+    if(gl_VertexIndex>=4)
+      pos = vec4(uintBitsToFloat(0x7fc00000)); else
+      pos = vec4(fsq.xy,0.0,1.0);
+    } else {
+    pos = ubo.mvp*vec4(light.pos+inPos*light.range, 1.0);
     }
 
   //const vec3 origin = vec3(38983.9336, 4080.52637, -1888.59839);

@@ -189,16 +189,15 @@ LightGroup::LightGroup(const SceneGlobals& scene)
       u = device.descriptors(shader().layout());
       }
     }
-
-  static const uint16_t index[36] = {
-    0, 1, 3, 3, 1, 2,
-    1, 5, 2, 2, 5, 6,
-    5, 4, 6, 6, 4, 7,
-    4, 0, 7, 7, 0, 3,
-    3, 2, 7, 7, 2, 6,
-    4, 5, 0, 0, 5, 1
+  static const uint16_t index[] = {
+      0, 1, 2, 0, 2, 3,
+      4, 6, 5, 4, 7, 6,
+      1, 5, 2, 2, 5, 6,
+      4, 0, 7, 7, 0, 3,
+      3, 2, 7, 7, 2, 6,
+      4, 5, 0, 0, 5, 1
     };
-  ibo = device.ibo(index,36);
+  ibo = device.ibo(index, sizeof(index)/sizeof(index[0]));
 
   try {
     auto filename = Gothic::nestedPath({u"_work", u"Data", u"Presets", u"LIGHTPRESETS.ZEN"}, Dir::FT_File);
@@ -400,10 +399,10 @@ void LightGroup::prepareUniforms() {
   for(auto b:bucket) {
     for(int i=0;i<Resources::MaxFramesInFlight;++i) {
       auto& u = b->ubo[i];
-      u.set(0,*scene.gbufDiffuse,Sampler::nearest());
-      u.set(1,*scene.gbufNormals,Sampler::nearest());
-      u.set(2,*scene.zbuffer,    Sampler::nearest());
-      u.set(3,uboBuf[i]);
+      u.set(0, *scene.gbufDiffuse, Sampler::nearest());
+      u.set(1, *scene.gbufNormals, Sampler::nearest());
+      u.set(2, *scene.zbuffer,     Sampler::nearest());
+      u.set(3, uboBuf[i]);
       }
     }
   }
