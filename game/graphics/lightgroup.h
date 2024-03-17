@@ -66,10 +66,7 @@ class LightGroup final {
     const size_t staticMask = (size_t(1) << (sizeof(size_t)*8-1));
 
     struct Ubo {
-      Tempest::Matrix4x4 mvp;
-      Tempest::Matrix4x4 mvpLwcInv;
-      float              fr[6][4] = {};
-      Tempest::Vec3      origin;
+      Tempest::Vec3 origin;
       };
 
     struct LightSsbo {
@@ -104,8 +101,6 @@ class LightGroup final {
 
     const SceneGlobals&                  scene;
     std::vector<zenkit::LightPreset>     presets;
-
-    Tempest::UniformBuffer<Ubo>          uboBuf[Resources::MaxFramesInFlight];
 
     Tempest::IndexBuffer<uint16_t>       ibo;
 

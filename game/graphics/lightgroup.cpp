@@ -179,9 +179,6 @@ uint64_t LightGroup::Light::effectPrefferedTime() const {
 LightGroup::LightGroup(const SceneGlobals& scene)
   :scene(scene) {
   auto& device = Resources::device();
-  for(auto& u:uboBuf)
-    u = device.ubo(Ubo());
-
   LightBucket* bucket[2] = {&bucketSt, &bucketDyn};
   for(auto b:bucket) {
     for(int i=0;i<Resources::MaxFramesInFlight;++i) {
@@ -362,20 +359,9 @@ void LightGroup::preFrameUpdate(uint8_t fId) {
       b->ssbo[fId].update(b->data);
       } else {
       b->ssbo[fId] = device.ssbo(BufferHeap::Upload,b->data);
-      b->ubo [fId].set(4,b->ssbo[fId]);
+      b->ubo [fId].set(5,b->ssbo[fId]);
       }
     }
-
-  Frustrum fr;
-  fr.make(scene.viewProject(),1,1);
-
-  Ubo ubo;
-  ubo.mvp       = scene.viewProject();
-  ubo.mvpLwcInv = scene.viewProjectLwcInv();
-  ubo.origin    = scene.originLwc;
-  std::memcpy(ubo.fr,fr.f,sizeof(ubo.fr));
-
-  uboBuf[fId].update(&ubo);
   }
 
 void LightGroup::draw(Encoder<CommandBuffer>& cmd, uint8_t fId) {
@@ -385,11 +371,11 @@ void LightGroup::draw(Encoder<CommandBuffer>& cmd, uint8_t fId) {
 
   auto& p = shader();
   if(bucketSt.data.size()>0) {
-    cmd.setUniforms(p,bucketSt.ubo[fId]);
+    cmd.setUniforms(p, bucketSt.ubo[fId], &scene.originLwc, sizeof(scene.originLwc));
     cmd.draw(nullptr,ibo, 0,ibo.size(), 0,bucketSt.data.size());
     }
   if(bucketDyn.data.size()>0) {
-    cmd.setUniforms(p,bucketDyn.ubo[fId]);
+    cmd.setUniforms(p,bucketDyn.ubo[fId], &scene.originLwc, sizeof(scene.originLwc));
     cmd.draw(nullptr,ibo, 0,ibo.size(), 0,bucketDyn.data.size());
     }
   }
@@ -399,10 +385,10 @@ void LightGroup::prepareUniforms() {
   for(auto b:bucket) {
     for(int i=0;i<Resources::MaxFramesInFlight;++i) {
       auto& u = b->ubo[i];
-      u.set(0, *scene.gbufDiffuse, Sampler::nearest());
-      u.set(1, *scene.gbufNormals, Sampler::nearest());
-      u.set(2, *scene.zbuffer,     Sampler::nearest());
-      u.set(3, uboBuf[i]);
+      u.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
+      u.set(1, *scene.gbufDiffuse, Sampler::nearest());
+      u.set(2, *scene.gbufNormals, Sampler::nearest());
+      u.set(3, *scene.zbuffer,     Sampler::nearest());
       }
     }
   }
