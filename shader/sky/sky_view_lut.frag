@@ -63,8 +63,7 @@ void main() {
   const vec3 viewPos  = vec3(0.0, RPlanet + push.plPosY, 0.0);
 
   const float DirectSunLux  = scene.GSunIntensity;
-  const float DirectMoonLux = 0.32f;
-  // const float NightLight    = 0.36f;
+  const float DirectMoonLux = 0.1; // NOTE: Full Moon overhead  ~0.267, engine output about 0.24
   const float moonInt       = DirectMoonLux/DirectSunLux;
 
   float azimuthAngle = (uv.x - 0.5)*2.0*M_PI;

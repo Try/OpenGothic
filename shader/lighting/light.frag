@@ -39,7 +39,7 @@ bool isShadow(vec3 rayOrigin, vec3 direction) {
 #endif
 
   rayQueryEXT rayQuery;
-  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
+  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, RtShadowMask,
                         rayOrigin, tMin, rayDirection, rayDistance);
   rayQueryProceedShadow(rayQuery);
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT)

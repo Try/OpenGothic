@@ -106,12 +106,12 @@ void main() {
     const vec3  pos    = vec3(0, RPlanet+1, 0);
     const vec3  tr     = textureLUT(tLUT, pos, scene.sunDir).rgb;
     const float cldVal = textureLod(cloudsLUT, vec2(scene.isNight,0), 0).a;
-    const float clouds = (1.0 - pow(cldVal, 4));
+    const float clouds = (1.0 - pow(cldVal, 4.0));
 
     const vec3 sunColor = scene.sunColor * tr;// * clouds;
     const vec3 ambient  = scene.ambient  * tr;// * clouds;
 
-    vec3  light = sunColor*Fd_Lambert*0.8 + skyIrradiance()*20.0;
+    vec3  light = sunColor*Fd_Lambert*0.9 + skyIrradiance()*20.0;
     float lum   = 0;//(vmax+vmin) * 0.5 * scene.GSunIntensity;
     //lum = dot(light, vec3(1.0/3.0));
     lum = dot(light, vec3(0.2125, 0.7154, 0.0721))*0.9 + lum*0.1;

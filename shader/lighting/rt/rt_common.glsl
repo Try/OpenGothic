@@ -14,11 +14,15 @@
 layout(binding  = 6) uniform accelerationStructureEXT topLevelAS;
 #endif
 
+const uint RtShadowMask = 0x1;
+const uint RtWaterMask  = 0x2;
+
 struct HitDesc {
   uint instanceId;
   uint primitiveId;
   vec3 baryCoord;
   bool opaque;
+  bool water;
   };
 
 #if defined(RAY_QUERY_AT)
@@ -73,6 +77,7 @@ HitDesc pullHitDesc(in rayQueryEXT rayQuery) {
   d.baryCoord.x  = (1-d.baryCoord.y-d.baryCoord.z);
 
   d.opaque       = (desc.firstPrimitive & 0x01000000)!=0;
+  d.water        = (desc.firstPrimitive & 0x02000000)!=0;
 
   return d;
   }
@@ -95,6 +100,7 @@ HitDesc pullCommitedHitDesc(in rayQueryEXT rayQuery) {
   d.baryCoord.x  = (1-d.baryCoord.y-d.baryCoord.z);
 
   d.opaque       = (desc.firstPrimitive & 0x01000000)!=0;
+  d.water        = (desc.firstPrimitive & 0x02000000)!=0;
 
   return d;
   }

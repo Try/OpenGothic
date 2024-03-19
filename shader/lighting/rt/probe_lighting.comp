@@ -141,15 +141,14 @@ vec4 processSample(const vec3 rayOrigin, const vec3 rayDirection, uint probeId, 
   const vec4  nr     = texelFetch(gbufferNorm, uv, 0);
   const float rt     = texelFetch(gbufferRayT, uv, 0).r;
   const uint  bits   = uint(diff.a*255.0+0.5);
-  const bool  sky    = (bits & 0x4)!=0;
-  const bool  badbit = (bits & 0x2)!=0;
+  const bool  sky    = (bits & 0x4) !=0;
+  const bool  badbit = (bits & 0x2) !=0;
 
   if(sky) {
     vec3 hit = resolveMiss(rayOrigin, rayDirection);
-    // if(badbit)
-    //   hit *= 0.001;
     return vec4(hit, badbit ? 0 : 1);
     }
+
 #if 0
   {
   vec3 hit = resolveMiss(rayOrigin, rayDirection);

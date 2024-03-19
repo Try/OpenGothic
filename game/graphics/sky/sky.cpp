@@ -178,7 +178,7 @@ void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fr
     push.size.y  = 2.f/float(scene.zbuffer->h());
     }
   push.size          *= sun ? sunSize : (moonSize*0.25f);
-  push.GSunIntensity  = sun ? (GSunIntensity*0.3f) : (GMoonIntensity*0.05f);
+  push.GSunIntensity  = sun ? (GSunIntensity*0.1f) : (GMoonIntensity*0.05f);
   push.isSun          = sun ? 1 : 0;
   push.sunDir         = d;
   push.viewProjectInv = scene.viewProjectLwcInv();
@@ -256,13 +256,13 @@ void Sky::updateLight(const int64_t now) {
   const  float sunOcclude = smoothstep(0.0f, 0.01f, sun.dir().y);
 
   Vec3 direct;
-  direct  = DirectSunLux * Vec3(1.0f);
-  ambient = DirectSunLux * float(1.0/M_PI) * groundAlbedo * sunOcclude;
-  // ambient *= 0.78f; // atmosphere transmission is in shader
-  ambient *= 0.68f;   // NdoL prediction
+  direct  = GSunIntensity * Vec3(1.0f);
+  ambient = GSunIntensity * float(1.0/M_PI) * groundAlbedo * sunOcclude;
+  // ambient *= 0.78f; // atmosphere transmission is handled in shader
+  ambient *= 0.68f;   // NdotL prediction
   ambient *= 0.5;     // maybe in shadow or maybe not
-  ambient *= 2.0;     // 2*pi, pi accounted in shader
-  ambient *= 0.25;    // ???
+  ambient *= 2.0;     // 2*pi, 1/pi accounted in shader
+  ambient *= 0.5;     // eh ???
   ambient += Vec3(0.01f); // should avoid zeros
 
   sun.setColor(direct*sunMul);

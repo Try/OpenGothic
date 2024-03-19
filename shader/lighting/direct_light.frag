@@ -63,7 +63,7 @@ bool rayTest(vec3 pos, vec3  rayDirection, float tMin, float tMax, out float ray
 #endif
 
   rayQueryEXT rayQuery;
-  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
+  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, RtShadowMask,
                         pos, tMin, rayDirection, tMax);
   rayQueryProceedShadow(rayQuery);
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true)==gl_RayQueryCommittedIntersectionNoneEXT)

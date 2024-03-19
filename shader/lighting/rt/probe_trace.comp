@@ -62,7 +62,7 @@ void sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const uint probe
   float tMin  = 0;
 
   rayQueryEXT rayQuery;
-  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
+  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, RtShadowMask | RtWaterMask,
                         rayOrigin, tMin, rayDirection, probeRayDistance);
   rayQueryProceedShadow(rayQuery); // NOTE: fix naming
 
@@ -79,7 +79,7 @@ void sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const uint probe
   const bool  face   = !(rayQueryGetIntersectionFrontFaceEXT(rayQuery, true)); //NOTE: not working on vegetation
   const bool  badbit = (rayT<probeBadHitT) || (face && hit.opaque);
 
-  const bool  skybit = (!hit.opaque && skyRay(rayOrigin,rayDirection,flags,tMin));
+  const bool  skybit = (!hit.opaque && !hit.water && skyRay(rayOrigin,rayDirection,flags,tMin)); // confirm miss
 
   const uint  id     = hit.instanceId;
   const uvec3 index  = pullTrinagleIds(id,hit.primitiveId);

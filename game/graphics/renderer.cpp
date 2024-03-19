@@ -602,7 +602,6 @@ void Renderer::drawTonemapping(Encoder<CommandBuffer>& cmd) {
   }
 
 void Renderer::drawFxaa(Encoder<CommandBuffer>& cmd) {
-
   struct PushConstantsFxaa {
     float fxaaInverseSharpnessCoeff;
     float fxaaQualitySubpix;
