@@ -33,10 +33,14 @@ AbstractTrigger::AbstractTrigger(Vob* parent, World &world, const zenkit::Virtua
     fireDelay          = uint64_t(trigger.fire_delay_sec*1000.f);
     retriggerDelay     = uint64_t(trigger.retrigger_delay_sec*1000.f);
     maxActivationCount = uint32_t(trigger.max_activation_count);
-    filterFlags        = trigger.filter_flags;
-    triggerFlags       = trigger.flags;
     target             = trigger.target;
     disabled           = !trigger.start_enabled;
+    sendUntrigger      = trigger.send_untrigger;
+    reactToOnTrigger   = trigger.react_to_on_trigger;
+    reactToOnTouch     = trigger.react_to_on_touch;
+    respondToNpc       = trigger.respond_to_npc;
+    respondToPlayer    = trigger.respond_to_pc;
+    respondToObject    = trigger.respond_to_object;
     }
 
   world.addTrigger(this);
@@ -82,18 +86,20 @@ void AbstractTrigger::processEvent(const TriggerEvent& evt) {
 void AbstractTrigger::implProcessEvent(const TriggerEvent& evt) {
   emitTimeLast = world.tickCount();
   switch(evt.type) {
+    case TriggerEvent::T_Activate:
     case TriggerEvent::T_Startup:
     case TriggerEvent::T_StartupFirstTime:
     case TriggerEvent::T_Trigger:
-      if(disabled) {
+      if(disabled || !reactToOnTrigger)
         return;
-        }
+      if(emitCount>=maxActivationCount)
+        return;
+      ++emitCount;
       onTrigger(evt);
       break;
     case TriggerEvent::T_Untrigger:
-      if(disabled) {
+      if(disabled || !sendUntrigger)
         return;
-        }
       onUntrigger(evt);
       break;
     case TriggerEvent::T_Enable:
@@ -105,17 +111,6 @@ void AbstractTrigger::implProcessEvent(const TriggerEvent& evt) {
     case TriggerEvent::T_ToggleEnable:
       disabled = !disabled;
       break;
-    case TriggerEvent::T_Activate: {
-      const bool canActivate = (maxActivationCount<=0 ||
-                                emitCount<maxActivationCount);
-      if(canActivate) {
-        ++emitCount;
-        onTrigger(evt);
-        } else {
-        //Log::d("skip trigger: ",evt.target," [emitCount]");
-        }
-      break;
-      }
     case TriggerEvent::T_Move: {
       onGotoMsg(evt);
       };
@@ -136,11 +131,6 @@ void AbstractTrigger::moveEvent() {
   boxNpc.setPosition(position()+bboxOrigin);
   }
 
-bool AbstractTrigger::hasFlag(ReactFlg flg) const {
-  ReactFlg filter = ReactFlg(triggerFlags & filterFlags);
-  return (filter&flg)==flg;
-  }
-
 void AbstractTrigger::onIntersect(Npc& n) {
   /* NOTE:
    *
@@ -152,7 +142,7 @@ void AbstractTrigger::onIntersect(Npc& n) {
    *  flags       = 0b00000011
    *  filterFlags = 0b00110011
    */
-  if(!hasFlag(n.isPlayer() ? RespondToPC : RespondToNPC) && !hasFlag(ReactToOnTouch))
+  if((n.isPlayer() ? !respondToPlayer : !respondToNpc) || !reactToOnTouch)
     return;
 
   if(!isEnabled())
@@ -227,8 +217,10 @@ const std::vector<Npc*>& AbstractTrigger::intersections() const {
   return boxNpc.intersections();
   }
 
-void AbstractTrigger::Cb::onCollide(DynamicWorld::BulletBody&) {
-  if(!tg->hasFlag(ReactToOnTouch))
+void AbstractTrigger::Cb::onCollide(DynamicWorld::BulletBody& b) {
+  if(!tg->respondToObject || !tg->reactToOnTouch)
+    return;
+  if(b.isSpell())
     return;
   TriggerEvent ex(tg->vobName,tg->vobName,tg->world.tickCount(),TriggerEvent::T_Activate);
   tg->processEvent(ex);
