@@ -89,11 +89,12 @@ There are ongoing efforts to support parts of it to make at least some popular m
 ## Build Instructions
 ### Linux
 Install dependencies:
-* Ubuntu 20.04
+* Ubuntu 20.04/22.04 and their derived distros
 ```bash
+source <(cat /etc/os-release | grep UBUNTU_CODENAME)
 # latest Vulkan SDK provided externally as Ubuntu packages are usually older
 wget -qO - http://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo apt-key add -
-sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-focal.list http://packages.lunarg.com/vulkan/lunarg-vulkan-focal.list
+sudo wget -qO /etc/apt/sources.list.d/lunarg-vulkan-${UBUNTU_CODENAME}.list http://packages.lunarg.com/vulkan/lunarg-vulkan-${UBUNTU_CODENAME}.list
 sudo apt update
 sudo apt install vulkan-sdk
 
