@@ -92,7 +92,6 @@ class AbstractTrigger : public Vob {
     uint32_t                     maxActivationCount = uint32_t(-1);
     bool                         reactToOnTrigger   = true;
     bool                         sendUntrigger      = true;
-    bool                         reactToOnDamage    = true;
     bool                         reactToOnTouch     = true;
     bool                         respondToNpc       = true;
     bool                         respondToPlayer    = true;
