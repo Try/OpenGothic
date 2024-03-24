@@ -248,11 +248,11 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
           continue;
 
         const float l     = i.qDistTo(r.pos.x,r.pos.y,r.pos.z);
-        const float range = float(std::min(i.handle().senses_range,PERC_DIST_INTERMEDIAT));
+        const float range = PERC_DIST_INTERMEDIAT;
         if(l>range*range)
           continue;
 
-        if(i.isDown() || i.isPlayer() || !i.isAiQueueEmpty())
+        if(i.isDown())
           continue;
 
         if((percNextTime>owner.tickCount()) &&
@@ -262,13 +262,6 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
           }
 
         if(r.other==nullptr)
-          continue;
-
-        if(i.canSenseNpc(*r.other, true)==SensesBit::SENSE_NONE)
-          continue;
-
-        // approximation of behavior of original G2
-        if(r.victum!=nullptr && i.canSenseNpc(*r.victum,true,float(r.other->handle().senses_range))==SensesBit::SENSE_NONE)
           continue;
 
         if(r.item!=size_t(-1) && r.other!=nullptr)
