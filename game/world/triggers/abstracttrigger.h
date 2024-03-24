@@ -64,16 +64,6 @@ class AbstractTrigger : public Vob {
     void                         load(Serialize &fin) override;
 
   protected:
-    enum ReactFlg:uint8_t {
-      ReactToOnTrigger = 1,
-      ReactToOnTouch   = 1<<1,
-      ReactToOnDamage  = 1<<2,
-      RespondToObject  = 1<<3,
-      RespondToPC      = 1<<4,
-      RespondToNPC     = 1<<5,
-      StartEnabled     = 1<<6,
-      };
-
     struct Cb : DynamicWorld::BBoxCallback {
       Cb(AbstractTrigger* tg):tg(tg) {}
       void onCollide(DynamicWorld::BulletBody &other) override;
@@ -84,8 +74,6 @@ class AbstractTrigger : public Vob {
     virtual void                 onUntrigger(const TriggerEvent& evt);
     virtual void                 onGotoMsg(const TriggerEvent& evt);
     void                         moveEvent() override;
-
-    bool                         hasFlag(ReactFlg flg) const;
 
     void                         enableTicks();
     void                         disableTicks();
@@ -101,9 +89,13 @@ class AbstractTrigger : public Vob {
 
     uint64_t                     fireDelay          = 0;
     uint64_t                     retriggerDelay     = 0;
-    uint32_t                     maxActivationCount = 0;
-    uint32_t                     triggerFlags       = 0;
-    uint32_t                     filterFlags        = 0;
+    uint32_t                     maxActivationCount = uint32_t(-1);
+    bool                         reactToOnTrigger   = true;
+    bool                         sendUntrigger      = true;
+    bool                         reactToOnTouch     = true;
+    bool                         respondToNpc       = true;
+    bool                         respondToPlayer    = true;
+    bool                         respondToObject    = true;
 
     uint32_t                     emitCount = 0;
     bool                         disabled  = false;
