@@ -162,6 +162,8 @@ class Renderer final {
       Tempest::ComputePipeline* probeMakeHPso  = nullptr;
       Tempest::DescriptorSet    uboClear;
 
+      Tempest::ComputePipeline* probeTilesPso  = nullptr;
+
       Tempest::ComputePipeline* probeVotePso   = nullptr;
       Tempest::ComputePipeline* probePrunePso  = nullptr;
       Tempest::ComputePipeline* probeAllocPso  = nullptr;
@@ -185,6 +187,7 @@ class Renderer final {
       Tempest::StorageImage     probesGBuffRayT;
       Tempest::StorageImage     probesLighting;
       Tempest::StorageImage     probesLightingPrev;
+      Tempest::StorageImage     screenTiles;
       bool                      fisrtFrame = false;
     } gi;
 

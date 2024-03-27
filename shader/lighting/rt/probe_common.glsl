@@ -7,6 +7,8 @@ const uint REUSE_BIT  = 0x4;
 const uint BAD_BIT    = 0x8;
 const uint NEW_BIT    = 0x10; //for debug view
 
+const float SKY_DEPTH = 0.999995;
+
 struct ProbesHeader { // 64 bytes
   uint count;
   uint iterator;

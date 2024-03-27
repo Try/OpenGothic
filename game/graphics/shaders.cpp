@@ -149,15 +149,18 @@ Shaders::Shaders() {
     auto fs = device.shader(sh.data,sh.len);
     probeDbg = device.pipeline(Triangles,state,vs,fs);
 
-    probeInit      = computeShader("probe_init.comp.sprv");
-    probeClear     = computeShader("probe_clear.comp.sprv");
-    probeClearHash = computeShader("probe_clear_hash.comp.sprv");
-    probeMakeHash  = computeShader("probe_make_hash.comp.sprv");
-    probeVote      = computeShader("probe_vote.comp.sprv");
-    probePrune     = computeShader("probe_prune.comp.sprv");
-    probeAlocation = computeShader("probe_allocation.comp.sprv");
-    probeTrace     = computeShader("probe_trace.comp.sprv");
-    probeLighting  = computeShader("probe_lighting.comp.sprv");
+    probeInit       = computeShader("probe_init.comp.sprv");
+    probeClear      = computeShader("probe_clear.comp.sprv");
+    probeClearHash  = computeShader("probe_clear_hash.comp.sprv");
+    probeMakeHash   = computeShader("probe_make_hash.comp.sprv");
+    probeTiles      = computeShader("probe_tiles.comp.sprv");
+    probeTilesReuse = computeShader("probe_tiles_reuse.comp.sprv");
+    probeVote       = computeShader("probe_vote.comp.sprv");
+    probeReuse      = computeShader("probe_reuse.comp.sprv");
+    probePrune      = computeShader("probe_prune.comp.sprv");
+    probeAlocation  = computeShader("probe_allocation.comp.sprv");
+    probeTrace      = computeShader("probe_trace.comp.sprv");
+    probeLighting   = computeShader("probe_lighting.comp.sprv");
 
     state.setBlendSource  (RenderState::BlendMode::One);
     state.setBlendDest    (RenderState::BlendMode::SrcAlpha);  // for debugging

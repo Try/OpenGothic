@@ -8,7 +8,7 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-layout(local_size_x = 16, local_size_y = 8) in;
+layout(local_size_x = 8, local_size_y = 8) in;
 
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
@@ -21,10 +21,14 @@ layout(binding = 4, std430) buffer          Hbo0 { uint voteTable[]; };
 layout(binding = 5, std430) readonly buffer Hbo  { uint hashTable[]; };
 layout(binding = 6, std430) buffer          Pbo  { ProbesHeader probeHeader; Probe probe[]; };
 layout(binding = 7, std430) buffer          Fbo0 { int cursor; uint list[]; } freeList;
+//layout(binding = 8, rgba32ui) uniform uimage3D screenTiles;
+layout(binding = 8, rgba32ui) uniform uimage2D screenTiles;
 
 shared ivec3 pLow, pHigh;
+shared bool  rTile, uTile;
 
 ivec2 screenSize, fragCoord;
+ivec2 tileId;
 uint  threadId;
 
 vec3 unprojectDepth(const float z) {
@@ -39,6 +43,19 @@ int probeGridComputeLod() {
   return probeGridComputeLod(fragCoord, screenSize, z, scene.viewProjectInv);
   }
 
+bool probeQueryInitialize(out probeQuery pq) {
+  vec3  norm = normalFetch(gbufNormal, fragCoord);
+  float z    = texelFetch(depth,fragCoord,0).x;
+  if(z>=SKY_DEPTH)
+    return false; // sky
+
+  const int  lod     = probeGridComputeLod();
+  const vec3 basePos = unprojectDepth(z);
+  const vec3 pos     = basePos + norm*probeCageBias;
+  probeQueryInitialize(pq, pos, lod);
+  return true;
+  }
+
 uint allocProbe() {
   int cursor = atomicAdd(freeList.cursor, -1) - 1;
   if(cursor>=0)
@@ -47,17 +64,21 @@ uint allocProbe() {
   }
 
 bool reuseProbe(const uint h, vec3 pos, int lod) {
-  const uint probeId = hashTable[h];
+  uint probeId = hashTable[h];
   if(probeId>=probeHeader.count)
     return false;
 
   [[loop]]
   for(int i=0; i<8; ++i) {
     Probe p = probe[probeId];
-    if((p.bits & TRACED_BIT)==0)
+    if((p.bits & TRACED_BIT)==0) {
+      probeId = p.pNext;
       continue;
-    if(!probeIsSame(p.pos, pos, lod))
+      }
+    if(!probeIsSame(p.pos, pos, lod)) {
+      probeId = p.pNext;
       continue;
+      }
     atomicOr(probe[probeId].bits, REUSE_BIT);
     return true;
     }
@@ -67,9 +88,7 @@ bool reuseProbe(const uint h, vec3 pos, int lod) {
 
 void processProbe(ivec3 gridPos, vec3 pos, int lod, vec3 pixelPos, vec3 pixelNorm) {
   const uint h = probeGridPosHash(gridPos) % hashTable.length();
-#if defined(VOTE)
-  if(reuseProbe(h, pos, lod))
-    return;
+#if defined(VOTE) || defined(VOTE2)
   atomicMin(voteTable[h], threadId);
 #elif defined(ALLOC)
   if(voteTable[h] != threadId)
@@ -88,39 +107,127 @@ void processProbe(ivec3 gridPos, vec3 pos, int lod, vec3 pixelPos, vec3 pixelNor
 #endif
   }
 
-void main() {
-  fragCoord  = ivec2(gl_GlobalInvocationID.xy);
-  screenSize = ivec2(textureSize(depth,0));
-  threadId   = fragCoord.x + fragCoord.y*screenSize.x;
+void mainClassify() {
+  const bool valid = all(lessThan(fragCoord, screenSize));
 
+  bool sky = false;
+  probeQuery pq;
+  if(valid)
+    sky = !probeQueryInitialize(pq);
+
+  if(gl_LocalInvocationIndex==0) {
+    pLow  = pq.pLow;
+    pHigh = pq.pHigh;
+    uTile = true;
+    }
+  barrier();
+
+  if(valid && (sky || pLow!=pq.pLow || pHigh!=pq.pHigh)) {
+    uTile = false;
+    }
+  barrier();
+
+  if(gl_LocalInvocationIndex!=0)
+    return;
+
+  const uint hint = uTile ? 1 : 0;
+  imageStore(screenTiles, ivec2(gl_WorkGroupID.xy), uvec4(0,0,0,hint));
+  }
+
+void implReuse() {
+  const bool  valid   = all(lessThan(fragCoord, screenSize));
+
+  const vec3  norm    = normalFetch(gbufNormal, fragCoord);
+  const float z       = texelFetch(depth,fragCoord,0).x;
+  const bool  sky     = (z>=SKY_DEPTH);
+
+  const int   lod     = probeGridComputeLod();
+  const vec3  basePos = unprojectDepth(z);
+  const vec3  pos     = basePos + norm*probeCageBias;
+
+  probeQuery pq;
+  probeQueryInitialize(pq, pos, lod);
+
+#if !defined(TILE)
+  if(gl_LocalInvocationIndex==0) {
+    pLow  = pq.pLow;
+    pHigh = pq.pHigh;
+    }
+  barrier();
+
+  if(!sky && (pLow!=pq.pLow || pHigh!=pq.pHigh)) {
+    uTile = false;
+    }
+
+  barrier();
+  if(sky || !valid || (uTile && gl_LocalInvocationIndex!=0)) {
+    return;
+    }
+#endif
+
+  bool ret = true;
+  while(probeQueryProceed(pq)) {
+    vec3 wpos = probeQueryWorldPos(pq);
+    vec3 dir  = (wpos-basePos);
+    if(dot(dir,norm) < -0.1)
+      continue;
+
+    const ivec3 gPos = probeQueryGridPos(pq);
+    const uint  h    = probeGridPosHash(gPos) % hashTable.length();
+    if(!reuseProbe(h, wpos, lod))
+      ret = false;
+    }
+
+  if(ret)
+    rTile = true;
+  }
+
+void mainReuse() {
+  const uint tileV = imageLoad(screenTiles, ivec2(tileId)).a;
+#if defined(TILE)
+  if(tileV==0)
+    return;
+#else
+  if(tileV!=0)
+    return;
+#endif
+  uTile = true;
+  rTile = false;
+  barrier();
+
+  implReuse();
+  barrier();
+
+  if(rTile) {
+#if defined(TILE)
+    imageStore(screenTiles, ivec2(tileId), uvec4(0,0,1,2));
+#else
+    imageStore(screenTiles, ivec2(tileId), uvec4(1,0,0,3));
+#endif
+    }
+  }
+
+void mainAlloc() {
   const bool valid = all(lessThan(fragCoord, screenSize));
   if(!valid)
     return;
 
   vec3  norm = normalFetch(gbufNormal, fragCoord);
   float z    = texelFetch(depth,fragCoord,0).x;
-  if(z>=0.999995)
+  if(z>=SKY_DEPTH)
     return; // sky
+
+  const uint tile = imageLoad(screenTiles, ivec2(gl_WorkGroupID.xy)).a;
+  if(tile!=0)
+    return;
 
   const int  lod     = probeGridComputeLod();
   const vec3 basePos = unprojectDepth(z);
-  const vec3 pos     = basePos + norm*probeCageBias; //*(1<<lod);
+  const vec3 pos     = basePos + norm*probeCageBias;
 
-
+  bool ret = true;
   probeQuery pq;
   probeQueryInitialize(pq, pos, lod);
-  if(gl_LocalInvocationID==uvec3(0)) {
-    pLow  = pq.pLow;
-    pHigh = pq.pHigh;
-    }
-  barrier();
-
-#if 1
-  if(gl_LocalInvocationID!=uvec3(0) && pLow==pq.pLow && pHigh==pq.pHigh) {
-    return;
-    }
-#endif
-
   while(probeQueryProceed(pq)) {
     vec3 wpos = probeQueryWorldPos(pq);
     vec3 dir  = (wpos-basePos);
@@ -130,4 +237,26 @@ void main() {
     ivec3 gPos = probeQueryGridPos(pq);
     processProbe(gPos, wpos, lod, basePos, norm);
     }
+  }
+
+void main() {
+  screenSize = ivec2(textureSize(depth,0));
+#if defined(TILE)
+  tileId     = ivec2(gl_GlobalInvocationID.xy);
+  fragCoord  = ivec2(gl_GlobalInvocationID.xy) * ivec2(gl_WorkGroupSize.xy);
+#else
+  tileId     = ivec2(gl_WorkGroupID.xy);
+  fragCoord  = ivec2(gl_GlobalInvocationID.xy);
+#endif
+  threadId   = fragCoord.x + fragCoord.y*screenSize.x;
+
+#if defined(CLASSIFY)
+  mainClassify();
+#elif defined(REUSE)
+  mainReuse();
+#elif defined(TILE)
+  mainAlloc();
+#else
+  mainAlloc();
+#endif
   }

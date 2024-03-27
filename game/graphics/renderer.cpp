@@ -81,12 +81,11 @@ void Renderer::resetSwapchain() {
   auto smpN = Sampler::nearest();
   smpN.setClamping(ClampMode::ClampToEdge);
 
-  sceneLinear    = device.attachment(TextureFormat::R11G11B10UF,w,h);
-
-  if (settings.fxaaEnabled) {
+  if(settings.fxaaEnabled) {
     fxaa.sceneTonemapped = device.attachment(TextureFormat::RGBA8, w, h);
     }
- 
+
+  sceneLinear    = device.attachment(TextureFormat::R11G11B10UF,w,h);
   zbuffer        = device.zbuffer(zBufferFormat,w,h);
   if(w!=swapchain.w() || h!=swapchain.h())
     zbufferUi = device.zbuffer(zBufferFormat, swapchain.w(), swapchain.h()); else
@@ -114,7 +113,7 @@ void Renderer::resetSwapchain() {
     hiz.counter = device.image2d(TextureFormat::R32U, std::max(hw/4, 1u), std::max(hh/4, 1u), false);
     hiz.uboMip.set(0, hiz.counter, Sampler::nearest(), 0);
     } else {
-    hiz.counterBuf = device.ssbo(Tempest::Uninitialized, std::max(hw/4, 1u)*std::max(hh/4, 1u)*sizeof(uint32_t));
+    hiz.counterBuf = device.ssbo(nullptr, std::max(hw/4, 1u)*std::max(hh/4, 1u)*sizeof(uint32_t));
     hiz.uboMip.set(0, hiz.counterBuf);
     }
   const uint32_t maxBind = 9, mip = hiz.hiZ.mipCount();
@@ -344,6 +343,7 @@ void Renderer::prepareUniforms() {
     gi.uboProbes.set(5, gi.hashTable);
     gi.uboProbes.set(6, gi.probes);
     gi.uboProbes.set(7, gi.freeList);
+    gi.uboProbes.set(8, gi.screenTiles);
 
     gi.uboTrace.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     gi.uboTrace.set(1, gi.probesGBuffDiff);
@@ -650,6 +650,8 @@ void Renderer::initGiData() {
   gi.probeMakeHPso   = &Shaders::inst().probeMakeHash;
   gi.uboClear        = device.descriptors(*gi.probeClearPso);
 
+  gi.probeTilesPso   = &Shaders::inst().probeTiles;
+
   gi.probeVotePso    = &Shaders::inst().probeVote;
   gi.probeAllocPso   = &Shaders::inst().probeAlocation;
   gi.probePrunePso   = &Shaders::inst().probePrune;
@@ -678,7 +680,12 @@ void Renderer::initGiData() {
     gi.probesGBuffRayT    = device.image2d(TextureFormat::R16,   gi.atlasDim*16, gi.atlasDim*16);
     gi.probesLighting     = device.image2d(TextureFormat::R11G11B10UF, gi.atlasDim*3, gi.atlasDim*2);
     gi.probesLightingPrev = device.image2d(TextureFormat::R11G11B10UF, uint32_t(gi.probesLighting.w()), uint32_t(gi.probesLighting.h()));
-    gi.fisrtFrame          = true;
+
+    const auto sz = gi.probeAllocPso->workGroupSize();
+    gi.screenTiles        = device.image2d(TextureFormat::RGBA32U,
+                                    uint32_t((sceneDepth.w()+sz.x-1)/sz.x),
+                                    uint32_t((sceneDepth.h()+sz.y-1)/sz.y));
+    gi.fisrtFrame         = true;
     }
   }
 
@@ -830,6 +837,15 @@ void Renderer::prepareGi(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   cmd.dispatchThreads(maxHash);
 
   if(alloc) {
+    cmd.setUniforms(Shaders::inst().probeTiles, gi.uboProbes);
+    cmd.dispatchThreads(sceneDepth.size());
+
+    cmd.setUniforms(Shaders::inst().probeTilesReuse, gi.uboProbes);
+    cmd.dispatchThreads(gi.screenTiles.size());
+
+    cmd.setUniforms(Shaders::inst().probeReuse, gi.uboProbes);
+    cmd.dispatchThreads(sceneDepth.size());
+
     cmd.setUniforms(*gi.probeVotePso, gi.uboProbes);
     cmd.dispatchThreads(sceneDepth.size());
 
@@ -867,7 +883,7 @@ void Renderer::drawProbesDbg(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   if(!settings.giEnabled)
     return;
 
-  static bool enable = false;
+  static bool enable = true;
   if(!enable)
     return;
 
