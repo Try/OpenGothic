@@ -154,9 +154,8 @@ Shaders::Shaders() {
     probeClearHash  = computeShader("probe_clear_hash.comp.sprv");
     probeMakeHash   = computeShader("probe_make_hash.comp.sprv");
     probeTiles      = computeShader("probe_tiles.comp.sprv");
-    probeTilesReuse = computeShader("probe_tiles_reuse.comp.sprv");
+    probeVoteTile   = computeShader("probe_vote_tile.comp.sprv");
     probeVote       = computeShader("probe_vote.comp.sprv");
-    probeReuse      = computeShader("probe_reuse.comp.sprv");
     probePrune      = computeShader("probe_prune.comp.sprv");
     probeAlocation  = computeShader("probe_allocation.comp.sprv");
     probeTrace      = computeShader("probe_trace.comp.sprv");

@@ -682,7 +682,7 @@ void Renderer::initGiData() {
     gi.probesLightingPrev = device.image2d(TextureFormat::R11G11B10UF, uint32_t(gi.probesLighting.w()), uint32_t(gi.probesLighting.h()));
 
     const auto sz = gi.probeAllocPso->workGroupSize();
-    gi.screenTiles        = device.image2d(TextureFormat::RGBA32U,
+    gi.screenTiles        = device.image2d(TextureFormat::R32U,
                                     uint32_t((sceneDepth.w()+sz.x-1)/sz.x),
                                     uint32_t((sceneDepth.h()+sz.y-1)/sz.y));
     gi.fisrtFrame         = true;
@@ -840,11 +840,8 @@ void Renderer::prepareGi(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     cmd.setUniforms(Shaders::inst().probeTiles, gi.uboProbes);
     cmd.dispatchThreads(sceneDepth.size());
 
-    cmd.setUniforms(Shaders::inst().probeTilesReuse, gi.uboProbes);
+    cmd.setUniforms(Shaders::inst().probeVoteTile, gi.uboProbes);
     cmd.dispatchThreads(gi.screenTiles.size());
-
-    cmd.setUniforms(Shaders::inst().probeReuse, gi.uboProbes);
-    cmd.dispatchThreads(sceneDepth.size());
 
     cmd.setUniforms(*gi.probeVotePso, gi.uboProbes);
     cmd.dispatchThreads(sceneDepth.size());
