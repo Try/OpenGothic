@@ -101,7 +101,7 @@ float readZ(in vec2 posf) {
   }
 
 float sampleRadius(uint i, uint maxSmp) {
-  return 0.5+float(i)/float(2*maxSmp);
+  return 0.5+float(i)/float(maxSmp);
   }
 
 vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, uint step) {
@@ -130,19 +130,12 @@ vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, 
       vec3  pos2 = unproject(at2);
       vec3  dp   = (pos2.xyz-pos0);
       float lenQ = dot(dp,dp);
-      distQ = min(lenQ/(sphereLen*sphereLen),1);
+      distQ = (lenQ/(sphereLen*sphereLen));
       } else {
-      distQ  = (r*r);
+      distQ = 1;//(r*r);
       }
 
-    const float factor       = distQ;
-    const float smoothFactor = max(1.0 - factor * factor, 0.0);
-
-    const float distW = (1.0/max(factor, u)) * (smoothFactor*smoothFactor);
-
-    // distW = 1.0/max(0.2,distW);
-    // distW = pow(max(1.0 - distW, 0), 2);
-
+    const float distW = (u*r)/max(u*u, distQ);
     if(isHit)
       occlusion += distW;
     weightAll += distW;
@@ -209,7 +202,7 @@ void main() {
     tangent[2] = norm;
     }
 
-  float occlusion = -1, prev= -1;
+  float occlusion = -1, prev = -1;
   vec2  occ       = vec2(0,0.00001);
 
   const float f0 = M_PI*2.0*interleavedGradientNoise(fragCoord);
