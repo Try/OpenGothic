@@ -174,7 +174,7 @@ void main() {
   const uint workIndex = gl_WorkGroupID.x;
 #endif
 
-  const uvec4 task       = payload[workIndex + push.firstMeshlet];
+  const uvec4 task     = payload[workIndex + push.firstMeshlet];
 
 #if defined(GL_VERTEX_SHADER)
   vertexShader(task);

@@ -103,6 +103,7 @@ void CsCamera::onTrigger(const TriggerEvent& evt) {
     return;
 
   if(auto cs = world.currentCs()) {
+    // NOTE: Halls of Idorath has confusing camera trigger overlaps, this code is approximation of how it is in vanilla
     if(cs->time!=0)
       cs->onUntrigger(evt); else
       return;
