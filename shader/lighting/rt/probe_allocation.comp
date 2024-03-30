@@ -144,11 +144,11 @@ void mainAlloc() {
   if(!valid)
     return;
 
-  const uint tile = imageLoad(screenTiles, ivec2(gl_WorkGroupID.xy)).r;
-#if defined(TILE)
+  const uint tile = imageLoad(screenTiles, tileId).r;
+#if defined(TILE) && defined(VOTE)
   if(tile==0)
     return;
-#else
+#elif defined(VOTE)
   if(tile!=0)
     return;
 #endif
@@ -189,10 +189,6 @@ void main() {
 
 #if defined(CLASSIFY)
   mainClassify();
-#elif defined(REUSE)
-  mainReuse();
-#elif defined(TILE)
-  mainAlloc();
 #else
   mainAlloc();
 #endif
