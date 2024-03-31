@@ -60,7 +60,7 @@ function(add_shader OUTPUT SOURCE)
     OUTPUT     ${OUTPUT_FILE}
     DEPENDS    ${SOURCE_FILE} ${GLSL_SOURCES}
     COMMAND    ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/sprv/"
-    COMMAND    ${GLSLANGVALIDATOR} -V ${VARS} -I"${CMAKE_SOURCE_DIR}/shader" "${SOURCE_FILE}" -o ${OUTPUT_FILE}
+    COMMAND    ${GLSLANGVALIDATOR} -V -g ${VARS} -I"${CMAKE_SOURCE_DIR}/shader" "${SOURCE_FILE}" -o ${OUTPUT_FILE}
     )
 endfunction(add_shader)
 
