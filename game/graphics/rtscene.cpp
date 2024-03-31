@@ -39,7 +39,7 @@ void RtScene::addInstance(const Matrix4x4& pos, const AccelerationStructure& bla
                           Category cat) {
   if(cat!=Landscape && cat!=Static)
     return; // not supported
-  if(mat.alpha!=Material::Solid && mat.alpha!=Material::AlphaTest)
+  if(mat.alpha!=Material::Solid && mat.alpha!=Material::AlphaTest && mat.alpha!=Material::Water)
     return; // not supported
 
   const uint32_t bucketId       = aquireBucketId(mat,mesh);
@@ -50,15 +50,24 @@ void RtScene::addInstance(const Matrix4x4& pos, const AccelerationStructure& bla
   desc.firstPrimitive = firstPrimitive & 0x00FFFFFF; // 24 bit for primmitive + 8 for utility
   if(mat.alpha==Material::Solid)
     desc.bits |= 0x1;
+  if(mat.alpha==Material::Water)
+    desc.bits |= 0x2;
 
   RtInstance ix;
   ix.mat  = pos;
   ix.id   = uint32_t(build.rtDesc.size());
   ix.blas = &blas;
-  if(mat.alpha!=Material::Solid)
-    ix.flags = RtInstanceFlags::NonOpaque; else
+  if(mat.alpha==Material::Water)
+    ix.flags = RtInstanceFlags::Opaque | RtInstanceFlags::CullDisable;
+  else if(mat.alpha!=Material::Solid)
+    ix.flags = RtInstanceFlags::NonOpaque;
+  else
     ix.flags = RtInstanceFlags::Opaque | RtInstanceFlags::CullDisable;
   ix.flags = ix.flags | RtInstanceFlags::CullFlip;
+
+  ix.mask = 0x1;
+  if(mat.alpha==Material::Water)
+    ix.mask |= 0x2;
 
   if(mat.alpha==Material::Solid && (cat==Landscape /*|| cat==Static*/)) {
     build.staticOpaque.geom  .push_back({mesh.vbo, mesh.ibo, firstIndex, iboLength});
