@@ -28,6 +28,7 @@ const float probeGridStep    = 25;
 const float probeCageBias    = 2.5;
 const float probeBadHitT     = 25/5.0;
 const float probeRayDistance = 200*100; // Lumen rt-probe uses 200-meters range
+const float SKY_DEPTH        = 0.999995;
 
 ivec2 gbufferCoord(const uint probeId, const uint sampleId) {
   uint x = (probeId     ) & 0xFF;
@@ -148,6 +149,11 @@ bool probeQueryProceed(inout probeQuery q) {
   q.px      = px;
   q.iterator++;
   return q.iterator<=8;
+  }
+
+bool probeQueryProceed(inout probeQuery q, int id) {
+  q.iterator = id;
+  return probeQueryProceed(q);
   }
 
 vec3 probeQueryWorldPos(in probeQuery q) {

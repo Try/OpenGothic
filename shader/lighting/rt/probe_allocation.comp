@@ -88,39 +88,7 @@ void processProbe(ivec3 gridPos, vec3 pos, int lod, vec3 pixelPos, vec3 pixelNor
 #endif
   }
 
-void main() {
-  fragCoord  = ivec2(gl_GlobalInvocationID.xy);
-  screenSize = ivec2(textureSize(depth,0));
-  threadId   = fragCoord.x + fragCoord.y*screenSize.x;
-
-  const bool valid = all(lessThan(fragCoord, screenSize));
-  if(!valid)
-    return;
-
-  vec3  norm = normalFetch(gbufNormal, fragCoord);
-  float z    = texelFetch(depth,fragCoord,0).x;
-  if(z>=0.999995)
-    return; // sky
-
-  const int  lod     = probeGridComputeLod();
-  const vec3 basePos = unprojectDepth(z);
-  const vec3 pos     = basePos + norm*probeCageBias; //*(1<<lod);
-
-
-  probeQuery pq;
-  probeQueryInitialize(pq, pos, lod);
-  if(gl_LocalInvocationID==uvec3(0)) {
-    pLow  = pq.pLow;
-    pHigh = pq.pHigh;
-    }
-  barrier();
-
-#if 1
-  if(gl_LocalInvocationID!=uvec3(0) && pLow==pq.pLow && pHigh==pq.pHigh) {
-    return;
-    }
-#endif
-
+void probeLoop(in probeQuery pq, const vec3 basePos, const vec3 norm, const int lod) {
   while(probeQueryProceed(pq)) {
     vec3 wpos = probeQueryWorldPos(pq);
     vec3 dir  = (wpos-basePos);
@@ -130,4 +98,45 @@ void main() {
     ivec3 gPos = probeQueryGridPos(pq);
     processProbe(gPos, wpos, lod, basePos, norm);
     }
+  }
+
+void main() {
+  fragCoord  = ivec2(gl_GlobalInvocationID.xy);
+  screenSize = ivec2(textureSize(depth,0));
+
+  const bool valid = all(lessThan(fragCoord, screenSize));
+  fragCoord = min(fragCoord, screenSize-1);
+  threadId  = fragCoord.x + fragCoord.y*screenSize.x;
+
+  vec3        norm = normalFetch(gbufNormal, fragCoord);
+  const float z    = texelFetch(depth,fragCoord,0).x;
+  const bool  sky  = (z>=SKY_DEPTH);
+
+  const int  lod     = probeGridComputeLod();
+  const vec3 basePos = unprojectDepth(z);
+  const vec3 pos     = basePos + norm*probeCageBias;
+
+  probeQuery pq;
+  probeQueryInitialize(pq, pos, lod);
+
+  if(gl_LocalInvocationIndex==0) {
+    pLow  = pq.pLow;
+    pHigh = pq.pHigh;
+    }
+  barrier();
+
+#if 1
+  if(pLow==pq.pLow && pHigh==pq.pHigh) {
+    if(gl_LocalInvocationIndex!=0)
+      return;
+    norm = vec3(0); // full cage
+    }
+#endif
+
+  if(!valid)
+    return;
+  if(sky)
+    return; // sky
+
+  probeLoop(pq, basePos, norm, lod);
   }
