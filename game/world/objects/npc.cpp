@@ -4137,6 +4137,11 @@ bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
   const auto mid = oth.bounds().midTr;
   if(canSeeNpc(mid.x,mid.y,mid.z,freeLos))
     return true;
+  const auto ppos = oth.physic.position();
+  if(oth.isDown() && canSeeNpc(ppos.x,ppos.y,ppos.z,freeLos)) {
+    // mid of dead npc may endedup inside a wall; extra check for physical center
+    return true;
+    }
   if(oth.visual.visualSkeleton()==nullptr)
     return false;
   if(oth.visual.visualSkeleton()->BIP01_HEAD==size_t(-1))
