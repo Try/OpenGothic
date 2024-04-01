@@ -19,6 +19,7 @@ CsCamera::CsCamera(Vob* parent, World& world, const zenkit::VCutsceneCamera& cam
   durationF     = cam.total_duration;
   duration      = uint64_t(cam.total_duration * 1000.f);
   delay         = uint64_t(cam.auto_untrigger_last_delay * 1000.f);
+  autoUntrigger = cam.auto_untrigger_last;
   playerMovable = cam.auto_player_movable;
 
   for(auto& f : cam.trajectory_frames) {
@@ -144,7 +145,7 @@ void CsCamera::onUntrigger(const TriggerEvent& evt) {
 void CsCamera::tick(uint64_t dt) {
   time += dt;
 
-  if(time>duration+delay) {
+  if(time>duration+delay && (autoUntrigger || vobName=="TIMEDEMO")) {
     TriggerEvent e("","",TriggerEvent::T_Untrigger);
     onUntrigger(e);
     return;

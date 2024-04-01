@@ -32,7 +32,7 @@ AbstractTrigger::AbstractTrigger(Vob* parent, World &world, const zenkit::Virtua
     auto& trigger = reinterpret_cast<const zenkit::VTrigger&>(data);
     fireDelay          = uint64_t(trigger.fire_delay_sec*1000.f);
     retriggerDelay     = uint64_t(trigger.retrigger_delay_sec*1000.f);
-    maxActivationCount = uint32_t(trigger.max_activation_count);
+    maxActivationCount = (data.type==VirtualObjectType::zCMover && trigger.max_activation_count!=0) ? uint32_t(-1) : uint32_t(trigger.max_activation_count);
     target             = trigger.target;
     disabled           = !trigger.start_enabled;
     sendUntrigger      = trigger.send_untrigger;
