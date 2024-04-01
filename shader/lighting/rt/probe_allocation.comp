@@ -23,6 +23,7 @@ layout(binding = 6, std430) buffer          Pbo  { ProbesHeader probeHeader; Pro
 layout(binding = 7, std430) buffer          Fbo0 { int cursor; uint list[]; } freeList;
 
 shared ivec3 pLow, pHigh;
+shared uint  tidSh;
 
 ivec2 screenSize, fragCoord;
 uint  threadId;
@@ -101,6 +102,9 @@ void probeLoop(in probeQuery pq, const vec3 basePos, const vec3 norm, const int 
   }
 
 void main() {
+  tidSh = 0xFFFFFFFF;
+  barrier();
+
   fragCoord  = ivec2(gl_GlobalInvocationID.xy);
   screenSize = ivec2(textureSize(depth,0));
 
@@ -119,20 +123,21 @@ void main() {
   probeQuery pq;
   probeQueryInitialize(pq, pos, lod);
 
-  if(gl_LocalInvocationIndex==0) {
+  if(valid)
+    atomicMin(tidSh, gl_LocalInvocationIndex);
+  barrier();
+
+  if(gl_LocalInvocationIndex==tidSh) {
     pLow  = pq.pLow;
     pHigh = pq.pHigh;
     }
   barrier();
 
-#if 1
   if(pLow==pq.pLow && pHigh==pq.pHigh) {
-    if(gl_LocalInvocationIndex!=0)
+    if(gl_LocalInvocationIndex!=tidSh)
       return;
     norm = vec3(0); // full cage
     }
-#endif
-
   if(!valid)
     return;
   if(sky)
