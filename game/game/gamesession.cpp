@@ -148,6 +148,10 @@ GameSession::GameSession(Serialize &fin) {
 
   Gothic::inst().setLoadingProgress(70);
 
+  if(fin.setEntry("game/perc"))
+    vm->loadPerc(fin); else
+    initPerceptions();
+
   fin.setEntry("game/quests");
   vm->loadQuests(fin);
 
@@ -206,6 +210,9 @@ void GameSession::save(Serialize &fout, std::string_view name, const Pixmap& scr
 
   wrld->save(fout);
   Gothic::inst().setLoadingProgress(60);
+
+  fout.setEntry("game/perc");
+  vm->savePerc(fout);
 
   fout.setEntry("game/quests");
   vm->saveQuests(fout);

@@ -3,7 +3,6 @@
 #include <Tempest/Log>
 #include <Tempest/SoundEffect>
 
-#include <fstream>
 #include <cctype>
 
 #include "game/definitions/spelldefinitions.h"
@@ -58,6 +57,20 @@ bool GameScript::GlobalOutput::printScr(Npc& npc, int time, std::string_view msg
 
 bool GameScript::GlobalOutput::isFinished() {
   return true;
+  }
+
+GameScript::PerDist::PerDist() {
+  for(auto& i:range)
+    i = -1;
+  }
+
+int GameScript::PerDist::at(PercType perc, int r) const {
+  if(perc>=PERC_Count)
+    return r;
+  auto rr = range[perc];
+  if(rr>0)
+    return rr;
+  return r;
   }
 
 
@@ -275,6 +288,8 @@ void GameScript::initCommon() {
   bindExternal("equipitem",                      &GameScript::equipitem);
   bindExternal("createinvitem",                  &GameScript::createinvitem);
   bindExternal("createinvitems",                 &GameScript::createinvitems);
+
+  bindExternal("perc_setrange",                  &GameScript::perc_setrange);
 
   bindExternal("info_addchoice",                 &GameScript::info_addchoice);
   bindExternal("info_clearchoices",              &GameScript::info_clearchoices);
@@ -611,6 +626,25 @@ void GameScript::loadVar(Serialize &fin) {
         break;
       }
     }
+  }
+
+void GameScript::savePerc(Serialize& fout) {
+  fout.write(uint32_t(PERC_Count));
+  for(size_t i=0; i<PERC_Count; ++i) {
+    fout.write(perceptionRanges.range[i]);
+    }
+  }
+
+void GameScript::loadPerc(Serialize& fin) {
+  uint32_t count = 0;
+  fin.read(count);
+  if(count!=PERC_Count) {
+    if(hasSymbolName("initPerceptions"))
+      vm.call_function("initPerceptions");
+    return;
+    }
+  for(size_t i=0; i<PERC_Count; ++i)
+    fin.read(perceptionRanges.range[i]);
   }
 
 void GameScript::resetVarPointers() {
@@ -3046,6 +3080,12 @@ void GameScript::createinvitems(std::shared_ptr<zenkit::INpc> npcRef, int itemIn
     Item* itm = self->addItem(uint32_t(itemInstance),size_t(amount));
     storeItem(itm);
     }
+  }
+
+void GameScript::perc_setrange(int perc, int dist) {
+  if(perc<0 || perc>=PERC_Count)
+    return;
+  perceptionRanges.range[perc] = dist;
   }
 
 int GameScript::hlp_getinstanceid(std::shared_ptr<zenkit::DaedalusInstance> instance) {

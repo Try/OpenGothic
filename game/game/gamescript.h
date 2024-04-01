@@ -55,6 +55,12 @@ class GameScript final {
       zenkit::IInfo*   handle   = nullptr;
       };
 
+    struct PerDist {
+      PerDist();
+      int32_t range[PERC_Count] = {};
+      int     at(PercType perc, int r) const;
+      };
+
     bool         hasSymbolName(std::string_view fn);
 
     void         initializeInstanceNpc(const std::shared_ptr<zenkit::INpc>& npc, size_t instance);
@@ -66,6 +72,8 @@ class GameScript final {
     void         loadQuests(Serialize& fin);
     void         saveVar(Serialize& fout);
     void         loadVar(Serialize& fin);
+    void         savePerc(Serialize& fout);
+    void         loadPerc(Serialize& fin);
 
     inline auto& getVm() { return vm; }
     auto         questLog() const -> const QuestLog&;
@@ -134,6 +142,8 @@ class GameScript final {
     int  playerHotKeyScreenMap(Npc& pl);
     void playerHotLamePotion(Npc& pl);
     void playerHotLameHeal(Npc& pl);
+
+    const PerDist& percRanges() const { return perceptionRanges; }
 
     bool isDead       (const Npc &pl);
     bool isUnconscious(const Npc &pl);
@@ -394,9 +404,9 @@ class GameScript final {
     void ai_gotoitem         (std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::IItem> itmRef);
     void ai_pointat          (std::shared_ptr<zenkit::INpc> npcRef, std::string_view waypoint);
     void ai_pointatnpc       (std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::INpc> otherRef);
-    int ai_printscreen       (std::string_view msg, int posx, int posy, std::string_view font, int timesec);
+    int  ai_printscreen      (std::string_view msg, int posx, int posy, std::string_view font, int timesec);
 
-    int mob_hasitems         (std::string_view tag, int item);
+    int  mob_hasitems        (std::string_view tag, int item);
 
     void ta_min              (std::shared_ptr<zenkit::INpc> npcRef, int start_h, int start_m, int stop_h, int stop_m, int action, std::string_view waypoint);
 
@@ -407,6 +417,8 @@ class GameScript final {
     void equipitem           (std::shared_ptr<zenkit::INpc> npcRef, int cls);
     void createinvitem       (std::shared_ptr<zenkit::INpc> npcRef, int itemInstance);
     void createinvitems      (std::shared_ptr<zenkit::INpc> npcRef, int itemInstance, int amount);
+
+    void perc_setrange       (int perc, int dist);
 
     void info_addchoice      (int infoInstance, std::string_view text, int func);
     void info_clearchoices   (int infoInstance);
@@ -457,6 +469,8 @@ class GameScript final {
     size_t                                                      gilCount=0;
     std::vector<int32_t>                                        gilAttitudes;
     int                                                         aiOutOrderId=0;
+
+    PerDist                                                     perceptionRanges;
 
     size_t                                                      ZS_Dead=0;
     size_t                                                      ZS_Unconscious=0;

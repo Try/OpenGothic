@@ -3809,8 +3809,9 @@ bool Npc::perceptionProcess(Npc &pl) {
   }
 
 bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, PercType perc) {
-  float r = float(hnpc->senses_range);
+  float r = float(world().script().percRanges().at(perc, hnpc->senses_range));
   r = r*r;
+
   if(quadDist>r)
     return false;
 

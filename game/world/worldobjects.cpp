@@ -209,7 +209,7 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
     return;
 
   npcNear.clear();
-  const int   PERC_DIST_INTERMEDIAT = 1000;
+  //const int   PERC_DIST_INTERMEDIAT = 1000;
   const float nearDist              = 3000*3000;
   const float farDist               = 6000*6000;
 
@@ -247,9 +247,10 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
         if(r.self==&i)
           continue;
 
-        const float l     = i.qDistTo(r.pos.x,r.pos.y,r.pos.z);
-        const float range = float(std::min(i.handle().senses_range,PERC_DIST_INTERMEDIAT));
-        if(l>range*range)
+        const float distance = i.qDistTo(r.pos.x,r.pos.y,r.pos.z);
+        const float range    = float(owner.script().percRanges().at(PercType(r.what), i.handle().senses_range));
+
+        if(distance > range*range)
           continue;
 
         if(i.isDown() || i.isPlayer() || !i.isAiQueueEmpty())
@@ -273,7 +274,7 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
 
         if(r.item!=size_t(-1) && r.other!=nullptr)
           owner.script().setInstanceItem(*r.other,r.item);
-        i.perceptionProcess(*r.other,r.victum,l,PercType(r.what));
+        i.perceptionProcess(*r.other,r.victum,distance,PercType(r.what));
         }
       }
     }
