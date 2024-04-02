@@ -203,6 +203,8 @@ void MainWindow::paintEvent(PaintEvent& event) {
       auto vp = camera.viewProj();
       p.setBrush(Color(1.0));
 
+      drawMsg(p);
+
       auto focus = world->validateFocus(player.focus());
       paintFocus(p,focus,vp);
 
@@ -560,8 +562,6 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
   if(iy>h())
     iy = h();
   fnt.drawText(p,ix,iy,focus.displayName());
-
-  drawMsg(p);
 
   if(focus.npc!=nullptr && !focus.npc->isDead()) {
     float hp = float(focus.npc->attribute(ATR_HITPOINTS))/float(focus.npc->attribute(ATR_HITPOINTSMAX));
