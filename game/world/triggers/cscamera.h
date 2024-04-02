@@ -38,6 +38,7 @@ class CsCamera : public AbstractTrigger {
     bool     active        = false;
     bool     godMode       = false;
     bool     playerMovable = false;
+    bool     autoUntrigger = false;
     float    durationF     = 0;
     uint64_t duration      = 0;
     uint64_t delay         = 0;

@@ -19,6 +19,7 @@ CsCamera::CsCamera(Vob* parent, World& world, const zenkit::VCutsceneCamera& cam
   durationF     = cam.total_duration;
   duration      = uint64_t(cam.total_duration * 1000.f);
   delay         = uint64_t(cam.auto_untrigger_last_delay * 1000.f);
+  autoUntrigger = cam.auto_untrigger_last;
   playerMovable = cam.auto_player_movable;
 
   for(auto& f : cam.trajectory_frames) {
@@ -102,12 +103,8 @@ void CsCamera::onTrigger(const TriggerEvent& evt) {
   if(active || posSpline.size()==0)
     return;
 
-  if(auto cs = world.currentCs()) {
-    // NOTE: Halls of Idorath has confusing camera trigger overlaps, this code is approximation of how it is in vanilla
-    if(cs->time!=0)
-      cs->onUntrigger(evt); else
-      return;
-    }
+  if(auto cs = world.currentCs())
+    cs->onUntrigger(evt);
 
   auto& camera = world.gameSession().camera();
   if(!camera.isCutscene()) {
@@ -144,7 +141,7 @@ void CsCamera::onUntrigger(const TriggerEvent& evt) {
 void CsCamera::tick(uint64_t dt) {
   time += dt;
 
-  if(time>duration+delay) {
+  if(time>duration+delay && (autoUntrigger || vobName=="TIMEDEMO")) {
     TriggerEvent e("","",TriggerEvent::T_Untrigger);
     onUntrigger(e);
     return;

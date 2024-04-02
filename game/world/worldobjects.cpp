@@ -416,6 +416,7 @@ void WorldObjects::tickTriggers(uint64_t /*dt*/) {
 
 void WorldObjects::execDelayedEvents() {
   auto def = std::move(triggersDef);
+  triggersDef.clear();
   for(auto i:def) {
     i->processDelayedEvents();
     if(i->hasDelayedEvents())
