@@ -146,7 +146,7 @@ DamageCalculator::Val DamageCalculator::swordDamage(Npc& nsrc, Npc& nother) {
   if(Gothic::inst().version().game==2) {
     if(nsrc.isMonster() && tal==TALENT_UNKNOWN) {
       // regular monsters always do critical damage
-      critChance = 0;
+      critChance = -1;
       }
 
     bool invincible = true;
