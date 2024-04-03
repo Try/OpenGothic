@@ -89,10 +89,11 @@ void AbstractTrigger::implProcessEvent(const TriggerEvent& evt) {
     case TriggerEvent::T_Startup:
     case TriggerEvent::T_StartupFirstTime:
     case TriggerEvent::T_Trigger:
-      if(!reactToOnTrigger)
-        return;
-      [[fallthrough]];
     case TriggerEvent::T_Touch:
+      if(!reactToOnTouch && evt.type==TriggerEvent::T_Touch)
+        return;
+      if(!reactToOnTrigger && evt.type==TriggerEvent::T_Trigger)
+        return;
       if(disabled)
         return;
       if(emitCount>=maxActivationCount)

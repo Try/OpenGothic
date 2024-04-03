@@ -90,8 +90,8 @@ class AbstractTrigger : public Vob {
     uint64_t                     fireDelay          = 0;
     uint64_t                     retriggerDelay     = 0;
     uint32_t                     maxActivationCount = uint32_t(-1);
-    bool                         reactToOnTrigger   = true;
     bool                         sendUntrigger      = true;
+    bool                         reactToOnTrigger   = true;
     bool                         reactToOnTouch     = true;
     bool                         respondToNpc       = true;
     bool                         respondToPlayer    = true;
