@@ -86,11 +86,14 @@ void AbstractTrigger::processEvent(const TriggerEvent& evt) {
 void AbstractTrigger::implProcessEvent(const TriggerEvent& evt) {
   emitTimeLast = world.tickCount();
   switch(evt.type) {
-    case TriggerEvent::T_Activate:
     case TriggerEvent::T_Startup:
     case TriggerEvent::T_StartupFirstTime:
     case TriggerEvent::T_Trigger:
-      if(disabled || !reactToOnTrigger)
+      if(!reactToOnTrigger)
+        return;
+      [[fallthrough]];
+    case TriggerEvent::T_Touch:
+      if(disabled)
         return;
       if(emitCount>=maxActivationCount)
         return;
@@ -140,7 +143,7 @@ void AbstractTrigger::onIntersect(Npc& n) {
 
   if(boxNpc.intersections().size()==1) {
     // enableTicks();
-    TriggerEvent e("","",TriggerEvent::T_Activate);
+    TriggerEvent e("","",TriggerEvent::T_Touch);
     processEvent(e);
     }
   }
@@ -212,7 +215,7 @@ void AbstractTrigger::Cb::onCollide(DynamicWorld::BulletBody& b) {
     return;
   if(b.isSpell())
     return;
-  TriggerEvent ex(tg->vobName,tg->vobName,tg->world.tickCount(),TriggerEvent::T_Activate);
+  TriggerEvent ex(tg->vobName,tg->vobName,tg->world.tickCount(),TriggerEvent::T_Touch);
   tg->processEvent(ex);
   }
 

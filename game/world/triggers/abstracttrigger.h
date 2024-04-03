@@ -19,7 +19,7 @@ class TriggerEvent final {
       T_Enable,
       T_Disable,
       T_ToggleEnable,
-      T_Activate,
+      T_Touch,
       T_StartupFirstTime,
       T_Startup,
       T_Move,

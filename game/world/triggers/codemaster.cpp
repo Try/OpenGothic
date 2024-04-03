@@ -43,7 +43,7 @@ void CodeMaster::onTrigger(const TriggerEvent &evt) {
       }
 
   zeroState();
-  TriggerEvent e(target,vobName,TriggerEvent::T_Activate);
+  TriggerEvent e(target,vobName,TriggerEvent::T_Trigger);
   world.triggerEvent(e);
   }
 
@@ -59,7 +59,7 @@ void CodeMaster::load(Serialize& fin) {
 
 void CodeMaster::onFailure() {
   if(!failureTarget.empty()) {
-    TriggerEvent e(failureTarget,vobName,TriggerEvent::T_Activate);
+    TriggerEvent e(failureTarget,vobName,TriggerEvent::T_Trigger);
     world.triggerEvent(e);
     }
   }
