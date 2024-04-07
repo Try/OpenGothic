@@ -266,10 +266,10 @@ void Renderer::prepareUniforms() {
     }
 
   ssao.uboSsao.set(0, ssao.ssaoBuf);
-  ssao.uboSsao.set(1, gbufDiffuse, smpN);
-  ssao.uboSsao.set(2, gbufNormal,  smpN);
-  ssao.uboSsao.set(3, zbuffer,     smpN);
-  ssao.uboSsao.set(4, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  ssao.uboSsao.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  ssao.uboSsao.set(2, gbufDiffuse, smpN);
+  ssao.uboSsao.set(3, gbufNormal,  smpN);
+  ssao.uboSsao.set(4, zbuffer,     smpN);
 
   ssao.uboBlur.set(0, ssao.ssaoBlur);
   ssao.uboBlur.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
@@ -374,7 +374,7 @@ void Renderer::prepareUniforms() {
     gi.uboCompose.set(2, gbufDiffuse,   Sampler::nearest());
     gi.uboCompose.set(3, gbufNormal,    Sampler::nearest());
     gi.uboCompose.set(4, zbuffer,       Sampler::nearest());
-    gi.uboCompose.set(5, ssao.ssaoBlur, smpN);
+    gi.uboCompose.set(5, ssao.ssaoBlur, Sampler::nearest());
     gi.uboCompose.set(6, gi.hashTable);
     gi.uboCompose.set(7, gi.probes);
     }
@@ -548,6 +548,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   wview->drawTranslucent(cmd,fId);
 
   drawProbesDbg(cmd, fId);
+  drawProbesHitDbg(cmd, fId);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   drawReflections(cmd,fId);
@@ -593,7 +594,7 @@ void Renderer::drawTonemapping(Encoder<CommandBuffer>& cmd) {
   p.contrast   = std::max(1.5f - settings.zVidContrast, 0.01f);
   p.gamma      = p.gamma/std::max(2.0f*settings.zVidGamma,  0.01f);
 
-  static float mul = 1.f;
+  static float mul = 0.f;
   if(mul>0)
     p.mul = mul;
 
@@ -888,6 +889,34 @@ void Renderer::drawProbesDbg(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   cmd.setDebugMarker("GI-dbg");
   cmd.setUniforms(pso, gi.uboDbg);
   cmd.draw(nullptr, 0, 36, 0, gi.maxProbes);
+  }
+
+void Renderer::drawProbesHitDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  if(!settings.giEnabled)
+    return;
+
+  static bool enable = false;
+  if(!enable)
+    return;
+
+  auto& device = Resources::device();
+  auto& pso    = Shaders::inst().probeHitDbg;
+
+  if(auto wview=Gothic::inst().worldView()) {
+    if(gi.uboDbg.isEmpty()) {
+      gi.uboDbg = device.descriptors(pso);
+      gi.uboDbg.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+      gi.uboDbg.set(1, gi.probesLighting);
+      gi.uboDbg.set(2, gi.probesGBuffDiff);
+      gi.uboDbg.set(3, gi.probesGBuffRayT);
+      gi.uboDbg.set(4, gi.probes);
+      }
+    }
+
+  cmd.setDebugMarker("GI-dbg");
+  cmd.setUniforms(pso, gi.uboDbg);
+  cmd.draw(nullptr, 0, 36, 0, gi.maxProbes*256);
+  //cmd.draw(nullptr, 0, 36, 0, 1024);
   }
 
 void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {

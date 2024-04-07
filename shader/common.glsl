@@ -169,6 +169,15 @@ vec3 sampleHemisphereCos(uint i, uint numSamples, float offsetAng) {
   return vec3(cos(a) * u1p, xi.x, sin(a) * u1p);
   }
 
+vec3 sampleSphere(uint i, uint numSamples, float offsetAng) {
+  // fibonacci_lattice
+  const float PHI = 0.5*(sqrt(5.0) + 1.0);
+  vec2 xy = vec2((float(i)+0.5)/float(numSamples), mod(float(i)/PHI, 1.0));
+
+  vec2 pt = vec2(2.0*M_PI*xy.y, acos(2.0*xy.x - 1.) - M_PI*0.5);
+  return vec3(cos(pt.x)*cos(pt.y), sin(pt.x)*cos(pt.y), sin(pt.y));
+  }
+
 vec3 projectiveUnproject(in mat4 projectiveInv, in vec3 pos) {
   vec4 o;
   o.x = pos.x * projectiveInv[0][0];

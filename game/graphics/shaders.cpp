@@ -149,6 +149,12 @@ Shaders::Shaders() {
     auto fs = device.shader(sh.data,sh.len);
     probeDbg = device.pipeline(Triangles,state,vs,fs);
 
+    sh = GothicShader::get("probe_hit_dbg.vert.sprv");
+    vs = device.shader(sh.data,sh.len);
+    sh = GothicShader::get("probe_hit_dbg.frag.sprv");
+    fs = device.shader(sh.data,sh.len);
+    probeHitDbg = device.pipeline(Triangles,state,vs,fs);
+
     probeInit      = computeShader("probe_init.comp.sprv");
     probeClear     = computeShader("probe_clear.comp.sprv");
     probeClearHash = computeShader("probe_clear_hash.comp.sprv");

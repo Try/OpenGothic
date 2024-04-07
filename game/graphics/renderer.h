@@ -61,6 +61,7 @@ class Renderer final {
     void drawUnderwater   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
     void drawProbesDbg    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void drawProbesHitDbg (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void stashSceneAux    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
     void initGiData();
@@ -100,13 +101,13 @@ class Renderer final {
     struct Shadow {
       Tempest::RenderPipeline* directLightPso = nullptr;
       Tempest::DescriptorSet   ubo;
-    } shadow;
+      } shadow;
 
     struct Water {
       Tempest::RenderPipeline* reflectionsPso = nullptr;
       Tempest::DescriptorSet   ubo;
       Tempest::DescriptorSet   underUbo;
-    } water;
+      } water;
 
     struct SSAO {
       Tempest::TextureFormat    aoFormat = Tempest::TextureFormat::R8;
@@ -120,18 +121,18 @@ class Renderer final {
 
       Tempest::RenderPipeline*  ambientLightPso = nullptr;
       Tempest::DescriptorSet    uboCompose;
-    } ssao;
+      } ssao;
 
     struct Tonemapping {
       Tempest::RenderPipeline* pso = nullptr;
       Tempest::DescriptorSet   uboTone;
-    } tonemapping;
+      } tonemapping;
 
     struct Fxaa {
       Tempest::RenderPipeline* pso = nullptr;
       Tempest::DescriptorSet   ubo;
       Tempest::Attachment      sceneTonemapped;
-    } fxaa;
+      } fxaa;
 
     struct {
       Tempest::StorageImage     hiZ;
@@ -148,12 +149,12 @@ class Renderer final {
       Tempest::StorageImage     hiZSm1;
       Tempest::DescriptorSet    uboPotSm1;
       Tempest::DescriptorSet    uboMipSm1;
-    } hiz;
+      } hiz;
 
     struct {
       const uint32_t            atlasDim  = 256; // sqrt(maxProbes)
       const uint32_t            maxProbes = atlasDim*atlasDim; // 65536
-      Tempest::DescriptorSet    uboDbg;
+      Tempest::DescriptorSet    uboDbg, uboHitDbg;
 
       Tempest::ComputePipeline* probeInitPso   = nullptr;
 
@@ -186,7 +187,7 @@ class Renderer final {
       Tempest::StorageImage     probesLighting;
       Tempest::StorageImage     probesLightingPrev;
       bool                      fisrtFrame = false;
-    } gi;
+      } gi;
 
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::Depth16;
     Tempest::TextureFormat    zBufferFormat = Tempest::TextureFormat::Depth16;

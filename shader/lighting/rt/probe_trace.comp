@@ -12,7 +12,7 @@
 layout(primitive_culling);
 layout(local_size_x = 64) in;
 
-const  uint samplesCount = 2;
+const  uint samplesCount = 4;
 const  uint samplesTotal = gl_WorkGroupSize.x*samplesCount;
 
 shared uint shProbeId;
@@ -102,24 +102,19 @@ void sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const uint probe
   }
 
 void gather(const uint probeId, const vec3 origin) {
-  const mat3 tbn = probeTbn(probe[probeId].normal);
-
   for(uint i=0; i<samplesCount; ++i) {
     uint sampleId = gl_LocalInvocationIndex*samplesCount+i;
-    vec3 dir      = sampleHemisphere(sampleId, gl_WorkGroupSize.x*samplesCount, 0);
-
-    dir = tbn * dir;
-    sampleScene(origin, +dir, probeId, sampleId*2+0);
-    sampleScene(origin, -dir, probeId, sampleId*2+1);
+    vec3 dir      = sampleSphere(sampleId, samplesTotal, 0);
+    sampleScene(origin, dir, probeId, sampleId);
     }
   }
 
 void trace(const uint probeId) {
   if(probeId==0) {
     for(uint i=0; i<samplesCount; ++i) {
-      uint sampleId = (gl_LocalInvocationIndex*samplesCount+i)*2;
-      storeGbuffer(probeId, sampleId+0, vec3(0,0,1), vec3(0), probeRayDistance, false, false, true, true);
-      storeGbuffer(probeId, sampleId+1, vec3(0,0,1), vec3(0), probeRayDistance, false, false, true, true);
+      uint sampleId = gl_LocalInvocationIndex*samplesCount+i;
+      vec3 dir      = sampleSphere(sampleId, samplesTotal, 0);
+      storeGbuffer(probeId, sampleId, vec3(0,0,1), vec3(0), probeRayDistance, false, false, true, true);
       }
     return;
     }
@@ -130,10 +125,8 @@ void trace(const uint probeId) {
   const vec3 origin = probe[probeId].pos;
   for(uint i=0; i<samplesCount; ++i) {
     uint sampleId = gl_LocalInvocationIndex*samplesCount+i;
-    vec3 dir      = sampleHemisphere(sampleId, samplesTotal, 0);
-
-    sampleScene(origin, +dir, probeId, sampleId*2+0);
-    sampleScene(origin, -dir, probeId, sampleId*2+1);
+    vec3 dir      = sampleSphere(sampleId, samplesTotal, 0);
+    sampleScene(origin, dir, probeId, sampleId);
     }
   }
 

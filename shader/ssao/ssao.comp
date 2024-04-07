@@ -14,14 +14,13 @@ layout(push_constant, std140) uniform PushConstant {
   };
 
 layout(binding  = 0) uniform writeonly image2D result;
-
-layout(binding  = 1) uniform sampler2D  gbufDiffuse;
-layout(binding  = 2) uniform usampler2D gbufNormal;
-layout(binding  = 3) uniform sampler2D  depthBuf;
-
-layout(binding  = 4, std140) uniform UboScene {
+layout(binding  = 1, std140) uniform UboScene {
   SceneDesc scene;
   };
+
+layout(binding  = 2) uniform sampler2D  gbufDiffuse;
+layout(binding  = 3) uniform usampler2D gbufNormal;
+layout(binding  = 4) uniform sampler2D  depthBuf;
 
 const uint  numSamples     = 32;
 const uint  numIter        = 8;
@@ -32,6 +31,8 @@ const float unorm16        = 65025;
 ivec2 fragCoord;
 ivec2 screenSize;
 mat3  tangent;
+
+float occlusionAll = 0, weightAll = 0;
 
 shared uint shMaxSteps;
 
@@ -104,9 +105,7 @@ float sampleRadius(uint i, uint maxSmp) {
   return 0.5+float(i)/float(maxSmp);
   }
 
-vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, uint step) {
-  float occlusion = 0, weightAll = 0;
-
+void calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, uint step) {
   [[loop]]
   for(uint i0=0; i0<samplesPerStep; ++i0) {
     uint  i      = i0*step + seed;
@@ -137,11 +136,9 @@ vec2 calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, 
 
     const float distW = (u*r)/max(u*u, distQ);
     if(isHit)
-      occlusion += distW;
+      occlusionAll += distW;
     weightAll += distW;
     }
-
-  return vec2(occlusion,weightAll);
   }
 
 vec3 reconstructNormal(const vec3 at0, in vec2 uv){
@@ -221,8 +218,9 @@ void main() {
       dbg       = i+1;
       smp      += int(samplesPerStep);
       prev      = occlusion;
-      occ      += calcOcclussion(at0, pos0, f0, i, numIter);
-      occlusion = (occ.x/occ.y);
+
+      calcOcclussion(at0, pos0, f0, i, numIter);
+      occlusion = (occlusionAll/weightAll);
       }
 
     int samples = (i+1)*int(samplesPerStep);
