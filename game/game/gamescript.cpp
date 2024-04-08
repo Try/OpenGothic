@@ -179,6 +179,8 @@ void GameScript::initCommon() {
   bindExternal("npc_getequippedrangedweapon",    &GameScript::npc_getequippedrangedweapon);
   bindExternal("npc_getequippedarmor",           &GameScript::npc_getequippedarmor);
   bindExternal("npc_canseenpc",                  &GameScript::npc_canseenpc);
+  bindExternal("npc_canseenpcfreelos",           &GameScript::npc_canseenpcfreelos);
+  bindExternal("npc_canseeitem",                 &GameScript::npc_canseeitem);
   bindExternal("npc_hasequippedweapon",          &GameScript::npc_hasequippedweapon);
   bindExternal("npc_hasequippedmeleeweapon",     &GameScript::npc_hasequippedmeleeweapon);
   bindExternal("npc_hasequippedrangedweapon",    &GameScript::npc_hasequippedrangedweapon);
@@ -187,7 +189,6 @@ void GameScript::initCommon() {
   bindExternal("npc_getactivespellcat",          &GameScript::npc_getactivespellcat);
   bindExternal("npc_setactivespellinfo",         &GameScript::npc_setactivespellinfo);
   bindExternal("npc_getactivespelllevel",        &GameScript::npc_getactivespelllevel);
-  bindExternal("npc_canseenpcfreelos",           &GameScript::npc_canseenpcfreelos);
   bindExternal("npc_isinfightmode",              &GameScript::npc_isinfightmode);
   bindExternal("npc_settarget",                  &GameScript::npc_settarget);
   bindExternal("npc_gettarget",                  &GameScript::npc_gettarget);
@@ -2163,13 +2164,35 @@ std::shared_ptr<zenkit::IItem> GameScript::npc_getequippedarmor(std::shared_ptr<
   }
 
 bool GameScript::npc_canseenpc(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::INpc> otherRef) {
+  // 'see' functions are intended as ray-cast, ignoring hnpc->senses mask
+  // https://discord.com/channels/989316194148433950/989333514543587339/1226664463697182760
   auto other = findNpc(otherRef);
   auto npc   = findNpc(npcRef);
-  bool ret   = false;
+
   if(npc!=nullptr && other!=nullptr){
-    ret = npc->canSeeNpc(*other,false);
+    return npc->canSeeNpc(*other,false);
     }
-  return ret;
+  return false;
+  }
+
+bool GameScript::npc_canseenpcfreelos(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::INpc> otherRef) {
+  auto npc = findNpc(npcRef);
+  auto oth = findNpc(otherRef);
+
+  if(npc!=nullptr && oth!=nullptr){
+    return npc->canSeeNpc(*oth,true);
+    }
+  return false;
+  }
+
+bool GameScript::npc_canseeitem(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::IItem> itemRef) {
+  auto npc = findNpc(npcRef);
+  auto itm = findItem(itemRef.get());
+
+  if(npc!=nullptr && itm!=nullptr){
+    return npc->canSeeItem(*itm,false);
+    }
+  return false;
   }
 
 bool GameScript::npc_hasequippedweapon(std::shared_ptr<zenkit::INpc> npcRef) {
@@ -2212,16 +2235,6 @@ bool GameScript::npc_getactivespellisscroll(std::shared_ptr<zenkit::INpc> npcRef
     return false;
 
   return true;
-  }
-
-bool GameScript::npc_canseenpcfreelos(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::INpc> otherRef) {
-  auto npc = findNpc(npcRef);
-  auto oth = findNpc(otherRef);
-
-  if(npc!=nullptr && oth!=nullptr){
-    return npc->canSeeNpc(*oth,true);
-    }
-  return false;
   }
 
 bool GameScript::npc_isinfightmode(std::shared_ptr<zenkit::INpc> npcRef, int modeI) {
@@ -2288,7 +2301,7 @@ bool GameScript::npc_getnexttarget(std::shared_ptr<zenkit::INpc> npcRef) {
     dist*=dist;
 
     world().detectNpc(npc->position(),float(npc->handle().senses_range),[&,npc](Npc& oth){
-      if(&oth!=npc && !oth.isDown() && oth.isEnemy(*npc) && npc->canSeeNpc(oth,true)){
+      if(&oth!=npc && !oth.isDown() && oth.isEnemy(*npc) && npc->canSenseNpc(oth,true)!=SensesBit::SENSE_NONE){
         float qd = oth.qDistTo(*npc);
         if(qd<dist){
           dist=qd;

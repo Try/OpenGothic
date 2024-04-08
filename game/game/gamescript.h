@@ -308,12 +308,13 @@ class GameScript final {
     std::shared_ptr<zenkit::IItem> npc_getequippedrangedweapon(std::shared_ptr<zenkit::INpc> npcRef);
     std::shared_ptr<zenkit::IItem> npc_getequippedarmor(std::shared_ptr<zenkit::INpc> npcRef);
     bool npc_canseenpc       (std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::INpc> otherRef);
+    bool npc_canseenpcfreelos(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::INpc> otherRef);
+    bool npc_canseeitem      (std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::IItem> itemRef);
     bool npc_hasequippedweapon(std::shared_ptr<zenkit::INpc> npcRef);
     bool npc_hasequippedmeleeweapon(std::shared_ptr<zenkit::INpc> npcRef);
     bool npc_hasequippedrangedweapon(std::shared_ptr<zenkit::INpc> npcRef);
     int  npc_getactivespell  (std::shared_ptr<zenkit::INpc> npcRef);
     bool npc_getactivespellisscroll(std::shared_ptr<zenkit::INpc> npcRef);
-    bool npc_canseenpcfreelos(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::INpc> otherRef);
     bool npc_isinfightmode   (std::shared_ptr<zenkit::INpc> npcRef, int modeI);
     int  npc_getactivespellcat(std::shared_ptr<zenkit::INpc> npcRef);
     int  npc_setactivespellinfo(std::shared_ptr<zenkit::INpc> npcRef, int v);

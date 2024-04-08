@@ -123,7 +123,8 @@ class Npc final {
     auto       portalName() -> std::string_view;
     auto       formerPortalName() -> std::string_view;
 
-    float      qDistTo(float x,float y,float z) const;
+    float      qDistTo(float x, float y, float z) const;
+    float      qDistTo(const Tempest::Vec3 pos) const;
     float      qDistTo(const WayPoint* p) const;
     float      qDistTo(const Npc& p) const;
     float      qDistTo(const Interactive& p) const;
@@ -372,13 +373,14 @@ class Npc final {
     void      clearGoTo();
     void      stopWalking();
 
-    bool      canSeeNpc(const Npc& oth,bool freeLos) const;
+    bool      canSeeNpc(const Npc& oth, bool freeLos) const;
+    bool      canSeeNpc(const Tempest::Vec3 pos, bool freeLos) const;
+    bool      canSeeItem(const Item& it, bool freeLos) const;
     bool      canSeeSource() const;
-    bool      canSeeNpc(float x,float y,float z,bool freeLos) const;
-    auto      canSenseNpc(const Npc& oth,bool freeLos, float extRange=0.f) const -> SensesBit;
-    auto      canSenseNpc(float x,float y,float z,bool freeLos,bool isNoisy,float extRange=0.f) const -> SensesBit;
+    bool      canRayHitPoint(const Tempest::Vec3 pos, bool freeLos = true, float extRange=0.f) const;
 
-    bool      canSeeItem(const Item& it,bool freeLos) const;
+    auto      canSenseNpc(const Npc& oth, bool freeLos, float extRange=0.f) const -> SensesBit;
+    auto      canSenseNpc(const Tempest::Vec3 pos, bool freeLos, bool isNoisy, float extRange=0.f) const -> SensesBit;
 
     void      setTarget(Npc* t);
     Npc*      target() const;

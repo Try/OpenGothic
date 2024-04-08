@@ -247,7 +247,7 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
         if(r.self==&i)
           continue;
 
-        const float distance = i.qDistTo(r.pos.x,r.pos.y,r.pos.z);
+        const float distance = i.qDistTo(r.pos);
         const float range    = float(owner.script().percRanges().at(PercType(r.what), i.handle().senses_range));
 
         if(distance > range*range)
