@@ -933,5 +933,9 @@ void MdlVisual::stopDlgAnim(Npc& npc) {
     std::snprintf(buf,sizeof(buf),"T_DIALOGGESTURE_%02d",i+1);
     skInst->stopAnim(buf);
     }
-  startFaceAnim(npc,"VISEME",1,0);
+
+  if(npc.processPolicy()<=Npc::AiNormal) {
+    // avoid PCI traffic on distant npc's
+    startFaceAnim(npc,"VISEME",1,0);
+    }
   }

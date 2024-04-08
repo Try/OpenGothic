@@ -527,12 +527,12 @@ void VisualObjects::preFrameUpdateWind(uint8_t fId) {
 void VisualObjects::preFrameUpdateMorph(uint8_t fId) {
   for(auto it=objectsMorph.begin(); it!=objectsMorph.end(); ) {
     auto& obj = objects[*it];
-    it = objectsMorph.erase(it);
 
+    bool reschedule = false;
     MorphData data = {};
     for(size_t i=0; i<Resources::MAX_MORPH_LAYERS; ++i) {
       auto&    ani  = obj.morphAnim[i];
-      auto&    bk   = *obj.bucketId;//buckets[obj.bucketId];
+      auto&    bk   = *obj.bucketId;
       auto&    anim = (*bk.staticMesh->morph.anim)[ani.id];
       uint64_t time = (scene.tickCount-ani.timeStart);
 
@@ -544,6 +544,9 @@ void VisualObjects::preFrameUpdateMorph(uint8_t fId) {
         continue;
         }
 
+      if(anim.numFrames>1)
+        reschedule = true;
+
       const uint32_t samplesPerFrame = uint32_t(anim.samplesPerFrame);
       data.morph[i].indexOffset = uint32_t(anim.index);
       data.morph[i].sample0     = uint32_t((time/anim.tickPerFrame+0)%anim.numFrames)*samplesPerFrame;
@@ -553,6 +556,9 @@ void VisualObjects::preFrameUpdateMorph(uint8_t fId) {
       }
 
     obj.objMorphAnim.set(&data, 0, sizeof(data));
+    if(!reschedule)
+      it = objectsMorph.erase(it); else
+      it++;
     }
   }
 
