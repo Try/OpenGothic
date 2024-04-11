@@ -4198,7 +4198,11 @@ bool Npc::canRayHitPoint(const Tempest::Vec3 pos, bool freeLos, float extRange) 
 
 SensesBit Npc::canSenseNpc(const Npc &oth, bool freeLos, float extRange) const {
   const auto mid     = oth.bounds().midTr;
-  const bool isNoisy = (oth.bodyStateMasked()!=BodyState::BS_SNEAK);
+  const auto st      = oth.bodyStateMasked();
+  /* Testing for BS_STAND as well, to avoid overreaction to monsters
+   * https://github.com/Try/OpenGothic/pull/589#issuecomment-2045897394
+   */
+  const bool isNoisy = (st!=BodyState::BS_SNEAK && st!=BodyState::BS_STAND);
   return canSenseNpc(mid,freeLos,isNoisy,extRange);
   }
 
@@ -4207,7 +4211,7 @@ SensesBit Npc::canSenseNpc(const Tempest::Vec3 pos, bool freeLos, bool isNoisy, 
   if(qDistTo(pos)>range*range)
     return SensesBit::SENSE_NONE;
 
-  SensesBit ret=SensesBit::SENSE_NONE;
+  SensesBit ret = SensesBit::SENSE_NONE;
   if(owner.roomAt(pos)==owner.roomAt({x,y,z})) {
     ret = ret | SensesBit::SENSE_SMELL;
     }
