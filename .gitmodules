@@ -7,7 +7,6 @@
 [submodule "lib/TinySoundFont"]
 	path = lib/TinySoundFont
 	url = https://github.com/schellingb/TinySoundFont.git
-[submodule "lib/phoenix"]
-	path = lib/phoenix
-	url = https://github.com/GothicKit/ZenKit.git
-	branch = main
+[submodule "lib/ZenKit"]
+	path = lib/ZenKit
+  url = https://github.com/GothicKit/ZenKit.git

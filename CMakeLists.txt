@@ -92,12 +92,12 @@ elseif(UNIX)
   target_link_libraries(${PROJECT_NAME} -lpthread -ldl)
 endif()
 
-# phoenix
+# ZenKit
 set(BUILD_SQUISH_WITH_SSE2     OFF CACHE INTERNAL "")
 set(ZK_ENABLE_ASAN             OFF CACHE INTERNAL "")
 set(ZK_ENABLE_DEPRECATION      OFF CACHE INTERNAL "")
 
-add_subdirectory(lib/phoenix)
+add_subdirectory(lib/ZenKit)
 target_link_libraries(${PROJECT_NAME} zenkit)
 
 # TinySoundFont
