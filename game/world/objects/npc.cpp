@@ -1415,6 +1415,11 @@ bool Npc::implAttack(uint64_t dt) {
     return false;
 
   const auto bs = bodyStateMasked();
+  if(bs==BS_LIE) {
+    setAnim(Npc::Anim::Idle);
+    mvAlgo.tick(dt,MoveAlgo::FaiMove);
+    return true;
+    }
   if(bs==BS_STUMBLE || bs==BS_LIE || isInAir()) {
     mvAlgo.tick(dt,MoveAlgo::FaiMove);
     return true;
@@ -2074,7 +2079,7 @@ void Npc::tickAnimationTags() {
   }
 
 void Npc::tick(uint64_t dt) {
-  // if(!isPlayer() && hnpc->id!=953)
+  // if(!isPlayer() && hnpc->id!=323)
   //   return;
   tickAnimationTags();
 
@@ -2116,12 +2121,6 @@ void Npc::tick(uint64_t dt) {
     }
 
   if(!isDown()) {
-    if(bodyStateMasked()==BS_LIE && currentInteract==nullptr && !isPlayer()) {
-      setAnim(Npc::Anim::Idle);
-      mvAlgo.tick(dt,MoveAlgo::WaitMove);
-      return;
-      }
-
     implLookAtNpc(dt);
     implLookAtWp(dt);
 
@@ -2140,6 +2139,8 @@ void Npc::tick(uint64_t dt) {
   }
 
 void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
+  if(isInAir())
+    return;
   if(queue.size()==0)
     return;
   auto act = queue.pop();
@@ -2272,7 +2273,8 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       implAiWait(uint64_t(act.i0));
       break;
     case AI_StandUp:
-    case AI_StandUpQuick:
+    case AI_StandUpQuick: {
+      const auto bs = bodyStateMasked();
       // NOTE: B_ASSESSTALK calls AI_StandUp, to make npc stand, if it's not on a chair or something
       if(interactive()!=nullptr) {
         if((interactive()->isLadder() && !isPlayer()) || !setInteraction(nullptr,false)) {
@@ -2280,17 +2282,18 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
           }
         break;
         }
-      else if(bodyStateMasked()==BS_UNCONSCIOUS) {
+      else if(bs==BS_UNCONSCIOUS || bs==BS_LIE) {
         if(!setAnim(Anim::Idle))
           queue.pushFront(std::move(act)); else
           implAniWait(visual.pose().animationTotalTime());
         }
-      else if(bodyStateMasked()!=BS_DEAD) {
+      else if(bs!=BS_DEAD) {
         visual.stopAnim(*this,"");
         setStateItem(MeshObjects::Mesh(),"");
         setAnim(Anim::Idle);
         }
       break;
+      }
     case AI_EquipArmor:
       invent.equipArmour(act.i0,*this);
       break;
@@ -2614,6 +2617,7 @@ bool Npc::startState(ScriptFn id, std::string_view wp, gtime endTime, bool noFin
     }
 
   clearState(noFinalize);
+  clearAiQueue();
   if(!wp.empty())
     hnpc->wp = wp;
 
@@ -2677,7 +2681,7 @@ void Npc::tickRoutine() {
     return;
 
   if(aiState.started) {
-    if(aiState.loopNextTime<=owner.tickCount()){
+    if(aiState.loopNextTime<=owner.tickCount()) {
       aiState.loopNextTime+=1000; // one tick per second?
       int loop = LOOP_CONTINUE;
       if(aiState.funcLoop.isValid()) {
@@ -3195,8 +3199,9 @@ bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
   }
 
 bool Npc::isRotationAllowed() const {
-  auto bs = bodyStateMasked();
-  return currentInteract==nullptr && !isFinishingMove() && bs!=BS_CLIMB && bs!=BS_LIE && !isFallingDeep();
+  auto bs  = bodyStateMasked();
+  bool air = (!isPlayer() && isInAir()) || isFallingDeep();
+  return currentInteract==nullptr && !isFinishingMove() && bs!=BS_CLIMB && bs!=BS_LIE && !air;
   }
 
 bool Npc::checkGoToNpcdistance(const Npc &other) {
