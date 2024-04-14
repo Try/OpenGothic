@@ -25,11 +25,6 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, const zenkit::VMover& mover,
       physic = PhysicMesh(*mesh,*world.physic(),true);
     }
 
-  if(vobName=="EVT_LEFT_WHEEL_01" || vobName=="EVT_LEFT_WHEEL_02" || vobName=="EVT_LEFT_WHEEL_01")
-    Log::d("");
-  if(vobName=="EVT_RINGMAIN_LEFT_01" || vobName=="EVT_RINGMAIN_RIGHT_01")
-    Log::d("");
-
   const float speed = mover.speed;
   keyframes.resize(mover.keyframes.size());
   for(size_t i=0; i<mover.keyframes.size(); ++i) {
