@@ -1042,7 +1042,7 @@ Tempest::Vec3 MoveAlgo::normalRay(const Tempest::Vec3& pos) const {
 zenkit::MaterialGroup MoveAlgo::groundMaterial() const {
   const float stp = stepHeight();
   if(cacheW.wdepth+stp>cache.v.y)
-    return zenkit::MaterialGroup::water;
+    return zenkit::MaterialGroup::WATER;
   return cache.mat;
   }
 

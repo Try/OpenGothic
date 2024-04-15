@@ -879,8 +879,8 @@ const Resources::VobTree* Resources::implLoadVobBundle(std::string_view filename
     zenkit::World wrld;
 
     auto reader = entry->open_read();
-    wrld.load(reader.get(), Gothic::inst().version().game==1 ? phoenix::game_version::gothic_1
-                                                           : phoenix::game_version::gothic_2);
+    wrld.load(reader.get(), Gothic::inst().version().game==1 ? zenkit::GameVersion::GOTHIC_1
+                                                             : zenkit::GameVersion::GOTHIC_2);
 
     bundle = std::move(wrld.world_vobs);
     }

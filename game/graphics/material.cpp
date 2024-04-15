@@ -37,7 +37,7 @@ Material::Material(const zenkit::Material& m, bool enableAlphaTest) {
       texAniMapDirPeriod.y = int(1.f/texAniMapDir.y);
     }
 
-  if(m.wave_mode!=zenkit::WaveMode::none)
+  if(m.wave_mode!=zenkit::WaveMode::NONE)
     waveMaxAmplitude = m.wave_max_amplitude;
 
   if(m.environment_mapping!=0)
@@ -50,7 +50,7 @@ Material::Material(const zenkit::VirtualObject& vob) {
     tex = Resources::loadTexture("DEFAULT.TGA");
   loadFrames(vob.visual_name, vob.visual_decal->texture_anim_fps);
 
-  alpha        = loadAlphaFunc(vob.visual_decal->alpha_func, zenkit::MaterialGroup::undefined, vob.visual_decal->alpha_weight, tex, true);
+  alpha        = loadAlphaFunc(vob.visual_decal->alpha_func, zenkit::MaterialGroup::UNDEFINED, vob.visual_decal->alpha_weight, tex, true);
   alphaWeight  = float(vob.visual_decal->alpha_weight)/255.f;
   }
 
@@ -110,29 +110,29 @@ Material::AlphaFunc Material::loadAlphaFunc(zenkit::AlphaFunction zenAlpha,
                                             bool enableAlphaTest) {
   Material::AlphaFunc alpha = Material::AlphaFunc::AlphaTest;
   switch(zenAlpha) {
-    case zenkit::AlphaFunction::blend:
+    case zenkit::AlphaFunction::BLEND:
       alpha = Material::AlphaFunc::Transparent;
       break;
-    case zenkit::AlphaFunction::add:
+    case zenkit::AlphaFunction::ADD:
       alpha = Material::AlphaFunc::AdditiveLight;
       break;
-    case zenkit::AlphaFunction::sub:
+    case zenkit::AlphaFunction::SUBTRACT:
       // FIXME: no such materials in game found
       alpha = Material::AlphaFunc::AdditiveLight;
       break;
-    case zenkit::AlphaFunction::mul:
+    case zenkit::AlphaFunction::MULTIPLY:
       alpha = Material::AlphaFunc::Multiply;
       break;
-    case zenkit::AlphaFunction::mul2:
+    case zenkit::AlphaFunction::MULTIPLY_ALT:
       alpha = Material::AlphaFunc::Multiply2;
       break;
-    case zenkit::AlphaFunction::default_:
-    case zenkit::AlphaFunction::none:
+    case zenkit::AlphaFunction::DEFAULT:
+    case zenkit::AlphaFunction::NONE:
       alpha = Material::AlphaFunc::AlphaTest;
       break;
     }
 
-  if(matGroup == zenkit::MaterialGroup::water)
+  if(matGroup == zenkit::MaterialGroup::WATER)
     alpha = Material::AlphaFunc::Water;
 
   if(clrAlpha!=255 && alpha==Material::AlphaFunc::Solid) {

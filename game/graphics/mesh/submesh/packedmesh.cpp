@@ -29,7 +29,7 @@ static bool isVisuallySame(const zenkit::Material& a, const zenkit::Material& b)
     // a.disable_lightmap             == b.disable_lightmap &&
     // a.dont_collapse                == b.dont_collapse &&
     a.detail_object                == b.detail_object &&
-    a.detail_texture_scale         == b.detail_texture_scale &&
+    a.detail_object_scale          == b.detail_object_scale &&
     a.force_occluder               == b.force_occluder &&
     a.environment_mapping          == b.environment_mapping &&
     a.environment_mapping_strength == b.environment_mapping_strength &&

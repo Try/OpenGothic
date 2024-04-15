@@ -138,7 +138,7 @@ void ObjVisual::setVisual(const zenkit::VirtualObject& vob, World& world, bool s
     bundle = VobBundle(world,vob.visual_name,(staticDraw ? Vob::Static : Vob::None));
     }
   else if(FileExt::hasExt(vob.visual_name,"PFX") || FileExt::hasExt(vob.visual_name,"TGA")) {
-    if(vob.sprite_camera_facing_mode==zenkit::SpriteAlignment::none && FileExt::hasExt(vob.visual_name,"TGA")) {
+    if(vob.sprite_camera_facing_mode==zenkit::SpriteAlignment::NONE && FileExt::hasExt(vob.visual_name,"TGA")) {
       setType(M_Mesh);
       mesh.view = world.addDecalView(vob);
       } else {
@@ -159,7 +159,7 @@ void ObjVisual::setVisual(const zenkit::VirtualObject& vob, World& world, bool s
       mesh.view.setWind(vob.anim_mode,vob.anim_strength);
       }
 
-    const bool windy = (vob.anim_mode!=zenkit::AnimationType::none && vob.anim_strength>0);
+    const bool windy = (vob.anim_mode!=zenkit::AnimationType::NONE && vob.anim_strength>0);
     if(vob.show_visual && enableCollision && !windy) {
       mesh.physic = PhysicMesh(*view,*world.physic(),false);
       }

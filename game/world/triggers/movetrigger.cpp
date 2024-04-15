@@ -284,7 +284,7 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
       snd = sfxCloseEnd;
     if(prev==NextKey)
       snd = "";
-    if(behavior==zenkit::MoverBehavior::open_timed && prev==Open) {
+    if(behavior==zenkit::MoverBehavior::OPEN_TIME && prev==Open) {
       state = OpenTimed;
       sAnim = world.tickCount();
       // override view

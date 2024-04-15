@@ -465,7 +465,7 @@ zenkit::DaedalusNakedCall Ikarus::while_(zenkit::DaedalusVm& vm) {
 
 void Ikarus::loop_trap(zenkit::DaedalusSymbol* i) {
   auto instr = vm.instruction_at(vm.pc());
-  if(instr.op != zenkit::DaedalusOpcode::pushv)
+  if(instr.op != zenkit::DaedalusOpcode::PUSHV)
     return; // Ikarus keywords are always use pushv
 
   // Log::i("end");
@@ -497,13 +497,13 @@ void Ikarus::loop_out(zenkit::DaedalusVm& vm) {
   int depth = 0;
   for(uint32_t i=vm.pc(); i<vm.size(); ) {
     const auto inst = vm.instruction_at(i);
-    if(inst.op==zenkit::DaedalusOpcode::pushv && vm.find_symbol_by_index(inst.symbol)==end) {
+    if(inst.op==zenkit::DaedalusOpcode::PUSHV && vm.find_symbol_by_index(inst.symbol)==end) {
       depth--;
       }
-    else if(inst.op==zenkit::DaedalusOpcode::bl && inst.address==repAddr) {
+    else if(inst.op==zenkit::DaedalusOpcode::BL && inst.address==repAddr) {
       depth++;
       }
-    else if(inst.op==zenkit::DaedalusOpcode::bl && inst.address==whlAddr) {
+    else if(inst.op==zenkit::DaedalusOpcode::BL && inst.address==whlAddr) {
       depth++;
       }
     i += inst.size;

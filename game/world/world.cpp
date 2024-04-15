@@ -44,20 +44,20 @@ const char* materialTag(ItemMaterial src) {
 
 const char* materialTag(zenkit::MaterialGroup src) {
   switch(src) {
-    case zenkit::MaterialGroup::undefined:
-    case zenkit::MaterialGroup::none:
+    case zenkit::MaterialGroup::UNDEFINED:
+    case zenkit::MaterialGroup::NONE:
       return "UD";
-    case zenkit::MaterialGroup::metal:
+    case zenkit::MaterialGroup::METAL:
       return "ME";
-    case zenkit::MaterialGroup::stone:
+    case zenkit::MaterialGroup::STONE:
       return "ST";
-    case zenkit::MaterialGroup::wood:
+    case zenkit::MaterialGroup::WOOD:
       return "WO";
-    case zenkit::MaterialGroup::earth:
+    case zenkit::MaterialGroup::EARTH:
       return "EA";
-    case zenkit::MaterialGroup::water:
+    case zenkit::MaterialGroup::WATER:
       return "WA";
-    case zenkit::MaterialGroup::snow:
+    case zenkit::MaterialGroup::SNOW:
       return "SA"; // sand?
     }
   return "UD";
@@ -74,8 +74,8 @@ World::World(GameSession& game, std::string_view file, bool startup, std::functi
 
   try {
     auto buf   = entry->open();
-    auto world = zenkit::World::parse(buf, version().game == 1 ? zenkit::GameVersion::gothic_1
-                                                               : zenkit::GameVersion::gothic_2);
+    auto world = zenkit::World::parse(buf, version().game == 1 ? zenkit::GameVersion::GOTHIC_1
+                                                               : zenkit::GameVersion::GOTHIC_2);
     loadProgress(20);
     auto& worldMesh = world.world_mesh;
 

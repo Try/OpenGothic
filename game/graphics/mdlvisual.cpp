@@ -243,27 +243,27 @@ bool MdlVisual::setFightMode(zenkit::MdsFightMode mode) {
   WeaponState f = WeaponState::NoWeapon;
 
   switch(mode) {
-    case zenkit::MdsFightMode::invalid:
+    case zenkit::MdsFightMode::INVALID:
       return false;
-    case zenkit::MdsFightMode::none:
+    case zenkit::MdsFightMode::NONE:
       f=WeaponState::NoWeapon;
       break;
-    case zenkit::MdsFightMode::fist:
+    case zenkit::MdsFightMode::FIST:
       f=WeaponState::Fist;
       break;
-    case zenkit::MdsFightMode::one_handed:
+    case zenkit::MdsFightMode::SINGLE_HANDED:
       f=WeaponState::W1H;
       break;
-    case zenkit::MdsFightMode::two_handed:
+    case zenkit::MdsFightMode::DUAL_HANDED:
       f=WeaponState::W2H;
       break;
-    case zenkit::MdsFightMode::bow:
+    case zenkit::MdsFightMode::BOW:
       f=WeaponState::Bow;
       break;
-    case zenkit::MdsFightMode::crossbow:
+    case zenkit::MdsFightMode::CROSSBOW:
       f=WeaponState::CBow;
       break;
-    case zenkit::MdsFightMode::magic:
+    case zenkit::MdsFightMode::MAGIC:
       f=WeaponState::Mage;
       break;
     }
@@ -366,7 +366,7 @@ void MdlVisual::setNpcEffect(World& owner, Npc& npc, std::string_view s, zenkit:
     hnpcVisual.view.setMesh(&view);
     }
 
-  const bool nextGhost = (flags & zenkit::NpcFlag::ghost);
+  const bool nextGhost = (flags & zenkit::NpcFlag::GHOST);
   if(hnpcFlagGhost!=nextGhost) {
     hnpcFlagGhost=nextGhost;
     view.setAsGhost(hnpcFlagGhost);

@@ -137,7 +137,7 @@ void Animation::setupIndex() {
     ani.flags    = r.flags;
     ani.blendIn  = uint64_t(1000 * r.blend_in);
     ani.blendOut = uint64_t(1000 * r.blend_out);
-    ani.reverse  = r.direction != zenkit::AnimationDirection::forward;
+    ani.reverse  = r.direction != zenkit::AnimationDirection::FORWARD;
     ani.next     = r.next;
     sequences.emplace_back(std::move(ani));
     }
@@ -204,7 +204,7 @@ Animation::Sequence::Sequence(const zenkit::MdsAnimation& hdr, std::string_view 
   blendIn    = uint64_t(1000*hdr.blend_in);
   blendOut   = uint64_t(1000*hdr.blend_out);
   next       = hdr.next;
-  reverse    = hdr.direction != zenkit::AnimationDirection::forward;
+  reverse    = hdr.direction != zenkit::AnimationDirection::FORWARD;
 
   data->firstFrame = uint32_t(hdr.first_frame);
   data->lastFrame  = uint32_t(hdr.last_frame);
@@ -277,7 +277,7 @@ bool Animation::Sequence::isDefWindow(uint64_t t) const {
 
 bool Animation::Sequence::isAttackAnim() const {
   for(auto& e:data->events)
-    if(e.type == zenkit::MdsEventType::opt_frame)
+    if(e.type == zenkit::MdsEventType::OPTIMAL_FRAME)
       return true;
   return false;
   }
@@ -291,7 +291,7 @@ bool Animation::Sequence::isPrehit(uint64_t sTime, uint64_t now) const {
   int64_t frame = int64_t(float(now-sTime)*d.fpsRate/1000.f);
 
   for(auto& e:data->events)
-    if(e.type == zenkit::MdsEventType::opt_frame)
+    if(e.type == zenkit::MdsEventType::OPTIMAL_FRAME)
       for(auto i : e.frames)
         if(int64_t(i) > frame)
           return true;
@@ -390,7 +390,7 @@ void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64
   float fpsRate = d.fpsRate;
 
   for(auto& e:d.events) {
-    if(e.type == zenkit::MdsEventType::opt_frame) {
+    if(e.type == zenkit::MdsEventType::OPTIMAL_FRAME) {
       for(auto i:e.frames) {
         uint64_t fr = frameClamp(i,d.firstFrame,d.numFrames,d.lastFrame);
         if((frameA<=fr && fr<frameB) ^ invert)
@@ -422,14 +422,14 @@ void Animation::Sequence::processEvents(uint64_t barrier, uint64_t sTime, uint64
 
 void Animation::Sequence::processEvent(const zenkit::MdsEventTag& e, Animation::EvCount &ev, uint64_t time) {
   switch(e.type) {
-    case zenkit::MdsEventType::opt_frame:
+    case zenkit::MdsEventType::OPTIMAL_FRAME:
       ev.def_opt_frame++;
       break;
-    case zenkit::MdsEventType::fight_mode:
+    case zenkit::MdsEventType::SET_FIGHT_MODE:
       ev.weaponCh = e.fight_mode;
       break;
-    case zenkit::MdsEventType::create_item:
-    case zenkit::MdsEventType::exchange_item:{
+    case zenkit::MdsEventType::ITEM_CREATE:
+    case zenkit::MdsEventType::ITEM_EXCHANGE:{
       EvTimed ex;
       ex.def     = e.type;
       ex.item    = e.item;
@@ -438,10 +438,10 @@ void Animation::Sequence::processEvent(const zenkit::MdsEventTag& e, Animation::
       ev.timed.push_back(ex);
       break;
       }
-    case zenkit::MdsEventType::insert_item:
-    case zenkit::MdsEventType::remove_item:
-    case zenkit::MdsEventType::destroy_item:
-    case zenkit::MdsEventType::place_item: {
+    case zenkit::MdsEventType::ITEM_INSERT:
+    case zenkit::MdsEventType::ITEM_REMOVE:
+    case zenkit::MdsEventType::ITEM_DESTROY:
+    case zenkit::MdsEventType::ITEM_PLACE: {
       EvTimed ex;
       ex.def     = e.type;
       ex.slot[0] = e.slot;
@@ -449,8 +449,8 @@ void Animation::Sequence::processEvent(const zenkit::MdsEventTag& e, Animation::
       ev.timed.push_back(ex);
       break;
       }
-    case zenkit::MdsEventType::place_munition:
-    case zenkit::MdsEventType::remove_munition: {
+    case zenkit::MdsEventType::MUNITION_PLACE:
+    case zenkit::MdsEventType::MUNITION_REMOVE: {
       EvTimed ex;
       ex.def     = e.type;
       ex.slot[0] = e.slot;
@@ -458,7 +458,7 @@ void Animation::Sequence::processEvent(const zenkit::MdsEventTag& e, Animation::
       ev.timed.push_back(ex);
       break;
       }
-    case zenkit::MdsEventType::swap_mesh: {
+    case zenkit::MdsEventType::MESH_SWAP: {
       EvTimed ex;
       ex.def     = e.type;
       ex.slot[0] = e.slot;
@@ -467,9 +467,9 @@ void Animation::Sequence::processEvent(const zenkit::MdsEventTag& e, Animation::
       ev.timed.push_back(ex);
       break;
       }
-    case zenkit::MdsEventType::draw_torch:
-    case zenkit::MdsEventType::inventory_torch:
-    case zenkit::MdsEventType::drop_torch: {
+    case zenkit::MdsEventType::TORCH_DRAW:
+    case zenkit::MdsEventType::TORCH_INVENTORY:
+    case zenkit::MdsEventType::TORCH_DROP: {
       EvTimed ex;
       ex.def     = e.type;
       ex.slot[0] = e.slot;
@@ -586,22 +586,22 @@ void Animation::AnimData::setupEvents(float fpsRate) {
 
   int hasOptFrame = std::numeric_limits<int>::max();
   for(size_t i=0; i<events.size(); ++i)
-    if(events[i].type==zenkit::MdsEventType::opt_frame) {
+    if(events[i].type==zenkit::MdsEventType::OPTIMAL_FRAME) {
       hasOptFrame = std::min(hasOptFrame, events[i].frames[0]);
       }
 
   for(size_t i=0; i<events.size(); ++i)
-    if(events[i].type==zenkit::MdsEventType::opt_frame && events[i].frames[0]!=hasOptFrame) {
+    if(events[i].type==zenkit::MdsEventType::OPTIMAL_FRAME && events[i].frames[0]!=hasOptFrame) {
       events[i] = std::move(events.back());
       events.pop_back();
       }
 
   for(auto& r:events) {
-    if(r.type==zenkit::MdsEventType::hit_end)
+    if(r.type==zenkit::MdsEventType::HIT_END)
       setupTime(defHitEnd,r.frames,fpsRate);
-    if(r.type==zenkit::MdsEventType::par_frame)
+    if(r.type==zenkit::MdsEventType::PARRY_FRAME)
       setupTime(defParFrame,r.frames,fpsRate);
-    if(r.type==zenkit::MdsEventType::window)
+    if(r.type==zenkit::MdsEventType::COMBO_WINDOW)
       setupTime(defWindow,r.frames,fpsRate);
     }
   }

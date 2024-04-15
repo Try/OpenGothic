@@ -211,8 +211,8 @@ LightGroup::LightGroup(const SceneGlobals& scene)
 
       presets.push_back(zenkit::LightPreset::parse(
           *zen,
-          Gothic::inst().version().game == 1 ? zenkit::GameVersion::gothic_1
-                                             : zenkit::GameVersion::gothic_2));
+          Gothic::inst().version().game == 1 ? zenkit::GameVersion::GOTHIC_1
+                                             : zenkit::GameVersion::GOTHIC_2));
 
       if(!zen->read_object_end()) {
         zen->skip_object(true);

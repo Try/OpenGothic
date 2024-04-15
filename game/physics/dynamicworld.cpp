@@ -428,7 +428,7 @@ DynamicWorld::DynamicWorld(World& owner,const zenkit::Mesh& worldMesh) {
   for(size_t i=0;i<pkg.subMeshes.size();++i) {
     auto& sm = pkg.subMeshes[i];
     if(!sm.material.disable_collision && sm.iboLength>0) {
-      if(sm.material.group==zenkit::MaterialGroup::water) {
+      if(sm.material.group==zenkit::MaterialGroup::WATER) {
         waterMesh->addIndex(pkg.indices,sm.iboOffset,sm.iboLength,sm.material.group);
         } else {
         landMesh ->addIndex(pkg.indices,sm.iboOffset,sm.iboLength,sm.material.group,sectors[i].c_str());
@@ -442,7 +442,7 @@ DynamicWorld::DynamicWorld(World& owner,const zenkit::Mesh& worldMesh) {
     Tempest::Matrix4x4 mt;
     mt.identity();
     landShape.reset(new btMultimaterialTriangleMeshShape(landMesh.get(),landMesh->useQuantization(),true));
-    landBody = world->addCollisionBody(*landShape,mt,DynamicWorld::materialFriction(zenkit::MaterialGroup::none));
+    landBody = world->addCollisionBody(*landShape,mt,DynamicWorld::materialFriction(zenkit::MaterialGroup::NONE));
     landBody->setUserIndex(C_Landscape);
 
     btVector3 b[2] = {btVector3(0,0,0), btVector3(0,0,0)};
@@ -547,7 +547,7 @@ DynamicWorld::RayWaterResult DynamicWorld::implWaterRay(const Tempest::Vec3& fro
 DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const Tempest::Vec3& to) const {
   struct CallBack:btCollisionWorld::ClosestRayResultCallback {
     using ClosestRayResultCallback::ClosestRayResultCallback;
-    zenkit::MaterialGroup matId  = zenkit::MaterialGroup::undefined;
+    zenkit::MaterialGroup matId  = zenkit::MaterialGroup::UNDEFINED;
     const char*           sector = nullptr;
     Category              colCat = C_Null;
 
@@ -726,7 +726,7 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
 
   struct CallBack:btCollisionWorld::ClosestRayResultCallback {
     using ClosestRayResultCallback::ClosestRayResultCallback;
-    zenkit::MaterialGroup matId = zenkit::MaterialGroup::none;
+    zenkit::MaterialGroup matId = zenkit::MaterialGroup::NONE;
 
     bool needsCollision(btBroadphaseProxy* proxy0) const override {
       auto obj=reinterpret_cast<btCollisionObject*>(proxy0->m_clientObject);
@@ -761,13 +761,13 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
 
   world->rayCast(pos, to, callback);
 
-  if(callback.matId != zenkit::MaterialGroup::none) {
+  if(callback.matId != zenkit::MaterialGroup::NONE) {
     if(isSpell){
       if(b.cb!=nullptr)
         b.cb->onCollide(callback.matId);
       } else {
-      if(callback.matId==zenkit::MaterialGroup::metal ||
-         callback.matId==zenkit::MaterialGroup::stone) {
+      if(callback.matId==zenkit::MaterialGroup::METAL ||
+         callback.matId==zenkit::MaterialGroup::STONE) {
         auto d = b.dir;
         btVector3 m = {d.x,d.y,d.z};
         btVector3 n = callback.m_hitNormalWorld;
@@ -826,21 +826,21 @@ void DynamicWorld::deleteObj(BulletBody* obj) {
 float DynamicWorld::materialFriction(zenkit::MaterialGroup mat) {
   // https://www.thoughtspike.com/friction-coefficients-for-bullet-physics/
   switch(mat) {
-    case zenkit::MaterialGroup::undefined:
+    case zenkit::MaterialGroup::UNDEFINED:
       return 0.5f;
-    case zenkit::MaterialGroup::metal:
+    case zenkit::MaterialGroup::METAL:
       return 1.1f;
-    case zenkit::MaterialGroup::stone:
+    case zenkit::MaterialGroup::STONE:
       return 0.65f;
-    case zenkit::MaterialGroup::wood:
+    case zenkit::MaterialGroup::WOOD:
       return 0.4f;
-    case zenkit::MaterialGroup::earth:
+    case zenkit::MaterialGroup::EARTH:
       return 0.4f;
-    case zenkit::MaterialGroup::water:
+    case zenkit::MaterialGroup::WATER:
       return 0.01f;
-    case zenkit::MaterialGroup::snow:
+    case zenkit::MaterialGroup::SNOW:
       return 0.2f;
-    case zenkit::MaterialGroup::none:
+    case zenkit::MaterialGroup::NONE:
       break;
     }
   return 0.75f;
@@ -848,20 +848,20 @@ float DynamicWorld::materialFriction(zenkit::MaterialGroup mat) {
 
 float DynamicWorld::materialDensity(zenkit::MaterialGroup mat) {
   switch (mat) {
-    case zenkit::MaterialGroup::undefined:
-    case zenkit::MaterialGroup::none:
+    case zenkit::MaterialGroup::UNDEFINED:
+    case zenkit::MaterialGroup::NONE:
       return 2000.0f;
-    case zenkit::MaterialGroup::metal:
+    case zenkit::MaterialGroup::METAL:
       return 7800.f;
-    case zenkit::MaterialGroup::stone:
+    case zenkit::MaterialGroup::STONE:
       return 2200.f;
-    case zenkit::MaterialGroup::wood:
+    case zenkit::MaterialGroup::WOOD:
       return 700.f;
-    case zenkit::MaterialGroup::earth:
+    case zenkit::MaterialGroup::EARTH:
       return 1500.f;
-    case zenkit::MaterialGroup::water:
+    case zenkit::MaterialGroup::WATER:
       return 1000.f;
-    case zenkit::MaterialGroup::snow:
+    case zenkit::MaterialGroup::SNOW:
       return 1000.f;
     }
   return 2000.f;

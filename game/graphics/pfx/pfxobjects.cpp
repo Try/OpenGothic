@@ -95,11 +95,15 @@ PfxBucket& PfxObjects::getBucket(const ParticleFx &decl) {
   }
 
 PfxBucket& PfxObjects::getBucket(const Material& mat, const zenkit::VirtualObject& vob) {
+  Tempest::Vec2 dimension {};
+  if(auto decal = dynamic_cast<const zenkit::VisualDecal*>(vob.visual.get()))
+    dimension = Tempest::Vec2{decal->dimension.x, decal->dimension.y};
+
   for(auto& i:spriteEmit)
     if(i.pfx->visMaterial==mat &&
        i.visualCamAlign==vob.sprite_camera_facing_mode &&
        i.zBias==vob.bias &&
-       i.decalDim==Tempest::Vec2{vob.visual_decal->dimension.x, vob.visual_decal->dimension.y}) {
+       i.decalDim==dimension) {
       return getBucket(*i.pfx);
       }
   spriteEmit.emplace_back();
@@ -107,7 +111,7 @@ PfxBucket& PfxObjects::getBucket(const Material& mat, const zenkit::VirtualObjec
 
   e.visualCamAlign = vob.sprite_camera_facing_mode;
   e.zBias          = vob.bias;
-  e.decalDim       = Tempest::Vec2{vob.visual_decal->dimension.x, vob.visual_decal->dimension.y};
+  e.decalDim       = dimension;
   e.pfx.reset(new ParticleFx(mat,vob));
   return getBucket(*e.pfx);
   }

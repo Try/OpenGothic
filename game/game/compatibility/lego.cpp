@@ -74,7 +74,7 @@ bool LeGo::isRequired(zenkit::DaedalusVm& vm) {
 int LeGo::create(int instId) {
   auto *sym = vm.find_symbol_by_index(uint32_t(instId));
   auto *cls = sym;
-  if(sym != nullptr && sym->type() == zenkit::DaedalusDataType::instance) {
+  if(sym != nullptr && sym->type() == zenkit::DaedalusDataType::INSTANCE) {
     cls = vm.find_symbol_by_index(sym->parent());
     }
 

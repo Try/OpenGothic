@@ -86,7 +86,7 @@ void WorldSound::addZone(const zenkit::VZoneMusic &vob) {
 void WorldSound::addSound(const zenkit::VSound &vob) {
   WSound s;
   s.vobName   = vob.vob_name;
-  s.loop      = vob.mode==zenkit::SoundMode::loop;
+  s.loop      = vob.mode==zenkit::SoundMode::LOOP;
   s.active    = vob.initially_playing;
   s.delay     = uint64_t(vob.random_delay * 1000);
   s.delayVar  = uint64_t(vob.random_delay_var * 1000);

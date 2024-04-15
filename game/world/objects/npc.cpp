@@ -1821,7 +1821,7 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     auto& spl  = owner.script().spellDesc(splId);
     splCat     = SpellCategory(spl.spell_type);
     damageType = spl.damage_type;
-    for(size_t i=0; i<zenkit::DamageType::count; ++i)
+    for(size_t i=0; i<zenkit::DamageType::NUM; ++i)
       if((damageType&(1<<i))!=0)
         dmg[i] = spl.damage_per_level;
     }
@@ -2802,7 +2802,7 @@ void Npc::commitSpell() {
   if(active->isSpellShoot()) {
     const int lvl = (castLevel-CS_Emit_0)+1;
     DamageCalculator::Damage dmg={};
-    for(size_t i=0; i<zenkit::DamageType::count; ++i)
+    for(size_t i=0; i<zenkit::DamageType::NUM; ++i)
       if((spl.damage_type&(1<<i))!=0) {
         dmg[i] = spl.damage_per_level*lvl;
         }

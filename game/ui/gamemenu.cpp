@@ -364,7 +364,7 @@ void GameMenu::initItems() {
 
     hItems[i].img = Resources::loadTexture(hItems[i].handle->backpic);
 
-    if(hItems[i].handle->type==zenkit::MenuItemType::listbox) {
+    if(hItems[i].handle->type==zenkit::MenuItemType::LISTBOX) {
       hItems[i].visible = false;
       }
     updateItem(hItems[i]);
@@ -384,7 +384,7 @@ void GameMenu::paintEvent(PaintEvent &e) {
   for(auto& hItem:hItems)
     drawItem(p,hItem);
 
-  if(menu->flags & zenkit::MenuFlag::show_info) {
+  if(menu->flags & zenkit::MenuFlag::SHOW_INFO) {
     if(auto sel=selectedItem()) {
       auto& item = sel->handle;
       if(item->text->size()>0) {
@@ -434,7 +434,7 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
   int  th  = szY;
 
   AlignFlag txtAlign=NoAlign;
-  if(flags & zenkit::MenuItemFlag::centered) {
+  if(flags & zenkit::MenuItemFlag::CENTERED) {
     txtAlign = AlignHCenter | AlignVCenter;
     }
 
@@ -442,14 +442,14 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
   //p.drawRect(x,y,szX,szY);
   {
   int padd = 0;
-  if((flags & zenkit::MenuItemFlag::multiline) &&
+  if((flags & zenkit::MenuItemFlag::MULTILINE) &&
      std::min(tw,th)>100*2+fnt.pixelSize()) {
     padd = 100; // TODO: find out exact padding formula
     }
   auto tRect   = Rect(x+padd,y+fnt.pixelSize()+padd,
                       tw-2*padd, th-2*padd);
 
-  if(flags & zenkit::MenuItemFlag::multiline) {
+  if(flags & zenkit::MenuItemFlag::MULTILINE) {
     int lineCnt     = fnt.lineCount(tRect.w,textBuf.data());
     int linesInView = tRect.h/fnt.pixelSize();
 
@@ -473,10 +473,10 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
                textBuf.data(), txtAlign, hItem.scroll);
   }
 
-  if(item->type==zenkit::MenuItemType::slider && slider!=nullptr) {
+  if(item->type==zenkit::MenuItemType::SLIDER && slider!=nullptr) {
     drawSlider(p,hItem,x,y,szX,szY);
     }
-  else if(item->type==zenkit::MenuItemType::listbox) {
+  else if(item->type==zenkit::MenuItemType::LISTBOX) {
     if(auto ql = Gothic::inst().questLog()) {
       const int px = int(float(w()*item->frame_sizex)/scriptDiv);
       const int py = int(float(h()*item->frame_sizey)/scriptDiv);
@@ -485,7 +485,7 @@ void GameMenu::drawItem(Painter& p, Item& hItem) {
       drawQuestList(p, hItem, x+px,y+py, szX-2*px,szY-2*py, *ql,st);
       }
     }
-  else if(item->type==zenkit::MenuItemType::input) {
+  else if(item->type==zenkit::MenuItemType::INPUT) {
     string_frm textBuf;
     if(item->on_chg_set_option_section=="KEYS") {
       auto keys = Gothic::settingsGetS(item->on_chg_set_option_section, item->on_chg_set_option);
@@ -623,14 +623,14 @@ void GameMenu::onTick() {
 
   const float scale = Gothic::options().interfaceScale;
   Size size = {0, 0};
-  if(menu->flags & zenkit::MenuFlag::dont_scale_dimension) {
+  if(menu->flags & zenkit::MenuFlag::DONT_SCALE_DIMENSION) {
     size = {int(float(menu->dim_x)*fx*scale/scriptDiv),int(float(menu->dim_y)*fy*scale/scriptDiv)};
     } else {
     size = {int(float(menu->dim_x)*wx*scale/scriptDiv),int(float(menu->dim_y)*wy*scale/scriptDiv)};
     }
   resize(size);
 
-  if(menu->flags & zenkit::MenuFlag::align_center) {
+  if(menu->flags & zenkit::MenuFlag::ALIGN_CENTER) {
     setPosition((owner.w()-w())/2, (owner.h()-h())/2);
     } else {
     setPosition(int(float(menu->pos_x)/scriptDiv*fx), int(float(menu->pos_y)/scriptDiv*fy));
@@ -678,7 +678,7 @@ GameMenu::Item* GameMenu::selectedContentItem(Item *it) {
     cur%=zenkit::IMenu::item_count;
 
     auto& it=hItems[cur].handle;
-    if(isEnabled(it) && it->type==zenkit::MenuItemType::text)
+    if(isEnabled(it) && it->type==zenkit::MenuItemType::TEXT)
       return &hItems[cur];
     }
   return nullptr;
@@ -693,7 +693,7 @@ void GameMenu::setSelection(int desired, int seek) {
     if(isSelectable(it) && isEnabled(it)){
       curItem=cur;
       for(size_t i=0;i<zenkit::IMenuItem::select_action_count;++i)
-        if(it->on_sel_action[i]==int(zenkit::MenuItemSelectAction::execute_commands))
+        if(it->on_sel_action[i]==int(zenkit::MenuItemSelectAction::EXECUTE_COMMANDS))
           execCommands(it->on_sel_action_s[i],false);
       return;
       }
@@ -707,14 +707,14 @@ void GameMenu::getText(const Item& it, std::vector<char> &out) {
   out[0]='\0';
 
   const auto& src = it.handle->text[0];
-  if(it.handle->type==zenkit::MenuItemType::text) {
+  if(it.handle->type==zenkit::MenuItemType::TEXT) {
     size_t size = src.size();
     out.resize(size+1);
     std::memcpy(out.data(),src.c_str(),size+1);
     return;
     }
 
-  if(it.handle->type==zenkit::MenuItemType::choicebox) {
+  if(it.handle->type==zenkit::MenuItemType::CHOICEBOX) {
     strEnum(src,it.value,out);
     return;
     }
@@ -730,19 +730,19 @@ const GthFont& GameMenu::getTextFont(const GameMenu::Item &it) {
   }
 
 bool GameMenu::isSelectable(const std::shared_ptr<zenkit::IMenuItem>& item) {
-  return item != nullptr && (item->flags & zenkit::MenuItemFlag::selectable) && !isHidden(item);
+  return item != nullptr && (item->flags & zenkit::MenuItemFlag::SELECTABLE) && !isHidden(item);
   }
 
 bool GameMenu::isHorSelectable(const std::shared_ptr<zenkit::IMenuItem>& item) {
-  return item != nullptr && (item->flags & zenkit::MenuItemFlag::hor_selectable) && !isHidden(item);
+  return item != nullptr && (item->flags & zenkit::MenuItemFlag::HOR_SELECTABLE) && !isHidden(item);
   }
 
 bool GameMenu::isEnabled(const std::shared_ptr<zenkit::IMenuItem>& item) {
   if(item==nullptr)
     return false;
-  if((item->flags & zenkit::MenuItemFlag::only_ingame) && !Gothic::inst().isInGameAndAlive())
+  if((item->flags & zenkit::MenuItemFlag::ONLY_INGAME) && !Gothic::inst().isInGameAndAlive())
     return false;
-  if((item->flags & zenkit::MenuItemFlag::only_outgame) && Gothic::inst().isInGameAndAlive())
+  if((item->flags & zenkit::MenuItemFlag::ONLY_OUTGAME) && Gothic::inst().isInGameAndAlive())
     return false;
   return true;
   }
@@ -764,7 +764,7 @@ void GameMenu::exec(Item &p, int slideDx) {
     if(it==&p)
       execSingle(*it,slideDx); else
       execChgOption(*it,slideDx);
-    if(it->handle->flags & zenkit::MenuItemFlag::effects) {
+    if(it->handle->flags & zenkit::MenuItemFlag::EFFECTS) {
       auto next=selectedNextItem(it);
       if(next!=&p)
         it=next;
@@ -785,7 +785,7 @@ void GameMenu::execSingle(Item &it, int slideDx) {
   auto& onSelAction_S = item->on_sel_action_s;
   auto& onEventAction = item->on_event_action;
 
-  if(item->type==zenkit::MenuItemType::input && slideDx==0) {
+  if(item->type==zenkit::MenuItemType::INPUT && slideDx==0) {
     ctrlInput = &it;
     if(item->on_chg_set_option.empty()) {
       SavNameDialog dlg{item->text[0]};
@@ -817,19 +817,19 @@ void GameMenu::execSingle(Item &it, int slideDx) {
   for(size_t i=0; i<zenkit::IMenuItem::select_action_count; ++i) {
     auto action = zenkit::MenuItemSelectAction(onSelAction[i]);
     switch(action) {
-      case zenkit::MenuItemSelectAction::unknown:
+      case zenkit::MenuItemSelectAction::UNKNOWN:
         break;
-      case zenkit::MenuItemSelectAction::back:
+      case zenkit::MenuItemSelectAction::BACK:
         Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx("MENU_ESC"));
         exitFlag = true;
         break;
-      case zenkit::MenuItemSelectAction::start_menu:
+      case zenkit::MenuItemSelectAction::START_MENU:
         if(vm->find_symbol_by_name(onSelAction_S[i]) != nullptr)
           owner.pushMenu(new GameMenu(owner,keyCodec,*vm,onSelAction_S[i],keyClose()));
         break;
-      case zenkit::MenuItemSelectAction::start_item:
+      case zenkit::MenuItemSelectAction::START_ITEM:
         break;
-      case zenkit::MenuItemSelectAction::close:
+      case zenkit::MenuItemSelectAction::CLOSE:
         Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx("MENU_ESC"));
         closeFlag = true;
         if(onSelAction_S[i]=="NEW_GAME")
@@ -841,13 +841,13 @@ void GameMenu::execSingle(Item &it, int slideDx) {
         else if(onSelAction_S[i]=="SAVEGAME_LOAD")
           execLoadGame(it);
         break;
-      case zenkit::MenuItemSelectAction::con_commands:
-        // unknown
+      case zenkit::MenuItemSelectAction::CON_COMMANDS:
+        // TODO: inline marvin commands
         break;
-      case zenkit::MenuItemSelectAction::play_sound:
+      case zenkit::MenuItemSelectAction::PLAY_SOUND:
         Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx(onSelAction_S[i]));
         break;
-      case zenkit::MenuItemSelectAction::execute_commands:
+      case zenkit::MenuItemSelectAction::EXECUTE_COMMANDS:
         execCommands(onSelAction_S[i],true);
         break;
       }
@@ -868,13 +868,13 @@ void GameMenu::execChgOption(Item &item, int slideDx) {
   if(sec.empty() || opt.empty())
     return;
 
-  if(item.handle->type==zenkit::MenuItemType::slider && slideDx!=0) {
+  if(item.handle->type==zenkit::MenuItemType::SLIDER && slideDx!=0) {
     updateItem(item);
     float v = Gothic::settingsGetF(sec, opt);
     v  = std::max(0.f,std::min(v+float(slideDx)*0.03f,1.f));
     Gothic::settingsSetF(sec, opt, v);
     }
-  if(item.handle->type==zenkit::MenuItemType::choicebox) {
+  if(item.handle->type==zenkit::MenuItemType::CHOICEBOX) {
     updateItem(item);
     const int cnt = int(strEnumSize(item.handle->text[0]));
     if(slideDx==0 && cnt==2)
@@ -916,7 +916,7 @@ void GameMenu::execCommands(std::string str, bool isClick) {
     const char* arg0 = str.data()+std::strlen("EFFECTS ");
     for(uint32_t id=0; id<zenkit::IMenu::item_count; ++id) {
       auto& i = hItems[id];
-      if(i.handle != nullptr && i.handle->type==zenkit::MenuItemType::listbox) {
+      if(i.handle != nullptr && i.handle->type==zenkit::MenuItemType::LISTBOX) {
         i.visible = (i.name==arg0);
         if(i.visible && isClick) {
           const uint32_t prev = curItem;

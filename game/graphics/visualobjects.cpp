@@ -75,11 +75,11 @@ void VisualObjects::Item::setWind(zenkit::AnimationType m, float intensity) {
   if(owner==nullptr)
     return;
 
-  if(intensity!=0 && m==zenkit::AnimationType::none)
-    m = zenkit::AnimationType::wind2;
+  if(intensity!=0 && m==zenkit::AnimationType::NONE)
+    m = zenkit::AnimationType::WIND_ALT;
 
   if(intensity==0)
-    m = zenkit::AnimationType::none;
+    m = zenkit::AnimationType::NONE;
 
   auto& obj = owner->objects[id];
 
@@ -90,9 +90,9 @@ void VisualObjects::Item::setWind(zenkit::AnimationType m, float intensity) {
   if(prev==m)
     return;
 
-  if(prev!=zenkit::AnimationType::none)
+  if(prev!=zenkit::AnimationType::NONE)
     owner->objectsWind.erase(id);
-  if(m!=zenkit::AnimationType::none)
+  if(m!=zenkit::AnimationType::NONE)
     owner->objectsWind.insert(id);
   }
 
@@ -322,7 +322,7 @@ void VisualObjects::free(size_t id) {
   drawCmd.addClusters(obj.cmdId, -meshletCount);
   clusters.free(obj.clusterId, numCluster);
 
-  if(obj.wind==zenkit::AnimationType::none)
+  if(obj.wind==zenkit::AnimationType::NONE)
     objectsWind.erase(id);
   if(obj.type==DrawCommands::Morph)
     objectsMorph.erase(id);
@@ -494,19 +494,19 @@ void VisualObjects::preFrameUpdateWind(uint8_t fId) {
     float m = 0;
 
     switch(i.wind) {
-      case zenkit::AnimationType::wind:
+      case zenkit::AnimationType::WIND:
         // tree. note: mods tent to bump Intensity to insane values
         if(i.windIntensity>0.f)
           m = 0.03f; else
           m = 0;
         break;
-      case zenkit::AnimationType::wind2:
+      case zenkit::AnimationType::WIND_ALT:
         // grass
         if(i.windIntensity>0.f && i.windIntensity<=1.0)
           m = i.windIntensity * 0.1f; else
           m = 0;
         break;
-      case zenkit::AnimationType::none:
+      case zenkit::AnimationType::NONE:
       default:
         // error
         m = 0.f;

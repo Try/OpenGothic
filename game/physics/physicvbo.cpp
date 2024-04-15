@@ -74,7 +74,7 @@ void PhysicVbo::addSegment(size_t indexSize, size_t offset, zenkit::MaterialGrou
 zenkit::MaterialGroup PhysicVbo::materialId(size_t segment) const {
   if(segment<segments.size())
     return segments[segment].mat;
-  return zenkit::MaterialGroup::undefined;
+  return zenkit::MaterialGroup::UNDEFINED;
   }
 
 const char* PhysicVbo::sectorName(size_t segment) const {

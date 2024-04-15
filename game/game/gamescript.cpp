@@ -541,10 +541,10 @@ void GameScript::loadVar(Serialize &fin) {
   uint32_t sz=0;
   fin.read(sz);
   for(size_t i=0;i<sz;++i){
-    auto t = uint32_t(zenkit::DaedalusDataType::void_);
+    auto t = uint32_t(zenkit::DaedalusDataType::VOID);
     fin.read(t);
     switch(zenkit::DaedalusDataType(t)) {
-      case zenkit::DaedalusDataType::integer:{
+      case zenkit::DaedalusDataType::INT:{
         fin.read(name);
         auto* s = findSymbol(name);
 
@@ -561,7 +561,7 @@ void GameScript::loadVar(Serialize &fin) {
 
         break;
         }
-      case zenkit::DaedalusDataType::float_:{
+      case zenkit::DaedalusDataType::FLOAT:{
         fin.read(name);
         auto* s = findSymbol(name);
 
@@ -578,7 +578,7 @@ void GameScript::loadVar(Serialize &fin) {
 
         break;
         }
-      case zenkit::DaedalusDataType::string:{
+      case zenkit::DaedalusDataType::STRING:{
         fin.read(name);
         auto* s = findSymbol(name);
 
@@ -595,7 +595,7 @@ void GameScript::loadVar(Serialize &fin) {
 
         break;
         }
-      case zenkit::DaedalusDataType::instance:{
+      case zenkit::DaedalusDataType::INSTANCE:{
         uint8_t dataClass=0;
         fin.read(dataClass);
         if(dataClass>0){
@@ -664,7 +664,7 @@ const QuestLog& GameScript::questLog() const {
 void GameScript::saveSym(Serialize &fout, zenkit::DaedalusSymbol& i) {
   auto& w = world();
   switch(i.type()) {
-    case zenkit::DaedalusDataType::integer:
+    case zenkit::DaedalusDataType::INT:
       if(i.count()>0 && !i.is_member() && !i.is_const()){
         fout.write(i.type(), i.name(), i.count());
 
@@ -673,7 +673,7 @@ void GameScript::saveSym(Serialize &fout, zenkit::DaedalusSymbol& i) {
         return;
         }
       break;
-    case zenkit::DaedalusDataType::float_:
+    case zenkit::DaedalusDataType::FLOAT:
       if(i.count()>0 && !i.is_member() && !i.is_const()){
         fout.write(i.type(), i.name(), i.count());
 
@@ -682,7 +682,7 @@ void GameScript::saveSym(Serialize &fout, zenkit::DaedalusSymbol& i) {
         return;
         }
       break;
-    case zenkit::DaedalusDataType::string:
+    case zenkit::DaedalusDataType::STRING:
       if(i.count()>0 && !i.is_member() && !i.is_const()){
         fout.write(i.type(), i.name(), i.count());
 
@@ -691,7 +691,7 @@ void GameScript::saveSym(Serialize &fout, zenkit::DaedalusSymbol& i) {
         return;
         }
       break;
-    case zenkit::DaedalusDataType::instance:
+    case zenkit::DaedalusDataType::INSTANCE:
       fout.write(i.type());
 
       if(i.is_instance_of<zenkit::INpc>()){
@@ -730,7 +730,7 @@ void GameScript::saveSym(Serialize &fout, zenkit::DaedalusSymbol& i) {
     default:
       break;
     }
-  fout.write(uint32_t(zenkit::DaedalusDataType::void_));
+  fout.write(uint32_t(zenkit::DaedalusDataType::VOID));
   }
 
 void GameScript::fixNpcPosition(Npc& npc, float angle0, float distBias) {
@@ -1034,7 +1034,7 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
 
   auto* sym = vm.find_symbol_by_index(uint32_t(fn.ptr));
   int   ret = 0;
-  if(sym!=nullptr && sym->rtype() == zenkit::DaedalusDataType::integer) {
+  if(sym!=nullptr && sym->rtype() == zenkit::DaedalusDataType::INT) {
     ret = vm.call_function<int>(sym);
     }
   else if(sym!=nullptr) {
@@ -1343,9 +1343,9 @@ bool GameScript::searchScheme(std::string_view sc, std::string_view listName) {
 zenkit::DaedalusVm GameScript::createVm(Gothic& gothic) {
   auto lang   = gothic.settingsGetI("GAME", "language");
   auto script = gothic.loadScript(gothic.defaultGameDatFile(), ScriptLang(lang));
-  auto exef   = zenkit::DaedalusVmExecutionFlag::vm_allow_null_instance_access;
+  auto exef   = zenkit::DaedalusVmExecutionFlag::ALLOW_NULL_INSTANCE_ACCESS;
   if(Ikarus::isRequired(script)) {
-    exef |= zenkit::DaedalusVmExecutionFlag::vm_ignore_const_specifier;
+    exef |= zenkit::DaedalusVmExecutionFlag::IGNORE_CONST_SPECIFIER;
     }
   return zenkit::DaedalusVm(std::move(script), exef);
   }

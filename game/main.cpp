@@ -82,20 +82,21 @@ int main(int argc,const char** argv) {
         logFile.flush();
       });
 
-    zenkit::Logger::use_logger([] (zenkit::Logger::level lvl, const std::string& message) {
+    zenkit::Logger::set(zenkit::LogLevel::INFO, [] (zenkit::LogLevel lvl, const char* cat, const char* message) {
+      (void)cat;
       switch (lvl) {
-        case zenkit::Logger::level::error:
-          Tempest::Log::e("[phoenix] ", message);
+        case zenkit::LogLevel::ERROR:
+          Tempest::Log::e("[zenkit] ", message);
           break;
-        case zenkit::Logger::level::warn:
-          Tempest::Log::e("[phoenix] ", message);
+        case zenkit::LogLevel::WARNING:
+          Tempest::Log::e("[zenkit] ", message);
           break;
-        case zenkit::Logger::level::info:
-          Tempest::Log::i("[phoenix] ", message);
+        case zenkit::LogLevel::INFO:
+          Tempest::Log::i("[zenkit] ", message);
           break;
-        case zenkit::Logger::level::debug:
-        case zenkit::Logger::level::TRACE:
-          Tempest::Log::d("[phoenix] ", message);
+        case zenkit::LogLevel::DEBUG:
+        case zenkit::LogLevel::TRACE:
+          Tempest::Log::d("[zenkit] ", message); // unused
           break;
         }
       });

@@ -640,7 +640,7 @@ std::unique_ptr<zenkit::DaedalusVm> Gothic::createPhoenixVm(std::string_view dat
   auto sc = loadScript(datFile, lang);
   zenkit::register_all_script_classes(sc);
 
-  auto vm = std::make_unique<zenkit::DaedalusVm>(std::move(sc), zenkit::DaedalusVmExecutionFlag::vm_allow_null_instance_access);
+  auto vm = std::make_unique<zenkit::DaedalusVm>(std::move(sc), zenkit::DaedalusVmExecutionFlag::ALLOW_NULL_INSTANCE_ACCESS);
   setupVmCommonApi(*vm);
   return vm;
   }

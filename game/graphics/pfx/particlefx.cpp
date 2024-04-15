@@ -28,7 +28,7 @@ ParticleFx::ParticleFx(const Material& mat, const zenkit::VirtualObject& vob) {
   visSizeEndScale  = 1;
   visAlphaStart    = 1;
   visAlphaEnd      = 1;
-  visYawAlign      = vob.sprite_camera_facing_mode==zenkit::SpriteAlignment::yaw;
+  visYawAlign      = vob.sprite_camera_facing_mode==zenkit::SpriteAlignment::YAW;
   visZBias         = vob.bias!=0;
 
   useEmittersFOR   = true;

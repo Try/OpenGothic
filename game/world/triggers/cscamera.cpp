@@ -11,7 +11,7 @@ CsCamera::CsCamera(Vob* parent, World& world, const zenkit::VCutsceneCamera& cam
   if(cam.position_count<1 || cam.total_duration<0)
     return;
 
-  if(cam.trajectory_for==zenkit::CameraCoordinateReference::object || cam.target_trajectory_for==zenkit::CameraCoordinateReference::object) {
+  if(cam.trajectory_for==zenkit::CameraCoordinateReference::OBJECT || cam.target_trajectory_for==zenkit::CameraCoordinateReference::OBJECT) {
     Log::d("Object camera not implemented, \"", name() , "\"");
     return;
     }
@@ -76,15 +76,15 @@ CsCamera::CsCamera(Vob* parent, World& world, const zenkit::VCutsceneCamera& cam
 
     float d0 = slow;
     float d1 = slow;
-    if(mType0!=zenkit::CameraMotion::slow && mType1!=zenkit::CameraMotion::slow) {
+    if(mType0!=zenkit::CameraMotion::SLOW && mType1!=zenkit::CameraMotion::SLOW) {
       d0 = linear;
       d1 = linear;
       }
-    else if(mType0==zenkit::CameraMotion::slow && mType1!=zenkit::CameraMotion::slow) {
+    else if(mType0==zenkit::CameraMotion::SLOW && mType1!=zenkit::CameraMotion::SLOW) {
       d0 = slow;
       d1 = fast;
       }
-    else if(mType0!=zenkit::CameraMotion::slow && mType1==zenkit::CameraMotion::slow) {
+    else if(mType0!=zenkit::CameraMotion::SLOW && mType1==zenkit::CameraMotion::SLOW) {
       d0 = fast;
       d1 = slow;
       }
