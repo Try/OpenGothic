@@ -434,7 +434,7 @@ void MoveAlgo::tick(uint64_t dt, MvFlags moveFlg) {
     portal       = cache.sector;
     if(npc.isPlayer()) {
       auto& w = npc.world();
-      w.sendPassivePerc(npc,npc,npc,PERC_ASSESSENTERROOM);
+      w.sendImmediatePerc(npc,npc,npc,PERC_ASSESSENTERROOM);
       }
     }
   }

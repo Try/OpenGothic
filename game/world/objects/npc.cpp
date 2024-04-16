@@ -2071,7 +2071,7 @@ void Npc::tickAnimationTags() {
   for(auto& i:ev.morph)
     visual.startMMAnim(*this,i.anim,i.node);
   if(ev.groundSounds>0 && isPlayer() && (bodyStateMasked()!=BodyState::BS_SNEAK))
-    world().sendPassivePerc(*this,*this,*this,PERC_ASSESSQUIETSOUND);
+    world().sendImmediatePerc(*this,*this,*this,PERC_ASSESSQUIETSOUND);
   if(ev.def_opt_frame>0)
     commitDamage();
   implSetFightMode(ev);
@@ -3039,7 +3039,7 @@ Item* Npc::takeItem(Item& item) {
     return nullptr;
 
   it = addItem(std::move(ptr));
-  if(isPlayer() && it!=nullptr) // && (it->handle().owner!=0 || it->handle().ownerGuild!=0))
+  if(isPlayer() && it!=nullptr)
     owner.sendPassivePerc(*this,*this,*this,*it,PERC_ASSESSTHEFT);
 
   implAniWait(uint64_t(sq->totalTime()));
@@ -4204,10 +4204,8 @@ bool Npc::canRayHitPoint(const Tempest::Vec3 pos, bool freeLos, float extRange) 
 SensesBit Npc::canSenseNpc(const Npc &oth, bool freeLos, float extRange) const {
   const auto mid     = oth.bounds().midTr;
   const auto st      = oth.bodyStateMasked();
-  /* Testing for BS_STAND as well, to avoid overreaction to monsters
-   * https://github.com/Try/OpenGothic/pull/589#issuecomment-2045897394
-   */
-  const bool isNoisy = (st!=BodyState::BS_SNEAK && st!=BodyState::BS_STAND);
+  // https://github.com/Try/OpenGothic/pull/589#issuecomment-2045897394
+  const bool isNoisy = (st!=BodyState::BS_SNEAK && oth.isPlayer());
   return canSenseNpc(mid,freeLos,isNoisy,extRange);
   }
 

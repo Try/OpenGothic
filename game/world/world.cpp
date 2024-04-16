@@ -667,11 +667,19 @@ Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target, c
   }
 
 void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t perc) {
-  wobj.sendPassivePerc(self,other,victum,perc);
+  wobj.sendPassivePerc(self,other,victum,nullptr,perc);
   }
 
-void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item &item, int32_t perc) {
-  wobj.sendPassivePerc(self,other,victum,item,perc);
+void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item& item, int32_t perc) {
+  wobj.sendPassivePerc(self,other,victum,&item,perc);
+  }
+
+void World::sendImmediatePerc(Npc& self, Npc& other, Npc& victum, int32_t perc) {
+  wobj.sendImmediatePerc(self,other,victum,nullptr,perc);
+  }
+
+void World::sendImmediatePerc(Npc& self, Npc& other, Npc& victum, Item& item, int32_t perc) {
+  wobj.sendImmediatePerc(self,other,victum,&item,perc);
   }
 
 Sound World::addWeaponHitEffect(Npc& src, const Bullet* srcArrow, Npc& reciver) {

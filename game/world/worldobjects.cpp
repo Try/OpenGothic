@@ -868,27 +868,60 @@ void WorldObjects::setMobRoutine(gtime time, std::string_view scheme, int32_t st
   routines.emplace_back(std::move(st));
   }
 
-void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t perc) {
+void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item* itm, int32_t perc) {
   PerceptionMsg m;
   m.what   = perc;
   m.pos    = self.position();
   m.self   = &self;
   m.other  = &other;
   m.victum = &victum;
-
+  if(itm!=nullptr)
+    m.item   = itm->handle().symbol_index();
   sndPerc.push_back(m);
   }
 
-void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item &itm, int32_t perc) {
-  PerceptionMsg m;
-  m.what   = perc;
-  m.pos    = self.position();
-  m.self   = &self;
-  m.other  = &other;
-  m.victum = &victum;
-  m.item   = itm.handle().symbol_index();
+void WorldObjects::sendImmediatePerc(Npc& self, Npc& other, Npc& victum, Item* itm, int32_t perc) {
+  const auto pl = owner.player();
+  if(pl==nullptr || pl->bodyStateMasked()==BS_SNEAK)
+    return;
 
-  sndPerc.push_back(m);
+  PerceptionMsg r;
+  r.what   = perc;
+  r.pos    = self.position();
+  r.self   = &self;
+  r.other  = &other;
+  r.victum = &victum;
+  if(itm!=nullptr)
+    r.item   = itm->handle().symbol_index();
+
+  for(auto& ptr:npcNear) {
+    Npc& i = *ptr;
+    if(i.isPlayer() || i.isDead())
+      continue;
+
+    const uint64_t percNextTime = i.percNextTime();
+    if(percNextTime<=owner.tickCount())
+      i.perceptionProcess(*pl);
+
+    if(i.processPolicy()!=Npc::AiNormal)
+      continue;
+
+    if(r.self==&i)
+      continue;
+
+    const float distance = i.qDistTo(r.pos);
+    const float range    = float(owner.script().percRanges().at(PercType(r.what), i.handle().senses_range));
+
+    if(distance > range*range)
+      continue;
+
+    if(i.isDown() || i.isPlayer())
+      continue;
+
+    if(r.item!=size_t(-1) && r.other!=nullptr)
+      owner.script().setInstanceItem(*r.other,r.item);
+    i.perceptionProcess(*r.other,r.victum,distance,PercType(perc));
+    }
   }
 
 void WorldObjects::resetPositionToTA() {

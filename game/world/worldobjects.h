@@ -126,8 +126,9 @@ class WorldObjects final {
     Interactive*   availableMob(const Npc& pl, std::string_view name);
     void           setMobRoutine(gtime time, std::string_view scheme, int32_t state);
 
-    void           sendPassivePerc(Npc& self,Npc& other,Npc& victum,int32_t perc);
-    void           sendPassivePerc(Npc& self,Npc& other,Npc& victum,Item& itm,int32_t perc);
+    void           sendPassivePerc  (Npc& self, Npc& other, Npc& victum, Item* itm, int32_t perc);
+    void           sendImmediatePerc(Npc& self, Npc& other, Npc& victum, Item* itm, int32_t perc);
+
     void           resetPositionToTA();
 
   private:
