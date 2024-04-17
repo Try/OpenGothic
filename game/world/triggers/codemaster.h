@@ -20,7 +20,7 @@ class CodeMaster : public AbstractTrigger {
 
     std::vector<bool>        keys;
     std::vector<std::string> slaves;
-    size_t                   count               = 0;
+    uint32_t                 count               = 0;
     bool                     ordered             = false;
     bool                     firstFalseIsFailure = false;
     std::string              failureTarget;
