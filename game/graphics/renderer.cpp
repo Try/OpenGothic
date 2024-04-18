@@ -61,7 +61,6 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
   Gothic::inst().toggleGi.bind(this, &Renderer::toggleGi);
 
   settings.giEnabled = Gothic::options().doRtGi;
-  settings.fxaaEnabled = Gothic::options().fxaaPreset > 0;
   initSettings();
   }
 
@@ -83,7 +82,7 @@ void Renderer::resetSwapchain() {
 
   sceneLinear    = device.attachment(TextureFormat::R11G11B10UF,w,h);
 
-  if (settings.fxaaEnabled) {
+  if(settings.fxaaEnabled) {
     fxaa.sceneTonemapped = device.attachment(TextureFormat::RGBA8, w, h);
     }
  
@@ -167,11 +166,10 @@ void Renderer::resetSwapchain() {
   ssao.ssaoBlur = device.image2d(ssao.aoFormat, w,h);
   ssao.uboBlur  = device.descriptors(Shaders::inst().ssaoBlur);
 
-  tonemapping.pso     = &Shaders::inst().tonemapping;
+  tonemapping.pso     = (settings.vidResIndex==0) ? &Shaders::inst().tonemapping : &Shaders::inst().tonemappingUpscale;
   tonemapping.uboTone = device.descriptors(*tonemapping.pso);
 
-  uint32_t availableFxaaPreset = Gothic::options().fxaaPreset;
-  fxaa.pso = &Shaders::inst().fxaaPresets[availableFxaaPreset];
+  fxaa.pso = &Shaders::inst().fxaaPresets[Gothic::options().fxaaPreset];
   fxaa.ubo = device.descriptors(*fxaa.pso);
 
   initGiData();
@@ -189,6 +187,7 @@ void Renderer::initSettings() {
 
   auto prevVidResIndex = settings.vidResIndex;
   settings.vidResIndex = Gothic::inst().settingsGetF("INTERNAL","vidResIndex");
+  settings.fxaaEnabled = (Gothic::options().fxaaPreset > 0) && (settings.vidResIndex==0);
   if(prevVidResIndex!=settings.vidResIndex) {
     resetSwapchain();
     }
@@ -286,6 +285,7 @@ void Renderer::prepareUniforms() {
   {
     auto smpB = Sampler::bilinear();
     smpB.setClamping(ClampMode::ClampToEdge);
+    smpB.setFiltration(Filter::Nearest); // Lanczos upscale requires nearest sampling
 
     tonemapping.uboTone.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     tonemapping.uboTone.set(1, sceneLinear, smpB);
@@ -560,10 +560,8 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     wview->drawFog(cmd,fId);
     }
 
-  auto isFxaaOn = !fxaa.pso->isEmpty();
   auto* tonemappingRt = &result;
-
-  if(isFxaaOn) {
+  if(settings.fxaaEnabled) {
     assert(!fxaa.sceneTonemapped.isEmpty());
     tonemappingRt = &fxaa.sceneTonemapped;
     }
@@ -572,7 +570,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   cmd.setDebugMarker("Tonemapping");
   drawTonemapping(cmd);
 
-  if(isFxaaOn) {
+  if(settings.fxaaEnabled) {
     cmd.setFramebuffer({ {result, Tempest::Discard, Tempest::Preserve} });
     cmd.setDebugMarker("Fxaa");
     drawFxaa(cmd);

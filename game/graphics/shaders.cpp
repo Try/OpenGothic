@@ -111,7 +111,8 @@ Shaders::Shaders() {
     }
   }
 
-  tonemapping = postEffect("tonemapping", "tonemapping", RenderState::ZTestMode::Always);
+  tonemapping        = postEffect("tonemapping", "tonemapping",    RenderState::ZTestMode::Always);
+  tonemappingUpscale = postEffect("tonemapping", "tonemapping_up", RenderState::ZTestMode::Always);
 
   const auto fxaaZTestMode = RenderState::ZTestMode::Always;
   fxaaPresets[uint32_t(FxaaPreset::OFF)]        = Tempest::RenderPipeline();

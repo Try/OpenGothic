@@ -7,6 +7,8 @@
 #include "common.glsl"
 #include "lighting/tonemapping.glsl"
 
+#include "upscale/lanczos.glsl"
+
 layout(push_constant, std140) uniform PushConstant {
   float brightness;
   float contrast;
@@ -112,7 +114,12 @@ void main() {
   float contrast   = push.contrast;
   float gamma      = push.gamma;
 
+#if defined(UPSCALE)
+  vec3  color      = lanczosUpscale(textureD, uv).rgb;
+#else
   vec3  color      = textureLod(textureD, uv, 0).rgb;
+#endif
+
   {
     // outColor = vec4(srgbEncode(color), 1);
     // outColor = vec4(color, 1);

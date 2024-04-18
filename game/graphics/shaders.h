@@ -49,7 +49,7 @@ class Shaders {
     Tempest::RenderPipeline  underwaterT, underwaterS;
     Tempest::RenderPipeline  waterReflection, waterReflectionSSR;
 
-    Tempest::RenderPipeline  tonemapping;
+    Tempest::RenderPipeline  tonemapping, tonemappingUpscale;
 
     // AA
     Tempest::RenderPipeline  fxaaPresets[uint32_t(FxaaPreset::PRESETS_COUNT)];
