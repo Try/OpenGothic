@@ -13,7 +13,7 @@ float lanczosWeight(vec2 x, float r) {
   }
 
 vec3 lanczosUpscale(in sampler2D img, vec2 coord) {
-  const int r = 5;
+  const int r = 2;
 
   vec2 res    = vec2(textureSize(img, 0));
   vec2 resInv = 1.0 / res;
@@ -21,12 +21,16 @@ vec3 lanczosUpscale(in sampler2D img, vec2 coord) {
   vec2 ccoord = floor(coord * res) * resInv;
 
   vec3 total = vec3(0);
+  [[unroll]]
   for(int x = -r; x <= r; x++) {
+    [[unroll]]
     for(int y = -r; y <= r; y++) {
-      vec2  offs = vec2(x,y);
+      if(abs(x)==r && abs(y)==r)
+        continue;
 
-      vec2  sco  = offs * resInv + ccoord;
-      vec2  d    = ((sco - coord) * res);
+      vec2  offs   = vec2(x,y);
+      vec2  sco    = offs * resInv + ccoord;
+      vec2  d      = ((sco - coord) * res);
 
       vec3  val    = textureLod(img, sco+0.5*resInv, 0.0).rgb;
       float weight = lanczosWeight(d, float(r));

@@ -2,6 +2,7 @@
 
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_control_flow_attributes : enable
 
 #include "scene.glsl"
 #include "common.glsl"
