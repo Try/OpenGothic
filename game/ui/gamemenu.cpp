@@ -1013,7 +1013,7 @@ void GameMenu::updateSavThumb(GameMenu::Item &sel) {
 
 void GameMenu::updateVideo() {
   set("MENUITEM_VID_DEVICE_CHOICE",     Resources::renderer());
-  set("MENUITEM_VID_RESOLUTION_CHOICE", "full|75%|half");
+  set("MENUITEM_VID_RESOLUTION_CHOICE", "full|upscale(75%)|upscale(half)");
   }
 
 void GameMenu::setDefaultKeys(std::string_view preset) {
