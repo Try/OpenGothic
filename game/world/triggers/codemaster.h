@@ -15,13 +15,15 @@ class CodeMaster : public AbstractTrigger {
     void load(Serialize &fin) override;
 
     void onFailure();
+    void onSuccess();
     void zeroState();
 
     std::vector<bool>        keys;
     std::vector<std::string> slaves;
-    bool                     ordered = false;
+    uint32_t                 count               = 0;
+    bool                     ordered             = false;
     bool                     firstFalseIsFailure = false;
     std::string              failureTarget;
-    bool                     untriggeredCancels = false;
+    bool                     untriggeredCancels  = false;
   };
 
