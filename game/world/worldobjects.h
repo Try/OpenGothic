@@ -187,6 +187,7 @@ class WorldObjects final {
     bool testObj(T &src, const Npc &pl, const SearchOpt& opt, float& rlen);
 
     void             setMobState(std::string_view scheme, int32_t st);
+    void             passivePerceptionProcess(PerceptionMsg& msg, Npc& npc, Npc& pl);
 
     void             tickNear(uint64_t dt);
     void             tickTriggers(uint64_t dt);

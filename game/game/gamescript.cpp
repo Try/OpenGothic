@@ -2603,7 +2603,6 @@ bool GameScript::npc_canseesource(std::shared_ptr<zenkit::INpc> npcRef) {
   auto self = findNpc(npcRef);
   if(!self)
     return false;
-
   return self->canSeeSource();
   }
 

@@ -243,39 +243,8 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
       }
 
     if(i.processPolicy()==Npc::AiNormal) {
-      for(auto& r:passive) {
-        if(r.self==&i)
-          continue;
-
-        const float distance = i.qDistTo(r.pos);
-        const float range    = float(owner.script().percRanges().at(PercType(r.what), i.handle().senses_range));
-
-        if(distance > range*range)
-          continue;
-
-        if(i.isDown() || i.isPlayer() || !i.isAiQueueEmpty())
-          continue;
-
-        if((percNextTime>owner.tickCount()) &&
-           (r.what==PERC_ASSESSFIGHTSOUND || r.what==PERC_ASSESSQUIETSOUND)) {
-          //Log::d("");
-          //continue;
-          }
-
-        if(r.other==nullptr)
-          continue;
-
-        if(i.canSenseNpc(*r.other, true)==SensesBit::SENSE_NONE)
-          continue;
-
-        // approximation of behavior of original G2
-        if(r.victum!=nullptr && i.canSenseNpc(*r.victum,true,float(r.other->handle().senses_range))==SensesBit::SENSE_NONE)
-          continue;
-
-        if(r.item!=size_t(-1) && r.other!=nullptr)
-          owner.script().setInstanceItem(*r.other,r.item);
-        i.perceptionProcess(*r.other,r.victum,distance,PercType(r.what));
-        }
+      for(auto& r:passive)
+        passivePerceptionProcess(r, *ptr, *pl);
       }
     }
   }
@@ -895,33 +864,48 @@ void WorldObjects::sendImmediatePerc(Npc& self, Npc& other, Npc& victum, Item* i
     r.item   = itm->handle().symbol_index();
 
   for(auto& ptr:npcNear) {
-    Npc& i = *ptr;
-    if(i.isPlayer() || i.isDead())
-      continue;
-
-    const uint64_t percNextTime = i.percNextTime();
-    if(percNextTime<=owner.tickCount())
-      i.perceptionProcess(*pl);
-
-    if(i.processPolicy()!=Npc::AiNormal)
-      continue;
-
-    if(r.self==&i)
-      continue;
-
-    const float distance = i.qDistTo(r.pos);
-    const float range    = float(owner.script().percRanges().at(PercType(r.what), i.handle().senses_range));
-
-    if(distance > range*range)
-      continue;
-
-    if(i.isDown() || i.isPlayer())
-      continue;
-
-    if(r.item!=size_t(-1) && r.other!=nullptr)
-      owner.script().setInstanceItem(*r.other,r.item);
-    i.perceptionProcess(*r.other,r.victum,distance,PercType(perc));
+    passivePerceptionProcess(r, *ptr, *pl);
     }
+  }
+
+void WorldObjects::passivePerceptionProcess(PerceptionMsg& msg, Npc& npc, Npc& pl) {
+  if(npc.isPlayer() || npc.isDead())
+    return;
+
+  if(npc.processPolicy()!=Npc::AiNormal)
+    return;
+
+  if(msg.self==&npc)
+    return;
+
+  const float distance = npc.qDistTo(msg.pos);
+  const float range    = float(owner.script().percRanges().at(PercType(msg.what), npc.handle().senses_range));
+
+  if(distance > range*range)
+    return;
+
+  if(npc.isDown() || npc.isPlayer())
+    return;
+
+  if(msg.other==nullptr)
+    return;
+
+  /*
+  // active only
+  const bool active = isActivePerception(PercType(msg.what));
+  if(active && npc.canSenseNpc(*msg.other, true)==SensesBit::SENSE_NONE) {
+    return;
+    }
+
+  // approximation of behavior of original G2
+  if(active && msg.victum!=nullptr && npc.canSenseNpc(*msg.victum,true,float(msg.other->handle().senses_range))==SensesBit::SENSE_NONE) {
+    return;
+    }
+  */
+
+  if(msg.item!=size_t(-1) && msg.other!=nullptr)
+    owner.script().setInstanceItem(*msg.other,msg.item);
+  npc.perceptionProcess(*msg.other,msg.victum,distance,PercType(msg.what));
   }
 
 void WorldObjects::resetPositionToTA() {

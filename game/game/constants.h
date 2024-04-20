@@ -343,11 +343,13 @@ enum Action:uint32_t {
 
 
 enum PercType : uint8_t {
+  // active perceptions
   PERC_ASSESSPLAYER       = 1,
   PERC_ASSESSENEMY        = 2,
   PERC_ASSESSFIGHTER      = 3,
   PERC_ASSESSBODY         = 4,
   PERC_ASSESSITEM         = 5,
+  // passive perceptions
   PERC_ASSESSMURDER       = 6,
   PERC_ASSESSDEFEAT       = 7,
   PERC_ASSESSDAMAGE       = 8,

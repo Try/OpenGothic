@@ -4214,17 +4214,14 @@ SensesBit Npc::canSenseNpc(const Tempest::Vec3 pos, bool freeLos, bool isNoisy, 
   if(qDistTo(pos)>range*range)
     return SensesBit::SENSE_NONE;
 
-  SensesBit ret = SensesBit::SENSE_NONE;
-  if(owner.roomAt(pos)==owner.roomAt({x,y,z})) {
-    ret = ret | SensesBit::SENSE_SMELL;
-    }
+  SensesBit ret = SensesBit::SENSE_SMELL;
 
   if(isNoisy) {
     // no need to be in same room: https://github.com/Try/OpenGothic/issues/420
     ret = ret | SensesBit::SENSE_HEAR;
     }
 
-  if(canRayHitPoint(pos, freeLos, extRange)) {
+  if((hnpc->senses & int32_t(SensesBit::SENSE_SEE))!=0 && canRayHitPoint(pos, freeLos, extRange)) {
     ret = ret | SensesBit::SENSE_SEE;
     }
 
