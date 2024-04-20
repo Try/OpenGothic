@@ -24,7 +24,8 @@ void CodeMaster::onTrigger(const TriggerEvent &evt) {
       break;
   if(i==keys.size())
     return;
-  else if(!ordered || count==i)
+
+  if(!ordered || count==i)
     keys[i] = true;
   else if(firstFalseIsFailure) {
     onFailure();
@@ -33,7 +34,8 @@ void CodeMaster::onTrigger(const TriggerEvent &evt) {
   ++count;
   if(count<keys.size())
     return;
-  else if(std::find(keys.begin(),keys.end(),false)==keys.end())
+
+  if(std::find(keys.begin(),keys.end(),false)==keys.end())
     onSuccess();
   else if(ordered)
     onFailure();
