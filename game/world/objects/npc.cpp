@@ -3264,6 +3264,8 @@ bool Npc::closeWeapon(bool noAnim) {
   castLevel        = CS_NoCast;
   currentSpellCast = size_t(-1);
   castNextTime     = 0;
+  if(isPlayer())
+    owner.sendPassivePerc(*this,*this,*this,PERC_ASSESSREMOVEWEAPON);
   return true;
   }
 
