@@ -18,26 +18,25 @@ CodeMaster::CodeMaster(Vob* parent, World &world, const zenkit::VCodeMaster& cm,
   }
 
 void CodeMaster::onTrigger(const TriggerEvent &evt) {
-  for(size_t i=0;i<keys.size();++i) {
-    if(slaves[i]==evt.emitter) {
-      if(!ordered || count==i)
-        keys[i] = true;
-      else if(firstFalseIsFailure) {
-        onFailure();
-        return;
-        }
-      ++count;
+  size_t i = 0;
+  for(i=0;i<keys.size();++i)
+    if(slaves[i]==evt.emitter)
       break;
-      }
+  if(i==keys.size())
+    return;
+  else if(!ordered || count==i)
+    keys[i] = true;
+  else if(firstFalseIsFailure) {
+    onFailure();
+    return;
     }
+  ++count;
   if(count<keys.size())
     return;
-  if(std::find(keys.begin(),keys.end(),false)!=keys.end()) {
-    if(ordered)
-      onFailure();
-    } else {
-      onSuccess();
-    }
+  else if(std::find(keys.begin(),keys.end(),false)==keys.end())
+    onSuccess();
+  else if(ordered)
+    onFailure();
   }
 
 void CodeMaster::save(Serialize& fout) const {
