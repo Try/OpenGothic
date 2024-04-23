@@ -354,7 +354,7 @@ class Npc final {
     auto      mapHeadBone() const -> Tempest::Vec3;
     auto      mapBone(std::string_view bone) const -> Tempest::Vec3;
 
-    bool      turnTo  (float dx, float dz, bool anim, uint64_t dt);
+    bool      turnTo  (float dx, float dz, bool noAnim, uint64_t dt);
     bool      rotateTo(float dx, float dz, float speed, bool anim, uint64_t dt);
     bool      isRotationAllowed() const;
     auto      playAnimByName(std::string_view name, BodyState bs) -> const Animation::Sequence*;
