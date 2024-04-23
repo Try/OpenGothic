@@ -3155,8 +3155,8 @@ Vec3 Npc::mapBone(std::string_view bone) const {
   return ret+position();
   }
 
-bool Npc::turnTo(float dx, float dz, bool anim, uint64_t dt) {
-  return implTurnTo(dx,dz,anim,dt);
+bool Npc::turnTo(float dx, float dz, bool noAnim, uint64_t dt) {
+  return implTurnTo(dx,dz,noAnim,dt);
   }
 
 bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
@@ -3186,11 +3186,11 @@ bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
 
   const auto sgn = std::sin(double(da)*M_PI/180.0);
   if(sgn<0) {
-    setAnimRotate(1);
+    setAnimRotate(noAnim ? 0 : +1);
     setDirection(angle-step);
     } else
   if(sgn>0) {
-    setAnimRotate(-1);
+    setAnimRotate(noAnim ? 0 : -1);
     setDirection(angle+step);
     } else {
     setAnimRotate(0);

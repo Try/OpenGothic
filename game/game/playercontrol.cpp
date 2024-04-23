@@ -712,7 +712,7 @@ void PlayerControl::implMove(uint64_t dt) {
     if(actrl[ActGeneric] || actrl[ActForward]) {
       if(auto other = pl.target()) {
         auto dp = other->position()-pl.position();
-        pl.turnTo(dp.x,dp.z,false,dt);
+        pl.turnTo(dp.x,dp.z,true,dt);
         pl.aimBow();
         } else
       if(currentFocus.interactive!=nullptr) {
@@ -734,10 +734,10 @@ void PlayerControl::implMove(uint64_t dt) {
     }
 
   if(ws==WeaponState::Mage) {
-    if(actrl[ActGeneric] || actrl[ActForward]) {
+    if(actrl[ActGeneric] || actrl[ActForward] || ctrl[KeyCodec::ActionGeneric]) {
       if(auto other = pl.target()) {
         auto dp = other->position()-pl.position();
-        pl.turnTo(dp.x,dp.z,false,dt);
+        pl.turnTo(dp.x,dp.z,true,dt);
         } else
       if(currentFocus.interactive!=nullptr) {
         auto dp = currentFocus.interactive->position()-pl.position();
