@@ -91,13 +91,14 @@ vec3 resolveMiss(const vec3 rayOrigin, const vec3 rayDirection) {
   return textureSkyLUT(skyLUT, vec3(0,RPlanet,0), rayDirection, scene.sunDir) * scene.GSunIntensity;
   }
 
-vec3 resolveSecondBounce(vec3 pos, vec3 norm, uint selfProbeId) {
+vec3 resolveSecondBounce(vec3 pos, vec3 norm, float rayT, uint selfProbeId) {
 #if 0
   return scene.ambient;
 #elif 1
-  vec3 ambient = scene.ambient;
-  vec3 sky     = probeReadAmbient(probesLightingPrev, 0, norm, vec3(0,1,0));
-  return (ambient + sky)*0.5;
+  float k       = smoothstep(0.0, 25.0, rayT);
+  vec3  ambient = scene.ambient;
+  vec3  sky     = probeReadAmbient(probesLightingPrev, 0, norm, vec3(0,1,0));
+  return (ambient + sky)*0.5*k;
 #elif 0
   vec3 ambient = scene.ambient;
   // vec3 sky     = skyIrradiance();
@@ -172,7 +173,7 @@ vec4 processSample(const vec3 rayOrigin, const vec3 rayDirection, uint probeId, 
 
   vec3 hit = vec3(0);
   hit += albedo * resolveHit(rayOrigin, rayDirection, rayT, norm, opaque, shadow);
-  hit += albedo * resolveSecondBounce(pos, norm, probeId);
+  hit += albedo * resolveSecondBounce(pos, norm, rayT, probeId);
   // hit += albedo * resolveHit(rayOrigin, rayDirection, rayT, norm, opaque, shadow);
   // hit += albedo * resolveSecondBounce(pos, -rayDirection, probeId) / max(1.0 - albedo, 0.1);
 
