@@ -73,7 +73,7 @@ void main() {
 
   vec3 color = lcolor.rgb;
   color *= linear;  // * Fd_Lambert is accounted in integration
-  color *= (1-ao);
+  color *= ao;
 
   // outColor = vec4(vec3(grayscale(color)), 0);
   // return;

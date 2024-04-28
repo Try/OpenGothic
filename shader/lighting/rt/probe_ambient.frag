@@ -185,7 +185,7 @@ void main() {
 
   vec3 color  = lcolor;
   color *= linear;
-  color *= (1-ao);
+  color *= ao;
   // night shift
   color += purkinjeShift(color);
   color *= scene.exposure;
