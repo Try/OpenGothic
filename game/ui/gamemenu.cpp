@@ -603,12 +603,16 @@ void GameMenu::onKeyboard(KeyCodec::Action key) {
 
   if((key==KeyCodec::Left || key==KeyCodec::Right) && sel!=nullptr) {
     const int dx = (key==KeyCodec::Left) ? -1 : +1;
-    exec(*sel, dx);
+    exec(*sel,dx,key);
     }
 
   if(key==KeyCodec::ActionGeneric && sel!=nullptr) {
     Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx("MENU_SELECT"));
-    exec(*sel,0);
+    exec(*sel,0,key);
+    }
+  if(key==KeyCodec::K_Del && sel!=nullptr) {
+    Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx("MENU_SELECT"));
+    exec(*sel,0,key);
     }
   }
 
@@ -694,7 +698,7 @@ void GameMenu::setSelection(int desired, int seek) {
       curItem=cur;
       for(size_t i=0;i<zenkit::IMenuItem::select_action_count;++i)
         if(it->on_sel_action[i]==int(zenkit::MenuItemSelectAction::EXECUTE_COMMANDS))
-          execCommands(it->on_sel_action_s[i],false);
+          execCommands(it->on_sel_action_s[i],false,KeyCodec::Idle);
       return;
       }
     }
@@ -758,11 +762,11 @@ bool GameMenu::isHidden(const std::shared_ptr<zenkit::IMenuItem>& item) {
   return opt==item->hide_on_value;
   }
 
-void GameMenu::exec(Item &p, int slideDx) {
+void GameMenu::exec(Item &p, int slideDx, KeyCodec::Action hint) {
   auto* it = &p;
-  while(it!=nullptr){
+  while(it!=nullptr) {
     if(it==&p)
-      execSingle(*it,slideDx); else
+      execSingle(*it,slideDx,hint); else
       execChgOption(*it,slideDx);
     if(it->handle->flags & zenkit::MenuItemFlag::EFFECTS) {
       auto next=selectedNextItem(it);
@@ -779,7 +783,7 @@ void GameMenu::exec(Item &p, int slideDx) {
     owner.popMenu();
   }
 
-void GameMenu::execSingle(Item &it, int slideDx) {
+void GameMenu::execSingle(Item &it, int slideDx, KeyCodec::Action hint) {
   auto& item          = it.handle;
   auto& onSelAction   = item->on_sel_action;
   auto& onSelAction_S = item->on_sel_action_s;
@@ -796,7 +800,14 @@ void GameMenu::execSingle(Item &it, int slideDx) {
       ctrlInput = nullptr;
       if(!dlg.accepted)
         return;
-      } else {
+      }
+    else if(hint==KeyCodec::K_Del) {
+      keyCodec.clear(item->on_chg_set_option_section, item->on_chg_set_option);
+      updateItem(it);
+      ctrlInput = nullptr;
+      return; //HACK: there is a SEL_ACTION_BACK token in same item
+      }
+    else {
       KeyEditDialog dlg;
       dlg.resize(owner.size());
       dlg.exec();
@@ -848,7 +859,7 @@ void GameMenu::execSingle(Item &it, int slideDx) {
         Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx(onSelAction_S[i]));
         break;
       case zenkit::MenuItemSelectAction::EXECUTE_COMMANDS:
-        execCommands(onSelAction_S[i],true);
+        execCommands(onSelAction_S[i],true,hint);
         break;
       }
     }
@@ -910,7 +921,7 @@ void GameMenu::execLoadGame(const GameMenu::Item &item) {
   Gothic::inst().load(fname);
   }
 
-void GameMenu::execCommands(std::string str, bool isClick) {
+void GameMenu::execCommands(std::string str, bool isClick, KeyCodec::Action hint) {
   if(str.find("EFFECTS ")==0) {
     // menu log
     const char* arg0 = str.data()+std::strlen("EFFECTS ");
@@ -938,7 +949,7 @@ void GameMenu::execCommands(std::string str, bool isClick) {
       ++what;
     for(auto& i:hItems)
       if(i.name==what)
-        execSingle(i,0);
+        execSingle(i,0,hint);
     }
   if(str=="SETDEFAULT") {
     setDefaultKeys("KEYSDEFAULT0");
