@@ -24,7 +24,7 @@ layout(location = 0) out vec4 outColor;
 #if defined(SSAO)
 float textureSsao() { return textureLod(ssao, uv, 0).r; }
 #else
-float textureSsao() { return 0; }
+float textureSsao() { return 1; }
 #endif
 
 vec3 skyIrradiance() {
