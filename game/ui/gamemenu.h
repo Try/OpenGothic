@@ -99,12 +99,12 @@ class GameMenu : public Tempest::Widget {
     static bool                           isEnabled(const std::shared_ptr<zenkit::IMenuItem>& item);
     static bool                           isHidden(const std::shared_ptr<zenkit::IMenuItem>& item);
 
-    void                                  exec         (Item &item, int slideDx);
-    void                                  execSingle   (Item &it,   int slideDx);
+    void                                  exec         (Item &item, int slideDx, KeyCodec::Action hint);
+    void                                  execSingle   (Item &it,   int slideDx, KeyCodec::Action hint);
     void                                  execChgOption(Item &item, int slideDx);
     void                                  execSaveGame (const Item& item);
     void                                  execLoadGame (const Item& item);
-    void                                  execCommands (std::string str, bool isClick);
+    void                                  execCommands (std::string str, bool isClick, KeyCodec::Action hint);
 
     bool                                  implUpdateSavThumb(Item& sel);
     size_t                                saveSlotId(const Item& sel);

@@ -187,6 +187,8 @@ void MenuRoot::keyUpEvent(KeyEvent &e) {
       current->onKeyboard(KeyCodec::Right);
     else if(e.key==Event::K_Return)
       current->onKeyboard(KeyCodec::ActionGeneric);
+    else if(e.key==Event::K_Delete)
+      current->onKeyboard(KeyCodec::K_Del);
     else if(e.key==Event::K_ESCAPE || keyCodec.tr(e)==current->keyClose())
       popMenu();
     }

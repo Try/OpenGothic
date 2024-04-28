@@ -64,9 +64,10 @@ class KeyCodec final {
       WeaponMage10,
 
       K_ENTER, // transform back
-      K_F8, // Marvin Mode's F8
-      K_K, // Marvin Mode's K
-      K_O, // Marvin Mode's O
+      K_F8,    // Marvin Mode's F8
+      K_K,     // Marvin Mode's K
+      K_O,     // Marvin Mode's O
+      K_Del, // Settings menu
 
       Last
       };
@@ -88,6 +89,7 @@ class KeyCodec final {
     Mapping       mapping(Tempest::KeyEvent const& e) const;
 
     void          set(std::string_view section, std::string_view key, int32_t code);
+    void          clear(std::string_view section, std::string_view key);
     void          setDefaultKeys(std::string_view preset);
 
     static int32_t     keyToCode(Tempest::Event::KeyType     t);

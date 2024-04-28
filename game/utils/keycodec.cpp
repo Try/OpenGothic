@@ -159,6 +159,10 @@ void KeyCodec::set(std::string_view sec, std::string_view opt, int32_t code) {
   Gothic::settingsSetS(sec, opt, val);
   }
 
+void KeyCodec::clear(std::string_view sec, std::string_view opt) {
+  Gothic::settingsSetS(sec, opt, "");
+  }
+
 void KeyCodec::setDefaultKeys(std::string_view preset) {
   if(!Gothic::settingsHasSection(preset)) {
     if(Gothic::inst().version().game==1) {
