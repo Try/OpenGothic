@@ -17,8 +17,8 @@ layout(binding = 4, r16)      uniform coherent image2D   mip3;
 layout(binding = 5, r16)      uniform coherent image2D   mip4;
 layout(binding = 6, r16)      uniform coherent image2D   mip5;
 layout(binding = 7, r16)      uniform coherent image2D   mip6;
-layout(binding = 8, r16)      uniform coherent image2D   mip7;
-layout(binding = 9, r16)      uniform coherent image2D   mip8;
+layout(binding = 8, r16)      uniform coherent image2D   mip7; // 128x128
+//layout(binding = 9, r16)      uniform coherent image2D   mip8;
 
 layout(push_constant, std140) uniform PushConstant {
   uint mipCount;
@@ -38,7 +38,6 @@ float load(int mip, ivec2 uv) {
     case 5: return imageLoad(mip5, uv).x;
     case 6: return imageLoad(mip6, uv).x;
     case 7: return imageLoad(mip7, uv).x;
-    case 8: return imageLoad(mip8, uv).x;
     }
   return -1;
   }
@@ -65,9 +64,6 @@ void store(int mip, ivec2 uv, float z) {
       break;
     case 7:
       imageStore(mip7, uv, vec4(z));
-      break;
-    case 8:
-      imageStore(mip8, uv, vec4(z));
       break;
     }
   }
