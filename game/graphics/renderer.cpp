@@ -116,7 +116,7 @@ void Renderer::resetSwapchain() {
     hiz.counterBuf = device.ssbo(Tempest::Uninitialized, std::max(hw/4, 1u)*std::max(hh/4, 1u)*sizeof(uint32_t));
     hiz.uboMip.set(0, hiz.counterBuf);
     }
-  const uint32_t maxBind = 9, mip = hiz.hiZ.mipCount();
+  const uint32_t maxBind = 8, mip = hiz.hiZ.mipCount();
   for(uint32_t i=0; i<maxBind; ++i)
     hiz.uboMip.set(1+i, hiz.hiZ, Sampler::nearest(), std::min(i, mip-1));
 
