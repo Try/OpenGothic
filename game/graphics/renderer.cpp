@@ -690,6 +690,8 @@ void Renderer::drawHiZ(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view
 
 void Renderer::buildHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   cmd.setDebugMarker("HiZ-mip");
+
+  assert(hiz.hiZ.w()<=128 && hiz.hiZ.h()<=128); // shader limitation
   cmd.setFramebuffer({});
   cmd.setUniforms(Shaders::inst().hiZPot, hiz.uboPot);
   cmd.dispatch(size_t(hiz.hiZ.w()), size_t(hiz.hiZ.h()));
