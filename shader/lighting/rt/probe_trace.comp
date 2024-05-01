@@ -46,11 +46,11 @@ void storeGbuffer(const uint probeId, uint sampleId, vec3 diff, vec3 norm, float
   }
 
 void storeVBuffer(const uint probeId, const uint sampleId, const HitDesc hit) {
-  uint instanceId  = hit.instanceId;
+  uint selfId      = hit.selfId;
   uint primitiveId = hit.primitiveId & 0x00FFFFFF;
 
   const ivec2 uv = gbufferCoord(probeId, sampleId);
-  imageStore(vbufferRayHit, uv, uvec4(instanceId, primitiveId, 0, 0));
+  imageStore(vbufferRayHit, uv, uvec4(selfId, primitiveId, 0, 0));
   }
 
 void storeVBuffer(const uint probeId, const uint sampleId) {

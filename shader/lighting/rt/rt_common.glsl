@@ -19,12 +19,16 @@ struct HitDesc {
   uint primitiveId;
   vec3 baryCoord;
   bool opaque;
+  uint selfId;
   };
 
 #if defined(RAY_QUERY_AT)
 struct RtObjectDesc {
-  uint instanceId; // "real" id
-  uint firstPrimitive;
+  uint   instanceId; // "real" id
+  uint   firstPrimitive;
+  uint   padd0;
+  uint   padd1;
+  mat3x4 pos;
   };
 layout(binding  = 7) uniform sampler   smp;
 layout(binding  = 8) uniform texture2D textures[];
@@ -71,6 +75,7 @@ HitDesc pullHitDesc(in rayQueryEXT rayQuery) {
   const RtObjectDesc desc = rtDesc[descId];
 
   HitDesc d;
+  d.selfId     = descId;
   d.instanceId = desc.instanceId;
 
   d.primitiveId  = rayQueryGetIntersectionPrimitiveIndexEXT(rayQuery, commited);
@@ -93,6 +98,7 @@ HitDesc pullCommitedHitDesc(in rayQueryEXT rayQuery) {
   const RtObjectDesc desc = rtDesc[descId];
 
   HitDesc d;
+  d.selfId     = descId;
   d.instanceId = desc.instanceId;
 
   d.primitiveId  = rayQueryGetIntersectionPrimitiveIndexEXT(rayQuery, commited);

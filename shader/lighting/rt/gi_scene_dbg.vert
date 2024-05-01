@@ -26,10 +26,23 @@ layout(binding = 0, std140) uniform UboScene {
 layout(binding = 2, rg32ui) uniform readonly uimage2D vbufferRayHit;
 layout(binding = 3, std430) buffer Sbo { GiSceneHeader sceneHeader; uint hashTable[]; };
 
-layout(location = 0) out vec3 outColor;
+layout(location = 0) out vec3  outColor;
+layout(location = 1) out vec3  outBCoord;
+layout(location = 2) out uint  outLevel;
 
 uvec2 unpackUVec2(uint v) {
   return uvec2(v & 0xFFFF, (v&0xFFFF0000)>>16);
+  }
+
+float area(uint instanceId, uvec3 vindex) {
+  vec3 pos0 = pullPosition(instanceId,vindex[0]);
+  vec3 pos1 = pullPosition(instanceId,vindex[1]);
+  vec3 pos2 = pullPosition(instanceId,vindex[2]);
+
+  pos1 -= pos0;
+  pos2 -= pos0;
+
+  return length(cross(pos1,pos2))*0.5;
   }
 
 void main() {
@@ -45,13 +58,28 @@ void main() {
     return;
     }
 
-  const uvec2 vis         = imageLoad(vbufferRayHit, ivec2(index)).xy;
-  const uint  instanceId  = vis.x;
-  const uint  primitiveId = vis.y;
-  const uint  vindex      = pullTrinagleIds(instanceId, primitiveId)[gl_VertexIndex];
+  const uvec2        vis         = imageLoad(vbufferRayHit, ivec2(index)).xy;
+  const RtObjectDesc desc        = rtDesc[vis.x];
 
-  const vec3 pos = pullPosition(instanceId,vindex);
+  const uint         instanceId  = desc.instanceId;
+  const uint         primitiveId = vis.y;
+  const uvec3        vindex      = pullTrinagleIds(instanceId, primitiveId);
 
+  vec3 pos    = pullPosition(instanceId,vindex[gl_VertexIndex]);
+  pos         = transpose(desc.pos) * vec4(pos,1);
+  gl_Position = scene.viewProject   * vec4(pos,1);
+
+  outBCoord   = vec3(0);
+  outBCoord[gl_VertexIndex] = 1;
   outColor    = debugColors[iid%debugColors.length()];
-  gl_Position = scene.viewProject * vec4(pos, 1);
+
+  uint area = uint(area(instanceId, vindex)/10000.0);
+  if(area<=1)
+    outLevel = 0;
+  else if(area<=4)
+    outLevel = 1;
+  else if(area<=16)
+    outLevel = 2;
+  else
+    outLevel = 4;
   }

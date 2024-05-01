@@ -52,6 +52,9 @@ void RtScene::addInstance(const Matrix4x4& pos, const AccelerationStructure& bla
     desc.bits |= 0x1;
   if(mat.alpha==Material::Water)
     desc.bits |= 0x2;
+  for(int x=0; x<3; ++x)
+    for(int y=0; y<4; ++y)
+      desc.matrix[x][y] = pos.at(y,x);
 
   RtInstance ix;
   ix.mat  = pos;

@@ -24,6 +24,9 @@ class RtScene {
       uint32_t instanceId;
       uint32_t firstPrimitive : 24;
       uint32_t bits: 8;
+      uint32_t padding0;
+      uint32_t padding1;
+      float    matrix[3][4];
       };
 
     void notifyTlas(const Material& m, RtScene::Category cat) const;
@@ -34,7 +37,6 @@ class RtScene {
     void buildTlas();
 
     Tempest::AccelerationStructure             tlas;
-    // Tempest::AccelerationStructure             tlasLand;
 
     std::vector<const Tempest::Texture2d*>     tex;
     std::vector<const Tempest::StorageBuffer*> vbo;
