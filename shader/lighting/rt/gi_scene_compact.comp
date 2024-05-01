@@ -1,0 +1,35 @@
+#version 460
+
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_GOOGLE_include_directive    : enable
+
+#include "lighting/rt/probe_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 64) in;
+
+layout(binding = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 1, rg32ui) uniform readonly uimage2D vbufferRayHit;
+
+layout(binding = 2, std430) buffer Hbo { GiSceneHeader sceneHeaderSrc; uint hashTableSrc[]; };
+layout(binding = 3, std430) buffer Sbo { GiSceneHeader sceneHeader;    uint hashTable[];    };
+layout(binding = 4, std430) buffer Pbo { ProbesHeader  probeHeader;    Probe probe[];       };
+
+shared uint shProbeId;
+
+uint hash(uvec2 v) {
+  return (v.x * 18397) + (v.y * 20483);
+  }
+
+void main() {
+  uint vis = hashTableSrc[gl_GlobalInvocationID.x];
+  if(vis==0)
+    return;
+
+  uint i = atomicAdd(sceneHeader.count, 1);
+  hashTable[i] = vis;
+  hashTableSrc[gl_GlobalInvocationID.x] = 0;
+  }

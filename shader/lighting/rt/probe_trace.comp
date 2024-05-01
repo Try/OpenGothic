@@ -21,9 +21,10 @@ shared uint badHits;
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
-layout(binding = 1) uniform writeonly image2D gbufferDiff;
-layout(binding = 2) uniform writeonly image2D gbufferNorm;
-layout(binding = 3) uniform writeonly image2D gbufferRayT;
+layout(binding = 1) uniform writeonly image2D  gbufferDiff;
+layout(binding = 2) uniform writeonly image2D  gbufferNorm;
+//layout(binding = 3) uniform writeonly image2D gbufferRayT;
+layout(binding = 3) uniform writeonly uimage2D vbufferRayHit;
 
 layout(binding = 4, std430) buffer Hbo { uint hashTable[]; };
 layout(binding = 5, std430) buffer Pbo { ProbesHeader probeHeader; Probe probe[]; };
@@ -41,7 +42,20 @@ void storeGbuffer(const uint probeId, uint sampleId, vec3 diff, vec3 norm, float
   const ivec2 uv   = gbufferCoord(probeId, sampleId);
   imageStore(gbufferDiff, uv, vec4(diff, bits/255.0));
   imageStore(gbufferNorm, uv, vec4(norm, 0));
-  imageStore(gbufferRayT, uv, vec4(r,    0,0,0));
+  //imageStore(gbufferRayT, uv, vec4(r,    0,0,0));
+  }
+
+void storeVBuffer(const uint probeId, const uint sampleId, const HitDesc hit) {
+  uint instanceId  = hit.instanceId;
+  uint primitiveId = hit.primitiveId & 0x00FFFFFF;
+
+  const ivec2 uv = gbufferCoord(probeId, sampleId);
+  imageStore(vbufferRayHit, uv, uvec4(instanceId, primitiveId, 0, 0));
+  }
+
+void storeVBuffer(const uint probeId, const uint sampleId) {
+  const ivec2 uv = gbufferCoord(probeId, sampleId);
+  imageStore(vbufferRayHit, uv, uvec4(0xFFFFFFFF, 0, 0, 0));
   }
 
 bool skyRay(const vec3 rayOrigin, const vec3 rayDirection, uint flags, float tMin) {
@@ -70,10 +84,13 @@ void sampleScene(const vec3 rayOrigin, const vec3 rayDirection, const uint probe
     const bool skybit = true;
     const bool badbit = (rayDirection.y<-0.9);
     storeGbuffer(probeId, sampleId, vec3(0,0,1), vec3(0), probeRayDistance, true, badbit, true, skybit);
+    storeVBuffer(probeId, sampleId);
     return;
     }
 
   const HitDesc hit = pullCommitedHitDesc(rayQuery);
+
+  storeVBuffer(probeId, sampleId, hit);
 
   const float rayT   = rayQueryGetIntersectionTEXT(rayQuery, true);
   const bool  face   = !(rayQueryGetIntersectionFrontFaceEXT(rayQuery, true)); //NOTE: not working on vegetation

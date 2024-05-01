@@ -169,6 +169,20 @@ Shaders::Shaders() {
     probeTrace     = computeShader("probe_trace.comp.sprv");
     probeLighting  = computeShader("probe_lighting.comp.sprv");
 
+    {
+      RenderState state;
+      state.setCullFaceMode(RenderState::CullMode::NoCull);
+      state.setZTestMode   (RenderState::ZTestMode::LEqual);
+
+      sh = GothicShader::get("gi_scene_dbg.vert.sprv");
+      vs = device.shader(sh.data,sh.len);
+      sh = GothicShader::get("gi_scene_dbg.frag.sprv");
+      fs = device.shader(sh.data,sh.len);
+      giSceneDbg = device.pipeline(Triangles,state,vs,fs);
+    }
+    giScene        = computeShader("gi_scene_update.comp.sprv");
+    giSceneCompact = computeShader("gi_scene_compact.comp.sprv");
+
     state.setBlendSource  (RenderState::BlendMode::One);
     state.setBlendDest    (RenderState::BlendMode::SrcAlpha);  // for debugging
     state.setZTestMode    (RenderState::ZTestMode::NoEqual);

@@ -1,0 +1,64 @@
+#version 460
+
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_GOOGLE_include_directive    : enable
+
+#include "lighting/rt/probe_common.glsl"
+// #include "lighting/rt/rt_common.glsl"
+// #include "lighting/tonemapping.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 64) in;
+
+const uint samplesCount = 4;
+const uint samplesTotal = gl_WorkGroupSize.x*samplesCount;
+
+layout(binding = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 1, rg32ui) uniform readonly uimage2D vbufferRayHit;
+
+layout(binding = 2, std430) buffer Hbo { GiSceneHeader sceneHeaderSrc; uint hashTableSrc[]; };
+layout(binding = 3, std430) buffer Sbo { GiSceneHeader sceneHeader;    uint hashTable[];    };
+layout(binding = 4, std430) buffer Pbo { ProbesHeader  probeHeader;    Probe probe[];       };
+
+shared uint shProbeId;
+
+uint hash(uvec2 v) {
+  return (v.x * 18397) + (v.y * 20483);
+  }
+
+void processProbe(const uint probeId) {
+  for(uint i=0; i<samplesCount; ++i) {
+    const uint  sampleId = gl_LocalInvocationIndex*samplesCount+i;
+    const ivec2 uv       = gbufferCoord(probeId, sampleId);
+
+    uvec2 vis = imageLoad(vbufferRayHit, ivec2(uv)).xy;
+    if(vis==uvec2(0) || vis.x==0xFFFFFFFF)
+      continue;
+
+    uint h     = hash(vis) % hashTableSrc.length();
+    uint index = (uv.x) | (uv.y << 16);
+    atomicMax(hashTableSrc[h], index);
+    }
+  }
+
+void main() {
+  const uint numThreads = gl_NumWorkGroups.x*gl_NumWorkGroups.y*gl_NumWorkGroups.z;
+
+  while(true) {
+    if(gl_LocalInvocationIndex==0)
+      shProbeId = atomicAdd(probeHeader.iterator2, 1);
+    barrier();
+    const uint probeId = shProbeId;
+    if(probeId+1==probeHeader.count+numThreads) {
+      probeHeader.iterator2 = 0;
+      sceneHeader.count     = 0;
+      }
+    if(probeId>=probeHeader.count)
+      return;
+    processProbe(probeId);
+    barrier();
+    }
+  }

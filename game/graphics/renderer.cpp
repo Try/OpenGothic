@@ -345,10 +345,17 @@ void Renderer::prepareUniforms() {
     gi.uboProbes.set(6, gi.probes);
     gi.uboProbes.set(7, gi.freeList);
 
+    gi.uboGiScene.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    gi.uboGiScene.set(1, gi.probesVBuffRayHit);
+    gi.uboGiScene.set(2, gi.sceneHash);
+    gi.uboGiScene.set(3, gi.giScene);
+    gi.uboGiScene.set(4, gi.probes);
+
     gi.uboTrace.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     gi.uboTrace.set(1, gi.probesGBuffDiff);
     gi.uboTrace.set(2, gi.probesGBuffNorm);
-    gi.uboTrace.set(3, gi.probesGBuffRayT);
+    // gi.uboTrace.set(3, gi.probesGBuffRayT);
+    gi.uboTrace.set(3, gi.probesVBuffRayHit);
     gi.uboTrace.set(4, gi.hashTable);
     gi.uboTrace.set(5, gi.probes);
 
@@ -547,6 +554,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   cmd.setDebugMarker("Translucent");
   wview->drawTranslucent(cmd,fId);
 
+  drawGiSceneDbg(cmd, fId);
   drawProbesDbg(cmd, fId);
   drawProbesHitDbg(cmd, fId);
 
@@ -655,6 +663,10 @@ void Renderer::initGiData() {
   gi.probePrunePso   = &Shaders::inst().probePrune;
   gi.uboProbes       = device.descriptors(*gi.probeAllocPso);
 
+  gi.giScenePso      = &Shaders::inst().giScene;
+  gi.giCompactPso    = &Shaders::inst().giSceneCompact;
+  gi.uboGiScene      = device.descriptors(*gi.giScenePso);
+
   gi.uboZeroIrr      = device.descriptors(Shaders::inst().copyImg);
   gi.uboPrevIrr      = device.descriptors(Shaders::inst().copyImg);
 
@@ -676,9 +688,14 @@ void Renderer::initGiData() {
     gi.probesGBuffDiff    = device.image2d(TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16); // 16x16 tile
     gi.probesGBuffNorm    = device.image2d(TextureFormat::RGBA8, gi.atlasDim*16, gi.atlasDim*16);
     gi.probesGBuffRayT    = device.image2d(TextureFormat::R16,   gi.atlasDim*16, gi.atlasDim*16);
+    gi.probesVBuffRayHit  = device.image2d(TextureFormat::RG32U, gi.atlasDim*16, gi.atlasDim*16);
     gi.probesLighting     = device.image2d(TextureFormat::R11G11B10UF, gi.atlasDim*3, gi.atlasDim*2);
     gi.probesLightingPrev = device.image2d(TextureFormat::R11G11B10UF, uint32_t(gi.probesLighting.w()), uint32_t(gi.probesLighting.h()));
-    gi.fisrtFrame          = true;
+
+    gi.sceneHash          = device.ssbo(nullptr, 64 + gi.maxGiPrimitives*sizeof(uint32_t)); // 8MB, TODO: tune
+    gi.giScene            = device.ssbo(nullptr, gi.sceneHash.byteSize());
+
+    gi.fisrtFrame         = true;
     }
   }
 
@@ -846,6 +863,15 @@ void Renderer::prepareGi(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   cmd.setUniforms(*gi.probeTracePso, gi.uboTrace);
   cmd.dispatch(1024); // dispath indirect? :(
 
+  if(alloc) {
+    cmd.setDebugMarker("GI-Scene");
+    cmd.setUniforms(*gi.giScenePso, gi.uboGiScene);
+    cmd.dispatch(1024);
+
+    cmd.setUniforms(*gi.giCompactPso, gi.uboGiScene);
+    cmd.dispatchThreads(gi.maxGiPrimitives);
+    }
+
   cmd.setDebugMarker("GI-HashMap");
   cmd.setUniforms(*gi.probeClearHPso, gi.uboClear);
   cmd.dispatchThreads(maxHash);
@@ -917,6 +943,38 @@ void Renderer::drawProbesHitDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, u
   cmd.setUniforms(pso, gi.uboDbg);
   cmd.draw(nullptr, 0, 36, 0, gi.maxProbes*256);
   //cmd.draw(nullptr, 0, 36, 0, 1024);
+  }
+
+void Renderer::drawGiSceneDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  if(!settings.giEnabled)
+    return;
+
+  static bool enable = true;
+  if(!enable)
+    return;
+
+  auto& device = Resources::device();
+  auto& pso    = Shaders::inst().giSceneDbg;
+  if(auto wview=Gothic::inst().worldView()) {
+    if(gi.uboSceneDbg.isEmpty()) {
+      auto& scene = wview->sceneGlobals();
+      gi.uboSceneDbg = device.descriptors(pso);
+      gi.uboSceneDbg.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+      //gi.uboSceneDbg.set(1, gi.probesLighting);
+      gi.uboSceneDbg.set(2, gi.probesVBuffRayHit);
+      gi.uboSceneDbg.set(3, gi.giScene);
+      gi.uboSceneDbg.set(6, scene.rtScene.tlas);
+      gi.uboSceneDbg.set(7, Sampler::bilinear());
+      // gi.uboSceneDbg.set(8, scene.rtScene.tex);
+      gi.uboSceneDbg.set(9, scene.rtScene.vbo);
+      gi.uboSceneDbg.set(10,scene.rtScene.ibo);
+      gi.uboSceneDbg.set(11,scene.rtScene.rtDesc);
+      }
+    }
+
+  cmd.setDebugMarker("GI-scene-dbg");
+  cmd.setUniforms(pso, gi.uboSceneDbg);
+  cmd.draw(nullptr, 0, 3, 0, gi.maxGiPrimitives);
   }
 
 void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {

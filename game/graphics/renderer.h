@@ -62,6 +62,7 @@ class Renderer final {
 
     void drawProbesDbg    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawProbesHitDbg (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void drawGiSceneDbg   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void stashSceneAux    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
     void initGiData();
@@ -152,9 +153,10 @@ class Renderer final {
       } hiz;
 
     struct {
-      const uint32_t            atlasDim  = 256; // sqrt(maxProbes)
-      const uint32_t            maxProbes = atlasDim*atlasDim; // 65536
-      Tempest::DescriptorSet    uboDbg, uboHitDbg;
+      const uint32_t            atlasDim        = 256; // sqrt(maxProbes)
+      const uint32_t            maxProbes       = atlasDim*atlasDim; // 65536
+      const uint32_t            maxGiPrimitives = 262'144; // 2'097'152;
+      Tempest::DescriptorSet    uboDbg, uboHitDbg, uboSceneDbg;
 
       Tempest::ComputePipeline* probeInitPso   = nullptr;
 
@@ -167,6 +169,10 @@ class Renderer final {
       Tempest::ComputePipeline* probePrunePso  = nullptr;
       Tempest::ComputePipeline* probeAllocPso  = nullptr;
       Tempest::DescriptorSet    uboProbes;
+
+      Tempest::ComputePipeline* giScenePso     = nullptr;
+      Tempest::ComputePipeline* giCompactPso   = nullptr;
+      Tempest::DescriptorSet    uboGiScene;
 
       Tempest::DescriptorSet    uboPrevIrr, uboZeroIrr;
 
@@ -184,8 +190,12 @@ class Renderer final {
       Tempest::StorageImage     probesGBuffDiff;
       Tempest::StorageImage     probesGBuffNorm;
       Tempest::StorageImage     probesGBuffRayT;
+      Tempest::StorageImage     probesVBuffRayHit;
       Tempest::StorageImage     probesLighting;
       Tempest::StorageImage     probesLightingPrev;
+
+      Tempest::StorageBuffer    sceneHash, giScene;
+
       bool                      fisrtFrame = false;
       } gi;
 

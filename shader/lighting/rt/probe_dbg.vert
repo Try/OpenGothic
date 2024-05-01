@@ -17,7 +17,6 @@ layout(location = 1) out float     radius;
 layout(location = 2) out flat uint instanceIndex;
 layout(location = 3) out flat uint isHashed;
 
-
 const vec3 v[8] = {
   {-1,-1,-1},
   { 1,-1,-1},

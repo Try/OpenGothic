@@ -247,11 +247,17 @@ add_shader(hiz_pot.comp              hiz/hiz_pot.comp)
 add_shader(hiz_reproject.mesh        hiz/hiz_reproject.mesh)
 add_shader(hiz_reproject.frag        hiz/hiz_reproject.frag)
 
+add_shader(gi_scene_dbg.vert         lighting/rt/gi_scene_dbg.vert -DRAY_QUERY -DRAY_QUERY_AT)
+add_shader(gi_scene_dbg.frag         lighting/rt/gi_scene_dbg.frag)
+
 add_shader(probe_dbg.vert            lighting/rt/probe_dbg.vert)
 add_shader(probe_dbg.frag            lighting/rt/probe_dbg.frag)
 
 add_shader(probe_hit_dbg.vert        lighting/rt/probe_hit_dbg.vert)
 add_shader(probe_hit_dbg.frag        lighting/rt/probe_hit_dbg.frag)
+
+add_shader(gi_scene_update.comp      lighting/rt/gi_scene_update.comp)
+add_shader(gi_scene_compact.comp     lighting/rt/gi_scene_compact.comp)
 
 add_shader(probe_init.comp           lighting/rt/probe_aux.comp        -DINIT)
 add_shader(probe_clear.comp          lighting/rt/probe_aux.comp        -DCLEAR)
@@ -261,6 +267,7 @@ add_shader(probe_prune.comp          lighting/rt/probe_aux.comp        -DPRUNE)
 add_shader(probe_vote.comp           lighting/rt/probe_allocation.comp -DVOTE)
 add_shader(probe_allocation.comp     lighting/rt/probe_allocation.comp -DALLOC)
 add_shader(probe_trace.comp          lighting/rt/probe_trace.comp      -DRAY_QUERY -DRAY_QUERY_AT)
+
 add_shader(probe_lighting.comp       lighting/rt/probe_lighting.comp)
 
 add_shader(probe_ambient.vert        copy.vert)

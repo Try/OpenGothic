@@ -69,8 +69,6 @@ void storeSample(vec3 dir, vec4 val) {
   }
 
 vec3 resolveHit(const vec3 rayOrigin, const vec3 rayDirection, float rayT, vec3 normal, bool opaque, float shMap) {
-  // return 1.0 * scene.ambient;
-
   float dt = dot(normal, scene.sunDir);
   if(!opaque) {
     // atificial lit on vegetation, as RT can't capture small bright light leaks from the trees
@@ -83,7 +81,6 @@ vec3 resolveHit(const vec3 rayOrigin, const vec3 rayDirection, float rayT, vec3 
   const vec3  lcolor  = scene.sunColor * Fd_Lambert * lambert * shadow;
 
   return lcolor;
-  //return scene.sunColor * scene.ambient;
   }
 
 vec3 resolveMiss(const vec3 rayOrigin, const vec3 rayDirection) {
@@ -95,7 +92,7 @@ vec3 resolveSecondBounce(vec3 pos, vec3 norm, float rayT, uint selfProbeId) {
 #if 0
   return scene.ambient;
 #elif 1
-  float k       = smoothstep(0.0, 25.0, rayT);
+  float k       = 1;//smoothstep(0.0, 25.0, rayT);
   vec3  ambient = scene.ambient;
   vec3  sky     = probeReadAmbient(probesLightingPrev, 0, norm, vec3(0,1,0));
   return (ambient + sky)*0.5*k;

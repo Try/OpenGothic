@@ -47,6 +47,13 @@ vec3 pullNormal(uint id, uint vboOffset) {
   return vec3(x,y,z);
   }
 
+vec3 pullPosition(uint id, uint vboOffset) {
+  float x = vbo[nonuniformEXT(id)].vert[vboOffset*9 + 0];
+  float y = vbo[nonuniformEXT(id)].vert[vboOffset*9 + 1];
+  float z = vbo[nonuniformEXT(id)].vert[vboOffset*9 + 2];
+  return vec3(x,y,z);
+  }
+
 uvec3 pullTrinagleIds(uint id, uint primitiveID) {
   uvec3 index;
   index.x = ibo[nonuniformEXT(id)].index[primitiveID*3+0];

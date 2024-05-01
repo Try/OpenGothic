@@ -69,6 +69,10 @@ class Shaders {
     Tempest::ComputePipeline probeTrace, probeLighting;
     Tempest::RenderPipeline  probeAmbient;
 
+    // GI-scene
+    Tempest::RenderPipeline  giSceneDbg;
+    Tempest::ComputePipeline giScene, giSceneCompact;
+
     Tempest::RenderPipeline  inventory;
 
     const Tempest::RenderPipeline* materialPipeline(const Material& desc, DrawCommands::Type t, PipelineType pt, bool bindless) const;
