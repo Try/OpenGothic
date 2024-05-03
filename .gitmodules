@@ -10,3 +10,6 @@
 [submodule "lib/ZenKit"]
 	path = lib/ZenKit
   url = https://github.com/GothicKit/ZenKit.git
+[submodule "lib/dmusic"]
+	path = lib/dmusic
+	url = https://github.com/GothicKit/dmusic.git

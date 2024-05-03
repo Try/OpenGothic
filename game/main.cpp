@@ -100,6 +100,22 @@ int main(int argc,const char** argv) {
           break;
         }
       });
+    Dm_setLogger(DmLogLevel_INFO, [](void* ctx, DmLogLevel lvl, char const* msg) {
+        switch (lvl) {
+          case DmLogLevel_FATAL:
+          case DmLogLevel_ERROR:
+          case DmLogLevel_WARN:
+            Tempest::Log::e("[dmusic] ", msg);
+            break;
+          case DmLogLevel_INFO:
+            Tempest::Log::i("[dmusic] ", msg);
+            break;
+          case DmLogLevel_DEBUG:
+          case DmLogLevel_TRACE:
+            Tempest::Log::d("[dmusic] ", msg);
+            break;
+        }
+    }, nullptr);
     }
   catch(...) {
     Tempest::Log::e("unable to setup logfile - fallback to console log");
