@@ -83,7 +83,7 @@ void main() {
   color *= scene.exposure;
 
   outColor = vec4(color, 1);
-  // outColor = vec4(vec3(1-ao), 0);
+  // outColor = vec4(vec3(ao), 0);
   // outColor = vec4(linear, 0);
   // outColor = vec4(srgbEncode(linear), 0);
   }
