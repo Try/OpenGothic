@@ -260,7 +260,7 @@ private:
 };
 
 static constexpr int PROVIDER_OPENGOTHIC = 0;
-static constexpr int PROVIDER_GOTHICKIT = 1;
+// static constexpr int PROVIDER_GOTHICKIT = 1;
 
 GameMusic *GameMusic::instance = nullptr;
 

@@ -24,6 +24,8 @@
 #include "build.h"
 #include "commandline.h"
 
+#include <dmusic.h>
+
 std::string_view selectDevice(const Tempest::AbstractGraphicsApi& api) {
   auto d = api.devices();
 
