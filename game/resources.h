@@ -15,7 +15,8 @@
 #include "graphics/material.h"
 #include "sound/soundfx.h"
 
-#include "dmusic.h"
+struct DmSegment;
+struct DmLoader;
 
 class StaticMesh;
 class ProtoMesh;
@@ -213,7 +214,6 @@ class Resources final {
         return ta<tb;
         }
       };
-
 
     Tempest::Device&                  dev;
     Tempest::SoundDevice              sound;

@@ -34,6 +34,8 @@
 #include "gothic.h"
 #include "utils/string_frm.h"
 
+#include <dmusic.h>
+
 using namespace Tempest;
 
 Resources* Resources::inst=nullptr;

@@ -22,9 +22,9 @@ struct GameMusic::MusicProvider : Tempest::SoundProducer {
 
   virtual void setEnabled(bool enable) = 0;
 
-  virtual bool isEnabled() = 0;
+  virtual bool isEnabled() const = 0;
 
-  virtual const std::optional<zenkit::IMusicTheme> getPlayingTheme() = 0;
+  virtual const std::optional<zenkit::IMusicTheme> getPlayingTheme() const = 0;
 };
 
 struct GameMusic::OpenGothicMusicProvider : GameMusic::MusicProvider {
@@ -32,7 +32,7 @@ struct GameMusic::OpenGothicMusicProvider : GameMusic::MusicProvider {
 
   void renderSound(int16_t *out, size_t n) override {
     if (!enable.load()) {
-      memset(out, 0, n * 4);
+      std::memset(out, 0, n * sizeof(int32_t) * 2);
       return;
     }
 
@@ -125,11 +125,11 @@ struct GameMusic::OpenGothicMusicProvider : GameMusic::MusicProvider {
     }
   }
 
-  bool isEnabled() override {
+  bool isEnabled() const override {
     return enable.load();
   }
 
-  const std::optional<zenkit::IMusicTheme> getPlayingTheme() override {
+  const std::optional<zenkit::IMusicTheme> getPlayingTheme() const override {
     return pendingMusic;
   }
 
@@ -203,7 +203,7 @@ struct GameMusic::GothicKitMusicProvider : GameMusic::MusicProvider {
 
   void renderSound(int16_t *out, size_t n) override {
     if (!enabled.load()) {
-      memset(out, 0, n * 4);
+      std::memset(out, 0, n * sizeof(int32_t) * 2);
       return;
     }
 
@@ -245,11 +245,11 @@ struct GameMusic::GothicKitMusicProvider : GameMusic::MusicProvider {
     }
   }
 
-  bool isEnabled() override {
+  bool isEnabled() const override {
     return enabled.load() && performance != nullptr;
   }
 
-  const std::optional<zenkit::IMusicTheme> getPlayingTheme() override {
+  const std::optional<zenkit::IMusicTheme> getPlayingTheme() const override {
     return playingTheme;
   }
 
@@ -324,10 +324,8 @@ void GameMusic::setupSettings() {
   const float musicVolume = Gothic::settingsGetF("SOUND", "musicVolume");
   const int providerIndex = Gothic::settingsGetI("INTERNAL", "soundProviderIndex");
 
-  Log::e("provider:", providerIndex);
-
   if (providerIndex != provider) {
-    Log::i("Switching music provider");
+    Log::i("Switching music provider to ", providerIndex == PROVIDER_OPENGOTHIC ? "'OpenGothic'" : "'GothicKit'");
 
     auto playingTheme = impl->getPlayingTheme();
     impl->stopTheme();
