@@ -136,9 +136,17 @@ void Bullet::onCollide(Npc& npc) {
     return;
 
   if(ow!=nullptr) {
-    if(isSpell())
-      npc.takeDamage(*ow,this,vfx.handle(),spellId()); else
-      npc.takeDamage(*ow,this);
+    bool friendlyFire = false;
+    if(!ow->isPlayer() && wrld->script().personAttitude(*ow, npc)==ATT_FRIENDLY) {
+      // no damage between ally npc's, only emit pfx effect
+      friendlyFire = true;
+      }
+
+    if(!friendlyFire) {
+      if(isSpell())
+        npc.takeDamage(*ow,this,vfx.handle(),spellId()); else
+        npc.takeDamage(*ow,this);
+      }
     }
   vfx.setKey(*wrld,SpellFxKey::Collide);
   vfx.setLooped(false);
