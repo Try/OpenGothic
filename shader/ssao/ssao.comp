@@ -28,42 +28,73 @@ const uint  samplesPerStep = numSamples/numIter;
 const float sphereLen      = 100;
 const float unorm16        = 65025;
 
+const int   gridSize       = 5;
+const int   gridQSize      = 25;
+
 ivec2 fragCoord;
 ivec2 screenSize;
 mat3  tangent;
 
-float occlusionAll = 0, weightAll = 0;
+float occlusionAll = 0;
+
+vec2 pyramidUV(vec3 direction) {
+  // https://gamedev.stackexchange.com/questions/169508/octahedral-impostors-octahedral-mapping
+  vec3  octant     = sign(direction);
+  float sum        = dot(direction, octant);
+  vec3  octahedron = direction / sum;
+
+  return 0.5 * vec2(
+              1.0 + octahedron.x + octahedron.y,
+              1.0 + octahedron.y - octahedron.x
+           );
+  }
+
+uint pyramidId(vec3 direction) {
+  ivec2 uv = ivec2(pyramidUV(direction)*gridSize);
+  return uv.x + uv.y*gridSize;
+  }
+
+uint  hits   = 0;
+uint  anySmp = 0;
+float hitV[gridQSize];
+
+void addHit(vec3 dir, float v) {
+  uint uv = pyramidId(dir);
+
+  hits   = hits   | (1u << uv);
+  anySmp = anySmp | (1u << uv);
+
+  float value   = hitV[uv];
+  occlusionAll -= value;
+  occlusionAll += max(value,v);
+
+  hitV[uv] = max(value, v);
+  }
+
+void addMis(vec3 dir) {
+  uint uv = pyramidId(dir);
+  anySmp = anySmp | (1u << uv);
+  }
 
 shared uint shMaxSteps;
+shared uint vDiff, vCnt;
 
-shared uint vAvg, vDiff;
-bool isSolved(float occlusion, int samples, bool eval) {
-  vAvg  = 0;
+bool isSolved(float diff, int samples) {
   vDiff = 0;
+  vCnt  = 0;
   barrier();
 
-  if(occlusion>0) {
-    uint v = uint(occlusion*unorm16);
-    atomicAdd(vAvg, v);
-    }
+  uint v = floatBitsToUint(diff);
+  atomicMax(vDiff, v);
   barrier();
 
-  if(eval) {
-    float avg  = float(vAvg)/float(gl_WorkGroupSize.x*gl_WorkGroupSize.y*unorm16);
-    float diff = abs(occlusion - avg);
-    atomicMax(vDiff, floatBitsToUint(diff));
-    }
+  float d = uintBitsToFloat(vDiff);
+  if(d>=0.1 + samples*0.005)
+    atomicAdd(vCnt, 1);
   barrier();
 
-  float diff = uintBitsToFloat(vDiff);
-  float th   = 0.0;
-  if(samples>=12)
-    th = 0.1;
-  if(samples>=16)
-    th = 0.2;
-  if(samples>=24)
-    th = 0.4;
-  return diff<=th;
+  return vCnt<4;
+  // return d < 0.1 + samples*0.005;
   }
 
 int estimateMaxSteps(float z) {
@@ -74,19 +105,9 @@ int estimateMaxSteps(float z) {
   return int(numIter);
   }
 
-shared vec3 shNormal;
-int estimateMinSteps(vec3 n) {
-  if(gl_LocalInvocationID.xy==uvec2(4)) {
-    shNormal = n;
-    }
-  vDiff = 4;
-  barrier();
-
-  if(dot(shNormal, n)<0.99)
-    vDiff = 8;
-  barrier();
-
-  return int(vDiff);
+float resolveOcclusion() {
+  float weights = occlusionAll + bitCount(anySmp & (~hits));
+  return (occlusionAll/weights);
   }
 
 vec3 unproject(vec3 pos) {
@@ -121,7 +142,6 @@ void calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, 
     float z      = readZ(at1.xy);
     bool  isHit  = floor(z*32768.0+0.5) < floor(at1.z*32768.0);
     float distQ  = 1;
-    float u      = 0.5;
 
     // distance attenuation
     if(isHit) {
@@ -131,13 +151,18 @@ void calcOcclussion(const vec3 at0, const vec3 pos0, const float f0, uint seed, 
       float lenQ = dot(dp,dp);
       distQ = (lenQ/(sphereLen*sphereLen));
       } else {
-      distQ = 1;//(r*r);
+      distQ = 1;
       }
 
-    const float distW = (u*r)/max(u*u, distQ);
-    if(isHit)
-      occlusionAll += distW;
-    weightAll += distW;
+    // float u      = 0.5;
+    // const float distW = (u*r)/max(u*u, distQ);
+    // const float distW = 1.5/max(0.5, distQ);
+    const float distW = 2.0/(distQ+1);
+    if(isHit) {
+      addHit(h, distW);
+      } else {
+      addMis(h);
+      }
     }
   }
 
@@ -171,6 +196,9 @@ vec3 reconstructNormal(const vec3 at0, in vec2 uv){
   }
 
 void main() {
+  for(int i=0; i<gridQSize; ++i)
+    hitV[i] = 0;
+
   shMaxSteps = 0;
   barrier();
 
@@ -199,19 +227,15 @@ void main() {
     tangent[2] = norm;
     }
 
-  float occlusion = -1, prev = -1;
-  vec2  occ       = vec2(0,0.00001);
-
   const float f0 = M_PI*2.0*interleavedGradientNoise(fragCoord);
 
   int maxSteps = estimateMaxSteps(at0.z);
   atomicMax(shMaxSteps, maxSteps);
   barrier();
 
-  // maxSteps = int(shMaxSteps);
+  float occlusion = 0, prev = 0;
   int  dbg  = 0;
   int  smp  = int(samplesPerStep);
-  int  smin = estimateMinSteps(norm);
   bool eval = valid;
   for(int i=0; i<shMaxSteps; ++i) {
     if(eval && i<maxSteps) {
@@ -220,19 +244,23 @@ void main() {
       prev      = occlusion;
 
       calcOcclussion(at0, pos0, f0, i, numIter);
-      occlusion = (occlusionAll/weightAll);
+
+      occlusion = resolveOcclusion();
       }
 
     int samples = (i+1)*int(samplesPerStep);
-    if(samples<smin)
-      continue;
-    if(isSolved(occlusion,samples,(i<maxSteps)))
+    if(isSolved(abs(occlusion-prev), samples))
       break;
     }
 
   if(valid) {
-    imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(1.0 - 2.0*occlusion));
+#if 1
+    occlusion = resolveOcclusion();
+#endif
 
+    imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(1.0 - occlusion));
+    // if(dbg>4)
+    //   imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(0.0));
     // imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(float(dbg)/10.0));
     // imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(float(smp)/100.0));
     // imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(uintBitsToFloat(vDiff)));

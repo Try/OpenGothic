@@ -153,7 +153,7 @@ float textureSsao() {
   return textureLod(ssao, uv, 0).r;
   }
 #else
-float textureSsao() { return 0; }
+float textureSsao() { return 1; }
 #endif
 
 void main() {
