@@ -193,15 +193,19 @@ struct DynamicWorld::NpcBodyList final {
     for(auto i:body) {
       float proj = 0;
       if(rayTest(*i.body, s, e, extR, proj)) {
-        if(proj<minProj)
-          ret = i.body;
+        if(proj<minProj) {
+          ret     = i.body;
+          minProj = proj;
+          }
         }
       }
     for(auto i:frozen) {
       float proj = 0;
       if(i.body!=nullptr && rayTest(*i.body, s, e, extR, proj)) {
-        if(proj<minProj)
-          ret = i.body;
+        if(proj<minProj) {
+          ret     = i.body;
+          minProj = proj;
+          }
         }
       }
     return ret;
