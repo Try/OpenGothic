@@ -2616,8 +2616,8 @@ bool Npc::startState(ScriptFn id, std::string_view wp, gtime endTime, bool noFin
     return true;
     }
 
-  clearState(noFinalize);
   clearAiQueue();
+  clearState(noFinalize);
   if(!wp.empty())
     hnpc->wp = wp;
 
