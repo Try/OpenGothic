@@ -705,24 +705,33 @@ void MainWindow::drawSaving(Painter &p) {
                0,0,back->w(),back->h());
     }
 
-  float k = 1.0f;//std::max(1.f,float(w())/800.f);
-  drawSaving(p,int(460.f*k),int(300.f*k),k);
-  }
-
-void MainWindow::drawSaving(Painter& p, int sw, int sh, float scale) {
-  const int x = (w()-sw)/2, y = (h()-sh)/2;
-
   if(saveback==nullptr)
     saveback = Resources::loadTexture("SAVING.TGA");
   if(saveback==nullptr)
     return;
 
+  const float scale = Gothic::options().interfaceScale;
+  int         szX   = Gothic::options().saveGameImageSize.w;
+  int         szY   = Gothic::options().saveGameImageSize.h;
+
+  if(szX<=460 || szY<=300) {
+    // way too small otherwise
+    szX = 460;
+    szY = 300;
+    }
+  szX = int(float(szX)*scale);
+  szY = int(float(szY)*scale);
+  drawSaving(p,*saveback,szX,szY,scale);
+  }
+
+void MainWindow::drawSaving(Painter& p, const Tempest::Texture2d& back, int sw, int sh, float scale) {
+  const int x = (w()-sw)/2, y = (h()-sh)/2;
+
   // SAVING.TGA is semi-transparent image with the idea to accomulate alpha over time
   // ... for loop for now
-  p.setBrush(*saveback);
+  p.setBrush(back);
   for(int i=0;i<10;++i) {
-    p.drawRect(x,y,sw,sh,
-               0,0,saveback->w(),saveback->h());
+    p.drawRect(x,y,sw,sh, 0,0,back.w(),back.h());
     }
 
   float v = float(Gothic::inst().loadingProgress())/100.f;

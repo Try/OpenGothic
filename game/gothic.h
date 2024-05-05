@@ -54,6 +54,8 @@ class Gothic final {
       float    interfaceScale    = 1;
       int      inventoryCellSize = 70;
 
+      Tempest::Size saveGameImageSize = {0, 0};
+
       bool     showHealthBar     = true;
       uint8_t  showManaBar       = 2;
       uint8_t  showSwimBar       = 1;
