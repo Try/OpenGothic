@@ -71,7 +71,7 @@ class MainWindow : public Tempest::Window {
     void drawProgress(Tempest::Painter& p, int x, int y, int w, int h, float v);
     void drawLoading (Tempest::Painter& p,int x,int y,int w,int h);
     void drawSaving  (Tempest::Painter& p);
-    void drawSaving  (Tempest::Painter& p, int w, int h, float scale);
+    void drawSaving  (Tempest::Painter& p, const Tempest::Texture2d& back, int w, int h, float scale);
 
     void startGame(std::string_view slot);
     void loadGame (std::string_view slot);
