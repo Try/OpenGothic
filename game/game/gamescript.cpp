@@ -1570,32 +1570,25 @@ int GameScript::wld_getformerplayerportalguild() {
   }
 
 void GameScript::wld_setguildattitude(int gil1, int att, int gil2) {
-  if(gilCount==0 || gil1>=int(gilCount) || gil2>=int(gilCount))
+  if(gil1<0 || gil2<0 || gil1>=int(gilCount) || gil2>=int(gilCount))
     return;
-  gilAttitudes[size_t(gil1)*gilCount+size_t(gil2)]=att;
-  gilAttitudes[size_t(gil2)*gilCount+size_t(gil1)]=att;
+  gilAttitudes[size_t(gil1)*gilCount+size_t(gil2)] = att;
   }
 
-int GameScript::wld_getguildattitude(int g1, int g0) {
-  if(g0<0 || g1<0 || gilCount==0) {
+int GameScript::wld_getguildattitude(int gil1, int gil2) {
+  if(gil1<0 || gil2<0 || gil1>=int(gilCount) || gil2>=int(gilCount))
     return ATT_HOSTILE; // error
-    }
-
-  auto selfG = std::min(gilCount-1,size_t(g0));
-  auto npcG  = std::min(gilCount-1,size_t(g1));
-  auto ret   = gilAttitudes[selfG*gilCount+npcG];
-  return ret;
+  return gilAttitudes[size_t(gil1)*gilCount+size_t(gil2)];
   }
 
 void GameScript::wld_exchangeguildattitudes(std::string_view name) {
   auto guilds = vm.find_symbol_by_name(name);
   if(guilds==nullptr)
     return;
-  for(size_t i=0;i<gilTblSize;++i)
-    for(size_t r=0;r<gilTblSize;++r) {
+  for(size_t i=0;i<gilTblSize;++i) {
+    for(size_t r=0;r<gilTblSize;++r)
       gilAttitudes[i*gilCount+r] = guilds->get_int(uint16_t(i * gilTblSize + r));
-      gilAttitudes[r*gilCount+i] = guilds->get_int(uint16_t(r * gilTblSize + i));
-      }
+    }
   }
 
 bool GameScript::wld_istime(int hour0, int min0, int hour1, int min1) {
