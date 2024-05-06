@@ -259,13 +259,10 @@ void Vob::loadVobTree(Serialize& fin) {
   }
 
 void Vob::save(Serialize& fout) const {
-  fout.setEntry("worlds/",fout.worldName(),"/mobsi/",vobObjectID,"/data");
   fout.write(uint8_t(vobType),pos,local);
   }
 
 void Vob::load(Serialize& fin) {
-  if(!fin.setEntry("worlds/",fin.worldName(),"/mobsi/",vobObjectID,"/data"))
-    return;
   auto type = uint8_t(vobType);
   uint8_t savValue;
   fin.read(savValue,pos,local);

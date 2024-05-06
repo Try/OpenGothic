@@ -75,7 +75,9 @@ void WorldObjects::load(Serialize &fin) {
   itemArr.clear();
   items.clear();
 
-  uint32_t sz = fin.directorySize("worlds/",fin.worldName(),"/npc/");
+  fin.setEntry("worlds/",fin.worldName(),"/npcs");
+  uint32_t sz = 0;
+  fin.read(sz);
   npcArr.resize(sz);
   for(size_t i=0; i<sz; ++i)
     npcArr[i] = std::make_unique<Npc>(owner,size_t(-1),"");
@@ -91,6 +93,7 @@ void WorldObjects::load(Serialize &fin) {
     items.add(itemArr.back().get());
     }
 
+  fin.setEntry("worlds/",fin.worldName(),"/mobsi");
   for(auto& i:rootVobs)
     i->loadVobTree(fin);
 
@@ -120,6 +123,8 @@ void WorldObjects::save(Serialize &fout) {
   fout.setEntry("worlds/",fout.worldName(),"/version");
   fout.write(Serialize::Version::Current);
 
+  fout.setEntry("worlds/",fout.worldName(),"/npcs");
+  fout.write((uint32_t)npcArr.size());
   for(size_t i=0; i<npcArr.size(); ++i) {
     npcArr[i]->save(fout,i);
     }

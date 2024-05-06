@@ -96,7 +96,7 @@ void Serialize::closeEntry() {
   if(entryBuf.empty())
     return;
 
-  mz_uint level  = entryBuf.size()>256 ? MZ_BEST_COMPRESSION : MZ_NO_COMPRESSION;
+  mz_uint level  = entryBuf.size()>256 ? MZ_BEST_SPEED : MZ_NO_COMPRESSION;
   mz_bool status = mz_zip_writer_add_mem(&impl, entryName.c_str(), entryBuf.data(), entryBuf.size(), level);
   entryBuf .clear();
   entryName.clear();

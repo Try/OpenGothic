@@ -179,7 +179,6 @@ Npc::~Npc(){
   }
 
 void Npc::save(Serialize &fout, size_t id) {
-  fout.setEntry("worlds/",fout.worldName(),"/npc/",id,"/data");
   fout.write(*hnpc);
   fout.write(body,head,vHead,vTeeth,bdColor,vColor,bdFatness);
   fout.write(x,y,z,angle,sz);
@@ -216,16 +215,20 @@ void Npc::save(Serialize &fout, size_t id) {
   Vec3 phyPos = physic.position();
   fout.write(phyPos);
 
-  fout.setEntry("worlds/",fout.worldName(),"/npc/",id,"/visual");
   visual.save(fout,*this);
 
-  fout.setEntry("worlds/",fout.worldName(),"/npc/",id,"/inventory");
-  if(!invent.isEmpty() || id==size_t(-1))
+  bool hasInventory = false;
+  if(!invent.isEmpty() || id==size_t(-1)) {
+    hasInventory = true;
+    fout.write(hasInventory);
     invent.save(fout);
+    }
+    else {
+    fout.write(hasInventory);
+    }
   }
 
 void Npc::load(Serialize &fin, size_t id) {
-  fin.setEntry("worlds/",fin.worldName(),"/npc/",id,"/data");
 
   hnpc = std::make_shared<zenkit::INpc>();
   hnpc->user_ptr        = this;
@@ -281,14 +284,16 @@ void Npc::load(Serialize &fin, size_t id) {
   Vec3 phyPos = {};
   fin.read(phyPos);
 
-  fin.setEntry("worlds/",fin.worldName(),"/npc/",id,"/visual");
   visual.load(fin,*this);
   physic.setPosition(phyPos);
 
   setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
 
-  if(fin.setEntry("worlds/",fin.worldName(),"/npc/",id,"/inventory"))
+  bool hasInventory = false;
+  fin.read(hasInventory);
+  if(hasInventory) {
     invent.load(fin,*this);
+    }
 
   // post-alignment
   updateTransform();
