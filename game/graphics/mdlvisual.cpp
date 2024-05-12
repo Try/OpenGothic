@@ -881,12 +881,9 @@ const Animation::Sequence* MdlVisual::startAnimItem(Npc &npc, std::string_view s
   }
 
 const Animation::Sequence* MdlVisual::startAnimSpell(Npc &npc, std::string_view scheme, bool invest) {
-  string_frm name("");
-  if(invest)
-    name = string_frm("S_",scheme,"CAST"); else
-    name = string_frm("S_",scheme,"SHOOT");
+  const bool run = (skInst->bodyState()&BS_MAX)==BS_RUN; // not really the case, as in Gothic player can't cast spell, while running
 
-  const Animation::Sequence *sq = solver.solveFrm(name);
+  const Animation::Sequence *sq = solver.solveAnim(scheme,run,invest);
   if(skInst->startAnim(solver,sq,0,BS_CASTING,Pose::NoHint,npc.world().tickCount())) {
     return sq;
     }

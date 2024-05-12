@@ -377,6 +377,22 @@ const Animation::Sequence *AnimationSolver::solveAnim(WeaponState st, WeaponStat
   return nullptr;
   }
 
+const Animation::Sequence* AnimationSolver::solveAnim(std::string_view scheme, bool run, bool invest) const {
+  // example: "T_MAGWALK_2_FBTSHOOT"
+
+  string_frm name("");
+  if(run && invest)
+    name = string_frm("T_MAGMOVE_2_",scheme,"CAST");
+  else if(run)
+    name = string_frm("T_MAGMOVE_2_",scheme,"SHOOT");
+  else if(run)
+    name = string_frm("T_MAGRUN_2_",scheme,"CAST");
+  else
+    name = string_frm("T_MAGRUN_2_",scheme,"SHOOT");
+
+  return solveFrm(name);
+  }
+
 const Animation::Sequence *AnimationSolver::solveAnim(Interactive *inter, AnimationSolver::Anim a, const Pose &) const {
   if(inter==nullptr)
     return nullptr;
