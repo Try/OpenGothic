@@ -353,7 +353,12 @@ void Interactive::implTick(Pos& p) {
 
   if(state==0 && p.attachMode) {
     npc.world().sendPassivePerc(npc,npc,npc,PERC_ASSESSUSEMOB);
-    emitTriggerEvent();
+    emitTriggerEvent(TriggerEvent::T_Trigger);
+    }
+
+  if(state==stateNum && p.attachMode && reverseState) {
+    npc.world().sendPassivePerc(npc,npc,npc,PERC_ASSESSUSEMOB);
+    emitTriggerEvent(TriggerEvent::T_Untrigger);
     }
 
   if(npc.isPlayer() && !loopState && attach) {
@@ -455,10 +460,10 @@ void Interactive::invokeStateFunc(Npc& npc) {
   sc.useInteractive(npc.handlePtr(), func);
   }
 
-void Interactive::emitTriggerEvent() const {
+void Interactive::emitTriggerEvent(TriggerEvent::Type type) const {
   if(triggerTarget.empty())
     return;
-  const TriggerEvent evt(triggerTarget,vobName,TriggerEvent::T_Trigger);
+  const TriggerEvent evt(triggerTarget,vobName,type);
   world.triggerEvent(evt);
   }
 
