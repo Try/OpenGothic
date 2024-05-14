@@ -51,10 +51,6 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, const zenkit::VMover& mover,
       }
 
     keyframes[i].ticks = std::max(ticksA, ticksB);
-    if(mover.speed>=100) {
-      // EVT_RIGHT_GATE_LARGE_01
-      // keyframes[i].ticks = 0;
-      }
     }
 
   if(!mover.keyframes.empty()) {
@@ -159,8 +155,8 @@ void MoveTrigger::processTrigger(const TriggerEvent& e, bool onTrigger) {
       }
     case zenkit::MoverBehavior::TRIGGER_CONTROL: {
       if(onTrigger)
-        state = Open; else
-        state = Close;
+        state = Close; else
+        state = Open;
       break;
       }
     case zenkit::MoverBehavior::OPEN_TIME: {

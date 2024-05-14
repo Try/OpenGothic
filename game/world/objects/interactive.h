@@ -6,6 +6,7 @@
 #include "physics/physicmesh.h"
 #include "graphics/mesh/animationsolver.h"
 #include "graphics/objvisual.h"
+#include "world/triggers/abstracttrigger.h"
 #include "game/inventory.h"
 #include "utils/keycodec.h"
 #include "vob.h"
@@ -51,7 +52,7 @@ class Interactive : public Vob {
     int32_t             stateId() const { return state; }
     int32_t             stateCount() const { return stateNum; }
     bool                setMobState(std::string_view scheme,int32_t st) override;
-    void                emitTriggerEvent() const;
+    void                emitTriggerEvent(TriggerEvent::Type type) const;
     std::string_view    schemeName() const;
     std::string_view    posSchemeName() const;
 
