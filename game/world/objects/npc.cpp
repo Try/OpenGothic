@@ -1154,8 +1154,12 @@ int32_t Npc::attribute(Attribute a) const {
 void Npc::changeAttribute(Attribute a, int32_t val, bool allowUnconscious) {
   if(a>=ATR_MAX || val==0)
     return;
-  if(isPlayer() && Gothic::inst().isGodMode() && val<0 && a==ATR_HITPOINTS)
-    return;
+  if(val<0 && a==ATR_HITPOINTS) {
+    if(isPlayer() && Gothic::inst().isGodMode())
+      return;
+    if(isImmortal())
+      return;
+    }
 
   hnpc->attribute[a]+=val;
   if(hnpc->attribute[a]<0)
