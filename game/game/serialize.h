@@ -7,6 +7,7 @@
 #include <Tempest/Matrix4x4>
 
 #include <vector>
+#include <unordered_set>
 #include <cstdint>
 #include <type_traits>
 #include <ctime>
@@ -275,6 +276,7 @@ class Serialize {
     uint16_t                 wldVer = Version::Current;
 
     std::string              tmpStr;
+    std::unordered_set<std::string> outFileList;
     World*                   ctx       = nullptr;
 
     mz_zip_archive           impl      = {};
