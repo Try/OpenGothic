@@ -390,6 +390,10 @@ const Animation::Sequence* AnimationSolver::solveAnim(std::string_view scheme, b
   else
     name = string_frm("T_MAGRUN_2_",scheme,"SHOOT");
 
+  if(auto sq = solveFrm(name))
+    return sq;
+
+  name = string_frm("S_",scheme,"SHOOT");
   return solveFrm(name);
   }
 
