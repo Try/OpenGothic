@@ -1652,8 +1652,8 @@ int GameScript::wld_getmobstate(std::shared_ptr<zenkit::INpc> npcRef, std::strin
     return -1;
     }
 
-  auto mob = npc->detectedMob();
-  if(mob==nullptr || mob->schemeName()!=scheme) {
+  auto mob = world().availableMob(*npc,scheme);
+  if(mob==nullptr) {
     return -1;
     }
 
