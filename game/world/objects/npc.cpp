@@ -589,6 +589,7 @@ bool Npc::hasAutoroll() const {
 void Npc::stopWalkAnimation() {
   if(interactive()==nullptr)
     visual.stopWalkAnim(*this);
+  // go2.clear();
   setAnimRotate(0);
   }
 
@@ -1437,7 +1438,7 @@ bool Npc::implAttack(uint64_t dt) {
 
   auto ws = weaponState();
   // vanilla behavior, required for orcs in G1 orcgraveyard
-  if(ws==WeaponState::NoWeapon) {
+  if(ws==WeaponState::NoWeapon && isAiQueueEmpty()) {
     if(drawWeaponMelee())
       return true;
     }
@@ -1579,6 +1580,8 @@ bool Npc::implAttack(uint64_t dt) {
 
   if(act==FightAlgo::MV_MOVEA || act==FightAlgo::MV_MOVEG ||
       act==FightAlgo::MV_TURNA || act==FightAlgo::MV_TURNG) {
+    if(!isAiQueueEmpty() && implAiTick(dt))
+      return true;
     go2.set(currentTarget,(act==FightAlgo::MV_MOVEG || act==FightAlgo::MV_TURNG) ?
                              GoToHint::GT_EnemyG : GoToHint::GT_EnemyA);
 
@@ -1592,6 +1595,7 @@ bool Npc::implAttack(uint64_t dt) {
 
     const bool isClose = (qDistTo(*currentTarget) < dist*dist);
     if((!isClose && implGoTo(dt)) || implTurnTo(*currentTarget,dt)) {
+      go2.clear();
       implAiTick(dt);
       return true;
       }
@@ -2087,6 +2091,11 @@ void Npc::tickAnimationTags() {
 void Npc::tick(uint64_t dt) {
   // if(!isPlayer() && hnpc->id!=323)
   //   return;
+  static bool dbg = false;
+  static int  kId = -1;
+  if(dbg && !isPlayer() && hnpc->id!=kId)
+    return;
+
   tickAnimationTags();
 
   if(!visual.pose().hasAnim())
@@ -2165,12 +2174,12 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_TurnToNpc: {
       const auto st = bodyStateMasked();
       if(interactive()==nullptr && (st==BS_WALK || st==BS_SNEAK)) {
-        visual.stopWalkAnim(*this);
+        stopWalkAnimation();
         queue.pushFront(std::move(act));
         break;
         }
       if(interactive()==nullptr) {
-        visual.stopWalkAnim(*this);
+        stopWalkAnimation();
         visual.stopDlgAnim(*this);
         }
       if(act.target!=nullptr && implTurnTo(*act.target,dt)) {
@@ -2236,7 +2245,6 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         if(closeWeapon(false)) {
           stopWalkAnimation();
           }
-
         auto ws = weaponState();
         if(ws!=WeaponState::NoWeapon){
           queue.pushFront(std::move(act));
@@ -3187,7 +3195,7 @@ bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
       return false;
       }
     } else {
-    visual.stopWalkAnim(*this);
+    stopWalkAnimation();
     }
 
   const auto sgn = std::sin(double(da)*M_PI/180.0);
@@ -3566,13 +3574,11 @@ bool Npc::tickCast(uint64_t dt) {
 
   if(CS_Emit_0<=castLevel && castLevel<=CS_Emit_Last) {
     // final commit
-    if(isAiQueueEmpty()) {
-      if(!setAnim(Npc::Anim::Idle))
-        return true;
-      commitSpell();
-      castLevel = CS_Finalize;
-      // passthru to CS_Finalize
-      }
+    if(!setAnim(Npc::Anim::Idle))
+      return true;
+    commitSpell();
+    castLevel = CS_Finalize;
+    // passthru to CS_Finalize
     }
 
   if(castLevel==CS_Finalize) {
@@ -4150,7 +4156,7 @@ void Npc::stopWalking() {
   if(setAnim(Anim::Idle))
     return;
   // hard stop
-  visual.stopWalkAnim(*this);
+  stopWalkAnimation();
   }
 
 bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {
