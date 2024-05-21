@@ -171,7 +171,6 @@ class WorldObjects final {
     std::vector<Npc*>                  npcNear;
 
     std::vector<AbstractTrigger*>      triggers;
-    std::vector<AbstractTrigger*>      triggersZn;
     std::vector<AbstractTrigger*>      triggersTk;
     std::vector<AbstractTrigger*>      triggersDef;
     std::vector<PerceptionMsg>         sndPerc;

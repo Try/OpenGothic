@@ -485,8 +485,6 @@ void WorldObjects::detectItem(const float x, const float y, const float z,
   }
 
 void WorldObjects::addTrigger(AbstractTrigger* tg) {
-  if(tg->hasVolume())
-    triggersZn.emplace_back(tg);
   triggers.emplace_back(tg);
   }
 

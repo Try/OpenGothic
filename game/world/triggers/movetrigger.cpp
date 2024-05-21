@@ -82,10 +82,6 @@ void MoveTrigger::load(Serialize& fin) {
     }
   }
 
-bool MoveTrigger::hasVolume() const {
-  return false;
-  }
-
 void MoveTrigger::setView(MeshObjects::Mesh &&m) {
   view = std::move(m);
   }
