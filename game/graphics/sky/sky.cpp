@@ -116,6 +116,10 @@ void Sky::setupSettings() {
       q = Quality::VolumetricMQ;
     }
 
+  static bool pathTrace = false;
+  if(pathTrace)
+    q = PathTrace;
+
   if(quality==q)
     return;
   quality = q;
@@ -142,6 +146,8 @@ void Sky::setupSettings() {
       // fogLut and oclussion are decupled
       fogLut3D = device.image3d(lutRGBAFormat,128,64,32);
       shadowDw = StorageImage();
+      break;
+    case PathTrace:
       break;
     }
   //fogLut3D = device.image3d(lutRGBAFormat,1,1,1);
@@ -385,6 +391,20 @@ void Sky::prepareUniforms() {
     uboFog3d.set(4, occlusionLut);
     }
 
+  if(quality==PathTrace) {
+    uboSkyPathtrace = device.descriptors(Shaders::inst().skyPathTrace);
+    uboSkyPathtrace.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    uboSkyPathtrace.set(1, transLut,     smpB);
+    uboSkyPathtrace.set(2, multiScatLut, smpB);
+    uboSkyPathtrace.set(3, cloudsLut,    smpB);
+    uboSkyPathtrace.set(4, *scene.zbuffer, Sampler::nearest());
+    }
+
+  uboShadowRq = device.descriptors(Shaders::inst().shadowRq);
+  uboShadowRq.set(0, shadowRq);
+  uboShadowRq.set(1, scene.uboGlobal[SceneGlobals::V_Main]);
+  uboShadowRq.set(2, *scene.shadowMap[1],Resources::shadowSampler());
+
   uboSun = device.descriptors(Shaders::inst().sun);
   uboSun.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
   uboSun.set(1, *sunImg);
@@ -475,10 +495,20 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
       cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
       break;
       }
+    case PathTrace: {
+      break;
+      }
     }
   }
 
 void Sky::drawSky(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
+  if(quality==PathTrace) {
+    UboSky ubo = mkPush(true);
+    cmd.setUniforms(Shaders::inst().skyPathTrace, uboSkyPathtrace, &ubo, sizeof(ubo));
+    cmd.draw(Resources::fsqVbo());
+    return;
+    }
+
   UboSky ubo = mkPush(true);
   cmd.setUniforms(Shaders::inst().sky, uboSky, &ubo, sizeof(ubo));
   cmd.draw(Resources::fsqVbo());
@@ -502,6 +532,8 @@ void Sky::drawFog(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
     case VolumetricHQ:
       cmd.setUniforms(Shaders::inst().fog3dHQ, uboFog3d, &ubo, sizeof(ubo));
       break;
+    case PathTrace:
+      return;
     }
   cmd.draw(Resources::fsqVbo());
   }

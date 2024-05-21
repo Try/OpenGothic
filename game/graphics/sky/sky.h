@@ -81,8 +81,10 @@ class Sky final {
     Tempest::DescriptorSet        uboSkyViewLut, uboSkyViewCldLut;
     Tempest::DescriptorSet        uboFogViewLut3d;
     Tempest::DescriptorSet        uboSky, uboFog, uboFog3d;
-    Tempest::DescriptorSet        uboShadowDw, uboOcclusion;
+    Tempest::DescriptorSet        uboShadowDw, uboOcclusion, uboShadowRq;
     Tempest::DescriptorSet        uboIrradiance, uboExp;
+
+    Tempest::DescriptorSet        uboSkyPathtrace;
 
     bool                          lutIsInitialized = false;
 
