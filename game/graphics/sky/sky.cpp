@@ -398,6 +398,7 @@ void Sky::prepareUniforms() {
     uboSkyPathtrace.set(2, multiScatLut, smpB);
     uboSkyPathtrace.set(3, cloudsLut,    smpB);
     uboSkyPathtrace.set(4, *scene.zbuffer, Sampler::nearest());
+    uboSkyPathtrace.set(5, *scene.shadowMap[1], Resources::shadowSampler());
     }
 
   uboShadowRq = device.descriptors(Shaders::inst().shadowRq);
@@ -499,6 +500,10 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
       break;
       }
     }
+
+  cmd.setFramebuffer({});
+  cmd.setUniforms(Shaders::inst().shadowRq, uboShadowRq);
+  cmd.dispatchThreads(shadowRq.size());
   }
 
 void Sky::drawSky(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {

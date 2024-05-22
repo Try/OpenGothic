@@ -6,6 +6,7 @@
 
 #include "scene.glsl"
 #include "sky_common.glsl"
+#include "common.glsl"
 
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
@@ -14,10 +15,15 @@ layout(binding  = 1) uniform sampler2D tLUT;
 layout(binding  = 2) uniform sampler2D mLUT;
 layout(binding  = 3) uniform sampler2D cloudsLUT;
 layout(binding  = 4) uniform texture2D depth;
+layout(binding  = 5) uniform sampler2D textureSm1;
 
 layout(location = 0) out vec4 outColor;
 
 const int numScatteringSteps = 32;
+
+float interleavedGradientNoise() {
+  return interleavedGradientNoise(gl_FragCoord.xy);
+  }
 
 vec3 project(mat4 m, vec3 pos) {
   vec4 p = m*vec4(pos,1);
@@ -39,41 +45,43 @@ vec3 applyClouds(vec3 skyColor) {
   }*/
 
 vec4 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax) {
-  float cosTheta = dot(rayDir, sunDir);
+  const float cosTheta      = dot(rayDir, sunDir);
+  const float noise         = interleavedGradientNoise()/numScatteringSteps;
 
-  float miePhaseValue      = miePhase(cosTheta);
-  float rayleighPhaseValue = rayleighPhase(-cosTheta);
+  const float phaseMie      = miePhase(cosTheta);
+  const float phaseRayleigh = rayleighPhase(-cosTheta);
+  const float clouds        = textureLod(cloudsLUT, vec2(scene.isNight,0), 0).a;
 
   vec3  scatteredLight = vec3(0.0);
   vec3  transmittance  = vec3(1.0);
 
-  const float clouds = textureLod(cloudsLUT, vec2(scene.isNight,0), 0).a;
-
-  for(int i=1; i<=numScatteringSteps; ++i) {
-    float t  = (float(i)/numScatteringSteps)*tMax;
+  for(int i=0; i<numScatteringSteps; ++i) {
+    float t  = (float(i+0.3)/numScatteringSteps)*tMax;
     float dt = tMax/numScatteringSteps;
 
     vec3  newPos = pos + t*rayDir;
 
     vec3  rayleighScattering;
-    vec3  extinction;
     float mieScattering;
+    vec3  extinction;
     scatteringValues(newPos, clouds, rayleighScattering, mieScattering, extinction);
 
-    vec3 sampleTransmittance = exp(-dt*extinction);
+    vec3 transmittanceSmp = exp(-dt*extinction);
 
-    vec3 sunTransmittance     = textureLUT(tLUT, newPos, sunDir);
+    vec3 transmittanceSun     = textureLUT(tLUT, newPos, sunDir);
     vec3 psiMS                = textureLUT(mLUT, newPos, sunDir);
+    // textureSm1
 
-    vec3 rayleighInScattering = rayleighScattering*(rayleighPhaseValue*sunTransmittance + psiMS);
-    vec3 mieInScattering      = mieScattering     *(miePhaseValue*sunTransmittance      + psiMS);
-    vec3 inScattering         = (rayleighInScattering + mieInScattering);
+    vec3 scatteringSmp = vec3(0);
+    scatteringSmp += rayleighScattering * phaseRayleigh * transmittanceSun;
+    scatteringSmp += mieScattering      * phaseMie      * transmittanceSun;
+    scatteringSmp += psiMS * (rayleighScattering + mieScattering);
 
     // Integrated scattering within path segment.
-    vec3 scatteringIntegral = (inScattering - inScattering * sampleTransmittance) / extinction;
+    vec3 scatteringIntegral = (scatteringSmp - scatteringSmp * transmittanceSmp) / extinction;
 
     scatteredLight += scatteringIntegral*transmittance;
-    transmittance  *= sampleTransmittance;
+    transmittance  *= transmittanceSmp;
     }
 
   const float t = (transmittance.x+transmittance.y+transmittance.z)/3.0;
@@ -92,6 +100,7 @@ void main() {
 
   const float dMin   = 0;
   const float dMax   = texelFetch(depth, ivec2(gl_FragCoord.xy), 0).x;
+  const bool  isSky  = dMax==1.0;
   const vec3  pos0   = project(scene.viewProjectInv, vec3(inPos,dMin));
   const vec3  pos1   = project(scene.viewProjectInv, vec3(inPos,dMax));
   const vec4  shPos0 = scene.viewShadow[1]*vec4(pos0, 1);
@@ -103,12 +112,10 @@ void main() {
 
   const float atmoDist   = rayIntersect(viewPos, rayDir, RAtmos);
   const float groundDist = length(pos1-pos0)*0.01;  // meters
-  const float tMax       = min(atmoDist, groundDist*viewDistanceScale);
-  // const float groundDist = rayIntersect(viewPos, rayDir, RPlanet);
-  // const float tMax       = (groundDist < 0.0) ? atmoDist : groundDist;
+  const float tMax       = isSky ? atmoDist : min(atmoDist, groundDist*viewDistanceScale);
 
   const vec4  sun  = raymarchScattering(viewPos, rayDir, sunDir, tMax);
-  const vec3  moon = raymarchScattering(viewPos, rayDir, vec3(0,1,0), tMax).rgb * scene.isNight * moonInt;
+  const vec3  moon = vec3(0);//raymarchScattering(viewPos, rayDir, vec3(0,1,0), tMax).rgb * scene.isNight * moonInt;
 
   outColor = vec4(sun.rgb + moon, dMax<1 ? sun.w : 0.0);
   }

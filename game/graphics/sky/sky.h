@@ -50,6 +50,7 @@ class Sky final {
       VolumetricLQ,
       VolumetricMQ,
       VolumetricHQ,
+      PathTrace,
       };
 
     struct UboSky {
