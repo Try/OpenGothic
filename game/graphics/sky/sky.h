@@ -50,6 +50,7 @@ class Sky final {
       VolumetricLQ,
       VolumetricMQ,
       VolumetricHQ,
+      PathTrace,
       };
 
     struct UboSky {
@@ -73,7 +74,7 @@ class Sky final {
     Tempest::TextureFormat        lutRGBFormat  = Tempest::TextureFormat::R11G11B10UF;
     Tempest::TextureFormat        lutRGBAFormat = Tempest::TextureFormat::RGBA16F;
     Tempest::Attachment           transLut, multiScatLut, viewLut, viewCldLut;
-    Tempest::StorageImage         cloudsLut, fogLut3D, shadowDw;
+    Tempest::StorageImage         cloudsLut, fogLut3D, shadowDw, shadowRq;
     Tempest::StorageImage         occlusionLut, irradianceLut;
 
     Tempest::DescriptorSet        uboClouds;
@@ -81,8 +82,10 @@ class Sky final {
     Tempest::DescriptorSet        uboSkyViewLut, uboSkyViewCldLut;
     Tempest::DescriptorSet        uboFogViewLut3d;
     Tempest::DescriptorSet        uboSky, uboFog, uboFog3d;
-    Tempest::DescriptorSet        uboShadowDw, uboOcclusion;
+    Tempest::DescriptorSet        uboShadowDw, uboOcclusion, uboShadowRq;
     Tempest::DescriptorSet        uboIrradiance, uboExp;
+
+    Tempest::DescriptorSet        uboSkyPathtrace;
 
     bool                          lutIsInitialized = false;
 
