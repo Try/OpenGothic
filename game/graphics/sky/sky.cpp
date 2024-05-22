@@ -500,10 +500,6 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
       break;
       }
     }
-
-  cmd.setFramebuffer({});
-  cmd.setUniforms(Shaders::inst().shadowRq, uboShadowRq);
-  cmd.dispatchThreads(shadowRq.size());
   }
 
 void Sky::drawSky(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
