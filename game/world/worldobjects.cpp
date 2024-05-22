@@ -400,11 +400,7 @@ bool WorldObjects::execTriggerEvent(const TriggerEvent& e) {
     auto& t = *i;
     if(t.name()!=e.target)
       continue; // NOTE: trigger name is not unique - more then one trigger can be activated
-
-    const bool hadDelayedEvt = t.hasDelayedEvents();
     t.processEvent(e);
-    if(!hadDelayedEvt && t.hasDelayedEvents())
-      triggersDef.push_back(&t);
     emitted = true;
     }
 
@@ -488,6 +484,10 @@ void WorldObjects::addTrigger(AbstractTrigger* tg) {
   if(tg->hasVolume())
     triggersZn.emplace_back(tg);
   triggers.emplace_back(tg);
+  }
+
+void WorldObjects::addDefTrigger(AbstractTrigger& t) {
+  triggersDef.push_back(&t);
   }
 
 bool WorldObjects::triggerOnStart(bool firstTime) {
