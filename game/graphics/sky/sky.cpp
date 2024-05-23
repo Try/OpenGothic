@@ -401,11 +401,6 @@ void Sky::prepareUniforms() {
     uboSkyPathtrace.set(5, *scene.shadowMap[1], Resources::shadowSampler());
     }
 
-  uboShadowRq = device.descriptors(Shaders::inst().shadowRq);
-  uboShadowRq.set(0, shadowRq);
-  uboShadowRq.set(1, scene.uboGlobal[SceneGlobals::V_Main]);
-  uboShadowRq.set(2, *scene.shadowMap[1],Resources::shadowSampler());
-
   uboSun = device.descriptors(Shaders::inst().sun);
   uboSun.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
   uboSun.set(1, *sunImg);
