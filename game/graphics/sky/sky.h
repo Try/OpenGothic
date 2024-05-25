@@ -48,7 +48,6 @@ class Sky final {
     enum Quality : uint8_t {
       None,
       VolumetricLQ,
-      VolumetricMQ,
       VolumetricHQ,
       PathTrace,
       };
