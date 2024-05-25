@@ -43,7 +43,8 @@ vec3 textureLinear(vec3 rgb) {
   return acesTonemapInv(linear);
 #else
   // NOTE: in theory, need to be same as textureAlbedo, but game does't look like gothic then :(
-  return acesTonemapInv(linear*0.78+0.001)*2.0;
+  // return vec3(0.9);
+  return acesTonemapInv(linear*0.78+0.001)*5.0;
 #endif
   }
 

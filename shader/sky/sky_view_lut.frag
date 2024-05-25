@@ -18,41 +18,39 @@ layout(location = 0) out vec4 outColor;
 const int numScatteringSteps = 32;
 
 vec3 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax) {
-  float cosTheta = dot(rayDir, sunDir);
+  const float cosTheta      = dot(rayDir, sunDir);
 
-  float miePhaseValue      = miePhase(cosTheta);
-  float rayleighPhaseValue = rayleighPhase(-cosTheta);
+  const float phaseMie      = miePhase(cosTheta);
+  const float phaseRayleigh = rayleighPhase(-cosTheta);
+  const float clouds        = textureLod(cloudsLUT, vec2(scene.isNight,0), 0).a;
 
   vec3  scatteredLight = vec3(0.0);
   vec3  transmittance  = vec3(1.0);
 
-  const float clouds = textureLod(cloudsLUT, vec2(scene.isNight,0), 0).a;
-
-  for(int i=1; i<=numScatteringSteps; ++i) {
-    float t  = (float(i)/numScatteringSteps)*tMax;
-    float dt = tMax/numScatteringSteps;
-
+  for(int i=0; i<numScatteringSteps; ++i) {
+    float t      = (float(i+0.3)/numScatteringSteps)*tMax;
+    float dt     = tMax/numScatteringSteps;
     vec3  newPos = pos + t*rayDir;
 
     vec3  rayleighScattering;
-    vec3  extinction;
     float mieScattering;
+    vec3  extinction;
     scatteringValues(newPos, clouds, rayleighScattering, mieScattering, extinction);
 
-    vec3 sampleTransmittance = exp(-dt*extinction);
-
-    vec3 sunTransmittance = textureLUT(tLUT, newPos, sunDir);
+    vec3 transmittanceSmp = exp(-dt*extinction);
+    vec3 transmittanceSun = textureLUT(tLUT, newPos, sunDir);
     vec3 psiMS            = textureLUT(mLUT, newPos, sunDir);
 
-    vec3 rayleighInScattering = rayleighScattering*(rayleighPhaseValue*sunTransmittance + psiMS);
-    vec3 mieInScattering      = mieScattering     *(miePhaseValue*sunTransmittance      + psiMS);
-    vec3 inScattering         = (rayleighInScattering + mieInScattering);
+    vec3 scatteringSmp = vec3(0);
+    scatteringSmp += psiMS * (rayleighScattering + mieScattering);
+    scatteringSmp += rayleighScattering * phaseRayleigh * transmittanceSun;
+    scatteringSmp += mieScattering      * phaseMie      * transmittanceSun;
 
     // Integrated scattering within path segment.
-    vec3 scatteringIntegral = (inScattering - inScattering * sampleTransmittance) / extinction;
+    vec3 scatteringIntegral = (scatteringSmp - scatteringSmp * transmittanceSmp) / extinction;
 
     scatteredLight += scatteringIntegral*transmittance;
-    transmittance  *= sampleTransmittance;
+    transmittance  *= transmittanceSmp;
     }
 
   return scatteredLight;
@@ -94,7 +92,7 @@ void main() {
   float tMax        = (groundDist < 0.0) ? atmoDist : groundDist;
 
   vec3  sun  = raymarchScattering(viewPos, rayDir, sunDir, tMax);
-  vec3  moon = raymarchScattering(viewPos, rayDir, vec3(0,1,0), tMax) * scene.isNight * moonInt;
-  // vec3  moon = raymarchScattering(viewPos, rayDir, normalize(vec3(-1,1,0)), tMax)*push.night*moonInt;
+  //vec3  moon = vec3(0);
+  vec3  moon = raymarchScattering(viewPos, rayDir, normalize(vec3(-1,1,0)), tMax) * scene.isNight * moonInt;
   outColor = vec4(sun+moon, 1.0);
   }

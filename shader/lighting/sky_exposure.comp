@@ -103,18 +103,18 @@ void main() {
     float vmin = uintBitsToFloat(histogram[HistMid-1]);
     float vmax = uintBitsToFloat(histogram[HistMid-0]);
 
-    const vec3  pos    = vec3(0, RPlanet+1, 0);
-    const vec3  tr     = textureLUT(tLUT, pos, scene.sunDir).rgb;
-    const float cldVal = textureLod(cloudsLUT, vec2(scene.isNight,0), 0).a;
-    const float clouds = (1.0 - pow(cldVal, 4));
+    const vec3  pos      = vec3(0, RPlanet+1, 0);
+    const vec3  tr       = textureLUT(tLUT, pos, scene.sunDir).rgb;
+    const float cldVal   = textureLod(cloudsLUT, vec2(scene.isNight,0), 0).a;
+    const float clouds   = (1.0 - pow(cldVal, 4));
 
-    const vec3 sunColor = scene.sunColor * tr;// * clouds;
-    const vec3 ambient  = scene.ambient  * tr;// * clouds;
+    const vec3  sunColor = scene.sunColor * tr;// * clouds;
+    const vec3  ambient  = scene.ambient  * tr;// * clouds;
 
-    vec3  light = sunColor*Fd_Lambert*1.25 + ambient + skyIrradiance();
+    vec3  light = sunColor*Fd_Lambert*0.5 + ambient + skyIrradiance();
     float lum   = (vmax+vmin) * 0.5 * scene.GSunIntensity;
     //lum = dot(light, vec3(1.0/3.0));
-    lum = dot(light, vec3(0.2125, 0.7154, 0.0721))*1.0 + lum*0.1;
+    lum = (dot(light, vec3(0.2125, 0.7154, 0.0721))*0.7 + lum*0.3)*5.0;//(4.0 + scene.isNight);
 
     // float lum = tr.b;
     scene.sunColor     = sunColor * clouds * push.sunOcclusion;

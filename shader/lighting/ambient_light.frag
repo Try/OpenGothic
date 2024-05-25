@@ -61,7 +61,7 @@ void main() {
   const vec3  norm = normalFetch(gbufNormal, fragCoord);
 
   // const vec3  linear = vec3(1);
-  const vec3  linear = textureLinear(diff);
+  const vec3  linear = textureAlbedo(diff);
   const float ao     = textureSsao();
 
   vec3 ambient = scene.ambient;

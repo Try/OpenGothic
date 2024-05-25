@@ -179,7 +179,7 @@ void main() {
     }
 
   // const vec3  linear = vec3(1);
-  const vec3  linear = textureLinear(diff); //  * Fd_Lambert is accounted in integration
+  const vec3  linear = textureAlbedo(diff); //  * Fd_Lambert is accounted in integration
   const float ao     = textureSsao();
   vec3 lcolor = colorSum.rgb;
 

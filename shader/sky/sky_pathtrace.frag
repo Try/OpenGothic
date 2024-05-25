@@ -47,6 +47,7 @@ vec3 applyClouds(vec3 skyColor) {
   }*/
 
 float shadowTest(vec3 pos) {
+  // return 1;
   vec4  t  = scene.viewShadow[1]*vec4(pos, 1);
   //vec4 t = pos;
   t.xyz /= t.w;
@@ -92,6 +93,7 @@ vec4 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax, vec3 smP
     scatteringSmp += mieScattering      * phaseMie      * transmittanceSun * visibility;
 
     // Integrated scattering within path segment.
+    // See slide 28 at http://www.frostbite.com/2015/08/physically-based-unified-volumetric-rendering-in-frostbite/
     vec3 scatteringIntegral = (scatteringSmp - scatteringSmp * transmittanceSmp) / extinction;
 
     scatteredLight += scatteringIntegral*transmittance;
@@ -105,7 +107,7 @@ vec4 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax, vec3 smP
 void main() {
   const float DirectSunLux      = scene.GSunIntensity;
   const float DirectMoonLux     = 0.32f;
-  const float viewDistanceScale = 40;
+  const float viewDistanceScale = 50;
 
   const ivec2 dstSz  = textureSize(depth,0);
   const ivec2 dstUV  = ivec2(gl_FragCoord.xy);
