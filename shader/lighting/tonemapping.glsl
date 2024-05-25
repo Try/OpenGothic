@@ -35,17 +35,9 @@ vec3 acesTonemapInv(vec3 x) {
   return (-0.59 * x + 0.03 - sqrt(-1.0127 * x*x + 1.3702 * x + 0.0009)) / (2.0 * (2.43*x - 2.51));
   }
 
-// HACK: need to preserve look-and-fill of original graphics
-vec3 textureLinear(vec3 rgb) {
+vec3 textureEmmisive(vec3 rgb) {
   const vec3 linear = srgbDecode(rgb);
-#if defined(EMISSIVE)
-  // emissive objects, spells
-  return acesTonemapInv(linear);
-#else
-  // NOTE: in theory, need to be same as textureAlbedo, but game does't look like gothic then :(
-  // return vec3(0.9);
-  return acesTonemapInv(linear*0.78+0.001)*5.0;
-#endif
+  return acesTonemapInv(linear) * 3.0;
   }
 
 vec3 textureAlbedo(vec3 rgb) {
@@ -57,6 +49,8 @@ vec3 textureAlbedo(vec3 rgb) {
   // return vec3(0.9);
   // return acesTonemapInv(linear*0.8);
   // return acesTonemapInv(linear*0.78+0.001);
+
+  // HACK: need to preserve look-and-fill of original graphics
   const vec3 linear = srgbDecode(rgb);
   return acesTonemapInv(linear*0.78+0.001)*5.0; // adjusted to have 'realistic' albedo values
   }

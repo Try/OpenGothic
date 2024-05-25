@@ -59,7 +59,7 @@ Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest:
   minZ = bbox.first.z;
 
   GSunIntensity  = DirectSunLux;
-  GMoonIntensity = DirectMoonLux;
+  GMoonIntensity = DirectMoonLux*4;
   occlusionScale = 1;
 
   /*
@@ -252,12 +252,17 @@ void Sky::updateLight(const int64_t now) {
 
   Vec3 direct;
   direct  = DirectSunLux * Vec3(1.0f);
-  ambient = DirectSunLux * float(1.0/M_PI) * groundAlbedo * sunOcclude;
+
+  ambient  = DirectSunLux  * float(1.0/M_PI) * groundAlbedo * sunOcclude;
+  ambient += DirectMoonLux * float(1.0/M_PI) * groundAlbedo;
   // ambient *= 0.78f; // atmosphere transmission is in shader
-  ambient *= 0.68f;   // NdoL prediction
-  ambient *= 0.5;     // maybe in shadow or maybe not
-  ambient *= 2.0;     // 2*pi, pi accounted in shader
-  ambient += Vec3(0.01f); // should avoid zeros
+  ambient *= 0.68f;           // NdoL prediction
+  ambient *= 0.5;             // maybe in shadow or maybe not
+  ambient *= 2.0*float(M_PI); // 2*pi (hermisphere integral)
+  // ambient *= 0.8f;            // tuneup
+  ambient *= float(1.0/M_PI); // predivide by lambertian lobe
+
+  //ambient += Vec3(0.001f);     // should avoid zeros
 
   sun.setColor(direct*sunMul);
   ambient = ambient*ambMul;
@@ -498,22 +503,9 @@ void Sky::prepareExposure(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_
     };
   Push push;
   push.sunOcclusion = smoothstep(0.0f, 0.01f, sun.dir().y);
-  // art-tuning
-  {
-    static float add = 100;
-    // from 21:43 to 21:49
-    static float maxY = +0.05f;
-    static float minY = -0.165f;
-    const  float nowY = sunLight().dir().y;
-    if(minY<=nowY && nowY<=maxY) {
-      float dt = float(nowY-minY)/float(maxY-minY);
-      dt = 1.f-std::abs(dt-0.5f)*2.f;
-      push.baseL += dt*dt*add;
-      }
-  }
 
   static float override = 0;
-  static float add      = 0.05f;
+  static float add      = 1.f;
   if(override>0)
     push.baseL = override;
   push.baseL += add;

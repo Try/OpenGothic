@@ -108,13 +108,15 @@ void main() {
     const float cldVal   = textureLod(cloudsLUT, vec2(scene.isNight,0), 0).a;
     const float clouds   = (1.0 - pow(cldVal, 4));
 
-    const vec3  sunColor = scene.sunColor * tr;// * clouds;
-    const vec3  ambient  = scene.ambient  * tr;// * clouds;
+    const vec3  NightAmbient = vec3(0.05);
+    const vec3  sunColor     = scene.sunColor * tr;
+    const vec3  ambient      = scene.ambient  * tr + NightAmbient;
 
-    vec3  light = sunColor*Fd_Lambert*0.5 + ambient + skyIrradiance();
-    float lum   = (vmax+vmin) * 0.5 * scene.GSunIntensity;
-    //lum = dot(light, vec3(1.0/3.0));
-    lum = (dot(light, vec3(0.2125, 0.7154, 0.0721))*0.7 + lum*0.3)*5.0;//(4.0 + scene.isNight);
+    const vec3  light  = sunColor*Fd_Lambert + ambient + skyIrradiance();
+    const float objLum = dot(light, vec3(0.2125, 0.7154, 0.0721));
+    const float skyLum = (vmax+vmin) * 0.5 * scene.GSunIntensity;
+
+    const float lum    = max(objLum*3.1, skyLum*25.0);
 
     // float lum = tr.b;
     scene.sunColor     = sunColor * clouds * push.sunOcclusion;
