@@ -152,18 +152,6 @@ void AbstractTrigger::onIntersect(Npc& n) {
 void AbstractTrigger::tick(uint64_t) {
   }
 
-bool AbstractTrigger::hasVolume() const {
-  if( bboxSize.x>0 &&
-      bboxSize.y>0 &&
-      bboxSize.z>0 )
-    return true;
-  return false;
-  }
-
-bool AbstractTrigger::checkPos(const Tempest::Vec3& pos) const {
-  return boxNpc.checkPos(pos);
-  }
-
 void AbstractTrigger::save(Serialize& fout) const {
   Vob::save(fout);
   boxNpc.save(fout);

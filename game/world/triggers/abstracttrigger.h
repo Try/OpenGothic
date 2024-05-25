@@ -57,9 +57,6 @@ class AbstractTrigger : public Vob {
     virtual void                 onIntersect(Npc& n);
     virtual void                 tick(uint64_t dt);
 
-    virtual bool                 hasVolume() const;
-    bool                         checkPos(const Tempest::Vec3& pos) const;
-
     void                         save(Serialize& fout) const override;
     void                         load(Serialize &fin) override;
 

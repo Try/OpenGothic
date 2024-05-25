@@ -168,9 +168,6 @@ Npc::Npc(World &owner, size_t instance, std::string_view waypoint)
 
   owner.script().initializeInstanceNpc(hnpc, instance);
   hnpc->wp       = std::string(waypoint);
-  if(hnpc->attribute[ATR_HITPOINTS]<=1 && hnpc->attribute[ATR_HITPOINTSMAX]<=1) {
-    onNoHealth(true,HS_NoSound);
-    }
   }
 
 Npc::~Npc(){
@@ -519,13 +516,6 @@ bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
 
   const int minHp = isMonster() ? 0 : 1;
   if(hnpc->attribute[ATR_HITPOINTS]<=minHp) {
-    if(hnpc->attribute[ATR_HITPOINTSMAX]<=1) {
-      size_t fdead=owner.script().findSymbolIndex("ZS_Dead");
-      startState(fdead,"");
-      physic.setEnable(false);
-      return false;
-      }
-
     if(currentOther==nullptr ||
        !allowUnconscious ||
        owner.script().personAttitude(*this,*currentOther)==ATT_HOSTILE ||
