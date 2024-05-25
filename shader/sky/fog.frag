@@ -6,7 +6,7 @@
 #include "sky_common.glsl"
 #include "scene.glsl"
 
-#if defined(VOLUMETRIC_LQ) || defined(VOLUMETRIC_HQ)
+#if defined(VOLUMETRIC_HQ)
 #define VOLUMETRIC
 #endif
 
@@ -42,10 +42,6 @@ layout(binding = 4, r32ui) uniform readonly  restrict uimage2D occlusionLut;
 
 #if defined(COMPUTE)
 uvec2 invocationID = gl_GlobalInvocationID.xy;
-#endif
-
-#if defined(VOLUMETRIC_HQ)
-uint occlusionScale = 1;
 #endif
 
 float interleavedGradientNoise() {
@@ -124,8 +120,9 @@ vec4 fog(vec2 uv, float z) {
   return vec4(0);
 #else
   // every bit = one sample of shadowmap
-  const ivec2 coord     = ivec2(gl_FragCoord.xy/occlusionScale);
-  const uint  occlusion = imageLoad(occlusionLut, coord).r;
+  const float occlusionScale = textureSize(depth,0).x/imageSize(occlusionLut).x;
+  const ivec2 coord          = ivec2(gl_FragCoord.xy/occlusionScale);
+  const uint  occlusion      = imageLoad(occlusionLut, coord).r;
   [[dont_unroll]]
   for(int i=0; i<steps; i++) {
     bool  bit    = bitfieldExtract(occlusion,i,1)!=0;
