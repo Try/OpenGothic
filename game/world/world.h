@@ -104,7 +104,8 @@ class World final {
 
     auto                 takeHero() -> std::unique_ptr<Npc>;
     Npc*                 player() const { return npcPlayer; }
-    Npc*                 findNpcByInstance(size_t instance);
+    Npc*                 findNpcByInstance(size_t instance, size_t n = 0);
+    Item*                findItemByInstance(size_t instance, size_t n = 0);
     std::string_view     roomAt(const Tempest::Vec3& arr);
 
     void                 scaleTime(uint64_t& dt);

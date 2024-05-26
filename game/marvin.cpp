@@ -6,6 +6,7 @@
 
 #include "utils/string_frm.h"
 #include "world/objects/npc.h"
+#include "world/objects/item.h"
 #include "world/triggers/abstracttrigger.h"
 #include "camera.h"
 #include "gothic.h"
@@ -118,6 +119,8 @@ Marvin::Marvin() {
     {"aigoto %s",                  C_AiGoTo},
     {"goto waypoint %s",           C_GoToWayPoint},
     {"goto pos %f %f %f",          C_GoToPos},
+    {"goto vob %c %d",             C_GoToVob},
+    {"goto camera",                C_GoToCamera},
 
 
     {"camera autoswitch",          C_CamAutoswitch},
@@ -305,6 +308,31 @@ bool Marvin::exec(std::string_view v) {
       Gothic::inst().camera()->reset(player);
       return true;
       }
+    case C_GoToVob: {
+      World* world  = Gothic::inst().world();
+      Npc*   player = Gothic::inst().player();
+      auto   c      = Gothic::inst().camera();
+      if(world==nullptr || c==nullptr || player==nullptr)
+        return false;
+      size_t n = 1;
+      if(!ret.argv[1].empty()) {
+        auto err = std::from_chars(ret.argv[1].data(),ret.argv[1].data()+ret.argv[1].size(),n).ec;
+        if(err!=std::errc())
+          return false;
+        }
+      return goToVob(*world,*player,*c,ret.argv[0],--n);
+      }
+    case C_GoToCamera: {
+      auto c      = Gothic::inst().camera();
+      Npc* player = Gothic::inst().player();
+      if(c==nullptr || player==nullptr)
+        return false;
+      auto pos = c->destPosition();
+      player->setPosition(pos.x,pos.y,pos.z);
+      player->updateTransform();
+      c->reset();
+      return true;
+      }
     case C_ToggleFrame:{
       Gothic::inst().setFRate(!Gothic::inst().doFrate());
       return true;
@@ -442,6 +470,28 @@ bool Marvin::setTime(World& world, std::string_view hh, std::string_view mm) {
     return false;
 
   world.setDayTime(hv,mv);
+  return true;
+  }
+
+bool Marvin::goToVob(World& world, Npc& player, Camera& c, std::string_view name, size_t n) {
+  auto&  sc = world.script();
+  size_t id = sc.findSymbolIndex(name);
+  if(id==size_t(-1))
+    return false;
+
+  Tempest::Vec3 pos;
+  if(auto npc = world.findNpcByInstance(id,n))
+     pos = npc->position();
+  else if(auto it = world.findItemByInstance(id,n))
+     pos = it->position();
+  else
+    return false;
+
+  if(!player.setInteraction(nullptr))
+    return false;
+  player.setPosition(pos);
+  player.updateTransform();
+  c.reset();
   return true;
   }
 
