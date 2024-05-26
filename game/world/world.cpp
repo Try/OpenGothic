@@ -291,11 +291,11 @@ std::unique_ptr<Npc> World::takeHero() {
   return wobj.takeNpc(npcPlayer);
   }
 
-Item* World::findItemByInstance(size_t instance, uint32_t n) {
+Item* World::findItemByInstance(size_t instance, size_t n) {
   return wobj.findItemByInstance(instance,n);
   }
 
-Npc *World::findNpcByInstance(size_t instance, uint32_t n) {
+Npc *World::findNpcByInstance(size_t instance, size_t n) {
   return wobj.findNpcByInstance(instance,n);
   }
 

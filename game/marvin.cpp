@@ -314,13 +314,13 @@ bool Marvin::exec(std::string_view v) {
       auto   c      = Gothic::inst().camera();
       if(world==nullptr || c==nullptr || player==nullptr)
         return false;
-      uint32_t n = 1;
+      size_t n = 1;
       if(!ret.argv[1].empty()) {
         auto err = std::from_chars(ret.argv[1].data(),ret.argv[1].data()+ret.argv[1].size(),n).ec;
         if(err!=std::errc())
           return false;
         }
-      return goToVob(*world,*player,*c,ret.argv[0],n);
+      return goToVob(*world,*player,*c,ret.argv[0],--n);
       }
     case C_GoToCamera: {
       auto c      = Gothic::inst().camera();
@@ -473,16 +473,16 @@ bool Marvin::setTime(World& world, std::string_view hh, std::string_view mm) {
   return true;
   }
 
-bool Marvin::goToVob(World& world, Npc& player, Camera& c, std::string_view name, uint32_t nr) {
+bool Marvin::goToVob(World& world, Npc& player, Camera& c, std::string_view name, size_t n) {
   auto&  sc = world.script();
   size_t id = sc.findSymbolIndex(name);
   if(id==size_t(-1))
     return false;
 
   Tempest::Vec3 pos;
-  if(auto npc = world.findNpcByInstance(id,nr))
+  if(auto npc = world.findNpcByInstance(id,n))
      pos = npc->position();
-  else if(auto it = world.findItemByInstance(id,nr))
+  else if(auto it = world.findItemByInstance(id,n))
      pos = it->position();
   else
     return false;

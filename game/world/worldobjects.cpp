@@ -452,12 +452,10 @@ Npc *WorldObjects::findHero() {
   return nullptr;
   }
 
-Npc *WorldObjects::findNpcByInstance(size_t instance, uint32_t n) {
-  if(n==0)
-    return nullptr;
+Npc *WorldObjects::findNpcByInstance(size_t instance, size_t n) {
   for(auto& i:npcArr) {
     if(i->handle().symbol_index()==instance) {
-      if(n==1)
+      if(n==0)
         return i.get();
       --n;
       }
@@ -465,12 +463,11 @@ Npc *WorldObjects::findNpcByInstance(size_t instance, uint32_t n) {
   return nullptr;
   }
 
-Item* WorldObjects::findItemByInstance(size_t instance, uint32_t n) {
-  if(n==0)
-    return nullptr;
+Item* WorldObjects::findItemByInstance(size_t instance, size_t n) {
+
   for(auto& i:itemArr) {
     if(i->handle().symbol_index()==instance) {
-      if(n==1)
+      if(n==0)
         return i.get();
       --n;
       }

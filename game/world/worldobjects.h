@@ -60,8 +60,8 @@ class WorldObjects final {
 
     bool           isTargeted(Npc& npc);
     Npc*           findHero();
-    Npc*           findNpcByInstance(size_t instance, uint32_t n = 1);
-    Item*          findItemByInstance(size_t instance, uint32_t n = 1);
+    Npc*           findNpcByInstance(size_t instance, size_t n = 0);
+    Item*          findItemByInstance(size_t instance, size_t n = 0);
     void           detectNpcNear(const std::function<void(Npc&)>& f);
     void           detectNpc (const float x, const float y, const float z, const float r, const std::function<void(Npc&)>&  f);
     void           detectItem(const float x, const float y, const float z, const float r, const std::function<void(Item&)>& f);

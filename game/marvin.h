@@ -79,7 +79,7 @@ class Marvin {
     bool   addItemOrNpcBySymbolName(World* world, std::string_view name, const Tempest::Vec3& at);
     bool   printVariable           (World* world, std::string_view name);
     bool   setTime                 (World& world, std::string_view hh, std::string_view mm);
-    bool   goToVob                 (World& world, Npc& player, Camera& c, std::string_view name, uint32_t nr);
+    bool   goToVob                 (World& world, Npc& player, Camera& c, std::string_view name, size_t n);
 
     std::vector<Cmd> cmd;
   };
