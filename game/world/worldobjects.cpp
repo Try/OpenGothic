@@ -464,7 +464,6 @@ Npc *WorldObjects::findNpcByInstance(size_t instance, size_t n) {
   }
 
 Item* WorldObjects::findItemByInstance(size_t instance, size_t n) {
-
   for(auto& i:itemArr) {
     if(i->handle().symbol_index()==instance) {
       if(n==0)
