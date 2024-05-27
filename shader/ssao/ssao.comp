@@ -228,9 +228,6 @@ void main() {
 
   if(valid) {
     const vec3 view = (pos0 - camPos);
-
-    // norm = normalFetch(gbufNormal, fragCoord);
-    // norm = (scene.view * vec4(norm,0)).xyz;
     norm = reconstructNormal(at0, inPos.xy);
 
     // Compute a tangent frame and rotate the half vector to world space
@@ -264,7 +261,7 @@ void main() {
 
     int samples = (i+1)*int(samplesPerStep);
     if(isSolved(abs(occlusion-prev), samples))
-      break;
+      eval = false;
     }
 
   if(valid) {
