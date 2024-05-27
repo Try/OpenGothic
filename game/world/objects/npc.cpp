@@ -1370,8 +1370,11 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
         finished = false;
         }
       }
-    if(finished)
+    if(finished) {
+      if(go2.flag==Npc::GT_NextFp && implTurnTo(go2.wp->dirX,go2.wp->dirZ,false,dt))
+        return true;
       clearGoTo();
+      }
     } else {
     if(setGoToLadder()) {
       mvAlgo.tick(dt);
