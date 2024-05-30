@@ -48,6 +48,8 @@ class Shaders {
 
     Tempest::RenderPipeline  skyPathTrace;
 
+    Tempest::ComputePipeline shadowRq, fogRq;
+
     Tempest::RenderPipeline  underwaterT, underwaterS;
     Tempest::RenderPipeline  waterReflection, waterReflectionSSR;
 

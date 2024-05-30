@@ -136,6 +136,7 @@ void Sky::setupSettings() {
     case PathTrace:
       break;
     }
+  shadowRq = device.image2d(TextureFormat::RGBA16,512,512);
   //fogLut3D = device.image3d(lutRGBAFormat,1,1,1);
   prepareUniforms();
   }
@@ -285,6 +286,8 @@ void Sky::prepareUniforms() {
     occlusionLut = device.image2d(TextureFormat::R32U, w, h);
     }
 
+  fogLutRq = device.image2d(TextureFormat::RGBA8, uint32_t(scene.zbuffer->w()), uint32_t(scene.zbuffer->h()));
+
   uboClouds = device.descriptors(Shaders::inst().cloudsLut);
   uboClouds.set(0, cloudsLut);
   uboClouds.set(5, *cloudsDay()  .lay[0],smp);
@@ -293,10 +296,8 @@ void Sky::prepareUniforms() {
   uboClouds.set(8, *cloudsNight().lay[1],smp);
 
   uboTransmittance = device.descriptors(Shaders::inst().skyTransmittance);
-  uboTransmittance.set(5,*cloudsDay()  .lay[0],smp);
-  uboTransmittance.set(6,*cloudsDay()  .lay[1],smp);
-  uboTransmittance.set(7,*cloudsNight().lay[0],smp);
-  uboTransmittance.set(8,*cloudsNight().lay[1],smp);
+  uboTransmittance.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
+  uboTransmittance.set(1, cloudsLut, smpB);
 
   uboMultiScatLut = device.descriptors(Shaders::inst().skyMultiScattering);
   uboMultiScatLut.set(0, transLut, smpB);
@@ -377,6 +378,17 @@ void Sky::prepareUniforms() {
     uboSkyPathtrace.set(5, *scene.shadowMap[1], Resources::shadowSampler());
     }
 
+  uboShadowRq = device.descriptors(Shaders::inst().shadowRq);
+  uboShadowRq.set(0, shadowRq);
+  uboShadowRq.set(1, scene.uboGlobal[SceneGlobals::V_Main]);
+  uboShadowRq.set(2, *scene.shadowMap[1],Resources::shadowSampler());
+
+  uboFog3dRq = device.descriptors(Shaders::inst().fogRq);
+  uboFog3dRq.set(0, fogLutRq);
+  uboFog3dRq.set(1, scene.uboGlobal[SceneGlobals::V_Main]);
+  uboFog3dRq.set(2, *scene.zbuffer);
+  uboFog3dRq.set(3, shadowRq);
+
   uboSun = device.descriptors(Shaders::inst().sun);
   uboSun.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
   uboSun.set(1, *sunImg);
@@ -454,6 +466,13 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
       break;
       }
     }
+
+  cmd.setFramebuffer({});
+  cmd.setUniforms(Shaders::inst().shadowRq, uboShadowRq);
+  cmd.dispatchThreads(shadowRq.size());
+
+  cmd.setUniforms(Shaders::inst().fogRq, uboFog3dRq);
+  cmd.dispatchThreads(fogLutRq.size());
   }
 
 void Sky::drawSky(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
@@ -527,6 +546,14 @@ const Texture2d& Sky::clearSkyLut() const {
   return textureCast(viewLut);
   }
 
+const Texture2d& Sky::shadowLut() const {
+  return textureCast(shadowRq);
+  }
+
+const Texture2d& Sky::fogVisLut() const {
+  return textureCast(fogLutRq);
+  }
+
 Vec2 Sky::cloudsOffset(int layer) const {
   auto ticks = scene.tickCount;
   auto t0    = float(ticks%90000 )/90000.f;
@@ -555,6 +582,7 @@ Sky::UboSky Sky::mkPush(bool lwc) {
 
   static float rayleighScatteringScale = 33.1f;
   ubo.rayleighScatteringScale = rayleighScatteringScale;
+
   return ubo;
   }
 

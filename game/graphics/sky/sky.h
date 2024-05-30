@@ -39,6 +39,9 @@ class Sky final {
     const Tempest::Vec3&      ambientLight()     const { return ambient; }
     float                     sunIntensity()     const { return GSunIntensity; }
 
+    const Tempest::Texture2d& shadowLut()        const;
+    const Tempest::Texture2d& fogVisLut()        const;
+
     const State&              cloudsDay()   const { return clouds[0]; }
     const State&              cloudsNight() const { return clouds[1]; }
     Tempest::Vec2             cloudsOffset(int layer) const;
@@ -74,6 +77,7 @@ class Sky final {
     Tempest::TextureFormat        lutRGBAFormat = Tempest::TextureFormat::RGBA16F;
     Tempest::Attachment           transLut, multiScatLut, viewLut, viewCldLut;
     Tempest::StorageImage         cloudsLut, fogLut3D, shadowDw;
+    Tempest::StorageImage         shadowRq, fogLutRq;
     Tempest::StorageImage         occlusionLut, irradianceLut;
 
     Tempest::DescriptorSet        uboClouds;
@@ -81,9 +85,10 @@ class Sky final {
     Tempest::DescriptorSet        uboSkyViewLut, uboSkyViewCldLut;
     Tempest::DescriptorSet        uboFogViewLut3d;
     Tempest::DescriptorSet        uboSky, uboFog, uboFog3d;
-    Tempest::DescriptorSet        uboOcclusion, uboShadowRq;
+    Tempest::DescriptorSet        uboOcclusion;
     Tempest::DescriptorSet        uboIrradiance, uboExp;
 
+    Tempest::DescriptorSet        uboShadowRq, uboFog3dRq;
     Tempest::DescriptorSet        uboSkyPathtrace;
 
     bool                          lutIsInitialized = false;

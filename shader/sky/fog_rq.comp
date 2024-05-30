@@ -1,0 +1,121 @@
+#version 450
+
+#extension GL_ARB_separate_shader_objects      : enable
+#extension GL_GOOGLE_include_directive         : enable
+#extension GL_EXT_control_flow_attributes      : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+#include "sky_common.glsl"
+#include "scene.glsl"
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+//layout(binding = 0) uniform writeonly uimage2D result;
+layout(binding = 0) uniform writeonly image2D result;
+layout(binding = 1, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 2) uniform sampler2D depth;
+layout(binding = 3) uniform texture2D shadowRq;
+
+ivec2 invocationID = ivec2(gl_GlobalInvocationID.xy);
+
+vec3 project(mat4 m, vec3 pos) {
+  vec4 p = m*vec4(pos,1);
+  return p.xyz/p.w;
+  }
+
+vec2 findSlice(vec2 s, vec2 sun) {
+  vec2 dv = s-sun;
+
+  vec2 ret = vec2(0);
+  {
+    float d = (dv.x<0 ? -1 : +1) - sun.x;
+
+    ret = sun + dv*abs(d/dv.x);
+    if(-1<=ret.y && ret.y<=1)
+      ;//return ret;
+  }
+  {
+    float d = (dv.y<0 ? -1 : +1) - sun.y;
+
+    ret = sun + dv*abs(d/dv.y);
+    if(-1<=ret.x && ret.x<=1)
+      return ret;
+  }
+
+  return vec2(-2);
+  }
+
+ivec2 mapToSm(vec2 at) {
+  if(at.y>0 && abs(at.x)<=1) {
+    return ivec2((at.x*0.5+0.5)*512, 0);
+    }
+  return ivec2(-1,0);
+  }
+
+float raymarchVisibility(const vec2 inPos, const float z, ivec2 smPos) {
+  const int   steps    = 32;
+  const float noise    = 0;//interleavedGradientNoise()/steps;
+
+  const float dMin     = 0;
+  const float dMax     = 0.9999;
+
+  const vec3  pos0     = project(scene.viewProjectInv, vec3(inPos,dMin));
+  const vec3  pos1     = project(scene.viewProjectInv, vec3(inPos,dMax));
+  const vec3  posz     = project(scene.viewProjectInv, vec3(inPos,z));
+  const vec4  shPos0   = scene.viewShadow[1]*vec4(pos0, 1);
+  const vec4  shPos1   = scene.viewShadow[1]*vec4(posz, 1);
+
+  const vec4  shRef0   = scene.viewShadow[1]*vec4(project(scene.viewProjectInv, vec3(inPos,dMin)), 1);
+  const vec4  shRef1   = scene.viewShadow[1]*vec4(project(scene.viewProjectInv, vec3(inPos,dMax)), 1);
+
+  const vec3  ray      = pos1.xyz - pos0.xyz;
+  const float dist     = length(ray)*0.01;       // meters
+  const float distZ    = length(posz-pos0)*0.01; // meters
+
+  uint occlusion = 0;
+  [[dont_unroll]]
+  for(uint i=0; i<steps; ++i) {
+    //float t      = (i+0.3)/float(steps);
+    //float dd     = (t*distZ)/(dist);
+    //vec4  shPos  = mix(shPos0,shPos1,t+noise);
+    ivec2 smPos = smPos + ivec2(0,i);
+
+    bool  shadow = texelFetch(shadowRq, smPos, 0).x>0.001;
+
+    occlusion = occlusion | ((shadow ? 1u : 0u) << uint(i));
+    }
+
+  return bitCount(occlusion)/float(steps);
+  }
+
+void main() {
+  const ivec2 size = imageSize(result).xy;
+  if(invocationID.x>=size.x || invocationID.y>=size.y)
+    return;
+
+  const vec2 fragCoord = (invocationID+vec2(0.5))/vec2(size);
+
+  vec3 sun = scene.sunDir;
+  sun = (scene.viewProject*vec4(sun,0)).xyz;
+  sun.xy /= sun.z;
+
+  const vec2  atF = findSlice(fragCoord, sun.xy);
+  const ivec2 at  = mapToSm(atF);
+  if(at.x<0) {
+    imageStore(result, invocationID, vec4(1.0));
+    return;
+    }
+
+  vec3        viewOrigin        = vec3(0.0, RPlanet + push.plPosY, 0.0);
+  const float viewDistanceScale = 50;
+
+  const vec2  inPos = fragCoord*2.0-vec2(1.0);
+  const float z     = textureLod(depth,fragCoord,0).r;
+
+  const float sm    = raymarchVisibility(inPos,z,at);
+
+  //imageStore(result, invocationID, vec4(at.x)/vec4(size.x));
+  imageStore(result, invocationID, vec4(1.0 - sm));
+  }

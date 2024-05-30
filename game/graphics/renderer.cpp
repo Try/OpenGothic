@@ -450,8 +450,30 @@ void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
     }
   }
 
+static Vec2 collides(Vec2 s, Vec2 sun) {
+  auto dv = s-sun;
+
+  auto ret = Vec2();
+  {
+    float d = (dv.x<0 ? -1 : +1) - sun.x;
+
+    ret = sun + dv*std::abs(d/dv.x);
+    if(-1<=ret.y && ret.y<=1)
+      return ret;
+  }
+  {
+    float d = (dv.y<0 ? -1 : +1) - sun.y;
+
+    ret = sun + dv*std::abs(d/dv.y);
+    if(-1<=ret.x && ret.x<=1)
+      return ret;
+  }
+
+  return Vec2(0);
+  }
+
 void Renderer::dbgDraw(Tempest::Painter& p) {
-  static bool dbg = false;
+  static bool dbg = true;
   if(!dbg)
     return;
 
@@ -461,8 +483,13 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   //tex.push_back(&textureCast(hiz.hiZSm1));
   //tex.push_back(&textureCast(shadowMap[1]));
   //tex.push_back(&textureCast(shadowMap[0]));
+  if(auto wview  = Gothic::inst().worldView()) {
+    (void)wview;
+    tex.push_back(&wview->sky().shadowLut());
+    //tex.push_back(&wview->sky().fogVisLut());
+    }
 
-  static int size = 800;
+  static int size = 512;
   int left = 10;
   for(auto& t:tex) {
     p.setBrush(Brush(*t,Painter::NoBlend,ClampMode::ClampToBorder));
@@ -480,6 +507,37 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
     p.drawRect(left,50,sz.w,sz.h,
                0,0,p.brush().w(),p.brush().h());
     left += (sz.w+10);
+    }
+
+  if(auto wview  = Gothic::inst().worldView()) {
+    auto  vsz = zbuffer.size();
+    auto  m   = wview->sceneGlobals().viewProject();
+    auto  d   = wview->sky().sunLight().dir();
+
+    const Point atArr[] = {{200,200}, {200, vsz.h-200}, {vsz.w-200,200}, {vsz.w-200,vsz.h-200}};
+    for(auto at:atArr) {
+      auto  px  = Vec2(float(at.x),float(at.y));
+      px = Vec2(float(px.x+0.5)/float(vsz.w), float(px.y+0.5)/float(vsz.h));
+      px = px*2.0-Vec2(1.0);
+
+      auto  dx = d;
+      float w  = 0;
+      m.project(dx.x, dx.y, dx.z, w);
+      dx.x /= dx.z;
+      dx.y /= dx.z;
+
+      auto ix = collides(px, Vec2(dx.x,dx.y));
+
+      dx = dx*0.5 + Vec3(0.5,0.5,0);
+      px = px*0.5 + Vec2(0.5,0.5);
+      ix = ix*0.5 + Vec2(0.5,0.5);
+
+      p.setPen(Color(1,0,0));
+      p.drawLine(int(ix.x*float(vsz.w)), int(ix.y*float(vsz.h)), int(dx.x*float(vsz.w)), int(dx.y*float(vsz.h)));
+
+      p.setPen(Color(0,1,0));
+      p.drawLine(at.x, at.y, int(dx.x*float(vsz.w)), int(dx.y*float(vsz.h)));
+      }
     }
   }
 
@@ -531,7 +589,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   prepareFog (cmd,fId,*wview);
   prepareGi(cmd,fId);
 
-  cmd.setFramebuffer({{sceneLinear, Tempest::Discard, Tempest::Preserve}}, {zbuffer, Tempest::Readonly});
+  cmd.setFramebuffer({{sceneLinear, Vec4(0), Tempest::Preserve}}, {zbuffer, Tempest::Readonly});
   drawShadowResolve(cmd,fId,*wview);
   drawAmbient(cmd,*wview);
   drawLights(cmd,fId,*wview);
@@ -601,7 +659,6 @@ void Renderer::drawTonemapping(Encoder<CommandBuffer>& cmd) {
   }
 
 void Renderer::drawFxaa(Encoder<CommandBuffer>& cmd) {
-
   struct PushConstantsFxaa {
     float fxaaInverseSharpnessCoeff;
     float fxaaQualitySubpix;

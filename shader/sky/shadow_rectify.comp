@@ -1,0 +1,60 @@
+#version 450
+
+#extension GL_EXT_control_flow_attributes : enable
+#extension GL_GOOGLE_include_directive    : enable
+
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(binding = 0) uniform writeonly image2D result;
+
+layout(binding = 1, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 2) uniform sampler2D textureSm1;
+
+vec3 project(in mat4 m, vec3 v) {
+  vec4 x = m*vec4(v,1);
+  return x.xyz/x.w;
+  }
+
+vec2 invocationToPos(int ix) {
+  const int width  = 512;
+  const int height = 256;
+
+  if(ix<width)
+    return vec2(float(ix+0.5)/float(width), -1);
+  ix -= width;
+
+  //if(ix<width)
+  //  return vec2(float(ix+0.5)/float(width), +1);
+  //ix -= width;
+
+  return vec2(0,0);
+  }
+
+void main() {
+  const ivec2 dstSz  = imageSize(result);
+  const ivec2 dstUV  = ivec2(gl_GlobalInvocationID.xy);
+
+  const vec2  inPos  = invocationToPos(dstUV.x);
+  const float depth  = float(dstUV.y+0.3)/float(dstSz.y);
+
+  const float dMin   = 0;
+  const float dMax   = 0.9999;
+  const vec3  pos0   = project(scene.viewProjectInv, vec3(inPos.x, 0, dMin));
+  const vec3  pos1   = project(scene.viewProjectInv, vec3(inPos.x, 0, dMax));
+  const vec4  shPos0 = scene.viewShadow[1]*vec4(pos0, 1);
+  const vec4  shPos1 = scene.viewShadow[1]*vec4(pos1, 1);
+
+  vec4 shPos = mix(shPos0,shPos1, depth);
+  shPos.xy /= shPos.w;
+
+  float sh  = textureLod(textureSm1, shPos.xy*0.5+0.5, 0).x;
+
+  imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(sh.x));
+  if(abs(shPos.x)>1.0 || abs(shPos.y)>1.0)
+    imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(1,0,0,0));
+  }

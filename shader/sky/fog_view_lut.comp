@@ -62,11 +62,6 @@ vec3 project(mat4 m, vec3 pos) {
   return p.xyz/p.w;
   }
 
-float tStep(int i, int steps) {
-  float t = float(i+0.3)/steps;
-  return t;
-  }
-
 vec4 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax, int numScatteringSteps) {
   const float cosTheta      = dot(rayDir, sunDir);
   const float phaseMie      = miePhase(cosTheta);
