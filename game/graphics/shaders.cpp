@@ -59,7 +59,7 @@ Shaders::Shaders() {
   fogOcclusion       = computeShader("fog3d.comp.sprv");
 
   shadowRq           = computeShader("shadow_rectify.comp.sprv");
-  fogRq              = computeShader("fog_rq.comp.sprv");
+  fogRq              = computeShader("fog_rectify.comp.sprv");
 
   skyExposure        = computeShader("sky_exposure.comp.sprv");
 

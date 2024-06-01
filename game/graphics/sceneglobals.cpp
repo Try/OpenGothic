@@ -97,8 +97,10 @@ void SceneGlobals::setViewProject(const Tempest::Matrix4x4& v, const Tempest::Ma
   uboGlobalCpu.clipInfo.z = zFar;
   znear                   = zNear;
 
-  uboGlobalCpu.camPos = Tempest::Vec3(0,0,1);
-  uboGlobalCpu.viewProjectInv.project(uboGlobalCpu.camPos);
+  auto viewInv = v;
+  viewInv.inverse();
+  uboGlobalCpu.camPos = Tempest::Vec3(0,0,0);
+  viewInv.project(uboGlobalCpu.camPos);
 
   Tempest::Vec3 min = {0,0.75,0}, max = {0, 0.75f, 0.9f};
   auto inv = uboGlobalCpu.viewShadow[0]; inv.inverse();

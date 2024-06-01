@@ -21,11 +21,12 @@ vec3 project(in mat4 m, vec3 v) {
   }
 
 vec2 invocationToPos(int ix) {
-  const int width  = 512;
-  const int height = 256;
+  const ivec2 dstSz  = imageSize(result);
+  const int   width  = dstSz.x;
+  const int   height = 256;
 
   if(ix<width)
-    return vec2(float(ix+0.5)/float(width), -1);
+    return vec2((float(ix+0.5)/float(width))*2.0-1.0, -1);
   ix -= width;
 
   //if(ix<width)
@@ -36,23 +37,30 @@ vec2 invocationToPos(int ix) {
   }
 
 void main() {
+  const float dMin   = 0;
+  const float dMax   = 0.9999;
+
   const ivec2 dstSz  = imageSize(result);
   const ivec2 dstUV  = ivec2(gl_GlobalInvocationID.xy);
 
   const vec2  inPos  = invocationToPos(dstUV.x);
-  const float depth  = float(dstUV.y+0.3)/float(dstSz.y);
+  const float slice  = float(dstUV.y+0.5)/float(dstSz.y);
 
-  const float dMin   = 0;
-  const float dMax   = 0.9999;
   const vec3  pos0   = project(scene.viewProjectInv, vec3(inPos.x, 0, dMin));
   const vec3  pos1   = project(scene.viewProjectInv, vec3(inPos.x, 0, dMax));
-  const vec4  shPos0 = scene.viewShadow[1]*vec4(pos0, 1);
-  const vec4  shPos1 = scene.viewShadow[1]*vec4(pos1, 1);
 
-  vec4 shPos = mix(shPos0,shPos1, depth);
-  shPos.xy /= shPos.w;
+  vec3 dir  = pos1 - pos0;
+  vec3 dirN = normalize(dir);
+  vec3 tg   = cross(dirN, scene.sunDir);
+  vec3 base = cross(tg,   scene.sunDir);
+  if(dot(base,dir)<0)
+    base = -base; //TODO
 
-  float sh  = textureLod(textureSm1, shPos.xy*0.5+0.5, 0).x;
+  const vec3  pos    = scene.camPos + dot(dirN, base)*dir*slice;
+  const vec4  shPos0 = scene.viewShadow[1]*vec4(pos, 1);
+
+  const vec2  shPos  = shPos0.xy/shPos0.w;
+  const float sh     = textureLod(textureSm1, shPos.xy*0.5+0.5, 0).x;
 
   imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(sh.x));
   if(abs(shPos.x)>1.0 || abs(shPos.y)>1.0)
