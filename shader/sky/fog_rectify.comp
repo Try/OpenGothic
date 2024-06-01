@@ -64,9 +64,10 @@ float mapToSm(vec2 at) {
   }
 
 void main() {
-  const int   steps    = 32;
-  const float dMin     = 0;
-  const float dMax     = 0.9999;
+  const int   steps   = 32;
+  const float maxDist = 40000;
+  const float dMin    = 0;
+  const float dMax    = 0.9999;
 
   const ivec2 size = imageSize(result).xy;
   if(invocationID.x>=size.x || invocationID.y>=size.y)
@@ -82,42 +83,37 @@ void main() {
     }
 
   const float z      = textureLod(depth,fragCoord,0).r;
-
   const vec3  pos0   = project(scene.viewProjectInv, vec3(inPos, dMin));
   const vec3  pos1   = project(scene.viewProjectInv, vec3(inPos, dMax));
   const vec3  posz   = project(scene.viewProjectInv, vec3(inPos, z));
 
-  vec3 dir  = pos1 - pos0;
-  vec3 dirN = normalize(dir);
-  vec3 tg   = cross(dirN, scene.sunDir);
-  vec3 base = cross(tg,   scene.sunDir);
-  if(dot(base,dir)<0)
-    base = -base; //TODO
+  vec3 dir  = normalize(pos1 - pos0);
+  vec3 tg   =  cross(dir, scene.sunDir);
+  vec3 base = -cross(tg,  scene.sunDir) * maxDist;
 
   {
-    vec3 pos = posz - scene.camPos;
+    vec3  pos = posz - scene.camPos;
+    float y   = dot(base, pos)/(maxDist*maxDist);
 
-    float y = dot(base, pos)/length(pos1-pos0);
     imageStore(result, invocationID, vec4(smX,y,0,0));
 
     float shadow = textureLod(shadowRq, vec2(smX,y), 0).x;
     imageStore(result, invocationID, vec4(shadow));
 
     //imageStore(result, invocationID, vec4(slice,0,0));
-    // return;
+    return;
   }
-
-  //const vec3  pos    = scene.camPos + dot(base*slice, dirN)*dir;
 
   uint occlusion = 0;
   [[dont_unroll]]
   for(uint i=0; i<steps; ++i) {
     float v      = (i+0.5)/float(steps);
-    vec3  pos    = mix(pos0, posz, v) - scene.camPos;
-    float y      = dot(base, pos)/length(pos1-pos0);
-    vec2 smPos = vec2(smX,y);
+    vec3  posv   = mix(pos0, posz, v);
+    vec3  pos    = posv - scene.camPos;
+    float y      = dot(base, pos)/(maxDist*maxDist);
+    vec2  smPos  = vec2(smX,y);
 
-    vec4  shPos0 = scene.viewShadow[1]*vec4(pos, 1);
+    vec4  shPos0 = scene.viewShadow[1]*vec4(posv, 1);
     shPos0.xyz /= shPos0.w;
 
     bool  shadow = textureLod(shadowRq, smPos.xy, 0).x > shPos0.z;

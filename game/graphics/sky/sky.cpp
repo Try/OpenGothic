@@ -136,7 +136,7 @@ void Sky::setupSettings() {
     case PathTrace:
       break;
     }
-  shadowRq = device.image2d(TextureFormat::RGBA16,512,512);
+  shadowRq = device.image2d(TextureFormat::RGBA16,1024,512);
   //fogLut3D = device.image3d(lutRGBAFormat,1,1,1);
   prepareUniforms();
   }

@@ -37,8 +37,9 @@ vec2 invocationToPos(int ix) {
   }
 
 void main() {
-  const float dMin   = 0;
-  const float dMax   = 0.9999;
+  const float dMin    = 0;
+  const float dMax    = 0.9999;
+  const float maxDist = 40000;
 
   const ivec2 dstSz  = imageSize(result);
   const ivec2 dstUV  = ivec2(gl_GlobalInvocationID.xy);
@@ -49,14 +50,11 @@ void main() {
   const vec3  pos0   = project(scene.viewProjectInv, vec3(inPos.x, 0, dMin));
   const vec3  pos1   = project(scene.viewProjectInv, vec3(inPos.x, 0, dMax));
 
-  vec3 dir  = pos1 - pos0;
-  vec3 dirN = normalize(dir);
-  vec3 tg   = cross(dirN, scene.sunDir);
-  vec3 base = cross(tg,   scene.sunDir);
-  if(dot(base,dir)<0)
-    base = -base; //TODO
+  vec3 dir  = normalize(pos1 - pos0);
+  vec3 tg   =  cross(dir, scene.sunDir);
+  vec3 base = -cross(tg,  scene.sunDir) * maxDist;
 
-  const vec3  pos    = scene.camPos + dot(dirN, base)*dir*slice;
+  const vec3  pos    = scene.camPos + base*slice;
   const vec4  shPos0 = scene.viewShadow[1]*vec4(pos, 1);
 
   const vec2  shPos  = shPos0.xy/shPos0.w;
