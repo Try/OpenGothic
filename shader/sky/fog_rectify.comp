@@ -32,7 +32,7 @@ vec3 screenSun() {
   return sun;
   }
 
-vec2 findSlice(vec2 s) {
+vec3 findSlice(vec2 s) {
   vec2 sun = screenSun().xy;
   vec2 dv  = s - sun;
 
@@ -42,30 +42,34 @@ vec2 findSlice(vec2 s) {
 
     ret = sun + dv*abs(d/dv.x);
     if(-1<=ret.y && ret.y<=1)
-      ;//return ret;
+      return vec3(ret, 0);
   }
   {
     float d = (dv.y<0 ? -1 : +1) - sun.y;
 
     ret = sun + dv*abs(d/dv.y);
     if(-1<=ret.x && ret.x<=1)
-      return ret;
+      return vec3(ret, 1);
   }
 
-  return vec2(-1);
+  return vec3(-1);
   }
 
-float mapToSm(vec2 at) {
-  //const ivec2 dstSz  = textureSize(shadowRq,0);
-  if(at.y>0 && abs(at.x)<=1) {
-    return (at.x*0.5+0.5);
+float mapToSm(vec3 at) {
+  if(at.z<0)
+    return -1;
+  ivec2 dstSz = textureSize(shadowRq,0);
+  ivec2 iat   = ivec2(dstSz*(at.xy*0.5 + 0.5));
+  if(at.z==1.0 && abs(at.x)<=1) {
+    if(at.y>0.0)
+      return (at.x*0.5+0.5);
     }
   return -1;
   }
 
 void main() {
   const int   steps   = 32;
-  const float maxDist = 40000;
+  const float maxDist = 20000;
   const float dMin    = 0;
   const float dMax    = 0.9999;
 
@@ -75,7 +79,7 @@ void main() {
 
   const vec2  fragCoord = (invocationID+vec2(0.5))/vec2(size);
   const vec2  inPos     = fragCoord*2.0-vec2(1.0);
-  const vec2  slice     = findSlice(inPos);
+  const vec3  slice     = findSlice(inPos);
   const float smX       = mapToSm(slice);
   if(smX<0) {
     imageStore(result, invocationID, vec4(0,0,0.5,0));
@@ -83,17 +87,22 @@ void main() {
     }
 
   const float z      = textureLod(depth,fragCoord,0).r;
+  const vec2  sun    = screenSun().xy;
+  const vec3  poss   = project(scene.viewProjectInv, vec3(sun,   dMin));
   const vec3  pos0   = project(scene.viewProjectInv, vec3(inPos, dMin));
   const vec3  pos1   = project(scene.viewProjectInv, vec3(inPos, dMax));
   const vec3  posz   = project(scene.viewProjectInv, vec3(inPos, z));
 
-  vec3 dir  = normalize(pos1 - pos0);
-  vec3 tg   =  cross(dir, scene.sunDir);
-  vec3 base = -cross(tg,  scene.sunDir) * maxDist;
+  // vec3 s1   = normalize(pos0 - poss);
+  // vec3 N    = normalize(cross(s1, -scene.sunDir));
+  // vec3 base = normalize(cross(N,   scene.sunDir)) * maxDist;
+  vec3 view = (pos1 - scene.camPos);
+  vec3 base = view - abs(dot(view, scene.sunDir))*scene.sunDir;
 
   {
-    vec3  pos = posz - scene.camPos;
-    float y   = dot(base, pos)/(maxDist*maxDist);
+    vec3  pos  = posz - scene.camPos;
+    float lenQ = dot(base, base);
+    float y    = dot(base, pos)/lenQ;
 
     imageStore(result, invocationID, vec4(smX,y,0,0));
 

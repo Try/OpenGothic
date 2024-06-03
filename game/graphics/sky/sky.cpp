@@ -136,7 +136,6 @@ void Sky::setupSettings() {
     case PathTrace:
       break;
     }
-  shadowRq = device.image2d(TextureFormat::RGBA16,1024,512);
   //fogLut3D = device.image3d(lutRGBAFormat,1,1,1);
   prepareUniforms();
   }
@@ -285,6 +284,14 @@ void Sky::prepareUniforms() {
     uint32_t h = (uint32_t(scene.zbuffer->h()) + occlusionScale - 1u)/occlusionScale;
     occlusionLut = device.image2d(TextureFormat::R32U, w, h);
     }
+
+  {
+    // uint32_t w = uint32_t(scene.zbuffer->w());
+    // uint32_t h = uint32_t(scene.zbuffer->h());
+
+    // shadowRq = device.image2d(TextureFormat::RGBA16, w*2 + h*2, 512);
+    shadowRq = device.image2d(TextureFormat::RGBA16, 1024, 512);
+  }
 
   fogLutRq = device.image2d(TextureFormat::RGBA8, uint32_t(scene.zbuffer->w()), uint32_t(scene.zbuffer->h()));
 
