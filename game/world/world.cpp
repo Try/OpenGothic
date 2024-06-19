@@ -73,9 +73,11 @@ World::World(GameSession& game, std::string_view file, bool startup, std::functi
     }
 
   try {
-    auto buf   = entry->open();
-    auto world = zenkit::World::parse(buf, version().game == 1 ? zenkit::GameVersion::GOTHIC_1
-                                                               : zenkit::GameVersion::GOTHIC_2);
+    auto          buf = entry->open_read();
+    zenkit::World world;
+    world.load(buf.get(), version().game == 1 ? zenkit::GameVersion::GOTHIC_1
+                                              : zenkit::GameVersion::GOTHIC_2);
+
     loadProgress(20);
     auto& worldMesh = world.world_mesh;
 
