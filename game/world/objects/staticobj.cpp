@@ -12,7 +12,7 @@ StaticObj::StaticObj(Vob* parent, World& world, const zenkit::VirtualObject& vob
   visual.setVisual(vob,world,(flags & Flags::Static));
   visual.setObjMatrix(transform());
 
-  scheme = vob.visual_name;
+  scheme = vob.visual->name;
   }
 
 void StaticObj::moveEvent() {

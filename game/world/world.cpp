@@ -275,8 +275,8 @@ MeshObjects::Mesh World::addStaticView(std::string_view visual) {
   return view()->addStaticView(visual);
   }
 
-MeshObjects::Mesh World::addDecalView(const zenkit::VirtualObject& vob) {
-  return view()->addDecalView(vob);
+MeshObjects::Mesh World::addDecalView(const zenkit::VisualDecal& decal) {
+  return view()->addDecalView(decal);
   }
 
 void World::updateAnimation(uint64_t dt) {

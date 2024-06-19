@@ -544,12 +544,12 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(std::string_view name) {
   return nullptr;
   }
 
-ProtoMesh* Resources::implDecalMesh(const zenkit::VirtualObject& vob) {
+ProtoMesh* Resources::implDecalMesh(const zenkit::VisualDecal& decal) {
   DecalK key;
-  key.mat         = Material(vob);
-  key.sX          = vob.visual_decal->dimension.x;
-  key.sY          = vob.visual_decal->dimension.y;
-  key.decal2Sided = vob.visual_decal->two_sided;
+  key.mat         = Material(decal);
+  key.sX          = decal.dimension.x;
+  key.sY          = decal.dimension.y;
+  key.decal2Sided = decal.two_sided;
 
   if(key.mat.tex==nullptr)
     return nullptr;
@@ -833,9 +833,9 @@ Dx8::PatternList Resources::loadDxMusic(std::string_view name) {
   return inst->implLoadDxMusic(name);
   }
 
-const ProtoMesh* Resources::decalMesh(const zenkit::VirtualObject& vob) {
+const ProtoMesh* Resources::decalMesh(const zenkit::VisualDecal& decal) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->implDecalMesh(vob);
+  return inst->implDecalMesh(decal);
   }
 
 const Resources::VobTree* Resources::loadVobBundle(std::string_view name) {

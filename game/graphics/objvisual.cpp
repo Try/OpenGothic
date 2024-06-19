@@ -129,65 +129,79 @@ void ObjVisual::setVisual(const zenkit::IItem& hitem, World& world, bool staticD
 void ObjVisual::setVisual(const zenkit::VirtualObject& vob, World& world, bool staticDraw) {
   cleanup();
 
-  // const bool enableCollision = (vob.cd_dynamic || vob.cd_static);
-  const bool enableCollision = (vob.cd_dynamic); // collide with player
+  const bool       enableCollision = vob.cd_dynamic;    // collide with player
+  std::string_view visName         = vob.visual->name;  // *.PFX; *.TGA; *.3DS; *.MDS; *.ASC; *.MMS
 
-  // *.ZEN; *.PFX; *.TGA; *.3DS; *.MDS; *.ASC; *.MMS
-  if(FileExt::hasExt(vob.visual_name,"ZEN")) {
-    setType(M_Bundle);
-    bundle = VobBundle(world,vob.visual_name,(staticDraw ? Vob::Static : Vob::None));
-    }
-  else if(FileExt::hasExt(vob.visual_name,"PFX") || FileExt::hasExt(vob.visual_name,"TGA")) {
-    if(vob.sprite_camera_facing_mode==zenkit::SpriteAlignment::NONE && FileExt::hasExt(vob.visual_name,"TGA")) {
+  if(visName.empty())
+    return;
+
+  // NOTE: .ZEN / M_Bundle is unused only by items - just assert it for now
+  assert(!FileExt::hasExt(visName,"ZEN"));
+
+  switch (vob.visual->type) {
+    case zenkit::VisualType::MESH:
+    case zenkit::VisualType::MULTI_RESOLUTION_MESH: {
+      auto view = Resources::loadMesh(visName);
+      if(!view)
+        return;
       setType(M_Mesh);
-      mesh.view = world.addDecalView(vob);
-      } else {
+      mesh.proto = view;
+      if(vob.show_visual) {
+        mesh.view = world.addStaticView(view,staticDraw);
+        mesh.view.setWind(vob.anim_mode,vob.anim_strength);
+        }
+
+      const bool windy = (vob.anim_mode!=zenkit::AnimationType::NONE && vob.anim_strength>0);
+      if(vob.show_visual && enableCollision && !windy) {
+        mesh.physic = PhysicMesh(*view,*world.physic(),false);
+        }
+      break;
+      }
+    case zenkit::VisualType::MODEL:
+    case zenkit::VisualType::MORPH_MESH:{
+      // *.MDS; *.ASC; *.MMS
+      auto visual = std::string(visName);
+      FileExt::exchangeExt(visual,"ASC","MDL");
+
+      auto view = Resources::loadMesh(visual);
+      if(!view)
+        return;
+      setType(M_Mdl);
+      mdl.proto = view;
+      mdl.view.setYTranslationEnable(false);
+      mdl.view.setVisual(view->skeleton.get());
+
+      if(vob.show_visual) {
+        if((view->skeleton==nullptr || view->skeleton->animation()==nullptr) && enableCollision)
+          mdl.view.setVisualBody(world,world.addStaticView(view,true)); else
+          mdl.view.setVisualBody(world,world.addView(view));
+        }
+
+      if(vob.show_visual && enableCollision) {
+        mdl.physic = PhysicMesh(*view,*world.physic(),true);
+        mdl.physic.setSkeleton(view->skeleton.get());
+        }
+      break;
+      }
+    case zenkit::VisualType::DECAL: {
+      // *.TGA
+      if(auto decal = dynamic_cast<const zenkit::VisualDecal*>(vob.visual.get())) {
+        setType(M_Mesh);
+        mesh.view = world.addDecalView(*decal);
+        }
+      break;
+      }
+    case zenkit::VisualType::PARTICLE_EFFECT: {
+      // *.PFX
       setType(M_Pfx);
       pfx = PfxEmitter(world,vob);
       pfx.setActive(true);
       pfx.setLooped(true);
+      break;
       }
-    }
-  else if(FileExt::hasExt(vob.visual_name,"3DS")) {
-    auto view = Resources::loadMesh(vob.visual_name);
-    if(!view)
-      return;
-    setType(M_Mesh);
-    mesh.proto = view;
-    if(vob.show_visual) {
-      mesh.view = world.addStaticView(view,staticDraw);
-      mesh.view.setWind(vob.anim_mode,vob.anim_strength);
-      }
-
-    const bool windy = (vob.anim_mode!=zenkit::AnimationType::NONE && vob.anim_strength>0);
-    if(vob.show_visual && enableCollision && !windy) {
-      mesh.physic = PhysicMesh(*view,*world.physic(),false);
-      }
-    }
-  else if(FileExt::hasExt(vob.visual_name,"MDS") ||
-          FileExt::hasExt(vob.visual_name,"MMS") ||
-          FileExt::hasExt(vob.visual_name,"ASC"))  {
-    auto visual = vob.visual_name;
-    FileExt::exchangeExt(visual,"ASC","MDL");
-
-    auto view = Resources::loadMesh(visual);
-    if(!view)
-      return;
-    setType(M_Mdl);
-    mdl.proto = view;
-    mdl.view.setYTranslationEnable(false);
-    mdl.view.setVisual(view->skeleton.get());
-
-    if(vob.show_visual) {
-      if((view->skeleton==nullptr || view->skeleton->animation()==nullptr) && enableCollision)
-        mdl.view.setVisualBody(world,world.addStaticView(view,true)); else
-        mdl.view.setVisualBody(world,world.addView(view));
-      }
-
-    if(vob.show_visual && enableCollision) {
-      mdl.physic = PhysicMesh(*view,*world.physic(),true);
-      mdl.physic.setSkeleton(view->skeleton.get());
-      }
+    case zenkit::VisualType::AI_CAMERA:
+    case zenkit::VisualType::UNKNOWN:
+      break;
     }
   }
 

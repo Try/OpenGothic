@@ -17,11 +17,10 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, const zenkit::VMover& mover,
   sfxOpenEnd      = mover.sfx_open_end;
   sfxCloseEnd     = mover.sfx_close_end;
   sfxMoving       = mover.sfx_transitioning;
-  visualName      = mover.visual_name;
+  visualName      = mover.visual->name;
 
   if(mover.cd_dynamic || mover.cd_static) {
-    auto mesh = Resources::loadMesh(mover.visual_name);
-    if(mesh!=nullptr)
+    if(auto mesh = Resources::loadMesh(mover.visual->name))
       physic = PhysicMesh(*mesh,*world.physic(),true);
     }
 

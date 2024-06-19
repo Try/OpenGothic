@@ -97,7 +97,7 @@ class World final {
     MeshObjects::Mesh    addAtachView (const ProtoMesh::Attach& visual, const int32_t version);
     MeshObjects::Mesh    addStaticView(const ProtoMesh* visual, bool staticDraw);
     MeshObjects::Mesh    addStaticView(std::string_view visual);
-    MeshObjects::Mesh    addDecalView (const zenkit::VirtualObject& vob);
+    MeshObjects::Mesh    addDecalView (const zenkit::VisualDecal& decal);
 
     void                 updateAnimation(uint64_t dt);
     void                 resetPositionToTA();
