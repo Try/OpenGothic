@@ -2245,7 +2245,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
       break;
     case AI_StartState:
-      if(startState(act.func,act.s0,aiState.eTime,act.i0==0)) {
+      if(startState(act.func,act.s0,gtime::endOfTime(),act.i0==0)) {
         setOther(act.target);
         setVictum(act.victum);
         }
@@ -2699,11 +2699,9 @@ void Npc::tickRoutine() {
         loop = owner.version().hasZSStateLoop() ? 1 : 0;
         }
 
-      if(aiState.eTime<=owner.time()) {
-        if(!isTalk()) {
-          loop = LOOP_END; // have to hack ZS_Talk bugs
-          }
-        }
+      if(aiState.eTime<=owner.time())
+        loop = LOOP_END;
+
       if(loop!=LOOP_CONTINUE) {
         clearState(false);
         currentOther  = nullptr;
