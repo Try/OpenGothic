@@ -280,6 +280,8 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
       if(next!=l.seq) {
         needToUpdate = true;
         onRemoveLayer(lay[i]);
+        if(lay[i].bs==BS_PARADE)
+          lay[i].bs = BS_RUN;
 
         if(next!=nullptr) {
           if(lay[i].seq==rotation)
