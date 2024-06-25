@@ -646,7 +646,7 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
         bs = BS_RUN;
       break;
     case AnimationSolver::Anim::MoveBack:
-      if(st!=WeaponState::NoWeapon)
+      if(st==WeaponState::Fist || st==WeaponState::W1H || st==WeaponState::W2H)
         bs = BS_PARADE; else
         bs = BS_RUN;
     case AnimationSolver::Anim::RotL:

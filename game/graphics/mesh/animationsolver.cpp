@@ -4,6 +4,7 @@
 #include "world/world.h"
 #include "game/serialize.h"
 #include "utils/fileext.h"
+#include "gothic.h"
 #include "skeleton.h"
 #include "pose.h"
 #include "resources.h"
@@ -117,8 +118,10 @@ const Animation::Sequence* AnimationSolver::implSolveAnim(AnimationSolver::Anim 
         return solveFrm("T_FISTATTACKMOVE");
       return solveFrm("S_FISTATTACK");
       }
-    if(a==Anim::AttackBlock)
-      return solveFrm("T_FISTPARADE_0");
+    if(a==Anim::AttackBlock) {
+      bool g2 = Gothic::inst().version().game==2;
+      return g2 ? solveFrm("T_FISTPARADE_0") : solveFrm("T_FISTPARADE_O");
+      }
     }
   else if(st==WeaponState::W1H || st==WeaponState::W2H) {
     if(a==Anim::Attack && pose.hasState(BS_RUN))
@@ -130,15 +133,20 @@ const Animation::Sequence* AnimationSolver::implSolveAnim(AnimationSolver::Anim 
     if(a==Anim::Attack || a==Anim::AttackL || a==Anim::AttackR)
       return solveFrm("S_%sATTACK",st);
     if(a==Anim::AttackBlock) {
-      const Animation::Sequence* s=nullptr;
-      switch(std::rand()%3){
-        case 0: s = solveFrm("T_%sPARADE_0",   st); break;
-        case 1: s = solveFrm("T_%sPARADE_0_A2",st); break;
-        case 2: s = solveFrm("T_%sPARADE_0_A3",st); break;
+      bool g2 = Gothic::inst().version().game==2;
+      if(g2) {
+        const Animation::Sequence* s=nullptr;
+        switch(std::rand()%3) {
+          case 0: s = solveFrm("T_%sPARADE_0",   st); break;
+          case 1: s = solveFrm("T_%sPARADE_0_A2",st); break;
+          case 2: s = solveFrm("T_%sPARADE_0_A3",st); break;
+          }
+        if(s==nullptr)
+          s = solveFrm("T_%sPARADE_0",st);
+        return s;
+        } else {
+        return solveFrm("T_%sPARADE_O",st);
         }
-      if(s==nullptr)
-        s = solveFrm("T_%sPARADE_0",st);
-      return s;
       }
     if(a==Anim::AttackFinish)
       return solveFrm("T_%sSFINISH",st);
