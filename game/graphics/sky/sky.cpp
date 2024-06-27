@@ -31,6 +31,7 @@ using namespace Tempest;
  */
 static const float DirectSunLux  = 128'000.f;
 static const float DirectMoonLux = 1.f;
+static const bool  pathTrace     = false;
 
 // static const float NightLight    = 0.36f;
 // static const float ShadowSunLux  = 10'000.f;
@@ -58,7 +59,7 @@ Sky::Sky(const SceneGlobals& scene, const World& world, const std::pair<Tempest:
   minZ = bbox.first.z;
 
   GSunIntensity  = DirectSunLux;
-  GMoonIntensity = DirectMoonLux;
+  GMoonIntensity = DirectMoonLux*4;
   occlusionScale = 1;
 
   /*
@@ -109,12 +110,9 @@ void Sky::setupSettings() {
   auto& device = Resources::device();
   bool  fog    = Gothic::inst().settingsGetI("RENDERER_D3D","zFogRadial")!=0;
 
-  auto q = Quality::VolumetricLQ;
-  if(fog) {
-    if(device.properties().hasStorageFormat(TextureFormat::R32U))
-      q = Quality::VolumetricHQ; else
-      q = Quality::VolumetricMQ;
-    }
+  auto q = fog ? Quality::VolumetricHQ : Quality::VolumetricLQ;
+  if(pathTrace)
+    q = PathTrace;
 
   if(quality==q)
     return;
@@ -130,18 +128,12 @@ void Sky::setupSettings() {
       shadowDw     = StorageImage();
       occlusionLut = StorageImage();
       break;
-    case VolumetricMQ:
-      /* https://bartwronski.files.wordpress.com/2014/08/bwronski_volumetric_fog_siggraph2014.pdf
-       * page 25 160*90*64 = ~720p
-       */
-      fogLut3D     = device.image3d(lutRGBAFormat, 320, 176, 64);
-      shadowDw     = device.image2d(TextureFormat::R16, 512, 256);
-      occlusionLut = StorageImage();
-      break;
     case VolumetricHQ:
       // fogLut and oclussion are decupled
       fogLut3D = device.image3d(lutRGBAFormat,128,64,32);
       shadowDw = StorageImage();
+      break;
+    case PathTrace:
       break;
     }
   //fogLut3D = device.image3d(lutRGBAFormat,1,1,1);
@@ -177,8 +169,11 @@ void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fr
     push.size.x  = 2.f/float(scene.zbuffer->w());
     push.size.y  = 2.f/float(scene.zbuffer->h());
     }
+
+  const float intencity = 0.07f;
+
   push.size          *= sun ? sunSize : (moonSize*0.25f);
-  push.GSunIntensity  = sun ? (GSunIntensity*0.3f) : (GMoonIntensity*0.3f);
+  push.GSunIntensity  = sun ? (GSunIntensity*intencity) : (GMoonIntensity*intencity);
   push.isSun          = sun ? 1 : 0;
   push.sunDir         = d;
   push.viewProjectInv = scene.viewProjectLwcInv();
@@ -257,12 +252,17 @@ void Sky::updateLight(const int64_t now) {
 
   Vec3 direct;
   direct  = DirectSunLux * Vec3(1.0f);
-  ambient = DirectSunLux * float(1.0/M_PI) * groundAlbedo * sunOcclude;
+
+  ambient  = DirectSunLux  * float(1.0/M_PI) * groundAlbedo * sunOcclude;
+  ambient += DirectMoonLux * float(1.0/M_PI) * groundAlbedo;
   // ambient *= 0.78f; // atmosphere transmission is in shader
-  ambient *= 0.68f;   // NdoL prediction
-  ambient *= 0.5;     // maybe in shadow or maybe not
-  ambient *= 2.0;     // 2*pi, pi accounted in shader
-  ambient += Vec3(0.01f); // should avoid zeros
+  ambient *= 0.68f;           // NdoL prediction
+  ambient *= 0.5;             // maybe in shadow or maybe not
+  ambient *= 2.0*float(M_PI); // 2*pi (hermisphere integral)
+  // ambient *= 0.8f;            // tuneup
+  ambient *= float(1.0/M_PI); // predivide by lambertian lobe
+
+  //ambient += Vec3(0.001f);     // should avoid zeros
 
   sun.setColor(direct*sunMul);
   ambient = ambient*ambMul;
@@ -320,10 +320,11 @@ void Sky::prepareUniforms() {
   uboSky.set(1, transLut,       smpB);
   uboSky.set(2, multiScatLut,   smpB);
   uboSky.set(3, viewLut,        smpB);
-  uboSky.set(4,*cloudsDay()  .lay[0],smp);
-  uboSky.set(5,*cloudsDay()  .lay[1],smp);
-  uboSky.set(6,*cloudsNight().lay[0],smp);
-  uboSky.set(7,*cloudsNight().lay[1],smp);
+  uboSky.set(4, fogLut3D);
+  uboSky.set(5,*cloudsDay()  .lay[0],smp);
+  uboSky.set(6,*cloudsDay()  .lay[1],smp);
+  uboSky.set(7,*cloudsNight().lay[0],smp);
+  uboSky.set(8,*cloudsNight().lay[1],smp);
 
   if(quality==VolumetricLQ) {
     uboFogViewLut3d = device.descriptors(Shaders::inst().fogViewLut3dHQ);
@@ -338,25 +339,6 @@ void Sky::prepareUniforms() {
     uboFog.set(0, fogLut3D, smpB);
     uboFog.set(1, *scene.zbuffer, Sampler::nearest()); // NOTE: wanna here depthFetch from gles2
     uboFog.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
-    }
-
-  if(quality==VolumetricMQ) {
-    uboShadowDw = device.descriptors(Shaders::inst().shadowDownsample);
-    uboShadowDw.set(0, shadowDw);
-    uboShadowDw.set(1, *scene.shadowMap[1],Resources::shadowSampler());
-
-    uboFogViewLut3d = device.descriptors(Shaders::inst().fogViewLut3dHQ);
-    uboFogViewLut3d.set(0, transLut,     smpB);
-    uboFogViewLut3d.set(1, multiScatLut, smpB);
-    uboFogViewLut3d.set(2, cloudsLut,    smpB);
-    uboFogViewLut3d.set(3, shadowDw,     Resources::shadowSampler());
-    uboFogViewLut3d.set(4, fogLut3D);
-    uboFogViewLut3d.set(5, scene.uboGlobal[SceneGlobals::V_Main]);
-
-    uboFog3d = device.descriptors(Shaders::inst().fog3dLQ);
-    uboFog3d.set(0, fogLut3D,       smpB);
-    uboFog3d.set(1, *scene.zbuffer, Sampler::nearest());
-    uboFog3d.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
     }
 
   if(quality==VolumetricHQ) {
@@ -383,6 +365,16 @@ void Sky::prepareUniforms() {
     uboFog3d.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
     uboFog3d.set(3, *scene.shadowMap[1], Resources::shadowSampler());
     uboFog3d.set(4, occlusionLut);
+    }
+
+  if(quality==PathTrace) {
+    uboSkyPathtrace = device.descriptors(Shaders::inst().skyPathTrace);
+    uboSkyPathtrace.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    uboSkyPathtrace.set(1, transLut,     smpB);
+    uboSkyPathtrace.set(2, multiScatLut, smpB);
+    uboSkyPathtrace.set(3, cloudsLut,    smpB);
+    uboSkyPathtrace.set(4, *scene.zbuffer, Sampler::nearest());
+    uboSkyPathtrace.set(5, *scene.shadowMap[1], Resources::shadowSampler());
     }
 
   uboSun = device.descriptors(Shaders::inst().sun);
@@ -449,36 +441,29 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
       cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
       break;
       }
-    case VolumetricMQ: {
-      cmd.setFramebuffer({});
-      cmd.setUniforms(Shaders::inst().shadowDownsample, uboShadowDw);
-      cmd.dispatchThreads(shadowDw.size());
-
-      cmd.setUniforms(Shaders::inst().fogViewLut3dLQ, uboFogViewLut3d, &ubo, sizeof(ubo));
-      cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
-      break;
-      }
     case VolumetricHQ: {
-      const bool persistent = false; // experimental
       cmd.setFramebuffer({});
       cmd.setUniforms(Shaders::inst().fogOcclusion, uboOcclusion, &ubo, sizeof(ubo));
-      if(persistent) {
-        auto sz = Shaders::inst().fogOcclusion.workGroupSize();
-        int  w  = (occlusionLut.w()+sz.x-1)/sz.x;
-        int  h  = (occlusionLut.h()+sz.y-1)/sz.y;
-        cmd.dispatch(uint32_t((w+1-1)/1), uint32_t((h+1-1)/1));
-        } else{
-        cmd.dispatchThreads(occlusionLut.size());
-        }
+      cmd.dispatchThreads(occlusionLut.size());
 
       cmd.setUniforms(Shaders::inst().fogViewLut3dHQ, uboFogViewLut3d, &ubo, sizeof(ubo));
       cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
+      break;
+      }
+    case PathTrace: {
       break;
       }
     }
   }
 
 void Sky::drawSky(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
+  if(quality==PathTrace) {
+    UboSky ubo = mkPush(true);
+    cmd.setUniforms(Shaders::inst().skyPathTrace, uboSkyPathtrace, &ubo, sizeof(ubo));
+    cmd.draw(Resources::fsqVbo());
+    return;
+    }
+
   UboSky ubo = mkPush(true);
   cmd.setUniforms(Shaders::inst().sky, uboSky, &ubo, sizeof(ubo));
   cmd.draw(Resources::fsqVbo());
@@ -496,12 +481,11 @@ void Sky::drawFog(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
     case VolumetricLQ:
       cmd.setUniforms(Shaders::inst().fog,     uboFog,   &ubo, sizeof(ubo));
       break;
-    case VolumetricMQ:
-      cmd.setUniforms(Shaders::inst().fog3dLQ, uboFog3d, &ubo, sizeof(ubo));
-      break;
     case VolumetricHQ:
       cmd.setUniforms(Shaders::inst().fog3dHQ, uboFog3d, &ubo, sizeof(ubo));
       break;
+    case PathTrace:
+      return;
     }
   cmd.draw(Resources::fsqVbo());
   }
@@ -519,22 +503,9 @@ void Sky::prepareExposure(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_
     };
   Push push;
   push.sunOcclusion = smoothstep(0.0f, 0.01f, sun.dir().y);
-  // art-tuning
-  {
-    static float add = 100;
-    // from 21:43 to 21:49
-    static float maxY = +0.05f;
-    static float minY = -0.165f;
-    const  float nowY = sunLight().dir().y;
-    if(minY<=nowY && nowY<=maxY) {
-      float dt = float(nowY-minY)/float(maxY-minY);
-      dt = 1.f-std::abs(dt-0.5f)*2.f;
-      push.baseL += dt*dt*add;
-      }
-  }
 
   static float override = 0;
-  static float add      = 0.05f;
+  static float add      = 1.f;
   if(override>0)
     push.baseL = override;
   push.baseL += add;

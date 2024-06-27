@@ -127,7 +127,7 @@ vec3 ssr(vec3 orig, vec3 start, vec3 refl, const float depth, vec3 sky) {
     //return vec3(h);
     }
 
-  return sky; //mix(sky, scene.ambient*sky, shadow*0.2);
+  return sky;
   }
 
 #if defined(SSR)

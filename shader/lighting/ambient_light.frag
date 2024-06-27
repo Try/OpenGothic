@@ -29,7 +29,7 @@ float textureSsao() { return 1; }
 
 vec3 skyIrradiance() {
 #if 0
-  return scene.ambient;
+  return scene.ambient * Fd_LambertInv;
 #else
   vec3 n = texelFetch(gbufNormal, ivec2(gl_FragCoord.xy), 0).rgb;
   n = normalize(n*2.0 - vec3(1.0));
@@ -61,19 +61,18 @@ void main() {
   const vec3  norm = normalFetch(gbufNormal, fragCoord);
 
   // const vec3  linear = vec3(1);
-  const vec3  linear = textureLinear(diff);
+  const vec3  linear = textureAlbedo(diff);
   const float ao     = textureSsao();
 
   vec3 ambient = scene.ambient;
   vec3 sky     = skyIrradiance();
 
   //vec3 lcolor  = mix(ambient, sky, max(0, norm.y*0.8));
-  vec3 lcolor  = (ambient + sky)*0.5;
+  vec3 luminance  = (ambient + sky)*0.5;
   // vec3 lcolor  = ambient + sky*clamp(norm.y*0.5, 0,1);
 
-  vec3 color = lcolor.rgb;
-  color *= linear;  // * Fd_Lambert is accounted in integration
-  color *= ao;
+  vec3 color = luminance * ao;  // * Fd_Lambert is accounted in integration
+  color *= linear;
 
   // outColor = vec4(vec3(grayscale(color)), 0);
   // return;

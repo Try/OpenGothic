@@ -9,7 +9,7 @@ PfxController::PfxController(Vob* parent, World& world, const zenkit::VParticleE
   :AbstractTrigger(parent,world,ctrl,flags) {
   killWhenDone = ctrl.kill_when_done;
 
-  if(const ParticleFx* view = Gothic::inst().loadParticleFx(ctrl.visual_name)) {
+  if(const ParticleFx* view = Gothic::inst().loadParticleFx(ctrl.visual->name)) {
     visual = PfxEmitter(world,view);
     visual.setActive(true);
     visual.setLooped(true);

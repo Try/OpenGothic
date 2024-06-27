@@ -97,14 +97,15 @@ class World final {
     MeshObjects::Mesh    addAtachView (const ProtoMesh::Attach& visual, const int32_t version);
     MeshObjects::Mesh    addStaticView(const ProtoMesh* visual, bool staticDraw);
     MeshObjects::Mesh    addStaticView(std::string_view visual);
-    MeshObjects::Mesh    addDecalView (const zenkit::VirtualObject& vob);
+    MeshObjects::Mesh    addDecalView (const zenkit::VisualDecal& decal);
 
     void                 updateAnimation(uint64_t dt);
     void                 resetPositionToTA();
 
     auto                 takeHero() -> std::unique_ptr<Npc>;
     Npc*                 player() const { return npcPlayer; }
-    Npc*                 findNpcByInstance(size_t instance);
+    Npc*                 findNpcByInstance(size_t instance, size_t n = 0);
+    Item*                findItemByInstance(size_t instance, size_t n = 0);
     std::string_view     roomAt(const Tempest::Vec3& arr);
 
     void                 scaleTime(uint64_t& dt);

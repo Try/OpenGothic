@@ -160,6 +160,7 @@ class GameScript final {
     void     useInteractive(const std::shared_ptr<zenkit::INpc>& hnpc, std::string_view func);
     Attitude guildAttitude(const Npc& p0,const Npc& p1) const;
     Attitude personAttitude(const Npc& p0,const Npc& p1) const;
+    bool     isFriendlyFire(const Npc& src, const Npc& dst) const;
 
     BodyState schemeToBodystate(std::string_view sc);
 

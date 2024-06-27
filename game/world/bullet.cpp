@@ -1,5 +1,7 @@
 #include "bullet.h"
 
+#include <Tempest/Log>
+
 #include "graphics/visualfx.h"
 #include "world/objects/item.h"
 #include "world/objects/npc.h"
@@ -136,12 +138,8 @@ void Bullet::onCollide(Npc& npc) {
     return;
 
   if(ow!=nullptr) {
-    bool friendlyFire = false;
-    if(!ow->isPlayer() && wrld->script().personAttitude(*ow, npc)==ATT_FRIENDLY) {
-      // no damage between ally npc's, only emit pfx effect
-      friendlyFire = true;
-      }
-
+    // no damage between ally npc's, only emit pfx effect
+    const bool friendlyFire = wrld->script().isFriendlyFire(*ow,npc);
     if(!friendlyFire) {
       if(isSpell())
         npc.takeDamage(*ow,this,vfx.handle(),spellId()); else

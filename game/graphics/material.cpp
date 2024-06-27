@@ -44,14 +44,14 @@ Material::Material(const zenkit::Material& m, bool enableAlphaTest) {
     ; // envMapping = m.environment_mapping_strength;
   }
 
-Material::Material(const zenkit::VirtualObject& vob) {
-  tex = Resources::loadTexture(vob.visual_name);
-  if(tex==nullptr && !vob.visual_name.empty())
+Material::Material(const zenkit::VisualDecal& decal) {
+  tex = Resources::loadTexture(decal.name);
+  if(tex==nullptr && !decal.name.empty())
     tex = Resources::loadTexture("DEFAULT.TGA");
-  loadFrames(vob.visual_name, vob.visual_decal->texture_anim_fps);
+  loadFrames(decal.name, decal.texture_anim_fps);
 
-  alpha        = loadAlphaFunc(vob.visual_decal->alpha_func, zenkit::MaterialGroup::UNDEFINED, vob.visual_decal->alpha_weight, tex, true);
-  alphaWeight  = float(vob.visual_decal->alpha_weight)/255.f;
+  alpha        = loadAlphaFunc(decal.alpha_func, zenkit::MaterialGroup::UNDEFINED, decal.alpha_weight, tex, true);
+  alphaWeight  = float(decal.alpha_weight)/255.f;
   }
 
 Material::Material(const zenkit::IParticleEffect& src) {

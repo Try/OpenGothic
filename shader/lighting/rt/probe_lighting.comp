@@ -69,8 +69,6 @@ void storeSample(vec3 dir, vec4 val) {
   }
 
 vec3 resolveHit(const vec3 rayOrigin, const vec3 rayDirection, float rayT, vec3 normal, bool opaque, float shMap) {
-  // return 1.0 * scene.ambient;
-
   float dt = dot(normal, scene.sunDir);
   if(!opaque) {
     // atificial lit on vegetation, as RT can't capture small bright light leaks from the trees
@@ -78,12 +76,11 @@ vec3 resolveHit(const vec3 rayOrigin, const vec3 rayDirection, float rayT, vec3 
     dt = abs(dt);
     }
 
-  const float lambert = max(0, dt); //max(opaque ? 0 : 0.2, dt);
-  const float shadow  = max(0, shMap);
-  const vec3  lcolor  = scene.sunColor * Fd_Lambert * lambert * shadow;
+  const float lambert     = max(0, dt); //max(opaque ? 0 : 0.2, dt);
+  const float shadow      = max(0, shMap);
+  const vec3  illuminance = scene.sunColor * lambert * shadow;
 
-  return lcolor;
-  //return scene.sunColor * scene.ambient;
+  return illuminance;
   }
 
 vec3 resolveMiss(const vec3 rayOrigin, const vec3 rayDirection) {
@@ -172,12 +169,8 @@ vec4 processSample(const vec3 rayOrigin, const vec3 rayDirection, uint probeId, 
   float shadow  = shadowFactor(shCoord);
 
   vec3 hit = vec3(0);
-  hit += albedo * resolveHit(rayOrigin, rayDirection, rayT, norm, opaque, shadow);
-  hit += albedo * resolveSecondBounce(pos, norm, rayT, probeId);
-  // hit += albedo * resolveHit(rayOrigin, rayDirection, rayT, norm, opaque, shadow);
-  // hit += albedo * resolveSecondBounce(pos, -rayDirection, probeId) / max(1.0 - albedo, 0.1);
-
-  // hit = resolveSecondBounce(pos, -rayDirection, probeId);
+  hit += albedo * Fd_Lambert * resolveHit(rayOrigin, rayDirection, rayT, norm, opaque, shadow);
+  hit += albedo * resolveSecondBounce(pos, norm, rayT, probeId); // Fd_Lambert is accounted in probe
 
   if(semiSky) {
     // avoid pitch-black lighting in forrest

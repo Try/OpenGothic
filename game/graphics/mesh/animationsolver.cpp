@@ -4,6 +4,7 @@
 #include "world/world.h"
 #include "game/serialize.h"
 #include "utils/fileext.h"
+#include "gothic.h"
 #include "skeleton.h"
 #include "pose.h"
 #include "resources.h"
@@ -117,8 +118,10 @@ const Animation::Sequence* AnimationSolver::implSolveAnim(AnimationSolver::Anim 
         return solveFrm("T_FISTATTACKMOVE");
       return solveFrm("S_FISTATTACK");
       }
-    if(a==Anim::AttackBlock)
-      return solveFrm("T_FISTPARADE_0");
+    if(a==Anim::AttackBlock) {
+      bool g2 = Gothic::inst().version().game==2;
+      return g2 ? solveFrm("T_FISTPARADE_0") : solveFrm("T_FISTPARADE_O");
+      }
     }
   else if(st==WeaponState::W1H || st==WeaponState::W2H) {
     if(a==Anim::Attack && pose.hasState(BS_RUN))
@@ -130,15 +133,20 @@ const Animation::Sequence* AnimationSolver::implSolveAnim(AnimationSolver::Anim 
     if(a==Anim::Attack || a==Anim::AttackL || a==Anim::AttackR)
       return solveFrm("S_%sATTACK",st);
     if(a==Anim::AttackBlock) {
-      const Animation::Sequence* s=nullptr;
-      switch(std::rand()%3){
-        case 0: s = solveFrm("T_%sPARADE_0",   st); break;
-        case 1: s = solveFrm("T_%sPARADE_0_A2",st); break;
-        case 2: s = solveFrm("T_%sPARADE_0_A3",st); break;
+      bool g2 = Gothic::inst().version().game==2;
+      if(g2) {
+        const Animation::Sequence* s=nullptr;
+        switch(std::rand()%3) {
+          case 0: s = solveFrm("T_%sPARADE_0",   st); break;
+          case 1: s = solveFrm("T_%sPARADE_0_A2",st); break;
+          case 2: s = solveFrm("T_%sPARADE_0_A3",st); break;
+          }
+        if(s==nullptr)
+          s = solveFrm("T_%sPARADE_0",st);
+        return s;
+        } else {
+        return solveFrm("T_%sPARADE_O",st);
         }
-      if(s==nullptr)
-        s = solveFrm("T_%sPARADE_0",st);
-      return s;
       }
     if(a==Anim::AttackFinish)
       return solveFrm("T_%sSFINISH",st);
@@ -375,6 +383,26 @@ const Animation::Sequence *AnimationSolver::solveAnim(WeaponState st, WeaponStat
       return solveFrm("T_%s_2_%sRUN",st);
     }
   return nullptr;
+  }
+
+const Animation::Sequence* AnimationSolver::solveAnim(std::string_view scheme, bool run, bool invest) const {
+  // example: "T_MAGWALK_2_FBTSHOOT"
+
+  string_frm name("");
+  if(run && invest)
+    name = string_frm("T_MAGMOVE_2_",scheme,"CAST");
+  else if(run)
+    name = string_frm("T_MAGMOVE_2_",scheme,"SHOOT");
+  else if(run)
+    name = string_frm("T_MAGRUN_2_",scheme,"CAST");
+  else
+    name = string_frm("T_MAGRUN_2_",scheme,"SHOOT");
+
+  if(auto sq = solveFrm(name))
+    return sq;
+
+  name = string_frm("S_",scheme,"SHOOT");
+  return solveFrm(name);
   }
 
 const Animation::Sequence *AnimationSolver::solveAnim(Interactive *inter, AnimationSolver::Anim a, const Pose &) const {

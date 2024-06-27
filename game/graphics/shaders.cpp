@@ -62,8 +62,22 @@ Shaders::Shaders() {
 
   sky                = postEffect("sky");
   fog                = fogShader ("fog");
-  fog3dLQ            = fogShader ("fog3d_lq");
   fog3dHQ            = fogShader ("fog3d_hq");
+
+  {
+    RenderState state;
+    state.setCullFaceMode (RenderState::CullMode::Front);
+    state.setBlendSource  (RenderState::BlendMode::One);
+    state.setBlendDest    (RenderState::BlendMode::SrcAlpha);
+    state.setZTestMode    (RenderState::ZTestMode::Always);
+    state.setZWriteEnabled(false);
+
+    auto sh      = GothicShader::get("sky.vert.sprv");
+    auto vsLight = device.shader(sh.data,sh.len);
+    sh           = GothicShader::get("sky_pathtrace.frag.sprv");
+    auto fsLight = device.shader(sh.data,sh.len);
+    skyPathTrace = device.pipeline(Triangles, state, vsLight, fsLight);
+  }
 
   underwaterT        = inWaterShader("underwater_t", false);
   underwaterS        = inWaterShader("underwater_s", true);

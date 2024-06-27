@@ -73,9 +73,11 @@ World::World(GameSession& game, std::string_view file, bool startup, std::functi
     }
 
   try {
-    auto buf   = entry->open();
-    auto world = zenkit::World::parse(buf, version().game == 1 ? zenkit::GameVersion::GOTHIC_1
-                                                               : zenkit::GameVersion::GOTHIC_2);
+    auto          buf = entry->open_read();
+    zenkit::World world;
+    world.load(buf.get(), version().game == 1 ? zenkit::GameVersion::GOTHIC_1
+                                              : zenkit::GameVersion::GOTHIC_2);
+
     loadProgress(20);
     auto& worldMesh = world.world_mesh;
 
@@ -275,8 +277,8 @@ MeshObjects::Mesh World::addStaticView(std::string_view visual) {
   return view()->addStaticView(visual);
   }
 
-MeshObjects::Mesh World::addDecalView(const zenkit::VirtualObject& vob) {
-  return view()->addDecalView(vob);
+MeshObjects::Mesh World::addDecalView(const zenkit::VisualDecal& decal) {
+  return view()->addDecalView(decal);
   }
 
 void World::updateAnimation(uint64_t dt) {
@@ -291,8 +293,12 @@ std::unique_ptr<Npc> World::takeHero() {
   return wobj.takeNpc(npcPlayer);
   }
 
-Npc *World::findNpcByInstance(size_t instance) {
-  return wobj.findNpcByInstance(instance);
+Item* World::findItemByInstance(size_t instance, size_t n) {
+  return wobj.findItemByInstance(instance,n);
+  }
+
+Npc *World::findNpcByInstance(size_t instance, size_t n) {
+  return wobj.findNpcByInstance(instance,n);
   }
 
 std::string_view World::roomAt(const Tempest::Vec3& p) {

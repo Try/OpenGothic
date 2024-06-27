@@ -1297,6 +1297,17 @@ Attitude GameScript::personAttitude(const Npc &p0, const Npc &p1) const {
   return att;
   }
 
+bool GameScript::isFriendlyFire(const Npc& src, const Npc& dst) const {
+  static const int AIV_PARTYMEMBER = 15;
+  if(src.isPlayer())
+    return false;
+  if(personAttitude(src, dst)==ATT_FRIENDLY)
+    return true;
+  if(src.handlePtr()->aivar[AIV_PARTYMEMBER]!=0 && dst.isPlayer())
+    return true;
+  return false;
+  }
+
 BodyState GameScript::schemeToBodystate(std::string_view sc) {
   if(searchScheme(sc,"MOB_SIT"))
     return BS_SIT;
@@ -1641,8 +1652,8 @@ int GameScript::wld_getmobstate(std::shared_ptr<zenkit::INpc> npcRef, std::strin
     return -1;
     }
 
-  auto mob = npc->detectedMob();
-  if(mob==nullptr || mob->schemeName()!=scheme) {
+  auto mob = world().availableMob(*npc,scheme);
+  if(mob==nullptr) {
     return -1;
     }
 

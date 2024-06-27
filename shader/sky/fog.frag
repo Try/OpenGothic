@@ -6,7 +6,7 @@
 #include "sky_common.glsl"
 #include "scene.glsl"
 
-#if defined(VOLUMETRIC_LQ) || defined(VOLUMETRIC_HQ)
+#if defined(VOLUMETRIC_HQ)
 #define VOLUMETRIC
 #endif
 
@@ -42,10 +42,6 @@ layout(binding = 4, r32ui) uniform readonly  restrict uimage2D occlusionLut;
 
 #if defined(COMPUTE)
 uvec2 invocationID = gl_GlobalInvocationID.xy;
-#endif
-
-#if defined(VOLUMETRIC_HQ)
-uint occlusionScale = 1;
 #endif
 
 float interleavedGradientNoise() {
@@ -124,8 +120,9 @@ vec4 fog(vec2 uv, float z) {
   return vec4(0);
 #else
   // every bit = one sample of shadowmap
-  const ivec2 coord     = ivec2(gl_FragCoord.xy/occlusionScale);
-  const uint  occlusion = imageLoad(occlusionLut, coord).r;
+  const float occlusionScale = textureSize(depth,0).x/imageSize(occlusionLut).x;
+  const ivec2 coord          = ivec2(gl_FragCoord.xy/occlusionScale);
+  const uint  occlusion      = imageLoad(occlusionLut, coord).r;
   [[dont_unroll]]
   for(int i=0; i<steps; i++) {
     bool  bit    = bitfieldExtract(occlusion,i,1)!=0;
@@ -149,7 +146,7 @@ vec4 fog(vec2 uv, float z) {
     scatteredLight += (val.rgb-prevVal.rgb)*shadow;
     prevVal = val;
     }
-  return vec4(scatteredLight, 1.0-transmittance);
+  return vec4(scatteredLight, transmittance);
 #endif
   }
 #else
@@ -174,11 +171,8 @@ vec4 fog(vec2 uv, float z) {
   float d0   = linearDepth(dMin, scene.clipInfo);
   float d1   = linearDepth(dMax, scene.clipInfo);
   float d    = (dZ-d0)/(d1-d0);
-  // return vec4(debugColors[min(int(d*textureSize(fogLut,0).z), textureSize(fogLut,0).z-1)%MAX_DEBUG_COLORS], 1);
-  vec4  val      = textureLod(fogLut, vec3(uv,d), 0);
-  vec3  lum      = val.rgb;
-  float fogDens  = (1.0-val.w);
-  return vec4(lum, fogDens);
+  // return vec4(debugColors[min(int(d*textureSize(fogLut,0).z), textureSize(fogLut,0).z-1)%MAX_DEBUG_COLORS], 0);
+  return textureLod(fogLut, vec3(uv,d), 0);
   }
 #endif
 
@@ -188,23 +182,19 @@ void main_frag() {
   vec3 view   = normalize(inverse(vec3(inPos,1.0)));
   vec3 sunDir = scene.sunDir;
 
-#if defined(VOLUMETRIC_HQ)
-  occlusionScale    = textureSize(depth,0).x/imageSize(occlusionLut).x;
-  // const ivec2 coord = ivec2(gl_FragCoord.xy/occlusionScale);
-  // const float z     = texelFetch(depth,ivec2(coord*occlusionScale),0).r;
-  const float z     = texelFetch(depth,ivec2(gl_FragCoord.xy),0).r;
-#else
-  const float z     = texelFetch(depth,ivec2(gl_FragCoord.xy),0).r;
-#endif
+  const float dMax   = texelFetch(depth,ivec2(gl_FragCoord.xy),0).r;
+  const bool  isSky  = (dMax==1.0);
 
-  const vec4  val = fog(uv,z);
-  vec3  lum = val.rgb;
-  float tr  = val.a;
+  //const vec3  maxVal = isSky ? textureLod(fogLut, vec3(uv, textureSize(fogLut,0).z-1), 0).rgb : vec3(0);
+  const vec4  val    = fog(uv,dMax);
+
+  vec3  lum = val.rgb;// - maxVal;
+  float tr  = isSky ? 1 : val.a;
 
   lum *= scene.GSunIntensity;
   lum *= scene.exposure;
 
-  outColor = vec4(lum, tr);
+  outColor = vec4(lum, 1.0-tr);
   }
 #else
 void main_comp() {
@@ -226,18 +216,6 @@ void main_comp() {
 
 void main() {
 #if defined(COMPUTE)
-  /*
-  const uvec2 persistent = uvec2(1,2);
-  const uvec2 baseId     = gl_WorkGroupID.xy*gl_WorkGroupSize.xy*persistent + gl_LocalInvocationID.xy;
-  [[dont_unroll]]
-  for(int y=0; y<persistent.y; ++y)
-    for(int x=0; x<persistent.x; ++x) {
-      invocationID = baseId + gl_WorkGroupSize.xy*uvec2(x,y);
-      if(invocationID.x>=imageSize(occlusionLut).x)
-        break;
-      main_comp();
-      }
-  */
   main_comp();
 #else
   main_frag();

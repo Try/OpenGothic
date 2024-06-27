@@ -149,7 +149,7 @@ void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs, bool modFil
 
   for(auto& i:archives) {
     try {
-      auto in     = phoenix::buffer::mmap(i.name);
+      auto in = zenkit::Read::from(i.name);
 #ifdef __IOS__
       // causes OOM on iPhone7
       if(i.name.find(u"Speech")!=std::string::npos)
@@ -575,12 +575,12 @@ PfxEmitterMesh* Resources::implLoadEmiterMesh(std::string_view name) {
   return nullptr;
   }
 
-ProtoMesh* Resources::implDecalMesh(const zenkit::VirtualObject& vob) {
+ProtoMesh* Resources::implDecalMesh(const zenkit::VisualDecal& decal) {
   DecalK key;
-  key.mat         = Material(vob);
-  key.sX          = vob.visual_decal->dimension.x;
-  key.sY          = vob.visual_decal->dimension.y;
-  key.decal2Sided = vob.visual_decal->two_sided;
+  key.mat         = Material(decal);
+  key.sX          = decal.dimension.x;
+  key.sY          = decal.dimension.y;
+  key.decal2Sided = decal.two_sided;
 
   if(key.mat.tex==nullptr)
     return nullptr;
@@ -880,9 +880,9 @@ DmSegment* Resources::loadMusicSegment(char const* name) {
   return inst->implLoadMusicSegment(name);
 }
 
-const ProtoMesh* Resources::decalMesh(const zenkit::VirtualObject& vob) {
+const ProtoMesh* Resources::decalMesh(const zenkit::VisualDecal& decal) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->implDecalMesh(vob);
+  return inst->implDecalMesh(decal);
   }
 
 const Resources::VobTree* Resources::loadVobBundle(std::string_view name) {

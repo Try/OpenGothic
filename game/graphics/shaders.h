@@ -40,11 +40,13 @@ class Shaders {
     Tempest::RenderPipeline  skyTransmittance, skyMultiScattering;
     Tempest::RenderPipeline  skyViewLut, skyViewCldLut, sky;
     Tempest::RenderPipeline  fog;
-    Tempest::RenderPipeline  fog3dLQ, fog3dHQ;
+    Tempest::RenderPipeline  fog3dHQ;
     Tempest::RenderPipeline  sun;
     Tempest::ComputePipeline cloudsLut, fogOcclusion;
     Tempest::ComputePipeline fogViewLut3dLQ, fogViewLut3dHQ, shadowDownsample;
     Tempest::ComputePipeline skyExposure;
+
+    Tempest::RenderPipeline  skyPathTrace;
 
     Tempest::RenderPipeline  underwaterT, underwaterS;
     Tempest::RenderPipeline  waterReflection, waterReflectionSSR;

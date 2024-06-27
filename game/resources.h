@@ -110,7 +110,7 @@ class Resources final {
 
     static Dx8::PatternList          loadDxMusic(std::string_view name);
     static DmSegment*                loadMusicSegment(char const* name);
-    static const ProtoMesh*          decalMesh(const zenkit::VirtualObject& vob);
+    static const ProtoMesh*          decalMesh(const zenkit::VisualDecal& decal);
 
     static const VobTree*            loadVobBundle(std::string_view name);
 
@@ -179,7 +179,7 @@ class Resources final {
     ProtoMesh*            implLoadMesh(std::string_view name);
     std::unique_ptr<ProtoMesh> implLoadMeshMain(std::string name);
     std::unique_ptr<Animation> implLoadAnimation(std::string name);
-    ProtoMesh*            implDecalMesh(const zenkit::VirtualObject& vob);
+    ProtoMesh*            implDecalMesh(const zenkit::VisualDecal& decal);
     Tempest::Sound        implLoadSoundBuffer(std::string_view name);
     Dx8::PatternList      implLoadDxMusic(std::string_view name);
     DmSegment*            implLoadMusicSegment(char const* name);

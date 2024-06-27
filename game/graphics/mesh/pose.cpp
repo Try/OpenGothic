@@ -274,23 +274,26 @@ void Pose::processLayers(AnimationSolver& solver, uint64_t tickCount) {
   size_t ret    = 0;
   bool   doSort = false;
   for(size_t i=0; i<lay.size(); ++i) {
-    const auto& l = lay[i];
+    auto& l = lay[i];
     if(l.seq->animCls==Animation::Transition && l.seq->isFinished(tickCount,l.sAnim,combo.len())) {
       auto next = solveNext(solver,l);
       if(next!=l.seq) {
         needToUpdate = true;
-        onRemoveLayer(lay[i]);
+        onRemoveLayer(l);
 
         if(next!=nullptr) {
-          if(lay[i].seq==rotation)
+          if(l.seq==rotation)
             rotation = next;
-          doSort       = lay[i].seq->layer!=next->layer;
-          lay[i].seq   = next;
-          lay[i].sAnim = tickCount;
-          // WA for swampshark animation
-          if((lay[i].bs & BS_MAX)==BS_STUMBLE)
-            lay[i].bs = BodyState(lay[i].bs & (~BS_MAX));
-          onAddLayer(lay[i]);
+          doSort  = l.seq->layer!=next->layer;
+          auto bs = (l.bs & BS_MAX);
+          // WA for:
+          // 1. for swampshark, "T_STUMBLEB" has next animationn: "S_FISTRUN"
+          // 2. for some of jump-back animnations, also 'next' is not empty
+          if(bs==BS_STUMBLE || bs==BS_PARADE)
+            l.bs = BS_NONE;
+          l.seq   = next;
+          l.sAnim = tickCount;
+          onAddLayer(l);
           ret++;
           }
         continue;
@@ -608,31 +611,16 @@ bool Pose::isDefWindow(uint64_t tickCount) const {
   }
 
 bool Pose::isDefence(uint64_t tickCount) const {
-  static const char* alt[3]={"","_A2","_A3"};
-
   for(auto& i:lay) {
-    if(i.seq->isDefWindow(tickCount-i.sAnim)) {
-      // FIXME: seems like name check is not needed
-      for(int h=1;h<=2;++h) {
-        for(int v=0;v<3;++v) {
-          string_frm buf("T_",h,"HPARADE_0",alt[v]);
-          if(i.seq->name==buf)
-            return true;
-          }
-        }
-      }
+    if(i.bs==BS_PARADE && i.seq->isDefWindow(tickCount-i.sAnim))
+      return true;
     }
   return false;
   }
 
 bool Pose::isJumpBack() const {
   for(auto& i:lay) {
-    for(int h=1;h<=2;++h) {
-      string_frm buf("T_",h,"HJUMPB");
-      if(i.seq->name==buf)
-        return true;
-      }
-    if(i.seq->name=="T_FISTPARADEJUMPB")
+    if(i.bs==BS_PARADE && i.seq->data->defParFrame.empty())
       return true;
     }
   return false;

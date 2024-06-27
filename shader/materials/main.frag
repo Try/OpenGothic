@@ -95,11 +95,10 @@ vec3 diffuseLight() {
   float light  = lambert();
   float shadow = calcShadow(vec4(shInp.pos,1), 0, scene, textureSm0, textureSm1);
 
-  vec3  lcolor  = scene.sunColor * Fd_Lambert * light * shadow;
+  vec3  lcolor  = scene.sunColor * light * shadow;
   vec3  ambient = scene.ambient; // TODO: irradiance
-  lcolor *= (1.0/M_PI); // magic constant, non motivated by physics
 
-  return lcolor + ambient;
+  return (lcolor * Fd_Lambert + ambient);
   }
 
 vec4 dbgLambert() {
@@ -174,7 +173,7 @@ void mainForward(vec4 t) {
   alpha = (alpha-0.5)*2.0;
 #endif
 
-  color = textureLinear(color.rgb);
+  color = textureAlbedo(color.rgb);
   color *= diffuseLight();
   color *= scene.exposure;
 
@@ -184,16 +183,14 @@ void mainForward(vec4 t) {
 
 #if defined(EMISSIVE)
 void mainEmissive(vec4 t) {
-  vec3 color = textureLinear(t.rgb);
-  color *= 3.0;
-
+  vec3 color = textureEmmisive(t.rgb);
   outColor = vec4(color,t.a);
   }
 #endif
 
 #if defined(GHOST)
 void mainGhost(vec4 t) {
-  vec3  color  = textureLinear(t.rgb) * 5.0;
+  vec3  color  = textureAlbedo(t.rgb) * 5.0;
   vec3  normal = normalize(shInp.normal);
 
   normal = (scene.viewProject*vec4(normal,0.0)).xyz;

@@ -11,7 +11,7 @@ class Material final {
   public:
     Material()=default;
     Material(const zenkit::Material& m, bool enableAlphaTest);
-    Material(const zenkit::VirtualObject& vob);
+    Material(const zenkit::VisualDecal& decal);
     Material(const zenkit::IParticleEffect &src);
 
     enum AlphaFunc:uint8_t {

@@ -43,8 +43,9 @@ PfxEmitter::PfxEmitter(World& world, const zenkit::VirtualObject& vob) {
     std::lock_guard<std::recursive_mutex> guard(owner.sync);
     bucket = &owner.getBucket(*decl);
     id     = bucket->allocEmitter();
-    } else {
-    Material mat(vob);
+    }
+  else if(auto decal = dynamic_cast<const zenkit::VisualDecal*>(vob.visual.get())) {
+    Material mat(*decal);
     std::lock_guard<std::recursive_mutex> guard(owner.sync);
     bucket = &owner.getBucket(mat,vob);
     id     = bucket->allocEmitter();

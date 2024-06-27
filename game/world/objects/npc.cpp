@@ -168,9 +168,6 @@ Npc::Npc(World &owner, size_t instance, std::string_view waypoint)
 
   owner.script().initializeInstanceNpc(hnpc, instance);
   hnpc->wp       = std::string(waypoint);
-  if(hnpc->attribute[ATR_HITPOINTS]<=1 && hnpc->attribute[ATR_HITPOINTSMAX]<=1) {
-    onNoHealth(true,HS_NoSound);
-    }
   }
 
 Npc::~Npc(){
@@ -519,13 +516,6 @@ bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
 
   const int minHp = isMonster() ? 0 : 1;
   if(hnpc->attribute[ATR_HITPOINTS]<=minHp) {
-    if(hnpc->attribute[ATR_HITPOINTSMAX]<=1) {
-      size_t fdead=owner.script().findSymbolIndex("ZS_Dead");
-      startState(fdead,"");
-      physic.setEnable(false);
-      return false;
-      }
-
     if(currentOther==nullptr ||
        !allowUnconscious ||
        owner.script().personAttitude(*this,*currentOther)==ATT_HOSTILE ||
@@ -589,6 +579,7 @@ bool Npc::hasAutoroll() const {
 void Npc::stopWalkAnimation() {
   if(interactive()==nullptr)
     visual.stopWalkAnim(*this);
+  // go2.clear();
   setAnimRotate(0);
   }
 
@@ -1154,8 +1145,12 @@ int32_t Npc::attribute(Attribute a) const {
 void Npc::changeAttribute(Attribute a, int32_t val, bool allowUnconscious) {
   if(a>=ATR_MAX || val==0)
     return;
-  if(isPlayer() && Gothic::inst().isGodMode() && val<0 && a==ATR_HITPOINTS)
-    return;
+  if(val<0 && a==ATR_HITPOINTS) {
+    if(isPlayer() && Gothic::inst().isGodMode())
+      return;
+    if(isImmortal())
+      return;
+    }
 
   hnpc->attribute[a]+=val;
   if(hnpc->attribute[a]<0)
@@ -1375,8 +1370,11 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
         finished = false;
         }
       }
-    if(finished)
+    if(finished) {
+      if(go2.flag==Npc::GT_NextFp && implTurnTo(go2.wp->dirX,go2.wp->dirZ,false,dt))
+        return true;
       clearGoTo();
+      }
     } else {
     if(setGoToLadder()) {
       mvAlgo.tick(dt);
@@ -1433,7 +1431,7 @@ bool Npc::implAttack(uint64_t dt) {
 
   auto ws = weaponState();
   // vanilla behavior, required for orcs in G1 orcgraveyard
-  if(ws==WeaponState::NoWeapon) {
+  if(ws==WeaponState::NoWeapon && isAiQueueEmpty()) {
     if(drawWeaponMelee())
       return true;
     }
@@ -1483,7 +1481,9 @@ bool Npc::implAttack(uint64_t dt) {
         auto hit = owner.physic()->rayNpc(this->mapWeaponBone(),currentTarget->centerPosition());
         if(hit.hasCol && hit.npcHit!=currentTarget) {
           obsticle = true;
-          if(hit.npcHit!=nullptr && owner.script().personAttitude(*this,*hit.npcHit)==ATT_HOSTILE)
+          // if(hit.npcHit!=nullptr && owner.script().personAttitude(*this,*hit.npcHit)==ATT_HOSTILE)
+          //   obsticle = false;
+          if(hit.npcHit!=nullptr && hit.npcHit!=currentTarget && owner.script().isFriendlyFire(*this,*hit.npcHit))
             obsticle = false;
           }
         }
@@ -1573,6 +1573,8 @@ bool Npc::implAttack(uint64_t dt) {
 
   if(act==FightAlgo::MV_MOVEA || act==FightAlgo::MV_MOVEG ||
       act==FightAlgo::MV_TURNA || act==FightAlgo::MV_TURNG) {
+    if(!isAiQueueEmpty() && implAiTick(dt))
+      return true;
     go2.set(currentTarget,(act==FightAlgo::MV_MOVEG || act==FightAlgo::MV_TURNG) ?
                              GoToHint::GT_EnemyG : GoToHint::GT_EnemyA);
 
@@ -1586,6 +1588,7 @@ bool Npc::implAttack(uint64_t dt) {
 
     const bool isClose = (qDistTo(*currentTarget) < dist*dist);
     if((!isClose && implGoTo(dt)) || implTurnTo(*currentTarget,dt)) {
+      go2.clear();
       implAiTick(dt);
       return true;
       }
@@ -2081,6 +2084,11 @@ void Npc::tickAnimationTags() {
 void Npc::tick(uint64_t dt) {
   // if(!isPlayer() && hnpc->id!=323)
   //   return;
+  static bool dbg = false;
+  static int  kId = -1;
+  if(dbg && !isPlayer() && hnpc->id!=kId)
+    return;
+
   tickAnimationTags();
 
   if(!visual.pose().hasAnim())
@@ -2159,12 +2167,12 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_TurnToNpc: {
       const auto st = bodyStateMasked();
       if(interactive()==nullptr && (st==BS_WALK || st==BS_SNEAK)) {
-        visual.stopWalkAnim(*this);
+        stopWalkAnimation();
         queue.pushFront(std::move(act));
         break;
         }
       if(interactive()==nullptr) {
-        visual.stopWalkAnim(*this);
+        stopWalkAnimation();
         visual.stopDlgAnim(*this);
         }
       if(act.target!=nullptr && implTurnTo(*act.target,dt)) {
@@ -2230,7 +2238,6 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         if(closeWeapon(false)) {
           stopWalkAnimation();
           }
-
         auto ws = weaponState();
         if(ws!=WeaponState::NoWeapon){
           queue.pushFront(std::move(act));
@@ -3181,7 +3188,7 @@ bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
       return false;
       }
     } else {
-    visual.stopWalkAnim(*this);
+    stopWalkAnimation();
     }
 
   const auto sgn = std::sin(double(da)*M_PI/180.0);
@@ -3560,13 +3567,11 @@ bool Npc::tickCast(uint64_t dt) {
 
   if(CS_Emit_0<=castLevel && castLevel<=CS_Emit_Last) {
     // final commit
-    if(isAiQueueEmpty()) {
-      if(!setAnim(Npc::Anim::Idle))
-        return true;
-      commitSpell();
-      castLevel = CS_Finalize;
-      // passthru to CS_Finalize
-      }
+    if(!setAnim(Npc::Anim::Idle))
+      return true;
+    commitSpell();
+    castLevel = CS_Finalize;
+    // passthru to CS_Finalize
     }
 
   if(castLevel==CS_Finalize) {
@@ -4144,7 +4149,7 @@ void Npc::stopWalking() {
   if(setAnim(Anim::Idle))
     return;
   // hard stop
-  visual.stopWalkAnim(*this);
+  stopWalkAnimation();
   }
 
 bool Npc::canSeeNpc(const Npc &oth, bool freeLos) const {

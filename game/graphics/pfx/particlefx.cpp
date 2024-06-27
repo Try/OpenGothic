@@ -8,15 +8,17 @@
 using namespace Tempest;
 
 ParticleFx::ParticleFx(const Material& mat, const zenkit::VirtualObject& vob) {
-  dbgName          = vob.visual_name;
+  dbgName          = vob.visual->name;
 
   ppsValue         = -1;
   lspPartAvg       = 1000;
   dirMode          = ParticleFx::Dir::Dir;
   visTexColorStart = Vec3(255,255,255);
   visTexColorEnd   = Vec3(255,255,255);
-  visSizeStart     = Vec2(2.f*vob.visual_decal->dimension.x,
-                          2.f*vob.visual_decal->dimension.y);
+  if(auto decal = dynamic_cast<const zenkit::VisualDecal*>(vob.visual.get())) {
+    visSizeStart     = Vec2(2.f*decal->dimension.x,
+                            2.f*decal->dimension.y);
+    }
   visOrientation   = Orientation::None;
 
   visMaterial      = mat;
