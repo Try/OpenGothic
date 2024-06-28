@@ -94,10 +94,6 @@ void WorldObjects::load(Serialize &fin) {
   for(auto& i:rootVobs)
     i->loadVobTree(fin);
 
-  for(auto& i:triggers)
-    if(i->hasDelayedEvents())
-      triggersDef.push_back(i);
-
   fin.setEntry("worlds/",fin.worldName(),"/triggerEvents");
   fin.read(sz);
   triggerEvents.resize(sz);
@@ -499,7 +495,10 @@ void WorldObjects::addTrigger(AbstractTrigger* tg) {
   triggers.emplace_back(tg);
   }
 
-void WorldObjects::addDefTrigger(AbstractTrigger& t) {
+void WorldObjects::enableDefTrigger(AbstractTrigger& t) {
+  for(auto& i:triggersDef)
+    if(i==&t)
+      return;
   triggersDef.push_back(&t);
   }
 

@@ -82,7 +82,7 @@ void AbstractTrigger::processEvent(const TriggerEvent& evt) {
   if(fireDelay>0) {
     TriggerEvent ex(evt.target, evt.emitter, world.tickCount() + fireDelay, evt.type);
     delayedEvent = std::move(ex);
-    world.addDefTrigger(*this);
+    world.enableDefTrigger(*this);
     return;
     }
   implProcessEvent(evt);
@@ -173,8 +173,11 @@ void AbstractTrigger::load(Serialize& fin) {
   fin.read(emitCount,disabled);
   fin.read(emitTimeLast);
 
-  if(fin.version()>=47)
+  if(fin.version()>=47) {
     delayedEvent.load(fin);
+    if(hasDelayedEvents())
+      world.enableDefTrigger(*this);
+    }
   if(fin.version()>=48) {
     fin.read(ticksEnabled);
     if(ticksEnabled)

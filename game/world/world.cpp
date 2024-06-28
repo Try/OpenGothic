@@ -507,8 +507,8 @@ void World::execTriggerEvent(const TriggerEvent& e) {
     }
   }
 
-void World::addDefTrigger(AbstractTrigger& t) {
-  wobj.addDefTrigger(t);
+void World::enableDefTrigger(AbstractTrigger& t) {
+  wobj.enableDefTrigger(t);
   }
 
 void World::enableTicks(AbstractTrigger& t) {

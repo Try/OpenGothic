@@ -83,7 +83,7 @@ class WorldObjects final {
     CsCamera*      currentCs() const;
 
     void           addTrigger(AbstractTrigger* trigger);
-    void           addDefTrigger(AbstractTrigger& trigger);
+    void           enableDefTrigger(AbstractTrigger& trigger);
     void           triggerEvent(const TriggerEvent& e);
     bool           triggerOnStart(bool firstTime);
     void           execDelayedEvents();
