@@ -185,7 +185,13 @@ void ObjVisual::setVisual(const zenkit::VirtualObject& vob, World& world, bool s
       }
     case zenkit::VisualType::DECAL: {
       // *.TGA
-      if(auto decal = dynamic_cast<const zenkit::VisualDecal*>(vob.visual.get())) {
+      if(vob.sprite_camera_facing_mode!=zenkit::SpriteAlignment::NONE) {
+        setType(M_Pfx);
+        pfx = PfxEmitter(world,vob);
+        pfx.setActive(true);
+        pfx.setLooped(true);
+        }
+      else if(auto decal = dynamic_cast<const zenkit::VisualDecal*>(vob.visual.get())) {
         setType(M_Mesh);
         mesh.view = world.addDecalView(*decal);
         }
