@@ -36,7 +36,7 @@ Supported systems are:
     * "C:\Program Files (x86)\Steam\steamapps\common\Gothic II"
 2. Download OpenGothic and extract into a folder of your choice. Available options are:
     * A [Pre-Release](https://github.com/Try/opengothic/releases/latest) (recommended)
-    * Alternatively a recent test build from [CI](https://ci.appveyor.com/project/Try/opengothic/history)
+    * Alternatively a recent test build from [CI](https://ci.appveyor.com/project/Try/opengothic/history?branch=master)
 3. Run `Gothic2Notr.exe`.
 
    If nothing happens check `log.txt` and look for the line `invalid gothic path`. In this case OpenGothic fails to find your Gothic installation and you have to explicitly specify its location via `-g` paramter. Either you create a shortcut to `Gothic2Notr.exe` and change the target line in Properties to e.g.
@@ -47,7 +47,7 @@ Supported systems are:
 
 ### Linux
 1. If not already done install Gothic via Wine/Proton or copy the game files from a Windows installation.
-2. You can download a build from [CI](https://ci.appveyor.com/project/Try/opengothic/history) and extract into a folder of your choice. Alternatively OpenGothic can be built manually. For Arch the [AUR](https://aur.archlinux.org/packages/opengothic) provides a 3rd party package.
+2. You can download a build from [CI](https://ci.appveyor.com/project/Try/opengothic/history?branch=master) and extract into a folder of your choice. Alternatively OpenGothic can be built manually. For Arch the [AUR](https://aur.archlinux.org/packages/opengothic) provides a 3rd party package.
 
 3. Run `Gothic2Notr.sh -g "~/PlayOnLinux's virtual drives/Gothic2_gog/drive_c/Gothic II"` (example path, use path to your Gothic installation instead)
 
@@ -60,7 +60,7 @@ Supported systems are:
 ### MacOS
 1. If not already done install Gothic. Instructions how to obtain the game files can be found [here](https://macsourceports.com/faq#getgamedata). OpenGothic comes with auto-path detection if your Gothic files are in `"~/Library/Application Support/OpenGothic"`.
 2. Download a build from [Mac Source Ports](https://macsourceports.com/game/gothic2) and follow the installation instructions given there.
-   Alternatively recent test builds are available from [CI](https://ci.appveyor.com/project/Try/opengothic/history) that can be extracted into a folder of your choice. You can compile a fresh build as well.
+   Alternatively recent test builds are available from [CI](https://ci.appveyor.com/project/Try/opengothic/history?branch=master) that can be extracted into a folder of your choice. You can compile a fresh build as well.
 3. Run `Gothic2Notr.sh`
 
    If OpenGothic fails to find your Gothic files you have to explicitly specify its location via `-g` parameter.
