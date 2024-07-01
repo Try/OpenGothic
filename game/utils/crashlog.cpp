@@ -1,6 +1,7 @@
 #include "crashlog.h"
 #include "commandline.h"
 
+#include <Tempest/Except>
 #include <Tempest/Platform>
 
 #include <iostream>
@@ -62,6 +63,9 @@ static void terminateHandler() {
     catch (GothicNotFoundException& ) {
       std::signal(SIGABRT, SIG_DFL); // avoid recursion
       std::abort();
+      }
+    catch (Tempest::DeviceLostException& e) {
+      std::snprintf(msg,sizeof(msg),"DeviceLostException(%s)",e.what());
       }
     catch (std::system_error& e) {
       std::snprintf(msg,sizeof(msg),"std::system_error(%s)",e.what());
