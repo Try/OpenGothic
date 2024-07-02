@@ -26,7 +26,7 @@ static char gpuName[64]="?";
 
 static LONG WINAPI exceptionHandler(PEXCEPTION_POINTERS) {
   SetUnhandledExceptionFilter(nullptr);
-  CrashLog::dumpStack("ExceptionFilter");
+  CrashLog::dumpStack("ExceptionFilter", nullptr);
   return EXCEPTION_EXECUTE_HANDLER;
   }
 #endif
