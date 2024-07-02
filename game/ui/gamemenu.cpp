@@ -5,8 +5,6 @@
 #include <Tempest/TextCodec>
 #include <Tempest/Dialog>
 
-#include <format>
-
 #include "utils/string_frm.h"
 #include "world/objects/npc.h"
 #include "world/world.h"
@@ -919,10 +917,10 @@ bool GameMenu::execLoadGame(const GameMenu::Item &item) {
   if(id==size_t(-1))
     return false;
 
-  const std::string fileName = std::format("save_slot_{}.sav",int(id));
-  if(!FileUtil::exists(TextCodec::toUtf16(fileName)))
+  string_frm fname("save_slot_",int(id),".sav");
+  if(!FileUtil::exists(TextCodec::toUtf16(fname.c_str())))
     return false;
-  Gothic::inst().load(fileName);
+  Gothic::inst().load(fname);
   return true;
   }
 
