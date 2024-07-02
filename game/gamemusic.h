@@ -3,6 +3,8 @@
 #include <zenkit/addon/daedalus.hh>
 
 #include <memory>
+#include <Tempest/SoundDevice>
+#include <Tempest/SoundEffect>
 
 class GameMusic final {
   public:
@@ -34,12 +36,16 @@ class GameMusic final {
     void      stopMusic();
 
   private:
-    struct Impl;
-    struct MusicProducer;
+    struct MusicProvider;
+    struct OpenGothicMusicProvider;
+    struct GothicKitMusicProvider;
 
     void      setupSettings();
 
     static GameMusic* instance;
-    std::unique_ptr<Impl> impl;
-  };
 
+    int provider;
+    Tempest::SoundDevice device;
+    Tempest::SoundEffect sound;
+    MusicProvider* impl;
+  };
