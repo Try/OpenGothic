@@ -48,7 +48,7 @@ static void signalHandler(int sig) {
     sname = buf;
     }
 
-  CrashLog::dumpStack(sname);
+  CrashLog::dumpStack(sname, nullptr);
   std::raise(sig);
   }
 
@@ -56,6 +56,7 @@ static void signalHandler(int sig) {
 static void terminateHandler() {
   char msg[128] = "std::terminate";
   std::exception_ptr p = std::current_exception();
+  std::string extGpuLog;
   if(p) {
     try {
       std::rethrow_exception(p);
@@ -66,6 +67,7 @@ static void terminateHandler() {
       }
     catch (Tempest::DeviceLostException& e) {
       std::snprintf(msg,sizeof(msg),"DeviceLostException(%s)",e.what());
+      extGpuLog = e.log();
       }
     catch (std::system_error& e) {
       std::snprintf(msg,sizeof(msg),"std::system_error(%s)",e.what());
@@ -82,7 +84,7 @@ static void terminateHandler() {
     catch (...) {
       }
     }
-  CrashLog::dumpStack(msg);
+  CrashLog::dumpStack(msg, extGpuLog.c_str());
   std::signal(SIGABRT, SIG_DFL); // avoid recursion
   std::abort();
   }
@@ -105,7 +107,7 @@ void CrashLog::setGpu(std::string_view name) {
   std::strncpy(gpuName,name.data(),sizeof(gpuName)-1);
   }
 
-void CrashLog::dumpStack(const char *sig) {
+void CrashLog::dumpStack(const char *sig, const char *extGpuLog) {
 #ifdef __WINDOWS__
   dbg::symdb          db;
   dbg::call_stack<64> traceback;
@@ -116,6 +118,7 @@ void CrashLog::dumpStack(const char *sig) {
   std::cout.setf(std::ios::unitbuf);
   std::cout << std::endl << "---crashlog(" <<  sig   << ")---" << std::endl;
   writeSysInfo(std::cout);
+  tracebackGpu(std::cout, extGpuLog);
 #ifdef __WINDOWS__
   traceback.collect(0);
   traceback.log(db, std::cout);
@@ -128,6 +131,7 @@ void CrashLog::dumpStack(const char *sig) {
   fout.setf(std::ios::unitbuf);
   fout << "---crashlog(" <<  sig << ")---" << std::endl;
   writeSysInfo(fout);
+  tracebackGpu(std::cout, extGpuLog);
 #ifdef __WINDOWS__
   traceback.log(db, fout);
 #elif defined(__LINUX__) || defined(__APPLE__)
@@ -168,6 +172,16 @@ void CrashLog::tracebackLinux(std::ostream &out) {
     free(symbols);
     }
 #endif
+  }
+
+void CrashLog::tracebackGpu(std::ostream& out, const char* extGpuLog) {
+  if(extGpuLog==nullptr || extGpuLog[0]=='\0')
+    return;
+  out << std::endl;
+  out << "---gpulog begin---" << std::endl;
+  out << extGpuLog << std::endl;
+  out << "---gpulog end  ---" << std::endl;
+  out << std::endl;
   }
 
 void CrashLog::writeSysInfo(std::ostream &fout) {

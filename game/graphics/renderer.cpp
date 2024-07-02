@@ -747,8 +747,8 @@ void Renderer::drawShadowMap(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView
     return;
 
   for(uint8_t i=0; i<Resources::ShadowLayers; ++i) {
-    cmd.setFramebuffer({}, {shadowMap[i], 0.f, Tempest::Preserve});
     cmd.setDebugMarker(string_frm("ShadowMap #",i));
+    cmd.setFramebuffer({}, {shadowMap[i], 0.f, Tempest::Preserve});
     if(view.mainLight().dir().y > Camera::minShadowY)
       view.drawShadow(cmd,fId,i);
     }
