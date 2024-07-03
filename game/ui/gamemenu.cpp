@@ -842,15 +842,19 @@ void GameMenu::execSingle(Item &it, int slideDx, KeyCodec::Action hint) {
         break;
       case zenkit::MenuItemSelectAction::CLOSE:
         Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx("MENU_ESC"));
-        closeFlag = true;
+
         if(onSelAction_S[i]=="NEW_GAME")
           Gothic::inst().onStartGame(Gothic::inst().defaultWorld());
         else if(onSelAction_S[i]=="LEAVE_GAME")
           Tempest::SystemApi::exit();
         else if(onSelAction_S[i]=="SAVEGAME_SAVE")
           execSaveGame(it);
-        else if(onSelAction_S[i]=="SAVEGAME_LOAD")
-          execLoadGame(it);
+        else if(onSelAction_S[i]=="SAVEGAME_LOAD"){
+          if (!execLoadGame(it)){
+            break;
+          }
+        }
+        closeFlag = true;
         break;
       case zenkit::MenuItemSelectAction::CON_COMMANDS:
         // TODO: inline marvin commands
@@ -908,17 +912,16 @@ void GameMenu::execSaveGame(const GameMenu::Item& item) {
   Gothic::inst().save(fname,item.handle->text[0]);
   }
 
-void GameMenu::execLoadGame(const GameMenu::Item &item) {
+bool GameMenu::execLoadGame(const GameMenu::Item &item) {
   const size_t id = saveSlotId(item);
   if(id==size_t(-1))
-    return;
+    return false;
 
-  //string_frm fname("save_slot_",int(id),".sav");
-  char fname[64]={};
-  std::snprintf(fname,sizeof(fname)-1,"save_slot_%d.sav",int(id));
-  if(!FileUtil::exists(TextCodec::toUtf16(fname)))
-    return;
+  string_frm fname("save_slot_",int(id),".sav");
+  if(!FileUtil::exists(TextCodec::toUtf16(fname.c_str())))
+    return false;
   Gothic::inst().load(fname);
+  return true;
   }
 
 void GameMenu::execCommands(std::string str, bool isClick, KeyCodec::Action hint) {
