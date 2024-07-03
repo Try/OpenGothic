@@ -30,12 +30,16 @@ AbstractTrigger::AbstractTrigger(Vob* parent, World &world, const zenkit::Virtua
      data.type == VirtualObjectType::oCTriggerScript      || data.type == VirtualObjectType::zCMover ||
      data.type == VirtualObjectType::oCTriggerChangeLevel || data.type == VirtualObjectType::oCCSTrigger) {
     auto& trigger = reinterpret_cast<const zenkit::VTrigger&>(data);
-    fireDelay          = uint64_t(trigger.fire_delay_sec*1000.f);
-    retriggerDelay     = uint64_t(trigger.retrigger_delay_sec*1000.f);
-    maxActivationCount = (data.type==VirtualObjectType::zCMover && trigger.max_activation_count!=0) ? uint32_t(-1) : uint32_t(trigger.max_activation_count);
+    if(data.type == VirtualObjectType::zCMover) {
+      maxActivationCount = (trigger.max_activation_count==0) ? 0 : uint32_t(-1);
+      } else {
+      fireDelay          = uint64_t(trigger.fire_delay_sec*1000.f);
+      retriggerDelay     = uint64_t(trigger.retrigger_delay_sec*1000.f);
+      maxActivationCount = uint32_t(trigger.max_activation_count);
+      sendUntrigger      = trigger.send_untrigger;
+      }
     target             = trigger.target;
     disabled           = !trigger.start_enabled;
-    sendUntrigger      = trigger.send_untrigger;
     reactToOnTrigger   = trigger.react_to_on_trigger;
     reactToOnTouch     = trigger.react_to_on_touch;
     respondToNpc       = trigger.respond_to_npc;
@@ -78,6 +82,7 @@ void AbstractTrigger::processEvent(const TriggerEvent& evt) {
   if(fireDelay>0) {
     TriggerEvent ex(evt.target, evt.emitter, world.tickCount() + fireDelay, evt.type);
     delayedEvent = std::move(ex);
+    world.enableDefTrigger(*this);
     return;
     }
   implProcessEvent(evt);
@@ -136,15 +141,15 @@ void AbstractTrigger::moveEvent() {
   }
 
 void AbstractTrigger::onIntersect(Npc& n) {
+  if(vobType==zenkit::VirtualObjectType::zCMover || vobType==zenkit::VirtualObjectType::zCCSCamera)
+    return;
   if((n.isPlayer() ? !respondToPlayer : !respondToNpc) || !reactToOnTouch)
     return;
-
   if(!isEnabled())
     return;
-
-  if(boxNpc.intersections().size()==1) {
+  if(boxNpc.intersections().size()>0) {
     // enableTicks();
-    TriggerEvent e("","",TriggerEvent::T_Touch);
+    TriggerEvent e(target,vobName,TriggerEvent::T_Touch);
     processEvent(e);
     }
   }
@@ -168,8 +173,11 @@ void AbstractTrigger::load(Serialize& fin) {
   fin.read(emitCount,disabled);
   fin.read(emitTimeLast);
 
-  if(fin.version()>=47)
+  if(fin.version()>=47) {
     delayedEvent.load(fin);
+    if(hasDelayedEvents())
+      world.enableDefTrigger(*this);
+    }
   if(fin.version()>=48) {
     fin.read(ticksEnabled);
     if(ticksEnabled)
@@ -204,7 +212,7 @@ void AbstractTrigger::Cb::onCollide(DynamicWorld::BulletBody& b) {
     return;
   if(b.isSpell())
     return;
-  TriggerEvent ex(tg->vobName,tg->vobName,tg->world.tickCount(),TriggerEvent::T_Touch);
+  TriggerEvent ex(tg->target,tg->vobName,tg->world.tickCount(),TriggerEvent::T_Touch);
   tg->processEvent(ex);
   }
 

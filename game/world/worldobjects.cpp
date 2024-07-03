@@ -94,10 +94,6 @@ void WorldObjects::load(Serialize &fin) {
   for(auto& i:rootVobs)
     i->loadVobTree(fin);
 
-  for(auto& i:triggers)
-    if(i->hasDelayedEvents())
-      triggersDef.push_back(i);
-
   fin.setEntry("worlds/",fin.worldName(),"/triggerEvents");
   fin.read(sz);
   triggerEvents.resize(sz);
@@ -400,11 +396,7 @@ bool WorldObjects::execTriggerEvent(const TriggerEvent& e) {
     auto& t = *i;
     if(t.name()!=e.target)
       continue; // NOTE: trigger name is not unique - more then one trigger can be activated
-
-    const bool hadDelayedEvt = t.hasDelayedEvents();
     t.processEvent(e);
-    if(!hadDelayedEvt && t.hasDelayedEvents())
-      triggersDef.push_back(&t);
     emitted = true;
     }
 
@@ -501,6 +493,13 @@ void WorldObjects::detectItem(const float x, const float y, const float z,
 
 void WorldObjects::addTrigger(AbstractTrigger* tg) {
   triggers.emplace_back(tg);
+  }
+
+void WorldObjects::enableDefTrigger(AbstractTrigger& t) {
+  for(auto& i:triggersDef)
+    if(i==&t)
+      return;
+  triggersDef.push_back(&t);
   }
 
 bool WorldObjects::triggerOnStart(bool firstTime) {

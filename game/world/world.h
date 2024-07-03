@@ -123,6 +123,7 @@ class World final {
     void                 triggerEvent(const TriggerEvent& e);
     void                 triggerChangeWorld(std::string_view world, std::string_view wayPoint);
     void                 execTriggerEvent(const TriggerEvent& e);
+    void                 enableDefTrigger(AbstractTrigger& t);
     void                 enableTicks (AbstractTrigger& t);
     void                 disableTicks(AbstractTrigger& t);
     void                 setCurrentCs(CsCamera* cs);
