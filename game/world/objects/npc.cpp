@@ -2246,6 +2246,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
     case AI_StartState:
       // only daily routine states have a scheduled end time
+      // assigning finite end-time to ZS_TALK/ZS_ATTACK can cause bugs, when dialog or combat is interrupted by time-table routine
       if(startState(act.func,act.s0,gtime::endOfTime(),act.i0==0)) {
         setOther(act.target);
         setVictum(act.victum);
