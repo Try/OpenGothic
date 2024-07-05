@@ -2636,7 +2636,7 @@ bool Npc::startState(ScriptFn id, std::string_view wp, gtime endTime, bool noFin
       setPerceptionDisable(PercType(i));
   }
 
-  if(wp=="TOT" && aiPolicy!=AiNormal) {
+  if(wp=="TOT" && aiPolicy!=Player && aiPolicy!=AiNormal) {
     // workaround for Pedro removal script
     auto& point = owner.deadPoint();
     attachToPoint(nullptr);
