@@ -151,6 +151,13 @@ void MenuRoot::mouseWheelEvent(MouseEvent &event) {
     }
   }
 
+void MenuRoot::keyRepeatEvent(Tempest::KeyEvent& e) {
+    if(e.key==Event::K_A || e.key==Event::K_Left)
+      current->onKeyboard(KeyCodec::Left);
+    else if(e.key==Event::K_D || e.key==Event::K_Right)
+      current->onKeyboard(KeyCodec::Right);
+  }
+
 void MenuRoot::keyDownEvent(KeyEvent &e) {
   size_t sz = std::extent_v<decltype(cheatCode)>;
   for(size_t i=1; i<sz; ++i)
@@ -173,9 +180,7 @@ void MenuRoot::keyDownEvent(KeyEvent &e) {
     auto& fnt = Resources::font();
     Gothic::inst().onPrintScreen("WHAT WAS THE QUESTION?",2,4, 1,fnt);
     }
-  }
 
-void MenuRoot::keyUpEvent(KeyEvent &e) {
   if(current!=nullptr) {
     if(e.key==Event::K_W || e.key==Event::K_Up)
       current->onKeyboard(KeyCodec::Forward);
@@ -193,3 +198,4 @@ void MenuRoot::keyUpEvent(KeyEvent &e) {
       popMenu();
     }
   }
+  
