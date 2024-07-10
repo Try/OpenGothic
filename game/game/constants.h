@@ -477,3 +477,12 @@ enum class FxaaPreset : uint32_t {
   PC_EXTREME,
   PRESETS_COUNT
   };
+
+enum class Cmaa2Preset : uint32_t {
+  OFF,
+  LOW,
+  MEDIUM,
+  HIGH,
+  ULTRA,
+  PRESETS_COUNT
+};

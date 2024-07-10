@@ -274,6 +274,15 @@ add_shader(fxaa_quality_2.frag       antialiasing/fxaa.frag -DFXAA_QUALITY_SETTI
 add_shader(fxaa_quality_3.frag       antialiasing/fxaa.frag -DFXAA_QUALITY_SETTING=3)
 add_shader(fxaa_quality_4.frag       antialiasing/fxaa.frag -DFXAA_QUALITY_SETTING=4)
 
+add_shader(cmaa2_edges_color2x2_quality_0.comp     antialiasing/cmaa2/edge_color2x2.comp -DCMAA2_STATIC_QUALITY_PRESET=0)
+add_shader(cmaa2_edges_color2x2_quality_1.comp     antialiasing/cmaa2/edge_color2x2.comp -DCMAA2_STATIC_QUALITY_PRESET=1)
+add_shader(cmaa2_edges_color2x2_quality_2.comp     antialiasing/cmaa2/edge_color2x2.comp -DCMAA2_STATIC_QUALITY_PRESET=2)
+add_shader(cmaa2_edges_color2x2_quality_3.comp     antialiasing/cmaa2/edge_color2x2.comp -DCMAA2_STATIC_QUALITY_PRESET=3)
+
+add_shader(cmaa2_setup_compute_dispatch_args.comp  antialiasing/cmaa2/compute_dispatch_args.comp)
+add_shader(cmaa2_process_candidates.comp           antialiasing/cmaa2/process_candidates.comp)
+add_shader(cmaa2_deferred_color_apply_2x2.comp     antialiasing/cmaa2/deferred_color_apply_2x2.comp)
+
 add_custom_command(
   OUTPUT     ${HEADER} ${CPP}
   DEPENDS    ${OPENGOTHIC_SHADERS_SPRV}

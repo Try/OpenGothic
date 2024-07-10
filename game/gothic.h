@@ -48,6 +48,7 @@ class Gothic final {
       bool     doBindless        = false;
 
       uint32_t fxaaPreset        = 0;
+      uint32_t cmaa2Preset       = 0;
 
       bool     hideFocus         = false;
       float    cameraFov         = 67.5f;

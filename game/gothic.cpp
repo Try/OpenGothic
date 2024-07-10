@@ -89,6 +89,7 @@ Gothic::Gothic() {
     }
 
   opts.fxaaPreset = CommandLine::inst().fxaaPreset();
+  opts.cmaa2Preset = CommandLine::inst().cmaa2Preset();
 
   wrldDef = CommandLine::inst().wrldDef;
 

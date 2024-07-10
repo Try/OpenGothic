@@ -1,0 +1,122 @@
+#version 460
+
+#extension GL_ARB_separate_shader_objects       : enable
+#extension GL_GOOGLE_include_directive          : enable
+#extension GL_EXT_control_flow_attributes       : enable
+
+#include "cmaa2_common.glsl"
+
+#define CMAA2_UAV_STORE_TYPED
+#define CMAA2_UAV_STORE_TYPED_UNORM_FLOAT
+
+#ifdef CMAA2_UAV_STORE_TYPED
+  #ifdef CMAA2_UAV_STORE_TYPED_UNORM_FLOAT
+    layout(rgba8, binding = 8) uniform writeonly image2D g_inoutColorWriteonly;
+  #else
+    layout(rgba32f, binding = 8) uniform writeonly image2D g_inoutColorWriteonly;
+  #endif
+#else
+  layout(r32ui, binding = 8) uniform writeonly uimage2D g_inoutColorWriteonly;
+#endif
+
+#if CMAA2_DEFERRED_APPLY_THREADGROUP_SWAP
+  layout(local_size_x = 4, local_size_y = CMAA2_DEFERRED_APPLY_NUM_THREADS, local_size_z = 1) in;
+#else
+  layout(local_size_x = CMAA2_DEFERRED_APPLY_NUM_THREADS, local_size_y = 4, local_size_z = 1) in;
+#endif
+
+void FinalUAVStore(uvec2 pixelPos, vec3 color) {
+#if CMAA2_UAV_STORE_CONVERT_TO_SRGB
+  color = LINEAR_to_SRGB(color);
+#endif
+  
+#ifndef CMAA2_UAV_STORE_UNTYPED_FORMAT
+  #define CMAA2_UAV_STORE_UNTYPED_FORMAT 1
+#endif
+
+#ifdef CMAA2_UAV_STORE_TYPED
+  imageStore(g_inoutColorWriteonly, ivec2(pixelPos), vec4(color, 1));
+#else
+  #if CMAA2_UAV_STORE_UNTYPED_FORMAT == 1
+    imageStore(g_inoutColorWriteonly, ivec2(pixelPos), uvec4(FLOAT4_to_R8G8B8A8_UNORM(vec4(color, 1))));
+  #elif CMAA2_UAV_STORE_UNTYPED_FORMAT == 2
+    imageStore(g_inoutColorWriteonly, ivec2(pixelPos), uvec4(FLOAT4_to_R10G10B10A2_UNORM(vec4(color, 1))));
+  #else
+    #error CMAA color packing format not defined - add it here!
+  #endif
+#endif
+  }
+
+void main() {
+  const uint numCandidates = g_workingControlBuffer[3];
+
+#if CMAA2_DEFERRED_APPLY_THREADGROUP_SWAP
+  const uint currentCandidate = gl_GlobalInvocationID.y;
+  const uint currentQuadOffsetXY = gl_LocalInvocationID.x;
+#else
+  const uint currentCandidate = gl_GlobalInvocationID.x; 
+  const uint currentQuadOffsetXY = gl_LocalInvocationID.y;
+#endif
+
+  if (currentCandidate >= numCandidates)
+    return;
+
+  uint pixelID = g_workingDeferredBlendLocationList[currentCandidate];
+  uvec2 quadPos = uvec2((pixelID >> 16), pixelID & 0xFFFF);
+  const ivec2 qeOffsets[4] = ivec2[4](ivec2(0, 0), ivec2(1, 0), ivec2(0, 1), ivec2(1, 1));
+  uvec2 pixelPos = quadPos * 2u + uvec2(qeOffsets[currentQuadOffsetXY]);
+
+  uint counterIndexWithHeader = imageLoad(g_workingDeferredBlendItemListHeads, ivec2(quadPos)).r;
+
+#if CMAA_MSAA_SAMPLE_COUNT > 1
+  vec4 outColors[CMAA_MSAA_SAMPLE_COUNT];
+  for (uint msaaSampleIndex = 0; msaaSampleIndex < CMAA_MSAA_SAMPLE_COUNT; msaaSampleIndex++)
+    outColors[msaaSampleIndex] = vec4(0);
+  bool hasValue = false;
+#else
+  vec4 outColors = vec4(0);
+#endif
+
+  const uint maxLoops = 32u * CMAA_MSAA_SAMPLE_COUNT;
+  for (uint i = 0; (counterIndexWithHeader != 0xFFFFFFFF) && (i < maxLoops); i++) {
+    uint offsetXY = (counterIndexWithHeader >> 30) & 0x03;
+    uint msaaSampleIndex = (counterIndexWithHeader >> 27) & 0x07;
+    bool isComplexShape = bool((counterIndexWithHeader >> 26) & 0x01);
+
+    uvec2 val = g_workingDeferredBlendItemList[counterIndexWithHeader & ((1u << 26) - 1)];
+
+    counterIndexWithHeader = val.x;
+
+    if (offsetXY == currentQuadOffsetXY) {
+      vec3 color = InternalUnpackColor(val.y);
+      float weight = 0.8 + 1.0 * float(isComplexShape);
+#if CMAA_MSAA_SAMPLE_COUNT > 1
+      outColors[msaaSampleIndex] += vec4(color * weight, weight);
+      hasValue = true;
+#else
+      outColors += vec4(color * weight, weight);
+#endif
+      }
+    }
+
+#if CMAA_MSAA_SAMPLE_COUNT > 1
+  if (!hasValue) return;
+#else
+  if (outColors.a == 0) return;
+#endif
+
+#if CMAA_MSAA_SAMPLE_COUNT > 1
+  vec4 outColor = vec4(0);
+  for (uint msaaSampleIndex = 0; msaaSampleIndex < CMAA_MSAA_SAMPLE_COUNT; msaaSampleIndex++) {
+    if (outColors[msaaSampleIndex].a != 0)
+      outColor.rgb += vec3(outColors[msaaSampleIndex].rgb) / float(outColors[msaaSampleIndex].a);
+    else
+      outColor.rgb += LoadSourceColor(pixelPos, ivec2(0, 0), msaaSampleIndex);
+    }
+  outColor /= float(CMAA_MSAA_SAMPLE_COUNT);
+#else
+  vec4 outColor = vec4(outColors);
+  outColor.rgb /= outColor.a;
+#endif
+  FinalUAVStore(pixelPos, outColor.rgb);
+  }

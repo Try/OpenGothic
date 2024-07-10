@@ -57,6 +57,7 @@ class Renderer final {
     void draw             (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawTonemapping  (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawFxaa         (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void applyCmaa2       (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawReflections  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawUnderwater   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
@@ -74,6 +75,8 @@ class Renderer final {
       bool           zCloudShadowScale  = false;
       bool           giEnabled          = false;
       bool           fxaaEnabled        = false;
+    	// TODO: change to enum 'POST_PROCESS_ANTIALIASING'
+      bool           cmaa2Enabled       = false;
 
       float          zVidBrightness     = 0.5;
       float          zVidContrast       = 0.5;
@@ -133,6 +136,33 @@ class Renderer final {
       Tempest::DescriptorSet   ubo;
       Tempest::Attachment      sceneTonemapped;
       } fxaa;
+
+    struct Cmaa2 {
+      Tempest::ComputePipeline* detectEdges2x2 = nullptr;
+      Tempest::DescriptorSet    detectEdges2x2Ubo;
+
+      Tempest::ComputePipeline* prepareDispatchIndirectArguments = nullptr;
+      Tempest::DescriptorSet    prepareDispatchIndirectArgumentsUbo;
+
+      Tempest::ComputePipeline* processCandidates = nullptr;
+      Tempest::DescriptorSet    processCandidatesUbo;
+
+      Tempest::ComputePipeline* defferedColorApply = nullptr;
+      Tempest::DescriptorSet    defferedColorApplyUbo;
+
+      Tempest::ComputePipeline* finalResultCopy = nullptr;
+      Tempest::ComputePipeline* finalResultCopyUbo = nullptr;
+
+      Tempest::StorageImage     workingEdges;
+      Tempest::StorageBuffer    workingShapeCandidates;
+      Tempest::StorageBuffer    workingDeferredBlendLocationList;
+      Tempest::StorageBuffer    workingDeferredBlendItemList;
+      Tempest::StorageImage     workingDeferredBlendItemListHeads;
+      Tempest::StorageBuffer    workingControlBuffer;
+      Tempest::StorageBuffer    executeIndirectBuffer;
+
+      Tempest::StorageImage     resultBuffer;
+      } cmaa2;
 
     struct {
       Tempest::StorageImage     hiZ;
