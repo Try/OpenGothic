@@ -1673,7 +1673,6 @@ void Npc::implSetFightMode(const Animation::EvCount& ev) {
   if(!visual.setFightMode(ev.weaponCh))
     return;
 
-  auto ws = visual.fightMode();
   if(ev.weaponCh==zenkit::MdsFightMode::NONE && (oldWs==WeaponState::W1H || oldWs==WeaponState::W2H)) {
     if(auto melee = invent.currentMeleeWeapon()) {
       if(melee->handle().material==ItemMaterial::MAT_METAL)
