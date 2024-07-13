@@ -1669,11 +1669,11 @@ void Npc::implFaiWait(uint64_t dt) {
   }
 
 void Npc::implSetFightMode(const Animation::EvCount& ev) {
-  const auto oldWs = visual.fightMode();
+  const auto ws = visual.fightMode();
   if(!visual.setFightMode(ev.weaponCh))
     return;
 
-  if(ev.weaponCh==zenkit::MdsFightMode::NONE && (oldWs==WeaponState::W1H || oldWs==WeaponState::W2H)) {
+  if(ev.weaponCh==zenkit::MdsFightMode::NONE && (ws==WeaponState::W1H || ws==WeaponState::W2H)) {
     if(auto melee = invent.currentMeleeWeapon()) {
       if(melee->handle().material==ItemMaterial::MAT_METAL)
         sfxWeapon = ::Sound(owner,::Sound::T_Regular,"UNDRAWSOUND_ME.WAV",{x,y+translateY(),z},2500,false); else
