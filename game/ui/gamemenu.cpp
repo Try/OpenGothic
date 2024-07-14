@@ -95,21 +95,21 @@ struct GameMenu::ListViewDialog : Dialog {
   void showQuest() {
     auto  prev = owner.curItem;
     auto* next = owner.selectedContentItem(&list);
-    if(next==nullptr)
+    auto* ql   = selectedQuest();
+    if(next==nullptr || ql==nullptr)
       return;
 
     auto vis = next->visible;
     next->visible = true;
-    if(auto ql = selectedQuest()) {
-      std::string text;
-      for(size_t i=0; i<ql->entry.size(); ++i) {
-        text += ql->entry[i];
-        if(i+1<ql->entry.size())
-          text+="\n---\n";
-        }
-      next->scroll          = 0;
-      next->handle->text[0] = text;
+
+    std::string text;
+    for(size_t i=0; i<ql->entry.size(); ++i) {
+      text += ql->entry[i];
+      if(i+1<ql->entry.size())
+        text+="\n---\n";
       }
+    next->scroll          = 0;
+    next->handle->text[0] = text;
 
     for(uint32_t i=0; i<zenkit::IMenu::item_count; ++i)
       if(&owner.hItems[i]==next) {
@@ -125,6 +125,11 @@ struct GameMenu::ListViewDialog : Dialog {
     }
 
   void keyDownEvent(KeyEvent &e) override { e.accept(); }
+
+  void keyRepeatEvent(KeyEvent &e) override {
+    keyUpEvent(e);
+    }
+
   void keyUpEvent  (KeyEvent &e) override {
     if(e.key==Event::K_Return) {
       showQuest();
@@ -939,6 +944,10 @@ void GameMenu::execCommands(std::string str, bool isClick, KeyCodec::Action hint
           const uint32_t prev = curItem;
           curItem = id;
           ListViewDialog dlg(*this,i);
+          if(dlg.numQuests()==0) {
+            curItem = prev;
+            return;
+            }
           dlg.resize(owner.size());
           dlg.exec();
           curItem = prev;
