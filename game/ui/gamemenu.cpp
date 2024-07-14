@@ -904,8 +904,7 @@ void GameMenu::execChgOption(Item &item, int slideDx) {
 
     item.value += slideDx; // next value
     if(cnt>0)
-      item.value = std::clamp(item.value,0,cnt-1);
-    else
+      item.value = std::clamp(item.value,0,cnt-1);  else
       item.value = 0;
     Gothic::settingsSetI(sec, opt, item.value);
     }

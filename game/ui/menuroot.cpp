@@ -161,7 +161,6 @@ void MenuRoot::keyRepeatEvent(Tempest::KeyEvent &e) {
   else if(e.key == Event::K_S || e.key == Event::K_Down)
     current->onKeyboard(KeyCodec::Back);
   }
-  
 
 void MenuRoot::keyDownEvent(KeyEvent &e) {
   size_t sz = std::extent_v<decltype(cheatCode)>;
@@ -203,4 +202,3 @@ void MenuRoot::keyDownEvent(KeyEvent &e) {
       popMenu();
     }
   }
-  
