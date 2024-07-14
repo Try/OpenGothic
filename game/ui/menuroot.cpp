@@ -151,12 +151,17 @@ void MenuRoot::mouseWheelEvent(MouseEvent &event) {
     }
   }
 
-void MenuRoot::keyRepeatEvent(Tempest::KeyEvent& e) {
-    if(e.key==Event::K_A || e.key==Event::K_Left)
-      current->onKeyboard(KeyCodec::Left);
-    else if(e.key==Event::K_D || e.key==Event::K_Right)
-      current->onKeyboard(KeyCodec::Right);
+void MenuRoot::keyRepeatEvent(Tempest::KeyEvent &e) {
+  if(e.key == Event::K_A || e.key == Event::K_Left)
+    current->onKeyboard(KeyCodec::Left);
+  else if(e.key == Event::K_D || e.key == Event::K_Right)
+    current->onKeyboard(KeyCodec::Right);
+  else if(e.key == Event::K_W || e.key == Event::K_Up)
+    current->onKeyboard(KeyCodec::Forward);
+  else if(e.key == Event::K_S || e.key == Event::K_Down)
+    current->onKeyboard(KeyCodec::Back);
   }
+  
 
 void MenuRoot::keyDownEvent(KeyEvent &e) {
   size_t sz = std::extent_v<decltype(cheatCode)>;
