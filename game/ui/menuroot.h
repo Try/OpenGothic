@@ -29,8 +29,8 @@ class MenuRoot : public Tempest::Widget {
     bool hasVersionLine() const;
 
     void mouseWheelEvent(Tempest::MouseEvent& event) override;
+    void keyRepeatEvent (Tempest::KeyEvent&   event) override;
     void keyDownEvent   (Tempest::KeyEvent&   event) override;
-    void keyUpEvent     (Tempest::KeyEvent&   event) override;
 
   protected:
     void mouseDownEvent (Tempest::MouseEvent& event) override;
