@@ -10,6 +10,31 @@
 
 #include "upscale/lanczos.glsl"
 
+#if defined(COMPUTE)
+const uint THREADGROUP_SIZE = 8;
+layout(local_size_x = THREADGROUP_SIZE, local_size_y = THREADGROUP_SIZE, local_size_z = 1) in;
+layout(binding = 2) uniform writeonly image2D tonemappedOutput;
+
+/*
+0 1 4 5 ... 
+2 3 6 7 ...
+16 17 ...
+18 19 ...
+*/
+uvec2 getRemmappedPixelPos(uvec2 groupID, uint localThreadIndex)
+{
+  uvec2 groupOffset = groupID * THREADGROUP_SIZE;
+  uint row = ((localThreadIndex >> 4) << 1) | ((localThreadIndex & 2) >> 1);
+  uint col = (((localThreadIndex >> 2) << 1) & 7) | (localThreadIndex & 1);
+
+  return groupOffset + uvec2(row, col);
+  }
+
+#else
+layout(location = 0) in  vec2 uv;
+layout(location = 0) out vec4 outColor;
+#endif
+
 layout(push_constant, std140) uniform PushConstant {
   float brightness;
   float contrast;
@@ -21,9 +46,6 @@ layout(binding  = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
 layout(binding  = 1) uniform sampler2D textureD;
-
-layout(location = 0) in  vec2 uv;
-layout(location = 0) out vec4 outColor;
 
 // https://advances.realtimerendering.com/s2021/jpatry_advances2021/index.html
 // https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.40.9608&rep=rep1&type=pdf
@@ -110,6 +132,18 @@ vec3 colorTemperatureToRGB(const in float temperature){
   }
 
 void main() {
+
+#if defined(COMPUTE)
+  uvec2 targetRes = uvec2(imageSize(tonemappedOutput));
+  uvec2 targetPixPos = getRemmappedPixelPos(gl_WorkGroupID.xy, gl_LocalInvocationIndex);
+
+  if (any(greaterThanEqual(targetPixPos, targetRes))) {
+    return;
+  }
+
+  vec2 uv = (vec2(targetPixPos) + vec2(0.5f, 0.5f)) / targetRes;
+#endif
+
   float exposure   = scene.exposure;
   float brightness = push.brightness;
   float contrast   = push.contrast;
@@ -157,5 +191,9 @@ void main() {
   //color = srgbEncode(color);
   color = pow(color, vec3(gamma));
 
+#if defined(COMPUTE)
+  imageStore(tonemappedOutput, ivec2(targetPixPos), vec4(color, 1.f));
+#else
   outColor = vec4(color, 1.0);
+#endif
   }

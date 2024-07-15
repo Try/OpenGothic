@@ -55,7 +55,7 @@ class Renderer final {
     void drawSky          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawAmbient      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void draw             (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void drawTonemapping  (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawTonemapping  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, Tempest::Attachment* renderTarget);
     void drawFxaa         (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void applyCmaa2       (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawReflections  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
@@ -128,13 +128,16 @@ class Renderer final {
 
     struct Tonemapping {
       Tempest::RenderPipeline* pso = nullptr;
+      Tempest::ComputePipeline* computePso = nullptr;
       Tempest::DescriptorSet   uboTone;
       } tonemapping;
+
+    Tempest::Attachment      sceneTonemapped;
+    Tempest::StorageImage    sceneTonemappedUav;
 
     struct Fxaa {
       Tempest::RenderPipeline* pso = nullptr;
       Tempest::DescriptorSet   ubo;
-      Tempest::Attachment      sceneTonemapped;
       } fxaa;
 
     struct Cmaa2 {
@@ -160,8 +163,6 @@ class Renderer final {
       Tempest::StorageImage     workingDeferredBlendItemListHeads;
       Tempest::StorageBuffer    workingControlBuffer;
       Tempest::StorageBuffer    executeIndirectBuffer;
-
-      Tempest::StorageImage     resultBuffer;
       } cmaa2;
 
     struct {

@@ -82,9 +82,10 @@ void Renderer::resetSwapchain() {
 
   sceneLinear    = device.attachment(TextureFormat::R11G11B10UF,w,h);
 
-    // TODO: probably doesnt make sense to create new buffer when using cmaa2, but we need to create UAV for swapchain texture
-  if (settings.fxaaEnabled || settings.cmaa2Enabled) {
-    fxaa.sceneTonemapped = device.attachment(TextureFormat::RGBA8, w, h);
+  if (settings.fxaaEnabled) {
+    sceneTonemapped = device.attachment(TextureFormat::RGBA8, w, h);
+    } else if (settings.cmaa2Enabled) {
+    sceneTonemappedUav = device.image2d(TextureFormat::RGBA8, w, h);
     }
 
   if (settings.cmaa2Enabled) {
@@ -95,7 +96,6 @@ void Renderer::resetSwapchain() {
     cmaa2.workingDeferredBlendItemListHeads = device.image2d(TextureFormat::R32U, (w + 1) / 2, (h + 1) / 2);
     cmaa2.workingControlBuffer = device.ssbo(Tempest::Uninitialized, 16 * sizeof(uint32_t));
     cmaa2.executeIndirectBuffer = device.ssbo(Tempest::Uninitialized, 4 * sizeof(uint32_t));
-    cmaa2.resultBuffer = device.image2d(TextureFormat::RGBA8, w, h); // TODO: temporary additional buffer, need to get rid of it later
     }
 
   zbuffer        = device.zbuffer(zBufferFormat,w,h);
@@ -179,7 +179,8 @@ void Renderer::resetSwapchain() {
   ssao.uboBlur  = device.descriptors(Shaders::inst().ssaoBlur);
 
   tonemapping.pso     = (settings.vidResIndex==0) ? &Shaders::inst().tonemapping : &Shaders::inst().tonemappingUpscale;
-  tonemapping.uboTone = device.descriptors(*tonemapping.pso);
+  tonemapping.computePso = (settings.vidResIndex == 0) ? &Shaders::inst().tonemappingCompute : &Shaders::inst().tonemappingComputeUpscale;
+  tonemapping.uboTone = settings.cmaa2Enabled ? device.descriptors(*tonemapping.computePso) : device.descriptors(*tonemapping.pso);
 
   fxaa.pso = &Shaders::inst().fxaaPresets[Gothic::options().fxaaPreset];
   fxaa.ubo = device.descriptors(*fxaa.pso);
@@ -320,20 +321,20 @@ void Renderer::prepareUniforms() {
   if(settings.fxaaEnabled) {
     auto smpB = Sampler::bilinear();
     smpB.setClamping(ClampMode::ClampToEdge);
-    fxaa.ubo.set(0, fxaa.sceneTonemapped, smpB);
+    fxaa.ubo.set(0, sceneTonemapped, smpB);
     }
 
   if (settings.cmaa2Enabled) {
     auto smpB = Sampler::bilinear();
     smpB.setClamping(ClampMode::ClampToEdge);
 
-    cmaa2.detectEdges2x2Ubo.set(0, fxaa.sceneTonemapped, smpB);
+    cmaa2.detectEdges2x2Ubo.set(0, sceneTonemappedUav, smpB);
     cmaa2.detectEdges2x2Ubo.set(2, cmaa2.workingEdges);
     cmaa2.detectEdges2x2Ubo.set(3, cmaa2.workingShapeCandidates);
     cmaa2.detectEdges2x2Ubo.set(6, cmaa2.workingDeferredBlendItemListHeads);
     cmaa2.detectEdges2x2Ubo.set(7, cmaa2.workingControlBuffer);
 
-    cmaa2.processCandidatesUbo.set(0, fxaa.sceneTonemapped, smpB);
+    cmaa2.processCandidatesUbo.set(0, sceneTonemappedUav, smpB);
     cmaa2.processCandidatesUbo.set(2, cmaa2.workingEdges);
     cmaa2.processCandidatesUbo.set(3, cmaa2.workingShapeCandidates);
     cmaa2.processCandidatesUbo.set(4, cmaa2.workingDeferredBlendLocationList);
@@ -341,12 +342,12 @@ void Renderer::prepareUniforms() {
     cmaa2.processCandidatesUbo.set(6, cmaa2.workingDeferredBlendItemListHeads);
     cmaa2.processCandidatesUbo.set(7, cmaa2.workingControlBuffer);
 
-    cmaa2.defferedColorApplyUbo.set(0, fxaa.sceneTonemapped, smpB);
+    //cmaa2.defferedColorApplyUbo.set(0, sceneTonemappedUav, smpB);
     cmaa2.defferedColorApplyUbo.set(4, cmaa2.workingDeferredBlendLocationList);
     cmaa2.defferedColorApplyUbo.set(5, cmaa2.workingDeferredBlendItemList);
     cmaa2.defferedColorApplyUbo.set(6, cmaa2.workingDeferredBlendItemListHeads);
     cmaa2.defferedColorApplyUbo.set(7, cmaa2.workingControlBuffer);
-    cmaa2.defferedColorApplyUbo.set(8, cmaa2.resultBuffer);
+    cmaa2.defferedColorApplyUbo.set(8, sceneTonemappedUav);
 
     cmaa2.prepareDispatchIndirectArgumentsUbo.set(3, cmaa2.workingShapeCandidates);
     cmaa2.prepareDispatchIndirectArgumentsUbo.set(4, cmaa2.workingDeferredBlendLocationList);
@@ -618,14 +619,13 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     }
 
   auto* tonemappingRt = &result;
-  if(settings.fxaaEnabled || settings.cmaa2Enabled) {
-    assert(!fxaa.sceneTonemapped.isEmpty());
-    tonemappingRt = &fxaa.sceneTonemapped;
+  if(settings.fxaaEnabled) {
+    assert(!sceneTonemapped.isEmpty());
+    tonemappingRt = &sceneTonemapped;
     }
 
-  cmd.setFramebuffer({{*tonemappingRt, Tempest::Discard, Tempest::Preserve}});
   cmd.setDebugMarker("Tonemapping");
-  drawTonemapping(cmd);
+  drawTonemapping(cmd, tonemappingRt);
 
   if (settings.cmaa2Enabled) {
     // end previous render pass
@@ -634,29 +634,18 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     auto smpN = Sampler::bilinear();
     smpN.setClamping(ClampMode::ClampToEdge);
 
-    // TODO: temporal copy from attachment to storage buffer since i couldn't find a way to draw into StorageBuffer
-    auto rtToUavCopyUbo = Resources::device().descriptors(Shaders::inst().copyImg);
-    rtToUavCopyUbo.set(0, cmaa2.resultBuffer);
-    rtToUavCopyUbo.set(1, fxaa.sceneTonemapped);
-    cmd.setUniforms(Shaders::inst().copyImg, rtToUavCopyUbo);
-    const uint32_t threadGroupSize = 8;
-    const uint32_t groupsCountX = (cmaa2.resultBuffer.w() + threadGroupSize - 1) / threadGroupSize;
-    const uint32_t groupsCountY = (cmaa2.resultBuffer.h() + threadGroupSize - 1) / threadGroupSize;
-    cmd.dispatch(groupsCountX, groupsCountY, 1);
-
+    cmd.setDebugMarker("Cmaa2 algorithm");
     applyCmaa2(cmd);
 
-    // TODO: temporal copy to the swapchain result
+    // copy to the swapchain
     cmd.setFramebuffer({ {result, Tempest::Discard, Tempest::Preserve} });
-    cmd.setDebugMarker("Cmaa2 final copy");
+    cmd.setDebugMarker("Cmaa2 copy to the swapchain");
 
     auto ubo = Resources::device().descriptors(Shaders::inst().copy);
-    ubo.set(0, cmaa2.resultBuffer, smpN);
+    ubo.set(0, sceneTonemappedUav, smpN);
     cmd.setUniforms(Shaders::inst().copy, ubo);
     cmd.draw(Resources::fsqVbo());
-    }
-
-  if(settings.fxaaEnabled) {
+    } else if(settings.fxaaEnabled) {
     cmd.setFramebuffer({ {result, Tempest::Discard, Tempest::Preserve} });
     cmd.setDebugMarker("Fxaa");
     drawFxaa(cmd);
@@ -665,7 +654,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   wview->postFrameupdate();
   }
 
-void Renderer::drawTonemapping(Encoder<CommandBuffer>& cmd) {
+void Renderer::drawTonemapping(Encoder<CommandBuffer>& cmd, Attachment* renderTarget) {
   struct Push {
     float brightness = 0;
     float contrast   = 1;
@@ -682,8 +671,22 @@ void Renderer::drawTonemapping(Encoder<CommandBuffer>& cmd) {
   if(mul>0)
     p.mul = mul;
 
-  cmd.setUniforms(*tonemapping.pso, tonemapping.uboTone, &p, sizeof(p));
-  cmd.draw(Resources::fsqVbo());
+  if (settings.cmaa2Enabled) {
+    cmd.setFramebuffer({});
+
+    tonemapping.uboTone.set(2, sceneTonemappedUav);
+    cmd.setUniforms(*tonemapping.computePso, tonemapping.uboTone, &p, sizeof(p));
+
+    const uint32_t threadGroupSize = 8;
+    const uint32_t groupsCountX = (sceneTonemappedUav.w() + threadGroupSize - 1) / threadGroupSize;
+    const uint32_t groupsCountY = (sceneTonemappedUav.h() + threadGroupSize - 1) / threadGroupSize;
+
+    cmd.dispatch(groupsCountX, groupsCountY, 1);
+    } else {
+    cmd.setFramebuffer({ {*renderTarget, Tempest::Discard, Tempest::Preserve} });
+    cmd.setUniforms(*tonemapping.pso, tonemapping.uboTone, &p, sizeof(p));
+    cmd.draw(Resources::fsqVbo());
+    }
   }
 
 void Renderer::drawFxaa(Encoder<CommandBuffer>& cmd) {
@@ -723,8 +726,8 @@ void Renderer::applyCmaa2(Tempest::Encoder<Tempest::CommandBuffer>& cmd)
 
   // detect edges
   {
-    uint32_t groupCountX = (fxaa.sceneTonemapped.size().w + outputGroupSize * 2 - 1) / (outputGroupSize * 2);
-    uint32_t groupCountY = (fxaa.sceneTonemapped.size().h + outputGroupSize * 2 - 1) / (outputGroupSize * 2);
+    uint32_t groupCountX = (sceneTonemappedUav.size().w + outputGroupSize * 2 - 1) / (outputGroupSize * 2);
+    uint32_t groupCountY = (sceneTonemappedUav.size().h + outputGroupSize * 2 - 1) / (outputGroupSize * 2);
 
     cmd.setUniforms(*cmaa2.detectEdges2x2, cmaa2.detectEdges2x2Ubo);
     cmd.dispatch(groupCountX, groupCountY, 1);

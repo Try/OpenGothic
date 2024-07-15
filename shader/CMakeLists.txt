@@ -196,6 +196,9 @@ add_shader(tonemapping.vert          copy.vert -DHAS_UV)
 add_shader(tonemapping.frag          lighting/tonemapping.frag)
 add_shader(tonemapping_up.frag       lighting/tonemapping.frag -DUPSCALE)
 
+add_shader(tonemapping.comp          lighting/tonemapping.frag -S comp -DCOMPUTE)
+add_shader(tonemapping_up.comp       lighting/tonemapping.frag -S comp -DCOMPUTE -DUPSCALE)
+
 add_shader(water_reflection.vert     copy.vert)
 add_shader(water_reflection.mesh     water/water_reflection.mesh)
 add_shader(water_reflection.frag     water/water_reflection.frag)

@@ -16,6 +16,24 @@ layout(local_size_x = CMAA2_PROCESS_CANDIDATES_NUM_THREADS, local_size_y = 1, lo
   shared uvec2 g_groupSharedBlendItems[CMAA2_BLEND_ITEM_SLM_SIZE];
 #endif
 
+void StoreColorSample(uvec2 pixelPos, vec3 color, bool isComplexShape, uint msaaSampleIndex) {
+  uint counterIndex = atomicAdd(g_workingControlBuffer[12], 1);
+
+  uvec2 quadPos = pixelPos / uvec2(2, 2);
+  uint offsetXY = (pixelPos.y % 2) * 2 + (pixelPos.x % 2);
+  uint header = (offsetXY << 30) | (msaaSampleIndex << 27) | (uint(isComplexShape) << 26);
+
+  uint counterIndexWithHeader = counterIndex | header;
+
+  uint originalIndex = imageAtomicExchange(g_workingDeferredBlendItemListHeads, ivec2(quadPos), counterIndexWithHeader);
+  g_workingDeferredBlendItemList[counterIndex] = uvec2(originalIndex, InternalPackColor(color));
+
+  if (originalIndex == 0xFFFFFFFF) {
+    uint edgeListCounter = atomicAdd(g_workingControlBuffer[8], 1);
+    g_workingDeferredBlendLocationList[edgeListCounter] = (quadPos.x << 16) | quadPos.y;
+    }
+  }
+
 void DetectZsHorizontal(in vec4 edges, in vec4 edgesM1P0, in vec4 edgesP1P0, in vec4 edgesP2P0, out float invertedZScore, out float normalZScore) {
   invertedZScore = edges.r * edges.g * edgesP1P0.a;
   invertedZScore *= 2.0 + ((edgesM1P0.g + edgesP2P0.a)) - (edges.a + edgesP1P0.g) - 0.7 * (edgesP2P0.g + edgesM1P0.a + edges.b + edgesP1P0.r);
@@ -156,6 +174,41 @@ void BlendZs(uvec2 screenPos, bool horizontal, bool invertedZShape, float shapeQ
     }
   }
 
+vec4 ComputeSimpleShapeBlendValues(vec4 edges, vec4 edgesLeft, vec4 edgesRight, vec4 edgesTop, vec4 edgesBottom, bool dontTestShapeValidity) {
+  float fromRight = edges.r;
+  float fromBelow = edges.g;
+  float fromLeft = edges.b;
+  float fromAbove = edges.a;
+
+  float blurCoeff = g_CMAA2_SimpleShapeBlurinessAmount;
+
+  float numberOfEdges = dot(edges, vec4(1, 1, 1, 1));
+
+  float numberOfEdgesAllAround = dot(edgesLeft.bga + edgesRight.rga + edgesTop.rba + edgesBottom.rgb, vec3(1, 1, 1));
+
+  if (!dontTestShapeValidity) {
+    if (numberOfEdges == 1) 
+      blurCoeff = 0;
+
+    if (numberOfEdges == 2) 
+      blurCoeff *= ((1.0 - fromBelow * fromAbove) * (1.0 - fromRight * fromLeft));
+    }
+
+  if (numberOfEdges == 2) {
+    blurCoeff *= 0.75;
+
+    float k = 0.9;
+    fromRight += k * (edges.g * edgesTop.r * (1.0 - edgesLeft.g) + edges.a * edgesBottom.r * (1.0 - edgesLeft.a));
+    fromBelow += k * (edges.b * edgesRight.g * (1.0 - edgesTop.b) + edges.r * edgesLeft.g * (1.0 - edgesTop.r));
+    fromLeft += k * (edges.a * edgesBottom.b * (1.0 - edgesRight.a) + edges.g * edgesTop.b * (1.0 - edgesRight.g));
+    fromAbove += k * (edges.r * edgesLeft.a * (1.0 - edgesBottom.r) + edges.b * edgesRight.a * (1.0 - edgesBottom.b));
+    }
+
+  blurCoeff *= CmaaSaturate(1.30 - numberOfEdgesAllAround / 10.0);
+
+  return vec4(fromLeft, fromAbove, fromRight, fromBelow) * blurCoeff;
+  }
+
 void main() {
 #if CMAA2_COLLECT_EXPAND_BLEND_ITEMS 
   if (gl_LocalInvocationID.x == 0)
@@ -173,12 +226,6 @@ void main() {
 
 #if CMAA_MSAA_SAMPLE_COUNT > 1
     msaaSampleIndex = (pixelID >> 14) & 0x07;
-#endif
-
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-    ivec4 loadPosCenter = ivec4(pixelPos, msaaSampleIndex, 0);
-#else
-    ivec3 loadPosCenter = ivec3(pixelPos, 0);
 #endif
 
     uint edgesCenterPacked = LoadEdge(ivec2(pixelPos), ivec2(0, 0), msaaSampleIndex);

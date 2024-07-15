@@ -149,24 +149,6 @@ uint InternalPackColor(vec3 color) {
 #endif
   }
 
-void StoreColorSample(uvec2 pixelPos, vec3 color, bool isComplexShape, uint msaaSampleIndex) {
-  uint counterIndex = atomicAdd(g_workingControlBuffer[12], 1);
-
-  uvec2 quadPos = pixelPos / uvec2(2, 2);
-  uint offsetXY = (pixelPos.y % 2) * 2 + (pixelPos.x % 2);
-  uint header = (offsetXY << 30) | (msaaSampleIndex << 27) | (uint(isComplexShape) << 26);
-
-  uint counterIndexWithHeader = counterIndex | header;
-
-  uint originalIndex = imageAtomicExchange(g_workingDeferredBlendItemListHeads, ivec2(quadPos), counterIndexWithHeader);
-  g_workingDeferredBlendItemList[counterIndex] = uvec2(originalIndex, InternalPackColor(color));
-
-  if (originalIndex == 0xFFFFFFFF) {
-    uint edgeListCounter = atomicAdd(g_workingControlBuffer[8], 1);
-    g_workingDeferredBlendLocationList[edgeListCounter] = (quadPos.x << 16) | quadPos.y;
-    }
-  }
-
 float LINEAR_to_SRGB(float val) {
   if (val < 0.0031308) val *= 12.92;
   else val = 1.055 * pow(abs(val), 1.0 / 2.4) - 0.055;
@@ -191,56 +173,24 @@ uint FLOAT4_to_R10G10B10A2_UNORM(vec4 unpackedInput) {
     (uint(clamp(unpackedInput.w, 0.0, 1.0) * 3 + 0.5) << 30));
   }
 
-vec4 ComputeSimpleShapeBlendValues(vec4 edges, vec4 edgesLeft, vec4 edgesRight, vec4 edgesTop, vec4 edgesBottom, bool dontTestShapeValidity) {
-  float fromRight = edges.r;
-  float fromBelow = edges.g;
-  float fromLeft = edges.b;
-  float fromAbove = edges.a;
-
-  float blurCoeff = g_CMAA2_SimpleShapeBlurinessAmount;
-
-  float numberOfEdges = dot(edges, vec4(1, 1, 1, 1));
-
-  float numberOfEdgesAllAround = dot(edgesLeft.bga + edgesRight.rga + edgesTop.rba + edgesBottom.rgb, vec3(1, 1, 1));
-
-  if (!dontTestShapeValidity) {
-    if (numberOfEdges == 1) 
-      blurCoeff = 0;
-
-    if (numberOfEdges == 2) 
-      blurCoeff *= ((1.0 - fromBelow * fromAbove) * (1.0 - fromRight * fromLeft));
-    
-    }
-
-  if (numberOfEdges == 2) {
-    blurCoeff *= 0.75;
-
-    float k = 0.9;
-    fromRight += k * (edges.g * edgesTop.r * (1.0 - edgesLeft.g) + edges.a * edgesBottom.r * (1.0 - edgesLeft.a));
-    fromBelow += k * (edges.b * edgesRight.g * (1.0 - edgesTop.b) + edges.r * edgesLeft.g * (1.0 - edgesTop.r));
-    fromLeft += k * (edges.a * edgesBottom.b * (1.0 - edgesRight.a) + edges.g * edgesTop.b * (1.0 - edgesRight.g));
-    fromAbove += k * (edges.r * edgesLeft.a * (1.0 - edgesBottom.r) + edges.b * edgesRight.a * (1.0 - edgesBottom.b));
-    }
-
-  blurCoeff *= CmaaSaturate(1.30 - numberOfEdgesAllAround / 10.0);
-
-  return vec4(fromLeft, fromAbove, fromRight, fromBelow) * blurCoeff;
-  }
-
 uint LoadEdge(ivec2 pixelPos, ivec2 offset, uint msaaSampleIndex) {
 #if CMAA_MSAA_SAMPLE_COUNT > 1
   uint edge = imageLoad(g_workingEdges, pixelPos + offset).x;
   edge = (edge >> (msaaSampleIndex * 4)) & 0xF;
 #else
-  uint a = uint((pixelPos.x + offset.x) % 2);
+  #if defined(CMAA_PACK_SINGLE_SAMPLE_EDGE_TO_HALF_WIDTH)
+    uint a = uint((pixelPos.x + offset.x) % 2);
 
-#if CMAA2_EDGE_UNORM
-  uint edge = uint(imageLoad(g_workingEdges, ivec2((pixelPos.x + offset.x) / 2, pixelPos.y + offset.y)).x * 255. + 0.5);
-#else
-  uint edge = imageLoad(g_workingEdges, ivec2((pixelPos.x + offset.x) / 2, pixelPos.y + offset.y)).x;
-#endif
+    #if CMAA2_EDGE_UNORM
+      uint edge = uint(imageLoad(g_workingEdges, ivec2((pixelPos.x + offset.x) / 2, pixelPos.y + offset.y)).x * 255. + 0.5);
+    #else
+      uint edge = imageLoad(g_workingEdges, ivec2((pixelPos.x + offset.x) / 2, pixelPos.y + offset.y)).x;
+    #endif
 
-  edge = (edge >> (a * 4)) & 0xF;
+    edge = (edge >> (a * 4)) & 0xF;
+  #else
+    uint edge = imageLoad(g_workingEdges, ivec2(pixelPos + offset)).x;
+  #endif
 #endif
   return edge;
   }
