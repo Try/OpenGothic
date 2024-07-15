@@ -1185,6 +1185,7 @@ void GameMenu::updateValues() {
 
   set("MENU_ITEM_PLAYERGUILD","Debugger");
   set("MENU_ITEM_LEVEL","0");
+  set("MENUITEM_AUDIO_PROVIDER_CHOICE", "OpenGothic|GothicKit (Experimental)");
   for(auto& i:hItems) {
     if(i.name=="MENU_ITEM_CONTENT_VIEWER") {
       i.visible=false;

@@ -100,6 +100,12 @@ set(ZK_ENABLE_DEPRECATION      OFF CACHE INTERNAL "")
 add_subdirectory(lib/ZenKit)
 target_link_libraries(${PROJECT_NAME} zenkit)
 
+# dmusic
+set(DM_ENABLE_ASAN             OFF CACHE INTERNAL "")
+
+add_subdirectory(lib/dmusic)
+target_link_libraries(${PROJECT_NAME} dmusic)
+
 # TinySoundFont
 add_definitions(-DTSF_NO_STDIO)
 include_directories(lib/TinySoundFont)
