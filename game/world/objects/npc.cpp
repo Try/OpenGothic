@@ -472,8 +472,11 @@ bool Npc::resetPositionToTA() {
   setDirection(at->dirX,at->dirY,at->dirZ);
   owner.script().fixNpcPosition(*this,0,0);
 
-  if(!isDead)
+  if(!isDead) {
     attachToPoint(at);
+    if(!isMonster())
+      invent.autoEquipWeapons(*this);
+    }
 
   if(g2)
     owner.script().invokeRefreshAtInsert(*this);

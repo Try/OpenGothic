@@ -905,13 +905,9 @@ void Inventory::invalidateCond(Item *&slot, Npc &owner) {
     }
   }
 
-void Inventory::autoEquip(Npc &owner) {
-  sortItems();
-
-  auto a = bestArmour     (owner);
+void Inventory::autoEquipWeapons(Npc &owner) {
   auto m = bestMeleeWeapon(owner);
   auto r = bestRangeWeapon(owner);
-  setSlot(armour,a,owner,false);
   setSlot(melee ,m,owner,false);
   setSlot(range ,r,owner,false);
   }
