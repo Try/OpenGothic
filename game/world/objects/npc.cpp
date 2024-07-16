@@ -436,15 +436,12 @@ float Npc::angleDir(float x, float z) {
   }
 
 bool Npc::resetPositionToTA() {
-  const bool g2     = owner.version().game==2;
-  const bool isDead = this->isDead();
+  const bool g2       = owner.version().game==2;
+  const bool isDragon = (g2 && guild()==GIL_DRAGON);
+  const bool isDead   = this->isDead();
 
-  if(isDead && !invent.hasMissionItems()) {
-    const bool isDragon         = (g2 && guild()==GIL_DRAGON);
-    const bool isBackgroundBody = (hnpc->attribute[ATR_HITPOINTSMAX]==1);
-    if(!isBackgroundBody && !isDragon)
-      return false;
-    }
+  if(isDead && !invent.hasMissionItems() && !isDragon)
+    return false;
 
   invent.clearSlot(*this,"",currentInteract!=nullptr);
   if(!isPlayer())
