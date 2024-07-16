@@ -132,15 +132,16 @@ class Renderer final {
       Tempest::DescriptorSet   uboTone;
       } tonemapping;
 
-    Tempest::Attachment      sceneTonemapped;
-    Tempest::StorageImage    sceneTonemappedUav;
-
     struct Fxaa {
       Tempest::RenderPipeline* pso = nullptr;
       Tempest::DescriptorSet   ubo;
+      Tempest::Attachment      sceneTonemapped;
       } fxaa;
 
     struct Cmaa2 {
+      Tempest::StorageImage    sceneTonemappedUav;
+      Tempest::StorageImage    sceneHdrLumaUav;
+
       Tempest::ComputePipeline* detectEdges2x2 = nullptr;
       Tempest::DescriptorSet    detectEdges2x2Ubo;
 

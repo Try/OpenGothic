@@ -6,6 +6,10 @@
 
 #include "cmaa2_common.glsl"
 
+#if CMAA2_EDGE_DETECTION_LUMA_PATH == 2
+  layout(binding = 8) uniform sampler2D g_inLumaReadonly;
+#endif
+
 #define CMAA2_CS_INPUT_KERNEL_SIZE_X                16
 #define CMAA2_CS_INPUT_KERNEL_SIZE_Y                16
 #define CMAA2_CS_OUTPUT_KERNEL_SIZE_X               (CMAA2_CS_INPUT_KERNEL_SIZE_X-2)
@@ -153,7 +157,7 @@ void main() {
     qe2 = ComputeEdge(0, 1, pixelColors);
     qe3 = ComputeEdge(1, 1, pixelColors);
 #else
-    float pixelLumas[3 * 3 - 1];
+  float pixelLumas[3 * 3 - 1];
   #if CMAA2_EDGE_DETECTION_LUMA_PATH == 1
     for (i = 0; i < 3 * 3 - 1; i++) {
       vec3 color = LoadSourceColor(ivec2(pixelPos), ivec2(i % 3, i / 3), int(msaaSampleIndex));
@@ -163,12 +167,21 @@ void main() {
     vec2 texSize = textureSize(g_inLumaReadonly, 0);
     vec2 gatherUV = (vec2(pixelPos) + vec2(0.5, 0.5)) / texSize;
     vec4 TL = textureGather(g_inLumaReadonly, gatherUV);
-    vec4 TR = textureGather(g_inLumaReadonly, gatherUV, 1);
-    vec4 BL = textureGather(g_inLumaReadonly, gatherUV, 2);
+    vec4 TR = textureGatherOffset(g_inLumaReadonly, gatherUV, ivec2( 1, 0 ));
+    vec4 BL = textureGatherOffset(g_inLumaReadonly, gatherUV, ivec2( 0, 1 ));
     pixelLumas[0] = TL.w; pixelLumas[1] = TL.z; pixelLumas[2] = TR.z;
     pixelLumas[3] = TL.x; pixelLumas[4] = TL.y; pixelLumas[5] = TR.y;
     pixelLumas[6] = BL.x; pixelLumas[7] = BL.y;
+  #elif CMAA2_EDGE_DETECTION_LUMA_PATH == 3
+    vec2 texSize = textureSize(g_inoutColorReadonly, 0);
+    vec2 gatherUV = (vec2(pixelPos) + vec2( 0.5, 0.5 )) / texSize;
+    vec4 TL = textureGather(g_inoutColorReadonly, gatherUV, 3);
+    vec4 TR = textureGatherOffset(g_inoutColorReadonly, gatherUV, ivec2( 1, 0 ), 3);
+    vec4 BL = textureGatherOffset(g_inoutColorReadonly, gatherUV, ivec2( 0, 1 ), 3);
+    pixelLumas[0] = TL.w; pixelLumas[1] = TL.z; pixelLumas[2] = TR.z; pixelLumas[3] = TL.x; 
+    pixelLumas[4] = TL.y; pixelLumas[5] = TR.y; pixelLumas[6] = BL.x; pixelLumas[7] = BL.y;
   #endif
+
     qe0 = ComputeEdgeLuma(0, 0, pixelLumas);
     qe1 = ComputeEdgeLuma(1, 0, pixelLumas);
     qe2 = ComputeEdgeLuma(0, 1, pixelLumas);

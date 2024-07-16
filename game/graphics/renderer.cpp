@@ -83,9 +83,11 @@ void Renderer::resetSwapchain() {
   sceneLinear    = device.attachment(TextureFormat::R11G11B10UF,w,h);
 
   if (settings.fxaaEnabled) {
-    sceneTonemapped = device.attachment(TextureFormat::RGBA8, w, h);
+    fxaa.sceneTonemapped = device.attachment(TextureFormat::RGBA8, w, h);
     } else if (settings.cmaa2Enabled) {
-    sceneTonemappedUav = device.image2d(TextureFormat::RGBA8, w, h);
+    cmaa2.sceneTonemappedUav = device.image2d(TextureFormat::RGBA8, w, h);
+    // TODO: add R16F support later
+    cmaa2.sceneHdrLumaUav = device.image2d(TextureFormat::R32F, w, h);
     }
 
   if (settings.cmaa2Enabled) {
@@ -321,20 +323,20 @@ void Renderer::prepareUniforms() {
   if(settings.fxaaEnabled) {
     auto smpB = Sampler::bilinear();
     smpB.setClamping(ClampMode::ClampToEdge);
-    fxaa.ubo.set(0, sceneTonemapped, smpB);
+    fxaa.ubo.set(0, fxaa.sceneTonemapped, smpB);
     }
 
   if (settings.cmaa2Enabled) {
     auto smpB = Sampler::bilinear();
     smpB.setClamping(ClampMode::ClampToEdge);
 
-    cmaa2.detectEdges2x2Ubo.set(0, sceneTonemappedUav, smpB);
+    cmaa2.detectEdges2x2Ubo.set(0, cmaa2.sceneTonemappedUav, smpB);
     cmaa2.detectEdges2x2Ubo.set(2, cmaa2.workingEdges);
     cmaa2.detectEdges2x2Ubo.set(3, cmaa2.workingShapeCandidates);
     cmaa2.detectEdges2x2Ubo.set(6, cmaa2.workingDeferredBlendItemListHeads);
     cmaa2.detectEdges2x2Ubo.set(7, cmaa2.workingControlBuffer);
 
-    cmaa2.processCandidatesUbo.set(0, sceneTonemappedUav, smpB);
+    cmaa2.processCandidatesUbo.set(0, cmaa2.sceneTonemappedUav, smpB);
     cmaa2.processCandidatesUbo.set(2, cmaa2.workingEdges);
     cmaa2.processCandidatesUbo.set(3, cmaa2.workingShapeCandidates);
     cmaa2.processCandidatesUbo.set(4, cmaa2.workingDeferredBlendLocationList);
@@ -342,12 +344,11 @@ void Renderer::prepareUniforms() {
     cmaa2.processCandidatesUbo.set(6, cmaa2.workingDeferredBlendItemListHeads);
     cmaa2.processCandidatesUbo.set(7, cmaa2.workingControlBuffer);
 
-    //cmaa2.defferedColorApplyUbo.set(0, sceneTonemappedUav, smpB);
     cmaa2.defferedColorApplyUbo.set(4, cmaa2.workingDeferredBlendLocationList);
     cmaa2.defferedColorApplyUbo.set(5, cmaa2.workingDeferredBlendItemList);
     cmaa2.defferedColorApplyUbo.set(6, cmaa2.workingDeferredBlendItemListHeads);
     cmaa2.defferedColorApplyUbo.set(7, cmaa2.workingControlBuffer);
-    cmaa2.defferedColorApplyUbo.set(8, sceneTonemappedUav);
+    cmaa2.defferedColorApplyUbo.set(8, cmaa2.sceneTonemappedUav);
 
     cmaa2.prepareDispatchIndirectArgumentsUbo.set(3, cmaa2.workingShapeCandidates);
     cmaa2.prepareDispatchIndirectArgumentsUbo.set(4, cmaa2.workingDeferredBlendLocationList);
@@ -620,14 +621,15 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
 
   auto* tonemappingRt = &result;
   if(settings.fxaaEnabled) {
-    assert(!sceneTonemapped.isEmpty());
-    tonemappingRt = &sceneTonemapped;
+    assert(!fxaa.sceneTonemapped.isEmpty());
+    tonemappingRt = &fxaa.sceneTonemapped;
     }
 
   cmd.setDebugMarker("Tonemapping");
   drawTonemapping(cmd, tonemappingRt);
 
   if (settings.cmaa2Enabled) {
+    assert(!cmaa2.sceneTonemappedUav.isEmpty());
     // end previous render pass
     cmd.setFramebuffer({});
 
@@ -642,7 +644,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     cmd.setDebugMarker("Cmaa2 copy to the swapchain");
 
     auto ubo = Resources::device().descriptors(Shaders::inst().copy);
-    ubo.set(0, sceneTonemappedUav, smpN);
+    ubo.set(0, cmaa2.sceneTonemappedUav, smpN);
     cmd.setUniforms(Shaders::inst().copy, ubo);
     cmd.draw(Resources::fsqVbo());
     } else if(settings.fxaaEnabled) {
@@ -674,12 +676,13 @@ void Renderer::drawTonemapping(Encoder<CommandBuffer>& cmd, Attachment* renderTa
   if (settings.cmaa2Enabled) {
     cmd.setFramebuffer({});
 
-    tonemapping.uboTone.set(2, sceneTonemappedUav);
+    tonemapping.uboTone.set(2, cmaa2.sceneTonemappedUav);
+    tonemapping.uboTone.set(3, cmaa2.sceneHdrLumaUav);
     cmd.setUniforms(*tonemapping.computePso, tonemapping.uboTone, &p, sizeof(p));
 
     const uint32_t threadGroupSize = 8;
-    const uint32_t groupsCountX = (sceneTonemappedUav.w() + threadGroupSize - 1) / threadGroupSize;
-    const uint32_t groupsCountY = (sceneTonemappedUav.h() + threadGroupSize - 1) / threadGroupSize;
+    const uint32_t groupsCountX = (cmaa2.sceneTonemappedUav.w() + threadGroupSize - 1) / threadGroupSize;
+    const uint32_t groupsCountY = (cmaa2.sceneTonemappedUav.h() + threadGroupSize - 1) / threadGroupSize;
 
     cmd.dispatch(groupsCountX, groupsCountY, 1);
     } else {
@@ -726,8 +729,8 @@ void Renderer::applyCmaa2(Tempest::Encoder<Tempest::CommandBuffer>& cmd)
 
   // detect edges
   {
-    uint32_t groupCountX = (sceneTonemappedUav.size().w + outputGroupSize * 2 - 1) / (outputGroupSize * 2);
-    uint32_t groupCountY = (sceneTonemappedUav.size().h + outputGroupSize * 2 - 1) / (outputGroupSize * 2);
+    uint32_t groupCountX = (cmaa2.sceneTonemappedUav.size().w + outputGroupSize * 2 - 1) / (outputGroupSize * 2);
+    uint32_t groupCountY = (cmaa2.sceneTonemappedUav.size().h + outputGroupSize * 2 - 1) / (outputGroupSize * 2);
 
     cmd.setUniforms(*cmaa2.detectEdges2x2, cmaa2.detectEdges2x2Ubo);
     cmd.dispatch(groupCountX, groupCountY, 1);

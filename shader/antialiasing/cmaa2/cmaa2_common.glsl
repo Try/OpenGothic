@@ -5,8 +5,8 @@
 #define CMAA2_DEFERRED_APPLY_THREADGROUP_SWAP       1 
 #define CMAA2_USE_HALF_FLOAT_PRECISION              0
 #define CMAA2_SUPPORT_HDR_COLOR_RANGE               0
-#define CMAA2_EDGE_DETECTION_LUMA_PATH              0
-#define CMAA_MSAA_SAMPLE_COUNT                      1
+#define CMAA2_EDGE_DETECTION_LUMA_PATH              0       // We should use HDR luma from a separate buffer in the future
+#define CMAA_MSAA_SAMPLE_COUNT                      1       // for now force mode without MSAA
 #define CMAA_MSAA_USE_COMPLEXITY_MASK               1
 #define CMAA2_EDGE_UNORM                            0
 #define CMAA2_EXTRA_SHARPNESS                       0

@@ -14,6 +14,7 @@
 const uint THREADGROUP_SIZE = 8;
 layout(local_size_x = THREADGROUP_SIZE, local_size_y = THREADGROUP_SIZE, local_size_z = 1) in;
 layout(binding = 2) uniform writeonly image2D tonemappedOutput;
+layout(r32f, binding = 3) uniform writeonly image2D hdrLumaOutput;
 
 /*
 0 1 4 5 ... 
@@ -178,6 +179,8 @@ void main() {
     // color += vec3(0,0, shift.b);
   }
 
+  float hdrLuma = luminance(color);
+
   color *= push.mulExposure;
 
   // Brightness & Contrast
@@ -193,7 +196,8 @@ void main() {
 
 #if defined(COMPUTE)
   imageStore(tonemappedOutput, ivec2(targetPixPos), vec4(color, 1.f));
+  imageStore(hdrLumaOutput, ivec2(targetPixPos), vec4(hdrLuma, 0.f, 0.f, 0.f));
 #else
-  outColor = vec4(color, 1.0);
+  outColor = vec4(color, 1.f);
 #endif
   }
