@@ -220,7 +220,7 @@ class Resources final {
 
     std::recursive_mutex              sync;
     std::unique_ptr<Dx8::DirectMusic> dxMusic;
-    DmLoader*                         dmLoader;
+    DmLoader*                         dmLoader = nullptr;
     zenkit::Vfs                       gothicAssets;
 
     std::vector<uint8_t>              fBuff, ddsBuf;

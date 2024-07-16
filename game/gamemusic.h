@@ -44,8 +44,8 @@ class GameMusic final {
 
     static GameMusic* instance;
 
-    int provider;
+    int                  provider = 0;
     Tempest::SoundDevice device;
     Tempest::SoundEffect sound;
-    MusicProvider* impl;
+    MusicProvider*       impl = nullptr;
   };

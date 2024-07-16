@@ -277,28 +277,28 @@ GameMusic::GameMusic() {
 
   Gothic::inst().onSettingsChanged.bind(this, &GameMusic::setupSettings);
   setupSettings();
-}
+  }
 
 GameMusic::~GameMusic() {
   instance = nullptr;
   Gothic::inst().onSettingsChanged.ubind(this, &GameMusic::setupSettings);
-}
+  }
 
 GameMusic &GameMusic::inst() {
   return *instance;
-}
+  }
 
 GameMusic::Tags GameMusic::mkTags(GameMusic::Tags daytime, GameMusic::Tags mode) {
   return Tags(daytime | mode);
-}
+  }
 
 void GameMusic::setEnabled(bool e) {
   impl->setEnabled(e);
-}
+  }
 
 bool GameMusic::isEnabled() const {
   return impl->isEnabled();
-}
+  }
 
 void GameMusic::setMusic(GameMusic::Music m) {
   const char *clsTheme = "";
@@ -306,25 +306,25 @@ void GameMusic::setMusic(GameMusic::Music m) {
     case GameMusic::SysLoading:
       clsTheme = "SYS_Loading";
       break;
-  }
-  if (auto theme = Gothic::musicDef()[clsTheme])
+    }
+  if(auto theme = Gothic::musicDef()[clsTheme])
     setMusic(*theme, GameMusic::mkTags(GameMusic::Std, GameMusic::Day));
-}
+  }
 
 void GameMusic::setMusic(const zenkit::IMusicTheme &theme, Tags tags) {
   impl->playTheme(theme, tags);
-}
+  }
 
 void GameMusic::stopMusic() {
   setEnabled(false);
-}
+  }
 
 void GameMusic::setupSettings() {
-  const int musicEnabled = Gothic::settingsGetI("SOUND", "musicEnabled");
-  const float musicVolume = Gothic::settingsGetF("SOUND", "musicVolume");
-  const int providerIndex = Gothic::settingsGetI("INTERNAL", "soundProviderIndex");
+  const int   musicEnabled  = Gothic::settingsGetI("SOUND",    "musicEnabled");
+  const float musicVolume   = Gothic::settingsGetF("SOUND",    "musicVolume");
+  const int   providerIndex = Gothic::settingsGetI("INTERNAL", "soundProviderIndex");
 
-  if (providerIndex != provider) {
+  if(providerIndex != provider) {
     Log::i("Switching music provider to ", providerIndex == PROVIDER_OPENGOTHIC ? "'OpenGothic'" : "'GothicKit'");
 
     auto playingTheme = impl->getPlayingTheme();
@@ -333,23 +333,23 @@ void GameMusic::setupSettings() {
 
     std::unique_ptr<MusicProvider> p;
 
-    if (providerIndex == PROVIDER_OPENGOTHIC) {
+    if(providerIndex == PROVIDER_OPENGOTHIC) {
       p = std::make_unique<OpenGothicMusicProvider>(SAMPLE_RATE, 2);
-    } else {
+      } else {
       p = std::make_unique<GothicKitMusicProvider>(SAMPLE_RATE, 2);
-    }
+      }
 
     impl = p.get();
     provider = providerIndex;
 
-    if (playingTheme) {
+    if(playingTheme) {
       impl->playTheme(*playingTheme, Tags::Std);
-    }
+      }
 
     sound = device.load(std::move(p));
     sound.play();
-  }
+    }
 
   setEnabled(musicEnabled != 0);
   sound.setVolume(musicVolume);
-}
+  }

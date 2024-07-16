@@ -93,9 +93,9 @@ Resources::Resources(Tempest::Device &device)
 
   // Set up the DirectMusic loader
   DmResult rv = DmLoader_create(&dmLoader, DmLoader_DOWNLOAD);
-  if (rv != DmResult_SUCCESS) {
+  if(rv != DmResult_SUCCESS) {
     Log::e("Failed to created DmLoader object. Out of memory?");
-  }
+    }
 
   gothicAssets.mkdir("/_work/data/music");
   gothicAssets.mount_host(Gothic::nestedPath({u"_work",u"Data",u"Music"}, Dir::FT_Dir), "/_work/data/music", zenkit::VfsOverwriteBehavior::ALL);
@@ -645,15 +645,14 @@ Dx8::PatternList Resources::implLoadDxMusic(std::string_view name) {
   }
 
 DmSegment* Resources::implLoadMusicSegment(char const* name) {
-  DmSegment* sgt;
+  DmSegment* sgt = nullptr;
   DmResult rv = DmLoader_getSegment(dmLoader, name, &sgt);
-  if (rv != DmResult_SUCCESS) {
+  if(rv != DmResult_SUCCESS) {
     Log::e("Music segment not found: ", name);
     return nullptr;
-  }
-
+    }
   return sgt;
-}
+  }
 
 Tempest::Sound Resources::implLoadSoundBuffer(std::string_view name) {
   if(name.empty())
@@ -878,7 +877,7 @@ Dx8::PatternList Resources::loadDxMusic(std::string_view name) {
 DmSegment* Resources::loadMusicSegment(char const* name) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadMusicSegment(name);
-}
+  }
 
 const ProtoMesh* Resources::decalMesh(const zenkit::VisualDecal& decal) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
