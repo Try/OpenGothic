@@ -946,6 +946,8 @@ Item* Inventory::bestItem(Npc &owner, ItmFlags f) {
       continue;
     if(!i->checkCond(owner))
       continue;
+    if(itData.munition>0 && findByClass(size_t(itData.munition))==nullptr)
+      continue;
 
     if(itData.value>g){
       ret=i.get();
