@@ -168,6 +168,10 @@ Npc::Npc(World &owner, size_t instance, std::string_view waypoint)
 
   owner.script().initializeInstanceNpc(hnpc, instance);
   hnpc->wp       = std::string(waypoint);
+
+  // vanilla forces non-zero damage type
+  if(hnpc->damage_type==0)
+    hnpc->damage_type = 2;
   }
 
 Npc::~Npc(){
