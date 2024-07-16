@@ -474,6 +474,10 @@ bool Npc::resetPositionToTA() {
 
   if(!isDead)
     attachToPoint(at);
+
+  if(g2)
+    owner.script().invokeRefreshAtInsert(*this);
+
   return true;
   }
 

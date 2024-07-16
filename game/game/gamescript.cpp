@@ -1128,6 +1128,14 @@ void GameScript::invokePickLock(Npc& npc, int bSuccess, int bBrokenOpen) {
   vm.call_function<void>(fn, bSuccess, bBrokenOpen);
   }
 
+void GameScript::invokeRefreshAtInsert(Npc& npc) {
+  auto fn = vm.find_symbol_by_name("B_RefreshAtInsert");
+  if(fn==nullptr)
+    return;
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
+  vm.call_function<void>(fn);
+  }
+
 CollideMask GameScript::canNpcCollideWithSpell(Npc& npc, Npc* shooter, int32_t spellId) {
   auto fn   = vm.find_symbol_by_name("C_CanNpcCollideWithSpell");
   if(fn==nullptr)
