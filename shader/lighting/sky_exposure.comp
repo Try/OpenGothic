@@ -24,17 +24,8 @@ layout(binding = 4) uniform texture2D irradiance;
 const uint NumInvocations = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 const uint HistMid        = (NumInvocations/2);
 
-shared uint histogram[NumInvocations];
-
-void hInsert(float v) {
-  uint value = floatBitsToUint(v);
-  for(uint i=0; i<=HistMid; ++i){
-    uint old = atomicMin(histogram[i], value);
-    if(old == 0xFFFFFFFFu || old == value)
-      break;
-    value = max(old, value);
-    }
-  }
+shared uint minSkyLuminance;
+shared uint maxSkyLuminance;
 
 float luminosity(vec3 color) {
   return dot(color, vec3(0.2125, 0.7154, 0.0721));
@@ -42,7 +33,10 @@ float luminosity(vec3 color) {
 
 void processValue(vec3 val) {
   float lx = luminosity(val);
-  hInsert(lx);
+  uint  lu = floatBitsToUint(lx);
+
+  atomicMax(maxSkyLuminance, lu);
+  atomicMin(minSkyLuminance, lu);
   }
 
 vec3 resolveMiss(const vec3 rayOrigin, const vec3 rayDirection) {
@@ -64,9 +58,6 @@ void gather() {
     vec3 sky = vec3(0);
     sky = resolveMiss(vec3(0), +dir);
     processValue(sky);
-
-    //sky = resolveMiss(vec3(0), -dir);
-    //processValue(sky);
     }
   }
 
@@ -93,20 +84,22 @@ vec3 skyIrradiance() {
   }
 
 void main() {
-  histogram[gl_LocalInvocationIndex] = -1;
+  minSkyLuminance = 0;
+  maxSkyLuminance = 0;
   barrier();
 
   gather();
   barrier();
 
   if(gl_LocalInvocationIndex==0) {
-    float vmin = uintBitsToFloat(histogram[HistMid-1]);
-    float vmax = uintBitsToFloat(histogram[HistMid-0]);
+    const float vmax     = uintBitsToFloat(maxSkyLuminance);
+    const float vmin     = uintBitsToFloat(minSkyLuminance);
 
     const vec3  pos      = vec3(0, RPlanet+1, 0);
     const vec3  tr       = textureLUT(tLUT, pos, scene.sunDir).rgb;
     const float cldVal   = textureLod(cloudsLUT, vec2(scene.isNight,0), 0).a;
     const float clouds   = (1.0 - pow(cldVal, 4));
+    // const float clouds   = max(1.0 - exp(-cldVal*2), 0.01);
 
     const vec3  NightAmbient = vec3(0.05);
     const vec3  sunColor     = scene.sunColor * tr;
@@ -114,9 +107,9 @@ void main() {
 
     const vec3  light  = sunColor*Fd_Lambert + ambient + skyIrradiance();
     const float objLum = dot(light, vec3(0.2125, 0.7154, 0.0721));
-    const float skyLum = (vmax+vmin) * 0.5 * scene.GSunIntensity;
+    const float skyLum = (vmin + vmax) * 0.5 * scene.GSunIntensity;
 
-    const float lum    = max(objLum*3.1, skyLum*25.0);
+    const float lum    = max(max(objLum*2.5, skyLum*clouds*1.5), 0.5);
 
     // float lum = tr.b;
     scene.sunColor     = sunColor * clouds * push.sunOcclusion;

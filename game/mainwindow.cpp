@@ -446,6 +446,7 @@ void MainWindow::keyRepeatEvent(KeyEvent& event) {
       return;
     }
   if(uiKeyUp==&rootMenu){
+    rootMenu.keyRepeatEvent(event);
     if(event.isAccepted())
       return;
     }
@@ -475,7 +476,6 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
       return;
     }
   if(uiKeyUp==&rootMenu){
-    rootMenu.keyUpEvent(event);
     if(event.isAccepted())
       return;
     }

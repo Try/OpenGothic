@@ -15,6 +15,9 @@
 #include "graphics/material.h"
 #include "sound/soundfx.h"
 
+struct DmSegment;
+struct DmLoader;
+
 class StaticMesh;
 class ProtoMesh;
 class Skeleton;
@@ -106,6 +109,7 @@ class Resources final {
     static Tempest::Sound            loadSoundBuffer(std::string_view name);
 
     static Dx8::PatternList          loadDxMusic(std::string_view name);
+    static DmSegment*                loadMusicSegment(char const* name);
     static const ProtoMesh*          decalMesh(const zenkit::VisualDecal& decal);
 
     static const VobTree*            loadVobBundle(std::string_view name);
@@ -178,6 +182,7 @@ class Resources final {
     ProtoMesh*            implDecalMesh(const zenkit::VisualDecal& decal);
     Tempest::Sound        implLoadSoundBuffer(std::string_view name);
     Dx8::PatternList      implLoadDxMusic(std::string_view name);
+    DmSegment*            implLoadMusicSegment(char const* name);
     GthFont&              implLoadFont(std::string_view fname, FontType type);
     PfxEmitterMesh*       implLoadEmiterMesh(std::string_view name);
     const VobTree*        implLoadVobBundle(std::string_view name);
@@ -215,6 +220,7 @@ class Resources final {
 
     std::recursive_mutex              sync;
     std::unique_ptr<Dx8::DirectMusic> dxMusic;
+    DmLoader*                         dmLoader = nullptr;
     zenkit::Vfs                       gothicAssets;
 
     std::vector<uint8_t>              fBuff, ddsBuf;
