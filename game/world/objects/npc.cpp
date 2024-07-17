@@ -3110,16 +3110,16 @@ void Npc::dropItem(size_t id, size_t count) {
   if(sk==nullptr)
     return;
 
-  size_t leftHand = sk->findNode("ZS_LEFTHAND");
-  if(leftHand==size_t(-1))
+  size_t rightHand = sk->findNode("ZS_RIGHTHAND");
+  if(rightHand==size_t(-1))
     return;
 
   if(!setAnim(Anim::ItmDrop))
     return;
 
   auto mat = visual.transform();
-  if(leftHand<visual.pose().boneCount())
-    mat = visual.pose().bone(leftHand);
+  if(rightHand<visual.pose().boneCount())
+    mat = visual.pose().bone(rightHand);
 
   auto it = owner.addItemDyn(id,mat,hnpc->symbol_index());
   it->setCount(count);
