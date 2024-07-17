@@ -58,7 +58,7 @@ void main() {
   const uint currentQuadOffsetXY = gl_LocalInvocationID.y;
 #endif
 
-  if (currentCandidate >= numCandidates)
+  if(currentCandidate >= numCandidates)
     return;
 
   uint pixelID = g_workingDeferredBlendLocationList[currentCandidate];
@@ -70,7 +70,7 @@ void main() {
 
 #if CMAA_MSAA_SAMPLE_COUNT > 1
   vec4 outColors[CMAA_MSAA_SAMPLE_COUNT];
-  for (uint msaaSampleIndex = 0; msaaSampleIndex < CMAA_MSAA_SAMPLE_COUNT; msaaSampleIndex++)
+  for(uint msaaSampleIndex = 0; msaaSampleIndex < CMAA_MSAA_SAMPLE_COUNT; msaaSampleIndex++)
     outColors[msaaSampleIndex] = vec4(0);
   bool hasValue = false;
 #else
@@ -78,7 +78,7 @@ void main() {
 #endif
 
   const uint maxLoops = 32u * CMAA_MSAA_SAMPLE_COUNT;
-  for (uint i = 0; (counterIndexWithHeader != 0xFFFFFFFF) && (i < maxLoops); i++) {
+  for(uint i = 0; (counterIndexWithHeader != 0xFFFFFFFF) && (i < maxLoops); i++) {
     uint offsetXY = (counterIndexWithHeader >> 30) & 0x03;
     uint msaaSampleIndex = (counterIndexWithHeader >> 27) & 0x07;
     bool isComplexShape = bool((counterIndexWithHeader >> 26) & 0x01);
@@ -87,7 +87,7 @@ void main() {
 
     counterIndexWithHeader = val.x;
 
-    if (offsetXY == currentQuadOffsetXY) {
+    if(offsetXY == currentQuadOffsetXY) {
       vec3 color = InternalUnpackColor(val.y);
       float weight = 0.8 + 1.0 * float(isComplexShape);
 #if CMAA_MSAA_SAMPLE_COUNT > 1
@@ -100,15 +100,15 @@ void main() {
     }
 
 #if CMAA_MSAA_SAMPLE_COUNT > 1
-  if (!hasValue) return;
+  if(!hasValue) return;
 #else
-  if (outColors.a == 0) return;
+  if(outColors.a == 0) return;
 #endif
 
 #if CMAA_MSAA_SAMPLE_COUNT > 1
   vec4 outColor = vec4(0);
-  for (uint msaaSampleIndex = 0; msaaSampleIndex < CMAA_MSAA_SAMPLE_COUNT; msaaSampleIndex++) {
-    if (outColors[msaaSampleIndex].a != 0)
+  for(uint msaaSampleIndex = 0; msaaSampleIndex < CMAA_MSAA_SAMPLE_COUNT; msaaSampleIndex++) {
+    if(outColors[msaaSampleIndex].a != 0)
       outColor.rgb += vec3(outColors[msaaSampleIndex].rgb) / float(outColors[msaaSampleIndex].a);
     else
       outColor.rgb += LoadSourceColor(pixelPos, ivec2(0, 0), msaaSampleIndex);

@@ -150,7 +150,7 @@ uint InternalPackColor(vec3 color) {
   }
 
 float LINEAR_to_SRGB(float val) {
-  if (val < 0.0031308) val *= 12.92;
+  if(val < 0.0031308) val *= 12.92;
   else val = 1.055 * pow(abs(val), 1.0 / 2.4) - 0.055;
   return val;
   }

@@ -8,7 +8,8 @@
 
 layout(local_size_x = CMAA2_PROCESS_CANDIDATES_NUM_THREADS, local_size_y = 1, local_size_z = 1) in;
 
-#define CMAA2_COLLECT_EXPAND_BLEND_ITEMS 0
+// this reschedules final part of work from few to all threads to increase hardware thread occupancy
+#define CMAA2_COLLECT_EXPAND_BLEND_ITEMS 1
 
 #if CMAA2_COLLECT_EXPAND_BLEND_ITEMS
   #define CMAA2_BLEND_ITEM_SLM_SIZE 768
@@ -28,7 +29,7 @@ void StoreColorSample(uvec2 pixelPos, vec3 color, bool isComplexShape, uint msaa
   uint originalIndex = imageAtomicExchange(g_workingDeferredBlendItemListHeads, ivec2(quadPos), counterIndexWithHeader);
   g_workingDeferredBlendItemList[counterIndex] = uvec2(originalIndex, InternalPackColor(color));
 
-  if (originalIndex == 0xFFFFFFFF) {
+  if(originalIndex == 0xFFFFFFFF) {
     uint edgeListCounter = atomicAdd(g_workingControlBuffer[8], 1);
     g_workingDeferredBlendLocationList[edgeListCounter] = (quadPos.x << 16) | quadPos.y;
     }
@@ -48,11 +49,11 @@ void FindZLineLengths(out float lineLengthLeft, out float lineLengthRight, uvec2
     uint maskTraceLeft = 0x08;
     uint maskTraceRight = 0x02;
 
-    if (!horizontal) {
+    if(!horizontal) {
       maskTraceLeft = 0x04;
       maskTraceRight = 0x01;
       }
-    if (invertedZShape) {
+    if(invertedZShape) {
       uint temp = maskTraceLeft;
       maskTraceLeft = maskTraceRight;
       maskTraceRight = temp;
@@ -68,7 +69,7 @@ void FindZLineLengths(out float lineLengthLeft, out float lineLengthRight, uvec2
   lineLengthLeft = 1.0;
   lineLengthRight = 1.0;
 
-  for (;;) {
+  for(;;) {
     uint edgeLeft = LoadEdge(ivec2(screenPos) - ivec2(stepRight * lineLengthLeft), ivec2(0, 0), msaaSampleIndex);
     uint edgeRight = LoadEdge(ivec2(screenPos) + ivec2(stepRight * (lineLengthRight + 1.0)), ivec2(0, 0), msaaSampleIndex);
 
@@ -80,13 +81,13 @@ void FindZLineLengths(out float lineLengthLeft, out float lineLengthRight, uvec2
 
     float maxLR = max(lineLengthRight, lineLengthLeft);
 
-    if (!continueLeft && !continueRight)
+    if(!continueLeft && !continueRight)
       maxLR = float(c_maxLineLength);
 
 #if CMAA2_EXTRA_SHARPNESS
-    if (maxLR >= min(float(c_maxLineLength), (1.20 * min(lineLengthRight, lineLengthLeft) - 0.20)))
+    if(maxLR >= min(float(c_maxLineLength), (1.20 * min(lineLengthRight, lineLengthLeft) - 0.20)))
 #else
-    if (maxLR >= min(float(c_maxLineLength), (1.25 * min(lineLengthRight, lineLengthLeft) - 0.25)))
+    if(maxLR >= min(float(c_maxLineLength), (1.25 * min(lineLengthRight, lineLengthLeft) - 0.25)))
 #endif
       break;
     }
@@ -106,7 +107,7 @@ bool CollectBlendZs(uvec2 screenPos, bool horizontal, bool invertedZShape, float
   const uint blendItemCount = uint(loopTo - loopFrom + 1.0);
   itemIndex = atomicAdd(g_groupSharedBlendItemCount, blendItemCount);
 
-  if ((itemIndex + blendItemCount) > CMAA2_BLEND_ITEM_SLM_SIZE)
+  if((itemIndex + blendItemCount) > CMAA2_BLEND_ITEM_SLM_SIZE)
     return false;
 
   float totalLength = loopTo - loopFrom + 1.0 - leftOdd - rightOdd;
@@ -117,7 +118,7 @@ bool CollectBlendZs(uvec2 screenPos, bool horizontal, bool invertedZShape, float
   uint itemHeader = (screenPos.x << 18) | (msaaSampleIndex << 14) | screenPos.y;
   uint itemValStatic = (horizontal ? 1 : 0) << 31 | (invertedZShape ? 1 : 0) << 30;
 
-  for (float i = loopFrom; i <= loopTo; i++) {
+  for(float i = loopFrom; i <= loopTo; i++) {
     float lerpVal = lerpStep * i + lerpFromK;
 
     float secondPart = (i > 0.0) ? 1.0 : 0.0;
@@ -138,7 +139,7 @@ bool CollectBlendZs(uvec2 screenPos, bool horizontal, bool invertedZShape, float
 void BlendZs(uvec2 screenPos, bool horizontal, bool invertedZShape, float shapeQualityScore, float lineLengthLeft, float lineLengthRight, vec2 stepRight, uint msaaSampleIndex) {
   vec2 blendDir = horizontal ? vec2(0, -1) : vec2(-1, 0);
 
-  if (invertedZShape)
+  if(invertedZShape)
     blendDir = -blendDir;
 
   float leftOdd = c_symmetryCorrectionOffset * mod(lineLengthLeft, 2.0);
@@ -154,7 +155,7 @@ void BlendZs(uvec2 screenPos, bool horizontal, bool invertedZShape, float shapeQ
 
   float lerpFromK = (0.5 - leftOdd - loopFrom) * lerpStep;
 
-  for (float i = loopFrom; i <= loopTo; i++) {
+  for(float i = loopFrom; i <= loopTo; i++) {
     float lerpVal = lerpStep * i + lerpFromK;
 
     float secondPart = (i > 0.0) ? 1.0 : 0.0;
@@ -186,15 +187,15 @@ vec4 ComputeSimpleShapeBlendValues(vec4 edges, vec4 edgesLeft, vec4 edgesRight, 
 
   float numberOfEdgesAllAround = dot(edgesLeft.bga + edgesRight.rga + edgesTop.rba + edgesBottom.rgb, vec3(1, 1, 1));
 
-  if (!dontTestShapeValidity) {
-    if (numberOfEdges == 1) 
+  if(!dontTestShapeValidity) {
+    if(numberOfEdges == 1) 
       blurCoeff = 0;
 
-    if (numberOfEdges == 2) 
+    if(numberOfEdges == 2) 
       blurCoeff *= ((1.0 - fromBelow * fromAbove) * (1.0 - fromRight * fromLeft));
     }
 
-  if (numberOfEdges == 2) {
+  if(numberOfEdges == 2) {
     blurCoeff *= 0.75;
 
     float k = 0.9;
@@ -211,7 +212,7 @@ vec4 ComputeSimpleShapeBlendValues(vec4 edges, vec4 edgesLeft, vec4 edgesRight, 
 
 void main() {
 #if CMAA2_COLLECT_EXPAND_BLEND_ITEMS 
-  if (gl_LocalInvocationID.x == 0)
+  if(gl_LocalInvocationID.x == 0)
     g_groupSharedBlendItemCount = 0;
   barrier();
   memoryBarrierShared();
@@ -220,7 +221,7 @@ void main() {
   uint msaaSampleIndex = 0;
   const uint numCandidates = g_workingControlBuffer[3];
 
-  if (gl_GlobalInvocationID.x < numCandidates) {
+  if(gl_GlobalInvocationID.x < numCandidates) {
     uint pixelID = g_workingShapeCandidates[gl_GlobalInvocationID.x];
     uvec2 pixelPos = uvec2((pixelID >> 18), pixelID & 0x3FFF);
 
@@ -242,13 +243,13 @@ void main() {
       float centerWeight = 1.0 - fourWeightSum;
 
       vec3 outColor = LoadSourceColor(ivec2(pixelPos), ivec2(0, 0), int(msaaSampleIndex)) * centerWeight;
-      if (blendVal.x > 0.0)
+      if(blendVal.x > 0.0)
         outColor += blendVal.x * LoadSourceColor(ivec2(pixelPos), ivec2(-1, 0), int(msaaSampleIndex));
-      if (blendVal.y > 0.0)
+      if(blendVal.y > 0.0)
         outColor += blendVal.y * LoadSourceColor(ivec2(pixelPos), ivec2(0, -1), int(msaaSampleIndex));
-      if (blendVal.z > 0.0)
+      if(blendVal.z > 0.0)
         outColor += blendVal.z * LoadSourceColor(ivec2(pixelPos), ivec2(1, 0), int(msaaSampleIndex));
-      if (blendVal.w > 0.0)
+      if(blendVal.w > 0.0)
         outColor += blendVal.w * LoadSourceColor(ivec2(pixelPos), ivec2(0, 1), int(msaaSampleIndex));
 
       StoreColorSample(pixelPos, outColor, false, msaaSampleIndex);
@@ -269,7 +270,7 @@ void main() {
         DetectZsHorizontal(edges, edgesM1P0, edgesP1P0, edgesP2P0, invertedZScore, normalZScore);
         maxScore = max(invertedZScore, normalZScore);
 
-        if (maxScore > 0.0)
+        if(maxScore > 0.0)
           invertedZ = invertedZScore > normalZScore;
         }
 
@@ -281,14 +282,14 @@ void main() {
         DetectZsHorizontal(edges.argb, edgesM1P0.argb, edgesP1P0.argb, edgesP2P0.argb, invertedZScore, normalZScore);
         float vertScore = max(invertedZScore, normalZScore);
 
-        if (vertScore > maxScore) {
+        if(vertScore > maxScore) {
           maxScore = vertScore;
           horizontal = false;
           invertedZ = invertedZScore > normalZScore;
           }
         }
 
-      if (maxScore > 0.0) {
+      if(maxScore > 0.0) {
 #if CMAA2_EXTRA_SHARPNESS
         float shapeQualityScore = round(clamp(4.0 - maxScore, 0.0, 3.0));
 #else
@@ -302,9 +303,9 @@ void main() {
         lineLengthLeft -= shapeQualityScore;
         lineLengthRight -= shapeQualityScore;
 
-        if ((lineLengthLeft + lineLengthRight) >= 5.0) {
+        if((lineLengthLeft + lineLengthRight) >= 5.0) {
 #if CMAA2_COLLECT_EXPAND_BLEND_ITEMS
-          if (!CollectBlendZs(pixelPos, horizontal, invertedZ, shapeQualityScore, lineLengthLeft, lineLengthRight, stepRight, msaaSampleIndex))
+          if(!CollectBlendZs(pixelPos, horizontal, invertedZ, shapeQualityScore, lineLengthLeft, lineLengthRight, stepRight, msaaSampleIndex))
 #endif
             BlendZs(pixelPos, horizontal, invertedZ, shapeQualityScore, lineLengthLeft, lineLengthRight, stepRight, msaaSampleIndex);
           }
@@ -320,7 +321,7 @@ void main() {
 
   uint loops = (totalItemCount + (CMAA2_PROCESS_CANDIDATES_NUM_THREADS - 1) - gl_LocalInvocationID.x) / CMAA2_PROCESS_CANDIDATES_NUM_THREADS;
 
-  for (uint loop = 0; loop < loops; loop++) {
+  for(uint loop = 0; loop < loops; loop++) {
     uint index = loop * CMAA2_PROCESS_CANDIDATES_NUM_THREADS + gl_LocalInvocationID.x;
 
     uvec2 itemVal = g_groupSharedBlendItems[index];
@@ -339,7 +340,7 @@ void main() {
 
     vec2 itemStepRight = itemHorizontal ? vec2(1, 0) : vec2(0, -1);
     vec2 itemBlendDir = itemHorizontal ? vec2(0, -1) : vec2(-1, 0);
-    if (itemInvertedZ)
+    if(itemInvertedZ)
       itemBlendDir = -itemBlendDir;
 
     uvec2 itemPixelPos = startingPos + uvec2(itemStepRight * itemStepIndex);

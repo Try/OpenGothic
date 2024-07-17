@@ -33,11 +33,6 @@ shared vec4 g_groupShared2x2FracEdgesV[CMAA2_CS_INPUT_KERNEL_SIZE_X * CMAA2_CS_I
   #error CMAA2_STATIC_QUALITY_PRESET not set?
 #endif
 
-// TODO: need to resolve in cpp code
-//#if CMAA2_EDGE_DETECTION_LUMA_PATH == 2 || CMAA2_EDGE_DETECTION_LUMA_PATH == 3 || CMAA_MSAA_USE_COMPLEXITY_MASK
-//layout(binding = 0) uniform sampler2D g_gather_point_clamp_Sampler;
-//#endif
-
 float GetActualEdgeThreshold() {
   float retVal = g_CMAA2_EdgeThreshold;
 #if CMAA2_SCALE_QUALITY_WITH_MSAA
@@ -136,9 +131,9 @@ void main() {
 #endif
 
 #if CMAA_MSAA_SAMPLE_COUNT > 1
-  for (uint msaaSampleIndex = 0; msaaSampleIndex < CMAA_MSAA_SAMPLE_COUNT; msaaSampleIndex++) {
+  for(uint msaaSampleIndex = 0; msaaSampleIndex < CMAA_MSAA_SAMPLE_COUNT; msaaSampleIndex++) {
     bool msaaSampleIsRelevant = !firstLoopIsEnough || msaaSampleIndex == 0;
-    if (msaaSampleIsRelevant) {
+    if(msaaSampleIsRelevant) {
 #else
   {
     uint msaaSampleIndex = 0;
@@ -198,12 +193,12 @@ void main() {
     memoryBarrierShared();
     barrier();
 
-    if (inOutputKernel) {
+    if(inOutputKernel) {
       vec2 topRow = g_groupShared2x2FracEdgesH[centerAddr2x2 - rowStride2x2].zw;
       vec2 leftColumn = g_groupShared2x2FracEdgesV[centerAddr2x2 - 1].yw;
 
       bool someNonZeroEdges = any(notEqual(vec4(qe0, qe1) + vec4(qe2, qe3) + vec4(topRow[0], topRow[1], leftColumn[0], leftColumn[1]), vec4(0)));
-      if (someNonZeroEdges) {
+      if(someNonZeroEdges) {
 #if CMAA_MSAA_SAMPLE_COUNT == 1
         // Clear deferred color list heads to empty (if potentially needed - even though 
         // some edges might get culled by local contrast adaptation step below, 
@@ -266,7 +261,7 @@ void main() {
           
           // if there's at least one two edge corner, this is a candidate for simple or complex shape processing...
           bool isCandidate = (edges.x * edges.y + edges.y * edges.z + edges.z * edges.w + edges.w * edges.x) != 0;
-          if (isCandidate) {
+          if(isCandidate) {
             uint counterIndex;
             counterIndex = atomicAdd(g_workingControlBuffer[4], 1);
             g_workingShapeCandidates[counterIndex] = (localPixelPos.x << 18) | (msaaSampleIndex << 14) | localPixelPos.y;
@@ -285,7 +280,7 @@ void main() {
       }
     }
 
-  if (inOutputKernel) {
+  if(inOutputKernel) {
 #if defined(CMAA_PACK_SINGLE_SAMPLE_EDGE_TO_HALF_WIDTH) && CMAA_MSAA_SAMPLE_COUNT == 1
   #if CMAA2_EDGE_UNORM
     imageStore(g_workingEdges, ivec2(pixelPos.x / 2, pixelPos.y + 0), vec4(((outEdges[1] << 4) | outEdges[0]) / 255.0));
@@ -295,7 +290,7 @@ void main() {
     imageStore(g_workingEdges, ivec2(pixelPos.x / 2, pixelPos.y + 1), uvec4((outEdges[3] << 4) | outEdges[2]));
   #endif
 #else
-    for (uint i = 0; i < 4; i++)
+    for(uint i = 0; i < 4; i++)
       imageStore(g_workingEdges, ivec2(pixelPos + qeOffsets[i]), uvec4(outEdges[i]));
 #endif
     }

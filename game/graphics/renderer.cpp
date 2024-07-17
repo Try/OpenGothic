@@ -82,22 +82,22 @@ void Renderer::resetSwapchain() {
 
   sceneLinear    = device.attachment(TextureFormat::R11G11B10UF,w,h);
 
-  if (settings.fxaaEnabled) {
+  if(settings.fxaaEnabled) {
     fxaa.sceneTonemapped = device.attachment(TextureFormat::RGBA8, w, h);
-    } else if (settings.cmaa2Enabled) {
+    } else if(settings.cmaa2Enabled) {
     cmaa2.sceneTonemappedUav = device.image2d(TextureFormat::RGBA8, w, h);
     // TODO: add R16F support later
     cmaa2.sceneHdrLumaUav = device.image2d(TextureFormat::R32F, w, h);
     }
 
-  if (settings.cmaa2Enabled) {
-  	cmaa2.workingEdges = device.image2d(TextureFormat::R32U, (w + 1) / 2, h);
-    cmaa2.workingShapeCandidates = device.ssbo(Tempest::Uninitialized, w * h / 4 * sizeof(uint32_t));
-    cmaa2.workingDeferredBlendLocationList = device.ssbo(Tempest::Uninitialized, (w * h + 3) / 6 * sizeof(uint32_t));
-    cmaa2.workingDeferredBlendItemList = device.ssbo(Tempest::Uninitialized, w * h * sizeof(uint32_t));
-    cmaa2.workingDeferredBlendItemListHeads = device.image2d(TextureFormat::R32U, (w + 1) / 2, (h + 1) / 2);
-    cmaa2.workingControlBuffer = device.ssbo(Tempest::Uninitialized, 16 * sizeof(uint32_t));
-    cmaa2.executeIndirectBuffer = device.ssbo(Tempest::Uninitialized, 4 * sizeof(uint32_t));
+  if(settings.cmaa2Enabled) {
+    cmaa2.workingEdges = device.image2d(TextureFormat::R32U, (w+1)/2, h);
+    cmaa2.workingShapeCandidates = device.ssbo(Tempest::Uninitialized, w*h/4*sizeof(uint32_t));
+    cmaa2.workingDeferredBlendLocationList = device.ssbo(Tempest::Uninitialized, (w*h+3)/6*sizeof(uint32_t));
+    cmaa2.workingDeferredBlendItemList = device.ssbo(Tempest::Uninitialized, w*h*sizeof(uint32_t));
+    cmaa2.workingDeferredBlendItemListHeads = device.image2d(TextureFormat::R32U, (w+1)/2, (h+1)/2);
+    cmaa2.workingControlBuffer = device.ssbo(Tempest::Uninitialized, 16*sizeof(uint32_t));
+    cmaa2.executeIndirectBuffer = device.ssbo(Tempest::Uninitialized, 4*sizeof(uint32_t));
     }
 
   zbuffer        = device.zbuffer(zBufferFormat,w,h);
@@ -181,7 +181,7 @@ void Renderer::resetSwapchain() {
   ssao.uboBlur  = device.descriptors(Shaders::inst().ssaoBlur);
 
   tonemapping.pso     = (settings.vidResIndex==0) ? &Shaders::inst().tonemapping : &Shaders::inst().tonemappingUpscale;
-  tonemapping.computePso = (settings.vidResIndex == 0) ? &Shaders::inst().tonemappingCompute : &Shaders::inst().tonemappingComputeUpscale;
+  tonemapping.computePso = (settings.vidResIndex==0) ? &Shaders::inst().tonemappingCompute : &Shaders::inst().tonemappingComputeUpscale;
   tonemapping.uboTone = settings.cmaa2Enabled ? device.descriptors(*tonemapping.computePso) : device.descriptors(*tonemapping.pso);
 
   fxaa.pso = &Shaders::inst().fxaaPresets[Gothic::options().fxaaPreset];
@@ -214,8 +214,8 @@ void Renderer::initSettings() {
 
   auto prevVidResIndex = settings.vidResIndex;
   settings.vidResIndex = Gothic::inst().settingsGetF("INTERNAL","vidResIndex");
-  settings.cmaa2Enabled = (Gothic::options().cmaa2Preset > 0) && (settings.vidResIndex == 0);
-  settings.fxaaEnabled = (Gothic::options().fxaaPreset > 0) && (settings.vidResIndex == 0) && !settings.cmaa2Enabled;
+  settings.cmaa2Enabled = (Gothic::options().cmaa2Preset>0) && (settings.vidResIndex==0);
+  settings.fxaaEnabled = (Gothic::options().fxaaPreset>0) && (settings.vidResIndex==0) && !settings.cmaa2Enabled;
 
   if(prevVidResIndex!=settings.vidResIndex) {
     resetSwapchain();
@@ -326,7 +326,7 @@ void Renderer::prepareUniforms() {
     fxaa.ubo.set(0, fxaa.sceneTonemapped, smpB);
     }
 
-  if (settings.cmaa2Enabled) {
+  if(settings.cmaa2Enabled) {
     auto smpB = Sampler::bilinear();
     smpB.setClamping(ClampMode::ClampToEdge);
 
@@ -628,15 +628,11 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   cmd.setDebugMarker("Tonemapping");
   drawTonemapping(cmd, tonemappingRt);
 
-  if (settings.cmaa2Enabled) {
+  if(settings.cmaa2Enabled) {
     assert(!cmaa2.sceneTonemappedUav.isEmpty());
     // end previous render pass
     cmd.setFramebuffer({});
-
-    auto smpN = Sampler::bilinear();
-    smpN.setClamping(ClampMode::ClampToEdge);
-
-    cmd.setDebugMarker("Cmaa2 algorithm");
+    cmd.setDebugMarker("Cmaa2");
     applyCmaa2(cmd);
 
     // copy to the swapchain
@@ -644,6 +640,8 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     cmd.setDebugMarker("Cmaa2 copy to the swapchain");
 
     auto ubo = Resources::device().descriptors(Shaders::inst().copy);
+    auto smpN = Sampler::bilinear();
+    smpN.setClamping(ClampMode::ClampToEdge);
     ubo.set(0, cmaa2.sceneTonemappedUav, smpN);
     cmd.setUniforms(Shaders::inst().copy, ubo);
     cmd.draw(Resources::fsqVbo());
@@ -736,7 +734,7 @@ void Renderer::applyCmaa2(Tempest::Encoder<Tempest::CommandBuffer>& cmd)
     cmd.dispatch(groupCountX, groupCountY, 1);
     }
 
-// set indirect for processCandidates pass
+  // set indirect for processCandidates pass
   {
     cmd.setUniforms(*cmaa2.prepareDispatchIndirectArguments, cmaa2.prepareDispatchIndirectArgumentsUbo);
     cmd.dispatch(2, 1, 1);

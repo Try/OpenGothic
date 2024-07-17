@@ -16,7 +16,7 @@ layout(local_size_x = THREADGROUP_SIZE, local_size_y = THREADGROUP_SIZE, local_s
 layout(binding = 2) uniform writeonly image2D tonemappedOutput;
 layout(r32f, binding = 3) uniform writeonly image2D hdrLumaOutput;
 
-/*
+/* layout:
 0 1 4 5 ... 
 2 3 6 7 ...
 16 17 ...
@@ -138,7 +138,7 @@ void main() {
   uvec2 targetRes = uvec2(imageSize(tonemappedOutput));
   uvec2 targetPixPos = getRemmappedPixelPos(gl_WorkGroupID.xy, gl_LocalInvocationIndex);
 
-  if (any(greaterThanEqual(targetPixPos, targetRes))) {
+  if(any(greaterThanEqual(targetPixPos, targetRes))) {
     return;
   }
 

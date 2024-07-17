@@ -101,7 +101,7 @@ CommandLine::CommandLine(int argc, const char** argv) {
       }
     else if(arg=="-fxaa") {
       ++i;
-      if(i < argc) {
+      if(i<argc) {
         try {
           fxaaPresetId = uint32_t(std::stoul(std::string(argv[i])));
           fxaaPresetId = std::clamp(fxaaPresetId, 0u, uint32_t(FxaaPreset::PRESETS_COUNT)-1u);
@@ -111,13 +111,13 @@ CommandLine::CommandLine(int argc, const char** argv) {
           }
         }
       }
-  	else if (arg=="-cmaa2") {
+  	else if(arg=="-cmaa2") {
       ++i;
-      if (i < argc) {
+      if(i<argc) {
         try {
           cmaa2PresetId = uint32_t(std::stoul(std::string(argv[i])));
-          cmaa2PresetId = std::clamp(cmaa2PresetId, 0u, uint32_t(Cmaa2Preset::PRESETS_COUNT) - 1u);
-        }
+          cmaa2PresetId = std::clamp(cmaa2PresetId, 0u, uint32_t(Cmaa2Preset::PRESETS_COUNT)-1u);
+          }
         catch (const std::exception& e) {
           Log::i("failed to read cmaa2 preset: \"", std::string(argv[i]), "\"");
           }
