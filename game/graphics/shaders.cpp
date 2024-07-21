@@ -128,7 +128,6 @@ Shaders::Shaders() {
   tonemapping        = postEffect("tonemapping", "tonemapping",    RenderState::ZTestMode::Always);
   tonemappingUpscale = postEffect("tonemapping", "tonemapping_up", RenderState::ZTestMode::Always);
   tonemappingCompute = computeShader("tonemapping.comp.sprv");
-  tonemappingComputeUpscale = computeShader("tonemapping_up.comp.sprv");
 
   const auto fxaaZTestMode = RenderState::ZTestMode::Always;
   fxaaPresets[uint32_t(FxaaPreset::OFF)]        = Tempest::RenderPipeline();
@@ -139,10 +138,8 @@ Shaders::Shaders() {
   fxaaPresets[uint32_t(FxaaPreset::PC_EXTREME)] = postEffect("fxaa", "fxaa_quality_4", fxaaZTestMode);
 
   cmaa2EdgeColor2x2Presets[uint32_t(Cmaa2Preset::OFF)]    = Tempest::ComputePipeline();
-  cmaa2EdgeColor2x2Presets[uint32_t(Cmaa2Preset::LOW)]    = computeShader("cmaa2_edges_color2x2_quality_0.comp.sprv");
-  cmaa2EdgeColor2x2Presets[uint32_t(Cmaa2Preset::MEDIUM)] = computeShader("cmaa2_edges_color2x2_quality_1.comp.sprv");
-  cmaa2EdgeColor2x2Presets[uint32_t(Cmaa2Preset::HIGH)]   = computeShader("cmaa2_edges_color2x2_quality_2.comp.sprv");
-  cmaa2EdgeColor2x2Presets[uint32_t(Cmaa2Preset::ULTRA)]  = computeShader("cmaa2_edges_color2x2_quality_3.comp.sprv");
+  cmaa2EdgeColor2x2Presets[uint32_t(Cmaa2Preset::MEDIUM)] = computeShader("cmaa2_edges_color2x2_quality_0.comp.sprv");
+  cmaa2EdgeColor2x2Presets[uint32_t(Cmaa2Preset::ULTRA)]  = computeShader("cmaa2_edges_color2x2_quality_1.comp.sprv");
 
   cmaa2ComputeDispatchArgs = computeShader("cmaa2_setup_compute_dispatch_args.comp.sprv");
   cmaa2ProcessCandidates = computeShader("cmaa2_process_candidates.comp.sprv");

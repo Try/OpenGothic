@@ -480,9 +480,7 @@ enum class FxaaPreset : uint32_t {
 
 enum class Cmaa2Preset : uint32_t {
   OFF,
-  LOW,
   MEDIUM,
-  HIGH,
   ULTRA,
   PRESETS_COUNT
 };

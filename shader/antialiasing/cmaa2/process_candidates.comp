@@ -12,7 +12,7 @@ layout(local_size_x = CMAA2_PROCESS_CANDIDATES_NUM_THREADS, local_size_y = 1, lo
 #define CMAA2_COLLECT_EXPAND_BLEND_ITEMS 1
 
 #if CMAA2_COLLECT_EXPAND_BLEND_ITEMS
-  #define CMAA2_BLEND_ITEM_SLM_SIZE 768
+  const uint CMAA2_BLEND_ITEM_SLM_SIZE = 768;
   shared uint g_groupSharedBlendItemCount;
   shared uvec2 g_groupSharedBlendItems[CMAA2_BLEND_ITEM_SLM_SIZE];
 #endif

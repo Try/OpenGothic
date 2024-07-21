@@ -197,7 +197,6 @@ add_shader(tonemapping.frag          lighting/tonemapping.frag)
 add_shader(tonemapping_up.frag       lighting/tonemapping.frag -DUPSCALE)
 
 add_shader(tonemapping.comp          lighting/tonemapping.frag -S comp -DCOMPUTE)
-add_shader(tonemapping_up.comp       lighting/tonemapping.frag -S comp -DCOMPUTE -DUPSCALE)
 
 add_shader(water_reflection.vert     copy.vert)
 add_shader(water_reflection.mesh     water/water_reflection.mesh)
@@ -279,8 +278,6 @@ add_shader(fxaa_quality_4.frag       antialiasing/fxaa.frag -DFXAA_QUALITY_SETTI
 
 add_shader(cmaa2_edges_color2x2_quality_0.comp     antialiasing/cmaa2/edge_color2x2.comp -DCMAA2_STATIC_QUALITY_PRESET=0)
 add_shader(cmaa2_edges_color2x2_quality_1.comp     antialiasing/cmaa2/edge_color2x2.comp -DCMAA2_STATIC_QUALITY_PRESET=1)
-add_shader(cmaa2_edges_color2x2_quality_2.comp     antialiasing/cmaa2/edge_color2x2.comp -DCMAA2_STATIC_QUALITY_PRESET=2)
-add_shader(cmaa2_edges_color2x2_quality_3.comp     antialiasing/cmaa2/edge_color2x2.comp -DCMAA2_STATIC_QUALITY_PRESET=3)
 
 add_shader(cmaa2_setup_compute_dispatch_args.comp  antialiasing/cmaa2/compute_dispatch_args.comp)
 add_shader(cmaa2_process_candidates.comp           antialiasing/cmaa2/process_candidates.comp)

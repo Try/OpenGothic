@@ -6,16 +6,18 @@
 
 #include "cmaa2_common.glsl"
 
-layout(binding = 8) buffer UboWorkingExecuteIndirectBuffer {
-  uint g_workingExecuteIndirectBuffer[];
+layout(binding = 8, std430) buffer UboWorkingExecuteIndirectBuffer {
+  uvec3 g_workingExecuteIndirectBuffer;
   };
+
+layout(push_constant, std140) uniform PushConstant {
+  uint setupProcessCandidatesPassFlag;
+  } push;
 
 layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 void main() {
-  uvec3 groupID = gl_WorkGroupID;
-
-  if(groupID.x == 1) {
+  if(push.setupProcessCandidatesPassFlag != 0) {
     uint shapeCandidateCount = g_workingControlBuffer[4];
 
     uint appendBufferMaxCount = g_workingShapeCandidates.length();
@@ -26,7 +28,7 @@ void main() {
     g_workingExecuteIndirectBuffer[2] = 1;
 
     g_workingControlBuffer[3] = shapeCandidateCount;
-    } else if(groupID.y == 1) {
+    } else /*setup deferred apply process*/ {
     uint blendLocationCount = g_workingControlBuffer[8];
 
     uint appendBufferMaxCount = g_workingDeferredBlendLocationList.length();

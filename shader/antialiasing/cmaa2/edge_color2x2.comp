@@ -22,13 +22,9 @@ shared vec4 g_groupShared2x2FracEdgesV[CMAA2_CS_INPUT_KERNEL_SIZE_X * CMAA2_CS_I
 
 // presets (for HDR color buffer maybe use higher values)
 #if CMAA2_STATIC_QUALITY_PRESET == 0
-  #define g_CMAA2_EdgeThreshold float(0.15)
+  const float g_CMAA2_EdgeThreshold = 0.10f;
 #elif CMAA2_STATIC_QUALITY_PRESET == 1
-  #define g_CMAA2_EdgeThreshold float(0.10)
-#elif CMAA2_STATIC_QUALITY_PRESET == 2
-  #define g_CMAA2_EdgeThreshold float(0.07)
-#elif CMAA2_STATIC_QUALITY_PRESET == 3
-  #define g_CMAA2_EdgeThreshold float(0.05)
+  const float g_CMAA2_EdgeThreshold = 0.05f;
 #else
   #error CMAA2_STATIC_QUALITY_PRESET not set?
 #endif

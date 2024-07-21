@@ -11,8 +11,7 @@
 #include "upscale/lanczos.glsl"
 
 #if defined(COMPUTE)
-const uint THREADGROUP_SIZE = 8;
-layout(local_size_x = THREADGROUP_SIZE, local_size_y = THREADGROUP_SIZE, local_size_z = 1) in;
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 layout(binding = 2) uniform writeonly image2D tonemappedOutput;
 layout(r32f, binding = 3) uniform writeonly image2D hdrLumaOutput;
 
@@ -24,7 +23,7 @@ layout(r32f, binding = 3) uniform writeonly image2D hdrLumaOutput;
 */
 uvec2 getRemmappedPixelPos(uvec2 groupID, uint localThreadIndex)
 {
-  uvec2 groupOffset = groupID * THREADGROUP_SIZE;
+  uvec2 groupOffset = groupID * gl_WorkGroupSize.xy;
   uint row = ((localThreadIndex >> 4) << 1) | ((localThreadIndex & 2) >> 1);
   uint col = (((localThreadIndex >> 2) << 1) & 7) | (localThreadIndex & 1);
 

@@ -15,12 +15,12 @@ const float c_symmetryCorrectionOffset = 0.22;
 
 #if CMAA2_EXTRA_SHARPNESS
   const float c_dampeningEffect = 0.11;
-  #define g_CMAA2_LocalContrastAdaptationAmount       0.15f
-  #define g_CMAA2_SimpleShapeBlurinessAmount          0.07f
+  const float g_CMAA2_LocalContrastAdaptationAmount = 0.15f
+  const float g_CMAA2_SimpleShapeBlurinessAmount = 0.07f
 #else
   const float c_dampeningEffect = 0.15;
-  #define g_CMAA2_LocalContrastAdaptationAmount       0.10f
-  #define g_CMAA2_SimpleShapeBlurinessAmount          0.10f
+  const float g_CMAA2_LocalContrastAdaptationAmount =  0.10f;
+  const float g_CMAA2_SimpleShapeBlurinessAmount = 0.10f;
 #endif
 
 #if CMAA_MSAA_SAMPLE_COUNT > 1

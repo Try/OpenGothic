@@ -181,7 +181,7 @@ void Renderer::resetSwapchain() {
   ssao.uboBlur  = device.descriptors(Shaders::inst().ssaoBlur);
 
   tonemapping.pso     = (settings.vidResIndex==0) ? &Shaders::inst().tonemapping : &Shaders::inst().tonemappingUpscale;
-  tonemapping.computePso = (settings.vidResIndex==0) ? &Shaders::inst().tonemappingCompute : &Shaders::inst().tonemappingComputeUpscale;
+  tonemapping.computePso = &Shaders::inst().tonemappingCompute;
   tonemapping.uboTone = settings.cmaa2Enabled ? device.descriptors(*tonemapping.computePso) : device.descriptors(*tonemapping.pso);
 
   fxaa.pso = &Shaders::inst().fxaaPresets[Gothic::options().fxaaPreset];
@@ -677,12 +677,7 @@ void Renderer::drawTonemapping(Encoder<CommandBuffer>& cmd, Attachment* renderTa
     tonemapping.uboTone.set(2, cmaa2.sceneTonemappedUav);
     tonemapping.uboTone.set(3, cmaa2.sceneHdrLumaUav);
     cmd.setUniforms(*tonemapping.computePso, tonemapping.uboTone, &p, sizeof(p));
-
-    const uint32_t threadGroupSize = 8;
-    const uint32_t groupsCountX = (cmaa2.sceneTonemappedUav.w() + threadGroupSize - 1) / threadGroupSize;
-    const uint32_t groupsCountY = (cmaa2.sceneTonemappedUav.h() + threadGroupSize - 1) / threadGroupSize;
-
-    cmd.dispatch(groupsCountX, groupsCountY, 1);
+    cmd.dispatchThreads(cmaa2.sceneTonemappedUav.w(), cmaa2.sceneTonemappedUav.h());
     } else {
     cmd.setFramebuffer({ {*renderTarget, Tempest::Discard, Tempest::Preserve} });
     cmd.setUniforms(*tonemapping.pso, tonemapping.uboTone, &p, sizeof(p));
@@ -718,17 +713,23 @@ void Renderer::drawFxaa(Encoder<CommandBuffer>& cmd) {
 
 void Renderer::applyCmaa2(Tempest::Encoder<Tempest::CommandBuffer>& cmd)
 {
-  // TODO: initialization that is needed only on the first run. Make it run only in the first run
-  cmd.setUniforms(*cmaa2.prepareDispatchIndirectArguments, cmaa2.prepareDispatchIndirectArgumentsUbo);
-  cmd.dispatch(2, 1, 1);
+  uint32_t processCandidatesSetupFlag = 1;
 
-  const uint32_t inputGroupSize = 16;
-  const uint32_t outputGroupSize = inputGroupSize - 2;
+  static bool isFirstRun = true;
+  // initialization that is needed only on the first run. Make it run only in the first run
+  if (isFirstRun) {
+    cmd.setUniforms(*cmaa2.prepareDispatchIndirectArguments, cmaa2.prepareDispatchIndirectArgumentsUbo, &processCandidatesSetupFlag, sizeof(uint32_t));
+    cmd.dispatch(1);
+    isFirstRun = false;
+    }
 
   // detect edges
   {
-    uint32_t groupCountX = (cmaa2.sceneTonemappedUav.size().w + outputGroupSize * 2 - 1) / (outputGroupSize * 2);
-    uint32_t groupCountY = (cmaa2.sceneTonemappedUav.size().h + outputGroupSize * 2 - 1) / (outputGroupSize * 2);
+    const IVec3 inputGroupSize = cmaa2.detectEdges2x2->workGroupSize();
+    const IVec3 outputGroupSize = inputGroupSize - IVec3(2, 2, 0);
+
+    uint32_t groupCountX = (cmaa2.sceneTonemappedUav.size().w + outputGroupSize.x * 2 - 1) / (outputGroupSize.x * 2);
+    uint32_t groupCountY = (cmaa2.sceneTonemappedUav.size().h + outputGroupSize.y * 2 - 1) / (outputGroupSize.y * 2);
 
     cmd.setUniforms(*cmaa2.detectEdges2x2, cmaa2.detectEdges2x2Ubo);
     cmd.dispatch(groupCountX, groupCountY, 1);
@@ -736,8 +737,8 @@ void Renderer::applyCmaa2(Tempest::Encoder<Tempest::CommandBuffer>& cmd)
 
   // set indirect for processCandidates pass
   {
-    cmd.setUniforms(*cmaa2.prepareDispatchIndirectArguments, cmaa2.prepareDispatchIndirectArgumentsUbo);
-    cmd.dispatch(2, 1, 1);
+    cmd.setUniforms(*cmaa2.prepareDispatchIndirectArguments, cmaa2.prepareDispatchIndirectArgumentsUbo, &processCandidatesSetupFlag, sizeof(uint32_t));
+    cmd.dispatch(1);
     }
 
   // process candidates pass
@@ -748,8 +749,9 @@ void Renderer::applyCmaa2(Tempest::Encoder<Tempest::CommandBuffer>& cmd)
 
   // setup for deferred color apply
   {
-    cmd.setUniforms(*cmaa2.prepareDispatchIndirectArguments, cmaa2.prepareDispatchIndirectArgumentsUbo);
-    cmd.dispatch(1, 2, 1);
+    processCandidatesSetupFlag = 0;
+    cmd.setUniforms(*cmaa2.prepareDispatchIndirectArguments, cmaa2.prepareDispatchIndirectArgumentsUbo, &processCandidatesSetupFlag, sizeof(uint32_t));
+    cmd.dispatch(1);
     }
 
   // deferred color apply
