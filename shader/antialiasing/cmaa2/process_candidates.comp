@@ -225,10 +225,6 @@ void main() {
     uint pixelID = g_workingShapeCandidates[gl_GlobalInvocationID.x];
     uvec2 pixelPos = uvec2((pixelID >> 18), pixelID & 0x3FFF);
 
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-    msaaSampleIndex = (pixelID >> 14) & 0x07;
-#endif
-
     uint edgesCenterPacked = LoadEdge(ivec2(pixelPos), ivec2(0, 0), msaaSampleIndex);
     vec4 edges = UnpackEdgesFlt(edgesCenterPacked);
     vec4 edgesLeft = UnpackEdgesFlt(LoadEdge(ivec2(pixelPos) + ivec2(-1, 0), ivec2(0, 0), msaaSampleIndex));
@@ -328,9 +324,6 @@ void main() {
 
     uvec2 startingPos = uvec2((itemVal.x >> 18), itemVal.x & 0x3FFF);
     uint itemMSAASampleIndex = 0;
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-    itemMSAASampleIndex = (itemVal.x >> 14) & 0x07;
-#endif
 
     bool itemHorizontal = bool((itemVal.y >> 31) & 1);
     bool itemInvertedZ = bool((itemVal.y >> 30) & 1);

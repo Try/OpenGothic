@@ -6,8 +6,6 @@
 #define CMAA2_USE_HALF_FLOAT_PRECISION              0
 #define CMAA2_SUPPORT_HDR_COLOR_RANGE               0
 #define CMAA2_EDGE_DETECTION_LUMA_PATH              0       // We should use HDR luma from a separate buffer in the future
-#define CMAA_MSAA_SAMPLE_COUNT                      1       // for now force mode without MSAA
-#define CMAA_MSAA_USE_COMPLEXITY_MASK               1
 #define CMAA2_EDGE_UNORM                            0
 #define CMAA2_EXTRA_SHARPNESS                       0
 
@@ -23,10 +21,6 @@ const float c_symmetryCorrectionOffset = 0.22;
   const float g_CMAA2_SimpleShapeBlurinessAmount = 0.10f;
 #endif
 
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-  #define CMAA_MSAA_USE_COMPLEXITY_MASK 1
-#endif
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // VARIOUS QUALITY SETTINGS
 //
@@ -35,12 +29,7 @@ const float c_symmetryCorrectionOffset = 0.22;
 const uint c_maxLineLength = 86;
 // 
 
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-  layout(binding = 1) uniform sampler2DArray g_inColorMSReadonly;
-  layout(binding = 0) uniform sampler2D g_inColorMSComplexityMaskReadonly;
-#else
-  layout(binding = 0) uniform sampler2D g_inoutColorReadonly;
-#endif 
+layout(binding = 0) uniform sampler2D g_inoutColorReadonly;
 
 #if CMAA2_EDGE_UNORM 
   layout(r8, binding = 2) uniform image2D g_workingEdges;
@@ -87,11 +76,7 @@ vec4 UnpackEdgesFlt(uint value) {
   }
 
 vec3 LoadSourceColor(ivec2 pixelPos, ivec2 offset, int sampleIndex) {
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-  vec3 color = texelFetch(g_inColorMSReadonly, ivec3(pixelPos + offset, sampleIndex), 0).xyz;
-#else
   vec3 color = texelFetch(g_inoutColorReadonly, pixelPos + offset, 0).xyz;
-#endif 
   return color;
   }
 
@@ -174,23 +159,18 @@ uint FLOAT4_to_R10G10B10A2_UNORM(vec4 unpackedInput) {
   }
 
 uint LoadEdge(ivec2 pixelPos, ivec2 offset, uint msaaSampleIndex) {
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-  uint edge = imageLoad(g_workingEdges, pixelPos + offset).x;
-  edge = (edge >> (msaaSampleIndex * 4)) & 0xF;
-#else
-  #if defined(CMAA_PACK_SINGLE_SAMPLE_EDGE_TO_HALF_WIDTH)
-    uint a = uint((pixelPos.x + offset.x) % 2);
+#if defined(CMAA_PACK_SINGLE_SAMPLE_EDGE_TO_HALF_WIDTH)
+  uint a = uint((pixelPos.x + offset.x) % 2);
 
-    #if CMAA2_EDGE_UNORM
-      uint edge = uint(imageLoad(g_workingEdges, ivec2((pixelPos.x + offset.x) / 2, pixelPos.y + offset.y)).x * 255. + 0.5);
-    #else
-      uint edge = imageLoad(g_workingEdges, ivec2((pixelPos.x + offset.x) / 2, pixelPos.y + offset.y)).x;
-    #endif
-
-    edge = (edge >> (a * 4)) & 0xF;
+  #if CMAA2_EDGE_UNORM
+    uint edge = uint(imageLoad(g_workingEdges, ivec2((pixelPos.x + offset.x) / 2, pixelPos.y + offset.y)).x * 255. + 0.5);
   #else
-    uint edge = imageLoad(g_workingEdges, ivec2(pixelPos + offset)).x;
+    uint edge = imageLoad(g_workingEdges, ivec2((pixelPos.x + offset.x) / 2, pixelPos.y + offset.y)).x;
   #endif
+
+  edge = (edge >> (a * 4)) & 0xF;
+#else
+    uint edge = imageLoad(g_workingEdges, ivec2(pixelPos + offset)).x;
 #endif
   return edge;
   }

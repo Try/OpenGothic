@@ -30,11 +30,7 @@ shared vec4 g_groupShared2x2FracEdgesV[CMAA2_CS_INPUT_KERNEL_SIZE_X * CMAA2_CS_I
 #endif
 
 float GetActualEdgeThreshold() {
-  float retVal = g_CMAA2_EdgeThreshold;
-#if CMAA2_SCALE_QUALITY_WITH_MSAA
-  retVal *= 1.0 + (CMAA_MSAA_SAMPLE_COUNT - 1) * 0.06;
-#endif
-  return retVal;
+  return g_CMAA2_EdgeThreshold;
   }
 
 float EdgeDetectColorCalcDiff(vec3 colorA, vec3 colorB) {
@@ -109,31 +105,8 @@ void main() {
   vec2 qe0, qe1, qe2, qe3;
   uvec4 outEdges = uvec4(0);
 
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-  bool firstLoopIsEnough = false;
-
-  #if CMAA_MSAA_USE_COMPLEXITY_MASK
-  {
-    vec2 texSize = textureSize(g_inColorMSComplexityMaskReadonly, 0);
-    vec2 gatherUV = vec2(pixelPos) / texSize;
-    vec4 TL = textureGather(g_inColorMSComplexityMaskReadonly, gatherUV, 0);
-    vec4 TR = textureGather(g_inColorMSComplexityMaskReadonly, gatherUV, 2);
-    vec4 BL = textureGather(g_inColorMSComplexityMaskReadonly, gatherUV, 1);
-    vec4 BR = textureGather(g_inColorMSComplexityMaskReadonly, gatherUV, 3);
-    vec4 sumAll = TL + TR + BL + BR;
-    firstLoopIsEnough = !any(greaterThan(sumAll, vec4(0)));
-    }
-  #endif
-#endif
-
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-  for(uint msaaSampleIndex = 0; msaaSampleIndex < CMAA_MSAA_SAMPLE_COUNT; msaaSampleIndex++) {
-    bool msaaSampleIsRelevant = !firstLoopIsEnough || msaaSampleIndex == 0;
-    if(msaaSampleIsRelevant) {
-#else
   {
     uint msaaSampleIndex = 0;
-#endif
 
 #if CMAA2_EDGE_DETECTION_LUMA_PATH == 0
     vec3 pixelColors[3 * 3 - 1];
@@ -182,10 +155,6 @@ void main() {
     g_groupShared2x2FracEdgesV[centerAddr2x2] = vec4(qe0.x, qe1.x, qe2.x, qe3.x);
     g_groupShared2x2FracEdgesH[centerAddr2x2] = vec4(qe0.y, qe1.y, qe2.y, qe3.y);
 
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-    }
-#endif
-
     memoryBarrierShared();
     barrier();
 
@@ -195,12 +164,10 @@ void main() {
 
       bool someNonZeroEdges = any(notEqual(vec4(qe0, qe1) + vec4(qe2, qe3) + vec4(topRow[0], topRow[1], leftColumn[0], leftColumn[1]), vec4(0)));
       if(someNonZeroEdges) {
-#if CMAA_MSAA_SAMPLE_COUNT == 1
         // Clear deferred color list heads to empty (if potentially needed - even though 
         // some edges might get culled by local contrast adaptation step below, 
         // it's still cheaper to just clear it without additional logic)
         imageStore(g_workingDeferredBlendItemListHeads, ivec2(pixelPos) / 2, uvec4(0xFFFFFFFF, 0, 0, 0));
-#endif
         // local contrast adaptation
 
         vec4 ce[4];
@@ -266,18 +233,14 @@ void main() {
           // Write out edges - we write out all, including empty pixels, to make sure shape detection edge tracing
           // doesn't continue on previous frame's edges that no longer exist.
           uint packedEdge = PackEdges(edges);
-#if CMAA_MSAA_SAMPLE_COUNT > 1
-          outEdges[i] |= packedEdge << (msaaSampleIndex * 4);
-#else
           outEdges[i] = packedEdge;
-#endif
           }
         }
       }
     }
 
   if(inOutputKernel) {
-#if defined(CMAA_PACK_SINGLE_SAMPLE_EDGE_TO_HALF_WIDTH) && CMAA_MSAA_SAMPLE_COUNT == 1
+#if defined(CMAA_PACK_SINGLE_SAMPLE_EDGE_TO_HALF_WIDTH)
   #if CMAA2_EDGE_UNORM
     imageStore(g_workingEdges, ivec2(pixelPos.x / 2, pixelPos.y + 0), vec4(((outEdges[1] << 4) | outEdges[0]) / 255.0));
     imageStore(g_workingEdges, ivec2(pixelPos.x / 2, pixelPos.y + 1), vec4(((outEdges[3] << 4) | outEdges[2]) / 255.0));
