@@ -36,5 +36,10 @@
   <true/>
   <key>com.apple.developer.kernel.increased-memory-limit</key>
   <true/>
+  <key>UILaunchScreen</key>
+  <dict>
+    <key>UIColorName</key>
+    <string>black</string>
+  </dict>
 </dict>
 </plist>
