@@ -677,7 +677,7 @@ void Renderer::drawTonemapping(Encoder<CommandBuffer>& cmd, Attachment* renderTa
     tonemapping.uboTone.set(2, cmaa2.sceneTonemappedUav);
     tonemapping.uboTone.set(3, cmaa2.sceneHdrLumaUav);
     cmd.setUniforms(*tonemapping.computePso, tonemapping.uboTone, &p, sizeof(p));
-    cmd.dispatchThreads(cmaa2.sceneTonemappedUav.w(), cmaa2.sceneTonemappedUav.h());
+    cmd.dispatchThreads(static_cast<size_t>(cmaa2.sceneTonemappedUav.w()), static_cast<size_t>(cmaa2.sceneTonemappedUav.h()));
     } else {
     cmd.setFramebuffer({ {*renderTarget, Tempest::Discard, Tempest::Preserve} });
     cmd.setUniforms(*tonemapping.pso, tonemapping.uboTone, &p, sizeof(p));
@@ -728,8 +728,8 @@ void Renderer::applyCmaa2(Tempest::Encoder<Tempest::CommandBuffer>& cmd)
     const IVec3 inputGroupSize = cmaa2.detectEdges2x2->workGroupSize();
     const IVec3 outputGroupSize = inputGroupSize - IVec3(2, 2, 0);
 
-    uint32_t groupCountX = (cmaa2.sceneTonemappedUav.size().w + outputGroupSize.x * 2 - 1) / (outputGroupSize.x * 2);
-    uint32_t groupCountY = (cmaa2.sceneTonemappedUav.size().h + outputGroupSize.y * 2 - 1) / (outputGroupSize.y * 2);
+    uint32_t groupCountX = static_cast<uint32_t>((cmaa2.sceneTonemappedUav.size().w + outputGroupSize.x * 2 - 1) / (outputGroupSize.x * 2));
+    uint32_t groupCountY = static_cast<uint32_t>((cmaa2.sceneTonemappedUav.size().h + outputGroupSize.y * 2 - 1) / (outputGroupSize.y * 2));
 
     cmd.setUniforms(*cmaa2.detectEdges2x2, cmaa2.detectEdges2x2Ubo);
     cmd.dispatch(groupCountX, groupCountY, 1);
