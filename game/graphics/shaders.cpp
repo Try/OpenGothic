@@ -137,12 +137,7 @@ Shaders::Shaders() {
   fxaaPresets[uint32_t(FxaaPreset::PC_EXTREME)] = postEffect("fxaa", "fxaa_quality_4", fxaaZTestMode);
 
   hiZPot = computeShader("hiz_pot.comp.sprv");
-  hiZMip = computeShader("hiz_mip_img.comp.sprv");
-  /*
-  if(device.properties().hasAtomicFormat(TextureFormat::R32U))
-    hiZMip = computeShader("hiz_mip_img.comp.sprv"); else
-    hiZMip = computeShader("hiz_mip.comp.sprv");
-    */
+  hiZMip = computeShader("hiz_mip.comp.sprv");
 
   if(meshlets && device.properties().meshlets.maxGroupSize.x>=256) {
     RenderState state;
