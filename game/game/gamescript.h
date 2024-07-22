@@ -461,6 +461,7 @@ class GameScript final {
     QuestLog                                                    quests;
     zenkit::DaedalusSymbol*                                     itMi_Gold = nullptr;
     zenkit::DaedalusSymbol*                                     ItKE_lockpick = nullptr;
+    zenkit::DaedalusSymbol*                                     B_RefreshAtInsert = nullptr;
     float                                                       tradeValMult = 0.3f;
     zenkit::DaedalusSymbol*                                     spellFxInstanceNames = nullptr;
     zenkit::DaedalusSymbol*                                     spellFxAniLetters = nullptr;
