@@ -13,7 +13,7 @@
 #if defined(COMPUTE)
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 layout(binding = 2) uniform writeonly image2D tonemappedOutput;
-layout(r32f, binding = 3) uniform writeonly image2D hdrLumaOutput;
+layout(binding = 3) uniform writeonly image2D hdrLumaOutput;
 
 /* layout:
 0 1 4 5 ... 

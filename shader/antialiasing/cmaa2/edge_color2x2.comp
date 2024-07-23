@@ -7,7 +7,7 @@
 #include "cmaa2_common.glsl"
 
 #if CMAA2_EDGE_DETECTION_LUMA_PATH == 2
-  layout(binding = 8) uniform sampler2D g_inLumaReadonly;
+  layout(binding = 8) uniform sampler2D inputLumaReadonly;
 #endif
 
 #define CMAA2_CS_INPUT_KERNEL_SIZE_X                16
@@ -17,73 +17,69 @@
 
 layout(local_size_x = CMAA2_CS_INPUT_KERNEL_SIZE_X, local_size_y = CMAA2_CS_INPUT_KERNEL_SIZE_Y, local_size_z = 1) in;
 
-shared vec4 g_groupShared2x2FracEdgesH[CMAA2_CS_INPUT_KERNEL_SIZE_X * CMAA2_CS_INPUT_KERNEL_SIZE_Y];
-shared vec4 g_groupShared2x2FracEdgesV[CMAA2_CS_INPUT_KERNEL_SIZE_X * CMAA2_CS_INPUT_KERNEL_SIZE_Y];
+shared vec4 groupShared2x2FracEdgesH[CMAA2_CS_INPUT_KERNEL_SIZE_X * CMAA2_CS_INPUT_KERNEL_SIZE_Y];
+shared vec4 groupShared2x2FracEdgesV[CMAA2_CS_INPUT_KERNEL_SIZE_X * CMAA2_CS_INPUT_KERNEL_SIZE_Y];
 
 // presets (for HDR color buffer maybe use higher values)
 #if CMAA2_STATIC_QUALITY_PRESET == 0
-  const float g_CMAA2_EdgeThreshold = 0.10f;
+  const float cmaa2EdgeThreshold = 0.10f;
 #elif CMAA2_STATIC_QUALITY_PRESET == 1
-  const float g_CMAA2_EdgeThreshold = 0.05f;
+  const float cmaa2EdgeThreshold = 0.05f;
 #else
   #error CMAA2_STATIC_QUALITY_PRESET not set?
 #endif
 
-float GetActualEdgeThreshold() {
-  return g_CMAA2_EdgeThreshold;
-  }
-
-float EdgeDetectColorCalcDiff(vec3 colorA, vec3 colorB) {
+float edgeDetectColorCalcDiff(vec3 colorA, vec3 colorB) {
   const vec3 LumWeights = vec3(0.299, 0.587, 0.114);
   vec3 diff = abs((colorA.rgb - colorB.rgb));
   return dot(diff.rgb, LumWeights.rgb);
   }
 
-vec3 ProcessColorForEdgeDetect(vec3 color) {
+vec3 processColorForEdgeDetect(vec3 color) {
   return sqrt(color);
   }
 
-vec2 ComputeEdge(int x, int y, vec3 pixelColors[3 * 3 - 1]) {
+vec2 computeEdge(int x, int y, vec3 pixelColors[3 * 3 - 1]) {
   vec2 temp;
-  temp.x = EdgeDetectColorCalcDiff(pixelColors[x + y * 3].rgb, pixelColors[x + 1 + y * 3].rgb);
-  temp.y = EdgeDetectColorCalcDiff(pixelColors[x + y * 3].rgb, pixelColors[x + (y + 1) * 3].rgb);
+  temp.x = edgeDetectColorCalcDiff(pixelColors[x + y * 3].rgb, pixelColors[x + 1 + y * 3].rgb);
+  temp.y = edgeDetectColorCalcDiff(pixelColors[x + y * 3].rgb, pixelColors[x + (y + 1) * 3].rgb);
   return temp;
   }
 
-float RGBToLumaForEdges(vec3 linearRGB) {
+float rgbToLumaForEdges(vec3 linearRGB) {
   float luma = dot(sqrt(linearRGB.rgb), vec3(0.299, 0.587, 0.114));
   return luma;
   }
 
-vec2 ComputeEdgeLuma(int x, int y, float pixelLumas[3 * 3 - 1]) {
+vec2 computeEdgeLuma(int x, int y, float pixelLumas[3 * 3 - 1]) {
   vec2 temp;
   temp.x = abs(pixelLumas[x + y * 3] - pixelLumas[x + 1 + y * 3]);
   temp.y = abs(pixelLumas[x + y * 3] - pixelLumas[x + (y + 1) * 3]);
   return temp;
   }
 
-void GroupsharedLoadQuadHV(uint addr, out vec2 e00, out vec2 e10, out vec2 e01, out vec2 e11) {
-  vec4 valH = g_groupShared2x2FracEdgesH[addr];
+void groupsharedLoadQuadHV(uint addr, out vec2 e00, out vec2 e10, out vec2 e01, out vec2 e11) {
+  vec4 valH = groupShared2x2FracEdgesH[addr];
   e00.y = valH.x;
   e10.y = valH.y;
   e01.y = valH.z;
   e11.y = valH.w;
-  vec4 valV = g_groupShared2x2FracEdgesV[addr];
+  vec4 valV = groupShared2x2FracEdgesV[addr];
   e00.x = valV.x;
   e10.x = valV.y;
   e01.x = valV.z;
   e11.x = valV.w;
   }
 
-float ComputeLocalContrastV(int x, int y, in vec2 neighbourhood[4][4]) {
-  return max(max(neighbourhood[x + 1][y + 0].y, neighbourhood[x + 1][y + 1].y), max(neighbourhood[x + 2][y + 0].y, neighbourhood[x + 2][y + 1].y)) * g_CMAA2_LocalContrastAdaptationAmount;
+float computeLocalContrastV(int x, int y, in vec2 neighbourhood[4][4]) {
+  return max(max(neighbourhood[x + 1][y + 0].y, neighbourhood[x + 1][y + 1].y), max(neighbourhood[x + 2][y + 0].y, neighbourhood[x + 2][y + 1].y)) * cmaa2LocalContrastAdaptationAmount;
   }
 
-float ComputeLocalContrastH(int x, int y, in vec2 neighbourhood[4][4]) {
-  return max(max(neighbourhood[x + 0][y + 1].x, neighbourhood[x + 1][y + 1].x), max(neighbourhood[x + 0][y + 2].x, neighbourhood[x + 1][y + 2].x)) * g_CMAA2_LocalContrastAdaptationAmount;
+float computeLocalContrastH(int x, int y, in vec2 neighbourhood[4][4]) {
+  return max(max(neighbourhood[x + 0][y + 1].x, neighbourhood[x + 1][y + 1].x), max(neighbourhood[x + 0][y + 2].x, neighbourhood[x + 1][y + 2].x)) * cmaa2LocalContrastAdaptationAmount;
   }
 
-uint PackEdges(vec4 edges) {
+uint packEdges(vec4 edges) {
   return uint(dot(edges, vec4(1, 2, 4, 8)));
   }
 
@@ -106,68 +102,67 @@ void main() {
   uvec4 outEdges = uvec4(0);
 
   {
-    uint msaaSampleIndex = 0;
 
 #if CMAA2_EDGE_DETECTION_LUMA_PATH == 0
     vec3 pixelColors[3 * 3 - 1];
     for (i = 0; i < 3 * 3 - 1; i++)
-      pixelColors[i] = LoadSourceColor(ivec2(pixelPos), ivec2(i % 3, i / 3), int(msaaSampleIndex));
+      pixelColors[i] = loadSourceColor(ivec2(pixelPos), ivec2(i % 3, i / 3));
 
     for (i = 0; i < 3 * 3 - 1; i++)
-      pixelColors[i] = ProcessColorForEdgeDetect(pixelColors[i]);
+      pixelColors[i] = processColorForEdgeDetect(pixelColors[i]);
 
-    qe0 = ComputeEdge(0, 0, pixelColors);
-    qe1 = ComputeEdge(1, 0, pixelColors);
-    qe2 = ComputeEdge(0, 1, pixelColors);
-    qe3 = ComputeEdge(1, 1, pixelColors);
+    qe0 = computeEdge(0, 0, pixelColors);
+    qe1 = computeEdge(1, 0, pixelColors);
+    qe2 = computeEdge(0, 1, pixelColors);
+    qe3 = computeEdge(1, 1, pixelColors);
 #else
   float pixelLumas[3 * 3 - 1];
   #if CMAA2_EDGE_DETECTION_LUMA_PATH == 1
     for (i = 0; i < 3 * 3 - 1; i++) {
-      vec3 color = LoadSourceColor(ivec2(pixelPos), ivec2(i % 3, i / 3), int(msaaSampleIndex));
-      pixelLumas[i] = RGBToLumaForEdges(color);
+      vec3 color = loadSourceColor(ivec2(pixelPos), ivec2(i % 3, i / 3));
+      pixelLumas[i] = rgbToLumaForEdges(color);
       }
   #elif CMAA2_EDGE_DETECTION_LUMA_PATH == 2
-    vec2 texSize = textureSize(g_inLumaReadonly, 0);
+    vec2 texSize = textureSize(inputLumaReadonly, 0);
     vec2 gatherUV = (vec2(pixelPos) + vec2(0.5, 0.5)) / texSize;
-    vec4 TL = textureGather(g_inLumaReadonly, gatherUV);
-    vec4 TR = textureGatherOffset(g_inLumaReadonly, gatherUV, ivec2( 1, 0 ));
-    vec4 BL = textureGatherOffset(g_inLumaReadonly, gatherUV, ivec2( 0, 1 ));
+    vec4 TL = textureGather(inputLumaReadonly, gatherUV);
+    vec4 TR = textureGatherOffset(inputLumaReadonly, gatherUV, ivec2( 1, 0 ));
+    vec4 BL = textureGatherOffset(inputLumaReadonly, gatherUV, ivec2( 0, 1 ));
     pixelLumas[0] = TL.w; pixelLumas[1] = TL.z; pixelLumas[2] = TR.z;
     pixelLumas[3] = TL.x; pixelLumas[4] = TL.y; pixelLumas[5] = TR.y;
     pixelLumas[6] = BL.x; pixelLumas[7] = BL.y;
   #elif CMAA2_EDGE_DETECTION_LUMA_PATH == 3
-    vec2 texSize = textureSize(g_inoutColorReadonly, 0);
+    vec2 texSize = textureSize(inputColorReadonly, 0);
     vec2 gatherUV = (vec2(pixelPos) + vec2( 0.5, 0.5 )) / texSize;
-    vec4 TL = textureGather(g_inoutColorReadonly, gatherUV, 3);
-    vec4 TR = textureGatherOffset(g_inoutColorReadonly, gatherUV, ivec2( 1, 0 ), 3);
-    vec4 BL = textureGatherOffset(g_inoutColorReadonly, gatherUV, ivec2( 0, 1 ), 3);
+    vec4 TL = textureGather(inputColorReadonly, gatherUV, 3);
+    vec4 TR = textureGatherOffset(inputColorReadonly, gatherUV, ivec2( 1, 0 ), 3);
+    vec4 BL = textureGatherOffset(inputColorReadonly, gatherUV, ivec2( 0, 1 ), 3);
     pixelLumas[0] = TL.w; pixelLumas[1] = TL.z; pixelLumas[2] = TR.z; pixelLumas[3] = TL.x; 
     pixelLumas[4] = TL.y; pixelLumas[5] = TR.y; pixelLumas[6] = BL.x; pixelLumas[7] = BL.y;
   #endif
 
-    qe0 = ComputeEdgeLuma(0, 0, pixelLumas);
-    qe1 = ComputeEdgeLuma(1, 0, pixelLumas);
-    qe2 = ComputeEdgeLuma(0, 1, pixelLumas);
-    qe3 = ComputeEdgeLuma(1, 1, pixelLumas);
+    qe0 = computeEdgeLuma(0, 0, pixelLumas);
+    qe1 = computeEdgeLuma(1, 0, pixelLumas);
+    qe2 = computeEdgeLuma(0, 1, pixelLumas);
+    qe3 = computeEdgeLuma(1, 1, pixelLumas);
 #endif
 
-    g_groupShared2x2FracEdgesV[centerAddr2x2] = vec4(qe0.x, qe1.x, qe2.x, qe3.x);
-    g_groupShared2x2FracEdgesH[centerAddr2x2] = vec4(qe0.y, qe1.y, qe2.y, qe3.y);
+    groupShared2x2FracEdgesV[centerAddr2x2] = vec4(qe0.x, qe1.x, qe2.x, qe3.x);
+    groupShared2x2FracEdgesH[centerAddr2x2] = vec4(qe0.y, qe1.y, qe2.y, qe3.y);
 
     memoryBarrierShared();
     barrier();
 
     if(inOutputKernel) {
-      vec2 topRow = g_groupShared2x2FracEdgesH[centerAddr2x2 - rowStride2x2].zw;
-      vec2 leftColumn = g_groupShared2x2FracEdgesV[centerAddr2x2 - 1].yw;
+      vec2 topRow = groupShared2x2FracEdgesH[centerAddr2x2 - rowStride2x2].zw;
+      vec2 leftColumn = groupShared2x2FracEdgesV[centerAddr2x2 - 1].yw;
 
       bool someNonZeroEdges = any(notEqual(vec4(qe0, qe1) + vec4(qe2, qe3) + vec4(topRow[0], topRow[1], leftColumn[0], leftColumn[1]), vec4(0)));
       if(someNonZeroEdges) {
         // Clear deferred color list heads to empty (if potentially needed - even though 
         // some edges might get culled by local contrast adaptation step below, 
         // it's still cheaper to just clear it without additional logic)
-        imageStore(g_workingDeferredBlendItemListHeads, ivec2(pixelPos) / 2, uvec4(0xFFFFFFFF, 0, 0, 0));
+        imageStore(workingDeferredBlendItemListHeads, ivec2(pixelPos) / 2, uvec4(0xFFFFFFFF, 0, 0, 0));
         // local contrast adaptation
 
         vec4 ce[4];
@@ -175,13 +170,13 @@ void main() {
         vec2 neighbourhood[4][4];
         
         // load & unpack kernel data from SLM
-        GroupsharedLoadQuadHV(centerAddr2x2 - rowStride2x2 - 1, dummyd0, dummyd1, dummyd2, neighbourhood[0][0]);
-        GroupsharedLoadQuadHV(centerAddr2x2 - rowStride2x2, dummyd0, dummyd1, neighbourhood[1][0], neighbourhood[2][0]);
-        GroupsharedLoadQuadHV(centerAddr2x2 - rowStride2x2 + 1, dummyd0, dummyd1, neighbourhood[3][0], dummyd2);
-        GroupsharedLoadQuadHV(centerAddr2x2 - 1, dummyd0, neighbourhood[0][1], dummyd1, neighbourhood[0][2]);
-        GroupsharedLoadQuadHV(centerAddr2x2 + 1, neighbourhood[3][1], dummyd0, neighbourhood[3][2], dummyd1);
-        GroupsharedLoadQuadHV(centerAddr2x2 - 1 + rowStride2x2, dummyd0, neighbourhood[0][3], dummyd1, dummyd2);
-        GroupsharedLoadQuadHV(centerAddr2x2 + rowStride2x2, neighbourhood[1][3], neighbourhood[2][3], dummyd0, dummyd1);
+        groupsharedLoadQuadHV(centerAddr2x2 - rowStride2x2 - 1, dummyd0, dummyd1, dummyd2, neighbourhood[0][0]);
+        groupsharedLoadQuadHV(centerAddr2x2 - rowStride2x2, dummyd0, dummyd1, neighbourhood[1][0], neighbourhood[2][0]);
+        groupsharedLoadQuadHV(centerAddr2x2 - rowStride2x2 + 1, dummyd0, dummyd1, neighbourhood[3][0], dummyd2);
+        groupsharedLoadQuadHV(centerAddr2x2 - 1, dummyd0, neighbourhood[0][1], dummyd1, neighbourhood[0][2]);
+        groupsharedLoadQuadHV(centerAddr2x2 + 1, neighbourhood[3][1], dummyd0, neighbourhood[3][2], dummyd1);
+        groupsharedLoadQuadHV(centerAddr2x2 - 1 + rowStride2x2, dummyd0, neighbourhood[0][3], dummyd1, dummyd2);
+        groupsharedLoadQuadHV(centerAddr2x2 + rowStride2x2, neighbourhood[1][3], neighbourhood[2][3], dummyd0, dummyd1);
         // TODO: optimize
         neighbourhood[1][0].y = topRow[0];
         neighbourhood[2][0].y = topRow[1];
@@ -193,19 +188,19 @@ void main() {
         neighbourhood[1][2] = qe2;
         neighbourhood[2][2] = qe3;
 
-        topRow[0] = float((topRow[0] - ComputeLocalContrastH(0, -1, neighbourhood)) > GetActualEdgeThreshold());
-        topRow[1] = float((topRow[1] - ComputeLocalContrastH(1, -1, neighbourhood)) > GetActualEdgeThreshold());
-        leftColumn[0] = float((leftColumn[0] - ComputeLocalContrastV(-1, 0, neighbourhood)) > GetActualEdgeThreshold());
-        leftColumn[1] = float((leftColumn[1] - ComputeLocalContrastV(-1, 1, neighbourhood)) > GetActualEdgeThreshold());
+        topRow[0] = float((topRow[0] - computeLocalContrastH(0, -1, neighbourhood)) > cmaa2EdgeThreshold);
+        topRow[1] = float((topRow[1] - computeLocalContrastH(1, -1, neighbourhood)) > cmaa2EdgeThreshold);
+        leftColumn[0] = float((leftColumn[0] - computeLocalContrastV(-1, 0, neighbourhood)) > cmaa2EdgeThreshold);
+        leftColumn[1] = float((leftColumn[1] - computeLocalContrastV(-1, 1, neighbourhood)) > cmaa2EdgeThreshold);
 
-        ce[0].x = float((qe0.x - ComputeLocalContrastV(0, 0, neighbourhood)) > GetActualEdgeThreshold());
-        ce[0].y = float((qe0.y - ComputeLocalContrastH(0, 0, neighbourhood)) > GetActualEdgeThreshold());
-        ce[1].x = float((qe1.x - ComputeLocalContrastV(1, 0, neighbourhood)) > GetActualEdgeThreshold());
-        ce[1].y = float((qe1.y - ComputeLocalContrastH(1, 0, neighbourhood)) > GetActualEdgeThreshold());
-        ce[2].x = float((qe2.x - ComputeLocalContrastV(0, 1, neighbourhood)) > GetActualEdgeThreshold());
-        ce[2].y = float((qe2.y - ComputeLocalContrastH(0, 1, neighbourhood)) > GetActualEdgeThreshold());
-        ce[3].x = float((qe3.x - ComputeLocalContrastV(1, 1, neighbourhood)) > GetActualEdgeThreshold());
-        ce[3].y = float((qe3.y - ComputeLocalContrastH(1, 1, neighbourhood)) > GetActualEdgeThreshold());
+        ce[0].x = float((qe0.x - computeLocalContrastV(0, 0, neighbourhood)) > cmaa2EdgeThreshold);
+        ce[0].y = float((qe0.y - computeLocalContrastH(0, 0, neighbourhood)) > cmaa2EdgeThreshold);
+        ce[1].x = float((qe1.x - computeLocalContrastV(1, 0, neighbourhood)) > cmaa2EdgeThreshold);
+        ce[1].y = float((qe1.y - computeLocalContrastH(1, 0, neighbourhood)) > cmaa2EdgeThreshold);
+        ce[2].x = float((qe2.x - computeLocalContrastV(0, 1, neighbourhood)) > cmaa2EdgeThreshold);
+        ce[2].y = float((qe2.y - computeLocalContrastH(0, 1, neighbourhood)) > cmaa2EdgeThreshold);
+        ce[3].x = float((qe3.x - computeLocalContrastV(1, 1, neighbourhood)) > cmaa2EdgeThreshold);
+        ce[3].y = float((qe3.y - computeLocalContrastH(1, 1, neighbourhood)) > cmaa2EdgeThreshold);
 
         ce[0].z = leftColumn[0];
         ce[1].z = ce[0].x;
@@ -226,14 +221,14 @@ void main() {
           bool isCandidate = (edges.x * edges.y + edges.y * edges.z + edges.z * edges.w + edges.w * edges.x) != 0;
           if(isCandidate) {
             uint counterIndex;
-            counterIndex = atomicAdd(g_workingControlBuffer[4], 1);
-            g_workingShapeCandidates[counterIndex] = (localPixelPos.x << 18) | (msaaSampleIndex << 14) | localPixelPos.y;
+            counterIndex = atomicAdd(workingControlBuffer[4], 1);
+            // 14-17 bits are free
+            workingShapeCandidates[counterIndex] = (localPixelPos.x << 18) | localPixelPos.y;
             }
 
           // Write out edges - we write out all, including empty pixels, to make sure shape detection edge tracing
           // doesn't continue on previous frame's edges that no longer exist.
-          uint packedEdge = PackEdges(edges);
-          outEdges[i] = packedEdge;
+          outEdges[i] = packEdges(edges);;
           }
         }
       }
@@ -242,15 +237,15 @@ void main() {
   if(inOutputKernel) {
 #if defined(CMAA_PACK_SINGLE_SAMPLE_EDGE_TO_HALF_WIDTH)
   #if CMAA2_EDGE_UNORM
-    imageStore(g_workingEdges, ivec2(pixelPos.x / 2, pixelPos.y + 0), vec4(((outEdges[1] << 4) | outEdges[0]) / 255.0));
-    imageStore(g_workingEdges, ivec2(pixelPos.x / 2, pixelPos.y + 1), vec4(((outEdges[3] << 4) | outEdges[2]) / 255.0));
+    imageStore(workingEdges, ivec2(pixelPos.x / 2, pixelPos.y + 0), vec4(((outEdges[1] << 4) | outEdges[0]) / 255.0));
+    imageStore(workingEdges, ivec2(pixelPos.x / 2, pixelPos.y + 1), vec4(((outEdges[3] << 4) | outEdges[2]) / 255.0));
   #else
-    imageStore(g_workingEdges, ivec2(pixelPos.x / 2, pixelPos.y + 0), uvec4((outEdges[1] << 4) | outEdges[0]));
-    imageStore(g_workingEdges, ivec2(pixelPos.x / 2, pixelPos.y + 1), uvec4((outEdges[3] << 4) | outEdges[2]));
+    imageStore(workingEdges, ivec2(pixelPos.x / 2, pixelPos.y + 0), uvec4((outEdges[1] << 4) | outEdges[0]));
+    imageStore(workingEdges, ivec2(pixelPos.x / 2, pixelPos.y + 1), uvec4((outEdges[3] << 4) | outEdges[2]));
   #endif
 #else
     for(uint i = 0; i < 4; i++)
-      imageStore(g_workingEdges, ivec2(pixelPos + qeOffsets[i]), uvec4(outEdges[i]));
+      imageStore(workingEdges, ivec2(pixelPos + qeOffsets[i]), uvec4(outEdges[i]));
 #endif
     }
   }

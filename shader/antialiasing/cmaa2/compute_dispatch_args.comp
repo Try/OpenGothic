@@ -18,20 +18,20 @@ layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 void main() {
   if(push.setupProcessCandidatesPassFlag != 0) {
-    uint shapeCandidateCount = g_workingControlBuffer[4];
+    uint shapeCandidateCount = workingControlBuffer[4];
 
-    uint appendBufferMaxCount = g_workingShapeCandidates.length();
+    uint appendBufferMaxCount = workingShapeCandidates.length();
     shapeCandidateCount = min(shapeCandidateCount, appendBufferMaxCount);
 
     g_workingExecuteIndirectBuffer[0] = (shapeCandidateCount + CMAA2_PROCESS_CANDIDATES_NUM_THREADS - 1) / CMAA2_PROCESS_CANDIDATES_NUM_THREADS;
     g_workingExecuteIndirectBuffer[1] = 1;
     g_workingExecuteIndirectBuffer[2] = 1;
 
-    g_workingControlBuffer[3] = shapeCandidateCount;
+    workingControlBuffer[3] = shapeCandidateCount;
     } else /*setup deferred apply process*/ {
-    uint blendLocationCount = g_workingControlBuffer[8];
+    uint blendLocationCount = workingControlBuffer[8];
 
-    uint appendBufferMaxCount = g_workingDeferredBlendLocationList.length();
+    uint appendBufferMaxCount = workingDeferredBlendLocationList.length();
     blendLocationCount = min(blendLocationCount, appendBufferMaxCount);
 
 #if CMAA2_DEFERRED_APPLY_THREADGROUP_SWAP
@@ -43,10 +43,10 @@ void main() {
 #endif
     g_workingExecuteIndirectBuffer[2] = 1;
 
-    g_workingControlBuffer[3] = blendLocationCount;
+    workingControlBuffer[3] = blendLocationCount;
 
-    g_workingControlBuffer[4] = 0;
-    g_workingControlBuffer[8] = 0;
-    g_workingControlBuffer[12] = 0;
+    workingControlBuffer[4] = 0;
+    workingControlBuffer[8] = 0;
+    workingControlBuffer[12] = 0;
     }
   }

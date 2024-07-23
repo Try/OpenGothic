@@ -4,6 +4,7 @@
 #extension GL_GOOGLE_include_directive          : enable
 #extension GL_EXT_control_flow_attributes       : enable
 
+#include "common.glsl"
 #include "cmaa2_common.glsl"
 
 #define CMAA2_UAV_STORE_TYPED
@@ -11,12 +12,12 @@
 
 #ifdef CMAA2_UAV_STORE_TYPED
   #ifdef CMAA2_UAV_STORE_TYPED_UNORM_FLOAT
-    layout(rgba8, binding = 8) uniform writeonly image2D g_inoutColorWriteonly;
+    layout(rgba8, binding = 8) uniform writeonly image2D outputColor;
   #else
-    layout(rgba32f, binding = 8) uniform writeonly image2D g_inoutColorWriteonly;
+    layout(rgba32f, binding = 8) uniform writeonly image2D outputColor;
   #endif
 #else
-  layout(r32ui, binding = 8) uniform writeonly uimage2D g_inoutColorWriteonly;
+  layout(r32ui, binding = 8) uniform writeonly uimage2D outputColor;
 #endif
 
 #if CMAA2_DEFERRED_APPLY_THREADGROUP_SWAP
@@ -27,7 +28,7 @@
 
 void FinalUAVStore(uvec2 pixelPos, vec3 color) {
 #if CMAA2_UAV_STORE_CONVERT_TO_SRGB
-  color = LINEAR_to_SRGB(color);
+  color = srgbEncode(color);
 #endif
   
 #ifndef CMAA2_UAV_STORE_UNTYPED_FORMAT
@@ -35,12 +36,12 @@ void FinalUAVStore(uvec2 pixelPos, vec3 color) {
 #endif
 
 #ifdef CMAA2_UAV_STORE_TYPED
-  imageStore(g_inoutColorWriteonly, ivec2(pixelPos), vec4(color, 1));
+  imageStore(outputColor, ivec2(pixelPos), vec4(color, 1));
 #else
   #if CMAA2_UAV_STORE_UNTYPED_FORMAT == 1
-    imageStore(g_inoutColorWriteonly, ivec2(pixelPos), uvec4(FLOAT4_to_R8G8B8A8_UNORM(vec4(color, 1))));
+    imageStore(outputColor, ivec2(pixelPos), uvec4(packUnorm4x8(vec4(color, 1))));
   #elif CMAA2_UAV_STORE_UNTYPED_FORMAT == 2
-    imageStore(g_inoutColorWriteonly, ivec2(pixelPos), uvec4(FLOAT4_to_R10G10B10A2_UNORM(vec4(color, 1))));
+    imageStore(outputColor, ivec2(pixelPos), uvec4(packR10G10B10A2Unorm(vec4(color, 1))));
   #else
     #error CMAA color packing format not defined - add it here!
   #endif
@@ -48,7 +49,7 @@ void FinalUAVStore(uvec2 pixelPos, vec3 color) {
   }
 
 void main() {
-  const uint numCandidates = g_workingControlBuffer[3];
+  const uint numCandidates = workingControlBuffer[3];
 
 #if CMAA2_DEFERRED_APPLY_THREADGROUP_SWAP
   const uint currentCandidate = gl_GlobalInvocationID.y;
@@ -61,27 +62,26 @@ void main() {
   if(currentCandidate >= numCandidates)
     return;
 
-  uint pixelID = g_workingDeferredBlendLocationList[currentCandidate];
+  uint pixelID = workingDeferredBlendLocationList[currentCandidate];
   uvec2 quadPos = uvec2((pixelID >> 16), pixelID & 0xFFFF);
   const ivec2 qeOffsets[4] = ivec2[4](ivec2(0, 0), ivec2(1, 0), ivec2(0, 1), ivec2(1, 1));
   uvec2 pixelPos = quadPos * 2u + uvec2(qeOffsets[currentQuadOffsetXY]);
 
-  uint counterIndexWithHeader = imageLoad(g_workingDeferredBlendItemListHeads, ivec2(quadPos)).r;
+  uint counterIndexWithHeader = imageLoad(workingDeferredBlendItemListHeads, ivec2(quadPos)).r;
 
   vec4 outColors = vec4(0);
 
   const uint maxLoops = 32u;
   for(uint i = 0; (counterIndexWithHeader != 0xFFFFFFFF) && (i < maxLoops); i++) {
     uint offsetXY = (counterIndexWithHeader >> 30) & 0x03;
-    uint msaaSampleIndex = (counterIndexWithHeader >> 27) & 0x07;
     bool isComplexShape = bool((counterIndexWithHeader >> 26) & 0x01);
 
-    uvec2 val = g_workingDeferredBlendItemList[counterIndexWithHeader & ((1u << 26) - 1)];
+    uvec2 val = workingDeferredBlendItemList[counterIndexWithHeader & ((1u << 26) - 1)];
 
     counterIndexWithHeader = val.x;
 
     if(offsetXY == currentQuadOffsetXY) {
-      vec3 color = InternalUnpackColor(val.y);
+      vec3 color = internalUnpackColor(val.y);
       float weight = 0.8 + 1.0 * float(isComplexShape);
       outColors += vec4(color * weight, weight);
       }
