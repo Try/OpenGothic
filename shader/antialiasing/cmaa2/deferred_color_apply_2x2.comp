@@ -26,7 +26,7 @@
   layout(local_size_x = CMAA2_DEFERRED_APPLY_NUM_THREADS, local_size_y = 4, local_size_z = 1) in;
 #endif
 
-void FinalUAVStore(uvec2 pixelPos, vec3 color) {
+void finalUAVStore(uvec2 pixelPos, vec3 color) {
 #if CMAA2_UAV_STORE_CONVERT_TO_SRGB
   color = srgbEncode(color);
 #endif
@@ -92,5 +92,5 @@ void main() {
 
   vec4 outColor = vec4(outColors);
   outColor.rgb /= outColor.a;
-  FinalUAVStore(pixelPos, outColor.rgb);
+  finalUAVStore(pixelPos, outColor.rgb);
   }

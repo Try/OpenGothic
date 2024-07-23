@@ -87,7 +87,7 @@ void Renderer::resetSwapchain() {
     } else if(settings.cmaa2Enabled) {
     cmaa2.sceneTonemapped = device.image2d(TextureFormat::RGBA8, w, h);
     // TODO: add R16F support later
-    cmaa2.sceneHdrLumaUav = device.image2d(TextureFormat::R32F, w, h);
+    cmaa2.sceneHdrLuma = device.image2d(TextureFormat::R32F, w, h);
     }
 
   if(settings.cmaa2Enabled) {
@@ -677,7 +677,7 @@ void Renderer::drawTonemapping(Encoder<CommandBuffer>& cmd, Attachment* renderTa
     cmd.setFramebuffer({});
 
     tonemapping.uboTone.set(2, cmaa2.sceneTonemapped);
-    tonemapping.uboTone.set(3, cmaa2.sceneHdrLumaUav);
+    tonemapping.uboTone.set(3, cmaa2.sceneHdrLuma);
     cmd.setUniforms(*tonemapping.computePso, tonemapping.uboTone, &p, sizeof(p));
     cmd.dispatchThreads(cmaa2.sceneTonemapped.size());
     } else {

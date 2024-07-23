@@ -140,7 +140,7 @@ class Renderer final {
 
     struct Cmaa2 {
       Tempest::StorageImage    sceneTonemapped;
-      Tempest::StorageImage    sceneHdrLumaUav;
+      Tempest::StorageImage    sceneHdrLuma;
 
       Tempest::ComputePipeline* detectEdges2x2 = nullptr;
       Tempest::DescriptorSet    detectEdges2x2Ubo;

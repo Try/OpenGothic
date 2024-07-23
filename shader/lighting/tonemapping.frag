@@ -14,22 +14,6 @@
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
 layout(binding = 2) uniform writeonly image2D tonemappedOutput;
 layout(binding = 3) uniform writeonly image2D hdrLumaOutput;
-
-/* layout:
-0 1 4 5 ... 
-2 3 6 7 ...
-16 17 ...
-18 19 ...
-*/
-uvec2 getRemmappedPixelPos(uvec2 groupID, uint localThreadIndex)
-{
-  uvec2 groupOffset = groupID * gl_WorkGroupSize.xy;
-  uint row = ((localThreadIndex >> 4) << 1) | ((localThreadIndex & 2) >> 1);
-  uint col = (((localThreadIndex >> 2) << 1) & 7) | (localThreadIndex & 1);
-
-  return groupOffset + uvec2(row, col);
-  }
-
 #else
 layout(location = 0) in  vec2 uv;
 layout(location = 0) out vec4 outColor;
@@ -135,7 +119,7 @@ void main() {
 
 #if defined(COMPUTE)
   uvec2 targetRes = uvec2(imageSize(tonemappedOutput));
-  uvec2 targetPixPos = getRemmappedPixelPos(gl_WorkGroupID.xy, gl_LocalInvocationIndex);
+  uvec2 targetPixPos = gl_WorkGroupID.xy * gl_WorkGroupSize.xy + gl_GlobalInvocationID.xy;
 
   if(any(greaterThanEqual(targetPixPos, targetRes))) {
     return;
