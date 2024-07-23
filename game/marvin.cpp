@@ -407,14 +407,14 @@ bool Marvin::addItemOrNpcBySymbolName(World* world, std::string_view name, const
     return false;
 
   auto*  sym = sc.findSymbol(id);
-  if(sym==nullptr||sym->parent()==uint32_t(-1))
+  if(sym==nullptr || sym->parent()==uint32_t(-1))
     return false;
 
   if(sym->type()!=zenkit::DaedalusDataType::INSTANCE)
     return false;
 
   const auto* cls = sym;
-  while(cls!=nullptr&&cls->parent()!=uint32_t(-1)) {
+  while(cls!=nullptr && cls->parent()!=uint32_t(-1)) {
     cls = sc.findSymbol(cls->parent());
     }
 

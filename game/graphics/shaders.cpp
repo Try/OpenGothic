@@ -146,12 +146,7 @@ Shaders::Shaders() {
   cmaa2DeferredColorApply2x2 = computeShader("cmaa2_deferred_color_apply_2x2.comp.sprv");
 
   hiZPot = computeShader("hiz_pot.comp.sprv");
-  hiZMip = computeShader("hiz_mip_img.comp.sprv");
-  /*
-  if(device.properties().hasAtomicFormat(TextureFormat::R32U))
-    hiZMip = computeShader("hiz_mip_img.comp.sprv"); else
-    hiZMip = computeShader("hiz_mip.comp.sprv");
-    */
+  hiZMip = computeShader("hiz_mip.comp.sprv");
 
   if(meshlets && device.properties().meshlets.maxGroupSize.x>=256) {
     RenderState state;

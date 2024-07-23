@@ -5,11 +5,7 @@
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
-#if defined(ATOMIC_IMG)
 layout(binding = 0, r32ui)    uniform coherent uimage2D  counters;
-#else
-layout(binding = 0, std430)   buffer  coherent Cbo { uint counters[]; };
-#endif
 layout(binding = 1, r16)      uniform coherent image2D   mip0;
 layout(binding = 2, r16)      uniform coherent image2D   mip1;
 layout(binding = 3, r16)      uniform coherent image2D   mip2;
@@ -24,11 +20,16 @@ layout(push_constant, std140) uniform PushConstant {
   uint mipCount;
   };
 
-#if !defined(ATOMIC_IMG)
-uint countersW = max(imageSize(mip0).x/4, 1);
-#endif
-
 float load(int mip, ivec2 uv) {
+#if defined(IOS)
+  // ios metal-shader compiller has ugly bug:
+  // https://developer.apple.com/forums/thread/750478
+  switch(mip) {
+    case 0: return imageLoad(mip0, uv).x;
+    default: return 1;
+    }
+  return 1;
+#else
   switch(mip) {
     case 0: return imageLoad(mip0, uv).x;
     case 1: return imageLoad(mip1, uv).x;
@@ -40,6 +41,7 @@ float load(int mip, ivec2 uv) {
     case 7: return imageLoad(mip7, uv).x;
     }
   return -1;
+#endif
   }
 
 void store(int mip, ivec2 uv, float z) {
@@ -78,22 +80,14 @@ float gather(int mip, ivec2 srcUV0, ivec2 srcUV1) {
 
 uint addCounter(int mip, ivec2 uv) {
   uint bit     = (mip-1)*3;
-#if defined(ATOMIC_IMG)
   uint counter = imageAtomicAdd(counters, uv, 1u << bit);
-#else
-  uint counter = atomicAdd(counters[uv.x + uv.y*countersW], 1u << bit);
-#endif
   counter = (counter >> bit) & 0x3;
   return counter+1;
   }
 
 void clearCounter(int mip, ivec2 uv) {
   uint bits = 0x7u << ((mip-1)*3);
-#if defined(ATOMIC_IMG)
   imageAtomicAnd(counters, uv, ~bits);
-#else
-  atomicAnd(counters[uv.x + uv.y*countersW], ~bits);
-#endif
   }
 
 void main() {
