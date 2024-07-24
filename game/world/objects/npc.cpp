@@ -174,6 +174,7 @@ Npc::Npc(World &owner, size_t instance, std::string_view waypoint)
     invent.autoEquipWeapons(*this);
   if(hnpc->damage_type==0)
     hnpc->damage_type = 2;
+  setTrueGuild(hnpc->guild); // https://worldofplayers.ru/threads/12446/post-878087
   }
 
 Npc::~Npc(){
