@@ -170,7 +170,7 @@ Npc::Npc(World &owner, size_t instance, std::string_view waypoint)
   hnpc->wp       = std::string(waypoint);
 
   // vanilla behavior: equip best weapon and set non-zero damage type
-  if(!isMonster() && !isPlayer())
+  if(!isPlayer())
     invent.autoEquipWeapons(*this);
   if(hnpc->damage_type==0)
     hnpc->damage_type = 2;
@@ -476,8 +476,7 @@ bool Npc::resetPositionToTA() {
 
   if(!isDead) {
     attachToPoint(at);
-    if(!isMonster())
-      invent.autoEquipWeapons(*this);
+    invent.autoEquipWeapons(*this);
     }
 
   if(g2)
