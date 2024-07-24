@@ -168,6 +168,13 @@ Npc::Npc(World &owner, size_t instance, std::string_view waypoint)
 
   owner.script().initializeInstanceNpc(hnpc, instance);
   hnpc->wp       = std::string(waypoint);
+
+  // vanilla behavior: equip best weapon and set non-zero damage type
+  if(!isPlayer())
+    invent.autoEquipWeapons(*this);
+  if(hnpc->damage_type==0)
+    hnpc->damage_type = 2;
+  setTrueGuild(hnpc->guild); // https://worldofplayers.ru/threads/12446/post-878087
   }
 
 Npc::~Npc(){
@@ -432,15 +439,12 @@ float Npc::angleDir(float x, float z) {
   }
 
 bool Npc::resetPositionToTA() {
-  const bool g2     = owner.version().game==2;
-  const bool isDead = this->isDead();
+  const bool g2       = owner.version().game==2;
+  const bool isDragon = (g2 && guild()==GIL_DRAGON);
+  const bool isDead   = this->isDead();
 
-  if(isDead && !invent.hasMissionItems()) {
-    const bool isDragon         = (g2 && guild()==GIL_DRAGON);
-    const bool isBackgroundBody = (hnpc->attribute[ATR_HITPOINTSMAX]==1);
-    if(!isBackgroundBody && !isDragon)
-      return false;
-    }
+  if(isDead && !invent.hasMissionItems() && !isDragon)
+    return false;
 
   invent.clearSlot(*this,"",currentInteract!=nullptr);
   if(!isPlayer())
@@ -471,8 +475,14 @@ bool Npc::resetPositionToTA() {
   setDirection(at->dirX,at->dirY,at->dirZ);
   owner.script().fixNpcPosition(*this,0,0);
 
-  if(!isDead)
+  if(!isDead) {
     attachToPoint(at);
+    invent.autoEquipWeapons(*this);
+    }
+
+  if(g2)
+    owner.script().invokeRefreshAtInsert(*this);
+
   return true;
   }
 
