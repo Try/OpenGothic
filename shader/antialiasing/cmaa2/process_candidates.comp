@@ -6,7 +6,7 @@
 
 #include "cmaa2_common.glsl"
 
-layout(local_size_x = CMAA2_PROCESS_CANDIDATES_NUM_THREADS, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = CMAA2_PROCESS_CANDIDATES_NUM_THREADS, local_size_y = 1) in;
 
 // this reschedules final part of work from few to all threads to increase hardware thread occupancy
 #define CMAA2_COLLECT_EXPAND_BLEND_ITEMS 1

@@ -11,7 +11,7 @@
 #include "upscale/lanczos.glsl"
 
 #if defined(COMPUTE)
-layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+layout(local_size_x = 8, local_size_y = 8) in;
 layout(binding = 2) uniform writeonly image2D tonemappedOutput;
 layout(binding = 3) uniform writeonly image2D hdrLumaOutput;
 #else
@@ -119,7 +119,7 @@ void main() {
 
 #if defined(COMPUTE)
   uvec2 targetRes = uvec2(imageSize(tonemappedOutput));
-  uvec2 targetPixPos = gl_WorkGroupID.xy * gl_WorkGroupSize.xy + gl_GlobalInvocationID.xy;
+  uvec2 targetPixPos = gl_GlobalInvocationID.xy;
 
   if(any(greaterThanEqual(targetPixPos, targetRes))) {
     return;
