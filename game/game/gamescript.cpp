@@ -339,9 +339,11 @@ void GameScript::initCommon() {
 
     auto* vtime     = vm.find_symbol_by_name("VIEW_TIME_PER_CHAR");
     viewTimePerChar = vtime != nullptr ? vtime->get_float() : 550.f;
-    ItKE_lockpick   = vm.find_symbol_by_name("ItKE_lockpick");
     if(viewTimePerChar<=0.f)
       viewTimePerChar = 550.f;
+
+    ItKE_lockpick     = vm.find_symbol_by_name("ItKE_lockpick");
+    B_RefreshAtInsert = vm.find_symbol_by_name("B_RefreshAtInsert");
     } else {
     itMi_Gold      = vm.find_symbol_by_name("ItMiNugget");
     if(itMi_Gold!=nullptr) { // FIXME
@@ -1126,6 +1128,13 @@ void GameScript::invokePickLock(Npc& npc, int bSuccess, int bBrokenOpen) {
     return;
   ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(fn, bSuccess, bBrokenOpen);
+  }
+
+void GameScript::invokeRefreshAtInsert(Npc& npc) {
+  if(B_RefreshAtInsert==nullptr)
+    return;
+  ScopeVar self(*vm.global_self(), npc.handlePtr());
+  vm.call_function<void>(B_RefreshAtInsert);
   }
 
 CollideMask GameScript::canNpcCollideWithSpell(Npc& npc, Npc* shooter, int32_t spellId) {

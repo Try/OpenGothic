@@ -905,13 +905,11 @@ void Inventory::invalidateCond(Item *&slot, Npc &owner) {
     }
   }
 
-void Inventory::autoEquip(Npc &owner) {
-  sortItems();
-
-  auto a = bestArmour     (owner);
+void Inventory::autoEquipWeapons(Npc &owner) {
+  if(owner.isMonster())
+    return;
   auto m = bestMeleeWeapon(owner);
   auto r = bestRangeWeapon(owner);
-  setSlot(armour,a,owner,false);
   setSlot(melee ,m,owner,false);
   setSlot(range ,r,owner,false);
   }
@@ -941,8 +939,9 @@ Item *Inventory::findByClass(size_t cls) {
   }
 
 Item* Inventory::bestItem(Npc &owner, ItmFlags f) {
-  Item* ret=nullptr;
-  int   g  =-1;
+  Item*   ret    = nullptr;
+  int32_t value  = std::numeric_limits<int32_t>::min();
+  int32_t damage = std::numeric_limits<int32_t>::min();
   for(auto& i:items) {
     auto& itData = i->handle();
     auto  flag   = ItmFlags(itData.main_flag);
@@ -950,10 +949,13 @@ Item* Inventory::bestItem(Npc &owner, ItmFlags f) {
       continue;
     if(!i->checkCond(owner))
       continue;
+    if(itData.munition>0 && findByClass(size_t(itData.munition))==nullptr)
+      continue;
 
-    if(itData.value>g){
-      ret=i.get();
-      g = itData.value;
+    if(std::make_tuple(itData.damage_total, itData.value)>std::make_tuple(damage, value)){
+      ret    = i.get();
+      damage = itData.damage_total;
+      value  = itData.value;
       }
     }
   return ret;

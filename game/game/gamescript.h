@@ -137,6 +137,7 @@ class GameScript final {
     void invokeSpell(Npc& npc, Npc *target, Item&  fn);
     int  invokeCond (Npc& npc, std::string_view func);
     void invokePickLock(Npc& npc, int bSuccess, int bBrokenOpen);
+    void invokeRefreshAtInsert(Npc& npc);
     auto canNpcCollideWithSpell(Npc& npc, Npc* shooter, int32_t spellId) -> CollideMask;
 
     int  playerHotKeyScreenMap(Npc& pl);
@@ -460,6 +461,7 @@ class GameScript final {
     QuestLog                                                    quests;
     zenkit::DaedalusSymbol*                                     itMi_Gold = nullptr;
     zenkit::DaedalusSymbol*                                     ItKE_lockpick = nullptr;
+    zenkit::DaedalusSymbol*                                     B_RefreshAtInsert = nullptr;
     float                                                       tradeValMult = 0.3f;
     zenkit::DaedalusSymbol*                                     spellFxInstanceNames = nullptr;
     zenkit::DaedalusSymbol*                                     spellFxAniLetters = nullptr;
