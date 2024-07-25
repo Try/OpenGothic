@@ -3,7 +3,7 @@
 #include "dlscollection.h"
 
 #define TSF_IMPLEMENTATION
-// #define TSF_STATIC
+#define TSF_STATIC
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
