@@ -7,18 +7,7 @@
 #include "common.glsl"
 #include "cmaa2_common.glsl"
 
-#define CMAA2_UAV_STORE_TYPED
-#define CMAA2_UAV_STORE_TYPED_UNORM_FLOAT
-
-#ifdef CMAA2_UAV_STORE_TYPED
-  #ifdef CMAA2_UAV_STORE_TYPED_UNORM_FLOAT
-    layout(rgba8, binding = 8) uniform writeonly image2D outputColor;
-  #else
-    layout(rgba32f, binding = 8) uniform writeonly image2D outputColor;
-  #endif
-#else
-  layout(r32ui, binding = 8) uniform writeonly uimage2D outputColor;
-#endif
+layout(rgba8, binding = 8) uniform writeonly image2D outputColor;
 
 #if CMAA2_DEFERRED_APPLY_THREADGROUP_SWAP
   layout(local_size_x = 4, local_size_y = CMAA2_DEFERRED_APPLY_NUM_THREADS) in;
@@ -30,22 +19,8 @@ void finalUAVStore(uvec2 pixelPos, vec3 color) {
 #if CMAA2_UAV_STORE_CONVERT_TO_SRGB
   color = srgbEncode(color);
 #endif
-  
-#ifndef CMAA2_UAV_STORE_UNTYPED_FORMAT
-  #define CMAA2_UAV_STORE_UNTYPED_FORMAT 1
-#endif
 
-#ifdef CMAA2_UAV_STORE_TYPED
   imageStore(outputColor, ivec2(pixelPos), vec4(color, 1));
-#else
-  #if CMAA2_UAV_STORE_UNTYPED_FORMAT == 1
-    imageStore(outputColor, ivec2(pixelPos), uvec4(packUnorm4x8(vec4(color, 1))));
-  #elif CMAA2_UAV_STORE_UNTYPED_FORMAT == 2
-    imageStore(outputColor, ivec2(pixelPos), uvec4(packR10G10B10A2Unorm(vec4(color, 1))));
-  #else
-    #error CMAA color packing format not defined - add it here!
-  #endif
-#endif
   }
 
 void main() {

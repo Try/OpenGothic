@@ -132,11 +132,11 @@ void main() {
     pixelLumas[3] = TL.x; pixelLumas[4] = TL.y; pixelLumas[5] = TR.y;
     pixelLumas[6] = BL.x; pixelLumas[7] = BL.y;
   #elif CMAA2_EDGE_DETECTION_LUMA_PATH == 3
-    vec2 texSize = textureSize(inputColorReadonly, 0);
+    vec2 texSize = textureSize(sceneTonemapped, 0);
     vec2 gatherUV = (vec2(pixelPos) + vec2( 0.5, 0.5 )) / texSize;
-    vec4 TL = textureGather(inputColorReadonly, gatherUV, 3);
-    vec4 TR = textureGatherOffset(inputColorReadonly, gatherUV, ivec2( 1, 0 ), 3);
-    vec4 BL = textureGatherOffset(inputColorReadonly, gatherUV, ivec2( 0, 1 ), 3);
+    vec4 TL = textureGather(sceneTonemapped, gatherUV, 3);
+    vec4 TR = textureGatherOffset(sceneTonemapped, gatherUV, ivec2( 1, 0 ), 3);
+    vec4 BL = textureGatherOffset(sceneTonemapped, gatherUV, ivec2( 0, 1 ), 3);
     pixelLumas[0] = TL.w; pixelLumas[1] = TL.z; pixelLumas[2] = TR.z; pixelLumas[3] = TL.x; 
     pixelLumas[4] = TL.y; pixelLumas[5] = TR.y; pixelLumas[6] = BL.x; pixelLumas[7] = BL.y;
   #endif

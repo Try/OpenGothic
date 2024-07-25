@@ -28,7 +28,7 @@ const float symmetryCorrectionOffset = 0.22;
 const uint maxLineLength = 86;
 // 
 
-layout(binding = 0) uniform sampler2D inputColorReadonly;
+layout(binding = 0) uniform sampler2D sceneTonemapped;
 
 #if CMAA2_EDGE_UNORM 
   layout(r8, binding = 2) uniform image2D workingEdges;
@@ -64,11 +64,11 @@ vec4 unpackEdgesFlt(uint value) {
   }
 
 vec3 loadSourceColor(ivec2 pixelPos, ivec2 offset) {
-  vec3 color = texelFetch(inputColorReadonly, pixelPos + offset, 0).xyz;
+  vec3 color = texelFetch(sceneTonemapped, pixelPos + offset, 0).xyz;
   return color;
   }
 
-uint packFloat32AsFloat16AndConvertToUint(float arg) {
+uint packHalf1x16(float arg) {
   return packHalf2x16(vec2(arg, 0.));
   }
 
@@ -81,9 +81,9 @@ float unpackUintAsFloat16AndConvertToFloat32(uint arg) {
 
 uint packR11G11B10F(vec3 rgb) {
   rgb = min(rgb, uintBitsToFloat(0x477C0000));
-  uint r = ((packFloat32AsFloat16AndConvertToUint(rgb.r) + 8) >> 4) & 0x000007FF;
-  uint g = ((packFloat32AsFloat16AndConvertToUint(rgb.g) + 8) << 7) & 0x003FF800;
-  uint b = ((packFloat32AsFloat16AndConvertToUint(rgb.b) + 16) << 17) & 0xFFC00000;
+  uint r = ((packHalf1x16(rgb.r) + 8) >> 4) & 0x000007FF;
+  uint g = ((packHalf1x16(rgb.g) + 8) << 7) & 0x003FF800;
+  uint b = ((packHalf1x16(rgb.b) + 16) << 17) & 0xFFC00000;
   return r | g | b;
   }
 
@@ -97,9 +97,9 @@ vec3 unpackR11G11B10F(uint rgb) {
 // This is like R11G11B10F except that it moves one bit from each exponent to each mantissa.
 uint packR11G11B10E4F(vec3 rgb) {
   rgb = clamp(rgb, 0.0, uintBitsToFloat(0x3FFFFFFF));
-  uint r = ((packFloat32AsFloat16AndConvertToUint(rgb.r) + 4) >> 3) & 0x000007FF;
-  uint g = ((packFloat32AsFloat16AndConvertToUint(rgb.g) + 4) << 8) & 0x003FF800;
-  uint b = ((packFloat32AsFloat16AndConvertToUint(rgb.b) + 8) << 18) & 0xFFC00000;
+  uint r = ((packHalf1x16(rgb.r) + 4) >> 3) & 0x000007FF;
+  uint g = ((packHalf1x16(rgb.g) + 4) << 8) & 0x003FF800;
+  uint b = ((packHalf1x16(rgb.b) + 8) << 18) & 0xFFC00000;
   return r | g | b;
   }
 
