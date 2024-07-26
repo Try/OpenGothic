@@ -393,7 +393,7 @@ const Animation::Sequence* AnimationSolver::solveAnim(std::string_view scheme, b
     name = string_frm("T_MAGMOVE_2_",scheme,"CAST");
   else if(run)
     name = string_frm("T_MAGMOVE_2_",scheme,"SHOOT");
-  else if(run)
+  else if(invest)
     name = string_frm("T_MAGRUN_2_",scheme,"CAST");
   else
     name = string_frm("T_MAGRUN_2_",scheme,"SHOOT");
