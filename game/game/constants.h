@@ -473,4 +473,4 @@ enum class Cmaa2Preset : uint32_t {
   MEDIUM,
   ULTRA,
   PRESETS_COUNT
-};
+  };
