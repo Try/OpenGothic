@@ -3,11 +3,12 @@
 #include "dlscollection.h"
 
 #define TSF_IMPLEMENTATION
-// #define TSF_STATIC
+#define TSF_STATIC
 
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
+#pragma GCC diagnostic ignored "-Wunused-function"
 #include "tsf.h"
 #pragma GCC diagnostic pop
 #else
