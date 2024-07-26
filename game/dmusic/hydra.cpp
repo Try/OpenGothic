@@ -297,6 +297,30 @@ bool Hydra::hasNotes(tsf *tsf) {
   return false;
   }
 
+void Hydra::noteOn(tsf* f, int presetId, int key, float vel) {
+  tsf_note_on(f, presetId, key, vel);
+  }
+
+void Hydra::noteOff(tsf* f, int presetId, int key) {
+  tsf_note_off(f, presetId, key);
+  }
+
+int  Hydra::presetIndex(const tsf* f, int bank, int presetNum) {
+  return tsf_get_presetindex(f, bank, presetNum);
+  }
+
+void Hydra::renderFloat(tsf* f, float* buffer, int samples, int flag) {
+  tsf_render_float(f, buffer, samples, flag);
+  }
+
+int  Hydra::channelSetPan(tsf* f, int channel, float pan) {
+  return tsf_channel_set_pan(f, channel, pan);
+  }
+
+void Hydra::setOutput(tsf* f, int samplerate, float gain) {
+  tsf_set_output(f, TSF_STEREO_INTERLEAVED, samplerate, gain);
+  }
+
 tsf *Hydra::toTsf() {
   tsf_hydra hydra={};
   toTsf(hydra);

@@ -6,15 +6,6 @@
 #include "dlscollection.h"
 #include "hydra.h"
 
-#ifdef __GNUC__
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#include "tsf.h"
-#pragma GCC diagnostic pop
-#else
-#include "tsf.h"
-#endif
-
 using namespace Dx8;
 using namespace Tempest;
 
@@ -152,8 +143,8 @@ struct SoundFont::Instance {
     int32_t bank   = (bankHi << 16) + bankLo;
 
     fnt    = shData->hydra.toTsf();
-    preset = tsf_get_presetindex(fnt, bank, patch);
-    tsf_set_output(fnt,TSF_STEREO_INTERLEAVED,44100,0);
+    preset = Hydra::presetIndex(fnt, bank, patch);
+    Hydra::setOutput(fnt,44100,0);
     }
 
   ~Instance(){
@@ -165,8 +156,8 @@ struct SoundFont::Instance {
     }
 
   void setPan(float p){
-    tsf_channel_set_pan(fnt,0,p);
-    tsf_channel_set_pan(fnt,1,p);
+    Hydra::channelSetPan(fnt,0,p);
+    Hydra::channelSetPan(fnt,1,p);
     }
 
   bool noteOn(uint8_t note, uint8_t velosity){
@@ -174,7 +165,7 @@ struct SoundFont::Instance {
       return false;
       }
     alloc[note]=true;
-    tsf_note_on(fnt,preset,note,(velosity+0.5f)/127.f);
+    Hydra::noteOn(fnt,preset,note,(velosity+0.5f)/127.f);
     return true;
     }
 
@@ -182,7 +173,7 @@ struct SoundFont::Instance {
     if(!alloc[note])
       return false;
     alloc[note]=false;
-    tsf_note_off(fnt,preset,note);
+    Hydra::noteOff(fnt,preset,note);
     return true;
     }
 
@@ -234,7 +225,7 @@ struct SoundFont::Impl {
 
   void mix(float *samples, size_t count) {
     for(auto& i:inst)
-      tsf_render_float(i->fnt,samples,int(count),true);
+      Hydra::renderFloat(i->fnt,samples,int(count),true);
     }
 
   std::shared_ptr<Data>                  shData;
