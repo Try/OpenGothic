@@ -8,6 +8,7 @@
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
+#pragma GCC diagnostic ignored "-Wunused-function"
 #include "tsf.h"
 #pragma GCC diagnostic pop
 #else
