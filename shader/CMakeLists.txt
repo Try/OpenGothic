@@ -272,13 +272,6 @@ add_shader(probe_lighting.comp       lighting/rt/probe_lighting.comp)
 add_shader(probe_ambient.vert        copy.vert)
 add_shader(probe_ambient.frag        lighting/rt/probe_ambient.frag)
 
-add_shader(fxaa.vert                 copy.vert)
-add_shader(fxaa_quality_0.frag       antialiasing/fxaa.frag -DFXAA_QUALITY_SETTING=0)
-add_shader(fxaa_quality_1.frag       antialiasing/fxaa.frag -DFXAA_QUALITY_SETTING=1)
-add_shader(fxaa_quality_2.frag       antialiasing/fxaa.frag -DFXAA_QUALITY_SETTING=2)
-add_shader(fxaa_quality_3.frag       antialiasing/fxaa.frag -DFXAA_QUALITY_SETTING=3)
-add_shader(fxaa_quality_4.frag       antialiasing/fxaa.frag -DFXAA_QUALITY_SETTING=4)
-
 add_shader(cmaa2_edges_color2x2_quality_0.comp     antialiasing/cmaa2/edge_color2x2.comp -DCMAA2_STATIC_QUALITY_PRESET=0)
 add_shader(cmaa2_edges_color2x2_quality_1.comp     antialiasing/cmaa2/edge_color2x2.comp -DCMAA2_STATIC_QUALITY_PRESET=1)
 

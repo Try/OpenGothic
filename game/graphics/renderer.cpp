@@ -82,22 +82,18 @@ void Renderer::resetSwapchain() {
 
   sceneLinear    = device.attachment(TextureFormat::R11G11B10UF,w,h);
 
-  if(settings.fxaaEnabled) {
-    fxaa.sceneTonemapped = device.attachment(TextureFormat::RGBA8, w, h);
-    } else if(settings.cmaa2Enabled) {
+  if(settings.aaEnabled) {
     cmaa2.sceneTonemapped = device.image2d(TextureFormat::RGBA8, w, h);
     // TODO: add R16F support later
     cmaa2.sceneHdrLuma = device.image2d(TextureFormat::R32F, w, h);
-    }
 
-  if(settings.cmaa2Enabled) {
-    cmaa2.workingEdges = device.image2d(TextureFormat::R32U, (w+1)/2, h);
-    cmaa2.workingShapeCandidates = device.ssbo(Tempest::Uninitialized, w*h/4*sizeof(uint32_t));
-    cmaa2.workingDeferredBlendLocationList = device.ssbo(Tempest::Uninitialized, (w*h+3)/6*sizeof(uint32_t));
-    cmaa2.workingDeferredBlendItemList = device.ssbo(Tempest::Uninitialized, w*h*sizeof(uint32_t));
-    cmaa2.workingDeferredBlendItemListHeads = device.image2d(TextureFormat::R32U, (w+1)/2, (h+1)/2);
-    cmaa2.workingControlBuffer = device.ssbo(Tempest::Uninitialized, 4*sizeof(uint32_t));
-    cmaa2.executeIndirectBuffer = device.ssbo(Tempest::Uninitialized, 3*sizeof(uint32_t));
+    cmaa2.workingEdges = device.image2d(TextureFormat::R32U, (w + 1) / 2, h);
+    cmaa2.workingShapeCandidates = device.ssbo(Tempest::Uninitialized, w * h / 4 * sizeof(uint32_t));
+    cmaa2.workingDeferredBlendLocationList = device.ssbo(Tempest::Uninitialized, (w * h + 3) / 6 * sizeof(uint32_t));
+    cmaa2.workingDeferredBlendItemList = device.ssbo(Tempest::Uninitialized, w * h * sizeof(uint32_t));
+    cmaa2.workingDeferredBlendItemListHeads = device.image2d(TextureFormat::R32U, (w + 1) / 2, (h + 1) / 2);
+    cmaa2.workingControlBuffer = device.ssbo(Tempest::Uninitialized, 4 * sizeof(uint32_t));
+    cmaa2.executeIndirectBuffer = device.ssbo(Tempest::Uninitialized, 3 * sizeof(uint32_t));
     cmaa2.isFirstFrame = true;
     }
 
@@ -183,12 +179,9 @@ void Renderer::resetSwapchain() {
 
   tonemapping.pso     = (settings.vidResIndex==0) ? &Shaders::inst().tonemapping : &Shaders::inst().tonemappingUpscale;
   tonemapping.computePso = &Shaders::inst().tonemappingCompute;
-  tonemapping.uboTone = settings.cmaa2Enabled ? device.descriptors(*tonemapping.computePso) : device.descriptors(*tonemapping.pso);
+  tonemapping.uboTone = settings.aaEnabled ? device.descriptors(*tonemapping.computePso) : device.descriptors(*tonemapping.pso);
 
-  fxaa.pso = &Shaders::inst().fxaaPresets[Gothic::options().fxaaPreset];
-  fxaa.ubo = device.descriptors(*fxaa.pso);
-
-  cmaa2.detectEdges2x2 = &Shaders::inst().cmaa2EdgeColor2x2Presets[Gothic::options().cmaa2Preset];
+  cmaa2.detectEdges2x2 = &Shaders::inst().cmaa2EdgeColor2x2Presets[Gothic::options().aaPreset];
   cmaa2.detectEdges2x2Ubo = device.descriptors(*cmaa2.detectEdges2x2);
 
   cmaa2.indirectArgsSetup = &Shaders::inst().cmaa2ComputeDispatchArgs;
@@ -215,8 +208,7 @@ void Renderer::initSettings() {
 
   auto prevVidResIndex = settings.vidResIndex;
   settings.vidResIndex = Gothic::inst().settingsGetF("INTERNAL","vidResIndex");
-  settings.cmaa2Enabled = (Gothic::options().cmaa2Preset>0) && (settings.vidResIndex==0);
-  settings.fxaaEnabled = (Gothic::options().fxaaPreset>0) && (settings.vidResIndex==0) && !settings.cmaa2Enabled;
+  settings.aaEnabled = (Gothic::options().aaPreset>0) && (settings.vidResIndex==0);
   cmaa2.isFirstFrame = true;
 
   if(prevVidResIndex!=settings.vidResIndex) {
@@ -322,13 +314,7 @@ void Renderer::prepareUniforms() {
     tonemapping.uboTone.set(1, sceneLinear, smpB);
   }
 
-  if(settings.fxaaEnabled) {
-    auto smpB = Sampler::bilinear();
-    smpB.setClamping(ClampMode::ClampToEdge);
-    fxaa.ubo.set(0, fxaa.sceneTonemapped, smpB);
-    }
-
-  if(settings.cmaa2Enabled) {
+  if(settings.aaEnabled) {
     auto smpB = Sampler::bilinear();
     smpB.setClamping(ClampMode::ClampToEdge);
 
@@ -621,16 +607,10 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     wview->drawFog(cmd,fId);
     }
 
-  auto* tonemappingRt = &result;
-  if(settings.fxaaEnabled) {
-    assert(!fxaa.sceneTonemapped.isEmpty());
-    tonemappingRt = &fxaa.sceneTonemapped;
-    }
-
   cmd.setDebugMarker("Tonemapping");
-  drawTonemapping(cmd, tonemappingRt);
+  drawTonemapping(cmd, &result);
 
-  if(settings.cmaa2Enabled) {
+  if(settings.aaEnabled) {
     assert(!cmaa2.sceneTonemapped.isEmpty());
     // end previous render pass
     cmd.setFramebuffer({});
@@ -647,10 +627,6 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     ubo.set(0, cmaa2.sceneTonemapped, smpN);
     cmd.setUniforms(Shaders::inst().copy, ubo);
     cmd.draw(Resources::fsqVbo());
-    } else if(settings.fxaaEnabled) {
-    cmd.setFramebuffer({ {result, Tempest::Discard, Tempest::Preserve} });
-    cmd.setDebugMarker("Fxaa");
-    drawFxaa(cmd);
     }
 
   wview->postFrameupdate();
@@ -673,7 +649,7 @@ void Renderer::drawTonemapping(Encoder<CommandBuffer>& cmd, Attachment* renderTa
   if(mul>0)
     p.mul = mul;
 
-  if (settings.cmaa2Enabled) {
+  if (settings.aaEnabled) {
     cmd.setFramebuffer({});
 
     tonemapping.uboTone.set(2, cmaa2.sceneTonemapped);
@@ -685,32 +661,6 @@ void Renderer::drawTonemapping(Encoder<CommandBuffer>& cmd, Attachment* renderTa
     cmd.setUniforms(*tonemapping.pso, tonemapping.uboTone, &p, sizeof(p));
     cmd.draw(Resources::fsqVbo());
     }
-  }
-
-void Renderer::drawFxaa(Encoder<CommandBuffer>& cmd) {
-
-  struct PushConstantsFxaa {
-    float fxaaInverseSharpnessCoeff;
-    float fxaaQualitySubpix;
-    float fxaaQualityEdgeThreshold;
-    float fxaaQualityEdgeThresholdMin;
-    float fxaaConsoleEdgeSharpness;
-    float fxaaConsoleEdgeThreshold;
-    float fxaaConsoleEdgeThresholdMin;
-    } pushConstantsFxaa;
-
-
-  // for now filled with default values (see Fxaa3_11.h)
-  pushConstantsFxaa.fxaaInverseSharpnessCoeff = 0.5f;
-  pushConstantsFxaa.fxaaQualitySubpix = 0.75f;
-  pushConstantsFxaa.fxaaQualityEdgeThreshold = 0.166f;
-  pushConstantsFxaa.fxaaQualityEdgeThresholdMin = 0.0833f;
-  pushConstantsFxaa.fxaaConsoleEdgeSharpness = 8.f;
-  pushConstantsFxaa.fxaaConsoleEdgeThreshold = 0.125f;
-  pushConstantsFxaa.fxaaConsoleEdgeThresholdMin = 0.05f;
-
-  cmd.setUniforms(*fxaa.pso, fxaa.ubo, &pushConstantsFxaa, sizeof(pushConstantsFxaa));
-  cmd.draw(Resources::fsqVbo());
   }
 
 void Renderer::applyCmaa2(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {

@@ -43,9 +43,8 @@ class CommandLine {
     bool                doForceG1()        const { return forceG1;      }
     bool                doForceG2()        const { return forceG2;      }
     bool                doForceG2NR()      const { return forceG2NR;    }
-    bool                cmaa2Preset()      const { return cmaa2PresetId;}
-    uint32_t            fxaaPreset()       const { return fxaaPresetId; }
-    std::string_view    defaultSave()      const { return saveDef;      }
+    bool                aaPreset()         const { return aaPresetId;   }
+    std::string_view    defaultSave()      const { return saveDef;    }
 
     std::string         wrldDef;
 
@@ -73,7 +72,6 @@ class CommandLine {
     bool                forceG1      = false;
     bool                forceG2      = false;
     bool                forceG2NR    = false;
-    uint32_t            fxaaPresetId = 0;
-    uint32_t            cmaa2PresetId = 0;
+    uint32_t            aaPresetId = 0;
   };
 

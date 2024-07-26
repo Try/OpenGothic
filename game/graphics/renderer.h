@@ -56,7 +56,6 @@ class Renderer final {
     void drawAmbient      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void draw             (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawTonemapping  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, Tempest::Attachment* renderTarget);
-    void drawFxaa         (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void applyCmaa2       (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawReflections  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawUnderwater   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
@@ -74,9 +73,7 @@ class Renderer final {
       bool           zEnvMappingEnabled = false;
       bool           zCloudShadowScale  = false;
       bool           giEnabled          = false;
-      bool           fxaaEnabled        = false;
-    	// TODO: change to enum 'POST_PROCESS_ANTIALIASING'
-      bool           cmaa2Enabled       = false;
+      bool           aaEnabled          = false;
 
       float          zVidBrightness     = 0.5;
       float          zVidContrast       = 0.5;
@@ -131,12 +128,6 @@ class Renderer final {
       Tempest::ComputePipeline* computePso = nullptr;
       Tempest::DescriptorSet   uboTone;
       } tonemapping;
-
-    struct Fxaa {
-      Tempest::RenderPipeline* pso = nullptr;
-      Tempest::DescriptorSet   ubo;
-      Tempest::Attachment      sceneTonemapped;
-      } fxaa;
 
     struct Cmaa2 {
       Tempest::StorageImage    sceneTonemapped;

@@ -468,16 +468,6 @@ enum class ScriptLang : int32_t {
   CZ   = 7,
   };
 
-enum class FxaaPreset : uint32_t {
-  OFF,
-  CONSOLE,
-  PC_LOW,
-  PC_MEDIUM,
-  PC_HIGH,
-  PC_EXTREME,
-  PRESETS_COUNT
-  };
-
 enum class Cmaa2Preset : uint32_t {
   OFF,
   MEDIUM,
