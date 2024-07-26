@@ -50,8 +50,15 @@ layout(binding = 5) buffer UboWorkingDeferredBlendItemList {
 
 layout(r32ui, binding = 6) uniform uimage2D workingDeferredBlendItemListHeads;
 
+struct WorkingControlBufferDesc {
+  uint shapeCandidateCount;
+  uint blendColorSamplesCount;
+  uint blendLocationCount;
+  uint subsequentPassWorkloadSize;
+};
+
 layout(binding = 7) buffer UboWorkingControlBuffer {
-  uint workingControlBuffer[];
+  WorkingControlBufferDesc workingControlBuffer;
   };
 
 vec4 unpackEdgesFlt(uint value) {

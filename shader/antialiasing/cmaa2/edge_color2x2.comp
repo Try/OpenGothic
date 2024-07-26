@@ -221,7 +221,7 @@ void main() {
           bool isCandidate = (edges.x * edges.y + edges.y * edges.z + edges.z * edges.w + edges.w * edges.x) != 0;
           if(isCandidate) {
             uint counterIndex;
-            counterIndex = atomicAdd(workingControlBuffer[4], 1);
+            counterIndex = atomicAdd(workingControlBuffer.shapeCandidateCount, 1);
             // 14-17 bits are free
             workingShapeCandidates[counterIndex] = (localPixelPos.x << 18) | localPixelPos.y;
             }

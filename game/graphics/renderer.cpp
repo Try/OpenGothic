@@ -96,7 +96,7 @@ void Renderer::resetSwapchain() {
     cmaa2.workingDeferredBlendLocationList = device.ssbo(Tempest::Uninitialized, (w*h+3)/6*sizeof(uint32_t));
     cmaa2.workingDeferredBlendItemList = device.ssbo(Tempest::Uninitialized, w*h*sizeof(uint32_t));
     cmaa2.workingDeferredBlendItemListHeads = device.image2d(TextureFormat::R32U, (w+1)/2, (h+1)/2);
-    cmaa2.workingControlBuffer = device.ssbo(Tempest::Uninitialized, 16*sizeof(uint32_t));
+    cmaa2.workingControlBuffer = device.ssbo(Tempest::Uninitialized, 4*sizeof(uint32_t));
     cmaa2.executeIndirectBuffer = device.ssbo(Tempest::Uninitialized, 3*sizeof(uint32_t));
     cmaa2.isFirstFrame = true;
     }

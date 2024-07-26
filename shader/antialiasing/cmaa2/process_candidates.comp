@@ -35,7 +35,7 @@ uint loadEdge(ivec2 pixelPos, ivec2 offset) {
   }
 
 void storeColorSample(uvec2 pixelPos, vec3 color, bool isComplexShape) {
-  uint counterIndex = atomicAdd(workingControlBuffer[12], 1);
+  uint counterIndex = atomicAdd(workingControlBuffer.blendColorSamplesCount, 1);
 
   uvec2 quadPos = pixelPos / uvec2(2, 2);
   uint offsetXY = (pixelPos.y % 2) * 2 + (pixelPos.x % 2);
@@ -48,7 +48,7 @@ void storeColorSample(uvec2 pixelPos, vec3 color, bool isComplexShape) {
   workingDeferredBlendItemList[counterIndex] = uvec2(originalIndex, internalPackColor(color));
 
   if(originalIndex == 0xFFFFFFFF) {
-    uint edgeListCounter = atomicAdd(workingControlBuffer[8], 1);
+    uint edgeListCounter = atomicAdd(workingControlBuffer.blendLocationCount, 1);
     workingDeferredBlendLocationList[edgeListCounter] = (quadPos.x << 16) | quadPos.y;
     }
   }
@@ -236,7 +236,7 @@ void main() {
   barrier();
   memoryBarrierShared();
 #endif
-  const uint numCandidates = workingControlBuffer[3];
+  const uint numCandidates = workingControlBuffer.subsequentPassWorkloadSize;
 
   if(gl_GlobalInvocationID.x < numCandidates) {
     uint pixelID = workingShapeCandidates[gl_GlobalInvocationID.x];

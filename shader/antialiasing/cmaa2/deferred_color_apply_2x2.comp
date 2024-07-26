@@ -24,7 +24,7 @@ void finalUAVStore(uvec2 pixelPos, vec3 color) {
   }
 
 void main() {
-  const uint numCandidates = workingControlBuffer[3];
+  const uint numCandidates = workingControlBuffer.subsequentPassWorkloadSize;
 
 #if CMAA2_DEFERRED_APPLY_THREADGROUP_SWAP
   const uint currentCandidate = gl_GlobalInvocationID.y;
