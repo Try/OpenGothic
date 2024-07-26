@@ -64,6 +64,13 @@ class Hydra {
     static void finalize(tsf* tsf);
     static bool hasNotes(tsf* tsf);
 
+    static void noteOn(tsf* f, int presetId, int key, float vel);
+    static void noteOff(tsf* f, int presetId, int key);
+    static int  presetIndex(const tsf* f, int bank, int presetNum);
+    static void renderFloat(tsf* f, float* buffer, int samples, int flag);
+    static int  channelSetPan(tsf* f, int channel, float pan);
+    static void setOutput(tsf* f, int samplerate, float gain);
+
     tsf* toTsf   ();
     void toTsf   (tsf_hydra& out);
     bool validate(const tsf_hydra& tsf) const;
