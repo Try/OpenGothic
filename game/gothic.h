@@ -75,6 +75,8 @@ class Gothic final {
     void         setGame(std::unique_ptr<GameSession> &&w);
     auto         clearGame() -> std::unique_ptr<GameSession>;
 
+    auto         gameSession() const -> const GameSession*;
+    auto         gameSession() -> GameSession*;
     const World* world() const;
     World*       world();
     WorldView*   worldView() const;

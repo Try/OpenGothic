@@ -61,6 +61,8 @@ class GameSession final {
     void         tick(uint64_t dt);
     uint64_t     tickCount() const { return ticks; }
 
+    void         setTimeMultiplyer(float t);
+
     void         updateAnimation(uint64_t dt);
 
     auto         updateDialog(const GameScript::DlgChoice &dlg, Npc &player, Npc &npc) -> std::vector<GameScript::DlgChoice>;
@@ -97,7 +99,8 @@ class GameSession final {
     std::unique_ptr<GameScript>    vm;
     std::unique_ptr<World>         wrld;
 
-    uint64_t                       ticks=0, wrldTimePart=0;
+    uint64_t                       ticks = 0, wrldTimePart = 0;
+    uint64_t                       timeMul = 1000, timeMulFract = 0;
     gtime                          wrldTime;
 
     std::vector<WorldStateStorage> visitedWorlds;

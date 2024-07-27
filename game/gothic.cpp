@@ -269,6 +269,14 @@ std::unique_ptr<GameSession> Gothic::clearGame() {
   return std::move(game);
   }
 
+const GameSession* Gothic::gameSession() const {
+  return game.get();
+  }
+
+GameSession* Gothic::gameSession() {
+  return game.get();
+  }
+
 WorldView *Gothic::worldView() const {
   if(game)
     return game->view();

@@ -18,8 +18,8 @@
 using namespace Tempest;
 
 // rate 14.5 to 1
-const uint64_t GameSession::multTime=29;
-const uint64_t GameSession::divTime =2;
+const uint64_t GameSession::multTime=14500;
+const uint64_t GameSession::divTime =1000;
 
 void GameSession::HeroStorage::save(Npc& npc) {
   storage.clear();
@@ -302,11 +302,16 @@ void GameSession::setTime(gtime t) {
 
 void GameSession::tick(uint64_t dt) {
   wrld->scaleTime(dt);
+
+  // apply ztime multiplyer
+  dt = dt*timeMul + timeMulFract;
+  timeMulFract = dt%1000;
+  dt /= 1000;
+
   ticks+=dt;
 
-  uint64_t add = (dt+wrldTimePart)*multTime;
-  wrldTimePart=add%divTime;
-
+  uint64_t add = dt*multTime + wrldTimePart;
+  wrldTimePart = add%divTime;
   wrldTime.addMilis(add/divTime);
 
   vm->tick(dt);
@@ -345,6 +350,10 @@ void GameSession::tick(uint64_t dt) {
         });
       }
     }
+  }
+
+void GameSession::setTimeMultiplyer(float t) {
+  timeMul = uint64_t(t*1000);
   }
 
 auto GameSession::implChangeWorld(std::unique_ptr<GameSession>&& game,
