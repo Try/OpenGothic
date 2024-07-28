@@ -43,6 +43,11 @@ static bool fromString(std::string_view str, T& t) {
   return true;
   }
 
+static bool fromString(std::string_view str, float& t) {
+  t = std::stof(std::string(str));
+  return true;
+  }
+
 Marvin::Marvin() {
   /* Legend:
    %c - instance variable from script
