@@ -133,8 +133,8 @@ Shaders::Shaders() {
   cmaa2EdgeColor2x2Presets[uint32_t(AaPreset::MEDIUM)] = computeShader("cmaa2_edges_color2x2_quality_0.comp.sprv");
   cmaa2EdgeColor2x2Presets[uint32_t(AaPreset::ULTRA)]  = computeShader("cmaa2_edges_color2x2_quality_1.comp.sprv");
 
-  cmaa2ComputeDispatchArgs = computeShader("cmaa2_setup_compute_dispatch_args.comp.sprv");
-  cmaa2ProcessCandidates = computeShader("cmaa2_process_candidates.comp.sprv");
+  cmaa2ComputeDispatchArgs   = computeShader("cmaa2_setup_compute_dispatch_args.comp.sprv");
+  cmaa2ProcessCandidates     = computeShader("cmaa2_process_candidates.comp.sprv");
   cmaa2DeferredColorApply2x2 = computeShader("cmaa2_deferred_color_apply_2x2.comp.sprv");
 
   hiZPot = computeShader("hiz_pot.comp.sprv");

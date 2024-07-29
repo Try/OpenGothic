@@ -621,12 +621,10 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
 
   if(settings.aaEnabled) {
     assert(!cmaa2.sceneTonemapped.isEmpty());
-    // end previous render pass
     cmd.setFramebuffer({});
     cmd.setDebugMarker("Cmaa2");
     applyCmaa2(cmd);
 
-    // copy to the swapchain
     cmd.setFramebuffer({ {result, Tempest::Discard, Tempest::Preserve} });
     cmd.setDebugMarker("Cmaa2 copy to the swapchain");
     cmd.setUniforms(Shaders::inst().copy, cmaa2.finalCopyToSwapchainUbo);
