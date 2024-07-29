@@ -468,7 +468,7 @@ enum class ScriptLang : int32_t {
   CZ   = 7,
   };
 
-enum class Cmaa2Preset : uint32_t {
+enum class AaPreset : uint32_t {
   OFF,
   MEDIUM,
   ULTRA,

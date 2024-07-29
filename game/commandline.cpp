@@ -104,7 +104,7 @@ CommandLine::CommandLine(int argc, const char** argv) {
       if(i<argc) {
         try {
           aaPresetId = uint32_t(std::stoul(std::string(argv[i])));
-          aaPresetId = std::clamp(aaPresetId, 0u, uint32_t(Cmaa2Preset::PRESETS_COUNT)-1u);
+          aaPresetId = std::clamp(aaPresetId, 0u, uint32_t(AaPreset::PRESETS_COUNT)-1u);
           }
         catch (const std::exception& e) {
           Log::i("failed to read cmaa2 preset: \"", std::string(argv[i]), "\"");

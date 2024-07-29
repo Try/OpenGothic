@@ -55,7 +55,7 @@ class Shaders {
     Tempest::ComputePipeline tonemappingCompute;
 
     // AA
-    Tempest::ComputePipeline cmaa2EdgeColor2x2Presets[uint32_t(Cmaa2Preset::PRESETS_COUNT)];
+    Tempest::ComputePipeline cmaa2EdgeColor2x2Presets[uint32_t(AaPreset::PRESETS_COUNT)];
     Tempest::ComputePipeline cmaa2ComputeDispatchArgs, cmaa2ProcessCandidates, cmaa2DeferredColorApply2x2;
 
     // HiZ
