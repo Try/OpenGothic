@@ -1,7 +1,6 @@
 #define CMAA_PACK_SINGLE_SAMPLE_EDGE_TO_HALF_WIDTH  1
 #define CMAA2_PROCESS_CANDIDATES_NUM_THREADS        128
-#define CMAA2_DEFERRED_APPLY_NUM_THREADS            32
-#define CMAA2_DEFERRED_APPLY_THREADGROUP_SWAP       1 
+#define CMAA2_DEFERRED_APPLY_NUM_THREADS            32 
 #define CMAA2_USE_HALF_FLOAT_PRECISION              0
 #define CMAA2_SUPPORT_HDR_COLOR_RANGE               0
 #define CMAA2_EDGE_DETECTION_LUMA_PATH              0       // We should use HDR luma from a separate buffer in the future

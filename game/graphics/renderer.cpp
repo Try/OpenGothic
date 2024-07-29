@@ -193,6 +193,8 @@ void Renderer::resetSwapchain() {
   cmaa2.defferedColorApply = &Shaders::inst().cmaa2DeferredColorApply2x2;
   cmaa2.defferedColorApplyUbo = device.descriptors(*cmaa2.defferedColorApply);
 
+  cmaa2.finalCopyToSwapchainUbo = device.descriptors(Shaders::inst().copy);
+
   initGiData();
   prepareUniforms();
   prepareRtUniforms();
@@ -312,7 +314,12 @@ void Renderer::prepareUniforms() {
 
     tonemapping.uboTone.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     tonemapping.uboTone.set(1, sceneLinear, smpB);
-  }
+
+    if (settings.aaEnabled) {
+      tonemapping.uboTone.set(2, cmaa2.sceneTonemapped);
+      tonemapping.uboTone.set(3, cmaa2.sceneHdrLuma);
+      }
+    }
 
   if(settings.aaEnabled) {
     auto smpB = Sampler::bilinear();
@@ -342,6 +349,8 @@ void Renderer::prepareUniforms() {
     cmaa2.indirectArgsSetupUbo.set(4, cmaa2.workingDeferredBlendLocationList);
     cmaa2.indirectArgsSetupUbo.set(7, cmaa2.workingControlBuffer);
     cmaa2.indirectArgsSetupUbo.set(8, cmaa2.executeIndirectBuffer);
+
+    cmaa2.finalCopyToSwapchainUbo.set(0, cmaa2.sceneTonemapped, smpB);
     }
 
   shadow.ubo.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
@@ -620,12 +629,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     // copy to the swapchain
     cmd.setFramebuffer({ {result, Tempest::Discard, Tempest::Preserve} });
     cmd.setDebugMarker("Cmaa2 copy to the swapchain");
-
-    auto ubo = Resources::device().descriptors(Shaders::inst().copy);
-    auto smpN = Sampler::bilinear();
-    smpN.setClamping(ClampMode::ClampToEdge);
-    ubo.set(0, cmaa2.sceneTonemapped, smpN);
-    cmd.setUniforms(Shaders::inst().copy, ubo);
+    cmd.setUniforms(Shaders::inst().copy, cmaa2.finalCopyToSwapchainUbo);
     cmd.draw(Resources::fsqVbo());
     }
 
@@ -651,9 +655,6 @@ void Renderer::drawTonemapping(Encoder<CommandBuffer>& cmd, Attachment* renderTa
 
   if (settings.aaEnabled) {
     cmd.setFramebuffer({});
-
-    tonemapping.uboTone.set(2, cmaa2.sceneTonemapped);
-    tonemapping.uboTone.set(3, cmaa2.sceneHdrLuma);
     cmd.setUniforms(*tonemapping.computePso, tonemapping.uboTone, &p, sizeof(p));
     cmd.dispatchThreads(cmaa2.sceneTonemapped.size());
     } else {

@@ -124,14 +124,14 @@ class Renderer final {
       } ssao;
 
     struct Tonemapping {
-      Tempest::RenderPipeline* pso = nullptr;
+      Tempest::RenderPipeline*  pso = nullptr;
       Tempest::ComputePipeline* computePso = nullptr;
-      Tempest::DescriptorSet   uboTone;
+      Tempest::DescriptorSet    uboTone;
       } tonemapping;
 
     struct Cmaa2 {
-      Tempest::StorageImage    sceneTonemapped;
-      Tempest::StorageImage    sceneHdrLuma;
+      Tempest::StorageImage     sceneTonemapped;
+      Tempest::StorageImage     sceneHdrLuma;
 
       Tempest::ComputePipeline* detectEdges2x2 = nullptr;
       Tempest::DescriptorSet    detectEdges2x2Ubo;
@@ -145,8 +145,7 @@ class Renderer final {
       Tempest::ComputePipeline* defferedColorApply = nullptr;
       Tempest::DescriptorSet    defferedColorApplyUbo;
 
-      Tempest::ComputePipeline* finalResultCopy = nullptr;
-      Tempest::ComputePipeline* finalResultCopyUbo = nullptr;
+      Tempest::DescriptorSet    finalCopyToSwapchainUbo;
 
       Tempest::StorageImage     workingEdges;
       Tempest::StorageBuffer    workingShapeCandidates;

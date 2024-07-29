@@ -9,11 +9,7 @@
 
 layout(rgba8, binding = 8) uniform writeonly image2D outputColor;
 
-#if CMAA2_DEFERRED_APPLY_THREADGROUP_SWAP
-  layout(local_size_x = 4, local_size_y = CMAA2_DEFERRED_APPLY_NUM_THREADS) in;
-#else
-  layout(local_size_x = CMAA2_DEFERRED_APPLY_NUM_THREADS, local_size_y = 4) in;
-#endif
+layout(local_size_x = 4, local_size_y = CMAA2_DEFERRED_APPLY_NUM_THREADS) in;
 
 void finalUAVStore(uvec2 pixelPos, vec3 color) {
 #if CMAA2_UAV_STORE_CONVERT_TO_SRGB
@@ -26,13 +22,8 @@ void finalUAVStore(uvec2 pixelPos, vec3 color) {
 void main() {
   const uint numCandidates = workingControlBuffer.subsequentPassWorkloadSize;
 
-#if CMAA2_DEFERRED_APPLY_THREADGROUP_SWAP
   const uint currentCandidate = gl_GlobalInvocationID.y;
   const uint currentQuadOffsetXY = gl_LocalInvocationID.x;
-#else
-  const uint currentCandidate = gl_GlobalInvocationID.x; 
-  const uint currentQuadOffsetXY = gl_LocalInvocationID.y;
-#endif
 
   if(currentCandidate >= numCandidates)
     return;

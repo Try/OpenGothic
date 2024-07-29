@@ -34,13 +34,8 @@ void main() {
     uint appendBufferMaxCount = workingDeferredBlendLocationList.length();
     blendLocationCount = min(blendLocationCount, appendBufferMaxCount);
 
-#if CMAA2_DEFERRED_APPLY_THREADGROUP_SWAP
     g_workingExecuteIndirectBuffer[0] = 1;
     g_workingExecuteIndirectBuffer[1] = (blendLocationCount + CMAA2_DEFERRED_APPLY_NUM_THREADS - 1) / CMAA2_DEFERRED_APPLY_NUM_THREADS;
-#else
-    g_workingExecuteIndirectBuffer[0] = (blendLocationCount + CMAA2_DEFERRED_APPLY_NUM_THREADS - 1) / CMAA2_DEFERRED_APPLY_NUM_THREADS;
-    g_workingExecuteIndirectBuffer[1] = 1;
-#endif
     g_workingExecuteIndirectBuffer[2] = 1;
 
     workingControlBuffer.subsequentPassWorkloadSize = blendLocationCount;
