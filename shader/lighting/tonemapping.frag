@@ -157,5 +157,5 @@ void main() {
   //color = srgbEncode(color);
   color = pow(color, vec3(gamma));
 
-  outColor = vec4(color, 1.f);
+  outColor = vec4(color, 1.0);
   }
