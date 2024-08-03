@@ -196,8 +196,6 @@ add_shader(tonemapping.vert          copy.vert -DHAS_UV)
 add_shader(tonemapping.frag          lighting/tonemapping.frag)
 add_shader(tonemapping_up.frag       lighting/tonemapping.frag -DUPSCALE)
 
-add_shader(tonemapping.comp          lighting/tonemapping.frag -S comp -DCOMPUTE)
-
 add_shader(water_reflection.vert     copy.vert)
 add_shader(water_reflection.mesh     water/water_reflection.mesh)
 add_shader(water_reflection.frag     water/water_reflection.frag)
@@ -277,7 +275,8 @@ add_shader(cmaa2_edges_color2x2_quality_1.comp     antialiasing/cmaa2/edge_color
 
 add_shader(cmaa2_setup_compute_dispatch_args.comp  antialiasing/cmaa2/compute_dispatch_args.comp)
 add_shader(cmaa2_process_candidates.comp           antialiasing/cmaa2/process_candidates.comp)
-add_shader(cmaa2_deferred_color_apply_2x2.comp     antialiasing/cmaa2/deferred_color_apply_2x2.comp)
+add_shader(cmaa2_deferred_color_apply_2x2.vert     antialiasing/cmaa2/deferred_color_apply_2x2.vert)
+add_shader(cmaa2_deferred_color_apply_2x2.frag     antialiasing/cmaa2/deferred_color_apply_2x2.frag)
 
 add_custom_command(
   OUTPUT     ${HEADER} ${CPP}

@@ -55,8 +55,8 @@ class Renderer final {
     void drawSky          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawAmbient      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void draw             (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void drawTonemapping  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, Tempest::Attachment* renderTarget);
-    void applyCmaa2       (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawTonemapping  (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawCMAA2        (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawReflections  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawUnderwater   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
@@ -125,12 +125,11 @@ class Renderer final {
 
     struct Tonemapping {
       Tempest::RenderPipeline*  pso = nullptr;
-      Tempest::ComputePipeline* computePso = nullptr;
       Tempest::DescriptorSet    uboTone;
       } tonemapping;
 
     struct Cmaa2 {
-      Tempest::StorageImage     sceneTonemapped;
+      Tempest::Attachment       sceneTonemapped;
       Tempest::StorageImage     sceneHdrLuma;
 
       Tempest::ComputePipeline* detectEdges2x2 = nullptr;
@@ -142,20 +141,18 @@ class Renderer final {
       Tempest::ComputePipeline* processCandidates = nullptr;
       Tempest::DescriptorSet    processCandidatesUbo;
 
-      Tempest::ComputePipeline* defferedColorApply = nullptr;
+      Tempest::RenderPipeline*  defferedColorApply = nullptr;
       Tempest::DescriptorSet    defferedColorApplyUbo;
 
-      Tempest::DescriptorSet    finalCopyToSwapchainUbo;
+      Tempest::DescriptorSet    blitUbo;
 
       Tempest::StorageImage     workingEdges;
       Tempest::StorageBuffer    workingShapeCandidates;
       Tempest::StorageBuffer    workingDeferredBlendLocationList;
       Tempest::StorageBuffer    workingDeferredBlendItemList;
       Tempest::StorageImage     workingDeferredBlendItemListHeads;
-      Tempest::StorageBuffer    workingControlBuffer;
+      Tempest::StorageBuffer    controlBuffer;
       Tempest::StorageBuffer    executeIndirectBuffer;
-
-      bool isFirstFrame = true;
       } cmaa2;
 
     struct {

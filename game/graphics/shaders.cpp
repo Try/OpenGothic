@@ -127,7 +127,6 @@ Shaders::Shaders() {
 
   tonemapping        = postEffect("tonemapping", "tonemapping",    RenderState::ZTestMode::Always);
   tonemappingUpscale = postEffect("tonemapping", "tonemapping_up", RenderState::ZTestMode::Always);
-  tonemappingCompute = computeShader("tonemapping.comp.sprv");
 
   cmaa2EdgeColor2x2Presets[uint32_t(AaPreset::OFF)]    = Tempest::ComputePipeline();
   cmaa2EdgeColor2x2Presets[uint32_t(AaPreset::MEDIUM)] = computeShader("cmaa2_edges_color2x2_quality_0.comp.sprv");
@@ -135,7 +134,14 @@ Shaders::Shaders() {
 
   cmaa2ComputeDispatchArgs   = computeShader("cmaa2_setup_compute_dispatch_args.comp.sprv");
   cmaa2ProcessCandidates     = computeShader("cmaa2_process_candidates.comp.sprv");
-  cmaa2DeferredColorApply2x2 = computeShader("cmaa2_deferred_color_apply_2x2.comp.sprv");
+  {
+    auto sh = GothicShader::get("cmaa2_deferred_color_apply_2x2.vert.sprv");
+    auto vs = device.shader(sh.data,sh.len);
+    sh = GothicShader::get("cmaa2_deferred_color_apply_2x2.frag.sprv");
+    auto fs = device.shader(sh.data,sh.len);
+    cmaa2DeferredColorApply2x2 = device.pipeline(Tempest::Points,RenderState(),vs,fs);
+  }
+  //cmaa2DeferredColorApply2x2 = postEffect("cmaa2_deferred_color_apply_2x2", "cmaa2_deferred_color_apply_2x2", RenderState::ZTestMode::Always);
 
   hiZPot = computeShader("hiz_pot.comp.sprv");
   hiZMip = computeShader("hiz_mip.comp.sprv");

@@ -1,3 +1,8 @@
+#ifndef CMAA2_COMMON_GLSL
+#define CMAA2_COMMON_GLSL
+
+#extension GL_EXT_samplerless_texture_functions : enable
+
 #define CMAA_PACK_SINGLE_SAMPLE_EDGE_TO_HALF_WIDTH  1
 #define CMAA2_PROCESS_CANDIDATES_NUM_THREADS        128
 #define CMAA2_DEFERRED_APPLY_NUM_THREADS            32 
@@ -27,12 +32,12 @@ const float symmetryCorrectionOffset = 0.22;
 const uint maxLineLength = 86;
 // 
 
-layout(binding = 0) uniform sampler2D sceneTonemapped;
+layout(binding = 0) uniform texture2D sceneTonemapped;
 
 #if CMAA2_EDGE_UNORM 
-  layout(r8, binding = 2) uniform image2D workingEdges;
+layout(binding = 2, r8)    uniform image2D workingEdges;
 #else
-  layout(r32ui, binding = 2) uniform uimage2D workingEdges;
+layout(binding = 2, r32ui) uniform uimage2D workingEdges;
 #endif
 
 layout(binding = 3) buffer UboWorkingShapeCandidates {
@@ -47,18 +52,15 @@ layout(binding = 5) buffer UboWorkingDeferredBlendItemList {
   uvec2 workingDeferredBlendItemList[];
   };
 
-layout(r32ui, binding = 6) uniform uimage2D workingDeferredBlendItemListHeads;
+layout(binding = 6, r32ui) uniform uimage2D workingDeferredBlendItemListHeads;
 
-struct WorkingControlBufferDesc {
+layout(binding = 7) buffer UboWorkingControlBuffer {
   uint shapeCandidateCount;
   uint blendColorSamplesCount;
   uint blendLocationCount;
   uint subsequentPassWorkloadSize;
-};
+  } controlBuffer;
 
-layout(binding = 7) buffer UboWorkingControlBuffer {
-  WorkingControlBufferDesc workingControlBuffer;
-  };
 
 vec4 unpackEdgesFlt(uint value) {
   vec4 ret;
@@ -138,3 +140,5 @@ uint packR10G10B10A2Unorm(vec4 unpackedInput) {
     (uint(clamp(unpackedInput.z, 0.0, 1.0) * 1023 + 0.5) << 20) |
     (uint(clamp(unpackedInput.w, 0.0, 1.0) * 3 + 0.5) << 30));
   }
+
+#endif

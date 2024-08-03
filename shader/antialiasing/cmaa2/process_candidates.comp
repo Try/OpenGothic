@@ -35,7 +35,7 @@ uint loadEdge(ivec2 pixelPos, ivec2 offset) {
   }
 
 void storeColorSample(uvec2 pixelPos, vec3 color, bool isComplexShape) {
-  uint counterIndex = atomicAdd(workingControlBuffer.blendColorSamplesCount, 1);
+  uint counterIndex = atomicAdd(controlBuffer.blendColorSamplesCount, 1);
 
   uvec2 quadPos = pixelPos / uvec2(2, 2);
   uint offsetXY = (pixelPos.y % 2) * 2 + (pixelPos.x % 2);
@@ -48,8 +48,9 @@ void storeColorSample(uvec2 pixelPos, vec3 color, bool isComplexShape) {
   workingDeferredBlendItemList[counterIndex] = uvec2(originalIndex, internalPackColor(color));
 
   if(originalIndex == 0xFFFFFFFF) {
-    uint edgeListCounter = atomicAdd(workingControlBuffer.blendLocationCount, 1);
-    workingDeferredBlendLocationList[edgeListCounter] = (quadPos.x << 16) | quadPos.y;
+    const uint edgeListCounter = atomicAdd(controlBuffer.blendLocationCount, 1);
+    if(edgeListCounter<workingDeferredBlendLocationList.length())
+      workingDeferredBlendLocationList[edgeListCounter] = (quadPos.x << 16) | quadPos.y;
     }
   }
 
@@ -236,18 +237,18 @@ void main() {
   barrier();
   memoryBarrierShared();
 #endif
-  const uint numCandidates = workingControlBuffer.subsequentPassWorkloadSize;
+  const uint numCandidates = controlBuffer.subsequentPassWorkloadSize;
 
   if(gl_GlobalInvocationID.x < numCandidates) {
     uint pixelID = workingShapeCandidates[gl_GlobalInvocationID.x];
     uvec2 pixelPos = uvec2((pixelID >> 18), pixelID & 0x3FFF);
 
     uint edgesCenterPacked = loadEdge(ivec2(pixelPos), ivec2(0, 0));
-    vec4 edges = unpackEdgesFlt(edgesCenterPacked);
-    vec4 edgesLeft = unpackEdgesFlt(loadEdge(ivec2(pixelPos) + ivec2(-1, 0), ivec2(0, 0)));
-    vec4 edgesRight = unpackEdgesFlt(loadEdge(ivec2(pixelPos) + ivec2(1, 0), ivec2(0, 0)));
-    vec4 edgesBottom = unpackEdgesFlt(loadEdge(ivec2(pixelPos) + ivec2(0, 1), ivec2(0, 0)));
-    vec4 edgesTop = unpackEdgesFlt(loadEdge(ivec2(pixelPos) + ivec2(0, -1), ivec2(0, 0)));
+    vec4 edges             = unpackEdgesFlt(edgesCenterPacked);
+    vec4 edgesLeft         = unpackEdgesFlt(loadEdge(ivec2(pixelPos) + ivec2(-1, 0), ivec2(0, 0)));
+    vec4 edgesRight        = unpackEdgesFlt(loadEdge(ivec2(pixelPos) + ivec2(1, 0), ivec2(0, 0)));
+    vec4 edgesBottom       = unpackEdgesFlt(loadEdge(ivec2(pixelPos) + ivec2(0, 1), ivec2(0, 0)));
+    vec4 edgesTop          = unpackEdgesFlt(loadEdge(ivec2(pixelPos) + ivec2(0, -1), ivec2(0, 0)));
 
     {
       vec4 blendVal = computeSimpleShapeBlendValues(edges, edgesLeft, edgesRight, edgesTop, edgesBottom, true);

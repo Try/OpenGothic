@@ -6,8 +6,23 @@
 
 #include "cmaa2_common.glsl"
 
+struct VkDispatchIndirectCommand {
+  uint  x;
+  uint  y;
+  uint  z;
+  };
+
+struct VkDrawIndirectCommand {
+  uint  vertexCount;
+  uint  instanceCount;
+  uint  firstVertex;
+  uint  firstInstance;
+  };
+
 layout(binding = 8, std430) buffer UboWorkingExecuteIndirectBuffer {
-  uvec3 g_workingExecuteIndirectBuffer;
+  VkDispatchIndirectCommand candidateCmd;
+  VkDrawIndirectCommand     applyCmd;
+  //uvec4 g_workingExecuteIndirectBuffer;
   };
 
 layout(push_constant, std140) uniform PushConstant {
@@ -18,29 +33,30 @@ layout(local_size_x = 1) in;
 
 void main() {
   if(push.setupProcessCandidatesPassFlag != 0) {
-    uint shapeCandidateCount = workingControlBuffer.shapeCandidateCount;
+    uint shapeCandidateCount = controlBuffer.shapeCandidateCount;
 
     uint appendBufferMaxCount = workingShapeCandidates.length();
     shapeCandidateCount = min(shapeCandidateCount, appendBufferMaxCount);
 
-    g_workingExecuteIndirectBuffer[0] = (shapeCandidateCount + CMAA2_PROCESS_CANDIDATES_NUM_THREADS - 1) / CMAA2_PROCESS_CANDIDATES_NUM_THREADS;
-    g_workingExecuteIndirectBuffer[1] = 1;
-    g_workingExecuteIndirectBuffer[2] = 1;
+    candidateCmd.x = (shapeCandidateCount + CMAA2_PROCESS_CANDIDATES_NUM_THREADS - 1) / CMAA2_PROCESS_CANDIDATES_NUM_THREADS;
+    candidateCmd.y = 1;
+    candidateCmd.z = 1;
 
-    workingControlBuffer.subsequentPassWorkloadSize = shapeCandidateCount;
+    controlBuffer.subsequentPassWorkloadSize = shapeCandidateCount;
     } else /*setup deferred apply process*/ {
-    uint blendLocationCount = workingControlBuffer.blendLocationCount;
+    uint blendLocationCount = controlBuffer.blendLocationCount;
 
     uint appendBufferMaxCount = workingDeferredBlendLocationList.length();
     blendLocationCount = min(blendLocationCount, appendBufferMaxCount);
 
-    g_workingExecuteIndirectBuffer[0] = 1;
-    g_workingExecuteIndirectBuffer[1] = (blendLocationCount + CMAA2_DEFERRED_APPLY_NUM_THREADS - 1) / CMAA2_DEFERRED_APPLY_NUM_THREADS;
-    g_workingExecuteIndirectBuffer[2] = 1;
+    applyCmd.vertexCount   = blendLocationCount * 4; // 4 points per quad
+    applyCmd.instanceCount = 1;
+    applyCmd.firstVertex   = 0;
+    applyCmd.firstInstance = 0;
 
-    workingControlBuffer.subsequentPassWorkloadSize = blendLocationCount;
-    workingControlBuffer.blendLocationCount = 0;
-    workingControlBuffer.shapeCandidateCount = 0;
-    workingControlBuffer.blendColorSamplesCount = 0;
+    controlBuffer.subsequentPassWorkloadSize = blendLocationCount;
+    controlBuffer.blendLocationCount         = 0;
+    controlBuffer.shapeCandidateCount        = 0;
+    controlBuffer.blendColorSamplesCount     = 0;
     }
   }

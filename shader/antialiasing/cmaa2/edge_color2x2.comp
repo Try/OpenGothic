@@ -7,13 +7,13 @@
 #include "cmaa2_common.glsl"
 
 #if CMAA2_EDGE_DETECTION_LUMA_PATH == 2
-  layout(binding = 8) uniform sampler2D inputLumaReadonly;
+layout(binding = 8) uniform sampler2D inputLumaReadonly;
 #endif
 
-#define CMAA2_CS_INPUT_KERNEL_SIZE_X                16
-#define CMAA2_CS_INPUT_KERNEL_SIZE_Y                8
-#define CMAA2_CS_OUTPUT_KERNEL_SIZE_X               (CMAA2_CS_INPUT_KERNEL_SIZE_X-2)
-#define CMAA2_CS_OUTPUT_KERNEL_SIZE_Y               (CMAA2_CS_INPUT_KERNEL_SIZE_Y-2)
+const uint CMAA2_CS_INPUT_KERNEL_SIZE_X  = 16;
+const uint CMAA2_CS_INPUT_KERNEL_SIZE_Y  = 8;
+const uint CMAA2_CS_OUTPUT_KERNEL_SIZE_X = (CMAA2_CS_INPUT_KERNEL_SIZE_X-2);
+const uint CMAA2_CS_OUTPUT_KERNEL_SIZE_Y = (CMAA2_CS_INPUT_KERNEL_SIZE_Y-2);
 
 layout(local_size_x = CMAA2_CS_INPUT_KERNEL_SIZE_X, local_size_y = CMAA2_CS_INPUT_KERNEL_SIZE_Y) in;
 
@@ -221,7 +221,7 @@ void main() {
           bool isCandidate = (edges.x * edges.y + edges.y * edges.z + edges.z * edges.w + edges.w * edges.x) != 0;
           if(isCandidate) {
             uint counterIndex;
-            counterIndex = atomicAdd(workingControlBuffer.shapeCandidateCount, 1);
+            counterIndex = atomicAdd(controlBuffer.shapeCandidateCount, 1);
             // 14-17 bits are free
             workingShapeCandidates[counterIndex] = (localPixelPos.x << 18) | localPixelPos.y;
             }
