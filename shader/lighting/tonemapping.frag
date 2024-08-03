@@ -10,15 +10,6 @@
 
 #include "upscale/lanczos.glsl"
 
-#if defined(COMPUTE)
-layout(local_size_x = 8, local_size_y = 8) in;
-layout(binding = 2) uniform writeonly image2D tonemappedOutput;
-layout(binding = 3) uniform writeonly image2D hdrLumaOutput;
-#else
-layout(location = 0) in  vec2 uv;
-layout(location = 0) out vec4 outColor;
-#endif
-
 layout(push_constant, std140) uniform PushConstant {
   float brightness;
   float contrast;
@@ -30,6 +21,9 @@ layout(binding  = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
 layout(binding  = 1) uniform sampler2D textureD;
+
+layout(location = 0) in  vec2 uv;
+layout(location = 0) out vec4 outColor;
 
 // https://advances.realtimerendering.com/s2021/jpatry_advances2021/index.html
 // https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.40.9608&rep=rep1&type=pdf
@@ -116,18 +110,6 @@ vec3 colorTemperatureToRGB(const in float temperature){
   }
 
 void main() {
-
-#if defined(COMPUTE)
-  uvec2 targetRes = uvec2(imageSize(tonemappedOutput));
-  uvec2 targetPixPos = gl_GlobalInvocationID.xy;
-
-  if(any(greaterThanEqual(targetPixPos, targetRes))) {
-    return;
-  }
-
-  vec2 uv = (vec2(targetPixPos) + vec2(0.5f, 0.5f)) / targetRes;
-#endif
-
   float exposure   = scene.exposure;
   float brightness = push.brightness;
   float contrast   = push.contrast;
@@ -162,8 +144,6 @@ void main() {
     // color += vec3(0,0, shift.b);
   }
 
-  float hdrLuma = luminance(color);
-
   color *= push.mulExposure;
 
   // Brightness & Contrast
@@ -177,10 +157,5 @@ void main() {
   //color = srgbEncode(color);
   color = pow(color, vec3(gamma));
 
-#if defined(COMPUTE)
-  imageStore(tonemappedOutput, ivec2(targetPixPos), vec4(color, 1.f));
-  imageStore(hdrLumaOutput, ivec2(targetPixPos), vec4(hdrLuma, 0.f, 0.f, 0.f));
-#else
   outColor = vec4(color, 1.f);
-#endif
   }
