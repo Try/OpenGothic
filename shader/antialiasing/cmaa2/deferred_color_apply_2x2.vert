@@ -20,12 +20,12 @@ void main() {
   currentQuadOffsetXY          = gl_VertexIndex%4;
 
   const ivec2 viewportSize = textureSize(sceneTonemapped, 0);
-  const uint  pixelID      = workingDeferredBlendLocationList[currentCandidate];
+  const uint  pixelID      = deferredBlendLocationList[currentCandidate];
   const ivec2 quadPos      = ivec2((pixelID >> 16), pixelID & 0xFFFF);
   const ivec2 qeOffsets[4] = ivec2[4](ivec2(0, 0), ivec2(1, 0), ivec2(0, 1), ivec2(1, 1));
   const uvec2 pixelPos     = quadPos * 2 + qeOffsets[currentQuadOffsetXY];
 
-  counterIndexWithHeader = imageLoad(workingDeferredBlendItemListHeads, quadPos).r;
+  counterIndexWithHeader = imageLoad(deferredBlendItemListHeads, quadPos).r;
   gl_Position            = vec4((vec2(pixelPos+0.5)/vec2(viewportSize))*2.0-1.0, 0, 1);
   gl_PointSize           = 1;
   }

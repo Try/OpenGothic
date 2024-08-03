@@ -84,25 +84,21 @@ uint packEdges(vec4 edges) {
   }
 
 void main() {
-  uvec2 groupID = gl_WorkGroupID.xy;
-  uvec2 groupThreadID = gl_LocalInvocationID.xy;
-    
   // screen position in the input (expanded) kernel (shifted one 2x2 block up/left)
-  uvec2 pixelPos = groupID * uvec2(CMAA2_CS_OUTPUT_KERNEL_SIZE_X, CMAA2_CS_OUTPUT_KERNEL_SIZE_Y) + groupThreadID - uvec2(1, 1);
+  uvec2 pixelPos = gl_WorkGroupID.xy * uvec2(CMAA2_CS_OUTPUT_KERNEL_SIZE_X, CMAA2_CS_OUTPUT_KERNEL_SIZE_Y) + gl_LocalInvocationID.xy - uvec2(1, 1);
   pixelPos *= uvec2(2, 2);
 
   const uvec2 qeOffsets[4] = uvec2[4](uvec2(0, 0), uvec2(1, 0), uvec2(0, 1), uvec2(1, 1));
   const uint rowStride2x2 = CMAA2_CS_INPUT_KERNEL_SIZE_X;
-  const uint centerAddr2x2 = groupThreadID.x + groupThreadID.y * rowStride2x2;
-  const bool inOutputKernel = !(any(equal(groupThreadID, uvec2(CMAA2_CS_INPUT_KERNEL_SIZE_X - 1, 0))) ||
-                                any(equal(groupThreadID, uvec2(0, CMAA2_CS_INPUT_KERNEL_SIZE_Y - 1))));
+  const uint centerAddr2x2 = gl_LocalInvocationID.x + gl_LocalInvocationID.y * rowStride2x2;
+  const bool inOutputKernel = !(any(equal(gl_LocalInvocationID.xy, uvec2(CMAA2_CS_INPUT_KERNEL_SIZE_X - 1, 0))) ||
+                                any(equal(gl_LocalInvocationID.xy, uvec2(0, CMAA2_CS_INPUT_KERNEL_SIZE_Y - 1))));
 
   uint i;
   vec2 qe0, qe1, qe2, qe3;
   uvec4 outEdges = uvec4(0);
 
   {
-
 #if CMAA2_EDGE_DETECTION_LUMA_PATH == 0
     vec3 pixelColors[3 * 3 - 1];
     for (i = 0; i < 3 * 3 - 1; i++)
@@ -150,7 +146,6 @@ void main() {
     groupShared2x2FracEdgesV[centerAddr2x2] = vec4(qe0.x, qe1.x, qe2.x, qe3.x);
     groupShared2x2FracEdgesH[centerAddr2x2] = vec4(qe0.y, qe1.y, qe2.y, qe3.y);
 
-    memoryBarrierShared();
     barrier();
 
     if(inOutputKernel) {
@@ -162,7 +157,7 @@ void main() {
         // Clear deferred color list heads to empty (if potentially needed - even though 
         // some edges might get culled by local contrast adaptation step below, 
         // it's still cheaper to just clear it without additional logic)
-        imageStore(workingDeferredBlendItemListHeads, ivec2(pixelPos) / 2, uvec4(0xFFFFFFFF, 0, 0, 0));
+        imageStore(deferredBlendItemListHeads, ivec2(pixelPos) / 2, uvec4(0xFFFFFFFF, 0, 0, 0));
         // local contrast adaptation
 
         vec4 ce[4];
@@ -223,7 +218,7 @@ void main() {
             uint counterIndex;
             counterIndex = atomicAdd(controlBuffer.shapeCandidateCount, 1);
             // 14-17 bits are free
-            workingShapeCandidates[counterIndex] = (localPixelPos.x << 18) | localPixelPos.y;
+            shapeCandidates[counterIndex] = (localPixelPos.x << 18) | localPixelPos.y;
             }
 
           // Write out edges - we write out all, including empty pixels, to make sure shape detection edge tracing

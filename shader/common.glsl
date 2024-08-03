@@ -218,6 +218,39 @@ vec3 i_octahedral_32( uint data ) {
   return normalize(nor);
   }
 
+// the next packing/unpacking methods are taken from
+// https://github.com/Microsoft/DirectX-Graphics-Samples/blob/master/MiniEngine/Core/Shaders/PixelPacking_R11G11B10.hlsli
+uint packR11G11B10F(vec3 rgb) {
+  rgb = min(rgb, uintBitsToFloat(0x477C0000));
+  uint r = ((packHalf2x16(vec2(rgb.r, 0)) + 8) >> 4) & 0x000007FF;
+  uint g = ((packHalf2x16(vec2(rgb.g, 0)) + 8) << 7) & 0x003FF800;
+  uint b = ((packHalf2x16(vec2(rgb.b, 0)) + 16) << 17) & 0xFFC00000;
+  return r | g | b;
+  }
+
+vec3 unpackR11G11B10F(uint rgb) {
+  float r = unpackHalf2x16((rgb << 4)  & 0x7FF0).r;
+  float g = unpackHalf2x16((rgb >> 7)  & 0x7FF0).r;
+  float b = unpackHalf2x16((rgb >> 17) & 0x7FE0).r;
+  return vec3(r, g, b);
+  }
+
+// This is like R11G11B10F except that it moves one bit from each exponent to each mantissa.
+uint packR11G11B10E4F(vec3 rgb) {
+  rgb = clamp(rgb, 0.0, uintBitsToFloat(0x3FFFFFFF));
+  uint r = ((packHalf2x16(vec2(rgb.r, 0)) + 4) >> 3) & 0x000007FF;
+  uint g = ((packHalf2x16(vec2(rgb.g, 0)) + 4) << 8) & 0x003FF800;
+  uint b = ((packHalf2x16(vec2(rgb.b, 0)) + 8) << 18) & 0xFFC00000;
+  return r | g | b;
+  }
+
+vec3 unpackR11G11B10E4F(uint rgb) {
+  float r = unpackHalf2x16((rgb << 3)  & 0x3FF8).r;
+  float g = unpackHalf2x16((rgb >> 8)  & 0x3FF8).r;
+  float b = unpackHalf2x16((rgb >> 18) & 0x3FF0).r;
+  return vec3(r, g, b);
+  }
+
 uint encodeNormal(vec3 n) {
   return octahedral_32(n);
   }

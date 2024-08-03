@@ -22,7 +22,6 @@ struct VkDrawIndirectCommand {
 layout(binding = 8, std430) buffer UboWorkingExecuteIndirectBuffer {
   VkDispatchIndirectCommand candidateCmd;
   VkDrawIndirectCommand     applyCmd;
-  //uvec4 g_workingExecuteIndirectBuffer;
   };
 
 layout(push_constant, std140) uniform PushConstant {
@@ -35,7 +34,7 @@ void main() {
   if(push.setupProcessCandidatesPassFlag != 0) {
     uint shapeCandidateCount = controlBuffer.shapeCandidateCount;
 
-    uint appendBufferMaxCount = workingShapeCandidates.length();
+    uint appendBufferMaxCount = shapeCandidates.length();
     shapeCandidateCount = min(shapeCandidateCount, appendBufferMaxCount);
 
     candidateCmd.x = (shapeCandidateCount + CMAA2_PROCESS_CANDIDATES_NUM_THREADS - 1) / CMAA2_PROCESS_CANDIDATES_NUM_THREADS;
@@ -44,10 +43,7 @@ void main() {
 
     controlBuffer.subsequentPassWorkloadSize = shapeCandidateCount;
     } else /*setup deferred apply process*/ {
-    uint blendLocationCount = controlBuffer.blendLocationCount;
-
-    uint appendBufferMaxCount = workingDeferredBlendLocationList.length();
-    blendLocationCount = min(blendLocationCount, appendBufferMaxCount);
+    const uint blendLocationCount = min(controlBuffer.blendLocationCount, deferredBlendLocationList.length());
 
     applyCmd.vertexCount   = blendLocationCount * 4; // 4 points per quad
     applyCmd.instanceCount = 1;

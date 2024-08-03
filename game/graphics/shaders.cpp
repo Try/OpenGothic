@@ -141,7 +141,6 @@ Shaders::Shaders() {
     auto fs = device.shader(sh.data,sh.len);
     cmaa2DeferredColorApply2x2 = device.pipeline(Tempest::Points,RenderState(),vs,fs);
   }
-  //cmaa2DeferredColorApply2x2 = postEffect("cmaa2_deferred_color_apply_2x2", "cmaa2_deferred_color_apply_2x2", RenderState::ZTestMode::Always);
 
   hiZPot = computeShader("hiz_pot.comp.sprv");
   hiZMip = computeShader("hiz_mip.comp.sprv");

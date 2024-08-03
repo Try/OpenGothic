@@ -6,7 +6,7 @@
 
 #include "cmaa2_common.glsl"
 
-layout(local_size_x = CMAA2_PROCESS_CANDIDATES_NUM_THREADS, local_size_y = 1) in;
+layout(local_size_x = CMAA2_PROCESS_CANDIDATES_NUM_THREADS) in;
 
 // this reschedules final part of work from few to all threads to increase hardware thread occupancy
 #define CMAA2_COLLECT_EXPAND_BLEND_ITEMS 1
@@ -44,13 +44,14 @@ void storeColorSample(uvec2 pixelPos, vec3 color, bool isComplexShape) {
 
   uint counterIndexWithHeader = counterIndex | header;
 
-  uint originalIndex = imageAtomicExchange(workingDeferredBlendItemListHeads, ivec2(quadPos), counterIndexWithHeader);
-  workingDeferredBlendItemList[counterIndex] = uvec2(originalIndex, internalPackColor(color));
+  uint originalIndex = imageAtomicExchange(deferredBlendItemListHeads, ivec2(quadPos), counterIndexWithHeader);
+  deferredBlendItemList[counterIndex] = uvec2(originalIndex, internalPackColor(color));
 
   if(originalIndex == 0xFFFFFFFF) {
     const uint edgeListCounter = atomicAdd(controlBuffer.blendLocationCount, 1);
-    if(edgeListCounter<workingDeferredBlendLocationList.length())
-      workingDeferredBlendLocationList[edgeListCounter] = (quadPos.x << 16) | quadPos.y;
+    if(edgeListCounter < deferredBlendLocationList.length()) {
+      deferredBlendLocationList[edgeListCounter] = (quadPos.x << 16) | quadPos.y;
+      }
     }
   }
 
@@ -235,12 +236,11 @@ void main() {
   if(gl_LocalInvocationID.x == 0)
     g_groupSharedBlendItemCount = 0;
   barrier();
-  memoryBarrierShared();
 #endif
-  const uint numCandidates = controlBuffer.subsequentPassWorkloadSize;
 
+  const uint numCandidates = controlBuffer.subsequentPassWorkloadSize;
   if(gl_GlobalInvocationID.x < numCandidates) {
-    uint pixelID = workingShapeCandidates[gl_GlobalInvocationID.x];
+    uint  pixelID  = shapeCandidates[gl_GlobalInvocationID.x];
     uvec2 pixelPos = uvec2((pixelID >> 18), pixelID & 0x3FFF);
 
     uint edgesCenterPacked = loadEdge(ivec2(pixelPos), ivec2(0, 0));
@@ -329,7 +329,6 @@ void main() {
 
 #if CMAA2_COLLECT_EXPAND_BLEND_ITEMS
   barrier();
-  memoryBarrierShared();
 
   uint totalItemCount = min(CMAA2_BLEND_ITEM_SLM_SIZE, g_groupSharedBlendItemCount);
 

@@ -20,7 +20,7 @@ void main() {
   for(uint i = 0; (counterIndexWithHeader != 0xFFFFFFFF) && (i < maxLoops); i++) {
     uint  offsetXY       = (counterIndexWithHeader >> 30) & 0x03;
     bool  isComplexShape = bool((counterIndexWithHeader >> 26) & 0x01);
-    uvec2 val            = workingDeferredBlendItemList[counterIndexWithHeader & ((1u << 26) - 1)];
+    uvec2 val            = deferredBlendItemList[counterIndexWithHeader & ((1u << 26) - 1)];
 
     counterIndexWithHeader = val.x;
 

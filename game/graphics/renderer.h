@@ -130,7 +130,6 @@ class Renderer final {
 
     struct Cmaa2 {
       Tempest::Attachment       sceneTonemapped;
-      Tempest::StorageImage     sceneHdrLuma;
 
       Tempest::ComputePipeline* detectEdges2x2 = nullptr;
       Tempest::DescriptorSet    detectEdges2x2Ubo;
@@ -147,12 +146,12 @@ class Renderer final {
       Tempest::DescriptorSet    blitUbo;
 
       Tempest::StorageImage     workingEdges;
-      Tempest::StorageBuffer    workingShapeCandidates;
-      Tempest::StorageBuffer    workingDeferredBlendLocationList;
-      Tempest::StorageBuffer    workingDeferredBlendItemList;
-      Tempest::StorageImage     workingDeferredBlendItemListHeads;
+      Tempest::StorageBuffer    shapeCandidates;
+      Tempest::StorageBuffer    deferredBlendLocationList;
+      Tempest::StorageBuffer    deferredBlendItemList;
+      Tempest::StorageImage     deferredBlendItemListHeads;
       Tempest::StorageBuffer    controlBuffer;
-      Tempest::StorageBuffer    executeIndirectBuffer;
+      Tempest::StorageBuffer    indirectBuffer;
       } cmaa2;
 
     struct {

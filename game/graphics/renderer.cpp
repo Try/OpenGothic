@@ -83,17 +83,14 @@ void Renderer::resetSwapchain() {
   sceneLinear    = device.attachment(TextureFormat::R11G11B10UF,w,h);
 
   if(settings.aaEnabled) {
-    cmaa2.sceneTonemapped = device.attachment(TextureFormat::RGBA8, w, h);
-    // TODO: add R16F support later
-    cmaa2.sceneHdrLuma = device.image2d(TextureFormat::R32F, w, h);
-
-    cmaa2.workingEdges                      = device.image2d(TextureFormat::R32U, (w + 1) / 2, h);
-    cmaa2.workingShapeCandidates            = device.ssbo(Tempest::Uninitialized, w * h / 4 * sizeof(uint32_t));
-    cmaa2.workingDeferredBlendLocationList  = device.ssbo(Tempest::Uninitialized, (w * h + 3) / 6 * sizeof(uint32_t));
-    cmaa2.workingDeferredBlendItemList      = device.ssbo(Tempest::Uninitialized, w * h * sizeof(uint32_t));
-    cmaa2.workingDeferredBlendItemListHeads = device.image2d(TextureFormat::R32U, (w + 1) / 2, (h + 1) / 2);
-    cmaa2.controlBuffer                     = device.ssbo(nullptr,                4 * sizeof(uint32_t));
-    cmaa2.executeIndirectBuffer             = device.ssbo(Tempest::Uninitialized, (3 + 4) * sizeof(uint32_t));
+    cmaa2.sceneTonemapped            = device.attachment(TextureFormat::RGBA8, w, h);
+    cmaa2.workingEdges               = device.image2d(TextureFormat::R32U, (w + 1) / 2, h);
+    cmaa2.shapeCandidates            = device.ssbo(Tempest::Uninitialized, w * h / 4 * sizeof(uint32_t));
+    cmaa2.deferredBlendLocationList  = device.ssbo(Tempest::Uninitialized, (w * h + 3) / 6 * sizeof(uint32_t));
+    cmaa2.deferredBlendItemList      = device.ssbo(Tempest::Uninitialized, w * h * sizeof(uint32_t));
+    cmaa2.deferredBlendItemListHeads = device.image2d(TextureFormat::R32U, (w + 1) / 2, (h + 1) / 2);
+    cmaa2.controlBuffer              = device.ssbo(nullptr,                4 * sizeof(uint32_t));
+    cmaa2.indirectBuffer             = device.ssbo(Tempest::Uninitialized, (3 + 4) * sizeof(uint32_t));
     }
 
   zbuffer        = device.zbuffer(zBufferFormat,w,h);
@@ -319,28 +316,28 @@ void Renderer::prepareUniforms() {
 
     cmaa2.detectEdges2x2Ubo.set(0, cmaa2.sceneTonemapped, smpB);
     cmaa2.detectEdges2x2Ubo.set(2, cmaa2.workingEdges);
-    cmaa2.detectEdges2x2Ubo.set(3, cmaa2.workingShapeCandidates);
-    cmaa2.detectEdges2x2Ubo.set(6, cmaa2.workingDeferredBlendItemListHeads);
+    cmaa2.detectEdges2x2Ubo.set(3, cmaa2.shapeCandidates);
+    cmaa2.detectEdges2x2Ubo.set(6, cmaa2.deferredBlendItemListHeads);
     cmaa2.detectEdges2x2Ubo.set(7, cmaa2.controlBuffer);
 
     cmaa2.processCandidatesUbo.set(0, cmaa2.sceneTonemapped, smpB);
     cmaa2.processCandidatesUbo.set(2, cmaa2.workingEdges);
-    cmaa2.processCandidatesUbo.set(3, cmaa2.workingShapeCandidates);
-    cmaa2.processCandidatesUbo.set(4, cmaa2.workingDeferredBlendLocationList);
-    cmaa2.processCandidatesUbo.set(5, cmaa2.workingDeferredBlendItemList);
-    cmaa2.processCandidatesUbo.set(6, cmaa2.workingDeferredBlendItemListHeads);
+    cmaa2.processCandidatesUbo.set(3, cmaa2.shapeCandidates);
+    cmaa2.processCandidatesUbo.set(4, cmaa2.deferredBlendLocationList);
+    cmaa2.processCandidatesUbo.set(5, cmaa2.deferredBlendItemList);
+    cmaa2.processCandidatesUbo.set(6, cmaa2.deferredBlendItemListHeads);
     cmaa2.processCandidatesUbo.set(7, cmaa2.controlBuffer);
 
     cmaa2.defferedColorApplyUbo.set(0, cmaa2.sceneTonemapped);
-    cmaa2.defferedColorApplyUbo.set(4, cmaa2.workingDeferredBlendLocationList);
-    cmaa2.defferedColorApplyUbo.set(5, cmaa2.workingDeferredBlendItemList);
-    cmaa2.defferedColorApplyUbo.set(6, cmaa2.workingDeferredBlendItemListHeads);
+    cmaa2.defferedColorApplyUbo.set(4, cmaa2.deferredBlendLocationList);
+    cmaa2.defferedColorApplyUbo.set(5, cmaa2.deferredBlendItemList);
+    cmaa2.defferedColorApplyUbo.set(6, cmaa2.deferredBlendItemListHeads);
     cmaa2.defferedColorApplyUbo.set(7, cmaa2.controlBuffer);
 
-    cmaa2.indirectArgsSetupUbo.set(3, cmaa2.workingShapeCandidates);
-    cmaa2.indirectArgsSetupUbo.set(4, cmaa2.workingDeferredBlendLocationList);
+    cmaa2.indirectArgsSetupUbo.set(3, cmaa2.shapeCandidates);
+    cmaa2.indirectArgsSetupUbo.set(4, cmaa2.deferredBlendLocationList);
     cmaa2.indirectArgsSetupUbo.set(7, cmaa2.controlBuffer);
-    cmaa2.indirectArgsSetupUbo.set(8, cmaa2.executeIndirectBuffer);
+    cmaa2.indirectArgsSetupUbo.set(8, cmaa2.indirectBuffer);
 
     cmaa2.blitUbo.set(0, cmaa2.sceneTonemapped, smpB);
     }
@@ -665,7 +662,7 @@ void Renderer::drawCMAA2(Tempest::Attachment& result, Tempest::Encoder<Tempest::
 
   // process candidates pass
   cmd.setUniforms(*cmaa2.processCandidates, cmaa2.processCandidatesUbo);
-  cmd.dispatchIndirect(cmaa2.executeIndirectBuffer, 0);
+  cmd.dispatchIndirect(cmaa2.indirectBuffer, 0);
 
   // setup for deferred color apply
   processCandidatesSetupFlag = 0;
@@ -678,7 +675,7 @@ void Renderer::drawCMAA2(Tempest::Attachment& result, Tempest::Encoder<Tempest::
   cmd.draw(Resources::fsqVbo());
 
   cmd.setUniforms(*cmaa2.defferedColorApply, cmaa2.defferedColorApplyUbo);
-  cmd.drawIndirect(cmaa2.executeIndirectBuffer, 3*sizeof(uint32_t));
+  cmd.drawIndirect(cmaa2.indirectBuffer, 3*sizeof(uint32_t));
   }
 
 void Renderer::stashSceneAux(Encoder<CommandBuffer>& cmd, uint8_t fId) {
