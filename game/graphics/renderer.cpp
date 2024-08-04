@@ -179,9 +179,6 @@ void Renderer::resetSwapchain() {
   cmaa2.detectEdges2x2        = &Shaders::inst().cmaa2EdgeColor2x2Presets[Gothic::options().aaPreset];
   cmaa2.detectEdges2x2Ubo     = device.descriptors(*cmaa2.detectEdges2x2);
 
-  cmaa2.indirectArgsSetup     = &Shaders::inst().cmaa2ComputeDispatchArgs;
-  cmaa2.indirectArgsSetupUbo  = device.descriptors(*cmaa2.indirectArgsSetup);
-
   cmaa2.processCandidates     = &Shaders::inst().cmaa2ProcessCandidates;
   cmaa2.processCandidatesUbo  = device.descriptors(*cmaa2.processCandidates);
 
@@ -335,11 +332,6 @@ void Renderer::prepareUniforms() {
     cmaa2.defferedColorApplyUbo.set(5, cmaa2.deferredBlendItemList);
     cmaa2.defferedColorApplyUbo.set(6, cmaa2.deferredBlendItemListHeads);
     cmaa2.defferedColorApplyUbo.set(7, cmaa2.controlBuffer);
-
-    cmaa2.indirectArgsSetupUbo.set(3, cmaa2.shapeCandidates);
-    cmaa2.indirectArgsSetupUbo.set(4, cmaa2.deferredBlendLocationList);
-    cmaa2.indirectArgsSetupUbo.set(7, cmaa2.controlBuffer);
-    cmaa2.indirectArgsSetupUbo.set(8, cmaa2.indirectBuffer);
 
     cmaa2.blitUbo.set(0, cmaa2.sceneTonemapped, smpB);
     }
