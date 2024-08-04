@@ -10,15 +10,18 @@
 layout(binding = 8) uniform sampler2D inputLumaReadonly;
 #endif
 
-const uint CMAA2_CS_INPUT_KERNEL_SIZE_X  = 16;
-const uint CMAA2_CS_INPUT_KERNEL_SIZE_Y  = 8;
-const uint CMAA2_CS_OUTPUT_KERNEL_SIZE_X = (CMAA2_CS_INPUT_KERNEL_SIZE_X-2);
-const uint CMAA2_CS_OUTPUT_KERNEL_SIZE_Y = (CMAA2_CS_INPUT_KERNEL_SIZE_Y-2);
+layout(binding = 8, std430) buffer UboWorkingExecuteIndirectBuffer {
+  DispatchIndirectCommand candidateCmd;
+  DrawIndirectCommand     applyCmd;
+  };
 
-layout(local_size_x = CMAA2_CS_INPUT_KERNEL_SIZE_X, local_size_y = CMAA2_CS_INPUT_KERNEL_SIZE_Y) in;
+layout(local_size_x = 16, local_size_y = 8) in;
 
-shared vec4 groupShared2x2FracEdgesH[CMAA2_CS_INPUT_KERNEL_SIZE_X * CMAA2_CS_INPUT_KERNEL_SIZE_Y];
-shared vec4 groupShared2x2FracEdgesV[CMAA2_CS_INPUT_KERNEL_SIZE_X * CMAA2_CS_INPUT_KERNEL_SIZE_Y];
+const uint CMAA2_CS_OUTPUT_KERNEL_SIZE_X = (gl_WorkGroupSize.x-2);
+const uint CMAA2_CS_OUTPUT_KERNEL_SIZE_Y = (gl_WorkGroupSize.y-2);
+
+shared vec4 groupShared2x2FracEdgesH[gl_WorkGroupSize.x * gl_WorkGroupSize.y];
+shared vec4 groupShared2x2FracEdgesV[gl_WorkGroupSize.x * gl_WorkGroupSize.y];
 
 // presets (for HDR color buffer maybe use higher values)
 #if CMAA2_STATIC_QUALITY_PRESET == 0
@@ -89,10 +92,10 @@ void main() {
   pixelPos *= uvec2(2, 2);
 
   const uvec2 qeOffsets[4] = uvec2[4](uvec2(0, 0), uvec2(1, 0), uvec2(0, 1), uvec2(1, 1));
-  const uint rowStride2x2 = CMAA2_CS_INPUT_KERNEL_SIZE_X;
+  const uint rowStride2x2 = gl_WorkGroupSize.x;
   const uint centerAddr2x2 = gl_LocalInvocationID.x + gl_LocalInvocationID.y * rowStride2x2;
-  const bool inOutputKernel = !(any(equal(gl_LocalInvocationID.xy, uvec2(CMAA2_CS_INPUT_KERNEL_SIZE_X - 1, 0))) ||
-                                any(equal(gl_LocalInvocationID.xy, uvec2(0, CMAA2_CS_INPUT_KERNEL_SIZE_Y - 1))));
+  const bool inOutputKernel = !(any(equal(gl_LocalInvocationID.xy, uvec2(gl_WorkGroupSize.x - 1, 0))) ||
+                                any(equal(gl_LocalInvocationID.xy, uvec2(0, gl_WorkGroupSize.y - 1))));
 
   uint i;
   vec2 qe0, qe1, qe2, qe3;
@@ -242,5 +245,25 @@ void main() {
     for(uint i = 0; i < 4; i++)
       imageStore(workingEdges, ivec2(pixelPos + qeOffsets[i]), uvec4(outEdges[i]));
 #endif
+    }
+
+  barrier();
+
+  if(gl_LocalInvocationIndex==0) {
+    //NOTE: gl_NumWorkGroups is not implemented in DX12
+    const ivec2 texSize         = textureSize(sceneTonemapped, 0);
+    const ivec2 outputGroupSize = ivec2(CMAA2_CS_OUTPUT_KERNEL_SIZE_X, CMAA2_CS_OUTPUT_KERNEL_SIZE_Y);
+    const ivec2 groupCount      = ivec2(texSize + outputGroupSize - 1) / (outputGroupSize * 2);
+
+    if((atomicAdd(controlBuffer.iterator,1)+1)==(groupCount.x*groupCount.y)) {
+      controlBuffer.iterator = 0;
+
+      const uint shapeCandidateCount = min(controlBuffer.shapeCandidateCount, shapeCandidates.length());
+      controlBuffer.subsequentPassWorkloadSize = shapeCandidateCount;
+
+      candidateCmd.x = (shapeCandidateCount + CMAA2_PROCESS_CANDIDATES_NUM_THREADS - 1) / CMAA2_PROCESS_CANDIDATES_NUM_THREADS;
+      candidateCmd.y = 1;
+      candidateCmd.z = 1;
+      }
     }
   }

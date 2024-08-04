@@ -8,13 +8,18 @@
 
 layout(local_size_x = CMAA2_PROCESS_CANDIDATES_NUM_THREADS) in;
 
+layout(binding = 8, std430) buffer UboWorkingExecuteIndirectBuffer {
+  DispatchIndirectCommand candidateCmd;
+  DrawIndirectCommand     applyCmd;
+  };
+
 // this reschedules final part of work from few to all threads to increase hardware thread occupancy
 #define CMAA2_COLLECT_EXPAND_BLEND_ITEMS 1
 
 #if CMAA2_COLLECT_EXPAND_BLEND_ITEMS
-  const uint CMAA2_BLEND_ITEM_SLM_SIZE = 768;
-  shared uint g_groupSharedBlendItemCount;
-  shared uvec2 g_groupSharedBlendItems[CMAA2_BLEND_ITEM_SLM_SIZE];
+const  uint CMAA2_BLEND_ITEM_SLM_SIZE = 768;
+shared uint  g_groupSharedBlendItemCount;
+shared uvec2 g_groupSharedBlendItems[CMAA2_BLEND_ITEM_SLM_SIZE];
 #endif
 
 uint loadEdge(ivec2 pixelPos, ivec2 offset) {
@@ -362,4 +367,25 @@ void main() {
     storeColorSample(ivec2(itemPixelPos), outputColor, true);
     }
 #endif
+
+  if(gl_LocalInvocationIndex==0) {
+    //NOTE: gl_NumWorkGroups is not implemented in DX12
+    const uint shapeCandidateCount = controlBuffer.subsequentPassWorkloadSize;
+    const uint numWorkGroups       = (shapeCandidateCount + CMAA2_PROCESS_CANDIDATES_NUM_THREADS - 1) / CMAA2_PROCESS_CANDIDATES_NUM_THREADS;
+
+    if((atomicAdd(controlBuffer.iterator,1)+1)==numWorkGroups) {
+      controlBuffer.iterator = 0;
+
+      const uint blendLocationCount = min(controlBuffer.blendLocationCount, deferredBlendLocationList.length());
+      applyCmd.vertexCount   = blendLocationCount * 4; // 4 points per quad
+      applyCmd.instanceCount = 1;
+      applyCmd.firstVertex   = 0;
+      applyCmd.firstInstance = 0;
+
+      controlBuffer.subsequentPassWorkloadSize = blendLocationCount;
+      controlBuffer.blendLocationCount         = 0;
+      controlBuffer.shapeCandidateCount        = 0;
+      controlBuffer.blendColorSamplesCount     = 0;
+      }
+    }
   }

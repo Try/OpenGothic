@@ -13,6 +13,19 @@
 #define CMAA2_EDGE_UNORM                            0
 #define CMAA2_EXTRA_SHARPNESS                       0
 
+struct DispatchIndirectCommand {
+  uint  x;
+  uint  y;
+  uint  z;
+  };
+
+struct DrawIndirectCommand {
+  uint  vertexCount;
+  uint  instanceCount;
+  uint  firstVertex;
+  uint  firstInstance;
+  };
+
 const float symmetryCorrectionOffset = 0.22;
 
 #if CMAA2_EXTRA_SHARPNESS
@@ -56,6 +69,7 @@ layout(binding = 5) buffer UboWorkingDeferredBlendItemList {
 layout(binding = 6, r32ui) uniform uimage2D deferredBlendItemListHeads;
 
 layout(binding = 7) buffer UboWorkingControlBuffer {
+  uint iterator;
   uint shapeCandidateCount;
   uint blendColorSamplesCount;
   uint blendLocationCount;

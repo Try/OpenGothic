@@ -89,8 +89,8 @@ void Renderer::resetSwapchain() {
     cmaa2.deferredBlendLocationList  = device.ssbo(Tempest::Uninitialized, (w * h + 3) / 6 * sizeof(uint32_t));
     cmaa2.deferredBlendItemList      = device.ssbo(Tempest::Uninitialized, w * h * sizeof(uint32_t));
     cmaa2.deferredBlendItemListHeads = device.image2d(TextureFormat::R32U, (w + 1) / 2, (h + 1) / 2);
-    cmaa2.controlBuffer              = device.ssbo(nullptr,                4 * sizeof(uint32_t));
-    cmaa2.indirectBuffer             = device.ssbo(Tempest::Uninitialized, sizeof(DispatchIndirectCommand) + sizeof(DrawIndirectCommand));
+    cmaa2.controlBuffer              = device.ssbo(nullptr, 5 * sizeof(uint32_t));
+    cmaa2.indirectBuffer             = device.ssbo(nullptr, sizeof(DispatchIndirectCommand) + sizeof(DrawIndirectCommand));
     }
 
   zbuffer        = device.zbuffer(zBufferFormat,w,h);
@@ -319,6 +319,7 @@ void Renderer::prepareUniforms() {
     cmaa2.detectEdges2x2Ubo.set(3, cmaa2.shapeCandidates);
     cmaa2.detectEdges2x2Ubo.set(6, cmaa2.deferredBlendItemListHeads);
     cmaa2.detectEdges2x2Ubo.set(7, cmaa2.controlBuffer);
+    cmaa2.detectEdges2x2Ubo.set(8, cmaa2.indirectBuffer);
 
     cmaa2.processCandidatesUbo.set(0, cmaa2.sceneTonemapped, smpB);
     cmaa2.processCandidatesUbo.set(2, cmaa2.workingEdges);
@@ -327,6 +328,7 @@ void Renderer::prepareUniforms() {
     cmaa2.processCandidatesUbo.set(5, cmaa2.deferredBlendItemList);
     cmaa2.processCandidatesUbo.set(6, cmaa2.deferredBlendItemListHeads);
     cmaa2.processCandidatesUbo.set(7, cmaa2.controlBuffer);
+    cmaa2.processCandidatesUbo.set(8, cmaa2.indirectBuffer);
 
     cmaa2.defferedColorApplyUbo.set(0, cmaa2.sceneTonemapped);
     cmaa2.defferedColorApplyUbo.set(4, cmaa2.deferredBlendLocationList);
@@ -642,32 +644,20 @@ void Renderer::drawTonemapping(Attachment& result, Encoder<CommandBuffer>& cmd) 
   }
 
 void Renderer::drawCMAA2(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
-  uint32_t processCandidatesSetupFlag = 1;
-
-  // detect edges
-  const IVec3 inputGroupSize  = cmaa2.detectEdges2x2->workGroupSize();
-  const IVec3 outputGroupSize = inputGroupSize - IVec3(2, 2, 0);
-
-  uint32_t groupCountX = uint32_t((cmaa2.sceneTonemapped.size().w + outputGroupSize.x * 2 - 1) / (outputGroupSize.x * 2));
-  uint32_t groupCountY = uint32_t((cmaa2.sceneTonemapped.size().h + outputGroupSize.y * 2 - 1) / (outputGroupSize.y * 2));
+  const IVec3    inputGroupSize  = cmaa2.detectEdges2x2->workGroupSize();
+  const IVec3    outputGroupSize = inputGroupSize - IVec3(2, 2, 0);
+  const uint32_t groupCountX     = uint32_t((cmaa2.sceneTonemapped.size().w + outputGroupSize.x * 2 - 1) / (outputGroupSize.x * 2));
+  const uint32_t groupCountY     = uint32_t((cmaa2.sceneTonemapped.size().h + outputGroupSize.y * 2 - 1) / (outputGroupSize.y * 2));
 
   cmd.setFramebuffer({});
 
+  // detect edges
   cmd.setUniforms(*cmaa2.detectEdges2x2, cmaa2.detectEdges2x2Ubo);
   cmd.dispatch(groupCountX, groupCountY, 1);
-
-  // set indirect for processCandidates pass
-  cmd.setUniforms(*cmaa2.indirectArgsSetup, cmaa2.indirectArgsSetupUbo, &processCandidatesSetupFlag, sizeof(uint32_t));
-  cmd.dispatch(1);
 
   // process candidates pass
   cmd.setUniforms(*cmaa2.processCandidates, cmaa2.processCandidatesUbo);
   cmd.dispatchIndirect(cmaa2.indirectBuffer, 0);
-
-  // setup for deferred color apply
-  processCandidatesSetupFlag = 0;
-  cmd.setUniforms(*cmaa2.indirectArgsSetup, cmaa2.indirectArgsSetupUbo, &processCandidatesSetupFlag, sizeof(uint32_t));
-  cmd.dispatch(1);
 
   // deferred color apply
   cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});

@@ -273,7 +273,6 @@ add_shader(probe_ambient.frag        lighting/rt/probe_ambient.frag)
 add_shader(cmaa2_edges_color2x2_quality_0.comp     antialiasing/cmaa2/edge_color2x2.comp -DCMAA2_STATIC_QUALITY_PRESET=0)
 add_shader(cmaa2_edges_color2x2_quality_1.comp     antialiasing/cmaa2/edge_color2x2.comp -DCMAA2_STATIC_QUALITY_PRESET=1)
 
-add_shader(cmaa2_setup_compute_dispatch_args.comp  antialiasing/cmaa2/compute_dispatch_args.comp)
 add_shader(cmaa2_process_candidates.comp           antialiasing/cmaa2/process_candidates.comp)
 add_shader(cmaa2_deferred_color_apply_2x2.vert     antialiasing/cmaa2/deferred_color_apply_2x2.vert)
 add_shader(cmaa2_deferred_color_apply_2x2.frag     antialiasing/cmaa2/deferred_color_apply_2x2.frag)

@@ -132,8 +132,7 @@ Shaders::Shaders() {
   cmaa2EdgeColor2x2Presets[uint32_t(AaPreset::MEDIUM)] = computeShader("cmaa2_edges_color2x2_quality_0.comp.sprv");
   cmaa2EdgeColor2x2Presets[uint32_t(AaPreset::ULTRA)]  = computeShader("cmaa2_edges_color2x2_quality_1.comp.sprv");
 
-  cmaa2ComputeDispatchArgs   = computeShader("cmaa2_setup_compute_dispatch_args.comp.sprv");
-  cmaa2ProcessCandidates     = computeShader("cmaa2_process_candidates.comp.sprv");
+  cmaa2ProcessCandidates = computeShader("cmaa2_process_candidates.comp.sprv");
   {
     auto sh = GothicShader::get("cmaa2_deferred_color_apply_2x2.vert.sprv");
     auto vs = device.shader(sh.data,sh.len);

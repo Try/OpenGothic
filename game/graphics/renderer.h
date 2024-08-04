@@ -134,9 +134,6 @@ class Renderer final {
       Tempest::ComputePipeline* detectEdges2x2 = nullptr;
       Tempest::DescriptorSet    detectEdges2x2Ubo;
 
-      Tempest::ComputePipeline* indirectArgsSetup = nullptr;
-      Tempest::DescriptorSet    indirectArgsSetupUbo;
-
       Tempest::ComputePipeline* processCandidates = nullptr;
       Tempest::DescriptorSet    processCandidatesUbo;
 
