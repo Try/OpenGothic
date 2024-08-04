@@ -6,14 +6,14 @@
 
 #include "cmaa2_common.glsl"
 
-#if CMAA2_EDGE_DETECTION_LUMA_PATH == 2
-layout(binding = 8) uniform sampler2D inputLumaReadonly;
-#endif
-
-layout(binding = 8, std430) buffer UboWorkingExecuteIndirectBuffer {
+layout(binding = 7, std430) buffer UboWorkingExecuteIndirectBuffer {
   DispatchIndirectCommand candidateCmd;
   DrawIndirectCommand     applyCmd;
   };
+
+#if CMAA2_EDGE_DETECTION_LUMA_PATH == 2
+layout(binding = 8) uniform sampler2D inputLumaReadonly;
+#endif
 
 layout(local_size_x = 16, local_size_y = 8) in;
 

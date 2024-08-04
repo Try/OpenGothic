@@ -8,7 +8,7 @@
 
 layout(local_size_x = CMAA2_PROCESS_CANDIDATES_NUM_THREADS) in;
 
-layout(binding = 8, std430) buffer UboWorkingExecuteIndirectBuffer {
+layout(binding = 7, std430) buffer UboWorkingExecuteIndirectBuffer {
   DispatchIndirectCommand candidateCmd;
   DrawIndirectCommand     applyCmd;
   };

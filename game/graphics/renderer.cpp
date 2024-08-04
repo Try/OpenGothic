@@ -312,26 +312,26 @@ void Renderer::prepareUniforms() {
     smpB.setClamping(ClampMode::ClampToEdge);
 
     cmaa2.detectEdges2x2Ubo.set(0, cmaa2.sceneTonemapped, smpB);
-    cmaa2.detectEdges2x2Ubo.set(2, cmaa2.workingEdges);
-    cmaa2.detectEdges2x2Ubo.set(3, cmaa2.shapeCandidates);
-    cmaa2.detectEdges2x2Ubo.set(6, cmaa2.deferredBlendItemListHeads);
-    cmaa2.detectEdges2x2Ubo.set(7, cmaa2.controlBuffer);
-    cmaa2.detectEdges2x2Ubo.set(8, cmaa2.indirectBuffer);
+    cmaa2.detectEdges2x2Ubo.set(1, cmaa2.workingEdges);
+    cmaa2.detectEdges2x2Ubo.set(2, cmaa2.shapeCandidates);
+    cmaa2.detectEdges2x2Ubo.set(5, cmaa2.deferredBlendItemListHeads);
+    cmaa2.detectEdges2x2Ubo.set(6, cmaa2.controlBuffer);
+    cmaa2.detectEdges2x2Ubo.set(7, cmaa2.indirectBuffer);
 
     cmaa2.processCandidatesUbo.set(0, cmaa2.sceneTonemapped, smpB);
-    cmaa2.processCandidatesUbo.set(2, cmaa2.workingEdges);
-    cmaa2.processCandidatesUbo.set(3, cmaa2.shapeCandidates);
-    cmaa2.processCandidatesUbo.set(4, cmaa2.deferredBlendLocationList);
-    cmaa2.processCandidatesUbo.set(5, cmaa2.deferredBlendItemList);
-    cmaa2.processCandidatesUbo.set(6, cmaa2.deferredBlendItemListHeads);
-    cmaa2.processCandidatesUbo.set(7, cmaa2.controlBuffer);
-    cmaa2.processCandidatesUbo.set(8, cmaa2.indirectBuffer);
+    cmaa2.processCandidatesUbo.set(1, cmaa2.workingEdges);
+    cmaa2.processCandidatesUbo.set(2, cmaa2.shapeCandidates);
+    cmaa2.processCandidatesUbo.set(3, cmaa2.deferredBlendLocationList);
+    cmaa2.processCandidatesUbo.set(4, cmaa2.deferredBlendItemList);
+    cmaa2.processCandidatesUbo.set(5, cmaa2.deferredBlendItemListHeads);
+    cmaa2.processCandidatesUbo.set(6, cmaa2.controlBuffer);
+    cmaa2.processCandidatesUbo.set(7, cmaa2.indirectBuffer);
 
     cmaa2.defferedColorApplyUbo.set(0, cmaa2.sceneTonemapped);
-    cmaa2.defferedColorApplyUbo.set(4, cmaa2.deferredBlendLocationList);
-    cmaa2.defferedColorApplyUbo.set(5, cmaa2.deferredBlendItemList);
-    cmaa2.defferedColorApplyUbo.set(6, cmaa2.deferredBlendItemListHeads);
-    cmaa2.defferedColorApplyUbo.set(7, cmaa2.controlBuffer);
+    cmaa2.defferedColorApplyUbo.set(3, cmaa2.deferredBlendLocationList);
+    cmaa2.defferedColorApplyUbo.set(4, cmaa2.deferredBlendItemList);
+    cmaa2.defferedColorApplyUbo.set(5, cmaa2.deferredBlendItemListHeads);
+    cmaa2.defferedColorApplyUbo.set(6, cmaa2.controlBuffer);
 
     cmaa2.blitUbo.set(0, cmaa2.sceneTonemapped, smpB);
     }

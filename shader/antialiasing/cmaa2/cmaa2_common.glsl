@@ -44,23 +44,23 @@ const uint maxLineLength = 86;
 // 
 
 layout(binding = 0)     uniform texture2D sceneTonemapped;
-layout(binding = 2, r8) uniform image2D   workingEdges;
+layout(binding = 1, r8) uniform image2D   workingEdges;
 
-layout(binding = 3) buffer UboWorkingShapeCandidates {
+layout(binding = 2) buffer UboWorkingShapeCandidates {
   uint shapeCandidates[];
   };
 
-layout(binding = 4) buffer UboWorkingDeferredBlendLocationList {
+layout(binding = 3) buffer UboWorkingDeferredBlendLocationList {
   uint deferredBlendLocationList[];
   };
 
-layout(binding = 5) buffer UboWorkingDeferredBlendItemList {
+layout(binding = 4) buffer UboWorkingDeferredBlendItemList {
   uvec2 deferredBlendItemList[];
   };
 
-layout(binding = 6, r32ui) uniform uimage2D deferredBlendItemListHeads;
+layout(binding = 5, r32ui) uniform uimage2D deferredBlendItemListHeads;
 
-layout(binding = 7) buffer UboWorkingControlBuffer {
+layout(binding = 6) buffer UboWorkingControlBuffer {
   uint iterator;
   uint shapeCandidateCount;
   uint blendColorSamplesCount;
