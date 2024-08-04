@@ -233,18 +233,7 @@ void main() {
     }
 
   if(inOutputKernel) {
-#if defined(CMAA_PACK_SINGLE_SAMPLE_EDGE_TO_HALF_WIDTH)
-  #if CMAA2_EDGE_UNORM
-    imageStore(workingEdges, ivec2(pixelPos.x / 2, pixelPos.y + 0), vec4(((outEdges[1] << 4) | outEdges[0]) / 255.0));
-    imageStore(workingEdges, ivec2(pixelPos.x / 2, pixelPos.y + 1), vec4(((outEdges[3] << 4) | outEdges[2]) / 255.0));
-  #else
-    imageStore(workingEdges, ivec2(pixelPos.x / 2, pixelPos.y + 0), uvec4((outEdges[1] << 4) | outEdges[0]));
-    imageStore(workingEdges, ivec2(pixelPos.x / 2, pixelPos.y + 1), uvec4((outEdges[3] << 4) | outEdges[2]));
-  #endif
-#else
-    for(uint i = 0; i < 4; i++)
-      imageStore(workingEdges, ivec2(pixelPos + qeOffsets[i]), uvec4(outEdges[i]));
-#endif
+    storeEdge(pixelPos, outEdges);
     }
 
   barrier();

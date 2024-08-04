@@ -84,7 +84,7 @@ void Renderer::resetSwapchain() {
 
   if(settings.aaEnabled) {
     cmaa2.sceneTonemapped            = device.attachment(TextureFormat::RGBA8, w, h);
-    cmaa2.workingEdges               = device.image2d(TextureFormat::R32U, (w + 1) / 2, h);
+    cmaa2.workingEdges               = device.image2d(TextureFormat::R8, (w + 1) / 2, h);
     cmaa2.shapeCandidates            = device.ssbo(Tempest::Uninitialized, w * h / 4 * sizeof(uint32_t));
     cmaa2.deferredBlendLocationList  = device.ssbo(Tempest::Uninitialized, (w * h + 3) / 6 * sizeof(uint32_t));
     cmaa2.deferredBlendItemList      = device.ssbo(Tempest::Uninitialized, w * h * sizeof(uint32_t));

@@ -22,23 +22,6 @@ shared uint  g_groupSharedBlendItemCount;
 shared uvec2 g_groupSharedBlendItems[CMAA2_BLEND_ITEM_SLM_SIZE];
 #endif
 
-uint loadEdge(ivec2 pixelPos, ivec2 offset) {
-#if defined(CMAA_PACK_SINGLE_SAMPLE_EDGE_TO_HALF_WIDTH)
-  uint a = uint((pixelPos.x + offset.x) % 2);
-
-  #if CMAA2_EDGE_UNORM
-    uint edge = uint(imageLoad(workingEdges, ivec2((pixelPos.x + offset.x) / 2, pixelPos.y + offset.y)).x * 255. + 0.5);
-  #else
-    uint edge = imageLoad(workingEdges, ivec2((pixelPos.x + offset.x) / 2, pixelPos.y + offset.y)).x;
-  #endif
-
-  edge = (edge >> (a * 4)) & 0xF;
-#else
-    uint edge = imageLoad(workingEdges, ivec2(pixelPos + offset)).x;
-#endif
-  return edge;
-  }
-
 void storeColorSample(uvec2 pixelPos, vec3 color, bool isComplexShape) {
   uint counterIndex = atomicAdd(controlBuffer.blendColorSamplesCount, 1);
 
