@@ -19,6 +19,7 @@ class Marvin {
     enum CmdType {
       C_None,
       C_Incomplete,
+      C_Extra,
       C_Invalid,
 
       // gdb-like
@@ -26,9 +27,11 @@ class Marvin {
 
       // rendering
       C_ToggleFrame,
-      C_ToggleTime,
       // game
       C_ToggleDesktop,
+      C_ToggleTime,
+      C_TimeMultiplyer,
+      C_TimeRealtime,
       // npc
       C_CheatFull,
       C_CheatGod,

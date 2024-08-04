@@ -158,7 +158,7 @@ Rendering distance is not customizable.
 | Argument(s)            | Description                                                      |
 | ---------------------- | -------                                                          |
 | `-g`                   | specify path containing Gothic game data                         |
-| `-game:<modfile.init>` | specify game modification manifest (GothicStarter compatibility) |
+| `-game:<modfile.ini>`  | specify game modification manifest (GothicStarter compatibility) |
 | `-nomenu`              | skip main menu                                                   |
 | `-devmode`             | enable marvin-mode at start of the game                          |
 | `-w <worldname.zen>`   | startup world; newworld.zen is default                           |

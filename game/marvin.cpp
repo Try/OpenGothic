@@ -35,6 +35,19 @@ static bool compareNoCase(std::string_view sa, std::string_view sb) {
   return true;
   }
 
+template<class T>
+static bool fromString(std::string_view str, T& t) {
+  auto err = std::from_chars(str.data(), str.data()+str.size(),t).ec;
+  if(err!=std::errc())
+    return false;
+  return true;
+  }
+
+static bool fromString(std::string_view str, float& t) {
+  t = std::stof(std::string(str));
+  return true;
+  }
+
 Marvin::Marvin() {
   /* Legend:
    %c - instance variable from script
@@ -105,8 +118,8 @@ Marvin::Marvin() {
     {"version",                    C_Invalid},
     {"zstartrain",                 C_Invalid},
     {"zstartsnow",                 C_Invalid},
-    {"ztimer multiplyer",          C_Invalid},
-    {"ztimer realtime",            C_Invalid},
+    {"ztimer multiplyer %f",       C_TimeMultiplyer},
+    {"ztimer realtime",            C_TimeRealtime},
     {"ztoggle helpervisuals",      C_Invalid},
     {"ztoggle showzones",          C_Invalid},
     {"ztrigger %s",                C_Invalid},
@@ -178,7 +191,7 @@ Marvin::CmdVal Marvin::isMatch(std::string_view inp, const Cmd& cmd) const {
 
     if(ref.size()==wr) {
       if(inp.size()!=winp.size())
-        return C_Invalid; // extra stuff
+        return C_Extra;
       break;
       }
 
@@ -243,6 +256,7 @@ bool Marvin::exec(std::string_view v) {
       return true;
     case C_Incomplete:
     case C_Invalid:
+    case C_Extra:
       return false;
     case C_CheatFull:{
       if(auto pl = Gothic::inst().player()) {
@@ -286,8 +300,7 @@ bool Marvin::exec(std::string_view v) {
         return false;
       int c[3] = {};
       for(int i=0; i<3; ++i) {
-        auto err = std::from_chars(ret.argv[i].data(),ret.argv[i].data()+ret.argv[i].size(),c[i]).ec;
-        if(err!=std::errc())
+        if(!fromString(ret.argv[i], c[i]))
           return false;
         }
       player->setPosition(float(c[0]),float(c[1]),float(c[2]));
@@ -315,10 +328,8 @@ bool Marvin::exec(std::string_view v) {
       if(world==nullptr || c==nullptr || player==nullptr)
         return false;
       size_t n = 1;
-      if(!ret.argv[1].empty()) {
-        auto err = std::from_chars(ret.argv[1].data(),ret.argv[1].data()+ret.argv[1].size(),n).ec;
-        if(err!=std::errc())
-          return false;
+      if(!ret.argv[1].empty() && !fromString(ret.argv[1], n)) {
+        return false;
         }
       return goToVob(*world,*player,*c,ret.argv[0],--n);
       }
@@ -340,6 +351,24 @@ bool Marvin::exec(std::string_view v) {
     case C_ToggleTime:{
       Gothic::inst().setClock(!Gothic::inst().doClock());
       return true;
+      }
+    case C_TimeMultiplyer: {
+      if(auto g = Gothic::inst().gameSession()) {
+        float mul = 1;
+        if(!fromString(ret.argv[0], mul))
+          return false;
+        mul = std::max(mul, 0.f);
+        g->setTimeMultiplyer(mul);
+        return true;
+        }
+      return false;
+      }
+    case C_TimeRealtime:{
+      if(auto g = Gothic::inst().gameSession()) {
+        g->setTimeMultiplyer(1);
+        return true;
+        }
+      return false;
       }
     case C_CamAutoswitch:
       return true;

@@ -101,6 +101,7 @@ add_subdirectory(lib/ZenKit)
 target_link_libraries(${PROJECT_NAME} zenkit)
 
 # dmusic
+set(DM_BUILD_STATIC            ON  CACHE INTERNAL "")
 set(DM_ENABLE_ASAN             OFF CACHE INTERNAL "")
 
 add_subdirectory(lib/dmusic)

@@ -1300,8 +1300,6 @@ Attitude GameScript::personAttitude(const Npc &p0, const Npc &p1) const {
   att = npc.attitude();
   if(att!=ATT_NULL)
     return att;
-  if(npc.isFriend())
-    return ATT_FRIENDLY;
   att = guildAttitude(p0,p1);
   return att;
   }
@@ -1310,6 +1308,8 @@ bool GameScript::isFriendlyFire(const Npc& src, const Npc& dst) const {
   static const int AIV_PARTYMEMBER = 15;
   if(src.isPlayer())
     return false;
+  if(src.isFriend())
+    return true;
   if(personAttitude(src, dst)==ATT_FRIENDLY)
     return true;
   if(src.handlePtr()->aivar[AIV_PARTYMEMBER]!=0 && dst.isPlayer())

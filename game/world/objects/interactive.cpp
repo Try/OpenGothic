@@ -85,10 +85,10 @@ Interactive::Interactive(Vob* parent, World &world, const zenkit::VMovableObject
     }
 
   setVisual(vob);
-  mdlVisual = std::move(vob.visual->name);
+  mdlVisual = vob.visual->name;
 
   if(isLadder() && !mdlVisual.empty()) {
-    // NOTE: there must be else way to determinate steps count, nut for now - we parse filename
+    // NOTE: there must be else way to determinate steps count, but for now - we parse filename
     size_t at = mdlVisual.size()-1;
     while(at>0 && !std::isdigit(mdlVisual[at]))
       --at;
