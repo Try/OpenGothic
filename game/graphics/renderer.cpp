@@ -90,7 +90,7 @@ void Renderer::resetSwapchain() {
     cmaa2.deferredBlendItemList      = device.ssbo(Tempest::Uninitialized, w * h * sizeof(uint32_t));
     cmaa2.deferredBlendItemListHeads = device.image2d(TextureFormat::R32U, (w + 1) / 2, (h + 1) / 2);
     cmaa2.controlBuffer              = device.ssbo(nullptr,                4 * sizeof(uint32_t));
-    cmaa2.indirectBuffer             = device.ssbo(Tempest::Uninitialized, (3 + 4) * sizeof(uint32_t));
+    cmaa2.indirectBuffer             = device.ssbo(Tempest::Uninitialized, sizeof(DispatchIndirectCommand) + sizeof(DrawIndirectCommand));
     }
 
   zbuffer        = device.zbuffer(zBufferFormat,w,h);
