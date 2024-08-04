@@ -670,7 +670,7 @@ void Renderer::drawCMAA2(Tempest::Attachment& result, Tempest::Encoder<Tempest::
   cmd.dispatch(1);
 
   // deferred color apply
-  cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
+  cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
   cmd.setUniforms(Shaders::inst().copy, cmaa2.blitUbo);
   cmd.draw(Resources::fsqVbo());
 
