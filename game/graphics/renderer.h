@@ -129,8 +129,6 @@ class Renderer final {
       } tonemapping;
 
     struct Cmaa2 {
-      Tempest::Attachment       sceneTonemapped;
-
       Tempest::ComputePipeline* detectEdges2x2 = nullptr;
       Tempest::DescriptorSet    detectEdges2x2Ubo;
 
@@ -139,8 +137,6 @@ class Renderer final {
 
       Tempest::RenderPipeline*  defferedColorApply = nullptr;
       Tempest::DescriptorSet    defferedColorApplyUbo;
-
-      Tempest::DescriptorSet    blitUbo;
 
       Tempest::StorageImage     workingEdges;
       Tempest::StorageBuffer    shapeCandidates;

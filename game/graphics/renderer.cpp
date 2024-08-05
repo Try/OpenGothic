@@ -83,7 +83,6 @@ void Renderer::resetSwapchain() {
   sceneLinear    = device.attachment(TextureFormat::R11G11B10UF,w,h);
 
   if(settings.aaEnabled) {
-    cmaa2.sceneTonemapped            = device.attachment(TextureFormat::RGBA8, w, h);
     cmaa2.workingEdges               = device.image2d(TextureFormat::R8, (w + 1) / 2, h);
     cmaa2.shapeCandidates            = device.ssbo(Tempest::Uninitialized, w * h / 4 * sizeof(uint32_t));
     cmaa2.deferredBlendLocationList  = device.ssbo(Tempest::Uninitialized, (w * h + 3) / 6 * sizeof(uint32_t));
@@ -184,8 +183,6 @@ void Renderer::resetSwapchain() {
 
   cmaa2.defferedColorApply    = &Shaders::inst().cmaa2DeferredColorApply2x2;
   cmaa2.defferedColorApplyUbo = device.descriptors(*cmaa2.defferedColorApply);
-
-  cmaa2.blitUbo               = device.descriptors(Shaders::inst().copy);
 
   initGiData();
   prepareUniforms();
@@ -311,14 +308,14 @@ void Renderer::prepareUniforms() {
     auto smpB = Sampler::bilinear();
     smpB.setClamping(ClampMode::ClampToEdge);
 
-    cmaa2.detectEdges2x2Ubo.set(0, cmaa2.sceneTonemapped, smpB);
+    cmaa2.detectEdges2x2Ubo.set(0, sceneLinear, smpB);
     cmaa2.detectEdges2x2Ubo.set(1, cmaa2.workingEdges);
     cmaa2.detectEdges2x2Ubo.set(2, cmaa2.shapeCandidates);
     cmaa2.detectEdges2x2Ubo.set(5, cmaa2.deferredBlendItemListHeads);
     cmaa2.detectEdges2x2Ubo.set(6, cmaa2.controlBuffer);
     cmaa2.detectEdges2x2Ubo.set(7, cmaa2.indirectBuffer);
 
-    cmaa2.processCandidatesUbo.set(0, cmaa2.sceneTonemapped, smpB);
+    cmaa2.processCandidatesUbo.set(0, sceneLinear, smpB);
     cmaa2.processCandidatesUbo.set(1, cmaa2.workingEdges);
     cmaa2.processCandidatesUbo.set(2, cmaa2.shapeCandidates);
     cmaa2.processCandidatesUbo.set(3, cmaa2.deferredBlendLocationList);
@@ -327,13 +324,11 @@ void Renderer::prepareUniforms() {
     cmaa2.processCandidatesUbo.set(6, cmaa2.controlBuffer);
     cmaa2.processCandidatesUbo.set(7, cmaa2.indirectBuffer);
 
-    cmaa2.defferedColorApplyUbo.set(0, cmaa2.sceneTonemapped);
+    cmaa2.defferedColorApplyUbo.set(0, sceneLinear);
     cmaa2.defferedColorApplyUbo.set(3, cmaa2.deferredBlendLocationList);
     cmaa2.defferedColorApplyUbo.set(4, cmaa2.deferredBlendItemList);
     cmaa2.defferedColorApplyUbo.set(5, cmaa2.deferredBlendItemListHeads);
     cmaa2.defferedColorApplyUbo.set(6, cmaa2.controlBuffer);
-
-    cmaa2.blitUbo.set(0, cmaa2.sceneTonemapped, smpB);
     }
 
   shadow.ubo.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
@@ -600,10 +595,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     }
 
   if(settings.aaEnabled) {
-    cmd.setDebugMarker("Tonemapping");
-    drawTonemapping(cmaa2.sceneTonemapped, cmd);
-
-    cmd.setDebugMarker("CMAA2");
+    cmd.setDebugMarker("CMAA2 & Tonemapping");
     drawCMAA2(result, cmd);
     } else {
     cmd.setDebugMarker("Tonemapping");
@@ -638,8 +630,8 @@ void Renderer::drawTonemapping(Attachment& result, Encoder<CommandBuffer>& cmd) 
 void Renderer::drawCMAA2(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   const IVec3    inputGroupSize  = cmaa2.detectEdges2x2->workGroupSize();
   const IVec3    outputGroupSize = inputGroupSize - IVec3(2, 2, 0);
-  const uint32_t groupCountX     = uint32_t((cmaa2.sceneTonemapped.size().w + outputGroupSize.x * 2 - 1) / (outputGroupSize.x * 2));
-  const uint32_t groupCountY     = uint32_t((cmaa2.sceneTonemapped.size().h + outputGroupSize.y * 2 - 1) / (outputGroupSize.y * 2));
+  const uint32_t groupCountX     = uint32_t((sceneLinear.w() + outputGroupSize.x * 2 - 1) / (outputGroupSize.x * 2));
+  const uint32_t groupCountY     = uint32_t((sceneLinear.h() + outputGroupSize.y * 2 - 1) / (outputGroupSize.y * 2));
 
   cmd.setFramebuffer({});
 
@@ -652,11 +644,27 @@ void Renderer::drawCMAA2(Tempest::Attachment& result, Tempest::Encoder<Tempest::
   cmd.dispatchIndirect(cmaa2.indirectBuffer, 0);
 
   // deferred color apply
+  struct Push {
+    float brightness = 0;
+    float contrast   = 1;
+    float gamma      = 1.f/2.2f;
+    float mul        = 1;
+    };
+
+  Push p;
+  p.brightness = (settings.zVidBrightness - 0.5f)*0.1f;
+  p.contrast   = std::max(1.5f - settings.zVidContrast, 0.01f);
+  p.gamma      = p.gamma/std::max(2.0f*settings.zVidGamma,  0.01f);
+
+  static float mul = 0.f;
+  if(mul>0)
+    p.mul = mul;
+
   cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
-  cmd.setUniforms(Shaders::inst().copy, cmaa2.blitUbo);
+  cmd.setUniforms(*tonemapping.pso, tonemapping.uboTone, &p, sizeof(p));
   cmd.draw(Resources::fsqVbo());
 
-  cmd.setUniforms(*cmaa2.defferedColorApply, cmaa2.defferedColorApplyUbo);
+  cmd.setUniforms(*cmaa2.defferedColorApply, cmaa2.defferedColorApplyUbo, &p, sizeof(p));
   cmd.drawIndirect(cmaa2.indirectBuffer, 3*sizeof(uint32_t));
   }
 

@@ -6,11 +6,40 @@
 
 #include "common.glsl"
 #include "cmaa2_common.glsl"
+#include "lighting/tonemapping.glsl"
+
+layout(push_constant, std140) uniform PushConstant {
+  float brightness;
+  float contrast;
+  float gamma;
+  float mulExposure;
+  } push;
 
 layout(location = 0) out vec4 result;
 
 layout(location = 0) in flat uint  currentQuadOffsetXY;
 layout(location = 1) in flat uint  inCounterIndexWithHeader;
+
+vec3 tonemapping(vec3 color) {
+  // float exposure   = scene.exposure;
+  float brightness = push.brightness;
+  float contrast   = push.contrast;
+  float gamma      = push.gamma;
+
+  color *= push.mulExposure;
+
+  // Brightness & Contrast
+  color = max(vec3(0), color + vec3(brightness));
+  color = color * vec3(contrast);
+
+  // Tonemapping
+  color = acesTonemap(color);
+
+  // Gamma
+  //color = srgbEncode(color);
+  color = pow(color, vec3(gamma));
+  return color;
+  }
 
 void main() {
   uint counterIndexWithHeader = inCounterIndexWithHeader;
@@ -34,5 +63,6 @@ void main() {
   if(outColors.a == 0)
     discard;
 
-  result = vec4(outColors.rgb/outColors.a, 1);
+  // result = vec4(outColors.rgb/outColors.a, 1);
+  result = vec4(tonemapping(outColors.rgb/outColors.a), 1);
   }

@@ -6,7 +6,7 @@
 #include "common.glsl"
 
 #define CMAA2_PROCESS_CANDIDATES_NUM_THREADS        128
-#define CMAA2_SUPPORT_HDR_COLOR_RANGE               0
+#define CMAA2_SUPPORT_HDR_COLOR_RANGE               1
 #define CMAA2_EDGE_DETECTION_LUMA_PATH              0       // We should use HDR luma from a separate buffer in the future
 #define CMAA2_EXTRA_SHARPNESS                       0
 
