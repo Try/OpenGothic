@@ -351,12 +351,14 @@ void main() {
     }
 #endif
 
+  barrier();
   if(gl_LocalInvocationIndex==0) {
     //NOTE: gl_NumWorkGroups is not implemented in DX12
     const uint shapeCandidateCount = controlBuffer.subsequentPassWorkloadSize;
     const uint numWorkGroups       = (shapeCandidateCount + CMAA2_PROCESS_CANDIDATES_NUM_THREADS - 1) / CMAA2_PROCESS_CANDIDATES_NUM_THREADS;
 
     if((atomicAdd(controlBuffer.iterator,1)+1)==numWorkGroups) {
+      memoryBarrierBuffer();
       controlBuffer.iterator = 0;
 
       const uint blendLocationCount = min(controlBuffer.blendLocationCount, deferredBlendLocationList.length());

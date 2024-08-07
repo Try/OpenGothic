@@ -237,8 +237,8 @@ void main() {
     }
 
   barrier();
-
   if(gl_LocalInvocationIndex==0) {
+    memoryBarrierBuffer();
     //NOTE: gl_NumWorkGroups is not implemented in DX12
     const ivec2 texSize         = textureSize(sceneTonemapped, 0);
     const ivec2 outputGroupSize = ivec2(CMAA2_CS_OUTPUT_KERNEL_SIZE_X, CMAA2_CS_OUTPUT_KERNEL_SIZE_Y);
