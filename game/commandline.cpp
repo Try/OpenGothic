@@ -99,15 +99,15 @@ CommandLine::CommandLine(int argc, const char** argv) {
       if(i<argc)
         isRQuery = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
       }
-    else if(arg=="-fxaa") {
+    else if(arg=="-aa") {
       ++i;
-      if(i < argc) {
+      if(i<argc) {
         try {
-          fxaaPresetId = uint32_t(std::stoul(std::string(argv[i])));
-          fxaaPresetId = std::clamp(fxaaPresetId, 0u, uint32_t(FxaaPreset::PRESETS_COUNT)-1u);
+          aaPresetId = uint32_t(std::stoul(std::string(argv[i])));
+          aaPresetId = std::clamp(aaPresetId, 0u, uint32_t(AaPreset::PRESETS_COUNT)-1u);
           }
         catch (const std::exception& e) {
-          Log::i("failed to read fxaa preset: \"", std::string(argv[i]), "\"");
+          Log::i("failed to read cmaa2 preset: \"", std::string(argv[i]), "\"");
           }
         }
       }

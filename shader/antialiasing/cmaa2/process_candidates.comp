@@ -1,0 +1,376 @@
+#version 460
+
+#extension GL_ARB_separate_shader_objects       : enable
+#extension GL_GOOGLE_include_directive          : enable
+#extension GL_EXT_control_flow_attributes       : enable
+
+#include "cmaa2_common.glsl"
+
+layout(local_size_x = CMAA2_PROCESS_CANDIDATES_NUM_THREADS) in;
+
+layout(binding = 7, std430) buffer UboWorkingExecuteIndirectBuffer {
+  DispatchIndirectCommand candidateCmd;
+  DrawIndirectCommand     applyCmd;
+  };
+
+// this reschedules final part of work from few to all threads to increase hardware thread occupancy
+#define CMAA2_COLLECT_EXPAND_BLEND_ITEMS 1
+
+#if CMAA2_COLLECT_EXPAND_BLEND_ITEMS
+const  uint CMAA2_BLEND_ITEM_SLM_SIZE = 768;
+shared uint  g_groupSharedBlendItemCount;
+shared uvec2 g_groupSharedBlendItems[CMAA2_BLEND_ITEM_SLM_SIZE];
+#endif
+
+void storeColorSample(uvec2 pixelPos, vec3 color, bool isComplexShape) {
+  uint counterIndex = atomicAdd(controlBuffer.blendColorSamplesCount, 1);
+
+  uvec2 quadPos = pixelPos / uvec2(2, 2);
+  uint offsetXY = (pixelPos.y % 2) * 2 + (pixelPos.x % 2);
+  // 27-29 bits are free (we don't use msaaIndex)
+  uint header = (offsetXY << 30) | (uint(isComplexShape) << 26);
+
+  uint counterIndexWithHeader = counterIndex | header;
+
+  uint originalIndex = imageAtomicExchange(deferredBlendItemListHeads, ivec2(quadPos), counterIndexWithHeader);
+  deferredBlendItemList[counterIndex] = uvec2(originalIndex, internalPackColor(color));
+
+  if(originalIndex == 0xFFFFFFFF) {
+    const uint edgeListCounter = atomicAdd(controlBuffer.blendLocationCount, 1);
+    if(edgeListCounter < deferredBlendLocationList.length()) {
+      deferredBlendLocationList[edgeListCounter] = (quadPos.x << 16) | quadPos.y;
+      }
+    }
+  }
+
+void detectZsHorizontal(in vec4 edges, in vec4 edgesM1P0, in vec4 edgesP1P0, in vec4 edgesP2P0, out float invertedZScore, out float normalZScore) {
+  invertedZScore = edges.r * edges.g * edgesP1P0.a;
+  invertedZScore *= 2.0 + ((edgesM1P0.g + edgesP2P0.a)) - (edges.a + edgesP1P0.g) - 0.7 * (edgesP2P0.g + edgesM1P0.a + edges.b + edgesP1P0.r);
+
+  normalZScore = edges.r * edges.a * edgesP1P0.g;
+  normalZScore *= 2.0 + ((edgesM1P0.a + edgesP2P0.g)) - (edges.g + edgesP1P0.a) - 0.7 * (edgesP2P0.a + edgesM1P0.g + edges.b + edgesP1P0.r);
+  }
+
+void findZLineLengths(out float lineLengthLeft, out float lineLengthRight, uvec2 screenPos, bool horizontal, bool invertedZShape, vec2 stepRight) {
+  uint maskLeft, bitsContinueLeft, maskRight, bitsContinueRight;
+  {
+    uint maskTraceLeft = 0x08;
+    uint maskTraceRight = 0x02;
+
+    if(!horizontal) {
+      maskTraceLeft = 0x04;
+      maskTraceRight = 0x01;
+      }
+    if(invertedZShape) {
+      uint temp = maskTraceLeft;
+      maskTraceLeft = maskTraceRight;
+      maskTraceRight = temp;
+      }
+    maskLeft = maskTraceLeft;
+    bitsContinueLeft = maskTraceLeft;
+    maskRight = maskTraceRight;
+    bitsContinueRight = maskTraceRight;
+    }
+
+  bool continueLeft = true;
+  bool continueRight = true;
+  lineLengthLeft = 1.0;
+  lineLengthRight = 1.0;
+
+  for(;;) {
+    uint edgeLeft = loadEdge(ivec2(screenPos) - ivec2(stepRight * lineLengthLeft), ivec2(0, 0));
+    uint edgeRight = loadEdge(ivec2(screenPos) + ivec2(stepRight * (lineLengthRight + 1.0)), ivec2(0, 0));
+
+    continueLeft = continueLeft && ((edgeLeft & maskLeft) == bitsContinueLeft);
+    continueRight = continueRight && ((edgeRight & maskRight) == bitsContinueRight);
+
+    lineLengthLeft += continueLeft ? 1.0 : 0.0;
+    lineLengthRight += continueRight ? 1.0 : 0.0;
+
+    float maxLR = max(lineLengthRight, lineLengthLeft);
+
+    if(!continueLeft && !continueRight)
+      maxLR = float(maxLineLength);
+
+#if CMAA2_EXTRA_SHARPNESS
+    if(maxLR >= min(float(maxLineLength), (1.20 * min(lineLengthRight, lineLengthLeft) - 0.20)))
+#else
+    if(maxLR >= min(float(maxLineLength), (1.25 * min(lineLengthRight, lineLengthLeft) - 0.25)))
+#endif
+      break;
+    }
+  }
+
+#if CMAA2_COLLECT_EXPAND_BLEND_ITEMS
+bool collectBlendZs(uvec2 screenPos, bool horizontal, bool invertedZShape, float shapeQualityScore, float lineLengthLeft, float lineLengthRight, vec2 stepRight) {
+  float leftOdd = symmetryCorrectionOffset * mod(lineLengthLeft, 2.0);
+  float rightOdd = symmetryCorrectionOffset * mod(lineLengthRight, 2.0);
+
+  float dampenEffect = clamp(float(lineLengthLeft + lineLengthRight - shapeQualityScore) * dampeningEffect, 0.0, 1.0);
+
+  float loopFrom = -floor((lineLengthLeft + 1.0) / 2.0) + 1.0;
+  float loopTo = floor((lineLengthRight + 1.0) / 2.0);
+
+  uint itemIndex;
+  const uint blendItemCount = uint(loopTo - loopFrom + 1.0);
+  itemIndex = atomicAdd(g_groupSharedBlendItemCount, blendItemCount);
+
+  if((itemIndex + blendItemCount) > CMAA2_BLEND_ITEM_SLM_SIZE)
+    return false;
+
+  float totalLength = loopTo - loopFrom + 1.0 - leftOdd - rightOdd;
+  float lerpStep = 1.0 / totalLength;
+
+  float lerpFromK = (0.5 - leftOdd - loopFrom) * lerpStep;
+
+  // 14-17 bits are free
+  uint itemHeader = (screenPos.x << 18) | screenPos.y;
+  uint itemValStatic = (horizontal ? 1 : 0) << 31 | (invertedZShape ? 1 : 0) << 30;
+
+  for(float i = loopFrom; i <= loopTo; i++) {
+    float lerpVal = lerpStep * i + lerpFromK;
+
+    float secondPart = (i > 0.0) ? 1.0 : 0.0;
+    float srcOffset = 1.0 - secondPart * 2.0;
+
+    float lerpK = (lerpStep * i + lerpFromK) * srcOffset + secondPart;
+    lerpK *= dampenEffect;
+
+    ivec2 encodedItem;
+    encodedItem.x = int(itemHeader);
+    encodedItem.y = int(itemValStatic | ((uint(i + 256.0) /*& 0x3FF*/) << 20) | ((uint(srcOffset + 256.0) /*& 0x3FF*/) << 10) | uint(clamp(lerpK, 0.0, 1.0) * 1023.0 + 0.5));
+    g_groupSharedBlendItems[itemIndex++] = uvec2(encodedItem);
+    }
+  return true;
+  }
+#endif
+
+void blendZs(uvec2 screenPos, bool horizontal, bool invertedZShape, float shapeQualityScore, float lineLengthLeft, float lineLengthRight, vec2 stepRight) {
+  vec2 blendDir = horizontal ? vec2(0, -1) : vec2(-1, 0);
+
+  if(invertedZShape)
+    blendDir = -blendDir;
+
+  float leftOdd = symmetryCorrectionOffset * mod(lineLengthLeft, 2.0);
+  float rightOdd = symmetryCorrectionOffset * mod(lineLengthRight, 2.0);
+
+  float dampenEffect = clamp(float(lineLengthLeft + lineLengthRight - shapeQualityScore) * dampeningEffect, 0.0, 1.0);
+
+  float loopFrom = -floor((lineLengthLeft + 1.0) / 2.0) + 1.0;
+  float loopTo = floor((lineLengthRight + 1.0) / 2.0);
+
+  float totalLength = loopTo - loopFrom + 1.0 - leftOdd - rightOdd;
+  float lerpStep = 1.0 / totalLength;
+
+  float lerpFromK = (0.5 - leftOdd - loopFrom) * lerpStep;
+
+  for(float i = loopFrom; i <= loopTo; i++) {
+    float lerpVal = lerpStep * i + lerpFromK;
+
+    float secondPart = (i > 0.0) ? 1.0 : 0.0;
+    float srcOffset = 1.0 - secondPart * 2.0;
+
+    float lerpK = (lerpStep * i + lerpFromK) * srcOffset + secondPart;
+    lerpK *= dampenEffect;
+
+    vec2 pixelPos = vec2(screenPos) + stepRight * i;
+
+    vec3 colorCenter = loadSourceColor(ivec2(pixelPos), ivec2(0, 0));
+    vec3 colorFrom = loadSourceColor(ivec2(pixelPos + blendDir * srcOffset), ivec2(0, 0));
+
+    vec3 outputCol = mix(colorCenter, colorFrom, lerpK);
+
+    storeColorSample(uvec2(pixelPos), outputCol, true);
+    }
+  }
+
+vec4 computeSimpleShapeBlendValues(vec4 edges, vec4 edgesLeft, vec4 edgesRight, vec4 edgesTop, vec4 edgesBottom, bool dontTestShapeValidity) {
+  float fromRight = edges.r;
+  float fromBelow = edges.g;
+  float fromLeft = edges.b;
+  float fromAbove = edges.a;
+
+  float blurCoeff = cmaa2SimpleShapeBlurinessAmount;
+
+  float numberOfEdges = dot(edges, vec4(1, 1, 1, 1));
+
+  float numberOfEdgesAllAround = dot(edgesLeft.bga + edgesRight.rga + edgesTop.rba + edgesBottom.rgb, vec3(1, 1, 1));
+
+  if(!dontTestShapeValidity) {
+    if(numberOfEdges == 1) 
+      blurCoeff = 0;
+
+    if(numberOfEdges == 2) 
+      blurCoeff *= ((1.0 - fromBelow * fromAbove) * (1.0 - fromRight * fromLeft));
+    }
+
+  if(numberOfEdges == 2) {
+    blurCoeff *= 0.75;
+
+    float k = 0.9;
+    fromRight += k * (edges.g * edgesTop.r * (1.0 - edgesLeft.g) + edges.a * edgesBottom.r * (1.0 - edgesLeft.a));
+    fromBelow += k * (edges.b * edgesRight.g * (1.0 - edgesTop.b) + edges.r * edgesLeft.g * (1.0 - edgesTop.r));
+    fromLeft += k * (edges.a * edgesBottom.b * (1.0 - edgesRight.a) + edges.g * edgesTop.b * (1.0 - edgesRight.g));
+    fromAbove += k * (edges.r * edgesLeft.a * (1.0 - edgesBottom.r) + edges.b * edgesRight.a * (1.0 - edgesBottom.b));
+    }
+
+  blurCoeff *= clamp(1.30 - numberOfEdgesAllAround / 10.0, 0.f, 1.f);
+
+  return vec4(fromLeft, fromAbove, fromRight, fromBelow) * blurCoeff;
+  }
+
+void main() {
+#if CMAA2_COLLECT_EXPAND_BLEND_ITEMS 
+  if(gl_LocalInvocationID.x == 0)
+    g_groupSharedBlendItemCount = 0;
+  barrier();
+#endif
+
+  const uint numCandidates = controlBuffer.subsequentPassWorkloadSize;
+  if(gl_GlobalInvocationID.x < numCandidates) {
+    uint  pixelID  = shapeCandidates[gl_GlobalInvocationID.x];
+    uvec2 pixelPos = uvec2((pixelID >> 18), pixelID & 0x3FFF);
+
+    uint edgesCenterPacked = loadEdge(ivec2(pixelPos), ivec2(0, 0));
+    vec4 edges             = unpackEdgesFlt(edgesCenterPacked);
+    vec4 edgesLeft         = unpackEdgesFlt(loadEdge(ivec2(pixelPos) + ivec2(-1, 0), ivec2(0, 0)));
+    vec4 edgesRight        = unpackEdgesFlt(loadEdge(ivec2(pixelPos) + ivec2(1, 0), ivec2(0, 0)));
+    vec4 edgesBottom       = unpackEdgesFlt(loadEdge(ivec2(pixelPos) + ivec2(0, 1), ivec2(0, 0)));
+    vec4 edgesTop          = unpackEdgesFlt(loadEdge(ivec2(pixelPos) + ivec2(0, -1), ivec2(0, 0)));
+
+    {
+      vec4 blendVal = computeSimpleShapeBlendValues(edges, edgesLeft, edgesRight, edgesTop, edgesBottom, true);
+
+      float fourWeightSum = dot(blendVal, vec4(1.0));
+      float centerWeight = 1.0 - fourWeightSum;
+
+      vec3 outColor = loadSourceColor(ivec2(pixelPos), ivec2(0, 0)) * centerWeight;
+      if(blendVal.x > 0.0)
+        outColor += blendVal.x * loadSourceColor(ivec2(pixelPos), ivec2(-1, 0));
+      if(blendVal.y > 0.0)
+        outColor += blendVal.y * loadSourceColor(ivec2(pixelPos), ivec2(0, -1));
+      if(blendVal.z > 0.0)
+        outColor += blendVal.z * loadSourceColor(ivec2(pixelPos), ivec2(1, 0));
+      if(blendVal.w > 0.0)
+        outColor += blendVal.w * loadSourceColor(ivec2(pixelPos), ivec2(0, 1));
+
+      storeColorSample(pixelPos, outColor, false);
+      }
+
+    {
+      float invertedZScore;
+      float normalZScore;
+      float maxScore;
+      bool horizontal = true;
+      bool invertedZ = false;
+
+      {
+        vec4 edgesM1P0 = edgesLeft;
+        vec4 edgesP1P0 = edgesRight;
+        vec4 edgesP2P0 = unpackEdgesFlt(loadEdge(ivec2(pixelPos) + ivec2(2, 0), ivec2(0, 0)));
+
+        detectZsHorizontal(edges, edgesM1P0, edgesP1P0, edgesP2P0, invertedZScore, normalZScore);
+        maxScore = max(invertedZScore, normalZScore);
+
+        if(maxScore > 0.0)
+          invertedZ = invertedZScore > normalZScore;
+        }
+
+      {
+        vec4 edgesM1P0 = edgesBottom;
+        vec4 edgesP1P0 = edgesTop;
+        vec4 edgesP2P0 = unpackEdgesFlt(loadEdge(ivec2(pixelPos) + ivec2(0, -2), ivec2(0, 0)));
+
+        detectZsHorizontal(edges.argb, edgesM1P0.argb, edgesP1P0.argb, edgesP2P0.argb, invertedZScore, normalZScore);
+        float vertScore = max(invertedZScore, normalZScore);
+
+        if(vertScore > maxScore) {
+          maxScore = vertScore;
+          horizontal = false;
+          invertedZ = invertedZScore > normalZScore;
+          }
+        }
+
+      if(maxScore > 0.0) {
+#if CMAA2_EXTRA_SHARPNESS
+        float shapeQualityScore = round(clamp(4.0 - maxScore, 0.0, 3.0));
+#else
+        float shapeQualityScore = floor(clamp(4.0 - maxScore, 0.0, 3.0));
+#endif
+
+        vec2 stepRight = horizontal ? vec2(1, 0) : vec2(0, -1);
+        float lineLengthLeft, lineLengthRight;
+        findZLineLengths(lineLengthLeft, lineLengthRight, pixelPos, horizontal, invertedZ, stepRight);
+
+        lineLengthLeft -= shapeQualityScore;
+        lineLengthRight -= shapeQualityScore;
+
+        if((lineLengthLeft + lineLengthRight) >= 5.0) {
+#if CMAA2_COLLECT_EXPAND_BLEND_ITEMS
+          if(!collectBlendZs(pixelPos, horizontal, invertedZ, shapeQualityScore, lineLengthLeft, lineLengthRight, stepRight))
+#endif
+            blendZs(pixelPos, horizontal, invertedZ, shapeQualityScore, lineLengthLeft, lineLengthRight, stepRight);
+          }
+        }
+      }
+    }
+
+#if CMAA2_COLLECT_EXPAND_BLEND_ITEMS
+  barrier();
+
+  uint totalItemCount = min(CMAA2_BLEND_ITEM_SLM_SIZE, g_groupSharedBlendItemCount);
+
+  uint loops = (totalItemCount + (CMAA2_PROCESS_CANDIDATES_NUM_THREADS - 1) - gl_LocalInvocationID.x) / CMAA2_PROCESS_CANDIDATES_NUM_THREADS;
+
+  for(uint loop = 0; loop < loops; loop++) {
+    uint index = loop * CMAA2_PROCESS_CANDIDATES_NUM_THREADS + gl_LocalInvocationID.x;
+
+    uvec2 itemVal = g_groupSharedBlendItems[index];
+
+    uvec2 startingPos = uvec2((itemVal.x >> 18), itemVal.x & 0x3FFF);
+
+    bool itemHorizontal = bool((itemVal.y >> 31) & 1);
+    bool itemInvertedZ = bool((itemVal.y >> 30) & 1);
+    float itemStepIndex = float((itemVal.y >> 20) & 0x3FF) - 256.0;
+    float itemSrcOffset = float((itemVal.y >> 10) & 0x3FF) - 256.0;
+    float itemLerpK = float(itemVal.y & 0x3FF) / 1023.0;
+
+    vec2 itemStepRight = itemHorizontal ? vec2(1, 0) : vec2(0, -1);
+    vec2 itemBlendDir = itemHorizontal ? vec2(0, -1) : vec2(-1, 0);
+    if(itemInvertedZ)
+      itemBlendDir = -itemBlendDir;
+
+    uvec2 itemPixelPos = startingPos + uvec2(itemStepRight * itemStepIndex);
+
+    vec3 colorCenter = loadSourceColor(ivec2(itemPixelPos), ivec2(0, 0));
+    vec3 colorFrom = loadSourceColor(ivec2(itemPixelPos + itemBlendDir * itemSrcOffset), ivec2(0, 0));
+
+    vec3 outputColor = mix(colorCenter, colorFrom, itemLerpK);
+
+    storeColorSample(ivec2(itemPixelPos), outputColor, true);
+    }
+#endif
+
+  barrier();
+  if(gl_LocalInvocationIndex==0) {
+    //NOTE: gl_NumWorkGroups is not implemented in DX12
+    const uint shapeCandidateCount = controlBuffer.subsequentPassWorkloadSize;
+    const uint numWorkGroups       = (shapeCandidateCount + CMAA2_PROCESS_CANDIDATES_NUM_THREADS - 1) / CMAA2_PROCESS_CANDIDATES_NUM_THREADS;
+
+    if((atomicAdd(controlBuffer.iterator,1)+1)==numWorkGroups) {
+      memoryBarrierBuffer();
+      controlBuffer.iterator = 0;
+
+      const uint blendLocationCount = min(controlBuffer.blendLocationCount, deferredBlendLocationList.length());
+      applyCmd.vertexCount   = blendLocationCount * 4; // 4 points per quad
+      applyCmd.instanceCount = 1;
+      applyCmd.firstVertex   = 0;
+      applyCmd.firstInstance = 0;
+
+      controlBuffer.subsequentPassWorkloadSize = blendLocationCount;
+      controlBuffer.blendLocationCount         = 0;
+      controlBuffer.shapeCandidateCount        = 0;
+      controlBuffer.blendColorSamplesCount     = 0;
+      }
+    }
+  }

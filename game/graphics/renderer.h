@@ -55,8 +55,8 @@ class Renderer final {
     void drawSky          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawAmbient      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void draw             (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void drawTonemapping  (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
-    void drawFxaa         (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawTonemapping  (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawCMAA2        (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawReflections  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawUnderwater   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
@@ -73,7 +73,7 @@ class Renderer final {
       bool           zEnvMappingEnabled = false;
       bool           zCloudShadowScale  = false;
       bool           giEnabled          = false;
-      bool           fxaaEnabled        = false;
+      bool           aaEnabled          = false;
 
       float          zVidBrightness     = 0.5;
       float          zVidContrast       = 0.5;
@@ -124,15 +124,28 @@ class Renderer final {
       } ssao;
 
     struct Tonemapping {
-      Tempest::RenderPipeline* pso = nullptr;
-      Tempest::DescriptorSet   uboTone;
+      Tempest::RenderPipeline*  pso = nullptr;
+      Tempest::DescriptorSet    uboTone;
       } tonemapping;
 
-    struct Fxaa {
-      Tempest::RenderPipeline* pso = nullptr;
-      Tempest::DescriptorSet   ubo;
-      Tempest::Attachment      sceneTonemapped;
-      } fxaa;
+    struct Cmaa2 {
+      Tempest::ComputePipeline* detectEdges2x2 = nullptr;
+      Tempest::DescriptorSet    detectEdges2x2Ubo;
+
+      Tempest::ComputePipeline* processCandidates = nullptr;
+      Tempest::DescriptorSet    processCandidatesUbo;
+
+      Tempest::RenderPipeline*  defferedColorApply = nullptr;
+      Tempest::DescriptorSet    defferedColorApplyUbo;
+
+      Tempest::StorageImage     workingEdges;
+      Tempest::StorageBuffer    shapeCandidates;
+      Tempest::StorageBuffer    deferredBlendLocationList;
+      Tempest::StorageBuffer    deferredBlendItemList;
+      Tempest::StorageImage     deferredBlendItemListHeads;
+      Tempest::StorageBuffer    controlBuffer;
+      Tempest::StorageBuffer    indirectBuffer;
+      } cmaa2;
 
     struct {
       Tempest::StorageImage     hiZ;

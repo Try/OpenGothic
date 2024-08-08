@@ -88,7 +88,7 @@ Gothic::Gothic() {
     opts.doBindless = CommandLine::inst().isBindless();
     }
 
-  opts.fxaaPreset = CommandLine::inst().fxaaPreset();
+  opts.aaPreset = CommandLine::inst().aaPreset();
 
   wrldDef = CommandLine::inst().wrldDef;
 

@@ -82,10 +82,16 @@ void Renderer::resetSwapchain() {
 
   sceneLinear    = device.attachment(TextureFormat::R11G11B10UF,w,h);
 
-  if(settings.fxaaEnabled) {
-    fxaa.sceneTonemapped = device.attachment(TextureFormat::RGBA8, w, h);
+  if(settings.aaEnabled) {
+    cmaa2.workingEdges               = device.image2d(TextureFormat::R8, (w + 1) / 2, h);
+    cmaa2.shapeCandidates            = device.ssbo(Tempest::Uninitialized, w * h / 4 * sizeof(uint32_t));
+    cmaa2.deferredBlendLocationList  = device.ssbo(Tempest::Uninitialized, (w * h + 3) / 6 * sizeof(uint32_t));
+    cmaa2.deferredBlendItemList      = device.ssbo(Tempest::Uninitialized, w * h * sizeof(uint32_t));
+    cmaa2.deferredBlendItemListHeads = device.image2d(TextureFormat::R32U, (w + 1) / 2, (h + 1) / 2);
+    cmaa2.controlBuffer              = device.ssbo(nullptr, 5 * sizeof(uint32_t));
+    cmaa2.indirectBuffer             = device.ssbo(nullptr, sizeof(DispatchIndirectCommand) + sizeof(DrawIndirectCommand));
     }
- 
+
   zbuffer        = device.zbuffer(zBufferFormat,w,h);
   if(w!=swapchain.w() || h!=swapchain.h())
     zbufferUi = device.zbuffer(zBufferFormat, swapchain.w(), swapchain.h()); else
@@ -166,11 +172,17 @@ void Renderer::resetSwapchain() {
   ssao.ssaoBlur = device.image2d(ssao.aoFormat, w,h);
   ssao.uboBlur  = device.descriptors(Shaders::inst().ssaoBlur);
 
-  tonemapping.pso     = (settings.vidResIndex==0) ? &Shaders::inst().tonemapping : &Shaders::inst().tonemappingUpscale;
-  tonemapping.uboTone = device.descriptors(*tonemapping.pso);
+  tonemapping.pso             = (settings.vidResIndex==0) ? &Shaders::inst().tonemapping : &Shaders::inst().tonemappingUpscale;
+  tonemapping.uboTone         = device.descriptors(*tonemapping.pso);
 
-  fxaa.pso = &Shaders::inst().fxaaPresets[Gothic::options().fxaaPreset];
-  fxaa.ubo = device.descriptors(*fxaa.pso);
+  cmaa2.detectEdges2x2        = &Shaders::inst().cmaa2EdgeColor2x2Presets[Gothic::options().aaPreset];
+  cmaa2.detectEdges2x2Ubo     = device.descriptors(*cmaa2.detectEdges2x2);
+
+  cmaa2.processCandidates     = &Shaders::inst().cmaa2ProcessCandidates;
+  cmaa2.processCandidatesUbo  = device.descriptors(*cmaa2.processCandidates);
+
+  cmaa2.defferedColorApply    = &Shaders::inst().cmaa2DeferredColorApply2x2;
+  cmaa2.defferedColorApplyUbo = device.descriptors(*cmaa2.defferedColorApply);
 
   initGiData();
   prepareUniforms();
@@ -187,7 +199,8 @@ void Renderer::initSettings() {
 
   auto prevVidResIndex = settings.vidResIndex;
   settings.vidResIndex = Gothic::inst().settingsGetF("INTERNAL","vidResIndex");
-  settings.fxaaEnabled = (Gothic::options().fxaaPreset > 0) && (settings.vidResIndex==0);
+  settings.aaEnabled = (Gothic::options().aaPreset>0) && (settings.vidResIndex==0);
+
   if(prevVidResIndex!=settings.vidResIndex) {
     resetSwapchain();
     }
@@ -291,10 +304,31 @@ void Renderer::prepareUniforms() {
     tonemapping.uboTone.set(1, sceneLinear, smpB);
   }
 
-  if(settings.fxaaEnabled) {
+  if(settings.aaEnabled) {
     auto smpB = Sampler::bilinear();
     smpB.setClamping(ClampMode::ClampToEdge);
-    fxaa.ubo.set(0, fxaa.sceneTonemapped, smpB);
+
+    cmaa2.detectEdges2x2Ubo.set(0, sceneLinear, smpB);
+    cmaa2.detectEdges2x2Ubo.set(1, cmaa2.workingEdges);
+    cmaa2.detectEdges2x2Ubo.set(2, cmaa2.shapeCandidates);
+    cmaa2.detectEdges2x2Ubo.set(5, cmaa2.deferredBlendItemListHeads);
+    cmaa2.detectEdges2x2Ubo.set(6, cmaa2.controlBuffer);
+    cmaa2.detectEdges2x2Ubo.set(7, cmaa2.indirectBuffer);
+
+    cmaa2.processCandidatesUbo.set(0, sceneLinear, smpB);
+    cmaa2.processCandidatesUbo.set(1, cmaa2.workingEdges);
+    cmaa2.processCandidatesUbo.set(2, cmaa2.shapeCandidates);
+    cmaa2.processCandidatesUbo.set(3, cmaa2.deferredBlendLocationList);
+    cmaa2.processCandidatesUbo.set(4, cmaa2.deferredBlendItemList);
+    cmaa2.processCandidatesUbo.set(5, cmaa2.deferredBlendItemListHeads);
+    cmaa2.processCandidatesUbo.set(6, cmaa2.controlBuffer);
+    cmaa2.processCandidatesUbo.set(7, cmaa2.indirectBuffer);
+
+    cmaa2.defferedColorApplyUbo.set(0, sceneLinear);
+    cmaa2.defferedColorApplyUbo.set(3, cmaa2.deferredBlendLocationList);
+    cmaa2.defferedColorApplyUbo.set(4, cmaa2.deferredBlendItemList);
+    cmaa2.defferedColorApplyUbo.set(5, cmaa2.deferredBlendItemListHeads);
+    cmaa2.defferedColorApplyUbo.set(6, cmaa2.controlBuffer);
     }
 
   shadow.ubo.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
@@ -560,26 +594,18 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     wview->drawFog(cmd,fId);
     }
 
-  auto* tonemappingRt = &result;
-  if(settings.fxaaEnabled) {
-    assert(!fxaa.sceneTonemapped.isEmpty());
-    tonemappingRt = &fxaa.sceneTonemapped;
-    }
-
-  cmd.setFramebuffer({{*tonemappingRt, Tempest::Discard, Tempest::Preserve}});
-  cmd.setDebugMarker("Tonemapping");
-  drawTonemapping(cmd);
-
-  if(settings.fxaaEnabled) {
-    cmd.setFramebuffer({ {result, Tempest::Discard, Tempest::Preserve} });
-    cmd.setDebugMarker("Fxaa");
-    drawFxaa(cmd);
+  if(settings.aaEnabled) {
+    cmd.setDebugMarker("CMAA2 & Tonemapping");
+    drawCMAA2(result, cmd);
+    } else {
+    cmd.setDebugMarker("Tonemapping");
+    drawTonemapping(result, cmd);
     }
 
   wview->postFrameupdate();
   }
 
-void Renderer::drawTonemapping(Encoder<CommandBuffer>& cmd) {
+void Renderer::drawTonemapping(Attachment& result, Encoder<CommandBuffer>& cmd) {
   struct Push {
     float brightness = 0;
     float contrast   = 1;
@@ -596,34 +622,50 @@ void Renderer::drawTonemapping(Encoder<CommandBuffer>& cmd) {
   if(mul>0)
     p.mul = mul;
 
+  cmd.setFramebuffer({ {result, Tempest::Discard, Tempest::Preserve} });
   cmd.setUniforms(*tonemapping.pso, tonemapping.uboTone, &p, sizeof(p));
   cmd.draw(Resources::fsqVbo());
   }
 
-void Renderer::drawFxaa(Encoder<CommandBuffer>& cmd) {
+void Renderer::drawCMAA2(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
+  const IVec3    inputGroupSize  = cmaa2.detectEdges2x2->workGroupSize();
+  const IVec3    outputGroupSize = inputGroupSize - IVec3(2, 2, 0);
+  const uint32_t groupCountX     = uint32_t((sceneLinear.w() + outputGroupSize.x * 2 - 1) / (outputGroupSize.x * 2));
+  const uint32_t groupCountY     = uint32_t((sceneLinear.h() + outputGroupSize.y * 2 - 1) / (outputGroupSize.y * 2));
 
-  struct PushConstantsFxaa {
-    float fxaaInverseSharpnessCoeff;
-    float fxaaQualitySubpix;
-    float fxaaQualityEdgeThreshold;
-    float fxaaQualityEdgeThresholdMin;
-    float fxaaConsoleEdgeSharpness;
-    float fxaaConsoleEdgeThreshold;
-    float fxaaConsoleEdgeThresholdMin;
-    } pushConstantsFxaa;
+  cmd.setFramebuffer({});
 
+  // detect edges
+  cmd.setUniforms(*cmaa2.detectEdges2x2, cmaa2.detectEdges2x2Ubo);
+  cmd.dispatch(groupCountX, groupCountY, 1);
 
-  // for now filled with default values (see Fxaa3_11.h)
-  pushConstantsFxaa.fxaaInverseSharpnessCoeff = 0.5f;
-  pushConstantsFxaa.fxaaQualitySubpix = 0.75f;
-  pushConstantsFxaa.fxaaQualityEdgeThreshold = 0.166f;
-  pushConstantsFxaa.fxaaQualityEdgeThresholdMin = 0.0833f;
-  pushConstantsFxaa.fxaaConsoleEdgeSharpness = 8.f;
-  pushConstantsFxaa.fxaaConsoleEdgeThreshold = 0.125f;
-  pushConstantsFxaa.fxaaConsoleEdgeThresholdMin = 0.05f;
+  // process candidates pass
+  cmd.setUniforms(*cmaa2.processCandidates, cmaa2.processCandidatesUbo);
+  cmd.dispatchIndirect(cmaa2.indirectBuffer, 0);
 
-  cmd.setUniforms(*fxaa.pso, fxaa.ubo, &pushConstantsFxaa, sizeof(pushConstantsFxaa));
+  // deferred color apply
+  struct Push {
+    float brightness = 0;
+    float contrast   = 1;
+    float gamma      = 1.f/2.2f;
+    float mul        = 1;
+    };
+
+  Push p;
+  p.brightness = (settings.zVidBrightness - 0.5f)*0.1f;
+  p.contrast   = std::max(1.5f - settings.zVidContrast, 0.01f);
+  p.gamma      = p.gamma/std::max(2.0f*settings.zVidGamma,  0.01f);
+
+  static float mul = 0.f;
+  if(mul>0)
+    p.mul = mul;
+
+  cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
+  cmd.setUniforms(*tonemapping.pso, tonemapping.uboTone, &p, sizeof(p));
   cmd.draw(Resources::fsqVbo());
+
+  cmd.setUniforms(*cmaa2.defferedColorApply, cmaa2.defferedColorApplyUbo, &p, sizeof(p));
+  cmd.drawIndirect(cmaa2.indirectBuffer, 3*sizeof(uint32_t));
   }
 
 void Renderer::stashSceneAux(Encoder<CommandBuffer>& cmd, uint8_t fId) {
