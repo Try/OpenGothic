@@ -172,5 +172,5 @@ Rendering distance is not customizable.
 | `-rt <boolean>`        | explicitly enable or disable ray-query                           |
 | `-gi <boolean>`        | explicitly enable or disable ray-traced global illumination      |
 | `-ms <boolean>`        | explicitly enable or disable meshlets                            |
-| `-fxaa <number>`       | enable FXAA anti-aliasing (number = 1-5, 5 = most expensive AA)  |
+| `-aa <number>`         | enable anti-aliasing (number = 1-2, 2 = most expensive AA)       |
 | `-window`              | windowed debugging mode (not to be used for playing)             |
