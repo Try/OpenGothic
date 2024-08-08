@@ -55,4 +55,28 @@ vec3 textureAlbedo(vec3 rgb) {
   return acesTonemapInv(linear*0.78+0.001)*5.0; // adjusted to have 'realistic' albedo values
   }
 
+struct VideoSettings {
+  float brightness;
+  float contrast;
+  float gamma;
+  float mulExposure;
+  };
+
+vec3 gameTonemap(vec3 color, const VideoSettings s) {
+  color *= s.mulExposure;
+
+  // Brightness & Contrast
+  color = max(vec3(0), color + vec3(s.brightness));
+  color = color * vec3(s.contrast);
+
+  // Tonemapping
+  color = acesTonemap(color);
+
+  // Gamma
+  //color = srgbEncode(color);
+  color = pow(color, vec3(s.gamma));
+
+  return color;
+  }
+
 #endif

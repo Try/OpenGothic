@@ -11,10 +11,7 @@
 #include "upscale/lanczos.glsl"
 
 layout(push_constant, std140) uniform PushConstant {
-  float brightness;
-  float contrast;
-  float gamma;
-  float mulExposure;
+  VideoSettings settings;
   } push;
 
 layout(binding  = 0, std140) uniform UboScene {
@@ -111,9 +108,6 @@ vec3 colorTemperatureToRGB(const in float temperature){
 
 void main() {
   float exposure   = scene.exposure;
-  float brightness = push.brightness;
-  float contrast   = push.contrast;
-  float gamma      = push.gamma;
 
 #if defined(UPSCALE)
   vec3  color      = lanczosUpscale(textureD, uv).rgb;
@@ -144,18 +138,6 @@ void main() {
     // color += vec3(0,0, shift.b);
   }
 
-  color *= push.mulExposure;
-
-  // Brightness & Contrast
-  color = max(vec3(0), color + vec3(brightness));
-  color = color * vec3(contrast);
-
-  // Tonemapping
-  color = acesTonemap(color);
-
-  // Gamma
-  //color = srgbEncode(color);
-  color = pow(color, vec3(gamma));
-
+  color = gameTonemap(color, push.settings);
   outColor = vec4(color, 1.0);
   }
