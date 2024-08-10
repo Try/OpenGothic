@@ -461,6 +461,9 @@ bool Npc::resetPositionToTA() {
     clearState(true);
     }
 
+  if(isPlayer())
+    return true;
+
   auto& rot = currentRoutine();
   auto  at  = rot.point;
   if(at==nullptr)
