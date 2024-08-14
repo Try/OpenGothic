@@ -194,12 +194,14 @@ Shaders::Shaders() {
     probeAmbient = device.pipeline(Triangles,state,vs,fs);
     }
 
-  vsmClear      = computeShader("vsm_clear.comp.sprv");
-  vsmMarkPages  = computeShader("vsm_mark_pages.comp.sprv");
-  vsmListPages  = computeShader("vsm_list_pages.comp.sprv");
-  vsmRendering  = computeShader("vsm_rendering.comp.sprv");
-  vsmComposePso = computeShader("vsm_compose.comp.sprv");
-  vsmDbg        = postEffect("copy", "vsm_dbg", RenderState::ZTestMode::Always);
+  if(Gothic::options().doVirtualShadow) {
+    vsmClear      = computeShader("vsm_clear.comp.sprv");
+    vsmMarkPages  = computeShader("vsm_mark_pages.comp.sprv");
+    vsmListPages  = computeShader("vsm_list_pages.comp.sprv");
+    vsmRendering  = computeShader("vsm_rendering.comp.sprv");
+    vsmComposePso = computeShader("vsm_compose.comp.sprv");
+    vsmDbg        = postEffect("copy", "vsm_dbg", RenderState::ZTestMode::Always);
+    }
 
   {
     RenderState state;
