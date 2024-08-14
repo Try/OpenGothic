@@ -29,6 +29,7 @@ class SceneGlobals final {
                         float zNear, float zFar,
                         const Tempest::Matrix4x4 *sh);
     void setViewLwc(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& proj, const Tempest::Matrix4x4 *sh);
+    void setViewVsm(const Tempest::Matrix4x4& view);
     void setSky(const Sky& s);
     void setUnderWater(bool w);
 
@@ -39,6 +40,9 @@ class SceneGlobals final {
     void setResolution(uint32_t w, uint32_t h);
     void setHiZ(const Tempest::Texture2d& hiZ);
     void setShadowMap(const Tempest::Texture2d* tex[]);
+
+    void setVirtualShadowMap(const Tempest::StorageImage&  vsmPageData,
+                             const Tempest::StorageBuffer& vsmPageList);
 
     const Tempest::Matrix4x4& viewProject() const;
     const Tempest::Matrix4x4& viewProjectInv() const;
@@ -66,12 +70,16 @@ class SceneGlobals final {
     const Tempest::Texture2d*         hiZ          = &Resources::fallbackTexture();
     const Tempest::Texture2d*         skyLut       = &Resources::fallbackTexture();
 
+    const Tempest::StorageImage*      vsmPageData  = nullptr;
+    const Tempest::StorageBuffer*     vsmPageList  = nullptr;
+
     struct UboGlobal final {
       Tempest::Matrix4x4              viewProject;
       Tempest::Matrix4x4              viewProjectInv;
       Tempest::Matrix4x4              viewShadow[Resources::ShadowLayers];
       Tempest::Matrix4x4              viewProjectLwcInv;
       Tempest::Matrix4x4              viewShadowLwc[Resources::ShadowLayers];
+      Tempest::Matrix4x4              viewVirtualShadow;
       Tempest::Matrix4x4              view, project, projectInv;
       Tempest::Vec3                   sunDir        = {0,0,1};
       float                           waveAnim      = 0;

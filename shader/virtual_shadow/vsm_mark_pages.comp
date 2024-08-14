@@ -1,0 +1,142 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+#include "scene.glsl"
+
+#if defined(GL_COMPUTE_SHADER)
+layout(local_size_x = 8, local_size_y = 8) in;
+#endif
+
+const vec3 debugColors[] = {
+  vec3(1,1,1),
+  vec3(1,0,0),
+  vec3(0,1,0),
+  vec3(0,0,1),
+  vec3(1,1,0),
+  vec3(1,0,1),
+  vec3(0,1,1),
+  vec3(1,0.5,0),
+  vec3(0.5,1,0),
+  vec3(0,0.5,1),
+  };
+
+const int PAGE_SIZE     = 128;
+const int PAGE_TBL_SIZE = 128;
+const int CLIPMAP_SIZE  = PAGE_SIZE * PAGE_TBL_SIZE;
+
+layout(binding  = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 1) uniform texture2D       gbufDiffuse;
+layout(binding = 2) uniform utexture2D      gbufNormal;
+layout(binding = 3) uniform texture2D       depth;
+#if defined(MARK_PAGES)
+layout(binding = 4, r32ui) uniform uimage3D pageTbl;
+#elif defined(COMPOSE) || defined(DEBUG)
+layout(binding = 4, r32ui) uniform readonly uimage3D pageTbl;
+layout(binding = 5, rgba8) uniform readonly image2D  pageData;
+layout(binding = 6, rgba8) uniform image2D           shadowMask;
+#endif
+
+#if defined(DEBUG)
+layout(location = 0) out vec4 outColor;
+#endif
+
+#if defined(GL_COMPUTE_SHADER)
+ivec2 pixelPos = ivec2(gl_GlobalInvocationID.xy);
+#else
+ivec2 pixelPos = ivec2(gl_FragCoord.xy);
+#endif
+
+uint hash(uvec3 gridPos) {
+  return (gridPos.x * 18397) + (gridPos.y * 20483) + (gridPos.z * 29303);
+  }
+
+vec4 worldPosLwc(ivec2 frag, float depth) {
+  const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
+  const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
+  // return scene.viewProjectLwcInv * scr;
+  return scene.viewProjectInv * scr;
+  }
+
+vec2 shadowPos(float z, ivec2 offset) {
+  const vec4  wpos = worldPosLwc(pixelPos+offset, z);
+  vec4 shPos = scene.viewVirtualShadow * wpos;
+  shPos.xyz /= shPos.w;
+  return shPos.xy;
+  }
+
+vec4 shadowTexelFetch(vec2 page, int mip) {
+#if defined(COMPOSE) || defined(DEBUG)
+  //page-local
+  const ivec2 pageI       = ivec2((page*0.5+0.5)*PAGE_TBL_SIZE);
+  const vec2  pageF       = fract((page*0.5+0.5)*PAGE_TBL_SIZE);
+  const ivec2 at          = ivec2(pageF*PAGE_SIZE);
+
+  //page-global
+  const uint  pageId      = imageLoad(pageTbl, ivec3(pageI, mip)).x;
+  const ivec2 pageImageAt = ivec2(pageId%32, pageId/32)*PAGE_SIZE;
+
+  vec4 img = imageLoad(pageData, pageImageAt+at);
+  return img;
+#else
+  return vec4(0);
+#endif
+  }
+
+void main() {
+#if defined(DEBUG)
+  outColor = vec4(0,0,0, 1);
+#endif
+
+  const ivec2 size = textureSize(depth, 0);
+  if(any(greaterThanEqual(pixelPos, size)))
+    return;
+
+  const float z = texelFetch(depth, pixelPos, 0).x;
+  if(z==1)
+    return;
+
+  vec2  shPos0 = shadowPos(z, ivec2(0,0));
+  vec2  shPos1 = shadowPos(z, ivec2(1,0));
+  vec2  shPos2 = shadowPos(z, ivec2(0,1));
+
+  float dX     = length(shPos1 - shPos0)*CLIPMAP_SIZE;
+  float dY     = length(shPos2 - shPos0)*CLIPMAP_SIZE;
+
+  int   mip    = int(clamp(log2((dX + dY)*0.5), 0, 32)); // ~7 mips
+  vec2  page   = shPos0.xy / (1<<mip);
+  while(abs(page.x)>=1 || abs(page.y)>=1) {
+    page /= 2;
+    mip++;
+    }
+  if(any(greaterThan(abs(page), vec2(1))) || mip>=32)
+    return;
+
+  ivec2 pageI = ivec2((page*0.5+0.5)*PAGE_TBL_SIZE);
+#if defined(MARK_PAGES)
+  {
+    // imageAtomicAdd(pageTbl, ivec3(page, mip), 1u);
+    imageStore(pageTbl, ivec3(pageI, mip), uvec4(1u));
+  }
+#elif defined(COMPOSE)
+  {
+    vec4 img = shadowTexelFetch(page, mip);
+    imageStore(shadowMask, ivec2(pixelPos), img);
+  }
+#endif
+
+#if defined(DEBUG)
+  // int  mip   = 0;
+  // vec3 color = debugColors[hash(uvec3(pageI,mip)) % debugColors.length()];
+  // vec3 color = debugColors[mip % debugColors.length()];
+  // vec3 color = vec3(shPos0, 0);
+  // vec3 color = vec3(page, 0);
+  // vec3 color = vec3(fract(page*PAGE_TBL_SIZE), 0);
+  vec4 color = shadowTexelFetch(page, mip);
+  outColor = vec4(color.xyz,1);
+#endif
+  }

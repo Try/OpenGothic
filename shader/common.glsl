@@ -251,6 +251,23 @@ vec3 unpackR11G11B10E4F(uint rgb) {
   return vec3(r, g, b);
   }
 
+uint packUint2x16(uvec2 v){
+  return (v.x & 0xFFFF) | ((v.y & 0xFFFF) << 16);
+  }
+
+uint packUint4x8(uvec4 v){
+  return (v.x & 0xFF) | ((v.y & 0xFF) << 8) | ((v.z & 0xFF) << 16) | ((v.w & 0xFF) << 24);
+  }
+
+uvec4 unpackUint4x8(uint v) {
+  uvec4 r;
+  r.x = (v      ) & 0xFF;
+  r.y = (v >>  8) & 0xFF;
+  r.z = (v >> 16) & 0xFF;
+  r.w = (v >> 24) & 0xFF;
+  return r;
+  }
+
 uint encodeNormal(vec3 n) {
   return octahedral_32(n);
   }

@@ -232,6 +232,7 @@ add_shader(sky_pathtrace.frag        sky/sky_pathtrace.frag)
 add_shader(sun.vert                  sky/sun.vert)
 add_shader(sun.frag                  sky/sun.frag)
 
+# copy/edit
 add_shader(copy.vert                 copy.vert -DHAS_UV)
 add_shader(copy.frag                 copy.frag)
 add_shader(copy.comp                 copy.comp)
@@ -241,6 +242,7 @@ add_shader(path.comp                 path.comp)
 add_shader(ssao.comp                 ssao/ssao.comp)
 add_shader(ssao_blur.comp            ssao/ssao_blur.comp)
 
+# GPU-driven: HiZ
 if(IOS)
   add_shader(hiz_mip.comp            hiz/hiz_mip.comp -DIOS)
 else()
@@ -251,6 +253,7 @@ add_shader(hiz_pot.comp              hiz/hiz_pot.comp)
 add_shader(hiz_reproject.mesh        hiz/hiz_reproject.mesh)
 add_shader(hiz_reproject.frag        hiz/hiz_reproject.frag)
 
+# Global illumination
 add_shader(probe_dbg.vert            lighting/rt/probe_dbg.vert)
 add_shader(probe_dbg.frag            lighting/rt/probe_dbg.frag)
 
@@ -270,12 +273,21 @@ add_shader(probe_lighting.comp       lighting/rt/probe_lighting.comp)
 add_shader(probe_ambient.vert        copy.vert)
 add_shader(probe_ambient.frag        lighting/rt/probe_ambient.frag)
 
+# CMAA2
 add_shader(cmaa2_edges_color2x2_quality_0.comp     antialiasing/cmaa2/edge_color2x2.comp -DCMAA2_STATIC_QUALITY_PRESET=0)
 add_shader(cmaa2_edges_color2x2_quality_1.comp     antialiasing/cmaa2/edge_color2x2.comp -DCMAA2_STATIC_QUALITY_PRESET=1)
 
 add_shader(cmaa2_process_candidates.comp           antialiasing/cmaa2/process_candidates.comp)
 add_shader(cmaa2_deferred_color_apply_2x2.vert     antialiasing/cmaa2/deferred_color_apply_2x2.vert)
 add_shader(cmaa2_deferred_color_apply_2x2.frag     antialiasing/cmaa2/deferred_color_apply_2x2.frag)
+
+# virtual shadows
+add_shader(vsm_clear.comp       virtual_shadow/vsm_clear.comp)
+add_shader(vsm_mark_pages.comp  virtual_shadow/vsm_mark_pages.comp -DMARK_PAGES)
+add_shader(vsm_compose.comp     virtual_shadow/vsm_mark_pages.comp -DCOMPOSE)
+add_shader(vsm_dbg.frag         virtual_shadow/vsm_mark_pages.comp -DDEBUG -S frag)
+add_shader(vsm_list_pages.comp  virtual_shadow/vsm_list_pages.comp)
+add_shader(vsm_rendering.comp   virtual_shadow/vsm_rendering.comp)
 
 add_custom_command(
   OUTPUT     ${HEADER} ${CPP}

@@ -51,6 +51,7 @@ void WorldView::preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t
   sGlobal.setSky(gSky);
   sGlobal.setViewProject(camera.view(),camera.projective(),camera.zNear(),camera.zFar(),shadow);
   sGlobal.setViewLwc(camera.viewLwc(),camera.projective(),shadowLwc);
+  sGlobal.setViewVsm(camera.viewShadowVsm(ldir));
   sGlobal.originLwc = camera.originLwc();
   sGlobal.setUnderWater(camera.isInWater());
 
@@ -82,6 +83,11 @@ void WorldView::setShadowMaps(const Tempest::Texture2d* sh[]) {
       shadow[i] = &Resources::fallbackBlack(); else
       shadow[i] = sh[i];
   sGlobal.setShadowMap(shadow);
+  }
+
+void WorldView::setVirtualShadowMap(const Tempest::StorageImage&  pageData,
+                                    const Tempest::StorageBuffer& pageList)  {
+  sGlobal.setVirtualShadowMap(pageData, pageList);
   }
 
 void WorldView::setHiZ(const Tempest::Texture2d& hiZ) {
@@ -131,6 +137,10 @@ void WorldView::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t f
 void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId, uint8_t layer) {
   visuals.drawShadow(cmd,fId,layer);
   pfxGroup.drawShadow(cmd,fId,layer);
+  }
+
+void WorldView::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  visuals.drawVsm(cmd, fId);
   }
 
 void WorldView::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {

@@ -47,6 +47,7 @@ class Renderer final {
 
     void drawHiZ          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void buildHiZ         (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void drawVsm          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawGBuffer      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawGWater       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawShadowMap    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
@@ -64,12 +65,15 @@ class Renderer final {
     void drawProbesHitDbg (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void stashSceneAux    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
+    void drawVsmDbg       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+
     void initGiData();
     void initSettings();
     void toggleGi();
 
     struct Settings {
       const uint32_t shadowResolution   = 2048;
+      bool           vsmEnabled         = true;
       bool           zEnvMappingEnabled = false;
       bool           zCloudShadowScale  = false;
       bool           giEnabled          = false;
@@ -201,6 +205,28 @@ class Renderer final {
       Tempest::StorageImage     probesLightingPrev;
       bool                      fisrtFrame = false;
       } gi;
+
+    struct {
+      Tempest::ComputePipeline* pagesClearPso = nullptr;
+      Tempest::DescriptorSet    uboClear;
+
+      Tempest::ComputePipeline* pagesMarkPso = nullptr;
+      Tempest::DescriptorSet    uboPages;
+
+      Tempest::ComputePipeline* pagesListPso = nullptr;
+      Tempest::DescriptorSet    uboList;
+
+      Tempest::ComputePipeline* pagesComposePso = nullptr;
+      Tempest::DescriptorSet    uboCompose;
+
+      Tempest::RenderPipeline*  pagesDbgPso = nullptr;
+      Tempest::DescriptorSet    uboDbg;
+
+      Tempest::StorageImage     pageTbl;
+      Tempest::StorageImage     pageData;
+      Tempest::StorageBuffer    pageList;
+      Tempest::StorageImage     shadowMask;
+      } vsm;
 
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::Depth16;
     Tempest::TextureFormat    zBufferFormat = Tempest::TextureFormat::Depth16;

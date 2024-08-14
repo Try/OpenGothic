@@ -73,6 +73,12 @@ class Shaders {
     Tempest::ComputePipeline probeTrace, probeLighting;
     Tempest::RenderPipeline  probeAmbient;
 
+    // Virtual shadow
+    Tempest::ComputePipeline vsmClear, vsmMarkPages, vsmListPages, vsmComposePso;
+    Tempest::ComputePipeline vsmRendering;
+    Tempest::RenderPipeline  vsmDbg;
+
+    // Inventory
     Tempest::RenderPipeline  inventory;
 
     const Tempest::RenderPipeline* materialPipeline(const Material& desc, DrawCommands::Type t, PipelineType pt, bool bindless) const;

@@ -64,6 +64,8 @@ class DrawCommands {
     void     drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void     drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, SceneGlobals::VisCamera viewId, Material::AlphaFunc func);
 
+    void     drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+
   private:
     enum TaskLinkpackage : uint8_t {
       T_Scene    = 0,
@@ -102,8 +104,8 @@ class DrawCommands {
       };
 
     struct TaskCmd {
-      SceneGlobals::VisCamera        viewport = SceneGlobals::V_Main;
-      Tempest::DescriptorSet         desc;
+      SceneGlobals::VisCamera viewport = SceneGlobals::V_Main;
+      Tempest::DescriptorSet  desc;
       };
 
     struct View {
@@ -112,6 +114,7 @@ class DrawCommands {
       };
 
     void                     updateCommandUniforms();
+    void                     updateVsmUniforms();
 
     VisualObjects&           owner;
     DrawBuckets&             buckets;
@@ -121,6 +124,7 @@ class DrawCommands {
     std::vector<TaskCmd>     tasks;
     std::vector<DrawCmd>     cmd;
     std::vector<DrawCmd*>    ord;
+    Tempest::DescriptorSet   vsmDesc;
     bool                     cmdDurtyBit = false;
 
     View                     views[SceneGlobals::V_Count];

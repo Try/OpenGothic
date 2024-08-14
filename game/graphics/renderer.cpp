@@ -60,7 +60,8 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
   Gothic::inst().onSettingsChanged.bind(this,&Renderer::initSettings);
   Gothic::inst().toggleGi.bind(this, &Renderer::toggleGi);
 
-  settings.giEnabled = Gothic::options().doRtGi;
+  settings.giEnabled  = Gothic::options().doRtGi;
+  settings.vsmEnabled = Gothic::options().doVirtualShadow;
   initSettings();
   }
 
@@ -183,6 +184,28 @@ void Renderer::resetSwapchain() {
 
   cmaa2.defferedColorApply    = &Shaders::inst().cmaa2DeferredColorApply2x2;
   cmaa2.defferedColorApplyUbo = device.descriptors(*cmaa2.defferedColorApply);
+
+  if(settings.vsmEnabled) {
+    vsm.pagesClearPso   = &Shaders::inst().vsmClear;
+    vsm.uboClear        = device.descriptors(*vsm.pagesClearPso);
+
+    vsm.pagesMarkPso    = &Shaders::inst().vsmMarkPages;
+    vsm.uboPages        = device.descriptors(*vsm.pagesMarkPso);
+
+    vsm.pagesListPso    = &Shaders::inst().vsmListPages;
+    vsm.uboList         = device.descriptors(*vsm.pagesListPso);
+
+    vsm.pagesComposePso = &Shaders::inst().vsmComposePso;
+    vsm.uboCompose      = device.descriptors(*vsm.pagesComposePso);
+
+    vsm.pagesDbgPso     = &Shaders::inst().vsmDbg;
+    vsm.uboDbg          = device.descriptors(*vsm.pagesDbgPso);
+
+    vsm.pageTbl       = device.image3d(TextureFormat::R32U, 128, 128, 32);
+    vsm.pageData      = device.image2d(TextureFormat::RGBA8, 4096, 4096);
+    vsm.pageList      = device.ssbo(nullptr, (4096 + 4)*sizeof(uint32_t));
+    vsm.shadowMask    = device.image2d(Tempest::RGBA8, w, h);
+    }
 
   initGiData();
   prepareUniforms();
@@ -413,12 +436,43 @@ void Renderer::prepareUniforms() {
     gi.uboCompose.set(7, gi.probes);
     }
 
+  if(settings.vsmEnabled) {
+    vsm.uboClear.set(0, vsm.pageList);
+    vsm.uboClear.set(1, vsm.pageTbl);
+
+    vsm.uboPages.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    vsm.uboPages.set(1, gbufDiffuse, Sampler::nearest());
+    vsm.uboPages.set(2, gbufNormal,  Sampler::nearest());
+    vsm.uboPages.set(3, zbuffer,     Sampler::nearest());
+    vsm.uboPages.set(4, vsm.pageTbl);
+
+    vsm.uboList.set(0, vsm.pageList);
+    vsm.uboList.set(1, vsm.pageTbl);
+
+    vsm.uboCompose.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    vsm.uboCompose.set(1, gbufDiffuse, Sampler::nearest());
+    vsm.uboCompose.set(2, gbufNormal,  Sampler::nearest());
+    vsm.uboCompose.set(3, zbuffer,     Sampler::nearest());
+    vsm.uboCompose.set(4, vsm.pageTbl);
+    vsm.uboCompose.set(5, vsm.pageData);
+    vsm.uboCompose.set(6, vsm.shadowMask);
+
+    vsm.uboDbg.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    vsm.uboDbg.set(1, gbufDiffuse, Sampler::nearest());
+    vsm.uboDbg.set(2, gbufNormal,  Sampler::nearest());
+    vsm.uboDbg.set(3, zbuffer,     Sampler::nearest());
+    vsm.uboDbg.set(4, vsm.pageTbl);
+    vsm.uboDbg.set(5, vsm.pageData);
+    vsm.uboDbg.set(6, vsm.shadowMask);
+    }
+
   const Texture2d* sh[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
     if(!shadowMap[i].isEmpty()) {
       sh[i] = &textureCast(shadowMap[i]);
       }
   wview->setShadowMaps(sh);
+  wview->setVirtualShadowMap(vsm.pageData, vsm.pageList);
 
   wview->setHiZ(textureCast(hiz.hiZ));
   wview->setGbuffer(textureCast(gbufDiffuse), textureCast(gbufNormal));
@@ -558,6 +612,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   drawGBuffer(cmd,fId,*wview);
 
   drawShadowMap(cmd,fId,*wview);
+  drawVsm(cmd,fId,*wview);
 
   prepareIrradiance(cmd,fId,*wview);
   prepareExposure(cmd,fId,*wview);
@@ -583,6 +638,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
 
   drawProbesDbg(cmd, fId);
   drawProbesHitDbg(cmd, fId);
+  drawVsmDbg(cmd, fId);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   drawReflections(cmd,fId);
@@ -678,6 +734,17 @@ void Renderer::stashSceneAux(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   cmd.draw(Resources::fsqVbo());
   }
 
+void Renderer::drawVsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  static bool enable = true;
+  if(!enable || !settings.vsmEnabled)
+    return;
+
+  cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
+  cmd.setDebugMarker("VSM-dbg");
+  cmd.setUniforms(*vsm.pagesDbgPso, vsm.uboDbg);
+  cmd.draw(Resources::fsqVbo());
+  }
+
 void Renderer::initGiData() {
   if(!settings.giEnabled)
     return;
@@ -741,6 +808,30 @@ void Renderer::buildHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t f
   uint32_t w = uint32_t(hiz.hiZ.w()), h = uint32_t(hiz.hiZ.h()), mip = hiz.hiZ.mipCount();
   cmd.setUniforms(Shaders::inst().hiZMip, hiz.uboMip, &mip, sizeof(mip));
   cmd.dispatchThreads(w,h);
+  }
+
+void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
+  if(!settings.vsmEnabled)
+    return;
+
+  const uint32_t numMips = 32;
+  cmd.setFramebuffer({});
+  cmd.setDebugMarker("VSM-pages");
+  cmd.setUniforms(*vsm.pagesClearPso, vsm.uboClear);
+  cmd.dispatchThreads(size_t(vsm.pageTbl.w()), size_t(vsm.pageTbl.h()), numMips);
+
+  cmd.setUniforms(*vsm.pagesMarkPso, vsm.uboPages);
+  cmd.dispatchThreads(zbuffer.size());
+
+  cmd.setUniforms(*vsm.pagesListPso, vsm.uboList);
+  cmd.dispatchThreads(size_t(vsm.pageTbl.w()), size_t(vsm.pageTbl.h()), numMips);
+
+  cmd.setDebugMarker("VSM-rendering");
+  view.drawVsm(cmd,fId);
+
+  cmd.setDebugMarker("VSM-compose");
+  cmd.setUniforms(*vsm.pagesComposePso, vsm.uboCompose);
+  cmd.dispatchThreads(zbuffer.size());
   }
 
 void Renderer::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view) {

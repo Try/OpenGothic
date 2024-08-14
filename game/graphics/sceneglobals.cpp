@@ -127,6 +127,10 @@ void SceneGlobals::setViewLwc(const Tempest::Matrix4x4& view, const Tempest::Mat
     uboGlobalCpu.viewShadowLwc[i] = sh[i];
   }
 
+void SceneGlobals::setViewVsm(const Tempest::Matrix4x4& view) {
+  uboGlobalCpu.viewVirtualShadow = view;
+  }
+
 void SceneGlobals::setSky(const Sky& s) {
   uboGlobalCpu.sunDir        = s.sunLight().dir();
   uboGlobalCpu.lightCl       = s.sunLight().color();
@@ -202,6 +206,12 @@ void SceneGlobals::setHiZ(const Tempest::Texture2d& t) {
 void SceneGlobals::setShadowMap(const Tempest::Texture2d* tex[]) {
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
     shadowMap[i] = tex[i];
+  }
+
+void SceneGlobals::setVirtualShadowMap(const Tempest::StorageImage&  pageData,
+                                       const Tempest::StorageBuffer& pageList) {
+  vsmPageData = &pageData;
+  vsmPageList = &pageList;
   }
 
 const Tempest::Matrix4x4& SceneGlobals::viewProject() const {

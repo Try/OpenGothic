@@ -195,6 +195,8 @@ void DrawCommands::updateTasksUniforms() {
     i.desc.set(T_Bucket,   buckets.ssbo());
     i.desc.set(T_HiZ,      *scene.hiZ);
     }
+
+  updateVsmUniforms();
   }
 
 void DrawCommands::updateCommandUniforms() {
@@ -277,6 +279,44 @@ void DrawCommands::updateCommandUniforms() {
         break;
       }
     }
+
+  updateVsmUniforms();
+  }
+
+void DrawCommands::updateVsmUniforms() {
+  if(!Gothic::inst().options().doVirtualShadow)
+    return;
+
+  auto& device = Resources::device();
+
+  //FIXME: copy-paste
+  std::vector<const Tempest::Texture2d*>     tex;
+  std::vector<const Tempest::StorageBuffer*> vbo, ibo;
+  std::vector<const Tempest::StorageBuffer*> morphId, morph;
+  for(auto& i:buckets.buckets()) {
+    tex.push_back(i.mat.tex);
+    if(i.staticMesh!=nullptr) {
+      ibo    .push_back(&i.staticMesh->ibo8);
+      vbo    .push_back(&i.staticMesh->vbo);
+      morphId.push_back(i.staticMesh->morph.index);
+      morph  .push_back(i.staticMesh->morph.samples);
+      } else {
+      ibo    .push_back(&i.animMesh->ibo8);
+      vbo    .push_back(&i.animMesh->vbo);
+      morphId.push_back(nullptr);
+      morph  .push_back(nullptr);
+      }
+    }
+
+  vsmDesc = device.descriptors(Shaders::inst().vsmRendering);
+  vsmDesc.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
+  vsmDesc.set(1, *scene.vsmPageList);
+  vsmDesc.set(2, *scene.vsmPageData);
+  vsmDesc.set(3, clusters.ssbo());
+  vsmDesc.set(4, ibo);
+  vsmDesc.set(5, vbo);
+  vsmDesc.set(6, tex);
+  vsmDesc.set(7, Sampler::bilinear());
   }
 
 void DrawCommands::prepareUniforms() {
@@ -423,4 +463,15 @@ void DrawCommands::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uin
       cmd.dispatchMeshIndirect(view.indirectCmd, sizeof(IndirectCmd)*id + sizeof(uint32_t)); else
       cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
     }
+  }
+
+void DrawCommands::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  struct Push { uint32_t firstMeshlet; uint32_t meshletCount; float znear; } push = {};
+  push.firstMeshlet = 0;
+  push.meshletCount = uint32_t(clusters.size());
+  push.znear        = scene.znear;
+
+  auto* pso = &Shaders::inst().vsmRendering;
+  cmd.setUniforms(*pso, vsmDesc, &push, sizeof(push));
+  cmd.dispatchIndirect(*scene.vsmPageList, 0);
   }

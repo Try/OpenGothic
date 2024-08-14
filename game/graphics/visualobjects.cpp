@@ -593,6 +593,10 @@ void VisualObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& cmd, ui
   drawCmd.drawCommon(cmd, fId, view, Material::AlphaTest);
   }
 
+void VisualObjects::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  drawCmd.drawVsm(cmd, fId);
+  }
+
 void VisualObjects::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   drawCmd.drawHiZ(cmd, fId);
   }

@@ -46,6 +46,7 @@ class Gothic final {
       bool     doRtGi            = false;
       bool     doMeshShading     = false;
       bool     doBindless        = false;
+      bool     doVirtualShadow   = false;
 
       uint32_t aaPreset          = 0;
 
