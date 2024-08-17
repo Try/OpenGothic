@@ -284,7 +284,7 @@ void DrawCommands::updateCommandUniforms() {
   }
 
 void DrawCommands::updateVsmUniforms() {
-  if(!Gothic::inst().options().doVirtualShadow)
+  if(!Gothic::inst().options().doVirtualShadow && Gothic::options().swRenderingPreset==0)
     return;
 
   auto& device = Resources::device();
@@ -308,15 +308,29 @@ void DrawCommands::updateVsmUniforms() {
       }
     }
 
-  vsmDesc = device.descriptors(Shaders::inst().vsmRendering);
-  vsmDesc.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
-  vsmDesc.set(1, *scene.vsmPageList);
-  vsmDesc.set(2, *scene.vsmPageData);
-  vsmDesc.set(3, clusters.ssbo());
-  vsmDesc.set(4, ibo);
-  vsmDesc.set(5, vbo);
-  vsmDesc.set(6, tex);
-  vsmDesc.set(7, Sampler::bilinear());
+  if(Gothic::inst().options().doVirtualShadow) {
+    vsmDesc = device.descriptors(Shaders::inst().vsmRendering);
+    vsmDesc.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    vsmDesc.set(1, *scene.vsmPageList);
+    vsmDesc.set(2, *scene.vsmPageData);
+    vsmDesc.set(3, clusters.ssbo());
+    vsmDesc.set(4, ibo);
+    vsmDesc.set(5, vbo);
+    vsmDesc.set(6, tex);
+    vsmDesc.set(7, Sampler::bilinear());
+    }
+
+  if(Gothic::options().swRenderingPreset>0) {
+    swrDesc = device.descriptors(Shaders::inst().swRendering);
+    swrDesc.set(0, *scene.swMainImage);
+    swrDesc.set(1, scene.uboGlobal[SceneGlobals::V_Main]);
+    swrDesc.set(2, *scene.zbuffer);
+    swrDesc.set(3, clusters.ssbo());
+    swrDesc.set(4, ibo);
+    swrDesc.set(5, vbo);
+    swrDesc.set(6, tex);
+    swrDesc.set(7, Sampler::bilinear());
+    }
   }
 
 void DrawCommands::prepareUniforms() {
@@ -474,4 +488,29 @@ void DrawCommands::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
   auto* pso = &Shaders::inst().vsmRendering;
   cmd.setUniforms(*pso, vsmDesc, &push, sizeof(push));
   cmd.dispatchIndirect(*scene.vsmPageList, 0);
+  }
+
+void DrawCommands::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  struct Push { uint32_t firstMeshlet; uint32_t meshletCount; float znear; } push = {};
+  push.firstMeshlet = 0;
+  push.meshletCount = uint32_t(clusters.size());
+  push.znear        = scene.znear;
+
+  auto* pso = &Shaders::inst().swRendering;
+  switch(Gothic::options().swRenderingPreset) {
+    case 1: {
+      cmd.setUniforms(*pso, swrDesc, &push, sizeof(push));
+      //cmd.dispatch(10);
+      cmd.dispatch(clusters.size());
+      break;
+      }
+    case 2: {
+      IVec2  tileSize = IVec2(128);
+      int    tileX    = (scene.swMainImage->w()+tileSize.x-1)/tileSize.x;
+      int    tileY    = (scene.swMainImage->h()+tileSize.y-1)/tileSize.y;
+      cmd.setUniforms(*pso, swrDesc, &push, sizeof(push));
+      cmd.dispatch(size_t(tileX), size_t(tileY)); //scene.swMainImage->size());
+      break;
+      }
+    }
   }

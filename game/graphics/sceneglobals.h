@@ -43,6 +43,7 @@ class SceneGlobals final {
 
     void setVirtualShadowMap(const Tempest::StorageImage&  vsmPageData,
                              const Tempest::StorageBuffer& vsmPageList);
+    void setSwRenderingImage(const Tempest::StorageImage& mainView);
 
     const Tempest::Matrix4x4& viewProject() const;
     const Tempest::Matrix4x4& viewProjectInv() const;
@@ -72,6 +73,8 @@ class SceneGlobals final {
 
     const Tempest::StorageImage*      vsmPageData  = nullptr;
     const Tempest::StorageBuffer*     vsmPageList  = nullptr;
+
+    const Tempest::StorageImage*      swMainImage  = nullptr;
 
     struct UboGlobal final {
       Tempest::Matrix4x4              viewProject;

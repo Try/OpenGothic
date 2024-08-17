@@ -1,0 +1,293 @@
+#version 450
+
+layout(local_size_x = 64) in;
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_EXT_control_flow_attributes : enable
+// bindless
+#extension GL_EXT_nonuniform_qualifier : enable
+
+#include "common.glsl"
+#include "scene.glsl"
+
+const uint  UINT_MAX   = 0xFFFFFFFF;
+const uint  NumThreads = (gl_WorkGroupSize.x * gl_WorkGroupSize.y * gl_WorkGroupSize.z);
+const uint  MaxVert    = 64;
+const uint  MaxPrim    = 64;
+const uint  MaxInd     = (MaxPrim*3);
+const ivec2 TileSize   = ivec2(8,8);
+      ivec2 TilePos    = ivec2(gl_LocalInvocationIndex%8, gl_LocalInvocationIndex/8);
+
+const vec3 debugColors[] = {
+  vec3(1,1,1),
+  vec3(1,0,0),
+  vec3(0,1,0),
+  vec3(0,0,1),
+  vec3(1,1,0),
+  vec3(1,0,1),
+  vec3(0,1,1),
+  vec3(1,0.5,0),
+  vec3(0.5,1,0),
+  vec3(0,0.5,1),
+  };
+
+struct Vertex {
+  vec4 pos;
+  vec2 uv;
+  };
+
+struct Cluster {
+  vec4  sphere;
+  uint  bucketId_commandId;
+  uint  firstMeshlet;
+  int   meshletCount;
+  uint  instanceId;
+  };
+
+layout(push_constant, std430) uniform UboPush {
+  uint      firstMeshlet;
+  int       meshletCount;
+  float     znear;
+  } push;
+
+//layout(binding = 0, rgba8) uniform image2D   outputImage;
+layout(binding = 0, r32ui) uniform uimage2D outputImage;
+layout(binding = 1, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 2)         uniform  texture2D gbufferDepth;
+
+layout(binding = 3, std430) readonly buffer Cbo { Cluster clusters[]; };
+layout(binding = 4, std430) readonly buffer Ibo { uint    indexes []; } ibo[];
+layout(binding = 5, std430) readonly buffer Vbo { float   vertices[]; } vbo[];
+layout(binding = 6)         uniform  texture2D textureMain[];
+layout(binding = 7)         uniform  sampler   samplerMain;
+
+//
+shared Vertex meshVertices[MaxVert];
+shared uvec3  primitiveIndices[MaxPrim];
+shared uint   maxVertices, maxPrimitives;
+       ivec2  viewPortSize = ivec2(imageSize(outputImage));
+
+//
+uint packColor(vec3 c) {
+  c = clamp(c, vec3(0), vec3(1));
+  c = c*vec3(31,63,31);
+  c = round(c);
+  uint r = uint(c.r) << 11u;
+  uint g = uint(c.g) << 5u;
+  uint b = uint(c.b);
+  return r | g | b;
+  }
+
+uint packDepthColor(float depth, vec3 color) {
+  uint d = uint(depth*65535);
+  return (d << 16) | packColor(color);
+  }
+
+uint packDepthOnly(float depth) {
+  return floatBitsToUint(depth);
+  }
+
+ivec4 bboxOf(vec2 a, vec2 b, vec2 c, ivec2 viewportSize) {
+  ivec4 ret;
+  ret.x = int(round(min(a.x, min(b.x, c.x))));
+  ret.z = int(round(max(a.x, max(b.x, c.x))));
+  ret.y = int(round(min(a.y, min(b.y, c.y))));
+  ret.w = int(round(max(a.y, max(b.y, c.y))));
+
+  ivec2 size = viewportSize; //ivec2(imageSize(visBuffer));
+  ret.xy = max(ret.xy, ivec2(0));
+  ret.zw = min(ret.zw, size);
+  return ret;
+  }
+
+float edgeFunction(const vec2 a, const vec2 b, const vec2 c) {
+  return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
+  }
+
+void setMeshOutputs(uint vert, uint prim) {
+  if(gl_LocalInvocationIndex==0) {
+    maxVertices   = vert;
+    maxPrimitives = prim;
+    }
+  //barrier();
+  }
+
+uvec2 pullMeshlet(const uint meshletId, const uint bucketId) {
+  nonuniformEXT uint bId = bucketId;
+
+  const uint iboOffset = meshletId * MaxPrim + MaxPrim - 1;
+  const uint bits      = ibo[bId].indexes[iboOffset];
+  uvec4 prim;
+  prim.x = ((bits >>  0) & 0xFF);
+  prim.y = ((bits >>  8) & 0xFF);
+
+  uint vertCount = MaxVert;
+  uint primCount = MaxPrim;
+  if(prim.x==prim.y) {
+    // last dummy triangle encodes primitive count
+    prim.z = ((bits >> 16) & 0xFF);
+    prim.w = ((bits >> 24) & 0xFF);
+
+    primCount = prim.z;
+    vertCount = prim.w;
+    }
+  return uvec2(vertCount, primCount);
+  }
+
+uvec3 pullPrimitive(const uint meshletId, const uint bucketId, const uint laneId) {
+  nonuniformEXT uint bId = bucketId;
+
+  const uint iboOffset = meshletId * MaxPrim + laneId;
+  const uint bits      = ibo[bId].indexes[iboOffset];
+  uvec3 prim;
+  prim.x = ((bits >>  0) & 0xFF);
+  prim.y = ((bits >>  8) & 0xFF);
+  prim.z = ((bits >> 16) & 0xFF);
+  return prim;
+  }
+
+Vertex pullVertex(const uint meshletId, const uint bucketId, const uint laneId) {
+  nonuniformEXT uint bId = bucketId;
+  uint vboOffset = meshletId * MaxVert + laneId;
+
+  // static geometry
+  uint id = vboOffset * 9;
+  Vertex ret;
+  ret.pos    = vec4(vbo[bId].vertices[id + 0], vbo[bId].vertices[id + 1], vbo[bId].vertices[id + 2], 1);
+  ret.uv     = vec2(vbo[bId].vertices[id + 6], vbo[bId].vertices[id + 7]);
+  //vec3 normal = vec3(vbo[bId].vertices[id + 3], vbo[bId].vertices[id + 4], vbo[bId].vertices[id + 5]);
+  //uint color  = floatBitsToUint(vbo[bId].vertices[id + 8]);
+  return ret;
+  }
+
+void main_mesh(const uint  meshletId, const uint bucketId) {
+  const uvec2 mesh       = pullMeshlet(meshletId, bucketId);
+  const uint  vertCount  = mesh.x;
+  const uint  primCount  = mesh.y;
+
+  // Alloc outputs
+  setMeshOutputs(vertCount, primCount);
+
+  const uint laneID = gl_LocalInvocationIndex;
+  if(laneID<primCount)
+    primitiveIndices[laneID] = pullPrimitive(meshletId, bucketId, laneID);
+  if(laneID<vertCount) {
+    Vertex v = pullVertex(meshletId, bucketId, laneID);
+    v.pos = scene.viewProject * vec4(v.pos.xyz,1);
+    meshVertices[laneID] = v;
+    }
+  }
+
+uint main_frag(ivec2 at, vec3 bc, float depth) {
+  return packDepthColor(1-depth, bc);
+  }
+
+void perspective() {
+  vec2 size = vec2(viewPortSize);
+
+  for(uint i=gl_LocalInvocationIndex; i<maxVertices; i+=NumThreads) {
+    vec4 pos = meshVertices[i].pos;
+    pos.w = 1.0/pos.w;
+    pos.xyz *= pos.w;
+    pos.xy = ((pos.xy+vec2(1))*0.5)*size;
+    meshVertices[i].pos = pos;
+    }
+  }
+
+bool clipcull(uvec3 tri) {
+  vec4 a = meshVertices[tri.x].pos;
+  vec4 b = meshVertices[tri.y].pos;
+  vec4 c = meshVertices[tri.z].pos;
+
+  if(a.x < -a.w && b.x < -b.w && c.x < -c.w)
+    return false;
+  if(a.x > a.w && b.x > b.w && c.x > c.w)
+    return false;
+
+  if(a.y < -a.w && b.y < -b.w && c.y < -c.w)
+    return false;
+  if(a.y > a.w && b.y > b.w && c.y > c.w)
+    return false;
+
+  if(a.z < -a.w && b.z < -b.w && c.z < -c.w)
+    return false;
+  if(a.z > a.w && b.z > b.w && c.z > c.w)
+    return false;
+
+  if(a.w<=0 || b.w<=0 || c.w<=0)
+    return false; //difficult case, and not really needed
+
+  return true;
+  }
+
+void clipcull() {
+  for(uint i=gl_LocalInvocationIndex; i<maxPrimitives; i+=NumThreads) {
+    uvec3 tri = primitiveIndices[i];
+    if(!clipcull(tri))
+      primitiveIndices[i] = uvec3(0);
+    }
+  }
+
+void rasterize(vec3 a, vec3 b, vec3 c) {
+  const ivec4 box  = bboxOf(a.xy, b.xy, c.xy, viewPortSize);
+  const float area = edgeFunction(a.xy, b.xy, c.xy);
+
+  if(area<0)
+    return;
+
+  for(int i=box.x+TilePos.x; i<box.z; i+=TileSize.x) {
+    for(int r=box.y+TilePos.y; r<box.w; r+=TileSize.y) {
+      vec2  p  = vec2(i,r) + vec2(0.5);
+      float w0 = edgeFunction(b.xy, c.xy, p);
+      float w1 = edgeFunction(c.xy, a.xy, p);
+      float w2 = edgeFunction(a.xy, b.xy, p);
+
+      if(w0 < 0 || w1 < 0 || w2 < 0)
+        continue;
+
+      vec3  bc    = vec3(w0,w1,w2)/area;
+      float depth = dot(vec3(a.z,b.z,c.z), bc);
+      if(depth<0 || depth>1)
+        continue;
+
+      const uint v = main_frag(ivec2(i,r), bc, depth);
+      imageAtomicMax(outputImage, ivec2(i,r), v);
+      }
+    }
+  }
+
+void rasterize() {
+  for(uint i=0; i<maxPrimitives; ++i) {
+    uvec3 tri = primitiveIndices[i];
+    if(tri==uvec3(0))
+      continue;
+
+    vec3 a = meshVertices[tri.x].pos.xyz;
+    vec3 b = meshVertices[tri.y].pos.xyz;
+    vec3 c = meshVertices[tri.z].pos.xyz;
+
+    rasterize(a,b,c);
+    }
+  }
+
+void main() {
+  //const uint meshletId = gl_WorkGroupID.x;
+  const Cluster cluster = clusters[gl_WorkGroupID.x];
+  if(cluster.instanceId!=0xFFFFFFFF)
+    return;
+
+  main_mesh(cluster.firstMeshlet, cluster.bucketId_commandId>>16);
+  barrier();
+
+  clipcull();
+  barrier();
+
+  perspective();
+  barrier();
+
+  rasterize();
+  }

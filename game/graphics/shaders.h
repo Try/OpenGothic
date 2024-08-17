@@ -78,6 +78,10 @@ class Shaders {
     Tempest::ComputePipeline vsmRendering;
     Tempest::RenderPipeline  vsmDbg;
 
+    // Software rendering
+    Tempest::ComputePipeline swRendering;
+    Tempest::RenderPipeline  swRenderingDbg;
+
     // Inventory
     Tempest::RenderPipeline  inventory;
 

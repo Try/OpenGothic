@@ -62,6 +62,7 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
 
   settings.giEnabled  = Gothic::options().doRtGi;
   settings.vsmEnabled = Gothic::options().doVirtualShadow;
+  settings.swrEnabled = Gothic::options().swRenderingPreset>0;
   initSettings();
   }
 
@@ -205,6 +206,12 @@ void Renderer::resetSwapchain() {
     vsm.pageData      = device.image2d(TextureFormat::RGBA8, 4096, 4096);
     vsm.pageList      = device.ssbo(nullptr, (4096 + 4)*sizeof(uint32_t));
     vsm.shadowMask    = device.image2d(Tempest::RGBA8, w, h);
+    }
+
+  if(settings.swrEnabled) {
+    //swr.outputImage = device.image2d(Tempest::RGBA8, w, h);
+    swr.outputImage = device.image2d(Tempest::R32U, w, h);
+    swr.uboDbg      = device.descriptors(Shaders::inst().swRenderingDbg);
     }
 
   initGiData();
@@ -466,6 +473,10 @@ void Renderer::prepareUniforms() {
     vsm.uboDbg.set(6, vsm.shadowMask);
     }
 
+  if(settings.swrEnabled) {
+    swr.uboDbg.set(0, swr.outputImage);
+    }
+
   const Texture2d* sh[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
     if(!shadowMap[i].isEmpty()) {
@@ -473,6 +484,7 @@ void Renderer::prepareUniforms() {
       }
   wview->setShadowMaps(sh);
   wview->setVirtualShadowMap(vsm.pageData, vsm.pageList);
+  wview->setSwRenderingImage(swr.outputImage);
 
   wview->setHiZ(textureCast(hiz.hiZ));
   wview->setGbuffer(textureCast(gbufDiffuse), textureCast(gbufNormal));
@@ -544,6 +556,7 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
     return;
 
   std::vector<const Texture2d*> tex;
+  tex.push_back(&textureCast(swr.outputImage));
   //tex.push_back(&textureCast(hiz.hiZ));
   //tex.push_back(&textureCast(hiz.smProj));
   //tex.push_back(&textureCast(hiz.hiZSm1));
@@ -613,6 +626,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
 
   drawShadowMap(cmd,fId,*wview);
   drawVsm(cmd,fId,*wview);
+  drawSwr(cmd,fId,*wview);
 
   prepareIrradiance(cmd,fId,*wview);
   prepareExposure(cmd,fId,*wview);
@@ -639,6 +653,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   drawProbesDbg(cmd, fId);
   drawProbesHitDbg(cmd, fId);
   drawVsmDbg(cmd, fId);
+  drawSwrDbg(cmd);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   drawReflections(cmd,fId);
@@ -745,6 +760,17 @@ void Renderer::drawVsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
   cmd.draw(Resources::fsqVbo());
   }
 
+void Renderer::drawSwrDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
+  static bool enable = true;
+  if(!enable || !settings.swrEnabled)
+    return;
+
+  cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
+  cmd.setDebugMarker("SWR-dbg");
+  cmd.setUniforms(Shaders::inst().swRenderingDbg, swr.uboDbg);
+  cmd.draw(Resources::fsqVbo());
+  }
+
 void Renderer::initGiData() {
   if(!settings.giEnabled)
     return;
@@ -832,6 +858,14 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.setDebugMarker("VSM-compose");
   cmd.setUniforms(*vsm.pagesComposePso, vsm.uboCompose);
   cmd.dispatchThreads(zbuffer.size());
+  }
+
+void Renderer::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
+  if(!settings.swrEnabled)
+    return;
+  cmd.setFramebuffer({});
+  cmd.setDebugMarker("SW-rendering");
+  view.drawSwr(cmd,fId);
   }
 
 void Renderer::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view) {

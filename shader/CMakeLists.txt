@@ -289,6 +289,11 @@ add_shader(vsm_dbg.frag         virtual_shadow/vsm_mark_pages.comp -DDEBUG -S fr
 add_shader(vsm_list_pages.comp  virtual_shadow/vsm_list_pages.comp)
 add_shader(vsm_rendering.comp   virtual_shadow/vsm_rendering.comp)
 
+# software rendering
+add_shader(sw_rendering_imm.comp  software_rendering/sw_rendering_imm.comp)
+add_shader(sw_rendering_tbr.comp  software_rendering/sw_rendering_tbr.comp)
+add_shader(vbuffer_blit.frag      software_rendering/vbuffer_blit.frag)
+
 add_custom_command(
   OUTPUT     ${HEADER} ${CPP}
   DEPENDS    ${OPENGOTHIC_SHADERS_SPRV}

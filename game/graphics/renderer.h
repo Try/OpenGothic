@@ -48,6 +48,7 @@ class Renderer final {
     void drawHiZ          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void buildHiZ         (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawVsm          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
+    void drawSwr          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawGBuffer      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawGWater       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawShadowMap    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
@@ -66,6 +67,7 @@ class Renderer final {
     void stashSceneAux    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
     void drawVsmDbg       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void drawSwrDbg       (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 
     void initGiData();
     void initSettings();
@@ -73,7 +75,8 @@ class Renderer final {
 
     struct Settings {
       const uint32_t shadowResolution   = 2048;
-      bool           vsmEnabled         = true;
+      bool           vsmEnabled         = false;
+      bool           swrEnabled         = true;
       bool           zEnvMappingEnabled = false;
       bool           zCloudShadowScale  = false;
       bool           giEnabled          = false;
@@ -227,6 +230,11 @@ class Renderer final {
       Tempest::StorageBuffer    pageList;
       Tempest::StorageImage     shadowMask;
       } vsm;
+
+    struct {
+      Tempest::StorageImage     outputImage;
+      Tempest::DescriptorSet    uboDbg;
+      } swr;
 
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::Depth16;
     Tempest::TextureFormat    zBufferFormat = Tempest::TextureFormat::Depth16;

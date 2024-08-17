@@ -88,8 +88,8 @@ Gothic::Gothic() {
     opts.doBindless = CommandLine::inst().isBindless();
     }
 
-  if(hasBindless() && gpu.compute.maxGroupSize.x>=128) {
-    opts.doVirtualShadow = false;
+  if(hasBindless() && gpu.compute.maxInvocations>=1024) {
+    opts.doVirtualShadow = false; //TODO: productize
     }
 
   opts.aaPreset = CommandLine::inst().aaPreset();

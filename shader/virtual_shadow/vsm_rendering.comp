@@ -134,10 +134,10 @@ uvec2 pullMeshlet(const uint meshletId, const uint bucketId) {
   return uvec2(vertCount, primCount);
   }
 
-uvec3 pullPrimitive(const uint meshletId, const uint bucketId, const uint outId) {
+uvec3 pullPrimitive(const uint meshletId, const uint bucketId, const uint laneId) {
   nonuniformEXT uint bId = bucketId;
 
-  const uint iboOffset = meshletId * MaxPrim + outId;
+  const uint iboOffset = meshletId * MaxPrim + laneId;
   const uint bits      = ibo[bId].indexes[iboOffset];
   uvec3 prim;
   prim.x = ((bits >>  0) & 0xFF);
@@ -146,12 +146,12 @@ uvec3 pullPrimitive(const uint meshletId, const uint bucketId, const uint outId)
   return prim;
   }
 
-Vertex pullVertex(const uint meshletId, uint bucketId, uint id) {
+Vertex pullVertex(const uint meshletId, const uint bucketId, const uint laneId) {
   nonuniformEXT uint bId = bucketId;
-  uint vboOffset = meshletId * MaxVert + id;
+  uint vboOffset = meshletId * MaxVert + laneId;
 
   // static geometry
-  id *= 9;
+  uint id = vboOffset * 9;
   Vertex ret;
   ret.pos    = vec3(vbo[bId].vertices[id + 0], vbo[bId].vertices[id + 1], vbo[bId].vertices[id + 2]);
   ret.uv     = vec2(vbo[bId].vertices[id + 6], vbo[bId].vertices[id + 7]);

@@ -203,6 +203,18 @@ Shaders::Shaders() {
     vsmDbg        = postEffect("copy", "vsm_dbg", RenderState::ZTestMode::Always);
     }
 
+  if(Gothic::options().swRenderingPreset>0) {
+    switch(Gothic::options().swRenderingPreset) {
+      case 1:
+        swRendering = computeShader("sw_rendering_imm.comp.sprv");
+        break;
+      case 2:
+        swRendering = computeShader("sw_rendering_tbr.comp.sprv");
+        break;
+      }
+    swRenderingDbg = postEffect("copy", "vbuffer_blit", RenderState::ZTestMode::Always);
+    }
+
   {
     RenderState state;
     state.setCullFaceMode(RenderState::CullMode::Front);

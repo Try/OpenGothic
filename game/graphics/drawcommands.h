@@ -65,6 +65,7 @@ class DrawCommands {
     void     drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, SceneGlobals::VisCamera viewId, Material::AlphaFunc func);
 
     void     drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void     drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
   private:
     enum TaskLinkpackage : uint8_t {
@@ -125,6 +126,7 @@ class DrawCommands {
     std::vector<DrawCmd>     cmd;
     std::vector<DrawCmd*>    ord;
     Tempest::DescriptorSet   vsmDesc;
+    Tempest::DescriptorSet   swrDesc;
     bool                     cmdDurtyBit = false;
 
     View                     views[SceneGlobals::V_Count];

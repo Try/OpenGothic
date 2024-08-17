@@ -1,0 +1,461 @@
+#version 450
+
+layout(local_size_x = 32, local_size_y = 32) in;
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_EXT_control_flow_attributes : enable
+// bindless
+#extension GL_EXT_nonuniform_qualifier : enable
+
+#include "common.glsl"
+#include "scene.glsl"
+
+const uvec2 TileSize      = uvec2(128);
+const uint  UINT_MAX      = 0xFFFFFFFF;
+const uint  NumThreads    = (gl_WorkGroupSize.x * gl_WorkGroupSize.y * gl_WorkGroupSize.z);
+const uint  MaxVert       = 64;
+const uint  MaxPrim       = 64;
+const uint  MaxInd        = (MaxPrim*3);
+
+const vec3 debugColors[] = {
+  vec3(1,1,1),
+  vec3(1,0,0),
+  vec3(0,1,0),
+  vec3(0,0,1),
+  vec3(1,1,0),
+  vec3(1,0,1),
+  vec3(0,1,1),
+  vec3(1,0.5,0),
+  vec3(0.5,1,0),
+  vec3(0,0.5,1),
+  };
+
+struct Vertex {
+  vec4 pos;
+  vec2 uv;
+  };
+
+struct Cluster {
+  vec4  sphere;
+  uint  bucketId_commandId;
+  uint  firstMeshlet;
+  int   meshletCount;
+  uint  instanceId;
+  };
+
+layout(push_constant, std430) uniform UboPush {
+  uint      firstMeshlet;
+  int       meshletCount;
+  float     znear;
+  } push;
+
+// layout(binding = 0, rgba8) uniform image2D   outputImage;
+layout(binding = 0, r32ui) uniform uimage2D  outputImage;
+layout(binding = 1, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 2)         uniform  texture2D gbufferDepth;
+
+layout(binding = 3, std430) readonly buffer Cbo { Cluster clusters[]; };
+layout(binding = 4, std430) readonly buffer Ibo { uint    indexes []; } ibo[];
+layout(binding = 5, std430) readonly buffer Vbo { float   vertices[]; } vbo[];
+layout(binding = 6)         uniform  texture2D textureMain[];
+layout(binding = 7)         uniform  sampler   samplerMain;
+
+//
+shared uint hiZ;
+//
+float fragDepth = 1;
+uint  fragData  = 0;//vec4(0.1, 0.4, 0.4, 0.0);
+
+//
+shared uint   clustersIterator;
+shared uint   clustersCount;
+shared uint   clusterVisBits[(NumThreads+31)/32], clusterVisBits32;
+//
+shared uint   clusterCurrent;
+
+shared Vertex meshVertices[MaxVert];
+shared uvec3  primitiveIndices[MaxPrim];
+shared uint   maxVertices, maxPrimitives;
+
+//
+uint packColor(vec3 c) {
+  c = clamp(c, vec3(0), vec3(1));
+  c = c*vec3(31,63,31);
+  c = round(c);
+  uint r = uint(c.r) << 11u;
+  uint g = uint(c.g) << 5u;
+  uint b = uint(c.b);
+  return r | g | b;
+  }
+
+uint packDepthColor(float depth, vec3 color) {
+  uint d = uint(depth*65535);
+  return (d << 16) | packColor(color);
+  }
+
+uint hash(uvec3 gridPos) {
+  return (gridPos.x * 18397) + (gridPos.y * 20483) + (gridPos.z * 29303);
+  }
+
+float edgeFunction(const vec2 a, const vec2 b, const vec2 c) {
+  return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
+  }
+
+bool frustrumTest(const vec4 sphere) {
+  if(sphere.w<0.f)
+    return false;
+  for(int i=0; i<6; ++i) {
+    if(dot(vec4(sphere.xyz,1.0), scene.frustrum[i]) <= -sphere.w) {
+      return false;
+      }
+    }
+  return true;
+  }
+
+bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
+  const vec3  c     = (scene.view * vec4(sphere.xyz, 1)).xyz;
+  const float R     = sphere.w;
+  const float znear = push.znear;
+
+  if(c.z - R < znear) {
+    depthMin = 0;
+    aabb     = vec4(0,0,1,1);
+    return true;
+    }
+
+  float z = c.z - R;
+  depthMin  = scene.project[3][2]/z + scene.project[2][2];
+
+  float P00 = scene.project[0][0];
+  float P11 = scene.project[1][1];
+
+  vec3  cr   = c * R;
+  float czr2 = c.z * c.z - R * R;
+
+  float vx   = sqrt(c.x * c.x + czr2);
+  float minx = (vx * c.x - cr.z) / (vx * c.z + cr.x);
+  float maxx = (vx * c.x + cr.z) / (vx * c.z - cr.x);
+
+  float vy   = sqrt(c.y * c.y + czr2);
+  float miny = (vy * c.y - cr.z) / (vy * c.z + cr.y);
+  float maxy = (vy * c.y + cr.z) / (vy * c.z - cr.y);
+
+  aabb = vec4(minx * P00, miny * P11, maxx * P00, maxy * P11);
+  aabb = aabb*0.5 + vec4(0.5);
+  return true;
+  }
+
+bool projectInstance(const Cluster cluster, out vec4 aabb, out float depthMin) {
+  //TODO
+  return false;
+  }
+
+bool projectCluster(const Cluster cluster, out vec4 aabb, out float depthMin) {
+  if(cluster.instanceId==0xFFFFFFFF)
+    return projectSphere(cluster.sphere, aabb, depthMin);
+  return projectInstance(cluster, aabb, depthMin);
+  }
+
+void fragStore(ivec2 at, vec4 f) {
+  uint c = packDepthColor(1, f.rgb);
+  // imageStore(outputImage, at, f);
+  imageStore(outputImage, at, uvec4(c));
+  }
+
+void pullHiZ() {
+  if(gl_LocalInvocationIndex==0)
+    hiZ = floatBitsToUint(0);
+  barrier();
+
+  ivec2 sz    = imageSize(outputImage);
+  ivec2 begin = ivec2(gl_WorkGroupID.xy * TileSize + gl_LocalInvocationID.xy);
+  ivec2 end   = ivec2(gl_WorkGroupID.xy * TileSize + TileSize);
+  end = min(sz, end);
+
+  for(uint x=begin.x; x<end.x; x+=gl_WorkGroupSize.x)
+    for(uint y=begin.y; y<end.y; y+=gl_WorkGroupSize.y) {
+      float d = texelFetch(gbufferDepth, ivec2(x,y), 0).x;
+      atomicMax(hiZ, floatBitsToUint(d));
+      }
+  }
+
+void clearPage(vec4 f) {
+  fragData = packDepthColor(0, f.rgb);
+
+  ivec2 sz    = imageSize(outputImage);
+  ivec2 begin = ivec2(gl_WorkGroupID.xy * TileSize + gl_LocalInvocationID.xy);
+  ivec2 end   = ivec2(gl_WorkGroupID.xy * TileSize + TileSize);
+  end = min(sz, end);
+
+  for(uint x=begin.x; x<end.x; x+=gl_WorkGroupSize.x)
+    for(uint y=begin.y; y<end.y; y+=gl_WorkGroupSize.y) {
+      fragStore(ivec2(x,y), f);
+      }
+  }
+
+void clearPage() {
+  clearPage(vec4(0));
+  }
+
+void setMeshOutputs(uint v, uint p) {
+  if(gl_LocalInvocationIndex==0) {
+    maxVertices   = v;
+    maxPrimitives = p;
+    }
+  barrier();
+  }
+
+uvec2 pullMeshlet(const uint meshletId, const uint bucketId) {
+  nonuniformEXT uint bId = bucketId;
+
+  const uint iboOffset = meshletId * MaxPrim + MaxPrim - 1;
+  const uint bits      = ibo[bId].indexes[iboOffset];
+  uvec4 prim;
+  prim.x = ((bits >>  0) & 0xFF);
+  prim.y = ((bits >>  8) & 0xFF);
+
+  uint vertCount = MaxVert;
+  uint primCount = MaxPrim;
+  if(prim.x==prim.y) {
+    // last dummy triangle encodes primitive count
+    prim.z = ((bits >> 16) & 0xFF);
+    prim.w = ((bits >> 24) & 0xFF);
+
+    primCount = prim.z;
+    vertCount = prim.w;
+    }
+  return uvec2(vertCount, primCount);
+  }
+
+uvec3 pullPrimitive(const uint meshletId, const uint bucketId, const uint outId) {
+  nonuniformEXT uint bId = bucketId;
+
+  const uint iboOffset = meshletId * MaxPrim + outId;
+  const uint bits      = ibo[bId].indexes[iboOffset];
+  uvec3 prim;
+  prim.x = ((bits >>  0) & 0xFF);
+  prim.y = ((bits >>  8) & 0xFF);
+  prim.z = ((bits >> 16) & 0xFF);
+  return prim;
+  }
+
+Vertex pullVertex(const uint meshletId, const uint bucketId, const uint laneId) {
+  nonuniformEXT uint bId = bucketId;
+  uint vboOffset = meshletId * MaxVert + laneId;
+
+  // static geometry
+  uint id = vboOffset * 9;
+  Vertex ret;
+  ret.pos    = vec4(vbo[bId].vertices[id + 0], vbo[bId].vertices[id + 1], vbo[bId].vertices[id + 2], 1);
+  ret.uv     = vec2(vbo[bId].vertices[id + 6], vbo[bId].vertices[id + 7]);
+  //vec3 normal = vec3(vbo[bId].vertices[id + 3], vbo[bId].vertices[id + 4], vbo[bId].vertices[id + 5]);
+  //uint color  = floatBitsToUint(vbo[bId].vertices[id + 8]);
+  return ret;
+  }
+
+bool mainCluster(const uint i) {
+  if(i>=clusters.length())
+    return false;
+
+  const Cluster cluster = clusters[i];
+  if(cluster.instanceId!=UINT_MAX)
+    return false; // only landscape for now
+  if(cluster.sphere.w<=0.f)
+    return false; // disabled or deleted
+
+  if(!frustrumTest(cluster.sphere))
+    return false;
+
+  vec4  aabb     = vec4(0);
+  float depthMin = 1;
+  if(!projectCluster(cluster, aabb, depthMin))
+    return false;
+
+  if(depthMin > uintBitsToFloat(hiZ))
+    return false;
+
+  aabb = aabb*imageSize(outputImage).xyxy;
+  ivec4 px = ivec4(round(aabb));
+  ivec4 tb = ivec4(gl_WorkGroupID.xy, gl_WorkGroupID.xy+1)*ivec4(TileSize.xyxy);
+  if(px.z < tb.x || tb.z < px.x ||
+     px.w < tb.y || tb.w < px.y)
+    return false;
+  return true;
+  }
+
+void mainMesh(uint meshletId, uint bucketId) {
+  const uvec2 mesh       = pullMeshlet(meshletId, bucketId);
+  const uint  vertCount  = mesh.x;
+  const uint  primCount  = mesh.y;
+
+  // Alloc outputs
+  setMeshOutputs(vertCount, primCount);
+
+  const uint laneID = gl_LocalInvocationIndex;
+  if(laneID<primCount)
+    primitiveIndices[laneID] = pullPrimitive(meshletId, bucketId, laneID);
+  if(laneID<vertCount) {
+    Vertex v = pullVertex(meshletId, bucketId, laneID);
+    v.pos = scene.viewProject * vec4(v.pos.xyz,1);
+    meshVertices[laneID] = v;
+    }
+  }
+
+void perspective() {
+  vec2 size = vec2(imageSize(outputImage));
+
+  for(uint i=gl_LocalInvocationIndex; i<maxVertices; i+=NumThreads) {
+    vec4 pos = meshVertices[i].pos;
+    pos.w = 1.0/pos.w;
+    pos.xyz *= pos.w;
+    pos.xy = ((pos.xy+vec2(1))*0.5)*size;
+    meshVertices[i].pos = pos;
+    }
+  }
+
+bool clipcull(uvec3 tri) {
+  vec4 a = meshVertices[tri.x].pos;
+  vec4 b = meshVertices[tri.y].pos;
+  vec4 c = meshVertices[tri.z].pos;
+
+  //TODO: tile-based clip-cull
+  if(a.x < -a.w && b.x < -b.w && c.x < -c.w)
+    return false;
+  if(a.x > a.w && b.x > b.w && c.x > c.w)
+    return false;
+
+  if(a.y < -a.w && b.y < -b.w && c.y < -c.w)
+    return false;
+  if(a.y > a.w && b.y > b.w && c.y > c.w)
+    return false;
+
+  return true;
+  }
+
+void clipcull() {
+  for(uint i=gl_LocalInvocationIndex; i<maxPrimitives; i+=NumThreads) {
+    uvec3 tri = primitiveIndices[i];
+    if(!clipcull(tri))
+      primitiveIndices[i] = uvec3(0);
+    }
+  }
+
+bool processClusters() {
+  if(clustersIterator>=clusters.length())
+    return false;
+
+  if(gl_LocalInvocationIndex<clusterVisBits.length())
+    clusterVisBits[gl_LocalInvocationIndex] = 0;
+  if(gl_LocalInvocationIndex==0) {
+    clustersCount    = 0;
+    clusterVisBits32 = 0;
+    }
+  barrier();
+
+  if(mainCluster(clustersIterator + gl_LocalInvocationIndex)) {
+    atomicAdd(clustersCount, 1);
+    atomicOr(clusterVisBits[gl_LocalInvocationIndex/32], 1u << (gl_LocalInvocationIndex%32));
+    }
+  barrier();
+
+  if(gl_LocalInvocationIndex<clusterVisBits.length() && clusterVisBits[gl_LocalInvocationIndex]!=0)
+    atomicOr(clusterVisBits32, (1u << gl_LocalInvocationIndex));
+  if(gl_LocalInvocationIndex==0)
+    atomicAdd(clustersIterator, NumThreads);
+  barrier();
+
+  return true;
+  }
+
+bool processMeshlets() {
+  if(clusterVisBits32==0)
+    return false;
+  barrier();
+
+  if(gl_LocalInvocationIndex==0) {
+    const int l32 = findLSB(clusterVisBits32);
+    const int lsb = findLSB(clusterVisBits[l32]);
+
+    clusterVisBits[l32] &= ~(1u << lsb);
+    if(clusterVisBits[l32]==0)
+      clusterVisBits32 &= ~(1u << l32);
+
+    clusterCurrent = l32*32u + lsb + (clustersIterator - NumThreads);
+    }
+  barrier();
+  return true;
+  }
+
+void processRendering(const uint bucket) {
+  ivec2 sz    = imageSize(outputImage);
+  ivec2 begin = ivec2(gl_WorkGroupID.xy * TileSize + gl_LocalInvocationID.xy);
+  ivec2 end   = ivec2(gl_WorkGroupID.xy * TileSize + TileSize);
+  end = min(sz, end);
+
+  for(uint x=begin.x; x<end.x; x+=gl_WorkGroupSize.x)
+    for(uint y=begin.y; y<end.y; y+=gl_WorkGroupSize.y) {
+      const vec2  p  = vec2(x,y) + vec2(0.5);
+      const ivec2 at = ivec2(x,y);
+      fragData = imageLoad(outputImage, at).r;
+
+      for(uint i=0; i<maxPrimitives; i++) {
+        uvec3 tri = primitiveIndices[i];
+        if(tri==uvec3(0))
+          continue;
+        vec3  a  = meshVertices[tri.x].pos.xyz;
+        vec3  b  = meshVertices[tri.y].pos.xyz;
+        vec3  c  = meshVertices[tri.z].pos.xyz;
+
+        float w0 = edgeFunction(b.xy, c.xy, p);
+        float w1 = edgeFunction(c.xy, a.xy, p);
+        float w2 = edgeFunction(a.xy, b.xy, p);
+
+        if(w0 < 0 || w1 < 0 || w2 < 0)
+          continue;
+
+        float area  = edgeFunction(a.xy, b.xy, c.xy);
+        vec3  bc    = vec3(w0,w1,w2)/area;
+        float depth = dot(vec3(a.z,b.z,c.z), bc);
+        if(depth<0 || depth>1)
+          continue;
+        fragData = packDepthColor(depth, vec3(bc));
+        }
+
+      imageStore(outputImage, at, uvec4(fragData));
+      }
+  }
+
+void main() {
+  clustersIterator = 0;
+  barrier();
+
+  pullHiZ();
+  clearPage();
+
+  uint count = 0;
+  while(processClusters()) {
+    while(processMeshlets()) {
+      const uint bucketId = clusters[clusterCurrent].bucketId_commandId>>16;
+      mainMesh(clusterCurrent, bucketId);
+      barrier();
+
+      perspective();
+      barrier();
+
+      clipcull();
+      barrier();
+
+      processRendering(bucketId);
+      barrier();
+      ++count;
+      }
+    //break;
+    }
+
+  //clearPage(unpackUnorm4x8(count));
+  //clearPage(vec4(count));
+  }

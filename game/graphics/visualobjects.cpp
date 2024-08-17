@@ -597,6 +597,10 @@ void VisualObjects::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8
   drawCmd.drawVsm(cmd, fId);
   }
 
+void VisualObjects::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  drawCmd.drawSwr(cmd, fId);
+  }
+
 void VisualObjects::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   drawCmd.drawHiZ(cmd, fId);
   }

@@ -90,6 +90,10 @@ void WorldView::setVirtualShadowMap(const Tempest::StorageImage&  pageData,
   sGlobal.setVirtualShadowMap(pageData, pageList);
   }
 
+void WorldView::setSwRenderingImage(const Tempest::StorageImage& mainView) {
+  sGlobal.setSwRenderingImage(mainView);
+  }
+
 void WorldView::setHiZ(const Tempest::Texture2d& hiZ) {
   sGlobal.setHiZ(hiZ);
   }
@@ -141,6 +145,10 @@ void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId, ui
 
 void WorldView::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   visuals.drawVsm(cmd, fId);
+  }
+
+void WorldView::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  visuals.drawSwr(cmd, fId);
   }
 
 void WorldView::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {

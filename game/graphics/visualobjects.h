@@ -77,6 +77,7 @@ class VisualObjects final {
     void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer);
     void drawVsm        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void drawSwr        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
     void notifyTlas(const Material& m, RtScene::Category cat);
