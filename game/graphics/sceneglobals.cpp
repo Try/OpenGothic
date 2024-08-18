@@ -14,8 +14,7 @@ static uint32_t nextPot(uint32_t x) {
   return x;
   }
 
-SceneGlobals::SceneGlobals()
-  :lights(*this) {
+SceneGlobals::SceneGlobals() {
   auto& device = Resources::device();
 
   Gothic::inst().onSettingsChanged.bind(this,&SceneGlobals::initSettings);

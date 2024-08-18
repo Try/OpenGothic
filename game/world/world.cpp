@@ -281,6 +281,14 @@ MeshObjects::Mesh World::addDecalView(const zenkit::VisualDecal& decal) {
   return view()->addDecalView(decal);
   }
 
+LightGroup::Light World::addLight(const zenkit::VLight& vob) {
+  return view()->addLight(vob);
+  }
+
+LightGroup::Light World::addLight(std::string_view preset) {
+  return view()->addLight(preset);
+  }
+
 void World::updateAnimation(uint64_t dt) {
   wobj.updateAnimation(dt);
   }

@@ -17,14 +17,6 @@ class LightGroup final {
     class Light final {
       public:
         Light() = default;
-        Light(LightGroup& owner, const zenkit::VLight& vob);
-        Light(LightGroup& owner, const zenkit::LightPreset& vob);
-        Light(LightGroup& owner);
-        Light(World& owner, const zenkit::VLight& vob);
-        Light(World& owner, const zenkit::LightPreset& vob);
-        Light(World& owner, std::string_view preset);
-        Light(World& owner);
-
         Light(Light&& other);
         Light& operator = (Light&& other);
         ~Light();
@@ -47,6 +39,10 @@ class LightGroup final {
       friend class LightGroup;
       };
 
+    Light  add(const zenkit::LightPreset& vob);
+    Light  add(const zenkit::VLight& vob);
+    Light  add(std::string_view preset);
+
     void   dbgLights(DbgPainter& p) const;
     void   tick(uint64_t time);
 
@@ -54,14 +50,11 @@ class LightGroup final {
     void   prepareUniforms();
     void   prepareRtUniforms();
 
+    bool   commit(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void   draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
   private:
     using Vertex = Resources::VertexL;
-
-    enum {
-      CHUNK_SIZE=256
-      };
 
     const size_t staticMask = (size_t(1) << (sizeof(size_t)*8-1));
 

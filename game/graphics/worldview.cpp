@@ -10,7 +10,7 @@
 using namespace Tempest;
 
 WorldView::WorldView(const World& world, const PackedMesh& wmesh)
-  : owner(world),gSky(sGlobal,world,wmesh.bbox()),visuals(sGlobal,wmesh.bbox()),
+  : owner(world),gSky(sGlobal,world,wmesh.bbox()),lights(sGlobal),visuals(sGlobal,wmesh.bbox()),
     objGroup(visuals),pfxGroup(*this,sGlobal,visuals),land(visuals,wmesh) {
   pfxGroup.resetTicks();
   }
@@ -56,11 +56,11 @@ void WorldView::preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t
   sGlobal.setUnderWater(camera.isInWater());
 
   pfxGroup.tick(tickCount);
-  sGlobal.lights.tick(tickCount);
+  lights.tick(tickCount);
   sGlobal.setTime(tickCount);
   sGlobal.commitUbo(fId);
 
-  sGlobal.lights.preFrameUpdate(fId);
+  lights  .preFrameUpdate(fId);
   pfxGroup.preFrameUpdate(fId);
   visuals .preFrameUpdate(fId);
   }
@@ -105,7 +105,7 @@ void WorldView::setSceneImages(const Tempest::Texture2d& clr, const Tempest::Tex
   }
 
 void WorldView::dbgLights(DbgPainter& p) const {
-  sGlobal.lights.dbgLights(p);
+  lights.dbgLights(p);
   }
 
 void WorldView::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId) {
@@ -178,7 +178,7 @@ void WorldView::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t f
   }
 
 void WorldView::drawLights(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
-  sGlobal.lights.draw(cmd,fId);
+  lights.draw(cmd, fId);
   }
 
 MeshObjects::Mesh WorldView::addView(std::string_view visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {
@@ -223,6 +223,18 @@ MeshObjects::Mesh WorldView::addDecalView(const zenkit::VisualDecal& vob) {
   return MeshObjects::Mesh();
   }
 
+LightGroup::Light WorldView::addLight(const zenkit::VLight& vob) {
+  auto l = lights.add(vob);
+  l.setTimeOffset(owner.tickCount());
+  return l;
+  }
+
+LightGroup::Light WorldView::addLight(std::string_view preset) {
+  auto l = lights.add(preset);
+  l.setTimeOffset(owner.tickCount());
+  return l;
+  }
+
 void WorldView::dbgClusters(Tempest::Painter& p, Vec2 wsz) {
   visuals.dbgClusters(p, wsz);
   }
@@ -238,7 +250,7 @@ bool WorldView::updateRtScene() {
   if(!visuals.updateRtScene(sGlobal.rtScene))
     return false;
   // assume device-idle, if RT scene was recreated
-  sGlobal.lights.prepareRtUniforms();
+  lights.prepareRtUniforms();
   return true;
   }
 
@@ -246,7 +258,7 @@ void WorldView::prepareUniforms() {
   // wait before update all descriptors, cmd buffers must not be in use
   Resources::device().waitIdle();
   sGlobal.skyLut = &gSky.skyLut();
-  sGlobal.lights.prepareUniforms();
+  lights.prepareUniforms();
   gSky.prepareUniforms();
   pfxGroup.prepareUniforms();
   visuals.prepareUniforms();

@@ -74,6 +74,8 @@ class WorldView {
     MeshObjects::Mesh   addStaticView(const ProtoMesh* visual, bool staticDraw = false);
     MeshObjects::Mesh   addStaticView(std::string_view visual);
     MeshObjects::Mesh   addDecalView (const zenkit::VisualDecal& vob);
+    LightGroup::Light   addLight     (const zenkit::VLight& vob);
+    LightGroup::Light   addLight     (std::string_view preset);
 
     void                dbgClusters(Tempest::Painter& p, Tempest::Vec2 wsz);
 
@@ -85,6 +87,7 @@ class WorldView {
     const World&  owner;
     SceneGlobals  sGlobal;
     Sky           gSky;
+    LightGroup    lights;
     VisualObjects visuals;
 
     MeshObjects   objGroup;

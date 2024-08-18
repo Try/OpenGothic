@@ -45,68 +45,6 @@ LightGroup::Light::Light(LightGroup::Light&& oth):owner(oth.owner), id(oth.id) {
   oth.owner = nullptr;
   }
 
-LightGroup::Light::Light(LightGroup& owner)
-  :owner(&owner) {
-  std::lock_guard<std::recursive_mutex> guard(owner.sync);
-  id = owner.alloc(true);
-  }
-
-LightGroup::Light::Light(LightGroup& owner, const zenkit::LightPreset& vob)
-  :owner(&owner) {
-  LightSource l;
-  l.setPosition(Vec3(0, 0, 0));
-
-  if(!vob.range_animation_scale.empty()) {
-    l.setRange(vob.range_animation_scale,vob.range,vob.range_animation_fps,vob.range_animation_smooth);
-    } else {
-    l.setRange(vob.range);
-    }
-
-  if(!vob.color_animation_list.empty()) {
-    l.setColor(vob.color_animation_list,vob.color_animation_fps,vob.color_animation_smooth);
-    } else {
-    l.setColor(Vec3(vob.color.r / 255.f, vob.color.g / 255.f, vob.color.b / 255.f));
-    }
-
-  // if(vob.light_type==zenkit::LightType::spot)
-  //   Log::d("");
-
-  std::lock_guard<std::recursive_mutex> guard(owner.sync);
-  id = owner.alloc(l.isDynamic());
-  auto& ssbo = owner.get(id);
-  ssbo.pos   = l.position();
-  ssbo.range = l.range();
-  ssbo.color = l.color();
-
-  auto& data = owner.getL(id);
-  data = std::move(l);
-  }
-
-LightGroup::Light::Light(LightGroup& owner, const zenkit::VLight& vob)
-      :Light(owner, static_cast<const zenkit::LightPreset&>(vob)) {
-  setPosition(Vec3(vob.position.x,vob.position.y,vob.position.z));
-  }
-
-LightGroup::Light::Light(World& owner, std::string_view preset)
-  :Light(owner,owner.view()->sGlobal.lights.findPreset(preset)){
-  setTimeOffset(owner.tickCount());
-  }
-
-LightGroup::Light::Light(World& owner, const zenkit::LightPreset& vob)
-  :Light(owner.view()->sGlobal.lights,vob) {
-  setTimeOffset(owner.tickCount());
-  }
-
-LightGroup::Light::Light(World& owner, const zenkit::VLight& vob)
-  :Light(owner.view()->sGlobal.lights,vob){
-  setTimeOffset(owner.tickCount());
-}
-
-LightGroup::Light::Light(World& owner)
-  :Light(owner.view()->sGlobal.lights) {
-  setTimeOffset(owner.tickCount());
-  }
-
 LightGroup::Light& LightGroup::Light::operator =(LightGroup::Light&& other) {
   std::swap(owner,other.owner);
   std::swap(id,other.id);
@@ -222,6 +160,46 @@ LightGroup::LightGroup(const SceneGlobals& scene)
   catch(...) {
     Log::e("unable to load Zen-file: \"LIGHTPRESETS.ZEN\"");
     }
+  }
+
+LightGroup::Light LightGroup::add(const zenkit::LightPreset& vob) {
+  LightSource l;
+  l.setPosition(Vec3(0, 0, 0));
+
+  if(!vob.range_animation_scale.empty()) {
+    l.setRange(vob.range_animation_scale,vob.range,vob.range_animation_fps,vob.range_animation_smooth);
+    } else {
+    l.setRange(vob.range);
+    }
+
+  if(!vob.color_animation_list.empty()) {
+    l.setColor(vob.color_animation_list,vob.color_animation_fps,vob.color_animation_smooth);
+    } else {
+    l.setColor(Vec3(vob.color.r / 255.f, vob.color.g / 255.f, vob.color.b / 255.f));
+    }
+
+  std::lock_guard<std::recursive_mutex> guard(sync);
+  size_t id = alloc(l.isDynamic());
+  auto   lx = Light(*this, id);
+
+  auto& ssbo = get(lx.id);
+  ssbo.pos   = l.position();
+  ssbo.range = l.range();
+  ssbo.color = l.color();
+
+  auto& data = getL(lx.id);
+  data = std::move(l);
+  return lx;
+  }
+
+LightGroup::Light LightGroup::add(const zenkit::VLight& vob) {
+  auto l = add(static_cast<const zenkit::LightPreset&>(vob));
+  l.setPosition(Vec3(vob.position.x,vob.position.y,vob.position.z));
+  return l;
+  }
+
+LightGroup::Light LightGroup::add(std::string_view preset) {
+  return add(findPreset(preset));
   }
 
 void LightGroup::dbgLights(DbgPainter& p) const {
@@ -422,6 +400,13 @@ void LightGroup::prepareRtUniforms() {
         }
       }
     }
+  }
+
+bool LightGroup::commit(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  // cmd.setFramebuffer({});
+  // cmd.setUniforms(Shaders::inst().path, d);
+  // cmd.dispatch(patchBlock.size());
+  return false;
   }
 
 size_t LightGroup::alloc(bool dynamic) {

@@ -43,7 +43,7 @@ void Effect::setupLight(World& owner) {
     }
 
   Vec3 pos3 = {pos.at(3,0),pos.at(3,1),pos.at(3,2)};
-  light = LightGroup::Light(owner,*lightPresetName);
+  light = owner.addLight(*lightPresetName);
   light.setPosition(pos3);
   if(key!=nullptr && key->lightRange>0)
     light.setRange(key->lightRange);

@@ -112,7 +112,6 @@ class SceneGlobals final {
     Tempest::UniformBuffer<UboGlobal> uboGlobalPf[Resources::MaxFramesInFlight][V_Count];
     Tempest::StorageBuffer            uboGlobal[V_Count];
 
-    LightGroup                        lights;
     Frustrum                          frustrum[V_Count];
 
     bool                              zWindEnabled = false;
