@@ -14,33 +14,6 @@
 
 using namespace Tempest;
 
-size_t LightGroup::LightBucket::alloc() {
-  for(auto& i:updated)
-    i = false;
-  if(freeList.size()>0) {
-    auto ret = freeList.back();
-    freeList.pop_back();
-    return ret;
-    }
-  data.emplace_back();
-  light.emplace_back();
-  return data.size()-1;
-  }
-
-void LightGroup::LightBucket::free(size_t id) {
-  for(auto& i:updated)
-    i = false;
-  if(id+1==data.size()) {
-    data.pop_back();
-    light.pop_back();
-    } else {
-    light[id].setRange(0);
-    data[id] = LightSsbo();
-    freeList.push_back(id);
-    }
-  }
-
-
 LightGroup::Light::Light(LightGroup::Light&& oth):owner(oth.owner), id(oth.id) {
   oth.owner = nullptr;
   }
@@ -63,54 +36,58 @@ void LightGroup::Light::setPosition(float x, float y, float z) {
 void LightGroup::Light::setPosition(const Vec3& p) {
   if(owner==nullptr)
     return;
-  auto& ssbo = owner->get(id);
-  ssbo.pos = p;
-
-  auto& data = owner->getL(id);
+  auto& data = owner->lightSourceDesc[id];
   data.setPosition(p);
+
+  auto& ssbo = owner->lightSourceData[id];
+  ssbo.pos = p;
+  owner->markAsDurty(id);
   }
 
 void LightGroup::Light::setRange(float r) {
   if(owner==nullptr)
     return;
-  auto& ssbo = owner->get(id);
-  ssbo.range = r;
-
-  auto& data = owner->getL(id);
+  auto& data = owner->lightSourceDesc[id];
   data.setRange(r);
+
+  auto& ssbo = owner->lightSourceData[id];
+  ssbo.range = r;
+  owner->markAsDurty(id);
   }
 
 void LightGroup::Light::setColor(const Vec3& c) {
   if(owner==nullptr)
     return;
-  auto& ssbo = owner->get(id);
-  ssbo.color = c;
-
-  auto& data = owner->getL(id);
+  auto& data = owner->lightSourceDesc[id];
   data.setColor(c);
+
+  auto& ssbo = owner->lightSourceData[id];
+  ssbo.color = c;
+  owner->markAsDurty(id);
   }
 
 void LightGroup::Light::setColor(const std::vector<Vec3>& c, float fps, bool smooth) {
   if(owner==nullptr)
     return;
-  auto& data = owner->getL(id);
+  auto& data = owner->lightSourceDesc[id];
   data.setColor(c,fps,smooth);
 
-  auto& ssbo = owner->get(id);
+  auto& ssbo = owner->lightSourceData[id];
   ssbo.color = data.currentColor();
+  owner->markAsDurty(id);
   }
 
 void LightGroup::Light::setTimeOffset(uint64_t t) {
   if(owner==nullptr)
     return;
-  auto& data = owner->getL(id);
+  auto& data = owner->lightSourceDesc[id];
   data.setTimeOffset(t);
   }
 
 uint64_t LightGroup::Light::effectPrefferedTime() const {
   if(owner==nullptr)
     return 0;
-  auto& data = owner->getL(id);
+  auto& data = owner->lightSourceDesc[id];
   return data.effectPrefferedTime();
   }
 
@@ -119,14 +96,11 @@ LightGroup::LightGroup(const SceneGlobals& scene)
   auto& device = Resources::device();
   for(auto& u:uboBuf)
     u = device.ubo(Ubo());
-
-  LightBucket* bucket[2] = {&bucketSt, &bucketDyn};
-  for(auto b:bucket) {
-    for(int i=0;i<Resources::MaxFramesInFlight;++i) {
-      auto& u = b->ubo[i];
-      u = device.descriptors(shader().layout());
-      }
+  for(int i=0;i<Resources::MaxFramesInFlight;++i) {
+    auto& u = ubo[i];
+    u = device.descriptors(shader().layout());
     }
+
   static const uint16_t index[] = {
       0, 1, 2, 0, 2, 3,
       4, 6, 5, 4, 7, 6,
@@ -178,17 +152,19 @@ LightGroup::Light LightGroup::add(const zenkit::LightPreset& vob) {
     l.setColor(Vec3(vob.color.r / 255.f, vob.color.g / 255.f, vob.color.b / 255.f));
     }
 
-  std::lock_guard<std::recursive_mutex> guard(sync);
+  std::lock_guard<std::mutex> guard(sync);
   size_t id = alloc(l.isDynamic());
   auto   lx = Light(*this, id);
 
-  auto& ssbo = get(lx.id);
+  auto& ssbo = lightSourceData[lx.id];
   ssbo.pos   = l.position();
   ssbo.range = l.range();
   ssbo.color = l.color();
 
-  auto& data = getL(lx.id);
+  auto& data = lightSourceDesc[lx.id];
   data = std::move(l);
+
+  markAsDurtyNoSync(lx.id);
   return lx;
   }
 
@@ -207,94 +183,113 @@ void LightGroup::dbgLights(DbgPainter& p) const {
   //p.setBrush(Color(1,0,0,0.01f));
   p.setBrush(Color(1,0,0,1.f));
 
-  const LightBucket* bucket[2] = {&bucketSt, &bucketDyn};
-  for(auto b:bucket) {
-    for(auto& i:b->light) {
-      auto pt = i.position();
-      float l = 10;
-      p.drawLine(pt-Vec3(l,0,0),pt+Vec3(l,0,0));
-      p.drawLine(pt-Vec3(0,l,0),pt+Vec3(0,l,0));
-      p.drawLine(pt-Vec3(0,0,l),pt+Vec3(0,0,l));
-      /*
-      float r  = i.range();
-      auto  pt = i.position();
-      Vec3 px[9] = {};
-      px[0] = pt+Vec3(-r,-r,-r);
-      px[1] = pt+Vec3( r,-r,-r);
-      px[2] = pt+Vec3( r, r,-r);
-      px[3] = pt+Vec3(-r, r,-r);
-      px[4] = pt+Vec3(-r,-r, r);
-      px[5] = pt+Vec3( r,-r, r);
-      px[6] = pt+Vec3( r, r, r);
-      px[7] = pt+Vec3(-r, r, r);
-      px[8] = pt;
+  for(auto& i:lightSourceDesc) {
+    auto pt = i.position();
+    float l = 10;
+    p.drawLine(pt-Vec3(l,0,0),pt+Vec3(l,0,0));
+    p.drawLine(pt-Vec3(0,l,0),pt+Vec3(0,l,0));
+    p.drawLine(pt-Vec3(0,0,l),pt+Vec3(0,0,l));
+    /*
+    float r  = i.range();
+    auto  pt = i.position();
+    Vec3 px[9] = {};
+    px[0] = pt+Vec3(-r,-r,-r);
+    px[1] = pt+Vec3( r,-r,-r);
+    px[2] = pt+Vec3( r, r,-r);
+    px[3] = pt+Vec3(-r, r,-r);
+    px[4] = pt+Vec3(-r,-r, r);
+    px[5] = pt+Vec3( r,-r, r);
+    px[6] = pt+Vec3( r, r, r);
+    px[7] = pt+Vec3(-r, r, r);
+    px[8] = pt;
 
-      for(auto& i:px) {
-        p.mvp.project(i.x,i.y,i.z);
-        i.x = (i.x+1.f)*0.5f;
-        i.y = (i.y+1.f)*0.5f;
-        }
-
-      int x = int(px[8].x*float(p.w));
-      int y = int(px[8].y*float(p.h));
-
-      int x0 = x, x1 = x;
-      int y0 = y, y1 = y;
-      float z0=px[8].z, z1=px[8].z;
-
-      for(auto& i:px) {
-        int x = int(i.x*float(p.w));
-        int y = int(i.y*float(p.h));
-        x0 = std::min(x0, x);
-        y0 = std::min(y0, y);
-        x1 = std::max(x1, x);
-        y1 = std::max(y1, y);
-        z0 = std::min(z0, i.z);
-        z1 = std::max(z1, i.z);
-        }
-
-      if(z1<0.f || z0>1.f)
-        continue;
-      if(x1<0 || x0>int(p.w))
-        continue;
-      if(y1<0 || y0>int(p.h))
-        continue;
-
-      cnt++;
-      p.painter.drawRect(x0,y0,x1-x0,y1-y0);
-      p.painter.drawRect(x0,y0,3,3);
-      */
+    for(auto& i:px) {
+      p.mvp.project(i.x,i.y,i.z);
+      i.x = (i.x+1.f)*0.5f;
+      i.y = (i.y+1.f)*0.5f;
       }
+
+    int x = int(px[8].x*float(p.w));
+    int y = int(px[8].y*float(p.h));
+
+    int x0 = x, x1 = x;
+    int y0 = y, y1 = y;
+    float z0=px[8].z, z1=px[8].z;
+
+    for(auto& i:px) {
+      int x = int(i.x*float(p.w));
+      int y = int(i.y*float(p.h));
+      x0 = std::min(x0, x);
+      y0 = std::min(y0, y);
+      x1 = std::max(x1, x);
+      y1 = std::max(y1, y);
+      z0 = std::min(z0, i.z);
+      z1 = std::max(z1, i.z);
+      }
+
+    if(z1<0.f || z0>1.f)
+      continue;
+    if(x1<0 || x0>int(p.w))
+      continue;
+    if(y1<0 || y0>int(p.h))
+      continue;
+
+    cnt++;
+    p.painter.drawRect(x0,y0,x1-x0,y1-y0);
+    p.painter.drawRect(x0,y0,3,3);
+    */
     }
 
   string_frm name("light count = ",cnt);
   p.drawText(10,50,name);
   }
 
+size_t LightGroup::alloc(bool dynamic) {
+  if(freeList.size()>0) {
+    auto ret = freeList.back();
+    freeList.pop_back();
+    if(dynamic)
+      animatedLights.insert(ret);
+    markAsDurtyNoSync(ret);
+    return ret;
+    }
+  lightSourceData.emplace_back();
+  lightSourceDesc.emplace_back();
+  duryBit.resize((lightSourceData.size()+32u-1u)/32u);
+
+  auto ret = lightSourceData.size()-1;
+  if(dynamic)
+    animatedLights.insert(ret);
+  markAsDurtyNoSync(ret);
+  return ret;
+  }
+
 void LightGroup::free(size_t id) {
-  std::lock_guard<std::recursive_mutex> guard(sync);
-  if(id & staticMask)
-    bucketSt .free(id^staticMask); else
-    bucketDyn.free(id);
+  std::lock_guard<std::mutex> guard(sync);
+  markAsDurtyNoSync(id);
+  animatedLights.erase(id);
+  if(id+1==lightSourceData.size()) {
+    lightSourceData.pop_back();
+    lightSourceDesc.pop_back();
+    duryBit.resize((lightSourceData.size()+32u-1u)/32u);
+    } else {
+    lightSourceDesc[id].setRange(0);
+    lightSourceData[id] = LightSsbo();
+    freeList.push_back(id);
+    }
   }
 
-LightGroup::LightSsbo& LightGroup::get(size_t id) {
-  if(id & staticMask) {
-    for(auto& i:bucketSt.updated)
-      i = false;
-    return bucketSt.data[id^staticMask];
-    }
-
-  for(auto& i:bucketDyn.updated)
-    i = false;
-  return bucketDyn.data[id];
+void LightGroup::markAsDurty(size_t id) {
+  std::lock_guard<std::mutex> guard(sync);
+  markAsDurtyNoSync(id);
   }
 
-LightSource& LightGroup::getL(size_t id) {
-  if(id & staticMask) {
-    return bucketSt.light[id^staticMask];
-    }
-  return bucketDyn.light[id];
+void LightGroup::markAsDurtyNoSync(size_t id) {
+  duryBit[id/32] |= (1u << (id%32));
+  }
+
+void LightGroup::resetDurty() {
+  std::memset(duryBit.data(), 0, duryBit.size()*sizeof(duryBit[0]));
   }
 
 RenderPipeline& LightGroup::shader() const {
@@ -315,35 +310,23 @@ const zenkit::LightPreset& LightGroup::findPreset(std::string_view preset) const
   }
 
 void LightGroup::tick(uint64_t time) {
-  for(size_t i=0; i<bucketDyn.light.size(); ++i) {
-    auto& light = bucketDyn.light[i];
+  for(size_t i : animatedLights) {
+    auto& light = lightSourceDesc[i];
     light.update(time);
 
-    auto& ssbo = bucketDyn.data[i];
+    LightSsbo ssbo;
     ssbo.pos   = light.position();
     ssbo.color = light.currentColor();
     ssbo.range = light.currentRange();
+    auto& dst = lightSourceData[i];
+    if(std::memcmp(&dst, &ssbo, sizeof(ssbo))==0)
+      continue;
+    dst = ssbo;
+    markAsDurtyNoSync(i);
     }
-
-  for(auto& updated:bucketDyn.updated)
-    updated = false;
   }
 
 void LightGroup::preFrameUpdate(uint8_t fId) {
-  auto& device = Resources::device();
-  LightBucket* bucket[2] = {&bucketSt, &bucketDyn};
-  for(auto b:bucket) {
-    if(b->updated[fId])
-      continue;
-    b->updated[fId] = true;
-    if(b->ssbo[fId].byteSize()==b->data.size()*sizeof(b->data[0])) {
-      b->ssbo[fId].update(b->data);
-      } else {
-      b->ssbo[fId] = device.ssbo(BufferHeap::Upload,b->data);
-      b->ubo [fId].set(4,b->ssbo[fId]);
-      }
-    }
-
   Frustrum fr;
   fr.make(scene.viewProject(),1,1);
 
@@ -356,66 +339,119 @@ void LightGroup::preFrameUpdate(uint8_t fId) {
   uboBuf[fId].update(&ubo);
   }
 
+void LightGroup::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  std::vector<Path>      patchBlock;
+  std::vector<LightSsbo> patchData;
+
+  if(lightSourceSsbo.byteSize()<lightSourceData.size()*sizeof(LightSsbo)) {
+    auto& device  = Resources::device();
+    Resources::recycle(std::move(lightSourceSsbo));
+    lightSourceSsbo = device.ssbo(lightSourceData);
+    resetDurty();
+    return;
+    }
+
+  for(size_t i=0; i<lightSourceDesc.size(); ++i) {
+    if(i%32==0 && duryBit[i/32]==0) {
+      i+=31;
+      continue;
+      }
+    if((duryBit[i/32] & (1u<<i%32))==0)
+      continue;
+
+    patchData.push_back(lightSourceData[i]);
+
+    Path p;
+    p.dst  = uint32_t(i);
+    p.src  = uint32_t(patchData.size()-1);
+    p.size = 1;
+    if(patchBlock.size()>0) {
+      auto& b = patchBlock.back();
+      const uint32_t maxBlockSize = 16;
+      if(b.dst+b.size==p.dst && b.size<maxBlockSize) {
+        b.size++;
+        continue;
+        }
+      }
+    patchBlock.push_back(p);
+    }
+
+  if(patchBlock.empty())
+    return;
+  resetDurty();
+
+  const size_t headerSize = patchBlock.size()*sizeof(Path);
+  const size_t dataSize   = patchData .size()*sizeof(LightSsbo);
+  for(auto& i:patchBlock) {
+    i.dst  *= uint32_t(sizeof(LightSsbo));
+    i.src  *= uint32_t(sizeof(LightSsbo));
+    i.size *= uint32_t(sizeof(LightSsbo));
+
+    i.src  += uint32_t(headerSize);
+
+    // uint's in shader
+    i.dst  /= sizeof(uint32_t);
+    i.src  /= sizeof(uint32_t);
+    i.size /= sizeof(uint32_t);
+    }
+
+  auto& device  = Resources::device();
+  auto& patch   = patchSsbo[fId];
+  if(patch.byteSize()<headerSize+dataSize) {
+    Resources::recycle(std::move(patch));
+    patch = device.ssbo(Tempest::BufferHeap::Upload, Tempest::Uninitialized, headerSize+dataSize);
+    }
+  patch.update(patchBlock.data(), 0,          headerSize);
+  patch.update(patchData.data(),  headerSize, dataSize);
+
+  auto& d = uboPatch[fId];
+  if(d.isEmpty())
+    d = device.descriptors(Shaders::inst().patch);
+  d.set(0, lightSourceSsbo);
+  d.set(1, patch);
+
+  cmd.setFramebuffer({});
+  cmd.setUniforms(Shaders::inst().patch, d);
+  cmd.dispatch(patchBlock.size());
+  }
+
 void LightGroup::draw(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   static bool light = true;
   if(!light)
     return;
 
+  if(lightSourceSsbo.isEmpty())
+    return;
+
+  // NOTE: need to mprove descriptor's setup
+  ubo[fId].set(4, lightSourceSsbo);
+
   auto& p = shader();
-  if(bucketSt.data.size()>0) {
-    cmd.setUniforms(p,bucketSt.ubo[fId]);
-    cmd.draw(nullptr,ibo, 0,ibo.size(), 0,bucketSt.data.size());
-    }
-  if(bucketDyn.data.size()>0) {
-    cmd.setUniforms(p,bucketDyn.ubo[fId]);
-    cmd.draw(nullptr,ibo, 0,ibo.size(), 0,bucketDyn.data.size());
-    }
+  cmd.setUniforms(p, ubo[fId]);
+  cmd.draw(nullptr,ibo, 0,ibo.size(), 0,lightSourceData.size());
   }
 
 void LightGroup::prepareUniforms() {
-  LightBucket* bucket[2] = {&bucketSt, &bucketDyn};
-  for(auto b:bucket) {
-    for(int i=0;i<Resources::MaxFramesInFlight;++i) {
-      auto& u = b->ubo[i];
-      u.set(0, *scene.gbufDiffuse, Sampler::nearest());
-      u.set(1, *scene.gbufNormals, Sampler::nearest());
-      u.set(2, *scene.zbuffer,     Sampler::nearest());
-      u.set(3, uboBuf[i]);
-      }
+  for(int i=0;i<Resources::MaxFramesInFlight;++i) {
+    auto& u = ubo[i];
+    u.set(0, *scene.gbufDiffuse, Sampler::nearest());
+    u.set(1, *scene.gbufNormals, Sampler::nearest());
+    u.set(2, *scene.zbuffer,     Sampler::nearest());
+    u.set(3, uboBuf[i]);
+    //u.set(4, lightSourceSsbo);
     }
   }
 
 void LightGroup::prepareRtUniforms() {
-  LightBucket* bucket[2] = {&bucketSt, &bucketDyn};
-  for(auto b:bucket) {
-    for(int i=0;i<Resources::MaxFramesInFlight;++i) {
-      auto& u = b->ubo[i];
-      u.set(6,scene.rtScene.tlas);
-      if(Resources::device().properties().descriptors.nonUniformIndexing) {
-        u.set(7, Sampler::bilinear());
-        u.set(8, scene.rtScene.tex);
-        u.set(9, scene.rtScene.vbo);
-        u.set(10,scene.rtScene.ibo);
-        u.set(11,scene.rtScene.rtDesc);
-        }
+  for(int i=0;i<Resources::MaxFramesInFlight;++i) {
+    auto& u = ubo[i];
+    u.set(6,scene.rtScene.tlas);
+    if(Resources::device().properties().descriptors.nonUniformIndexing) {
+      u.set(7, Sampler::bilinear());
+      u.set(8, scene.rtScene.tex);
+      u.set(9, scene.rtScene.vbo);
+      u.set(10,scene.rtScene.ibo);
+      u.set(11,scene.rtScene.rtDesc);
       }
     }
-  }
-
-bool LightGroup::commit(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  // cmd.setFramebuffer({});
-  // cmd.setUniforms(Shaders::inst().path, d);
-  // cmd.dispatch(patchBlock.size());
-  return false;
-  }
-
-size_t LightGroup::alloc(bool dynamic) {
-  size_t ret = 0;
-  if(dynamic) {
-    ret = bucketDyn.alloc();
-    } else {
-    ret = bucketSt .alloc();
-    ret |= staticMask;
-    }
-  return ret;
   }

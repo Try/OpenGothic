@@ -202,7 +202,7 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   //path.update(patchCpu);
 
   cmd.setFramebuffer({});
-  cmd.setUniforms(Shaders::inst().path, d);
+  cmd.setUniforms(Shaders::inst().patch, d);
   cmd.dispatch(patchBlock.size());
   return false;
   }
@@ -330,7 +330,7 @@ void InstanceStorage::prepareUniforms() {
     if(dataGpu.isEmpty() || path.isEmpty())
       continue;
 
-    d = device.descriptors(Shaders::inst().path);
+    d = device.descriptors(Shaders::inst().patch);
     d.set(0, dataGpu);
     d.set(1, path);
     }

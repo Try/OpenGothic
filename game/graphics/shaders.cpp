@@ -25,12 +25,12 @@ Shaders::Shaders() {
   copyImg = computeShader("copy_img.comp.sprv");
   copy    = postEffect("copy");
 
-  path    = computeShader("path.comp.sprv");
+  patch   = computeShader("patch.comp.sprv");
 
   stash   = postEffect("stash");
 
   clusterInit      = computeShader("cluster_init.comp.sprv");
-  clusterPath      = computeShader("cluster_patch.comp.sprv");
+  clusterPatch     = computeShader("cluster_patch.comp.sprv");
   clusterTask      = computeShader("cluster_task.comp.sprv");
   clusterTaskHiZ   = computeShader("cluster_task_hiz.comp.sprv");
   clusterTaskHiZCr = computeShader("cluster_task_hiz_cr.comp.sprv");

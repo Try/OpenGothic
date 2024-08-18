@@ -158,7 +158,7 @@ void DrawClusters::patchClusters(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   auto& device = Resources::device();
   auto& p = this->patch[fId];
   if(p.desc.isEmpty())
-    p.desc = device.descriptors(Shaders::inst().clusterPath);
+    p.desc = device.descriptors(Shaders::inst().clusterPatch);
 
   p.desc.set(0, clustersGpu);
   if(header.size()*sizeof(header[0]) < p.indices.byteSize()) {
@@ -177,7 +177,7 @@ void DrawClusters::patchClusters(Encoder<CommandBuffer>& cmd, uint8_t fId) {
 
   const uint32_t count = uint32_t(header.size());
   cmd.setFramebuffer({});
-  cmd.setUniforms(Shaders::inst().clusterPath, p.desc, &count, sizeof(count));
+  cmd.setUniforms(Shaders::inst().clusterPatch, p.desc, &count, sizeof(count));
   cmd.dispatchThreads(count);
   }
 

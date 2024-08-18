@@ -65,10 +65,6 @@ class InstanceStorage {
       uint32_t size;
       };
 
-    struct DeleteLater {
-      std::vector<Tempest::StorageBuffer> ssbo;
-      };
-
     std::vector<Range>      rgn;
     std::vector<uint32_t>   durty;
     size_t                  blockCnt = 0;

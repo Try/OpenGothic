@@ -28,7 +28,7 @@ class Shaders {
 
     Tempest::ComputePipeline copyBuf;
     Tempest::ComputePipeline copyImg;
-    Tempest::ComputePipeline path;
+    Tempest::ComputePipeline patch;
     Tempest::RenderPipeline  copy;
     Tempest::RenderPipeline  stash;
 
@@ -63,7 +63,7 @@ class Shaders {
     Tempest::RenderPipeline  hiZReproj;
 
     // Cluster
-    Tempest::ComputePipeline clusterInit, clusterPath;
+    Tempest::ComputePipeline clusterInit, clusterPatch;
     Tempest::ComputePipeline clusterTask, clusterTaskHiZ, clusterTaskHiZCr;
 
     // GI

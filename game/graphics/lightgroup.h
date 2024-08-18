@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Tempest/CommandBuffer>
+#include <unordered_set>
 #include <zenkit/vobs/Light.hh>
 
 #include "lightsource.h"
@@ -47,16 +48,22 @@ class LightGroup final {
     void   tick(uint64_t time);
 
     void   preFrameUpdate(uint8_t fId);
+    void   prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
     void   prepareUniforms();
     void   prepareRtUniforms();
 
-    bool   commit(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void   draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
   private:
     using Vertex = Resources::VertexL;
 
     const size_t staticMask = (size_t(1) << (sizeof(size_t)*8-1));
+
+    struct Path {
+      uint32_t dst;
+      uint32_t src;
+      uint32_t size;
+      };
 
     struct Ubo {
       Tempest::Matrix4x4 mvp;
@@ -72,24 +79,12 @@ class LightGroup final {
       float         pading = 0;
       };
 
-    struct LightBucket {
-      std::vector<LightSource> light;
-      std::vector<LightSsbo>   data;
-      Tempest::StorageBuffer   ssbo[Resources::MaxFramesInFlight];
-      bool                     updated[Resources::MaxFramesInFlight] = {};
-
-      std::vector<size_t>      freeList;
-      Tempest::DescriptorSet   ubo[Resources::MaxFramesInFlight];
-
-      size_t                   alloc();
-      void                     free(size_t id);
-      };
-
     size_t                     alloc(bool dynamic);
     void                       free(size_t id);
 
-    LightSsbo&                 get (size_t id);
-    LightSource&               getL(size_t id);
+    void                       markAsDurty(size_t id);
+    void                       markAsDurtyNoSync(size_t id);
+    void                       resetDurty();
 
     Tempest::RenderPipeline&   shader() const;
 
@@ -98,11 +93,19 @@ class LightGroup final {
     const SceneGlobals&                  scene;
     std::vector<zenkit::LightPreset>     presets;
 
+    std::mutex                           sync;
+    std::vector<size_t>                  freeList;
+    std::vector<LightSource>             lightSourceDesc;
+    std::vector<LightSsbo>               lightSourceData;
+    std::unordered_set<size_t>           animatedLights;
+    std::vector<uint32_t>                duryBit;
+    Tempest::StorageBuffer               lightSourceSsbo;
+    Tempest::DescriptorSet               ubo[Resources::MaxFramesInFlight];
+
+    Tempest::StorageBuffer               patchSsbo[Resources::MaxFramesInFlight];
+    Tempest::DescriptorSet               uboPatch [Resources::MaxFramesInFlight];
+
     Tempest::UniformBuffer<Ubo>          uboBuf[Resources::MaxFramesInFlight];
-
     Tempest::IndexBuffer<uint16_t>       ibo;
-
-    std::recursive_mutex                 sync;
-    LightBucket                          bucketSt, bucketDyn;
   };
 
