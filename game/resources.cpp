@@ -349,9 +349,9 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
         if(t!=nullptr)
           return t;
         } else {
-        auto rgba = tex.as_rgba8(0);
 
         try {
+          auto rgba = tex.as_rgba8(0);
           Tempest::Pixmap    pm(tex.width(), tex.height(), TextureFormat::RGBA8);
           std::memcpy(pm.data(), rgba.data(), rgba.size());
 
@@ -360,7 +360,11 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
           cache[std::move(name)] = std::move(t);
           return ret;
           }
+        catch (std::exception& e) {
+              Log::e("unable to convert texture: \"", std::string(cname), "\", reason: ", e.what());
+          }
         catch (...) {
+              Log::e("unable to convert texture: \"", std::string(cname), "\", unknown error");
           }
         }
       }
