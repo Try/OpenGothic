@@ -621,13 +621,13 @@ void Inventory::switchActiveWeaponFist() {
     active=&melee;
   }
 
-void Inventory::switchActiveWeapon(Npc& owner,uint8_t slot) {
-  if(slot==Item::NSLOT){
-    if(active!=nullptr && *active!=nullptr)
-      applyWeaponStats(owner,**active,-1);
-    active=nullptr;
+void Inventory::switchActiveWeapon(Npc& owner, uint8_t slot) {
+  if(active!=nullptr && *active!=nullptr)
+    applyWeaponStats(owner,**active,-1);
+  active=nullptr;
+
+  if(slot==Item::NSLOT)
     return;
-    }
 
   Item** next=nullptr;
   if(slot==1)
@@ -981,6 +981,11 @@ void Inventory::applyWeaponStats(Npc& owner, const Item &weapon, int sgn) {
     if(weapon.handle().damage_type & (1<<i)) {
       hnpc.damage[i] += sgn*weapon.handle().damage_total;
       }
+    }
+
+  // assert inconsistent plus/minus
+  for(size_t i=0; i<zenkit::DamageType::NUM; ++i) {
+    assert(hnpc.damage[i]>=0);
     }
   }
 
