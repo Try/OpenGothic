@@ -57,8 +57,6 @@ class LightGroup final {
   private:
     using Vertex = Resources::VertexL;
 
-    const size_t staticMask = (size_t(1) << (sizeof(size_t)*8-1));
-
     struct Path {
       uint32_t dst;
       uint32_t src;
