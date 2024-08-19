@@ -116,7 +116,7 @@ struct Npc::TransformBack {
     auto level    = self.hnpc->level;
     std::memcpy(aivar,self.hnpc->aivar,sizeof(aivar));
 
-    self.hnpc   = hnpc;
+    self.hnpc           = hnpc;
     self.hnpc->exp      = exp;
     self.hnpc->exp_next = exp_next;
     self.hnpc->lp       = lp;

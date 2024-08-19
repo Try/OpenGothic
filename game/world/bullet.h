@@ -5,7 +5,6 @@
 #include "physics/dynamicworld.h"
 
 #include "game/damagecalculator.h"
-#include "graphics/pfx/pfxobjects.h"
 #include "graphics/meshobjects.h"
 #include "graphics/effect.h"
 
