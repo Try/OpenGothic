@@ -36,6 +36,7 @@ class IniFile final {
     void  implLine(std::istream &fin);
     char  implSpace(std::istream &fin);
     auto  implName (std::istream &fin) -> std::string;
+    auto  implValue (std::istream &fin) -> std::string;
 
     void  addSection(std::string&& name);
     void  addValue  (std::string&& name, std::string&& val);
