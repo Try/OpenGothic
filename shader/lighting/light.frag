@@ -4,22 +4,22 @@
 
 #include "lighting/rt/rt_common.glsl"
 #include "lighting/tonemapping.glsl"
+#include "scene.glsl"
 #include "common.glsl"
 
 layout(early_fragment_tests) in;
 
 layout(location = 0) out vec4 outColor;
 
-layout(binding  = 0) uniform sampler2D  gbufDiffuse;
-layout(binding  = 1) uniform usampler2D gbufNormal;
-layout(binding  = 2) uniform sampler2D  depth;
-
-layout(binding  = 3, std140) uniform Ubo {
-  mat4  mvp;
-  mat4  mvpLwcInv;
-  vec4  fr[6];
+layout(push_constant, std140) uniform Pbo {
   vec3  origin; //lwc
-  } ubo;
+  } push;
+layout(binding = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding  = 1) uniform sampler2D  gbufDiffuse;
+layout(binding  = 2) uniform usampler2D gbufNormal;
+layout(binding  = 3) uniform sampler2D  depth;
 
 layout(location = 0) in vec4 cenPosition;
 layout(location = 1) in vec3 color;
@@ -53,9 +53,9 @@ void main(void) {
   vec2  scr = (gl_FragCoord.xy/vec2(textureSize(depth,0)))*2.0-1.0;
   float z   = texelFetch(depth, ivec2(gl_FragCoord.xy), 0).x; //lwc?
 
-  vec4 pos = ubo.mvpLwcInv*vec4(scr.x,scr.y,z,1.0);
+  vec4 pos = scene.viewProjectLwcInv*vec4(scr.x,scr.y,z,1.0);
   pos.xyz/=pos.w;
-  pos.xyz += ubo.origin;
+  pos.xyz += push.origin;
 
   vec3 ldir = (pos.xyz-cenPosition.xyz);
   //float qDist = dot(ldir,ldir)/(cenPosition.w*cenPosition.w);

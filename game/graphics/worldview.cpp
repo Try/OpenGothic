@@ -60,7 +60,6 @@ void WorldView::preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t
   sGlobal.setTime(tickCount);
   sGlobal.commitUbo(fId);
 
-  lights  .preFrameUpdate(fId);
   pfxGroup.preFrameUpdate(fId);
   visuals .preFrameUpdate(fId);
   }

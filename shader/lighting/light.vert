@@ -1,5 +1,9 @@
 #version 450
+
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_GOOGLE_include_directive    : enable
+
+#include "scene.glsl"
 
 out gl_PerVertex {
   vec4 gl_Position;
@@ -11,16 +15,17 @@ struct LightSource {
   vec3  color;
   };
 
-layout(binding = 3, std140) uniform Ubo {
-  mat4  mvp;
-  mat4  mvpLwcInv;
-  vec4  fr[6];
+layout(push_constant, std140) uniform Pbo {
   vec3  origin; //lwc
-  } ubo;
+  } push;
+
+layout(binding = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
 
 layout(binding = 4, std140) readonly buffer SsboLighting {
-  LightSource data[];
-  } lights;
+  LightSource lights[];
+  };
 
 layout(location = 0) out vec4 cenPosition;
 layout(location = 1) out vec3 color;
@@ -39,14 +44,14 @@ vec3 v[] = {
 
 bool testFrustrum(in vec3 at, in float R){
   for(int i=0; i<6; i++) {
-    if(dot(ubo.fr[i],vec4(at,1.0))<-R)
+    if(dot(scene.frustrum[i],vec4(at,1.0))<-R)
       return false;
     }
   return true;
   }
 
 void main(void) {
-  LightSource light = lights.data[gl_InstanceIndex];
+  LightSource light = lights[gl_InstanceIndex];
 
   if(!testFrustrum(light.pos,light.range)) {
     // skip invisible lights, make sure that they don't turn into FQS
@@ -59,7 +64,7 @@ void main(void) {
   int neg = 0;
   for(int i=0;i<8;++i) {
     vec3 at  = light.pos + v[i]*light.range;
-    vec4 pos = ubo.mvp*vec4(at,1.0);
+    vec4 pos = scene.viewProject*vec4(at,1.0);
 
     if(pos.z<0.0)
       neg++;
@@ -76,7 +81,7 @@ void main(void) {
       pos = vec4(uintBitsToFloat(0x7fc00000)); else
       pos = vec4(fsq.xy,0.0,1.0);
     } else {
-    pos = ubo.mvp*vec4(light.pos+inPos*light.range, 1.0);
+    pos = scene.viewProject*vec4(light.pos+inPos*light.range, 1.0);
     }
 
   //const vec3 origin = vec3(38983.9336, 4080.52637, -1888.59839);

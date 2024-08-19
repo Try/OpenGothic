@@ -94,11 +94,8 @@ uint64_t LightGroup::Light::effectPrefferedTime() const {
 LightGroup::LightGroup(const SceneGlobals& scene)
   :scene(scene) {
   auto& device = Resources::device();
-  for(auto& u:uboBuf)
-    u = device.ubo(Ubo());
-  for(int i=0;i<Resources::MaxFramesInFlight;++i) {
-    auto& u = ubo[i];
-    u = device.descriptors(shader().layout());
+  for(int i=0; i<Resources::MaxFramesInFlight; ++i) {
+    descPatch[i] = device.descriptors(Shaders::inst().patch);
     }
 
   static const uint16_t index[] = {
@@ -326,19 +323,6 @@ void LightGroup::tick(uint64_t time) {
     }
   }
 
-void LightGroup::preFrameUpdate(uint8_t fId) {
-  Frustrum fr;
-  fr.make(scene.viewProject(),1,1);
-
-  Ubo ubo;
-  ubo.mvp       = scene.viewProject();
-  ubo.mvpLwcInv = scene.viewProjectLwcInv();
-  ubo.origin    = scene.originLwc;
-  std::memcpy(ubo.fr,fr.f,sizeof(ubo.fr));
-
-  uboBuf[fId].update(&ubo);
-  }
-
 void LightGroup::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   std::vector<Path>      patchBlock;
   std::vector<LightSsbo> patchData;
@@ -348,6 +332,7 @@ void LightGroup::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd, u
     Resources::recycle(std::move(lightSourceSsbo));
     lightSourceSsbo = device.ssbo(lightSourceData);
     resetDurty();
+    allocDescriptorSet();
     return;
     }
 
@@ -404,9 +389,7 @@ void LightGroup::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd, u
   patch.update(patchBlock.data(), 0,          headerSize);
   patch.update(patchData.data(),  headerSize, dataSize);
 
-  auto& d = uboPatch[fId];
-  if(d.isEmpty())
-    d = device.descriptors(Shaders::inst().patch);
+  auto& d = descPatch[fId];
   d.set(0, lightSourceSsbo);
   d.set(1, patch);
 
@@ -423,35 +406,44 @@ void LightGroup::draw(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   if(lightSourceSsbo.isEmpty())
     return;
 
-  // NOTE: need to mprove descriptor's setup
-  ubo[fId].set(4, lightSourceSsbo);
-
   auto& p = shader();
-  cmd.setUniforms(p, ubo[fId]);
+  cmd.setUniforms(p, desc, &scene.originLwc, sizeof(scene.originLwc));
   cmd.draw(nullptr,ibo, 0,ibo.size(), 0,lightSourceData.size());
   }
 
+void LightGroup::allocDescriptorSet() {
+  if(lightSourceSsbo.isEmpty())
+    return;
+
+  Resources::recycle(std::move(desc));
+
+  auto& device  = Resources::device();
+  desc = device.descriptors(shader().layout());
+  prepareUniforms();
+  prepareRtUniforms();
+  }
+
 void LightGroup::prepareUniforms() {
-  for(int i=0;i<Resources::MaxFramesInFlight;++i) {
-    auto& u = ubo[i];
-    u.set(0, *scene.gbufDiffuse, Sampler::nearest());
-    u.set(1, *scene.gbufNormals, Sampler::nearest());
-    u.set(2, *scene.zbuffer,     Sampler::nearest());
-    u.set(3, uboBuf[i]);
-    //u.set(4, lightSourceSsbo);
-    }
+  if(desc.isEmpty())
+    return;
+  desc.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
+  desc.set(1, *scene.gbufDiffuse, Sampler::nearest());
+  desc.set(2, *scene.gbufNormals, Sampler::nearest());
+  desc.set(3, *scene.zbuffer,     Sampler::nearest());
+  desc.set(4, lightSourceSsbo);
   }
 
 void LightGroup::prepareRtUniforms() {
-  for(int i=0;i<Resources::MaxFramesInFlight;++i) {
-    auto& u = ubo[i];
-    u.set(6,scene.rtScene.tlas);
-    if(Resources::device().properties().descriptors.nonUniformIndexing) {
-      u.set(7, Sampler::bilinear());
-      u.set(8, scene.rtScene.tex);
-      u.set(9, scene.rtScene.vbo);
-      u.set(10,scene.rtScene.ibo);
-      u.set(11,scene.rtScene.rtDesc);
-      }
+  if(!Gothic::inst().options().doRayQuery)
+    return;
+  if(desc.isEmpty())
+    return;
+  desc.set(6,scene.rtScene.tlas);
+  if(Resources::device().properties().descriptors.nonUniformIndexing) {
+    desc.set(7, Sampler::bilinear());
+    desc.set(8, scene.rtScene.tex);
+    desc.set(9, scene.rtScene.vbo);
+    desc.set(10,scene.rtScene.ibo);
+    desc.set(11,scene.rtScene.rtDesc);
     }
   }

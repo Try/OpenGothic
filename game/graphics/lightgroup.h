@@ -57,19 +57,10 @@ class LightGroup final {
   private:
     using Vertex = Resources::VertexL;
 
-    const size_t staticMask = (size_t(1) << (sizeof(size_t)*8-1));
-
     struct Path {
       uint32_t dst;
       uint32_t src;
       uint32_t size;
-      };
-
-    struct Ubo {
-      Tempest::Matrix4x4 mvp;
-      Tempest::Matrix4x4 mvpLwcInv;
-      float              fr[6][4] = {};
-      Tempest::Vec3      origin;
       };
 
     struct LightSsbo {
@@ -87,25 +78,25 @@ class LightGroup final {
     void                       resetDurty();
 
     Tempest::RenderPipeline&   shader() const;
+    void                       allocDescriptorSet();
 
     const zenkit::LightPreset& findPreset(std::string_view preset) const;
 
-    const SceneGlobals&                  scene;
-    std::vector<zenkit::LightPreset>     presets;
+    const SceneGlobals&              scene;
+    std::vector<zenkit::LightPreset> presets;
 
-    std::mutex                           sync;
-    std::vector<size_t>                  freeList;
-    std::vector<LightSource>             lightSourceDesc;
-    std::vector<LightSsbo>               lightSourceData;
-    std::unordered_set<size_t>           animatedLights;
-    std::vector<uint32_t>                duryBit;
-    Tempest::StorageBuffer               lightSourceSsbo;
-    Tempest::DescriptorSet               ubo[Resources::MaxFramesInFlight];
+    std::mutex                       sync;
+    std::vector<size_t>              freeList;
+    std::vector<LightSource>         lightSourceDesc;
+    std::vector<LightSsbo>           lightSourceData;
+    std::unordered_set<size_t>       animatedLights;
+    std::vector<uint32_t>            duryBit;
+    Tempest::StorageBuffer           lightSourceSsbo;
+    Tempest::DescriptorSet           desc;
 
-    Tempest::StorageBuffer               patchSsbo[Resources::MaxFramesInFlight];
-    Tempest::DescriptorSet               uboPatch [Resources::MaxFramesInFlight];
+    Tempest::StorageBuffer           patchSsbo[Resources::MaxFramesInFlight];
+    Tempest::DescriptorSet           descPatch[Resources::MaxFramesInFlight];
 
-    Tempest::UniformBuffer<Ubo>          uboBuf[Resources::MaxFramesInFlight];
-    Tempest::IndexBuffer<uint16_t>       ibo;
+    Tempest::IndexBuffer<uint16_t>   ibo;
   };
 
