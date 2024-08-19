@@ -149,7 +149,7 @@ void IniFile::implLine(std::istream &s) {
     s.get(ch);
     while(ch!='=' && ch!='\n' && ch!='\r' && ch!='\0' && !s.eof())
       s.get(ch);
-    std::string value = implName(s);
+    std::string value = implValue(s);
     addValue(std::move(name),std::move(value));
     }
 
@@ -177,6 +177,31 @@ std::string IniFile::implName(std::istream &s) {
     name.push_back(ch);
     s.get(ch);
     ch=char(s.peek());
+    }
+  return name;
+  }
+
+std::string IniFile::implValue(std::istream &s) {
+  std::string name;
+  char ch=char(s.peek());
+  while((ch==' ' || ch=='\t') && !s.eof()) {
+    s.get(ch);
+    ch=char(s.peek());
+    }
+  while(ch!='\n' && ch!='\r' && ch!=';' && !s.eof()){
+    name.push_back(ch);
+    s.get(ch);
+    ch=char(s.peek());
+    if(ch==' ' || ch=='\t') {
+      name.push_back(' ');
+      do {
+        s.get(ch);
+        ch=char(s.peek());
+        } while((ch==' ' || ch=='\t') && !s.eof());
+      }
+    }
+  if(!name.empty() && name.back()==' ') {
+    name.pop_back();
     }
   return name;
   }
