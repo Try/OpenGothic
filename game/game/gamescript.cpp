@@ -3188,7 +3188,6 @@ void GameScript::snd_play3d(std::shared_ptr<zenkit::INpc> npcRef, std::string_vi
     c = char(std::toupper(c));
   auto sfx = ::Sound(*owner.world(),::Sound::T_3D,file,npc->position(),0.f,false);
   sfx.play();
-  owner.world()->sendImmediatePerc(*npc,*npc,*npc,PERC_ASSESSQUIETSOUND);
   }
 
 void GameScript::exitsession() {
