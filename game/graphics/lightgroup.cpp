@@ -436,7 +436,7 @@ void LightGroup::prepareUniforms() {
 void LightGroup::prepareRtUniforms() {
   if(!Gothic::inst().options().doRayQuery)
     return;
-  if(desc.isEmpty())
+  if(desc.isEmpty() || scene.rtScene.tlas.isEmpty())
     return;
   desc.set(6,scene.rtScene.tlas);
   if(Resources::device().properties().descriptors.nonUniformIndexing) {
