@@ -44,8 +44,9 @@ class LightGroup final {
     Light  add(const zenkit::VLight& vob);
     Light  add(std::string_view preset);
 
-    void   dbgLights(DbgPainter& p) const;
     void   tick(uint64_t time);
+    bool   updateLights();
+    auto&  lightsSsbo() const { return lightSourceSsbo; }
 
     void   preFrameUpdate(uint8_t fId);
     void   prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
@@ -53,6 +54,8 @@ class LightGroup final {
     void   prepareRtUniforms();
 
     void   draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+
+    void   dbgLights(DbgPainter& p) const;
 
   private:
     using Vertex = Resources::VertexL;

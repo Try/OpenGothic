@@ -211,6 +211,9 @@ Shaders::Shaders() {
       case 2:
         swRendering = computeShader("sw_rendering_tbr.comp.sprv");
         break;
+      case 3:
+        swRendering = computeShader("sw_light.comp.sprv");
+        break;
       }
     swRenderingDbg = postEffect("copy", "vbuffer_blit", RenderState::ZTestMode::Always);
     }

@@ -57,13 +57,14 @@ layout(binding = 0, r32ui) uniform uimage2D outputImage;
 layout(binding = 1, std140) uniform UboScene {
   SceneDesc scene;
   };
-layout(binding = 2)         uniform  texture2D gbufferDepth;
+layout(binding = 2)         uniform usampler2D gbufNormal;
+layout(binding = 3)         uniform  texture2D gbufferDepth;
 
-layout(binding = 3, std430) readonly buffer Cbo { Cluster clusters[]; };
-layout(binding = 4, std430) readonly buffer Ibo { uint    indexes []; } ibo[];
-layout(binding = 5, std430) readonly buffer Vbo { float   vertices[]; } vbo[];
-layout(binding = 6)         uniform  texture2D textureMain[];
-layout(binding = 7)         uniform  sampler   samplerMain;
+layout(binding = 4, std430) readonly buffer Cbo { Cluster clusters[]; };
+layout(binding = 5, std430) readonly buffer Ibo { uint    indexes []; } ibo[];
+layout(binding = 6, std430) readonly buffer Vbo { float   vertices[]; } vbo[];
+layout(binding = 7)         uniform  texture2D textureMain[];
+layout(binding = 8)         uniform  sampler   samplerMain;
 
 //
 shared Vertex meshVertices[MaxVert];

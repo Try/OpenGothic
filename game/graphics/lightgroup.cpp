@@ -323,18 +323,22 @@ void LightGroup::tick(uint64_t time) {
     }
   }
 
-void LightGroup::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  std::vector<Path>      patchBlock;
-  std::vector<LightSsbo> patchData;
+bool LightGroup::updateLights() {
+  auto& device = Resources::device();
 
   if(lightSourceSsbo.byteSize()<lightSourceData.size()*sizeof(LightSsbo)) {
-    auto& device  = Resources::device();
     Resources::recycle(std::move(lightSourceSsbo));
     lightSourceSsbo = device.ssbo(lightSourceData);
     resetDurty();
     allocDescriptorSet();
-    return;
+    return true;
     }
+  return false;
+  }
+
+void LightGroup::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  std::vector<Path>      patchBlock;
+  std::vector<LightSsbo> patchData;
 
   for(size_t i=0; i<lightSourceDesc.size(); ++i) {
     if(i%32==0 && duryBit[i/32]==0) {

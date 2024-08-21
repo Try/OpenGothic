@@ -595,7 +595,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   if(wview->updateRtScene())
     prepareRtUniforms();
 
-  wview->updateLight();
+  wview->updateLights();
   updateCamera(*camera);
 
   static bool updFr = true;

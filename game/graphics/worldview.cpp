@@ -239,9 +239,13 @@ void WorldView::dbgClusters(Tempest::Painter& p, Vec2 wsz) {
   visuals.dbgClusters(p, wsz);
   }
 
-void WorldView::updateLight() {
+bool WorldView::updateLights() {
   const int64_t now = owner.time().timeInDay().toInt();
   gSky.updateLight(now);
+  if(!lights.updateLights())
+    return false;
+  visuals.prepareLigtsUniforms();
+  return true;
   }
 
 bool WorldView::updateRtScene() {
@@ -258,6 +262,7 @@ void WorldView::prepareUniforms() {
   // wait before update all descriptors, cmd buffers must not be in use
   Resources::device().waitIdle();
   sGlobal.skyLut = &gSky.skyLut();
+  sGlobal.lights = &lights.lightsSsbo();
   lights.prepareUniforms();
   gSky.prepareUniforms();
   pfxGroup.prepareUniforms();

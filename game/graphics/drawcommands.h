@@ -57,6 +57,8 @@ class DrawCommands {
     void     addClusters(uint16_t cmdId, uint32_t meshletCount);
 
     void     prepareUniforms();
+    void     prepareLigtsUniforms();
+
     void     updateUniforms(uint8_t fId);
     void     updateTasksUniforms();
 

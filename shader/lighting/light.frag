@@ -51,7 +51,7 @@ bool isShadow(vec3 rayOrigin, vec3 direction) {
 
 void main(void) {
   vec2  scr = (gl_FragCoord.xy/vec2(textureSize(depth,0)))*2.0-1.0;
-  float z   = texelFetch(depth, ivec2(gl_FragCoord.xy), 0).x; //lwc?
+  float z   = texelFetch(depth, ivec2(gl_FragCoord.xy), 0).x;
 
   vec4 pos = scene.viewProjectLwcInv*vec4(scr.x,scr.y,z,1.0);
   pos.xyz/=pos.w;

@@ -66,6 +66,7 @@ class VisualObjects final {
     auto                instanceSsbo() const -> const Tempest::StorageBuffer&;
 
     void prepareUniforms();
+    void prepareLigtsUniforms();
     void preFrameUpdate (uint8_t fId);
     void prepareGlobals (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void postFrameupdate();
@@ -80,7 +81,6 @@ class VisualObjects final {
     void drawSwr        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
-    void notifyTlas(const Material& m, RtScene::Category cat);
     bool updateRtScene(RtScene& out);
 
     void dbgClusters(Tempest::Painter& p, Tempest::Vec2 wsz);
@@ -133,6 +133,7 @@ class VisualObjects final {
     void     startMMAnim(size_t i, std::string_view animName, float intensity, uint64_t timeUntil);
     void     setAsGhost(size_t i, bool g);
 
+    void     notifyTlas(const Material& m, RtScene::Category cat);
     void     updateInstance(size_t id, Tempest::Matrix4x4* pos = nullptr);
     void     updateRtAs(size_t id);
 

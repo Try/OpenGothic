@@ -1066,7 +1066,7 @@ void MainWindow::onWorldLoaded() {
     c = device.commandBuffer();
 
   if(auto wview=Gothic::inst().worldView()) {
-    wview->updateLight();
+    wview->updateLights();
     }
 
   if(auto c = Gothic::inst().camera()) {

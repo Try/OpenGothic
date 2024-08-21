@@ -287,6 +287,9 @@ void DrawCommands::updateVsmUniforms() {
   if(!Gothic::inst().options().doVirtualShadow && Gothic::options().swRenderingPreset==0)
     return;
 
+  if(scene.swMainImage==nullptr)
+    return;
+
   auto& device = Resources::device();
 
   //FIXME: copy-paste
@@ -309,6 +312,7 @@ void DrawCommands::updateVsmUniforms() {
     }
 
   if(Gothic::inst().options().doVirtualShadow) {
+    Resources::recycle(std::move(vsmDesc));
     vsmDesc = device.descriptors(Shaders::inst().vsmRendering);
     vsmDesc.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
     vsmDesc.set(1, *scene.vsmPageList);
@@ -320,22 +324,31 @@ void DrawCommands::updateVsmUniforms() {
     vsmDesc.set(7, Sampler::bilinear());
     }
 
-  if(Gothic::options().swRenderingPreset>0) {
+  const uint32_t preset = Gothic::options().swRenderingPreset;
+  if(preset>0) {
+    Resources::recycle(std::move(swrDesc));
     swrDesc = device.descriptors(Shaders::inst().swRendering);
     swrDesc.set(0, *scene.swMainImage);
     swrDesc.set(1, scene.uboGlobal[SceneGlobals::V_Main]);
-    swrDesc.set(2, *scene.zbuffer);
-    swrDesc.set(3, clusters.ssbo());
-    swrDesc.set(4, ibo);
-    swrDesc.set(5, vbo);
-    swrDesc.set(6, tex);
-    swrDesc.set(7, Sampler::bilinear());
+    swrDesc.set(2, *scene.gbufNormals);
+    swrDesc.set(3, *scene.zbuffer);
+    swrDesc.set(4, clusters.ssbo());
+    swrDesc.set(5, ibo);
+    swrDesc.set(6, vbo);
+    swrDesc.set(7, tex);
+    swrDesc.set(8, Sampler::bilinear());
+    if(preset==3)
+      swrDesc.set(9, *scene.lights);
     }
   }
 
 void DrawCommands::prepareUniforms() {
   // updateTasksUniforms();
   updateCommandUniforms();
+  }
+
+void DrawCommands::prepareLigtsUniforms() {
+  updateVsmUniforms();
   }
 
 void DrawCommands::updateUniforms(uint8_t fId) {
@@ -510,6 +523,11 @@ void DrawCommands::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
       int    tileY    = (scene.swMainImage->h()+tileSize.y-1)/tileSize.y;
       cmd.setUniforms(*pso, swrDesc, &push, sizeof(push));
       cmd.dispatch(size_t(tileX), size_t(tileY)); //scene.swMainImage->size());
+      break;
+      }
+    case 3: {
+      cmd.setUniforms(*pso, swrDesc, &push, sizeof(push));
+      cmd.dispatchThreads(scene.swMainImage->size());
       break;
       }
     }

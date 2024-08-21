@@ -1,0 +1,494 @@
+#version 450
+
+layout(local_size_x = 32, local_size_y = 32) in;
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_EXT_control_flow_attributes : enable
+// bindless
+#extension GL_EXT_nonuniform_qualifier : enable
+
+#include "common.glsl"
+#include "scene.glsl"
+
+const uint  UINT_MAX   = 0xFFFFFFFF;
+const uint  NumThreads = (gl_WorkGroupSize.x * gl_WorkGroupSize.y * gl_WorkGroupSize.z);
+const uint  MaxVert    = 64;
+const uint  MaxPrim    = 64;
+const uint  MaxInd     = (MaxPrim*3);
+const uint  MaxMesh    = NumThreads / 64;
+const ivec2 TileSize   = ivec2(32,32);
+      ivec2 TilePos    = ivec2(gl_LocalInvocationIndex%8, gl_LocalInvocationIndex/8);
+
+const vec3 debugColors[] = {
+  vec3(1,1,1),
+  vec3(1,0,0),
+  vec3(0,1,0),
+  vec3(0,0,1),
+  vec3(1,1,0),
+  vec3(1,0,1),
+  vec3(0,1,1),
+  vec3(1,0.5,0),
+  vec3(0.5,1,0),
+  vec3(0,0.5,1),
+  };
+
+struct Vertex {
+  vec3 pos;
+  vec2 uv;
+  };
+
+struct Cluster {
+  vec4  sphere;
+  uint  bucketId_commandId;
+  uint  firstMeshlet;
+  int   meshletCount;
+  uint  instanceId;
+  };
+
+struct LightSource {
+  vec3  pos;
+  float range;
+  vec3  color;
+  };
+
+layout(push_constant, std430) uniform UboPush {
+  uint      firstMeshlet;
+  int       meshletCount;
+  float     znear;
+  } push;
+
+//layout(binding = 0, rgba8) uniform image2D   outputImage;
+layout(binding = 0, r32ui) uniform uimage2D outputImage;
+layout(binding = 1, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 2)         uniform usampler2D gbufNormal;
+layout(binding = 3)         uniform  texture2D gbufferDepth;
+
+layout(binding = 4, std430) readonly buffer Cbo { Cluster clusters[]; };
+layout(binding = 5, std430) readonly buffer Ibo { uint    indexes []; } ibo[];
+layout(binding = 6, std430) readonly buffer Vbo { float   vertices[]; } vbo[];
+layout(binding = 7)         uniform  texture2D textureMain[];
+layout(binding = 8)         uniform  sampler   samplerMain;
+layout(binding = 9, std430) buffer Lbo { LightSource lights[]; };
+
+//
+uint packColor(vec3 c) {
+  c = clamp(c, vec3(0), vec3(1));
+  c = c*vec3(31,63,31);
+  c = round(c);
+  uint r = uint(c.r) << 11u;
+  uint g = uint(c.g) << 5u;
+  uint b = uint(c.b);
+  return r | g | b;
+  }
+
+//
+bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin, out float depthMax) {
+  const vec3  c     = (scene.view * vec4(sphere.xyz, 1)).xyz;
+  const float R     = sphere.w;
+  const float znear = push.znear;
+
+  depthMin  = scene.project[3][2]/max(c.z - R, znear) + scene.project[2][2];
+  depthMax  = scene.project[3][2]/max(c.z + R, znear) + scene.project[2][2];
+  if(c.z - R < znear) {
+    aabb     = vec4(0,0,1,1);
+    return true;
+    }
+
+  float z   = c.z - R;
+  float P00 = scene.project[0][0];
+  float P11 = scene.project[1][1];
+
+  vec3  cr   = c * R;
+  float czr2 = c.z * c.z - R * R;
+
+  float vx   = sqrt(c.x * c.x + czr2);
+  float minx = (vx * c.x - cr.z) / (vx * c.z + cr.x);
+  float maxx = (vx * c.x + cr.z) / (vx * c.z - cr.x);
+
+  float vy   = sqrt(c.y * c.y + czr2);
+  float miny = (vy * c.y - cr.z) / (vy * c.z + cr.y);
+  float maxy = (vy * c.y + cr.z) / (vy * c.z - cr.y);
+
+  aabb = vec4(minx * P00, miny * P11, maxx * P00, maxy * P11);
+  aabb = aabb*0.5 + vec4(0.5);
+  return true;
+  }
+
+uvec2 pullMeshlet(const uint meshletId, const uint bucketId) {
+  nonuniformEXT uint bId = bucketId;
+
+  const uint iboOffset = meshletId * MaxPrim + MaxPrim - 1;
+  const uint bits      = ibo[bId].indexes[iboOffset];
+  uvec4 prim;
+  prim.x = ((bits >>  0) & 0xFF);
+  prim.y = ((bits >>  8) & 0xFF);
+
+  uint vertCount = MaxVert;
+  uint primCount = MaxPrim;
+  if(prim.x==prim.y) {
+    // last dummy triangle encodes primitive count
+    prim.z = ((bits >> 16) & 0xFF);
+    prim.w = ((bits >> 24) & 0xFF);
+
+    primCount = prim.z;
+    vertCount = prim.w;
+    }
+  return uvec2(vertCount, primCount);
+  }
+
+uvec3 pullPrimitive(const uint meshletId, const uint bucketId, const uint laneId) {
+  nonuniformEXT uint bId = bucketId;
+
+  const uint iboOffset = meshletId * MaxPrim + laneId;
+  const uint bits      = ibo[bId].indexes[iboOffset];
+  uvec3 prim;
+  prim.x = ((bits >>  0) & 0xFF);
+  prim.y = ((bits >>  8) & 0xFF);
+  prim.z = ((bits >> 16) & 0xFF);
+  return prim;
+  }
+
+Vertex pullVertex(const uint meshletId, const uint bucketId, const uint laneId) {
+  nonuniformEXT uint bId = bucketId;
+  uint vboOffset = meshletId * MaxVert + laneId;
+
+  // static geometry
+  uint id = vboOffset * 9;
+  Vertex ret;
+  ret.pos    = vec3(vbo[bId].vertices[id + 0], vbo[bId].vertices[id + 1], vbo[bId].vertices[id + 2]);
+  ret.uv     = vec2(vbo[bId].vertices[id + 6], vbo[bId].vertices[id + 7]);
+  //vec3 normal = vec3(vbo[bId].vertices[id + 3], vbo[bId].vertices[id + 4], vbo[bId].vertices[id + 5]);
+  //uint color  = floatBitsToUint(vbo[bId].vertices[id + 8]);
+  return ret;
+  }
+
+//
+float raySphereTest(const vec3 origin, const vec3 dir, const vec3 center, const float R){
+  vec3  oc = center - origin;
+  float a  = dot(dir, dir);
+  float h  = dot(dir, oc);
+  float c  = dot(oc, oc) - R*R;
+
+  if(c < 0)
+    return 0; // inside
+
+  //return -1;
+
+  float discriminant = h*h - a*c;
+  if(discriminant < 0)
+    return -1.0;
+  return (h - sqrt(discriminant)) / a;
+  }
+
+vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 triA, const vec3 triB, const vec3 triC) {
+  //TODO: use something meshlet friendly, ala Baldwin-Weber Triangle Intersect
+  const float epsilon = 0.0001;
+
+  vec3  edge1 = triB - triA;
+  vec3  edge2 = triC - triA;
+  vec3  ray_cross_e2 = cross(raydir, edge2);
+  float det = dot(edge1, ray_cross_e2);
+
+  if(det > -epsilon && det < epsilon)
+    return vec3(-1);    // This ray is parallel to this triangle.
+
+  float inv_det = 1.0 / det;
+  vec3  s = origin - triA;
+  float u = inv_det * dot(s, ray_cross_e2);
+
+  if(u < 0 || u > 1)
+    return vec3(-1);
+
+  vec3 s_cross_e1 = cross(s, edge1);
+  float v = inv_det * dot(raydir, s_cross_e1);
+
+  if(v < 0 || u + v > 1)
+    return vec3(-1);
+
+  // At this stage we can compute t to find out where the intersection point is on the line.
+  float t = inv_det * dot(edge2, s_cross_e1);
+
+  if(t > epsilon) // ray intersection
+    return vec3(t, u, v); //vec3(origin + raydir * t);
+
+  // This means that there is a line intersection but not a ray intersection.
+  return vec3(-1, u, v);
+  }
+
+shared uint  tileDepthMin, tileDepthMax;
+shared uint  lightCount;
+shared uint  lightId[1024];
+       ivec2 viewPortSize = ivec2(imageSize(outputImage));
+void lightCulling() {
+  ivec2 begin = ivec2(gl_WorkGroupID.xy * TileSize + gl_LocalInvocationID.xy);
+  ivec2 end   = ivec2(gl_WorkGroupID.xy * TileSize + TileSize);
+  end = min(viewPortSize, end);
+
+  const float tMin = uintBitsToFloat(tileDepthMin);
+  const float tMax = uintBitsToFloat(tileDepthMax);
+
+  vec4  aabb     = vec4(0);
+  float depthMin = 0;
+  float depthMax = 0;
+
+  for(uint i=gl_LocalInvocationIndex; i<lights.length(); i+=NumThreads) {
+    if(i<lights.length()-1)
+      continue;
+
+    if(!projectSphere(vec4(lights[i].pos, lights[i].range), aabb, depthMin, depthMax))
+      continue;
+
+    if(depthMin>tMax)
+      continue;
+    if(depthMax<tMin)
+      continue;
+
+    //lights[0].pos   = aabb.xyz;
+    //lights[0].range = aabb.w;
+    //lights[0].color = vec3(depthMin, depthMax, 0);
+
+    aabb *= vec4(viewPortSize, viewPortSize);
+
+    if(aabb.z<begin.x || end.x<=aabb.x ||
+       aabb.w<begin.y || end.y<=aabb.y)
+      continue;
+    uint ix = atomicAdd(lightCount, 1);
+    if(ix>=lightId.length())
+      break;
+    lightId[ix] = i;
+    }
+  }
+
+vec3 unproject(vec3 p) {
+  vec4 pos = scene.viewProjectInv*vec4(p,1.0);
+  return pos.xyz/pos.w;
+  }
+
+float shadeLight(const vec3 pos, const vec3 normal, const LightSource lx) {
+  const vec3  ldir           = (pos - lx.pos);
+  const float distanceSquare = dot(ldir,ldir);
+  const float factor         = distanceSquare / (lx.range*lx.range);
+  const float smoothFactor   = max(1.0 - factor * factor, 0.0);
+
+  if(factor>1.0)
+    return 0;
+
+  float lambert = max(0.0, -dot(normalize(ldir), normal));
+  float light   = (lambert/max(factor, 0.05)) * (smoothFactor*smoothFactor);
+  if(light<=0.0)
+    return 0;
+
+  return light;
+  //return vec3(1);
+  }
+
+void hiTile(float depth) {
+  uint d = floatBitsToUint(depth);
+  atomicMax(tileDepthMax, d);
+  atomicMin(tileDepthMin, d);
+  }
+
+shared Vertex meshVertices    [MaxVert * MaxMesh];
+shared uvec3  primitiveIndices[MaxPrim * MaxMesh];
+shared uint   meshPrimCount;
+void processMeshlet(const uint meshletId, const uint bucketId, uint gId, uint laneID) {
+  const uvec2 mesh       = pullMeshlet(meshletId, bucketId);
+  const uint  vertCount  = mesh.x;
+  const uint  primCount  = mesh.y;
+
+  meshPrimCount = primCount;
+
+  if(laneID<vertCount)
+    meshVertices[laneID] = pullVertex(meshletId, bucketId, laneID);
+
+  if(laneID<primCount)
+    primitiveIndices[laneID] = pullPrimitive(meshletId, bucketId, laneID); else
+    primitiveIndices[laneID] = uvec3(0);
+  }
+
+shared uint tileRayTMax;
+shared uint clusterCount;
+shared uint clusterId[1024];
+       uint clusterPerPix0 = 0, clusterPerPix1 = 0;
+void processClusters(const LightSource lx, float tMax) {
+  vec4  aabb     = vec4(0);
+  float depthMin = 0;
+  float depthMax = 0;
+
+  //tMax = min(tMax, lx.range);
+  for(uint i=gl_LocalInvocationIndex; i<clusters.length(); i+=NumThreads) {
+    const Cluster cluster = clusters[i];
+    if(cluster.sphere.w<=0.f)
+      continue; // disabled or deleted
+
+    if(cluster.instanceId!=0xFFFFFFFF)
+      continue; // only landscape for now
+
+    vec3  dist    = (lx.pos - cluster.sphere.xyz);
+    float distMax = tMax + cluster.sphere.w;
+    if(dot(dist,dist) > distMax*distMax)
+      continue;
+
+    uint ix = atomicAdd(clusterCount, 1);
+    if(ix>=clusterId.length())
+      break;
+    clusterId[ix] = i;
+    }
+  }
+
+uint triPerPix0 = 0;
+bool processMeshIntersection(const uint meshletId, const uint bucketId, const vec3 origin, const vec3 dir, float tMax) {
+  for(uint i=0; i<meshPrimCount; ++i) {
+    uvec3  p = primitiveIndices[i];
+    if(p==uvec3(0))
+      continue;
+    const vec3 a = meshVertices[p.x].pos;
+    const vec3 b = meshVertices[p.y].pos;
+    const vec3 c = meshVertices[p.z].pos;
+    ++triPerPix0;
+#if 1
+    const float t = rayTriangleTest(origin, dir, a, b, c).x;
+    if(0<t && t+1<tMax)
+      return true;
+#endif
+    }
+  return false;
+  }
+
+bool processMeshIntersection(const vec3 origin, vec3 posToLight) {
+  float tMax = length(posToLight);
+  vec3  dir  = posToLight/tMax;
+  bool  ret  = false;
+
+  // const uint gId = gl_LocalInvocationIndex/MaxVert;
+  for(uint i=0; i<clusterCount; ++i) {
+    barrier();
+
+    const Cluster cluster = clusters[clusterId[i]];
+    ++clusterPerPix0;
+
+    float tCluster    = raySphereTest(origin, dir, cluster.sphere.xyz, cluster.sphere.w);
+    bool  skipCluster = (ret || tCluster<0 || tCluster>tMax);
+
+    if(gl_LocalInvocationIndex < MaxVert)
+      processMeshlet(cluster.firstMeshlet, cluster.bucketId_commandId>>16, 0, gl_LocalInvocationIndex);
+    barrier();
+
+    if(skipCluster)
+      continue; // ~30% of clusters
+
+    ++clusterPerPix1;
+    if(processMeshIntersection(cluster.firstMeshlet, cluster.bucketId_commandId>>16, origin, dir, tMax))
+      ret = true;
+    }
+  return ret;
+  }
+
+bool processIntersection(const uint meshletId, const uint bucketId, const vec3 origin, const vec3 dir, float tMax) {
+  const uvec2 mesh      = pullMeshlet(meshletId, bucketId);
+  const uint  vertCount = mesh.x;
+  const uint  primCount = mesh.y;
+
+  for(uint i=0; i<primCount; ++i) {
+    uvec3  p = pullPrimitive(meshletId, bucketId, i);
+    Vertex a = pullVertex(meshletId, bucketId, p.x);
+    Vertex b = pullVertex(meshletId, bucketId, p.y);
+    Vertex c = pullVertex(meshletId, bucketId, p.z);
+
+    ++triPerPix0;
+#if 1
+    float  t = rayTriangleTest(origin, dir, a.pos, b.pos, c.pos).x;
+    if(0<t && t+1<tMax)
+      return true;
+#endif
+    }
+  return false;
+  }
+
+bool processIntersection(const vec3 origin, vec3 posToLight) {
+  float tMax = length(posToLight);
+  vec3  dir  = posToLight/tMax;
+
+  for(uint i=0; i<clusterCount; ++i) {
+    const Cluster cluster = clusters[clusterId[i]];
+    ++clusterPerPix0;
+
+    float tCluster = raySphereTest(origin, dir, cluster.sphere.xyz, cluster.sphere.w);
+    if(tCluster>tMax)
+      continue;
+
+    if(tCluster<0)
+      continue; // ~30% of clusters
+
+    ++clusterPerPix1;
+    if(processIntersection(cluster.firstMeshlet, cluster.bucketId_commandId>>16, origin, dir, tMax))
+      return true;
+    }
+  return false;
+  }
+
+void main() {
+  const ivec2 imgSize = ivec2(imageSize(outputImage));
+  const ivec2 pix     = ivec2(gl_GlobalInvocationID.xy);
+  const bool  valid   = all(lessThan(pix, imgSize));
+  const vec3  normal  = valid ? normalFetch(gbufNormal,   pix)      : vec3(0);
+  const float depth   = valid ? texelFetch (gbufferDepth, pix, 0).x : 1;
+  const vec3  pos     = unproject(vec3(((pix+0.5)/imgSize)*2.0-1.0, depth)); //lwc?
+
+  lightCount   = 0;
+  clusterCount = 0;
+  tileRayTMax  = 0;
+  tileDepthMin = floatBitsToUint(1);
+  tileDepthMax = floatBitsToUint(0);
+  barrier();
+
+  hiTile(depth);
+  barrier();
+
+  lightCulling();
+  barrier();
+
+  vec3 lightSum = vec3(0);
+  for(uint i=0; i<lightCount; ++i) {
+    const uint id = lightId[i];
+
+    clusterCount    = 0;
+    tileRayTMax     = 0;
+    barrier();
+
+    const LightSource lsrc = lights[id];
+    const vec3        ldir = pos - lsrc.pos;
+    const float       llen = length(ldir);
+    if(valid && llen<lsrc.range)
+       atomicMax(tileRayTMax, floatBitsToUint(llen));
+    barrier();
+    if(tileRayTMax==0)
+      continue;
+
+    processClusters(lsrc, uintBitsToFloat(tileRayTMax));
+    barrier();
+
+    const float attenuation = shadeLight(pos, normal, lsrc);
+    if(!processMeshIntersection(lsrc.pos, ldir))
+      lightSum += lsrc.color*attenuation;
+    //const float attenuation = shadeLight(pos, normal, lsrc); // actually very small % of perf gain
+    //if(attenuation>0 && !processIntersection(lsrc.pos, ldir))
+    //  lightSum += lsrc.color*attenuation;
+    barrier();
+    }
+
+  if(valid) {
+    //imageStore(outputImage, pix, uvec4(lightCount) );
+    imageStore(outputImage, pix, uvec4(packColor(lightSum)) );
+
+    //imageStore(outputImage, pix, uvec4(clusterCount) );
+    //imageStore(outputImage, pix, uvec4(clusterPerPix0));
+    //imageStore(outputImage, pix, uvec4(clusterPerPix1));
+    //imageStore(outputImage, pix, uvec4(clusterPerPix0 - clusterPerPix1));
+    //imageStore(outputImage, pix, uvec4(triPerPix0));
+    }
+  }

@@ -71,6 +71,8 @@ class SceneGlobals final {
     const Tempest::Texture2d*         hiZ          = &Resources::fallbackTexture();
     const Tempest::Texture2d*         skyLut       = &Resources::fallbackTexture();
 
+    const Tempest::StorageBuffer*     lights       = nullptr;
+
     const Tempest::StorageImage*      vsmPageData  = nullptr;
     const Tempest::StorageBuffer*     vsmPageList  = nullptr;
 
