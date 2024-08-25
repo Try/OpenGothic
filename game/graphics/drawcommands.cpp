@@ -337,8 +337,10 @@ void DrawCommands::updateVsmUniforms() {
     swrDesc.set(6, vbo);
     swrDesc.set(7, tex);
     swrDesc.set(8, Sampler::bilinear());
-    if(preset==3)
-      swrDesc.set(9, *scene.lights);
+    if(preset==3) {
+      swrDesc.set(9,  *scene.lights);
+      swrDesc.set(10, owner.instanceSsbo());
+      }
     }
   }
 
