@@ -18,7 +18,7 @@ const uint  MaxVert    = 64;
 const uint  MaxPrim    = 64;
 const uint  MaxInd     = (MaxPrim*3);
 const uint  MaxMesh    = NumThreads / 64;
-const ivec2 TileSize   = ivec2(32,32);
+const ivec2 TileSize   = ivec2(gl_WorkGroupSize.xy);
       ivec2 TilePos    = ivec2(gl_LocalInvocationIndex%8, gl_LocalInvocationIndex/8);
 
 const vec3 debugColors[] = {
@@ -185,7 +185,6 @@ float raySphereTest(const vec3 origin, const vec3 dir, const vec3 center, const 
   }
 
 vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 triA, const vec3 triB, const vec3 triC) {
-  //TODO: use something meshlet friendly, ala Baldwin-Weber Triangle Intersect
   const float epsilon = 0.0001;
 
   vec3  edge1 = triB - triA;
@@ -217,6 +216,34 @@ vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 triA, cons
 
   // This means that there is a line intersection but not a ray intersection.
   return vec3(-1, u, v);
+  }
+
+//Baldwin-Weber Triangle Intersect
+shared vec4 primitiveTMat[MaxPrim][3];
+vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const uint i, float tMax) {
+  const vec4 tmat3 = primitiveTMat[i][2];
+
+  float s = dot(vec4(origin, 1), tmat3);
+  float d = dot(vec4(raydir, 0), tmat3);
+
+  // Distance
+  float t = -s / d;
+  if(t<=0 || tMax<t)
+    return vec3(t, 0,0);
+
+  vec4 pos = vec4(origin + raydir*t, 1);
+
+  // UV
+  const vec4 tmat1 = primitiveTMat[i][0];
+  const vec4 tmat2 = primitiveTMat[i][1];
+
+  float u = dot(pos, tmat1);
+  float v = dot(pos, tmat2);
+
+  if(u < 0.0 || v < 0.0 || (u + v) > 1.0)
+    t = -1.0;
+
+  return vec3(t, u, v);
   }
 
 shared uint  tileDepthMin, tileDepthMax;
@@ -295,6 +322,7 @@ void hiTile(float depth) {
 shared Vertex meshVertices    [MaxVert * MaxMesh];
 shared uvec3  primitiveIndices[MaxPrim * MaxMesh];
 shared uint   meshPrimCount;
+
 void processMeshlet(const uint meshletId, const uint bucketId, uint gId, uint laneID) {
   const uvec2 mesh       = pullMeshlet(meshletId, bucketId);
   const uint  vertCount  = mesh.x;
@@ -308,6 +336,46 @@ void processMeshlet(const uint meshletId, const uint bucketId, uint gId, uint la
   if(laneID<primCount)
     primitiveIndices[laneID] = pullPrimitive(meshletId, bucketId, laneID); else
     primitiveIndices[laneID] = uvec3(0);
+  }
+
+void preprocessBaldwinWeberTri() {
+  for(uint i=gl_LocalInvocationIndex; i<meshPrimCount; i+=NumThreads) {
+    uvec3  p = primitiveIndices[i];
+    if(p==uvec3(0))
+      continue;
+
+    const vec3 A = meshVertices[p.x].pos;
+    const vec3 B = meshVertices[p.y].pos;
+    const vec3 C = meshVertices[p.z].pos;
+
+    vec3 E1 = B - A;
+    vec3 E2 = C - A;
+    vec3 n  = cross(E1, E2);
+
+    // normal = normalize(n);
+    vec3 an = abs(n);
+    // Vectors for each row of the matrix
+    vec4 tmat1, tmat2, tmat3;
+    float num = -dot(A, n);
+    if(an.x > an.y && an.x > an.z) {
+      tmat1 = vec4(0., E2.z, -E2.y,  C.y * A.z - C.z * A.y) / n.x;
+      tmat2 = vec4(0., -E1.z, E1.y, -B.y * A.z + B.z * A.y) / n.x;
+      tmat3 = vec4(n.xyz, num) / n.x;
+      }
+    else if (an.y > an.z) {
+      tmat1 = vec4(-E2.z, 0., E2.x,  C.z * A.x - C.x * A.z) / n.y;
+      tmat2 = vec4(E1.z, 0., -E1.x, -B.z * A.x + B.x * A.z) / n.y;
+      tmat3 = vec4(n.xyz, num) / n.y;
+      }
+    else if (an.z > 0.) {
+      tmat1 = vec4(E2.y, -E2.x, 0.,  C.x * A.y - C.y * A.x) / n.z;
+      tmat2 = vec4(-E1.y, E1.x, 0., -B.x * A.y + B.y * A.x) / n.z;
+      tmat3 = vec4(n.xyz, num) / n.z;
+      }
+    primitiveTMat[i][0] = tmat1;
+    primitiveTMat[i][1] = tmat2;
+    primitiveTMat[i][2] = tmat3;
+    }
   }
 
 shared uint tileRayTMax;
@@ -351,7 +419,8 @@ bool processMeshIntersection(const uint meshletId, const uint bucketId, const ve
     const vec3 c = meshVertices[p.z].pos;
     ++triPerPix0;
 #if 1
-    const float t = rayTriangleTest(origin, dir, a, b, c).x;
+    // const float t = rayTriangleTest(origin, dir, a, b, c).x;
+    const float t = rayTriangleTest(origin, dir, i, tMax).x;
     if(0<t && t+1<tMax)
       return true;
 #endif
@@ -364,7 +433,6 @@ bool processMeshIntersection(const vec3 origin, vec3 posToLight) {
   vec3  dir  = posToLight/tMax;
   bool  ret  = false;
 
-  // const uint gId = gl_LocalInvocationIndex/MaxVert;
   for(uint i=0; i<clusterCount; ++i) {
     barrier();
 
@@ -376,6 +444,9 @@ bool processMeshIntersection(const vec3 origin, vec3 posToLight) {
 
     if(gl_LocalInvocationIndex < MaxVert)
       processMeshlet(cluster.firstMeshlet, cluster.bucketId_commandId>>16, 0, gl_LocalInvocationIndex);
+    barrier();
+
+    preprocessBaldwinWeberTri();
     barrier();
 
     if(skipCluster)
