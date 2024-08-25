@@ -3497,7 +3497,7 @@ bool Npc::beginCastSpell() {
   if(active==nullptr)
     return false;
 
-  if(owner.version().game==1 && attribute(ATR_MANA)==0) {
+  if(attribute(ATR_MANA)<=0) {
     setAnim(Anim::MagNoMana);
     return false;
     }
@@ -3520,20 +3520,15 @@ bool Npc::beginCastSpell() {
     case SpellCode::SPL_STATUS_CANINVEST_NO_MANADEC:
     case SpellCode::SPL_RECEIVEINVEST:
     case SpellCode::SPL_NEXTLEVEL: {
+      ++manaInvested;
       auto ani = owner.script().spellCastAnim(*this,*active);
-      if(!visual.startAnimSpell(*this,ani,true)) {
-        // falback to cast animation to match teleport spells in  original
-        visual.startAnimSpell(*this,ani,false);
-        if(owner.version().game==1)
-          break;
-        endCastSpell();
-        return false;
-        }
-      break;
-      }
-    case SpellCode::SPL_SENDCAST:{
+      if(!visual.startAnimSpell(*this,ani,true))
+        Log::d("Couldn't start animation for spell '",currentSpellCast,"'");
       castLevel = CS_Invest_0;
-      endCastSpell();
+      return true;
+      }
+    case SpellCode::SPL_SENDCAST: {
+      castLevel = CS_Cast_0;
       return false;
       }
     default:
@@ -3542,7 +3537,6 @@ bool Npc::beginCastSpell() {
       return false;
     }
 
-  castLevel = CS_Invest_0;
   return true;
   }
 
@@ -3570,24 +3564,22 @@ bool Npc::tickCast(uint64_t dt) {
     // cast anim
     if(active!=nullptr) {
       auto ani = owner.script().spellCastAnim(*this,*active);
-      if(!visual.startAnimSpell(*this,ani,false))
-        return true;
+      bool g2  = owner.version().game==2;
+      if(g2 || visual.isAnimExist(string_frm("T_MAGRUN_2_",ani,"CAST")))
+        if(!visual.startAnimSpell(*this,ani,false))
+          return true;
       }
     castLevel    = CastState(int(castLevel) + int(CS_Emit_0) - int(CS_Cast_0));
     castNextTime = 0;
     return true;
     }
 
-  if(CS_Emit_0<=castLevel && castLevel<=CS_Emit_Last) {
+  if((CS_Emit_0<=castLevel && castLevel<=CS_Emit_Last) || castLevel==CS_Finalize) {
     // final commit
     if(!setAnim(Npc::Anim::Idle))
       return true;
-    commitSpell();
-    castLevel = CS_Finalize;
-    // passthru to CS_Finalize
-    }
-
-  if(castLevel==CS_Finalize) {
+    if(castLevel!=CS_Finalize)
+      commitSpell();
     castLevel        = CS_NoCast;
     currentSpellCast = size_t(-1);
     castNextTime     = 0;
@@ -3604,7 +3596,6 @@ bool Npc::tickCast(uint64_t dt) {
   if(owner.tickCount()<castNextTime)
     return true;
 
-  ++manaInvested;
   const SpellCode code = SpellCode(owner.script().invokeMana(*this,currentTarget,manaInvested));
 
   if(owner.version().game==1) {
@@ -3618,23 +3609,26 @@ bool Npc::tickCast(uint64_t dt) {
     return true;
     }
 
-  int32_t castLvl = int(castLevel)-int(CS_Invest_0);
-
   switch(code) {
-    case SpellCode::SPL_NEXTLEVEL: {
-      if(castLvl<=15)
-        castLevel = CastState(castLevel+1);
-      visual.setMagicWeaponKey(owner,SpellFxKey::Invest,castLvl+1);
-      }
+    case SpellCode::SPL_NEXTLEVEL:
     case SpellCode::SPL_RECEIVEINVEST:
     case SpellCode::SPL_STATUS_CANINVEST_NO_MANADEC: {
+      if(code==SPL_NEXTLEVEL) {
+        int32_t castLvl = int(castLevel)-int(CS_Invest_0);
+        if(castLvl<15)
+          castLevel = CastState(castLevel+1);
+        visual.setMagicWeaponKey(owner,SpellFxKey::Invest,castLvl+1);
+        }
       auto& spl = owner.script().spellDesc(active->spellId());
       castNextTime += uint64_t(spl.time_per_mana);
-      break;
+      ++manaInvested;
+      return true;
       }
-    case SpellCode::SPL_SENDSTOP:
     case SpellCode::SPL_DONTINVEST:
-    case SpellCode::SPL_SENDCAST: {
+    case SpellCode::SPL_SENDCAST:
+    case SpellCode::SPL_SENDSTOP: {
+      if(code==SPL_DONTINVEST && isPlayer())
+        return true;
       endCastSpell();
       return true;
       }
