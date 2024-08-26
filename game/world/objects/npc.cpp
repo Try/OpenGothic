@@ -4218,8 +4218,9 @@ bool Npc::canRayHitPoint(const Tempest::Vec3 pos, bool freeLos, float extRange) 
 SensesBit Npc::canSenseNpc(const Npc &oth, bool freeLos, float extRange) const {
   const auto mid     = oth.bounds().midTr;
   const auto st      = oth.bodyStateMasked();
-  // https://github.com/Try/OpenGothic/pull/589#issuecomment-2045897394
-  const bool isNoisy = (st!=BodyState::BS_SNEAK && oth.isPlayer());
+  // NOTE1: https://github.com/Try/OpenGothic/pull/589#issuecomment-2045897394
+  // NOTE2: interacting with chest(lockpicking) or some MOBSI should not produce 'noise'
+  const bool isNoisy = (st!=BodyState::BS_SNEAK && st!=BS_MOBINTERACT && oth.isPlayer());
   return canSenseNpc(mid,freeLos,isNoisy,extRange);
   }
 
