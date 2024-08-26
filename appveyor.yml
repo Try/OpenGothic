@@ -84,7 +84,7 @@ before_build:
 
     echo '#pragma once'                                                               | Out-File "game/build.h" -Encoding utf8
 
-    echo "static const char* appBuild = `"OpenGothic v$env:appveyor_build_version`";" | Out-File "game/build.h" -Encoding utf8 -Append
+    echo "static const char* appBuild = `"OpenGothic v$env:APPVEYOR_BUILD_VERSION`";" | Out-File "game/build.h" -Encoding utf8 -Append
 
 build_script:
   - cmake --version
@@ -106,7 +106,7 @@ after_build:
       }
 
     if($IsWindows) {
-      echo gothic-win64-v$env:appveyor_build_version | Out-File "VERSION" -Encoding utf8
+      echo gothic-win64-v$env:APPVEYOR_BUILD_VERSION | Out-File "VERSION" -Encoding utf8
       cp "C:\msys64\mingw64\bin\libgcc_s_seh-1.dll"   "libgcc_s_seh-1.dll"
       cp "C:\msys64\mingw64\bin\libstdc++-6.dll"      "libstdc++-6.dll"
       cp "C:\msys64\mingw64\bin\libwinpthread-1.dll"  "libwinpthread-1.dll"
@@ -119,7 +119,7 @@ after_build:
       }
 
     if($IsLinux) {
-      echo gothic-linux-v$env:appveyor_build_version | Out-File "VERSION" -Encoding utf8
+      echo gothic-linux-v$env:APPVEYOR_BUILD_VERSION | Out-File "VERSION" -Encoding utf8
 
       $NAME = $BASE_NAME + '_linux.zip'
       7z a $NAME    VERSION
@@ -129,7 +129,7 @@ after_build:
       }
 
     if($IsMacOS) {
-      echo gothic-osx-v$env:appveyor_build_version | Out-File "VERSION" -Encoding utf8
+      echo gothic-osx-v$env:APPVEYOR_BUILD_VERSION | Out-File "VERSION" -Encoding utf8
 
       $NAME = $BASE_NAME + '_osx.zip'
       7z a $NAME    VERSION
