@@ -2097,9 +2097,8 @@ std::string GameScript::npc_getnearestwp(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   auto wp  = npc ? world().findWayPoint(npc->position()) : nullptr;
   if(wp)
-    return (wp->name);
-  else
-    return "";
+    return wp->name;
+  return "";
   }
 
 void GameScript::npc_clearaiqueue(std::shared_ptr<zenkit::INpc> npcRef) {

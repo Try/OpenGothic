@@ -1917,6 +1917,7 @@ void Npc::takeFallDamage(const Vec3& fallSpeed) {
   int32_t hp = attribute(ATR_HITPOINTS);
   if(hp>dmg.value) {
     emitSoundSVM("SVM_%d_AARGH");
+    clearState(true);
     }
   changeAttribute(ATR_HITPOINTS,-dmg.value,false);
   }
@@ -2695,7 +2696,7 @@ void Npc::tickRoutine() {
       }
     }
 
-  if(aiState.funcIni==0)
+  if(!aiState.funcIni.isValid())
     return;
 
   /*HACK: don't process far away Npc*/

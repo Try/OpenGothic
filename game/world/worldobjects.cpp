@@ -313,9 +313,14 @@ Npc* WorldObjects::addNpc(size_t npcInstance, std::string_view at) {
   }
 
 Npc* WorldObjects::addNpc(size_t npcInstance, const Vec3& pos) {
-  Npc* npc = new Npc(owner,npcInstance,"");
+  auto point = owner.findWayPoint(pos);
+  if(point==nullptr) {
+    point = owner.findFreePoint(pos, "");
+    }
+
+  auto pstr  = point==nullptr ? "" : point->name; // vanilla assign some point to all npc's
+  Npc* npc   = new Npc(owner,npcInstance,pstr);
   npc->setPosition  (pos.x,pos.y,pos.z);
-  //npc->setDirection (pos->dirX,pos->dirY,pos->dirZ);
   npc->updateTransform();
 
   npcArr.emplace_back(npc);
