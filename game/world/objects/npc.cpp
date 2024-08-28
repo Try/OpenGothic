@@ -330,6 +330,12 @@ void Npc::loadAiState(Serialize& fin) {
   fin.read(aiState.funcIni,aiState.funcLoop,aiState.funcEnd,aiState.sTime,aiState.eTime,aiState.started,aiState.loopNextTime);
   fin.read(aiPrevState);
 
+#ifndef NDEBUG
+  if(auto s = owner.script().findSymbol(aiState.funcIni.ptr)) {
+    aiState.hint = s->name().c_str();
+    }
+#endif
+
   aiQueue.load(fin);
   aiQueueOverlay.load(fin);
 
