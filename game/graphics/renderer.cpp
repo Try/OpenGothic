@@ -203,13 +203,13 @@ void Renderer::resetSwapchain() {
     vsm.pagesDbgPso     = &Shaders::inst().vsmDbg;
     vsm.uboDbg          = device.descriptors(*vsm.pagesDbgPso);
 
-    vsm.pageTbl       = device.image3d(TextureFormat::R32U, 64, 64, 32);
-    vsm.pageData      = device.image2d(TextureFormat::RGBA8, 4096, 4096); // NOTE: not yet on on what to use: depth or atomics
-    vsm.pageDataZ     = device.zbuffer(shadowFormat, 4096, 4096);
-    vsm.shadowMask    = device.image2d(Tempest::RGBA8, w, h);
+    vsm.pageTbl         = device.image3d(TextureFormat::R32U, 64, 64, 32);
+    vsm.pageData        = device.image2d(TextureFormat::RGBA8, 4096, 4096); // NOTE: not yet sure on what to use: depth or atomics
+    vsm.pageDataZ       = device.zbuffer(shadowFormat, 4096, 4096);
+    vsm.shadowMask      = device.image2d(Tempest::RGBA8, w, h);
 
-    const uint32_t pageCount = uint32_t((vsm.pageDataZ.w()+128-1)/128) * uint32_t((vsm.pageDataZ.h()+128-1)/128);
-    vsm.pageList      = device.ssbo(nullptr, (pageCount + 4)*sizeof(uint32_t));
+    auto pageCount      = uint32_t((vsm.pageDataZ.w()+128-1)/128) * uint32_t((vsm.pageDataZ.h()+128-1)/128);
+    vsm.pageList        = device.ssbo(nullptr, (pageCount + 4)*sizeof(uint32_t));
     }
 
   if(settings.swrEnabled) {

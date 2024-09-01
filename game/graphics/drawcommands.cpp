@@ -42,9 +42,20 @@ bool DrawCommands::DrawCmd::isMeshShader() const {
   }
 
 
+bool DrawCommands::View::isEnabled() const {
+  const bool virtualShadowSys = Gothic::inst().options().doVirtualShadow;
+  if(viewport==SceneGlobals::V_Vsm && !virtualShadowSys)
+    return false;
+  return true;
+  }
+
+
 DrawCommands::DrawCommands(VisualObjects& owner, DrawBuckets& buckets, DrawClusters& clusters, const SceneGlobals& scene)
     : owner(owner), buckets(buckets), clusters(clusters), scene(scene) {
   const bool virtualShadowSys = Gothic::inst().options().doVirtualShadow;
+  for(uint8_t v=0; v<SceneGlobals::V_Count; ++v) {
+    views[v].viewport = SceneGlobals::VisCamera(v);
+    }
   tasks.clear();
   for(uint8_t v=0; v<SceneGlobals::V_Count; ++v) {
     if(v==SceneGlobals::V_Vsm && !virtualShadowSys)
@@ -53,6 +64,7 @@ DrawCommands::DrawCommands(VisualObjects& owner, DrawBuckets& buckets, DrawClust
     cmd.viewport = SceneGlobals::VisCamera(v);
     tasks.emplace_back(std::move(cmd));
     }
+
   }
 
 DrawCommands::~DrawCommands() {
@@ -160,6 +172,9 @@ bool DrawCommands::commit() {
 
   auto& device = Resources::device();
   for(auto& v:views) {
+    if(!v.isEnabled())
+      continue;
+
     if(visChg) {
       Resources::recycle(std::move(v.visClusters));
       v.visClusters = device.ssbo(nullptr, visClustersSz);
@@ -171,7 +186,6 @@ bool DrawCommands::commit() {
 
     Resources::recycle(std::move(v.descInit));
     v.descInit = device.descriptors(Shaders::inst().clusterInit);
-    //v.descInit.set(T_Bucket,   buckets.ssbo());
     v.descInit.set(T_Indirect, v.indirectCmd);
     }
 
@@ -398,6 +412,8 @@ void DrawCommands::visibilityPass(Encoder<CommandBuffer>& cmd, uint8_t fId, int 
   if(pass==0) {
     for(auto& v:views) {
       if(this->cmd.empty())
+        continue;
+      if(!v.isEnabled())
         continue;
       const uint32_t isMeshShader = (Gothic::options().doMeshShading ? 1 : 0);
       cmd.setUniforms(Shaders::inst().clusterInit, v.descInit, &isMeshShader, sizeof(isMeshShader));

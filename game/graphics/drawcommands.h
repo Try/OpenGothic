@@ -115,8 +115,10 @@ class DrawCommands {
       };
 
     struct View {
-      Tempest::DescriptorSet descInit;
-      Tempest::StorageBuffer visClusters, indirectCmd;
+      SceneGlobals::VisCamera viewport = SceneGlobals::V_Main;
+      Tempest::DescriptorSet  descInit;
+      Tempest::StorageBuffer  visClusters, indirectCmd;
+      bool                    isEnabled() const;
       };
 
     void                     updateCommandUniforms();
