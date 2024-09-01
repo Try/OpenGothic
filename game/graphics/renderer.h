@@ -93,6 +93,7 @@ class Renderer final {
     Tempest::Swapchain&       swapchain;
     Tempest::Matrix4x4        proj, viewProj, viewProjLwc;
     Tempest::Matrix4x4        shadowMatrix[Resources::ShadowLayers];
+    Tempest::Matrix4x4        shadowMatrixVsm;
     Tempest::Vec3             clipInfo;
 
     Tempest::Attachment       sceneLinear;
@@ -227,6 +228,7 @@ class Renderer final {
 
       Tempest::StorageImage     pageTbl;
       Tempest::StorageImage     pageData;
+      Tempest::ZBuffer          pageDataZ;
       Tempest::StorageBuffer    pageList;
       Tempest::StorageImage     shadowMask;
       } vsm;

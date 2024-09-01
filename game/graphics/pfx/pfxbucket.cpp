@@ -816,6 +816,7 @@ void PfxBucket::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
   switch(view) {
     case SceneGlobals::V_Shadow0:
     case SceneGlobals::V_Shadow1:
+    case SceneGlobals::V_Vsm:
       pso = itm.pShadow;
       break;
     case SceneGlobals::V_Main:

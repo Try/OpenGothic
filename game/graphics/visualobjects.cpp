@@ -570,6 +570,10 @@ void VisualObjects::visibilityPass(Tempest::Encoder<Tempest::CommandBuffer> &cmd
   drawCmd.visibilityPass(cmd, fId, pass);
   }
 
+void VisualObjects::visibilityVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  drawCmd.visibilityVsm(cmd, fId);
+  }
+
 void VisualObjects::drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   // return;
   drawCmd.drawCommon(cmd, fId, SceneGlobals::V_Main, Material::Multiply);

@@ -3,6 +3,7 @@
 #include <Tempest/Color>
 #include <Tempest/Fence>
 #include <Tempest/Log>
+#include <Tempest/StorageImage>
 
 #include "ui/inventorymenu.h"
 #include "camera.h"
@@ -203,7 +204,8 @@ void Renderer::resetSwapchain() {
     vsm.uboDbg          = device.descriptors(*vsm.pagesDbgPso);
 
     vsm.pageTbl       = device.image3d(TextureFormat::R32U, 128, 128, 32);
-    vsm.pageData      = device.image2d(TextureFormat::RGBA8, 4096, 4096);
+    vsm.pageData      = device.image2d(TextureFormat::RGBA8, 4096, 4096); // NOTE: not yet on on what to use: depth or atomics
+    vsm.pageDataZ     = device.zbuffer(shadowFormat, 4096, 4096);
     vsm.pageList      = device.ssbo(nullptr, (4096 + 4)*sizeof(uint32_t));
     vsm.shadowMask    = device.image2d(Tempest::RGBA8, w, h);
     }
@@ -286,6 +288,7 @@ void Renderer::updateCamera(const Camera& camera) {
   if(auto wview=Gothic::inst().worldView()) {
     for(size_t i=0; i<Resources::ShadowLayers; ++i)
       shadowMatrix[i] = camera.viewShadow(wview->mainLight().dir(),i);
+    shadowMatrixVsm = camera.viewShadowVsm(wview->mainLight().dir());
     }
 
   auto zNear = camera.zNear();
@@ -475,6 +478,10 @@ void Renderer::prepareUniforms() {
 
   if(settings.swrEnabled) {
     swr.uboDbg.set(0, swr.outputImage);
+    swr.uboDbg.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    swr.uboDbg.set(2, gbufDiffuse, Sampler::nearest());
+    swr.uboDbg.set(3, gbufNormal,  Sampler::nearest());
+    swr.uboDbg.set(4, zbuffer,     Sampler::nearest());
     }
 
   const Texture2d* sh[Resources::ShadowLayers] = {};
@@ -556,14 +563,15 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
     return;
 
   std::vector<const Texture2d*> tex;
-  tex.push_back(&textureCast(swr.outputImage));
+  //tex.push_back(&textureCast(swr.outputImage));
   //tex.push_back(&textureCast(hiz.hiZ));
   //tex.push_back(&textureCast(hiz.smProj));
   //tex.push_back(&textureCast(hiz.hiZSm1));
   //tex.push_back(&textureCast(shadowMap[1]));
   //tex.push_back(&textureCast(shadowMap[0]));
+  tex.push_back(&textureCast<const Texture2d&>(vsm.pageDataZ));
 
-  static int size = 800;
+  static int size = 400;
   int left = 10;
   for(auto& t:tex) {
     p.setBrush(Brush(*t,Painter::NoBlend,ClampMode::ClampToBorder));
@@ -609,7 +617,8 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
       }
     frustrum[SceneGlobals::V_Main].make(viewProj,zbuffer.w(),zbuffer.h());
     frustrum[SceneGlobals::V_HiZ] = frustrum[SceneGlobals::V_Main];
-    wview->visibilityPass(frustrum);
+    frustrum[SceneGlobals::V_Vsm].make(shadowMatrixVsm, 2048, 2048); //TODO: mip0 resolution
+    wview->updateFrustrum(frustrum);
     }
 
   wview->preFrameUpdate(*camera,Gothic::inst().world()->tickCount(),fId);
@@ -851,10 +860,15 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.setUniforms(*vsm.pagesListPso, vsm.uboList);
   cmd.dispatchThreads(size_t(vsm.pageTbl.w()), size_t(vsm.pageTbl.h()), size_t(vsm.pageTbl.d()));
 
+  cmd.setDebugMarker("VSM-visibility");
+  view.visibilityVsm(cmd,fId);
+
   cmd.setDebugMarker("VSM-rendering");
+  cmd.setFramebuffer({}, {vsm.pageDataZ, 0.f, Tempest::Preserve});
   view.drawVsm(cmd,fId);
 
   cmd.setDebugMarker("VSM-compose");
+  cmd.setFramebuffer({});
   cmd.setUniforms(*vsm.pagesComposePso, vsm.uboCompose);
   cmd.dispatchThreads(zbuffer.size());
   }

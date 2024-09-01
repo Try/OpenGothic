@@ -93,6 +93,9 @@ uint16_t DrawCommands::commandId(const Material& m, Type type, uint32_t bucketId
       desc[SceneGlobals::V_Shadow0] = device.descriptors(*cx.pShadow);
       desc[SceneGlobals::V_Shadow1] = device.descriptors(*cx.pShadow);
       }
+    if(cx.pShadow!=nullptr) {
+      desc[SceneGlobals::V_Vsm] = device.descriptors(*cx.pShadow);
+      }
     if(cx.pHiZ!=nullptr) {
       desc[SceneGlobals::V_HiZ] = device.descriptors(*cx.pHiZ);
       }
@@ -184,6 +187,8 @@ void DrawCommands::updateTasksUniforms() {
       i.desc = device.descriptors(Shaders::inst().clusterTaskHiZ);
     else if(i.viewport==SceneGlobals::V_HiZ)
       i.desc = device.descriptors(Shaders::inst().clusterTaskHiZCr);
+    else if(i.viewport==SceneGlobals::V_Vsm)
+      i.desc = device.descriptors(Shaders::inst().clusterTask);
     else
       i.desc = device.descriptors(Shaders::inst().clusterTask);
     i.desc.set(T_Clusters, clusters.ssbo());
@@ -325,7 +330,7 @@ void DrawCommands::updateVsmUniforms() {
     }
 
   const uint32_t preset = Gothic::options().swRenderingPreset;
-  if(preset>0) {
+  if(preset>0 && !Shaders::inst().swRendering.isEmpty()) {
     Resources::recycle(std::move(swrDesc));
     swrDesc = device.descriptors(Shaders::inst().swRendering);
     swrDesc.set(0, *scene.swMainImage);
@@ -379,7 +384,7 @@ void DrawCommands::updateUniforms(uint8_t fId) {
     }
   }
 
-void DrawCommands::visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int pass) {
+void DrawCommands::visibilityPass(Encoder<CommandBuffer>& cmd, uint8_t fId, int pass) {
   static bool freeze = false;
   if(freeze)
     return;
@@ -400,6 +405,8 @@ void DrawCommands::visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
       continue;
     if(i.viewport!=SceneGlobals::V_HiZ && pass==0)
       continue;
+    if(i.viewport==SceneGlobals::V_Vsm)
+      continue;
     struct Push { uint32_t firstMeshlet; uint32_t meshletCount; float znear; } push = {};
     push.firstMeshlet = 0;
     push.meshletCount = uint32_t(clusters.size());
@@ -412,6 +419,48 @@ void DrawCommands::visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
       pso = &Shaders::inst().clusterTaskHiZCr;
     cmd.setUniforms(*pso, i.desc, &push, sizeof(push));
     cmd.dispatchThreads(push.meshletCount);
+    }
+  }
+
+void DrawCommands::visibilityVsm(Encoder<CommandBuffer>& cmd, uint8_t fId) {
+  for(auto& i:tasks) {
+    if(i.viewport!=SceneGlobals::V_Vsm)
+      continue;
+
+    struct Push { uint32_t firstMeshlet; uint32_t meshletCount; float znear; } push = {};
+    push.firstMeshlet = 0;
+    push.meshletCount = uint32_t(clusters.size());
+
+    auto* pso = &Shaders::inst().clusterTask;
+    cmd.setUniforms(*pso, i.desc, &push, sizeof(push));
+    cmd.dispatchThreads(push.meshletCount);
+    }
+  }
+
+void DrawCommands::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  // return;
+  struct Push { uint32_t firstMeshlet; uint32_t meshletCount; } push = {};
+
+  auto       viewId = SceneGlobals::V_Vsm;
+  auto&      view   = views[viewId];
+
+  for(size_t i=0; i<ord.size(); ++i) {
+    auto& cx = *ord[i];
+    if(cx.alpha!=Material::Solid && cx.alpha!=Material::AlphaTest)
+      continue;
+
+    auto& desc = cx.isBindless() ? cx.desc : cx.descFr[fId];
+    if(desc[viewId].isEmpty())
+      continue;
+
+    auto id  = size_t(std::distance(this->cmd.data(), &cx));
+    push.firstMeshlet = cx.firstPayload;
+    push.meshletCount = cx.maxPayload;
+
+    cmd.setUniforms(*cx.pShadow, desc[viewId], &push, sizeof(push));
+    if(cx.isMeshShader())
+      cmd.dispatchMeshIndirect(view.indirectCmd, sizeof(IndirectCmd)*id + sizeof(uint32_t)); else
+      cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
     }
   }
 
@@ -471,6 +520,7 @@ void DrawCommands::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uin
     switch(viewId) {
       case SceneGlobals::V_Shadow0:
       case SceneGlobals::V_Shadow1:
+      case SceneGlobals::V_Vsm:
         pso = cx.pShadow;
         break;
       case SceneGlobals::V_Main:
@@ -492,17 +542,6 @@ void DrawCommands::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uin
       cmd.dispatchMeshIndirect(view.indirectCmd, sizeof(IndirectCmd)*id + sizeof(uint32_t)); else
       cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
     }
-  }
-
-void DrawCommands::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  struct Push { uint32_t firstMeshlet; uint32_t meshletCount; float znear; } push = {};
-  push.firstMeshlet = 0;
-  push.meshletCount = uint32_t(clusters.size());
-  push.znear        = scene.znear;
-
-  auto* pso = &Shaders::inst().vsmRendering;
-  cmd.setUniforms(*pso, vsmDesc, &push, sizeof(push));
-  cmd.dispatchIndirect(*scene.vsmPageList, 0);
   }
 
 void DrawCommands::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {

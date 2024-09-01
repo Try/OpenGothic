@@ -54,8 +54,9 @@ class WorldView {
     bool updateLights();
     bool updateRtScene();
 
-    void visibilityPass(const Frustrum fr[]);
+    void updateFrustrum  (const Frustrum fr[]);
     void visibilityPass (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, int pass);
+    void visibilityVsm  (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, uint8_t layer);
     void drawVsm        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId);

@@ -266,56 +266,120 @@ Matrix4x4 Camera::projective() const {
 Matrix4x4 Camera::viewShadowLwc(const Tempest::Vec3& lightDir, size_t layer) const {
   auto  vp       = viewProjLwc();
   float rotation = (180+src.spin.y-rotOffset.y);
+  //if(layer==0)
+  //  return viewShadowVsm(cameraPos-origin,rotation,vp,lightDir);
   return mkViewShadow(cameraPos-origin,rotation,vp,lightDir,layer);
   }
 
-Matrix4x4 Camera::viewShadowVsm(const Tempest::Vec3& ldir1) const {
-  /*
-  auto viewDir0 = Vec3(0), viewDir1 = Vec3(0,0,1);
-  auto viewInv  = viewProjLwc();
-  viewInv.inverse();
-  viewInv.project(viewDir0);
-  viewInv.project(viewDir1);
+Matrix4x4 Camera::viewShadowVsm(const Tempest::Vec3& lightDir) const {
+  auto  vp       = viewProj();
+  float rotation = (180+src.spin.y-rotOffset.y);
+  return viewShadowVsm(cameraPos,rotation,vp,lightDir);
+  }
 
-  auto vdir = -Vec3::normalize(viewDir1 - viewDir0);
-  // auto vdir = Vec3::normalize(Vec3(0,0,1));
-  auto tmp  = Vec3::crossProduct(vdir, ldir);
-  vdir      = Vec3::crossProduct(tmp,  ldir);
+Matrix4x4 Camera::viewShadowVsm(const Vec3& cameraPos, float rotation, const Tempest::Matrix4x4& viewProj, const Vec3& lightDir) const {
+  Vec3  ldir     = lightDir;
+  float eps      = 0.005f;
 
-  // meters
-  vdir /= 100;
-  tmp  /= 100;
+  if(std::abs(ldir.y)<eps) {
+    float k = (1.f-eps*eps)/std::sqrt(ldir.x*ldir.x + ldir.z*ldir.z);
+    ldir.y = (ldir.y<0) ? -eps : eps;
+    ldir.x *= k;
+    ldir.z *= k;
+    }
 
-  Matrix4x4 ret {tmp.x,  tmp.y,  tmp.z,  0,
-                 vdir.x, vdir.y, vdir.z, 0,
-                 ldir.x, ldir.y, ldir.z, 0,
-                 0,      0,      0,      1,
-                };
-  return ret;
-  */
-  auto ldir = Vec3(0,1,0);
-  auto up   = Vec3::normalize(Vec3(1,0,0));
-  auto tmp  = Vec3::crossProduct(up,  ldir);
-  auto vdir = Vec3::crossProduct(tmp, ldir);
+  Vec3 center = cameraPos;
+  auto vp = viewProj;
+  vp.project(center);
 
-  // -1..1 -> -0.5 .. 0.5
-  vdir *= 0.5;
-  tmp  *= 0.5;
-  // meters
-  vdir /= 100;
-  tmp  /= 100;
+  vp.inverse();
+  Vec3 l = {-1,center.y,center.z}, r = {1,center.y,center.z};
+  vp.project(l);
+  vp.project(r);
 
-  Matrix4x4 ret {tmp.x,  tmp.y,  tmp.z,  0,
-                 vdir.x, vdir.y, vdir.z, 0,
-                 ldir.x, ldir.y, ldir.z, 0,
-                 0,      0,      0,      1,
-                 };
-  return ret;
+  float smWidth    = 1024; // ~4 pixels per santimeter
+  float smDepth    = 5120;
+
+  float smWidthInv = 1.f/smWidth;
+  float zScale     = 1.f/smDepth;
+
+  rotation = 0;
+
+  auto view = Matrix4x4 {
+     -1,  0,  0,  0,
+      0,  0, -1,  0,
+      0, +1,  0,  0,
+      0,  0,  0,  1
+    };
+  view.rotateOY(rotation);
+  view.scale(smWidthInv, zScale, smWidthInv);
+  view.translate(-cameraPos);
+
+  {
+    auto up = std::abs(ldir.z)<0.999 ? Vec3(0,0,1) : Vec3(1,0,0);
+    auto z  = ldir;
+    auto x  = Vec3::normalize(Vec3::crossProduct(z, up));
+    auto y  = Vec3::crossProduct(x, z);
+
+    auto view2 = Matrix4x4 {
+             x.x, y.x, z.x, 0,
+             x.y, y.y, z.y, 0,
+             x.z, y.z, z.z, 0,
+               0,   0,   0, 1
+           };
+    view2.transpose();
+    //view2.rotate(rotation, 0, 1, 0);
+    view2.scale(smWidthInv, zScale, smWidthInv);
+    view2.translate(-cameraPos);
+
+    static bool rel = true;
+    if(rel)
+      view = view2;
+  }
+
+  // sun direction
+  if(false && ldir.y!=0.f) {
+    float lx = ldir.x/std::abs(ldir.y);
+    float lz = ldir.z/std::abs(ldir.y);
+
+    const float ang = -rotation*float(M_PI)/180.f;
+    const float c   = std::cos(ang), s = std::sin(ang);
+
+    float dx = lx*c-lz*s;
+    float dz = lx*s+lz*c;
+
+    view.set(1,0, dx*smWidthInv);
+    view.set(1,1, dz*smWidthInv);
+    }
+
+  auto inv = view;
+  inv.inverse();
+  Vec3 mid = {};
+  inv.project(mid);
+  view.translate(mid-cameraPos);
+
+  if(false) {
+    Matrix4x4 proj;
+    proj.identity();
+    proj.translate(0.f, 0.8f, 0.5f);
+    proj.mul(view);
+    view = proj;
+    } else {
+    Matrix4x4 proj;
+    proj.identity();
+    proj.translate(0.f, 0.f, 0.5f);
+    proj.mul(view);
+    view = proj;
+    }
+
+  return view;
   }
 
 Matrix4x4 Camera::viewShadow(const Vec3& lightDir, size_t layer) const {
   auto  vp       = viewProj();
   float rotation = (180+src.spin.y-rotOffset.y);
+  // if(layer==0)
+  //   return viewShadowVsm(cameraPos,rotation,vp,lightDir);
   return mkViewShadow(cameraPos,rotation,vp,lightDir,layer);
   }
 
@@ -329,9 +393,6 @@ Matrix4x4 Camera::mkViewShadow(const Vec3& cameraPos, float rotation, const Temp
     ldir.x *= k;
     ldir.z *= k;
     }
-
-  // if(layer==1)
-  //   return viewShadow2(ldir,layer);
 
   Vec3 center = cameraPos;
   auto vp = viewProj;

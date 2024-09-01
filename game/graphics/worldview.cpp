@@ -124,7 +124,7 @@ void WorldView::prepareExposure(Tempest::Encoder<Tempest::CommandBuffer>& cmd, u
   gSky.prepareExposure(cmd, frameId);
   }
 
-void WorldView::visibilityPass(const Frustrum fr[]) {
+void WorldView::updateFrustrum(const Frustrum fr[]) {
   for(uint8_t i=0; i<SceneGlobals::V_Count; ++i)
     sGlobal.frustrum[i] = fr[i];
   }
@@ -132,6 +132,10 @@ void WorldView::visibilityPass(const Frustrum fr[]) {
 void WorldView::visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int pass) {
   cmd.setDebugMarker("Visibility");
   visuals.visibilityPass(cmd, fId, pass);
+  }
+
+void WorldView::visibilityVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  visuals.visibilityVsm(cmd, fId);
   }
 
 void WorldView::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {

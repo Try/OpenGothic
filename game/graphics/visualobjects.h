@@ -71,7 +71,8 @@ class VisualObjects final {
     void prepareGlobals (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void postFrameupdate();
 
-    void visibilityPass (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, int pass);
+    void visibilityPass (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId, int pass);
+    void visibilityVsm  (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
 
     void drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawWater      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);

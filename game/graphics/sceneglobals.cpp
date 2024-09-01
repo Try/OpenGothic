@@ -51,6 +51,7 @@ bool SceneGlobals::isShadowView(VisCamera v) {
   switch (v) {
     case V_Shadow0:
     case V_Shadow1:
+    case V_Vsm:
       return true;
     case V_Main:
     case V_HiZ:
@@ -164,6 +165,8 @@ void SceneGlobals::commitUbo(uint8_t fId) {
     ubo = uboGlobalCpu;
     if(V_Shadow0<=i && i<=V_ShadowLast)
       ubo.viewProject = uboGlobalCpu.viewShadow[i-V_Shadow0];
+    if(i==V_Vsm)
+      ubo.viewProject = uboGlobalCpu.viewVirtualShadow;
     std::memcpy(ubo.frustrum, frustrum[i].f, sizeof(ubo.frustrum));
     }
 

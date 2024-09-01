@@ -131,12 +131,12 @@ void main() {
 
 #if defined(DEBUG)
   // int  mip   = 0;
-  // vec3 color = debugColors[hash(uvec3(pageI,mip)) % debugColors.length()];
+  vec3 color = debugColors[hash(uvec3(pageI,mip)) % debugColors.length()];
   // vec3 color = debugColors[mip % debugColors.length()];
   // vec3 color = vec3(shPos0, 0);
   // vec3 color = vec3(page, 0);
   // vec3 color = vec3(fract(page*PAGE_TBL_SIZE), 0);
-  vec4 color = shadowTexelFetch(page, mip);
+  // vec4 color = shadowTexelFetch(page, mip);
   outColor = vec4(color.xyz,1);
 #endif
   }

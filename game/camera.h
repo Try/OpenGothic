@@ -108,7 +108,9 @@ class Camera final {
     Tempest::Matrix4x4 viewLwc() const;
     Tempest::Matrix4x4 viewProjLwc() const;
     Tempest::Matrix4x4 viewShadowLwc(const Tempest::Vec3& ldir, size_t layer) const;
+
     Tempest::Matrix4x4 viewShadowVsm(const Tempest::Vec3& ldir) const;
+    Tempest::Matrix4x4 viewShadowVsm(const Tempest::Vec3& cameraPos, float rotation, const Tempest::Matrix4x4& viewProj, const Tempest::Vec3& ldir) const;
 
     ListenerPos        listenerPosition() const;
     Tempest::Vec3      originLwc() const { return origin; };

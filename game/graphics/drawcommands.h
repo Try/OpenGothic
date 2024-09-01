@@ -63,6 +63,8 @@ class DrawCommands {
     void     updateTasksUniforms();
 
     void     visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int pass);
+    void     visibilityVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+
     void     drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void     drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, SceneGlobals::VisCamera viewId, Material::AlphaFunc func);
 
