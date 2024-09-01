@@ -203,11 +203,13 @@ void Renderer::resetSwapchain() {
     vsm.pagesDbgPso     = &Shaders::inst().vsmDbg;
     vsm.uboDbg          = device.descriptors(*vsm.pagesDbgPso);
 
-    vsm.pageTbl       = device.image3d(TextureFormat::R32U, 128, 128, 32);
+    vsm.pageTbl       = device.image3d(TextureFormat::R32U, 64, 64, 32);
     vsm.pageData      = device.image2d(TextureFormat::RGBA8, 4096, 4096); // NOTE: not yet on on what to use: depth or atomics
     vsm.pageDataZ     = device.zbuffer(shadowFormat, 4096, 4096);
-    vsm.pageList      = device.ssbo(nullptr, (4096 + 4)*sizeof(uint32_t));
     vsm.shadowMask    = device.image2d(Tempest::RGBA8, w, h);
+
+    const uint32_t pageCount = uint32_t((vsm.pageDataZ.w()+128-1)/128) * uint32_t((vsm.pageDataZ.h()+128-1)/128);
+    vsm.pageList      = device.ssbo(nullptr, (pageCount + 4)*sizeof(uint32_t));
     }
 
   if(settings.swrEnabled) {
@@ -464,7 +466,7 @@ void Renderer::prepareUniforms() {
     vsm.uboCompose.set(2, gbufNormal,  Sampler::nearest());
     vsm.uboCompose.set(3, zbuffer,     Sampler::nearest());
     vsm.uboCompose.set(4, vsm.pageTbl);
-    vsm.uboCompose.set(5, vsm.pageData);
+    vsm.uboCompose.set(5, vsm.pageDataZ);
     vsm.uboCompose.set(6, vsm.shadowMask);
 
     vsm.uboDbg.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
@@ -472,7 +474,7 @@ void Renderer::prepareUniforms() {
     vsm.uboDbg.set(2, gbufNormal,  Sampler::nearest());
     vsm.uboDbg.set(3, zbuffer,     Sampler::nearest());
     vsm.uboDbg.set(4, vsm.pageTbl);
-    vsm.uboDbg.set(5, vsm.pageData);
+    vsm.uboDbg.set(5, vsm.pageDataZ);
     vsm.uboDbg.set(6, vsm.shadowMask);
     }
 
@@ -617,7 +619,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
       }
     frustrum[SceneGlobals::V_Main].make(viewProj,zbuffer.w(),zbuffer.h());
     frustrum[SceneGlobals::V_HiZ] = frustrum[SceneGlobals::V_Main];
-    frustrum[SceneGlobals::V_Vsm].make(shadowMatrixVsm, 2048, 2048); //TODO: mip0 resolution
+    frustrum[SceneGlobals::V_Vsm].make(shadowMatrixVsm, vsm.pageDataZ.w(), vsm.pageDataZ.h()); //TODO: mip0 resolution
     wview->updateFrustrum(frustrum);
     }
 

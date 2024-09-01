@@ -17,16 +17,34 @@ layout(binding = 1, r32ui) uniform uimage3D pageTbl;
 
 void main() {
   const ivec3 size = imageSize(pageTbl);
-  if(any(greaterThanEqual(gl_GlobalInvocationID, size)))
-    return;
-
   const ivec3 at   = ivec3(gl_GlobalInvocationID);
-  const uint  page = imageLoad(pageTbl, at).r;
-  if(page==0)
+  if(any(greaterThanEqual(at, size)))
+    return;
+#if 1
+  const uint alloc = imageLoad(pageTbl, at).r;
+  if(alloc==0)
     return;
 
   const uint pageId = atomicAdd(header.x, 1);
-  pageList[pageId] = packUint4x8(uvec4(at.xyz,0));
+  if(pageId>=pageList.length()) {
+    imageStore(pageTbl, at, uvec4(0xFFFFFFFF));
+    return;
+    }
 
+  pageList[pageId] = packUint4x8(uvec4(at.xyz,0));
   imageStore(pageTbl, at, uvec4(pageId,0,0,0));
+#else
+  // debug
+  if(gl_GlobalInvocationID.z!=1) {
+    imageStore(pageTbl, at, uvec4(0xFFFFFFFF));
+    return;
+    }
+
+  const uint page   = packUint4x8(uvec4(at.xyz,0));
+  //const uint pageId = atomicAdd(header.x, 1);
+  const uint pageId = (at.x + at.y*32);
+
+  pageList[pageId] = page;
+  imageStore(pageTbl, at, uvec4(pageId,0,0,0));
+#endif
   }

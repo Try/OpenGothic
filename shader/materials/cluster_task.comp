@@ -19,6 +19,10 @@ layout(binding = 4, std430) buffer IndirectBuf  { IndirectCmd cmd[];         };
 layout(binding = 5, std430) readonly buffer Cbo { Cluster     clusters[];    };
 layout(binding = 6)         uniform sampler2D hiZ;
 
+#if defined(VIRTUAL_SHADOW)
+layout(binding = 7, std430) readonly buffer Pages { uvec4 header; uint  pageList[]; };
+#endif
+
 layout(push_constant, std430) uniform UboPush {
   uint      firstMeshlet;
   int       meshletCount;

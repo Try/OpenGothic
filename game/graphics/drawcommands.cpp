@@ -44,8 +44,11 @@ bool DrawCommands::DrawCmd::isMeshShader() const {
 
 DrawCommands::DrawCommands(VisualObjects& owner, DrawBuckets& buckets, DrawClusters& clusters, const SceneGlobals& scene)
     : owner(owner), buckets(buckets), clusters(clusters), scene(scene) {
+  const bool virtualShadowSys = Gothic::inst().options().doVirtualShadow;
   tasks.clear();
   for(uint8_t v=0; v<SceneGlobals::V_Count; ++v) {
+    if(v==SceneGlobals::V_Vsm && !virtualShadowSys)
+      continue;
     TaskCmd cmd;
     cmd.viewport = SceneGlobals::VisCamera(v);
     tasks.emplace_back(std::move(cmd));
@@ -188,7 +191,7 @@ void DrawCommands::updateTasksUniforms() {
     else if(i.viewport==SceneGlobals::V_HiZ)
       i.desc = device.descriptors(Shaders::inst().clusterTaskHiZCr);
     else if(i.viewport==SceneGlobals::V_Vsm)
-      i.desc = device.descriptors(Shaders::inst().clusterTask);
+      i.desc = device.descriptors(Shaders::inst().clusterTaskVsm);
     else
       i.desc = device.descriptors(Shaders::inst().clusterTask);
     i.desc.set(T_Clusters, clusters.ssbo());
@@ -199,6 +202,8 @@ void DrawCommands::updateTasksUniforms() {
     i.desc.set(T_Instance, owner.instanceSsbo());
     i.desc.set(T_Bucket,   buckets.ssbo());
     i.desc.set(T_HiZ,      *scene.hiZ);
+    if(i.viewport==SceneGlobals::V_Vsm)
+      i.desc.set(T_VsmPages, *scene.vsmPageList);
     }
 
   updateVsmUniforms();
@@ -431,7 +436,7 @@ void DrawCommands::visibilityVsm(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     push.firstMeshlet = 0;
     push.meshletCount = uint32_t(clusters.size());
 
-    auto* pso = &Shaders::inst().clusterTask;
+    auto* pso = &Shaders::inst().clusterTaskVsm;
     cmd.setUniforms(*pso, i.desc, &push, sizeof(push));
     cmd.dispatchThreads(push.meshletCount);
     }

@@ -101,6 +101,7 @@ add_shader(cluster_patch.comp        materials/cluster_patch.comp)
 add_shader(cluster_task.comp         materials/cluster_task.comp)
 add_shader(cluster_task_hiz.comp     materials/cluster_task.comp -DHIZ)
 add_shader(cluster_task_hiz_cr.comp  materials/cluster_task.comp -DHIZ -DLARGE)
+add_shader(cluster_task_vsm.comp     materials/cluster_task.comp -DVIRTUAL_SHADOW)
 
 # mesh & vertex
 add_geom_shader(main_lnd       "-DMESH_TYPE=0" -DFLAT_NORMAL)

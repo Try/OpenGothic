@@ -34,6 +34,7 @@ Shaders::Shaders() {
   clusterTask      = computeShader("cluster_task.comp.sprv");
   clusterTaskHiZ   = computeShader("cluster_task_hiz.comp.sprv");
   clusterTaskHiZCr = computeShader("cluster_task_hiz_cr.comp.sprv");
+  clusterTaskVsm   = computeShader("cluster_task_vsm.comp.sprv");
 
   ssao             = computeShader("ssao.comp.sprv");
   ssaoBlur         = computeShader("ssao_blur.comp.sprv");

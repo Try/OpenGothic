@@ -5,6 +5,7 @@
 #extension GL_EXT_samplerless_texture_functions : enable
 
 #include "scene.glsl"
+#include "common.glsl"
 
 #if defined(GL_COMPUTE_SHADER)
 layout(local_size_x = 8, local_size_y = 8) in;
@@ -24,7 +25,7 @@ const vec3 debugColors[] = {
   };
 
 const int PAGE_SIZE     = 128;
-const int PAGE_TBL_SIZE = 128;
+const int PAGE_TBL_SIZE = 64;
 const int CLIPMAP_SIZE  = PAGE_SIZE * PAGE_TBL_SIZE;
 
 layout(binding  = 0, std140) uniform UboScene {
@@ -37,7 +38,7 @@ layout(binding = 3) uniform texture2D       depth;
 layout(binding = 4, r32ui) uniform uimage3D pageTbl;
 #elif defined(COMPOSE) || defined(DEBUG)
 layout(binding = 4, r32ui) uniform readonly uimage3D pageTbl;
-layout(binding = 5, rgba8) uniform readonly image2D  pageData;
+layout(binding = 5)        uniform texture2D         pageData;
 layout(binding = 6, rgba8) uniform image2D           shadowMask;
 #endif
 
@@ -78,9 +79,14 @@ vec4 shadowTexelFetch(vec2 page, int mip) {
 
   //page-global
   const uint  pageId      = imageLoad(pageTbl, ivec3(pageI, mip)).x;
-  const ivec2 pageImageAt = ivec2(pageId%32, pageId/32)*PAGE_SIZE;
+  if(pageId==0xFFFFFFFF)
+    return vec4(0);
 
-  vec4 img = imageLoad(pageData, pageImageAt+at);
+  //return vec4(0,0,1,1);
+  const ivec2 pageImageAt = ivec2(pageId%32, pageId/32)*PAGE_SIZE + at;
+
+  //return vec4(vec2(pageImageAt)/4096,0,1);
+  vec4 img = texelFetch(pageData, pageImageAt, 0);
   return img;
 #else
   return vec4(0);
@@ -131,12 +137,12 @@ void main() {
 
 #if defined(DEBUG)
   // int  mip   = 0;
-  vec3 color = debugColors[hash(uvec3(pageI,mip)) % debugColors.length()];
+  // vec3 color = debugColors[hash(uvec3(pageI,mip)) % debugColors.length()];
   // vec3 color = debugColors[mip % debugColors.length()];
   // vec3 color = vec3(shPos0, 0);
   // vec3 color = vec3(page, 0);
   // vec3 color = vec3(fract(page*PAGE_TBL_SIZE), 0);
-  // vec4 color = shadowTexelFetch(page, mip);
+  vec4 color = shadowTexelFetch(page, mip);
   outColor = vec4(color.xyz,1);
 #endif
   }

@@ -80,6 +80,7 @@ class DrawCommands {
       T_Indirect = 4,
       T_Clusters = 5,
       T_HiZ      = 6,
+      T_VsmPages = 7,
       };
 
     enum UboLinkpackage : uint8_t {
