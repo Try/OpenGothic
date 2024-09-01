@@ -480,15 +480,15 @@ void Renderer::prepareUniforms() {
   const Texture2d* sh[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
     if(!shadowMap[i].isEmpty()) {
-      sh[i] = &textureCast(shadowMap[i]);
+      sh[i] = &textureCast<const Texture2d&>(shadowMap[i]);
       }
   wview->setShadowMaps(sh);
   wview->setVirtualShadowMap(vsm.pageData, vsm.pageList);
   wview->setSwRenderingImage(swr.outputImage);
 
-  wview->setHiZ(textureCast(hiz.hiZ));
-  wview->setGbuffer(textureCast(gbufDiffuse), textureCast(gbufNormal));
-  wview->setSceneImages(textureCast(sceneOpaque), textureCast(sceneDepth), zbuffer);
+  wview->setHiZ(textureCast<const Texture2d&>(hiz.hiZ));
+  wview->setGbuffer(textureCast<const Texture2d&>(gbufDiffuse), textureCast<const Texture2d&>(gbufNormal));
+  wview->setSceneImages(textureCast<const Texture2d&>(sceneOpaque), textureCast<const Texture2d&>(sceneDepth), zbuffer);
   wview->prepareUniforms();
   }
 
@@ -840,17 +840,16 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   if(!settings.vsmEnabled)
     return;
 
-  const uint32_t numMips = 32;
   cmd.setFramebuffer({});
   cmd.setDebugMarker("VSM-pages");
   cmd.setUniforms(*vsm.pagesClearPso, vsm.uboClear);
-  cmd.dispatchThreads(size_t(vsm.pageTbl.w()), size_t(vsm.pageTbl.h()), numMips);
+  cmd.dispatchThreads(size_t(vsm.pageTbl.w()), size_t(vsm.pageTbl.h()), size_t(vsm.pageTbl.d()));
 
   cmd.setUniforms(*vsm.pagesMarkPso, vsm.uboPages);
   cmd.dispatchThreads(zbuffer.size());
 
   cmd.setUniforms(*vsm.pagesListPso, vsm.uboList);
-  cmd.dispatchThreads(size_t(vsm.pageTbl.w()), size_t(vsm.pageTbl.h()), numMips);
+  cmd.dispatchThreads(size_t(vsm.pageTbl.w()), size_t(vsm.pageTbl.h()), size_t(vsm.pageTbl.d()));
 
   cmd.setDebugMarker("VSM-rendering");
   view.drawVsm(cmd,fId);
@@ -1147,10 +1146,10 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   device.submit(cmd,sync);
   sync.wait();
 
-  auto pm  = device.readPixels(textureCast(normals));
+  auto pm  = device.readPixels(textureCast<const Texture2d&>(normals));
   pm.save("gbufNormal.png");
 
-  pm  = device.readPixels(textureCast(d16));
+  pm  = device.readPixels(textureCast<const Texture2d&>(d16));
   pm.save("zbuffer.hdr");
 
   return img;

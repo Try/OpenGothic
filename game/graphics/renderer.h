@@ -76,7 +76,7 @@ class Renderer final {
     struct Settings {
       const uint32_t shadowResolution   = 2048;
       bool           vsmEnabled         = false;
-      bool           swrEnabled         = true;
+      bool           swrEnabled         = false;
       bool           zEnvMappingEnabled = false;
       bool           zCloudShadowScale  = false;
       bool           giEnabled          = false;

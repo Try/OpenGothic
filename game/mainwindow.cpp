@@ -434,7 +434,7 @@ void MainWindow::keyDownEvent(KeyEvent &event) {
 
   if(event.key==Event::K_F11) {
     auto tex = renderer.screenshoot(cmdId);
-    auto pm  = device.readPixels(textureCast(tex));
+    auto pm  = device.readPixels(textureCast<const Texture2d&>(tex));
     pm.save("dbg.png");
     }
   event.accept();
@@ -1021,14 +1021,14 @@ void MainWindow::loadGame(std::string_view slot) {
 
 void MainWindow::saveGame(std::string_view slot, std::string_view name) {
   auto tex = renderer.screenshoot(cmdId);
-  auto pm  = device.readPixels(textureCast(tex));
+  auto pm  = device.readPixels(textureCast<const Texture2d&>(tex));
 
   if(dialogs.isActive())
     return;
   if(auto w = Gothic::inst().world(); w!=nullptr && w->currentCs()!=nullptr)
     return;
 
-  Gothic::inst().startSave(std::move(textureCast(tex)),[slot=std::string(slot),name=std::string(name),pm](std::unique_ptr<GameSession>&& game){
+  Gothic::inst().startSave(std::move(textureCast<Texture2d&>(tex)),[slot=std::string(slot),name=std::string(name),pm](std::unique_ptr<GameSession>&& game){
     if(!game)
       return std::move(game);
 

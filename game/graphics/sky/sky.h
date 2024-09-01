@@ -2,7 +2,6 @@
 
 #include <Tempest/Matrix4x4>
 #include <Tempest/Texture2d>
-#include <array>
 
 #include "graphics/sceneglobals.h"
 #include "resources.h"

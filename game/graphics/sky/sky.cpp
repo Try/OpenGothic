@@ -516,15 +516,15 @@ void Sky::prepareExposure(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_
   }
 
 const Texture2d& Sky::skyLut() const {
-  return textureCast(viewCldLut);
+  return textureCast<const Texture2d&>(viewCldLut);
   }
 
 const Texture2d& Sky::irradiance() const {
-  return textureCast(irradianceLut);
+  return textureCast<const Texture2d&>(irradianceLut);
   }
 
 const Texture2d& Sky::clearSkyLut() const {
-  return textureCast(viewLut);
+  return textureCast<const Texture2d&>(viewLut);
   }
 
 Vec2 Sky::cloudsOffset(int layer) const {

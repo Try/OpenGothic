@@ -101,7 +101,7 @@ void WorldView::setHiZ(const Tempest::Texture2d& hiZ) {
 void WorldView::setSceneImages(const Tempest::Texture2d& clr, const Tempest::Texture2d& depthAux, const Tempest::ZBuffer& depthNative) {
   sGlobal.sceneColor = &clr;
   sGlobal.sceneDepth = &depthAux;
-  sGlobal.zbuffer    = &textureCast(depthNative);
+  sGlobal.zbuffer    = &textureCast<const Texture2d&>(depthNative);
   }
 
 void WorldView::dbgLights(DbgPainter& p) const {
