@@ -592,8 +592,13 @@ Npc *World::addNpc(size_t npcInstance, std::string_view at) {
   return wobj.addNpc(npcInstance,at);
   }
 
+
 Npc* World::addNpc(size_t itemInstance, const Tempest::Vec3& at) {
   return wobj.addNpc(itemInstance,at);
+  }
+
+void World::removeNpc(size_t npcInstance) {
+  wobj.removeNpcByInstance(npcInstance);
   }
 
 Item *World::addItem(size_t itemInstance, std::string_view at) {
