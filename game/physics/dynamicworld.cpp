@@ -179,9 +179,11 @@ struct DynamicWorld::NpcBodyList final {
     auto  nr   = ln*proj + s;
     auto  dp   = nr      - npc.pos;
     float R    = 0.5f*(npc.rX + npc.rZ) + extR;
+    // TODO: ray-box intersection
+    auto& tr   = npc.getWorldTransform();
     if(dp.x*dp.x+dp.z*dp.z > R*R)
       return false;
-    if(dp.y<0 || npc.h<dp.y)
+    if(dp.y<0 || tr.getOrigin().y()*100.f+npc.h<dp.y)
       return false;
     return true;
     }
@@ -919,6 +921,7 @@ float DynamicWorld::NpcItem::centerY() const {
   if(obj) {
     const btTransform& tr = obj->getWorldTransform();
     return tr.getOrigin().y()*100.f;
+    //return obj->h*0.5f;
     }
   return 0;
   }
