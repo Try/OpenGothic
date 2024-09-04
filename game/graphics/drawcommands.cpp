@@ -76,6 +76,7 @@ uint16_t DrawCommands::commandId(const Material& m, Type type, uint32_t bucketId
 
   auto pMain    = Shaders::inst().materialPipeline(m, type, Shaders::T_Main,   bindless);
   auto pShadow  = Shaders::inst().materialPipeline(m, type, Shaders::T_Shadow, bindless);
+  auto pVsm     = Shaders::inst().materialPipeline(m, type, Shaders::T_Vsm,    bindless);
   auto pHiZ     = Shaders::inst().materialPipeline(m, type, Shaders::T_Depth,  bindless);
   if(pMain==nullptr && pShadow==nullptr && pHiZ==nullptr)
     return uint16_t(-1);
@@ -94,6 +95,7 @@ uint16_t DrawCommands::commandId(const Material& m, Type type, uint32_t bucketId
   DrawCmd cx;
   cx.pMain       = pMain;
   cx.pShadow     = pShadow;
+  cx.pVsm        = pVsm;
   cx.pHiZ        = pHiZ;
   cx.bucketId    = bindless ? 0xFFFFFFFF : bucketId;
   cx.type        = type;
@@ -108,8 +110,8 @@ uint16_t DrawCommands::commandId(const Material& m, Type type, uint32_t bucketId
       desc[SceneGlobals::V_Shadow0] = device.descriptors(*cx.pShadow);
       desc[SceneGlobals::V_Shadow1] = device.descriptors(*cx.pShadow);
       }
-    if(cx.pShadow!=nullptr) {
-      desc[SceneGlobals::V_Vsm] = device.descriptors(*cx.pShadow);
+    if(cx.pVsm!=nullptr) {
+      desc[SceneGlobals::V_Vsm] = device.descriptors(*cx.pVsm);
       }
     if(cx.pHiZ!=nullptr) {
       desc[SceneGlobals::V_HiZ] = device.descriptors(*cx.pHiZ);
@@ -176,12 +178,22 @@ bool DrawCommands::commit() {
       continue;
 
     if(visChg) {
+      const size_t vsmMax = 1024*1024*4*4; // arbitrary: ~1k clusters per page
+      const size_t size   = v.viewport==SceneGlobals::V_Vsm ? vsmMax : visClustersSz;
       Resources::recycle(std::move(v.visClusters));
-      v.visClusters = device.ssbo(nullptr, visClustersSz);
+      v.visClusters = device.ssbo(nullptr, size);
+      }
+    if(visChg && v.viewport==SceneGlobals::V_Vsm) {
+      v.vsmClusters = device.ssbo(nullptr, v.visClusters.byteSize());
       }
     if(cmdChg) {
       Resources::recycle(std::move(v.indirectCmd));
       v.indirectCmd = device.ssbo(cx.data(), sizeof(IndirectCmd)*cx.size());
+      }
+
+    if(cmdChg) {
+      Resources::recycle(std::move(v.pkgOffsets));
+      v.pkgOffsets  = device.ssbo(nullptr, sizeof(uint32_t)*cx.size());
       }
 
     Resources::recycle(std::move(v.descInit));
@@ -216,8 +228,22 @@ void DrawCommands::updateTasksUniforms() {
     i.desc.set(T_Instance, owner.instanceSsbo());
     i.desc.set(T_Bucket,   buckets.ssbo());
     i.desc.set(T_HiZ,      *scene.hiZ);
-    if(i.viewport==SceneGlobals::V_Vsm)
+    if(i.viewport==SceneGlobals::V_Vsm) {
+      i.desc.set(T_Payload,  views[i.viewport].vsmClusters);
       i.desc.set(T_VsmPages, *scene.vsmPageList);
+      // i.desc.set(T_PkgOffsets, views[i.viewport].pkgOffsets);
+      }
+    }
+  for(auto& v:views) {
+    if(v.viewport!=SceneGlobals::V_Vsm)
+      continue;
+    Resources::recycle(std::move(v.descPackDraw));
+    v.descPackDraw = device.descriptors(Shaders::inst().vsmPackDraw0);
+    v.descPackDraw.set(1, v.vsmClusters);
+    v.descPackDraw.set(2, v.visClusters);
+    v.descPackDraw.set(3, v.indirectCmd);
+    v.descPackDraw.set(4, *scene.vsmPageList);
+    v.descPackDraw.set(5, v.pkgOffsets);
     }
 
   updateVsmUniforms();
@@ -297,6 +323,10 @@ void DrawCommands::updateCommandUniforms() {
           smp.setClamping(ClampMode::MirroredRepeat);
           desc[v].set(L_GDepth, *scene.sceneDepth, smp);
           }
+
+        if(v==SceneGlobals::V_Vsm) {
+          desc[v].set(L_CmdOffsets, views[v].pkgOffsets);
+          }
         }
 
       if(cx.isBindless())
@@ -308,7 +338,7 @@ void DrawCommands::updateCommandUniforms() {
   }
 
 void DrawCommands::updateVsmUniforms() {
-  if(!Gothic::inst().options().doVirtualShadow && Gothic::options().swRenderingPreset==0)
+  if(Gothic::options().swRenderingPreset==0)
     return;
 
   if(scene.swMainImage==nullptr)
@@ -333,19 +363,6 @@ void DrawCommands::updateVsmUniforms() {
       morphId.push_back(nullptr);
       morph  .push_back(nullptr);
       }
-    }
-
-  if(Gothic::inst().options().doVirtualShadow) {
-    Resources::recycle(std::move(vsmDesc));
-    vsmDesc = device.descriptors(Shaders::inst().vsmRendering);
-    vsmDesc.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    vsmDesc.set(1, *scene.vsmPageList);
-    vsmDesc.set(2, *scene.vsmPageData);
-    vsmDesc.set(3, clusters.ssbo());
-    vsmDesc.set(4, ibo);
-    vsmDesc.set(5, vbo);
-    vsmDesc.set(6, tex);
-    vsmDesc.set(7, Sampler::bilinear());
     }
 
   const uint32_t preset = Gothic::options().swRenderingPreset;
@@ -456,11 +473,17 @@ void DrawCommands::visibilityVsm(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     cmd.setUniforms(*pso, i.desc, &push, sizeof(push));
     cmd.dispatchThreads(push.meshletCount);
     }
+
+  cmd.setUniforms(Shaders::inst().vsmPackDraw0, views[SceneGlobals::V_Vsm].descPackDraw);
+  cmd.dispatch(1);
+
+  cmd.setUniforms(Shaders::inst().vsmPackDraw1, views[SceneGlobals::V_Vsm].descPackDraw);
+  cmd.dispatch(2000); // TODO: indirect
   }
 
 void DrawCommands::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   // return;
-  struct Push { uint32_t firstMeshlet; uint32_t meshletCount; } push = {};
+  struct Push { uint32_t commandId; } push = {};
 
   auto       viewId = SceneGlobals::V_Vsm;
   auto&      view   = views[viewId];
@@ -475,10 +498,9 @@ void DrawCommands::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
       continue;
 
     auto id  = size_t(std::distance(this->cmd.data(), &cx));
-    push.firstMeshlet = cx.firstPayload;
-    push.meshletCount = cx.maxPayload;
+    push.commandId = uint32_t(id);
 
-    cmd.setUniforms(*cx.pShadow, desc[viewId], &push, sizeof(push));
+    cmd.setUniforms(*cx.pVsm, desc[viewId], &push, sizeof(push));
     if(cx.isMeshShader())
       cmd.dispatchMeshIndirect(view.indirectCmd, sizeof(IndirectCmd)*id + sizeof(uint32_t)); else
       cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);

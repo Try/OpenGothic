@@ -25,6 +25,7 @@ class DrawCommands {
     struct DrawCmd {
       const Tempest::RenderPipeline* pMain        = nullptr;
       const Tempest::RenderPipeline* pShadow      = nullptr;
+      const Tempest::RenderPipeline* pVsm         = nullptr;
       const Tempest::RenderPipeline* pHiZ         = nullptr;
       Type                           type         = Type::Landscape;
 
@@ -73,32 +74,34 @@ class DrawCommands {
 
   private:
     enum TaskLinkpackage : uint8_t {
-      T_Scene    = 0,
-      T_Payload  = 1,
-      T_Instance = 2,
-      T_Bucket   = 3,
-      T_Indirect = 4,
-      T_Clusters = 5,
-      T_HiZ      = 6,
-      T_VsmPages = 7,
+      T_Scene      = 0,
+      T_Payload    = 1,
+      T_Instance   = 2,
+      T_Bucket     = 3,
+      T_Indirect   = 4,
+      T_Clusters   = 5,
+      T_HiZ        = 6,
+      T_VsmPages   = 7,
+      T_CmdOffsets = 8,
       };
 
     enum UboLinkpackage : uint8_t {
-      L_Scene    = 0,
-      L_Payload  = 1,
-      L_Instance = 2,
-      L_Pfx      = L_Instance,
-      L_Bucket   = 3,
-      L_Ibo      = 4,
-      L_Vbo      = 5,
-      L_Diffuse  = 6,
-      L_Sampler  = 7,
-      L_Shadow0  = 8,
-      L_Shadow1  = 9,
-      L_MorphId  = 10,
-      L_Morph    = 11,
-      L_SceneClr = 12,
-      L_GDepth   = 13,
+      L_Scene      = 0,
+      L_Payload    = 1,
+      L_Instance   = 2,
+      L_Pfx        = L_Instance,
+      L_Bucket     = 3,
+      L_Ibo        = 4,
+      L_Vbo        = 5,
+      L_Diffuse    = 6,
+      L_Sampler    = 7,
+      L_Shadow0    = 8,
+      L_Shadow1    = 9,
+      L_MorphId    = 10,
+      L_Morph      = 11,
+      L_SceneClr   = 12,
+      L_GDepth     = 13,
+      L_CmdOffsets = 14,
       };
 
     struct IndirectCmd {
@@ -118,6 +121,10 @@ class DrawCommands {
       SceneGlobals::VisCamera viewport = SceneGlobals::V_Main;
       Tempest::DescriptorSet  descInit;
       Tempest::StorageBuffer  visClusters, indirectCmd;
+
+      Tempest::DescriptorSet  descPackDraw;
+      Tempest::StorageBuffer  pkgOffsets, vsmClusters;
+
       bool                    isEnabled() const;
       };
 
@@ -132,7 +139,6 @@ class DrawCommands {
     std::vector<TaskCmd>     tasks;
     std::vector<DrawCmd>     cmd;
     std::vector<DrawCmd*>    ord;
-    Tempest::DescriptorSet   vsmDesc;
     Tempest::DescriptorSet   swrDesc;
     bool                     cmdDurtyBit = false;
 

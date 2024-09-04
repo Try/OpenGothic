@@ -46,21 +46,22 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
 #define T_MORPH     3
 #define T_PFX       4
 
-const uint L_Scene    = 0;
-const uint L_Payload  = 1;
-const uint L_Instance = 2;
-const uint L_Pfx      = L_Instance;
-const uint L_Bucket   = 3;
-const uint L_Ibo      = 4;
-const uint L_Vbo      = 5;
-const uint L_Diffuse  = 6;
-const uint L_Sampler  = 7;
-const uint L_Shadow0  = 8;
-const uint L_Shadow1  = 9;
-const uint L_MorphId  = 10;
-const uint L_Morph    = 11;
-const uint L_SceneClr = 12;
-const uint L_GDepth   = 13;
+const uint L_Scene      = 0;
+const uint L_Payload    = 1;
+const uint L_Instance   = 2;
+const uint L_Pfx        = L_Instance;
+const uint L_Bucket     = 3;
+const uint L_Ibo        = 4;
+const uint L_Vbo        = 5;
+const uint L_Diffuse    = 6;
+const uint L_Sampler    = 7;
+const uint L_Shadow0    = 8;
+const uint L_Shadow1    = 9;
+const uint L_MorphId    = 10;
+const uint L_Morph      = 11;
+const uint L_SceneClr   = 12;
+const uint L_GDepth     = 13;
+const uint L_CmdOffsets = 14;
 
 #ifndef MESH_TYPE
 #define MESH_TYPE 255
@@ -192,6 +193,10 @@ layout(binding = L_Shadow1)          uniform sampler2D textureSm1;
 #if defined(GL_FRAGMENT_SHADER) && (defined(WATER) || defined(GHOST))
 layout(binding = L_SceneClr)         uniform sampler2D sceneColor;
 layout(binding = L_GDepth  )         uniform sampler2D gbufferDepth;
+#endif
+
+#if defined(VIRTUAL_SHADOW)
+layout(binding = L_CmdOffsets, std430) readonly buffer Offsets { uint cmdOffsets[]; };
 #endif
 
 #if !defined(CLUSTER) && (MESH_TYPE!=T_PFX)

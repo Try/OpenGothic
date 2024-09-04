@@ -197,9 +197,6 @@ void Renderer::resetSwapchain() {
     vsm.pagesListPso    = &Shaders::inst().vsmListPages;
     vsm.uboList         = device.descriptors(*vsm.pagesListPso);
 
-    vsm.pagesComposePso = &Shaders::inst().vsmComposePso;
-    vsm.uboCompose      = device.descriptors(*vsm.pagesComposePso);
-
     vsm.pagesDbgPso     = &Shaders::inst().vsmDbg;
     vsm.uboDbg          = device.descriptors(*vsm.pagesDbgPso);
 
@@ -460,14 +457,6 @@ void Renderer::prepareUniforms() {
 
     vsm.uboList.set(0, vsm.pageList);
     vsm.uboList.set(1, vsm.pageTbl);
-
-    vsm.uboCompose.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    vsm.uboCompose.set(1, gbufDiffuse, Sampler::nearest());
-    vsm.uboCompose.set(2, gbufNormal,  Sampler::nearest());
-    vsm.uboCompose.set(3, zbuffer,     Sampler::nearest());
-    vsm.uboCompose.set(4, vsm.pageTbl);
-    vsm.uboCompose.set(5, vsm.pageDataZ);
-    vsm.uboCompose.set(6, vsm.shadowMask);
 
     vsm.uboDbg.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     vsm.uboDbg.set(1, gbufDiffuse, Sampler::nearest());
@@ -869,10 +858,10 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.setFramebuffer({}, {vsm.pageDataZ, 0.f, Tempest::Preserve});
   view.drawVsm(cmd,fId);
 
-  cmd.setDebugMarker("VSM-compose");
-  cmd.setFramebuffer({});
-  cmd.setUniforms(*vsm.pagesComposePso, vsm.uboCompose);
-  cmd.dispatchThreads(zbuffer.size());
+  //cmd.setDebugMarker("VSM-compose");
+  //cmd.setFramebuffer({});
+  //cmd.setUniforms(*vsm.pagesComposePso, vsm.uboCompose);
+  //cmd.dispatchThreads(zbuffer.size());
   }
 
 void Renderer::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {

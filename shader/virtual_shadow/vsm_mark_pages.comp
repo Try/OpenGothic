@@ -93,14 +93,23 @@ vec4 shadowTexelFetch(vec2 page, int mip) {
 #endif
   }
 
+void markPage(ivec2 pageI, int mip){
+#if defined(MARK_PAGES)
+  //imageAtomicAdd(pageTbl, ivec3(pageI, mip), 1u);
+  imageStore(pageTbl, ivec3(pageI, mip), uvec4(1u));
+#endif
+  }
+
 void main() {
 #if defined(DEBUG)
   outColor = vec4(0,0,0, 1);
 #endif
 
   const ivec2 size = textureSize(depth, 0);
+#if defined(GL_COMPUTE_SHADER)
   if(any(greaterThanEqual(pixelPos, size)))
     return;
+#endif
 
   const float z = texelFetch(depth, pixelPos, 0).x;
   if(z==1)
@@ -112,8 +121,9 @@ void main() {
 
   float dX     = length(shPos1 - shPos0)*CLIPMAP_SIZE;
   float dY     = length(shPos2 - shPos0)*CLIPMAP_SIZE;
+  float dXY    = (dX + dY)*0.5;
 
-  int   mip    = int(clamp(log2((dX + dY)*0.5), 0, 32)); // ~7 mips
+  int   mip    = int(clamp(log2(dXY), 0, 32)); // ~7 mips
   vec2  page   = shPos0.xy / (1<<mip);
   while(abs(page.x)>=1 || abs(page.y)>=1) {
     page /= 2;
@@ -124,10 +134,7 @@ void main() {
 
   ivec2 pageI = ivec2((page*0.5+0.5)*PAGE_TBL_SIZE);
 #if defined(MARK_PAGES)
-  {
-    // imageAtomicAdd(pageTbl, ivec3(page, mip), 1u);
-    imageStore(pageTbl, ivec3(pageI, mip), uvec4(1u));
-  }
+  markPage(pageI, mip);
 #elif defined(COMPOSE)
   {
     vec4 img = shadowTexelFetch(page, mip);
@@ -137,12 +144,12 @@ void main() {
 
 #if defined(DEBUG)
   // int  mip   = 0;
-  // vec3 color = debugColors[hash(uvec3(pageI,mip)) % debugColors.length()];
+  vec3 color = debugColors[hash(uvec3(pageI,mip)) % debugColors.length()];
   // vec3 color = debugColors[mip % debugColors.length()];
   // vec3 color = vec3(shPos0, 0);
   // vec3 color = vec3(page, 0);
   // vec3 color = vec3(fract(page*PAGE_TBL_SIZE), 0);
-  vec4 color = shadowTexelFetch(page, mip);
+  // vec4 color = shadowTexelFetch(page, mip);
   outColor = vec4(color.xyz,1);
 #endif
   }

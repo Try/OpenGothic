@@ -196,12 +196,14 @@ Shaders::Shaders() {
     }
 
   if(Gothic::options().doVirtualShadow) {
-    vsmClear      = computeShader("vsm_clear.comp.sprv");
-    vsmMarkPages  = computeShader("vsm_mark_pages.comp.sprv");
-    vsmListPages  = computeShader("vsm_list_pages.comp.sprv");
-    vsmRendering  = computeShader("vsm_rendering.comp.sprv");
-    vsmComposePso = computeShader("vsm_compose.comp.sprv");
-    vsmDbg        = postEffect("copy", "vsm_dbg", RenderState::ZTestMode::Always);
+    vsmClear     = computeShader("vsm_clear.comp.sprv");
+    vsmMarkPages = computeShader("vsm_mark_pages.comp.sprv");
+    vsmListPages = computeShader("vsm_list_pages.comp.sprv");
+    vsmPackDraw0 = computeShader("vsm_pack_draws0.comp.sprv");
+    vsmPackDraw1 = computeShader("vsm_pack_draws1.comp.sprv");
+    vsmDbg       = postEffect("copy", "vsm_dbg", RenderState::ZTestMode::Always);
+    // vsmRendering  = computeShader("vsm_rendering.comp.sprv");
+    // vsmComposePso  = computeShader("vsm_compose.comp.sprv");
     }
 
   if(Gothic::options().swRenderingPreset>0) {
@@ -266,7 +268,7 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
   state.setZTestMode   (RenderState::ZTestMode::LEqual);
   //state.setZTestMode   (RenderState::ZTestMode::Less);
 
-  if(pt==PipelineType::T_Shadow) {
+  if(pt==PipelineType::T_Shadow || pt==PipelineType::T_Vsm) {
     state.setZTestMode(RenderState::ZTestMode::Greater); //FIXME
     }
 
@@ -332,8 +334,10 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
 
   const char* typeVsM = nullptr;
   const char* typeVsD = nullptr;
+  const char* typeVsV = nullptr;
   const char* typeFsM = nullptr;
   const char* typeFsD = nullptr;
+  const char* typeFsV = nullptr;
 
   switch(alpha) {
     case Material::Solid:
@@ -341,6 +345,8 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
       typeFsM = "_g";
       typeVsD = "_d";
       typeFsD = "_d";
+      typeVsV = "_v";
+      typeFsV = "_v";
       if(trivial)
         typeFsM = "_g_s";
       break;
@@ -349,6 +355,8 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
       typeFsM = "_g_at";
       typeVsD = "_d_at";
       typeFsD = "_d_at";
+      typeVsV = "_v_at";
+      typeFsV = "_v_at";
       break;
     case Material::Transparent:
       typeVsM = "_f";
@@ -380,6 +388,10 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
     case T_Depth:
       typeVs = typeVsD;
       typeFs = typeFsD;
+      break;
+    case T_Vsm:
+      typeVs = typeVsV;
+      typeFs = typeFsV;
       break;
     case T_Main:
       typeVs = typeVsM;

@@ -13,10 +13,16 @@ layout(local_size_x = 64) in;
 layout(triangles, max_vertices = MaxVert, max_primitives = MaxPrim) out;
 #endif
 
+#if defined(VIRTUAL_SHADOW)
+layout(push_constant, std430) uniform Push {
+  uint      commandId;
+  } push;
+#else
 layout(push_constant, std430) uniform Push {
   uint      firstMeshlet;
   int       meshletCount;
   } push;
+#endif
 
 #if defined(GL_VERTEX_SHADER)
 out gl_PerVertex {
@@ -174,7 +180,13 @@ void main() {
   const uint workIndex = gl_WorkGroupID.x;
 #endif
 
-  const uvec4 task     = payload[workIndex + push.firstMeshlet];
+#if defined(VIRTUAL_SHADOW)
+  const uint firstMeshlet = cmdOffsets[push.commandId];
+#else
+  const uint firstMeshlet = push.firstMeshlet;
+#endif
+
+  const uvec4 task     = payload[workIndex + firstMeshlet];
 
 #if defined(GL_VERTEX_SHADER)
   vertexShader(task);

@@ -108,21 +108,29 @@ add_geom_shader(main_lnd       "-DMESH_TYPE=0" -DFLAT_NORMAL)
 add_geom_shader(main_lnd_f     "-DMESH_TYPE=0" -DFLAT_NORMAL -DFORWARD)
 add_geom_shader(main_lnd_d     "-DMESH_TYPE=0" -DFLAT_NORMAL -DDEPTH_ONLY)
 add_geom_shader(main_lnd_d_at  "-DMESH_TYPE=0" -DFLAT_NORMAL -DDEPTH_ONLY -DATEST)
+add_geom_shader(main_lnd_v     "-DMESH_TYPE=0" -DFLAT_NORMAL -DEPTH_ONLY -DVIRTUAL_SHADOW)
+add_geom_shader(main_lnd_v_at  "-DMESH_TYPE=0" -DFLAT_NORMAL -DEPTH_ONLY -DVIRTUAL_SHADOW -DATEST)
 
 add_geom_shader(main_obj       "-DMESH_TYPE=1")
 add_geom_shader(main_obj_f     "-DMESH_TYPE=1" -DFORWARD)
 add_geom_shader(main_obj_d     "-DMESH_TYPE=1" -DDEPTH_ONLY)
 add_geom_shader(main_obj_d_at  "-DMESH_TYPE=1" -DDEPTH_ONLY -DATEST)
+add_geom_shader(main_obj_v     "-DMESH_TYPE=1" -DDEPTH_ONLY -DVIRTUAL_SHADOW)
+add_geom_shader(main_obj_v_at  "-DMESH_TYPE=1" -DDEPTH_ONLY -DVIRTUAL_SHADOW -DATEST)
 
 add_geom_shader(main_ani       "-DMESH_TYPE=2")
 add_geom_shader(main_ani_f     "-DMESH_TYPE=2" -DFORWARD)
 add_geom_shader(main_ani_d     "-DMESH_TYPE=2" -DDEPTH_ONLY)
 add_geom_shader(main_ani_d_at  "-DMESH_TYPE=2" -DDEPTH_ONLY -DATEST)
+add_geom_shader(main_ani_v     "-DMESH_TYPE=2" -DDEPTH_ONLY -DVIRTUAL_SHADOW)
+add_geom_shader(main_ani_v_at  "-DMESH_TYPE=2" -DDEPTH_ONLY -DVIRTUAL_SHADOW -DATEST)
 
 add_geom_shader(main_mph       "-DMESH_TYPE=3")
 add_geom_shader(main_mph_f     "-DMESH_TYPE=3" -DFORWARD)
 add_geom_shader(main_mph_d     "-DMESH_TYPE=3" -DDEPTH_ONLY)
 add_geom_shader(main_mph_d_at  "-DMESH_TYPE=3" -DDEPTH_ONLY -DATEST)
+add_geom_shader(main_mph_v     "-DMESH_TYPE=3" -DDEPTH_ONLY -DVIRTUAL_SHADOW)
+add_geom_shader(main_mph_v_at  "-DMESH_TYPE=3" -DDEPTH_ONLY -DVIRTUAL_SHADOW -DATEST)
 
 # tesselation
 add_shader(main_lnd_f_slot.tesc      materials/main.tesc  "-DMESH_TYPE=0" -DWATER)
@@ -141,6 +149,8 @@ add_frag_shader(main_lnd_x     -DFLAT_NORMAL -DGHOST)
 add_frag_shader(main_lnd_w     -DFLAT_NORMAL -DWATER)
 add_frag_shader(main_lnd_d     -DFLAT_NORMAL -DDEPTH_ONLY)
 add_frag_shader(main_lnd_d_at  -DFLAT_NORMAL -DDEPTH_ONLY -DATEST)
+add_frag_shader(main_lnd_v     -DFLAT_NORMAL -DDEPTH_ONLY -DVIRTUAL_SHADOW)
+add_frag_shader(main_lnd_v_at  -DFLAT_NORMAL -DDEPTH_ONLY -DVIRTUAL_SHADOW -DATEST)
 
 # materials objects
 add_frag_shader(main_obj_g     -DGBUFFER)
@@ -151,12 +161,16 @@ add_frag_shader(main_obj_w     -DWATER)
 add_frag_shader(main_obj_x     -DGHOST)
 add_frag_shader(main_obj_d     -DDEPTH_ONLY)
 add_frag_shader(main_obj_d_at  -DDEPTH_ONLY -DATEST)
+add_frag_shader(main_obj_v     -DDEPTH_ONLY -DVIRTUAL_SHADOW)
+add_frag_shader(main_obj_v_at  -DDEPTH_ONLY -DVIRTUAL_SHADOW -DATEST)
 
 # pfx geometry
 add_shader(main_pfx.vert       materials/pfx.vert   -DVT_COLOR)
 add_shader(main_pfx_f.vert     materials/pfx.vert   -DFORWARD    -DVT_COLOR)
 add_shader(main_pfx_d.vert     materials/pfx.vert   -DDEPTH_ONLY -DVT_COLOR)
 add_shader(main_pfx_d_at.vert  materials/pfx.vert   -DDEPTH_ONLY -DVT_COLOR -DATEST)
+add_shader(main_pfx_v.vert     materials/pfx.vert   -DDEPTH_ONLY -DVIRTUAL_SHADOW -DVT_COLOR)
+add_shader(main_pfx_v_at.vert  materials/pfx.vert   -DDEPTH_ONLY -DVIRTUAL_SHADOW -DVT_COLOR -DATEST)
 # materials pfx
 add_shader(main_pfx_g.frag     materials/main.frag  "-DMESH_TYPE=4" -DGBUFFER    -DVT_COLOR)
 add_shader(main_pfx_g_at.frag  materials/main.frag  "-DMESH_TYPE=4" -DGBUFFER    -DVT_COLOR -DATEST)
@@ -168,6 +182,8 @@ add_shader(main_pfx_x.frag     materials/main.frag  "-DMESH_TYPE=4" -DGHOST     
 add_shader(main_pfx_x_at.frag  materials/main.frag  "-DMESH_TYPE=4" -DGHOST      -DVT_COLOR -DATEST)
 add_shader(main_pfx_d.frag     materials/main.frag  "-DMESH_TYPE=4" -DDEPTH_ONLY -DVT_COLOR)
 add_shader(main_pfx_d_at.frag  materials/main.frag  "-DMESH_TYPE=4" -DDEPTH_ONLY -DVT_COLOR -DATEST)
+add_shader(main_pfx_v.frag     materials/main.frag  "-DMESH_TYPE=4" -DDEPTH_ONLY -DVIRTUAL_SHADOW -DVT_COLOR)
+add_shader(main_pfx_v_at.frag  materials/main.frag  "-DMESH_TYPE=4" -DDEPTH_ONLY -DVIRTUAL_SHADOW -DVT_COLOR -DATEST)
 
 
 add_shader(item.vert                 inventory/item.vert)
@@ -288,6 +304,9 @@ add_shader(vsm_mark_pages.comp  virtual_shadow/vsm_mark_pages.comp -DMARK_PAGES)
 add_shader(vsm_compose.comp     virtual_shadow/vsm_mark_pages.comp -DCOMPOSE)
 add_shader(vsm_dbg.frag         virtual_shadow/vsm_mark_pages.comp -DDEBUG -S frag)
 add_shader(vsm_list_pages.comp  virtual_shadow/vsm_list_pages.comp)
+add_shader(vsm_pack_draws0.comp virtual_shadow/vsm_pack_draws.comp -DPASS0)
+add_shader(vsm_pack_draws1.comp virtual_shadow/vsm_pack_draws.comp -DPASS1)
+
 add_shader(vsm_rendering.comp   virtual_shadow/vsm_rendering.comp)
 
 # software rendering

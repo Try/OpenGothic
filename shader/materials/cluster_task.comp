@@ -20,7 +20,7 @@ layout(binding = 5, std430) readonly buffer Cbo { Cluster     clusters[];    };
 layout(binding = 6)         uniform sampler2D hiZ;
 
 #if defined(VIRTUAL_SHADOW)
-layout(binding = 7, std430) readonly buffer Pages { uvec4 header; uint  pageList[]; };
+layout(binding = 7, std430) buffer Pages        { uvec4 header; uint  pageList[]; } vsm;
 #endif
 
 layout(push_constant, std430) uniform UboPush {
@@ -211,11 +211,20 @@ void runCluster(const uint clusterId) {
   const uint instanceId = cluster.instanceId;
   const uint meshletId  = cluster.firstMeshlet;
 
+#if 1 && defined(VIRTUAL_SHADOW)
+  for(uint r=0; r<1 && r<vsm.header.x; ++r) {
+    const uint page = vsm.pageList[r];
+    const uint at   = atomicAdd(vsm.header.w, cluster.meshletCount);
+    for(int i=0; i<cluster.meshletCount; ++i)
+      payload[at+i] = uvec4(instanceId, meshletId+i, cluster.bucketId_commandId, page);
+    atomicAdd(cmd[commandId].instanceCount, cluster.meshletCount);
+    }
+#else
   uint writeOffset = cmd[commandId].writeOffset;
   writeOffset      += atomicAdd(cmd[commandId].instanceCount, cluster.meshletCount);
-
   for(int i=0; i<cluster.meshletCount; ++i)
     payload[writeOffset+i] = uvec4(instanceId, meshletId+i, bucketId, 0);
+#endif
   }
 
 void main() {

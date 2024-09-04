@@ -17,6 +17,7 @@ class Shaders {
     enum PipelineType: uint8_t {
       T_Depth,
       T_Shadow,
+      T_Vsm,
       T_Main,
       };
 
@@ -74,8 +75,9 @@ class Shaders {
     Tempest::RenderPipeline  probeAmbient;
 
     // Virtual shadow
-    Tempest::ComputePipeline vsmClear, vsmMarkPages, vsmListPages, vsmComposePso;
-    Tempest::ComputePipeline vsmRendering;
+    Tempest::ComputePipeline vsmClear, vsmMarkPages, vsmListPages;
+    Tempest::ComputePipeline vsmPackDraw0, vsmPackDraw1;
+    // Tempest::ComputePipeline vsmComposePso, vsmRendering;
     Tempest::RenderPipeline  vsmDbg;
 
     // Software rendering

@@ -1,0 +1,75 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+
+#define CLUSTER 1
+
+#include "materials/materials_common.glsl"
+#include "scene.glsl"
+
+layout(local_size_x = 128) in; // NOTE: bigger == better
+
+layout(binding = 1, std430) buffer SsboGlob     { uvec4       payload[];      };
+layout(binding = 2, std430) buffer SsboDst      { uvec4       dstPayload[];   };
+layout(binding = 3, std430) buffer IndirectBuf  { IndirectCmd cmd[];          };
+layout(binding = 4, std430) buffer Pages        { uvec4       header; uint pageList[]; } vsm;
+layout(binding = 5, std430) buffer Offsets      { uint        cmdOff[];       };
+
+shared uint partialSumm[gl_WorkGroupSize.x];
+
+void mainCmd() {
+  const uint index = gl_LocalInvocationID.x;
+  const uint len   = cmd.length();
+  const uint b     = ((index+0)*len)/gl_WorkGroupSize.x;
+  const uint e     = ((index+1)*len)/gl_WorkGroupSize.x;
+
+  uint sum = 0;
+  for(uint i=b; i<e; ++i) {
+    sum += cmd[i].instanceCount;
+    }
+  partialSumm[index] = sum;
+  barrier();
+
+  uint prefix = 0;
+  for(uint i=0; i<index; ++i) {
+    prefix += partialSumm[i];
+    }
+  barrier();
+
+  for(uint i=b; i<e; ++i) {
+    uint sx = prefix;
+    prefix += cmd[i].instanceCount;
+    cmdOff[i] = sx;
+
+    cmd[i].instanceCount = 0;
+    }
+  }
+
+void mainClusters() {
+  uint index = gl_GlobalInvocationID.x;
+  if(index>=vsm.header.w)
+    return;
+
+  const uvec4 cluster    = payload[index];
+  const uint  instanceId = cluster.x;
+  const uint  meshletId  = cluster.y;
+  const uint  commandId  = cluster.z & 0xFFFF;
+  const uint  bucketId   = cluster.z >> 16;
+  const uint  pageId     = cluster.w;
+
+  uint writeOffset = cmdOff[commandId];
+  uint at          = atomicAdd(cmd[commandId].instanceCount, 1);
+  dstPayload[writeOffset + at] = uvec4(instanceId, meshletId, bucketId, pageId);
+  //dstPayload[writeOffset + at] = uvec4(index+1);
+  }
+
+void main() {
+#if defined(PASS0)
+  mainCmd();
+#elif defined(PASS1)
+  mainClusters();
+#else
+#error "invalid pass-id"
+#endif
+  }
