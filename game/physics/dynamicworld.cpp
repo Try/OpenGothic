@@ -176,14 +176,16 @@ struct DynamicWorld::NpcBodyList final {
     proj = dot/(lenL<=0 ? 1.f : (lenL*lenL));
     proj = std::max(0.f,std::min(proj,1.f));
 
-    auto  nr   = ln*proj + s;
-    auto  dp   = nr      - npc.pos;
-    float R    = 0.5f*(npc.rX + npc.rZ) + extR;
     // TODO: ray-box intersection
     auto& tr   = npc.getWorldTransform();
+    auto  pos  = CollisionWorld::toCentimeters(tr.getOrigin());
+
+    auto  nr   = ln*proj + s;
+    auto  dp   = nr      - pos;
+    float R    = 0.5f*(npc.rX + npc.rZ) + extR;
     if(dp.x*dp.x+dp.z*dp.z > R*R)
       return false;
-    if(dp.y<0 || tr.getOrigin().y()*100.f+npc.h<dp.y)
+    if(npc.h<abs(dp.y))
       return false;
     return true;
     }
