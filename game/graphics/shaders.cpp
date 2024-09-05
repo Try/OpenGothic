@@ -203,7 +203,6 @@ Shaders::Shaders() {
     vsmPackDraw1 = computeShader("vsm_pack_draws1.comp.sprv");
     vsmDbg       = postEffect("copy", "vsm_dbg", RenderState::ZTestMode::Always);
     // vsmRendering  = computeShader("vsm_rendering.comp.sprv");
-    // vsmComposePso  = computeShader("vsm_compose.comp.sprv");
     }
 
   if(Gothic::options().swRenderingPreset>0) {

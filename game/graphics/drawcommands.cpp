@@ -326,6 +326,7 @@ void DrawCommands::updateCommandUniforms() {
 
         if(v==SceneGlobals::V_Vsm) {
           desc[v].set(L_CmdOffsets, views[v].pkgOffsets);
+          desc[v].set(L_VsmPages,   *scene.vsmPageList);
           }
         }
 

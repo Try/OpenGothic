@@ -62,6 +62,7 @@ const uint L_Morph      = 11;
 const uint L_SceneClr   = 12;
 const uint L_GDepth     = 13;
 const uint L_CmdOffsets = 14;
+const uint L_VsmPages   = 15;
 
 #ifndef MESH_TYPE
 #define MESH_TYPE 255
@@ -80,7 +81,7 @@ const uint L_CmdOffsets = 14;
 #define MAT_NORMAL 1
 #endif
 
-#if defined(FLAT_NORMAL) || defined(FORWARD) || defined(WATER)
+#if (defined(FLAT_NORMAL) && !defined(DEPTH_ONLY)) || defined(FORWARD) || defined(WATER)
 #define MAT_POSITION 1
 #endif
 
@@ -90,6 +91,10 @@ const uint L_CmdOffsets = 14;
 
 #if defined(MAT_UV) || defined(MAT_NORMAL) || defined(MAT_POSITION) || defined(MAT_COLOR)
 #define MAT_VARYINGS 1
+#endif
+
+#if defined(DEPTH_ONLY) && defined(MAT_NORMAL)
+#error "normals are not intended to be in use by depth-only pass"
 #endif
 
 struct Varyings {
@@ -195,8 +200,9 @@ layout(binding = L_SceneClr)         uniform sampler2D sceneColor;
 layout(binding = L_GDepth  )         uniform sampler2D gbufferDepth;
 #endif
 
-#if defined(VIRTUAL_SHADOW)
+#if defined(VIRTUAL_SHADOW) && !defined(CLUSTER)
 layout(binding = L_CmdOffsets, std430) readonly buffer Offsets { uint cmdOffsets[]; };
+layout(binding = L_VsmPages,   std430) readonly buffer Pages   { uvec4 header; uint  pageList[]; } vsm;
 #endif
 
 #if !defined(CLUSTER) && (MESH_TYPE!=T_PFX)

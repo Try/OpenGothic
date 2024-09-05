@@ -212,8 +212,8 @@ void runCluster(const uint clusterId) {
   const uint meshletId  = cluster.firstMeshlet;
 
 #if 1 && defined(VIRTUAL_SHADOW)
-  for(uint r=0; r<1 && r<vsm.header.x; ++r) {
-    const uint page = vsm.pageList[r];
+  for(uint r=0; r<vsm.header.x; ++r) {
+    const uint page = r; //vsm.pageList[r];
     const uint at   = atomicAdd(vsm.header.w, cluster.meshletCount);
     for(int i=0; i<cluster.meshletCount; ++i)
       payload[at+i] = uvec4(instanceId, meshletId+i, cluster.bucketId_commandId, page);

@@ -4,6 +4,10 @@
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_EXT_control_flow_attributes : enable
 
+#if defined(VIRTUAL_SHADOW)
+#include "virtual_shadow/vsm_common.glsl"
+#endif
+
 #include "materials_common.glsl"
 #include "vertex_process.glsl"
 
@@ -40,6 +44,45 @@ layout(location = 1) out Varyings  shOut;
 #elif defined(MAT_VARYINGS)
 layout(location = 0) out flat uint bucketIdOut[]; //TODO: per-primitive
 layout(location = 1) out Varyings  shOut[];
+#endif
+
+#if defined(GL_VERTEX_SHADER) && defined(VIRTUAL_SHADOW)
+layout(location = 3) out flat uint vsmPageIdOut;
+#elif defined(VIRTUAL_SHADOW)
+layout(location = 3) out flat uint vsmPageIdOut[];
+#endif
+
+#if defined(VIRTUAL_SHADOW)
+uint shadowPageId = 0;
+#endif
+
+#if defined(VIRTUAL_SHADOW)
+vec4 mapViewport(vec4 pos) {
+  const ivec3 page = unpackVsmPageInfo(vsm.pageList[shadowPageId]);
+  pos.xy /= float(1u << page.z);
+
+  pos.xy = (pos.xy*0.5+0.5); // [0..1]
+  pos.xy = (pos.xy*VSM_PAGE_TBL_SIZE - page.xy);
+
+  const vec2 pageId = vec2(unpackVsmPageId(shadowPageId));
+  pos.xy = (pos.xy + pageId)/32;
+
+  pos.xy = pos.xy*2.0-1.0; // [-1..1]
+  return pos;
+  }
+#else
+vec4 mapViewport(vec4 pos) { return pos; }
+#endif
+
+#if defined(VIRTUAL_SHADOW)
+void initVsm(uvec4 task) {
+  shadowPageId = task.w;
+#if defined(GL_VERTEX_SHADER)
+  vsmPageIdOut = task.w;
+#else
+  vsmPageIdOut[gl_LocalInvocationIndex] = task.w;
+#endif
+  }
 #endif
 
 uvec2 processMeshlet(const uint meshletId, const uint bucketId) {
@@ -91,7 +134,8 @@ vec4  processVertex(out Varyings var, uint instanceOffset, const uint meshletId,
 #else
   const Vertex vert = pullVertex(bucketId, vboOffset);
 #endif
-  return processVertex(var, vert, bucketId, instanceOffset, vboOffset);
+  const vec4 ret = processVertex(var, vert, bucketId, instanceOffset, vboOffset);
+  return mapViewport(ret);
   }
 
 #if defined(GL_VERTEX_SHADER)
@@ -187,6 +231,10 @@ void main() {
 #endif
 
   const uvec4 task     = payload[workIndex + firstMeshlet];
+
+#if defined(VIRTUAL_SHADOW)
+  initVsm(task);
+#endif
 
 #if defined(GL_VERTEX_SHADER)
   vertexShader(task);

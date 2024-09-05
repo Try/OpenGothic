@@ -3,6 +3,10 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : enable
 
+#if defined(VIRTUAL_SHADOW)
+#include "virtual_shadow/vsm_common.glsl"
+#endif
+
 #include "materials_common.glsl"
 #include "water/gerstner_wave.glsl"
 #include "lighting/shadow_sampling.glsl"
@@ -11,6 +15,10 @@
 #if defined(MAT_VARYINGS)
 layout(location = 0) in flat uint bucketId;
 layout(location = 1) in Varyings  shInp;
+#endif
+
+#if defined(VIRTUAL_SHADOW)
+layout(location = 3) in flat uint vsmPageId;
 #endif
 
 #if DEBUG_DRAW
@@ -26,6 +34,12 @@ layout(location = 1) out vec4 outDiffuse;
 layout(location = 2) out uint outNormal;
 #elif !defined(DEPTH_ONLY)
 layout(location = 0) out vec4 outColor;
+#endif
+
+#if defined(VIRTUAL_SHADOW)
+layout(push_constant, std430) uniform Push {
+  uint commandId;
+  } push;
 #endif
 
 #if defined(WATER) || defined(GHOST)
@@ -304,6 +318,11 @@ void main() {
   if(t.a<0.5)
     discard;
 #  endif
+#endif
+
+#if defined(VIRTUAL_SHADOW)
+  if(!vsmPageClip(ivec2(gl_FragCoord.xy), vsmPageId))
+    discard;
 #endif
 
 #if defined(MAT_COLOR)

@@ -108,8 +108,8 @@ add_geom_shader(main_lnd       "-DMESH_TYPE=0" -DFLAT_NORMAL)
 add_geom_shader(main_lnd_f     "-DMESH_TYPE=0" -DFLAT_NORMAL -DFORWARD)
 add_geom_shader(main_lnd_d     "-DMESH_TYPE=0" -DFLAT_NORMAL -DDEPTH_ONLY)
 add_geom_shader(main_lnd_d_at  "-DMESH_TYPE=0" -DFLAT_NORMAL -DDEPTH_ONLY -DATEST)
-add_geom_shader(main_lnd_v     "-DMESH_TYPE=0" -DFLAT_NORMAL -DEPTH_ONLY -DVIRTUAL_SHADOW)
-add_geom_shader(main_lnd_v_at  "-DMESH_TYPE=0" -DFLAT_NORMAL -DEPTH_ONLY -DVIRTUAL_SHADOW -DATEST)
+add_geom_shader(main_lnd_v     "-DMESH_TYPE=0" -DFLAT_NORMAL -DDEPTH_ONLY -DVIRTUAL_SHADOW)
+add_geom_shader(main_lnd_v_at  "-DMESH_TYPE=0" -DFLAT_NORMAL -DDEPTH_ONLY -DVIRTUAL_SHADOW -DATEST)
 
 add_geom_shader(main_obj       "-DMESH_TYPE=1")
 add_geom_shader(main_obj_f     "-DMESH_TYPE=1" -DFORWARD)
@@ -301,7 +301,6 @@ add_shader(cmaa2_deferred_color_apply_2x2.frag     antialiasing/cmaa2/deferred_c
 # virtual shadows
 add_shader(vsm_clear.comp       virtual_shadow/vsm_clear.comp)
 add_shader(vsm_mark_pages.comp  virtual_shadow/vsm_mark_pages.comp -DMARK_PAGES)
-add_shader(vsm_compose.comp     virtual_shadow/vsm_mark_pages.comp -DCOMPOSE)
 add_shader(vsm_dbg.frag         virtual_shadow/vsm_mark_pages.comp -DDEBUG -S frag)
 add_shader(vsm_list_pages.comp  virtual_shadow/vsm_list_pages.comp)
 add_shader(vsm_pack_draws0.comp virtual_shadow/vsm_pack_draws.comp -DPASS0)

@@ -4,6 +4,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_EXT_samplerless_texture_functions : enable
 
+#include "virtual_shadow/vsm_common.glsl"
 #include "scene.glsl"
 #include "common.glsl"
 
@@ -20,7 +21,7 @@ void main() {
   const ivec3 at   = ivec3(gl_GlobalInvocationID);
   if(any(greaterThanEqual(at, size)))
     return;
-#if 1
+
   const uint alloc = imageLoad(pageTbl, at).r;
   if(alloc==0)
     return;
@@ -31,20 +32,6 @@ void main() {
     return;
     }
 
-  pageList[pageId] = packUint4x8(uvec4(at.xyz,0));
+  pageList[pageId] = packVsmPageInfo(at.xyz);
   imageStore(pageTbl, at, uvec4(pageId,0,0,0));
-#else
-  // debug
-  if(gl_GlobalInvocationID.z!=1) {
-    imageStore(pageTbl, at, uvec4(0xFFFFFFFF));
-    return;
-    }
-
-  const uint page   = packUint4x8(uvec4(at.xyz,0));
-  //const uint pageId = atomicAdd(header.x, 1);
-  const uint pageId = (at.x + at.y*32);
-
-  pageList[pageId] = page;
-  imageStore(pageTbl, at, uvec4(pageId,0,0,0));
-#endif
   }
