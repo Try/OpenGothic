@@ -312,9 +312,15 @@ void Effect::onCollide(World& world, const VisualFx* root, const Vec3& pos, Npc*
     eff.setOrigin(other);
     eff.setActive(true);
 
-    if(npc!=nullptr)
-      npc ->runEffect(std::move(eff)); else
+    if(npc!=nullptr) {
+      npc ->runEffect(std::move(eff));
+      if(vfx->sendAssessMagic) {
+        auto oth = other==nullptr ? npc : other;
+        npc->perceptionProcess(*oth,npc,0,PERC_ASSESSMAGIC);
+        }
+      } else {
       world.runEffect(std::move(eff));
+      }
     }
 
   if(npc!=nullptr && root->emFXCollDynPerc!=nullptr) {
