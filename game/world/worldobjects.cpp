@@ -54,8 +54,8 @@ void WorldObjects::MobStates::load(Serialize& fin) {
     }
   }
 
-WorldObjects::SearchOpt::SearchOpt(float rangeMin, float rangeMax, float azi, TargetCollect collectAlgo, WorldObjects::SearchFlg flags)
-  :rangeMin(rangeMin),rangeMax(rangeMax),azi(azi),collectAlgo(collectAlgo),flags(flags) {
+WorldObjects::SearchOpt::SearchOpt(float rangeMin, float rangeMax, float azi, TargetCollect collectAlgo, TargetType collectType, WorldObjects::SearchFlg flags)
+  :rangeMin(rangeMin),rangeMax(rangeMax),azi(azi),collectAlgo(collectAlgo),collectType(collectType),flags(flags) {
   }
 
 WorldObjects::WorldObjects(World& owner):owner(owner){
@@ -735,6 +735,8 @@ Interactive* WorldObjects::findInteractive(const Npc &pl, Interactive* def, cons
     return def;
   if(owner.view()==nullptr)
     return nullptr;
+  if(!bool(opt.collectType&TARGET_TYPE_ALL))
+    return nullptr;
 
   Interactive* ret  = nullptr;
   float        rlen = opt.rangeMax*opt.rangeMax;
@@ -769,6 +771,8 @@ Item *WorldObjects::findItem(const Npc &pl, Item *def, const SearchOpt& opt) {
   if(def && testObj(*def,pl,opt))
     return def;
   if(owner.view()==nullptr)
+    return nullptr;
+  if(!bool(opt.collectType&(TARGET_TYPE_ALL|TARGET_TYPE_ITEMS)))
     return nullptr;
 
   Item* ret  = nullptr;
@@ -996,6 +1000,27 @@ static bool checkFlag(Interactive& i,WorldObjects::SearchFlg f){
   }
 
 template<class T>
+bool checkTargetType(T&, TargetType) { return true; }
+
+static bool checkTargetType(Npc& n, TargetType t) {
+  if(bool(t&(TARGET_TYPE_ALL|TARGET_TYPE_NPCS)))
+    return true;
+  int32_t gil = n.trueGuild();
+  if(bool(t&TARGET_TYPE_HUMANS) && gil<GIL_SEPERATOR_HUM)
+    return true;
+  if(bool(t&TARGET_TYPE_ORCS) && gil>GIL_SEPERATOR_ORC)
+    return true;
+  if(bool(t&TARGET_TYPE_UNDEAD)) {
+    if(gil == GIL_GOBBO_SKELETON || gil == GIL_SUMMONED_GOBBO_SKELETON ||
+      gil == GIL_SKELETON        || gil == GIL_SUMMONED_SKELETON       ||
+      gil == GIL_SKELETON_MAGE   || gil == GIL_SHADOWBEAST_SKELETON    ||
+      gil == GIL_ZOMBIE)
+      return true;
+    }
+  return false;
+  }
+
+template<class T>
 bool canSee(const Npc&,const T&){ return true; }
 
 static bool canSee(const Npc& pl, const Npc& n){
@@ -1048,6 +1073,8 @@ bool WorldObjects::testObj(T &src, const Npc &pl, const WorldObjects::SearchOpt 
     return false;
 
   if(!checkFlag(npc,opt.flags))
+    return false;
+  if(!checkTargetType(npc,opt.collectType))
     return false;
 
   float l = pl.qDistTo(npc);

@@ -417,18 +417,20 @@ Focus World::validateFocus(const Focus &def) {
   }
 
 Focus World::findFocus(const Npc &pl, const Focus& def) {
-  auto  opt    = WorldObjects::NoFlg;
-  auto  coll   = TARGET_COLLECT_FOCUS;
-  auto& policy = searchPolicy(pl,coll,opt);
+  auto  opt      = WorldObjects::NoFlg;
+  auto  collAlgo = TARGET_COLLECT_FOCUS;
+  auto  collType = TARGET_TYPE_ALL;
+  auto& policy   = searchPolicy(pl,collAlgo,collType,opt);
 
-  WorldObjects::SearchOpt optNpc {policy.npc_range1,  policy.npc_range2,  policy.npc_azi,  coll, opt};
-  WorldObjects::SearchOpt optMob {policy.mob_range1,  policy.mob_range2,  policy.mob_azi,  coll };
-  WorldObjects::SearchOpt optItm {policy.item_range1, policy.item_range2, policy.item_azi, coll };
+  WorldObjects::SearchOpt optNpc {policy.npc_range1,  policy.npc_range2,  policy.npc_azi,  collAlgo, collType, opt};
+  WorldObjects::SearchOpt optMob {policy.mob_range1,  policy.mob_range2,  policy.mob_azi,  collAlgo};
+  WorldObjects::SearchOpt optItm {policy.item_range1, policy.item_range2, policy.item_azi, collAlgo, collType};
 
   auto n     = policy.npc_prio <0 ? nullptr : wobj.findNpcNear    (pl,def.npc,        optNpc);
   auto it    = policy.item_prio<0 ? nullptr : wobj.findItem       (pl,def.item,       optItm);
   auto inter = policy.mob_prio <0 ? nullptr : wobj.findInteractive(pl,def.interactive,optMob);
-  if(pl.weaponState()!=WeaponState::NoWeapon) {
+  auto ws = pl.weaponState();
+  if(ws==WeaponState::Bow || ws==WeaponState::CBow) {
     optMob.flags = WorldObjects::SearchFlg(WorldObjects::FcOverride | WorldObjects::NoRay);
     inter = wobj.findInteractive(pl,def.interactive,optMob);
     }
@@ -470,11 +472,12 @@ Focus World::findFocus(const Focus &def) {
   }
 
 bool World::testFocusNpc(Npc* def) {
-  auto  opt    = WorldObjects::NoFlg;
-  auto  coll   = TARGET_COLLECT_FOCUS;
-  auto& policy = searchPolicy(*npcPlayer,coll,opt);
+  auto  opt      = WorldObjects::NoFlg;
+  auto  collAlgo = TARGET_COLLECT_FOCUS;
+  auto  collType = TARGET_TYPE_ALL;
+  auto& policy   = searchPolicy(*npcPlayer,collAlgo,collType,opt);
 
-  WorldObjects::SearchOpt optNpc{policy.npc_range1,  policy.npc_range2,  policy.npc_azi,  coll, opt};
+  WorldObjects::SearchOpt optNpc{policy.npc_range1, policy.npc_range2, policy.npc_azi, collAlgo, collType, opt};
   return wobj.testFocusNpc(*npcPlayer,def,optNpc);
   }
 
@@ -815,9 +818,10 @@ void World::invalidateVobIndex() {
   wobj.invalidateVobIndex();
   }
 
-const zenkit::IFocus& World::searchPolicy(const Npc& pl, TargetCollect& coll, WorldObjects::SearchFlg& opt) const {
-  opt  = WorldObjects::NoFlg;
-  coll = TARGET_COLLECT_FOCUS;
+const zenkit::IFocus& World::searchPolicy(const Npc& pl, TargetCollect& collAlgo, TargetType& collType, WorldObjects::SearchFlg& opt) const {
+  opt      = WorldObjects::NoFlg;
+  collAlgo = TARGET_COLLECT_FOCUS;
+  collType = TARGET_TYPE_ALL;
 
   switch(pl.weaponState()) {
     case WeaponState::Fist:
@@ -833,7 +837,8 @@ const zenkit::IFocus& World::searchPolicy(const Npc& pl, TargetCollect& coll, Wo
       if(auto weapon = pl.inventory().activeWeapon()) {
         int32_t id  = weapon->spellId();
         auto&   spl = script().spellDesc(id);
-        coll = TargetCollect(spl.target_collect_algo);
+        collAlgo = TargetCollect(spl.target_collect_algo);
+        collType = TargetType(spl.target_collect_type);
         }
       opt = WorldObjects::SearchFlg(WorldObjects::NoDeath | WorldObjects::NoUnconscious);
       return game.script()->focusMage();

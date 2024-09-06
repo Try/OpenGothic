@@ -184,7 +184,7 @@ class World final {
     void                 invalidateVobIndex();
 
   private:
-    const zenkit::IFocus& searchPolicy(const Npc& pl, TargetCollect& coll, WorldObjects::SearchFlg& opt) const;
+    const zenkit::IFocus& searchPolicy(const Npc& pl, TargetCollect& collAlgo, TargetType& collType, WorldObjects::SearchFlg& opt) const;
     std::string                           wname;
     GameSession&                          game;
 
