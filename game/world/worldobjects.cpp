@@ -1005,7 +1005,7 @@ bool checkTargetType(T&, TargetType) { return true; }
 static bool checkTargetType(Npc& n, TargetType t) {
   if(bool(t&(TARGET_TYPE_ALL|TARGET_TYPE_NPCS)))
     return true;
-  int32_t gil = n.trueGuild();
+  Guild gil = Guild(n.trueGuild());
   if(bool(t&TARGET_TYPE_HUMANS) && gil<GIL_SEPERATOR_HUM)
     return true;
   if(bool(t&TARGET_TYPE_ORCS) && gil>GIL_SEPERATOR_ORC)
