@@ -972,16 +972,16 @@ void WorldObjects::setMobState(std::string_view scheme, int32_t st) {
   }
 
 template<class T>
-T& deref(std::unique_ptr<T>& x){ return *x; }
+static T& deref(std::unique_ptr<T>& x){ return *x; }
 
 template<class T>
-T& deref(T* x){ return *x; }
+static T& deref(T* x){ return *x; }
 
 template<class T>
-T& deref(T& x){ return x; }
+static T& deref(T& x){ return x; }
 
 template<class T>
-bool checkFlag(T&,WorldObjects::SearchFlg){ return true; }
+static bool checkFlag(T&,WorldObjects::SearchFlg){ return true; }
 
 static bool checkFlag(Npc& n,WorldObjects::SearchFlg f){
   if(n.handle().no_focus)
@@ -1000,7 +1000,7 @@ static bool checkFlag(Interactive& i,WorldObjects::SearchFlg f){
   }
 
 template<class T>
-bool checkTargetType(T&, TargetType) { return true; }
+static bool checkTargetType(T&, TargetType) { return true; }
 
 static bool checkTargetType(Npc& n, TargetType t) {
   if(bool(t&(TARGET_TYPE_ALL|TARGET_TYPE_NPCS)))
@@ -1021,7 +1021,7 @@ static bool checkTargetType(Npc& n, TargetType t) {
   }
 
 template<class T>
-bool canSee(const Npc&,const T&){ return true; }
+static bool canSee(const Npc&,const T&){ return true; }
 
 static bool canSee(const Npc& pl, const Npc& n){
   return pl.canSeeNpc(n,true);

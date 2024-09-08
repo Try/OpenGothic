@@ -210,8 +210,9 @@ bool Item::isSpellShoot() const {
   // Only hardcode Stormfist for now since other spells work with the heuristic based on target_collect_algo
   if(!isSpellOrRune())
     return false;
-  bool g1 = world.version().game==1;
-  if(g1 && spellId()==47)
+  bool          g1            = world.version().game==1;
+  const int32_t SPL_STORMFIST = 47;
+  if(g1 && spellId()==SPL_STORMFIST)
     return true;
   auto& spl = world.script().spellDesc(spellId());
   return spl.target_collect_algo!=TargetCollect::TARGET_COLLECT_NONE &&
