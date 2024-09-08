@@ -1,0 +1,47 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+#include "virtual_shadow/vsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 1024) in;
+
+layout(binding = 0, std430) buffer CB0 {
+  uvec4 header;
+  uint  pageList[];
+  } vsm;
+layout(binding = 1, r32ui) uniform uimage3D pageTbl;
+
+shared uint pageCount;
+shared uint minPId;
+
+void main() {
+  const uint id = gl_LocalInvocationIndex;
+
+  pageCount = vsm.header.x;
+  barrier();
+
+  const uint  page = id<pageCount ? vsm.pageList[id] : 0xFFFFFFFF;
+  const ivec3 pix  = unpackVsmPageInfo(page);
+
+  uint v = page;
+  for(uint i=0; i<pageCount; ++i) {
+    minPId = 0xFFFFFFFF;
+    barrier();
+
+    if(v!=0xFFFFFFFF)
+      atomicMin(minPId, v);
+    barrier();
+
+    vsm.pageList[i] = minPId;
+    if(minPId==v) {
+      imageStore(pageTbl, pix, uvec4(i,0,0,0));
+      v = 0xFFFFFFFF;
+      }
+    barrier();
+    }
+  }

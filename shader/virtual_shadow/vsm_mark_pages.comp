@@ -139,7 +139,7 @@ void main() {
   // int  mip   = 0;
   vec3 color = debugColors[hash(uvec3(pageI,mip)) % debugColors.length()];
   // vec3 color = debugColors[mip % debugColors.length()];
-  //color *= (1.0 - shadowTexelFetch(page, mip));
+  // color *= (1.0 - shadowTexelFetch(page, mip));
   color *= shadowTest(page, mip, shPos0.z);
   // vec3 color = vec3(shPos0, 0);
   // vec3 color = vec3(page, 0);

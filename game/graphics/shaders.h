@@ -75,7 +75,7 @@ class Shaders {
     Tempest::RenderPipeline  probeAmbient;
 
     // Virtual shadow
-    Tempest::ComputePipeline vsmClear, vsmMarkPages, vsmListPages;
+    Tempest::ComputePipeline vsmClear, vsmMarkPages, vsmListPages, vsmSortPages;
     Tempest::ComputePipeline vsmPackDraw0, vsmPackDraw1;
     // Tempest::ComputePipeline vsmRendering;
     Tempest::RenderPipeline  vsmDbg;

@@ -303,6 +303,7 @@ add_shader(vsm_clear.comp       virtual_shadow/vsm_clear.comp)
 add_shader(vsm_mark_pages.comp  virtual_shadow/vsm_mark_pages.comp -DMARK_PAGES)
 add_shader(vsm_dbg.frag         virtual_shadow/vsm_mark_pages.comp -DDEBUG -S frag)
 add_shader(vsm_list_pages.comp  virtual_shadow/vsm_list_pages.comp)
+add_shader(vsm_sort_pages.comp  virtual_shadow/vsm_sort_pages.comp)
 add_shader(vsm_pack_draws0.comp virtual_shadow/vsm_pack_draws.comp -DPASS0)
 add_shader(vsm_pack_draws1.comp virtual_shadow/vsm_pack_draws.comp -DPASS1)
 

@@ -19,6 +19,7 @@ layout(binding = 1, r32ui) uniform uimage3D pageTbl;
 void main() {
   const ivec3 size = imageSize(pageTbl);
   const ivec3 at   = ivec3(gl_GlobalInvocationID);
+
   if(any(greaterThanEqual(at, size)))
     return;
 
