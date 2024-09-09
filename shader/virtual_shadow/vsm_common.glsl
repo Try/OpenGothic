@@ -1,9 +1,10 @@
 #ifndef VSM_COMMON_GLSL
 #define VSM_COMMON_GLSL
 
-// const int VSM_MAX_PAGES     = 1024;
+const int VSM_MAX_PAGES     = 1024;
 const int VSM_PAGE_SIZE     = 128;
 const int VSM_PAGE_TBL_SIZE = 64;
+const int VSM_PAGE_PER_ROW  = 32;
 const int VSM_CLIPMAP_SIZE  = VSM_PAGE_SIZE * VSM_PAGE_TBL_SIZE;
 
 uint packVsmPageInfo(ivec3 at) {
@@ -19,11 +20,11 @@ ivec3 unpackVsmPageInfo(uint p) {
   }
 
 uint packVsmPageId(ivec2 at) {
-  return (at.x + at.y*32);
+  return (at.x + at.y*VSM_PAGE_PER_ROW);
   }
 
 ivec2 unpackVsmPageId(uint pageId) {
-  return ivec2(pageId%32, pageId/32);
+  return ivec2(pageId%VSM_PAGE_PER_ROW, pageId/VSM_PAGE_PER_ROW);
   }
 
 bool vsmPageClip(ivec2 fragCoord, const uint page) {

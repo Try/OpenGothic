@@ -217,18 +217,20 @@ void DrawCommands::updateTasksUniforms() {
     else if(i.viewport==SceneGlobals::V_HiZ)
       i.desc = device.descriptors(Shaders::inst().clusterTaskHiZCr);
     else if(i.viewport==SceneGlobals::V_Vsm)
-      i.desc = device.descriptors(Shaders::inst().clusterTaskVsm);
+      i.desc = device.descriptors(Shaders::inst().vsmClusterTask);
     else
-      i.desc = device.descriptors(Shaders::inst().clusterTask);
+      i.desc = device.descriptors(Shaders::inst().clusterTaskSh);
     i.desc.set(T_Clusters, clusters.ssbo());
     i.desc.set(T_Indirect, views[i.viewport].indirectCmd);
     i.desc.set(T_Payload,  views[i.viewport].visClusters);
 
-    i.desc.set(T_Scene,    scene.uboGlobal[i.viewport]);
-    i.desc.set(T_Instance, owner.instanceSsbo());
-    i.desc.set(T_Bucket,   buckets.ssbo());
-    i.desc.set(T_HiZ,      *scene.hiZ);
-    if(i.viewport==SceneGlobals::V_Vsm) {
+    if(i.viewport!=SceneGlobals::V_Vsm) {
+      i.desc.set(T_Scene,    scene.uboGlobal[i.viewport]);
+      i.desc.set(T_Instance, owner.instanceSsbo());
+      i.desc.set(T_Bucket,   buckets.ssbo());
+      i.desc.set(T_HiZ,      *scene.hiZ);
+      } else {
+      i.desc.set(T_Scene,    scene.uboGlobal[i.viewport]);
       i.desc.set(T_Payload,  views[i.viewport].vsmClusters);
       i.desc.set(T_VsmPages, *scene.vsmPageList);
       // i.desc.set(T_PkgOffsets, views[i.viewport].pkgOffsets);
@@ -451,7 +453,7 @@ void DrawCommands::visibilityPass(Encoder<CommandBuffer>& cmd, uint8_t fId, int 
     push.meshletCount = uint32_t(clusters.size());
     push.znear        = scene.znear;
 
-    auto* pso = &Shaders::inst().clusterTask;
+    auto* pso = &Shaders::inst().clusterTaskSh;
     if(i.viewport==SceneGlobals::V_Main)
       pso = &Shaders::inst().clusterTaskHiZ;
     else if(i.viewport==SceneGlobals::V_HiZ)
@@ -466,13 +468,13 @@ void DrawCommands::visibilityVsm(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     if(i.viewport!=SceneGlobals::V_Vsm)
       continue;
 
-    struct Push { uint32_t firstMeshlet; uint32_t meshletCount; float znear; } push = {};
-    push.firstMeshlet = 0;
+    struct Push { uint32_t meshletCount; } push = {};
     push.meshletCount = uint32_t(clusters.size());
 
-    auto* pso = &Shaders::inst().clusterTaskVsm;
+    auto* pso = &Shaders::inst().vsmClusterTask;
     cmd.setUniforms(*pso, i.desc, &push, sizeof(push));
-    cmd.dispatchThreads(push.meshletCount);
+    //cmd.dispatchThreads(push.meshletCount);
+    cmd.dispatch(push.meshletCount);
     }
 
   cmd.setUniforms(Shaders::inst().vsmPackDraw0, views[SceneGlobals::V_Vsm].descPackDraw);

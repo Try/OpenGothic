@@ -19,10 +19,6 @@ layout(binding = 4, std430) buffer IndirectBuf  { IndirectCmd cmd[];         };
 layout(binding = 5, std430) readonly buffer Cbo { Cluster     clusters[];    };
 layout(binding = 6)         uniform sampler2D hiZ;
 
-#if defined(VIRTUAL_SHADOW)
-layout(binding = 7, std430) buffer Pages        { uvec4 header; uint  pageList[]; } vsm;
-#endif
-
 layout(push_constant, std430) uniform UboPush {
   uint      firstMeshlet;
   int       meshletCount;
@@ -71,7 +67,7 @@ float hiZFetch(in sampler2D hiZ, in ivec2 ibbox[2]) {
   return z;
   }
 
-
+#if defined(MAIN_VIEW)
 bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
   const vec3  c     = (scene.view * vec4(sphere.xyz, 1)).xyz;
   const float R     = sphere.w;
@@ -85,7 +81,6 @@ bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
 
   float z = c.z - R;
   depthMin  = scene.project[3][2]/z + scene.project[2][2];
-
   float P00 = scene.project[0][0];
   float P11 = scene.project[1][1];
 
@@ -157,6 +152,15 @@ bool hiZTest(vec4 sbbox, float depthMin) {
   return true;
   }
 
+
+bool projectCluster(const Cluster cluster, out vec4 aabb, out float depthMin) {
+  if(cluster.instanceId==0xFFFFFFFF)
+    return projectSphere(cluster.sphere, aabb, depthMin);
+  // return projectSphere(cluster.sphere, aabb, depthMin);
+  return projectInstance(cluster, aabb, depthMin);
+  }
+#endif
+
 bool frustrumTest(const vec4 sphere) {
   if(sphere.w<0.f)
     return false;
@@ -170,14 +174,6 @@ bool frustrumTest(const vec4 sphere) {
   return true;
   }
 
-
-bool projectCluster(const Cluster cluster, out vec4 aabb, out float depthMin) {
-  if(cluster.instanceId==0xFFFFFFFF)
-    return projectSphere(cluster.sphere, aabb, depthMin);
-  // return projectSphere(cluster.sphere, aabb, depthMin);
-  return projectInstance(cluster, aabb, depthMin);
-  }
-
 void runCluster(const uint clusterId) {
   const Cluster cluster = clusters[clusterId];
   if(cluster.sphere.w<=0.f)
@@ -186,10 +182,12 @@ void runCluster(const uint clusterId) {
   if(!frustrumTest(cluster.sphere))
     return;
 
+#if defined(MAIN_VIEW)
   vec4  aabb     = vec4(0);
   float depthMin = 1;
   if(!projectCluster(cluster, aabb, depthMin))
     return;
+#endif
 
 #if defined(LARGE)
   {
@@ -211,20 +209,10 @@ void runCluster(const uint clusterId) {
   const uint instanceId = cluster.instanceId;
   const uint meshletId  = cluster.firstMeshlet;
 
-#if 1 && defined(VIRTUAL_SHADOW)
-  for(uint r=0; r<vsm.header.x; ++r) {
-    const uint page = r; //vsm.pageList[r];
-    const uint at   = atomicAdd(vsm.header.w, cluster.meshletCount);
-    for(int i=0; i<cluster.meshletCount; ++i)
-      payload[at+i] = uvec4(instanceId, meshletId+i, cluster.bucketId_commandId, page);
-    atomicAdd(cmd[commandId].instanceCount, cluster.meshletCount);
-    }
-#else
   uint writeOffset = cmd[commandId].writeOffset;
   writeOffset      += atomicAdd(cmd[commandId].instanceCount, cluster.meshletCount);
   for(int i=0; i<cluster.meshletCount; ++i)
     payload[writeOffset+i] = uvec4(instanceId, meshletId+i, bucketId, 0);
-#endif
   }
 
 void main() {

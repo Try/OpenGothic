@@ -31,10 +31,9 @@ Shaders::Shaders() {
 
   clusterInit      = computeShader("cluster_init.comp.sprv");
   clusterPatch     = computeShader("cluster_patch.comp.sprv");
-  clusterTask      = computeShader("cluster_task.comp.sprv");
+  clusterTaskSh    = computeShader("cluster_task.comp.sprv");
   clusterTaskHiZ   = computeShader("cluster_task_hiz.comp.sprv");
   clusterTaskHiZCr = computeShader("cluster_task_hiz_cr.comp.sprv");
-  clusterTaskVsm   = computeShader("cluster_task_vsm.comp.sprv");
 
   ssao             = computeShader("ssao.comp.sprv");
   ssaoBlur         = computeShader("ssao_blur.comp.sprv");
@@ -196,13 +195,14 @@ Shaders::Shaders() {
     }
 
   if(Gothic::options().doVirtualShadow) {
-    vsmClear     = computeShader("vsm_clear.comp.sprv");
-    vsmMarkPages = computeShader("vsm_mark_pages.comp.sprv");
-    vsmListPages = computeShader("vsm_list_pages.comp.sprv");
-    vsmSortPages = computeShader("vsm_sort_pages.comp.sprv");
-    vsmPackDraw0 = computeShader("vsm_pack_draws0.comp.sprv");
-    vsmPackDraw1 = computeShader("vsm_pack_draws1.comp.sprv");
-    vsmDbg       = postEffect("copy", "vsm_dbg", RenderState::ZTestMode::Always);
+    vsmClusterTask = computeShader("vsm_cluster_task.comp.sprv");
+    vsmClear       = computeShader("vsm_clear.comp.sprv");
+    vsmMarkPages   = computeShader("vsm_mark_pages.comp.sprv");
+    vsmListPages   = computeShader("vsm_list_pages.comp.sprv");
+    vsmSortPages   = computeShader("vsm_sort_pages.comp.sprv");
+    vsmPackDraw0   = computeShader("vsm_pack_draws0.comp.sprv");
+    vsmPackDraw1   = computeShader("vsm_pack_draws1.comp.sprv");
+    vsmDbg         = postEffect("copy", "vsm_dbg", RenderState::ZTestMode::Always);
     // vsmRendering  = computeShader("vsm_rendering.comp.sprv");
     }
 

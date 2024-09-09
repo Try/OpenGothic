@@ -8,7 +8,8 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-layout(local_size_x = 1024) in;
+// NOTE: 1024 is too much invocations in some gpu's
+layout(local_size_x = VSM_MAX_PAGES) in;
 
 layout(binding = 0, std430) buffer CB0 {
   uvec4 header;

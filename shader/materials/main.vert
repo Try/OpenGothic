@@ -65,7 +65,7 @@ vec4 mapViewport(vec4 pos) {
   pos.xy = (pos.xy*VSM_PAGE_TBL_SIZE - page.xy);
 
   const vec2 pageId = vec2(unpackVsmPageId(shadowPageId));
-  pos.xy = (pos.xy + pageId)/32;
+  pos.xy = (pos.xy + pageId)/VSM_PAGE_PER_ROW;
 
   pos.xy = pos.xy*2.0-1.0; // [-1..1]
   return pos;

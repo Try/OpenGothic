@@ -1,0 +1,137 @@
+#version 450
+
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+#include "scene.glsl"
+#include "common.glsl"
+#include "virtual_shadow/vsm_common.glsl"
+
+struct IndirectCmd {
+  uint vertexCount;
+  uint instanceCount;
+  uint firstVertex;
+  uint firstInstance;
+  uint writeOffset;
+  };
+
+struct Cluster {
+  vec4  sphere;
+  uint  bucketId_commandId;
+  uint  firstMeshlet;
+  int   meshletCount;
+  uint  instanceId;
+  };
+
+layout(local_size_x = 1, local_size_y = 64) in;
+
+layout(binding = 0, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 1, std430) buffer SsboGlob     { uvec4       payload[];     };
+layout(binding = 2, std430) readonly buffer Mem { uint        instanceMem[]; };
+layout(binding = 4, std430) buffer IndirectBuf  { IndirectCmd cmd[];         };
+layout(binding = 5, std430) readonly buffer Cbo { Cluster     clusters[];    };
+
+layout(binding = 7, std430) buffer Pages        { uvec4 header; uint  pageList[]; } vsm;
+
+layout(push_constant, std430) uniform UboPush {
+  int meshletCount;
+  } push;
+
+bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
+  const vec3  c = (scene.viewProject * vec4(sphere.xyz, 1)).xyz;
+  const float R = sphere.w;
+
+  const float smWidthInv = 1.0/1024.0; // NOTE: from camera.cpp
+  const float zScale     = 1.0/5120.0;
+
+  float Rz = R * zScale;
+  if(c.z - Rz > 1 || c.z + Rz < 0)
+    return false;
+
+  float Rx = R * smWidthInv;
+  float Ry = R * smWidthInv;
+  aabb = vec4(c.xy-vec2(Rx,Ry), c.xy+vec2(Rx,Ry));
+  // aabb = c.xyxy;
+  return true;
+  }
+
+bool frustrumTest(const vec4 sphere) {
+  if(sphere.w<0.f)
+    return false;
+
+  for(int i=0; i<6; ++i) {
+    if(dot(vec4(sphere.xyz,1.0), scene.frustrum[i]) <= -sphere.w) {
+      return false;
+      }
+    }
+
+  return true;
+  }
+
+
+bool projectCluster(const Cluster cluster, out vec4 aabb, out float depthMin) {
+  if(cluster.instanceId==0xFFFFFFFF)
+    return projectSphere(cluster.sphere, aabb, depthMin);
+  return projectSphere(cluster.sphere, aabb, depthMin);
+  // return projectInstance(cluster, aabb, depthMin);
+  }
+
+bool emitCluster(const Cluster cluster, uint page) {
+  const uint at = atomicAdd(vsm.header.w, cluster.meshletCount);
+  if(at+cluster.meshletCount > 1000000)
+    return false;
+  for(int i=0; i<cluster.meshletCount; ++i)
+    payload[at+i] = uvec4(cluster.instanceId, cluster.firstMeshlet+i, cluster.bucketId_commandId, page);
+  return true;
+  }
+
+
+bool pageBoundsTest(in vec4 aabb, const ivec3 page) {
+  aabb /= (1u << page.z);
+  aabb = (aabb*0.5+0.5); // [0..1]
+  aabb = (aabb*VSM_PAGE_TBL_SIZE - page.xyxy);
+  aabb = (aabb*2.0-1.0); // [-1..1]
+
+  if(aabb.z <= -1 || +1 <= aabb.x)
+    return false;
+  if(aabb.w <= -1 || +1 <= aabb.y)
+    return false;
+  return true;
+  }
+
+void runCluster(const uint clusterId) {
+  const Cluster cluster = clusters[clusterId];
+  if(cluster.sphere.w<=0.f)
+    return; // disabled or deleted
+
+  if(!frustrumTest(cluster.sphere))
+    return;
+
+  vec4  aabb     = vec4(0);
+  float depthMin = 1;
+  if(!projectCluster(cluster, aabb, depthMin))
+    return;
+
+  const uint commandId = cluster.bucketId_commandId & 0xFFFF;
+  const uint maxPages  = vsm.header.x;
+
+  for(uint i=gl_LocalInvocationIndex; i<maxPages; i+=gl_WorkGroupSize.y) {
+    if(i!=13)
+      continue;
+    const ivec3 page = unpackVsmPageInfo(vsm.pageList[i]);
+    if(!pageBoundsTest(aabb, page))
+      continue;
+    if(!emitCluster(cluster, i))
+      break;
+    atomicAdd(cmd[commandId].instanceCount, cluster.meshletCount);
+    }
+  }
+
+void main() {
+  const uint clusterId = gl_GlobalInvocationID.x;
+  if(clusterId<push.meshletCount)
+    runCluster(clusterId);
+  }

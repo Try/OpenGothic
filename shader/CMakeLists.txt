@@ -99,9 +99,8 @@ endfunction(add_frag_shader)
 add_shader(cluster_init.comp         materials/cluster_init.comp)
 add_shader(cluster_patch.comp        materials/cluster_patch.comp)
 add_shader(cluster_task.comp         materials/cluster_task.comp)
-add_shader(cluster_task_hiz.comp     materials/cluster_task.comp -DHIZ)
-add_shader(cluster_task_hiz_cr.comp  materials/cluster_task.comp -DHIZ -DLARGE)
-add_shader(cluster_task_vsm.comp     materials/cluster_task.comp -DVIRTUAL_SHADOW)
+add_shader(cluster_task_hiz.comp     materials/cluster_task.comp -DMAIN_VIEW -DHIZ)
+add_shader(cluster_task_hiz_cr.comp  materials/cluster_task.comp -DMAIN_VIEW -DHIZ -DLARGE)
 
 # mesh & vertex
 add_geom_shader(main_lnd       "-DMESH_TYPE=0" -DFLAT_NORMAL)
@@ -299,15 +298,16 @@ add_shader(cmaa2_deferred_color_apply_2x2.vert     antialiasing/cmaa2/deferred_c
 add_shader(cmaa2_deferred_color_apply_2x2.frag     antialiasing/cmaa2/deferred_color_apply_2x2.frag)
 
 # virtual shadows
-add_shader(vsm_clear.comp       virtual_shadow/vsm_clear.comp)
-add_shader(vsm_mark_pages.comp  virtual_shadow/vsm_mark_pages.comp -DMARK_PAGES)
-add_shader(vsm_dbg.frag         virtual_shadow/vsm_mark_pages.comp -DDEBUG -S frag)
-add_shader(vsm_list_pages.comp  virtual_shadow/vsm_list_pages.comp)
-add_shader(vsm_sort_pages.comp  virtual_shadow/vsm_sort_pages.comp)
-add_shader(vsm_pack_draws0.comp virtual_shadow/vsm_pack_draws.comp -DPASS0)
-add_shader(vsm_pack_draws1.comp virtual_shadow/vsm_pack_draws.comp -DPASS1)
+add_shader(vsm_clear.comp        virtual_shadow/vsm_clear.comp)
+add_shader(vsm_mark_pages.comp   virtual_shadow/vsm_mark_pages.comp -DMARK_PAGES)
+add_shader(vsm_dbg.frag          virtual_shadow/vsm_mark_pages.comp -DDEBUG -S frag)
+add_shader(vsm_list_pages.comp   virtual_shadow/vsm_list_pages.comp)
+add_shader(vsm_sort_pages.comp   virtual_shadow/vsm_sort_pages.comp)
+add_shader(vsm_pack_draws0.comp  virtual_shadow/vsm_pack_draws.comp   -DPASS0)
+add_shader(vsm_pack_draws1.comp  virtual_shadow/vsm_pack_draws.comp   -DPASS1)
+add_shader(vsm_cluster_task.comp virtual_shadow/vsm_cluster_task.comp -DVIRTUAL_SHADOW)
 
-add_shader(vsm_rendering.comp   virtual_shadow/vsm_rendering.comp)
+add_shader(vsm_rendering.comp    virtual_shadow/vsm_rendering.comp)
 
 # software rendering
 add_shader(sw_rendering_imm.comp  software_rendering/sw_rendering_imm.comp)

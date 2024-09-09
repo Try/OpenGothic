@@ -65,7 +65,7 @@ class Shaders {
 
     // Cluster
     Tempest::ComputePipeline clusterInit, clusterPatch;
-    Tempest::ComputePipeline clusterTask, clusterTaskHiZ, clusterTaskHiZCr, clusterTaskVsm;
+    Tempest::ComputePipeline clusterTaskSh, clusterTaskHiZ, clusterTaskHiZCr;
 
     // GI
     Tempest::RenderPipeline  probeDbg, probeHitDbg;
@@ -75,6 +75,7 @@ class Shaders {
     Tempest::RenderPipeline  probeAmbient;
 
     // Virtual shadow
+    Tempest::ComputePipeline vsmClusterTask;
     Tempest::ComputePipeline vsmClear, vsmMarkPages, vsmListPages, vsmSortPages;
     Tempest::ComputePipeline vsmPackDraw0, vsmPackDraw1;
     // Tempest::ComputePipeline vsmRendering;

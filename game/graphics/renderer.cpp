@@ -850,6 +850,9 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
 
   cmd.setUniforms(*vsm.pagesListPso, vsm.uboList);
   cmd.dispatchThreads(size_t(vsm.pageTbl.w()), size_t(vsm.pageTbl.h()), size_t(vsm.pageTbl.d()));
+  // sort for debug purpose only
+  cmd.setUniforms(Shaders::inst().vsmSortPages, vsm.uboList);
+  cmd.dispatch(1);
 
   cmd.setDebugMarker("VSM-visibility");
   view.visibilityVsm(cmd,fId);
