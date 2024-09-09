@@ -119,8 +119,8 @@ void runCluster(const uint clusterId) {
   const uint maxPages  = vsm.header.x;
 
   for(uint i=gl_LocalInvocationIndex; i<maxPages; i+=gl_WorkGroupSize.y) {
-    if(i!=13)
-      continue;
+    // if(i!=13)
+    //   continue;
     const ivec3 page = unpackVsmPageInfo(vsm.pageList[i]);
     if(!pageBoundsTest(aabb, page))
       continue;

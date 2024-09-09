@@ -30,11 +30,17 @@ layout(push_constant, std430) uniform Push {
 
 #if defined(GL_VERTEX_SHADER)
 out gl_PerVertex {
-  vec4 gl_Position;
+  vec4  gl_Position;
+#if defined(VIRTUAL_SHADOW)
+  float gl_ClipDistance[4];
+#endif
   };
 #else
 out gl_MeshPerVertexEXT {
-  vec4 gl_Position;
+  vec4  gl_Position;
+#if defined(VIRTUAL_SHADOW)
+  float gl_ClipDistance[4];
+#endif
   } gl_MeshVerticesEXT[];
 #endif
 
@@ -57,12 +63,19 @@ uint shadowPageId = 0;
 #endif
 
 #if defined(VIRTUAL_SHADOW)
-vec4 mapViewport(vec4 pos) {
+vec4 mapViewport(vec4 pos, out float clipDistance[4]) {
   const ivec3 page = unpackVsmPageInfo(vsm.pageList[shadowPageId]);
   pos.xy /= float(1u << page.z);
 
   pos.xy = (pos.xy*0.5+0.5); // [0..1]
   pos.xy = (pos.xy*VSM_PAGE_TBL_SIZE - page.xy);
+
+  {
+    clipDistance[0] = 0+pos.x;
+    clipDistance[1] = 1-pos.x;
+    clipDistance[2] = 0+pos.y;
+    clipDistance[3] = 1-pos.y;
+  }
 
   const vec2 pageId = vec2(unpackVsmPageId(shadowPageId));
   pos.xy = (pos.xy + pageId)/VSM_PAGE_PER_ROW;
@@ -70,8 +83,6 @@ vec4 mapViewport(vec4 pos) {
   pos.xy = pos.xy*2.0-1.0; // [-1..1]
   return pos;
   }
-#else
-vec4 mapViewport(vec4 pos) { return pos; }
 #endif
 
 #if defined(VIRTUAL_SHADOW)
@@ -134,8 +145,7 @@ vec4  processVertex(out Varyings var, uint instanceOffset, const uint meshletId,
 #else
   const Vertex vert = pullVertex(bucketId, vboOffset);
 #endif
-  const vec4 ret = processVertex(var, vert, bucketId, instanceOffset, vboOffset);
-  return mapViewport(ret);
+  return processVertex(var, vert, bucketId, instanceOffset, vboOffset);
   }
 
 #if defined(GL_VERTEX_SHADER)
@@ -159,8 +169,12 @@ void vertexShader(const uvec4 task) {
 #endif
 
   Varyings var;
-  uint idx    = processPrimitive(meshletId, bucketId, laneID)[gl_VertexIndex%3];
-  gl_Position = processVertex(var, instanceId, meshletId, bucketId, idx);
+  uint idx = processPrimitive(meshletId, bucketId, laneID)[gl_VertexIndex%3];
+  vec4 pos = processVertex(var, instanceId, meshletId, bucketId, idx);
+#if defined(VIRTUAL_SHADOW)
+  pos = mapViewport(pos, gl_ClipDistance);
+#endif
+  gl_Position = pos;
 #if defined(MAT_VARYINGS)
   shOut       = var;
 #endif
@@ -188,7 +202,11 @@ void meshShader(const uvec4 task) {
   if(laneID<primCount)
     gl_PrimitiveTriangleIndicesEXT[laneID] = processPrimitive(meshletId, bucketId, laneID);
   if(laneID<vertCount) {
-    gl_MeshVerticesEXT[laneID].gl_Position = processVertex(var, instanceId, meshletId, bucketId, laneID);
+    vec4 pos = processVertex(var, instanceId, meshletId, bucketId, laneID);
+#if defined(VIRTUAL_SHADOW)
+    pos = mapViewport(pos, gl_MeshVerticesEXT[laneID].gl_ClipDistance);
+#endif
+    gl_MeshVerticesEXT[laneID].gl_Position = pos;
 
     /*
         Workaround the AMD driver issue where assigning to a vec3 output results in a driver crash.

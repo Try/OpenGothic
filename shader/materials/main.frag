@@ -321,8 +321,9 @@ void main() {
 #endif
 
 #if defined(VIRTUAL_SHADOW)
-  if(!vsmPageClip(ivec2(gl_FragCoord.xy), vsmPageId))
-    discard;
+  // NOTE: use clip-distance is used instead
+  // if(!vsmPageClip(ivec2(gl_FragCoord.xy), vsmPageId))
+  //   discard;
 #endif
 
 #if defined(MAT_COLOR)
