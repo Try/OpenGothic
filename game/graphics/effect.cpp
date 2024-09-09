@@ -308,33 +308,30 @@ void Effect::onCollide(World& world, const VisualFx* root, const Vec3& pos, Npc*
 
    // Gothic 1 uses emFXCollDyn->sendAssessMagic as check for PERC_ASSESSMAGIC
    // Gothic 2 instead introduced new vfx emFXCollDynPerc specific for this purpose
-  bool g2 = world.version().game==2;
+  const bool g2     = world.version().game==2;
+  const auto sender = g2 ? root->emFXCollDynPerc : vfx;
+  if(sender!=nullptr && sender->sendAssessMagic && npc!=nullptr) {
+    auto oth = other==nullptr ? npc : other;
+    npc->perceptionProcess(*oth,npc,0,PERC_ASSESSMAGIC);
+    }
+
   if(vfx!=nullptr) {
     Effect eff(*vfx,world,pos,SpellFxKey::Collide);
     eff.setSpellId(splId,world);
     eff.setOrigin(other);
     eff.setActive(true);
-
     if(npc!=nullptr) {
       npc ->runEffect(std::move(eff));
-      if(!g2 && vfx->sendAssessMagic) {
-        auto oth = other==nullptr ? npc : other;
-        npc->perceptionProcess(*oth,npc,0,PERC_ASSESSMAGIC);
-        }
       } else {
       world.runEffect(std::move(eff));
       }
     }
 
-  if(g2 && npc!=nullptr && root->emFXCollDynPerc!=nullptr) {
-    const VisualFx* vfx = root->emFXCollDynPerc;
-    Effect eff(*vfx,world,pos,SpellFxKey::Collide);
+  if(npc!=nullptr && root->emFXCollDynPerc!=nullptr) {
+    const VisualFx* vfxDyn = root->emFXCollDynPerc;
+    Effect eff(*vfxDyn,world,pos,SpellFxKey::Collide);
     eff.setActive(true);
     npc->runEffect(std::move(eff));
-    if(vfx->sendAssessMagic) {
-      auto oth = other==nullptr ? npc : other;
-      npc->perceptionProcess(*oth,npc,0,PERC_ASSESSMAGIC);
-      }
     }
   }
 
