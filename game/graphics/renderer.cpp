@@ -197,6 +197,9 @@ void Renderer::resetSwapchain() {
     vsm.pagesListPso    = &Shaders::inst().vsmListPages;
     vsm.uboList         = device.descriptors(*vsm.pagesListPso);
 
+    vsm.directLightPso  = &Shaders::inst().vsmDirectLight;
+    vsm.uboLight        = device.descriptors(*vsm.directLightPso);
+
     vsm.pagesDbgPso     = &Shaders::inst().vsmDbg;
     vsm.uboDbg          = device.descriptors(*vsm.pagesDbgPso);
 
@@ -457,6 +460,14 @@ void Renderer::prepareUniforms() {
 
     vsm.uboList.set(0, vsm.pageList);
     vsm.uboList.set(1, vsm.pageTbl);
+
+    vsm.uboLight.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    vsm.uboLight.set(1, gbufDiffuse, Sampler::nearest());
+    vsm.uboLight.set(2, gbufNormal,  Sampler::nearest());
+    vsm.uboLight.set(3, zbuffer,     Sampler::nearest());
+    vsm.uboLight.set(4, vsm.pageTbl);
+    vsm.uboLight.set(5, vsm.pageDataZ);
+    vsm.uboLight.set(6, vsm.shadowMask);
 
     vsm.uboDbg.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     vsm.uboDbg.set(1, gbufDiffuse, Sampler::nearest());
@@ -750,7 +761,7 @@ void Renderer::stashSceneAux(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   }
 
 void Renderer::drawVsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  static bool enable = true;
+  static bool enable = false;
   if(!enable || !settings.vsmEnabled)
     return;
 
@@ -933,6 +944,12 @@ void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, uint8_t fId, const
   static bool useDsm = true;
   if(!useDsm)
     return;
+  if(settings.vsmEnabled) {
+    cmd.setDebugMarker("DirectSunLight-VSM");
+    cmd.setUniforms(*vsm.directLightPso, vsm.uboLight);
+    cmd.draw(Resources::fsqVbo());
+    return;
+    }
   cmd.setDebugMarker("DirectSunLight");
   cmd.setUniforms(*shadow.directLightPso, shadow.ubo);
   cmd.draw(Resources::fsqVbo());

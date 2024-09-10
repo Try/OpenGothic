@@ -79,6 +79,7 @@ class Shaders {
     Tempest::ComputePipeline vsmClear, vsmMarkPages, vsmListPages, vsmSortPages;
     Tempest::ComputePipeline vsmPackDraw0, vsmPackDraw1;
     // Tempest::ComputePipeline vsmRendering;
+    Tempest::RenderPipeline  vsmDirectLight;
     Tempest::RenderPipeline  vsmDbg;
 
     // Software rendering

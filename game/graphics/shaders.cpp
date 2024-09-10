@@ -202,6 +202,7 @@ Shaders::Shaders() {
     vsmSortPages   = computeShader("vsm_sort_pages.comp.sprv");
     vsmPackDraw0   = computeShader("vsm_pack_draws0.comp.sprv");
     vsmPackDraw1   = computeShader("vsm_pack_draws1.comp.sprv");
+    vsmDirectLight = postEffect("copy", "direct_light_vsm", RenderState::ZTestMode::NoEqual);
     vsmDbg         = postEffect("copy", "vsm_dbg", RenderState::ZTestMode::Always);
     // vsmRendering  = computeShader("vsm_rendering.comp.sprv");
     }

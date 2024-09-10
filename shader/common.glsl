@@ -1,6 +1,8 @@
 #ifndef COMMON_GLSL
 #define COMMON_GLSL
 
+#extension GL_EXT_samplerless_texture_functions : enable
+
 const float M_PI = 3.1415926535897932384626433832795;
 
 //Environment
@@ -277,6 +279,11 @@ vec3 decodeNormal(uint n) {
   }
 
 vec3 normalFetch(in usampler2D gbufNormal, ivec2 p) {
+  const uint n = texelFetch(gbufNormal, p, 0).r;
+  return decodeNormal(n);
+  }
+
+vec3 normalFetch(in utexture2D gbufNormal, ivec2 p) {
   const uint n = texelFetch(gbufNormal, p, 0).r;
   return decodeNormal(n);
   }
