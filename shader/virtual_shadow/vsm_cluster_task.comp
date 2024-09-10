@@ -44,8 +44,8 @@ bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
   const vec3  c = (scene.viewProject * vec4(sphere.xyz, 1)).xyz;
   const float R = sphere.w;
 
-  const float smWidthInv = 1.0/1024.0; // NOTE: from camera.cpp
-  const float zScale     = 1.0/5120.0;
+  const float smWidthInv = 1.0/(1024.0); // NOTE: from camera.cpp
+  const float zScale     = 1.0/(10*5120.0);
 
   float Rz = R * zScale;
   if(c.z - Rz > 1 || c.z + Rz < 0)
@@ -107,8 +107,8 @@ void runCluster(const uint clusterId) {
   if(cluster.sphere.w<=0.f)
     return; // disabled or deleted
 
-  if(!frustrumTest(cluster.sphere))
-    return;
+  //if(!frustrumTest(cluster.sphere))
+  //  return;
 
   vec4  aabb     = vec4(0);
   float depthMin = 1;

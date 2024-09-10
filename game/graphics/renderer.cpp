@@ -559,8 +559,8 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   //tex.push_back(&textureCast(hiz.smProj));
   //tex.push_back(&textureCast(hiz.hiZSm1));
   //tex.push_back(&textureCast(shadowMap[1]));
-  //tex.push_back(&textureCast(shadowMap[0]));
-  tex.push_back(&textureCast<const Texture2d&>(vsm.pageDataZ));
+  tex.push_back(&textureCast<const Texture2d&>(shadowMap[0]));
+  //tex.push_back(&textureCast<const Texture2d&>(vsm.pageDataZ));
 
   static int size = 400;
   int left = 10;
@@ -851,6 +851,7 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.setUniforms(*vsm.pagesListPso, vsm.uboList);
   cmd.dispatchThreads(size_t(vsm.pageTbl.w()), size_t(vsm.pageTbl.h()), size_t(vsm.pageTbl.d()));
   // sort for debug purpose only
+  cmd.setDebugMarker("VSM-sort(debug)");
   cmd.setUniforms(Shaders::inst().vsmSortPages, vsm.uboList);
   cmd.dispatch(1);
 
