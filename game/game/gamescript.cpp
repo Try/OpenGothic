@@ -1214,19 +1214,19 @@ bool GameScript::aiOutputSvm(Npc &npc, std::string_view outputname, bool overlay
   }
 
 bool GameScript::isDead(const Npc &pl) {
-  return pl.isState(ZS_Dead);
+  return pl.isInState(ZS_Dead);
   }
 
 bool GameScript::isUnconscious(const Npc &pl) {
-  return pl.isState(ZS_Unconscious);
+  return pl.isInState(ZS_Unconscious);
   }
 
 bool GameScript::isTalk(const Npc &pl) {
-  return pl.isState(ZS_Talk);
+  return pl.isInState(ZS_Talk);
   }
 
 bool GameScript::isAttack(const Npc& pl) const {
-  return pl.isState(ZS_Attack) || pl.isState(ZS_MM_Attack);
+  return pl.isInState(ZS_Attack) || pl.isInState(ZS_MM_Attack);
   }
 
 std::string_view GameScript::messageFromSvm(std::string_view id, int voice) const {
@@ -1684,7 +1684,7 @@ bool GameScript::wld_detectnpc(std::shared_ptr<zenkit::INpc> npcRef, int inst, i
 
   world().detectNpc(npc->position(), float(npc->handle().senses_range), [inst,state,guild,&ret,&dist,npc](Npc& n){
     if((inst ==-1 || int32_t(n.instanceSymbol())==inst) &&
-       (state==-1 || n.isState(uint32_t(state))) &&
+       (state==-1 || n.isInState(uint32_t(state))) &&
        (guild==-1 || int32_t(n.guild())==guild) &&
        (&n!=npc) && !n.isDead()) {
       float d = n.qDistTo(*npc);
@@ -1709,7 +1709,7 @@ bool GameScript::wld_detectnpcex(std::shared_ptr<zenkit::INpc> npcRef, int inst,
 
   world().detectNpc(npc->position(), float(npc->handle().senses_range), [inst,state,guild,&ret,&dist,npc,player](Npc& n){
     if((inst ==-1 || int32_t(n.instanceSymbol())==inst) &&
-       (state==-1 || n.isState(uint32_t(state))) &&
+       (state==-1 || n.isInState(uint32_t(state))) &&
        (guild==-1 || int32_t(n.guild())==guild) &&
        (&n!=npc) && !n.isDead() &&
        (player!=0 || !n.isPlayer())) {
@@ -1916,14 +1916,14 @@ void GameScript::npc_settofistmode(std::shared_ptr<zenkit::INpc> npcRef) {
 bool GameScript::npc_isinstate(std::shared_ptr<zenkit::INpc> npcRef, int stateFn) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
-    return npc->isState(uint32_t(stateFn));
+    return npc->isInState(uint32_t(stateFn));
   return false;
   }
 
 bool GameScript::npc_isinroutine(std::shared_ptr<zenkit::INpc> npcRef, int stateFn) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
-    return npc->isRoutine(uint32_t(stateFn));
+    return npc->isInRoutine(uint32_t(stateFn));
   return false;
   }
 
