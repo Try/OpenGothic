@@ -65,6 +65,10 @@ DrawCommands::DrawCommands(VisualObjects& owner, DrawBuckets& buckets, DrawClust
     tasks.emplace_back(std::move(cmd));
     }
 
+  if(virtualShadowSys) {
+    Tempest::DispatchIndirectCommand cmd = {2000,1,1};
+    vsmIndirectCmd = Resources::device().ssbo(&cmd, sizeof(cmd));
+    }
   }
 
 DrawCommands::~DrawCommands() {
@@ -184,16 +188,13 @@ bool DrawCommands::commit() {
       v.visClusters = device.ssbo(nullptr, size);
       }
     if(visChg && v.viewport==SceneGlobals::V_Vsm) {
+      Resources::recycle(std::move(v.vsmClusters));
       v.vsmClusters = device.ssbo(nullptr, v.visClusters.byteSize());
       }
     if(cmdChg) {
       Resources::recycle(std::move(v.indirectCmd));
       v.indirectCmd = device.ssbo(cx.data(), sizeof(IndirectCmd)*cx.size());
-      }
-
-    if(cmdChg) {
-      Resources::recycle(std::move(v.pkgOffsets));
-      v.pkgOffsets  = device.ssbo(nullptr, sizeof(uint32_t)*cx.size());
+      visChg |= (v.viewport==SceneGlobals::V_Vsm);
       }
 
     Resources::recycle(std::move(v.descInit));
@@ -239,13 +240,20 @@ void DrawCommands::updateTasksUniforms() {
   for(auto& v:views) {
     if(v.viewport!=SceneGlobals::V_Vsm)
       continue;
-    Resources::recycle(std::move(v.descPackDraw));
-    v.descPackDraw = device.descriptors(Shaders::inst().vsmPackDraw0);
-    v.descPackDraw.set(1, v.vsmClusters);
-    v.descPackDraw.set(2, v.visClusters);
-    v.descPackDraw.set(3, v.indirectCmd);
-    v.descPackDraw.set(4, *scene.vsmPageList);
-    v.descPackDraw.set(5, v.pkgOffsets);
+    Resources::recycle(std::move(v.descPackDraw0));
+    v.descPackDraw0 = device.descriptors(Shaders::inst().vsmPackDraw0);
+    v.descPackDraw0.set(1, v.vsmClusters);
+    v.descPackDraw0.set(2, v.visClusters);
+    v.descPackDraw0.set(3, v.indirectCmd);
+    v.descPackDraw0.set(4, *scene.vsmPageList);
+    v.descPackDraw0.set(5, vsmIndirectCmd);
+
+    Resources::recycle(std::move(v.descPackDraw1));
+    v.descPackDraw1 = device.descriptors(Shaders::inst().vsmPackDraw1);
+    v.descPackDraw1.set(1, v.vsmClusters);
+    v.descPackDraw1.set(2, v.visClusters);
+    v.descPackDraw1.set(3, v.indirectCmd);
+    v.descPackDraw1.set(4, *scene.vsmPageList);
     }
 
   updateVsmUniforms();
@@ -327,7 +335,7 @@ void DrawCommands::updateCommandUniforms() {
           }
 
         if(v==SceneGlobals::V_Vsm) {
-          desc[v].set(L_CmdOffsets, views[v].pkgOffsets);
+          desc[v].set(L_CmdOffsets, views[v].indirectCmd);
           desc[v].set(L_VsmPages,   *scene.vsmPageList);
           }
         }
@@ -477,11 +485,12 @@ void DrawCommands::visibilityVsm(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     cmd.dispatch(push.meshletCount);
     }
 
-  cmd.setUniforms(Shaders::inst().vsmPackDraw0, views[SceneGlobals::V_Vsm].descPackDraw);
+  cmd.setUniforms(Shaders::inst().vsmPackDraw0, views[SceneGlobals::V_Vsm].descPackDraw0);
   cmd.dispatch(1);
 
-  cmd.setUniforms(Shaders::inst().vsmPackDraw1, views[SceneGlobals::V_Vsm].descPackDraw);
-  cmd.dispatch(2000); // TODO: indirect
+  cmd.setUniforms(Shaders::inst().vsmPackDraw1, views[SceneGlobals::V_Vsm].descPackDraw1);
+  cmd.dispatch(8096); // TODO: indirect
+  // cmd.dispatchIndirect(vsmIndirectCmd, 0);
   }
 
 void DrawCommands::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {

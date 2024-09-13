@@ -1,0 +1,72 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+#include "virtual_shadow/vsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(binding = 0, std430) buffer Pages { VsmHeader header; uint  pageList[]; } vsm;
+layout(binding = 1, r32ui)  uniform uimage3D pageTbl;
+
+shared uint pageVal[gl_WorkGroupSize.x][gl_WorkGroupSize.y];
+
+void main() {
+  const ivec3 size = imageSize(pageTbl);
+  const ivec3 at   = ivec3(gl_GlobalInvocationID);
+  const ivec3 id   = ivec3(gl_LocalInvocationID);
+
+#if 0
+  if(at.z==1) {
+    uint pageS = 0;
+    if(all(lessThan(at, size)))
+      pageS = imageLoad(pageTbl, at).r;
+
+    const int step = VSM_PAGE_TBL_SIZE/4;
+    if(all(lessThan(ivec2(step), at.xy)) && all(lessThan(at.xy, ivec2(VSM_PAGE_TBL_SIZE-step)))) {
+      ivec3 x = ivec3(ivec2(at.xy - step)*2, 0);
+
+      bool t = (imageLoad(pageTbl, x+ivec3(0,0,0)).r>0) &&
+               (imageLoad(pageTbl, x+ivec3(1,0,0)).r>0) &&
+               (imageLoad(pageTbl, x+ivec3(0,1,0)).r>0) &&
+               (imageLoad(pageTbl, x+ivec3(1,1,0)).r>0);
+
+      if(t)
+        ;//imageStore(pageTbl, at, uvec4(0));
+      }
+    }
+#endif
+
+  uint pageS = 0;
+  if(all(lessThan(at, size)))
+    pageS = imageLoad(pageTbl, at).r;
+  pageVal[id.x][id.y] = pageS;
+  barrier();
+
+  // only 2x2 for now
+  if(id.x%2==0 && id.y%2==0) {
+    uint pageL = pageVal[id.x+1][id.y+0];
+    uint pageR = pageVal[id.x+0][id.y+1];
+    uint pageD = pageVal[id.x+1][id.y+1];
+
+    if(pageS==1 && pageL==1 && pageR==1 && pageD==1) {
+      pageS                   = 2;
+      pageVal[id.x+0][id.y+0] = 2;
+      pageVal[id.x+1][id.y+0] = 0;
+      pageVal[id.x+0][id.y+1] = 0;
+      pageVal[id.x+1][id.y+1] = 0;
+      }
+    }
+  barrier();
+
+  if(pageS>1) {
+    imageStore(pageTbl, at+ivec3(0,0,0), uvec4(pageS,0,0,0));
+    imageStore(pageTbl, at+ivec3(1,0,0), uvec4(0));
+    imageStore(pageTbl, at+ivec3(0,1,0), uvec4(0));
+    imageStore(pageTbl, at+ivec3(1,1,0), uvec4(0));
+    }
+  }

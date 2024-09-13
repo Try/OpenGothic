@@ -1,6 +1,10 @@
 #ifndef MATERIALS_COMMON_GLSL
 #define MATERIALS_COMMON_GLSL
 
+#if defined(VIRTUAL_SHADOW)
+#include "virtual_shadow/vsm_common.glsl"
+#endif
+
 #include "common.glsl"
 #include "scene.glsl"
 
@@ -201,8 +205,8 @@ layout(binding = L_GDepth  )         uniform sampler2D gbufferDepth;
 #endif
 
 #if defined(VIRTUAL_SHADOW) && !defined(CLUSTER)
-layout(binding = L_CmdOffsets, std430) readonly buffer Offsets { uint cmdOffsets[]; };
-layout(binding = L_VsmPages,   std430) readonly buffer Pages   { uvec4 header; uint  pageList[]; } vsm;
+layout(binding = L_CmdOffsets, std430) readonly buffer IndirectBuf { IndirectCmd cmd[]; };
+layout(binding = L_VsmPages,   std430) readonly buffer Pages       { VsmHeader header; uint pageList[]; } vsm;
 #endif
 
 #if !defined(CLUSTER) && (MESH_TYPE!=T_PFX)

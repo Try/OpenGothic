@@ -4,13 +4,14 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_EXT_samplerless_texture_functions : enable
 
+#include "virtual_shadow/vsm_common.glsl"
 #include "scene.glsl"
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
 layout(binding = 0, std430) buffer CB0 {
-  uvec4 header;
-  uint  pageList[];
+  VsmHeader header;
+  uint      pageList[];
   };
 layout(binding = 1, r32ui) uniform uimage3D pageTbl;
 
@@ -22,6 +23,7 @@ void main() {
 
   imageStore(pageTbl, at, uvec4(0));
   if(at==ivec3(0)) {
-    header = uvec4(0,1,1,0);
+    header.pageCount    = 0;
+    header.meshletCount = 0;
     }
   }

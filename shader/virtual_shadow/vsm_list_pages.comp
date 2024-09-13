@@ -11,8 +11,8 @@
 layout(local_size_x = 8, local_size_y = 8) in;
 
 layout(binding = 0, std430) buffer CB0 {
-  uvec4 header;
-  uint  pageList[];
+  VsmHeader header;
+  uint      pageList[];
   };
 layout(binding = 1, r32ui) uniform uimage3D pageTbl;
 
@@ -24,15 +24,17 @@ void main() {
     return;
 
   const uint alloc = imageLoad(pageTbl, at).r;
-  if(alloc==0)
+  if(alloc==0) {
+    imageStore(pageTbl, at, uvec4(0xFFFFFFFF));
     return;
+    }
 
-  const uint pageId = atomicAdd(header.x, 1);
+  const uint pageId = atomicAdd(header.pageCount, 1);
   if(pageId>=pageList.length()) {
     imageStore(pageTbl, at, uvec4(0xFFFFFFFF));
     return;
     }
 
-  pageList[pageId] = packVsmPageInfo(at.xyz);
+  pageList[pageId] = packVsmPageInfo(at.xyz, ivec2(alloc));
   imageStore(pageTbl, at, uvec4(pageId,0,0,0));
   }

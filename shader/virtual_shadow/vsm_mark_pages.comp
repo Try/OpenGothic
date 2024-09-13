@@ -159,10 +159,19 @@ void main() {
   if(z==1)
     return;
 
+#if defined(MARK_PAGES)
+  {
+    const vec3 normal = normalFetch(gbufNormal, pixelPos);
+    if(dot(scene.sunDir,normal)<=0)
+      return;
+  }
+#endif
+
   vec3  shPos0 = shadowPos(z, ivec2(0,0));
   vec2  shPos1 = shadowPos(z, ivec2(1,0)).xy;
   vec2  shPos2 = shadowPos(z, ivec2(0,1)).xy;
 
+  // expected to have ~9 mips
   int   mip    = shadowLod((shPos1 - shPos0.xy)*VSM_CLIPMAP_SIZE,
                            (shPos2 - shPos0.xy)*VSM_CLIPMAP_SIZE);
   vec2  page   = shPos0.xy / (1<<mip);
@@ -170,7 +179,7 @@ void main() {
     page /= 2;
     mip++;
     }
-  if(any(greaterThan(abs(page), vec2(1))) || mip>=32)
+  if(any(greaterThan(abs(page), vec2(1))) || mip>=16)
     return;
 
   ivec2 pageI = ivec2((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
@@ -185,8 +194,8 @@ void main() {
   // vec3 color = directLight(page, mip, shPos0.z);
   vec3 color = debugColors[hash(uvec3(pageI,mip)) % debugColors.length()];
   // vec3 color = debugColors[mip % debugColors.length()];
-  color *= (1.0 - shadowTexelFetch(page, mip));
-  // color *= (shadowTest(page, mip, shPos0.z)*0.9+0.1);
+  // color *= (1.0 - shadowTexelFetch(page, mip));
+  color *= (shadowTest(page, mip, shPos0.z)*0.9+0.1);
   // vec3 color = vec3(shPos0, 0);
   // vec3 color = vec3(page, 0);
   // vec3 color = vec3(fract(page*VSM_PAGE_TBL_SIZE), 0);

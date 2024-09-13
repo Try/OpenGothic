@@ -12,24 +12,21 @@
 layout(local_size_x = VSM_MAX_PAGES) in;
 
 layout(binding = 0, std430) buffer CB0 {
-  uvec4 header;
-  uint  pageList[];
+  VsmHeader header;
+  uint      pageList[];
   } vsm;
 layout(binding = 1, r32ui) uniform uimage3D pageTbl;
 
-shared uint pageCount;
-shared uint minPId;
+uint pageCount = 0;
 
-void main() {
+shared uint minPId;
+shared uint pageList[1024];
+
+void bubleSort() {
   const uint id = gl_LocalInvocationIndex;
 
-  pageCount = vsm.header.x;
-  barrier();
-
-  const uint  page = id<pageCount ? vsm.pageList[id] : 0xFFFFFFFF;
-  const ivec3 pix  = unpackVsmPageInfo(page);
-
-  uint v = page;
+  //uint v = page;
+  uint v = id<pageCount ? pageList[id] : 0xFFFFFFFF;
   for(uint i=0; i<pageCount; ++i) {
     minPId = 0xFFFFFFFF;
     barrier();
@@ -38,11 +35,74 @@ void main() {
       atomicMin(minPId, v);
     barrier();
 
-    vsm.pageList[i] = minPId;
+    pageList[i] = minPId;
     if(minPId==v) {
-      imageStore(pageTbl, pix, uvec4(i,0,0,0));
       v = 0xFFFFFFFF;
       }
     barrier();
     }
+  }
+
+shared uint pageCount1x1;
+shared uint pageCount2x2;
+void sizeSort() {
+  const uint id = gl_LocalInvocationIndex;
+  pageCount1x1 = 0;
+  pageCount2x2 = 0;
+  barrier();
+
+  uint  v   = pageList[id];
+  ivec2 s   = unpackVsmPageSize(v);
+  ivec3 inf = unpackVsmPageInfo(v);
+  pageList[id] = 0;
+
+  if(s.x==2)
+    atomicAdd(pageCount2x2, 1);
+  else if(s.x==1)
+    atomicAdd(pageCount1x1, 1);
+  barrier();
+
+  if(s.x==2) {
+    uint lid = (id-pageCount1x1);
+    uint row = (lid/16), column = (lid%16);
+    uint nId = row*32*2 + column*2;
+
+    pageList[nId+0] = v;
+    // pageList[nId+0] = packVsmPageInfo(inf+ivec3(0,0,0), s);
+    pageList[nId+1] = packVsmPageInfo(inf+ivec3(1,0,0), ivec2(0));
+    nId+=32;
+    pageList[nId+0] = packVsmPageInfo(inf+ivec3(0,1,0), ivec2(0));
+    pageList[nId+1] = packVsmPageInfo(inf+ivec3(1,1,0), ivec2(0));
+    }
+
+  barrier();
+
+  const uint offset = ((pageCount2x2+15)/16)*2*32;
+  if(s.x==1) {
+    uint nId = id + offset;
+    pageList[nId] = v;
+    }
+  pageCount = offset + pageCount1x1;
+  barrier();
+  }
+
+void main() {
+  const uint id = gl_LocalInvocationIndex;
+
+  pageCount    = vsm.header.pageCount;
+  pageList[id] = id<pageCount ? vsm.pageList[id] : 0;
+  barrier();
+
+  bubleSort();
+
+  sizeSort();
+
+  const uint  page = pageList[id];
+  const ivec3 pix  = unpackVsmPageInfo(page);
+  // const ivec2 s    = unpackVsmPageSize(page);
+
+  vsm.pageList[id] = page;
+  vsm.header.pageCount = pageCount;
+  if(page!=0)
+    imageStore(pageTbl, pix, uvec4(id,0,0,0));
   }

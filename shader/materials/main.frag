@@ -17,10 +17,6 @@ layout(location = 0) in flat uint bucketId;
 layout(location = 1) in Varyings  shInp;
 #endif
 
-#if defined(VIRTUAL_SHADOW)
-layout(location = 3) in flat uint vsmPageId;
-#endif
-
 #if DEBUG_DRAW
 layout(location = DEBUG_DRAW_LOC) in flat uint debugId;
 #endif

@@ -34,7 +34,7 @@ layout(binding = 2, std430) readonly buffer Mem { uint        instanceMem[]; };
 layout(binding = 4, std430) buffer IndirectBuf  { IndirectCmd cmd[];         };
 layout(binding = 5, std430) readonly buffer Cbo { Cluster     clusters[];    };
 
-layout(binding = 7, std430) buffer Pages        { uvec4 header; uint  pageList[]; } vsm;
+layout(binding = 7, std430) buffer Pages        { VsmHeader   header; uint  pageList[]; } vsm;
 
 layout(push_constant, std430) uniform UboPush {
   int meshletCount;
@@ -45,7 +45,7 @@ bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
   const float R = sphere.w;
 
   const float smWidthInv = 1.0/(1024.0); // NOTE: from camera.cpp
-  const float zScale     = 1.0/(10*5120.0);
+  const float zScale     = 1.0/(5*5120.0);
 
   float Rz = R * zScale;
   if(c.z - Rz > 1 || c.z + Rz < 0)
@@ -80,7 +80,7 @@ bool projectCluster(const Cluster cluster, out vec4 aabb, out float depthMin) {
   }
 
 bool emitCluster(const Cluster cluster, uint page) {
-  const uint at = atomicAdd(vsm.header.w, cluster.meshletCount);
+  const uint at = atomicAdd(vsm.header.meshletCount, cluster.meshletCount);
   if(at+cluster.meshletCount > 1000000)
     return false;
   for(int i=0; i<cluster.meshletCount; ++i)
@@ -89,16 +89,18 @@ bool emitCluster(const Cluster cluster, uint page) {
   }
 
 
-bool pageBoundsTest(in vec4 aabb, const ivec3 page) {
+bool pageBoundsTest(in vec4 aabb, const ivec3 page, const ivec2 sz) {
   aabb /= (1u << page.z);
   aabb = (aabb*0.5+0.5); // [0..1]
   aabb = (aabb*VSM_PAGE_TBL_SIZE - page.xyxy);
-  aabb = (aabb*2.0-1.0); // [-1..1]
-
-  if(aabb.z <= -1 || +1 <= aabb.x)
+  if(aabb.z < 0 || sz.x <= aabb.x)
     return false;
-  if(aabb.w <= -1 || +1 <= aabb.y)
+  if(aabb.w < 0 || sz.y <= aabb.y)
     return false;
+  const float dx = (aabb.z-aabb.x)*VSM_PAGE_SIZE;
+  const float dy = (aabb.w-aabb.y)*VSM_PAGE_SIZE;
+  if(dx<1 || dy<1)
+    return false; // subpixel sized meshlet
   return true;
   }
 
@@ -116,13 +118,19 @@ void runCluster(const uint clusterId) {
     return;
 
   const uint commandId = cluster.bucketId_commandId & 0xFFFF;
-  const uint maxPages  = vsm.header.x;
+  const uint pageCount = vsm.header.pageCount;
 
-  for(uint i=gl_LocalInvocationIndex; i<maxPages; i+=gl_WorkGroupSize.y) {
+  for(uint i=gl_LocalInvocationIndex; i<pageCount; i+=gl_WorkGroupSize.y) {
     // if(i!=13)
     //   continue;
-    const ivec3 page = unpackVsmPageInfo(vsm.pageList[i]);
-    if(!pageBoundsTest(aabb, page))
+    const uint data = vsm.pageList[i];
+    if(data==0)
+      continue;
+    const ivec3 page = unpackVsmPageInfo(data);
+    const ivec2 sz   = unpackVsmPageSize(data);
+    if(sz==ivec2(0))
+      continue;
+    if(!pageBoundsTest(aabb, page, sz))
       continue;
     if(!emitCluster(cluster, i))
       break;

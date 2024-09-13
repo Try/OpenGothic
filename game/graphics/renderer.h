@@ -227,8 +227,7 @@ class Renderer final {
       Tempest::DescriptorSet    uboDbg;
 
       Tempest::StorageImage     pageTbl;
-      Tempest::StorageImage     pageData;
-      Tempest::ZBuffer          pageDataZ;
+      Tempest::ZBuffer          pageData;
       Tempest::StorageBuffer    pageList;
       Tempest::StorageImage     shadowMask;
       } vsm;

@@ -123,8 +123,9 @@ class DrawCommands {
       Tempest::DescriptorSet  descInit;
       Tempest::StorageBuffer  visClusters, indirectCmd;
 
-      Tempest::DescriptorSet  descPackDraw;
-      Tempest::StorageBuffer  pkgOffsets, vsmClusters;
+      Tempest::DescriptorSet  descPackDraw0;
+      Tempest::DescriptorSet  descPackDraw1;
+      Tempest::StorageBuffer  vsmClusters;
 
       bool                    isEnabled() const;
       };
@@ -144,4 +145,6 @@ class DrawCommands {
     bool                     cmdDurtyBit = false;
 
     View                     views[SceneGlobals::V_Count];
+
+    Tempest::StorageBuffer   vsmIndirectCmd;
   };

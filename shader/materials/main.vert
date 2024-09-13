@@ -52,29 +52,25 @@ layout(location = 0) out flat uint bucketIdOut[]; //TODO: per-primitive
 layout(location = 1) out Varyings  shOut[];
 #endif
 
-#if defined(GL_VERTEX_SHADER) && defined(VIRTUAL_SHADOW)
-layout(location = 3) out flat uint vsmPageIdOut;
-#elif defined(VIRTUAL_SHADOW)
-layout(location = 3) out flat uint vsmPageIdOut[];
-#endif
-
 #if defined(VIRTUAL_SHADOW)
 uint shadowPageId = 0;
 #endif
 
 #if defined(VIRTUAL_SHADOW)
 vec4 mapViewport(vec4 pos, out float clipDistance[4]) {
-  const ivec3 page = unpackVsmPageInfo(vsm.pageList[shadowPageId]);
+  const uint  data = vsm.pageList[shadowPageId];
+  const ivec3 page = unpackVsmPageInfo(data);
+  const ivec2 sz   = unpackVsmPageSize(data);
   pos.xy /= float(1u << page.z);
 
   pos.xy = (pos.xy*0.5+0.5); // [0..1]
   pos.xy = (pos.xy*VSM_PAGE_TBL_SIZE - page.xy);
 
   {
-    clipDistance[0] = 0+pos.x;
-    clipDistance[1] = 1-pos.x;
-    clipDistance[2] = 0+pos.y;
-    clipDistance[3] = 1-pos.y;
+    clipDistance[0] = 0   +pos.x;
+    clipDistance[1] = sz.x-pos.x;
+    clipDistance[2] = 0   +pos.y;
+    clipDistance[3] = sz.y-pos.y;
   }
 
   const vec2 pageId = vec2(unpackVsmPageId(shadowPageId));
@@ -87,12 +83,7 @@ vec4 mapViewport(vec4 pos, out float clipDistance[4]) {
 
 #if defined(VIRTUAL_SHADOW)
 void initVsm(uvec4 task) {
-  shadowPageId = task.w;
-#if defined(GL_VERTEX_SHADER)
-  vsmPageIdOut = task.w;
-#else
-  vsmPageIdOut[gl_LocalInvocationIndex] = task.w;
-#endif
+  shadowPageId = task.w & 0xFFFF;
   }
 #endif
 
@@ -243,12 +234,12 @@ void main() {
 #endif
 
 #if defined(VIRTUAL_SHADOW)
-  const uint firstMeshlet = cmdOffsets[push.commandId];
+  const uint firstMeshlet = cmd[push.commandId].writeOffset;
 #else
   const uint firstMeshlet = push.firstMeshlet;
 #endif
 
-  const uvec4 task     = payload[workIndex + firstMeshlet];
+  const uvec4 task = payload[workIndex + firstMeshlet];
 
 #if defined(VIRTUAL_SHADOW)
   initVsm(task);

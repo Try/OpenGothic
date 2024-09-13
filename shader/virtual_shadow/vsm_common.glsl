@@ -3,12 +3,17 @@
 
 const int VSM_MAX_PAGES     = 1024;
 const int VSM_PAGE_SIZE     = 128;
-const int VSM_PAGE_TBL_SIZE = 64;
+const int VSM_PAGE_TBL_SIZE = 32;   // small for testing, 64 can be better
 const int VSM_PAGE_PER_ROW  = 32;
 const int VSM_CLIPMAP_SIZE  = VSM_PAGE_SIZE * VSM_PAGE_TBL_SIZE;
 
-uint packVsmPageInfo(ivec3 at) {
-  return (at.x & 0xFF) | ((at.y & 0xFF) << 8) | ((at.z & 0xFF) << 16);
+struct VsmHeader {
+  uint pageCount;
+  uint meshletCount;
+  };
+
+uint packVsmPageInfo(ivec3 at, ivec2 size) {
+  return (at.x & 0xFF) | ((at.y & 0xFF) << 8) | ((at.z & 0xFF) << 16) | ((size.x & 0xF) << 24) | ((size.y & 0xF) << 28);
   }
 
 ivec3 unpackVsmPageInfo(uint p) {
@@ -17,6 +22,17 @@ ivec3 unpackVsmPageInfo(uint p) {
   r.y = int(p >>  8) & 0xFF;
   r.z = int(p >> 16) & 0xFF;
   return r;
+  }
+
+ivec2 unpackVsmPageSize(uint p) {
+  ivec2 r;
+  r.x = int(p >> 24) & 0xF;
+  r.y = int(p >> 28) & 0xF;
+  return r;
+  }
+
+uint packVsmPageId(uint pageI) {
+  return pageI;
   }
 
 uint packVsmPageId(ivec2 at) {
