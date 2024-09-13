@@ -2815,6 +2815,24 @@ void Npc::runEffect(Effect&& e) {
   visual.startEffect(owner, std::move(e), 0, true);
   }
 
+bool Npc::isSpellTargetType(TargetType t) const {
+  if(bool(t&(TARGET_TYPE_ALL|TARGET_TYPE_NPCS)))
+    return true;
+  Guild gil = Guild(trueGuild());
+  if(bool(t&TARGET_TYPE_HUMANS) && gil<GIL_SEPERATOR_HUM)
+    return true;
+  if(bool(t&TARGET_TYPE_ORCS) && gil>GIL_SEPERATOR_ORC)
+    return true;
+  if(bool(t&TARGET_TYPE_UNDEAD)) {
+    if(gil == GIL_GOBBO_SKELETON || gil == GIL_SUMMONED_GOBBO_SKELETON ||
+      gil == GIL_SKELETON        || gil == GIL_SUMMONED_SKELETON       ||
+      gil == GIL_SKELETON_MAGE   || gil == GIL_SHADOWBEAST_SKELETON    ||
+      gil == GIL_ZOMBIE)
+      return true;
+    }
+  return false;
+  }
+
 void Npc::commitSpell() {
   auto active = invent.getItem(currentSpellCast);
   if(active==nullptr || !active->isSpellOrRune())
