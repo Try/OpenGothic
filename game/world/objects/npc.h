@@ -299,9 +299,9 @@ class Npc final {
     auto      detectedMob() const -> Interactive*;
     void      setDetectedMob(Interactive* id);
 
-    bool      isState   (ScriptFn stateFn) const;
-    bool      isRoutine (ScriptFn stateFn) const;
-    bool      wasInState(ScriptFn stateFn) const;
+    bool      isInState  (ScriptFn stateFn) const;
+    bool      isInRoutine(ScriptFn stateFn) const;
+    bool      wasInState (ScriptFn stateFn) const;
     uint64_t  stateTime() const;
     void      setStateTime(int64_t time);
 
@@ -364,8 +364,6 @@ class Npc final {
     bool      isAiQueueEmpty() const;
     bool      isAiBusy() const;
     void      clearAiQueue();
-
-    bool      isInState(ScriptFn fn) const;
 
     auto      currentWayPoint() const -> const WayPoint* { return currentFp; }
     void      attachToPoint(const WayPoint* p);

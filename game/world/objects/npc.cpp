@@ -3920,11 +3920,11 @@ Interactive* Npc::detectedMob() const {
   return nullptr;
   }
 
-bool Npc::isState(ScriptFn stateFn) const {
+bool Npc::isInState(ScriptFn stateFn) const {
   return aiState.funcIni==stateFn;
   }
 
-bool Npc::isRoutine(ScriptFn stateFn) const {
+bool Npc::isInRoutine(ScriptFn stateFn) const {
   auto& rout = currentRoutine();
   return rout.callback==stateFn && aiState.funcIni==stateFn;
   }
@@ -4140,10 +4140,6 @@ void Npc::clearAiQueue() {
   faiWaitTime = 0;
   fghAlgo.onClearTarget();
   clearGoTo();
-  }
-
-bool Npc::isInState(ScriptFn fn) const {
-  return aiState.funcIni==fn;
   }
 
 void Npc::attachToPoint(const WayPoint *p) {
