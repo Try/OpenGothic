@@ -39,6 +39,7 @@ class CommandLine {
     bool                isRtGi()           const { return isGi;         }
     bool                isMeshShading()    const { return isMeshSh;     }
     bool                isBindless()       const { return isBindlessSh; }
+    bool                isVirtualShadow()  const { return isVsm; }
     bool                doStartMenu()      const { return !noMenu;      }
     bool                doForceG1()        const { return forceG1;      }
     bool                doForceG2()        const { return forceG2;      }
@@ -68,6 +69,7 @@ class CommandLine {
     bool                isMeshSh     = true;
 #endif
     bool                isBindlessSh = true;
+    bool                isVsm        = false;
     bool                isGi         = false;
     bool                forceG1      = false;
     bool                forceG2      = false;

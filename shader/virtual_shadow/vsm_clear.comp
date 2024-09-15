@@ -25,5 +25,7 @@ void main() {
   if(at==ivec3(0)) {
     header.pageCount    = 0;
     header.meshletCount = 0;
+    header.counterM     = 0;
+    header.counterV     = 0;
     }
   }

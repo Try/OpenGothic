@@ -8,14 +8,97 @@
 #include "scene.glsl"
 #include "common.glsl"
 
+#if defined(PASS0)
+layout(local_size_x = 16, local_size_y = 8) in;
+#else
 layout(local_size_x = 8, local_size_y = 8) in;
+#endif
 
 layout(binding = 0, std430) buffer Pages { VsmHeader header; uint  pageList[]; } vsm;
 layout(binding = 1, r32ui)  uniform uimage3D pageTbl;
 
-shared uint pageVal[gl_WorkGroupSize.x][gl_WorkGroupSize.y];
+void trimMip(int mip) {
+  const ivec3 size = imageSize(pageTbl);
+  const ivec3 id   = ivec3(gl_LocalInvocationID);
+
+  const ivec2 b = ivec2(VSM_PAGE_TBL_SIZE/4);
+  const ivec2 h = ivec2(VSM_PAGE_TBL_SIZE/2);
+
+  for(int i=id.x; i<h.x; i+=int(gl_WorkGroupSize.x)) {
+    for(int r=id.y; r<h.y; r+=int(gl_WorkGroupSize.y)) {
+      ivec3 ax = ivec3(i+b.x, r+b.y, mip);
+      uint  st = imageLoad(pageTbl, ax).r;
+      if(st==0)
+        continue;
+
+      ivec3 at = ivec3(i*2, r*2, mip-1);
+      uint  a  = imageLoad(pageTbl, at+ivec3(0,0,0)).r;
+      uint  b  = imageLoad(pageTbl, at+ivec3(1,0,0)).r;
+      uint  c  = imageLoad(pageTbl, at+ivec3(0,1,0)).r;
+      uint  d  = imageLoad(pageTbl, at+ivec3(1,1,0)).r;
+      if(a>0 && b>0 && c>0 && d>0) {
+        imageStore(pageTbl, ax, uvec4(0));
+        }
+      }
+    }
+  }
+
+void mainTrim() {
+  const ivec3 size = imageSize(pageTbl);
+  // NOTE: need only about 5 mips
+  for(int i=1; i<size.z; ++i) {
+    trimMip(i);
+    barrier();
+    }
+  }
+
+void mainGroups() {
+  const ivec3 size = imageSize(pageTbl);
+  const ivec3 at   = ivec3(gl_GlobalInvocationID);
+  const ivec3 id   = ivec3(gl_LocalInvocationID);
+
+  if(true && at.x%2==0 && at.y%2==0) {
+    uint a = imageLoad(pageTbl, at+ivec3(0,0,0)).r;
+    uint b = imageLoad(pageTbl, at+ivec3(1,0,0)).r;
+    uint c = imageLoad(pageTbl, at+ivec3(1,1,0)).r;
+    uint d = imageLoad(pageTbl, at+ivec3(0,1,0)).r;
+    if(a==1 && b==1 && c==1 && d==1) {
+      imageStore(pageTbl, at+ivec3(0,0,0), uvec4(2));
+      imageStore(pageTbl, at+ivec3(1,0,0), uvec4(0));
+      imageStore(pageTbl, at+ivec3(0,1,0), uvec4(0));
+      imageStore(pageTbl, at+ivec3(1,1,0), uvec4(0));
+      }
+    }
+  groupMemoryBarrier();
+  barrier();
+
+  if(true && at.x%4==0 && at.y%4==0) {
+    uint a = imageLoad(pageTbl, at+ivec3(0,0,0)).r;
+    uint b = imageLoad(pageTbl, at+ivec3(2,0,0)).r;
+    uint c = imageLoad(pageTbl, at+ivec3(2,2,0)).r;
+    uint d = imageLoad(pageTbl, at+ivec3(0,2,0)).r;
+    if(a==2 && b==2 && c==2 && d==2) {
+      imageStore(pageTbl, at+ivec3(0,0,0), uvec4(4));
+      imageStore(pageTbl, at+ivec3(2,0,0), uvec4(0));
+      imageStore(pageTbl, at+ivec3(0,2,0), uvec4(0));
+      imageStore(pageTbl, at+ivec3(2,2,0), uvec4(0));
+      }
+    }
+  }
 
 void main() {
+#if defined(PASS0)
+  mainTrim();
+#elif defined(PASS1)
+  mainGroups();
+#else
+#error "invalid pass-id"
+#endif
+  }
+
+/*
+shared uint pageVal[gl_WorkGroupSize.x][gl_WorkGroupSize.y];
+void main2() {
   const ivec3 size = imageSize(pageTbl);
   const ivec3 at   = ivec3(gl_GlobalInvocationID);
   const ivec3 id   = ivec3(gl_LocalInvocationID);
@@ -70,3 +153,4 @@ void main() {
     imageStore(pageTbl, at+ivec3(1,1,0), uvec4(0));
     }
   }
+*/

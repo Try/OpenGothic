@@ -89,7 +89,8 @@ Gothic::Gothic() {
     }
 
   if(hasBindless() && gpu.compute.maxInvocations>=1024) {
-    opts.doVirtualShadow = false; //TODO: productize
+    //TODO: productize
+    opts.doVirtualShadow = CommandLine::inst().isVirtualShadow();
     }
 
   opts.aaPreset = CommandLine::inst().aaPreset();

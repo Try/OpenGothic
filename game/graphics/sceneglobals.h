@@ -30,7 +30,7 @@ class SceneGlobals final {
                         float zNear, float zFar,
                         const Tempest::Matrix4x4 *sh);
     void setViewLwc(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& proj, const Tempest::Matrix4x4 *sh);
-    void setViewVsm(const Tempest::Matrix4x4& view);
+    void setViewVsm(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& viewLwc);
     void setSky(const Sky& s);
     void setUnderWater(bool w);
 
@@ -86,6 +86,7 @@ class SceneGlobals final {
       Tempest::Matrix4x4              viewProjectLwcInv;
       Tempest::Matrix4x4              viewShadowLwc[Resources::ShadowLayers];
       Tempest::Matrix4x4              viewVirtualShadow;
+      Tempest::Matrix4x4              viewVirtualShadowLwc;
       Tempest::Matrix4x4              view, project, projectInv;
       Tempest::Vec3                   sunDir        = {0,0,1};
       float                           waveAnim      = 0;

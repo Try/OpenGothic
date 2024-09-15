@@ -40,6 +40,17 @@ layout(push_constant, std430) uniform UboPush {
   int meshletCount;
   } push;
 
+shared bool workgroupBool;
+
+bool workgroupAny(bool a) {
+  workgroupBool = false;
+  barrier();
+  if(a)
+    workgroupBool = true;
+  barrier();
+  return workgroupBool;
+  }
+
 bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
   const vec3  c = (scene.viewProject * vec4(sphere.xyz, 1)).xyz;
   const float R = sphere.w;
@@ -109,8 +120,12 @@ void runCluster(const uint clusterId) {
   if(cluster.sphere.w<=0.f)
     return; // disabled or deleted
 
-  //if(!frustrumTest(cluster.sphere))
-  //  return;
+  if(frustrumTest(cluster.sphere)) {
+    if(gl_LocalInvocationIndex==0)
+      atomicAdd(vsm.header.counterV, cluster.meshletCount);
+    } else {
+    // return;
+    }
 
   vec4  aabb     = vec4(0);
   float depthMin = 1;
@@ -119,6 +134,7 @@ void runCluster(const uint clusterId) {
 
   const uint commandId = cluster.bucketId_commandId & 0xFFFF;
   const uint pageCount = vsm.header.pageCount;
+  bool anyPage = false;
 
   for(uint i=gl_LocalInvocationIndex; i<pageCount; i+=gl_WorkGroupSize.y) {
     // if(i!=13)
@@ -135,7 +151,11 @@ void runCluster(const uint clusterId) {
     if(!emitCluster(cluster, i))
       break;
     atomicAdd(cmd[commandId].instanceCount, cluster.meshletCount);
+    anyPage = true;
     }
+
+  if(workgroupAny(anyPage) && gl_LocalInvocationIndex==0)
+    atomicAdd(vsm.header.counterM, cluster.meshletCount);
   }
 
 void main() {

@@ -127,8 +127,9 @@ void SceneGlobals::setViewLwc(const Tempest::Matrix4x4& view, const Tempest::Mat
     uboGlobalCpu.viewShadowLwc[i] = sh[i];
   }
 
-void SceneGlobals::setViewVsm(const Tempest::Matrix4x4& view) {
-  uboGlobalCpu.viewVirtualShadow = view;
+void SceneGlobals::setViewVsm(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& viewLwc) {
+  uboGlobalCpu.viewVirtualShadow    = view;
+  uboGlobalCpu.viewVirtualShadowLwc = viewLwc;
   }
 
 void SceneGlobals::setSky(const Sky& s) {

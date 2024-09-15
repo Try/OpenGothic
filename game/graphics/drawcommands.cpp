@@ -194,7 +194,7 @@ bool DrawCommands::commit() {
     if(cmdChg) {
       Resources::recycle(std::move(v.indirectCmd));
       v.indirectCmd = device.ssbo(cx.data(), sizeof(IndirectCmd)*cx.size());
-      visChg |= (v.viewport==SceneGlobals::V_Vsm);
+      visChg |= (v.viewport==SceneGlobals::V_Vsm); //FIXME
       }
 
     Resources::recycle(std::move(v.descInit));

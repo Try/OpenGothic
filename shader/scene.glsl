@@ -9,6 +9,7 @@ struct SceneDesc {
   mat4  viewProjectLwcInv;
   mat4  viewShadowLwc[2];
   mat4  viewVirtualShadow;
+  mat4  viewVirtualShadowLwc;
   mat4  view;
   mat4  project;
   mat4  projectInv;

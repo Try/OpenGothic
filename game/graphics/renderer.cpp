@@ -208,7 +208,7 @@ void Renderer::resetSwapchain() {
     vsm.shadowMask      = device.image2d(Tempest::RGBA8, w, h);
 
     auto pageCount      = uint32_t((vsm.pageData.w()+128-1)/128) * uint32_t((vsm.pageData.h()+128-1)/128);
-    vsm.pageList        = device.ssbo(nullptr, (pageCount + 2)*sizeof(uint32_t));
+    vsm.pageList        = device.ssbo(nullptr, (pageCount + 4)*sizeof(uint32_t));
     }
 
   if(settings.swrEnabled) {
@@ -618,7 +618,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
       }
     frustrum[SceneGlobals::V_Main].make(viewProj,zbuffer.w(),zbuffer.h());
     frustrum[SceneGlobals::V_HiZ] = frustrum[SceneGlobals::V_Main];
-    frustrum[SceneGlobals::V_Vsm].make(shadowMatrixVsm, vsm.pageData.w(), vsm.pageData.h()); //TODO: remove
+    frustrum[SceneGlobals::V_Vsm] = frustrum[SceneGlobals::V_Shadow1]; //TODO: remove
     wview->updateFrustrum(frustrum);
     }
 
@@ -858,7 +858,10 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.setUniforms(*vsm.pagesMarkPso, vsm.uboPages);
   cmd.dispatchThreads(zbuffer.size());
 
-  cmd.setUniforms(Shaders::inst().vsmClumpPages, vsm.uboList);
+  //cmd.setUniforms(Shaders::inst().vsmClumpPages0, vsm.uboList);
+  //cmd.dispatch(1);
+
+  cmd.setUniforms(Shaders::inst().vsmClumpPages1, vsm.uboList);
   cmd.dispatchThreads(size_t(vsm.pageTbl.w()), size_t(vsm.pageTbl.h()), size_t(vsm.pageTbl.d()));
 
   cmd.setUniforms(*vsm.pagesListPso, vsm.uboList);

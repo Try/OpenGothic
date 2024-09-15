@@ -10,6 +10,8 @@ const int VSM_CLIPMAP_SIZE  = VSM_PAGE_SIZE * VSM_PAGE_TBL_SIZE;
 struct VsmHeader {
   uint pageCount;
   uint meshletCount;
+  uint counterM;
+  uint counterV;
   };
 
 uint packVsmPageInfo(ivec3 at, ivec2 size) {
