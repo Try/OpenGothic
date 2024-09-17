@@ -281,7 +281,7 @@ Matrix4x4 Camera::viewShadowVsmLwc(const Tempest::Vec3& ldir) const {
 
 Matrix4x4 Camera::mkViewShadowVsm(const Vec3& cameraPos, const Vec3& ldir) const {
   float smWidth    = 1024; // ~4 pixels per santimeter
-  float smDepth    = 5*5120;
+  float smDepth    = 10*5120;
 
   float smWidthInv = 1.f/smWidth;
   float zScale     = 1.f/smDepth;

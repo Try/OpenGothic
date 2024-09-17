@@ -38,17 +38,11 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
   };
 #endif
 
-#define MAX_NUM_SKELETAL_NODES 96
-#define MAX_MORPH_LAYERS       4
-#define MaxVert                64
-#define MaxPrim                64
-#define MaxInd                 (MaxPrim*3)
-
-#define T_LANDSCAPE 0
-#define T_OBJ       1
-#define T_SKINING   2
-#define T_MORPH     3
-#define T_PFX       4
+const uint MAX_NUM_SKELETAL_NODES = 96;
+const uint MAX_MORPH_LAYERS       = 4;
+const uint MaxVert                = 64;
+const uint MaxPrim                = 64;
+const uint MaxInd                 = MaxPrim*3;
 
 const uint L_Scene      = 0;
 const uint L_Payload    = 1;
@@ -67,6 +61,12 @@ const uint L_SceneClr   = 12;
 const uint L_GDepth     = 13;
 const uint L_CmdOffsets = 14;
 const uint L_VsmPages   = 15;
+
+#define T_LANDSCAPE 0
+#define T_OBJ       1
+#define T_SKINING   2
+#define T_MORPH     3
+#define T_PFX       4
 
 #ifndef MESH_TYPE
 #define MESH_TYPE 255

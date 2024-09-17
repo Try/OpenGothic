@@ -147,4 +147,6 @@ class DrawCommands {
     View                     views[SceneGlobals::V_Count];
 
     Tempest::StorageBuffer   vsmIndirectCmd;
+    Tempest::StorageImage    vsmSwrImage;
+    Tempest::DescriptorSet   vsmDesc;
   };

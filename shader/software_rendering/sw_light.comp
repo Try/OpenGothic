@@ -68,7 +68,7 @@ layout(push_constant, std430) uniform UboPush {
   } push;
 
 //layout(binding = 0, rgba8) uniform image2D   outputImage;
-layout(binding = 0, r32ui) uniform uimage2D outputImage;
+layout(binding = 0, r32ui)  uniform uimage2D outputImage;
 layout(binding = 1, std140) uniform UboScene {
   SceneDesc scene;
   };

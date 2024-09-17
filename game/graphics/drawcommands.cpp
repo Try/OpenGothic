@@ -69,6 +69,8 @@ DrawCommands::DrawCommands(VisualObjects& owner, DrawBuckets& buckets, DrawClust
     Tempest::DispatchIndirectCommand cmd = {2000,1,1};
     vsmIndirectCmd = Resources::device().ssbo(&cmd, sizeof(cmd));
     }
+  // vsmSwrImage = Resources::device().image2d(TextureFormat::R16,  4096, 4096);
+  // vsmSwrImage = Resources::device().image2d(TextureFormat::R32U, 4096, 4096);
   }
 
 DrawCommands::~DrawCommands() {
@@ -349,10 +351,7 @@ void DrawCommands::updateCommandUniforms() {
   }
 
 void DrawCommands::updateVsmUniforms() {
-  if(Gothic::options().swRenderingPreset==0)
-    return;
-
-  if(scene.swMainImage==nullptr)
+  if(Gothic::options().swRenderingPreset==0 && Gothic::options().doVirtualShadow==false)
     return;
 
   auto& device = Resources::device();
@@ -377,7 +376,7 @@ void DrawCommands::updateVsmUniforms() {
     }
 
   const uint32_t preset = Gothic::options().swRenderingPreset;
-  if(preset>0 && !Shaders::inst().swRendering.isEmpty()) {
+  if(preset>0 && !Shaders::inst().swRendering.isEmpty() && scene.swMainImage!=nullptr) {
     Resources::recycle(std::move(swrDesc));
     swrDesc = device.descriptors(Shaders::inst().swRendering);
     swrDesc.set(0, *scene.swMainImage);
@@ -393,6 +392,21 @@ void DrawCommands::updateVsmUniforms() {
       swrDesc.set(9,  *scene.lights);
       swrDesc.set(10, owner.instanceSsbo());
       }
+    }
+
+  if(false && Gothic::options().doVirtualShadow && scene.vsmPageList!=nullptr) {
+    Resources::recycle(std::move(vsmDesc));
+    vsmDesc = device.descriptors(Shaders::inst().vsmRendering);
+
+    vsmDesc.set(0, vsmSwrImage);
+    vsmDesc.set(1, scene.uboGlobal[SceneGlobals::V_Vsm]);
+    vsmDesc.set(2, *scene.vsmPageList);
+    vsmDesc.set(3, clusters.ssbo());
+    vsmDesc.set(4, owner.instanceSsbo());
+    vsmDesc.set(5, ibo);
+    vsmDesc.set(6, vbo);
+    vsmDesc.set(7, tex);
+    vsmDesc.set(8, Sampler::bilinear());
     }
   }
 
@@ -516,6 +530,15 @@ void DrawCommands::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
     if(cx.isMeshShader())
       cmd.dispatchMeshIndirect(view.indirectCmd, sizeof(IndirectCmd)*id + sizeof(uint32_t)); else
       cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
+    }
+
+  if(false) {
+    cmd.setFramebuffer({});
+    struct Push { uint32_t meshletCount; } push = {};
+    push.meshletCount = uint32_t(clusters.size());
+    cmd.setUniforms(Shaders::inst().vsmRendering, vsmDesc, &push, sizeof(push));
+    // const auto sz = Shaders::inst().vsmRendering.workGroupSize();
+    cmd.dispatch(1024u);
     }
   }
 

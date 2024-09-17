@@ -56,7 +56,7 @@ bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
   const float R = sphere.w;
 
   const float smWidthInv = 1.0/(1024.0); // NOTE: from camera.cpp
-  const float zScale     = 1.0/(5*5120.0);
+  const float zScale     = 1.0/(10*5120.0);
 
   float Rz = R * zScale;
   if(c.z - Rz > 1 || c.z + Rz < 0)

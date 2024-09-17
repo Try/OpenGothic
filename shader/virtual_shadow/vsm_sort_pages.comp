@@ -66,46 +66,48 @@ void sizeSort() {
     atomicAdd(pageCount1x1, 1);
   barrier();
 
-  const uint offset4x4 = ((pageCount4x4+ 7)/ 8)*4*32;
-  const uint offset2x2 = ((pageCount2x2+15)/16)*2*32;
+  const uint PAGE_2x2  = VSM_PAGE_PER_ROW/2;
+  const uint PAGE_4x4  = VSM_PAGE_PER_ROW/4;
+  const uint offset4x4 = ((pageCount4x4+PAGE_4x4-1)/PAGE_4x4)*4*VSM_PAGE_PER_ROW;
+  const uint offset2x2 = ((pageCount2x2+PAGE_2x2-1)/PAGE_2x2)*2*VSM_PAGE_PER_ROW;
 
   if(s.x==4) {
     uint lid = (id - pageCount2x2 - pageCount1x1);
-    uint row = (lid/8), column = (lid%8);
-    uint nId = row*32*4 + column*4;
+    uint row = (lid/PAGE_4x4), column = (lid%PAGE_4x4);
+    uint nId = row*VSM_PAGE_PER_ROW*4 + column*4;
 
     pageList[nId+0] = v;
     pageList[nId+1] = packVsmPageInfo(inf+ivec3(1,0,0), ivec2(0));
     pageList[nId+2] = packVsmPageInfo(inf+ivec3(2,0,0), ivec2(0));
     pageList[nId+3] = packVsmPageInfo(inf+ivec3(3,0,0), ivec2(0));
-    nId+=32;
+    nId += VSM_PAGE_PER_ROW;
     pageList[nId+0] = packVsmPageInfo(inf+ivec3(0,1,0), ivec2(0));
     pageList[nId+1] = packVsmPageInfo(inf+ivec3(1,1,0), ivec2(0));
     pageList[nId+2] = packVsmPageInfo(inf+ivec3(2,1,0), ivec2(0));
     pageList[nId+3] = packVsmPageInfo(inf+ivec3(3,1,0), ivec2(0));
-    nId+=32;
+    nId += VSM_PAGE_PER_ROW;
     pageList[nId+0] = packVsmPageInfo(inf+ivec3(0,2,0), ivec2(0));
     pageList[nId+1] = packVsmPageInfo(inf+ivec3(1,2,0), ivec2(0));
     pageList[nId+2] = packVsmPageInfo(inf+ivec3(2,2,0), ivec2(0));
     pageList[nId+3] = packVsmPageInfo(inf+ivec3(3,2,0), ivec2(0));
-    nId+=32;
+    nId += VSM_PAGE_PER_ROW;
     pageList[nId+0] = packVsmPageInfo(inf+ivec3(0,3,0), ivec2(0));
     pageList[nId+1] = packVsmPageInfo(inf+ivec3(1,3,0), ivec2(0));
     pageList[nId+2] = packVsmPageInfo(inf+ivec3(2,3,0), ivec2(0));
     pageList[nId+3] = packVsmPageInfo(inf+ivec3(3,3,0), ivec2(0));
-    nId+=32;
+    nId += VSM_PAGE_PER_ROW;
     }
   barrier();
 
   if(s.x==2) {
     uint lid = (id-pageCount1x1);
-    uint row = (lid/16), column = (lid%16);
-    uint nId = row*32*2 + column*2 + offset4x4;
+    uint row = (lid/PAGE_2x2), column = (lid%PAGE_2x2);
+    uint nId = row*VSM_PAGE_PER_ROW*2 + column*2 + offset4x4;
 
     pageList[nId+0] = v;
     // pageList[nId+0] = packVsmPageInfo(inf+ivec3(0,0,0), s);
     pageList[nId+1] = packVsmPageInfo(inf+ivec3(1,0,0), ivec2(0));
-    nId+=32;
+    nId += VSM_PAGE_PER_ROW;
     pageList[nId+0] = packVsmPageInfo(inf+ivec3(0,1,0), ivec2(0));
     pageList[nId+1] = packVsmPageInfo(inf+ivec3(1,1,0), ivec2(0));
     }

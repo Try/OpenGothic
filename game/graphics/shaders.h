@@ -83,6 +83,8 @@ class Shaders {
     Tempest::ComputePipeline vsmSortPages;
     Tempest::RenderPipeline  vsmDbg;
 
+    Tempest::ComputePipeline vsmRendering;
+
     // Software rendering
     Tempest::ComputePipeline swRendering;
     Tempest::RenderPipeline  swRenderingDbg;

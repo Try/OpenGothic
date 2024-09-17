@@ -207,7 +207,8 @@ void Renderer::resetSwapchain() {
     vsm.pageData        = device.zbuffer(shadowFormat, 4096, 4096);
     vsm.shadowMask      = device.image2d(Tempest::RGBA8, w, h);
 
-    auto pageCount      = uint32_t((vsm.pageData.w()+128-1)/128) * uint32_t((vsm.pageData.h()+128-1)/128);
+    const int32_t VSM_PAGE_SIZE = 128;
+    auto pageCount      = uint32_t((vsm.pageData.w()+VSM_PAGE_SIZE-1)/VSM_PAGE_SIZE) * uint32_t((vsm.pageData.h()+VSM_PAGE_SIZE-1)/VSM_PAGE_SIZE);
     vsm.pageList        = device.ssbo(nullptr, (pageCount + 4)*sizeof(uint32_t));
     }
 
@@ -858,6 +859,7 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.setUniforms(*vsm.pagesMarkPso, vsm.uboPages);
   cmd.dispatchThreads(zbuffer.size());
 
+  //TODO: trimming
   //cmd.setUniforms(Shaders::inst().vsmClumpPages0, vsm.uboList);
   //cmd.dispatch(1);
 
