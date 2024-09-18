@@ -1003,7 +1003,7 @@ template<class T>
 static bool checkTargetType(T&, TargetType) { return true; }
 
 static bool checkTargetType(Npc& n, TargetType t) {
-  return n.isSpellTargetType(t);
+  return n.isTargetableBySpell(t);
   }
 
 template<class T>

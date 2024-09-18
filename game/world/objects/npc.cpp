@@ -2815,7 +2815,7 @@ void Npc::runEffect(Effect&& e) {
   visual.startEffect(owner, std::move(e), 0, true);
   }
 
-bool Npc::isSpellTargetType(TargetType t) const {
+bool Npc::isTargetableBySpell(TargetType t) const {
   if(bool(t&(TARGET_TYPE_ALL|TARGET_TYPE_NPCS)))
     return true;
   Guild gil = Guild(trueGuild());

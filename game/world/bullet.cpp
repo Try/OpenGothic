@@ -136,11 +136,6 @@ void Bullet::onCollide(zenkit::MaterialGroup matId) {
 void Bullet::onCollide(Npc& npc) {
   if(&npc==origin() || isFinished())
     return;
-  if(isSpell()) {
-    auto& spl = npc.world().script().spellDesc(spellId());
-    if(!npc.isSpellTargetType(TargetType(spl.target_collect_type)))
-      return;
-    }
 
   if(ow!=nullptr) {
     // no damage between ally npc's, only emit pfx effect

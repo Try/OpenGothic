@@ -1138,6 +1138,13 @@ void GameScript::invokeRefreshAtInsert(Npc& npc) {
   }
 
 CollideMask GameScript::canNpcCollideWithSpell(Npc& npc, Npc* shooter, int32_t spellId) {
+  if(owner.version().game==1) {
+    auto& spl = spellDesc(spellId);
+    if(npc.isTargetableBySpell(TargetType(spl.target_collect_type)))
+      return COLL_DOEVERYTHING; else
+      return COLL_DONOTHING;
+    }
+
   auto fn   = vm.find_symbol_by_name("C_CanNpcCollideWithSpell");
   if(fn==nullptr)
     return COLL_DOEVERYTHING;
