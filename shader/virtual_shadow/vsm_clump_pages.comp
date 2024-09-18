@@ -8,15 +8,79 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-#if defined(PASS0)
-layout(local_size_x = 16, local_size_y = 8) in;
-#else
-layout(local_size_x = 8, local_size_y = 8) in;
-#endif
+layout(local_size_x = 32, local_size_y = 32) in;
 
 layout(binding = 0, std430) buffer Pages { VsmHeader header; uint  pageList[]; } vsm;
 layout(binding = 1, r32ui)  uniform uimage3D pageTbl;
 
+shared uint minY;
+shared uint minX  [32/2];
+shared uint sWidth[32/2];
+
+void main() {
+  const ivec3 size = imageSize(pageTbl);
+  const ivec3 at   = ivec3(gl_GlobalInvocationID);
+  const ivec3 id   = ivec3(gl_LocalInvocationID);
+  const uint  lane = gl_LocalInvocationIndex;
+
+  if(lane < minX.length()) {
+    minX  [lane] = 0xFFFF;
+    sWidth[lane] = 0;
+    }
+  minY = 0xFFFF;
+  barrier();
+
+  const uint frag = imageLoad(pageTbl, at).r;
+  if(frag>0)
+    atomicMin(minY, at.y);
+  barrier();
+
+  const uint stripe = (at.y-minY)/2;
+  if(frag>0)
+    atomicMin(minX[stripe], at.x);
+  barrier();
+
+  if(stripe%2==1 && minX[stripe-1]%2!=minX[stripe]%2) {
+    if(minX[stripe-1] > minX[stripe])
+      minX[stripe-1]--; else
+      minX[stripe-0]--;
+    }
+  barrier();
+
+  uint offsetX = (at.x - minX[stripe]);
+  if(frag>0) {
+    uint w = offsetX + 1;
+    w += w%2;
+    atomicMax(sWidth[stripe], w);
+    }
+  barrier();
+
+  bool quad = false;
+  if(at.y>=minY && (at.y-minY)%2==0 && offsetX%2==0 && offsetX<sWidth[stripe]) {
+    imageStore(pageTbl, at, uvec4(2));
+    quad = true;
+    } else {
+    imageStore(pageTbl, at, uvec4(0));
+    }
+  memoryBarrierImage();
+  barrier();
+
+  if(true && quad && offsetX%4==0 && stripe%2==0) {
+    uint a = imageLoad(pageTbl, at+ivec3(0,0,0)).r;
+    uint b = imageLoad(pageTbl, at+ivec3(2,0,0)).r;
+    uint c = imageLoad(pageTbl, at+ivec3(2,2,0)).r;
+    uint d = imageLoad(pageTbl, at+ivec3(0,2,0)).r;
+    if(a+b+c+d >= 4*2) {
+      imageStore(pageTbl, at+ivec3(0,0,0), uvec4(4));
+      imageStore(pageTbl, at+ivec3(2,0,0), uvec4(0));
+      imageStore(pageTbl, at+ivec3(0,2,0), uvec4(0));
+      imageStore(pageTbl, at+ivec3(2,2,0), uvec4(0));
+      }
+    }
+  }
+
+
+/*
 void trimMip(int mip) {
   const ivec3 size = imageSize(pageTbl);
   const ivec3 id   = ivec3(gl_LocalInvocationID);
@@ -72,12 +136,12 @@ void mainGroups() {
   groupMemoryBarrier();
   barrier();
 
-  if(false && at.x%4==0 && at.y%4==0) {
-    uint a = imageLoad(pageTbl, at+ivec3(0,0,0)).r;
-    uint b = imageLoad(pageTbl, at+ivec3(2,0,0)).r;
-    uint c = imageLoad(pageTbl, at+ivec3(2,2,0)).r;
-    uint d = imageLoad(pageTbl, at+ivec3(0,2,0)).r;
-    if(a+b+c+d >= 4) {
+  if(true && at.x%4==0 && at.y%4==0) {
+    uint a = imageLoad(pageTbl, at+ivec3(0,0,0)).r >=2 ? 1 : 0;
+    uint b = imageLoad(pageTbl, at+ivec3(2,0,0)).r >=2 ? 1 : 0;
+    uint c = imageLoad(pageTbl, at+ivec3(2,2,0)).r >=2 ? 1 : 0;
+    uint d = imageLoad(pageTbl, at+ivec3(0,2,0)).r >=2 ? 1 : 0;
+    if(a+b+c+d >= 2) {
       imageStore(pageTbl, at+ivec3(0,0,0), uvec4(4));
       imageStore(pageTbl, at+ivec3(2,0,0), uvec4(0));
       imageStore(pageTbl, at+ivec3(0,2,0), uvec4(0));
@@ -95,3 +159,4 @@ void main() {
 #error "invalid pass-id"
 #endif
   }
+*/

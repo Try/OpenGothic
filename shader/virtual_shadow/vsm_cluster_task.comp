@@ -117,6 +117,8 @@ bool pageBoundsTest(in vec4 aabb, const ivec3 page, const ivec2 sz) {
 
 #if defined(VSM_ATOMIC)
 shared uint mipMask;
+#else
+shared uint anyPageGlob;
 #endif
 
 void runCluster(const uint clusterId) {
@@ -181,7 +183,12 @@ void runCluster(const uint clusterId) {
     }
 #endif
 
-  if(workgroupAny(anyPage) && gl_LocalInvocationIndex==0)
+  anyPageGlob = 0;
+  barrier();
+  atomicOr(anyPageGlob, anyPage ? 1 : 0);
+  barrier();
+
+  if(gl_LocalInvocationIndex==0 && anyPageGlob!=0)
     atomicAdd(vsm.header.counterM, cluster.meshletCount);
   }
 
