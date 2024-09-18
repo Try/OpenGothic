@@ -52,11 +52,20 @@ layout(location = 0) out flat uint bucketIdOut[]; //TODO: per-primitive
 layout(location = 1) out Varyings  shOut[];
 #endif
 
-#if defined(VIRTUAL_SHADOW)
-uint shadowPageId = 0;
+#if defined(GL_VERTEX_SHADER) && defined(VIRTUAL_SHADOW)
+layout(location = 3) out flat uint vsmMipIdOut;
+#elif defined(VIRTUAL_SHADOW)
+layout(location = 3) out flat uint vsmMipIdOut[];
 #endif
 
-#if defined(VIRTUAL_SHADOW)
+#if defined(VIRTUAL_SHADOW) && !defined(VSM_ATOMIC)
+uint shadowPageId = 0;
+#endif
+#if defined(VIRTUAL_SHADOW) && defined(VSM_ATOMIC)
+uint shadowMip = 0;
+#endif
+
+#if defined(VIRTUAL_SHADOW) && !defined(VSM_ATOMIC)
 vec4 mapViewport(vec4 pos, out float clipDistance[4]) {
   const uint  data = vsm.pageList[shadowPageId];
   const ivec3 page = unpackVsmPageInfo(data);
@@ -81,9 +90,37 @@ vec4 mapViewport(vec4 pos, out float clipDistance[4]) {
   }
 #endif
 
+#if defined(VIRTUAL_SHADOW) && defined(VSM_ATOMIC)
+vec4 mapViewport(vec4 pos, out float clipDistance[4]) {
+  pos.xy /= float(1u << shadowMip);
+
+  ivec4 hdr = vsm.header.pageBbox[shadowMip];
+  ivec2 sz  = hdr.zw - hdr.xy;
+
+  vec2 clip = (pos.xy*0.5+0.5); // [0..1]
+  clip = clip.xy*VSM_PAGE_TBL_SIZE - ivec2(hdr.xy);
+  {
+    clipDistance[0] = 0    + clip.x;
+    clipDistance[1] = sz.x - clip.x;
+    clipDistance[2] = 0    + clip.y;
+    clipDistance[3] = sz.y - clip.y;
+  }
+  return pos;
+  }
+#endif
+
 #if defined(VIRTUAL_SHADOW)
 void initVsm(uvec4 task) {
+#if !defined(VSM_ATOMIC)
   shadowPageId = task.w & 0xFFFF;
+#else
+  shadowMip    = task.w & 0xFF;
+#  if defined(GL_VERTEX_SHADER)
+  vsmMipIdOut = shadowMip;
+#  else
+  vsmMipIdOut[gl_LocalInvocationIndex] = shadowMip;
+#  endif
+#endif
   }
 #endif
 
@@ -164,6 +201,7 @@ void vertexShader(const uvec4 task) {
   vec4 pos = processVertex(var, instanceId, meshletId, bucketId, idx);
 #if defined(VIRTUAL_SHADOW)
   pos = mapViewport(pos, gl_ClipDistance);
+  // pos = mapViewport(pos);
 #endif
   gl_Position = pos;
 #if defined(MAT_VARYINGS)
@@ -196,6 +234,7 @@ void meshShader(const uvec4 task) {
     vec4 pos = processVertex(var, instanceId, meshletId, bucketId, laneID);
 #if defined(VIRTUAL_SHADOW)
     pos = mapViewport(pos, gl_MeshVerticesEXT[laneID].gl_ClipDistance);
+    // pos = mapViewport(pos);
 #endif
     gl_MeshVerticesEXT[laneID].gl_Position = pos;
 

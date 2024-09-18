@@ -336,7 +336,15 @@ void DrawCommands::updateCommandUniforms() {
           desc[v].set(L_GDepth, *scene.sceneDepth, smp);
           }
 
-        if(v==SceneGlobals::V_Vsm) {
+        if(v==SceneGlobals::V_Vsm && scene.vsmPageData!=nullptr && !scene.vsmPageData->isEmpty()) {
+          // atomic
+          desc[v].set(L_CmdOffsets, views[v].indirectCmd);
+          desc[v].set(L_VsmPages,   *scene.vsmPageList);
+          desc[v].set(L_VsmTbl,     *scene.vsmPageTbl);
+          desc[v].set(L_VsmData,    *scene.vsmPageData);
+          }
+        if(v==SceneGlobals::V_Vsm && scene.vsmPageData!=nullptr && scene.vsmPageData->isEmpty()) {
+          // raster
           desc[v].set(L_CmdOffsets, views[v].indirectCmd);
           desc[v].set(L_VsmPages,   *scene.vsmPageList);
           }
@@ -398,7 +406,7 @@ void DrawCommands::updateVsmUniforms() {
     Resources::recycle(std::move(vsmDesc));
     vsmDesc = device.descriptors(Shaders::inst().vsmRendering);
 
-    vsmDesc.set(0, vsmSwrImage);
+    vsmDesc.set(0, *scene.vsmPageData);
     vsmDesc.set(1, scene.uboGlobal[SceneGlobals::V_Vsm]);
     vsmDesc.set(2, *scene.vsmPageList);
     vsmDesc.set(3, clusters.ssbo());

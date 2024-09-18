@@ -1,0 +1,18 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(binding = 0, r32ui) uniform uimage2D vsmData;
+
+void main() {
+  const ivec2 at   = ivec2(gl_GlobalInvocationID.xy);
+  const ivec2 size = imageSize(vsmData);
+  if(any(greaterThanEqual(at, size)))
+    return;
+
+  imageStore(vsmData, at, uvec4(0));
+  }

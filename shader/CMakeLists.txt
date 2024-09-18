@@ -302,6 +302,7 @@ add_shader(direct_light_vsm.frag virtual_shadow/vsm_mark_pages.comp -DCOMPOSE   
 add_shader(vsm_dbg.frag          virtual_shadow/vsm_mark_pages.comp -DDEBUG      -DLWC -S frag)
 add_shader(vsm_mark_pages.comp   virtual_shadow/vsm_mark_pages.comp -DMARK_PAGES -DLWC)
 add_shader(vsm_clear.comp        virtual_shadow/vsm_clear.comp)
+add_shader(vsm_clear_pages.comp  virtual_shadow/vsm_clear_pages.comp)
 add_shader(vsm_clump_pages0.comp virtual_shadow/vsm_clump_pages.comp -DPASS0)
 add_shader(vsm_clump_pages1.comp virtual_shadow/vsm_clump_pages.comp -DPASS1)
 add_shader(vsm_list_pages.comp   virtual_shadow/vsm_list_pages.comp)

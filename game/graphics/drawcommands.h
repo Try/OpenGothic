@@ -102,7 +102,9 @@ class DrawCommands {
       L_SceneClr   = 12,
       L_GDepth     = 13,
       L_CmdOffsets = 14,
-      L_VsmPages   = 15,
+      L_VsmPages   = L_Shadow0,
+      L_VsmTbl     = L_Shadow1,
+      L_VsmData    = 15,
       };
 
     struct IndirectCmd {
@@ -147,6 +149,6 @@ class DrawCommands {
     View                     views[SceneGlobals::V_Count];
 
     Tempest::StorageBuffer   vsmIndirectCmd;
-    Tempest::StorageImage    vsmSwrImage;
+    // Tempest::StorageImage    vsmSwrImage;
     Tempest::DescriptorSet   vsmDesc;
   };

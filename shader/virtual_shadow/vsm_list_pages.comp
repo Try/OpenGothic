@@ -35,6 +35,11 @@ void main() {
     return;
     }
 
+  atomicMin(header.pageBbox[at.z].x, at.x);
+  atomicMin(header.pageBbox[at.z].y, at.y);
+  atomicMax(header.pageBbox[at.z].z, at.x+1);
+  atomicMax(header.pageBbox[at.z].w, at.y+1);
+
   pageList[pageId] = packVsmPageInfo(at.xyz, ivec2(alloc));
   imageStore(pageTbl, at, uvec4(pageId,0,0,0));
   }

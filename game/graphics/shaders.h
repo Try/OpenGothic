@@ -76,7 +76,7 @@ class Shaders {
 
     // Virtual shadow
     Tempest::ComputePipeline vsmClusterTask;
-    Tempest::ComputePipeline vsmClear, vsmMarkPages, vsmListPages;
+    Tempest::ComputePipeline vsmClear, vsmClearPages, vsmMarkPages, vsmListPages;
     Tempest::ComputePipeline vsmClumpPages0, vsmClumpPages1;
     Tempest::ComputePipeline vsmPackDraw0, vsmPackDraw1;
     Tempest::RenderPipeline  vsmDirectLight;

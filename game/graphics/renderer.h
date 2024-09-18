@@ -213,6 +213,7 @@ class Renderer final {
     struct {
       Tempest::ComputePipeline* pagesClearPso = nullptr;
       Tempest::DescriptorSet    uboClear;
+      Tempest::DescriptorSet    uboClearPages;
 
       Tempest::ComputePipeline* pagesMarkPso = nullptr;
       Tempest::DescriptorSet    uboPages;
@@ -227,9 +228,9 @@ class Renderer final {
       Tempest::DescriptorSet    uboDbg;
 
       Tempest::StorageImage     pageTbl;
+      Tempest::StorageImage     pageDataCs;
       Tempest::ZBuffer          pageData;
       Tempest::StorageBuffer    pageList;
-      Tempest::StorageImage     shadowMask;
       } vsm;
 
     struct {

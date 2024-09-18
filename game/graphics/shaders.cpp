@@ -197,6 +197,7 @@ Shaders::Shaders() {
   if(Gothic::options().doVirtualShadow) {
     vsmClusterTask = computeShader("vsm_cluster_task.comp.sprv");
     vsmClear       = computeShader("vsm_clear.comp.sprv");
+    vsmClearPages  = computeShader("vsm_clear_pages.comp.sprv");
     vsmMarkPages   = computeShader("vsm_mark_pages.comp.sprv");
     vsmClumpPages0 = computeShader("vsm_clump_pages0.comp.sprv");
     vsmClumpPages1 = computeShader("vsm_clump_pages1.comp.sprv");
@@ -272,6 +273,10 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
   //state.setZTestMode   (RenderState::ZTestMode::Less);
 
   if(pt==PipelineType::T_Shadow || pt==PipelineType::T_Vsm) {
+    state.setZTestMode(RenderState::ZTestMode::Greater); //FIXME
+    }
+  if(pt==PipelineType::T_Vsm) {
+    // state.setZTestMode(RenderState::ZTestMode::Always); //FIXME
     state.setZTestMode(RenderState::ZTestMode::Greater); //FIXME
     }
 

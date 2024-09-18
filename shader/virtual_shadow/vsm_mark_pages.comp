@@ -33,11 +33,14 @@ layout(binding = 1) uniform texture2D       gbufDiffuse;
 layout(binding = 2) uniform utexture2D      gbufNormal;
 layout(binding = 3) uniform texture2D       depth;
 #if defined(MARK_PAGES)
-layout(binding = 4, r32ui) uniform uimage3D pageTbl;
+layout(binding = 4, r32ui) uniform uimage3D          pageTbl;
 #elif defined(COMPOSE) || defined(DEBUG)
 layout(binding = 4, r32ui) uniform readonly uimage3D pageTbl;
+#  if defined(VSM_ATOMIC)
+layout(binding = 5)        uniform utexture2D        pageData;
+#  else
 layout(binding = 5)        uniform texture2D         pageData;
-layout(binding = 6, rgba8) uniform image2D           shadowMask;
+#  endif
 #endif
 
 #if defined(COMPOSE) || defined(DEBUG)
@@ -98,7 +101,11 @@ float shadowTexelFetch(vec2 page, int mip) {
     return 0;
 
   const ivec2 pageImageAt = unpackVsmPageId(pageId)*VSM_PAGE_SIZE + at;
+#  if defined(VSM_ATOMIC)
+  return uintBitsToFloat(texelFetch(pageData, pageImageAt, 0).x);
+#  else
   return texelFetch(pageData, pageImageAt, 0).x;
+#  endif
 #else
   return (0);
 #endif

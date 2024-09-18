@@ -17,6 +17,10 @@ layout(location = 0) in flat uint bucketId;
 layout(location = 1) in Varyings  shInp;
 #endif
 
+#if defined(VIRTUAL_SHADOW)
+layout(location = 3) in flat uint vsmMipId;
+#endif
+
 #if DEBUG_DRAW
 layout(location = DEBUG_DRAW_LOC) in flat uint debugId;
 #endif
@@ -307,6 +311,19 @@ void mainWater(vec4 t) {
   }
 #endif
 
+#if defined(VIRTUAL_SHADOW) && defined(VSM_ATOMIC)
+bool vsmPageTest() {
+  ivec2 pc     = ivec2(gl_FragCoord.xy)/VSM_PAGE_SIZE;
+  uint  pageId = imageLoad(pageTbl, ivec3(pc, vsmMipId)).r;
+  if(pageId==0xFFFFFFFF)
+    return false;
+  ivec2 frac = ivec2(gl_FragCoord.xy)%VSM_PAGE_SIZE;
+  ivec2 at   = unpackVsmPageId(pageId) * VSM_PAGE_SIZE + frac;
+  imageAtomicMax(vsmData, at, floatBitsToUint(gl_FragCoord.z));
+  return true;
+  }
+#endif
+
 void main() {
 #if defined(MAT_UV)
   vec4 t = diffuseTex();
@@ -316,10 +333,12 @@ void main() {
 #  endif
 #endif
 
-#if defined(VIRTUAL_SHADOW)
+#if defined(VIRTUAL_SHADOW) && defined(VSM_ATOMIC)
   // NOTE: use clip-distance is used instead
   // if(!vsmPageClip(ivec2(gl_FragCoord.xy), vsmPageId))
   //   discard;
+  if(!vsmPageTest())
+    discard;
 #endif
 
 #if defined(MAT_COLOR)

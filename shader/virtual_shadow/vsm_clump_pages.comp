@@ -72,12 +72,12 @@ void mainGroups() {
   groupMemoryBarrier();
   barrier();
 
-  if(true && at.x%4==0 && at.y%4==0) {
+  if(false && at.x%4==0 && at.y%4==0) {
     uint a = imageLoad(pageTbl, at+ivec3(0,0,0)).r;
     uint b = imageLoad(pageTbl, at+ivec3(2,0,0)).r;
     uint c = imageLoad(pageTbl, at+ivec3(2,2,0)).r;
     uint d = imageLoad(pageTbl, at+ivec3(0,2,0)).r;
-    if(a+b+c+d >= 3) {
+    if(a+b+c+d >= 4) {
       imageStore(pageTbl, at+ivec3(0,0,0), uvec4(4));
       imageStore(pageTbl, at+ivec3(2,0,0), uvec4(0));
       imageStore(pageTbl, at+ivec3(0,2,0), uvec4(0));

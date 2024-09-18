@@ -115,6 +115,10 @@ bool pageBoundsTest(in vec4 aabb, const ivec3 page, const ivec2 sz) {
   return true;
   }
 
+#if defined(VSM_ATOMIC)
+shared uint mipMask;
+#endif
+
 void runCluster(const uint clusterId) {
   const Cluster cluster = clusters[clusterId];
   if(cluster.sphere.w<=0.f)
@@ -136,6 +140,7 @@ void runCluster(const uint clusterId) {
   const uint pageCount = vsm.header.pageCount;
   bool anyPage = false;
 
+  uint localMipMask = 0;
   for(uint i=gl_LocalInvocationIndex; i<pageCount; i+=gl_WorkGroupSize.y) {
     // if(i!=13)
     //   continue;
@@ -148,11 +153,33 @@ void runCluster(const uint clusterId) {
       continue;
     if(!pageBoundsTest(aabb, page, sz))
       continue;
+#if !defined(VSM_ATOMIC)
     if(!emitCluster(cluster, i))
       break;
     atomicAdd(cmd[commandId].instanceCount, cluster.meshletCount);
+#endif
+    localMipMask |= (1u << page.z);
     anyPage = true;
     }
+
+#if defined(VSM_ATOMIC)
+  mipMask = 0;
+  barrier();
+
+  atomicOr(mipMask, localMipMask);
+  barrier();
+
+  if((mipMask & (1u << gl_LocalInvocationIndex))!=0 /*&& gl_LocalInvocationIndex==0*/) {
+    const uint mip = gl_LocalInvocationIndex;
+    const uint at  = atomicAdd(vsm.header.meshletCount, cluster.meshletCount);
+    if(at+cluster.meshletCount > 1000000)
+      ;//return;
+    for(int i=0; i<cluster.meshletCount; ++i)
+      payload[at+i] = uvec4(cluster.instanceId, cluster.firstMeshlet+i, cluster.bucketId_commandId, mip);
+    atomicAdd(cmd[commandId].instanceCount, cluster.meshletCount);
+    //return;
+    }
+#endif
 
   if(workgroupAny(anyPage) && gl_LocalInvocationIndex==0)
     atomicAdd(vsm.header.counterM, cluster.meshletCount);

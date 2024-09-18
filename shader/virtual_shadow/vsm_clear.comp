@@ -28,4 +28,7 @@ void main() {
     header.counterM     = 0;
     header.counterV     = 0;
     }
+
+  if(gl_LocalInvocationIndex<16)
+    header.pageBbox[gl_LocalInvocationIndex] = ivec4(0xFF, 0xFF, 0, 0);
   }
