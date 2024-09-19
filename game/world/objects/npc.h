@@ -396,6 +396,7 @@ class Npc final {
     void      commitSpell();
     void      takeDamage(Npc& other, const Bullet* b);
     void      takeDamage(Npc& other, const Bullet* b, const VisualFx* vfx, int32_t splId);
+    bool      isTargetableBySpell(TargetType t) const;
 
     void      emitSoundEffect(std::string_view sound, float range, bool freeSlot);
     void      emitSoundGround(std::string_view sound, float range, bool freeSlot);
