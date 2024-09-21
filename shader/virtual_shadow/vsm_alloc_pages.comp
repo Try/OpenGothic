@@ -132,6 +132,87 @@ void layoutPages(uint pageData, uint pageSz, uint size) {
   barrier();
   }
 
+void provokingPage(uint lane) {
+  const uint  row = lane/VSM_PAGE_TBL_SIZE;
+  const uint  col = lane%VSM_PAGE_TBL_SIZE;
+  const uint  p   = vsm.pageList[lane];
+  const uint  sz  = unpackVsmPageSize(p).x;
+  const ivec3 at  = unpackVsmPageInfo(p);
+  if(sz<=0)
+    return;
+
+  if(col==0) {
+    uint id = atomicAdd(pageListSize, 1);
+    pageList[id] = lane;
+    return;
+    }
+
+  if(col<sz.x)
+    return;
+  //return;
+
+  const uint  p1  = vsm.pageList[lane-sz.x];
+  const uint  sz1 = unpackVsmPageSize(p1).x;
+  const ivec3 at1 = unpackVsmPageInfo(p1);
+
+  if(sz==sz1 && at1+ivec3(sz,0,0)==at)
+    return;
+
+  uint id = atomicAdd(pageListSize, 1);
+  pageList[id] = lane;
+  }
+
+void horizontalMerge() {
+  const uint lane = gl_LocalInvocationIndex;
+  pageListSize = 0;
+
+  memoryBarrierBuffer();
+  barrier();
+
+  // provoking pages
+  if(lane < vsm.header.pageCount)
+    provokingPage(lane);
+  barrier();
+
+  if(lane < pageListSize) {
+    //uint id = pageList[lane];
+    //vsm.pageList[id] = 0;
+    }
+
+  if(lane >= pageListSize)
+    return;
+
+  uint  pId = pageList[lane];
+  const uint  row = pId/VSM_PAGE_TBL_SIZE;
+  const uint  col = pId%VSM_PAGE_TBL_SIZE;
+  const uint  p0  = vsm.pageList[pId];
+  const uint  off = row*VSM_PAGE_TBL_SIZE;
+
+  uint  sz   = unpackVsmPageSize(p0).x;
+  ivec3 at   = unpackVsmPageInfo(p0);
+  uint  size = sz;
+  for(uint i=col+sz; i < VSM_PAGE_TBL_SIZE; i+=sz) {
+    const uint  pId1 = off+i;
+    const uint  p1   = vsm.pageList[pId1];
+    const uint  sz1  = unpackVsmPageSize(p1).x;
+    const ivec3 at1  = unpackVsmPageInfo(p1);
+    if(sz!=sz1 || at+uvec3(size,0,0)!=at1)
+      break;
+    if(size+sz>=16) {
+      // restart stripe
+      vsm.pageList[pId] = packVsmPageInfo(at, ivec2(size, sz));
+      pId  = pId1;
+      sz   = sz1;
+      at   = at1;
+      size = sz1;
+      continue;
+      }
+    vsm.pageList[pId1] = 0;
+    size += sz;
+    }
+  vsm.pageList[pId] = packVsmPageInfo(at, ivec2(size, sz));
+  }
+
 void main() {
   const ivec3 at   = ivec3(gl_GlobalInvocationID);
   const ivec3 id   = ivec3(gl_LocalInvocationID);
@@ -158,4 +239,6 @@ void main() {
   layoutPages(frag, size, 4);
   layoutPages(frag, size, 2);
   layoutPages(frag, size, 1);
+
+  horizontalMerge();
   }
