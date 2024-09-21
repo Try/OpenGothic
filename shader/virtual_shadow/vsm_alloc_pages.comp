@@ -1,0 +1,161 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+#include "virtual_shadow/vsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 32, local_size_y = 32) in;
+
+layout(binding = 0, std430) buffer Pages { VsmHeader header; uint  pageList[]; } vsm;
+layout(binding = 1, r32ui)  uniform uimage3D pageTbl;
+layout(binding = 2, r32ui)  uniform uimage2D dbg;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+shared uint pageListSize;
+shared uint pageList[VSM_MAX_PAGES];
+
+shared uint bits[(NumThreads+31)/32];
+
+shared uint ladder  [VSM_PAGE_TBL_SIZE];
+shared uint ladderWr[VSM_PAGE_TBL_SIZE];
+
+uint loadPageSize(ivec3 at) {
+  uint a = imageLoad(pageTbl, at).r;
+  return a >> 1;
+  }
+
+void storePage(ivec2 pId, ivec3 at, ivec2 tile, uint size) {
+  const uint pageId = pId.x + pId.y*VSM_PAGE_PER_ROW;
+
+  vsm.pageList[pageId] = packVsmPageInfo(at.xyz, ivec2(size));
+  atomicMax(vsm.header.pageCount, pageId+1);
+  imageStore(pageTbl, at+ivec3(tile,0), uvec4(pageId,0,0,0));
+
+  imageStore(dbg, pId, uvec4(size));
+  }
+
+uint bitCountShared(uint till) {
+  uint n = till/32;
+  uint f = till%32;
+  uint r = 0;
+  for(uint i=0; i<n; ++i)
+    r += bitCount(bits[i]);
+  r += bitCount(bits[n] & ((1u << f)-1u));
+  return r;
+  }
+
+void listPages() {
+  const ivec3 size = imageSize(pageTbl);
+  const uint  lane = gl_LocalInvocationIndex;
+  const ivec3 at   = ivec3(gl_GlobalInvocationID);
+  pageListSize = 0;
+
+  for(int i=0; i<1111 && i<size.z; ++i) {
+    const uint frag = loadPageSize(ivec3(at.xy, i)).r;
+    if(lane < bits.length())
+      bits[lane] = 0;
+    barrier();
+
+    if(frag>0)
+      atomicOr(bits[lane/32], 1u<<(lane%32));
+    barrier();
+
+    if(frag>0) {
+      uint id = pageListSize + bitCountShared(lane);
+      pageList[id] = packVsmPageInfo(ivec3(at.xy, i), ivec2(frag));
+      }
+    barrier();
+
+    if(frag>0)
+      atomicAdd(pageListSize, 1);
+    barrier();
+    }
+  }
+
+ivec2 findRowCol(in uint page, const uint size) {
+  //const uint perRow = 32/size;
+  //const uint row    = (page/perRow)*size;
+  //const uint col    = (page%perRow)*size;
+  //return ivec2(col,row);
+
+  for(uint i=0; i<32; i+=size) {
+    uint space = (32-ladder[i])/size;
+    if(page<space)
+      return ivec2(ladder[i]+page*size, i);
+    page -= space;
+    }
+  // error
+  return ivec2(-1);
+  }
+
+void layoutPages(uint pageData, uint pageSz, uint size) {
+  const uint lane = gl_LocalInvocationIndex;
+
+  pageListSize = 0;
+  if(lane < bits.length())
+    bits[lane] = 0;
+  if(lane < ladderWr.length())
+    ladder[lane] = ladderWr[lane];
+  barrier();
+
+  if(pageSz==size)
+    atomicOr(bits[lane/32], 1u<<(lane%32));
+  barrier();
+
+  if(pageSz==size) {
+    uint id = bitCountShared(lane);
+    pageList[id] = pageData;
+    atomicMax(pageListSize, id+1);
+    }
+  barrier();
+
+  const uint perRow = VSM_PAGE_TBL_SIZE/size;
+  const uint maxPix = pageListSize*(size*size);
+  // const uint maxPix = 2*(size*size);
+  for(uint i=lane; i<maxPix; i+=NumThreads) {
+    const uint  page = i/(size*size);
+    const uint  tile = i%(size*size);
+    const ivec2 rc   = findRowCol(page, size);
+    if(rc.x<0)
+      break;
+
+    const ivec3 at = unpackVsmPageInfo(pageList[page]);
+    const ivec2 tx = ivec2(tile%size, tile/size);
+    storePage(rc+tx, at, tx, tile==0 ? size : 0);
+    atomicMax(ladderWr[rc.y + tx.y], rc.x + tx.x+1);
+    }
+  barrier();
+  }
+
+void main() {
+  const ivec3 at   = ivec3(gl_GlobalInvocationID);
+  const ivec3 id   = ivec3(gl_LocalInvocationID);
+  const uint  lane = gl_LocalInvocationIndex;
+
+  imageStore(dbg, at.xy, uvec4(0));
+  memoryBarrierImage();
+  barrier();
+
+  if(lane < ladderWr.length())
+    ladderWr[lane] = 0;
+  if(lane < vsm.pageList.length())
+    vsm.pageList[lane] = 0;
+  memoryBarrierBuffer();
+  barrier();
+
+  listPages();
+
+  const uint frag = lane<pageListSize ? pageList[lane] : 0;
+  const uint size = unpackVsmPageSize(frag).x;
+  barrier();
+
+  //layoutPages(frag, size, 8);
+  layoutPages(frag, size, 4);
+  layoutPages(frag, size, 2);
+  layoutPages(frag, size, 1);
+  }

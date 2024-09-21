@@ -199,10 +199,8 @@ Shaders::Shaders() {
     vsmClear       = computeShader("vsm_clear.comp.sprv");
     vsmClearPages  = computeShader("vsm_clear_pages.comp.sprv");
     vsmMarkPages   = computeShader("vsm_mark_pages.comp.sprv");
-    vsmClumpPages0 = computeShader("vsm_clump_pages0.comp.sprv");
-    vsmClumpPages1 = computeShader("vsm_clump_pages1.comp.sprv");
-    vsmListPages   = computeShader("vsm_list_pages.comp.sprv");
-    vsmSortPages   = computeShader("vsm_sort_pages.comp.sprv");
+    vsmClumpPages  = computeShader("vsm_clump_pages.comp.sprv");
+    vsmAllocPages  = computeShader("vsm_alloc_pages.comp.sprv");
     vsmPackDraw0   = computeShader("vsm_pack_draws0.comp.sprv");
     vsmPackDraw1   = computeShader("vsm_pack_draws1.comp.sprv");
     vsmDirectLight = postEffect("copy", "direct_light_vsm", RenderState::ZTestMode::NoEqual);

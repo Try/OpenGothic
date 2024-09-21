@@ -17,6 +17,26 @@ shared uint minY;
 shared uint minX  [32/2];
 shared uint sWidth[32/2];
 
+void storePage(ivec3 at, uint size, uint prime) {
+  uint d = (size<<1) | prime;
+  imageStore(pageTbl, at, uvec4(d));
+  }
+
+void storePage(ivec3 at, uint size, bool prime) {
+  uint d = (size<<1) | (prime ? 1 : 0);
+  imageStore(pageTbl, at, uvec4(d));
+  }
+
+uint loadPagePrimeBit(ivec3 at) {
+  uint a = imageLoad(pageTbl, at).r;
+  return a & 0x1u;
+  }
+
+uint loadPageSize(ivec3 at) {
+  uint a = imageLoad(pageTbl, at).r;
+  return a >> 1;
+  }
+
 void main() {
   const ivec3 size = imageSize(pageTbl);
   const ivec3 at   = ivec3(gl_GlobalInvocationID);
@@ -30,9 +50,16 @@ void main() {
   minY = 0xFFFF;
   barrier();
 
-  const uint frag = imageLoad(pageTbl, at).r;
-  if(frag>0)
+  const uint frag  = imageLoad(pageTbl, at).r;
+  const bool prime = frag>0;
+  if(frag>0) {
     atomicMin(minY, at.y);
+
+    atomicMin(vsm.header.pageBbox[at.z].x, at.x);
+    atomicMin(vsm.header.pageBbox[at.z].y, at.y);
+    atomicMax(vsm.header.pageBbox[at.z].z, at.x+1);
+    atomicMax(vsm.header.pageBbox[at.z].w, at.y+1);
+    }
   barrier();
 
   const uint stripe = (at.y-minY)/2;
@@ -55,26 +82,43 @@ void main() {
     }
   barrier();
 
-  bool quad = false;
+  bool quad  = false;
   if(at.y>=minY && (at.y-minY)%2==0 && offsetX%2==0 && offsetX<sWidth[stripe]) {
-    imageStore(pageTbl, at, uvec4(2));
+    storePage(at, 2, prime);
     quad = true;
     } else {
-    imageStore(pageTbl, at, uvec4(0));
+    storePage(at, 0, prime);
     }
   memoryBarrierImage();
   barrier();
 
   if(true && quad && offsetX%4==0 && stripe%2==0) {
-    uint a = imageLoad(pageTbl, at+ivec3(0,0,0)).r;
-    uint b = imageLoad(pageTbl, at+ivec3(2,0,0)).r;
-    uint c = imageLoad(pageTbl, at+ivec3(2,2,0)).r;
-    uint d = imageLoad(pageTbl, at+ivec3(0,2,0)).r;
-    if(a+b+c+d >= 4*2) {
-      imageStore(pageTbl, at+ivec3(0,0,0), uvec4(4));
-      imageStore(pageTbl, at+ivec3(2,0,0), uvec4(0));
-      imageStore(pageTbl, at+ivec3(0,2,0), uvec4(0));
-      imageStore(pageTbl, at+ivec3(2,2,0), uvec4(0));
+    const int mergeQ = (at.z>4 ? 2 : 3)*2;
+    uint a = loadPageSize(at+ivec3(0,0,0));
+    uint b = loadPageSize(at+ivec3(2,0,0));
+    uint c = loadPageSize(at+ivec3(2,2,0));
+    uint d = loadPageSize(at+ivec3(0,2,0));
+    if(a+b+c+d >= mergeQ) {
+      storePage(at+ivec3(0,0,0), 4, prime);
+      storePage(at+ivec3(2,0,0), 0, prime);
+      storePage(at+ivec3(0,2,0), 0, prime);
+      storePage(at+ivec3(2,2,0), 0, prime);
+      }
+    }
+  memoryBarrierImage();
+  barrier();
+
+  if(true && quad) {
+    uint s = loadPageSize(at);
+    uint a = loadPagePrimeBit(at+ivec3(0,0,0));
+    uint b = loadPagePrimeBit(at+ivec3(1,0,0));
+    uint c = loadPagePrimeBit(at+ivec3(1,1,0));
+    uint d = loadPagePrimeBit(at+ivec3(0,1,0));
+    if(s==2 && a+b+c+d <= 2) {
+      storePage(at+ivec3(0,0,0), a, a);
+      storePage(at+ivec3(1,0,0), b, b);
+      storePage(at+ivec3(1,1,0), c, c);
+      storePage(at+ivec3(0,1,0), d, d);
       }
     }
   }
@@ -105,58 +149,5 @@ void trimMip(int mip) {
         }
       }
     }
-  }
-
-void mainTrim() {
-  const ivec3 size = imageSize(pageTbl);
-  // NOTE: need only about 5 mips
-  for(int i=1; i<size.z; ++i) {
-    trimMip(i);
-    barrier();
-    }
-  }
-
-void mainGroups() {
-  const ivec3 size = imageSize(pageTbl);
-  const ivec3 at   = ivec3(gl_GlobalInvocationID);
-  const ivec3 id   = ivec3(gl_LocalInvocationID);
-
-  if(true && at.x%2==0 && at.y%2==0) {
-    uint a = imageLoad(pageTbl, at+ivec3(0,0,0)).r;
-    uint b = imageLoad(pageTbl, at+ivec3(1,0,0)).r;
-    uint c = imageLoad(pageTbl, at+ivec3(1,1,0)).r;
-    uint d = imageLoad(pageTbl, at+ivec3(0,1,0)).r;
-    if(a+b+c+d >= 2) {
-      imageStore(pageTbl, at+ivec3(0,0,0), uvec4(2));
-      imageStore(pageTbl, at+ivec3(1,0,0), uvec4(0));
-      imageStore(pageTbl, at+ivec3(0,1,0), uvec4(0));
-      imageStore(pageTbl, at+ivec3(1,1,0), uvec4(0));
-      }
-    }
-  groupMemoryBarrier();
-  barrier();
-
-  if(true && at.x%4==0 && at.y%4==0) {
-    uint a = imageLoad(pageTbl, at+ivec3(0,0,0)).r >=2 ? 1 : 0;
-    uint b = imageLoad(pageTbl, at+ivec3(2,0,0)).r >=2 ? 1 : 0;
-    uint c = imageLoad(pageTbl, at+ivec3(2,2,0)).r >=2 ? 1 : 0;
-    uint d = imageLoad(pageTbl, at+ivec3(0,2,0)).r >=2 ? 1 : 0;
-    if(a+b+c+d >= 2) {
-      imageStore(pageTbl, at+ivec3(0,0,0), uvec4(4));
-      imageStore(pageTbl, at+ivec3(2,0,0), uvec4(0));
-      imageStore(pageTbl, at+ivec3(0,2,0), uvec4(0));
-      imageStore(pageTbl, at+ivec3(2,2,0), uvec4(0));
-      }
-    }
-  }
-
-void main() {
-#if defined(PASS0)
-  mainTrim();
-#elif defined(PASS1)
-  mainGroups();
-#else
-#error "invalid pass-id"
-#endif
   }
 */
