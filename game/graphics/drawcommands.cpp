@@ -503,8 +503,11 @@ void DrawCommands::visibilityVsm(Encoder<CommandBuffer>& cmd, uint8_t fId) {
 
     auto* pso = &Shaders::inst().vsmClusterTask;
     cmd.setUniforms(*pso, i.desc, &push, sizeof(push));
-    //cmd.dispatchThreads(push.meshletCount);
+#if 1
+    cmd.dispatchThreads(push.meshletCount, size_t(scene.vsmPageTbl->d()));
+#else
     cmd.dispatch(push.meshletCount);
+#endif
     }
 
   cmd.setUniforms(Shaders::inst().vsmPackDraw0, views[SceneGlobals::V_Vsm].descPackDraw0);
