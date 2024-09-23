@@ -34,7 +34,10 @@ void storePage(ivec2 pId, ivec3 at, ivec2 tile, uint size) {
 
   vsm.pageList[pageId] = packVsmPageInfo(at.xyz, ivec2(size));
   atomicMax(vsm.header.pageCount, pageId+1);
-  imageStore(pageTbl, at+ivec3(tile,0), uvec4(pageId,0,0,0));
+
+  at += ivec3(tile,0);
+  const uint prime = imageLoad(pageTbl, at+ivec3(tile,0)).r & 0x1;
+  imageStore(pageTbl, at, uvec4((pageId << 16u) | prime));
 
   imageStore(dbg, pId, uvec4(size));
   }

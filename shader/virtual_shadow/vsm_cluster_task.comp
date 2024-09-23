@@ -24,7 +24,9 @@ struct Cluster {
   uint  instanceId;
   };
 
-layout(local_size_x = 1, local_size_y = 64) in;
+layout(local_size_x = 1024) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
@@ -34,22 +36,20 @@ layout(binding = 2, std430) readonly buffer Mem { uint        instanceMem[]; };
 layout(binding = 4, std430) buffer IndirectBuf  { IndirectCmd cmd[];         };
 layout(binding = 5, std430) readonly buffer Cbo { Cluster     clusters[];    };
 
+layout(binding = 6, r32ui)  uniform uimage3D pageTbl;
 layout(binding = 7, std430) buffer Pages        { VsmHeader   header; uint  pageList[]; } vsm;
 
 layout(push_constant, std430) uniform UboPush {
   int meshletCount;
   } push;
 
-shared bool workgroupBool;
+shared uint pageListSize;
+shared uint pageList[VSM_MAX_PAGES];
 
-bool workgroupAny(bool a) {
-  workgroupBool = false;
-  barrier();
-  if(a)
-    workgroupBool = true;
-  barrier();
-  return workgroupBool;
-  }
+shared uint vsmMipMask;
+#if !defined(VSM_ATOMIC)
+shared uint anyPageGlob;
+#endif
 
 bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
   const vec3  c = (scene.viewProject * vec4(sphere.xyz, 1)).xyz;
@@ -96,9 +96,38 @@ bool emitCluster(const Cluster cluster, uint page) {
     return false;
   for(int i=0; i<cluster.meshletCount; ++i)
     payload[at+i] = uvec4(cluster.instanceId, cluster.firstMeshlet+i, cluster.bucketId_commandId, page);
+
+  const uint commandId = cluster.bucketId_commandId & 0xFFFF;
+  atomicAdd(cmd[commandId].instanceCount, cluster.meshletCount);
   return true;
   }
 
+
+void makeMipMask(const vec4 aabb0) {
+  vsmMipMask = 0;
+  barrier();
+
+  const uint lane = gl_LocalInvocationIndex;
+  for(uint i=lane; i<vsm.header.pageBbox.length(); i+=NumThreads) {
+    ivec4 bbox = vsm.header.pageBbox[i];
+    ivec2 sz   = bbox.zw-bbox.xy;
+
+    vec4  aabb = aabb0/(1u << i);
+    aabb = (aabb*0.5+0.5); // [0..1]
+    aabb = (aabb*VSM_PAGE_TBL_SIZE - bbox.xyxy);
+
+    if(aabb.z < 0 || sz.x <= aabb.x)
+      continue;
+    if(aabb.w < 0 || sz.y <= aabb.y)
+      continue;
+    const float dx = (aabb.z-aabb.x)*VSM_PAGE_SIZE;
+    const float dy = (aabb.w-aabb.y)*VSM_PAGE_SIZE;
+    if(dx<1 || dy<1)
+      continue; // subpixel sized meshlet
+    atomicOr(vsmMipMask, 1u<<i);
+    }
+  barrier();
+  }
 
 bool pageBoundsTest(in vec4 aabb, const ivec3 page, const ivec2 sz) {
   aabb /= (1u << page.z);
@@ -115,13 +144,7 @@ bool pageBoundsTest(in vec4 aabb, const ivec3 page, const ivec2 sz) {
   return true;
   }
 
-#if defined(VSM_ATOMIC)
-shared uint mipMask;
-#else
-shared uint anyPageGlob;
-#endif
-
-void runCluster(const uint clusterId) {
+void _runCluster(const uint clusterId) {
   const Cluster cluster = clusters[clusterId];
   if(cluster.sphere.w<=0.f)
     return; // disabled or deleted
@@ -138,11 +161,12 @@ void runCluster(const uint clusterId) {
   if(!projectCluster(cluster, aabb, depthMin))
     return;
 
+  makeMipMask(aabb);
+
   const uint commandId = cluster.bucketId_commandId & 0xFFFF;
   const uint pageCount = vsm.header.pageCount;
   bool anyPage = false;
 
-  uint localMipMask = 0;
   for(uint i=gl_LocalInvocationIndex; i<pageCount; i+=gl_WorkGroupSize.y) {
     // if(i!=13)
     //   continue;
@@ -151,27 +175,23 @@ void runCluster(const uint clusterId) {
       continue;
     const ivec3 page = unpackVsmPageInfo(data);
     const ivec2 sz   = unpackVsmPageSize(data);
+    if((vsmMipMask & (1u<<page.z))==0)
+      continue;
     if(sz==ivec2(0))
       continue;
     if(!pageBoundsTest(aabb, page, sz))
       continue;
+    const uint p = imageLoad(pageTbl, ivec3(page)).x;
 #if !defined(VSM_ATOMIC)
     if(!emitCluster(cluster, i))
       break;
-    atomicAdd(cmd[commandId].instanceCount, cluster.meshletCount);
+    //atomicAdd(cmd[commandId].instanceCount, cluster.meshletCount);
 #endif
-    localMipMask |= (1u << page.z);
     anyPage = true;
     }
 
 #if defined(VSM_ATOMIC)
-  mipMask = 0;
-  barrier();
-
-  atomicOr(mipMask, localMipMask);
-  barrier();
-
-  if((mipMask & (1u << gl_LocalInvocationIndex))!=0 /*&& gl_LocalInvocationIndex==0*/) {
+  if((vsmMipMask & (1u << gl_LocalInvocationIndex))!=0 /*&& gl_LocalInvocationIndex==0*/) {
     const uint mip = gl_LocalInvocationIndex;
     const uint at  = atomicAdd(vsm.header.meshletCount, cluster.meshletCount);
     if(at+cluster.meshletCount > 1000000)
@@ -192,7 +212,65 @@ void runCluster(const uint clusterId) {
     atomicAdd(vsm.header.counterM, cluster.meshletCount);
   }
 
+void pullPages(uint mip) {
+  pageListSize = 0;
+  barrier();
+
+  const uint lane      = gl_LocalInvocationIndex;
+  const uint pageCount = vsm.header.pageCount;
+  //const uint fragCount = VSM_PAGE_TBL_SIZE * VSM_PAGE_TBL_SIZE;
+  for(uint i=lane; i<pageCount; i+=NumThreads) {
+    const uint  data = vsm.pageList[i];
+    if(data==0)
+      continue;
+    const ivec3 page = unpackVsmPageInfo(data);
+    const ivec2 sz   = unpackVsmPageSize(data);
+    if(page.z!=mip)
+      continue;
+    if(sz==ivec2(0))
+      continue;
+
+    const uint id = atomicAdd(pageListSize, 1);
+    pageList[id] = i;
+    }
+  barrier();
+  }
+
+void runCluster(const uint clusterId) {
+  const Cluster cluster = clusters[clusterId];
+  if(cluster.sphere.w<=0.f)
+    return; // disabled or deleted
+
+  if(frustrumTest(cluster.sphere)) {
+    if(gl_GlobalInvocationID.y==0)
+      atomicAdd(vsm.header.counterV, cluster.meshletCount);
+    } else {
+    // return;
+    }
+
+  vec4  aabb     = vec4(0);
+  float depthMin = 1;
+  if(!projectCluster(cluster, aabb, depthMin))
+    return;
+
+  for(uint ix=0; ix<pageListSize; ++ix) {
+    const uint  i    = pageList[ix];
+    const uint  data = vsm.pageList[i];
+
+    const ivec3 page = unpackVsmPageInfo(data);
+    const ivec2 sz   = unpackVsmPageSize(data);
+    if(!pageBoundsTest(aabb, page, sz))
+      continue;
+    if(!emitCluster(cluster, i))
+      break;
+    }
+  }
+
 void main() {
+  pullPages(gl_GlobalInvocationID.y);
+  if(pageListSize==0)
+    return;
+
   const uint clusterId = gl_GlobalInvocationID.x;
   if(clusterId<push.meshletCount)
     runCluster(clusterId);

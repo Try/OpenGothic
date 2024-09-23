@@ -5,6 +5,7 @@
 
 const int VSM_PAGE_SIZE     = 128;
 const int VSM_PAGE_TBL_SIZE = 32;  // small for testing, 64 can be better
+const int VSM_PAGE_MIPS     = 16;
 const int VSM_PAGE_PER_ROW  = 4096/VSM_PAGE_SIZE;
 const int VSM_MAX_PAGES     = VSM_PAGE_PER_ROW * VSM_PAGE_PER_ROW; // 1024;
 const int VSM_CLIPMAP_SIZE  = VSM_PAGE_SIZE * VSM_PAGE_TBL_SIZE;
@@ -14,7 +15,7 @@ struct VsmHeader {
   uint  meshletCount;
   uint  counterM;
   uint  counterV;
-  ivec4 pageBbox[16];
+  ivec4 pageBbox[VSM_PAGE_MIPS];
   };
 
 uint packVsmPageInfo(ivec3 at, ivec2 size) {

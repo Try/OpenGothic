@@ -96,8 +96,8 @@ float shadowTexelFetch(vec2 page, int mip) {
   const ivec2 at          = ivec2(pageF*VSM_PAGE_SIZE);
 
   //page-global
-  const uint  pageId      = imageLoad(pageTbl, ivec3(pageI, mip)).x;
-  if(pageId==0xFFFFFFFF)
+  const uint  pageId      = imageLoad(pageTbl, ivec3(pageI, mip)).x >> 16u;
+  if(pageId==0xFFFF)
     return 0;
 
   const ivec2 pageImageAt = unpackVsmPageId(pageId)*VSM_PAGE_SIZE + at;
