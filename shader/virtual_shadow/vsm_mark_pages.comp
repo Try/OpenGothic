@@ -26,6 +26,9 @@ const vec3 debugColors[] = {
   vec3(0,0.5,1),
   };
 
+layout(std140, push_constant) uniform Push {
+  float vsmMipBias;
+  };
 layout(binding  = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
@@ -42,6 +45,12 @@ layout(binding = 5)        uniform utexture2D        pageData;
 layout(binding = 5)        uniform texture2D         pageData;
 #  endif
 #endif
+layout(binding = 6, r32ui) uniform uimage3D pageTblDepth;
+
+#if defined(COMPOSE) || defined(DEBUG)
+layout(binding = 7, std430) readonly buffer Pages { VsmHeader header; uint  pageList[]; } vsm;
+#endif
+
 
 #if defined(COMPOSE) || defined(DEBUG)
 layout(location = 0) out vec4 outColor;
@@ -52,6 +61,30 @@ ivec2 pixelPos = ivec2(gl_GlobalInvocationID.xy);
 #else
 ivec2 pixelPos = ivec2(gl_FragCoord.xy);
 #endif
+
+float drawInt(in vec2 where, in int n) {
+  const float RESOLUTION = 0.5;
+  int i=int((where*=RESOLUTION).y);
+  if(0<i && i<6) {
+    i = 6-i;
+    for(int k=1, j=int(where.x); k-->0 || n>0; n/=10)
+      if ((j+=4)<3 && j>=0) {
+        int x = 0;
+        if(i>4)
+          x = 972980223;
+        else if(i>3)
+          x = 690407533;
+        else if(i>2)
+          x = 704642687;
+        else if(i>1)
+          x = 696556137;
+        else
+          x = 972881535;
+        return float(x >> (29-j-(n%10)*3)&1);
+        }
+    }
+  return 0;
+  }
 
 uint hash(uvec3 gridPos) {
   return (gridPos.x * 18397) + (gridPos.y * 20483) + (gridPos.z * 29303);
@@ -84,8 +117,9 @@ int shadowLod(vec2 dx, vec2 dy) {
   float maxLod = 0.5 * log2(max(px, py)); // log2(sqrt()) = 0.5*log2()
   float minLod = 0.5 * log2(min(px, py));
 
-  const float bias = -1;
-  return max(0, int((minLod + maxLod)*0.5 + bias + 0.5));
+  const float bias = vsmMipBias;
+  //return max(0, int((minLod + maxLod)*0.5 + bias + 0.5));
+  return max(0, int(minLod + bias + 0.5));
   }
 
 float shadowTexelFetch(vec2 page, int mip) {
@@ -119,10 +153,11 @@ float shadowTest(vec2 page, int mip, in float refZ, bool isATest) {
   return z<refZ ? 1 : 0;
   }
 
-void markPage(ivec2 pageI, int mip) {
+void markPage(ivec2 pageI, int mip, float depth) {
 #if defined(MARK_PAGES)
   //imageAtomicAdd(pageTbl, ivec3(pageI, mip), 1u);
   imageStore(pageTbl, ivec3(pageI, mip), uvec4(1u));
+  //imageAtomicMin(pageTblDepth, ivec3(pageI, mip), floatBitsToUint(depth));
 #endif
   }
 
@@ -200,9 +235,13 @@ void main() {
 
   ivec2 pageI = ivec2((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
 #if defined(MARK_PAGES)
-  markPage(pageI, mip);
+  markPage(pageI, mip, shPos0.z);
 #elif defined(COMPOSE)
   outColor = vec4(directLight(page, mip, shPos0.z), 1);
+#endif
+
+#if defined(COMPOSE)
+  outColor.rgb += drawInt(gl_FragCoord.xy-vec2(100), int(vsm.header.pageCount)).xxx;
 #endif
 
 #if defined(DEBUG)

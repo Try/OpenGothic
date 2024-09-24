@@ -64,7 +64,8 @@ bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
 
   float Rx = R * smWidthInv;
   float Ry = R * smWidthInv;
-  aabb = vec4(c.xy-vec2(Rx,Ry), c.xy+vec2(Rx,Ry));
+  aabb     = vec4(c.xy-vec2(Rx,Ry), c.xy+vec2(Rx,Ry));
+  depthMin = c.z + Rz;
   // aabb = c.xyxy;
   return true;
   }
@@ -181,7 +182,6 @@ void _runCluster(const uint clusterId) {
       continue;
     if(!pageBoundsTest(aabb, page, sz))
       continue;
-    const uint p = imageLoad(pageTbl, ivec3(page)).x;
 #if !defined(VSM_ATOMIC)
     if(!emitCluster(cluster, i))
       break;
@@ -261,6 +261,10 @@ void runCluster(const uint clusterId) {
     const ivec2 sz   = unpackVsmPageSize(data);
     if(!pageBoundsTest(aabb, page, sz))
       continue;
+    const uint  p = imageLoad(pageTbl, ivec3(page)).x;
+    const float f = uintBitsToFloat(p);
+    if(depthMin < f)
+      ;//continue;
     if(!emitCluster(cluster, i))
       break;
     }

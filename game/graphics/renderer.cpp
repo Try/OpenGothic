@@ -204,8 +204,9 @@ void Renderer::resetSwapchain() {
 
     vsm.pageDbg         = device.image2d(TextureFormat::R32U, 32, 32);
     vsm.pageTbl         = device.image3d(TextureFormat::R32U, 32, 32, 16);
-    // vsm.pageDataCs      = device.image2d(TextureFormat::R32U, 4096, 4096);
+    vsm.pageHiZ         = device.image3d(TextureFormat::R32U, 32, 32, 16);
     vsm.pageData        = device.zbuffer(shadowFormat, 4096, 4096);
+    // vsm.pageDataCs      = device.image2d(TextureFormat::R32U, 4096, 4096);
 
     const int32_t VSM_PAGE_SIZE = 128;
     auto pageCount      = uint32_t((vsm.pageData.w()+VSM_PAGE_SIZE-1)/VSM_PAGE_SIZE) * uint32_t((vsm.pageData.h()+VSM_PAGE_SIZE-1)/VSM_PAGE_SIZE);
@@ -451,6 +452,7 @@ void Renderer::prepareUniforms() {
   if(settings.vsmEnabled) {
     vsm.uboClear.set(0, vsm.pageList);
     vsm.uboClear.set(1, vsm.pageTbl);
+    vsm.uboClear.set(2, vsm.pageHiZ);
 
     if(!vsm.uboClearPages.isEmpty())
       vsm.uboClearPages.set(0, vsm.pageDataCs);
@@ -460,6 +462,8 @@ void Renderer::prepareUniforms() {
     vsm.uboPages.set(2, gbufNormal,  Sampler::nearest());
     vsm.uboPages.set(3, zbuffer,     Sampler::nearest());
     vsm.uboPages.set(4, vsm.pageTbl);
+    vsm.uboPages.set(6, vsm.pageHiZ);
+    //vsm.uboPages.set(7, vsm.pageList);
 
     vsm.uboClump.set(0, vsm.pageList);
     vsm.uboClump.set(1, vsm.pageTbl);
@@ -476,6 +480,7 @@ void Renderer::prepareUniforms() {
     if(!vsm.pageDataCs.isEmpty())
       vsm.uboLight.set(5, vsm.pageDataCs); else
       vsm.uboLight.set(5, vsm.pageData);
+    vsm.uboLight.set(7, vsm.pageList);
 
     vsm.uboDbg.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     vsm.uboDbg.set(1, gbufDiffuse, Sampler::nearest());
@@ -499,7 +504,7 @@ void Renderer::prepareUniforms() {
       sh[i] = &textureCast<const Texture2d&>(shadowMap[i]);
       }
   wview->setShadowMaps(sh);
-  wview->setVirtualShadowMap(vsm.pageDataCs, vsm.pageTbl, vsm.pageList);
+  wview->setVirtualShadowMap(vsm.pageDataCs, vsm.pageTbl, vsm.pageHiZ, vsm.pageList);
   wview->setSwRenderingImage(swr.outputImage);
 
   wview->setHiZ(textureCast<const Texture2d&>(hiz.hiZ));
@@ -774,7 +779,7 @@ void Renderer::drawVsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   cmd.setDebugMarker("VSM-dbg");
-  cmd.setUniforms(*vsm.pagesDbgPso, vsm.uboDbg);
+  cmd.setUniforms(*vsm.pagesDbgPso, vsm.uboDbg, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
   cmd.draw(Resources::fsqVbo());
   }
 
@@ -864,7 +869,7 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.setUniforms(shaders.vsmClear, vsm.uboClear);
   cmd.dispatchThreads(size_t(vsm.pageTbl.w()), size_t(vsm.pageTbl.h()), size_t(vsm.pageTbl.d()));
 
-  cmd.setUniforms(shaders.vsmMarkPages, vsm.uboPages);
+  cmd.setUniforms(shaders.vsmMarkPages, vsm.uboPages, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
   cmd.dispatchThreads(zbuffer.size());
 
   if(vsm.pageDataCs.isEmpty()) {
@@ -961,7 +966,7 @@ void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, uint8_t fId, const
     return;
   if(settings.vsmEnabled) {
     cmd.setDebugMarker("DirectSunLight-VSM");
-    cmd.setUniforms(*vsm.directLightPso, vsm.uboLight);
+    cmd.setUniforms(*vsm.directLightPso, vsm.uboLight, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
     cmd.draw(Resources::fsqVbo());
     return;
     }

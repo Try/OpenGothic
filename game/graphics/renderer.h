@@ -87,6 +87,8 @@ class Renderer final {
       float          zVidGamma          = 0.5;
 
       float          vidResIndex        = 0;
+
+      float          vsmMipBias         = -0.25;
       } settings;
 
     Frustrum                  frustrum[SceneGlobals::V_Count];
@@ -225,6 +227,7 @@ class Renderer final {
 
       Tempest::StorageImage     pageDbg;
       Tempest::StorageImage     pageTbl;
+      Tempest::StorageImage     pageHiZ;
       Tempest::StorageImage     pageDataCs;
       Tempest::ZBuffer          pageData;
       Tempest::StorageBuffer    pageList;

@@ -14,32 +14,59 @@ layout(binding = 0, std430) buffer Pages { VsmHeader header; uint  pageList[]; }
 layout(binding = 1, r32ui)  uniform uimage3D pageTbl;
 
 shared uint minY;
-shared uint minX  [32/2];
-shared uint sWidth[32/2];
+shared uint minX  [gl_WorkGroupSize.y/4];
+shared uint sWidth[gl_WorkGroupSize.y/4];
+shared uint data[gl_WorkGroupSize.x][gl_WorkGroupSize.y];
 
-void storePage(ivec3 at, uint samples, uint size) {
-  uint d = (samples & 0xFF) | (size << 8);
-  imageStore(pageTbl, at, uvec4(d));
+uint packPage(uint samples, uint size, uint prime) {
+  return (samples & 0xFF) | (size << 8) | (prime << 16);
   }
 
-uvec2 loadPage(ivec3 at) {
-  uint a = imageLoad(pageTbl, at).r;
-  return uvec2(a&0xFF, a>>8);
+uint packPage(uint samples, uint size) {
+  return (samples & 0xFF) | (size << 8);
   }
 
-uint loadPagePrimeSize(ivec3 at) {
-  uint a = imageLoad(pageTbl, at).r;
-  return a >> 1;
+uint unpackSize(uint a){
+  return (a >> 8) & 0xFF;
   }
 
-uint loadPagePrimeBit(ivec3 at) {
-  uint a = imageLoad(pageTbl, at).r;
-  return a & 0x1;
+uint unpackSamples(uint a){
+  return a&0xFF;
   }
 
-void storePagePrime(ivec3 at, uint size, uint prime) {
-  uint d = (size << 1) | prime&0x1;
-  imageStore(pageTbl, at, uvec4(d));
+uint unpackPrimeBit(uint a){
+  return (a >> 16) & 0x1;
+  }
+
+void poolPageTable() {
+  const ivec3 size = imageSize(pageTbl);
+  const ivec3 at   = ivec3(gl_GlobalInvocationID);
+  const ivec3 id   = ivec3(gl_LocalInvocationID);
+
+  if(all(lessThan(at, size))) {
+    const uint frag  = imageLoad(pageTbl, at).r;
+    //data[id.x][id.y] = frag;
+    data[at.x][at.y] = packPage(frag, frag, frag);
+    } else {
+    data[id.x][id.y] = 0;
+    }
+  barrier();
+  }
+
+void storePageTable() {
+  barrier();
+
+  const ivec3 size = imageSize(pageTbl);
+  const ivec3 at   = ivec3(gl_GlobalInvocationID);
+  const ivec3 id   = ivec3(gl_LocalInvocationID);
+
+  if(all(lessThan(at, size))) {
+    uint d = data[at.x][at.y];
+    uint p = unpackPrimeBit(d);
+    //uint s = p>0 ? unpackSize(d) : 0;
+    uint s = unpackSize(d);
+    imageStore(pageTbl, at, uvec4((s<<1) | p) );
+    }
   }
 
 void main() {
@@ -48,6 +75,8 @@ void main() {
   const ivec3 id   = ivec3(gl_LocalInvocationID);
   const uint  lane = gl_LocalInvocationIndex;
 
+  poolPageTable();
+
   if(lane < minX.length()) {
     minX  [lane] = 0xFFFF;
     sWidth[lane] = 0;
@@ -55,10 +84,9 @@ void main() {
   minY = 0xFFFF;
   barrier();
 
-  const uint frag  = imageLoad(pageTbl, at).r;
+  const uint frag  = data[at.x][at.y];
   const bool prime = frag>0;
-
-  if(frag>0) {
+  if(prime) {
     atomicMin(minY, at.y);
 
     atomicMin(vsm.header.pageBbox[at.z].x, at.x);
@@ -68,85 +96,73 @@ void main() {
     }
   barrier();
 
-  const uint stripe = (at.y-minY)/2;
+  const uint stripe = (at.y-minY)/4;
   if(frag>0)
     atomicMin(minX[stripe], at.x);
   barrier();
 
-  if(stripe%2==1 && minX[stripe-1]%2!=minX[stripe]%2) {
-    if(minX[stripe-1] > minX[stripe])
-      minX[stripe-1]--; else
-      minX[stripe-0]--;
-    }
-  barrier();
-
-  ivec2 tileCoord = ivec2(at.x - minX[stripe], at.y-minY);
-  if(frag>0) {
-    uint w = tileCoord.x + 1;
-    w += w%2;
-    atomicMax(sWidth[stripe], w);
-    }
+  const ivec2 tileCoord = ivec2(at.x - minX[stripe], at.y-minY);
+  if(frag>0)
+    atomicMax(sWidth[stripe], tileCoord.x + 1);
   barrier();
 
   const bool valid = (0<=tileCoord.x && tileCoord.x<sWidth[stripe] && 0<=tileCoord.y);
-  const bool quad  = (valid && tileCoord.x%2==0 && tileCoord.y%2==0);
-  const bool bQuad = (valid && tileCoord.x%4==0 && tileCoord.y%4==0);
-  if(quad) {
-    uint a = loadPagePrimeBit(at+ivec3(0,0,0));
-    uint b = loadPagePrimeBit(at+ivec3(1,0,0));
-    uint c = loadPagePrimeBit(at+ivec3(1,1,0));
-    uint d = loadPagePrimeBit(at+ivec3(0,1,0));
-    //storePage(at, (a+b+c+d));
-    storePage(at, (a+b+c+d), 2);
-    } else {
-    storePage(at, 0, 0);
+  const bool quad  = (valid && tileCoord.x%2==0 && tileCoord.y%2==0 && at.x<size.x-1 && at.y<size.y-1);
+  const bool bQuad = (valid && tileCoord.x%4==0 && tileCoord.y%4==0 && at.x<size.x-2 && at.y<size.y-2);
+  if(true && quad) {
+    uint a = unpackPrimeBit(data[at.x+0][at.y+0]);
+    uint b = unpackPrimeBit(data[at.x+1][at.y+0]);
+    uint c = unpackPrimeBit(data[at.x+1][at.y+1]);
+    uint d = unpackPrimeBit(data[at.x+0][at.y+1]);
+    data[at.x][at.y] = packPage(a+b+c+d, 2);
     }
-  memoryBarrierImage();
+  barrier();
+
+  if(!quad)
+    data[at.x][at.y] = packPage(0,0);
   barrier();
 
   if(true && bQuad) {
     const int mergeQ = (at.z>4 ? 2 : 3)*2;
-    uint a = loadPage(at+ivec3(0,0,0)).x;
-    uint b = loadPage(at+ivec3(2,0,0)).x;
-    uint c = loadPage(at+ivec3(2,2,0)).x;
-    uint d = loadPage(at+ivec3(0,2,0)).x;
+    uint a = unpackSamples(data[at.x+0][at.y+0]);
+    uint b = unpackSamples(data[at.x+2][at.y+0]);
+    uint c = unpackSamples(data[at.x+2][at.y+2]);
+    uint d = unpackSamples(data[at.x+0][at.y+2]);
     uint s = (a+b+c+d);
     if(a+b+c+d >= mergeQ) {
-      storePage(at+ivec3(0,0,0), s, 4);
-      storePage(at+ivec3(2,0,0), 0, 0);
-      storePage(at+ivec3(0,2,0), 0, 0);
-      storePage(at+ivec3(2,2,0), 0, 0);
+      data[at.x+0][at.y+0] = packPage(s, 4);
+      data[at.x+2][at.y+0] = packPage(0, 0);
+      data[at.x+0][at.y+2] = packPage(0, 0);
+      data[at.x+2][at.y+2] = packPage(0, 0);
       }
     }
+  barrier();
 
   // prime bit
-  memoryBarrierImage();
-  barrier();
   {
-  uint data = loadPage(at).y;
-  data = (data << 1) | (prime ? 1 : 0);
-  imageStore(pageTbl, at, uvec4(data));
+  uint d = unpackSamples(data[at.x][at.y]);
+  uint s = unpackSize   (data[at.x][at.y]);
+  data[at.x][at.y] = packPage(d ,s, prime ? 1 : 0);
   }
+  barrier();
 
   // demote unfilled quads to 1x1 pages
-  memoryBarrierImage();
-  barrier();
-
   if(true && quad) {
-    uint s = loadPagePrimeSize(at);
-    uint a = loadPagePrimeBit (at+ivec3(0,0,0));
-    uint b = loadPagePrimeBit (at+ivec3(1,0,0));
-    uint c = loadPagePrimeBit (at+ivec3(1,1,0));
-    uint d = loadPagePrimeBit (at+ivec3(0,1,0));
+    uint s = unpackSize    (data[at.x][at.y]);
+    uint a = unpackPrimeBit(data[at.x+0][at.y+0]);
+    uint b = unpackPrimeBit(data[at.x+1][at.y+0]);
+    uint c = unpackPrimeBit(data[at.x+1][at.y+1]);
+    uint d = unpackPrimeBit(data[at.x+0][at.y+1]);
     if(s==2 && a+b+c+d <= 2) {
-      storePagePrime(at+ivec3(0,0,0), a, a);
-      storePagePrime(at+ivec3(1,0,0), b, b);
-      storePagePrime(at+ivec3(1,1,0), c, c);
-      storePagePrime(at+ivec3(0,1,0), d, d);
+      data[at.x+0][at.y+0] = packPage(1, a, a);
+      data[at.x+1][at.y+0] = packPage(1, b, b);
+      data[at.x+1][at.y+1] = packPage(1, c, c);
+      data[at.x+0][at.y+1] = packPage(1, d, d);
       }
     }
-  }
 
+  storePageTable();
+  }
 
 /*
 void trimMip(int mip) {

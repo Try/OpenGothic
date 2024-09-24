@@ -243,5 +243,5 @@ void main() {
   layoutPages(frag, size, 2);
   layoutPages(frag, size, 1);
 
-  horizontalMerge();
+  //horizontalMerge();
   }

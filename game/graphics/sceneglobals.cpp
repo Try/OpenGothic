@@ -213,9 +213,11 @@ void SceneGlobals::setShadowMap(const Tempest::Texture2d* tex[]) {
 
 void SceneGlobals::setVirtualShadowMap(const Tempest::StorageImage&  pageData,
                                        const Tempest::StorageImage&  pageTbl,
+                                       const Tempest::StorageImage&  pageHiZ,
                                        const Tempest::StorageBuffer& pageList) {
   vsmPageData = &pageData;
   vsmPageTbl  = &pageTbl;
+  vsmPageHiZ  = &pageHiZ;
   vsmPageList = &pageList;
   }
 

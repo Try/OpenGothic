@@ -235,6 +235,7 @@ void DrawCommands::updateTasksUniforms() {
       } else {
       i.desc.set(T_Scene,    scene.uboGlobal[i.viewport]);
       i.desc.set(T_Payload,  views[i.viewport].vsmClusters);
+      i.desc.set(T_HiZ,      *scene.vsmPageHiZ);
       i.desc.set(T_VsmPages, *scene.vsmPageList);
       // i.desc.set(T_PkgOffsets, views[i.viewport].pkgOffsets);
       }
