@@ -143,7 +143,8 @@ if(NOT MSVC)
   target_compile_options(Bullet3Common          PRIVATE -Wno-argument-outside-range)
   target_compile_options(BulletCollision        PRIVATE -Wno-argument-outside-range)
   target_compile_options(LinearMath             PRIVATE -Wno-argument-outside-range)
-
+endif()
+if(NOT MSVC AND NOT APPLE)
   target_compile_options(BulletDynamics         PRIVATE -Wno-stringop-overflow)
   target_compile_options(BulletInverseDynamics  PRIVATE -Wno-stringop-overflow)
   target_compile_options(BulletSoftBody         PRIVATE -Wno-stringop-overflow)
@@ -151,6 +152,7 @@ if(NOT MSVC)
   target_compile_options(BulletCollision        PRIVATE -Wno-stringop-overflow)
   target_compile_options(LinearMath             PRIVATE -Wno-stringop-overflow)
 endif()
+
 include_directories(lib/bullet3/src)
 target_link_libraries(${PROJECT_NAME} BulletDynamics BulletCollision LinearMath)
 
