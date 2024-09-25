@@ -53,8 +53,7 @@ Shaders::Shaders() {
   skyViewLut         = postEffect("sky", "sky_view_lut");
   skyViewCldLut      = postEffect("sky", "sky_view_clouds_lut");
 
-  fogViewLut3dLQ     = computeShader("fog_view_lut_lq.comp.sprv");
-  fogViewLut3dHQ     = computeShader("fog_view_lut_hq.comp.sprv");
+  fogViewLut3d       = computeShader("fog_view_lut.comp.sprv");
   shadowDownsample   = computeShader("shadow_downsample.comp.sprv");
   fogOcclusion       = computeShader("fog3d.comp.sprv");
 

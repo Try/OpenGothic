@@ -234,8 +234,7 @@ add_shader(sky_view_clouds_lut.frag  sky/sky_view_clouds_lut.frag)
 add_shader(shadow_downsample.comp    sky/shadow_downsample.comp)
 add_shader(clouds_lut.comp           sky/clouds_lut.comp)
 
-add_shader(fog_view_lut_lq.comp      sky/fog_view_lut.comp -DVOLUMETRIC_LQ -DCOMPUTE)
-add_shader(fog_view_lut_hq.comp      sky/fog_view_lut.comp -DVOLUMETRIC_HQ -DCOMPUTE)
+add_shader(fog_view_lut.comp         sky/fog_view_lut.comp -DCOMPUTE)
 
 add_shader(fog3d_hq.frag             sky/fog.frag -S frag -DVOLUMETRIC_HQ)
 add_shader(fog3d.comp                sky/fog.frag -S comp -DVOLUMETRIC_HQ -DCOMPUTE)

@@ -30,14 +30,14 @@ layout(binding = 2, std140) uniform UboScene {
   SceneDesc scene;
   };
 
-#if defined(VOLUMETRIC_HQ)
-layout(binding = 3) uniform sampler2D textureSm1;
+#if defined(VOLUMETRIC_HQ) && defined(COMPUTE)
+layout(binding = 3, r32ui) uniform writeonly restrict uimage2D occlusionLut;
+#elif defined(VOLUMETRIC_HQ)
+layout(binding = 3, r32ui) uniform readonly  restrict uimage2D occlusionLut;
 #endif
 
 #if defined(VOLUMETRIC_HQ) && defined(COMPUTE)
-layout(binding = 4, r32ui) uniform writeonly restrict uimage2D occlusionLut;
-#elif defined(VOLUMETRIC_HQ)
-layout(binding = 4, r32ui) uniform readonly  restrict uimage2D occlusionLut;
+layout(binding = 4) uniform sampler2D textureSm1;
 #endif
 
 #if defined(COMPUTE)
@@ -52,7 +52,7 @@ float interleavedGradientNoise() {
 #endif
   }
 
-#if defined(VOLUMETRIC_HQ)
+#if defined(VOLUMETRIC_HQ) && defined(COMPUTE)
 float shadowSample(in sampler2D shadowMap, vec2 shPos) {
   shPos.xy = shPos.xy*vec2(0.5)+vec2(0.5);
   return textureLod(shadowMap,shPos,0).r;

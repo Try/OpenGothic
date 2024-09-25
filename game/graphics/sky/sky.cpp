@@ -327,13 +327,12 @@ void Sky::prepareUniforms() {
   uboSky.set(8,*cloudsNight().lay[1],smp);
 
   if(quality==VolumetricLQ) {
-    uboFogViewLut3d = device.descriptors(Shaders::inst().fogViewLut3dHQ);
-    uboFogViewLut3d.set(0, transLut,     smpB);
-    uboFogViewLut3d.set(1, multiScatLut, smpB);
-    uboFogViewLut3d.set(2, cloudsLut,    smpB);
-    uboFogViewLut3d.set(3, *scene.shadowMap[1], Resources::shadowSampler());
+    uboFogViewLut3d = device.descriptors(Shaders::inst().fogViewLut3d);
+    uboFogViewLut3d.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    uboFogViewLut3d.set(1, transLut,     smpB);
+    uboFogViewLut3d.set(2, multiScatLut, smpB);
+    uboFogViewLut3d.set(3, cloudsLut,    smpB);
     uboFogViewLut3d.set(4, fogLut3D);
-    uboFogViewLut3d.set(5, scene.uboGlobal[SceneGlobals::V_Main]);
 
     uboFog = device.descriptors(Shaders::inst().fog);
     uboFog.set(0, fogLut3D, smpB);
@@ -348,23 +347,21 @@ void Sky::prepareUniforms() {
     uboOcclusion = device.descriptors(Shaders::inst().fogOcclusion);
     uboOcclusion.set(1, *scene.zbuffer, Sampler::nearest());
     uboOcclusion.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
-    uboOcclusion.set(3, *scene.shadowMap[1], Resources::shadowSampler());
-    uboOcclusion.set(4, occlusionLut);
+    uboOcclusion.set(3, occlusionLut);
+    uboOcclusion.set(4, *scene.shadowMap[1], Resources::shadowSampler());
 
-    uboFogViewLut3d = device.descriptors(Shaders::inst().fogViewLut3dHQ);
-    uboFogViewLut3d.set(0, transLut,     smpB);
-    uboFogViewLut3d.set(1, multiScatLut, smpB);
-    uboFogViewLut3d.set(2, cloudsLut,    smpB);
-    uboFogViewLut3d.set(3, *scene.shadowMap[1], Resources::shadowSampler());
+    uboFogViewLut3d = device.descriptors(Shaders::inst().fogViewLut3d);
+    uboFogViewLut3d.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    uboFogViewLut3d.set(1, transLut,     smpB);
+    uboFogViewLut3d.set(2, multiScatLut, smpB);
+    uboFogViewLut3d.set(3, cloudsLut,    smpB);
     uboFogViewLut3d.set(4, fogLut3D);
-    uboFogViewLut3d.set(5, scene.uboGlobal[SceneGlobals::V_Main]);
 
     uboFog3d = device.descriptors(Shaders::inst().fog3dHQ);
     uboFog3d.set(0, fogLut3D,       smpB);
     uboFog3d.set(1, *scene.zbuffer, Sampler::nearest());
     uboFog3d.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
-    uboFog3d.set(3, *scene.shadowMap[1], Resources::shadowSampler());
-    uboFog3d.set(4, occlusionLut);
+    uboFog3d.set(3, occlusionLut);
     }
 
   if(quality==PathTrace) {
@@ -437,7 +434,7 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
     case None:
     case VolumetricLQ: {
       cmd.setFramebuffer({});
-      cmd.setUniforms(Shaders::inst().fogViewLut3dHQ, uboFogViewLut3d, &ubo, sizeof(ubo));
+      cmd.setUniforms(Shaders::inst().fogViewLut3d, uboFogViewLut3d, &ubo, sizeof(ubo));
       cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
       break;
       }
@@ -446,7 +443,7 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
       cmd.setUniforms(Shaders::inst().fogOcclusion, uboOcclusion, &ubo, sizeof(ubo));
       cmd.dispatchThreads(occlusionLut.size());
 
-      cmd.setUniforms(Shaders::inst().fogViewLut3dHQ, uboFogViewLut3d, &ubo, sizeof(ubo));
+      cmd.setUniforms(Shaders::inst().fogViewLut3d, uboFogViewLut3d, &ubo, sizeof(ubo));
       cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
       break;
       }

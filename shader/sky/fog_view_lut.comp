@@ -6,15 +6,14 @@
 #include "sky_common.glsl"
 #include "scene.glsl"
 
-layout(binding = 0) uniform sampler2D tLUT;
-layout(binding = 1) uniform sampler2D mLUT;
-layout(binding = 2) uniform sampler2D cloudsLUT;
-#ifdef COMPUTE
-layout(binding = 3) uniform sampler2D textureSm1;
-layout(binding = 4) uniform writeonly image3D fogLut;
-layout(binding = 5, std140) uniform UboScene {
+layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
+layout(binding = 1) uniform sampler2D tLUT;
+layout(binding = 2) uniform sampler2D mLUT;
+layout(binding = 3) uniform sampler2D cloudsLUT;
+#if defined(COMPUTE)
+layout(binding = 4) uniform writeonly image3D fogLut;
 #endif
 
 layout(local_size_x = 8, local_size_y = 8) in;
@@ -22,39 +21,6 @@ layout(local_size_x = 8, local_size_y = 8) in;
 void store(ivec3 at, vec3 lum, vec3 trans) {
   const float t = (trans.x+trans.y+trans.z)/3.0;
   imageStore(fogLut, at, vec4(lum,t));
-  }
-
-vec4 shadowSample(in sampler2D shadowMap, vec2 shPos) {
-  shPos.xy = shPos.xy*vec2(0.5,0.5)+vec2(0.5);
-  return textureGather(shadowMap,shPos);
-  }
-
-float shadowResolve(in vec4 sh, float z) {
-  z  = clamp(z,0,0.99);
-  sh = step(sh,vec4(z));
-  return 0.25*(sh.x+sh.y+sh.z+sh.w);
-  }
-
-float calcShadow(vec3 shPos1) {
-  //shPos1.y = max(0,shPos1.y);
-  vec4  lay1 = shadowSample(textureSm1,shPos1.xy);
-  float v1   = shadowResolve(lay1,shPos1.z);
-  return v1;
-  }
-
-float shadowFactor(vec4 shPos) {
-  if(abs(shPos.x)>=shPos.w && abs(shPos.y)>=shPos.w)
-    return 1;
-  return calcShadow(shPos.xyz/shPos.w);
-  }
-
-float shadowFactorMS(vec4 shPos0, vec4 shPos1, int maxStep) {
-  float ret  = 0;
-  for(int i=0; i<maxStep; ++i) {
-    vec4 shPos = mix(shPos0,shPos1,float(i+0.5)/float(maxStep));
-    ret += calcShadow(shPos.xyz/shPos.w);
-    }
-  return ret/float(maxStep);
   }
 
 vec3 project(mat4 m, vec3 pos) {
