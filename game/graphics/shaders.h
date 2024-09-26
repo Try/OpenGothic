@@ -43,7 +43,7 @@ class Shaders {
     Tempest::RenderPipeline  fog;
     Tempest::RenderPipeline  fog3dHQ;
     Tempest::RenderPipeline  sun;
-    Tempest::ComputePipeline cloudsLut, fogOcclusion;
+    Tempest::ComputePipeline cloudsLut, fogOcclusion, fogOcclusionVsm;
     Tempest::ComputePipeline fogViewLut3d, shadowDownsample;
     Tempest::ComputePipeline skyExposure;
 

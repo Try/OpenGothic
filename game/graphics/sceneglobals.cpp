@@ -29,6 +29,10 @@ SceneGlobals::SceneGlobals() {
   for(auto& i:shadowMap)
     i = &Resources::fallbackBlack();
 
+  vsmPageData = &Resources::fallbackBlack();
+  vsmPageTbl  = &Resources::fallbackImage3d();
+  vsmPageHiZ  = &Resources::fallbackImage3d();
+
   for(uint8_t lay=0; lay<V_Count; ++lay) {
     uboGlobal[lay] = device.ssbo(nullptr,sizeof(UboGlobal));
     }
@@ -211,14 +215,16 @@ void SceneGlobals::setShadowMap(const Tempest::Texture2d* tex[]) {
     shadowMap[i] = tex[i];
   }
 
-void SceneGlobals::setVirtualShadowMap(const Tempest::StorageImage&  pageData,
+void SceneGlobals::setVirtualShadowMap(const Tempest::ZBuffer&       pageData,
+                                       const Tempest::StorageImage&  pageDataCs,
                                        const Tempest::StorageImage&  pageTbl,
                                        const Tempest::StorageImage&  pageHiZ,
                                        const Tempest::StorageBuffer& pageList) {
-  vsmPageData = &pageData;
-  vsmPageTbl  = &pageTbl;
-  vsmPageHiZ  = &pageHiZ;
-  vsmPageList = &pageList;
+  vsmPageData   = &Tempest::textureCast<const Tempest::Texture2d&>(pageData);
+  vsmPageDataCs = &pageDataCs;
+  vsmPageTbl    = &pageTbl;
+  vsmPageHiZ    = &pageHiZ;
+  vsmPageList   = &pageList;
   }
 
 void SceneGlobals::setSwRenderingImage(const Tempest::StorageImage& mainView) {

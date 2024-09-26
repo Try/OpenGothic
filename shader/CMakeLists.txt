@@ -236,8 +236,9 @@ add_shader(clouds_lut.comp           sky/clouds_lut.comp)
 
 add_shader(fog_view_lut.comp         sky/fog_view_lut.comp -DCOMPUTE)
 
-add_shader(fog3d_hq.frag             sky/fog.frag -S frag -DVOLUMETRIC_HQ)
-add_shader(fog3d.comp                sky/fog.frag -S comp -DVOLUMETRIC_HQ -DCOMPUTE)
+add_shader(fog3d_hq.frag             sky/fog.frag -S frag -DVOLUMETRIC)
+add_shader(fog3d.comp                sky/fog.frag -S comp -DVOLUMETRIC -DCOMPUTE)
+add_shader(fog3d_vsm.comp            sky/fog.frag -S comp -DVOLUMETRIC -DCOMPUTE -DVIRTUAL_SHADOW)
 
 add_shader(fog.frag                  sky/fog.frag)
 add_shader(sky.frag                  sky/sky.frag)
@@ -307,6 +308,7 @@ add_shader(vsm_alloc_pages.comp  virtual_shadow/vsm_alloc_pages.comp)
 add_shader(vsm_pack_draws0.comp  virtual_shadow/vsm_pack_draws.comp   -DPASS0)
 add_shader(vsm_pack_draws1.comp  virtual_shadow/vsm_pack_draws.comp   -DPASS1)
 add_shader(vsm_cluster_task.comp virtual_shadow/vsm_cluster_task.comp -DVIRTUAL_SHADOW)
+add_shader(vsm_list_pages.comp   virtual_shadow/vsm_list_pages.comp)
 
 add_shader(vsm_rendering.comp    virtual_shadow/vsm_rendering.comp)
 

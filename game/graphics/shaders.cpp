@@ -56,9 +56,10 @@ Shaders::Shaders() {
   fogViewLut3d       = computeShader("fog_view_lut.comp.sprv");
   shadowDownsample   = computeShader("shadow_downsample.comp.sprv");
   fogOcclusion       = computeShader("fog3d.comp.sprv");
+  if(Gothic::options().doVirtualShadow)
+    fogOcclusionVsm = computeShader("fog3d_vsm.comp.sprv");
 
   skyExposure        = computeShader("sky_exposure.comp.sprv");
-
   sky                = postEffect("sky");
   fog                = fogShader ("fog");
   fog3dHQ            = fogShader ("fog3d_hq");
@@ -195,6 +196,7 @@ Shaders::Shaders() {
 
   if(Gothic::options().doVirtualShadow) {
     vsmClusterTask = computeShader("vsm_cluster_task.comp.sprv");
+    // vsmClusterTask = computeShader("vsm_cluster_task2.comp.sprv");
     vsmClear       = computeShader("vsm_clear.comp.sprv");
     vsmClearPages  = computeShader("vsm_clear_pages.comp.sprv");
     vsmMarkPages   = computeShader("vsm_mark_pages.comp.sprv");

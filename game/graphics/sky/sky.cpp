@@ -107,10 +107,21 @@ Sky::~Sky() {
   }
 
 void Sky::setupSettings() {
-  auto& device = Resources::device();
-  bool  fog    = Gothic::inst().settingsGetI("RENDERER_D3D","zFogRadial")!=0;
+  auto&      device = Resources::device();
+  const bool fog    = Gothic::inst().settingsGetI("RENDERER_D3D","zFogRadial")!=0;
+  const bool vsm    = false;//Gothic::inst().options().doVirtualShadow;
 
-  auto q = fog ? Quality::VolumetricHQ : Quality::VolumetricLQ;
+  auto q = Quality::VolumetricLQ;
+  if(!fog) {
+    q = Quality::VolumetricLQ;
+    }
+  else if(fog && !vsm) {
+    q = Quality::VolumetricHQ;
+    }
+  else if(fog && vsm) {
+    q = Quality::VolumetricHQVsm;
+    }
+
   if(pathTrace)
     q = PathTrace;
 
@@ -129,6 +140,7 @@ void Sky::setupSettings() {
       occlusionLut = StorageImage();
       break;
     case VolumetricHQ:
+    case VolumetricHQVsm:
       // fogLut and oclussion are decupled
       fogLut3D = device.image3d(lutRGBAFormat,128,64,32);
       shadowDw = StorageImage();
@@ -274,7 +286,7 @@ void Sky::prepareUniforms() {
   auto  smpB   = Sampler::bilinear();
   smpB.setClamping(ClampMode::ClampToEdge);
 
-  if(quality==VolumetricHQ) {
+  if(quality==VolumetricHQ || quality==VolumetricHQVsm) {
     occlusionScale = 1;
     if(uint32_t(scene.zbuffer->h()) > 1080 &&
        device.properties().type!=DeviceType::Discrete) {
@@ -340,15 +352,22 @@ void Sky::prepareUniforms() {
     uboFog.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
     }
 
-  if(quality==VolumetricHQ) {
+  if(quality==VolumetricHQ || quality==VolumetricHQVsm) {
     auto smpLut3d = Sampler::bilinear();
     smpLut3d.setClamping(ClampMode::ClampToEdge);
 
-    uboOcclusion = device.descriptors(Shaders::inst().fogOcclusion);
+    const bool vsm = (quality==VolumetricHQVsm);
+    auto& fogOcclusion = vsm ? Shaders::inst().fogOcclusionVsm : Shaders::inst().fogOcclusion;
+    uboOcclusion = device.descriptors(fogOcclusion);
     uboOcclusion.set(1, *scene.zbuffer, Sampler::nearest());
     uboOcclusion.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
     uboOcclusion.set(3, occlusionLut);
-    uboOcclusion.set(4, *scene.shadowMap[1], Resources::shadowSampler());
+    if(quality==VolumetricHQVsm) {
+      uboOcclusion.set(4, *scene.vsmPageTbl);
+      uboOcclusion.set(5, *scene.vsmPageData);
+      } else {
+      uboOcclusion.set(4, *scene.shadowMap[1], Resources::shadowSampler());
+      }
 
     uboFogViewLut3d = device.descriptors(Shaders::inst().fogViewLut3d);
     uboFogViewLut3d.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
@@ -438,9 +457,13 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
       cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
       break;
       }
-    case VolumetricHQ: {
+    case VolumetricHQ:
+    case VolumetricHQVsm: {
+      const bool vsm = (quality==VolumetricHQVsm);
+      auto& fogOcclusion = vsm ? Shaders::inst().fogOcclusionVsm : Shaders::inst().fogOcclusion;
+
       cmd.setFramebuffer({});
-      cmd.setUniforms(Shaders::inst().fogOcclusion, uboOcclusion, &ubo, sizeof(ubo));
+      cmd.setUniforms(fogOcclusion, uboOcclusion, &ubo, sizeof(ubo));
       cmd.dispatchThreads(occlusionLut.size());
 
       cmd.setUniforms(Shaders::inst().fogViewLut3d, uboFogViewLut3d, &ubo, sizeof(ubo));
@@ -479,6 +502,7 @@ void Sky::drawFog(Tempest::Encoder<CommandBuffer>& cmd, uint32_t fId) {
       cmd.setUniforms(Shaders::inst().fog,     uboFog,   &ubo, sizeof(ubo));
       break;
     case VolumetricHQ:
+    case VolumetricHQVsm:
       cmd.setUniforms(Shaders::inst().fog3dHQ, uboFog3d, &ubo, sizeof(ubo));
       break;
     case PathTrace:

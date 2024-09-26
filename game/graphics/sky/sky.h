@@ -48,6 +48,7 @@ class Sky final {
       None,
       VolumetricLQ,
       VolumetricHQ,
+      VolumetricHQVsm,
       PathTrace,
       };
 

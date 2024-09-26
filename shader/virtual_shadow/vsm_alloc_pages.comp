@@ -235,7 +235,7 @@ void main() {
   listPages();
 
   const uint frag = lane<pageListSize ? pageList[lane] : 0;
-  const uint size = unpackVsmPageSize(frag).x;
+  const uint size = unpackVsmPageSize(frag).y;
   barrier();
 
   //layoutPages(frag, size, 8);

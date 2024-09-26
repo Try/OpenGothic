@@ -1,6 +1,8 @@
 #ifndef VSM_COMMON_GLSL
 #define VSM_COMMON_GLSL
 
+#extension GL_EXT_samplerless_texture_functions : enable
+
 // #define VSM_ATOMIC 1
 
 const int VSM_PAGE_SIZE     = 128;
@@ -58,6 +60,58 @@ bool vsmPageClip(ivec2 fragCoord, const uint page) {
      pg.y <= f.y && f.y<pg.w)
     return true;
   return false;
+  }
+
+float vsmTexelFetch(in utexture2D pageData, const ivec2 pixel) {
+  return uintBitsToFloat(texelFetch(pageData, pixel, 0).x);
+  }
+
+float vsmTexelFetch(in texture2D pageData, const ivec2 pixel) {
+  return texelFetch(pageData, pixel, 0).x;
+  }
+
+float shadowTexelFetch(in vec2 page, in int mip, in utexture3D pageTbl,
+                       #if defined(VSM_ATOMIC)
+                       in utexture2D pageData
+                       #else
+                       in texture2D pageData
+                       #endif
+                       ) {
+#if 1
+  while(mip>=0) {
+    if(abs(page.x)>=1 || abs(page.y)>=1)
+      break;
+    //page-local
+    const ivec2 pageI  = ivec2((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
+    const vec2  pageF  = fract((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
+    const ivec2 at     = ivec2(pageF*VSM_PAGE_SIZE);
+
+    //page-global
+    const uint  pageId = texelFetch(pageTbl, ivec3(pageI, mip), 0).x >> 16u;
+    if(pageId==0xFFFF) {
+      page *= 2.0;
+      --mip;
+      continue;
+      }
+
+    const ivec2 pageImageAt = unpackVsmPageId(pageId)*VSM_PAGE_SIZE + at;
+    return vsmTexelFetch(pageData, pageImageAt);
+    }
+  return 0;
+#else
+  //page-local
+  const ivec2 pageI       = ivec2((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
+  const vec2  pageF       = fract((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
+  const ivec2 at          = ivec2(pageF*VSM_PAGE_SIZE);
+
+  //page-global
+  const uint  pageId      = texelFetch(pageTbl, ivec3(pageI, mip), 0).x >> 16u;
+  if(pageId==0xFFFF)
+    return 0;
+
+  const ivec2 pageImageAt = unpackVsmPageId(pageId)*VSM_PAGE_SIZE + at;
+  return vsmTexelFetch(pageData, pageImageAt);
+#endif
   }
 
 #endif

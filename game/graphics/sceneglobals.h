@@ -42,7 +42,8 @@ class SceneGlobals final {
     void setHiZ(const Tempest::Texture2d& hiZ);
     void setShadowMap(const Tempest::Texture2d* tex[]);
 
-    void setVirtualShadowMap(const Tempest::StorageImage&  vsmPageData,
+    void setVirtualShadowMap(const Tempest::ZBuffer&       vsmPageData,
+                             const Tempest::StorageImage&  vsmPageDataCs,
                              const Tempest::StorageImage&  pageTbl,
                              const Tempest::StorageImage&  pageHiZ,
                              const Tempest::StorageBuffer& vsmPageList);
@@ -76,10 +77,11 @@ class SceneGlobals final {
 
     const Tempest::StorageBuffer*     lights       = nullptr;
 
-    const Tempest::StorageImage*      vsmPageData  = nullptr;
-    const Tempest::StorageImage*      vsmPageTbl   = nullptr;
-    const Tempest::StorageImage*      vsmPageHiZ   = nullptr;
-    const Tempest::StorageBuffer*     vsmPageList  = nullptr;
+    const Tempest::Texture2d*         vsmPageData   = nullptr;
+    const Tempest::StorageImage*      vsmPageDataCs = nullptr;
+    const Tempest::StorageImage*      vsmPageTbl    = nullptr;
+    const Tempest::StorageImage*      vsmPageHiZ    = nullptr;
+    const Tempest::StorageBuffer*     vsmPageList   = nullptr;
 
     const Tempest::StorageImage*      swMainImage  = nullptr;
 

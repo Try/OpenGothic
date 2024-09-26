@@ -37,7 +37,8 @@ class WorldView {
     void setGbuffer(const Tempest::Texture2d& diffuse,
                     const Tempest::Texture2d& norm);
     void setShadowMaps (const Tempest::Texture2d* shadow[]);
-    void setVirtualShadowMap(const Tempest::StorageImage& pageData,
+    void setVirtualShadowMap(const Tempest::ZBuffer& pageData,
+                             const Tempest::StorageImage& pageDataCs,
                              const Tempest::StorageImage& pageTbl,
                              const Tempest::StorageImage& pageHiZ,
                              const Tempest::StorageBuffer& pageList);

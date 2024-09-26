@@ -94,6 +94,8 @@ class Resources final {
 
     static const Tempest::Texture2d& fallbackTexture();
     static const Tempest::Texture2d& fallbackBlack();
+    static auto                      fallbackImage() -> const Tempest::StorageImage&;
+    static auto                      fallbackImage3d() -> const Tempest::StorageImage&;
     static const Tempest::Texture2d* loadTexture(std::string_view name);
     static const Tempest::Texture2d* loadTexture(Tempest::Color color);
     static const Tempest::Texture2d* loadTexture(std::string_view name, int32_t v, int32_t c);
@@ -190,6 +192,7 @@ class Resources final {
     Tempest::VertexBuffer<Vertex> sphere(int passCount, float R);
 
     Tempest::Texture2d fallback, fbZero;
+    Tempest::StorageImage fbImg, fbImg3d;
 
     using BindK  = std::tuple<const Skeleton*,const ProtoMesh*>;
     using FontK  = std::pair<const std::string,FontType>;

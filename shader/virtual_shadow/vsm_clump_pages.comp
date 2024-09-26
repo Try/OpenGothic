@@ -123,13 +123,15 @@ void main() {
   barrier();
 
   if(true && bQuad) {
-    const int mergeQ = (at.z>4 ? 2 : 3)*2;
+    const int mergeQ = 5; //(at.z>4 ? 2 : 3)*2;
     uint a = unpackSamples(data[at.x+0][at.y+0]);
     uint b = unpackSamples(data[at.x+2][at.y+0]);
     uint c = unpackSamples(data[at.x+2][at.y+2]);
     uint d = unpackSamples(data[at.x+0][at.y+2]);
     uint s = (a+b+c+d);
-    if(a+b+c+d >= mergeQ) {
+
+    bool denie = (a==0 && b==0) || (c==0 && d==0); // horizontal-only patterns
+    if(!denie && s >= mergeQ) {
       data[at.x+0][at.y+0] = packPage(s, 4);
       data[at.x+2][at.y+0] = packPage(0, 0);
       data[at.x+0][at.y+2] = packPage(0, 0);
@@ -148,12 +150,15 @@ void main() {
 
   // demote unfilled quads to 1x1 pages
   if(true && quad) {
-    uint s = unpackSize    (data[at.x][at.y]);
+    uint q = unpackSize    (data[at.x][at.y]);
     uint a = unpackPrimeBit(data[at.x+0][at.y+0]);
     uint b = unpackPrimeBit(data[at.x+1][at.y+0]);
     uint c = unpackPrimeBit(data[at.x+1][at.y+1]);
     uint d = unpackPrimeBit(data[at.x+0][at.y+1]);
-    if(s==2 && a+b+c+d <= 2) {
+    uint s = (a+b+c+d);
+
+    bool denie = (a==0 && b==0) || (c==0 && d==0); // horizontal-only patterns
+    if(q==2 && (denie || s<2)) {
       data[at.x+0][at.y+0] = packPage(1, a, a);
       data[at.x+1][at.y+0] = packPage(1, b, b);
       data[at.x+1][at.y+1] = packPage(1, c, c);

@@ -38,7 +38,7 @@ layout(binding = 3) uniform texture2D       depth;
 #if defined(MARK_PAGES)
 layout(binding = 4, r32ui) uniform uimage3D          pageTbl;
 #elif defined(COMPOSE) || defined(DEBUG)
-layout(binding = 4, r32ui) uniform readonly uimage3D pageTbl;
+layout(binding = 4)        uniform utexture3D        pageTbl;
 #  if defined(VSM_ATOMIC)
 layout(binding = 5)        uniform utexture2D        pageData;
 #  else
@@ -124,22 +124,7 @@ int shadowLod(vec2 dx, vec2 dy) {
 
 float shadowTexelFetch(vec2 page, int mip) {
 #if defined(COMPOSE) || defined(DEBUG)
-  //page-local
-  const ivec2 pageI       = ivec2((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
-  const vec2  pageF       = fract((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
-  const ivec2 at          = ivec2(pageF*VSM_PAGE_SIZE);
-
-  //page-global
-  const uint  pageId      = imageLoad(pageTbl, ivec3(pageI, mip)).x >> 16u;
-  if(pageId==0xFFFF)
-    return 0;
-
-  const ivec2 pageImageAt = unpackVsmPageId(pageId)*VSM_PAGE_SIZE + at;
-#  if defined(VSM_ATOMIC)
-  return uintBitsToFloat(texelFetch(pageData, pageImageAt, 0).x);
-#  else
-  return texelFetch(pageData, pageImageAt, 0).x;
-#  endif
+  return shadowTexelFetch(page, mip, pageTbl, pageData);
 #else
   return (0);
 #endif
@@ -200,6 +185,13 @@ void main() {
   outColor = vec4(0,0,0, 1);
 #endif
 
+#if defined(COMPOSE)
+  if(drawInt(gl_FragCoord.xy-vec2(100), int(vsm.header.pageCount))>0) {
+    outColor = vec4(1);
+    return;
+    }
+#endif
+
   const ivec2 size = textureSize(depth, 0);
 #if defined(GL_COMPUTE_SHADER)
   if(any(greaterThanEqual(pixelPos, size)))
@@ -230,7 +222,7 @@ void main() {
     page /= 2;
     mip++;
     }
-  if(any(greaterThan(abs(page), vec2(1))) || mip>=16)
+  if(any(greaterThan(abs(page), vec2(1))) || mip>=VSM_PAGE_MIPS)
     return;
 
   ivec2 pageI = ivec2((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
@@ -238,10 +230,6 @@ void main() {
   markPage(pageI, mip, shPos0.z);
 #elif defined(COMPOSE)
   outColor = vec4(directLight(page, mip, shPos0.z), 1);
-#endif
-
-#if defined(COMPOSE)
-  outColor.rgb += drawInt(gl_FragCoord.xy-vec2(100), int(vsm.header.pageCount)).xxx;
 #endif
 
 #if defined(DEBUG)

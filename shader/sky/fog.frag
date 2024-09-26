@@ -3,12 +3,12 @@
 #extension GL_GOOGLE_include_directive    : enable
 #extension GL_EXT_control_flow_attributes : enable
 
+#if defined(VIRTUAL_SHADOW)
+#include "virtual_shadow/vsm_common.glsl"
+#endif
+
 #include "sky_common.glsl"
 #include "scene.glsl"
-
-#if defined(VOLUMETRIC_HQ)
-#define VOLUMETRIC
-#endif
 
 #if defined(COMPUTE)
 layout(local_size_x = 1*8, local_size_y = 2*8) in;
@@ -30,14 +30,19 @@ layout(binding = 2, std140) uniform UboScene {
   SceneDesc scene;
   };
 
-#if defined(VOLUMETRIC_HQ) && defined(COMPUTE)
+#if defined(VOLUMETRIC) && defined(COMPUTE)
 layout(binding = 3, r32ui) uniform writeonly restrict uimage2D occlusionLut;
-#elif defined(VOLUMETRIC_HQ)
+#elif defined(VOLUMETRIC)
 layout(binding = 3, r32ui) uniform readonly  restrict uimage2D occlusionLut;
 #endif
 
-#if defined(VOLUMETRIC_HQ) && defined(COMPUTE)
+#if defined(VOLUMETRIC) && !defined(VIRTUAL_SHADOW)&& defined(COMPUTE)
 layout(binding = 4) uniform sampler2D textureSm1;
+#endif
+
+#if defined(VOLUMETRIC) && defined(VIRTUAL_SHADOW) && defined(COMPUTE)
+layout(binding = 4) uniform utexture3D pageTbl;
+layout(binding = 5) uniform texture2D  pageData;
 #endif
 
 #if defined(COMPUTE)
@@ -52,7 +57,23 @@ float interleavedGradientNoise() {
 #endif
   }
 
-#if defined(VOLUMETRIC_HQ) && defined(COMPUTE)
+#if defined(VOLUMETRIC) && defined(VIRTUAL_SHADOW) && defined(COMPUTE)
+bool shadowFactor(vec4 shPos) {
+  vec3  shPos0 = shPos.xyz/shPos.w;
+
+  int   mip    = VSM_PAGE_MIPS-1;
+  vec2  page   = shPos0.xy / (1<<mip);
+  // if(any(greaterThan(abs(page), vec2(1))) || mip>=VSM_PAGE_MIPS)
+  //   return true;
+  if(any(greaterThan(abs(page), vec2(1))))
+    return true;
+  //return false;
+
+  float v = shadowTexelFetch(page, mip, pageTbl, pageData);
+  return v < shPos.z;
+  //return true;
+  }
+#elif defined(VOLUMETRIC) && defined(COMPUTE)
 float shadowSample(in sampler2D shadowMap, vec2 shPos) {
   shPos.xy = shPos.xy*vec2(0.5)+vec2(0.5);
   return textureLod(shadowMap,shPos,0).r;
@@ -79,18 +100,24 @@ vec3 project(mat4 m, vec3 pos) {
   return p.xyz/p.w;
   }
 
-#if defined(VOLUMETRIC_HQ)
+#if defined(VOLUMETRIC)
 vec4 fog(vec2 uv, float z) {
   const int   steps    = 32;
   const float noise    = interleavedGradientNoise()/steps;
 
   const float dMin     = 0;
   const float dMax     = 0.9999;
-  const vec3  pos0     = project(scene.viewProjectInv, vec3(inPos,dMin));
-  const vec3  pos1     = project(scene.viewProjectInv, vec3(inPos,dMax));
-  const vec3  posz     = project(scene.viewProjectInv, vec3(inPos,z));
-  const vec4  shPos0   = scene.viewShadow[1]*vec4(pos0, 1);
-  const vec4  shPos1   = scene.viewShadow[1]*vec4(posz, 1);
+  const vec3  pos0     = project(scene.viewProjectLwcInv, vec3(inPos,dMin));
+  const vec3  pos1     = project(scene.viewProjectLwcInv, vec3(inPos,dMax));
+  const vec3  posz     = project(scene.viewProjectLwcInv, vec3(inPos,z));
+
+#if defined(VIRTUAL_SHADOW)
+  const vec4  shPos0   = scene.viewVirtualShadowLwc*vec4(pos0, 1);
+  const vec4  shPos1   = scene.viewVirtualShadowLwc*vec4(posz, 1);
+#else
+  const vec4  shPos0   = scene.viewShadowLwc[1]*vec4(pos0, 1);
+  const vec4  shPos1   = scene.viewShadowLwc[1]*vec4(posz, 1);
+#endif
 
   const vec3  ray      = pos1.xyz - pos0.xyz;
   const float dist     = length(ray)*0.01;       // meters

@@ -91,6 +91,9 @@ Resources::Resources(Tempest::Device &device)
   fbZero = device.texture(pm);
   }
 
+  fbImg   = device.image2d(TextureFormat::R32U,1,1);
+  fbImg3d = device.image3d(TextureFormat::R32U,1,1,1);
+
   // Set up the DirectMusic loader
   DmResult rv = DmLoader_create(&dmLoader, DmLoader_DOWNLOAD);
   if(rv != DmResult_SUCCESS) {
@@ -281,6 +284,14 @@ const Texture2d& Resources::fallbackTexture() {
 
 const Texture2d &Resources::fallbackBlack() {
   return inst->fbZero;
+  }
+
+const Tempest::StorageImage& Resources::fallbackImage() {
+  return inst->fbImg;
+  }
+
+const Tempest::StorageImage& Resources::fallbackImage3d() {
+  return inst->fbImg3d;
   }
 
 const zenkit::Vfs& Resources::vdfsIndex() {
