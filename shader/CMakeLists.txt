@@ -308,7 +308,7 @@ add_shader(vsm_alloc_pages.comp  virtual_shadow/vsm_alloc_pages.comp)
 add_shader(vsm_pack_draws0.comp  virtual_shadow/vsm_pack_draws.comp   -DPASS0)
 add_shader(vsm_pack_draws1.comp  virtual_shadow/vsm_pack_draws.comp   -DPASS1)
 add_shader(vsm_cluster_task.comp virtual_shadow/vsm_cluster_task.comp -DVIRTUAL_SHADOW)
-add_shader(vsm_list_pages.comp   virtual_shadow/vsm_list_pages.comp)
+#add_shader(vsm_list_pages.comp   virtual_shadow/vsm_list_pages.comp)
 
 add_shader(vsm_rendering.comp    virtual_shadow/vsm_rendering.comp)
 
