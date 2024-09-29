@@ -3,6 +3,13 @@
 #extension GL_GOOGLE_include_directive    : enable
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_KHR_memory_scope_semantics : enable
+
+// #define MARK_PAGES 1
+// #define HIZ_PAGES 1
+// #define COMPOSE 1
+// #define DEBUG 1
+#define LWC 1
 
 #include "virtual_shadow/vsm_common.glsl"
 #include "lighting/tonemapping.glsl"
@@ -10,7 +17,8 @@
 #include "common.glsl"
 
 #if defined(GL_COMPUTE_SHADER)
-layout(local_size_x = 8, local_size_y = 8) in;
+//layout(local_size_x = 8, local_size_y = 8) in;
+layout(local_size_x = 16, local_size_y = 8) in;
 #endif
 
 const vec3 debugColors[] = {
@@ -35,17 +43,17 @@ layout(binding  = 0, std140) uniform UboScene {
 layout(binding = 1) uniform texture2D       gbufDiffuse;
 layout(binding = 2) uniform utexture2D      gbufNormal;
 layout(binding = 3) uniform texture2D       depth;
-#if defined(MARK_PAGES)
-layout(binding = 4, r32ui) uniform uimage3D          pageTbl;
+#if defined(MARK_PAGES) || defined(HIZ_PAGES)
+layout(binding = 4, r32ui) uniform uimage3D    pageTbl;
 #elif defined(COMPOSE) || defined(DEBUG)
-layout(binding = 4)        uniform utexture3D        pageTbl;
+layout(binding = 4)        uniform utexture3D  pageTbl;
 #  if defined(VSM_ATOMIC)
-layout(binding = 5)        uniform utexture2D        pageData;
+layout(binding = 5)        uniform utexture2D  pageData;
 #  else
-layout(binding = 5)        uniform texture2D         pageData;
+layout(binding = 5)        uniform texture2D   pageData;
 #  endif
 #endif
-layout(binding = 6, r32ui) uniform uimage3D pageTblDepth;
+layout(binding = 6, r32ui) uniform uimage3D    pageTblDepth;
 
 #if defined(COMPOSE) || defined(DEBUG)
 layout(binding = 7, std430) readonly buffer Pages { VsmHeader header; uint  pageList[]; } vsm;
@@ -60,6 +68,58 @@ layout(location = 0) out vec4 outColor;
 ivec2 pixelPos = ivec2(gl_GlobalInvocationID.xy);
 #else
 ivec2 pixelPos = ivec2(gl_FragCoord.xy);
+#endif
+
+#if defined(GL_COMPUTE_SHADER)
+shared uint pageHiZ[2];
+
+uint pack565_16(ivec3 a, uint b) {
+  uint x = (a.x & 0x1F)   << 0;
+  uint y = (a.y & 0x3F)   << 5;
+  uint z = (a.z & 0x1F)   << 11;
+  uint w = (  b & 0xFFFF) << 16;
+  //uint d = uint(z*0xFFFF) << 16;
+  return x | y | z | w;
+  }
+
+uvec4 unpack565_16(uint p) {
+  uvec4 ret;
+  ret.x = (p >>  0) & 0x1F;
+  ret.y = (p >>  5) & 0x3F;
+  ret.z = (p >> 11) & 0x1F;
+  ret.w = (p >> 16);
+  return ret;
+  }
+
+void insertHiZ(ivec3 at, float z) {
+  if(z>=1)
+    return;
+  //imageAtomicStore(pageTbl, at, 1u, gl_ScopeDevice, gl_StorageSemanticsNone, gl_SemanticsRelaxed);
+  //return;
+
+  uint t   = pack565_16(at,uint(z*0xFFFF));
+  uint cur = packUint4x8(uvec4(at,0));
+  for(uint i=0; i<pageHiZ.length(); ++i) {
+    uint v = atomicMin(pageHiZ[i], cur);
+    if(v==0xFFFFFFFF || v==cur)
+      return;
+    cur = (v > cur) ? v : cur;
+    }
+  imageAtomicStore(pageTbl, ivec3(at), 1u, gl_ScopeDevice, gl_StorageSemanticsNone, gl_SemanticsRelaxed);
+  imageAtomicMin(pageTblDepth, ivec3(at), 1234);
+  }
+
+void flushHiZ() {
+  const uint lane = gl_LocalInvocationIndex;
+  if(lane >= pageHiZ.length())
+    return;
+  const uint v = pageHiZ[lane];
+  if(v==0xFFFFFFFF)
+    return;
+  uvec3 at = unpackUint4x8(v).xyz;
+  imageAtomicStore(pageTbl, ivec3(at), 1u, gl_ScopeDevice, gl_StorageSemanticsNone, gl_SemanticsRelaxed);
+  imageAtomicMin(pageTblDepth, ivec3(at), 1234);
+  }
 #endif
 
 float drawInt(in vec2 where, in int n) {
@@ -90,7 +150,7 @@ uint hash(uvec3 gridPos) {
   return (gridPos.x * 18397) + (gridPos.y * 20483) + (gridPos.z * 29303);
   }
 
-vec4 worldPosLwc(ivec2 frag, float depth) {
+vec4 worldPos(ivec2 frag, float depth) {
   const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
   const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
 #if defined(LWC)
@@ -101,7 +161,7 @@ vec4 worldPosLwc(ivec2 frag, float depth) {
   }
 
 vec3 shadowPos(float z, ivec2 offset) {
-  const vec4  wpos = worldPosLwc(pixelPos+offset, z);
+  const vec4  wpos = worldPos(pixelPos+offset, z);
 #if defined(LWC)
   vec4 shPos = scene.viewVirtualShadowLwc * wpos;
 #else
@@ -140,9 +200,12 @@ float shadowTest(vec2 page, int mip, in float refZ, bool isATest) {
 
 void markPage(ivec2 pageI, int mip, float depth) {
 #if defined(MARK_PAGES)
-  //imageAtomicAdd(pageTbl, ivec3(pageI, mip), 1u);
-  imageStore(pageTbl, ivec3(pageI, mip), uvec4(1u));
-  //imageAtomicMin(pageTblDepth, ivec3(pageI, mip), floatBitsToUint(depth));
+  //imageAtomicExchange(pageTbl, ivec3(pageI, mip), 1u);
+  //imageStore(pageTbl, ivec3(pageI, mip), uvec4(1u));
+
+  //NOTE: require vulkan memory-model extension or vulkan 1.2
+  //imageAtomicStore(pageTbl, ivec3(pageI, mip), 1u, gl_ScopeDevice, gl_StorageSemanticsNone, gl_SemanticsRelaxed);
+  insertHiZ(ivec3(pageI, mip), depth);
 #endif
   }
 
@@ -180,7 +243,7 @@ vec3 directLight(vec2 page, int mip, float refZ) {
   }
 #endif
 
-void main() {
+void realMain() {
 #if defined(DEBUG)
   outColor = vec4(0,0,0, 1);
 #endif
@@ -202,7 +265,7 @@ void main() {
   if(z==1)
     return;
 
-#if defined(MARK_PAGES)
+#if defined(MARK_PAGES) || defined(HIZ_PAGES)
   {
     const vec3 normal = normalFetch(gbufNormal, pixelPos);
     if(dot(scene.sunDir,normal)<=0)
@@ -226,7 +289,7 @@ void main() {
     return;
 
   ivec2 pageI = ivec2((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
-#if defined(MARK_PAGES)
+#if defined(MARK_PAGES) || defined(HIZ_PAGES)
   markPage(pageI, mip, shPos0.z);
 #elif defined(COMPOSE)
   outColor = vec4(directLight(page, mip, shPos0.z), 1);
@@ -244,5 +307,20 @@ void main() {
   // vec3 color = vec3(fract(page*VSM_PAGE_TBL_SIZE), 0);
   // vec4 color = shadowTexelFetch(page, mip);
   outColor = vec4(color.xyz,1);
+#endif
+  }
+
+void main() {
+#if defined(GL_COMPUTE_SHADER)
+  const uint lane = gl_LocalInvocationIndex;
+  if(lane < pageHiZ.length())
+    pageHiZ[lane] = 0xFFFFFFFF;
+  barrier();
+#endif
+
+  realMain();
+#if defined(GL_COMPUTE_SHADER)
+  barrier();
+  flushHiZ();
 #endif
   }
