@@ -197,10 +197,8 @@ void Renderer::resetSwapchain() {
     vsm.uboAlloc        = device.descriptors(Shaders::inst().vsmAllocPages);
 
     vsm.directLightPso  = &Shaders::inst().vsmDirectLight;
-    vsm.uboLight        = device.descriptors(*vsm.directLightPso);
-
     vsm.pagesDbgPso     = &Shaders::inst().vsmDbg;
-    vsm.uboDbg          = device.descriptors(*vsm.pagesDbgPso);
+    vsm.uboLight        = device.descriptors(*vsm.directLightPso);
 
     vsm.pageDbg         = device.image2d(TextureFormat::R32U, 32, 32);
     vsm.pageTbl         = device.image3d(TextureFormat::R32U, 32, 32, 16);
@@ -462,7 +460,7 @@ void Renderer::prepareUniforms() {
     vsm.uboPages.set(2, gbufNormal,  Sampler::nearest());
     vsm.uboPages.set(3, zbuffer,     Sampler::nearest());
     vsm.uboPages.set(4, vsm.pageTbl);
-    vsm.uboPages.set(6, vsm.pageHiZ);
+    vsm.uboPages.set(5, vsm.pageHiZ);
     //vsm.uboPages.set(7, vsm.pageList);
 
     vsm.uboClump.set(0, vsm.pageList);
@@ -477,17 +475,10 @@ void Renderer::prepareUniforms() {
     vsm.uboLight.set(2, gbufNormal,  Sampler::nearest());
     vsm.uboLight.set(3, zbuffer,     Sampler::nearest());
     vsm.uboLight.set(4, vsm.pageTbl);
+    vsm.uboLight.set(5, vsm.pageList);
     if(!vsm.pageDataCs.isEmpty())
-      vsm.uboLight.set(5, vsm.pageDataCs); else
-      vsm.uboLight.set(5, vsm.pageData);
-    vsm.uboLight.set(7, vsm.pageList);
-
-    vsm.uboDbg.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    vsm.uboDbg.set(1, gbufDiffuse, Sampler::nearest());
-    vsm.uboDbg.set(2, gbufNormal,  Sampler::nearest());
-    vsm.uboDbg.set(3, zbuffer,     Sampler::nearest());
-    vsm.uboDbg.set(4, vsm.pageTbl);
-    vsm.uboDbg.set(5, vsm.pageData);
+      vsm.uboLight.set(6, vsm.pageDataCs); else
+      vsm.uboLight.set(6, vsm.pageData);
     }
 
   if(settings.swrEnabled) {
@@ -779,7 +770,7 @@ void Renderer::drawVsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   cmd.setDebugMarker("VSM-dbg");
-  cmd.setUniforms(*vsm.pagesDbgPso, vsm.uboDbg, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
+  cmd.setUniforms(*vsm.pagesDbgPso, vsm.uboLight, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
   cmd.draw(Resources::fsqVbo());
   }
 

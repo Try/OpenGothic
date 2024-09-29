@@ -220,10 +220,8 @@ class Renderer final {
       Tempest::DescriptorSet    uboClump, uboAlloc;
 
       Tempest::RenderPipeline*  directLightPso = nullptr;
-      Tempest::DescriptorSet    uboLight;
-
       Tempest::RenderPipeline*  pagesDbgPso = nullptr;
-      Tempest::DescriptorSet    uboDbg;
+      Tempest::DescriptorSet    uboLight;
 
       Tempest::StorageImage     pageDbg;
       Tempest::StorageImage     pageTbl;
