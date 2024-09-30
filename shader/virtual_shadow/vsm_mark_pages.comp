@@ -5,10 +5,6 @@
 #extension GL_EXT_samplerless_texture_functions : enable
 #extension GL_KHR_memory_scope_semantics : enable
 
-// #define MARK_PAGES 1
-// #define HIZ_PAGES 1
-// #define COMPOSE 1
-// #define DEBUG 1
 #define LWC 1
 
 #include "virtual_shadow/vsm_common.glsl"
@@ -16,10 +12,10 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-#if defined(GL_COMPUTE_SHADER)
 //layout(local_size_x = 8, local_size_y = 8) in;
 layout(local_size_x = 16, local_size_y = 8) in;
-#endif
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
 layout(std140, push_constant) uniform Push {
   float vsmMipBias;
@@ -35,28 +31,63 @@ layout(binding = 5, r32ui) uniform uimage3D   pageTblDepth;
 
 ivec2 pixelPos = ivec2(gl_GlobalInvocationID.xy);
 
-shared uint pageHiZ[6];
+uint murmurHash11(uint src) {
+  const uint M = 0x5bd1e995u;
+  uint h = 1190494759u;
+  src *= M; src ^= src>>24u; src *= M;
+  h *= M; h ^= src;
+  h ^= h>>13u; h *= M; h ^= h>>15u;
+  return h;
+  }
+
+uint pageIdHash7(ivec3 src) {
+  uint x = (src.x & 0x3) << 0;
+  uint y = (src.y & 0x3) << 2;
+  uint z = (src.z & 0x7) << 4;
+  return x | y | z; // 7bit
+  }
 
 uint pack565_16(ivec3 a, uint b) {
   uint x = (a.x & 0x1F)   << 0;
   uint y = (a.y & 0x3F)   << 5;
   uint z = (a.z & 0x1F)   << 11;
-  uint w = (  b & 0xFFFF) << 16;
+  uint w = (  b & 0xFFFF);
   //uint d = uint(z*0xFFFF) << 16;
-  return x | y | z | w;
+  return ((x | y | z) << 16) | w;
   }
 
 uvec4 unpack565_16(uint p) {
   uvec4 ret;
+  ret.w = p & 0xFFFF;
+  p = p >> 16;
   ret.x = (p >>  0) & 0x1F;
   ret.y = (p >>  5) & 0x3F;
   ret.z = (p >> 11) & 0x1F;
-  ret.w = (p >> 16);
   return ret;
   }
 
+void storeVal(uint v) {
+  uvec4 dx = unpack565_16(v);
+  ivec3 at = ivec3(dx.xyz);
+  uint  iz = dx.w;
+
+  //NOTE: require vulkan memory-model extension or vulkan 1.2
+  //imageAtomicStore(pageTbl, at, 1u, gl_ScopeDevice, gl_StorageSemanticsNone, gl_SemanticsRelaxed);
+  //imageStore(pageTbl, at, uvec4(1u));
+  imageAtomicExchange(pageTbl, at, 1u);
+  imageAtomicMin(pageTblDepth, at, iz);
+  }
+
+#if 0
+shared uint pageHiZ[6];
+void setupHiZ() {
+  const uint lane = gl_LocalInvocationIndex;
+  if(lane < pageHiZ.length())
+    pageHiZ[lane] = 0xFFFFFFFF;
+  }
+
 void insertHiZ(ivec3 at, float z) {
-  if(z>=1)
+  if(z<0 || z>=1)
     return;
   //imageAtomicStore(pageTbl, at, 1u, gl_ScopeDevice, gl_StorageSemanticsNone, gl_SemanticsRelaxed);
   //return;
@@ -65,13 +96,12 @@ void insertHiZ(ivec3 at, float z) {
   uint cur = pack565_16(at,iz);
   for(uint i=0; i<pageHiZ.length(); ++i) {
     uint v = atomicMin(pageHiZ[i], cur);
-    if(v==0xFFFFFFFF || (v&0xFFFF)==(cur&0xFFFF))
+    if(v==0xFFFFFFFF || (v&0xFFFF0000)==(cur&0xFFFF0000))
       return;
     cur = (v > cur) ? v : cur;
     }
   // imageAtomicAdd(pageTbl, ivec3(0), 1u); //counter
-  imageAtomicStore(pageTbl, at, 1u, gl_ScopeDevice, gl_StorageSemanticsNone, gl_SemanticsRelaxed);
-  imageAtomicMin(pageTblDepth, at, iz);
+  storeVal(cur);
   }
 
 void flushHiZ() {
@@ -81,18 +111,42 @@ void flushHiZ() {
   const uint v = pageHiZ[lane];
   if(v==0xFFFFFFFF)
     return;
-
-  uvec4 dx = unpack565_16(v);
-  ivec3 at = ivec3(dx.xyz);
-  uint  iz = dx.w;
-
-  //NOTE: require vulkan memory-model extension or vulkan 1.2
-  //imageAtomicStore(pageTbl, at, 1u, gl_ScopeDevice, gl_StorageSemanticsNone, gl_SemanticsRelaxed);
-  //imageStore(pageTbl, at, uvec4(1u));
-
-  imageAtomicExchange(pageTbl, at, 1u);
-  imageAtomicMin(pageTblDepth, at, iz);
+  storeVal(v);
   }
+#else
+shared uint pageHiZ[NumThreads];
+void setupHiZ() {
+  const uint lane = gl_LocalInvocationIndex;
+  pageHiZ[lane] = 0xFFFFFFFF;
+  }
+
+void insertHiZ(ivec3 at, float z) {
+  if(z<0 || z>=1)
+    return;
+
+  uint iz  = uint(z*0xFFFF);
+  uint cur = pack565_16(at,iz);
+  // uint id  = murmurHash11(cur >> 16) % pageHiZ.length();
+  uint id  = pageIdHash7(at) % pageHiZ.length();
+
+  uint v   = atomicMin(pageHiZ[id], cur);
+  if(v==0xFFFFFFFF)
+    return; // clean insert
+  if((v&0xFFFF0000)==(cur&0xFFFF0000))
+    return; // update same entry
+
+  // imageAtomicAdd(pageTbl, ivec3(0), 1u); //counter
+  storeVal(v);
+  }
+
+void flushHiZ() {
+  const uint lane = gl_LocalInvocationIndex;
+  const uint v    = pageHiZ[lane];
+  if(v==0xFFFFFFFF)
+    return;
+  storeVal(v);
+  }
+#endif
 
 vec4 worldPos(ivec2 frag, float depth) {
   const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
@@ -127,9 +181,7 @@ int shadowLod(vec2 dx, vec2 dy) {
   }
 
 void markPage(ivec2 pageI, int mip, float depth) {
-#if defined(MARK_PAGES)
   insertHiZ(ivec3(pageI, mip), depth);
-#endif
   }
 
 void realMain() {
@@ -165,16 +217,11 @@ void realMain() {
   }
 
 void main() {
-#if defined(GL_COMPUTE_SHADER)
-  const uint lane = gl_LocalInvocationIndex;
-  if(lane < pageHiZ.length())
-    pageHiZ[lane] = 0xFFFFFFFF;
+  setupHiZ();
   barrier();
-#endif
 
   realMain();
-#if defined(GL_COMPUTE_SHADER)
   barrier();
+
   flushHiZ();
-#endif
   }

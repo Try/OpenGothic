@@ -298,19 +298,19 @@ add_shader(cmaa2_deferred_color_apply_2x2.vert     antialiasing/cmaa2/deferred_c
 add_shader(cmaa2_deferred_color_apply_2x2.frag     antialiasing/cmaa2/deferred_color_apply_2x2.frag)
 
 # virtual shadows
-add_shader(direct_light_vsm.frag virtual_shadow/vsm_mark_pages.comp -DCOMPOSE    -S frag)
-add_shader(vsm_dbg.frag          virtual_shadow/vsm_mark_pages.comp -DDEBUG      -S frag)
-add_shader(vsm_mark_pages.comp   virtual_shadow/vsm_mark_pages.comp -DMARK_PAGES)
-add_shader(vsm_clear.comp        virtual_shadow/vsm_clear.comp)
-add_shader(vsm_clear_pages.comp  virtual_shadow/vsm_clear_pages.comp)
-add_shader(vsm_clump_pages.comp  virtual_shadow/vsm_clump_pages.comp)
-add_shader(vsm_alloc_pages.comp  virtual_shadow/vsm_alloc_pages.comp)
-add_shader(vsm_pack_draws0.comp  virtual_shadow/vsm_pack_draws.comp   -DPASS0)
-add_shader(vsm_pack_draws1.comp  virtual_shadow/vsm_pack_draws.comp   -DPASS1)
-add_shader(vsm_cluster_task.comp virtual_shadow/vsm_cluster_task.comp -DVIRTUAL_SHADOW)
-#add_shader(vsm_list_pages.comp   virtual_shadow/vsm_list_pages.comp)
+add_shader(direct_light_vsm.frag   virtual_shadow/vsm_direct_light.frag)
+add_shader(vsm_dbg.frag            virtual_shadow/vsm_direct_light.frag -DDEBUG)
+add_shader(vsm_mark_pages.comp     virtual_shadow/vsm_mark_pages.comp)
+add_shader(vsm_clear.comp          virtual_shadow/vsm_clear.comp)
+add_shader(vsm_clear_pages.comp    virtual_shadow/vsm_clear_pages.comp)
+add_shader(vsm_clump_pages.comp    virtual_shadow/vsm_clump_pages.comp)
+add_shader(vsm_alloc_pages.comp    virtual_shadow/vsm_alloc_pages.comp)
+add_shader(vsm_pack_draws0.comp    virtual_shadow/vsm_pack_draws.comp   -DPASS0)
+add_shader(vsm_pack_draws1.comp    virtual_shadow/vsm_pack_draws.comp   -DPASS1)
+add_shader(vsm_cluster_task.comp   virtual_shadow/vsm_cluster_task.comp -DVIRTUAL_SHADOW)
+#add_shader(vsm_list_pages.comp     virtual_shadow/vsm_list_pages.comp)
 
-add_shader(vsm_rendering.comp    virtual_shadow/vsm_rendering.comp)
+add_shader(vsm_rendering.comp      virtual_shadow/vsm_rendering.comp)
 
 # software rendering
 add_shader(sw_rendering_imm.comp  software_rendering/sw_rendering_imm.comp)

@@ -70,8 +70,14 @@ float drawInt(in vec2 where, in int n) {
   return 0;
   }
 
-uint hash(uvec3 gridPos) {
-  return (gridPos.x * 18397) + (gridPos.y * 20483) + (gridPos.z * 29303);
+uint hash(uvec3 src) {
+  const uint M = 0x5bd1e995u;
+  uint h = 1190494759u;
+  src *= M; src ^= src>>24u; src *= M;
+  h *= M; h ^= src.x; h *= M; h ^= src.y; h *= M; h ^= src.z;
+  h ^= h>>13u; h *= M; h ^= h>>15u;
+  return h;
+  // return (gridPos.x * 18397) + (gridPos.y * 20483) + (gridPos.z * 29303);
   }
 
 vec4 worldPos(ivec2 frag, float depth) {
