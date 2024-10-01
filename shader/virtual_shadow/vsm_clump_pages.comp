@@ -16,7 +16,7 @@ layout(binding = 1, r32ui)  uniform uimage3D pageTbl;
 shared uint minY;
 shared uint minX  [gl_WorkGroupSize.y/4];
 shared uint sWidth[gl_WorkGroupSize.y/4];
-shared uint data[gl_WorkGroupSize.x][gl_WorkGroupSize.y];
+shared uint data[VSM_PAGE_TBL_SIZE+3][VSM_PAGE_TBL_SIZE+3];
 
 uint packPage(uint samples, uint size, uint prime) {
   return (samples & 0xFF) | (size << 8) | (prime << 16);
@@ -40,16 +40,21 @@ uint unpackPrimeBit(uint a){
 
 void poolPageTable() {
   const ivec3 size = imageSize(pageTbl);
-  const ivec3 at   = ivec3(gl_GlobalInvocationID);
   const ivec3 id   = ivec3(gl_LocalInvocationID);
 
-  if(all(lessThan(at, size))) {
-    const uint frag  = imageLoad(pageTbl, at).r;
-    //data[id.x][id.y] = frag;
-    data[at.x][at.y] = packPage(frag, frag, frag);
-    } else {
-    data[id.x][id.y] = 0;
-    }
+  const uint dataSz = (VSM_PAGE_TBL_SIZE+3);
+  for(uint i=id.x; i<dataSz; i+=gl_WorkGroupSize.x)
+    for(uint r=id.y; r<dataSz; r+=gl_WorkGroupSize.y) {
+      const ivec3 at = ivec3(i,r, gl_GlobalInvocationID.z);
+      if(all(lessThan(at, size))) {
+        const uint frag  = imageLoad(pageTbl, at).r;
+        //data[at.x][at.y] = frag;
+        data[at.x][at.y] = packPage(frag, frag, frag);
+        } else {
+        data[at.x][at.y] = 0;
+        }
+      }
+
   barrier();
   }
 
@@ -111,8 +116,8 @@ void main() {
   barrier();
 
   const bool valid = (0<=tileCoord.x && tileCoord.x<sWidth[stripe] && 0<=tileCoord.y);
-  const bool quad  = (valid && tileCoord.x%2==0 && tileCoord.y%2==0 && at.x<size.x-1 && at.y<size.y-1);
-  const bool bQuad = (valid && tileCoord.x%4==0 && tileCoord.y%4==0 && at.x<size.x-2 && at.y<size.y-2);
+  const bool quad  = (valid && tileCoord.x%2==0 && tileCoord.y%2==0); // && at.x<size.x-1 && at.y<size.y-1);
+  const bool bQuad = (valid && tileCoord.x%4==0 && tileCoord.y%4==0); // && at.x<size.x-2 && at.y<size.y-2);
   if(true && quad) {
     uint a = unpackPrimeBit(data[at.x+0][at.y+0]);
     uint b = unpackPrimeBit(data[at.x+1][at.y+0]);
