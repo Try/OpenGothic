@@ -88,7 +88,7 @@ Gothic::Gothic() {
     opts.doBindless = CommandLine::inst().isBindless();
     }
 
-  if(hasBindless() && gpu.compute.maxInvocations>=1024 && gpu.memoryModel) {
+  if(hasBindless() && gpu.compute.maxInvocations>=1024) {
     //TODO: productize
     opts.doVirtualShadow = CommandLine::inst().isVirtualShadow();
     }

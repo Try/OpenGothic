@@ -66,10 +66,10 @@ uvec4 unpack565_16(uint p) {
   return ret;
   }
 
-void storeVal(uint v) {
+void storeHiZValue(uint v) {
   uvec4 dx = unpack565_16(v);
   ivec3 at = ivec3(dx.xyz);
-  uint  iz = dx.w;
+  uint  iz = floatBitsToUint(dx.w/float(0xFFFF));
 
   //NOTE: require vulkan memory-model extension or vulkan 1.2
   //imageAtomicStore(pageTbl, at, 1u, gl_ScopeDevice, gl_StorageSemanticsNone, gl_SemanticsRelaxed);
@@ -86,7 +86,7 @@ void setupHiZ() {
     pageHiZ[lane] = 0xFFFFFFFF;
   }
 
-void insertHiZ(ivec3 at, float z) {
+void markPage(ivec3 at, float z) {
   if(z<0 || z>=1)
     return;
   //imageAtomicStore(pageTbl, at, 1u, gl_ScopeDevice, gl_StorageSemanticsNone, gl_SemanticsRelaxed);
@@ -101,7 +101,7 @@ void insertHiZ(ivec3 at, float z) {
     cur = (v > cur) ? v : cur;
     }
   // imageAtomicAdd(pageTbl, ivec3(0), 1u); //counter
-  storeVal(cur);
+  storeHiZValue(cur);
   }
 
 void flushHiZ() {
@@ -111,7 +111,7 @@ void flushHiZ() {
   const uint v = pageHiZ[lane];
   if(v==0xFFFFFFFF)
     return;
-  storeVal(v);
+  storeHiZValue(v);
   }
 #else
 shared uint pageHiZ[NumThreads];
@@ -120,7 +120,7 @@ void setupHiZ() {
   pageHiZ[lane] = 0xFFFFFFFF;
   }
 
-void insertHiZ(ivec3 at, float z) {
+void markPage(ivec3 at, float z) {
   if(z<0 || z>=1)
     return;
 
@@ -136,7 +136,7 @@ void insertHiZ(ivec3 at, float z) {
     return; // update same entry
 
   // imageAtomicAdd(pageTbl, ivec3(0), 1u); //counter
-  storeVal(v);
+  storeHiZValue(v);
   }
 
 void flushHiZ() {
@@ -144,7 +144,7 @@ void flushHiZ() {
   const uint v    = pageHiZ[lane];
   if(v==0xFFFFFFFF)
     return;
-  storeVal(v);
+  storeHiZValue(v);
   }
 #endif
 
@@ -180,10 +180,6 @@ int shadowLod(vec2 dx, vec2 dy) {
   return max(0, int(minLod + bias + 0.5));
   }
 
-void markPage(ivec2 pageI, int mip, float depth) {
-  insertHiZ(ivec3(pageI, mip), depth);
-  }
-
 void realMain() {
   const ivec2 size = textureSize(depth, 0);
   if(any(greaterThanEqual(pixelPos, size)))
@@ -213,7 +209,7 @@ void realMain() {
     return;
 
   ivec2 pageI = ivec2((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
-  markPage(pageI, mip, shPos0.z);
+  markPage(ivec3(pageI, mip), shPos0.z);
   }
 
 void main() {

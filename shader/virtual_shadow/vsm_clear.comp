@@ -23,6 +23,7 @@ void main() {
     return;
 
   imageStore(pageTbl, at, uvec4(0));
+  // imageStore(pageTblDepth, at, uvec4(floatBitsToUint(1)));
   imageStore(pageTblDepth, at, uvec4(0xFFFFFFFF));
 
   if(at==ivec3(0)) {

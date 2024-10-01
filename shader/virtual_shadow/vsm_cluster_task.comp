@@ -51,7 +51,7 @@ shared uint vsmMipMask;
 shared uint anyPageGlob;
 #endif
 
-bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
+bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMax) {
   const vec3  c = (scene.viewProject * vec4(sphere.xyz, 1)).xyz;
   const float R = sphere.w;
 
@@ -65,7 +65,7 @@ bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin) {
   float Rx = R * smWidthInv;
   float Ry = R * smWidthInv;
   aabb     = vec4(c.xy-vec2(Rx,Ry), c.xy+vec2(Rx,Ry));
-  depthMin = c.z + Rz;
+  depthMax = c.z + Rz;
   // aabb = c.xyxy;
   return true;
   }
@@ -84,11 +84,11 @@ bool frustrumTest(const vec4 sphere) {
   }
 
 
-bool projectCluster(const Cluster cluster, out vec4 aabb, out float depthMin) {
+bool projectCluster(const Cluster cluster, out vec4 aabb, out float depthMax) {
   if(cluster.instanceId==0xFFFFFFFF)
-    return projectSphere(cluster.sphere, aabb, depthMin);
-  return projectSphere(cluster.sphere, aabb, depthMin);
-  // return projectInstance(cluster, aabb, depthMin);
+    return projectSphere(cluster.sphere, aabb, depthMax);
+  return projectSphere(cluster.sphere, aabb, depthMax);
+  // return projectInstance(cluster, aabb, depthMax);
   }
 
 bool emitCluster(const Cluster cluster, uint page) {
@@ -236,6 +236,30 @@ void pullPages(uint mip) {
   barrier();
   }
 
+bool pageHiZTest(vec4 aabb, float depthMax, const ivec3 at, const ivec2 sz) {
+  aabb /= (1u << at.z);
+  aabb = aabb*0.5+0.5; // [0..1]
+  aabb = aabb*VSM_PAGE_TBL_SIZE;
+
+  ivec4 iaabb = ivec4(ivec2(floor(aabb.xy)), ivec2(ceil(aabb.zw))+1);
+  iaabb.xy = max(iaabb.xy, ivec2(at.xy));
+  iaabb.zw = min(iaabb.zw, ivec2(at.xy+sz));
+  iaabb.zw = min(iaabb.zw, ivec2(VSM_PAGE_TBL_SIZE));
+
+  for(int x=iaabb.x; x<iaabb.z; ++x)
+    for(int y=iaabb.y; y<iaabb.w; ++y) {
+      const uint  p = imageLoad(pageTbl, ivec3(x,y,at.z)).x;
+      const float f = uintBitsToFloat(p);
+
+      // if(p!=0xFFFFFFFF)
+      //   return true;
+      if(f<depthMax)
+        return true;
+      }
+
+  return false;
+  }
+
 void runCluster(const uint clusterId) {
   const Cluster cluster = clusters[clusterId];
   if(cluster.sphere.w<=0.f)
@@ -249,8 +273,8 @@ void runCluster(const uint clusterId) {
     }
 
   vec4  aabb     = vec4(0);
-  float depthMin = 1;
-  if(!projectCluster(cluster, aabb, depthMin))
+  float depthMax = 1;
+  if(!projectCluster(cluster, aabb, depthMax))
     return;
 
   for(uint ix=0; ix<pageListSize; ++ix) {
@@ -261,10 +285,8 @@ void runCluster(const uint clusterId) {
     const ivec2 sz   = unpackVsmPageSize(data);
     if(!pageBoundsTest(aabb, page, sz))
       continue;
-    const uint  p = imageLoad(pageTbl, ivec3(page)).x;
-    const float f = uintBitsToFloat(p);
-    if(depthMin < f)
-      ;//continue;
+    if(!pageHiZTest(aabb, depthMax, page, sz))
+      continue;
     if(!emitCluster(cluster, i))
       break;
     }

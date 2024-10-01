@@ -76,6 +76,10 @@ void main() {
   const uint  lane = gl_LocalInvocationIndex;
 
   poolPageTable();
+  // if(true) {
+  //   storePageTable();
+  //   return;
+  //   }
 
   if(lane < minX.length()) {
     minX  [lane] = 0xFFFF;
