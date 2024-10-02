@@ -177,31 +177,3 @@ void main() {
 
   storePageTable();
   }
-
-/*
-void trimMip(int mip) {
-  const ivec3 size = imageSize(pageTbl);
-  const ivec3 id   = ivec3(gl_LocalInvocationID);
-
-  const ivec2 b = ivec2(VSM_PAGE_TBL_SIZE/4);
-  const ivec2 h = ivec2(VSM_PAGE_TBL_SIZE/2);
-
-  for(int i=id.x; i<h.x; i+=int(gl_WorkGroupSize.x)) {
-    for(int r=id.y; r<h.y; r+=int(gl_WorkGroupSize.y)) {
-      ivec3 ax = ivec3(i+b.x, r+b.y, mip);
-      uint  st = imageLoad(pageTbl, ax).r;
-      if(st==0)
-        continue;
-
-      ivec3 at = ivec3(i*2, r*2, mip-1);
-      uint  a  = imageLoad(pageTbl, at+ivec3(0,0,0)).r;
-      uint  b  = imageLoad(pageTbl, at+ivec3(1,0,0)).r;
-      uint  c  = imageLoad(pageTbl, at+ivec3(0,1,0)).r;
-      uint  d  = imageLoad(pageTbl, at+ivec3(1,1,0)).r;
-      if(a+b+c+d == 4) {
-        imageStore(pageTbl, ax, uvec4(0));
-        }
-      }
-    }
-  }
-*/

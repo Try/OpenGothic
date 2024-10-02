@@ -109,7 +109,7 @@ Sky::~Sky() {
 void Sky::setupSettings() {
   auto&      device = Resources::device();
   const bool fog    = Gothic::inst().settingsGetI("RENDERER_D3D","zFogRadial")!=0;
-  const bool vsm    = false;//Gothic::inst().options().doVirtualShadow;
+  const bool vsm    = false; //Gothic::inst().options().doVirtualShadow;
 
   auto q = Quality::VolumetricLQ;
   if(!fog) {

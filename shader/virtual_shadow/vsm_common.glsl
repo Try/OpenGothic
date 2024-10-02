@@ -70,6 +70,28 @@ float vsmTexelFetch(in texture2D pageData, const ivec2 pixel) {
   return texelFetch(pageData, pixel, 0).x;
   }
 
+float shadowTexelFetchDirect(in vec2 page, in int mip, in utexture3D pageTbl,
+                             #if defined(VSM_ATOMIC)
+                             in utexture2D pageData
+                             #else
+                             in texture2D pageData
+                             #endif
+                             ) {
+  //page-local
+  const ivec2 pageI       = ivec2((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
+  const vec2  pageF       = fract((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
+  const ivec2 at          = ivec2(pageF*VSM_PAGE_SIZE);
+
+  //page-global
+  const uint  pageD       = texelFetch(pageTbl, ivec3(pageI, mip), 0).x;
+  if(pageD==0)
+    return -1;
+
+  const uint  pageId      = pageD >> 16u;
+  const ivec2 pageImageAt = unpackVsmPageId(pageId)*VSM_PAGE_SIZE + at;
+  return vsmTexelFetch(pageData, pageImageAt);
+  }
+
 float shadowTexelFetch(in vec2 page, in int mip, in utexture3D pageTbl,
                        #if defined(VSM_ATOMIC)
                        in utexture2D pageData
@@ -77,41 +99,14 @@ float shadowTexelFetch(in vec2 page, in int mip, in utexture3D pageTbl,
                        in texture2D pageData
                        #endif
                        ) {
-#if 1
-  while(mip>=0) {
-    if(abs(page.x)>=1 || abs(page.y)>=1)
-      break;
-    //page-local
-    const ivec2 pageI  = ivec2((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
-    const vec2  pageF  = fract((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
-    const ivec2 at     = ivec2(pageF*VSM_PAGE_SIZE);
-
-    //page-global
-    const uint  pageId = texelFetch(pageTbl, ivec3(pageI, mip), 0).x >> 16u;
-    if(pageId==0xFFFF) {
-      page *= 2.0;
-      --mip;
-      continue;
-      }
-
-    const ivec2 pageImageAt = unpackVsmPageId(pageId)*VSM_PAGE_SIZE + at;
-    return vsmTexelFetch(pageData, pageImageAt);
+  while(mip >= 0) {
+    float s = shadowTexelFetchDirect(page, mip, pageTbl, pageData);
+    if(s>=0)
+      return s;
+    page *= 2.0;
+    mip--;
     }
   return 0;
-#else
-  //page-local
-  const ivec2 pageI       = ivec2((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
-  const vec2  pageF       = fract((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
-  const ivec2 at          = ivec2(pageF*VSM_PAGE_SIZE);
-
-  //page-global
-  const uint  pageId      = texelFetch(pageTbl, ivec3(pageI, mip), 0).x >> 16u;
-  if(pageId==0xFFFF)
-    return 0;
-
-  const ivec2 pageImageAt = unpackVsmPageId(pageId)*VSM_PAGE_SIZE + at;
-  return vsmTexelFetch(pageData, pageImageAt);
-#endif
   }
 
 #endif

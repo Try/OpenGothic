@@ -200,6 +200,7 @@ Shaders::Shaders() {
     vsmClear       = computeShader("vsm_clear.comp.sprv");
     vsmClearPages  = computeShader("vsm_clear_pages.comp.sprv");
     vsmMarkPages   = computeShader("vsm_mark_pages.comp.sprv");
+    vsmTrimPages   = computeShader("vsm_trim_pages.comp.sprv");
     vsmClumpPages  = computeShader("vsm_clump_pages.comp.sprv");
     vsmAllocPages  = computeShader("vsm_alloc_pages.comp.sprv");
     vsmPackDraw0   = computeShader("vsm_pack_draws0.comp.sprv");

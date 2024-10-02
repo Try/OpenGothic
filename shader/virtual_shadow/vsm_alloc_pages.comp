@@ -194,7 +194,7 @@ void horizontalMerge() {
   uint  sz   = unpackVsmPageSize(p0).x;
   ivec3 at   = unpackVsmPageInfo(p0);
   uint  size = sz;
-  for(uint i=col+sz; i < VSM_PAGE_TBL_SIZE; i+=sz) {
+  for(uint i=col+sz; i<VSM_PAGE_TBL_SIZE; i+=sz) {
     const uint  pId1 = off+i;
     const uint  p1   = vsm.pageList[pId1];
     const uint  sz1  = unpackVsmPageSize(p1).x;
@@ -243,5 +243,5 @@ void main() {
   layoutPages(frag, size, 2);
   layoutPages(frag, size, 1);
 
-  //horizontalMerge();
+  horizontalMerge();
   }

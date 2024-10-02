@@ -864,9 +864,9 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.dispatchThreads(zbuffer.size());
 
   if(vsm.pageDataCs.isEmpty()) {
-    //TODO: trimming
-    //cmd.setUniforms(shaders.vsmClumpPages0, vsm.uboClump);
-    //cmd.dispatch(1);
+    // trimming
+    cmd.setUniforms(shaders.vsmTrimPages, vsm.uboClump);
+    cmd.dispatch(1);
 
     // clump
     cmd.setUniforms(shaders.vsmClumpPages, vsm.uboClump);
