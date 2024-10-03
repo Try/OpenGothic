@@ -397,7 +397,8 @@ Texture2d *Resources::implLoadTexture(TextureCache& cache, std::string&& name, z
     Tempest::MemReader rd((uint8_t*)raw.data(), raw.size());
     Tempest::Pixmap    pm(rd);
 
-    std::unique_ptr<Texture2d> t{new Texture2d(dev.texture(pm))};
+    const bool useMipmap = pm.mipCount()>1; // do not generate mips, if original texture has has none
+    std::unique_ptr<Texture2d> t{new Texture2d(dev.texture(pm, useMipmap))};
     Texture2d* ret=t.get();
     cache[std::move(name)] = std::move(t);
     return ret;
