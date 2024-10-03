@@ -601,7 +601,7 @@ const Texture2d* Sky::implSkyTexture(std::string_view name, bool day, size_t id)
   for(auto& i:tex)
     i = char(std::toupper(i));
 
-  auto r = Resources::loadTexture(tex);
+  auto r = Resources::loadTexture(tex, true);
   if(r==&Resources::fallbackTexture())
     return &Resources::fallbackBlack(); //format error
   return r;

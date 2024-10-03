@@ -325,21 +325,21 @@ int64_t Resources::vdfTimestamp(const std::u16string& name) {
     }
   }
 
-Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_view cname) {
+Tempest::Texture2d* Resources::implLoadTexture(std::string_view cname, bool forceMips) {
   if(cname.empty())
     return nullptr;
 
   std::string name = std::string(cname);
-  auto it=cache.find(name);
-  if(it!=cache.end())
+  auto it=texCache.find(name);
+  if(it!=texCache.end())
     return it->second.get();
 
   if(FileExt::hasExt(name,"TGA")) {
     name.resize(name.size() + 2);
     std::memcpy(&name[0]+name.size()-6,"-C.TEX",6);
 
-    it=cache.find(name);
-    if(it!=cache.end())
+    it=texCache.find(name);
+    if(it!=texCache.end())
       return it->second.get();
 
     if(const auto* entry = Resources::vdfsIndex().find(name)) {
@@ -348,15 +348,15 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
       auto reader = entry->open_read();
       tex.load(reader.get());
 
-      if (tex.format() == zenkit::TextureFormat::DXT1 ||
-          tex.format() == zenkit::TextureFormat::DXT2 ||
-          tex.format() == zenkit::TextureFormat::DXT3 ||
-          tex.format() == zenkit::TextureFormat::DXT4 ||
-          tex.format() == zenkit::TextureFormat::DXT5) {
+      if(tex.format() == zenkit::TextureFormat::DXT1 ||
+         tex.format() == zenkit::TextureFormat::DXT2 ||
+         tex.format() == zenkit::TextureFormat::DXT3 ||
+         tex.format() == zenkit::TextureFormat::DXT4 ||
+         tex.format() == zenkit::TextureFormat::DXT5) {
         auto dds = zenkit::to_dds(tex);
         auto ddsRead = zenkit::Read::from(dds);
 
-        auto t = implLoadTexture(cache, std::string(cname), *ddsRead);
+        auto t = implLoadTexture(std::string(cname), *ddsRead, forceMips);
         if(t!=nullptr)
           return t;
         } else {
@@ -368,7 +368,7 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
 
           std::unique_ptr<Texture2d> t{new Texture2d(dev.texture(pm))};
           Texture2d* ret=t.get();
-          cache[std::move(name)] = std::move(t);
+          texCache[std::move(name)] = std::move(t);
           return ret;
           }
         catch (...) {
@@ -379,14 +379,14 @@ Tempest::Texture2d* Resources::implLoadTexture(TextureCache& cache, std::string_
 
   if(auto* entry = Resources::vdfsIndex().find(cname)) {
     auto reader = entry->open_read();
-    return implLoadTexture(cache,std::string(cname),*reader);
+    return implLoadTexture(std::string(cname), *reader, forceMips);
     }
 
-  cache[name]=nullptr;
+  texCache[name]=nullptr;
   return nullptr;
   }
 
-Texture2d *Resources::implLoadTexture(TextureCache& cache, std::string&& name, zenkit::Read& data) {
+Texture2d *Resources::implLoadTexture(std::string&& name, zenkit::Read& data, bool forceMips) {
   try {
     std::vector<uint8_t> raw;
     data.seek(0, zenkit::Whence::END);
@@ -397,10 +397,10 @@ Texture2d *Resources::implLoadTexture(TextureCache& cache, std::string&& name, z
     Tempest::MemReader rd((uint8_t*)raw.data(), raw.size());
     Tempest::Pixmap    pm(rd);
 
-    const bool useMipmap = pm.mipCount()>1; // do not generate mips, if original texture has has none
+    const bool useMipmap = forceMips || (pm.mipCount()>1); // do not generate mips, if original texture has has none
     std::unique_ptr<Texture2d> t{new Texture2d(dev.texture(pm, useMipmap))};
     Texture2d* ret=t.get();
-    cache[std::move(name)] = std::move(t);
+    texCache[std::move(name)] = std::move(t);
     return ret;
     }
   catch(...){
@@ -749,9 +749,9 @@ GthFont &Resources::implLoadFont(std::string_view name, FontType type) {
   return *f;
   }
 
-const Texture2d *Resources::loadTexture(std::string_view name) {
+const Texture2d *Resources::loadTexture(std::string_view name, bool forceMips) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
-  return inst->implLoadTexture(inst->texCache,name);
+  return inst->implLoadTexture(name,forceMips);
   }
 
 const Texture2d* Resources::loadTexture(Tempest::Color color) {
