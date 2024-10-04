@@ -369,6 +369,15 @@ void Sky::prepareUniforms() {
       uboOcclusion.set(4, *scene.shadowMap[1], Resources::shadowSampler());
       }
 
+    if(quality==VolumetricHQVsm) {
+      uboVsmPages = device.descriptors(Shaders::inst().vsmMarkSky);
+      uboVsmPages.set(1, *scene.zbuffer, Sampler::nearest());
+      uboVsmPages.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
+      uboVsmPages.set(3, occlusionLut);
+      uboVsmPages.set(4, *scene.vsmPageTbl);
+      uboVsmPages.set(5, *scene.vsmPageHiZ);
+      }
+
     uboFogViewLut3d = device.descriptors(Shaders::inst().fogViewLut3d);
     uboFogViewLut3d.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
     uboFogViewLut3d.set(1, transLut,     smpB);
@@ -444,6 +453,17 @@ void Sky::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
   cmd.setFramebuffer({{viewCldLut, Tempest::Discard, Tempest::Preserve}});
   cmd.setUniforms(Shaders::inst().skyViewCldLut, uboSkyViewCldLut, &ubo, sizeof(ubo));
   cmd.draw(Resources::fsqVbo());
+  }
+
+void Sky::vsmMarkPage(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t frameId) {
+  if(quality!=VolumetricHQVsm)
+    return;
+
+  UboSky ubo = mkPush();
+  auto& vsmMarkSky = Shaders::inst().vsmMarkSky;
+  cmd.setFramebuffer({});
+  cmd.setUniforms(vsmMarkSky, uboVsmPages, &ubo, sizeof(ubo));
+  cmd.dispatchThreads(occlusionLut.size());
   }
 
 void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t frameId) {

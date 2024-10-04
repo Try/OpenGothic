@@ -270,6 +270,25 @@ uvec4 unpackUint4x8(uint v) {
   return r;
   }
 
+uint pack565_16(ivec3 a, uint b) {
+  uint x = (a.x & 0x1F)   << 0;
+  uint y = (a.y & 0x3F)   << 5;
+  uint z = (a.z & 0x1F)   << 11;
+  uint w = (  b & 0xFFFF);
+  //uint d = uint(z*0xFFFF) << 16;
+  return ((x | y | z) << 16) | w;
+  }
+
+uvec4 unpack565_16(uint p) {
+  uvec4 ret;
+  ret.w = p & 0xFFFF;
+  p = p >> 16;
+  ret.x = (p >>  0) & 0x1F;
+  ret.y = (p >>  5) & 0x3F;
+  ret.z = (p >> 11) & 0x1F;
+  return ret;
+  }
+
 uint encodeNormal(vec3 n) {
   return octahedral_32(n);
   }

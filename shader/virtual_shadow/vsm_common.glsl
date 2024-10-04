@@ -8,6 +8,7 @@
 const int VSM_PAGE_SIZE     = 128;
 const int VSM_PAGE_TBL_SIZE = 32;  // small for testing, 64 can be better
 const int VSM_PAGE_MIPS     = 16;
+const int VSM_FOG_MIP       = 6;
 const int VSM_PAGE_PER_ROW  = 4096/VSM_PAGE_SIZE;
 const int VSM_MAX_PAGES     = VSM_PAGE_PER_ROW * VSM_PAGE_PER_ROW; // 1024;
 const int VSM_CLIPMAP_SIZE  = VSM_PAGE_SIZE * VSM_PAGE_TBL_SIZE;
@@ -62,6 +63,25 @@ bool vsmPageClip(ivec2 fragCoord, const uint page) {
   return false;
   }
 
+int vsmCalcMipIndex(in vec2 shPos) {
+  float x = ceil(log2(max(abs(shPos.x), 1)));
+  float y = ceil(log2(max(abs(shPos.y), 1)));
+  return int(max(x,y));
+  }
+
+int vsmCalcMipIndex(in vec2 shPos, int minMip) {
+  float x = ceil(log2(max(abs(shPos.x), 1)));
+  float y = ceil(log2(max(abs(shPos.y), 1)));
+  return max(minMip, int(max(x,y)));
+  }
+
+uint pageIdHash7(ivec3 src) {
+  uint x = (src.x & 0x3) << 0;
+  uint y = (src.y & 0x3) << 2;
+  uint z = (src.z & 0x7) << 4;
+  return x | y | z; // 7bit
+  }
+
 float vsmTexelFetch(in utexture2D pageData, const ivec2 pixel) {
   return uintBitsToFloat(texelFetch(pageData, pixel, 0).x);
   }
@@ -70,13 +90,13 @@ float vsmTexelFetch(in texture2D pageData, const ivec2 pixel) {
   return texelFetch(pageData, pixel, 0).x;
   }
 
-float shadowTexelFetchDirect(in vec2 page, in int mip, in utexture3D pageTbl,
-                             #if defined(VSM_ATOMIC)
-                             in utexture2D pageData
-                             #else
-                             in texture2D pageData
-                             #endif
-                             ) {
+float shadowTexelFetch(in vec2 page, in int mip, in utexture3D pageTbl,
+                       #if defined(VSM_ATOMIC)
+                       in utexture2D pageData
+                       #else
+                       in texture2D pageData
+                       #endif
+                       ) {
   //page-local
   const ivec2 pageI       = ivec2((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
   const vec2  pageF       = fract((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
@@ -92,7 +112,7 @@ float shadowTexelFetchDirect(in vec2 page, in int mip, in utexture3D pageTbl,
   return vsmTexelFetch(pageData, pageImageAt);
   }
 
-float shadowTexelFetch(in vec2 page, in int mip, in utexture3D pageTbl,
+float shadowTexelFetch_(in vec2 page, in int mip, in utexture3D pageTbl,
                        #if defined(VSM_ATOMIC)
                        in utexture2D pageData
                        #else
@@ -100,7 +120,7 @@ float shadowTexelFetch(in vec2 page, in int mip, in utexture3D pageTbl,
                        #endif
                        ) {
   while(mip >= 0) {
-    float s = shadowTexelFetchDirect(page, mip, pageTbl, pageData);
+    float s = shadowTexelFetch(page, mip, pageTbl, pageData);
     if(s>=0)
       return s;
     page *= 2.0;

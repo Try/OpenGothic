@@ -31,41 +31,6 @@ layout(binding = 5, r32ui) uniform uimage3D   pageTblDepth;
 
 ivec2 pixelPos = ivec2(gl_GlobalInvocationID.xy);
 
-uint murmurHash11(uint src) {
-  const uint M = 0x5bd1e995u;
-  uint h = 1190494759u;
-  src *= M; src ^= src>>24u; src *= M;
-  h *= M; h ^= src;
-  h ^= h>>13u; h *= M; h ^= h>>15u;
-  return h;
-  }
-
-uint pageIdHash7(ivec3 src) {
-  uint x = (src.x & 0x3) << 0;
-  uint y = (src.y & 0x3) << 2;
-  uint z = (src.z & 0x7) << 4;
-  return x | y | z; // 7bit
-  }
-
-uint pack565_16(ivec3 a, uint b) {
-  uint x = (a.x & 0x1F)   << 0;
-  uint y = (a.y & 0x3F)   << 5;
-  uint z = (a.z & 0x1F)   << 11;
-  uint w = (  b & 0xFFFF);
-  //uint d = uint(z*0xFFFF) << 16;
-  return ((x | y | z) << 16) | w;
-  }
-
-uvec4 unpack565_16(uint p) {
-  uvec4 ret;
-  ret.w = p & 0xFFFF;
-  p = p >> 16;
-  ret.x = (p >>  0) & 0x1F;
-  ret.y = (p >>  5) & 0x3F;
-  ret.z = (p >> 11) & 0x1F;
-  return ret;
-  }
-
 void storeHiZValue(uint v) {
   uvec4 dx = unpack565_16(v);
   ivec3 at = ivec3(dx.xyz);
@@ -158,8 +123,8 @@ vec4 worldPos(ivec2 frag, float depth) {
 #endif
   }
 
-vec3 shadowPos(float z, ivec2 offset) {
-  const vec4  wpos = worldPos(pixelPos+offset, z);
+vec3 shadowPos(float z, vec3 normal, ivec2 offset) {
+  const vec4  wpos = worldPos(ivec2(pixelPos.xy) + offset, z) + vec4(normal*0.002, 0);
 #if defined(LWC)
   vec4 shPos = scene.viewVirtualShadowLwc * wpos;
 #else
@@ -180,6 +145,20 @@ int shadowLod(vec2 dx, vec2 dy) {
   return max(0, int(minLod + bias + 0.5));
   }
 
+bool calcMipIndex(out vec3 pagePos, out int mip, const float z, const vec3 normal) {
+  vec3 shPos0 = shadowPos(z, normal, ivec2(0,0));
+  vec2 shPos1 = shadowPos(z, normal, ivec2(1,0)).xy;
+  vec2 shPos2 = shadowPos(z, normal, ivec2(0,1)).xy;
+
+  mip   = shadowLod((shPos1 - shPos0.xy)*VSM_CLIPMAP_SIZE,
+                    (shPos2 - shPos0.xy)*VSM_CLIPMAP_SIZE);
+  mip   = vsmCalcMipIndex(shPos0.xy, mip);
+
+  pagePos = vec3(shPos0.xy / (1 << mip), shPos0.z);
+
+  return mip<VSM_PAGE_MIPS;
+  }
+
 void realMain() {
   const ivec2 size = textureSize(depth, 0);
   if(any(greaterThanEqual(pixelPos, size)))
@@ -193,23 +172,13 @@ void realMain() {
   if(dot(scene.sunDir,normal)<=0)
     return;
 
-  vec3  shPos0 = shadowPos(z, ivec2(0,0));
-  vec2  shPos1 = shadowPos(z, ivec2(1,0)).xy;
-  vec2  shPos2 = shadowPos(z, ivec2(0,1)).xy;
-
-  // expected to have ~9 mips
-  int   mip    = shadowLod((shPos1 - shPos0.xy)*VSM_CLIPMAP_SIZE,
-                           (shPos2 - shPos0.xy)*VSM_CLIPMAP_SIZE);
-  vec2  page   = shPos0.xy / (1<<mip);
-  while(abs(page.x)>=1 || abs(page.y)>=1) {
-    page /= 2;
-    mip++;
-    }
-  if(any(greaterThan(abs(page), vec2(1))) || mip>=VSM_PAGE_MIPS)
+  vec3 page = vec3(0);
+  int  mip  = 0;
+  if(!calcMipIndex(page, mip, z, normal))
     return;
 
-  ivec2 pageI = ivec2((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
-  markPage(ivec3(pageI, mip), shPos0.z);
+  ivec2 pageI = ivec2((page.xy*0.5+0.5)*VSM_PAGE_TBL_SIZE);
+  markPage(ivec3(pageI, mip), page.z);
   }
 
 void main() {

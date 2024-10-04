@@ -234,12 +234,12 @@ add_shader(sky_view_clouds_lut.frag  sky/sky_view_clouds_lut.frag)
 add_shader(shadow_downsample.comp    sky/shadow_downsample.comp)
 add_shader(clouds_lut.comp           sky/clouds_lut.comp)
 
-add_shader(fog_view_lut.comp         sky/fog_view_lut.comp -DCOMPUTE)
+add_shader(fog_view_lut.comp         sky/fog_view_lut.comp)
 
-add_shader(fog3d_hq.frag             sky/fog.frag -S frag -DVOLUMETRIC)
-add_shader(fog3d.comp                sky/fog.frag -S comp -DVOLUMETRIC -DCOMPUTE)
-add_shader(fog3d_vsm.comp            sky/fog.frag -S comp -DVOLUMETRIC -DCOMPUTE -DVIRTUAL_SHADOW)
-
+add_shader(fog3d.comp                sky/fog.frag -S comp -DVOLUMETRIC)
+add_shader(fog3d_vsm_mark_pages.comp sky/fog.frag -S comp -DVOLUMETRIC -DVIRTUAL_SHADOW_MARK)
+add_shader(fog3d_vsm.comp            sky/fog.frag -S comp -DVOLUMETRIC -DVIRTUAL_SHADOW)
+add_shader(fog3d_hq.frag             sky/fog.frag -DVOLUMETRIC)
 add_shader(fog.frag                  sky/fog.frag)
 add_shader(sky.frag                  sky/sky.frag)
 
@@ -299,6 +299,7 @@ add_shader(cmaa2_deferred_color_apply_2x2.frag     antialiasing/cmaa2/deferred_c
 
 # virtual shadows
 add_shader(direct_light_vsm.frag   virtual_shadow/vsm_direct_light.frag)
+add_shader(vsm_reproject_sm.frag   virtual_shadow/vsm_reproject_sm.frag)
 add_shader(vsm_dbg.frag            virtual_shadow/vsm_direct_light.frag -DDEBUG)
 add_shader(vsm_mark_pages.comp     virtual_shadow/vsm_mark_pages.comp)
 add_shader(vsm_clear.comp          virtual_shadow/vsm_clear.comp)

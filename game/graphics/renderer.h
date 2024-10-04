@@ -216,6 +216,7 @@ class Renderer final {
       Tempest::DescriptorSet    uboClear;
       Tempest::DescriptorSet    uboClearPages;
       Tempest::DescriptorSet    uboPages;
+      Tempest::DescriptorSet    uboReproj;
 
       Tempest::DescriptorSet    uboClump, uboAlloc;
 

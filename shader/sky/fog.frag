@@ -3,22 +3,23 @@
 #extension GL_GOOGLE_include_directive    : enable
 #extension GL_EXT_control_flow_attributes : enable
 
-#if defined(VIRTUAL_SHADOW)
+#if defined(VIRTUAL_SHADOW) || defined(VIRTUAL_SHADOW_MARK)
 #include "virtual_shadow/vsm_common.glsl"
 #endif
 
 #include "sky_common.glsl"
 #include "scene.glsl"
 
-#if defined(COMPUTE)
+#if defined(GL_COMPUTE_SHADER)
 layout(local_size_x = 1*8, local_size_y = 2*8) in;
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 vec2 inPos;
 #else
 layout(location = 0) in  vec2 inPos;
 layout(location = 0) out vec4 outColor;
 #endif
 
-#if defined(COMPUTE)
+#if defined(GL_COMPUTE_SHADER)
 // none
 #else
 layout(binding = 0) uniform sampler3D fogLut;
@@ -30,50 +31,119 @@ layout(binding = 2, std140) uniform UboScene {
   SceneDesc scene;
   };
 
-#if defined(VOLUMETRIC) && defined(COMPUTE)
+#if defined(VOLUMETRIC) && defined(GL_COMPUTE_SHADER)
 layout(binding = 3, r32ui) uniform writeonly restrict uimage2D occlusionLut;
 #elif defined(VOLUMETRIC)
 layout(binding = 3, r32ui) uniform readonly  restrict uimage2D occlusionLut;
 #endif
 
-#if defined(VOLUMETRIC) && !defined(VIRTUAL_SHADOW)&& defined(COMPUTE)
+#if defined(VOLUMETRIC) && !defined(VIRTUAL_SHADOW) && !defined(VIRTUAL_SHADOW_MARK) && defined(GL_COMPUTE_SHADER)
 layout(binding = 4) uniform sampler2D textureSm1;
 #endif
 
-#if defined(VOLUMETRIC) && defined(VIRTUAL_SHADOW) && defined(COMPUTE)
+#if defined(VOLUMETRIC) && defined(VIRTUAL_SHADOW_MARK) && defined(GL_COMPUTE_SHADER)
+layout(binding = 4, r32ui) uniform uimage3D pageTbl;
+layout(binding = 5, r32ui) uniform uimage3D pageTblDepth;
+#endif
+
+#if defined(VOLUMETRIC) && defined(VIRTUAL_SHADOW) && defined(GL_COMPUTE_SHADER)
 layout(binding = 4) uniform utexture3D pageTbl;
 layout(binding = 5) uniform texture2D  pageData;
 #endif
 
-#if defined(COMPUTE)
+#if defined(GL_COMPUTE_SHADER)
 uvec2 invocationID = gl_GlobalInvocationID.xy;
 #endif
 
+#if defined (VIRTUAL_SHADOW_MARK)
+shared uint pageHiZ[NumThreads];
+//uint pageHiZTh = 0xFFFFFFFF;
+
+void storeHiZValue(uint v) {
+  uvec4 dx = unpack565_16(v);
+  ivec3 at = ivec3(dx.xyz);
+  uint  iz = floatBitsToUint(dx.w/float(0xFFFF));
+  imageAtomicExchange(pageTbl, at, 1u);
+  imageAtomicMin(pageTblDepth, at, iz);
+  }
+
+void setupHiZ() {
+  const uint lane = gl_LocalInvocationIndex;
+  pageHiZ[lane] = 0xFFFFFFFF;
+  }
+
+void markPage(ivec3 at, float z) {
+  if(z<0 || z>=1)
+    return;
+
+  uint iz  = uint(z*0xFFFF);
+  uint cur = pack565_16(at,iz);
+  uint id  = pageIdHash7(at) % pageHiZ.length();
+
+  /*
+  if((pageHiZTh==0xFFFFFFFF) || (pageHiZTh&0xFFFF0000)==(cur&0xFFFF0000)) {
+    // thread local cache
+    pageHiZTh = min(pageHiZTh, cur);
+    return;
+    }
+  */
+
+  uint v   = atomicMin(pageHiZ[id], cur);
+  if(v==0xFFFFFFFF)
+    return; // clean insert
+  if((v&0xFFFF0000)==(cur&0xFFFF0000))
+    return; // update same entry
+
+  // imageAtomicAdd(pageTbl, ivec3(0), 1u); //counter
+  storeHiZValue(v);
+  }
+
+void flushHiZ() {
+  //if(pageHiZTh!=0xFFFFFFFF)
+  //  storeHiZValue(pageHiZTh);
+  const uint lane = gl_LocalInvocationIndex;
+  const uint v    = pageHiZ[lane];
+  if(v==0xFFFFFFFF)
+    return;
+  storeHiZValue(v);
+  }
+#endif
+
 float interleavedGradientNoise() {
-#if defined(COMPUTE)
+#if defined(GL_COMPUTE_SHADER)
   return interleavedGradientNoise(invocationID.xy);
 #else
   return interleavedGradientNoise(gl_FragCoord.xy);
 #endif
   }
 
-#if defined(VOLUMETRIC) && defined(VIRTUAL_SHADOW) && defined(COMPUTE)
+#if defined(VOLUMETRIC) && defined(VIRTUAL_SHADOW_MARK) && defined(GL_COMPUTE_SHADER)
 bool shadowFactor(vec4 shPos) {
   vec3  shPos0 = shPos.xyz/shPos.w;
 
-  int   mip    = VSM_PAGE_MIPS-1;
-  vec2  page   = shPos0.xy / (1<<mip);
-  // if(any(greaterThan(abs(page), vec2(1))) || mip>=VSM_PAGE_MIPS)
-  //   return true;
+  int   mip    = vsmCalcMipIndex(shPos0.xy, VSM_FOG_MIP);
+  vec2  page   = shPos0.xy / (1 << mip);
   if(any(greaterThan(abs(page), vec2(1))))
     return true;
-  //return false;
+
+  ivec2 pageI = ivec2((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
+  ivec3 at    = ivec3(pageI, mip);
+  markPage(at, shPos0.z);
+  return true;
+  }
+#elif defined(VOLUMETRIC) && defined(VIRTUAL_SHADOW) && defined(GL_COMPUTE_SHADER)
+bool shadowFactor(vec4 shPos) {
+  vec3  shPos0 = shPos.xyz/shPos.w;
+
+  int   mip    = vsmCalcMipIndex(shPos0.xy, VSM_FOG_MIP);
+  vec2  page   = shPos0.xy / (1 << mip);
+  if(any(greaterThan(abs(page), vec2(1))))
+    return true;
 
   float v = shadowTexelFetch(page, mip, pageTbl, pageData);
   return v < shPos.z;
-  //return true;
   }
-#elif defined(VOLUMETRIC) && defined(COMPUTE)
+#elif defined(VOLUMETRIC) && defined(GL_COMPUTE_SHADER)
 float shadowSample(in sampler2D shadowMap, vec2 shPos) {
   shPos.xy = shPos.xy*vec2(0.5)+vec2(0.5);
   return textureLod(shadowMap,shPos,0).r;
@@ -111,7 +181,7 @@ vec4 fog(vec2 uv, float z) {
   const vec3  pos1     = project(scene.viewProjectLwcInv, vec3(inPos,dMax));
   const vec3  posz     = project(scene.viewProjectLwcInv, vec3(inPos,z));
 
-#if defined(VIRTUAL_SHADOW)
+#if defined(VIRTUAL_SHADOW) || defined(VIRTUAL_SHADOW_MARK)
   const vec4  shPos0   = scene.viewVirtualShadowLwc*vec4(pos0, 1);
   const vec4  shPos1   = scene.viewVirtualShadowLwc*vec4(posz, 1);
 #else
@@ -126,7 +196,7 @@ vec4 fog(vec2 uv, float z) {
   // float d    = (dZ-d0)/(d1-d0);
   // return vec4(debugColors[min(int(d*textureSize(fogLut,0).z), textureSize(fogLut,0).z-1)%MAX_DEBUG_COLORS], 1);
 
-#if defined(COMPUTE)
+#if defined(GL_COMPUTE_SHADER)
   uint occlusion = 0;
   [[dont_unroll]]
   for(uint i=0; i<steps; ++i) {
@@ -142,7 +212,7 @@ vec4 fog(vec2 uv, float z) {
   vec4  prevVal        = textureLod(fogLut, vec3(uv,0), 0);
 #endif
 
-#if defined(COMPUTE)
+#if defined(GL_COMPUTE_SHADER)
   imageStore(occlusionLut, ivec2(invocationID.xy), uvec4(occlusion));
   return vec4(0);
 #else
@@ -203,7 +273,7 @@ vec4 fog(vec2 uv, float z) {
   }
 #endif
 
-#if !defined(COMPUTE)
+#if !defined(GL_COMPUTE_SHADER)
 void main_frag() {
   vec2 uv     = inPos*vec2(0.5)+vec2(0.5);
   vec3 view   = normalize(inverse(vec3(inPos,1.0)));
@@ -242,7 +312,15 @@ void main_comp() {
 #endif
 
 void main() {
-#if defined(COMPUTE)
+#if defined(VIRTUAL_SHADOW_MARK) && defined(GL_COMPUTE_SHADER)
+  setupHiZ();
+  barrier();
+
+  main_comp();
+  barrier();
+
+  flushHiZ();
+#elif defined(GL_COMPUTE_SHADER)
   main_comp();
 #else
   main_frag();

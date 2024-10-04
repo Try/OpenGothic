@@ -22,6 +22,7 @@ class Sky final {
     void updateLight(const int64_t now);
 
     void prepareSky (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
+    void vsmMarkPage(Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
     void drawSky    (Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
     void drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& p, uint32_t frameId);
 
@@ -82,6 +83,7 @@ class Sky final {
     Tempest::DescriptorSet        uboFogViewLut3d;
     Tempest::DescriptorSet        uboSky, uboFog, uboFog3d;
     Tempest::DescriptorSet        uboOcclusion, uboShadowRq;
+    Tempest::DescriptorSet        uboVsmPages;
     Tempest::DescriptorSet        uboIrradiance, uboExp;
 
     Tempest::DescriptorSet        uboSkyPathtrace;

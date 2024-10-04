@@ -143,8 +143,11 @@ void Renderer::resetSwapchain() {
     }
 
   if(smSize>0) {
-    for(int i=0; i<Resources::ShadowLayers; ++i)
+    for(int i=0; i<Resources::ShadowLayers; ++i) {
+      if(settings.vsmEnabled && (i+1)!=Resources::ShadowLayers)
+        continue;
       shadowMap[i] = device.zbuffer(shadowFormat,smSize,smSize);
+      }
     }
 
   sceneOpaque = device.attachment(TextureFormat::R11G11B10UF,w,h);
@@ -195,6 +198,7 @@ void Renderer::resetSwapchain() {
     vsm.uboPages        = device.descriptors(Shaders::inst().vsmMarkPages );
     vsm.uboClump        = device.descriptors(Shaders::inst().vsmClumpPages);
     vsm.uboAlloc        = device.descriptors(Shaders::inst().vsmAllocPages);
+    vsm.uboReproj       = device.descriptors(Shaders::inst().vsmReprojectSm);
 
     vsm.directLightPso  = &Shaders::inst().vsmDirectLight;
     vsm.pagesDbgPso     = &Shaders::inst().vsmDbg;
@@ -479,6 +483,13 @@ void Renderer::prepareUniforms() {
     if(!vsm.pageDataCs.isEmpty())
       vsm.uboLight.set(6, vsm.pageDataCs); else
       vsm.uboLight.set(6, vsm.pageData);
+
+    vsm.uboReproj.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    vsm.uboReproj.set(1, vsm.pageTbl);
+    vsm.uboReproj.set(2, vsm.pageList);
+    if(!vsm.pageDataCs.isEmpty())
+      vsm.uboReproj.set(3, vsm.pageDataCs); else
+      vsm.uboReproj.set(3, vsm.pageData);
     }
 
   if(settings.swrEnabled) {
@@ -850,7 +861,7 @@ void Renderer::buildHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t f
   cmd.dispatchThreads(w,h);
   }
 
-void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
+void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
   if(!settings.vsmEnabled)
     return;
 
@@ -863,10 +874,12 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.setUniforms(shaders.vsmMarkPages, vsm.uboPages, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
   cmd.dispatchThreads(zbuffer.size());
 
+  wview.vsmMarkSkyPages(cmd, fId);
+
   if(vsm.pageDataCs.isEmpty()) {
     // trimming
-    cmd.setUniforms(shaders.vsmTrimPages, vsm.uboClump);
-    cmd.dispatch(1);
+    // cmd.setUniforms(shaders.vsmTrimPages, vsm.uboClump);
+    // cmd.dispatch(1);
 
     // clump
     cmd.setUniforms(shaders.vsmClumpPages, vsm.uboClump);
@@ -883,11 +896,20 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.dispatch(1);
 
   cmd.setDebugMarker("VSM-visibility");
-  view.visibilityVsm(cmd,fId);
+  wview.visibilityVsm(cmd,fId);
 
   cmd.setDebugMarker("VSM-rendering");
   cmd.setFramebuffer({}, {vsm.pageData, 0.f, Tempest::Preserve});
-  view.drawVsm(cmd,fId);
+  wview.drawVsm(cmd,fId);
+
+  if(false) {
+    cmd.setDebugMarker("VSM-reproject");
+    cmd.setFramebuffer({}, {shadowMap[1], 0.f, Tempest::Preserve});
+    auto viewShadowLwcInv = shadowMatrix[1];
+    viewShadowLwcInv.inverse();
+    cmd.setUniforms(shaders.vsmReprojectSm, vsm.uboReproj, &viewShadowLwcInv, sizeof(viewShadowLwcInv));
+    cmd.draw(Resources::fsqVbo());
+    }
   }
 
 void Renderer::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
@@ -940,10 +962,9 @@ void Renderer::drawUnderwater(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   }
 
 void Renderer::drawShadowMap(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
-  if(settings.shadowResolution<=0)
-    return;
-
   for(uint8_t i=0; i<Resources::ShadowLayers; ++i) {
+    if(shadowMap[i].isEmpty())
+      continue;
     cmd.setDebugMarker(string_frm("ShadowMap #",i));
     cmd.setFramebuffer({}, {shadowMap[i], 0.f, Tempest::Preserve});
     if(view.mainLight().dir().y > Camera::minShadowY)

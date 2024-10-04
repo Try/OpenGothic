@@ -90,8 +90,8 @@ vec4 worldPos(ivec2 frag, float depth) {
 #endif
   }
 
-vec3 shadowPos(float z, ivec2 offset) {
-  const vec4  wpos = worldPos(ivec2(gl_FragCoord.xy) + offset, z);
+vec3 shadowPos(float z, vec3 normal, ivec2 offset) {
+  const vec4  wpos = worldPos(ivec2(gl_FragCoord.xy) + offset, z) + vec4(normal*0.002, 0);
 #if defined(LWC)
   vec4 shPos = scene.viewVirtualShadowLwc * wpos;
 #else
@@ -116,16 +116,31 @@ float shadowTexelFetch(vec2 page, int mip) {
   return shadowTexelFetch(page, mip, pageTbl, pageData);
   }
 
-float shadowTest(vec2 page, int mip, in float refZ, bool isATest) {
-  const float bias = (isATest ? 8 : -1)/(65535.0);
+float shadowTest(vec2 page, int mip, in float refZ, bool isATest, float LdotN) {
+  // const float bias = (isATest ? 8 : -1)/(65535.0);
+  // const float bias = -(16*LdotN)/(65535.0);
   // const float bias = 2.0/(65535.0); // self-occlusion on trees
-  refZ += bias;
-  const float z    = shadowTexelFetch(page, mip);
+  // refZ += bias;
+  const float z = shadowTexelFetch(page, mip);
   return z<refZ ? 1 : 0;
   }
 
 float lambert(vec3 normal) {
   return max(0.0, dot(scene.sunDir,normal));
+  }
+
+bool calcMipIndex(out vec3 pagePos, out int mip, const float z, const vec3 normal) {
+  vec3 shPos0 = shadowPos(z, normal, ivec2(0,0));
+  vec2 shPos1 = shadowPos(z, normal, ivec2(1,0)).xy;
+  vec2 shPos2 = shadowPos(z, normal, ivec2(0,1)).xy;
+
+  mip   = shadowLod((shPos1 - shPos0.xy)*VSM_CLIPMAP_SIZE,
+                    (shPos2 - shPos0.xy)*VSM_CLIPMAP_SIZE);
+  mip   = vsmCalcMipIndex(shPos0.xy, mip);
+
+  pagePos = vec3(shPos0.xy / (1 << mip), shPos0.z);
+
+  return mip<VSM_PAGE_MIPS;
   }
 
 void main() {
@@ -148,19 +163,9 @@ void main() {
   if(dot(scene.sunDir,normal)<=0)
     return;
 
-  vec3  shPos0 = shadowPos(z, ivec2(0,0));
-  vec2  shPos1 = shadowPos(z, ivec2(1,0)).xy;
-  vec2  shPos2 = shadowPos(z, ivec2(0,1)).xy;
-
-  // expected to have ~9 mips
-  int   mip    = shadowLod((shPos1 - shPos0.xy)*VSM_CLIPMAP_SIZE,
-                           (shPos2 - shPos0.xy)*VSM_CLIPMAP_SIZE);
-  vec2  page   = shPos0.xy / (1<<mip);
-  while(abs(page.x)>=1 || abs(page.y)>=1) {
-    page /= 2;
-    mip++;
-    }
-  if(any(greaterThan(abs(page), vec2(1))) || mip>=VSM_PAGE_MIPS)
+  vec3 page = vec3(0);
+  int  mip  = 0;
+  if(!calcMipIndex(page, mip, z, normal))
     return;
 
   bool isFlat  = false;
@@ -168,10 +173,11 @@ void main() {
   bool isWater = false;
   decodeBits(diff.a, isFlat, isATest, isWater);
 
+  const float LdotN  = dot(scene.sunDir,normal);
   const float light  = (isFlat ? 0 : lambert(normal));
   float shadow = 1;
   if(light>0) {
-    shadow = shadowTest(page, mip, shPos0.z, isATest);
+    shadow = shadowTest(page.xy, mip, page.z, isATest, LdotN);
     }
 
   const vec3 illuminance = scene.sunColor * light * shadow;
@@ -180,13 +186,13 @@ void main() {
 
   outColor = vec4(luminance * scene.exposure, 1);
 #if defined(DEBUG)
-  const ivec2 pageI = ivec2((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
+  const ivec2 pageI = ivec2((page.xy*0.5+0.5)*VSM_PAGE_TBL_SIZE);
   // int  mip   = 0;
   // vec3 color = directLight(page, mip, shPos0.z);
   vec3 color = debugColors[hash(uvec3(pageI,mip)) % debugColors.length()];
   // vec3 color = debugColors[mip % debugColors.length()];
   // color *= (1.0 - shadowTexelFetch(page, mip));
-  color *= (shadowTest(page, mip, shPos0.z, false)*0.9+0.1);
+  color *= (shadowTest(page.xy, mip, page.z, false, LdotN)*0.9+0.1);
   // vec3 color = vec3(shPos0, 0);
   // vec3 color = vec3(page, 0);
   // vec3 color = vec3(fract(page*VSM_PAGE_TBL_SIZE), 0);
