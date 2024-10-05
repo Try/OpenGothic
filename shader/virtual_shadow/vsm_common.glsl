@@ -64,15 +64,19 @@ bool vsmPageClip(ivec2 fragCoord, const uint page) {
   }
 
 int vsmCalcMipIndex(in vec2 shPos) {
+#if 1
+  float d  = max(abs(shPos.x), abs(shPos.y));
+  uint  id = uint(d);
+  return findMSB(id)+1;
+#else
   float x = ceil(log2(max(abs(shPos.x), 1)));
   float y = ceil(log2(max(abs(shPos.y), 1)));
   return int(max(x,y));
+#endif
   }
 
 int vsmCalcMipIndex(in vec2 shPos, int minMip) {
-  float x = ceil(log2(max(abs(shPos.x), 1)));
-  float y = ceil(log2(max(abs(shPos.y), 1)));
-  return max(minMip, int(max(x,y)));
+  return max(vsmCalcMipIndex(shPos), minMip);
   }
 
 uint pageIdHash7(ivec3 src) {

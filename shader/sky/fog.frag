@@ -51,6 +51,10 @@ layout(binding = 4) uniform utexture3D pageTbl;
 layout(binding = 5) uniform texture2D  pageData;
 #endif
 
+const float dFogMin = 0;
+//const float dFogMax = 1;
+const float dFogMax = 0.9999;
+
 #if defined(GL_COMPUTE_SHADER)
 uvec2 invocationID = gl_GlobalInvocationID.xy;
 #endif
@@ -175,10 +179,8 @@ vec4 fog(vec2 uv, float z) {
   const int   steps    = 32;
   const float noise    = interleavedGradientNoise()/steps;
 
-  const float dMin     = 0;
-  const float dMax     = 0.9999;
-  const vec3  pos0     = project(scene.viewProjectLwcInv, vec3(inPos,dMin));
-  const vec3  pos1     = project(scene.viewProjectLwcInv, vec3(inPos,dMax));
+  const vec3  pos0     = project(scene.viewProjectLwcInv, vec3(inPos,dFogMin));
+  const vec3  pos1     = project(scene.viewProjectLwcInv, vec3(inPos,dFogMax));
   const vec3  posz     = project(scene.viewProjectLwcInv, vec3(inPos,z));
 
 #if defined(VIRTUAL_SHADOW) || defined(VIRTUAL_SHADOW_MARK)
@@ -262,11 +264,9 @@ const vec3 debugColors[MAX_DEBUG_COLORS] = {
   };
 
 vec4 fog(vec2 uv, float z) {
-  float dMin = 0;
-  float dMax = 0.9999;
-  float dZ   = linearDepth(   z, scene.clipInfo);
-  float d0   = linearDepth(dMin, scene.clipInfo);
-  float d1   = linearDepth(dMax, scene.clipInfo);
+  float dZ   = linearDepth(      z, scene.clipInfo);
+  float d0   = linearDepth(dFogMin, scene.clipInfo);
+  float d1   = linearDepth(dFogMax, scene.clipInfo);
   float d    = (dZ-d0)/(d1-d0);
   // return vec4(debugColors[min(int(d*textureSize(fogLut,0).z), textureSize(fogLut,0).z-1)%MAX_DEBUG_COLORS], 0);
   return textureLod(fogLut, vec3(uv,d), 0);
