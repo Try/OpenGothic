@@ -894,6 +894,9 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   // alloc
   cmd.setUniforms(shaders.vsmAllocPages, vsm.uboAlloc);
   cmd.dispatch(1);
+  // hor-merge
+  cmd.setUniforms(shaders.vsmMergePages, vsm.uboAlloc);
+  cmd.dispatch(1);
 
   cmd.setDebugMarker("VSM-visibility");
   wview.visibilityVsm(cmd,fId);

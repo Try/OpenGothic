@@ -1,0 +1,101 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+#include "virtual_shadow/vsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 32, local_size_y = 32) in;
+
+layout(binding = 0, std430) buffer Pages { VsmHeader header; uint  pageList[]; } vsm;
+layout(binding = 1, r32ui)  uniform uimage3D pageTbl;
+layout(binding = 2, r32ui)  uniform uimage2D dbg;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+shared uint pageListSize;
+shared uint pageList[VSM_MAX_PAGES];
+
+void provokingPage(uint lane) {
+  const uint  row = lane/VSM_PAGE_TBL_SIZE;
+  const uint  col = lane%VSM_PAGE_TBL_SIZE;
+  const uint  p   = vsm.pageList[lane];
+  const uint  sz  = unpackVsmPageSize(p).x;
+  const ivec3 at  = unpackVsmPageInfo(p);
+  if(sz<=0)
+    return;
+
+  if(col==0) {
+    uint id = atomicAdd(pageListSize, 1);
+    pageList[id] = lane;
+    return;
+    }
+
+  if(col<sz.x)
+    return;
+  //return;
+
+  const uint  p1  = vsm.pageList[lane-sz.x];
+  const uint  sz1 = unpackVsmPageSize(p1).x;
+  const ivec3 at1 = unpackVsmPageInfo(p1);
+
+  if(sz==sz1 && at1+ivec3(sz,0,0)==at)
+    return;
+
+  uint id = atomicAdd(pageListSize, 1);
+  pageList[id] = lane;
+  }
+
+void main() {
+  const uint lane = gl_LocalInvocationIndex;
+
+  pageListSize = 0;
+  barrier();
+
+  // provoking pages
+  if(lane < vsm.header.pageCount)
+    provokingPage(lane);
+  barrier();
+
+  //vsm.header.counterM = pageListSize;
+  if(lane < pageListSize) {
+    //uint id = pageList[lane];
+    //vsm.pageList[id] = 0;
+    }
+
+  if(lane >= pageListSize)
+    return;
+
+  uint  pId = pageList[lane];
+  const uint  row = pId/VSM_PAGE_TBL_SIZE;
+  const uint  col = pId%VSM_PAGE_TBL_SIZE;
+  const uint  p0  = vsm.pageList[pId];
+  const uint  off = row*VSM_PAGE_TBL_SIZE;
+
+  uint  sz   = unpackVsmPageSize(p0).x;
+  ivec3 at   = unpackVsmPageInfo(p0);
+  uint  size = sz;
+  for(uint i=col+sz; i<VSM_PAGE_TBL_SIZE; i+=sz) {
+    const uint  pId1 = off+i;
+    const uint  p1   = vsm.pageList[pId1];
+    const uint  sz1  = unpackVsmPageSize(p1).x;
+    const ivec3 at1  = unpackVsmPageInfo(p1);
+    if(sz!=sz1 || at+uvec3(size,0,0)!=at1)
+      break;
+    if(size+sz>=16) {
+      // restart stripe
+      vsm.pageList[pId] = packVsmPageInfo(at, ivec2(size, sz));
+      pId  = pId1;
+      sz   = sz1;
+      at   = at1;
+      size = sz1;
+      continue;
+      }
+    vsm.pageList[pId1] = 0;
+    size += sz;
+    }
+  vsm.pageList[pId] = packVsmPageInfo(at, ivec2(size, sz));
+  }
