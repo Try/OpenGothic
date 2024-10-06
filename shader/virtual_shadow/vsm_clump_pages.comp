@@ -18,16 +18,16 @@ shared uint minX  [gl_WorkGroupSize.y/4];
 shared uint sWidth[gl_WorkGroupSize.y/4];
 shared uint data[VSM_PAGE_TBL_SIZE+3][VSM_PAGE_TBL_SIZE+3];
 
-uint packPage(uint samples, uint size, uint prime) {
-  return (samples & 0xFF) | (size << 8) | (prime << 16);
+uint packPage(uint samples, uvec2 size, uint prime) {
+  return (samples & 0xFF) | (size.x << 8) | (size.y << 12) | (prime << 16);
   }
 
-uint packPage(uint samples, uint size) {
-  return (samples & 0xFF) | (size << 8);
+uint packPage(uint samples, uvec2 size) {
+  return (samples & 0xFF) | (size.x << 8) | (size.y << 12);
   }
 
-uint unpackSize(uint a){
-  return (a >> 8) & 0xFF;
+uvec2 unpackSize(uint a){
+  return uvec2((a >> 8) & 0xF, (a >> 12) & 0xF);
   }
 
 uint unpackSamples(uint a){
@@ -49,7 +49,7 @@ void poolPageTable() {
       if(all(lessThan(at, size))) {
         const uint frag  = imageLoad(pageTbl, at).r;
         //data[at.x][at.y] = frag;
-        data[at.x][at.y] = packPage(frag, frag, frag);
+        data[at.x][at.y] = packPage(frag, uvec2(frag), frag);
         } else {
         data[at.x][at.y] = 0;
         }
@@ -66,11 +66,10 @@ void storePageTable() {
   const ivec3 id   = ivec3(gl_LocalInvocationID);
 
   if(all(lessThan(at, size))) {
-    uint d = data[at.x][at.y];
-    uint p = unpackPrimeBit(d);
-    //uint s = p>0 ? unpackSize(d) : 0;
-    uint s = unpackSize(d);
-    imageStore(pageTbl, at, uvec4((s<<1) | p) );
+    uint  d = data[at.x][at.y];
+    uint  p = unpackPrimeBit(d);
+    uvec2 s = uvec2(unpackSize(d));
+    imageStore(pageTbl, at, uvec4(p | (s.x << 1) | (s.y << 5)));
     }
   }
 
@@ -81,10 +80,10 @@ void main() {
   const uint  lane = gl_LocalInvocationIndex;
 
   poolPageTable();
-  // if(true) {
-  //   storePageTable();
-  //   return;
-  //   }
+#if 0
+  storePageTable();
+  return;
+#endif
 
   if(lane < minX.length()) {
     minX  [lane] = 0xFFFF;
@@ -116,23 +115,23 @@ void main() {
   barrier();
 
   const bool valid = (0<=tileCoord.x && tileCoord.x<sWidth[stripe] && 0<=tileCoord.y);
-  const bool quad  = (valid && tileCoord.x%2==0 && tileCoord.y%2==0); // && at.x<size.x-1 && at.y<size.y-1);
-  const bool bQuad = (valid && tileCoord.x%4==0 && tileCoord.y%4==0); // && at.x<size.x-2 && at.y<size.y-2);
+  const bool quad  = (valid && tileCoord.x%2==0 && tileCoord.y%2==0);
+  const bool bQuad = (valid && tileCoord.x%4==0 && tileCoord.y%4==0);
   if(true && quad) {
     uint a = unpackPrimeBit(data[at.x+0][at.y+0]);
     uint b = unpackPrimeBit(data[at.x+1][at.y+0]);
     uint c = unpackPrimeBit(data[at.x+1][at.y+1]);
     uint d = unpackPrimeBit(data[at.x+0][at.y+1]);
-    data[at.x][at.y] = packPage(a+b+c+d, 2);
+    data[at.x][at.y] = packPage(a+b+c+d, uvec2(2));
     }
   barrier();
 
   if(!quad)
-    data[at.x][at.y] = packPage(0,0);
+    data[at.x][at.y] = packPage(0, uvec2(0));
   barrier();
 
   if(true && bQuad) {
-    const int mergeQ = 5; //(at.z>4 ? 2 : 3)*2;
+    const int mergeQ = 5;
     uint a = unpackSamples(data[at.x+0][at.y+0]);
     uint b = unpackSamples(data[at.x+2][at.y+0]);
     uint c = unpackSamples(data[at.x+2][at.y+2]);
@@ -141,25 +140,25 @@ void main() {
 
     bool denie = (a==0 && b==0) || (c==0 && d==0); // horizontal-only patterns
     if(!denie && s >= mergeQ) {
-      data[at.x+0][at.y+0] = packPage(s, 4);
-      data[at.x+2][at.y+0] = packPage(0, 0);
-      data[at.x+0][at.y+2] = packPage(0, 0);
-      data[at.x+2][at.y+2] = packPage(0, 0);
+      data[at.x+0][at.y+0] = packPage(s, uvec2(4));
+      data[at.x+2][at.y+0] = packPage(0, uvec2(0));
+      data[at.x+0][at.y+2] = packPage(0, uvec2(0));
+      data[at.x+2][at.y+2] = packPage(0, uvec2(0));
       }
     }
   barrier();
 
   // prime bit
   {
-  uint d = unpackSamples(data[at.x][at.y]);
-  uint s = unpackSize   (data[at.x][at.y]);
-  data[at.x][at.y] = packPage(d ,s, prime ? 1 : 0);
+  uint  d = unpackSamples(data[at.x][at.y]);
+  uvec2 s = unpackSize   (data[at.x][at.y]);
+  data[at.x][at.y] = packPage(d, s, prime ? 1 : 0);
   }
   barrier();
 
   // demote unfilled quads to 1x1 pages
   if(true && quad) {
-    uint q = unpackSize    (data[at.x][at.y]);
+    uint q = unpackSize    (data[at.x][at.y]).x;
     uint a = unpackPrimeBit(data[at.x+0][at.y+0]);
     uint b = unpackPrimeBit(data[at.x+1][at.y+0]);
     uint c = unpackPrimeBit(data[at.x+1][at.y+1]);
@@ -168,10 +167,10 @@ void main() {
 
     bool denie = (a==0 && b==0) || (c==0 && d==0); // horizontal-only patterns
     if(q==2 && (denie || s<2)) {
-      data[at.x+0][at.y+0] = packPage(1, a, a);
-      data[at.x+1][at.y+0] = packPage(1, b, b);
-      data[at.x+1][at.y+1] = packPage(1, c, c);
-      data[at.x+0][at.y+1] = packPage(1, d, d);
+      data[at.x+0][at.y+0] = packPage(1, uvec2(a), a);
+      data[at.x+1][at.y+0] = packPage(1, uvec2(b), b);
+      data[at.x+1][at.y+1] = packPage(1, uvec2(c), c);
+      data[at.x+0][at.y+1] = packPage(1, uvec2(d), d);
       }
     }
 

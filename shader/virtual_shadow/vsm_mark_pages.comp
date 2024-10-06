@@ -3,7 +3,7 @@
 #extension GL_GOOGLE_include_directive    : enable
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_EXT_samplerless_texture_functions : enable
-#extension GL_KHR_memory_scope_semantics : enable
+// #extension GL_KHR_memory_scope_semantics : enable
 
 #define LWC 1
 

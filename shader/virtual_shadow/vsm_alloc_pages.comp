@@ -24,22 +24,24 @@ shared uint bits[(NumThreads+31)/32];
 shared uint ladder  [VSM_PAGE_TBL_SIZE];
 shared uint ladderWr[VSM_PAGE_TBL_SIZE];
 
-uint loadPageSize(ivec3 at) {
+ivec2 loadPageSize(ivec3 at) {
   uint a = imageLoad(pageTbl, at).r;
-  return a >> 1;
+  a = a >> 1;
+  return ivec2(a, a >> 4) & 0xF;
   }
 
-void storePage(ivec2 pId, ivec3 at, ivec2 tile, uint size) {
+void storePage(ivec2 pId, ivec3 at, ivec2 tile, ivec2 size) {
   const uint pageId = pId.x + pId.y*VSM_PAGE_PER_ROW;
 
-  vsm.pageList[pageId] = packVsmPageInfo(at.xyz, ivec2(size));
+  vsm.pageList[pageId] = packVsmPageInfo(at, size);
   atomicMax(vsm.header.pageCount, pageId+1);
 
   at += ivec3(tile,0);
-  const uint prime = imageLoad(pageTbl, at+ivec3(tile,0)).r & 0x1;
+  const uint prime = imageLoad(pageTbl, at).r & 0x1;
   imageStore(pageTbl, at, uvec4((pageId << 16u) | prime));
 
-  imageStore(dbg, pId, uvec4(size));
+  imageStore(dbg, pId, uvec4(size.y));
+  //imageStore(dbg, pId, uvec4(1));
   }
 
 uint bitCountShared(uint till) {
@@ -59,44 +61,44 @@ void listPages() {
   pageListSize = 0;
 
   for(int i=0; i<1111 && i<size.z; ++i) {
-    const uint frag = loadPageSize(ivec3(at.xy, i)).r;
+    const ivec2 sz = loadPageSize(ivec3(at.xy, i));
     if(lane < bits.length())
       bits[lane] = 0;
     barrier();
 
-    if(frag>0)
+    if(sz.x>0)
       atomicOr(bits[lane/32], 1u<<(lane%32));
     barrier();
 
-    if(frag>0) {
-      uint id = pageListSize + bitCountShared(lane);
-      pageList[id] = packVsmPageInfo(ivec3(at.xy, i), ivec2(frag));
+    if(sz.x>0) {
+      uint  id = pageListSize + bitCountShared(lane);
+      pageList[id] = packVsmPageInfo(ivec3(at.xy, i), sz);
       }
     barrier();
 
-    if(frag>0)
+    if(sz.x>0)
       atomicAdd(pageListSize, 1);
     barrier();
     }
   }
 
-ivec2 findRowCol(in uint page, const uint size) {
-  //const uint perRow = 32/size;
-  //const uint row    = (page/perRow)*size;
-  //const uint col    = (page%perRow)*size;
-  //return ivec2(col,row);
+ivec2 findRowCol(in uint page, const uvec2 size) {
+  // const uint perRow = 32/size.x;
+  // const uint row    = (page/perRow)*size.y;
+  // const uint col    = (page%perRow)*size.x;
+  // return ivec2(col,row);
 
-  for(uint i=0; i<32; i+=size) {
-    uint space = (32-ladder[i])/size;
+  for(uint i=0; i<32; i+=size.y) {
+    uint space = (32-ladder[i])/size.x;
     if(page<space)
-      return ivec2(ladder[i]+page*size, i);
+      return ivec2(ladder[i] + page*size.x, i);
     page -= space;
     }
   // error
   return ivec2(-1);
   }
 
-void layoutPages(uint pageData, uint pageSz, uint size) {
+void layoutPages(uint pageData, uvec2 pageSz, uvec2 size) {
   const uint lane = gl_LocalInvocationIndex;
 
   pageListSize = 0;
@@ -117,20 +119,20 @@ void layoutPages(uint pageData, uint pageSz, uint size) {
     }
   barrier();
 
-  const uint perRow = VSM_PAGE_TBL_SIZE/size;
-  const uint maxPix = pageListSize*(size*size);
-  // const uint maxPix = 2*(size*size);
+  const uint perRow = VSM_PAGE_TBL_SIZE/size.x;
+  const uint maxPix = pageListSize*(size.x*size.y);
+  // const uint maxPix = 1*(size);
   for(uint i=lane; i<maxPix; i+=NumThreads) {
-    const uint  page = i/(size*size);
-    const uint  tile = i%(size*size);
+    const uint  page = i / (size.x*size.y);
+    const uint  tile = i % (size.x*size.y);
     const ivec2 rc   = findRowCol(page, size);
     if(rc.x<0)
       break;
 
     const ivec3 at = unpackVsmPageInfo(pageList[page]);
-    const ivec2 tx = ivec2(tile%size, tile/size);
-    storePage(rc+tx, at, tx, tile==0 ? size : 0);
-    atomicMax(ladderWr[rc.y + tx.y], rc.x + tx.x+1);
+    const ivec2 tx = ivec2(tile/size.y, tile%size.y);
+    storePage(rc+tx, at, tx, tile==0 ? ivec2(size) : ivec2(0));
+    atomicMax(ladderWr[rc.y+tx.y], rc.x + tx.x + 1);
     }
   barrier();
   }
@@ -153,12 +155,13 @@ void main() {
 
   listPages();
 
-  const uint frag = lane<pageListSize ? pageList[lane] : 0;
-  const uint size = unpackVsmPageSize(frag).y;
+  const uint  frag = lane<pageListSize ? pageList[lane] : 0;
+  const uvec2 size = unpackVsmPageSize(frag);
   barrier();
 
-  //layoutPages(frag, size, 8);
-  layoutPages(frag, size, 4);
-  layoutPages(frag, size, 2);
-  layoutPages(frag, size, 1);
+  layoutPages(frag, size, uvec2(4));
+  layoutPages(frag, size, uvec2(1, 4));
+  layoutPages(frag, size, uvec2(2));
+  layoutPages(frag, size, uvec2(1, 2));
+  layoutPages(frag, size, uvec2(1));
   }

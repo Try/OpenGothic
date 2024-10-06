@@ -36,7 +36,7 @@ layout(binding = 2, std430) readonly buffer Mem { uint        instanceMem[]; };
 layout(binding = 4, std430) buffer IndirectBuf  { IndirectCmd cmd[];         };
 layout(binding = 5, std430) readonly buffer Cbo { Cluster     clusters[];    };
 
-layout(binding = 6, r32ui)  uniform uimage3D pageTbl;
+layout(binding = 6, r32ui)  uniform uimage3D pageTblDepth;
 layout(binding = 7, std430) buffer Pages        { VsmHeader   header; uint  pageList[]; } vsm;
 
 layout(push_constant, std430) uniform UboPush {
@@ -248,7 +248,7 @@ bool pageHiZTest(vec4 aabb, float depthMax, const ivec3 at, const ivec2 sz) {
 
   for(int x=iaabb.x; x<iaabb.z; ++x)
     for(int y=iaabb.y; y<iaabb.w; ++y) {
-      const uint  p = imageLoad(pageTbl, ivec3(x,y,at.z)).x;
+      const uint  p = imageLoad(pageTblDepth, ivec3(x,y,at.z)).x;
       const float f = uintBitsToFloat(p);
 
       // if(p!=0xFFFFFFFF)
@@ -283,6 +283,8 @@ void runCluster(const uint clusterId) {
 
     const ivec3 page = unpackVsmPageInfo(data);
     const ivec2 sz   = unpackVsmPageSize(data);
+    if(page.z>4)
+      ;//continue;
     if(!pageBoundsTest(aabb, page, sz))
       continue;
     if(!pageHiZTest(aabb, depthMax, page, sz))
