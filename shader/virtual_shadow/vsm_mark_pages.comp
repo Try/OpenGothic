@@ -29,12 +29,13 @@ layout(binding = 3)        uniform texture2D  depth;
 layout(binding = 4, r32ui) uniform uimage3D   pageTbl;
 layout(binding = 5, r32ui) uniform uimage3D   pageTblDepth;
 
-ivec2 pixelPos = ivec2(gl_GlobalInvocationID.xy);
+ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
 
 void storeHiZValue(uint v) {
   uvec4 dx = unpack565_16(v);
   ivec3 at = ivec3(dx.xyz);
-  uint  iz = floatBitsToUint(dx.w/float(0xFFFF));
+  //uint  iz = floatBitsToUint(dx.w/float(0xFFFF));
+  uint  iz = (dx.w << 16);
 
   //NOTE: require vulkan memory-model extension or vulkan 1.2
   //imageAtomicStore(pageTbl, at, 1u, gl_ScopeDevice, gl_StorageSemanticsNone, gl_SemanticsRelaxed);
@@ -89,9 +90,8 @@ void markPage(ivec3 at, float z) {
   if(z<0 || z>=1)
     return;
 
-  uint iz  = uint(z*0xFFFF);
+  uint iz  = floatBitsToUint(z) >> 16;
   uint cur = pack565_16(at,iz);
-  // uint id  = murmurHash11(cur >> 16) % pageHiZ.length();
   uint id  = pageIdHash7(at) % pageHiZ.length();
 
   uint v   = atomicMin(pageHiZ[id], cur);
@@ -124,7 +124,7 @@ vec4 worldPos(ivec2 frag, float depth) {
   }
 
 vec3 shadowPos(float z, vec3 normal, ivec2 offset) {
-  const vec4  wpos = worldPos(ivec2(pixelPos.xy) + offset, z) + vec4(normal*0.002, 0);
+  const vec4  wpos = worldPos(ivec2(fragCoord.xy) + offset, z) + vec4(normal*0.002, 0);
 #if defined(LWC)
   vec4 shPos = scene.viewVirtualShadowLwc * wpos;
 #else
@@ -132,6 +132,10 @@ vec3 shadowPos(float z, vec3 normal, ivec2 offset) {
 #endif
   shPos.xyz /= shPos.w;
   return shPos.xyz;
+  }
+
+float lambert(vec3 normal) {
+  return max(0.0, dot(scene.sunDir,normal));
   }
 
 int shadowLod(vec2 dx, vec2 dy) {
@@ -161,15 +165,23 @@ bool calcMipIndex(out vec3 pagePos, out int mip, const float z, const vec3 norma
 
 void realMain() {
   const ivec2 size = textureSize(depth, 0);
-  if(any(greaterThanEqual(pixelPos, size)))
+  if(any(greaterThanEqual(fragCoord, size)))
     return;
 
-  const float z = texelFetch(depth, pixelPos, 0).x;
+  const float z = texelFetch(depth, fragCoord, 0).x;
   if(z==1)
     return;
 
-  const vec3 normal = normalFetch(gbufNormal, pixelPos);
-  if(dot(scene.sunDir,normal)<=0)
+  const vec4  diff   = texelFetch (gbufDiffuse, fragCoord, 0);
+  const vec3  normal = normalFetch(gbufNormal,  fragCoord);
+
+  bool isFlat  = false;
+  bool isATest = false;
+  bool isWater = false;
+  decodeBits(diff.a, isFlat, isATest, isWater);
+
+  const float light = (isFlat ? 0 : lambert(normal));
+  if(light<=0)
     return;
 
   vec3 page = vec3(0);

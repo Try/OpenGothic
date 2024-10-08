@@ -224,7 +224,6 @@ class Renderer final {
       Tempest::RenderPipeline*  pagesDbgPso = nullptr;
       Tempest::DescriptorSet    uboLight;
 
-      Tempest::StorageImage     pageDbg;
       Tempest::StorageImage     pageTbl;
       Tempest::StorageImage     pageHiZ;
       Tempest::StorageImage     pageDataCs;

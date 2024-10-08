@@ -116,13 +116,13 @@ float shadowTexelFetch(vec2 page, int mip) {
   return shadowTexelFetch(page, mip, pageTbl, pageData);
   }
 
-float shadowTest(vec2 page, int mip, in float refZ, bool isATest, float LdotN) {
+float shadowTest(vec2 page, int mip, in float refZ) {
   // const float bias = (isATest ? 8 : -1)/(65535.0);
   // const float bias = -(16*LdotN)/(65535.0);
   // const float bias = 2.0/(65535.0); // self-occlusion on trees
   // refZ += bias;
   const float z = shadowTexelFetch(page, mip);
-  return z<refZ ? 1 : 0;
+  return (z==0 || z<refZ) ? 1 : 0;
   }
 
 float lambert(vec3 normal) {
@@ -143,6 +143,12 @@ bool calcMipIndex(out vec3 pagePos, out int mip, const float z, const vec3 norma
   return mip<VSM_PAGE_MIPS;
   }
 
+float shadowTest(float z, vec3 normal, out vec3 page, out int mip) {
+  if(!calcMipIndex(page, mip, z, normal))
+    return 1;
+  return shadowTest(page.xy, mip, page.z);
+  }
+
 void main() {
   outColor = vec4(0,0,0, 1);
 
@@ -160,31 +166,23 @@ void main() {
 
   const vec4  diff   = texelFetch (gbufDiffuse, fragCoord, 0);
   const vec3  normal = normalFetch(gbufNormal,  fragCoord);
-  if(dot(scene.sunDir,normal)<=0)
-    return;
-
-  vec3 page = vec3(0);
-  int  mip  = 0;
-  if(!calcMipIndex(page, mip, z, normal))
-    return;
 
   bool isFlat  = false;
   bool isATest = false;
   bool isWater = false;
   decodeBits(diff.a, isFlat, isATest, isWater);
 
-  const float LdotN  = dot(scene.sunDir,normal);
-  const float light  = (isFlat ? 0 : lambert(normal));
-  float shadow = 1;
-  if(light>0) {
-    shadow = shadowTest(page.xy, mip, page.z, isATest, LdotN);
-    }
+  vec3 page = vec3(0);
+  int  mip  = 0;
+  const float light  = (isFlat   ? 0 : lambert(normal));
+  const float shadow = (light<=0 ? 0 : shadowTest(z, normal, page, mip));
 
-  const vec3 illuminance = scene.sunColor * light * shadow;
-  const vec3 linear      = textureAlbedo(diff.rgb);
-  const vec3 luminance   = linear * Fd_Lambert * illuminance;
+  const vec3  illuminance = scene.sunColor * light * shadow;
+  const vec3  linear      = textureAlbedo(diff.rgb);
+  const vec3  luminance   = linear * Fd_Lambert * illuminance;
 
   outColor = vec4(luminance * scene.exposure, 1);
+
 #if defined(DEBUG)
   const ivec2 pageI = ivec2((page.xy*0.5+0.5)*VSM_PAGE_TBL_SIZE);
   // int  mip   = 0;
@@ -192,7 +190,7 @@ void main() {
   vec3 color = debugColors[hash(uvec3(pageI,mip)) % debugColors.length()];
   // vec3 color = debugColors[mip % debugColors.length()];
   // color *= (1.0 - shadowTexelFetch(page, mip));
-  color *= (shadowTest(page.xy, mip, page.z, false, LdotN)*0.9+0.1);
+  color *= (shadowTest(page.xy, mip, page.z)*0.9+0.1);
   // vec3 color = vec3(shPos0, 0);
   // vec3 color = vec3(page, 0);
   // vec3 color = vec3(fract(page*VSM_PAGE_TBL_SIZE), 0);

@@ -28,6 +28,9 @@ layout(local_size_x = 1024) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
+layout(push_constant, std430) uniform UboPush {
+  int meshletCount;
+  } push;
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
@@ -39,9 +42,7 @@ layout(binding = 5, std430) readonly buffer Cbo { Cluster     clusters[];    };
 layout(binding = 6, r32ui)  uniform uimage3D pageTblDepth;
 layout(binding = 7, std430) buffer Pages        { VsmHeader   header; uint  pageList[]; } vsm;
 
-layout(push_constant, std430) uniform UboPush {
-  int meshletCount;
-  } push;
+layout(binding = 8, r32ui)  uniform uimage2D dbg;
 
 shared uint pageListSize;
 shared uint pageList[VSM_MAX_PAGES];
@@ -253,7 +254,7 @@ bool pageHiZTest(vec4 aabb, float depthMax, const ivec3 at, const ivec2 sz) {
 
       // if(p!=0xFFFFFFFF)
       //   return true;
-      if(f<depthMax)
+      if(f<=depthMax)
         return true;
       }
 
@@ -291,6 +292,7 @@ void runCluster(const uint clusterId) {
       continue;
     if(!emitCluster(cluster, i))
       break;
+    imageAtomicAdd(dbg, unpackVsmPageId(i), 1);
     }
   }
 

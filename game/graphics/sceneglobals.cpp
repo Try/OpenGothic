@@ -32,6 +32,7 @@ SceneGlobals::SceneGlobals() {
   vsmPageData = &Resources::fallbackBlack();
   vsmPageTbl  = &Resources::fallbackImage3d();
   vsmPageHiZ  = &Resources::fallbackImage3d();
+  vsmDbg      = device.image2d(Tempest::TextureFormat::R32U, 32, 32);
 
   for(uint8_t lay=0; lay<V_Count; ++lay) {
     uboGlobal[lay] = device.ssbo(nullptr,sizeof(UboGlobal));

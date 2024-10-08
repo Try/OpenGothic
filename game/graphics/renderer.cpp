@@ -204,7 +204,6 @@ void Renderer::resetSwapchain() {
     vsm.pagesDbgPso     = &Shaders::inst().vsmDbg;
     vsm.uboLight        = device.descriptors(*vsm.directLightPso);
 
-    vsm.pageDbg         = device.image2d(TextureFormat::R32U, 32, 32);
     vsm.pageTbl         = device.image3d(TextureFormat::R32U, 32, 32, 16);
     vsm.pageHiZ         = device.image3d(TextureFormat::R32U, 32, 32, 16);
     vsm.pageData        = device.zbuffer(shadowFormat, 4096, 4096);
@@ -472,7 +471,7 @@ void Renderer::prepareUniforms() {
 
     vsm.uboAlloc.set(0, vsm.pageList);
     vsm.uboAlloc.set(1, vsm.pageTbl);
-    vsm.uboAlloc.set(2, vsm.pageDbg);
+    vsm.uboAlloc.set(2, wview->sceneGlobals().vsmDbg);
 
     vsm.uboLight.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     vsm.uboLight.set(1, gbufDiffuse, Sampler::nearest());
@@ -584,8 +583,8 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   //tex.push_back(&textureCast(hiz.smProj));
   //tex.push_back(&textureCast(hiz.hiZSm1));
   //tex.push_back(&textureCast(shadowMap[1]));
-  tex.push_back(&textureCast<const Texture2d&>(shadowMap[0]));
-  //tex.push_back(&textureCast<const Texture2d&>(vsm.pageDataZ));
+  //tex.push_back(&textureCast<const Texture2d&>(shadowMap[0]));
+  tex.push_back(&textureCast<const Texture2d&>(vsm.pageData));
 
   static int size = 400;
   int left = 10;

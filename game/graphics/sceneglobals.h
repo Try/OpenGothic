@@ -82,6 +82,7 @@ class SceneGlobals final {
     const Tempest::StorageImage*      vsmPageTbl    = nullptr;
     const Tempest::StorageImage*      vsmPageHiZ    = nullptr;
     const Tempest::StorageBuffer*     vsmPageList   = nullptr;
+   Tempest::StorageImage              vsmDbg;
 
     const Tempest::StorageImage*      swMainImage  = nullptr;
 
