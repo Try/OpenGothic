@@ -460,6 +460,17 @@ Npc *WorldObjects::findNpcByInstance(size_t instance, size_t n) {
   return nullptr;
   }
 
+void WorldObjects::removeNpcByInstance(size_t instance) {
+  for(size_t i=0; i<npcArr.size(); ++i){
+    auto& npc=*npcArr[i];
+    if(npc.handle().symbol_index()==instance){
+      npcArr[i] = std::move(npcArr.back());
+      npcArr.pop_back();
+      return;
+      }
+    }
+  }
+
 Item* WorldObjects::findItemByInstance(size_t instance, size_t n) {
   for(auto& i:itemArr) {
     if(i->handle().symbol_index()==instance) {
