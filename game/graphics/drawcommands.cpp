@@ -137,7 +137,7 @@ void DrawCommands::addClusters(uint16_t cmdId, uint32_t meshletCount) {
   cmd[cmdId].maxPayload += meshletCount;
   }
 
-bool DrawCommands::commit() {
+bool DrawCommands::commit(Encoder<CommandBuffer>& enc, uint8_t fId) {
   if(!cmdDurtyBit)
     return false;
   cmdDurtyBit = false;
@@ -154,13 +154,13 @@ bool DrawCommands::commit() {
   const size_t visClustersSz = totalPayload*sizeof(uint32_t)*4;
 
   auto& v      = views[0];
-  bool  cmdChg = true; //v.indirectCmd.byteSize()!=sizeof(IndirectCmd)*cmd.size();
+  bool  cmdChg = v.indirectCmd.byteSize()!=sizeof(IndirectCmd)*cmd.size();
   bool  visChg = v.visClusters.byteSize()!=visClustersSz;
   if(!layChg && !visChg) {
     //return false;
     }
 
-  std::vector<IndirectCmd> cx(cmd.size()+1);
+  std::vector<IndirectCmd> cx(cmd.size());
   for(size_t i=0; i<cmd.size(); ++i) {
     auto mesh = cmd[i].isMeshShader();
 
@@ -169,7 +169,6 @@ bool DrawCommands::commit() {
     cx[i].firstVertex   = mesh ? 1 : 0;
     cx[i].firstInstance = mesh ? 1 : 0;
     }
-  cx.back().writeOffset = uint32_t(totalPayload);
 
   ord.resize(cmd.size());
   for(size_t i=0; i<cmd.size(); ++i)
@@ -196,7 +195,20 @@ bool DrawCommands::commit() {
     if(cmdChg) {
       Resources::recycle(std::move(v.indirectCmd));
       v.indirectCmd = device.ssbo(cx.data(), sizeof(IndirectCmd)*cx.size());
-      visChg |= (v.viewport==SceneGlobals::V_Vsm); //FIXME
+      visChg |= (v.viewport==SceneGlobals::V_Vsm);
+      }
+    else if(layChg) {
+      auto staging = device.ssbo(BufferHeap::Upload, cx.data(), sizeof(IndirectCmd)*cx.size());
+
+      auto& sh   = Shaders::inst().copyBuf;
+      auto  desc = device.descriptors(sh);
+      desc.set(0, v.indirectCmd);
+      desc.set(1, staging);
+      enc.setUniforms(sh, desc);
+      enc.dispatchThreads(staging.byteSize()/sizeof(uint32_t));
+
+      Resources::recycle(std::move(staging));
+      Resources::recycle(std::move(desc));
       }
 
     Resources::recycle(std::move(v.descInit));

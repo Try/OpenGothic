@@ -469,7 +469,7 @@ void VisualObjects::prepareGlobals(Encoder<CommandBuffer>& enc, uint8_t fId) {
   bool mem = instanceMem.commit(enc, fId);
   bool buk = bucketsMem.commit(enc, fId);
   bool cs  = clusters.commit(enc, fId);
-  bool cmd = drawCmd.commit();
+  bool cmd = drawCmd.commit(enc, fId);
 
   if(cs)
     drawCmd.updateTasksUniforms();

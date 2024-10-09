@@ -53,7 +53,7 @@ class DrawCommands {
 
     const DrawCmd& operator[](size_t i) const { return cmd[i]; }
 
-    bool     commit();
+    bool     commit(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
     uint16_t commandId(const Material& m, Type type, uint32_t bucketId);
     void     addClusters(uint16_t cmdId, uint32_t meshletCount);
 
