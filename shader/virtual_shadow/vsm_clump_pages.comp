@@ -70,6 +70,8 @@ void storePageTable() {
     uint  p = unpackPrimeBit(d);
     uvec2 s = uvec2(unpackSize(d));
     imageStore(pageTbl, at, uvec4(p | (s.x << 1) | (s.y << 5)));
+    if(s.x>0)
+      atomicAdd(vsm.header.pagePerMip[at.z], 1);
     }
   }
 

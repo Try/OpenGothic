@@ -211,7 +211,7 @@ void Renderer::resetSwapchain() {
 
     const int32_t VSM_PAGE_SIZE = 128;
     auto pageCount      = uint32_t((vsm.pageData.w()+VSM_PAGE_SIZE-1)/VSM_PAGE_SIZE) * uint32_t((vsm.pageData.h()+VSM_PAGE_SIZE-1)/VSM_PAGE_SIZE);
-    vsm.pageList        = device.ssbo(nullptr, (pageCount + 4 + 16*4)*sizeof(uint32_t));
+    vsm.pageList        = device.ssbo(nullptr, (pageCount + 4 + 16*4 + 16*4)*sizeof(uint32_t));
     }
 
   if(settings.swrEnabled) {
@@ -889,6 +889,10 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     cmd.setUniforms(shaders.vsmClearPages, vsm.uboClearPages);
     cmd.dispatchThreads(size_t(vsm.pageDataCs.w()), size_t(vsm.pageDataCs.h()));
     }
+
+  // list?
+  cmd.setUniforms(shaders.vsmListPages, vsm.uboAlloc);
+  cmd.dispatch(size_t(vsm.pageTbl.d()));
 
   // alloc
   cmd.setUniforms(shaders.vsmAllocPages, vsm.uboAlloc);

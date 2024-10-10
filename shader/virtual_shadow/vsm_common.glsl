@@ -18,6 +18,7 @@ struct VsmHeader {
   uint  meshletCount;
   uint  counterM;
   uint  counterV;
+  uint  pagePerMip[VSM_PAGE_MIPS];
   ivec4 pageBbox[VSM_PAGE_MIPS];
   };
 
