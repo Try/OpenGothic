@@ -235,6 +235,7 @@ class GameScript final {
 
     void wld_insertitem      (int itemInstance, std::string_view spawnpoint);
     void wld_insertnpc       (int npcInstance, std::string_view spawnpoint);
+    void wld_removenpc       (int npcInstance);
     void wld_settime         (int hour, int minute);
     int  wld_getday          ();
     void wld_playeffect      (std::string_view visual, std::shared_ptr<zenkit::DaedalusInstance> sourceId, std::shared_ptr<zenkit::DaedalusInstance> targetId, int effectLevel, int damage, int damageType, int isProjectile);
