@@ -21,8 +21,8 @@ shared uint pageList[VSM_MAX_PAGES];
 
 shared uint bits[(NumThreads+31)/32];
 
-shared uint ladder  [VSM_PAGE_TBL_SIZE];
-shared uint ladderWr[VSM_PAGE_TBL_SIZE];
+shared uint ladder  [VSM_PAGE_PER_ROW];
+shared uint ladderWr[VSM_PAGE_PER_ROW];
 
 void storePage(ivec2 pId, ivec3 at, ivec2 tile, ivec2 size) {
   const uint pageId = pId.x + pId.y*VSM_PAGE_PER_ROW;
@@ -58,13 +58,13 @@ void listPages() {
   }
 
 ivec2 findRowCol(in uint page, const uvec2 size) {
-  // const uint perRow = 32/size.x;
+  // const uint perRow = VSM_PAGE_PER_ROW/size.x;
   // const uint row    = (page/perRow)*size.y;
   // const uint col    = (page%perRow)*size.x;
   // return ivec2(col,row);
 
-  for(uint i=0; i<32; i+=size.y) {
-    uint space = (32-ladder[i])/size.x;
+  for(uint i=0; i<VSM_PAGE_PER_ROW; i+=size.y) {
+    uint space = (VSM_PAGE_PER_ROW-ladder[i])/size.x;
     if(page<space)
       return ivec2(ladder[i] + page*size.x, i);
     page -= space;
@@ -94,7 +94,7 @@ void layoutPages(uint pageData, uvec2 pageSz, uvec2 size) {
     }
   barrier();
 
-  const uint perRow = VSM_PAGE_TBL_SIZE/size.x;
+  const uint perRow = VSM_PAGE_PER_ROW/size.x;
   const uint maxPix = pageListSize*(size.x*size.y);
   // const uint maxPix = 1*(size);
   for(uint i=lane; i<maxPix; i+=NumThreads) {

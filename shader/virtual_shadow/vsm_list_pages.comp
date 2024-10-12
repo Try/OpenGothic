@@ -53,7 +53,7 @@ void listPages(uint mip) {
     const uint id = pageListPrefix + bitCountShared(lane);
     vsm.pageList[id] = packVsmPageInfo(at, sz);
     }
-  barrier();
+  // barrier(); //NOTE: very slow on mac
   }
 
 void main() {
