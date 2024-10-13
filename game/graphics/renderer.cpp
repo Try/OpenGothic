@@ -206,12 +206,14 @@ void Renderer::resetSwapchain() {
 
     vsm.pageTbl         = device.image3d(TextureFormat::R32U, 32, 32, 16);
     vsm.pageHiZ         = device.image3d(TextureFormat::R32U, 32, 32, 16);
-    vsm.pageData        = device.zbuffer(shadowFormat, 4096, 4096);
+    vsm.pageData        = device.zbuffer(shadowFormat, 8192, 8192);
     // vsm.pageDataCs      = device.image2d(TextureFormat::R32U, 4096, 4096);
 
     const int32_t VSM_PAGE_SIZE = 128;
-    auto pageCount      = uint32_t((vsm.pageData.w()+VSM_PAGE_SIZE-1)/VSM_PAGE_SIZE) * uint32_t((vsm.pageData.h()+VSM_PAGE_SIZE-1)/VSM_PAGE_SIZE);
-    vsm.pageList        = device.ssbo(nullptr, (pageCount + 4 + 16*4 + 16*4)*sizeof(uint32_t));
+    auto pageCount      = uint32_t(vsm.pageData.w()/VSM_PAGE_SIZE) * uint32_t(vsm.pageData.h()/VSM_PAGE_SIZE);
+    auto pageSsboSize   = Shaders::inst().vsmClear.sizeOfBuffer(0, pageCount);
+
+    vsm.pageList        = device.ssbo(nullptr, pageSsboSize);
     }
 
   if(settings.swrEnabled) {
