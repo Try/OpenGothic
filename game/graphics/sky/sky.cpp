@@ -109,7 +109,7 @@ Sky::~Sky() {
 void Sky::setupSettings() {
   auto&      device = Resources::device();
   const bool fog    = Gothic::inst().settingsGetI("RENDERER_D3D","zFogRadial")!=0;
-  const bool vsm    = false; //Gothic::inst().options().doVirtualShadow;
+  const bool vsm    = Gothic::inst().options().doVirtualShadow;
 
   auto q = Quality::VolumetricLQ;
   if(!fog) {
@@ -206,6 +206,10 @@ void Sky::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fr
 
 float Sky::isNight() const {
   return 1.f - linearstep(-0.18f, 0.f, sun.dir().y);
+  }
+
+bool Sky::isVolumetric() const {
+  return quality!=VolumetricLQ;
   }
 
 void Sky::setWorld(const World& world, const std::pair<Vec3, Vec3>& bbox) {

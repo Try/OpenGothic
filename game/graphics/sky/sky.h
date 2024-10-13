@@ -43,6 +43,7 @@ class Sky final {
     const State&              cloudsNight() const { return clouds[1]; }
     Tempest::Vec2             cloudsOffset(int layer) const;
     float                     isNight() const;
+    bool                      isVolumetric() const;
 
   private:
     enum Quality : uint8_t {
