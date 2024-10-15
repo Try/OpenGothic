@@ -242,7 +242,7 @@ bool pageHiZTest(vec4 aabb, float depthMax, const ivec3 at, const ivec2 sz) {
   aabb = aabb*0.5+0.5; // [0..1]
   aabb = aabb*VSM_PAGE_TBL_SIZE;
 
-  ivec4 iaabb = ivec4(ivec2(floor(aabb.xy)), ivec2(ceil(aabb.zw))+1);
+  ivec4 iaabb = ivec4(ivec2(aabb.xy), ivec2(aabb.zw)+1);
   iaabb.xy = max(iaabb.xy, ivec2(at.xy));
   iaabb.zw = min(iaabb.zw, ivec2(at.xy+sz));
   iaabb.zw = min(iaabb.zw, ivec2(VSM_PAGE_TBL_SIZE));
