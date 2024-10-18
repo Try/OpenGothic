@@ -9,7 +9,7 @@
 #include <pthread.h>
 #include <stdint.h>
 
-#if !defined(__i386__) && !defined(__amd64__)
+#if !defined(__i386__) && !defined(__amd64__) && !defined(__arm64__)
 #   error "unsupported architecture :("
 #endif
 
