@@ -147,7 +147,7 @@ void Renderer::resetSwapchain() {
       if(settings.vsmEnabled && (i+1)!=Resources::ShadowLayers)
         continue;
       if(settings.vsmEnabled && !settings.giEnabled)
-        continue; //TODO: support vsm in gi code
+        ;//continue; //TODO: support vsm in gi code
       shadowMap[i] = device.zbuffer(shadowFormat,smSize,smSize);
       }
     }
@@ -486,6 +486,7 @@ void Renderer::prepareUniforms() {
     if(!vsm.pageDataCs.isEmpty())
       vsm.uboLight.set(6, vsm.pageDataCs); else
       vsm.uboLight.set(6, vsm.pageData);
+    vsm.uboLight.set(8, wview->sceneGlobals().vsmDbg);
 
     vsm.uboReproj.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     vsm.uboReproj.set(1, vsm.pageTbl);
@@ -878,7 +879,7 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.dispatchThreads(zbuffer.size());
 
   // sky&fog
-  if(wview.sky().isVolumetric()) {
+  if(true && wview.sky().isVolumetric()) {
     cmd.setUniforms(shaders.vsmMarkFogPages, vsm.uboPages);
     cmd.dispatchThreads(zbuffer.size());
     // wview.vsmMarkSkyPages(cmd, fId);

@@ -53,8 +53,7 @@ vec3 project(mat4 m, vec3 pos) {
 
 void shadowFactor(vec4 shPos) {
   vec3  shPos0 = shPos.xyz/shPos.w;
-
-  int   mip    = vsmCalcMipIndex(shPos0.xy, VSM_FOG_MIP);
+  int   mip    = vsmCalcMipIndexFog(shPos0.xy);
   vec2  page   = shPos0.xy / (1 << mip);
   if(any(greaterThan(abs(page), vec2(1))))
     return;
@@ -91,18 +90,6 @@ void fogPages(const float depthMax) {
 
     shadowFactor(shPos);
     }
-  /*
-  uint occlusion = 0;
-  [[dont_unroll]]
-  for(uint i=0; i<steps; ++i) {
-    float t      = (i+0.3)/float(steps);
-    float dd     = (t*distZ)/(dist);
-    vec4  shPos  = mix(shPos0,shPos1,t+noise);
-    bool  shadow = shadowFactor(shPos);
-    occlusion = occlusion | ((shadow ? 1u : 0u) << uint(i));
-    }
-  imageStore(occlusionLut, ivec2(invocationID.xy), uvec4(occlusion));
-  */
   }
 
 void main() {

@@ -201,7 +201,6 @@ Shaders::Shaders() {
     vsmClearPages   = computeShader("vsm_clear_pages.comp.sprv");
     vsmMarkPages    = computeShader("vsm_mark_pages.comp.sprv");
     vsmMarkFogPages = computeShader("vsm_mark_fog_pages.comp.sprv");
-    vsmMarkSky      = computeShader("fog3d_vsm_mark_pages.comp.sprv");
     vsmTrimPages    = computeShader("vsm_trim_pages.comp.sprv");
     vsmClumpPages   = computeShader("vsm_clump_pages.comp.sprv");
     vsmListPages    = computeShader("vsm_list_pages.comp.sprv");

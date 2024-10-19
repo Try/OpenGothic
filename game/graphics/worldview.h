@@ -55,8 +55,6 @@ class WorldView {
     void prepareIrradiance(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void prepareExposure  (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
 
-    void vsmMarkSkyPages  (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-
     bool updateLights();
     bool updateRtScene();
 

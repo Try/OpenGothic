@@ -238,15 +238,14 @@ void DrawCommands::updateTasksUniforms() {
     i.desc.set(T_Clusters, clusters.ssbo());
     i.desc.set(T_Indirect, views[i.viewport].indirectCmd);
     i.desc.set(T_Payload,  views[i.viewport].visClusters);
+    i.desc.set(T_Scene,    scene.uboGlobal[i.viewport]);
+    i.desc.set(T_Instance, owner.instanceSsbo());
+    i.desc.set(T_Bucket,   buckets.ssbo());
 
     if(i.viewport!=SceneGlobals::V_Vsm) {
-      i.desc.set(T_Scene,    scene.uboGlobal[i.viewport]);
-      i.desc.set(T_Instance, owner.instanceSsbo());
-      i.desc.set(T_Bucket,   buckets.ssbo());
       i.desc.set(T_HiZ,      *scene.hiZ);
       } else {
-      i.desc.set(T_Scene,    scene.uboGlobal[i.viewport]);
-      i.desc.set(T_Payload,  views[i.viewport].vsmClusters);
+      i.desc.set(T_Payload,  views[i.viewport].vsmClusters); //unsorted clusters
       i.desc.set(T_HiZ,      *scene.vsmPageHiZ);
       i.desc.set(T_VsmPages, *scene.vsmPageList);
       i.desc.set(8,          scene.vsmDbg);

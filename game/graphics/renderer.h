@@ -88,7 +88,7 @@ class Renderer final {
 
       float          vidResIndex        = 0;
 
-      float          vsmMipBias         = -0.25;
+      float          vsmMipBias         = 0.25; //TODO: set to lower, eventually
       } settings;
 
     Frustrum                  frustrum[SceneGlobals::V_Count];

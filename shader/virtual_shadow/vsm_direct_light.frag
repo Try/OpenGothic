@@ -42,6 +42,7 @@ layout(binding = 6) uniform utexture2D  pageData;
 #else
 layout(binding = 6) uniform texture2D   pageData;
 #endif
+layout(binding = 8, r32ui)  uniform readonly uimage2D dbg;
 
 
 layout(location = 0) out vec4 outColor;
@@ -109,7 +110,7 @@ int shadowLod(vec2 dx, vec2 dy) {
 
   const float bias = vsmMipBias;
   //return max(0, int((minLod + maxLod)*0.5 + bias + 0.5));
-  return max(0, int(minLod + bias + 0.5));
+  return max(0, int(minLod + bias));
   }
 
 float shadowTexelFetch(vec2 page, int mip) {
@@ -182,6 +183,12 @@ void main() {
   const vec3  luminance   = linear * Fd_Lambert * illuminance;
 
   outColor = vec4(luminance * scene.exposure, 1);
+
+#if 0
+  const uint pageId = shadowPageIdFetch(page.xy,mip,pageTbl);
+  const uint v = imageLoad(dbg, unpackVsmPageId(pageId)).x;
+  outColor.rgb = vec3(v/512.0);
+#endif
 
 #if defined(DEBUG)
   const ivec2 pageI = ivec2((page.xy*0.5+0.5)*VSM_PAGE_TBL_SIZE);

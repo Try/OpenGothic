@@ -127,10 +127,6 @@ void WorldView::prepareExposure(Tempest::Encoder<Tempest::CommandBuffer>& cmd, u
   gSky.prepareExposure(cmd, frameId);
   }
 
-void WorldView::vsmMarkSkyPages(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId) {
-  gSky.vsmMarkPage(cmd, frameId);
-  }
-
 void WorldView::updateFrustrum(const Frustrum fr[]) {
   for(uint8_t i=0; i<SceneGlobals::V_Count; ++i)
     sGlobal.frustrum[i] = fr[i];

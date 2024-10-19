@@ -237,7 +237,6 @@ add_shader(clouds_lut.comp           sky/clouds_lut.comp)
 add_shader(fog_view_lut.comp         sky/fog_view_lut.comp)
 
 add_shader(fog3d.comp                sky/fog.frag -S comp -DVOLUMETRIC)
-add_shader(fog3d_vsm_mark_pages.comp sky/fog.frag -S comp -DVOLUMETRIC -DVIRTUAL_SHADOW_MARK)
 add_shader(fog3d_vsm.comp            sky/fog.frag -S comp -DVOLUMETRIC -DVIRTUAL_SHADOW)
 add_shader(fog3d_hq.frag             sky/fog.frag -DVOLUMETRIC)
 add_shader(fog.frag                  sky/fog.frag)
