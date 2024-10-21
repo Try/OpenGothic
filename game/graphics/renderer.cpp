@@ -197,7 +197,9 @@ void Renderer::resetSwapchain() {
     if(!vsm.pageDataCs.isEmpty())
       vsm.uboClearPages = device.descriptors(Shaders::inst().vsmClearPages);
 
-    vsm.uboPages        = device.descriptors(Shaders::inst().vsmMarkPages );
+    vsm.uboPages        = device.descriptors(Shaders::inst().vsmMarkPages);
+    vsm.uboEpipole      = device.descriptors(Shaders::inst().vsmFogEpipolar);
+    vsm.uboFogShadow    = device.descriptors(Shaders::inst().vsmFogShadow);
     vsm.uboClump        = device.descriptors(Shaders::inst().vsmClumpPages);
     vsm.uboAlloc        = device.descriptors(Shaders::inst().vsmAllocPages);
     vsm.uboReproj       = device.descriptors(Shaders::inst().vsmReprojectSm);
@@ -210,6 +212,9 @@ void Renderer::resetSwapchain() {
     vsm.pageHiZ         = device.image3d(TextureFormat::R32U, 32, 32, 16);
     vsm.pageData        = device.zbuffer(shadowFormat, 8192, 8192);
     // vsm.pageDataCs      = device.image2d(TextureFormat::R32U, 4096, 4096);
+
+    vsm.ssTrace = device.image2d(TextureFormat::RGBA8, w, h);
+    vsm.epTrace = device.image2d(TextureFormat::RGBA8, 1024, 512);
 
     const int32_t VSM_PAGE_SIZE = 128;
     auto pageCount      = uint32_t(vsm.pageData.w()/VSM_PAGE_SIZE) * uint32_t(vsm.pageData.h()/VSM_PAGE_SIZE);
@@ -469,6 +474,18 @@ void Renderer::prepareUniforms() {
     vsm.uboPages.set(4, vsm.pageTbl);
     vsm.uboPages.set(5, vsm.pageHiZ);
     //vsm.uboPages.set(7, vsm.pageList);
+
+    vsm.uboEpipole.set(0, vsm.ssTrace);
+    vsm.uboEpipole.set(1, vsm.epTrace);
+    vsm.uboEpipole.set(2, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    vsm.uboEpipole.set(3, zbuffer);
+    vsm.uboEpipole.set(4, vsm.pageTbl);
+    vsm.uboEpipole.set(5, vsm.pageData);
+
+    vsm.uboFogShadow.set(0, vsm.ssTrace);
+    vsm.uboFogShadow.set(1, vsm.epTrace);
+    vsm.uboFogShadow.set(2, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    vsm.uboFogShadow.set(3, zbuffer);
 
     vsm.uboClump.set(0, vsm.pageList);
     vsm.uboClump.set(1, vsm.pageTbl);
@@ -917,6 +934,17 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.setDebugMarker("VSM-rendering");
   cmd.setFramebuffer({}, {vsm.pageData, 0.f, Tempest::Preserve});
   wview.drawVsm(cmd,fId);
+
+  if(true) {
+    cmd.setFramebuffer({});
+    cmd.setDebugMarker("VSM-epipolar");
+    cmd.setUniforms(shaders.vsmFogEpipolar, vsm.uboEpipole);
+    cmd.dispatch(uint32_t(vsm.epTrace.w()));
+
+    cmd.setDebugMarker("VSM-epipolar-fog");
+    cmd.setUniforms(shaders.vsmFogShadow, vsm.uboFogShadow);
+    cmd.dispatchThreads(zbuffer.size());
+    }
 
   if(false) {
     cmd.setDebugMarker("VSM-reproject");

@@ -231,7 +231,7 @@ void main_comp() {
   vec2  uv     = inPos*vec2(0.5)+vec2(0.5);
   vec3  view   = normalize(inverse(vec3(inPos,1.0)));
   vec3  sunDir = scene.sunDir;
-  float z      = textureLod(depth,uv,0).r;
+  float z      = min(textureLod(depth,uv,0).r, dFogMax);
 
   fog(uv,z);
   }

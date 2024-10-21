@@ -216,6 +216,7 @@ class Renderer final {
       Tempest::DescriptorSet    uboClear;
       Tempest::DescriptorSet    uboClearPages;
       Tempest::DescriptorSet    uboPages;
+      Tempest::DescriptorSet    uboEpipole, uboFogShadow;
       Tempest::DescriptorSet    uboReproj;
 
       Tempest::DescriptorSet    uboClump, uboAlloc;
@@ -229,6 +230,9 @@ class Renderer final {
       Tempest::StorageImage     pageDataCs;
       Tempest::ZBuffer          pageData;
       Tempest::StorageBuffer    pageList;
+
+      Tempest::StorageImage     ssTrace;
+      Tempest::StorageImage     epTrace;
       } vsm;
 
     struct {

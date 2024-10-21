@@ -1,0 +1,147 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+#include "virtual_shadow/vsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+// layout(binding = 0, r32ui) uniform uimage2D   result;
+layout(binding = 0, rgba8)  uniform image2D   result;
+layout(binding = 1, rgba8)  uniform image2D   rayData;
+layout(binding = 2, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 3)         uniform texture2D  depth;
+
+const float dFogMin      = 0;
+const float dFogMax      = 0.9999;
+      uint  NumSlices    = imageSize(rayData).x;
+      uint  NumSamples   = imageSize(rayData).y;
+      ivec2 fragCoord    = ivec2(gl_GlobalInvocationID.xy);
+      ivec2 viewportSize = textureSize(depth, 0);
+
+vec4 dbgColor = vec4(0);
+
+float interleavedGradientNoise() {
+  return interleavedGradientNoise(fragCoord.xy);
+  }
+
+vec3 project(mat4 m, vec3 pos) {
+  vec4 p = m*vec4(pos,1);
+  return p.xyz/p.w;
+  }
+
+vec4 screenToShadow4(vec3 scr) {
+  //TODO: optimize
+  const vec3  pos   = project(scene.viewProjectLwcInv, scr);
+  const vec4  shPos = scene.viewVirtualShadowLwc*vec4(pos,1);
+  return shPos;
+  }
+
+vec2 sunPosition2d() {
+  vec3 sun = scene.sunDir;
+  sun = (scene.viewProject*vec4(sun,0)).xyz;
+  sun.xy /= sun.z;
+  return sun.xy;
+  }
+
+vec2 rayOrigin() {
+  vec2 sun  = sunPosition2d();
+  vec2 rpos = vec2(fragCoord)/vec2(viewportSize);
+  rpos  = rpos*2.0 - 1.0;
+
+  vec2 dv  = rpos - sun;
+  vec2 ret = vec2(0);
+  {
+    float d = (dv.x<0 ? -1 : +1) - sun.x;
+    ret = sun + dv*abs(d/dv.x);
+    if(-1<=ret.y && ret.y<=1)
+      return ret;
+  }
+  {
+    float d = (dv.y<0 ? -1 : +1) - sun.y;
+    ret = sun + dv*abs(d/dv.y);
+    if(-1<=ret.x && ret.x<=1)
+      return ret;
+  }
+  return vec2(-1);
+  }
+
+uint sliceId() {
+  const vec2  src   = rayOrigin();
+  const float ratio = float(viewportSize.x)/float(viewportSize.x+viewportSize.y);
+  const uint  hor   = int(0.5*ratio*NumSlices);
+  const uint  vert  = int(NumSlices)/2 - hor;
+
+  uint rayId = 0;
+  if(src.x < src.y && src.x > -src.y) {
+    // bottom
+    dbgColor = vec4(0,1,0,0);
+    return rayId + uint(src.x * hor);
+    }
+  rayId += hor;
+
+  if(src.x > src.y && src.x < -src.y) {
+    // top
+    dbgColor = vec4(1,0,0,0);
+    return rayId + uint(src.x * hor);
+    }
+  rayId += hor;
+
+  if(src.x < src.y && src.x < -src.y) {
+    // left
+    dbgColor = vec4(0,0,1,0);
+    return rayId + uint(src.y * vert);
+    }
+  rayId += vert;
+
+  // right
+  dbgColor = vec4(1,0,1,0);
+  return rayId + uint(src.y * vert);
+  }
+
+void trace(const vec2 inPos, const float z, ivec2 pix, const uint sliceId) {
+  const int   steps    = 32;
+  const float noise    = interleavedGradientNoise()/steps;
+
+  const vec4  shPos0 = screenToShadow4(vec3(inPos.xy,0));
+  const vec4  shPos1 = screenToShadow4(vec3(inPos.xy,z));
+
+  //TODO
+  const float tMin    = 0; //-uintBitsToFloat(tMinUint);
+  const float tMax    = 1; //+uintBitsToFloat(tMaxUint);
+  const vec2  rayA    = vec2(0);
+  const vec2  rayDir  = vec2(0);
+
+  uint occlusion = 0;
+  [[dont_unroll]]
+  for(uint i=0; i<steps; ++i) {
+    float t      = (i+0.3)/float(steps);
+    vec4  shPos  = mix(shPos0,shPos1,t+noise);
+    float shV    = dot(shPos.xy/shPos.z - rayA, rayDir) / (tMax-tMin);
+
+    float sh     = imageLoad(rayData, ivec2(sliceId, shV*NumSamples)).x;
+    bool  shadow = (sh*shPos.w < shPos.z);
+
+    occlusion = occlusion | ((shadow ? 1u : 0u) << uint(i));
+    }
+
+  imageStore(result, pix, vec4(bitCount(occlusion)/float(steps)));
+  }
+
+void main() {
+  if(any(greaterThanEqual(fragCoord, viewportSize)))
+    return;
+
+  const vec2  inPos = (vec2(fragCoord)/vec2(viewportSize))*2.0 - 1.0;
+  const float z     = min(texelFetch(depth, fragCoord, 0).x, dFogMax);
+  const uint  id    = sliceId();
+  trace(inPos, z, fragCoord, id);
+  //imageStore(result, fragCoord, dbgColor);
+  }
