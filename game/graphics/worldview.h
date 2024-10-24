@@ -42,6 +42,7 @@ class WorldView {
                              const Tempest::StorageImage& pageTbl,
                              const Tempest::StorageImage& pageHiZ,
                              const Tempest::StorageBuffer& pageList);
+    void setVsmSkyShadows(const Tempest::StorageImage& skyShadows);
     void setSwRenderingImage(const Tempest::StorageImage& mainView);
     void setHiZ(const Tempest::Texture2d& hiZ);
     void setSceneImages(const Tempest::Texture2d& clr, const Tempest::Texture2d& depthAux, const Tempest::ZBuffer& depthNative);

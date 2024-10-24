@@ -9,20 +9,28 @@
 #include "scene.glsl"
 #include "common.glsl"
 
+struct Epipole {
+  vec2  rayOrig;
+  vec2  rayDir;
+  float tMin;
+  float tMax;
+  };
+
 layout(local_size_x = 8, local_size_y = 8) in;
 
-// layout(binding = 0, r32ui) uniform uimage2D   result;
-layout(binding = 0, rgba8)  uniform image2D   result;
+layout(binding = 0, r32ui) uniform uimage2D   result;
+//layout(binding = 0, rgba8)  uniform image2D   result;
 layout(binding = 1, rgba8)  uniform image2D   rayData;
 layout(binding = 2, std140) uniform UboScene {
   SceneDesc scene;
   };
-layout(binding = 3)         uniform texture2D  depth;
+layout(binding = 3, std430) readonly buffer Ep0 { Epipole epipole[]; };
+layout(binding = 4)         uniform texture2D  depth;
 
 const float dFogMin      = 0;
 const float dFogMax      = 0.9999;
-      uint  NumSlices    = imageSize(rayData).x;
-      uint  NumSamples   = imageSize(rayData).y;
+      uint  NumSamples   = imageSize(rayData).x;
+      uint  NumSlices    = imageSize(rayData).y;
       ivec2 fragCoord    = ivec2(gl_GlobalInvocationID.xy);
       ivec2 viewportSize = textureSize(depth, 0);
 
@@ -41,6 +49,11 @@ vec4 screenToShadow4(vec3 scr) {
   //TODO: optimize
   const vec3  pos   = project(scene.viewProjectLwcInv, scr);
   const vec4  shPos = scene.viewVirtualShadowLwc*vec4(pos,1);
+  return shPos;
+  }
+
+vec4 wrldToShadow4(vec3 pos) {
+  const vec4  shPos = scene.viewVirtualShadow*vec4(pos,1);
   return shPos;
   }
 
@@ -75,6 +88,7 @@ vec2 rayOrigin() {
 
 uint sliceId() {
   const vec2  src   = rayOrigin();
+  const vec2  uv    = src*0.5+0.5;
   const float ratio = float(viewportSize.x)/float(viewportSize.x+viewportSize.y);
   const uint  hor   = int(0.5*ratio*NumSlices);
   const uint  vert  = int(NumSlices)/2 - hor;
@@ -83,56 +97,92 @@ uint sliceId() {
   if(src.x < src.y && src.x > -src.y) {
     // bottom
     dbgColor = vec4(0,1,0,0);
-    return rayId + uint(src.x * hor);
+    return rayId + uint(uv.x * hor);
     }
   rayId += hor;
 
   if(src.x > src.y && src.x < -src.y) {
     // top
     dbgColor = vec4(1,0,0,0);
-    return rayId + uint(src.x * hor);
+    return rayId + uint(uv.x * hor);
     }
   rayId += hor;
 
   if(src.x < src.y && src.x < -src.y) {
     // left
     dbgColor = vec4(0,0,1,0);
-    return rayId + uint(src.y * vert);
+    return rayId + uint(uv.y * vert);
     }
   rayId += vert;
 
   // right
   dbgColor = vec4(1,0,1,0);
-  return rayId + uint(src.y * vert);
+  return rayId + uint(uv.y * vert);
   }
 
 void trace(const vec2 inPos, const float z, ivec2 pix, const uint sliceId) {
-  const int   steps    = 32;
-  const float noise    = interleavedGradientNoise()/steps;
+  const int   steps  = 32;
+  const float noise  = interleavedGradientNoise()/steps;
 
   const vec4  shPos0 = screenToShadow4(vec3(inPos.xy,0));
   const vec4  shPos1 = screenToShadow4(vec3(inPos.xy,z));
 
-  //TODO
-  const float tMin    = 0; //-uintBitsToFloat(tMinUint);
-  const float tMax    = 1; //+uintBitsToFloat(tMaxUint);
-  const vec2  rayA    = vec2(0);
-  const vec2  rayDir  = vec2(0);
+  const Epipole e      = epipole[sliceId];
+  const float   tMin   = e.tMin;
+  const float   tMax   = e.tMax;
+  const vec2    rayA   = e.rayOrig;
+  const vec2    rayDir = e.rayDir;
 
   uint occlusion = 0;
   [[dont_unroll]]
   for(uint i=0; i<steps; ++i) {
     float t      = (i+0.3)/float(steps);
-    vec4  shPos  = mix(shPos0,shPos1,t+noise);
-    float shV    = dot(shPos.xy/shPos.z - rayA, rayDir) / (tMax-tMin);
+    vec4  shPos  = mix(shPos0, shPos1, t+noise);
+    //vec4  shPos  = shPos1;
+    float shV    = dot(shPos.xy/shPos.w - rayA, rayDir) / (tMax-tMin);
 
-    float sh     = imageLoad(rayData, ivec2(sliceId, shV*NumSamples)).x;
-    bool  shadow = (sh*shPos.w < shPos.z);
+    float sh     = imageLoad(rayData, ivec2(shV*NumSamples, sliceId)).x;
+    bool  shadow = (sh < shPos.z/shPos.w);
 
     occlusion = occlusion | ((shadow ? 1u : 0u) << uint(i));
+    if(i+1==steps) {
+      //float x    = dot(normalize(shPos.xy/shPos.w - rayA), rayDir);
+      //imageStore(result, pix, vec4(abs(x)*dbgColor));
+      //imageStore(result, pix, vec4(dbgColor));
+      //imageStore(result, pix, vec4(sh));
+      }
     }
 
-  imageStore(result, pix, vec4(bitCount(occlusion)/float(steps)));
+  //imageStore(result, pix, vec4(bitCount(occlusion)/float(steps)));
+  imageStore(result, pix, uvec4(occlusion));
+  }
+
+void dbgEpipole(const vec2 inPos, float z) {
+  const vec3 debugColors[] = {
+    vec3(1,1,1),
+    vec3(1,0,0),
+    vec3(0,1,0),
+    vec3(0,0,1),
+    vec3(1,1,0),
+    vec3(1,0,1),
+    vec3(0,1,1),
+    vec3(1,0.5,0),
+    vec3(0.5,1,0),
+    vec3(0,0.5,1),
+    };
+  const vec2 sun    = sunPosition2d();
+  const vec4 camPos = wrldToShadow4(scene.camPos);
+  const vec4 shPos1 = screenToShadow4(vec3(inPos, 1));
+
+  vec2 orig = camPos.xy/camPos.w;
+  vec2 dir  = shPos1.xy/shPos1.w - orig;
+
+  float a     = (atan(dir.y, dir.x)/M_PI)*0.5 + 0.5;
+  int   slice = int(a*NumSlices);
+  //imageStore(result, fragCoord, vec4(debugColors[slice % debugColors.length()], 1));
+
+  if(length(sun-inPos)<0.01)
+    ;//imageStore(result, fragCoord, vec4(1));
   }
 
 void main() {
@@ -142,6 +192,9 @@ void main() {
   const vec2  inPos = (vec2(fragCoord)/vec2(viewportSize))*2.0 - 1.0;
   const float z     = min(texelFetch(depth, fragCoord, 0).x, dFogMax);
   const uint  id    = sliceId();
+  // dbgEpipole(inPos, z);
   trace(inPos, z, fragCoord, id);
-  //imageStore(result, fragCoord, dbgColor);
+
+  //debug
+  //imageStore(result, fragCoord, vec4(float(id)/float(NumSlices)));
   }

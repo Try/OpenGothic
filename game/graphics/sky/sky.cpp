@@ -252,6 +252,7 @@ void Sky::updateLight(const int64_t now) {
     float ax  = 360-360*std::fmod(k+0.25f,1.f);
     ax = ax*float(M_PI/180.0);
     sun.setDir(-std::sin(ax)*shadowLength, pulse, std::cos(ax)*shadowLength);
+    //sun.setDir(0, 1, 0); //debug
   }
 
   static float sunMul = 1;
@@ -384,7 +385,12 @@ void Sky::prepareUniforms() {
     uboFog3d.set(0, fogLut3D,       smpB);
     uboFog3d.set(1, *scene.zbuffer, Sampler::nearest());
     uboFog3d.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
-    uboFog3d.set(3, occlusionLut);
+    if(quality==VolumetricHQVsm) {
+      // uboFog3d.set(3, occlusionLut);
+      uboFog3d.set(3, *scene.skyShadows);
+      } else {
+      uboFog3d.set(3, occlusionLut);
+      }
     }
 
   if(quality==PathTrace) {
@@ -461,15 +467,20 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
       cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
       break;
       }
-    case VolumetricHQ:
-    case VolumetricHQVsm: {
-      const bool vsm = (quality==VolumetricHQVsm);
+    case VolumetricHQ:{
+      const bool vsm = (quality==VolumetricHQVsm); //TODO: make vsm dedicated path
       auto& fogOcclusion = vsm ? Shaders::inst().fogOcclusionVsm : Shaders::inst().fogOcclusion;
 
       cmd.setFramebuffer({});
       cmd.setUniforms(fogOcclusion, uboOcclusion, &ubo, sizeof(ubo));
       cmd.dispatchThreads(occlusionLut.size());
 
+      cmd.setUniforms(Shaders::inst().fogViewLut3d, uboFogViewLut3d, &ubo, sizeof(ubo));
+      cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
+      break;
+      }
+    case VolumetricHQVsm: {
+      // shadows filled extenally
       cmd.setUniforms(Shaders::inst().fogViewLut3d, uboFogViewLut3d, &ubo, sizeof(ubo));
       cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
       break;

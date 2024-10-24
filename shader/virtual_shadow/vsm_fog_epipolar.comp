@@ -9,29 +9,38 @@
 #include "scene.glsl"
 #include "common.glsl"
 
+struct Epipole {
+  vec2  rayOrig;
+  vec2  rayDir;
+  float tMin;
+  float tMax;
+  };
+
 layout(local_size_x = 256) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
-// layout(binding = 0, r32ui) uniform uimage2D   result;
-layout(binding = 0, rgba8)  uniform image2D   result;
+layout(binding = 0, r32ui) uniform uimage2D   result;
+//layout(binding = 0, rgba8)  uniform image2D   result;
 layout(binding = 1, rgba8)  uniform image2D   rayData;
 layout(binding = 2, std140) uniform UboScene {
   SceneDesc scene;
   };
-layout(binding = 3)         uniform texture2D  depth;
-layout(binding = 4)         uniform utexture3D pageTbl;
-layout(binding = 5)         uniform texture2D  pageData;
+layout(binding = 3, std430) buffer Ep0 { Epipole epipole[]; };
+layout(binding = 4)         uniform texture2D  depth;
+layout(binding = 5)         uniform utexture3D pageTbl;
+layout(binding = 6)         uniform texture2D  pageData;
 
 const float dFogMin      = 0;
 const float dFogMax      = 0.9999;
-      uint  NumSlices    = imageSize(rayData).x;
-      uint  NumSamples   = imageSize(rayData).y;
+      uint  NumSamples   = imageSize(rayData).x;
+      uint  NumSlices    = imageSize(rayData).y;
       ivec2 fragCoord    = ivec2(gl_GlobalInvocationID.xy);
       ivec2 viewportSize = textureSize(depth, 0);
 
-shared vec2 rayA, rayDir;
+shared vec2 rayOrig, rayDir;
 shared uint tMinUint, tMaxUint;
+shared uint tDbg;
 
 vec4 dbgColor = vec4(0,1,0,0);
 
@@ -45,10 +54,6 @@ float shadowTexelFetch(vec2 shPos0) {
   if(any(greaterThan(abs(page), vec2(1))))
     return 0;
   return shadowTexelFetch(page, mip, pageTbl, pageData);
-  }
-
-bool shadowFactor(vec4 shPos) {
-  return false;
   }
 
 vec3 project(mat4 m, vec3 pos) {
@@ -68,6 +73,11 @@ vec3 screenToShadow(vec3 scr) {
   return shPos.xyz/shPos.w;
   }
 
+vec4 wrldToShadow4(vec3 pos) {
+  const vec4  shPos = scene.viewVirtualShadow*vec4(pos,1);
+  return shPos;
+  }
+
 vec2 sunPosition2d() {
   vec3 sun = scene.sunDir;
   sun = (scene.viewProject*vec4(sun,0)).xyz;
@@ -84,38 +94,43 @@ vec2 rayPosition2d() {
 
   if(rayId<hor) {
     // bottom
-    dbgColor = vec4(0,1,0,0);
+    dbgColor = vec4(0,1,0,0)*((rayId+0.5)/float(hor));
     return vec2((rayId+0.5)/float(hor), float(viewportSize.y-0.5)/float(viewportSize.y));
     }
   rayId -= hor;
 
   if(rayId<hor) {
     // top
-    dbgColor = vec4(1,0,0,0);
+    dbgColor = vec4(1,0,0,0)*((rayId+0.5)/float(hor));
     return vec2((rayId+0.5)/float(hor), float(0.5)/float(viewportSize.y));
     }
   rayId -= hor;
 
   if(rayId<vert) {
     // left
-    dbgColor = vec4(0,0,1,0);
+    dbgColor = vec4(0,0,1,0)*(rayId+0.5)/float(vert);
     return vec2(float(0.5)/float(viewportSize.x), (rayId+0.5)/float(vert));
     }
   rayId -= vert;
 
   // right
-  dbgColor = vec4(1,0,1,0);
+  dbgColor = vec4(1,0,1,0)*(rayId+0.5)/float(vert);
   return vec2(float(viewportSize.x-0.5)/float(viewportSize.x), (rayId+0.5)/float(vert));
   }
 
 void minMaxRayT(const vec2 rposIn) {
-  const vec2  rpos = rposIn - rayA;
+  const vec2  rpos = rposIn - rayOrig;
   const float t    = dot(rpos, rayDir);
-  if(t>=0) {
-    atomicMax(tMaxUint, floatBitsToUint(+t));
-    } else {
-    atomicMax(tMinUint, floatBitsToUint(-t));
+  if(t<0) {
+    // atomicAdd(tDbg, 1);
+    return; // error
     }
+
+  atomicMax(tMaxUint, floatBitsToUint(t));
+  atomicMin(tMinUint, floatBitsToUint(t));
+
+  //float d = abs(dot(normalize(rpos), rayDir));
+  //atomicMin(tDbg, floatBitsToUint(d));
   }
 
 void trace(const vec2 src, const vec2 dst) {
@@ -125,15 +140,16 @@ void trace(const vec2 src, const vec2 dst) {
   const int  steps = int(max(avec.x, avec.y));
 
   if(lane==0) {
-    tMinUint = floatBitsToUint(0);
+    tMinUint = 0xFFFFFFFF;
     tMaxUint = floatBitsToUint(0);
+    //tDbg     = floatBitsToUint(1);
 
-    const vec2 inPos  = src*0.5-0.5;
-    const vec2 shPos0 = screenToShadow(vec3(inPos, 0)).xy;
-    const vec2 shPos1 = screenToShadow(vec3(inPos, 1)).xy;
+    const vec2 inPos  = src*2.0-1.0;
+    const vec4 camPos = wrldToShadow4(scene.camPos);
+    const vec2 shPos1 = screenToShadow(vec3(inPos, dFogMax)).xy;
 
-    rayA   = shPos0;
-    rayDir = normalize(shPos1 - shPos0);
+    rayOrig = camPos.xy/camPos.w;
+    rayDir  = normalize(shPos1 - rayOrig);
     }
   barrier();
 
@@ -142,7 +158,7 @@ void trace(const vec2 src, const vec2 dst) {
     const vec2  pix = mix(src, dst, a);
     const float z   = min(texelFetch(depth, ivec2(pix*viewportSize), 0).x, dFogMax);
 
-    const vec2  inPos  = pix*0.5-0.5;
+    const vec2  inPos  = pix*2.0-1.0;
     const vec2  shPos0 = screenToShadow(vec3(inPos, 0)).xy;
     const vec2  shPos1 = screenToShadow(vec3(inPos, z)).xy;
 
@@ -150,19 +166,28 @@ void trace(const vec2 src, const vec2 dst) {
     minMaxRayT(shPos1);
 
     //imageStore(result, ivec2(pix*viewportSize), dbgColor);
+    //imageStore(result, ivec2(pix*viewportSize), vec4(dbg0, dbg1, 1, 1));
     }
   barrier();
 
-  const float tMin = -uintBitsToFloat(tMinUint);
-  const float tMax = +uintBitsToFloat(tMaxUint);
+  const float tMin    = uintBitsToFloat(tMinUint);
+  const float tMax    = uintBitsToFloat(tMaxUint);
+  const uint  sliceId = gl_WorkGroupID.x;
+
+  if(true && lane==0) {
+    epipole[sliceId].rayOrig = rayOrig;
+    epipole[sliceId].rayDir  = rayDir;
+    epipole[sliceId].tMin    = tMin;
+    epipole[sliceId].tMax    = tMax;
+    }
+
   for(uint i=lane; i<NumSamples; i+=NumThreads) {
     const float a     = (i+0.5)/float(NumSamples);
-    const float t     = tMin + a*(tMax-tMin);
-    const vec2  shPos = rayA + t*rayDir;
+    const float t     = tMin    + a*(tMax-tMin);
+    const vec2  shPos = rayOrig + t*rayDir;
+    const float sh    = shadowTexelFetch(shPos);
 
-    const float sh      = shadowTexelFetch(shPos);
-    const uint  sliceId = gl_WorkGroupID.x;
-    imageStore(rayData, ivec2(sliceId, i), vec4(sh));
+    imageStore(rayData, ivec2(i, sliceId), vec4(sh));
 
     //const int   mip   = vsmCalcMipIndexFog(shPos.xy);
     //imageStore(rayData, ivec2(rayId, i), vec4(mip/10.0));
@@ -185,15 +210,15 @@ void dbgScattering(const vec3 inPos, ivec2 pix) {
   for(uint i=0; i<steps; ++i) {
     float t      = (i+0.3)/float(steps);
     vec4  shPos  = mix(shPos0,shPos1,t+noise);
-    float shV    = dot(shPos.xy/shPos.z - rayA, rayDir) / (tMax-tMin);
+    float shV    = dot(shPos.xy/shPos.w - rayOrig, rayDir) / (tMax-tMin);
 
-    float sh     = imageLoad(rayData, ivec2(sliceId, shV*NumSamples)).x;
+    float sh     = imageLoad(rayData, ivec2(shV*NumSamples, sliceId)).x;
     bool  shadow = (sh*shPos.w < shPos.z); //shadowFactor(shPos);
 
     occlusion = occlusion | ((shadow ? 1u : 0u) << uint(i));
     }
 
-  imageStore(result, pix, vec4(bitCount(occlusion)/float(steps)));
+  //imageStore(result, pix, vec4(bitCount(occlusion)/float(steps)));
   }
 
 void dbgScattering(const vec2 src, const vec2 dst) {
@@ -217,6 +242,7 @@ void dbgScattering(const vec2 src, const vec2 dst) {
     dbgScattering(vec3(inPos,z), ivec2(pix*viewportSize));
     }
   }
+
 
 void main() {
   vec2 rpos = rayPosition2d();
@@ -244,5 +270,5 @@ void main() {
     }
 
   trace(rpos, sun);
-  dbgScattering(rpos, sun);
+  // dbgScattering(rpos, sun);
   }

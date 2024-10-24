@@ -233,6 +233,7 @@ class Renderer final {
 
       Tempest::StorageImage     ssTrace;
       Tempest::StorageImage     epTrace;
+      Tempest::StorageBuffer    epipoles;
       } vsm;
 
     struct {

@@ -93,6 +93,10 @@ void WorldView::setVirtualShadowMap(const Tempest::ZBuffer&       pageData,
   sGlobal.setVirtualShadowMap(pageData, pageDataCs, pageTbl, pageHiZ, pageList);
   }
 
+void WorldView::setVsmSkyShadows(const Tempest::StorageImage& skyShadows) {
+  sGlobal.setVsmSkyShadows(skyShadows);
+  }
+
 void WorldView::setSwRenderingImage(const Tempest::StorageImage& mainView) {
   sGlobal.setSwRenderingImage(mainView);
   }

@@ -213,8 +213,10 @@ void Renderer::resetSwapchain() {
     vsm.pageData        = device.zbuffer(shadowFormat, 8192, 8192);
     // vsm.pageDataCs      = device.image2d(TextureFormat::R32U, 4096, 4096);
 
-    vsm.ssTrace = device.image2d(TextureFormat::RGBA8, w, h);
-    vsm.epTrace = device.image2d(TextureFormat::RGBA8, 1024, 512);
+    // vsm.ssTrace  = device.image2d(TextureFormat::RGBA8, w, h);
+    vsm.ssTrace  = device.image2d(TextureFormat::R32U, w, h);
+    vsm.epTrace  = device.image2d(TextureFormat::R16, 512, 2*1024);
+    vsm.epipoles = device.ssbo(nullptr, uint32_t(vsm.epTrace.h())*6*sizeof(float));
 
     const int32_t VSM_PAGE_SIZE = 128;
     auto pageCount      = uint32_t(vsm.pageData.w()/VSM_PAGE_SIZE) * uint32_t(vsm.pageData.h()/VSM_PAGE_SIZE);
@@ -478,14 +480,16 @@ void Renderer::prepareUniforms() {
     vsm.uboEpipole.set(0, vsm.ssTrace);
     vsm.uboEpipole.set(1, vsm.epTrace);
     vsm.uboEpipole.set(2, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    vsm.uboEpipole.set(3, zbuffer);
-    vsm.uboEpipole.set(4, vsm.pageTbl);
-    vsm.uboEpipole.set(5, vsm.pageData);
+    vsm.uboEpipole.set(3, vsm.epipoles);
+    vsm.uboEpipole.set(4, zbuffer);
+    vsm.uboEpipole.set(5, vsm.pageTbl);
+    vsm.uboEpipole.set(6, vsm.pageData);
 
     vsm.uboFogShadow.set(0, vsm.ssTrace);
     vsm.uboFogShadow.set(1, vsm.epTrace);
     vsm.uboFogShadow.set(2, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    vsm.uboFogShadow.set(3, zbuffer);
+    vsm.uboFogShadow.set(3, vsm.epipoles);
+    vsm.uboFogShadow.set(4, zbuffer);
 
     vsm.uboClump.set(0, vsm.pageList);
     vsm.uboClump.set(1, vsm.pageTbl);
@@ -528,6 +532,7 @@ void Renderer::prepareUniforms() {
       }
   wview->setShadowMaps(sh);
   wview->setVirtualShadowMap(vsm.pageData, vsm.pageDataCs, vsm.pageTbl, vsm.pageHiZ, vsm.pageList);
+  wview->setVsmSkyShadows(vsm.ssTrace);
   wview->setSwRenderingImage(swr.outputImage);
 
   wview->setHiZ(textureCast<const Texture2d&>(hiz.hiZ));
@@ -606,7 +611,8 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   //tex.push_back(&textureCast(hiz.hiZSm1));
   //tex.push_back(&textureCast(shadowMap[1]));
   //tex.push_back(&textureCast<const Texture2d&>(shadowMap[0]));
-  tex.push_back(&textureCast<const Texture2d&>(vsm.pageData));
+  //tex.push_back(&textureCast<const Texture2d&>(vsm.pageData));
+  tex.push_back(&textureCast<const Texture2d&>(vsm.ssTrace));
 
   static int size = 400;
   int left = 10;
@@ -939,7 +945,7 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     cmd.setFramebuffer({});
     cmd.setDebugMarker("VSM-epipolar");
     cmd.setUniforms(shaders.vsmFogEpipolar, vsm.uboEpipole);
-    cmd.dispatch(uint32_t(vsm.epTrace.w()));
+    cmd.dispatch(uint32_t(vsm.epTrace.h()));
 
     cmd.setDebugMarker("VSM-epipolar-fog");
     cmd.setUniforms(shaders.vsmFogShadow, vsm.uboFogShadow);
