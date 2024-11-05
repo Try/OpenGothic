@@ -202,7 +202,6 @@ void Renderer::resetSwapchain() {
     vsm.uboFogShadow    = device.descriptors(Shaders::inst().vsmFogShadow);
     vsm.uboClump        = device.descriptors(Shaders::inst().vsmClumpPages);
     vsm.uboAlloc        = device.descriptors(Shaders::inst().vsmAllocPages);
-    vsm.uboReproj       = device.descriptors(Shaders::inst().vsmReprojectSm);
 
     vsm.directLightPso  = &Shaders::inst().vsmDirectLight;
     vsm.pagesDbgPso     = &Shaders::inst().vsmDbg;
