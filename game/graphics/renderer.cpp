@@ -944,15 +944,6 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     cmd.setUniforms(shaders.vsmFogShadow, vsm.uboFogShadow);
     cmd.dispatchThreads(zbuffer.size());
     }
-
-  if(false) {
-    cmd.setDebugMarker("VSM-reproject");
-    cmd.setFramebuffer({}, {shadowMap[1], 0.f, Tempest::Preserve});
-    auto viewShadowLwcInv = shadowMatrix[1];
-    viewShadowLwcInv.inverse();
-    cmd.setUniforms(shaders.vsmReprojectSm, vsm.uboReproj, &viewShadowLwcInv, sizeof(viewShadowLwcInv));
-    cmd.draw(Resources::fsqVbo());
-    }
   }
 
 void Renderer::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
