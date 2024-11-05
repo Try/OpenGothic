@@ -45,16 +45,16 @@ vec3 project(mat4 m, vec3 pos) {
   return p.xyz/p.w;
   }
 
-vec4 screenToShadow4(vec3 scr) {
+vec3 screenToShadow(vec3 scr) {
   //TODO: optimize
-  const vec3  pos   = project(scene.viewProjectLwcInv, scr);
-  const vec4  shPos = scene.viewVirtualShadowLwc*vec4(pos,1);
-  return shPos;
+  const vec4 pos   = scene.viewProjectLwcInv   *vec4(scr,1);
+  const vec4 shPos = scene.viewVirtualShadowLwc*pos;
+  return shPos.xyz/shPos.w;
   }
 
-vec4 wrldToShadow4(vec3 pos) {
-  const vec4  shPos = scene.viewVirtualShadow*vec4(pos,1);
-  return shPos;
+vec3 wrldToShadow(vec3 pos) {
+  const vec4 shPos = scene.viewVirtualShadow*vec4(pos,1);
+  return shPos.xyz/shPos.w;
   }
 
 vec2 sunPosition2d() {
@@ -124,8 +124,8 @@ void trace(const vec2 inPos, const float z, ivec2 pix, const uint sliceId) {
   const int   steps  = 32;
   const float noise  = interleavedGradientNoise()/steps;
 
-  const vec4  shPos0 = screenToShadow4(vec3(inPos.xy,0));
-  const vec4  shPos1 = screenToShadow4(vec3(inPos.xy,z));
+  const vec3 shPos0 = screenToShadow(vec3(inPos.xy,0));
+  const vec3 shPos1 = screenToShadow(vec3(inPos.xy,z));
 
   const Epipole e      = epipole[sliceId];
   const float   tMin   = e.tMin;
@@ -137,12 +137,12 @@ void trace(const vec2 inPos, const float z, ivec2 pix, const uint sliceId) {
   [[dont_unroll]]
   for(uint i=0; i<steps; ++i) {
     float t      = (i+0.3)/float(steps);
-    vec4  shPos  = mix(shPos0, shPos1, t+noise);
+    vec3  shPos  = mix(shPos0, shPos1, t+noise);
     //vec4  shPos  = shPos1;
-    float shV    = dot(shPos.xy/shPos.w - rayA, rayDir) / (tMax-tMin);
+    float shV    = dot(shPos.xy - rayA, rayDir) / (tMax-tMin);
 
     float sh     = imageLoad(rayData, ivec2(shV*NumSamples, sliceId)).x;
-    bool  shadow = (sh < shPos.z/shPos.w);
+    bool  shadow = (sh < shPos.z);
 
     occlusion = occlusion | ((shadow ? 1u : 0u) << uint(i));
     if(i+1==steps) {
@@ -171,11 +171,11 @@ void dbgEpipole(const vec2 inPos, float z) {
     vec3(0,0.5,1),
     };
   const vec2 sun    = sunPosition2d();
-  const vec4 camPos = wrldToShadow4(scene.camPos);
-  const vec4 shPos1 = screenToShadow4(vec3(inPos, 1));
+  const vec3 camPos = wrldToShadow(scene.camPos);
+  const vec3 shPos1 = screenToShadow(vec3(inPos, 1));
 
-  vec2 orig = camPos.xy/camPos.w;
-  vec2 dir  = shPos1.xy/shPos1.w - orig;
+  vec2 orig = camPos.xy;
+  vec2 dir  = shPos1.xy - orig;
 
   float a     = (atan(dir.y, dir.x)/M_PI)*0.5 + 0.5;
   int   slice = int(a*NumSlices);

@@ -81,7 +81,6 @@ class Shaders {
     Tempest::ComputePipeline vsmPackDraw0, vsmPackDraw1;
     Tempest::ComputePipeline vsmFogEpipolar, vsmFogShadow;
     Tempest::RenderPipeline  vsmDirectLight;
-    Tempest::RenderPipeline  vsmReprojectSm;
     Tempest::RenderPipeline  vsmDbg;
 
     Tempest::ComputePipeline vsmRendering;

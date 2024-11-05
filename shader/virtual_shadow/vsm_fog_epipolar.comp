@@ -56,26 +56,16 @@ float shadowTexelFetch(vec2 shPos0) {
   return shadowTexelFetch(page, mip, pageTbl, pageData);
   }
 
-vec3 project(mat4 m, vec3 pos) {
-  vec4 p = m*vec4(pos,1);
-  return p.xyz/p.w;
-  }
-
-vec4 screenToShadow4(vec3 scr) {
-  //TODO: optimize
-  const vec3  pos   = project(scene.viewProjectLwcInv, scr);
-  const vec4  shPos = scene.viewVirtualShadowLwc*vec4(pos,1);
-  return shPos;
-  }
-
 vec3 screenToShadow(vec3 scr) {
-  const vec4 shPos = screenToShadow4(scr);
+  //TODO: optimize
+  const vec4  pos   = scene.viewProjectLwcInv   *vec4(scr,1);
+  const vec4  shPos = scene.viewVirtualShadowLwc*pos;
   return shPos.xyz/shPos.w;
   }
 
-vec4 wrldToShadow4(vec3 pos) {
+vec3 wrldToShadow(vec3 pos) {
   const vec4  shPos = scene.viewVirtualShadow*vec4(pos,1);
-  return shPos;
+  return shPos.xyz/shPos.w;
   }
 
 vec2 sunPosition2d() {
@@ -145,10 +135,10 @@ void trace(const vec2 src, const vec2 dst) {
     //tDbg     = floatBitsToUint(1);
 
     const vec2 inPos  = src*2.0-1.0;
-    const vec4 camPos = wrldToShadow4(scene.camPos);
+    const vec3 camPos = wrldToShadow(scene.camPos);
     const vec2 shPos1 = screenToShadow(vec3(inPos, dFogMax)).xy;
 
-    rayOrig = camPos.xy/camPos.w;
+    rayOrig = camPos.xy;
     rayDir  = normalize(shPos1 - rayOrig);
     }
   barrier();
@@ -198,8 +188,8 @@ void dbgScattering(const vec3 inPos, ivec2 pix) {
   const int   steps    = 32;
   const float noise    = interleavedGradientNoise()/steps;
 
-  const vec4  shPos0 = screenToShadow4(vec3(inPos.xy,0));
-  const vec4  shPos1 = screenToShadow4(vec3(inPos.xyz));
+  const vec3  shPos0 = screenToShadow(vec3(inPos.xy,0));
+  const vec3  shPos1 = screenToShadow(vec3(inPos.xyz));
 
   const float tMin    = -uintBitsToFloat(tMinUint);
   const float tMax    = +uintBitsToFloat(tMaxUint);
@@ -209,11 +199,11 @@ void dbgScattering(const vec3 inPos, ivec2 pix) {
   [[dont_unroll]]
   for(uint i=0; i<steps; ++i) {
     float t      = (i+0.3)/float(steps);
-    vec4  shPos  = mix(shPos0,shPos1,t+noise);
-    float shV    = dot(shPos.xy/shPos.w - rayOrig, rayDir) / (tMax-tMin);
+    vec3  shPos  = mix(shPos0,shPos1,t+noise);
+    float shV    = dot(shPos.xy - rayOrig, rayDir) / (tMax-tMin);
 
     float sh     = imageLoad(rayData, ivec2(shV*NumSamples, sliceId)).x;
-    bool  shadow = (sh*shPos.w < shPos.z); //shadowFactor(shPos);
+    bool  shadow = (sh < shPos.z); //shadowFactor(shPos);
 
     occlusion = occlusion | ((shadow ? 1u : 0u) << uint(i));
     }

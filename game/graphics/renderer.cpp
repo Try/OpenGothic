@@ -144,7 +144,7 @@ void Renderer::resetSwapchain() {
 
   if(smSize>0) {
     for(int i=0; i<Resources::ShadowLayers; ++i) {
-      if(settings.vsmEnabled && (i+1)!=Resources::ShadowLayers)
+      if(settings.vsmEnabled)
         continue;
       if(settings.vsmEnabled && !settings.giEnabled)
         ;//continue; //TODO: support vsm in gi code
@@ -508,13 +508,6 @@ void Renderer::prepareUniforms() {
       vsm.uboLight.set(6, vsm.pageDataCs); else
       vsm.uboLight.set(6, vsm.pageData);
     vsm.uboLight.set(8, wview->sceneGlobals().vsmDbg);
-
-    vsm.uboReproj.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    vsm.uboReproj.set(1, vsm.pageTbl);
-    vsm.uboReproj.set(2, vsm.pageList);
-    if(!vsm.pageDataCs.isEmpty())
-      vsm.uboReproj.set(3, vsm.pageDataCs); else
-      vsm.uboReproj.set(3, vsm.pageData);
     }
 
   if(settings.swrEnabled) {

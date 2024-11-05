@@ -215,18 +215,6 @@ Shaders::Shaders() {
     // vsmReprojectSm = postEffect("copy", "vsm_reproject_sm", RenderState::ZTestMode::Always);
     vsmDbg          = postEffect("copy", "vsm_dbg", RenderState::ZTestMode::Always);
     vsmRendering    = computeShader("vsm_rendering.comp.sprv");
-    {
-      RenderState state;
-      state.setZWriteEnabled(true);
-      state.setZTestMode   (RenderState::ZTestMode::Always);
-      state.setCullFaceMode (RenderState::CullMode::Front);
-
-      auto sh = GothicShader::get("copy.vert.sprv");
-      auto vs = device.shader(sh.data,sh.len);
-      sh = GothicShader::get("vsm_reproject_sm.frag.sprv");
-      auto fs = device.shader(sh.data,sh.len);
-      vsmReprojectSm = device.pipeline(Triangles,state,vs,fs);
-    }
     }
 
   if(Gothic::options().swRenderingPreset>0) {
