@@ -497,14 +497,6 @@ void Renderer::prepareUniforms() {
     vsm.uboFogSample.set(3, vsm.epipoles);
     vsm.uboFogSample.set(4, zbuffer);
 
-    vsm.uboFog2.set(0, vsm.fog2);
-    vsm.uboFog2.set(1, vsm.epTrace);
-    vsm.uboFog2.set(2, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    vsm.uboFog2.set(3, vsm.epipoles);
-    vsm.uboFog2.set(4, zbuffer);
-    vsm.uboFog2.set(5, vsm.pageTbl);
-    vsm.uboFog2.set(6, vsm.pageData);
-
     vsm.uboClump.set(0, vsm.pageList);
     vsm.uboClump.set(1, vsm.pageTbl);
 
