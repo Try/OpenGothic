@@ -211,7 +211,6 @@ Shaders::Shaders() {
     vsmFogEpipolar  = computeShader("vsm_fog_epipolar.comp.sprv");
     vsmFogShadow    = computeShader("vsm_fog_shadow.comp.sprv");
     vsmFogSample    = computeShader("vsm_fog_sample.comp.sprv");
-    vsmFog2         = computeShader("vsm_fog_2.comp.sprv");
 
     vsmDirectLight  = postEffect("copy", "direct_light_vsm", RenderState::ZTestMode::NoEqual);
     vsmDbg          = postEffect("copy", "vsm_dbg", RenderState::ZTestMode::Always);
