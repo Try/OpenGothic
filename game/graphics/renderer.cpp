@@ -200,6 +200,7 @@ void Renderer::resetSwapchain() {
     vsm.uboPages        = device.descriptors(Shaders::inst().vsmMarkPages);
     vsm.uboEpipole      = device.descriptors(Shaders::inst().vsmFogEpipolar);
     vsm.uboFogShadow    = device.descriptors(Shaders::inst().vsmFogShadow);
+    vsm.uboFogSample    = device.descriptors(Shaders::inst().vsmFogSample);
     vsm.uboClump        = device.descriptors(Shaders::inst().vsmClumpPages);
     vsm.uboAlloc        = device.descriptors(Shaders::inst().vsmAllocPages);
 
@@ -214,7 +215,7 @@ void Renderer::resetSwapchain() {
 
     // vsm.ssTrace  = device.image2d(TextureFormat::RGBA8, w, h);
     vsm.ssTrace  = device.image2d(TextureFormat::R32U, w, h);
-    vsm.epTrace  = device.image2d(TextureFormat::R16, 512, 2*1024);
+    vsm.epTrace  = device.image2d(TextureFormat::R16, 2048, 2*1024);
     vsm.epipoles = device.ssbo(nullptr, uint32_t(vsm.epTrace.h())*6*sizeof(float));
 
     const int32_t VSM_PAGE_SIZE = 128;
@@ -484,11 +485,25 @@ void Renderer::prepareUniforms() {
     vsm.uboEpipole.set(5, vsm.pageTbl);
     vsm.uboEpipole.set(6, vsm.pageData);
 
-    vsm.uboFogShadow.set(0, vsm.ssTrace);
-    vsm.uboFogShadow.set(1, vsm.epTrace);
-    vsm.uboFogShadow.set(2, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    vsm.uboFogShadow.set(3, vsm.epipoles);
-    vsm.uboFogShadow.set(4, zbuffer);
+    vsm.uboFogShadow.set(0, vsm.epTrace);
+    vsm.uboFogShadow.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    vsm.uboFogShadow.set(2, vsm.epipoles);
+    vsm.uboFogShadow.set(3, vsm.pageTbl);
+    vsm.uboFogShadow.set(4, vsm.pageData);
+
+    vsm.uboFogSample.set(0, vsm.ssTrace);
+    vsm.uboFogSample.set(1, vsm.epTrace);
+    vsm.uboFogSample.set(2, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    vsm.uboFogSample.set(3, vsm.epipoles);
+    vsm.uboFogSample.set(4, zbuffer);
+
+    vsm.uboFog2.set(0, vsm.fog2);
+    vsm.uboFog2.set(1, vsm.epTrace);
+    vsm.uboFog2.set(2, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    vsm.uboFog2.set(3, vsm.epipoles);
+    vsm.uboFog2.set(4, zbuffer);
+    vsm.uboFog2.set(5, vsm.pageTbl);
+    vsm.uboFog2.set(6, vsm.pageData);
 
     vsm.uboClump.set(0, vsm.pageList);
     vsm.uboClump.set(1, vsm.pageTbl);
@@ -933,7 +948,7 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.setFramebuffer({}, {vsm.pageData, 0.f, Tempest::Preserve});
   wview.drawVsm(cmd,fId);
 
-  if(true) {
+  if(Gothic::inst().options().doVirtualFog) {
     cmd.setFramebuffer({});
     cmd.setDebugMarker("VSM-epipolar");
     cmd.setUniforms(shaders.vsmFogEpipolar, vsm.uboEpipole);
@@ -941,6 +956,10 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
 
     cmd.setDebugMarker("VSM-epipolar-fog");
     cmd.setUniforms(shaders.vsmFogShadow, vsm.uboFogShadow);
+    cmd.dispatchThreads(vsm.epTrace.size());
+
+    cmd.setDebugMarker("VSM-epipolar-fog");
+    cmd.setUniforms(shaders.vsmFogSample, vsm.uboFogSample);
     cmd.dispatchThreads(zbuffer.size());
     }
   }

@@ -48,14 +48,6 @@ float interleavedGradientNoise() {
   return interleavedGradientNoise(fragCoord.xy);
   }
 
-float shadowTexelFetch(vec2 shPos0) {
-  int   mip    = vsmCalcMipIndexFog(shPos0.xy);
-  vec2  page   = shPos0.xy / (1 << mip);
-  if(any(greaterThan(abs(page), vec2(1))))
-    return 0;
-  return shadowTexelFetch(page, mip, pageTbl, pageData);
-  }
-
 vec3 screenToShadow(vec3 scr) {
   //TODO: optimize
   const vec4  pos   = scene.viewProjectLwcInv   *vec4(scr,1);
@@ -170,69 +162,7 @@ void trace(const vec2 src, const vec2 dst) {
     epipole[sliceId].tMin    = tMin;
     epipole[sliceId].tMax    = tMax;
     }
-
-  for(uint i=lane; i<NumSamples; i+=NumThreads) {
-    const float a     = (i+0.5)/float(NumSamples);
-    const float t     = tMin    + a*(tMax-tMin);
-    const vec2  shPos = rayOrig + t*rayDir;
-    const float sh    = shadowTexelFetch(shPos);
-
-    imageStore(rayData, ivec2(i, sliceId), vec4(sh));
-
-    //const int   mip   = vsmCalcMipIndexFog(shPos.xy);
-    //imageStore(rayData, ivec2(rayId, i), vec4(mip/10.0));
-    }
   }
-
-void dbgScattering(const vec3 inPos, ivec2 pix) {
-  const int   steps    = 32;
-  const float noise    = interleavedGradientNoise()/steps;
-
-  const vec3  shPos0 = screenToShadow(vec3(inPos.xy,0));
-  const vec3  shPos1 = screenToShadow(vec3(inPos.xyz));
-
-  const float tMin    = -uintBitsToFloat(tMinUint);
-  const float tMax    = +uintBitsToFloat(tMaxUint);
-  const uint  sliceId = gl_WorkGroupID.x;
-
-  uint occlusion = 0;
-  [[dont_unroll]]
-  for(uint i=0; i<steps; ++i) {
-    float t      = (i+0.3)/float(steps);
-    vec3  shPos  = mix(shPos0,shPos1,t+noise);
-    float shV    = dot(shPos.xy - rayOrig, rayDir) / (tMax-tMin);
-
-    float sh     = imageLoad(rayData, ivec2(shV*NumSamples, sliceId)).x;
-    bool  shadow = (sh < shPos.z); //shadowFactor(shPos);
-
-    occlusion = occlusion | ((shadow ? 1u : 0u) << uint(i));
-    }
-
-  //imageStore(result, pix, vec4(bitCount(occlusion)/float(steps)));
-  }
-
-void dbgScattering(const vec2 src, const vec2 dst) {
-  memoryBarrierImage();
-  barrier();
-
-  const uint lane  = gl_LocalInvocationIndex;
-  const vec2 vec   = dst - src;
-  const vec2 avec  = abs(vec*viewportSize);
-  const int  steps = int(max(avec.x, avec.y));
-
-  for(uint i=lane; i<steps; i+=NumThreads) {
-    const float a   = (i+0.5)/float(steps);
-    const vec2  pix = mix(src, dst, a);
-    const float z   = min(texelFetch(depth, ivec2(pix*viewportSize), 0).x, dFogMax);
-
-    const vec2  inPos  = pix*0.5-0.5;
-    const vec3  shPos0 = screenToShadow(vec3(inPos, 0));
-    const vec3  shPos1 = screenToShadow(vec3(inPos, z));
-
-    dbgScattering(vec3(inPos,z), ivec2(pix*viewportSize));
-    }
-  }
-
 
 void main() {
   vec2 rpos = rayPosition2d();
@@ -260,5 +190,4 @@ void main() {
     }
 
   trace(rpos, sun);
-  // dbgScattering(rpos, sun);
   }

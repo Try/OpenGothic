@@ -385,8 +385,7 @@ void Sky::prepareUniforms() {
     uboFog3d.set(0, fogLut3D,       smpB);
     uboFog3d.set(1, *scene.zbuffer, Sampler::nearest());
     uboFog3d.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
-    if(quality==VolumetricHQVsm) {
-      // uboFog3d.set(3, occlusionLut);
+    if(quality==VolumetricHQVsm && Gothic::inst().options().doVirtualFog) {
       uboFog3d.set(3, *scene.skyShadows);
       } else {
       uboFog3d.set(3, occlusionLut);
@@ -468,11 +467,8 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
       break;
       }
     case VolumetricHQ:{
-      const bool vsm = (quality==VolumetricHQVsm); //TODO: make vsm dedicated path
-      auto& fogOcclusion = vsm ? Shaders::inst().fogOcclusionVsm : Shaders::inst().fogOcclusion;
-
       cmd.setFramebuffer({});
-      cmd.setUniforms(fogOcclusion, uboOcclusion, &ubo, sizeof(ubo));
+      cmd.setUniforms(Shaders::inst().fogOcclusion, uboOcclusion, &ubo, sizeof(ubo));
       cmd.dispatchThreads(occlusionLut.size());
 
       cmd.setUniforms(Shaders::inst().fogViewLut3d, uboFogViewLut3d, &ubo, sizeof(ubo));
@@ -480,6 +476,11 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
       break;
       }
     case VolumetricHQVsm: {
+      if(!Gothic::inst().options().doVirtualFog) {
+        cmd.setFramebuffer({});
+        cmd.setUniforms(Shaders::inst().fogOcclusionVsm, uboOcclusion, &ubo, sizeof(ubo));
+        cmd.dispatchThreads(occlusionLut.size());
+        }
       // shadows filled extenally
       cmd.setUniforms(Shaders::inst().fogViewLut3d, uboFogViewLut3d, &ubo, sizeof(ubo));
       cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
