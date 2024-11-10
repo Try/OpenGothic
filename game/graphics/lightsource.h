@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Tempest/Point>
-#include <array>
 #include <vector>
 
 #include <glm/vec4.hpp>

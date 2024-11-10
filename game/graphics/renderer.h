@@ -88,7 +88,7 @@ class Renderer final {
 
       float          vidResIndex        = 0;
 
-      float          vsmMipBias         = -0.25;
+      float          vsmMipBias         = 0.25; //TODO: set to lower, eventually
       } settings;
 
     Frustrum                  frustrum[SceneGlobals::V_Count];
@@ -217,6 +217,7 @@ class Renderer final {
       Tempest::DescriptorSet    uboClearPages;
       Tempest::DescriptorSet    uboPages;
       Tempest::DescriptorSet    uboReproj;
+      Tempest::DescriptorSet    uboEpipole, uboFogSample, uboFogShadow;
 
       Tempest::DescriptorSet    uboClump, uboAlloc;
 
@@ -229,6 +230,10 @@ class Renderer final {
       Tempest::StorageImage     pageDataCs;
       Tempest::ZBuffer          pageData;
       Tempest::StorageBuffer    pageList;
+
+      Tempest::StorageImage     ssTrace;
+      Tempest::StorageImage     epTrace;
+      Tempest::StorageBuffer    epipoles;
       } vsm;
 
     struct {

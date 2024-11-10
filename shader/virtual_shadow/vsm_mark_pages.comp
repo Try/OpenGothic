@@ -113,6 +113,21 @@ void flushHiZ() {
   }
 #endif
 
+float lambert(vec3 normal) {
+  return max(0.0, dot(scene.sunDir,normal));
+  }
+
+int shadowLod(vec2 dx, vec2 dy) {
+  float px     = dot(dx, dx);
+  float py     = dot(dy, dy);
+  float maxLod = 0.5 * log2(max(px, py)); // log2(sqrt()) = 0.5*log2()
+  float minLod = 0.5 * log2(min(px, py));
+
+  const float bias = vsmMipBias;
+  //return max(0, int((minLod + maxLod)*0.5 + bias + 0.5));
+  return max(0, int(minLod + bias));
+  }
+
 vec4 worldPos(ivec2 frag, float depth) {
   const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
   const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
@@ -132,21 +147,6 @@ vec3 shadowPos(float z, vec3 normal, ivec2 offset) {
 #endif
   shPos.xyz /= shPos.w;
   return shPos.xyz;
-  }
-
-float lambert(vec3 normal) {
-  return max(0.0, dot(scene.sunDir,normal));
-  }
-
-int shadowLod(vec2 dx, vec2 dy) {
-  float px     = dot(dx, dx);
-  float py     = dot(dy, dy);
-  float maxLod = 0.5 * log2(max(px, py)); // log2(sqrt()) = 0.5*log2()
-  float minLod = 0.5 * log2(min(px, py));
-
-  const float bias = vsmMipBias;
-  //return max(0, int((minLod + maxLod)*0.5 + bias + 0.5));
-  return max(0, int(minLod + bias + 0.5));
   }
 
 bool calcMipIndex(out vec3 pagePos, out int mip, const float z, const vec3 normal) {
@@ -184,11 +184,16 @@ void realMain() {
   if(light<=0)
     return;
 
+  //if(rayIntersect(vec3(0.0, RPlanet + height, 0.0), scene.sunDir, RPlanet) > 0.0)
+  //  return;
+
   vec3 page = vec3(0);
   int  mip  = 0;
   if(!calcMipIndex(page, mip, z, normal))
     return;
 
+  //if(mip>6)
+  //  return;
   ivec2 pageI = ivec2((page.xy*0.5+0.5)*VSM_PAGE_TBL_SIZE);
   markPage(ivec3(pageI, mip), page.z);
   }

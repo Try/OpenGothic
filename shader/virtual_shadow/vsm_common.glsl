@@ -8,8 +8,10 @@
 const int VSM_PAGE_SIZE     = 128;
 const int VSM_PAGE_TBL_SIZE = 32;  // small for testing, 64 can be better
 const int VSM_PAGE_MIPS     = 16;
-const int VSM_FOG_MIP       = 6;
-const int VSM_PAGE_PER_ROW  = 4096/VSM_PAGE_SIZE;
+//const int VSM_FOG_MIP       = 6;
+//const int VSM_PAGE_PER_ROW  = 4096/VSM_PAGE_SIZE;
+const int VSM_FOG_MIP       = 5;
+const int VSM_PAGE_PER_ROW  = 8192/VSM_PAGE_SIZE;
 const int VSM_MAX_PAGES     = VSM_PAGE_PER_ROW * VSM_PAGE_PER_ROW; // 1024;
 const int VSM_CLIPMAP_SIZE  = VSM_PAGE_SIZE * VSM_PAGE_TBL_SIZE;
 
@@ -18,6 +20,7 @@ struct VsmHeader {
   uint  meshletCount;
   uint  counterM;
   uint  counterV;
+  uint  pagePerMip[VSM_PAGE_MIPS];
   ivec4 pageBbox[VSM_PAGE_MIPS];
   };
 
@@ -79,6 +82,12 @@ int vsmCalcMipIndex(in vec2 shPos, int minMip) {
   return max(vsmCalcMipIndex(shPos), minMip);
   }
 
+int vsmCalcMipIndexFog(in vec2 shPos) {
+  float d  = max(abs(shPos.x), abs(shPos.y));
+  uint  id = uint(d * 16.0);
+  return clamp(findMSB(id)+1, VSM_FOG_MIP, VSM_FOG_MIP+4);
+  }
+
 uint pageIdHash7(ivec3 src) {
   uint x = (src.x & 0x3) << 0;
   uint y = (src.y & 0x3) << 2;
@@ -92,6 +101,20 @@ float vsmTexelFetch(in utexture2D pageData, const ivec2 pixel) {
 
 float vsmTexelFetch(in texture2D pageData, const ivec2 pixel) {
   return texelFetch(pageData, pixel, 0).x;
+  }
+
+uint shadowPageIdFetch(in vec2 page, in int mip, in utexture3D pageTbl) {
+  //page-local
+  const ivec2 pageI       = ivec2((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
+  const vec2  pageF       = fract((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
+  const ivec2 at          = ivec2(pageF*VSM_PAGE_SIZE);
+
+  //page-global
+  const uint  pageD       = texelFetch(pageTbl, ivec3(pageI, mip), 0).x;
+  if(pageD==0)
+    return -1;
+
+  return pageD >> 16u;
   }
 
 float shadowTexelFetch(in vec2 page, in int mip, in utexture3D pageTbl,
@@ -112,6 +135,8 @@ float shadowTexelFetch(in vec2 page, in int mip, in utexture3D pageTbl,
     return -1;
 
   const uint  pageId      = pageD >> 16u;
+
+  // const uint  pageId      = shadowPageIdFetch(page, mip, pageTbl);
   const ivec2 pageImageAt = unpackVsmPageId(pageId)*VSM_PAGE_SIZE + at;
   return vsmTexelFetch(pageData, pageImageAt);
   }

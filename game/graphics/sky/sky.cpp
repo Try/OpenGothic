@@ -109,7 +109,7 @@ Sky::~Sky() {
 void Sky::setupSettings() {
   auto&      device = Resources::device();
   const bool fog    = Gothic::inst().settingsGetI("RENDERER_D3D","zFogRadial")!=0;
-  const bool vsm    = false; //Gothic::inst().options().doVirtualShadow;
+  const bool vsm    = Gothic::inst().options().doVirtualShadow;
 
   auto q = Quality::VolumetricLQ;
   if(!fog) {
@@ -208,6 +208,10 @@ float Sky::isNight() const {
   return 1.f - linearstep(-0.18f, 0.f, sun.dir().y);
   }
 
+bool Sky::isVolumetric() const {
+  return quality!=VolumetricLQ;
+  }
+
 void Sky::setWorld(const World& world, const std::pair<Vec3, Vec3>& bbox) {
   setupSettings();
   }
@@ -248,6 +252,7 @@ void Sky::updateLight(const int64_t now) {
     float ax  = 360-360*std::fmod(k+0.25f,1.f);
     ax = ax*float(M_PI/180.0);
     sun.setDir(-std::sin(ax)*shadowLength, pulse, std::cos(ax)*shadowLength);
+    //sun.setDir(0, 1, 0); //debug
   }
 
   static float sunMul = 1;
@@ -369,15 +374,6 @@ void Sky::prepareUniforms() {
       uboOcclusion.set(4, *scene.shadowMap[1], Resources::shadowSampler());
       }
 
-    if(quality==VolumetricHQVsm) {
-      uboVsmPages = device.descriptors(Shaders::inst().vsmMarkSky);
-      uboVsmPages.set(1, *scene.zbuffer, Sampler::nearest());
-      uboVsmPages.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
-      uboVsmPages.set(3, occlusionLut);
-      uboVsmPages.set(4, *scene.vsmPageTbl);
-      uboVsmPages.set(5, *scene.vsmPageHiZ);
-      }
-
     uboFogViewLut3d = device.descriptors(Shaders::inst().fogViewLut3d);
     uboFogViewLut3d.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
     uboFogViewLut3d.set(1, transLut,     smpB);
@@ -389,7 +385,11 @@ void Sky::prepareUniforms() {
     uboFog3d.set(0, fogLut3D,       smpB);
     uboFog3d.set(1, *scene.zbuffer, Sampler::nearest());
     uboFog3d.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
-    uboFog3d.set(3, occlusionLut);
+    if(quality==VolumetricHQVsm && Gothic::inst().options().doVirtualFog) {
+      uboFog3d.set(3, *scene.skyShadows);
+      } else {
+      uboFog3d.set(3, occlusionLut);
+      }
     }
 
   if(quality==PathTrace) {
@@ -455,17 +455,6 @@ void Sky::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
   cmd.draw(Resources::fsqVbo());
   }
 
-void Sky::vsmMarkPage(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t frameId) {
-  if(quality!=VolumetricHQVsm)
-    return;
-
-  UboSky ubo = mkPush();
-  auto& vsmMarkSky = Shaders::inst().vsmMarkSky;
-  cmd.setFramebuffer({});
-  cmd.setUniforms(vsmMarkSky, uboVsmPages, &ubo, sizeof(ubo));
-  cmd.dispatchThreads(occlusionLut.size());
-  }
-
 void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t frameId) {
   UboSky ubo = mkPush();
 
@@ -477,15 +466,22 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
       cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
       break;
       }
-    case VolumetricHQ:
-    case VolumetricHQVsm: {
-      const bool vsm = (quality==VolumetricHQVsm);
-      auto& fogOcclusion = vsm ? Shaders::inst().fogOcclusionVsm : Shaders::inst().fogOcclusion;
-
+    case VolumetricHQ:{
       cmd.setFramebuffer({});
-      cmd.setUniforms(fogOcclusion, uboOcclusion, &ubo, sizeof(ubo));
+      cmd.setUniforms(Shaders::inst().fogOcclusion, uboOcclusion, &ubo, sizeof(ubo));
       cmd.dispatchThreads(occlusionLut.size());
 
+      cmd.setUniforms(Shaders::inst().fogViewLut3d, uboFogViewLut3d, &ubo, sizeof(ubo));
+      cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
+      break;
+      }
+    case VolumetricHQVsm: {
+      if(!Gothic::inst().options().doVirtualFog) {
+        cmd.setFramebuffer({});
+        cmd.setUniforms(Shaders::inst().fogOcclusionVsm, uboOcclusion, &ubo, sizeof(ubo));
+        cmd.dispatchThreads(occlusionLut.size());
+        }
+      // shadows filled extenally
       cmd.setUniforms(Shaders::inst().fogViewLut3d, uboFogViewLut3d, &ubo, sizeof(ubo));
       cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));
       break;

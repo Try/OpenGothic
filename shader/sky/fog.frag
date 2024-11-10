@@ -3,7 +3,7 @@
 #extension GL_GOOGLE_include_directive    : enable
 #extension GL_EXT_control_flow_attributes : enable
 
-#if defined(VIRTUAL_SHADOW) || defined(VIRTUAL_SHADOW_MARK)
+#if defined(VIRTUAL_SHADOW)
 #include "virtual_shadow/vsm_common.glsl"
 #endif
 
@@ -37,13 +37,8 @@ layout(binding = 3, r32ui) uniform writeonly restrict uimage2D occlusionLut;
 layout(binding = 3, r32ui) uniform readonly  restrict uimage2D occlusionLut;
 #endif
 
-#if defined(VOLUMETRIC) && !defined(VIRTUAL_SHADOW) && !defined(VIRTUAL_SHADOW_MARK) && defined(GL_COMPUTE_SHADER)
+#if defined(VOLUMETRIC) && !defined(VIRTUAL_SHADOW) && defined(GL_COMPUTE_SHADER)
 layout(binding = 4) uniform sampler2D textureSm1;
-#endif
-
-#if defined(VOLUMETRIC) && defined(VIRTUAL_SHADOW_MARK) && defined(GL_COMPUTE_SHADER)
-layout(binding = 4, r32ui) uniform uimage3D pageTbl;
-layout(binding = 5, r32ui) uniform uimage3D pageTblDepth;
 #endif
 
 #if defined(VOLUMETRIC) && defined(VIRTUAL_SHADOW) && defined(GL_COMPUTE_SHADER)
@@ -59,60 +54,6 @@ const float dFogMax = 0.9999;
 uvec2 invocationID = gl_GlobalInvocationID.xy;
 #endif
 
-#if defined (VIRTUAL_SHADOW_MARK)
-shared uint pageHiZ[NumThreads];
-//uint pageHiZTh = 0xFFFFFFFF;
-
-void storeHiZValue(uint v) {
-  uvec4 dx = unpack565_16(v);
-  ivec3 at = ivec3(dx.xyz);
-  uint  iz = floatBitsToUint(dx.w/float(0xFFFF));
-  imageAtomicExchange(pageTbl, at, 1u);
-  imageAtomicMin(pageTblDepth, at, iz);
-  }
-
-void setupHiZ() {
-  const uint lane = gl_LocalInvocationIndex;
-  pageHiZ[lane] = 0xFFFFFFFF;
-  }
-
-void markPage(ivec3 at, float z) {
-  if(z<0 || z>=1)
-    return;
-
-  uint iz  = uint(z*0xFFFF);
-  uint cur = pack565_16(at,iz);
-  uint id  = pageIdHash7(at) % pageHiZ.length();
-
-  /*
-  if((pageHiZTh==0xFFFFFFFF) || (pageHiZTh&0xFFFF0000)==(cur&0xFFFF0000)) {
-    // thread local cache
-    pageHiZTh = min(pageHiZTh, cur);
-    return;
-    }
-  */
-
-  uint v   = atomicMin(pageHiZ[id], cur);
-  if(v==0xFFFFFFFF)
-    return; // clean insert
-  if((v&0xFFFF0000)==(cur&0xFFFF0000))
-    return; // update same entry
-
-  // imageAtomicAdd(pageTbl, ivec3(0), 1u); //counter
-  storeHiZValue(v);
-  }
-
-void flushHiZ() {
-  //if(pageHiZTh!=0xFFFFFFFF)
-  //  storeHiZValue(pageHiZTh);
-  const uint lane = gl_LocalInvocationIndex;
-  const uint v    = pageHiZ[lane];
-  if(v==0xFFFFFFFF)
-    return;
-  storeHiZValue(v);
-  }
-#endif
-
 float interleavedGradientNoise() {
 #if defined(GL_COMPUTE_SHADER)
   return interleavedGradientNoise(invocationID.xy);
@@ -121,25 +62,10 @@ float interleavedGradientNoise() {
 #endif
   }
 
-#if defined(VOLUMETRIC) && defined(VIRTUAL_SHADOW_MARK) && defined(GL_COMPUTE_SHADER)
+#if defined(VOLUMETRIC) && defined(VIRTUAL_SHADOW) && defined(GL_COMPUTE_SHADER)
 bool shadowFactor(vec4 shPos) {
   vec3  shPos0 = shPos.xyz/shPos.w;
-
-  int   mip    = vsmCalcMipIndex(shPos0.xy, VSM_FOG_MIP);
-  vec2  page   = shPos0.xy / (1 << mip);
-  if(any(greaterThan(abs(page), vec2(1))))
-    return true;
-
-  ivec2 pageI = ivec2((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
-  ivec3 at    = ivec3(pageI, mip);
-  markPage(at, shPos0.z);
-  return true;
-  }
-#elif defined(VOLUMETRIC) && defined(VIRTUAL_SHADOW) && defined(GL_COMPUTE_SHADER)
-bool shadowFactor(vec4 shPos) {
-  vec3  shPos0 = shPos.xyz/shPos.w;
-
-  int   mip    = vsmCalcMipIndex(shPos0.xy, VSM_FOG_MIP);
+  int   mip    = vsmCalcMipIndexFog(shPos0.xy);
   vec2  page   = shPos0.xy / (1 << mip);
   if(any(greaterThan(abs(page), vec2(1))))
     return true;
@@ -183,7 +109,7 @@ vec4 fog(vec2 uv, float z) {
   const vec3  pos1     = project(scene.viewProjectLwcInv, vec3(inPos,dFogMax));
   const vec3  posz     = project(scene.viewProjectLwcInv, vec3(inPos,z));
 
-#if defined(VIRTUAL_SHADOW) || defined(VIRTUAL_SHADOW_MARK)
+#if defined(VIRTUAL_SHADOW)
   const vec4  shPos0   = scene.viewVirtualShadowLwc*vec4(pos0, 1);
   const vec4  shPos1   = scene.viewVirtualShadowLwc*vec4(posz, 1);
 #else
@@ -305,22 +231,14 @@ void main_comp() {
   vec2  uv     = inPos*vec2(0.5)+vec2(0.5);
   vec3  view   = normalize(inverse(vec3(inPos,1.0)));
   vec3  sunDir = scene.sunDir;
-  float z      = textureLod(depth,uv,0).r;
+  float z      = min(textureLod(depth,uv,0).r, dFogMax);
 
   fog(uv,z);
   }
 #endif
 
 void main() {
-#if defined(VIRTUAL_SHADOW_MARK) && defined(GL_COMPUTE_SHADER)
-  setupHiZ();
-  barrier();
-
-  main_comp();
-  barrier();
-
-  flushHiZ();
-#elif defined(GL_COMPUTE_SHADER)
+#if defined(GL_COMPUTE_SHADER)
   main_comp();
 #else
   main_frag();

@@ -4,25 +4,12 @@
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_EXT_control_flow_attributes : enable
 
+#define CLUSTER 1
+
 #include "scene.glsl"
 #include "common.glsl"
+#include "materials/materials_common.glsl"
 #include "virtual_shadow/vsm_common.glsl"
-
-struct IndirectCmd {
-  uint vertexCount;
-  uint instanceCount;
-  uint firstVertex;
-  uint firstInstance;
-  uint writeOffset;
-  };
-
-struct Cluster {
-  vec4  sphere;
-  uint  bucketId_commandId;
-  uint  firstMeshlet;
-  int   meshletCount;
-  uint  instanceId;
-  };
 
 layout(local_size_x = 1024) in;
 
@@ -31,11 +18,9 @@ const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z
 layout(push_constant, std430) uniform UboPush {
   int meshletCount;
   } push;
-layout(binding = 0, std140) uniform UboScene {
-  SceneDesc scene;
-  };
 layout(binding = 1, std430) buffer SsboGlob     { uvec4       payload[];     };
 layout(binding = 2, std430) readonly buffer Mem { uint        instanceMem[]; };
+layout(binding = 3, std140) readonly buffer Bbo { Bucket      bucket[];      };
 layout(binding = 4, std430) buffer IndirectBuf  { IndirectCmd cmd[];         };
 layout(binding = 5, std430) readonly buffer Cbo { Cluster     clusters[];    };
 
@@ -51,6 +36,39 @@ shared uint vsmMipMask;
 #if !defined(VSM_ATOMIC)
 shared uint anyPageGlob;
 #endif
+
+Instance pullInstance(uint i) {
+  i *= 16;
+  Instance ret;
+  ret.mat[0][0] = uintBitsToFloat(instanceMem[i+0]);
+  ret.mat[0][1] = uintBitsToFloat(instanceMem[i+1]);
+  ret.mat[0][2] = uintBitsToFloat(instanceMem[i+2]);
+  ret.mat[1][0] = uintBitsToFloat(instanceMem[i+3]);
+  ret.mat[1][1] = uintBitsToFloat(instanceMem[i+4]);
+  ret.mat[1][2] = uintBitsToFloat(instanceMem[i+5]);
+  ret.mat[2][0] = uintBitsToFloat(instanceMem[i+6]);
+  ret.mat[2][1] = uintBitsToFloat(instanceMem[i+7]);
+  ret.mat[2][2] = uintBitsToFloat(instanceMem[i+8]);
+  ret.mat[3][0] = uintBitsToFloat(instanceMem[i+9]);
+  ret.mat[3][1] = uintBitsToFloat(instanceMem[i+10]);
+  ret.mat[3][2] = uintBitsToFloat(instanceMem[i+11]);
+  ret.fatness   = uintBitsToFloat(instanceMem[i+12]);
+  ret.animPtr   = instanceMem[i+13];
+  return ret;
+  }
+
+bool frustrumTest(const vec4 sphere) {
+  if(sphere.w<0.f)
+    return false;
+
+  for(int i=0; i<6; ++i) {
+    if(dot(vec4(sphere.xyz,1.0), scene.frustrum[i]) <= -sphere.w) {
+      return false;
+      }
+    }
+
+  return true;
+  }
 
 bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMax) {
   const vec3  c = (scene.viewProject * vec4(sphere.xyz, 1)).xyz;
@@ -71,16 +89,28 @@ bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMax) {
   return true;
   }
 
-bool frustrumTest(const vec4 sphere) {
-  if(sphere.w<0.f)
-    return false;
+bool projectInstance(const Cluster cluster, out vec4 aabb, out float depthMax) {
+  const uint  bId        = cluster.bucketId_commandId >> 16;
+  const uint  instanceId = cluster.instanceId;
 
-  for(int i=0; i<6; ++i) {
-    if(dot(vec4(sphere.xyz,1.0), scene.frustrum[i]) <= -sphere.w) {
-      return false;
-      }
+  const vec3  b[2]       = {bucket[bId].bbox[0].xyz, bucket[bId].bbox[1].xyz};
+  Instance    obj        = pullInstance(instanceId);
+
+  aabb     = vec4(1, 1, -1, -1);
+  depthMax = 0;
+  for(uint i=0; i<8; ++i) {
+    const vec3 pos = vec3(b[bitfieldExtract(i,0,1)].x,
+                          b[bitfieldExtract(i,1,1)].y,
+                          b[bitfieldExtract(i,2,1)].z);
+    vec4 trPos = vec4(pos,1.0);
+    trPos = vec4(obj.mat*trPos, 1.0);
+    trPos = scene.viewProject*trPos;
+
+    vec3 bp = trPos.xyz / trPos.w;
+    aabb.xy  = min(aabb.xy,  bp.xy);
+    aabb.zw  = max(aabb.zw,  bp.xy);
+    depthMax = max(depthMax, bp.z);
     }
-
   return true;
   }
 
@@ -139,78 +169,17 @@ bool pageBoundsTest(in vec4 aabb, const ivec3 page, const ivec2 sz) {
     return false;
   if(aabb.w < 0 || sz.y <= aabb.y)
     return false;
-  const float dx = (aabb.z-aabb.x)*VSM_PAGE_SIZE;
-  const float dy = (aabb.w-aabb.y)*VSM_PAGE_SIZE;
+  const float dx  = (aabb.z-aabb.x)*VSM_PAGE_SIZE;
+  const float dy  = (aabb.w-aabb.y)*VSM_PAGE_SIZE;
   if(dx<1 || dy<1)
     return false; // subpixel sized meshlet
+
+  //HACK: should be 1px, but that will require too much gpu work
+  // should be removed eventually with, maybe better, culling
+  const float pix = 32;
+  if(dx<pix || dy<pix)
+    return false; // small sized meshlet
   return true;
-  }
-
-void _runCluster(const uint clusterId) {
-  const Cluster cluster = clusters[clusterId];
-  if(cluster.sphere.w<=0.f)
-    return; // disabled or deleted
-
-  if(frustrumTest(cluster.sphere)) {
-    if(gl_LocalInvocationIndex==0)
-      atomicAdd(vsm.header.counterV, cluster.meshletCount);
-    } else {
-    // return;
-    }
-
-  vec4  aabb     = vec4(0);
-  float depthMin = 1;
-  if(!projectCluster(cluster, aabb, depthMin))
-    return;
-
-  makeMipMask(aabb);
-
-  const uint commandId = cluster.bucketId_commandId & 0xFFFF;
-  const uint pageCount = vsm.header.pageCount;
-  bool anyPage = false;
-
-  for(uint i=gl_LocalInvocationIndex; i<pageCount; i+=gl_WorkGroupSize.y) {
-    // if(i!=13)
-    //   continue;
-    const uint data = vsm.pageList[i];
-    if(data==0)
-      continue;
-    const ivec3 page = unpackVsmPageInfo(data);
-    const ivec2 sz   = unpackVsmPageSize(data);
-    if((vsmMipMask & (1u<<page.z))==0)
-      continue;
-    if(sz==ivec2(0))
-      continue;
-    if(!pageBoundsTest(aabb, page, sz))
-      continue;
-#if !defined(VSM_ATOMIC)
-    if(!emitCluster(cluster, i))
-      break;
-    //atomicAdd(cmd[commandId].instanceCount, cluster.meshletCount);
-#endif
-    anyPage = true;
-    }
-
-#if defined(VSM_ATOMIC)
-  if((vsmMipMask & (1u << gl_LocalInvocationIndex))!=0 /*&& gl_LocalInvocationIndex==0*/) {
-    const uint mip = gl_LocalInvocationIndex;
-    const uint at  = atomicAdd(vsm.header.meshletCount, cluster.meshletCount);
-    if(at+cluster.meshletCount > 1000000)
-      ;//return;
-    for(int i=0; i<cluster.meshletCount; ++i)
-      payload[at+i] = uvec4(cluster.instanceId, cluster.firstMeshlet+i, cluster.bucketId_commandId, mip);
-    atomicAdd(cmd[commandId].instanceCount, cluster.meshletCount);
-    //return;
-    }
-#endif
-
-  anyPageGlob = 0;
-  barrier();
-  atomicOr(anyPageGlob, anyPage ? 1 : 0);
-  barrier();
-
-  if(gl_LocalInvocationIndex==0 && anyPageGlob!=0)
-    atomicAdd(vsm.header.counterM, cluster.meshletCount);
   }
 
 void pullPages(uint mip) {
@@ -242,7 +211,7 @@ bool pageHiZTest(vec4 aabb, float depthMax, const ivec3 at, const ivec2 sz) {
   aabb = aabb*0.5+0.5; // [0..1]
   aabb = aabb*VSM_PAGE_TBL_SIZE;
 
-  ivec4 iaabb = ivec4(ivec2(floor(aabb.xy)), ivec2(ceil(aabb.zw))+1);
+  ivec4 iaabb = ivec4(ivec2(aabb.xy), ivec2(aabb.zw)+1);
   iaabb.xy = max(iaabb.xy, ivec2(at.xy));
   iaabb.zw = min(iaabb.zw, ivec2(at.xy+sz));
   iaabb.zw = min(iaabb.zw, ivec2(VSM_PAGE_TBL_SIZE));
@@ -284,15 +253,29 @@ void runCluster(const uint clusterId) {
 
     const ivec3 page = unpackVsmPageInfo(data);
     const ivec2 sz   = unpackVsmPageSize(data);
-    if(page.z>4)
+    if(!(3<=page.z && page.z<=6))
       ;//continue;
+
     if(!pageBoundsTest(aabb, page, sz))
       continue;
     if(!pageHiZTest(aabb, depthMax, page, sz))
       continue;
+
+    // imageAtomicAdd(dbg, unpackVsmPageId(i), cluster.meshletCount);
+    imageAtomicAdd(dbg, ivec2(page.z,0), cluster.meshletCount);
+#if 0
+    if(unpackVsmPageId(i)==ivec2(56,4))
+      continue;
+    if(unpackVsmPageId(i)==ivec2(32,4))
+      continue;
+    if(unpackVsmPageId(i)==ivec2(24,4))
+      ;//continue;
+    if(unpackVsmPageId(i)==ivec2(44,4))
+      continue;
+#endif
+
     if(!emitCluster(cluster, i))
       break;
-    imageAtomicAdd(dbg, unpackVsmPageId(i), 1);
     }
   }
 

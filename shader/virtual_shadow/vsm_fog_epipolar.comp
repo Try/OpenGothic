@@ -1,0 +1,193 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+#include "virtual_shadow/vsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+struct Epipole {
+  vec2  rayOrig;
+  vec2  rayDir;
+  float tMin;
+  float tMax;
+  };
+
+layout(local_size_x = 256) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+layout(binding = 0, r32ui) uniform uimage2D   result;
+//layout(binding = 0, rgba8)  uniform image2D   result;
+layout(binding = 1, rgba8)  uniform image2D   rayData;
+layout(binding = 2, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 3, std430) buffer Ep0 { Epipole epipole[]; };
+layout(binding = 4)         uniform texture2D  depth;
+layout(binding = 5)         uniform utexture3D pageTbl;
+layout(binding = 6)         uniform texture2D  pageData;
+
+const float dFogMin      = 0;
+const float dFogMax      = 0.9999;
+      uint  NumSamples   = imageSize(rayData).x;
+      uint  NumSlices    = imageSize(rayData).y;
+      ivec2 fragCoord    = ivec2(gl_GlobalInvocationID.xy);
+      ivec2 viewportSize = textureSize(depth, 0);
+
+shared vec2 rayOrig, rayDir;
+shared uint tMinUint, tMaxUint;
+shared uint tDbg;
+
+vec4 dbgColor = vec4(0,1,0,0);
+
+float interleavedGradientNoise() {
+  return interleavedGradientNoise(fragCoord.xy);
+  }
+
+vec3 screenToShadow(vec3 scr) {
+  //TODO: optimize
+  const vec4  pos   = scene.viewProjectLwcInv   *vec4(scr,1);
+  const vec4  shPos = scene.viewVirtualShadowLwc*pos;
+  return shPos.xyz/shPos.w;
+  }
+
+vec3 wrldToShadow(vec3 pos) {
+  const vec4  shPos = scene.viewVirtualShadow*vec4(pos,1);
+  return shPos.xyz/shPos.w;
+  }
+
+vec2 sunPosition2d() {
+  vec3 sun = scene.sunDir;
+  sun = (scene.viewProject*vec4(sun,0)).xyz;
+  sun.xy /= sun.z;
+  return (sun.xy*0.5+0.5);// * viewportSize;
+  }
+
+vec2 rayPosition2d() {
+  const float ratio = float(viewportSize.x)/float(viewportSize.x+viewportSize.y);
+  const uint  hor   = int(0.5*ratio*NumSlices);
+  const uint  vert  = int(NumSlices)/2 - hor;
+
+  uint rayId = gl_WorkGroupID.x;
+
+  if(rayId<hor) {
+    // bottom
+    dbgColor = vec4(0,1,0,0)*((rayId+0.5)/float(hor));
+    return vec2((rayId+0.5)/float(hor), float(viewportSize.y-0.5)/float(viewportSize.y));
+    }
+  rayId -= hor;
+
+  if(rayId<hor) {
+    // top
+    dbgColor = vec4(1,0,0,0)*((rayId+0.5)/float(hor));
+    return vec2((rayId+0.5)/float(hor), float(0.5)/float(viewportSize.y));
+    }
+  rayId -= hor;
+
+  if(rayId<vert) {
+    // left
+    dbgColor = vec4(0,0,1,0)*(rayId+0.5)/float(vert);
+    return vec2(float(0.5)/float(viewportSize.x), (rayId+0.5)/float(vert));
+    }
+  rayId -= vert;
+
+  // right
+  dbgColor = vec4(1,0,1,0)*(rayId+0.5)/float(vert);
+  return vec2(float(viewportSize.x-0.5)/float(viewportSize.x), (rayId+0.5)/float(vert));
+  }
+
+void minMaxRayT(const vec2 rposIn) {
+  const vec2  rpos = rposIn - rayOrig;
+  const float t    = dot(rpos, rayDir);
+  if(t<0) {
+    // atomicAdd(tDbg, 1);
+    return; // error
+    }
+
+  atomicMax(tMaxUint, floatBitsToUint(t));
+  atomicMin(tMinUint, floatBitsToUint(t));
+
+  //float d = abs(dot(normalize(rpos), rayDir));
+  //atomicMin(tDbg, floatBitsToUint(d));
+  }
+
+void trace(const vec2 src, const vec2 dst) {
+  const uint lane  = gl_LocalInvocationIndex;
+  const vec2 vec   = dst - src;
+  const vec2 avec  = abs(vec*viewportSize);
+  const int  steps = int(max(avec.x, avec.y));
+
+  if(lane==0) {
+    tMinUint = 0xFFFFFFFF;
+    tMaxUint = floatBitsToUint(0);
+    //tDbg     = floatBitsToUint(1);
+
+    const vec2 inPos  = src*2.0-1.0;
+    const vec3 camPos = wrldToShadow(scene.camPos);
+    const vec2 shPos1 = screenToShadow(vec3(inPos, dFogMax)).xy;
+
+    rayOrig = camPos.xy;
+    rayDir  = normalize(shPos1 - rayOrig);
+    }
+  barrier();
+
+  for(uint i=lane; i<steps; i+=NumThreads) {
+    const float a   = (i+0.5)/float(steps);
+    const vec2  pix = mix(src, dst, a);
+    const float z   = min(texelFetch(depth, ivec2(pix*viewportSize), 0).x, dFogMax);
+
+    const vec2  inPos  = pix*2.0-1.0;
+    const vec2  shPos0 = screenToShadow(vec3(inPos, 0)).xy;
+    const vec2  shPos1 = screenToShadow(vec3(inPos, z)).xy;
+
+    minMaxRayT(shPos0);
+    minMaxRayT(shPos1);
+
+    //imageStore(result, ivec2(pix*viewportSize), dbgColor);
+    //imageStore(result, ivec2(pix*viewportSize), vec4(dbg0, dbg1, 1, 1));
+    }
+  barrier();
+
+  const float tMin    = uintBitsToFloat(tMinUint);
+  const float tMax    = uintBitsToFloat(tMaxUint);
+  const uint  sliceId = gl_WorkGroupID.x;
+
+  if(true && lane==0) {
+    epipole[sliceId].rayOrig = rayOrig;
+    epipole[sliceId].rayDir  = rayDir;
+    epipole[sliceId].tMin    = tMin;
+    epipole[sliceId].tMax    = tMax;
+    }
+  }
+
+void main() {
+  vec2 rpos = rayPosition2d();
+  vec2 sun  = sunPosition2d();
+
+  if(sun.x<0) {
+    vec2  dvec = sun - rpos;
+    float k    = (0 - rpos.x)/dvec.x;
+    sun = rpos + dvec*k;
+    }
+  if(sun.x>1) {
+    vec2  dvec = sun - rpos;
+    float k    = (1 - rpos.x)/dvec.x;
+    sun = rpos + dvec*k;
+    }
+  if(sun.y<0) {
+    vec2  dvec = sun - rpos;
+    float k    = (0 - rpos.y)/dvec.y;
+    sun = rpos + dvec*k;
+    }
+  if(sun.y>1) {
+    vec2  dvec = sun - rpos;
+    float k    = (1 - rpos.y)/dvec.y;
+    sun = rpos + dvec*k;
+    }
+
+  trace(rpos, sun);
+  }

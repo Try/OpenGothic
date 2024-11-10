@@ -32,7 +32,9 @@ SceneGlobals::SceneGlobals() {
   vsmPageData = &Resources::fallbackBlack();
   vsmPageTbl  = &Resources::fallbackImage3d();
   vsmPageHiZ  = &Resources::fallbackImage3d();
-  vsmDbg      = device.image2d(Tempest::TextureFormat::R32U, 32, 32);
+  vsmDbg      = device.image2d(Tempest::TextureFormat::R32U, 64, 64);
+
+  skyShadows  = &Resources::fallbackImage();
 
   for(uint8_t lay=0; lay<V_Count; ++lay) {
     uboGlobal[lay] = device.ssbo(nullptr,sizeof(UboGlobal));
@@ -226,6 +228,10 @@ void SceneGlobals::setVirtualShadowMap(const Tempest::ZBuffer&       pageData,
   vsmPageTbl    = &pageTbl;
   vsmPageHiZ    = &pageHiZ;
   vsmPageList   = &pageList;
+  }
+
+void SceneGlobals::setVsmSkyShadows(const Tempest::StorageImage& sh) {
+  skyShadows = &sh;
   }
 
 void SceneGlobals::setSwRenderingImage(const Tempest::StorageImage& mainView) {

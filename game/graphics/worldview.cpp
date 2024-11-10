@@ -93,6 +93,10 @@ void WorldView::setVirtualShadowMap(const Tempest::ZBuffer&       pageData,
   sGlobal.setVirtualShadowMap(pageData, pageDataCs, pageTbl, pageHiZ, pageList);
   }
 
+void WorldView::setVsmSkyShadows(const Tempest::StorageImage& skyShadows) {
+  sGlobal.setVsmSkyShadows(skyShadows);
+  }
+
 void WorldView::setSwRenderingImage(const Tempest::StorageImage& mainView) {
   sGlobal.setSwRenderingImage(mainView);
   }
@@ -125,10 +129,6 @@ void WorldView::prepareIrradiance(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
 
 void WorldView::prepareExposure(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId) {
   gSky.prepareExposure(cmd, frameId);
-  }
-
-void WorldView::vsmMarkSkyPages(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId) {
-  gSky.vsmMarkPage(cmd, frameId);
   }
 
 void WorldView::updateFrustrum(const Frustrum fr[]) {

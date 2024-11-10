@@ -8,27 +8,71 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-//layout(local_size_x = 64) in;
-layout(local_size_x = 8, local_size_y = 8) in;
+layout(local_size_x = 32, local_size_y = 32) in;
 
 layout(binding = 0, std430) buffer Pages { VsmHeader header; uint  pageList[]; } vsm;
-layout(binding = 1, r32ui) uniform uimage3D pageTbl;
-layout(binding = 2, r32ui) uniform readonly uimage3D pageTblDepth;
-//layout(binding = 1, std430) writeonly buffer Dst   { VsmHeader header; uint  pageList[]; } dst;
+layout(binding = 1, r32ui)  uniform uimage3D pageTbl;
+layout(binding = 2, r32ui)  uniform uimage2D dbg;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
-void main() {
-  const ivec3 at   = ivec3(gl_GlobalInvocationID.xyz);
+shared uint pageListPrefix;
+shared uint bits[(NumThreads+31)/32];
+
+ivec2 loadPageSize(ivec3 at) {
+  uint a = imageLoad(pageTbl, at).r;
+  a = a >> 1;
+  return ivec2(a, a >> 4) & 0xF;
+  }
+
+uint bitCountShared(uint till) {
+  uint n = till/32;
+  uint f = till%32;
+  uint r = 0;
+  for(uint i=0; i<n; ++i)
+    r += bitCount(bits[i]);
+  r += bitCount(bits[n] & ((1u << f)-1u));
+  return r;
+  }
+
+void listPages(uint mip) {
   const ivec3 size = imageSize(pageTbl);
-  if(any(greaterThanEqual(at, size)))
+  const uint  lane = gl_LocalInvocationIndex;
+  const ivec3 at   = ivec3(gl_LocalInvocationID.xy, mip);
+
+  if(lane < bits.length())
+    bits[lane] = 0;
+  barrier();
+
+  const ivec2 sz = loadPageSize(at);
+  if(sz.x>0)
+    atomicOr(bits[lane/32], 1u<<(lane%32));
+  barrier();
+
+  if(sz.x>0) {
+    const uint id = pageListPrefix + bitCountShared(lane);
+    vsm.pageList[id] = packVsmPageInfo(at, sz);
+    }
+  // barrier(); //NOTE: very slow on mac
+  }
+
+void main() {
+  const uint lane = gl_LocalInvocationIndex;
+  const uint mip  = gl_WorkGroupID.x;
+
+  pageListPrefix = 0;
+  barrier();
+
+  if(lane<mip)
+    atomicAdd(pageListPrefix, vsm.header.pagePerMip[lane]);
+  barrier();
+
+  if(mip+1==VSM_PAGE_MIPS && lane==mip) {
+    vsm.header.pageCount = pageListPrefix + vsm.header.pagePerMip[lane];
+    }
+
+  if(vsm.header.pagePerMip[mip]==0)
     return;
 
-  uint v = imageLoad(pageTbl, at).x;
-  if(v==0)
-    return;
-
-  uint i = atomicAdd(vsm.header.pageCount, 1);
-  vsm.pageList[i] = 0xFFFFFFFF;
-  imageStore(pageTbl, at, uvec4(i));
+  listPages(mip);
   }

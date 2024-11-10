@@ -144,8 +144,10 @@ void Renderer::resetSwapchain() {
 
   if(smSize>0) {
     for(int i=0; i<Resources::ShadowLayers; ++i) {
-      if(settings.vsmEnabled && (i+1)!=Resources::ShadowLayers)
+      if(settings.vsmEnabled)
         continue;
+      if(settings.vsmEnabled && !settings.giEnabled)
+        ;//continue; //TODO: support vsm in gi code
       shadowMap[i] = device.zbuffer(shadowFormat,smSize,smSize);
       }
     }
@@ -195,10 +197,12 @@ void Renderer::resetSwapchain() {
     if(!vsm.pageDataCs.isEmpty())
       vsm.uboClearPages = device.descriptors(Shaders::inst().vsmClearPages);
 
-    vsm.uboPages        = device.descriptors(Shaders::inst().vsmMarkPages );
+    vsm.uboPages        = device.descriptors(Shaders::inst().vsmMarkPages);
+    vsm.uboEpipole      = device.descriptors(Shaders::inst().vsmFogEpipolar);
+    vsm.uboFogShadow    = device.descriptors(Shaders::inst().vsmFogShadow);
+    vsm.uboFogSample    = device.descriptors(Shaders::inst().vsmFogSample);
     vsm.uboClump        = device.descriptors(Shaders::inst().vsmClumpPages);
     vsm.uboAlloc        = device.descriptors(Shaders::inst().vsmAllocPages);
-    vsm.uboReproj       = device.descriptors(Shaders::inst().vsmReprojectSm);
 
     vsm.directLightPso  = &Shaders::inst().vsmDirectLight;
     vsm.pagesDbgPso     = &Shaders::inst().vsmDbg;
@@ -206,12 +210,19 @@ void Renderer::resetSwapchain() {
 
     vsm.pageTbl         = device.image3d(TextureFormat::R32U, 32, 32, 16);
     vsm.pageHiZ         = device.image3d(TextureFormat::R32U, 32, 32, 16);
-    vsm.pageData        = device.zbuffer(shadowFormat, 4096, 4096);
+    vsm.pageData        = device.zbuffer(shadowFormat, 8192, 8192);
     // vsm.pageDataCs      = device.image2d(TextureFormat::R32U, 4096, 4096);
 
+    // vsm.ssTrace  = device.image2d(TextureFormat::RGBA8, w, h);
+    vsm.ssTrace  = device.image2d(TextureFormat::R32U, w, h);
+    vsm.epTrace  = device.image2d(TextureFormat::R16, 2048, 2*1024);
+    vsm.epipoles = device.ssbo(nullptr, uint32_t(vsm.epTrace.h())*6*sizeof(float));
+
     const int32_t VSM_PAGE_SIZE = 128;
-    auto pageCount      = uint32_t((vsm.pageData.w()+VSM_PAGE_SIZE-1)/VSM_PAGE_SIZE) * uint32_t((vsm.pageData.h()+VSM_PAGE_SIZE-1)/VSM_PAGE_SIZE);
-    vsm.pageList        = device.ssbo(nullptr, (pageCount + 4 + 16*4)*sizeof(uint32_t));
+    auto pageCount      = uint32_t(vsm.pageData.w()/VSM_PAGE_SIZE) * uint32_t(vsm.pageData.h()/VSM_PAGE_SIZE);
+    auto pageSsboSize   = Shaders::inst().vsmClear.sizeOfBuffer(0, pageCount);
+
+    vsm.pageList        = device.ssbo(nullptr, pageSsboSize);
     }
 
   if(settings.swrEnabled) {
@@ -466,6 +477,26 @@ void Renderer::prepareUniforms() {
     vsm.uboPages.set(5, vsm.pageHiZ);
     //vsm.uboPages.set(7, vsm.pageList);
 
+    vsm.uboEpipole.set(0, vsm.ssTrace);
+    vsm.uboEpipole.set(1, vsm.epTrace);
+    vsm.uboEpipole.set(2, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    vsm.uboEpipole.set(3, vsm.epipoles);
+    vsm.uboEpipole.set(4, zbuffer);
+    vsm.uboEpipole.set(5, vsm.pageTbl);
+    vsm.uboEpipole.set(6, vsm.pageData);
+
+    vsm.uboFogShadow.set(0, vsm.epTrace);
+    vsm.uboFogShadow.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    vsm.uboFogShadow.set(2, vsm.epipoles);
+    vsm.uboFogShadow.set(3, vsm.pageTbl);
+    vsm.uboFogShadow.set(4, vsm.pageData);
+
+    vsm.uboFogSample.set(0, vsm.ssTrace);
+    vsm.uboFogSample.set(1, vsm.epTrace);
+    vsm.uboFogSample.set(2, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    vsm.uboFogSample.set(3, vsm.epipoles);
+    vsm.uboFogSample.set(4, zbuffer);
+
     vsm.uboClump.set(0, vsm.pageList);
     vsm.uboClump.set(1, vsm.pageTbl);
 
@@ -482,13 +513,7 @@ void Renderer::prepareUniforms() {
     if(!vsm.pageDataCs.isEmpty())
       vsm.uboLight.set(6, vsm.pageDataCs); else
       vsm.uboLight.set(6, vsm.pageData);
-
-    vsm.uboReproj.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    vsm.uboReproj.set(1, vsm.pageTbl);
-    vsm.uboReproj.set(2, vsm.pageList);
-    if(!vsm.pageDataCs.isEmpty())
-      vsm.uboReproj.set(3, vsm.pageDataCs); else
-      vsm.uboReproj.set(3, vsm.pageData);
+    vsm.uboLight.set(8, wview->sceneGlobals().vsmDbg);
     }
 
   if(settings.swrEnabled) {
@@ -506,6 +531,7 @@ void Renderer::prepareUniforms() {
       }
   wview->setShadowMaps(sh);
   wview->setVirtualShadowMap(vsm.pageData, vsm.pageDataCs, vsm.pageTbl, vsm.pageHiZ, vsm.pageList);
+  wview->setVsmSkyShadows(vsm.ssTrace);
   wview->setSwRenderingImage(swr.outputImage);
 
   wview->setHiZ(textureCast<const Texture2d&>(hiz.hiZ));
@@ -584,7 +610,8 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   //tex.push_back(&textureCast(hiz.hiZSm1));
   //tex.push_back(&textureCast(shadowMap[1]));
   //tex.push_back(&textureCast<const Texture2d&>(shadowMap[0]));
-  tex.push_back(&textureCast<const Texture2d&>(vsm.pageData));
+  //tex.push_back(&textureCast<const Texture2d&>(vsm.pageData));
+  tex.push_back(&textureCast<const Texture2d&>(vsm.ssTrace));
 
   static int size = 400;
   int left = 10;
@@ -873,7 +900,12 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.setUniforms(shaders.vsmMarkPages, vsm.uboPages, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
   cmd.dispatchThreads(zbuffer.size());
 
-  wview.vsmMarkSkyPages(cmd, fId);
+  // sky&fog
+  if(true && wview.sky().isVolumetric()) {
+    cmd.setUniforms(shaders.vsmMarkFogPages, vsm.uboPages);
+    cmd.dispatchThreads(zbuffer.size());
+    // wview.vsmMarkSkyPages(cmd, fId);
+    }
 
   if(vsm.pageDataCs.isEmpty()) {
     // trimming
@@ -890,6 +922,10 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     cmd.dispatchThreads(size_t(vsm.pageDataCs.w()), size_t(vsm.pageDataCs.h()));
     }
 
+  // list?
+  cmd.setUniforms(shaders.vsmListPages, vsm.uboAlloc);
+  cmd.dispatch(size_t(vsm.pageTbl.d()));
+
   // alloc
   cmd.setUniforms(shaders.vsmAllocPages, vsm.uboAlloc);
   cmd.dispatch(1);
@@ -904,13 +940,19 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.setFramebuffer({}, {vsm.pageData, 0.f, Tempest::Preserve});
   wview.drawVsm(cmd,fId);
 
-  if(false) {
-    cmd.setDebugMarker("VSM-reproject");
-    cmd.setFramebuffer({}, {shadowMap[1], 0.f, Tempest::Preserve});
-    auto viewShadowLwcInv = shadowMatrix[1];
-    viewShadowLwcInv.inverse();
-    cmd.setUniforms(shaders.vsmReprojectSm, vsm.uboReproj, &viewShadowLwcInv, sizeof(viewShadowLwcInv));
-    cmd.draw(Resources::fsqVbo());
+  if(Gothic::inst().options().doVirtualFog) {
+    cmd.setFramebuffer({});
+    cmd.setDebugMarker("VSM-epipolar");
+    cmd.setUniforms(shaders.vsmFogEpipolar, vsm.uboEpipole);
+    cmd.dispatch(uint32_t(vsm.epTrace.h()));
+
+    cmd.setDebugMarker("VSM-epipolar-fog");
+    cmd.setUniforms(shaders.vsmFogShadow, vsm.uboFogShadow);
+    cmd.dispatchThreads(vsm.epTrace.size());
+
+    cmd.setDebugMarker("VSM-epipolar-fog");
+    cmd.setUniforms(shaders.vsmFogSample, vsm.uboFogSample);
+    cmd.dispatchThreads(zbuffer.size());
     }
   }
 

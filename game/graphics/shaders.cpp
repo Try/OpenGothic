@@ -197,32 +197,24 @@ Shaders::Shaders() {
   if(Gothic::options().doVirtualShadow) {
     vsmClusterTask = computeShader("vsm_cluster_task.comp.sprv");
     // vsmClusterTask = computeShader("vsm_cluster_task2.comp.sprv");
-    vsmClear       = computeShader("vsm_clear.comp.sprv");
-    vsmClearPages  = computeShader("vsm_clear_pages.comp.sprv");
-    vsmMarkPages   = computeShader("vsm_mark_pages.comp.sprv");
-    vsmMarkSky     = computeShader("fog3d_vsm_mark_pages.comp.sprv");
-    vsmTrimPages   = computeShader("vsm_trim_pages.comp.sprv");
-    vsmClumpPages  = computeShader("vsm_clump_pages.comp.sprv");
-    vsmAllocPages  = computeShader("vsm_alloc_pages.comp.sprv");
-    vsmMergePages  = computeShader("vsm_merge_pages.comp.sprv");
-    vsmPackDraw0   = computeShader("vsm_pack_draws0.comp.sprv");
-    vsmPackDraw1   = computeShader("vsm_pack_draws1.comp.sprv");
-    vsmDirectLight = postEffect("copy", "direct_light_vsm", RenderState::ZTestMode::NoEqual);
-    // vsmReprojectSm = postEffect("copy", "vsm_reproject_sm", RenderState::ZTestMode::Always);
-    vsmDbg         = postEffect("copy", "vsm_dbg", RenderState::ZTestMode::Always);
-    vsmRendering   = computeShader("vsm_rendering.comp.sprv");
-    {
-      RenderState state;
-      state.setZWriteEnabled(true);
-      state.setZTestMode   (RenderState::ZTestMode::Always);
-      state.setCullFaceMode (RenderState::CullMode::Front);
+    vsmClear        = computeShader("vsm_clear.comp.sprv");
+    vsmClearPages   = computeShader("vsm_clear_pages.comp.sprv");
+    vsmMarkPages    = computeShader("vsm_mark_pages.comp.sprv");
+    vsmMarkFogPages = computeShader("vsm_mark_fog_pages.comp.sprv");
+    vsmTrimPages    = computeShader("vsm_trim_pages.comp.sprv");
+    vsmClumpPages   = computeShader("vsm_clump_pages.comp.sprv");
+    vsmListPages    = computeShader("vsm_list_pages.comp.sprv");
+    vsmAllocPages   = computeShader("vsm_alloc_pages.comp.sprv");
+    vsmMergePages   = computeShader("vsm_merge_pages.comp.sprv");
+    vsmPackDraw0    = computeShader("vsm_pack_draws0.comp.sprv");
+    vsmPackDraw1    = computeShader("vsm_pack_draws1.comp.sprv");
+    vsmFogEpipolar  = computeShader("vsm_fog_epipolar.comp.sprv");
+    vsmFogShadow    = computeShader("vsm_fog_shadow.comp.sprv");
+    vsmFogSample    = computeShader("vsm_fog_sample.comp.sprv");
 
-      auto sh = GothicShader::get("copy.vert.sprv");
-      auto vs = device.shader(sh.data,sh.len);
-      sh = GothicShader::get("vsm_reproject_sm.frag.sprv");
-      auto fs = device.shader(sh.data,sh.len);
-      vsmReprojectSm = device.pipeline(Triangles,state,vs,fs);
-    }
+    vsmDirectLight  = postEffect("copy", "direct_light_vsm", RenderState::ZTestMode::NoEqual);
+    vsmDbg          = postEffect("copy", "vsm_dbg", RenderState::ZTestMode::Always);
+    vsmRendering    = computeShader("vsm_rendering.comp.sprv");
     }
 
   if(Gothic::options().swRenderingPreset>0) {
