@@ -1228,7 +1228,15 @@ void PlayerControl::handleControllerInput() {
     // Close the controller
     SDL_GameControllerClose(controller);
 }
-
+void drawCircle(SDL_Renderer* renderer, int x, int y, int radius) {
+    const int numSegments = 30;  // Number of segments for the circle
+    for (int i = 0; i < numSegments; i++) {
+        float angle = 2 * M_PI * i / numSegments;
+        int dx = static_cast<int>(radius * cos(angle));
+        int dy = static_cast<int>(radius * sin(angle));
+        SDL_RenderDrawPoint(renderer, x + dx, y + dy);
+    }
+}
 // Function to visualize the radial menu
 void PlayerControl::visualizeRadialMenu(int selectedOption) {
     int centerX = 400;  // Example center of the menu
