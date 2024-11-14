@@ -1221,22 +1221,33 @@ void PlayerControl::handleControllerInput() {
 
         // Only process the right joystick movement if it exceeds the deadzone
         if (abs(rightX) > DEADZONE || abs(rightY) > DEADZONE) {
-            // Calculate the angle of the right joystick movement
-            float angle = atan2f(rightY, rightX); // Get the angle in radians
+    // Calculate the angle of the right joystick movement
+    float angle = atan2f(static_cast<float>(rightY), static_cast<float>(rightX)); // Get the angle in radians
 
-            // Normalize the angle to degrees (0° to 360°)
-            angle = angle * 180.0f / M_PI;
+    // Normalize the angle to degrees (0° to 360°)
+    angle = angle * 180.0f / static_cast<float>(M_PI);
 
-            // Determine the selected option based on the angle
-            if (angle >= -45 && angle < 45) {
-                selectedOption = 0; // Option 1 (right)
-            } else if (angle >= 45 && angle < 135) {
-                selectedOption = 1; // Option 2 (down)
-            } else if (angle >= 135 || angle < -135) {
-                selectedOption = 2; // Option 3 (left)
-            } else if (angle >= -135 && angle < -45) {
-                selectedOption = 3; // Option 4 (up)
-            }
+    // Ensure the angle is between 0° and 360°
+    if (angle < 0) {
+        angle += 360.0f;  // Adjust negative angles to positive range
+    }
+
+    // Determine the selected option based on the angle
+    if (angle >= 0 && angle < 45) {
+        selectedOption = 0; // Option 1 (right)
+    } else if (angle >= 45 && angle < 135) {
+        selectedOption = 1; // Option 2 (down)
+    } else if (angle >= 135 && angle < 225) {
+        selectedOption = 2; // Option 3 (left)
+    } else if (angle >= 225 && angle < 315) {
+        selectedOption = 3; // Option 4 (up)
+    } else {
+        selectedOption = 0; // Wrap around to Option 1 (right)
+    }
+
+    // Optionally, print or use the angle
+    std::cout << "Joystick angle: " << angle << "°" << std::endl;
+}
 
             // Optional: Visualize the selected option in the console (or UI)
             std::cout << "Selected Option: " << selectedOption << std::endl;
