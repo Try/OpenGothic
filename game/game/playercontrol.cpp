@@ -1187,19 +1187,19 @@ void PlayerControl::handleControllerInput() {
 }
     // Check for D-pad Up (Weapon Melee Action)
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_UP)) {
-        onKeyPressed(Action::WeaponMele, Tempest::KeyEvent::K_NONE, KeyCodec::Mapping());
+        onKeyPressed(Action::WeaponMele, Tempest::KeyEvent::K_a, KeyCodec::Mapping());
     }
 
     // Check for D-pad Right (Weapon Bow Action)
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_RIGHT)) {
-        onKeyPressed(Action::WeaponBow, Tempest::KeyEvent::K_NONE, KeyCodec::Mapping());
+        onKeyPressed(Action::WeaponBow, Tempest::KeyEvent::K_b, KeyCodec::Mapping());
     }
 
     // Check for D-pad Down (Weapon Magic Action)
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_DOWN)) {
         // For Magic, cycle through available spells (WeaponMage3 to WeaponMage10)
         static int currentMagicSlot = Action::WeaponMage3;
-        onKeyPressed(static_cast<Action>(currentMagicSlot), Tempest::KeyEvent::K_NONE, KeyCodec::Mapping());
+        onKeyPressed(static_cast<Action>(currentMagicSlot), Tempest::KeyEvent::K_f, KeyCodec::Mapping());
 
         // Cycle through magic slots
         currentMagicSlot++;
