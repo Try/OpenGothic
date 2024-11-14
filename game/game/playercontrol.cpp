@@ -520,58 +520,38 @@ Focus PlayerControl::findFocus(Focus* prev) {
   }
 
 bool PlayerControl::tickCameraMove(uint64_t dt) {
-    auto w = Gothic::inst().world();
-    if (w == nullptr)
-        return false;
+  auto w = Gothic::inst().world();
+  if(w==nullptr)
+    return false;
 
-    Npc* pl = w->player();
-    auto camera = Gothic::inst().camera();
-    if (camera == nullptr || (pl != nullptr && !camera->isFree()))
-        return false;
+  Npc*  pl     = w->player();
+  auto  camera = Gothic::inst().camera();
+  if(camera==nullptr || (pl!=nullptr && !camera->isFree()))
+    return false;
 
-    rotMouse = 0;
-
-    // Get the right joystick input (normalized between [-1, 1])
-    int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
-    int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
-
-    const int DEADZONE = 8000;  // Deadzone for joystick to avoid small movements
-
-    // Normalize joystick input
-    float normalizedX = 0.0f;
-    float normalizedY = 0.0f;
-
-    if (abs(rightX) > DEADZONE) {
-        normalizedX = static_cast<float>(rightX) / 32767.0f;  // Normalize to [-1, 1]
-    }
-    if (abs(rightY) > DEADZONE) {
-        normalizedY = static_cast<float>(rightY) / 32767.0f;  // Normalize to [-1, 1]
-    }
-
-    // Convert dt from uint64_t to float for use in the calculation
-    float dtF = static_cast<float>(dt) / 1000.f;  // Convert to seconds (float)
-
-    // Now, convert back to uint64_t just before passing to camera methods
-    uint64_t dtMillis = static_cast<uint64_t>(dtF * 1000.f);  // Convert seconds back to milliseconds
-
-    // Use joystick input to rotate the camera
-    auto turningVal = normalizedX;
-    if (turningVal > 0.f) {
-        camera->rotateRight(dtMillis * turningVal);  // Rotate the camera right
-    } else if (turningVal < 0.f) {
-        camera->rotateLeft(dtMillis * -turningVal);  // Rotate the camera left
-    }
-
-    // Use joystick input to move the camera forward or backward
-    auto forwardVal = normalizedY;
-    if (forwardVal > 0.f) {
-        camera->moveForward(dtMillis * forwardVal);  // Move the camera forward
-    } else if (forwardVal < 0.f) {
-        camera->moveBack(dtMillis * -forwardVal);  // Move the camera backward
-    }
-
+  rotMouse = 0;
+  if(ctrl[KeyCodec::Left] || (ctrl[KeyCodec::RotateL] && ctrl[KeyCodec::Jump])) {
+    camera->moveLeft(dt);
     return true;
-}
+    }
+  if(ctrl[KeyCodec::Right] || (ctrl[KeyCodec::RotateR] && ctrl[KeyCodec::Jump])) {
+    camera->moveRight(dt);
+    return true;
+    }
+
+  auto turningVal = movement.turnRightLeft.value();
+  if(turningVal > 0.f)
+    camera->rotateRight(dt);
+  else if(turningVal < 0.f)
+    camera->rotateLeft(dt);
+
+  auto forwardVal = movement.forwardBackward.value();
+  if(forwardVal > 0.f)
+    camera->moveForward(dt);
+  else if(forwardVal < 0.f)
+    camera->moveBack(dt);
+  return true;
+  }
 
 bool PlayerControl::tickMove(uint64_t dt) {
   auto w = Gothic::inst().world();
