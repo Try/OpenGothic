@@ -1112,8 +1112,6 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
   }
 
 void PlayerControl::handleControllerInput() {
-    static bool controllerDetected = false;
-
     if (SDL_NumJoysticks() < 1) {
         std::cerr << "No joystick or controller detected!" << std::endl;
         return;
