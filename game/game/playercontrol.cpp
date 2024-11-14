@@ -1121,6 +1121,18 @@ void PlayerControl::handleControllerInput() {
     return;
   }
 
+  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) < 0) {
+    std::cerr << "SDL_Init failed: " << SDL_GetError() << std::endl;
+    return false;
+}
+
+// Load the controller mappings
+if (SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt") < 0) {
+    std::cerr << "Failed to load controller mappings: " << SDL_GetError() << std::endl;
+} else {
+    std::cout << "Controller mappings loaded successfully!" << std::endl;
+}
+  
   SDL_GameController* controller = SDL_GameControllerOpen(0);  // Open the first controller
 
   if (controller == nullptr) {
