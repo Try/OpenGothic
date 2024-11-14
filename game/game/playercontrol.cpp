@@ -1126,11 +1126,8 @@ void PlayerControl::handleControllerInput() {
     return; // Remove "false" since the function has a void return type
 }
 
-// Load the controller mappings
 if (SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt") < 0) {
     std::cerr << "Failed to load controller mappings: " << SDL_GetError() << std::endl;
-} else {
-    std::cout << "Controller mappings loaded successfully!" << std::endl;
 }
   
   SDL_GameController* controller = SDL_GameControllerOpen(0);  // Open the first controller
