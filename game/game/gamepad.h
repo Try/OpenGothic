@@ -1,19 +1,12 @@
-#ifndef GAMEPAD_H
-#define GAMEPAD_H
-
 #include <SDL2/SDL.h>
 
 class Gamepad {
 public:
-    Gamepad(SDL_Renderer* renderer, int screenWidth, int screenHeight);
-    void handleInput(SDL_GameController* controller);
-    
+    Gamepad(SDL_Renderer* renderer, SDL_Window* window);
+    void handleInput(SDL_GameController* controller, MovementData& movement);
+
 private:
     SDL_Renderer* renderer;
-    int screenWidth;
-    int screenHeight;
-
-    // Add additional variables if needed
+    SDL_Window* window;
+    int screenWidth, screenHeight;
 };
-
-#endif // GAMEPAD_H
