@@ -519,54 +519,37 @@ Focus PlayerControl::findFocus(Focus* prev) {
   return w->findFocus(Focus());
   }
 
-bool PlayerControl::tickMove(uint64_t dt) {
+bool PlayerControl::tickCameraMove(uint64_t dt) {
   auto w = Gothic::inst().world();
   if(w==nullptr)
     return false;
-  const float dtF = float(dt)/1000.f;
 
   Npc*  pl     = w->player();
   auto  camera = Gothic::inst().camera();
+  if(camera==nullptr || (pl!=nullptr && !camera->isFree()))
+    return false;
 
-  if(w->isCutsceneLock())
-    clearInput();
-
-  if(tickCameraMove(dt))
+  rotMouse = 0;
+  if(ctrl[KeyCodec::Left] || (ctrl[KeyCodec::RotateL] && ctrl[KeyCodec::Jump])) {
+    camera->moveLeft(dt);
     return true;
-
-  if(ctrl[Action::K_F8] && Gothic::inst().isMarvinEnabled())
-    marvinF8(dt);
-  if(ctrl[Action::K_K] && Gothic::inst().isMarvinEnabled())
-    marvinK(dt);
-  cacheFocus = ctrl[Action::ActionGeneric];
-  if(camera!=nullptr)
-    camera->setLookBack(ctrl[Action::LookBack]);
-
-  if(pl==nullptr)
+    }
+  if(ctrl[KeyCodec::Right] || (ctrl[KeyCodec::RotateR] && ctrl[KeyCodec::Jump])) {
+    camera->moveRight(dt);
     return true;
-
-  static const float speedRotX = 750.f;
-  rotMouse = std::min(std::abs(rotMouse), speedRotX*dtF) * (rotMouse>=0 ? 1 : -1);
-  implMove(dt);
-
-  float runAngle = pl->runAngle();
-  if(runAngle!=0.f || std::fabs(runAngleDest)>0.01f) {
-    const float speed = 35.f;
-    if(runAngle<runAngleDest) {
-      runAngle+=speed*dtF;
-      if(runAngle>runAngleDest)
-        runAngle = runAngleDest;
-      pl->setRunAngle(runAngle);
-      }
-    else if(runAngle>runAngleDest) {
-      runAngle-=speed*dtF;
-      if(runAngle<runAngleDest)
-        runAngle = runAngleDest;
-      pl->setRunAngle(runAngle);
-      }
     }
 
-  rotMouseY = 0;
+  auto turningVal = movement.turnRightLeft.value();
+  if(turningVal > 0.f)
+    camera->rotateRight(dt);
+  else if(turningVal < 0.f)
+    camera->rotateLeft(dt);
+
+  auto forwardVal = movement.forwardBackward.value();
+  if(forwardVal > 0.f)
+    camera->moveForward(dt);
+  else if(forwardVal < 0.f)
+    camera->moveBack(dt);
   return true;
   }
 
