@@ -1130,14 +1130,13 @@ std::cout << "Controller detected: " << SDL_JoystickNameForIndex(0) << std::endl
 if (SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt") < 0) {
     std::cerr << "Failed to load controller mappings: " << SDL_GetError() << std::endl;
 }
+  SDL_GameController* controller = SDL_GameControllerOpen(0);  // Open the first controller
   
   if (controller == nullptr) {
     std::cerr << "Unable to open controller: " << SDL_GetError() << std::endl;
     return; // Remove "false" since the function has a void return type
 }
   
-  SDL_GameController* controller = SDL_GameControllerOpen(0);  // Open the first controller
-
   if (controller == nullptr) {
     std::cerr << "Unable to open controller: " << SDL_GetError() << std::endl;
     return;
