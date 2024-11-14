@@ -520,50 +520,53 @@ Focus PlayerControl::findFocus(Focus* prev) {
   }
 
 bool PlayerControl::tickCameraMove(uint64_t dt) {
-  auto w = Gothic::inst().world();
-  if(w==nullptr)
-    return false;
-  const float dtF = float(dt)/1000.f;
+    auto w = Gothic::inst().world();
+    if(w == nullptr)
+        return false;
+    
+    const float dtF = float(dt) / 1000.f;  // Convert time delta to seconds
+    uint64_t dtMillis = static_cast<uint64_t>(dtF * 1000);  // Convert back to milliseconds if needed
 
-  Npc* pl = w->player();
-  auto camera = Gothic::inst().camera();
-  if(camera==nullptr || (pl!=nullptr && !camera->isFree()))
-    return false;
+    Npc* pl = w->player();
+    auto camera = Gothic::inst().camera();
+    if(camera == nullptr || (pl != nullptr && !camera->isFree()))
+        return false;
 
-  rotMouse = 0;
+    rotMouse = 0;
 
-  // Controller right stick input
-  int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
-  int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
+    // Controller right stick input
+    int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
+    int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
 
-  // Deadzone check
-  const int DEADZONE = 8000;  // Adjust as necessary
-  float normalizedX = 0.0f;
-  float normalizedY = 0.0f;
-  
-  if (abs(rightX) > DEADZONE) {
-    normalizedX = static_cast<float>(rightX) / 32767.0f;
-  }
-  if (abs(rightY) > DEADZONE) {
-    normalizedY = static_cast<float>(rightY) / 32767.0f;
-  }
-  float dtFloat = static_cast<float>(dt);
-  // Horizontal rotation
-  if (normalizedX > 0.f) {
-    camera->rotateRight(dtF * normalizedX);  // Apply rotation based on right stick input
-  } else if (normalizedX < 0.f) {
-    camera->rotateLeft(dtF * -normalizedX);
-  }
+    // Deadzone check
+    const int DEADZONE = 8000;  // Adjust as necessary
+    float normalizedX = 0.0f;
+    float normalizedY = 0.0f;
 
-  // Vertical movement
-  if (normalizedY > 0.f) {
-    camera->moveForward(dtF * normalizedY);  // Move camera forward/backward based on input
-  } else if (normalizedY < 0.f) {
-    camera->moveBack(dtF * -normalizedY);
-  }
+    if (abs(rightX) > DEADZONE) {
+        normalizedX = static_cast<float>(rightX) / 32767.0f;
+    }
+    if (abs(rightY) > DEADZONE) {
+        normalizedY = static_cast<float>(rightY) / 32767.0f;
+    }
 
-  return true;
+    // Horizontal rotation
+    if (normalizedX > 0.f) {
+        camera->rotateRight(dtMillis * normalizedX);  // Apply rotation based on right stick input
+    } else if (normalizedX < 0.f) {
+        camera->rotateLeft(dtMillis * -normalizedX);
+    }
+
+    // Vertical movement
+    if (normalizedY > 0.f) {
+        camera->moveForward(dtMillis * normalizedY);  // Move camera forward/backward based on input
+    } else if (normalizedY < 0.f) {
+        camera->moveBack(dtMillis * -normalizedY);
+    }
+
+    return true;
 }
+
 
 bool PlayerControl::tickMove(uint64_t dt) {
   auto w = Gothic::inst().world();
