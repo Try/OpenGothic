@@ -1139,6 +1139,18 @@ void PlayerControl::handleControllerInput() {
         return;
     }
 
+    handleDpadInput(SDL_GameController* controller);
+    handleAnalogSticks(SDL_GameController* controller);
+  
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
+        // A button pressed (map to Weapon action)
+        onKeyPressed(KeyCodec::Action::Weapon, Tempest::KeyEvent::KeyType::K_Return, KeyCodec::Mapping());
+    }
+
+    SDL_GameControllerClose(controller);  // Close the controller
+}
+
+void PlayerControl:handleAnalogSticks(SDL_GameController* controller){
     const int DEADZONE = 8000;  // Deadzone for analog sticks
 
     // Get the axis values (left analog stick)
@@ -1181,14 +1193,6 @@ void PlayerControl::handleControllerInput() {
         c->onRotateMouse(dpos);  // Call the camera's onRotateMouse method
     }
 }
-
-
-    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
-        // A button pressed (map to Weapon action)
-        onKeyPressed(KeyCodec::Action::Weapon, Tempest::KeyEvent::KeyType::K_Return, KeyCodec::Mapping());
-    }
-
-    SDL_GameControllerClose(controller);  // Close the controller
 }
 
 void PlayerControl::handleDpadInput(SDL_GameController* controller) {
