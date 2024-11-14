@@ -1169,27 +1169,50 @@ void PlayerControl::handleControllerInput() {
     } else {
         movement.forwardBackward.reset();
     }
+bool PlayerControl::tickCameraMove(uint64_t dt) {
+  auto w = Gothic::inst().world();
+  if(w==nullptr)
+    return false;
 
-// Set up deadzone and rotation speed
-const float ROTATION_SPEED = 0.05f; // Adjust for sensitivity
+  Npc* pl = w->player();
+  auto camera = Gothic::inst().camera();
+  if(camera==nullptr || (pl!=nullptr && !camera->isFree()))
+    return false;
 
-// Get the X and Y values from the right stick
-int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
-int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
+  rotMouse = 0;
 
-// Normalize the input to -1 to 1 range
-float rotationX = (abs(rightX) > DEADZONE) ? float(rightX) / 32767.0f : 0.0f;
-float rotationY = (abs(rightY) > DEADZONE) ? float(rightY) / 32767.0f : 0.0f;
+  // Controller right stick input
+  int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
+  int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
 
-// Adjust for sensitivity
-rotationX *= ROTATION_SPEED;
-rotationY *= ROTATION_SPEED;
+  // Deadzone check
+  float normalizedX = 0.0f;
+  float normalizedY = 0.0f;
+  
+  if (abs(rightX) > DEADZONE) {
+    normalizedX = static_cast<float>(rightX) / 32767.0f;
+  }
+  if (abs(rightY) > DEADZONE) {
+    normalizedY = static_cast<float>(rightY) / 32767.0f;
+  }
 
-// Apply rotation to the camera
-if (auto c = Gothic::inst().camera()) {
-    Tempest::PointF dpos = {rotationX, rotationY};  // Pass both X and Y rotations
-    c->onRotateMouse(dpos);
-}
+  // Horizontal rotation
+  if (normalizedX > 0.f) {
+    camera->rotateRight(dt * normalizedX);  // Apply rotation based on right stick input
+  } else if (normalizedX < 0.f) {
+    camera->rotateLeft(dt * -normalizedX);
+  }
+
+  // Vertical movement
+  if (normalizedY > 0.f) {
+    camera->moveForward(dt * normalizedY);  // Move camera forward/backward based on input
+  } else if (normalizedY < 0.f) {
+    camera->moveBack(dt * -normalizedY);
+  }
+
+  return true;
+  }
+
 
   
     // Check for D-pad Up (Weapon Melee Action)
