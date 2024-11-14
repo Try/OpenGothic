@@ -1138,12 +1138,7 @@ void PlayerControl::handleControllerInput() {
         std::cerr << "Unable to open controller: " << SDL_GetError() << std::endl;
         return;
     }
-  
-    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
-        // A button pressed (map to Weapon action)
-        onKeyPressed(KeyCodec::Action::Weapon, Tempest::KeyEvent::KeyType::K_Return, KeyCodec::Mapping());
-    }
-
+    
     const int DEADZONE = 8000;  // Deadzone for analog sticks
 
     // Get the axis values (left analog stick)
@@ -1193,7 +1188,10 @@ void PlayerControl::handleControllerInput() {
         }
     }
 
-    // Map B button to Jump action
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
+        // A button pressed (map to Weapon action)
+        onKeyPressed(KeyCodec::Action::Weapon, Tempest::KeyEvent::KeyType::K_Return, KeyCodec::Mapping());
+    }
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_B)) {
         // If B button is pressed, trigger Jump action
         ctrl[Action::Jump] = true;  // Assuming ctrl is an array of actions
@@ -1201,6 +1199,14 @@ void PlayerControl::handleControllerInput() {
         ctrl[Action::Jump] = false; // Reset the jump action when B button is not pressed
     }
 
+  // Check if the Left Stick (L3) is pressed
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSTICK)) {
+        // If the left joystick (L3) is pressed, execute the Sneak action
+        if (a == Action::Sneak) {
+            // Execute the Sneak action (implement this as needed)
+            std::cout << "Sneak action triggered!" << std::endl;
+        }
+    }
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER)) {
         movement.strafeRightLeft.reverse[0] = true;
     } else {
