@@ -1169,10 +1169,7 @@ void PlayerControl::handleControllerInput() {
     // Handle rotation with right stick
     int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
     int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
-    if (abs(rightX) > DEADZONE) {
-        // Rotate left or right
-        onKeyPressed(KeyCodec::Action::RotateL, Tempest::KeyEvent::KeyType::K_NONE, KeyCodec::Mapping());
-    }
+    
      // Handle look up down with right stick
     if (abs(rightY) > DEADZONE) {
     // Normalize the input to a -1 to 1 range
