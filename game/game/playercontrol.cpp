@@ -1111,6 +1111,7 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
     }
   }
 
+
 void PlayerControl::handleControllerInput() {
   SDL_GameController* controller = SDL_GameControllerOpen(0);  // Open the first controller
 
@@ -1127,52 +1128,41 @@ void PlayerControl::handleControllerInput() {
 
   // Verarbeitung der Bewegungen, wenn sie die Deadzone überschreiten
   if (abs(leftX) > DEADZONE) {
-    // Verarbeite den X-Achsenwert, um die horizontale Bewegung zu steuern
     if (leftX > 0) {
-      // Bewegung nach rechts
-      movement.strafeRightLeft.main[KeyCodec::Mapping::Primary] = true;
+      movement.strafeRightLeft.main[0] = true;  // Ändern, um Index 0 zu verwenden
     } else if (leftX < 0) {
-      // Bewegung nach links
-      movement.strafeRightLeft.reverse[KeyCodec::Mapping::Primary] = true;
+      movement.strafeRightLeft.reverse[0] = true;  // Ändern, um Index 0 zu verwenden
     }
   } else {
-    // Keine horizontale Bewegung
     movement.strafeRightLeft.reset();
   }
 
   if (abs(leftY) > DEADZONE) {
-    // Verarbeite den Y-Achsenwert, um die vertikale Bewegung zu steuern
     if (leftY > 0) {
-      // Bewegung nach unten
-      movement.forwardBackward.reverse[KeyCodec::Mapping::Primary] = true;
+      movement.forwardBackward.reverse[0] = true;  // Ändern, um Index 0 zu verwenden
     } else if (leftY < 0) {
-      // Bewegung nach oben
-      movement.forwardBackward.main[KeyCodec::Mapping::Primary] = true;
+      movement.forwardBackward.main[0] = true;  // Ändern, um Index 0 zu verwenden
     }
   } else {
-    // Keine vertikale Bewegung
     movement.forwardBackward.reset();
   }
 
-  // Optional: Verarbeitung der Drehung mit dem rechten Stick
+  // Drehung mit dem rechten Stick
   int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
   int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
 
   if (abs(rightX) > DEADZONE) {
-    // Verarbeite die Drehung in X-Richtung (Rechtsstick)
     rotMouse = float(rightX) / 32767.0f;  // Umrechnung auf Bereich -1 bis 1
   }
 
   if (abs(rightY) > DEADZONE) {
-    // Verarbeite die Drehung in Y-Richtung (Rechtsstick)
     rotMouseY = float(rightY) / 32767.0f;  // Umrechnung auf Bereich -1 bis 1
   }
 
-  // Verarbeitung der Controller-Tasten (z.B. A, B, X, Y)
-  if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
-    // Aktion ausführen
-    // Beispiel: Interagieren
-    interact(*player);  // Dies ist eine vereinfachte Beispielaufruf
+  // Interaktion
+  Npc* pl = w->player();  // Verwende die richtige Variable
+  if (pl && SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
+    interact(*pl);  // Anstelle von interact(*player);
   }
 
   SDL_GameControllerClose(controller);  // Schließe den Controller
