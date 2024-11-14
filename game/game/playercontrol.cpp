@@ -580,8 +580,6 @@ bool PlayerControl::tickMove(uint64_t dt) {
     return true;
 
   handleControllerInput(); 
-  handleDpadInput(SDL_GameController* controller);
-  handleAnalogSticks(SDL_GameController* controller);
 
   static const float speedRotX = 750.f;
   rotMouse = std::min(std::abs(rotMouse), speedRotX*dtF) * (rotMouse>=0 ? 1 : -1);
@@ -1145,11 +1143,6 @@ void PlayerControl::handleControllerInput() {
         // A button pressed (map to Weapon action)
         onKeyPressed(KeyCodec::Action::Weapon, Tempest::KeyEvent::KeyType::K_Return, KeyCodec::Mapping());
     }
-
-    SDL_GameControllerClose(controller);  // Close the controller
-}
-
-void PlayerControl::handleAnalogSticks(SDL_GameController* controller){
     const int DEADZONE = 8000;  // Deadzone for analog sticks
 
     // Get the axis values (left analog stick)
@@ -1192,9 +1185,6 @@ void PlayerControl::handleAnalogSticks(SDL_GameController* controller){
         c->onRotateMouse(dpos);  // Call the camera's onRotateMouse method
     }
 }
-}
-
-void PlayerControl::handleDpadInput(SDL_GameController* controller) {
     // Check for D-pad Up (Weapon Melee Action)
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_UP)) {
         onKeyPressed(Action::WeaponMele, Tempest::KeyEvent::K_NONE, KeyCodec::Mapping());
@@ -1217,4 +1207,5 @@ void PlayerControl::handleDpadInput(SDL_GameController* controller) {
             currentMagicSlot = Action::WeaponMage3;
         }
     }
+      SDL_GameControllerClose(controller);  // Close the controller
 }
