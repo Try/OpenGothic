@@ -1202,7 +1202,7 @@ void PlayerControl::handleControllerInput() {
   // Check if the Left Stick (L3) is pressed
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSTICK)) {
         // If the left joystick (L3) is pressed, execute the Sneak action
-        if (a == Action::Sneak) {
+        if (ctrl[Action::Sneak]) {
             // Execute the Sneak action (implement this as needed)
             std::cout << "Sneak action triggered!" << std::endl;
         }
