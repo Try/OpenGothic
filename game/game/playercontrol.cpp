@@ -1177,11 +1177,11 @@ void PlayerControl::handleControllerInput() {
     if (abs(rightY) > DEADZONE) {
     // Normalize the input to a -1 to 1 range
     float rotationAmount = float(rightY) / 32767.0f;
-    rotMouseY = rotationAmount;  // Store the rotation amount (you might need it elsewhere)
 
     // Apply the vertical rotation to the camera
     if (auto c = Gothic::inst().camera()) {
-        c->rotateUpDown(rotationAmount);  // Call the camera's method to rotate vertically
+        PointF dpos = {0.f, rotationAmount};  // Create a PointF with horizontal movement as 0 and vertical as rotationAmount
+        c->onRotateMouse(dpos);  // Call the camera's onRotateMouse method
     }
     }
 
