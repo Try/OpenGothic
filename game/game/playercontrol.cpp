@@ -1180,10 +1180,11 @@ void PlayerControl::handleControllerInput() {
 
     // Apply the vertical rotation to the camera
     if (auto c = Gothic::inst().camera()) {
-        PointF dpos = {0.f, rotationAmount};  // Create a PointF with horizontal movement as 0 and vertical as rotationAmount
+        Tempest::PointF dpos = {0.f, rotationAmount};  // Corrected to Tempest::PointF
         c->onRotateMouse(dpos);  // Call the camera's onRotateMouse method
     }
-    }
+}
+
 
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
         // A button pressed (map to Weapon action)
