@@ -1171,7 +1171,7 @@ void PlayerControl::handleControllerInput() {
     int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
     if (abs(rightX) > DEADZONE) {
         // Rotate left or right
-        onKeyPressed(KeyCodec::Action::RotateL, Tempest::KeyEvent::KeyType::K_UNKNOWN, KeyCodec::Mapping());
+        onKeyPressed(KeyCodec::Action::RotateL, Tempest::KeyEvent::KeyType::K_NONE, KeyCodec::Mapping());
     }
      // Handle look up down with right stick
     if (abs(rightY) > DEADZONE) {
@@ -1188,7 +1188,7 @@ void PlayerControl::handleControllerInput() {
 
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
         // A button pressed (map to Weapon action)
-        onKeyPressed(KeyCodec::Action::Weapon, Tempest::KeyEvent::KeyType::K_UNKNOWN, KeyCodec::Mapping());
+        onKeyPressed(KeyCodec::Action::Weapon, Tempest::KeyEvent::KeyType::K_NONE, KeyCodec::Mapping());
     }
 
     SDL_GameControllerClose(controller);  // Close the controller
