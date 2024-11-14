@@ -1275,7 +1275,7 @@ void PlayerControl::handleControllerInput() {
                     break;
             }
         }
-    }
+    
 
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER)) {
         movement.strafeRightLeft.reverse[0] = true;
