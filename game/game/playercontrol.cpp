@@ -523,6 +523,7 @@ bool PlayerControl::tickCameraMove(uint64_t dt) {
   auto w = Gothic::inst().world();
   if(w==nullptr)
     return false;
+  const float dtF = float(dt)/1000.f;
 
   Npc* pl = w->player();
   auto camera = Gothic::inst().camera();
@@ -549,16 +550,16 @@ bool PlayerControl::tickCameraMove(uint64_t dt) {
   float dtFloat = static_cast<float>(dt);
   // Horizontal rotation
   if (normalizedX > 0.f) {
-    camera->rotateRight(dtFloat * normalizedX);  // Apply rotation based on right stick input
+    camera->rotateRight(dtF * normalizedX);  // Apply rotation based on right stick input
   } else if (normalizedX < 0.f) {
-    camera->rotateLeft(dtFloat * -normalizedX);
+    camera->rotateLeft(dtF * -normalizedX);
   }
 
   // Vertical movement
   if (normalizedY > 0.f) {
-    camera->moveForward(dtFloat * normalizedY);  // Move camera forward/backward based on input
+    camera->moveForward(dtF * normalizedY);  // Move camera forward/backward based on input
   } else if (normalizedY < 0.f) {
-    camera->moveBack(dtFloat * -normalizedY);
+    camera->moveBack(dtF * -normalizedY);
   }
 
   return true;
