@@ -1113,13 +1113,6 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
 
 
 void PlayerControl::handleControllerInput() {
-    auto w = Gothic::inst().world();
-
-    if (w == nullptr) {
-        std::cerr << "Welt konnte nicht geladen werden!" << std::endl;
-        return;
-    }
-
     static bool controllerDetected = false;  // Static flag to track if controller is already detected
 
     // Detect the controller only once
@@ -1173,56 +1166,28 @@ void PlayerControl::handleControllerInput() {
         movement.forwardBackward.reset();
     }
 
-    // Rotation with the right stick
+    // Handle rotation with right stick
     int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
     int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
-
     if (abs(rightX) > DEADZONE) {
-        rotMouse = float(rightX) / 32767.0f;  // Convert to range -1 to 1
+        // Rotate left or right
+        onKeyPressed(KeyCodec::Action::RotateL, Tempest::KeyEvent::KeyType::K_UNKNOWN, KeyCodec::Mapping());
     }
-
+     // Handle look up down with right stick
     if (abs(rightY) > DEADZONE) {
-        rotMouseY = float(rightY) / 32767.0f;  // Convert to range -1 to 1
+        float rotationAmount = float(rightY) / 32767.0f;  // Convert to range -1 to 1
+        rotMouseY = rotationAmount;
+
+        // You can apply this rotation value to the camera or player rotation logic:
+        // Assuming 'c' is the camera object:
+        if (auto c = Gothic::inst().camera()) {
+            c->rotateUpDown(rotationAmount);
+        }
     }
-    // Create and push the SDL events for button presses
-    SDL_Event event;
-    
-    // Dpad buttons
-    event.type = SDL_KEYDOWN;
-    event.key.keysym.sym = SDLK_1; // Dpad Up = 1
-    SDL_PushEvent(&event);
-
-    event.key.keysym.sym = SDLK_2; // Dpad Right = 2
-    SDL_PushEvent(&event);
-
-    event.key.keysym.sym = SDLK_3; // Dpad Down = 3
-    SDL_PushEvent(&event);
-
-    event.key.keysym.sym = SDLK_4; // Dpad Left = 4
-    SDL_PushEvent(&event);
-
-    // Other buttons
-    event.key.keysym.sym = SDLK_LALT; // B Button = Left Alt
-    SDL_PushEvent(&event);
-
-    event.key.keysym.sym = SDLK_LCTRL; // A Button = Left Ctrl
-    SDL_PushEvent(&event);
-
-    event.key.keysym.sym = SDLK_SPACE; // Y Button = Space
-    SDL_PushEvent(&event);
-
-    event.key.keysym.sym = SDLK_BACKSPACE; // X Button = Backspace
-    SDL_PushEvent(&event);
-
-    event.key.keysym.sym = SDLK_f; // Right Stick Press = F
-    SDL_PushEvent(&event);
-
-    event.key.keysym.sym = SDLK_x; // Left Stick Press = X
-    SDL_PushEvent(&event);
-
-    event.key.keysym.sym = SDLK_ESCAPE; // Start Button = ESC
-    SDL_PushEvent(&event);
-  
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
+        // A button pressed (map to Weapon action)
+        onKeyPressed(KeyCodec::Action::Weapon, Tempest::KeyEvent::KeyType::K_UNKNOWN, KeyCodec::Mapping());
+    }
 
     SDL_GameControllerClose(controller);  // Close the controller
 }
