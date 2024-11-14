@@ -520,38 +520,51 @@ Focus PlayerControl::findFocus(Focus* prev) {
   }
 
 bool PlayerControl::tickCameraMove(uint64_t dt) {
-  auto w = Gothic::inst().world();
-  if(w==nullptr)
-    return false;
+    auto w = Gothic::inst().world();
+    if (w == nullptr)
+        return false;
 
-  Npc*  pl     = w->player();
-  auto  camera = Gothic::inst().camera();
-  if(camera==nullptr || (pl!=nullptr && !camera->isFree()))
-    return false;
+    Npc* pl = w->player();
+    auto camera = Gothic::inst().camera();
+    if (camera == nullptr || (pl != nullptr && !camera->isFree()))
+        return false;
 
-  rotMouse = 0;
-  if(ctrl[KeyCodec::Left] || (ctrl[KeyCodec::RotateL] && ctrl[KeyCodec::Jump])) {
-    camera->moveLeft(dt);
-    return true;
+    rotMouse = 0;
+
+    // Get the right stick input from the controller
+    int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
+    int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
+
+    // Deadzone for the right stick to avoid unwanted small movements
+    const int DEADZONE = 8000;  // Adjust deadzone as needed
+    float normalizedX = 0.0f;
+    float normalizedY = 0.0f;
+
+    if (abs(rightX) > DEADZONE) {
+        normalizedX = static_cast<float>(rightX) / 32767.0f;  // Normalize to [-1, 1]
     }
-  if(ctrl[KeyCodec::Right] || (ctrl[KeyCodec::RotateR] && ctrl[KeyCodec::Jump])) {
-    camera->moveRight(dt);
-    return true;
+    if (abs(rightY) > DEADZONE) {
+        normalizedY = static_cast<float>(rightY) / 32767.0f;  // Normalize to [-1, 1]
     }
 
-  auto turningVal = movement.turnRightLeft.value();
-  if(turningVal > 0.f)
-    camera->rotateRight(dt);
-  else if(turningVal < 0.f)
-    camera->rotateLeft(dt);
+    // Use the right joystick for turning the camera
+    auto turningVal = normalizedX;  // Use normalized right joystick X for camera rotation
+    if (turningVal > 0.f) {
+        camera->rotateRight(dt * turningVal);  // Rotate the camera right
+    } else if (turningVal < 0.f) {
+        camera->rotateLeft(dt * -turningVal);  // Rotate the camera left
+    }
 
-  auto forwardVal = movement.forwardBackward.value();
-  if(forwardVal > 0.f)
-    camera->moveForward(dt);
-  else if(forwardVal < 0.f)
-    camera->moveBack(dt);
-  return true;
-  }
+    // Use the right joystick for moving the camera forward/backward
+    auto forwardVal = normalizedY;  // Use normalized right joystick Y for camera movement
+    if (forwardVal > 0.f) {
+        camera->moveForward(dt * forwardVal);  // Move the camera forward
+    } else if (forwardVal < 0.f) {
+        camera->moveBack(dt * -forwardVal);  // Move the camera backward
+    }
+
+    return true;
+}
 
 bool PlayerControl::tickMove(uint64_t dt) {
   auto w = Gothic::inst().world();
