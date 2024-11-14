@@ -7,7 +7,7 @@
 
 Gamepad::Gamepad(SDL_Renderer* renderer, SDL_Window* window)
     : renderer(renderer), window(window) {
-    // Initialize screen dimensions
+    // Get the window size
     SDL_GetWindowSize(window, &screenWidth, &screenHeight);
 }
 
@@ -15,7 +15,7 @@ void Gamepad::handleInput(SDL_GameController* controller, MovementData& movement
     // Get the screen dimensions from the window
     SDL_GetWindowSize(window, &screenWidth, &screenHeight);
     std::cout << "Screen Width: " << screenWidth << ", Screen Height: " << screenHeight << std::endl;
-
+    
     static bool controllerDetected = false;  // Static flag to track if controller is already detected
     static bool menuActive = false; // Track whether the radial menu is active
     static int selectedOption = 0;  // Index of the selected menu option
