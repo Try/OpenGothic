@@ -1214,7 +1214,7 @@ void PlayerControl::handleControllerInput() {
     event.key.keysym.sym = SDLK_BACKSPACE; // X Button = Backspace
     SDL_PushEvent(&event);
 
-    event.key.keysym.sym = SDLK_F; // Right Stick Press = F
+    event.key.keysym.sym = SDLK_f; // Right Stick Press = F
     SDL_PushEvent(&event);
 
     event.key.keysym.sym = SDLK_x; // Left Stick Press = X
