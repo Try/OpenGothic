@@ -8,12 +8,12 @@
 Gamepad::Gamepad(SDL_Renderer* renderer, int screenWidth, int screenHeight)
     : renderer(renderer), screenWidth(screenWidth), screenHeight(screenHeight) {}
 
-void Gamepad::handleInput(SDL_GameController* controller) {
+void Gamepad::handleInput(SDL_GameController* controller, MovementData& movement) {
     static bool controllerDetected = false;  // Static flag to track if controller is already detected
 
     static bool menuActive = false; // Track whether the radial menu is active
-    static int selectedOption = 0;  // Index of the selected menu op
-  
+    static int selectedOption = 0;  // Index of the selected menu option
+
     // Detect the controller only once
     if (SDL_NumJoysticks() < 1) {
         std::cerr << "No joystick or controller detected!" << std::endl;
@@ -26,29 +26,14 @@ void Gamepad::handleInput(SDL_GameController* controller) {
         controllerDetected = true;
     }
 
-    // Attempt to load the controller mappings
-    if (SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt") < 0) {
-        std::cerr << "Failed to load controller mappings: " << SDL_GetError() << std::endl;
-    }
-
-    // Open the first controller
-    SDL_GameController* controller = SDL_GameControllerOpen(0);
-    if (controller == nullptr) {
-        std::cerr << "Unable to open controller: " << SDL_GetError() << std::endl;
-        return;
-    }
-    
-    const int DEADZONE = 8000;  // Deadzone for analog sticks
-
-
-  // Check if Left Stick (L3) is pressed to activate the menu
+    // Check if Left Stick (L3) is pressed to activate the menu
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSTICK)) {
         menuActive = true;
     } else {
         menuActive = false;
     }
 
-        if (menuActive) {
+    if (menuActive) {
         // Menu is active, let's display the radial menu and handle navigation
         PieWheelMenu pieMenu(renderer, screenWidth, screenHeight);
         pieMenu.draw(screenWidth / 2, screenHeight / 2, 100, selectedOption);
@@ -58,13 +43,9 @@ void Gamepad::handleInput(SDL_GameController* controller) {
         int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
         int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
 
-        // Deadzone for the right joystick to prevent unintentional movement
-        const int DEADZONE = 8000;
-
         // Only process the right joystick movement if it exceeds the deadzone
         if (abs(rightX) > DEADZONE || abs(rightY) > DEADZONE) {
             // Calculate the angle of the right joystick movement
-            // Cast rightX and rightY to float to avoid conversion errors
             float angle = atan2f(static_cast<float>(rightY), static_cast<float>(rightX)); // Get the angle in radians
 
             // Normalize the angle to degrees (0° to 360°)
@@ -112,6 +93,7 @@ void Gamepad::handleInput(SDL_GameController* controller) {
         }
     }
 
+    // Movement input handling
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER)) {
         movement.strafeRightLeft.reverse[0] = true;
     } else {
@@ -124,6 +106,25 @@ void Gamepad::handleInput(SDL_GameController* controller) {
     } else {
         movement.strafeRightLeft.main[0] = false;
     }
-  
-    SDL_GameControllerClose(controller);  // Close the controller
+
+    // Optionally, add more movement logic using analog sticks or buttons
+    int leftX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX);
+    int leftY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY);
+
+    // Handle movement if the analog sticks are pushed past the deadzone
+    if (abs(leftX) > DEADZONE) {
+        if (leftX > 0) {
+            movement.strafeRightLeft.main[0] = true;
+        } else {
+            movement.strafeRightLeft.reverse[0] = true;
+        }
+    }
+    
+    if (abs(leftY) > DEADZONE) {
+        if (leftY > 0) {
+            movement.forwardBackward.reverse[0] = true;
+        } else {
+            movement.forwardBackward.main[0] = true;
+        }
+    }
 }
