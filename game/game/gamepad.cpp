@@ -12,7 +12,7 @@ Gamepad::Gamepad(SDL_Renderer* renderer, SDL_Window* window)
     SDL_GetWindowSize(window, &screenWidth, &screenHeight);
 }
 
-void Gamepad::handleInput(SDL_GameController* controller, MovementData& movement) {
+void Gamepad::handleInput() {
     // Get the screen dimensions from the window
     SDL_GetWindowSize(window, &screenWidth, &screenHeight);
     std::cout << "Screen Width: " << screenWidth << ", Screen Height: " << screenHeight << std::endl;
