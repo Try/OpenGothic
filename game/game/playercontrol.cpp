@@ -1143,6 +1143,7 @@ void PlayerControl::handleControllerInput() {
         // A button pressed (map to Weapon action)
         onKeyPressed(KeyCodec::Action::Weapon, Tempest::KeyEvent::KeyType::K_Return, KeyCodec::Mapping());
     }
+
     const int DEADZONE = 8000;  // Deadzone for analog sticks
 
     // Get the axis values (left analog stick)
@@ -1191,16 +1192,27 @@ void PlayerControl::handleControllerInput() {
             currentMagicSlot = Action::WeaponMage3;
         }
     }
-  if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER)) {
+
+    // Map B button to Jump action
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_B)) {
+        // If B button is pressed, trigger Jump action
+        ctrl[Action::Jump] = true;  // Assuming ctrl is an array of actions
+    } else {
+        ctrl[Action::Jump] = false; // Reset the jump action when B button is not pressed
+    }
+
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER)) {
         movement.strafeRightLeft.reverse[0] = true;
     } else {
         movement.strafeRightLeft.reverse[0] = false;
     }
+
     // Check if the right shoulder button is pressed
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)) {
         movement.strafeRightLeft.main[0] = true;
     } else {
         movement.strafeRightLeft.main[0] = false;
     }
-      SDL_GameControllerClose(controller);  // Close the controller
+  
+    SDL_GameControllerClose(controller);  // Close the controller
 }
