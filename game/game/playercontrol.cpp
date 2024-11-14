@@ -1209,48 +1209,39 @@ void PlayerControl::handleControllerInput() {
         menuActive = false;
     }
 
+    // If the menu is active, render it
     if (menuActive) {
-        // Menu is active, let's display the radial menu and handle navigation
-
         // Get the right joystick values (right analog stick)
         int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
         int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
 
-        // Deadzone for the right joystick to prevent unintentional movement
-        const int DEADZONE = 8000;
-
-        // Only process the right joystick movement if it exceeds the deadzone
+        // Deadzone for the right joystick
         if (abs(rightX) > DEADZONE || abs(rightY) > DEADZONE) {
-    // Calculate the angle of the right joystick movement
-    float angle = atan2f(static_cast<float>(rightY), static_cast<float>(rightX)); // Get the angle in radians
+            // Calculate the angle of the right joystick movement
+            float angle = atan2f(static_cast<float>(rightY), static_cast<float>(rightX)); // Get the angle in radians
 
-    // Normalize the angle to degrees (0° to 360°)
-    angle = angle * 180.0f / static_cast<float>(M_PI);
+            // Normalize the angle to degrees (0° to 360°)
+            angle = angle * 180.0f / static_cast<float>(M_PI);
 
-    // Ensure the angle is between 0° and 360°
-    if (angle < 0) {
-        angle += 360.0f;  // Adjust negative angles to positive range
-    }
+            if (angle < 0) {
+                angle += 360.0f;  // Adjust negative angles to positive range
+            }
 
-    // Determine the selected option based on the angle
-    if (angle >= 0 && angle < 45) {
-        selectedOption = 0; // Option 1 (right)
-    } else if (angle >= 45 && angle < 135) {
-        selectedOption = 1; // Option 2 (down)
-    } else if (angle >= 135 && angle < 225) {
-        selectedOption = 2; // Option 3 (left)
-    } else if (angle >= 225 && angle < 315) {
-        selectedOption = 3; // Option 4 (up)
-    } else {
-        selectedOption = 0; // Wrap around to Option 1 (right)
-    }
+            // Determine the selected option based on the angle
+            if (angle >= 0 && angle < 45) {
+                selectedOption = 0; // Option 1 (right)
+            } else if (angle >= 45 && angle < 135) {
+                selectedOption = 1; // Option 2 (down)
+            } else if (angle >= 135 && angle < 225) {
+                selectedOption = 2; // Option 3 (left)
+            } else if (angle >= 225 && angle < 315) {
+                selectedOption = 3; // Option 4 (up)
+            } else {
+                selectedOption = 0; // Wrap around to Option 1 (right)
+            }
 
-    // Optionally, print or use the angle
-    std::cout << "Joystick angle: " << angle << "°" << std::endl;
-}
-
-            // Optional: Visualize the selected option in the console (or UI)
-            std::cout << "Selected Option: " << selectedOption << std::endl;
+            // Visualize the selected option
+            visualizeRadialMenu(selectedOption);
         }
 
         // Check if the user selects an option (e.g., pressing the A button)
@@ -1291,4 +1282,37 @@ void PlayerControl::handleControllerInput() {
     }
   
     SDL_GameControllerClose(controller);  // Close the controller
+}
+// Function to visualize the radial menu
+void PlayerControl::visualizeRadialMenu(int selectedOption) {
+    // Assuming screen width and height are known
+    int centerX = 400;  // Example center of the menu
+    int centerY = 300;  // Example center of the menu
+    int radius = 100;   // Radius of the radial menu
+    SDL_Color selectedColor = {255, 0, 0, 255}; // Red color for selected option
+    SDL_Color defaultColor = {255, 255, 255, 255}; // White color for unselected options
+
+    // Clear the screen (fill with black or any background color)
+    SDL_RenderClear(renderer);
+
+    // Draw the radial menu (4 options)
+    for (int i = 0; i < 4; ++i) {
+        float angle = (i * 90) * M_PI / 180.0f;  // Angles for each option (0, 90, 180, 270)
+        int optionX = centerX + static_cast<int>(radius * cos(angle));
+        int optionY = centerY + static_cast<int>(radius * sin(angle));
+
+        // Use a different color for the selected option
+        SDL_Color color = (i == selectedOption) ? selectedColor : defaultColor;
+        
+        // Draw a small circle or a box representing each option
+        SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
+        SDL_RenderDrawPoint(renderer, optionX, optionY); // You can use a circle or square instead
+    }
+
+    // Optionally, draw a central button
+    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+    SDL_RenderFillCircle(renderer, centerX, centerY, 20);  // Example for a circle button in the center
+
+    // Present the renderer to update the screen
+    SDL_RenderPresent(renderer);
 }
