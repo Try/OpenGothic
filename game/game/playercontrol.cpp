@@ -1111,7 +1111,7 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
     }
   }
 
-void PlayerControl::handleControllerInput() {
+void PlayerControl::handleControllerInput(SDL_Renderer* renderer) {
     static bool controllerDetected = false;  // Static flag to track if controller is already detected
     static bool menuActive = false; // Track whether the radial menu is active
     static int selectedOption = 0;  // Index of the selected menu option
