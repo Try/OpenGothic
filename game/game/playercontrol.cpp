@@ -1121,13 +1121,19 @@ void PlayerControl::handleControllerInput() {
     return;
   }
 
+  if (SDL_NumJoysticks() < 1) {
+    std::cerr << "No joystick or controller detected!" << std::endl;
+    return;
+}
+std::cout << "Controller detected: " << SDL_JoystickNameForIndex(0) << std::endl;
+  
+if (SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt") < 0) {
+    std::cerr << "Failed to load controller mappings: " << SDL_GetError() << std::endl;
+}
+  
   if (controller == nullptr) {
     std::cerr << "Unable to open controller: " << SDL_GetError() << std::endl;
     return; // Remove "false" since the function has a void return type
-}
-
-if (SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt") < 0) {
-    std::cerr << "Failed to load controller mappings: " << SDL_GetError() << std::endl;
 }
   
   SDL_GameController* controller = SDL_GameControllerOpen(0);  // Open the first controller
