@@ -1203,7 +1203,7 @@ void PlayerControl::handleControllerInput() {
             }
 
             // Visualize the selected option
-            visualizeRadialMenu(selectedOption);
+            visualizeRadialMenu(renderer, selectedOption);
         }
 
         // Check if the user selects an option (e.g., pressing the A button)
