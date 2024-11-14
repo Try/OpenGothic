@@ -1175,15 +1175,16 @@ void PlayerControl::handleControllerInput() {
     }
      // Handle look up down with right stick
     if (abs(rightY) > DEADZONE) {
-        float rotationAmount = float(rightY) / 32767.0f;  // Convert to range -1 to 1
-        rotMouseY = rotationAmount;
+    // Normalize the input to a -1 to 1 range
+    float rotationAmount = float(rightY) / 32767.0f;
+    rotMouseY = rotationAmount;  // Store the rotation amount (you might need it elsewhere)
 
-        // You can apply this rotation value to the camera or player rotation logic:
-        // Assuming 'c' is the camera object:
-        if (auto c = Gothic::inst().camera()) {
-            c->rotateUpDown(rotationAmount);
-        }
+    // Apply the vertical rotation to the camera
+    if (auto c = Gothic::inst().camera()) {
+        c->rotateUpDown(rotationAmount);  // Call the camera's method to rotate vertically
     }
+    }
+
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
         // A button pressed (map to Weapon action)
         onKeyPressed(KeyCodec::Action::Weapon, Tempest::KeyEvent::KeyType::K_UNKNOWN, KeyCodec::Mapping());
