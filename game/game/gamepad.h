@@ -1,4 +1,5 @@
 #include <SDL2/SDL.h>
+#include "playercontrol.h"  // Include the MovementData header
 
 class Gamepad {
 public:
