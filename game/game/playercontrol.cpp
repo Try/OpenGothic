@@ -1171,7 +1171,6 @@ void PlayerControl::handleControllerInput() {
     }
 
 // Set up deadzone and rotation speed
-const int DEADZONE = 8000; // Adjust as needed
 const float ROTATION_SPEED = 0.05f; // Adjust for sensitivity
 
 // Get the X and Y values from the right stick
