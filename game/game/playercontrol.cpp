@@ -1207,15 +1207,15 @@ void PlayerControl::handleControllerInput() {
         }
     }
   if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER)) {
-        movement.strafeRightLeft.reverse[KeyCodec::Mapping::Primary] = true;
+        movement.strafeRightLeft.reverse[0] = true;
     } else {
-        movement.strafeRightLeft.reverse[KeyCodec::Mapping::Primary] = false;
+        movement.strafeRightLeft.reverse[0] = false;
     }
     // Check if the right shoulder button is pressed
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)) {
-        movement.strafeRightLeft.main[KeyCodec::Mapping::Primary] =  true; // Strafe right
+        movement.strafeRightLeft.main[0] = true;
     } else {
-        movement.strafeRightLeft.main[KeyCodec::Mapping::Primary] =  false;
+        movement.strafeRightLeft.main[0] = false;
     }
       SDL_GameControllerClose(controller);  // Close the controller
 }
