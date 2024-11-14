@@ -1184,38 +1184,84 @@ void PlayerControl::handleControllerInput() {
     if (abs(rightY) > DEADZONE) {
         rotMouseY = float(rightY) / 32767.0f;  // Convert to range -1 to 1
     }
-    // Trigger handling (right trigger = right mouse button, left trigger = left mouse button)
-    int leftTrigger = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_TRIGGERLEFT);
-    int rightTrigger = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_TRIGGERRIGHT);
 
-    if (leftTrigger > 20000) {  // Left trigger pressed (threshold)
-        SDL_MouseButtonEvent leftButtonEvent;
-        leftButtonEvent.button = SDL_BUTTON_LEFT;
-        leftButtonEvent.state = SDL_PRESSED;
-        SDL_PushEvent(reinterpret_cast<SDL_Event*>(&leftButtonEvent));
-    } else {
-        SDL_MouseButtonEvent leftButtonEvent;
-        leftButtonEvent.button = SDL_BUTTON_LEFT;
-        leftButtonEvent.state = SDL_RELEASED;
-        SDL_PushEvent(reinterpret_cast<SDL_Event*>(&leftButtonEvent));
+    // Handle controller button presses based on your configuration
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_B)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYDOWN, SDL_KEY_LEFTALT});  // B Button = Left Alt
+    }
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYDOWN, SDL_KEY_LEFTCTRL});  // A Button = Left Ctrl
+    }
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_Y)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYDOWN, SDL_KEY_SPACE});  // Y Button = Space
+    }
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_X)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYDOWN, SDL_KEY_BACKSPACE});  // X Button = Backspace
     }
 
-    if (rightTrigger > 20000) {  // Right trigger pressed (threshold)
-        SDL_MouseButtonEvent rightButtonEvent;
-        rightButtonEvent.button = SDL_BUTTON_RIGHT;
-        rightButtonEvent.state = SDL_PRESSED;
-        SDL_PushEvent(reinterpret_cast<SDL_Event*>(&rightButtonEvent));
-    } else {
-        SDL_MouseButtonEvent rightButtonEvent;
-        rightButtonEvent.button = SDL_BUTTON_RIGHT;
-        rightButtonEvent.state = SDL_RELEASED;
-        SDL_PushEvent(reinterpret_cast<SDL_Event*>(&rightButtonEvent));
+    // Right Joystick Press (Button)
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_RIGHTSTICK)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYDOWN, SDL_KEY_F});  // Right Stick Press = F
     }
 
-    // Interaction
-    Npc* pl = w->player();
-    if (pl && SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
-        interact(*pl);  // Interact with the player
+    // Left Joystick Press (Button)
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSTICK)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYDOWN, SDL_KEY_X});  // Left Stick Press = X
+    }
+
+    // Start Button = ESC
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_START)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYDOWN, SDL_KEY_ESC});  // Start Button = ESC
+    }
+
+    // Dpad Buttons
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPADUP)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYDOWN, SDL_KEY_1});  // Dpad Up = 1
+    }
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPADRIGHT)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYDOWN, SDL_KEY_2});  // Dpad Right = 2
+    }
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPADDOWN)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYDOWN, SDL_KEY_3});  // Dpad Down = 3
+    }
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPADLEFT)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYDOWN, SDL_KEY_4});  // Dpad Left = 4
+    }
+
+    // Handle key releases
+    // Here we will release the keys once the button is no longer pressed
+    if (!SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_B)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYUP, SDL_KEY_LEFTALT});  // Release Left Alt
+    }
+    if (!SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYUP, SDL_KEY_LEFTCTRL});  // Release Left Ctrl
+    }
+    if (!SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_Y)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYUP, SDL_KEY_SPACE});  // Release Space
+    }
+    if (!SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_X)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYUP, SDL_KEY_BACKSPACE});  // Release Backspace
+    }
+    if (!SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_RIGHTSTICK)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYUP, SDL_KEY_F});  // Release F
+    }
+    if (!SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSTICK)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYUP, SDL_KEY_X});  // Release X
+    }
+    if (!SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_START)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYUP, SDL_KEY_ESC});  // Release ESC
+    }
+    if (!SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPADUP)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYUP, SDL_KEY_1});  // Release 1
+    }
+    if (!SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPADRIGHT)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYUP, SDL_KEY_2});  // Release 2
+    }
+    if (!SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPADDOWN)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYUP, SDL_KEY_3});  // Release 3
+    }
+    if (!SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPADLEFT)) {
+        SDL_PushEvent(new SDL_Event{SDL_KEYUP, SDL_KEY_4});  // Release 4
     }
 
     SDL_GameControllerClose(controller);  // Close the controller
