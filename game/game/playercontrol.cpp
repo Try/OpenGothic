@@ -1231,14 +1231,15 @@ void PlayerControl::handleControllerInput() {
 void drawCircle(SDL_Renderer* renderer, int x, int y, int radius) {
     const int numSegments = 30;  // Number of segments for the circle
     for (int i = 0; i < numSegments; i++) {
-        float angle = 2 * M_PI * i / numSegments;
+        // Correct the conversion from double to float for angle calculation
+        float angle = 2 * static_cast<float>(M_PI) * i / numSegments;  // Cast M_PI to float
         int dx = static_cast<int>(radius * cos(angle));
         int dy = static_cast<int>(radius * sin(angle));
         SDL_RenderDrawPoint(renderer, x + dx, y + dy);
     }
 }
 // Function to visualize the radial menu
-void PlayerControl::visualizeRadialMenu(int selectedOption) {
+void PlayerControl::visualizeRadialMenu(SDL_Renderer* renderer, int selectedOption) {
     int centerX = 400;  // Example center of the menu
     int centerY = 300;  // Example center of the menu
     int radius = 100;   // Radius of the radial menu
@@ -1250,7 +1251,8 @@ void PlayerControl::visualizeRadialMenu(int selectedOption) {
 
     // Draw the radial menu (4 options)
     for (int i = 0; i < 4; ++i) {
-        float angle = (i * 90) * M_PI / 180.0f;  // Angles for each option (0, 90, 180, 270)
+        // Correct the conversion from double to float for angle calculation
+        float angle = (i * 90) * static_cast<float>(M_PI) / 180.0f;  // Cast M_PI to float
         int optionX = centerX + static_cast<int>(radius * cos(angle));
         int optionY = centerY + static_cast<int>(radius * sin(angle));
 
@@ -1262,9 +1264,8 @@ void PlayerControl::visualizeRadialMenu(int selectedOption) {
         SDL_RenderDrawPoint(renderer, optionX, optionY); // You can use a circle or square instead
     }
 
-    // Optionally, draw a central button
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    SDL_RenderFillCircle(renderer, centerX, centerY, 20);  // Example for a circle button in the center
+    // Optionally, draw a central button (circle)
+    drawCircle(renderer, centerX, centerY, 20);  // Draw the center circle
 
     // Present the renderer to update the screen
     SDL_RenderPresent(renderer);
