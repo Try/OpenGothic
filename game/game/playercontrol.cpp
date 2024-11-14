@@ -3,7 +3,7 @@
 #include <cmath>
 #include <SDL2/SDL.h>
 #include <iostream>
-#include "Gamepad.h"
+#include "gamepad.h"
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
 #include "world/objects/interactive.h"
