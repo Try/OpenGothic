@@ -1185,7 +1185,7 @@ void PlayerControl::handleControllerInput() {
 
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
         // A button pressed (map to Weapon action)
-        onKeyPressed(KeyCodec::Action::Weapon, Tempest::KeyEvent::KeyType::K_NONE, KeyCodec::Mapping());
+        onKeyPressed(KeyCodec::Action::Weapon, Tempest::KeyEvent::KeyType::K_SPACE, KeyCodec::Mapping());
     }
 
     SDL_GameControllerClose(controller);  // Close the controller
