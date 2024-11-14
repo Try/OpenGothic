@@ -9,53 +9,121 @@ Gamepad::Gamepad(SDL_Renderer* renderer, int screenWidth, int screenHeight)
     : renderer(renderer), screenWidth(screenWidth), screenHeight(screenHeight) {}
 
 void Gamepad::handleInput(SDL_GameController* controller) {
-    static bool controllerDetected = false;
+    static bool controllerDetected = false;  // Static flag to track if controller is already detected
 
+    static bool menuActive = false; // Track whether the radial menu is active
+    static int selectedOption = 0;  // Index of the selected menu op
+  
+    // Detect the controller only once
     if (SDL_NumJoysticks() < 1) {
         std::cerr << "No joystick or controller detected!" << std::endl;
         return;
     }
 
-    // Handle controller button press for showing pie menu
-    int selectedOption = 0;
-    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER)) {
+    // Only print the message the first time the controller is detected
+    if (!controllerDetected) {
+        std::cout << "Controller detected: " << SDL_JoystickNameForIndex(0) << std::endl;
+        controllerDetected = true;
+    }
+
+    // Attempt to load the controller mappings
+    if (SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt") < 0) {
+        std::cerr << "Failed to load controller mappings: " << SDL_GetError() << std::endl;
+    }
+
+    // Open the first controller
+    SDL_GameController* controller = SDL_GameControllerOpen(0);
+    if (controller == nullptr) {
+        std::cerr << "Unable to open controller: " << SDL_GetError() << std::endl;
+        return;
+    }
+    
+    const int DEADZONE = 8000;  // Deadzone for analog sticks
+
+
+  // Check if Left Stick (L3) is pressed to activate the menu
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSTICK)) {
+        menuActive = true;
+    } else {
+        menuActive = false;
+    }
+
+        if (menuActive) {
+        // Menu is active, let's display the radial menu and handle navigation
         PieWheelMenu pieMenu(renderer, screenWidth, screenHeight);
         pieMenu.draw(screenWidth / 2, screenHeight / 2, 100, selectedOption);
         pieMenu.handleControllerInput(controller, selectedOption);
 
-        // Action based on selected option
-        if (selectedOption == 0) {
-            // Action for option 1
-        } else if (selectedOption == 1) {
-            // Action for option 2
-        } else if (selectedOption == 2) {
-            // Action for option 3
-        } else if (selectedOption == 3) {
-            // Action for option 4
+        // Get the right joystick values (right analog stick)
+        int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
+        int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
+
+        // Deadzone for the right joystick to prevent unintentional movement
+        const int DEADZONE = 8000;
+
+        // Only process the right joystick movement if it exceeds the deadzone
+        if (abs(rightX) > DEADZONE || abs(rightY) > DEADZONE) {
+            // Calculate the angle of the right joystick movement
+            // Cast rightX and rightY to float to avoid conversion errors
+            float angle = atan2f(static_cast<float>(rightY), static_cast<float>(rightX)); // Get the angle in radians
+
+            // Normalize the angle to degrees (0° to 360°)
+            angle = angle * 180.0f / static_cast<float>(M_PI);
+
+            // Determine the selected option based on the angle
+            if (angle >= -45 && angle < 45) {
+                selectedOption = 0; // Option 1 (right)
+            } else if (angle >= 45 && angle < 135) {
+                selectedOption = 1; // Option 2 (down)
+            } else if (angle >= 135 || angle < -135) {
+                selectedOption = 2; // Option 3 (left)
+            } else if (angle >= -135 && angle < -45) {
+                selectedOption = 3; // Option 4 (up)
+            }
+
+            // Optional: Visualize the selected option in the console (or UI)
+            std::cout << "Selected Option: " << selectedOption << std::endl;
+        }
+
+        // Check if the user selects an option (e.g., pressing the A button)
+        if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
+            // Execute the action for the selected option
+            switch (selectedOption) {
+                case 0:
+                    std::cout << "Option 1 selected" << std::endl;
+                    // Trigger corresponding action for option 1
+                    break;
+                case 1:
+                    std::cout << "Option 2 selected" << std::endl;
+                    // Trigger corresponding action for option 2
+                    break;
+                case 2:
+                    std::cout << "Option 3 selected" << std::endl;
+                    // Trigger corresponding action for option 3
+                    break;
+                case 3:
+                    std::cout << "Option 4 selected" << std::endl;
+                    // Trigger corresponding action for option 4
+                    break;
+            }
+
+            // Reset menu state after selection
+            menuActive = false;
         }
     }
 
-    // Handle other button inputs here
-    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
-        std::cout << "Button A pressed!" << std::endl;
-        // Action for Button A (example)
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER)) {
+        movement.strafeRightLeft.reverse[0] = true;
+    } else {
+        movement.strafeRightLeft.reverse[0] = false;
     }
 
-    // Handle D-pad and analog stick for movement
-    int leftX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX);
-    int leftY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY);
-
-    if (abs(leftX) > DEADZONE) {
-        // Process strafeLeftRight
+    // Check if the right shoulder button is pressed
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)) {
+        movement.strafeRightLeft.main[0] = true;
+    } else {
+        movement.strafeRightLeft.main[0] = false;
     }
-
-    if (abs(leftY) > DEADZONE) {
-        // Process forwardBackward movement
-    }
-    
-    // Check for other buttons like D-pad, shoulder buttons, etc.
-    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_UP)) {
-        std::cout << "D-pad Up pressed!" << std::endl;
-        // Action for D-pad Up
-    }
+  
+    SDL_GameControllerClose(controller);  // Close the controller
 }
