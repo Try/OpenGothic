@@ -546,19 +546,19 @@ bool PlayerControl::tickCameraMove(uint64_t dt) {
   if (abs(rightY) > DEADZONE) {
     normalizedY = static_cast<float>(rightY) / 32767.0f;
   }
-
+  float dtFloat = static_cast<float>(dt);
   // Horizontal rotation
   if (normalizedX > 0.f) {
-    camera->rotateRight(static_cast<float>(dt) * normalizedX);  // Apply rotation based on right stick input
+    camera->rotateRight(dtFloat * normalizedX);  // Apply rotation based on right stick input
   } else if (normalizedX < 0.f) {
-    camera->rotateLeft(static_cast<float>(dt) * -normalizedX);
+    camera->rotateLeft(dtFloat * -normalizedX);
   }
 
   // Vertical movement
   if (normalizedY > 0.f) {
-    camera->moveForward(static_cast<float>(dt) * normalizedY);  // Move camera forward/backward based on input
+    camera->moveForward(dtFloat * normalizedY);  // Move camera forward/backward based on input
   } else if (normalizedY < 0.f) {
-    camera->moveBack(static_cast<float>(dt) * -normalizedY);
+    camera->moveBack(dtFloat * -normalizedY);
   }
 
   return true;
