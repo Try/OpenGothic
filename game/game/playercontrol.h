@@ -5,6 +5,7 @@
 #include "constants.h"
 
 #include <array>
+#include <SDL2/SDL.h>
 
 class DialogMenu;
 class InventoryMenu;
@@ -155,6 +156,8 @@ class PlayerControl final {
     DialogMenu&    dlg;
     InventoryMenu& inv;
 
+    SDL_GameController* controller = nullptr;
+
     void           setupSettings();
     bool           canInteract() const;
     void           marvinF8(uint64_t dt);
@@ -175,7 +178,7 @@ class PlayerControl final {
     void           assignRunAngle(Npc& pl, float rotation, uint64_t dt);
     void           setAnimRotate (Npc& pl, float rotation, int anim, bool force, uint64_t dt);
     void           processAutoRotate(Npc& pl, float& rot, uint64_t dt);
-
+    void           handleControllerInput();
 
     //////////////////////////////////
     // Helper functions for movement
