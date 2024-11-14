@@ -1231,7 +1231,6 @@ void PlayerControl::handleControllerInput() {
 
 // Function to visualize the radial menu
 void PlayerControl::visualizeRadialMenu(int selectedOption) {
-    // Assuming screen width and height are known
     int centerX = 400;  // Example center of the menu
     int centerY = 300;  // Example center of the menu
     int radius = 100;   // Radius of the radial menu
