@@ -1252,8 +1252,8 @@ void PlayerControl::visualizeRadialMenu(SDL_Renderer* renderer, int selectedOpti
 
     // Draw the radial menu (4 options)
     for (int i = 0; i < 4; ++i) {
-        // Correct the conversion from int to float for angle calculation
-        float angle = (i * 90) * static_cast<float>(M_PI) / 180.0f;  // Cast M_PI to float
+        // Explicitly cast i to float and M_PI to float for angle calculation
+        float angle = (i * 90) * static_cast<float>(M_PI) / 180.0f;  // Cast M_PI and i to float
         float radiusFloat = static_cast<float>(radius);  // Cast radius to float
         int optionX = centerX + static_cast<int>(radiusFloat * cos(angle));
         int optionY = centerY + static_cast<int>(radiusFloat * sin(angle));
@@ -1272,3 +1272,4 @@ void PlayerControl::visualizeRadialMenu(SDL_Renderer* renderer, int selectedOpti
     // Present the renderer to update the screen
     SDL_RenderPresent(renderer);
 }
+
