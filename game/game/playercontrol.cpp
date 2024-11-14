@@ -3,7 +3,7 @@
 #include <cmath>
 #include <SDL2/SDL.h>
 #include <iostream>
-
+#include "Gamepad.h"
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
 #include "world/objects/interactive.h"
@@ -1110,3 +1110,25 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
       }
     }
   }
+
+void PlayerControl::handleControllerInput() {
+    static bool controllerDetected = false;
+
+    if (SDL_NumJoysticks() < 1) {
+        std::cerr << "No joystick or controller detected!" << std::endl;
+        return;
+    }
+
+    // Open the controller
+    SDL_GameController* controller = SDL_GameControllerOpen(0);
+    if (controller == nullptr) {
+        std::cerr << "Unable to open controller: " << SDL_GetError() << std::endl;
+        return;
+    }
+
+    // Create a Gamepad object to handle the input
+    Gamepad gamepad(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+    gamepad.handleInput(controller);  // Delegate the input handling to Gamepad
+
+    SDL_GameControllerClose(controller);  // Close the controller after handling input
+}
