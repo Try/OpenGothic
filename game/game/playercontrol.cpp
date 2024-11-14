@@ -580,6 +580,8 @@ bool PlayerControl::tickMove(uint64_t dt) {
     return true;
 
   handleControllerInput(); 
+  handleDpadInput(SDL_GameController* controller);
+  handleAnalogSticks(SDL_GameController* controller);
 
   static const float speedRotX = 750.f;
   rotMouse = std::min(std::abs(rotMouse), speedRotX*dtF) * (rotMouse>=0 ? 1 : -1);
@@ -1138,9 +1140,6 @@ void PlayerControl::handleControllerInput() {
         std::cerr << "Unable to open controller: " << SDL_GetError() << std::endl;
         return;
     }
-
-    handleDpadInput(SDL_GameController* controller);
-    handleAnalogSticks(SDL_GameController* controller);
   
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
         // A button pressed (map to Weapon action)
@@ -1150,7 +1149,7 @@ void PlayerControl::handleControllerInput() {
     SDL_GameControllerClose(controller);  // Close the controller
 }
 
-void PlayerControl:handleAnalogSticks(SDL_GameController* controller){
+void PlayerControl::handleAnalogSticks(SDL_GameController* controller){
     const int DEADZONE = 8000;  // Deadzone for analog sticks
 
     // Get the axis values (left analog stick)
