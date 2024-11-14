@@ -1115,6 +1115,9 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
 void PlayerControl::handleControllerInput() {
     static bool controllerDetected = false;  // Static flag to track if controller is already detected
 
+    static bool menuActive = false; // Track whether the radial menu is active
+    static int selectedOption = 0;  // Index of the selected menu op
+  
     // Detect the controller only once
     if (SDL_NumJoysticks() < 1) {
         std::cerr << "No joystick or controller detected!" << std::endl;
@@ -1199,14 +1202,70 @@ void PlayerControl::handleControllerInput() {
         ctrl[Action::Jump] = false; // Reset the jump action when B button is not pressed
     }
 
-  // Check if the Left Stick (L3) is pressed
+  // Check if Left Stick (L3) is pressed to activate the menu
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSTICK)) {
-        // If the left joystick (L3) is pressed, execute the Sneak action
-        if (ctrl[Action::Sneak]) {
-            // Execute the Sneak action (implement this as needed)
-            std::cout << "Sneak action triggered!" << std::endl;
+        menuActive = true;
+    } else {
+        menuActive = false;
+    }
+
+    if (menuActive) {
+        // Menu is active, let's display the radial menu and handle navigation
+
+        // Get the right joystick values (right analog stick)
+        int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
+        int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
+
+        // Deadzone for the right joystick to prevent unintentional movement
+        const int DEADZONE = 8000;
+
+        // Only process the right joystick movement if it exceeds the deadzone
+        if (abs(rightX) > DEADZONE || abs(rightY) > DEADZONE) {
+            // Calculate the angle of the right joystick movement
+            float angle = atan2f(rightY, rightX); // Get the angle in radians
+
+            // Normalize the angle to degrees (0° to 360°)
+            angle = angle * 180.0f / M_PI;
+
+            // Determine the selected option based on the angle
+            if (angle >= -45 && angle < 45) {
+                selectedOption = 0; // Option 1 (right)
+            } else if (angle >= 45 && angle < 135) {
+                selectedOption = 1; // Option 2 (down)
+            } else if (angle >= 135 || angle < -135) {
+                selectedOption = 2; // Option 3 (left)
+            } else if (angle >= -135 && angle < -45) {
+                selectedOption = 3; // Option 4 (up)
+            }
+
+            // Optional: Visualize the selected option in the console (or UI)
+            std::cout << "Selected Option: " << selectedOption << std::endl;
+        }
+
+        // Check if the user selects an option (e.g., pressing the A button)
+        if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
+            // Execute the action for the selected option
+            switch (selectedOption) {
+                case 0:
+                    std::cout << "Option 1 selected" << std::endl;
+                    // Trigger corresponding action for option 1
+                    break;
+                case 1:
+                    std::cout << "Option 2 selected" << std::endl;
+                    // Trigger corresponding action for option 2
+                    break;
+                case 2:
+                    std::cout << "Option 3 selected" << std::endl;
+                    // Trigger corresponding action for option 3
+                    break;
+                case 3:
+                    std::cout << "Option 4 selected" << std::endl;
+                    // Trigger corresponding action for option 4
+                    break;
+            }
         }
     }
+
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER)) {
         movement.strafeRightLeft.reverse[0] = true;
     } else {
