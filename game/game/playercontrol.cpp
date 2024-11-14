@@ -579,7 +579,7 @@ bool PlayerControl::tickMove(uint64_t dt) {
   if(pl==nullptr)
     return true;
 
-  handleControllerInput(SDL_Renderer* renderer);
+  handleControllerInput(renderer);
   
   static const float speedRotX = 750.f;
   rotMouse = std::min(std::abs(rotMouse), speedRotX*dtF) * (rotMouse>=0 ? 1 : -1);
