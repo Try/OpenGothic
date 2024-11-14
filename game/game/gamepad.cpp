@@ -5,17 +5,18 @@
 
 #define DEADZONE 8000  // Deadzone threshold for analog sticks
 
-Gamepad::Gamepad(SDL_Renderer* renderer, int screenWidth, int screenHeight)
-    : renderer(renderer), screenWidth(screenWidth), screenHeight(screenHeight) {}
+Gamepad::Gamepad(SDL_Renderer* renderer, SDL_Window* window)
+    : renderer(renderer), window(window) {
+    // Initialize screen dimensions
+    SDL_GetWindowSize(window, &screenWidth, &screenHeight);
+}
 
 void Gamepad::handleInput(SDL_GameController* controller, MovementData& movement) {
-    int screenWidth, screenHeight;
+    // Get the screen dimensions from the window
     SDL_GetWindowSize(window, &screenWidth, &screenHeight);
-
     std::cout << "Screen Width: " << screenWidth << ", Screen Height: " << screenHeight << std::endl;
 
     static bool controllerDetected = false;  // Static flag to track if controller is already detected
-
     static bool menuActive = false; // Track whether the radial menu is active
     static int selectedOption = 0;  // Index of the selected menu option
 
