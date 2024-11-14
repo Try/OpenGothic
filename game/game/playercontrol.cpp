@@ -1209,7 +1209,7 @@ void PlayerControl::handleControllerInput() {
         menuActive = false;
     }
 
-    if (menuActive) {
+        if (menuActive) {
         // Menu is active, let's display the radial menu and handle navigation
 
         // Get the right joystick values (right analog stick)
@@ -1222,10 +1222,11 @@ void PlayerControl::handleControllerInput() {
         // Only process the right joystick movement if it exceeds the deadzone
         if (abs(rightX) > DEADZONE || abs(rightY) > DEADZONE) {
             // Calculate the angle of the right joystick movement
-            float angle = atan2f(rightY, rightX); // Get the angle in radians
+            // Cast rightX and rightY to float to avoid conversion errors
+            float angle = atan2f(static_cast<float>(rightY), static_cast<float>(rightX)); // Get the angle in radians
 
             // Normalize the angle to degrees (0° to 360°)
-            angle = angle * 180.0f / M_PI;
+            angle = angle * 180.0f / static_cast<float>(M_PI);
 
             // Determine the selected option based on the angle
             if (angle >= -45 && angle < 45) {
@@ -1263,6 +1264,9 @@ void PlayerControl::handleControllerInput() {
                     // Trigger corresponding action for option 4
                     break;
             }
+
+            // Reset menu state after selection
+            menuActive = false;
         }
     }
 
