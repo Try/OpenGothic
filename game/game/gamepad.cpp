@@ -2,6 +2,7 @@
 #include <iostream>
 #include <SDL2/SDL.h>
 #include "piewheelmenu.h"  // Include the PieWheelMenu if you want to call it here
+#include "playercontrol.h"
 
 #define DEADZONE 8000  // Deadzone threshold for analog sticks
 
