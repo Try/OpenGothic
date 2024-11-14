@@ -1187,25 +1187,37 @@ void PlayerControl::handleControllerInput() {
 }
     // Check for D-pad Up (Weapon Melee Action)
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_UP)) {
-        onKeyPressed(Action::WeaponMele, Tempest::KeyEvent::K_a, KeyCodec::Mapping());
+        onKeyPressed(Action::WeaponMele);
     }
 
     // Check for D-pad Right (Weapon Bow Action)
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_RIGHT)) {
-        onKeyPressed(Action::WeaponBow, Tempest::KeyEvent::K_b, KeyCodec::Mapping());
+        onKeyPressed(Action::WeaponBow);
     }
 
     // Check for D-pad Down (Weapon Magic Action)
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_DOWN)) {
         // For Magic, cycle through available spells (WeaponMage3 to WeaponMage10)
         static int currentMagicSlot = Action::WeaponMage3;
-        onKeyPressed(static_cast<Action>(currentMagicSlot), Tempest::KeyEvent::K_f, KeyCodec::Mapping());
+        onKeyPressed(static_cast<Action>(currentMagicSlot));
 
         // Cycle through magic slots
         currentMagicSlot++;
         if (currentMagicSlot > Action::WeaponMage10) {
             currentMagicSlot = Action::WeaponMage3;
         }
+    }
+  if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER)) {
+        movement.strafeRightLeft.reverse[KeyCodec::Primary] = true; // Strafe left
+    } else {
+        movement.strafeRightLeft.reverse[KeyCodec::Primary] = false;
+    }
+
+    // Check if the right shoulder button is pressed
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)) {
+        movement.strafeRightLeft.main[KeyCodec::Primary] = true; // Strafe right
+    } else {
+        movement.strafeRightLeft.main[KeyCodec::Primary] = false;
     }
       SDL_GameControllerClose(controller);  // Close the controller
 }
