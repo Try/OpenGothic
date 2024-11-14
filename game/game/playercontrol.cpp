@@ -1184,6 +1184,34 @@ void PlayerControl::handleControllerInput() {
     if (abs(rightY) > DEADZONE) {
         rotMouseY = float(rightY) / 32767.0f;  // Convert to range -1 to 1
     }
+    // Trigger handling (right trigger = right mouse button, left trigger = left mouse button)
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_TRIGGERLEFT)) {
+        // Left trigger pressed = Left mouse button down
+        SDL_MouseButtonEvent leftButtonEvent;
+        leftButtonEvent.button = SDL_BUTTON_LEFT;
+        leftButtonEvent.state = SDL_PRESSED;
+        SDL_PushEvent(reinterpret_cast<SDL_Event*>(&leftButtonEvent));
+    } else {
+        // Left trigger released = Left mouse button up
+        SDL_MouseButtonEvent leftButtonEvent;
+        leftButtonEvent.button = SDL_BUTTON_LEFT;
+        leftButtonEvent.state = SDL_RELEASED;
+        SDL_PushEvent(reinterpret_cast<SDL_Event*>(&leftButtonEvent));
+    }
+
+    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_TRIGGERRIGHT)) {
+        // Right trigger pressed = Right mouse button down
+        SDL_MouseButtonEvent rightButtonEvent;
+        rightButtonEvent.button = SDL_BUTTON_RIGHT;
+        rightButtonEvent.state = SDL_PRESSED;
+        SDL_PushEvent(reinterpret_cast<SDL_Event*>(&rightButtonEvent));
+    } else {
+        // Right trigger released = Right mouse button up
+        SDL_MouseButtonEvent rightButtonEvent;
+        rightButtonEvent.button = SDL_BUTTON_RIGHT;
+        rightButtonEvent.state = SDL_RELEASED;
+        SDL_PushEvent(reinterpret_cast<SDL_Event*>(&rightButtonEvent));
+    }
 
     // Interaction
     Npc* pl = w->player();
