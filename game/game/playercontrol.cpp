@@ -549,16 +549,16 @@ bool PlayerControl::tickCameraMove(uint64_t dt) {
 
   // Horizontal rotation
   if (normalizedX > 0.f) {
-    camera->rotateRight(dt * normalizedX);  // Apply rotation based on right stick input
+    camera->rotateRight(static_cast<float>(dt) * normalizedX);  // Apply rotation based on right stick input
   } else if (normalizedX < 0.f) {
-    camera->rotateLeft(dt * -normalizedX);
+    camera->rotateLeft(static_cast<float>(dt) * -normalizedX);
   }
 
   // Vertical movement
   if (normalizedY > 0.f) {
-    camera->moveForward(dt * normalizedY);  // Move camera forward/backward based on input
+    camera->moveForward(static_cast<float>(dt) * normalizedY);  // Move camera forward/backward based on input
   } else if (normalizedY < 0.f) {
-    camera->moveBack(dt * -normalizedY);
+    camera->moveBack(static_cast<float>(dt) * -normalizedY);
   }
 
   return true;
