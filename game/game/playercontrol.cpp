@@ -519,53 +519,56 @@ Focus PlayerControl::findFocus(Focus* prev) {
   return w->findFocus(Focus());
   }
 
-bool PlayerControl::tickCameraMove(uint64_t dt) {
-    auto w = Gothic::inst().world();
-    if (w == nullptr)
-        return false;
+bool PlayerControl::tickMove(uint64_t dt) {
+  auto w = Gothic::inst().world();
+  if(w==nullptr)
+    return false;
+  const float dtF = float(dt)/1000.f;
 
-    const float dtF = float(dt) / 1000.f;  // Convert time delta to seconds (float)
+  Npc*  pl     = w->player();
+  auto  camera = Gothic::inst().camera();
 
-    Npc* pl = w->player();
-    auto camera = Gothic::inst().camera();
-    if (camera == nullptr || (pl != nullptr && !camera->isFree()))
-        return false;
+  if(w->isCutsceneLock())
+    clearInput();
 
-    rotMouse = 0;
-
-    // Controller right stick input
-    int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
-    int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
-
-    // Deadzone check
-    const int DEADZONE = 8000;  // Adjust as necessary
-    float normalizedX = 0.0f;
-    float normalizedY = 0.0f;
-
-    if (abs(rightX) > DEADZONE) {
-        normalizedX = static_cast<float>(rightX) / 32767.0f;
-    }
-    if (abs(rightY) > DEADZONE) {
-        normalizedY = static_cast<float>(rightY) / 32767.0f;
-    }
-
-    // Horizontal rotation (cast the result back to uint64_t if needed)
-    if (normalizedX > 0.f) {
-        camera->rotateRight(static_cast<uint64_t>(dtF * normalizedX * 1000));  // Convert to uint64_t if required
-    } else if (normalizedX < 0.f) {
-        camera->rotateLeft(static_cast<uint64_t>(dtF * -normalizedX * 1000));  // Convert to uint64_t if required
-    }
-
-    // Vertical movement (cast the result back to uint64_t if needed)
-    if (normalizedY > 0.f) {
-        camera->moveForward(static_cast<uint64_t>(dtF * normalizedY * 1000));  // Convert to uint64_t if required
-    } else if (normalizedY < 0.f) {
-        camera->moveBack(static_cast<uint64_t>(dtF * -normalizedY * 1000));  // Convert to uint64_t if required
-    }
-
+  if(tickCameraMove(dt))
     return true;
-}
 
+  if(ctrl[Action::K_F8] && Gothic::inst().isMarvinEnabled())
+    marvinF8(dt);
+  if(ctrl[Action::K_K] && Gothic::inst().isMarvinEnabled())
+    marvinK(dt);
+  cacheFocus = ctrl[Action::ActionGeneric];
+  if(camera!=nullptr)
+    camera->setLookBack(ctrl[Action::LookBack]);
+
+  if(pl==nullptr)
+    return true;
+
+  static const float speedRotX = 750.f;
+  rotMouse = std::min(std::abs(rotMouse), speedRotX*dtF) * (rotMouse>=0 ? 1 : -1);
+  implMove(dt);
+
+  float runAngle = pl->runAngle();
+  if(runAngle!=0.f || std::fabs(runAngleDest)>0.01f) {
+    const float speed = 35.f;
+    if(runAngle<runAngleDest) {
+      runAngle+=speed*dtF;
+      if(runAngle>runAngleDest)
+        runAngle = runAngleDest;
+      pl->setRunAngle(runAngle);
+      }
+    else if(runAngle>runAngleDest) {
+      runAngle-=speed*dtF;
+      if(runAngle<runAngleDest)
+        runAngle = runAngleDest;
+      pl->setRunAngle(runAngle);
+      }
+    }
+
+  rotMouseY = 0;
+  return true;
+  }
 
 bool PlayerControl::tickMove(uint64_t dt) {
   auto w = Gothic::inst().world();
