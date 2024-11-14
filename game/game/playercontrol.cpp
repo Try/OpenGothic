@@ -1233,8 +1233,9 @@ void drawCircle(SDL_Renderer* renderer, int x, int y, int radius) {
     for (int i = 0; i < numSegments; i++) {
         // Correct the conversion from int to float for angle calculation
         float angle = 2 * static_cast<float>(M_PI) * static_cast<float>(i) / static_cast<float>(numSegments);  // Cast i and numSegments to float
-        int dx = static_cast<int>(radius * cos(angle));
-        int dy = static_cast<int>(radius * sin(angle));
+        float radiusFloat = static_cast<float>(radius);  // Cast radius to float
+        int dx = static_cast<int>(radiusFloat * cos(angle));  // Cast the results of cos() to int
+        int dy = static_cast<int>(radiusFloat * sin(angle));  // Cast the results of sin() to int
         SDL_RenderDrawPoint(renderer, x + dx, y + dy);
     }
 }
