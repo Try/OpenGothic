@@ -547,20 +547,23 @@ bool PlayerControl::tickCameraMove(uint64_t dt) {
         normalizedY = static_cast<float>(rightY) / 32767.0f;  // Normalize to [-1, 1]
     }
 
+    // Convert dt to float for rotation and movement
+    float dtF = static_cast<float>(dt) / 1000.f;  // Convert dt from ms to seconds
+
     // Use the right joystick for turning the camera
     auto turningVal = normalizedX;  // Use normalized right joystick X for camera rotation
     if (turningVal > 0.f) {
-        camera->rotateRight(dt * turningVal);  // Rotate the camera right
+        camera->rotateRight(dtF * turningVal);  // Rotate the camera right
     } else if (turningVal < 0.f) {
-        camera->rotateLeft(dt * -turningVal);  // Rotate the camera left
+        camera->rotateLeft(dtF * -turningVal);  // Rotate the camera left
     }
 
     // Use the right joystick for moving the camera forward/backward
     auto forwardVal = normalizedY;  // Use normalized right joystick Y for camera movement
     if (forwardVal > 0.f) {
-        camera->moveForward(dt * forwardVal);  // Move the camera forward
+        camera->moveForward(dtF * forwardVal);  // Move the camera forward
     } else if (forwardVal < 0.f) {
-        camera->moveBack(dt * -forwardVal);  // Move the camera backward
+        camera->moveBack(dtF * -forwardVal);  // Move the camera backward
     }
 
     return true;
