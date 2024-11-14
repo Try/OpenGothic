@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <SDL2/SDL.h>
+#include <iostream>
 
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
