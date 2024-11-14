@@ -531,12 +531,13 @@ bool PlayerControl::tickCameraMove(uint64_t dt) {
 
     rotMouse = 0;
 
-    // Get the right stick input from the controller
+    // Get the right joystick input (normalized between [-1, 1])
     int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
     int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
 
-    // Deadzone for the right stick to avoid unwanted small movements
-    const int DEADZONE = 8000;  // Adjust deadzone as needed
+    const int DEADZONE = 8000;  // Deadzone for joystick to avoid small movements
+
+    // Normalize joystick input
     float normalizedX = 0.0f;
     float normalizedY = 0.0f;
 
@@ -547,23 +548,26 @@ bool PlayerControl::tickCameraMove(uint64_t dt) {
         normalizedY = static_cast<float>(rightY) / 32767.0f;  // Normalize to [-1, 1]
     }
 
-    // Convert dt to float for rotation and movement
-    float dtF = static_cast<float>(dt) / 1000.f;  // Convert dt from ms to seconds
+    // Convert dt from uint64_t to float for use in the calculation
+    float dtF = static_cast<float>(dt) / 1000.f;  // Convert to seconds (float)
 
-    // Use the right joystick for turning the camera
-    auto turningVal = normalizedX;  // Use normalized right joystick X for camera rotation
+    // Now, convert back to uint64_t just before passing to camera methods
+    uint64_t dtMillis = static_cast<uint64_t>(dtF * 1000.f);  // Convert seconds back to milliseconds
+
+    // Use joystick input to rotate the camera
+    auto turningVal = normalizedX;
     if (turningVal > 0.f) {
-        camera->rotateRight(dtF * turningVal);  // Rotate the camera right
+        camera->rotateRight(dtMillis * turningVal);  // Rotate the camera right
     } else if (turningVal < 0.f) {
-        camera->rotateLeft(dtF * -turningVal);  // Rotate the camera left
+        camera->rotateLeft(dtMillis * -turningVal);  // Rotate the camera left
     }
 
-    // Use the right joystick for moving the camera forward/backward
-    auto forwardVal = normalizedY;  // Use normalized right joystick Y for camera movement
+    // Use joystick input to move the camera forward or backward
+    auto forwardVal = normalizedY;
     if (forwardVal > 0.f) {
-        camera->moveForward(dtF * forwardVal);  // Move the camera forward
+        camera->moveForward(dtMillis * forwardVal);  // Move the camera forward
     } else if (forwardVal < 0.f) {
-        camera->moveBack(dtF * -forwardVal);  // Move the camera backward
+        camera->moveBack(dtMillis * -forwardVal);  // Move the camera backward
     }
 
     return true;
