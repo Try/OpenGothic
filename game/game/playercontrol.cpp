@@ -1121,9 +1121,9 @@ void PlayerControl::handleControllerInput() {
     return;
   }
 
-  if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) < 0) {
-    std::cerr << "SDL_Init failed: " << SDL_GetError() << std::endl;
-    return false;
+  if (controller == nullptr) {
+    std::cerr << "Unable to open controller: " << SDL_GetError() << std::endl;
+    return; // Remove "false" since the function has a void return type
 }
 
 // Load the controller mappings
