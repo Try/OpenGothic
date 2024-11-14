@@ -1111,37 +1111,32 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
     }
   }
 
-
 void PlayerControl::handleControllerInput() {
     static bool controllerDetected = false;  // Static flag to track if controller is already detected
-
     static bool menuActive = false; // Track whether the radial menu is active
-    static int selectedOption = 0;  // Index of the selected menu op
-  
+    static int selectedOption = 0;  // Index of the selected menu option
+
     // Detect the controller only once
     if (SDL_NumJoysticks() < 1) {
         std::cerr << "No joystick or controller detected!" << std::endl;
         return;
     }
 
-    // Only print the message the first time the controller is detected
     if (!controllerDetected) {
         std::cout << "Controller detected: " << SDL_JoystickNameForIndex(0) << std::endl;
         controllerDetected = true;
     }
 
-    // Attempt to load the controller mappings
     if (SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt") < 0) {
         std::cerr << "Failed to load controller mappings: " << SDL_GetError() << std::endl;
     }
 
-    // Open the first controller
     SDL_GameController* controller = SDL_GameControllerOpen(0);
     if (controller == nullptr) {
         std::cerr << "Unable to open controller: " << SDL_GetError() << std::endl;
         return;
     }
-    
+
     const int DEADZONE = 8000;  // Deadzone for analog sticks
 
     // Get the axis values (left analog stick)
@@ -1168,41 +1163,8 @@ void PlayerControl::handleControllerInput() {
     } else {
         movement.forwardBackward.reset();
     }
-  
-    // Check for D-pad Up (Weapon Melee Action)
-    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_UP)) {
-        onKeyPressed(Action::WeaponMele, Tempest::KeyEvent::K_Space, KeyCodec::Mapping::Primary);
-    }
 
-    // Check for D-pad Right (Weapon Bow Action)
-    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_RIGHT)) {
-        onKeyPressed(Action::WeaponBow, Tempest::KeyEvent::K_Space, KeyCodec::Mapping::Primary);
-    }
-
-    // Check for D-pad Down (Weapon Magic Action)
-    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_DOWN)) {
-        // For Magic, cycle through available spells (WeaponMage3 to WeaponMage10)
-        static int currentMagicSlot = Action::WeaponMage3;
-        onKeyPressed(static_cast<Action>(currentMagicSlot), Tempest::KeyEvent::K_Space, KeyCodec::Mapping::Primary);
-        // Cycle through magic slots
-        currentMagicSlot++;
-        if (currentMagicSlot > Action::WeaponMage10) {
-            currentMagicSlot = Action::WeaponMage3;
-        }
-    }
-
-    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
-        // A button pressed (map to Weapon action)
-        onKeyPressed(KeyCodec::Action::Weapon, Tempest::KeyEvent::KeyType::K_Return, KeyCodec::Mapping());
-    }
-    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_B)) {
-        // If B button is pressed, trigger Jump action
-        ctrl[Action::Jump] = true;  // Assuming ctrl is an array of actions
-    } else {
-        ctrl[Action::Jump] = false; // Reset the jump action when B button is not pressed
-    }
-
-  // Check if Left Stick (L3) is pressed to activate the menu
+    // Check if Left Stick (L3) is pressed to activate the menu
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSTICK)) {
         menuActive = true;
     } else {
@@ -1246,43 +1208,27 @@ void PlayerControl::handleControllerInput() {
 
         // Check if the user selects an option (e.g., pressing the A button)
         if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
-            // Execute the action for the selected option
             switch (selectedOption) {
                 case 0:
                     std::cout << "Option 1 selected" << std::endl;
-                    // Trigger corresponding action for option 1
                     break;
                 case 1:
                     std::cout << "Option 2 selected" << std::endl;
-                    // Trigger corresponding action for option 2
                     break;
                 case 2:
                     std::cout << "Option 3 selected" << std::endl;
-                    // Trigger corresponding action for option 3
                     break;
                 case 3:
                     std::cout << "Option 4 selected" << std::endl;
-                    // Trigger corresponding action for option 4
                     break;
             }
         }
-    
-
-    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_LEFTSHOULDER)) {
-        movement.strafeRightLeft.reverse[0] = true;
-    } else {
-        movement.strafeRightLeft.reverse[0] = false;
     }
 
-    // Check if the right shoulder button is pressed
-    if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER)) {
-        movement.strafeRightLeft.main[0] = true;
-    } else {
-        movement.strafeRightLeft.main[0] = false;
-    }
-  
-    SDL_GameControllerClose(controller);  // Close the controller
+    // Close the controller
+    SDL_GameControllerClose(controller);
 }
+
 // Function to visualize the radial menu
 void PlayerControl::visualizeRadialMenu(int selectedOption) {
     // Assuming screen width and height are known
