@@ -11,6 +11,9 @@ set(CMAKE_RELWITHDEBINFO_POSTFIX "")
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_SKIP_RPATH ON)
 
+find_package(SDL2 REQUIRED)
+include_directories(${SDL2_INCLUDE_DIRS})
+
 add_executable(${PROJECT_NAME})
 
 if(MSVC)
@@ -155,6 +158,7 @@ endif()
 
 include_directories(lib/bullet3/src)
 target_link_libraries(${PROJECT_NAME} BulletDynamics BulletCollision LinearMath)
+target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARIES}) 
 
 # script for launching in binary directory
 if(WIN32)
