@@ -1170,21 +1170,29 @@ void PlayerControl::handleControllerInput() {
         movement.forwardBackward.reset();
     }
 
-    // Handle rotation with right stick
-    //int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
-    int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
-    
-     // Handle look up down with right stick
-    if (abs(rightY) > DEADZONE) {
-    // Normalize the input to a -1 to 1 range
-    float rotationAmount = float(rightY) / 32767.0f;
+// Set up deadzone and rotation speed
+const int DEADZONE = 8000; // Adjust as needed
+const float ROTATION_SPEED = 0.05f; // Adjust for sensitivity
 
-    // Apply the vertical rotation to the camera
-    if (auto c = Gothic::inst().camera()) {
-        Tempest::PointF dpos = {0.f, rotationAmount};  // Corrected to Tempest::PointF
-        c->onRotateMouse(dpos);  // Call the camera's onRotateMouse method
-    }
+// Get the X and Y values from the right stick
+int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
+int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
+
+// Normalize the input to -1 to 1 range
+float rotationX = (abs(rightX) > DEADZONE) ? float(rightX) / 32767.0f : 0.0f;
+float rotationY = (abs(rightY) > DEADZONE) ? float(rightY) / 32767.0f : 0.0f;
+
+// Adjust for sensitivity
+rotationX *= ROTATION_SPEED;
+rotationY *= ROTATION_SPEED;
+
+// Apply rotation to the camera
+if (auto c = Gothic::inst().camera()) {
+    Tempest::PointF dpos = {rotationX, rotationY};  // Pass both X and Y rotations
+    c->onRotateMouse(dpos);
 }
+
+  
     // Check for D-pad Up (Weapon Melee Action)
     if (SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_DPAD_UP)) {
         onKeyPressed(Action::WeaponMele, Tempest::KeyEvent::K_Space, KeyCodec::Mapping::Primary);
