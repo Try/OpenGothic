@@ -1113,6 +1113,14 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
 
 
 void PlayerControl::handleControllerInput() {
+  // Stellen sicher, dass 'w' die Welt korrekt referenziert
+  auto w = Gothic::inst().world();
+
+  if (w == nullptr) {
+    std::cerr << "Welt konnte nicht geladen werden!" << std::endl;
+    return;
+  }
+
   SDL_GameController* controller = SDL_GameControllerOpen(0);  // Open the first controller
 
   if (controller == nullptr) {
@@ -1160,9 +1168,9 @@ void PlayerControl::handleControllerInput() {
   }
 
   // Interaktion
-  Npc* pl = w->player();  // Verwende die richtige Variable
+  Npc* pl = w->player();  // Weltobjekt aus Gothic Instanz
   if (pl && SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
-    interact(*pl);  // Anstelle von interact(*player);
+    interact(*pl);  // Interaktion mit dem Spieler
   }
 
   SDL_GameControllerClose(controller);  // Schließe den Controller
