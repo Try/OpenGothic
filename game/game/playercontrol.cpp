@@ -1113,81 +1113,83 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
 
 
 void PlayerControl::handleControllerInput() {
-  // Stellen sicher, dass 'w' die Welt korrekt referenziert
-  auto w = Gothic::inst().world();
+    auto w = Gothic::inst().world();
 
-  if (w == nullptr) {
-    std::cerr << "Welt konnte nicht geladen werden!" << std::endl;
-    return;
-  }
-  
-  bool controllerDetected = false;  // Flag to track if controller is already detected
-
-  if (SDL_NumJoysticks() < 1) {
-      std::cerr << "No joystick or controller detected!" << std::endl;
-      return;
-  }
-
-  // Only print the message the first time the controller is detected
-  if (!controllerDetected) {
-      std::cout << "Controller detected: " << SDL_JoystickNameForIndex(0) << std::endl;
-      controllerDetected = true;
-  }
-
-  if (SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt") < 0) {
-      std::cerr << "Failed to load controller mappings: " << SDL_GetError() << std::endl;
-  }
-
-  SDL_GameController* controller = SDL_GameControllerOpen(0);  // Open the first controller
-  if (controller == nullptr) {
-    std::cerr << "Unable to open controller: " << SDL_GetError() << std::endl;
-    return;
-  }
-
-  const int DEADZONE = 8000;  // Deadzone für Analog-Sticks
-
-  // Holen der Achsenwerte (verwendet den linken Analog-Stick)
-  int leftX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX);
-  int leftY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY);
-
-  // Verarbeitung der Bewegungen, wenn sie die Deadzone überschreiten
-  if (abs(leftX) > DEADZONE) {
-    if (leftX > 0) {
-      movement.strafeRightLeft.main[0] = true;  // Ändern, um Index 0 zu verwenden
-    } else if (leftX < 0) {
-      movement.strafeRightLeft.reverse[0] = true;  // Ändern, um Index 0 zu verwenden
+    if (w == nullptr) {
+        std::cerr << "Welt konnte nicht geladen werden!" << std::endl;
+        return;
     }
-  } else {
-    movement.strafeRightLeft.reset();
-  }
 
-  if (abs(leftY) > DEADZONE) {
-    if (leftY > 0) {
-      movement.forwardBackward.reverse[0] = true;  // Ändern, um Index 0 zu verwenden
-    } else if (leftY < 0) {
-      movement.forwardBackward.main[0] = true;  // Ändern, um Index 0 zu verwenden
+    static bool controllerDetected = false;  // Static flag to track if controller is already detected
+
+    // Detect the controller only once
+    if (SDL_NumJoysticks() < 1) {
+        std::cerr << "No joystick or controller detected!" << std::endl;
+        return;
     }
-  } else {
-    movement.forwardBackward.reset();
-  }
 
-  // Drehung mit dem rechten Stick
-  int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
-  int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
+    // Only print the message the first time the controller is detected
+    if (!controllerDetected) {
+        std::cout << "Controller detected: " << SDL_JoystickNameForIndex(0) << std::endl;
+        controllerDetected = true;
+    }
 
-  if (abs(rightX) > DEADZONE) {
-    rotMouse = float(rightX) / 32767.0f;  // Umrechnung auf Bereich -1 bis 1
-  }
+    // Attempt to load the controller mappings
+    if (SDL_GameControllerAddMappingsFromFile("gamecontrollerdb.txt") < 0) {
+        std::cerr << "Failed to load controller mappings: " << SDL_GetError() << std::endl;
+    }
 
-  if (abs(rightY) > DEADZONE) {
-    rotMouseY = float(rightY) / 32767.0f;  // Umrechnung auf Bereich -1 bis 1
-  }
+    // Open the first controller
+    SDL_GameController* controller = SDL_GameControllerOpen(0);
+    if (controller == nullptr) {
+        std::cerr << "Unable to open controller: " << SDL_GetError() << std::endl;
+        return;
+    }
 
-  // Interaktion
-  Npc* pl = w->player();  // Weltobjekt aus Gothic Instanz
-  if (pl && SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
-    interact(*pl);  // Interaktion mit dem Spieler
-  }
+    const int DEADZONE = 8000;  // Deadzone for analog sticks
 
-  SDL_GameControllerClose(controller);  // Schließe den Controller
+    // Get the axis values (left analog stick)
+    int leftX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTX);
+    int leftY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_LEFTY);
+
+    // Process movement if they exceed the deadzone
+    if (abs(leftX) > DEADZONE) {
+        if (leftX > 0) {
+            movement.strafeRightLeft.main[0] = true;
+        } else if (leftX < 0) {
+            movement.strafeRightLeft.reverse[0] = true;
+        }
+    } else {
+        movement.strafeRightLeft.reset();
+    }
+
+    if (abs(leftY) > DEADZONE) {
+        if (leftY > 0) {
+            movement.forwardBackward.reverse[0] = true;
+        } else if (leftY < 0) {
+            movement.forwardBackward.main[0] = true;
+        }
+    } else {
+        movement.forwardBackward.reset();
+    }
+
+    // Rotation with the right stick
+    int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
+    int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
+
+    if (abs(rightX) > DEADZONE) {
+        rotMouse = float(rightX) / 32767.0f;  // Convert to range -1 to 1
+    }
+
+    if (abs(rightY) > DEADZONE) {
+        rotMouseY = float(rightY) / 32767.0f;  // Convert to range -1 to 1
+    }
+
+    // Interaction
+    Npc* pl = w->player();
+    if (pl && SDL_GameControllerGetButton(controller, SDL_CONTROLLER_BUTTON_A)) {
+        interact(*pl);  // Interact with the player
+    }
+
+    SDL_GameControllerClose(controller);  // Close the controller
 }
