@@ -179,6 +179,7 @@ class PlayerControl final {
     void           setAnimRotate (Npc& pl, float rotation, int anim, bool force, uint64_t dt);
     void           processAutoRotate(Npc& pl, float& rot, uint64_t dt);
     void           handleControllerInput();
+    void           visualizeRadialMenu(int selectedOption); 
 
     //////////////////////////////////
     // Helper functions for movement
