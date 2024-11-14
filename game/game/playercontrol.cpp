@@ -1167,7 +1167,7 @@ void PlayerControl::handleControllerInput() {
     }
 
     // Handle rotation with right stick
-    int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
+    //int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
     int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
     
      // Handle look up down with right stick
