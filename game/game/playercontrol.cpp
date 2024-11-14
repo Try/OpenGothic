@@ -536,6 +536,7 @@ bool PlayerControl::tickCameraMove(uint64_t dt) {
   int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
 
   // Deadzone check
+  const int DEADZONE = 8000;  // Adjust as necessary
   float normalizedX = 0.0f;
   float normalizedY = 0.0f;
   
@@ -561,7 +562,7 @@ bool PlayerControl::tickCameraMove(uint64_t dt) {
   }
 
   return true;
-  }
+}
 
 bool PlayerControl::tickMove(uint64_t dt) {
   auto w = Gothic::inst().world();
