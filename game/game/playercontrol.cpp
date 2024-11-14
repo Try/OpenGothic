@@ -521,14 +521,14 @@ Focus PlayerControl::findFocus(Focus* prev) {
 
 bool PlayerControl::tickCameraMove(uint64_t dt) {
     auto w = Gothic::inst().world();
-    if(w == nullptr)
+    if (w == nullptr)
         return false;
 
     const float dtF = float(dt) / 1000.f;  // Convert time delta to seconds (float)
 
     Npc* pl = w->player();
     auto camera = Gothic::inst().camera();
-    if(camera == nullptr || (pl != nullptr && !camera->isFree()))
+    if (camera == nullptr || (pl != nullptr && !camera->isFree()))
         return false;
 
     rotMouse = 0;
@@ -549,18 +549,18 @@ bool PlayerControl::tickCameraMove(uint64_t dt) {
         normalizedY = static_cast<float>(rightY) / 32767.0f;
     }
 
-    // Horizontal rotation (use float directly)
+    // Horizontal rotation (cast the result back to uint64_t if needed)
     if (normalizedX > 0.f) {
-        camera->rotateRight(dtF * normalizedX);  // Apply rotation based on right stick input
+        camera->rotateRight(static_cast<uint64_t>(dtF * normalizedX * 1000));  // Convert to uint64_t if required
     } else if (normalizedX < 0.f) {
-        camera->rotateLeft(dtF * -normalizedX);
+        camera->rotateLeft(static_cast<uint64_t>(dtF * -normalizedX * 1000));  // Convert to uint64_t if required
     }
 
-    // Vertical movement (use float directly)
+    // Vertical movement (cast the result back to uint64_t if needed)
     if (normalizedY > 0.f) {
-        camera->moveForward(dtF * normalizedY);  // Move camera forward/backward based on input
+        camera->moveForward(static_cast<uint64_t>(dtF * normalizedY * 1000));  // Convert to uint64_t if required
     } else if (normalizedY < 0.f) {
-        camera->moveBack(dtF * -normalizedY);
+        camera->moveBack(static_cast<uint64_t>(dtF * -normalizedY * 1000));  // Convert to uint64_t if required
     }
 
     return true;
