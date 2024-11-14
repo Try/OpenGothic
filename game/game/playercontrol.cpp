@@ -1231,8 +1231,8 @@ void PlayerControl::handleControllerInput() {
 void drawCircle(SDL_Renderer* renderer, int x, int y, int radius) {
     const int numSegments = 30;  // Number of segments for the circle
     for (int i = 0; i < numSegments; i++) {
-        // Correct the conversion from double to float for angle calculation
-        float angle = 2 * static_cast<float>(M_PI) * i / numSegments;  // Cast M_PI to float
+        // Correct the conversion from int to float for angle calculation
+        float angle = 2 * static_cast<float>(M_PI) * static_cast<float>(i) / static_cast<float>(numSegments);  // Cast i and numSegments to float
         int dx = static_cast<int>(radius * cos(angle));
         int dy = static_cast<int>(radius * sin(angle));
         SDL_RenderDrawPoint(renderer, x + dx, y + dy);
