@@ -604,7 +604,8 @@ bool PlayerControl::tickMove(uint64_t dt, SDL_Renderer* renderer) {
   }
 
   rotMouseY = 0;
-  return true;
+  return tickMove(dt);
+  //return true;
 }
 
 
