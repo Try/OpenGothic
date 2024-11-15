@@ -1110,12 +1110,3 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
       }
     }
   }
-void PlayerControl::handleControllerInput() {
-    SDL_GameController* controller = SDL_GameControllerOpen(0);  // Local variable
-    if (!controller) {
-        std::cerr << "Unable to open controller: " << SDL_GetError() << std::endl;
-        return;
-    }
-    // Rest of the function
-    SDL_GameControllerClose(controller);
-}
