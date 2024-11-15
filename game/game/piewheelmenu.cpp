@@ -2,58 +2,42 @@
 #include <cmath>
 #include <iostream>
 
-#define PI 3.14159265
+void renderRadialMenu(SDL_Renderer* renderer, int selectedOption) {
+    const int centerX = 400;  // Center of the radial menu
+    const int centerY = 300;
+    const int radius = 100;   // Radius of the menu
+    const int optionCount = 4; // Number of options
 
-// Constructor
-PieWheelMenu::PieWheelMenu(SDL_Renderer* renderer, int screenWidth, int screenHeight)
-    : renderer(renderer), screenWidth(screenWidth), screenHeight(screenHeight) {}
+    // Define the angles for each option
+    float angles[] = { 0, 90, 180, 270 };
 
-void PieWheelMenu::draw(int centerX, int centerY, int radius, int selectedOption) {
-    const float anglePerOption = 360.0f / numOptions; // Divide the circle into 4 equal sections
+    // Set color for the radial menu (can be customized)
+    SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255); // Blue for the menu
 
-    for (int i = 0; i < numOptions; ++i) {
-        float startAngle = anglePerOption * i;
-        float endAngle = startAngle + anglePerOption;
+    // Draw the circular sections for the options
+    for (int i = 0; i < optionCount; i++) {
+        float angleStart = angles[i] * (M_PI / 180.0f); // Convert degrees to radians
+        float angleEnd = angles[(i + 1) % optionCount] * (M_PI / 180.0f);
 
-        // Color the options differently based on selection
-        if (i == selectedOption) {
-            SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);  // Highlight selected option (green)
-        } else {
-            SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);  // Unselected option (white)
-        }
-
-        for (float angle = startAngle; angle < endAngle; angle += 0.1f) {
-            float rad = angle * PI / 180.0f; // Convert to radians
-            int x = centerX + static_cast<int>(cos(rad) * radius);
-            int y = centerY + static_cast<int>(sin(rad) * radius);
+        // Draw the arc for each option (just as a section of a circle)
+        for (int angle = angles[i]; angle < angles[(i + 1) % optionCount]; angle++) {
+            int x = centerX + static_cast<int>(radius * cos(angleStart));
+            int y = centerY + static_cast<int>(radius * sin(angleStart));
             SDL_RenderDrawLine(renderer, centerX, centerY, x, y);
         }
     }
 
-    // Optionally draw the center of the pie
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black center
-    SDL_RenderFillCircle(renderer, centerX, centerY, 5); // Small circle at center
-}
+    // Highlight the selected option
+    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // Red for the selected option
+    float selectedAngleStart = angles[selectedOption] * (M_PI / 180.0f);
+    float selectedAngleEnd = angles[(selectedOption + 1) % optionCount] * (M_PI / 180.0f);
 
-void PieWheelMenu::handleControllerInput(SDL_GameController* controller, int& selectedOption) {
-    const int DEADZONE = 8000;
-    int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
-    int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
-
-    // Calculate angle from joystick position
-    if (abs(rightX) > DEADZONE || abs(rightY) > DEADZONE) {
-        float angle = atan2f(static_cast<float>(rightY), static_cast<float>(rightX));
-        angle = angle * 180.0f / static_cast<float>(PI); // Convert to degrees
-
-        // Determine the selected option based on the angle
-        if (angle >= -45 && angle < 45) {
-            selectedOption = 0; // Option 1 (right)
-        } else if (angle >= 45 && angle < 135) {
-            selectedOption = 1; // Option 2 (down)
-        } else if (angle >= 135 || angle < -135) {
-            selectedOption = 2; // Option 3 (left)
-        } else if (angle >= -135 && angle < -45) {
-            selectedOption = 3; // Option 4 (up)
-        }
+    for (int angle = angles[selectedOption]; angle < angles[(selectedOption + 1) % optionCount]; angle++) {
+        int x = centerX + static_cast<int>(radius * cos(selectedAngleStart));
+        int y = centerY + static_cast<int>(radius * sin(selectedAngleStart));
+        SDL_RenderDrawLine(renderer, centerX, centerY, x, y);
     }
+
+    // Optional: Add text or icons to represent the options
+    // You can use SDL_ttf for rendering text or images for the options
 }
