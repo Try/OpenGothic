@@ -1,5 +1,5 @@
 #include "playercontrol.h"
-#include "piewheelmenu.h"
+
 #include <cmath>
 #include <SDL2/SDL.h>
 #include <iostream>
@@ -553,7 +553,7 @@ bool PlayerControl::tickCameraMove(uint64_t dt) {
   return true;
   }
 
-bool PlayerControl::tickMove(uint64_t dt, SDL_Renderer* renderer) {
+bool PlayerControl::tickMove(uint64_t dt) {
   auto w = Gothic::inst().world();
   if (w == nullptr)
     return false;
@@ -579,8 +579,7 @@ bool PlayerControl::tickMove(uint64_t dt, SDL_Renderer* renderer) {
   if (pl == nullptr)
     return true;
 
-  // Pass the renderer to handleControllerInput()
-  handleControllerInput(renderer); 
+  handleControllerInput(); 
   
   static const float speedRotX = 750.f;
   rotMouse = std::min(std::abs(rotMouse), speedRotX * dtF) * (rotMouse >= 0 ? 1 : -1);
@@ -1115,7 +1114,7 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
   }
 
 
-void PlayerControl::handleControllerInput(SDL_Renderer* renderer) {
+void PlayerControl::handleControllerInput() {
     static bool controllerDetected = false;  // Static flag to track if controller is already detected
 
     static bool menuActive = false; // Track whether the radial menu is active
@@ -1213,8 +1212,6 @@ void PlayerControl::handleControllerInput(SDL_Renderer* renderer) {
     }
 
     if (menuActive) {
-        // Menu is active, let's display the radial menu and handle navigation
-        renderRadialMenu(renderer, selectedOption);
         // Get the right joystick values (right analog stick)
         int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
         int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
