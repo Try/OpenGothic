@@ -46,7 +46,6 @@ class PlayerControl final {
 
     bool  tickMove(uint64_t dt);
     bool  tickCameraMove(uint64_t dt);
-    void  handleControllerInput();
 
   private:
     enum WeaponAction : uint8_t {

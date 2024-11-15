@@ -1,19 +1,23 @@
-// PlayerControl.h
+// gamepad.h
 #pragma once
 
 #include <SDL2/SDL.h>
-#include <iostream>
-#include <cmath>
-#include "utils/keycodec.h"
-#include "playercontrol.h"
 
-class PlayerControl {
+class PlayerControl;
+
+class Gamepad {
 public:
+    explicit Gamepad(PlayerControl& playerControl);
+    ~Gamepad();
+
     void handleControllerInput();
 
 private:
-    bool controllerDetected = false;   // Track if controller is detected
-    bool menuActive = false;           // Track if the radial menu is active
-    int selectedOption = 0;            // Index of the selected menu option
-    int currentMagicSlot = Action::WeaponMage3; // Track current magic slot
+    PlayerControl& playerControl;
+    SDL_GameController* controller = nullptr;
+
+    bool controllerDetected = false;
+    bool menuActive = false;
+    int selectedOption = 0;
+    int currentMagicSlot = 0;
 };
