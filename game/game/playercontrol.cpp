@@ -579,6 +579,8 @@ bool PlayerControl::tickMove(uint64_t dt) {
   if(pl==nullptr)
     return true;
 
+  handleControllerInput(); 
+  
   static const float speedRotX = 750.f;
   rotMouse = std::min(std::abs(rotMouse), speedRotX*dtF) * (rotMouse>=0 ? 1 : -1);
   implMove(dt);
