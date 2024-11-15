@@ -43,11 +43,7 @@ class PlayerControl final {
 
     Focus focus() const;
     bool  hasActionFocus() const;
-    bool  tickMove(uint64_t dt, SDL_Renderer* renderer);
-    bool  tickMove(uint64_t dt) {
-        // Call the original method with a default renderer (or nullptr if you don't have a renderer)
-        return tickMove(dt, nullptr);
-    }
+    bool  tickMove(uint64_t dt);
     bool  tickCameraMove(uint64_t dt);
 
   private:
