@@ -1112,7 +1112,7 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
   }
 
 
-void PlayerControl::handleControllerInput(SDL_Renderer* renderer) {
+void PlayerControl::handleControllerInput() {
     static bool controllerDetected = false;  // Static flag to track if controller is already detected
 
     static bool menuActive = false; // Track whether the radial menu is active
@@ -1210,8 +1210,6 @@ void PlayerControl::handleControllerInput(SDL_Renderer* renderer) {
     }
 
     if (menuActive) {
-        // Menu is active, let's display the radial menu and handle navigation
-        renderRadialMenu(renderer, selectedOption);
         // Get the right joystick values (right analog stick)
         int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
         int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
@@ -1290,7 +1288,5 @@ void PlayerControl::handleControllerInput(SDL_Renderer* renderer) {
         movement.strafeRightLeft.main[0] = false;
     }
   
-    SDL_GameControllerClose(controller);  // Close the controller
-}
     SDL_GameControllerClose(controller);  // Close the controller
 }
