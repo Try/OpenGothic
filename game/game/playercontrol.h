@@ -46,6 +46,7 @@ class PlayerControl final {
 
     bool  tickMove(uint64_t dt);
     bool  tickCameraMove(uint64_t dt);
+    void  handleControllerInput();
 
   private:
     enum WeaponAction : uint8_t {
@@ -178,7 +179,6 @@ class PlayerControl final {
     void           assignRunAngle(Npc& pl, float rotation, uint64_t dt);
     void           setAnimRotate (Npc& pl, float rotation, int anim, bool force, uint64_t dt);
     void           processAutoRotate(Npc& pl, float& rot, uint64_t dt);
-    void           handleControllerInput();
 
     //////////////////////////////////
     // Helper functions for movement
