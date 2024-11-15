@@ -1,5 +1,5 @@
 #include "playercontrol.h"
-
+#include "piewheelmenu.h"
 #include <cmath>
 #include <SDL2/SDL.h>
 #include <iostream>
@@ -1211,7 +1211,7 @@ void PlayerControl::handleControllerInput() {
 
     if (menuActive) {
         // Menu is active, let's display the radial menu and handle navigation
-
+        renderRadialMenu(renderer, selectedOption);
         // Get the right joystick values (right analog stick)
         int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
         int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
