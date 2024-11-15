@@ -20,7 +20,7 @@ class PlayerControl final {
   public:
     PlayerControl(DialogMenu& dlg, InventoryMenu& inv);
     ~PlayerControl();
-
+    void  handleControllerInput(); 
     void  onKeyPressed (KeyCodec::Action a, Tempest::Event::KeyType key, KeyCodec::Mapping mapping = KeyCodec::Mapping::Primary);
     void  onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping = KeyCodec::Mapping::Primary);
     bool  isPressed(KeyCodec::Action a) const;
