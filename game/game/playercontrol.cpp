@@ -553,58 +553,60 @@ bool PlayerControl::tickCameraMove(uint64_t dt) {
   return true;
   }
 
-bool PlayerControl::tickMove(uint64_t dt) {
+bool PlayerControl::tickMove(uint64_t dt, SDL_Renderer* renderer) {
   auto w = Gothic::inst().world();
-  if(w==nullptr)
+  if (w == nullptr)
     return false;
-  const float dtF = float(dt)/1000.f;
+  const float dtF = float(dt) / 1000.f;
 
-  Npc*  pl     = w->player();
-  auto  camera = Gothic::inst().camera();
+  Npc* pl = w->player();
+  auto camera = Gothic::inst().camera();
 
-  if(w->isCutsceneLock())
+  if (w->isCutsceneLock())
     clearInput();
 
-  if(tickCameraMove(dt))
+  if (tickCameraMove(dt))
     return true;
 
-  if(ctrl[Action::K_F8] && Gothic::inst().isMarvinEnabled())
+  if (ctrl[Action::K_F8] && Gothic::inst().isMarvinEnabled())
     marvinF8(dt);
-  if(ctrl[Action::K_K] && Gothic::inst().isMarvinEnabled())
+  if (ctrl[Action::K_K] && Gothic::inst().isMarvinEnabled())
     marvinK(dt);
   cacheFocus = ctrl[Action::ActionGeneric];
-  if(camera!=nullptr)
+  if (camera != nullptr)
     camera->setLookBack(ctrl[Action::LookBack]);
 
-  if(pl==nullptr)
+  if (pl == nullptr)
     return true;
 
-  handleControllerInput(); 
+  // Pass the renderer to handleControllerInput()
+  handleControllerInput(renderer); 
   
   static const float speedRotX = 750.f;
-  rotMouse = std::min(std::abs(rotMouse), speedRotX*dtF) * (rotMouse>=0 ? 1 : -1);
+  rotMouse = std::min(std::abs(rotMouse), speedRotX * dtF) * (rotMouse >= 0 ? 1 : -1);
   implMove(dt);
 
   float runAngle = pl->runAngle();
-  if(runAngle!=0.f || std::fabs(runAngleDest)>0.01f) {
+  if (runAngle != 0.f || std::fabs(runAngleDest) > 0.01f) {
     const float speed = 35.f;
-    if(runAngle<runAngleDest) {
-      runAngle+=speed*dtF;
-      if(runAngle>runAngleDest)
+    if (runAngle < runAngleDest) {
+      runAngle += speed * dtF;
+      if (runAngle > runAngleDest)
         runAngle = runAngleDest;
       pl->setRunAngle(runAngle);
-      }
-    else if(runAngle>runAngleDest) {
-      runAngle-=speed*dtF;
-      if(runAngle<runAngleDest)
-        runAngle = runAngleDest;
-      pl->setRunAngle(runAngle);
-      }
     }
+    else if (runAngle > runAngleDest) {
+      runAngle -= speed * dtF;
+      if (runAngle < runAngleDest)
+        runAngle = runAngleDest;
+      pl->setRunAngle(runAngle);
+    }
+  }
 
   rotMouseY = 0;
   return true;
-  }
+}
+
 
 void PlayerControl::implMove(uint64_t dt) {
   auto  w         = Gothic::inst().world();
