@@ -1,13 +1,19 @@
-#include <SDL2/SDL.h>
-#include "playercontrol.h"  // Include the MovementData header
+// PlayerControl.h
+#pragma once
 
-class Gamepad {
+#include <SDL2/SDL.h>
+#include <iostream>
+#include <cmath>
+#include "utils/keycodec.h"
+#include "playercontrol.h"
+
+class PlayerControl {
 public:
-    Gamepad(SDL_Renderer* renderer, SDL_Window* window);
-    void handleInput(SDL_GameController* controller, MovementData& movement);
+    void handleControllerInput();
 
 private:
-    SDL_Renderer* renderer;
-    SDL_Window* window;
-    int screenWidth, screenHeight;
+    bool controllerDetected = false;   // Track if controller is detected
+    bool menuActive = false;           // Track if the radial menu is active
+    int selectedOption = 0;            // Index of the selected menu option
+    int currentMagicSlot = Action::WeaponMage3; // Track current magic slot
 };
