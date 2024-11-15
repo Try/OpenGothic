@@ -1110,3 +1110,6 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
       }
     }
   }
+  void PlayerControl::handleControllerInput() {
+    // Your controller input handling logic here
+}
