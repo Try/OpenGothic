@@ -1,5 +1,3 @@
-#include "playercontrol.h"
-#include "piewheelmenu.h"
 #include <cmath>
 #include <SDL2/SDL.h>
 #include <iostream>
