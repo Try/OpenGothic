@@ -1,5 +1,5 @@
 #include "playercontrol.h"
-
+#include "piewheelmenu.h"
 #include <cmath>
 #include <SDL2/SDL.h>
 #include <iostream>
@@ -555,58 +555,56 @@ bool PlayerControl::tickCameraMove(uint64_t dt) {
 
 bool PlayerControl::tickMove(uint64_t dt) {
   auto w = Gothic::inst().world();
-  if (w == nullptr)
+  if(w==nullptr)
     return false;
-  const float dtF = float(dt) / 1000.f;
+  const float dtF = float(dt)/1000.f;
 
-  Npc* pl = w->player();
-  auto camera = Gothic::inst().camera();
+  Npc*  pl     = w->player();
+  auto  camera = Gothic::inst().camera();
 
-  if (w->isCutsceneLock())
+  if(w->isCutsceneLock())
     clearInput();
 
-  if (tickCameraMove(dt))
+  if(tickCameraMove(dt))
     return true;
 
-  if (ctrl[Action::K_F8] && Gothic::inst().isMarvinEnabled())
+  if(ctrl[Action::K_F8] && Gothic::inst().isMarvinEnabled())
     marvinF8(dt);
-  if (ctrl[Action::K_K] && Gothic::inst().isMarvinEnabled())
+  if(ctrl[Action::K_K] && Gothic::inst().isMarvinEnabled())
     marvinK(dt);
   cacheFocus = ctrl[Action::ActionGeneric];
-  if (camera != nullptr)
+  if(camera!=nullptr)
     camera->setLookBack(ctrl[Action::LookBack]);
 
-  if (pl == nullptr)
+  if(pl==nullptr)
     return true;
 
   handleControllerInput(); 
-  
+
   static const float speedRotX = 750.f;
-  rotMouse = std::min(std::abs(rotMouse), speedRotX * dtF) * (rotMouse >= 0 ? 1 : -1);
+  rotMouse = std::min(std::abs(rotMouse), speedRotX*dtF) * (rotMouse>=0 ? 1 : -1);
   implMove(dt);
 
   float runAngle = pl->runAngle();
-  if (runAngle != 0.f || std::fabs(runAngleDest) > 0.01f) {
+  if(runAngle!=0.f || std::fabs(runAngleDest)>0.01f) {
     const float speed = 35.f;
-    if (runAngle < runAngleDest) {
-      runAngle += speed * dtF;
-      if (runAngle > runAngleDest)
+    if(runAngle<runAngleDest) {
+      runAngle+=speed*dtF;
+      if(runAngle>runAngleDest)
         runAngle = runAngleDest;
       pl->setRunAngle(runAngle);
-    }
-    else if (runAngle > runAngleDest) {
-      runAngle -= speed * dtF;
-      if (runAngle < runAngleDest)
+      }
+    else if(runAngle>runAngleDest) {
+      runAngle-=speed*dtF;
+      if(runAngle<runAngleDest)
         runAngle = runAngleDest;
       pl->setRunAngle(runAngle);
+      }
     }
-  }
 
   rotMouseY = 0;
-  return tickMove(dt);
-  //return true;
-}
-
+  return true;
+  }
 
 void PlayerControl::implMove(uint64_t dt) {
   auto  w         = Gothic::inst().world();
@@ -1114,7 +1112,7 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
   }
 
 
-void PlayerControl::handleControllerInput() {
+void PlayerControl::handleControllerInput(SDL_Renderer* renderer) {
     static bool controllerDetected = false;  // Static flag to track if controller is already detected
 
     static bool menuActive = false; // Track whether the radial menu is active
@@ -1212,6 +1210,8 @@ void PlayerControl::handleControllerInput() {
     }
 
     if (menuActive) {
+        // Menu is active, let's display the radial menu and handle navigation
+        renderRadialMenu(renderer, selectedOption);
         // Get the right joystick values (right analog stick)
         int rightX = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTX);
         int rightY = SDL_GameControllerGetAxis(controller, SDL_CONTROLLER_AXIS_RIGHTY);
@@ -1290,5 +1290,7 @@ void PlayerControl::handleControllerInput() {
         movement.strafeRightLeft.main[0] = false;
     }
   
+    SDL_GameControllerClose(controller);  // Close the controller
+}
     SDL_GameControllerClose(controller);  // Close the controller
 }
