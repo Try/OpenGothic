@@ -2,7 +2,7 @@
 Open source re-implementation of Gothic 2: Night of the Raven.
 
 Motivation: The original Gothic 1 and Gothic 2 are still great games, but it's not easy to make them work on modern systems.
-The goal of this project is to make a feature complete Gothic game client compatible with the original game data and mods.
+The goal of this project is to make a feature-complete Gothic game client, compatible with the original game data and mods.
 
 ----
 [![Latest build](https://img.shields.io/github/release-pre/Try/opengothic?style=for-the-badge)](https://github.com/Try/opengothic/releases/latest)
@@ -13,11 +13,11 @@ The goal of this project is to make a feature complete Gothic game client compat
 #### Work in progress
 [![Build status](https://ci.appveyor.com/api/projects/status/github/Try/opengothic?svg=true)](https://ci.appveyor.com/project/Try/opengothic?branch=master)
 
-Development is focused on Gothic 2 and new features are not tested for Gothic 1 compatibility. While Gothic 1 is not officially supported pull requests that fix Gothic 1 — and general — bugs are welcome.
+Development is focused on Gothic 2 and new features are not tested for compatibility with Gothic 1. While Gothic 1 is not officially supported, pull requests that fix Gothic 1 — and general — bugs are welcome.
 
-The original game has been replicated fully; you can complete both the main quest and the addon. Check out the [bugtracker](https://github.com/Try/OpenGothic/issues) for a list of known issues.
+The original game has been completely replicated; you can complete both the main quest and the addon. Check out the [bugtracker](https://github.com/Try/OpenGothic/issues) for a list of known issues.
 
-OpenGothic is designed to utilize features of modern graphic hardware and api's like mesh shaders or ray tracing. While mesh-shader not mandatory, yet don't expect OpenGothic to run well on low-end or outdated graphic cards.
+OpenGothic is designed to utilize features of modern graphics hardware and APIs, like mesh shaders or ray tracing. While mesh shaders are not mandatory, don't expect OpenGothic to run well on low-end or outdated graphics cards.
 
 #### Prerequisites
 
@@ -30,47 +30,47 @@ Supported systems are:
 
 ## How to play
 ### Windows
-1. If not already done install Gothic. OpenGothic comes with auto-path detection if your Gothic files are in a common path.
+1. If not already done, install Gothic 2. OpenGothic comes with automatic path detection if your Gothic files are in a common path.
     * "C:\Program Files (x86)\JoWooD\Gothic II"
     * "C:\Gothic II"
     * "C:\Program Files (x86)\Steam\steamapps\common\Gothic II"
-2. Download OpenGothic and extract into a folder of your choice. Available options are:
+2. Download OpenGothic and extract it into a folder of your choice. Available options are:
     * A [Pre-Release](https://github.com/Try/opengothic/releases/latest) (recommended)
     * Alternatively a recent test build from [CI](https://ci.appveyor.com/project/Try/opengothic/history?branch=master)
 3. Run `Gothic2Notr.exe`.
 
-   If nothing happens check `log.txt` and look for the line `invalid gothic path`. In this case OpenGothic fails to find your Gothic installation and you have to explicitly specify its location via `-g` paramter. Either you create a shortcut to `Gothic2Notr.exe` and change the target line in Properties to e.g.
+   If nothing happens, check `log.txt` and look for the line `invalid gothic path`. In this case OpenGothic fails to find your Gothic installation and you have to explicitly specify its location via `-g` parameter. Either you create a shortcut to `Gothic2Notr.exe` and change the target line in Properties to e.g.
 
    `Gothic2Notr.exe -g "C:\Program Files (x86)\Steam\steamapps\common\Gothic II"`
 
    or you can edit `Gothic2Notr.bat` and run this file instead.
 
 ### Linux
-1. If not already done install Gothic via Wine/Proton or copy the game files from a Windows installation.
-2. You can download a build from [CI](https://ci.appveyor.com/project/Try/opengothic/history?branch=master) and extract into a folder of your choice. Alternatively OpenGothic can be built manually. For Arch the [AUR](https://aur.archlinux.org/packages/opengothic) provides a 3rd party package.
+1. If not already done, install Gothic 2 via Wine/Proton or copy the game files from a Windows installation.
+2. You can download a build from [CI](https://ci.appveyor.com/project/Try/opengothic/history?branch=master) and extract into a folder of your choice. Alternatively, OpenGothic can be built manually. For Arch the [AUR](https://aur.archlinux.org/packages/opengothic) provides a third-party package.
 
-3. Run `Gothic2Notr.sh -g "~/PlayOnLinux's virtual drives/Gothic2_gog/drive_c/Gothic II"` (example path, use path to your Gothic installation instead)
+3. Run `Gothic2Notr.sh -g "~/PlayOnLinux's virtual drives/Gothic2_gog/drive_c/Gothic II"` (example path, use the path to your Gothic 2 installation instead)
 
    You can edit `Gothic2Notr.sh` and change the line `exec "$DIR/Gothic2Notr" "$@"` to
 
    `exec "$DIR/Gothic2Notr" "$@" -g "~/PlayOnLinux's virtual drives/Gothic2_gog/drive_c/Gothic II"`
 
-   to not have to enter path manually every time. Then run `Gothic2Notr.sh` without arguments to start.
+   to not have to enter the path manually every time. Then run `Gothic2Notr.sh` without arguments to start.
 
 ### MacOS
-1. If not already done install Gothic. Instructions how to obtain the game files can be found [here](https://macsourceports.com/faq#getgamedata). OpenGothic comes with auto-path detection if your Gothic files are in `"~/Library/Application Support/OpenGothic"`.
+1. If not already done, install Gothic 2. Instructions on how to obtain the game files can be found [here](https://macsourceports.com/faq#getgamedata). OpenGothic comes with automatic path detection if your Gothic files are in `"~/Library/Application Support/OpenGothic"`.
 2. Download a build from [Mac Source Ports](https://macsourceports.com/game/gothic2) and follow the installation instructions given there.
-   Alternatively recent test builds are available from [CI](https://ci.appveyor.com/project/Try/opengothic/history?branch=master) that can be extracted into a folder of your choice. You can compile a fresh build as well.
+   Alternatively, recent test builds are available from [CI](https://ci.appveyor.com/project/Try/opengothic/history?branch=master) and can be extracted into a folder of your choice. You can compile a fresh build as well.
 3. Run `Gothic2Notr.sh`
 
-   If OpenGothic fails to find your Gothic files you have to explicitly specify its location via `-g` parameter.
-   Change the line `exec "$DIR/Gothic2Notr" "$@"` to reflect your Gothic path e.g.
+   If OpenGothic fails to find your Gothic 2 files, you have to explicitly specify its location via `-g` parameter.
+   Change the line `exec "$DIR/Gothic2Notr" "$@"` to reflect your Gothic 2 path e.g.
 
    `exec "$DIR/Gothic2Notr" "$@" -g "~/PlayOnLinux's virtual drives/Gothic2_gog/drive_c/Gothic II"`
 
 ---
 ### Modifications
-Mods can be installed as usual. Provide the `modfile.ini` to OpenGothic via `-game:` parameter to play. Example:
+Mods can be installed as usual. Provide the `modfile.ini` to OpenGothic via the `-game:` parameter to play. Example:
 
 `Gothic2Notr.exe -game:Karibik.ini`
 
@@ -80,7 +80,7 @@ Content mods (retexture/reworld/animations) that only rely on regular scripting 
 #### What's not?
 - Ikarus/LeGo
 
-There are ongoing efforts to support parts of it to make at least some popular mods like `Chronicles of Myrtana` playable. Progress can be tracked in the corresponding [issue](https://github.com/Try/OpenGothic/issues/231). An explanantion how Ikarus works is given [here](https://github.com/Try/OpenGothic/discussions/396#discussioncomment-4823499).
+There are ongoing efforts to support parts of it to make at least some popular mods, like `Chronicles of Myrtana`, playable. Progress can be tracked in the corresponding [issue](https://github.com/Try/OpenGothic/issues/231). An explanantion how Ikarus works is given [here](https://github.com/Try/OpenGothic/discussions/396#discussioncomment-4823499).
 - Union (32 bit and Windows only, [not possible](https://github.com/Try/OpenGothic/issues/195))
 - DX11 Renderer - same as Union, but don't worry - OpenGothic has nice graphics out of the box
 - AST sdk
@@ -141,7 +141,7 @@ Executables can be located at `OpenGothic/build/opengothic`.
 
 ## Available Graphic options
 
-Game menu in gothic is done by scripting. While orignal graphics settings do not apply to current-gen graphics, engine redefines meaning for some of tweakables:
+The game menu in Gothic 2 is done by scripting. While the original graphics settings do not apply to current-gen graphics, the engine redefines meaning for some tweakables:
 
 * `Settings` -> `Extended configuration`
   *  `Cloud Shadows` mapped to SSAO.
