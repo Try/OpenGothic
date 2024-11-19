@@ -34,6 +34,15 @@ if(NOT MSVC)
   endif()
 endif()
 
+# Include libgamepad
+include_directories(${CMAKE_SOURCE_DIR}/lib/libgamepad)
+
+# Link libgamepad (if it is a compiled library)
+target_link_libraries(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/lib/libgamepad)
+
+# Add the libgamepad subdirectory if it contains its own CMakeLists.txt
+add_subdirectory(lib/libgamepad)
+
 if(WIN32)
   if(MSVC)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup" )
@@ -155,11 +164,6 @@ endif()
 
 include_directories(lib/bullet3/src)
 target_link_libraries(${PROJECT_NAME} BulletDynamics BulletCollision LinearMath)
-
-add_subdirectory(lib/libgamepad)
-include_directories(${CMAKE_SOURCE_DIR}/lib/libgamepad)
-target_link_libraries(Gothic2Notr PRIVATE ${CMAKE_SOURCE_DIR}/lib/libgamepad)
-
 
 # script for launching in binary directory
 if(WIN32)
