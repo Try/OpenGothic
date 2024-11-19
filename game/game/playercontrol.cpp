@@ -43,7 +43,7 @@ PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
     SetConsoleCtrlHandler(handler, TRUE);
 #endif
 
-    hook = gamepad::hook::make();
+    std::shared_ptr<gamepad::hook> hook = gamepad::hook::make();
     hook->set_plug_and_play(true, gamepad::ms(1000));
     hook->set_sleep_time(gamepad::ms(5));
 

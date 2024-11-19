@@ -20,6 +20,9 @@ class PlayerControl final {
     PlayerControl(DialogMenu& dlg, InventoryMenu& inv);
     ~PlayerControl();
 
+    void handleButtonInput(std::shared_ptr<gamepad::device> dev);
+    void handleAxisInput(std::shared_ptr<gamepad::device> dev);
+
     void  onKeyPressed (KeyCodec::Action a, Tempest::Event::KeyType key, KeyCodec::Mapping mapping = KeyCodec::Mapping::Primary);
     void  onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping = KeyCodec::Mapping::Primary);
     bool  isPressed(KeyCodec::Action a) const;
