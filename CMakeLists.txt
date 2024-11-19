@@ -156,6 +156,9 @@ endif()
 include_directories(lib/bullet3/src)
 target_link_libraries(${PROJECT_NAME} BulletDynamics BulletCollision LinearMath)
 
+include_directories(${CMAKE_SOURCE_DIR}/lib/libgamepad)
+target_link_libraries(Gothic2Notr PRIVATE ${CMAKE_SOURCE_DIR}/lib/libgamepad)
+
 # script for launching in binary directory
 if(WIN32)
     add_custom_command(
