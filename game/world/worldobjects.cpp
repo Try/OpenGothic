@@ -353,7 +353,7 @@ std::unique_ptr<Npc> WorldObjects::takeNpc(const Npc* ptr) {
     auto& npc=*npcArr[i];
     if(&npc==ptr){
       auto ret=std::move(npcArr[i]);
-      npcArr.erase(npcArr.begin() + ssize_t(i));
+      npcArr.erase(npcArr.begin() + int32_t(i));
       return ret;
       }
     }
