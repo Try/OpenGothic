@@ -175,20 +175,6 @@ vec4 fog(vec2 uv, float z) {
 #endif
   }
 #else
-#define MAX_DEBUG_COLORS 10
-const vec3 debugColors[MAX_DEBUG_COLORS] = {
-  vec3(1,1,1),
-  vec3(1,0,0),
-  vec3(0,1,0),
-  vec3(0,0,1),
-  vec3(1,1,0),
-  vec3(1,0,1),
-  vec3(0,1,1),
-  vec3(1,0.5,0),
-  vec3(0.5,1,0),
-  vec3(0,0.5,1),
-  };
-
 vec4 fog(vec2 uv, float z) {
   float dZ   = linearDepth(      z, scene.clipInfo);
   float d0   = linearDepth(dFogMin, scene.clipInfo);

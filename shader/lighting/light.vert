@@ -9,12 +9,6 @@ out gl_PerVertex {
   vec4 gl_Position;
   };
 
-struct LightSource {
-  vec3  pos;
-  float range;
-  vec3  color;
-  };
-
 layout(push_constant, std140) uniform Pbo {
   vec3  origin; //lwc
   } push;
