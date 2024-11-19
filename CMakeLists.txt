@@ -37,9 +37,6 @@ endif()
 # Include libgamepad
 include_directories(${CMAKE_SOURCE_DIR}/lib/libgamepad)
 
-# Link libgamepad (if it is a compiled library)
-target_link_libraries(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/lib/libgamepad)
-
 # Add the libgamepad subdirectory if it contains its own CMakeLists.txt
 add_subdirectory(lib/libgamepad)
 
