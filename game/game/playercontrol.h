@@ -5,6 +5,7 @@
 #include "constants.h"
 
 #include <array>
+#include <memory>
 
 class DialogMenu;
 class InventoryMenu;
@@ -64,7 +65,7 @@ class PlayerControl final {
       Weapon10,
 
       Last,
-      };
+    };
 
     enum FocusAction : uint8_t {
       ActForward=0,
@@ -74,7 +75,7 @@ class PlayerControl final {
       ActGeneric=4,
       ActMove   =5,
       ActKill   =6,
-      };
+    };
 
     using Action=KeyCodec::Action;
 
@@ -210,4 +211,4 @@ class PlayerControl final {
     /// @param actionMapping - the pressed/released action
     /// @param pressed - true if the key was pressed, false if it was released
     auto handleMovementAction(KeyCodec::ActionMapping actionMapping, bool pressed) -> void;
-  };
+};
