@@ -353,12 +353,22 @@ std::unique_ptr<Npc> WorldObjects::takeNpc(const Npc* ptr) {
     auto& npc=*npcArr[i];
     if(&npc==ptr){
       auto ret=std::move(npcArr[i]);
-      npcArr[i] = std::move(npcArr.back());
-      npcArr.pop_back();
+      npcArr.erase(npcArr.begin() + ssize_t(i));
       return ret;
       }
     }
   return nullptr;
+  }
+
+void WorldObjects::removeNpc(Npc& npc) {
+  auto ptr = takeNpc(&npc);
+  if(ptr==nullptr)
+    return;
+  auto& point = owner.deadPoint();
+  npc.attachToPoint(nullptr);
+  npc.setPosition(point.position());
+  npc.updateTransform();
+  npcRemoved.emplace_back(std::move(ptr));
   }
 
 void WorldObjects::tickNear(uint64_t /*dt*/) {

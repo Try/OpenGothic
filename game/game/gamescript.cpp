@@ -103,6 +103,7 @@ void GameScript::initCommon() {
   bindExternal("hlp_getinstanceid",              &GameScript::hlp_getinstanceid);
 
   bindExternal("wld_insertnpc",                  &GameScript::wld_insertnpc);
+  bindExternal("wld_removenpc",                  &GameScript::wld_removenpc);
   bindExternal("wld_insertitem",                 &GameScript::wld_insertitem);
   bindExternal("wld_settime",                    &GameScript::wld_settime);
   bindExternal("wld_getday",                     &GameScript::wld_getday);
@@ -1900,6 +1901,11 @@ void GameScript::wld_insertnpc(int npcInstance, std::string_view spawnpoint) {
   auto npc = world().addNpc(size_t(npcInstance),spawnpoint);
   if(npc!=nullptr)
     fixNpcPosition(*npc,0,0);
+  }
+
+void GameScript::wld_removenpc(int npcInstance) {
+  if(auto npc = findNpcById(size_t(npcInstance)))
+    world().removeNpc(*npc);
   }
 
 void GameScript::wld_insertitem(int itemInstance, std::string_view spawnpoint) {

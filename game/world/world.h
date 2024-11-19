@@ -147,14 +147,16 @@ class World final {
 
     bool                 isTargeted (Npc& npc);
     Npc*                 addNpc     (std::string_view name, std::string_view     at);
-    Npc*                 addNpc     (size_t itemInstance,   std::string_view     at);
-    Npc*                 addNpc     (size_t itemInstance,   const Tempest::Vec3& at);
+    Npc*                 addNpc     (size_t npcInstance,    std::string_view     at);
+    Npc*                 addNpc     (size_t npcInstance,    const Tempest::Vec3& at);
+    void                 removeNpc  (Npc& npc);
+
     Item*                addItem    (size_t itemInstance,   std::string_view     at);
     Item*                addItem    (const zenkit::VItem& vob);
     Item*                addItem    (size_t itemInstance, const Tempest::Vec3&      pos);
     Item*                addItemDyn (size_t itemInstance, const Tempest::Matrix4x4& pos, size_t owner);
-    auto                 takeItem(Item& it) -> std::unique_ptr<Item>;
-    void                 removeItem (Item &it);
+    auto                 takeItem   (Item& it) -> std::unique_ptr<Item>;
+    void                 removeItem (Item& it);
     size_t               hasItems(std::string_view tag, size_t itemCls);
 
     Bullet&              shootBullet(const Item &itmId, const Npc& npc, const Npc* target, const Interactive* inter);

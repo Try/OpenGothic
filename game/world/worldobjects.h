@@ -56,6 +56,7 @@ class WorldObjects final {
     Npc*           addNpc(size_t itemInstance, const Tempest::Vec3& at);
     Npc*           insertPlayer(std::unique_ptr<Npc>&& npc, std::string_view at);
     auto           takeNpc(const Npc* npc) -> std::unique_ptr<Npc>;
+    void           removeNpc(Npc& npc);
 
     void           updateAnimation(uint64_t dt);
 
@@ -170,7 +171,8 @@ class WorldObjects final {
     std::vector<EffectState>           effects;
 
     std::vector<std::unique_ptr<Npc>>  npcArr;
-    std::vector<std::unique_ptr<Npc>>  npcInvalid;
+    std::vector<std::unique_ptr<Npc>>  npcInvalid; // dead or invalid TA
+    std::vector<std::unique_ptr<Npc>>  npcRemoved; // removed, but may have a dangling references in game
     std::vector<Npc*>                  npcNear;
 
     std::vector<AbstractTrigger*>      triggers;
