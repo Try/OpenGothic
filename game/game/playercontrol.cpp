@@ -1,6 +1,10 @@
 #include "playercontrol.h"
 
 #include <cmath>
+#include <libgamepad.hpp>
+#include <iostream>
+#include <chrono>
+#include <thread>
 
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
@@ -10,6 +14,61 @@
 #include "ui/inventorymenu.h"
 #include "gothic.h"
 
+static volatile bool run_flag = true;
+
+// Signal handler for clean exit
+#ifdef LGP_UNIX
+#include <csignal>
+void handler(int s) {
+    LGP_UNUSED(s);
+    run_flag = false;
+}
+#else
+#include <windows.h>
+BOOL WINAPI handler(DWORD s) {
+    LGP_UNUSED(s);
+    run_flag = false;
+    return TRUE;
+}
+#endif
+
+PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
+    : dlg(dlg), inv(inv) {
+    Gothic::inst().onSettingsChanged.bind(this, &PlayerControl::setupSettings);
+    setupSettings();
+
+#ifdef LGP_UNIX
+    signal(SIGINT, handler);
+#else
+    SetConsoleCtrlHandler(handler, TRUE);
+#endif
+
+    hook = gamepad::hook::make();
+    hook->set_plug_and_play(true, gamepad::ms(1000));
+    hook->set_sleep_time(gamepad::ms(5));
+
+    // Setup libgamepad event handlers
+    hook->set_button_event_handler([this](std::shared_ptr<gamepad::device> dev) {
+        handleButtonInput(dev);
+    });
+
+    hook->set_axis_event_handler([this](std::shared_ptr<gamepad::device> dev) {
+        handleAxisInput(dev);
+    });
+
+    hook->set_connect_event_handler([](std::shared_ptr<gamepad::device> dev) {
+        std::cout << dev->get_name() << " connected.\n";
+    });
+
+    hook->set_disconnect_event_handler([](std::shared_ptr<gamepad::device> dev) {
+        std::cout << dev->get_name() << " disconnected.\n";
+    });
+
+    if (!hook->start()) {
+        std::cerr << "Failed to start libgamepad hook.\n";
+    }
+}
+
 PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
   :dlg(dlg),inv(inv) {
   Gothic::inst().onSettingsChanged.bind(this,&PlayerControl::setupSettings);
@@ -18,6 +77,8 @@ PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
 
 PlayerControl::~PlayerControl() {
   Gothic::inst().onSettingsChanged.ubind(this,&PlayerControl::setupSettings);
+  hook->stop();
+  hook.reset();
   }
 
 void PlayerControl::setupSettings() {
@@ -1092,3 +1153,86 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
       }
     }
   }
+
+void PlayerControl::handleButtonInput(std::shared_ptr<gamepad::device> dev) {
+    if (dev->is_button_pressed(gamepad::button::DPAD_UP)) {
+        onKeyPressed(Action::WeaponMele, Tempest::KeyEvent::K_Space, KeyCodec::Mapping::Primary);
+    }
+    if (dev->is_button_pressed(gamepad::button::DPAD_RIGHT)) {
+        onKeyPressed(Action::WeaponBow, Tempest::KeyEvent::K_Space, KeyCodec::Mapping::Primary);
+    }
+    if (dev->is_button_pressed(gamepad::button::DPAD_DOWN)) {
+        static int currentMagicSlot = Action::WeaponMage3;
+        onKeyPressed(static_cast<Action>(currentMagicSlot), Tempest::KeyEvent::K_Space, KeyCodec::Mapping::Primary);
+        currentMagicSlot++;
+        if (currentMagicSlot > Action::WeaponMage10) {
+            currentMagicSlot = Action::WeaponMage3;
+        }
+    }
+    if (dev->is_button_pressed(gamepad::button::Y)) {
+        ctrl[Action::Jump] = true;
+    } else {
+        ctrl[Action::Jump] = false;
+    }
+
+    if (dev->is_button_pressed(gamepad::button::LEFT_SHOULDER)) {
+        movement.strafeRightLeft.reverse[0] = true;
+    } else {
+        movement.strafeRightLeft.reverse[0] = false;
+    }
+
+    if (dev->is_button_pressed(gamepad::button::RIGHT_SHOULDER)) {
+        movement.strafeRightLeft.main[0] = true;
+    } else {
+        movement.strafeRightLeft.main[0] = false;
+    }
+}
+
+void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
+    const int DEADZONE = 16384;
+
+    auto leftX = dev->get_axis_value(gamepad::axis::LEFT_STICK_X);
+    auto leftY = dev->get_axis_value(gamepad::axis::LEFT_STICK_Y);
+
+    if (std::abs(leftX) > DEADZONE) {
+        if (leftX > 0) {
+            movement.strafeRightLeft.main[0] = true;
+        } else {
+            movement.strafeRightLeft.reverse[0] = true;
+        }
+    } else {
+        movement.strafeRightLeft.reset();
+    }
+
+    if (std::abs(leftY) > DEADZONE) {
+        if (leftY > 0) {
+            movement.forwardBackward.reverse[0] = true;
+        } else {
+            movement.forwardBackward.main[0] = true;
+        }
+    } else {
+        movement.forwardBackward.reset();
+    }
+
+    auto rightX = dev->get_axis_value(gamepad::axis::RIGHT_STICK_X);
+    auto rightY = dev->get_axis_value(gamepad::axis::RIGHT_STICK_Y);
+
+    if (std::abs(rightX) > DEADZONE || std::abs(rightY) > DEADZONE) {
+        float angle = std::atan2(static_cast<float>(rightY), static_cast<float>(rightX)) * 180.f / M_PI;
+        if (angle < 0) angle += 360.f;
+
+        int selectedOption = 0;
+        if (angle >= 0 && angle < 90) {
+            selectedOption = 0; // Right
+        } else if (angle >= 90 && angle < 180) {
+            selectedOption = 1; // Down
+        } else if (angle >= 180 && angle < 270) {
+            selectedOption = 2; // Left
+        } else {
+            selectedOption = 3; // Up
+        }
+
+        std::cout << "Joystick angle: " << angle << "°\n";
+        std::cout << "Selected Option: " << selectedOption << "\n";
+    }
+}
