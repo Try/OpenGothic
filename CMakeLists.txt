@@ -34,8 +34,8 @@ if(NOT MSVC)
   endif()
 endif()
 
-# Include libgamepad
-include_directories(${CMAKE_SOURCE_DIR}/lib/libgamepad)
+# Add the libgamepad include directory
+include_directories(${CMAKE_SOURCE_DIR}/lib/libgamepad/include)
 
 # Add the libgamepad subdirectory if it contains its own CMakeLists.txt
 add_subdirectory(lib/libgamepad)
