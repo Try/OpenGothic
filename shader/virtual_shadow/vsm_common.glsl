@@ -24,6 +24,13 @@ struct VsmHeader {
   ivec4 pageBbox[VSM_PAGE_MIPS];
   };
 
+struct Epipole {
+  vec2  rayOrig;
+  vec2  rayDir;
+  float tMin;
+  float tMax;
+  };
+
 uint packVsmPageInfo(ivec3 at, ivec2 size) {
   return (at.x & 0xFF) | ((at.y & 0xFF) << 8) | ((at.z & 0xFF) << 16) | ((size.x & 0xF) << 24) | ((size.y & 0xF) << 28);
   }

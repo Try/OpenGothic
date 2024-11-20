@@ -357,8 +357,8 @@ void main() {
   mainGhost(t);
 #endif
 
-#if DEBUG_DRAW
-  outColor   = vec4(debugColors[debugId%MAX_DEBUG_COLORS],1.0);
+#if DEBUG_DRAW && !defined(GBUFFER) && !defined(DEPTH_ONLY)
+  outColor   = vec4(debugColors[debugId%debugColors.length()],1.0);
 #endif
 
   //outColor = vec4(inZ.xyz/inZ.w,1.0);

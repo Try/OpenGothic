@@ -9,13 +9,6 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-struct Epipole {
-  vec2  rayOrig;
-  vec2  rayDir;
-  float tMin;
-  float tMax;
-  };
-
 layout(local_size_x = 128) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;

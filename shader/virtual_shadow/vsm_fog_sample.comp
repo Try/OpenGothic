@@ -9,13 +9,6 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-struct Epipole {
-  vec2  rayOrig;
-  vec2  rayDir;
-  float tMin;
-  float tMax;
-  };
-
 layout(local_size_x = 8, local_size_y = 8) in;
 
 layout(binding = 0, r32ui) uniform uimage2D   result;
