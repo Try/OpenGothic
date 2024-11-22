@@ -43,7 +43,7 @@ class Shaders {
     Tempest::RenderPipeline  fog;
     Tempest::RenderPipeline  fog3dHQ;
     Tempest::RenderPipeline  sun;
-    Tempest::ComputePipeline cloudsLut, fogOcclusion, fogOcclusionVsm;
+    Tempest::ComputePipeline cloudsLut, fogOcclusion;
     Tempest::ComputePipeline fogViewLut3d, shadowDownsample;
     Tempest::ComputePipeline skyExposure;
 
@@ -76,10 +76,10 @@ class Shaders {
 
     // Virtual shadow
     Tempest::ComputePipeline vsmClusterTask;
-    Tempest::ComputePipeline vsmClear, vsmClearPages, vsmMarkPages, vsmMarkFogPages;
+    Tempest::ComputePipeline vsmClear, vsmClearPages, vsmMarkPages;
     Tempest::ComputePipeline vsmTrimPages, vsmListPages, vsmClumpPages, vsmAllocPages, vsmMergePages;
     Tempest::ComputePipeline vsmPackDraw0, vsmPackDraw1;
-    Tempest::ComputePipeline vsmFogEpipolar, vsmFogShadow, vsmFogSample;
+    Tempest::ComputePipeline vsmFogEpipolar, vsmFogPages, vsmFogShadow, vsmFogSample;
     Tempest::RenderPipeline  vsmDirectLight;
     Tempest::RenderPipeline  vsmDbg;
 

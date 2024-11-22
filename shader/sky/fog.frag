@@ -62,18 +62,7 @@ float interleavedGradientNoise() {
 #endif
   }
 
-#if defined(VOLUMETRIC) && defined(VIRTUAL_SHADOW) && defined(GL_COMPUTE_SHADER)
-bool shadowFactor(vec4 shPos) {
-  vec3  shPos0 = shPos.xyz/shPos.w;
-  int   mip    = vsmCalcMipIndexFog(shPos0.xy);
-  vec2  page   = shPos0.xy / (1 << mip);
-  if(any(greaterThan(abs(page), vec2(1))))
-    return true;
-
-  float v = shadowTexelFetch(page, mip, pageTbl, pageData);
-  return v < shPos.z;
-  }
-#elif defined(VOLUMETRIC) && defined(GL_COMPUTE_SHADER)
+#if defined(VOLUMETRIC) && defined(GL_COMPUTE_SHADER)
 float shadowSample(in sampler2D shadowMap, vec2 shPos) {
   shPos.xy = shPos.xy*vec2(0.5)+vec2(0.5);
   return textureLod(shadowMap,shPos,0).r;
