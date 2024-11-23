@@ -300,7 +300,6 @@ add_shader(direct_light_vsm.frag     virtual_shadow/vsm_direct_light.frag)
 add_shader(vsm_reproject_sm.frag     virtual_shadow/vsm_reproject_sm.frag)
 add_shader(vsm_dbg.frag              virtual_shadow/vsm_direct_light.frag -DDEBUG)
 add_shader(vsm_mark_pages.comp       virtual_shadow/vsm_mark_pages.comp)
-add_shader(vsm_mark_fog_pages.comp   virtual_shadow/vsm_mark_fog_pages.comp)
 add_shader(vsm_clear.comp            virtual_shadow/vsm_clear.comp)
 add_shader(vsm_clear_pages.comp      virtual_shadow/vsm_clear_pages.comp)
 add_shader(vsm_trim_pages.comp       virtual_shadow/vsm_trim_pages.comp)
@@ -317,6 +316,7 @@ add_shader(vsm_fog_shadow.comp       virtual_shadow/vsm_fog_shadow.comp)
 add_shader(vsm_fog_mark_pages.comp   virtual_shadow/vsm_fog_shadow.comp -DPAGES)
 add_shader(vsm_fog_sample.comp       virtual_shadow/vsm_fog_sample.comp)
 
+add_shader(vsm_fog_2.comp            virtual_shadow/vsm_fog_2.comp)
 add_shader(vsm_rendering.comp        virtual_shadow/vsm_rendering.comp)
 
 # software rendering
