@@ -316,7 +316,6 @@ add_shader(vsm_fog_shadow.comp       virtual_shadow/vsm_fog_shadow.comp)
 add_shader(vsm_fog_mark_pages.comp   virtual_shadow/vsm_fog_shadow.comp -DPAGES)
 add_shader(vsm_fog_sample.comp       virtual_shadow/vsm_fog_sample.comp)
 
-add_shader(vsm_fog_2.comp            virtual_shadow/vsm_fog_2.comp)
 add_shader(vsm_rendering.comp        virtual_shadow/vsm_rendering.comp)
 
 # software rendering
