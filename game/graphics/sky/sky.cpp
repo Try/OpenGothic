@@ -210,6 +210,10 @@ bool Sky::isVolumetric() const {
   return quality!=VolumetricLQ;
   }
 
+const StorageImage& Sky::fogLut3d() const {
+  return fogLut3D;
+  }
+
 void Sky::setWorld(const World& world, const std::pair<Vec3, Vec3>& bbox) {
   setupSettings();
   }

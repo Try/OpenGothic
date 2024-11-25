@@ -976,6 +976,7 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     cmd.setDebugMarker("VSM-trace");
     cmd.setUniforms(shaders.vsmFogTrace, vsm.uboFogTrace);
     cmd.dispatchThreads(zbuffer.size());
+    }
   }
 
 void Renderer::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {

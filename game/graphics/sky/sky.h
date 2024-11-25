@@ -44,6 +44,8 @@ class Sky final {
     float                     isNight() const;
     bool                      isVolumetric() const;
 
+    const Tempest::StorageImage& fogLut3d() const;
+
   private:
     enum Quality : uint8_t {
       None,
