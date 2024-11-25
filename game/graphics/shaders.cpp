@@ -54,7 +54,6 @@ Shaders::Shaders() {
   skyViewCldLut      = postEffect("sky", "sky_view_clouds_lut");
 
   fogViewLut3d       = computeShader("fog_view_lut.comp.sprv");
-  shadowDownsample   = computeShader("shadow_downsample.comp.sprv");
   fogOcclusion       = computeShader("fog3d.comp.sprv");
 
   skyExposure        = computeShader("sky_exposure.comp.sprv");
@@ -209,6 +208,7 @@ Shaders::Shaders() {
     vsmFogPages     = computeShader("vsm_fog_mark_pages.comp.sprv");
     vsmFogShadow    = computeShader("vsm_fog_shadow.comp.sprv");
     vsmFogSample    = computeShader("vsm_fog_sample.comp.sprv");
+    vsmFogTrace     = computeShader("vsm_fog_trace.comp.sprv");
 
     vsmDirectLight  = postEffect("copy", "direct_light_vsm", RenderState::ZTestMode::NoEqual);
     vsmDbg          = postEffect("copy", "vsm_dbg", RenderState::ZTestMode::Always);

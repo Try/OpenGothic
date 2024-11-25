@@ -114,15 +114,20 @@ void innerMain() {
   vec2  rayDir  = epipole[sliceId].rayDir;
   float tMin    = epipole[sliceId].tMin;
   float tMax    = epipole[sliceId].tMax;
+  float dBegin  = epipole[sliceId].dBegin;
+  float dEnd    = epipole[sliceId].dEnd;
 
   const float a     = (i+0.5)/float(NumSamples);
   const float t     = tMin    + a*(tMax-tMin);
+  // const float depth = dBegin  + a*(dBegin-dEnd);
+  const float depth = min(dBegin, dEnd);
   const vec2  shPos = rayOrig + t*rayDir;
 #if !defined(PAGES)
   const float sh    = shadowTexelFetch(shPos);
-  imageStore(rayData, ivec2(i, sliceId), vec4(sh));
+  //imageStore(rayData, ivec2(i, sliceId), vec4(sh));
+  imageStore(rayData, ivec2(i, sliceId), vec4(sh<depth ? 0 : sh));
 #else
-  markPage(vec3(shPos,0));
+  markPage(vec3(shPos,depth));
 #endif
   }
 

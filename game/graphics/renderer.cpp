@@ -202,6 +202,7 @@ void Renderer::resetSwapchain() {
     vsm.uboFogPages     = device.descriptors(Shaders::inst().vsmFogPages);
     vsm.uboFogShadow    = device.descriptors(Shaders::inst().vsmFogShadow);
     vsm.uboFogSample    = device.descriptors(Shaders::inst().vsmFogSample);
+    vsm.uboFogTrace     = device.descriptors(Shaders::inst().vsmFogTrace);
     vsm.uboClump        = device.descriptors(Shaders::inst().vsmClumpPages);
     vsm.uboAlloc        = device.descriptors(Shaders::inst().vsmAllocPages);
 
@@ -212,10 +213,10 @@ void Renderer::resetSwapchain() {
     vsm.pageTbl         = device.image3d(TextureFormat::R32U, 32, 32, 16);
     vsm.pageHiZ         = device.image3d(TextureFormat::R32U, 32, 32, 16);
     vsm.pageData        = device.zbuffer(shadowFormat, 8192, 8192);
-    // vsm.pageDataCs      = device.image2d(TextureFormat::R32U, 4096, 4096);
 
     // vsm.ssTrace  = device.image2d(TextureFormat::RGBA8, w, h);
     vsm.ssTrace  = device.image2d(TextureFormat::R32U, w, h);
+    vsm.fogDbg   = device.image2d(TextureFormat::RGBA8, w, h);
     vsm.epTrace  = device.image2d(TextureFormat::R16, 1024, 2*1024);
     vsm.epipoles = device.ssbo(nullptr, Shaders::inst().vsmFogEpipolar.sizeOfBuffer(3, size_t(vsm.epTrace.h())));
 
@@ -503,6 +504,15 @@ void Renderer::prepareUniforms() {
     vsm.uboFogSample.set(2, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     vsm.uboFogSample.set(3, vsm.epipoles);
     vsm.uboFogSample.set(4, zbuffer);
+
+    vsm.uboFogTrace.set(0, vsm.fogDbg);
+    vsm.uboFogTrace.set(1, vsm.epTrace);
+    vsm.uboFogTrace.set(2, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    vsm.uboFogTrace.set(3, vsm.epipoles);
+    vsm.uboFogTrace.set(4, zbuffer);
+    vsm.uboFogTrace.set(5, vsm.pageTbl);
+    vsm.uboFogTrace.set(6, vsm.pageData);
+    vsm.uboFogTrace.set(7, wview->sky().fogLut3d());
 
     vsm.uboClump.set(0, vsm.pageList);
     vsm.uboClump.set(1, vsm.pageTbl);
@@ -959,6 +969,13 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     cmd.setUniforms(shaders.vsmFogSample, vsm.uboFogSample);
     cmd.dispatchThreads(zbuffer.size());
     }
+
+  if(false) {
+    // experimental
+    cmd.setFramebuffer({});
+    cmd.setDebugMarker("VSM-trace");
+    cmd.setUniforms(shaders.vsmFogTrace, vsm.uboFogTrace);
+    cmd.dispatchThreads(zbuffer.size());
   }
 
 void Renderer::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {

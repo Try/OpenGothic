@@ -33,6 +33,7 @@ const float dFogMax      = 0.9999;
 
 shared vec2 rayOrig, rayDir;
 shared uint tMinUint, tMaxUint;
+shared uint dBeginUint, dEndUint;
 shared uint tDbg;
 
 vec4 dbgColor = vec4(0,1,0,0);
@@ -93,8 +94,8 @@ vec2 rayPosition2d() {
   return vec2(float(viewportSize.x-0.5)/float(viewportSize.x), (rayId+0.5)/float(vert));
   }
 
-void minMaxRayT(const vec2 rposIn) {
-  const vec2  rpos = rposIn - rayOrig;
+void minMaxRayT(const vec3 rposIn) {
+  const vec2  rpos = rposIn.xy - rayOrig;
   const float t    = dot(rpos, rayDir);
   if(t<0) {
     // atomicAdd(tDbg, 1);
@@ -103,7 +104,6 @@ void minMaxRayT(const vec2 rposIn) {
 
   atomicMax(tMaxUint, floatBitsToUint(t));
   atomicMin(tMinUint, floatBitsToUint(t));
-
   //float d = abs(dot(normalize(rpos), rayDir));
   //atomicMin(tDbg, floatBitsToUint(d));
   }
@@ -134,26 +134,30 @@ void trace(const vec2 src, const vec2 dst) {
     const float z   = min(texelFetch(depth, ivec2(pix*viewportSize), 0).x, dFogMax);
 
     const vec2  inPos  = pix*2.0-1.0;
-    const vec2  shPos0 = screenToShadow(vec3(inPos, 0)).xy;
-    const vec2  shPos1 = screenToShadow(vec3(inPos, z)).xy;
+    const vec3  shPos0 = screenToShadow(vec3(inPos, 0));
+    const vec3  shPos1 = screenToShadow(vec3(inPos, z));
 
     minMaxRayT(shPos0);
     minMaxRayT(shPos1);
 
-    //imageStore(result, ivec2(pix*viewportSize), dbgColor);
-    //imageStore(result, ivec2(pix*viewportSize), vec4(dbg0, dbg1, 1, 1));
+    atomicMin(dBeginUint, floatBitsToUint(shPos0.z));
+    atomicMin(dEndUint,   floatBitsToUint(shPos1.z));
     }
   barrier();
 
   const float tMin    = uintBitsToFloat(tMinUint);
   const float tMax    = uintBitsToFloat(tMaxUint);
+  const float dBegin  = uintBitsToFloat(dBeginUint);
+  const float dEnd    = uintBitsToFloat(dEndUint);
   const uint  sliceId = gl_WorkGroupID.x;
 
-  if(true && lane==0) {
+  if(lane==0) {
     epipole[sliceId].rayOrig = rayOrig;
     epipole[sliceId].rayDir  = rayDir;
     epipole[sliceId].tMin    = tMin;
     epipole[sliceId].tMax    = tMax;
+    epipole[sliceId].dBegin  = dBegin;
+    epipole[sliceId].dEnd    = dEnd;
     }
   }
 

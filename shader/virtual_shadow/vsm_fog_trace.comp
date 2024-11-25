@@ -1,0 +1,213 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+#include "virtual_shadow/vsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+//layout(binding = 0, r32ui) uniform uimage2D   result;
+layout(binding = 0, rgba8)  uniform  image2D    result;
+layout(binding = 1)         uniform  texture2D  rayData;
+layout(binding = 2, std140) uniform  UboScene { SceneDesc scene; };
+layout(binding = 3, std430) readonly buffer Ep0 { Epipole epipole[]; };
+layout(binding = 4)         uniform  texture2D  depth;
+layout(binding = 5)         uniform  utexture3D pageTbl;
+layout(binding = 6)         uniform  texture2D  pageData;
+layout(binding = 7)         uniform  sampler3D  fogLut;
+
+const float dFogMin      = 0;
+const float dFogMax      = 0.9999;
+const uint  NumSlices    = 2*1024;
+const uint  NumSubSlices = 32;
+const uint  NumSamples   = 1024;
+      ivec2 fragCoord    = ivec2(gl_GlobalInvocationID.xy);
+      ivec2 viewportSize = textureSize(depth, 0);
+
+vec4 dbgColor = vec4(0);
+
+shared uint slicesBits[NumSlices/32];
+shared uint slicesTotal;
+//
+shared uint slices[NumSubSlices];
+//
+shared float shadowmap[NumSamples];
+//
+shared uint  fragments[64];
+shared uint  fragmentsTotal;
+
+
+void dbgSliceCount() {
+  if(slicesTotal>=64)
+    imageStore(result, fragCoord, vec4(1,0,0,1));
+  else if(slicesTotal>=32)
+    imageStore(result, fragCoord, vec4(1,1,0,1));
+  else if(slicesTotal>=16)
+    imageStore(result, fragCoord, vec4(0,1,0,1));
+  else if(slicesTotal>=8)
+    imageStore(result, fragCoord, vec4(0,1,1,1));
+  else if(slicesTotal>=4)
+    imageStore(result, fragCoord, vec4(0,0,1,1));
+  else
+    imageStore(result, fragCoord, vec4(0,0,0,1));
+  }
+
+vec2 sunPosition2d() {
+  vec3 sun = scene.sunDir;
+  sun = (scene.viewProject*vec4(sun,0)).xyz;
+  sun.xy /= sun.z;
+  return sun.xy;
+  }
+
+vec2 rayOrigin() {
+  vec2 sun  = sunPosition2d();
+  vec2 rpos = vec2(fragCoord)/vec2(viewportSize);
+  rpos  = rpos*2.0 - 1.0;
+
+  vec2 dv  = rpos - sun;
+  vec2 ret = vec2(0);
+  {
+    float d = (dv.x<0 ? -1 : +1) - sun.x;
+    ret = sun + dv*abs(d/dv.x);
+    if(-1<=ret.y && ret.y<=1)
+      return ret;
+  }
+  {
+    float d = (dv.y<0 ? -1 : +1) - sun.y;
+    ret = sun + dv*abs(d/dv.y);
+    if(-1<=ret.x && ret.x<=1)
+      return ret;
+  }
+  return vec2(-1);
+  }
+
+uint sliceId() {
+  const vec2  src   = rayOrigin();
+  const vec2  uv    = src*0.5+0.5;
+  const float ratio = float(viewportSize.x)/float(viewportSize.x+viewportSize.y);
+  const uint  hor   = int(0.5*ratio*NumSlices);
+  const uint  vert  = int(NumSlices)/2 - hor;
+
+  uint rayId = 0;
+  if(src.x < src.y && src.x > -src.y) {
+    // bottom
+    dbgColor = vec4(0,1,0,0);
+    return rayId + uint(uv.x * hor);
+    }
+  rayId += hor;
+
+  if(src.x > src.y && src.x < -src.y) {
+    // top
+    dbgColor = vec4(1,0,0,0);
+    return rayId + uint(uv.x * hor);
+    }
+  rayId += hor;
+
+  if(src.x < src.y && src.x < -src.y) {
+    // left
+    dbgColor = vec4(0,0,1,0);
+    return rayId + uint(uv.y * vert);
+    }
+  rayId += vert;
+
+  // right
+  dbgColor = vec4(1,0,1,0);
+  return rayId + uint(uv.y * vert);
+  }
+
+void allocSlice(uint s) {
+  uint mask = 1u << (s%32);
+  uint v    = atomicOr(slicesBits[s/32], mask);
+  if((v & mask)!=0)
+    return;
+
+  const uint id = atomicAdd(slicesTotal, 1);
+  if(id<slices.length())
+    slices[id] = s;
+  }
+
+vec3 screenToShadow(vec3 scr) {
+  //TODO: optimize
+  const vec4 pos   = scene.viewProjectLwcInv   *vec4(scr,1);
+  const vec4 shPos = scene.viewVirtualShadowLwc*pos;
+  return shPos.xyz/shPos.w;
+  }
+
+void pullShadowSamples(uint slice) {
+  const uint lane = gl_LocalInvocationIndex;
+
+  for(uint i=lane; i<slicesBits.length(); i+=NumThreads) {
+    shadowmap[i] = texelFetch(rayData, ivec2(i, slice), 0).x;
+    }
+  }
+
+void trace(const vec2 inPos, const float z, ivec2 pix, const uint sliceId) {
+  const int  steps  = 256;
+  const vec3 shPos0 = screenToShadow(vec3(inPos.xy,0));
+  const vec3 shPos1 = screenToShadow(vec3(inPos.xy,z));
+  // const vec3  ray      = pos1.xyz - pos0.xyz;
+  // const float dist     = length(ray)*0.01;       // meters
+
+  const Epipole e      = epipole[sliceId];
+  const float   tMin   = e.tMin;
+  const float   tMax   = e.tMax;
+  const vec2    rayA   = e.rayOrig;
+  const vec2    rayDir = e.rayDir;
+
+  //uint occlusion = 0;
+  float occlusion = 0;
+  [[dont_unroll]]
+  for(uint i=0; i<steps; ++i) {
+    float t      = (i+0.3)/float(steps);
+    vec3  shPos  = mix(shPos0, shPos1, t);
+    float shV    = dot(shPos.xy - rayA, rayDir) / (tMax-tMin);
+
+    float sh     = texelFetch(rayData, ivec2(shV*NumSamples, sliceId), 0).x;
+    bool  shadow = (sh < shPos.z);
+
+    //occlusion = occlusion | ((shadow ? 1u : 0u) << uint(i));
+    occlusion += (shadow ? 1u : 0u);
+    }
+
+  imageStore(result, pix, vec4(occlusion/float(steps)));
+  }
+
+void main() {
+  const bool valid  = all(lessThan(fragCoord, viewportSize));
+  const vec2 inPos  = (vec2(fragCoord)/vec2(viewportSize))*2.0 - 1.0;
+  const uint lane   = gl_LocalInvocationIndex;
+
+  slicesTotal = 0;
+  for(uint i=lane; i<slicesBits.length(); i+=NumThreads) {
+    slicesBits[i] = 0;
+    }
+  barrier();
+
+  const uint  slice = valid ? sliceId() : 0xFFFFFFFF;
+  const float z     = valid ? min(texelFetch(depth, fragCoord, 0).x, dFogMax) : 0;
+  if(valid)
+    allocSlice(slice);
+  barrier();
+
+  for(uint i=0; i<slicesTotal; ++i) {
+    const uint sx = slices[i];
+    fragmentsTotal = 0;
+    barrier();
+
+    pullShadowSamples(sx);
+    barrier();
+    if(sx==slice)
+      trace(inPos, z, fragCoord, slice);
+    }
+
+  if(valid) {
+    //dbgSliceCount();
+    }
+  }

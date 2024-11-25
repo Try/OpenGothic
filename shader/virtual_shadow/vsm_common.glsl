@@ -29,6 +29,8 @@ struct Epipole {
   vec2  rayDir;
   float tMin;
   float tMax;
+  float dBegin;
+  float dEnd;
   };
 
 uint packVsmPageInfo(ivec3 at, ivec2 size) {

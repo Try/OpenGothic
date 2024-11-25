@@ -136,14 +136,12 @@ void Sky::setupSettings() {
     case None:
     case VolumetricLQ:
       fogLut3D     = device.image3d(lutRGBAFormat, 160, 90, 64);
-      shadowDw     = StorageImage();
       occlusionLut = StorageImage();
       break;
     case VolumetricHQ:
     case VolumetricHQVsm:
       // fogLut and oclussion are decupled
       fogLut3D = device.image3d(lutRGBAFormat,128,64,32);
-      shadowDw = StorageImage();
       break;
     case PathTrace:
       break;

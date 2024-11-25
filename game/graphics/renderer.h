@@ -216,8 +216,7 @@ class Renderer final {
       Tempest::DescriptorSet    uboClear;
       Tempest::DescriptorSet    uboClearPages;
       Tempest::DescriptorSet    uboPages;
-      Tempest::DescriptorSet    uboEpipole, uboFogPages, uboFogSample, uboFogShadow;
-
+      Tempest::DescriptorSet    uboEpipole, uboFogPages, uboFogSample, uboFogShadow, uboFogTrace;
       Tempest::DescriptorSet    uboClump, uboAlloc;
 
       Tempest::RenderPipeline*  directLightPso = nullptr;
@@ -233,6 +232,8 @@ class Renderer final {
       Tempest::StorageImage     ssTrace;
       Tempest::StorageImage     epTrace;
       Tempest::StorageBuffer    epipoles;
+
+      Tempest::StorageImage     fogDbg;
       } vsm;
 
     struct {
