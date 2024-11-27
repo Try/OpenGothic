@@ -145,6 +145,10 @@ void WorldView::visibilityVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uin
   visuals.visibilityVsm(cmd, fId);
   }
 
+void WorldView::markPagesVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  lights.markPagesVsm(cmd, fId);
+  }
+
 void WorldView::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   visuals.drawHiZ(cmd,fId);
   }
@@ -275,6 +279,7 @@ void WorldView::prepareUniforms() {
   sGlobal.skyLut = &gSky.skyLut();
   sGlobal.lights = &lights.lightsSsbo();
   lights.prepareUniforms();
+  lights.prepareVsmUniforms();
   gSky.prepareUniforms();
   pfxGroup.prepareUniforms();
   visuals.prepareUniforms();

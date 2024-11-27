@@ -477,7 +477,6 @@ void Renderer::prepareUniforms() {
     vsm.uboPages.set(3, zbuffer,     Sampler::nearest());
     vsm.uboPages.set(4, vsm.pageTbl);
     vsm.uboPages.set(5, vsm.pageHiZ);
-    //vsm.uboPages.set(7, vsm.pageList);
 
     vsm.uboEpipole.set(0, vsm.ssTrace);
     vsm.uboEpipole.set(1, vsm.epTrace);
@@ -916,6 +915,11 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
 
   cmd.setUniforms(shaders.vsmMarkPages, vsm.uboPages, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
   cmd.dispatchThreads(zbuffer.size());
+
+  if(true) {
+    // omni-lights
+    wview.markPagesVsm(cmd, fId);
+    }
 
   // sky&fog
   if(true && wview.sky().isVolumetric()) {

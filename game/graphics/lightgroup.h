@@ -52,7 +52,9 @@ class LightGroup final {
     void   prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
     void   prepareUniforms();
     void   prepareRtUniforms();
+    void   prepareVsmUniforms();
 
+    void   markPagesVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void   draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
     void   dbgLights(DbgPainter& p) const;
@@ -99,6 +101,10 @@ class LightGroup final {
 
     Tempest::StorageBuffer           patchSsbo[Resources::MaxFramesInFlight];
     Tempest::DescriptorSet           descPatch[Resources::MaxFramesInFlight];
+
+    // vsm
+    Tempest::DescriptorSet           vsmPageDesc;
+    Tempest::StorageImage            vsmDbg;
 
     Tempest::IndexBuffer<uint16_t>   ibo;
   };

@@ -422,9 +422,10 @@ void LightGroup::allocDescriptorSet() {
   Resources::recycle(std::move(desc));
 
   auto& device  = Resources::device();
-  desc = device.descriptors(shader().layout());
+  desc = device.descriptors(shader());
   prepareUniforms();
   prepareRtUniforms();
+  prepareVsmUniforms();
   }
 
 void LightGroup::prepareUniforms() {
@@ -450,4 +451,35 @@ void LightGroup::prepareRtUniforms() {
     desc.set(10,scene.rtScene.ibo);
     desc.set(11,scene.rtScene.rtDesc);
     }
+  }
+
+void LightGroup::prepareVsmUniforms() {
+  if(!Gothic::inst().options().doVirtualShadow)
+    return;
+
+  auto& device  = Resources::device();
+  auto& shaders = Shaders::inst();
+
+  vsmDbg  = device.image2d(TextureFormat::R32U, uint32_t(scene.zbuffer->w()), uint32_t(scene.zbuffer->h()));
+
+  Resources::recycle(std::move(vsmPageDesc));
+  vsmPageDesc = device.descriptors(shaders.vsmMarkOmniPages);
+
+  vsmPageDesc.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
+  vsmPageDesc.set(1, *scene.gbufDiffuse, Sampler::nearest());
+  vsmPageDesc.set(2, *scene.gbufNormals, Sampler::nearest());
+  vsmPageDesc.set(3, *scene.zbuffer,     Sampler::nearest());
+  vsmPageDesc.set(4, lightSourceSsbo);
+  vsmPageDesc.set(5, vsmDbg);
+  }
+
+void LightGroup::markPagesVsm(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
+  auto& shaders = Shaders::inst();
+
+  struct Push { Vec3 originLwc; float znear; float vsmMipBias; } push = {};
+  push.originLwc  = scene.originLwc;
+  push.znear      = scene.znear;
+  push.vsmMipBias = 0;
+  cmd.setUniforms(shaders.vsmMarkOmniPages, vsmPageDesc, &push, sizeof(push));
+  cmd.dispatchThreads(scene.zbuffer->size());
   }
