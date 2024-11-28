@@ -44,24 +44,24 @@ PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
 #endif
 
     // Initialisierung von hook
-    hook = gamepad::hook::make();
-    hook->set_plug_and_play(true, gamepad::ms(1000));
-    hook->set_sleep_time(gamepad::ms(5));
+    auto hook = hook::make();
+    h->set_plug_and_play(true, gamepad::ms(1000));
+    std::atomic<bool> run_flag = true;
 
     // Event-Handler für libgamepad registrieren
-    hook->set_button_event_handler([this](std::shared_ptr<gamepad::device> dev) {
+    h->set_button_event_handler([this](std::shared_ptr<gamepad::device> dev) {
         handleButtonInput(dev);
     });
 
-    hook->set_axis_event_handler([this](std::shared_ptr<gamepad::device> dev) {
+    h->set_axis_event_handler([this](std::shared_ptr<gamepad::device> dev) {
         handleAxisInput(dev);
     });
 
-    hook->set_connect_event_handler([](std::shared_ptr<gamepad::device> dev) {
+    h->set_connect_event_handler([](std::shared_ptr<gamepad::device> dev) {
         std::cout << dev->get_name() << " connected.\n";
     });
 
-    hook->set_disconnect_event_handler([](std::shared_ptr<gamepad::device> dev) {
+    h->set_disconnect_event_handler([](std::shared_ptr<gamepad::device> dev) {
         std::cout << dev->get_name() << " disconnected.\n";
     });
 
