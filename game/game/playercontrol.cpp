@@ -1334,6 +1334,10 @@ void PlayerControl::configureController(std::shared_ptr<gamepad::device> dev) {
         {"Camera Vertical", "axis_camera_y"}
     };
 
+    // Constants for deadzone and angle threshold
+    const double DEADZONE = 0.5;  // Adjust deadzone sensitivity as needed
+    const double M_PI = 3.14159265358979323846;
+
     // Map buttons
     for (const auto& [actionName, configKey] : buttonActions) {
         std::cout << "Press the button for action: " << actionName << std::endl;
@@ -1341,7 +1345,7 @@ void PlayerControl::configureController(std::shared_ptr<gamepad::device> dev) {
         int buttonId = -1;
         do {
             // Iterate through button values from A to LAST - 1
-            for (int i = gamepad::button::A; i < gamepad::button::LAST; ++i) { 
+            for (int i = gamepad::button::A; i < gamepad::button::LAST; ++i) {
                 if (dev->is_button_pressed(static_cast<gamepad::button::type>(i))) {
                     buttonId = i;
                     break;
@@ -1364,15 +1368,35 @@ void PlayerControl::configureController(std::shared_ptr<gamepad::device> dev) {
         do {
             // Iterate through axis values from LEFT_STICK_X to LAST - 1
             for (int i = gamepad::axis::LEFT_STICK_X; i < gamepad::axis::LAST; ++i) {
-                float axisValue = dev->get_axis_value(static_cast<gamepad::axis::type>(i));
-                if (std::abs(axisValue) > 0.5f) {
-                    axisId = i;
+                // Get axis values for the selected axis (e.g., X and Y axes)
+                double axisValueX = dev->get_axis_value(static_cast<gamepad::axis::type>(i)); // X value
+                double axisValueY = dev->get_axis_value(static_cast<gamepad::axis::type>(i + 1)); // Y value (next axis)
+
+                // Apply deadzone and angle calculation
+                if (std::abs(axisValueX) > DEADZONE || std::abs(axisValueY) > DEADZONE) {
+                    // Calculate the angle using atan2
+                    double angle = std::atan2(axisValueY, axisValueX) * 180.0 / M_PI;
+                    if (angle < 0) angle += 360.0;
+
+                    int selectedOption = 0;
+                    // Determine direction based on the angle
+                    if (angle >= 0 && angle < 90) {
+                        selectedOption = 0; // Right
+                    } else if (angle >= 90 && angle < 180) {
+                        selectedOption = 1; // Down
+                    } else if (angle >= 180 && angle < 270) {
+                        selectedOption = 2; // Left
+                    } else {
+                        selectedOption = 3; // Up
+                    }
+
+                    axisId = i;  // Assign axis id based on selected option
+                    std::cout << "Assigned axis " << axisId << " to " << actionName << " with direction: " << selectedOption << std::endl;
                     break;
                 }
             }
         } while (axisId == -1);
 
-        std::cout << "Assigned axis " << axisId << " to " << actionName << std::endl;
         controllerConfig[configKey] = axisId;
 
         // Debounce
@@ -1396,4 +1420,3 @@ void PlayerControl::configureController(std::shared_ptr<gamepad::device> dev) {
     // After saving the configuration, you can manually apply it if needed
     std::cout << "Configuration applied to the device." << std::endl;
 }
-
