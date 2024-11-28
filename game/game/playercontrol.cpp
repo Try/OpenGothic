@@ -1212,7 +1212,7 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
     auto rightY = dev->get_axis(gamepad::axis::RIGHT_STICK_Y);  // Anpassen, falls nötig
 
     if (std::abs(rightX) > DEADZONE || std::abs(rightY) > DEADZONE) {
-        float angle = std::atan2(static_cast<float>(rightY), static_cast<float>(rightX)) * 180.f / M_PI;
+        double angle = std::atan2(static_cast<double>(rightY), static_cast<double>(rightX)) * 180.0 / M_PI;
         if (angle < 0) angle += 360.f;
 
         int selectedOption = 0;
