@@ -1181,13 +1181,9 @@ void PlayerControl::handleButtonInput(std::shared_ptr<gamepad::device> dev) {
 void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
     const int DEADZONE = 16384;
 
-    input_event event;
-    if (dev->update_axis(gamepad::axis::LEFT_STICK_X, event)) {
-        auto leftX = event.virtual_value;
-    }
-    if (dev->update_axis(gamepad::axis::LEFT_STICK_Y, event)) {
-        auto leftY = event.virtual_value;
-    }
+    // Hier wird angenommen, dass 'get_axis' die Achsenwerte zurückgibt
+    auto leftX = dev->get_axis(gamepad::axis::LEFT_STICK_X);  // Anpassen, falls nötig
+    auto leftY = dev->get_axis(gamepad::axis::LEFT_STICK_Y);  // Anpassen, falls nötig
 
     if (std::abs(leftX) > DEADZONE) {
         if (leftX > 0) {
@@ -1212,12 +1208,8 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
     }
 
     // Rechts Stick
-    if (dev->update_axis(gamepad::axis::RIGHT_STICK_X, event)) {
-        auto rightX = event.virtual_value;
-    }
-    if (dev->update_axis(gamepad::axis::RIGHT_STICK_Y, event)) {
-        auto rightY = event.virtual_value;
-    }
+    auto rightX = dev->get_axis(gamepad::axis::RIGHT_STICK_X);  // Anpassen, falls nötig
+    auto rightY = dev->get_axis(gamepad::axis::RIGHT_STICK_Y);  // Anpassen, falls nötig
 
     if (std::abs(rightX) > DEADZONE || std::abs(rightY) > DEADZONE) {
         float angle = std::atan2(static_cast<float>(rightY), static_cast<float>(rightX)) * 180.f / M_PI;
@@ -1238,3 +1230,4 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
         std::cout << "Selected Option: " << selectedOption << "\n";
     }
 }
+
