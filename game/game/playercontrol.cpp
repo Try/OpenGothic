@@ -1152,11 +1152,13 @@ void PlayerControl::handleButtonInput(std::shared_ptr<gamepad::device> dev) {
     } else {
         ctrl[Action::Jump] = false;
     }
+    
     if (dev->is_button_pressed(gamepad::button::B)) {
-    std::cout << "B pressed" << std::endl;
-    // Trigger Action::Weapon
-    onKeyPressed(KeyCodec::Action::Weapon, Tempest::KeyEvent::KeyType::K_Return, KeyCodec::Mapping());
+        std::cout << "B pressed" << std::endl;
+        // Trigger Action::Weapon
+        onKeyPressed(KeyCodec::Action::Weapon, Tempest::KeyEvent::KeyType::K_Return, KeyCodec::Mapping());
     }
+
     if (dev->is_button_pressed(gamepad::button::A)) {
         std::cout << "A pressed" << std::endl;
         // Perform continuous action for A button
@@ -1166,18 +1168,20 @@ void PlayerControl::handleButtonInput(std::shared_ptr<gamepad::device> dev) {
         std::cout << "A released" << std::endl;
         onKeyReleased(KeyCodec::Action::ActionGeneric, Tempest::KeyEvent::KeyType::K_LShift, KeyCodec::Mapping());
     }
+
     if (dev->is_button_pressed(gamepad::button::X)) {
         std::cout << "X pressed" << std::endl;
         ctrl[Action::Weapon] = true;
     } else {
         ctrl[Action::Weapon] = false;
     }
+
     if (dev->is_button_pressed(gamepad::button::R_THUMB)) {
-        std::cout << "X pressed" << std::endl;
+        std::cout << "R_THUMB pressed" << std::endl;
         onKeyPressed(KeyCodec::Action::FirstPerson, Tempest::KeyEvent::KeyType::K_F, KeyCodec::Mapping());
     }
     if (dev->is_button_pressed(gamepad::button::L_THUMB)) {
-        std::cout << "X pressed" << std::endl;
+        std::cout << "L_THUMB pressed" << std::endl;
         onKeyPressed(KeyCodec::Action::Sneak, Tempest::KeyEvent::KeyType::K_X, KeyCodec::Mapping());
     }
 }
