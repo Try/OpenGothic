@@ -1155,7 +1155,7 @@ void PlayerControl::handleButtonInput(std::shared_ptr<gamepad::device> dev) {
     if (dev->is_button_pressed(gamepad::button::B)) {
     std::cout << "B pressed" << std::endl;
     // Trigger Action::Weapon
-    handleMovementAction(KeyCodec::ActionMapping{Action::Weapon, KeyCodec::Mapping::Primary}, true);
+    onKeyPressed(KeyCodec::Action::Weapon, Tempest::KeyEvent::KeyType::K_Return, KeyCodec::Mapping());
     }
     if (dev->is_button_pressed(gamepad::button::A)) {
         std::cout << "A pressed" << std::endl;
