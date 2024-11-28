@@ -1340,7 +1340,8 @@ void PlayerControl::configureController(std::shared_ptr<gamepad::device> dev) {
 
         int buttonId = -1;
         do {
-            for (int i = gamepad::button::A; i < gamepad::button::MAX; ++i) {
+            // Iterate through the button values explicitly
+            for (int i = gamepad::button::A; i <= gamepad::button::GUIDE; ++i) { 
                 if (dev->is_button_pressed(static_cast<gamepad::button>(i))) {
                     buttonId = i;
                     break;
@@ -1361,8 +1362,10 @@ void PlayerControl::configureController(std::shared_ptr<gamepad::device> dev) {
 
         int axisId = -1;
         do {
-            for (int i = gamepad::axis::LEFT_STICK_X; i < gamepad::axis::MAX; ++i) {
-                if (std::abs(dev->get_axis_value(static_cast<gamepad::axis>(i))) > 0.5) {
+            // Iterate through the axis values explicitly
+            for (int i = gamepad::axis::LEFT_STICK_X; i < gamepad::axis::LAST; ++i) {
+                float axisValue = dev->get_axis_value(static_cast<gamepad::axis>(i));
+                if (std::abs(axisValue) > 0.5f) {
                     axisId = i;
                     break;
                 }
@@ -1392,14 +1395,5 @@ void PlayerControl::configureController(std::shared_ptr<gamepad::device> dev) {
 
     // After saving the configuration, you can manually apply it if needed
     std::cout << "Configuration applied to the device." << std::endl;
-
-    // If you want to apply the saved configuration, you'd need to load it manually
-    // Example of loading the config and applying to the device
-    // std::ifstream inFile("controller_config.json");
-    // if (inFile.is_open()) {
-    //     std::string configStr((std::istreambuf_iterator<char>(inFile)),
-    //                            std::istreambuf_iterator<char>());
-    //     json11::Json config = json11::Json::parse(configStr);
-    //     // Apply the config to the device (map actions manually)
-    // }
 }
+
