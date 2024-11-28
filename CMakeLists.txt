@@ -40,6 +40,8 @@ include_directories(${CMAKE_SOURCE_DIR}/lib/libgamepad/include)
 # Add the libgamepad subdirectory if it contains its own CMakeLists.txt
 add_subdirectory(lib/libgamepad)
 
+target_link_libraries(Gothic2Notr PRIVATE gamepad)
+
 if(WIN32)
   if(MSVC)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup" )
