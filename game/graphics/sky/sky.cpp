@@ -136,14 +136,12 @@ void Sky::setupSettings() {
     case None:
     case VolumetricLQ:
       fogLut3D     = device.image3d(lutRGBAFormat, 160, 90, 64);
-      shadowDw     = StorageImage();
       occlusionLut = StorageImage();
       break;
     case VolumetricHQ:
     case VolumetricHQVsm:
       // fogLut and oclussion are decupled
       fogLut3D = device.image3d(lutRGBAFormat,128,64,32);
-      shadowDw = StorageImage();
       break;
     case PathTrace:
       break;
@@ -210,6 +208,10 @@ float Sky::isNight() const {
 
 bool Sky::isVolumetric() const {
   return quality!=VolumetricLQ;
+  }
+
+const StorageImage& Sky::fogLut3d() const {
+  return fogLut3D;
   }
 
 void Sky::setWorld(const World& world, const std::pair<Vec3, Vec3>& bbox) {
@@ -361,18 +363,11 @@ void Sky::prepareUniforms() {
     auto smpLut3d = Sampler::bilinear();
     smpLut3d.setClamping(ClampMode::ClampToEdge);
 
-    const bool vsm = (quality==VolumetricHQVsm);
-    auto& fogOcclusion = vsm ? Shaders::inst().fogOcclusionVsm : Shaders::inst().fogOcclusion;
-    uboOcclusion = device.descriptors(fogOcclusion);
+    uboOcclusion = device.descriptors(Shaders::inst().fogOcclusion);
     uboOcclusion.set(1, *scene.zbuffer, Sampler::nearest());
     uboOcclusion.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
     uboOcclusion.set(3, occlusionLut);
-    if(quality==VolumetricHQVsm) {
-      uboOcclusion.set(4, *scene.vsmPageTbl);
-      uboOcclusion.set(5, *scene.vsmPageData);
-      } else {
-      uboOcclusion.set(4, *scene.shadowMap[1], Resources::shadowSampler());
-      }
+    uboOcclusion.set(4, *scene.shadowMap[1], Resources::shadowSampler());
 
     uboFogViewLut3d = device.descriptors(Shaders::inst().fogViewLut3d);
     uboFogViewLut3d.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
@@ -476,11 +471,6 @@ void Sky::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint32_t fra
       break;
       }
     case VolumetricHQVsm: {
-      if(!Gothic::inst().options().doVirtualFog) {
-        cmd.setFramebuffer({});
-        cmd.setUniforms(Shaders::inst().fogOcclusionVsm, uboOcclusion, &ubo, sizeof(ubo));
-        cmd.dispatchThreads(occlusionLut.size());
-        }
       // shadows filled extenally
       cmd.setUniforms(Shaders::inst().fogViewLut3d, uboFogViewLut3d, &ubo, sizeof(ubo));
       cmd.dispatchThreads(uint32_t(fogLut3D.w()),uint32_t(fogLut3D.h()));

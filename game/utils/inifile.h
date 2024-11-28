@@ -2,6 +2,7 @@
 
 #include <Tempest/File>
 #include <vector>
+#include <string>
 
 class IniFile final {
   public:

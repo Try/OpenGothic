@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Tempest/Pixmap>
+#include <string>
 
 #include "gametime.h"
 

@@ -44,6 +44,8 @@ class Sky final {
     float                     isNight() const;
     bool                      isVolumetric() const;
 
+    const Tempest::StorageImage& fogLut3d() const;
+
   private:
     enum Quality : uint8_t {
       None,
@@ -74,7 +76,7 @@ class Sky final {
     Tempest::TextureFormat        lutRGBFormat  = Tempest::TextureFormat::R11G11B10UF;
     Tempest::TextureFormat        lutRGBAFormat = Tempest::TextureFormat::RGBA16F;
     Tempest::Attachment           transLut, multiScatLut, viewLut, viewCldLut;
-    Tempest::StorageImage         cloudsLut, fogLut3D, shadowDw;
+    Tempest::StorageImage         cloudsLut, fogLut3D;
     Tempest::StorageImage         occlusionLut, irradianceLut;
 
     Tempest::DescriptorSet        uboClouds;

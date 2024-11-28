@@ -37,4 +37,51 @@ struct SceneDesc {
   vec4  cloudsDir;
   };
 
+struct LightSource {
+  vec3  pos;
+  float range;
+  vec3  color;
+  float padd0;
+  };
+
+struct MorphDesc {
+  uint  indexOffset;
+  uint  sample0;
+  uint  sample1;
+  uint  alpha16_intensity16;
+  };
+
+struct Instance {
+  mat4x3 mat;
+  float  fatness;
+  uint   animPtr;
+  uint   padd0;
+  uint   padd1;
+  };
+
+struct IndirectCmd {
+  uint  vertexCount;
+  uint  instanceCount;
+  uint  firstVertex;
+  uint  firstInstance;
+  uint  writeOffset;
+  };
+
+struct Cluster {
+  vec4  sphere;
+  uint  bucketId_commandId;
+  uint  firstMeshlet;
+  int   meshletCount;
+  uint  instanceId;
+  };
+
+struct Bucket {
+  vec4  bbox[2];
+  ivec2 texAniMapDirPeriod;
+  float bboxRadius;
+  float waveMaxAmplitude;
+  float alphaWeight;
+  float envMapping;
+  };
+
 #endif

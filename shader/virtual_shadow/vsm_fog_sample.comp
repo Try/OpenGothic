@@ -9,18 +9,11 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-struct Epipole {
-  vec2  rayOrig;
-  vec2  rayDir;
-  float tMin;
-  float tMax;
-  };
-
 layout(local_size_x = 8, local_size_y = 8) in;
 
 layout(binding = 0, r32ui) uniform uimage2D   result;
 //layout(binding = 0, rgba8)  uniform image2D   result;
-layout(binding = 1, rgba8)  uniform image2D   rayData;
+layout(binding = 1)         uniform texture2D   rayData;
 layout(binding = 2, std140) uniform UboScene {
   SceneDesc scene;
   };
@@ -29,8 +22,8 @@ layout(binding = 4)         uniform texture2D  depth;
 
 const float dFogMin      = 0;
 const float dFogMax      = 0.9999;
-      uint  NumSamples   = imageSize(rayData).x;
-      uint  NumSlices    = imageSize(rayData).y;
+      uint  NumSamples   = textureSize(rayData,0).x;
+      uint  NumSlices    = textureSize(rayData,0).y;
       ivec2 fragCoord    = ivec2(gl_GlobalInvocationID.xy);
       ivec2 viewportSize = textureSize(depth, 0);
 
@@ -141,16 +134,10 @@ void trace(const vec2 inPos, const float z, ivec2 pix, const uint sliceId) {
     //vec3  shPos  = shPos1;
     float shV    = dot(shPos.xy - rayA, rayDir) / (tMax-tMin);
 
-    float sh     = imageLoad(rayData, ivec2(shV*NumSamples, sliceId)).x;
+    float sh     = texelFetch(rayData, ivec2(shV*NumSamples, sliceId), 0).x;
     bool  shadow = (sh < shPos.z);
 
     occlusion = occlusion | ((shadow ? 1u : 0u) << uint(i));
-    if(i+1==steps) {
-      //float x    = dot(normalize(shPos.xy/shPos.w - rayA), rayDir);
-      //imageStore(result, pix, vec4(abs(x)*dbgColor));
-      //imageStore(result, pix, vec4(dbgColor));
-      //imageStore(result, pix, vec4(sh));
-      }
     }
 
   //imageStore(result, pix, vec4(bitCount(occlusion)/float(steps)));
@@ -158,18 +145,6 @@ void trace(const vec2 inPos, const float z, ivec2 pix, const uint sliceId) {
   }
 
 void dbgEpipole(const vec2 inPos, float z) {
-  const vec3 debugColors[] = {
-    vec3(1,1,1),
-    vec3(1,0,0),
-    vec3(0,1,0),
-    vec3(0,0,1),
-    vec3(1,1,0),
-    vec3(1,0,1),
-    vec3(0,1,1),
-    vec3(1,0.5,0),
-    vec3(0.5,1,0),
-    vec3(0,0.5,1),
-    };
   const vec2 sun    = sunPosition2d();
   const vec3 camPos = wrldToShadow(scene.camPos);
   const vec3 shPos1 = screenToShadow(vec3(inPos, 1));

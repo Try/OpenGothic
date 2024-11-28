@@ -9,13 +9,6 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-struct Epipole {
-  vec2  rayOrig;
-  vec2  rayDir;
-  float tMin;
-  float tMax;
-  };
-
 layout(local_size_x = 128) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
@@ -25,21 +18,92 @@ layout(binding = 1, std140) uniform UboScene {
   SceneDesc scene;
   };
 layout(binding = 2, std430) readonly buffer Ep0 { Epipole epipole[]; };
+#if !defined(PAGES)
 layout(binding = 3)         uniform utexture3D pageTbl;
 layout(binding = 4)         uniform texture2D  pageData;
+#else
+layout(binding = 3, r32ui)  uniform uimage3D   pageTbl;
+layout(binding = 4, r32ui)  uniform uimage3D   pageTblDepth;
+#endif
 
-uint  NumSamples   = imageSize(rayData).x;
-uint  NumSlices    = imageSize(rayData).y;
+uint  NumSamples = imageSize(rayData).x;
+uint  NumSlices  = imageSize(rayData).y;
 
+int vsmCalcMipIndexFog2(in vec2 shPos) {
+  float d  = max(abs(shPos.x), abs(shPos.y));
+  uint  id = uint(d * 16.0);
+  return clamp(findMSB(id)+1, 0, 8);
+  }
+
+float shadowTexelFetch2(in vec2 page, in int mip, in utexture3D pageTbl, in texture2D pageData) {
+  page *= (1 << mip);
+  for(int i=0; i<=mip; ++i) {
+    float s = shadowTexelFetch(page, i, pageTbl, pageData);
+    if(s>=0)
+      return s;
+    page /= 2.0;
+    }
+  return 0;
+  }
+
+#if defined(PAGES)
+shared uint pageHit[NumThreads];
+
+void storeHiZValue(uint v) {
+  uvec4 dx = unpack565_16(v);
+  ivec3 at = ivec3(dx.xyz);
+  uint  iz = (dx.w << 16);
+
+  imageAtomicExchange(pageTbl, at, 1u);
+  imageAtomicMin(pageTblDepth, at, iz);
+  }
+
+void clearCache() {
+  const uint lane = gl_LocalInvocationIndex;
+  pageHit[lane] = 0xFFFFFFFF;
+  }
+
+void flushCache() {
+  const uint lane = gl_LocalInvocationIndex;
+  const uint cur  = pageHit[lane];
+
+  bool provoking = true;
+  if(lane>1) {
+    uint prev = pageHit[lane-1];
+    if((prev&0xFFFF0000)==(cur&0xFFFF0000)) {
+      provoking = false;
+      //pageHit[lane] = 0xFFFFFFFF;
+      }
+    }
+  barrier();
+
+  if(provoking)
+    storeHiZValue(cur);
+  }
+
+void markPage(vec3 shPos0) {
+  int   mip    = vsmCalcMipIndexFog2(shPos0.xy);
+  vec2  page   = shPos0.xy / (1 << mip);
+  if(any(greaterThan(abs(page), vec2(1))))
+    return;
+
+  ivec2 pageI = ivec2((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
+  ivec3 at    = ivec3(pageI, mip);
+  float z     = shPos0.z;
+
+  pageHit[gl_LocalInvocationIndex] = pack565_16(at, floatBitsToUint(z) >> 16);
+  }
+#else
 float shadowTexelFetch(vec2 shPos0) {
-  int   mip    = vsmCalcMipIndexFog(shPos0.xy);
+  int   mip    = vsmCalcMipIndexFog2(shPos0.xy);
   vec2  page   = shPos0.xy / (1 << mip);
   if(any(greaterThan(abs(page), vec2(1))))
     return 0;
   return shadowTexelFetch(page, mip, pageTbl, pageData);
   }
+#endif
 
-void main() {
+void innerMain() {
   const uint i       = gl_GlobalInvocationID.x;
   const uint sliceId = gl_GlobalInvocationID.y;
 
@@ -50,11 +114,31 @@ void main() {
   vec2  rayDir  = epipole[sliceId].rayDir;
   float tMin    = epipole[sliceId].tMin;
   float tMax    = epipole[sliceId].tMax;
+  float dBegin  = epipole[sliceId].dBegin;
+  float dEnd    = epipole[sliceId].dEnd;
 
   const float a     = (i+0.5)/float(NumSamples);
   const float t     = tMin    + a*(tMax-tMin);
+  // const float depth = dBegin  + a*(dBegin-dEnd);
+  const float depth = min(dBegin, dEnd);
   const vec2  shPos = rayOrig + t*rayDir;
+#if !defined(PAGES)
   const float sh    = shadowTexelFetch(shPos);
+  //imageStore(rayData, ivec2(i, sliceId), vec4(sh));
+  imageStore(rayData, ivec2(i, sliceId), vec4(sh<depth ? 0 : sh));
+#else
+  markPage(vec3(shPos,depth));
+#endif
+  }
 
-  imageStore(rayData, ivec2(i, sliceId), vec4(sh));
+void main() {
+#if defined(PAGES)
+  clearCache();
+  barrier();
+#endif
+  innerMain();
+#if defined(PAGES)
+  barrier();
+  flushCache();
+#endif
   }

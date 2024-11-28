@@ -19,6 +19,19 @@ const vec3  GGroundAlbedo = vec3(0.3);
 const float Fd_Lambert    = (1.0/M_PI);
 const float Fd_LambertInv = (M_PI);
 
+const vec3 debugColors[] = {
+  vec3(1,1,1),
+  vec3(1,0,0),
+  vec3(0,1,0),
+  vec3(0,0,1),
+  vec3(1,1,0),
+  vec3(1,0,1),
+  vec3(0,1,1),
+  vec3(1,0.5,0),
+  vec3(0.5,1,0),
+  vec3(0,0.5,1),
+  };
+
 float linearDepth(float d, vec3 clipInfo) {
   // z_n * z_f,  z_n - z_f, z_f
   return (clipInfo[0] / (clipInfo[1] * d + clipInfo[2]));

@@ -62,18 +62,7 @@ float interleavedGradientNoise() {
 #endif
   }
 
-#if defined(VOLUMETRIC) && defined(VIRTUAL_SHADOW) && defined(GL_COMPUTE_SHADER)
-bool shadowFactor(vec4 shPos) {
-  vec3  shPos0 = shPos.xyz/shPos.w;
-  int   mip    = vsmCalcMipIndexFog(shPos0.xy);
-  vec2  page   = shPos0.xy / (1 << mip);
-  if(any(greaterThan(abs(page), vec2(1))))
-    return true;
-
-  float v = shadowTexelFetch(page, mip, pageTbl, pageData);
-  return v < shPos.z;
-  }
-#elif defined(VOLUMETRIC) && defined(GL_COMPUTE_SHADER)
+#if defined(VOLUMETRIC) && defined(GL_COMPUTE_SHADER)
 float shadowSample(in sampler2D shadowMap, vec2 shPos) {
   shPos.xy = shPos.xy*vec2(0.5)+vec2(0.5);
   return textureLod(shadowMap,shPos,0).r;
@@ -175,20 +164,6 @@ vec4 fog(vec2 uv, float z) {
 #endif
   }
 #else
-#define MAX_DEBUG_COLORS 10
-const vec3 debugColors[MAX_DEBUG_COLORS] = {
-  vec3(1,1,1),
-  vec3(1,0,0),
-  vec3(0,1,0),
-  vec3(0,0,1),
-  vec3(1,1,0),
-  vec3(1,0,1),
-  vec3(0,1,1),
-  vec3(1,0.5,0),
-  vec3(0.5,1,0),
-  vec3(0,0.5,1),
-  };
-
 vec4 fog(vec2 uv, float z) {
   float dZ   = linearDepth(      z, scene.clipInfo);
   float d0   = linearDepth(dFogMin, scene.clipInfo);

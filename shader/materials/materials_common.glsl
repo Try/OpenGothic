@@ -22,20 +22,7 @@
 #define DEBUG_DRAW 0
 
 #if DEBUG_DRAW
-#define DEBUG_DRAW_LOC   20
-#define MAX_DEBUG_COLORS 10
-const vec3 debugColors[MAX_DEBUG_COLORS] = {
-  vec3(1,1,1),
-  vec3(1,0,0),
-  vec3(0,1,0),
-  vec3(0,0,1),
-  vec3(1,1,0),
-  vec3(1,0,1),
-  vec3(0,1,1),
-  vec3(1,0.5,0),
-  vec3(0.5,1,0),
-  vec3(0,0.5,1),
-  };
+const uint DEBUG_DRAW_LOC = 20;
 #endif
 
 const uint MAX_NUM_SKELETAL_NODES = 96;
@@ -123,52 +110,6 @@ struct Varyings {
 #if !defined(MAT_VARYINGS)
   float dummy; // GLSL has no support for empty structs
 #endif
-  };
-
-struct Light {
-  vec4  pos;
-  vec3  color;
-  float range;
-  };
-
-struct MorphDesc {
-  uint  indexOffset;
-  uint  sample0;
-  uint  sample1;
-  uint  alpha16_intensity16;
-  };
-
-struct Instance {
-  mat4x3 mat;
-  float  fatness;
-  uint   animPtr;
-  uint   padd0;
-  uint   padd1;
-  };
-
-struct IndirectCmd {
-  uint vertexCount;
-  uint instanceCount;
-  uint firstVertex;
-  uint firstInstance;
-  uint writeOffset;
-  };
-
-struct Cluster {
-  vec4  sphere;
-  uint  bucketId_commandId;
-  uint  firstMeshlet;
-  int   meshletCount;
-  uint  instanceId;
-  };
-
-struct Bucket {
-  vec4  bbox[2];
-  ivec2 texAniMapDirPeriod;
-  float bboxRadius;
-  float waveMaxAmplitude;
-  float alphaWeight;
-  float envMapping;
   };
 
 layout(binding = L_Scene, std140) uniform UboScene {
