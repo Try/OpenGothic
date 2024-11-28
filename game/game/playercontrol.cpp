@@ -1334,10 +1334,6 @@ void PlayerControl::configureController(std::shared_ptr<gamepad::device> dev) {
         {"Camera Vertical", "axis_camera_y"}
     };
 
-    // Constants for deadzone and angle threshold
-    const double DEADZONE = 0.5;  // Adjust deadzone sensitivity as needed
-    const double M_PI = 3.14159265358979323846;
-
     // Map buttons
     for (const auto& [actionName, configKey] : buttonActions) {
         std::cout << "Press the button for action: " << actionName << std::endl;
@@ -1345,7 +1341,7 @@ void PlayerControl::configureController(std::shared_ptr<gamepad::device> dev) {
         int buttonId = -1;
         do {
             // Iterate through button values from A to LAST - 1
-            for (int i = gamepad::button::A; i < gamepad::button::LAST; ++i) {
+            for (int i = gamepad::button::A; i < gamepad::button::LAST; ++i) { 
                 if (dev->is_button_pressed(static_cast<gamepad::button::type>(i))) {
                     buttonId = i;
                     break;
@@ -1366,37 +1362,29 @@ void PlayerControl::configureController(std::shared_ptr<gamepad::device> dev) {
 
         int axisId = -1;
         do {
-            // Iterate through axis values from LEFT_STICK_X to LAST - 1
-            for (int i = gamepad::axis::LEFT_STICK_X; i < gamepad::axis::LAST; ++i) {
-                // Get axis values for the selected axis (e.g., X and Y axes)
-                double axisValueX = dev->get_axis_value(static_cast<gamepad::axis::type>(i)); // X value
-                double axisValueY = dev->get_axis_value(static_cast<gamepad::axis::type>(i + 1)); // Y value (next axis)
+            // Wait for a valid axis event
+            gamepad::axis_event* evt = dev->last_axis_event();
+            if (!evt) continue;
 
-                // Apply deadzone and angle calculation
-                if (std::abs(axisValueX) > DEADZONE || std::abs(axisValueY) > DEADZONE) {
-                    // Calculate the angle using atan2
-                    double angle = std::atan2(axisValueY, axisValueX) * 180.0 / M_PI;
-                    if (angle < 0) angle += 360.0;
+            // Log the axis event details
+            ginfo("Received axis event: Native id: %i, Virtual id: 0x%X (%i) val: %f", 
+                  evt->native_id, evt->vc, evt->vc, evt->virtual_value);
 
-                    int selectedOption = 0;
-                    // Determine direction based on the angle
-                    if (angle >= 0 && angle < 90) {
-                        selectedOption = 0; // Right
-                    } else if (angle >= 90 && angle < 180) {
-                        selectedOption = 1; // Down
-                    } else if (angle >= 180 && angle < 270) {
-                        selectedOption = 2; // Left
-                    } else {
-                        selectedOption = 3; // Up
-                    }
-
-                    axisId = i;  // Assign axis id based on selected option
-                    std::cout << "Assigned axis " << axisId << " to " << actionName << " with direction: " << selectedOption << std::endl;
-                    break;
-                }
+            // Use the angle or value of the axis to determine the direction
+            int selectedOption = 0;
+            float angle = std::atan2(evt->virtual_value, evt->virtual_value) * 180.0 / M_PI;  // Example logic to calculate angle
+            if (angle >= 90 && angle < 180) {
+                selectedOption = 1; // Down
+            } else if (angle >= 180 && angle < 270) {
+                selectedOption = 2; // Left
+            } else {
+                selectedOption = 3; // Up
             }
+
+            axisId = evt->native_id; // Use the native id for the axis
         } while (axisId == -1);
 
+        std::cout << "Assigned axis " << axisId << " to " << actionName << std::endl;
         controllerConfig[configKey] = axisId;
 
         // Debounce
