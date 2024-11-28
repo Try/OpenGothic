@@ -32,6 +32,11 @@ BOOL WINAPI handler(DWORD s) {
 }
 #endif
 
+
+PlayerControl::~PlayerControl() {
+  Gothic::inst().onSettingsChanged.ubind(this,&PlayerControl::setupSettings);
+  }
+
 PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
     : dlg(dlg), inv(inv) {
     Gothic::inst().onSettingsChanged.bind(this, &PlayerControl::setupSettings);
