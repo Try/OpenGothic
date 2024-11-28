@@ -1190,40 +1190,40 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
 
     auto leftX = dev->get_axis(gamepad::axis::LEFT_STICK_X);
     auto leftY = dev->get_axis(gamepad::axis::LEFT_STICK_Y);
-    if (std::abs(leftX) > 0.5) {
+    if (std::abs(leftX) > 0.51) {
             std::cout << "Left Stick Right" << std::endl;
-            handleMovementAction(KeyCodec::ActionMapping{Action::Right, KeyCodec::Mapping::Primary}, true);
-    } else if (std::abs(leftX) < 0.5){
+            onKeyPressed(KeyCodec::Action::Right, Tempest::KeyEvent::KeyType::K_D, KeyCodec::Mapping());
+    } else if (std::abs(leftX) < 0.49){
             std::cout << "Left Stick Left" << std::endl;
-            handleMovementAction(KeyCodec::ActionMapping{Action::Left, KeyCodec::Mapping::Primary}, true);
+            onKeyPressed(KeyCodec::Action::Forward, Tempest::KeyEvent::KeyType::K_A, KeyCodec::Mapping());
         
-    } else if (std::abs(leftX) == 0.5){
+    } else if (std::abs(leftX) >= 0.49 && std::abs(leftX) <= 0.51){
             handleMovementAction(KeyCodec::ActionMapping{Action::Right, KeyCodec::Mapping::Primary}, false);
             handleMovementAction(KeyCodec::ActionMapping{Action::Left, KeyCodec::Mapping::Primary}, false);
     }
 
-    if (std::abs(leftY) > 0.5) {
+    if (std::abs(leftY) > 0.51) {
             std::cout << "Left Stick Backward" << std::endl;
-            handleMovementAction(KeyCodec::ActionMapping{Action::Back, KeyCodec::Mapping::Primary}, true);
-    } else if (std::abs(leftY) < 0.5){
+            onKeyPressed(KeyCodec::Action::Back, Tempest::KeyEvent::KeyType::K_S, KeyCodec::Mapping());
+    } else if (std::abs(leftY) < 0.49){
             std::cout << "Left Stick Forward" << std::endl;
             onKeyPressed(KeyCodec::Action::Forward, Tempest::KeyEvent::KeyType::K_W, KeyCodec::Mapping());
         
-    } else if (std::abs(leftY) == 0.5){
+    } else if (std::abs(leftY) >= 0.49 && std::abs(leftY) <= 0.51){
         handleMovementAction(KeyCodec::ActionMapping{Action::Back, KeyCodec::Mapping::Primary}, false);
         handleMovementAction(KeyCodec::ActionMapping{Action::Forward, KeyCodec::Mapping::Primary}, false);
     }
 
     auto rightX = dev->get_axis(gamepad::axis::RIGHT_STICK_X);
     auto rightY = dev->get_axis(gamepad::axis::RIGHT_STICK_Y);
-    if (std::abs(rightX) > 0.5) {
+    if (std::abs(rightX) > 0.49) {
             std::cout << "Right Stick Right" << std::endl;
             handleMovementAction(KeyCodec::ActionMapping{Action::RotateR, KeyCodec::Mapping::Primary}, true);
-    } else if (std::abs(rightX) < 0.5){
+    } else if (std::abs(rightX) < 0.51){
             std::cout << "Right Stick Left" << std::endl;
             handleMovementAction(KeyCodec::ActionMapping{Action::RotateL, KeyCodec::Mapping::Primary}, true);
         
-    } else if (std::abs(rightX) == 0.5){
+    } else if (std::abs(rightX) >= 0.49 && std::abs(rightX) <= 0.51){
         handleMovementAction(KeyCodec::ActionMapping{Action::RotateR, KeyCodec::Mapping::Primary}, false);
         handleMovementAction(KeyCodec::ActionMapping{Action::RotateL, KeyCodec::Mapping::Primary}, false);
     }
