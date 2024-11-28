@@ -13,3 +13,6 @@
 [submodule "lib/dmusic"]
 	path = lib/dmusic
 	url = https://github.com/GothicKit/dmusic.git
+[submodule "lib/libgamepad"]
+	path = lib/libgamepad
+	url = https://github.com/univrsal/libgamepad.git
