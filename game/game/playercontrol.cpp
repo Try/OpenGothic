@@ -1340,9 +1340,9 @@ void PlayerControl::configureController(std::shared_ptr<gamepad::device> dev) {
 
         int buttonId = -1;
         do {
-            // Iterate through the button values explicitly
-            for (int i = gamepad::button::A; i <= gamepad::button::GUIDE; ++i) { 
-                if (dev->is_button_pressed(static_cast<gamepad::button>(i))) {
+            // Iterate through button values from A to LAST - 1
+            for (int i = gamepad::button::A; i < gamepad::button::LAST; ++i) { 
+                if (dev->is_button_pressed(static_cast<gamepad::button::type>(i))) {
                     buttonId = i;
                     break;
                 }
@@ -1362,9 +1362,9 @@ void PlayerControl::configureController(std::shared_ptr<gamepad::device> dev) {
 
         int axisId = -1;
         do {
-            // Iterate through the axis values explicitly
+            // Iterate through axis values from LEFT_STICK_X to LAST - 1
             for (int i = gamepad::axis::LEFT_STICK_X; i < gamepad::axis::LAST; ++i) {
-                float axisValue = dev->get_axis_value(static_cast<gamepad::axis>(i));
+                float axisValue = dev->get_axis_value(static_cast<gamepad::axis::type>(i));
                 if (std::abs(axisValue) > 0.5f) {
                     axisId = i;
                     break;
