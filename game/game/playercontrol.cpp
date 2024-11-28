@@ -1192,19 +1192,19 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
         handleMovementAction(KeyCodec::ActionMapping{Action::Left, KeyCodec::Mapping::Primary}, false);
     }
 
-if (std::abs(leftY) > DEADZONE) {
-    if (leftY > 0) {
-        std::cout << "Left Stick Backward" << std::endl;
-        handleMovementAction(KeyCodec::ActionMapping{Action::Back, KeyCodec::Mapping::Primary}, true);
+    if (std::abs(leftY) > DEADZONE) {
+        if (leftY > 0) {
+            std::cout << "Left Stick Backward" << std::endl;
+            handleMovementAction(KeyCodec::ActionMapping{Action::Back, KeyCodec::Mapping::Primary}, true);
+        } else {
+            std::cout << "Left Stick Forward" << std::endl;
+            handleMovementAction(KeyCodec::ActionMapping{Action::Forward, KeyCodec::Mapping::Primary}, true);
+        }
     } else {
-        std::cout << "Left Stick Forward" << std::endl;
-        handleMovementAction(KeyCodec::ActionMapping{Action::Forward, KeyCodec::Mapping::Primary}, true);
+        // Reset forward/backward movement if within the deadzone
+        handleMovementAction(KeyCodec::ActionMapping{Action::Back, KeyCodec::Mapping::Primary}, false);
+        handleMovementAction(KeyCodec::ActionMapping{Action::Forward, KeyCodec::Mapping::Primary}, false);
     }
-} else {
-    // Reset forward/backward movement if within the deadzone
-    handleMovementAction(KeyCodec::ActionMapping{Action::Back, KeyCodec::Mapping::Primary}, false);
-    handleMovementAction(KeyCodec::ActionMapping{Action::Forward, KeyCodec::Mapping::Primary}, false);
-}
 
 
     auto rightX = dev->get_axis(gamepad::axis::RIGHT_STICK_X);
