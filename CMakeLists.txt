@@ -40,7 +40,7 @@ include_directories(${CMAKE_SOURCE_DIR}/lib/libgamepad/include)
 # Add the libgamepad subdirectory if it contains its own CMakeLists.txt
 add_subdirectory(lib/libgamepad)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE gamepad)
+target_link_libraries(${PROJECT_NAME} ${CMAKE_SOURCE_DIR}/lib/libgamepad/libgamepad.a)
 
 if(WIN32)
   if(MSVC)
