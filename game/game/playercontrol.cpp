@@ -1,7 +1,7 @@
 #include "playercontrol.h"
 
 #include <cmath>
-#include <libgamepad.hpp>
+#include ../../lib/libgamepad/<libgamepad.hpp>
 #include <iostream>
 #include <chrono>
 #include <thread>
