@@ -43,11 +43,12 @@ PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
     SetConsoleCtrlHandler(handler, TRUE);
 #endif
 
-    std::shared_ptr<gamepad::hook> hook = gamepad::hook::make();
+    // Initialisierung von hook
+    hook = gamepad::hook::make();
     hook->set_plug_and_play(true, gamepad::ms(1000));
     hook->set_sleep_time(gamepad::ms(5));
 
-    // Setup libgamepad event handlers
+    // Event-Handler für libgamepad registrieren
     hook->set_button_event_handler([this](std::shared_ptr<gamepad::device> dev) {
         handleButtonInput(dev);
     });
@@ -64,8 +65,11 @@ PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
         std::cout << dev->get_name() << " disconnected.\n";
     });
 
+    // Hook starten
     if (!hook->start()) {
         std::cerr << "Failed to start libgamepad hook.\n";
+    } else {
+        std::cout << "libgamepad hook started successfully.\n";
     }
 }
 
@@ -1156,12 +1160,15 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
 
 void PlayerControl::handleButtonInput(std::shared_ptr<gamepad::device> dev) {
     if (dev->is_button_pressed(gamepad::button::DPAD_UP)) {
+        std::cout << "DPAD pressed" << std::endl;
         onKeyPressed(Action::WeaponMele, Tempest::KeyEvent::K_Space, KeyCodec::Mapping::Primary);
     }
     if (dev->is_button_pressed(gamepad::button::DPAD_RIGHT)) {
+        std::cout << "DPAD pressed" << std::endl;
         onKeyPressed(Action::WeaponBow, Tempest::KeyEvent::K_Space, KeyCodec::Mapping::Primary);
     }
     if (dev->is_button_pressed(gamepad::button::DPAD_DOWN)) {
+        std::cout << "DPAD pressed" << std::endl;
         static int currentMagicSlot = Action::WeaponMage3;
         onKeyPressed(static_cast<Action>(currentMagicSlot), Tempest::KeyEvent::K_Space, KeyCodec::Mapping::Primary);
         currentMagicSlot++;
@@ -1170,18 +1177,21 @@ void PlayerControl::handleButtonInput(std::shared_ptr<gamepad::device> dev) {
         }
     }
     if (dev->is_button_pressed(gamepad::button::Y)) {
+        std::cout << "Y pressed" << std::endl;
         ctrl[Action::Jump] = true;
     } else {
         ctrl[Action::Jump] = false;
     }
 
     if (dev->is_button_pressed(gamepad::button::LEFT_SHOULDER)) {
+        std::cout << "Lshoulder pressed" << std::endl;
         movement.strafeRightLeft.reverse[0] = true;
     } else {
         movement.strafeRightLeft.reverse[0] = false;
     }
 
     if (dev->is_button_pressed(gamepad::button::RIGHT_SHOULDER)) {
+        std::cout << "Rshoulder pressed" << std::endl;
         movement.strafeRightLeft.main[0] = true;
     } else {
         movement.strafeRightLeft.main[0] = false;
@@ -1196,6 +1206,7 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
 
     if (std::abs(leftX) > DEADZONE) {
         if (leftX > 0) {
+            std::cout << "Left Stick" << std::endl;
             movement.strafeRightLeft.main[0] = true;
         } else {
             movement.strafeRightLeft.reverse[0] = true;
@@ -1206,6 +1217,7 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
 
     if (std::abs(leftY) > DEADZONE) {
         if (leftY > 0) {
+            std::cout << "Left Stick" << std::endl;
             movement.forwardBackward.reverse[0] = true;
         } else {
             movement.forwardBackward.main[0] = true;
