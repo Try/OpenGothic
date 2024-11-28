@@ -1173,51 +1173,35 @@ void PlayerControl::handleButtonInput(std::shared_ptr<gamepad::device> dev) {
 }
 
 void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
-    const int DEADZONE = 0;
 
-    // Get axis values from the gamepad
-auto leftX = dev->get_axis(gamepad::axis::LEFT_STICK_X);
-auto leftY = dev->get_axis(gamepad::axis::LEFT_STICK_Y);
+    auto leftX = dev->get_axis(gamepad::axis::LEFT_STICK_X);
+    auto leftY = dev->get_axis(gamepad::axis::LEFT_STICK_Y);
 
-// Normalize the values to range from -1 to 1
-float normalizedLeftX = (leftX - 0.5f) * 2.0f; // [0.5, 1.0] becomes [0, 1], [0.5, 0.0] becomes [0, -1]
-float normalizedLeftY = (leftY - 0.5f) * 2.0f; // Same for Y axis
-
-std::cout << "Normalized Left Stick X: " << normalizedLeftX << " Y: " << normalizedLeftY << std::endl;
-
-// Left stick X movement (left/right)
-if (std::abs(normalizedLeftX) > DEADZONE) {
-    if (normalizedLeftX > 0) {
-        std::cout << "Left Stick Right detected, sending right movement action" << std::endl;
-        handleMovementAction(KeyCodec::ActionMapping{Action::Right, KeyCodec::Mapping::Primary}, true);
-    } else {
-        std::cout << "Left Stick Left detected, sending left movement action" << std::endl;
-        handleMovementAction(KeyCodec::ActionMapping{Action::Left, KeyCodec::Mapping::Primary}, true);
+    if (std::abs(leftX) > 0.5) {
+            std::cout << "Left Stick Right" << std::endl;
+            handleMovementAction(KeyCodec::ActionMapping{Action::Right, KeyCodec::Mapping::Primary}, true);
+    } else if (std::abs(leftX) < 0.5){
+            std::cout << "Left Stick Left" << std::endl;
+            handleMovementAction(KeyCodec::ActionMapping{Action::Left, KeyCodec::Mapping::Primary}, true);
+        
+    } else if (std::abs(leftX) == 0.5){
+        // Reset left/right movement if within the deadzone
+        handleMovementAction(KeyCodec::ActionMapping{Action::Right, KeyCodec::Mapping::Primary}, false);
+        handleMovementAction(KeyCodec::ActionMapping{Action::Left, KeyCodec::Mapping::Primary}, false);
     }
-} else {
-    std::cout << "Left Stick X in deadzone, resetting left/right movement" << std::endl;
-    handleMovementAction(KeyCodec::ActionMapping{Action::Right, KeyCodec::Mapping::Primary}, false);
-    handleMovementAction(KeyCodec::ActionMapping{Action::Left, KeyCodec::Mapping::Primary}, false);
-}
 
-// Left stick Y movement (forward/backward)
-if (std::abs(normalizedLeftY) > DEADZONE) {
-    if (normalizedLeftY > 0) {
-        std::cout << "Left Stick Down (Back) detected, sending backward movement action" << std::endl;
-        handleMovementAction(KeyCodec::ActionMapping{Action::Back, KeyCodec::Mapping::Primary}, true);
-    } else {
-        std::cout << "Left Stick Up (Forward) detected, sending forward movement action" << std::endl;
-        handleMovementAction(KeyCodec::ActionMapping{Action::Forward, KeyCodec::Mapping::Primary}, true);
+    if (std::abs(leftY) > 0.5) {
+            std::cout << "Left Stick Backward" << std::endl;
+            handleMovementAction(KeyCodec::ActionMapping{Action::Back, KeyCodec::Mapping::Primary}, true);
+    } else if (std::abs(leftY) < 0.5){
+            std::cout << "Left Stick Forward" << std::endl;
+            handleMovementAction(KeyCodec::ActionMapping{Action::Forward, KeyCodec::Mapping::Primary}, true);
+        
+    } else if (std::abs(leftY) == 0.5){
+        // Reset left/right movement if within the deadzone
+        handleMovementAction(KeyCodec::ActionMapping{Action::Back, KeyCodec::Mapping::Primary}, false);
+        handleMovementAction(KeyCodec::ActionMapping{Action::Forward, KeyCodec::Mapping::Primary}, false);
     }
-} else {
-    std::cout << "Left Stick Y in deadzone, resetting forward/backward movement" << std::endl;
-    handleMovementAction(KeyCodec::ActionMapping{Action::Back, KeyCodec::Mapping::Primary}, false);
-    handleMovementAction(KeyCodec::ActionMapping{Action::Forward, KeyCodec::Mapping::Primary}, false);
-}
-
-
-
-
     auto rightX = dev->get_axis(gamepad::axis::RIGHT_STICK_X);
     auto rightY = dev->get_axis(gamepad::axis::RIGHT_STICK_Y);
 
