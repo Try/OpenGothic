@@ -5,6 +5,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <fstream>
 
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
@@ -86,8 +87,9 @@ PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
     std::ifstream inFile("controller_config.json");
     if (inFile.is_open()) {
         std::string configStr((std::istreambuf_iterator<char>(inFile)), std::istreambuf_iterator<char>());
-        h->load_binding_from_json(configStr);
-        std::cout << "Loaded configuration from file." << std::endl;
+        //h->load_binding_from_json(configStr);
+        //std::cout << "Loaded configuration from file." << std::endl;
+        std::cout << "Loading configuration manually is not yet implemented" << std::endl;
     } else {
         std::cout << "No configuration file found. Starting configuration wizard..." << std::endl;
         if (auto dev = h->get_devices().front()) { // Assuming at least one device is connected
