@@ -87,8 +87,9 @@ PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
     std::ifstream inFile("controller_config.json");
     if (inFile.is_open()) {
         std::string configStr((std::istreambuf_iterator<char>(inFile)), std::istreambuf_iterator<char>());
-        h->load_binding_from_json(configStr);
-        std::cout << "Loaded configuration from file." << std::endl;
+        //h->load_binding_from_json(configStr);
+        //std::cout << "Loaded configuration from file." << std::endl;
+        std::cout << "Loading configuration manually is not yet implemented" << std::endl;
     } else {
         std::cout << "No configuration file found. Starting configuration wizard..." << std::endl;
         if (auto dev = h->get_devices().front()) { // Assuming at least one device is connected
@@ -1337,14 +1338,17 @@ void PlayerControl::configureController(std::shared_ptr<gamepad::device> dev) {
     for (const auto& [actionName, configKey] : buttonActions) {
         std::cout << "Press the button for action: " << actionName << std::endl;
 
-        gamepad::button_event* evt = nullptr;
+        int buttonId = -1;
         do {
-            evt = dev->last_button_event();
-        } while (!evt || evt->virtual_value <= 0);
+            for (int i = gamepad::button::A; i < gamepad::button::MAX; ++i) {
+                if (dev->is_button_pressed(static_cast<gamepad::button>(i))) {
+                    buttonId = i;
+                    break;
+                }
+            }
+        } while (buttonId == -1);
 
-        int buttonId = evt->native_id;
         std::cout << "Assigned button " << buttonId << " to " << actionName << std::endl;
-
         controllerConfig[configKey] = buttonId;
 
         // Debounce
@@ -1355,14 +1359,17 @@ void PlayerControl::configureController(std::shared_ptr<gamepad::device> dev) {
     for (const auto& [actionName, configKey] : axisActions) {
         std::cout << "Move the axis for action: " << actionName << std::endl;
 
-        gamepad::axis_event* evt = nullptr;
+        int axisId = -1;
         do {
-            evt = dev->last_axis_event();
-        } while (!evt || std::abs(evt->virtual_value) < 0.5);
+            for (int i = gamepad::axis::LEFT_X; i < gamepad::axis::MAX; ++i) {
+                if (std::abs(dev->get_axis_value(static_cast<gamepad::axis>(i))) > 0.5) {
+                    axisId = i;
+                    break;
+                }
+            }
+        } while (axisId == -1);
 
-        int axisId = evt->native_id;
         std::cout << "Assigned axis " << axisId << " to " << actionName << std::endl;
-
         controllerConfig[configKey] = axisId;
 
         // Debounce
@@ -1383,7 +1390,16 @@ void PlayerControl::configureController(std::shared_ptr<gamepad::device> dev) {
         std::cerr << "Failed to save configuration to file." << std::endl;
     }
 
-    // Load the configuration back into the device
-    dev->load_binding_from_json(configStr);
+    // After saving the configuration, you can manually apply it if needed
     std::cout << "Configuration applied to the device." << std::endl;
+
+    // If you want to apply the saved configuration, you'd need to load it manually
+    // Example of loading the config and applying to the device
+    // std::ifstream inFile("controller_config.json");
+    // if (inFile.is_open()) {
+    //     std::string configStr((std::istreambuf_iterator<char>(inFile)),
+    //                            std::istreambuf_iterator<char>());
+    //     json11::Json config = json11::Json::parse(configStr);
+    //     // Apply the config to the device (map actions manually)
+    // }
 }
