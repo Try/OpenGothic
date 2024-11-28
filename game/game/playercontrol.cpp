@@ -73,26 +73,6 @@ PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
     }
 }
 
-PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
-  :dlg(dlg),inv(inv) {
-  Gothic::inst().onSettingsChanged.bind(this,&PlayerControl::setupSettings);
-  setupSettings();
-  }
-
-PlayerControl::~PlayerControl() {
-  Gothic::inst().onSettingsChanged.ubind(this,&PlayerControl::setupSettings);
-  hook->stop();
-  hook.reset();
-  }
-
-void PlayerControl::setupSettings() {
-  if(Gothic::inst().version().game==2) {
-    g2Ctrl = Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS")==0;
-    } else {
-    g2Ctrl = false;
-    }
-  }
-
 void PlayerControl::setTarget(Npc *other) {
   auto w  = Gothic::inst().world();
   auto pl = w ? w->player() : nullptr;
