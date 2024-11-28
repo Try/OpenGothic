@@ -1181,8 +1181,9 @@ void PlayerControl::handleButtonInput(std::shared_ptr<gamepad::device> dev) {
 void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
     const int DEADZONE = 16384;
 
-    auto leftX = dev->get_axis(gamepad::axis::LEFT_STICK_X);
-    auto leftY = dev->get_axis(gamepad::axis::LEFT_STICK_Y);
+    // Left Stick X/Y
+    auto leftX = dev->get_axis_value(gamepad::axis::LEFT_STICK_X);
+    auto leftY = dev->get_axis_value(gamepad::axis::LEFT_STICK_Y);
 
     if (std::abs(leftX) > DEADZONE) {
         if (leftX > 0) {
@@ -1206,12 +1207,13 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
         movement.forwardBackward.reset();
     }
 
-    // Rechts Stick
-    auto rightX = dev->get_axis(gamepad::axis::RIGHT_STICK_X);
-    auto rightY = dev->get_axis(gamepad::axis::RIGHT_STICK_Y);
+    // Right Stick X/Y
+    auto rightX = dev->get_axis_value(gamepad::axis::RIGHT_STICK_X);
+    auto rightY = dev->get_axis_value(gamepad::axis::RIGHT_STICK_Y);
 
     if (std::abs(rightX) > DEADZONE || std::abs(rightY) > DEADZONE) {
-        float angle = static_cast<float>(std::atan2(static_cast<float>(rightY), static_cast<float>(rightX))) * 180.f / M_PI;
+        // Berechnung des Winkels mit atan2f für float-Arithmetik
+        float angle = std::atan2f(rightY, rightX) * 180.f / M_PI;
         if (angle < 0) angle += 360.f;
 
         int selectedOption = 0;
