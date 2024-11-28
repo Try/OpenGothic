@@ -3,7 +3,7 @@
 #include "world/focus.h"
 #include "utils/keycodec.h"
 #include "constants.h"
-#include "libgamepad.hpp"
+#include <libgamepad.hpp>
 
 #include <array>
 #include <memory>
