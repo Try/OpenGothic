@@ -47,52 +47,6 @@ PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
     #else
         SetConsoleCtrlHandler(handler, TRUE);
     #endif
-
-    auto h = gamepad::hook::make();
-    h->set_plug_and_play(true, gamepad::ms(1000));
-    h->set_sleep_time(gamepad::ms(5)); // just std::chrono::milliseconds
-
-    auto button_handler = [](std::shared_ptr<gamepad::device> dev) {
-        ginfo("Received button event: Native id: %i, Virtual id: 0x%X (%i) val: %f",
-            dev->last_button_event()->native_id, dev->last_button_event()->vc,
-            dev->last_button_event()->vc, dev->last_button_event()->virtual_value);
-    };
-
-    auto axis_handler = [](std::shared_ptr<gamepad::device> dev) {
-        ginfo("Received axis event: Native id: %i, Virtual id: 0x%X (%i) val: %f", dev->last_axis_event()->native_id,
-            dev->last_axis_event()->vc, dev->last_axis_event()->vc, dev->last_axis_event()->virtual_value);
-    };
-
-    auto connect_handler = [h](std::shared_ptr<gamepad::device> dev) {
-        ginfo("%s connected", dev->get_name().c_str());
-        if (!dev->has_binding()) {
-            #ifdef LGP_ENABLE_JSON
-                ginfo("Found device, running config wizard");
-                json11::Json cfg;
-                h->make_xbox_config(dev, cfg);
-                ginfo("Result config: %s", cfg.dump().c_str());
-            #else
-                ginfo("Json isn't enabled for libgamepad, so the config wizard can't be used");
-            #endif
-        }
-    };
-
-    auto disconnect_handler = [](std::shared_ptr<gamepad::device> dev) {
-        ginfo("%s disconnected", dev->get_name().c_str());
-    };
-
-    h->set_axis_event_handler(axis_handler);
-    h->set_button_event_handler(button_handler);
-    h->set_connect_event_handler(connect_handler);
-    h->set_disconnect_event_handler(disconnect_handler);
-
-    if (!h->start()) {
-        gerr("Couldn't start gamepad hook");
-        throw std::runtime_error("Failed to initialize gamepad hook");
-    }
-
-    while (run_flag)
-        std::this_thread::sleep_for(gamepad::ms(50));
 }
 
 void PlayerControl::setTarget(Npc *other) {
@@ -1254,13 +1208,54 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
 }
 
 void PlayerControl::setupSettings() {
+    // Ensure the gamepad hook is initialized
+    auto h = gamepad::hook::make();
 
-  handleButtonInput();
-  handleAxisInput();
+    // Set plug-and-play and polling sleep time
+    h->set_plug_and_play(true, gamepad::ms(1000));
+    h->set_sleep_time(gamepad::ms(5));
 
-  if(Gothic::inst().version().game==2) {
-    g2Ctrl = Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS")==0;
+    // Reassign handlers to ensure they are correctly hooked
+    h->set_button_event_handler([this](std::shared_ptr<gamepad::device> dev) {
+        this->handleButtonInput(dev);
+    });
+
+    h->set_axis_event_handler([this](std::shared_ptr<gamepad::device> dev) {
+        this->handleAxisInput(dev);
+    });
+
+    h->set_connect_event_handler([h](std::shared_ptr<gamepad::device> dev) {
+        ginfo("%s connected", dev->get_name().c_str());
+        if (!dev->has_binding()) {
+            #ifdef LGP_ENABLE_JSON
+                ginfo("Found device, running config wizard");
+                json11::Json cfg;
+                h->make_xbox_config(dev, cfg);
+                ginfo("Result config: %s", cfg.dump().c_str());
+            #else
+                ginfo("Json isn't enabled for libgamepad, so the config wizard can't be used");
+            #endif
+        }
+    });
+
+    h->set_disconnect_event_handler([](std::shared_ptr<gamepad::device> dev) {
+        ginfo("%s disconnected", dev->get_name().c_str());
+    });
+
+    // Start the gamepad hook if not already started
+    if (!h->start()) {
+        gerr("Couldn't start gamepad hook");
+        throw std::runtime_error("Failed to initialize gamepad hook");
+    }
+
+    // Log gamepad setup success
+    ginfo("Gamepad hook initialized and handlers set");
+
+    // Set Gothic 2 control mode if applicable
+    if (Gothic::inst().version().game == 2) {
+        g2Ctrl = Gothic::inst().settingsGetI("GAME", "USEGOTHIC1CONTROLS") == 0;
     } else {
-    g2Ctrl = false;
+        g2Ctrl = false;
+    }
 }
-}
+
