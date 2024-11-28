@@ -1183,14 +1183,14 @@ void PlayerControl::handleButtonInput(std::shared_ptr<gamepad::device> dev) {
         ctrl[Action::Jump] = false;
     }
 
-    if (dev->is_button_pressed(gamepad::button::LEFT_SHOULDER)) {
+    if (dev->is_button_pressed(gamepad::button::LB)) {
         std::cout << "Lshoulder pressed" << std::endl;
         movement.strafeRightLeft.reverse[0] = true;
     } else {
         movement.strafeRightLeft.reverse[0] = false;
     }
 
-    if (dev->is_button_pressed(gamepad::button::RIGHT_SHOULDER)) {
+    if (dev->is_button_pressed(gamepad::button::RB)) {
         std::cout << "Rshoulder pressed" << std::endl;
         movement.strafeRightLeft.main[0] = true;
     } else {
@@ -1201,8 +1201,8 @@ void PlayerControl::handleButtonInput(std::shared_ptr<gamepad::device> dev) {
 void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
     const int DEADZONE = 16384;
 
-    auto leftX = dev->get_axis_value(gamepad::axis::LEFT_STICK_X);
-    auto leftY = dev->get_axis_value(gamepad::axis::LEFT_STICK_Y);
+    auto leftX = dev->get_axis(gamepad::axis::LEFT_STICK_X);
+    auto leftY = dev->get_axis(gamepad::axis::LEFT_STICK_Y);
 
     if (std::abs(leftX) > DEADZONE) {
         if (leftX > 0) {
@@ -1226,8 +1226,9 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
         movement.forwardBackward.reset();
     }
 
-    auto rightX = dev->get_axis_value(gamepad::axis::RIGHT_STICK_X);
-    auto rightY = dev->get_axis_value(gamepad::axis::RIGHT_STICK_Y);
+    // Rechts Stick
+    auto rightX = dev->get_axis(gamepad::axis::RIGHT_STICK_X);
+    auto rightY = dev->get_axis(gamepad::axis::RIGHT_STICK_Y);
 
     if (std::abs(rightX) > DEADZONE || std::abs(rightY) > DEADZONE) {
         float angle = std::atan2(static_cast<float>(rightY), static_cast<float>(rightX)) * 180.f / M_PI;
