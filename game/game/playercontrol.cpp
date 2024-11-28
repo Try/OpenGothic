@@ -1341,7 +1341,7 @@ void PlayerControl::configureController(std::shared_ptr<gamepad::device> dev) {
         int buttonId = -1;
         do {
             // Iterate through button values from A to LAST - 1
-            for (int i = gamepad::button::A; i < gamepad::button::LAST; ++i) { 
+            for (int i = gamepad::button::A; i < gamepad::button::LAST; ++i) {
                 if (dev->is_button_pressed(static_cast<gamepad::button::type>(i))) {
                     buttonId = i;
                     break;
@@ -1356,32 +1356,32 @@ void PlayerControl::configureController(std::shared_ptr<gamepad::device> dev) {
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 
+    // Lambda for axis event processing
+    auto axis_handler = [](std::shared_ptr<gamepad::device> dev) {
+        auto event = dev->last_axis_event();
+        if (event) {
+            ginfo("Received axis event: Native id: %i, Virtual id: 0x%X (%i) val: %f", event->native_id,
+                  event->vc, event->vc, event->virtual_value);
+        }
+    };
+
     // Map axes
     for (const auto& [actionName, configKey] : axisActions) {
         std::cout << "Move the axis for action: " << actionName << std::endl;
 
         int axisId = -1;
         do {
-            // Wait for a valid axis event
-            gamepad::axis_event* evt = dev->last_axis_event();
-            if (!evt) continue;
+            // Iterate through axis values from LEFT_STICK_X to LAST - 1
+            for (int i = gamepad::axis::LEFT_STICK_X; i < gamepad::axis::LAST; ++i) {
+                // Process axis events with the lambda function
+                axis_handler(dev);
 
-            // Log the axis event details
-            ginfo("Received axis event: Native id: %i, Virtual id: 0x%X (%i) val: %f", 
-                  evt->native_id, evt->vc, evt->vc, evt->virtual_value);
-
-            // Use the angle or value of the axis to determine the direction
-            int selectedOption = 0;
-            float angle = std::atan2(evt->virtual_value, evt->virtual_value) * 180.0 / M_PI;  // Example logic to calculate angle
-            if (angle >= 90 && angle < 180) {
-                selectedOption = 1; // Down
-            } else if (angle >= 180 && angle < 270) {
-                selectedOption = 2; // Left
-            } else {
-                selectedOption = 3; // Up
+                auto event = dev->last_axis_event();
+                if (event && std::abs(event->virtual_value) > 0.5f) {
+                    axisId = i;
+                    break;
+                }
             }
-
-            axisId = evt->native_id; // Use the native id for the axis
         } while (axisId == -1);
 
         std::cout << "Assigned axis " << axisId << " to " << actionName << std::endl;
