@@ -1248,3 +1248,7 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
     }
 }
 
+void PlayerControl::setupSettings() {
+    // Gamepad-spezifische Einstellungen hier initialisieren.
+}
+
