@@ -82,8 +82,8 @@ PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
     h->set_disconnect_event_handler(disconnect_handler);
 
     if (!h->start()) {
-        gerr("Couldn't start hook");
-        return 1;
+        gerr("Couldn't start gamepad hook");
+        throw std::runtime_error("Failed to initialize gamepad hook");
     }
 
     while (run_flag)
