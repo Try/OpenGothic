@@ -1164,9 +1164,9 @@ void PlayerControl::handleButtonInput(std::shared_ptr<gamepad::device> dev) {
         // Perform continuous action for A button
         onKeyPressed(KeyCodec::Action::ActionGeneric, Tempest::KeyEvent::KeyType::K_LShift, KeyCodec::Mapping());
     } else {
-        // Stop action when A button is released
         std::cout << "A released" << std::endl;
-        onKeyReleased(KeyCodec::Action::ActionGeneric, Tempest::KeyEvent::KeyType::K_LShift, KeyCodec::Mapping());
+        // Correcting the call to only pass two parameters (KeyCodec::Action and KeyCodec::Mapping)
+        onKeyReleased(KeyCodec::Action::ActionGeneric, KeyCodec::Mapping());
     }
 
     if (dev->is_button_pressed(gamepad::button::X)) {
