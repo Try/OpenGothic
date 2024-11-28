@@ -1185,7 +1185,6 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
             handleMovementAction(KeyCodec::ActionMapping{Action::Left, KeyCodec::Mapping::Primary}, true);
         
     } else if (std::abs(leftX) == 0.5){
-        // Reset left/right movement if within the deadzone
         handleMovementAction(KeyCodec::ActionMapping{Action::Right, KeyCodec::Mapping::Primary}, false);
         handleMovementAction(KeyCodec::ActionMapping{Action::Left, KeyCodec::Mapping::Primary}, false);
     }
@@ -1198,14 +1197,13 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
             handleMovementAction(KeyCodec::ActionMapping{Action::Forward, KeyCodec::Mapping::Primary}, true);
         
     } else if (std::abs(leftY) == 0.5){
-        // Reset left/right movement if within the deadzone
         handleMovementAction(KeyCodec::ActionMapping{Action::Back, KeyCodec::Mapping::Primary}, false);
         handleMovementAction(KeyCodec::ActionMapping{Action::Forward, KeyCodec::Mapping::Primary}, false);
     }
     auto rightX = dev->get_axis(gamepad::axis::RIGHT_STICK_X);
     auto rightY = dev->get_axis(gamepad::axis::RIGHT_STICK_Y);
 
-    if (std::abs(rightX) > DEADZONE || std::abs(rightY) > DEADZONE) {
+    if (std::abs(rightX) > 0.5 || std::abs(rightY) > 0.5) {
         double angle = std::atan2(static_cast<double>(rightY), static_cast<double>(rightX)) * 180.0 / M_PI;
         if (angle < 0) angle += 360.f;
 
