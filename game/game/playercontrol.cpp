@@ -1217,12 +1217,12 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
         int selectedOption = 0;
         if (angle >= 0 && angle < 90) {
             selectedOption = 0; // Right
-            KeyCodec::RotateR
+            //KeyCodec::RotateR
         } else if (angle >= 90 && angle < 180) {
             selectedOption = 1; // Down
         } else if (angle >= 180 && angle < 270) {
             selectedOption = 2; // Left
-            KeyCodec::RotateL
+            //KeyCodec::RotateL
         } else {
             selectedOption = 3; // Up
         }
