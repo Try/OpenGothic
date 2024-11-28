@@ -1198,8 +1198,8 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
             handleMovementAction(KeyCodec::ActionMapping{Action::Left, KeyCodec::Mapping::Primary}, true);
         
     } else if (std::abs(leftX) == 0.5){
-        handleMovementAction(KeyCodec::ActionMapping{Action::Right, KeyCodec::Mapping::Primary}, false);
-        handleMovementAction(KeyCodec::ActionMapping{Action::Left, KeyCodec::Mapping::Primary}, false);
+            handleMovementAction(KeyCodec::ActionMapping{Action::Right, KeyCodec::Mapping::Primary}, false);
+            handleMovementAction(KeyCodec::ActionMapping{Action::Left, KeyCodec::Mapping::Primary}, false);
     }
 
     if (std::abs(leftY) > 0.5) {
@@ -1207,7 +1207,7 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
             handleMovementAction(KeyCodec::ActionMapping{Action::Back, KeyCodec::Mapping::Primary}, true);
     } else if (std::abs(leftY) < 0.5){
             std::cout << "Left Stick Forward" << std::endl;
-            handleMovementAction(KeyCodec::ActionMapping{Action::Forward, KeyCodec::Mapping::Primary}, true);
+            onKeyPressed(KeyCodec::Action::Forward, Tempest::KeyEvent::KeyType::K_W, KeyCodec::Mapping());
         
     } else if (std::abs(leftY) == 0.5){
         handleMovementAction(KeyCodec::ActionMapping{Action::Back, KeyCodec::Mapping::Primary}, false);
