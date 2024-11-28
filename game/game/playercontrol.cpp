@@ -1305,7 +1305,7 @@ void PlayerControl::setupSettings() {
     }
 }
 
-void configureController(std::shared_ptr<gamepad::device> dev) {
+void PlayerControl::configureController(std::shared_ptr<gamepad::device> dev) {
     if (!dev) {
         std::cerr << "No device provided for configuration." << std::endl;
         return;
