@@ -1132,13 +1132,6 @@ void PlayerControl::handleButtonInput(std::shared_ptr<gamepad::device> dev) {
             currentMagicSlot = Action::WeaponMage3;
         }
     }
-    if (dev->is_button_pressed(gamepad::button::Y)) {
-        std::cout << "Y pressed" << std::endl;
-        ctrl[Action::Jump] = true;
-    } else {
-        ctrl[Action::Jump] = false;
-    }
-
     if (dev->is_button_pressed(gamepad::button::LB)) {
         std::cout << "Lshoulder pressed" << std::endl;
         movement.strafeRightLeft.reverse[0] = true;
@@ -1151,6 +1144,31 @@ void PlayerControl::handleButtonInput(std::shared_ptr<gamepad::device> dev) {
         movement.strafeRightLeft.main[0] = true;
     } else {
         movement.strafeRightLeft.main[0] = false;
+    }
+
+    if (dev->is_button_pressed(gamepad::button::Y)) {
+        std::cout << "Y pressed" << std::endl;
+        ctrl[Action::Jump] = true;
+    } else {
+        ctrl[Action::Jump] = false;
+    }
+    if (dev->is_button_pressed(gamepad::button::B)) {
+        std::cout << "B pressed" << std::endl;
+        ctrl[Action::Weapon] = true;
+    } else {
+        ctrl[Action::Weapon] = false;
+    }
+    if (dev->is_button_pressed(gamepad::button::A)) {
+        std::cout << "A pressed" << std::endl;
+        ctrl[Action::interact] = true;
+    } else {
+        ctrl[Action::interact] = false;
+    }
+    if (dev->is_button_pressed(gamepad::button::X)) {
+        std::cout << "X pressed" << std::endl;
+        ctrl[Action::Weapon] = true;
+    } else {
+        ctrl[Action::Weapon] = false;
     }
 }
 
@@ -1167,16 +1185,17 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
         } else {
             movement.strafeRightLeft.reverse[0] = true;
         }
-    } else {
+    } else if {
         movement.strafeRightLeft.reset();
     }
 
     if (std::abs(leftY) > DEADZONE) {
         if (leftY > 0) {
             std::cout << "Left Stick" << std::endl;
-            movement.forwardBackward.reverse[0] = true;
+            Action::Back = true;
         } else {
             movement.forwardBackward.main[0] = true;
+            Action::Forward = true;
         }
     } else {
         movement.forwardBackward.reset();
@@ -1192,10 +1211,12 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
         int selectedOption = 0;
         if (angle >= 0 && angle < 90) {
             selectedOption = 0; // Right
+            KeyCodec::RotateR
         } else if (angle >= 90 && angle < 180) {
             selectedOption = 1; // Down
         } else if (angle >= 180 && angle < 270) {
             selectedOption = 2; // Left
+            KeyCodec::RotateL
         } else {
             selectedOption = 3; // Up
         }
