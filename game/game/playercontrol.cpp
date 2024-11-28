@@ -54,54 +54,8 @@ PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
     };
 
     auto axis_handler = [](std::shared_ptr<gamepad::device> dev) {
-      const int DEADZONE = 16384;
-
-      auto leftX = dev->get_axis(gamepad::axis::LEFT_STICK_X);
-      auto leftY = dev->get_axis(gamepad::axis::LEFT_STICK_Y);
-
-      if (std::abs(leftX) > DEADZONE) {
-          if (leftX > 0) {
-              std::cout << "Left Stick" << std::endl;
-              movement.strafeRightLeft.main[0] = true;
-          } else {
-              movement.strafeRightLeft.reverse[0] = true;
-          }
-      } else {
-          movement.strafeRightLeft.reset();
-      }
-
-      if (std::abs(leftY) > DEADZONE) {
-          if (leftY > 0) {
-              std::cout << "Left Stick" << std::endl;
-              movement.forwardBackward.reverse[0] = true;
-          } else {
-              movement.forwardBackward.main[0] = true;
-          }
-      } else {
-          movement.forwardBackward.reset();
-      }
-
-      auto rightX = dev->get_axis(gamepad::axis::RIGHT_STICK_X);
-      auto rightY = dev->get_axis(gamepad::axis::RIGHT_STICK_Y);
-
-      if (std::abs(rightX) > DEADZONE || std::abs(rightY) > DEADZONE) {
-          double angle = std::atan2(static_cast<double>(rightY), static_cast<double>(rightX)) * 180.0 / M_PI;
-          if (angle < 0) angle += 360.f;
-
-          int selectedOption = 0;
-          if (angle >= 0 && angle < 90) {
-              selectedOption = 0; // Right
-          } else if (angle >= 90 && angle < 180) {
-              selectedOption = 1; // Down
-          } else if (angle >= 180 && angle < 270) {
-              selectedOption = 2; // Left
-          } else {
-              selectedOption = 3; // Up
-        }
-
-        std::cout << "Joystick angle: " << angle << "°\n";
-        std::cout << "Selected Option: " << selectedOption << "\n";
-      }
+        ginfo("Received axis event: Native id: %i, Virtual id: 0x%X (%i) val: %f", dev->last_axis_event()->native_id,
+            dev->last_axis_event()->vc, dev->last_axis_event()->vc, dev->last_axis_event()->virtual_value);
     };
 
     auto connect_handler = [h](std::shared_ptr<gamepad::device> dev) {
@@ -1239,5 +1193,62 @@ void PlayerControl::handleButtonInput(std::shared_ptr<gamepad::device> dev) {
     } else {
         movement.strafeRightLeft.main[0] = false;
     }
+}
+
+void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
+    const int DEADZONE = 16384;
+
+    // Hier wird angenommen, dass 'get_axis' die Achsenwerte zurückgibt
+    auto leftX = dev->get_axis(gamepad::axis::LEFT_STICK_X);  // Anpassen, falls nötig
+    auto leftY = dev->get_axis(gamepad::axis::LEFT_STICK_Y);  // Anpassen, falls nötig
+
+    if (std::abs(leftX) > DEADZONE) {
+        if (leftX > 0) {
+            std::cout << "Left Stick" << std::endl;
+            movement.strafeRightLeft.main[0] = true;
+        } else {
+            movement.strafeRightLeft.reverse[0] = true;
+        }
+    } else {
+        movement.strafeRightLeft.reset();
+    }
+
+    if (std::abs(leftY) > DEADZONE) {
+        if (leftY > 0) {
+            std::cout << "Left Stick" << std::endl;
+            movement.forwardBackward.reverse[0] = true;
+        } else {
+            movement.forwardBackward.main[0] = true;
+        }
+    } else {
+        movement.forwardBackward.reset();
+    }
+
+    // Rechts Stick
+    auto rightX = dev->get_axis(gamepad::axis::RIGHT_STICK_X);  // Anpassen, falls nötig
+    auto rightY = dev->get_axis(gamepad::axis::RIGHT_STICK_Y);  // Anpassen, falls nötig
+
+    if (std::abs(rightX) > DEADZONE || std::abs(rightY) > DEADZONE) {
+        double angle = std::atan2(static_cast<double>(rightY), static_cast<double>(rightX)) * 180.0 / M_PI;
+        if (angle < 0) angle += 360.f;
+
+        int selectedOption = 0;
+        if (angle >= 0 && angle < 90) {
+            selectedOption = 0; // Right
+        } else if (angle >= 90 && angle < 180) {
+            selectedOption = 1; // Down
+        } else if (angle >= 180 && angle < 270) {
+            selectedOption = 2; // Left
+        } else {
+            selectedOption = 3; // Up
+        }
+
+        std::cout << "Joystick angle: " << angle << "°\n";
+        std::cout << "Selected Option: " << selectedOption << "\n";
+    }
+}
+
+void PlayerControl::setupSettings() {
+    // Gamepad-spezifische Einstellungen hier initialisieren.
 }
 
