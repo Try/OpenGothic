@@ -1207,7 +1207,7 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
             onKeyPressed(KeyCodec::Action::Back, Tempest::KeyEvent::KeyType::K_S, KeyCodec::Mapping());
     } else if (std::abs(leftY) < 0.49){
             std::cout << "Left Stick Forward" << std::endl;
-            ctrl[Action::Forward];
+            actrl[ActForward] = true;
         
     } else if (std::abs(leftY) >= 0.49 && std::abs(leftY) <= 0.51){
         handleMovementAction(KeyCodec::ActionMapping{Action::Back, KeyCodec::Mapping::Primary}, false);
