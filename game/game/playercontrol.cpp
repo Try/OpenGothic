@@ -1361,7 +1361,7 @@ void PlayerControl::configureController(std::shared_ptr<gamepad::device> dev) {
 
         int axisId = -1;
         do {
-            for (int i = gamepad::axis::LEFT_X; i < gamepad::axis::MAX; ++i) {
+            for (int i = gamepad::axis::LEFT_STICK_X; i < gamepad::axis::MAX; ++i) {
                 if (std::abs(dev->get_axis_value(static_cast<gamepad::axis>(i))) > 0.5) {
                     axisId = i;
                     break;
