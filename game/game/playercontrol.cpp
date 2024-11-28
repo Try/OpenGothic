@@ -1210,8 +1210,8 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
             handleMovementAction(KeyCodec::ActionMapping{Action::RotateL, KeyCodec::Mapping::Primary}, true);
         
     } else if (std::abs(rightX) == 0.5){
-        handleMovementAction(KeyCodec::ActionMapping{Action::Right, KeyCodec::Mapping::Primary}, false);
-        handleMovementAction(KeyCodec::ActionMapping{Action::Left, KeyCodec::Mapping::Primary}, false);
+        handleMovementAction(KeyCodec::ActionMapping{Action::RotateR, KeyCodec::Mapping::Primary}, false);
+        handleMovementAction(KeyCodec::ActionMapping{Action::RotateL, KeyCodec::Mapping::Primary}, false);
     }
 
     if (std::abs(rightY) != 0.5) {
