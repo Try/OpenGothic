@@ -1214,7 +1214,7 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
     } else if (std::abs(leftY) >= 0.49 && std::abs(leftY) <= 0.51){
         handleMovementAction(KeyCodec::ActionMapping{Action::Back, KeyCodec::Mapping::Primary}, false);
         handleMovementAction(KeyCodec::ActionMapping{Action::Forward, KeyCodec::Mapping::Primary}, false);
-        actrl[ActBackward] = false;
+        actrl[ActBack] = false;
         actrl[ActForward] = false;
     }
 
