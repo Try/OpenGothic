@@ -1176,7 +1176,6 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
 
     auto leftX = dev->get_axis(gamepad::axis::LEFT_STICK_X);
     auto leftY = dev->get_axis(gamepad::axis::LEFT_STICK_Y);
-
     if (std::abs(leftX) > 0.5) {
             std::cout << "Left Stick Right" << std::endl;
             handleMovementAction(KeyCodec::ActionMapping{Action::Right, KeyCodec::Mapping::Primary}, true);
@@ -1200,28 +1199,25 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
         handleMovementAction(KeyCodec::ActionMapping{Action::Back, KeyCodec::Mapping::Primary}, false);
         handleMovementAction(KeyCodec::ActionMapping{Action::Forward, KeyCodec::Mapping::Primary}, false);
     }
+
     auto rightX = dev->get_axis(gamepad::axis::RIGHT_STICK_X);
     auto rightY = dev->get_axis(gamepad::axis::RIGHT_STICK_Y);
+    if (std::abs(rightX) > 0.5) {
+            std::cout << "Right Stick Right" << std::endl;
+            handleMovementAction(KeyCodec::ActionMapping{Action::RotateR, KeyCodec::Mapping::Primary}, true);
+    } else if (std::abs(rightX) < 0.5){
+            std::cout << "Right Stick Left" << std::endl;
+            handleMovementAction(KeyCodec::ActionMapping{Action::RotateL, KeyCodec::Mapping::Primary}, true);
+        
+    } else if (std::abs(rightX) == 0.5){
+        handleMovementAction(KeyCodec::ActionMapping{Action::Right, KeyCodec::Mapping::Primary}, false);
+        handleMovementAction(KeyCodec::ActionMapping{Action::Left, KeyCodec::Mapping::Primary}, false);
+    }
 
-    if (std::abs(rightX) > 0.5 || std::abs(rightY) > 0.5) {
-        double angle = std::atan2(static_cast<double>(rightY), static_cast<double>(rightX)) * 180.0 / M_PI;
-        if (angle < 0) angle += 360.f;
-
-        int selectedOption = 0;
-        if (angle >= 0 && angle < 90) {
-            selectedOption = 0; // Right
-            //KeyCodec::RotateR
-        } else if (angle >= 90 && angle < 180) {
-            selectedOption = 1; // Down
-        } else if (angle >= 180 && angle < 270) {
-            selectedOption = 2; // Left
-            //KeyCodec::RotateL
-        } else {
-            selectedOption = 3; // Up
-        }
-
-        std::cout << "Joystick angle: " << angle << "°\n";
-        std::cout << "Selected Option: " << selectedOption << "\n";
+    if (std::abs(rightY) != 0.5) {
+      float dAngle = (leftX - 0.5f) * 200.0f;
+      dAngle = std::max(-100.f, std::min(dAngle, 100.f));
+      rotMouseY += dAngle * 0.2f;
     }
 }
 
