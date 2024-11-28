@@ -1254,6 +1254,10 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
 }
 
 void PlayerControl::setupSettings() {
+
+  handleButtonInput(std::shared_ptr<gamepad::device> dev)
+  handleAxisInput(std::shared_ptr<gamepad::device> dev)
+
   if(Gothic::inst().version().game==2) {
     g2Ctrl = Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS")==0;
     } else {
