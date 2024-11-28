@@ -1163,7 +1163,12 @@ void PlayerControl::handleButtonInput(std::shared_ptr<gamepad::device> dev) {
         std::cout << "A pressed" << std::endl;
         // Perform continuous action for A button
         onKeyPressed(KeyCodec::Action::ActionGeneric, Tempest::KeyEvent::KeyType::K_LShift, KeyCodec::Mapping());
-    } 
+    } else {
+        std::cout << "A released" << std::endl;
+        // Correcting the call to only pass two parameters (KeyCodec::Action and KeyCodec::Mapping)
+        onKeyReleased(KeyCodec::Action::ActionGeneric, KeyCodec::Mapping());
+    }
+
     if (dev->is_button_pressed(gamepad::button::X)) {
         std::cout << "X pressed" << std::endl;
         ctrl[Action::Weapon] = true;
@@ -1192,10 +1197,10 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
             std::cout << "Left Stick Left" << std::endl;
             onKeyPressed(KeyCodec::Action::Forward, Tempest::KeyEvent::KeyType::K_A, KeyCodec::Mapping());
         
-    } else if (std::abs(leftX) >= 0.49 && std::abs(leftX) <= 0.51){
-            handleMovementAction(KeyCodec::ActionMapping{Action::Right, KeyCodec::Mapping::Primary}, false);
-            handleMovementAction(KeyCodec::ActionMapping{Action::Left, KeyCodec::Mapping::Primary}, false);
-    }
+    } //else if (std::abs(leftX) >= 0.49 && std::abs(leftX) <= 0.51){
+          //  handleMovementAction(KeyCodec::ActionMapping{Action::Right, KeyCodec::Mapping::Primary}, false);
+         //   handleMovementAction(KeyCodec::ActionMapping{Action::Left, KeyCodec::Mapping::Primary}, false);
+    //}
 
     if (std::abs(leftY) > 0.51) {
             std::cout << "Left Stick Backward" << std::endl;
@@ -1204,10 +1209,10 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
             std::cout << "Left Stick Forward" << std::endl;
             onKeyPressed(KeyCodec::Action::Forward, Tempest::KeyEvent::KeyType::K_W, KeyCodec::Mapping());
         
-    } else if (std::abs(leftY) >= 0.49 && std::abs(leftY) <= 0.51){
-        handleMovementAction(KeyCodec::ActionMapping{Action::Back, KeyCodec::Mapping::Primary}, false);
-        handleMovementAction(KeyCodec::ActionMapping{Action::Forward, KeyCodec::Mapping::Primary}, false);
-    }
+    } //else if (std::abs(leftY) >= 0.49 && std::abs(leftY) <= 0.51){
+        //handleMovementAction(KeyCodec::ActionMapping{Action::Back, KeyCodec::Mapping::Primary}, false);
+        //handleMovementAction(KeyCodec::ActionMapping{Action::Forward, KeyCodec::Mapping::Primary}, false);
+    //}
 
     auto rightX = dev->get_axis(gamepad::axis::RIGHT_STICK_X);
     auto rightY = dev->get_axis(gamepad::axis::RIGHT_STICK_Y);
