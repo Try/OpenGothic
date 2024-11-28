@@ -1259,4 +1259,4 @@ void PlayerControl::setupSettings() {
     } else {
     g2Ctrl = false;
 }
-
+}
