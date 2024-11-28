@@ -3,6 +3,7 @@
 #include "world/focus.h"
 #include "utils/keycodec.h"
 #include "constants.h"
+#include <libgamepad.hpp>
 
 #include <array>
 #include <memory>
@@ -51,6 +52,8 @@ class PlayerControl final {
     bool  tickCameraMove(uint64_t dt);
 
   private:
+    std::shared_ptr<gamepad::hook> hook; // Hook für Gamepad-Ereignisse
+    
     enum WeaponAction : uint8_t {
       WeaponClose,
       WeaponMele,
