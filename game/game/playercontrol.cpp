@@ -1211,10 +1211,10 @@ void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
 
     auto rightX = dev->get_axis(gamepad::axis::RIGHT_STICK_X);
     auto rightY = dev->get_axis(gamepad::axis::RIGHT_STICK_Y);
-    if (std::abs(rightX) > 0.49) {
+    if (std::abs(rightX) > 0.51) {
             std::cout << "Right Stick Right" << std::endl;
             handleMovementAction(KeyCodec::ActionMapping{Action::RotateR, KeyCodec::Mapping::Primary}, true);
-    } else if (std::abs(rightX) < 0.51){
+    } else if (std::abs(rightX) < 0.49){
             std::cout << "Right Stick Left" << std::endl;
             handleMovementAction(KeyCodec::ActionMapping{Action::RotateL, KeyCodec::Mapping::Primary}, true);
         
