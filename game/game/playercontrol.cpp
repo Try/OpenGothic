@@ -5,7 +5,6 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
-#include <fstream>
 
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
@@ -48,56 +47,7 @@ PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
     #else
         SetConsoleCtrlHandler(handler, TRUE);
     #endif
-
-    // Gamepad hook setup
-    auto h = gamepad::hook::make();
-    h->set_plug_and_play(true, gamepad::ms(1000));
-    h->set_sleep_time(gamepad::ms(5));
-
-    // Reassign handlers
-    h->set_button_event_handler([this](std::shared_ptr<gamepad::device> dev) {
-        this->handleButtonInput(dev);
-    });
-
-    h->set_axis_event_handler([this](std::shared_ptr<gamepad::device> dev) {
-        this->handleAxisInput(dev);
-    });
-
-    h->set_connect_event_handler([h, this](std::shared_ptr<gamepad::device> dev) {
-        ginfo("%s connected", dev->get_name().c_str());
-        if (!dev->has_binding()) {
-            std::cout << "No binding found. Starting configuration wizard..." << std::endl;
-            configureController(dev); // Call configuration wizard here
-        } else {
-            std::cout << "Existing binding found for device: " << dev->get_name() << std::endl;
-        }
-    });
-
-    h->set_disconnect_event_handler([](std::shared_ptr<gamepad::device> dev) {
-        ginfo("%s disconnected", dev->get_name().c_str());
-    });
-
-    // Start the hook
-    if (!h->start()) {
-        gerr("Couldn't start gamepad hook");
-        throw std::runtime_error("Failed to initialize gamepad hook");
-    }
-
-    // Load configuration if exists or prompt configuration
-    std::ifstream inFile("controller_config.json");
-    if (inFile.is_open()) {
-        std::string configStr((std::istreambuf_iterator<char>(inFile)), std::istreambuf_iterator<char>());
-        //h->load_binding_from_json(configStr);
-        //std::cout << "Loaded configuration from file." << std::endl;
-        std::cout << "Loading configuration manually is not yet implemented" << std::endl;
-    } else {
-        std::cout << "No configuration file found. Starting configuration wizard..." << std::endl;
-        if (auto dev = h->get_devices().front()) { // Assuming at least one device is connected
-            configureController(dev);
-        }
-    }
 }
-
 
 void PlayerControl::setTarget(Npc *other) {
   auto w  = Gothic::inst().world();
@@ -1307,107 +1257,3 @@ void PlayerControl::setupSettings() {
     }
 }
 
-void PlayerControl::configureController(std::shared_ptr<gamepad::device> dev) {
-    if (!dev) {
-        std::cerr << "No device provided for configuration." << std::endl;
-        return;
-    }
-
-    json11::Json::object controllerConfig;
-    std::cout << "Starting configuration wizard for device: " << dev->get_name() << std::endl;
-
-    // Button actions
-    const std::map<std::string, std::string> buttonActions = {
-        {"Jump", "button_jump"},
-        {"Melee Attack", "button_melee"},
-        {"Bow Attack", "button_bow"},
-        {"Magic Use", "button_magic"},
-        {"Interact", "button_interact"},
-        {"Inventory", "button_inventory"}
-    };
-
-    // Axis actions
-    const std::map<std::string, std::string> axisActions = {
-        {"Move Horizontal", "axis_move_x"},
-        {"Move Vertical", "axis_move_y"},
-        {"Camera Horizontal", "axis_camera_x"},
-        {"Camera Vertical", "axis_camera_y"}
-    };
-
-    // Map buttons
-    for (const auto& [actionName, configKey] : buttonActions) {
-        std::cout << "Press the button for action: " << actionName << std::endl;
-
-        int buttonId = -1;
-        do {
-            // Iterate through button values from A to LAST - 1
-            for (int i = gamepad::button::A; i < gamepad::button::LAST; ++i) {
-                if (dev->is_button_pressed(static_cast<gamepad::button::type>(i))) {
-                    buttonId = i;
-                    break;
-                }
-            }
-        } while (buttonId == -1);
-
-        std::cout << "Assigned button " << buttonId << " to " << actionName << std::endl;
-        controllerConfig[configKey] = buttonId;
-
-        // Debounce
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    }
-
-    // Lambda for axis event processing (only log once per axis)
-    auto axis_handler = [](std::shared_ptr<gamepad::device> dev, bool& logged) {
-        auto event = dev->last_axis_event();
-        if (event && !logged) {
-            ginfo("Received axis event: Native id: %i, Virtual id: 0x%X (%i) val: %f", event->native_id,
-                  event->vc, event->vc, event->virtual_value);
-            logged = true;  // Set the flag to true after logging once
-        }
-    };
-
-    // Map axes
-    for (const auto& [actionName, configKey] : axisActions) {
-        std::cout << "Move the axis for action: " << actionName << std::endl;
-
-        int axisId = -1;
-        bool logged = false; // Track if we have logged the axis event
-
-        do {
-            // Iterate through axis values from LEFT_STICK_X to LAST - 1
-            for (int i = gamepad::axis::LEFT_STICK_X; i < gamepad::axis::LAST; ++i) {
-                // Process axis events with the lambda function
-                axis_handler(dev, logged);
-
-                auto event = dev->last_axis_event();
-                if (event && std::abs(event->virtual_value) > 0.5f) {
-                    axisId = i;
-                    break;
-                }
-            }
-        } while (axisId == -1);
-
-        std::cout << "Assigned axis " << axisId << " to " << actionName << std::endl;
-        controllerConfig[configKey] = axisId;
-
-        // Debounce
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    }
-
-    // Save configuration to JSON
-    json11::Json config = controllerConfig;
-    std::string configStr = config.dump();
-
-    // Optionally save to file
-    std::ofstream outFile("controller_config.json");
-    if (outFile.is_open()) {
-        outFile << configStr;
-        outFile.close();
-        std::cout << "Configuration saved to controller_config.json" << std::endl;
-    } else {
-        std::cerr << "Failed to save configuration to file." << std::endl;
-    }
-
-    // After saving the configuration, you can manually apply it if needed
-    std::cout << "Configuration applied to the device." << std::endl;
-}
