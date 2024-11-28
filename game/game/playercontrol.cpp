@@ -1148,15 +1148,14 @@ void PlayerControl::handleButtonInput(std::shared_ptr<gamepad::device> dev) {
 
     if (dev->is_button_pressed(gamepad::button::Y)) {
         std::cout << "Y pressed" << std::endl;
-        ctrl[Action::Weapon] = true;
+        ctrl[Action::Jump] = true;
     } else {
-        ctrl[Action::Weapon = false;
+        ctrl[Action::Jump] = false;
     }
     if (dev->is_button_pressed(gamepad::button::B)) {
-        std::cout << "B pressed" << std::endl;
-        ctrl[Action::Weapon] = true;
-    } else {
-        ctrl[Action::Weapon] = false;
+    std::cout << "B pressed" << std::endl;
+    // Trigger Action::Weapon
+    handleMovementAction(KeyCodec::ActionMapping{Action::Weapon, KeyCodec::Mapping::Primary}, true);
     }
     if (dev->is_button_pressed(gamepad::button::A)) {
         std::cout << "A pressed" << std::endl;
