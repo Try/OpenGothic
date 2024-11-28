@@ -1159,9 +1159,7 @@ void PlayerControl::handleButtonInput(std::shared_ptr<gamepad::device> dev) {
     }
     if (dev->is_button_pressed(gamepad::button::A)) {
         std::cout << "A pressed" << std::endl;
-        ctrl[Action::ActionGeneric] = true;
-    } else {
-        ctrl[Action::ActionGeneric] = false;
+        onKeyPressed(KeyCodec::Action::ActionGeneric, Tempest::KeyEvent::KeyType::L_Shift, KeyCodec::Mapping());
     }
     if (dev->is_button_pressed(gamepad::button::X)) {
         std::cout << "X pressed" << std::endl;
