@@ -1173,7 +1173,7 @@ void PlayerControl::handleButtonInput(std::shared_ptr<gamepad::device> dev) {
 }
 
 void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
-    const int DEADZONE = 0.05f;
+    const int DEADZONE = 0;
 
     auto leftX = dev->get_axis(gamepad::axis::LEFT_STICK_X);
 auto leftY = dev->get_axis(gamepad::axis::LEFT_STICK_Y);
