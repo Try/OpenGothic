@@ -87,7 +87,7 @@ PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
     }
 
     while (run_flag)
-        std::this_thread::sleep_for(gamepad::ms(50))
+        std::this_thread::sleep_for(gamepad::ms(50));
 }
 
 void PlayerControl::setTarget(Npc *other) {
