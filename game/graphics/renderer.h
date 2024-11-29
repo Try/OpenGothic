@@ -113,6 +113,11 @@ class Renderer final {
       Tempest::DescriptorSet   ubo;
       } shadow;
 
+    struct Lights {
+      Tempest::RenderPipeline* directLightPso = nullptr;
+      Tempest::DescriptorSet   ubo;
+      } lights;
+
     struct Water {
       Tempest::RenderPipeline* reflectionsPso = nullptr;
       Tempest::DescriptorSet   ubo;
@@ -214,26 +219,25 @@ class Renderer final {
 
     struct {
       Tempest::DescriptorSet    uboClear;
-      Tempest::DescriptorSet    uboClearPages;
-      Tempest::DescriptorSet    uboPages;
+      Tempest::DescriptorSet    uboPages, uboOmniPages;
       Tempest::DescriptorSet    uboEpipole, uboFogPages, uboFogSample, uboFogShadow, uboFogTrace;
       Tempest::DescriptorSet    uboClump, uboAlloc;
 
-      Tempest::RenderPipeline*  directLightPso = nullptr;
       Tempest::RenderPipeline*  pagesDbgPso = nullptr;
-      Tempest::DescriptorSet    uboLight;
+      Tempest::DescriptorSet    uboDbg;
 
       Tempest::StorageImage     pageTbl;
       Tempest::StorageImage     pageHiZ;
-      Tempest::StorageImage     pageDataCs;
       Tempest::ZBuffer          pageData;
       Tempest::StorageBuffer    pageList;
+      Tempest::StorageBuffer    pageTblOmni;
 
       Tempest::StorageImage     ssTrace;
       Tempest::StorageImage     epTrace;
       Tempest::StorageBuffer    epipoles;
 
       Tempest::StorageImage     fogDbg;
+      Tempest::StorageImage     vsmDbg;
       } vsm;
 
     struct {

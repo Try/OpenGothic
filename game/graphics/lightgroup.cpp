@@ -98,16 +98,6 @@ LightGroup::LightGroup(const SceneGlobals& scene)
     descPatch[i] = device.descriptors(Shaders::inst().patch);
     }
 
-  static const uint16_t index[] = {
-      0, 1, 2, 0, 2, 3,
-      4, 6, 5, 4, 7, 6,
-      1, 5, 2, 2, 5, 6,
-      4, 0, 7, 7, 0, 3,
-      3, 2, 7, 7, 2, 6,
-      4, 5, 0, 0, 5, 1
-    };
-  ibo = device.ibo(index, sizeof(index)/sizeof(index[0]));
-
   try {
     auto filename = Gothic::nestedPath({u"_work", u"Data", u"Presets", u"LIGHTPRESETS.ZEN"}, Dir::FT_File);
     auto buf = zenkit::Read::from(filename);
@@ -289,12 +279,6 @@ void LightGroup::resetDurty() {
   std::memset(duryBit.data(), 0, duryBit.size()*sizeof(duryBit[0]));
   }
 
-RenderPipeline& LightGroup::shader() const {
-  if(Gothic::options().doRayQuery)
-    return Shaders::inst().lightsRq;
-  return Shaders::inst().lights;
-  }
-
 const zenkit::LightPreset& LightGroup::findPreset(std::string_view preset) const {
   for(auto& i:presets) {
     if(i.preset!=preset)
@@ -330,7 +314,6 @@ bool LightGroup::updateLights() {
     Resources::recycle(std::move(lightSourceSsbo));
     lightSourceSsbo = device.ssbo(lightSourceData);
     resetDurty();
-    allocDescriptorSet();
     return true;
     }
   return false;
@@ -400,86 +383,4 @@ void LightGroup::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd, u
   cmd.setFramebuffer({});
   cmd.setUniforms(Shaders::inst().patch, d);
   cmd.dispatch(patchBlock.size());
-  }
-
-void LightGroup::draw(Encoder<CommandBuffer>& cmd, uint8_t fId) {
-  static bool light = true;
-  if(!light)
-    return;
-
-  if(lightSourceSsbo.isEmpty())
-    return;
-
-  auto& p = shader();
-  cmd.setUniforms(p, desc, &scene.originLwc, sizeof(scene.originLwc));
-  cmd.draw(nullptr,ibo, 0,ibo.size(), 0,lightSourceData.size());
-  }
-
-void LightGroup::allocDescriptorSet() {
-  if(lightSourceSsbo.isEmpty())
-    return;
-
-  Resources::recycle(std::move(desc));
-
-  auto& device  = Resources::device();
-  desc = device.descriptors(shader());
-  prepareUniforms();
-  prepareRtUniforms();
-  prepareVsmUniforms();
-  }
-
-void LightGroup::prepareUniforms() {
-  if(desc.isEmpty())
-    return;
-  desc.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
-  desc.set(1, *scene.gbufDiffuse, Sampler::nearest());
-  desc.set(2, *scene.gbufNormals, Sampler::nearest());
-  desc.set(3, *scene.zbuffer,     Sampler::nearest());
-  desc.set(4, lightSourceSsbo);
-  }
-
-void LightGroup::prepareRtUniforms() {
-  if(!Gothic::inst().options().doRayQuery)
-    return;
-  if(desc.isEmpty() || scene.rtScene.tlas.isEmpty())
-    return;
-  desc.set(6,scene.rtScene.tlas);
-  if(Resources::device().properties().descriptors.nonUniformIndexing) {
-    desc.set(7, Sampler::bilinear());
-    desc.set(8, scene.rtScene.tex);
-    desc.set(9, scene.rtScene.vbo);
-    desc.set(10,scene.rtScene.ibo);
-    desc.set(11,scene.rtScene.rtDesc);
-    }
-  }
-
-void LightGroup::prepareVsmUniforms() {
-  if(!Gothic::inst().options().doVirtualShadow)
-    return;
-
-  auto& device  = Resources::device();
-  auto& shaders = Shaders::inst();
-
-  vsmDbg  = device.image2d(TextureFormat::R32U, uint32_t(scene.zbuffer->w()), uint32_t(scene.zbuffer->h()));
-
-  Resources::recycle(std::move(vsmPageDesc));
-  vsmPageDesc = device.descriptors(shaders.vsmMarkOmniPages);
-
-  vsmPageDesc.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
-  vsmPageDesc.set(1, *scene.gbufDiffuse, Sampler::nearest());
-  vsmPageDesc.set(2, *scene.gbufNormals, Sampler::nearest());
-  vsmPageDesc.set(3, *scene.zbuffer,     Sampler::nearest());
-  vsmPageDesc.set(4, lightSourceSsbo);
-  vsmPageDesc.set(5, vsmDbg);
-  }
-
-void LightGroup::markPagesVsm(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
-  auto& shaders = Shaders::inst();
-
-  struct Push { Vec3 originLwc; float znear; float vsmMipBias; } push = {};
-  push.originLwc  = scene.originLwc;
-  push.znear      = scene.znear;
-  push.vsmMipBias = 0;
-  cmd.setUniforms(shaders.vsmMarkOmniPages, vsmPageDesc, &push, sizeof(push));
-  cmd.dispatchThreads(scene.zbuffer->size());
   }

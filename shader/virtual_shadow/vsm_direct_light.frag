@@ -24,11 +24,7 @@ layout(binding = 2)         uniform utexture2D  gbufNormal;
 layout(binding = 3)         uniform texture2D   depth;
 layout(binding = 4)         uniform utexture3D  pageTbl;
 layout(binding = 5, std430) readonly buffer Pages { VsmHeader header; uint  pageList[]; } vsm;
-#if defined(VSM_ATOMIC)
-layout(binding = 6) uniform utexture2D  pageData;
-#else
-layout(binding = 6) uniform texture2D   pageData;
-#endif
+layout(binding = 6)         uniform texture2D   pageData;
 layout(binding = 8, r32ui)  uniform readonly uimage2D dbg;
 
 

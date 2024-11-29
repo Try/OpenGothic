@@ -3,8 +3,6 @@
 
 #extension GL_EXT_samplerless_texture_functions : enable
 
-// #define VSM_ATOMIC 1
-
 const int VSM_PAGE_SIZE     = 128;
 const int VSM_PAGE_TBL_SIZE = 32;  // small for testing, 64 can be better
 const int VSM_PAGE_MIPS     = 16;
@@ -22,6 +20,7 @@ struct VsmHeader {
   uint  counterV;
   uint  pagePerMip[VSM_PAGE_MIPS];
   ivec4 pageBbox[VSM_PAGE_MIPS];
+  uint  pageOmni;
   };
 
 struct Epipole {
@@ -126,13 +125,7 @@ uint shadowPageIdFetch(in vec2 page, in int mip, in utexture3D pageTbl) {
   return pageD >> 16u;
   }
 
-float shadowTexelFetch(in vec2 page, in int mip, in utexture3D pageTbl,
-                       #if defined(VSM_ATOMIC)
-                       in utexture2D pageData
-                       #else
-                       in texture2D pageData
-                       #endif
-                       ) {
+float shadowTexelFetch(in vec2 page, in int mip, in utexture3D pageTbl, in texture2D pageData) {
   //page-local
   const ivec2 pageI       = ivec2((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
   const vec2  pageF       = fract((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
@@ -150,13 +143,7 @@ float shadowTexelFetch(in vec2 page, in int mip, in utexture3D pageTbl,
   return vsmTexelFetch(pageData, pageImageAt);
   }
 
-float shadowTexelFetch_(in vec2 page, in int mip, in utexture3D pageTbl,
-                       #if defined(VSM_ATOMIC)
-                       in utexture2D pageData
-                       #else
-                       in texture2D pageData
-                       #endif
-                       ) {
+float shadowTexelFetch_(in vec2 page, in int mip, in utexture3D pageTbl, in texture2D pageData) {
   while(mip >= 0) {
     float s = shadowTexelFetch(page, mip, pageTbl, pageData);
     if(s>=0)

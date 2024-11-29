@@ -26,12 +26,15 @@ layout(binding = 1)         uniform texture2D  gbufDiffuse;
 layout(binding = 2)         uniform utexture2D gbufNormal;
 layout(binding = 3)         uniform texture2D  depth;
 layout(binding = 4, std430) readonly buffer Lbo { LightSource  lights[]; };
-layout(binding = 5, r32ui)  uniform uimage2D   dbgImg;
+// layout(binding = 5, std430) buffer Pbo          { uint         lightPages[]; };
+layout(binding = 5, std430) buffer Omni         { uint         omniPages[]; };
+layout(binding = 6, r32ui)  uniform uimage2D   dbgImg;
 
 shared uint  tileDepthMin, tileDepthMax;
 shared uint  lightCount;
 shared uint  lightId[NumThreads];
-shared uint  lightMask[NumThreads/32];
+// shared uint  lightMask[NumThreads/32];
+shared uint  omniPagesTmp[NumThreads*6];
 
 shared uint  lightFineCount;
 
@@ -81,11 +84,24 @@ void hiTile(float depth) {
   atomicMin(tileDepthMin, d);
   }
 
+uint dirToFace(vec3 d) {
+  const vec3 ad = abs(d);
+  if(ad.x > ad.y && ad.x > ad.z)
+    return d.x>=0 ? 0 : 1;
+  if(ad.y > ad.x && ad.y > ad.z)
+    return d.y>=0 ? 2 : 3;
+  if(ad.z > ad.x && ad.z > ad.y)
+    return d.x>=0 ? 4 : 5;
+  return 0;
+  }
+
 void processLightTiles(const vec3 pos, const vec3 normal) {
-  const uint count = lightCount;
+  const uint laneId = gl_LocalInvocationIndex;
+  const uint count  = lightCount;
 
   for(uint i=0; i<count; ++i) {
-    const LightSource lx             = lights[lightId[i]];
+    const uint        id             = lightId[i];
+    const LightSource lx             = lights[id];
     const vec3        ldir           = (lx.pos - pos);
     const float       distanceSquare = dot(ldir,ldir);
     const float       rangeSquare    = lx.range*lx.range;
@@ -93,12 +109,22 @@ void processLightTiles(const vec3 pos, const vec3 normal) {
       continue;
     if(dot(normal, ldir) < 0)
       continue;
-    atomicOr(lightMask[i/32], 1u<<(i%32));
+    //atomicOr(lightMask[i/32], 1u<<(i%32));
+
+    const uint fc = dirToFace(ldir);
+    atomicOr(omniPagesTmp[i*6 + fc],  1); //TODO: page bitmask
     }
   barrier();
 
-  for(uint i=gl_LocalInvocationIndex; i<lightMask.length(); i+=NumThreads)
-    atomicAdd(lightFineCount, bitCount(lightMask[i]));
+  for(uint i=laneId; i<count; i+=NumThreads) {
+    const uint id = lightId[i];
+    omniPages[id] = omniPagesTmp[i];
+    }
+  //for(uint i=laneId; i<lightPagesTmp.length(); i+=NumThreads)
+  //  lightPagesTmp[i] = 0;
+
+  //for(uint i=gl_LocalInvocationIndex; i<lightMask.length(); i+=NumThreads)
+  //  atomicAdd(lightFineCount, bitCount(lightMask[i]));
   }
 
 void processLights(const vec3 pos, const vec3 normal) {
@@ -147,8 +173,10 @@ void main() {
   lightCount   = 0;
   tileDepthMin = floatBitsToUint(1);
   tileDepthMax = floatBitsToUint(0);
-  for(uint i=laneId; i<lightMask.length(); i+=NumThreads)
-    lightMask[i] = 0;
+  // for(uint i=laneId; i<lightMask.length(); i+=NumThreads)
+  //   lightMask[i] = 0;
+  for(uint i=laneId; i<omniPagesTmp.length(); i+=NumThreads)
+    omniPagesTmp[i] = 0;
   barrier();
 
   const float z      = valid ? texelFetch(depth, fragCoord, 0).x  : 1;

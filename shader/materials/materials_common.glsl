@@ -147,14 +147,7 @@ layout(binding = L_SceneClr)         uniform sampler2D sceneColor;
 layout(binding = L_GDepth  )         uniform sampler2D gbufferDepth;
 #endif
 
-#if defined(VIRTUAL_SHADOW) && defined(VSM_ATOMIC) && !defined(CLUSTER)
-layout(binding = L_CmdOffsets, std430) readonly buffer IndirectBuf { IndirectCmd cmd[]; };
-layout(binding = L_VsmPages,   std430) readonly buffer Pages       { VsmHeader header; uint pageList[]; } vsm;
-layout(binding = L_VsmTbl,     r32ui)  uniform readonly uimage3D pageTbl;
-layout(binding = L_VsmData,    r32ui)  uniform          uimage2D vsmData;
-#endif
-
-#if defined(VIRTUAL_SHADOW) && !defined(VSM_ATOMIC) && !defined(CLUSTER)
+#if defined(VIRTUAL_SHADOW) && !defined(CLUSTER)
 layout(binding = L_CmdOffsets, std430) readonly buffer IndirectBuf { IndirectCmd cmd[]; };
 layout(binding = L_VsmPages,   std430) readonly buffer Pages       { VsmHeader header; uint pageList[]; } vsm;
 #endif

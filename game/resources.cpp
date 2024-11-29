@@ -62,6 +62,16 @@ Resources::Resources(Tempest::Device &device)
    }};
   fsq = Resources::vbo(fsqBuf.data(),fsqBuf.size());
 
+  static const uint16_t index[] = {
+      0, 1, 2, 0, 2, 3,
+      4, 6, 5, 4, 7, 6,
+      1, 5, 2, 2, 5, 6,
+      4, 0, 7, 7, 0, 3,
+      3, 2, 7, 7, 2, 6,
+      4, 5, 0, 0, 5, 1
+    };
+  cube = device.ibo(index, sizeof(index)/sizeof(index[0]));
+
   //sp = sphere(3,1.f);
 
   dxMusic.reset(new Dx8::DirectMusic());
@@ -300,6 +310,10 @@ const zenkit::Vfs& Resources::vdfsIndex() {
 
 const Tempest::VertexBuffer<Resources::VertexFsq> &Resources::fsqVbo() {
   return inst->fsq;
+  }
+
+const Tempest::IndexBuffer<uint16_t>& Resources::cubeIbo() {
+  return inst->cube;
   }
 
 int64_t Resources::vdfTimestamp(const std::u16string& name) {

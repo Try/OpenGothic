@@ -295,11 +295,9 @@ add_shader(cmaa2_deferred_color_apply_2x2.frag     antialiasing/cmaa2/deferred_c
 
 # virtual shadows
 add_shader(direct_light_vsm.frag     virtual_shadow/vsm_direct_light.frag)
-add_shader(vsm_reproject_sm.frag     virtual_shadow/vsm_reproject_sm.frag)
 add_shader(vsm_dbg.frag              virtual_shadow/vsm_direct_light.frag -DDEBUG)
 add_shader(vsm_mark_pages.comp       virtual_shadow/vsm_mark_pages.comp)
 add_shader(vsm_clear.comp            virtual_shadow/vsm_clear.comp)
-add_shader(vsm_clear_pages.comp      virtual_shadow/vsm_clear_pages.comp)
 add_shader(vsm_trim_pages.comp       virtual_shadow/vsm_trim_pages.comp)
 add_shader(vsm_clump_pages.comp      virtual_shadow/vsm_clump_pages.comp)
 add_shader(vsm_list_pages.comp       virtual_shadow/vsm_list_pages.comp)

@@ -36,5 +36,6 @@ void main() {
   if(gl_LocalInvocationIndex<16) {
     header.pagePerMip[gl_LocalInvocationIndex] = 0;
     header.pageBbox  [gl_LocalInvocationIndex] = ivec4(0xFF, 0xFF, 0, 0);
+    header.pageOmni = 0;
     }
   }

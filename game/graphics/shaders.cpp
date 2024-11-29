@@ -195,7 +195,6 @@ Shaders::Shaders() {
     vsmClusterTask  = computeShader("vsm_cluster_task.comp.sprv");
     // vsmClusterTask = computeShader("vsm_cluster_task2.comp.sprv");
     vsmClear         = computeShader("vsm_clear.comp.sprv");
-    vsmClearPages    = computeShader("vsm_clear_pages.comp.sprv");
     vsmMarkPages     = computeShader("vsm_mark_pages.comp.sprv");
     vsmMarkOmniPages = computeShader("vsm_mark_omni_pages.comp.sprv");
     vsmTrimPages     = computeShader("vsm_trim_pages.comp.sprv");

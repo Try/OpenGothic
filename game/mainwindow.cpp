@@ -1065,13 +1065,9 @@ void MainWindow::onWorldLoaded() {
   for(auto& c:commands)
     c = device.commandBuffer();
 
-  if(auto wview=Gothic::inst().worldView()) {
-    wview->updateLights();
-    }
-
-  if(auto c = Gothic::inst().camera()) {
+  if(auto c = Gothic::inst().camera())
     c->setViewport(uint32_t(w()),uint32_t(h()));
-    }
+
   renderer.onWorldChanged();
 
   if(auto pl = Gothic::inst().player())

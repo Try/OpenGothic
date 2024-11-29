@@ -33,9 +33,8 @@ shared uint pageListSize;
 shared uint pageList[VSM_MAX_PAGES];
 
 shared uint vsmMipMask;
-#if !defined(VSM_ATOMIC)
+
 shared uint anyPageGlob;
-#endif
 
 Instance pullInstance(uint i) {
   i *= 16;

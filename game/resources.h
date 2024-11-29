@@ -147,6 +147,7 @@ class Resources final {
     static const zenkit::Vfs&        vdfsIndex();
 
     static const Tempest::VertexBuffer<VertexFsq>& fsqVbo();
+    static const Tempest::IndexBuffer<uint16_t>&   cubeIbo();
 
   private:
     static Resources* inst;
@@ -228,6 +229,7 @@ class Resources final {
 
     std::vector<uint8_t>              fBuff, ddsBuf;
     Tempest::VertexBuffer<VertexFsq>  fsq;
+    Tempest::IndexBuffer<uint16_t>    cube;
 
     struct DeleteQueue {
       std::vector<Tempest::DescriptorSet> ds;

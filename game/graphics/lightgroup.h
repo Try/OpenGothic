@@ -43,6 +43,7 @@ class LightGroup final {
     Light  add(const zenkit::LightPreset& vob);
     Light  add(const zenkit::VLight& vob);
     Light  add(std::string_view preset);
+    size_t size() const { return lightSourceData.size(); }
 
     void   tick(uint64_t time);
     bool   updateLights();
@@ -50,12 +51,6 @@ class LightGroup final {
 
     void   preFrameUpdate(uint8_t fId);
     void   prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
-    void   prepareUniforms();
-    void   prepareRtUniforms();
-    void   prepareVsmUniforms();
-
-    void   markPagesVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void   draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
     void   dbgLights(DbgPainter& p) const;
 
@@ -75,15 +70,16 @@ class LightGroup final {
       float         pading = 0;
       };
 
+    struct VsmSsbo {
+      uint32_t mask[6];
+      };
+
     size_t                     alloc(bool dynamic);
     void                       free(size_t id);
 
     void                       markAsDurty(size_t id);
     void                       markAsDurtyNoSync(size_t id);
     void                       resetDurty();
-
-    Tempest::RenderPipeline&   shader() const;
-    void                       allocDescriptorSet();
 
     const zenkit::LightPreset& findPreset(std::string_view preset) const;
 
@@ -96,16 +92,10 @@ class LightGroup final {
     std::vector<LightSsbo>           lightSourceData;
     std::unordered_set<size_t>       animatedLights;
     std::vector<uint32_t>            duryBit;
+
     Tempest::StorageBuffer           lightSourceSsbo;
-    Tempest::DescriptorSet           desc;
 
     Tempest::StorageBuffer           patchSsbo[Resources::MaxFramesInFlight];
     Tempest::DescriptorSet           descPatch[Resources::MaxFramesInFlight];
-
-    // vsm
-    Tempest::DescriptorSet           vsmPageDesc;
-    Tempest::StorageImage            vsmDbg;
-
-    Tempest::IndexBuffer<uint16_t>   ibo;
   };
 

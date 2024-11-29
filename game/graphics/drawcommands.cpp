@@ -349,15 +349,7 @@ void DrawCommands::updateCommandUniforms() {
           desc[v].set(L_GDepth, *scene.sceneDepth, smp);
           }
 
-        if(v==SceneGlobals::V_Vsm && scene.vsmPageDataCs->w()>1) {
-          // atomic
-          desc[v].set(L_CmdOffsets, views[v].indirectCmd);
-          desc[v].set(L_VsmPages,   *scene.vsmPageList);
-          desc[v].set(L_VsmTbl,     *scene.vsmPageTbl);
-          desc[v].set(L_VsmData,    *scene.vsmPageDataCs);
-          }
-        else if(v==SceneGlobals::V_Vsm) {
-          // raster
+        if(v==SceneGlobals::V_Vsm) {
           desc[v].set(L_CmdOffsets, views[v].indirectCmd);
           desc[v].set(L_VsmPages,   *scene.vsmPageList);
           }

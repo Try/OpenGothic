@@ -12,7 +12,8 @@ layout(local_size_x = 32, local_size_y = 32) in;
 
 layout(binding = 0, std430) buffer Pages { VsmHeader header; uint  pageList[]; } vsm;
 layout(binding = 1, r32ui)  uniform uimage3D pageTbl;
-layout(binding = 2, r32ui)  uniform uimage2D dbg;
+layout(binding = 2, std430) buffer Omni  { uint omniPages[]; };
+layout(binding = 3, r32ui)  uniform uimage2D dbg;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
@@ -36,6 +37,9 @@ uint bitCountShared(uint till) {
   }
 
 void listPages(uint mip) {
+  if(vsm.header.pagePerMip[mip]==0)
+    return;
+
   const ivec3 size = imageSize(pageTbl);
   const uint  lane = gl_LocalInvocationIndex;
   const ivec3 at   = ivec3(gl_LocalInvocationID.xy, mip);
@@ -56,6 +60,10 @@ void listPages(uint mip) {
   // barrier(); //NOTE: very slow on mac
   }
 
+void listOmni() {
+  vsm.header.pageOmni;
+  }
+
 void main() {
   const uint lane = gl_LocalInvocationIndex;
   const uint mip  = gl_WorkGroupID.x;
@@ -71,8 +79,10 @@ void main() {
     vsm.header.pageCount = pageListPrefix + vsm.header.pagePerMip[lane];
     }
 
-  if(vsm.header.pagePerMip[mip]==0)
-    return;
 
-  listPages(mip);
+  if(mip<VSM_PAGE_MIPS) {
+    listPages(mip);
+    return;
+    }
+  listOmni();
   }
