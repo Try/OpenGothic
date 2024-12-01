@@ -33,14 +33,15 @@ struct Epipole {
   };
 
 uint packVsmPageInfo(ivec3 at, ivec2 size) {
-  return (at.x & 0xFF) | ((at.y & 0xFF) << 8) | ((at.z & 0xFF) << 16) | ((size.x & 0xF) << 24) | ((size.y & 0xF) << 28);
+  // 1 : 8 : 8 : 7 : 4 : 4
+  return ((at.x & 0xFF) << 1) | ((at.y & 0xFF) << 9) | ((at.z & 0x7F) << 17) | ((size.x & 0xF) << 24) | ((size.y & 0xF) << 28);
   }
 
 ivec3 unpackVsmPageInfo(uint p) {
   ivec3 r;
-  r.x = int(p      ) & 0xFF;
-  r.y = int(p >>  8) & 0xFF;
-  r.z = int(p >> 16) & 0xFF;
+  r.x = int(p >>  1) & 0xFF;
+  r.y = int(p >>  9) & 0xFF;
+  r.z = int(p >> 17) & 0x7F;
   return r;
   }
 
@@ -49,6 +50,17 @@ ivec2 unpackVsmPageSize(uint p) {
   r.x = int(p >> 24) & 0xF;
   r.y = int(p >> 28) & 0xF;
   return r;
+  }
+
+uint packVsmPageInfo(uint lightId, uint face, ivec2 at, ivec2 size) {
+  // 1 : 15 : 4 : 4 : 4 : 4
+  uint idx = lightId*6 + face; // 5k omni lights
+  return 0x1 | ((lightId & 0x7FFF) << 1) | ((at.x & 0xF) << 16) | ((at.y & 0xF) << 20) | ((size.x & 0xF) << 24) | ((size.y & 0xF) << 28);
+  }
+
+uvec2 unpackLightId(uint p) {
+  uint i = uint((p & 0xFFFF) >> 1);
+  return uvec2(i/6, i%6);
   }
 
 uint packVsmPageId(uint pageI) {

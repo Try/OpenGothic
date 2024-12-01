@@ -144,7 +144,7 @@ void Renderer::resetSwapchain() {
 
   if(smSize>0) {
     for(int i=0; i<Resources::ShadowLayers; ++i) {
-      if(settings.vsmEnabled)
+      if(settings.vsmEnabled && (!settings.giEnabled && i!=1))
         continue;
       if(settings.vsmEnabled && !settings.giEnabled)
         ;//continue; //TODO: support vsm in gi code
@@ -162,11 +162,11 @@ void Renderer::resetSwapchain() {
   uboStash.set(0,sceneLinear,Sampler::nearest());
   uboStash.set(1,zbuffer,    Sampler::nearest());
 
-  if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing &&
+  if(settings.vsmEnabled)
+    shadow.directLightPso = &Shaders::inst().vsmDirectLight; //TODO: naming
+  else if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing &&
      settings.shadowResolution>0)
     shadow.directLightPso = &Shaders::inst().directLightRq;
-  else if(settings.vsmEnabled)
-    shadow.directLightPso = &Shaders::inst().vsmDirectLight; //TODO: naming
   else if(settings.shadowResolution>0)
     shadow.directLightPso = &Shaders::inst().directLightSh;
   else
@@ -206,6 +206,7 @@ void Renderer::resetSwapchain() {
   if(settings.vsmEnabled) {
     vsm.uboDbg          = device.descriptors(Shaders::inst().vsmDbg);
     vsm.uboClear        = device.descriptors(Shaders::inst().vsmClear);
+    vsm.uboClearOmni    = device.descriptors(Shaders::inst().vsmClearOmni);
     vsm.uboPages        = device.descriptors(Shaders::inst().vsmMarkPages);
     vsm.uboEpipole      = device.descriptors(Shaders::inst().vsmFogEpipolar);
     vsm.uboFogPages     = device.descriptors(Shaders::inst().vsmFogPages);
@@ -464,6 +465,8 @@ void Renderer::prepareUniforms() {
     vsm.uboClear.set(0, vsm.pageList);
     vsm.uboClear.set(1, vsm.pageTbl);
     vsm.uboClear.set(2, vsm.pageHiZ);
+
+    vsm.uboClearOmni.set(0, vsm.pageTblOmni);
 
     vsm.uboPages.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     vsm.uboPages.set(1, gbufDiffuse, Sampler::nearest());
@@ -903,6 +906,9 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.setUniforms(shaders.vsmClear, vsm.uboClear);
   cmd.dispatchThreads(size_t(vsm.pageTbl.w()), size_t(vsm.pageTbl.h()), size_t(vsm.pageTbl.d()));
 
+  cmd.setUniforms(shaders.vsmClearOmni, vsm.uboClearOmni);
+  cmd.dispatchThreads(wview.lights().size()*6);
+
   cmd.setUniforms(shaders.vsmMarkPages, vsm.uboPages, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
   cmd.dispatchThreads(zbuffer.size());
 
@@ -939,6 +945,7 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     cmd.dispatchThreads(vsm.epTrace.size());
     }
 
+  cmd.setDebugMarker("VSM-pages-alloc");
   if(true) {
     // trimming
     // cmd.setUniforms(shaders.vsmTrimPages, vsm.uboClump);
@@ -956,9 +963,9 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     vsm.uboAlloc.set(2, vsm.pageTblOmni);
     vsm.uboAlloc.set(3, scene.vsmDbg);
     }
-  // list?
+  // list
   cmd.setUniforms(shaders.vsmListPages, vsm.uboAlloc);
-  cmd.dispatch(size_t(vsm.pageTbl.d()));
+  cmd.dispatch(size_t(vsm.pageTbl.d() + 1));
 
   // alloc
   cmd.setUniforms(shaders.vsmAllocPages, vsm.uboAlloc);

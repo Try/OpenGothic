@@ -48,8 +48,7 @@ const uint L_SceneClr   = 12;
 const uint L_GDepth     = 13;
 const uint L_CmdOffsets = 14;
 const uint L_VsmPages   = L_Shadow0;
-const uint L_VsmTbl     = L_Shadow1;
-const uint L_VsmData    = 15;
+const uint L_VsmLights  = L_Shadow1;
 
 #define T_LANDSCAPE 0
 #define T_OBJ       1
@@ -150,6 +149,7 @@ layout(binding = L_GDepth  )         uniform sampler2D gbufferDepth;
 #if defined(VIRTUAL_SHADOW) && !defined(CLUSTER)
 layout(binding = L_CmdOffsets, std430) readonly buffer IndirectBuf { IndirectCmd cmd[]; };
 layout(binding = L_VsmPages,   std430) readonly buffer Pages       { VsmHeader header; uint pageList[]; } vsm;
+layout(binding = L_VsmLights,  std430) readonly buffer Lights      { LightSource lights[]; };
 #endif
 
 #if !defined(CLUSTER) && (MESH_TYPE!=T_PFX)

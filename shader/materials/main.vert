@@ -63,8 +63,29 @@ uint shadowPageId = 0;
 #endif
 
 #if defined(VIRTUAL_SHADOW)
-vec4 mapViewport(vec4 pos, out float clipDistance[4]) {
-  const uint  data = vsm.pageList[shadowPageId];
+vec4 mapViewportProj(const uint data, vec4 pos, out float clipDistance[4]) {
+  const uvec2 lightId = unpackLightId(data);
+  const ivec3 page    = unpackVsmPageInfo(data);
+  const ivec2 sz      = unpackVsmPageSize(data);
+
+  pos.xy = (pos.xy*0.5+0.5*pos.w); // [0..1]
+  pos.xy = (pos.xy*VSM_PAGE_TBL_SIZE - page.xy*pos.w);
+
+  {
+    clipDistance[0] = 0         +pos.x;
+    clipDistance[1] = sz.x*pos.w-pos.x;
+    clipDistance[2] = 0         +pos.y;
+    clipDistance[3] = sz.y*pos.w-pos.y;
+  }
+
+  const vec2 pageId = vec2(unpackVsmPageId(shadowPageId));
+  pos.xy = (pos.xy + pageId*pos.w)/VSM_PAGE_PER_ROW;
+
+  pos.xy = pos.xy*2.0-1.0*pos.w; // [-1..1]
+  return pos;
+  }
+
+vec4 mapViewportOrtho(const uint data, vec4 pos, out float clipDistance[4]) {
   const ivec3 page = unpackVsmPageInfo(data);
   const ivec2 sz   = unpackVsmPageSize(data);
   pos.xy /= float(1u << page.z);
@@ -84,6 +105,13 @@ vec4 mapViewport(vec4 pos, out float clipDistance[4]) {
 
   pos.xy = pos.xy*2.0-1.0; // [-1..1]
   return pos;
+  }
+
+vec4 mapViewport(vec4 pos, out float clipDistance[4]) {
+  const uint  data = vsm.pageList[shadowPageId];
+  if((data & 0x1)==0x1)
+    return mapViewportProj(data, pos, clipDistance);
+  return mapViewportOrtho(data, pos, clipDistance);
   }
 #endif
 

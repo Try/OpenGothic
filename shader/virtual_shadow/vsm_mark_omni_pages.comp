@@ -26,17 +26,15 @@ layout(binding = 1)         uniform texture2D  gbufDiffuse;
 layout(binding = 2)         uniform utexture2D gbufNormal;
 layout(binding = 3)         uniform texture2D  depth;
 layout(binding = 4, std430) readonly buffer Lbo { LightSource  lights[]; };
-// layout(binding = 5, std430) buffer Pbo          { uint         lightPages[]; };
 layout(binding = 5, std430) buffer Omni         { uint         omniPages[]; };
 layout(binding = 6, r32ui)  uniform uimage2D   dbgImg;
 
 shared uint  tileDepthMin, tileDepthMax;
 shared uint  lightCount;
 shared uint  lightId[NumThreads];
-// shared uint  lightMask[NumThreads/32];
 shared uint  omniPagesTmp[NumThreads*6];
 
-shared uint  lightFineCount;
+shared uint  lightFineCount; //dbg
 
 ivec2 fragCoord    = ivec2(gl_GlobalInvocationID.xy);
 ivec2 viewportSize = textureSize(depth, 0);
@@ -109,7 +107,6 @@ void processLightTiles(const vec3 pos, const vec3 normal) {
       continue;
     if(dot(normal, ldir) < 0)
       continue;
-    //atomicOr(lightMask[i/32], 1u<<(i%32));
 
     const uint fc = dirToFace(ldir);
     atomicOr(omniPagesTmp[i*6 + fc],  1); //TODO: page bitmask
@@ -118,7 +115,7 @@ void processLightTiles(const vec3 pos, const vec3 normal) {
 
   for(uint i=laneId; i<count; i+=NumThreads) {
     const uint id = lightId[i];
-    omniPages[id] = omniPagesTmp[i];
+    atomicOr(omniPages[id], omniPagesTmp[i]);
     }
   //for(uint i=laneId; i<lightPagesTmp.length(); i+=NumThreads)
   //  lightPagesTmp[i] = 0;

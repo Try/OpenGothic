@@ -271,7 +271,7 @@ void DrawCommands::updateTasksUniforms() {
     v.descPackDraw1.set(4, *scene.vsmPageList);
     }
 
-  updateVsmUniforms();
+  updatsSwrUniforms();
   }
 
 void DrawCommands::updateCommandUniforms() {
@@ -352,6 +352,7 @@ void DrawCommands::updateCommandUniforms() {
         if(v==SceneGlobals::V_Vsm) {
           desc[v].set(L_CmdOffsets, views[v].indirectCmd);
           desc[v].set(L_VsmPages,   *scene.vsmPageList);
+          desc[v].set(L_VsmLights,  *scene.lights);
           }
         }
 
@@ -360,11 +361,16 @@ void DrawCommands::updateCommandUniforms() {
       }
     }
 
-  updateVsmUniforms();
+  updatsSwrUniforms();
   }
 
-void DrawCommands::updateVsmUniforms() {
-  if(Gothic::options().swRenderingPreset==0 && Gothic::options().doVirtualShadow==false)
+void DrawCommands::updateLigtsUniforms() {
+  //NOTE: causes dev-idle, need to rework
+  updateCommandUniforms();
+  }
+
+void DrawCommands::updatsSwrUniforms() {
+  if(Gothic::options().swRenderingPreset==0)
     return;
 
   auto& device = Resources::device();
@@ -421,15 +427,6 @@ void DrawCommands::updateVsmUniforms() {
     vsmDesc.set(7, tex);
     vsmDesc.set(8, Sampler::bilinear());
     }
-  }
-
-void DrawCommands::prepareUniforms() {
-  // updateTasksUniforms();
-  updateCommandUniforms();
-  }
-
-void DrawCommands::prepareLigtsUniforms() {
-  updateVsmUniforms();
   }
 
 void DrawCommands::updateUniforms(uint8_t fId) {
