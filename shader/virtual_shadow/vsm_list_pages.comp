@@ -12,12 +12,13 @@ layout(local_size_x = 32, local_size_y = 32) in;
 
 layout(binding = 0, std430) buffer Pages { VsmHeader header; uint  pageList[]; } vsm;
 layout(binding = 1, r32ui)  uniform uimage3D pageTbl;
-layout(binding = 2, std430) buffer Omni  { uint omniPages[]; };
+layout(binding = 2, std430) readonly buffer Omni  { uint pageTblOmni[]; };
 layout(binding = 3, r32ui)  uniform uimage2D dbg;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
 shared uint pageListPrefix;
+shared uint pageOmni;
 shared uint bits[(NumThreads+31)/32];
 
 ivec2 loadPageSize(ivec3 at) {
@@ -63,23 +64,27 @@ void listPages(uint mip) {
 void listOmni() {
   const uint lane = gl_LocalInvocationIndex;
 
-  for(uint i=lane; i<omniPages.length(); i+=NumThreads) {
+  uint loopPrefix = 0;
+  for(uint i=lane; i<pageTblOmni.length(); i+=NumThreads) {
     if(lane<bits.length())
       bits[lane] = 0;
     barrier();
 
-    const bool bit = omniPages[i]!=0;
+    const bool bit = pageTblOmni[i]!=0;
     if(bit)
       atomicOr(bits[lane/32], 1u<<(lane%32));
     barrier();
 
     if(bit) {
-      const uint id = pageListPrefix + bitCountShared(lane);
-      vsm.pageList[id] = packVsmPageInfo(i/6, i%6, ivec2(0), ivec2(8));
-      atomicAdd(vsm.header.pageOmni, 1);
+      const uint id = pageListPrefix + loopPrefix + bitCountShared(lane);
+      vsm.pageList[id] = packVsmPageInfo(i/6, i%6, ivec2(0), ivec2(4));
+      atomicAdd(pageOmni, 1);
       }
     barrier();
+    loopPrefix += NumThreads;
     }
+  vsm.header.pageOmniCount = pageOmni;
+  vsm.header.pageCount     = pageListPrefix + pageOmni;
   }
 
 void main() {
@@ -87,6 +92,7 @@ void main() {
   const uint mip  = gl_WorkGroupID.x;
 
   pageListPrefix = 0;
+  pageOmni       = 0;
   barrier();
 
   if(lane<mip && lane<VSM_PAGE_MIPS)

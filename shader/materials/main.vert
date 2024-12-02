@@ -65,7 +65,7 @@ uint shadowPageId = 0;
 #if defined(VIRTUAL_SHADOW)
 vec4 mapViewportProj(const uint data, vec4 pos, out float clipDistance[4]) {
   const uvec2 lightId = unpackLightId(data);
-  const ivec3 page    = unpackVsmPageInfo(data);
+  const ivec3 page    = unpackVsmPageInfo(data);//fixme
   const ivec2 sz      = unpackVsmPageSize(data);
 
   pos.xy = (pos.xy*0.5+0.5*pos.w); // [0..1]
@@ -109,7 +109,7 @@ vec4 mapViewportOrtho(const uint data, vec4 pos, out float clipDistance[4]) {
 
 vec4 mapViewport(vec4 pos, out float clipDistance[4]) {
   const uint  data = vsm.pageList[shadowPageId];
-  if((data & 0x1)==0x1)
+  if(vsmPageIsOmni(data))
     return mapViewportProj(data, pos, clipDistance);
   return mapViewportOrtho(data, pos, clipDistance);
   }

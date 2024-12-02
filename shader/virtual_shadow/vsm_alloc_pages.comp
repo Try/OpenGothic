@@ -12,7 +12,7 @@ layout(local_size_x = 32, local_size_y = 32) in;
 
 layout(binding = 0, std430) buffer Pages { VsmHeader header; uint  pageList[]; } vsm;
 layout(binding = 1, r32ui)  uniform uimage3D pageTbl;
-layout(binding = 2, std430) buffer Omni  { uint omniPages[]; };
+layout(binding = 2, std430) buffer Omni  { uint pageTblOmni[]; };
 layout(binding = 3, r32ui)  uniform uimage2D dbg;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
@@ -39,6 +39,17 @@ void storePage(ivec2 pId, ivec3 at, ivec2 tile, ivec2 size) {
   //imageStore(dbg, pId, uvec4(1));
   }
 
+void storePage(ivec2 pId, uint lightId, uint face, ivec2 at, ivec2 tile, ivec2 size) {
+  const uint pageId = pId.x + pId.y*VSM_PAGE_PER_ROW;
+
+  vsm.pageList[pageId] = packVsmPageInfo(lightId, face, at, size);
+  atomicMax(vsm.header.pageCount, pageId+1);
+
+  pageTblOmni[lightId*6+face] = pageId << 16u;
+  imageStore(dbg, pId, uvec4(size.y>0 ? 9 : 0));
+  //imageStore(dbg, pId, uvec4(1));
+  }
+
 uint bitCountShared(uint till) {
   uint n = till/32;
   uint f = till%32;
@@ -55,7 +66,6 @@ void listPages() {
   pageListSize = vsm.header.pageCount;
   for(uint i=lane; i<pageListSize; i+=NumThreads)
     pageList[i] = vsm.pageList[i];
-  barrier();
   }
 
 ivec2 findRowCol(in uint page, const uvec2 size) {
@@ -74,8 +84,9 @@ ivec2 findRowCol(in uint page, const uvec2 size) {
   return ivec2(-1);
   }
 
-void layoutPages(uint pageData, uvec2 pageSz, uvec2 size) {
-  const uint lane = gl_LocalInvocationIndex;
+void layoutPages(uint pageData, bool omni, uvec2 pageSz, uvec2 size) {
+  const uint lane  = gl_LocalInvocationIndex;
+  const bool valid = pageSz==size; // && !omni;
 
   pageListSize = 0;
   if(lane < bits.length())
@@ -84,11 +95,11 @@ void layoutPages(uint pageData, uvec2 pageSz, uvec2 size) {
     ladder[lane] = ladderWr[lane];
   barrier();
 
-  if(pageSz==size)
+  if(valid)
     atomicOr(bits[lane/32], 1u<<(lane%32));
   barrier();
 
-  if(pageSz==size) {
+  if(valid) {
     uint id = bitCountShared(lane);
     pageList[id] = pageData;
     atomicMax(pageListSize, id+1);
@@ -105,12 +116,30 @@ void layoutPages(uint pageData, uvec2 pageSz, uvec2 size) {
     if(rc.x<0)
       break;
 
-    const ivec3 at = unpackVsmPageInfo(pageList[page]);
-    const ivec2 tx = ivec2(tile/size.y, tile%size.y);
-    storePage(rc+tx, at, tx, tile==0 ? ivec2(size) : ivec2(0));
+    const uint  data = pageList[page];
+    const ivec2 tx   = ivec2(tile/size.y, tile%size.y);
+    if(vsmPageIsOmni(data)) {
+      const uvec2 lightId = unpackLightId(data);
+      const ivec2 at      = unpackVsmPageInfoProj(data);
+      storePage(rc+tx, lightId.x, lightId.y, at, tx, tile==0 ? ivec2(size) : ivec2(0));
+      } else {
+      const ivec3 at = unpackVsmPageInfo(data);
+      storePage(rc+tx, at, tx, tile==0 ? ivec2(size) : ivec2(0));
+      }
+
     atomicMax(ladderWr[rc.y+tx.y], rc.x + tx.x + 1);
     }
   barrier();
+  }
+
+void clearDbg() {
+  uvec2 sz = imageSize(dbg);
+
+  const ivec3 id = ivec3(gl_LocalInvocationID);
+  for(uint x=id.x; x<sz.x; x+=gl_WorkGroupSize.x)
+    for(uint y=id.y; y<sz.y; y+=gl_WorkGroupSize.y)
+      imageStore(dbg, ivec2(x,y), uvec4(0));
+  memoryBarrierImage();
   }
 
 void main() {
@@ -121,24 +150,25 @@ void main() {
     ladderWr[lane] = 0;
   barrier();
 
-  imageStore(dbg, at.xy, uvec4(0));
-  memoryBarrierImage();
+  clearDbg();
   barrier();
 
   listPages();
+  barrier();
 
-  if(lane < vsm.pageList.length())
-    vsm.pageList[lane] = 0;
+  for(uint i=lane; i<vsm.pageList.length(); i+=NumThreads)
+    vsm.pageList[i] = 0;
   memoryBarrierBuffer();
   barrier();
 
   const uint  frag = lane<pageListSize ? pageList[lane] : 0;
+  const bool  omni = vsmPageIsOmni(frag);
   const uvec2 size = unpackVsmPageSize(frag);
   barrier();
 
-  layoutPages(frag, size, uvec2(4));
-  layoutPages(frag, size, uvec2(1, 4));
-  layoutPages(frag, size, uvec2(2));
-  layoutPages(frag, size, uvec2(1, 2));
-  layoutPages(frag, size, uvec2(1));
+  layoutPages(frag, omni, size, uvec2(4));
+  layoutPages(frag, omni, size, uvec2(1, 4));
+  layoutPages(frag, omni, size, uvec2(2));
+  layoutPages(frag, omni, size, uvec2(1, 2));
+  layoutPages(frag, omni, size, uvec2(1));
   }

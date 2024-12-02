@@ -12,7 +12,7 @@ layout(local_size_x = 32, local_size_y = 32) in;
 
 layout(binding = 0, std430) buffer Pages { VsmHeader header; uint  pageList[]; } vsm;
 layout(binding = 1, r32ui)  uniform uimage3D pageTbl;
-layout(binding = 2, std430) buffer Omni  { uint omniPages[]; };
+layout(binding = 2, std430) readonly buffer Omni  { uint pageTblOmni[]; };
 layout(binding = 3, r32ui)  uniform uimage2D dbg;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
@@ -24,9 +24,10 @@ void provokingPage(uint lane) {
   const uint  row = lane/VSM_PAGE_TBL_SIZE;
   const uint  col = lane%VSM_PAGE_TBL_SIZE;
   const uint  p   = vsm.pageList[lane];
+  const bool  om  = vsmPageIsOmni(p);
   const uint  sz  = unpackVsmPageSize(p).y;
   const ivec3 at  = unpackVsmPageInfo(p);
-  if(sz<=0)
+  if(sz<=0 || om)
     return;
 
   if(col==0) {
@@ -40,10 +41,11 @@ void provokingPage(uint lane) {
   //return;
 
   const uint  p1  = vsm.pageList[lane-sz.x];
+  const bool  om1 = vsmPageIsOmni(p1);
   const uint  sz1 = unpackVsmPageSize(p1).y;
   const ivec3 at1 = unpackVsmPageInfo(p1);
 
-  if(sz==sz1 && at1+ivec3(sz,0,0)==at)
+  if(sz==sz1 && at1+ivec3(sz,0,0)==at && !om1)
     return;
 
   uint id = atomicAdd(pageListSize, 1);
@@ -83,9 +85,10 @@ void main() {
   for(uint i=col+sz.x; i<VSM_PAGE_TBL_SIZE; i+=sz.x) {
     const uint  pId1 = off+i;
     const uint  p1   = vsm.pageList[pId1];
+    const bool  om1  = vsmPageIsOmni(p1);
     const uvec2 sz1  = unpackVsmPageSize(p1);
     const ivec3 at1  = unpackVsmPageInfo(p1);
-    if(sz.y!=sz1.y || at+uvec3(size,0,0)!=at1)
+    if(sz.y!=sz1.y || at+uvec3(size,0,0)!=at1 || om1)
       break;
     if(size+sz.x>=16) {
       // restart stripe

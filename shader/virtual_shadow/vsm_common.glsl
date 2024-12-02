@@ -20,7 +20,7 @@ struct VsmHeader {
   uint  counterV;
   uint  pagePerMip[VSM_PAGE_MIPS];
   ivec4 pageBbox[VSM_PAGE_MIPS];
-  uint  pageOmni;
+  uint  pageOmniCount;
   };
 
 struct Epipole {
@@ -58,9 +58,20 @@ uint packVsmPageInfo(uint lightId, uint face, ivec2 at, ivec2 size) {
   return 0x1 | ((lightId & 0x7FFF) << 1) | ((at.x & 0xF) << 16) | ((at.y & 0xF) << 20) | ((size.x & 0xF) << 24) | ((size.y & 0xF) << 28);
   }
 
+bool vsmPageIsOmni(uint p) {
+  return (p & 0x1)==0x1;
+  }
+
 uvec2 unpackLightId(uint p) {
   uint i = uint((p & 0xFFFF) >> 1);
   return uvec2(i/6, i%6);
+  }
+
+ivec2 unpackVsmPageInfoProj(uint p) {
+  ivec2 r;
+  r.x = int(p >> 16) & 0xF;
+  r.y = int(p >> 20) & 0xF;
+  return r;
   }
 
 uint packVsmPageId(uint pageI) {

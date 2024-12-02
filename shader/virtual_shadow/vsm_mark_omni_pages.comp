@@ -109,19 +109,16 @@ void processLightTiles(const vec3 pos, const vec3 normal) {
       continue;
 
     const uint fc = dirToFace(ldir);
-    atomicOr(omniPagesTmp[i*6 + fc],  1); //TODO: page bitmask
+    atomicAdd(omniPagesTmp[i*6 + fc],  1); //TODO: page bitmask
     }
   barrier();
 
-  for(uint i=laneId; i<count; i+=NumThreads) {
-    const uint id = lightId[i];
-    atomicOr(omniPages[id], omniPagesTmp[i]);
+  const uint pageCount = lightCount*6;
+  for(uint i=laneId; i<pageCount; i+=NumThreads) {
+    const uint id = lightId[i/6];
+    const uint fc = i%6;
+    atomicAdd(omniPages[id*6 + fc], omniPagesTmp[i]);
     }
-  //for(uint i=laneId; i<lightPagesTmp.length(); i+=NumThreads)
-  //  lightPagesTmp[i] = 0;
-
-  //for(uint i=gl_LocalInvocationIndex; i<lightMask.length(); i+=NumThreads)
-  //  atomicAdd(lightFineCount, bitCount(lightMask[i]));
   }
 
 void processLights(const vec3 pos, const vec3 normal) {
@@ -170,8 +167,6 @@ void main() {
   lightCount   = 0;
   tileDepthMin = floatBitsToUint(1);
   tileDepthMax = floatBitsToUint(0);
-  // for(uint i=laneId; i<lightMask.length(); i+=NumThreads)
-  //   lightMask[i] = 0;
   for(uint i=laneId; i<omniPagesTmp.length(); i+=NumThreads)
     omniPagesTmp[i] = 0;
   barrier();
