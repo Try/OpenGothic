@@ -55,7 +55,7 @@ ivec2 unpackVsmPageSize(uint p) {
 uint packVsmPageInfo(uint lightId, uint face, ivec2 at, ivec2 size) {
   // 1 : 15 : 4 : 4 : 4 : 4
   uint idx = lightId*6 + face; // 5k omni lights
-  return 0x1 | ((lightId & 0x7FFF) << 1) | ((at.x & 0xF) << 16) | ((at.y & 0xF) << 20) | ((size.x & 0xF) << 24) | ((size.y & 0xF) << 28);
+  return 0x1 | ((idx & 0x7FFF) << 1) | ((at.x & 0xF) << 16) | ((at.y & 0xF) << 20) | ((size.x & 0xF) << 24) | ((size.y & 0xF) << 28);
   }
 
 bool vsmPageIsOmni(uint p) {
@@ -63,7 +63,7 @@ bool vsmPageIsOmni(uint p) {
   }
 
 uvec2 unpackLightId(uint p) {
-  uint i = uint((p & 0xFFFF) >> 1);
+  uint i = uint(p >> 1) & 0x7FFF;
   return uvec2(i/6, i%6);
   }
 
@@ -174,6 +174,17 @@ float shadowTexelFetch_(in vec2 page, in int mip, in utexture3D pageTbl, in text
     page *= 2.0;
     mip--;
     }
+  return 0;
+  }
+
+uint vsmLightDirToFace(vec3 d) {
+  const vec3 ad = abs(d);
+  if(ad.x > ad.y && ad.x > ad.z)
+    return d.x>=0 ? 0 : 1;
+  if(ad.y > ad.x && ad.y > ad.z)
+    return d.y>=0 ? 2 : 3;
+  if(ad.z > ad.x && ad.z > ad.y)
+    return d.z>=0 ? 4 : 5;
   return 0;
   }
 

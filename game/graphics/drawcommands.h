@@ -81,9 +81,10 @@ class DrawCommands {
       T_Bucket     = 3,
       T_Indirect   = 4,
       T_Clusters   = 5,
-      T_HiZ        = 6,
-      T_VsmPages   = 7,
-      T_CmdOffsets = 8,
+      T_Lights     = 6,
+      T_HiZ        = 7,
+      T_VsmPages   = 8,
+      T_CmdOffsets = 9,
       };
 
     enum UboLinkpackage : uint8_t {
@@ -104,7 +105,7 @@ class DrawCommands {
       L_GDepth     = 13,
       L_CmdOffsets = 14,
       L_VsmPages   = L_Shadow0,
-      L_VsmLights  = L_Shadow1,
+      L_Lights     = L_Shadow1,
       };
 
     struct IndirectCmd {

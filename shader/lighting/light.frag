@@ -2,6 +2,10 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive    : enable
 
+#if defined(VIRTUAL_SHADOW)
+#include "virtual_shadow/vsm_common.glsl"
+#endif
+
 #include "lighting/rt/rt_common.glsl"
 #include "lighting/tonemapping.glsl"
 #include "scene.glsl"
@@ -21,8 +25,14 @@ layout(binding  = 1) uniform sampler2D  gbufDiffuse;
 layout(binding  = 2) uniform usampler2D gbufNormal;
 layout(binding  = 3) uniform sampler2D  depth;
 
-layout(location = 0) in vec4 cenPosition;
-layout(location = 1) in vec3 color;
+#if defined(VIRTUAL_SHADOW)
+layout(binding  = 5, std430) readonly buffer Omni  { uint pageTblOmni[]; };
+layout(binding  = 6)         uniform texture2D pageData;
+#endif
+
+layout(location = 0) in vec4      cenPosition;
+layout(location = 1) in vec3      color;
+layout(location = 2) in flat uint lightId;
 
 bool isShadow(vec3 rayOrigin, vec3 direction) {
 #if defined(RAY_QUERY)
@@ -44,12 +54,42 @@ bool isShadow(vec3 rayOrigin, vec3 direction) {
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT)
     return false;
   return true;
+#elif defined(VIRTUAL_SHADOW)
+
+  return false;
 #else
   return false;
 #endif
   }
 
-void main(void) {
+#if defined(VIRTUAL_SHADOW)
+void dbgVsm(vec3 dir) {
+  const uint face = vsmLightDirToFace(dir);
+  switch(face) {
+    case 0: dir = vec3(dir.yz, +dir.x); break;
+    case 1: dir = vec3(dir.yz, -dir.x); break;
+    case 2: dir = vec3(dir.xz, +dir.y); break;
+    case 3: dir = vec3(dir.xz, -dir.y); break;
+    case 4: dir = vec3(dir.xy, +dir.z); break;
+    case 5: dir = vec3(dir.xy, -dir.z); break;
+    }
+
+  const vec2  tc     = dir.xy/dir.z;
+  const uint  pageD  = pageTblOmni[lightId*6 + face];
+  const uint  pageId = pageD >> 16u;
+
+  const ivec2 at          = ivec2((tc*0.5+0.5)*4*VSM_PAGE_SIZE);
+  const ivec2 pageImageAt = unpackVsmPageId(pageId)*VSM_PAGE_SIZE + at;
+
+  float v  = texelFetch(pageData, pageImageAt, 0).x;
+
+  outColor = vec4(0, 0, v, 1);
+  //outColor = vec4(debugColors[face],1);
+  //outColor = vec4(debugColors[(pageId/4)%debugColors.length()],1);
+  }
+#endif
+
+void main() {
   vec2  scr = (gl_FragCoord.xy/vec2(textureSize(depth,0)))*2.0-1.0;
   float z   = texelFetch(depth, ivec2(gl_FragCoord.xy), 0).x;
 
@@ -74,6 +114,11 @@ void main(void) {
   float light   = (lambert/max(factor, 0.05)) * (smoothFactor*smoothFactor);
   if(light<=0.0)
     discard;
+
+#if defined(VIRTUAL_SHADOW)
+  dbgVsm(ldir);
+  return;
+#endif
 
   pos.xyz = pos.xyz+5.0*normal; //bias
   ldir    = (pos.xyz-cenPosition.xyz);

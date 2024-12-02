@@ -23,11 +23,12 @@ layout(binding = 2, std430) readonly buffer Mem { uint        instanceMem[]; };
 layout(binding = 3, std140) readonly buffer Bbo { Bucket      bucket[];      };
 layout(binding = 4, std430) buffer IndirectBuf  { IndirectCmd cmd[];         };
 layout(binding = 5, std430) readonly buffer Cbo { Cluster     clusters[];    };
+layout(binding = 6, std430) readonly buffer Lbo { LightSource  lights[]; };
 
-layout(binding = 6, r32ui)  uniform uimage3D pageTblDepth;
-layout(binding = 7, std430) buffer Pages        { VsmHeader   header; uint  pageList[]; } vsm;
+layout(binding = 7, r32ui)  uniform uimage3D pageTblDepth;
+layout(binding = 8, std430) buffer Pages        { VsmHeader   header; uint  pageList[]; } vsm;
 
-layout(binding = 8, r32ui)  uniform uimage2D dbg;
+layout(binding = 9, r32ui)  uniform uimage2D dbg;
 
 shared uint pageListSize;
 shared uint pageList[VSM_MAX_PAGES];
@@ -190,12 +191,33 @@ void pullPages(uint mip) {
   //const uint fragCount = VSM_PAGE_TBL_SIZE * VSM_PAGE_TBL_SIZE;
   for(uint i=lane; i<pageCount; i+=NumThreads) {
     const uint  data = vsm.pageList[i];
-    if(data==0)
+    if(data==0 || vsmPageIsOmni(data))
       continue;
     const ivec3 page = unpackVsmPageInfo(data);
     const ivec2 sz   = unpackVsmPageSize(data);
     if(page.z!=mip)
       continue;
+    if(sz==ivec2(0))
+      continue;
+
+    const uint id = atomicAdd(pageListSize, 1);
+    pageList[id] = i;
+    }
+  barrier();
+  }
+
+void pullPagesOmni() {
+  pageListSize = 0;
+  barrier();
+
+  const uint lane      = gl_LocalInvocationIndex;
+  const uint pageCount = vsm.header.pageCount;
+
+  for(uint i=lane; i<pageCount; i+=NumThreads) {
+    const uint  data = vsm.pageList[i];
+    if(data==0 || !vsmPageIsOmni(data))
+      continue;
+    const ivec2 sz = unpackVsmPageSize(data);
     if(sz==ivec2(0))
       continue;
 
@@ -252,8 +274,8 @@ void runCluster(const uint clusterId) {
 
     const ivec3 page = unpackVsmPageInfo(data);
     const ivec2 sz   = unpackVsmPageSize(data);
-    if(!(3<=page.z && page.z<=6))
-      ;//continue;
+    // if(!(3<=page.z && page.z<=6))
+    //   ;//continue;
 
     if(!pageBoundsTest(aabb, page, sz))
       continue;
@@ -278,12 +300,56 @@ void runCluster(const uint clusterId) {
     }
   }
 
-void main() {
-  pullPages(gl_GlobalInvocationID.y);
+
+void runClusterOmni(const uint clusterId) {
+  const Cluster cluster = clusters[clusterId];
+  if(cluster.sphere.w<=0.f)
+    return; // disabled or deleted
+
+  for(uint ix=0; ix<pageListSize; ++ix) {
+    const uint  i    = pageList[ix];
+    const uint  data = vsm.pageList[i];
+
+    const uvec2       page = unpackLightId(data);
+    const LightSource lx   = lights[page.x];
+
+    const vec3  dvec = lx.pos   - cluster.sphere.xyz;
+    const float r    = lx.range + cluster.sphere.w;
+
+    if(dot(dvec,dvec) > r*r)
+      continue;
+
+    // imageAtomicAdd(dbg, ivec2(0,1), cluster.meshletCount);
+    // imageAtomicAdd(dbg, ivec2(page.x%64,1+page.x/64), cluster.meshletCount);
+    if(!emitCluster(cluster, i))
+      break;
+    }
+  }
+
+void mainSunLight(uint mip) {
+  pullPages(mip);
   if(pageListSize==0)
     return;
 
   const uint clusterId = gl_GlobalInvocationID.x;
   if(clusterId<push.meshletCount)
     runCluster(clusterId);
+  }
+
+void mainOmniLights() {
+  pullPagesOmni();
+  if(pageListSize==0)
+    return;
+
+  const uint clusterId = gl_GlobalInvocationID.x;
+  if(clusterId<push.meshletCount)
+    runClusterOmni(clusterId);
+  }
+
+void main() {
+  if(gl_GlobalInvocationID.y>=VSM_PAGE_MIPS) {
+    mainOmniLights();
+    return;
+    }
+  mainSunLight(gl_GlobalInvocationID.y);
   }

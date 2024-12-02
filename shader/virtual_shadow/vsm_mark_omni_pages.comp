@@ -82,17 +82,6 @@ void hiTile(float depth) {
   atomicMin(tileDepthMin, d);
   }
 
-uint dirToFace(vec3 d) {
-  const vec3 ad = abs(d);
-  if(ad.x > ad.y && ad.x > ad.z)
-    return d.x>=0 ? 0 : 1;
-  if(ad.y > ad.x && ad.y > ad.z)
-    return d.y>=0 ? 2 : 3;
-  if(ad.z > ad.x && ad.z > ad.y)
-    return d.x>=0 ? 4 : 5;
-  return 0;
-  }
-
 void processLightTiles(const vec3 pos, const vec3 normal) {
   const uint laneId = gl_LocalInvocationIndex;
   const uint count  = lightCount;
@@ -100,15 +89,15 @@ void processLightTiles(const vec3 pos, const vec3 normal) {
   for(uint i=0; i<count; ++i) {
     const uint        id             = lightId[i];
     const LightSource lx             = lights[id];
-    const vec3        ldir           = (lx.pos - pos);
+    const vec3        ldir           = (pos - lx.pos);
     const float       distanceSquare = dot(ldir,ldir);
     const float       rangeSquare    = lx.range*lx.range;
     if(rangeSquare < distanceSquare)
       continue;
-    if(dot(normal, ldir) < 0)
+    if(dot(normal, ldir) >= 0)
       continue;
 
-    const uint fc = dirToFace(ldir);
+    const uint fc = vsmLightDirToFace(ldir);
     atomicAdd(omniPagesTmp[i*6 + fc],  1); //TODO: page bitmask
     }
   barrier();
@@ -135,7 +124,7 @@ void processLights(const vec3 pos, const vec3 normal) {
 
   for(uint i=laneId; i<lights.length(); i+=NumThreads) {
     if(i+1!=lights.length())
-      ;//continue;
+      ; //continue;
     if(!projectSphere(vec4(lights[i].pos, lights[i].range), aabb, depthMin, depthMax))
       continue;
     if(depthMin>tMax)

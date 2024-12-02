@@ -64,8 +64,8 @@ void listPages(uint mip) {
 void listOmni() {
   const uint lane = gl_LocalInvocationIndex;
 
-  uint loopPrefix = 0;
   for(uint i=lane; i<pageTblOmni.length(); i+=NumThreads) {
+    const uint prefix = pageListPrefix + pageOmni;
     if(lane<bits.length())
       bits[lane] = 0;
     barrier();
@@ -76,12 +76,11 @@ void listOmni() {
     barrier();
 
     if(bit) {
-      const uint id = pageListPrefix + loopPrefix + bitCountShared(lane);
+      const uint id = prefix + bitCountShared(lane);
       vsm.pageList[id] = packVsmPageInfo(i/6, i%6, ivec2(0), ivec2(4));
       atomicAdd(pageOmni, 1);
       }
     barrier();
-    loopPrefix += NumThreads;
     }
   vsm.header.pageOmniCount = pageOmni;
   vsm.header.pageCount     = pageListPrefix + pageOmni;
@@ -98,10 +97,6 @@ void main() {
   if(lane<mip && lane<VSM_PAGE_MIPS)
     atomicAdd(pageListPrefix, vsm.header.pagePerMip[lane]);
   barrier();
-
-  if(mip+1==VSM_PAGE_MIPS && lane==mip) {
-    vsm.header.pageCount = pageListPrefix + vsm.header.pagePerMip[lane];
-    }
 
   if(mip<VSM_PAGE_MIPS) {
     listPages(mip);

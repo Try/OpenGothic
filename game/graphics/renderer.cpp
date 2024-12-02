@@ -144,10 +144,8 @@ void Renderer::resetSwapchain() {
 
   if(smSize>0) {
     for(int i=0; i<Resources::ShadowLayers; ++i) {
-      if(settings.vsmEnabled && (!settings.giEnabled && i!=1))
-        continue;
-      if(settings.vsmEnabled && !settings.giEnabled)
-        ;//continue; //TODO: support vsm in gi code
+      if(settings.vsmEnabled && !(settings.giEnabled && i==1))
+        continue; //TODO: support vsm in gi code
       shadowMap[i] = device.zbuffer(shadowFormat,smSize,smSize);
       }
     }
@@ -1129,6 +1127,10 @@ void Renderer::drawLights(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& w
     lights.ubo.set(2, gbufNormal,  Sampler::nearest());
     lights.ubo.set(3, zbuffer,     Sampler::nearest());
     lights.ubo.set(4, wview.lights().lightsSsbo());
+    if(lights.directLightPso==&Shaders::inst().lightsVsm) {
+      lights.ubo.set(5, vsm.pageTblOmni);
+      lights.ubo.set(6, vsm.pageData);
+      }
     if(lights.directLightPso==&Shaders::inst().lightsRq) {
       lights.ubo.set(6, scene.rtScene.tlas);
       lights.ubo.set(7, Sampler::bilinear());

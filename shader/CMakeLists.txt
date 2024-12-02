@@ -204,6 +204,7 @@ add_shader(light.vert                lighting/light.vert)
 add_shader(light.frag                lighting/light.frag)
 add_shader(light_rq.frag             lighting/light.frag -DRAY_QUERY)
 add_shader(light_rq_at.frag          lighting/light.frag -DRAY_QUERY -DRAY_QUERY_AT)
+add_shader(light_vsm.frag            lighting/light.frag -DVIRTUAL_SHADOW)
 
 add_shader(irradiance.comp           lighting/irradiance.comp)
 add_shader(sky_exposure.comp         lighting/sky_exposure.comp)

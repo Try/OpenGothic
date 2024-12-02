@@ -23,7 +23,7 @@ class Shaders {
 
     static Shaders& inst();
 
-    Tempest::RenderPipeline  lights, lightsRq;
+    Tempest::RenderPipeline  lights, lightsRq, lightsVsm;
     Tempest::RenderPipeline  directLight,  directLightSh, directLightRq;
     Tempest::RenderPipeline  ambientLight, ambientLightSsao;
 

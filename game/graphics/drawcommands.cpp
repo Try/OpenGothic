@@ -246,9 +246,10 @@ void DrawCommands::updateTasksUniforms() {
       i.desc.set(T_HiZ,      *scene.hiZ);
       } else {
       i.desc.set(T_Payload,  views[i.viewport].vsmClusters); //unsorted clusters
+      i.desc.set(T_Lights,   *scene.lights);
       i.desc.set(T_HiZ,      *scene.vsmPageHiZ);
       i.desc.set(T_VsmPages, *scene.vsmPageList);
-      i.desc.set(8,          scene.vsmDbg);
+      i.desc.set(9,          scene.vsmDbg);
       // i.desc.set(T_PkgOffsets, views[i.viewport].pkgOffsets);
       }
     }
@@ -352,7 +353,7 @@ void DrawCommands::updateCommandUniforms() {
         if(v==SceneGlobals::V_Vsm) {
           desc[v].set(L_CmdOffsets, views[v].indirectCmd);
           desc[v].set(L_VsmPages,   *scene.vsmPageList);
-          desc[v].set(L_VsmLights,  *scene.lights);
+          desc[v].set(L_Lights,     *scene.lights);
           }
         }
 
@@ -506,7 +507,7 @@ void DrawCommands::visibilityVsm(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     auto* pso = &Shaders::inst().vsmClusterTask;
     cmd.setUniforms(*pso, i.desc, &push, sizeof(push));
 #if 1
-    cmd.dispatchThreads(push.meshletCount, size_t(scene.vsmPageTbl->d()));
+    cmd.dispatchThreads(push.meshletCount, size_t(scene.vsmPageTbl->d() + 1));
 #else
     cmd.dispatch(push.meshletCount);
 #endif

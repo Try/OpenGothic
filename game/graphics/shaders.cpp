@@ -120,6 +120,10 @@ Shaders::Shaders() {
       }
     lightsRq = device.pipeline(Triangles, state, vsLight, fsLight);
     }
+    sh      = GothicShader::get("light_vsm.frag.sprv");
+    fsLight = device.shader(sh.data,sh.len);
+    lightsVsm = device.pipeline(Triangles, state, vsLight, fsLight);
+    }
   }
 
   tonemapping        = postEffect("tonemapping", "tonemapping",    RenderState::ZTestMode::Always);
