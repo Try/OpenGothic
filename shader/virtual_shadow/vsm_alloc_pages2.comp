@@ -1,0 +1,154 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+#include "virtual_shadow/vsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(binding = 0, std430) buffer Pages { VsmHeader header; uint  pageList[]; } vsm;
+layout(binding = 1, r32ui)  uniform uimage3D pageTbl;
+layout(binding = 2, std430) buffer Omni  { uint pageTblOmni[]; };
+layout(binding = 3, r32ui)  uniform uimage2D dbg;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+//shared uint pageListSize;
+//shared uint pageList[VSM_MAX_PAGES];
+shared uint bits[(NumThreads+31)/32];
+
+shared uint pages4x4;
+//shared uint pages1x4;
+shared uint pages2x2;
+//shared uint pages1x2;
+shared uint pages1x1;
+
+void storePage(ivec2 pId, ivec3 at, ivec2 tile, ivec2 size) {
+  const uint pageId = pId.x + pId.y*VSM_PAGE_PER_ROW;
+
+  vsm.pageList[pageId] = packVsmPageInfo(at, size);
+  atomicMax(vsm.header.pageCount, pageId+1);
+
+  at += ivec3(tile,0);
+  const uint prime = imageLoad(pageTbl, at).r & 0x1;
+  imageStore(pageTbl, at, uvec4((pageId << 16u) | prime));
+
+  imageStore(dbg, pId, uvec4(size.y));
+  //imageStore(dbg, pId, uvec4(1));
+  }
+
+uint bitCountShared(uint till) {
+  uint n = till/32;
+  uint f = till%32;
+  uint r = 0;
+  for(uint i=0; i<n; ++i)
+    r += bitCount(bits[i]);
+  r += bitCount(bits[n] & ((1u << f)-1u));
+  return r;
+  }
+
+void pageCountPass() {
+  const uint lane      = gl_LocalInvocationIndex;
+  const uint pageCount = vsm.header.pageCount;
+
+  for(uint i=lane; i<pageCount; i+=NumThreads) {
+    const uint  page = vsm.pageList[i];
+    const uvec2 size = unpackVsmPageSize(page);
+
+    if(size==uvec2(4,4))
+      atomicAdd(pages4x4, 1);
+    else if(size==uvec2(1,4))
+      ;//atomicAdd(pages1x4, 1);
+    else if(size==uvec2(2,2))
+      atomicAdd(pages2x2, 1);
+    else if(size==uvec2(1,2))
+      ;//atomicAdd(pages1x2, 1);
+    else if(size==uvec2(1,1))
+      atomicAdd(pages1x1, 1);
+    }
+  }
+
+bool layoutPages(out ivec4 subrect0, out ivec4 subrect1, const ivec2 at, const ivec2 rect, const uint pageCnt, const uvec2 pageSz) {
+  //const uint perRow = VSM_PAGE_PER_ROW/size.x;
+  const uint perRow  = rect.x/pageSz.x;
+  const uint fullRow = pageCnt/perRow;
+  const uint lastRow = pageCnt%perRow;
+
+  const ivec2 frag = ivec2(gl_GlobalInvocationID);
+
+  if(at.y<fullRow*pageSz.y) {
+    if(at.x % pageSz.x == 0 && at.y % pageSz.y == 0)
+      imageStore(dbg, frag, uvec4(pageSz.y)); else
+      imageStore(dbg, frag, uvec4(1));
+    return true;
+    }
+
+  if(at.y<(fullRow+1)*pageSz.y && at.x<lastRow*pageSz.x) {
+    if(at.x % pageSz.x == 0 && at.y % pageSz.y == 0)
+      imageStore(dbg, frag, uvec4(pageSz.y)); else
+      imageStore(dbg, frag, uvec4(1));
+    return true;
+    }
+
+  subrect0.xy = ivec2(lastRow*pageSz.x, fullRow*pageSz.y);
+  subrect0.zw = rect-subrect0.xy;
+
+  subrect1.xy = ivec2(0, (fullRow+1)*pageSz.y);
+  subrect1.zw = rect-subrect1.xy;
+  return false;
+  }
+
+bool layoutPages1x1(const ivec2 at, const ivec2 rect) {
+  ivec4 subrect0, subrect1;
+  return layoutPages(subrect0, subrect1, at, rect, pages1x1, uvec2(1,1));
+  }
+
+bool layoutPages2x2(const ivec2 at, const ivec2 rect) {
+  ivec4 subrect0, subrect1;
+  if(layoutPages(subrect0, subrect1, at, rect, pages2x2, uvec2(2,2)))
+    return true;
+  if(layoutPages1x1(at-subrect0.xy, subrect0.zw))
+    return true;
+  if(layoutPages1x1(at-subrect1.xy, subrect1.zw))
+    return true;
+  return false;
+  }
+
+void layoutPages4x4(const ivec2 at, const ivec2 rect) {
+  ivec4 subrect0, subrect1;
+  if(layoutPages(subrect0, subrect1, at, rect, pages4x4, uvec2(4,4)))
+    return;
+  if(layoutPages2x2(at-subrect0.xy, subrect0.zw))
+    return;
+  if(layoutPages2x2(at-subrect1.xy, subrect1.zw))
+    return;
+  }
+
+void layoutPages() {
+  const ivec2 at = ivec2(gl_GlobalInvocationID);
+  layoutPages4x4(at, ivec2(VSM_PAGE_PER_ROW,VSM_PAGE_PER_ROW));
+  }
+
+void main() {
+  const ivec3 at = ivec3(gl_GlobalInvocationID);
+
+  pages4x4 = 0;
+  //pages1x4 = 0;
+  pages2x2 = 0;
+  //pages1x2 = 0;
+  pages1x1 = 0;
+  barrier();
+
+  imageStore(dbg, at.xy, uvec4(0));
+  memoryBarrierImage();
+  barrier();
+
+  pageCountPass();
+  barrier();
+
+  layoutPages();
+  }
