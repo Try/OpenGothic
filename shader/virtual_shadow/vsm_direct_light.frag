@@ -137,9 +137,11 @@ void main() {
   outColor = vec4(0,0,0, 1);
 
 #if 1
-  int v = int(vsm.header.pageCount);
-  // int v = int(vsm.header.pageOmniCount);
-  if(drawInt(gl_FragCoord.xy-vec2(100), v)>0) {
+  if(drawInt(gl_FragCoord.xy-vec2(100,100), int(vsm.header.pageCount))>0) {
+    outColor = vec4(1);
+    return;
+    }
+  if(drawInt(gl_FragCoord.xy-vec2(100,200), int(vsm.header.pageOmniCount))>0) {
     outColor = vec4(1);
     return;
     }

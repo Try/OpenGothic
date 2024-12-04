@@ -66,13 +66,13 @@ bool isShadow(vec3 rayOrigin, vec3 direction) {
 bool dbgVsm(vec3 dir, float R) {
   outColor  = vec4(0);
   const uint face = vsmLightDirToFace(dir);
-  if(face!=0 && face!=3)
-    ;//return false;
+  //if(face!=0 && face!=3)
+  //  return false;
 
   switch(face) {
     case 0: dir = vec3(dir.yz, +dir.x); break;
     case 1: dir = vec3(dir.zy, -dir.x); break;
-    case 2: dir = vec3(dir.xz, +dir.y); break;
+    case 2: dir = vec3(dir.zx, +dir.y); break;
     case 3: dir = vec3(dir.xz, -dir.y); break;
     case 4: dir = vec3(dir.xy, +dir.z); break;
     case 5: dir = vec3(dir.yx, -dir.z); break;
@@ -86,7 +86,7 @@ bool dbgVsm(vec3 dir, float R) {
   const ivec2 pageImageAt = unpackVsmPageId(pageId)*VSM_PAGE_SIZE + at;
   const float z           = texelFetch(pageData, pageImageAt, 0).x;
 
-  const float zNear = 0.01;
+  const float zNear = 0.03;
   const float zFar  = 1.0;
   const float k     = zFar / (zFar - zNear);
   const float kw    = (zNear * zFar) / (zNear - zFar);
