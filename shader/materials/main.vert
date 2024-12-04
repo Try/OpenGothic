@@ -64,20 +64,11 @@ uint shadowPageId = 0;
 
 #if defined(VIRTUAL_SHADOW)
 vec4 mapViewportProj(const uint data, vec4 pos, out float clipDistance[4]) {
-#if 0
-  clipDistance[0] = 1;
-  clipDistance[1] = 1;
-  clipDistance[2] = 1;
-  clipDistance[3] = 1;
-  return pos;
-#endif
-
-  const uint VSM_PAGE_TBL_SIZE = 4;
   const ivec2 page    = ivec2(0); // unpackVsmPageInfoProj(data);
   const ivec2 sz      = unpackVsmPageSize(data);
 
   pos.xy = (pos.xy*0.5+0.5*pos.w); // [0..1]
-  pos.xy = (pos.xy*VSM_PAGE_TBL_SIZE - page.xy*pos.w);
+  pos.xy = (pos.xy*VSM_CUBE_TBL_SIZE - page.xy*pos.w);
 
   {
     clipDistance[0] = 0         +pos.x;

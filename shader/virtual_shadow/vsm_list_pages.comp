@@ -77,7 +77,7 @@ void listOmni() {
 
     if(bit) {
       const uint id = prefix + bitCountShared(lane);
-      vsm.pageList[id] = packVsmPageInfo(i/6, i%6, ivec2(0), ivec2(4));
+      vsm.pageList[id] = packVsmPageInfo(i/6, i%6, ivec2(0), ivec2(VSM_CUBE_TBL_SIZE));
       atomicAdd(pageOmni, 1);
       }
     barrier();
