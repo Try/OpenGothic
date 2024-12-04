@@ -90,7 +90,8 @@ bool dbgVsm(vec3 dir, float R) {
   const float zFar  = 1.0;
   const float k     = zFar / (zFar - zNear);
   const float kw    = (zNear * zFar) / (zNear - zFar);
-  const float refZ  = (dir.z/R)*k + kw;
+  const float fragZ = (dir.z/R);
+  const float refZ  = (fragZ - (fragZ*k + kw))/fragZ;
 
   //outColor = vec4(vec3(refZ), 1);
   //return;

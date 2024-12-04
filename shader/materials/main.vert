@@ -143,14 +143,12 @@ vec4 processVertexVsm(out Varyings var, const Vertex vert, const uint bucketId, 
       }
 
     // projection
-    //pos4 = vec4(pos.xy/pos.z, pos.z, 1);
-
     const float zNear = 0.01;
     const float zFar  = 1.0;
     const float k     = zFar / (zFar - zNear);
     const float kw    = (zNear * zFar) / (zNear - zFar);
-    //pos4 = vec4(pos,1); //vec4(pos.xy, pos.z*k+kw, pos.z);
-    pos4 = vec4(pos.xy, (pos.z)*k+kw, pos.z);
+
+    pos4 = vec4(pos.xy, pos.z-(pos.z*k+kw), pos.z);
     } else {
     pos4 = scene.viewProject*vec4(wpos,1.0);
     }
