@@ -63,15 +63,19 @@ bool isShadow(vec3 rayOrigin, vec3 direction) {
   }
 
 #if defined(VIRTUAL_SHADOW)
-void dbgVsm(vec3 dir) {
+bool dbgVsm(vec3 dir, float R) {
+  outColor  = vec4(0);
   const uint face = vsmLightDirToFace(dir);
+  if(face!=0 && face!=3)
+    ;//return false;
+
   switch(face) {
     case 0: dir = vec3(dir.yz, +dir.x); break;
-    case 1: dir = vec3(dir.yz, -dir.x); break;
+    case 1: dir = vec3(dir.zy, -dir.x); break;
     case 2: dir = vec3(dir.xz, +dir.y); break;
     case 3: dir = vec3(dir.xz, -dir.y); break;
     case 4: dir = vec3(dir.xy, +dir.z); break;
-    case 5: dir = vec3(dir.xy, -dir.z); break;
+    case 5: dir = vec3(dir.yx, -dir.z); break;
     }
 
   const vec2  tc     = dir.xy/dir.z;
@@ -80,10 +84,23 @@ void dbgVsm(vec3 dir) {
 
   const ivec2 at          = ivec2((tc*0.5+0.5)*4*VSM_PAGE_SIZE);
   const ivec2 pageImageAt = unpackVsmPageId(pageId)*VSM_PAGE_SIZE + at;
+  const float z           = texelFetch(pageData, pageImageAt, 0).x;
 
-  float v  = texelFetch(pageData, pageImageAt, 0).x;
+  const float zNear = 0.01;
+  const float zFar  = 1.0;
+  const float k     = zFar / (zFar - zNear);
+  const float kw    = (zNear * zFar) / (zNear - zFar);
+  const float refZ  = (dir.z/R)*k + kw;
 
-  outColor = vec4(0, 0, v, 1);
+  //outColor = vec4(vec3(refZ), 1);
+  //return;
+
+  if(z < refZ) {
+    outColor = vec4(debugColors[face], 1);
+    return false;
+    }
+  outColor = vec4(vec3(0.1), 1);
+  return true;
   //outColor = vec4(debugColors[face],1);
   //outColor = vec4(debugColors[(pageId/4)%debugColors.length()],1);
   }
@@ -116,8 +133,9 @@ void main() {
     discard;
 
 #if defined(VIRTUAL_SHADOW)
-  dbgVsm(ldir);
-  return;
+  if(dbgVsm(ldir, cenPosition.w))
+    discard;
+  //return;
 #endif
 
   pos.xyz = pos.xyz+5.0*normal; //bias
