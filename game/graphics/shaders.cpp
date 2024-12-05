@@ -120,6 +120,7 @@ Shaders::Shaders() {
       }
     lightsRq = device.pipeline(Triangles, state, vsLight, fsLight);
     }
+  if(Gothic::options().doVirtualShadow) {
     sh      = GothicShader::get("light_vsm.frag.sprv");
     fsLight = device.shader(sh.data,sh.len);
     lightsVsm = device.pipeline(Triangles, state, vsLight, fsLight);
