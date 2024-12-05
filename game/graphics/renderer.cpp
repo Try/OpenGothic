@@ -301,6 +301,13 @@ void Renderer::toggleGi() {
 
 void Renderer::onWorldChanged() {
   gi.fisrtFrame = true;
+
+  Resources::recycle(std::move(shadow.ubo));
+  Resources::recycle(std::move(lights.ubo));
+  Resources::recycle(std::move(vsm.uboOmniPages));
+  Resources::recycle(std::move(vsm.uboClearOmni));
+  Resources::recycle(std::move(vsm.uboAlloc));
+
   prepareUniforms();
   }
 
