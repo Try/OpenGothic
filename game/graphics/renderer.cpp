@@ -171,10 +171,10 @@ void Renderer::resetSwapchain() {
     shadow.directLightPso = &Shaders::inst().directLight;
   Resources::recycle(std::move(shadow.ubo));
 
-  if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing)
+  if(settings.vsmEnabled)
+    lights.directLightPso = &Shaders::inst().lightsVsm;
+  else if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing)
     lights.directLightPso = &Shaders::inst().lightsRq;
-  else if(settings.vsmEnabled)
-    lights.directLightPso = &Shaders::inst().lights; //TODO
   else
     lights.directLightPso = &Shaders::inst().lights;
   Resources::recycle(std::move(lights.ubo));
