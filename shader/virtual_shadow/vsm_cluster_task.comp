@@ -23,7 +23,7 @@ layout(binding = 2, std430) readonly buffer Mem { uint        instanceMem[]; };
 layout(binding = 3, std140) readonly buffer Bbo { Bucket      bucket[];      };
 layout(binding = 4, std430) buffer IndirectBuf  { IndirectCmd cmd[];         };
 layout(binding = 5, std430) readonly buffer Cbo { Cluster     clusters[];    };
-layout(binding = 6, std430) readonly buffer Lbo { LightSource  lights[]; };
+layout(binding = 6, std430) readonly buffer Lbo { LightSource lights[];      };
 
 layout(binding = 7, r32ui)  uniform uimage3D pageTblDepth;
 layout(binding = 8, std430) buffer Pages        { VsmHeader   header; uint  pageList[]; } vsm;

@@ -368,6 +368,7 @@ void DrawCommands::updateCommandUniforms() {
 void DrawCommands::updateLigtsUniforms() {
   //NOTE: causes dev-idle, need to rework
   updateCommandUniforms();
+  updateTasksUniforms();
   }
 
 void DrawCommands::updatsSwrUniforms() {
