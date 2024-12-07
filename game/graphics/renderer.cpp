@@ -909,9 +909,9 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
 
   if(omniLights && vsm.uboOmniPages.isEmpty()) {
     Resources::recycle(std::move(vsm.pageTblOmni));
-    vsm.pageTblOmni  = device.ssbo(nullptr, wview.lights().size()*6*sizeof(uint32_t));
+    vsm.pageTblOmni  = device.ssbo(nullptr, shaders.vsmClearOmni.sizeOfBuffer(0, wview.lights().size()*6));
 
-    vsm.uboOmniPages = device.descriptors(Shaders::inst().vsmMarkOmniPages);
+    vsm.uboOmniPages = device.descriptors(shaders.vsmMarkOmniPages);
     vsm.uboOmniPages.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
     vsm.uboOmniPages.set(1, gbufDiffuse, Sampler::nearest());
     vsm.uboOmniPages.set(2, gbufNormal,  Sampler::nearest());
@@ -920,7 +920,7 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     vsm.uboOmniPages.set(5, vsm.pageTblOmni);
     vsm.uboOmniPages.set(6, vsm.vsmDbg);
 
-    vsm.uboClearOmni = device.descriptors(Shaders::inst().vsmClearOmni);
+    vsm.uboClearOmni = device.descriptors(shaders.vsmClearOmni);
     vsm.uboClearOmni.set(0, vsm.pageTblOmni);
     }
 

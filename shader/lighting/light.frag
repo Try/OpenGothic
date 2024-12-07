@@ -81,8 +81,12 @@ bool dbgVsm(vec3 dir, float R) {
   const vec2  tc     = dir.xy/dir.z;
   const uint  pageD  = pageTblOmni[lightId*6 + face];
   const uint  pageId = pageD >> 16u;
+  const uint  pageSz = pageD & 0xF;
 
-  const ivec2 at          = ivec2((tc*0.5+0.5)*VSM_CUBE_TBL_SIZE*VSM_PAGE_SIZE);
+  if(pageSz==0)
+    return false;
+
+  const ivec2 at          = ivec2((tc*0.5+0.5)*pageSz*VSM_PAGE_SIZE);
   const ivec2 pageImageAt = unpackVsmPageId(pageId)*VSM_PAGE_SIZE + at;
   const float z           = texelFetch(pageData, pageImageAt, 0).x;
 

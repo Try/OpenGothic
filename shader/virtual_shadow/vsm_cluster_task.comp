@@ -18,7 +18,7 @@ const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z
 layout(push_constant, std430) uniform UboPush {
   int meshletCount;
   } push;
-layout(binding = 1, std430) buffer SsboGlob     { uvec4       payload[];     };
+layout(binding = 1, std430) buffer Payload      { uvec4       payload[];     };
 layout(binding = 2, std430) readonly buffer Mem { uint        instanceMem[]; };
 layout(binding = 3, std140) readonly buffer Bbo { Bucket      bucket[];      };
 layout(binding = 4, std430) buffer IndirectBuf  { IndirectCmd cmd[];         };
@@ -319,8 +319,8 @@ void runClusterOmni(const uint clusterId) {
     if(dot(dvec,dvec) > r*r)
       continue;
 
-    // imageAtomicAdd(dbg, ivec2(0,1), cluster.meshletCount);
-    // imageAtomicAdd(dbg, ivec2(page.x%64,1+page.x/64), cluster.meshletCount);
+    imageAtomicAdd(dbg, ivec2(0,1), cluster.meshletCount);
+    imageAtomicAdd(dbg, ivec2(page.x%64,1+page.x/64), cluster.meshletCount);
     if(!emitCluster(cluster, i))
       break;
     }

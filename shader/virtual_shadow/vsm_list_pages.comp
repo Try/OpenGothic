@@ -70,14 +70,15 @@ void listOmni() {
       bits[lane] = 0;
     barrier();
 
-    const bool bit = pageTblOmni[i]!=0;
-    if(bit)
+    const uint pageHit = pageTblOmni[i];
+    if(pageHit!=0)
       atomicOr(bits[lane/32], 1u<<(lane%32));
     barrier();
 
-    if(bit) {
+    if(pageHit!=0) {
       const uint id = prefix + bitCountShared(lane);
-      vsm.pageList[id] = packVsmPageInfo(i/6, i%6, ivec2(0), ivec2(VSM_CUBE_TBL_SIZE));
+      const uint sz = pageHit;
+      vsm.pageList[id] = packVsmPageInfo(i/6, i%6, ivec2(0), ivec2(sz));
       atomicAdd(pageOmni, 1);
       }
     barrier();
