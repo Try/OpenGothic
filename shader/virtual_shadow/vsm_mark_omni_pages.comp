@@ -99,20 +99,6 @@ int shadowLod(vec2 dx, vec2 dy) {
   return max(0, int(minLod + bias));
   }
 
-vec2 vsmMapDirToUV(vec3 pos, uint face){
-  // vec3 pos = (wpos - lx.pos)/lx.range;
-  // cubemap-face
-  switch(face) {
-    case 0: pos = vec3(pos.yz, +pos.x); break;
-    case 1: pos = vec3(pos.zy, -pos.x); break;
-    case 2: pos = vec3(pos.zx, +pos.y); break;
-    case 3: pos = vec3(pos.xz, -pos.y); break;
-    case 4: pos = vec3(pos.xy, +pos.z); break;
-    case 5: pos = vec3(pos.yx, -pos.z); break;
-    }
-  return (pos.xy/pos.z)*0.5+0.5;
-  }
-
 void processLightTiles(const vec3 pos, const vec3 pos1, const vec3 pos2, const vec3 normal) {
   const uint laneId = gl_LocalInvocationIndex;
   const uint count  = lightCount;
@@ -138,8 +124,8 @@ void processLightTiles(const vec3 pos, const vec3 pos1, const vec3 pos2, const v
     vec2 uv1 = vsmMapDirToUV(pos1 - lx.pos, fc);
     vec2 uv2 = vsmMapDirToUV(pos2 - lx.pos, fc);
 
-    int  size    = VSM_PAGE_SIZE * 4;
-    int  lod     = shadowLod((uv1-uv0)*size, (uv2-uv0)*size);
+    int  size = VSM_PAGE_SIZE * 4;
+    int  lod  = shadowLod((uv1-uv0)*size, (uv2-uv0)*size);
     if(lod>8)
       continue; // TODO: refine
 

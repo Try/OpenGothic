@@ -121,25 +121,9 @@ vec4 processVertexVsm(out Varyings var, const Vertex vert, const uint bucketId, 
   if(vsmPageIsOmni(data)) {
     const uvec2       page = unpackLightId(data);
     const LightSource lx   = lights[page.x];
+    const vec3        pos  = vsmMapDirToFace((wpos - lx.pos)/lx.range, page.y);
 
-    vec3 pos = (wpos - lx.pos)/lx.range;
-    // cubemap-face
-    switch(page.y) {
-      case 0: pos = vec3(pos.yz, +pos.x); break;
-      case 1: pos = vec3(pos.zy, -pos.x); break;
-      case 2: pos = vec3(pos.zx, +pos.y); break;
-      case 3: pos = vec3(pos.xz, -pos.y); break;
-      case 4: pos = vec3(pos.xy, +pos.z); break;
-      case 5: pos = vec3(pos.yx, -pos.z); break;
-      }
-
-    // projection
-    const float zNear = 0.03; //NOTE: 0.05 for bonfire
-    const float zFar  = 1.0;
-    const float k     = zFar / (zFar - zNear);
-    const float kw    = (zNear * zFar) / (zNear - zFar);
-
-    pos4 = vec4(pos.xy, pos.z-(pos.z*k+kw), pos.z);
+    pos4 = vsmApplyProjective(pos);
     } else {
     pos4 = scene.viewProject*vec4(wpos,1.0);
     }

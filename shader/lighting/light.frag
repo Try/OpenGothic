@@ -34,82 +34,56 @@ layout(location = 0) in vec4      cenPosition;
 layout(location = 1) in vec3      color;
 layout(location = 2) in flat uint lightId;
 
-bool isShadow(vec3 rayOrigin, vec3 direction) {
+bool isShadow(vec3 rayOrigin, vec3 direction, float R) {
 #if defined(RAY_QUERY)
-  vec3  rayDirection = normalize(direction);
-  float rayDistance  = length(direction)-3.0;
-  float tMin         = 30;
-  if(rayDistance<=tMin)
-    return false;
+  {
+    vec3  rayDirection = normalize(direction);
+    float rayDistance  = length(direction)-3.0;
+    float tMin         = 30;
+    if(rayDistance<=tMin)
+      return false;
 
-  uint flags = gl_RayFlagsTerminateOnFirstHitEXT;
+    uint flags = gl_RayFlagsTerminateOnFirstHitEXT;
 #if !defined(RAY_QUERY_AT)
-  flags |= gl_RayFlagsCullNoOpaqueEXT;
+    flags |= gl_RayFlagsCullNoOpaqueEXT;
 #endif
 
-  rayQueryEXT rayQuery;
-  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
-                        rayOrigin, tMin, rayDirection, rayDistance);
-  rayQueryProceedShadow(rayQuery);
-  if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT)
-    return false;
-  return true;
+    rayQueryEXT rayQuery;
+    rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
+                          rayOrigin, tMin, rayDirection, rayDistance);
+    rayQueryProceedShadow(rayQuery);
+    if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT)
+      return false;
+    return true;
+  }
 #elif defined(VIRTUAL_SHADOW)
+  {
+    const uint face   = vsmLightDirToFace(direction);
+    //if(face!=0 && face!=3)
+    //  return false;
 
-  return false;
+    const uint pageD  = pageTblOmni[lightId*6 + face];
+    const uint pageId = pageD >> 16u;
+    const uint pageSz = pageD & 0xF;
+
+    if(pageSz==0)
+      return false;
+
+    const vec3  dir         = vsmMapDirToFace(direction, face);
+    const vec2  tc          = (dir.xy/dir.z)*0.5 + 0.5;
+    const ivec2 at          = ivec2(tc*pageSz*VSM_PAGE_SIZE);
+    const ivec2 pageImageAt = unpackVsmPageId(pageId)*VSM_PAGE_SIZE + at;
+    const float z           = texelFetch(pageData, pageImageAt, 0).x;
+
+    const float refZ = vsmApplyProjective(dir.z/R);
+    if(z < refZ)
+      return false;
+    return true;
+  }
 #else
   return false;
 #endif
   }
-
-#if defined(VIRTUAL_SHADOW)
-bool dbgVsm(vec3 dir, float R) {
-  outColor  = vec4(0);
-  const uint face = vsmLightDirToFace(dir);
-  //if(face!=0 && face!=3)
-  //  return false;
-
-  switch(face) {
-    case 0: dir = vec3(dir.yz, +dir.x); break;
-    case 1: dir = vec3(dir.zy, -dir.x); break;
-    case 2: dir = vec3(dir.zx, +dir.y); break;
-    case 3: dir = vec3(dir.xz, -dir.y); break;
-    case 4: dir = vec3(dir.xy, +dir.z); break;
-    case 5: dir = vec3(dir.yx, -dir.z); break;
-    }
-
-  const vec2  tc     = dir.xy/dir.z;
-  const uint  pageD  = pageTblOmni[lightId*6 + face];
-  const uint  pageId = pageD >> 16u;
-  const uint  pageSz = pageD & 0xF;
-
-  if(pageSz==0)
-    return false;
-
-  const ivec2 at          = ivec2((tc*0.5+0.5)*pageSz*VSM_PAGE_SIZE);
-  const ivec2 pageImageAt = unpackVsmPageId(pageId)*VSM_PAGE_SIZE + at;
-  const float z           = texelFetch(pageData, pageImageAt, 0).x;
-
-  const float zNear = 0.03;
-  const float zFar  = 1.0;
-  const float k     = zFar / (zFar - zNear);
-  const float kw    = (zNear * zFar) / (zNear - zFar);
-  const float fragZ = (dir.z/R);
-  const float refZ  = (fragZ - (fragZ*k + kw))/fragZ;
-
-  //outColor = vec4(vec3(refZ), 1);
-  //return;
-
-  if(z < refZ) {
-    outColor = vec4(debugColors[face], 1);
-    return false;
-    }
-  outColor = vec4(vec3(0.1), 1);
-  return true;
-  //outColor = vec4(debugColors[face],1);
-  //outColor = vec4(debugColors[(pageId/4)%debugColors.length()],1);
-  }
-#endif
 
 void main() {
   vec2  scr = (gl_FragCoord.xy/vec2(textureSize(depth,0)))*2.0-1.0;
@@ -120,7 +94,6 @@ void main() {
   pos.xyz += push.origin;
 
   vec3 ldir = (pos.xyz-cenPosition.xyz);
-  //float qDist = dot(ldir,ldir)/(cenPosition.w*cenPosition.w);
 
   const float distanceSquare = dot(ldir,ldir);
   const float factor         = distanceSquare / (cenPosition.w*cenPosition.w);
@@ -130,22 +103,15 @@ void main() {
     discard;
 
   const vec3 normal = normalFetch(gbufNormal, ivec2(gl_FragCoord.xy));
-  //float light   = (1.0-qDist)*lambert;
 
   float lambert = max(0.0,-dot(normalize(ldir),normal));
   float light   = (lambert/max(factor, 0.05)) * (smoothFactor*smoothFactor);
   if(light<=0.0)
     discard;
 
-#if defined(VIRTUAL_SHADOW)
-  if(dbgVsm(ldir, cenPosition.w))
-    discard;
-  //return;
-#endif
-
-  pos.xyz = pos.xyz+5.0*normal; //bias
-  ldir    = (pos.xyz-cenPosition.xyz);
-  if(isShadow(cenPosition.xyz,ldir))
+  pos.xyz = pos.xyz + 1.0*normal; //bias
+  ldir    = pos.xyz - cenPosition.xyz;
+  if(isShadow(cenPosition.xyz, ldir, cenPosition.w))
     discard;
 
   //outColor     = vec4(0.5,0.5,0.5,1);

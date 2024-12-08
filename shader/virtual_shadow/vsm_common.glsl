@@ -189,4 +189,43 @@ uint vsmLightDirToFace(vec3 d) {
   return 0;
   }
 
+vec3 vsmMapDirToFace(vec3 pos, uint face) {
+  // cubemap-face
+  switch(face) {
+    case 0: pos = vec3(pos.yz, +pos.x); break;
+    case 1: pos = vec3(pos.zy, -pos.x); break;
+    case 2: pos = vec3(pos.zx, +pos.y); break;
+    case 3: pos = vec3(pos.xz, -pos.y); break;
+    case 4: pos = vec3(pos.xy, +pos.z); break;
+    case 5: pos = vec3(pos.yx, -pos.z); break;
+    }
+  return pos;
+  }
+
+vec2 vsmMapDirToUV(vec3 pos, uint face) {
+  // cubemap-face
+  pos = vsmMapDirToFace(pos, face);
+  return (pos.xy/pos.z)*0.5+0.5;
+  }
+
+vec4 vsmApplyProjective(vec3 pos) {
+  // projection
+  const float zNear = 0.03; //NOTE: 0.05 for bonfire
+  const float zFar  = 1.0;
+  const float k     = zFar / (zFar - zNear);
+  const float kw    = (zNear * zFar) / (zNear - zFar);
+
+  return vec4(pos.xy, pos.z-(pos.z*k+kw), pos.z);
+  }
+
+float vsmApplyProjective(float fragZ) {
+  const float zNear = 0.03;
+  const float zFar  = 1.0;
+  const float k     = zFar / (zFar - zNear);
+  const float kw    = (zNear * zFar) / (zNear - zFar);
+
+  const float refZ  = (fragZ - (fragZ*k + kw))/fragZ;
+  return refZ;
+  }
+
 #endif
