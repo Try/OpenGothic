@@ -3,6 +3,9 @@
 
 #extension GL_EXT_samplerless_texture_functions : enable
 
+#define VSM_ENABLE_SUN  1
+#define VSM_ENABLE_OMNI 1
+
 const int VSM_PAGE_SIZE     = 128;
 const int VSM_PAGE_TBL_SIZE = 32;  // small for testing, 64 can be better
 const int VSM_PAGE_MIPS     = 16;

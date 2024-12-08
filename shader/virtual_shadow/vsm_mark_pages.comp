@@ -87,6 +87,7 @@ void setupHiZ() {
   }
 
 void markPage(ivec3 at, float z) {
+#if VSM_ENABLE_SUN
   if(z<0 || z>=1)
     return;
 
@@ -102,6 +103,7 @@ void markPage(ivec3 at, float z) {
 
   // imageAtomicAdd(pageTbl, ivec3(0), 1u); //counter
   storeHiZValue(v);
+#endif
   }
 
 void flushHiZ() {

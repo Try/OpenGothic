@@ -150,7 +150,9 @@ void processLightTiles(const vec3 pos, const vec3 pos1, const vec3 pos2, const v
     for(uint r=0; r<6; ++r) {
       uint v  = pageTblOmniTmp[i*6 + r];
       uint pg = v>0 ? max(v-1, 1) : 1;
+#if VSM_ENABLE_OMNI
       atomicMax(pageTblOmni[id*6 + r], pg);
+#endif
       }
     }
 

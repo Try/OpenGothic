@@ -111,17 +111,15 @@ struct Varyings {
 #endif
   };
 
-layout(binding = L_Scene, std140) uniform UboScene {
-  SceneDesc scene;
-  };
+layout(binding = L_Scene,    std140) uniform UboScene     { SceneDesc scene;       };
 
-#if !defined(CLUSTER) && (MESH_TYPE!=T_PFX)
+#if (MESH_TYPE!=T_PFX)
 layout(binding = L_Instance, std430) readonly buffer Mem  { uint    instanceMem[]; };
 layout(binding = L_Payload,  std430) readonly buffer Pbo  { uvec4   payload[];     };
 layout(binding = L_Bucket,   std140) readonly buffer Bbo  { Bucket  bucket[];      };
 #endif
 
-#if !defined(CLUSTER) && (MESH_TYPE!=T_PFX)
+#if (MESH_TYPE!=T_PFX)
 layout(binding = L_Ibo,      std430) readonly buffer Ibo  { uint    indexes [];    } ibo[];
 layout(binding = L_Vbo,      std430) readonly buffer Vbo  { float   vertices[];    } vbo[];
 #endif
@@ -146,13 +144,13 @@ layout(binding = L_SceneClr)         uniform sampler2D sceneColor;
 layout(binding = L_GDepth  )         uniform sampler2D gbufferDepth;
 #endif
 
-#if defined(VIRTUAL_SHADOW) && !defined(CLUSTER)
+#if defined(VIRTUAL_SHADOW)
 layout(binding = L_CmdOffsets, std430) readonly buffer IndirectBuf { IndirectCmd cmd[]; };
 layout(binding = L_VsmPages,   std430) readonly buffer Pages       { VsmHeader header; uint pageList[]; } vsm;
 layout(binding = L_VsmLights,  std430) readonly buffer Lights      { LightSource lights[]; };
 #endif
 
-#if !defined(CLUSTER) && (MESH_TYPE!=T_PFX)
+#if (MESH_TYPE!=T_PFX)
 mat4 pullMatrix(uint i) {
   i *= 16;
   mat4 ret;

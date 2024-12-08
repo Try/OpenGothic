@@ -4,11 +4,8 @@
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_EXT_control_flow_attributes : enable
 
-#define CLUSTER 1
-
 #include "scene.glsl"
 #include "common.glsl"
-#include "materials/materials_common.glsl"
 #include "virtual_shadow/vsm_common.glsl"
 
 layout(local_size_x = 1024) in;
@@ -18,6 +15,7 @@ const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z
 layout(push_constant, std430) uniform UboPush {
   int meshletCount;
   } push;
+layout(binding = 0, std140) uniform UboScene    { SceneDesc   scene;         };
 layout(binding = 1, std430) buffer Payload      { uvec4       payload[];     };
 layout(binding = 2, std430) readonly buffer Mem { uint        instanceMem[]; };
 layout(binding = 3, std140) readonly buffer Bbo { Bucket      bucket[];      };
@@ -301,6 +299,18 @@ void runCluster(const uint clusterId) {
   }
 
 
+bool frustrumOmniTest(vec3 pos, float r) {
+  const vec3  plane[] = {vec3(0,-1,1),  vec3(0,+1,1), vec3(-1,0,1), vec3(+1,0,1)};
+  const float scale   = 1.41421356237; //sqrt(2);
+
+  [[unroll]]
+  for(int i=0; i<4; ++i) {
+    if(dot(pos, plane[i]) < -r*scale)
+      return false;
+    }
+  return true;
+  }
+
 void runClusterOmni(const uint clusterId) {
   const Cluster cluster = clusters[clusterId];
   if(cluster.sphere.w<=0.f)
@@ -312,11 +322,17 @@ void runClusterOmni(const uint clusterId) {
 
     const uvec2       page = unpackLightId(data);
     const LightSource lx   = lights[page.x];
+    const uint        face = page.y;
+    // const ivec2       sz   = unpackVsmPageSize(data);
 
-    const vec3  dvec = lx.pos   - cluster.sphere.xyz;
-    const float r    = lx.range + cluster.sphere.w;
+    const vec3  dvec = cluster.sphere.xyz - lx.pos;
+    const float r    = cluster.sphere.w   + lx.range;
 
     if(dot(dvec,dvec) > r*r)
+      continue;
+
+    const vec3 pos  = vsmMapDirToFace(dvec, face);
+    if(!frustrumOmniTest(pos, cluster.sphere.w))
       continue;
 
     imageAtomicAdd(dbg, ivec2(0,1), cluster.meshletCount);

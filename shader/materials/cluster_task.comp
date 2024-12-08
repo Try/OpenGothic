@@ -4,13 +4,13 @@
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_EXT_control_flow_attributes : enable
 
-#define CLUSTER 1
-
 #include "scalar_ops.glsl"
-#include "materials_common.glsl"
+#include "common.glsl"
+#include "scene.glsl"
 
 layout(local_size_x = 64) in;
 
+layout(binding = 0, std140) uniform UboScene    { SceneDesc   scene;         };
 layout(binding = 1, std430) buffer SsboGlob     { uvec4       payload[];     };
 layout(binding = 2, std430) readonly buffer Mem { uint        instanceMem[]; };
 layout(binding = 3, std140) readonly buffer Bbo { Bucket      bucket[];      };

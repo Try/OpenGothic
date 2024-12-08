@@ -82,6 +82,7 @@ void flushCache() {
   }
 
 void markPage(vec3 shPos0) {
+#if VSM_ENABLE_SUN
   int   mip    = vsmCalcMipIndexFog2(shPos0.xy);
   vec2  page   = shPos0.xy / (1 << mip);
   if(any(greaterThan(abs(page), vec2(1))))
@@ -92,6 +93,7 @@ void markPage(vec3 shPos0) {
   float z     = shPos0.z;
 
   pageHit[gl_LocalInvocationIndex] = pack565_16(at, floatBitsToUint(z) >> 16);
+#endif
   }
 #else
 float shadowTexelFetch(vec2 shPos0) {
