@@ -1096,6 +1096,11 @@ void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, uint8_t fId, const
       shadow.ubo.set(8, scene.vsmDbg);
       }
     else if(shadow.directLightPso==&Shaders::inst().directLightRq) {
+      for(size_t r=0; r<Resources::ShadowLayers; ++r) {
+        if(shadowMap[r].isEmpty())
+          continue;
+        shadow.ubo.set(4+r, shadowMap[r]);
+        }
       shadow.ubo.set(6, scene.rtScene.tlas);
       shadow.ubo.set(7, Sampler::bilinear());
       shadow.ubo.set(8, scene.rtScene.tex);
