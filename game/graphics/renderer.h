@@ -219,7 +219,7 @@ class Renderer final {
 
     struct {
       Tempest::DescriptorSet    uboClear, uboClearOmni;
-      Tempest::DescriptorSet    uboPages, uboOmniPages;
+      Tempest::DescriptorSet    uboPages, uboOmniPages, uboPostprocessOmni;
       Tempest::DescriptorSet    uboEpipole, uboFogPages, uboFogSample, uboFogShadow, uboFogTrace;
       Tempest::DescriptorSet    uboClump, uboAlloc;
 

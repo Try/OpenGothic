@@ -4,12 +4,8 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_EXT_samplerless_texture_functions : enable
 #extension GL_EXT_control_flow_attributes : enable
-// #extension GL_KHR_memory_scope_semantics : enable
-
-#define LWC 1
 
 #include "virtual_shadow/vsm_common.glsl"
-#include "lighting/tonemapping.glsl"
 #include "scene.glsl"
 #include "common.glsl"
 
@@ -135,35 +131,14 @@ void processLightTiles(const vec3 pos, const vec3 pos1, const vec3 pos2, const v
     }
   barrier();
 
-  for(uint i=laneId; i<lightCount; i+=NumThreads) {
-    const uint id     = lightId[i];
-
-    bool hasAnyPages = false;
-    [[unroll]]
-    for(uint r=0; r<6; ++r)
-      hasAnyPages = hasAnyPages || pageTblOmniTmp[i*6 + r]>1;
-
-    if(!hasAnyPages)
-      continue;
-
-    [[unroll]]
-    for(uint r=0; r<6; ++r) {
-      uint v  = pageTblOmniTmp[i*6 + r];
-      uint pg = v>0 ? max(v-1, 1) : 1;
-#if VSM_ENABLE_OMNI
-      atomicMax(pageTblOmni[id*6 + r], pg);
-#endif
-      }
-    }
-
-  /*
   const uint pageCount = lightCount*6;
   for(uint i=laneId; i<pageCount; i+=NumThreads) {
     const uint id = lightId[i/6];
     const uint fc = i%6;
+#if VSM_ENABLE_OMNI
     atomicMax(pageTblOmni[id*6 + fc], pageTblOmniTmp[i]);
+#endif
     }
-  */
   }
 
 void processLights(const vec3 pos, const vec3 pos1, const vec3 pos2, const vec3 normal) {

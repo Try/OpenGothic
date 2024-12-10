@@ -653,6 +653,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     Resources::recycle(std::move(lights.ubo));
     Resources::recycle(std::move(vsm.uboClearOmni));
     Resources::recycle(std::move(vsm.uboOmniPages));
+    Resources::recycle(std::move(vsm.uboPostprocessOmni));
     Resources::recycle(std::move(vsm.uboAlloc));
     }
 
@@ -907,6 +908,8 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   auto& shaders = Shaders::inst();
   auto& scene   = wview.sceneGlobals();
 
+  const size_t numOmniPages = wview.lights().size()*6;
+
   if(omniLights && vsm.uboOmniPages.isEmpty()) {
     Resources::recycle(std::move(vsm.pageTblOmni));
     vsm.pageTblOmni  = device.ssbo(nullptr, shaders.vsmClearOmni.sizeOfBuffer(0, wview.lights().size()*6));
@@ -919,6 +922,9 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     vsm.uboOmniPages.set(4, wview.lights().lightsSsbo());
     vsm.uboOmniPages.set(5, vsm.pageTblOmni);
     vsm.uboOmniPages.set(6, vsm.vsmDbg);
+
+    vsm.uboPostprocessOmni = device.descriptors(shaders.vsmPostprocessOmni);
+    vsm.uboPostprocessOmni.set(0, vsm.pageTblOmni);
 
     vsm.uboClearOmni = device.descriptors(shaders.vsmClearOmni);
     vsm.uboClearOmni.set(0, vsm.pageTblOmni);
@@ -938,7 +944,7 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.dispatchThreads(size_t(vsm.pageTbl.w()), size_t(vsm.pageTbl.h()), size_t(vsm.pageTbl.d()));
 
   cmd.setUniforms(shaders.vsmClearOmni, vsm.uboClearOmni);
-  cmd.dispatchThreads(wview.lights().size()*6);
+  cmd.dispatchThreads(numOmniPages);
 
   cmd.setUniforms(shaders.vsmMarkPages, vsm.uboPages, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
   cmd.dispatchThreads(zbuffer.size());
@@ -950,6 +956,9 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     push.vsmMipBias = settings.vsmMipBias;
     cmd.setUniforms(shaders.vsmMarkOmniPages, vsm.uboOmniPages, &push, sizeof(push));
     cmd.dispatchThreads(zbuffer.size());
+
+    cmd.setUniforms(shaders.vsmPostprocessOmni, vsm.uboPostprocessOmni);
+    cmd.dispatchThreads(numOmniPages);
     }
 
   // sky&fog
