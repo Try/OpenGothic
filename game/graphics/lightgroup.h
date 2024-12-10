@@ -25,6 +25,8 @@ class LightGroup final {
         void     setPosition(float x, float y, float z);
         void     setPosition(const Tempest::Vec3& p);
 
+        void     setEnabled(bool e);
+
         void     setRange (float r);
         void     setColor (const Tempest::Vec3& c);
         void     setColor (const std::vector<Tempest::Vec3>& c, float fps, bool smooth);

@@ -101,6 +101,10 @@ void LightSource::setRange(const std::vector<float>& arr, float base, float fps,
     }
   }
 
+void LightSource::setEnabled(bool e) {
+  enable = e;
+  }
+
 void LightSource::update(uint64_t time) {
   if(timeOff<time)
     time -= timeOff; else
@@ -135,6 +139,10 @@ void LightSource::update(uint64_t time) {
 
 bool LightSource::isDynamic() const {
   return rangeAniFPSInv!=0 || colorAniListFpsInv!=0;
+  }
+
+bool LightSource::isEnabled() const {
+  return enable;
   }
 
 void LightSource::setTimeOffset(uint64_t t) {

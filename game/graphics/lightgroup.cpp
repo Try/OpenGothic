@@ -14,6 +14,11 @@
 
 using namespace Tempest;
 
+static float clampRange(float r) {
+  return std::min(r, 2000.f);
+  //return r;
+  }
+
 LightGroup::Light::Light(LightGroup::Light&& oth):owner(oth.owner), id(oth.id) {
   oth.owner = nullptr;
   }
@@ -44,6 +49,17 @@ void LightGroup::Light::setPosition(const Vec3& p) {
   owner->markAsDurty(id);
   }
 
+void LightGroup::Light::setEnabled(bool e) {
+  if(owner==nullptr)
+    return;
+  auto& data = owner->lightSourceDesc[id];
+  data.setEnabled(e);
+
+  auto& ssbo = owner->lightSourceData[id];
+  ssbo.range = 0;
+  owner->markAsDurty(id);
+  }
+
 void LightGroup::Light::setRange(float r) {
   if(owner==nullptr)
     return;
@@ -51,7 +67,7 @@ void LightGroup::Light::setRange(float r) {
   data.setRange(r);
 
   auto& ssbo = owner->lightSourceData[id];
-  ssbo.range = r;
+  ssbo.range = data.isEnabled() ? clampRange(r) : 0;
   owner->markAsDurty(id);
   }
 
@@ -145,7 +161,7 @@ LightGroup::Light LightGroup::add(const zenkit::LightPreset& vob) {
 
   auto& ssbo = lightSourceData[lx.id];
   ssbo.pos   = l.position();
-  ssbo.range = l.range();
+  ssbo.range = l.isEnabled() ? clampRange(l.range()) : 0;
   ssbo.color = l.color();
 
   auto& data = lightSourceDesc[lx.id];
@@ -298,7 +314,8 @@ void LightGroup::tick(uint64_t time) {
     LightSsbo ssbo;
     ssbo.pos   = light.position();
     ssbo.color = light.currentColor();
-    ssbo.range = light.currentRange();
+    ssbo.range = light.isEnabled() ? clampRange(light.currentRange()) : 0;
+
     auto& dst = lightSourceData[i];
     if(std::memcmp(&dst, &ssbo, sizeof(ssbo))==0)
       continue;
