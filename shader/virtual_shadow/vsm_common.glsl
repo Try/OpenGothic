@@ -58,8 +58,10 @@ ivec2 unpackVsmPageSize(uint p) {
 
 uint packVsmPageInfo(uint lightId, uint face, ivec2 at, ivec2 size) {
   // 1 : 15 : 4 : 4 : 4 : 4
-  uint idx = lightId*6 + face; // 5k omni lights
-  return 0x1 | ((idx & 0x7FFF) << 1) | ((at.x & 0xF) << 16) | ((at.y & 0xF) << 20) | ((size.x & 0xF) << 24) | ((size.y & 0xF) << 28);
+  // uint idx = lightId*6 + face; // 5k omni lights
+  // return 0x1 | ((idx & 0x7FFF) << 1) | ((at.x & 0xF) << 16) | ((at.y & 0xF) << 20) | ((size.x & 0xF) << 24) | ((size.y & 0xF) << 28);
+  uint idx = lightId*6 + face; // 1398k omni lights
+  return 0x1 | ((idx & 0x7FFFFF) << 1) | ((size.x & 0xF) << 24) | ((size.y & 0xF) << 28);
   }
 
 bool vsmPageIsOmni(uint p) {
@@ -67,15 +69,16 @@ bool vsmPageIsOmni(uint p) {
   }
 
 uvec2 unpackLightId(uint p) {
-  uint i = uint(p >> 1) & 0x7FFF;
+  uint i = uint(p >> 1) & 0x7FFFFF;
   return uvec2(i/6, i%6);
   }
 
 ivec2 unpackVsmPageInfoProj(uint p) {
-  ivec2 r;
-  r.x = int(p >> 16) & 0xF;
-  r.y = int(p >> 20) & 0xF;
-  return r;
+  return ivec2(0);
+  // ivec2 r;
+  // r.x = int(p >> 16) & 0xF;
+  // r.y = int(p >> 20) & 0xF;
+  // return r;
   }
 
 uint packVsmPageId(uint pageI) {
