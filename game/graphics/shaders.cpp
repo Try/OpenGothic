@@ -208,7 +208,7 @@ Shaders::Shaders() {
     vsmClumpPages      = computeShader("vsm_clump_pages.comp.sprv");
     vsmListPages       = computeShader("vsm_list_pages.comp.sprv");
     vsmAllocPages      = computeShader("vsm_alloc_pages.comp.sprv");
-    vsmAlloc2Pages     = computeShader("vsm_alloc_pages2.comp.sprv");
+    //vsmAlloc2Pages     = computeShader("vsm_alloc_pages2.comp.sprv");
     vsmMergePages      = computeShader("vsm_merge_pages.comp.sprv");
     vsmPackDraw0       = computeShader("vsm_pack_draws0.comp.sprv");
     vsmPackDraw1       = computeShader("vsm_pack_draws1.comp.sprv");
