@@ -280,8 +280,7 @@ void runCluster(const uint clusterId) {
     if(!pageHiZTest(aabb, depthMax, page, sz))
       continue;
 
-    // imageAtomicAdd(dbg, unpackVsmPageId(i), cluster.meshletCount);
-    imageAtomicAdd(dbg, ivec2(page.z,0), cluster.meshletCount);
+    // imageAtomicAdd(dbg, ivec2(page.z,0), cluster.meshletCount);
 #if 0
     if(unpackVsmPageId(i)==ivec2(56,4))
       continue;
@@ -335,8 +334,8 @@ void runClusterOmni(const uint clusterId) {
     if(!frustrumOmniTest(pos, cluster.sphere.w))
       continue;
 
-    imageAtomicAdd(dbg, ivec2(0,1), cluster.meshletCount);
-    imageAtomicAdd(dbg, ivec2(page.x%64,1+page.x/64), cluster.meshletCount);
+    // imageAtomicAdd(dbg, ivec2(0,1), cluster.meshletCount);
+    // imageAtomicAdd(dbg, ivec2(page.x%64,1+page.x/64), cluster.meshletCount);
     if(!emitCluster(cluster, i))
       break;
     }

@@ -35,7 +35,7 @@ void storePage(ivec2 pId, ivec3 at, ivec2 tile, ivec2 size) {
   const uint prime = imageLoad(pageTbl, at).r & 0x1;
   imageStore(pageTbl, at, uvec4((pageId << 16u) | prime));
 
-  //imageStore(dbg, pId, uvec4(size.y));
+  imageStore(dbg, pId, uvec4(size.y));
   }
 
 void storePage(ivec2 pId, uint lightId, uint face, ivec2 at, ivec2 tile, ivec2 size) {
@@ -46,6 +46,7 @@ void storePage(ivec2 pId, uint lightId, uint face, ivec2 at, ivec2 tile, ivec2 s
 
   pageTblOmni[lightId*6+face] = (pageId << 16u) | (size.x&0xF);
   //imageStore(dbg, pId, uvec4(size.y>0 ? 9 : 0));
+  imageStore(dbg, pId, uvec4(size.y));
   }
 
 uint bitCountShared(uint till) {

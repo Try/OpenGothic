@@ -21,11 +21,11 @@ const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z
 //shared uint pageList[VSM_MAX_PAGES];
 shared uint bits[(NumThreads+31)/32];
 
-shared uint pages4x4;
+shared int pages4x4;
 //shared uint pages1x4;
-shared uint pages2x2;
+shared int pages2x2;
 //shared uint pages1x2;
-shared uint pages1x1;
+shared int pages1x1;
 
 void storePage(ivec2 pId, ivec3 at, ivec2 tile, ivec2 size) {
   const uint pageId = pId.x + pId.y*VSM_PAGE_PER_ROW;
@@ -72,74 +72,82 @@ void pageCountPass() {
     }
   }
 
-bool layoutPages(out ivec4 subrect0, out ivec4 subrect1, const ivec2 at, const ivec2 rect, const uint pageCnt, const uvec2 pageSz) {
-  //const uint perRow = VSM_PAGE_PER_ROW/size.x;
-  const uint perRow  = rect.x/pageSz.x;
-  const uint fullRow = pageCnt/perRow;
-  const uint lastRow = pageCnt%perRow;
+void aquire(int sz, inout int pages[3]) {
+  if(sz==4)
+    pages[0] = 0;
+  else if(sz==2)
+    pages[1] = 0;
+  else if(sz==1)
+    pages[2] = 0;
+  }
 
-  const ivec2 frag = ivec2(gl_GlobalInvocationID);
+void aquire(ivec2 area, inout int pages[3], const int areas[3]) {
+  int a       = area.x*area.y;
+  for(int i=0; i<areas.length(); ++i) {
+    const int sz = areas[i];
+    if(a<=pages[i]*sz) {
+      pages[i] -= a/sz;
+      return;
+      }
+    a -= pages[i]*sz;
+    pages[i] = 0;
+    }
+  }
 
-  if(at.y<fullRow*pageSz.y) {
-    if(at.x % pageSz.x == 0 && at.y % pageSz.y == 0)
-      imageStore(dbg, frag, uvec4(pageSz.y)); else
-      imageStore(dbg, frag, uvec4(1));
-    return true;
+uint layoutPages() {
+  ivec2 at      = ivec2(gl_GlobalInvocationID);
+  ivec2 rect    = ivec2(VSM_PAGE_PER_ROW, VSM_PAGE_PER_ROW);
+
+  int   pages[] = {pages4x4, pages2x2, pages1x1};
+  int   sizes[] = {       4,        2,        1};
+  int   areas[] = {      16,        4,        1};
+
+  for(int i=0; i<pages.length(); ++i) {
+    const int pageSz  = sizes[i];
+    const int pageCnt = pages[i];
+
+    const int perRow   = rect.x/pageSz;
+    const int fullRow  = pageCnt/perRow;
+    const int remaider = pageCnt%perRow;
+
+    const int pagesT  = fullRow *pageSz;
+    const int pagesB  = fullRow *pageSz + pageSz;
+    const int pagesL  = remaider*pageSz;
+
+    if(at.y<pagesT) {
+      return (at.x/pageSz) + (at.y/pageSz)*perRow;
+      //return pageSz;
+      }
+    if(at.y<pagesB && at.x<pagesL) {
+      return (at.x/pageSz) + (at.y/pageSz)*perRow;
+      //return pageSz;
+      }
+
+    aquire(pageSz, pages);
+    if(at.y<pagesB) {
+      ivec2 shift = ivec2(pagesL, pagesT);
+      at.x   -= shift.x;
+      at.y   -= shift.y;
+      rect.x -= shift.x;
+      rect.y -= shift.y;
+      continue;
+      }
+
+    aquire(ivec2(rect.x-pagesL, pagesB-pagesT), pages, areas);
+
+    int shift = pagesB;
+    at.y   -= shift;
+    rect.y -= shift;
     }
 
-  if(at.y<(fullRow+1)*pageSz.y && at.x<lastRow*pageSz.x) {
-    if(at.x % pageSz.x == 0 && at.y % pageSz.y == 0)
-      imageStore(dbg, frag, uvec4(pageSz.y)); else
-      imageStore(dbg, frag, uvec4(1));
-    return true;
-    }
-
-  subrect0.xy = ivec2(lastRow*pageSz.x, fullRow*pageSz.y);
-  subrect0.zw = rect-subrect0.xy;
-
-  subrect1.xy = ivec2(0, (fullRow+1)*pageSz.y);
-  subrect1.zw = rect-subrect1.xy;
-  return false;
-  }
-
-bool layoutPages1x1(const ivec2 at, const ivec2 rect) {
-  ivec4 subrect0, subrect1;
-  return layoutPages(subrect0, subrect1, at, rect, pages1x1, uvec2(1,1));
-  }
-
-bool layoutPages2x2(const ivec2 at, const ivec2 rect) {
-  ivec4 subrect0, subrect1;
-  if(layoutPages(subrect0, subrect1, at, rect, pages2x2, uvec2(2,2)))
-    return true;
-  if(layoutPages1x1(at-subrect0.xy, subrect0.zw))
-    return true;
-  if(layoutPages1x1(at-subrect1.xy, subrect1.zw))
-    return true;
-  return false;
-  }
-
-void layoutPages4x4(const ivec2 at, const ivec2 rect) {
-  ivec4 subrect0, subrect1;
-  if(layoutPages(subrect0, subrect1, at, rect, pages4x4, uvec2(4,4)))
-    return;
-  if(layoutPages2x2(at-subrect0.xy, subrect0.zw))
-    return;
-  if(layoutPages2x2(at-subrect1.xy, subrect1.zw))
-    return;
-  }
-
-void layoutPages() {
-  const ivec2 at = ivec2(gl_GlobalInvocationID);
-  layoutPages4x4(at, ivec2(VSM_PAGE_PER_ROW,VSM_PAGE_PER_ROW));
+  return VSM_MAX_PAGES;
   }
 
 void main() {
   const ivec3 at = ivec3(gl_GlobalInvocationID);
 
   pages4x4 = 0;
-  //pages1x4 = 0;
   pages2x2 = 0;
-  //pages1x2 = 0;
   pages1x1 = 0;
   barrier();
 
@@ -150,5 +158,6 @@ void main() {
   pageCountPass();
   barrier();
 
-  layoutPages();
+  const uint sz = layoutPages();
+  imageStore(dbg, at.xy, uvec4(sz));
   }

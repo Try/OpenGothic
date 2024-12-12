@@ -986,6 +986,9 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.setUniforms(shaders.vsmListPages, vsm.uboAlloc);
   cmd.dispatch(size_t(vsm.pageTbl.d() + 1));
 
+  // cmd.setUniforms(shaders.vsmSortPages, vsm.uboAlloc);
+  // cmd.dispatch(1);
+
   // alloc
   // const int32_t VSM_PAGE_SIZE = 128;
   // cmd.setUniforms(shaders.vsmAlloc2Pages, vsm.uboAlloc);
