@@ -195,6 +195,7 @@ add_shader(direct_light.vert         copy.vert)
 add_shader(direct_light.frag         lighting/direct_light.frag)
 add_shader(direct_light_sh.frag      lighting/direct_light.frag -DSHADOW_MAP)
 add_shader(direct_light_rq.frag      lighting/direct_light.frag -DSHADOW_MAP -DRAY_QUERY -DRAY_QUERY_AT)
+add_shader(direct_light_vsm.frag     virtual_shadow/vsm_direct_light.frag)
 
 add_shader(ambient_light.vert        copy.vert -DHAS_UV)
 add_shader(ambient_light.frag        lighting/ambient_light.frag)
@@ -295,7 +296,6 @@ add_shader(cmaa2_deferred_color_apply_2x2.vert     antialiasing/cmaa2/deferred_c
 add_shader(cmaa2_deferred_color_apply_2x2.frag     antialiasing/cmaa2/deferred_color_apply_2x2.frag)
 
 # virtual shadows
-add_shader(direct_light_vsm.frag     virtual_shadow/vsm_direct_light.frag)
 add_shader(vsm_dbg.frag              virtual_shadow/vsm_direct_light.frag -DDEBUG)
 add_shader(vsm_mark_pages.comp       virtual_shadow/vsm_mark_pages.comp)
 add_shader(vsm_clear.comp            virtual_shadow/vsm_clear.comp)

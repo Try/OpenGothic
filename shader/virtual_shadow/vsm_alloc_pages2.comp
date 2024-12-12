@@ -13,7 +13,9 @@ layout(local_size_x = 8, local_size_y = 8) in;
 layout(binding = 0, std430) buffer Pages { VsmHeader header; uint  pageList[]; } vsm;
 layout(binding = 1, r32ui)  uniform uimage3D pageTbl;
 layout(binding = 2, std430) buffer Omni  { uint pageTblOmni[]; };
-layout(binding = 3, r32ui)  uniform uimage2D dbg;
+layout(binding = 3, std430) buffer PTmp  { uint size; uint  pageList[]; } vsmSrc;
+
+layout(binding = 4, r32ui)  uniform uimage2D dbg;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
@@ -56,7 +58,7 @@ void pageCountPass() {
   const uint pageCount = vsm.header.pageCount;
 
   for(uint i=lane; i<pageCount; i+=NumThreads) {
-    const uint  page = vsm.pageList[i];
+    const uint  page = vsmSrc.pageList[i];
     const uvec2 size = unpackVsmPageSize(page);
 
     if(size==uvec2(4,4))

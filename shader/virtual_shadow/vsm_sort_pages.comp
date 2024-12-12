@@ -13,7 +13,9 @@ layout(local_size_x = 1024) in;
 layout(binding = 0, std430) buffer Pages { VsmHeader header; uint  pageList[]; } vsm;
 layout(binding = 1, r32ui)  uniform uimage3D pageTbl;
 layout(binding = 2, std430) buffer Omni  { uint pageTblOmni[]; };
-layout(binding = 3, r32ui)  uniform uimage2D dbg;
+layout(binding = 3, std430) buffer PTmp  { uint size; uint  pageList[]; } vsmTmp;
+
+layout(binding = 4, r32ui)  uniform uimage2D dbg;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
@@ -61,7 +63,7 @@ void store() {
   const uint lane = gl_LocalInvocationIndex;
 
   for(uint i=lane; i<VSM_MAX_PAGES; i+=NumThreads) {
-    vsm.pageList[i] = (i<pageListSize) ? pageList[i] : 0;
+    vsmTmp.pageList[i] = (i<pageListSize) ? pageList[i] : 0;
     }
   }
 

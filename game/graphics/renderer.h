@@ -217,6 +217,8 @@ class Renderer final {
       bool                      fisrtFrame = false;
       } gi;
 
+    const int32_t VSM_PAGE_SIZE = 128;
+
     struct {
       Tempest::DescriptorSet    uboClear, uboClearOmni;
       Tempest::DescriptorSet    uboPages, uboOmniPages, uboPostprocessOmni;
@@ -230,6 +232,7 @@ class Renderer final {
       Tempest::StorageImage     pageHiZ;
       Tempest::ZBuffer          pageData;
       Tempest::StorageBuffer    pageList;
+      Tempest::StorageBuffer    pageListTmp;
       Tempest::StorageBuffer    pageTblOmni;
 
       Tempest::StorageImage     ssTrace;

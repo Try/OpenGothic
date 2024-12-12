@@ -75,6 +75,8 @@ void Renderer::resetSwapchain() {
   auto& device = Resources::device();
   device.waitIdle();
 
+  auto& shaders = Shaders::inst();
+
   const auto     res    = internalResolution();
   const uint32_t w      = uint32_t(res.w);
   const uint32_t h      = uint32_t(res.h);
@@ -113,11 +115,11 @@ void Renderer::resetSwapchain() {
     }
 
   hiz.hiZ       = device.image2d(TextureFormat::R16,  hw, hh, true);
-  hiz.uboPot    = device.descriptors(Shaders::inst().hiZPot);
+  hiz.uboPot    = device.descriptors(shaders.hiZPot);
   hiz.uboPot.set(0, zbuffer, smpN);
   hiz.uboPot.set(1, hiz.hiZ);
 
-  hiz.uboMip = device.descriptors(Shaders::inst().hiZMip);
+  hiz.uboMip = device.descriptors(shaders.hiZMip);
   if(hiz.atomicImg) {
     hiz.counter = device.image2d(TextureFormat::R32U, std::max(hw/4, 1u), std::max(hh/4, 1u), false);
     hiz.uboMip.set(0, hiz.counter, Sampler::nearest(), 0);
@@ -131,12 +133,12 @@ void Renderer::resetSwapchain() {
 
   if(smSize>0) {
     hiz.smProj    = device.zbuffer(shadowFormat, smSize, smSize);
-    hiz.uboReproj = device.descriptors(Shaders::inst().hiZReproj);
+    hiz.uboReproj = device.descriptors(shaders.hiZReproj);
     hiz.uboReproj.set(0, zbuffer, smpN);
     // hiz.uboReproj.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
 
     hiz.hiZSm1    = device.image2d(TextureFormat::R16, 64, 64, true);
-    hiz.uboPotSm1 = device.descriptors(Shaders::inst().hiZPot);
+    hiz.uboPotSm1 = device.descriptors(shaders.hiZPot);
     hiz.uboPotSm1.set(0, hiz.smProj, smpN);
     hiz.uboPotSm1.set(1, hiz.hiZSm1);
     hiz.uboMipSm1 = Tempest::DescriptorSet();
@@ -156,65 +158,65 @@ void Renderer::resetSwapchain() {
   gbufDiffuse = device.attachment(TextureFormat::RGBA8,w,h);
   gbufNormal  = device.attachment(TextureFormat::R32U, w,h);
 
-  uboStash = device.descriptors(Shaders::inst().stash);
+  uboStash = device.descriptors(shaders.stash);
   uboStash.set(0,sceneLinear,Sampler::nearest());
   uboStash.set(1,zbuffer,    Sampler::nearest());
 
   if(settings.vsmEnabled)
-    shadow.directLightPso = &Shaders::inst().vsmDirectLight; //TODO: naming
+    shadow.directLightPso = &shaders.vsmDirectLight; //TODO: naming
   else if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing &&
      settings.shadowResolution>0)
-    shadow.directLightPso = &Shaders::inst().directLightRq;
+    shadow.directLightPso = &shaders.directLightRq;
   else if(settings.shadowResolution>0)
-    shadow.directLightPso = &Shaders::inst().directLightSh;
+    shadow.directLightPso = &shaders.directLightSh;
   else
-    shadow.directLightPso = &Shaders::inst().directLight;
+    shadow.directLightPso = &shaders.directLight;
   Resources::recycle(std::move(shadow.ubo));
 
   if(settings.vsmEnabled)
-    lights.directLightPso = &Shaders::inst().lightsVsm;
+    lights.directLightPso = &shaders.lightsVsm;
   else if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing)
-    lights.directLightPso = &Shaders::inst().lightsRq;
+    lights.directLightPso = &shaders.lightsRq;
   else
-    lights.directLightPso = &Shaders::inst().lights;
+    lights.directLightPso = &shaders.lights;
   Resources::recycle(std::move(lights.ubo));
   Resources::recycle(std::move(vsm.uboOmniPages));
   Resources::recycle(std::move(vsm.uboClearOmni));
 
-  water.underUbo = device.descriptors(Shaders::inst().underwaterT);
+  water.underUbo = device.descriptors(shaders.underwaterT);
 
   ssao.ssaoBuf = device.image2d(ssao.aoFormat, w,h);
-  ssao.ssaoPso = &Shaders::inst().ssao;
+  ssao.ssaoPso = &shaders.ssao;
   ssao.uboSsao = device.descriptors(*ssao.ssaoPso);
 
   ssao.ssaoBlur = device.image2d(ssao.aoFormat, w,h);
-  ssao.uboBlur  = device.descriptors(Shaders::inst().ssaoBlur);
+  ssao.uboBlur  = device.descriptors(shaders.ssaoBlur);
 
-  tonemapping.pso             = (settings.vidResIndex==0) ? &Shaders::inst().tonemapping : &Shaders::inst().tonemappingUpscale;
+  tonemapping.pso             = (settings.vidResIndex==0) ? &shaders.tonemapping : &shaders.tonemappingUpscale;
   tonemapping.uboTone         = device.descriptors(*tonemapping.pso);
 
-  cmaa2.detectEdges2x2        = &Shaders::inst().cmaa2EdgeColor2x2Presets[Gothic::options().aaPreset];
+  cmaa2.detectEdges2x2        = &shaders.cmaa2EdgeColor2x2Presets[Gothic::options().aaPreset];
   cmaa2.detectEdges2x2Ubo     = device.descriptors(*cmaa2.detectEdges2x2);
 
-  cmaa2.processCandidates     = &Shaders::inst().cmaa2ProcessCandidates;
+  cmaa2.processCandidates     = &shaders.cmaa2ProcessCandidates;
   cmaa2.processCandidatesUbo  = device.descriptors(*cmaa2.processCandidates);
 
-  cmaa2.defferedColorApply    = &Shaders::inst().cmaa2DeferredColorApply2x2;
+  cmaa2.defferedColorApply    = &shaders.cmaa2DeferredColorApply2x2;
   cmaa2.defferedColorApplyUbo = device.descriptors(*cmaa2.defferedColorApply);
 
   if(settings.vsmEnabled) {
-    vsm.uboDbg          = device.descriptors(Shaders::inst().vsmDbg);
-    vsm.uboClear        = device.descriptors(Shaders::inst().vsmClear);
-    vsm.uboPages        = device.descriptors(Shaders::inst().vsmMarkPages);
-    vsm.uboEpipole      = device.descriptors(Shaders::inst().vsmFogEpipolar);
-    vsm.uboFogPages     = device.descriptors(Shaders::inst().vsmFogPages);
-    vsm.uboFogShadow    = device.descriptors(Shaders::inst().vsmFogShadow);
-    vsm.uboFogSample    = device.descriptors(Shaders::inst().vsmFogSample);
-    vsm.uboFogTrace     = device.descriptors(Shaders::inst().vsmFogTrace);
-    vsm.uboClump        = device.descriptors(Shaders::inst().vsmClumpPages);
+    vsm.uboDbg          = device.descriptors(shaders.vsmDbg);
+    vsm.uboClear        = device.descriptors(shaders.vsmClear);
+    vsm.uboPages        = device.descriptors(shaders.vsmMarkPages);
+    vsm.uboEpipole      = device.descriptors(shaders.vsmFogEpipolar);
+    vsm.uboFogPages     = device.descriptors(shaders.vsmFogPages);
+    vsm.uboFogShadow    = device.descriptors(shaders.vsmFogShadow);
+    vsm.uboFogSample    = device.descriptors(shaders.vsmFogSample);
+    vsm.uboFogTrace     = device.descriptors(shaders.vsmFogTrace);
+    vsm.uboClump        = device.descriptors(shaders.vsmClumpPages);
     Resources::recycle(std::move(vsm.uboAlloc));
 
-    vsm.pagesDbgPso     = &Shaders::inst().vsmDbg;
+    vsm.pagesDbgPso     = &shaders.vsmDbg;
 
     vsm.pageTbl         = device.image3d(TextureFormat::R32U, 32, 32, 16);
     vsm.pageHiZ         = device.image3d(TextureFormat::R32U, 32, 32, 16);
@@ -225,19 +227,19 @@ void Renderer::resetSwapchain() {
     vsm.ssTrace  = device.image2d(TextureFormat::R32U, w, h);
     vsm.fogDbg   = device.image2d(TextureFormat::RGBA8, w, h);
     vsm.epTrace  = device.image2d(TextureFormat::R16, 1024, 2*1024);
-    vsm.epipoles = device.ssbo(nullptr, Shaders::inst().vsmFogEpipolar.sizeofBuffer(3, size_t(vsm.epTrace.h())));
+    vsm.epipoles = device.ssbo(nullptr, shaders.vsmFogEpipolar.sizeofBuffer(3, size_t(vsm.epTrace.h())));
 
-    const int32_t VSM_PAGE_SIZE = 128;
     auto pageCount      = uint32_t(vsm.pageData.w()/VSM_PAGE_SIZE) * uint32_t(vsm.pageData.h()/VSM_PAGE_SIZE);
-    auto pageSsboSize   = Shaders::inst().vsmClear.sizeofBuffer(0, pageCount);
+    auto pageSsboSize   = shaders.vsmClear.sizeofBuffer(0, pageCount);
 
     vsm.pageList        = device.ssbo(nullptr, pageSsboSize);
+    vsm.pageListTmp     = device.ssbo(nullptr, shaders.vsmAllocPages.sizeofBuffer(3, pageCount));
     }
 
   if(settings.swrEnabled) {
     //swr.outputImage = device.image2d(Tempest::RGBA8, w, h);
     swr.outputImage = device.image2d(Tempest::R32U, w, h);
-    swr.uboDbg      = device.descriptors(Shaders::inst().swRenderingDbg);
+    swr.uboDbg      = device.descriptors(shaders.swRenderingDbg);
     }
 
   initGiData();
@@ -931,11 +933,12 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     }
 
   if(vsm.uboAlloc.isEmpty()) {
-    vsm.uboAlloc = device.descriptors(shaders.vsmAllocPages);
+    vsm.uboAlloc = device.descriptors(shaders.vsmListPages);
     vsm.uboAlloc.set(0, vsm.pageList);
     vsm.uboAlloc.set(1, vsm.pageTbl);
     vsm.uboAlloc.set(2, vsm.pageTblOmni);
-    vsm.uboAlloc.set(3, scene.vsmDbg);
+    vsm.uboAlloc.set(3, vsm.pageListTmp);
+    vsm.uboAlloc.set(4, scene.vsmDbg);
     }
 
   cmd.setFramebuffer({});
@@ -990,12 +993,12 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   // cmd.dispatch(1);
 
   // alloc
-  // const int32_t VSM_PAGE_SIZE = 128;
   // cmd.setUniforms(shaders.vsmAlloc2Pages, vsm.uboAlloc);
   // cmd.dispatchThreads(size_t(vsm.pageData.w()/VSM_PAGE_SIZE), size_t(vsm.pageData.h()/VSM_PAGE_SIZE));
 
   cmd.setUniforms(shaders.vsmAllocPages, vsm.uboAlloc);
   cmd.dispatch(1);
+
   // hor-merge
   cmd.setUniforms(shaders.vsmMergePages, vsm.uboAlloc);
   cmd.dispatch(1);
