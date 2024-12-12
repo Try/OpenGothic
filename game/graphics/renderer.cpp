@@ -225,11 +225,11 @@ void Renderer::resetSwapchain() {
     vsm.ssTrace  = device.image2d(TextureFormat::R32U, w, h);
     vsm.fogDbg   = device.image2d(TextureFormat::RGBA8, w, h);
     vsm.epTrace  = device.image2d(TextureFormat::R16, 1024, 2*1024);
-    vsm.epipoles = device.ssbo(nullptr, Shaders::inst().vsmFogEpipolar.sizeOfBuffer(3, size_t(vsm.epTrace.h())));
+    vsm.epipoles = device.ssbo(nullptr, Shaders::inst().vsmFogEpipolar.sizeofBuffer(3, size_t(vsm.epTrace.h())));
 
     const int32_t VSM_PAGE_SIZE = 128;
     auto pageCount      = uint32_t(vsm.pageData.w()/VSM_PAGE_SIZE) * uint32_t(vsm.pageData.h()/VSM_PAGE_SIZE);
-    auto pageSsboSize   = Shaders::inst().vsmClear.sizeOfBuffer(0, pageCount);
+    auto pageSsboSize   = Shaders::inst().vsmClear.sizeofBuffer(0, pageCount);
 
     vsm.pageList        = device.ssbo(nullptr, pageSsboSize);
     }
@@ -912,7 +912,7 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
 
   if(omniLights && vsm.uboOmniPages.isEmpty()) {
     Resources::recycle(std::move(vsm.pageTblOmni));
-    vsm.pageTblOmni  = device.ssbo(nullptr, shaders.vsmClearOmni.sizeOfBuffer(0, wview.lights().size()*6));
+    vsm.pageTblOmni  = device.ssbo(nullptr, shaders.vsmClearOmni.sizeofBuffer(0, wview.lights().size()*6));
 
     vsm.uboOmniPages = device.descriptors(shaders.vsmMarkOmniPages);
     vsm.uboOmniPages.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
