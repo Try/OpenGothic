@@ -138,8 +138,8 @@ Gothic::Gothic() {
   defaults->set("SOUND", "musicVolume",   0.5f);
   defaults->set("SOUND", "soundVolume",   0.5f);
 
-  defaults->set("ENGINE", "zEnvMappingEnabled", 0);
-  defaults->set("ENGINE", "zCloudShadowScale",  0);
+  //defaults->set("ENGINE", "zEnvMappingEnabled", 0);
+  //defaults->set("ENGINE", "zCloudShadowScale",  0);
   defaults->set("ENGINE", "zWindEnabled",       1);
   defaults->set("ENGINE", "zWindCycleTime",     4);
   defaults->set("ENGINE", "zWindCycleTimeVar",  6);
