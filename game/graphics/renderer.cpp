@@ -144,10 +144,8 @@ void Renderer::resetSwapchain() {
 
   if(smSize>0) {
     for(int i=0; i<Resources::ShadowLayers; ++i) {
-      if(settings.vsmEnabled)
-        continue;
-      if(settings.vsmEnabled && !settings.giEnabled)
-        ;//continue; //TODO: support vsm in gi code
+      if(settings.vsmEnabled && !(settings.giEnabled && i==1))
+        continue; //TODO: support vsm in gi code
       shadowMap[i] = device.zbuffer(shadowFormat,smSize,smSize);
       }
     }
@@ -162,14 +160,26 @@ void Renderer::resetSwapchain() {
   uboStash.set(0,sceneLinear,Sampler::nearest());
   uboStash.set(1,zbuffer,    Sampler::nearest());
 
-  if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing &&
+  if(settings.vsmEnabled)
+    shadow.directLightPso = &Shaders::inst().vsmDirectLight; //TODO: naming
+  else if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing &&
      settings.shadowResolution>0)
     shadow.directLightPso = &Shaders::inst().directLightRq;
   else if(settings.shadowResolution>0)
     shadow.directLightPso = &Shaders::inst().directLightSh;
   else
     shadow.directLightPso = &Shaders::inst().directLight;
-  shadow.ubo = device.descriptors(*shadow.directLightPso);
+  Resources::recycle(std::move(shadow.ubo));
+
+  if(settings.vsmEnabled)
+    lights.directLightPso = &Shaders::inst().lightsVsm;
+  else if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing)
+    lights.directLightPso = &Shaders::inst().lightsRq;
+  else
+    lights.directLightPso = &Shaders::inst().lights;
+  Resources::recycle(std::move(lights.ubo));
+  Resources::recycle(std::move(vsm.uboOmniPages));
+  Resources::recycle(std::move(vsm.uboClearOmni));
 
   water.underUbo = device.descriptors(Shaders::inst().underwaterT);
 
@@ -193,10 +203,8 @@ void Renderer::resetSwapchain() {
   cmaa2.defferedColorApplyUbo = device.descriptors(*cmaa2.defferedColorApply);
 
   if(settings.vsmEnabled) {
+    vsm.uboDbg          = device.descriptors(Shaders::inst().vsmDbg);
     vsm.uboClear        = device.descriptors(Shaders::inst().vsmClear);
-    if(!vsm.pageDataCs.isEmpty())
-      vsm.uboClearPages = device.descriptors(Shaders::inst().vsmClearPages);
-
     vsm.uboPages        = device.descriptors(Shaders::inst().vsmMarkPages);
     vsm.uboEpipole      = device.descriptors(Shaders::inst().vsmFogEpipolar);
     vsm.uboFogPages     = device.descriptors(Shaders::inst().vsmFogPages);
@@ -204,15 +212,14 @@ void Renderer::resetSwapchain() {
     vsm.uboFogSample    = device.descriptors(Shaders::inst().vsmFogSample);
     vsm.uboFogTrace     = device.descriptors(Shaders::inst().vsmFogTrace);
     vsm.uboClump        = device.descriptors(Shaders::inst().vsmClumpPages);
-    vsm.uboAlloc        = device.descriptors(Shaders::inst().vsmAllocPages);
+    Resources::recycle(std::move(vsm.uboAlloc));
 
-    vsm.directLightPso  = &Shaders::inst().vsmDirectLight;
     vsm.pagesDbgPso     = &Shaders::inst().vsmDbg;
-    vsm.uboLight        = device.descriptors(*vsm.directLightPso);
 
     vsm.pageTbl         = device.image3d(TextureFormat::R32U, 32, 32, 16);
     vsm.pageHiZ         = device.image3d(TextureFormat::R32U, 32, 32, 16);
     vsm.pageData        = device.zbuffer(shadowFormat, 8192, 8192);
+    vsm.vsmDbg          = device.image2d(TextureFormat::R32U, uint32_t(zbuffer.w()), uint32_t(zbuffer.h()));
 
     // vsm.ssTrace  = device.image2d(TextureFormat::RGBA8, w, h);
     vsm.ssTrace  = device.image2d(TextureFormat::R32U, w, h);
@@ -294,6 +301,13 @@ void Renderer::toggleGi() {
 
 void Renderer::onWorldChanged() {
   gi.fisrtFrame = true;
+
+  Resources::recycle(std::move(shadow.ubo));
+  Resources::recycle(std::move(lights.ubo));
+  Resources::recycle(std::move(vsm.uboOmniPages));
+  Resources::recycle(std::move(vsm.uboClearOmni));
+  Resources::recycle(std::move(vsm.uboAlloc));
+
   prepareUniforms();
   }
 
@@ -381,17 +395,6 @@ void Renderer::prepareUniforms() {
     cmaa2.defferedColorApplyUbo.set(6, cmaa2.controlBuffer);
     }
 
-  shadow.ubo.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-  shadow.ubo.set(1, gbufDiffuse, Sampler::nearest());
-  shadow.ubo.set(2, gbufNormal,  Sampler::nearest());
-  shadow.ubo.set(3, zbuffer,     Sampler::nearest());
-
-  for(size_t r=0; r<Resources::ShadowLayers; ++r) {
-    if(shadowMap[r].isEmpty())
-      continue;
-    shadow.ubo.set(4+r, shadowMap[r]);
-    }
-
   water.underUbo.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
   water.underUbo.set(1, zbuffer);
 
@@ -468,16 +471,12 @@ void Renderer::prepareUniforms() {
     vsm.uboClear.set(1, vsm.pageTbl);
     vsm.uboClear.set(2, vsm.pageHiZ);
 
-    if(!vsm.uboClearPages.isEmpty())
-      vsm.uboClearPages.set(0, vsm.pageDataCs);
-
     vsm.uboPages.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     vsm.uboPages.set(1, gbufDiffuse, Sampler::nearest());
     vsm.uboPages.set(2, gbufNormal,  Sampler::nearest());
     vsm.uboPages.set(3, zbuffer,     Sampler::nearest());
     vsm.uboPages.set(4, vsm.pageTbl);
     vsm.uboPages.set(5, vsm.pageHiZ);
-    //vsm.uboPages.set(7, vsm.pageList);
 
     vsm.uboEpipole.set(0, vsm.ssTrace);
     vsm.uboEpipole.set(1, vsm.epTrace);
@@ -517,20 +516,14 @@ void Renderer::prepareUniforms() {
     vsm.uboClump.set(0, vsm.pageList);
     vsm.uboClump.set(1, vsm.pageTbl);
 
-    vsm.uboAlloc.set(0, vsm.pageList);
-    vsm.uboAlloc.set(1, vsm.pageTbl);
-    vsm.uboAlloc.set(2, wview->sceneGlobals().vsmDbg);
-
-    vsm.uboLight.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    vsm.uboLight.set(1, gbufDiffuse, Sampler::nearest());
-    vsm.uboLight.set(2, gbufNormal,  Sampler::nearest());
-    vsm.uboLight.set(3, zbuffer,     Sampler::nearest());
-    vsm.uboLight.set(4, vsm.pageTbl);
-    vsm.uboLight.set(5, vsm.pageList);
-    if(!vsm.pageDataCs.isEmpty())
-      vsm.uboLight.set(6, vsm.pageDataCs); else
-      vsm.uboLight.set(6, vsm.pageData);
-    vsm.uboLight.set(8, wview->sceneGlobals().vsmDbg);
+    vsm.uboDbg.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    vsm.uboDbg.set(1, gbufDiffuse, Sampler::nearest());
+    vsm.uboDbg.set(2, gbufNormal,  Sampler::nearest());
+    vsm.uboDbg.set(3, zbuffer,     Sampler::nearest());
+    vsm.uboDbg.set(4, vsm.pageTbl);
+    vsm.uboDbg.set(5, vsm.pageList);
+    vsm.uboDbg.set(6, vsm.pageData);
+    vsm.uboDbg.set(8, wview->sceneGlobals().vsmDbg);
     }
 
   if(settings.swrEnabled) {
@@ -547,7 +540,7 @@ void Renderer::prepareUniforms() {
       sh[i] = &textureCast<const Texture2d&>(shadowMap[i]);
       }
   wview->setShadowMaps(sh);
-  wview->setVirtualShadowMap(vsm.pageData, vsm.pageDataCs, vsm.pageTbl, vsm.pageHiZ, vsm.pageList);
+  wview->setVirtualShadowMap(vsm.pageData, vsm.pageTbl, vsm.pageHiZ, vsm.pageList);
   wview->setVsmSkyShadows(vsm.ssTrace);
   wview->setSwRenderingImage(swr.outputImage);
 
@@ -564,15 +557,6 @@ void Renderer::prepareRtUniforms() {
   auto& scene = wview->sceneGlobals();
   if(scene.rtScene.tlas.isEmpty())
     return;
-
-  if(shadow.directLightPso==&Shaders::inst().directLightRq) {
-    shadow.ubo.set(6, scene.rtScene.tlas);
-    shadow.ubo.set(7, Sampler::bilinear());
-    shadow.ubo.set(8, scene.rtScene.tex);
-    shadow.ubo.set(9, scene.rtScene.vbo);
-    shadow.ubo.set(10,scene.rtScene.ibo);
-    shadow.ubo.set(11,scene.rtScene.rtDesc);
-    }
 
   if(!gi.uboTrace.isEmpty()) {
     gi.uboTrace.set(6, scene.rtScene.tlas);
@@ -659,10 +643,20 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     return;
     }
 
-  if(wview->updateRtScene())
+  if(wview->updateRtScene()) {
+    Resources::recycle(std::move(shadow.ubo));
+    Resources::recycle(std::move(lights.ubo));
     prepareRtUniforms();
+    }
 
-  wview->updateLights();
+  if(wview->updateLights()) {
+    Resources::recycle(std::move(lights.ubo));
+    Resources::recycle(std::move(vsm.uboClearOmni));
+    Resources::recycle(std::move(vsm.uboOmniPages));
+    Resources::recycle(std::move(vsm.uboPostprocessOmni));
+    Resources::recycle(std::move(vsm.uboAlloc));
+    }
+
   updateCamera(*camera);
 
   static bool updFr = true;
@@ -824,7 +818,7 @@ void Renderer::drawVsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   cmd.setDebugMarker("VSM-dbg");
-  cmd.setUniforms(*vsm.pagesDbgPso, vsm.uboLight, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
+  cmd.setUniforms(*vsm.pagesDbgPso, vsm.uboDbg, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
   cmd.draw(Resources::fsqVbo());
   }
 
@@ -908,14 +902,64 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   if(!settings.vsmEnabled)
     return;
 
+  static bool omniLights = true;
+
+  auto& device  = Resources::device();
   auto& shaders = Shaders::inst();
+  auto& scene   = wview.sceneGlobals();
+
+  const size_t numOmniPages = wview.lights().size()*6;
+
+  if(omniLights && vsm.uboOmniPages.isEmpty()) {
+    Resources::recycle(std::move(vsm.pageTblOmni));
+    vsm.pageTblOmni  = device.ssbo(nullptr, shaders.vsmClearOmni.sizeOfBuffer(0, wview.lights().size()*6));
+
+    vsm.uboOmniPages = device.descriptors(shaders.vsmMarkOmniPages);
+    vsm.uboOmniPages.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    vsm.uboOmniPages.set(1, gbufDiffuse, Sampler::nearest());
+    vsm.uboOmniPages.set(2, gbufNormal,  Sampler::nearest());
+    vsm.uboOmniPages.set(3, zbuffer,     Sampler::nearest());
+    vsm.uboOmniPages.set(4, wview.lights().lightsSsbo());
+    vsm.uboOmniPages.set(5, vsm.pageTblOmni);
+    vsm.uboOmniPages.set(6, vsm.vsmDbg);
+
+    vsm.uboPostprocessOmni = device.descriptors(shaders.vsmPostprocessOmni);
+    vsm.uboPostprocessOmni.set(0, vsm.pageTblOmni);
+
+    vsm.uboClearOmni = device.descriptors(shaders.vsmClearOmni);
+    vsm.uboClearOmni.set(0, vsm.pageTblOmni);
+    }
+
+  if(vsm.uboAlloc.isEmpty()) {
+    vsm.uboAlloc = device.descriptors(shaders.vsmAllocPages);
+    vsm.uboAlloc.set(0, vsm.pageList);
+    vsm.uboAlloc.set(1, vsm.pageTbl);
+    vsm.uboAlloc.set(2, vsm.pageTblOmni);
+    vsm.uboAlloc.set(3, scene.vsmDbg);
+    }
+
   cmd.setFramebuffer({});
   cmd.setDebugMarker("VSM-pages");
   cmd.setUniforms(shaders.vsmClear, vsm.uboClear);
   cmd.dispatchThreads(size_t(vsm.pageTbl.w()), size_t(vsm.pageTbl.h()), size_t(vsm.pageTbl.d()));
 
+  cmd.setUniforms(shaders.vsmClearOmni, vsm.uboClearOmni);
+  cmd.dispatchThreads(numOmniPages);
+
   cmd.setUniforms(shaders.vsmMarkPages, vsm.uboPages, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
   cmd.dispatchThreads(zbuffer.size());
+
+  if(omniLights) {
+    struct Push { Vec3 originLwc; float znear; float vsmMipBias; } push = {};
+    push.originLwc  = scene.originLwc;
+    push.znear      = scene.znear;
+    push.vsmMipBias = settings.vsmMipBias;
+    cmd.setUniforms(shaders.vsmMarkOmniPages, vsm.uboOmniPages, &push, sizeof(push));
+    cmd.dispatchThreads(zbuffer.size());
+
+    cmd.setUniforms(shaders.vsmPostprocessOmni, vsm.uboPostprocessOmni);
+    cmd.dispatchThreads(numOmniPages);
+    }
 
   // sky&fog
   if(true && wview.sky().isVolumetric()) {
@@ -927,7 +971,8 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     cmd.dispatchThreads(vsm.epTrace.size());
     }
 
-  if(vsm.pageDataCs.isEmpty()) {
+  cmd.setDebugMarker("VSM-pages-alloc");
+  if(true) {
     // trimming
     // cmd.setUniforms(shaders.vsmTrimPages, vsm.uboClump);
     // cmd.dispatch(1);
@@ -937,16 +982,18 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     cmd.dispatchThreads(size_t(vsm.pageTbl.w()), size_t(vsm.pageTbl.h()), size_t(vsm.pageTbl.d()));
     }
 
-  if(!vsm.pageDataCs.isEmpty()) {
-    cmd.setUniforms(shaders.vsmClearPages, vsm.uboClearPages);
-    cmd.dispatchThreads(size_t(vsm.pageDataCs.w()), size_t(vsm.pageDataCs.h()));
-    }
-
-  // list?
+  // list
   cmd.setUniforms(shaders.vsmListPages, vsm.uboAlloc);
-  cmd.dispatch(size_t(vsm.pageTbl.d()));
+  cmd.dispatch(size_t(vsm.pageTbl.d() + 1));
+
+  // cmd.setUniforms(shaders.vsmSortPages, vsm.uboAlloc);
+  // cmd.dispatch(1);
 
   // alloc
+  // const int32_t VSM_PAGE_SIZE = 128;
+  // cmd.setUniforms(shaders.vsmAlloc2Pages, vsm.uboAlloc);
+  // cmd.dispatchThreads(size_t(vsm.pageData.w()/VSM_PAGE_SIZE), size_t(vsm.pageData.h()/VSM_PAGE_SIZE));
+
   cmd.setUniforms(shaders.vsmAllocPages, vsm.uboAlloc);
   cmd.dispatch(1);
   // hor-merge
@@ -1039,24 +1086,89 @@ void Renderer::drawShadowMap(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView
     }
   }
 
-void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, uint8_t fId, const WorldView& view) {
-  static bool useDsm = true;
-  if(!useDsm)
+void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, uint8_t fId, const WorldView& wview) {
+  static bool light = true;
+  if(!light)
     return;
-  if(settings.vsmEnabled) {
-    cmd.setDebugMarker("DirectSunLight-VSM");
-    cmd.setUniforms(*vsm.directLightPso, vsm.uboLight, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
-    cmd.draw(Resources::fsqVbo());
-    return;
+
+  auto& device = Resources::device();
+  auto& scene = wview.sceneGlobals();
+  cmd.setDebugMarker(settings.vsmEnabled ? "DirectSunLight-VSM" : "DirectSunLight");
+
+  if(shadow.ubo.isEmpty()) {
+    shadow.ubo = device.descriptors(*shadow.directLightPso);
+    shadow.ubo.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    shadow.ubo.set(1, gbufDiffuse, Sampler::nearest());
+    shadow.ubo.set(2, gbufNormal,  Sampler::nearest());
+    shadow.ubo.set(3, zbuffer,     Sampler::nearest());
+    if(shadow.directLightPso==&Shaders::inst().vsmDirectLight) {
+      shadow.ubo.set(4, vsm.pageTbl);
+      shadow.ubo.set(5, vsm.pageList);
+      shadow.ubo.set(6, vsm.pageData);
+      shadow.ubo.set(8, scene.vsmDbg);
+      }
+    else if(shadow.directLightPso==&Shaders::inst().directLightRq) {
+      for(size_t r=0; r<Resources::ShadowLayers; ++r) {
+        if(shadowMap[r].isEmpty())
+          continue;
+        shadow.ubo.set(4+r, shadowMap[r]);
+        }
+      shadow.ubo.set(6, scene.rtScene.tlas);
+      shadow.ubo.set(7, Sampler::bilinear());
+      shadow.ubo.set(8, scene.rtScene.tex);
+      shadow.ubo.set(9, scene.rtScene.vbo);
+      shadow.ubo.set(10,scene.rtScene.ibo);
+      shadow.ubo.set(11,scene.rtScene.rtDesc);
+      }
+    else {
+      for(size_t r=0; r<Resources::ShadowLayers; ++r) {
+        if(shadowMap[r].isEmpty())
+          continue;
+        shadow.ubo.set(4+r, shadowMap[r]);
+        }
+      }
     }
-  cmd.setDebugMarker("DirectSunLight");
+
   cmd.setUniforms(*shadow.directLightPso, shadow.ubo);
+  if(settings.vsmEnabled)
+    cmd.setUniforms(*shadow.directLightPso, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
   cmd.draw(Resources::fsqVbo());
   }
 
 void Renderer::drawLights(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
+  static bool light = true;
+  if(!light)
+    return;
+
+  auto& device = Resources::device();
+  auto& scene = wview.sceneGlobals();
   cmd.setDebugMarker("Point lights");
-  wview.drawLights(cmd,fId);
+
+  if(lights.ubo.isEmpty()) {
+    lights.ubo = device.descriptors(*lights.directLightPso);
+    lights.ubo.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    lights.ubo.set(1, gbufDiffuse, Sampler::nearest());
+    lights.ubo.set(2, gbufNormal,  Sampler::nearest());
+    lights.ubo.set(3, zbuffer,     Sampler::nearest());
+    lights.ubo.set(4, wview.lights().lightsSsbo());
+    if(lights.directLightPso==&Shaders::inst().lightsVsm) {
+      lights.ubo.set(5, vsm.pageTblOmni);
+      lights.ubo.set(6, vsm.pageData);
+      }
+    if(lights.directLightPso==&Shaders::inst().lightsRq) {
+      lights.ubo.set(6, scene.rtScene.tlas);
+      lights.ubo.set(7, Sampler::bilinear());
+      lights.ubo.set(8, scene.rtScene.tex);
+      lights.ubo.set(9, scene.rtScene.vbo);
+      lights.ubo.set(10,scene.rtScene.ibo);
+      lights.ubo.set(11,scene.rtScene.rtDesc);
+      }
+    }
+
+  auto  originLwc = scene.originLwc;
+  auto& ibo       = Resources::cubeIbo();
+  cmd.setUniforms(*lights.directLightPso, lights.ubo, &originLwc, sizeof(originLwc));
+  cmd.draw(nullptr,ibo, 0,ibo.size(), 0,wview.lights().size());
   }
 
 void Renderer::drawSky(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {

@@ -43,11 +43,11 @@ class SceneGlobals final {
     void setShadowMap(const Tempest::Texture2d* tex[]);
 
     void setVirtualShadowMap(const Tempest::ZBuffer&       vsmPageData,
-                             const Tempest::StorageImage&  vsmPageDataCs,
                              const Tempest::StorageImage&  pageTbl,
                              const Tempest::StorageImage&  pageHiZ,
                              const Tempest::StorageBuffer& vsmPageList);
     void setVsmSkyShadows(const Tempest::StorageImage& skyShadows);
+
     void setSwRenderingImage(const Tempest::StorageImage& mainView);
 
     const Tempest::Matrix4x4& viewProject() const;
@@ -76,10 +76,9 @@ class SceneGlobals final {
     const Tempest::Texture2d*         hiZ          = &Resources::fallbackTexture();
     const Tempest::Texture2d*         skyLut       = &Resources::fallbackTexture();
 
-    const Tempest::StorageBuffer*     lights       = nullptr;
+    const Tempest::StorageBuffer*     lights        = nullptr;
 
     const Tempest::Texture2d*         vsmPageData   = nullptr;
-    const Tempest::StorageImage*      vsmPageDataCs = nullptr;
     const Tempest::StorageImage*      vsmPageTbl    = nullptr;
     const Tempest::StorageImage*      vsmPageHiZ    = nullptr;
     const Tempest::StorageBuffer*     vsmPageList   = nullptr;

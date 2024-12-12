@@ -24,11 +24,7 @@ layout(binding = 2)         uniform utexture2D  gbufNormal;
 layout(binding = 3)         uniform texture2D   depth;
 layout(binding = 4)         uniform utexture3D  pageTbl;
 layout(binding = 5, std430) readonly buffer Pages { VsmHeader header; uint  pageList[]; } vsm;
-#if defined(VSM_ATOMIC)
-layout(binding = 6) uniform utexture2D  pageData;
-#else
-layout(binding = 6) uniform texture2D   pageData;
-#endif
+layout(binding = 6)         uniform texture2D   pageData;
 layout(binding = 8, r32ui)  uniform readonly uimage2D dbg;
 
 
@@ -132,16 +128,28 @@ bool calcMipIndex(out vec3 pagePos, out int mip, const float z, const vec3 norma
   }
 
 float shadowTest(float z, vec3 normal, out vec3 page, out int mip) {
+#if VSM_ENABLE_SUN
   if(!calcMipIndex(page, mip, z, normal))
     return 1;
   return shadowTest(page.xy, mip, page.z);
+#else
+  return 1;
+#endif
   }
 
 void main() {
   outColor = vec4(0,0,0, 1);
 
 #if 1
-  if(drawInt(gl_FragCoord.xy-vec2(100), int(vsm.header.pageCount))>0) {
+  if(drawInt(gl_FragCoord.xy-vec2(100,100), int(vsm.header.pageCount))>0) {
+    outColor = vec4(1);
+    return;
+    }
+  if(drawInt(gl_FragCoord.xy-vec2(100,150), int(vsm.header.pageOmniCount))>0) {
+    outColor = vec4(1);
+    return;
+    }
+  if(drawInt(gl_FragCoord.xy-vec2(100,200), int(vsm.header.meshletCount))>0) {
     outColor = vec4(1);
     return;
     }

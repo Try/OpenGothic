@@ -3,16 +3,14 @@
 #extension GL_GOOGLE_include_directive    : enable
 #extension GL_ARB_separate_shader_objects : enable
 
-#define CLUSTER 1
-
-#include "materials/materials_common.glsl"
 #include "virtual_shadow/vsm_common.glsl"
 #include "scene.glsl"
 
 layout(local_size_x = 128) in; // NOTE: bigger == better
 
-layout(binding = 1, std430) readonly  buffer SsboGlob     { uvec4       payloadSrc[];   };
-layout(binding = 2, std430) writeonly buffer SsboDst      { uvec4       payload[];      };
+layout(binding = 0, std140) uniform          UboScene     { SceneDesc   scene;          };
+layout(binding = 1, std430) readonly  buffer PayloadSrc   { uvec4       payloadSrc[];   };
+layout(binding = 2, std430) writeonly buffer PayloadDst   { uvec4       payload[];      };
 layout(binding = 3, std430) buffer           IndirectBuf  { IndirectCmd cmd[];          };
 layout(binding = 4, std430) readonly  buffer Pages        { VsmHeader   header; uint pageList[]; } vsm;
 

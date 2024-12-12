@@ -103,7 +103,7 @@ void rotate(out vec3 rx, out vec3 ry, float a, in vec3 x, in vec3 y){
   }
 #endif
 
-vec4 processVertex(out Varyings shOut, in Vertex v, uint bucketId, uint instanceId, uint vboOffset) {
+vec3 processVertexCommon(out Varyings shOut, in Vertex v, uint bucketId, uint instanceId, uint vboOffset) {
 #if defined(LVL_OBJECT)
   Instance obj = pullInstance(instanceId);
 #endif
@@ -157,6 +157,12 @@ vec4 processVertex(out Varyings shOut, in Vertex v, uint bucketId, uint instance
   shOut.color = unpackUnorm4x8(v.color);
 #endif
 
+  return pos;
+  // return scene.viewProject*vec4(pos,1.0);
+  }
+
+vec4 processVertex(out Varyings shOut, in Vertex v, uint bucketId, uint instanceId, uint vboOffset) {
+  vec3 pos = processVertexCommon(shOut, v, bucketId, instanceId, vboOffset);
   return scene.viewProject*vec4(pos,1.0);
   }
 

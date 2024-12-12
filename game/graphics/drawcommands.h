@@ -57,11 +57,12 @@ class DrawCommands {
     uint16_t commandId(const Material& m, Type type, uint32_t bucketId);
     void     addClusters(uint16_t cmdId, uint32_t meshletCount);
 
-    void     prepareUniforms();
-    void     prepareLigtsUniforms();
-
     void     updateUniforms(uint8_t fId);
     void     updateTasksUniforms();
+    void     updateCommandUniforms();
+    void     updateLigtsUniforms();
+
+    void     updatsSwrUniforms();
 
     void     visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int pass);
     void     visibilityVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
@@ -80,9 +81,10 @@ class DrawCommands {
       T_Bucket     = 3,
       T_Indirect   = 4,
       T_Clusters   = 5,
-      T_HiZ        = 6,
-      T_VsmPages   = 7,
-      T_CmdOffsets = 8,
+      T_Lights     = 6,
+      T_HiZ        = 7,
+      T_VsmPages   = 8,
+      T_CmdOffsets = 9,
       };
 
     enum UboLinkpackage : uint8_t {
@@ -103,8 +105,7 @@ class DrawCommands {
       L_GDepth     = 13,
       L_CmdOffsets = 14,
       L_VsmPages   = L_Shadow0,
-      L_VsmTbl     = L_Shadow1,
-      L_VsmData    = 15,
+      L_Lights     = L_Shadow1,
       };
 
     struct IndirectCmd {
@@ -131,9 +132,6 @@ class DrawCommands {
 
       bool                    isEnabled() const;
       };
-
-    void                     updateCommandUniforms();
-    void                     updateVsmUniforms();
 
     VisualObjects&           owner;
     DrawBuckets&             buckets;

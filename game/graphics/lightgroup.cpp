@@ -14,6 +14,11 @@
 
 using namespace Tempest;
 
+static float clampRange(float r) {
+  return std::min(r, 2000.f);
+  //return r;
+  }
+
 LightGroup::Light::Light(LightGroup::Light&& oth):owner(oth.owner), id(oth.id) {
   oth.owner = nullptr;
   }
@@ -44,6 +49,17 @@ void LightGroup::Light::setPosition(const Vec3& p) {
   owner->markAsDurty(id);
   }
 
+void LightGroup::Light::setEnabled(bool e) {
+  if(owner==nullptr)
+    return;
+  auto& data = owner->lightSourceDesc[id];
+  data.setEnabled(e);
+
+  auto& ssbo = owner->lightSourceData[id];
+  ssbo.range = 0;
+  owner->markAsDurty(id);
+  }
+
 void LightGroup::Light::setRange(float r) {
   if(owner==nullptr)
     return;
@@ -51,7 +67,7 @@ void LightGroup::Light::setRange(float r) {
   data.setRange(r);
 
   auto& ssbo = owner->lightSourceData[id];
-  ssbo.range = r;
+  ssbo.range = data.isEnabled() ? clampRange(r) : 0;
   owner->markAsDurty(id);
   }
 
@@ -97,16 +113,6 @@ LightGroup::LightGroup(const SceneGlobals& scene)
   for(int i=0; i<Resources::MaxFramesInFlight; ++i) {
     descPatch[i] = device.descriptors(Shaders::inst().patch);
     }
-
-  static const uint16_t index[] = {
-      0, 1, 2, 0, 2, 3,
-      4, 6, 5, 4, 7, 6,
-      1, 5, 2, 2, 5, 6,
-      4, 0, 7, 7, 0, 3,
-      3, 2, 7, 7, 2, 6,
-      4, 5, 0, 0, 5, 1
-    };
-  ibo = device.ibo(index, sizeof(index)/sizeof(index[0]));
 
   try {
     auto filename = Gothic::nestedPath({u"_work", u"Data", u"Presets", u"LIGHTPRESETS.ZEN"}, Dir::FT_File);
@@ -155,7 +161,7 @@ LightGroup::Light LightGroup::add(const zenkit::LightPreset& vob) {
 
   auto& ssbo = lightSourceData[lx.id];
   ssbo.pos   = l.position();
-  ssbo.range = l.range();
+  ssbo.range = l.isEnabled() ? clampRange(l.range()) : 0;
   ssbo.color = l.color();
 
   auto& data = lightSourceDesc[lx.id];
@@ -289,12 +295,6 @@ void LightGroup::resetDurty() {
   std::memset(duryBit.data(), 0, duryBit.size()*sizeof(duryBit[0]));
   }
 
-RenderPipeline& LightGroup::shader() const {
-  if(Gothic::options().doRayQuery)
-    return Shaders::inst().lightsRq;
-  return Shaders::inst().lights;
-  }
-
 const zenkit::LightPreset& LightGroup::findPreset(std::string_view preset) const {
   for(auto& i:presets) {
     if(i.preset!=preset)
@@ -314,7 +314,8 @@ void LightGroup::tick(uint64_t time) {
     LightSsbo ssbo;
     ssbo.pos   = light.position();
     ssbo.color = light.currentColor();
-    ssbo.range = light.currentRange();
+    ssbo.range = light.isEnabled() ? clampRange(light.currentRange()) : 0;
+
     auto& dst = lightSourceData[i];
     if(std::memcmp(&dst, &ssbo, sizeof(ssbo))==0)
       continue;
@@ -330,7 +331,6 @@ bool LightGroup::updateLights() {
     Resources::recycle(std::move(lightSourceSsbo));
     lightSourceSsbo = device.ssbo(lightSourceData);
     resetDurty();
-    allocDescriptorSet();
     return true;
     }
   return false;
@@ -400,54 +400,4 @@ void LightGroup::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd, u
   cmd.setFramebuffer({});
   cmd.setUniforms(Shaders::inst().patch, d);
   cmd.dispatch(patchBlock.size());
-  }
-
-void LightGroup::draw(Encoder<CommandBuffer>& cmd, uint8_t fId) {
-  static bool light = true;
-  if(!light)
-    return;
-
-  if(lightSourceSsbo.isEmpty())
-    return;
-
-  auto& p = shader();
-  cmd.setUniforms(p, desc, &scene.originLwc, sizeof(scene.originLwc));
-  cmd.draw(nullptr,ibo, 0,ibo.size(), 0,lightSourceData.size());
-  }
-
-void LightGroup::allocDescriptorSet() {
-  if(lightSourceSsbo.isEmpty())
-    return;
-
-  Resources::recycle(std::move(desc));
-
-  auto& device  = Resources::device();
-  desc = device.descriptors(shader().layout());
-  prepareUniforms();
-  prepareRtUniforms();
-  }
-
-void LightGroup::prepareUniforms() {
-  if(desc.isEmpty())
-    return;
-  desc.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
-  desc.set(1, *scene.gbufDiffuse, Sampler::nearest());
-  desc.set(2, *scene.gbufNormals, Sampler::nearest());
-  desc.set(3, *scene.zbuffer,     Sampler::nearest());
-  desc.set(4, lightSourceSsbo);
-  }
-
-void LightGroup::prepareRtUniforms() {
-  if(!Gothic::inst().options().doRayQuery)
-    return;
-  if(desc.isEmpty() || scene.rtScene.tlas.isEmpty())
-    return;
-  desc.set(6,scene.rtScene.tlas);
-  if(Resources::device().properties().descriptors.nonUniformIndexing) {
-    desc.set(7, Sampler::bilinear());
-    desc.set(8, scene.rtScene.tex);
-    desc.set(9, scene.rtScene.vbo);
-    desc.set(10,scene.rtScene.ibo);
-    desc.set(11,scene.rtScene.rtDesc);
-    }
   }

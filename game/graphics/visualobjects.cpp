@@ -458,11 +458,11 @@ void VisualObjects::setAsGhost(size_t id, bool g) {
 
 void VisualObjects::prepareUniforms() {
   drawCmd.updateTasksUniforms();
-  drawCmd.prepareUniforms();
+  drawCmd.updateCommandUniforms();
   }
 
 void VisualObjects::prepareLigtsUniforms() {
-  drawCmd.prepareLigtsUniforms();
+  drawCmd.updateLigtsUniforms();
   }
 
 void VisualObjects::prepareGlobals(Encoder<CommandBuffer>& enc, uint8_t fId) {
@@ -475,7 +475,7 @@ void VisualObjects::prepareGlobals(Encoder<CommandBuffer>& enc, uint8_t fId) {
     drawCmd.updateTasksUniforms();
 
   if(mem || buk|| cmd)
-    drawCmd.prepareUniforms();
+    drawCmd.updateCommandUniforms();
 
   drawCmd.updateUniforms(fId);
   }

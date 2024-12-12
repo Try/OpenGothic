@@ -2,6 +2,10 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive    : enable
 
+#if defined(VIRTUAL_SHADOW)
+#include "virtual_shadow/vsm_common.glsl"
+#endif
+
 #include "lighting/rt/rt_common.glsl"
 #include "lighting/tonemapping.glsl"
 #include "scene.glsl"
@@ -21,35 +25,67 @@ layout(binding  = 1) uniform sampler2D  gbufDiffuse;
 layout(binding  = 2) uniform usampler2D gbufNormal;
 layout(binding  = 3) uniform sampler2D  depth;
 
-layout(location = 0) in vec4 cenPosition;
-layout(location = 1) in vec3 color;
-
-bool isShadow(vec3 rayOrigin, vec3 direction) {
-#if defined(RAY_QUERY)
-  vec3  rayDirection = normalize(direction);
-  float rayDistance  = length(direction)-3.0;
-  float tMin         = 30;
-  if(rayDistance<=tMin)
-    return false;
-
-  uint flags = gl_RayFlagsTerminateOnFirstHitEXT;
-#if !defined(RAY_QUERY_AT)
-  flags |= gl_RayFlagsCullNoOpaqueEXT;
+#if defined(VIRTUAL_SHADOW)
+layout(binding  = 5, std430) readonly buffer Omni  { uint pageTblOmni[]; };
+layout(binding  = 6)         uniform texture2D pageData;
 #endif
 
-  rayQueryEXT rayQuery;
-  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
-                        rayOrigin, tMin, rayDirection, rayDistance);
-  rayQueryProceedShadow(rayQuery);
-  if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT)
-    return false;
-  return true;
+layout(location = 0) in vec4      cenPosition;
+layout(location = 1) in vec3      color;
+layout(location = 2) in flat uint lightId;
+
+bool isShadow(vec3 rayOrigin, vec3 direction, float R) {
+#if defined(RAY_QUERY)
+  {
+    vec3  rayDirection = normalize(direction);
+    float rayDistance  = length(direction)-3.0;
+    float tMin         = 30;
+    if(rayDistance<=tMin)
+      return false;
+
+    uint flags = gl_RayFlagsTerminateOnFirstHitEXT;
+#if !defined(RAY_QUERY_AT)
+    flags |= gl_RayFlagsCullNoOpaqueEXT;
+#endif
+
+    rayQueryEXT rayQuery;
+    rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
+                          rayOrigin, tMin, rayDirection, rayDistance);
+    rayQueryProceedShadow(rayQuery);
+    if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT)
+      return false;
+    return true;
+  }
+#elif defined(VIRTUAL_SHADOW)
+  {
+    const uint face   = vsmLightDirToFace(direction);
+    //if(face!=0 && face!=3)
+    //  return false;
+
+    const uint pageD  = pageTblOmni[lightId*6 + face];
+    const uint pageId = pageD >> 16u;
+    const uint pageSz = pageD & 0xF;
+
+    if(pageSz==0)
+      return false;
+
+    const vec3  dir         = vsmMapDirToFace(direction, face);
+    const vec2  tc          = (dir.xy/dir.z)*0.5 + 0.5;
+    const ivec2 at          = ivec2(tc*pageSz*VSM_PAGE_SIZE);
+    const ivec2 pageImageAt = unpackVsmPageId(pageId)*VSM_PAGE_SIZE + at;
+    const float z           = texelFetch(pageData, pageImageAt, 0).x;
+
+    const float refZ = vsmApplyProjective(dir.z/R);
+    if(z < refZ)
+      return false;
+    return true;
+  }
 #else
   return false;
 #endif
   }
 
-void main(void) {
+void main() {
   vec2  scr = (gl_FragCoord.xy/vec2(textureSize(depth,0)))*2.0-1.0;
   float z   = texelFetch(depth, ivec2(gl_FragCoord.xy), 0).x;
 
@@ -58,7 +94,6 @@ void main(void) {
   pos.xyz += push.origin;
 
   vec3 ldir = (pos.xyz-cenPosition.xyz);
-  //float qDist = dot(ldir,ldir)/(cenPosition.w*cenPosition.w);
 
   const float distanceSquare = dot(ldir,ldir);
   const float factor         = distanceSquare / (cenPosition.w*cenPosition.w);
@@ -68,16 +103,15 @@ void main(void) {
     discard;
 
   const vec3 normal = normalFetch(gbufNormal, ivec2(gl_FragCoord.xy));
-  //float light   = (1.0-qDist)*lambert;
 
   float lambert = max(0.0,-dot(normalize(ldir),normal));
   float light   = (lambert/max(factor, 0.05)) * (smoothFactor*smoothFactor);
   if(light<=0.0)
     discard;
 
-  pos.xyz = pos.xyz+5.0*normal; //bias
-  ldir    = (pos.xyz-cenPosition.xyz);
-  if(isShadow(cenPosition.xyz,ldir))
+  pos.xyz = pos.xyz + 1.0*normal; //bias
+  ldir    = pos.xyz - cenPosition.xyz;
+  if(isShadow(cenPosition.xyz, ldir, cenPosition.w))
     discard;
 
   //outColor     = vec4(0.5,0.5,0.5,1);

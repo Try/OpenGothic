@@ -38,7 +38,6 @@ class WorldView {
                     const Tempest::Texture2d& norm);
     void setShadowMaps (const Tempest::Texture2d* shadow[]);
     void setVirtualShadowMap(const Tempest::ZBuffer& pageData,
-                             const Tempest::StorageImage& pageDataCs,
                              const Tempest::StorageImage& pageTbl,
                              const Tempest::StorageImage& pageHiZ,
                              const Tempest::StorageBuffer& pageList);
@@ -62,6 +61,7 @@ class WorldView {
     void updateFrustrum  (const Frustrum fr[]);
     void visibilityPass (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, int pass);
     void visibilityVsm  (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+
     void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, uint8_t layer);
     void drawVsm        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId);
@@ -72,7 +72,6 @@ class WorldView {
     void drawFog        (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void drawWater      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawLights     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
 
     MeshObjects::Mesh   addView      (std::string_view visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
     MeshObjects::Mesh   addView      (const ProtoMesh* visual);
@@ -89,12 +88,13 @@ class WorldView {
     const SceneGlobals& sceneGlobals() const { return sGlobal; }
     const Sky&          sky() const { return gSky; }
     const Landscape&    landscape() const { return land; }
+    const LightGroup&   lights() const { return gLights; }
 
   private:
     const World&  owner;
     SceneGlobals  sGlobal;
     Sky           gSky;
-    LightGroup    lights;
+    LightGroup    gLights;
     VisualObjects visuals;
 
     MeshObjects   objGroup;

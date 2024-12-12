@@ -53,13 +53,13 @@ void LightSource::setColor(const std::vector<glm::u8vec4>&   arr, float fps, boo
     setColor({static_cast<float>(arr[0].r)/255.f, static_cast<float>(arr[0].g)/255.f, static_cast<float>(arr[0].b)/255.f});
     colorAniListFpsInv = 0;
     return;
-  }
+    }
 
   colorAniList.resize(arr.size());
   for(size_t i=0; i<arr.size(); ++i)
     colorAniList[i] = {static_cast<float>(arr[i].r)/255.f, static_cast<float>(arr[i].g)/255.f, static_cast<float>(arr[i].b)/255.f};
   colorAniListFpsInv = !arr.empty() ? uint64_t(1000.0/fps) : 0;
-}
+  }
 
 void LightSource::setColor(const std::vector<Vec3>& arr, float fps, bool smooth) {
   colorSmooth = smooth;
@@ -101,6 +101,10 @@ void LightSource::setRange(const std::vector<float>& arr, float base, float fps,
     }
   }
 
+void LightSource::setEnabled(bool e) {
+  enable = e;
+  }
+
 void LightSource::update(uint64_t time) {
   if(timeOff<time)
     time -= timeOff; else
@@ -135,6 +139,10 @@ void LightSource::update(uint64_t time) {
 
 bool LightSource::isDynamic() const {
   return rangeAniFPSInv!=0 || colorAniListFpsInv!=0;
+  }
+
+bool LightSource::isEnabled() const {
+  return enable;
   }
 
 void LightSource::setTimeOffset(uint64_t t) {

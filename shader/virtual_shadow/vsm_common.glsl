@@ -3,7 +3,8 @@
 
 #extension GL_EXT_samplerless_texture_functions : enable
 
-// #define VSM_ATOMIC 1
+#define VSM_ENABLE_SUN  1
+#define VSM_ENABLE_OMNI 1
 
 const int VSM_PAGE_SIZE     = 128;
 const int VSM_PAGE_TBL_SIZE = 32;  // small for testing, 64 can be better
@@ -14,6 +15,7 @@ const int VSM_FOG_MIP       = 5;
 const int VSM_PAGE_PER_ROW  = 8192/VSM_PAGE_SIZE;
 const int VSM_MAX_PAGES     = VSM_PAGE_PER_ROW * VSM_PAGE_PER_ROW; // 1024;
 const int VSM_CLIPMAP_SIZE  = VSM_PAGE_SIZE * VSM_PAGE_TBL_SIZE;
+// const int VSM_CUBE_TBL_SIZE = 2;
 
 struct VsmHeader {
   uint  pageCount;
@@ -22,6 +24,7 @@ struct VsmHeader {
   uint  counterV;
   uint  pagePerMip[VSM_PAGE_MIPS];
   ivec4 pageBbox[VSM_PAGE_MIPS];
+  uint  pageOmniCount;
   };
 
 struct Epipole {
@@ -34,14 +37,15 @@ struct Epipole {
   };
 
 uint packVsmPageInfo(ivec3 at, ivec2 size) {
-  return (at.x & 0xFF) | ((at.y & 0xFF) << 8) | ((at.z & 0xFF) << 16) | ((size.x & 0xF) << 24) | ((size.y & 0xF) << 28);
+  // 1 : 8 : 8 : 7 : 4 : 4
+  return ((at.x & 0xFF) << 1) | ((at.y & 0xFF) << 9) | ((at.z & 0x7F) << 17) | ((size.x & 0xF) << 24) | ((size.y & 0xF) << 28);
   }
 
 ivec3 unpackVsmPageInfo(uint p) {
   ivec3 r;
-  r.x = int(p      ) & 0xFF;
-  r.y = int(p >>  8) & 0xFF;
-  r.z = int(p >> 16) & 0xFF;
+  r.x = int(p >>  1) & 0xFF;
+  r.y = int(p >>  9) & 0xFF;
+  r.z = int(p >> 17) & 0x7F;
   return r;
   }
 
@@ -50,6 +54,31 @@ ivec2 unpackVsmPageSize(uint p) {
   r.x = int(p >> 24) & 0xF;
   r.y = int(p >> 28) & 0xF;
   return r;
+  }
+
+uint packVsmPageInfo(uint lightId, uint face, ivec2 at, ivec2 size) {
+  // 1 : 15 : 4 : 4 : 4 : 4
+  // uint idx = lightId*6 + face; // 5k omni lights
+  // return 0x1 | ((idx & 0x7FFF) << 1) | ((at.x & 0xF) << 16) | ((at.y & 0xF) << 20) | ((size.x & 0xF) << 24) | ((size.y & 0xF) << 28);
+  uint idx = lightId*6 + face; // 1398k omni lights
+  return 0x1 | ((idx & 0x7FFFFF) << 1) | ((size.x & 0xF) << 24) | ((size.y & 0xF) << 28);
+  }
+
+bool vsmPageIsOmni(uint p) {
+  return (p & 0x1)==0x1;
+  }
+
+uvec2 unpackLightId(uint p) {
+  uint i = uint(p >> 1) & 0x7FFFFF;
+  return uvec2(i/6, i%6);
+  }
+
+ivec2 unpackVsmPageInfoProj(uint p) {
+  return ivec2(0);
+  // ivec2 r;
+  // r.x = int(p >> 16) & 0xF;
+  // r.y = int(p >> 20) & 0xF;
+  // return r;
   }
 
 uint packVsmPageId(uint pageI) {
@@ -126,13 +155,7 @@ uint shadowPageIdFetch(in vec2 page, in int mip, in utexture3D pageTbl) {
   return pageD >> 16u;
   }
 
-float shadowTexelFetch(in vec2 page, in int mip, in utexture3D pageTbl,
-                       #if defined(VSM_ATOMIC)
-                       in utexture2D pageData
-                       #else
-                       in texture2D pageData
-                       #endif
-                       ) {
+float shadowTexelFetch(in vec2 page, in int mip, in utexture3D pageTbl, in texture2D pageData) {
   //page-local
   const ivec2 pageI       = ivec2((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
   const vec2  pageF       = fract((page*0.5+0.5)*VSM_PAGE_TBL_SIZE);
@@ -150,13 +173,7 @@ float shadowTexelFetch(in vec2 page, in int mip, in utexture3D pageTbl,
   return vsmTexelFetch(pageData, pageImageAt);
   }
 
-float shadowTexelFetch_(in vec2 page, in int mip, in utexture3D pageTbl,
-                       #if defined(VSM_ATOMIC)
-                       in utexture2D pageData
-                       #else
-                       in texture2D pageData
-                       #endif
-                       ) {
+float shadowTexelFetch_(in vec2 page, in int mip, in utexture3D pageTbl, in texture2D pageData) {
   while(mip >= 0) {
     float s = shadowTexelFetch(page, mip, pageTbl, pageData);
     if(s>=0)
@@ -165,6 +182,56 @@ float shadowTexelFetch_(in vec2 page, in int mip, in utexture3D pageTbl,
     mip--;
     }
   return 0;
+  }
+
+uint vsmLightDirToFace(vec3 d) {
+  const vec3 ad = abs(d);
+  if(ad.x > ad.y && ad.x > ad.z)
+    return d.x>=0 ? 0 : 1;
+  if(ad.y > ad.x && ad.y > ad.z)
+    return d.y>=0 ? 2 : 3;
+  if(ad.z > ad.x && ad.z > ad.y)
+    return d.z>=0 ? 4 : 5;
+  return 0;
+  }
+
+vec3 vsmMapDirToFace(vec3 pos, uint face) {
+  // cubemap-face
+  switch(face) {
+    case 0: pos = vec3(pos.yz, +pos.x); break;
+    case 1: pos = vec3(pos.zy, -pos.x); break;
+    case 2: pos = vec3(pos.zx, +pos.y); break;
+    case 3: pos = vec3(pos.xz, -pos.y); break;
+    case 4: pos = vec3(pos.xy, +pos.z); break;
+    case 5: pos = vec3(pos.yx, -pos.z); break;
+    }
+  return pos;
+  }
+
+vec2 vsmMapDirToUV(vec3 pos, uint face) {
+  // cubemap-face
+  pos = vsmMapDirToFace(pos, face);
+  return (pos.xy/pos.z)*0.5+0.5;
+  }
+
+vec4 vsmApplyProjective(vec3 pos) {
+  // projection
+  const float zNear = 0.03; //NOTE: 0.05 for bonfire
+  const float zFar  = 1.0;
+  const float k     = zFar / (zFar - zNear);
+  const float kw    = (zNear * zFar) / (zNear - zFar);
+
+  return vec4(pos.xy, pos.z-(pos.z*k+kw), pos.z);
+  }
+
+float vsmApplyProjective(float fragZ) {
+  const float zNear = 0.03;
+  const float zFar  = 1.0;
+  const float k     = zFar / (zFar - zNear);
+  const float kw    = (zNear * zFar) / (zNear - zFar);
+
+  const float refZ  = (fragZ - (fragZ*k + kw))/fragZ;
+  return refZ;
   }
 
 #endif

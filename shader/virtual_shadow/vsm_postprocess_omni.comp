@@ -1,0 +1,25 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_EXT_control_flow_attributes : enable
+// #extension GL_KHR_memory_scope_semantics : enable
+
+#include "virtual_shadow/vsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 128) in;
+
+layout(binding = 0, std430) buffer Omni { uint pageTblOmni[]; };
+
+void main() {
+  const uint id = (gl_GlobalInvocationID.x);
+  if(id >= pageTblOmni.length())
+    return;
+
+  uint v  = pageTblOmni[id];
+  uint pg = v>0 ? max(v-1, 1) : 0;
+  pageTblOmni[id] = pg;
+  }

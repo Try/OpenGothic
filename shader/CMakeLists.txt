@@ -204,6 +204,7 @@ add_shader(light.vert                lighting/light.vert)
 add_shader(light.frag                lighting/light.frag)
 add_shader(light_rq.frag             lighting/light.frag -DRAY_QUERY)
 add_shader(light_rq_at.frag          lighting/light.frag -DRAY_QUERY -DRAY_QUERY_AT)
+add_shader(light_vsm.frag            lighting/light.frag -DVIRTUAL_SHADOW)
 
 add_shader(irradiance.comp           lighting/irradiance.comp)
 add_shader(sky_exposure.comp         lighting/sky_exposure.comp)
@@ -295,19 +296,23 @@ add_shader(cmaa2_deferred_color_apply_2x2.frag     antialiasing/cmaa2/deferred_c
 
 # virtual shadows
 add_shader(direct_light_vsm.frag     virtual_shadow/vsm_direct_light.frag)
-add_shader(vsm_reproject_sm.frag     virtual_shadow/vsm_reproject_sm.frag)
 add_shader(vsm_dbg.frag              virtual_shadow/vsm_direct_light.frag -DDEBUG)
 add_shader(vsm_mark_pages.comp       virtual_shadow/vsm_mark_pages.comp)
 add_shader(vsm_clear.comp            virtual_shadow/vsm_clear.comp)
-add_shader(vsm_clear_pages.comp      virtual_shadow/vsm_clear_pages.comp)
+add_shader(vsm_clear_omni.comp       virtual_shadow/vsm_clear_omni.comp)
 add_shader(vsm_trim_pages.comp       virtual_shadow/vsm_trim_pages.comp)
 add_shader(vsm_clump_pages.comp      virtual_shadow/vsm_clump_pages.comp)
 add_shader(vsm_list_pages.comp       virtual_shadow/vsm_list_pages.comp)
+add_shader(vsm_sort_pages.comp       virtual_shadow/vsm_sort_pages.comp)
 add_shader(vsm_alloc_pages.comp      virtual_shadow/vsm_alloc_pages.comp)
+add_shader(vsm_alloc_pages2.comp     virtual_shadow/vsm_alloc_pages2.comp)
 add_shader(vsm_merge_pages.comp      virtual_shadow/vsm_merge_pages.comp)
 add_shader(vsm_pack_draws0.comp      virtual_shadow/vsm_pack_draws.comp   -DPASS0)
 add_shader(vsm_pack_draws1.comp      virtual_shadow/vsm_pack_draws.comp   -DPASS1)
 add_shader(vsm_cluster_task.comp     virtual_shadow/vsm_cluster_task.comp -DVIRTUAL_SHADOW)
+# virtual shadows: omni lights
+add_shader(vsm_mark_omni_pages.comp  virtual_shadow/vsm_mark_omni_pages.comp)
+add_shader(vsm_postprocess_omni.comp virtual_shadow/vsm_postprocess_omni.comp)
 # virtual shadows: fog
 add_shader(vsm_fog_epipolar.comp     virtual_shadow/vsm_fog_epipolar.comp)
 add_shader(vsm_fog_shadow.comp       virtual_shadow/vsm_fog_shadow.comp)

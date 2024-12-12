@@ -1,0 +1,163 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+#include "virtual_shadow/vsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(binding = 0, std430) buffer Pages { VsmHeader header; uint  pageList[]; } vsm;
+layout(binding = 1, r32ui)  uniform uimage3D pageTbl;
+layout(binding = 2, std430) buffer Omni  { uint pageTblOmni[]; };
+layout(binding = 3, r32ui)  uniform uimage2D dbg;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+//shared uint pageListSize;
+//shared uint pageList[VSM_MAX_PAGES];
+shared uint bits[(NumThreads+31)/32];
+
+shared int pages4x4;
+//shared uint pages1x4;
+shared int pages2x2;
+//shared uint pages1x2;
+shared int pages1x1;
+
+void storePage(ivec2 pId, ivec3 at, ivec2 tile, ivec2 size) {
+  const uint pageId = pId.x + pId.y*VSM_PAGE_PER_ROW;
+
+  vsm.pageList[pageId] = packVsmPageInfo(at, size);
+  atomicMax(vsm.header.pageCount, pageId+1);
+
+  at += ivec3(tile,0);
+  const uint prime = imageLoad(pageTbl, at).r & 0x1;
+  imageStore(pageTbl, at, uvec4((pageId << 16u) | prime));
+
+  imageStore(dbg, pId, uvec4(size.y));
+  //imageStore(dbg, pId, uvec4(1));
+  }
+
+uint bitCountShared(uint till) {
+  uint n = till/32;
+  uint f = till%32;
+  uint r = 0;
+  for(uint i=0; i<n; ++i)
+    r += bitCount(bits[i]);
+  r += bitCount(bits[n] & ((1u << f)-1u));
+  return r;
+  }
+
+void pageCountPass() {
+  const uint lane      = gl_LocalInvocationIndex;
+  const uint pageCount = vsm.header.pageCount;
+
+  for(uint i=lane; i<pageCount; i+=NumThreads) {
+    const uint  page = vsm.pageList[i];
+    const uvec2 size = unpackVsmPageSize(page);
+
+    if(size==uvec2(4,4))
+      atomicAdd(pages4x4, 1);
+    else if(size==uvec2(1,4))
+      ;//atomicAdd(pages1x4, 1);
+    else if(size==uvec2(2,2))
+      atomicAdd(pages2x2, 1);
+    else if(size==uvec2(1,2))
+      ;//atomicAdd(pages1x2, 1);
+    else if(size==uvec2(1,1))
+      atomicAdd(pages1x1, 1);
+    }
+  }
+
+void aquire(int sz, inout int pages[3]) {
+  if(sz==4)
+    pages[0] = 0;
+  else if(sz==2)
+    pages[1] = 0;
+  else if(sz==1)
+    pages[2] = 0;
+  }
+
+void aquire(ivec2 area, inout int pages[3], const int areas[3]) {
+  int a       = area.x*area.y;
+  for(int i=0; i<areas.length(); ++i) {
+    const int sz = areas[i];
+    if(a<=pages[i]*sz) {
+      pages[i] -= a/sz;
+      return;
+      }
+    a -= pages[i]*sz;
+    pages[i] = 0;
+    }
+  }
+
+uint layoutPages() {
+  ivec2 at      = ivec2(gl_GlobalInvocationID);
+  ivec2 rect    = ivec2(VSM_PAGE_PER_ROW, VSM_PAGE_PER_ROW);
+
+  int   pages[] = {pages4x4, pages2x2, pages1x1};
+  int   sizes[] = {       4,        2,        1};
+  int   areas[] = {      16,        4,        1};
+
+  for(int i=0; i<pages.length(); ++i) {
+    const int pageSz  = sizes[i];
+    const int pageCnt = pages[i];
+
+    const int perRow   = rect.x/pageSz;
+    const int fullRow  = pageCnt/perRow;
+    const int remaider = pageCnt%perRow;
+
+    const int pagesT  = fullRow *pageSz;
+    const int pagesB  = fullRow *pageSz + pageSz;
+    const int pagesL  = remaider*pageSz;
+
+    if(at.y<pagesT) {
+      return (at.x/pageSz) + (at.y/pageSz)*perRow;
+      //return pageSz;
+      }
+    if(at.y<pagesB && at.x<pagesL) {
+      return (at.x/pageSz) + (at.y/pageSz)*perRow;
+      //return pageSz;
+      }
+
+    aquire(pageSz, pages);
+    if(at.y<pagesB) {
+      ivec2 shift = ivec2(pagesL, pagesT);
+      at.x   -= shift.x;
+      at.y   -= shift.y;
+      rect.x -= shift.x;
+      rect.y -= shift.y;
+      continue;
+      }
+
+    aquire(ivec2(rect.x-pagesL, pagesB-pagesT), pages, areas);
+
+    int shift = pagesB;
+    at.y   -= shift;
+    rect.y -= shift;
+    }
+
+  return VSM_MAX_PAGES;
+  }
+
+void main() {
+  const ivec3 at = ivec3(gl_GlobalInvocationID);
+
+  pages4x4 = 0;
+  pages2x2 = 0;
+  pages1x1 = 0;
+  barrier();
+
+  imageStore(dbg, at.xy, uvec4(0));
+  memoryBarrierImage();
+  barrier();
+
+  pageCountPass();
+  barrier();
+
+  const uint sz = layoutPages();
+  imageStore(dbg, at.xy, uvec4(sz));
+  }

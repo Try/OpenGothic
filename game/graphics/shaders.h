@@ -23,7 +23,7 @@ class Shaders {
 
     static Shaders& inst();
 
-    Tempest::RenderPipeline  lights, lightsRq;
+    Tempest::RenderPipeline  lights, lightsRq, lightsVsm;
     Tempest::RenderPipeline  directLight,  directLightSh, directLightRq;
     Tempest::RenderPipeline  ambientLight, ambientLightSsao;
 
@@ -76,8 +76,8 @@ class Shaders {
 
     // Virtual shadow
     Tempest::ComputePipeline vsmClusterTask;
-    Tempest::ComputePipeline vsmClear, vsmClearPages, vsmMarkPages;
-    Tempest::ComputePipeline vsmTrimPages, vsmListPages, vsmClumpPages, vsmAllocPages, vsmMergePages;
+    Tempest::ComputePipeline vsmClear, vsmClearOmni, vsmMarkPages, vsmMarkOmniPages, vsmPostprocessOmni;
+    Tempest::ComputePipeline vsmTrimPages, vsmSortPages, vsmListPages, vsmClumpPages, vsmAllocPages, vsmAlloc2Pages, vsmMergePages;
     Tempest::ComputePipeline vsmPackDraw0, vsmPackDraw1;
     Tempest::ComputePipeline vsmFogEpipolar, vsmFogPages, vsmFogShadow, vsmFogSample, vsmFogTrace;
     Tempest::RenderPipeline  vsmDirectLight;

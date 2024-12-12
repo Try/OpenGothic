@@ -10,7 +10,7 @@
 using namespace Tempest;
 
 WorldView::WorldView(const World& world, const PackedMesh& wmesh)
-  : owner(world),gSky(sGlobal,world,wmesh.bbox()),lights(sGlobal),visuals(sGlobal,wmesh.bbox()),
+  : owner(world),gSky(sGlobal,world,wmesh.bbox()),gLights(sGlobal),visuals(sGlobal,wmesh.bbox()),
     objGroup(visuals),pfxGroup(*this,sGlobal,visuals),land(visuals,wmesh) {
   pfxGroup.resetTicks();
   }
@@ -56,7 +56,7 @@ void WorldView::preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t
   sGlobal.setUnderWater(camera.isInWater());
 
   pfxGroup.tick(tickCount);
-  lights.tick(tickCount);
+  gLights.tick(tickCount);
   sGlobal.setTime(tickCount);
   sGlobal.commitUbo(fId);
 
@@ -66,7 +66,7 @@ void WorldView::preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t
 
 void WorldView::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   sGlobal.prepareGlobals(cmd, fId);
-  lights .prepareGlobals(cmd, fId);
+  gLights.prepareGlobals(cmd, fId);
   visuals.prepareGlobals(cmd, fId);
   }
 
@@ -86,11 +86,10 @@ void WorldView::setShadowMaps(const Tempest::Texture2d* sh[]) {
   }
 
 void WorldView::setVirtualShadowMap(const Tempest::ZBuffer&       pageData,
-                                    const Tempest::StorageImage&  pageDataCs,
                                     const Tempest::StorageImage&  pageTbl,
                                     const Tempest::StorageImage&  pageHiZ,
                                     const Tempest::StorageBuffer& pageList)  {
-  sGlobal.setVirtualShadowMap(pageData, pageDataCs, pageTbl, pageHiZ, pageList);
+  sGlobal.setVirtualShadowMap(pageData, pageTbl, pageHiZ, pageList);
   }
 
 void WorldView::setVsmSkyShadows(const Tempest::StorageImage& skyShadows) {
@@ -112,7 +111,7 @@ void WorldView::setSceneImages(const Tempest::Texture2d& clr, const Tempest::Tex
   }
 
 void WorldView::dbgLights(DbgPainter& p) const {
-  lights.dbgLights(p);
+  gLights.dbgLights(p);
   }
 
 void WorldView::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId) {
@@ -188,10 +187,6 @@ void WorldView::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t f
   gSky.drawFog(cmd,fId);
   }
 
-void WorldView::drawLights(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
-  lights.draw(cmd, fId);
-  }
-
 MeshObjects::Mesh WorldView::addView(std::string_view visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {
   if(auto mesh=Resources::loadMesh(visual))
     return MeshObjects::Mesh(objGroup,*mesh,headTex,teethTex,bodyColor,false);
@@ -235,13 +230,13 @@ MeshObjects::Mesh WorldView::addDecalView(const zenkit::VisualDecal& vob) {
   }
 
 LightGroup::Light WorldView::addLight(const zenkit::VLight& vob) {
-  auto l = lights.add(vob);
+  auto l = gLights.add(vob);
   l.setTimeOffset(owner.tickCount());
   return l;
   }
 
 LightGroup::Light WorldView::addLight(std::string_view preset) {
-  auto l = lights.add(preset);
+  auto l = gLights.add(preset);
   l.setTimeOffset(owner.tickCount());
   return l;
   }
@@ -253,7 +248,7 @@ void WorldView::dbgClusters(Tempest::Painter& p, Vec2 wsz) {
 bool WorldView::updateLights() {
   const int64_t now = owner.time().timeInDay().toInt();
   gSky.updateLight(now);
-  if(!lights.updateLights())
+  if(!gLights.updateLights())
     return false;
   visuals.prepareLigtsUniforms();
   return true;
@@ -264,8 +259,6 @@ bool WorldView::updateRtScene() {
     return false;
   if(!visuals.updateRtScene(sGlobal.rtScene))
     return false;
-  // assume device-idle, if RT scene was recreated
-  lights.prepareRtUniforms();
   return true;
   }
 
@@ -273,8 +266,7 @@ void WorldView::prepareUniforms() {
   // wait before update all descriptors, cmd buffers must not be in use
   Resources::device().waitIdle();
   sGlobal.skyLut = &gSky.skyLut();
-  sGlobal.lights = &lights.lightsSsbo();
-  lights.prepareUniforms();
+  sGlobal.lights = &gLights.lightsSsbo();
   gSky.prepareUniforms();
   pfxGroup.prepareUniforms();
   visuals.prepareUniforms();
