@@ -5,9 +5,6 @@
 #extension GL_EXT_samplerless_texture_functions : enable
 #extension GL_KHR_memory_scope_semantics : enable
 
-// #define DEBUG 1
-#define LWC 1
-
 #include "virtual_shadow/vsm_common.glsl"
 #include "lighting/tonemapping.glsl"
 #include "scene.glsl"
@@ -26,7 +23,6 @@ layout(binding = 4)         uniform utexture3D  pageTbl;
 layout(binding = 5, std430) readonly buffer Pages { VsmHeader header; uint  pageList[]; } vsm;
 layout(binding = 6)         uniform texture2D   pageData;
 layout(binding = 8, r32ui)  uniform readonly uimage2D dbg;
-
 
 layout(location = 0) out vec4 outColor;
 
@@ -64,27 +60,6 @@ uint hash(uvec3 src) {
   // return (gridPos.x * 18397) + (gridPos.y * 20483) + (gridPos.z * 29303);
   }
 
-vec4 worldPos(ivec2 frag, float depth) {
-  const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
-  const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
-#if defined(LWC)
-  return scene.viewProjectLwcInv * scr;
-#else
-  return scene.viewProjectInv * scr;
-#endif
-  }
-
-vec3 shadowPos(float z, vec3 normal, ivec2 offset) {
-  const vec4  wpos = worldPos(ivec2(gl_FragCoord.xy) + offset, z) + vec4(normal*0.002, 0);
-#if defined(LWC)
-  vec4 shPos = scene.viewVirtualShadowLwc * wpos;
-#else
-  vec4 shPos = scene.viewVirtualShadow * wpos;
-#endif
-  shPos.xyz /= shPos.w;
-  return shPos.xyz;
-  }
-
 int shadowLod(vec2 dx, vec2 dy) {
   float px     = dot(dx, dx);
   float py     = dot(dy, dy);
@@ -113,10 +88,32 @@ float lambert(vec3 normal) {
   return max(0.0, dot(scene.sunDir,normal));
   }
 
+vec4 worldPos(ivec2 frag, float depth) {
+  const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
+  const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
+  return scene.viewProjectLwcInv * scr;
+  }
+
+bool planetOcclusion(float viewPos) {
+  const float y = RPlanet + max(viewPos*0.1, 0);
+  if(rayIntersect(vec3(0,y,0), scene.sunDir, RPlanet)>0)
+    return true;
+  return false;
+  }
+
+vec3 shadowPos(vec4 wpos, vec4 offset) {
+  vec4 shPos = scene.viewVirtualShadowLwc * wpos + offset;
+  shPos.xyz /= shPos.w;
+  return shPos.xyz;
+  }
+
 bool calcMipIndex(out vec3 pagePos, out int mip, const float z, const vec3 normal) {
-  vec3 shPos0 = shadowPos(z, normal, ivec2(0,0));
-  vec2 shPos1 = shadowPos(z, normal, ivec2(1,0)).xy;
-  vec2 shPos2 = shadowPos(z, normal, ivec2(0,1)).xy;
+  const vec4 wpos = worldPos(ivec2(gl_FragCoord.xy), z) + vec4(normal*0.002, 0);
+  if(planetOcclusion(wpos.y/wpos.w))
+    return false;
+  vec3 shPos0 = shadowPos(wpos, vec4(0));
+  vec2 shPos1 = shadowPos(wpos, scene.vsmDdx).xy;
+  vec2 shPos2 = shadowPos(wpos, scene.vsmDdy).xy;
 
   mip   = shadowLod((shPos1 - shPos0.xy)*VSM_CLIPMAP_SIZE,
                     (shPos2 - shPos0.xy)*VSM_CLIPMAP_SIZE);

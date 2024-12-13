@@ -10,6 +10,7 @@ struct SceneDesc {
   mat4  viewShadowLwc[2];
   mat4  viewVirtualShadow;
   mat4  viewVirtualShadowLwc;
+  vec4  vsmDdx, vsmDdy;
   mat4  view;
   mat4  project;
   mat4  projectInv;

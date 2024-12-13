@@ -96,6 +96,7 @@ class SceneGlobals final {
       Tempest::Matrix4x4              viewShadowLwc[Resources::ShadowLayers];
       Tempest::Matrix4x4              viewVirtualShadow;
       Tempest::Matrix4x4              viewVirtualShadowLwc;
+      Tempest::Vec4                   vsmDdx, vsmDdy;
       Tempest::Matrix4x4              view, project, projectInv;
       Tempest::Vec3                   sunDir        = {0,0,1};
       float                           waveAnim      = 0;
