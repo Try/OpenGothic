@@ -946,8 +946,10 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.setUniforms(shaders.vsmClear, vsm.uboClear);
   cmd.dispatchThreads(size_t(vsm.pageTbl.w()), size_t(vsm.pageTbl.h()), size_t(vsm.pageTbl.d()));
 
-  cmd.setUniforms(shaders.vsmClearOmni, vsm.uboClearOmni);
-  cmd.dispatchThreads(numOmniPages);
+  if(omniLights) {
+    cmd.setUniforms(shaders.vsmClearOmni, vsm.uboClearOmni);
+    cmd.dispatchThreads(numOmniPages);
+    }
 
   cmd.setUniforms(shaders.vsmMarkPages, vsm.uboPages, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
   cmd.dispatchThreads(zbuffer.size());

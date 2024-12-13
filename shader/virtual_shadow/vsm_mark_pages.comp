@@ -160,6 +160,7 @@ bool calcMipIndex(out vec3 pagePos, out int mip, const float z, const vec3 norma
   const vec4 wpos = worldPos(ivec2(fragCoord.xy), z) + vec4(normal*0.002, 0);
   if(planetOcclusion(wpos.y/wpos.w))
     return false;
+
   vec3 shPos0 = shadowPos(wpos, vec4(0));
   vec2 shPos1 = shadowPos(wpos, scene.vsmDdx).xy;
   vec2 shPos2 = shadowPos(wpos, scene.vsmDdy).xy;
