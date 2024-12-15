@@ -96,11 +96,11 @@ function(add_frag_shader OUTPUT)
 endfunction(add_frag_shader)
 
 # cluster culling
-add_shader(cluster_init.comp         materials/cluster_init.comp)
-add_shader(cluster_patch.comp        materials/cluster_patch.comp)
-add_shader(cluster_task.comp         materials/cluster_task.comp)
-add_shader(cluster_task_hiz.comp     materials/cluster_task.comp -DMAIN_VIEW -DHIZ)
-add_shader(cluster_task_hiz_cr.comp  materials/cluster_task.comp -DMAIN_VIEW -DHIZ -DLARGE)
+add_shader(cluster_init.comp            materials/cluster_init.comp)
+add_shader(cluster_patch.comp           materials/cluster_patch.comp)
+add_shader(visibility_pass.comp         materials/visibility_pass.comp)
+add_shader(visibility_pass_hiz.comp     materials/visibility_pass.comp -DMAIN_VIEW -DHIZ)
+add_shader(visibility_pass_hiz_cr.comp  materials/visibility_pass.comp -DMAIN_VIEW -DHIZ -DLARGE)
 
 # mesh & vertex
 add_geom_shader(main_lnd       "-DMESH_TYPE=0" -DFLAT_NORMAL)
@@ -309,7 +309,7 @@ add_shader(vsm_alloc_pages2.comp     virtual_shadow/vsm_alloc_pages2.comp)
 add_shader(vsm_merge_pages.comp      virtual_shadow/vsm_merge_pages.comp)
 add_shader(vsm_pack_draws0.comp      virtual_shadow/vsm_pack_draws.comp   -DPASS0)
 add_shader(vsm_pack_draws1.comp      virtual_shadow/vsm_pack_draws.comp   -DPASS1)
-add_shader(vsm_cluster_task.comp     virtual_shadow/vsm_cluster_task.comp -DVIRTUAL_SHADOW)
+add_shader(vsm_visibility_pass.comp  virtual_shadow/vsm_visibility_pass.comp -DVIRTUAL_SHADOW)
 # virtual shadows: omni lights
 add_shader(vsm_mark_omni_pages.comp  virtual_shadow/vsm_mark_omni_pages.comp)
 add_shader(vsm_postprocess_omni.comp virtual_shadow/vsm_postprocess_omni.comp)

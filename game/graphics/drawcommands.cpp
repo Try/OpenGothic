@@ -228,13 +228,13 @@ void DrawCommands::updateTasksUniforms() {
   for(auto& i:tasks) {
     Resources::recycle(std::move(i.desc));
     if(i.viewport==SceneGlobals::V_Main)
-      i.desc = device.descriptors(Shaders::inst().clusterTaskHiZ);
+      i.desc = device.descriptors(Shaders::inst().visibilityPassHiZ);
     else if(i.viewport==SceneGlobals::V_HiZ)
-      i.desc = device.descriptors(Shaders::inst().clusterTaskHiZCr);
+      i.desc = device.descriptors(Shaders::inst().visibilityPassHiZCr);
     else if(i.viewport==SceneGlobals::V_Vsm)
-      i.desc = device.descriptors(Shaders::inst().vsmClusterTask);
+      i.desc = device.descriptors(Shaders::inst().vsmVisibilityPass);
     else
-      i.desc = device.descriptors(Shaders::inst().clusterTaskSh);
+      i.desc = device.descriptors(Shaders::inst().visibilityPassSh);
     i.desc.set(T_Clusters, clusters.ssbo());
     i.desc.set(T_Indirect, views[i.viewport].indirectCmd);
     i.desc.set(T_Payload,  views[i.viewport].visClusters);
@@ -487,11 +487,11 @@ void DrawCommands::visibilityPass(Encoder<CommandBuffer>& cmd, uint8_t fId, int 
     push.meshletCount = uint32_t(clusters.size());
     push.znear        = scene.znear;
 
-    auto* pso = &Shaders::inst().clusterTaskSh;
+    auto* pso = &Shaders::inst().visibilityPassSh;
     if(i.viewport==SceneGlobals::V_Main)
-      pso = &Shaders::inst().clusterTaskHiZ;
+      pso = &Shaders::inst().visibilityPassHiZ;
     else if(i.viewport==SceneGlobals::V_HiZ)
-      pso = &Shaders::inst().clusterTaskHiZCr;
+      pso = &Shaders::inst().visibilityPassHiZCr;
     cmd.setUniforms(*pso, i.desc, &push, sizeof(push));
     cmd.dispatchThreads(push.meshletCount);
     }
@@ -505,13 +505,9 @@ void DrawCommands::visibilityVsm(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     struct Push { uint32_t meshletCount; } push = {};
     push.meshletCount = uint32_t(clusters.size());
 
-    auto* pso = &Shaders::inst().vsmClusterTask;
+    auto* pso = &Shaders::inst().vsmVisibilityPass;
     cmd.setUniforms(*pso, i.desc, &push, sizeof(push));
-#if 1
     cmd.dispatchThreads(push.meshletCount, size_t(scene.vsmPageTbl->d() + 1));
-#else
-    cmd.dispatch(push.meshletCount);
-#endif
     }
 
   cmd.setUniforms(Shaders::inst().vsmPackDraw0, views[SceneGlobals::V_Vsm].descPackDraw0);

@@ -65,7 +65,7 @@ class Shaders {
 
     // Cluster
     Tempest::ComputePipeline clusterInit, clusterPatch;
-    Tempest::ComputePipeline clusterTaskSh, clusterTaskHiZ, clusterTaskHiZCr;
+    Tempest::ComputePipeline visibilityPassSh, visibilityPassHiZ, visibilityPassHiZCr;
 
     // GI
     Tempest::RenderPipeline  probeDbg, probeHitDbg;
@@ -75,7 +75,7 @@ class Shaders {
     Tempest::RenderPipeline  probeAmbient;
 
     // Virtual shadow
-    Tempest::ComputePipeline vsmClusterTask;
+    Tempest::ComputePipeline vsmVisibilityPass;
     Tempest::ComputePipeline vsmClear, vsmClearOmni, vsmMarkPages, vsmMarkOmniPages, vsmPostprocessOmni;
     Tempest::ComputePipeline vsmTrimPages, vsmSortPages, vsmListPages, vsmClumpPages, vsmAllocPages, vsmAlloc2Pages, vsmMergePages;
     Tempest::ComputePipeline vsmPackDraw0, vsmPackDraw1;

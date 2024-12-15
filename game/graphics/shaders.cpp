@@ -29,18 +29,18 @@ Shaders::Shaders() {
 
   stash   = postEffect("stash");
 
-  clusterInit      = computeShader("cluster_init.comp.sprv");
-  clusterPatch     = computeShader("cluster_patch.comp.sprv");
-  clusterTaskSh    = computeShader("cluster_task.comp.sprv");
-  clusterTaskHiZ   = computeShader("cluster_task_hiz.comp.sprv");
-  clusterTaskHiZCr = computeShader("cluster_task_hiz_cr.comp.sprv");
+  clusterInit         = computeShader("cluster_init.comp.sprv");
+  clusterPatch        = computeShader("cluster_patch.comp.sprv");
+  visibilityPassSh    = computeShader("visibility_pass.comp.sprv");
+  visibilityPassHiZ   = computeShader("visibility_pass_hiz.comp.sprv");
+  visibilityPassHiZCr = computeShader("visibility_pass_hiz_cr.comp.sprv");
 
-  ssao             = computeShader("ssao.comp.sprv");
-  ssaoBlur         = computeShader("ssao_blur.comp.sprv");
+  ssao                = computeShader("ssao.comp.sprv");
+  ssaoBlur            = computeShader("ssao_blur.comp.sprv");
 
   directLight      = postEffect("direct_light", "direct_light",    RenderState::ZTestMode::NoEqual);
   directLightSh    = postEffect("direct_light", "direct_light_sh", RenderState::ZTestMode::NoEqual);
-  if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing)
+  if(Gothic::options().doRayQuery && device.properties().descriptors.nonUniformIndexing)
     directLightRq  = postEffect("direct_light", "direct_light_rq", RenderState::ZTestMode::NoEqual);
 
   ambientLight     = ambientLightShader("ambient_light");
@@ -197,8 +197,7 @@ Shaders::Shaders() {
     }
 
   if(Gothic::options().doVirtualShadow) {
-    vsmClusterTask     = computeShader("vsm_cluster_task.comp.sprv");
-    // vsmClusterTask = computeShader("vsm_cluster_task2.comp.sprv");
+    vsmVisibilityPass  = computeShader("vsm_visibility_pass.comp.sprv");
     vsmClear           = computeShader("vsm_clear.comp.sprv");
     vsmClearOmni       = computeShader("vsm_clear_omni.comp.sprv");
     vsmMarkPages       = computeShader("vsm_mark_pages.comp.sprv");
