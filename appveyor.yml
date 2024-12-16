@@ -153,7 +153,7 @@ deploy:
   description: 'no release description'
   provider: GitHub
   auth_token:
-    secure: YLdtUMsAcc8FUr3kgwhQW7nkl5jDpLKbelvzWzzTWUfAiDd92Kd15rjlDJVEEFzo
+    secure: XkKdx4YECrADRtnQrWhLsk+3sgMIvfm1mHKX82P5ovMW7qRvm0cfso2Aznmevw3ac7xkvAOq8oAHezd6d8ZENHkE5imUBlhGS+lR9I5hXNYqEOIIueNbZ+lZ7ipNQA2o
   artifact: /archive.*/
   draft: true
   force_update: false
