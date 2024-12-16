@@ -66,13 +66,15 @@ void listPages(uint mip) {
 void listOmni() {
   const uint lane = gl_LocalInvocationIndex;
 
-  for(uint i=lane; i<pageTblOmni.length(); i+=NumThreads) {
+  const uint NumSteps = (pageTblOmni.length()+NumThreads-1)/NumThreads;
+  for(uint id=0; id<NumSteps; ++id) {
+    const uint i      = id*NumThreads + lane;
     const uint prefix = pageListPrefix + pageOmni;
     if(lane<bits.length())
       bits[lane] = 0;
     barrier();
 
-    const uint pageHit = pageTblOmni[i];
+    const uint pageHit = i<pageTblOmni.length() ? pageTblOmni[i] : 0;
     if(pageHit!=0)
       atomicOr(bits[lane/32], 1u<<(lane%32));
     barrier();

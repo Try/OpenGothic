@@ -23,13 +23,16 @@ layout(binding = 1)         uniform texture2D  gbufDiffuse;
 layout(binding = 2)         uniform utexture2D gbufNormal;
 layout(binding = 3)         uniform texture2D  depth;
 layout(binding = 4, std430) readonly buffer Lbo { LightSource  lights[]; };
-layout(binding = 5, std430) buffer Omni         { uint         pageTblOmni[]; };
-layout(binding = 6, r32ui)  uniform uimage2D   dbgImg;
+layout(binding = 5, std430) buffer VId          { uint visLightCount; uint visLights[]; };
+layout(binding = 6, std430) buffer Omni         { uint         pageTblOmni[]; };
+layout(binding = 7, r32ui)  uniform uimage2D   dbgImg;
+
+const uint NumLights = NumThreads/6;
 
 shared uint  tileDepthMin, tileDepthMax;
 shared uint  lightCount;
-shared uint  lightId[NumThreads];
-shared uint  pageTblOmniTmp[NumThreads*6];
+shared uint  lightId[NumLights];
+shared uint  pageTblOmniTmp[NumLights*6];
 
 // shared uint  lightFineCount; //dbg
 
@@ -96,10 +99,14 @@ int shadowLod(vec2 dx, vec2 dy) {
   }
 
 void processLightTiles(const vec3 pos, const vec3 pos1, const vec3 pos2, const vec3 normal) {
-  const uint laneId = gl_LocalInvocationIndex;
-  const uint count  = lightCount;
+  const uint laneId    = gl_LocalInvocationIndex;
+  const uint pageCount = lightCount*6;
+  const uint count     = lightCount;
+  const vec3 pos0      = pos;
 
-  const vec3 pos0 = pos;
+  for(uint i=laneId; i<pageCount; i+=NumThreads)
+    pageTblOmniTmp[i] = 0;
+  barrier();
 
   for(uint i=0; i<count; ++i) {
     const uint        id             = lightId[i];
@@ -131,7 +138,6 @@ void processLightTiles(const vec3 pos, const vec3 pos1, const vec3 pos2, const v
     }
   barrier();
 
-  const uint pageCount = lightCount*6;
   for(uint i=laneId; i<pageCount; i+=NumThreads) {
     const uint id = lightId[i/6];
     const uint fc = i%6;
@@ -153,9 +159,9 @@ void processLights(const vec3 pos, const vec3 pos1, const vec3 pos2, const vec3 
   float depthMin = 0;
   float depthMax = 0;
 
-  for(uint i=laneId; i<lights.length(); i+=NumThreads) {
-    if(i+1!=lights.length())
-      ;//continue;
+  for(uint id=laneId; id<visLightCount; id+=NumThreads) {
+    const uint i = visLights[id];
+
     if(!projectSphere(vec4(lights[i].pos, lights[i].range), aabb, depthMin, depthMax))
       continue;
     if(depthMin>tMax)
@@ -173,8 +179,10 @@ void processLights(const vec3 pos, const vec3 pos1, const vec3 pos2, const vec3 
       break; //TODO: incremental processing
     lightId[ix] = i;
     }
-
   barrier();
+
+  if(lightCount>=lightId.length())
+    return; // overflow
   processLightTiles(pos, pos1, pos2, normal);
   }
 
@@ -183,12 +191,9 @@ void main() {
   const ivec2 size   = textureSize(depth, 0);
   const bool  valid  = all(lessThan(fragCoord, size));
 
-  // lightFineCount = 0;
   lightCount   = 0;
   tileDepthMin = floatBitsToUint(1);
   tileDepthMax = floatBitsToUint(0);
-  for(uint i=laneId; i<pageTblOmniTmp.length(); i+=NumThreads)
-    pageTblOmniTmp[i] = 0;
   barrier();
 
   const float z      = valid ? texelFetch(depth, fragCoord, 0).x  : 1;
@@ -205,7 +210,6 @@ void main() {
 
   const vec4 wpos2 = worldPos(ivec2(fragCoord.xy)+ivec2(0,1), z) + vec4(normal*0.002, 0);
   const vec3 pos2  = wpos2.xyz/wpos2.w + originLwc;
-
 
   processLights(pos, pos1, pos2, normal);
   barrier();

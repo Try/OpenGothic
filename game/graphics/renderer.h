@@ -221,7 +221,7 @@ class Renderer final {
 
     struct {
       Tempest::DescriptorSet    uboClear, uboClearOmni;
-      Tempest::DescriptorSet    uboPages, uboOmniPages, uboPostprocessOmni;
+      Tempest::DescriptorSet    uboPages, uboCullLights, uboOmniPages, uboPostprocessOmni;
       Tempest::DescriptorSet    uboEpipole, uboFogPages, uboFogSample, uboFogShadow, uboFogTrace;
       Tempest::DescriptorSet    uboClump, uboAlloc;
 
@@ -234,6 +234,7 @@ class Renderer final {
       Tempest::StorageBuffer    pageList;
       Tempest::StorageBuffer    pageListTmp;
       Tempest::StorageBuffer    pageTblOmni;
+      Tempest::StorageBuffer    visibleLights;
 
       Tempest::StorageImage     ssTrace;
       Tempest::StorageImage     epTrace;

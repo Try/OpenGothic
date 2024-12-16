@@ -182,6 +182,7 @@ void Renderer::resetSwapchain() {
   Resources::recycle(std::move(lights.ubo));
   Resources::recycle(std::move(vsm.uboOmniPages));
   Resources::recycle(std::move(vsm.uboClearOmni));
+  Resources::recycle(std::move(vsm.uboCullLights));
 
   water.underUbo = device.descriptors(shaders.underwaterT);
 
@@ -308,6 +309,7 @@ void Renderer::onWorldChanged() {
   Resources::recycle(std::move(lights.ubo));
   Resources::recycle(std::move(vsm.uboOmniPages));
   Resources::recycle(std::move(vsm.uboClearOmni));
+  Resources::recycle(std::move(vsm.uboCullLights));
   Resources::recycle(std::move(vsm.uboAlloc));
 
   prepareUniforms();
@@ -655,6 +657,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     Resources::recycle(std::move(lights.ubo));
     Resources::recycle(std::move(vsm.uboClearOmni));
     Resources::recycle(std::move(vsm.uboOmniPages));
+    Resources::recycle(std::move(vsm.uboCullLights));
     Resources::recycle(std::move(vsm.uboPostprocessOmni));
     Resources::recycle(std::move(vsm.uboAlloc));
     }
@@ -914,7 +917,8 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
 
   if(omniLights && vsm.uboOmniPages.isEmpty()) {
     Resources::recycle(std::move(vsm.pageTblOmni));
-    vsm.pageTblOmni  = device.ssbo(nullptr, shaders.vsmClearOmni.sizeofBuffer(0, wview.lights().size()*6));
+    vsm.pageTblOmni   = device.ssbo(nullptr, shaders.vsmClearOmni .sizeofBuffer(0, wview.lights().size()*6));
+    vsm.visibleLights = device.ssbo(nullptr, shaders.vsmCullLights.sizeofBuffer(2, wview.lights().size()));
 
     vsm.uboOmniPages = device.descriptors(shaders.vsmMarkOmniPages);
     vsm.uboOmniPages.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
@@ -922,14 +926,22 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     vsm.uboOmniPages.set(2, gbufNormal,  Sampler::nearest());
     vsm.uboOmniPages.set(3, zbuffer,     Sampler::nearest());
     vsm.uboOmniPages.set(4, wview.lights().lightsSsbo());
-    vsm.uboOmniPages.set(5, vsm.pageTblOmni);
-    vsm.uboOmniPages.set(6, vsm.vsmDbg);
+    vsm.uboOmniPages.set(5, vsm.visibleLights);
+    vsm.uboOmniPages.set(6, vsm.pageTblOmni);
+    vsm.uboOmniPages.set(7, vsm.vsmDbg);
 
     vsm.uboPostprocessOmni = device.descriptors(shaders.vsmPostprocessOmni);
     vsm.uboPostprocessOmni.set(0, vsm.pageTblOmni);
 
     vsm.uboClearOmni = device.descriptors(shaders.vsmClearOmni);
     vsm.uboClearOmni.set(0, vsm.pageTblOmni);
+    vsm.uboClearOmni.set(1, vsm.visibleLights);
+
+    vsm.uboCullLights = device.descriptors(shaders.vsmCullLights);
+    vsm.uboCullLights.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    vsm.uboCullLights.set(1, wview.lights().lightsSsbo());
+    vsm.uboCullLights.set(2, vsm.visibleLights);
+    vsm.uboCullLights.set(3, *scene.hiZ);
     }
 
   if(vsm.uboAlloc.isEmpty()) {
@@ -949,6 +961,12 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   if(omniLights) {
     cmd.setUniforms(shaders.vsmClearOmni, vsm.uboClearOmni);
     cmd.dispatchThreads(numOmniPages);
+
+    struct Push { float znear; uint32_t lightsTotal; } push = {};
+    push.znear       = scene.znear;
+    push.lightsTotal = uint32_t(wview.lights().size());
+    cmd.setUniforms(shaders.vsmCullLights, vsm.uboCullLights, &push, sizeof(push));
+    cmd.dispatchThreads(wview.lights().size());
     }
 
   cmd.setUniforms(shaders.vsmMarkPages, vsm.uboPages, &settings.vsmMipBias, sizeof(settings.vsmMipBias));

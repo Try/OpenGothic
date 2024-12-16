@@ -151,7 +151,7 @@ Shaders::Shaders() {
     state.setCullFaceMode(RenderState::CullMode::Front);
     state.setZTestMode   (RenderState::ZTestMode::Greater);
 
-    auto sh = GothicShader::get("hiz_reproject.mesh.sprv");
+    auto sh = GothicShader::get("hiz_reproject.mesh.sprv"); //TODO: remove
     auto ms = device.shader(sh.data,sh.len);
     sh = GothicShader::get("hiz_reproject.frag.sprv");
     auto fs = device.shader(sh.data,sh.len);
@@ -200,6 +200,7 @@ Shaders::Shaders() {
     vsmVisibilityPass  = computeShader("vsm_visibility_pass.comp.sprv");
     vsmClear           = computeShader("vsm_clear.comp.sprv");
     vsmClearOmni       = computeShader("vsm_clear_omni.comp.sprv");
+    vsmCullLights      = computeShader("vsm_omni_cull_lights.comp.sprv");
     vsmMarkPages       = computeShader("vsm_mark_pages.comp.sprv");
     vsmMarkOmniPages   = computeShader("vsm_mark_omni_pages.comp.sprv");
     vsmPostprocessOmni = computeShader("vsm_postprocess_omni.comp.sprv");
