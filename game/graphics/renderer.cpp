@@ -980,8 +980,9 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     cmd.setUniforms(shaders.vsmMarkOmniPages, vsm.uboOmniPages, &push, sizeof(push));
     cmd.dispatchThreads(zbuffer.size());
 
-    cmd.setUniforms(shaders.vsmPostprocessOmni, vsm.uboPostprocessOmni);
-    cmd.dispatchThreads(numOmniPages);
+    const uint32_t lightsTotal = uint32_t(wview.lights().size());
+    cmd.setUniforms(shaders.vsmPostprocessOmni, vsm.uboPostprocessOmni, &lightsTotal, sizeof(lightsTotal));
+    cmd.dispatchThreads(wview.lights().size());
     }
 
   // sky&fog
