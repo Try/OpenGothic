@@ -23,7 +23,7 @@ layout(binding = 1)         uniform texture2D  gbufDiffuse;
 layout(binding = 2)         uniform utexture2D gbufNormal;
 layout(binding = 3)         uniform texture2D  depth;
 layout(binding = 4, std430) readonly buffer Lbo { LightSource  lights[]; };
-layout(binding = 5, std430) buffer VId          { uint visLightCount; uint visLights[]; };
+layout(binding = 5, std430) readonly buffer VId { uint visLightCount; uint visLights[]; };
 layout(binding = 6, std430) buffer Omni         { uint         pageTblOmni[]; };
 layout(binding = 7, r32ui)  uniform uimage2D   dbgImg;
 
@@ -129,7 +129,7 @@ void processLightTiles(const vec3 pos, const vec3 pos1, const vec3 pos2, const v
 
     int  size = VSM_PAGE_SIZE * 4;
     int  lod  = shadowLod((uv1-uv0)*size, (uv2-uv0)*size);
-    if(lod>8)
+    if(lod>5)
       continue; // TODO: refine
 
     lod = min(4, lod);
@@ -147,7 +147,7 @@ void processLightTiles(const vec3 pos, const vec3 pos1, const vec3 pos2, const v
     }
   }
 
-void processLights(const vec3 pos, const vec3 pos1, const vec3 pos2, const vec3 normal) {
+void processLights(const float z, const vec3 normal) {
   const uint  laneId   = gl_LocalInvocationIndex;
   const float tMin     = uintBitsToFloat(tileDepthMin);
   const float tMax     = uintBitsToFloat(tileDepthMax);
@@ -183,6 +183,18 @@ void processLights(const vec3 pos, const vec3 pos1, const vec3 pos2, const vec3 
 
   if(lightCount>=lightId.length())
     return; // overflow
+
+  if(lightCount==0)
+    return;
+
+  const vec4 wpos  = worldPos(ivec2(fragCoord.xy), z) + vec4(normal*0.002, 0);
+  const vec3 pos   = wpos.xyz/wpos.w + originLwc;
+
+  const vec4 wpos1 = worldPos(ivec2(fragCoord.xy)+ivec2(1,0), z) + vec4(normal*0.002, 0);
+  const vec3 pos1  = wpos1.xyz/wpos1.w + originLwc;
+
+  const vec4 wpos2 = worldPos(ivec2(fragCoord.xy)+ivec2(0,1), z) + vec4(normal*0.002, 0);
+  const vec3 pos2  = wpos2.xyz/wpos2.w + originLwc;
   processLightTiles(pos, pos1, pos2, normal);
   }
 
@@ -202,16 +214,7 @@ void main() {
     hiTile(z);
   barrier();
 
-  const vec4 wpos  = worldPos(ivec2(fragCoord.xy), z) + vec4(normal*0.002, 0);
-  const vec3 pos   = wpos.xyz/wpos.w + originLwc;
-
-  const vec4 wpos1 = worldPos(ivec2(fragCoord.xy)+ivec2(1,0), z) + vec4(normal*0.002, 0);
-  const vec3 pos1  = wpos1.xyz/wpos1.w + originLwc;
-
-  const vec4 wpos2 = worldPos(ivec2(fragCoord.xy)+ivec2(0,1), z) + vec4(normal*0.002, 0);
-  const vec3 pos2  = wpos2.xyz/wpos2.w + originLwc;
-
-  processLights(pos, pos1, pos2, normal);
+  processLights(z, normal);
   barrier();
 
   // imageStore(dbgImg, fragCoord, uvec4(lightCount));
