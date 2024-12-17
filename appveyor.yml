@@ -160,4 +160,4 @@ deploy:
   prerelease: true
   tag: opengothic-v${APPVEYOR_BUILD_VERSION}
   on:
-    appveyor_repo_tag: true       # deploy on tag push only
+    APPVEYOR_REPO_TAG: true       # deploy on tag push only
