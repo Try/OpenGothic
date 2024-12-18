@@ -152,16 +152,15 @@ void processLights(const float z, const vec3 normal) {
   const float tMin     = uintBitsToFloat(tileDepthMin);
   const float tMax     = uintBitsToFloat(tileDepthMax);
   const ivec2 TileSize = ivec2(gl_WorkGroupSize.xy);
-  const ivec2 begin    = ivec2(gl_WorkGroupID.xy * TileSize + gl_LocalInvocationID.xy);
-  const ivec2 end      = ivec2(gl_WorkGroupID.xy * TileSize + TileSize);
-
-  vec4  aabb     = vec4(0);
-  float depthMin = 0;
-  float depthMax = 0;
+  const ivec2 begin    = ivec2(gl_WorkGroupID.xy * TileSize);
+  const ivec2 end      = min(ivec2(gl_WorkGroupID.xy * TileSize + TileSize), viewportSize);
 
   for(uint id=laneId; id<visLightCount; id+=NumThreads) {
-    const uint i = visLights[id];
+    vec4  aabb     = vec4(0);
+    float depthMin = 0;
+    float depthMax = 0;
 
+    const uint i = visLights[id];
     if(!projectSphere(vec4(lights[i].pos, lights[i].range), aabb, depthMin, depthMax))
       continue;
     if(depthMin>tMax)
@@ -215,7 +214,7 @@ void main() {
   barrier();
 
   processLights(z, normal);
-  barrier();
+  //barrier();
 
   // imageStore(dbgImg, fragCoord, uvec4(lightCount));
   // imageStore(dbgImg, fragCoord, uvec4(lightFineCount));

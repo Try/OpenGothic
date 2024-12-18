@@ -10,13 +10,13 @@
 layout(local_size_x = 64) in;
 
 layout(push_constant, std140) uniform Push {
-  uint  lightsTotal;
+  uint lightsTotal;
   };
 layout(binding = 0, std430) buffer Omni { uint pageTblOmni[]; };
 
 bool hasPages(uint id) {
   for(uint i=0; i<6; ++i) {
-    if(pageTblOmni[id+i]!=0)
+    if(pageTblOmni[id+i]>1)
       return true;
     }
   return false;

@@ -87,6 +87,7 @@ void listOmni() {
       }
     barrier();
     }
+
   vsm.header.pageOmniCount = pageOmni;
   vsm.header.pageCount     = pageListPrefix + pageOmni;
   }
