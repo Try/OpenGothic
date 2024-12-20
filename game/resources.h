@@ -142,6 +142,7 @@ class Resources final {
     static std::vector<uint8_t>      getFileData(std::string_view name);
     static bool                      getFileData(std::string_view name, std::vector<uint8_t>& dat);
     static std::unique_ptr<zenkit::Read> getFileBuffer(std::string_view name);
+    static auto                      openReader(std::string_view name, std::unique_ptr<zenkit::Read>& read) -> std::unique_ptr<zenkit::ReadArchive>;
     static bool                      hasFile    (std::string_view fname);
 
     static const zenkit::Vfs&        vdfsIndex();

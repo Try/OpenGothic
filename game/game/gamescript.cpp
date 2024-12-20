@@ -437,20 +437,25 @@ void GameScript::initDialogs() {
   }
 
 void GameScript::loadDialogOU() {
-  std::string prefix = std::string(Gothic::inst().defaultOutputUnits());
-  std::vector<std::string> names = {prefix + ".DAT", prefix + ".BIN"};
+  const std::string prefix = std::string(Gothic::inst().defaultOutputUnits());
+  const std::array<std::string,2> names = {prefix + ".DAT", prefix + ".BIN"};
 
-  for(auto OU:names) {
+  const auto version = Gothic::inst().version().game==1 ? zenkit::GameVersion::GOTHIC_1
+                                                        : zenkit::GameVersion::GOTHIC_2;
+
+  for(auto& OU:names) {
     if(Resources::hasFile(OU)) {
-      auto buf = Resources::getFileBuffer(OU);
-      dialogs.load(buf.get());
+      std::unique_ptr<zenkit::Read> read;
+      auto zen = Resources::openReader(OU, read);
+      dialogs = std::move(*zen->read_object<zenkit::CutsceneLibrary>(version));
       return;
       }
 
     const size_t segment = OU.find_last_of("\\/");
     if(segment!=std::string::npos && Resources::hasFile(OU.substr(segment+1))) {
-      auto buf = Resources::getFileBuffer(OU.substr(segment+1));
-      dialogs.load(buf.get());
+      std::unique_ptr<zenkit::Read> read;
+      auto zen = Resources::openReader(OU.substr(segment+1), read);
+      dialogs = std::move(*zen->read_object<zenkit::CutsceneLibrary>(version));
       return;
       }
 
@@ -467,7 +472,13 @@ void GameScript::loadDialogOU() {
 
     try {
       auto buf = zenkit::Read::from(full);
-      dialogs.load(buf.get());
+      if(buf==nullptr)
+        continue;
+      auto zen = zenkit::ReadArchive::from(buf.get());
+      if(zen==nullptr)
+        continue;
+      // auto zen = Resources::openReader(full);
+      dialogs = std::move(*zen->read_object<zenkit::CutsceneLibrary>(version));
       return;
       }
     catch(...){
@@ -1242,12 +1253,13 @@ std::string_view GameScript::messageFromSvm(std::string_view id, int voice) cons
   }
 
 std::string_view GameScript::messageByName(std::string_view id) const {
-  auto* blk = dialogs.block_by_name(id);
-  if(blk == nullptr){
-    static std::string empty {};
-    return empty;
-    }
-  return blk->message.text;
+  auto blk = dialogs.block_by_name(id);
+  if(blk == nullptr)
+    return "";
+  auto msg = blk->get_message();
+  if(msg == nullptr)
+    return "";
+  return msg->text;
   }
 
 uint32_t GameScript::messageTime(std::string_view id) const {

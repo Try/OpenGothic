@@ -227,6 +227,20 @@ std::unique_ptr<zenkit::Read> Resources::getFileBuffer(std::string_view name) {
   return entry->open_read();
   }
 
+std::unique_ptr<zenkit::ReadArchive> Resources::openReader(std::string_view name, std::unique_ptr<zenkit::Read>& read) {
+  const auto* entry = Resources::vdfsIndex().find(name);
+  if(entry == nullptr)
+    throw std::runtime_error("failed to open resource: " + std::string{name});
+  auto buf = entry->open_read();
+  if(buf == nullptr)
+    throw std::runtime_error("failed to open resource: " + std::string{name});
+  auto zen = zenkit::ReadArchive::from(buf.get());
+  if(zen == nullptr)
+    throw std::runtime_error("failed to open resource: " + std::string{name});
+  read = std::move(buf);
+  return zen;
+  }
+
 const char* Resources::renderer() {
   return inst->dev.properties().name;
   }
