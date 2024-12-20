@@ -72,6 +72,7 @@ class Renderer final {
     void initGiData();
     void initSettings();
     void toggleGi();
+    void toggleVsm();
 
     struct Settings {
       const uint32_t shadowResolution   = 2048;

@@ -145,6 +145,7 @@ Marvin::Marvin() {
     {"insert %c",                  C_Insert},
 
     {"toggle gi",                  C_ToggleGI},
+    {"toggle vsm",                 C_ToggleVsm},
     };
   }
 
@@ -423,6 +424,9 @@ bool Marvin::exec(std::string_view v) {
 
     case C_ToggleGI:
       Gothic::inst().toggleGi();
+      return true;
+    case C_ToggleVsm:
+      Gothic::inst().toggleVsm();
       return true;
     }
 

@@ -129,7 +129,7 @@ class Gothic final {
     bool         doClock() const { return showTime; }
     void         setClock(bool t) { showTime = t; }
 
-    Tempest::Signal<void()> toggleGi;
+    Tempest::Signal<void()> toggleGi, toggleVsm;
 
     LoadState    checkLoading() const;
     bool         finishLoading();

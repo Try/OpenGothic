@@ -59,7 +59,8 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
   Log::i("Depth format = ", Tempest::formatName(zBufferFormat), " Shadow format = ", Tempest::formatName(shadowFormat));
 
   Gothic::inst().onSettingsChanged.bind(this,&Renderer::initSettings);
-  Gothic::inst().toggleGi.bind(this, &Renderer::toggleGi);
+  Gothic::inst().toggleGi .bind(this, &Renderer::toggleGi);
+  Gothic::inst().toggleVsm.bind(this, &Renderer::toggleVsm);
 
   settings.giEnabled  = Gothic::options().doRtGi;
   settings.vsmEnabled = Gothic::options().doVirtualShadow;
@@ -300,6 +301,14 @@ void Renderer::toggleGi() {
   initGiData();
   prepareUniforms();
   prepareRtUniforms();
+  }
+
+void Renderer::toggleVsm() {
+  settings.vsmEnabled = !settings.vsmEnabled;
+
+  auto& device = Resources::device();
+  device.waitIdle();
+  resetSwapchain();
   }
 
 void Renderer::onWorldChanged() {
