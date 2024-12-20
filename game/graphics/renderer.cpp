@@ -908,6 +908,7 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     return;
 
   static bool omniLights = true;
+  const bool doVirtualFog = Gothic::inst().options().doVirtualFog && wview.sky().isVolumetric();
 
   auto& device  = Resources::device();
   auto& shaders = Shaders::inst();
@@ -917,8 +918,8 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
 
   if(omniLights && vsm.uboOmniPages.isEmpty()) {
     Resources::recycle(std::move(vsm.pageTblOmni));
-    vsm.pageTblOmni   = device.ssbo(nullptr, shaders.vsmClearOmni .sizeofBuffer(0, wview.lights().size()*6));
-    vsm.visibleLights = device.ssbo(nullptr, shaders.vsmCullLights.sizeofBuffer(2, wview.lights().size()));
+    vsm.pageTblOmni   = device.ssbo(nullptr, shaders.vsmClearOmni.sizeofBuffer(0, wview.lights().size()*6));
+    vsm.visibleLights = device.ssbo(nullptr, shaders.vsmClearOmni.sizeofBuffer(1, wview.lights().size()));
 
     vsm.uboOmniPages = device.descriptors(shaders.vsmMarkOmniPages);
     vsm.uboOmniPages.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
@@ -986,7 +987,7 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     }
 
   // sky&fog
-  if(true && wview.sky().isVolumetric()) {
+  if(doVirtualFog) {
     cmd.setDebugMarker("VSM-epipolar");
     cmd.setUniforms(shaders.vsmFogEpipolar, vsm.uboEpipole);
     cmd.dispatch(uint32_t(vsm.epTrace.h()));
@@ -1008,7 +1009,9 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
 
   // list
   cmd.setUniforms(shaders.vsmListPages, vsm.uboAlloc);
-  cmd.dispatch(size_t(vsm.pageTbl.d() + 1));
+  if(omniLights)
+    cmd.dispatch(size_t(vsm.pageTbl.d() + 1)); else
+    cmd.dispatch(size_t(vsm.pageTbl.d()));
 
   // cmd.setUniforms(shaders.vsmSortPages, vsm.uboAlloc);
   // cmd.dispatch(1);
@@ -1031,7 +1034,7 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.setFramebuffer({}, {vsm.pageData, 0.f, Tempest::Preserve});
   wview.drawVsm(cmd,fId);
 
-  if(Gothic::inst().options().doVirtualFog) {
+  if(doVirtualFog) {
     cmd.setFramebuffer({});
     cmd.setDebugMarker("VSM-epipolar-fog");
     cmd.setUniforms(shaders.vsmFogShadow, vsm.uboFogShadow);
