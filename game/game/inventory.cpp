@@ -949,8 +949,9 @@ Item* Inventory::bestItem(Npc &owner, ItmFlags f) {
       continue;
     if(!i->checkCond(owner))
       continue;
-    if(itData.munition>0 && findByClass(size_t(itData.munition))==nullptr)
-      continue;
+    // NOTE: not checking itData.munition, as it breaks Cavalorn in G2
+    // if(itData.munition>0 && findByClass(size_t(itData.munition))==nullptr)
+    //   continue;
 
     if(std::make_tuple(itData.damage_total, itData.value)>std::make_tuple(damage, value)){
       ret    = i.get();
