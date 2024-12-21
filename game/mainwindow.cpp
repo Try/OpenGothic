@@ -946,6 +946,11 @@ void MainWindow::tickCamera(uint64_t dt) {
   }
 
 Camera::Mode MainWindow::solveCameraMode() const {
+  if(auto camera = Gothic::inst().camera()) {
+    if(camera->isFree())
+      return Camera::Normal;
+    }
+
   if(inventory.isOpen()==InventoryMenu::State::Equip ||
      inventory.isOpen()==InventoryMenu::State::Ransack)
     return Camera::Inventory;
