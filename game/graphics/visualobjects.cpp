@@ -346,6 +346,10 @@ bool VisualObjects::realloc(InstanceStorage::Id& id, size_t size) {
   return instanceMem.realloc(id, size);
   }
 
+void VisualObjects::resetRendering() {
+  return drawCmd.resetRendering();
+  }
+
 const Tempest::StorageBuffer& VisualObjects::instanceSsbo() const {
   return instanceMem.ssbo();
   }

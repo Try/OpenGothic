@@ -46,7 +46,6 @@ class SceneGlobals final {
                              const Tempest::StorageImage&  pageTbl,
                              const Tempest::StorageImage&  pageHiZ,
                              const Tempest::StorageBuffer& vsmPageList);
-    void setVsmSkyShadows(const Tempest::StorageImage& skyShadows);
 
     void setSwRenderingImage(const Tempest::StorageImage& mainView);
 
@@ -74,7 +73,6 @@ class SceneGlobals final {
     const Tempest::Texture2d*         gbufNormals  = &Resources::fallbackBlack();
 
     const Tempest::Texture2d*         hiZ          = &Resources::fallbackTexture();
-    const Tempest::Texture2d*         skyLut       = &Resources::fallbackTexture();
 
     const Tempest::StorageBuffer*     lights        = nullptr;
 
@@ -85,8 +83,6 @@ class SceneGlobals final {
     Tempest::StorageImage             vsmDbg;
 
     const Tempest::StorageImage*      swMainImage   = nullptr;
-    const Tempest::StorageImage*      skyShadows    = nullptr;
-
 
     struct UboGlobal final {
       Tempest::Matrix4x4              viewProject;

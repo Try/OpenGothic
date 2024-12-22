@@ -42,30 +42,21 @@ bool DrawCommands::DrawCmd::isMeshShader() const {
   }
 
 
-bool DrawCommands::View::isEnabled() const {
-  const bool virtualShadowSys = Gothic::inst().options().doVirtualShadow;
-  if(viewport==SceneGlobals::V_Vsm && !virtualShadowSys)
-    return false;
-  return true;
-  }
-
-
 DrawCommands::DrawCommands(VisualObjects& owner, DrawBuckets& buckets, DrawClusters& clusters, const SceneGlobals& scene)
-    : owner(owner), buckets(buckets), clusters(clusters), scene(scene) {
-  const bool virtualShadowSys = Gothic::inst().options().doVirtualShadow;
+    : owner(owner), buckets(buckets), clusters(clusters), scene(scene), vsmSupported(Shaders::isVsmSupported()) {
   for(uint8_t v=0; v<SceneGlobals::V_Count; ++v) {
     views[v].viewport = SceneGlobals::VisCamera(v);
     }
   tasks.clear();
   for(uint8_t v=0; v<SceneGlobals::V_Count; ++v) {
-    if(v==SceneGlobals::V_Vsm && !virtualShadowSys)
+    if(v==SceneGlobals::V_Vsm && !vsmSupported)
       continue;
     TaskCmd cmd;
     cmd.viewport = SceneGlobals::VisCamera(v);
     tasks.emplace_back(std::move(cmd));
     }
 
-  if(virtualShadowSys) {
+  if(vsmSupported) {
     Tempest::DispatchIndirectCommand cmd = {2000,1,1};
     vsmIndirectCmd = Resources::device().ssbo(&cmd, sizeof(cmd));
     }
@@ -74,6 +65,18 @@ DrawCommands::DrawCommands(VisualObjects& owner, DrawBuckets& buckets, DrawClust
   }
 
 DrawCommands::~DrawCommands() {
+  }
+
+bool DrawCommands::isViewEnabled(SceneGlobals::VisCamera viewport) const {
+  if(viewport==SceneGlobals::V_Vsm && !vsmSupported)
+    return false;
+  if(viewport==SceneGlobals::V_Vsm && scene.vsmPageTbl->isEmpty())
+    return false;
+  if(viewport==SceneGlobals::V_Shadow0 && scene.shadowMap[0]->size()==Size(1,1))
+    return false;
+  if(viewport==SceneGlobals::V_Shadow1 && scene.shadowMap[1]->size()==Size(1,1))
+    return false;
+  return true;
   }
 
 uint16_t DrawCommands::commandId(const Material& m, Type type, uint32_t bucketId) {
@@ -137,6 +140,15 @@ void DrawCommands::addClusters(uint16_t cmdId, uint32_t meshletCount) {
   cmd[cmdId].maxPayload += meshletCount;
   }
 
+void DrawCommands::resetRendering() {
+  for(auto& v:views) {
+    Resources::recycle(std::move(v.indirectCmd));
+    Resources::recycle(std::move(v.visClusters));
+    Resources::recycle(std::move(v.vsmClusters));
+    }
+  cmdDurtyBit = true;
+  }
+
 bool DrawCommands::commit(Encoder<CommandBuffer>& enc, uint8_t fId) {
   if(!cmdDurtyBit)
     return false;
@@ -179,7 +191,7 @@ bool DrawCommands::commit(Encoder<CommandBuffer>& enc, uint8_t fId) {
 
   auto& device = Resources::device();
   for(auto& v:views) {
-    if(!v.isEnabled())
+    if(!isViewEnabled(v.viewport))
       continue;
 
     if(visChg) {
@@ -219,7 +231,6 @@ bool DrawCommands::commit(Encoder<CommandBuffer>& enc, uint8_t fId) {
   updateTasksUniforms();
   if(!visChg)
     return false;
-
   return true;
   }
 
@@ -227,6 +238,9 @@ void DrawCommands::updateTasksUniforms() {
   auto& device = Resources::device();
   for(auto& i:tasks) {
     Resources::recycle(std::move(i.desc));
+    if(!isViewEnabled(i.viewport))
+      continue;
+
     if(i.viewport==SceneGlobals::V_Main)
       i.desc = device.descriptors(Shaders::inst().visibilityPassHiZ);
     else if(i.viewport==SceneGlobals::V_HiZ)
@@ -255,6 +269,8 @@ void DrawCommands::updateTasksUniforms() {
     }
   for(auto& v:views) {
     if(v.viewport!=SceneGlobals::V_Vsm)
+      continue;
+    if(!isViewEnabled(v.viewport))
       continue;
     Resources::recycle(std::move(v.descPackDraw0));
     v.descPackDraw0 = device.descriptors(Shaders::inst().vsmPackDraw0);
@@ -467,7 +483,7 @@ void DrawCommands::visibilityPass(Encoder<CommandBuffer>& cmd, uint8_t fId, int 
     for(auto& v:views) {
       if(this->cmd.empty())
         continue;
-      if(!v.isEnabled())
+      if(!isViewEnabled(v.viewport))
         continue;
       const uint32_t isMeshShader = (Gothic::options().doMeshShading ? 1 : 0);
       cmd.setUniforms(Shaders::inst().clusterInit, v.descInit, &isMeshShader, sizeof(isMeshShader));
@@ -481,6 +497,8 @@ void DrawCommands::visibilityPass(Encoder<CommandBuffer>& cmd, uint8_t fId, int 
     if(i.viewport!=SceneGlobals::V_HiZ && pass==0)
       continue;
     if(i.viewport==SceneGlobals::V_Vsm)
+      continue;
+    if(!isViewEnabled(i.viewport))
       continue;
     struct Push { uint32_t firstMeshlet; uint32_t meshletCount; float znear; } push = {};
     push.firstMeshlet = 0;

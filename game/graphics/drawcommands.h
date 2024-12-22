@@ -57,6 +57,8 @@ class DrawCommands {
     uint16_t commandId(const Material& m, Type type, uint32_t bucketId);
     void     addClusters(uint16_t cmdId, uint32_t meshletCount);
 
+    void     resetRendering();
+
     void     updateUniforms(uint8_t fId);
     void     updateTasksUniforms();
     void     updateCommandUniforms();
@@ -129,9 +131,9 @@ class DrawCommands {
       Tempest::DescriptorSet  descPackDraw0;
       Tempest::DescriptorSet  descPackDraw1;
       Tempest::StorageBuffer  vsmClusters;
-
-      bool                    isEnabled() const;
       };
+
+    bool                     isViewEnabled(SceneGlobals::VisCamera v) const;
 
     VisualObjects&           owner;
     DrawBuckets&             buckets;
@@ -143,6 +145,7 @@ class DrawCommands {
     std::vector<DrawCmd*>    ord;
     Tempest::DescriptorSet   swrDesc;
     bool                     cmdDurtyBit = false;
+    const bool               vsmSupported;
 
     View                     views[SceneGlobals::V_Count];
 

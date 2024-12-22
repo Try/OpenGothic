@@ -16,6 +16,7 @@
 #include "game/definitions/particlesdefinitions.h"
 
 #include "world/objects/npc.h"
+#include "graphics/shaders.h"
 
 #include "utils/fileutil.h"
 #include "utils/inifile.h"
@@ -88,10 +89,8 @@ Gothic::Gothic() {
     opts.doBindless = CommandLine::inst().isBindless();
     }
 
-  if(gpu.compute.maxInvocations>=1024 && gpu.render.maxClipCullDistances>=4 &&
-    gpu.render.maxViewportSize.w>=8192 && gpu.render.maxViewportSize.h>=8192) {
+  if(Shaders::isVsmSupported()) {
     opts.doVirtualShadow = CommandLine::inst().isVirtualShadow();
-    opts.doVirtualFog    = opts.doVirtualShadow;
     }
 
   opts.aaPreset = CommandLine::inst().aaPreset();

@@ -32,11 +32,18 @@ class Renderer final {
     Tempest::Attachment screenshoot(uint8_t frameId);
 
   private:
+    enum Quality : uint8_t {
+      None,
+      VolumetricLQ,
+      VolumetricHQ,
+      PathTrace,
+      };
     Tempest::Size internalResolution() const;
     void updateCamera(const Camera &camera);
 
     void prepareUniforms();
     void prepareRtUniforms();
+    void resetSkyFog();
 
     void prepareSky       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void prepareSSAO      (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
@@ -61,6 +68,9 @@ class Renderer final {
     void drawCMAA2        (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawReflections  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawUnderwater   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void drawFog          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview);
+    void drawSunMoon      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview);
+    void drawSunMoon      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview, bool isSun);
 
     void drawProbesDbg    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawProbesHitDbg (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
@@ -69,8 +79,8 @@ class Renderer final {
     void drawVsmDbg       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void drawSwrDbg       (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 
+    void setupSettings();
     void initGiData();
-    void initSettings();
     void toggleGi();
     void toggleVsm();
 
@@ -78,14 +88,20 @@ class Renderer final {
       const uint32_t shadowResolution   = 2048;
       bool           vsmEnabled         = false;
       bool           swrEnabled         = false;
+
       bool           zEnvMappingEnabled = false;
       bool           zCloudShadowScale  = false;
+      bool           zFogRadial         = false;
+
       bool           giEnabled          = false;
       bool           aaEnabled          = false;
 
       float          zVidBrightness     = 0.5;
       float          zVidContrast       = 0.5;
       float          zVidGamma          = 0.5;
+
+      float          sunSize            = 0;
+      float          moonSize           = 0;
 
       float          vidResIndex        = 0;
 
@@ -118,6 +134,37 @@ class Renderer final {
       Tempest::RenderPipeline* directLightPso = nullptr;
       Tempest::DescriptorSet   ubo;
       } lights;
+
+    struct Sky {
+      struct Ubo {
+        Tempest::Matrix4x4 viewProjectInv;
+        float              plPosY = 0.0;
+        float              rayleighScatteringScale = 0;
+        };
+
+      Ubo mkPush(WorldView& wview, bool lwc = false);
+
+      Quality                quality       = Quality::None;
+
+      Tempest::TextureFormat lutRGBFormat  = Tempest::TextureFormat::R11G11B10UF;
+      Tempest::TextureFormat lutRGBAFormat = Tempest::TextureFormat::RGBA16F;
+
+      bool                   lutIsInitialized = false;
+      Tempest::Attachment    transLut, multiScatLut, viewLut, viewCldLut;
+      Tempest::StorageImage  cloudsLut, fogLut3D;
+      Tempest::StorageImage  occlusionLut, irradianceLut;
+
+      Tempest::DescriptorSet uboClouds, uboTransmittance, uboMultiScatLut;
+      Tempest::DescriptorSet uboSkyViewLut, uboSkyViewCldLut;
+
+      Tempest::DescriptorSet uboFogViewLut3d, uboOcclusion;
+
+      Tempest::DescriptorSet uboFog, uboFog3d;
+      Tempest::DescriptorSet uboSky, uboSkyPathtrace;
+
+      Tempest::DescriptorSet uboExp, uboIrradiance;
+      Tempest::DescriptorSet uboSun, uboMoon;
+      } sky;
 
     struct Water {
       Tempest::RenderPipeline* reflectionsPso = nullptr;

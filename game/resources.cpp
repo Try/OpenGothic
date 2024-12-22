@@ -950,6 +950,13 @@ void Resources::recycle(Tempest::StorageBuffer&& ssbo) {
   inst->recycled[inst->recycledId].ssbo.emplace_back(std::move(ssbo));
   }
 
+void Resources::recycle(Tempest::StorageImage&& img) {
+  if(img.isEmpty())
+    return;
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  inst->recycled[inst->recycledId].img.emplace_back(std::move(img));
+  }
+
 const Resources::VobTree* Resources::implLoadVobBundle(std::string_view filename) {
   auto cname = std::string(filename);
   auto i     = zenCache.find(cname);

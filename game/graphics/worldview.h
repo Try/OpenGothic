@@ -26,10 +26,13 @@ class WorldView {
 
     const LightSource&        mainLight() const;
     const Tempest::Vec3&      ambientLight() const;
+    std::pair<Tempest::Vec3, Tempest::Vec3> bbox() const;
 
     bool isInPfxRange(const Tempest::Vec3& pos) const;
 
     void tick(uint64_t dt);
+
+    void resetRendering();
 
     void preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t fId);
     void prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
@@ -41,7 +44,6 @@ class WorldView {
                              const Tempest::StorageImage& pageTbl,
                              const Tempest::StorageImage& pageHiZ,
                              const Tempest::StorageBuffer& pageList);
-    void setVsmSkyShadows(const Tempest::StorageImage& skyShadows);
     void setSwRenderingImage(const Tempest::StorageImage& mainView);
     void setHiZ(const Tempest::Texture2d& hiZ);
     void setSceneImages(const Tempest::Texture2d& clr, const Tempest::Texture2d& depthAux, const Tempest::ZBuffer& depthNative);
@@ -49,16 +51,12 @@ class WorldView {
     void prepareUniforms();
     void postFrameupdate();
 
-    void dbgLights        (DbgPainter& p) const;
-    void prepareSky       (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void prepareFog       (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void prepareIrradiance(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void prepareExposure  (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void dbgLights      (DbgPainter& p) const;
 
     bool updateLights();
     bool updateRtScene();
 
-    void updateFrustrum  (const Frustrum fr[]);
+    void updateFrustrum (const Frustrum fr[]);
     void visibilityPass (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, int pass);
     void visibilityVsm  (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
 
@@ -67,9 +65,6 @@ class WorldView {
     void drawVsm        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId);
     void drawSwr        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId);
     void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawSky        (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawSunMoon    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawFog        (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void drawWater      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
     void drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
 
@@ -92,6 +87,7 @@ class WorldView {
 
   private:
     const World&  owner;
+    std::pair<Tempest::Vec3, Tempest::Vec3> aabb;
     SceneGlobals  sGlobal;
     Sky           gSky;
     LightGroup    gLights;

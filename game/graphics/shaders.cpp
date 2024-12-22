@@ -120,7 +120,7 @@ Shaders::Shaders() {
       }
     lightsRq = device.pipeline(Triangles, state, vsLight, fsLight);
     }
-  if(Gothic::options().doVirtualShadow) {
+  if(Shaders::isVsmSupported()) {
     sh      = GothicShader::get("light_vsm.frag.sprv");
     fsLight = device.shader(sh.data,sh.len);
     lightsVsm = device.pipeline(Triangles, state, vsLight, fsLight);
@@ -196,11 +196,11 @@ Shaders::Shaders() {
     probeAmbient = device.pipeline(Triangles,state,vs,fs);
     }
 
-  if(Gothic::options().doVirtualShadow) {
+  if(Shaders::isVsmSupported()) {
     vsmVisibilityPass  = computeShader("vsm_visibility_pass.comp.sprv");
     vsmClear           = computeShader("vsm_clear.comp.sprv");
     vsmClearOmni       = computeShader("vsm_clear_omni.comp.sprv");
-    vsmCullLights      = computeShader("vsm_omni_cull_lights.comp.sprv");
+    vsmCullLights      = computeShader("vsm_cull_lights.comp.sprv");
     vsmMarkPages       = computeShader("vsm_mark_pages.comp.sprv");
     vsmMarkOmniPages   = computeShader("vsm_mark_omni_pages.comp.sprv");
     vsmPostprocessOmni = computeShader("vsm_postprocess_omni.comp.sprv");
@@ -258,6 +258,15 @@ Shaders::~Shaders() {
 
 Shaders& Shaders::inst() {
   return *instance;
+  }
+
+bool Shaders::isVsmSupported() {
+  auto& gpu = Resources::device().properties();
+  if(gpu.compute.maxInvocations>=1024 && gpu.render.maxClipCullDistances>=4 &&
+     gpu.render.maxViewportSize.w>=8192 && gpu.render.maxViewportSize.h>=8192) {
+    return true;
+    }
+  return false;
   }
 
 const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommands::Type t, PipelineType pt, bool bl) const {

@@ -65,6 +65,8 @@ class VisualObjects final {
     bool                realloc(InstanceStorage::Id& id, size_t size);
     auto                instanceSsbo() const -> const Tempest::StorageBuffer&;
 
+    void resetRendering();
+
     void prepareUniforms();
     void prepareLigtsUniforms();
     void preFrameUpdate (uint8_t fId);

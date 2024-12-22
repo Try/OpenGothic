@@ -770,8 +770,8 @@ Npc* WorldObjects::findNpcNear(const Npc& pl, Npc* def, const SearchOpt& opt) {
       return def;
     }
   auto r = findObj(npcNear,pl,opt);
-  if(r!=nullptr && (!Gothic::inst().options().hideFocus || !r->isDead() ||
-                       r->inventory().iterator(Inventory::T_Ransack).isValid()))
+  if(r!=nullptr && (!Gothic::options().hideFocus || !r->isDead() ||
+                     r->inventory().iterator(Inventory::T_Ransack).isValid()))
     return r;
   return nullptr;
   }

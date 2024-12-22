@@ -10,7 +10,7 @@
 using namespace Tempest;
 
 WorldView::WorldView(const World& world, const PackedMesh& wmesh)
-  : owner(world),gSky(sGlobal,world,wmesh.bbox()),gLights(sGlobal),visuals(sGlobal,wmesh.bbox()),
+    : owner(world),aabb(wmesh.bbox()),gSky(sGlobal,world),gLights(sGlobal),visuals(sGlobal,wmesh.bbox()),
     objGroup(visuals),pfxGroup(*this,sGlobal,visuals),land(visuals,wmesh) {
   pfxGroup.resetTicks();
   }
@@ -28,6 +28,10 @@ const Tempest::Vec3& WorldView::ambientLight() const {
   return gSky.ambientLight();
   }
 
+std::pair<Vec3, Vec3> WorldView::bbox() const {
+  return aabb;
+  }
+
 bool WorldView::isInPfxRange(const Vec3& pos) const {
   return pfxGroup.isInPfxRange(pos);
   }
@@ -37,6 +41,10 @@ void WorldView::tick(uint64_t /*dt*/) {
   if(pl!=nullptr) {
     pfxGroup.setViewerPos(pl->position());
     }
+  }
+
+void WorldView::resetRendering() {
+  visuals.resetRendering();
   }
 
 void WorldView::preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t fId) {
@@ -92,10 +100,6 @@ void WorldView::setVirtualShadowMap(const Tempest::ZBuffer&       pageData,
   sGlobal.setVirtualShadowMap(pageData, pageTbl, pageHiZ, pageList);
   }
 
-void WorldView::setVsmSkyShadows(const Tempest::StorageImage& skyShadows) {
-  sGlobal.setVsmSkyShadows(skyShadows);
-  }
-
 void WorldView::setSwRenderingImage(const Tempest::StorageImage& mainView) {
   sGlobal.setSwRenderingImage(mainView);
   }
@@ -112,22 +116,6 @@ void WorldView::setSceneImages(const Tempest::Texture2d& clr, const Tempest::Tex
 
 void WorldView::dbgLights(DbgPainter& p) const {
   gLights.dbgLights(p);
-  }
-
-void WorldView::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId) {
-  gSky.prepareSky(cmd,frameId);
-  }
-
-void WorldView::prepareFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId) {
-  gSky.prepareFog(cmd,frameId);
-  }
-
-void WorldView::prepareIrradiance(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId) {
-  gSky.prepareIrradiance(cmd, frameId);
-  }
-
-void WorldView::prepareExposure(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId) {
-  gSky.prepareExposure(cmd, frameId);
   }
 
 void WorldView::updateFrustrum(const Frustrum fr[]) {
@@ -166,14 +154,6 @@ void WorldView::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
   pfxGroup.drawGBuffer(cmd, fId);
   }
 
-void WorldView::drawSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  gSky.drawSky(cmd,fId);
-  }
-
-void WorldView::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  gSky.drawSunMoon(cmd,fId);
-  }
-
 void WorldView::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   visuals.drawWater(cmd,fId);
   }
@@ -181,10 +161,6 @@ void WorldView::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
 void WorldView::drawTranslucent(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
   visuals.drawTranslucent(cmd,fId);
   pfxGroup.drawTranslucent(cmd, fId);
-  }
-
-void WorldView::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  gSky.drawFog(cmd,fId);
   }
 
 MeshObjects::Mesh WorldView::addView(std::string_view visual, int32_t headTex, int32_t teethTex, int32_t bodyColor) {
@@ -255,7 +231,7 @@ bool WorldView::updateLights() {
   }
 
 bool WorldView::updateRtScene() {
-  if(!Gothic::inst().options().doRayQuery)
+  if(!Gothic::options().doRayQuery)
     return false;
   if(!visuals.updateRtScene(sGlobal.rtScene))
     return false;
@@ -265,9 +241,7 @@ bool WorldView::updateRtScene() {
 void WorldView::prepareUniforms() {
   // wait before update all descriptors, cmd buffers must not be in use
   Resources::device().waitIdle();
-  sGlobal.skyLut = &gSky.skyLut();
   sGlobal.lights = &gLights.lightsSsbo();
-  gSky.prepareUniforms();
   pfxGroup.prepareUniforms();
   visuals.prepareUniforms();
   }
