@@ -4,6 +4,7 @@
 #include <Tempest/TextCodec>
 #include <Tempest/Log>
 #include <Tempest/Application>
+#include <Tempest/Platform>
 
 #include "bink/video.h"
 #include "utils/fileutil.h"
@@ -230,6 +231,12 @@ void VideoWidget::keyDownEvent(KeyEvent& event) {
   }
 
 void VideoWidget::keyUpEvent(KeyEvent&) {
+  }
+
+void VideoWidget::mouseDownEvent(Tempest::MouseEvent& event) {
+#if defined(__MOBILE_PLATFORM__)
+  stopVideo();
+#endif
   }
 
 void VideoWidget::stopVideo() {

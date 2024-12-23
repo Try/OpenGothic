@@ -1013,7 +1013,7 @@ void Renderer::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   auto& scene   = wview.sceneGlobals();
   auto& shaders = Shaders::inst();
 
-  auto  smpB   = Sampler::bilinear();
+  auto  smpB    = Sampler::bilinear();
   smpB.setClamping(ClampMode::ClampToEdge);
 
   Sky::Ubo ubo = sky.mkPush(wview);
