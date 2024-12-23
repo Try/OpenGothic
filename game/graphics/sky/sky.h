@@ -50,8 +50,6 @@ class Sky final {
     const Tempest::Texture2d*     skyTexture(std::string_view name, bool day, size_t id);
     const Tempest::Texture2d*     implSkyTexture(std::string_view name, bool day, size_t id);
 
-    Quality                       quality = Quality::None;
-
     LightSource                   sun;
     Tempest::Vec3                 ambient;
 
