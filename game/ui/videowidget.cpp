@@ -234,6 +234,10 @@ void VideoWidget::keyUpEvent(KeyEvent&) {
   }
 
 void VideoWidget::mouseDownEvent(Tempest::MouseEvent& event) {
+  if(!active) {
+    event.ignore();
+    return;
+    }
 #if defined(__MOBILE_PLATFORM__)
   stopVideo();
 #endif
