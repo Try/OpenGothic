@@ -264,9 +264,6 @@ else()
 endif()
 add_shader(hiz_pot.comp              hiz/hiz_pot.comp)
 
-add_shader(hiz_reproject.mesh        hiz/hiz_reproject.mesh)
-add_shader(hiz_reproject.frag        hiz/hiz_reproject.frag)
-
 # Global illumination
 add_shader(probe_dbg.vert            lighting/rt/probe_dbg.vert)
 add_shader(probe_dbg.frag            lighting/rt/probe_dbg.frag)

@@ -218,13 +218,6 @@ class Renderer final {
       bool                      atomicImg = false;
       Tempest::DescriptorSet    uboPot;
       Tempest::DescriptorSet    uboMip;
-
-      Tempest::ZBuffer          smProj;
-      Tempest::DescriptorSet    uboReproj;
-
-      Tempest::StorageImage     hiZSm1;
-      Tempest::DescriptorSet    uboPotSm1;
-      Tempest::DescriptorSet    uboMipSm1;
       } hiz;
 
     struct {

@@ -62,7 +62,6 @@ class Shaders {
 
     // HiZ
     Tempest::ComputePipeline hiZPot, hiZMip;
-    Tempest::RenderPipeline  hiZReproj;
 
     // Cluster
     Tempest::ComputePipeline clusterInit, clusterPatch;
