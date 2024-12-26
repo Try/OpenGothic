@@ -159,19 +159,6 @@ void Renderer::resetSwapchain() {
     hiz.uboMip.set(1+i, hiz.hiZ, Sampler::nearest(), std::min(i, mip-1));
 
   if(smSize>0) {
-    hiz.smProj    = device.zbuffer(shadowFormat, smSize, smSize);
-    hiz.uboReproj = device.descriptors(shaders.hiZReproj);
-    hiz.uboReproj.set(0, zbuffer, smpN);
-    // hiz.uboReproj.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-
-    hiz.hiZSm1    = device.image2d(TextureFormat::R16, 64, 64, true);
-    hiz.uboPotSm1 = device.descriptors(shaders.hiZPot);
-    hiz.uboPotSm1.set(0, hiz.smProj, smpN);
-    hiz.uboPotSm1.set(1, hiz.hiZSm1);
-    hiz.uboMipSm1 = Tempest::DescriptorSet();
-    }
-
-  if(smSize>0) {
     for(int i=0; i<Resources::ShadowLayers; ++i) {
       if(settings.vsmEnabled && !(settings.giEnabled && i==1))
         continue; //TODO: support vsm in gi code
@@ -420,10 +407,6 @@ void Renderer::prepareUniforms() {
 
   auto smpN = Sampler::nearest();
   smpN.setClamping(ClampMode::ClampToEdge);
-
-  if(!hiz.uboReproj.isEmpty()) {
-    hiz.uboReproj.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    }
 
   ssao.uboSsao.set(0, ssao.ssaoBuf);
   ssao.uboSsao.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
