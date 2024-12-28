@@ -5,114 +5,129 @@
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
-layout(binding = 0, r32ui)    uniform coherent uimage2D  counters;
-layout(binding = 1, r16)      uniform coherent image2D   mip0;
-layout(binding = 2, r16)      uniform coherent image2D   mip1;
-layout(binding = 3, r16)      uniform coherent image2D   mip2;
-layout(binding = 4, r16)      uniform coherent image2D   mip3;
-layout(binding = 5, r16)      uniform coherent image2D   mip4;
-layout(binding = 6, r16)      uniform coherent image2D   mip5;
-layout(binding = 7, r16)      uniform coherent image2D   mip6;
-layout(binding = 8, r16)      uniform coherent image2D   mip7; // 128x128
+layout(binding = 0, std430)   buffer  coherent Cnt { uint counter; };
+layout(binding = 1)           uniform texture2D           mip0;
+layout(binding = 2, r16)      uniform writeonly image2D   mip1;
+layout(binding = 3, r16)      uniform writeonly image2D   mip2;
+layout(binding = 4, r16)      uniform writeonly image2D   mip3;
+layout(binding = 5, r16)      uniform coherent  image2D   mip4;
+layout(binding = 6, r16)      uniform writeonly image2D   mip5;
+layout(binding = 7, r16)      uniform writeonly image2D   mip6;
+layout(binding = 8, r16)      uniform writeonly image2D   mip7; // 128x128
 //layout(binding = 9, r16)      uniform coherent image2D   mip8;
 
 layout(push_constant, std140) uniform PushConstant {
   uint mipCount;
   };
 
-float load(int mip, ivec2 uv) {
-#if defined(IOS)
-  // ios metal-shader compiller has ugly bug:
-  // https://developer.apple.com/forums/thread/750478
-  switch(mip) {
-    case 0: return imageLoad(mip0, uv).x;
-    default: return 1;
+shared float local[8][8];
+shared uint  counterLast;
+float zStore;
+
+uint numGroups() {
+  ivec2 srcSz = imageSize(mip1);
+  srcSz.x = (srcSz.x+15)/16;
+  srcSz.y = (srcSz.y+15)/16;
+  return srcSz.x*srcSz.y;
+  }
+
+bool pull(ivec2 uv, const int mip, ivec2 dstSz) {
+  const ivec2 at  = ivec2(gl_LocalInvocationID.xy);
+  if(!all(lessThan(uv, dstSz))) {
+    local[at.x][at.y] = 0;
+    return false;
     }
-  return 1;
-#else
-  switch(mip) {
-    case 0: return imageLoad(mip0, uv).x;
-    case 1: return imageLoad(mip1, uv).x;
-    case 2: return imageLoad(mip2, uv).x;
-    case 3: return imageLoad(mip3, uv).x;
-    case 4: return imageLoad(mip4, uv).x;
-    case 5: return imageLoad(mip5, uv).x;
-    case 6: return imageLoad(mip6, uv).x;
-    case 7: return imageLoad(mip7, uv).x;
-    }
-  return -1;
-#endif
+
+  ivec2 srcSz  = textureSize(mip0, mip);
+  ivec2 srcUV0 = uv*2;
+  ivec2 srcUV1 = min(uv*2+1, srcSz-1);
+
+  float z00 = texelFetch(mip0, ivec2(srcUV0.x, srcUV0.y), mip).x;
+  float z01 = texelFetch(mip0, ivec2(srcUV0.x, srcUV1.y), mip).x;
+  float z10 = texelFetch(mip0, ivec2(srcUV1.x, srcUV0.y), mip).x;
+  float z11 = texelFetch(mip0, ivec2(srcUV1.x, srcUV1.y), mip).x;
+
+  float z   = max(max(z00, z01), max(z10, z11));
+  zStore            = z;
+  local[at.x][at.y] = z;
+  return true;
   }
 
-void store(int mip, ivec2 uv, float z) {
-  switch(mip) {
-    case 1:
-      imageStore(mip1, uv, vec4(z));
-      break;
-    case 2:
-      imageStore(mip2, uv, vec4(z));
-      break;
-    case 3:
-      imageStore(mip3, uv, vec4(z));
-      break;
-    case 4:
-      imageStore(mip4, uv, vec4(z));
-      break;
-    case 5:
-      imageStore(mip5, uv, vec4(z));
-      break;
-    case 6:
-      imageStore(mip6, uv, vec4(z));
-      break;
-    case 7:
-      imageStore(mip7, uv, vec4(z));
-      break;
-    }
-  }
+bool reduce(ivec2 uv, int size, ivec2 dstSz) {
+  const ivec2 at = ivec2(gl_LocalInvocationID.xy);
+  if(!all(lessThan(uv/size, dstSz)))
+    return false;
 
-float gather(int mip, ivec2 srcUV0, ivec2 srcUV1) {
-  float z00 = load(mip, ivec2(srcUV0.x,srcUV0.y));
-  float z01 = load(mip, ivec2(srcUV0.x,srcUV1.y));
-  float z10 = load(mip, ivec2(srcUV1.x,srcUV0.y));
-  float z11 = load(mip, ivec2(srcUV1.x,srcUV1.y));
-  return max(max(z00, z01), max(z10, z11));
-  }
+  if(uv.x%size!=0 || uv.y%size!=0)
+    return false;
 
-uint addCounter(int mip, ivec2 uv) {
-  uint bit     = (mip-1)*3;
-  uint counter = imageAtomicAdd(counters, uv, 1u << bit);
-  counter = (counter >> bit) & 0x3;
-  return counter+1;
-  }
+  int   s   = size/2;
+  float z00 = local[at.x+0][at.y+0];
+  float z01 = local[at.x+0][at.y+s];
+  float z10 = local[at.x+s][at.y+0];
+  float z11 = local[at.x+s][at.y+s];
 
-void clearCounter(int mip, ivec2 uv) {
-  uint bits = 0x7u << ((mip-1)*3);
-  imageAtomicAnd(counters, uv, ~bits);
+  float z   = max(max(z00, z01), max(z10, z11));
+  zStore            = z;
+  local[at.x][at.y] = z;
+  return true;
   }
 
 void main() {
-  const ivec2 group = ivec2(gl_WorkGroupID.xy);
-  const ivec2 gsize = ivec2(gl_WorkGroupSize.xy);
-  const ivec2 local = ivec2(gl_LocalInvocationID.xy);
+  counterLast = 0; // iOS warnings
+  ivec2 uv = ivec2(gl_GlobalInvocationID.xy);
 
-  ivec2 uv    = group * gsize + local;
-  ivec2 srcSz = imageSize(mip0);
-  ivec2 dstSz = imageSize(mip1);
-  for(int mip = 1; mip<mipCount && mip<9; mip++) {
-    if(uv.x>=dstSz.x || uv.y>=dstSz.y)
-      return;
-
-    const float z = gather(mip-1, uv*2, min(uv*2+1, srcSz-1));
-    store(mip, uv, z);
-    memoryBarrierImage();
-
-    uint  counter = addCounter(mip, uv/2);
-    ivec2 area    = min(ivec2(2), dstSz - (uv/2)*2);
-    if(counter!=area.x*area.y)
-      return;
-    clearCounter(mip, uv/2);
-    uv    = uv/2;
-    dstSz = max(ivec2(1,1), dstSz/2);
-    srcSz = max(ivec2(1,1), srcSz/2);
+  if(pull(uv, 0, imageSize(mip1))) {
+    imageStore(mip1, uv, vec4(zStore));
     }
+  barrier();
+
+  if(reduce(uv, 2, imageSize(mip2))) {
+    imageStore(mip2, uv/2, vec4(zStore));
+    }
+  barrier();
+
+  if(reduce(uv, 4, imageSize(mip3))) {
+    imageStore(mip3, uv/4, vec4(zStore));
+    }
+  barrier();
+ 
+  if(reduce(uv, 8, imageSize(mip4))) {
+    imageStore(mip4, uv/8, vec4(zStore));
+    }
+  barrier();
+
+  if(gl_LocalInvocationIndex==0) {
+    counterLast = atomicAdd(counter, 1);
+    }
+  barrier();
+
+  if(counterLast+1 != numGroups())
+    return;
+  barrier();
+  /* Spec (OpMemoryBarrier/ImageMemory):
+     Apply the memory-ordering constraints to image contents (types declared by OpTypeImage),
+     or to accesses done through pointers to the Image Storage Class.
+
+     Both texture2D and image2D are OpTypeImage in spirv.
+   */
+  memoryBarrierImage();
+  counter = 0;
+
+  // tail phase
+  uv = ivec2(gl_LocalInvocationID.xy);
+  if(pull(uv, 4, imageSize(mip5))) {
+    imageStore(mip5, uv, vec4(zStore));
+    }
+  barrier();
+
+  if(reduce(uv, 2, imageSize(mip6))) {
+    imageStore(mip6, uv/2, vec4(zStore));
+    }
+  barrier();
+
+  if(reduce(uv, 4, imageSize(mip7))) {
+    imageStore(mip7, uv/4, vec4(zStore));
+    }
+  //barrier();
   }

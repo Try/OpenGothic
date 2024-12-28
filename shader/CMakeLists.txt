@@ -257,12 +257,8 @@ add_shader(ssao.comp                 ssao/ssao.comp)
 add_shader(ssao_blur.comp            ssao/ssao_blur.comp)
 
 # GPU-driven: HiZ
-if(IOS)
-  add_shader(hiz_mip.comp            hiz/hiz_mip.comp -DIOS)
-else()
-  add_shader(hiz_mip.comp            hiz/hiz_mip.comp)
-endif()
 add_shader(hiz_pot.comp              hiz/hiz_pot.comp)
+add_shader(hiz_mip.comp              hiz/hiz_mip.comp)
 
 # Global illumination
 add_shader(probe_dbg.vert            lighting/rt/probe_dbg.vert)

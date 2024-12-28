@@ -109,10 +109,11 @@ void Renderer::resetSwapchain() {
   const uint32_t h      = uint32_t(res.h);
   const uint32_t smSize = settings.shadowResolution;
 
-  auto smpN = Sampler::nearest();
-  smpN.setClamping(ClampMode::ClampToEdge);
-
   sceneLinear    = device.attachment(TextureFormat::R11G11B10UF,w,h);
+  zbuffer        = device.zbuffer(zBufferFormat,w,h);
+  if(w!=swapchain.w() || h!=swapchain.h())
+    zbufferUi = device.zbuffer(zBufferFormat, swapchain.w(), swapchain.h()); else
+    zbufferUi = ZBuffer();
 
   if(settings.aaEnabled) {
     cmaa2.workingEdges               = device.image2d(TextureFormat::R8, (w + 1) / 2, h);
@@ -124,13 +125,6 @@ void Renderer::resetSwapchain() {
     cmaa2.indirectBuffer             = device.ssbo(nullptr, sizeof(DispatchIndirectCommand) + sizeof(DrawIndirectCommand));
     }
 
-  zbuffer        = device.zbuffer(zBufferFormat,w,h);
-  if(w!=swapchain.w() || h!=swapchain.h())
-    zbufferUi = device.zbuffer(zBufferFormat, swapchain.w(), swapchain.h()); else
-    zbufferUi = ZBuffer();
-
-  hiz.atomicImg = device.properties().hasAtomicFormat(TextureFormat::R32U);
-
   uint32_t pw = nextPot(w);
   uint32_t ph = nextPot(h);
 
@@ -140,23 +134,10 @@ void Renderer::resetSwapchain() {
     hw = std::max(1u, (hw+1)/2u);
     hh = std::max(1u, (hh+1)/2u);
     }
+  hiz.hiZ = device.image2d(TextureFormat::R16,  hw, hh, true);
 
-  hiz.hiZ       = device.image2d(TextureFormat::R16,  hw, hh, true);
-  hiz.uboPot    = device.descriptors(shaders.hiZPot);
-  hiz.uboPot.set(0, zbuffer, smpN);
-  hiz.uboPot.set(1, hiz.hiZ);
-
-  hiz.uboMip = device.descriptors(shaders.hiZMip);
-  if(hiz.atomicImg) {
-    hiz.counter = device.image2d(TextureFormat::R32U, std::max(hw/4, 1u), std::max(hh/4, 1u), false);
-    hiz.uboMip.set(0, hiz.counter, Sampler::nearest(), 0);
-    } else {
-    hiz.counterBuf = device.ssbo(Tempest::Uninitialized, std::max(hw/4, 1u)*std::max(hh/4, 1u)*sizeof(uint32_t));
-    hiz.uboMip.set(0, hiz.counterBuf);
-    }
-  const uint32_t maxBind = 8, mip = hiz.hiZ.mipCount();
-  for(uint32_t i=0; i<maxBind; ++i)
-    hiz.uboMip.set(1+i, hiz.hiZ, Sampler::nearest(), std::min(i, mip-1));
+  Resources::recycle(std::move(hiz.uboPot));
+  Resources::recycle(std::move(hiz.uboMip));
 
   if(smSize>0) {
     for(int i=0; i<Resources::ShadowLayers; ++i) {
@@ -1196,16 +1177,39 @@ void Renderer::drawHiZ(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view
   }
 
 void Renderer::buildHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+  auto& device  = Resources::device();
+  auto& shaders = Shaders::inst();
+
+  auto smpN = Sampler::nearest();
+  smpN.setClamping(ClampMode::ClampToEdge);
+
+  const uint32_t w = uint32_t(hiz.hiZ.w()), h = uint32_t(hiz.hiZ.h()), mip = hiz.hiZ.mipCount();
+  const uint32_t maxBind = 8;
+
   cmd.setDebugMarker("HiZ-mip");
+  if(hiz.uboPot.isEmpty()) {
+    hiz.uboPot = device.descriptors(shaders.hiZPot);
+    hiz.uboPot.set(0, zbuffer, smpN);
+    hiz.uboPot.set(1, hiz.hiZ);
+    }
+
+  if(hiz.uboMip.isEmpty()) {
+    hiz.counter = device.ssbo(nullptr, sizeof(uint32_t));
+
+    hiz.uboMip = device.descriptors(shaders.hiZMip);
+    hiz.uboMip.set(0, hiz.counter);
+    hiz.uboMip.set(1, hiz.hiZ, Sampler::nearest());
+    for(uint32_t i=1; i<maxBind; ++i)
+      hiz.uboMip.set(1+i, hiz.hiZ, Sampler::nearest(), std::min(i, mip-1));
+    }
 
   assert(hiz.hiZ.w()<=128 && hiz.hiZ.h()<=128); // shader limitation
   cmd.setFramebuffer({});
-  cmd.setUniforms(Shaders::inst().hiZPot, hiz.uboPot);
+  cmd.setUniforms(shaders.hiZPot, hiz.uboPot);
   cmd.dispatch(size_t(hiz.hiZ.w()), size_t(hiz.hiZ.h()));
 
-  uint32_t w = uint32_t(hiz.hiZ.w()), h = uint32_t(hiz.hiZ.h()), mip = hiz.hiZ.mipCount();
-  cmd.setUniforms(Shaders::inst().hiZMip, hiz.uboMip, &mip, sizeof(mip));
-  cmd.dispatchThreads(w,h);
+  cmd.setUniforms(shaders.hiZMip, hiz.uboMip, &mip, sizeof(mip));
+  cmd.dispatchThreads((w+1)/2,(h+1)/2);
   }
 
 void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {

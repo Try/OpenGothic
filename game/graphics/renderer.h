@@ -212,10 +212,8 @@ class Renderer final {
 
     struct {
       Tempest::StorageImage     hiZ;
-      Tempest::StorageImage     counter;
-      Tempest::StorageBuffer    counterBuf;
+      Tempest::StorageBuffer    counter;
 
-      bool                      atomicImg = false;
       Tempest::DescriptorSet    uboPot;
       Tempest::DescriptorSet    uboMip;
       } hiz;

@@ -143,8 +143,8 @@ Shaders::Shaders() {
     cmaa2DeferredColorApply2x2 = device.pipeline(Tempest::Points,RenderState(),vs,fs);
   }
 
-  hiZPot = computeShader("hiz_pot.comp.sprv");
-  hiZMip = computeShader("hiz_mip.comp.sprv");
+  hiZPot  = computeShader("hiz_pot.comp.sprv");
+  hiZMip  = computeShader("hiz_mip.comp.sprv");
 
   if(Gothic::options().doRayQuery) {
     RenderState state;
