@@ -934,6 +934,7 @@ void Resources::resetRecycled(uint8_t fId) {
   inst->recycledId = fId;
   inst->recycled[fId].ds.clear();
   inst->recycled[fId].ssbo.clear();
+  inst->recycled[fId].img.clear();
   }
 
 void Resources::recycle(Tempest::DescriptorSet&& ds) {
