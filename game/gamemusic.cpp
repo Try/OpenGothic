@@ -31,14 +31,14 @@ struct GameMusic::OpenGothicMusicProvider : GameMusic::MusicProvider {
   using GameMusic::MusicProvider::MusicProvider;
 
   void renderSound(int16_t *out, size_t n) override {
-    if (!enable.load()) {
+    if(!enable.load()) {
       std::memset(out, 0, n * sizeof(int32_t) * 2);
       return;
-    }
+      }
 
     updateTheme();
     mix.mix(out, n);
-  }
+    }
 
   void updateTheme() {
     zenkit::IMusicTheme theme;
@@ -48,21 +48,20 @@ struct GameMusic::OpenGothicMusicProvider : GameMusic::MusicProvider {
 
     {
       std::lock_guard<std::mutex> guard(pendingSync);
-      if (hasPending && enable.load()) {
-        hasPending = false;
+      if(hasPending && pendingMusic && enable.load()) {
+        hasPending  = false;
         updateTheme = true;
         reloadTheme = this->reloadTheme;
-        theme = *pendingMusic;
-        tags = pendingTags;
+        theme       = *pendingMusic;
+        tags        = pendingTags;
       }
     }
 
-    if (!updateTheme)
+    if(!updateTheme)
       return;
-    updateTheme = false;
 
     try {
-      if (reloadTheme) {
+      if(reloadTheme) {
         Dx8::PatternList p = Resources::loadDxMusic(theme.file);
 
         Dx8::Music m;
@@ -72,66 +71,69 @@ struct GameMusic::OpenGothicMusicProvider : GameMusic::MusicProvider {
         const int next = tags & (Tags::Std | Tags::Fgt | Tags::Thr);
 
         Dx8::DMUS_EMBELLISHT_TYPES em = Dx8::DMUS_EMBELLISHT_END;
-        if (next == Tags::Std) {
-          if (cur != Tags::Std)
+        if(next == Tags::Std) {
+          if(cur != Tags::Std)
             em = Dx8::DMUS_EMBELLISHT_BREAK;
-        } else if (next == Tags::Fgt) {
-          if (cur == Tags::Thr)
+          }
+        else if(next == Tags::Fgt) {
+          if(cur == Tags::Thr)
             em = Dx8::DMUS_EMBELLISHT_FILL;
-        } else if (next == Tags::Thr) {
-          if (cur == Tags::Fgt)
+          }
+        else if(next == Tags::Thr) {
+          if(cur == Tags::Fgt)
             em = Dx8::DMUS_EMBELLISHT_NORMAL;
-        }
+          }
 
         mix.setMusic(m, em);
         currentTags = tags;
-      }
+        }
       mix.setMusicVolume(theme.vol);
-    }
+      }
     catch (std::runtime_error &) {
       Log::e("unable to load sound: \"", theme.file, "\"");
       stopTheme();
-    }
+      }
     catch (std::bad_alloc &) {
       Log::e("out of memory for sound: \"", theme.file, "\"");
       stopTheme();
+      }
     }
-  }
 
   void playTheme(const zenkit::IMusicTheme &theme, GameMusic::Tags tags) override {
     std::lock_guard<std::mutex> guard(pendingSync);
-    reloadTheme = !pendingMusic || pendingMusic->file != theme.file;
+    reloadTheme  = !pendingMusic || pendingMusic->file != theme.file;
     pendingMusic = theme;
-    pendingTags = tags;
-    hasPending = true;
-  }
+    pendingTags  = tags;
+    hasPending   = true;
+    }
 
   void stopTheme() override {
     enable.store(false);
     mix.setMusic(Dx8::Music());
     pendingMusic.reset();
-  }
+    }
 
   void setEnabled(bool b) override {
-    if (enable == b) return;
+    if(enable == b)
+      return;
 
     std::lock_guard<std::mutex> guard(pendingSync);
-    if (b) {
+    if(b) {
       hasPending = true;
       reloadTheme = true;
       enable.store(true);
-    } else {
+      } else {
       stopTheme();
+      }
     }
-  }
 
   bool isEnabled() const override {
     return enable.load();
-  }
+    }
 
   const std::optional<zenkit::IMusicTheme> getPlayingTheme() const override {
     return pendingMusic;
-  }
+    }
 
 private:
   Dx8::Mixer mix;
