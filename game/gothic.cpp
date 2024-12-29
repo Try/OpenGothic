@@ -116,6 +116,7 @@ Gothic::Gothic() {
   // switch related language options
   defaults->set("GAME", "language", -1);
   defaults->set("GAME", "voice",    -1);
+  defaults->set("GAME", "scaleVideos", 1);
 
   defaults->set("SKY_OUTDOOR", "zSunName",   "unsun5.tga");
   defaults->set("SKY_OUTDOOR", "zSunSize",   200);
