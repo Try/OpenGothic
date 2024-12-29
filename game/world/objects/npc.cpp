@@ -3808,7 +3808,7 @@ void Npc::setPerceptionDisable(PercType t) {
   }
 
 void Npc::startDialog(Npc& pl) {
-   if(pl.isDown() || pl.isInAir() || isPlayer())
+  if(pl.isDown() || pl.isInAir() || isPlayer())
     return;
   if(perceptionProcess(pl,nullptr,0,PERC_ASSESSTALK))
     setOther(&pl);
