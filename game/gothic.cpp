@@ -188,7 +188,7 @@ Gothic::Gothic() {
     gameDatDef = modFile->getS("FILES","GAME");
     ouDef      = modFile->getS("FILES","OUTPUTUNITS");
 
-    std::u16string vdf = TextCodec::toUtf16(std::string(modFile->getS("FILES","VDF")));
+    std::u16string vdf = TextCodec::toUtf16(modFile->getS("FILES","VDF"));
     modFilter = modFile->has("FILES","VDF");
     for(size_t start = 0, split = 0; split != std::string::npos; start = split+1) {
       split = vdf.find(' ', start);

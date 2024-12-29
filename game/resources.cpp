@@ -680,7 +680,7 @@ std::unique_ptr<Animation> Resources::implLoadAnimation(std::string name) {
   }
 
 Dx8::PatternList Resources::implLoadDxMusic(std::string_view name) {
-  auto u = Tempest::TextCodec::toUtf16(std::string(name));
+  auto u = Tempest::TextCodec::toUtf16(name);
   return dxMusic->load(u.c_str());
   }
 
