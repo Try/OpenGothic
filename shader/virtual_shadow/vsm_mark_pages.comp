@@ -115,10 +115,6 @@ void flushHiZ() {
   }
 #endif
 
-float lambert(vec3 normal) {
-  return max(0.0, dot(scene.sunDir,normal));
-  }
-
 int shadowLod(vec2 dx, vec2 dy) {
   float px     = dot(dx, dx);
   float py     = dot(dy, dy);
@@ -134,13 +130,6 @@ vec4 worldPos(ivec2 frag, float depth) {
   const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
   const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
   return scene.viewProjectLwcInv * scr;
-  }
-
-vec3 _shadowPos(float z, vec3 normal, ivec2 offset) {
-  const vec4  wpos = worldPos(ivec2(fragCoord.xy) + offset, z) + vec4(normal*0.002, 0);
-  vec4 shPos = scene.viewVirtualShadowLwc * wpos;
-  shPos.xyz /= shPos.w;
-  return shPos.xyz;
   }
 
 bool planetOcclusion(float viewPos) {
@@ -191,7 +180,7 @@ void realMain() {
   bool isWater = false;
   decodeBits(diff.a, isFlat, isATest, isWater);
 
-  const float light = (isFlat ? 0 : lambert(normal));
+  const float light = (isFlat ? 0 : dot(scene.sunDir,normal));
   if(light<=0)
     return;
 

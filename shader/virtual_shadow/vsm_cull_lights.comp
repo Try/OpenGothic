@@ -125,6 +125,10 @@ void main() {
   const ivec2 viewportSize = scene.screenRes;
   aabb *= vec4(viewportSize, viewportSize);
 
-  const uint  ix = atomicAdd(visLightCount, 1);
-  visLights[ix] = uvec4(id, packUint2x16(uvec2(aabb.xy)), packUint2x16(uvec2(aabb.zw)), 0);
+  const uvec4 iaabb = uvec4(aabb);
+  if(iaabb.z - iaabb.x<2 || iaabb.w - iaabb.y<2)
+    return; // pixel-sized
+
+  const uint ix = atomicAdd(visLightCount, 1);
+  visLights[ix] = uvec4(id, packUint2x16(iaabb.xy), packUint2x16(iaabb.zw), 0);
   }

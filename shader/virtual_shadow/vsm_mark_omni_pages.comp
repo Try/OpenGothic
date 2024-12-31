@@ -1,9 +1,8 @@
 #version 450
 
-#extension GL_GOOGLE_include_directive    : enable
-#extension GL_ARB_separate_shader_objects : enable
+#extension GL_GOOGLE_include_directive          : enable
 #extension GL_EXT_samplerless_texture_functions : enable
-#extension GL_EXT_control_flow_attributes : enable
+#extension GL_EXT_control_flow_attributes       : enable
 
 #include "virtual_shadow/vsm_common.glsl"
 #include "scene.glsl"
@@ -23,24 +22,32 @@ layout(binding = 1)         uniform texture2D  gbufDiffuse;
 layout(binding = 2)         uniform utexture2D gbufNormal;
 layout(binding = 3)         uniform texture2D  depth;
 layout(binding = 4, std430) readonly buffer Lbo { LightSource  lights[]; };
-layout(binding = 5, std430) readonly buffer VId { uint visLightCount; uvec4 visLights[]; };
+layout(binding = 5, std430) readonly buffer VId { uint         visLightCount; uvec4 visLights[]; };
 layout(binding = 6, std430) buffer Omni         { uint         pageTblOmni[]; };
 layout(binding = 7, r32ui)  uniform uimage2D   dbgImg;
 
-const uint NumLights = NumThreads/6;
-
 shared uint  tileDepthMin, tileDepthMax;
+shared uint  pageTblOmniTmp[6];
+
+shared uint  lightsCoarse;
 shared uint  lightCount;
 shared uint  lightId[NumThreads];
-shared uint  pageTblOmniTmp[NumLights*6];
 
 // shared uint  lightFineCount; //dbg
 
 ivec2 fragCoord    = ivec2(gl_GlobalInvocationID.xy);
-ivec2 viewportSize = textureSize(depth, 0);
+//ivec2 viewportSize = textureSize(depth, 0);
 
-float fragDepth = 1;
-vec3  fragNorm  = vec3(0);
+int shadowLod(vec2 dx, vec2 dy) {
+  float px     = dot(dx, dx);
+  float py     = dot(dy, dy);
+  float maxLod = 0.5 * log2(max(px, py)); // log2(sqrt()) = 0.5*log2()
+  float minLod = 0.5 * log2(min(px, py));
+
+  const float bias = 2;//vsmMipBias;
+  //return max(0, int((minLod + maxLod)*0.5 + bias + 0.5));
+  return max(0, int(minLod + bias));
+  }
 
 vec4 worldPos(ivec2 frag, float depth) {
   const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
@@ -63,94 +70,56 @@ bool projectSphere(const vec4 sphere, out float depthMin, out float depthMax) {
   return true;
   }
 
-void hiTile(float depth) {
-  if(depth>=1)
-    return;
-  uint d = floatBitsToUint(depth);
-  atomicMax(tileDepthMax, d);
-  atomicMin(tileDepthMin, d);
-  }
-
-bool pullGBuffer() {
+bool pullGBuffer(out float fragDepth, out vec3 fragNorm) {
   const ivec2 size   = textureSize(depth, 0);
   const bool  valid  = all(lessThan(fragCoord, size));
 
   fragDepth = valid ? texelFetch(depth, fragCoord, 0).x  : 1;
   fragNorm  = valid ? normalFetch(gbufNormal, fragCoord) : vec3(0);
-
-  hiTile(fragDepth);
-  barrier();
-  return tileDepthMin!=tileDepthMax;
-  }
-
-int shadowLod(vec2 dx, vec2 dy) {
-  float px     = dot(dx, dx);
-  float py     = dot(dy, dy);
-  float maxLod = 0.5 * log2(max(px, py)); // log2(sqrt()) = 0.5*log2()
-  float minLod = 0.5 * log2(min(px, py));
-
-  const float bias = 2;//vsmMipBias;
-  //return max(0, int((minLod + maxLod)*0.5 + bias + 0.5));
-  return max(0, int(minLod + bias));
-  }
-
-void processLightTiles(const vec3 pos, const vec3 pos1, const vec3 pos2, const vec3 normal) {
-  const uint laneId    = gl_LocalInvocationIndex;
-  const uint pageCount = lightCount*6;
-  const uint count     = lightCount;
-  const vec3 pos0      = pos;
-
-  for(uint i=laneId; i<pageCount; i+=NumThreads)
-    pageTblOmniTmp[i] = 0;
-  barrier();
-
-  for(uint i=0; i<count; ++i) {
-    const uint        id             = lightId[i];
-    const LightSource lx             = lights[id];
-    const vec3        ldir           = (pos - lx.pos);
-    const float       distanceSquare = dot(ldir,ldir);
-    const float       rangeSquare    = lx.range*lx.range;
-    if(rangeSquare < distanceSquare)
-      continue;
-    if(dot(normal, ldir) >= 0)
-      continue;
-
-    const uint fc = vsmLightDirToFace(ldir);
-    if(fc!=0 && fc!=3)
-      ;//continue;
-
-    vec2 uv0 = vsmMapDirToUV(pos0 - lx.pos, fc);
-    vec2 uv1 = vsmMapDirToUV(pos1 - lx.pos, fc);
-    vec2 uv2 = vsmMapDirToUV(pos2 - lx.pos, fc);
-
-    int  size = VSM_PAGE_SIZE * 4;
-    int  lod  = shadowLod((uv1-uv0)*size, (uv2-uv0)*size);
-    if(lod>5)
-      continue; // TODO: refine
-
-    lod = min(4, lod);
-    int  pageCnt = (size / (1 << lod))/VSM_PAGE_SIZE;
-    atomicMax(pageTblOmniTmp[i*6 + fc], pageCnt+1); //TODO: page bitmask
+  if(fragDepth<1) {
+    uint d = floatBitsToUint(fragDepth);
+    atomicMax(tileDepthMax, d);
+    atomicMin(tileDepthMin, d);
     }
   barrier();
-
-  for(uint i=laneId; i<pageCount; i+=NumThreads) {
-    const uint id = lightId[i/6];
-    const uint fc = i%6;
-#if VSM_ENABLE_OMNI
-    atomicMax(pageTblOmni[id*6 + fc], pageTblOmniTmp[i]);
-#endif
-    }
+  return tileDepthMin<tileDepthMax;
   }
 
-bool pricesLightsHiZ(uint i, float tMin, float tMax) {
-  if(i==0xFFFFFFFF)
+uvec4 pullLight(uint visId) {
+  if(visId >= visLightCount) {
+    return uvec4(0xFFFFFFFF);
+    }
+  return visLights[visId];
+  }
+
+bool lightAabbTest(uvec4 light) {
+  const ivec2 viewportSize = textureSize(depth, 0);
+
+  const ivec2 TileSize = ivec2(gl_WorkGroupSize.xy);
+  const ivec2 begin    = ivec2(gl_WorkGroupID.xy * TileSize);
+  const ivec2 end      = min(ivec2(gl_WorkGroupID.xy * TileSize + TileSize), viewportSize);
+
+  if(light.y==light.z)
+    return false; //empty-light
+
+  vec4 aabb;
+  aabb.xy = unpackUInt2x16(light.y);
+  aabb.zw = unpackUInt2x16(light.z);
+  if(aabb.z<begin.x || end.x<=aabb.x ||
+     aabb.w<begin.y || end.y<=aabb.y)
     return false;
+  return true;
+  }
+
+bool lightHizTest(uint id) {
+  if(id==0xFFFFFFFF)
+    return false;
+  const float tMin = uintBitsToFloat(tileDepthMin);
+  const float tMax = uintBitsToFloat(tileDepthMax);
 
   float depthMin = 0;
   float depthMax = 0;
-
-  if(!projectSphere(vec4(lights[i].pos, lights[i].range), depthMin, depthMax))
+  if(!projectSphere(vec4(lights[id].pos, lights[id].range), depthMin, depthMax))
     return false;
   if(depthMin>tMax)
     return false;
@@ -159,98 +128,124 @@ bool pricesLightsHiZ(uint i, float tMin, float tMax) {
   return true;
   }
 
-bool pricesLightsHiZ() {
+bool processCoarseCulling(inout uvec4 light) {
+  const uint laneId = gl_LocalInvocationIndex;
+
+  if(lightAabbTest(light)) {
+    atomicAdd(lightsCoarse, 1);
+    } else {
+    light = uvec4(0xFFFFFFFF);
+    }
+  barrier();
+
+  return (lightsCoarse>0);
+  }
+
+bool processHiZCulling(inout uvec4 light) {
+  const uint laneId = gl_LocalInvocationIndex;
+  const uint id     = light.x;
+  const uint bit    = (1u << (laneId%32));
+
+  if(lightHizTest(id)) {
+    uint ix = atomicAdd(lightCount, 1);
+    lightId[ix] = id;
+    }
+  barrier();
+  return (lightCount>0);
+  }
+
+void processLight(uint id, const vec3 pos0, const vec3 pos1, const vec3 pos2, const vec3 normal) {
+  const LightSource lx             = lights[id];
+  const vec3        ldir           = (pos0 - lx.pos);
+  const float       distanceSquare = dot(ldir,ldir);
+  const float       rangeSquare    = lx.range*lx.range;
+  if(rangeSquare < distanceSquare)
+    return;
+  if(dot(normal, ldir) >= 0)
+    return;
+
+  const uint fc = vsmLightDirToFace(ldir);
+  if(fc!=0 && fc!=3)
+    ;//continue;
+
+  vec2 uv0 = vsmMapDirToUV(pos0 - lx.pos, fc);
+  vec2 uv1 = vsmMapDirToUV(pos1 - lx.pos, fc);
+  vec2 uv2 = vsmMapDirToUV(pos2 - lx.pos, fc);
+
+  int  size = VSM_PAGE_SIZE * 4;
+  int  lod  = shadowLod((uv1-uv0)*size, (uv2-uv0)*size);
+  if(lod>5)
+    return; // TODO: refine
+
+  lod = min(4, lod);
+  int  pageCnt = (size / (1 << lod))/VSM_PAGE_SIZE;
+  atomicMax(pageTblOmniTmp[fc], pageCnt+1); //TODO: page bitmask
+  }
+
+void processFineCulling(float fragDepth, vec3 fragNorm) {
   const uint  laneId = gl_LocalInvocationIndex;
-
-  uint id = (laneId<lightCount) ? lightId[laneId] : 0xFFFFFFFF;
-  barrier();
-
-  const float tMin = uintBitsToFloat(tileDepthMin);
-  const float tMax = uintBitsToFloat(tileDepthMax);
-  if(!pricesLightsHiZ(id, tMin, tMax))
-    id = 0xFFFFFFFF;
-  lightCount = 0;
-  barrier();
-
-  if(id != 0xFFFFFFFF) {
-    uint ix = atomicAdd(lightCount, 1);
-    if(ix<NumLights) {
-      //TODO: incremental processing
-      lightId[ix] = id;
-      }
-    }
-  barrier();
-
-  if(lightCount==0)
-    return false;
-  return true;
-  }
-
-bool processLightsGlob() {
-  const uint  laneId   = gl_LocalInvocationIndex;
-  const ivec2 TileSize = ivec2(gl_WorkGroupSize.xy);
-  const ivec2 begin    = ivec2(gl_WorkGroupID.xy * TileSize);
-  const ivec2 end      = min(ivec2(gl_WorkGroupID.xy * TileSize + TileSize), viewportSize);
-
-  for(uint id=laneId; id<visLightCount; id+=NumThreads) {
-    const uvec4 light = visLights[id];
-    const uint  i     = light.x;
-
-    vec4 aabb;
-    aabb.xy = unpackUInt2x16(light.y);
-    aabb.zw = unpackUInt2x16(light.z);
-    if(aabb.z<begin.x || end.x<=aabb.x ||
-       aabb.w<begin.y || end.y<=aabb.y)
-      continue;
-
-    uint ix = atomicAdd(lightCount, 1);
-    if(ix>=lightId.length())
-      break; //TODO: incremental processing
-    lightId[ix] = i;
-    }
-  barrier();
-
-  if(lightCount==0)
-    return false;
-  return true;
-  }
-
-void processLights() {
-  if(!processLightsGlob())
-    return;
-
-  if(!pullGBuffer())
-    return;
-
-  if(!pricesLightsHiZ())
-    return;
-
-  if(lightCount>=NumLights)
-    return; // overflow
-
   const float z      = fragDepth;
   const vec3  normal = fragNorm;
 
-  const vec4 wpos  = worldPos(ivec2(fragCoord.xy), z) + vec4(normal*0.002, 0);
-  const vec3 pos   = wpos.xyz/wpos.w + originLwc;
+  const vec4 wpos0 = worldPos(fragCoord.xy, z) + vec4(normal*0.002, 0);
+  const vec4 wpos1 = wpos0 + (2.0*scene.screenResInv.x) * scene.viewProjectLwcInv[0];
+  const vec4 wpos2 = wpos0 + (2.0*scene.screenResInv.y) * scene.viewProjectLwcInv[1];
 
-  const vec4 wpos1 = worldPos(ivec2(fragCoord.xy)+ivec2(1,0), z) + vec4(normal*0.002, 0);
+  const vec3 pos0  = wpos0.xyz/wpos0.w + originLwc;
   const vec3 pos1  = wpos1.xyz/wpos1.w + originLwc;
-
-  const vec4 wpos2 = worldPos(ivec2(fragCoord.xy)+ivec2(0,1), z) + vec4(normal*0.002, 0);
   const vec3 pos2  = wpos2.xyz/wpos2.w + originLwc;
-  processLightTiles(pos, pos1, pos2, normal);
+
+  for(uint i=0; i<lightCount; ++i) {
+    const uint id = lightId[i];
+    if(laneId<pageTblOmniTmp.length())
+      pageTblOmniTmp[laneId] = 0;
+    barrier();
+
+    processLight(id, pos0, pos1, pos2, normal);
+    barrier();
+
+    if(laneId<pageTblOmniTmp.length())
+      atomicMax(pageTblOmni[id*6 + laneId], pageTblOmniTmp[laneId]);
+    }
+
+  barrier();
+  }
+
+void processLights(uint step) {
+  const uint laneId = gl_LocalInvocationIndex;
+
+  uvec4 light = pullLight(step*NumThreads + laneId);
+  if(!processCoarseCulling(light))
+    return;
+
+  float fragDepth; vec3 fragNorm;
+  if(!pullGBuffer(fragDepth, fragNorm))
+    return;
+
+  if(!processHiZCulling(light))
+    return;
+
+  processFineCulling(fragDepth, fragNorm);
   }
 
 void main() {
-  lightCount   = 0;
   tileDepthMin = floatBitsToUint(1);
   tileDepthMax = floatBitsToUint(0);
-  barrier();
-
-  processLights();
   // barrier();
 
+  //const uint steps = 1;
+  const uint steps = (visLightCount + NumThreads - 1)/NumThreads;
+  for(uint s=0; s<steps; ++s) {
+    lightsCoarse = 0;
+    lightCount   = 0;
+    barrier();
+
+    const uint step = s;
+    //const uint step = gl_WorkGroupID.z;
+    processLights(step);
+    }
+
+  // barrier();
   // imageStore(dbgImg, fragCoord, uvec4(lightCount));
   // imageStore(dbgImg, fragCoord, uvec4(lightFineCount));
   }
