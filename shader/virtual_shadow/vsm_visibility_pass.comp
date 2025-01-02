@@ -8,6 +8,7 @@
 #include "common.glsl"
 #include "virtual_shadow/vsm_common.glsl"
 
+//NOTE: need to sort pages per mip upfront, to reduce pulling cost
 layout(local_size_x = 1024) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
@@ -112,7 +113,6 @@ bool projectInstance(const Cluster cluster, out vec4 aabb, out float depthMax) {
   return true;
   }
 
-
 bool projectCluster(const Cluster cluster, out vec4 aabb, out float depthMax) {
   if(cluster.instanceId==0xFFFFFFFF)
     return projectSphere(cluster.sphere, aabb, depthMax);
@@ -159,36 +159,15 @@ void makeMipMask(const vec4 aabb0) {
   barrier();
   }
 
-bool pageBoundsTest(in vec4 aabb, const ivec3 page, const ivec2 sz) {
-  aabb /= (1u << page.z);
-  aabb = (aabb*0.5+0.5); // [0..1]
-  aabb = (aabb*VSM_PAGE_TBL_SIZE - page.xyxy);
-  if(aabb.z < 0 || sz.x <= aabb.x)
-    return false;
-  if(aabb.w < 0 || sz.y <= aabb.y)
-    return false;
-  const float dx  = (aabb.z-aabb.x)*VSM_PAGE_SIZE;
-  const float dy  = (aabb.w-aabb.y)*VSM_PAGE_SIZE;
-  if(dx<1 || dy<1)
-    return false; // subpixel sized meshlet
-
-  //HACK: should be 1px, but that will require too much gpu work
-  // should be removed eventually with, maybe better, culling
-  const float pix = 32;
-  if(dx<pix || dy<pix)
-    return false; // small sized meshlet
-  return true;
-  }
-
 void pullPages(uint mip) {
   pageListSize = 0;
   barrier();
 
   const uint lane      = gl_LocalInvocationIndex;
   const uint pageCount = vsm.header.pageCount;
-  //const uint fragCount = VSM_PAGE_TBL_SIZE * VSM_PAGE_TBL_SIZE;
+
   for(uint i=lane; i<pageCount; i+=NumThreads) {
-    const uint  data = vsm.pageList[i];
+    const uint data = vsm.pageList[i];
     if(data==0 || vsmPageIsOmni(data))
       continue;
     const ivec3 page = unpackVsmPageInfo(data);
@@ -212,7 +191,7 @@ void pullPagesOmni() {
   const uint pageCount = vsm.header.pageCount;
 
   for(uint i=lane; i<pageCount; i+=NumThreads) {
-    const uint  data = vsm.pageList[i];
+    const uint data = vsm.pageList[i];
     if(data==0 || !vsmPageIsOmni(data))
       continue;
     const ivec2 sz = unpackVsmPageSize(data);
@@ -225,15 +204,28 @@ void pullPagesOmni() {
   barrier();
   }
 
-bool pageHiZTest(vec4 aabb, float depthMax, const ivec3 at, const ivec2 sz) {
-  aabb /= (1u << at.z);
-  aabb = aabb*0.5+0.5; // [0..1]
-  aabb = aabb*VSM_PAGE_TBL_SIZE;
+bool pageBoundsTest(in vec4 aabb, const ivec3 page, const ivec2 sz) {
+  aabb -= page.xyxy;
+  if(aabb.z < 0 || sz.x <= aabb.x)
+    return false;
+  if(aabb.w < 0 || sz.y <= aabb.y)
+    return false;
+  const float dx  = (aabb.z-aabb.x)*VSM_PAGE_SIZE;
+  const float dy  = (aabb.w-aabb.y)*VSM_PAGE_SIZE;
+  if(dx<1 || dy<1)
+    return false; // subpixel sized meshlet
 
-  ivec4 iaabb = ivec4(ivec2(aabb.xy), ivec2(aabb.zw)+1);
+  //HACK: should be 1px, but that will require too much gpu work
+  // should be removed eventually with, maybe better, culling
+  const float pix = 32;
+  if(dx<pix || dy<pix)
+    return false; // small sized meshlet
+  return true;
+  }
+
+bool pageHiZTest(ivec4 iaabb, float depthMax, const ivec3 at, const ivec2 sz) {
   iaabb.xy = max(iaabb.xy, ivec2(at.xy));
   iaabb.zw = min(iaabb.zw, ivec2(at.xy+sz));
-  iaabb.zw = min(iaabb.zw, ivec2(VSM_PAGE_TBL_SIZE));
 
   for(int x=iaabb.x; x<iaabb.z; ++x)
     for(int y=iaabb.y; y<iaabb.w; ++y) {
@@ -249,7 +241,7 @@ bool pageHiZTest(vec4 aabb, float depthMax, const ivec3 at, const ivec2 sz) {
   return false;
   }
 
-void runCluster(const uint clusterId) {
+void runCluster(const uint clusterId, const uint mip) {
   const Cluster cluster = clusters[clusterId];
   if(cluster.sphere.w<=0.f)
     return; // disabled or deleted
@@ -266,6 +258,14 @@ void runCluster(const uint clusterId) {
   if(!projectCluster(cluster, aabb, depthMax))
     return;
 
+  aabb /= (1u << mip);
+  aabb = aabb*0.5+0.5; // [0..1]
+  aabb = aabb*VSM_PAGE_TBL_SIZE;
+
+  ivec4 iaabb = ivec4(ivec2(aabb.xy), ivec2(aabb.zw)+1);
+  iaabb.xy = max(iaabb.xy, ivec2(0));
+  iaabb.zw = min(iaabb.zw, ivec2(VSM_PAGE_TBL_SIZE));
+
   for(uint ix=0; ix<pageListSize; ++ix) {
     const uint  i    = pageList[ix];
     const uint  data = vsm.pageList[i];
@@ -277,8 +277,9 @@ void runCluster(const uint clusterId) {
 
     if(!pageBoundsTest(aabb, page, sz))
       continue;
-    if(!pageHiZTest(aabb, depthMax, page, sz))
+    if(!pageHiZTest(iaabb, depthMax, page, sz))
       continue;
+    // atomicAdd(vsm.header.counterV, cluster.meshletCount);
 
     // imageAtomicAdd(dbg, ivec2(page.z,0), cluster.meshletCount);
 #if 0
@@ -348,7 +349,7 @@ void mainSunLight(uint mip) {
 
   const uint clusterId = gl_GlobalInvocationID.x;
   if(clusterId<push.meshletCount)
-    runCluster(clusterId);
+    runCluster(clusterId, mip);
   }
 
 void mainOmniLights() {
@@ -362,7 +363,7 @@ void mainOmniLights() {
   }
 
 void main() {
-  if(gl_GlobalInvocationID.y>=VSM_PAGE_MIPS) {
+  if(gl_GlobalInvocationID.y==VSM_PAGE_MIPS) {
     mainOmniLights();
     return;
     }
