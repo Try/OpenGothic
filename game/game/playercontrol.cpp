@@ -1,6 +1,10 @@
 #include "playercontrol.h"
 
 #include <cmath>
+#include <libgamepad.hpp>
+#include <iostream>
+#include <chrono>
+#include <thread>
 
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
@@ -10,23 +14,40 @@
 #include "ui/inventorymenu.h"
 #include "gothic.h"
 
-PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
-  :dlg(dlg),inv(inv) {
-  Gothic::inst().onSettingsChanged.bind(this,&PlayerControl::setupSettings);
-  setupSettings();
-  }
+static volatile bool run_flag = true;
+
+// Signal handler for clean exit
+#ifdef LGP_UNIX
+#include <csignal>
+void handler(int s) {
+    LGP_UNUSED(s);
+    run_flag = false;
+}
+#else
+#include <windows.h>
+BOOL WINAPI handler(DWORD s) {
+    LGP_UNUSED(s);
+    run_flag = false;
+    return TRUE;
+}
+#endif
+
 
 PlayerControl::~PlayerControl() {
   Gothic::inst().onSettingsChanged.ubind(this,&PlayerControl::setupSettings);
   }
 
-void PlayerControl::setupSettings() {
-  if(Gothic::inst().version().game==2) {
-    g2Ctrl = Gothic::inst().settingsGetI("GAME","USEGOTHIC1CONTROLS")==0;
-    } else {
-    g2Ctrl = false;
-    }
-  }
+PlayerControl::PlayerControl(DialogMenu& dlg, InventoryMenu &inv)
+    : dlg(dlg), inv(inv) {
+    Gothic::inst().onSettingsChanged.bind(this, &PlayerControl::setupSettings);
+    setupSettings();
+
+    #ifdef LGP_UNIX
+        signal(SIGINT, handler);
+    #else
+        SetConsoleCtrlHandler(handler, TRUE);
+    #endif
+}
 
 void PlayerControl::setTarget(Npc *other) {
   auto w  = Gothic::inst().world();
@@ -1092,3 +1113,181 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
       }
     }
   }
+
+void PlayerControl::handleButtonInput(std::shared_ptr<gamepad::device> dev) {
+    if (dev->is_button_pressed(gamepad::button::DPAD_UP)) {
+        std::cout << "DPAD pressed" << std::endl;
+        onKeyPressed(Action::WeaponMele, Tempest::KeyEvent::K_Space, KeyCodec::Mapping::Primary);
+    }
+    if (dev->is_button_pressed(gamepad::button::DPAD_RIGHT)) {
+        std::cout << "DPAD pressed" << std::endl;
+        onKeyPressed(Action::WeaponBow, Tempest::KeyEvent::K_Space, KeyCodec::Mapping::Primary);
+    }
+    if (dev->is_button_pressed(gamepad::button::DPAD_DOWN)) {
+        std::cout << "DPAD pressed" << std::endl;
+        static int currentMagicSlot = Action::WeaponMage3;
+        onKeyPressed(static_cast<Action>(currentMagicSlot), Tempest::KeyEvent::K_Space, KeyCodec::Mapping::Primary);
+        currentMagicSlot++;
+        if (currentMagicSlot > Action::WeaponMage10) {
+            currentMagicSlot = Action::WeaponMage3;
+        }
+    }
+    if (dev->is_button_pressed(gamepad::button::LB)) {
+        std::cout << "Lshoulder pressed" << std::endl;
+        movement.strafeRightLeft.reverse[0] = true;
+    } else {
+        movement.strafeRightLeft.reverse[0] = false;
+    }
+
+    if (dev->is_button_pressed(gamepad::button::RB)) {
+        std::cout << "Rshoulder pressed" << std::endl;
+        movement.strafeRightLeft.main[0] = true;
+    } else {
+        movement.strafeRightLeft.main[0] = false;
+    }
+
+    if (dev->is_button_pressed(gamepad::button::Y)) {
+        std::cout << "Y pressed" << std::endl;
+        ctrl[Action::Jump] = true;
+    } else {
+        ctrl[Action::Jump] = false;
+    }
+    
+    if (dev->is_button_pressed(gamepad::button::B)) {
+        std::cout << "B pressed" << std::endl;
+        // Trigger Action::Weapon
+        onKeyPressed(KeyCodec::Action::Weapon, Tempest::KeyEvent::KeyType::K_Return, KeyCodec::Mapping());
+    }
+
+    if (dev->is_button_pressed(gamepad::button::A)) {
+        std::cout << "A pressed" << std::endl;
+        // Perform continuous action for A button
+        onKeyPressed(KeyCodec::Action::ActionGeneric, Tempest::KeyEvent::KeyType::K_LShift, KeyCodec::Mapping());
+    } else {
+        std::cout << "A released" << std::endl;
+        // Correcting the call to only pass two parameters (KeyCodec::Action and KeyCodec::Mapping)
+        onKeyReleased(KeyCodec::Action::ActionGeneric, KeyCodec::Mapping());
+    }
+
+    if (dev->is_button_pressed(gamepad::button::X)) {
+        std::cout << "X pressed" << std::endl;
+        ctrl[Action::Weapon] = true;
+    } else {
+        ctrl[Action::Weapon] = false;
+    }
+
+    if (dev->is_button_pressed(gamepad::button::R_THUMB)) {
+        std::cout << "R_THUMB pressed" << std::endl;
+        onKeyPressed(KeyCodec::Action::FirstPerson, Tempest::KeyEvent::KeyType::K_F, KeyCodec::Mapping());
+    }
+    if (dev->is_button_pressed(gamepad::button::L_THUMB)) {
+        std::cout << "L_THUMB pressed" << std::endl;
+        onKeyPressed(KeyCodec::Action::Sneak, Tempest::KeyEvent::KeyType::K_X, KeyCodec::Mapping());
+    }
+}
+
+void PlayerControl::handleAxisInput(std::shared_ptr<gamepad::device> dev) {
+
+    auto leftX = dev->get_axis(gamepad::axis::LEFT_STICK_X);
+    auto leftY = dev->get_axis(gamepad::axis::LEFT_STICK_Y);
+    if (std::abs(leftX) > 0.51) {
+            std::cout << "Left Stick Right" << std::endl;
+            onKeyPressed(KeyCodec::Action::Right, Tempest::KeyEvent::KeyType::K_D, KeyCodec::Mapping());
+    } else if (std::abs(leftX) < 0.49){
+            std::cout << "Left Stick Left" << std::endl;
+            onKeyPressed(KeyCodec::Action::Left, Tempest::KeyEvent::KeyType::K_A, KeyCodec::Mapping());
+        
+    } else if (std::abs(leftX) >= 0.49 && std::abs(leftX) <= 0.51){
+            handleMovementAction(KeyCodec::ActionMapping{Action::Right, KeyCodec::Mapping::Primary}, false);
+            handleMovementAction(KeyCodec::ActionMapping{Action::Left, KeyCodec::Mapping::Primary}, false);
+            actrl[ActLeft] = false;
+            actrl[ActRight] = false;
+    }
+
+    if (std::abs(leftY) > 0.51) {
+            std::cout << "Left Stick Backward" << std::endl;
+            onKeyPressed(KeyCodec::Action::Back, Tempest::KeyEvent::KeyType::K_S, KeyCodec::Mapping());
+    } else if (std::abs(leftY) < 0.49){
+            std::cout << "Left Stick Forward" << std::endl;
+            onKeyPressed(KeyCodec::Action::Forward, Tempest::KeyEvent::KeyType::K_W, KeyCodec::Mapping());
+        
+    } else if (std::abs(leftY) >= 0.49 && std::abs(leftY) <= 0.51){
+        handleMovementAction(KeyCodec::ActionMapping{Action::Back, KeyCodec::Mapping::Primary}, false);
+        handleMovementAction(KeyCodec::ActionMapping{Action::Forward, KeyCodec::Mapping::Primary}, false);
+        actrl[ActBack] = false;
+        actrl[ActForward] = false;
+    }
+
+    auto rightX = dev->get_axis(gamepad::axis::RIGHT_STICK_X);
+    auto rightY = dev->get_axis(gamepad::axis::RIGHT_STICK_Y);
+    if (std::abs(rightX) > 0.51) {
+            std::cout << "Right Stick Right" << std::endl;
+            handleMovementAction(KeyCodec::ActionMapping{Action::RotateR, KeyCodec::Mapping::Primary}, true);
+    } else if (std::abs(rightX) < 0.49){
+            std::cout << "Right Stick Left" << std::endl;
+            handleMovementAction(KeyCodec::ActionMapping{Action::RotateL, KeyCodec::Mapping::Primary}, true);
+        
+    } else if (std::abs(rightX) >= 0.49 && std::abs(rightX) <= 0.51){
+        handleMovementAction(KeyCodec::ActionMapping{Action::RotateR, KeyCodec::Mapping::Primary}, false);
+        handleMovementAction(KeyCodec::ActionMapping{Action::RotateL, KeyCodec::Mapping::Primary}, false);
+    }
+
+    if (std::abs(rightY) != 0.5) {
+      float dAngle = (leftX - 0.5f) * 200.0f;
+      dAngle = std::max(-100.f, std::min(dAngle, 100.f));
+      rotMouseY += dAngle * 0.2f;
+    }
+}
+
+void PlayerControl::setupSettings() {
+    // Ensure the gamepad hook is initialized
+    auto h = gamepad::hook::make();
+
+    // Set plug-and-play and polling sleep time
+    h->set_plug_and_play(true, gamepad::ms(1000));
+    h->set_sleep_time(gamepad::ms(5));
+
+    // Reassign handlers to ensure they are correctly hooked
+    h->set_button_event_handler([this](std::shared_ptr<gamepad::device> dev) {
+        this->handleButtonInput(dev);
+    });
+
+    h->set_axis_event_handler([this](std::shared_ptr<gamepad::device> dev) {
+        this->handleAxisInput(dev);
+    });
+
+    h->set_connect_event_handler([h](std::shared_ptr<gamepad::device> dev) {
+        ginfo("%s connected", dev->get_name().c_str());
+        if (!dev->has_binding()) {
+            #ifdef LGP_ENABLE_JSON
+                ginfo("Found device, running config wizard");
+                json11::Json cfg;
+                h->make_xbox_config(dev, cfg);
+                ginfo("Result config: %s", cfg.dump().c_str());
+            #else
+                ginfo("Json isn't enabled for libgamepad, so the config wizard can't be used");
+            #endif
+        }
+    });
+
+    h->set_disconnect_event_handler([](std::shared_ptr<gamepad::device> dev) {
+        ginfo("%s disconnected", dev->get_name().c_str());
+    });
+
+    // Start the gamepad hook if not already started
+    if (!h->start()) {
+        gerr("Couldn't start gamepad hook");
+        throw std::runtime_error("Failed to initialize gamepad hook");
+    }
+
+    // Log gamepad setup success
+    ginfo("Gamepad hook initialized and handlers set");
+
+    // Set Gothic 2 control mode if applicable
+    if (Gothic::inst().version().game == 2) {
+        g2Ctrl = Gothic::inst().settingsGetI("GAME", "USEGOTHIC1CONTROLS") == 0;
+    } else {
+        g2Ctrl = false;
+    }
+}
+
