@@ -8,6 +8,11 @@
 #include "sky_common.glsl"
 #include "common.glsl"
 
+layout(push_constant, std430) uniform UboPush {
+  mat4  viewProjectInv;
+  float plPosY;
+  float rayleighScatteringScale;
+  } push;
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
@@ -78,23 +83,20 @@ vec4 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax, vec3 smP
     float tSm        = (float(i+noise)/numScatteringSteps)*tSmMax;
     float visibility = shadowTest(smPos + tSm*rayDir*100.0);
 
-    vec3  rayleighScattering;
-    float mieScattering;
-    vec3  extinction;
-    scatteringValues(newPos, clouds, rayleighScattering, mieScattering, extinction);
+    const ScatteringValues sc = scatteringValues(newPos, clouds, push.rayleighScatteringScale);
 
-    vec3 transmittanceSmp = exp(-dt*extinction);
+    vec3 transmittanceSmp = exp(-dt*sc.extinction);
     vec3 transmittanceSun = textureLUT(tLUT, newPos, sunDir);
     vec3 psiMS            = textureLUT(mLUT, newPos, sunDir);
 
     vec3 scatteringSmp = vec3(0);
-    scatteringSmp += psiMS * (rayleighScattering + mieScattering);
-    scatteringSmp += rayleighScattering * phaseRayleigh * transmittanceSun * visibility;
-    scatteringSmp += mieScattering      * phaseMie      * transmittanceSun * visibility;
+    scatteringSmp += psiMS * (sc.rayleighScattering + sc.mieScattering);
+    scatteringSmp += sc.rayleighScattering * phaseRayleigh * transmittanceSun * visibility;
+    scatteringSmp += sc.mieScattering      * phaseMie      * transmittanceSun * visibility;
 
     // Integrated scattering within path segment.
     // See slide 28 at http://www.frostbite.com/2015/08/physically-based-unified-volumetric-rendering-in-frostbite/
-    vec3 scatteringIntegral = (scatteringSmp - scatteringSmp * transmittanceSmp) / extinction;
+    vec3 scatteringIntegral = (scatteringSmp - scatteringSmp * transmittanceSmp) / sc.extinction;
 
     scatteredLight += scatteringIntegral*transmittance;
     transmittance  *= transmittanceSmp;

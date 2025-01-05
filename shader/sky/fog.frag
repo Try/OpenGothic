@@ -19,6 +19,11 @@ layout(location = 0) in  vec2 inPos;
 layout(location = 0) out vec4 outColor;
 #endif
 
+layout(push_constant, std430) uniform UboPush {
+  mat4  viewProjectInv;
+  float plPosY;
+  float rayleighScatteringScale;
+  } push;
 #if defined(GL_COMPUTE_SHADER)
 // none
 #else
@@ -60,6 +65,11 @@ float interleavedGradientNoise() {
 #else
   return interleavedGradientNoise(gl_FragCoord.xy);
 #endif
+  }
+
+vec3 inverse(vec3 pos) {
+  vec4 ret = push.viewProjectInv*vec4(pos,1.0);
+  return (ret.xyz/ret.w)/100.f;
   }
 
 #if defined(VOLUMETRIC) && defined(GL_COMPUTE_SHADER)

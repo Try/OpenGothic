@@ -6,6 +6,11 @@
 #include "scene.glsl"
 #include "clouds.glsl"
 
+layout(push_constant, std430) uniform UboPush {
+  mat4  viewProjectInv;
+  float plPosY;
+  float rayleighScatteringScale;
+  } push;
 layout(binding  = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
@@ -21,6 +26,11 @@ layout(binding = 8) uniform sampler2D textureNightL1;
 
 layout(location = 0) in  vec2 inPos;
 layout(location = 0) out vec4 outColor;
+
+vec3 inverse(vec3 pos) {
+  vec4 ret = push.viewProjectInv*vec4(pos,1.0);
+  return (ret.xyz/ret.w)/100.f;
+  }
 
 /*
  * Final output basically looks up the value from the skyLUT, and then adds a sun on top,
@@ -43,12 +53,9 @@ vec3 transmittance(vec3 pos0, vec3 pos1) {
     float dt     = dist/steps;
     vec3  newPos = pos0 + t*dir + vec3(0,RPlanet,0);
 
-    vec3  rayleighScattering = vec3(0);
-    vec3  extinction         = vec3(0);
-    float mieScattering      = float(0);
-    scatteringValues(newPos, 0, rayleighScattering, mieScattering, extinction);
+    const ScatteringValues sc = scatteringValues(newPos, 0, push.rayleighScatteringScale);
 
-    transmittance *= exp(-dt*extinction);
+    transmittance *= exp(-dt*sc.extinction);
     }
   return transmittance;
   }
@@ -56,14 +63,10 @@ vec3 transmittance(vec3 pos0, vec3 pos1) {
 vec3 transmittanceAprox(in vec3 pos0, in vec3 pos1) {
   vec3 dir = pos1-pos0;
 
-  vec3  rayleighScattering = vec3(0);
-  float mieScattering      = float(0);
-  vec3  extinction0        = vec3(0);
-  vec3  extinction1        = vec3(0);
-  scatteringValues(pos0 + vec3(0,RPlanet,0), 0, rayleighScattering, mieScattering, extinction0);
-  scatteringValues(pos1 + vec3(0,RPlanet,0), 0, rayleighScattering, mieScattering, extinction1);
+  const ScatteringValues sc0 = scatteringValues(pos0 + vec3(0,RPlanet,0), 0, push.rayleighScatteringScale);
+  const ScatteringValues sc1 = scatteringValues(pos1 + vec3(0,RPlanet,0), 0, push.rayleighScatteringScale);
 
-  vec3  extinction         = extinction1;//-extinction0;
+  vec3  extinction         = sc1.extinction;//-sc0.extinction;
   return exp(-length(dir)*extinction);
   }
 

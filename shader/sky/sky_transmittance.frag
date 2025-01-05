@@ -4,6 +4,11 @@
 
 #include "sky_common.glsl"
 
+layout(push_constant, std430) uniform UboPush {
+  mat4  viewProjectInv;
+  float plPosY;
+  float rayleighScatteringScale;
+  } push;
 layout(binding = 5) uniform sampler2D textureDayL0;
 layout(binding = 6) uniform sampler2D textureDayL1;
 layout(binding = 7) uniform sampler2D textureNightL0;
@@ -28,12 +33,9 @@ vec3 sunTransmittance(vec3 pos, vec3 sunDir) {
 
     vec3 newPos = pos + t*sunDir;
 
-    vec3  rayleighScattering = vec3(0);
-    vec3  extinction         = vec3(0);
-    float mieScattering      = float(0);
-    scatteringValues(newPos, 0, rayleighScattering, mieScattering, extinction);
+    const ScatteringValues sc = scatteringValues(newPos, 0, push.rayleighScatteringScale);
 
-    transmittance *= exp(-dt*extinction);
+    transmittance *= exp(-dt*sc.extinction);
     }
   return transmittance;
   }
