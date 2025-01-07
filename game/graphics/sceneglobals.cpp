@@ -158,6 +158,17 @@ void SceneGlobals::setSky(const Sky& s) {
   uboGlobalCpu.exposure      = 1;
   }
 
+void SceneGlobals::setWorld(const WorldView& wview) {
+  float minY  = wview.bbox().first.y;
+  Tempest::Vec3 plPos = Tempest::Vec3(0,0,0);
+  uboGlobalCpu.viewProjectInv.project(plPos);
+  uboGlobalCpu.plPosY = plPos.y/100.f; //meters
+
+  // NOTE: minZ is garbage in KoM
+  uboGlobalCpu.plPosY += (-minY)/100.f;
+  uboGlobalCpu.plPosY  = std::clamp(uboGlobalCpu.plPosY, 0.f, 1000.f);
+  }
+
 void SceneGlobals::setUnderWater(bool w) {
   uboGlobalCpu.underWater = w ? 1 : 0;
   }

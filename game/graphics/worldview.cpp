@@ -56,12 +56,13 @@ void WorldView::preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t
     shadowLwc[i] = camera.viewShadowLwc(ldir,i);
     }
 
-  sGlobal.setSky(gSky);
   sGlobal.setViewProject(camera.view(),camera.projective(),camera.zNear(),camera.zFar(),shadow);
   sGlobal.setViewLwc(camera.viewLwc(),camera.projective(),shadowLwc);
   sGlobal.setViewVsm(camera.viewShadowVsm(ldir), camera.viewShadowVsmLwc(ldir));
   sGlobal.originLwc = camera.originLwc();
   sGlobal.setUnderWater(camera.isInWater());
+  sGlobal.setSky(gSky);
+  sGlobal.setWorld(*this);
 
   pfxGroup.tick(tickCount);
   gLights.tick(tickCount);

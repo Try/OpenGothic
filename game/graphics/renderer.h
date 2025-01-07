@@ -36,6 +36,7 @@ class Renderer final {
       None,
       VolumetricLQ,
       VolumetricHQ,
+      Epipolar,
       PathTrace,
       };
     Tempest::Size internalResolution() const;
@@ -138,7 +139,6 @@ class Renderer final {
     struct Sky {
       struct Ubo {
         Tempest::Matrix4x4 viewProjectInv;
-        float              plPosY = 0.0;
         float              rayleighScatteringScale = 0;
         };
 

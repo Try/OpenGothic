@@ -32,7 +32,7 @@ struct SceneDesc {
   vec3  pfxTop;
   float luminanceMed; // for debugging
   vec3  pfxDepth;
-  //float padd3; // WORKAROUND: spirv-cross
+  float plPosY;
   ivec2 hiZTileSize;
   ivec2 screenRes;
   vec4  cloudsDir;

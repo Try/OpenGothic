@@ -6,6 +6,7 @@
 #extension GL_EXT_control_flow_attributes : enable
 
 #include "virtual_shadow/vsm_common.glsl"
+#include "virtual_shadow/epipolar_common.glsl"
 #include "scene.glsl"
 #include "common.glsl"
 
@@ -27,8 +28,6 @@ const float dFogMax      = 0.9999;
       ivec2 fragCoord    = ivec2(gl_GlobalInvocationID.xy);
       ivec2 viewportSize = textureSize(depth, 0);
 
-vec4 dbgColor = vec4(0);
-
 float interleavedGradientNoise() {
   return interleavedGradientNoise(fragCoord.xy);
   }
@@ -48,69 +47,6 @@ vec3 screenToShadow(vec3 scr) {
 vec3 wrldToShadow(vec3 pos) {
   const vec4 shPos = scene.viewVirtualShadow*vec4(pos,1);
   return shPos.xyz/shPos.w;
-  }
-
-vec2 sunPosition2d() {
-  vec3 sun = scene.sunDir;
-  sun = (scene.viewProject*vec4(sun,0)).xyz;
-  sun.xy /= sun.z;
-  return sun.xy;
-  }
-
-vec2 rayOrigin() {
-  vec2 sun  = sunPosition2d();
-  vec2 rpos = vec2(fragCoord)/vec2(viewportSize);
-  rpos  = rpos*2.0 - 1.0;
-
-  vec2 dv  = rpos - sun;
-  vec2 ret = vec2(0);
-  {
-    float d = (dv.x<0 ? -1 : +1) - sun.x;
-    ret = sun + dv*abs(d/dv.x);
-    if(-1<=ret.y && ret.y<=1)
-      return ret;
-  }
-  {
-    float d = (dv.y<0 ? -1 : +1) - sun.y;
-    ret = sun + dv*abs(d/dv.y);
-    if(-1<=ret.x && ret.x<=1)
-      return ret;
-  }
-  return vec2(-1);
-  }
-
-uint sliceId() {
-  const vec2  src   = rayOrigin();
-  const vec2  uv    = src*0.5+0.5;
-  const float ratio = float(viewportSize.x)/float(viewportSize.x+viewportSize.y);
-  const uint  hor   = int(0.5*ratio*NumSlices);
-  const uint  vert  = int(NumSlices)/2 - hor;
-
-  uint rayId = 0;
-  if(src.x < src.y && src.x > -src.y) {
-    // bottom
-    dbgColor = vec4(0,1,0,0);
-    return rayId + uint(uv.x * hor);
-    }
-  rayId += hor;
-
-  if(src.x > src.y && src.x < -src.y) {
-    // top
-    dbgColor = vec4(1,0,0,0);
-    return rayId + uint(uv.x * hor);
-    }
-  rayId += hor;
-
-  if(src.x < src.y && src.x < -src.y) {
-    // left
-    dbgColor = vec4(0,0,1,0);
-    return rayId + uint(uv.y * vert);
-    }
-  rayId += vert;
-
-  // right
-  dbgColor = vec4(1,0,1,0);
-  return rayId + uint(uv.y * vert);
   }
 
 void trace(const vec2 inPos, const float z, ivec2 pix, const uint sliceId) {
@@ -145,7 +81,7 @@ void trace(const vec2 inPos, const float z, ivec2 pix, const uint sliceId) {
   }
 
 void dbgEpipole(const vec2 inPos, float z) {
-  const vec2 sun    = sunPosition2d();
+  const vec2 sun    = sunPosition2d(scene);
   const vec3 camPos = wrldToShadow(scene.camPos);
   const vec3 shPos1 = screenToShadow(vec3(inPos, 1));
 
@@ -166,7 +102,7 @@ void main() {
 
   const vec2  inPos = (vec2(fragCoord)/vec2(viewportSize))*2.0 - 1.0;
   const float z     = min(texelFetch(depth, fragCoord, 0).x, dFogMax);
-  const uint  id    = sliceId();
+  const uint  id    = sliceId(scene, fragCoord, viewportSize, NumSlices);
   // dbgEpipole(inPos, z);
   trace(inPos, z, fragCoord, id);
 

@@ -10,7 +10,6 @@
 
 layout(push_constant, std430) uniform UboPush {
   mat4  viewProjectInv;
-  float plPosY;
   float rayleighScatteringScale;
   } push;
 layout(binding = 0, std140) uniform UboScene {
@@ -25,7 +24,7 @@ layout(binding  = 5) uniform sampler2D textureSm1;
 layout(location = 0) out vec4 outColor;
 
 const int  numScatteringSteps = 32;
-vec3       viewOrigin         = vec3(0.0, RPlanet + push.plPosY, 0.0);
+vec3       viewOrigin         = vec3(0.0, RPlanet + scene.plPosY, 0.0);
 
 float interleavedGradientNoise() {
   return interleavedGradientNoise(gl_FragCoord.xy);

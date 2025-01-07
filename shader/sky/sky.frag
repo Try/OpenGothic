@@ -8,7 +8,6 @@
 
 layout(push_constant, std430) uniform UboPush {
   mat4  viewProjectInv;
-  float plPosY;
   float rayleighScatteringScale;
   } push;
 layout(binding  = 0, std140) uniform UboScene {
@@ -37,7 +36,7 @@ vec3 inverse(vec3 pos) {
  * does some tonemapping.
  */
 vec3 atmosphere(vec3 view, vec3 sunDir) {
-  const vec3  viewPos = vec3(0.0, RPlanet + push.plPosY, 0.0);
+  const vec3  viewPos = vec3(0.0, RPlanet + scene.plPosY, 0.0);
   return textureSkyLUT(skyLUT, viewPos, view, sunDir);
   }
 
@@ -82,7 +81,7 @@ vec3 sky(vec2 uv, vec3 sunDir) {
 
 vec3 applyClouds(vec3 skyColor) {
   float night    = scene.isNight;
-  vec3  plPos    = vec3(0,RPlanet+push.plPosY,0);
+  vec3  plPos    = vec3(0,RPlanet+scene.plPosY,0);
   vec3  pos1     = inverse(vec3(inPos,1.0));
   vec3  viewDir  = normalize(pos1);
   return applyClouds(skyColor, skyLUT, plPos, scene.sunDir, viewDir, night,

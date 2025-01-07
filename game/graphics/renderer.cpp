@@ -208,9 +208,9 @@ void Renderer::resetSwapchain() {
     vsm.uboFogPages     = device.descriptors(shaders.vsmFogPages);
     vsm.uboFogShadow    = device.descriptors(shaders.vsmFogShadow);
     vsm.uboFogSample    = device.descriptors(shaders.vsmFogSample);
-    vsm.uboFogTrace     = device.descriptors(shaders.vsmFogTrace);
     vsm.uboClump        = device.descriptors(shaders.vsmClumpPages);
     Resources::recycle(std::move(vsm.uboAlloc));
+    Resources::recycle(std::move(vsm.uboFogTrace));
 
     vsm.pagesDbgPso     = &shaders.vsmDbg;
 
@@ -220,9 +220,9 @@ void Renderer::resetSwapchain() {
     vsm.vsmDbg          = device.image2d(TextureFormat::R32U, uint32_t(zbuffer.w()), uint32_t(zbuffer.h()));
 
     // vsm.ssTrace  = device.image2d(TextureFormat::RGBA8, w, h);
-    vsm.ssTrace  = device.image2d(TextureFormat::R32U, w, h);
-    vsm.fogDbg   = device.image2d(TextureFormat::RGBA8, w, h);
-    vsm.epTrace  = device.image2d(TextureFormat::R16, 1024, 2*1024);
+    vsm.ssTrace  = device.image2d(TextureFormat::R32U,  w, h);
+    vsm.epTrace  = device.image2d(TextureFormat::R16,   1024, 2*1024);
+    vsm.fogDbg   = device.image2d(sky.lutRGBFormat,     1024, 2*1024);
     vsm.epipoles = device.ssbo(nullptr, shaders.vsmFogEpipolar.sizeofBuffer(3, size_t(vsm.epTrace.h())));
 
     auto pageCount      = uint32_t(vsm.pageData.w()/VSM_PAGE_SIZE) * uint32_t(vsm.pageData.h()/VSM_PAGE_SIZE);
@@ -271,7 +271,8 @@ void Renderer::setupSettings() {
     if(!settings.zFogRadial) {
       q = Quality::VolumetricLQ;
       } else {
-      q = Quality::VolumetricHQ;
+      //q = Quality::VolumetricHQ;
+      q = Quality::Epipolar;
       }
 
     if(skyPathTrace)
@@ -566,15 +567,6 @@ void Renderer::prepareUniforms() {
     vsm.uboFogSample.set(2, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
     vsm.uboFogSample.set(3, vsm.epipoles);
     vsm.uboFogSample.set(4, zbuffer);
-
-    vsm.uboFogTrace.set(0, vsm.fogDbg);
-    vsm.uboFogTrace.set(1, vsm.epTrace);
-    vsm.uboFogTrace.set(2, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    vsm.uboFogTrace.set(3, vsm.epipoles);
-    vsm.uboFogTrace.set(4, zbuffer);
-    vsm.uboFogTrace.set(5, vsm.pageTbl);
-    vsm.uboFogTrace.set(6, vsm.pageData);
-    vsm.uboFogTrace.set(7, sky.fogLut3D);
     }
 
   if(settings.swrEnabled) {
@@ -628,6 +620,7 @@ void Renderer::resetSkyFog() {
   Resources::recycle(std::move(sky.uboClouds));
   Resources::recycle(std::move(sky.uboTransmittance));
   Resources::recycle(std::move(sky.uboMultiScatLut));
+  Resources::recycle(std::move(vsm.uboFogTrace));
 
   Resources::recycle(std::move(sky.uboSkyViewLut));
   Resources::recycle(std::move(sky.uboSkyViewCldLut));
@@ -662,7 +655,13 @@ void Renderer::resetSkyFog() {
       sky.fogLut3D      = device.image3d(sky.lutRGBAFormat,128,64,32);
       sky.occlusionLut  = device.image2d(TextureFormat::R32U, w, h);
       break;
+    case Epipolar:
+      sky.fogLut3D      = device.image3d(sky.lutRGBAFormat,128,64,32);
+      sky.occlusionLut  = device.image2d(TextureFormat::R32U, w, h); //TODO: remove
+      break;
     case PathTrace:
+      sky.fogLut3D      = device.image3d(sky.lutRGBAFormat,128,64,32);
+      sky.occlusionLut  = device.image2d(TextureFormat::R32U, w, h); //TODO: remove
       break;
     }
   }
@@ -987,7 +986,7 @@ void Renderer::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
       if(sky.uboFog.isEmpty()) {
         sky.uboFog = device.descriptors(shaders.fog);
         sky.uboFog.set(0, sky.fogLut3D, smpB);
-        sky.uboFog.set(1, *scene.zbuffer, Sampler::nearest()); // NOTE: wanna here depthFetch from gles2
+        sky.uboFog.set(1, zbuffer, Sampler::nearest()); // NOTE: wanna here depthFetch from gles2
         sky.uboFog.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
         }
       cmd.setUniforms(shaders.fog, sky.uboFog, &ubo, sizeof(ubo));
@@ -997,11 +996,24 @@ void Renderer::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
       if(sky.uboFog3d.isEmpty()) {
         sky.uboFog3d = device.descriptors(shaders.fog3dHQ);
         sky.uboFog3d.set(0, sky.fogLut3D,   smpB);
-        sky.uboFog3d.set(1, *scene.zbuffer, Sampler::nearest());
+        sky.uboFog3d.set(1, zbuffer, Sampler::nearest());
         sky.uboFog3d.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
         sky.uboFog3d.set(3, sky.occlusionLut);
         }
       cmd.setUniforms(shaders.fog3dHQ, sky.uboFog3d, &ubo, sizeof(ubo));
+      break;
+      }
+    case Epipolar: {
+      if(sky.uboFog3d.isEmpty()) {
+        sky.uboFog3d = device.descriptors(shaders.vsmFog);
+        //sky.uboFog3d.set(0, sky.fogLut3D,   smpB);
+        sky.uboFog3d.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
+        sky.uboFog3d.set(1, zbuffer, Sampler::nearest());
+        sky.uboFog3d.set(2, vsm.fogDbg, smpB);
+        sky.uboFog3d.set(3, vsm.epipoles);
+        sky.uboFog3d.set(4, sky.fogLut3D, smpB);
+        }
+      cmd.setUniforms(shaders.vsmFog, sky.uboFog3d);
       break;
       }
     case PathTrace:
@@ -1033,11 +1045,10 @@ void Renderer::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
   }
 
 void Renderer::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview, bool isSun) {
-  auto& scene   = wview.sceneGlobals();
-
-  auto& sun = wview.sky().sunLight();
-  auto  m   = scene.viewProject();
-  auto  d   = sun.dir();
+  auto& scene = wview.sceneGlobals();
+  auto& sun   = wview.sky().sunLight();
+  auto  m     = scene.viewProject();
+  auto  d     = sun.dir();
 
   if(!isSun) {
     // fixed pos for now
@@ -1059,11 +1070,9 @@ void Renderer::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
     Tempest::Matrix4x4 viewProjectInv;
     uint32_t           isSun = 0;
     } push;
-  push.pos  = Vec2(dx.x,dx.y)/dx.z;
-  if(scene.zbuffer!=nullptr) {
-    push.size.x  = 2.f/float(scene.zbuffer->w());
-    push.size.y  = 2.f/float(scene.zbuffer->h());
-    }
+  push.pos     = Vec2(dx.x,dx.y)/dx.z;
+  push.size.x  = 2.f/float(zbuffer.w());
+  push.size.y  = 2.f/float(zbuffer.h());
 
   const float intencity      = 0.07f;
   const float GSunIntensity  = wview.sky().sunIntensity();
@@ -1342,24 +1351,6 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.setDebugMarker("VSM-rendering");
   cmd.setFramebuffer({}, {vsm.pageData, 0.f, Tempest::Preserve});
   wview.drawVsm(cmd,fId);
-
-  if(doVirtualFog) {
-    cmd.setFramebuffer({});
-    cmd.setDebugMarker("VSM-epipolar-fog");
-    cmd.setUniforms(shaders.vsmFogShadow, vsm.uboFogShadow);
-    cmd.dispatchThreads(vsm.epTrace.size());
-
-    cmd.setUniforms(shaders.vsmFogSample, vsm.uboFogSample);
-    cmd.dispatchThreads(zbuffer.size());
-    }
-
-  if(false) {
-    // experimental
-    cmd.setFramebuffer({});
-    cmd.setDebugMarker("VSM-trace");
-    cmd.setUniforms(shaders.vsmFogTrace, vsm.uboFogTrace);
-    cmd.dispatchThreads(zbuffer.size());
-    }
   }
 
 void Renderer::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
@@ -1525,7 +1516,7 @@ void Renderer::drawSky(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wvie
       sky.uboSkyPathtrace.set(1, sky.transLut,     smpB);
       sky.uboSkyPathtrace.set(2, sky.multiScatLut, smpB);
       sky.uboSkyPathtrace.set(3, sky.cloudsLut,    smpB);
-      sky.uboSkyPathtrace.set(4, *scene.zbuffer, Sampler::nearest());
+      sky.uboSkyPathtrace.set(4, zbuffer, Sampler::nearest());
       sky.uboSkyPathtrace.set(5, *scene.shadowMap[1], Resources::shadowSampler());
       }
     Sky::Ubo ubo = sky.mkPush(wview, true);
@@ -1573,6 +1564,8 @@ void Renderer::prepareSSAO(Encoder<CommandBuffer>& cmd) {
   }
 
 void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
+  const bool doVirtualFog = sky.quality!=VolumetricLQ && settings.vsmEnabled;
+
   auto& device  = Resources::device();
   auto& scene   = wview.sceneGlobals();
   auto& shaders = Shaders::inst();
@@ -1585,7 +1578,7 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, Wor
   Sky::Ubo ubo = sky.mkPush(wview);
 
   if(sky.uboFogViewLut3d.isEmpty()) {
-    sky.uboFogViewLut3d = device.descriptors(Shaders::inst().fogViewLut3d);
+    sky.uboFogViewLut3d = device.descriptors(shaders.fogViewLut3d);
     sky.uboFogViewLut3d.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
     sky.uboFogViewLut3d.set(1, sky.transLut,     smpB);
     sky.uboFogViewLut3d.set(2, sky.multiScatLut, smpB);
@@ -1605,7 +1598,7 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, Wor
       if(!settings.vsmEnabled) {
         if(sky.uboOcclusion.isEmpty()) {
           sky.uboOcclusion = device.descriptors(Shaders::inst().fogOcclusion);
-          sky.uboOcclusion.set(1, *scene.zbuffer, Sampler::nearest());
+          sky.uboOcclusion.set(1, zbuffer, Sampler::nearest());
           sky.uboOcclusion.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
           sky.uboOcclusion.set(3, sky.occlusionLut);
           sky.uboOcclusion.set(4, *scene.shadowMap[1], Resources::shadowSampler());
@@ -1619,9 +1612,49 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, Wor
       cmd.dispatchThreads(uint32_t(sky.fogLut3D.w()), uint32_t(sky.fogLut3D.h()));
       break;
       }
+    case Epipolar: {
+      cmd.setUniforms(shaders.fogMSTLut3d, sky.uboFogViewLut3d, &ubo, sizeof(ubo));
+      cmd.dispatchThreads(uint32_t(sky.fogLut3D.w()), uint32_t(sky.fogLut3D.h()));
+      break;
+      }
     case PathTrace: {
       break;
       }
+    }
+
+  if(doVirtualFog) {
+    cmd.setFramebuffer({});
+    cmd.setDebugMarker("VSM-epipolar-fog");
+    cmd.setUniforms(shaders.vsmFogShadow, vsm.uboFogShadow);
+    cmd.dispatchThreads(vsm.epTrace.size());
+    }
+
+  if(doVirtualFog && sky.quality==VolumetricHQ) {
+    cmd.setUniforms(shaders.vsmFogSample, vsm.uboFogSample);
+    cmd.dispatchThreads(zbuffer.size());
+    }
+
+  if(doVirtualFog && sky.quality==Epipolar) {
+    // experimental
+    if(vsm.uboFogTrace.isEmpty()) {
+      auto smpB = Sampler::bilinear();
+      smpB.setClamping(ClampMode::ClampToEdge);
+
+      vsm.uboFogTrace = device.descriptors(shaders.vsmFogTrace);
+
+      vsm.uboFogTrace.set(0, vsm.fogDbg);
+      vsm.uboFogTrace.set(1, vsm.epTrace);
+      vsm.uboFogTrace.set(2, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+      vsm.uboFogTrace.set(3, vsm.epipoles);
+      vsm.uboFogTrace.set(4, zbuffer);
+      vsm.uboFogTrace.set(5, sky.transLut,     smpB);
+      vsm.uboFogTrace.set(6, sky.multiScatLut, smpB);
+      vsm.uboFogTrace.set(7, sky.cloudsLut,    smpB);
+      }
+    cmd.setFramebuffer({});
+    cmd.setDebugMarker("VSM-trace");
+    cmd.setUniforms(shaders.vsmFogTrace, vsm.uboFogTrace);
+    cmd.dispatchThreads(vsm.epTrace.size());
     }
   }
 
@@ -1873,17 +1906,8 @@ Size Renderer::internalResolution() const {
 
 Renderer::Sky::Ubo Renderer::Sky::mkPush(WorldView& wview, bool lwc) {
   auto& scene = wview.sceneGlobals();
-  float minY  = wview.bbox().first.y;
 
   Sky::Ubo ubo;
-  Vec3 plPos = Vec3(0,0,0);
-  scene.viewProjectInv().project(plPos);
-  ubo.plPosY = plPos.y/100.f; //meters
-
-  // NOTE: miZ is garbage in KoM
-  ubo.plPosY += (-minY)/100.f;
-  ubo.plPosY  = std::clamp(ubo.plPosY, 0.f, 1000.f);
-
   if(lwc)
     ubo.viewProjectInv = scene.viewProjectLwcInv(); else
     ubo.viewProjectInv = scene.viewProjectInv();

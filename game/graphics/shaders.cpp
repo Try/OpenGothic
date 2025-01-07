@@ -53,6 +53,7 @@ Shaders::Shaders() {
   skyViewLut         = postEffect("sky", "sky_view_lut");
   skyViewCldLut      = postEffect("sky", "sky_view_clouds_lut");
 
+  fogMSTLut3d        = computeShader("fog_mst_lut.comp.sprv");
   fogViewLut3d       = computeShader("fog_view_lut.comp.sprv");
   fogOcclusion       = computeShader("fog3d.comp.sprv");
 
@@ -205,7 +206,9 @@ Shaders::Shaders() {
     vsmFogPages        = computeShader("vsm_fog_mark_pages.comp.sprv");
     vsmFogShadow       = computeShader("vsm_fog_shadow.comp.sprv");
     vsmFogSample       = computeShader("vsm_fog_sample.comp.sprv");
+
     vsmFogTrace        = computeShader("vsm_fog_trace.comp.sprv");
+    vsmFog             = fogShader("fog_epipolar");
 
     vsmDirectLight     = postEffect("direct_light", "direct_light_vsm", RenderState::ZTestMode::NoEqual);
     vsmDbg             = postEffect("copy", "vsm_dbg", RenderState::ZTestMode::Always);
@@ -510,7 +513,7 @@ RenderPipeline Shaders::fogShader(std::string_view name) {
     state.setBlendDest(RenderState::BlendMode::OneMinusSrcAlpha);
     }
 
-  auto sh = GothicShader::get("sky.vert.sprv");
+  auto sh = GothicShader::get("copy.vert.sprv");
   auto vs = device.shader(sh.data,sh.len);
 
   sh      = GothicShader::get(string_frm(name,".frag.sprv"));

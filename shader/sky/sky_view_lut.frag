@@ -7,7 +7,6 @@
 
 layout(push_constant, std430) uniform UboPush {
   mat4  viewProjectInv;
-  float plPosY;
   float rayleighScatteringScale;
   } push;
 layout(binding = 0, std140) uniform UboScene {
@@ -60,7 +59,7 @@ vec3 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax) {
 
 void main() {
   const vec2 uv       = inPos*vec2(0.5)+vec2(0.5);
-  const vec3 viewPos  = vec3(0.0, RPlanet + push.plPosY, 0.0);
+  const vec3 viewPos  = vec3(0.0, RPlanet + scene.plPosY, 0.0);
 
   const float DirectSunLux  = scene.GSunIntensity;
   const float DirectMoonLux = 0.32f;

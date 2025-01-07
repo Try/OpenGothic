@@ -3,6 +3,7 @@
 #include <Tempest/Matrix4x4>
 #include <Tempest/Texture2d>
 
+#include "graphics/lightsource.h"
 #include "graphics/sceneglobals.h"
 #include "resources.h"
 

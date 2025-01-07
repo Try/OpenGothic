@@ -16,6 +16,9 @@ const float mieAbsorptionBase      = 4.40  / 1e6;
 // NOTE: Ozone does not contribute to scattering; it only absorbs light.
 const vec3  ozoneAbsorptionBase    = vec3(0.650, 1.881, .085) / 1e6;
 
+const float dFogMin = 0;
+const float dFogMax = 0.9999;
+
 float miePhase(float cosTheta) {
   const float scale = 3.0/(8.0*M_PI);
 
@@ -36,8 +39,7 @@ struct ScatteringValues {
   vec3  extinction;
   };
 // 4. Atmospheric model
-ScatteringValues scatteringValues(vec3 pos, float clouds, float rayleighScatteringScale) {
-  float altitudeKM          = (length(pos)-RPlanet) / 1000.0;
+ScatteringValues scatteringValues(float altitudeKM, float clouds, float rayleighScatteringScale) {
   // Note: Paper gets these switched up. See SkyAtmosphereCommon.cpp:SetupEarthAtmosphere in demo app
   float rayleighDensity    = exp(-altitudeKM/8.0);
   float mieDensity         = exp(-altitudeKM/1.2);
@@ -54,13 +56,18 @@ ScatteringValues scatteringValues(vec3 pos, float clouds, float rayleighScatteri
 
   // Clouds Ah-Hook
   clouds = max(0, clouds-0.2); // 0.33 in LH
-  ret.mieScattering      *= exp( clouds*5.0); // (1.0+clouds*4.0);
-  ret.rayleighScattering *= exp(-clouds*5.0); // (1.0-clouds*0.5);
+  ret.mieScattering      *= exp( clouds*5.0);
+  ret.rayleighScattering *= exp(-clouds*5.0);
 
   ret.extinction = ret.rayleighScattering + rayleighAbsorption +
                    ret.mieScattering + mieAbsorption +
                    ozoneAbsorption;
   return ret;
+  }
+
+ScatteringValues scatteringValues(vec3 pos, float clouds, float rayleighScatteringScale) {
+  float altitudeKM = (length(pos)-RPlanet) / 1000.0;
+  return scatteringValues(altitudeKM, clouds, rayleighScatteringScale);
   }
 
 // 5.5.2. LUT parameterization

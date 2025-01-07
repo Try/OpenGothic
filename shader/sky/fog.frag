@@ -15,13 +15,12 @@ layout(local_size_x = 1*8, local_size_y = 2*8) in;
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 vec2 inPos;
 #else
-layout(location = 0) in  vec2 inPos;
+vec2 inPos;
 layout(location = 0) out vec4 outColor;
 #endif
 
 layout(push_constant, std430) uniform UboPush {
   mat4  viewProjectInv;
-  float plPosY;
   float rayleighScatteringScale;
   } push;
 #if defined(GL_COMPUTE_SHADER)
@@ -50,10 +49,6 @@ layout(binding = 4) uniform sampler2D textureSm1;
 layout(binding = 4) uniform utexture3D pageTbl;
 layout(binding = 5) uniform texture2D  pageData;
 #endif
-
-const float dFogMin = 0;
-//const float dFogMax = 1;
-const float dFogMax = 0.9999;
 
 #if defined(GL_COMPUTE_SHADER)
 uvec2 invocationID = gl_GlobalInvocationID.xy;
@@ -186,7 +181,11 @@ vec4 fog(vec2 uv, float z) {
 
 #if !defined(GL_COMPUTE_SHADER)
 void main_frag() {
-  vec2 uv     = inPos*vec2(0.5)+vec2(0.5);
+  const ivec2 size = textureSize(depth,0);
+  inPos = vec2(gl_FragCoord.xy)/vec2(size);
+  inPos = inPos*2.0 - vec2(1.0);
+
+  vec2 uv     = vec2(gl_FragCoord.xy)/vec2(size);
   vec3 view   = normalize(inverse(vec3(inPos,1.0)));
   vec3 sunDir = scene.sunDir;
 

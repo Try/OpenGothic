@@ -234,11 +234,13 @@ add_shader(sky_view_lut.frag         sky/sky_view_lut.frag)
 add_shader(sky_view_clouds_lut.frag  sky/sky_view_clouds_lut.frag)
 
 add_shader(clouds_lut.comp           sky/clouds_lut.comp)
-add_shader(fog_view_lut.comp         sky/fog_view_lut.comp)
+add_shader(fog_view_lut.comp         sky/fog_view_lut.comp -DSUN_SCATTERING -DMULTI_SCATTERING)
+add_shader(fog_mst_lut.comp          sky/fog_view_lut.comp -DMULTI_SCATTERING)
 
 add_shader(fog3d.comp                sky/fog.frag -S comp -DVOLUMETRIC)
 add_shader(fog3d_hq.frag             sky/fog.frag -DVOLUMETRIC)
 add_shader(fog.frag                  sky/fog.frag)
+add_shader(fog_epipolar.frag         sky/fog_epipolar.frag)
 add_shader(sky.frag                  sky/sky.frag)
 
 add_shader(sky_pathtrace.frag        sky/sky_pathtrace.frag)

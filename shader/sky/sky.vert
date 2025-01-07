@@ -2,8 +2,6 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive    : enable
 
-#include "sky_common.glsl"
-
 out gl_PerVertex {
   vec4 gl_Position;
   };

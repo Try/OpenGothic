@@ -8,7 +8,6 @@
 
 layout(push_constant, std430) uniform UboPush {
   mat4  viewProjectInv;
-  float plPosY;
   float rayleighScatteringScale;
   } push;
 layout(binding = 0, std140) uniform UboScene {
@@ -57,9 +56,13 @@ vec4 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax, int numS
     vec3 psiMS            = textureLUT(mLUT, newPos, sunDir);
 
     vec3 scatteringSmp = vec3(0);
+#if defined(MULTI_SCATTERING)
     scatteringSmp += psiMS * (sc.rayleighScattering + sc.mieScattering);
+#endif
+#if defined(SUN_SCATTERING)
     scatteringSmp += sc.rayleighScattering * phaseRayleigh * transmittanceSun;
     scatteringSmp += sc.mieScattering      * phaseMie      * transmittanceSun;
+#endif
 
     // Integrated scattering within path segment.
     vec3 scatteringIntegral = (scatteringSmp - scatteringSmp * transmittanceSmp) / sc.extinction;
@@ -81,12 +84,12 @@ void main() {
     return;
 
   const int   numScatteringSteps = dstSz.z;
-  vec3        viewOrigin         = vec3(0.0, RPlanet + push.plPosY, 0.0);
+  vec3        viewOrigin         = vec3(0.0, RPlanet + scene.plPosY, 0.0);
   const float viewDistanceScale  = 50;
 
   const vec2  inPos      = ((vec2(dstUV)+vec2(0.5))/vec2(dstSz.xy))*2.0-vec2(1.0);
   const float dMin       = 0;
-  const float dMax       = 0.9999;
+  const float dMax       = dFogMax;
   const vec3  pos0       = project(scene.viewProjectInv, vec3(inPos,dMin));
   const vec3  pos1       = project(scene.viewProjectInv, vec3(inPos,dMax));
 

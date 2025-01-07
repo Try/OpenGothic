@@ -6,7 +6,6 @@
 
 layout(push_constant, std430) uniform UboPush {
   mat4  viewProjectInv;
-  float plPosY;
   float rayleighScatteringScale;
   } push;
 layout(binding = 5) uniform sampler2D textureDayL0;

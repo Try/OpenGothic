@@ -13,6 +13,7 @@
 #include "lightsource.h"
 #include "sceneglobals.h"
 #include "visualobjects.h"
+#include "lightgroup.h"
 
 class World;
 class Camera;
