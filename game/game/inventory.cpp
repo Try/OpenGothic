@@ -938,6 +938,24 @@ Item *Inventory::findByClass(size_t cls) {
   return nullptr;
   }
 
+// Find the Nth item with a specific flag
+// num starts at "1" for first item
+Item* Inventory::findByFlags(ItmFlags f, uint32_t num) const {
+  uint32_t found = 0;
+
+  for(auto& i:items) {
+    auto& itData = i->handle();
+    auto  flag   = ItmFlags(itData.main_flag);
+    if((flag & f)==0)
+      continue;
+
+    found++;
+    if (found==num)
+      return i.get();
+    }
+  return nullptr;
+  }
+
 Item* Inventory::bestItem(Npc &owner, ItmFlags f) {
   Item*   ret    = nullptr;
   int32_t value  = std::numeric_limits<int32_t>::min();

@@ -290,6 +290,7 @@ class GameScript final {
     int  npc_hasitems        (std::shared_ptr<zenkit::INpc> npcRef, int itemId);
     bool npc_hasspell        (std::shared_ptr<zenkit::INpc> npcRef, int splId);
     int  npc_getinvitem      (std::shared_ptr<zenkit::INpc> npcRef, int itemId);
+    int  npc_getinvitembyslot(std::shared_ptr<zenkit::INpc> npcRef, int cat, int slotnr);
     int  npc_removeinvitem   (std::shared_ptr<zenkit::INpc> npcRef, int itemId);
     int  npc_removeinvitems  (std::shared_ptr<zenkit::INpc> npcRef, int itemId, int amount);
     int  npc_getbodystate    (std::shared_ptr<zenkit::INpc> npcRef);

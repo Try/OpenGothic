@@ -159,6 +159,7 @@ void GameScript::initCommon() {
   bindExternal("npc_hasitems",                   &GameScript::npc_hasitems);
   bindExternal("npc_hasspell",                   &GameScript::npc_hasspell);
   bindExternal("npc_getinvitem",                 &GameScript::npc_getinvitem);
+  bindExternal("npc_getinvitembyslot",           &GameScript::npc_getinvitembyslot);
   bindExternal("npc_removeinvitem",              &GameScript::npc_removeinvitem);
   bindExternal("npc_removeinvitems",             &GameScript::npc_removeinvitems);
   bindExternal("npc_getbodystate",               &GameScript::npc_getbodystate);
@@ -2053,6 +2054,59 @@ int GameScript::npc_getinvitem(std::shared_ptr<zenkit::INpc> npcRef, int itemId)
     }
   return -1;
   }
+
+// This seems specific to Gothic 1, where the inventory was grouped into categories.
+// In the shared inventory, these categories are just following one after the other.
+// So we should transform this to iterate over the different categories in the
+// shared inventory
+int GameScript::npc_getinvitembyslot(std::shared_ptr<zenkit::INpc> npcRef, int cat, int slotnr) {
+  auto npc = findNpc(npcRef);
+  if(npc==nullptr) {
+    storeItem(nullptr);
+    return 0;
+    }
+
+  // The category flag names were global, but for the scripts, only npc_getinvitembyslot
+  // ever used them, so as long as nobody implements the Gothic 1 inventory, they can
+  // be limited to the comments below.
+  ItmFlags f = ITM_CAT_NONE;
+  switch(cat) {
+    case 1: // INV_WEAPON
+      f = ItmFlags(ITM_CAT_NF|ITM_CAT_FF|ITM_CAT_MUN);
+      break;
+    case 2: // INV_ARMOR
+      f = ITM_CAT_ARMOR;
+      break;
+    case 3: // INV_RUNE
+      f = ITM_CAT_RUNE;
+      break;
+    case 4: // INV_MAGIC
+      f = ITM_CAT_MAGIC;
+      break;
+    case 5: // INV_FOOD
+      f = ITM_CAT_FOOD;
+      break;
+    case 6: // INV_POTION
+      f = ITM_CAT_POTION;
+      break;
+    case 7: // INV_DOC
+      f = ITM_CAT_DOCS;
+      break;
+    case 8: // INV_MISC
+      f = ItmFlags(ITM_CAT_LIGHT|ITM_CAT_NONE);
+      break;
+    default:
+      Log::e("Unknown item category ", cat);
+      storeItem(nullptr);
+      return 0;
+    }
+
+  auto itm = npc==nullptr ? nullptr : npc->inventory().findByFlags(f, uint32_t(slotnr));
+  // Store the found item in the global item var
+  storeItem(itm);
+
+  return itm!=nullptr ? int(itm->count()) : 0;
+}
 
 int GameScript::npc_removeinvitem(std::shared_ptr<zenkit::INpc> npcRef, int itemId) {
   auto npc = findNpc(npcRef);

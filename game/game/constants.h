@@ -305,7 +305,6 @@ inline SensesBit operator | (SensesBit a,const SensesBit& b){
   return SensesBit(uint8_t(a)|uint8_t(b));
   }
 
-
 enum ItmFlags : uint32_t {
   ITM_CAT_NONE   = 1 << 0,
   ITM_CAT_NF     = 1 << 1,
