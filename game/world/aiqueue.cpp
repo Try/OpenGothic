@@ -105,6 +105,13 @@ AiQueue::AiAction AiQueue::aiTurnToNpc(Npc *other) {
   return a;
   }
 
+AiQueue::AiAction AiQueue::aiWhirlToNpc(Npc *other) {
+  AiAction a;
+  a.act    = AI_WhirlToNpc;
+  a.target = other;
+  return a;
+  }
+
 AiQueue::AiAction AiQueue::aiGoToNpc(Npc *other) {
   AiAction a;
   a.act    = AI_GoToNpc;

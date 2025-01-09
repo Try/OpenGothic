@@ -474,6 +474,7 @@ class Npc final {
     bool      implTurnTo (const Npc& oth, uint64_t dt);
     bool      implTurnTo (const Npc& oth, bool noAnim, uint64_t dt);
     bool      implTurnTo (float dx, float dz, bool noAnim, uint64_t dt);
+    bool      implWhirlTo(const Npc& oth, uint64_t dt);
     bool      implGoTo   (uint64_t dt);
     bool      implGoTo   (uint64_t dt, float destDist);
     bool      implAttack  (uint64_t dt);
