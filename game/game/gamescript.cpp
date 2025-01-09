@@ -169,6 +169,7 @@ void GameScript::initCommon() {
   bindExternal("npc_percenable",                 &GameScript::npc_percenable);
   bindExternal("npc_percdisable",                &GameScript::npc_percdisable);
   bindExternal("npc_getnearestwp",               &GameScript::npc_getnearestwp);
+  bindExternal("npc_getnextwp",                  &GameScript::npc_getnextwp);
   bindExternal("npc_clearaiqueue",               &GameScript::npc_clearaiqueue);
   bindExternal("npc_isplayer",                   &GameScript::npc_isplayer);
   bindExternal("npc_getstatetime",               &GameScript::npc_getstatetime);
@@ -2121,6 +2122,14 @@ void GameScript::npc_percdisable(std::shared_ptr<zenkit::INpc> npcRef, int pr) {
 std::string GameScript::npc_getnearestwp(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   auto wp  = npc ? world().findWayPoint(npc->position()) : nullptr;
+  if(wp)
+    return wp->name;
+  return "";
+  }
+
+std::string GameScript::npc_getnextwp(std::shared_ptr<zenkit::INpc> npcRef) {
+  auto npc     = findNpc(npcRef);
+  auto wp      = npc ? world().findSecondNearestWayPoint(npc->position()) : nullptr;
   if(wp)
     return wp->name;
   return "";

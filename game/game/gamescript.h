@@ -300,6 +300,7 @@ class GameScript final {
     void npc_percenable      (std::shared_ptr<zenkit::INpc> npcRef, int pr, int fn);
     void npc_percdisable     (std::shared_ptr<zenkit::INpc> npcRef, int pr);
     std::string npc_getnearestwp    (std::shared_ptr<zenkit::INpc> npcRef);
+    std::string npc_getnextwp(std::shared_ptr<zenkit::INpc> npcRef);
     void npc_clearaiqueue    (std::shared_ptr<zenkit::INpc> npcRef);
     bool npc_isplayer        (std::shared_ptr<zenkit::INpc> npcRef);
     int  npc_getstatetime    (std::shared_ptr<zenkit::INpc> npcRef);
