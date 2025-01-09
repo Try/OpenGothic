@@ -375,6 +375,7 @@ class GameScript final {
     void ai_removeweapon     (std::shared_ptr<zenkit::INpc> npcRef);
     void ai_unreadyspell     (std::shared_ptr<zenkit::INpc> npcRef);
     void ai_turntonpc        (std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> npcRef);
+    void ai_whirlaround      (std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> npcRef);
     void ai_outputsvm        (std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> targetRef, std::string_view name);
     void ai_outputsvm_overlay(std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> targetRef, std::string_view name);
     void ai_startstate       (std::shared_ptr<zenkit::INpc> selfRef, int func, int state, std::string_view wp);

@@ -1334,21 +1334,25 @@ bool Npc::implTurnTo(const Npc &oth, uint64_t dt) {
     return true;
   auto dx = oth.x-x;
   auto dz = oth.z-z;
-  return implTurnTo(dx,dz,false,dt);
+  return implTurnTo(dx,dz,AnimationSolver::TurnType::Std,dt);
   }
 
-bool Npc::implTurnTo(const Npc& oth, bool noAnim, uint64_t dt) {
+bool Npc::implTurnTo(const Npc& oth, AnimationSolver::TurnType anim, uint64_t dt) {
   if(&oth==this)
     return true;
   auto dx = oth.x-x;
   auto dz = oth.z-z;
-  return implTurnTo(dx,dz,noAnim,dt);
+  return implTurnTo(dx,dz,anim,dt);
   }
 
-bool Npc::implTurnTo(float dx, float dz, bool noAnim, uint64_t dt) {
+bool Npc::implTurnTo(float dx, float dz, AnimationSolver::TurnType anim, uint64_t dt) {
   auto  gl   = guild();
   float step = float(owner.script().guildVal().turn_speed[gl]);
-  return rotateTo(dx,dz,step,noAnim,dt);
+  return rotateTo(dx,dz,step,anim,dt);
+  }
+
+bool Npc::implWhirlTo(const Npc &oth, uint64_t dt) {
+  return implTurnTo(oth,AnimationSolver::TurnType::Whirl,dt);
   }
 
 bool Npc::implGoTo(uint64_t dt) {
@@ -1396,7 +1400,7 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
         }
       }
     if(finished) {
-      if(go2.flag==Npc::GT_NextFp && implTurnTo(go2.wp->dirX,go2.wp->dirZ,false,dt))
+      if(go2.flag==Npc::GT_NextFp && implTurnTo(go2.wp->dirX,go2.wp->dirZ,AnimationSolver::TurnType::Std,dt))
         return true;
       clearGoTo();
       }
@@ -1405,7 +1409,7 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
       mvAlgo.tick(dt);
       return true;
       }
-    if(mvAlgo.checkLastBounce() && implTurnTo(dpos.x,dpos.z,false,dt)) {
+    if(mvAlgo.checkLastBounce() && implTurnTo(dpos.x,dpos.z,AnimationSolver::TurnType::Std,dt)) {
       mvAlgo.tick(dt);
       return true;
       }
@@ -1537,7 +1541,7 @@ bool Npc::implAttack(uint64_t dt) {
       if(shootBow()) {
         fghAlgo.consumeAction();
         } else {
-        if(!implTurnTo(*currentTarget,true,dt)) {
+        if(!implTurnTo(*currentTarget,AnimationSolver::TurnType::None,dt)) {
           if(!aimBow())
             setAnim(Anim::Idle);
           }
@@ -1656,10 +1660,10 @@ void Npc::adjustAttackRotation(uint64_t dt) {
   if(currentTarget!=nullptr && !currentTarget->isDown()) {
     auto ws = weaponState();
     if(ws!=WeaponState::NoWeapon) {
-      bool noAnim = !hasAutoroll();
+      enum AnimationSolver::TurnType anim = !hasAutoroll() ? AnimationSolver::TurnType::None : AnimationSolver::TurnType::Std;
       if(ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage)
-         noAnim = true;
-      implTurnTo(*currentTarget,noAnim,dt);
+         anim = AnimationSolver::TurnType::None;
+      implTurnTo(*currentTarget,anim,dt);
       }
     }
   }
@@ -1752,15 +1756,16 @@ bool Npc::implAiFlee(uint64_t dt) {
     setAnim(Anim::Idle);
     }
 
+  auto anim = (go2.flag!=GT_No)?AnimationSolver::TurnType::None:AnimationSolver::TurnType::Std;
   if(wp==nullptr || oth.qDistTo(wp)<oth.qDistTo(*this)) {
     auto  dx  = oth.x-x;
     auto  dz  = oth.z-z;
-    if(implTurnTo(-dx,-dz,(go2.flag!=GT_No),dt))
+    if(implTurnTo(-dx,-dz,anim,dt))
       return (go2.flag==GT_Flee);
     } else {
     auto  dx  = wp->x-x;
     auto  dz  = wp->z-z;
-    if(implTurnTo(dx,dz,(go2.flag!=GT_No),dt))
+    if(implTurnTo(dx,dz,anim,dt))
       return (go2.flag==GT_Flee);
     }
 
@@ -2219,6 +2224,17 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       // currentLookAtNpc = nullptr;
       break;
       }
+    case AI_WhirlToNpc: {
+      if(!prepareTurn()) {
+        queue.pushFront(std::move(act));
+        break;
+        }
+      if(act.target!=nullptr && implWhirlTo(*act.target,dt)) {
+        queue.pushFront(std::move(act));
+        break;
+        }
+      break;
+      }
     case AI_GoToNpc:
       if(!setInteraction(nullptr)) {
         queue.pushFront(std::move(act));
@@ -2555,7 +2571,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_AlignToFp:{
       if(auto fp = currentFp){
         if(fp->dirX!=0.f || fp->dirZ!=0.f){
-          if(implTurnTo(fp->dirX,fp->dirZ,false,dt))
+          if(implTurnTo(fp->dirX,fp->dirZ,AnimationSolver::TurnType::Std,dt))
             queue.pushFront(std::move(act));
           }
         }
@@ -3223,10 +3239,10 @@ Vec3 Npc::mapBone(std::string_view bone) const {
   }
 
 bool Npc::turnTo(float dx, float dz, bool noAnim, uint64_t dt) {
-  return implTurnTo(dx,dz,noAnim,dt);
+  return implTurnTo(dx,dz,noAnim?AnimationSolver::TurnType::None:AnimationSolver::TurnType::Std,dt);
   }
 
-bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
+bool Npc::rotateTo(float dx, float dz, float step, AnimationSolver::TurnType anim, uint64_t dt) {
   //step *= (float(dt)/1000.f)*60.f/100.f;
   step *= (float(dt)/1000.f);
 
@@ -3241,26 +3257,32 @@ bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
   float a  = angleDir(dx,dz);
   float da = a-angle;
 
-  if(noAnim || std::cos(double(da)*M_PI/180.0)>0) {
+  if(anim == AnimationSolver::TurnType::None || std::cos(double(da)*M_PI/180.0)>0) {
     if(float(std::abs(int(da)%180))<=(step*2.f)) {
       setAnimRotate(0);
       setDirection(a);
       return false;
       }
     } else {
-    stopWalkAnimation();
+    visual.stopWalkAnim(*this);
     }
 
   const auto sgn = std::sin(double(da)*M_PI/180.0);
-  if(sgn<0) {
-    setAnimRotate(noAnim ? 0 : +1);
-    setDirection(angle-step);
-    } else
-  if(sgn>0) {
-    setAnimRotate(noAnim ? 0 : -1);
-    setDirection(angle+step);
-    } else {
+  if(sgn==0) {
     setAnimRotate(0);
+    } else {
+      switch(anim) {
+        case AnimationSolver::TurnType::Std:
+          setAnimRotate((sgn<0)?+1:-1);
+          break;
+        case AnimationSolver::TurnType::None:
+          setAnimRotate(0);
+          break;
+        case AnimationSolver::TurnType::Whirl:
+          visual.setAnimWhirl(*this,(sgn<0)?+1:-1);
+          break;
+      }
+      setDirection((sgn<0)?angle-step:angle+step);
     }
   return true;
   }
@@ -3603,7 +3625,7 @@ bool Npc::tickCast(uint64_t dt) {
       }
 
     if(!isPlayer() && currentTarget!=nullptr) {
-      implTurnTo(*currentTarget,true,dt);
+      implTurnTo(*currentTarget,AnimationSolver::TurnType::None,dt);
       }
     }
 

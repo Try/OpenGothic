@@ -100,6 +100,7 @@ class MdlVisual final {
     bool                           hasAnim        (std::string_view scheme) const;
     void                           stopWalkAnim   (Npc &npc);
     void                           setAnimRotate  (Npc &npc, int dir);
+    void                           setAnimWhirl   (Npc &npc, int dir);
 
     void                           interrupt();
     WeaponState                    fightMode() const { return fgtMode; }

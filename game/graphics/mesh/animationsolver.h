@@ -72,6 +72,12 @@ class AnimationSolver final {
       MagNoMana
       };
 
+    enum TurnType : uint8_t {
+      Std = 0,
+      None,
+      Whirl,
+      };
+
     struct Overlay final {
       const Skeleton* skeleton=nullptr;
       uint64_t        time    =0;
