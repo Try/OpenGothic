@@ -225,6 +225,7 @@ void GameScript::initCommon() {
   bindExternal("npc_isdetectedmobownedbyguild",  &GameScript::npc_isdetectedmobownedbyguild);
   bindExternal("npc_ownedbynpc",                 &GameScript::npc_ownedbynpc);
   bindExternal("npc_canseesource",               &GameScript::npc_canseesource);
+  bindExternal("npc_isincutscene",               &GameScript::npc_isincutscene);
   bindExternal("npc_getdisttoitem",              &GameScript::npc_getdisttoitem);
   bindExternal("npc_getheighttoitem",            &GameScript::npc_getheighttoitem);
   bindExternal("npc_getdisttoplayer",            &GameScript::npc_getdisttoplayer);
@@ -2704,6 +2705,26 @@ bool GameScript::npc_canseesource(std::shared_ptr<zenkit::INpc> npcRef) {
   if(!self)
     return false;
   return self->canSeeSource();
+  }
+
+// Used (only?) in Gothic 1 in B_AssessEnemy, to prevent attacks during cutscenes.
+// Check the global cutscene lock to check if we're in a cinematic
+// Currently there is only the global aiIsDlgFinished() to check for running dialog,
+// combine this a player-check to at least prevent the player from getting attacked.
+// This could use refinement later, to allow per-npc in-dialog checks.
+bool GameScript::npc_isincutscene(std::shared_ptr<zenkit::INpc> npcRef) {
+  auto npc = findNpc(npcRef);
+  auto w = Gothic::inst().world();
+  if(w==nullptr)
+    return false;
+
+  if(w->isCutsceneLock())
+    return true;
+
+  if(npc!=nullptr && npc->isPlayer() && !owner.aiIsDlgFinished())
+    return true;
+
+  return false;
   }
 
 int GameScript::npc_getdisttoitem(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::IItem> itmRef) {
