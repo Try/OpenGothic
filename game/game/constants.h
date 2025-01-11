@@ -72,7 +72,7 @@ enum Guild: uint32_t {
   GIL_DRACONIAN               = 62,
   GIL_EMPTY_X                 = 63,
   GIL_EMPTY_Y                 = 64,
-  GIL_EMPTY_Z	                = 65,
+  GIL_EMPTY_Z                 = 65,
   GIL_MAX                     = 66
   };
 
@@ -286,7 +286,7 @@ enum ItmFlags : uint32_t {
   ITM_MULTI      = 1 << 21,
   ITM_AMULET     = 1 << 22,
   ITM_BELT       = 1 << 24,
-  ITM_TORCH	     = 1 << 28
+  ITM_TORCH      = 1 << 28
   };
 
 enum Action:uint32_t {
@@ -426,7 +426,7 @@ enum SpellCode : int32_t {
   SPL_SENDSTOP                    = 3,
   SPL_NEXTLEVEL                   = 4,
   SPL_STATUS_CANINVEST_NO_MANADEC = 8,
-  SPL_FORCEINVEST		              = 1 << 16
+  SPL_FORCEINVEST                 = 1 << 16
   };
 
 enum Protection : uint8_t {
