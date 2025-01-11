@@ -1209,7 +1209,9 @@ uint32_t Npc::guild() const {
   }
 
 bool Npc::isMonster() const {
-  return Guild::GIL_SEPERATOR_HUM<guild() && guild()<Guild::GIL_SEPERATOR_ORC;
+  const bool g2 = owner.version().game==2;
+  const auto SEPERATOR_ORC = g2 ? GIL_SEPERATOR_ORC : GIL_G1_SEPERATOR_ORC;
+  return GIL_SEPERATOR_HUM<guild() && guild()<SEPERATOR_ORC;
   }
 
 void Npc::setTrueGuild(int32_t g) {
@@ -2818,18 +2820,27 @@ void Npc::runEffect(Effect&& e) {
 bool Npc::isTargetableBySpell(TargetType t) const {
   if(bool(t&(TARGET_TYPE_ALL|TARGET_TYPE_NPCS)))
     return true;
+
   Guild gil = Guild(trueGuild());
+
+  const bool g2 = owner.version().game==2;
+  const auto SEPERATOR_ORC = g2 ? GIL_SEPERATOR_ORC : GIL_G1_SEPERATOR_ORC;
+  const auto G1_UNDEAD = (gil == GIL_G1_ZOMBIE ||
+    gil == GIL_G1_UNDEADORC || gil == GIL_G1_SKELETON);
+  const auto G2_UNDEAD = (gil == GIL_GOBBO_SKELETON ||
+    gil == GIL_SUMMONED_GOBBO_SKELETON || gil == GIL_SKELETON      ||
+    gil == GIL_SUMMONED_SKELETON       || gil == GIL_SKELETON_MAGE ||
+    gil == GIL_SHADOWBEAST_SKELETON    || gil == GIL_ZOMBIE);
+
   if(bool(t&TARGET_TYPE_HUMANS) && gil<GIL_SEPERATOR_HUM)
     return true;
-  if(bool(t&TARGET_TYPE_ORCS) && gil>GIL_SEPERATOR_ORC)
+  if(bool(t&TARGET_TYPE_ORCS) && gil>SEPERATOR_ORC)
     return true;
-  if(bool(t&TARGET_TYPE_UNDEAD)) {
-    if(gil == GIL_GOBBO_SKELETON || gil == GIL_SUMMONED_GOBBO_SKELETON ||
-      gil == GIL_SKELETON        || gil == GIL_SUMMONED_SKELETON       ||
-      gil == GIL_SKELETON_MAGE   || gil == GIL_SHADOWBEAST_SKELETON    ||
-      gil == GIL_ZOMBIE)
-      return true;
-    }
+  if(bool(t&TARGET_TYPE_UNDEAD) && g2 && G2_UNDEAD)
+    return true;
+  if(bool(t&TARGET_TYPE_UNDEAD) && !g2 && G1_UNDEAD)
+    return true;
+
   return false;
   }
 
