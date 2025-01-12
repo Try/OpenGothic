@@ -197,6 +197,7 @@ void GameScript::initCommon() {
   bindExternal("npc_gettarget",                  &GameScript::npc_gettarget);
   bindExternal("npc_getnexttarget",              &GameScript::npc_getnexttarget);
   bindExternal("npc_sendpassiveperc",            &GameScript::npc_sendpassiveperc);
+  bindExternal("npc_sendsingleperc",             &GameScript::npc_sendsingleperc);
   bindExternal("npc_checkinfo",                  &GameScript::npc_checkinfo);
   bindExternal("npc_getportalguild",             &GameScript::npc_getportalguild);
   bindExternal("npc_isinplayersroom",            &GameScript::npc_isinplayersroom);
@@ -2470,6 +2471,14 @@ void GameScript::npc_sendpassiveperc(std::shared_ptr<zenkit::INpc> npcRef, int i
 
   if(npc && other && victum)
     world().sendPassivePerc(*npc,*other,*victum,id);
+  }
+
+void GameScript::npc_sendsingleperc(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::INpc> otherRef, int id) {
+  auto other  = findNpc(otherRef);
+  auto npc    = findNpc(npcRef);
+
+  if(npc && other)
+    other->perceptionProcess(*npc,nullptr,0,PercType(id));
   }
 
 bool GameScript::npc_checkinfo(std::shared_ptr<zenkit::INpc> npcRef, int imp) {
