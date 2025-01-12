@@ -506,28 +506,42 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
       mdhName = name;
     FileExt::assignExt(mdhName,"MDH");
 
-    const auto* entry = Resources::vdfsIndex().find(mdhName);
-    if(entry==nullptr)
-      throw std::runtime_error("failed to open resource: " + mdhName);
+    if(const auto* entryMdh = Resources::vdfsIndex().find(mdhName)) {
+      // Find a MDH hirarchy file and separate mesh
+      zenkit::ModelHierarchy mdh;
+      auto reader = entryMdh->open_read();
+      mdh.load(reader.get());
 
-    zenkit::ModelHierarchy mdh;
-    auto reader = entry->open_read();
-    mdh.load(reader.get());
+      std::unique_ptr<Skeleton> sk{new Skeleton(mdh,anim,name)};
+      std::unique_ptr<ProtoMesh> t;
 
-    std::unique_ptr<Skeleton> sk{new Skeleton(mdh,anim,name)};
-    std::unique_ptr<ProtoMesh> t;
+      if(const auto* entry = Resources::vdfsIndex().find(mesh)) {
+        auto reader = entry->open_read();
 
-    if(const auto* entry = Resources::vdfsIndex().find(mesh)) {
-      auto reader = entry->open_read();
+        zenkit::ModelMesh mdm {};
+        mdm.load(reader.get());
+        t.reset(new ProtoMesh(mdm,std::move(sk),name));
+        }
+      else
+        t.reset(new ProtoMesh(mdh,std::move(sk),name));
 
-      zenkit::ModelMesh mdm {};
-      mdm.load(reader.get());
-      t.reset(new ProtoMesh(mdm,std::move(sk),name));
+      return t;
       }
-    else
-      t.reset(new ProtoMesh(mdh,std::move(sk),name));
 
-    return t;
+    // MDL files contain both the hirarchy and mesh, try to find one as a fallback
+    FileExt::exchangeExt(mdhName,"MDH","MDL");
+    if(const auto* entryMdl = Resources::vdfsIndex().find(mdhName)) {
+      if(entryMdl==nullptr)
+        throw std::runtime_error("failed to open resource: " + mdhName);
+
+      zenkit::Model mdm;
+      auto reader = entryMdl->open_read();
+      mdm.load(reader.get());
+
+      std::unique_ptr<Skeleton> sk{new Skeleton(mdm.hierarchy,anim,name)};
+      std::unique_ptr<ProtoMesh> t{new ProtoMesh(mdm,std::move(sk),name)};
+      return t;
+      }
     }
 
   if(FileExt::hasExt(name,"MDM") || FileExt::hasExt(name,"ASC")) {
