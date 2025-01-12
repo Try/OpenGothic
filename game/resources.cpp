@@ -506,28 +506,43 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
       mdhName = name;
     FileExt::assignExt(mdhName,"MDH");
 
-    const auto* entry = Resources::vdfsIndex().find(mdhName);
-    if(entry==nullptr)
-      throw std::runtime_error("failed to open resource: " + mdhName);
-
-    zenkit::ModelHierarchy mdh;
-    auto reader = entry->open_read();
-    mdh.load(reader.get());
-
-    std::unique_ptr<Skeleton> sk{new Skeleton(mdh,anim,name)};
-    std::unique_ptr<ProtoMesh> t;
-
-    if(const auto* entry = Resources::vdfsIndex().find(mesh)) {
+    if(const auto* entry = Resources::vdfsIndex().find(mdhName)) {
+      // Find a MDH hirarchy file and separate mesh
+      zenkit::ModelHierarchy mdh;
       auto reader = entry->open_read();
+      mdh.load(reader.get());
 
-      zenkit::ModelMesh mdm {};
-      mdm.load(reader.get());
-      t.reset(new ProtoMesh(mdm,std::move(sk),name));
-      }
-    else
-      t.reset(new ProtoMesh(mdh,std::move(sk),name));
+      std::unique_ptr<Skeleton> sk{new Skeleton(mdh,anim,name)};
+      std::unique_ptr<ProtoMesh> t;
 
-    return t;
+      if(const auto* entry = Resources::vdfsIndex().find(mesh)) {
+        auto reader = entry->open_read();
+
+        zenkit::ModelMesh mdm {};
+        mdm.load(reader.get());
+        t.reset(new ProtoMesh(mdm,std::move(sk),name));
+        }
+      else
+        t.reset(new ProtoMesh(mdh,std::move(sk),name));
+
+      return t;
+      } else {
+        // MDL files contain both the hirarchy and mesh, try to find one as a fallback
+        FileExt::exchangeExt(mdhName,"MDH","MDL");
+        entry = Resources::vdfsIndex().find(mdhName);
+        if(entry == nullptr) {
+          FileExt::exchangeExt(mdhName,"MDL",  nullptr);
+          throw std::runtime_error("failed to open resource: " + mdhName + " .mdh or .mdl");
+          }
+
+        zenkit::Model mdm;
+        auto reader = entry->open_read();
+        mdm.load(reader.get());
+
+        std::unique_ptr<Skeleton> sk{new Skeleton(mdm.hierarchy,anim,name)};
+        std::unique_ptr<ProtoMesh> t{new ProtoMesh(mdm,std::move(sk),name)};
+        return t;
+        }
     }
 
   if(FileExt::hasExt(name,"MDM") || FileExt::hasExt(name,"ASC")) {
