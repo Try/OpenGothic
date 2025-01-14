@@ -385,6 +385,7 @@ enum Action:uint32_t {
   AI_PrintScreen,
   AI_LookAt,
   AI_WhirlToNpc,
+  AI_TurnAway,
   };
 
 

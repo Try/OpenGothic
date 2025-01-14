@@ -242,6 +242,7 @@ void GameScript::initCommon() {
   bindExternal("ai_lookatnpc",                   &GameScript::ai_lookatnpc);
   bindExternal("ai_removeweapon",                &GameScript::ai_removeweapon);
   bindExternal("ai_unreadyspell",                &GameScript::ai_unreadyspell);
+  bindExternal("ai_turnaway",                    &GameScript::ai_turnaway);
   bindExternal("ai_turntonpc",                   &GameScript::ai_turntonpc);
   bindExternal("ai_whirlaround",                 &GameScript::ai_whirlaround);
   bindExternal("ai_outputsvm",                   &GameScript::ai_outputsvm);
@@ -2919,6 +2920,13 @@ void GameScript::ai_unreadyspell(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
     npc->aiPush(AiQueue::aiRemoveWeapon());
+  }
+
+void GameScript::ai_turnaway(std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> npcRef) {
+  auto npc  = findNpc(npcRef);
+  auto self = findNpc(selfRef);
+  if(self!=nullptr)
+    self->aiPush(AiQueue::aiTurnAway(npc));
   }
 
 void GameScript::ai_turntonpc(std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> npcRef) {

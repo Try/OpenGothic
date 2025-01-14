@@ -1329,6 +1329,18 @@ bool Npc::implLookAt(float dx, float dy, float dz, uint64_t dt) {
   return false;
   }
 
+bool Npc::implTurnAway(const Npc &oth, uint64_t dt) {
+  if(&oth==this)
+    return true;
+
+  // turn npc's back to oth, so calculate direction from oth to npc
+  auto dx = x-oth.x;
+  auto dz = z-oth.z;
+  auto  gl   = guild();
+  float step = float(owner.script().guildVal().turn_speed[gl]);
+  return rotateTo(dx,dz,step,AnimationSolver::TurnType::Std,dt);
+  }
+
 bool Npc::implTurnTo(const Npc &oth, uint64_t dt) {
   if(&oth==this)
     return true;
@@ -2207,6 +2219,17 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_LookAt:{
       currentLookAtNpc=nullptr;
       currentLookAt=act.point;
+      break;
+      }
+    case AI_TurnAway: {
+      if(!prepareTurn()) {
+        queue.pushFront(std::move(act));
+        break;
+        }
+      if(act.target!=nullptr && implTurnAway(*act.target,dt)) {
+        queue.pushFront(std::move(act));
+        break;
+        }
       break;
       }
     case AI_TurnToNpc: {

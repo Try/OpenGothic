@@ -98,6 +98,13 @@ AiQueue::AiAction AiQueue::aiRemoveWeapon() {
   return a;
   }
 
+AiQueue::AiAction AiQueue::aiTurnAway(Npc *other) {
+  AiAction a;
+  a.act    = AI_TurnAway;
+  a.target = other;
+  return a;
+  }
+
 AiQueue::AiAction AiQueue::aiTurnToNpc(Npc *other) {
   AiAction a;
   a.act    = AI_TurnToNpc;

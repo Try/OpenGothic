@@ -472,6 +472,7 @@ class Npc final {
     bool      implLookAtWp(uint64_t dt);
     bool      implLookAtNpc(uint64_t dt);
     bool      implLookAt (float dx, float dy, float dz, uint64_t dt);
+    bool      implTurnAway(const Npc& oth, uint64_t dt);
     bool      implTurnTo (const Npc& oth, uint64_t dt);
     bool      implTurnTo (const Npc& oth, AnimationSolver::TurnType anim, uint64_t dt);
     bool      implTurnTo (float dx, float dz, AnimationSolver::TurnType anim, uint64_t dt);

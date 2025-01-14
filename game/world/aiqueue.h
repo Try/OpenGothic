@@ -46,6 +46,7 @@ class AiQueue {
     static AiAction aiLookAtNpc(Npc* other);
     static AiAction aiStopLookAt();
     static AiAction aiRemoveWeapon();
+    static AiAction aiTurnAway (Npc *other);
     static AiAction aiTurnToNpc(Npc *other);
     static AiAction aiWhirlToNpc(Npc *other);
     static AiAction aiGoToNpc  (Npc *other);
