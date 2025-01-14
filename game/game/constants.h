@@ -72,8 +72,54 @@ enum Guild: uint32_t {
   GIL_DRACONIAN               = 62,
   GIL_EMPTY_X                 = 63,
   GIL_EMPTY_Y                 = 64,
-  GIL_EMPTY_Z	                = 65,
-  GIL_MAX                     = 66
+  GIL_EMPTY_Z                 = 65,
+  GIL_MAX                     = 66,
+
+  // Gothic 1 guilds
+  GIL_G1_NONE                 = GIL_NONE,
+  GIL_G1_HUMAN                = GIL_HUMAN,
+  GIL_G1_EBR                  = 1,  // Erzbaron
+  GIL_G1_GRD                  = 2,  // Gardist
+  GIL_G1_STT                  = 3,  // Schatten
+  GIL_G1_KDF                  = GIL_KDF,
+  GIL_G1_VLK                  = 5,  // Buddler
+  GIL_G1_KDW                  = 6,  // Wassermagier
+  GIL_G1_SLD                  = GIL_SLD,
+  GIL_G1_ORG                  = 8,  // Bandit
+  GIL_G1_BAU                  = 9,  // Bauer
+  GIL_G1_SFB                  = 10, // Schuerfer
+  GIL_G1_GUR                  = 11, // Guru
+  GIL_G1_NOV                  = 12, // Novize
+  GIL_G1_TPL                  = 13, // Templer
+  GIL_G1_DMB                  = 14, // Darkmagic Xardas
+  GIL_G1_BAB                  = 15, // Female
+  GIL_G1_SEPERATOR_HUM        = GIL_SEPERATOR_HUM,
+  GIL_G1_WARAN                = 17,
+  GIL_G1_SLF                  = 18, // Sleeper
+  GIL_G1_GOBBO                = GIL_GOBBO,
+  GIL_G1_TROLL                = 20,
+  GIL_G1_SNAPPER              = 21,
+  GIL_G1_MINECRAWLER          = 22,
+  GIL_G1_MEATBUG              = 23,
+  GIL_G1_SCAVENGER            = 24,
+  GIL_G1_DEMON                = 25,
+  GIL_G1_WOLF                 = 26,
+  GIL_G1_SHADOWBEAST          = 27,
+  GIL_G1_BLOODFLY             = 28,
+  GIL_G1_SWAMPSHARK           = 29,
+  GIL_G1_ZOMBIE               = 30,
+  GIL_G1_UNDEADORC            = 31,
+  GIL_G1_SKELETON             = 32,
+  GIL_G1_ORCDOG               = 33,
+  GIL_G1_MOLERAT              = 34,
+  GIL_G1_GOLEM                = 35,
+  GIL_G1_LURKER               = 36,
+  GIL_G1_SEPERATOR_ORC        = 37,
+  GIL_G1_ORCSHAMAN            = 38,
+  GIL_G1_ORCWARROIR           = 39,
+  GIL_G1_ORCSCOUT             = 40,
+  GIL_G1_ORCSLAVE             = 41,
+  GIL_G1_MAX                  = 42,
   };
 
 enum {
@@ -286,7 +332,7 @@ enum ItmFlags : uint32_t {
   ITM_MULTI      = 1 << 21,
   ITM_AMULET     = 1 << 22,
   ITM_BELT       = 1 << 24,
-  ITM_TORCH	     = 1 << 28
+  ITM_TORCH      = 1 << 28
   };
 
 enum Action:uint32_t {
@@ -426,7 +472,7 @@ enum SpellCode : int32_t {
   SPL_SENDSTOP                    = 3,
   SPL_NEXTLEVEL                   = 4,
   SPL_STATUS_CANINVEST_NO_MANADEC = 8,
-  SPL_FORCEINVEST		              = 1 << 16
+  SPL_FORCEINVEST                 = 1 << 16
   };
 
 enum Protection : uint8_t {
