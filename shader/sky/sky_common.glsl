@@ -79,7 +79,7 @@ vec3 textureLUT(sampler2D tex, vec3 pos, vec3 sunDir) {
   vec2 uv;
   uv.x = 0.5 + 0.5*cosAngle;
   uv.y = (height - RPlanet)/(RAtmos - RPlanet);
-  return texture(tex, uv).rgb;
+  return textureLod(tex, uv, 0).rgb;
   }
 
 #endif

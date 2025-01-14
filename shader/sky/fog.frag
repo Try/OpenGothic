@@ -20,7 +20,6 @@ layout(location = 0) out vec4 outColor;
 #endif
 
 layout(push_constant, std430) uniform UboPush {
-  mat4  viewProjectInv;
   float rayleighScatteringScale;
   } push;
 #if defined(GL_COMPUTE_SHADER)
@@ -63,7 +62,7 @@ float interleavedGradientNoise() {
   }
 
 vec3 inverse(vec3 pos) {
-  vec4 ret = push.viewProjectInv*vec4(pos,1.0);
+  vec4 ret = scene.viewProjectInv*vec4(pos,1.0);
   return (ret.xyz/ret.w)/100.f;
   }
 

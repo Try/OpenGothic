@@ -8,7 +8,6 @@ layout(location = 0) in  vec2 inPos;
 layout(location = 0) out vec4 outColor;
 
 layout(push_constant, std430) uniform UboPush {
-  mat4  viewProjectInv;
   float rayleighScatteringScale;
   } push;
 layout(binding  = 0) uniform sampler2D tLUT;

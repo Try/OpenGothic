@@ -6,7 +6,6 @@
 #include "sky_common.glsl"
 
 layout(push_constant, std430) uniform UboPush {
-  mat4  viewProjectInv;
   float rayleighScatteringScale;
   } push;
 layout(binding = 0, std140) uniform UboScene {

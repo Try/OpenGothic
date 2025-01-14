@@ -1519,7 +1519,7 @@ void Renderer::drawSky(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wvie
       sky.uboSkyPathtrace.set(4, zbuffer, Sampler::nearest());
       sky.uboSkyPathtrace.set(5, *scene.shadowMap[1], Resources::shadowSampler());
       }
-    Sky::Ubo ubo = sky.mkPush(wview, true);
+    Sky::Ubo ubo = sky.mkPush(wview);
     cmd.setUniforms(shaders.skyPathTrace, sky.uboSkyPathtrace, &ubo, sizeof(ubo));
     cmd.draw(Resources::fsqVbo());
     return;
@@ -1537,7 +1537,7 @@ void Renderer::drawSky(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wvie
     sky.uboSky.set(7,*wview.sky().cloudsNight().lay[0],smp);
     sky.uboSky.set(8,*wview.sky().cloudsNight().lay[1],smp);
     }
-  Sky::Ubo ubo = sky.mkPush(wview, true);
+  Sky::Ubo ubo = sky.mkPush(wview);
   cmd.setUniforms(shaders.sky, sky.uboSky, &ubo, sizeof(ubo));
   cmd.draw(Resources::fsqVbo());
   }
@@ -1647,9 +1647,9 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, Wor
       vsm.uboFogTrace.set(2, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
       vsm.uboFogTrace.set(3, vsm.epipoles);
       vsm.uboFogTrace.set(4, zbuffer);
-      vsm.uboFogTrace.set(5, sky.transLut,     smpB);
-      vsm.uboFogTrace.set(6, sky.multiScatLut, smpB);
-      vsm.uboFogTrace.set(7, sky.cloudsLut,    smpB);
+      vsm.uboFogTrace.set(5, sky.transLut,  smpB);
+      vsm.uboFogTrace.set(6, sky.cloudsLut, smpB);
+      vsm.uboFogTrace.set(7, sky.fogLut3D,  smpB);
       }
     cmd.setFramebuffer({});
     cmd.setDebugMarker("VSM-trace");
@@ -1904,14 +1904,8 @@ Size Renderer::internalResolution() const {
   return Size(int(swapchain.w()/2), int(swapchain.h()/2));
   }
 
-Renderer::Sky::Ubo Renderer::Sky::mkPush(WorldView& wview, bool lwc) {
-  auto& scene = wview.sceneGlobals();
-
+Renderer::Sky::Ubo Renderer::Sky::mkPush(WorldView& wview) {
   Sky::Ubo ubo;
-  if(lwc)
-    ubo.viewProjectInv = scene.viewProjectLwcInv(); else
-    ubo.viewProjectInv = scene.viewProjectInv();
-
   static float rayleighScatteringScale = 33.1f;
   ubo.rayleighScatteringScale = rayleighScatteringScale;
   return ubo;

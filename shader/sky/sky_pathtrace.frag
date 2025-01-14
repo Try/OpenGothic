@@ -9,7 +9,6 @@
 #include "common.glsl"
 
 layout(push_constant, std430) uniform UboPush {
-  mat4  viewProjectInv;
   float rayleighScatteringScale;
   } push;
 layout(binding = 0, std140) uniform UboScene {
@@ -117,8 +116,8 @@ void main() {
   const float dMin   = 0;
   const float dMax   = texelFetch(depth, ivec2(gl_FragCoord.xy), 0).x;
   const bool  isSky  = (dMax==1.0);
-  const vec3  pos0   = project(scene.viewProjectInv, vec3(inPos,dMin));
-  const vec3  pos1   = project(scene.viewProjectInv, vec3(inPos,dMax));
+  const vec3  pos0   = project(scene.viewProjectLwcInv, vec3(inPos,dMin));
+  const vec3  pos1   = project(scene.viewProjectLwcInv, vec3(inPos,dMax));
   // const vec4  shPos0 = scene.viewShadow[1]*vec4(pos0, 1);
   // const vec4  shPos1 = scene.viewShadow[1]*vec4(pos1, 1);
 

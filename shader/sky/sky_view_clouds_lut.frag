@@ -11,7 +11,6 @@
 // #define SKY_LOD 2
 
 layout(push_constant, std430) uniform UboPush {
-  mat4  viewProjectInv;
   float rayleighScatteringScale;
   } push;
 layout(binding = 0, std140) uniform UboScene {

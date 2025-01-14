@@ -138,11 +138,10 @@ class Renderer final {
 
     struct Sky {
       struct Ubo {
-        Tempest::Matrix4x4 viewProjectInv;
-        float              rayleighScatteringScale = 0;
+        float rayleighScatteringScale = 0;
         };
 
-      Ubo mkPush(WorldView& wview, bool lwc = false);
+      Ubo mkPush(WorldView& wview);
 
       Quality                quality       = Quality::None;
 

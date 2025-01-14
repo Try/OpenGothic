@@ -7,7 +7,6 @@
 #include "clouds.glsl"
 
 layout(push_constant, std430) uniform UboPush {
-  mat4  viewProjectInv;
   float rayleighScatteringScale;
   } push;
 layout(binding  = 0, std140) uniform UboScene {
@@ -27,7 +26,7 @@ layout(location = 0) in  vec2 inPos;
 layout(location = 0) out vec4 outColor;
 
 vec3 inverse(vec3 pos) {
-  vec4 ret = push.viewProjectInv*vec4(pos,1.0);
+  vec4 ret = scene.viewProjectLwcInv*vec4(pos,1.0);
   return (ret.xyz/ret.w)/100.f;
   }
 
