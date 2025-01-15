@@ -1274,17 +1274,19 @@ bool Npc::implPointAt(const Tempest::Vec3& to) {
   }
 
 bool Npc::implLookAtWp(uint64_t dt) {
-  if(currentLookAt==nullptr)
+  // nothing to look at, or a quicklook is handled in implLookAtNpc
+  if(currentLookAt==nullptr || quickLookNpc!=nullptr)
     return false;
   auto dvec = currentLookAt->position();
   return implLookAt(dvec.x,dvec.y,dvec.z,dt);
   }
 
 bool Npc::implLookAtNpc(uint64_t dt) {
-  if(currentLookAtNpc==nullptr)
+  if(currentLookAtNpc==nullptr && quickLookNpc == nullptr)
     return false;
   auto selfHead  = visual.mapHeadBone();
-  auto otherHead = currentLookAtNpc->visual.mapHeadBone();
+  auto other = (quickLookNpc!=nullptr) ? quickLookNpc : currentLookAtNpc;
+  auto otherHead = other->visual.mapHeadBone();
   auto dvec = otherHead - selfHead;
   return implLookAt(dvec.x,dvec.y,dvec.z,dt);
   }
@@ -2132,6 +2134,16 @@ void Npc::tick(uint64_t dt) {
   if(dbg && !isPlayer() && hnpc->id!=kId)
     return;
 
+  // Unset QuickLook after the timeout
+  if(quickLookEnd > 0 && owner.tickCount() > quickLookEnd) {
+    quickLookEnd = 0;
+    quickLookNpc = nullptr;
+
+    // if nothing else to look at, re-set head rotation
+    if(currentLookAt==nullptr && currentLookAtNpc==nullptr)
+      visual.setHeadRotation(0,0);
+    }
+
   tickAnimationTags();
 
   if(!visual.pose().hasAnim())
@@ -2214,11 +2226,19 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_LookAtNpc:{
       currentLookAt=nullptr;
       currentLookAtNpc=act.target;
+      quickLookEnd=0;
+      quickLookNpc=nullptr;
+      break;
+      }
+    case AI_QuickLook:{
+      // Nothing to do, as the QuickLook just works in parallel
       break;
       }
     case AI_LookAt:{
       currentLookAtNpc=nullptr;
       currentLookAt=act.point;
+      quickLookEnd=0;
+      quickLookNpc=nullptr;
       break;
       }
     case AI_TurnAway: {
@@ -2304,6 +2324,8 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_StopLookAt:
       currentLookAtNpc=nullptr;
       currentLookAt=nullptr;
+      quickLookEnd=0;
+      quickLookNpc=nullptr;
       visual.setHeadRotation(0,0);
       break;
     case AI_RemoveWeapon:
@@ -3091,9 +3113,19 @@ void Npc::setToFistMode() {
   }
 
 void Npc::aiPush(AiQueue::AiAction&& a) {
-  if(a.act==AI_OutputSvmOverlay)
-    aiQueueOverlay.pushBack(std::move(a)); else
-    aiQueue.pushBack(std::move(a));
+  switch(a.act) {
+    case AI_OutputSvmOverlay:
+      aiQueueOverlay.pushBack(std::move(a));
+      break;
+    case AI_QuickLook:
+      // QuickLook is supposed to last for 2 seconds
+      // and should not interrupt other AI actions like walking
+      quickLookEnd = owner.tickCount()+2000;
+      quickLookNpc = a.target;
+    default:
+      aiQueue.pushBack(std::move(a));
+      break;
+    }
   }
 
 void Npc::resumeAiRoutine() {
@@ -4221,6 +4253,9 @@ bool Npc::isAiBusy() const {
 void Npc::clearAiQueue() {
   currentLookAt    = nullptr;
   currentLookAtNpc = nullptr;
+  quickLookEnd     = 0;
+  quickLookNpc     = nullptr;
+
   visual.setHeadRotation(0,0);
 
   aiQueue.clear();

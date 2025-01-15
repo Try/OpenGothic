@@ -238,6 +238,7 @@ void GameScript::initCommon() {
   bindExternal("ai_standupquick",                &GameScript::ai_standupquick);
   bindExternal("ai_continueroutine",             &GameScript::ai_continueroutine);
   bindExternal("ai_stoplookat",                  &GameScript::ai_stoplookat);
+  bindExternal("ai_quicklook",                   &GameScript::ai_quicklook);
   bindExternal("ai_lookat",                      &GameScript::ai_lookat);
   bindExternal("ai_lookatnpc",                   &GameScript::ai_lookatnpc);
   bindExternal("ai_removeweapon",                &GameScript::ai_removeweapon);
@@ -2894,6 +2895,13 @@ void GameScript::ai_stoplookat(std::shared_ptr<zenkit::INpc> selfRef) {
   auto self = findNpc(selfRef);
   if(self!=nullptr)
     self->aiPush(AiQueue::aiStopLookAt());
+  }
+
+void GameScript::ai_quicklook(std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> npcRef) {
+  auto npc  = findNpc(npcRef);
+  auto self = findNpc(selfRef);
+  if(self!=nullptr)
+    self->aiPush(AiQueue::aiQuickLook(npc));
   }
 
 void GameScript::ai_lookat(std::shared_ptr<zenkit::INpc> selfRef, std::string_view waypoint) {
