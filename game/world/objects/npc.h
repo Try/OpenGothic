@@ -213,6 +213,7 @@ class Npc final {
     uint32_t   instanceSymbol() const;
     uint32_t   guild() const;
     bool       isMonster() const;
+    bool       isHuman() const;
     void       setTrueGuild(int32_t g);
     int32_t    trueGuild() const;
     int32_t    magicCyrcle() const;

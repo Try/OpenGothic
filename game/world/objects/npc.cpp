@@ -525,7 +525,7 @@ bool Npc::startClimb(JumpStatus jump) {
   return mvAlgo.startClimb(jump);
   }
 
-bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
+bool Npc::checkHealth(bool onChange, bool allowUnconscious) {
   if(isDead()) {
     return false;
     }
@@ -535,10 +535,8 @@ bool Npc::checkHealth(bool onChange,bool allowUnconscious) {
 
   const int minHp = isMonster() ? 0 : 1;
   if(hnpc->attribute[ATR_HITPOINTS]<=minHp) {
-    if(currentOther==nullptr ||
-       !allowUnconscious ||
-       owner.script().personAttitude(*this,*currentOther)==ATT_HOSTILE ||
-       guild()>GIL_SEPERATOR_HUM){
+    if(currentOther==nullptr || !allowUnconscious || !isHuman() ||
+       owner.script().personAttitude(*this,*currentOther)==ATT_HOSTILE){
       if(hnpc->attribute[ATR_HITPOINTS]<=0)
         onNoHealth(true,HS_Dead);
       return false;
@@ -1211,7 +1209,14 @@ uint32_t Npc::guild() const {
 bool Npc::isMonster() const {
   const bool g2 = owner.version().game==2;
   const auto SEPERATOR_ORC = g2 ? GIL_SEPERATOR_ORC : GIL_G1_SEPERATOR_ORC;
-  return GIL_SEPERATOR_HUM<guild() && guild()<SEPERATOR_ORC;
+  const auto SEPERATOR_HUM = g2 ? GIL_SEPERATOR_HUM : GIL_G1_SEPERATOR_HUM;
+  return SEPERATOR_HUM<guild() && guild()<SEPERATOR_ORC;
+  }
+
+bool Npc::isHuman() const {
+  const bool g2 = owner.version().game==2;
+  const auto SEPERATOR_HUM = g2 ? GIL_SEPERATOR_HUM : GIL_G1_SEPERATOR_HUM;
+  return guild() < SEPERATOR_HUM;
   }
 
 void Npc::setTrueGuild(int32_t g) {
@@ -2821,18 +2826,17 @@ bool Npc::isTargetableBySpell(TargetType t) const {
   if(bool(t&(TARGET_TYPE_ALL|TARGET_TYPE_NPCS)))
     return true;
 
-  Guild gil = Guild(trueGuild());
+  const Guild gil = Guild(trueGuild());
 
   const bool g2 = owner.version().game==2;
   const auto SEPERATOR_ORC = g2 ? GIL_SEPERATOR_ORC : GIL_G1_SEPERATOR_ORC;
-  const auto G1_UNDEAD = (gil == GIL_G1_ZOMBIE ||
-    gil == GIL_G1_UNDEADORC || gil == GIL_G1_SKELETON);
+  const auto G1_UNDEAD = (gil == GIL_G1_ZOMBIE || gil == GIL_G1_UNDEADORC || gil == GIL_G1_SKELETON);
   const auto G2_UNDEAD = (gil == GIL_GOBBO_SKELETON ||
     gil == GIL_SUMMONED_GOBBO_SKELETON || gil == GIL_SKELETON      ||
     gil == GIL_SUMMONED_SKELETON       || gil == GIL_SKELETON_MAGE ||
     gil == GIL_SHADOWBEAST_SKELETON    || gil == GIL_ZOMBIE);
 
-  if(bool(t&TARGET_TYPE_HUMANS) && gil<GIL_SEPERATOR_HUM)
+  if(bool(t&TARGET_TYPE_HUMANS) && isHuman())
     return true;
   if(bool(t&TARGET_TYPE_ORCS) && gil>SEPERATOR_ORC)
     return true;
