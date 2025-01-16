@@ -46,6 +46,7 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
     TextureFormat::Depth16,
     TextureFormat::Depth24x8,
     TextureFormat::Depth32F,
+    TextureFormat::Last,
     };
 
   for(auto& i:sfrm) {
@@ -53,18 +54,23 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
       shadowFormat = i;
       break;
       }
+    if(i==TextureFormat::Last)
+      throw std::runtime_error("no valid shadow format - broken graphics driver?");
     }
 
   static const TextureFormat zfrm[] = {
     TextureFormat::Depth32F,
     TextureFormat::Depth24x8,
     TextureFormat::Depth16,
+    TextureFormat::Last,
     };
   for(auto& i:zfrm) {
     if(device.properties().hasDepthFormat(i) && device.properties().hasSamplerFormat(i)){
       zBufferFormat = i;
       break;
       }
+    if(i==TextureFormat::Last)
+      throw std::runtime_error("no valid zBuffer format - broken graphics driver?");
     }
 
   // crappy rasbery-pi like hardware
