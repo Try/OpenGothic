@@ -3837,6 +3837,12 @@ bool Npc::perceptionProcess(Npc &pl) {
   if(isPlayer())
     return true;
 
+  // Prevent deadlocking the perception handling
+  if(perceptionTime == 0) {
+    Log::e("Fixing 0 perception time of Npc ",displayName());
+    setPerceptionTime(1000);
+    }
+
   bool ret=false;
   if(processPolicy()!=Npc::AiNormal) {
     perceptionNextTime = owner.tickCount()+perceptionTime;
