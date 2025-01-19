@@ -588,7 +588,8 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
                                                       uint8_t comb,
                                                       WeaponState st, WalkBit wlk) {
   // for those use MdlVisual::setRotation
-  assert(a!=AnimationSolver::Anim::RotL && a!=AnimationSolver::Anim::RotR);
+  assert(a!=AnimationSolver::Anim::RotL && a!=AnimationSolver::Anim::RotR &&
+         a!=AnimationSolver::Anim::WhirlL && a!=AnimationSolver::Anim::WhirlR);
 
   if(a==AnimationSolver::InteractIn ||
      a==AnimationSolver::InteractOut ||
@@ -651,6 +652,8 @@ const Animation::Sequence* MdlVisual::startAnimAndGet(Npc& npc, AnimationSolver:
         bs = BS_RUN;
     case AnimationSolver::Anim::RotL:
     case AnimationSolver::Anim::RotR:
+    case AnimationSolver::Anim::WhirlL:
+    case AnimationSolver::Anim::WhirlR:
       break;
     case AnimationSolver::Anim::Fall:
     case AnimationSolver::Anim::FallDeep:
