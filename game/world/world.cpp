@@ -869,6 +869,14 @@ const WayPoint* World::findWayPoint(const Tempest::Vec3& pos, const std::functio
   return wmatrix->findWayPoint(pos,f);
   }
 
+const WayPoint* World::findSecondNearestWayPoint(const Tempest::Vec3& pos) const {
+  auto nearest = findWayPoint(pos);
+  auto filter  = [&](const WayPoint& p) { return nearest != &p; };
+  auto wp      = nearest ? findWayPoint(pos, filter) : nullptr;
+
+  return wp;
+  }
+
 const WayPoint *World::findFreePoint(const Npc &npc, std::string_view name) const {
   if(auto p = npc.currentWayPoint()){
     if(p->isFreePoint() && p->checkName(name)) {

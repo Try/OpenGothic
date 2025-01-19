@@ -58,6 +58,8 @@ class World final {
     const WayPoint*      findWayPoint(const Tempest::Vec3& pos) const;
     const WayPoint*      findWayPoint(const Tempest::Vec3& pos, const std::function<bool(const WayPoint&)>& f) const;
 
+    const WayPoint*      findSecondNearestWayPoint(const Tempest::Vec3& pos) const;
+
     const WayPoint*      findFreePoint(const Npc& pos,           std::string_view name) const;
     const WayPoint*      findFreePoint(const Tempest::Vec3& pos, std::string_view name) const;
 

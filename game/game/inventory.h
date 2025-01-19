@@ -108,6 +108,7 @@ class Inventory final {
     Item*  currentRangeWeapon()    { return range;      }
     Item*  currentSpell(uint8_t s) { return numslot[s]; }
     const Item*  currentSpell(uint8_t s) const { return numslot[s]; }
+    Item*  findByFlags(ItmFlags f, uint32_t num) const;
 
     uint8_t currentSpellSlot() const;
     bool    hasStateItem() const;

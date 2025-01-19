@@ -159,6 +159,7 @@ void GameScript::initCommon() {
   bindExternal("npc_hasitems",                   &GameScript::npc_hasitems);
   bindExternal("npc_hasspell",                   &GameScript::npc_hasspell);
   bindExternal("npc_getinvitem",                 &GameScript::npc_getinvitem);
+  bindExternal("npc_getinvitembyslot",           &GameScript::npc_getinvitembyslot);
   bindExternal("npc_removeinvitem",              &GameScript::npc_removeinvitem);
   bindExternal("npc_removeinvitems",             &GameScript::npc_removeinvitems);
   bindExternal("npc_getbodystate",               &GameScript::npc_getbodystate);
@@ -169,6 +170,7 @@ void GameScript::initCommon() {
   bindExternal("npc_percenable",                 &GameScript::npc_percenable);
   bindExternal("npc_percdisable",                &GameScript::npc_percdisable);
   bindExternal("npc_getnearestwp",               &GameScript::npc_getnearestwp);
+  bindExternal("npc_getnextwp",                  &GameScript::npc_getnextwp);
   bindExternal("npc_clearaiqueue",               &GameScript::npc_clearaiqueue);
   bindExternal("npc_isplayer",                   &GameScript::npc_isplayer);
   bindExternal("npc_getstatetime",               &GameScript::npc_getstatetime);
@@ -223,6 +225,7 @@ void GameScript::initCommon() {
   bindExternal("npc_isdetectedmobownedbyguild",  &GameScript::npc_isdetectedmobownedbyguild);
   bindExternal("npc_ownedbynpc",                 &GameScript::npc_ownedbynpc);
   bindExternal("npc_canseesource",               &GameScript::npc_canseesource);
+  bindExternal("npc_isincutscene",               &GameScript::npc_isincutscene);
   bindExternal("npc_getdisttoitem",              &GameScript::npc_getdisttoitem);
   bindExternal("npc_getheighttoitem",            &GameScript::npc_getheighttoitem);
   bindExternal("npc_getdisttoplayer",            &GameScript::npc_getdisttoplayer);
@@ -2053,6 +2056,59 @@ int GameScript::npc_getinvitem(std::shared_ptr<zenkit::INpc> npcRef, int itemId)
   return -1;
   }
 
+// This seems specific to Gothic 1, where the inventory was grouped into categories.
+// In the shared inventory, these categories are just following one after the other.
+// So we should transform this to iterate over the different categories in the
+// shared inventory
+int GameScript::npc_getinvitembyslot(std::shared_ptr<zenkit::INpc> npcRef, int cat, int slotnr) {
+  auto npc = findNpc(npcRef);
+  if(npc==nullptr) {
+    storeItem(nullptr);
+    return 0;
+    }
+
+  // The category flag names were global, but for the scripts, only npc_getinvitembyslot
+  // ever used them, so as long as nobody implements the Gothic 1 inventory, they can
+  // be limited to the comments below.
+  ItmFlags f = ITM_CAT_NONE;
+  switch(cat) {
+    case 1: // INV_WEAPON
+      f = ItmFlags(ITM_CAT_NF|ITM_CAT_FF|ITM_CAT_MUN);
+      break;
+    case 2: // INV_ARMOR
+      f = ITM_CAT_ARMOR;
+      break;
+    case 3: // INV_RUNE
+      f = ITM_CAT_RUNE;
+      break;
+    case 4: // INV_MAGIC
+      f = ITM_CAT_MAGIC;
+      break;
+    case 5: // INV_FOOD
+      f = ITM_CAT_FOOD;
+      break;
+    case 6: // INV_POTION
+      f = ITM_CAT_POTION;
+      break;
+    case 7: // INV_DOC
+      f = ITM_CAT_DOCS;
+      break;
+    case 8: // INV_MISC
+      f = ItmFlags(ITM_CAT_LIGHT|ITM_CAT_NONE);
+      break;
+    default:
+      Log::e("Unknown item category ", cat);
+      storeItem(nullptr);
+      return 0;
+    }
+
+  auto itm = npc==nullptr ? nullptr : npc->inventory().findByFlags(f, uint32_t(slotnr));
+  // Store the found item in the global item var
+  storeItem(itm);
+
+  return itm!=nullptr ? int(itm->count()) : 0;
+}
+
 int GameScript::npc_removeinvitem(std::shared_ptr<zenkit::INpc> npcRef, int itemId) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
@@ -2121,6 +2177,14 @@ void GameScript::npc_percdisable(std::shared_ptr<zenkit::INpc> npcRef, int pr) {
 std::string GameScript::npc_getnearestwp(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   auto wp  = npc ? world().findWayPoint(npc->position()) : nullptr;
+  if(wp)
+    return wp->name;
+  return "";
+  }
+
+std::string GameScript::npc_getnextwp(std::shared_ptr<zenkit::INpc> npcRef) {
+  auto npc     = findNpc(npcRef);
+  auto wp      = npc ? world().findSecondNearestWayPoint(npc->position()) : nullptr;
   if(wp)
     return wp->name;
   return "";
@@ -2641,6 +2705,26 @@ bool GameScript::npc_canseesource(std::shared_ptr<zenkit::INpc> npcRef) {
   if(!self)
     return false;
   return self->canSeeSource();
+  }
+
+// Used (only?) in Gothic 1 in B_AssessEnemy, to prevent attacks during cutscenes.
+// Check the global cutscene lock to check if we're in a cinematic
+// Currently there is only the global aiIsDlgFinished() to check for running dialog,
+// combine this a player-check to at least prevent the player from getting attacked.
+// This could use refinement later, to allow per-npc in-dialog checks.
+bool GameScript::npc_isincutscene(std::shared_ptr<zenkit::INpc> npcRef) {
+  auto npc = findNpc(npcRef);
+  auto w = Gothic::inst().world();
+  if(w==nullptr)
+    return false;
+
+  if(w->isCutsceneLock())
+    return true;
+
+  if(npc!=nullptr && npc->isPlayer() && !owner.aiIsDlgFinished())
+    return true;
+
+  return false;
   }
 
 int GameScript::npc_getdisttoitem(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::IItem> itmRef) {

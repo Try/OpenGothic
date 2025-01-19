@@ -290,6 +290,7 @@ class GameScript final {
     int  npc_hasitems        (std::shared_ptr<zenkit::INpc> npcRef, int itemId);
     bool npc_hasspell        (std::shared_ptr<zenkit::INpc> npcRef, int splId);
     int  npc_getinvitem      (std::shared_ptr<zenkit::INpc> npcRef, int itemId);
+    int  npc_getinvitembyslot(std::shared_ptr<zenkit::INpc> npcRef, int cat, int slotnr);
     int  npc_removeinvitem   (std::shared_ptr<zenkit::INpc> npcRef, int itemId);
     int  npc_removeinvitems  (std::shared_ptr<zenkit::INpc> npcRef, int itemId, int amount);
     int  npc_getbodystate    (std::shared_ptr<zenkit::INpc> npcRef);
@@ -300,6 +301,7 @@ class GameScript final {
     void npc_percenable      (std::shared_ptr<zenkit::INpc> npcRef, int pr, int fn);
     void npc_percdisable     (std::shared_ptr<zenkit::INpc> npcRef, int pr);
     std::string npc_getnearestwp    (std::shared_ptr<zenkit::INpc> npcRef);
+    std::string npc_getnextwp(std::shared_ptr<zenkit::INpc> npcRef);
     void npc_clearaiqueue    (std::shared_ptr<zenkit::INpc> npcRef);
     bool npc_isplayer        (std::shared_ptr<zenkit::INpc> npcRef);
     int  npc_getstatetime    (std::shared_ptr<zenkit::INpc> npcRef);
@@ -353,6 +355,7 @@ class GameScript final {
     std::string npc_getdetectedmob  (std::shared_ptr<zenkit::INpc> npcRef);
     bool npc_ownedbynpc      (std::shared_ptr<zenkit::IItem> itmRef, std::shared_ptr<zenkit::INpc> npcRef);
     bool npc_canseesource    (std::shared_ptr<zenkit::INpc> npcRef);
+    bool npc_isincutscene    (std::shared_ptr<zenkit::INpc> npcRef);
     int  npc_getdisttoitem   (std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::IItem> itmRef);
     int  npc_getheighttoitem (std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::IItem> itmRef);
     int  npc_getdisttoplayer (std::shared_ptr<zenkit::INpc> npcRef);
