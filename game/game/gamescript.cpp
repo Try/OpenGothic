@@ -1328,7 +1328,7 @@ Attitude GameScript::personAttitude(const Npc &p0, const Npc &p1) const {
   }
 
 bool GameScript::isFriendlyFire(const Npc& src, const Npc& dst) const {
-  static const int AIV_PARTYMEMBER = 15;
+  static const int AIV_PARTYMEMBER = (owner.version().game==2) ? 15 : 36;
   if(src.isPlayer())
     return false;
   if(src.isFriend())
