@@ -869,14 +869,6 @@ const WayPoint* World::findWayPoint(const Tempest::Vec3& pos, const std::functio
   return wmatrix->findWayPoint(pos,f);
   }
 
-const WayPoint* World::findSecondNearestWayPoint(const Tempest::Vec3& pos) const {
-  auto nearest = findWayPoint(pos);
-  auto filter  = [&](const WayPoint& p) { return nearest != &p; };
-  auto wp      = nearest ? findWayPoint(pos, filter) : nullptr;
-
-  return wp;
-  }
-
 const WayPoint *World::findFreePoint(const Npc &npc, std::string_view name) const {
   if(auto p = npc.currentWayPoint()){
     if(p->isFreePoint() && p->checkName(name)) {
@@ -907,16 +899,34 @@ const WayPoint *World::findNextFreePoint(const Npc &npc, std::string_view name) 
   auto pos = npc.position();
   pos.y+=npc.translateY();
   auto cur = npc.currentWayPoint();
-  if(cur!=nullptr && !cur->checkName(name))
+  if(cur!=nullptr && !cur->checkName(name)) {
     cur = nullptr;
-  auto wp  = wmatrix->findFreePoint(pos,name,[cur,&npc](const WayPoint& wp) -> bool {
+    }
+  auto filter = [&](const WayPoint& wp) {
     if(wp.isLocked() || &wp==cur)
       return false;
     if(!npc.canRayHitPoint(Tempest::Vec3(wp.x,wp.y+10,wp.z),true))
       return false;
     return true;
-    });
+    };
+  auto wp  = wmatrix->findFreePoint(pos, name, filter);
   return wp;
+  }
+
+const WayPoint* World::findNextWayPoint(const Npc &npc) const {
+  auto pos = npc.position();
+  pos.y+=npc.translateY();
+
+  auto nearest = npc.currentWayPoint();
+  if(nearest==nullptr || nearest->isFreePoint()) {
+    nearest = findWayPoint(pos);
+    }
+  auto filter  = [&](const WayPoint& wp) {
+    if(!npc.canRayHitPoint(Tempest::Vec3(wp.x,wp.y+10,wp.z),true))
+      return false;
+    return nearest != &wp;
+    };
+  return nearest ? findWayPoint(pos, filter) : nullptr;
   }
 
 const WayPoint *World::findNextPoint(const WayPoint &pos) const {

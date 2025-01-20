@@ -2107,7 +2107,7 @@ int GameScript::npc_getinvitembyslot(std::shared_ptr<zenkit::INpc> npcRef, int c
   storeItem(itm);
 
   return itm!=nullptr ? int(itm->count()) : 0;
-}
+  }
 
 int GameScript::npc_removeinvitem(std::shared_ptr<zenkit::INpc> npcRef, int itemId) {
   auto npc = findNpc(npcRef);
@@ -2183,8 +2183,8 @@ std::string GameScript::npc_getnearestwp(std::shared_ptr<zenkit::INpc> npcRef) {
   }
 
 std::string GameScript::npc_getnextwp(std::shared_ptr<zenkit::INpc> npcRef) {
-  auto npc     = findNpc(npcRef);
-  auto wp      = npc ? world().findSecondNearestWayPoint(npc->position()) : nullptr;
+  auto npc = findNpc(npcRef);
+  auto wp  = npc ? world().findNextWayPoint(*npc) : nullptr;
   if(wp)
     return wp->name;
   return "";
