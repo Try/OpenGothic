@@ -510,6 +510,7 @@ class Npc final {
     static float angleDir(float x,float z);
 
     uint8_t   calcAniComb() const;
+    uint64_t  perceptionTimeClampt() const;
 
     bool               isAlignedToGround() const;
     Tempest::Vec3      groundNormal() const;

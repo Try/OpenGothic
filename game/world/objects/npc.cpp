@@ -175,6 +175,7 @@ Npc::Npc(World &owner, size_t instance, std::string_view waypoint)
   if(hnpc->damage_type==0)
     hnpc->damage_type = 2;
   setTrueGuild(hnpc->guild); // https://worldofplayers.ru/threads/12446/post-878087
+  setPerceptionTime(5000);   // https://github.com/Try/OpenGothic/pull/720#issuecomment-2602908614
   }
 
 Npc::~Npc(){
@@ -2680,7 +2681,7 @@ bool Npc::startState(ScriptFn id, std::string_view wp, gtime endTime, bool noFin
   aiState.loopNextTime = owner.tickCount();
   aiState.hint         = st.name();
   // WA: for gothic1 dialogs
-  perceptionNextTime   = owner.tickCount()+perceptionTime;
+  perceptionNextTime   = owner.tickCount();
   return true;
   }
 
@@ -3812,6 +3813,10 @@ void Npc::setPerceptionTime(uint64_t time) {
   perceptionTime = time;
   }
 
+uint64_t Npc::perceptionTimeClampt() const {
+  return std::max<uint64_t>(perceptionTime, 1000);
+  }
+
 void Npc::setPerceptionEnable(PercType t, size_t fn) {
   if(t>0 && t<PERC_Count)
     perception[t].func = fn;
@@ -3839,7 +3844,7 @@ bool Npc::perceptionProcess(Npc &pl) {
 
   bool ret=false;
   if(processPolicy()!=Npc::AiNormal) {
-    perceptionNextTime = owner.tickCount()+perceptionTime;
+    perceptionNextTime = owner.tickCount()+perceptionTimeClampt();
     return ret;
     }
 
@@ -3869,7 +3874,7 @@ bool Npc::perceptionProcess(Npc &pl) {
     }
 
   // if(aiQueue.size()==0) // NOTE: Gothic1 fights
-  perceptionNextTime = owner.tickCount()+perceptionTime;
+  perceptionNextTime = owner.tickCount()+perceptionTimeClampt();
   return ret;
   }
 
