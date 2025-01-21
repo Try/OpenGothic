@@ -12,6 +12,11 @@
 
 using namespace Tempest;
 
+static bool needtoReallocate(const StorageBuffer& b, const size_t desiredSz) {
+  return b.byteSize()<desiredSz || b.byteSize()>=2*desiredSz;
+  }
+
+
 bool DrawCommands::DrawCmd::isForwardShading() const {
   return Material::isForwardShading(alpha);
   }
@@ -165,9 +170,9 @@ bool DrawCommands::commit(Encoder<CommandBuffer>& enc, uint8_t fId) {
   totalPayload = (totalPayload + 0xFF) & ~size_t(0xFF);
   const size_t visClustersSz = totalPayload*sizeof(uint32_t)*4;
 
-  auto& v      = views[0];
-  bool  cmdChg = v.indirectCmd.byteSize()!=sizeof(IndirectCmd)*cmd.size();
-  bool  visChg = v.visClusters.byteSize()!=visClustersSz;
+  auto& v      = views[SceneGlobals::V_Main];
+  bool  cmdChg = needtoReallocate(v.indirectCmd, sizeof(IndirectCmd)*cmd.size());
+  bool  visChg = needtoReallocate(v.visClusters, visClustersSz);
   if(!layChg && !visChg) {
     //return false;
     }
