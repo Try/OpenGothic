@@ -28,12 +28,8 @@ vec3 sunTransmittance(vec3 pos, vec3 sunDir) {
 
     vec3 newPos = pos + t*sunDir;
 
-    vec3  rayleighScattering = vec3(0);
-    vec3  extinction         = vec3(0);
-    float mieScattering      = float(0);
-    scatteringValues(newPos, 0, rayleighScattering, mieScattering, extinction);
-
-    transmittance *= exp(-dt*extinction);
+    const ScatteringValues sc = scatteringValues(newPos, 0);
+    transmittance *= exp(-dt*sc.extinction);
     }
   return transmittance;
   }

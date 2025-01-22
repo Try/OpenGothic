@@ -22,12 +22,13 @@ layout(binding = 8) uniform sampler2D textureNightL1;
 layout(location = 0) in  vec2 inPos;
 layout(location = 0) out vec4 outColor;
 
-/*
- * Final output basically looks up the value from the skyLUT, and then adds a sun on top,
- * does some tonemapping.
- */
+vec3 inverse(vec3 pos) {
+  vec4 ret = scene.viewProjectLwcInv*vec4(pos,1.0);
+  return (ret.xyz/ret.w)/100.f;
+  }
+
 vec3 atmosphere(vec3 view, vec3 sunDir) {
-  const vec3  viewPos = vec3(0.0, RPlanet + push.plPosY, 0.0);
+  const vec3  viewPos = vec3(0.0, RPlanet + scene.plPosY, 0.0);
   return textureSkyLUT(skyLUT, viewPos, view, sunDir);
   }
 
@@ -43,12 +44,8 @@ vec3 transmittance(vec3 pos0, vec3 pos1) {
     float dt     = dist/steps;
     vec3  newPos = pos0 + t*dir + vec3(0,RPlanet,0);
 
-    vec3  rayleighScattering = vec3(0);
-    vec3  extinction         = vec3(0);
-    float mieScattering      = float(0);
-    scatteringValues(newPos, 0, rayleighScattering, mieScattering, extinction);
-
-    transmittance *= exp(-dt*extinction);
+    const ScatteringValues sc = scatteringValues(newPos, 0);
+    transmittance *= exp(-dt*sc.extinction);
     }
   return transmittance;
   }
@@ -56,15 +53,11 @@ vec3 transmittance(vec3 pos0, vec3 pos1) {
 vec3 transmittanceAprox(in vec3 pos0, in vec3 pos1) {
   vec3 dir = pos1-pos0;
 
-  vec3  rayleighScattering = vec3(0);
-  float mieScattering      = float(0);
-  vec3  extinction0        = vec3(0);
-  vec3  extinction1        = vec3(0);
-  scatteringValues(pos0 + vec3(0,RPlanet,0), 0, rayleighScattering, mieScattering, extinction0);
-  scatteringValues(pos1 + vec3(0,RPlanet,0), 0, rayleighScattering, mieScattering, extinction1);
+  const ScatteringValues sc0 = scatteringValues(pos0 + vec3(0,RPlanet,0), 0);
+  const ScatteringValues sc1 = scatteringValues(pos1 + vec3(0,RPlanet,0), 0);
 
-  vec3  extinction         = extinction1;//-extinction0;
-  return exp(-length(dir)*extinction);
+  vec3  extinction = sc1.extinction;//-extinction0;
+  return exp(-length(dir)*sc0.extinction);
   }
 
 vec3 sky(vec2 uv, vec3 sunDir) {
@@ -79,7 +72,7 @@ vec3 sky(vec2 uv, vec3 sunDir) {
 
 vec3 applyClouds(vec3 skyColor) {
   float night    = scene.isNight;
-  vec3  plPos    = vec3(0,RPlanet+push.plPosY,0);
+  vec3  plPos    = vec3(0, RPlanet + scene.plPosY, 0);
   vec3  pos1     = inverse(vec3(inPos,1.0));
   vec3  viewDir  = normalize(pos1);
   return applyClouds(skyColor, skyLUT, plPos, scene.sunDir, viewDir, night,

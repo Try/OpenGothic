@@ -31,6 +31,11 @@ layout(binding = 2, std140) uniform UboScene {
   SceneDesc scene;
   };
 
+vec3 inverse(vec3 pos) {
+  vec4 ret = scene.viewProjectInv*vec4(pos,1.0);
+  return (ret.xyz/ret.w)/100.f;
+  }
+
 #if defined(VOLUMETRIC) && defined(GL_COMPUTE_SHADER)
 layout(binding = 3, r32ui) uniform writeonly restrict uimage2D occlusionLut;
 #elif defined(VOLUMETRIC)

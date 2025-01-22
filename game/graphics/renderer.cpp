@@ -697,7 +697,6 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
 
   cmd.setDebugMarker("Sky LUT");
 
-  Sky::Ubo ubo = sky.mkPush(wview);
   if(sky.uboClouds.isEmpty()) {
     sky.uboClouds = device.descriptors(shaders.cloudsLut);
     sky.uboClouds.set(0, sky.cloudsLut);
@@ -720,17 +719,17 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
 
   if(!sky.lutIsInitialized) {
     cmd.setFramebuffer({});
-    cmd.setUniforms(shaders.cloudsLut, sky.uboClouds, &ubo, sizeof(ubo));
+    cmd.setUniforms(shaders.cloudsLut, sky.uboClouds);
     cmd.dispatchThreads(size_t(sky.cloudsLut.w()), size_t(sky.cloudsLut.h()));
     }
 
   if(!sky.lutIsInitialized) {
     cmd.setFramebuffer({{sky.transLut, Tempest::Discard, Tempest::Preserve}});
-    cmd.setUniforms(shaders.skyTransmittance, sky.uboTransmittance, &ubo, sizeof(ubo));
+    cmd.setUniforms(shaders.skyTransmittance, sky.uboTransmittance);
     cmd.draw(Resources::fsqVbo());
 
     cmd.setFramebuffer({{sky.multiScatLut, Tempest::Discard, Tempest::Preserve}});
-    cmd.setUniforms(shaders.skyMultiScattering, sky.uboMultiScatLut, &ubo, sizeof(ubo));
+    cmd.setUniforms(shaders.skyMultiScattering, sky.uboMultiScatLut);
     cmd.draw(Resources::fsqVbo());
     }
 
@@ -754,11 +753,11 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
     }
 
   cmd.setFramebuffer({{sky.viewLut, Tempest::Discard, Tempest::Preserve}});
-  cmd.setUniforms(shaders.skyViewLut, sky.uboSkyViewLut, &ubo, sizeof(ubo));
+  cmd.setUniforms(shaders.skyViewLut, sky.uboSkyViewLut);
   cmd.draw(Resources::fsqVbo());
 
   cmd.setFramebuffer({{sky.viewCldLut, Tempest::Discard, Tempest::Preserve}});
-  cmd.setUniforms(shaders.skyViewCldLut, sky.uboSkyViewCldLut, &ubo, sizeof(ubo));
+  cmd.setUniforms(shaders.skyViewCldLut, sky.uboSkyViewCldLut);
   cmd.draw(Resources::fsqVbo());
   }
 
@@ -999,7 +998,6 @@ void Renderer::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   auto  smpB    = Sampler::bilinear();
   smpB.setClamping(ClampMode::ClampToEdge);
 
-  Sky::Ubo ubo = sky.mkPush(wview);
   switch(sky.quality) {
     case None:
     case VolumetricLQ: {
@@ -1009,7 +1007,7 @@ void Renderer::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
         sky.uboFog.set(1, *scene.zbuffer, Sampler::nearest()); // NOTE: wanna here depthFetch from gles2
         sky.uboFog.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
         }
-      cmd.setUniforms(shaders.fog, sky.uboFog, &ubo, sizeof(ubo));
+      cmd.setUniforms(shaders.fog, sky.uboFog);
       break;
       }
     case VolumetricHQ: {
@@ -1020,7 +1018,7 @@ void Renderer::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
         sky.uboFog3d.set(2, scene.uboGlobal[SceneGlobals::V_Main]);
         sky.uboFog3d.set(3, sky.occlusionLut);
         }
-      cmd.setUniforms(shaders.fog3dHQ, sky.uboFog3d, &ubo, sizeof(ubo));
+      cmd.setUniforms(shaders.fog3dHQ, sky.uboFog3d);
       break;
       }
     case PathTrace:
@@ -1524,8 +1522,7 @@ void Renderer::drawSky(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wvie
       sky.uboSkyPathtrace.set(4, *scene.zbuffer, Sampler::nearest());
       sky.uboSkyPathtrace.set(5, *scene.shadowMap[1], Resources::shadowSampler());
       }
-    Sky::Ubo ubo = sky.mkPush(wview, true);
-    cmd.setUniforms(shaders.skyPathTrace, sky.uboSkyPathtrace, &ubo, sizeof(ubo));
+    cmd.setUniforms(shaders.skyPathTrace, sky.uboSkyPathtrace);
     cmd.draw(Resources::fsqVbo());
     return;
     }
@@ -1542,8 +1539,7 @@ void Renderer::drawSky(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wvie
     sky.uboSky.set(7,*wview.sky().cloudsNight().lay[0],smp);
     sky.uboSky.set(8,*wview.sky().cloudsNight().lay[1],smp);
     }
-  Sky::Ubo ubo = sky.mkPush(wview, true);
-  cmd.setUniforms(shaders.sky, sky.uboSky, &ubo, sizeof(ubo));
+  cmd.setUniforms(shaders.sky, sky.uboSky);
   cmd.draw(Resources::fsqVbo());
   }
 
@@ -1578,7 +1574,6 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, Wor
   smpB.setClamping(ClampMode::ClampToEdge);
 
   cmd.setDebugMarker("Fog LUTs");
-  Sky::Ubo ubo = sky.mkPush(wview);
 
   if(sky.uboFogViewLut3d.isEmpty()) {
     sky.uboFogViewLut3d = device.descriptors(Shaders::inst().fogViewLut3d);
@@ -1593,7 +1588,7 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, Wor
     case None:
     case VolumetricLQ: {
       cmd.setFramebuffer({});
-      cmd.setUniforms(shaders.fogViewLut3d, sky.uboFogViewLut3d, &ubo, sizeof(ubo));
+      cmd.setUniforms(shaders.fogViewLut3d, sky.uboFogViewLut3d);
       cmd.dispatchThreads(uint32_t(sky.fogLut3D.w()), uint32_t(sky.fogLut3D.h()));
       break;
       }
@@ -1607,11 +1602,11 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, Wor
           sky.uboOcclusion.set(4, *scene.shadowMap[1], Resources::shadowSampler());
           }
         cmd.setFramebuffer({});
-        cmd.setUniforms(shaders.fogOcclusion, sky.uboOcclusion, &ubo, sizeof(ubo));
+        cmd.setUniforms(shaders.fogOcclusion, sky.uboOcclusion);
         cmd.dispatchThreads(sky.occlusionLut.size());
         }
 
-      cmd.setUniforms(shaders.fogViewLut3d, sky.uboFogViewLut3d, &ubo, sizeof(ubo));
+      cmd.setUniforms(shaders.fogViewLut3d, sky.uboFogViewLut3d);
       cmd.dispatchThreads(uint32_t(sky.fogLut3D.w()), uint32_t(sky.fogLut3D.h()));
       break;
       }
@@ -1867,24 +1862,3 @@ Size Renderer::internalResolution() const {
   return Size(int(swapchain.w()/2), int(swapchain.h()/2));
   }
 
-Renderer::Sky::Ubo Renderer::Sky::mkPush(WorldView& wview, bool lwc) {
-  auto& scene = wview.sceneGlobals();
-  float minY  = wview.bbox().first.y;
-
-  Sky::Ubo ubo;
-  Vec3 plPos = Vec3(0,0,0);
-  scene.viewProjectInv().project(plPos);
-  ubo.plPosY = plPos.y/100.f; //meters
-
-  // NOTE: miZ is garbage in KoM
-  ubo.plPosY += (-minY)/100.f;
-  ubo.plPosY  = std::clamp(ubo.plPosY, 0.f, 1000.f);
-
-  if(lwc)
-    ubo.viewProjectInv = scene.viewProjectLwcInv(); else
-    ubo.viewProjectInv = scene.viewProjectInv();
-
-  static float rayleighScatteringScale = 33.1f;
-  ubo.rayleighScatteringScale = rayleighScatteringScale;
-  return ubo;
-  }

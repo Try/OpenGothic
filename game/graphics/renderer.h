@@ -136,14 +136,6 @@ class Renderer final {
       } lights;
 
     struct Sky {
-      struct Ubo {
-        Tempest::Matrix4x4 viewProjectInv;
-        float              plPosY = 0.0;
-        float              rayleighScatteringScale = 0;
-        };
-
-      Ubo mkPush(WorldView& wview, bool lwc = false);
-
       Quality                quality       = Quality::None;
 
       Tempest::TextureFormat lutRGBFormat  = Tempest::TextureFormat::R11G11B10UF;

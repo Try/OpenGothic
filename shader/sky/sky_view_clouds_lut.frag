@@ -34,7 +34,7 @@ vec3 applyClouds(vec3 skyColor, vec3 refl) {
 
 void main() {
   const vec2  uv      = inPos*vec2(0.5)+vec2(0.5);
-  const vec3  viewPos = vec3(0.0, RPlanet + push.plPosY, 0.0);
+  const vec3  viewPos = vec3(0.0, RPlanet + scene.plPosY, 0.0);
 
   float azimuthAngle  = (uv.x - 0.5)*2.0*M_PI;
   // Non-linear mapping of altitude. See Section 5.3 of the paper.

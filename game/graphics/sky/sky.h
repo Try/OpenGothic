@@ -33,20 +33,6 @@ class Sky final {
     float                     isNight() const;
 
   private:
-    enum Quality : uint8_t {
-      None,
-      VolumetricLQ,
-      VolumetricHQ,
-      VolumetricHQVsm,
-      PathTrace,
-      };
-
-    struct UboSky {
-      Tempest::Matrix4x4 viewProjectInv;
-      float              plPosY = 0.0;
-      float              rayleighScatteringScale = 0;
-      };
-
     const Tempest::Texture2d*     skyTexture(std::string_view name, bool day, size_t id);
     const Tempest::Texture2d*     implSkyTexture(std::string_view name, bool day, size_t id);
 

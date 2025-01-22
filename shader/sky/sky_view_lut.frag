@@ -32,22 +32,19 @@ vec3 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax) {
     float dt     = tMax/numScatteringSteps;
     vec3  newPos = pos + t*rayDir;
 
-    vec3  rayleighScattering;
-    float mieScattering;
-    vec3  extinction;
-    scatteringValues(newPos, clouds, rayleighScattering, mieScattering, extinction);
+    const ScatteringValues sc = scatteringValues(newPos, clouds);
 
-    vec3 transmittanceSmp = exp(-dt*extinction);
+    vec3 transmittanceSmp = exp(-dt*sc.extinction);
     vec3 transmittanceSun = textureLUT(tLUT, newPos, sunDir);
     vec3 psiMS            = textureLUT(mLUT, newPos, sunDir);
 
     vec3 scatteringSmp = vec3(0);
-    scatteringSmp += psiMS * (rayleighScattering + mieScattering);
-    scatteringSmp += rayleighScattering * phaseRayleigh * transmittanceSun;
-    scatteringSmp += mieScattering      * phaseMie      * transmittanceSun;
+    scatteringSmp += psiMS * (sc.rayleighScattering + sc.mieScattering);
+    scatteringSmp += sc.rayleighScattering * phaseRayleigh * transmittanceSun;
+    scatteringSmp += sc.mieScattering      * phaseMie      * transmittanceSun;
 
     // Integrated scattering within path segment.
-    vec3 scatteringIntegral = (scatteringSmp - scatteringSmp * transmittanceSmp) / extinction;
+    vec3 scatteringIntegral = (scatteringSmp - scatteringSmp * transmittanceSmp) / sc.extinction;
 
     scatteredLight += scatteringIntegral*transmittance;
     transmittance  *= transmittanceSmp;
@@ -58,7 +55,7 @@ vec3 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax) {
 
 void main() {
   const vec2 uv       = inPos*vec2(0.5)+vec2(0.5);
-  const vec3 viewPos  = vec3(0.0, RPlanet + push.plPosY, 0.0);
+  const vec3 viewPos  = vec3(0.0, RPlanet + scene.plPosY, 0.0);
 
   const float DirectSunLux  = scene.GSunIntensity;
   const float DirectMoonLux = 0.32f;

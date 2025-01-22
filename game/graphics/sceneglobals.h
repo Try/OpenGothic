@@ -8,6 +8,7 @@
 #include "rtscene.h"
 
 class Sky;
+class WorldView;
 
 class SceneGlobals final {
   public:
@@ -32,6 +33,7 @@ class SceneGlobals final {
     void setViewLwc(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& proj, const Tempest::Matrix4x4 *sh);
     void setViewVsm(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& viewLwc);
     void setSky(const Sky& s);
+    void setWorld(const WorldView& wview);
     void setUnderWater(bool w);
 
     void setTime(uint64_t time);
@@ -113,7 +115,7 @@ class SceneGlobals final {
       Tempest::Vec3                   pfxTop   = {};
       float                           padd2 = 0;
       Tempest::Vec3                   pfxDepth = {};
-      float                           padd3 = 0;
+      float                           plPosY = {};
       Tempest::Point                  hiZTileSize = {};
       Tempest::Point                  screenRes = {};
       Tempest::Vec2                   cloudsDir[2] = {};
