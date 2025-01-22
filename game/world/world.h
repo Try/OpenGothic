@@ -163,8 +163,10 @@ class World final {
     Bullet&              shootBullet(const Item &itmId, const Npc& npc, const Npc* target, const Interactive* inter);
     Bullet&              shootSpell(const Item &itm, const Npc &npc, const Npc *target);
 
-    void                 sendPassivePerc  (Npc& self, Npc& other, Npc& victim, int32_t perc);
-    void                 sendPassivePerc  (Npc& self, Npc& other, Npc& victim, Item& item, int32_t perc);
+    void                 sendPassivePerc  (Npc& self, Npc& other, int32_t perc);
+    void                 sendPassivePerc  (Npc& self, Npc& other, Npc* victim, int32_t perc);
+    void                 sendPassivePerc  (Npc& self, Npc& other, Item& item, int32_t perc);
+    void                 sendPassivePerc  (Npc& self, Npc& other, Npc* victim, Item& item, int32_t perc);
 
     void                 sendImmediatePerc(Npc& self, Npc& other, Npc& victim, int32_t perc);
     void                 sendImmediatePerc(Npc& self, Npc& other, Npc& victim, Item& item, int32_t perc);

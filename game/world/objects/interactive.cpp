@@ -337,7 +337,7 @@ void Interactive::implTick(Pos& p) {
 
   if(needToLockpick(npc)) {
     if(p.attachMode) {
-      npc.world().sendPassivePerc(npc,npc,npc,PERC_ASSESSUSEMOB);
+      npc.world().sendPassivePerc(npc,npc,PERC_ASSESSUSEMOB);
       return; // chest is locked - need to crack lock first
       }
     }
@@ -352,12 +352,12 @@ void Interactive::implTick(Pos& p) {
     }
 
   if(state==0 && p.attachMode) {
-    npc.world().sendPassivePerc(npc,npc,npc,PERC_ASSESSUSEMOB);
+    npc.world().sendPassivePerc(npc,npc,PERC_ASSESSUSEMOB);
     emitTriggerEvent(TriggerEvent::T_Trigger);
     }
 
   if(state==stateNum && p.attachMode && reverseState) {
-    npc.world().sendPassivePerc(npc,npc,npc,PERC_ASSESSUSEMOB);
+    npc.world().sendPassivePerc(npc,npc,PERC_ASSESSUSEMOB);
     emitTriggerEvent(TriggerEvent::T_Untrigger);
     }
 

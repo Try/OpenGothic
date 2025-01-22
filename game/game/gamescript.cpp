@@ -1053,8 +1053,9 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
   if(oth==nullptr){
     // oth=npc; //FIXME: PC_Levelinspektor?
     }
-  if(vic==nullptr)
-    vic=owner.player();
+  if(vic==nullptr){
+    // vic=owner.player();
+    }
 
   if(fn==ZS_Talk){
     if(oth==nullptr || !oth->isPlayer()) {
@@ -2469,8 +2470,8 @@ void GameScript::npc_sendpassiveperc(std::shared_ptr<zenkit::INpc> npcRef, int i
   auto victim = findNpc(victimRef);
   auto npc    = findNpc(npcRef);
 
-  if(npc && other && victim)
-    world().sendPassivePerc(*npc,*other,*victim,id);
+  if(npc && other)
+    world().sendPassivePerc(*npc,*other,victim,id);
   }
 
 void GameScript::npc_sendsingleperc(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::INpc> otherRef, int id) {
