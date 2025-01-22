@@ -11,6 +11,7 @@
 #include "graphics/pfx/pfxobjects.h"
 #include "graphics/sky/sky.h"
 #include "lightsource.h"
+#include "lightgroup.h"
 #include "sceneglobals.h"
 #include "visualobjects.h"
 

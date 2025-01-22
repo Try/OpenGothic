@@ -4,8 +4,8 @@
 #include <Tempest/Vec>
 
 #include "graphics/dynamic/frustrum.h"
-#include "lightgroup.h"
 #include "rtscene.h"
+#include "resources.h"
 
 class Sky;
 class WorldView;
