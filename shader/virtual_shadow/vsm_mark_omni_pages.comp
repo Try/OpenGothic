@@ -23,7 +23,7 @@ layout(binding = 1)         uniform texture2D  gbufDiffuse;
 layout(binding = 2)         uniform utexture2D gbufNormal;
 layout(binding = 3)         uniform texture2D  depth;
 layout(binding = 4, std430) readonly buffer Lbo { LightSource  lights[]; };
-layout(binding = 5, std430) readonly buffer VId { uint visLightCount; uint visLights[]; };
+layout(binding = 5, std430) readonly buffer VId { uint visLightCount; uvec4 visLights[]; };
 layout(binding = 6, std430) buffer Omni         { uint         pageTblOmni[]; };
 layout(binding = 7, r32ui)  uniform uimage2D   dbgImg;
 
@@ -31,7 +31,7 @@ const uint NumLights = NumThreads/6;
 
 shared uint  tileDepthMin, tileDepthMax;
 shared uint  lightCount;
-shared uint  lightId[NumLights];
+shared uint  lightId[NumThreads];
 shared uint  pageTblOmniTmp[NumLights*6];
 
 // shared uint  lightFineCount; //dbg
@@ -39,10 +39,8 @@ shared uint  pageTblOmniTmp[NumLights*6];
 ivec2 fragCoord    = ivec2(gl_GlobalInvocationID.xy);
 ivec2 viewportSize = textureSize(depth, 0);
 
-// uvec2 remapLane8x8(uint lane) {
-//   return uvec2(bitfieldInsert(bitfieldExtract(lane, 2u, 3u), lane, 1u),
-//                bitfieldInsert(bitfieldExtract(lane, 3u, 3u), bitfieldExtract(lane, 1u, 2u), 2u));
-//   }
+float fragDepth = 1;
+vec3  fragNorm  = vec3(0);
 
 vec4 worldPos(ivec2 frag, float depth) {
   const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
@@ -50,41 +48,39 @@ vec4 worldPos(ivec2 frag, float depth) {
   return scene.viewProjectLwcInv * scr;
   }
 
-bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin, out float depthMax) {
+bool projectSphere(const vec4 sphere, out float depthMin, out float depthMax) {
   const vec3  c     = (scene.view * vec4(sphere.xyz, 1)).xyz;
   const float R     = sphere.w;
 
   depthMin  = scene.project[3][2]/max(c.z - R, znear) + scene.project[2][2];
   depthMax  = scene.project[3][2]/max(c.z + R, znear) + scene.project[2][2];
   if(c.z - R < znear) {
-    aabb = vec4(0,0,1,1);
     return true;
     }
-
-  float z   = c.z - R;
-  float P00 = scene.project[0][0];
-  float P11 = scene.project[1][1];
-
-  vec3  cr   = c * R;
-  float czr2 = c.z * c.z - R * R;
-
-  float vx   = sqrt(c.x * c.x + czr2);
-  float minx = (vx * c.x - cr.z) / (vx * c.z + cr.x);
-  float maxx = (vx * c.x + cr.z) / (vx * c.z - cr.x);
-
-  float vy   = sqrt(c.y * c.y + czr2);
-  float miny = (vy * c.y - cr.z) / (vy * c.z + cr.y);
-  float maxy = (vy * c.y + cr.z) / (vy * c.z - cr.y);
-
-  aabb = vec4(minx * P00, miny * P11, maxx * P00, maxy * P11);
-  aabb = aabb*0.5 + vec4(0.5);
+  if(c.z + R < znear) {
+    return false;
+    }
   return true;
   }
 
 void hiTile(float depth) {
+  if(depth>=1)
+    return;
   uint d = floatBitsToUint(depth);
   atomicMax(tileDepthMax, d);
   atomicMin(tileDepthMin, d);
+  }
+
+bool pullGBuffer() {
+  const ivec2 size   = textureSize(depth, 0);
+  const bool  valid  = all(lessThan(fragCoord, size));
+
+  fragDepth = valid ? texelFetch(depth, fragCoord, 0).x  : 1;
+  fragNorm  = valid ? normalFetch(gbufNormal, fragCoord) : vec3(0);
+
+  hiTile(fragDepth);
+  barrier();
+  return tileDepthMin!=tileDepthMax;
   }
 
 int shadowLod(vec2 dx, vec2 dy) {
@@ -147,28 +143,62 @@ void processLightTiles(const vec3 pos, const vec3 pos1, const vec3 pos2, const v
     }
   }
 
-void processLights(const float z, const vec3 normal) {
+bool pricesLightsHiZ(uint i, float tMin, float tMax) {
+  if(i==0xFFFFFFFF)
+    return false;
+
+  float depthMin = 0;
+  float depthMax = 0;
+
+  if(!projectSphere(vec4(lights[i].pos, lights[i].range), depthMin, depthMax))
+    return false;
+  if(depthMin>tMax)
+    return false;
+  if(depthMax<tMin)
+    return false;
+  return true;
+  }
+
+bool pricesLightsHiZ() {
+  const uint  laneId = gl_LocalInvocationIndex;
+
+  uint id = (laneId<lightCount) ? lightId[laneId] : 0xFFFFFFFF;
+  barrier();
+
+  const float tMin = uintBitsToFloat(tileDepthMin);
+  const float tMax = uintBitsToFloat(tileDepthMax);
+  if(!pricesLightsHiZ(id, tMin, tMax))
+    id = 0xFFFFFFFF;
+  lightCount = 0;
+  barrier();
+
+  if(id != 0xFFFFFFFF) {
+    uint ix = atomicAdd(lightCount, 1);
+    if(ix<NumLights) {
+      //TODO: incremental processing
+      lightId[ix] = id;
+      }
+    }
+  barrier();
+
+  if(lightCount==0)
+    return false;
+  return true;
+  }
+
+bool processLightsGlob() {
   const uint  laneId   = gl_LocalInvocationIndex;
-  const float tMin     = uintBitsToFloat(tileDepthMin);
-  const float tMax     = uintBitsToFloat(tileDepthMax);
   const ivec2 TileSize = ivec2(gl_WorkGroupSize.xy);
   const ivec2 begin    = ivec2(gl_WorkGroupID.xy * TileSize);
   const ivec2 end      = min(ivec2(gl_WorkGroupID.xy * TileSize + TileSize), viewportSize);
 
   for(uint id=laneId; id<visLightCount; id+=NumThreads) {
-    vec4  aabb     = vec4(0);
-    float depthMin = 0;
-    float depthMax = 0;
+    const uvec4 light = visLights[id];
+    const uint  i     = light.x;
 
-    const uint i = visLights[id];
-    if(!projectSphere(vec4(lights[i].pos, lights[i].range), aabb, depthMin, depthMax))
-      continue;
-    if(depthMin>tMax)
-      continue;
-    if(depthMax<tMin)
-      continue;
-
-    aabb *= vec4(viewportSize, viewportSize);
+    vec4 aabb;
+    aabb.xy = unpackUInt2x16(light.y);
+    aabb.zw = unpackUInt2x16(light.z);
     if(aabb.z<begin.x || end.x<=aabb.x ||
        aabb.w<begin.y || end.y<=aabb.y)
       continue;
@@ -180,11 +210,26 @@ void processLights(const float z, const vec3 normal) {
     }
   barrier();
 
-  if(lightCount>=lightId.length())
+  if(lightCount==0)
+    return false;
+  return true;
+  }
+
+void processLights() {
+  if(!processLightsGlob())
+    return;
+
+  if(!pullGBuffer())
+    return;
+
+  if(!pricesLightsHiZ())
+    return;
+
+  if(lightCount>=NumLights)
     return; // overflow
 
-  if(lightCount==0)
-    return;
+  const float z      = fragDepth;
+  const vec3  normal = fragNorm;
 
   const vec4 wpos  = worldPos(ivec2(fragCoord.xy), z) + vec4(normal*0.002, 0);
   const vec3 pos   = wpos.xyz/wpos.w + originLwc;
@@ -198,23 +243,13 @@ void processLights(const float z, const vec3 normal) {
   }
 
 void main() {
-  const uint  laneId = gl_LocalInvocationIndex;
-  const ivec2 size   = textureSize(depth, 0);
-  const bool  valid  = all(lessThan(fragCoord, size));
-
   lightCount   = 0;
   tileDepthMin = floatBitsToUint(1);
   tileDepthMax = floatBitsToUint(0);
   barrier();
 
-  const float z      = valid ? texelFetch(depth, fragCoord, 0).x  : 1;
-  const vec3  normal = valid ? normalFetch(gbufNormal, fragCoord) : vec3(0);
-  if(z<1)
-    hiTile(z);
-  barrier();
-
-  processLights(z, normal);
-  //barrier();
+  processLights();
+  // barrier();
 
   // imageStore(dbgImg, fragCoord, uvec4(lightCount));
   // imageStore(dbgImg, fragCoord, uvec4(lightFineCount));

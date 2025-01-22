@@ -17,7 +17,7 @@ layout(push_constant, std140) uniform Push {
   };
 layout(binding = 0, std140) uniform UboScene    { SceneDesc   scene;    };
 layout(binding = 1, std430) readonly buffer Lbo { LightSource lights[]; };
-layout(binding = 2, std430) buffer VId          { uint visLightCount; uint visLights[]; };
+layout(binding = 2, std430) buffer VId          { uint visLightCount; uvec4 visLights[]; };
 layout(binding = 3)         uniform sampler2D hiZ;
 
 float hiZFetch(in sampler2D hiZ, in ivec2 ibbox[2]) {
@@ -122,6 +122,8 @@ void main() {
   if(!hiZTest(aabb, depthMin))
     return;
 
+  aabb *= vec4(scene.screenRes, scene.screenRes);
+
   const uint ix = atomicAdd(visLightCount, 1);
-  visLights[ix] = id;
+  visLights[ix] = uvec4(id, packUint2x16(uvec2(aabb.xy)), packUint2x16(uvec2(aabb.zw)), 0);
   }

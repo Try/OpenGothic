@@ -270,6 +270,14 @@ uint packUint2x16(uvec2 v){
   return (v.x & 0xFFFF) | ((v.y & 0xFFFF) << 16);
   }
 
+uvec2 unpackUInt2x16(uint v) {
+  //NOTE: correct spelling `packUint2x16` is reserved by extensions
+  uvec2 ret;
+  ret.x = v & 0xFFFF;
+  ret.y = v >> 16;
+  return ret;
+  }
+
 uint packUint4x8(uvec4 v){
   return (v.x & 0xFF) | ((v.y & 0xFF) << 8) | ((v.z & 0xFF) << 16) | ((v.w & 0xFF) << 24);
   }
