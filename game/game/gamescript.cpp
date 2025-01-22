@@ -1052,8 +1052,9 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
   if(oth==nullptr){
     // oth=npc; //FIXME: PC_Levelinspektor?
     }
-  if(vic==nullptr)
-    vic=owner.player();
+  if(vic==nullptr){
+    // vic=owner.player();
+    }
 
   if(fn==ZS_Talk){
     if(oth==nullptr || !oth->isPlayer()) {

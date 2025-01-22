@@ -3100,7 +3100,7 @@ Item* Npc::takeItem(Item& item) {
 
   it = addItem(std::move(ptr));
   if(isPlayer() && it!=nullptr)
-    owner.sendPassivePerc(*this,*this,*this,*it,PERC_ASSESSTHEFT);
+    owner.sendPassivePerc(*this,*this,*it,PERC_ASSESSTHEFT);
 
   implAniWait(uint64_t(sq->totalTime()));
   return it;

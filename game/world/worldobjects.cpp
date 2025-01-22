@@ -869,13 +869,13 @@ void WorldObjects::setMobRoutine(gtime time, std::string_view scheme, int32_t st
   routines.emplace_back(std::move(st));
   }
 
-void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item* itm, int32_t perc) {
+void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc* victum, Item* itm, int32_t perc) {
   PerceptionMsg m;
   m.what   = perc;
   m.pos    = self.position();
   m.self   = &self;
   m.other  = &other;
-  m.victum = &victum;
+  m.victum = victum;
   if(itm!=nullptr)
     m.item   = itm->handle().symbol_index();
   sndPerc.push_back(m);
