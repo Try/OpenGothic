@@ -973,48 +973,60 @@ void GameScript::printCannotBuyError(Npc &npc) {
 
 void GameScript::printMobMissingItem(Npc &npc) {
   auto id = vm.find_symbol_by_name("player_mob_missing_item");
-  if(id==nullptr)
+  if(id==nullptr) {
+    npc_playani(npc.handlePtr(), "T_DONTKNOW");
     return;
+  }
   ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id);
   }
 
 void GameScript::printMobMissingKey(Npc& npc) {
   auto id = vm.find_symbol_by_name("player_mob_missing_key");
-  if(id==nullptr)
+  if(id==nullptr) {
+    npc_playani(npc.handlePtr(), "T_DONTKNOW");
     return;
+  }
   ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id);
   }
 
 void GameScript::printMobAnotherIsUsing(Npc &npc) {
   auto id = vm.find_symbol_by_name("player_mob_another_is_using");
-  if(id==nullptr)
+  if(id==nullptr) {
+    npc_playani(npc.handlePtr(), "T_DONTKNOW");
     return;
+  }
   ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id);
   }
 
 void GameScript::printMobMissingKeyOrLockpick(Npc& npc) {
   auto id = vm.find_symbol_by_name("player_mob_missing_key_or_lockpick");
-  if(id==nullptr)
+  if(id==nullptr) {
+    npc_playani(npc.handlePtr(), "T_DONTKNOW");
     return;
+  }
   ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id);
   }
 
 void GameScript::printMobMissingLockpick(Npc& npc) {
   auto id = vm.find_symbol_by_name("player_mob_missing_lockpick");
-  if(id==nullptr)
+  if(id==nullptr) {
+    npc_playani(npc.handlePtr(), "T_DONTKNOW");
     return;
+  }
   ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id);
   }
 
 void GameScript::printMobTooFar(Npc& npc) {
   auto id = vm.find_symbol_by_name("player_mob_too_far_away");
-  if(id==nullptr)
+  if(id==nullptr) {
+    npc_playani(npc.handlePtr(), "T_DONTKNOW");
     return;
+  }
   ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id);
   }
@@ -1287,8 +1299,10 @@ uint32_t GameScript::messageTime(std::string_view id) const {
 
 void GameScript::printNothingToGet() {
   auto id = vm.find_symbol_by_name("player_plunder_is_empty");
-  if(id==nullptr)
+  if(id==nullptr) {
+    npc_playani(owner.player()->handlePtr(), "T_DONTKNOW");
     return;
+  }
   ScopeVar self(*vm.global_self(), owner.player()->handlePtr());
   vm.call_function<void>(id);
   }
