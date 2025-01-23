@@ -1173,13 +1173,13 @@ CollideMask GameScript::canNpcCollideWithSpell(Npc& npc, Npc* shooter, int32_t s
 // without the orc addition and does this inside the code, not the script
 int GameScript::playerHotKeyScreenMap_G1(Npc& pl) {
   size_t map = findSymbolIndex("itwrworldmap_orc");
-  if(map==size_t(-1) || pl.itemCount(uint32_t(map))<1)
+  if(map==size_t(-1) || pl.itemCount(map)<1)
     map = findSymbolIndex("itwrworldmap");
 
-  if(map==size_t(-1) || pl.itemCount(uint32_t(map))<1)
+  if(map==size_t(-1) || pl.itemCount(map)<1)
     return -1;
 
-  pl.useItem(size_t(map));
+  pl.useItem(map);
 
   return int(map);
   }
@@ -1188,8 +1188,8 @@ int GameScript::playerHotKeyScreenMap(Npc& pl) {
   auto fn   = vm.find_symbol_by_name("player_hotkey_screen_map");
   if(fn==nullptr) {
     if(owner.version().game==1)
-      return playerHotKeyScreenMap_G1(pl); else
-      return -1;
+      return playerHotKeyScreenMap_G1(pl);
+    return -1;
     }
 
   ScopeVar self(*vm.global_self(), pl.handlePtr());
