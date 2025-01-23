@@ -1169,10 +1169,28 @@ CollideMask GameScript::canNpcCollideWithSpell(Npc& npc, Npc* shooter, int32_t s
   return CollideMask(vm.call_function<int>(fn, spellId));
   }
 
+// Gothic 1 only differentiates between the two worldmap types with and
+// without the orc addition and does this inside the code, not the script
+int GameScript::playerHotKeyScreenMap_G1(Npc& pl) {
+  size_t map = findSymbolIndex("itwrworldmap_orc");
+  if(map==size_t(-1) || pl.itemCount(uint32_t(map))<1)
+    map = findSymbolIndex("itwrworldmap");
+
+  if(map==size_t(-1) || pl.itemCount(uint32_t(map))<1)
+    return -1;
+
+  pl.useItem(size_t(map));
+
+  return int(map);
+  }
+
 int GameScript::playerHotKeyScreenMap(Npc& pl) {
   auto fn   = vm.find_symbol_by_name("player_hotkey_screen_map");
-  if(fn==nullptr)
-    return -1;
+  if(fn==nullptr) {
+    if(owner.version().game==1)
+      return playerHotKeyScreenMap_G1(pl); else
+      return -1;
+    }
 
   ScopeVar self(*vm.global_self(), pl.handlePtr());
   int map = vm.call_function<int>(fn);

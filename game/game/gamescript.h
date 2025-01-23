@@ -140,6 +140,7 @@ class GameScript final {
     void invokeRefreshAtInsert(Npc& npc);
     auto canNpcCollideWithSpell(Npc& npc, Npc* shooter, int32_t spellId) -> CollideMask;
 
+    int  playerHotKeyScreenMap_G1(Npc& pl);
     int  playerHotKeyScreenMap(Npc& pl);
     void playerHotLamePotion(Npc& pl);
     void playerHotLameHeal(Npc& pl);
