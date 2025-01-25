@@ -169,9 +169,7 @@ Npc::Npc(World &owner, size_t instance, std::string_view waypoint)
   owner.script().initializeInstanceNpc(hnpc, instance);
   hnpc->wp       = std::string(waypoint);
 
-  // vanilla behavior: equip best weapon and set non-zero damage type
-  if(!isPlayer())
-    invent.autoEquipWeapons(*this);
+  // vanilla behavior
   if(hnpc->damage_type==0)
     hnpc->damage_type = 2;
   setTrueGuild(hnpc->guild); // https://worldofplayers.ru/threads/12446/post-878087
@@ -487,7 +485,7 @@ bool Npc::resetPositionToTA() {
 
   if(!isDead) {
     attachToPoint(at);
-    invent.autoEquipWeapons(*this);
+    autoEquipWeapons();
     }
 
   if(g2)
@@ -3299,6 +3297,10 @@ void Npc::setCurrentItem(size_t item) {
 
 void Npc::unequipItem(size_t item) {
   invent.unequip(item,*this);
+  }
+
+void Npc::autoEquipWeapons() {
+  invent.autoEquipWeapons(*this);
   }
 
 bool Npc::canSwitchWeapon() const {
