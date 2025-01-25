@@ -3,9 +3,8 @@
 
 layout(binding = 0) uniform sampler2D src;
 
-layout(location = 0) in  vec2 UV;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-  outColor = texture(src,UV);
+  outColor = texelFetch(src, ivec2(gl_FragCoord.xy), 0);
   }

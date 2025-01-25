@@ -38,26 +38,28 @@ Shaders::Shaders() {
   ssao                = computeShader("ssao.comp.sprv");
   ssaoBlur            = computeShader("ssao_blur.comp.sprv");
 
-  directLight      = postEffect("direct_light", "direct_light",    RenderState::ZTestMode::NoEqual);
-  directLightSh    = postEffect("direct_light", "direct_light_sh", RenderState::ZTestMode::NoEqual);
+  directLight      = postEffect("direct_light",    RenderState::ZTestMode::NoEqual);
+  directLightSh    = postEffect("direct_light_sh", RenderState::ZTestMode::NoEqual);
   if(Gothic::options().doRayQuery && device.properties().descriptors.nonUniformIndexing)
-    directLightRq  = postEffect("direct_light", "direct_light_rq", RenderState::ZTestMode::NoEqual);
+    directLightRq  = postEffect("direct_light_rq", RenderState::ZTestMode::NoEqual);
 
   ambientLight     = ambientLightShader("ambient_light");
   ambientLightSsao = ambientLightShader("ambient_light_ssao");
 
   irradiance         = computeShader("irradiance.comp.sprv");
   cloudsLut          = computeShader("clouds_lut.comp.sprv");
-  skyTransmittance   = postEffect("sky", "sky_transmittance");
-  skyMultiScattering = postEffect("sky", "sky_multi_scattering");
-  skyViewLut         = postEffect("sky", "sky_view_lut");
-  skyViewCldLut      = postEffect("sky", "sky_view_clouds_lut");
+  skyTransmittance   = postEffect("sky_transmittance");
+  skyMultiScattering = postEffect("sky_multi_scattering");
+  skyViewLut         = postEffect("sky_view_lut");
+  skyViewCldLut      = postEffect("sky_view_clouds_lut");
 
   fogViewLut3d       = computeShader("fog_view_lut.comp.sprv");
+  fogViewLutSep      = computeShader("fog_view_lut_sep.comp.sprv");
   fogOcclusion       = computeShader("fog3d.comp.sprv");
 
   skyExposure        = computeShader("sky_exposure.comp.sprv");
   sky                = postEffect("sky");
+  skySep             = postEffect("sky_sep");
   fog                = fogShader ("fog");
   fog3dHQ            = fogShader ("fog3d_hq");
 
@@ -69,7 +71,7 @@ Shaders::Shaders() {
     state.setZTestMode    (RenderState::ZTestMode::Always);
     state.setZWriteEnabled(false);
 
-    auto sh      = GothicShader::get("sky.vert.sprv");
+    auto sh      = GothicShader::get("copy.vert.sprv");
     auto vsLight = device.shader(sh.data,sh.len);
     sh           = GothicShader::get("sky_pathtrace.frag.sprv");
     auto fsLight = device.shader(sh.data,sh.len);
@@ -206,9 +208,10 @@ Shaders::Shaders() {
     vsmFogShadow       = computeShader("vsm_fog_shadow.comp.sprv");
     vsmFogSample       = computeShader("vsm_fog_sample.comp.sprv");
     vsmFogTrace        = computeShader("vsm_fog_trace.comp.sprv");
+    // vsmFog             = fogShader("fog_epipolar");
 
-    vsmDirectLight     = postEffect("direct_light", "direct_light_vsm", RenderState::ZTestMode::NoEqual);
-    vsmDbg             = postEffect("copy", "vsm_dbg", RenderState::ZTestMode::Always);
+    vsmDirectLight     = postEffect("direct_light_vsm", RenderState::ZTestMode::NoEqual);
+    vsmDbg             = postEffect("vsm_dbg", RenderState::ZTestMode::Always);
     vsmRendering       = computeShader("vsm_rendering.comp.sprv");
     }
 
@@ -224,7 +227,7 @@ Shaders::Shaders() {
         swRendering = computeShader("sw_light.comp.sprv");
         break;
       }
-    swRenderingDbg = postEffect("copy", "vbuffer_blit", RenderState::ZTestMode::Always);
+    swRenderingDbg = postEffect("vbuffer_blit", RenderState::ZTestMode::Always);
     }
 
   {
@@ -473,7 +476,11 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
   }
 
 RenderPipeline Shaders::postEffect(std::string_view name) {
-  return postEffect(name,name);
+  return postEffect("copy",name);
+  }
+
+RenderPipeline Shaders::postEffect(std::string_view name, Tempest::RenderState::ZTestMode ztest) {
+  return postEffect("copy",name,ztest);
   }
 
 RenderPipeline Shaders::postEffect(std::string_view vsName, std::string_view fsName, Tempest::RenderState::ZTestMode ztest) {
@@ -510,7 +517,7 @@ RenderPipeline Shaders::fogShader(std::string_view name) {
     state.setBlendDest(RenderState::BlendMode::OneMinusSrcAlpha);
     }
 
-  auto sh = GothicShader::get("sky.vert.sprv");
+  auto sh = GothicShader::get("copy.vert.sprv");
   auto vs = device.shader(sh.data,sh.len);
 
   sh      = GothicShader::get(string_frm(name,".frag.sprv"));

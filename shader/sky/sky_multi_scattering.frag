@@ -4,7 +4,9 @@
 
 #include "sky_common.glsl"
 
-layout(location = 0) in  vec2 inPos;
+layout(std140, push_constant) uniform Push {
+  vec2 viewportSize;
+  };
 layout(location = 0) out vec4 outColor;
 
 layout(binding  = 0) uniform sampler2D tLUT;
@@ -90,10 +92,10 @@ void mulScattValues(vec3 pos, vec3 sunDir, out vec3 lumTotal, out vec3 fms) {
   }
 
 void main() {
-  vec2  uv          = inPos*vec2(0.5)+vec2(0.5);
-  float sunCosTheta = 2.0*uv.x - 1.0;
-  float sunTheta    = safeacos(sunCosTheta);
-  float height      = mix(RPlanet, RAtmos, uv.y);
+  const vec2  uv          = vec2(gl_FragCoord.xy)/vec2(viewportSize);
+  const float sunCosTheta = 2.0*uv.x - 1.0;
+  const float sunTheta    = safeacos(sunCosTheta);
+  const float height      = mix(RPlanet, RAtmos, uv.y);
 
   vec3 pos    = vec3(0.0, height, 0.0);
   vec3 sunDir = normalize(vec3(0.0, sunCosTheta, -sin(sunTheta)));

@@ -5,6 +5,9 @@
 #include "scene.glsl"
 #include "sky_common.glsl"
 
+layout(std140, push_constant) uniform Push {
+  vec2 viewportSize;
+  };
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
@@ -12,7 +15,6 @@ layout(binding  = 1) uniform sampler2D tLUT;
 layout(binding  = 2) uniform sampler2D mLUT;
 layout(binding  = 3) uniform sampler2D cloudsLUT;
 
-layout(location = 0) in  vec2 inPos;
 layout(location = 0) out vec4 outColor;
 
 const int numScatteringSteps = 32;
@@ -54,7 +56,7 @@ vec3 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax) {
   }
 
 void main() {
-  const vec2 uv       = inPos*vec2(0.5)+vec2(0.5);
+  const vec2 uv       = vec2(gl_FragCoord.xy)/vec2(viewportSize);
   const vec3 viewPos  = vec3(0.0, RPlanet + scene.plPosY, 0.0);
 
   const float DirectSunLux  = scene.GSunIntensity;

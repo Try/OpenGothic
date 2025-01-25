@@ -10,6 +10,9 @@
 
 // #define SKY_LOD 2
 
+layout(std140, push_constant) uniform Push {
+  vec2 viewportSize;
+  };
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
@@ -20,7 +23,6 @@ layout(binding  = 3) uniform sampler2D textureDayL1;
 layout(binding  = 4) uniform sampler2D textureNightL0;
 layout(binding  = 5) uniform sampler2D textureNightL1;
 
-layout(location = 0) in  vec2 inPos;
 layout(location = 0) out vec4 outColor;
 
 vec3 applyClouds(vec3 skyColor, vec3 refl) {
@@ -33,8 +35,8 @@ vec3 applyClouds(vec3 skyColor, vec3 refl) {
   }
 
 void main() {
-  const vec2  uv      = inPos*vec2(0.5)+vec2(0.5);
-  const vec3  viewPos = vec3(0.0, RPlanet + scene.plPosY, 0.0);
+  const vec2 uv       = vec2(gl_FragCoord.xy)/vec2(viewportSize);
+  const vec3 viewPos = vec3(0.0, RPlanet + scene.plPosY, 0.0);
 
   float azimuthAngle  = (uv.x - 0.5)*2.0*M_PI;
   // Non-linear mapping of altitude. See Section 5.3 of the paper.

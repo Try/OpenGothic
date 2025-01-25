@@ -40,12 +40,12 @@ class Shaders {
 
     // Scalable and Production Ready Sky and Atmosphere
     Tempest::RenderPipeline  skyTransmittance, skyMultiScattering;
-    Tempest::RenderPipeline  skyViewLut, skyViewCldLut, sky;
+    Tempest::RenderPipeline  skyViewLut, skyViewCldLut, sky, skySep;
     Tempest::RenderPipeline  fog;
     Tempest::RenderPipeline  fog3dHQ;
     Tempest::RenderPipeline  sun;
     Tempest::ComputePipeline cloudsLut, fogOcclusion;
-    Tempest::ComputePipeline fogViewLut3d;
+    Tempest::ComputePipeline fogViewLut3d, fogViewLutSep;
     Tempest::ComputePipeline skyExposure;
 
     Tempest::RenderPipeline  skyPathTrace;
@@ -105,6 +105,7 @@ class Shaders {
       };
 
     Tempest::RenderPipeline  postEffect(std::string_view name);
+    Tempest::RenderPipeline  postEffect(std::string_view name, Tempest::RenderState::ZTestMode ztest);
     Tempest::RenderPipeline  postEffect(std::string_view vs, std::string_view fs, Tempest::RenderState::ZTestMode ztest = Tempest::RenderState::ZTestMode::LEqual);
     Tempest::ComputePipeline computeShader(std::string_view name);
     Tempest::RenderPipeline  fogShader (std::string_view name);

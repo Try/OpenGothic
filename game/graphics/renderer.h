@@ -36,6 +36,7 @@ class Renderer final {
       None,
       VolumetricLQ,
       VolumetricHQ,
+      Epipolar,
       PathTrace,
       };
     Tempest::Size internalResolution() const;
@@ -143,7 +144,7 @@ class Renderer final {
 
       bool                   lutIsInitialized = false;
       Tempest::Attachment    transLut, multiScatLut, viewLut, viewCldLut;
-      Tempest::StorageImage  cloudsLut, fogLut3D;
+      Tempest::StorageImage  cloudsLut, fogLut3D, fogLut3DMs;
       Tempest::StorageImage  occlusionLut, irradianceLut;
 
       Tempest::DescriptorSet uboClouds, uboTransmittance, uboMultiScatLut;

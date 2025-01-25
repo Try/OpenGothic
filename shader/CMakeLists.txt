@@ -188,10 +188,8 @@ add_shader(main_pfx_v_at.frag  materials/main.frag  "-DMESH_TYPE=4" -DDEPTH_ONLY
 add_shader(item.vert                 inventory/item.vert)
 add_shader(item.frag                 inventory/item.frag)
 
-add_shader(stash.vert                copy.vert)
 add_shader(stash.frag                stash.frag)
 
-add_shader(direct_light.vert         copy.vert)
 add_shader(direct_light.frag         lighting/direct_light.frag)
 add_shader(direct_light_sh.frag      lighting/direct_light.frag -DSHADOW_MAP)
 add_shader(direct_light_rq.frag      lighting/direct_light.frag -DSHADOW_MAP -DRAY_QUERY -DRAY_QUERY_AT)
@@ -226,20 +224,20 @@ add_shader(underwater_s.frag         water/underwater.frag -DSCATTERING)
 # Based on Scalable and Production Ready Sky and Atmosphere
 # https://sebh.github.io/publications/egsr2020.pdf
 # https://www.shadertoy.com/view/slSXRW
-add_shader(sky.vert                  sky/sky.vert)
-
 add_shader(sky_transmittance.frag    sky/sky_transmittance.frag)
 add_shader(sky_multi_scattering.frag sky/sky_multi_scattering.frag)
 add_shader(sky_view_lut.frag         sky/sky_view_lut.frag)
 add_shader(sky_view_clouds_lut.frag  sky/sky_view_clouds_lut.frag)
 
 add_shader(clouds_lut.comp           sky/clouds_lut.comp)
-add_shader(fog_view_lut.comp         sky/fog_view_lut.comp)
+add_shader(fog_view_lut.comp         sky/fog_view_lut.comp -DSUN_SCATTERING -DMULTI_SCATTERING)
+add_shader(fog_view_lut_sep.comp     sky/fog_view_lut.comp -DSUN_SCATTERING -DMULTI_SCATTERING -DSEPARABLE)
 
 add_shader(fog3d.comp                sky/fog.frag -S comp -DVOLUMETRIC)
 add_shader(fog3d_hq.frag             sky/fog.frag -DVOLUMETRIC)
 add_shader(fog.frag                  sky/fog.frag)
 add_shader(sky.frag                  sky/sky.frag)
+add_shader(sky_sep.frag              sky/sky.frag -DSEPARABLE)
 
 add_shader(sky_pathtrace.frag        sky/sky_pathtrace.frag)
 
@@ -247,7 +245,8 @@ add_shader(sun.vert                  sky/sun.vert)
 add_shader(sun.frag                  sky/sun.frag)
 
 # copy/edit
-add_shader(copy.vert                 copy.vert -DHAS_UV)
+# add_shader(copy_uv.vert              copy.vert -DHAS_UV)
+add_shader(copy.vert                 copy.vert)
 add_shader(copy.frag                 copy.frag)
 add_shader(copy.comp                 copy.comp)
 add_shader(copy_img.comp             copy_img.comp)

@@ -4,12 +4,14 @@
 
 #include "sky_common.glsl"
 
+layout(std140, push_constant) uniform Push {
+  vec2 viewportSize;
+  };
 layout(binding = 5) uniform sampler2D textureDayL0;
 layout(binding = 6) uniform sampler2D textureDayL1;
 layout(binding = 7) uniform sampler2D textureNightL0;
 layout(binding = 8) uniform sampler2D textureNightL1;
 
-layout(location = 0) in  vec2 inPos;
 layout(location = 0) out vec4 outColor;
 
 const int sunTransmittanceSteps = 40;
@@ -35,7 +37,7 @@ vec3 sunTransmittance(vec3 pos, vec3 sunDir) {
   }
 
 void main() {
-  vec2  uv          = inPos*vec2(0.5)+vec2(0.5);
+  vec2  uv          = vec2(gl_FragCoord.xy)/vec2(viewportSize);
   float sunCosTheta = 2.0*uv.x - 1.0;
   float sunTheta    = safeacos(sunCosTheta);
   float height      = mix(RPlanet, RAtmos, uv.y);
