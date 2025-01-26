@@ -195,7 +195,6 @@ add_shader(direct_light_sh.frag      lighting/direct_light.frag -DSHADOW_MAP)
 add_shader(direct_light_rq.frag      lighting/direct_light.frag -DSHADOW_MAP -DRAY_QUERY -DRAY_QUERY_AT)
 add_shader(direct_light_vsm.frag     virtual_shadow/vsm_direct_light.frag)
 
-add_shader(ambient_light.vert        copy.vert -DHAS_UV)
 add_shader(ambient_light.frag        lighting/ambient_light.frag)
 add_shader(ambient_light_ssao.frag   lighting/ambient_light.frag -DSSAO)
 
@@ -208,16 +207,13 @@ add_shader(light_vsm.frag            lighting/light.frag -DVIRTUAL_SHADOW)
 add_shader(irradiance.comp           lighting/irradiance.comp)
 add_shader(sky_exposure.comp         lighting/sky_exposure.comp)
 
-add_shader(tonemapping.vert          copy.vert -DHAS_UV)
 add_shader(tonemapping.frag          lighting/tonemapping.frag)
 add_shader(tonemapping_up.frag       lighting/tonemapping.frag -DUPSCALE)
 
-add_shader(water_reflection.vert     copy.vert)
 add_shader(water_reflection.mesh     water/water_reflection.mesh)
 add_shader(water_reflection.frag     water/water_reflection.frag)
 add_shader(water_reflection_ssr.frag water/water_reflection.frag -DSSR)
 
-add_shader(underwater.vert           copy.vert "")
 add_shader(underwater_t.frag         water/underwater.frag "")
 add_shader(underwater_s.frag         water/underwater.frag -DSCATTERING)
 
@@ -245,7 +241,7 @@ add_shader(sun.vert                  sky/sun.vert)
 add_shader(sun.frag                  sky/sun.frag)
 
 # copy/edit
-# add_shader(copy_uv.vert              copy.vert -DHAS_UV)
+add_shader(copy_uv.vert              copy.vert -DHAS_UV)
 add_shader(copy.vert                 copy.vert)
 add_shader(copy.frag                 copy.frag)
 add_shader(copy.comp                 copy.comp)

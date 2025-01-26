@@ -742,11 +742,12 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t
     sky.uboSkyViewCldLut.set(5, *wview.sky().cloudsNight().lay[1],smp);
     }
 
-  const auto sz = Vec2(float(sky.viewLut.w()), float(sky.viewLut.h()));
+  auto sz = Vec2(float(sky.viewLut.w()), float(sky.viewLut.h()));
   cmd.setFramebuffer({{sky.viewLut, Tempest::Discard, Tempest::Preserve}});
   cmd.setUniforms(shaders.skyViewLut, sky.uboSkyViewLut, &sz, sizeof(sz));
   cmd.draw(Resources::fsqVbo());
 
+  sz = Vec2(float(sky.viewCldLut.w()), float(sky.viewCldLut.h()));
   cmd.setFramebuffer({{sky.viewCldLut, Tempest::Discard, Tempest::Preserve}});
   cmd.setUniforms(shaders.skyViewCldLut, sky.uboSkyViewCldLut, &sz, sizeof(sz));
   cmd.draw(Resources::fsqVbo());

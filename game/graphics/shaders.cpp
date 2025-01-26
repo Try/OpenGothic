@@ -43,8 +43,8 @@ Shaders::Shaders() {
   if(Gothic::options().doRayQuery && device.properties().descriptors.nonUniformIndexing)
     directLightRq  = postEffect("direct_light_rq", RenderState::ZTestMode::NoEqual);
 
-  ambientLight     = ambientLightShader("ambient_light");
-  ambientLightSsao = ambientLightShader("ambient_light_ssao");
+  ambientLight       = ambientLightShader("ambient_light");
+  ambientLightSsao   = ambientLightShader("ambient_light_ssao");
 
   irradiance         = computeShader("irradiance.comp.sprv");
   cloudsLut          = computeShader("clouds_lut.comp.sprv");
@@ -129,8 +129,8 @@ Shaders::Shaders() {
     }
   }
 
-  tonemapping        = postEffect("tonemapping", "tonemapping",    RenderState::ZTestMode::Always);
-  tonemappingUpscale = postEffect("tonemapping", "tonemapping_up", RenderState::ZTestMode::Always);
+  tonemapping        = postEffect("copy_uv", "tonemapping",    RenderState::ZTestMode::Always);
+  tonemappingUpscale = postEffect("copy_uv", "tonemapping_up", RenderState::ZTestMode::Always);
 
   cmaa2EdgeColor2x2Presets[uint32_t(AaPreset::OFF)]    = Tempest::ComputePipeline();
   cmaa2EdgeColor2x2Presets[uint32_t(AaPreset::MEDIUM)] = computeShader("cmaa2_edges_color2x2_quality_0.comp.sprv");
@@ -540,7 +540,7 @@ RenderPipeline Shaders::inWaterShader(std::string_view name, bool isScattering) 
     state.setBlendDest  (RenderState::BlendMode::SrcColor);
     }
 
-  auto sh = GothicShader::get("underwater.vert.sprv");
+  auto sh = GothicShader::get("copy.vert.sprv");
   auto vs = device.shader(sh.data,sh.len);
 
   sh      = GothicShader::get(string_frm(name,".frag.sprv"));
@@ -558,7 +558,7 @@ RenderPipeline Shaders::reflectionShader(std::string_view name, bool hasMeshlets
   state.setBlendSource  (RenderState::BlendMode::One);
   state.setBlendDest    (RenderState::BlendMode::One);
 
-  auto sh = GothicShader::get("water_reflection.vert.sprv");
+  auto sh = GothicShader::get("copy.vert.sprv");
   auto vs = device.shader(sh.data,sh.len);
   sh      = GothicShader::get(name);
   auto fs = device.shader(sh.data,sh.len);
@@ -581,7 +581,7 @@ RenderPipeline Shaders::ambientLightShader(std::string_view name) {
   state.setZTestMode    (RenderState::ZTestMode::NoEqual);
   state.setZWriteEnabled(false);
 
-  auto sh = GothicShader::get("ambient_light.vert.sprv");
+  auto sh = GothicShader::get("copy.vert.sprv");
   auto vs = device.shader(sh.data,sh.len);
   sh      = GothicShader::get(string_frm(name,".frag.sprv"));
   auto fs = device.shader(sh.data,sh.len);

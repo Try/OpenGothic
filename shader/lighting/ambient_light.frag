@@ -18,8 +18,9 @@ layout(binding  = 3) uniform texture2D  irradiance;
 layout(binding  = 4) uniform sampler2D ssao;
 #endif
 
-layout(location = 0) in  vec2 uv;
 layout(location = 0) out vec4 outColor;
+
+vec2 uv = gl_FragCoord.xy*scene.screenResInv;
 
 #if defined(SSAO)
 float textureSsao() { return textureLod(ssao, uv, 0).r; }
