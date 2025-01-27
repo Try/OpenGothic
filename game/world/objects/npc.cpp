@@ -2195,12 +2195,13 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_TurnToNpc: {
       const auto st = bodyStateMasked();
       if(interactive()==nullptr && (st==BS_WALK || st==BS_SNEAK)) {
-        stopWalkAnimation();
+        visual.stopWalkAnim(*this);
+        setAnimRotate(0);
         queue.pushFront(std::move(act));
         break;
         }
       if(interactive()==nullptr) {
-        stopWalkAnimation();
+        visual.stopWalkAnim(*this);
         visual.stopDlgAnim(*this);
         }
       if(act.target!=nullptr && implTurnTo(*act.target,dt)) {
