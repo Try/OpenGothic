@@ -231,6 +231,7 @@ add_shader(fog_view_lut_sep.comp     sky/fog_view_lut.comp -DSUN_SCATTERING -DMU
 
 add_shader(fog3d.comp                sky/fog.frag -S comp -DVOLUMETRIC)
 add_shader(fog3d_hq.frag             sky/fog.frag -DVOLUMETRIC)
+add_shader(fog_epipolar.frag         sky/fog_epipolar.frag)
 add_shader(fog.frag                  sky/fog.frag)
 add_shader(sky.frag                  sky/sky.frag)
 add_shader(sky_sep.frag              sky/sky.frag -DSEPARABLE)

@@ -40,8 +40,7 @@ struct ScatteringValues {
   vec3  extinction;
   };
 // 4. Atmospheric model
-ScatteringValues scatteringValues(vec3 pos, float clouds) {
-  float altitudeKM          = (length(pos)-RPlanet) / 1000.0;
+ScatteringValues scatteringValues(float altitudeKM, float clouds) {
   // Note: Paper gets these switched up. See SkyAtmosphereCommon.cpp:SetupEarthAtmosphere in demo app
   float rayleighDensity    = exp(-altitudeKM/8.0);
   float mieDensity         = exp(-altitudeKM/1.2);
@@ -65,6 +64,11 @@ ScatteringValues scatteringValues(vec3 pos, float clouds) {
                    ret.mieScattering + mieAbsorption +
                    ozoneAbsorption;
   return ret;
+  }
+
+ScatteringValues scatteringValues(vec3 pos, float clouds) {
+  float altitudeKM = (length(pos)-RPlanet) / 1000.0;
+  return scatteringValues(altitudeKM, clouds);
   }
 
 // 5.5.2. LUT parameterization

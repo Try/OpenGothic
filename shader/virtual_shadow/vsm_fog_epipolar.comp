@@ -6,6 +6,8 @@
 #extension GL_EXT_control_flow_attributes : enable
 
 #include "virtual_shadow/vsm_common.glsl"
+#include "virtual_shadow/epipolar_common.glsl"
+#include "sky/sky_common.glsl"
 #include "scene.glsl"
 #include "common.glsl"
 
@@ -24,23 +26,15 @@ layout(binding = 4)         uniform texture2D  depth;
 layout(binding = 5)         uniform utexture3D pageTbl;
 layout(binding = 6)         uniform texture2D  pageData;
 
-const float dFogMin      = 0;
-const float dFogMax      = 0.9999;
-      uint  NumSamples   = imageSize(rayData).x;
-      uint  NumSlices    = imageSize(rayData).y;
-      ivec2 fragCoord    = ivec2(gl_GlobalInvocationID.xy);
-      ivec2 viewportSize = textureSize(depth, 0);
+uint  NumSamples   = imageSize(rayData).x;
+uint  NumSlices    = imageSize(rayData).y;
+ivec2 fragCoord    = ivec2(gl_GlobalInvocationID.xy);
+ivec2 viewportSize = textureSize(depth, 0);
 
 shared vec2 rayOrig, rayDir;
 shared uint tMinUint, tMaxUint;
 shared uint dBeginUint, dEndUint;
 shared uint tDbg;
-
-vec4 dbgColor = vec4(0,1,0,0);
-
-float interleavedGradientNoise() {
-  return interleavedGradientNoise(fragCoord.xy);
-  }
 
 vec3 screenToShadow(vec3 scr) {
   //TODO: optimize
@@ -52,46 +46,6 @@ vec3 screenToShadow(vec3 scr) {
 vec3 wrldToShadow(vec3 pos) {
   const vec4  shPos = scene.viewVirtualShadow*vec4(pos,1);
   return shPos.xyz/shPos.w;
-  }
-
-vec2 sunPosition2d() {
-  vec3 sun = scene.sunDir;
-  sun = (scene.viewProject*vec4(sun,0)).xyz;
-  sun.xy /= sun.z;
-  return (sun.xy*0.5+0.5);// * viewportSize;
-  }
-
-vec2 rayPosition2d() {
-  const float ratio = float(viewportSize.x)/float(viewportSize.x+viewportSize.y);
-  const uint  hor   = int(0.5*ratio*NumSlices);
-  const uint  vert  = int(NumSlices)/2 - hor;
-
-  uint rayId = gl_WorkGroupID.x;
-
-  if(rayId<hor) {
-    // bottom
-    dbgColor = vec4(0,1,0,0)*((rayId+0.5)/float(hor));
-    return vec2((rayId+0.5)/float(hor), float(viewportSize.y-0.5)/float(viewportSize.y));
-    }
-  rayId -= hor;
-
-  if(rayId<hor) {
-    // top
-    dbgColor = vec4(1,0,0,0)*((rayId+0.5)/float(hor));
-    return vec2((rayId+0.5)/float(hor), float(0.5)/float(viewportSize.y));
-    }
-  rayId -= hor;
-
-  if(rayId<vert) {
-    // left
-    dbgColor = vec4(0,0,1,0)*(rayId+0.5)/float(vert);
-    return vec2(float(0.5)/float(viewportSize.x), (rayId+0.5)/float(vert));
-    }
-  rayId -= vert;
-
-  // right
-  dbgColor = vec4(1,0,1,0)*(rayId+0.5)/float(vert);
-  return vec2(float(viewportSize.x-0.5)/float(viewportSize.x), (rayId+0.5)/float(vert));
   }
 
 void minMaxRayT(const vec3 rposIn) {
@@ -162,8 +116,8 @@ void trace(const vec2 src, const vec2 dst) {
   }
 
 void main() {
-  vec2 rpos = rayPosition2d();
-  vec2 sun  = sunPosition2d();
+  vec2 rpos = rayPosition2d(gl_WorkGroupID.x, viewportSize, NumSlices);
+  vec2 sun  = sunPosition2d(scene)*0.5+0.5;
 
   if(sun.x<0) {
     vec2  dvec = sun - rpos;
