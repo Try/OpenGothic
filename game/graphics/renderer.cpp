@@ -226,8 +226,6 @@ void Renderer::resetSwapchain() {
     vsm.uboFogPages     = device.descriptors(shaders.vsmFogPages);
     vsm.uboFogShadow    = device.descriptors(shaders.vsmFogShadow);
     vsm.uboClump        = device.descriptors(shaders.vsmClumpPages);
-    Resources::recycle(std::move(vsm.uboEpipole));
-    Resources::recycle(std::move(vsm.uboFogSample));
     Resources::recycle(std::move(vsm.uboAlloc));
 
     vsm.pagesDbgPso     = &shaders.vsmDbg;
@@ -625,6 +623,8 @@ void Renderer::resetSkyFog() {
   Resources::recycle(std::move(sky.uboTransmittance));
   Resources::recycle(std::move(sky.uboMultiScatLut));
   Resources::recycle(std::move(vsm.uboFogTrace));
+  Resources::recycle(std::move(vsm.uboEpipole));
+  Resources::recycle(std::move(vsm.uboFogSample));
 
   Resources::recycle(std::move(sky.uboSkyViewLut));
   Resources::recycle(std::move(sky.uboSkyViewCldLut));
@@ -1590,7 +1590,7 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, Wor
     cmd.dispatchThreads(uint32_t(sky.fogLut3D.w()), uint32_t(sky.fogLut3D.h()));
     }
 
-  if(sky.quality==VolumetricHQ || sky.quality==Epipolar) {
+  if(settings.vsmEnabled && (sky.quality==VolumetricHQ || sky.quality==Epipolar)) {
     cmd.setFramebuffer({});
     cmd.setDebugMarker("VSM-epipolar-fog");
     cmd.setUniforms(shaders.vsmFogShadow, vsm.uboFogShadow);
