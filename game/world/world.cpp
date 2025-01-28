@@ -130,9 +130,8 @@ void World::createPlayer(std::string_view cls) {
   if(id==size_t(-1))
     return;
   std::string_view waypoint = wmatrix->startPoint().name;
-  auto             npc      = std::make_unique<Npc>(*this,id,waypoint);
+  auto             npc      = std::make_unique<Npc>(*this,id,waypoint,Npc::ProcessPolicy::Player);
   npcPlayer = wobj.insertPlayer(std::move(npc),waypoint);
-  npcPlayer->setProcessPolicy(Npc::ProcessPolicy::Player);
   game.script()->setInstanceNPC("HERO",*npcPlayer);
   }
 
