@@ -357,6 +357,7 @@ class Npc final {
 
     bool      turnTo  (float dx, float dz, bool noAnim, uint64_t dt);
     bool      rotateTo(float dx, float dz, float speed, bool anim, uint64_t dt);
+    bool      rotateTo(float a, float step, bool noAnim, uint64_t dt);
     bool      isRotationAllowed() const;
     auto      playAnimByName(std::string_view name, BodyState bs) -> const Animation::Sequence*;
 
@@ -471,9 +472,11 @@ class Npc final {
     bool      implLookAtWp(uint64_t dt);
     bool      implLookAtNpc(uint64_t dt);
     bool      implLookAt (float dx, float dy, float dz, uint64_t dt);
+    bool      implTurnAway(const Npc& oth, uint64_t dt);
     bool      implTurnTo (const Npc& oth, uint64_t dt);
     bool      implTurnTo (const Npc& oth, bool noAnim, uint64_t dt);
     bool      implTurnTo (float dx, float dz, bool noAnim, uint64_t dt);
+    bool      implWhirlTo(const Npc& oth, uint64_t dt);
     bool      implGoTo   (uint64_t dt);
     bool      implGoTo   (uint64_t dt, float destDist);
     bool      implAttack  (uint64_t dt);

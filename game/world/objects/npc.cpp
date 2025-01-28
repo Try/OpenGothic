@@ -1331,6 +1331,21 @@ bool Npc::implLookAt(float dx, float dy, float dz, uint64_t dt) {
   return false;
   }
 
+bool Npc::implTurnAway(const Npc &oth, uint64_t dt) {
+  if(&oth==this)
+    return true;
+
+  auto dx = oth.x-x;
+  auto dz = oth.z-z;
+  float a = angleDir(dx, dz) + 180;
+  if(a > 360)
+    a-= 360;
+
+  auto  gl   = guild();
+  float step = float(owner.script().guildVal().turn_speed[gl]);
+  return rotateTo(a,step,false,dt);
+  }
+
 bool Npc::implTurnTo(const Npc &oth, uint64_t dt) {
   if(&oth==this)
     return true;
@@ -1351,6 +1366,16 @@ bool Npc::implTurnTo(float dx, float dz, bool noAnim, uint64_t dt) {
   auto  gl   = guild();
   float step = float(owner.script().guildVal().turn_speed[gl]);
   return rotateTo(dx,dz,step,noAnim,dt);
+  }
+
+bool Npc::implWhirlTo(const Npc &oth, uint64_t dt) {
+  if(&oth==this)
+    return true;
+  auto dx = oth.x-x;
+  auto dz = oth.z-z;
+  auto  gl   = guild();
+  float step = float(owner.script().guildVal().turn_speed[gl]) * 2;
+  return rotateTo(dx,dz,step,false,dt);
   }
 
 bool Npc::implGoTo(uint64_t dt) {
@@ -2192,6 +2217,27 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       currentLookAt=act.point;
       break;
       }
+    case AI_TurnAway: {
+      const auto st = bodyStateMasked();
+      if(interactive()==nullptr && (st==BS_WALK || st==BS_SNEAK)) {
+        stopWalkAnimation();
+        queue.pushFront(std::move(act));
+        break;
+        }
+      if(interactive()==nullptr) {
+        stopWalkAnimation();
+        visual.stopDlgAnim(*this);
+        }
+      if(act.target!=nullptr && implTurnAway(*act.target,dt)) {
+        queue.pushFront(std::move(act));
+        break;
+        }
+      // Not looking quite correct in dialogs, when npc turns around
+      // Example: Esteban dialog
+      // currentLookAt    = nullptr;
+      // currentLookAtNpc = nullptr;
+      break;
+      }
     case AI_TurnToNpc: {
       const auto st = bodyStateMasked();
       if(interactive()==nullptr && (st==BS_WALK || st==BS_SNEAK)) {
@@ -2205,6 +2251,27 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         visual.stopDlgAnim(*this);
         }
       if(act.target!=nullptr && implTurnTo(*act.target,dt)) {
+        queue.pushFront(std::move(act));
+        break;
+        }
+      // Not looking quite correct in dialogs, when npc turns around
+      // Example: Esteban dialog
+      // currentLookAt    = nullptr;
+      // currentLookAtNpc = nullptr;
+      break;
+      }
+    case AI_WhirlToNpc: {
+      const auto st = bodyStateMasked();
+      if(interactive()==nullptr && (st==BS_WALK || st==BS_SNEAK)) {
+        stopWalkAnimation();
+        queue.pushFront(std::move(act));
+        break;
+        }
+      if(interactive()==nullptr) {
+        stopWalkAnimation();
+        visual.stopDlgAnim(*this);
+        }
+      if(act.target!=nullptr && implWhirlTo(*act.target,dt)) {
         queue.pushFront(std::move(act));
         break;
         }
@@ -3222,10 +3289,16 @@ bool Npc::turnTo(float dx, float dz, bool noAnim, uint64_t dt) {
   }
 
 bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
-  //step *= (float(dt)/1000.f)*60.f/100.f;
-  step *= (float(dt)/1000.f);
-
   if(dx==0.f && dz==0.f) {
+    setAnimRotate(0);
+    return false;
+    }
+
+  return rotateTo(angleDir(dx, dz), step, noAnim, dt);
+  }
+
+bool Npc::rotateTo(float a, float step, bool noAnim, uint64_t dt) {
+  if(a==0.f) {
     setAnimRotate(0);
     return false;
     }
@@ -3233,7 +3306,9 @@ bool Npc::rotateTo(float dx, float dz, float step, bool noAnim, uint64_t dt) {
   if(!isRotationAllowed())
     return false;
 
-  float a  = angleDir(dx,dz);
+  //step *= (float(dt)/1000.f)*60.f/100.f;
+  step *= (float(dt)/1000.f);
+
   float da = a-angle;
 
   if(noAnim || std::cos(double(da)*M_PI/180.0)>0) {

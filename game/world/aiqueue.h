@@ -46,7 +46,9 @@ class AiQueue {
     static AiAction aiLookAtNpc(Npc* other);
     static AiAction aiStopLookAt();
     static AiAction aiRemoveWeapon();
+    static AiAction aiTurnAway (Npc *other);
     static AiAction aiTurnToNpc(Npc *other);
+    static AiAction aiWhirlToNpc(Npc *other);
     static AiAction aiGoToNpc  (Npc *other);
     static AiAction aiGoToNextFp(std::string_view fp);
     static AiAction aiStartState(ScriptFn stateFn, int behavior, Npc *other, Npc* victum, std::string_view wp);
