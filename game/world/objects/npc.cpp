@@ -156,8 +156,8 @@ struct Npc::TransformBack {
   };
 
 
-Npc::Npc(World &owner, size_t instance, std::string_view waypoint)
-  :owner(owner),mvAlgo(*this) {
+Npc::Npc(World &owner, size_t instance, std::string_view waypoint, ProcessPolicy aiPolicy)
+  :owner(owner),aiPolicy(aiPolicy),mvAlgo(*this) {
   outputPipe          = owner.script().openAiOuput();
 
   hnpc = std::make_shared<zenkit::INpc>();
@@ -490,9 +490,7 @@ bool Npc::resetPositionToTA() {
     invent.autoEquipWeapons(*this);
     }
 
-  if(g2)
-    owner.script().invokeRefreshAtInsert(*this);
-
+  owner.script().invokeRefreshAtInsert(*this);
   return true;
   }
 

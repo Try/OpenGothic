@@ -74,7 +74,7 @@ class Npc final {
 
     using Anim = AnimationSolver::Anim;
 
-    Npc(World &owner, size_t instance, std::string_view waypoint);
+    Npc(World &owner, size_t instance, std::string_view waypoint, ProcessPolicy aiPolicy = AiNormal);
     Npc(const Npc&)=delete;
     ~Npc();
 

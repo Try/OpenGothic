@@ -322,6 +322,7 @@ Npc* WorldObjects::addNpc(size_t npcInstance, const Vec3& pos) {
   Npc* npc   = new Npc(owner,npcInstance,pstr);
   npc->setPosition  (pos.x,pos.y,pos.z);
   npc->updateTransform();
+  owner.script().invokeRefreshAtInsert(*npc);
 
   npcArr.emplace_back(npc);
   return npc;
