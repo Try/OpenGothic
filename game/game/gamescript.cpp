@@ -1163,7 +1163,7 @@ void GameScript::invokePickLock(Npc& npc, int bSuccess, int bBrokenOpen) {
   }
 
 void GameScript::invokeRefreshAtInsert(Npc& npc) {
-  if(B_RefreshAtInsert==nullptr)
+  if(B_RefreshAtInsert==nullptr || owner.version().game!=2)
     return;
   ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(B_RefreshAtInsert);

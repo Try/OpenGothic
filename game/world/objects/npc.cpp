@@ -490,9 +490,7 @@ bool Npc::resetPositionToTA() {
     invent.autoEquipWeapons(*this);
     }
 
-  if(g2)
-    owner.script().invokeRefreshAtInsert(*this);
-
+  owner.script().invokeRefreshAtInsert(*this);
   return true;
   }
 
