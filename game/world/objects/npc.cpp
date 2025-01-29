@@ -2172,6 +2172,20 @@ void Npc::tick(uint64_t dt) {
   implAiTick(dt);
   }
 
+bool Npc::prepareTurn() {
+  const auto st = bodyStateMasked();
+  if(interactive()==nullptr && (st==BS_WALK || st==BS_SNEAK)) {
+    visual.stopWalkAnim(*this);
+    setAnimRotate(0);
+    return false;
+    }
+  if(interactive()==nullptr) {
+    visual.stopWalkAnim(*this);
+    visual.stopDlgAnim(*this);
+    }
+  return true;
+}
+
 void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
   if(isInAir())
     return;
@@ -2191,16 +2205,9 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
       }
     case AI_TurnToNpc: {
-      const auto st = bodyStateMasked();
-      if(interactive()==nullptr && (st==BS_WALK || st==BS_SNEAK)) {
-        visual.stopWalkAnim(*this);
-        setAnimRotate(0);
+      if(!prepareTurn()) {
         queue.pushFront(std::move(act));
         break;
-        }
-      if(interactive()==nullptr) {
-        visual.stopWalkAnim(*this);
-        visual.stopDlgAnim(*this);
         }
       if(act.target!=nullptr && implTurnTo(*act.target,dt)) {
         queue.pushFront(std::move(act));

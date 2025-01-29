@@ -495,6 +495,7 @@ class Npc final {
     bool      checkHealth(bool onChange, bool forceKill);
     void      onNoHealth(bool death, HitSound sndMask);
     bool      hasAutoroll() const;
+    bool      prepareTurn();
     void      stopWalkAnimation();
     void      takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32_t splId, bool isSpell);
     void      takeFallDamage(const Tempest::Vec3& fallSpeed);
