@@ -28,6 +28,8 @@ class AnimationSolver final {
       MoveR,
       RotL,
       RotR,
+      WhirlL,
+      WhirlR,
       Fall,
       FallDeep,
       FallDeepA,

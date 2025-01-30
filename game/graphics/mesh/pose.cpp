@@ -812,7 +812,7 @@ Vec2 Pose::headRotation() const {
   return Vec2(headRotX,headRotY);
   }
 
-void Pose::setAnimRotate(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, int dir) {
+void Pose::setAnimRotate(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, enum TurnAnim turn, int dir) {
   const Animation::Sequence *sq = nullptr;
   if(dir==0) {
     if(rotation!=nullptr) {
@@ -823,11 +823,15 @@ void Pose::setAnimRotate(const AnimationSolver &solver, Npc &npc, WeaponState fi
     }
   if(bodyState()!=BS_STAND)
     return;
-  if(dir<0) {
-    sq = solver.solveAnim(AnimationSolver::Anim::RotL,fightMode,npc.walkMode(),*this);
+
+  enum AnimationSolver::Anim ani;
+  if(turn==TURN_ANIM_WHIRL) {
+    ani = (dir<0)?AnimationSolver::Anim::WhirlL:AnimationSolver::Anim::WhirlR;
     } else {
-    sq = solver.solveAnim(AnimationSolver::Anim::RotR,fightMode,npc.walkMode(),*this);
+    ani = (dir<0)?AnimationSolver::Anim::RotL:AnimationSolver::Anim::RotR;
     }
+
+  sq = solver.solveAnim(ani,fightMode,npc.walkMode(),*this);
   if(rotation!=nullptr) {
     if(sq!=nullptr && rotation->name==sq->name)
       return;

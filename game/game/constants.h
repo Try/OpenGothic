@@ -383,7 +383,9 @@ enum Action:uint32_t {
   AI_PointAt,
   AI_StopPointAt,
   AI_PrintScreen,
-  AI_LookAt
+  AI_LookAt,
+  AI_WhirlToNpc,
+  AI_TurnAway,
   };
 
 
@@ -519,3 +521,9 @@ enum class AaPreset : uint32_t {
   ULTRA,
   PRESETS_COUNT
   };
+
+enum TurnAnim : uint8_t {
+  TURN_ANIM_STD = 0,
+  TURN_ANIM_NONE,
+  TURN_ANIM_WHIRL,
+};

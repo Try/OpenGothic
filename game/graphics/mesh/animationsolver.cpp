@@ -277,6 +277,34 @@ const Animation::Sequence* AnimationSolver::implSolveAnim(AnimationSolver::Anim 
       return solveFrm("T_%sWALKWTURNR",st);
     return solveFrm("T_%sRUNTURNR",st);
     }
+  // Whirl around
+  if(a==WhirlL) {
+    // Whirling in water should not happen, but just to make sure
+    if(bool(wlkMode & WalkBit::WM_Dive))
+      return solveFrm("T_DIVETURNL");
+    if(bool(wlkMode & WalkBit::WM_Swim))
+      return solveFrm("T_SWIMTURNL");
+
+    // whirling is only used in G1, but the script function is present
+    // in all games. In G2 all models except the human also have the
+    // needed animation.
+    const Animation::Sequence* s = solveFrm("T_SURPRISE_CCW");
+    if(s==nullptr)
+      s = solveFrm("T_%sRUNTURNL",st);
+    return s;
+    }
+  if(a==WhirlR) {
+    // Whirling in water should not happen, but just to make sure
+    if(bool(wlkMode & WalkBit::WM_Dive))
+      return solveFrm("T_DIVETURNR");
+    if(bool(wlkMode & WalkBit::WM_Swim))
+      return solveFrm("T_SWIMTURNR");
+
+    const Animation::Sequence* s = solveFrm("T_SURPRISE_CW");
+    if(s==nullptr)
+      s = solveFrm("T_%sRUNTURNR",st);
+    return s;
+    }
   // Jump regular
   if(a==Jump)
     return solveFrm("S_JUMP");

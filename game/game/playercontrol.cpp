@@ -1087,7 +1087,7 @@ void PlayerControl::processAutoRotate(Npc& pl, float& rot, uint64_t dt) {
       float step = float(pl.world().script().guildVal().turn_speed[gl]);
       if(actrl[ActGeneric])
         step*=2.f;
-      pl.rotateTo(dp.x,dp.z,step,false,dt);
+      pl.rotateTo(dp.x,dp.z,step,TURN_ANIM_STD,dt);
       rot = pl.rotation();
       }
     }
