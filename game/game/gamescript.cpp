@@ -1064,7 +1064,7 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
 
   ScopeVar self  (*vm.global_self(),   npc != nullptr ? npc->handlePtr() : nullptr);
   ScopeVar other (*vm.global_other(),  oth != nullptr ? oth->handlePtr() : nullptr);
-  ScopeVar victum(*vm.global_victim(), vic != nullptr ? vic->handlePtr() : nullptr);
+  ScopeVar victim(*vm.global_victim(), vic != nullptr ? vic->handlePtr() : nullptr);
 
   auto* sym = vm.find_symbol_by_index(uint32_t(fn.ptr));
   int   ret = 0;
@@ -2465,11 +2465,11 @@ bool GameScript::npc_getnexttarget(std::shared_ptr<zenkit::INpc> npcRef) {
 
 void GameScript::npc_sendpassiveperc(std::shared_ptr<zenkit::INpc> npcRef, int id, std::shared_ptr<zenkit::INpc> victimRef, std::shared_ptr<zenkit::INpc> otherRef) {
   auto other  = findNpc(otherRef);
-  auto victum = findNpc(victimRef);
+  auto victim = findNpc(victimRef);
   auto npc    = findNpc(npcRef);
 
-  if(npc && other && victum)
-    world().sendPassivePerc(*npc,*other,*victum,id);
+  if(npc && other && victim)
+    world().sendPassivePerc(*npc,*other,*victim,id);
   }
 
 bool GameScript::npc_checkinfo(std::shared_ptr<zenkit::INpc> npcRef, int imp) {

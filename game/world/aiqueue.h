@@ -18,7 +18,7 @@ class AiQueue {
     struct AiAction final {
       Action            act   =AI_None;
       Npc*              target=nullptr;
-      Npc*              victum=nullptr;
+      Npc*              victim=nullptr;
       const WayPoint*   point =nullptr;
       Item*             item  =nullptr;
       ScriptFn          func  =0;
@@ -49,7 +49,7 @@ class AiQueue {
     static AiAction aiTurnToNpc(Npc *other);
     static AiAction aiGoToNpc  (Npc *other);
     static AiAction aiGoToNextFp(std::string_view fp);
-    static AiAction aiStartState(ScriptFn stateFn, int behavior, Npc *other, Npc* victum, std::string_view wp);
+    static AiAction aiStartState(ScriptFn stateFn, int behavior, Npc *other, Npc* victim, std::string_view wp);
     static AiAction aiPlayAnim(std::string_view ani);
     static AiAction aiPlayAnimBs(std::string_view ani, BodyState bs);
     static AiAction aiWait(uint64_t dt);

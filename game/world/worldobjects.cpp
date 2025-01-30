@@ -869,19 +869,19 @@ void WorldObjects::setMobRoutine(gtime time, std::string_view scheme, int32_t st
   routines.emplace_back(std::move(st));
   }
 
-void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item* itm, int32_t perc) {
+void WorldObjects::sendPassivePerc(Npc &self, Npc &other, Npc &victim, Item* itm, int32_t perc) {
   PerceptionMsg m;
   m.what   = perc;
   m.pos    = self.position();
   m.self   = &self;
   m.other  = &other;
-  m.victum = &victum;
+  m.victim = &victim;
   if(itm!=nullptr)
     m.item   = itm->handle().symbol_index();
   sndPerc.push_back(m);
   }
 
-void WorldObjects::sendImmediatePerc(Npc& self, Npc& other, Npc& victum, Item* itm, int32_t perc) {
+void WorldObjects::sendImmediatePerc(Npc& self, Npc& other, Npc& victim, Item* itm, int32_t perc) {
   const auto pl = owner.player();
   if(pl==nullptr || pl->bodyStateMasked()==BS_SNEAK)
     return;
@@ -891,7 +891,7 @@ void WorldObjects::sendImmediatePerc(Npc& self, Npc& other, Npc& victum, Item* i
   r.pos    = self.position();
   r.self   = &self;
   r.other  = &other;
-  r.victum = &victum;
+  r.victim = &victim;
   if(itm!=nullptr)
     r.item   = itm->handle().symbol_index();
 
@@ -930,14 +930,14 @@ void WorldObjects::passivePerceptionProcess(PerceptionMsg& msg, Npc& npc, Npc& p
     }
 
   // approximation of behavior of original G2
-  if(active && msg.victum!=nullptr && npc.canSenseNpc(*msg.victum,true,float(msg.other->handle().senses_range))==SensesBit::SENSE_NONE) {
+  if(active && msg.victim!=nullptr && npc.canSenseNpc(*msg.victim,true,float(msg.other->handle().senses_range))==SensesBit::SENSE_NONE) {
     return;
     }
   */
 
   if(msg.item!=size_t(-1) && msg.other!=nullptr)
     owner.script().setInstanceItem(*msg.other,msg.item);
-  npc.perceptionProcess(*msg.other,msg.victum,distance,PercType(msg.what));
+  npc.perceptionProcess(*msg.other,msg.victim,distance,PercType(msg.what));
   }
 
 void WorldObjects::resetPositionToTA() {
