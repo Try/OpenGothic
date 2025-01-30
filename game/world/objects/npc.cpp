@@ -205,7 +205,7 @@ void Npc::save(Serialize &fout, size_t id) {
   saveTrState(fout);
   saveAiState(fout);
 
-  fout.write(currentInteract,currentOther,currentVictum);
+  fout.write(currentInteract,currentOther,currentVictim);
   fout.write(currentLookAt,currentLookAtNpc,currentTarget,nearestEnemy);
 
   go2.save(fout);
@@ -264,7 +264,7 @@ void Npc::load(Serialize &fin, size_t id) {
   loadTrState(fin);
   loadAiState(fin);
 
-  fin.read(currentInteract,currentOther,currentVictum);
+  fin.read(currentInteract,currentOther,currentVictim);
   if(fin.version()>=42)
     fin.read(currentLookAt);
   fin.read(currentLookAtNpc,currentTarget,nearestEnemy);
@@ -2276,7 +2276,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       // assigning finite end-time to ZS_TALK/ZS_ATTACK can cause bugs, when dialog or combat is interrupted by time-table routine
       if(startState(act.func,act.s0,gtime::endOfTime(),act.i0==0)) {
         setOther(act.target);
-        setVictum(act.victum);
+        setVictim(act.victim);
         }
       break;
     case AI_PlayAnim:{
@@ -2563,7 +2563,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
           return;
         if(qDistTo(other)>float(r))
           return;
-        other.aiPush(AiQueue::aiStartState(act.func,1,other.currentOther,other.currentVictum,other.hnpc->wp));
+        other.aiPush(AiQueue::aiStartState(act.func,1,other.currentOther,other.currentVictim,other.hnpc->wp));
         });
       break;
       }
@@ -2687,7 +2687,7 @@ bool Npc::startState(ScriptFn id, std::string_view wp, gtime endTime, bool noFin
 void Npc::clearState(bool noFinalize) {
   if(aiState.funcIni.isValid() && aiState.started) {
     if(!noFinalize)
-      owner.script().invokeState(this,currentOther,currentVictum,aiState.funcEnd);  // cleanup
+      owner.script().invokeState(this,currentOther,currentVictim,aiState.funcEnd);  // cleanup
     aiPrevState = aiState.funcIni;
     invent.putState(*this,0,0);
     visual.stopItemStateAnim(*this);
@@ -2721,7 +2721,7 @@ void Npc::tickRoutine() {
       aiState.loopNextTime+=1000; // one tick per second?
       int loop = LOOP_CONTINUE;
       if(aiState.funcLoop.isValid()) {
-        loop = owner.script().invokeState(this,currentOther,currentVictum,aiState.funcLoop);
+        loop = owner.script().invokeState(this,currentOther,currentVictim,aiState.funcLoop);
         } else {
         // ZS_DEATH   have no loop-function, in G1, G2-classic
         // ZS_GETMEAT have no loop-function, in G2-notr
@@ -2734,12 +2734,12 @@ void Npc::tickRoutine() {
       if(loop!=LOOP_CONTINUE) {
         clearState(false);
         currentOther  = nullptr;
-        currentVictum = nullptr;
+        currentVictim = nullptr;
         }
       }
     } else {
     aiState.started=true;
-    owner.script().invokeState(this,currentOther,currentVictum,aiState.funcIni);
+    owner.script().invokeState(this,currentOther,currentVictim,aiState.funcIni);
     }
   }
 
@@ -2768,8 +2768,8 @@ void Npc::setOther(Npc *ot) {
   currentOther = ot;
   }
 
-void Npc::setVictum(Npc* ot) {
-  currentVictum = ot;
+void Npc::setVictim(Npc* ot) {
+  currentVictim = ot;
   }
 
 bool Npc::haveOutput() const {
@@ -3877,7 +3877,7 @@ bool Npc::perceptionProcess(Npc &pl) {
   return ret;
   }
 
-bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, PercType perc) {
+bool Npc::perceptionProcess(Npc &pl, Npc* victim, float quadDist, PercType perc) {
   float r = float(world().script().percRanges().at(perc, hnpc->senses_range));
   r = r*r;
 
@@ -3885,13 +3885,13 @@ bool Npc::perceptionProcess(Npc &pl, Npc* victum, float quadDist, PercType perc)
     return false;
 
   if(hasPerc(perc)) {
-    owner.script().invokeState(this,&pl,victum,perception[perc].func);
+    owner.script().invokeState(this,&pl,victim,perception[perc].func);
     return true;
     }
   if(perc==PERC_ASSESSMAGIC && isPlayer()) {
     auto defaultFn = owner.script().playerPercAssessMagic();
     if(defaultFn.isValid())
-      owner.script().invokeState(this,&pl,victum,defaultFn);
+      owner.script().invokeState(this,&pl,victim,defaultFn);
     return true;
     }
   return false;
@@ -3989,7 +3989,7 @@ void Npc::addRoutine(gtime s, gtime e, uint32_t callback, const WayPoint *point)
 
 void Npc::excRoutine(size_t callback) {
   routines.clear();
-  owner.script().invokeState(this,currentOther,currentVictum,callback);
+  owner.script().invokeState(this,currentOther,currentVictim,callback);
   // aiState.eTime = gtime();
   }
 

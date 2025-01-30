@@ -11,6 +11,6 @@ class PerceptionMsg final {
     Tempest::Vec3 pos;
     Npc*          self  =nullptr;
     Npc*          other =nullptr;
-    Npc*          victum=nullptr;
+    Npc*          victim=nullptr;
     size_t        item  =size_t(-1);
   };

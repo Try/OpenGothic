@@ -288,7 +288,7 @@ class Npc final {
     void      setPerceptionDisable(PercType t);
 
     bool      perceptionProcess(Npc& pl);
-    bool      perceptionProcess(Npc& pl, Npc *victum, float quadDist, PercType perc);
+    bool      perceptionProcess(Npc& pl, Npc *victim, float quadDist, PercType perc);
     bool      hasPerc(PercType perc) const;
     uint64_t  percNextTime() const;
 
@@ -388,7 +388,7 @@ class Npc final {
     int32_t   lastHitSpellId() const { return lastHitSpell; }
 
     void      setOther(Npc* ot);
-    void      setVictum(Npc* ot);
+    void      setVictim(Npc* ot);
 
     bool      haveOutput() const;
     void      setAiOutputBarrier(uint64_t dt, bool overlay);
@@ -590,7 +590,7 @@ class Npc final {
 
     Interactive*                   currentInteract=nullptr;
     Npc*                           currentOther   =nullptr;
-    Npc*                           currentVictum  =nullptr;
+    Npc*                           currentVictim  =nullptr;
 
     const WayPoint*                currentLookAt=nullptr;
     Npc*                           currentLookAtNpc=nullptr;

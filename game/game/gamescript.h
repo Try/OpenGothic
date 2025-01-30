@@ -130,7 +130,7 @@ class GameScript final {
     void  printMobTooFar              (Npc &npc);
 
     void invokeState(const std::shared_ptr<zenkit::INpc>& hnpc, const std::shared_ptr<zenkit::INpc>& hother, const char* name);
-    int  invokeState(Npc* npc, Npc* other, Npc *victum, ScriptFn fn);
+    int  invokeState(Npc* npc, Npc* other, Npc *victim, ScriptFn fn);
     void invokeItem (Npc* npc, ScriptFn fn);
     int  invokeMana (Npc& npc, Npc* target, int mana);
     int  invokeManaRelease (Npc& npc, Npc* target, int mana);
