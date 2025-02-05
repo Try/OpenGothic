@@ -1,7 +1,8 @@
 #version 450
 
 #extension GL_GOOGLE_include_directive : enable
-#include "materials/materials_common.glsl"
+
+#include "scene.glsl"
 
 layout(local_size_x = 32) in;
 

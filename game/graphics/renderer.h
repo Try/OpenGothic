@@ -50,7 +50,7 @@ class Renderer final {
     void prepareSSAO      (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void prepareFog       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void prepareIrradiance(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview);
-    void prepareGi        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void prepareGi        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void prepareExposure  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
 
     void drawHiZ          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
@@ -73,7 +73,7 @@ class Renderer final {
     void drawSunMoon      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview);
     void drawSunMoon      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview, bool isSun);
 
-    void drawProbesDbg    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void drawProbesDbg    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview);
     void drawProbesHitDbg (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void stashSceneAux    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
@@ -128,12 +128,10 @@ class Renderer final {
 
     struct Shadow {
       Tempest::RenderPipeline* directLightPso = nullptr;
-      Tempest::DescriptorSet   ubo;
       } shadow;
 
     struct Lights {
       Tempest::RenderPipeline* directLightPso = nullptr;
-      Tempest::DescriptorSet   ubo;
       } lights;
 
     struct Sky {
@@ -147,16 +145,12 @@ class Renderer final {
       Tempest::StorageImage  cloudsLut, fogLut3D, fogLut3DMs;
       Tempest::StorageImage  occlusionLut, irradianceLut;
 
-      Tempest::DescriptorSet uboClouds, uboTransmittance, uboMultiScatLut;
-      Tempest::DescriptorSet uboSkyViewLut, uboSkyViewCldLut;
-
       Tempest::DescriptorSet uboFogViewLut3d, uboOcclusion;
 
       Tempest::DescriptorSet uboFog, uboFog3d;
       Tempest::DescriptorSet uboSky, uboSkyPathtrace;
 
       Tempest::DescriptorSet uboExp, uboIrradiance;
-      Tempest::DescriptorSet uboSun, uboMoon;
       } sky;
 
     struct Water {
@@ -216,30 +210,6 @@ class Renderer final {
     struct {
       const uint32_t            atlasDim  = 256; // sqrt(maxProbes)
       const uint32_t            maxProbes = atlasDim*atlasDim; // 65536
-      Tempest::DescriptorSet    uboDbg, uboHitDbg;
-
-      Tempest::ComputePipeline* probeInitPso   = nullptr;
-
-      Tempest::ComputePipeline* probeClearPso  = nullptr;
-      Tempest::ComputePipeline* probeClearHPso = nullptr;
-      Tempest::ComputePipeline* probeMakeHPso  = nullptr;
-      Tempest::DescriptorSet    uboClear;
-
-      Tempest::ComputePipeline* probeVotePso   = nullptr;
-      Tempest::ComputePipeline* probePrunePso  = nullptr;
-      Tempest::ComputePipeline* probeAllocPso  = nullptr;
-      Tempest::DescriptorSet    uboProbes;
-
-      Tempest::DescriptorSet    uboPrevIrr, uboZeroIrr;
-
-      Tempest::ComputePipeline* probeTracePso = nullptr;
-      Tempest::DescriptorSet    uboTrace;
-
-      Tempest::ComputePipeline* probeLightPso = nullptr;
-      Tempest::DescriptorSet    uboLight;
-
-      Tempest::RenderPipeline*  ambientLightPso = nullptr;
-      Tempest::DescriptorSet    uboCompose;
 
       Tempest::StorageBuffer    voteTable, hashTable, freeList;
       Tempest::StorageBuffer    probes;

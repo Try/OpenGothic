@@ -491,7 +491,8 @@ void DrawCommands::visibilityPass(Encoder<CommandBuffer>& cmd, uint8_t fId, int 
       if(!isViewEnabled(v.viewport))
         continue;
       const uint32_t isMeshShader = (Gothic::options().doMeshShading ? 1 : 0);
-      cmd.setUniforms(Shaders::inst().clusterInit, v.descInit, &isMeshShader, sizeof(isMeshShader));
+      cmd.setBinding(T_Indirect, v.indirectCmd);
+      cmd.setUniforms(Shaders::inst().clusterInit, &isMeshShader, sizeof(isMeshShader));
       cmd.dispatchThreads(this->cmd.size());
       }
     }
@@ -515,7 +516,15 @@ void DrawCommands::visibilityPass(Encoder<CommandBuffer>& cmd, uint8_t fId, int 
       pso = &Shaders::inst().visibilityPassHiZ;
     else if(i.viewport==SceneGlobals::V_HiZ)
       pso = &Shaders::inst().visibilityPassHiZCr;
-    cmd.setUniforms(*pso, i.desc, &push, sizeof(push));
+
+    cmd.setBinding(T_Scene,    scene.uboGlobal[i.viewport]);
+    cmd.setBinding(T_Payload,  views[i.viewport].visClusters);
+    cmd.setBinding(T_Instance, owner.instanceSsbo());
+    cmd.setBinding(T_Bucket,   buckets.ssbo());
+    cmd.setBinding(T_Indirect, views[i.viewport].indirectCmd);
+    cmd.setBinding(T_Clusters, clusters.ssbo());
+    cmd.setBinding(T_HiZ,      *scene.hiZ);
+    cmd.setUniforms(*pso, &push, sizeof(push));
     cmd.dispatchThreads(push.meshletCount);
     }
   }
@@ -597,6 +606,54 @@ void DrawCommands::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
     auto id  = size_t(std::distance(this->cmd.data(), &cx));
     push.firstMeshlet = cx.firstPayload;
     push.meshletCount = cx.maxPayload;
+
+    /*
+    auto bId = cx.bucketId;
+    cmd.setBinding(L_Scene,    scene.uboGlobal[v]);
+    cmd.setBinding(L_Payload,  views[v].visClusters);
+    cmd.setBinding(L_Instance, owner.instanceSsbo());
+    cmd.setBinding(L_Bucket,   buckets.ssbo());
+
+    if(cx.isBindless()) {
+      cmd.setBinding(L_Ibo,    ibo);
+      cmd.setBinding(L_Vbo,    vbo);
+      } else {
+      cmd.setBinding(L_Ibo,    *ibo[bId]);
+      cmd.setBinding(L_Vbo,    *vbo[bId]);
+      }
+
+    if(v==SceneGlobals::V_Main || cx.isTextureInShadowPass()) {
+      if(cx.isBindless())
+        cmd.setBinding(L_Diffuse, tex); else
+        cmd.setBinding(L_Diffuse, *tex[bId]);
+      auto smp = SceneGlobals::isShadowView(SceneGlobals::VisCamera(v)) ? Sampler::trillinear() : Sampler::anisotrophy();
+      cmd.setBinding(L_Sampler, smp);
+      }
+
+    if(v==SceneGlobals::V_Main && cx.isShadowmapRequired()) {
+      cmd.setBinding(L_Shadow0, *scene.shadowMap[0], Resources::shadowSampler());
+      cmd.setBinding(L_Shadow1, *scene.shadowMap[1], Resources::shadowSampler());
+      }
+
+    if(cx.type==Morph && cx.isBindless()) {
+      cmd.setBinding(L_MorphId,  morphId);
+      cmd.setBinding(L_Morph,    morph);
+      }
+    else if(cx.type==Morph) {
+      cmd.setBinding(L_MorphId,  *morphId[bId]);
+      cmd.setBinding(L_Morph,    *morph[bId]);
+      }
+
+    if(v==SceneGlobals::V_Main && cx.isSceneInfoRequired()) {
+      auto smp = Sampler::bilinear();
+      smp.setClamping(ClampMode::MirroredRepeat);
+      cmd.setBinding(L_SceneClr, *scene.sceneColor, smp);
+
+      smp = Sampler::nearest();
+      smp.setClamping(ClampMode::MirroredRepeat);
+      cmd.setBinding(L_GDepth, *scene.sceneDepth, smp);
+      }
+    */
 
     cmd.setUniforms(*cx.pHiZ, desc[viewId], &push, sizeof(push));
     if(cx.isMeshShader())
