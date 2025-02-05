@@ -43,15 +43,14 @@ class Renderer final {
     void updateCamera(const Camera &camera);
 
     void prepareUniforms();
-    void prepareRtUniforms();
     void resetSkyFog();
 
-    void prepareSky       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
-    void prepareSSAO      (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
-    void prepareFog       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
-    void prepareIrradiance(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview);
-    void prepareGi        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
-    void prepareExposure  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
+    void prepareSky       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
+    void prepareSSAO      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
+    void prepareFog       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
+    void prepareIrradiance(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
+    void prepareGi        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
+    void prepareExposure  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
 
     void drawHiZ          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void buildHiZ         (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
@@ -60,25 +59,25 @@ class Renderer final {
     void drawGBuffer      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawGWater       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawShadowMap    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
-    void drawShadowResolve(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, const WorldView& view);
-    void drawLights       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
-    void drawSky          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
+    void drawShadowResolve(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
+    void drawLights       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
+    void drawSky          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void drawAmbient      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& view);
     void draw             (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void drawTonemapping  (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd);
-    void drawCMAA2        (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd);
-    void drawReflections  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void drawUnderwater   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void drawFog          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview);
-    void drawSunMoon      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview);
-    void drawSunMoon      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview, bool isSun);
+    void drawTonemapping  (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
+    void drawCMAA2        (Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
+    void drawReflections  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
+    void drawUnderwater   (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
+    void drawFog          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
+    void drawSunMoon      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
+    void drawSunMoon      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview, bool isSun);
 
-    void drawProbesDbg    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview);
-    void drawProbesHitDbg (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void stashSceneAux    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void drawProbesDbg    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
+    void drawProbesHitDbg (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void stashSceneAux    (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 
-    void drawVsmDbg       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void drawSwrDbg       (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawVsmDbg       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
+    void drawSwrDbg       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
 
     void setupSettings();
     void initGiData();
@@ -144,50 +143,15 @@ class Renderer final {
       Tempest::Attachment    transLut, multiScatLut, viewLut, viewCldLut;
       Tempest::StorageImage  cloudsLut, fogLut3D, fogLut3DMs;
       Tempest::StorageImage  occlusionLut, irradianceLut;
-
-      Tempest::DescriptorSet uboFogViewLut3d, uboOcclusion;
-
-      Tempest::DescriptorSet uboFog, uboFog3d;
-      Tempest::DescriptorSet uboSky, uboSkyPathtrace;
-
-      Tempest::DescriptorSet uboExp, uboIrradiance;
       } sky;
-
-    struct Water {
-      Tempest::RenderPipeline* reflectionsPso = nullptr;
-      Tempest::DescriptorSet   ubo;
-      Tempest::DescriptorSet   underUbo;
-      } water;
 
     struct SSAO {
       Tempest::TextureFormat    aoFormat = Tempest::TextureFormat::R8;
       Tempest::StorageImage     ssaoBuf;
-
-      Tempest::DescriptorSet    uboBlur;
       Tempest::StorageImage     ssaoBlur;
-
-      Tempest::ComputePipeline* ssaoPso = nullptr;
-      Tempest::DescriptorSet    uboSsao;
-
-      Tempest::RenderPipeline*  ambientLightPso = nullptr;
-      Tempest::DescriptorSet    uboCompose;
       } ssao;
 
-    struct Tonemapping {
-      Tempest::RenderPipeline*  pso = nullptr;
-      Tempest::DescriptorSet    uboTone;
-      } tonemapping;
-
     struct Cmaa2 {
-      Tempest::ComputePipeline* detectEdges2x2 = nullptr;
-      Tempest::DescriptorSet    detectEdges2x2Ubo;
-
-      Tempest::ComputePipeline* processCandidates = nullptr;
-      Tempest::DescriptorSet    processCandidatesUbo;
-
-      Tempest::RenderPipeline*  defferedColorApply = nullptr;
-      Tempest::DescriptorSet    defferedColorApplyUbo;
-
       Tempest::StorageImage     workingEdges;
       Tempest::StorageBuffer    shapeCandidates;
       Tempest::StorageBuffer    deferredBlendLocationList;
@@ -203,8 +167,6 @@ class Renderer final {
       Tempest::StorageBuffer    counterBuf;
 
       bool                      atomicImg = false;
-      Tempest::DescriptorSet    uboPot;
-      Tempest::DescriptorSet    uboMip;
       } hiz;
 
     struct {
@@ -224,14 +186,6 @@ class Renderer final {
     const int32_t VSM_PAGE_SIZE = 128;
 
     struct {
-      Tempest::DescriptorSet    uboClear, uboClearOmni;
-      Tempest::DescriptorSet    uboPages, uboCullLights, uboOmniPages, uboPostprocessOmni;
-      Tempest::DescriptorSet    uboEpipole, uboFogPages, uboFogSample, uboFogShadow, uboFogTrace;
-      Tempest::DescriptorSet    uboClump, uboAlloc;
-
-      Tempest::RenderPipeline*  pagesDbgPso = nullptr;
-      Tempest::DescriptorSet    uboDbg;
-
       Tempest::StorageImage     pageTbl;
       Tempest::StorageImage     pageHiZ;
       Tempest::ZBuffer          pageData;
@@ -250,13 +204,10 @@ class Renderer final {
 
     struct {
       Tempest::StorageImage     outputImage;
-      Tempest::DescriptorSet    uboDbg;
       } swr;
 
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::Depth16;
     Tempest::TextureFormat    zBufferFormat = Tempest::TextureFormat::Depth16;
-
-    Tempest::DescriptorSet    uboStash;
 
     Shaders                   stor;
   };

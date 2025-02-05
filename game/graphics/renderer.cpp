@@ -129,8 +129,6 @@ void Renderer::resetSwapchain() {
     zbufferUi = device.zbuffer(zBufferFormat, swapchain.w(), swapchain.h()); else
     zbufferUi = ZBuffer();
 
-  hiz.atomicImg = device.properties().hasAtomicFormat(TextureFormat::R32U);
-
   uint32_t pw = nextPot(w);
   uint32_t ph = nextPot(h);
 
@@ -141,22 +139,13 @@ void Renderer::resetSwapchain() {
     hh = std::max(1u, (hh+1)/2u);
     }
 
+  hiz.atomicImg = device.properties().hasAtomicFormat(TextureFormat::R32U);
   hiz.hiZ       = device.image2d(TextureFormat::R16,  hw, hh, true);
-  hiz.uboPot    = device.descriptors(shaders.hiZPot);
-  hiz.uboPot.set(0, zbuffer, smpN);
-  hiz.uboPot.set(1, hiz.hiZ);
-
-  hiz.uboMip = device.descriptors(shaders.hiZMip);
   if(hiz.atomicImg) {
     hiz.counter = device.image2d(TextureFormat::R32U, std::max(hw/4, 1u), std::max(hh/4, 1u), false);
-    hiz.uboMip.set(0, hiz.counter, Sampler::nearest(), 0);
     } else {
     hiz.counterBuf = device.ssbo(Tempest::Uninitialized, std::max(hw/4, 1u)*std::max(hh/4, 1u)*sizeof(uint32_t));
-    hiz.uboMip.set(0, hiz.counterBuf);
     }
-  const uint32_t maxBind = 8, mip = hiz.hiZ.mipCount();
-  for(uint32_t i=0; i<maxBind; ++i)
-    hiz.uboMip.set(1+i, hiz.hiZ, Sampler::nearest(), std::min(i, mip-1));
 
   if(smSize>0) {
     for(int i=0; i<Resources::ShadowLayers; ++i) {
@@ -171,10 +160,6 @@ void Renderer::resetSwapchain() {
 
   gbufDiffuse = device.attachment(TextureFormat::RGBA8,w,h);
   gbufNormal  = device.attachment(TextureFormat::R32U, w,h);
-
-  uboStash = device.descriptors(shaders.stash);
-  uboStash.set(0,sceneLinear,Sampler::nearest());
-  uboStash.set(1,zbuffer,    Sampler::nearest());
 
   if(settings.vsmEnabled)
     shadow.directLightPso = &shaders.vsmDirectLight; //TODO: naming
@@ -192,75 +177,40 @@ void Renderer::resetSwapchain() {
     lights.directLightPso = &shaders.lightsRq;
   else
     lights.directLightPso = &shaders.lights;
-  Resources::recycle(std::move(vsm.uboOmniPages));
-  Resources::recycle(std::move(vsm.uboClearOmni));
-  Resources::recycle(std::move(vsm.uboCullLights));
 
-  water.underUbo = device.descriptors(shaders.underwaterT);
-
-  ssao.ssaoBuf = device.image2d(ssao.aoFormat, w,h);
-  ssao.ssaoPso = &shaders.ssao;
-  ssao.uboSsao = device.descriptors(*ssao.ssaoPso);
-
-  ssao.ssaoBlur = device.image2d(ssao.aoFormat, w,h);
-  ssao.uboBlur  = device.descriptors(shaders.ssaoBlur);
-
-  tonemapping.pso             = (settings.vidResIndex==0) ? &shaders.tonemapping : &shaders.tonemappingUpscale;
-  tonemapping.uboTone         = device.descriptors(*tonemapping.pso);
-
-  cmaa2.detectEdges2x2        = &shaders.cmaa2EdgeColor2x2Presets[Gothic::options().aaPreset];
-  cmaa2.detectEdges2x2Ubo     = device.descriptors(*cmaa2.detectEdges2x2);
-
-  cmaa2.processCandidates     = &shaders.cmaa2ProcessCandidates;
-  cmaa2.processCandidatesUbo  = device.descriptors(*cmaa2.processCandidates);
-
-  cmaa2.defferedColorApply    = &shaders.cmaa2DeferredColorApply2x2;
-  cmaa2.defferedColorApplyUbo = device.descriptors(*cmaa2.defferedColorApply);
+  ssao.ssaoBuf  = device.image2d(ssao.aoFormat, w, h);
+  ssao.ssaoBlur = device.image2d(ssao.aoFormat, w, h);
 
   if(settings.vsmEnabled) {
-    vsm.uboDbg          = device.descriptors(shaders.vsmDbg);
-    vsm.uboClear        = device.descriptors(shaders.vsmClear);
-    vsm.uboPages        = device.descriptors(shaders.vsmMarkPages);
-    vsm.uboFogPages     = device.descriptors(shaders.vsmFogPages);
-    vsm.uboFogShadow    = device.descriptors(shaders.vsmFogShadow);
-    vsm.uboClump        = device.descriptors(shaders.vsmClumpPages);
-    Resources::recycle(std::move(vsm.uboAlloc));
-
-    vsm.pagesDbgPso     = &shaders.vsmDbg;
-
-    vsm.pageTbl         = device.image3d(TextureFormat::R32U, 32, 32, 16);
-    vsm.pageHiZ         = device.image3d(TextureFormat::R32U, 32, 32, 16);
-    vsm.pageData        = device.zbuffer(shadowFormat, 8192, 8192);
-    vsm.vsmDbg          = device.image2d(TextureFormat::R32U, uint32_t(zbuffer.w()), uint32_t(zbuffer.h()));
+    vsm.pageTbl  = device.image3d(TextureFormat::R32U, 32, 32, 16);
+    vsm.pageHiZ  = device.image3d(TextureFormat::R32U, 32, 32, 16);
+    vsm.pageData = device.zbuffer(shadowFormat, 8192, 8192);
+    vsm.vsmDbg   = device.image2d(TextureFormat::R32U, uint32_t(zbuffer.w()), uint32_t(zbuffer.h()));
 
     // vsm.ssTrace  = device.image2d(TextureFormat::RGBA8, w, h);
     vsm.ssTrace  = device.image2d(TextureFormat::R32U, w, h);
-    vsm.epTrace  = device.image2d(TextureFormat::R16,   1024, 2*1024);
-    vsm.fogDbg   = device.image2d(sky.lutRGBFormat,     1024, 2*1024);
+    vsm.epTrace  = device.image2d(TextureFormat::R16,  1024, 2*1024);
+    vsm.fogDbg   = device.image2d(sky.lutRGBFormat,    1024, 2*1024);
     vsm.epipoles = device.ssbo(nullptr, shaders.vsmFogEpipolar.sizeofBuffer(3, size_t(vsm.epTrace.h())));
 
-    auto pageCount      = uint32_t(vsm.pageData.w()/VSM_PAGE_SIZE) * uint32_t(vsm.pageData.h()/VSM_PAGE_SIZE);
-    auto pageSsboSize   = shaders.vsmClear.sizeofBuffer(0, pageCount);
+    auto pageCount    = uint32_t(vsm.pageData.w()/VSM_PAGE_SIZE) * uint32_t(vsm.pageData.h()/VSM_PAGE_SIZE);
+    auto pageSsboSize = shaders.vsmClear.sizeofBuffer(0, pageCount);
 
-    vsm.pageList        = device.ssbo(nullptr, pageSsboSize);
-    vsm.pageListTmp     = device.ssbo(nullptr, shaders.vsmAllocPages.sizeofBuffer(3, pageCount));
+    vsm.pageList      = device.ssbo(nullptr, pageSsboSize);
+    vsm.pageListTmp   = device.ssbo(nullptr, shaders.vsmAllocPages.sizeofBuffer(3, pageCount));
     }
 
   if(settings.swrEnabled) {
     //swr.outputImage = device.image2d(Tempest::RGBA8, w, h);
     swr.outputImage = device.image2d(Tempest::R32U, w, h);
-    swr.uboDbg      = device.descriptors(shaders.swRenderingDbg);
     }
 
   resetSkyFog();
   initGiData();
   prepareUniforms();
-  prepareRtUniforms();
   }
 
 void Renderer::setupSettings() {
-  auto& device = Resources::device();
-
   settings.zEnvMappingEnabled = Gothic::settingsGetI("ENGINE","zEnvMappingEnabled")!=0;
   settings.zCloudShadowScale  = Gothic::settingsGetI("ENGINE","zCloudShadowScale") !=0;
   settings.zFogRadial         = Gothic::settingsGetI("RENDERER_D3D","zFogRadial")!=0;
@@ -301,24 +251,6 @@ void Renderer::setupSettings() {
   if(prevVidResIndex!=settings.vidResIndex) {
     resetSwapchain();
     }
-
-  auto prevCompose = water.reflectionsPso;
-  if(settings.zCloudShadowScale)
-    ssao.ambientLightPso = &Shaders::inst().ambientLightSsao; else
-    ssao.ambientLightPso = &Shaders::inst().ambientLight;
-
-  auto prevRefl = water.reflectionsPso;
-  if(settings.zEnvMappingEnabled)
-    water.reflectionsPso = &Shaders::inst().waterReflectionSSR; else
-    water.reflectionsPso = &Shaders::inst().waterReflection;
-
-  if(ssao.ambientLightPso!=prevCompose ||
-     water.reflectionsPso  !=prevRefl) {
-    device.waitIdle();
-    water.ubo       = device.descriptors(*water.reflectionsPso);
-    ssao.uboCompose = device.descriptors(*ssao.ambientLightPso);
-    prepareUniforms();
-    }
   }
 
 void Renderer::toggleGi() {
@@ -343,7 +275,6 @@ void Renderer::toggleGi() {
     }
   initGiData();
   prepareUniforms();
-  prepareRtUniforms();
   }
 
 void Renderer::toggleVsm() {
@@ -366,12 +297,6 @@ void Renderer::toggleVsm() {
 
 void Renderer::onWorldChanged() {
   gi.fisrtFrame = true;
-
-  Resources::recycle(std::move(vsm.uboOmniPages));
-  Resources::recycle(std::move(vsm.uboClearOmni));
-  Resources::recycle(std::move(vsm.uboCullLights));
-  Resources::recycle(std::move(vsm.uboAlloc));
-
   resetSkyFog();
   prepareUniforms();
   }
@@ -399,130 +324,6 @@ void Renderer::prepareUniforms() {
   if(wview==nullptr)
     return;
 
-  auto smpN = Sampler::nearest();
-  smpN.setClamping(ClampMode::ClampToEdge);
-
-  ssao.uboSsao.set(0, ssao.ssaoBuf);
-  ssao.uboSsao.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-  ssao.uboSsao.set(2, gbufDiffuse, smpN);
-  ssao.uboSsao.set(3, gbufNormal,  smpN);
-  ssao.uboSsao.set(4, zbuffer,     smpN);
-
-  ssao.uboBlur.set(0, ssao.ssaoBlur);
-  ssao.uboBlur.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-  ssao.uboBlur.set(2, ssao.ssaoBuf);
-  ssao.uboBlur.set(3, zbuffer, smpN);
-
-  ssao.uboCompose.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-  ssao.uboCompose.set(1, gbufDiffuse,  smpN);
-  ssao.uboCompose.set(2, gbufNormal,   smpN);
-  ssao.uboCompose.set(3, sky.irradianceLut);
-  if(settings.zCloudShadowScale)
-    ssao.uboCompose.set(4, ssao.ssaoBlur, smpN);
-
-  {
-    auto smpB = Sampler::bilinear();
-    smpB.setClamping(ClampMode::ClampToEdge);
-    smpB.setFiltration(Filter::Nearest); // Lanczos upscale requires nearest sampling
-
-    tonemapping.uboTone.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    tonemapping.uboTone.set(1, sceneLinear, smpB);
-  }
-
-  if(settings.aaEnabled) {
-    auto smpB = Sampler::bilinear();
-    smpB.setClamping(ClampMode::ClampToEdge);
-
-    cmaa2.detectEdges2x2Ubo.set(0, sceneLinear, smpB);
-    cmaa2.detectEdges2x2Ubo.set(1, cmaa2.workingEdges);
-    cmaa2.detectEdges2x2Ubo.set(2, cmaa2.shapeCandidates);
-    cmaa2.detectEdges2x2Ubo.set(5, cmaa2.deferredBlendItemListHeads);
-    cmaa2.detectEdges2x2Ubo.set(6, cmaa2.controlBuffer);
-    cmaa2.detectEdges2x2Ubo.set(7, cmaa2.indirectBuffer);
-
-    cmaa2.processCandidatesUbo.set(0, sceneLinear, smpB);
-    cmaa2.processCandidatesUbo.set(1, cmaa2.workingEdges);
-    cmaa2.processCandidatesUbo.set(2, cmaa2.shapeCandidates);
-    cmaa2.processCandidatesUbo.set(3, cmaa2.deferredBlendLocationList);
-    cmaa2.processCandidatesUbo.set(4, cmaa2.deferredBlendItemList);
-    cmaa2.processCandidatesUbo.set(5, cmaa2.deferredBlendItemListHeads);
-    cmaa2.processCandidatesUbo.set(6, cmaa2.controlBuffer);
-    cmaa2.processCandidatesUbo.set(7, cmaa2.indirectBuffer);
-
-    cmaa2.defferedColorApplyUbo.set(0, sceneLinear);
-    cmaa2.defferedColorApplyUbo.set(3, cmaa2.deferredBlendLocationList);
-    cmaa2.defferedColorApplyUbo.set(4, cmaa2.deferredBlendItemList);
-    cmaa2.defferedColorApplyUbo.set(5, cmaa2.deferredBlendItemListHeads);
-    cmaa2.defferedColorApplyUbo.set(6, cmaa2.controlBuffer);
-    }
-
-  water.underUbo.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-  water.underUbo.set(1, zbuffer);
-
-  {
-    auto smp = Sampler::bilinear();
-    smp.setClamping(ClampMode::MirroredRepeat);
-
-    auto smpd = Sampler::nearest();
-    smpd.setClamping(ClampMode::ClampToEdge);
-
-    water.ubo.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    water.ubo.set(1, sceneOpaque, smp);
-    water.ubo.set(2, gbufDiffuse, smpd);
-    water.ubo.set(3, gbufNormal,  smpd);
-    water.ubo.set(4, zbuffer,     smpd);
-    water.ubo.set(5, sceneDepth,  smpd);
-    water.ubo.set(6, sky.viewCldLut);
-  }
-
-  if(settings.vsmEnabled) {
-    vsm.uboClear.set(0, vsm.pageList);
-    vsm.uboClear.set(1, vsm.pageTbl);
-    vsm.uboClear.set(2, vsm.pageHiZ);
-
-    vsm.uboPages.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    vsm.uboPages.set(1, gbufDiffuse, Sampler::nearest());
-    vsm.uboPages.set(2, gbufNormal,  Sampler::nearest());
-    vsm.uboPages.set(3, zbuffer,     Sampler::nearest());
-    vsm.uboPages.set(4, vsm.pageTbl);
-    vsm.uboPages.set(5, vsm.pageHiZ);
-
-    vsm.uboClump.set(0, vsm.pageList);
-    vsm.uboClump.set(1, vsm.pageTbl);
-
-    vsm.uboDbg.set(0, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    vsm.uboDbg.set(1, gbufDiffuse, Sampler::nearest());
-    vsm.uboDbg.set(2, gbufNormal,  Sampler::nearest());
-    vsm.uboDbg.set(3, zbuffer,     Sampler::nearest());
-    vsm.uboDbg.set(4, vsm.pageTbl);
-    vsm.uboDbg.set(5, vsm.pageList);
-    vsm.uboDbg.set(6, vsm.pageData);
-    vsm.uboDbg.set(8, wview->sceneGlobals().vsmDbg);
-    }
-
-  const bool doVirtualFog = sky.quality!=VolumetricLQ;
-  if(settings.vsmEnabled && doVirtualFog) {
-    vsm.uboFogPages.set(0, vsm.epTrace);
-    vsm.uboFogPages.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    vsm.uboFogPages.set(2, vsm.epipoles);
-    vsm.uboFogPages.set(3, vsm.pageTbl);
-    vsm.uboFogPages.set(4, vsm.pageHiZ);
-
-    vsm.uboFogShadow.set(0, vsm.epTrace);
-    vsm.uboFogShadow.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    vsm.uboFogShadow.set(2, vsm.epipoles);
-    vsm.uboFogShadow.set(3, vsm.pageTbl);
-    vsm.uboFogShadow.set(4, vsm.pageData);
-    }
-
-  if(settings.swrEnabled) {
-    swr.uboDbg.set(0, swr.outputImage);
-    swr.uboDbg.set(1, wview->sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    swr.uboDbg.set(2, gbufDiffuse, Sampler::nearest());
-    swr.uboDbg.set(3, gbufNormal,  Sampler::nearest());
-    swr.uboDbg.set(4, zbuffer,     Sampler::nearest());
-    }
-
   const Texture2d* sh[Resources::ShadowLayers] = {};
   for(size_t i=0; i<Resources::ShadowLayers; ++i)
     if(!shadowMap[i].isEmpty()) {
@@ -538,34 +339,16 @@ void Renderer::prepareUniforms() {
   wview->prepareUniforms();
   }
 
-void Renderer::prepareRtUniforms() {
-  }
-
 void Renderer::resetSkyFog() {
   auto& device = Resources::device();
 
-  const auto     res    = internalResolution();
-  const uint32_t w      = uint32_t(res.w);
-  const uint32_t h      = uint32_t(res.h);
-
-  Resources::recycle(std::move(vsm.uboFogTrace));
-  Resources::recycle(std::move(vsm.uboEpipole));
-  Resources::recycle(std::move(vsm.uboFogSample));
-
-  Resources::recycle(std::move(sky.uboFogViewLut3d));
-  Resources::recycle(std::move(sky.uboOcclusion));
+  const auto     res = internalResolution();
+  const uint32_t w   = uint32_t(res.w);
+  const uint32_t h   = uint32_t(res.h);
 
   Resources::recycle(std::move(sky.fogLut3D));
   Resources::recycle(std::move(sky.fogLut3DMs));
   Resources::recycle(std::move(sky.occlusionLut));
-
-  Resources::recycle(std::move(sky.uboFog));
-  Resources::recycle(std::move(sky.uboFog3d));
-
-  Resources::recycle(std::move(sky.uboSky));
-  Resources::recycle(std::move(sky.uboSkyPathtrace));
-  Resources::recycle(std::move(sky.uboExp));
-  Resources::recycle(std::move(sky.uboIrradiance));
 
   sky.lutIsInitialized = false;
 
@@ -591,7 +374,7 @@ void Renderer::resetSkyFog() {
     }
   }
 
-void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
+void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
   auto& shaders = Shaders::inst();
   auto& scene   = wview.sceneGlobals();
 
@@ -720,17 +503,8 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     return;
     }
 
-  if(wview->updateRtScene()) {
-    prepareRtUniforms();
-    }
-
-  if(wview->updateLights()) {
-    Resources::recycle(std::move(vsm.uboClearOmni));
-    Resources::recycle(std::move(vsm.uboOmniPages));
-    Resources::recycle(std::move(vsm.uboCullLights));
-    Resources::recycle(std::move(vsm.uboPostprocessOmni));
-    Resources::recycle(std::move(vsm.uboAlloc));
-    }
+  wview->updateRtScene();
+  wview->updateLights();
 
   updateCamera(*camera);
 
@@ -753,7 +527,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   wview->prepareGlobals(cmd,fId);
 
   wview->visibilityPass(cmd, fId, 0);
-  prepareSky(cmd,fId,*wview);
+  prepareSky(cmd,*wview);
 
   drawHiZ (cmd,fId,*wview);
   buildHiZ(cmd,fId);
@@ -765,55 +539,55 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   drawVsm(cmd,fId,*wview);
   drawSwr(cmd,fId,*wview);
 
-  prepareIrradiance(cmd,fId,*wview);
-  prepareExposure(cmd,fId,*wview);
-  prepareSSAO(cmd);
-  prepareFog (cmd,fId,*wview);
-  prepareGi  (cmd,fId,*wview);
+  prepareIrradiance(cmd,*wview);
+  prepareExposure(cmd,*wview);
+  prepareSSAO(cmd,*wview);
+  prepareFog (cmd,*wview);
+  prepareGi  (cmd,*wview);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Discard, Tempest::Preserve}}, {zbuffer, Tempest::Readonly});
-  drawShadowResolve(cmd,fId,*wview);
+  drawShadowResolve(cmd,*wview);
   drawAmbient(cmd,*wview);
-  drawLights(cmd,fId,*wview);
-  drawSky(cmd,fId,*wview);
+  drawLights(cmd,*wview);
+  drawSky(cmd,*wview);
 
-  stashSceneAux(cmd,fId);
+  stashSceneAux(cmd);
 
   drawGWater(cmd,fId,*wview);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
   cmd.setDebugMarker("Sun&Moon");
-  drawSunMoon(cmd, fId, *wview);
+  drawSunMoon(cmd, *wview);
   cmd.setDebugMarker("Translucent");
-  wview->drawTranslucent(cmd,fId);
+  wview->drawTranslucent(cmd, fId);
 
-  drawProbesDbg(cmd, fId, *wview);
-  drawProbesHitDbg(cmd, fId);
-  drawVsmDbg(cmd, fId);
-  drawSwrDbg(cmd);
+  drawProbesDbg(cmd, *wview);
+  drawProbesHitDbg(cmd);
+  drawVsmDbg(cmd, *wview);
+  drawSwrDbg(cmd, *wview);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
-  drawReflections(cmd,fId);
+  drawReflections(cmd, *wview);
   if(camera->isInWater()) {
     cmd.setDebugMarker("Underwater");
-    drawUnderwater(cmd,fId);
+    drawUnderwater(cmd, *wview);
     } else {
     cmd.setDebugMarker("Fog");
-    drawFog(cmd, fId, *wview);
+    drawFog(cmd, *wview);
     }
 
   if(settings.aaEnabled) {
     cmd.setDebugMarker("CMAA2 & Tonemapping");
-    drawCMAA2(result, cmd);
+    drawCMAA2(result, cmd, *wview);
     } else {
     cmd.setDebugMarker("Tonemapping");
-    drawTonemapping(result, cmd);
+    drawTonemapping(result, cmd, *wview);
     }
 
   wview->postFrameupdate();
   }
 
-void Renderer::drawTonemapping(Attachment& result, Encoder<CommandBuffer>& cmd) {
+void Renderer::drawTonemapping(Attachment& result, Encoder<CommandBuffer>& cmd, const WorldView& wview) {
   struct Push {
     float brightness = 0;
     float contrast   = 1;
@@ -830,25 +604,47 @@ void Renderer::drawTonemapping(Attachment& result, Encoder<CommandBuffer>& cmd) 
   if(mul>0)
     p.mul = mul;
 
+  auto smpB = Sampler::bilinear();
+  smpB.setClamping(ClampMode::ClampToEdge);
+  smpB.setFiltration(Filter::Nearest); // Lanczos upscale requires nearest sampling
+
+  auto& shaders = Shaders::inst();
+  auto& pso     = (settings.vidResIndex==0) ? shaders.tonemapping : shaders.tonemappingUpscale;
+
   cmd.setFramebuffer({ {result, Tempest::Discard, Tempest::Preserve} });
-  cmd.setUniforms(*tonemapping.pso, tonemapping.uboTone, &p, sizeof(p));
+  cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(1, sceneLinear, smpB);
+  cmd.setUniforms(pso, &p, sizeof(p));
   cmd.draw(Resources::fsqVbo());
   }
 
-void Renderer::drawCMAA2(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
-  const IVec3    inputGroupSize  = cmaa2.detectEdges2x2->workGroupSize();
+void Renderer::drawCMAA2(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
+  auto&          shaders         = Shaders::inst();
+  auto&          pso             = shaders.cmaa2EdgeColor2x2Presets[Gothic::options().aaPreset];
+  const IVec3    inputGroupSize  = pso.workGroupSize();
   const IVec3    outputGroupSize = inputGroupSize - IVec3(2, 2, 0);
   const uint32_t groupCountX     = uint32_t((sceneLinear.w() + outputGroupSize.x * 2 - 1) / (outputGroupSize.x * 2));
   const uint32_t groupCountY     = uint32_t((sceneLinear.h() + outputGroupSize.y * 2 - 1) / (outputGroupSize.y * 2));
 
+  auto smpB = Sampler::bilinear();
+  smpB.setClamping(ClampMode::ClampToEdge);
+
   cmd.setFramebuffer({});
+  cmd.setBinding(0, sceneLinear, smpB);
+  cmd.setBinding(1, cmaa2.workingEdges);
+  cmd.setBinding(2, cmaa2.shapeCandidates);
+  cmd.setBinding(3, cmaa2.deferredBlendLocationList);
+  cmd.setBinding(4, cmaa2.deferredBlendItemList);
+  cmd.setBinding(5, cmaa2.deferredBlendItemListHeads);
+  cmd.setBinding(6, cmaa2.controlBuffer);
+  cmd.setBinding(7, cmaa2.indirectBuffer);
 
   // detect edges
-  cmd.setUniforms(*cmaa2.detectEdges2x2, cmaa2.detectEdges2x2Ubo);
+  cmd.setUniforms(pso);
   cmd.dispatch(groupCountX, groupCountY, 1);
 
   // process candidates pass
-  cmd.setUniforms(*cmaa2.processCandidates, cmaa2.processCandidatesUbo);
+  cmd.setUniforms(shaders.cmaa2ProcessCandidates);
   cmd.dispatchIndirect(cmaa2.indirectBuffer, 0);
 
   // deferred color apply
@@ -868,16 +664,25 @@ void Renderer::drawCMAA2(Tempest::Attachment& result, Tempest::Encoder<Tempest::
   if(mul>0)
     p.mul = mul;
 
+  auto& psoTone = (settings.vidResIndex==0) ? shaders.tonemapping : shaders.tonemappingUpscale;
   cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
-  cmd.setUniforms(*tonemapping.pso, tonemapping.uboTone, &p, sizeof(p));
+  cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(1, sceneLinear, Sampler::nearest());
+  cmd.setUniforms(psoTone, &p, sizeof(p));
   cmd.draw(Resources::fsqVbo());
 
-  cmd.setUniforms(*cmaa2.defferedColorApply, cmaa2.defferedColorApplyUbo, &p, sizeof(p));
+  cmd.setBinding(0, sceneLinear);
+  cmd.setBinding(1, cmaa2.workingEdges);
+  cmd.setBinding(2, cmaa2.shapeCandidates);
+  cmd.setBinding(3, cmaa2.deferredBlendLocationList);
+  cmd.setBinding(4, cmaa2.deferredBlendItemList);
+  cmd.setBinding(5, cmaa2.deferredBlendItemListHeads);
+  cmd.setBinding(6, cmaa2.controlBuffer);
+  cmd.setUniforms(shaders.cmaa2DeferredColorApply2x2,  &p, sizeof(p));
   cmd.drawIndirect(cmaa2.indirectBuffer, 3*sizeof(uint32_t));
   }
 
-void Renderer::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
-  auto& device  = Resources::device();
+void Renderer::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
   auto& scene   = wview.sceneGlobals();
   auto& shaders = Shaders::inst();
 
@@ -887,39 +692,30 @@ void Renderer::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   switch(sky.quality) {
     case None:
     case VolumetricLQ: {
-      if(sky.uboFog.isEmpty()) {
-        sky.uboFog = device.descriptors(shaders.fog);
-        sky.uboFog.set(0, sky.fogLut3D, smpB);
-        sky.uboFog.set(1, sky.fogLut3D, smpB);
-        sky.uboFog.set(2, zbuffer, Sampler::nearest()); // NOTE: wanna here depthFetch from gles2
-        sky.uboFog.set(3, scene.uboGlobal[SceneGlobals::V_Main]);
-        }
-      cmd.setUniforms(shaders.fog, sky.uboFog);
+      cmd.setBinding(0, sky.fogLut3D, smpB);
+      cmd.setBinding(1, sky.fogLut3D, smpB);
+      cmd.setBinding(2, zbuffer, Sampler::nearest()); // NOTE: wanna here depthFetch from gles2
+      cmd.setBinding(3, scene.uboGlobal[SceneGlobals::V_Main]);
+      cmd.setUniforms(shaders.fog);
       break;
       }
     case VolumetricHQ: {
-      if(sky.uboFog3d.isEmpty()) {
-        sky.uboFog3d = device.descriptors(shaders.fog3dHQ);
-        sky.uboFog3d.set(0, sky.fogLut3D,   smpB);
-        sky.uboFog3d.set(1, sky.fogLut3DMs, smpB);
-        sky.uboFog3d.set(2, zbuffer,        Sampler::nearest());
-        sky.uboFog3d.set(3, scene.uboGlobal[SceneGlobals::V_Main]);
-        sky.uboFog3d.set(4, sky.occlusionLut);
-        }
-      cmd.setUniforms(shaders.fog3dHQ, sky.uboFog3d);
+      cmd.setBinding(0, sky.fogLut3D,   smpB);
+      cmd.setBinding(1, sky.fogLut3DMs, smpB);
+      cmd.setBinding(2, zbuffer,        Sampler::nearest());
+      cmd.setBinding(3, scene.uboGlobal[SceneGlobals::V_Main]);
+      cmd.setBinding(4, sky.occlusionLut);
+      cmd.setUniforms(shaders.fog3dHQ);
       break;
       }
     case Epipolar: {
-      if(sky.uboFog3d.isEmpty()) {
-        sky.uboFog3d = device.descriptors(shaders.vsmFog);
-        //sky.uboFog3d.set(0, sky.fogLut3D,   smpB);
-        sky.uboFog3d.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
-        sky.uboFog3d.set(1, zbuffer, Sampler::nearest());
-        sky.uboFog3d.set(2, vsm.fogDbg, smpB);
-        sky.uboFog3d.set(3, vsm.epipoles);
-        sky.uboFog3d.set(4, sky.fogLut3DMs, smpB);
-        }
-      cmd.setUniforms(shaders.vsmFog, sky.uboFog3d);
+      //cmd.setBinding(0, sky.fogLut3D,   smpB);
+      cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+      cmd.setBinding(1, zbuffer, Sampler::nearest());
+      cmd.setBinding(2, vsm.fogDbg, smpB);
+      cmd.setBinding(3, vsm.epipoles);
+      cmd.setBinding(4, sky.fogLut3DMs, smpB);
+      cmd.setUniforms(shaders.vsmFog);
       break;
       }
     case PathTrace:
@@ -928,12 +724,12 @@ void Renderer::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.draw(Resources::fsqVbo());
   }
 
-void Renderer::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
-  drawSunMoon(cmd, fId, wview, false);
-  drawSunMoon(cmd, fId, wview, true);
+void Renderer::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
+  drawSunMoon(cmd, wview, false);
+  drawSunMoon(cmd, wview, true);
   }
 
-void Renderer::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview, bool isSun) {
+void Renderer::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview, bool isSun) {
   auto& scene = wview.sceneGlobals();
   auto& sun   = wview.sky().sunLight();
   auto  m     = scene.viewProject();
@@ -996,35 +792,52 @@ void Renderer::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_
   cmd.draw(nullptr, 0, 6);
   }
 
-void Renderer::stashSceneAux(Encoder<CommandBuffer>& cmd, uint8_t fId) {
+void Renderer::stashSceneAux(Encoder<CommandBuffer>& cmd) {
   auto& device = Resources::device();
   if(!device.properties().hasSamplerFormat(zBufferFormat))
     return;
   cmd.setFramebuffer({{sceneOpaque, Tempest::Discard, Tempest::Preserve}, {sceneDepth, Tempest::Discard, Tempest::Preserve}});
   cmd.setDebugMarker("Stash scene");
-  cmd.setUniforms(Shaders::inst().stash, uboStash);
+  cmd.setBinding(0, sceneLinear,Sampler::nearest());
+  cmd.setBinding(1, zbuffer,    Sampler::nearest());
+  cmd.setUniforms(Shaders::inst().stash);
   cmd.draw(Resources::fsqVbo());
   }
 
-void Renderer::drawVsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+void Renderer::drawVsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
   static bool enable = false;
   if(!enable || !settings.vsmEnabled)
     return;
 
+  auto& shaders = Shaders::inst();
+
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   cmd.setDebugMarker("VSM-dbg");
-  cmd.setUniforms(*vsm.pagesDbgPso, vsm.uboDbg, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
+  cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
+  cmd.setBinding(2, gbufNormal,  Sampler::nearest());
+  cmd.setBinding(3, zbuffer,     Sampler::nearest());
+  cmd.setBinding(4, vsm.pageTbl);
+  cmd.setBinding(5, vsm.pageList);
+  cmd.setBinding(6, vsm.pageData);
+  cmd.setBinding(8, wview.sceneGlobals().vsmDbg);
+  cmd.setUniforms(shaders.vsmDbg, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
   cmd.draw(Resources::fsqVbo());
   }
 
-void Renderer::drawSwrDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
+void Renderer::drawSwrDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
   static bool enable = true;
   if(!enable || !settings.swrEnabled)
     return;
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   cmd.setDebugMarker("SWR-dbg");
-  cmd.setUniforms(Shaders::inst().swRenderingDbg, swr.uboDbg);
+  cmd.setBinding(0, swr.outputImage);
+  cmd.setBinding(1, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(2, gbufDiffuse, Sampler::nearest());
+  cmd.setBinding(3, gbufNormal,  Sampler::nearest());
+  cmd.setBinding(4, zbuffer,     Sampler::nearest());
+  cmd.setUniforms(Shaders::inst().swRenderingDbg);
   cmd.draw(Resources::fsqVbo());
   }
 
@@ -1056,15 +869,29 @@ void Renderer::drawHiZ(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view
   }
 
 void Renderer::buildHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  cmd.setDebugMarker("HiZ-mip");
-
   assert(hiz.hiZ.w()<=128 && hiz.hiZ.h()<=128); // shader limitation
+  auto& shaders = Shaders::inst();
+
+  auto smpN = Sampler::nearest();
+  smpN.setClamping(ClampMode::ClampToEdge);
+
+  cmd.setDebugMarker("HiZ-mip");
   cmd.setFramebuffer({});
-  cmd.setUniforms(Shaders::inst().hiZPot, hiz.uboPot);
+  cmd.setBinding(0, zbuffer, smpN);
+  cmd.setBinding(1, hiz.hiZ);
+  cmd.setUniforms(shaders.hiZPot);
   cmd.dispatch(size_t(hiz.hiZ.w()), size_t(hiz.hiZ.h()));
 
-  uint32_t w = uint32_t(hiz.hiZ.w()), h = uint32_t(hiz.hiZ.h()), mip = hiz.hiZ.mipCount();
-  cmd.setUniforms(Shaders::inst().hiZMip, hiz.uboMip, &mip, sizeof(mip));
+  const uint32_t maxBind = 8, mip = hiz.hiZ.mipCount();
+  const uint32_t w = uint32_t(hiz.hiZ.w()), h = uint32_t(hiz.hiZ.h());
+  if(hiz.atomicImg) {
+    cmd.setBinding(0, hiz.counter, Sampler::nearest(), 0);
+    } else {
+    cmd.setBinding(0, hiz.counterBuf);
+    }
+  for(uint32_t i=0; i<maxBind; ++i)
+    cmd.setBinding(1+i, hiz.hiZ, Sampler::nearest(), std::min(i, mip-1));
+  cmd.setUniforms(shaders.hiZMip, &mip, sizeof(mip));
   cmd.dispatchThreads(w,h);
   }
 
@@ -1081,61 +908,45 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
 
   const size_t numOmniPages = wview.lights().size()*6;
 
-  if(omniLights && vsm.uboOmniPages.isEmpty()) {
+  if(omniLights && vsm.pageTblOmni.isEmpty()) {
     Resources::recycle(std::move(vsm.pageTblOmni));
+    Resources::recycle(std::move(vsm.visibleLights));
     vsm.pageTblOmni   = device.ssbo(nullptr, shaders.vsmClearOmni.sizeofBuffer(0, wview.lights().size()*6));
     vsm.visibleLights = device.ssbo(nullptr, shaders.vsmClearOmni.sizeofBuffer(1, wview.lights().size()));
-
-    vsm.uboOmniPages = device.descriptors(shaders.vsmMarkOmniPages);
-    vsm.uboOmniPages.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    vsm.uboOmniPages.set(1, gbufDiffuse, Sampler::nearest());
-    vsm.uboOmniPages.set(2, gbufNormal,  Sampler::nearest());
-    vsm.uboOmniPages.set(3, zbuffer,     Sampler::nearest());
-    vsm.uboOmniPages.set(4, wview.lights().lightsSsbo());
-    vsm.uboOmniPages.set(5, vsm.visibleLights);
-    vsm.uboOmniPages.set(6, vsm.pageTblOmni);
-    vsm.uboOmniPages.set(7, vsm.vsmDbg);
-
-    vsm.uboPostprocessOmni = device.descriptors(shaders.vsmPostprocessOmni);
-    vsm.uboPostprocessOmni.set(0, vsm.pageTblOmni);
-
-    vsm.uboClearOmni = device.descriptors(shaders.vsmClearOmni);
-    vsm.uboClearOmni.set(0, vsm.pageTblOmni);
-    vsm.uboClearOmni.set(1, vsm.visibleLights);
-
-    vsm.uboCullLights = device.descriptors(shaders.vsmCullLights);
-    vsm.uboCullLights.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    vsm.uboCullLights.set(1, wview.lights().lightsSsbo());
-    vsm.uboCullLights.set(2, vsm.visibleLights);
-    vsm.uboCullLights.set(3, *scene.hiZ);
-    }
-
-  if(vsm.uboAlloc.isEmpty()) {
-    vsm.uboAlloc = device.descriptors(shaders.vsmListPages);
-    vsm.uboAlloc.set(0, vsm.pageList);
-    vsm.uboAlloc.set(1, vsm.pageTbl);
-    vsm.uboAlloc.set(2, vsm.pageTblOmni);
-    vsm.uboAlloc.set(3, vsm.pageListTmp);
-    vsm.uboAlloc.set(4, scene.vsmDbg);
     }
 
   cmd.setFramebuffer({});
   cmd.setDebugMarker("VSM-pages");
-  cmd.setUniforms(shaders.vsmClear, vsm.uboClear);
+  cmd.setBinding(0, vsm.pageList);
+  cmd.setBinding(1, vsm.pageTbl);
+  cmd.setBinding(2, vsm.pageHiZ);
+  cmd.setUniforms(shaders.vsmClear);
   cmd.dispatchThreads(size_t(vsm.pageTbl.w()), size_t(vsm.pageTbl.h()), size_t(vsm.pageTbl.d()));
 
   if(omniLights) {
-    cmd.setUniforms(shaders.vsmClearOmni, vsm.uboClearOmni);
+    cmd.setBinding(0, vsm.pageTblOmni);
+    cmd.setBinding(1, vsm.visibleLights);
+    cmd.setUniforms(shaders.vsmClearOmni);
     cmd.dispatchThreads(numOmniPages);
 
     struct Push { float znear; uint32_t lightsTotal; } push = {};
     push.znear       = scene.znear;
     push.lightsTotal = uint32_t(wview.lights().size());
-    cmd.setUniforms(shaders.vsmCullLights, vsm.uboCullLights, &push, sizeof(push));
+    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(1, wview.lights().lightsSsbo());
+    cmd.setBinding(2, vsm.visibleLights);
+    cmd.setBinding(3, *scene.hiZ);
+    cmd.setUniforms(shaders.vsmCullLights, &push, sizeof(push));
     cmd.dispatchThreads(wview.lights().size());
     }
 
-  cmd.setUniforms(shaders.vsmMarkPages, vsm.uboPages, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
+  cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
+  cmd.setBinding(2, gbufNormal,  Sampler::nearest());
+  cmd.setBinding(3, zbuffer,     Sampler::nearest());
+  cmd.setBinding(4, vsm.pageTbl);
+  cmd.setBinding(5, vsm.pageHiZ);
+  cmd.setUniforms(shaders.vsmMarkPages, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
   cmd.dispatchThreads(zbuffer.size());
 
   if(omniLights) {
@@ -1143,64 +954,83 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
     push.originLwc  = scene.originLwc;
     push.znear      = scene.znear;
     push.vsmMipBias = settings.vsmMipBias;
-    cmd.setUniforms(shaders.vsmMarkOmniPages, vsm.uboOmniPages, &push, sizeof(push));
+    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
+    cmd.setBinding(2, gbufNormal,  Sampler::nearest());
+    cmd.setBinding(3, zbuffer,     Sampler::nearest());
+    cmd.setBinding(4, wview.lights().lightsSsbo());
+    cmd.setBinding(5, vsm.visibleLights);
+    cmd.setBinding(6, vsm.pageTblOmni);
+    cmd.setBinding(7, vsm.vsmDbg);
+    cmd.setUniforms(shaders.vsmMarkOmniPages, &push, sizeof(push));
     cmd.dispatchThreads(zbuffer.size());
 
     const uint32_t lightsTotal = uint32_t(wview.lights().size());
-    cmd.setUniforms(shaders.vsmPostprocessOmni, vsm.uboPostprocessOmni, &lightsTotal, sizeof(lightsTotal));
+    cmd.setBinding(0, vsm.pageTblOmni);
+    cmd.setUniforms(shaders.vsmPostprocessOmni, &lightsTotal, sizeof(lightsTotal));
     cmd.dispatchThreads(wview.lights().size());
     }
 
   // sky&fog
   if(doVirtualFog) {
-    if(vsm.uboEpipole.isEmpty()) {
-      vsm.uboEpipole = device.descriptors(shaders.vsmFogEpipolar);
-      vsm.uboEpipole.set(0, sky.occlusionLut);
-      vsm.uboEpipole.set(1, vsm.epTrace);
-      vsm.uboEpipole.set(2, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-      vsm.uboEpipole.set(3, vsm.epipoles);
-      vsm.uboEpipole.set(4, zbuffer);
-      vsm.uboEpipole.set(5, vsm.pageTbl);
-      vsm.uboEpipole.set(6, vsm.pageData);
-      }
-
     cmd.setDebugMarker("VSM-epipolar");
-    cmd.setUniforms(shaders.vsmFogEpipolar, vsm.uboEpipole);
+    cmd.setBinding(0, sky.occlusionLut);
+    cmd.setBinding(1, vsm.epTrace);
+    cmd.setBinding(2, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(3, vsm.epipoles);
+    cmd.setBinding(4, zbuffer);
+    cmd.setBinding(5, vsm.pageTbl);
+    cmd.setBinding(6, vsm.pageData);
+    cmd.setUniforms(shaders.vsmFogEpipolar);
     cmd.dispatch(uint32_t(vsm.epTrace.h()));
 
-    cmd.setUniforms(shaders.vsmFogPages, vsm.uboFogPages);
+    cmd.setBinding(0, vsm.epTrace);
+    cmd.setBinding(1, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(2, vsm.epipoles);
+    cmd.setBinding(3, vsm.pageTbl);
+    cmd.setBinding(4, vsm.pageHiZ);
+    cmd.setUniforms(shaders.vsmFogPages);
     cmd.dispatchThreads(vsm.epTrace.size());
     }
 
   cmd.setDebugMarker("VSM-pages-alloc");
   if(true) {
     // trimming
-    // cmd.setUniforms(shaders.vsmTrimPages, vsm.uboClump);
+    // cmd.setBinding(0, vsm.pageList);
+    // cmd.setBinding(1, vsm.pageTbl);
+    // cmd.setUniforms(shaders.vsmTrimPages);
     // cmd.dispatch(1);
 
     // clump
-    cmd.setUniforms(shaders.vsmClumpPages, vsm.uboClump);
+    cmd.setBinding(0, vsm.pageList);
+    cmd.setBinding(1, vsm.pageTbl);
+    cmd.setUniforms(shaders.vsmClumpPages);
     cmd.dispatchThreads(size_t(vsm.pageTbl.w()), size_t(vsm.pageTbl.h()), size_t(vsm.pageTbl.d()));
     }
 
+  cmd.setBinding(0, vsm.pageList);
+  cmd.setBinding(1, vsm.pageTbl);
+  cmd.setBinding(2, vsm.pageTblOmni);
+  cmd.setBinding(3, vsm.pageListTmp);
+  cmd.setBinding(4, scene.vsmDbg);
   // list
-  cmd.setUniforms(shaders.vsmListPages, vsm.uboAlloc);
+  cmd.setUniforms(shaders.vsmListPages);
   if(omniLights)
     cmd.dispatch(size_t(vsm.pageTbl.d() + 1)); else
     cmd.dispatch(size_t(vsm.pageTbl.d()));
 
-  // cmd.setUniforms(shaders.vsmSortPages, vsm.uboAlloc);
+  // cmd.setUniforms(shaders.vsmSortPages);
   // cmd.dispatch(1);
 
   // alloc
-  // cmd.setUniforms(shaders.vsmAlloc2Pages, vsm.uboAlloc);
+  // cmd.setUniforms(shaders.vsmAlloc2Pages);
   // cmd.dispatchThreads(size_t(vsm.pageData.w()/VSM_PAGE_SIZE), size_t(vsm.pageData.h()/VSM_PAGE_SIZE));
 
-  cmd.setUniforms(shaders.vsmAllocPages, vsm.uboAlloc);
+  cmd.setUniforms(shaders.vsmAllocPages);
   cmd.dispatch(1);
 
   // hor-merge
-  cmd.setUniforms(shaders.vsmMergePages, vsm.uboAlloc);
+  cmd.setUniforms(shaders.vsmMergePages);
   cmd.dispatch(1);
 
   cmd.setDebugMarker("VSM-visibility");
@@ -1242,9 +1072,24 @@ void Renderer::drawGWater(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& v
   view.drawWater(cmd,fId);
   }
 
-void Renderer::drawReflections(Encoder<CommandBuffer>& cmd, uint8_t fId) {
+void Renderer::drawReflections(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
+  auto& shaders = Shaders::inst();
+  auto smp = Sampler::bilinear();
+  smp.setClamping(ClampMode::MirroredRepeat);
+  auto smpd = Sampler::nearest();
+  smpd.setClamping(ClampMode::ClampToEdge);
+
+  auto& pso = settings.zEnvMappingEnabled ? shaders.waterReflectionSSR : shaders.waterReflection;
+
   cmd.setDebugMarker("Reflections");
-  cmd.setUniforms(*water.reflectionsPso, water.ubo);
+  cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(1, sceneOpaque, smp);
+  cmd.setBinding(2, gbufDiffuse, smpd);
+  cmd.setBinding(3, gbufNormal,  smpd);
+  cmd.setBinding(4, zbuffer,     smpd);
+  cmd.setBinding(5, sceneDepth,  smpd);
+  cmd.setBinding(6, sky.viewCldLut);
+  cmd.setUniforms(pso);
   if(Gothic::options().doMeshShading) {
     cmd.dispatchMeshThreads(gbufDiffuse.size());
     } else {
@@ -1252,11 +1097,15 @@ void Renderer::drawReflections(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     }
   }
 
-void Renderer::drawUnderwater(Encoder<CommandBuffer>& cmd, uint8_t fId) {
-  cmd.setUniforms(Shaders::inst().underwaterT, water.underUbo);
-  cmd.draw(Resources::fsqVbo());
+void Renderer::drawUnderwater(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
+  auto& shaders = Shaders::inst();
 
-  cmd.setUniforms(Shaders::inst().underwaterS, water.underUbo);
+  cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(1, zbuffer);
+
+  cmd.setUniforms(shaders.underwaterT);
+  cmd.draw(Resources::fsqVbo());
+  cmd.setUniforms(shaders.underwaterS);
   cmd.draw(Resources::fsqVbo());
   }
 
@@ -1271,7 +1120,7 @@ void Renderer::drawShadowMap(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView
     }
   }
 
-void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, uint8_t fId, const WorldView& wview) {
+void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
   static bool light = true;
   if(!light)
     return;
@@ -1316,12 +1165,13 @@ void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, uint8_t fId, const
   cmd.draw(Resources::fsqVbo());
   }
 
-void Renderer::drawLights(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
+void Renderer::drawLights(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
   static bool light = true;
   if(!light)
     return;
 
-  auto& scene = wview.sceneGlobals();
+  auto& shaders = Shaders::inst();
+  auto& scene   = wview.sceneGlobals();
   cmd.setDebugMarker("Point lights");
 
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
@@ -1329,11 +1179,11 @@ void Renderer::drawLights(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& w
   cmd.setBinding(2, gbufNormal,  Sampler::nearest());
   cmd.setBinding(3, zbuffer,     Sampler::nearest());
   cmd.setBinding(4, wview.lights().lightsSsbo());
-  if(lights.directLightPso==&Shaders::inst().lightsVsm) {
+  if(lights.directLightPso==&shaders.lightsVsm) {
     cmd.setBinding(5, vsm.pageTblOmni);
     cmd.setBinding(6, vsm.pageData);
     }
-  if(lights.directLightPso==&Shaders::inst().lightsRq) {
+  if(lights.directLightPso==&shaders.lightsRq) {
     cmd.setBinding(6, scene.rtScene.tlas);
     cmd.setBinding(7, Sampler::bilinear());
     cmd.setBinding(8, scene.rtScene.tex);
@@ -1348,8 +1198,7 @@ void Renderer::drawLights(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& w
   cmd.draw(nullptr,ibo, 0,ibo.size(), 0,wview.lights().size());
   }
 
-void Renderer::drawSky(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
-  auto& device  = Resources::device();
+void Renderer::drawSky(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
   auto& scene   = wview.sceneGlobals();
   auto& shaders = Shaders::inst();
 
@@ -1360,40 +1209,34 @@ void Renderer::drawSky(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wvie
   cmd.setDebugMarker("Sky");
 
   if(sky.quality==PathTrace) {
-    if(sky.uboSkyPathtrace.isEmpty()) {
-      sky.uboSkyPathtrace = device.descriptors(Shaders::inst().skyPathTrace);
-      sky.uboSkyPathtrace.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
-      sky.uboSkyPathtrace.set(1, sky.transLut,     smpB);
-      sky.uboSkyPathtrace.set(2, sky.multiScatLut, smpB);
-      sky.uboSkyPathtrace.set(3, sky.cloudsLut,    smpB);
-      sky.uboSkyPathtrace.set(4, zbuffer, Sampler::nearest());
-      sky.uboSkyPathtrace.set(5, shadowMap[1], Resources::shadowSampler());
-      }
-    cmd.setUniforms(shaders.skyPathTrace, sky.uboSkyPathtrace);
+    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(1, sky.transLut,     smpB);
+    cmd.setBinding(2, sky.multiScatLut, smpB);
+    cmd.setBinding(3, sky.cloudsLut,    smpB);
+    cmd.setBinding(4, zbuffer, Sampler::nearest());
+    cmd.setBinding(5, shadowMap[1], Resources::shadowSampler());
+    cmd.setUniforms(shaders.skyPathTrace);
     cmd.draw(Resources::fsqVbo());
     return;
     }
 
   auto& skyShader = sky.quality==VolumetricLQ ? shaders.sky : shaders.skySep;
-  if(sky.uboSky.isEmpty()) {
-    sky.uboSky = device.descriptors(skyShader);
-    sky.uboSky.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    sky.uboSky.set(1, sky.transLut,     smpB);
-    sky.uboSky.set(2, sky.multiScatLut, smpB);
-    sky.uboSky.set(3, sky.viewLut,      smpB);
-    sky.uboSky.set(4, sky.fogLut3D);
-    if(sky.quality!=VolumetricLQ)
-      sky.uboSky.set(5, sky.fogLut3DMs);
-    sky.uboSky.set(6,*wview.sky().cloudsDay()  .lay[0],smp);
-    sky.uboSky.set(7,*wview.sky().cloudsDay()  .lay[1],smp);
-    sky.uboSky.set(8,*wview.sky().cloudsNight().lay[0],smp);
-    sky.uboSky.set(9,*wview.sky().cloudsNight().lay[1],smp);
-    }
-  cmd.setUniforms(skyShader, sky.uboSky);
+  cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(1, sky.transLut,     smpB);
+  cmd.setBinding(2, sky.multiScatLut, smpB);
+  cmd.setBinding(3, sky.viewLut,      smpB);
+  cmd.setBinding(4, sky.fogLut3D);
+  if(sky.quality!=VolumetricLQ)
+    cmd.setBinding(5, sky.fogLut3DMs);
+  cmd.setBinding(6,*wview.sky().cloudsDay()  .lay[0],smp);
+  cmd.setBinding(7,*wview.sky().cloudsDay()  .lay[1],smp);
+  cmd.setBinding(8,*wview.sky().cloudsNight().lay[0],smp);
+  cmd.setBinding(9,*wview.sky().cloudsNight().lay[1],smp);
+  cmd.setUniforms(skyShader);
   cmd.draw(Resources::fsqVbo());
   }
 
-void Renderer::prepareSSAO(Encoder<CommandBuffer>& cmd) {
+void Renderer::prepareSSAO(Encoder<CommandBuffer>& cmd, WorldView& wview) {
   if(!settings.zCloudShadowScale)
     return;
   // ssao
@@ -1405,47 +1248,62 @@ void Renderer::prepareSSAO(Encoder<CommandBuffer>& cmd) {
   push.projInv = proj;
   push.projInv.inverse();
 
+  auto smpN = Sampler::nearest();
+  smpN.setClamping(ClampMode::ClampToEdge);
+
+  auto& shaders = Shaders::inst();
+
   cmd.setFramebuffer({});
   cmd.setDebugMarker("SSAO");
-  cmd.setUniforms(*ssao.ssaoPso, ssao.uboSsao, &push, sizeof(push));
+
+  cmd.setBinding(0, ssao.ssaoBuf);
+  cmd.setBinding(1, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(2, gbufDiffuse, smpN);
+  cmd.setBinding(3, gbufNormal,  smpN);
+  cmd.setBinding(4, zbuffer,     smpN);
+  cmd.setUniforms(shaders.ssao, &push, sizeof(push));
   cmd.dispatchThreads(ssao.ssaoBuf.size());
 
-  cmd.setUniforms(Shaders::inst().ssaoBlur, ssao.uboBlur);
+  cmd.setBinding(0, ssao.ssaoBlur);
+  cmd.setBinding(1, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(2, ssao.ssaoBuf);
+  cmd.setBinding(3, zbuffer, smpN);
+  cmd.setUniforms(shaders.ssaoBlur);
   cmd.dispatchThreads(ssao.ssaoBuf.size());
   }
 
-void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
-  auto& device  = Resources::device();
+void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
   auto& scene   = wview.sceneGlobals();
   auto& shaders = Shaders::inst();
 
-  //auto  smp    = Sampler::trillinear();
-  auto  smpB   = Sampler::bilinear();
+  auto smpB = Sampler::bilinear();
   smpB.setClamping(ClampMode::ClampToEdge);
 
   cmd.setDebugMarker("Fog LUTs");
 
   if(sky.quality!=PathTrace) {
     auto& shader = sky.quality==VolumetricLQ ? shaders.fogViewLut3d : shaders.fogViewLutSep;
-    if(sky.uboFogViewLut3d.isEmpty()) {
-      sky.uboFogViewLut3d = device.descriptors(shader);
-      sky.uboFogViewLut3d.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
-      sky.uboFogViewLut3d.set(1, sky.transLut,     smpB);
-      sky.uboFogViewLut3d.set(2, sky.multiScatLut, smpB);
-      sky.uboFogViewLut3d.set(3, sky.cloudsLut,    smpB);
-      sky.uboFogViewLut3d.set(4, sky.fogLut3D);
-      if(sky.quality==VolumetricHQ || sky.quality==Epipolar)
-        sky.uboFogViewLut3d.set(5, sky.fogLut3DMs);
-      }
     cmd.setFramebuffer({});
-    cmd.setUniforms(shader, sky.uboFogViewLut3d);
+    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(1, sky.transLut,     smpB);
+    cmd.setBinding(2, sky.multiScatLut, smpB);
+    cmd.setBinding(3, sky.cloudsLut,    smpB);
+    cmd.setBinding(4, sky.fogLut3D);
+    if(sky.quality==VolumetricHQ || sky.quality==Epipolar)
+      cmd.setBinding(5, sky.fogLut3DMs);
+    cmd.setUniforms(shader);
     cmd.dispatchThreads(uint32_t(sky.fogLut3D.w()), uint32_t(sky.fogLut3D.h()));
     }
 
   if(settings.vsmEnabled && (sky.quality==VolumetricHQ || sky.quality==Epipolar)) {
     cmd.setFramebuffer({});
     cmd.setDebugMarker("VSM-epipolar-fog");
-    cmd.setUniforms(shaders.vsmFogShadow, vsm.uboFogShadow);
+    cmd.setBinding(0, vsm.epTrace);
+    cmd.setBinding(1, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(2, vsm.epipoles);
+    cmd.setBinding(3, vsm.pageTbl);
+    cmd.setBinding(4, vsm.pageData);
+    cmd.setUniforms(shaders.vsmFogShadow);
     cmd.dispatchThreads(vsm.epTrace.size());
     }
 
@@ -1455,48 +1313,38 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, Wor
       break;
     case VolumetricHQ: {
       if(settings.vsmEnabled) {
-        if(vsm.uboFogSample.isEmpty()) {
-          vsm.uboFogSample = device.descriptors(shaders.vsmFogSample);
-          vsm.uboFogSample.set(0, sky.occlusionLut);
-          vsm.uboFogSample.set(1, vsm.epTrace);
-          vsm.uboFogSample.set(2, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-          vsm.uboFogSample.set(3, vsm.epipoles);
-          vsm.uboFogSample.set(4, zbuffer);
-          }
-        cmd.setUniforms(shaders.vsmFogSample, vsm.uboFogSample);
+        cmd.setFramebuffer({});
+        cmd.setBinding(0, sky.occlusionLut);
+        cmd.setBinding(1, vsm.epTrace);
+        cmd.setBinding(2, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+        cmd.setBinding(3, vsm.epipoles);
+        cmd.setBinding(4, zbuffer);
+        cmd.setUniforms(shaders.vsmFogSample);
         cmd.dispatchThreads(zbuffer.size());
         } else {
-        if(sky.uboOcclusion.isEmpty()) {
-          sky.uboOcclusion = device.descriptors(shaders.fogOcclusion);
-          sky.uboOcclusion.set(2, zbuffer, Sampler::nearest());
-          sky.uboOcclusion.set(3, scene.uboGlobal[SceneGlobals::V_Main]);
-          sky.uboOcclusion.set(4, sky.occlusionLut);
-          sky.uboOcclusion.set(5, shadowMap[1], Resources::shadowSampler());
-          }
         cmd.setFramebuffer({});
-        cmd.setUniforms(shaders.fogOcclusion, sky.uboOcclusion);
+        cmd.setBinding(2, zbuffer, Sampler::nearest());
+        cmd.setBinding(3, scene.uboGlobal[SceneGlobals::V_Main]);
+        cmd.setBinding(4, sky.occlusionLut);
+        cmd.setBinding(5, shadowMap[1], Resources::shadowSampler());
+        cmd.setUniforms(shaders.fogOcclusion);
         cmd.dispatchThreads(sky.occlusionLut.size());
         }
       break;
       }
     case Epipolar:{
       // experimental
-      if(vsm.uboFogTrace.isEmpty()) {
-        auto smpB = Sampler::bilinear();
-        smpB.setClamping(ClampMode::ClampToEdge);
-        vsm.uboFogTrace = device.descriptors(shaders.vsmFogTrace);
-        vsm.uboFogTrace.set(0, vsm.fogDbg);
-        vsm.uboFogTrace.set(1, vsm.epTrace);
-        vsm.uboFogTrace.set(2, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-        vsm.uboFogTrace.set(3, vsm.epipoles);
-        vsm.uboFogTrace.set(4, zbuffer);
-        vsm.uboFogTrace.set(5, sky.transLut,   smpB);
-        vsm.uboFogTrace.set(6, sky.cloudsLut,  smpB);
-        vsm.uboFogTrace.set(7, sky.fogLut3DMs, smpB);
-        }
       cmd.setFramebuffer({});
       cmd.setDebugMarker("VSM-trace");
-      cmd.setUniforms(shaders.vsmFogTrace, vsm.uboFogTrace);
+      cmd.setBinding(0, vsm.fogDbg);
+      cmd.setBinding(1, vsm.epTrace);
+      cmd.setBinding(2, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+      cmd.setBinding(3, vsm.epipoles);
+      cmd.setBinding(4, zbuffer);
+      cmd.setBinding(5, sky.transLut,   smpB);
+      cmd.setBinding(6, sky.cloudsLut,  smpB);
+      cmd.setBinding(7, sky.fogLut3DMs, smpB);
+      cmd.setUniforms(shaders.vsmFogTrace);
       cmd.dispatchThreads(vsm.epTrace.size());
       break;
       }
@@ -1506,26 +1354,20 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, Wor
     }
   }
 
-void Renderer::prepareIrradiance(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
-  auto& device  = Resources::device();
+void Renderer::prepareIrradiance(Encoder<CommandBuffer>& cmd, WorldView& wview) {
   auto& shaders = Shaders::inst();
   auto& scene   = wview.sceneGlobals();
 
   cmd.setDebugMarker("Irradiance");
-  // wview.prepareIrradiance(cmd, fId);
-
-  if(sky.uboIrradiance.isEmpty()) {
-    sky.uboIrradiance = device.descriptors(shaders.irradiance);
-    sky.uboIrradiance.set(0, sky.irradianceLut);
-    sky.uboIrradiance.set(1, scene.uboGlobal[SceneGlobals::V_Main]);
-    sky.uboIrradiance.set(2, sky.viewCldLut);
-    }
   cmd.setFramebuffer({});
-  cmd.setUniforms(shaders.irradiance, sky.uboIrradiance);
+  cmd.setBinding(0, sky.irradianceLut);
+  cmd.setBinding(1, scene.uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(2, sky.viewCldLut);
+  cmd.setUniforms(shaders.irradiance);
   cmd.dispatch(1);
   }
 
-void Renderer::prepareGi(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
+void Renderer::prepareGi(Encoder<CommandBuffer>& cmd, WorldView& wview) {
   if(!settings.giEnabled || !settings.zCloudShadowScale) {
     return;
     }
@@ -1640,16 +1482,12 @@ void Renderer::prepareGi(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wv
   cmd.dispatch(1024);
   }
 
-void Renderer::prepareExposure(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
-  auto& device  = Resources::device();
+void Renderer::prepareExposure(Encoder<CommandBuffer>& cmd, WorldView& wview) {
   auto& shaders = Shaders::inst();
   auto& scene   = wview.sceneGlobals();
 
   auto  smpB   = Sampler::bilinear();
   smpB.setClamping(ClampMode::ClampToEdge);
-
-  cmd.setDebugMarker("Exposure");
-  //wview.prepareExposure(cmd,fId);
 
   auto sunDir = wview.sky().sunLight().dir();
   struct Push {
@@ -1665,21 +1503,18 @@ void Renderer::prepareExposure(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldVi
     push.baseL = override;
   push.baseL += add;
 
-  if(sky.uboExp.isEmpty()) {
-    sky.uboExp = device.descriptors(shaders.skyExposure);
-    sky.uboExp.set(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    sky.uboExp.set(1, sky.viewCldLut);
-    sky.uboExp.set(2, sky.transLut,  smpB);
-    sky.uboExp.set(3, sky.cloudsLut, smpB);
-    sky.uboExp.set(4, sky.irradianceLut);
-    }
-
+  cmd.setDebugMarker("Exposure");
   cmd.setFramebuffer({});
-  cmd.setUniforms(shaders.skyExposure, sky.uboExp, &push, sizeof(push));
+  cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(1, sky.viewCldLut);
+  cmd.setBinding(2, sky.transLut,  smpB);
+  cmd.setBinding(3, sky.cloudsLut, smpB);
+  cmd.setBinding(4, sky.irradianceLut);
+  cmd.setUniforms(shaders.skyExposure, &push, sizeof(push));
   cmd.dispatch(1);
   }
 
-void Renderer::drawProbesDbg(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
+void Renderer::drawProbesDbg(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
   if(!settings.giEnabled)
     return;
 
@@ -1697,7 +1532,7 @@ void Renderer::drawProbesDbg(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView
   cmd.draw(nullptr, 0, 36, 0, gi.maxProbes);
   }
 
-void Renderer::drawProbesHitDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+void Renderer::drawProbesHitDbg(Encoder<CommandBuffer>& cmd) {
   if(!settings.giEnabled)
     return;
 
@@ -1738,7 +1573,19 @@ void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {
     }
 
   cmd.setDebugMarker("AmbientLight");
-  cmd.setUniforms(*ssao.ambientLightPso,ssao.uboCompose);
+  cmd.setBinding(0, view.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
+  cmd.setBinding(2, gbufNormal,  Sampler::nearest());
+  cmd.setBinding(3, sky.irradianceLut);
+  if(settings.zCloudShadowScale) {
+    auto smpN = Sampler::nearest();
+    smpN.setClamping(ClampMode::ClampToEdge);
+
+    cmd.setBinding(4, ssao.ssaoBlur, smpN);
+    cmd.setUniforms(shaders.ambientLightSsao);
+    } else {
+    cmd.setUniforms(shaders.ambientLight);
+    }
   cmd.draw(Resources::fsqVbo());
   }
 
