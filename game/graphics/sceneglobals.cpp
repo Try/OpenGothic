@@ -38,13 +38,9 @@ SceneGlobals::SceneGlobals() {
     uboGlobal[lay] = device.ssbo(nullptr,sizeof(UboGlobal));
     }
 
-  auto& copy = Shaders::inst().copyBuf;
   for(uint8_t fId=0; fId<Resources::MaxFramesInFlight; ++fId)
     for(uint8_t lay=0; lay<V_Count; ++lay) {
       uboGlobalPf[fId][lay] = device.ubo(UboGlobal());
-      uboCopy[fId][lay] = device.descriptors(copy);
-      uboCopy[fId][lay].set(0, uboGlobal[lay]);
-      uboCopy[fId][lay].set(1, uboGlobalPf[fId][lay]);
       }
   }
 
@@ -207,7 +203,9 @@ void SceneGlobals::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
   cmd.setDebugMarker("Update globals");
   auto& pso = Shaders::inst().copyBuf;
   for(uint8_t lay=0; lay<V_Count; ++lay) {
-    cmd.setUniforms(pso, uboCopy[fId][lay]);
+    cmd.setBinding(0, uboGlobal[lay]);
+    cmd.setBinding(1, uboGlobalPf[fId][lay]);
+    cmd.setUniforms(pso);
     cmd.dispatchThreads(sizeof(UboGlobal)/sizeof(uint32_t));
     }
   }

@@ -243,7 +243,6 @@ void WorldView::prepareUniforms() {
   // wait before update all descriptors, cmd buffers must not be in use
   Resources::device().waitIdle();
   sGlobal.lights = &gLights.lightsSsbo();
-  pfxGroup.prepareUniforms();
   visuals.prepareUniforms();
   }
 

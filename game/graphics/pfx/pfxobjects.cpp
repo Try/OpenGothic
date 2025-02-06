@@ -53,11 +53,6 @@ bool PfxObjects::isInPfxRange(const Vec3& pos) const {
   return dp.quadLength()<viewRage*viewRage;
   }
 
-void PfxObjects::prepareUniforms() {
-  for(auto& i:bucket)
-    i.prepareUniforms(scene);
-  }
-
 void PfxObjects::preFrameUpdate(uint8_t fId) {
   for(auto i=bucket.begin(), end = bucket.end(); i!=end; ) {
     if(i->isEmpty()) {
@@ -73,17 +68,17 @@ void PfxObjects::preFrameUpdate(uint8_t fId) {
 
 void PfxObjects::drawGBuffer(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   for(auto& i:bucket)
-    i.drawGBuffer(cmd, fId);
+    i.drawGBuffer(cmd, scene, fId);
   }
 
 void PfxObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer) {
   for(auto& i:bucket)
-    i.drawShadow(cmd, fId, layer);
+    i.drawShadow(cmd, scene, fId, layer);
   }
 
 void PfxObjects::drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
   for(auto& i:bucket)
-    i.drawTranslucent(cmd, fId);
+    i.drawTranslucent(cmd, scene, fId);
   }
 
 PfxBucket& PfxObjects::getBucket(const ParticleFx &decl) {

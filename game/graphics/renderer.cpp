@@ -451,7 +451,7 @@ void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
     auto& zb = (zbufferUi.isEmpty() ? zbuffer : zbufferUi);
     cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}},{zb, 1.f, Tempest::Preserve});
     cmd.setDebugMarker("Inventory");
-    inventory.draw(cmd,cmdId);
+    inventory.draw(cmd);
 
     cmd.setFramebuffer({{result, Tempest::Preserve, Tempest::Preserve}});
     cmd.setDebugMarker("Inventory-counters");
@@ -530,7 +530,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   prepareSky(cmd,*wview);
 
   drawHiZ (cmd,fId,*wview);
-  buildHiZ(cmd,fId);
+  buildHiZ(cmd);
 
   wview->visibilityPass(cmd, fId, 1);
   drawGBuffer(cmd,fId,*wview);
@@ -868,7 +868,7 @@ void Renderer::drawHiZ(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view
   view.drawHiZ(cmd,fId);
   }
 
-void Renderer::buildHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+void Renderer::buildHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   assert(hiz.hiZ.w()<=128 && hiz.hiZ.h()<=128); // shader limitation
   auto& shaders = Shaders::inst();
 
@@ -1612,22 +1612,21 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   auto d16     = device.attachment(TextureFormat::R16,    swapchain.w(),swapchain.h());
   auto normals = device.attachment(TextureFormat::RGBA16, swapchain.w(),swapchain.h());
 
-  auto ubo = device.descriptors(Shaders::inst().copy);
-  ubo.set(0,gbufNormal,Sampler::nearest());
   {
   auto enc = cmd.startEncoding(device);
   enc.setFramebuffer({{normals,Tempest::Discard,Tempest::Preserve}});
-  enc.setUniforms(Shaders::inst().copy,ubo);
+  enc.setBinding(0, gbufNormal, Sampler::nearest());
+  enc.setUniforms(Shaders::inst().copy);
   enc.draw(Resources::fsqVbo());
   }
   device.submit(cmd,sync);
   sync.wait();
 
-  ubo.set(0,zbuffer,Sampler::nearest());
   {
   auto enc = cmd.startEncoding(device);
   enc.setFramebuffer({{d16,Tempest::Discard,Tempest::Preserve}});
-  enc.setUniforms(Shaders::inst().copy,ubo);
+  enc.setBinding(0,zbuffer,Sampler::nearest());
+  enc.setUniforms(Shaders::inst().copy);
   enc.draw(Resources::fsqVbo());
   }
   device.submit(cmd,sync);

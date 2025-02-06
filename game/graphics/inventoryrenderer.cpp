@@ -14,42 +14,30 @@ InventoryRenderer::InventoryRenderer()
   mv.identity();
   mv.scale(0.8f,1.f,1.f);
   scene.setViewProject(mv,p,0,1,shMv);
-
-  pInventory = &Shaders::inst().inventory;
   }
 
-void InventoryRenderer::draw(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
-  auto& device = Resources::device();
-
-  auto& ctx = context[fId];
-
+void InventoryRenderer::draw(Tempest::Encoder<CommandBuffer>& cmd) {
   Tempest::Matrix4x4 mv = Tempest::Matrix4x4::mkIdentity();
   mv.scale(0.8f,1.f,1.f);
 
-  size_t descI = 0;
+  auto&  pso = Shaders::inst().inventory;
   for(auto& i:items) {
     cmd.setViewport(i.x,i.y,i.w,i.h);
     for(size_t r=0;r<i.mesh.nodesCount();++r) {
       auto  n = i.mesh.node(r);
       auto& m = n.material();
 
-      if(descI>=ctx.decs.size())
-        ctx.decs.emplace_back(device.descriptors(*pInventory));
-      ctx.decs[descI].set(0, *m.tex);
-
       if(auto s = n.mesh()) {
         auto sl = n.meshSlice();
         auto p  = mv;
         p.mul(n.position());
 
-        cmd.setUniforms(*pInventory,ctx.decs[descI],&p,sizeof(p));
+        cmd.setBinding(0, *m.tex);
+        cmd.setUniforms(pso, &p, sizeof(p));
         cmd.draw(s->vbo, s->ibo, sl.first, sl.second);
         }
-
-      ++descI;
       }
     }
-  ctx.decs.resize(descI);
   }
 
 void InventoryRenderer::reset(bool full) {

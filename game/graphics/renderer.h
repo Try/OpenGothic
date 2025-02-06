@@ -53,7 +53,7 @@ class Renderer final {
     void prepareExposure  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
 
     void drawHiZ          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
-    void buildHiZ         (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void buildHiZ         (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawVsm          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawSwr          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawGBuffer      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);

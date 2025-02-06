@@ -48,7 +48,6 @@ class DrawClusters {
       };
 
     struct Patch {
-      Tempest::DescriptorSet desc;
       Tempest::StorageBuffer indices;
       Tempest::StorageBuffer data;
       };

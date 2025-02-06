@@ -13,7 +13,7 @@ class InventoryRenderer {
   public:
     InventoryRenderer();
 
-    void draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 
     void reset(bool full=false);
     void drawItem(int x, int y, int w, int h, const Item &item);
@@ -33,12 +33,5 @@ class InventoryRenderer {
     MeshObjects            itmGroup;
     std::vector<Itm>       items;
     std::vector<Itm>       prevItems; // reseve previous to avoid bucket reallocation
-
-    const Tempest::RenderPipeline* pInventory = nullptr;
-
-    struct Context {
-      std::vector<Tempest::DescriptorSet> decs;
-      };
-    Context context[Resources::MaxFramesInFlight];
   };
 

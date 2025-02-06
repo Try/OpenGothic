@@ -164,12 +164,12 @@ add_frag_shader(main_obj_v     -DDEPTH_ONLY -DVIRTUAL_SHADOW)
 add_frag_shader(main_obj_v_at  -DDEPTH_ONLY -DVIRTUAL_SHADOW -DATEST)
 
 # pfx geometry
-add_shader(main_pfx.vert       materials/pfx.vert   -DVT_COLOR)
-add_shader(main_pfx_f.vert     materials/pfx.vert   -DFORWARD    -DVT_COLOR)
-add_shader(main_pfx_d.vert     materials/pfx.vert   -DDEPTH_ONLY -DVT_COLOR)
-add_shader(main_pfx_d_at.vert  materials/pfx.vert   -DDEPTH_ONLY -DVT_COLOR -DATEST)
-add_shader(main_pfx_v.vert     materials/pfx.vert   -DDEPTH_ONLY -DVIRTUAL_SHADOW -DVT_COLOR)
-add_shader(main_pfx_v_at.vert  materials/pfx.vert   -DDEPTH_ONLY -DVIRTUAL_SHADOW -DVT_COLOR -DATEST)
+add_shader(main_pfx.vert       materials/pfx.vert   "-DMESH_TYPE=4" -DVT_COLOR)
+add_shader(main_pfx_f.vert     materials/pfx.vert   "-DMESH_TYPE=4" -DFORWARD    -DVT_COLOR)
+add_shader(main_pfx_d.vert     materials/pfx.vert   "-DMESH_TYPE=4" -DDEPTH_ONLY -DVT_COLOR)
+add_shader(main_pfx_d_at.vert  materials/pfx.vert   "-DMESH_TYPE=4" -DDEPTH_ONLY -DVT_COLOR -DATEST)
+add_shader(main_pfx_v.vert     materials/pfx.vert   "-DMESH_TYPE=4" -DDEPTH_ONLY -DVIRTUAL_SHADOW -DVT_COLOR)
+add_shader(main_pfx_v_at.vert  materials/pfx.vert   "-DMESH_TYPE=4" -DDEPTH_ONLY -DVIRTUAL_SHADOW -DVT_COLOR -DATEST)
 # materials pfx
 add_shader(main_pfx_g.frag     materials/main.frag  "-DMESH_TYPE=4" -DGBUFFER    -DVT_COLOR)
 add_shader(main_pfx_g_at.frag  materials/main.frag  "-DMESH_TYPE=4" -DGBUFFER    -DVT_COLOR -DATEST)
