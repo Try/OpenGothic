@@ -391,6 +391,6 @@ void LightGroup::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd, u
   cmd.setFramebuffer({});
   cmd.setBinding(0, lightSourceSsbo);
   cmd.setBinding(1, patch);
-  cmd.setUniforms(Shaders::inst().patch);
+  cmd.setPipeline(Shaders::inst().patch);
   cmd.dispatch(patchBlock.size());
   }

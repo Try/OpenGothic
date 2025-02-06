@@ -196,10 +196,17 @@ void DrawCommands::resetRendering() {
   cmdDurtyBit = true;
   }
 
-bool DrawCommands::commit(Encoder<CommandBuffer>& enc) {
+void DrawCommands::commit(Encoder<CommandBuffer>& enc) {
   if(!cmdDurtyBit)
-    return false;
+    return;
   cmdDurtyBit = false;
+
+  ord.resize(cmd.size());
+  for(size_t i=0; i<cmd.size(); ++i)
+    ord[i] = &cmd[i];
+  std::sort(ord.begin(), ord.end(), [](const DrawCmd* l, const DrawCmd* r){
+    return l->alpha < r->alpha;
+    });
 
   size_t totalPayload = 0;
   bool   layChg       = false;
@@ -215,16 +222,10 @@ bool DrawCommands::commit(Encoder<CommandBuffer>& enc) {
   auto& v      = views[SceneGlobals::V_Main];
   bool  cmdChg = needtoReallocate(v.indirectCmd, sizeof(IndirectCmd)*cmd.size());
   bool  visChg = needtoReallocate(v.visClusters, visClustersSz);
-  if(!layChg && !visChg) {
-    //return false;
-    }
 
-  ord.resize(cmd.size());
-  for(size_t i=0; i<cmd.size(); ++i)
-    ord[i] = &cmd[i];
-  std::sort(ord.begin(), ord.end(), [](const DrawCmd* l, const DrawCmd* r){
-    return l->alpha < r->alpha;
-    });
+  if(!layChg && !visChg) {
+    return;
+    }
 
   std::vector<IndirectCmd> cx(cmd.size());
   for(size_t i=0; i<cmd.size(); ++i) {
@@ -254,23 +255,18 @@ bool DrawCommands::commit(Encoder<CommandBuffer>& enc) {
     if(cmdChg) {
       Resources::recycle(std::move(v.indirectCmd));
       v.indirectCmd = device.ssbo(cx.data(), sizeof(IndirectCmd)*cx.size());
-      visChg |= (v.viewport==SceneGlobals::V_Vsm);
       }
     else if(layChg) {
       auto staging = device.ssbo(BufferHeap::Upload, cx.data(), sizeof(IndirectCmd)*cx.size());
 
       enc.setBinding(0, v.indirectCmd);
       enc.setBinding(1, staging);
-      enc.setUniforms(Shaders::inst().copyBuf);
+      enc.setPipeline(Shaders::inst().copyBuf);
       enc.dispatchThreads(staging.byteSize()/sizeof(uint32_t));
 
       Resources::recycle(std::move(staging));
       }
     }
-
-  if(!visChg)
-    return false;
-  return true;
   }
 
 void DrawCommands::updateBindlessArrays() {

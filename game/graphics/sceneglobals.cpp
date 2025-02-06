@@ -205,7 +205,7 @@ void SceneGlobals::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
   for(uint8_t lay=0; lay<V_Count; ++lay) {
     cmd.setBinding(0, uboGlobal[lay]);
     cmd.setBinding(1, uboGlobalPf[fId][lay]);
-    cmd.setUniforms(pso);
+    cmd.setPipeline(pso);
     cmd.dispatchThreads(sizeof(UboGlobal)/sizeof(uint32_t));
     }
   }

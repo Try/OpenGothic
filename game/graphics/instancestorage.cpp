@@ -201,7 +201,7 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   cmd.setFramebuffer({});
   cmd.setBinding(0, dataGpu);
   cmd.setBinding(1, path);
-  cmd.setUniforms(Shaders::inst().patch);
+  cmd.setPipeline(Shaders::inst().patch);
   cmd.dispatch(patchBlock.size());
   return false;
   }
