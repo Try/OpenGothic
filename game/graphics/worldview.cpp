@@ -70,7 +70,7 @@ void WorldView::preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t
   sGlobal.commitUbo(fId);
 
   pfxGroup.preFrameUpdate(fId);
-  visuals .preFrameUpdate(fId);
+  visuals .preFrameUpdate();
   }
 
 void WorldView::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
@@ -124,43 +124,43 @@ void WorldView::updateFrustrum(const Frustrum fr[]) {
     sGlobal.frustrum[i] = fr[i];
   }
 
-void WorldView::visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int pass) {
+void WorldView::visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, int pass) {
   cmd.setDebugMarker("Visibility");
-  visuals.visibilityPass(cmd, fId, pass);
+  visuals.visibilityPass(cmd, pass);
   }
 
-void WorldView::visibilityVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  visuals.visibilityVsm(cmd, fId);
+void WorldView::visibilityVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
+  visuals.visibilityVsm(cmd);
   }
 
-void WorldView::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  visuals.drawHiZ(cmd,fId);
+void WorldView::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
+  visuals.drawHiZ(cmd);
   }
 
 void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId, uint8_t layer) {
-  visuals.drawShadow(cmd,fId,layer);
+  visuals.drawShadow(cmd,layer);
   pfxGroup.drawShadow(cmd,fId,layer);
   }
 
-void WorldView::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  visuals.drawVsm(cmd, fId);
+void WorldView::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
+  visuals.drawVsm(cmd);
   }
 
-void WorldView::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  visuals.drawSwr(cmd, fId);
+void WorldView::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
+  visuals.drawSwr(cmd);
   }
 
 void WorldView::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
-  visuals.drawGBuffer(cmd, fId);
+  visuals.drawGBuffer(cmd);
   pfxGroup.drawGBuffer(cmd, fId);
   }
 
-void WorldView::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  visuals.drawWater(cmd,fId);
+void WorldView::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
+  visuals.drawWater(cmd);
   }
 
 void WorldView::drawTranslucent(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
-  visuals.drawTranslucent(cmd,fId);
+  visuals.drawTranslucent(cmd);
   pfxGroup.drawTranslucent(cmd, fId);
   }
 
@@ -227,7 +227,7 @@ bool WorldView::updateLights() {
   gSky.updateLight(now);
   if(!gLights.updateLights())
     return false;
-  visuals.prepareLigtsUniforms();
+  sGlobal.lights = &gLights.lightsSsbo();
   return true;
   }
 
@@ -237,13 +237,6 @@ bool WorldView::updateRtScene() {
   if(!visuals.updateRtScene(sGlobal.rtScene))
     return false;
   return true;
-  }
-
-void WorldView::prepareUniforms() {
-  // wait before update all descriptors, cmd buffers must not be in use
-  Resources::device().waitIdle();
-  sGlobal.lights = &gLights.lightsSsbo();
-  visuals.prepareUniforms();
   }
 
 void WorldView::postFrameupdate() {

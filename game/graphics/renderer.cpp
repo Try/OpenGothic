@@ -336,7 +336,6 @@ void Renderer::prepareUniforms() {
   wview->setHiZ(textureCast<const Texture2d&>(hiz.hiZ));
   wview->setGbuffer(textureCast<const Texture2d&>(gbufDiffuse), textureCast<const Texture2d&>(gbufNormal));
   wview->setSceneImages(textureCast<const Texture2d&>(sceneOpaque), textureCast<const Texture2d&>(sceneDepth), zbuffer);
-  wview->prepareUniforms();
   }
 
 void Renderer::resetSkyFog() {
@@ -526,18 +525,18 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   wview->preFrameUpdate(*camera,Gothic::inst().world()->tickCount(),fId);
   wview->prepareGlobals(cmd,fId);
 
-  wview->visibilityPass(cmd, fId, 0);
+  wview->visibilityPass(cmd, 0);
   prepareSky(cmd,*wview);
 
-  drawHiZ (cmd,fId,*wview);
+  drawHiZ (cmd, *wview);
   buildHiZ(cmd);
 
-  wview->visibilityPass(cmd, fId, 1);
+  wview->visibilityPass(cmd, 1);
   drawGBuffer(cmd,fId,*wview);
 
   drawShadowMap(cmd,fId,*wview);
-  drawVsm(cmd,fId,*wview);
-  drawSwr(cmd,fId,*wview);
+  drawVsm(cmd, *wview);
+  drawSwr(cmd, *wview);
 
   prepareIrradiance(cmd,*wview);
   prepareExposure(cmd,*wview);
@@ -553,7 +552,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
 
   stashSceneAux(cmd);
 
-  drawGWater(cmd,fId,*wview);
+  drawGWater(cmd, *wview);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}}, {zbuffer, Tempest::Preserve, Tempest::Preserve});
   cmd.setDebugMarker("Sun&Moon");
@@ -862,10 +861,10 @@ void Renderer::initGiData() {
   gi.fisrtFrame         = true;
   }
 
-void Renderer::drawHiZ(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
+void Renderer::drawHiZ(Encoder<CommandBuffer>& cmd, WorldView& view) {
   cmd.setDebugMarker("HiZ-occluders");
   cmd.setFramebuffer({}, {zbuffer, 1.f, Tempest::Preserve});
-  view.drawHiZ(cmd,fId);
+  view.drawHiZ(cmd);
   }
 
 void Renderer::buildHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
@@ -895,7 +894,7 @@ void Renderer::buildHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   cmd.dispatchThreads(w,h);
   }
 
-void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& wview) {
+void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
   if(!settings.vsmEnabled)
     return;
 
@@ -1034,19 +1033,19 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fI
   cmd.dispatch(1);
 
   cmd.setDebugMarker("VSM-visibility");
-  wview.visibilityVsm(cmd,fId);
+  wview.visibilityVsm(cmd);
 
   cmd.setDebugMarker("VSM-rendering");
   cmd.setFramebuffer({}, {vsm.pageData, 0.f, Tempest::Preserve});
-  wview.drawVsm(cmd,fId);
+  wview.drawVsm(cmd);
   }
 
-void Renderer::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
+void Renderer::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view) {
   if(!settings.swrEnabled)
     return;
   cmd.setFramebuffer({});
   cmd.setDebugMarker("SW-rendering");
-  view.drawSwr(cmd,fId);
+  view.drawSwr(cmd);
   }
 
 void Renderer::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
@@ -1057,7 +1056,7 @@ void Renderer::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& 
   view.drawGBuffer(cmd,fId);
   }
 
-void Renderer::drawGWater(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
+void Renderer::drawGWater(Encoder<CommandBuffer>& cmd, WorldView& view) {
   static bool water = true;
   if(!water)
     return;
@@ -1069,7 +1068,7 @@ void Renderer::drawGWater(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& v
   // cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}},
   //                    {zbuffer, Tempest::Preserve, Tempest::Preserve});
   cmd.setDebugMarker("GWater");
-  view.drawWater(cmd,fId);
+  view.drawWater(cmd);
   }
 
 void Renderer::drawReflections(Encoder<CommandBuffer>& cmd, const WorldView& wview) {

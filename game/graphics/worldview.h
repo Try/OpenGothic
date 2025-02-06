@@ -36,6 +36,8 @@ class WorldView {
     void resetRendering();
 
     void preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t fId);
+    void postFrameupdate();
+
     void prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
 
     void setGbuffer(const Tempest::Texture2d& diffuse,
@@ -49,25 +51,22 @@ class WorldView {
     void setHiZ(const Tempest::Texture2d& hiZ);
     void setSceneImages(const Tempest::Texture2d& clr, const Tempest::Texture2d& depthAux, const Tempest::ZBuffer& depthNative);
 
-    void prepareUniforms();
-    void postFrameupdate();
-
     void dbgLights      (DbgPainter& p) const;
 
     bool updateLights();
     bool updateRtScene();
 
     void updateFrustrum (const Frustrum fr[]);
-    void visibilityPass (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, int pass);
-    void visibilityVsm  (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void visibilityPass (Tempest::Encoder<Tempest::CommandBuffer>& cmd, int pass);
+    void visibilityVsm  (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 
-    void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, uint8_t layer);
-    void drawVsm        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId);
-    void drawSwr        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId);
-    void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawWater      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId, uint8_t layer);
+    void drawVsm        (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawSwr        (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId);
+    void drawWater      (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId);
 
     MeshObjects::Mesh   addView      (std::string_view visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
     MeshObjects::Mesh   addView      (const ProtoMesh* visual);
