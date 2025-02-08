@@ -140,6 +140,7 @@ class Resources final {
     static void recycle(Tempest::DescriptorSet&& ds);
     static void recycle(Tempest::StorageBuffer&& ssbo);
     static void recycle(Tempest::StorageImage&& img);
+    static void recycle(Tempest::AccelerationStructure&& rtas);
 
     static std::vector<uint8_t>      getFileData(std::string_view name);
     static bool                      getFileData(std::string_view name, std::vector<uint8_t>& dat);
@@ -239,6 +240,7 @@ class Resources final {
       std::vector<Tempest::StorageBuffer>   ssbo;
       std::vector<Tempest::StorageImage>    img;
       std::vector<Tempest::DescriptorArray> arr;
+      std::vector<Tempest::AccelerationStructure> rtas;
       };
     DeleteQueue recycled[MaxFramesInFlight];
     uint8_t     recycledId = 0;

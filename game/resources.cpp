@@ -950,6 +950,7 @@ void Resources::resetRecycled(uint8_t fId) {
   inst->recycled[fId].ssbo.clear();
   inst->recycled[fId].img.clear();
   inst->recycled[fId].arr.clear();
+  inst->recycled[fId].rtas.clear();
   }
 
 void Resources::recycle(Tempest::DescriptorArray &&arr) {
@@ -978,6 +979,13 @@ void Resources::recycle(Tempest::StorageImage&& img) {
     return;
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   inst->recycled[inst->recycledId].img.emplace_back(std::move(img));
+  }
+
+void Resources::recycle(Tempest::AccelerationStructure&& rtas) {
+  if(rtas.isEmpty())
+    return;
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  inst->recycled[inst->recycledId].rtas.emplace_back(std::move(rtas));
   }
 
 const Resources::VobTree* Resources::implLoadVobBundle(std::string_view filename) {

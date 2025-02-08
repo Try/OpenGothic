@@ -99,8 +99,6 @@ void RtScene::addInstance(const BuildBlas& ctx, Tempest::AccelerationStructure& 
   }
 
 void RtScene::buildTlas() {
-  auto& device = Resources::device();
-  device.waitIdle();
   needToUpdate = false;
 
   addInstance(build.staticOpaque, blasStaticOpaque, Tempest::RtInstanceFlags::Opaque | RtInstanceFlags::CullDisable);
@@ -108,17 +106,16 @@ void RtScene::buildTlas() {
 
   Resources::recycle(std::move(tex));
   Resources::recycle(std::move(vbo));
-  Resources::recycle(std::move(tex));
+  Resources::recycle(std::move(ibo));
   Resources::recycle(std::move(rtDesc));
+  Resources::recycle(std::move(tlas));
 
+  auto& device = Resources::device();
   tex    = device.descriptors(build.tex);
   vbo    = device.descriptors(build.vbo);
   ibo    = device.descriptors(build.ibo);
   rtDesc = device.ssbo(build.rtDesc);
   tlas   = device.tlas(build.inst);
-
-  if(build.rtDesc.empty())
-    rtDesc = device.ssbo(nullptr, sizeof(build.rtDesc[0]));
 
   build = Build();
   }
