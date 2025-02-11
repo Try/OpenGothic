@@ -119,8 +119,8 @@ class Resources final {
     template<class V>
     static Tempest::VertexBuffer<V>  vbo(const V* data,size_t sz){ return inst->dev.vbo(data,sz); }
 
-    template<class V>
-    static Tempest::IndexBuffer<V>   ibo(const V* data,size_t sz){ return inst->dev.ibo(data,sz); }
+    template<class I>
+    static Tempest::IndexBuffer<I>   ibo(const I* data,size_t sz){ return inst->dev.ibo(data,sz); }
 
     static Tempest::StorageBuffer    ssbo(const void* data, size_t size)         { return inst->dev.ssbo(data,size); }
     static Tempest::StorageBuffer    ssbo(Tempest::Uninitialized_t, size_t size) { return inst->dev.ssbo(Tempest::Uninitialized,size); }
@@ -137,7 +137,6 @@ class Resources final {
 
     static void resetRecycled(uint8_t fId);
     static void recycle(Tempest::DescriptorArray&& arr);
-    static void recycle(Tempest::DescriptorSet&& ds);
     static void recycle(Tempest::StorageBuffer&& ssbo);
     static void recycle(Tempest::StorageImage&& img);
     static void recycle(Tempest::AccelerationStructure&& rtas);
@@ -236,7 +235,6 @@ class Resources final {
     Tempest::IndexBuffer<uint16_t>    cube;
 
     struct DeleteQueue {
-      std::vector<Tempest::DescriptorSet>   ds;
       std::vector<Tempest::StorageBuffer>   ssbo;
       std::vector<Tempest::StorageImage>    img;
       std::vector<Tempest::DescriptorArray> arr;

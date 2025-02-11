@@ -319,7 +319,8 @@ void DrawCommands::visibilityPass(Encoder<CommandBuffer>& cmd, int pass) {
         continue;
       const uint32_t isMeshShader = (Gothic::options().doMeshShading ? 1 : 0);
       cmd.setBinding(T_Indirect, v.indirectCmd);
-      cmd.setUniforms(Shaders::inst().clusterInit, &isMeshShader, sizeof(isMeshShader));
+      cmd.setPushData(&isMeshShader, sizeof(isMeshShader));
+      cmd.setPipeline(Shaders::inst().clusterInit);
       cmd.dispatchThreads(this->cmd.size());
       }
     }
@@ -353,7 +354,8 @@ void DrawCommands::visibilityPass(Encoder<CommandBuffer>& cmd, int pass) {
     cmd.setBinding(T_Indirect, views[viewport].indirectCmd);
     cmd.setBinding(T_Clusters, clusters.ssbo());
     cmd.setBinding(T_HiZ,      *scene.hiZ);
-    cmd.setUniforms(*pso, &push, sizeof(push));
+    cmd.setPushData(push);
+    cmd.setPipeline(*pso);
     cmd.dispatchThreads(push.meshletCount);
     }
   }
@@ -375,7 +377,8 @@ void DrawCommands::visibilityVsm(Encoder<CommandBuffer>& cmd) {
   cmd.setBinding(T_HiZ,      *scene.vsmPageHiZ);
   cmd.setBinding(T_VsmPages, *scene.vsmPageList);
   cmd.setBinding(9,          scene.vsmDbg);
-  cmd.setUniforms(shaders.vsmVisibilityPass, &push, sizeof(push));
+  cmd.setPushData(&push, sizeof(push));
+  cmd.setPipeline(shaders.vsmVisibilityPass);
   cmd.dispatchThreads(push.meshletCount, size_t(scene.vsmPageTbl->d() + 1));
 
   cmd.setBinding(1, view.vsmClusters);
@@ -414,7 +417,8 @@ void DrawCommands::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
 
     // cmd.setUniforms(*cx.pVsm, desc[viewId], &push, sizeof(push));
     setBindings(cmd, cx, viewId);
-    cmd.setUniforms(*cx.pVsm, &push, sizeof(push));
+    cmd.setPushData(push);
+    cmd.setPipeline(*cx.pVsm);
     if(cx.isMeshShader())
       cmd.dispatchMeshIndirect(view.indirectCmd, sizeof(IndirectCmd)*id + sizeof(uint32_t)); else
       cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
@@ -434,7 +438,8 @@ void DrawCommands::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.setBinding(6, vbo);
     cmd.setBinding(7, tex);
     cmd.setBinding(8, Sampler::bilinear());
-    cmd.setUniforms(Shaders::inst().vsmRendering, &push, sizeof(push));
+    cmd.setPushData(&push, sizeof(push));
+    cmd.setPipeline(Shaders::inst().vsmRendering);
     // const auto sz = Shaders::inst().vsmRendering.workGroupSize();
     cmd.dispatch(1024u);
     }
@@ -461,7 +466,8 @@ void DrawCommands::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     push.meshletCount = cx.maxPayload;
 
     setBindings(cmd, cx, viewId);
-    cmd.setUniforms(*cx.pHiZ, &push, sizeof(push));
+    cmd.setPushData(push);
+    cmd.setPipeline(*cx.pHiZ);
     if(cx.isMeshShader())
       cmd.dispatchMeshIndirect(view.indirectCmd, sizeof(IndirectCmd)*id + sizeof(uint32_t)); else
       cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
@@ -509,7 +515,8 @@ void DrawCommands::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Sce
     push.meshletCount = cx.maxPayload;
 
     setBindings(cmd, cx, viewId);
-    cmd.setUniforms(*pso, &push, sizeof(push));
+    cmd.setPushData(push);
+    cmd.setPipeline(*pso);
     if(cx.isMeshShader())
       cmd.dispatchMeshIndirect(view.indirectCmd, sizeof(IndirectCmd)*id + sizeof(uint32_t)); else
       cmd.drawIndirect(view.indirectCmd, sizeof(IndirectCmd)*id);
@@ -535,7 +542,8 @@ void DrawCommands::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   auto* pso = &Shaders::inst().swRendering;
   switch(Gothic::options().swRenderingPreset) {
     case 1: {
-      cmd.setUniforms(*pso, &push, sizeof(push));
+      cmd.setPushData(&push, sizeof(push));
+      cmd.setPipeline(*pso);
       //cmd.dispatch(10);
       cmd.dispatch(clusters.size());
       break;
@@ -544,14 +552,16 @@ void DrawCommands::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
       IVec2  tileSize = IVec2(128);
       int    tileX    = (scene.swMainImage->w()+tileSize.x-1)/tileSize.x;
       int    tileY    = (scene.swMainImage->h()+tileSize.y-1)/tileSize.y;
-      cmd.setUniforms(*pso, &push, sizeof(push));
+      cmd.setPushData(&push, sizeof(push));
+      cmd.setPipeline(*pso);
       cmd.dispatch(size_t(tileX), size_t(tileY)); //scene.swMainImage->size());
       break;
       }
     case 3: {
       cmd.setBinding(9,  *scene.lights);
       cmd.setBinding(10, owner.instanceSsbo());
-      cmd.setUniforms(*pso, &push, sizeof(push));
+      cmd.setPushData(&push, sizeof(push));
+      cmd.setPipeline(*pso);
       cmd.dispatchThreads(scene.swMainImage->size());
       break;
       }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Tempest/RenderPipeline>
-#include <Tempest/DescriptorSet>
 #include <Tempest/StorageBuffer>
 #include <vector>
 

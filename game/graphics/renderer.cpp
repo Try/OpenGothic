@@ -398,13 +398,15 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldVi
     cmd.setBinding(6, *wview.sky().cloudsDay()  .lay[1],smp);
     cmd.setBinding(7, *wview.sky().cloudsNight().lay[0],smp);
     cmd.setBinding(8, *wview.sky().cloudsNight().lay[1],smp);
-    cmd.setUniforms(shaders.skyTransmittance, &sz, sizeof(sz));
+    cmd.setPushData(&sz, sizeof(sz));
+    cmd.setPipeline(shaders.skyTransmittance);
     cmd.draw(Resources::fsqVbo());
 
     sz = Vec2(float(sky.multiScatLut.w()), float(sky.multiScatLut.h()));
     cmd.setFramebuffer({{sky.multiScatLut, Tempest::Discard, Tempest::Preserve}});
     cmd.setBinding(0, sky.transLut, smpB);
-    cmd.setUniforms(shaders.skyMultiScattering, &sz, sizeof(sz));
+    cmd.setPushData(&sz, sizeof(sz));
+    cmd.setPipeline(shaders.skyMultiScattering);
     cmd.draw(Resources::fsqVbo());
     }
 
@@ -414,7 +416,8 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldVi
   cmd.setBinding(1, sky.transLut,     smpB);
   cmd.setBinding(2, sky.multiScatLut, smpB);
   cmd.setBinding(3, sky.cloudsLut,    smpB);
-  cmd.setUniforms(shaders.skyViewLut, &sz, sizeof(sz));
+  cmd.setPushData(&sz, sizeof(sz));
+  cmd.setPipeline(shaders.skyViewLut);
   cmd.draw(Resources::fsqVbo());
 
   sz = Vec2(float(sky.viewCldLut.w()), float(sky.viewCldLut.h()));
@@ -425,7 +428,8 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldVi
   cmd.setBinding(3, *wview.sky().cloudsDay()  .lay[1], smp);
   cmd.setBinding(4, *wview.sky().cloudsNight().lay[0], smp);
   cmd.setBinding(5, *wview.sky().cloudsNight().lay[1], smp);
-  cmd.setUniforms(shaders.skyViewCldLut, &sz, sizeof(sz));
+  cmd.setPushData(&sz, sizeof(sz));
+  cmd.setPipeline(shaders.skyViewCldLut);
   cmd.draw(Resources::fsqVbo());
   }
 
@@ -609,7 +613,8 @@ void Renderer::drawTonemapping(Attachment& result, Encoder<CommandBuffer>& cmd, 
   cmd.setFramebuffer({ {result, Tempest::Discard, Tempest::Preserve} });
   cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(1, sceneLinear, smpB);
-  cmd.setUniforms(pso, &p, sizeof(p));
+  cmd.setPushData(p);
+  cmd.setPipeline(pso);
   cmd.draw(Resources::fsqVbo());
   }
 
@@ -662,7 +667,8 @@ void Renderer::drawCMAA2(Tempest::Attachment& result, Tempest::Encoder<Tempest::
   cmd.setFramebuffer({{result, Tempest::Discard, Tempest::Preserve}});
   cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(1, sceneLinear, Sampler::nearest());
-  cmd.setUniforms(psoTone, &p, sizeof(p));
+  cmd.setPushData(&p, sizeof(p));
+  cmd.setPipeline(psoTone);
   cmd.draw(Resources::fsqVbo());
 
   cmd.setBinding(0, sceneLinear);
@@ -672,7 +678,8 @@ void Renderer::drawCMAA2(Tempest::Attachment& result, Tempest::Encoder<Tempest::
   cmd.setBinding(4, cmaa2.deferredBlendItemList);
   cmd.setBinding(5, cmaa2.deferredBlendItemListHeads);
   cmd.setBinding(6, cmaa2.controlBuffer);
-  cmd.setUniforms(shaders.cmaa2DeferredColorApply2x2,  &p, sizeof(p));
+  cmd.setPushData(&p, sizeof(p));
+  cmd.setPipeline(shaders.cmaa2DeferredColorApply2x2);
   cmd.drawIndirect(cmaa2.indirectBuffer, 3*sizeof(uint32_t));
   }
 
@@ -780,7 +787,8 @@ void Renderer::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(1, isSun ? wview.sky().sunImage() : wview.sky().moonImage());
   cmd.setBinding(2, sky.transLut, smpB);
-  cmd.setUniforms(shaders.sun, &push, sizeof(push));
+  cmd.setPushData(push);
+  cmd.setPipeline(shaders.sun);
   cmd.draw(nullptr, 0, 6);
   }
 
@@ -811,7 +819,8 @@ void Renderer::drawVsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const W
   cmd.setBinding(5, vsm.pageList);
   cmd.setBinding(6, vsm.pageData);
   cmd.setBinding(8, wview.sceneGlobals().vsmDbg);
-  cmd.setUniforms(shaders.vsmDbg, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
+  cmd.setPushData(&settings.vsmMipBias, sizeof(settings.vsmMipBias));
+  cmd.setPipeline(shaders.vsmDbg);
   cmd.draw(Resources::fsqVbo());
   }
 
@@ -880,7 +889,8 @@ void Renderer::buildHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     }
   for(uint32_t i=0; i<maxBind; ++i)
     cmd.setBinding(1+i, hiz.hiZ, Sampler::nearest(), std::min(i, mip-1));
-  cmd.setUniforms(shaders.hiZMip, &mip, sizeof(mip));
+  cmd.setPushData(&mip, sizeof(mip));
+  cmd.setPipeline(shaders.hiZMip);
   cmd.dispatchThreads(w,h);
   }
 
@@ -924,7 +934,8 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
     cmd.setBinding(1, wview.lights().lightsSsbo());
     cmd.setBinding(2, vsm.visibleLights);
     cmd.setBinding(3, *scene.hiZ);
-    cmd.setUniforms(shaders.vsmCullLights, &push, sizeof(push));
+    cmd.setPushData(push);
+    cmd.setPipeline(shaders.vsmCullLights);
     cmd.dispatchThreads(wview.lights().size());
     }
 
@@ -934,7 +945,8 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
   cmd.setBinding(3, zbuffer,     Sampler::nearest());
   cmd.setBinding(4, vsm.pageTbl);
   cmd.setBinding(5, vsm.pageHiZ);
-  cmd.setUniforms(shaders.vsmMarkPages, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
+  cmd.setPushData(settings.vsmMipBias);
+  cmd.setPipeline(shaders.vsmMarkPages);
   cmd.dispatchThreads(zbuffer.size());
 
   if(omniLights) {
@@ -950,12 +962,14 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
     cmd.setBinding(5, vsm.visibleLights);
     cmd.setBinding(6, vsm.pageTblOmni);
     cmd.setBinding(7, vsm.vsmDbg);
-    cmd.setUniforms(shaders.vsmMarkOmniPages, &push, sizeof(push));
+    cmd.setPushData(&push, sizeof(push));
+    cmd.setPipeline(shaders.vsmMarkOmniPages);
     cmd.dispatchThreads(zbuffer.size());
 
     const uint32_t lightsTotal = uint32_t(wview.lights().size());
     cmd.setBinding(0, vsm.pageTblOmni);
-    cmd.setUniforms(shaders.vsmPostprocessOmni, &lightsTotal, sizeof(lightsTotal));
+    cmd.setPushData(&lightsTotal, sizeof(lightsTotal));
+    cmd.setPipeline(shaders.vsmPostprocessOmni);
     cmd.dispatchThreads(wview.lights().size());
     }
 
@@ -986,7 +1000,7 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
     // trimming
     // cmd.setBinding(0, vsm.pageList);
     // cmd.setBinding(1, vsm.pageTbl);
-    // cmd.setUniforms(shaders.vsmTrimPages);
+    // cmd.setPipeline(shaders.vsmTrimPages);
     // cmd.dispatch(1);
 
     // clump
@@ -1007,11 +1021,11 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
     cmd.dispatch(size_t(vsm.pageTbl.d() + 1)); else
     cmd.dispatch(size_t(vsm.pageTbl.d()));
 
-  // cmd.setUniforms(shaders.vsmSortPages);
+  // cmd.setPipeline(shaders.vsmSortPages);
   // cmd.dispatch(1);
 
   // alloc
-  // cmd.setUniforms(shaders.vsmAlloc2Pages);
+  // cmd.setPipeline(shaders.vsmAlloc2Pages);
   // cmd.dispatchThreads(size_t(vsm.pageData.w()/VSM_PAGE_SIZE), size_t(vsm.pageData.h()/VSM_PAGE_SIZE));
 
   cmd.setPipeline(shaders.vsmAllocPages);
@@ -1145,8 +1159,10 @@ void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, const WorldView& w
     }
 
   cmd.setPipeline(*shadow.directLightPso);
-  if(settings.vsmEnabled)
-    cmd.setUniforms(*shadow.directLightPso, &settings.vsmMipBias, sizeof(settings.vsmMipBias));
+  if(settings.vsmEnabled) {
+    cmd.setPushData(settings.vsmMipBias);
+    cmd.setPipeline(*shadow.directLightPso);
+    }
   cmd.draw(Resources::fsqVbo());
   }
 
@@ -1178,7 +1194,8 @@ void Renderer::drawLights(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
 
   auto  originLwc = scene.originLwc;
   auto& ibo       = Resources::cubeIbo();
-  cmd.setUniforms(*lights.directLightPso, &originLwc, sizeof(originLwc));
+  cmd.setPushData(&originLwc, sizeof(originLwc));
+  cmd.setPipeline(*lights.directLightPso);
   cmd.draw(nullptr,ibo, 0,ibo.size(), 0,wview.lights().size());
   }
 
@@ -1242,7 +1259,8 @@ void Renderer::prepareSSAO(Encoder<CommandBuffer>& cmd, WorldView& wview) {
   cmd.setBinding(2, gbufDiffuse, smpN);
   cmd.setBinding(3, gbufNormal,  smpN);
   cmd.setBinding(4, zbuffer,     smpN);
-  cmd.setUniforms(shaders.ssao, &push, sizeof(push));
+  cmd.setPushData(&push, sizeof(push));
+  cmd.setPipeline(shaders.ssao);
   cmd.dispatchThreads(ssao.ssaoBuf.size());
 
   cmd.setBinding(0, ssao.ssaoBlur);
@@ -1487,7 +1505,8 @@ void Renderer::prepareExposure(Encoder<CommandBuffer>& cmd, WorldView& wview) {
   cmd.setBinding(2, sky.transLut,  smpB);
   cmd.setBinding(3, sky.cloudsLut, smpB);
   cmd.setBinding(4, sky.irradianceLut);
-  cmd.setUniforms(shaders.skyExposure, &push, sizeof(push));
+  cmd.setPushData(&push, sizeof(push));
+  cmd.setPipeline(shaders.skyExposure);
   cmd.dispatch(1);
   }
 

@@ -33,7 +33,8 @@ void InventoryRenderer::draw(Tempest::Encoder<CommandBuffer>& cmd) {
         p.mul(n.position());
 
         cmd.setBinding(0, *m.tex);
-        cmd.setUniforms(pso, &p, sizeof(p));
+        cmd.setPushData(p);
+        cmd.setPipeline(pso);
         cmd.draw(s->vbo, s->ibo, sl.first, sl.second);
         }
       }

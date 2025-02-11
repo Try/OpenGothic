@@ -946,7 +946,6 @@ const Resources::VobTree* Resources::loadVobBundle(std::string_view name) {
 void Resources::resetRecycled(uint8_t fId) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   inst->recycledId = fId;
-  inst->recycled[fId].ds.clear();
   inst->recycled[fId].ssbo.clear();
   inst->recycled[fId].img.clear();
   inst->recycled[fId].arr.clear();
@@ -958,13 +957,6 @@ void Resources::recycle(Tempest::DescriptorArray &&arr) {
     return;
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   inst->recycled[inst->recycledId].arr.emplace_back(std::move(arr));
-  }
-
-void Resources::recycle(Tempest::DescriptorSet&& ds) {
-  if(ds.isEmpty())
-    return;
-  std::lock_guard<std::recursive_mutex> g(inst->sync);
-  inst->recycled[inst->recycledId].ds.emplace_back(std::move(ds));
   }
 
 void Resources::recycle(Tempest::StorageBuffer&& ssbo) {

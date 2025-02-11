@@ -175,7 +175,8 @@ void DrawClusters::patchClusters(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   cmd.setBinding(0, clustersGpu);
   cmd.setBinding(1, p.data);
   cmd.setBinding(2, p.indices);
-  cmd.setUniforms(Shaders::inst().clusterPatch, &count, sizeof(count));
+  cmd.setPushData(count);
+  cmd.setPipeline(Shaders::inst().clusterPatch);
   cmd.dispatchThreads(count);
   }
 
