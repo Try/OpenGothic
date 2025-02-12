@@ -694,12 +694,12 @@ void World::sendPassivePerc(Npc &self, Npc &other, int32_t perc) {
   wobj.sendPassivePerc(self,other,nullptr,nullptr,perc);
   }
 
-void World::sendPassivePerc(Npc &self, Npc &other, Npc* victim, int32_t perc) {
-  wobj.sendPassivePerc(self,other,victim,nullptr,perc);
+void World::sendPassivePerc(Npc& self, Npc& other, Npc& victim, int32_t perc) {
+  wobj.sendPassivePerc(self,other,&victim,nullptr,perc);
   }
 
-void World::sendPassivePerc(Npc &self, Npc &other, Npc* victim, Item& item, int32_t perc) {
-  wobj.sendPassivePerc(self,other,victim,&item,perc);
+void World::sendPassivePerc(Npc& self, Npc& other, Npc& victim, Item& item, int32_t perc) {
+  wobj.sendPassivePerc(self,other,&victim,&item,perc);
   }
 
 void World::sendPassivePerc(Npc &self, Npc &other, Item& item, int32_t perc) {

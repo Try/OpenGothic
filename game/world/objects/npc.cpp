@@ -1807,7 +1807,7 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
   lastHit = &other;
   if(!isPlayer())
     setOther(&other);
-  owner.sendPassivePerc(*this,other,this,PERC_ASSESSFIGHTSOUND);
+  owner.sendPassivePerc(*this,other,*this,PERC_ASSESSFIGHTSOUND);
 
   if(!(isBlock || isJumpb) || b!=nullptr) {
     takeDamage(other,b,COLL_DOEVERYTHING,0,false);
@@ -1889,12 +1889,12 @@ void Npc::takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32
     changeAttribute(ATR_HITPOINTS,-hitResult.value,dontKill);
 
     if(bMask&(COLL_APPLYVICTIMSTATE|COLL_DOEVERYTHING)) {
-      owner.sendPassivePerc(*this,other,this,PERC_ASSESSOTHERSDAMAGE);
+      owner.sendPassivePerc(*this,other,*this,PERC_ASSESSOTHERSDAMAGE);
       if(isUnconscious()){
-        owner.sendPassivePerc(*this,other,this,PERC_ASSESSDEFEAT);
+        owner.sendPassivePerc(*this,other,*this,PERC_ASSESSDEFEAT);
         }
       else if(isDead()) {
-        owner.sendPassivePerc(*this,other,this,PERC_ASSESSMURDER);
+        owner.sendPassivePerc(*this,other,*this,PERC_ASSESSMURDER);
         }
       else {
         if(owner.script().rand(2)==0) {
@@ -3491,7 +3491,7 @@ bool Npc::finishingMove() {
   if(doAttack(Anim::AttackFinish,BS_HIT)) {
     currentTarget->hnpc->attribute[ATR_HITPOINTS] = 0;
     currentTarget->checkHealth(true,false);
-    owner.sendPassivePerc(*this,*this,currentTarget,PERC_ASSESSMURDER);
+    owner.sendPassivePerc(*this,*this,*currentTarget,PERC_ASSESSMURDER);
     return true;
     }
   return false;
