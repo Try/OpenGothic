@@ -136,6 +136,5 @@ class SceneGlobals final {
     void                              initSettings();
 
     UboGlobal                         uboGlobalCpu;
-    Tempest::DescriptorSet            uboCopy[Resources::MaxFramesInFlight][V_Count];
   };
 

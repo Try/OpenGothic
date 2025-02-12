@@ -109,11 +109,6 @@ uint64_t LightGroup::Light::effectPrefferedTime() const {
 
 LightGroup::LightGroup(const SceneGlobals& scene)
   :scene(scene) {
-  auto& device = Resources::device();
-  for(int i=0; i<Resources::MaxFramesInFlight; ++i) {
-    descPatch[i] = device.descriptors(Shaders::inst().patch);
-    }
-
   try {
     auto filename = Gothic::nestedPath({u"_work", u"Data", u"Presets", u"LIGHTPRESETS.ZEN"}, Dir::FT_File);
     auto buf = zenkit::Read::from(filename);
@@ -393,11 +388,9 @@ void LightGroup::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd, u
   patch.update(patchBlock.data(), 0,          headerSize);
   patch.update(patchData.data(),  headerSize, dataSize);
 
-  auto& d = descPatch[fId];
-  d.set(0, lightSourceSsbo);
-  d.set(1, patch);
-
   cmd.setFramebuffer({});
-  cmd.setUniforms(Shaders::inst().patch, d);
+  cmd.setBinding(0, lightSourceSsbo);
+  cmd.setBinding(1, patch);
+  cmd.setPipeline(Shaders::inst().patch);
   cmd.dispatch(patchBlock.size());
   }

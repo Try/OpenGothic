@@ -157,27 +157,26 @@ void DrawClusters::patchClusters(Encoder<CommandBuffer>& cmd, uint8_t fId) {
 
   auto& device = Resources::device();
   auto& p = this->patch[fId];
-  if(p.desc.isEmpty())
-    p.desc = device.descriptors(Shaders::inst().clusterPatch);
 
-  p.desc.set(0, clustersGpu);
   if(header.size()*sizeof(header[0]) < p.indices.byteSize()) {
     p.indices.update(header);
     } else {
     p.indices = device.ssbo(BufferHeap::Upload, header);
-    p.desc.set(2, p.indices);
     }
 
   if(patch.size()*sizeof(patch[0]) < p.data.byteSize()) {
     p.data.update(patch);
     } else {
     p.data = device.ssbo(BufferHeap::Upload, patch);
-    p.desc.set(1, p.data);
     }
 
   const uint32_t count = uint32_t(header.size());
   cmd.setFramebuffer({});
-  cmd.setUniforms(Shaders::inst().clusterPatch, p.desc, &count, sizeof(count));
+  cmd.setBinding(0, clustersGpu);
+  cmd.setBinding(1, p.data);
+  cmd.setBinding(2, p.indices);
+  cmd.setPushData(count);
+  cmd.setPipeline(Shaders::inst().clusterPatch);
   cmd.dispatchThreads(count);
   }
 

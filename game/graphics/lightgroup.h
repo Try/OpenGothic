@@ -96,8 +96,6 @@ class LightGroup final {
     std::vector<uint32_t>            duryBit;
 
     Tempest::StorageBuffer           lightSourceSsbo;
-
     Tempest::StorageBuffer           patchSsbo[Resources::MaxFramesInFlight];
-    Tempest::DescriptorSet           descPatch[Resources::MaxFramesInFlight];
   };
 

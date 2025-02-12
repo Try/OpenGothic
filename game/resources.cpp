@@ -946,16 +946,17 @@ const Resources::VobTree* Resources::loadVobBundle(std::string_view name) {
 void Resources::resetRecycled(uint8_t fId) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   inst->recycledId = fId;
-  inst->recycled[fId].ds.clear();
   inst->recycled[fId].ssbo.clear();
   inst->recycled[fId].img.clear();
+  inst->recycled[fId].arr.clear();
+  inst->recycled[fId].rtas.clear();
   }
 
-void Resources::recycle(Tempest::DescriptorSet&& ds) {
-  if(ds.isEmpty())
+void Resources::recycle(Tempest::DescriptorArray &&arr) {
+  if(arr.isEmpty())
     return;
   std::lock_guard<std::recursive_mutex> g(inst->sync);
-  inst->recycled[inst->recycledId].ds.emplace_back(std::move(ds));
+  inst->recycled[inst->recycledId].arr.emplace_back(std::move(arr));
   }
 
 void Resources::recycle(Tempest::StorageBuffer&& ssbo) {
@@ -970,6 +971,13 @@ void Resources::recycle(Tempest::StorageImage&& img) {
     return;
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   inst->recycled[inst->recycledId].img.emplace_back(std::move(img));
+  }
+
+void Resources::recycle(Tempest::AccelerationStructure&& rtas) {
+  if(rtas.isEmpty())
+    return;
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  inst->recycled[inst->recycledId].rtas.emplace_back(std::move(rtas));
   }
 
 const Resources::VobTree* Resources::implLoadVobBundle(std::string_view filename) {
