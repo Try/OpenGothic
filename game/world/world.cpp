@@ -690,12 +690,20 @@ Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target, c
   return b;
   }
 
-void World::sendPassivePerc(Npc &self, Npc &other, Npc &victim, int32_t perc) {
+void World::sendPassivePerc(Npc &self, Npc &other, int32_t perc) {
+  wobj.sendPassivePerc(self,other,nullptr,nullptr,perc);
+  }
+
+void World::sendPassivePerc(Npc &self, Npc &other, Npc* victim, int32_t perc) {
   wobj.sendPassivePerc(self,other,victim,nullptr,perc);
   }
 
-void World::sendPassivePerc(Npc &self, Npc &other, Npc &victim, Item& item, int32_t perc) {
+void World::sendPassivePerc(Npc &self, Npc &other, Npc* victim, Item& item, int32_t perc) {
   wobj.sendPassivePerc(self,other,victim,&item,perc);
+  }
+
+void World::sendPassivePerc(Npc &self, Npc &other, Item& item, int32_t perc) {
+  wobj.sendPassivePerc(self,other,nullptr,&item,perc);
   }
 
 void World::sendImmediatePerc(Npc& self, Npc& other, Npc& victim, int32_t perc) {
