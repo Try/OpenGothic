@@ -7,6 +7,7 @@
 
 #include "game/constants.h"
 #include "animation.h"
+#include "animationsolver.h"
 #include "resources.h"
 
 class Skeleton;
@@ -84,7 +85,7 @@ class Pose final {
 
     void               setHeadRotation(float dx, float dz);
     Tempest::Vec2      headRotation() const;
-    void               setAnimRotate(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, int dir);
+    void               setAnimRotate(const AnimationSolver &solver, Npc &npc, WeaponState fightMode, AnimationSolver::TurnType turn, int dir);
     auto               setAnimItem(const AnimationSolver &solver, Npc &npc, std::string_view scheme, int state) -> const Animation::Sequence*;
     bool               stopItemStateAnim(const AnimationSolver &solver, uint64_t tickCount);
 
