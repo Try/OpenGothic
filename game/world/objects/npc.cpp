@@ -3294,18 +3294,19 @@ bool Npc::rotateTo(float dx, float dz, float step, AnimationSolver::TurnType ani
   if(sgn==0) {
     setAnimRotate(0);
     } else {
-      switch(anim) {
-        case AnimationSolver::TurnType::Std:
-          setAnimRotate((sgn<0)?+1:-1);
-          break;
-        case AnimationSolver::TurnType::None:
-          setAnimRotate(0);
-          break;
-        case AnimationSolver::TurnType::Whirl:
-          visual.setAnimWhirl(*this,(sgn<0)?+1:-1);
-          break;
+    const int rot = (sgn<0) ? +1 : -1;
+    switch(anim) {
+      case AnimationSolver::TurnType::Std:
+        setAnimRotate(rot);
+        break;
+      case AnimationSolver::TurnType::None:
+        setAnimRotate(0);
+        break;
+      case AnimationSolver::TurnType::Whirl:
+        visual.setAnimWhirl(*this, rot);
+        break;
       }
-      setDirection((sgn<0)?angle-step:angle+step);
+    setDirection(angle - float(rot)*step);
     }
   return true;
   }
