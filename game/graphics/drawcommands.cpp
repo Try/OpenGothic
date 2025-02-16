@@ -132,13 +132,8 @@ void DrawCommands::setBindings(Tempest::Encoder<CommandBuffer>& cmd, const DrawC
     }
 
   if(v==SceneGlobals::V_Main && cx.isSceneInfoRequired()) {
-    auto smp = Sampler::bilinear();
-    smp.setClamping(ClampMode::MirroredRepeat);
-    cmd.setBinding(L_SceneClr, *scene.sceneColor, smp);
-
-    smp = Sampler::nearest();
-    smp.setClamping(ClampMode::MirroredRepeat);
-    cmd.setBinding(L_GDepth, *scene.sceneDepth, smp);
+    cmd.setBinding(L_SceneClr, *scene.sceneColor, Sampler::bilinear(ClampMode::MirroredRepeat));
+    cmd.setBinding(L_GDepth,   *scene.sceneDepth, Sampler::nearest (ClampMode::MirroredRepeat));
     }
 
   if(v==SceneGlobals::V_Vsm) {

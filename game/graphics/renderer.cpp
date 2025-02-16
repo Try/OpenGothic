@@ -107,10 +107,7 @@ void Renderer::resetSwapchain() {
   const uint32_t h      = uint32_t(res.h);
   const uint32_t smSize = settings.shadowResolution;
 
-  auto smpN = Sampler::nearest();
-  smpN.setClamping(ClampMode::ClampToEdge);
-
-  sceneLinear    = device.attachment(TextureFormat::R11G11B10UF,w,h);
+  sceneLinear = device.attachment(TextureFormat::R11G11B10UF,w,h);
 
   if(settings.aaEnabled) {
     cmaa2.workingEdges               = device.image2d(TextureFormat::R8, (w + 1) / 2, h);
@@ -374,37 +371,32 @@ void Renderer::resetSkyFog() {
 void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
   auto& scene   = wview.sceneGlobals();
 
-  auto smp  = Sampler::trillinear();
-  auto smpB = Sampler::bilinear();
-  smpB.setClamping(ClampMode::ClampToEdge);
-
   cmd.setDebugMarker("Sky LUT");
-
   if(!sky.lutIsInitialized) {
     sky.lutIsInitialized = true;
 
     cmd.setFramebuffer({});
     cmd.setBinding(0, sky.cloudsLut);
-    cmd.setBinding(5, *wview.sky().cloudsDay()  .lay[0], smp);
-    cmd.setBinding(6, *wview.sky().cloudsDay()  .lay[1], smp);
-    cmd.setBinding(7, *wview.sky().cloudsNight().lay[0], smp);
-    cmd.setBinding(8, *wview.sky().cloudsNight().lay[1], smp);
+    cmd.setBinding(5, *wview.sky().cloudsDay()  .lay[0], Sampler::trillinear());
+    cmd.setBinding(6, *wview.sky().cloudsDay()  .lay[1], Sampler::trillinear());
+    cmd.setBinding(7, *wview.sky().cloudsNight().lay[0], Sampler::trillinear());
+    cmd.setBinding(8, *wview.sky().cloudsNight().lay[1], Sampler::trillinear());
     cmd.setPipeline(shaders.cloudsLut);
     cmd.dispatchThreads(size_t(sky.cloudsLut.w()), size_t(sky.cloudsLut.h()));
 
     auto sz = Vec2(float(sky.transLut.w()), float(sky.transLut.h()));
     cmd.setFramebuffer({{sky.transLut, Tempest::Discard, Tempest::Preserve}});
-    cmd.setBinding(5, *wview.sky().cloudsDay()  .lay[0],smp);
-    cmd.setBinding(6, *wview.sky().cloudsDay()  .lay[1],smp);
-    cmd.setBinding(7, *wview.sky().cloudsNight().lay[0],smp);
-    cmd.setBinding(8, *wview.sky().cloudsNight().lay[1],smp);
+    cmd.setBinding(5, *wview.sky().cloudsDay()  .lay[0], Sampler::trillinear());
+    cmd.setBinding(6, *wview.sky().cloudsDay()  .lay[1], Sampler::trillinear());
+    cmd.setBinding(7, *wview.sky().cloudsNight().lay[0], Sampler::trillinear());
+    cmd.setBinding(8, *wview.sky().cloudsNight().lay[1], Sampler::trillinear());
     cmd.setPushData(&sz, sizeof(sz));
     cmd.setPipeline(shaders.skyTransmittance);
     cmd.draw(Resources::fsqVbo());
 
     sz = Vec2(float(sky.multiScatLut.w()), float(sky.multiScatLut.h()));
     cmd.setFramebuffer({{sky.multiScatLut, Tempest::Discard, Tempest::Preserve}});
-    cmd.setBinding(0, sky.transLut, smpB);
+    cmd.setBinding(0, sky.transLut, Sampler::bilinear(ClampMode::ClampToEdge));
     cmd.setPushData(&sz, sizeof(sz));
     cmd.setPipeline(shaders.skyMultiScattering);
     cmd.draw(Resources::fsqVbo());
@@ -413,9 +405,9 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldVi
   auto sz = Vec2(float(sky.viewLut.w()), float(sky.viewLut.h()));
   cmd.setFramebuffer({{sky.viewLut, Tempest::Discard, Tempest::Preserve}});
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(1, sky.transLut,     smpB);
-  cmd.setBinding(2, sky.multiScatLut, smpB);
-  cmd.setBinding(3, sky.cloudsLut,    smpB);
+  cmd.setBinding(1, sky.transLut,     Sampler::bilinear(ClampMode::ClampToEdge));
+  cmd.setBinding(2, sky.multiScatLut, Sampler::bilinear(ClampMode::ClampToEdge));
+  cmd.setBinding(3, sky.cloudsLut,    Sampler::bilinear(ClampMode::ClampToEdge));
   cmd.setPushData(&sz, sizeof(sz));
   cmd.setPipeline(shaders.skyViewLut);
   cmd.draw(Resources::fsqVbo());
@@ -424,10 +416,10 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldVi
   cmd.setFramebuffer({{sky.viewCldLut, Tempest::Discard, Tempest::Preserve}});
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(1, sky.viewLut);
-  cmd.setBinding(2, *wview.sky().cloudsDay()  .lay[0], smp);
-  cmd.setBinding(3, *wview.sky().cloudsDay()  .lay[1], smp);
-  cmd.setBinding(4, *wview.sky().cloudsNight().lay[0], smp);
-  cmd.setBinding(5, *wview.sky().cloudsNight().lay[1], smp);
+  cmd.setBinding(2, *wview.sky().cloudsDay()  .lay[0], Sampler::trillinear());
+  cmd.setBinding(3, *wview.sky().cloudsDay()  .lay[1], Sampler::trillinear());
+  cmd.setBinding(4, *wview.sky().cloudsNight().lay[0], Sampler::trillinear());
+  cmd.setBinding(5, *wview.sky().cloudsNight().lay[1], Sampler::trillinear());
   cmd.setPushData(&sz, sizeof(sz));
   cmd.setPipeline(shaders.skyViewCldLut);
   cmd.draw(Resources::fsqVbo());
@@ -604,15 +596,10 @@ void Renderer::drawTonemapping(Attachment& result, Encoder<CommandBuffer>& cmd, 
   if(mul>0)
     p.mul = mul;
 
-  auto smpB = Sampler::bilinear();
-  smpB.setClamping(ClampMode::ClampToEdge);
-  smpB.setFiltration(Filter::Nearest); // Lanczos upscale requires nearest sampling
-
   auto& pso = (settings.vidResIndex==0) ? shaders.tonemapping : shaders.tonemappingUpscale;
-
   cmd.setFramebuffer({ {result, Tempest::Discard, Tempest::Preserve} });
   cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(1, sceneLinear, smpB);
+  cmd.setBinding(1, sceneLinear, Sampler::nearest(ClampMode::ClampToEdge)); // Lanczos upscale requires nearest sampling
   cmd.setPushData(p);
   cmd.setPipeline(pso);
   cmd.draw(Resources::fsqVbo());
@@ -625,11 +612,8 @@ void Renderer::drawCMAA2(Tempest::Attachment& result, Tempest::Encoder<Tempest::
   const uint32_t groupCountX     = uint32_t((sceneLinear.w() + outputGroupSize.x * 2 - 1) / (outputGroupSize.x * 2));
   const uint32_t groupCountY     = uint32_t((sceneLinear.h() + outputGroupSize.y * 2 - 1) / (outputGroupSize.y * 2));
 
-  auto smpB = Sampler::bilinear();
-  smpB.setClamping(ClampMode::ClampToEdge);
-
   cmd.setFramebuffer({});
-  cmd.setBinding(0, sceneLinear, smpB);
+  cmd.setBinding(0, sceneLinear, Sampler::bilinear(ClampMode::ClampToEdge));
   cmd.setBinding(1, cmaa2.workingEdges);
   cmd.setBinding(2, cmaa2.shapeCandidates);
   cmd.setBinding(3, cmaa2.deferredBlendLocationList);
@@ -685,22 +669,20 @@ void Renderer::drawCMAA2(Tempest::Attachment& result, Tempest::Encoder<Tempest::
 
 void Renderer::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
   auto& scene = wview.sceneGlobals();
-  auto  smpB  = Sampler::bilinear();
-  smpB.setClamping(ClampMode::ClampToEdge);
 
   switch(sky.quality) {
     case None:
     case VolumetricLQ: {
-      cmd.setBinding(0, sky.fogLut3D, smpB);
-      cmd.setBinding(1, sky.fogLut3D, smpB);
+      cmd.setBinding(0, sky.fogLut3D, Sampler::bilinear(ClampMode::ClampToEdge));
+      cmd.setBinding(1, sky.fogLut3D, Sampler::bilinear(ClampMode::ClampToEdge));
       cmd.setBinding(2, zbuffer, Sampler::nearest()); // NOTE: wanna here depthFetch from gles2
       cmd.setBinding(3, scene.uboGlobal[SceneGlobals::V_Main]);
       cmd.setPipeline(shaders.fog);
       break;
       }
     case VolumetricHQ: {
-      cmd.setBinding(0, sky.fogLut3D,   smpB);
-      cmd.setBinding(1, sky.fogLut3DMs, smpB);
+      cmd.setBinding(0, sky.fogLut3D,   Sampler::bilinear(ClampMode::ClampToEdge));
+      cmd.setBinding(1, sky.fogLut3DMs, Sampler::bilinear(ClampMode::ClampToEdge));
       cmd.setBinding(2, zbuffer,        Sampler::nearest());
       cmd.setBinding(3, scene.uboGlobal[SceneGlobals::V_Main]);
       cmd.setBinding(4, sky.occlusionLut);
@@ -708,12 +690,12 @@ void Renderer::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const Worl
       break;
       }
     case Epipolar: {
-      //cmd.setBinding(0, sky.fogLut3D,   smpB);
+      //cmd.setBinding(0, sky.fogLut3D,   Sampler::bilinear(ClampMode::ClampToEdge));
       cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-      cmd.setBinding(1, zbuffer, Sampler::nearest());
-      cmd.setBinding(2, vsm.fogDbg, smpB);
+      cmd.setBinding(1, zbuffer,        Sampler::nearest());
+      cmd.setBinding(2, vsm.fogDbg,     Sampler::bilinear(ClampMode::ClampToEdge));
       cmd.setBinding(3, vsm.epipoles);
-      cmd.setBinding(4, sky.fogLut3DMs, smpB);
+      cmd.setBinding(4, sky.fogLut3DMs, Sampler::bilinear(ClampMode::ClampToEdge));
       cmd.setPipeline(shaders.vsmFog);
       break;
       }
@@ -781,12 +763,9 @@ void Renderer::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
     }
   // push.GSunIntensity *= exposure;
 
-  auto smpB = Sampler::bilinear();
-  smpB.setClamping(ClampMode::ClampToEdge);
-
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(1, isSun ? wview.sky().sunImage() : wview.sky().moonImage());
-  cmd.setBinding(2, sky.transLut, smpB);
+  cmd.setBinding(2, sky.transLut, Sampler::bilinear(ClampMode::ClampToEdge));
   cmd.setPushData(push);
   cmd.setPipeline(shaders.sun);
   cmd.draw(nullptr, 0, 6);
@@ -870,12 +849,9 @@ void Renderer::drawHiZ(Encoder<CommandBuffer>& cmd, WorldView& view) {
 void Renderer::buildHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   assert(hiz.hiZ.w()<=128 && hiz.hiZ.h()<=128); // shader limitation
 
-  auto smpN = Sampler::nearest();
-  smpN.setClamping(ClampMode::ClampToEdge);
-
   cmd.setDebugMarker("HiZ-mip");
   cmd.setFramebuffer({});
-  cmd.setBinding(0, zbuffer, smpN);
+  cmd.setBinding(0, zbuffer, Sampler::nearest(ClampMode::ClampToEdge));
   cmd.setBinding(1, hiz.hiZ);
   cmd.setPipeline(shaders.hiZPot);
   cmd.dispatch(size_t(hiz.hiZ.w()), size_t(hiz.hiZ.h()));
@@ -1075,20 +1051,15 @@ void Renderer::drawGWater(Encoder<CommandBuffer>& cmd, WorldView& view) {
   }
 
 void Renderer::drawReflections(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
-  auto smp = Sampler::bilinear();
-  smp.setClamping(ClampMode::MirroredRepeat);
-  auto smpd = Sampler::nearest();
-  smpd.setClamping(ClampMode::ClampToEdge);
-
   auto& pso = settings.zEnvMappingEnabled ? shaders.waterReflectionSSR : shaders.waterReflection;
 
   cmd.setDebugMarker("Reflections");
   cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(1, sceneOpaque, smp);
-  cmd.setBinding(2, gbufDiffuse, smpd);
-  cmd.setBinding(3, gbufNormal,  smpd);
-  cmd.setBinding(4, zbuffer,     smpd);
-  cmd.setBinding(5, sceneDepth,  smpd);
+  cmd.setBinding(1, sceneOpaque, Sampler::bilinear(ClampMode::ClampToEdge));
+  cmd.setBinding(2, gbufDiffuse, Sampler::nearest (ClampMode::ClampToEdge));
+  cmd.setBinding(3, gbufNormal,  Sampler::nearest (ClampMode::ClampToEdge));
+  cmd.setBinding(4, zbuffer,     Sampler::nearest (ClampMode::ClampToEdge));
+  cmd.setBinding(5, sceneDepth,  Sampler::nearest (ClampMode::ClampToEdge));
   cmd.setBinding(6, sky.viewCldLut);
   cmd.setPipeline(pso);
   if(Gothic::options().doMeshShading) {
@@ -1202,17 +1173,12 @@ void Renderer::drawLights(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
 void Renderer::drawSky(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
   auto& scene = wview.sceneGlobals();
 
-  auto  smp   = Sampler::trillinear();
-  auto  smpB  = Sampler::bilinear();
-  smpB.setClamping(ClampMode::ClampToEdge);
-
   cmd.setDebugMarker("Sky");
-
   if(sky.quality==PathTrace) {
     cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(1, sky.transLut,     smpB);
-    cmd.setBinding(2, sky.multiScatLut, smpB);
-    cmd.setBinding(3, sky.cloudsLut,    smpB);
+    cmd.setBinding(1, sky.transLut,     Sampler::bilinear(ClampMode::ClampToEdge));
+    cmd.setBinding(2, sky.multiScatLut, Sampler::bilinear(ClampMode::ClampToEdge));
+    cmd.setBinding(3, sky.cloudsLut,    Sampler::bilinear(ClampMode::ClampToEdge));
     cmd.setBinding(4, zbuffer, Sampler::nearest());
     cmd.setBinding(5, shadowMap[1], Resources::shadowSampler());
     cmd.setPipeline(shaders.skyPathTrace);
@@ -1222,16 +1188,16 @@ void Renderer::drawSky(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
 
   auto& skyShader = sky.quality==VolumetricLQ ? shaders.sky : shaders.skySep;
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(1, sky.transLut,     smpB);
-  cmd.setBinding(2, sky.multiScatLut, smpB);
-  cmd.setBinding(3, sky.viewLut,      smpB);
+  cmd.setBinding(1, sky.transLut,     Sampler::bilinear(ClampMode::ClampToEdge));
+  cmd.setBinding(2, sky.multiScatLut, Sampler::bilinear(ClampMode::ClampToEdge));
+  cmd.setBinding(3, sky.viewLut,      Sampler::bilinear(ClampMode::ClampToEdge));
   cmd.setBinding(4, sky.fogLut3D);
   if(sky.quality!=VolumetricLQ)
     cmd.setBinding(5, sky.fogLut3DMs);
-  cmd.setBinding(6,*wview.sky().cloudsDay()  .lay[0],smp);
-  cmd.setBinding(7,*wview.sky().cloudsDay()  .lay[1],smp);
-  cmd.setBinding(8,*wview.sky().cloudsNight().lay[0],smp);
-  cmd.setBinding(9,*wview.sky().cloudsNight().lay[1],smp);
+  cmd.setBinding(6, *wview.sky().cloudsDay()  .lay[0], Sampler::trillinear());
+  cmd.setBinding(7, *wview.sky().cloudsDay()  .lay[1], Sampler::trillinear());
+  cmd.setBinding(8, *wview.sky().cloudsNight().lay[0], Sampler::trillinear());
+  cmd.setBinding(9, *wview.sky().cloudsNight().lay[1], Sampler::trillinear());
   cmd.setPipeline(skyShader);
   cmd.draw(Resources::fsqVbo());
   }
@@ -1248,17 +1214,14 @@ void Renderer::prepareSSAO(Encoder<CommandBuffer>& cmd, WorldView& wview) {
   push.projInv = proj;
   push.projInv.inverse();
 
-  auto smpN = Sampler::nearest();
-  smpN.setClamping(ClampMode::ClampToEdge);
-
   cmd.setFramebuffer({});
   cmd.setDebugMarker("SSAO");
 
   cmd.setBinding(0, ssao.ssaoBuf);
   cmd.setBinding(1, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(2, gbufDiffuse, smpN);
-  cmd.setBinding(3, gbufNormal,  smpN);
-  cmd.setBinding(4, zbuffer,     smpN);
+  cmd.setBinding(2, gbufDiffuse, Sampler::nearest(ClampMode::ClampToEdge));
+  cmd.setBinding(3, gbufNormal,  Sampler::nearest(ClampMode::ClampToEdge));
+  cmd.setBinding(4, zbuffer,     Sampler::nearest(ClampMode::ClampToEdge));
   cmd.setPushData(&push, sizeof(push));
   cmd.setPipeline(shaders.ssao);
   cmd.dispatchThreads(ssao.ssaoBuf.size());
@@ -1266,7 +1229,7 @@ void Renderer::prepareSSAO(Encoder<CommandBuffer>& cmd, WorldView& wview) {
   cmd.setBinding(0, ssao.ssaoBlur);
   cmd.setBinding(1, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(2, ssao.ssaoBuf);
-  cmd.setBinding(3, zbuffer, smpN);
+  cmd.setBinding(3, zbuffer, Sampler::nearest(ClampMode::ClampToEdge));
   cmd.setPipeline(shaders.ssaoBlur);
   cmd.dispatchThreads(ssao.ssaoBuf.size());
   }
@@ -1274,18 +1237,14 @@ void Renderer::prepareSSAO(Encoder<CommandBuffer>& cmd, WorldView& wview) {
 void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
   auto& scene = wview.sceneGlobals();
 
-  auto  smpB  = Sampler::bilinear();
-  smpB.setClamping(ClampMode::ClampToEdge);
-
   cmd.setDebugMarker("Fog LUTs");
-
   if(sky.quality!=PathTrace) {
     auto& shader = sky.quality==VolumetricLQ ? shaders.fogViewLut3d : shaders.fogViewLutSep;
     cmd.setFramebuffer({});
     cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(1, sky.transLut,     smpB);
-    cmd.setBinding(2, sky.multiScatLut, smpB);
-    cmd.setBinding(3, sky.cloudsLut,    smpB);
+    cmd.setBinding(1, sky.transLut,     Sampler::bilinear(ClampMode::ClampToEdge));
+    cmd.setBinding(2, sky.multiScatLut, Sampler::bilinear(ClampMode::ClampToEdge));
+    cmd.setBinding(3, sky.cloudsLut,    Sampler::bilinear(ClampMode::ClampToEdge));
     cmd.setBinding(4, sky.fogLut3D);
     if(sky.quality==VolumetricHQ || sky.quality==Epipolar)
       cmd.setBinding(5, sky.fogLut3DMs);
@@ -1339,9 +1298,9 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview
       cmd.setBinding(2, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
       cmd.setBinding(3, vsm.epipoles);
       cmd.setBinding(4, zbuffer);
-      cmd.setBinding(5, sky.transLut,   smpB);
-      cmd.setBinding(6, sky.cloudsLut,  smpB);
-      cmd.setBinding(7, sky.fogLut3DMs, smpB);
+      cmd.setBinding(5, sky.transLut,   Sampler::bilinear(ClampMode::ClampToEdge));
+      cmd.setBinding(6, sky.cloudsLut,  Sampler::bilinear(ClampMode::ClampToEdge));
+      cmd.setBinding(7, sky.fogLut3DMs, Sampler::bilinear(ClampMode::ClampToEdge));
       cmd.setPipeline(shaders.vsmFogTrace);
       cmd.dispatchThreads(vsm.epTrace.size());
       break;
@@ -1481,9 +1440,6 @@ void Renderer::prepareGi(Encoder<CommandBuffer>& cmd, WorldView& wview) {
 void Renderer::prepareExposure(Encoder<CommandBuffer>& cmd, WorldView& wview) {
   auto& scene = wview.sceneGlobals();
 
-  auto  smpB  = Sampler::bilinear();
-  smpB.setClamping(ClampMode::ClampToEdge);
-
   auto sunDir = wview.sky().sunLight().dir();
   struct Push {
     float baseL        = 0.0;
@@ -1502,8 +1458,8 @@ void Renderer::prepareExposure(Encoder<CommandBuffer>& cmd, WorldView& wview) {
   cmd.setFramebuffer({});
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(1, sky.viewCldLut);
-  cmd.setBinding(2, sky.transLut,  smpB);
-  cmd.setBinding(3, sky.cloudsLut, smpB);
+  cmd.setBinding(2, sky.transLut,  Sampler::bilinear(ClampMode::ClampToEdge));
+  cmd.setBinding(3, sky.cloudsLut, Sampler::bilinear(ClampMode::ClampToEdge));
   cmd.setBinding(4, sky.irradianceLut);
   cmd.setPushData(&push, sizeof(push));
   cmd.setPipeline(shaders.skyExposure);
@@ -1571,10 +1527,7 @@ void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {
   cmd.setBinding(2, gbufNormal,  Sampler::nearest());
   cmd.setBinding(3, sky.irradianceLut);
   if(settings.zCloudShadowScale) {
-    auto smpN = Sampler::nearest();
-    smpN.setClamping(ClampMode::ClampToEdge);
-
-    cmd.setBinding(4, ssao.ssaoBlur, smpN);
+    cmd.setBinding(4, ssao.ssaoBlur, Sampler::nearest(ClampMode::ClampToEdge));
     cmd.setPipeline(shaders.ambientLightSsao);
     } else {
     cmd.setPipeline(shaders.ambientLight);

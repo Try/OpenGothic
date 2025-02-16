@@ -764,13 +764,8 @@ void PfxBucket::drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
     }
 
   if(view==SceneGlobals::V_Main && mat.isSceneInfoRequired()) {
-    auto smp = Sampler::bilinear();
-    smp.setClamping(ClampMode::MirroredRepeat);
-    cmd.setBinding(L_SceneClr, *scene.sceneColor, smp);
-
-    smp = Sampler::nearest();
-    smp.setClamping(ClampMode::MirroredRepeat);
-    cmd.setBinding(L_GDepth, *scene.sceneDepth, smp);
+    cmd.setBinding(L_SceneClr, *scene.sceneColor, Sampler::bilinear(ClampMode::MirroredRepeat));
+    cmd.setBinding(L_GDepth,   *scene.sceneDepth, Sampler::nearest (ClampMode::MirroredRepeat));
     }
 
   cmd.setBinding(L_Scene, scene.uboGlobal[view]);
