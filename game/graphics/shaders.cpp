@@ -215,6 +215,11 @@ Shaders::Shaders() {
     vsmRendering       = computeShader("vsm_rendering.comp.sprv");
     }
 
+  if(Shaders::isRtsmSupported()) {
+    rtsmRendering = computeShader("rtsm_rendering.comp.sprv");
+    rtsmDbg       = postEffect("rtsm_dbg", RenderState::ZTestMode::Always);
+    }
+
   if(Gothic::options().swRenderingPreset>0) {
     switch(Gothic::options().swRenderingPreset) {
       case 1:
@@ -255,6 +260,17 @@ bool Shaders::isVsmSupported() {
   auto& gpu = Resources::device().properties();
   if(gpu.compute.maxInvocations>=1024 && gpu.render.maxClipCullDistances>=4 &&
      gpu.render.maxViewportSize.w>=8192 && gpu.render.maxViewportSize.h>=8192) {
+    return true;
+    }
+  return false;
+  }
+
+bool Shaders::isRtsmSupported() {
+  if(!Gothic::options().doBindless) {
+    return false;
+    }
+  auto& gpu = Resources::device().properties();
+  if(gpu.compute.maxInvocations>=1024 && gpu.descriptors.nonUniformIndexing) {
     return true;
     }
   return false;

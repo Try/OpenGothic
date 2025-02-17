@@ -562,3 +562,24 @@ void DrawCommands::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
       }
     }
   }
+
+void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
+  struct Push { uint32_t meshletCount; } push = {};
+  push.meshletCount = uint32_t(clusters.size());
+  cmd.setPushData(push);
+
+  cmd.setBinding(0, *scene.rtsmImage);
+  cmd.setBinding(1, scene.uboGlobal[SceneGlobals::V_Vsm]);
+  cmd.setBinding(2, *scene.gbufNormals);
+  cmd.setBinding(3, *scene.zbuffer);
+
+  cmd.setBinding(4, clusters.ssbo());
+  cmd.setBinding(5, owner.instanceSsbo());
+  cmd.setBinding(6, ibo);
+  cmd.setBinding(7, vbo);
+  cmd.setBinding(8, tex);
+  cmd.setBinding(9, Sampler::bilinear());
+
+  cmd.setPipeline(Shaders::inst().rtsmRendering);
+  cmd.dispatchThreads(scene.rtsmImage->size());
+  }

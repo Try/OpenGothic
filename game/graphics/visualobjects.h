@@ -80,6 +80,7 @@ class VisualObjects final {
     void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, int layer);
     void drawVsm        (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawSwr        (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawRtsm       (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 
     bool updateRtScene(RtScene& out);

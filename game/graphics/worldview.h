@@ -48,6 +48,7 @@ class WorldView {
                              const Tempest::StorageImage& pageHiZ,
                              const Tempest::StorageBuffer& pageList);
     void setSwRenderingImage(const Tempest::StorageImage& mainView);
+    void setRtsmImage(const Tempest::StorageImage& mainView);
     void setHiZ(const Tempest::Texture2d& hiZ);
     void setSceneImages(const Tempest::Texture2d& clr, const Tempest::Texture2d& depthAux, const Tempest::ZBuffer& depthNative);
 
@@ -64,6 +65,7 @@ class WorldView {
     void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId, uint8_t layer);
     void drawVsm        (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawSwr        (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawRtsm       (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId);
     void drawWater      (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId);

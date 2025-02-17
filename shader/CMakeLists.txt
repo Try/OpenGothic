@@ -56,11 +56,18 @@ function(add_shader OUTPUT SOURCE)
     list(APPEND VARS "-DWORKGROUP_SIZE=64")
   endif()
 
+  # debug info in shaders
+  if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
+    list(APPEND VARS "-gVS")
+  else()
+    list(APPEND VARS "-g")
+  endif()
+
   add_custom_command(
     OUTPUT     ${OUTPUT_FILE}
     DEPENDS    ${SOURCE_FILE} ${GLSL_SOURCES}
     COMMAND    ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/sprv/"
-    COMMAND    ${GLSLANGVALIDATOR} -V -g ${VARS} -I"${CMAKE_SOURCE_DIR}/shader" "${SOURCE_FILE}" -o ${OUTPUT_FILE}
+    COMMAND    ${GLSLANGVALIDATOR} -V ${VARS} -I"${CMAKE_SOURCE_DIR}/shader" "${SOURCE_FILE}" -o ${OUTPUT_FILE}
     )
 endfunction(add_shader)
 
@@ -315,6 +322,10 @@ add_shader(vsm_fog_sample.comp       virtual_shadow/vsm_fog_sample.comp)
 add_shader(vsm_fog_trace.comp        virtual_shadow/vsm_fog_trace.comp)
 
 add_shader(vsm_rendering.comp        virtual_shadow/vsm_rendering.comp)
+
+# software meshlet rt
+add_shader(rtsm_rendering.comp       rtsm/rtsm_rendering.comp)
+add_shader(rtsm_dbg.frag             rtsm/rtsm_dbg.frag)
 
 # software rendering
 add_shader(sw_rendering_imm.comp  software_rendering/sw_rendering_imm.comp)

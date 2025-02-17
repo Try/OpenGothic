@@ -200,6 +200,11 @@ void Renderer::resetSwapchain() {
     swr.outputImage = device.image2d(Tempest::R32U, w, h);
     }
 
+  if(settings.rtsmEnabled) {
+    // rtsm.rtsmImage = device.image2d(Tempest::RGBA8, w, h);
+    rtsm.rtsmImage = device.image2d(Tempest::R32U, w, h);
+    }
+
   resetSkyFog();
   initGiData();
   prepareUniforms();
@@ -327,6 +332,7 @@ void Renderer::prepareUniforms() {
   wview->setShadowMaps(sh);
   wview->setVirtualShadowMap(vsm.pageData, vsm.pageTbl, vsm.pageHiZ, vsm.pageList);
   wview->setSwRenderingImage(swr.outputImage);
+  wview->setRtsmImage(rtsm.rtsmImage);
 
   wview->setHiZ(textureCast<const Texture2d&>(hiz.hiZ));
   wview->setGbuffer(textureCast<const Texture2d&>(gbufDiffuse), textureCast<const Texture2d&>(gbufNormal));
@@ -530,6 +536,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   drawShadowMap(cmd,fId,*wview);
   drawVsm(cmd, *wview);
   drawSwr(cmd, *wview);
+  drawRTSM(cmd, *wview);
 
   prepareIrradiance(cmd,*wview);
   prepareExposure(cmd,*wview);
@@ -557,6 +564,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   drawProbesHitDbg(cmd);
   drawVsmDbg(cmd, *wview);
   drawSwrDbg(cmd, *wview);
+  drawRtsmDbg(cmd, *wview);
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   drawReflections(cmd, *wview);
@@ -819,6 +827,18 @@ void Renderer::drawSwrDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const W
   cmd.draw(Resources::fsqVbo());
   }
 
+void Renderer::drawRtsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
+  static bool enable = true;
+  if(!enable || !settings.rtsmEnabled)
+    return;
+
+  cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
+  cmd.setDebugMarker("RTSM-dbg");
+  cmd.setBinding(0, rtsm.rtsmImage);
+  cmd.setPipeline(shaders.rtsmDbg);
+  cmd.draw(Resources::fsqVbo());
+  }
+
 void Renderer::initGiData() {
   if(!settings.giEnabled)
     return;
@@ -1017,6 +1037,14 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
   cmd.setDebugMarker("VSM-rendering");
   cmd.setFramebuffer({}, {vsm.pageData, 0.f, Tempest::Preserve});
   wview.drawVsm(cmd);
+  }
+
+void Renderer::drawRTSM(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
+  if(!settings.rtsmEnabled)
+    return;
+  cmd.setDebugMarker("RTSM-rendering");
+  cmd.setFramebuffer({});
+  wview.drawRtsm(cmd);
   }
 
 void Renderer::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view) {

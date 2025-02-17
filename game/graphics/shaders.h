@@ -23,6 +23,7 @@ class Shaders {
 
     static Shaders& inst();
     static bool isVsmSupported();
+    static bool isRtsmSupported();
 
     Tempest::RenderPipeline  lights, lightsRq, lightsVsm;
     Tempest::RenderPipeline  directLight,  directLightSh, directLightRq;
@@ -85,6 +86,10 @@ class Shaders {
     Tempest::RenderPipeline  vsmDbg;
 
     Tempest::ComputePipeline vsmRendering;
+
+    // RTSM (Experimental)
+    Tempest::ComputePipeline rtsmRendering;
+    Tempest::RenderPipeline  rtsmDbg;
 
     // Software rendering
     Tempest::ComputePipeline swRendering;

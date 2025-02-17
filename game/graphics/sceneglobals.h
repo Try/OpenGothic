@@ -84,6 +84,8 @@ class SceneGlobals final {
     const Tempest::StorageBuffer*     vsmPageList   = nullptr;
     Tempest::StorageImage             vsmDbg;
 
+    const Tempest::StorageImage*      rtsmImage     = nullptr;
+
     const Tempest::StorageImage*      swMainImage   = nullptr;
 
     struct UboGlobal final {

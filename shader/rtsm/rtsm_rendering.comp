@@ -1,0 +1,460 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+// bindless
+#extension GL_EXT_nonuniform_qualifier : enable
+// #extension GL_KHR_memory_scope_semantics : enable
+
+#include "common.glsl"
+#include "scene.glsl"
+
+layout(local_size_x = 32, local_size_y = 32) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+const uint MaxVert    = 64;
+const uint MaxPrim    = 64;
+const uint MaxInd     = (MaxPrim*3);
+
+struct Vertex {
+  vec3 pos;
+  };
+
+layout(push_constant, std430) uniform UboPush {
+  int meshletCount;
+  } push;
+//layout(binding = 0, rgba8)  uniform image2D     outputImage;
+layout(binding = 0, r32ui)  uniform uimage2D    outputImage;
+layout(binding = 1, std140) uniform UboScene    { SceneDesc scene;       };
+layout(binding = 2)         uniform utexture2D  gbufNormal;
+layout(binding = 3)         uniform texture2D   depth;
+
+layout(binding = 4, std430) readonly buffer Cbo { Cluster clusters[];    };
+layout(binding = 5, std430) readonly buffer Mem { uint    instanceMem[]; };
+layout(binding = 6, std430) readonly buffer Ibo { uint    indexes [];    } ibo[];
+layout(binding = 7, std430) readonly buffer Vbo { float   vertices[];    } vbo[];
+layout(binding = 8)         uniform  texture2D  textureMain[];
+layout(binding = 9)         uniform  sampler    samplerMain;
+
+vec3  dbgColor  = vec3(0);
+ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
+
+// counters
+uint numMeshlets  = 0;
+uint numTriangles = 0;
+
+shared uint dbgCounter;
+uint mergeCounter(uint cnt) {
+  dbgCounter = 0;
+  barrier();
+
+  atomicAdd(dbgCounter, cnt);
+  barrier();
+
+  return dbgCounter;
+  }
+
+// utility
+uint floatToOrderedUint(float value) {
+  uint uvalue = floatBitsToUint(value);
+  uint mask = -int(uvalue >> 31) | 0x80000000;
+  return uvalue ^ mask;
+  }
+
+float orderedUintToFloat(uint value) {
+  uint mask = ((value >> 31) - 1) | 0x80000000;
+  return uintBitsToFloat(value ^ mask);
+  }
+
+vec4 orderedUintToFloat(uvec4 value) {
+  vec4 r;
+  r.x = orderedUintToFloat(value.x);
+  r.y = orderedUintToFloat(value.y);
+  r.z = orderedUintToFloat(value.z);
+  r.w = orderedUintToFloat(value.w);
+  return r;
+  }
+
+shared uvec4 rayPacketBbox;
+shared uint  rayMinDepth;
+void rayBbox(vec3 orig, bool activeRay) {
+  rayMinDepth   = 0xFFFFFFFF;
+  rayPacketBbox = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
+  barrier();
+
+  if(activeRay) {
+    atomicMin(rayPacketBbox.x, floatToOrderedUint(orig.x));
+    atomicMin(rayPacketBbox.y, floatToOrderedUint(orig.y));
+    atomicMax(rayPacketBbox.z, floatToOrderedUint(orig.x));
+    atomicMax(rayPacketBbox.w, floatToOrderedUint(orig.y));
+
+    atomicMin(rayMinDepth, floatToOrderedUint(orig.z));
+    }
+  barrier();
+  }
+
+float edgeFunction(const vec2 a, const vec2 b, const vec2 c) {
+  return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
+  }
+
+vec4 bboxOf(vec2 a, vec2 b, vec2 c) {
+  vec4 ret;
+  ret.x = min(a.x, min(b.x, c.x));
+  ret.z = max(a.x, max(b.x, c.x));
+  ret.y = min(a.y, min(b.y, c.y));
+  ret.w = max(a.y, max(b.y, c.y));
+  return ret;
+  }
+
+// light/occlusion/matrix
+bool planetOcclusion(float viewPos) {
+  const float y = RPlanet + max(viewPos*0.1, 0);
+  if(rayIntersect(vec3(0,y,0), scene.sunDir, RPlanet)>0)
+    return true;
+  return false;
+  }
+
+float lambert(vec3 normal) {
+  return max(0.0, dot(scene.sunDir,normal));
+  }
+
+vec4 worldPos(ivec2 frag, float depth) {
+  const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
+  const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
+  //return scene.viewProjectLwcInv * scr;
+  return scene.viewProjectInv * scr;
+  }
+
+vec3 shadowPos(vec4 wpos) {
+  vec4 shPos = scene.viewVirtualShadowLwc * wpos;
+  shPos.xyz /= shPos.w;
+  return shPos.xyz;
+  }
+
+// meshlets
+bool bboxIntersect(vec4 a, vec4 b) {
+  if(b.z < a.x || b.x > a.z)
+    return false;
+  if(b.w < a.y || b.y > a.w)
+    return false;
+  return true;
+  }
+
+bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMax) {
+  const vec3  c = (scene.viewVirtualShadowLwc * vec4(sphere.xyz, 1)).xyz;
+  const float R = sphere.w;
+
+  const float smWidthInv = 1.0/(1024.0); // NOTE: from camera.cpp
+  const float zScale     = 1.0/(10*5120.0);
+
+  float Rz = R * zScale;
+  if(c.z - Rz > 1 || c.z + Rz < 0)
+    return false;
+
+  float Rx = R * smWidthInv;
+  float Ry = R * smWidthInv;
+  aabb     = vec4(c.xy-vec2(Rx,Ry), c.xy+vec2(Rx,Ry));
+  depthMax = c.z + Rz;
+  // aabb = c.xyxy;
+  return true;
+  }
+
+bool projectCluster(const Cluster cluster, out vec4 aabb, out float depthMax) {
+  if(cluster.instanceId==0xFFFFFFFF)
+    return projectSphere(cluster.sphere, aabb, depthMax);
+  return false; //projectSphere(cluster.sphere, aabb, depthMax);
+  }
+
+// pagging
+int shadowLod(vec2 dx, vec2 dy) {
+  float px     = dot(dx, dx);
+  float py     = dot(dy, dy);
+  float maxLod = 0.5 * log2(max(px, py)); // log2(sqrt()) = 0.5*log2()
+  float minLod = 0.5 * log2(min(px, py));
+
+  const float bias = 0;
+  return max(0, int(minLod + bias));
+  }
+
+int calcMipIndex(in vec2 shPos) {
+  float d  = max(abs(shPos.x), abs(shPos.y));
+  uint  id = uint(d);
+  return findMSB(id)+1;
+  }
+
+// ray managment
+vec3 calcRayOrigin(const vec4 wpos) {
+  vec4 shPos = scene.viewVirtualShadowLwc * wpos;
+  shPos.xyz /= shPos.w;
+  return shPos.xyz;
+  }
+
+uint rayPacketId(const vec2 shPos, const float z) {
+#if 0
+  float dZ   = linearDepth(     z, scene.clipInfo);
+  float d0   = linearDepth(0,      scene.clipInfo);
+  float d1   = linearDepth(0.9999, scene.clipInfo);
+  float d    = (dZ-d0)/(d1-d0);
+
+  int id = int(d*32);
+  if(id>=32)
+    return 0;
+  return 1u << id;
+#else
+  int mip = calcMipIndex(shPos);
+  if(mip>=32)
+    return 0;
+  return 1u << mip;
+#endif
+  }
+
+shared uint rayPacketMask;
+uint mergeMasks(uint m) {
+  rayPacketMask = 0;
+  barrier();
+  atomicOr(rayPacketMask, m);
+  barrier();
+  return rayPacketMask;
+  }
+
+// meshlet-data
+uvec2 pullMeshlet(const uint meshletId, const uint bucketId) {
+  nonuniformEXT uint bId = bucketId;
+
+  const uint iboOffset = meshletId * MaxPrim + MaxPrim - 1;
+  const uint bits      = ibo[bId].indexes[iboOffset];
+  uvec4 prim;
+  prim.x = ((bits >>  0) & 0xFF);
+  prim.y = ((bits >>  8) & 0xFF);
+
+  uint vertCount = MaxVert;
+  uint primCount = MaxPrim;
+  if(prim.x==prim.y) {
+    // last dummy triangle encodes primitive count
+    prim.z = ((bits >> 16) & 0xFF);
+    prim.w = ((bits >> 24) & 0xFF);
+
+    primCount = prim.z;
+    vertCount = prim.w;
+    }
+  return uvec2(vertCount, primCount);
+  }
+
+uvec3 pullPrimitive(const uint meshletId, const uint bucketId, const uint outId) {
+  nonuniformEXT uint bId = bucketId;
+
+  const uint iboOffset = meshletId * MaxPrim + outId;
+  const uint bits      = ibo[bId].indexes[iboOffset];
+  uvec3 prim;
+  prim.x = ((bits >>  0) & 0xFF);
+  prim.y = ((bits >>  8) & 0xFF);
+  prim.z = ((bits >> 16) & 0xFF);
+  return prim;
+  }
+
+Vertex pullVertex(const uint meshletId, const uint bucketId, const uint laneId) {
+  nonuniformEXT uint bId = bucketId;
+  uint vboOffset = meshletId * MaxVert + laneId;
+
+  // static geometry
+  uint id = vboOffset * 9;
+  Vertex ret;
+  ret.pos    = vec3(vbo[bId].vertices[id + 0], vbo[bId].vertices[id + 1], vbo[bId].vertices[id + 2]);
+  //ret.uv     = vec2(vbo[bId].vertices[id + 6], vbo[bId].vertices[id + 7]);
+  //vec3 normal = vec3(vbo[bId].vertices[id + 3], vbo[bId].vertices[id + 4], vbo[bId].vertices[id + 5]);
+  //uint color  = floatBitsToUint(vbo[bId].vertices[id + 8]);
+  return ret;
+  }
+
+shared uint   maxPrim;
+shared uvec3  primitiveIndices[MaxPrim];
+shared float  primitiveAreaInv[MaxPrim];
+shared Vertex meshVertices    [MaxVert];
+void processMeshletPrimitives(uint meshletId, uint bucketId, uint primCount, vec4 rbbox) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  if(laneID<primCount) {
+    const uvec3 tri = pullPrimitive(meshletId, bucketId, laneID);
+    const vec3  a   = meshVertices[tri.x].pos.xyz;
+    const vec3  b   = meshVertices[tri.y].pos.xyz;
+    const vec3  c   = meshVertices[tri.z].pos.xyz;
+
+    const float area = edgeFunction(a.xy, b.xy, c.xy);
+    if(area<=0)
+      return;
+
+    const vec4 tbb = bboxOf(a.xy, b.xy, c.xy);
+    if(!bboxIntersect(tbb, rbbox))
+      return;
+
+    uint id = atomicAdd(maxPrim, 1);
+    primitiveIndices[id] = tri;
+    primitiveAreaInv[id] = (1.0/area);
+
+    ++numTriangles;
+    }
+  }
+
+uvec3 processMeshlet(uint i, vec4 rbbox) {
+  const Cluster cluster = clusters[i];
+
+  const uint  meshletId  = cluster.firstMeshlet;
+  const uint  bucketId   = cluster.bucketId_commandId>>16;
+
+  const uvec2 mesh       = pullMeshlet(meshletId, bucketId);
+  const uint  vertCount  = mesh.x;
+  const uint  primCount  = mesh.y;
+
+  const uint laneID = gl_LocalInvocationIndex;
+  if(laneID<vertCount) {
+    Vertex v    = pullVertex(meshletId, bucketId, laneID);
+    vec4   pos4 = (scene.viewVirtualShadowLwc * vec4(v.pos.xyz,1));
+    v.pos.xyz = pos4.xyz/pos4.w;
+    meshVertices[laneID] = v;
+    }
+  return uvec3(meshletId, bucketId, primCount);
+  }
+
+bool rasterizeMeshletShadow(const vec3 ray) {
+  for(uint i=0; i<maxPrim; ++i) {
+    uvec3 tri = primitiveIndices[i];
+    vec3  a   = meshVertices[tri.x].pos.xyz;
+    vec3  b   = meshVertices[tri.y].pos.xyz;
+    vec3  c   = meshVertices[tri.z].pos.xyz;
+
+    float w0  = edgeFunction(b.xy, c.xy, ray.xy);
+    float w1  = edgeFunction(c.xy, a.xy, ray.xy);
+    float w2  = edgeFunction(a.xy, b.xy, ray.xy);
+
+    if(w0 < 0 || w1 < 0 || w2 < 0)
+      continue;
+
+    const float areaInv = primitiveAreaInv[i];
+    const vec3  bc      = vec3(w0,w1,w2)*areaInv;
+    const float depth   = dot(vec3(a.z,b.z,c.z), bc);
+    if(depth > ray.z)
+      return true;
+    }
+  return false;
+  }
+
+// meshlets-trace
+shared uint numVisMeshlets;
+shared uint meshletsId[NumThreads];
+
+bool isMeshletVisible(uint i, const vec4 rbbox) {
+  if(i>=push.meshletCount)
+    return false;
+
+  const Cluster cluster = clusters[i];
+  if(cluster.sphere.w<=0.f)
+    return false; // disabled or deleted
+
+  vec4  aabb     = vec4(0);
+  float depthMax = 1;
+  if(!projectCluster(cluster, aabb, depthMax))
+    return false;
+
+  if(!bboxIntersect(aabb, rbbox))
+    return false;
+
+  if(uintBitsToFloat(rayMinDepth) > depthMax)
+    return false;
+
+  return true;
+  }
+
+bool tracePacket(const vec3 ray, const vec4 rbbox) {
+  if(isnan(rbbox.x))
+    return false;
+
+  bool shadow = false;
+  int  count  = 0;
+
+  const uint laneID = gl_LocalInvocationIndex;
+  const uint steps  = ((push.meshletCount + NumThreads - 1)/NumThreads);
+  for(uint id=0; id<steps; ++id) {
+    numVisMeshlets = 0;
+    barrier();
+
+    const uint i = id*NumThreads + laneID;
+    if(isMeshletVisible(i, rbbox)) {
+      uint id = atomicAdd(numVisMeshlets, 1);
+      meshletsId[id] = i;
+      ++numMeshlets;
+      };
+
+    //continue;
+    barrier();
+
+    for(uint r=0; r<numVisMeshlets; ++r) {
+      uvec3 ids = processMeshlet(meshletsId[r], rbbox);
+      maxPrim = 0;
+      barrier();
+
+      processMeshletPrimitives(ids.x, ids.y, ids.z, rbbox);
+      barrier();
+
+      shadow = shadow || rasterizeMeshletShadow(ray);
+      barrier();
+      }
+    }
+  barrier();
+  return shadow;
+  }
+
+void main() {
+  numMeshlets = 0;
+  barrier();
+
+  const ivec2 size   = textureSize(depth, 0);
+  const bool  valid  = all(lessThan(fragCoord, size));
+
+  const float z      = valid ? texelFetch(depth, fragCoord, 0).x  : 1.0;
+  const vec3  normal = valid ? normalFetch(gbufNormal, fragCoord) : vec3(0);
+
+  const vec4  wpos   = worldPos(fragCoord.xy, z) + vec4(normal*0.002, 0);
+  const vec3  ray    = calcRayOrigin(wpos);
+
+  bool        shadow = false;
+  shadow             = shadow || (dot(scene.sunDir, normal) <= 0 && z!=1.0);
+  shadow             = shadow || planetOcclusion(wpos.y/wpos.w);
+
+  const bool  actRay = (z < 1) && !shadow;
+
+  const uint  selfMask = actRay ? rayPacketId(ray.xy,z) : 0;
+  uint        pkgMask  = mergeMasks(selfMask);
+
+  // if(bitCount(pkgMask)==1) {
+  while(pkgMask!=0) {
+    const int bit = findLSB(pkgMask);
+    pkgMask &= ~(1u << bit);
+
+    bool isInBin = (selfMask & (1u << bit))!=0;
+    rayBbox(ray, actRay && isInBin);
+    const bool sh = tracePacket(ray, orderedUintToFloat(rayPacketBbox));
+    if(actRay && isInBin)
+      shadow = sh;
+    }
+
+  if(valid) {
+    vec4 rbb = orderedUintToFloat(rayPacketBbox);
+    rbb.xy = rbb.zw - rbb.xy;
+
+    float area = actRay ? abs(rbb.x*rbb.y*0.2 + 0.01) : 0;
+    // imageStore(outputImage, fragCoord, vec4(dbgColor,1));
+    // imageStore(outputImage, fragCoord, vec4(area, (actRay ? 1: 0), 1, 1));
+    // imageStore(outputImage, fragCoord, vec4(area));
+
+    imageStore(outputImage, fragCoord, uvec4(shadow));
+    //imageStore(outputImage, fragCoord, uvec4(mergeCounter(numMeshlets)));
+    //imageStore(outputImage, fragCoord, uvec4(mergeCounter(numTriangles)));
+
+    //imageStore(outputImage, fragCoord, uvec4(actRay));
+    //imageStore(outputImage, fragCoord, uvec4(selfMask==0 ? 0 : findLSB(selfMask)));
+
+    //const float light = dot(scene.sunDir, normal) > 0 ? 1 : 0;
+    //imageStore(outputImage, fragCoord, vec4(light));
+    }
+  }

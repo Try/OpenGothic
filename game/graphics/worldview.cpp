@@ -105,6 +105,10 @@ void WorldView::setSwRenderingImage(const Tempest::StorageImage& mainView) {
   sGlobal.setSwRenderingImage(mainView);
   }
 
+void WorldView::setRtsmImage(const Tempest::StorageImage& mainView) {
+  sGlobal.rtsmImage = &mainView;
+  }
+
 void WorldView::setHiZ(const Tempest::Texture2d& hiZ) {
   sGlobal.setHiZ(hiZ);
   }
@@ -148,6 +152,10 @@ void WorldView::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
 
 void WorldView::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   visuals.drawSwr(cmd);
+  }
+
+void WorldView::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
+  visuals.drawRtsm(cmd);
   }
 
 void WorldView::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {

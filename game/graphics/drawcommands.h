@@ -64,6 +64,7 @@ class DrawCommands {
 
     void     drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void     drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void     drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 
   private:
     enum TaskLinkpackage : uint8_t {

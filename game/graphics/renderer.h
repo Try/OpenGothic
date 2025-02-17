@@ -55,6 +55,7 @@ class Renderer final {
     void drawHiZ          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);
     void buildHiZ         (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawVsm          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);
+    void drawRTSM         (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);
     void drawSwr          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);
     void drawGBuffer      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawGWater       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);
@@ -78,6 +79,7 @@ class Renderer final {
 
     void drawVsmDbg       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawSwrDbg       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
+    void drawRtsmDbg      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
 
     void setupSettings();
     void initGiData();
@@ -88,6 +90,7 @@ class Renderer final {
       const uint32_t shadowResolution   = 2048;
       bool           vsmEnabled         = false;
       bool           swrEnabled         = false;
+      bool           rtsmEnabled        = false;
 
       bool           zEnvMappingEnabled = false;
       bool           zCloudShadowScale  = false;
@@ -205,6 +208,10 @@ class Renderer final {
     struct {
       Tempest::StorageImage     outputImage;
       } swr;
+
+    struct {
+      Tempest::StorageImage     rtsmImage;
+      } rtsm;
 
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::Depth16;
     Tempest::TextureFormat    zBufferFormat = Tempest::TextureFormat::Depth16;
