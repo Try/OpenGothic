@@ -116,7 +116,7 @@ void Inventory::implLoad(Npc* owner, World& world, Serialize &s) {
   s.read(stateSlot.slot);
   stateSlot.item = readPtr(s);
 
-  armour = readPtr(s);
+  armor  = readPtr(s);
   belt   = readPtr(s);
   amulet = readPtr(s);
   ringL  = readPtr(s);
@@ -164,7 +164,7 @@ void Inventory::save(Serialize &fout) const {
   fout.write(ammotSlot.slot,indexOf(ammotSlot.item));
   fout.write(stateSlot.slot,indexOf(stateSlot.item));
 
-  fout.write(indexOf(armour));
+  fout.write(indexOf(armor) );
   fout.write(indexOf(belt)  );
   fout.write(indexOf(amulet));
   fout.write(indexOf(ringL) );
@@ -350,8 +350,8 @@ bool Inventory::unequip(size_t cls, Npc &owner) {
   }
 
 void Inventory::unequip(Item *it, Npc &owner) {
-  if(armour==it) {
-    setSlot(armour,nullptr,owner,false);
+  if(armor==it) {
+    setSlot(armor,nullptr,owner,false);
     return;
     }
   if(belt==it) {
@@ -414,7 +414,7 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
     auto  mainFlag = ItmFlags(itData.main_flag);
     auto  flag     = ItmFlags(itData.flags);
 
-    applyArmour(*slot,owner,-1);
+    applyArmor(*slot,owner,-1);
     if(slot->isEquipped())
       slot->setAsEquipped(false);
     if(&slot==active)
@@ -425,13 +425,13 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
       owner.setShield(MeshObjects::Mesh());
       }
     else if(mainFlag & ITM_CAT_ARMOR){
-      owner.updateArmour();
+      owner.updateArmor();
       }
     else if(mainFlag & ITM_CAT_NF){
       owner.setSword(MeshObjects::Mesh());
       }
     else if(mainFlag & ITM_CAT_FF){
-      owner.setRangeWeapon(MeshObjects::Mesh());
+      owner.setRangedWeapon(MeshObjects::Mesh());
       }
     vm.invokeItem(&owner,uint32_t(itData.on_unequip));
     }
@@ -443,9 +443,9 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
   slot=next;
   slot->setAsEquipped(true);
   slot->setSlot(slotId(slot));
-  applyArmour(*slot,owner,1);
+  applyArmor(*slot,owner,1);
 
-  updateArmourView(owner);
+  updateArmorView (owner);
   updateSwordView (owner);
   updateBowView   (owner);
   updateShieldView(owner);
@@ -460,7 +460,7 @@ bool Inventory::setSlot(Item *&slot, Item* next, Npc& owner, bool force) {
 void Inventory::updateView(Npc& owner) {
   auto& world = owner.world();
 
-  updateArmourView(owner);
+  updateArmorView (owner);
   updateSwordView (owner);
   updateBowView   (owner);
   updateShieldView(owner);
@@ -480,14 +480,14 @@ void Inventory::updateView(Npc& owner) {
     }
   }
 
-void Inventory::updateArmourView(Npc& owner) {
-  if(armour==nullptr)
+void Inventory::updateArmorView(Npc& owner) {
+  if(armor==nullptr)
     return;
 
-  auto& itData = armour->handle();
+  auto& itData = armor->handle();
   auto  flag   = ItmFlags(itData.main_flag);
   if(flag & ITM_CAT_ARMOR)
-    owner.updateArmour();
+    owner.updateArmor();
   }
 
 void Inventory::updateSwordView(Npc &owner) {
@@ -502,14 +502,14 @@ void Inventory::updateSwordView(Npc &owner) {
 
 void Inventory::updateBowView(Npc &owner) {
   if(range==nullptr) {
-    owner.setRangeWeapon(MeshObjects::Mesh());
+    owner.setRangedWeapon(MeshObjects::Mesh());
     return;
     }
 
   auto flag = range->mainFlag();
   if(flag & ITM_CAT_FF){
     auto  vbody  = owner.world().addView(range->handle());
-    owner.setRangeWeapon(std::move(vbody));
+    owner.setRangedWeapon(std::move(vbody));
     }
   }
 
@@ -544,8 +544,8 @@ void Inventory::equipBestMeleeWeapon(Npc &owner) {
     setSlot(melee,a,owner,false);
   }
 
-void Inventory::equipBestRangeWeapon(Npc &owner) {
-  auto a = bestRangeWeapon(owner);
+void Inventory::equipBestRangedWeapon(Npc &owner) {
+  auto a = bestRangedWeapon(owner);
   if(a!=nullptr)
     setSlot(range,a,owner,false);
   }
@@ -555,8 +555,8 @@ void Inventory::unequipWeapons(GameScript &, Npc &owner) {
   setSlot(range,nullptr,owner,false);
   }
 
-void Inventory::unequipArmour(GameScript &, Npc &owner) {
-  setSlot(armour,nullptr,owner,false);
+void Inventory::unequipArmor(GameScript &, Npc &owner) {
+  setSlot(armor,nullptr,owner,false);
   }
 
 void Inventory::clear(GameScript&, Npc&, bool includeMissionItm) {
@@ -802,7 +802,7 @@ bool Inventory::equipNumSlot(Item *next, uint8_t slotHint, Npc &owner, bool forc
   return false;
   }
 
-void Inventory::applyArmour(Item &it, Npc &owner, int32_t sgn) {
+void Inventory::applyArmor(Item &it, Npc &owner, int32_t sgn) {
   for(size_t i=0;i<PROT_MAX;++i){
     auto v = owner.protection(Protection(i));
     owner.changeProtection(Protection(i),v+it.handle().protection[i]*sgn);
@@ -836,7 +836,7 @@ bool Inventory::use(size_t cls, Npc &owner, uint8_t slotHint, bool force) {
     }
 
   if(mainflag & ITM_CAT_ARMOR)
-    return setSlot(armour,it,owner,force);
+    return setSlot(armor,it,owner,force);
 
   if(flag & ITM_BELT)
     return setSlot(belt,it,owner,force);
@@ -889,7 +889,7 @@ bool Inventory::equip(size_t cls, Npc &owner, bool force) {
 void Inventory::invalidateCond(Npc &owner) {
   if(!owner.isPlayer())
     return; // gothic doesn't care
-  invalidateCond(armour,owner);
+  invalidateCond(armor,owner);
   invalidateCond(belt  ,owner);
   invalidateCond(amulet,owner);
   invalidateCond(ringL ,owner);
@@ -911,10 +911,10 @@ void Inventory::autoEquipWeapons(Npc &owner) {
   if(owner.isMonster())
     return;
   equipBestMeleeWeapon(owner);
-  equipBestRangeWeapon(owner);
+  equipBestRangedWeapon(owner);
   }
 
-void Inventory::equipArmour(int32_t cls, Npc &owner) {
+void Inventory::equipArmor(int32_t cls, Npc &owner) {
   if(cls<=0)
     return;
   auto it = findByClass(size_t(cls));
@@ -926,10 +926,10 @@ void Inventory::equipArmour(int32_t cls, Npc &owner) {
     }
   }
 
-void Inventory::equipBestArmour(Npc &owner) {
-  auto a = bestArmour(owner);
+void Inventory::equipBestArmor(Npc &owner) {
+  auto a = bestArmor(owner);
   if(a!=nullptr)
-    setSlot(armour,a,owner,false);
+    setSlot(armor,a,owner,false);
   }
 
 Item *Inventory::findByClass(size_t cls) {
@@ -980,7 +980,7 @@ Item* Inventory::bestItem(Npc &owner, ItmFlags f) {
   return ret;
   }
 
-Item *Inventory::bestArmour(Npc &owner) {
+Item *Inventory::bestArmor(Npc &owner) {
   return bestItem(owner,ITM_CAT_ARMOR);
   }
 
@@ -988,7 +988,7 @@ Item *Inventory::bestMeleeWeapon(Npc &owner) {
   return bestItem(owner,ITM_CAT_NF);
   }
 
-Item *Inventory::bestRangeWeapon(Npc &owner) {
+Item *Inventory::bestRangedWeapon(Npc &owner) {
   return bestItem(owner,ITM_CAT_FF);
   }
 

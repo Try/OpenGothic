@@ -2195,7 +2195,7 @@ int GameScript::npc_getdisttonpc(std::shared_ptr<zenkit::INpc> aRef, std::shared
 
 bool GameScript::npc_hasequippedarmor(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
-  return npc!=nullptr && npc->currentArmour()!=nullptr;
+  return npc!=nullptr && npc->currentArmor()!=nullptr;
   }
 
 void GameScript::npc_setperctime(std::shared_ptr<zenkit::INpc> npcRef, float sec) {
@@ -2292,16 +2292,16 @@ std::shared_ptr<zenkit::IItem> GameScript::npc_getequippedmeleeweapon(std::share
 
 std::shared_ptr<zenkit::IItem> GameScript::npc_getequippedrangedweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
-  if(npc!=nullptr && npc->currentRangeWeapon() != nullptr){
-    return npc->currentRangeWeapon()->handlePtr();
+  if(npc!=nullptr && npc->currentRangedWeapon() != nullptr) {
+    return npc->currentRangedWeapon()->handlePtr();
     }
   return nullptr;
   }
 
 std::shared_ptr<zenkit::IItem> GameScript::npc_getequippedarmor(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
-  if(npc!=nullptr && npc->currentArmour()!=nullptr){
-    return npc->currentArmour()->handlePtr();
+  if(npc!=nullptr && npc->currentArmor()!=nullptr) {
+    return npc->currentArmor()->handlePtr();
     }
   return nullptr;
   }
@@ -2342,7 +2342,7 @@ bool GameScript::npc_hasequippedweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   return (npc!=nullptr &&
      (npc->currentMeleeWeapon()!=nullptr ||
-      npc->currentRangeWeapon()!=nullptr));
+      npc->currentRangedWeapon()!=nullptr));
   }
 
 bool GameScript::npc_hasequippedmeleeweapon(std::shared_ptr<zenkit::INpc> npcRef) {
@@ -2352,7 +2352,7 @@ bool GameScript::npc_hasequippedmeleeweapon(std::shared_ptr<zenkit::INpc> npcRef
 
 bool GameScript::npc_hasequippedrangedweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
-  return npc!=nullptr && npc->currentRangeWeapon()!=nullptr;
+  return npc!=nullptr && npc->currentRangedWeapon()!=nullptr;
   }
 
 int GameScript::npc_getactivespell(std::shared_ptr<zenkit::INpc> npcRef) {
@@ -3065,7 +3065,7 @@ int GameScript::ai_equipbestmeleeweapon(std::shared_ptr<zenkit::INpc> npcRef) {
 int GameScript::ai_equipbestrangedweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
-    npc->aiPush(AiQueue::aiEquipBestRangeWeapon());
+    npc->aiPush(AiQueue::aiEquipBestRangedWeapon());
   return 0;
   }
 
@@ -3104,7 +3104,7 @@ void GameScript::ai_readymeleeweapon(std::shared_ptr<zenkit::INpc> npcRef) {
 void GameScript::ai_readyrangedweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
-    npc->aiPush(AiQueue::aiReadyRangeWeapon());
+    npc->aiPush(AiQueue::aiReadyRangedWeapon());
   }
 
 void GameScript::ai_readyspell(std::shared_ptr<zenkit::INpc> npcRef, int spell, int mana) {

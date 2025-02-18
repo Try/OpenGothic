@@ -78,19 +78,19 @@ class Inventory final {
     void   invalidateCond(Npc &owner);
     bool   isChanged() const { return !sorted; }
     void   autoEquipWeapons(Npc &owner);
-    void   equipArmour         (int32_t cls, Npc &owner);
-    void   equipBestArmour     (Npc &owner);
+    void   equipArmor          (int32_t cls, Npc &owner);
+    void   equipBestArmor      (Npc &owner);
     void   equipBestMeleeWeapon(Npc &owner);
-    void   equipBestRangeWeapon(Npc &owner);
+    void   equipBestRangedWeapon(Npc &owner);
     void   unequipWeapons(GameScript &vm, Npc &owner);
-    void   unequipArmour(GameScript &vm, Npc &owner);
+    void   unequipArmor(GameScript &vm, Npc &owner);
     void   clear(GameScript &vm, Npc &owner, bool includeMissionItm = false);
     void   clear(GameScript &vm, Interactive &owner, bool includeMissionItm = false);
     bool   hasSpell(int32_t spl) const;
     bool   hasMissionItems() const;
     bool   hasRangedWeaponWithAmmo() const;
 
-    void   updateArmourView(Npc& owner);
+    void   updateArmorView (Npc& owner);
     void   updateSwordView (Npc& owner);
     void   updateBowView   (Npc& owner);
     void   updateShieldView(Npc& owner);
@@ -103,9 +103,9 @@ class Inventory final {
     void   switchActiveWeapon(Npc &owner, uint8_t slot);
     void   switchActiveSpell (int32_t spell, Npc &owner);
 
-    Item*  currentArmour()         { return armour;     }
+    Item*  currentArmor()          { return armor;      }
     Item*  currentMeleeWeapon()    { return melee;      }
-    Item*  currentRangeWeapon()    { return range;      }
+    Item*  currentRangedWeapon()   { return range;      }
     Item*  currentSpell(uint8_t s) { return numslot[s]; }
     const Item*  currentSpell(uint8_t s) const { return numslot[s]; }
     Item*  findByFlags(ItmFlags f, uint32_t num) const;
@@ -133,16 +133,16 @@ class Inventory final {
 
     bool   setSlot     (Item*& slot, Item *next, Npc &owner, bool force);
     bool   equipNumSlot(Item *next, uint8_t slotHint, Npc &owner, bool force);
-    void   applyArmour (Item& it, Npc &owner, int32_t sgn);
+    void   applyArmor  (Item& it, Npc &owner, int32_t sgn);
 
     Item*  findByClass(size_t cls);
     void   delItem    (Item* it, size_t count, Npc& owner);
     void   invalidateCond(Item*& slot,  Npc &owner);
 
     Item*  bestItem       (Npc &owner, ItmFlags f);
-    Item*  bestArmour     (Npc &owner);
+    Item*  bestArmor      (Npc &owner);
     Item*  bestMeleeWeapon(Npc &owner);
-    Item*  bestRangeWeapon(Npc &owner);
+    Item*  bestRangedWeapon(Npc &owner);
 
     void   applyWeaponStats(Npc &owner, const Item& weap, int sgn);
 
@@ -157,7 +157,7 @@ class Inventory final {
     uint32_t                           indexOf(const Item* it) const;
     Item*                              readPtr(Serialize& fin);
 
-    Item*                              armour     = nullptr;
+    Item*                              armor      = nullptr;
     Item*                              belt       = nullptr;
     Item*                              amulet     = nullptr;
     Item*                              ringL      = nullptr;

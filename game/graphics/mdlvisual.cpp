@@ -112,11 +112,11 @@ void MdlVisual::setBody(Npc& npc, MeshObjects::Mesh&& a, const int32_t version) 
   setObjMatrix(pos);
   }
 
-void MdlVisual::setArmour(Npc& npc, MeshObjects::Mesh&& armour) {
+void MdlVisual::setArmor(Npc& npc, MeshObjects::Mesh&& armor) {
   // NOTE: Giant_Bug have no version tag in attachments;
   // Light dragon hunter armour has broken attachment with no tags
   // Big dragon hunter armour has many atachments with version tags
-  implSetBody(&npc,npc.world(),std::move(armour),-1);
+  implSetBody(&npc,npc.world(),std::move(armor),-1);
   setObjMatrix(pos);
   }
 
@@ -165,7 +165,7 @@ void MdlVisual::setSword(MeshObjects::Mesh &&s) {
   bind(sword,std::move(s),"ZS_RIGHTHAND");
   }
 
-void MdlVisual::setRangeWeapon(MeshObjects::Mesh &&b) {
+void MdlVisual::setRangedWeapon(MeshObjects::Mesh &&b) {
   bind(bow,std::move(b),"ZS_BOW");
   }
 
@@ -286,7 +286,7 @@ void MdlVisual::dropWeapon(Npc& npc) {
   Item* itm = nullptr;
   if(fgtMode==WeaponState::W1H || fgtMode==WeaponState::W2H)
     itm = npc.currentMeleeWeapon(); else
-    itm = npc.currentRangeWeapon();
+    itm = npc.currentRangedWeapon();
 
   if(itm==nullptr)
     return;

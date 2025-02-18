@@ -836,13 +836,13 @@ void Npc::setVisualBody(int32_t headTexNr, int32_t teethTexNr, int32_t bodyTexNr
   auto  vhead = head.empty() ? MeshObjects::Mesh() : owner.addView(FileExt::addExt(head,".MMB"),vHead,vTeeth,bdColor);
   auto  vbody = body.empty() ? MeshObjects::Mesh() : owner.addView(FileExt::addExt(body,".ASC"),vColor,0,bdColor);
   visual.setVisualBody(*this,std::move(vhead),std::move(vbody),bdColor);
-  updateArmour();
+  updateArmor();
 
   durtyTranform|=TR_Pos; // update obj matrix
   }
 
-void Npc::updateArmour() {
-  auto  ar = invent.currentArmour();
+void Npc::updateArmor() {
+  auto  ar = invent.currentArmor();
   auto& w  = owner;
 
   if(ar==nullptr) {
@@ -854,7 +854,7 @@ void Npc::updateArmour() {
     if(flag & ITM_CAT_ARMOR){
       auto& asc   = itData.visual_change;
       auto  vbody = asc.empty() ? MeshObjects::Mesh() : w.addView(asc,vColor,0,bdColor);
-      visual.setArmour(*this,std::move(vbody));
+      visual.setArmor(*this,std::move(vbody));
       }
     }
   }
@@ -864,8 +864,8 @@ void Npc::setSword(MeshObjects::Mesh&& s) {
   updateWeaponSkeleton();
   }
 
-void Npc::setRangeWeapon(MeshObjects::Mesh&& b) {
-  visual.setRangeWeapon(std::move(b));
+void Npc::setRangedWeapon(MeshObjects::Mesh&& b) {
+  visual.setRangedWeapon(std::move(b));
   updateWeaponSkeleton();
   }
 
@@ -897,7 +897,7 @@ void Npc::clearSlotItem(std::string_view slot) {
   }
 
 void Npc::updateWeaponSkeleton() {
-  visual.updateWeaponSkeleton(invent.currentMeleeWeapon(),invent.currentRangeWeapon());
+  visual.updateWeaponSkeleton(invent.currentMeleeWeapon(),invent.currentRangedWeapon());
   }
 
 void Npc::setPhysic(DynamicWorld::NpcItem &&item) {
@@ -2377,16 +2377,16 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
       }
     case AI_EquipArmor:
-      invent.equipArmour(act.i0,*this);
+      invent.equipArmor(act.i0,*this);
       break;
     case AI_EquipBestArmor:
-      invent.equipBestArmour(*this);
+      invent.equipBestArmor(*this);
       break;
     case AI_EquipMelee:
       invent.equipBestMeleeWeapon(*this);
       break;
     case AI_EquipRange:
-      invent.equipBestRangeWeapon(*this);
+      invent.equipBestRangedWeapon(*this);
       break;
     case AI_UseMob: {
       if(act.i0<0) {
@@ -2518,7 +2518,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       invent.unequipWeapons(owner.script(),*this);
       break;
     case AI_UnEquipArmor:
-      invent.unequipArmour(owner.script(),*this);
+      invent.unequipArmor(owner.script(),*this);
       break;
     case AI_Output:
     case AI_OutputSvm:
@@ -3229,16 +3229,16 @@ void Npc::clearInventory() {
   invent.clear(owner.script(),*this);
   }
 
-Item *Npc::currentArmour() {
-  return invent.currentArmour();
+Item *Npc::currentArmor() {
+  return invent.currentArmor();
   }
 
 Item *Npc::currentMeleeWeapon() {
   return invent.currentMeleeWeapon();
   }
 
-Item *Npc::currentRangeWeapon() {
-  return invent.currentRangeWeapon();
+Item *Npc::currentRangedWeapon() {
+  return invent.currentRangedWeapon();
   }
 
 Vec3 Npc::mapWeaponBone() const {
@@ -3436,7 +3436,7 @@ bool Npc::drawWeaponBow() {
   if(!canSwitchWeapon())
     return false;
   auto weaponSt=weaponState();
-  if(weaponSt==WeaponState::Bow || weaponSt==WeaponState::CBow || invent.currentRangeWeapon()==nullptr)
+  if(weaponSt==WeaponState::Bow || weaponSt==WeaponState::CBow || invent.currentRangedWeapon()==nullptr)
     return true;
   if(weaponSt!=WeaponState::NoWeapon) {
     closeWeapon(false);
@@ -3446,7 +3446,7 @@ bool Npc::drawWeaponBow() {
   if(!setInteraction(nullptr,true))
     return false;
 
-  auto& weapon = *invent.currentRangeWeapon();
+  auto& weapon = *invent.currentRangedWeapon();
   auto  st     = weapon.isCrossbow() ? WeaponState::CBow : WeaponState::Bow;
   if(!visual.startAnim(*this,st))
     return false;
@@ -3796,7 +3796,7 @@ bool Npc::shootBow(Interactive* focOverride) {
   b.setOrigin(this);
   b.setDamage(DamageCalculator::rangeDamageValue(*this));
 
-  auto rgn = currentRangeWeapon();
+  auto rgn = currentRangedWeapon();
   if(Gothic::inst().version().game==1) {
     b.setHitChance(float(hnpc->attribute[ATR_DEXTERITY])/100.f);
     if(rgn!=nullptr && rgn->isCrossbow())
