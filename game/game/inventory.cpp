@@ -540,12 +540,14 @@ void Inventory::updateRuneView(Npc &owner) {
 
 void Inventory::equipBestMeleeWeapon(Npc &owner) {
   auto a = bestMeleeWeapon(owner);
-  setSlot(melee,a,owner,false);
+  if(a!=nullptr)
+    setSlot(melee,a,owner,false);
   }
 
 void Inventory::equipBestRangeWeapon(Npc &owner) {
   auto a = bestRangeWeapon(owner);
-  setSlot(range,a,owner,false);
+  if(a!=nullptr)
+    setSlot(range,a,owner,false);
   }
 
 void Inventory::unequipWeapons(GameScript &, Npc &owner) {
@@ -908,10 +910,8 @@ void Inventory::invalidateCond(Item *&slot, Npc &owner) {
 void Inventory::autoEquipWeapons(Npc &owner) {
   if(owner.isMonster())
     return;
-  auto m = bestMeleeWeapon(owner);
-  auto r = bestRangeWeapon(owner);
-  setSlot(melee ,m,owner,false);
-  setSlot(range ,r,owner,false);
+  equipBestMeleeWeapon(owner);
+  equipBestRangeWeapon(owner);
   }
 
 void Inventory::equipArmour(int32_t cls, Npc &owner) {
@@ -928,7 +928,8 @@ void Inventory::equipArmour(int32_t cls, Npc &owner) {
 
 void Inventory::equipBestArmour(Npc &owner) {
   auto a = bestArmour(owner);
-  setSlot(armour,a,owner,false);
+  if(a!=nullptr)
+    setSlot(armour,a,owner,false);
   }
 
 Item *Inventory::findByClass(size_t cls) {
@@ -967,9 +968,8 @@ Item* Inventory::bestItem(Npc &owner, ItmFlags f) {
       continue;
     if(!i->checkCond(owner))
       continue;
-    // NOTE: not checking itData.munition, as it breaks Cavalorn in G2
-    // if(itData.munition>0 && findByClass(size_t(itData.munition))==nullptr)
-    //   continue;
+    if(itData.munition>0 && findByClass(size_t(itData.munition))==nullptr)
+      continue;
 
     if(std::make_tuple(itData.damage_total, itData.value)>std::make_tuple(damage, value)){
       ret    = i.get();
