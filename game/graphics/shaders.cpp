@@ -216,6 +216,11 @@ Shaders::Shaders() {
     }
 
   if(Shaders::isRtsmSupported()) {
+    rtsmClear     = computeShader("rtsm_clear.comp.sprv");
+    rtsmPages     = computeShader("rtsm_mark_pages.comp.sprv");
+    rtsmHiZ       = computeShader("rtsm_hiz_pages.comp.sprv");
+    rtsmCulling   = computeShader("rtsm_culling.comp.sprv");
+    rtsmRaster    = computeShader("rtsm_raster.comp.sprv");
     rtsmRendering = computeShader("rtsm_rendering.comp.sprv");
     rtsmDbg       = postEffect("rtsm_dbg", RenderState::ZTestMode::Always);
     }

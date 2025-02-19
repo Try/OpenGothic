@@ -90,7 +90,7 @@ class Renderer final {
       const uint32_t shadowResolution   = 2048;
       bool           vsmEnabled         = false;
       bool           swrEnabled         = false;
-      bool           rtsmEnabled        = false;
+      bool           rtsmEnabled        = true;
 
       bool           zEnvMappingEnabled = false;
       bool           zCloudShadowScale  = false;

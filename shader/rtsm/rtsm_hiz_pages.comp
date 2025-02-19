@@ -1,0 +1,37 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+#include "scene.glsl"
+
+//NOTE: assume 32x32 table
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(binding = 0, r32ui) uniform uimage3D pageTbl;
+
+void main() {
+  const ivec2 at   = ivec2(gl_GlobalInvocationID);
+  const ivec3 size = imageSize(pageTbl);
+
+  for(uint i=1; i<size.z; ++i) {
+    const ivec3 dst = ivec3(ivec2(gl_GlobalInvocationID) + ivec2(8), i);
+    const ivec3 src = ivec3(ivec2(gl_GlobalInvocationID)*2, i-1);
+
+    const uint  m  = i-1;
+    const uint  a  = imageLoad(pageTbl, src + ivec3(0,0,0)).x;
+    const uint  b  = imageLoad(pageTbl, src + ivec3(1,0,0)).x;
+    const uint  c  = imageLoad(pageTbl, src + ivec3(1,1,0)).x;
+    const uint  d  = imageLoad(pageTbl, src + ivec3(0,1,0)).x;
+
+    const uint  h  = min(min(a,b), min(c,d));
+    const uint  t  = imageLoad(pageTbl, dst).x;
+    imageStore(pageTbl, dst, uvec4(min(h,t)));
+
+    memoryBarrierImage();
+    barrier();
+    }
+
+  // imageStore(pageTbl, at, uvec4(0xFFFFFFFF));
+  }

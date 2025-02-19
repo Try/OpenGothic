@@ -11,7 +11,7 @@
 #include "scene.glsl"
 #include "rtsm/rtsm_common.glsl"
 
-layout(local_size_x = 32, local_size_y = 32) in;
+layout(local_size_x = 8, local_size_y = 8) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 const uint MaxVert    = 64;
@@ -30,6 +30,7 @@ layout(binding = 0, r32ui)  uniform  uimage2D   outputImage;
 layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene;       };
 layout(binding = 2)         uniform  utexture2D gbufNormal;
 layout(binding = 3)         uniform  texture2D  depth;
+layout(binding = 4, std430) readonly buffer Rt  { uint visCount; uint visList[]; } rtsm;
 
 layout(binding = 5, std430) readonly buffer Cbo { Cluster clusters[];    };
 layout(binding = 6, std430) readonly buffer Mem { uint    instanceMem[]; };
@@ -337,12 +338,15 @@ void pullMeshlets(const uint step, const vec4 rbbox) {
   numVisMeshlets = 0;
   barrier();
 
-  const uint i = step*NumThreads + laneID;
-  if(isMeshletVisible(i, rbbox)) {
-    uint id = atomicAdd(numVisMeshlets, 1);
-    meshletsId[id] = i;
-    ++numMeshlets;
-    };
+  const uint visId = step*NumThreads + laneID;
+  if(visId<rtsm.visCount) {
+    const uint i = rtsm.visList[visId];
+    if(isMeshletVisible(i, rbbox)) {
+      uint id = atomicAdd(numVisMeshlets, 1);
+      meshletsId[id] = i;
+      ++numMeshlets;
+      };
+    }
   barrier();
   }
 
@@ -354,7 +358,7 @@ bool tracePacket(const vec3 ray, const vec4 rbbox) {
   int  count  = 0;
 
   const uint laneID = gl_LocalInvocationIndex;
-  const uint steps  = ((push.meshletCount + NumThreads - 1)/NumThreads);
+  const uint steps  = ((rtsm.visCount + NumThreads - 1)/NumThreads);
   for(uint i=0; i<steps; ++i) {
     pullMeshlets(i, rbbox);
     // continue;
@@ -410,22 +414,8 @@ void main() {
     }
 
   if(valid) {
-    vec4 rbb = orderedUintToFloat(rayPacketBbox);
-    rbb.xy = rbb.zw - rbb.xy;
-
-    float area = actRay ? abs(rbb.x*rbb.y*0.2 + 0.01) : 0;
-    // imageStore(outputImage, fragCoord, vec4(dbgColor,1));
-    // imageStore(outputImage, fragCoord, vec4(area, (actRay ? 1: 0), 1, 1));
-    // imageStore(outputImage, fragCoord, vec4(area));
-
-    imageStore(outputImage, fragCoord, uvec4(shadow));
     //imageStore(outputImage, fragCoord, uvec4(mergeCounter(numMeshlets)));
     //imageStore(outputImage, fragCoord, uvec4(mergeCounter(numTriangles)));
-
-    //imageStore(outputImage, fragCoord, uvec4(actRay));
-    //imageStore(outputImage, fragCoord, uvec4(selfMask==0 ? 0 : findLSB(selfMask)));
-
-    //const float light = dot(scene.sunDir, normal) > 0 ? 1 : 0;
-    //imageStore(outputImage, fragCoord, vec4(light));
+    imageStore(outputImage, fragCoord, uvec4(shadow));
     }
   }

@@ -1,0 +1,24 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+#include "scene.glsl"
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(binding = 0, r32ui)  uniform  uimage3D   pageTbl;
+layout(binding = 5, std430)          buffer Vbo { uint visCount; uint visList[]; } rtsm;
+
+void main() {
+  if(gl_GlobalInvocationID==ivec3(0))
+    rtsm.visCount = 0;
+
+  const ivec3 at   = ivec3(gl_GlobalInvocationID);
+  const ivec3 size = imageSize(pageTbl);
+  if(any(greaterThanEqual(at, size)))
+    return;
+
+  imageStore(pageTbl, at, uvec4(0xFFFFFFFF));
+  }

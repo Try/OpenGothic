@@ -324,6 +324,12 @@ add_shader(vsm_fog_trace.comp        virtual_shadow/vsm_fog_trace.comp)
 add_shader(vsm_rendering.comp        virtual_shadow/vsm_rendering.comp)
 
 # software meshlet rt
+add_shader(rtsm_clear.comp           rtsm/rtsm_clear.comp)
+add_shader(rtsm_mark_pages.comp      rtsm/rtsm_mark_pages.comp)
+add_shader(rtsm_hiz_pages.comp       rtsm/rtsm_hiz_pages.comp)
+add_shader(rtsm_culling.comp         rtsm/rtsm_culling.comp)
+add_shader(rtsm_raster.comp          rtsm/rtsm_raster.comp)
+
 add_shader(rtsm_rendering.comp       rtsm/rtsm_rendering.comp)
 add_shader(rtsm_dbg.frag             rtsm/rtsm_dbg.frag)
 

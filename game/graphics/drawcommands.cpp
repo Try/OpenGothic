@@ -564,22 +564,63 @@ void DrawCommands::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   }
 
 void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
-  struct Push { uint32_t meshletCount; } push = {};
-  push.meshletCount = uint32_t(clusters.size());
-  cmd.setPushData(push);
+  auto& device  = Resources::device();
+  auto& shaders = Shaders::inst();
 
-  cmd.setBinding(0, *scene.rtsmImage);
-  cmd.setBinding(1, scene.uboGlobal[SceneGlobals::V_Vsm]);
-  cmd.setBinding(2, *scene.gbufNormals);
-  cmd.setBinding(3, *scene.zbuffer);
+  if(rtsmPages.isEmpty()) {
+    rtsmPages = device.image3d(TextureFormat::R32U, 32, 32, 16);
+    }
 
-  cmd.setBinding(4, clusters.ssbo());
-  cmd.setBinding(5, owner.instanceSsbo());
-  cmd.setBinding(6, ibo);
-  cmd.setBinding(7, vbo);
-  cmd.setBinding(8, tex);
-  cmd.setBinding(9, Sampler::bilinear());
+  if(rtsmVisList.isEmpty()) {
+    const size_t clusterCnt = 1024*1024*4*4; // arbitrary for now
+    rtsmVisList = device.ssbo(nullptr, shaders.rtsmClear.sizeofBuffer(5, clusterCnt));
+    }
 
-  cmd.setPipeline(Shaders::inst().rtsmRendering);
-  cmd.dispatchThreads(scene.rtsmImage->size());
+  {
+    struct Push { uint32_t meshletCount; } push = {};
+    push.meshletCount = uint32_t(clusters.size());
+    cmd.setPushData(push);
+
+    cmd.setBinding(0, rtsmPages);
+    cmd.setBinding(1, scene.uboGlobal[SceneGlobals::V_Vsm]);
+    cmd.setBinding(2, *scene.gbufNormals);
+    cmd.setBinding(3, *scene.zbuffer);
+    cmd.setBinding(4, clusters.ssbo());
+    cmd.setBinding(5, rtsmVisList);
+
+    cmd.setPipeline(shaders.rtsmClear);
+    cmd.dispatchThreads(size_t(rtsmPages.w()), size_t(rtsmPages.h()), size_t(rtsmPages.d()));
+
+    cmd.setPipeline(shaders.rtsmPages);
+    cmd.dispatchThreads(scene.zbuffer->size());
+
+    cmd.setPipeline(shaders.rtsmHiZ);
+    cmd.dispatch(1);
+
+    cmd.setPipeline(shaders.rtsmCulling);
+    cmd.dispatchThreads(push.meshletCount);
+  }
+
+  {
+    struct Push { uint32_t meshletCount; } push = {};
+    push.meshletCount = uint32_t(clusters.size());
+    cmd.setPushData(push);
+
+    cmd.setBinding(0, *scene.rtsmImage);
+    cmd.setBinding(1, scene.uboGlobal[SceneGlobals::V_Vsm]);
+    cmd.setBinding(2, *scene.gbufNormals);
+    cmd.setBinding(3, *scene.zbuffer);
+    cmd.setBinding(4, rtsmVisList);
+
+    cmd.setBinding(5, clusters.ssbo());
+    cmd.setBinding(6, owner.instanceSsbo());
+    cmd.setBinding(7, ibo);
+    cmd.setBinding(8, vbo);
+    cmd.setBinding(9, tex);
+    cmd.setBinding(10, Sampler::bilinear());
+
+    // cmd.setPipeline(shaders.rtsmRendering);
+    cmd.setPipeline(shaders.rtsmRaster);
+    cmd.dispatchThreads(scene.rtsmImage->size());
+  }
   }
