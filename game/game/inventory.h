@@ -78,9 +78,9 @@ class Inventory final {
     void   invalidateCond(Npc &owner);
     bool   isChanged() const { return !sorted; }
     void   autoEquipWeapons(Npc &owner);
-    void   equipArmor          (int32_t cls, Npc &owner);
-    void   equipBestArmor      (Npc &owner);
-    void   equipBestMeleeWeapon(Npc &owner);
+    void   equipArmor           (int32_t cls, Npc &owner);
+    void   equipBestArmor       (Npc &owner);
+    void   equipBestMeleeWeapon (Npc &owner);
     void   equipBestRangedWeapon(Npc &owner);
     void   unequipWeapons(GameScript &vm, Npc &owner);
     void   unequipArmor(GameScript &vm, Npc &owner);
