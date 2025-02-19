@@ -76,7 +76,6 @@ class Inventory final {
     bool   unequip(size_t cls, Npc &owner);
     void   unequip(Item*  cls, Npc &owner);
     void   invalidateCond(Npc &owner);
-    bool   isChanged() const { return !sorted; }
     void   autoEquipWeapons(Npc &owner);
     void   equipArmor           (int32_t cls, Npc &owner);
     void   equipBestArmor       (Npc &owner);
