@@ -76,7 +76,7 @@ void PlayerControl::onKeyPressed(KeyCodec::Action a, Tempest::KeyEvent::KeyType 
       else {
         if(wctrlLast>=WeaponAction::Weapon3 && pl->inventory().currentSpell(static_cast<uint8_t>(wctrlLast-3))==nullptr)
           wctrlLast=WeaponAction::WeaponBow;  //Spell no longer available -> fallback to Bow.
-        if(wctrlLast==WeaponAction::WeaponBow && pl->currentRangeWeapon()==nullptr)
+        if(wctrlLast==WeaponAction::WeaponBow && pl->currentRangedWeapon()==nullptr)
           wctrlLast=WeaponAction::WeaponMele; //Bow no longer available -> fallback to Mele.
         wctrl[wctrlLast] = true;
         }
@@ -631,7 +631,7 @@ void PlayerControl::implMove(uint64_t dt) {
       return;
       }
     if(wctrl[WeaponBow]) {
-      if(pl.currentRangeWeapon()!=nullptr){
+      if(pl.currentRangedWeapon()!=nullptr) {
         wctrl[WeaponBow] = !pl.drawWeaponBow();
         wctrlLast        = WeaponBow;
         } else {

@@ -151,9 +151,9 @@ class Npc final {
     void       setVisualBody (int32_t headTexNr, int32_t teethTexNr,
                               int32_t bodyVer, int32_t bodyColor,
                               std::string_view body, std::string_view head);
-    void       updateArmour  ();
+    void       updateArmor   ();
     void       setSword      (MeshObjects::Mesh&& sword);
-    void       setRangeWeapon(MeshObjects::Mesh&& bow);
+    void       setRangedWeapon(MeshObjects::Mesh&& bow);
     void       setShield     (MeshObjects::Mesh&& shield);
     void       setMagicWeapon(Effect&& spell);
     void       setSlotItem   (MeshObjects::Mesh&& itm, std::string_view slot);
@@ -348,9 +348,9 @@ class Npc final {
     void      buyItem    (size_t id, Npc& from,          size_t count=1);
     void      dropItem   (size_t id,                     size_t count=1);
     void      clearInventory();
-    Item*     currentArmour();
+    Item*     currentArmor();
     Item*     currentMeleeWeapon();
-    Item*     currentRangeWeapon();
+    Item*     currentRangedWeapon();
     auto      mapWeaponBone() const -> Tempest::Vec3;
     auto      mapHeadBone() const -> Tempest::Vec3;
     auto      mapBone(std::string_view bone) const -> Tempest::Vec3;

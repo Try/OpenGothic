@@ -204,7 +204,7 @@ AiQueue::AiAction AiQueue::aiEquipBestMeleeWeapon() {
   return a;
   }
 
-AiQueue::AiAction AiQueue::aiEquipBestRangeWeapon() {
+AiQueue::AiAction AiQueue::aiEquipBestRangedWeapon() {
   AiAction a;
   a.act = AI_EquipRange;
   return a;
@@ -252,7 +252,7 @@ AiQueue::AiAction AiQueue::aiReadyMeleeWeapon() {
   return a;
   }
 
-AiQueue::AiAction AiQueue::aiReadyRangeWeapon() {
+AiQueue::AiAction AiQueue::aiReadyRangedWeapon() {
   AiAction a;
   a.act = AI_DrawWeaponRange;
   return a;

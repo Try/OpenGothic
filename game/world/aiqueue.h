@@ -61,14 +61,14 @@ class AiQueue {
     static AiAction aiEquipArmor(int32_t id);
     static AiAction aiEquipBestArmor();
     static AiAction aiEquipBestMeleeWeapon();
-    static AiAction aiEquipBestRangeWeapon();
+    static AiAction aiEquipBestRangedWeapon();
     static AiAction aiUseMob(std::string_view name,int st);
     static AiAction aiUseItem(int32_t id);
     static AiAction aiUseItemToState(int32_t id, int32_t state);
     static AiAction aiTeleport(const WayPoint& to);
     static AiAction aiDrawWeapon();
     static AiAction aiReadyMeleeWeapon();
-    static AiAction aiReadyRangeWeapon();
+    static AiAction aiReadyRangedWeapon();
     static AiAction aiReadySpell(int32_t spell, int32_t mana);
     static AiAction aiAttack();
     static AiAction aiFlee();
