@@ -564,32 +564,48 @@ void DrawCommands::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   }
 
 void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
-  auto& device  = Resources::device();
-  auto& shaders = Shaders::inst();
+  auto& device   = Resources::device();
+  auto& shaders  = Shaders::inst();
+  auto& sceneUbo = scene.uboGlobal[SceneGlobals::V_Vsm];
 
   if(rtsmPages.isEmpty()) {
     rtsmPages = device.image3d(TextureFormat::R32U, 32, 32, 16);
     }
 
-  if(rtsmVisList.isEmpty()) {
-    const size_t clusterCnt = 1024*1024*4*4; // arbitrary for now
-    rtsmVisList = device.ssbo(nullptr, shaders.rtsmClear.sizeofBuffer(5, clusterCnt));
+  const size_t clusterCnt = clusters.size();
+  const size_t clusterSz  = shaders.rtsmClear.sizeofBuffer(1, clusterCnt);
+  if(rtsmVisList.byteSize()!=clusterSz) {
+    Resources::recycle(std::move(rtsmVisList));
+    rtsmVisList = device.ssbo(nullptr, clusterSz);
+    }
+
+  if(rtsmPosList.isEmpty()) {
+    const size_t header         = shaders.rtsmPosition.sizeofBuffer(0);
+    const size_t meshletSizeEst = 64*(4+4)*sizeof(uint32_t);
+    rtsmPosList = device.ssbo(nullptr, header + 16'384*meshletSizeEst); // ~32mb
     }
 
   {
+    // clear
+    cmd.setBinding(0, rtsmPages);
+    cmd.setBinding(1, rtsmVisList);
+    cmd.setBinding(2, rtsmPosList);
+
+    cmd.setPipeline(shaders.rtsmClear);
+    cmd.dispatchThreads(size_t(rtsmPages.w()), size_t(rtsmPages.h()), size_t(rtsmPages.d()));
+  }
+  {
+    // cull
     struct Push { uint32_t meshletCount; } push = {};
     push.meshletCount = uint32_t(clusters.size());
     cmd.setPushData(push);
 
     cmd.setBinding(0, rtsmPages);
-    cmd.setBinding(1, scene.uboGlobal[SceneGlobals::V_Vsm]);
+    cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, *scene.gbufNormals);
     cmd.setBinding(3, *scene.zbuffer);
-    cmd.setBinding(4, clusters.ssbo());
-    cmd.setBinding(5, rtsmVisList);
-
-    cmd.setPipeline(shaders.rtsmClear);
-    cmd.dispatchThreads(size_t(rtsmPages.w()), size_t(rtsmPages.h()), size_t(rtsmPages.d()));
+    cmd.setBinding(4, rtsmVisList);
+    cmd.setBinding(5, clusters.ssbo());
 
     cmd.setPipeline(shaders.rtsmPages);
     cmd.dispatchThreads(scene.zbuffer->size());
@@ -602,12 +618,45 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   }
 
   {
+    // position
+    cmd.setBinding(0, rtsmPosList);
+    cmd.setBinding(1, sceneUbo);
+    cmd.setBinding(4, rtsmVisList);
+
+    cmd.setBinding(5, clusters.ssbo());
+    cmd.setBinding(6, owner.instanceSsbo());
+    cmd.setBinding(7, ibo);
+    cmd.setBinding(8, vbo);
+
+    cmd.setPipeline(shaders.rtsmPosition);
+    cmd.dispatchIndirect(rtsmVisList,0);
+  }
+
+  static bool reference = false;
+  if(!reference) {
+    cmd.setBinding(0, *scene.rtsmImage);
+    cmd.setBinding(1, sceneUbo);
+    cmd.setBinding(2, *scene.gbufNormals);
+    cmd.setBinding(3, *scene.zbuffer);
+    cmd.setBinding(4, rtsmVisList);
+
+    cmd.setBinding(5, clusters.ssbo());
+    cmd.setBinding(6, owner.instanceSsbo());
+    //cmd.setBinding(7, rtsmPosList);
+    cmd.setBinding(7, ibo);
+    cmd.setBinding(8, vbo);
+    cmd.setBinding(9, tex);
+    cmd.setBinding(10, Sampler::bilinear());
+
+    cmd.setPipeline(shaders.rtsmRaster);
+    cmd.dispatchThreads(scene.rtsmImage->size());
+    } else {
     struct Push { uint32_t meshletCount; } push = {};
     push.meshletCount = uint32_t(clusters.size());
     cmd.setPushData(push);
 
     cmd.setBinding(0, *scene.rtsmImage);
-    cmd.setBinding(1, scene.uboGlobal[SceneGlobals::V_Vsm]);
+    cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, *scene.gbufNormals);
     cmd.setBinding(3, *scene.zbuffer);
     cmd.setBinding(4, rtsmVisList);
@@ -619,8 +668,7 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.setBinding(9, tex);
     cmd.setBinding(10, Sampler::bilinear());
 
-    // cmd.setPipeline(shaders.rtsmRendering);
-    cmd.setPipeline(shaders.rtsmRaster);
+    cmd.setPipeline(shaders.rtsmRendering);
     cmd.dispatchThreads(scene.rtsmImage->size());
-  }
+    }
   }

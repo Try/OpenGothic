@@ -13,11 +13,11 @@ layout(push_constant, std430) uniform UboPush {
   int meshletCount;
   } push;
 layout(binding = 0, r32ui)  uniform  uimage3D   pageTbl;
-layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene;               };
+layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene;                   };
 layout(binding = 2)         uniform  utexture2D gbufNormal;
 layout(binding = 3)         uniform  texture2D  depth;
-layout(binding = 4, std430) readonly buffer Cbo { Cluster clusters[];            };
-layout(binding = 5, std430)          buffer Vbo { uint visCount; uint visList[]; } rtsm;
+layout(binding = 4, std430)          buffer Rt  { RtsmHeader header; uint visList[]; } rtsm;
+layout(binding = 5, std430) readonly buffer Cbo { Cluster clusters[];                };
 
 bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMax) {
   const vec3  c = (scene.viewVirtualShadowLwc * vec4(sphere.xyz, 1)).xyz;
@@ -59,6 +59,21 @@ bool pageHiZTest(ivec4 iaabb, float depthMax, int mip) {
   return false;
   }
 
+int mipBySize(const vec2  sz) {
+  //const vec2  sz   = (aabb.zw-aabb.xy)*RTSM_PAGE_TBL_SIZE;
+  const int   size = int(ceil(max(sz.x, sz.y)));
+  const int   mip  = findMSB(size)+1;
+  return mip;
+  }
+
+int mipByPos(const vec4 aabb) {
+  const float x   = max(abs(aabb.x), abs(aabb.z));
+  const float y   = max(abs(aabb.y), abs(aabb.y));
+  const int   at  = int(ceil(max(x, y)));
+  const int   mip = findMSB(at)+1;
+  return mip;
+  }
+
 void main() {
   const uint clusterId = gl_GlobalInvocationID.x;
   if(clusterId>=push.meshletCount)
@@ -73,9 +88,9 @@ void main() {
   if(!projectCluster(cluster, aabb, depthMax))
     return;
 
-  const vec2  sz   = (aabb.zw-aabb.xy)*RTSM_PAGE_TBL_SIZE;
-  const int   size = int(ceil(max(sz.x, sz.y)));
-  const int   mip  = findMSB(size)+1;
+  const int   mipSz  = mipBySize((aabb.zw-aabb.xy)*RTSM_PAGE_TBL_SIZE);
+  const int   mipPos = mipByPos (aabb);
+  const int   mip    = max(mipSz, mipPos);
   if(mip>=RTSM_PAGE_MIPS)
     return;
 
@@ -90,6 +105,6 @@ void main() {
   if(!pageHiZTest(iaabb, depthMax, mip))
     return;
 
-  const uint id = atomicAdd(rtsm.visCount, 1);
+  const uint id = atomicAdd(rtsm.header.visCount, 1);
   rtsm.visList[id] = clusterId;
   }

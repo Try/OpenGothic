@@ -1,0 +1,196 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+// bindless
+#extension GL_EXT_nonuniform_qualifier : enable
+
+#include "rtsm/rtsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 64) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+const uint MaxVert    = 64;
+const uint MaxPrim    = 64;
+const uint MaxInd     = (MaxPrim*3);
+
+struct Vertex {
+  vec3 pos;
+  };
+
+layout(binding = 0, std430)          buffer Pos { uint alloc; uint data[];           } pos;
+layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene;                   };
+layout(binding = 4, std430)          buffer Rt  { RtsmHeader header; uint visList[]; } rtsm;
+
+layout(binding = 5, std430) readonly buffer Cbo { Cluster clusters[];    };
+layout(binding = 6, std430) readonly buffer Mem { uint    instanceMem[]; };
+layout(binding = 7, std430) readonly buffer Ibo { uint    indexes [];    } ibo[];
+layout(binding = 8, std430) readonly buffer Vbo { float   vertices[];    } vbo[];
+
+
+shared uint   posPtr;
+shared uint   maxPrim;
+shared uvec3  primitiveIndices[MaxPrim];
+//shared float  primitiveAreaInv[MaxPrim];
+shared Vertex meshVertices    [MaxVert];
+
+bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMax) {
+  const vec3  c = (scene.viewVirtualShadowLwc * vec4(sphere.xyz, 1)).xyz;
+  const float R = sphere.w;
+
+  const float smWidthInv = 1.0/(1024.0); // NOTE: from camera.cpp
+  const float zScale     = 1.0/(10*5120.0);
+
+  float Rz = R * zScale;
+  if(c.z - Rz > 1 || c.z + Rz < 0)
+    return false;
+
+  float Rx = R * smWidthInv;
+  float Ry = R * smWidthInv;
+  aabb     = vec4(c.xy-vec2(Rx,Ry), c.xy+vec2(Rx,Ry));
+  depthMax = c.z + Rz;
+  // aabb = c.xyxy;
+  return true;
+  }
+
+bool projectCluster(const Cluster cluster, out vec4 aabb, out float depthMax) {
+  if(cluster.instanceId==0xFFFFFFFF)
+    return projectSphere(cluster.sphere, aabb, depthMax);
+  return projectSphere(cluster.sphere, aabb, depthMax);
+  }
+
+vec4 projectCluster(const Cluster cluster) {
+  vec4  aabb     = vec4(0);
+  float depthMax = 1;
+  projectCluster(cluster, aabb, depthMax);
+  return aabb;
+  }
+
+uvec2 pullMeshlet(const uint meshletId, const uint bucketId) {
+  nonuniformEXT uint bId = bucketId;
+
+  const uint iboOffset = meshletId * MaxPrim + MaxPrim - 1;
+  const uint bits      = ibo[bId].indexes[iboOffset];
+  uvec4 prim;
+  prim.x = ((bits >>  0) & 0xFF);
+  prim.y = ((bits >>  8) & 0xFF);
+
+  uint vertCount = MaxVert;
+  uint primCount = MaxPrim;
+  if(prim.x==prim.y) {
+    // last dummy triangle encodes primitive count
+    prim.z = ((bits >> 16) & 0xFF);
+    prim.w = ((bits >> 24) & 0xFF);
+
+    primCount = prim.z;
+    vertCount = prim.w;
+    }
+  return uvec2(vertCount, primCount);
+  }
+
+uvec3 pullPrimitive(const uint meshletId, const uint bucketId, const uint laneId) {
+  nonuniformEXT uint bId = bucketId;
+
+  const uint iboOffset = meshletId * MaxPrim + laneId;
+  const uint bits      = ibo[bId].indexes[iboOffset];
+  uvec3 prim;
+  prim.x = ((bits >>  0) & 0xFF);
+  prim.y = ((bits >>  8) & 0xFF);
+  prim.z = ((bits >> 16) & 0xFF);
+  return prim;
+  }
+
+Vertex pullVertex(const uint meshletId, const uint bucketId, const uint laneId) {
+  nonuniformEXT uint bId = bucketId;
+  uint vboOffset = meshletId * MaxVert + laneId;
+
+  // static geometry
+  uint id = vboOffset * 9;
+  Vertex ret;
+  ret.pos    = vec3(vbo[bId].vertices[id + 0], vbo[bId].vertices[id + 1], vbo[bId].vertices[id + 2]);
+  //ret.uv     = vec2(vbo[bId].vertices[id + 6], vbo[bId].vertices[id + 7]);
+  //vec3 normal = vec3(vbo[bId].vertices[id + 3], vbo[bId].vertices[id + 4], vbo[bId].vertices[id + 5]);
+  //uint color  = floatBitsToUint(vbo[bId].vertices[id + 8]);
+  return ret;
+  }
+
+uint packTri(uvec3 v) {
+  // assume v is in 0..255 range
+  v.x = v.x << 0;
+  v.y = v.y << 8;
+  v.z = v.z << 16;
+  return v.x | v.y | v.z;
+  }
+
+void main() {
+  maxPrim = 0;
+  barrier();
+
+  const uint    laneID   = gl_LocalInvocationIndex;
+  const uint    visId    = rtsm.visList[gl_GlobalInvocationID.x];
+  const Cluster cluster  = clusters[visId];
+
+  const uint  meshletId  = cluster.firstMeshlet;
+  const uint  bucketId   = cluster.bucketId_commandId>>16;
+
+  const uvec2 mesh       = pullMeshlet(meshletId, bucketId);
+  const uint  vertCount  = mesh.x;
+  const uint  primCount  = mesh.y;
+
+  if(laneID<vertCount) {
+    Vertex v    = pullVertex(meshletId, bucketId, laneID);
+    vec4   pos4 = (scene.viewVirtualShadowLwc * vec4(v.pos.xyz,1)); // LWC?
+    v.pos.xyz = pos4.xyz/pos4.w;
+    meshVertices[laneID] = v;
+    }
+  barrier();
+
+  if(laneID<primCount) {
+    const uvec3 tri = pullPrimitive(meshletId, bucketId, laneID);
+    const vec3  a   = meshVertices[tri.x].pos.xyz;
+    const vec3  b   = meshVertices[tri.y].pos.xyz;
+    const vec3  c   = meshVertices[tri.z].pos.xyz;
+
+    const float area = edgeFunction(a.xy, b.xy, c.xy);
+    if(area>0) {
+      uint id = atomicAdd(maxPrim, 1);
+      primitiveIndices[id] = tri;
+      //primitiveAreaInv[id] = (1.0/area);
+      }
+    }
+  barrier();
+
+  const uint maxMesh = 4;
+  const uint size    = maxMesh + maxPrim + MaxVert*4;
+  if(laneID==0) {
+    // posPtr = atomicAdd(pos.alloc, maxPrim);
+    posPtr = atomicAdd(pos.alloc, size);
+    // rtsm.visList[gl_GlobalInvocationID.x] = posPtr;
+    }
+  barrier();
+
+  if(laneID==0) {
+    //NOTE: dedicated dispath?
+    const Cluster cluster = clusters[visId];
+    const vec4    aabb    = projectCluster(cluster);
+
+    const uint i = posPtr;
+    pos.data[i+0] = floatBitsToUint(aabb.x);
+    pos.data[i+1] = floatBitsToUint(aabb.y);
+    pos.data[i+2] = floatBitsToUint(aabb.z);
+    pos.data[i+3] = floatBitsToUint(aabb.w);
+    }
+  if(laneID<primCount) {
+    const uint i = posPtr + maxMesh + laneID;
+    pos.data[i] = packTri(primitiveIndices[laneID]);
+    }
+  if(laneID<vertCount) {
+    const uint i = posPtr + maxMesh + maxPrim + laneID*4;
+    pos.data[i+0] = floatBitsToUint(meshVertices[laneID].pos.x);
+    pos.data[i+1] = floatBitsToUint(meshVertices[laneID].pos.y);
+    pos.data[i+2] = floatBitsToUint(meshVertices[laneID].pos.z);
+    pos.data[i+3] = 1234; //TODO: UV
+    }
+  }

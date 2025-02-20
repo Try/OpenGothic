@@ -27,10 +27,11 @@ layout(push_constant, std430) uniform UboPush {
   } push;
 //layout(binding = 0, rgba8)  uniform image2D     outputImage;
 layout(binding = 0, r32ui)  uniform  uimage2D   outputImage;
-layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene;       };
+layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
 layout(binding = 2)         uniform  utexture2D gbufNormal;
 layout(binding = 3)         uniform  texture2D  depth;
-layout(binding = 4, std430) readonly buffer Rt  { uint visCount; uint visList[]; } rtsm;
+layout(binding = 4, std430) readonly buffer Rt  { RtsmHeader header; uint visList[]; } rtsm;
+//layout(binding = 0, std430)          buffer Pos { uint alloc; uint data[];           } pos;
 
 layout(binding = 5, std430) readonly buffer Cbo { Cluster clusters[];    };
 layout(binding = 6, std430) readonly buffer Mem { uint    instanceMem[]; };
@@ -74,19 +75,6 @@ void rayBbox(vec3 orig, bool activeRay) {
     atomicMin(rayMinDepth, floatToOrderedUint(orig.z));
     }
   barrier();
-  }
-
-float edgeFunction(const vec2 a, const vec2 b, const vec2 c) {
-  return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
-  }
-
-vec4 bboxOf(vec2 a, vec2 b, vec2 c) {
-  vec4 ret;
-  ret.x = min(a.x, min(b.x, c.x));
-  ret.z = max(a.x, max(b.x, c.x));
-  ret.y = min(a.y, min(b.y, c.y));
-  ret.w = max(a.y, max(b.y, c.y));
-  return ret;
   }
 
 // light/occlusion/matrix
@@ -339,7 +327,7 @@ void pullMeshlets(const uint step, const vec4 rbbox) {
   barrier();
 
   const uint visId = step*NumThreads + laneID;
-  if(visId<rtsm.visCount) {
+  if(visId<rtsm.header.visCount) {
     const uint i = rtsm.visList[visId];
     if(isMeshletVisible(i, rbbox)) {
       uint id = atomicAdd(numVisMeshlets, 1);
@@ -358,7 +346,7 @@ bool tracePacket(const vec3 ray, const vec4 rbbox) {
   int  count  = 0;
 
   const uint laneID = gl_LocalInvocationIndex;
-  const uint steps  = ((rtsm.visCount + NumThreads - 1)/NumThreads);
+  const uint steps  = ((rtsm.header.visCount + NumThreads - 1)/NumThreads);
   for(uint i=0; i<steps; ++i) {
     pullMeshlets(i, rbbox);
     // continue;

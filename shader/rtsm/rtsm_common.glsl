@@ -6,6 +6,12 @@
 const int RTSM_PAGE_TBL_SIZE = 32;  // small for testing, 64 can be better
 const int RTSM_PAGE_MIPS     = 16;
 
+struct RtsmHeader {
+  uint visCount;
+  uint one1;
+  uint one2;
+  };
+
 // utility
 uint floatToOrderedUint(float value) {
   uint uvalue = floatBitsToUint(value);
@@ -25,6 +31,19 @@ vec4 orderedUintToFloat(uvec4 value) {
   r.z = orderedUintToFloat(value.z);
   r.w = orderedUintToFloat(value.w);
   return r;
+  }
+
+float edgeFunction(const vec2 a, const vec2 b, const vec2 c) {
+  return (c.x - a.x) * (b.y - a.y) - (c.y - a.y) * (b.x - a.x);
+  }
+
+vec4 bboxOf(vec2 a, vec2 b, vec2 c) {
+  vec4 ret;
+  ret.x = min(a.x, min(b.x, c.x));
+  ret.z = max(a.x, max(b.x, c.x));
+  ret.y = min(a.y, min(b.y, c.y));
+  ret.w = max(a.y, max(b.y, c.y));
+  return ret;
   }
 
 bool bboxIntersect(vec4 a, vec4 b) {

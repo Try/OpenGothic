@@ -140,4 +140,5 @@ class DrawCommands {
 
     Tempest::StorageImage    rtsmPages;
     Tempest::StorageBuffer   rtsmVisList;
+    Tempest::StorageBuffer   rtsmPosList;
   };

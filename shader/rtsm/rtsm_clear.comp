@@ -4,16 +4,23 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_EXT_samplerless_texture_functions : enable
 
+#include "rtsm_common.glsl"
 #include "scene.glsl"
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
-layout(binding = 0, r32ui)  uniform  uimage3D   pageTbl;
-layout(binding = 5, std430)          buffer Vbo { uint visCount; uint visList[]; } rtsm;
+layout(binding = 0, r32ui)  uniform uimage3D   pageTbl;
+layout(binding = 1, std430)         buffer Rt  { RtsmHeader header; uint visList[]; } rtsm;
+layout(binding = 2, std430)         buffer Pos { uint alloc; uint data[];           } pos;
 
 void main() {
-  if(gl_GlobalInvocationID==ivec3(0))
-    rtsm.visCount = 0;
+  if(gl_GlobalInvocationID==ivec3(0)) {
+    rtsm.header.visCount = 0;
+    rtsm.header.one1     = 1;
+    rtsm.header.one2     = 1;
+
+    pos.alloc            = 0;
+    }
 
   const ivec3 at   = ivec3(gl_GlobalInvocationID);
   const ivec3 size = imageSize(pageTbl);
