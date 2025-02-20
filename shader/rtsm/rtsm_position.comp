@@ -37,7 +37,7 @@ shared uvec3  primitiveIndices[MaxPrim];
 shared Vertex meshVertices    [MaxVert];
 
 bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMax) {
-  const vec3  c = (scene.viewVirtualShadowLwc * vec4(sphere.xyz, 1)).xyz;
+  const vec3  c = (scene.viewVirtualShadow * vec4(sphere.xyz, 1)).xyz;
   const float R = sphere.w;
 
   const float smWidthInv = 1.0/(1024.0); // NOTE: from camera.cpp
@@ -141,7 +141,7 @@ void main() {
 
   if(laneID<vertCount) {
     Vertex v    = pullVertex(meshletId, bucketId, laneID);
-    vec4   pos4 = (scene.viewVirtualShadowLwc * vec4(v.pos.xyz,1)); // LWC?
+    vec4   pos4 = (scene.viewVirtualShadow * vec4(v.pos.xyz,1));
     v.pos.xyz = pos4.xyz/pos4.w;
     meshVertices[laneID] = v;
     }

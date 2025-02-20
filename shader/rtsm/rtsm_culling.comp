@@ -20,7 +20,7 @@ layout(binding = 4, std430)          buffer Rt  { RtsmHeader header; uint visLis
 layout(binding = 5, std430) readonly buffer Cbo { Cluster clusters[];                };
 
 bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMax) {
-  const vec3  c = (scene.viewVirtualShadowLwc * vec4(sphere.xyz, 1)).xyz;
+  const vec3  c = (scene.viewVirtualShadow * vec4(sphere.xyz, 1)).xyz;
   const float R = sphere.w;
 
   const float smWidthInv = 1.0/(1024.0); // NOTE: from camera.cpp
