@@ -31,14 +31,11 @@ layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
 layout(binding = 2)         uniform  utexture2D gbufNormal;
 layout(binding = 3)         uniform  texture2D  depth;
 layout(binding = 4, std430) readonly buffer Rt  { RtsmHeader header; uint visList[]; } rtsm;
-//layout(binding = 0, std430)          buffer Pos { uint alloc; uint data[];           } pos;
 
-layout(binding = 5, std430) readonly buffer Cbo { Cluster clusters[];    };
-layout(binding = 6, std430) readonly buffer Mem { uint    instanceMem[]; };
-layout(binding = 7, std430) readonly buffer Ibo { uint    indexes [];    } ibo[];
-layout(binding = 8, std430) readonly buffer Vbo { float   vertices[];    } vbo[];
-layout(binding = 9)         uniform  texture2D  textureMain[];
-layout(binding = 10)        uniform  sampler    samplerMain;
+layout(binding = 5, std430) readonly buffer Pos { uint    alloc; uint data[]; } pos;
+layout(binding = 6)         uniform  texture2D  textureMain[];
+layout(binding = 7)         uniform  sampler    samplerMain;
+
 
 vec3  dbgColor  = vec3(0);
 ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
@@ -87,32 +84,6 @@ vec4 worldPos(ivec2 frag, float depth) {
   const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
   return scene.viewProjectLwcInv * scr;
   // return scene.viewProjectInv * scr;
-  }
-
-// meshlets
-bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMax) {
-  const vec3  c = (scene.viewVirtualShadow * vec4(sphere.xyz, 1)).xyz;
-  const float R = sphere.w;
-
-  const float smWidthInv = 1.0/(1024.0); // NOTE: from camera.cpp
-  const float zScale     = 1.0/(10*5120.0);
-
-  float Rz = R * zScale;
-  if(c.z - Rz > 1 || c.z + Rz < 0)
-    return false;
-
-  float Rx = R * smWidthInv;
-  float Ry = R * smWidthInv;
-  aabb     = vec4(c.xy-vec2(Rx,Ry), c.xy+vec2(Rx,Ry));
-  depthMax = c.z + Rz;
-  // aabb = c.xyxy;
-  return true;
-  }
-
-bool projectCluster(const Cluster cluster, out vec4 aabb, out float depthMax) {
-  if(cluster.instanceId==0xFFFFFFFF)
-    return projectSphere(cluster.sphere, aabb, depthMax);
-  return false; //projectSphere(cluster.sphere, aabb, depthMax);
   }
 
 // pagging
@@ -168,33 +139,9 @@ uint mergeMasks(uint m) {
   }
 
 // meshlet-data
-uvec2 pullMeshlet(const uint meshletId, const uint bucketId) {
-  nonuniformEXT uint bId = bucketId;
+uvec3 pullPrimitive(const uint ptr, const uint laneId) {
+  uint bits = pos.data[ptr+laneId];
 
-  const uint iboOffset = meshletId * MaxPrim + MaxPrim - 1;
-  const uint bits      = ibo[bId].indexes[iboOffset];
-  uvec4 prim;
-  prim.x = ((bits >>  0) & 0xFF);
-  prim.y = ((bits >>  8) & 0xFF);
-
-  uint vertCount = MaxVert;
-  uint primCount = MaxPrim;
-  if(prim.x==prim.y) {
-    // last dummy triangle encodes primitive count
-    prim.z = ((bits >> 16) & 0xFF);
-    prim.w = ((bits >> 24) & 0xFF);
-
-    primCount = prim.z;
-    vertCount = prim.w;
-    }
-  return uvec2(vertCount, primCount);
-  }
-
-uvec3 pullPrimitive(const uint meshletId, const uint bucketId, const uint outId) {
-  nonuniformEXT uint bId = bucketId;
-
-  const uint iboOffset = meshletId * MaxPrim + outId;
-  const uint bits      = ibo[bId].indexes[iboOffset];
   uvec3 prim;
   prim.x = ((bits >>  0) & 0xFF);
   prim.y = ((bits >>  8) & 0xFF);
@@ -202,17 +149,15 @@ uvec3 pullPrimitive(const uint meshletId, const uint bucketId, const uint outId)
   return prim;
   }
 
-Vertex pullVertex(const uint meshletId, const uint bucketId, const uint laneId) {
-  nonuniformEXT uint bId = bucketId;
-  uint vboOffset = meshletId * MaxVert + laneId;
+Vertex pullVertex(uint ptr, const uint laneId) {
+  ptr += 4*laneId;
 
-  // static geometry
-  uint id = vboOffset * 9;
   Vertex ret;
-  ret.pos    = vec3(vbo[bId].vertices[id + 0], vbo[bId].vertices[id + 1], vbo[bId].vertices[id + 2]);
-  //ret.uv     = vec2(vbo[bId].vertices[id + 6], vbo[bId].vertices[id + 7]);
-  //vec3 normal = vec3(vbo[bId].vertices[id + 3], vbo[bId].vertices[id + 4], vbo[bId].vertices[id + 5]);
-  //uint color  = floatBitsToUint(vbo[bId].vertices[id + 8]);
+  ret.pos.x = uintBitsToFloat(pos.data[ptr+0]);
+  ret.pos.y = uintBitsToFloat(pos.data[ptr+1]);
+  ret.pos.z = uintBitsToFloat(pos.data[ptr+2]);
+  //TODO: UV
+
   return ret;
   }
 
@@ -220,24 +165,22 @@ shared uint   maxPrim;
 shared uvec3  primitiveIndices[MaxPrim];
 shared float  primitiveAreaInv[MaxPrim];
 shared Vertex meshVertices    [MaxVert];
-void processMeshletPrimitives(uint meshletId, uint bucketId, uint primCount, vec4 rbbox) {
+void processMeshletPrimitives(uint ptr, uint primCount, vec4 rbbox) {
   const uint laneID = gl_LocalInvocationIndex;
 
   if(laneID<primCount) {
-    const uvec3 tri = pullPrimitive(meshletId, bucketId, laneID);
+    const uvec3 tri = pullPrimitive(ptr, laneID);
     const vec3  a   = meshVertices[tri.x].pos.xyz;
     const vec3  b   = meshVertices[tri.y].pos.xyz;
     const vec3  c   = meshVertices[tri.z].pos.xyz;
-
-    const float area = edgeFunction(a.xy, b.xy, c.xy);
-    if(area<=0)
-      return;
 
     const vec4 tbb = bboxOf(a.xy, b.xy, c.xy);
     if(!bboxIntersect(tbb, rbbox))
       return;
 
-    uint id = atomicAdd(maxPrim, 1);
+    const uint  id   = atomicAdd(maxPrim, 1);
+    const float area = edgeFunction(a.xy, b.xy, c.xy);
+
     primitiveIndices[id] = tri;
     primitiveAreaInv[id] = (1.0/area);
 
@@ -245,24 +188,13 @@ void processMeshletPrimitives(uint meshletId, uint bucketId, uint primCount, vec
     }
   }
 
-uvec3 processMeshlet(uint i, vec4 rbbox) {
-  const Cluster cluster = clusters[i];
-
-  const uint  meshletId  = cluster.firstMeshlet;
-  const uint  bucketId   = cluster.bucketId_commandId>>16;
-
-  const uvec2 mesh       = pullMeshlet(meshletId, bucketId);
-  const uint  vertCount  = mesh.x;
-  const uint  primCount  = mesh.y;
-
+void processMeshletVertices(const uint ptr) {
   const uint laneID = gl_LocalInvocationIndex;
+
+  const uint vertCount = MaxVert; //TODO
   if(laneID<vertCount) {
-    Vertex v    = pullVertex(meshletId, bucketId, laneID);
-    vec4   pos4 = (scene.viewVirtualShadow * vec4(v.pos.xyz,1));
-    v.pos.xyz = pos4.xyz/pos4.w;
-    meshVertices[laneID] = v;
+    meshVertices[laneID] = pullVertex(ptr, laneID);
     }
-  return uvec3(meshletId, bucketId, primCount);
   }
 
 bool rasterizeMeshletShadow(const vec3 ray) {
@@ -280,8 +212,8 @@ bool rasterizeMeshletShadow(const vec3 ray) {
       continue;
 
     const float areaInv = primitiveAreaInv[i];
-    const vec3  bc      = vec3(w0,w1,w2)*areaInv;
-    const float depth   = dot(vec3(a.z,b.z,c.z), bc);
+    const vec3  bc      = vec3(w0,w1,w2);
+    const float depth   = dot(vec3(a.z,b.z,c.z), bc)*areaInv;
     if(depth > ray.z)
       return true;
     }
@@ -292,44 +224,35 @@ bool rasterizeMeshletShadow(const vec3 ray) {
 shared uint numVisMeshlets;
 shared uint meshletsId[NumThreads];
 
-bool isMeshletVisible(uint i, const vec4 rbbox) {
-  if(i>=push.meshletCount)
-    return false;
+bool isMeshletVisible(uint ptr, const vec4 rbbox) {
+  vec4  aabb;
+  float depthMax;
 
-  const Cluster cluster = clusters[i];
-  if(cluster.sphere.w<=0.f)
-    return false; // disabled or deleted
-
-  vec4  aabb     = vec4(0);
-  float depthMax = 1;
-  if(!projectCluster(cluster, aabb, depthMax))
-    return false;
-
-  if(!bboxIntersect(aabb, rbbox))
-    return false;
+  aabb.x   = uintBitsToFloat(pos.data[ptr+0]);
+  aabb.y   = uintBitsToFloat(pos.data[ptr+1]);
+  aabb.z   = uintBitsToFloat(pos.data[ptr+2]);
+  aabb.w   = uintBitsToFloat(pos.data[ptr+3]);
+  depthMax = uintBitsToFloat(pos.data[ptr+4]);
 
   if(uintBitsToFloat(rayMinDepth) > depthMax)
     return false;
-
+  if(!bboxIntersect(aabb, rbbox))
+    return false;
   return true;
   }
 
 void pullMeshlets(const uint step, const vec4 rbbox) {
   const uint laneID = gl_LocalInvocationIndex;
+  const uint visId  = step*NumThreads + laneID;
+  if(visId>=rtsm.header.visCount)
+    return;
 
-  numVisMeshlets = 0;
-  barrier();
-
-  const uint visId = step*NumThreads + laneID;
-  if(visId<rtsm.header.visCount) {
-    const uint i = rtsm.visList[visId];
-    if(isMeshletVisible(i, rbbox)) {
-      uint id = atomicAdd(numVisMeshlets, 1);
-      meshletsId[id] = i;
-      ++numMeshlets;
-      };
-    }
-  barrier();
+  const uint ptr = rtsm.visList[visId];
+  if(ptr!=0xFFFFFFFF && isMeshletVisible(ptr, rbbox)) {
+    uint id = atomicAdd(numVisMeshlets, 1);
+    meshletsId[id] = ptr;
+    ++numMeshlets;
+    };
   }
 
 bool tracePacket(const vec3 ray, const vec4 rbbox) {
@@ -342,15 +265,23 @@ bool tracePacket(const vec3 ray, const vec4 rbbox) {
   const uint laneID = gl_LocalInvocationIndex;
   const uint steps  = ((rtsm.header.visCount + NumThreads - 1)/NumThreads);
   for(uint i=0; i<steps; ++i) {
+    numVisMeshlets = 0;
+    barrier();
+
     pullMeshlets(i, rbbox);
+    barrier();
     // continue;
 
     for(uint r=0; r<numVisMeshlets; ++r) {
-      uvec3 ids = processMeshlet(meshletsId[r], rbbox);
+      const uint maxMesh = 6;
+      const uint ptr     = meshletsId[r];
+      const uint primCnt = pos.data[ptr+5];
+
+      processMeshletVertices(ptr+maxMesh+primCnt);
       maxPrim = 0;
       barrier();
 
-      processMeshletPrimitives(ids.x, ids.y, ids.z, rbbox);
+      processMeshletPrimitives(ptr+maxMesh, primCnt, rbbox);
       barrier();
 
       shadow = shadow || rasterizeMeshletShadow(ray);

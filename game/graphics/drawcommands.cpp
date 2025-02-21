@@ -639,14 +639,10 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.setBinding(2, *scene.gbufNormals);
     cmd.setBinding(3, *scene.zbuffer);
     cmd.setBinding(4, rtsmVisList);
+    cmd.setBinding(5, rtsmPosList);
 
-    cmd.setBinding(5, clusters.ssbo());
-    cmd.setBinding(6, owner.instanceSsbo());
-    //cmd.setBinding(7, rtsmPosList);
-    cmd.setBinding(7, ibo);
-    cmd.setBinding(8, vbo);
-    cmd.setBinding(9, tex);
-    cmd.setBinding(10, Sampler::bilinear());
+    cmd.setBinding(6, tex);
+    cmd.setBinding(7, Sampler::bilinear());
 
     cmd.setPipeline(shaders.rtsmRaster);
     cmd.dispatchThreads(scene.rtsmImage->size());
