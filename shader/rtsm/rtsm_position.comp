@@ -33,8 +33,29 @@ layout(binding = 8, std430) readonly buffer Vbo { float   vertices[];    } vbo[]
 shared uint   posPtr;
 shared uint   maxPrim;
 shared uvec3  primitiveIndices[MaxPrim];
-//shared float  primitiveAreaInv[MaxPrim];
 shared Vertex meshVertices    [MaxVert];
+shared uint   activeVert      [(MaxVert+32-1)/32];
+
+shared uvec4  meshBbox;
+shared uint   meshMaxDepth;
+
+bool isVertexEnabled(uint i) {
+  return (activeVert[i/32] & (1u << i%32))!=0;
+  }
+
+void enableVertex(uint i) {
+  activeVert[i/32] |= 1u << (i%32);
+  }
+
+uint remapIndex(uint id) {
+  uint n = id/32;
+  uint f = id%32;
+  uint r = 0;
+  for(uint i=0; i<n; ++i)
+    r += bitCount(activeVert[i]);
+  r += bitCount(activeVert[n] & ((1u << f)-1u));
+  return r;
+  }
 
 bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMax) {
   const vec3  c = (scene.viewVirtualShadow * vec4(sphere.xyz, 1)).xyz;
@@ -117,11 +138,32 @@ uint packTri(uvec3 v) {
   return v.x | v.y | v.z;
   }
 
-void main() {
-  maxPrim = 0;
+void updateMeshBbox(uint vertCount) {
+  meshMaxDepth = 0;
+  meshBbox     = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
   barrier();
 
-  const uint    laneID   = gl_LocalInvocationIndex;
+  const uint laneID = gl_LocalInvocationIndex;
+  if(laneID<vertCount) {// && isVertexEnabled(laneID)) {
+    const vec3 vert = meshVertices[laneID].pos;
+
+    atomicMin(meshBbox.x,   floatToOrderedUint(vert.x));
+    atomicMin(meshBbox.y,   floatToOrderedUint(vert.y));
+    atomicMax(meshBbox.z,   floatToOrderedUint(vert.x));
+    atomicMax(meshBbox.w,   floatToOrderedUint(vert.y));
+
+    atomicMax(meshMaxDepth, floatToOrderedUint(vert.z));
+    }
+  }
+
+void main() {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  maxPrim = 0;
+  if(laneID<activeVert.length())
+    activeVert[laneID] = 0;
+  barrier();
+
   const uint    visId    = rtsm.visList[gl_WorkGroupID.x];
   const Cluster cluster  = clusters[visId];
 
@@ -150,9 +192,15 @@ void main() {
     if(area>0) {
       uint id = atomicAdd(maxPrim, 1);
       primitiveIndices[id] = tri;
-      //primitiveAreaInv[id] = (1.0/area);
+
+      enableVertex(tri.x);
+      enableVertex(tri.y);
+      enableVertex(tri.z);
       }
     }
+  barrier();
+
+  updateMeshBbox(vertCount);
   barrier();
 
   if(maxPrim==0) {
@@ -169,12 +217,26 @@ void main() {
     }
   barrier();
 
+  if(posPtr+size>=pos.data.length()) {
+    // out of memory
+    rtsm.visList[gl_WorkGroupID.x] = 0xFFFFFFFF;
+    return;
+    }
+
   if(laneID==0) {
-    //NOTE: dedicated dispath?
-    const Cluster cluster = clusters[visId];
     vec4  aabb     = vec4(0);
     float depthMax = 1;
+#if 0
+    //NOTE: dedicated dispath?
+    const Cluster cluster = clusters[visId];
     projectCluster(cluster, aabb, depthMax);
+#else
+    aabb.x   = orderedUintToFloat(meshBbox.x);
+    aabb.y   = orderedUintToFloat(meshBbox.y);
+    aabb.z   = orderedUintToFloat(meshBbox.z);
+    aabb.w   = orderedUintToFloat(meshBbox.w);
+    depthMax = orderedUintToFloat(meshMaxDepth);
+#endif
 
     const uint i = posPtr;
     pos.data[i+0] = floatBitsToUint(aabb.x);

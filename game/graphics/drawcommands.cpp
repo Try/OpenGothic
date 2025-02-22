@@ -563,6 +563,15 @@ void DrawCommands::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     }
   }
 
+static Size roundUp(Size sz, int align) {
+  sz.w = (sz.w+align-1)/align;
+  sz.h = (sz.h+align-1)/align;
+
+  sz.w *= align;
+  sz.h *= align;
+  return sz;
+  }
+
 void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   auto& device   = Resources::device();
   auto& shaders  = Shaders::inst();
@@ -585,6 +594,18 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     rtsmPosList = device.ssbo(nullptr, header + 16'384*meshletSizeEst); // ~32mb
     }
 
+  if(rtsmTileCull.size()!=roundUp(scene.zbuffer->size(), 32)) {
+    auto sz = roundUp(scene.zbuffer->size(), 32);
+    Resources::recycle(std::move(rtsmTileCull));
+    // NOTE: need to improve engine api to accept size
+    rtsmTileCull = device.image2d(TextureFormat::R32U, uint32_t(sz.w), uint32_t(sz.h));
+    }
+
+  if(rtsmDbg.size()!=scene.zbuffer->size()) {
+    Resources::recycle(std::move(rtsmDbg));
+    rtsmDbg = device.image2d(TextureFormat::R32U, uint32_t(scene.zbuffer->w()), uint32_t(scene.zbuffer->h()));
+    }
+
   {
     // clear
     cmd.setBinding(0, rtsmPages);
@@ -600,16 +621,18 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     push.meshletCount = uint32_t(clusters.size());
     cmd.setPushData(push);
 
-    cmd.setBinding(0, rtsmPages);
+    cmd.setBinding(0, *scene.rtsmImage);
     cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, *scene.gbufNormals);
     cmd.setBinding(3, *scene.zbuffer);
     cmd.setBinding(4, rtsmVisList);
     cmd.setBinding(5, clusters.ssbo());
+    cmd.setBinding(6, rtsmPages);
 
     cmd.setPipeline(shaders.rtsmPages);
     cmd.dispatchThreads(scene.zbuffer->size());
 
+    cmd.setBinding(0, rtsmPages);
     cmd.setPipeline(shaders.rtsmHiZ);
     cmd.dispatch(1);
 
@@ -632,17 +655,32 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.dispatchIndirect(rtsmVisList,0);
   }
 
-  static bool reference = false;
-  if(!reference) {
+  {
+    // in-tile culling
     cmd.setBinding(0, *scene.rtsmImage);
     cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, *scene.gbufNormals);
     cmd.setBinding(3, *scene.zbuffer);
     cmd.setBinding(4, rtsmVisList);
     cmd.setBinding(5, rtsmPosList);
+    cmd.setBinding(6, rtsmTileCull);
 
-    cmd.setBinding(6, tex);
-    cmd.setBinding(7, Sampler::bilinear());
+    cmd.setPipeline(shaders.rtsmTileCulling);
+    cmd.dispatchThreads(scene.rtsmImage->size());
+  }
+
+  static bool reference = false;
+  if(!reference) {
+    cmd.setBinding(0, *scene.rtsmImage);
+    cmd.setBinding(1, sceneUbo);
+    cmd.setBinding(2, *scene.gbufNormals);
+    cmd.setBinding(3, *scene.zbuffer);
+    cmd.setBinding(4, rtsmTileCull);
+    cmd.setBinding(5, rtsmPosList);
+    cmd.setBinding(6, rtsmDbg);
+
+    cmd.setBinding(7, tex);
+    cmd.setBinding(8, Sampler::bilinear());
 
     cmd.setPipeline(shaders.rtsmRaster);
     cmd.dispatchThreads(scene.rtsmImage->size());

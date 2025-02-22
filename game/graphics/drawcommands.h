@@ -138,7 +138,9 @@ class DrawCommands {
     const bool               vsmSupported;
     Tempest::StorageBuffer   vsmIndirectCmd;
 
+    Tempest::StorageImage    rtsmDbg;
     Tempest::StorageImage    rtsmPages;
     Tempest::StorageBuffer   rtsmVisList;
     Tempest::StorageBuffer   rtsmPosList;
+    Tempest::StorageImage    rtsmTileCull;
   };

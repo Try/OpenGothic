@@ -156,7 +156,9 @@ void Renderer::resetSwapchain() {
   gbufDiffuse = device.attachment(TextureFormat::RGBA8,w,h);
   gbufNormal  = device.attachment(TextureFormat::R32U, w,h);
 
-  if(settings.vsmEnabled)
+  if(settings.rtsmEnabled)
+    shadow.directLightPso = &shaders.rtsmDirectLight;
+  else if(settings.vsmEnabled)
     shadow.directLightPso = &shaders.vsmDirectLight; //TODO: naming
   else if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing &&
      settings.shadowResolution>0)
@@ -202,7 +204,7 @@ void Renderer::resetSwapchain() {
 
   if(settings.rtsmEnabled) {
     // rtsm.rtsmImage = device.image2d(Tempest::RGBA8, w, h);
-    rtsm.rtsmImage = device.image2d(Tempest::R32U, w, h);
+    rtsm.rtsmImage = device.image2d(Tempest::R8, w, h);
     }
 
   resetSkyFog();
@@ -828,7 +830,7 @@ void Renderer::drawSwrDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const W
   }
 
 void Renderer::drawRtsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
-  static bool enable = true;
+  static bool enable = false;
   if(!enable || !settings.rtsmEnabled)
     return;
 
@@ -1148,6 +1150,9 @@ void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, const WorldView& w
     cmd.setBinding(9, scene.rtScene.vbo);
     cmd.setBinding(10,scene.rtScene.ibo);
     cmd.setBinding(11,scene.rtScene.rtDesc);
+    }
+  else if(shadow.directLightPso==&shaders.rtsmDirectLight) {
+    cmd.setBinding(4, rtsm.rtsmImage);
     }
   else {
     for(size_t r=0; r<Resources::ShadowLayers; ++r) {

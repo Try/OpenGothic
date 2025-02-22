@@ -26,7 +26,7 @@ layout(push_constant, std430) uniform UboPush {
   int meshletCount;
   } push;
 //layout(binding = 0, rgba8)  uniform image2D     outputImage;
-layout(binding = 0, r32ui)  uniform  uimage2D   outputImage;
+layout(binding = 0, r8)     uniform  image2D    outputImage;
 layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene;       };
 layout(binding = 2)         uniform  utexture2D gbufNormal;
 layout(binding = 3)         uniform  texture2D  depth;
@@ -399,7 +399,7 @@ void main() {
     // imageStore(outputImage, fragCoord, vec4(area, (actRay ? 1: 0), 1, 1));
     // imageStore(outputImage, fragCoord, vec4(area));
 
-    imageStore(outputImage, fragCoord, uvec4(shadow));
+    imageStore(outputImage, fragCoord, vec4(shadow));
     //imageStore(outputImage, fragCoord, uvec4(mergeCounter(numMeshlets)));
     //imageStore(outputImage, fragCoord, uvec4(mergeCounter(numTriangles)));
 

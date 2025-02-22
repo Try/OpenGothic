@@ -7,12 +7,13 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-layout(local_size_x = 8, local_size_y = 8) in;
+layout(local_size_x = 16, local_size_y = 8) in;
 
-layout(binding = 0, r32ui)  uniform uimage3D    pageTbl;
+layout(binding = 0, r8)     uniform  image2D    outputImage;
 layout(binding = 1, std140) uniform UboScene    { SceneDesc scene;       };
 layout(binding = 2)         uniform utexture2D  gbufNormal;
 layout(binding = 3)         uniform texture2D   depth;
+layout(binding = 6, r32ui)  uniform uimage3D    pageTbl;
 
 ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
 
@@ -44,23 +45,23 @@ bool calcMipIndex(out vec2 pagePos, out int mip, in vec2 shPos) {
   return true;
   }
 
-void main() {
+float markPages() {
   const ivec2 size   = textureSize(depth, 0);
   const bool  valid  = all(lessThan(fragCoord, size));
   if(!valid)
-    return;
+    return 0;
 
   const float z      = texelFetch(depth, fragCoord, 0).x;
   if(z==1.0)
-    return;
+    return 0; // make this fragment inactive
 
   const vec3  normal = normalFetch(gbufNormal, fragCoord);
   if(dot(scene.sunDir, normal) <= 0)
-    return;
+    return 0;
 
   const vec4  wpos   = worldPos(fragCoord.xy, z) + vec4(normal*0.002, 0);
   if(planetOcclusion(wpos.y/wpos.w, scene.sunDir))
-    return;
+    return 0;
 
   const vec3  ray    = calcRayOrigin(wpos);
   //const uint  idx    = rayPacketId(ray.xy, z);
@@ -68,8 +69,18 @@ void main() {
   vec2 page = vec2(0);
   int  mip  = 0;
   if(!calcMipIndex(page, mip, ray.xy))
-    return;
+    return 1;
 
   ivec2 pageI = ivec2((page.xy*0.5+0.5)*RTSM_PAGE_TBL_SIZE);
   markPage(ivec3(pageI, mip), ray.z);
+  return 1;
+  }
+
+void main() {
+  const float val    = markPages();
+  const ivec2 size   = textureSize(depth, 0);
+  const bool  valid  = all(lessThan(fragCoord, size));
+  if(valid) {
+    imageStore(outputImage, fragCoord, vec4(val));
+    }
   }

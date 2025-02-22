@@ -35,6 +35,8 @@ float drawInt(in vec2 where, in int n) {
   return 0;
   }
 
+#define COUNTER 0
+
 void main() {
   ivec2 fragCoord = ivec2(gl_FragCoord.xy);
   ivec2 tileSz    = ivec2(32);
@@ -49,7 +51,9 @@ void main() {
       outColor = vec4(0.9,0.9,0,1);
     else
       outColor = vec4(0.9,0,0,1);
-    //return;
+#if COUNTER
+    return;
+#endif
     }
 
   if(fragCoord.x%tileSz.x==0 || fragCoord.y%tileSz.y==0) {
@@ -60,5 +64,7 @@ void main() {
   if(v==0)
     discard;
   outColor = vec4(0);
-  //discard;
+#if COUNTER
+  discard;
+#endif
   }
