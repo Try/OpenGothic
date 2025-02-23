@@ -76,6 +76,10 @@ struct Cluster {
   uint  instanceId;
   };
 
+const uint BK_SOLID = 0x1;
+const uint BK_SKIN  = 0x2;
+const uint BK_MORPH = 0x4;
+
 struct Bucket {
   vec4  bbox[2];
   ivec2 texAniMapDirPeriod;
@@ -83,6 +87,7 @@ struct Bucket {
   float waveMaxAmplitude;
   float alphaWeight;
   float envMapping;
+  uint  flags;
   };
 
 #endif

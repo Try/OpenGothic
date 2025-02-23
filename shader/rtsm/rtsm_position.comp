@@ -21,14 +21,26 @@ struct Vertex {
   uint uv;
   };
 
-layout(binding = 0, std430)          buffer Pos { uint alloc; uint data[];           } pos;
-layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene;                   };
-layout(binding = 4, std430)          buffer Rt  { RtsmHeader header; uint visList[]; } rtsm;
+struct VertexA {
+  vec3  normal;
+  uint  uv;
+  vec3  pos0;
+  vec3  pos1;
+  vec3  pos2;
+  vec3  pos3;
+  uvec4 boneId;
+  vec4  weight;
+  };
+
+layout(binding = 0, std430)          buffer Pos { uint alloc; uint data[];            } pos;
+layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene;                    };
+layout(binding = 4, std430)          buffer Rt  { RtsmHeader header; uvec2 visList[]; } rtsm;
 
 layout(binding = 5, std430) readonly buffer Cbo { Cluster clusters[];    };
 layout(binding = 6, std430) readonly buffer Mem { uint    instanceMem[]; };
-layout(binding = 7, std430) readonly buffer Ibo { uint    indexes [];    } ibo[];
-layout(binding = 8, std430) readonly buffer Vbo { float   vertices[];    } vbo[];
+layout(binding = 7, std140) readonly buffer Bbo { Bucket  bucket[];      };
+layout(binding = 8, std430) readonly buffer Ibo { uint    indexes [];    } ibo[];
+layout(binding = 9, std430) readonly buffer Vbo { float   vertices[];    } vbo[];
 
 
 shared uint   posPtr;
@@ -83,6 +95,48 @@ bool projectCluster(const Cluster cluster, out vec4 aabb, out float depthMax) {
   return projectSphere(cluster.sphere, aabb, depthMax);
   }
 
+Instance pullInstance(uint i) {
+  i *= 16;
+  Instance ret;
+  ret.mat[0][0] = uintBitsToFloat(instanceMem[i+0]);
+  ret.mat[0][1] = uintBitsToFloat(instanceMem[i+1]);
+  ret.mat[0][2] = uintBitsToFloat(instanceMem[i+2]);
+  ret.mat[1][0] = uintBitsToFloat(instanceMem[i+3]);
+  ret.mat[1][1] = uintBitsToFloat(instanceMem[i+4]);
+  ret.mat[1][2] = uintBitsToFloat(instanceMem[i+5]);
+  ret.mat[2][0] = uintBitsToFloat(instanceMem[i+6]);
+  ret.mat[2][1] = uintBitsToFloat(instanceMem[i+7]);
+  ret.mat[2][2] = uintBitsToFloat(instanceMem[i+8]);
+  ret.mat[3][0] = uintBitsToFloat(instanceMem[i+9]);
+  ret.mat[3][1] = uintBitsToFloat(instanceMem[i+10]);
+  ret.mat[3][2] = uintBitsToFloat(instanceMem[i+11]);
+  ret.fatness   = uintBitsToFloat(instanceMem[i+12]);
+  ret.animPtr   = instanceMem[i+13];
+  return ret;
+  }
+
+mat4 pullMatrix(uint i) {
+  i *= 16;
+  mat4 ret;
+  ret[0][0] = uintBitsToFloat(instanceMem[i+0]);
+  ret[0][1] = uintBitsToFloat(instanceMem[i+1]);
+  ret[0][2] = uintBitsToFloat(instanceMem[i+2]);
+  ret[0][3] = uintBitsToFloat(instanceMem[i+3]);
+  ret[1][0] = uintBitsToFloat(instanceMem[i+4]);
+  ret[1][1] = uintBitsToFloat(instanceMem[i+5]);
+  ret[1][2] = uintBitsToFloat(instanceMem[i+6]);
+  ret[1][3] = uintBitsToFloat(instanceMem[i+7]);
+  ret[2][0] = uintBitsToFloat(instanceMem[i+8]);
+  ret[2][1] = uintBitsToFloat(instanceMem[i+9]);
+  ret[2][2] = uintBitsToFloat(instanceMem[i+10]);
+  ret[2][3] = uintBitsToFloat(instanceMem[i+11]);
+  ret[3][0] = uintBitsToFloat(instanceMem[i+12]);
+  ret[3][1] = uintBitsToFloat(instanceMem[i+13]);
+  ret[3][2] = uintBitsToFloat(instanceMem[i+14]);
+  ret[3][3] = uintBitsToFloat(instanceMem[i+15]);
+  return ret;
+  }
+
 uvec2 pullMeshlet(const uint meshletId, const uint bucketId) {
   nonuniformEXT uint bId = bucketId;
 
@@ -117,16 +171,35 @@ uvec3 pullPrimitive(const uint meshletId, const uint bucketId, const uint laneId
   return prim;
   }
 
+VertexA pullVertexA(const uint meshletId, const uint bucketId, const uint laneId) {
+  nonuniformEXT uint bId = bucketId;
+  uint vboOffset = meshletId * MaxVert + laneId;
+
+  // animated geometry
+  const uint id = vboOffset * 23;
+
+  VertexA ret;
+  ret.normal = vec3(vbo[bId].vertices[id + 0], vbo[bId].vertices[id + 1], vbo[bId].vertices[id + 2]);
+  ret.uv     = packHalf2x16(vec2(vbo[bId].vertices[id + 3], vbo[bId].vertices[id + 4]));
+  // ret.color  = floatBitsToUint(vbo[vi].vertices[id + 5]);
+  ret.pos0   = vec3(vbo[bId].vertices[id +  6], vbo[bId].vertices[id +  7], vbo[bId].vertices[id +  8]);
+  ret.pos1   = vec3(vbo[bId].vertices[id +  9], vbo[bId].vertices[id + 10], vbo[bId].vertices[id + 11]);
+  ret.pos2   = vec3(vbo[bId].vertices[id + 12], vbo[bId].vertices[id + 13], vbo[bId].vertices[id + 14]);
+  ret.pos3   = vec3(vbo[bId].vertices[id + 15], vbo[bId].vertices[id + 16], vbo[bId].vertices[id + 17]);
+  ret.boneId = uvec4(unpackUnorm4x8(floatBitsToUint(vbo[bId].vertices[id + 18]))*255.0);
+  ret.weight = vec4(vbo[bId].vertices[id + 19], vbo[bId].vertices[id + 20], vbo[bId].vertices[id + 21], vbo[bId].vertices[id + 22]);
+  return ret;
+  }
+
 Vertex pullVertex(const uint meshletId, const uint bucketId, const uint laneId) {
   nonuniformEXT uint bId = bucketId;
   uint vboOffset = meshletId * MaxVert + laneId;
 
   // static geometry
-  uint id = vboOffset * 9;
+  const uint id     = vboOffset * 9;
   const vec3 pos    = vec3(vbo[bId].vertices[id + 0], vbo[bId].vertices[id + 1], vbo[bId].vertices[id + 2]);
   const uint uv     = packHalf2x16(vec2(vbo[bId].vertices[id + 6], vbo[bId].vertices[id + 7]));
   //vec3 normal = vec3(vbo[bId].vertices[id + 3], vbo[bId].vertices[id + 4], vbo[bId].vertices[id + 5]);
-  //uint color  = floatBitsToUint(vbo[bId].vertices[id + 8]);
 
   Vertex ret;
   ret.pos = pos;
@@ -134,12 +207,13 @@ Vertex pullVertex(const uint meshletId, const uint bucketId, const uint laneId) 
   return ret;
   }
 
-uint packTri(uvec3 v) {
+uint packTri(uvec3 v, uint flags) {
   // assume v is in 0..255 range
   v.x = v.x << 0;
   v.y = v.y << 8;
   v.z = v.z << 16;
-  return v.x | v.y | v.z;
+  flags = flags << 24;
+  return v.x | v.y | v.z | flags;
   }
 
 void updateMeshBbox(uint vertCount) {
@@ -160,6 +234,39 @@ void updateMeshBbox(uint vertCount) {
     }
   }
 
+Vertex processVertexA(const Cluster cluster, const uint meshletId, const uint bucketId, const uint laneID) {
+  VertexA  v   = pullVertexA(meshletId, bucketId, laneID);
+  Instance obj = pullInstance(cluster.instanceId);
+
+  const uvec4 boneId = v.boneId + uvec4(obj.animPtr);
+
+  const vec3  t0 = (pullMatrix(boneId.x)*vec4(v.pos0,1.0)).xyz;
+  const vec3  t1 = (pullMatrix(boneId.y)*vec4(v.pos1,1.0)).xyz;
+  const vec3  t2 = (pullMatrix(boneId.z)*vec4(v.pos2,1.0)).xyz;
+  const vec3  t3 = (pullMatrix(boneId.w)*vec4(v.pos3,1.0)).xyz;
+
+  vec3 dpos = vec3(0); // normal*obj.fatness;
+
+  Vertex ret;
+  ret.pos = (t0*v.weight.x + t1*v.weight.y + t2*v.weight.z + t3*v.weight.w) + dpos;
+  ret.uv  = v.uv;
+  vec4   pos4 = (scene.viewVirtualShadow * vec4(ret.pos,1));
+  ret.pos = pos4.xyz/pos4.w;
+  return ret;
+  }
+
+Vertex processVertex(const Cluster cluster, const uint meshletId, const uint bucketId, const uint laneID) {
+  Vertex v = pullVertex(meshletId, bucketId, laneID);
+  if(cluster.instanceId!=0xFFFFFFFF) {
+    Instance obj = pullInstance(cluster.instanceId);
+    vec3 dpos = vec3(0); // normal*obj.fatness;
+    v.pos = obj.mat*vec4(v.pos,1.0) + dpos;
+    }
+  vec4   pos4 = (scene.viewVirtualShadow * vec4(v.pos,1));
+  v.pos = pos4.xyz/pos4.w;
+  return v;
+  }
+
 void main() {
   const uint laneID = gl_LocalInvocationIndex;
 
@@ -168,21 +275,21 @@ void main() {
     activeVert[laneID] = 0;
   barrier();
 
-  const uint    visId    = rtsm.visList[gl_WorkGroupID.x];
-  const Cluster cluster  = clusters[visId];
+  const uvec2   visId    = rtsm.visList[gl_WorkGroupID.x];
+  const Cluster cluster  = clusters[visId.x];
 
-  const uint  meshletId  = cluster.firstMeshlet;
+  const uint  meshletId  = visId.y; //cluster.firstMeshlet;
   const uint  bucketId   = cluster.bucketId_commandId>>16;
 
   const uvec2 mesh       = pullMeshlet(meshletId, bucketId);
   const uint  vertCount  = mesh.x;
   const uint  primCount  = mesh.y;
+  const uint  bucketFlg  = bucket[bucketId].flags;
 
   if(laneID<vertCount) {
-    Vertex v    = pullVertex(meshletId, bucketId, laneID);
-    vec4   pos4 = (scene.viewVirtualShadow * vec4(v.pos.xyz,1));
-    v.pos.xyz = pos4.xyz/pos4.w;
-    meshVertices[laneID] = v;
+    if((bucketFlg & BK_SKIN)==0)
+      meshVertices[laneID] = processVertex (cluster, meshletId, bucketId, laneID); else
+      meshVertices[laneID] = processVertexA(cluster, meshletId, bucketId, laneID);
     }
   barrier();
 
@@ -209,7 +316,7 @@ void main() {
 
   if(maxPrim==0) {
     // fully backfaced
-    rtsm.visList[gl_WorkGroupID.x] = 0xFFFFFFFF;
+    rtsm.visList[gl_WorkGroupID.x] = uvec2(0xFFFFFFFF);
     return;
     }
 
@@ -217,13 +324,13 @@ void main() {
   const uint size    = maxMesh + maxPrim + MaxVert*4;
   if(laneID==0) {
     posPtr = atomicAdd(pos.alloc, size);
-    rtsm.visList[gl_WorkGroupID.x] = posPtr;
+    rtsm.visList[gl_WorkGroupID.x] = uvec2(posPtr,0);
     }
   barrier();
 
   if(posPtr+size>=pos.data.length()) {
     // out of memory
-    rtsm.visList[gl_WorkGroupID.x] = 0xFFFFFFFF;
+    rtsm.visList[gl_WorkGroupID.x] = uvec2(0xFFFFFFFF);
     return;
     }
 
@@ -246,7 +353,7 @@ void main() {
     }
   if(laneID<maxPrim) {
     const uint i = posPtr + maxMesh + laneID;
-    pos.data[i] = packTri(primitiveIndices[laneID]);
+    pos.data[i] = packTri(primitiveIndices[laneID], bucketFlg);
     }
   if(laneID<vertCount) {
     const uint i = posPtr + maxMesh + maxPrim + laneID*4;

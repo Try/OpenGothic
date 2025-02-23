@@ -81,13 +81,18 @@ bool DrawBuckets::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
       bx.bboxRadius = i.staticMesh->bbox.rConservative;
       bx.bbox[0]    = Vec4(bbox[0].x,bbox[0].y,bbox[0].z,0.f);
       bx.bbox[1]    = Vec4(bbox[1].x,bbox[1].y,bbox[1].z,0.f);
+      if(i.staticMesh->morph.anim!=nullptr)
+        bx.flags |= BK_MORPH;
       }
     else if(i.animMesh!=nullptr) {
       auto& bbox    = i.animMesh->bbox.bbox;
       bx.bboxRadius = i.animMesh->bbox.rConservative;
       bx.bbox[0]    = Vec4(bbox[0].x,bbox[0].y,bbox[0].z,0.f);
       bx.bbox[1]    = Vec4(bbox[1].x,bbox[1].y,bbox[1].z,0.f);
+      bx.flags     |= BK_SKIN;
       }
+    if(i.mat.alpha==Material::Solid)
+      bx.flags |= BK_SOLID;
     bucket.push_back(bx);
     }
 

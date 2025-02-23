@@ -17,8 +17,8 @@ layout(binding = 0, r8)     uniform  image2D    outputImage;
 layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
 layout(binding = 2)         uniform  utexture2D gbufNormal;
 layout(binding = 3)         uniform  texture2D  depth;
-layout(binding = 4, std430) readonly buffer Rt  { RtsmHeader header; uint visList[]; } rtsm;
-layout(binding = 5, std430) readonly buffer Pos { uint       alloc;  uint data[];    } pos;
+layout(binding = 4, std430) readonly buffer Rt  { RtsmHeader header; uvec2 visList[]; } rtsm;
+layout(binding = 5, std430) readonly buffer Pos { uint       alloc;  uint  data[];    } pos;
 layout(binding = 6, r32ui)  uniform  uimage2D   primitiveBins;
 
 
@@ -175,7 +175,7 @@ void tracePacket(const vec3 ray) {
   const uint laneID = gl_LocalInvocationIndex;
 
   for(uint i=laneID; i<rtsm.header.visCount; i+=NumThreads) {
-    const uint ptr = rtsm.visList[i];
+    const uint ptr = rtsm.visList[i].x;
     if(ptr==0xFFFFFFFF)
       continue;
     if(!isMeshletVisible(ptr))

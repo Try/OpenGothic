@@ -49,6 +49,12 @@ class DrawBuckets {
     bool commit(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
   private:
+    enum BucketFlg : uint32_t {
+      BK_SOLID = 0x1,
+      BK_SKIN  = 0x2,
+      BK_MORPH = 0x4,
+      };
+
     struct BucketGpu final {
       Tempest::Vec4  bbox[2];
       Tempest::Point texAniMapDirPeriod;
@@ -56,7 +62,8 @@ class DrawBuckets {
       float          waveMaxAmplitude = 0;
       float          alphaWeight      = 1;
       float          envMapping       = 0;
-      uint32_t       padd[2]          = {};
+      uint32_t       flags            = 0;
+      uint32_t       padd[1]          = {};
       };
 
     std::vector<Bucket>    bucketsCpu;

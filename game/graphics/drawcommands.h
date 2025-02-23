@@ -123,6 +123,7 @@ class DrawCommands {
     DrawBuckets&             buckets;
     DrawClusters&            clusters;
     const SceneGlobals&      scene;
+    size_t                   maxPayload = 0;
 
     Tempest::DescriptorArray tex;
     Tempest::DescriptorArray vbo;

@@ -13,11 +13,11 @@ layout(push_constant, std430) uniform UboPush {
   int meshletCount;
   } push;
 layout(binding = 0, r32ui)  uniform  uimage3D   pageTbl;
-layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene;                   };
+layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene;                    };
 layout(binding = 2)         uniform  utexture2D gbufNormal;
 layout(binding = 3)         uniform  texture2D  depth;
-layout(binding = 4, std430)          buffer Rt  { RtsmHeader header; uint visList[]; } rtsm;
-layout(binding = 5, std430) readonly buffer Cbo { Cluster clusters[];                };
+layout(binding = 4, std430)          buffer Rt  { RtsmHeader header; uvec2 visList[]; } rtsm;
+layout(binding = 5, std430) readonly buffer Cbo { Cluster clusters[];                 };
 
 bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMax) {
   const vec3  c = (scene.viewVirtualShadow * vec4(sphere.xyz, 1)).xyz;
@@ -41,7 +41,7 @@ bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMax) {
 bool projectCluster(const Cluster cluster, out vec4 aabb, out float depthMax) {
   if(cluster.instanceId==0xFFFFFFFF)
     return projectSphere(cluster.sphere, aabb, depthMax);
-  return false; //projectSphere(cluster.sphere, aabb, depthMax);
+  return projectSphere(cluster.sphere, aabb, depthMax);
   }
 
 bool pageHiZTest(ivec4 iaabb, float depthMax, int mip) {
@@ -105,6 +105,7 @@ void main() {
   if(!pageHiZTest(iaabb, depthMax, mip))
     return;
 
-  const uint id = atomicAdd(rtsm.header.visCount, 1);
-  rtsm.visList[id] = clusterId;
+  const uint id = atomicAdd(rtsm.header.visCount, cluster.meshletCount);
+  for(int i=0; i<cluster.meshletCount; ++i)
+    rtsm.visList[id+i] = uvec2(clusterId, cluster.firstMeshlet+i);
   }

@@ -217,6 +217,7 @@ void DrawCommands::commit(Encoder<CommandBuffer>& enc) {
   auto& v      = views[SceneGlobals::V_Main];
   bool  cmdChg = needtoReallocate(v.indirectCmd, sizeof(IndirectCmd)*cmd.size());
   bool  visChg = needtoReallocate(v.visClusters, visClustersSz);
+  this->maxPayload = totalPayload;
 
   if(!layChg && !visChg) {
     return;
@@ -581,7 +582,7 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     rtsmPages = device.image3d(TextureFormat::R32U, 32, 32, 16);
     }
 
-  const size_t clusterCnt = clusters.size();
+  const size_t clusterCnt = maxPayload;
   const size_t clusterSz  = shaders.rtsmClear.sizeofBuffer(1, clusterCnt);
   if(rtsmVisList.byteSize()!=clusterSz) {
     Resources::recycle(std::move(rtsmVisList));
@@ -648,8 +649,9 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
 
     cmd.setBinding(5, clusters.ssbo());
     cmd.setBinding(6, owner.instanceSsbo());
-    cmd.setBinding(7, ibo);
-    cmd.setBinding(8, vbo);
+    cmd.setBinding(7, buckets.ssbo());
+    cmd.setBinding(8, ibo);
+    cmd.setBinding(9, vbo);
 
     cmd.setPipeline(shaders.rtsmPosition);
     cmd.dispatchIndirect(rtsmVisList,0);
