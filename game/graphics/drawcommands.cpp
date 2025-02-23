@@ -680,7 +680,7 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.setBinding(6, rtsmDbg);
 
     cmd.setBinding(7, tex);
-    cmd.setBinding(8, Sampler::bilinear());
+    cmd.setBinding(8, Sampler::trillinear());
 
     cmd.setPipeline(shaders.rtsmRaster);
     cmd.dispatchThreads(scene.rtsmImage->size());

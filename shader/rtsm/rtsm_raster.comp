@@ -14,12 +14,11 @@
 layout(local_size_x = 8, local_size_y = 8) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
-const uint MaxVert    = 64;
 const uint MaxPrim    = 64;
-const uint MaxInd     = (MaxPrim*3);
 
 struct Vertex {
   vec3 pos;
+  uint uv;
   };
 
 layout(push_constant, std430) uniform UboPush {
@@ -52,6 +51,18 @@ uint mergeCounter(uint cnt) {
   return dbgCounter;
   }
 
+float alphaTest(const uint bucketId, vec3 bc, float areaInv, vec2 a, vec2 b, vec2 c) {
+  const float u = dot(vec3(a.x,b.x,c.x), bc)*areaInv;
+  const float v = dot(vec3(a.y,b.y,c.y), bc)*areaInv;
+
+  //TODO: find optimal lod
+  return textureLod(sampler2D(textureMain[nonuniformEXT(bucketId)], samplerMain), vec2(u,v), 0).a;
+  }
+
+float alphaTest(const uint bucketId, vec3 bc, float areaInv, uint a, uint b, uint c) {
+  return alphaTest(bucketId, bc, areaInv, unpackHalf2x16(a), unpackHalf2x16(b), unpackHalf2x16(c));
+  }
+
 // utility
 shared uvec4 rayBbox;
 shared uint  rayZmin;
@@ -67,11 +78,6 @@ void rayBboxses(const vec3 ray, bool activeRay) {
     atomicMax(rayBbox.w, floatToOrderedUint(ray.y));
     atomicMin(rayZmin,   floatToOrderedUint(ray.z));
     }
-  }
-
-// light/occlusion/matrix
-float lambert(vec3 normal) {
-  return max(0.0, dot(scene.sunDir,normal));
   }
 
 vec4 worldPos(ivec2 frag, float depth) {
@@ -123,11 +129,11 @@ Vertex pullVertex(uint ptr, const uint laneId) {
   ret.pos.x = uintBitsToFloat(pos.data[ptr+0]);
   ret.pos.y = uintBitsToFloat(pos.data[ptr+1]);
   ret.pos.z = uintBitsToFloat(pos.data[ptr+2]);
-  //TODO: UV
-
+  ret.uv    = pos.data[ptr+3];
   return ret;
   }
 
+shared uint   primitiveBucket [MaxPrim];
 shared float  primitiveAreaInv[MaxPrim];
 shared Vertex meshVertices    [MaxPrim*3];
 bool isPrimitiveVisible(const vec4 aabb) {
@@ -151,9 +157,10 @@ void pullPrimitives(uint primitive) {
   const uint  ptr = (pkg >> 8);
   const uint  pId = pkg & 0xFF;
 
-  const uint  primCnt = pos.data[ptr+5];
-  const uvec3 tri     = pullPrimitive(ptr+maxMesh, pId);
-  const uint  ptrV    = ptr + maxMesh + primCnt;
+  const uint  primCnt  = unpackPrimitiveCount(pos.data[ptr+5]);
+  const uint  bucketId = unpackBucketId(pos.data[ptr+5]);
+  const uvec3 tri      = pullPrimitive(ptr+maxMesh, pId);
+  const uint  ptrV     = ptr + maxMesh + primCnt;
 
   const Vertex a    = pullVertex(ptrV, tri.x);
   const Vertex b    = pullVertex(ptrV, tri.y);
@@ -169,17 +176,16 @@ void pullPrimitives(uint primitive) {
   meshVertices[laneID*3+1] = b;
   meshVertices[laneID*3+2] = c;
   primitiveAreaInv[laneID] = 1.0/edgeFunction(a.pos.xy, b.pos.xy, c.pos.xy);
+  primitiveBucket[laneID]  = bucketId;
   }
 
 shared uint numActiveRays;
-bool tracePacket(const vec3 ray, bool actRay) {
+float tracePacket(const vec3 ray, float opacity, bool actRay) {
   const uint laneID  = gl_LocalInvocationIndex;
 
   if(actRay)
     atomicAdd(numActiveRays, 1);
   barrier();
-
-  bool shadow = !actRay;
 
   const uint tileHeader    = imageLoad(primitiveBins, tileCoord).x;
   const uint numPrimitives = tileHeader & 0xFFFF;
@@ -189,9 +195,11 @@ bool tracePacket(const vec3 ray, bool actRay) {
   if((tileHeader & (1u<<31))!=0) {
     // error - emit 4x4 grid to display
     ivec2 tile = fragCoord/4;
-    return (tile.x+tile.y)%2==0;
+    return (tile.x+tile.y)%2==0 ? 1.0 : 0.0;
     }
 
+  bool  shadow  = !actRay;
+  //float opacity = actRay ? 1.0 : 0.0;
   for(uint s=0; s<steps; ++s) {
     if(numActiveRays==0)
       break;
@@ -223,17 +231,30 @@ bool tracePacket(const vec3 ray, bool actRay) {
       if(w0 < 0 || w1 < 0 || w2 < 0)
         continue;
 
-      const vec3  bc      = vec3(w0,w1,w2);
-      const float depth   = dot(vec3(a.z,b.z,c.z), bc)*areaInv;
-      if(depth > ray.z) {
-        shadow = true;
-        atomicAdd(numActiveRays, -1);
-        break;
-        }
+      const vec3  bc    = vec3(w0,w1,w2);
+      const float depth = dot(vec3(a.z,b.z,c.z), bc)*areaInv;
+      if(depth <= ray.z)
+        continue;
+
+#if 1
+      //TODO: add global opacity flag
+      const uint  bucketId = primitiveBucket[id];
+      const float alpha    = alphaTest(bucketId, bc, areaInv, meshVertices[id*3+0].uv, meshVertices[id*3+1].uv, meshVertices[id*3+2].uv);
+      opacity *= (1.0-alpha);
+#else
+      opacity = 0;
+#endif
+      if(opacity>0.003)
+        continue;
+
+      shadow = true;
+      atomicAdd(numActiveRays, -1);
+      break;
       }
     barrier();
     }
-  return shadow;
+
+  return opacity;
   }
 
 void main() {
@@ -252,9 +273,9 @@ void main() {
   rayBboxses(ray, actRay);
   barrier();
 
-  const bool shadow = tracePacket(ray, actRay);
-  if(actRay && shadow)
-    imageStore(outputImage, fragCoord, vec4(0));
+  const float opacity = tracePacket(ray, lamb, actRay);
+  if(actRay && opacity<1)
+    imageStore(outputImage, fragCoord, vec4(opacity));
 
   if(valid) {
     //imageStore(dbgImage, fragCoord, uvec4(mergeCounter(numMeshlets)));

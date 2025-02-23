@@ -259,11 +259,9 @@ void storeResultMesh() {
   }
 
 void tracePrim(const vec3 ray) {
-  const uint maxMesh = 6;
-
   for(uint i=0; i<numMeshlets && i<meshletsId.length(); ++i) {
     const uint ptr     = meshletsId[i];
-    const uint primCnt = pos.data[ptr+5];
+    const uint primCnt = unpackPrimitiveCount(pos.data[ptr+5]);
 
     processMeshletPrimitives(ptr, primCnt);
     }

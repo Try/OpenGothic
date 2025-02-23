@@ -64,4 +64,17 @@ bool planetOcclusion(float viewPos, vec3 sunDir) {
   return false;
   }
 
+// primitive-list
+uint packMeshHeader(uint bucketId, uint primCnt) {
+  return (bucketId << 8) | (primCnt & 0xFF);
+  }
+
+uint unpackPrimitiveCount(uint v) {
+  return v & 0xFF;
+  }
+
+uint unpackBucketId(uint v) {
+  return v >> 8;
+  }
+
 #endif

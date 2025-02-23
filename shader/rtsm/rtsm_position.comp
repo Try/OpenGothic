@@ -18,6 +18,7 @@ const uint MaxInd     = (MaxPrim*3);
 
 struct Vertex {
   vec3 pos;
+  uint uv;
   };
 
 layout(binding = 0, std430)          buffer Pos { uint alloc; uint data[];           } pos;
@@ -122,11 +123,14 @@ Vertex pullVertex(const uint meshletId, const uint bucketId, const uint laneId) 
 
   // static geometry
   uint id = vboOffset * 9;
-  Vertex ret;
-  ret.pos    = vec3(vbo[bId].vertices[id + 0], vbo[bId].vertices[id + 1], vbo[bId].vertices[id + 2]);
-  //ret.uv     = vec2(vbo[bId].vertices[id + 6], vbo[bId].vertices[id + 7]);
+  const vec3 pos    = vec3(vbo[bId].vertices[id + 0], vbo[bId].vertices[id + 1], vbo[bId].vertices[id + 2]);
+  const uint uv     = packHalf2x16(vec2(vbo[bId].vertices[id + 6], vbo[bId].vertices[id + 7]));
   //vec3 normal = vec3(vbo[bId].vertices[id + 3], vbo[bId].vertices[id + 4], vbo[bId].vertices[id + 5]);
   //uint color  = floatBitsToUint(vbo[bId].vertices[id + 8]);
+
+  Vertex ret;
+  ret.pos = pos;
+  ret.uv  = uv;
   return ret;
   }
 
@@ -226,17 +230,11 @@ void main() {
   if(laneID==0) {
     vec4  aabb     = vec4(0);
     float depthMax = 1;
-#if 0
-    //NOTE: dedicated dispath?
-    const Cluster cluster = clusters[visId];
-    projectCluster(cluster, aabb, depthMax);
-#else
     aabb.x   = orderedUintToFloat(meshBbox.x);
     aabb.y   = orderedUintToFloat(meshBbox.y);
     aabb.z   = orderedUintToFloat(meshBbox.z);
     aabb.w   = orderedUintToFloat(meshBbox.w);
     depthMax = orderedUintToFloat(meshMaxDepth);
-#endif
 
     const uint i = posPtr;
     pos.data[i+0] = floatBitsToUint(aabb.x);
@@ -244,7 +242,7 @@ void main() {
     pos.data[i+2] = floatBitsToUint(aabb.z);
     pos.data[i+3] = floatBitsToUint(aabb.w);
     pos.data[i+4] = floatBitsToUint(depthMax);
-    pos.data[i+5] = maxPrim;
+    pos.data[i+5] = packMeshHeader(bucketId, maxPrim);
     }
   if(laneID<maxPrim) {
     const uint i = posPtr + maxMesh + laneID;
@@ -255,6 +253,6 @@ void main() {
     pos.data[i+0] = floatBitsToUint(meshVertices[laneID].pos.x);
     pos.data[i+1] = floatBitsToUint(meshVertices[laneID].pos.y);
     pos.data[i+2] = floatBitsToUint(meshVertices[laneID].pos.z);
-    pos.data[i+3] = 1234; //TODO: UV
+    pos.data[i+3] = meshVertices[laneID].uv;
     }
   }
