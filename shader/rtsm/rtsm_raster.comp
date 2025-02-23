@@ -41,10 +41,6 @@ vec3  dbgColor  = vec3(0);
 ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
 ivec2 tileCoord = (fragCoord/RTSM_BIN_SIZE)*RTSM_BIN_SIZE;
 
-// counters
-uint numMeshlets  = 0;
-uint numTriangles = 0;
-
 shared uint dbgCounter;
 uint mergeCounter(uint cnt) {
   dbgCounter = 0;
@@ -57,33 +53,20 @@ uint mergeCounter(uint cnt) {
   }
 
 // utility
-shared uvec4 rayBbox[RTSM_PAGE_MIPS];
-shared uint  rayZmin[RTSM_PAGE_MIPS];
-uint         numRbb = 0;
-void rayBboxses(uint pkgMask, const uint selfMask, const vec3 ray, bool activeRay) {
-  uint i = 0;
-  while(pkgMask!=0) {
-    const int bit = findLSB(pkgMask);
-    pkgMask &= ~(1u << bit);
+shared uvec4 rayBbox;
+shared uint  rayZmin;
+void rayBboxses(const vec3 ray, bool activeRay) {
+  rayBbox = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
+  rayZmin = 0xFFFFFFFF;
+  barrier();
 
-    rayBbox[i] = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
-    rayZmin[i] = 0xFFFFFFFF;
-    barrier();
-
-    const bool isInBin = (selfMask & (1u << bit))!=0;
-    if(activeRay && isInBin) {
-      atomicMin(rayBbox[i].x, floatToOrderedUint(ray.x));
-      atomicMin(rayBbox[i].y, floatToOrderedUint(ray.y));
-      atomicMax(rayBbox[i].z, floatToOrderedUint(ray.x));
-      atomicMax(rayBbox[i].w, floatToOrderedUint(ray.y));
-      atomicMin(rayZmin[i],   floatToOrderedUint(ray.z));
-      }
-    barrier();
-    if(rayBbox[i].x!=0xFFFFFFFF) {
-      ++i;
-      }
+  if(activeRay) {
+    atomicMin(rayBbox.x, floatToOrderedUint(ray.x));
+    atomicMin(rayBbox.y, floatToOrderedUint(ray.y));
+    atomicMax(rayBbox.z, floatToOrderedUint(ray.x));
+    atomicMax(rayBbox.w, floatToOrderedUint(ray.y));
+    atomicMin(rayZmin,   floatToOrderedUint(ray.z));
     }
-  numRbb = i;
   }
 
 // light/occlusion/matrix
@@ -122,34 +105,6 @@ vec3 calcRayOrigin(const vec4 wpos) {
   return shPos.xyz;
   }
 
-uint rayPacketId(const vec2 shPos, const float z) {
-#if 0
-  float dZ   = linearDepth(     z, scene.clipInfo);
-  float d0   = linearDepth(0,      scene.clipInfo);
-  float d1   = linearDepth(0.9999, scene.clipInfo);
-  float d    = (dZ-d0)/(d1-d0);
-
-  int id = int(d*RTSM_PAGE_MIPS);
-  if(id>=RTSM_PAGE_MIPS)
-    return 0;
-  return 1u << id;
-#else
-  int mip = calcMipIndex(shPos);
-  if(mip>=RTSM_PAGE_MIPS)
-    return 0;
-  return 1u << mip;
-#endif
-  }
-
-shared uint rayPacketMask;
-uint mergeMasks(uint m) {
-  rayPacketMask = 0;
-  barrier();
-  atomicOr(rayPacketMask, m);
-  barrier();
-  return rayPacketMask;
-  }
-
 // meshlet-data
 uvec3 pullPrimitive(const uint ptr, const uint laneId) {
   uint bits = pos.data[ptr+laneId];
@@ -173,160 +128,115 @@ Vertex pullVertex(uint ptr, const uint laneId) {
   return ret;
   }
 
-shared uint   maxPrim;
-shared uvec3  primitiveIndices[MaxPrim];
 shared float  primitiveAreaInv[MaxPrim];
-shared Vertex meshVertices    [MaxVert];
+shared Vertex meshVertices    [MaxPrim*3];
 bool isPrimitiveVisible(const vec4 aabb) {
   //float depthMax;
 
-  for(uint i=0; i<numRbb; ++i) {
-    const vec4 rbbox = orderedUintToFloat(rayBbox[i]);
-    // if(uintBitsToFloat(rayZmin[i]) > depthMax)
-    //   continue;
-    if(!bboxIntersect(aabb, rbbox))
-      continue;
-    return true;
-    }
-  return false;
+  const vec4 rbbox = orderedUintToFloat(rayBbox);
+  // if(uintBitsToFloat(rayZmin) > depthMax)
+  //   continue;
+  if(!bboxIntersect(aabb, rbbox))
+    return false;
+  return true;
   }
 
-void processMeshletPrimitives(uint ptr, uint primCount) {
-  const uint laneID = gl_LocalInvocationIndex;
+void pullPrimitives(uint primitive) {
+  const uint laneID  = gl_LocalInvocationIndex;
+  const uint maxMesh = 6;
 
-  if(laneID<primCount) {
-    const uvec3 tri = pullPrimitive(ptr, laneID);
-    const vec3  a   = meshVertices[tri.x].pos.xyz;
-    const vec3  b   = meshVertices[tri.y].pos.xyz;
-    const vec3  c   = meshVertices[tri.z].pos.xyz;
+  const uint  bId = primitive+1;
+  const uint  pkg = imageLoad(primitiveBins, tileCoord + ivec2(bId%RTSM_BIN_SIZE, bId/RTSM_BIN_SIZE)).x;
 
-    const vec4 tbb = bboxOf(a.xy, b.xy, c.xy);
-    if(!isPrimitiveVisible(tbb))
-      return;
+  const uint  ptr = (pkg >> 8);
+  const uint  pId = pkg & 0xFF;
 
-    const uint  id   = atomicAdd(maxPrim, 1);
-    const float area = edgeFunction(a.xy, b.xy, c.xy);
+  const uint  primCnt = pos.data[ptr+5];
+  const uvec3 tri     = pullPrimitive(ptr+maxMesh, pId);
+  const uint  ptrV    = ptr + maxMesh + primCnt;
 
-    primitiveIndices[id] = tri;
-    primitiveAreaInv[id] = (1.0/area);
+  const Vertex a    = pullVertex(ptrV, tri.x);
+  const Vertex b    = pullVertex(ptrV, tri.y);
+  const Vertex c    = pullVertex(ptrV, tri.z);
 
-    ++numTriangles;
-    }
-  }
-
-void processMeshletVertices(const uint ptr) {
-  const uint laneID = gl_LocalInvocationIndex;
-
-  const uint vertCount = MaxVert; //TODO
-  if(laneID<vertCount) {
-    meshVertices[laneID] = pullVertex(ptr, laneID);
-    }
-  }
-
-bool rasterizeMeshletShadow(const vec3 ray) {
-  for(uint i=0; i<maxPrim; ++i) {
-    uvec3 tri = primitiveIndices[i];
-    vec3  a   = meshVertices[tri.x].pos.xyz;
-    vec3  b   = meshVertices[tri.y].pos.xyz;
-    vec3  c   = meshVertices[tri.z].pos.xyz;
-
-    float w0  = edgeFunction(b.xy, c.xy, ray.xy);
-    float w1  = edgeFunction(c.xy, a.xy, ray.xy);
-    float w2  = edgeFunction(a.xy, b.xy, ray.xy);
-
-    if(w0 < 0 || w1 < 0 || w2 < 0)
-      continue;
-
-    const float areaInv = primitiveAreaInv[i];
-    const vec3  bc      = vec3(w0,w1,w2);
-    const float depth   = dot(vec3(a.z,b.z,c.z), bc)*areaInv;
-    if(depth > ray.z)
-      return true;
-    }
-  return false;
-  }
-
-// meshlets-trace
-shared uint numVisMeshlets;
-shared uint meshletsId[NumThreads];
-
-bool isMeshletVisible(uint ptr) {
-  vec4  aabb;
-  float depthMax;
-
-  aabb.x   = uintBitsToFloat(pos.data[ptr+0]);
-  aabb.y   = uintBitsToFloat(pos.data[ptr+1]);
-  aabb.z   = uintBitsToFloat(pos.data[ptr+2]);
-  aabb.w   = uintBitsToFloat(pos.data[ptr+3]);
-  depthMax = uintBitsToFloat(pos.data[ptr+4]);
-
-  for(uint i=0; i<numRbb; ++i) {
-    const vec4 rbbox = orderedUintToFloat(rayBbox[i]);
-    if(uintBitsToFloat(rayZmin[i]) > depthMax)
-      continue;
-    if(!bboxIntersect(aabb, rbbox))
-      continue;
-    return true;
-    }
-  return false;
-  }
-
-void pullMeshlets(const uint step, uint numMesh) {
-  const uint laneID = gl_LocalInvocationIndex;
-  const uint visId  = step*NumThreads + laneID;
-  if(visId>=numMesh)
+  const vec4  tbb = bboxOf(a.pos.xy, b.pos.xy, c.pos.xy);
+  if(!isPrimitiveVisible(tbb)) {
+    primitiveAreaInv[laneID] = -1;
     return;
+    }
 
-  const uint bId = visId+1;
-  const uint ptr = imageLoad(primitiveBins, tileCoord + ivec2(bId%RTSM_BIN_SIZE, bId/RTSM_BIN_SIZE)).x;
-
-  if(!isMeshletVisible(ptr))
-    return;
-
-  const uint id = atomicAdd(numVisMeshlets, 1);
-  meshletsId[id] = ptr;
-  ++numMeshlets;
+  meshVertices[laneID*3+0] = a;
+  meshVertices[laneID*3+1] = b;
+  meshVertices[laneID*3+2] = c;
+  primitiveAreaInv[laneID] = 1.0/edgeFunction(a.pos.xy, b.pos.xy, c.pos.xy);
   }
 
-bool tracePacket(const vec3 ray) {
-  const uint laneID = gl_LocalInvocationIndex;
+shared uint numActiveRays;
+bool tracePacket(const vec3 ray, bool actRay) {
+  const uint laneID  = gl_LocalInvocationIndex;
 
-  bool shadow = false;
-
-  const uint numMesh = imageLoad(primitiveBins, tileCoord).x;
-  const uint steps   = ((numMesh + NumThreads - 1)/NumThreads);
-  for(uint i=0; i<steps; ++i) {
-    numVisMeshlets = 0;
-    barrier();
-
-    pullMeshlets(i, numMesh);
-    barrier();
-    // continue;
-
-    for(uint r=0; r<numVisMeshlets; ++r) {
-      const uint maxMesh = 6;
-      const uint ptr     = meshletsId[r];
-      const uint primCnt = pos.data[ptr+5];
-
-      processMeshletVertices(ptr+maxMesh+primCnt);
-      maxPrim = 0;
-      barrier();
-
-      processMeshletPrimitives(ptr+maxMesh, primCnt);
-      barrier();
-
-      shadow = shadow || rasterizeMeshletShadow(ray);
-      barrier();
-      }
-    }
+  if(actRay)
+    atomicAdd(numActiveRays, 1);
   barrier();
+
+  bool shadow = !actRay;
+
+  const uint tileHeader    = imageLoad(primitiveBins, tileCoord).x;
+  const uint numPrimitives = tileHeader & 0xFFFF;
+  const uint numPrim       = (NumThreads/3);
+  const uint steps         = (numPrimitives*3 + numPrim - 1)/numPrim;
+
+  if((tileHeader & (1u<<31))!=0) {
+    // error - emit 4x4 grid to display
+    ivec2 tile = fragCoord/4;
+    return (tile.x+tile.y)%2==0;
+    }
+
+  for(uint s=0; s<steps; ++s) {
+    if(numActiveRays==0)
+      break;
+
+    const uint primitive = s*steps + laneID;
+    if(primitive<numPrimitives)
+      pullPrimitives(primitive);
+    barrier();
+
+    for(uint id=0; id<numPrim; ++id) {
+      const uint i = s*steps + id;
+      if(i>=numPrimitives)
+        break;
+      if(shadow)
+        break;
+
+      const float areaInv = primitiveAreaInv[id];
+      if(areaInv<0)
+        continue;
+
+      vec3  a  = meshVertices[id*3+0].pos;
+      vec3  b  = meshVertices[id*3+1].pos;
+      vec3  c  = meshVertices[id*3+2].pos;
+
+      float w0 = edgeFunction(b.xy, c.xy, ray.xy);
+      float w1 = edgeFunction(c.xy, a.xy, ray.xy);
+      float w2 = edgeFunction(a.xy, b.xy, ray.xy);
+
+      if(w0 < 0 || w1 < 0 || w2 < 0)
+        continue;
+
+      const vec3  bc      = vec3(w0,w1,w2);
+      const float depth   = dot(vec3(a.z,b.z,c.z), bc)*areaInv;
+      if(depth > ray.z) {
+        shadow = true;
+        atomicAdd(numActiveRays, -1);
+        break;
+        }
+      }
+    barrier();
+    }
   return shadow;
   }
 
 void main() {
-  numMeshlets = 0;
-  barrier();
-
   const ivec2 size   = textureSize(depth, 0);
   const bool  valid  = all(lessThan(fragCoord, size));
 
@@ -338,18 +248,15 @@ void main() {
   const vec3  ray    = calcRayOrigin(wpos);
   const bool  actRay = (lamb>0);
 
-  const uint  selfMask = actRay ? rayPacketId(ray.xy,z) : 0;
-  uint        pkgMask  = mergeMasks(selfMask);
+  numActiveRays= 0;
+  rayBboxses(ray, actRay);
+  barrier();
 
-  rayBboxses(pkgMask, selfMask, ray, actRay);
-
-  const bool shadow = tracePacket(ray);
+  const bool shadow = tracePacket(ray, actRay);
   if(actRay && shadow)
     imageStore(outputImage, fragCoord, vec4(0));
 
   if(valid) {
-    //imageStore(dbgImage, fragCoord, uvec4(numRbb));
-    imageStore(dbgImage, fragCoord, uvec4(mergeCounter(numMeshlets)));
-    //imageStore(dbgImage, fragCoord, uvec4(mergeCounter(numTriangles)));
+    //imageStore(dbgImage, fragCoord, uvec4(mergeCounter(numMeshlets)));
     }
   }

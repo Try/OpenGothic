@@ -3,9 +3,6 @@
 #extension GL_GOOGLE_include_directive    : enable
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_EXT_samplerless_texture_functions : enable
-// bindless
-#extension GL_EXT_nonuniform_qualifier : enable
-// #extension GL_KHR_memory_scope_semantics : enable
 
 #include "common.glsl"
 #include "scene.glsl"
@@ -14,6 +11,7 @@
 layout(local_size_x = 16, local_size_y = 16) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+const uint MaxVert    = 64;
 
 layout(binding = 0, r8)     uniform  image2D    outputImage;
 layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
@@ -30,6 +28,9 @@ ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
 // visible meshlets
 shared uint numMeshlets;
 shared uint meshletsId[NumThreads];
+
+shared uint numPrimitives;
+shared uint primitives[NumThreads];
 
 shared uint dbgCounter;
 uint mergeCounter(uint cnt) {
@@ -136,6 +137,18 @@ uint mergeMasks(uint m) {
   return rayPacketMask;
   }
 
+//
+
+uint packPrimitiveId(uint meshlet, uint prim) {
+  return (meshlet << 8) | prim;
+  }
+
+uint packTileHeader() {
+  const uint n      = min(numPrimitives, NumThreads-1) & 0xFFFF;
+  const uint badBit = (numPrimitives>NumThreads-1 || numMeshlets>=meshletsId.length()) ? (1u << 31) : 0;
+  return n | badBit;
+  }
+
 // meshlets-trace
 bool isMeshletVisible(uint ptr) {
   vec4  aabb;
@@ -174,10 +187,70 @@ void tracePacket(const vec3 ray) {
     }
   }
 
-void storeResult() {
+// primitive-trace
+bool isPrimitiveVisible(const vec4 aabb) {
+  //float depthMax;
+
+  for(uint i=0; i<numRbb; ++i) {
+    const vec4 rbbox = orderedUintToFloat(rayBbox[i]);
+    // if(uintBitsToFloat(rayZmin[i]) > depthMax)
+    //   continue;
+    if(!bboxIntersect(aabb, rbbox))
+      continue;
+    return true;
+    }
+  return false;
+  }
+
+uvec3 pullPrimitive(const uint ptr, const uint laneId) {
+  uint bits = pos.data[ptr+laneId];
+
+  uvec3 prim;
+  prim.x = ((bits >>  0) & 0xFF);
+  prim.y = ((bits >>  8) & 0xFF);
+  prim.z = ((bits >> 16) & 0xFF);
+  return prim;
+  }
+
+vec3 pullVertex(uint ptr, const uint laneId) {
+  ptr += 4*laneId;
+
+  vec3 ret;
+  ret.x = uintBitsToFloat(pos.data[ptr+0]);
+  ret.y = uintBitsToFloat(pos.data[ptr+1]);
+  ret.z = uintBitsToFloat(pos.data[ptr+2]);
+  return ret;
+  }
+
+void processMeshletPrimitives(const uint ptr, uint primCount) {
+  const uint laneID  = gl_LocalInvocationIndex;
+  const uint maxMesh = 6;
+
+  if(laneID<primCount) {
+    uint ptrM = ptr;
+
+    ptrM += maxMesh;
+    const uvec3 tri = pullPrimitive(ptrM, laneID);
+
+    ptrM += primCount;
+    const vec3  a   = pullVertex(ptrM, tri.x);
+    const vec3  b   = pullVertex(ptrM, tri.y);
+    const vec3  c   = pullVertex(ptrM, tri.z);
+    const vec4  tbb = bboxOf(a.xy, b.xy, c.xy);
+
+    if(!isPrimitiveVisible(tbb))
+      return;
+
+    const uint id = atomicAdd(numPrimitives, 1);
+    primitives[id] = packPrimitiveId(ptr, laneID);
+    }
+  }
+
+void storeResultMesh() {
   const ivec2 at = ivec2(gl_WorkGroupID.xy * gl_WorkGroupSize.xy);
   if(gl_LocalInvocationIndex==0) {
-    imageStore(primitiveBins, ivec2(gl_GlobalInvocationID.xy), uvec4(numMeshlets));
+    const uint n = min(numMeshlets, NumThreads-1);
+    imageStore(primitiveBins, ivec2(gl_GlobalInvocationID.xy), uvec4(n));
     } else {
     const uint i = gl_LocalInvocationIndex-1;
     const uint v = (i<numMeshlets) ? meshletsId[i] : 0;
@@ -185,8 +258,31 @@ void storeResult() {
     }
   }
 
+void tracePrim(const vec3 ray) {
+  const uint maxMesh = 6;
+
+  for(uint i=0; i<numMeshlets && i<meshletsId.length(); ++i) {
+    const uint ptr     = meshletsId[i];
+    const uint primCnt = pos.data[ptr+5];
+
+    processMeshletPrimitives(ptr, primCnt);
+    }
+  }
+
+void storeResultPrim() {
+  const ivec2 at = ivec2(gl_WorkGroupID.xy * gl_WorkGroupSize.xy);
+  if(gl_LocalInvocationIndex==0) {
+    imageStore(primitiveBins, ivec2(gl_GlobalInvocationID.xy), uvec4(packTileHeader()));
+    } else {
+    const uint i = gl_LocalInvocationIndex-1;
+    const uint v = (i<numPrimitives) ? primitives[i] : 0;
+    imageStore(primitiveBins, ivec2(gl_GlobalInvocationID.xy), uvec4(v));
+    }
+  }
+
 void main() {
-  numMeshlets = 0;
+  numMeshlets   = 0;
+  numPrimitives = 0;
   barrier();
 
   const ivec2 size   = textureSize(depth, 0);
@@ -209,6 +305,10 @@ void main() {
   tracePacket(ray);
   barrier();
 
-  storeResult();
+  tracePrim(ray);
+  barrier();
+
+  // storeResult();
+  storeResultPrim();
   }
 
