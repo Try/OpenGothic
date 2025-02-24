@@ -204,7 +204,8 @@ void Renderer::resetSwapchain() {
 
   if(settings.rtsmEnabled) {
     // rtsm.rtsmImage = device.image2d(Tempest::RGBA8, w, h);
-    rtsm.rtsmImage = device.image2d(Tempest::R8, w, h);
+    rtsm.rtsmImage = device.image2d(TextureFormat::R8, w, h);
+    rtsm.rtsmDbg   = device.image2d(TextureFormat::R32U, w, h);
     }
 
   resetSkyFog();
@@ -334,7 +335,7 @@ void Renderer::prepareUniforms() {
   wview->setShadowMaps(sh);
   wview->setVirtualShadowMap(vsm.pageData, vsm.pageTbl, vsm.pageHiZ, vsm.pageList);
   wview->setSwRenderingImage(swr.outputImage);
-  wview->setRtsmImage(rtsm.rtsmImage);
+  wview->setRtsmImage(rtsm.rtsmImage, rtsm.rtsmDbg);
 
   wview->setHiZ(textureCast<const Texture2d&>(hiz.hiZ));
   wview->setGbuffer(textureCast<const Texture2d&>(gbufDiffuse), textureCast<const Texture2d&>(gbufNormal));
@@ -836,7 +837,7 @@ void Renderer::drawRtsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   cmd.setDebugMarker("RTSM-dbg");
-  cmd.setBinding(0, rtsm.rtsmImage);
+  cmd.setBinding(0, rtsm.rtsmDbg);
   cmd.setPipeline(shaders.rtsmDbg);
   cmd.draw(Resources::fsqVbo());
   }

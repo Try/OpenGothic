@@ -85,6 +85,7 @@ class SceneGlobals final {
     Tempest::StorageImage             vsmDbg;
 
     const Tempest::StorageImage*      rtsmImage     = nullptr;
+    const Tempest::StorageImage*      rtsmDbg       = nullptr;
 
     const Tempest::StorageImage*      swMainImage   = nullptr;
 

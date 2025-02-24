@@ -8,10 +8,11 @@
 #include "scene.glsl"
 #include "rtsm/rtsm_common.glsl"
 
-layout(local_size_x = 16, local_size_y = 16) in;
+layout(local_size_x = RTSM_BIN_SIZE, local_size_y = RTSM_BIN_SIZE) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 const uint MaxVert    = 64;
+const uint MaxPrim    = 64;
 
 layout(binding = 0, r8)     uniform  image2D    outputImage;
 layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
@@ -20,14 +21,18 @@ layout(binding = 3)         uniform  texture2D  depth;
 layout(binding = 4, std430) readonly buffer Rt  { RtsmHeader header; uvec2 visList[]; } rtsm;
 layout(binding = 5, std430) readonly buffer Pos { uint       alloc;  uint  data[];    } pos;
 layout(binding = 6, r32ui)  uniform  uimage2D   primitiveBins;
+layout(binding = 7, r32ui)  uniform  uimage2D   dbgImage;
 
 
 vec3  dbgColor  = vec3(0);
 ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
 
+// counter
+uint numMeshletsAll = 0;
+
 // visible meshlets
 shared uint numMeshlets;
-shared uint meshletsId[NumThreads];
+shared uint meshletsId[NumThreads*2];
 
 shared uint numPrimitives;
 shared uint primitives[NumThreads];
@@ -138,19 +143,21 @@ uint mergeMasks(uint m) {
   }
 
 //
-
 uint packPrimitiveId(uint meshlet, uint prim) {
   return (meshlet << 8) | prim;
   }
 
 uint packTileHeader() {
-  const uint n      = min(numPrimitives, NumThreads-1) & 0xFFFF;
-  const uint badBit = (numPrimitives>NumThreads-1 || numMeshlets>=meshletsId.length()) ? (1u << 31) : 0;
+  const uint n      = min(numPrimitives, primitives.length()) & 0xFFFF;
+  const uint badBit = (numPrimitives>=primitives.length()) ? (1u << 31) : 0;
   return n | badBit;
   }
 
 // meshlets-trace
 bool isMeshletVisible(uint ptr) {
+  if(ptr==0xFFFFFFFF)
+    return false;
+
   vec4  aabb;
   float depthMax;
 
@@ -169,22 +176,6 @@ bool isMeshletVisible(uint ptr) {
     return true;
     }
   return false;
-  }
-
-void tracePacket(const vec3 ray) {
-  const uint laneID = gl_LocalInvocationIndex;
-
-  for(uint i=laneID; i<rtsm.header.visCount; i+=NumThreads) {
-    const uint ptr = rtsm.visList[i].x;
-    if(ptr==0xFFFFFFFF)
-      continue;
-    if(!isMeshletVisible(ptr))
-      continue;
-
-    const uint id = atomicAdd(numMeshlets, 1);
-    if(id<meshletsId.length())
-      meshletsId[id] = ptr;
-    }
   }
 
 // primitive-trace
@@ -222,8 +213,7 @@ vec3 pullVertex(uint ptr, const uint laneId) {
   return ret;
   }
 
-void processMeshletPrimitives(const uint ptr, uint primCount) {
-  const uint laneID  = gl_LocalInvocationIndex;
+void processMeshletPrimitives(const uint ptr, const uint primCount, const uint laneID) {
   const uint maxMesh = 6;
 
   if(laneID<primCount) {
@@ -241,30 +231,48 @@ void processMeshletPrimitives(const uint ptr, uint primCount) {
     if(!isPrimitiveVisible(tbb))
       return;
 
+    numMeshletsAll++;
     const uint id = atomicAdd(numPrimitives, 1);
-    primitives[id] = packPrimitiveId(ptr, laneID);
+    if(id<primitives.length())
+      primitives[id] = packPrimitiveId(ptr, laneID);
     }
   }
 
-void storeResultMesh() {
-  const ivec2 at = ivec2(gl_WorkGroupID.xy * gl_WorkGroupSize.xy);
-  if(gl_LocalInvocationIndex==0) {
-    const uint n = min(numMeshlets, NumThreads-1);
-    imageStore(primitiveBins, ivec2(gl_GlobalInvocationID.xy), uvec4(n));
-    } else {
-    const uint i = gl_LocalInvocationIndex-1;
-    const uint v = (i<numMeshlets) ? meshletsId[i] : 0;
-    imageStore(primitiveBins, ivec2(gl_GlobalInvocationID.xy), uvec4(v));
-    }
-  }
+void traceMeshlets() {
+  const uint meshPerStep = NumThreads/MaxPrim;
+  const uint meshId      = gl_LocalInvocationIndex/MaxPrim;
+  const uint laneMs      = gl_LocalInvocationIndex%MaxPrim;
 
-void tracePrim(const vec3 ray) {
-  for(uint i=0; i<numMeshlets && i<meshletsId.length(); ++i) {
+  for(uint i=meshId; i<numMeshlets; i+=meshPerStep) {
     const uint ptr     = meshletsId[i];
     const uint primCnt = unpackPrimitiveCount(pos.data[ptr+5]);
-
-    processMeshletPrimitives(ptr, primCnt);
+    processMeshletPrimitives(ptr, primCnt, laneMs);
     }
+  }
+
+void traceTile(const vec3 ray) {
+  const uint laneID   = gl_LocalInvocationIndex;
+  const uint visCount = rtsm.header.visCount;
+  const uint steps    = (visCount + NumThreads - 1)/NumThreads;
+
+  for(uint s=0; s<steps; ++s) {
+    const uint i   = laneID + s*NumThreads;
+    const uint ptr = i<visCount ? rtsm.visList[i].x : 0xFFFFFFFF;
+
+    if(isMeshletVisible(ptr)) {
+      uint id = atomicAdd(numMeshlets,1);
+      meshletsId[id] = ptr;
+      }
+    barrier();
+
+    if(numMeshlets>=NumThreads) {
+      traceMeshlets();
+      numMeshlets = 0;
+      }
+    barrier();
+    }
+
+  traceMeshlets();
   }
 
 void storeResultPrim() {
@@ -279,8 +287,9 @@ void storeResultPrim() {
   }
 
 void main() {
-  numMeshlets   = 0;
-  numPrimitives = 0;
+  numMeshlets    = 0;
+  numPrimitives  = 0;
+  numMeshletsAll = 0;
   barrier();
 
   const ivec2 size   = textureSize(depth, 0);
@@ -298,15 +307,17 @@ void main() {
   uint        pkgMask  = mergeMasks(selfMask);
 
   rayBboxses(pkgMask, selfMask, ray, actRay);
-  // barrier();
-
-  tracePacket(ray);
   barrier();
 
-  tracePrim(ray);
+  traceTile(ray);
   barrier();
 
-  // storeResult();
   storeResultPrim();
+
+  const uint ms = mergeCounter(numMeshletsAll);
+  if(valid) {
+    //imageStore(dbgImage, fragCoord, uvec4(numPrimitives));
+    imageStore(dbgImage, fragCoord, uvec4(ms));
+    }
   }
 

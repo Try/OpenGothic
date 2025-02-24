@@ -105,8 +105,9 @@ void WorldView::setSwRenderingImage(const Tempest::StorageImage& mainView) {
   sGlobal.setSwRenderingImage(mainView);
   }
 
-void WorldView::setRtsmImage(const Tempest::StorageImage& mainView) {
+void WorldView::setRtsmImage(const Tempest::StorageImage& mainView, const Tempest::StorageImage& rtsmDbg) {
   sGlobal.rtsmImage = &mainView;
+  sGlobal.rtsmDbg   = &rtsmDbg;
   }
 
 void WorldView::setHiZ(const Tempest::Texture2d& hiZ) {

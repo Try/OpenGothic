@@ -4,6 +4,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_EXT_samplerless_texture_functions : enable
 
+#include "rtsm/rtsm_common.glsl"
 #include "common.glsl"
 #include "scene.glsl"
 
@@ -39,7 +40,7 @@ float drawInt(in vec2 where, in int n) {
 
 void main() {
   ivec2 fragCoord = ivec2(gl_FragCoord.xy);
-  ivec2 tileSz    = ivec2(32);
+  ivec2 tileSz    = ivec2(RTSM_BIN_SIZE);
   ivec2 tileId    = ivec2(gl_FragCoord.xy)/tileSz;
 
   uint v = texelFetch(dbgImage, fragCoord, 0).r;
@@ -51,20 +52,12 @@ void main() {
       outColor = vec4(0.9,0.9,0,1);
     else
       outColor = vec4(0.9,0,0,1);
-#if COUNTER
     return;
-#endif
     }
 
   if(fragCoord.x%tileSz.x==0 || fragCoord.y%tileSz.y==0) {
     outColor = vec4(0);
     return;
     }
-
-  if(v==0)
-    discard;
-  outColor = vec4(0);
-#if COUNTER
   discard;
-#endif
   }

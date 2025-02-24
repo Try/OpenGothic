@@ -211,6 +211,7 @@ class Renderer final {
 
     struct {
       Tempest::StorageImage     rtsmImage;
+      Tempest::StorageImage     rtsmDbg;
       } rtsm;
 
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::Depth16;

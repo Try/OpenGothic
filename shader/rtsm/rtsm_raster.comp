@@ -16,7 +16,6 @@
 layout(local_size_x = 8, local_size_y = 8) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
-const uint MaxPrim    = 64;
 
 struct Vertex {
   vec3 pos;
@@ -32,7 +31,6 @@ layout(binding = 2)         uniform  utexture2D gbufNormal;
 layout(binding = 3)         uniform  texture2D  depth;
 layout(binding = 4, r32ui)  uniform  uimage2D   primitiveBins;
 layout(binding = 5, std430) readonly buffer Pos { uint alloc; uint data[]; } pos;
-layout(binding = 6, r32ui)  uniform  uimage2D   dbgImage;
 
 layout(binding = 7)         uniform  texture2D  textureMain[];
 layout(binding = 8)         uniform  sampler    samplerMain;
@@ -41,17 +39,6 @@ layout(binding = 8)         uniform  sampler    samplerMain;
 vec3  dbgColor  = vec3(0);
 ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
 ivec2 tileCoord = (fragCoord/RTSM_BIN_SIZE)*RTSM_BIN_SIZE;
-
-shared uint dbgCounter;
-uint mergeCounter(uint cnt) {
-  dbgCounter = 0;
-  barrier();
-
-  atomicAdd(dbgCounter, cnt);
-  barrier();
-
-  return dbgCounter;
-  }
 
 float alphaTest(const uint bucketId, vec3 bc, float areaInv, vec2 a, vec2 b, vec2 c) {
   const float u = dot(vec3(a.x,b.x,c.x), bc)*areaInv;
@@ -136,9 +123,9 @@ Vertex pullVertex(uint ptr, const uint laneId) {
   return ret;
   }
 
-shared uint   primitiveBucket [MaxPrim];
-shared float  primitiveAreaInv[MaxPrim];
-shared Vertex meshVertices    [MaxPrim*3];
+shared uint   primitiveBucket [NumThreads];
+shared float  primitiveAreaInv[NumThreads];
+shared Vertex meshVertices    [NumThreads*3];
 bool isPrimitiveVisible(const vec4 aabb) {
   //float depthMax;
 
@@ -192,8 +179,7 @@ float tracePacket(const vec3 ray, float opacity, bool actRay) {
 
   const uint tileHeader    = imageLoad(primitiveBins, tileCoord).x;
   const uint numPrimitives = tileHeader & 0xFFFF;
-  const uint numPrim       = (NumThreads/3);
-  const uint steps         = (numPrimitives*3 + numPrim - 1)/numPrim;
+  const uint steps         = (numPrimitives + NumThreads - 1)/NumThreads;
 
   if((tileHeader & (1u<<31))!=0) {
     // error - emit 4x4 grid to display
@@ -206,15 +192,13 @@ float tracePacket(const vec3 ray, float opacity, bool actRay) {
     if(numActiveRays==0)
       break;
 
-    const uint primitive = s*steps + laneID;
+    const uint primitive = s*NumThreads + laneID;
     if(primitive<numPrimitives)
       pullPrimitives(primitive);
     barrier();
 
-    for(uint id=0; id<numPrim; ++id) {
-      const uint i = s*steps + id;
-      if(i>=numPrimitives)
-        break;
+    const uint batchSize = min(numPrimitives-s*steps, NumThreads);
+    for(uint id=0; id<batchSize; ++id) {
       if(shadow)
         break;
 
@@ -276,15 +260,11 @@ void main() {
   const vec3  ray    = calcRayOrigin(wpos);
   const bool  actRay = (lamb>0);
 
-  numActiveRays= 0;
+  numActiveRays = 0;
   rayBboxses(ray, actRay);
   barrier();
 
   const float opacity = tracePacket(ray, lamb, actRay);
   if(actRay && opacity<1)
     imageStore(outputImage, fragCoord, vec4(opacity));
-
-  if(valid) {
-    //imageStore(dbgImage, fragCoord, uvec4(mergeCounter(numMeshlets)));
-    }
   }

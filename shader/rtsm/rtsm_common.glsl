@@ -6,7 +6,7 @@
 const int RTSM_PAGE_TBL_SIZE = 32;  // small for testing, 64 can be better
 const int RTSM_PAGE_MIPS     = 16;
 
-const int RTSM_BIN_SIZE      = 16;
+const int RTSM_BIN_SIZE      = 32;
 
 struct RtsmHeader {
   uint visCount;

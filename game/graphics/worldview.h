@@ -48,7 +48,7 @@ class WorldView {
                              const Tempest::StorageImage& pageHiZ,
                              const Tempest::StorageBuffer& pageList);
     void setSwRenderingImage(const Tempest::StorageImage& mainView);
-    void setRtsmImage(const Tempest::StorageImage& mainView);
+    void setRtsmImage(const Tempest::StorageImage& mainView, const Tempest::StorageImage& rtsmDbg);
     void setHiZ(const Tempest::Texture2d& hiZ);
     void setSceneImages(const Tempest::Texture2d& clr, const Tempest::Texture2d& depthAux, const Tempest::ZBuffer& depthNative);
 

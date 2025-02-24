@@ -602,11 +602,6 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     rtsmTileCull = device.image2d(TextureFormat::R32U, uint32_t(sz.w), uint32_t(sz.h));
     }
 
-  if(rtsmDbg.size()!=scene.zbuffer->size()) {
-    Resources::recycle(std::move(rtsmDbg));
-    rtsmDbg = device.image2d(TextureFormat::R32U, uint32_t(scene.zbuffer->w()), uint32_t(scene.zbuffer->h()));
-    }
-
   {
     // clear
     cmd.setBinding(0, rtsmPages);
@@ -666,6 +661,7 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.setBinding(4, rtsmVisList);
     cmd.setBinding(5, rtsmPosList);
     cmd.setBinding(6, rtsmTileCull);
+    cmd.setBinding(7, *scene.rtsmDbg);
 
     cmd.setPipeline(shaders.rtsmTileCulling);
     cmd.dispatchThreads(scene.rtsmImage->size());
@@ -679,7 +675,6 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.setBinding(3, *scene.zbuffer);
     cmd.setBinding(4, rtsmTileCull);
     cmd.setBinding(5, rtsmPosList);
-    cmd.setBinding(6, rtsmDbg);
 
     cmd.setBinding(7, tex);
     cmd.setBinding(8, Sampler::trillinear());
