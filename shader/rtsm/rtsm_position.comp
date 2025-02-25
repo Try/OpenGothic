@@ -278,7 +278,7 @@ void main() {
   const uvec2   visId    = rtsm.visList[gl_WorkGroupID.x];
   const Cluster cluster  = clusters[visId.x];
 
-  const uint  meshletId  = visId.y; //cluster.firstMeshlet;
+  const uint  meshletId  = visId.y;
   const uint  bucketId   = cluster.bucketId_commandId>>16;
 
   const uvec2 mesh       = pullMeshlet(meshletId, bucketId);
@@ -314,7 +314,8 @@ void main() {
   updateMeshBbox(vertCount);
   barrier();
 
-  if(maxPrim==0) {
+  if(maxPrim==0 || (bucketFlg & BK_WATER)==BK_WATER) {
+    // water shadows - maybe in future, but TODO for now
     // fully backfaced
     rtsm.visList[gl_WorkGroupID.x] = uvec2(0xFFFFFFFF);
     return;

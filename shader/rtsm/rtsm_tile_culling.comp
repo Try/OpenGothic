@@ -18,8 +18,8 @@ layout(binding = 0, r8)     uniform  image2D    outputImage;
 layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
 layout(binding = 2)         uniform  utexture2D gbufNormal;
 layout(binding = 3)         uniform  texture2D  depth;
-layout(binding = 4, std430) readonly buffer Rt  { RtsmHeader header; uvec2 visList[]; } rtsm;
-layout(binding = 5, std430) readonly buffer Pos { uint       alloc;  uint  data[];    } pos;
+layout(binding = 4)         uniform  utexture2D largeTiles;
+layout(binding = 5, std430) readonly buffer Pos { uint alloc; uint  data[]; } pos;
 layout(binding = 6, r32ui)  uniform  uimage2D   primitiveBins;
 layout(binding = 7, r32ui)  uniform  uimage2D   dbgImage;
 
@@ -36,6 +36,9 @@ shared uint meshletsId[NumThreads*2];
 
 shared uint numPrimitives;
 shared uint primitives[NumThreads];
+
+shared uint numRays;
+shared vec2 rays[NumThreads];
 
 shared uint dbgCounter;
 uint mergeCounter(uint cnt) {
@@ -154,19 +157,14 @@ uint packTileHeader() {
   }
 
 // meshlets-trace
-bool isMeshletVisible(uint ptr) {
-  if(ptr==0xFFFFFFFF)
-    return false;
+bool bboxIncludes(vec4 aabb, vec2 p) {
+  if(aabb.x < p.x && p.x < aabb.z &&
+     aabb.y < p.y && p.y < aabb.w)
+    return true;
+  return false;
+  }
 
-  vec4  aabb;
-  float depthMax;
-
-  aabb.x   = uintBitsToFloat(pos.data[ptr+0]);
-  aabb.y   = uintBitsToFloat(pos.data[ptr+1]);
-  aabb.z   = uintBitsToFloat(pos.data[ptr+2]);
-  aabb.w   = uintBitsToFloat(pos.data[ptr+3]);
-  depthMax = uintBitsToFloat(pos.data[ptr+4]);
-
+bool isMeshletVisibleAabb(const vec4  aabb, const float depthMax) {
   for(uint i=0; i<numRbb; ++i) {
     const vec4 rbbox = orderedUintToFloat(rayBbox[i]);
     if(uintBitsToFloat(rayZmin[i]) > depthMax)
@@ -174,6 +172,27 @@ bool isMeshletVisible(uint ptr) {
     if(!bboxIntersect(aabb, rbbox))
       continue;
     return true;
+    }
+  return false;
+  }
+
+bool isMeshletVisible(uint ptr) {
+  if(ptr==0xFFFFFFFF)
+    return false;
+
+  vec4  aabb;
+  float depthMax;
+  aabb.x   = uintBitsToFloat(pos.data[ptr+0]);
+  aabb.y   = uintBitsToFloat(pos.data[ptr+1]);
+  aabb.z   = uintBitsToFloat(pos.data[ptr+2]);
+  aabb.w   = uintBitsToFloat(pos.data[ptr+3]);
+  depthMax = uintBitsToFloat(pos.data[ptr+4]);
+  if(!isMeshletVisibleAabb(aabb, depthMax))
+    return false;
+
+  for(uint i=0; i<numRays; ++i) {
+    if(bboxIncludes(aabb, rays[i]))
+      return true;
     }
   return false;
   }
@@ -231,7 +250,6 @@ void processMeshletPrimitives(const uint ptr, const uint primCount, const uint l
     if(!isPrimitiveVisible(tbb))
       return;
 
-    numMeshletsAll++;
     const uint id = atomicAdd(numPrimitives, 1);
     if(id<primitives.length())
       primitives[id] = packPrimitiveId(ptr, laneID);
@@ -250,16 +268,21 @@ void traceMeshlets() {
     }
   }
 
-void traceTile(const vec3 ray) {
-  const uint laneID   = gl_LocalInvocationIndex;
-  const uint visCount = rtsm.header.visCount;
-  const uint steps    = (visCount + NumThreads - 1)/NumThreads;
+void traceTile() {
+  const uint  laneID    = gl_LocalInvocationIndex;
+
+  const uvec2 largeTile = texelFetch(largeTiles, ivec2(fragCoord/RTSM_LARGE_TILE), 0).xy;
+  const uint  tilePtr   = largeTile.x;
+  const uint  visCount  = largeTile.y; //rtsm.header.visCount;
+  const uint  steps     = (visCount + NumThreads - 1)/NumThreads;
 
   for(uint s=0; s<steps; ++s) {
     const uint i   = laneID + s*NumThreads;
-    const uint ptr = i<visCount ? rtsm.visList[i].x : 0xFFFFFFFF;
+    const uint ptr = i<visCount ? pos.data[tilePtr + i].x : 0xFFFFFFFF;
+    // const uint ptr = i<visCount ? rtsm.visList[i].x : 0xFFFFFFFF;
 
     if(isMeshletVisible(ptr)) {
+      numMeshletsAll++;
       uint id = atomicAdd(numMeshlets,1);
       meshletsId[id] = ptr;
       }
@@ -287,6 +310,7 @@ void storeResultPrim() {
   }
 
 void main() {
+  numRays        = 0;
   numMeshlets    = 0;
   numPrimitives  = 0;
   numMeshletsAll = 0;
@@ -303,13 +327,17 @@ void main() {
   const vec3  ray    = calcRayOrigin(wpos);
   const bool  actRay = !(lamb==0);
 
+  if(actRay) {
+    const uint id = atomicAdd(numRays,1);
+    rays[id] = ray.xy;
+    }
+
   const uint  selfMask = actRay ? rayPacketId(ray.xy,z) : 0;
   uint        pkgMask  = mergeMasks(selfMask);
-
   rayBboxses(pkgMask, selfMask, ray, actRay);
   barrier();
 
-  traceTile(ray);
+  traceTile();
   barrier();
 
   storeResultPrim();
@@ -317,7 +345,7 @@ void main() {
   const uint ms = mergeCounter(numMeshletsAll);
   if(valid) {
     //imageStore(dbgImage, fragCoord, uvec4(numPrimitives));
-    imageStore(dbgImage, fragCoord, uvec4(ms));
+    //imageStore(dbgImage, fragCoord, uvec4(ms));
     }
   }
 

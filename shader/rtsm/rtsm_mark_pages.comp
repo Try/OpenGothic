@@ -11,9 +11,10 @@ layout(local_size_x = 16, local_size_y = 8) in;
 
 layout(binding = 0, r8)     uniform  image2D    outputImage;
 layout(binding = 1, std140) uniform UboScene    { SceneDesc scene;       };
-layout(binding = 2)         uniform utexture2D  gbufNormal;
-layout(binding = 3)         uniform texture2D   depth;
-layout(binding = 6, r32ui)  uniform uimage3D    pageTbl;
+layout(binding = 2)         uniform texture2D   gbufDiffuse;
+layout(binding = 3)         uniform utexture2D  gbufNormal;
+layout(binding = 4)         uniform texture2D   depth;
+layout(binding = 7, r32ui)  uniform uimage3D    pageTbl;
 
 ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
 
@@ -61,6 +62,10 @@ float markPages() {
 
   const vec4  wpos   = worldPos(fragCoord.xy, z) + vec4(normal*0.002, 0);
   if(planetOcclusion(wpos.y/wpos.w, scene.sunDir))
+    return 0;
+
+  const vec4  diff   = texelFetch (gbufDiffuse, fragCoord, 0);
+  if(isGBufFlat(diff.a))
     return 0;
 
   const vec3  ray    = calcRayOrigin(wpos);

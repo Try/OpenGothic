@@ -564,6 +564,12 @@ void DrawCommands::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     }
   }
 
+static Size tileCount(Size sz, int s) {
+  sz.w = (sz.w+s-1)/s;
+  sz.h = (sz.h+s-1)/s;
+  return sz;
+  }
+
 static Size roundUp(Size sz, int align) {
   sz.w = (sz.w+align-1)/align;
   sz.h = (sz.h+align-1)/align;
@@ -574,12 +580,19 @@ static Size roundUp(Size sz, int align) {
   }
 
 void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
+  const int RTSM_LARGE_TILE = 128;
+
   auto& device   = Resources::device();
   auto& shaders  = Shaders::inst();
   auto& sceneUbo = scene.uboGlobal[SceneGlobals::V_Vsm];
 
   if(rtsmPages.isEmpty()) {
     rtsmPages = device.image3d(TextureFormat::R32U, 32, 32, 16);
+    }
+
+  if(rtsmLargeTile.size()!=tileCount(scene.zbuffer->size(), RTSM_LARGE_TILE)) {
+    auto sz = tileCount(scene.zbuffer->size(), RTSM_LARGE_TILE);
+    rtsmLargeTile = device.image2d(TextureFormat::RG32U, uint32_t(sz.w), uint32_t(sz.h));
     }
 
   const size_t clusterCnt = maxPayload;
@@ -611,6 +624,7 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.setPipeline(shaders.rtsmClear);
     cmd.dispatchThreads(size_t(rtsmPages.w()), size_t(rtsmPages.h()), size_t(rtsmPages.d()));
   }
+
   {
     // cull
     struct Push { uint32_t meshletCount; } push = {};
@@ -619,11 +633,12 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
 
     cmd.setBinding(0, *scene.rtsmImage);
     cmd.setBinding(1, sceneUbo);
-    cmd.setBinding(2, *scene.gbufNormals);
-    cmd.setBinding(3, *scene.zbuffer);
-    cmd.setBinding(4, rtsmVisList);
-    cmd.setBinding(5, clusters.ssbo());
-    cmd.setBinding(6, rtsmPages);
+    cmd.setBinding(2, *scene.gbufDiffuse);
+    cmd.setBinding(3, *scene.gbufNormals);
+    cmd.setBinding(4, *scene.zbuffer);
+    cmd.setBinding(5, rtsmVisList);
+    cmd.setBinding(6, clusters.ssbo());
+    cmd.setBinding(7, rtsmPages);
 
     cmd.setPipeline(shaders.rtsmPages);
     cmd.dispatchThreads(scene.zbuffer->size());
@@ -653,12 +668,25 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   }
 
   {
-    // in-tile culling
+    // large tiles
     cmd.setBinding(0, *scene.rtsmImage);
     cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, *scene.gbufNormals);
     cmd.setBinding(3, *scene.zbuffer);
     cmd.setBinding(4, rtsmVisList);
+    cmd.setBinding(5, rtsmPosList);
+    cmd.setBinding(6, rtsmLargeTile);
+    cmd.setPipeline(shaders.rtsmLargeTiles);
+    cmd.dispatch(uint32_t(rtsmLargeTile.w()), uint32_t(rtsmLargeTile.h()));
+  }
+
+  {
+    // in-tile culling
+    cmd.setBinding(0, *scene.rtsmImage);
+    cmd.setBinding(1, sceneUbo);
+    cmd.setBinding(2, *scene.gbufNormals);
+    cmd.setBinding(3, *scene.zbuffer);
+    cmd.setBinding(4, rtsmLargeTile);
     cmd.setBinding(5, rtsmPosList);
     cmd.setBinding(6, rtsmTileCull);
     cmd.setBinding(7, *scene.rtsmDbg);

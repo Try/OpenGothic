@@ -140,6 +140,7 @@ class DrawCommands {
     Tempest::StorageBuffer   vsmIndirectCmd;
 
     Tempest::StorageImage    rtsmPages;
+    Tempest::StorageImage    rtsmLargeTile;
     Tempest::StorageBuffer   rtsmVisList;
     Tempest::StorageBuffer   rtsmPosList;
     Tempest::StorageImage    rtsmTileCull;

@@ -100,11 +100,14 @@ void decodeBits(float v, out bool flt, out bool atst, out bool water) {
   water = (x & (1 << 3))!=0;
   }
 
+bool isGBufFlat(float v) {
+  int x = int(v*255+0.5);
+  return (x & (1 << 1))!=0;
+  }
+
 bool isGBufWater(float v) {
-  bool dummy   = false;
-  bool isWater = false;
-  decodeBits(v,dummy,dummy,isWater);
-  return isWater;
+  int x = int(v*255+0.5);
+  return (x & (1 << 3))!=0;
   }
 
 float packHiZ(float z) {

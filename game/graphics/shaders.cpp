@@ -221,6 +221,7 @@ Shaders::Shaders() {
     rtsmHiZ         = computeShader("rtsm_hiz_pages.comp.sprv");
     rtsmCulling     = computeShader("rtsm_culling.comp.sprv");
     rtsmPosition    = computeShader("rtsm_position.comp.sprv");
+    rtsmLargeTiles  = computeShader("rtsm_large_tiles.comp.sprv");
     rtsmTileCulling = computeShader("rtsm_tile_culling.comp.sprv");
     rtsmRaster      = computeShader("rtsm_raster.comp.sprv");
     rtsmDirectLight = postEffect("rtsm_direct_light", RenderState::ZTestMode::NoEqual);

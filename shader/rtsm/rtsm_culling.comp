@@ -14,10 +14,10 @@ layout(push_constant, std430) uniform UboPush {
   } push;
 layout(binding = 0, r32ui)  uniform  uimage3D   pageTbl;
 layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene;                    };
-layout(binding = 2)         uniform  utexture2D gbufNormal;
-layout(binding = 3)         uniform  texture2D  depth;
-layout(binding = 4, std430)          buffer Rt  { RtsmHeader header; uvec2 visList[]; } rtsm;
-layout(binding = 5, std430) readonly buffer Cbo { Cluster clusters[];                 };
+layout(binding = 3)         uniform  utexture2D gbufNormal;
+layout(binding = 4)         uniform  texture2D  depth;
+layout(binding = 5, std430)          buffer Rt  { RtsmHeader header; uvec2 visList[]; } rtsm;
+layout(binding = 6, std430) readonly buffer Cbo { Cluster clusters[];                 };
 
 bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMax) {
   const vec3  c = (scene.viewVirtualShadow * vec4(sphere.xyz, 1)).xyz;

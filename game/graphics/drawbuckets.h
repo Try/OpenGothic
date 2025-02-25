@@ -53,6 +53,7 @@ class DrawBuckets {
       BK_SOLID = 0x1,
       BK_SKIN  = 0x2,
       BK_MORPH = 0x4,
+      BK_WATER = 0x8,
       };
 
     struct BucketGpu final {

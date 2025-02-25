@@ -93,6 +93,8 @@ bool DrawBuckets::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
       }
     if(i.mat.alpha==Material::Solid)
       bx.flags |= BK_SOLID;
+    if(i.mat.alpha==Material::Water)
+      bx.flags |= BK_WATER;
     bucket.push_back(bx);
     }
 
