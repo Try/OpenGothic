@@ -9,14 +9,17 @@
 layout(local_size_x = 16, local_size_y = 16) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+const uint MaxVert    = 64;
+const uint MaxPrim    = 64;
 
 layout(binding = 0)         uniform texture2D   outputImage;
 layout(binding = 1, std140) uniform UboScene    { SceneDesc scene;       };
 layout(binding = 2)         uniform utexture2D  gbufNormal;
 layout(binding = 3)         uniform texture2D   depth;
-//layout(binding = 4, std430) readonly buffer Rt  { RtsmHeader header; uvec2 visList[]; } rtsm;
+layout(binding = 4, std430) readonly buffer Rt  { RtsmHeader header; uvec2 visList[]; } rtsm;
 layout(binding = 5, std430)          buffer Pos { uint       alloc;  uint  data[];    } pos;
-layout(binding = 6, rg32ui) uniform writeonly uimage2D largeTiles;
+layout(binding = 6)         uniform  utexture2D largeTiles;
+layout(binding = 7, rg32ui) uniform writeonly uimage2D smallTiles;
 
 
 shared uvec4 rayTileBbox[MaxSlices];
@@ -24,14 +27,19 @@ shared uint  rayTileMinDepth[MaxSlices];
 shared uint  raySliceBits;
 shared uint  numSlices;
 
-shared uint  meshletsId[2*1024];
+shared uint  meshletsIdCoarse[2*NumThreads];
+shared uint  numMeshletsCoarse;
+
+shared uint  meshletsId[1024];
 shared uint  numMeshlets;
+
+shared uint  numRays;
+shared vec2  rays[RTSM_SMALL_TILE*RTSM_SMALL_TILE];
 
 shared uint  meshListPtr;
 
 uvec2 pullMeshList() {
-  const uint visCount = pos.data[0];
-  return uvec2(1, visCount);
+  return texelFetch(largeTiles, ivec2((gl_WorkGroupID.xy*RTSM_SMALL_TILE)/RTSM_LARGE_TILE), 0).xy;
   }
 
 // ray related
@@ -45,7 +53,31 @@ vec4 worldPos(ivec2 frag, float depth) {
   const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
   const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
   return scene.viewProjectLwcInv * scr;
-  //return scene.viewProjectInv * scr;
+  }
+
+//
+uint packPrimitiveId(uint meshlet, uint prim) {
+  return (meshlet << 8) | prim;
+  }
+
+uvec3 pullPrimitive(const uint ptr, const uint laneId) {
+  uint bits = pos.data[ptr+laneId];
+
+  uvec3 prim;
+  prim.x = ((bits >>  0) & 0xFF);
+  prim.y = ((bits >>  8) & 0xFF);
+  prim.z = ((bits >> 16) & 0xFF);
+  return prim;
+  }
+
+vec3 pullVertex(uint ptr, const uint laneId) {
+  ptr += 4*laneId;
+
+  vec3 ret;
+  ret.x = uintBitsToFloat(pos.data[ptr+0]);
+  ret.y = uintBitsToFloat(pos.data[ptr+1]);
+  ret.z = uintBitsToFloat(pos.data[ptr+2]);
+  return ret;
   }
 
 //
@@ -72,6 +104,9 @@ void processFragment(const ivec2 fragCoord) {
   const vec4  wpos  = worldPos(fragCoord.xy, z);
   const vec3  ray   = calcRayOrigin(wpos);
 
+  const uint rId = atomicAdd(numRays, 1);
+  rays[rId] = ray.xy;
+
   atomicOr(raySliceBits, 1u << slice);
   atomicMin(rayTileBbox[slice].x,   floatToOrderedUint(ray.x));
   atomicMin(rayTileBbox[slice].y,   floatToOrderedUint(ray.y));
@@ -83,7 +118,7 @@ void processFragment(const ivec2 fragCoord) {
 void tileBbox() {
   const uint  laneID = gl_LocalInvocationIndex;
   const uvec2 srcSz  = textureSize(depth,0);
-  const ivec2 tileSz = ivec2(RTSM_LARGE_TILE);
+  const ivec2 tileSz = ivec2(RTSM_SMALL_TILE);
 
   const ivec2 at0 = ivec2(gl_WorkGroupID.xy) * tileSz;
   const ivec2 xy0 = ivec2(gl_LocalInvocationID.xy);
@@ -119,7 +154,6 @@ void tileBbox() {
   numSlices = bitCount(raySliceBits);
   }
 
-// meshlets
 bool isAabbVisible(const vec4 aabb, const float depthMax) {
   for(uint i=0; i<numSlices; ++i) {
     vec4 rbb; float rayd;
@@ -137,9 +171,16 @@ bool isAabbVisible(const vec4 aabb, const float depthMax) {
   return false;
   }
 
+bool bboxIncludes(vec4 aabb, vec2 p) {
+  if(aabb.x < p.x && p.x < aabb.z &&
+     aabb.y < p.y && p.y < aabb.w)
+    return true;
+  return false;
+  }
+
+// meshlets
 bool isMeshletVisible(uint ptr) {
   //return true;
-
   vec4  aabb;
   float depthMax;
   aabb.x   = uintBitsToFloat(pos.data[ptr+0]);
@@ -150,17 +191,55 @@ bool isMeshletVisible(uint ptr) {
   return isAabbVisible(aabb, depthMax);
   }
 
-void traceMeshlets(const uint tilePtr, const uint visCount) {
+bool meshSampleTest(uint ptr) {
+  vec4  aabb;
+  aabb.x   = uintBitsToFloat(pos.data[ptr+0]);
+  aabb.y   = uintBitsToFloat(pos.data[ptr+1]);
+  aabb.z   = uintBitsToFloat(pos.data[ptr+2]);
+  aabb.w   = uintBitsToFloat(pos.data[ptr+3]);
+
+  for(uint r=0; r<numRays; ++r) {
+    if(bboxIncludes(aabb, rays[r]))
+      return true;
+    }
+  return false;
+  }
+
+void refineMeshlets() {
   const uint laneID = gl_LocalInvocationIndex;
 
-  for(uint i=laneID; i<visCount; i+=NumThreads) {
-    const uint ptr = pos.data[tilePtr + i];
+  for(uint i=laneID; i<numMeshletsCoarse; i+=NumThreads) {
+    const uint ptr = meshletsIdCoarse[i];
+    if(!meshSampleTest(ptr))
+      continue;
+    const uint id = atomicAdd(numMeshlets, 1);
+    if(id<meshletsId.length())
+      meshletsId[id] = ptr;
+    }
+  }
 
-    if(isMeshletVisible(ptr)) {
-      uint id = atomicAdd(numMeshlets,1);
-      if(id<meshletsId.length())
-        meshletsId[id] = ptr;
+void traceMeshlets(const uint tilePtr, const uint visCount) {
+  const uint laneID = gl_LocalInvocationIndex;
+  const uint steps  = (visCount + NumThreads - 1)/NumThreads;
+
+  for(uint s=0; s<steps; ++s) {
+    const uint i   = laneID + s*NumThreads;
+    const uint ptr = i<visCount ? pos.data[tilePtr + i] : NULL;
+
+    if(ptr!=NULL && isMeshletVisible(ptr)) {
+      uint id = atomicAdd(numMeshletsCoarse, 1);
+      meshletsIdCoarse[id] = ptr;
       }
+    barrier();
+
+    if(numMeshletsCoarse<NumThreads/MaxPrim && s+1!=steps)
+      continue;
+
+    refineMeshlets();
+    barrier();
+
+    numMeshletsCoarse = 0;
+    barrier();
     }
   }
 
@@ -173,7 +252,9 @@ void main() {
     rayTileMinDepth[laneID] = 0xFFFFFFFF;
     }
 
-  numMeshlets  = 0;
+  numRays           = 0;
+  numMeshlets       = 0;
+  numMeshletsCoarse = 0;
   barrier();
 
   tileBbox();
@@ -184,9 +265,8 @@ void main() {
   barrier();
 
   if(numMeshlets>meshletsId.length()) {
-    // too many meshlets - pass original mesh-list futher
     if(gl_LocalInvocationIndex==0)
-      imageStore(largeTiles, ivec2(gl_WorkGroupID.xy), uvec4(meshListSrc,0,0));
+      imageStore(smallTiles, ivec2(gl_WorkGroupID.xy), uvec4(meshListSrc,0,0));
     return;
     }
 
@@ -200,9 +280,11 @@ void main() {
     }
   barrier();
 
-  // store pointer to meshlets list and list-data
-  if(gl_LocalInvocationIndex==0)
-    imageStore(largeTiles, ivec2(gl_WorkGroupID.xy), uvec4(meshListPtr, numMeshlets, 0, 0));
+  // store pointer to meshlets list and the list
+  if(gl_LocalInvocationIndex==0) {
+    // const uint baseSz = meshListSrc.y;
+    imageStore(smallTiles, ivec2(gl_WorkGroupID.xy), uvec4(meshListPtr, numMeshlets, 0, 0));
+    }
   for(uint i=laneID; i<numMeshlets; i+=NumThreads)
     pos.data[meshListPtr + i] = meshletsId[i];
   }

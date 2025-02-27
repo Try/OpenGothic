@@ -3,11 +3,16 @@
 
 #include "common.glsl"
 
-const int RTSM_PAGE_TBL_SIZE = 32;  // small for testing, 64 can be better
-const int RTSM_PAGE_MIPS     = 16;
+const uint NULL               = 0;
 
-const int RTSM_BIN_SIZE      = 32;
-const int RTSM_LARGE_TILE    = 128;
+const int  RTSM_PAGE_TBL_SIZE = 32;  // small for testing, 64 can be better
+const int  RTSM_PAGE_MIPS     = 16;
+
+const int  RTSM_BIN_SIZE      = 32;
+const int  RTSM_LARGE_TILE    = 128;
+const int  RTSM_SMALL_TILE    = 32;
+
+const uint MaxSlices          = 16;
 
 struct RtsmHeader {
   uint visCount;

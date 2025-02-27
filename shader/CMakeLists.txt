@@ -58,7 +58,7 @@ function(add_shader OUTPUT SOURCE)
 
   # debug info in shaders
   if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
-    list(APPEND VARS "-gVS")
+    list(APPEND VARS "-g")
   else()
     list(APPEND VARS "-g")
   endif()
@@ -330,6 +330,8 @@ add_shader(rtsm_hiz_pages.comp       rtsm/rtsm_hiz_pages.comp)
 add_shader(rtsm_culling.comp         rtsm/rtsm_culling.comp)
 add_shader(rtsm_position.comp        rtsm/rtsm_position.comp)
 add_shader(rtsm_large_tiles.comp     rtsm/rtsm_large_tiles.comp)
+add_shader(rtsm_small_tiles.comp     rtsm/rtsm_small_tiles.comp)
+
 add_shader(rtsm_tile_culling.comp    rtsm/rtsm_tile_culling.comp)
 add_shader(rtsm_raster.comp          rtsm/rtsm_raster.comp)
 add_shader(rtsm_direct_light.frag    rtsm/rtsm_direct_light.frag)

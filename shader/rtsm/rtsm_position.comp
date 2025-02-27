@@ -32,9 +32,9 @@ struct VertexA {
   vec4  weight;
   };
 
-layout(binding = 0, std430)          buffer Pos { uint alloc; uint data[];            } pos;
-layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene;                    };
-layout(binding = 4, std430)          buffer Rt  { RtsmHeader header; uvec2 visList[]; } rtsm;
+layout(binding = 0, std430)          buffer Pos { uint       alloc;  uint  data[];    } pos;
+layout(binding = 1, std140) uniform  UboScene   { SceneDesc  scene;                   };
+layout(binding = 2, std430) readonly buffer Rt  { RtsmHeader header; uvec2 visList[]; } rtsm;
 
 layout(binding = 5, std430) readonly buffer Cbo { Cluster clusters[];    };
 layout(binding = 6, std430) readonly buffer Mem { uint    instanceMem[]; };
@@ -317,7 +317,6 @@ void main() {
   if(maxPrim==0 || (bucketFlg & BK_WATER)==BK_WATER) {
     // water shadows - maybe in future, but TODO for now
     // fully backfaced
-    rtsm.visList[gl_WorkGroupID.x] = uvec2(0xFFFFFFFF);
     return;
     }
 
@@ -325,14 +324,16 @@ void main() {
   const uint size    = maxMesh + maxPrim + MaxVert*4;
   if(laneID==0) {
     posPtr = atomicAdd(pos.alloc, size);
-    rtsm.visList[gl_WorkGroupID.x] = uvec2(posPtr,0);
     }
   barrier();
 
   if(posPtr+size>=pos.data.length()) {
     // out of memory
-    rtsm.visList[gl_WorkGroupID.x] = uvec2(0xFFFFFFFF);
     return;
+    }
+  if(laneID==0) {
+    const uint id = atomicAdd(pos.data[0], 1);
+    pos.data[id+1] = posPtr;
     }
 
   if(laneID==0) {

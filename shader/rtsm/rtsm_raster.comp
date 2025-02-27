@@ -22,14 +22,11 @@ struct Vertex {
   uint uv;
   };
 
-layout(push_constant, std430) uniform UboPush {
-  int meshletCount;
-  } push;
 layout(binding = 0, r8)     uniform  image2D    outputImage;
 layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
 layout(binding = 2)         uniform  utexture2D gbufNormal;
 layout(binding = 3)         uniform  texture2D  depth;
-layout(binding = 4, r32ui)  uniform  uimage2D   primitiveBins;
+layout(binding = 4)         uniform  utexture2D primitiveBins;
 layout(binding = 5, std430) readonly buffer Pos { uint alloc; uint data[]; } pos;
 
 layout(binding = 7)         uniform  texture2D  textureMain[];
@@ -38,7 +35,6 @@ layout(binding = 8)         uniform  sampler    samplerMain;
 
 vec3  dbgColor  = vec3(0);
 ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
-ivec2 tileCoord = (fragCoord/RTSM_BIN_SIZE)*RTSM_BIN_SIZE;
 
 float alphaTest(const uint bucketId, vec3 bc, float areaInv, vec2 a, vec2 b, vec2 c) {
   const float u = dot(vec3(a.x,b.x,c.x), bc)*areaInv;
@@ -137,12 +133,14 @@ bool isPrimitiveVisible(const vec4 aabb) {
   return true;
   }
 
-void pullPrimitives(uint primitive) {
-  const uint laneID  = gl_LocalInvocationIndex;
-  const uint maxMesh = 6;
+uvec2 pullPrimitiveList() {
+  ivec2 tileCoord = (fragCoord/RTSM_BIN_SIZE);
+  return texelFetch(primitiveBins, ivec2(tileCoord), 0).xy;
+  }
 
-  const uint  bId = primitive+1;
-  const uint  pkg = imageLoad(primitiveBins, tileCoord + ivec2(bId%RTSM_BIN_SIZE, bId/RTSM_BIN_SIZE)).x;
+void pullPrimitives(const uint pkg) {
+  const uint  laneID  = gl_LocalInvocationIndex;
+  const uint  maxMesh = 6;
 
   const uint  ptr = (pkg >> 8);
   const uint  pId = pkg & 0xFF;
@@ -177,11 +175,11 @@ float tracePacket(const vec3 ray, float opacity, bool actRay) {
     atomicAdd(numActiveRays, 1);
   barrier();
 
-  const uint tileHeader    = imageLoad(primitiveBins, tileCoord).x;
-  const uint numPrimitives = tileHeader & 0xFFFF;
-  const uint steps         = (numPrimitives + NumThreads - 1)/NumThreads;
+  const uvec2 tileHeader    = pullPrimitiveList();
+  const uint  numPrimitives = tileHeader.y & 0xFFFF;
+  const uint  steps         = (numPrimitives + NumThreads - 1)/NumThreads;
 
-  if((tileHeader & (1u<<31))!=0) {
+  if((tileHeader.y & (1u<<31))!=0) {
     // error - emit 4x4 grid to display
     ivec2 tile = fragCoord/4;
     return (tile.x+tile.y)%2==0 ? 1.0 : 0.0;
@@ -192,9 +190,9 @@ float tracePacket(const vec3 ray, float opacity, bool actRay) {
     if(numActiveRays==0)
       break;
 
-    const uint primitive = s*NumThreads + laneID;
-    if(primitive<numPrimitives)
-      pullPrimitives(primitive);
+    const uint i = s*NumThreads + laneID;
+    if(i<numPrimitives)
+      pullPrimitives(pos.data[tileHeader.x + i]);
     barrier();
 
     const uint batchSize = min(numPrimitives-s*steps, NumThreads);
