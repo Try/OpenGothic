@@ -17,11 +17,6 @@ layout(local_size_x = 8, local_size_y = 8) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
-struct Vertex {
-  vec3 pos;
-  uint uv;
-  };
-
 layout(binding = 0, r8)     uniform  image2D    outputImage;
 layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
 layout(binding = 2)         uniform  utexture2D gbufNormal;
@@ -32,8 +27,8 @@ layout(binding = 5, std430) readonly buffer Pos { uint alloc; uint data[]; } pos
 layout(binding = 7)         uniform  texture2D  textureMain[];
 layout(binding = 8)         uniform  sampler    samplerMain;
 
+#include "rtsm/rtsm_scratch.glsl"
 
-vec3  dbgColor  = vec3(0);
 ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
 
 float alphaTest(const uint bucketId, vec3 bc, float areaInv, vec2 a, vec2 b, vec2 c) {
@@ -97,28 +92,6 @@ vec3 calcRayOrigin(const vec4 wpos) {
   }
 
 // meshlet-data
-uvec4 pullPrimitive(const uint ptr, const uint laneId) {
-  uint bits = pos.data[ptr+laneId];
-
-  uvec4 prim;
-  prim.x = ((bits >>  0) & 0xFF);
-  prim.y = ((bits >>  8) & 0xFF);
-  prim.z = ((bits >> 16) & 0xFF);
-  prim.w = ((bits >> 24) & 0xFF);
-  return prim;
-  }
-
-Vertex pullVertex(uint ptr, const uint laneId) {
-  ptr += 4*laneId;
-
-  Vertex ret;
-  ret.pos.x = uintBitsToFloat(pos.data[ptr+0]);
-  ret.pos.y = uintBitsToFloat(pos.data[ptr+1]);
-  ret.pos.z = uintBitsToFloat(pos.data[ptr+2]);
-  ret.uv    = pos.data[ptr+3];
-  return ret;
-  }
-
 shared uint   primitiveBucket [NumThreads];
 shared float  primitiveAreaInv[NumThreads];
 shared Vertex meshVertices    [NumThreads*3];
@@ -140,19 +113,19 @@ uvec2 pullPrimitiveList() {
 
 void pullPrimitives(const uint pkg) {
   const uint  laneID  = gl_LocalInvocationIndex;
-  const uint  maxMesh = 6;
+  const uint  maxMesh = MeshletHeaderSize;
 
   const uint  ptr = (pkg >> 8);
   const uint  pId = pkg & 0xFF;
 
-  const uint  primCnt  = unpackPrimitiveCount(pos.data[ptr+5]);
-  const uint  bucketId = unpackBucketId(pos.data[ptr+5]);
-  const uvec4 tri      = pullPrimitive(ptr+maxMesh, pId);
+  const uint  primCnt  = pullPrimitiveCount(ptr);
+  const uint  bucketId = pullMeshBucketId(ptr);
+  const uvec4 tri      = pullPrimitiveFull(ptr+maxMesh, pId);
   const uint  ptrV     = ptr + maxMesh + primCnt;
 
-  const Vertex a    = pullVertex(ptrV, tri.x);
-  const Vertex b    = pullVertex(ptrV, tri.y);
-  const Vertex c    = pullVertex(ptrV, tri.z);
+  const Vertex a    = pullVertexFull(ptrV, tri.x);
+  const Vertex b    = pullVertexFull(ptrV, tri.y);
+  const Vertex c    = pullVertexFull(ptrV, tri.z);
 
   const vec4  tbb = bboxOf(a.pos.xy, b.pos.xy, c.pos.xy);
   if(!isPrimitiveVisible(tbb)) {

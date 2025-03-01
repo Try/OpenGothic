@@ -21,6 +21,8 @@ layout(binding = 5, std430)          buffer Pos { uint       alloc;  uint  data[
 layout(binding = 6)         uniform  utexture2D largeTiles;
 layout(binding = 7, rg32ui) uniform writeonly uimage2D smallTiles;
 
+#include "rtsm/rtsm_scratch.glsl"
+
 
 shared uvec4 rayTileBbox[MaxSlices];
 shared uint  rayTileMinDepth[MaxSlices];
@@ -58,26 +60,6 @@ vec4 worldPos(ivec2 frag, float depth) {
 //
 uint packPrimitiveId(uint meshlet, uint prim) {
   return (meshlet << 8) | prim;
-  }
-
-uvec3 pullPrimitive(const uint ptr, const uint laneId) {
-  uint bits = pos.data[ptr+laneId];
-
-  uvec3 prim;
-  prim.x = ((bits >>  0) & 0xFF);
-  prim.y = ((bits >>  8) & 0xFF);
-  prim.z = ((bits >> 16) & 0xFF);
-  return prim;
-  }
-
-vec3 pullVertex(uint ptr, const uint laneId) {
-  ptr += 4*laneId;
-
-  vec3 ret;
-  ret.x = uintBitsToFloat(pos.data[ptr+0]);
-  ret.y = uintBitsToFloat(pos.data[ptr+1]);
-  ret.z = uintBitsToFloat(pos.data[ptr+2]);
-  return ret;
   }
 
 //
@@ -171,33 +153,15 @@ bool isAabbVisible(const vec4 aabb, const float depthMax) {
   return false;
   }
 
-bool bboxIncludes(vec4 aabb, vec2 p) {
-  if(aabb.x < p.x && p.x < aabb.z &&
-     aabb.y < p.y && p.y < aabb.w)
-    return true;
-  return false;
-  }
-
 // meshlets
 bool isMeshletVisible(uint ptr) {
-  //return true;
-  vec4  aabb;
-  float depthMax;
-  aabb.x   = uintBitsToFloat(pos.data[ptr+0]);
-  aabb.y   = uintBitsToFloat(pos.data[ptr+1]);
-  aabb.z   = uintBitsToFloat(pos.data[ptr+2]);
-  aabb.w   = uintBitsToFloat(pos.data[ptr+3]);
-  depthMax = uintBitsToFloat(pos.data[ptr+4]);
+  vec4  aabb     = pullMeshAabb(ptr);
+  float depthMax = pullMeshDepthMax(ptr);
   return isAabbVisible(aabb, depthMax);
   }
 
 bool meshSampleTest(uint ptr) {
-  vec4  aabb;
-  aabb.x   = uintBitsToFloat(pos.data[ptr+0]);
-  aabb.y   = uintBitsToFloat(pos.data[ptr+1]);
-  aabb.z   = uintBitsToFloat(pos.data[ptr+2]);
-  aabb.w   = uintBitsToFloat(pos.data[ptr+3]);
-
+  const vec4 aabb = pullMeshAabb(ptr);
   for(uint r=0; r<numRays; ++r) {
     if(bboxIncludes(aabb, rays[r]))
       return true;

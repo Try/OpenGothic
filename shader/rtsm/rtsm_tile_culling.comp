@@ -8,9 +8,7 @@
 #include "scene.glsl"
 #include "rtsm/rtsm_common.glsl"
 
-//#define LARGE 1
-
-layout(local_size_x = RTSM_BIN_SIZE, local_size_y = RTSM_BIN_SIZE) in;
+layout(local_size_x = 32, local_size_y = 16) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 const uint MaxVert    = 64;
@@ -21,13 +19,13 @@ layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
 layout(binding = 2)         uniform  utexture2D gbufNormal;
 layout(binding = 3)         uniform  texture2D  depth;
 layout(binding = 4)         uniform  utexture2D smallTiles;
-layout(binding = 5, std430)          buffer Pos { uint alloc; uint  data[]; } pos;
+layout(binding = 5, std430)          buffer Pos { uint alloc; uint data[]; } pos;
 layout(binding = 6, rg32ui) uniform  uimage2D   primitiveBins;
 layout(binding = 7, r32ui)  uniform  uimage2D   dbgImage;
 
+#include "rtsm/rtsm_scratch.glsl"
 
-vec3  dbgColor  = vec3(0);
-ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
+vec3 dbgColor = vec3(0);
 
 // counter
 uint numMeshletsAll = 0;
@@ -45,7 +43,8 @@ shared uint primitives[4*1024];
 shared uint primListPtr;
 
 uvec2 pullMeshList() {
-  return texelFetch(smallTiles, ivec2(fragCoord/RTSM_SMALL_TILE), 0).xy;
+  return texelFetch(smallTiles, ivec2((gl_WorkGroupID.xy*RTSM_BIN_SIZE)/RTSM_SMALL_TILE), 0).xy;
+  // return texelFetch(smallTiles, ivec2(gl_WorkGroupID.xy), 0).xy;
   }
 
 shared uint dbgCounter;
@@ -88,13 +87,6 @@ vec3 calcRayOrigin(const vec4 wpos) {
   }
 
 // meshlets-trace
-bool bboxIncludes(vec4 aabb, vec2 p) {
-  if(aabb.x < p.x && p.x < aabb.z &&
-     aabb.y < p.y && p.y < aabb.w)
-    return true;
-  return false;
-  }
-
 bool isAabbVisible(const vec4 aabb, const float depthMax) {
   for(uint i=0; i<numSlices; ++i) {
     vec4 rbb; float rayd;
@@ -104,7 +96,7 @@ bool isAabbVisible(const vec4 aabb, const float depthMax) {
     rbb.w = uintBitsToFloat(rayTileBbox[i].w);
     rayd  = uintBitsToFloat(rayTileMinDepth[i]);
     if(rayd > depthMax)
-      ;//continue;
+      continue;
     if(!bboxIntersect(aabb, rbb))
       continue;
     return true;
@@ -113,33 +105,11 @@ bool isAabbVisible(const vec4 aabb, const float depthMax) {
   }
 
 // primitive-trace
-uvec3 pullPrimitive(const uint ptr, const uint laneId) {
-  uint bits = pos.data[ptr+laneId];
-
-  uvec3 prim;
-  prim.x = ((bits >>  0) & 0xFF);
-  prim.y = ((bits >>  8) & 0xFF);
-  prim.z = ((bits >> 16) & 0xFF);
-  return prim;
-  }
-
-vec3 pullVertex(uint ptr, const uint laneId) {
-  ptr += 4*laneId;
-
-  vec3 ret;
-  ret.x = uintBitsToFloat(pos.data[ptr+0]);
-  ret.y = uintBitsToFloat(pos.data[ptr+1]);
-  ret.z = uintBitsToFloat(pos.data[ptr+2]);
-  return ret;
-  }
-
 void processMeshletPrimitives(const uint ptr, const uint primCount, const uint laneID) {
-  const uint maxMesh = 6;
-
   if(laneID<primCount) {
     uint ptrM = ptr;
 
-    ptrM += maxMesh;
+    ptrM += MeshletHeaderSize;
     const uvec3 tri = pullPrimitive(ptrM, laneID);
 
     ptrM += primCount;
@@ -147,7 +117,7 @@ void processMeshletPrimitives(const uint ptr, const uint primCount, const uint l
     const vec3  b   = pullVertex(ptrM, tri.y);
     const vec3  c   = pullVertex(ptrM, tri.z);
     const vec4  tbb = bboxOf(a.xy, b.xy, c.xy);
-    const float d   = max(a.x, max(b.z, c.z));
+    const float d   = max(a.z, max(b.z, c.z));
 
     if(!isAabbVisible(tbb, d))
       return;
@@ -165,17 +135,16 @@ void traceTile() {
   const uint  tilePtr     = meshListSrc.x;
   const uint  visCount    = meshListSrc.y;
   const uint  meshPerStep = NumThreads / MaxPrim;
-  const uint  steps       = (visCount + meshPerStep - 1)/meshPerStep;
 
-  for(uint s=0; s<steps; ++s) {
-    const uint i   = laneID/MaxPrim + s*meshPerStep;
-    const uint ptr = i<visCount ? pos.data[tilePtr + i].x : NULL;
+  for(uint i=(laneID/MaxPrim); i<visCount; i+=meshPerStep) {
+    const uint ptr = pos.data[tilePtr + i].x;
 
-    if(ptr!=NULL) {
-      const uint laneMs  = gl_LocalInvocationIndex%MaxPrim;
-      const uint primCnt = unpackPrimitiveCount(pos.data[ptr+5]);
-      processMeshletPrimitives(ptr, primCnt, laneMs);
-      }
+    if(ptr==NULL)
+      continue;
+
+    const uint laneMs  = laneID % MaxPrim;
+    const uint primCnt = pullPrimitiveCount(ptr);
+    processMeshletPrimitives(ptr, primCnt, laneMs);
     }
   }
 
@@ -227,7 +196,16 @@ void processFragment(const ivec2 fragCoord) {
 void tileBbox() {
   const uint laneID = gl_LocalInvocationIndex;
 
-  processFragment(fragCoord);
+  const ivec2 tileSz = ivec2(RTSM_BIN_SIZE);
+  const ivec2 at0 = ivec2(gl_WorkGroupID.xy) * tileSz;
+  const ivec2 xy0 = ivec2(gl_LocalInvocationID.xy);
+  for(int x=xy0.x; x<tileSz.x; x+=int(gl_WorkGroupSize.x)) {
+    for(int y=xy0.y; y<tileSz.y; y+=int(gl_WorkGroupSize.y)) {
+      ivec2 at = at0 + ivec2(x,y);
+      processFragment(at);
+      }
+    }
+  //processFragment(fragCoord);
   barrier();
 
   vec4 rbb; float rayD;
@@ -254,8 +232,6 @@ void tileBbox() {
 
 void main() {
   const uint  laneID = gl_LocalInvocationIndex;
-  const ivec2 size   = textureSize(depth, 0);
-  const bool  valid  = all(lessThan(fragCoord, size));
 
   numPrimitives  = 0;
   numMeshletsAll = 0;
@@ -275,9 +251,12 @@ void main() {
   storeResultPrim();
 
   //const uint ms = mergeCounter(numMeshletsAll);
+  const ivec2 size   = textureSize(depth, 0);
+  const ivec2 frag   = ivec2(gl_WorkGroupID.xy*RTSM_BIN_SIZE + gl_LocalInvocationID.xy);
+  const bool  valid  = all(lessThan(frag, size));
   if(valid) {
-    imageStore(dbgImage, fragCoord, uvec4(numPrimitives));
-    //imageStore(dbgImage, fragCoord, uvec4(ms));
+    imageStore(dbgImage, frag, uvec4(numPrimitives));
+    //imageStore(dbgImage, frag, uvec4(ms));
     }
   }
 

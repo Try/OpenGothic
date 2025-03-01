@@ -11,13 +11,13 @@ layout(local_size_x = 16, local_size_y = 16) in;
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
 layout(binding = 0)         uniform texture2D   outputImage;
-layout(binding = 1, std140) uniform UboScene    { SceneDesc scene;       };
+layout(binding = 1, std140) uniform UboScene    { SceneDesc scene; };
 layout(binding = 2)         uniform utexture2D  gbufNormal;
 layout(binding = 3)         uniform texture2D   depth;
-//layout(binding = 4, std430) readonly buffer Rt  { RtsmHeader header; uvec2 visList[]; } rtsm;
-layout(binding = 5, std430)          buffer Pos { uint       alloc;  uint  data[];    } pos;
+layout(binding = 5, std430)         buffer Pos  { uint alloc; uint  data[]; } pos;
 layout(binding = 6, rg32ui) uniform writeonly uimage2D largeTiles;
 
+#include "rtsm/rtsm_scratch.glsl"
 
 shared uvec4 rayTileBbox[MaxSlices];
 shared uint  rayTileMinDepth[MaxSlices];
@@ -138,15 +138,8 @@ bool isAabbVisible(const vec4 aabb, const float depthMax) {
   }
 
 bool isMeshletVisible(uint ptr) {
-  //return true;
-
-  vec4  aabb;
-  float depthMax;
-  aabb.x   = uintBitsToFloat(pos.data[ptr+0]);
-  aabb.y   = uintBitsToFloat(pos.data[ptr+1]);
-  aabb.z   = uintBitsToFloat(pos.data[ptr+2]);
-  aabb.w   = uintBitsToFloat(pos.data[ptr+3]);
-  depthMax = uintBitsToFloat(pos.data[ptr+4]);
+  vec4  aabb     = pullMeshAabb(ptr);
+  float depthMax = pullMeshDepthMax(ptr);
   return isAabbVisible(aabb, depthMax);
   }
 

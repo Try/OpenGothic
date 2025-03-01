@@ -16,7 +16,7 @@ const uint MaxVert    = 64;
 const uint MaxPrim    = 64;
 const uint MaxInd     = (MaxPrim*3);
 
-struct Vertex {
+struct VertexS {
   vec3 pos;
   uint uv;
   };
@@ -42,12 +42,13 @@ layout(binding = 7, std140) readonly buffer Bbo { Bucket  bucket[];      };
 layout(binding = 8, std430) readonly buffer Ibo { uint    indexes [];    } ibo[];
 layout(binding = 9, std430) readonly buffer Vbo { float   vertices[];    } vbo[];
 
+#include "rtsm/rtsm_scratch.glsl"
 
-shared uint   posPtr;
-shared uint   maxPrim;
-shared uvec3  primitiveIndices[MaxPrim];
-shared Vertex meshVertices    [MaxVert];
-shared uint   activeVert      [(MaxVert+32-1)/32];
+shared uint    posPtr;
+shared uint    maxPrim;
+shared uvec3   primitiveIndices[MaxPrim];
+shared VertexS meshVertices    [MaxVert];
+shared uint    activeVert      [(MaxVert+32-1)/32];
 
 shared uvec4  meshBbox;
 shared uint   meshMaxDepth;
@@ -191,7 +192,7 @@ VertexA pullVertexA(const uint meshletId, const uint bucketId, const uint laneId
   return ret;
   }
 
-Vertex pullVertex(const uint meshletId, const uint bucketId, const uint laneId) {
+VertexS pullVertex(const uint meshletId, const uint bucketId, const uint laneId) {
   nonuniformEXT uint bId = bucketId;
   uint vboOffset = meshletId * MaxVert + laneId;
 
@@ -201,7 +202,7 @@ Vertex pullVertex(const uint meshletId, const uint bucketId, const uint laneId) 
   const uint uv     = packHalf2x16(vec2(vbo[bId].vertices[id + 6], vbo[bId].vertices[id + 7]));
   //vec3 normal = vec3(vbo[bId].vertices[id + 3], vbo[bId].vertices[id + 4], vbo[bId].vertices[id + 5]);
 
-  Vertex ret;
+  VertexS ret;
   ret.pos = pos;
   ret.uv  = uv;
   return ret;
@@ -234,7 +235,7 @@ void updateMeshBbox(uint vertCount) {
     }
   }
 
-Vertex processVertexA(const Cluster cluster, const uint meshletId, const uint bucketId, const uint laneID) {
+VertexS processVertexA(const Cluster cluster, const uint meshletId, const uint bucketId, const uint laneID) {
   VertexA  v   = pullVertexA(meshletId, bucketId, laneID);
   Instance obj = pullInstance(cluster.instanceId);
 
@@ -247,7 +248,7 @@ Vertex processVertexA(const Cluster cluster, const uint meshletId, const uint bu
 
   vec3 dpos = vec3(0); // normal*obj.fatness;
 
-  Vertex ret;
+  VertexS ret;
   ret.pos = (t0*v.weight.x + t1*v.weight.y + t2*v.weight.z + t3*v.weight.w) + dpos;
   ret.uv  = v.uv;
   vec4   pos4 = (scene.viewVirtualShadow * vec4(ret.pos,1));
@@ -255,8 +256,8 @@ Vertex processVertexA(const Cluster cluster, const uint meshletId, const uint bu
   return ret;
   }
 
-Vertex processVertex(const Cluster cluster, const uint meshletId, const uint bucketId, const uint laneID) {
-  Vertex v = pullVertex(meshletId, bucketId, laneID);
+VertexS processVertex(const Cluster cluster, const uint meshletId, const uint bucketId, const uint laneID) {
+  VertexS v = pullVertex(meshletId, bucketId, laneID);
   if(cluster.instanceId!=0xFFFFFFFF) {
     Instance obj = pullInstance(cluster.instanceId);
     vec3 dpos = vec3(0); // normal*obj.fatness;
@@ -320,8 +321,7 @@ void main() {
     return;
     }
 
-  const uint maxMesh = 6;
-  const uint size    = maxMesh + maxPrim + MaxVert*4;
+  const uint size    = MeshletHeaderSize + maxPrim + MaxVert*4;
   if(laneID==0) {
     posPtr = atomicAdd(pos.alloc, size);
     }
@@ -354,11 +354,11 @@ void main() {
     pos.data[i+5] = packMeshHeader(bucketId, maxPrim);
     }
   if(laneID<maxPrim) {
-    const uint i = posPtr + maxMesh + laneID;
+    const uint i = posPtr + MeshletHeaderSize + laneID;
     pos.data[i] = packTri(primitiveIndices[laneID], bucketFlg);
     }
   if(laneID<vertCount) {
-    const uint i = posPtr + maxMesh + maxPrim + laneID*4;
+    const uint i = posPtr + MeshletHeaderSize + maxPrim + laneID*4;
     pos.data[i+0] = floatBitsToUint(meshVertices[laneID].pos.x);
     pos.data[i+1] = floatBitsToUint(meshVertices[laneID].pos.y);
     pos.data[i+2] = floatBitsToUint(meshVertices[laneID].pos.z);

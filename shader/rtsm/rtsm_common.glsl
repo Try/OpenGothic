@@ -62,6 +62,13 @@ bool bboxIntersect(vec4 a, vec4 b) {
   return true;
   }
 
+bool bboxIncludes(vec4 aabb, vec2 p) {
+  if(aabb.x < p.x && p.x < aabb.z &&
+     aabb.y < p.y && p.y < aabb.w)
+    return true;
+  return false;
+  }
+
 //
 bool planetOcclusion(float viewPos, vec3 sunDir) {
   const float y = RPlanet + max(viewPos*0.1, 0);
