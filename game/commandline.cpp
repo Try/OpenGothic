@@ -133,6 +133,12 @@ CommandLine::CommandLine(int argc, const char** argv) {
       if(i<argc)
         isVsm = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
       }
+    else if(arg=="-rtsm") {
+      // not to document - debug only
+      ++i;
+      if(i<argc)
+        isRtSm = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
+      }
     else {
       Log::i("unreacognized commandline option: \"", arg, "\"");
       }

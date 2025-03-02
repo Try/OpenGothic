@@ -227,7 +227,7 @@ void main() {
   const vec3  normal = valid ? normalFetch(gbufNormal, fragCoord) : vec3(0);
   const float lamb   = imageLoad(outputImage, fragCoord).x;
 
-  const vec4  wpos   = worldPos(fragCoord.xy, z) + vec4(normal*0.002, 0);
+  const vec4  wpos   = worldPos(fragCoord.xy, z) + vec4(normal*0.001, 0);
   const vec3  ray    = calcRayOrigin(wpos);
   const bool  actRay = (lamb>0);
 

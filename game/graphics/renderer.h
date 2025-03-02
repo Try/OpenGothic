@@ -85,12 +85,13 @@ class Renderer final {
     void initGiData();
     void toggleGi();
     void toggleVsm();
+    void toggleRtsm();
 
     struct Settings {
       const uint32_t shadowResolution   = 2048;
       bool           vsmEnabled         = false;
-      bool           swrEnabled         = false;
       bool           rtsmEnabled        = false;
+      bool           swrEnabled         = false;
 
       bool           zEnvMappingEnabled = false;
       bool           zCloudShadowScale  = false;

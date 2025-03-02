@@ -58,7 +58,7 @@ bool isVertexEnabled(uint i) {
   }
 
 void enableVertex(uint i) {
-  activeVert[i/32] |= 1u << (i%32);
+  atomicOr(activeVert[i/32], 1u << (i%32));
   }
 
 uint remapIndex(uint id) {
@@ -68,6 +68,15 @@ uint remapIndex(uint id) {
   for(uint i=0; i<n; ++i)
     r += bitCount(activeVert[i]);
   r += bitCount(activeVert[n] & ((1u << f)-1u));
+  return r;
+  }
+
+uint vertexCount() {
+  return MaxVert;
+
+  uint r = 0;
+  for(uint i=0; i<activeVert.length(); ++i)
+    r += bitCount(activeVert[i]);
   return r;
   }
 
@@ -223,7 +232,7 @@ void updateMeshBbox(uint vertCount) {
   barrier();
 
   const uint laneID = gl_LocalInvocationIndex;
-  if(laneID<vertCount) {// && isVertexEnabled(laneID)) {
+  if(laneID<vertCount && isVertexEnabled(laneID)) {
     const vec3 vert = meshVertices[laneID].pos;
 
     atomicMin(meshBbox.x,   floatToOrderedUint(vert.x));
@@ -283,11 +292,10 @@ void main() {
   const uint  bucketId   = cluster.bucketId_commandId>>16;
 
   const uvec2 mesh       = pullMeshlet(meshletId, bucketId);
-  const uint  vertCount  = mesh.x;
   const uint  primCount  = mesh.y;
   const uint  bucketFlg  = bucket[bucketId].flags;
 
-  if(laneID<vertCount) {
+  if(laneID<MaxVert) {
     if((bucketFlg & BK_SKIN)==0)
       meshVertices[laneID] = processVertex (cluster, meshletId, bucketId, laneID); else
       meshVertices[laneID] = processVertexA(cluster, meshletId, bucketId, laneID);
@@ -312,7 +320,7 @@ void main() {
     }
   barrier();
 
-  updateMeshBbox(vertCount);
+  updateMeshBbox(MaxVert);
   barrier();
 
   if(maxPrim==0 || (bucketFlg & BK_WATER)==BK_WATER) {
@@ -321,7 +329,8 @@ void main() {
     return;
     }
 
-  const uint size    = MeshletHeaderSize + maxPrim + MaxVert*4;
+  const uint vertCount = vertexCount();
+  const uint size      = MeshletHeaderSize + maxPrim + vertCount*4;
   if(laneID==0) {
     posPtr = atomicAdd(pos.alloc, size);
     }
@@ -355,10 +364,15 @@ void main() {
     }
   if(laneID<maxPrim) {
     const uint i = posPtr + MeshletHeaderSize + laneID;
-    pos.data[i] = packTri(primitiveIndices[laneID], bucketFlg);
+    uvec3 p = primitiveIndices[laneID];
+    p.x = remapIndex(p.x);
+    p.y = remapIndex(p.y);
+    p.z = remapIndex(p.z);
+    pos.data[i] = packTri(p, bucketFlg);
     }
-  if(laneID<vertCount) {
-    const uint i = posPtr + MeshletHeaderSize + maxPrim + laneID*4;
+  if(laneID<MaxVert && isVertexEnabled(laneID)) {
+    const uint v = remapIndex(laneID);
+    const uint i = posPtr + MeshletHeaderSize + maxPrim + v*4;
     pos.data[i+0] = floatBitsToUint(meshVertices[laneID].pos.x);
     pos.data[i+1] = floatBitsToUint(meshVertices[laneID].pos.y);
     pos.data[i+2] = floatBitsToUint(meshVertices[laneID].pos.z);

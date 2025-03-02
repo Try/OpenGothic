@@ -57,6 +57,7 @@ class Marvin {
       // opengothic specific
       C_ToggleGI,
       C_ToggleVsm,
+      C_ToggleRtsm,
       };
 
     struct Cmd {

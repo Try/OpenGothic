@@ -77,12 +77,14 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
   Log::i("Depth format = ", Tempest::formatName(zBufferFormat), " Shadow format = ", Tempest::formatName(shadowFormat));
 
   Gothic::inst().onSettingsChanged.bind(this,&Renderer::setupSettings);
-  Gothic::inst().toggleGi .bind(this, &Renderer::toggleGi);
-  Gothic::inst().toggleVsm.bind(this, &Renderer::toggleVsm);
+  Gothic::inst().toggleGi  .bind(this, &Renderer::toggleGi);
+  Gothic::inst().toggleVsm .bind(this, &Renderer::toggleVsm);
+  Gothic::inst().toggleRtsm.bind(this, &Renderer::toggleRtsm);
 
-  settings.giEnabled  = Gothic::options().doRtGi;
-  settings.vsmEnabled = Gothic::options().doVirtualShadow;
-  settings.swrEnabled = Gothic::options().swRenderingPreset>0;
+  settings.giEnabled   = Gothic::options().doRtGi;
+  settings.vsmEnabled  = Gothic::options().doVirtualShadow;
+  settings.rtsmEnabled = Gothic::options().doSoftwareShadow;
+  settings.swrEnabled  = Gothic::options().swRenderingPreset>0;
 
   sky.cloudsLut     = device.image2d   (sky.lutRGBAFormat,  2,  1);
   sky.transLut      = device.attachment(sky.lutRGBFormat, 256, 64);
@@ -145,6 +147,8 @@ void Renderer::resetSwapchain() {
   if(smSize>0) {
     for(int i=0; i<Resources::ShadowLayers; ++i) {
       if(settings.vsmEnabled && !(settings.giEnabled && i==1) && !(sky.quality==PathTrace && i==1))
+        continue; //TODO: support vsm in gi code
+      if(settings.rtsmEnabled && !(settings.giEnabled && i==1) && !(sky.quality!=None && i==1))
         continue; //TODO: support vsm in gi code
       shadowMap[i] = device.zbuffer(shadowFormat,smSize,smSize);
       }
@@ -285,6 +289,24 @@ void Renderer::toggleVsm() {
     return;
 
   settings.vsmEnabled = !settings.vsmEnabled;
+
+  auto& device = Resources::device();
+  device.waitIdle();
+
+  for(int i=0; i<Resources::ShadowLayers; ++i)
+    shadowMap[i] = Tempest::ZBuffer();
+
+  if(auto wview  = Gothic::inst().worldView()) {
+    wview->resetRendering();
+    }
+  resetSwapchain();
+  }
+
+void Renderer::toggleRtsm() {
+  if(!Shaders::isRtsmSupported())
+    return;
+
+  settings.rtsmEnabled = !settings.rtsmEnabled;
 
   auto& device = Resources::device();
   device.waitIdle();

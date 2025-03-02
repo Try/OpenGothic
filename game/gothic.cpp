@@ -91,6 +91,10 @@ Gothic::Gothic() {
     opts.doVirtualShadow = CommandLine::inst().isVirtualShadow();
     }
 
+  if(Shaders::isRtsmSupported()) {
+    opts.doSoftwareShadow = CommandLine::inst().isSoftwareShadow();
+    }
+
   opts.aaPreset = CommandLine::inst().aaPreset();
 
   wrldDef = CommandLine::inst().wrldDef;

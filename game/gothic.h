@@ -47,6 +47,7 @@ class Gothic final {
       bool     doMeshShading     = false;
       bool     doBindless        = false;
       bool     doVirtualShadow   = false;
+      bool     doSoftwareShadow  = false;
       uint32_t swRenderingPreset = 0;
 
       uint32_t aaPreset          = 0;
@@ -128,7 +129,7 @@ class Gothic final {
     bool         doClock() const { return showTime; }
     void         setClock(bool t) { showTime = t; }
 
-    Tempest::Signal<void()> toggleGi, toggleVsm;
+    Tempest::Signal<void()> toggleGi, toggleVsm, toggleRtsm;
 
     LoadState    checkLoading() const;
     bool         finishLoading();
