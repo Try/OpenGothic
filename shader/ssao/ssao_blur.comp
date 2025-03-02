@@ -103,7 +103,8 @@ void main() {
   barrier();
 
   vec2 vert = blurPass(ivec2(gl_LocalInvocationID.xy), res, ivec2(0,1));
-  imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(vert.x));
+  if(gl_GlobalInvocationID.x<res.x && gl_GlobalInvocationID.y<res.y)
+    imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(vert.x));
 
   // float c  = textureLod(ssao, vec2(gl_GlobalInvocationID.xy+vec2(0.5))/vec2(res), 0).r;
   // imageStore(result, ivec2(gl_GlobalInvocationID.xy), vec4(c));
