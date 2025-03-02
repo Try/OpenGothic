@@ -575,8 +575,8 @@ void World::aiOutputSound(Npc &player, std::string_view msg) {
   wsound.aiOutput(player.position(),msg);
   }
 
-bool World::aiIsDlgFinished() {
-  return game.aiIsDlgFinished();
+bool World::isInDialog() const {
+  return game.isInDialog();
   }
 
 bool World::isTargeted(Npc& npc) {

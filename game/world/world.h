@@ -144,7 +144,7 @@ class World final {
 
     AiOuputPipe*         openDlgOuput(Npc &player, Npc &npc);
     void                 aiOutputSound(Npc &player, std::string_view msg);
-    bool                 aiIsDlgFinished();
+    bool                 isInDialog() const;
 
     bool                 isTargeted (Npc& npc);
     Npc*                 addNpc     (std::string_view name, std::string_view     at);

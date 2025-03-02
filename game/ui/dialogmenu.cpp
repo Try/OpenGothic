@@ -34,9 +34,7 @@ bool DialogMenu::Pipe::close() {
   }
 
 bool DialogMenu::Pipe::isFinished() {
-  bool ret=false;
-  owner.aiIsClose(ret);
-  return ret;
+  return !owner.isNpcInDialog(nullptr);
   }
 
 DialogMenu::DialogMenu(InventoryMenu &trade)
@@ -201,6 +199,12 @@ void DialogMenu::openPipe(Npc &player, Npc &npc, AiOuputPipe *&out) {
   state  = State::PreStart;
   }
 
+bool DialogMenu::isNpcInDialog(const Npc* npc) const {
+  if(state==State::Idle)
+    return false;
+  return npc==pl || npc==other || npc==nullptr;
+  }
+
 bool DialogMenu::aiOutput(Npc &npc, std::string_view msg) {
   if(&npc!=pl && &npc!=other){
     Log::e("unexpected aiOutput call: ",msg.data());
@@ -248,10 +252,6 @@ bool DialogMenu::aiClose() {
   state=State::Idle;
   update();
   return true;
-  }
-
-void DialogMenu::aiIsClose(bool &ret) {
-  ret = (state==State::Idle);
   }
 
 bool DialogMenu::isActive() const {

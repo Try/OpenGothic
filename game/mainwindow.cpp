@@ -146,7 +146,7 @@ void MainWindow::setupUi() {
   rootMenu.setMainMenu();
 
   Gothic::inst().onDialogPipe  .bind(&dialogs,&DialogMenu::openPipe);
-  Gothic::inst().isDialogClose .bind(&dialogs,&DialogMenu::aiIsClose);
+  Gothic::inst().isNpcInDialogFn = std::bind(&DialogMenu::isNpcInDialog, &dialogs, std::placeholders::_1);
 
   Gothic::inst().onPrintScreen .bind(&dialogs,&DialogMenu::printScreen);
   Gothic::inst().onPrint       .bind(&dialogs,&DialogMenu::print);

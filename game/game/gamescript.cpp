@@ -2760,20 +2760,13 @@ bool GameScript::npc_canseesource(std::shared_ptr<zenkit::INpc> npcRef) {
   }
 
 // Used (only?) in Gothic 1 in B_AssessEnemy, to prevent attacks during cutscenes.
-// Check the global cutscene lock to check if we're in a cinematic
-// Currently there is only the global aiIsDlgFinished() to check for running dialog,
-// combine this a player-check to at least prevent the player from getting attacked.
-// This could use refinement later, to allow per-npc in-dialog checks.
 bool GameScript::npc_isincutscene(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   auto w = Gothic::inst().world();
   if(w==nullptr)
     return false;
 
-  if(w->isCutsceneLock())
-    return true;
-
-  if(npc!=nullptr && npc->isPlayer() && !owner.aiIsDlgFinished())
+  if(npc!=nullptr && owner.isNpcInDialog(*npc))
     return true;
 
   return false;
@@ -3343,7 +3336,7 @@ void GameScript::info_clearchoices(int infoInstance) {
   }
 
 bool GameScript::infomanager_hasfinished() {
-  return owner.aiIsDlgFinished();
+  return !owner.isInDialog();
   }
 
 void GameScript::snd_play(std::string_view fileS) {

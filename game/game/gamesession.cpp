@@ -461,8 +461,12 @@ AiOuputPipe *GameSession::openDlgOuput(Npc &player, Npc &npc) {
   return ret;
   }
 
-bool GameSession::aiIsDlgFinished() {
-  return Gothic::inst().aiIsDlgFinished();
+bool GameSession::isNpcInDialog(const Npc& npc) const {
+  return Gothic::inst().isNpcInDialog(npc);
+  }
+
+bool GameSession::isDlgFinished() const {
+  return Gothic::inst().isDlgFinished();
   }
 
 bool GameSession::isWorldKnown(std::string_view name) const {

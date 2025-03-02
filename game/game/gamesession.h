@@ -4,11 +4,8 @@
 #include <Tempest/SoundDevice>
 #include <memory>
 
-#include "ui/documentmenu.h"
-#include "ui/chapterscreen.h"
 #include "game/gamescript.h"
 #include "camera.h"
-#include "gamemusic.h"
 #include "gametime.h"
 
 class World;
@@ -73,7 +70,8 @@ class GameSession final {
     uint32_t                 messageTime   (std::string_view id) const;
 
     AiOuputPipe* openDlgOuput(Npc &player, Npc &npc);
-    bool         aiIsDlgFinished();
+    bool         isNpcInDialog(const Npc& npc) const;
+    bool         isInDialog() const;
 
   private:
     struct ChWorld {

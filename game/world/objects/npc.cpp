@@ -2549,7 +2549,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       if(act.target==nullptr)
         break;
 
-      if(!owner.aiIsDlgFinished()) {
+      if(owner.isInDialog()) {
         queue.pushFront(std::move(act));
         break;
         }

@@ -552,7 +552,7 @@ void Gothic::cancelLoading() {
 
 void Gothic::tick(uint64_t dt) {
   if(pendingChapter){
-    if(aiIsDlgFinished()) {
+    if(!isInDialog()) {
       onIntroChapter(chapter);
       pendingChapter=false;
       }
@@ -595,10 +595,12 @@ void Gothic::openDialogPipe(Npc &player, Npc &npc, AiOuputPipe *&pipe) {
   onDialogPipe(player,npc,pipe);
   }
 
-bool Gothic::aiIsDlgFinished() {
-  bool v=true;
-  isDialogClose(v);
-  return v;
+bool Gothic::isNpcInDialog(const Npc& npc) const {
+  return isNpcInDialogFn(&npc);
+  }
+
+bool Gothic::isInDialog() const {
+  return isNpcInDialogFn(nullptr);
   }
 
 const FightAi& Gothic::fai() {

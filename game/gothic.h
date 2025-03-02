@@ -149,14 +149,15 @@ class Gothic final {
     void         dialogExec  (const GameScript::DlgChoice& dlg, Npc& player, Npc& npc);
 
     void         openDialogPipe (Npc& player, Npc& npc, AiOuputPipe*& pipe);
-    bool         aiIsDlgFinished();
+    bool         isNpcInDialog(const Npc& npc) const;
+    bool         isInDialog() const;
 
     Tempest::Signal<void(std::string_view)>                             onStartGame;
     Tempest::Signal<void(std::string_view)>                             onLoadGame;
     Tempest::Signal<void(std::string_view,std::string_view)>            onSaveGame;
 
     Tempest::Signal<void(Npc&,Npc&,AiOuputPipe*&)>                      onDialogPipe;
-    Tempest::Signal<void(bool&)>                                        isDialogClose;
+    std::function<bool(const Npc*)>                                     isNpcInDialogFn;
 
     Tempest::Signal<void(std::string_view,int,int,int,const GthFont&)>  onPrintScreen;
     Tempest::Signal<void(std::string_view)>                             onPrint;

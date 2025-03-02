@@ -580,7 +580,7 @@ void Interactive::implAddItem(std::string_view name) {
 void Interactive::autoDetachNpc() {
   for(auto& i:attPos)
     if(i.user!=nullptr) {
-      if(i.user->world().aiIsDlgFinished())
+      if(!i.user->world().isInDialog())
         i.user->setInteraction(nullptr);
       }
   }
