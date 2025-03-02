@@ -7,7 +7,6 @@
 
 #include <cctype>
 
-#include "graphics/shaders.h"
 #include "utils/string_frm.h"
 #include "world/world.h"
 #include "gothic.h"
