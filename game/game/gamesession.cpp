@@ -465,8 +465,8 @@ bool GameSession::isNpcInDialog(const Npc& npc) const {
   return Gothic::inst().isNpcInDialog(npc);
   }
 
-bool GameSession::isDlgFinished() const {
-  return Gothic::inst().isDlgFinished();
+bool GameSession::isInDialog() const {
+  return Gothic::inst().isInDialog();
   }
 
 bool GameSession::isWorldKnown(std::string_view name) const {
