@@ -85,31 +85,6 @@ uint vertexCount() {
   return r;
   }
 
-bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMax) {
-  const vec3  c = (scene.viewVirtualShadow * vec4(sphere.xyz, 1)).xyz;
-  const float R = sphere.w;
-
-  const float smWidthInv = 1.0/(1024.0); // NOTE: from camera.cpp
-  const float zScale     = 1.0/(10*5120.0);
-
-  float Rz = R * zScale;
-  if(c.z - Rz > 1 || c.z + Rz < 0)
-    return false;
-
-  float Rx = R * smWidthInv;
-  float Ry = R * smWidthInv;
-  aabb     = vec4(c.xy-vec2(Rx,Ry), c.xy+vec2(Rx,Ry));
-  depthMax = c.z + Rz;
-  // aabb = c.xyxy;
-  return true;
-  }
-
-bool projectCluster(const Cluster cluster, out vec4 aabb, out float depthMax) {
-  if(cluster.instanceId==0xFFFFFFFF)
-    return projectSphere(cluster.sphere, aabb, depthMax);
-  return projectSphere(cluster.sphere, aabb, depthMax);
-  }
-
 Instance pullInstance(uint i) {
   i *= 16;
   Instance ret;
@@ -235,7 +210,7 @@ VertexA pullVertexA(const uint meshletId, const uint bucketId, const uint laneId
   ret.pos1   = vec3(vbo[bId].vertices[id +  9], vbo[bId].vertices[id + 10], vbo[bId].vertices[id + 11]);
   ret.pos2   = vec3(vbo[bId].vertices[id + 12], vbo[bId].vertices[id + 13], vbo[bId].vertices[id + 14]);
   ret.pos3   = vec3(vbo[bId].vertices[id + 15], vbo[bId].vertices[id + 16], vbo[bId].vertices[id + 17]);
-  ret.boneId = uvec4(unpackUnorm4x8(floatBitsToUint(vbo[bId].vertices[id + 18]))*255.0);
+  ret.boneId = unpackUint4x8(floatBitsToUint(vbo[bId].vertices[id + 18]));
   ret.weight = vec4(vbo[bId].vertices[id + 19], vbo[bId].vertices[id + 20], vbo[bId].vertices[id + 21], vbo[bId].vertices[id + 22]);
   return ret;
   }
@@ -304,8 +279,6 @@ Vertex processVertexA(const Cluster cluster, const uint meshletId, const uint bu
   }
 
 Vertex processVertexM(const Cluster cluster, const uint meshletId, const uint bucketId, const uint laneId) {
-  const uint vboOffset = meshletId * MaxVert + laneId;
-
   VertexS  v   = pullVertexS(meshletId, bucketId, laneId);
   Instance obj = pullInstance(cluster.instanceId);
 
@@ -363,7 +336,8 @@ void main() {
       v = processVertex (cluster, meshletId, bucketId, laneId);
 
     const vec4 pos4 = (scene.viewVirtualShadow * vec4(v.pos,1));
-    v.pos = pos4.xyz/pos4.w;
+    // v.pos = pos4.xyz;/pos4.w;
+    v.pos = pos4.xyz;
     meshVertices[laneId] = v;
     }
   barrier();

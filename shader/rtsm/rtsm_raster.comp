@@ -58,6 +58,12 @@ void rayBboxses(const vec3 ray, bool activeRay) {
     atomicMax(rayBbox.w, floatToOrderedUint(ray.y));
     atomicMin(rayZmin,   floatToOrderedUint(ray.z));
     }
+  barrier();
+
+  if(gl_LocalInvocationIndex==0) {
+    rayBbox = floatBitsToUint(orderedUintToFloat(rayBbox));
+    rayZmin = floatBitsToUint(orderedUintToFloat(rayZmin));
+    }
   }
 
 vec4 worldPos(ivec2 frag, float depth) {
@@ -84,7 +90,7 @@ int calcMipIndex(in vec2 shPos) {
   }
 
 // ray managment
-vec3 calcRayOrigin(const vec4 wpos) {
+vec3 rayOrigin(const vec4 wpos) {
   vec4 shPos = scene.viewVirtualShadowLwc * wpos;
   shPos.xyz /= shPos.w;
   return shPos.xyz;
@@ -94,12 +100,11 @@ vec3 calcRayOrigin(const vec4 wpos) {
 shared uint   primitiveBucket [NumThreads];
 shared float  primitiveAreaInv[NumThreads];
 shared Vertex meshVertices    [NumThreads*3];
-bool isPrimitiveVisible(const vec4 aabb) {
-  //float depthMax;
-
-  const vec4 rbbox = orderedUintToFloat(rayBbox);
-  // if(uintBitsToFloat(rayZmin) > depthMax)
-  //   continue;
+shared uint   numLocalPrim;
+bool isPrimitiveVisible(const vec4 aabb, const float depthMax) {
+  const vec4 rbbox = uintBitsToFloat(rayBbox);
+  if(uintBitsToFloat(rayZmin) > depthMax)
+    return false;
   if(!bboxIntersect(aabb, rbbox))
     return false;
   return true;
@@ -127,16 +132,17 @@ void pullPrimitives(const uint pkg) {
   const Vertex c    = pullVertexFull(ptrV, tri.z);
 
   const vec4  tbb = bboxOf(a.pos.xy, b.pos.xy, c.pos.xy);
-  if(!isPrimitiveVisible(tbb)) {
-    primitiveAreaInv[laneID] = -1;
+  const float rz  = max(a.pos.z, max(b.pos.z, c.pos.z));
+  if(!isPrimitiveVisible(tbb, rz)) {
     return;
     }
 
-  meshVertices[laneID*3+0] = a;
-  meshVertices[laneID*3+1] = b;
-  meshVertices[laneID*3+2] = c;
-  primitiveAreaInv[laneID] = 1.0/edgeFunction(a.pos.xy, b.pos.xy, c.pos.xy);
-  primitiveBucket[laneID]  = packUint2x16(uvec2(bucketId,tri.w));
+  const uint id = atomicAdd(numLocalPrim, 1);
+  meshVertices[id*3+0] = a;
+  meshVertices[id*3+1] = b;
+  meshVertices[id*3+2] = c;
+  primitiveAreaInv[id] = 1.0/edgeFunction(a.pos.xy, b.pos.xy, c.pos.xy);
+  primitiveBucket[id]  = packUint2x16(uvec2(bucketId,tri.w));
   }
 
 shared uint numActiveRays;
@@ -162,19 +168,18 @@ float tracePacket(const vec3 ray, float opacity, bool actRay) {
     if(numActiveRays==0)
       break;
 
+    numLocalPrim = 0;
+    barrier();
+
     const uint i = s*NumThreads + laneID;
     if(i<numPrimitives)
       pullPrimitives(pos.data[tileHeader.x + i]);
     barrier();
 
-    const uint batchSize = min(numPrimitives-s*steps, NumThreads);
-    for(uint id=0; id<batchSize; ++id) {
+    //const uint batchSize = min(numPrimitives-s*steps, NumThreads);
+    for(uint id=0; id<numLocalPrim; ++id) {
       if(shadow)
         break;
-
-      const float areaInv = primitiveAreaInv[id];
-      if(areaInv<0)
-        continue;
 
       vec3  a  = meshVertices[id*3+0].pos;
       vec3  b  = meshVertices[id*3+1].pos;
@@ -187,8 +192,9 @@ float tracePacket(const vec3 ray, float opacity, bool actRay) {
       if(w0 < 0 || w1 < 0 || w2 < 0)
         continue;
 
-      const vec3  bc    = vec3(w0,w1,w2);
-      const float depth = dot(vec3(a.z,b.z,c.z), bc)*areaInv;
+      const float areaInv = primitiveAreaInv[id];
+      const vec3  bc      = vec3(w0,w1,w2);
+      const float depth   = dot(vec3(a.z,b.z,c.z), bc)*areaInv;
       if(depth <= ray.z)
         continue;
 
@@ -222,12 +228,12 @@ void main() {
   const ivec2 size   = textureSize(depth, 0);
   const bool  valid  = all(lessThan(fragCoord, size));
 
-  const float z      = valid ? texelFetch(depth, fragCoord, 0).x  : 1.0;
   const vec3  normal = valid ? normalFetch(gbufNormal, fragCoord) : vec3(0);
+  const float z      = valid ? texelFetch(depth, fragCoord, 0).x  : 1.0;
   const float lamb   = imageLoad(outputImage, fragCoord).x;
 
   const vec4  wpos   = worldPos(fragCoord.xy, z) + vec4(normal*0.0015, 0);
-  const vec3  ray    = calcRayOrigin(wpos);
+  const vec3  ray    = rayOrigin(wpos);
   const bool  actRay = (lamb>0);
 
   numActiveRays = 0;

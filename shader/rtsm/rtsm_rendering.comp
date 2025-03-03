@@ -131,7 +131,7 @@ int calcMipIndex(in vec2 shPos) {
   }
 
 // ray managment
-vec3 calcRayOrigin(const vec4 wpos) {
+vec3 rayOrigin(const vec4 wpos) {
   vec4 shPos = scene.viewVirtualShadowLwc * wpos;
   shPos.xyz /= shPos.w;
   return shPos.xyz;
@@ -367,7 +367,7 @@ void main() {
   const vec3  normal = valid ? normalFetch(gbufNormal, fragCoord) : vec3(0);
 
   const vec4  wpos   = worldPos(fragCoord.xy, z) + vec4(normal*0.002, 0);
-  const vec3  ray    = calcRayOrigin(wpos);
+  const vec3  ray    = rayOrigin(wpos);
 
   bool        shadow = false;
   shadow             = shadow || (dot(scene.sunDir, normal) <= 0 && z!=1.0);

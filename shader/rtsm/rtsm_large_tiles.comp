@@ -35,7 +35,7 @@ uvec2 pullMeshList() {
   }
 
 // ray related
-vec3 calcRayOrigin(const vec4 wpos) {
+vec3 rayOrigin(const vec4 wpos) {
   vec4 shPos = scene.viewVirtualShadowLwc * wpos;
   shPos.xyz /= shPos.w;
   return shPos.xyz;
@@ -70,7 +70,7 @@ void processFragment(const ivec2 fragCoord) {
 
   const uint  slice = depthSlice(z);
   const vec4  wpos  = worldPos(fragCoord.xy, z);
-  const vec3  ray   = calcRayOrigin(wpos);
+  const vec3  ray   = rayOrigin(wpos);
 
   atomicOr(raySliceBits, 1u << slice);
   atomicMin(rayTileBbox[slice].x,   floatToOrderedUint(ray.x));

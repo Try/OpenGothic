@@ -16,11 +16,11 @@ layout(binding = 1, std140) uniform UboScene    { SceneDesc scene;       };
 layout(binding = 2)         uniform texture2D   gbufDiffuse;
 layout(binding = 3)         uniform utexture2D  gbufNormal;
 layout(binding = 4)         uniform texture2D   depth;
-layout(binding = 7, r32ui)  uniform uimage3D    pageTbl;
+layout(binding = 7, r32ui)  uniform coherent uimage3D    pageTbl;
 
 ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
 
-shared uint pageHiZ[NumThreads];
+shared uint pageHiZ[128];
 
 uint pageIdHash7(ivec3 src) {
   uint x = (src.x & 0x3) << 0;
@@ -68,19 +68,13 @@ void markPage(ivec3 at, float z) {
   storeHiZValue(v);
   }
 
-void _markPage(ivec3 at, float z) {
-  //TODO: amortize atomics, similar to VSM
-  const uint iz = floatToOrderedUint(z);
-  imageAtomicMin(pageTbl, at, iz);
-  }
-
 vec4 worldPos(ivec2 frag, float depth) {
   const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
   const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
   return scene.viewProjectLwcInv * scr;
   }
 
-vec3 calcRayOrigin(const vec4 wpos) {
+vec3 rayOrigin(const vec4 wpos) {
   vec4 shPos = scene.viewVirtualShadowLwc * wpos;
   shPos.xyz /= shPos.w;
   return shPos.xyz;
@@ -118,7 +112,7 @@ float markPages() {
   if(isGBufFlat(diff.a))
     return 0;
 
-  const vec3  ray    = calcRayOrigin(wpos);
+  const vec3  ray    = rayOrigin(wpos);
   //const uint  idx    = rayPacketId(ray.xy, z);
 
   vec2 page = vec2(0);
