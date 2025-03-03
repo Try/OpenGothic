@@ -668,6 +668,8 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.setBinding(7, buckets.ssbo());
     cmd.setBinding(8, ibo);
     cmd.setBinding(9, vbo);
+    cmd.setBinding(10, morphId);
+    cmd.setBinding(11, morph);
 
     cmd.setPipeline(shaders.rtsmPosition);
     cmd.dispatchIndirect(rtsmVisList,0);

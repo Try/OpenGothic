@@ -196,7 +196,7 @@ void traceMeshlets(const uint tilePtr, const uint visCount) {
       }
     barrier();
 
-    if(numMeshletsCoarse<NumThreads/MaxPrim && s+1!=steps)
+    if(numMeshletsCoarse<NumThreads && s+1!=steps)
       continue;
 
     refineMeshlets();
