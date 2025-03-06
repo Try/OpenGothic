@@ -9,8 +9,6 @@
 
 layout(local_size_x = 16, local_size_y = 8) in;
 
-const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
-
 layout(binding = 0, r8)     uniform  image2D    outputImage;
 layout(binding = 1, std140) uniform UboScene    { SceneDesc scene;       };
 layout(binding = 2)         uniform texture2D   gbufDiffuse;
@@ -101,7 +99,8 @@ float markPages() {
     return 0; // make this fragment inactive
 
   const vec3  normal = normalFetch(gbufNormal, fragCoord);
-  if(dot(scene.sunDir, normal) <= 0)
+  const float lamb   = dot(scene.sunDir, normal);
+  if(lamb <= 0)
     return 0;
 
   const vec4  wpos   = worldPos(fragCoord.xy, z) + vec4(normal*0.002, 0);
@@ -118,11 +117,11 @@ float markPages() {
   vec2 page = vec2(0);
   int  mip  = 0;
   if(!calcMipIndex(page, mip, ray.xy))
-    return 1;
+    return lamb;
 
   ivec2 pageI = ivec2((page.xy*0.5+0.5)*RTSM_PAGE_TBL_SIZE);
   markPage(ivec3(pageI, mip), ray.z);
-  return 1;
+  return lamb;
   }
 
 void main() {

@@ -227,6 +227,8 @@ Shaders::Shaders() {
     rtsmRaster      = computeShader("rtsm_raster.comp.sprv");
     rtsmDirectLight = postEffect("rtsm_direct_light", RenderState::ZTestMode::NoEqual);
 
+    rtsmHTiles      = computeShader("rtsm_htiles.comp.sprv");
+
     rtsmRendering   = computeShader("rtsm_rendering.comp.sprv");
     rtsmDbg         = postEffect("rtsm_dbg", RenderState::ZTestMode::Always);
     }

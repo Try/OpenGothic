@@ -13,6 +13,9 @@ const int  RTSM_LARGE_TILE    = 128;
 const int  RTSM_SMALL_TILE    = 32;
 
 const uint MaxSlices          = 16;
+const uint MaxVert            = 64;
+const uint MaxPrim            = 64;
+const uint MaxInd             = (MaxPrim*3);
 
 struct RtsmHeader {
   uint visCount;

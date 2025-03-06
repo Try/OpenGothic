@@ -570,15 +570,6 @@ static Size tileCount(Size sz, int s) {
   return sz;
   }
 
-static Size roundUp(Size sz, int align) {
-  sz.w = (sz.w+align-1)/align;
-  sz.h = (sz.h+align-1)/align;
-
-  sz.w *= align;
-  sz.h *= align;
-  return sz;
-  }
-
 void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   const int RTSM_BIN_SIZE   = 32;
   const int RTSM_SMALL_TILE = 32;
@@ -602,11 +593,17 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     Resources::recycle(std::move(rtsmSmallTile));
     rtsmSmallTile = device.image2d(TextureFormat::RG32U, uint32_t(sz.w), uint32_t(sz.h));
     }
-  if(rtsmPrimBins.size()!=roundUp(scene.zbuffer->size(), RTSM_BIN_SIZE)) {
+  if(rtsmPrimBins.size()!=tileCount(scene.zbuffer->size(), RTSM_BIN_SIZE)) {
     auto sz = tileCount(scene.zbuffer->size(), RTSM_BIN_SIZE);
     Resources::recycle(std::move(rtsmPrimBins));
     // NOTE: need to improve engine api to accept size
     rtsmPrimBins = device.image2d(TextureFormat::RG32U, uint32_t(sz.w), uint32_t(sz.h));
+    }
+
+  if(rtmsHtile.size()!=tileCount(scene.zbuffer->size(), 32)) {
+    auto sz = tileCount(scene.zbuffer->size(), 32);
+    Resources::recycle(std::move(rtmsHtile));
+    rtmsHtile = device.image2d(TextureFormat::RG32U, sz);
     }
 
   const size_t clusterCnt = maxPayload;
@@ -675,6 +672,24 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.dispatchIndirect(rtsmVisList,0);
   }
 
+  if(1)
+  {
+    // tile hirarchy
+    const auto largetTiles = tileCount(scene.zbuffer->size(), 128);
+
+    cmd.setBinding(0, *scene.rtsmImage);
+    cmd.setBinding(1, sceneUbo);
+    cmd.setBinding(2, *scene.zbuffer);
+    //cmd.setBinding(3, rtsmHtileCtrl);
+    cmd.setBinding(4, rtsmVisList);
+    cmd.setBinding(5, rtsmPosList);
+    cmd.setBinding(6, rtmsHtile);
+
+    cmd.setPipeline(shaders.rtsmHTiles);
+    cmd.dispatch(largetTiles);
+  }
+
+  if(0)
   {
     // large tiles
     cmd.setBinding(0, *scene.rtsmImage);
@@ -700,8 +715,8 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, *scene.gbufNormals);
     cmd.setBinding(3, *scene.zbuffer);
-    cmd.setBinding(4, rtsmSmallTile);
-    // cmd.setBinding(4, rtsmLargeTile);
+    //cmd.setBinding(4, rtsmSmallTile);
+    cmd.setBinding(4, rtmsHtile);
     cmd.setBinding(5, rtsmPosList);
     cmd.setBinding(6, rtsmPrimBins);
     cmd.setBinding(7, *scene.rtsmDbg);

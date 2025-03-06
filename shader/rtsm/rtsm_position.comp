@@ -11,10 +11,6 @@
 
 layout(local_size_x = 64) in;
 
-const uint NumThreads       = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
-const uint MaxVert          = 64;
-const uint MaxPrim          = 64;
-const uint MaxInd           = (MaxPrim*3);
 const uint MAX_MORPH_LAYERS = 4;
 
 struct VertexS {

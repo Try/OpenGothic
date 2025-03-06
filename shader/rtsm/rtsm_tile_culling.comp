@@ -11,8 +11,6 @@
 layout(local_size_x = 32, local_size_y = 16) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
-const uint MaxVert    = 64;
-const uint MaxPrim    = 64;
 
 layout(binding = 0, r8)     uniform  image2D    outputImage;
 layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
