@@ -16,8 +16,9 @@ const int  SMALL_TILE = 32;
 layout(binding = 0)         uniform texture2D   outputImage;
 layout(binding = 1, std140) uniform UboScene    { SceneDesc scene;   };
 layout(binding = 2)         uniform texture2D   depth;
-//layout(binding = 3)                 buffer Cbuf { Ctrl      control; };
-layout(binding = 5, std430)         buffer Pos  { uint alloc; uint  data[]; } pos;
+layout(binding = 3, std430)         buffer CB   { uvec4 cmd;   uint tiles[]; } largeTile;
+
+layout(binding = 5, std430)         buffer Pos  { uint  alloc; uint data[];  } pos;
 layout(binding = 6, rg32ui) uniform writeonly uimage2D tileBins;
 
 #include "rtsm/rtsm_scratch.glsl"
@@ -27,6 +28,7 @@ struct Bbox {
   uint  depthMin[MaxSlices];
   };
 
+// 5'576 bytes + ~8kb for lists
 shared Bbox rayTileBbox [16], rayGlobBbox;
 shared uint numSlices   [16], numGlobSlices;
 shared uint raySliceBits[16], rayGlobSliceBits;
@@ -39,9 +41,23 @@ shared uint numMeshlets;
 
 shared uint meshListPtr;
 
+void storeFullList(ivec2 tileId) {
+  if(any(greaterThanEqual(tileId, imageSize(tileBins))))
+    return;
+
+  const uvec2 l = uvec2(1, pos.data[0]);
+  imageStore(tileBins, tileId, uvec4(l, 0, 0));
+  if(gl_LocalInvocationIndex!=0)
+    return;
+
+  const uint id = atomicAdd(largeTile.cmd.x, 1);
+  largeTile.tiles[id] = packUint2x16(tileId);
+  }
+
 void storeEmptyList(ivec2 tileId) {
-  if(all(lessThan(tileId, imageSize(tileBins))))
-    imageStore(tileBins, tileId, uvec4(NULL, 0, 0, 0));
+  if(all(lessThan(tileId, imageSize(tileBins)))) {
+    imageStore(tileBins, tileId, uvec4(NULL));
+    }
   }
 
 void storeMeshList(ivec2 tileId) {
@@ -64,16 +80,14 @@ void storeMeshList(ivec2 tileId) {
   }
 
 // ray related
-vec3 rayOrigin(const vec4 wpos) {
-  vec4 shPos = scene.viewVirtualShadowLwc * wpos;
-  shPos.xyz /= shPos.w;
-  return shPos.xyz;
-  }
-
-vec4 worldPos(ivec2 frag, float depth) {
+vec3 rayOrigin(ivec2 frag, float depth) {
   const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
   const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
-  return scene.viewProjectLwcInv * scr;
+
+  const vec4 wpos  = scene.viewProjectLwcInv * scr; //TODO: premul matrix
+  const vec4 shPos = scene.viewVirtualShadowLwc * wpos;
+
+  return shPos.xyz/shPos.w;
   }
 
 uint depthSlice(const float z) {
@@ -97,8 +111,7 @@ void processFragment(const ivec2 fragCoord, const ivec2 tile) {
     return;
 
   const uint  slice = depthSlice(z);
-  const vec4  wpos  = worldPos(fragCoord.xy, z);
-  const vec3  ray   = rayOrigin(wpos);
+  const vec3  ray   = rayOrigin(fragCoord, z);
   //imageStore(tileBins, fragCoord/SMALL_TILE, uvec4(tile.x+tile.y*4)); // debug
 
   const uint tid = tile.x + tile.y*4;
@@ -269,7 +282,7 @@ void traceMeshlets(const uint tilePtr, const uint visCount) {
   if(numMeshletsGlob>meshletsIdGlob.length()) {
     for(int i=0; i<16; ++i) {
       const ivec2 at = ivec2(gl_WorkGroupID.xy)*4 + ivec2(i%4, i/4);
-      storeEmptyList(at); //dummy
+      storeFullList(at);
       }
     return;
     }

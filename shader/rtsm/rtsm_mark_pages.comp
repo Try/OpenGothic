@@ -103,7 +103,7 @@ float markPages() {
   if(lamb <= 0)
     return 0;
 
-  const vec4  wpos   = worldPos(fragCoord.xy, z) + vec4(normal*0.002, 0);
+  const vec4  wpos   = worldPos(fragCoord.xy, z) + vec4(normal*NormalBias, 0);
   if(planetOcclusion(wpos.y/wpos.w, scene.sunDir))
     return 0;
 

@@ -148,5 +148,6 @@ class DrawCommands {
     Tempest::StorageImage    rtsmPrimBins;
 
     Tempest::StorageImage    rtmsHtile;
-
+    Tempest::StorageBuffer   rtsmLtList;
+    Tempest::StorageImage    rtmsDbg;
   };

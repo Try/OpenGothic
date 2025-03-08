@@ -232,7 +232,7 @@ void main() {
   const float z      = valid ? texelFetch(depth, fragCoord, 0).x  : 1.0;
   const float lamb   = imageLoad(outputImage, fragCoord).x;
 
-  const vec4  wpos   = worldPos(fragCoord.xy, z) + vec4(normal*0.0015, 0);
+  const vec4  wpos   = worldPos(fragCoord.xy, z) + vec4(normal*NormalBias, 0);
   const vec3  ray    = rayOrigin(wpos);
   const bool  actRay = (lamb>0);
 

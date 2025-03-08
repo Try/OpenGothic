@@ -605,6 +605,16 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     Resources::recycle(std::move(rtmsHtile));
     rtmsHtile = device.image2d(TextureFormat::RG32U, sz);
     }
+  if(rtsmLtList.byteSize()!=shaders.rtsmClear.sizeofBuffer(3, size_t(rtmsHtile.w()*rtmsHtile.h()))) {
+    const size_t sz = shaders.rtsmClear.sizeofBuffer(3, size_t(rtmsHtile.w()*rtmsHtile.h()));
+    Resources::recycle(std::move(rtsmLtList));
+    rtsmLtList = device.ssbo(nullptr, sz);
+    }
+  if(rtmsDbg.size()!=tileCount(scene.zbuffer->size(), 8)) {
+    auto sz = tileCount(scene.zbuffer->size(), 8);
+    Resources::recycle(std::move(rtmsDbg));
+    rtmsDbg = device.image2d(TextureFormat::R32U, sz);
+    }
 
   const size_t clusterCnt = maxPayload;
   const size_t clusterSz  = shaders.rtsmClear.sizeofBuffer(1, clusterCnt);
@@ -622,6 +632,7 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.setBinding(0, rtsmPages);
     cmd.setBinding(1, rtsmVisList);
     cmd.setBinding(2, rtsmPosList);
+    cmd.setBinding(3, rtsmLtList);
 
     cmd.setPipeline(shaders.rtsmClear);
     cmd.dispatchThreads(size_t(rtsmPages.w()), size_t(rtsmPages.h()), size_t(rtsmPages.d()));
@@ -672,7 +683,6 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.dispatchIndirect(rtsmVisList,0);
   }
 
-  if(1)
   {
     // tile hirarchy
     const auto largetTiles = tileCount(scene.zbuffer->size(), 128);
@@ -680,33 +690,37 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.setBinding(0, *scene.rtsmImage);
     cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, *scene.zbuffer);
-    //cmd.setBinding(3, rtsmHtileCtrl);
+    cmd.setBinding(3, rtsmLtList);
     cmd.setBinding(4, rtsmVisList);
     cmd.setBinding(5, rtsmPosList);
     cmd.setBinding(6, rtmsHtile);
 
     cmd.setPipeline(shaders.rtsmHTiles);
     cmd.dispatch(largetTiles);
-  }
 
-  if(0)
+    cmd.setPipeline(shaders.rtsmLargeTiles);
+    cmd.dispatchIndirect(rtsmLtList, 0);
+  }
+  //return;
+
   {
-    // large tiles
+    // raster
+    // const auto smallTiles = tileCount(scene.zbuffer->size(), 16);
+
     cmd.setBinding(0, *scene.rtsmImage);
     cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, *scene.gbufNormals);
     cmd.setBinding(3, *scene.zbuffer);
-    cmd.setBinding(4, rtsmVisList);
+    //cmd.setBinding(3, rtsmHtileCtrl);
+    cmd.setBinding(4, rtmsHtile);
     cmd.setBinding(5, rtsmPosList);
-    cmd.setBinding(6, rtsmLargeTile);
-    cmd.setBinding(7, rtsmSmallTile);
+    cmd.setBinding(6, rtmsDbg);
+    cmd.setBinding(7, tex);
+    cmd.setBinding(8, Sampler::trillinear());
 
-    cmd.setPipeline(shaders.rtsmLargeTiles);
-    cmd.dispatch(uint32_t(rtsmLargeTile.w()), uint32_t(rtsmLargeTile.h()));
-
-    // small tiles
-    cmd.setPipeline(shaders.rtsmSmallTiles);
-    cmd.dispatch(uint32_t(rtsmSmallTile.w()), uint32_t(rtsmSmallTile.h()));
+    //cmd.setPipeline(shaders.rtsmHRaster);
+    //cmd.dispatch(smallTiles);
+    //cmd.dispatchThreads(scene.zbuffer->size());
   }
 
   {

@@ -17,6 +17,8 @@ const uint MaxVert            = 64;
 const uint MaxPrim            = 64;
 const uint MaxInd             = (MaxPrim*3);
 
+const float NormalBias        = 0.0015;
+
 struct RtsmHeader {
   uint visCount;
   uint one1;
