@@ -66,7 +66,7 @@ uint depthSlice(const float z) {
   float d1   = linearDepth(0.9999, scene.clipInfo);
   float d    = (dZ-d0)/(d1-d0);
 
-  return min(uint(d*MaxSlices+0.5), MaxSlices);
+  return min(uint(d*MaxSlices), MaxSlices-1);
   }
 
 void processFragment(const ivec2 fragCoord) {

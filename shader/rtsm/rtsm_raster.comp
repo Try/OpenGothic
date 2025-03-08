@@ -21,8 +21,9 @@ layout(binding = 0, r8)     uniform  image2D    outputImage;
 layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
 layout(binding = 2)         uniform  utexture2D gbufNormal;
 layout(binding = 3)         uniform  texture2D  depth;
-layout(binding = 4)         uniform  utexture2D primitiveBins;
+
 layout(binding = 5, std430) readonly buffer Pos { uint alloc; uint data[]; } pos;
+layout(binding = 6)         uniform  utexture2D primitiveBins;
 
 layout(binding = 7)         uniform  texture2D  textureMain[];
 layout(binding = 8)         uniform  sampler    samplerMain;
@@ -30,8 +31,9 @@ layout(binding = 8)         uniform  sampler    samplerMain;
 #include "rtsm/rtsm_scratch.glsl"
 
 ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
+const float minOpacity = 0.49/255.0;
 
-float alphaTest(const uint bucketId, vec3 bc, float areaInv, vec2 a, vec2 b, vec2 c) {
+float sampleAlpha(const uint bucketId, vec3 bc, float areaInv, vec2 a, vec2 b, vec2 c) {
   const float u = dot(vec3(a.x,b.x,c.x), bc)*areaInv;
   const float v = dot(vec3(a.y,b.y,c.y), bc)*areaInv;
 
@@ -39,8 +41,8 @@ float alphaTest(const uint bucketId, vec3 bc, float areaInv, vec2 a, vec2 b, vec
   return textureLod(sampler2D(textureMain[nonuniformEXT(bucketId)], samplerMain), vec2(u,v), 0).a;
   }
 
-float alphaTest(const uint bucketId, vec3 bc, float areaInv, uint a, uint b, uint c) {
-  return alphaTest(bucketId, bc, areaInv, unpackHalf2x16(a), unpackHalf2x16(b), unpackHalf2x16(c));
+float sampleAlpha(const uint bucketId, vec3 bc, float areaInv, uint a, uint b, uint c) {
+  return sampleAlpha(bucketId, bc, areaInv, unpackHalf2x16(a), unpackHalf2x16(b), unpackHalf2x16(c));
   }
 
 // utility
@@ -146,11 +148,8 @@ void pullPrimitives(const uint pkg) {
   }
 
 shared uint numActiveRays;
-float tracePacket(const vec3 ray, float opacity, bool actRay) {
+float tracePacket(const vec3 ray, float opacity) {
   const uint laneID  = gl_LocalInvocationIndex;
-
-  if(actRay)
-    atomicAdd(numActiveRays, 1);
   barrier();
 
   const uvec2 tileHeader    = pullPrimitiveList();
@@ -163,8 +162,17 @@ float tracePacket(const vec3 ray, float opacity, bool actRay) {
     return (tile.x+tile.y)%2==0 ? 1.0 : 0.0;
     }
 
-  bool  shadow  = !actRay;
+  if(numPrimitives==0)
+    return opacity;
+
   for(uint s=0; s<steps; ++s) {
+    numActiveRays = 0;
+    barrier();
+
+    if(opacity>minOpacity)
+      atomicAdd(numActiveRays, 1);
+    barrier();
+
     if(numActiveRays==0)
       break;
 
@@ -178,7 +186,7 @@ float tracePacket(const vec3 ray, float opacity, bool actRay) {
 
     //const uint batchSize = min(numPrimitives-s*steps, NumThreads);
     for(uint id=0; id<numLocalPrim; ++id) {
-      if(shadow)
+      if(opacity<=minOpacity)
         break;
 
       vec3  a  = meshVertices[id*3+0].pos;
@@ -202,7 +210,7 @@ float tracePacket(const vec3 ray, float opacity, bool actRay) {
       const uint flags = primitiveBucket[id] >> 16;
       if((flags & BK_SOLID)==0) {
         const uint  bucketId = primitiveBucket[id] & 0xFFFF;
-        const float alpha    = alphaTest(bucketId, bc, areaInv, meshVertices[id*3+0].uv, meshVertices[id*3+1].uv, meshVertices[id*3+2].uv);
+        const float alpha    = sampleAlpha(bucketId, bc, areaInv, meshVertices[id*3+0].uv, meshVertices[id*3+1].uv, meshVertices[id*3+2].uv);
         opacity *= (1.0-alpha);
         } else {
         opacity = 0;
@@ -210,13 +218,6 @@ float tracePacket(const vec3 ray, float opacity, bool actRay) {
 #else
       opacity = 0;
 #endif
-      const float minOpacity = 0.49/255.0;
-      if(opacity>minOpacity)
-        continue;
-
-      shadow = true;
-      atomicAdd(numActiveRays, -1);
-      break;
       }
     barrier();
     }
@@ -234,13 +235,12 @@ void main() {
 
   const vec4  wpos   = worldPos(fragCoord.xy, z) + vec4(normal*NormalBias, 0);
   const vec3  ray    = rayOrigin(wpos);
-  const bool  actRay = (lamb>0);
 
   numActiveRays = 0;
-  rayBboxses(ray, actRay);
+  rayBboxses(ray, lamb>minOpacity);
   barrier();
 
-  const float opacity = tracePacket(ray, lamb, actRay);
-  if(actRay && opacity<1)
+  const float opacity = tracePacket(ray, lamb);
+  if(opacity!=lamb)
     imageStore(outputImage, fragCoord, vec4(opacity));
   }

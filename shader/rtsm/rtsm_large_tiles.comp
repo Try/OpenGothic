@@ -10,16 +10,13 @@ layout(local_size_x = 32, local_size_y = 16) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
-const int  LARGE_TILE = 128;
-const int  SMALL_TILE = 32;
-
-layout(binding = 0)         uniform texture2D   outputImage;
-layout(binding = 1, std140) uniform UboScene    { SceneDesc scene;       };
-layout(binding = 2)         uniform texture2D   depth;
-layout(binding = 3, std430)         buffer CB   { uvec4 cmd;   uint tiles[]; } largeTile;
-
-layout(binding = 5, std430)         buffer Pos  { uint  alloc; uint data[];  } pos;
-layout(binding = 6, rg32ui) uniform uimage2D    tileBins;
+layout(binding = 0)         uniform  texture2D   outputImage;
+layout(binding = 1, std140) uniform  UboScene    { SceneDesc scene;       };
+layout(binding = 2)         uniform  texture2D   depth;
+layout(binding = 3, std430) readonly buffer CB   { uvec4 cmd;   uint tiles[]; } largeTile;
+layout(binding = 4, std430)          buffer Pos  { uint  alloc; uint data[];  } pos;
+layout(binding = 5, rg32ui) uniform  uimage2D    tileBins;
+layout(binding = 6, r32ui)  uniform uimage2D     dbgImage;
 
 #include "rtsm/rtsm_scratch.glsl"
 
@@ -53,7 +50,7 @@ uint depthSlice(const float z) {
   float d1   = linearDepth(0.9999, scene.clipInfo);
   float d    = (dZ-d0)/(d1-d0);
 
-  return min(uint(d*MaxSlices+0.5), MaxSlices);
+  return min(uint(d*MaxSlices), MaxSlices-1);
   }
 
 // fragment
@@ -89,8 +86,8 @@ void tileBbox(const ivec2 tile) {
     }
   barrier();
 
-  const uvec2 srcSz  = textureSize(depth,0);
-  const ivec2 tileSz = ivec2(SMALL_TILE);
+  const ivec2 srcSz  = textureSize(depth,0);
+  const ivec2 tileSz = ivec2(RTSM_SMALL_TILE);
 
   const ivec2 at0 = ivec2(tile) * tileSz;
   const ivec2 xy0 = ivec2(gl_LocalInvocationID.xy);
@@ -169,6 +166,7 @@ void storeMeshList(ivec2 tileId) {
       numMeshlets = 0;
       }
     imageStore(tileBins, tileId, uvec4(meshListPtr, numMeshlets, 0, 0));
+    imageStore(dbgImage, tileId, uvec4(numMeshlets));
     }
   barrier();
 
