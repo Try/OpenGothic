@@ -606,6 +606,12 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     rtmsDbg = device.image2d(TextureFormat::R32U, sz);
     }
 
+  if(rtmsDbg8.size()!=tileCount(scene.zbuffer->size(), 8)) {
+    auto sz = tileCount(scene.zbuffer->size(), 8);
+    Resources::recycle(std::move(rtmsDbg8));
+    rtmsDbg8 = device.image2d(TextureFormat::R32U, sz);
+    }
+
   const size_t clusterCnt = maxPayload;
   const size_t clusterSz  = shaders.rtsmClear.sizeofBuffer(1, clusterCnt);
   if(rtsmVisList.byteSize()!=clusterSz) {
@@ -695,24 +701,19 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.setPipeline(shaders.rtsmSampleCull);
     cmd.dispatch(smallTiles);
   }
-  //return;
 
-  if(0)
   {
-    // raster
+    // primitive culling
     cmd.setBinding(0, *scene.rtsmImage);
     cmd.setBinding(1, sceneUbo);
-    cmd.setBinding(2, *scene.gbufNormals);
-    cmd.setBinding(3, *scene.zbuffer);
-    cmd.setBinding(4, rtmsTiles);
-    cmd.setBinding(5, rtsmPosList);
-    cmd.setBinding(6, rtmsDbg);
-    cmd.setBinding(7, tex);
-    cmd.setBinding(8, Sampler::trillinear());
+    cmd.setBinding(2, *scene.zbuffer);
+    cmd.setBinding(3, rtmsTiles);
+    cmd.setBinding(4, rtsmPosList);
+    cmd.setBinding(6, rtsmPrimBins);
+    cmd.setBinding(9, rtmsDbg8);
 
-    cmd.setPipeline(shaders.rtsmHRaster);
-    cmd.dispatch(rtmsTiles.size());
-    return;
+    cmd.setPipeline(shaders.rtsmPrimCull);
+    //cmd.dispatch(uint32_t(rtsmPrimBins.w()), uint32_t(rtsmPrimBins.h()));
   }
 
   {

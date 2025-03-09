@@ -182,7 +182,6 @@ void tileBbox() {
       processFragment(at);
       }
     }
-  //processFragment(fragCoord);
   barrier();
 
   vec4 rbb; float rayD;

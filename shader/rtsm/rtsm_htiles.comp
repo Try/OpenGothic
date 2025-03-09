@@ -21,15 +21,15 @@ layout(binding = 6, r32ui)  uniform uimage2D           dbgImage;
 #include "rtsm/rtsm_scratch.glsl"
 
 // tiles: 128 -> 32
-// 5'576 bytes + ~8kb for lists
+// 5'576 bytes + ~10kb for lists
 shared uvec4 rayTileBbox[(1+16)*MaxSlices];
 shared uint  rayDepthMin[(1+16)*MaxSlices];
 shared uint  numSlices  [(1+16)];
 
-shared uint  meshletsIdGlob[1024];
+shared uint  meshletsIdGlob[2048];
 shared uint  numMeshletsGlob;
 
-shared uint  meshletsId[1024];
+shared uint  meshletsId[256];
 shared uint  numMeshlets;
 
 shared uint  meshListPtr;
@@ -71,6 +71,11 @@ void storeEmptyList() {
 
 void storeMeshList(ivec2 tileId) {
   const uint laneID = gl_LocalInvocationIndex;
+
+  if(numMeshlets>=meshletsId.length()) {
+    storeFullList(tileId);
+    return;
+    }
 
   if(laneID==0) {
     meshListPtr = numMeshlets==0 ? NULL : atomicAdd(pos.alloc, numMeshlets);

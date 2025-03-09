@@ -33,16 +33,16 @@ layout(binding = 8)         uniform  sampler    samplerMain;
 ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
 const float minOpacity = 0.49/255.0;
 
-float sampleAlpha(const uint bucketId, vec3 bc, float areaInv, vec2 a, vec2 b, vec2 c) {
+float sampleAlpha(const uint bucketId, vec3 bc, float areaInv, vec2 a, vec2 b, vec2 c, float lodBias) {
   const float u = dot(vec3(a.x,b.x,c.x), bc)*areaInv;
   const float v = dot(vec3(a.y,b.y,c.y), bc)*areaInv;
 
   //TODO: find optimal lod
-  return textureLod(sampler2D(textureMain[nonuniformEXT(bucketId)], samplerMain), vec2(u,v), 0).a;
+  return textureLod(sampler2D(textureMain[nonuniformEXT(bucketId)], samplerMain), vec2(u,v), lodBias).a;
   }
 
-float sampleAlpha(const uint bucketId, vec3 bc, float areaInv, uint a, uint b, uint c) {
-  return sampleAlpha(bucketId, bc, areaInv, unpackHalf2x16(a), unpackHalf2x16(b), unpackHalf2x16(c));
+float sampleAlpha(const uint bucketId, vec3 bc, float areaInv, uint a, uint b, uint c, float lodBias) {
+  return sampleAlpha(bucketId, bc, areaInv, unpackHalf2x16(a), unpackHalf2x16(b), unpackHalf2x16(c), lodBias);
   }
 
 // utility
@@ -75,14 +75,14 @@ vec4 worldPos(ivec2 frag, float depth) {
   }
 
 // pagging
-int shadowLod(vec2 dx, vec2 dy) {
+float shadowLod(vec2 dx, vec2 dy) {
   float px     = dot(dx, dx);
   float py     = dot(dy, dy);
   float maxLod = 0.5 * log2(max(px, py)); // log2(sqrt()) = 0.5*log2()
   float minLod = 0.5 * log2(min(px, py));
 
   const float bias = 0;
-  return max(0, int(minLod + bias));
+  return max(0, minLod + bias);
   }
 
 int calcMipIndex(in vec2 shPos) {
@@ -94,6 +94,12 @@ int calcMipIndex(in vec2 shPos) {
 // ray managment
 vec3 rayOrigin(const vec4 wpos) {
   vec4 shPos = scene.viewVirtualShadowLwc * wpos;
+  shPos.xyz /= shPos.w;
+  return shPos.xyz;
+  }
+
+vec3 rayOrigin(const vec4 wpos, const vec4 offset) {
+  vec4 shPos = scene.viewVirtualShadowLwc * wpos + offset;
   shPos.xyz /= shPos.w;
   return shPos.xyz;
   }
@@ -148,7 +154,7 @@ void pullPrimitives(const uint pkg) {
   }
 
 shared uint numActiveRays;
-float tracePacket(const vec3 ray, float opacity) {
+float tracePacket(const vec3 ray, const float lodBias, float opacity) {
   const uint laneID  = gl_LocalInvocationIndex;
   barrier();
 
@@ -210,7 +216,7 @@ float tracePacket(const vec3 ray, float opacity) {
       const uint flags = primitiveBucket[id] >> 16;
       if((flags & BK_SOLID)==0) {
         const uint  bucketId = primitiveBucket[id] & 0xFFFF;
-        const float alpha    = sampleAlpha(bucketId, bc, areaInv, meshVertices[id*3+0].uv, meshVertices[id*3+1].uv, meshVertices[id*3+2].uv);
+        const float alpha    = sampleAlpha(bucketId, bc, areaInv, meshVertices[id*3+0].uv, meshVertices[id*3+1].uv, meshVertices[id*3+2].uv, lodBias);
         opacity *= (1.0-alpha);
         } else {
         opacity = 0;
@@ -235,12 +241,16 @@ void main() {
 
   const vec4  wpos   = worldPos(fragCoord.xy, z) + vec4(normal*NormalBias, 0);
   const vec3  ray    = rayOrigin(wpos);
+  const vec2  ray1   = rayOrigin(wpos, scene.vsmDdx).xy;
+  const vec2  ray2   = rayOrigin(wpos, scene.vsmDdy).xy;
+
+  const float mip    = shadowLod((ray1 - ray.xy)*4096, (ray2 - ray.xy)*4096);
 
   numActiveRays = 0;
   rayBboxses(ray, lamb>minOpacity);
   barrier();
 
-  const float opacity = tracePacket(ray, lamb);
+  const float opacity = tracePacket(ray, mip, lamb);
   if(opacity!=lamb)
     imageStore(outputImage, fragCoord, vec4(opacity));
   }

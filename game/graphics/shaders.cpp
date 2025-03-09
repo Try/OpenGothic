@@ -229,6 +229,7 @@ Shaders::Shaders() {
     rtsmHTiles      = computeShader("rtsm_htiles.comp.sprv");
     rtsmLargeTiles  = computeShader("rtsm_large_tiles.comp.sprv");
     rtsmSampleCull  = computeShader("rtsm_sample_cull.comp.sprv");
+    rtsmPrimCull    = computeShader("rtsm_primitive_cull.comp.sprv");
     rtsmHRaster     = computeShader("rtsm_hraster.comp.sprv");
 
     rtsmRendering   = computeShader("rtsm_rendering.comp.sprv");
