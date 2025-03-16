@@ -3,14 +3,16 @@
 
 #include "common.glsl"
 
+#define DEBUG_IMG 1
+
 const uint NULL               = 0;
 
 const int  RTSM_PAGE_TBL_SIZE = 32;  // small for testing, 64 can be better
 const int  RTSM_PAGE_MIPS     = 16;
 
-const int  RTSM_BIN_SIZE      = 32;
 const int  RTSM_LARGE_TILE    = 128;
 const int  RTSM_SMALL_TILE    = 32;
+const int  RTSM_BIN_SIZE      = 32;
 
 const uint MaxSlices          = 16;
 const uint MaxVert            = 64;
@@ -77,7 +79,7 @@ bool bboxIncludes(vec4 aabb, vec2 p) {
 //
 bool planetOcclusion(float viewPos, vec3 sunDir) {
   const float y = RPlanet + max(viewPos*0.1, 0);
-  if(rayIntersect(vec3(0,y,0), sunDir, RPlanet)>0)
+  if(rayIntersect(vec3(0,y,0), sunDir, RPlanet)>=0)
     return true;
   return false;
   }

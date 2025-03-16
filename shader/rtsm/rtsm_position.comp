@@ -366,7 +366,7 @@ void main() {
     }
 
   const uint vertCount = vertexCount();
-  const uint size      = MeshletHeaderSize + maxPrim + vertCount*4;
+  const uint size      = MeshletHeaderSize + MaxPrim + vertCount*4;
   if(laneId==0) {
     posPtr = atomicAdd(pos.alloc, size);
     }
@@ -408,7 +408,7 @@ void main() {
     }
   if(laneId<MaxVert && isVertexEnabled(laneId)) {
     const uint v = remapIndex(laneId);
-    const uint i = posPtr + MeshletHeaderSize + maxPrim + v*4;
+    const uint i = posPtr + MeshletHeaderSize + MaxPrim + v*4;
     pos.data[i+0] = floatBitsToUint(meshVertices[laneId].pos.x);
     pos.data[i+1] = floatBitsToUint(meshVertices[laneId].pos.y);
     pos.data[i+2] = floatBitsToUint(meshVertices[laneId].pos.z);

@@ -586,7 +586,8 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   const auto tiles = tileCount(scene.zbuffer->size(), RTSM_SMALL_TILE);
   if(rtmsTiles.size()!=tiles) {
     Resources::recycle(std::move(rtmsTiles));
-    rtmsTiles = device.image2d(TextureFormat::RG32U, tiles);
+    rtmsTiles    = device.image2d(TextureFormat::RG32U, tiles);
+    rtmsSmpTiles = device.image2d(TextureFormat::R32U, tiles);
     }
   if(rtsmComplexTiles.byteSize()!=shaders.rtsmClear.sizeofBuffer(3, size_t(tiles.w*tiles.h))) {
     const size_t sz = shaders.rtsmClear.sizeofBuffer(3, size_t(tiles.w*tiles.h));
@@ -599,11 +600,23 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     // NOTE: need to improve engine api to accept size
     rtsmPrimBins = device.image2d(TextureFormat::RG32U, uint32_t(sz.w), uint32_t(sz.h));
     }
+  if(rtsmPrimBins8.size()!=tileCount(scene.zbuffer->size(), 8)) {
+    auto sz = tileCount(scene.zbuffer->size(), 8);
+    Resources::recycle(std::move(rtsmPrimBins8));
+    // NOTE: need to improve engine api to accept size
+    rtsmPrimBins8 = device.image2d(TextureFormat::RG32U, uint32_t(sz.w), uint32_t(sz.h));
+    }
 
   if(rtmsDbg.size()!=tileCount(scene.zbuffer->size(), 32)) {
     auto sz = tileCount(scene.zbuffer->size(), 32);
     Resources::recycle(std::move(rtmsDbg));
     rtmsDbg = device.image2d(TextureFormat::R32U, sz);
+    }
+
+  if(rtmsDbg16.size()!=tileCount(scene.zbuffer->size(), 16)) {
+    auto sz = tileCount(scene.zbuffer->size(), 16);
+    Resources::recycle(std::move(rtmsDbg16));
+    rtmsDbg16 = device.image2d(TextureFormat::R32U, sz);
     }
 
   if(rtmsDbg8.size()!=tileCount(scene.zbuffer->size(), 8)) {
@@ -687,33 +700,43 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.setBinding(0, *scene.rtsmImage);
     cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, *scene.zbuffer);
-    cmd.setBinding(3, rtsmComplexTiles);
-    cmd.setBinding(4, rtsmPosList);
+    cmd.setBinding(3, rtsmPosList);
+    cmd.setBinding(4, rtsmComplexTiles);
     cmd.setBinding(5, rtmsTiles);
-    cmd.setBinding(6, rtmsDbg);
+    cmd.setBinding(6, rtmsSmpTiles);
+    cmd.setBinding(9, rtmsDbg);
 
-    cmd.setPipeline(shaders.rtsmHTiles);
+    cmd.setPipeline(shaders.rtsmMeshletCull);
     cmd.dispatch(largetTiles);
 
-    cmd.setPipeline(shaders.rtsmLargeTiles);
+    cmd.setPipeline(shaders.rtsmMeshletComplex);
     cmd.dispatchIndirect(rtsmComplexTiles, 0);
 
     cmd.setPipeline(shaders.rtsmSampleCull);
     cmd.dispatch(smallTiles);
   }
 
+  if(0)
   {
     // primitive culling
+    // const auto smallTiles  = tileCount(scene.zbuffer->size(), 16);
     cmd.setBinding(0, *scene.rtsmImage);
     cmd.setBinding(1, sceneUbo);
-    cmd.setBinding(2, *scene.zbuffer);
-    cmd.setBinding(3, rtmsTiles);
+    cmd.setBinding(2, *scene.gbufNormals);
+    cmd.setBinding(3, *scene.zbuffer);
     cmd.setBinding(4, rtsmPosList);
+    cmd.setBinding(5, rtmsTiles);
     cmd.setBinding(6, rtsmPrimBins);
-    cmd.setBinding(9, rtmsDbg8);
+    cmd.setBinding(7, tex);
+    cmd.setBinding(8, Sampler::trillinear());
+    cmd.setBinding(9, rtmsDbg);
 
     cmd.setPipeline(shaders.rtsmPrimCull);
-    //cmd.dispatch(uint32_t(rtsmPrimBins.w()), uint32_t(rtsmPrimBins.h()));
+    cmd.dispatch(rtsmPrimBins.size());
+
+    // raster
+    cmd.setPipeline(shaders.rtsmHRaster);
+    //cmd.dispatchThreads(scene.rtsmImage->size());
   }
 
   {
@@ -722,8 +745,8 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, *scene.gbufNormals);
     cmd.setBinding(3, *scene.zbuffer);
-    cmd.setBinding(4, rtmsTiles);
-    cmd.setBinding(5, rtsmPosList);
+    cmd.setBinding(4, rtsmPosList);
+    cmd.setBinding(5, rtmsTiles);
     cmd.setBinding(6, rtsmPrimBins);
     cmd.setBinding(7, tex);
     cmd.setBinding(8, Sampler::trillinear());
@@ -731,29 +754,21 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
 
     // primitives
     cmd.setPipeline(shaders.rtsmTileCulling);
-    cmd.dispatch(uint32_t(rtsmPrimBins.w()), uint32_t(rtsmPrimBins.h()));
+    //cmd.setPipeline(shaders.rtsmPrimCull);
+    cmd.dispatch(rtsmPrimBins.size());
 
     // raster
+    cmd.setBinding(9, rtmsDbg8);
+    //cmd.setPipeline(shaders.rtsmHRaster);
+    //cmd.dispatch(rtsmPrimBins.size());
+
     cmd.setPipeline(shaders.rtsmRaster);
     cmd.dispatchThreads(scene.rtsmImage->size());
   }
   return;
 
   static bool reference = false;
-  if(!reference) {
-    cmd.setBinding(0, *scene.rtsmImage);
-    cmd.setBinding(1, sceneUbo);
-    cmd.setBinding(2, *scene.gbufNormals);
-    cmd.setBinding(3, *scene.zbuffer);
-    cmd.setBinding(5, rtsmPosList);
-
-    cmd.setBinding(6, rtsmPrimBins);
-    cmd.setBinding(7, tex);
-    cmd.setBinding(8, Sampler::trillinear());
-
-    cmd.setPipeline(shaders.rtsmRaster);
-    cmd.dispatchThreads(scene.rtsmImage->size());
-    } else {
+  if(reference) {
     struct Push { uint32_t meshletCount; } push = {};
     push.meshletCount = uint32_t(clusters.size());
     cmd.setPushData(push);

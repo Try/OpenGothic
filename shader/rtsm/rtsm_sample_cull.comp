@@ -13,10 +13,18 @@ const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z
 layout(binding = 0)         uniform texture2D   outputImage;
 layout(binding = 1, std140) uniform UboScene    { SceneDesc scene;       };
 layout(binding = 2)         uniform texture2D   depth;
+layout(binding = 3, std430)         buffer Pos  { uint alloc; uint data[]; } pos;
 
-layout(binding = 4, std430)         buffer Pos  { uint alloc; uint data[]; } pos;
 layout(binding = 5, rg32ui) uniform uimage2D    tileBins;
-layout(binding = 6, r32ui)  uniform uimage2D    dbgImage;
+layout(binding = 6)         uniform utexture2D  tileSmp;
+
+layout(binding = 9, r32ui)  uniform uimage2D    dbgImage;
+
+void imageDbg(ivec2 at, uint info) {
+#if defined(DEBUG_IMG)
+  imageStore(dbgImage, at, uvec4(info));
+#endif
+  }
 
 #include "rtsm/rtsm_scratch.glsl"
 
@@ -86,10 +94,7 @@ void traceMeshlets(const uint tilePtr, const uint visCount) {
   for(uint i=laneID; i<visCount; i+=NumThreads) {
     const uint  ptr      = pos.data[tilePtr + i];
     const float depthMax = pullMeshDepthMax(ptr);
-    //if(uintBitsToFloat(rayTileDepthMin) > depthMax)
-    //  continue;
-
-    const vec4 aabb = pullMeshAabb(ptr);
+    const vec4  aabb     = pullMeshAabb(ptr);
     if(!isMeshletVisible(aabb, depthMax))
       continue;
 
@@ -115,7 +120,11 @@ void main() {
   numMeshlets = 0;
   barrier();
 
-  const ivec2 tile = ivec2(gl_WorkGroupID.xy);
+  const ivec2 tile    = ivec2(gl_WorkGroupID.xy);
+  const uint  tilecls = texelFetch(tileSmp, tile, 0).x;
+  if(tilecls<2)
+    return; // heuristic
+
   const uvec2 bin  = imageLoad(tileBins, tile).xy;
   if(bin.y==0)
     return;
@@ -130,5 +139,5 @@ void main() {
 
   storeMeshList(tile, bin);
 
-  imageStore(dbgImage, tile, uvec4(numMeshlets));
+  imageDbg(tile, numMeshlets);
   }

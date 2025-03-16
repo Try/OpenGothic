@@ -13,25 +13,29 @@ const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z
 layout(binding = 0)         uniform  texture2D   outputImage;
 layout(binding = 1, std140) uniform  UboScene    { SceneDesc scene;       };
 layout(binding = 2)         uniform  texture2D   depth;
-layout(binding = 3, std430) readonly buffer CB   { uvec4 cmd;   uint tiles[]; } largeTile;
-layout(binding = 4, std430)          buffer Pos  { uint  alloc; uint data[];  } pos;
+layout(binding = 3, std430)          buffer Pos  { uint  alloc; uint data[];  } pos;
+layout(binding = 4, std430) readonly buffer CB   { uvec4 cmd;   uint tiles[]; } largeTile;
 layout(binding = 5, rg32ui) uniform  uimage2D    tileBins;
-layout(binding = 6, r32ui)  uniform uimage2D     dbgImage;
+
+layout(binding = 9, r32ui)  uniform uimage2D     dbgImage;
+
+void imageDbg(ivec2 at, uint info) {
+#if defined(DEBUG_IMG)
+  imageStore(dbgImage, at, uvec4(info));
+#endif
+  }
 
 #include "rtsm/rtsm_scratch.glsl"
 
-struct Bbox {
-  uvec4 tileBbox[MaxSlices];
-  uint  depthMin[MaxSlices];
-  };
-shared Bbox rayTileBbox;
-shared uint numSlices;
-shared uint raySliceBits;
+shared uvec4 rayTileBbox[MaxSlices];
+shared uint  rayDepthMin[MaxSlices];
+shared uint  numSlices;
+shared uint  raySliceBits;
 
-shared uint meshletsId[4*1024];
-shared uint numMeshlets;
+shared uint  meshletsId[4*1024];
+shared uint  numMeshlets;
 
-shared uint meshListPtr;
+shared uint  meshListPtr;
 
 // ray related
 vec3 rayOrigin(ivec2 frag, float depth) {
@@ -68,11 +72,11 @@ void processFragment(ivec2 fragCoord) {
   const uint slice = depthSlice(z);
 
   atomicOr(raySliceBits, 1u << slice);
-  atomicMin(rayTileBbox.tileBbox[slice].x, floatToOrderedUint(ray.x));
-  atomicMin(rayTileBbox.tileBbox[slice].y, floatToOrderedUint(ray.y));
-  atomicMax(rayTileBbox.tileBbox[slice].z, floatToOrderedUint(ray.x));
-  atomicMax(rayTileBbox.tileBbox[slice].w, floatToOrderedUint(ray.y));
-  atomicMin(rayTileBbox.depthMin[slice],   floatToOrderedUint(ray.z));
+  atomicMin(rayTileBbox[slice].x, floatToOrderedUint(ray.x));
+  atomicMin(rayTileBbox[slice].y, floatToOrderedUint(ray.y));
+  atomicMax(rayTileBbox[slice].z, floatToOrderedUint(ray.x));
+  atomicMax(rayTileBbox[slice].w, floatToOrderedUint(ray.y));
+  atomicMin(rayDepthMin[slice],   floatToOrderedUint(ray.z));
   }
 
 void tileBbox(const ivec2 tile) {
@@ -81,8 +85,8 @@ void tileBbox(const ivec2 tile) {
 
   raySliceBits = 0;
   if(laneID<MaxSlices) {
-    rayTileBbox.tileBbox[laneID] = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
-    rayTileBbox.depthMin[laneID] = 0xFFFFFFFF;
+    rayTileBbox[laneID] = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
+    rayDepthMin[laneID] = 0xFFFFFFFF;
     }
   barrier();
 
@@ -103,15 +107,15 @@ void tileBbox(const ivec2 tile) {
 
   vec4 rbb; float rayD;
   if(laneID<MaxSlices) {
-    rbb  = orderedUintToFloat(rayTileBbox.tileBbox[laneID]);
-    rayD = orderedUintToFloat(rayTileBbox.depthMin[laneID]);
+    rbb  = orderedUintToFloat(rayTileBbox[laneID]);
+    rayD = orderedUintToFloat(rayDepthMin[laneID]);
     }
   barrier();
 
   if(laneID<MaxSlices && (raySliceBits & (1u << laneID))!=0) {
     const uint i = bitCount(raySliceBits & ((1u << laneID)-1u));
-    rayTileBbox.tileBbox[i] = floatBitsToUint(rbb);
-    rayTileBbox.depthMin[i] = floatBitsToUint(rayD);
+    rayTileBbox[i] = floatBitsToUint(rbb);
+    rayDepthMin[i] = floatBitsToUint(rayD);
     }
   numSlices = bitCount(raySliceBits);
   }
@@ -120,11 +124,11 @@ void tileBbox(const ivec2 tile) {
 bool isAabbVisible(const vec4 aabb, const float depthMax) {
   for(uint i=0; i<numSlices; ++i) {
     vec4 rbb; float rayd;
-    rbb.x = uintBitsToFloat(rayTileBbox.tileBbox[i].x);
-    rbb.y = uintBitsToFloat(rayTileBbox.tileBbox[i].y);
-    rbb.z = uintBitsToFloat(rayTileBbox.tileBbox[i].z);
-    rbb.w = uintBitsToFloat(rayTileBbox.tileBbox[i].w);
-    rayd  = uintBitsToFloat(rayTileBbox.depthMin[i]);
+    rbb.x = uintBitsToFloat(rayTileBbox[i].x);
+    rbb.y = uintBitsToFloat(rayTileBbox[i].y);
+    rbb.z = uintBitsToFloat(rayTileBbox[i].z);
+    rbb.w = uintBitsToFloat(rayTileBbox[i].w);
+    rayd  = uintBitsToFloat(rayDepthMin[i]);
     if(rayd > depthMax)
       continue;
     if(!bboxIntersect(aabb, rbb))
@@ -166,7 +170,7 @@ void storeMeshList(ivec2 tileId) {
       numMeshlets = 0;
       }
     imageStore(tileBins, tileId, uvec4(meshListPtr, numMeshlets, 0, 0));
-    imageStore(dbgImage, tileId, uvec4(numMeshlets));
+    imageDbg(tileId, numMeshlets);
     }
   barrier();
 
