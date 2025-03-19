@@ -141,6 +141,8 @@ void SceneGlobals::setViewVsm(const Tempest::Matrix4x4& view, const Tempest::Mat
   uboGlobalCpu.vsmDdy = Tempest::Vec4(   0, s.y, 0,0);
   vsmMat.project(uboGlobalCpu.vsmDdx);
   vsmMat.project(uboGlobalCpu.vsmDdy);
+
+  uboGlobalCpu.viewProject2VirtualShadow = vsmMat;
   }
 
 void SceneGlobals::setSky(const Sky& s) {

@@ -28,9 +28,7 @@ vec3 rayOrigin(ivec2 frag, float depth) {
   const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
   const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
 
-  const vec4 wpos  = scene.viewProjectLwcInv * scr; //TODO: premul matrix
-  const vec4 shPos = scene.viewVirtualShadowLwc * wpos;
-
+  const vec4 shPos = scene.viewProject2VirtualShadow * scr;
   return shPos.xyz/shPos.w;
   }
 
