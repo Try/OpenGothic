@@ -44,6 +44,11 @@ class GameMusic final {
 
     static GameMusic* instance;
 
+    struct {
+      zenkit::IMusicTheme theme = {};
+      Tags                tags  = Tags::Std;
+      } currentMusic;
+
     int                  provider = 0;
     Tempest::SoundDevice device;
     Tempest::SoundEffect sound;
