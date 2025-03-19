@@ -716,29 +716,6 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.dispatch(smallTiles);
   }
 
-  if(0)
-  {
-    // primitive culling
-    // const auto smallTiles  = tileCount(scene.zbuffer->size(), 16);
-    cmd.setBinding(0, *scene.rtsmImage);
-    cmd.setBinding(1, sceneUbo);
-    cmd.setBinding(2, *scene.gbufNormals);
-    cmd.setBinding(3, *scene.zbuffer);
-    cmd.setBinding(4, rtsmPosList);
-    cmd.setBinding(5, rtmsTiles);
-    cmd.setBinding(6, rtsmPrimBins);
-    cmd.setBinding(7, tex);
-    cmd.setBinding(8, Sampler::trillinear());
-    cmd.setBinding(9, rtmsDbg);
-
-    cmd.setPipeline(shaders.rtsmPrimCull);
-    cmd.dispatch(rtsmPrimBins.size());
-
-    // raster
-    cmd.setPipeline(shaders.rtsmHRaster);
-    //cmd.dispatchThreads(scene.rtsmImage->size());
-  }
-
   {
     // in-tile
     cmd.setBinding(0, *scene.rtsmImage);
@@ -753,15 +730,11 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.setBinding(9, rtmsDbg);
 
     // primitives
-    cmd.setPipeline(shaders.rtsmTileCulling);
-    //cmd.setPipeline(shaders.rtsmPrimCull);
+    cmd.setPipeline(shaders.rtsmPrimCull);
     cmd.dispatch(rtsmPrimBins.size());
 
     // raster
     cmd.setBinding(9, rtmsDbg8);
-    //cmd.setPipeline(shaders.rtsmHRaster);
-    //cmd.dispatch(rtsmPrimBins.size());
-
     cmd.setPipeline(shaders.rtsmRaster);
     cmd.dispatchThreads(scene.rtsmImage->size());
   }

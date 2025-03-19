@@ -38,12 +38,11 @@ shared uvec4 rayTileBbox[MaxSlices];
 shared uint  rayDepthMin[MaxSlices];
 shared uint  numSlices;
 
-shared vec2  rays[RTSM_SMALL_TILE*RTSM_SMALL_TILE];
-shared uint  numRays;
+shared uint  depthMin, depthMax;
 
 // visible meshlets
 shared uint numPrimitives;
-shared uint primitives[3*1024];
+shared uint primitives[4*1024];
 
 shared uint primListPtr;
 
@@ -70,9 +69,7 @@ vec3 rayOrigin(ivec2 frag, float depth) {
   const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
   const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
 
-  const vec4 wpos  = scene.viewProjectLwcInv * scr; //TODO: premul matrix
-  const vec4 shPos = scene.viewVirtualShadowLwc * wpos;
-
+  const vec4 shPos = scene.viewProject2VirtualShadow * scr;
   return shPos.xyz/shPos.w;
   }
 
@@ -94,15 +91,6 @@ bool isAabbVisible(const vec4 aabb, const float depthMax) {
   return false;
   }
 
-bool isSamplable(const vec4 aabb, const float depthMax) {
-  uint n = 0;
-  for(uint r=0; r<numRays; ++r) {
-    if(bboxIncludes(aabb, rays[r]))
-      n++;
-    }
-  return n>0;
-  }
-
 // primitive-trace
 void processMeshletPrimitives(const uint ptr, const uint primCount, const uint laneID) {
   if(laneID<primCount) {
@@ -119,9 +107,6 @@ void processMeshletPrimitives(const uint ptr, const uint primCount, const uint l
     const float d   = max(a.z, max(b.z, c.z));
 
     if(!isAabbVisible(tbb, d))
-      return;
-
-    if(!isSamplable(tbb, d))
       return;
 
     const uint id = atomicAdd(numPrimitives, 1);
@@ -169,6 +154,25 @@ void storeResultPrim() {
     pos.data[primListPtr + i] = primitives[i];
   }
 
+void processDFragment(const ivec2 fragCoord) {
+  const ivec2 size   = textureSize(depth, 0);
+  const bool  valid  = all(lessThan(fragCoord, size));
+  if(!valid)
+    return;
+
+  const float lamb   = imageLoad(outputImage, fragCoord).x;
+  const bool  actRay = !(lamb==0);
+  if(!actRay)
+    return;
+
+  const float z = texelFetch(depth, fragCoord, 0).x;
+  if(z==1.0)
+    return;
+
+  atomicMin(depthMin, floatBitsToUint(z));
+  atomicMax(depthMax, floatBitsToUint(z));
+  }
+
 void processFragment(const ivec2 fragCoord) {
   const ivec2 size   = textureSize(depth, 0);
   const bool  valid  = all(lessThan(fragCoord, size));
@@ -184,11 +188,10 @@ void processFragment(const ivec2 fragCoord) {
   if(z==1.0)
     return;
 
-  const uint  slice = depthSlice(z);
+  const float d0    = uintBitsToFloat(depthMin);
+  const float d1    = uintBitsToFloat(depthMax);
+  const uint  slice = uint(((z-d0)/(d1-d0))*4);
   const vec3  ray   = rayOrigin(fragCoord.xy, z);
-
-  const uint  rId   = atomicAdd(numRays, 1);
-  rays[rId] = ray.xy;
 
   atomicOr(numSlices, 1u << slice);
   atomicMin(rayTileBbox[slice].x, floatToOrderedUint(ray.x));
@@ -204,6 +207,14 @@ void tileBbox() {
   const ivec2 tileSz = ivec2(RTSM_BIN_SIZE);
   const ivec2 at0 = ivec2(gl_WorkGroupID.xy) * tileSz;
   const ivec2 xy0 = ivec2(gl_LocalInvocationID.xy);
+  for(int x=xy0.x; x<tileSz.x; x+=int(gl_WorkGroupSize.x)) {
+    for(int y=xy0.y; y<tileSz.y; y+=int(gl_WorkGroupSize.y)) {
+      ivec2 at = at0 + ivec2(x,y);
+      processDFragment(at);
+      }
+    }
+  barrier();
+
   for(int x=xy0.x; x<tileSz.x; x+=int(gl_WorkGroupSize.x)) {
     for(int y=xy0.y; y<tileSz.y; y+=int(gl_WorkGroupSize.y)) {
       ivec2 at = at0 + ivec2(x,y);
@@ -244,7 +255,8 @@ void main() {
   numPrimitives  = 0;
   numMeshletsAll = 0;
   numSlices      = 0;
-  numRays        = 0;
+  depthMin       = 0xFFFFFFFF;
+  depthMax       = 0;
   if(laneID<rayTileBbox.length()) {
     rayTileBbox[laneID] = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
     rayDepthMin[laneID] = 0xFFFFFFFF;
