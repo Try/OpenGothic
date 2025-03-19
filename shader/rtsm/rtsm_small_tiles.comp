@@ -9,8 +9,6 @@
 layout(local_size_x = 16, local_size_y = 16) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
-const uint MaxVert    = 64;
-const uint MaxPrim    = 64;
 
 layout(binding = 0)         uniform texture2D   outputImage;
 layout(binding = 1, std140) uniform UboScene    { SceneDesc scene;       };
@@ -22,7 +20,6 @@ layout(binding = 6)         uniform  utexture2D largeTiles;
 layout(binding = 7, rg32ui) uniform writeonly uimage2D smallTiles;
 
 #include "rtsm/rtsm_scratch.glsl"
-
 
 shared uvec4 rayTileBbox[MaxSlices];
 shared uint  rayTileMinDepth[MaxSlices];
@@ -69,7 +66,7 @@ uint depthSlice(const float z) {
   float d1   = linearDepth(0.9999, scene.clipInfo);
   float d    = (dZ-d0)/(d1-d0);
 
-  return min(uint(d*MaxSlices+0.5), MaxSlices);
+  return min(uint(d*MaxSlices), MaxSlices-1);
   }
 
 void processFragment(const ivec2 fragCoord) {

@@ -13,7 +13,7 @@
 
 #define TRANSLUCENCY 1
 
-layout(local_size_x = 8, local_size_y = 8) in;
+layout(local_size_x = 16, local_size_y = 16) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
@@ -38,7 +38,7 @@ void imageDbg(uint info) {
 #define CONST_SCRATCH 1
 #include "rtsm/rtsm_scratch.glsl"
 
-ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
+// ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
 const float minOpacity = 0.49/255.0;
 
 uint primCnt = 0;
@@ -122,8 +122,7 @@ bool isPrimitiveVisible(const vec4 aabb, const float depthMax) {
   return true;
   }
 
-uvec2 pullPrimitiveList() {
-  ivec2 tileCoord = (fragCoord/RTSM_BIN_SIZE);
+uvec2 pullPrimitiveList(ivec2 tileCoord) {
   return texelFetch(primitiveBins, ivec2(tileCoord), 0).xy;
   }
 
@@ -135,7 +134,7 @@ void pullPrimitives(const uint pkg) {
 
   const uint  bucketId = pullMeshBucketId(ptr);
   const uvec4 tri      = pullPrimitiveFull(ptr+MeshletHeaderSize, pId);
-  const uint  primCnt  = pullPrimitiveCount(ptr);
+  // const uint  primCnt  = pullPrimitiveCount(ptr);
   const uint  ptrV     = ptr + MeshletHeaderSize + MaxPrim;
 
   //FIXME: register pressure
@@ -197,11 +196,11 @@ float rasterBatch(const vec3 ray, const float lodBias, float opacity) {
     }
 
   if(opacity<=minOpacity)
-    atomicAnd(activeRays[laneID/32], ~(1u<<(laneID%32)));
+    ;//atomicAnd(activeRays[laneID/32], ~(1u<<(laneID%32)));
   return opacity;
   }
 
-float tracePacket(const uvec2 tileHeader, const vec3 ray, const float lodBias, float opacity) {
+float tracePacket(const uvec2 tileHeader, const ivec2 fragCoord, const vec3 ray, const float lodBias, float opacity) {
   const uint  laneID        = gl_LocalInvocationIndex;
   const uint  numPrimitives = tileHeader.y & 0xFFFF;
   const uint  steps         = (numPrimitives + NumThreads - 1)/NumThreads;
@@ -216,12 +215,12 @@ float tracePacket(const uvec2 tileHeader, const vec3 ray, const float lodBias, f
     return opacity;
 
   if(opacity>minOpacity)
-    atomicOr(activeRays[laneID/32], 1u<<(laneID%32));
+    ;//atomicOr(activeRays[laneID/32], 1u<<(laneID%32));
   barrier();
 
   for(uint s=0; s<steps; ++s) {
-    if(activeRays[0]==0 && activeRays[1]==0)
-      break;
+    //if(activeRays[0]==0 && activeRays[1]==0)
+    //  break;
 
     numLocalPrim = 0;
     barrier();
@@ -241,32 +240,37 @@ float tracePacket(const uvec2 tileHeader, const vec3 ray, const float lodBias, f
   }
 
 void main() {
-  const uvec2 tileHeader = pullPrimitiveList();
+  const uvec2 tileHeader = pullPrimitiveList(ivec2(gl_WorkGroupID.xy));
   if(tileHeader.y==0)
     return;
 
-  const ivec2 size   = textureSize(depth, 0);
-  const bool  valid  = all(lessThan(fragCoord, size));
+  const ivec2 size = textureSize(depth, 0);
 
-  const vec3  normal = valid ? normalFetch(gbufNormal, fragCoord) : vec3(0);
-  const float z      = valid ? texelFetch(depth, fragCoord, 0).x  : 1.0;
-  const float lamb   = imageLoad(outputImage, fragCoord).x;
+  for(int x=0; x<2; ++x) {
+    for(int y=0; y<2; ++y) {
+      const ivec2 fragCoord = ivec2(gl_WorkGroupID.xy)*RTSM_BIN_SIZE + ivec2(x,y)*16 + ivec2(gl_LocalInvocationID.xy);
+      const bool  valid     = all(lessThan(fragCoord, size));
 
-  const vec4  wpos   = worldPos(fragCoord.xy, z) + vec4(normal*NormalBias, 0);
-  const vec3  ray    = rayOrigin(wpos);
-  const vec2  ray1   = rayOrigin(wpos, scene.vsmDdx).xy;
-  const vec2  ray2   = rayOrigin(wpos, scene.vsmDdy).xy;
+      const vec3  normal = valid ? normalFetch(gbufNormal, fragCoord) : vec3(0);
+      const float z      = valid ? texelFetch(depth, fragCoord, 0).x  : 1.0;
+      const float lamb   = imageLoad(outputImage, fragCoord).x;
 
-  const float mip    = shadowLod((ray1 - ray.xy)*4096, (ray2 - ray.xy)*4096);
+      const vec4  wpos   = worldPos(fragCoord.xy, z) + vec4(normal*NormalBias, 0);
+      const vec3  ray    = rayOrigin(wpos);
+      const vec2  ray1   = rayOrigin(wpos, scene.vsmDdx).xy;
+      const vec2  ray2   = rayOrigin(wpos, scene.vsmDdy).xy;
+      const float mip    = shadowLod((ray1 - ray.xy)*4096, (ray2 - ray.xy)*4096);
 
-  activeRays[0] = 0;
-  activeRays[1] = 0;
-  rayBboxses(ray, lamb>minOpacity);
-  barrier();
+      activeRays[0] = 0;
+      activeRays[1] = 0;
+      rayBboxses(ray, lamb>minOpacity);
+      barrier();
 
-  const float opacity = tracePacket(tileHeader, ray, mip, lamb);
-  if(opacity!=lamb)
-    imageStore(outputImage, fragCoord, vec4(opacity));
-
-  imageDbg(primCnt);
+      const float opacity = tracePacket(tileHeader, fragCoord, ray, mip, lamb);
+      if(opacity!=lamb)
+        imageStore(outputImage, fragCoord, vec4(opacity));
+      barrier();
+      }
+    }
+  // imageDbg(primCnt);
   }

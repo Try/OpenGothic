@@ -570,15 +570,6 @@ static Size tileCount(Size sz, int s) {
   return sz;
   }
 
-static Size roundUp(Size sz, int align) {
-  sz.w = (sz.w+align-1)/align;
-  sz.h = (sz.h+align-1)/align;
-
-  sz.w *= align;
-  sz.h *= align;
-  return sz;
-  }
-
 void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   const int RTSM_BIN_SIZE   = 32;
   const int RTSM_SMALL_TILE = 32;
@@ -592,21 +583,46 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     rtsmPages = device.image3d(TextureFormat::R32U, 32, 32, 16);
     }
 
-  if(rtsmLargeTile.size()!=tileCount(scene.zbuffer->size(), RTSM_LARGE_TILE)) {
-    auto sz = tileCount(scene.zbuffer->size(), RTSM_LARGE_TILE);
-    Resources::recycle(std::move(rtsmLargeTile));
-    rtsmLargeTile = device.image2d(TextureFormat::RG32U, uint32_t(sz.w), uint32_t(sz.h));
+  const auto tiles = tileCount(scene.zbuffer->size(), RTSM_SMALL_TILE);
+  if(rtmsTiles.size()!=tiles) {
+    Resources::recycle(std::move(rtmsTiles));
+    rtmsTiles    = device.image2d(TextureFormat::RG32U, tiles);
+    rtmsSmpTiles = device.image2d(TextureFormat::R32U, tiles);
     }
-  if(rtsmSmallTile.size()!=tileCount(scene.zbuffer->size(), RTSM_SMALL_TILE)) {
-    auto sz = tileCount(scene.zbuffer->size(), RTSM_SMALL_TILE);
-    Resources::recycle(std::move(rtsmSmallTile));
-    rtsmSmallTile = device.image2d(TextureFormat::RG32U, uint32_t(sz.w), uint32_t(sz.h));
+  if(rtsmComplexTiles.byteSize()!=shaders.rtsmClear.sizeofBuffer(3, size_t(tiles.w*tiles.h))) {
+    const size_t sz = shaders.rtsmClear.sizeofBuffer(3, size_t(tiles.w*tiles.h));
+    Resources::recycle(std::move(rtsmComplexTiles));
+    rtsmComplexTiles = device.ssbo(nullptr, sz);
     }
-  if(rtsmPrimBins.size()!=roundUp(scene.zbuffer->size(), RTSM_BIN_SIZE)) {
+  if(rtsmPrimBins.size()!=tileCount(scene.zbuffer->size(), RTSM_BIN_SIZE)) {
     auto sz = tileCount(scene.zbuffer->size(), RTSM_BIN_SIZE);
     Resources::recycle(std::move(rtsmPrimBins));
     // NOTE: need to improve engine api to accept size
     rtsmPrimBins = device.image2d(TextureFormat::RG32U, uint32_t(sz.w), uint32_t(sz.h));
+    }
+  if(rtsmPrimBins8.size()!=tileCount(scene.zbuffer->size(), 8)) {
+    auto sz = tileCount(scene.zbuffer->size(), 8);
+    Resources::recycle(std::move(rtsmPrimBins8));
+    // NOTE: need to improve engine api to accept size
+    rtsmPrimBins8 = device.image2d(TextureFormat::RG32U, uint32_t(sz.w), uint32_t(sz.h));
+    }
+
+  if(rtmsDbg.size()!=tileCount(scene.zbuffer->size(), 32)) {
+    auto sz = tileCount(scene.zbuffer->size(), 32);
+    Resources::recycle(std::move(rtmsDbg));
+    rtmsDbg = device.image2d(TextureFormat::R32U, sz);
+    }
+
+  if(rtmsDbg16.size()!=tileCount(scene.zbuffer->size(), 16)) {
+    auto sz = tileCount(scene.zbuffer->size(), 16);
+    Resources::recycle(std::move(rtmsDbg16));
+    rtmsDbg16 = device.image2d(TextureFormat::R32U, sz);
+    }
+
+  if(rtmsDbg8.size()!=tileCount(scene.zbuffer->size(), 8)) {
+    auto sz = tileCount(scene.zbuffer->size(), 8);
+    Resources::recycle(std::move(rtmsDbg8));
+    rtmsDbg8 = device.image2d(TextureFormat::R32U, sz);
     }
 
   const size_t clusterCnt = maxPayload;
@@ -625,13 +641,14 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.setBinding(0, rtsmPages);
     cmd.setBinding(1, rtsmVisList);
     cmd.setBinding(2, rtsmPosList);
+    cmd.setBinding(3, rtsmComplexTiles);
 
     cmd.setPipeline(shaders.rtsmClear);
     cmd.dispatchThreads(size_t(rtsmPages.w()), size_t(rtsmPages.h()), size_t(rtsmPages.d()));
   }
 
   {
-    // cull
+    // global cull
     struct Push { uint32_t meshletCount; } push = {};
     push.meshletCount = uint32_t(clusters.size());
     cmd.setPushData(push);
@@ -676,56 +693,55 @@ void DrawCommands::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   }
 
   {
-    // large tiles
+    // tile hirarchy
+    const auto largetTiles = tileCount(scene.zbuffer->size(), RTSM_LARGE_TILE);
+    const auto smallTiles  = tileCount(scene.zbuffer->size(), RTSM_SMALL_TILE);
+
     cmd.setBinding(0, *scene.rtsmImage);
     cmd.setBinding(1, sceneUbo);
-    cmd.setBinding(2, *scene.gbufNormals);
-    cmd.setBinding(3, *scene.zbuffer);
-    cmd.setBinding(4, rtsmVisList);
-    cmd.setBinding(5, rtsmPosList);
-    cmd.setBinding(6, rtsmLargeTile);
-    cmd.setBinding(7, rtsmSmallTile);
+    cmd.setBinding(2, *scene.zbuffer);
+    cmd.setBinding(3, rtsmPosList);
+    cmd.setBinding(4, rtsmComplexTiles);
+    cmd.setBinding(5, rtmsTiles);
+    cmd.setBinding(6, rtmsSmpTiles);
+    cmd.setBinding(9, rtmsDbg);
 
-    cmd.setPipeline(shaders.rtsmLargeTiles);
-    cmd.dispatch(uint32_t(rtsmLargeTile.w()), uint32_t(rtsmLargeTile.h()));
+    cmd.setPipeline(shaders.rtsmMeshletCull);
+    cmd.dispatch(largetTiles);
 
-    // small tiles
-    cmd.setPipeline(shaders.rtsmSmallTiles);
-    cmd.dispatch(uint32_t(rtsmSmallTile.w()), uint32_t(rtsmSmallTile.h()));
+    cmd.setPipeline(shaders.rtsmMeshletComplex);
+    cmd.dispatchIndirect(rtsmComplexTiles, 0);
+
+    cmd.setPipeline(shaders.rtsmSampleCull);
+    cmd.dispatch(smallTiles);
   }
 
   {
-    // in-tile culling
+    // in-tile
     cmd.setBinding(0, *scene.rtsmImage);
     cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, *scene.gbufNormals);
     cmd.setBinding(3, *scene.zbuffer);
-    cmd.setBinding(4, rtsmSmallTile);
-    // cmd.setBinding(4, rtsmLargeTile);
-    cmd.setBinding(5, rtsmPosList);
+    cmd.setBinding(4, rtsmPosList);
+    cmd.setBinding(5, rtmsTiles);
     cmd.setBinding(6, rtsmPrimBins);
-    cmd.setBinding(7, *scene.rtsmDbg);
-
-    cmd.setPipeline(shaders.rtsmTileCulling);
-    cmd.dispatch(uint32_t(rtsmPrimBins.w()), uint32_t(rtsmPrimBins.h()));
-    //cmd.dispatchThreads(scene.rtsmImage->size());
-  }
-
-  static bool reference = false;
-  if(!reference) {
-    cmd.setBinding(0, *scene.rtsmImage);
-    cmd.setBinding(1, sceneUbo);
-    cmd.setBinding(2, *scene.gbufNormals);
-    cmd.setBinding(3, *scene.zbuffer);
-    cmd.setBinding(4, rtsmPrimBins);
-    cmd.setBinding(5, rtsmPosList);
-
     cmd.setBinding(7, tex);
     cmd.setBinding(8, Sampler::trillinear());
+    cmd.setBinding(9, rtmsDbg);
 
+    // primitives
+    cmd.setPipeline(shaders.rtsmPrimCull);
+    cmd.dispatch(rtsmPrimBins.size());
+
+    // raster
+    cmd.setBinding(9, rtmsDbg8);
     cmd.setPipeline(shaders.rtsmRaster);
     cmd.dispatchThreads(scene.rtsmImage->size());
-    } else {
+  }
+  return;
+
+  static bool reference = false;
+  if(reference) {
     struct Push { uint32_t meshletCount; } push = {};
     push.meshletCount = uint32_t(clusters.size());
     cmd.setPushData(push);

@@ -18,13 +18,8 @@ layout(binding = 4)         uniform texture2D   shadowmask;
 
 layout(location = 0) out vec4 outColor;
 
-
 float lambert(vec3 normal) {
   return max(0.0, dot(scene.sunDir,normal));
-  }
-
-float shadowTest() {
-  return texelFetch(shadowmask, ivec2(gl_FragCoord.xy), 0).r;
   }
 
 void main() {
@@ -35,7 +30,7 @@ void main() {
   const vec4  diff        = texelFetch (gbufDiffuse, fragCoord, 0);
   const vec3  normal      = normalFetch(gbufNormal,  fragCoord);
   const float shadow      = texelFetch(shadowmask, fragCoord, 0).r;
-  const float light       = dot(scene.sunDir, normal);
+  const float light       = 1;//dot(scene.sunDir, normal);
 
   const vec3  illuminance = scene.sunColor * light * shadow;
   const vec3  linear      = textureAlbedo(diff.rgb);

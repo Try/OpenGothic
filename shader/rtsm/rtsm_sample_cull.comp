@@ -1,0 +1,141 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive : enable
+
+#include "rtsm/rtsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 32, local_size_y = 16) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+layout(binding = 0)         uniform texture2D   outputImage;
+layout(binding = 1, std140) uniform UboScene    { SceneDesc scene;       };
+layout(binding = 2)         uniform texture2D   depth;
+layout(binding = 3, std430)         buffer Pos  { uint alloc; uint data[]; } pos;
+
+layout(binding = 5, rg32ui) uniform uimage2D    tileBins;
+layout(binding = 6)         uniform utexture2D  tileSmp;
+
+layout(binding = 9, r32ui)  uniform uimage2D    dbgImage;
+
+void imageDbg(ivec2 at, uint info) {
+#if defined(DEBUG_IMG)
+  imageStore(dbgImage, at, uvec4(info));
+#endif
+  }
+
+#include "rtsm/rtsm_scratch.glsl"
+
+shared vec2  rays[RTSM_SMALL_TILE*RTSM_SMALL_TILE];
+shared uint  numRays;
+
+shared uint  meshletsId[4*1024];
+shared uint  numMeshlets;
+
+// ray related
+vec3 rayOrigin(ivec2 frag, float depth) {
+  const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
+  const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
+
+  const vec4 shPos = scene.viewProject2VirtualShadow * scr;
+  return shPos.xyz/shPos.w;
+  }
+
+// fragment
+void processFragment(ivec2 fragCoord) {
+  const float lamb   = texelFetch(outputImage, fragCoord, 0).x;
+  const bool  actRay = !(lamb==0);
+  if(!actRay)
+    return;
+
+  const float z = texelFetch(depth, fragCoord, 0).x;
+  if(z==1.0)
+    return;
+
+  const vec3 ray = rayOrigin(fragCoord, z);
+  const uint rId = atomicAdd(numRays, 1);
+  rays[rId] = ray.xy;
+  }
+
+void pullRaySamples(const ivec2 tile) {
+  const uint  laneID = gl_LocalInvocationIndex;
+  const uvec2 srcSz  = textureSize(depth,0);
+  const ivec2 tileSz = ivec2(RTSM_SMALL_TILE);
+
+  const ivec2 at0 = ivec2(tile) * tileSz;
+  const ivec2 xy0 = ivec2(gl_LocalInvocationID.xy);
+  for(int x=xy0.x; x<tileSz.x; x+=int(gl_WorkGroupSize.x)) {
+    for(int y=xy0.y; y<tileSz.y; y+=int(gl_WorkGroupSize.y)) {
+      ivec2 at = at0 + ivec2(x,y);
+      if(any(greaterThanEqual(at,srcSz)))
+        continue;
+      processFragment(at);
+      }
+    }
+  }
+
+// mehlets
+bool isMeshletVisible(vec4 aabb, float depthMax) {
+  for(uint r=0; r<numRays; ++r) {
+    if(!bboxIncludes(aabb, rays[r]))
+      continue;
+    return true;
+    }
+  return false;
+  }
+
+void traceMeshlets(const uint tilePtr, const uint visCount) {
+  const uint  laneID = gl_LocalInvocationIndex;
+
+  for(uint i=laneID; i<visCount; i+=NumThreads) {
+    const uint  ptr      = pos.data[tilePtr + i];
+    const float depthMax = pullMeshDepthMax(ptr);
+    const vec4  aabb     = pullMeshAabb(ptr);
+    if(!isMeshletVisible(aabb, depthMax))
+      continue;
+
+    const uint id = atomicAdd(numMeshlets, 1);
+    if(id<meshletsId.length())
+      meshletsId[id] = ptr;
+    }
+  }
+
+void storeMeshList(ivec2 tileId, uvec2 bin) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  const uint meshListPtr = bin.x;
+  if(laneID==0)
+    imageStore(tileBins, tileId, uvec4(meshListPtr, numMeshlets, 0, 0));
+
+  for(uint i=laneID; i<numMeshlets; i+=NumThreads)
+    pos.data[meshListPtr + i] = meshletsId[i];
+  }
+
+void main() {
+  numRays     = 0;
+  numMeshlets = 0;
+  barrier();
+
+  const ivec2 tile    = ivec2(gl_WorkGroupID.xy);
+  const uint  tilecls = texelFetch(tileSmp, tile, 0).x;
+  if(tilecls<2)
+    return; // heuristic
+
+  const uvec2 bin  = imageLoad(tileBins, tile).xy;
+  if(bin.y==0)
+    return;
+  if(bin.y<128)
+    return; // heuristic
+
+  pullRaySamples(tile);
+  barrier();
+
+  traceMeshlets(bin.x, bin.y);
+  barrier();
+
+  storeMeshList(tile, bin);
+
+  imageDbg(tile, numMeshlets);
+  }

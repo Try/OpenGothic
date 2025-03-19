@@ -90,8 +90,9 @@ class Shaders {
     // RTSM (Experimental)
     Tempest::ComputePipeline rtsmClear, rtsmPages, rtsmHiZ;
     Tempest::ComputePipeline rtsmCulling, rtsmPosition;
-    Tempest::ComputePipeline rtsmLargeTiles, rtsmSmallTiles, rtsmTileCulling;
+    Tempest::ComputePipeline rtsmMeshletCull, rtsmMeshletComplex, rtsmSampleCull, rtsmPrimCull;
     Tempest::ComputePipeline rtsmRaster;
+
     Tempest::RenderPipeline  rtsmDirectLight;
 
     Tempest::ComputePipeline rtsmRendering; //reference

@@ -1,3 +1,16 @@
+// memory
+
+#if !defined(CONST_SCRATCH)
+uint allocScratch(uint size) {
+  uint ptr = size==0 ? NULL : atomicAdd(pos.alloc, size);
+  if(ptr+size>pos.data.length()) {
+    // out of memory
+    return NULL;
+    }
+  return ptr;
+  }
+#endif
+
 // meshlets
 const uint MeshletHeaderSize = 6;
 
@@ -27,6 +40,28 @@ struct Vertex {
   vec3 pos;
   uint uv;
   };
+
+uint pullPrimitivePkg(const uint ptr, const uint laneId) {
+  uint bits = pos.data[ptr+laneId];
+  return bits;
+  }
+
+uvec3 unpackPrimitive(uint bits) {
+  uvec3 prim;
+  prim.x = ((bits >>  0) & 0xFF);
+  prim.y = ((bits >>  8) & 0xFF);
+  prim.z = ((bits >> 16) & 0xFF);
+  return prim;
+  }
+
+uvec4 unpackPrimitiveFull(uint bits) {
+  uvec4 prim;
+  prim.x = ((bits >>  0) & 0xFF);
+  prim.y = ((bits >>  8) & 0xFF);
+  prim.z = ((bits >> 16) & 0xFF);
+  prim.w = ((bits >> 24) & 0xFF);
+  return prim;
+  }
 
 uvec3 pullPrimitive(const uint ptr, const uint laneId) {
   uint bits = pos.data[ptr+laneId];
