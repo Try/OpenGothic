@@ -221,13 +221,14 @@ Shaders::Shaders() {
     rtsmHiZ         = computeShader("rtsm_hiz_pages.comp.sprv");
     rtsmCulling     = computeShader("rtsm_culling.comp.sprv");
     rtsmPosition    = computeShader("rtsm_position.comp.sprv");
-    rtsmRaster      = computeShader("rtsm_raster.comp.sprv");
-    rtsmDirectLight = postEffect("rtsm_direct_light", RenderState::ZTestMode::NoEqual);
 
     rtsmMeshletCull    = computeShader("rtsm_meshlet_cull.comp.sprv");
     rtsmMeshletComplex = computeShader("rtsm_meshlet_complex.comp.sprv");
     rtsmSampleCull     = computeShader("rtsm_sample_cull.comp.sprv");
     rtsmPrimCull       = computeShader("rtsm_primitive_cull.comp.sprv");
+
+    rtsmRaster      = computeShader("rtsm_raster.comp.sprv");
+    rtsmDirectLight = postEffect("rtsm_direct_light", RenderState::ZTestMode::NoEqual);
 
     rtsmRendering   = computeShader("rtsm_rendering.comp.sprv");
     rtsmDbg         = postEffect("rtsm_dbg", RenderState::ZTestMode::Always);
