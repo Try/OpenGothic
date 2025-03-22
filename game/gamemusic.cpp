@@ -19,7 +19,6 @@ struct GameMusic::MusicProvider : Tempest::SoundProducer {
   public:
     virtual void stopTheme() {
       std::lock_guard<std::recursive_mutex> guard(pendingSync);
-      enable.store(false);
       pendingMusic.reset();
       }
 
@@ -66,7 +65,7 @@ struct GameMusic::MusicProvider : Tempest::SoundProducer {
       }
 
   private:
-    std::atomic_bool enable{true};
+    std::atomic_bool     enable{true};
 
     std::recursive_mutex pendingSync;
     bool                 hasPending  = false;
@@ -75,7 +74,7 @@ struct GameMusic::MusicProvider : Tempest::SoundProducer {
     std::optional<zenkit::IMusicTheme> pendingMusic;
 
   protected:
-    Tags             currentTags = Tags::Day;
+    Tags                 currentTags = Tags::Day;
   };
 
 struct GameMusic::OpenGothicMusicProvider : GameMusic::MusicProvider {
