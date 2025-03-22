@@ -34,6 +34,14 @@ if(NOT MSVC)
   endif()
 endif()
 
+# Add the libgamepad include directory
+include_directories(${CMAKE_SOURCE_DIR}/lib/libgamepad/include)
+
+# Add the libgamepad subdirectory if it contains its own CMakeLists.txt
+add_subdirectory(lib/libgamepad)
+
+target_link_libraries(${PROJECT_NAME} ${CMAKE_SOURCE_DIR}/lib/libgamepad/libgamepad.a)
+
 if(WIN32)
   if(MSVC)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup" )
