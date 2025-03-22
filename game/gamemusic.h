@@ -49,7 +49,7 @@ class GameMusic final {
       Tags                tags  = Tags::Std;
       } currentMusic;
 
-    int                  provider = 0;
+    int                  provider = -1;
     Tempest::SoundDevice device;
     Tempest::SoundEffect sound;
     MusicProvider*       impl = nullptr;

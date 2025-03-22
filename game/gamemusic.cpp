@@ -18,7 +18,7 @@ struct GameMusic::MusicProvider : Tempest::SoundProducer {
 
   public:
     virtual void stopTheme() {
-      std::lock_guard<std::mutex> guard(pendingSync);
+      std::lock_guard<std::recursive_mutex> guard(pendingSync);
       enable.store(false);
       pendingMusic.reset();
       }
@@ -27,7 +27,7 @@ struct GameMusic::MusicProvider : Tempest::SoundProducer {
       if(enable == b)
         return;
 
-      std::lock_guard<std::mutex> guard(pendingSync);
+      std::lock_guard<std::recursive_mutex> guard(pendingSync);
       if(b) {
         hasPending = true;
         reloadTheme = true;
@@ -42,7 +42,7 @@ struct GameMusic::MusicProvider : Tempest::SoundProducer {
       }
 
     void playTheme(const zenkit::IMusicTheme &theme, GameMusic::Tags tags) {
-      std::lock_guard<std::mutex> guard(pendingSync);
+      std::lock_guard<std::recursive_mutex> guard(pendingSync);
       reloadTheme  = !pendingMusic || pendingMusic->file != theme.file;
       pendingMusic = theme;
       pendingTags  = tags;
@@ -53,7 +53,7 @@ struct GameMusic::MusicProvider : Tempest::SoundProducer {
     bool updateTheme(zenkit::IMusicTheme& theme, Tags& tags) {
       bool reloadTheme = false;
 
-      std::lock_guard<std::mutex> guard(pendingSync);
+      std::lock_guard<std::recursive_mutex> guard(pendingSync);
       if(hasPending && pendingMusic && enable.load()) {
         hasPending  = false;
         reloadTheme = this->reloadTheme;
@@ -68,10 +68,10 @@ struct GameMusic::MusicProvider : Tempest::SoundProducer {
   private:
     std::atomic_bool enable{true};
 
-    std::mutex       pendingSync;
-    bool             hasPending  = false;
-    bool             reloadTheme = false;
-    Tags             pendingTags = Tags::Day;
+    std::recursive_mutex pendingSync;
+    bool                 hasPending  = false;
+    bool                 reloadTheme = false;
+    Tags                 pendingTags = Tags::Day;
     std::optional<zenkit::IMusicTheme> pendingMusic;
 
   protected:
@@ -229,6 +229,7 @@ struct GameMusic::GothicKitMusicProvider : GameMusic::MusicProvider {
     }
 
   void stopTheme() override {
+    GameMusic::MusicProvider::stopTheme();
     DmPerformance_playTransition(performance, nullptr, DmEmbellishment_NONE, DmTiming_INSTANT);
     }
 
@@ -236,6 +237,7 @@ struct GameMusic::GothicKitMusicProvider : GameMusic::MusicProvider {
     DmPerformance *performance = nullptr;
   };
 
+static constexpr int PROVIDER_UNINITIALIZED = -1;
 static constexpr int PROVIDER_OPENGOTHIC = 0;
 // static constexpr int PROVIDER_GOTHICKIT = 1;
 
@@ -243,14 +245,7 @@ GameMusic *GameMusic::instance = nullptr;
 
 GameMusic::GameMusic() {
   instance = this;
-
-  std::unique_ptr<MusicProvider> p = std::make_unique<OpenGothicMusicProvider>(SAMPLE_RATE, 2);
-  impl = p.get();
-  provider = PROVIDER_OPENGOTHIC;
-
-  sound = device.load(std::move(p));
-  sound.play();
-  sound.setVolume(0.5);
+  provider = PROVIDER_UNINITIALIZED;
 
   Gothic::inst().onSettingsChanged.bind(this, &GameMusic::setupSettings);
   setupSettings();
@@ -306,20 +301,17 @@ void GameMusic::setupSettings() {
 
   if(providerIndex != provider) {
     Log::i("Switching music provider to ", providerIndex == PROVIDER_OPENGOTHIC ? "'OpenGothic'" : "'GothicKit'");
-
-    impl->stopTheme();
     sound = SoundEffect();
 
     std::unique_ptr<MusicProvider> p;
-
     if(providerIndex == PROVIDER_OPENGOTHIC) {
       p = std::make_unique<OpenGothicMusicProvider>(SAMPLE_RATE, 2);
       } else {
       p = std::make_unique<GothicKitMusicProvider>(SAMPLE_RATE, 2);
       }
 
-    impl = p.get();
     provider = providerIndex;
+    impl = p.get();
     impl->playTheme(currentMusic.theme, currentMusic.tags);
 
     sound = device.load(std::move(p));
