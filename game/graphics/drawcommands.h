@@ -47,6 +47,7 @@ class DrawCommands {
     ~DrawCommands();
 
     const DrawCmd& operator[](size_t i) const { return cmd[i]; }
+    size_t   maxMeshlets() const { return maxPayload; }
 
     void     commit(Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     uint16_t commandId(const Material& m, Type type, uint32_t bucketId);
@@ -63,8 +64,6 @@ class DrawCommands {
     void     drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, SceneGlobals::VisCamera viewId, Material::AlphaFunc func);
 
     void     drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd);
-    void     drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd);
-    void     drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 
   private:
     enum TaskLinkpackage : uint8_t {
@@ -138,16 +137,4 @@ class DrawCommands {
 
     const bool               vsmSupported;
     Tempest::StorageBuffer   vsmIndirectCmd;
-
-    Tempest::StorageImage    rtsmPages;
-    Tempest::StorageBuffer   rtsmVisList;
-    Tempest::StorageBuffer   rtsmPosList;
-
-    Tempest::StorageImage    rtmsTiles, rtmsSmpTiles;
-    Tempest::StorageBuffer   rtsmComplexTiles;
-
-    Tempest::StorageImage    rtsmPrimBins;
-    Tempest::StorageImage    rtsmPrimBins8;
-
-    Tempest::StorageImage    rtmsDbg, rtmsDbg16, rtmsDbg8;
   };

@@ -101,15 +101,6 @@ void WorldView::setVirtualShadowMap(const Tempest::ZBuffer&       pageData,
   sGlobal.setVirtualShadowMap(pageData, pageTbl, pageHiZ, pageList);
   }
 
-void WorldView::setSwRenderingImage(const Tempest::StorageImage& mainView) {
-  sGlobal.setSwRenderingImage(mainView);
-  }
-
-void WorldView::setRtsmImage(const Tempest::StorageImage& mainView, const Tempest::StorageImage& rtsmDbg) {
-  sGlobal.rtsmImage = &mainView;
-  sGlobal.rtsmDbg   = &rtsmDbg;
-  }
-
 void WorldView::setHiZ(const Tempest::Texture2d& hiZ) {
   sGlobal.setHiZ(hiZ);
   }
@@ -149,14 +140,6 @@ void WorldView::drawShadow(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId, ui
 
 void WorldView::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   visuals.drawVsm(cmd);
-  }
-
-void WorldView::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
-  visuals.drawSwr(cmd);
-  }
-
-void WorldView::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
-  visuals.drawRtsm(cmd);
   }
 
 void WorldView::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
@@ -229,6 +212,22 @@ LightGroup::Light WorldView::addLight(std::string_view preset) {
 
 void WorldView::dbgClusters(Tempest::Painter& p, Vec2 wsz) {
   visuals.dbgClusters(p, wsz);
+  }
+
+const DrawClusters& WorldView::clusters() const {
+  return visuals.clusters();
+  }
+
+const DrawCommands& WorldView::drawCommands() const {
+  return visuals.drawCommands();
+  }
+
+const DrawBuckets& WorldView::drawBuckets() const {
+  return visuals.drawBuckets();
+  }
+
+const Tempest::StorageBuffer& WorldView::instanceSsbo() const {
+  return visuals.instanceSsbo();
   }
 
 bool WorldView::updateLights() {

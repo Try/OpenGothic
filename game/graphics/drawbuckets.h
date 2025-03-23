@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Tempest/DescriptorArray>
 #include <Tempest/StorageBuffer>
 
 #include "material.h"
@@ -46,9 +47,17 @@ class DrawBuckets {
     auto ssbo() const -> const Tempest::StorageBuffer& { return bucketsGpu; }
     auto buckets() -> const std::vector<Bucket>&;
 
+    auto& textures() const { return desc.tex;     }
+    auto& vbo()      const { return desc.vbo;     }
+    auto& ibo()      const { return desc.ibo;     }
+    auto& morphId()  const { return desc.morphId; }
+    auto& morph()    const { return desc.morph;   }
+
     bool commit(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
   private:
+    void updateBindlessArrays();
+
     enum BucketFlg : uint32_t {
       BK_SOLID = 0x1,
       BK_SKIN  = 0x2,
@@ -67,7 +76,15 @@ class DrawBuckets {
       uint32_t       padd[1]          = {};
       };
 
-    std::vector<Bucket>    bucketsCpu;
-    Tempest::StorageBuffer bucketsGpu;
-    bool                   bucketsDurtyBit = false;
+    struct {
+      Tempest::DescriptorArray tex;
+      Tempest::DescriptorArray vbo;
+      Tempest::DescriptorArray ibo;
+      Tempest::DescriptorArray morphId;
+      Tempest::DescriptorArray morph;
+      } desc;
+
+    std::vector<Bucket>      bucketsCpu;
+    Tempest::StorageBuffer   bucketsGpu;
+    bool                     bucketsDurtyBit = false;
   };

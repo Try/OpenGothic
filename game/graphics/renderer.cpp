@@ -38,6 +38,12 @@ static float linearstep(float edge0, float edge1, float x) {
   return t;
   };
 
+static Size tileCount(Size sz, int s) {
+  sz.w = (sz.w+s-1)/s;
+  sz.h = (sz.h+s-1)/s;
+  return sz;
+  }
+
 Renderer::Renderer(Tempest::Swapchain& swapchain)
   : swapchain(swapchain) {
   auto& device = Resources::device();
@@ -207,9 +213,8 @@ void Renderer::resetSwapchain() {
     }
 
   if(settings.rtsmEnabled) {
-    // rtsm.rtsmImage = device.image2d(Tempest::RGBA8, w, h);
-    rtsm.rtsmImage = device.image2d(TextureFormat::R8, w, h);
-    rtsm.rtsmDbg   = device.image2d(TextureFormat::R32U, w, h);
+    // rtsm.outputImage = device.image2d(Tempest::RGBA8, w, h);
+    rtsm.outputImage = device.image2d(TextureFormat::R8, w, h);
     }
 
   resetSkyFog();
@@ -356,8 +361,6 @@ void Renderer::prepareUniforms() {
       }
   wview->setShadowMaps(sh);
   wview->setVirtualShadowMap(vsm.pageData, vsm.pageTbl, vsm.pageHiZ, vsm.pageList);
-  wview->setSwRenderingImage(swr.outputImage);
-  wview->setRtsmImage(rtsm.rtsmImage, rtsm.rtsmDbg);
 
   wview->setHiZ(textureCast<const Texture2d&>(hiz.hiZ));
   wview->setGbuffer(textureCast<const Texture2d&>(gbufDiffuse), textureCast<const Texture2d&>(gbufNormal));
@@ -859,7 +862,7 @@ void Renderer::drawRtsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   cmd.setDebugMarker("RTSM-dbg");
-  cmd.setBinding(0, rtsm.rtsmDbg);
+  cmd.setBinding(0, rtsm.dbg);
   cmd.setPipeline(shaders.rtsmDbg);
   cmd.draw(Resources::fsqVbo());
   }
@@ -1067,17 +1070,263 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
 void Renderer::drawRTSM(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
   if(!settings.rtsmEnabled)
     return;
-  cmd.setDebugMarker("RTSM-rendering");
-  cmd.setFramebuffer({});
-  wview.drawRtsm(cmd);
+
+  const int RTSM_BIN_SIZE   = 32;
+  const int RTSM_SMALL_TILE = 32;
+  const int RTSM_LARGE_TILE = 128;
+
+  auto& device   = Resources::device();
+  auto& shaders  = Shaders::inst();
+
+  const auto& scene        = wview.sceneGlobals();
+  const auto& clusters     = wview.clusters();
+  const auto& drawCmd      = wview.drawCommands();
+  const auto& buckets      = wview.drawBuckets();
+  const auto& instanceSsbo = wview.instanceSsbo();
+
+  auto& sceneUbo = scene.uboGlobal[SceneGlobals::V_Vsm];
+
+  {
+    // alloc resources
+    if(rtsm.pages.isEmpty()) {
+      rtsm.pages = device.image3d(TextureFormat::R32U, 32, 32, 16);
+      }
+    const auto tiles = tileCount(scene.zbuffer->size(), RTSM_SMALL_TILE);
+    if(rtsm.tiles.size()!=tiles) {
+      Resources::recycle(std::move(rtsm.tiles));
+      rtsm.tiles    = device.image2d(TextureFormat::RG32U, tiles);
+      rtsm.smpTiles = device.image2d(TextureFormat::R32U, tiles);
+      }
+    if(rtsm.complexTiles.byteSize()!=shaders.rtsmClear.sizeofBuffer(3, size_t(tiles.w*tiles.h))) {
+      const size_t sz = shaders.rtsmClear.sizeofBuffer(3, size_t(tiles.w*tiles.h));
+      Resources::recycle(std::move(rtsm.complexTiles));
+      rtsm.complexTiles = device.ssbo(nullptr, sz);
+      }
+
+    if(rtsm.primBins.size()!=tileCount(scene.zbuffer->size(), RTSM_BIN_SIZE)) {
+      auto sz = tileCount(scene.zbuffer->size(), RTSM_BIN_SIZE);
+      Resources::recycle(std::move(rtsm.primBins));
+      // NOTE: need to improve engine api to accept size
+      rtsm.primBins = device.image2d(TextureFormat::RG32U, uint32_t(sz.w), uint32_t(sz.h));
+      }
+    if(rtsm.primBins8.size()!=tileCount(scene.zbuffer->size(), 8)) {
+      auto sz = tileCount(scene.zbuffer->size(), 8);
+      Resources::recycle(std::move(rtsm.primBins8));
+      // NOTE: need to improve engine api to accept size
+      rtsm.primBins8 = device.image2d(TextureFormat::RG32U, uint32_t(sz.w), uint32_t(sz.h));
+      }
+
+    if(rtsm.dbg.size()!=tileCount(scene.zbuffer->size(), 32)) {
+      auto sz = tileCount(scene.zbuffer->size(), 32);
+      Resources::recycle(std::move(rtsm.dbg));
+      rtsm.dbg = device.image2d(TextureFormat::R32U, sz);
+      }
+
+    if(rtsm.dbg16.size()!=tileCount(scene.zbuffer->size(), 16)) {
+      auto sz = tileCount(scene.zbuffer->size(), 16);
+      Resources::recycle(std::move(rtsm.dbg16));
+      rtsm.dbg16 = device.image2d(TextureFormat::R32U, sz);
+      }
+
+    if(rtsm.dbg8.size()!=tileCount(scene.zbuffer->size(), 8)) {
+      auto sz = tileCount(scene.zbuffer->size(), 8);
+      Resources::recycle(std::move(rtsm.dbg8));
+      rtsm.dbg8 = device.image2d(TextureFormat::R32U, sz);
+      }
+
+    const size_t clusterCnt = drawCmd.maxMeshlets();
+    const size_t clusterSz  = shaders.rtsmClear.sizeofBuffer(1, clusterCnt);
+    if(rtsm.visList.byteSize()!=clusterSz) {
+      Resources::recycle(std::move(rtsm.visList));
+      rtsm.visList = device.ssbo(nullptr, clusterSz);
+      }
+
+    if(rtsm.posList.isEmpty()) {
+      rtsm.posList = device.ssbo(Tempest::Uninitialized, 64*1024*1024); // arbitrary
+      }
   }
 
-void Renderer::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view) {
+  cmd.setDebugMarker("RTSM-rendering");
+  cmd.setFramebuffer({});
+
+  {
+    // clear
+    cmd.setBinding(0, rtsm.pages);
+    cmd.setBinding(1, rtsm.visList);
+    cmd.setBinding(2, rtsm.posList);
+    cmd.setBinding(3, rtsm.complexTiles);
+
+    cmd.setPipeline(shaders.rtsmClear);
+    cmd.dispatchThreads(size_t(rtsm.pages.w()), size_t(rtsm.pages.h()), size_t(rtsm.pages.d()));
+  }
+
+  {
+    // global cull
+    struct Push { uint32_t meshletCount; } push = {};
+    push.meshletCount = uint32_t(clusters.size());
+    cmd.setPushData(push);
+
+    cmd.setBinding(0, rtsm.outputImage);
+    cmd.setBinding(1, sceneUbo);
+    cmd.setBinding(2, gbufDiffuse);
+    cmd.setBinding(3, gbufNormal);
+    cmd.setBinding(4, zbuffer);
+    cmd.setBinding(5, clusters.ssbo());
+    cmd.setBinding(6, rtsm.visList);
+    cmd.setBinding(7, rtsm.pages);
+
+    cmd.setPipeline(shaders.rtsmPages);
+    cmd.dispatchThreads(scene.zbuffer->size());
+
+    cmd.setBinding(0, rtsm.pages);
+    cmd.setPipeline(shaders.rtsmHiZ);
+    cmd.dispatch(1);
+
+    cmd.setBinding(7, rtsm.posList);
+    cmd.setPipeline(shaders.rtsmCulling);
+    cmd.dispatchThreads(push.meshletCount);
+  }
+
+  {
+    // position
+    cmd.setBinding(0, rtsm.posList);
+    cmd.setBinding(1, sceneUbo);
+    cmd.setBinding(2, rtsm.visList);
+
+    cmd.setBinding(5,  clusters.ssbo());
+    cmd.setBinding(6,  instanceSsbo);
+    cmd.setBinding(7,  buckets.ssbo());
+    cmd.setBinding(8,  buckets.ibo());
+    cmd.setBinding(9,  buckets.vbo());
+    cmd.setBinding(10, buckets.morphId());
+    cmd.setBinding(11, buckets.morph());
+
+    cmd.setPipeline(shaders.rtsmPosition);
+    cmd.dispatchIndirect(rtsm.visList,0);
+  }
+
+  {
+    // tile hirarchy
+    const auto largetTiles = tileCount(scene.zbuffer->size(), RTSM_LARGE_TILE);
+    const auto smallTiles  = tileCount(scene.zbuffer->size(), RTSM_SMALL_TILE);
+
+    cmd.setBinding(0, rtsm.outputImage);
+    cmd.setBinding(1, sceneUbo);
+    cmd.setBinding(2, zbuffer);
+    cmd.setBinding(3, rtsm.posList);
+    cmd.setBinding(4, rtsm.complexTiles);
+    cmd.setBinding(5, rtsm.tiles);
+    cmd.setBinding(6, rtsm.smpTiles);
+    cmd.setBinding(9, rtsm.dbg);
+
+    cmd.setPipeline(shaders.rtsmMeshletCull);
+    cmd.dispatch(largetTiles);
+
+    cmd.setPipeline(shaders.rtsmMeshletComplex);
+    cmd.dispatchIndirect(rtsm.complexTiles, 0);
+
+    cmd.setPipeline(shaders.rtsmSampleCull);
+    cmd.dispatch(smallTiles);
+  }
+
+  {
+    // in-tile
+    cmd.setBinding(0, rtsm.outputImage);
+    cmd.setBinding(1, sceneUbo);
+    cmd.setBinding(2, gbufNormal);
+    cmd.setBinding(3, zbuffer);
+    cmd.setBinding(4, rtsm.posList);
+    cmd.setBinding(5, rtsm.tiles);
+    cmd.setBinding(6, rtsm.primBins);
+    cmd.setBinding(7, buckets.textures());
+    cmd.setBinding(8, Sampler::trillinear());
+    cmd.setBinding(9, rtsm.dbg);
+
+    // primitives
+    cmd.setPipeline(shaders.rtsmPrimCull);
+    cmd.dispatch(rtsm.primBins.size());
+
+    // raster
+    cmd.setBinding(9, rtsm.dbg8);
+    cmd.setPipeline(shaders.rtsmRaster);
+    cmd.dispatchThreads(rtsm.outputImage.size());
+  }
+
+  if(false) {
+    struct Push { uint32_t meshletCount; } push = {};
+    push.meshletCount = uint32_t(clusters.size());
+
+    cmd.setFramebuffer({});
+    cmd.setBinding(0, *scene.vsmPageData);
+    cmd.setBinding(1, scene.uboGlobal[SceneGlobals::V_Vsm]);
+    cmd.setBinding(2, *scene.vsmPageList);
+    cmd.setBinding(3, clusters.ssbo());
+    cmd.setBinding(4, instanceSsbo);
+    cmd.setBinding(5, buckets.ibo());
+    cmd.setBinding(6, buckets.vbo());
+    cmd.setBinding(7, buckets.textures());
+    cmd.setBinding(8, Sampler::bilinear());
+    cmd.setPushData(&push, sizeof(push));
+    cmd.setPipeline(Shaders::inst().vsmRendering);
+    // const auto sz = Shaders::inst().vsmRendering.workGroupSize();
+    cmd.dispatch(1024u);
+    }
+  }
+
+void Renderer::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
   if(!settings.swrEnabled)
     return;
+
+  const auto& scene        = wview.sceneGlobals();
+  const auto& clusters     = wview.clusters();
+  const auto& buckets      = wview.drawBuckets();
+  const auto& instanceSsbo = wview.instanceSsbo();
+
   cmd.setFramebuffer({});
   cmd.setDebugMarker("SW-rendering");
-  view.drawSwr(cmd);
+
+  struct Push { uint32_t firstMeshlet; uint32_t meshletCount; float znear; } push = {};
+  push.firstMeshlet = 0;
+  push.meshletCount = uint32_t(clusters.size());
+  push.znear        = scene.znear;
+
+  cmd.setBinding(0, swr.outputImage);
+  cmd.setBinding(1, scene.uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(2, *scene.gbufNormals);
+  cmd.setBinding(3, *scene.zbuffer);
+  cmd.setBinding(4, clusters.ssbo());
+  cmd.setBinding(5, buckets.ibo());
+  cmd.setBinding(6, buckets.vbo());
+  cmd.setBinding(7, buckets.textures());
+  cmd.setBinding(8, Sampler::bilinear());
+
+  auto* pso = &Shaders::inst().swRendering;
+  switch(Gothic::options().swRenderingPreset) {
+    case 1: {
+      cmd.setPushData(&push, sizeof(push));
+      cmd.setPipeline(*pso);
+      //cmd.dispatch(10);
+      cmd.dispatch(clusters.size());
+      break;
+      }
+    case 2: {
+      IVec2  tileSize = IVec2(128);
+      int    tileX    = (swr.outputImage.w()+tileSize.x-1)/tileSize.x;
+      int    tileY    = (swr.outputImage.h()+tileSize.y-1)/tileSize.y;
+      cmd.setPushData(&push, sizeof(push));
+      cmd.setPipeline(*pso);
+      cmd.dispatch(size_t(tileX), size_t(tileY)); //swr.outputImage.size());
+      break;
+      }
+    case 3: {
+      cmd.setBinding(9,  *scene.lights);
+      cmd.setBinding(10, instanceSsbo);
+      cmd.setPushData(&push, sizeof(push));
+      cmd.setPipeline(*pso);
+      cmd.dispatchThreads(swr.outputImage.size());
+      break;
+      }
+    }
   }
 
 void Renderer::drawGBuffer(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
@@ -1175,7 +1424,7 @@ void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, const WorldView& w
     cmd.setBinding(11,scene.rtScene.rtDesc);
     }
   else if(shadow.directLightPso==&shaders.rtsmDirectLight) {
-    cmd.setBinding(4, rtsm.rtsmImage);
+    cmd.setBinding(4, rtsm.outputImage);
     }
   else {
     for(size_t r=0; r<Resources::ShadowLayers; ++r) {

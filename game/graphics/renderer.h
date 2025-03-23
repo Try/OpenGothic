@@ -211,8 +211,16 @@ class Renderer final {
       } swr;
 
     struct {
-      Tempest::StorageImage     rtsmImage;
-      Tempest::StorageImage     rtsmDbg;
+      Tempest::StorageImage     outputImage;
+
+      Tempest::StorageImage     pages;
+      Tempest::StorageBuffer    visList;
+      Tempest::StorageBuffer    posList;
+      Tempest::StorageBuffer    complexTiles;
+
+      Tempest::StorageImage     tiles, smpTiles;
+      Tempest::StorageImage     primBins, primBins8;
+      Tempest::StorageImage     dbg, dbg16, dbg8;
       } rtsm;
 
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::Depth16;

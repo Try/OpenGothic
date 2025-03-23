@@ -35,6 +35,7 @@ class DrawClusters {
     bool     commit(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
     auto     ssbo() -> Tempest::StorageBuffer& { return clustersGpu; }
+    auto     ssbo() const -> const Tempest::StorageBuffer& { return clustersGpu; }
 
   private:
     struct Range {

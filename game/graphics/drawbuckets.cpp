@@ -5,6 +5,8 @@
 #include "graphics/mesh/submesh/staticmesh.h"
 #include "graphics/mesh/submesh/animmesh.h"
 
+#include "gothic.h"
+
 using namespace Tempest;
 
 DrawBuckets::Id::Id(DrawBuckets* owner, size_t id):owner(owner), id(uint16_t(id)) {
@@ -64,6 +66,42 @@ const std::vector<DrawBuckets::Bucket>& DrawBuckets::buckets() {
   return bucketsCpu;
   }
 
+void DrawBuckets::updateBindlessArrays() {
+  if(!Gothic::inst().options().doBindless)
+    return;
+
+  std::vector<const Tempest::Texture2d*>     tex;
+  std::vector<const Tempest::StorageBuffer*> vbo, ibo;
+  std::vector<const Tempest::StorageBuffer*> morphId, morph;
+  for(auto& i:bucketsCpu) {
+    tex.push_back(i.mat.tex);
+    if(i.staticMesh!=nullptr) {
+      ibo    .push_back(&i.staticMesh->ibo8);
+      vbo    .push_back(&i.staticMesh->vbo);
+      morphId.push_back(i.staticMesh->morph.index);
+      morph  .push_back(i.staticMesh->morph.samples);
+      } else {
+      ibo    .push_back(&i.animMesh->ibo8);
+      vbo    .push_back(&i.animMesh->vbo);
+      morphId.push_back(nullptr);
+      morph  .push_back(nullptr);
+      }
+    }
+
+  Resources::recycle(std::move(desc.tex));
+  Resources::recycle(std::move(desc.vbo));
+  Resources::recycle(std::move(desc.ibo));
+  Resources::recycle(std::move(desc.morphId));
+  Resources::recycle(std::move(desc.morph));
+
+  auto& device = Resources::device();
+  desc.tex     = device.descriptors(tex);
+  desc.vbo     = device.descriptors(vbo);
+  desc.ibo     = device.descriptors(ibo);
+  desc.morphId = device.descriptors(morphId);
+  desc.morph   = device.descriptors(morph);
+  }
+
 bool DrawBuckets::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   if(!bucketsDurtyBit)
     return false;
@@ -101,5 +139,7 @@ bool DrawBuckets::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   auto& device = Resources::device();
   Resources::recycle(std::move(bucketsGpu));
   bucketsGpu = device.ssbo(bucket);
+
+  updateBindlessArrays();
   return true;
   }

@@ -47,8 +47,6 @@ class WorldView {
                              const Tempest::StorageImage& pageTbl,
                              const Tempest::StorageImage& pageHiZ,
                              const Tempest::StorageBuffer& pageList);
-    void setSwRenderingImage(const Tempest::StorageImage& mainView);
-    void setRtsmImage(const Tempest::StorageImage& mainView, const Tempest::StorageImage& rtsmDbg);
     void setHiZ(const Tempest::Texture2d& hiZ);
     void setSceneImages(const Tempest::Texture2d& clr, const Tempest::Texture2d& depthAux, const Tempest::ZBuffer& depthNative);
 
@@ -64,8 +62,6 @@ class WorldView {
     void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId, uint8_t layer);
     void drawVsm        (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
-    void drawSwr        (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
-    void drawRtsm       (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId);
     void drawWater      (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId);
@@ -86,6 +82,10 @@ class WorldView {
     const Sky&          sky() const { return gSky; }
     const Landscape&    landscape() const { return land; }
     const LightGroup&   lights() const { return gLights; }
+    const DrawClusters& clusters() const;
+    const DrawCommands& drawCommands() const;
+    const DrawBuckets&  drawBuckets() const;
+    auto                instanceSsbo() const -> const Tempest::StorageBuffer&;
 
   private:
     const World&  owner;

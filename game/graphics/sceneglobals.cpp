@@ -246,10 +246,6 @@ void SceneGlobals::setVirtualShadowMap(const Tempest::ZBuffer&       pageData,
   vsmPageList   = &pageList;
   }
 
-void SceneGlobals::setSwRenderingImage(const Tempest::StorageImage& mainView) {
-  swMainImage = &mainView;
-  }
-
 const Tempest::Matrix4x4& SceneGlobals::viewProject() const {
   return uboGlobalCpu.viewProject;
   }

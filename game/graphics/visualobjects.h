@@ -65,6 +65,10 @@ class VisualObjects final {
     bool                realloc(InstanceStorage::Id& id, size_t size);
     auto                instanceSsbo() const -> const Tempest::StorageBuffer&;
 
+    const DrawClusters& clusters()     const { return clustersMem; }
+    const DrawCommands& drawCommands() const { return drawCmd; }
+    const DrawBuckets&  drawBuckets()  const { return bucketsMem; };
+
     void resetRendering();
 
     void preFrameUpdate ();
@@ -79,8 +83,6 @@ class VisualObjects final {
     void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, int layer);
     void drawVsm        (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
-    void drawSwr        (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
-    void drawRtsm       (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 
     bool updateRtScene(RtScene& out);
@@ -146,7 +148,7 @@ class VisualObjects final {
 
     InstanceStorage            instanceMem;
     DrawBuckets                bucketsMem;
-    DrawClusters               clusters;
+    DrawClusters               clustersMem;
     DrawCommands               drawCmd;
 
     std::vector<Object>        objects;
