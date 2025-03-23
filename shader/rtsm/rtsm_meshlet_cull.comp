@@ -47,8 +47,6 @@ void storeFullList(ivec2 tileId) {
   const uvec2 l = uvec2(1, pos.data[0]);
   imageStore(tileBins, tileId, uvec4(l, 0, 0));
   imageDbg(tileId, l.y);
-  if(gl_LocalInvocationIndex!=0)
-    return;
 
   const uint id = atomicAdd(largeTile.cmd.x, 1);
   largeTile.tiles[id] = packUint2x16(tileId);
@@ -81,7 +79,8 @@ void storeMeshList(ivec2 tileId) {
   const uint laneID = gl_LocalInvocationIndex;
 
   if(numMeshlets>=meshletsId.length()) {
-    storeFullList(tileId);
+    if(laneID==0)
+      storeFullList(tileId);
     return;
     }
 
