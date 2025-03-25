@@ -220,6 +220,9 @@ class Renderer final {
 
       Tempest::StorageImage     tiles, smpTiles;
       Tempest::StorageImage     primBins, primBins8;
+
+      Tempest::StorageBuffer    visibleLights;
+
       Tempest::StorageImage     dbg, dbg16, dbg8;
       } rtsm;
 

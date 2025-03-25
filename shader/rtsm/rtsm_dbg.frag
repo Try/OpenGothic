@@ -36,17 +36,17 @@ float drawInt(in vec2 where, in int n) {
   return 0;
   }
 
-#define COUNTER 0
-
 void main() {
   ivec2 fragCoord = ivec2(gl_FragCoord.xy);
   ivec2 tileSz    = ivec2(RTSM_BIN_SIZE);
   ivec2 tileId    = ivec2(gl_FragCoord.xy)/tileSz;
 
-  uint v = texelFetch(dbgImage, fragCoord, 0).r;
+  uint v = texelFetch(dbgImage, tileId, 0).r;
 
   if(v>0 && drawInt(gl_FragCoord.xy-tileId*tileSz-ivec2(tileSz.x,10), int(v))>0) {
-    if(v<=255)
+    if(v<=64)
+      outColor = vec4(0, 0.9, 0, 1);
+    else if(v<=256)
       outColor = vec4(0.9);
     else if(v<=512)
       outColor = vec4(0.9,0.9,0,1);

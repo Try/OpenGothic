@@ -94,6 +94,11 @@ vec3 pullVertex(uint ptr, const uint laneId) {
   return ret;
   }
 
+uint pullVertexUV(uint ptr, const uint laneId) {
+  ptr += 4*laneId;
+  return pos.data[ptr+3];
+  }
+
 Vertex pullVertexFull(uint ptr, const uint laneId) {
   ptr += 4*laneId;
 

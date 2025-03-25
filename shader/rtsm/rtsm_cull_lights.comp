@@ -1,0 +1,129 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+#include "virtual_shadow/vsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 64) in;
+
+layout(push_constant, std140) uniform Push {
+  float znear;
+  uint  lightsTotal;
+  };
+layout(binding = 0, std140) uniform UboScene    { SceneDesc   scene;    };
+layout(binding = 1, std430) readonly buffer Lbo { LightSource lights[]; };
+layout(binding = 2, std430) buffer VId          { uint visLightCount; uvec4 visLights[]; };
+layout(binding = 3)         uniform sampler2D hiZ;
+
+float hiZFetch(in sampler2D hiZ, in ivec2 ibbox[2]) {
+  if(ibbox[0]==ibbox[1])
+    return texelFetch(hiZ, ibbox[0], 0).x;
+
+  const uint sz  = max(ibbox[1].x-ibbox[0].x, ibbox[1].y-ibbox[0].y);
+  const int  mip = findMSB(sz - 1) + 1; // log2 of next pot
+
+  ibbox[0].x = (ibbox[0].x >> mip);
+  ibbox[0].y = (ibbox[0].y >> mip);
+
+  ivec2 hiZsize = textureSize(hiZ,mip);
+  float z =  texelFetchOffset(hiZ, ibbox[0], mip, ivec2(0,0)).x;
+  if(ibbox[0].x+1<hiZsize.x)
+    z = max(z, texelFetchOffset(hiZ, ibbox[0], mip, ivec2(1,0)).x);
+  if(ibbox[0].y+1<hiZsize.y)
+    z = max(z, texelFetchOffset(hiZ, ibbox[0], mip, ivec2(0,1)).x);
+  if(ibbox[0].x+1<hiZsize.x && ibbox[0].y+1<hiZsize.y)
+    z = max(z, texelFetchOffset(hiZ, ibbox[0], mip, ivec2(1,1)).x);
+
+  return z;
+  }
+
+bool hiZTest(vec4 sbbox, float depthMin) {
+  if(depthMin<=0)
+    return true;
+
+  ivec2 hiZsize = textureSize(hiZ,0);
+  ivec2 ibbox[2];
+  ibbox[0] = ivec2(sbbox.xy * scene.screenRes) / scene.hiZTileSize;
+  ibbox[1] = ivec2(sbbox.zw * scene.screenRes) / scene.hiZTileSize;
+  ibbox[0] = clamp(ibbox[0], ivec2(0), hiZsize - ivec2(1));
+  ibbox[1] = clamp(ibbox[1], ivec2(0), hiZsize - ivec2(1));
+
+  float bz      = packHiZ(depthMin);
+  float z       = hiZFetch(hiZ, ibbox);
+  if(bz > z)
+    return false;
+  return true;
+  }
+
+bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin, out float depthMax) {
+  const vec3  c     = (scene.view * vec4(sphere.xyz, 1)).xyz;
+  const float R     = sphere.w;
+
+  depthMin  = scene.project[3][2]/max(c.z - R, znear) + scene.project[2][2];
+  depthMax  = scene.project[3][2]/max(c.z + R, znear) + scene.project[2][2];
+  if(c.z - R < znear) {
+    aabb = vec4(0,0,1,1);
+    return true;
+    }
+
+  float z   = c.z - R;
+  float P00 = scene.project[0][0];
+  float P11 = scene.project[1][1];
+
+  vec3  cr   = c * R;
+  float czr2 = c.z * c.z - R * R;
+
+  float vx   = sqrt(c.x * c.x + czr2);
+  float minx = (vx * c.x - cr.z) / (vx * c.z + cr.x);
+  float maxx = (vx * c.x + cr.z) / (vx * c.z - cr.x);
+
+  float vy   = sqrt(c.y * c.y + czr2);
+  float miny = (vy * c.y - cr.z) / (vy * c.z + cr.y);
+  float maxy = (vy * c.y + cr.z) / (vy * c.z - cr.y);
+
+  aabb = vec4(minx * P00, miny * P11, maxx * P00, maxy * P11);
+  aabb = aabb*0.5 + vec4(0.5);
+  return true;
+  }
+
+bool frustrumTest(const vec4 sphere) {
+  if(sphere.w<0.f)
+    return false;
+  for(int i=0; i<6; ++i) {
+    if(dot(vec4(sphere.xyz,1.0), scene.frustrum[i]) <= -sphere.w) {
+      return false;
+      }
+    }
+  return true;
+  }
+
+void main() {
+  const uint id = gl_GlobalInvocationID.x;
+  if(id>=lightsTotal)
+    return;
+
+  //if(id+1!=lightsTotal)
+  //  return;
+
+  const vec4 light = vec4(lights[id].pos, lights[id].range);
+  if(!frustrumTest(light))
+    return;
+
+  vec4 aabb = vec4(0);
+  float depthMin=0, depthMax=0;
+  if(!projectSphere(light, aabb, depthMin, depthMax))
+    return;
+
+  if(!hiZTest(aabb, depthMin))
+    return;
+
+  aabb *= vec4(scene.screenRes, scene.screenRes);
+
+  const uint ix = atomicAdd(visLightCount, 1);
+  visLights[ix] = uvec4(id, packUint2x16(uvec2(aabb.xy)), packUint2x16(uvec2(aabb.zw)), 0);
+  }

@@ -220,6 +220,7 @@ Shaders::Shaders() {
     rtsmPages       = computeShader("rtsm_mark_pages.comp.sprv");
     rtsmHiZ         = computeShader("rtsm_hiz_pages.comp.sprv");
     rtsmCulling     = computeShader("rtsm_culling.comp.sprv");
+    rtsmCullLights  = computeShader("rtsm_cull_lights.comp.sprv");
     rtsmPosition    = computeShader("rtsm_position.comp.sprv");
 
     rtsmMeshletCull    = computeShader("rtsm_meshlet_cull.comp.sprv");

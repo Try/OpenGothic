@@ -1071,6 +1071,8 @@ void Renderer::drawRTSM(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
   if(!settings.rtsmEnabled)
     return;
 
+  static bool omniLights = true;
+
   const int RTSM_BIN_SIZE   = 32;
   const int RTSM_SMALL_TILE = 32;
   const int RTSM_LARGE_TILE = 128;
@@ -1146,19 +1148,43 @@ void Renderer::drawRTSM(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
       }
   }
 
+  if(omniLights) {
+    // alloc resources, for omni-lights
+    if(rtsm.visibleLights.byteSize()!=shaders.vsmClearOmni.sizeofBuffer(1, wview.lights().size())) {
+      Resources::recycle(std::move(rtsm.visibleLights));
+      rtsm.visibleLights = device.ssbo(nullptr, shaders.vsmClearOmni.sizeofBuffer(1, wview.lights().size()));
+      }
+    }
+
   cmd.setDebugMarker("RTSM-rendering");
   cmd.setFramebuffer({});
 
   {
     // clear
+    struct Push { uint32_t omni; } push = {omniLights ? 1u : 0u};
     cmd.setBinding(0, rtsm.pages);
     cmd.setBinding(1, rtsm.visList);
     cmd.setBinding(2, rtsm.posList);
     cmd.setBinding(3, rtsm.complexTiles);
+    cmd.setBinding(4, rtsm.visibleLights);
+    cmd.setPushData(push);
 
     cmd.setPipeline(shaders.rtsmClear);
     cmd.dispatchThreads(size_t(rtsm.pages.w()), size_t(rtsm.pages.h()), size_t(rtsm.pages.d()));
   }
+
+  if(omniLights) {
+    struct Push { float znear; uint32_t lightsTotal; } push = {};
+    push.znear       = scene.znear;
+    push.lightsTotal = uint32_t(wview.lights().size());
+    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(1, wview.lights().lightsSsbo());
+    cmd.setBinding(2, rtsm.visibleLights);
+    cmd.setBinding(3, hiz.hiZ);
+    cmd.setPushData(push);
+    cmd.setPipeline(shaders.rtsmCullLights);
+    cmd.dispatchThreads(wview.lights().size());
+    }
 
   {
     // global cull
