@@ -52,9 +52,8 @@ struct ConsoleWidget::Overlay : public Tempest::UiOverlay {
   };
 
 ConsoleWidget::ConsoleWidget() {
-  const float scale = Gothic::options().interfaceScale;
+  updateSizeHint();
 
-  setSizeHint(int(1024*scale), int(256*scale));
   setMargins(Margin(8,8,8,8));
   setSizePolicy(Fixed);
 
@@ -97,6 +96,7 @@ int ConsoleWidget::exec() {
     overlay->addWidget(new Widget());
     }
 
+  updateSizeHint();
   setVisible(true);
   while(overlay && Application::isRunning()) {
     Application::processEvents();
@@ -111,7 +111,8 @@ void ConsoleWidget::paintEvent(PaintEvent& e) {
   p.drawRect(0,0,w(),h(),
              0,0,p.brush().w(),p.brush().h());
 
-  auto& fnt = Resources::font();
+  const float scale = Gothic::interfaceScale(this);
+  auto& fnt = Resources::font(scale);
   int   y   = h() - margins().bottom;
 
   for(size_t i=log.size(); i>0;) {
@@ -229,6 +230,11 @@ void ConsoleWidget::keyRepeatEvent(KeyEvent& e) {
 
 void ConsoleWidget::printLine(std::string_view s) {
   log.emplace_back(s);
+  }
+
+void ConsoleWidget::updateSizeHint() {
+  const float scale = Gothic::interfaceScale(this);
+  setSizeHint(int(1024*scale), int(256*scale));
   }
 
 

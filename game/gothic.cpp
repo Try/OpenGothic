@@ -20,8 +20,10 @@
 
 #include "utils/fileutil.h"
 #include "utils/inifile.h"
+#include "utils/gthfont.h"
 
 #include "commandline.h"
+#include "mainwindow.h"
 
 using namespace Tempest;
 using namespace FileUtil;
@@ -52,7 +54,7 @@ Gothic::Gothic() {
   if(opts.cameraFov<1.f) {
     opts.cameraFov = 67.5;
     }
-  opts.interfaceScale = systemPackIniFile->getF("INTERFACE","Scale",0);
+  opts.interfaceScale = systemPackIniFile->getF("INTERFACE","Scale",1);
   if(opts.interfaceScale<=0) {
     opts.interfaceScale = 1;
     }
@@ -447,6 +449,19 @@ bool Gothic::isMarvinEnabled() const {
 
 void Gothic::setMarvinEnabled(bool m) {
   isMarvin = m;
+  }
+
+float Gothic::interfaceScale(const Tempest::Widget* w) {
+  float mul = 1;
+  if(instance->opts.interfaceScale>0.0)
+    mul = instance->opts.interfaceScale;
+
+  while(w->owner()!=nullptr) {
+    w = w->owner();
+    }
+  if(auto window = dynamic_cast<const MainWindow*>(w))
+    return window->uiScale() * mul;
+  return mul;
   }
 
 const Gothic::Options& Gothic::options() {
@@ -963,12 +978,12 @@ bool Gothic::playvideoex(std::string_view name, bool, bool) {
   }
 
 bool Gothic::printscreen(std::string_view msg, int posx, int posy, std::string_view font, int timesec) {
-  onPrintScreen(msg,posx,posy,timesec,Resources::font(font));
+  onPrintScreen(msg,posx,posy,timesec,Resources::font(font, Resources::FontType::Normal, 1));
   return false;
   }
 
 bool Gothic::printdialog(int, std::string_view msg, int posx, int posy, std::string_view font, int timesec) {
-  onPrintScreen(msg,posx,posy,timesec,Resources::font(font));
+  onPrintScreen(msg,posx,posy,timesec,Resources::font(font, Resources::FontType::Normal, 1));
   return false;
   }
 

@@ -131,6 +131,10 @@ MainWindow::~MainWindow() {
   Gothic::inst().setGame(std::unique_ptr<GameSession>());
   }
 
+float MainWindow::uiScale() const {
+  return SystemApi::uiScale(hwnd());
+  }
+
 void MainWindow::setupUi() {
   setLayout(new StackLayout());
   addWidget(&document);
@@ -255,12 +259,13 @@ void MainWindow::paintEvent(PaintEvent& event) {
 
   renderer.dbgDraw(p);
 
+  const float scale = Gothic::interfaceScale(this);
   if(Gothic::inst().doFrate() && !Gothic::inst().isDesktop()) {
     char fpsT[64]={};
     std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f",fps.get());
     //string_frm fpsT("fps = ", fps.get(), " ", info);
 
-    auto& fnt = Resources::font();
+    auto& fnt = Resources::font(scale);
     fnt.drawText(p,5,fnt.pixelSize()+5,fpsT);
     }
 
@@ -268,7 +273,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
     if (!Gothic::inst().isDesktop()) {
       auto hour = world->time().hour();
       auto min  = world->time().minute();
-      auto& fnt = Resources::font();
+      auto& fnt = Resources::font(scale);
       string_frm clockT(int(hour),":",int(min));
       fnt.drawText(p,w()-fnt.textSize(clockT).w-5,fnt.pixelSize()+5,clockT);
       }
@@ -543,8 +548,9 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
   if(!focus || dialogs.isActive())
     return;
 
-  auto world = Gothic::inst().world();
-  auto pl    = world==nullptr ? nullptr : world->player();
+  const float scale = Gothic::interfaceScale(this);
+  auto        world = Gothic::inst().world();
+  auto        pl    = world==nullptr ? nullptr : world->player();
   if(pl==nullptr)
     return;
 
@@ -553,7 +559,7 @@ void MainWindow::paintFocus(Painter& p, const Focus& focus, const Matrix4x4& vp)
 
   int   ix  = int((0.5f*pos.x+0.5f)*float(w()));
   int   iy  = int((0.5f*pos.y+0.5f)*float(h()));
-  auto& fnt = Resources::font();
+  auto& fnt = Resources::font(scale);
 
   auto tsize = fnt.textSize(focus.displayName());
   ix-=tsize.w/2;
@@ -639,7 +645,7 @@ void MainWindow::paintFocus(Painter& p, Rect rect) {
 void MainWindow::drawBar(Painter &p, const Tempest::Texture2d* bar, int x, int y, float v, AlignFlag flg) {
   if(barBack==nullptr || bar==nullptr)
     return;
-  const float scale   = Gothic::options().interfaceScale;
+  const float scale   = Gothic::interfaceScale(this);
   const float destW   = 200.f*scale*float(std::min(w(),800))/800.f;
   const float k       = float(destW)/float(std::max(barBack->w(),1));
   const float destH   = float(barBack->h())*k;
@@ -665,7 +671,7 @@ void MainWindow::drawBar(Painter &p, const Tempest::Texture2d* bar, int x, int y
   }
 
 void MainWindow::drawMsg(Tempest::Painter& p) {
-  const float scale   = Gothic::options().interfaceScale;
+  const float scale   = Gothic::interfaceScale(this);
   const float destW   = 200.f*scale*float(std::min(w(),800))/800.f;
   const float k       = float(destW)/float(std::max(barBack->w(),1));
   const float destH   = float(barBack->h())*k;
@@ -710,7 +716,7 @@ void MainWindow::drawSaving(Painter &p) {
   if(saveback==nullptr)
     return;
 
-  const float scale = Gothic::options().interfaceScale;
+  const float scale = Gothic::interfaceScale(this);
   int         szX   = Gothic::options().saveGameImageSize.w;
   int         szY   = Gothic::options().saveGameImageSize.h;
 

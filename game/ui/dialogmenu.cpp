@@ -120,10 +120,10 @@ void DialogMenu::drawTextMultiline(Painter &p, int x, int y, int w, int h, std::
   }
 
 Size DialogMenu::processTextMultiline(Painter* p, int x, int y, int w, int h, std::string_view txt, bool isPl) {
-  const float scale = Gothic::options().interfaceScale;
+  const float scale = Gothic::interfaceScale(this);
   const int   pdd   = int(10*scale);
 
-  auto fnt = Resources::font();
+  auto fnt = Resources::font(scale);
   Size ret = {0,0};
   if(!isPl && other!=nullptr) {
     y += fnt.pixelSize();
@@ -136,7 +136,7 @@ Size DialogMenu::processTextMultiline(Painter* p, int x, int y, int w, int h, st
     ret.h += sz.h;
     }
 
-  fnt = Resources::font(isPl ? Resources::FontType::Normal : Resources::FontType::Yellow);
+  fnt = Resources::font(isPl ? Resources::FontType::Normal : Resources::FontType::Yellow, scale);
 
   y     += fnt.pixelSize();
   ret.h += fnt.pixelSize();
@@ -237,7 +237,7 @@ bool DialogMenu::aiOutput(Npc &npc, std::string_view msg) {
 bool DialogMenu::aiPrintScr(Npc& npc, int time, std::string_view msg, int x, int y, std::string_view font) {
   if(current.time>0)
     return false;
-  auto& f = Resources::font(font);
+  auto& f = Resources::font(font, Resources::FontType::Normal, 1.0);
   Gothic::inst().onPrintScreen(msg,x,y,time,f);
   return true;
   }
@@ -307,13 +307,14 @@ void DialogMenu::print(std::string_view msg) {
   if(msg.empty())
     return;
 
+  const float scale = Gothic::interfaceScale(this);
   for(size_t i=1;i<MAX_PRINT;++i)
     printMsg[i-1u]=printMsg[i];
 
   remPrint=1500;
   PScreen& e=printMsg[MAX_PRINT-1];
   e.txt  = msg;
-  e.font = &Resources::font();
+  e.font = &Resources::font(scale);
   e.time = remPrint;
   e.x    = -1;
   e.y    = -1;
@@ -399,7 +400,7 @@ void DialogMenu::onEntry(const GameScript::DlgChoice &e) {
   }
 
 void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
-  const float scale = Gothic::options().interfaceScale;
+  const float scale = Gothic::interfaceScale(this);
 
   Painter p(e);
   const uint64_t da = dlgAnimation ? ANIM_TIME : 0;
@@ -435,7 +436,9 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
 
   for(size_t i=0;i<pscreen.size();++i){
     auto& sc   = pscreen[i];
-    auto& fnt  = *sc.font;
+    auto  fnt  = *sc.font;
+    fnt.setScale(Gothic::interfaceScale(this));
+
     auto  sz   = fnt.textSize(sc.txt);
     auto  area = this->size();
 
@@ -459,14 +462,14 @@ void DialogMenu::paintChoice(PaintEvent &e) {
   if(choice.size()==0)
     return;
 
-  const float scale    = Gothic::options().interfaceScale;
+  const float scale    = Gothic::interfaceScale(this);
   const int   padd     = int(20*scale);
   const int   dw       = std::min(w(),int(600*scale));
   const bool  isActive = isChoiceMenuActive();
 
   int  dh = padd*2;
   for(size_t i=0;i<choice.size();++i){
-    auto fnt = Resources::dialogFont();
+    auto fnt = Resources::dialogFont(scale);
     Size choiceTextSize = fnt.textSize(dw-padd, choice[i].title);
     dh += choiceTextSize.h;
     }
@@ -495,8 +498,8 @@ void DialogMenu::paintChoice(PaintEvent &e) {
   for(size_t i=0;i<choice.size();++i){
     GthFont fnt;
     if(i==dlgSel)
-      fnt = Resources::font(Resources::FontType::Hi); else
-      fnt = Resources::dialogFont();
+      fnt = Resources::font(Resources::FontType::Hi, scale); else
+      fnt = Resources::dialogFont(scale);
 
     int x = (w()-dw)/2;
     Size choiceTextSize = fnt.textSize(dw-padd, choice[i].title);

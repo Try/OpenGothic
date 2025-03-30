@@ -116,6 +116,7 @@ class Gothic final {
     void         setMarvinEnabled(bool m);
 
     static auto  options() -> const Options&;
+    static float interfaceScale(const Tempest::Widget* w);
 
     bool         isGodMode() const { return godMode; }
     void         setGodMode(bool g) { godMode = g; }

@@ -879,7 +879,7 @@ void Camera::debugDraw(DbgPainter& p) {
     p.drawLine(src.target-ln, src.target+ln);
     }
 
-  auto& fnt = Resources::font();
+  auto& fnt = Resources::font(1.0);
   int   y   = 300+fnt.pixelSize();
 
   string_frm buf("RaysCasted: ",raysCasted);

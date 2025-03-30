@@ -21,6 +21,7 @@ class ConsoleWidget : public Tempest::Widget {
     using Tempest::Widget::keyUpEvent;
 
     void printLine(std::string_view s);
+    void updateSizeHint();
 
   private:
     struct Overlay;

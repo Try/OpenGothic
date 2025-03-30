@@ -267,7 +267,7 @@ bool Marvin::exec(std::string_view v) {
       return true;
       }
     case C_CheatGod: {
-      auto& fnt = Resources::font();
+      auto& fnt = Resources::font(1.0);
       if(Gothic::inst().isGodMode()) {
         Gothic::inst().setGodMode(false);
         Gothic::inst().onPrintScreen("Godmode off",2,4,1,fnt);

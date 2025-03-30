@@ -87,10 +87,10 @@ class Resources final {
 
     static const Tempest::Sampler&   shadowSampler();
 
-    static const GthFont&            dialogFont();
-    static const GthFont&            font();
-    static const GthFont&            font(FontType type);
-    static const GthFont&            font(std::string_view fname,FontType type = FontType::Normal);
+    static const GthFont&            dialogFont(const float scale);
+    static const GthFont&            font(const float scale);
+    static const GthFont&            font(FontType type, const float scale);
+    static const GthFont&            font(std::string_view fname, FontType type, const float scale);
 
     static const Tempest::Texture2d& fallbackTexture();
     static const Tempest::Texture2d& fallbackBlack();
@@ -189,7 +189,7 @@ class Resources final {
     Tempest::Sound        implLoadSoundBuffer(std::string_view name);
     Dx8::PatternList      implLoadDxMusic(std::string_view name);
     DmSegment*            implLoadMusicSegment(char const* name);
-    GthFont&              implLoadFont(std::string_view fname, FontType type);
+    GthFont&              implLoadFont(std::string_view fname, FontType type, const float scale);
     PfxEmitterMesh*       implLoadEmiterMesh(std::string_view name);
     const VobTree*        implLoadVobBundle(std::string_view name);
 
@@ -199,7 +199,7 @@ class Resources final {
     Tempest::StorageImage fbImg, fbImg3d;
 
     using BindK  = std::tuple<const Skeleton*,const ProtoMesh*>;
-    using FontK  = std::pair<const std::string,FontType>;
+    using FontK  = std::tuple<const std::string,FontType,float>;
 
     struct Hash {
       size_t operator()(const BindK& b) const {

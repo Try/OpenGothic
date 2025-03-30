@@ -284,22 +284,22 @@ void Resources::detectVdf(std::vector<Archive>& ret, const std::u16string &root)
     });
   }
 
-const GthFont& Resources::dialogFont() {
-  return font("font_old_10_white.tga",FontType::Normal);
+const GthFont& Resources::dialogFont(const float scale) {
+  return font("font_old_10_white.tga",FontType::Normal,scale);
   }
 
-const GthFont& Resources::font() {
-  return font("font_old_10_white.tga",FontType::Normal);
+const GthFont& Resources::font(const float scale) {
+  return font("font_old_10_white.tga",FontType::Normal,scale);
   }
 
-const GthFont& Resources::font(Resources::FontType type) {
-  return font("font_old_10_white.tga",type);
+const GthFont& Resources::font(Resources::FontType type, const float scale) {
+  return font("font_old_10_white.tga",type,scale);
   }
 
-const GthFont& Resources::font(std::string_view fname, FontType type) {
+const GthFont& Resources::font(std::string_view fname, FontType type, const float scale) {
   if(fname.empty())
-    return font();
-  return inst->implLoadFont(fname,type);
+    return font(scale);
+  return inst->implLoadFont(fname, type, scale);
   }
 
 const Texture2d& Resources::fallbackTexture() {
@@ -725,11 +725,11 @@ Tempest::Sound Resources::implLoadSoundBuffer(std::string_view name) {
     }
   }
 
-GthFont &Resources::implLoadFont(std::string_view name, FontType type) {
+GthFont &Resources::implLoadFont(std::string_view name, FontType type, const float scale) {
   std::lock_guard<std::recursive_mutex> g(inst->syncFont);
 
-  auto cname = std::string(name);
-  auto it    = gothicFnt.find(std::make_pair(cname,type));
+  auto key   = FontK(std::string(name), type, scale);
+  auto it    = gothicFnt.find(key);
   if(it!=gothicFnt.end())
     return *(*it).second;
 
@@ -780,14 +780,14 @@ GthFont &Resources::implLoadFont(std::string_view name, FontType type) {
     // throw std::runtime_error("failed to open resource: " + std::string{fnt});
     auto ptr   = std::make_unique<GthFont>();
     GthFont* f = ptr.get();
-    gothicFnt[std::make_pair(std::move(cname),type)] = std::move(ptr);
+    gothicFnt[key] = std::move(ptr);
     return *f;
     }
 
   auto ptr   = std::make_unique<GthFont>(*entry->open_read(),tex,color);
-  ptr->setScale(Gothic::options().interfaceScale);
   GthFont* f = ptr.get();
-  gothicFnt[std::make_pair(std::move(cname),type)] = std::move(ptr);
+  f->setScale(scale);
+  gothicFnt[key] = std::move(ptr);
   return *f;
   }
 

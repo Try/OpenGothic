@@ -50,7 +50,7 @@ bool GameScript::GlobalOutput::outputOv(Npc &npc, std::string_view text) {
   }
 
 bool GameScript::GlobalOutput::printScr(Npc& npc, int time, std::string_view msg, int x, int y, std::string_view font) {
-  auto& f = Resources::font(font);
+  auto& f = Resources::font(font, Resources::FontType::Normal, 1.0);
   Gothic::inst().onPrintScreen(msg,x,y,time,f);
   return true;
   }
@@ -3213,7 +3213,7 @@ int GameScript::ai_printscreen(std::string_view msg, int posx, int posy, std::st
   if(npc==nullptr)
     npc = owner.player();
   if(npc==nullptr) {
-    Gothic::inst().onPrintScreen(msg,posx,posy,timesec,Resources::font(font));
+    Gothic::inst().onPrintScreen(msg,posx,posy,timesec,Resources::font(font,Resources::FontType::Normal,1.0));
     return 0;
     }
   npc->aiPush(AiQueue::aiPrintScreen(timesec,font,posx,posy,msg));

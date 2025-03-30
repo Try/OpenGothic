@@ -426,14 +426,14 @@ void InventoryMenu::paintNumOverlay(PaintEvent& e) {
   }
 
 Size InventoryMenu::slotSize() const {
-  const float scale = Gothic::options().interfaceScale;
+  const float scale = Gothic::interfaceScale(this);
   const float cell  = float(Gothic::options().inventoryCellSize);
   return Size(int(cell*scale),int(cell*scale));
   }
 
 int InventoryMenu::infoHeight() const {
-  const float scale = Gothic::options().interfaceScale;
-  return (Item::MAX_UI_ROWS+2)*int(float(Resources::font().pixelSize())*scale)+10/*padding bottom*/;
+  const float scale = Gothic::interfaceScale(this);
+  return (Item::MAX_UI_ROWS+2)*int(float(Resources::font(scale).pixelSize()))+int(scale*10)/*padding bottom*/;
   }
 
 size_t InventoryMenu::pagesCount() const {
@@ -631,6 +631,7 @@ void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Inventory::Iterato
     return;
 
   auto& active = activePage();
+  const float scale = Gothic::interfaceScale(this);
 
   if(pass==DrawPass::Back) {
     if((!it.isValid() && id==0) || (id==sel.sel && &page==&active)){
@@ -648,7 +649,7 @@ void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Inventory::Iterato
     const int dsz = (id==sel.sel ? 5 : 0);
     renderer.drawItem(x-dsz, y-dsz, slotSize().w+2*dsz, slotSize().h+2*dsz, *it);
     } else {
-    auto fnt = Resources::font();
+    auto fnt = Resources::font(scale);
 
     if(it.count()>1) {
       string_frm vint(int(it.count()));
@@ -659,7 +660,7 @@ void InventoryMenu::drawSlot(Painter &p, DrawPass pass, const Inventory::Iterato
       }
 
     if(it.slot()!=Item::NSLOT) {
-      fnt = Resources::font(Resources::FontType::Red);
+      fnt = Resources::font(Resources::FontType::Red, scale);
 
       string_frm vint(int(it.slot()));
       auto sz = fnt.textSize(vint);
@@ -684,8 +685,8 @@ void InventoryMenu::drawGold(Painter &p, Npc &player, int x, int y) {
   }
 
 void InventoryMenu::drawHeader(Painter &p, std::string_view title, int x, int y) {
-  const float scale = Gothic::options().interfaceScale;
-  auto&       fnt   = Resources::font();
+  const float scale = Gothic::interfaceScale(this);
+  auto&       fnt   = Resources::font(scale);
 
   const int   dw    = slotSize().w*2;
   const int   dh    = int(34*scale);
@@ -705,7 +706,7 @@ void InventoryMenu::drawHeader(Painter &p, std::string_view title, int x, int y)
   }
 
 void InventoryMenu::drawInfo(Painter &p) {
-  const float scale = Gothic::options().interfaceScale;
+  const float scale = Gothic::interfaceScale(this);
   const int   dw    = std::min(w(), int(720*scale));
   const int   dh    = infoHeight();
   const int   x     = (w()-dw)/2;
@@ -725,7 +726,7 @@ void InventoryMenu::drawInfo(Painter &p) {
                0,0,tex->w(),tex->h());
     }
 
-  auto& fnt = Resources::font();
+  auto& fnt = Resources::font(scale);
   auto  desc = r.description();
   int   tw   = fnt.textSize(desc).w;
 
