@@ -2,7 +2,6 @@
 
 #include <zenkit/addon/daedalus.hh>
 
-#include <memory>
 #include <Tempest/SoundDevice>
 #include <Tempest/SoundEffect>
 

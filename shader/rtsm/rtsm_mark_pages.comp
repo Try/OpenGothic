@@ -111,9 +111,7 @@ float markPages() {
   if(isGBufFlat(diff.a))
     return 0;
 
-  const vec3  ray    = rayOrigin(wpos);
-  //const uint  idx    = rayPacketId(ray.xy, z);
-
+  const vec3 ray = rayOrigin(wpos);
   vec2 page = vec2(0);
   int  mip  = 0;
   if(!calcMipIndex(page, mip, ray.xy))

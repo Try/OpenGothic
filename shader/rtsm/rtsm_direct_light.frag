@@ -27,10 +27,9 @@ void main() {
 
   const ivec2 fragCoord = ivec2(gl_FragCoord.xy);
 
-  const vec4  diff        = texelFetch (gbufDiffuse, fragCoord, 0);
-  const vec3  normal      = normalFetch(gbufNormal,  fragCoord);
+  const vec4  diff        = texelFetch(gbufDiffuse, fragCoord, 0);
   const float shadow      = texelFetch(shadowmask, fragCoord, 0).r;
-  const float light       = 1;//dot(scene.sunDir, normal);
+  const float light       = 1;
 
   const vec3  illuminance = scene.sunColor * light * shadow;
   const vec3  linear      = textureAlbedo(diff.rgb);

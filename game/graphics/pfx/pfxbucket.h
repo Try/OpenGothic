@@ -117,9 +117,7 @@ class PfxBucket {
       Tempest::StorageBuffer         pfxGpu;
       uint64_t                       timeShift = 0;
 
-      // Tempest::DescriptorSet         ubo[SceneGlobals::V_Count];
-
-      bool                      isEmpty() const;
+      bool                           isEmpty() const;
       };
 
     void                        drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const SceneGlobals &scene, const Draw& itm,
