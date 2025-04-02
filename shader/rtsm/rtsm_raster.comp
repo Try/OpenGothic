@@ -109,9 +109,10 @@ vec3 rayOrigin(const vec4 wpos, const vec4 offset) {
   }
 
 // meshlet-data
-shared Vertex meshVertices    [NumThreads*3];
-shared uint   primitiveBucket [NumThreads];
-shared float  primitiveAreaInv[NumThreads];
+const  uint   MaxChunk = 64;
+shared Vertex meshVertices    [MaxChunk*3];
+shared uint   primitiveBucket [MaxChunk];
+shared float  primitiveAreaInv[MaxChunk];
 shared uint   numLocalPrim;
 bool isPrimitiveVisible(const vec4 aabb, const float depthMax) {
   const vec4 rbbox = uintBitsToFloat(rayBbox);
@@ -133,9 +134,8 @@ void pullPrimitives(const uint pkg) {
   const uint  ptr = (pkg >> 8);
   const uint  pId = pkg & 0xFF;
 
-  const uint  bucketId = pullMeshBucketId(ptr);
+  //const uint  primCnt  = pullPrimitiveCount(ptr);
   const uvec4 tri      = pullPrimitiveFull(ptr+MeshletHeaderSize, pId);
-  const uint  primCnt  = pullPrimitiveCount(ptr);
   const uint  ptrV     = ptr + MeshletHeaderSize + MaxPrim;
 
   //FIXME: register pressure
@@ -149,6 +149,8 @@ void pullPrimitives(const uint pkg) {
     return;
     }
 
+  const uint bucketId = pullMeshBucketId(ptr);
+
   const uint id = atomicAdd(numLocalPrim, 1);
   meshVertices[id*3+0] = a;
   meshVertices[id*3+1] = b;
@@ -158,7 +160,7 @@ void pullPrimitives(const uint pkg) {
   }
 
 shared uint activeRays[2];
-float rasterBatch(const vec3 ray, const float lodBias, float opacity) {
+float rasterBatch(const vec3 ray, float opacity) {
   const uint laneID = gl_LocalInvocationIndex;
 
   for(uint id=0; id<numLocalPrim; ++id) {
@@ -185,6 +187,7 @@ float rasterBatch(const vec3 ray, const float lodBias, float opacity) {
 #if TRANSLUCENCY
     const uint flags = primitiveBucket[id] >> 16;
     if((flags & BK_SOLID)==0) {
+      const float lodBias  = log2((depth - ray.z)*128);
       const uint  bucketId = primitiveBucket[id] & 0xFFFF;
       const float alpha    = sampleAlpha(bucketId, bc, areaInv, meshVertices[id*3+0].uv, meshVertices[id*3+1].uv, meshVertices[id*3+2].uv, lodBias);
       opacity *= (1.0-alpha);
@@ -201,10 +204,10 @@ float rasterBatch(const vec3 ray, const float lodBias, float opacity) {
   return opacity;
   }
 
-float tracePacket(const uvec2 tileHeader, const vec3 ray, const float lodBias, float opacity) {
+float tracePacket(const uvec2 tileHeader, const vec3 ray, float opacity) {
   const uint  laneID        = gl_LocalInvocationIndex;
   const uint  numPrimitives = tileHeader.y & 0xFFFF;
-  const uint  steps         = (numPrimitives + NumThreads - 1)/NumThreads;
+  const uint  steps         = (numPrimitives + MaxChunk - 1)/MaxChunk;
 
   if((tileHeader.y & (1u<<31))!=0) {
     // error - emit 4x4 grid to display
@@ -225,13 +228,13 @@ float tracePacket(const uvec2 tileHeader, const vec3 ray, const float lodBias, f
 
     numLocalPrim = 0;
     barrier();
-    const uint i = s*NumThreads + laneID;
-    if(i<numPrimitives)
+    const uint i = s*MaxChunk + laneID;
+    if(i<numPrimitives && laneID<MaxChunk)
       pullPrimitives(pos.data[tileHeader.x + i]);
     barrier();
 
     primCnt += numLocalPrim;
-    opacity = rasterBatch(ray, lodBias, opacity);
+    opacity = rasterBatch(ray, opacity);
     barrier();
     }
 
@@ -257,14 +260,12 @@ void main() {
   const vec2  ray1   = rayOrigin(wpos, scene.vsmDdx).xy;
   const vec2  ray2   = rayOrigin(wpos, scene.vsmDdy).xy;
 
-  const float mip    = shadowLod((ray1 - ray.xy)*4096, (ray2 - ray.xy)*4096);
-
   activeRays[0] = 0;
   activeRays[1] = 0;
   rayBboxses(ray, lamb>minOpacity);
   barrier();
 
-  const float opacity = tracePacket(tileHeader, ray, mip, lamb);
+  const float opacity = tracePacket(tileHeader, ray, lamb);
   if(opacity!=lamb)
     imageStore(outputImage, fragCoord, vec4(opacity));
 

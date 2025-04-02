@@ -40,9 +40,10 @@ shared uint  numSlices;
 
 shared uint  depthMin, depthMax;
 
-// visible meshlets
+// visible meshlets and ray-samples
 shared uint numPrimitives;
-shared uint primitives[4*1024];
+shared uint numRays;
+shared uint primitives[4*1024]; // primitive and samples, no reinterpret case unfortenatly
 
 shared uint primListPtr;
 
@@ -154,25 +155,6 @@ void storeResultPrim() {
     pos.data[primListPtr + i] = primitives[i];
   }
 
-void processDFragment(const ivec2 fragCoord) {
-  const ivec2 size   = textureSize(depth, 0);
-  const bool  valid  = all(lessThan(fragCoord, size));
-  if(!valid)
-    return;
-
-  const float lamb   = imageLoad(outputImage, fragCoord).x;
-  const bool  actRay = !(lamb==0);
-  if(!actRay)
-    return;
-
-  const float z = texelFetch(depth, fragCoord, 0).x;
-  if(z==1.0)
-    return;
-
-  atomicMin(depthMin, floatBitsToUint(z));
-  atomicMax(depthMax, floatBitsToUint(z));
-  }
-
 void processFragment(const ivec2 fragCoord) {
   const ivec2 size   = textureSize(depth, 0);
   const bool  valid  = all(lessThan(fragCoord, size));
@@ -188,38 +170,48 @@ void processFragment(const ivec2 fragCoord) {
   if(z==1.0)
     return;
 
-  const float d0    = uintBitsToFloat(depthMin);
-  const float d1    = uintBitsToFloat(depthMax);
-  const uint  slice = uint(((z-d0)/(d1-d0))*4);
-  const vec3  ray   = rayOrigin(fragCoord.xy, z);
-
-  atomicOr(numSlices, 1u << slice);
-  atomicMin(rayTileBbox[slice].x, floatToOrderedUint(ray.x));
-  atomicMin(rayTileBbox[slice].y, floatToOrderedUint(ray.y));
-  atomicMax(rayTileBbox[slice].z, floatToOrderedUint(ray.x));
-  atomicMax(rayTileBbox[slice].w, floatToOrderedUint(ray.y));
-  atomicMin(rayDepthMin[slice],   floatToOrderedUint(ray.z));
+  // const vec3 ray = rayOrigin(fragCoord.xy, z);
+  const uint id = atomicAdd(numRays, 1);
+  primitives[id*2+0] = floatBitsToUint(z);
+  primitives[id*2+1] = packUint2x16(uvec2(fragCoord));
   }
 
 void tileBbox() {
-  const uint laneID = gl_LocalInvocationIndex;
-
+  const uint  laneID = gl_LocalInvocationIndex;
   const ivec2 tileSz = ivec2(RTSM_BIN_SIZE);
+
   const ivec2 at0 = ivec2(gl_WorkGroupID.xy) * tileSz;
   const ivec2 xy0 = ivec2(gl_LocalInvocationID.xy);
   for(int x=xy0.x; x<tileSz.x; x+=int(gl_WorkGroupSize.x)) {
     for(int y=xy0.y; y<tileSz.y; y+=int(gl_WorkGroupSize.y)) {
       ivec2 at = at0 + ivec2(x,y);
-      processDFragment(at);
+      processFragment(at);
       }
     }
   barrier();
 
-  for(int x=xy0.x; x<tileSz.x; x+=int(gl_WorkGroupSize.x)) {
-    for(int y=xy0.y; y<tileSz.y; y+=int(gl_WorkGroupSize.y)) {
-      ivec2 at = at0 + ivec2(x,y);
-      processFragment(at);
-      }
+  for(uint i=laneID; i<numRays; i+=NumThreads) {
+    const uint iz = primitives[i*2+0];
+    atomicMin(depthMin, iz);
+    atomicMax(depthMax, iz);
+    }
+  barrier();
+
+  for(uint i=laneID; i<numRays; i+=NumThreads) {
+    const float z         = uintBitsToFloat(primitives[i*2+0]);
+    const ivec2 fragCoord = ivec2(unpackUInt2x16(primitives[i*2+1]));
+
+    const float d0    = uintBitsToFloat(depthMin);
+    const float d1    = uintBitsToFloat(depthMax);
+    const uint  slice = uint(((z-d0)/(d1-d0))*4);
+    const vec3  ray   = rayOrigin(fragCoord.xy, z);
+
+    atomicOr(numSlices, 1u << slice);
+    atomicMin(rayTileBbox[slice].x, floatToOrderedUint(ray.x));
+    atomicMin(rayTileBbox[slice].y, floatToOrderedUint(ray.y));
+    atomicMax(rayTileBbox[slice].z, floatToOrderedUint(ray.x));
+    atomicMax(rayTileBbox[slice].w, floatToOrderedUint(ray.y));
+    atomicMin(rayDepthMin[slice],   floatToOrderedUint(ray.z));
     }
   barrier();
 
@@ -252,6 +244,7 @@ void main() {
     return;
     }
 
+  numRays        = 0;
   numPrimitives  = 0;
   numMeshletsAll = 0;
   numSlices      = 0;
