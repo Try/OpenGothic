@@ -3,6 +3,7 @@
 #extension GL_GOOGLE_include_directive    : enable
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_EXT_control_flow_attributes : enable
 // bindless
 #extension GL_EXT_nonuniform_qualifier : enable
 // #extension GL_KHR_memory_scope_semantics : enable
@@ -159,7 +160,7 @@ void pullPrimitives(const uint pkg) {
   primitiveBucket [id] = packUint2x16(uvec2(bucketId,tri.w));
   }
 
-shared uint activeRays[2];
+shared uint activeRays[NumThreads/32];
 float rasterBatch(const vec3 ray, float opacity) {
   const uint laneID = gl_LocalInvocationIndex;
 
@@ -204,26 +205,25 @@ float rasterBatch(const vec3 ray, float opacity) {
   return opacity;
   }
 
+bool earlyOut() {
+  [[unroll]]
+  for(uint i=0; i<activeRays.length(); ++i)
+    if(activeRays[i]!=0)
+      return false;
+  return true;
+  }
+
 float tracePacket(const uvec2 tileHeader, const vec3 ray, float opacity) {
   const uint  laneID        = gl_LocalInvocationIndex;
   const uint  numPrimitives = tileHeader.y & 0xFFFF;
   const uint  steps         = (numPrimitives + MaxChunk - 1)/MaxChunk;
-
-  if((tileHeader.y & (1u<<31))!=0) {
-    // error - emit 4x4 grid to display
-    ivec2 tile = fragCoord/4;
-    return (tile.x+tile.y)%2==0 ? 1.0 : 0.0;
-    }
-
-  if(numPrimitives==0)
-    return opacity;
 
   if(opacity>minOpacity)
     atomicOr(activeRays[laneID/32], 1u<<(laneID%32));
   barrier();
 
   for(uint s=0; s<steps; ++s) {
-    if(activeRays[0]==0 && activeRays[1]==0)
+    if(earlyOut())
       break;
 
     numLocalPrim = 0;
@@ -248,6 +248,14 @@ void main() {
   if(tileHeader.y==0)
     return;
 
+  if((tileHeader.y & (1u<<31))!=0) {
+    // error - emit 4x4 grid to display
+    ivec2 tile    = fragCoord/4;
+    float opacity = (tile.x+tile.y)%2==0 ? 1.0 : 0.0;
+    imageStore(outputImage, fragCoord, vec4(opacity));
+    return;
+    }
+
   const ivec2 size   = textureSize(depth, 0);
   const bool  valid  = all(lessThan(fragCoord, size));
 
@@ -260,8 +268,8 @@ void main() {
   const vec2  ray1   = rayOrigin(wpos, scene.vsmDdx).xy;
   const vec2  ray2   = rayOrigin(wpos, scene.vsmDdy).xy;
 
-  activeRays[0] = 0;
-  activeRays[1] = 0;
+  if(gl_LocalInvocationIndex<activeRays.length())
+    activeRays[gl_LocalInvocationIndex] = 0;
   rayBboxses(ray, lamb>minOpacity);
   barrier();
 
