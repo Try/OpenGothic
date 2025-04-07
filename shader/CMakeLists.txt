@@ -335,6 +335,7 @@ add_shader(rtsm_meshlet_cull.comp    rtsm/rtsm_meshlet_cull.comp)
 add_shader(rtsm_meshlet_complex.comp rtsm/rtsm_meshlet_complex.comp)
 add_shader(rtsm_sample_cull.comp     rtsm/rtsm_sample_cull.comp)
 add_shader(rtsm_primitive_cull.comp  rtsm/rtsm_primitive_cull.comp)
+add_shader(rtsm_primitive_cull2.comp rtsm/rtsm_primitive_cull2.comp)
 
 add_shader(rtsm_raster.comp          rtsm/rtsm_raster.comp)
 add_shader(rtsm_direct_light.frag    rtsm/rtsm_direct_light.frag)

@@ -91,7 +91,7 @@ class Shaders {
     Tempest::ComputePipeline rtsmClear, rtsmPages, rtsmHiZ;
     Tempest::ComputePipeline rtsmCullLights;
     Tempest::ComputePipeline rtsmCulling, rtsmPosition;
-    Tempest::ComputePipeline rtsmMeshletCull, rtsmMeshletComplex, rtsmSampleCull, rtsmPrimCull;
+    Tempest::ComputePipeline rtsmMeshletCull, rtsmMeshletComplex, rtsmSampleCull, rtsmPrimCull, rtsmPrimCull2;
     Tempest::ComputePipeline rtsmRaster;
 
     Tempest::RenderPipeline  rtsmDirectLight;

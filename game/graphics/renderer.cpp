@@ -1077,6 +1077,9 @@ void Renderer::drawRTSM(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
   const int RTSM_SMALL_TILE = 32;
   const int RTSM_LARGE_TILE = 128;
 
+  const uint32_t NumPersistentGroups = 256;
+  const uint32_t ScratchSize         = 1024*4;
+
   auto& device   = Resources::device();
   auto& shaders  = Shaders::inst();
 
@@ -1145,6 +1148,9 @@ void Renderer::drawRTSM(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
 
     if(rtsm.posList.isEmpty()) {
       rtsm.posList = device.ssbo(Tempest::Uninitialized, 64*1024*1024); // arbitrary
+      }
+    if(rtsm.pthScratch.isEmpty()) {
+      rtsm.pthScratch = device.ssbo(nullptr, sizeof(uint32_t) + sizeof(uint32_t)*ScratchSize*NumPersistentGroups);
       }
   }
 
@@ -1267,10 +1273,14 @@ void Renderer::drawRTSM(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     cmd.setBinding(7, buckets.textures());
     cmd.setBinding(8, Sampler::trillinear());
     cmd.setBinding(9, rtsm.dbg);
+    cmd.setBinding(10, rtsm.pthScratch);
 
     // primitives
-    cmd.setPipeline(shaders.rtsmPrimCull);
-    cmd.dispatch(rtsm.primBins.size());
+    cmd.setPipeline(shaders.rtsmPrimCull2);
+    cmd.dispatch(NumPersistentGroups);
+
+    // cmd.setPipeline(shaders.rtsmPrimCull);
+    // cmd.dispatch(rtsm.primBins.size());
 
     // raster
     cmd.setBinding(9, rtsm.dbg8);
