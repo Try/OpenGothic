@@ -22,14 +22,9 @@ layout(binding = 6, rg32ui) uniform  uimage2D   primitiveBins;
 
 layout(binding = 9, r32ui)  uniform  uimage2D   dbgImage;
 
-const uint ScratchSize = 1024*4;
-layout(binding = 10, std430)         buffer It  { uint iterator; uint scratch[256 * ScratchSize]; };
-
-ivec2 workGroupID = ivec2(0);
-
 void imageDbg(uint info) {
 #if defined(DEBUG_IMG)
-  imageStore(dbgImage, workGroupID, uvec4(info));
+  imageStore(dbgImage, ivec2(gl_WorkGroupID.xy), uvec4(info));
 #endif
   }
 
@@ -38,7 +33,7 @@ void imageDbg(uint info) {
 // counter
 uint numMeshletsAll = 0;
 
-//
+// 92 bytes
 const  uint  DepthSlices = 4;
 shared uvec4 rayTileBbox[DepthSlices];
 shared uint  rayDepthMin[DepthSlices];
@@ -47,12 +42,12 @@ shared uint  depthMin, depthMax;
 
 // visible meshlets and ray-samples
 shared uint numPrimitives;
-shared uint numRays;
+shared uint primitives[2000]; // primitive and samples, no reinterpret case unfortenatly
 
 shared uint primListPtr;
 
 uvec2 pullMeshList() {
-  return texelFetch(tileBins, ivec2((workGroupID*RTSM_BIN_SIZE)/RTSM_SMALL_TILE), 0).xy;
+  return texelFetch(tileBins, ivec2((gl_WorkGroupID.xy*RTSM_BIN_SIZE)/RTSM_SMALL_TILE), 0).xy;
   }
 
 // utility
@@ -115,8 +110,8 @@ void processMeshletPrimitives(const uint ptr, const uint primCount, const uint l
       return;
 
     const uint id = atomicAdd(numPrimitives, 1);
-    if(id<ScratchSize)
-      scratch[gl_WorkGroupID.x*ScratchSize + id] = packPrimitiveId(ptr, laneID);
+    if(id<primitives.length())
+      primitives[id] = packPrimitiveId(ptr, laneID);
     }
   }
 
@@ -136,8 +131,8 @@ void storeResultPrim() {
   const uint laneID = gl_LocalInvocationIndex;
   const uint badBit = (1u << 31);
 
-  if(numPrimitives>ScratchSize) {
-    imageStore(primitiveBins, workGroupID, uvec4(NULL, badBit, 0,0));
+  if(numPrimitives>primitives.length()) {
+    imageStore(primitiveBins, ivec2(gl_WorkGroupID.xy), uvec4(NULL, badBit, 0,0));
     imageDbg(numPrimitives);
     return;
     }
@@ -150,13 +145,13 @@ void storeResultPrim() {
   imageDbg(numPrimitives);
   if(primListPtr==NULL && numPrimitives>0) {
     // out of memory
-    imageStore(primitiveBins, workGroupID, uvec4(primListPtr, badBit, 0,0));
+    imageStore(primitiveBins, ivec2(gl_WorkGroupID.xy), uvec4(primListPtr, badBit, 0,0));
     return;
     }
 
-  imageStore(primitiveBins, workGroupID, uvec4(primListPtr, numPrimitives, 0,0));
+  imageStore(primitiveBins, ivec2(gl_WorkGroupID.xy), uvec4(primListPtr, numPrimitives, 0,0));
   for(uint i=laneID; i<numPrimitives; i+=NumThreads)
-    pos.data[primListPtr + i] = scratch[gl_WorkGroupID.x*ScratchSize + i];
+    pos.data[primListPtr + i] = primitives[i];
   }
 
 void processDepth(const ivec2 fragCoord) {
@@ -196,7 +191,7 @@ void processFragment(const ivec2 fragCoord) {
 
   const float d0    = uintBitsToFloat(depthMin);
   const float d1    = uintBitsToFloat(depthMax);
-  const uint  slice = uint(((z-d0)/(d1-d0))*4);
+  const uint  slice = uint(((z-d0)/(d1-d0))*DepthSlices);
   const vec3  ray   = rayOrigin(fragCoord.xy, z);
 
   atomicOr(numSlices, 1u << slice);
@@ -211,7 +206,7 @@ void tileBbox() {
   const uint  laneID = gl_LocalInvocationIndex;
   const ivec2 tileSz = ivec2(RTSM_BIN_SIZE);
 
-  const ivec2 at0 = ivec2(workGroupID) * tileSz;
+  const ivec2 at0 = ivec2(gl_WorkGroupID.xy) * tileSz;
   const ivec2 xy0 = ivec2(gl_LocalInvocationID.xy);
   for(int x=xy0.x; x<tileSz.x; x+=int(gl_WorkGroupSize.x)) {
     for(int y=xy0.y; y<tileSz.y; y+=int(gl_WorkGroupSize.y)) {
@@ -247,18 +242,17 @@ void tileBbox() {
     numSlices = bitCount(numSlices);
   }
 
-void persistentMain() {
+void main() {
   const uint  laneID      = gl_LocalInvocationIndex;
   const uvec2 meshListSrc = pullMeshList();
   const uint  tilePtr     = meshListSrc.x;
   const uint  visCount    = meshListSrc.y;
   if(visCount==0) {
-    imageStore(primitiveBins, workGroupID, uvec4(NULL, 0,0,0));
+    imageStore(primitiveBins, ivec2(gl_WorkGroupID.xy), uvec4(NULL, 0,0,0));
     imageDbg(0);
     return;
     }
 
-  numRays        = 0;
   numPrimitives  = 0;
   numMeshletsAll = 0;
   numSlices      = 0;
@@ -277,26 +271,4 @@ void persistentMain() {
   barrier();
 
   storeResultPrim();
-  }
-
-shared uint iteratorWg;
-void main() {
-  const ivec2 Tiles  = imageSize(primitiveBins).xy;
-  const uint  NTiles = Tiles.x*Tiles.y;
-  const uint  NumWG  = gl_NumWorkGroups.x;
-
-  while(true) {
-    if(gl_LocalInvocationIndex==0)
-      iteratorWg = atomicAdd(iterator, 1);
-    barrier();
-
-    if(iteratorWg+1==NTiles+NumWG)
-      iterator = 0;
-    if(iteratorWg>=NTiles)
-      return;
-    workGroupID = ivec2(iteratorWg%Tiles.x, iteratorWg/Tiles.x);
-    barrier();
-
-    persistentMain();
-    }
   }

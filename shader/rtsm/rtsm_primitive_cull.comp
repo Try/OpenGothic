@@ -30,16 +30,18 @@ void imageDbg(uint info) {
 
 #include "rtsm/rtsm_scratch.glsl"
 
-//
-shared uvec4 rayTileBbox[MaxSlices];
-shared uint  rayDepthMin[MaxSlices];
+// 92 bytes
+const  uint  DepthSlices = 4;
+shared uvec4 rayTileBbox[DepthSlices];
+shared uint  rayDepthMin[DepthSlices];
 shared uint  numSlices;
-
 shared uint  depthMin, depthMax;
+
 //
 shared uint numPrimitives;
 shared uint primListPtr;
 //
+//~2k prim
 shared uint tearDown;
 
 uvec2 pullMeshList() {
@@ -175,7 +177,7 @@ void processFragment(const ivec2 fragCoord) {
 
   const float d0    = uintBitsToFloat(depthMin);
   const float d1    = uintBitsToFloat(depthMax);
-  const uint  slice = uint(((z-d0)/(d1-d0))*4);
+  const uint  slice = uint(((z-d0)/(d1-d0))*DepthSlices);
   const vec3  ray   = rayOrigin(fragCoord.xy, z);
 
   atomicOr(numSlices, 1u << slice);
