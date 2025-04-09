@@ -117,7 +117,7 @@ void processMeshletPrimitives(const uint ptr, const uint primCount, const uint l
 
 void traceTile(const uint tilePtr, const uint visCount) {
   const uint  laneID      = gl_LocalInvocationIndex;
-  const uint  primPerStep = 16;
+  const uint  primPerStep = 32;
   const uint  meshPerStep = NumThreads / primPerStep;
 
   for(uint i=(laneID/primPerStep); i<visCount; i+=meshPerStep) {

@@ -110,7 +110,7 @@ vec3 rayOrigin(const vec4 wpos, const vec4 offset) {
   }
 
 // meshlet-data. should be 2kb for occupancy in 8x8 mode
-const  uint   MaxChunk = 128;
+const  uint   MaxChunk = 64;
 shared Vertex meshVertices    [MaxChunk*3];
 shared uint   primitiveBucket [MaxChunk];
 shared float  primitiveAreaInv[MaxChunk];
@@ -263,7 +263,7 @@ void main() {
   const float lamb   = imageLoad(outputImage, fragCoord).x;
 
   const vec4  wpos   = worldPos(fragCoord.xy, z) + vec4(normal*NormalBias, 0);
-  const vec3  ray    = rayOrigin(wpos);s
+  const vec3  ray    = rayOrigin(wpos);
 
   inactiveRays = 0;
   rayBboxses(ray, lamb>minOpacity);
