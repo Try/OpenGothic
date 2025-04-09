@@ -110,11 +110,17 @@ vec3 rayOrigin(const vec4 wpos, const vec4 offset) {
   }
 
 // meshlet-data. should be 2kb for occupancy in 8x8 mode
-const  uint   MaxChunk = 64;
-shared Vertex meshVertices    [MaxChunk*3];
+//const  uint   MaxChunk = 64;
+//shared Vertex meshVertices    [MaxChunk*3];
+//shared uint   primitiveBucket [MaxChunk];
+//shared float  primitiveAreaInv[MaxChunk];
+
+const  uint   MaxChunk = 256;
+shared uint   primitives      [MaxChunk];
 shared uint   primitiveBucket [MaxChunk];
 shared float  primitiveAreaInv[MaxChunk];
 shared uint   numLocalPrim;
+
 bool isPrimitiveVisible(const vec4 aabb, const float depthMax) {
   const vec4 rbbox = uintBitsToFloat(rayBbox);
   if(uintBitsToFloat(rayZmin) > depthMax)
@@ -135,29 +141,31 @@ void pullPrimitives(const uint pkg) {
   const uint  ptr = (pkg >> 8);
   const uint  pId = pkg & 0xFF;
 
-  //const uint  primCnt  = pullPrimitiveCount(ptr);
   const uvec4 tri      = pullPrimitiveFull(ptr+MeshletHeaderSize, pId);
   const uint  ptrV     = ptr + MeshletHeaderSize + MaxPrim;
 
   //FIXME: register pressure
-  const Vertex a    = pullVertexFull(ptrV, tri.x);
-  const Vertex b    = pullVertexFull(ptrV, tri.y);
-  const Vertex c    = pullVertexFull(ptrV, tri.z);
+  //const Vertex a    = pullVertexFull(ptrV, tri.x);
+  //const Vertex b    = pullVertexFull(ptrV, tri.y);
+  //const Vertex c    = pullVertexFull(ptrV, tri.z);
+  const vec3  a   = pullVertex(ptrV, tri.x);
+  const vec3  b   = pullVertex(ptrV, tri.y);
+  const vec3  c   = pullVertex(ptrV, tri.z);
 
-  const vec4  tbb = bboxOf(a.pos.xy, b.pos.xy, c.pos.xy);
-  const float rz  = max(a.pos.z, max(b.pos.z, c.pos.z));
+  const vec4  tbb = bboxOf(a.xy, b.xy, c.xy);
+  const float rz  = max(a.z, max(b.z, c.z));
   if(!isPrimitiveVisible(tbb, rz)) {
     return;
     }
 
-  const uint bucketId = pullMeshBucketId(ptr);
-
   const uint id = atomicAdd(numLocalPrim, 1);
-  meshVertices[id*3+0] = a;
-  meshVertices[id*3+1] = b;
-  meshVertices[id*3+2] = c;
-  primitiveAreaInv[id] = 1.0/edgeFunction(a.pos.xy, b.pos.xy, c.pos.xy);
+  if(id>=primitives.length())
+    return;
+
+  const uint bucketId = pullMeshBucketId(ptr);
+  primitiveAreaInv[id] = 1.0/edgeFunction(a.xy, b.xy, c.xy);
   primitiveBucket [id] = packUint2x16(uvec2(bucketId,tri.w));
+  primitives      [id] = pkg;
   }
 
 shared uint inactiveRays;
@@ -167,9 +175,15 @@ float rasterBatch(const vec3 ray, float opacity) {
     return opacity;
 
   for(uint id=0; id<numLocalPrim; ++id) {
-    vec3  a  = meshVertices[id*3+0].pos;
-    vec3  b  = meshVertices[id*3+1].pos;
-    vec3  c  = meshVertices[id*3+2].pos;
+    const uint  pkg  = primitives[id];
+    const uint  ptr = (pkg >> 8);
+    const uint  pId = pkg & 0xFF;
+
+    const uvec4 tri  = pullPrimitiveFull(ptr+MeshletHeaderSize, pId);
+    const uint  ptrV = ptr + MeshletHeaderSize + MaxPrim;
+    const vec3  a    = pullVertex(ptrV, tri.x);
+    const vec3  b    = pullVertex(ptrV, tri.y);
+    const vec3  c    = pullVertex(ptrV, tri.z);
 
     float w0 = edgeFunction(b.xy, c.xy, ray.xy);
     float w1 = edgeFunction(c.xy, a.xy, ray.xy);
@@ -189,7 +203,10 @@ float rasterBatch(const vec3 ray, float opacity) {
     if((flags & BK_SOLID)==0) {
       const float lodBias  = log2((depth - ray.z)*128);
       const uint  bucketId = primitiveBucket[id] & 0xFFFF;
-      const float alpha    = sampleAlpha(bucketId, bc, areaInv, meshVertices[id*3+0].uv, meshVertices[id*3+1].uv, meshVertices[id*3+2].uv, lodBias);
+      const uint  aUV      = pullVertexUV(ptrV, tri.x);
+      const uint  bUV      = pullVertexUV(ptrV, tri.y);
+      const uint  cUV      = pullVertexUV(ptrV, tri.z);
+      const float alpha    = sampleAlpha(bucketId, bc, areaInv, aUV, bUV, cUV, lodBias);
       opacity *= (1.0-alpha);
       if(opacity<=minOpacity)
         break;
