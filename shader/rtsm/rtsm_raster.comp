@@ -14,7 +14,7 @@
 
 #define TRANSLUCENCY 1
 
-layout(local_size_x = 8, local_size_y = 8) in;
+layout(local_size_x = 16, local_size_y = 16) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
@@ -109,8 +109,8 @@ vec3 rayOrigin(const vec4 wpos, const vec4 offset) {
   return shPos.xyz;
   }
 
-// meshlet-data
-const  uint   MaxChunk = 64;
+// meshlet-data. should be 2kb for occupancy in 8x8 mode
+const  uint   MaxChunk = 128;
 shared Vertex meshVertices    [MaxChunk*3];
 shared uint   primitiveBucket [MaxChunk];
 shared float  primitiveAreaInv[MaxChunk];
@@ -160,14 +160,13 @@ void pullPrimitives(const uint pkg) {
   primitiveBucket [id] = packUint2x16(uvec2(bucketId,tri.w));
   }
 
-shared uint activeRays[NumThreads/32];
+shared uint inactiveRays;
 float rasterBatch(const vec3 ray, float opacity) {
   const uint laneID = gl_LocalInvocationIndex;
+  if(opacity<=minOpacity)
+    return opacity;
 
   for(uint id=0; id<numLocalPrim; ++id) {
-    if(opacity<=minOpacity)
-      break;
-
     vec3  a  = meshVertices[id*3+0].pos;
     vec3  b  = meshVertices[id*3+1].pos;
     vec3  c  = meshVertices[id*3+2].pos;
@@ -192,25 +191,25 @@ float rasterBatch(const vec3 ray, float opacity) {
       const uint  bucketId = primitiveBucket[id] & 0xFFFF;
       const float alpha    = sampleAlpha(bucketId, bc, areaInv, meshVertices[id*3+0].uv, meshVertices[id*3+1].uv, meshVertices[id*3+2].uv, lodBias);
       opacity *= (1.0-alpha);
+      if(opacity<=minOpacity)
+        break;
       } else {
       opacity = 0;
+      break;
       }
 #else
     opacity = 0;
+    break;
 #endif
     }
 
   if(opacity<=minOpacity)
-    atomicAnd(activeRays[laneID/32], ~(1u<<(laneID%32)));
+    atomicAdd(inactiveRays, 1);
   return opacity;
   }
 
 bool earlyOut() {
-  [[unroll]]
-  for(uint i=0; i<activeRays.length(); ++i)
-    if(activeRays[i]!=0)
-      return false;
-  return true;
+  return inactiveRays==NumThreads;
   }
 
 float tracePacket(const uvec2 tileHeader, const vec3 ray, float opacity) {
@@ -218,8 +217,8 @@ float tracePacket(const uvec2 tileHeader, const vec3 ray, float opacity) {
   const uint  numPrimitives = tileHeader.y & 0xFFFF;
   const uint  steps         = (numPrimitives + MaxChunk - 1)/MaxChunk;
 
-  if(opacity>minOpacity)
-    atomicOr(activeRays[laneID/32], 1u<<(laneID%32));
+  if(opacity<=minOpacity)
+    atomicAdd(inactiveRays, 1);
   barrier();
 
   for(uint s=0; s<steps; ++s) {
@@ -264,12 +263,9 @@ void main() {
   const float lamb   = imageLoad(outputImage, fragCoord).x;
 
   const vec4  wpos   = worldPos(fragCoord.xy, z) + vec4(normal*NormalBias, 0);
-  const vec3  ray    = rayOrigin(wpos);
-  const vec2  ray1   = rayOrigin(wpos, scene.vsmDdx).xy;
-  const vec2  ray2   = rayOrigin(wpos, scene.vsmDdy).xy;
+  const vec3  ray    = rayOrigin(wpos);s
 
-  if(gl_LocalInvocationIndex<activeRays.length())
-    activeRays[gl_LocalInvocationIndex] = 0;
+  inactiveRays = 0;
   rayBboxses(ray, lamb>minOpacity);
   barrier();
 
