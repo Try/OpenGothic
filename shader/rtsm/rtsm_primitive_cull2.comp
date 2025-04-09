@@ -92,30 +92,37 @@ bool isAabbVisible(const vec4 aabb, const float depthMax) {
   }
 
 // primitive-trace
-void processMeshletPrimitives(const uint ptr, const uint primCount, const uint laneID) {
-  if(laneID<primCount) {
-    uint ptrM = ptr;
+bool isPrimitiveVisible(const uint ptr, const uint primId) {
+  uint ptrM = ptr;
 
-    ptrM += MeshletHeaderSize;
-    const uvec3 tri = pullPrimitive(ptrM, laneID);
+  ptrM += MeshletHeaderSize;
+  const uvec3 tri = pullPrimitive(ptrM, primId);
 
-    ptrM += MaxPrim;
-    const vec3  a   = pullVertex(ptrM, tri.x);
-    const vec3  b   = pullVertex(ptrM, tri.y);
-    const vec3  c   = pullVertex(ptrM, tri.z);
-    const vec4  tbb = bboxOf(a.xy, b.xy, c.xy);
-    const float d   = max(a.z, max(b.z, c.z));
+  ptrM += MaxPrim;
+  const vec3  a   = pullVertex(ptrM, tri.x);
+  const vec3  b   = pullVertex(ptrM, tri.y);
+  const vec3  c   = pullVertex(ptrM, tri.z);
+  const vec4  tbb = bboxOf(a.xy, b.xy, c.xy);
+  const float d   = max(a.z, max(b.z, c.z));
 
-    if(!isAabbVisible(tbb, d))
-      return;
-
-    const uint id = atomicAdd(numPrimitives, 1);
-    if(id<primitives.length())
-      primitives[id] = packPrimitiveId(ptr, laneID);
-    }
+  return isAabbVisible(tbb, d);
   }
 
-void traceTile(const uint tilePtr, const uint visCount) {
+void processMeshletPrimitives(const uint ptr, const uint primCount, const uint primId, bool primary) {
+  if(primId>=primCount)
+    return;
+
+  if(!isPrimitiveVisible(ptr, primId))
+    return;
+
+  const uint id = atomicAdd(numPrimitives, 1);
+  if(primary && id<primitives.length())
+    primitives[id] = packPrimitiveId(ptr, primId);
+  else if(!primary)
+    pos.data[primListPtr + id] = packPrimitiveId(ptr, primId);
+  }
+
+void traceTile(const uint tilePtr, const uint visCount, bool primary) {
   const uint  laneID      = gl_LocalInvocationIndex;
   const uint  primPerStep = 32;
   const uint  meshPerStep = NumThreads / primPerStep;
@@ -126,23 +133,16 @@ void traceTile(const uint tilePtr, const uint visCount) {
     const uint primCnt = pullPrimitiveCount(ptr);
 
     for(uint r=laneMs; r<MaxPrim; r+=primPerStep)
-      processMeshletPrimitives(ptr, primCnt, r);
+      processMeshletPrimitives(ptr, primCnt, r, primary);
     }
   }
 
-void storeResultPrim() {
+void storeResultPrim(uint tilePtr, uint visCount) {
   const uint laneID = gl_LocalInvocationIndex;
   const uint badBit = (1u << 31);
 
-  if(numPrimitives>primitives.length()) {
-    imageStore(primitiveBins, ivec2(gl_WorkGroupID.xy), uvec4(NULL, badBit, 0,0));
-    imageDbg(numPrimitives);
-    return;
-    }
-
-  if(laneID==0) {
+  if(laneID==0)
     primListPtr = allocScratch(numPrimitives);
-    }
   barrier();
 
   imageDbg(numPrimitives);
@@ -151,8 +151,18 @@ void storeResultPrim() {
     imageStore(primitiveBins, ivec2(gl_WorkGroupID.xy), uvec4(primListPtr, badBit, 0,0));
     return;
     }
-
   imageStore(primitiveBins, ivec2(gl_WorkGroupID.xy), uvec4(primListPtr, numPrimitives, 0,0));
+
+  if(numPrimitives>primitives.length()) {
+    barrier();
+
+    numPrimitives = 0;
+    barrier();
+
+    traceTile(tilePtr, visCount, false);
+    return;
+    }
+
   for(uint i=laneID; i<numPrimitives; i+=NumThreads)
     pos.data[primListPtr + i] = primitives[i];
   }
@@ -270,8 +280,8 @@ void main() {
   tileBbox();
   barrier();
 
-  traceTile(tilePtr, visCount);
+  traceTile(tilePtr, visCount, true);
   barrier();
 
-  storeResultPrim();
+  storeResultPrim(tilePtr, visCount);
   }
