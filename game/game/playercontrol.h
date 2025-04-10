@@ -3,8 +3,10 @@
 #include "world/focus.h"
 #include "utils/keycodec.h"
 #include "constants.h"
+#include <libgamepad.hpp>
 
 #include <array>
+#include <memory>
 
 class DialogMenu;
 class InventoryMenu;
@@ -19,6 +21,9 @@ class PlayerControl final {
   public:
     PlayerControl(DialogMenu& dlg, InventoryMenu& inv);
     ~PlayerControl();
+
+    void handleButtonInput(std::shared_ptr<gamepad::device> dev);
+    void handleAxisInput(std::shared_ptr<gamepad::device> dev);
 
     void  onKeyPressed (KeyCodec::Action a, Tempest::Event::KeyType key, KeyCodec::Mapping mapping = KeyCodec::Mapping::Primary);
     void  onKeyReleased(KeyCodec::Action a, KeyCodec::Mapping mapping = KeyCodec::Mapping::Primary);
@@ -47,6 +52,8 @@ class PlayerControl final {
     bool  tickCameraMove(uint64_t dt);
 
   private:
+    std::shared_ptr<gamepad::hook> hook; // Hook für Gamepad-Ereignisse
+    
     enum WeaponAction : uint8_t {
       WeaponClose,
       WeaponMele,
@@ -61,7 +68,7 @@ class PlayerControl final {
       Weapon10,
 
       Last,
-      };
+    };
 
     enum FocusAction : uint8_t {
       ActForward=0,
@@ -71,7 +78,7 @@ class PlayerControl final {
       ActGeneric=4,
       ActMove   =5,
       ActKill   =6,
-      };
+    };
 
     using Action=KeyCodec::Action;
 
@@ -207,4 +214,4 @@ class PlayerControl final {
     /// @param actionMapping - the pressed/released action
     /// @param pressed - true if the key was pressed, false if it was released
     auto handleMovementAction(KeyCodec::ActionMapping actionMapping, bool pressed) -> void;
-  };
+};
