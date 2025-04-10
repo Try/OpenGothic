@@ -4,6 +4,7 @@
 #include <Tempest/UiOverlay>
 #include <Tempest/Application>
 
+#include "mainwindow.h"
 #include "utils/gthfont.h"
 #include "resources.h"
 #include "gothic.h"
@@ -51,7 +52,8 @@ struct ConsoleWidget::Overlay : public Tempest::UiOverlay {
     }
   };
 
-ConsoleWidget::ConsoleWidget() {
+ConsoleWidget::ConsoleWidget(const MainWindow& owner)
+  :mainWindow(owner) {
   updateSizeHint();
 
   setMargins(Margin(8,8,8,8));
@@ -111,7 +113,7 @@ void ConsoleWidget::paintEvent(PaintEvent& e) {
   p.drawRect(0,0,w(),h(),
              0,0,p.brush().w(),p.brush().h());
 
-  const float scale = Gothic::interfaceScale(this);
+  const float scale = Gothic::interfaceScale(&mainWindow);
   auto& fnt = Resources::font(scale);
   int   y   = h() - margins().bottom;
 

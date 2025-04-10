@@ -109,8 +109,10 @@ vec3 rayOrigin(const vec4 wpos, const vec4 offset) {
   return shPos.xyz;
   }
 
-// meshlet-data. should be 2kb for occupancy in 8x8 mode
-const  uint    MaxChunk = 64;
+// meshlet-data. should be around
+// 2kb for occupancy in 8x8 mode
+// 8kb for 16x16
+const  uint    MaxChunk = 128;
 shared VertexF meshVertices    [MaxChunk*3];
 shared uint    primitiveBucket [MaxChunk];
 shared float   primitiveAreaInv[MaxChunk];

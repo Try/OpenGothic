@@ -32,6 +32,7 @@ MainWindow::MainWindow(Device& device)
     atlas(device),renderer(swapchain),
     rootMenu(keycodec),inventory(keycodec),
     dialogs(inventory),document(keycodec),
+    console(*this),
 #if defined(__MOBILE_PLATFORM__)
     mobileUi(player),
 #endif
