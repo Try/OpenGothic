@@ -41,6 +41,12 @@ struct Vertex {
   uint uv;
   };
 
+struct VertexF {
+  vec2  pos;
+  float z;
+  uint  uv;
+  };
+
 uint pullPrimitivePkg(const uint ptr, const uint laneId) {
   uint bits = pos.data[ptr+laneId];
   return bits;
@@ -99,13 +105,13 @@ uint pullVertexUV(uint ptr, const uint laneId) {
   return pos.data[ptr+3];
   }
 
-Vertex pullVertexFull(uint ptr, const uint laneId) {
+VertexF pullVertexFull(uint ptr, const uint laneId) {
   ptr += 4*laneId;
 
-  Vertex ret;
+  VertexF ret;
   ret.pos.x = uintBitsToFloat(pos.data[ptr+0]);
   ret.pos.y = uintBitsToFloat(pos.data[ptr+1]);
-  ret.pos.z = uintBitsToFloat(pos.data[ptr+2]);
+  ret.z     = uintBitsToFloat(pos.data[ptr+2]);
   ret.uv    = pos.data[ptr+3];
   return ret;
   }

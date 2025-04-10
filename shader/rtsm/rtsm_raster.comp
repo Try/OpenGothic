@@ -110,11 +110,12 @@ vec3 rayOrigin(const vec4 wpos, const vec4 offset) {
   }
 
 // meshlet-data. should be 2kb for occupancy in 8x8 mode
-const  uint   MaxChunk = 64;
-shared Vertex meshVertices    [MaxChunk*3];
-shared uint   primitiveBucket [MaxChunk];
-shared float  primitiveAreaInv[MaxChunk];
-shared uint   numLocalPrim;
+const  uint    MaxChunk = 64;
+shared VertexF meshVertices    [MaxChunk*3];
+shared uint    primitiveBucket [MaxChunk];
+shared float   primitiveAreaInv[MaxChunk];
+shared uint    numLocalPrim;
+
 bool isPrimitiveVisible(const vec4 aabb, const float depthMax) {
   const vec4 rbbox = uintBitsToFloat(rayBbox);
   if(uintBitsToFloat(rayZmin) > depthMax)
@@ -140,12 +141,12 @@ void pullPrimitives(const uint pkg) {
   const uint  ptrV     = ptr + MeshletHeaderSize + MaxPrim;
 
   //FIXME: register pressure
-  const Vertex a    = pullVertexFull(ptrV, tri.x);
-  const Vertex b    = pullVertexFull(ptrV, tri.y);
-  const Vertex c    = pullVertexFull(ptrV, tri.z);
+  const VertexF a    = pullVertexFull(ptrV, tri.x);
+  const VertexF b    = pullVertexFull(ptrV, tri.y);
+  const VertexF c    = pullVertexFull(ptrV, tri.z);
 
   const vec4  tbb = bboxOf(a.pos.xy, b.pos.xy, c.pos.xy);
-  const float rz  = max(a.pos.z, max(b.pos.z, c.pos.z));
+  const float rz  = max(a.z, max(b.z, c.z));
   if(!isPrimitiveVisible(tbb, rz)) {
     return;
     }
@@ -167,9 +168,9 @@ float rasterBatch(const vec3 ray, float opacity) {
     return opacity;
 
   for(uint id=0; id<numLocalPrim; ++id) {
-    vec3  a  = meshVertices[id*3+0].pos;
-    vec3  b  = meshVertices[id*3+1].pos;
-    vec3  c  = meshVertices[id*3+2].pos;
+    vec2  a  = meshVertices[id*3+0].pos;
+    vec2  b  = meshVertices[id*3+1].pos;
+    vec2  c  = meshVertices[id*3+2].pos;
 
     float w0 = edgeFunction(b.xy, c.xy, ray.xy);
     float w1 = edgeFunction(c.xy, a.xy, ray.xy);
@@ -180,7 +181,10 @@ float rasterBatch(const vec3 ray, float opacity) {
 
     const float areaInv = primitiveAreaInv[id];
     const vec3  bc      = vec3(w0,w1,w2);
-    const float depth   = dot(vec3(a.z,b.z,c.z), bc)*areaInv;
+    const float aZ      = meshVertices[id*3+0].z;
+    const float bZ      = meshVertices[id*3+1].z;
+    const float cZ      = meshVertices[id*3+2].z;
+    const float depth   = dot(vec3(aZ,bZ,cZ), bc)*areaInv;
     if(depth <= ray.z)
       continue;
 
