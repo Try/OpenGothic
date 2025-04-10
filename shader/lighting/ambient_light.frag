@@ -11,15 +11,16 @@
 layout(binding  = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
-layout(binding  = 1) uniform sampler2D  gbufDiffuse;
+layout(binding  = 1) uniform texture2D  gbufDiffuse;
 layout(binding  = 2) uniform usampler2D gbufNormal;
 layout(binding  = 3) uniform texture2D  irradiance;
 #if defined(SSAO)
 layout(binding  = 4) uniform sampler2D ssao;
 #endif
 
-layout(location = 0) in  vec2 uv;
 layout(location = 0) out vec4 outColor;
+
+vec2 uv = gl_FragCoord.xy*scene.screenResInv;
 
 #if defined(SSAO)
 float textureSsao() { return textureLod(ssao, uv, 0).r; }

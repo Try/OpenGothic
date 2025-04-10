@@ -2,7 +2,6 @@
 
 #include <Tempest/Texture2d>
 #include <Tempest/Matrix4x4>
-#include <Tempest/DescriptorSet>
 #include <Tempest/UniformBuffer>
 
 #include "graphics/mesh/protomesh.h"

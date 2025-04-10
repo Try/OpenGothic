@@ -130,9 +130,8 @@ void World::createPlayer(std::string_view cls) {
   if(id==size_t(-1))
     return;
   std::string_view waypoint = wmatrix->startPoint().name;
-  auto             npc      = std::make_unique<Npc>(*this,id,waypoint);
-  npcPlayer = wobj.insertPlayer(std::move(npc),waypoint);
-  npcPlayer->setProcessPolicy(Npc::ProcessPolicy::Player);
+  auto             npc      = std::make_unique<Npc>(*this, id, waypoint, Npc::ProcessPolicy::Player);
+  npcPlayer = wobj.insertPlayer(std::move(npc), waypoint);
   game.script()->setInstanceNPC("HERO",*npcPlayer);
   }
 
@@ -576,8 +575,8 @@ void World::aiOutputSound(Npc &player, std::string_view msg) {
   wsound.aiOutput(player.position(),msg);
   }
 
-bool World::aiIsDlgFinished() {
-  return game.aiIsDlgFinished();
+bool World::isInDialog() const {
+  return game.isInDialog();
   }
 
 bool World::isTargeted(Npc& npc) {
@@ -691,20 +690,28 @@ Bullet& World::shootBullet(const Item &itm, const Npc &npc, const Npc *target, c
   return b;
   }
 
-void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, int32_t perc) {
-  wobj.sendPassivePerc(self,other,victum,nullptr,perc);
+void World::sendPassivePerc(Npc &self, Npc &other, int32_t perc) {
+  wobj.sendPassivePerc(self,other,nullptr,nullptr,perc);
   }
 
-void World::sendPassivePerc(Npc &self, Npc &other, Npc &victum, Item& item, int32_t perc) {
-  wobj.sendPassivePerc(self,other,victum,&item,perc);
+void World::sendPassivePerc(Npc& self, Npc& other, Npc& victim, int32_t perc) {
+  wobj.sendPassivePerc(self,other,&victim,nullptr,perc);
   }
 
-void World::sendImmediatePerc(Npc& self, Npc& other, Npc& victum, int32_t perc) {
-  wobj.sendImmediatePerc(self,other,victum,nullptr,perc);
+void World::sendPassivePerc(Npc& self, Npc& other, Npc& victim, Item& item, int32_t perc) {
+  wobj.sendPassivePerc(self,other,&victim,&item,perc);
   }
 
-void World::sendImmediatePerc(Npc& self, Npc& other, Npc& victum, Item& item, int32_t perc) {
-  wobj.sendImmediatePerc(self,other,victum,&item,perc);
+void World::sendPassivePerc(Npc &self, Npc &other, Item& item, int32_t perc) {
+  wobj.sendPassivePerc(self,other,nullptr,&item,perc);
+  }
+
+void World::sendImmediatePerc(Npc& self, Npc& other, Npc& victim, int32_t perc) {
+  wobj.sendImmediatePerc(self,other,victim,nullptr,perc);
+  }
+
+void World::sendImmediatePerc(Npc& self, Npc& other, Npc& victim, Item& item, int32_t perc) {
+  wobj.sendImmediatePerc(self,other,victim,&item,perc);
   }
 
 Sound World::addWeaponHitEffect(Npc& src, const Bullet* srcArrow, Npc& reciver) {
@@ -716,7 +723,7 @@ Sound World::addWeaponHitEffect(Npc& src, const Bullet* srcArrow, Npc& reciver) 
   pos.translate((p0+p1)*0.5f);
 
   const char* armor = "FL";
-  if(auto a = reciver.currentArmour()) {
+  if(auto a = reciver.currentArmor()) {
     auto m = ItemMaterial(a->handle().material);
     // NOTE: in vanilla only those sfx are defined for armor
     if(m==ItemMaterial::MAT_METAL || m==ItemMaterial::MAT_WOOD)
@@ -899,16 +906,34 @@ const WayPoint *World::findNextFreePoint(const Npc &npc, std::string_view name) 
   auto pos = npc.position();
   pos.y+=npc.translateY();
   auto cur = npc.currentWayPoint();
-  if(cur!=nullptr && !cur->checkName(name))
+  if(cur!=nullptr && !cur->checkName(name)) {
     cur = nullptr;
-  auto wp  = wmatrix->findFreePoint(pos,name,[cur,&npc](const WayPoint& wp) -> bool {
+    }
+  auto filter = [&](const WayPoint& wp) {
     if(wp.isLocked() || &wp==cur)
       return false;
     if(!npc.canRayHitPoint(Tempest::Vec3(wp.x,wp.y+10,wp.z),true))
       return false;
     return true;
-    });
+    };
+  auto wp  = wmatrix->findFreePoint(pos, name, filter);
   return wp;
+  }
+
+const WayPoint* World::findNextWayPoint(const Npc &npc) const {
+  auto pos = npc.position();
+  pos.y+=npc.translateY();
+
+  auto nearest = npc.currentWayPoint();
+  if(nearest==nullptr || nearest->isFreePoint()) {
+    nearest = findWayPoint(pos);
+    }
+  auto filter  = [&](const WayPoint& wp) {
+    if(!npc.canRayHitPoint(Tempest::Vec3(wp.x,wp.y+10,wp.z),true))
+      return false;
+    return nearest != &wp;
+    };
+  return nearest ? findWayPoint(pos, filter) : nullptr;
   }
 
 const WayPoint *World::findNextPoint(const WayPoint &pos) const {

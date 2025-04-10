@@ -15,7 +15,7 @@ layout(local_size_x = 1*8, local_size_y = 2*8) in;
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 vec2 inPos;
 #else
-layout(location = 0) in  vec2 inPos;
+vec2 inPos;
 layout(location = 0) out vec4 outColor;
 #endif
 
@@ -23,32 +23,34 @@ layout(location = 0) out vec4 outColor;
 // none
 #else
 layout(binding = 0) uniform sampler3D fogLut;
+layout(binding = 1) uniform sampler3D fogLutMs;
 #endif
 
-layout(binding = 1) uniform sampler2D depth;
+layout(binding = 2) uniform sampler2D depth;
 
-layout(binding = 2, std140) uniform UboScene {
+layout(binding = 3, std140) uniform UboScene {
   SceneDesc scene;
   };
 
+vec3 inverse(vec3 pos) {
+  vec4 ret = scene.viewProjectInv*vec4(pos,1.0);
+  return (ret.xyz/ret.w)/100.f;
+  }
+
 #if defined(VOLUMETRIC) && defined(GL_COMPUTE_SHADER)
-layout(binding = 3, r32ui) uniform writeonly restrict uimage2D occlusionLut;
+layout(binding = 4, r32ui) uniform writeonly restrict uimage2D occlusionLut;
 #elif defined(VOLUMETRIC)
-layout(binding = 3, r32ui) uniform readonly  restrict uimage2D occlusionLut;
+layout(binding = 4, r32ui) uniform readonly  restrict uimage2D occlusionLut;
 #endif
 
 #if defined(VOLUMETRIC) && !defined(VIRTUAL_SHADOW) && defined(GL_COMPUTE_SHADER)
-layout(binding = 4) uniform sampler2D textureSm1;
+layout(binding = 5) uniform sampler2D textureSm1;
 #endif
 
 #if defined(VOLUMETRIC) && defined(VIRTUAL_SHADOW) && defined(GL_COMPUTE_SHADER)
-layout(binding = 4) uniform utexture3D pageTbl;
-layout(binding = 5) uniform texture2D  pageData;
+layout(binding = 5) uniform utexture3D pageTbl;
+layout(binding = 6) uniform texture2D  pageData;
 #endif
-
-const float dFogMin = 0;
-//const float dFogMax = 1;
-const float dFogMax = 0.9999;
 
 #if defined(GL_COMPUTE_SHADER)
 uvec2 invocationID = gl_GlobalInvocationID.xy;
@@ -125,7 +127,6 @@ vec4 fog(vec2 uv, float z) {
     }
 #else
   vec3  scatteredLight = vec3(0.0);
-  float transmittance  = 1.0;
   vec4  prevVal        = textureLod(fogLut, vec3(uv,0), 0);
 #endif
 
@@ -156,11 +157,13 @@ vec4 fog(vec2 uv, float z) {
     const float dd  = (t*distZ)/(dist);
 
     const vec4  val = textureLod(fogLut, vec3(uv,dd), 0);
-    transmittance   = val.a;
     scatteredLight += (val.rgb-prevVal.rgb)*shadow;
     prevVal = val;
     }
-  return vec4(scatteredLight, transmittance);
+  const float d             = (distZ)/(dist);
+  const vec4  ms            = textureLod(fogLutMs, vec3(uv,d), 0);
+  const float transmittance = ms.a;
+  return vec4(scatteredLight+ms.rgb, transmittance);
 #endif
   }
 #else
@@ -170,13 +173,18 @@ vec4 fog(vec2 uv, float z) {
   float d1   = linearDepth(dFogMax, scene.clipInfo);
   float d    = (dZ-d0)/(d1-d0);
   // return vec4(debugColors[min(int(d*textureSize(fogLut,0).z), textureSize(fogLut,0).z-1)%MAX_DEBUG_COLORS], 0);
+
   return textureLod(fogLut, vec3(uv,d), 0);
   }
 #endif
 
 #if !defined(GL_COMPUTE_SHADER)
 void main_frag() {
-  vec2 uv     = inPos*vec2(0.5)+vec2(0.5);
+  const ivec2 size = textureSize(depth,0);
+  inPos = vec2(gl_FragCoord.xy)/vec2(size);
+  inPos = inPos*2.0 - vec2(1.0);
+
+  vec2 uv     = vec2(gl_FragCoord.xy)/vec2(size);
   vec3 view   = normalize(inverse(vec3(inPos,1.0)));
   vec3 sunDir = scene.sunDir;
 

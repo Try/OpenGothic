@@ -47,7 +47,7 @@ class Gothic final {
       bool     doMeshShading     = false;
       bool     doBindless        = false;
       bool     doVirtualShadow   = false;
-      bool     doVirtualFog      = false;
+      bool     doSoftwareShadow  = false;
       uint32_t swRenderingPreset = 0;
 
       uint32_t aaPreset          = 0;
@@ -116,6 +116,7 @@ class Gothic final {
     void         setMarvinEnabled(bool m);
 
     static auto  options() -> const Options&;
+    static float interfaceScale(const Tempest::Widget* w);
 
     bool         isGodMode() const { return godMode; }
     void         setGodMode(bool g) { godMode = g; }
@@ -129,7 +130,7 @@ class Gothic final {
     bool         doClock() const { return showTime; }
     void         setClock(bool t) { showTime = t; }
 
-    Tempest::Signal<void()> toggleGi;
+    Tempest::Signal<void()> toggleGi, toggleVsm, toggleRtsm;
 
     LoadState    checkLoading() const;
     bool         finishLoading();
@@ -149,14 +150,15 @@ class Gothic final {
     void         dialogExec  (const GameScript::DlgChoice& dlg, Npc& player, Npc& npc);
 
     void         openDialogPipe (Npc& player, Npc& npc, AiOuputPipe*& pipe);
-    bool         aiIsDlgFinished();
+    bool         isNpcInDialog(const Npc& npc) const;
+    bool         isInDialog() const;
 
     Tempest::Signal<void(std::string_view)>                             onStartGame;
     Tempest::Signal<void(std::string_view)>                             onLoadGame;
     Tempest::Signal<void(std::string_view,std::string_view)>            onSaveGame;
 
     Tempest::Signal<void(Npc&,Npc&,AiOuputPipe*&)>                      onDialogPipe;
-    Tempest::Signal<void(bool&)>                                        isDialogClose;
+    std::function<bool(const Npc*)>                                     isNpcInDialogFn;
 
     Tempest::Signal<void(std::string_view,int,int,int,const GthFont&)>  onPrintScreen;
     Tempest::Signal<void(std::string_view)>                             onPrint;

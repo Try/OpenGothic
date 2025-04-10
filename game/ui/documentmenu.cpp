@@ -49,7 +49,7 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
   if(!active)
     return;
 
-  const float scale = Gothic::options().interfaceScale;
+  const float scale = Gothic::interfaceScale(this);
   float mw = 0, mh = 0;
   for(auto& i:document.pages){
     auto back = Resources::loadTexture((i.flg&F_Backgr) ? i.img : document.img);
@@ -68,10 +68,10 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
   for(auto& i:document.pages) {
     const GthFont* fnt = nullptr;
     if(i.flg&F_Font)
-      fnt = &Resources::font(i.font); else
-      fnt = &Resources::font(document.font);
+      fnt = &Resources::font(i.font, Resources::FontType::Normal, scale); else
+      fnt = &Resources::font(document.font, Resources::FontType::Normal, scale);
     if(fnt==nullptr)
-      fnt = &Resources::font();
+      fnt = &Resources::font(scale);
     auto back = Resources::loadTexture((i.flg&F_Backgr) ? i.img : document.img);
     if(!back)
       continue;

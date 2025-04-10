@@ -6,208 +6,355 @@
 #extension GL_EXT_control_flow_attributes : enable
 
 #include "virtual_shadow/vsm_common.glsl"
+#include "virtual_shadow/epipolar_common.glsl"
+#include "sky/sky_common.glsl"
 #include "scene.glsl"
 #include "common.glsl"
 
-layout(local_size_x = 8, local_size_y = 8) in;
+layout(local_size_x = 128) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
-//layout(binding = 0, r32ui) uniform uimage2D   result;
-layout(binding = 0, rgba8)  uniform  image2D    result;
+layout(binding = 0)         uniform  writeonly  image2D result;
 layout(binding = 1)         uniform  texture2D  rayData;
-layout(binding = 2, std140) uniform  UboScene { SceneDesc scene; };
-layout(binding = 3, std430) readonly buffer Ep0 { Epipole epipole[]; };
+layout(binding = 2, std140) uniform  UboScene   { SceneDesc scene;     };
+layout(binding = 3, std430) readonly buffer Ep0 { Epipole   epipole[]; };
 layout(binding = 4)         uniform  texture2D  depth;
-layout(binding = 5)         uniform  utexture3D pageTbl;
-layout(binding = 6)         uniform  texture2D  pageData;
-layout(binding = 7)         uniform  sampler3D  fogLut;
+layout(binding = 5)         uniform  sampler2D  tLUT;
+layout(binding = 6)         uniform  sampler2D  cloudsLUT;
+layout(binding = 7)         uniform sampler3D   fogLut;
 
-const float dFogMin      = 0;
-const float dFogMax      = 0.9999;
 const uint  NumSlices    = 2*1024;
-const uint  NumSubSlices = 32;
 const uint  NumSamples   = 1024;
       ivec2 fragCoord    = ivec2(gl_GlobalInvocationID.xy);
       ivec2 viewportSize = textureSize(depth, 0);
 
-vec4 dbgColor = vec4(0);
+shared float shadowData[NumSamples];
+shared uint  shadowSqrt[32];
+shared uint  shadowMin, shadowMax;
 
-shared uint slicesBits[NumSlices/32];
-shared uint slicesTotal;
-//
-shared uint slices[NumSubSlices];
-//
-shared float shadowmap[NumSamples];
-//
-shared uint  fragments[64];
-shared uint  fragmentsTotal;
+shared ScatteringValues scattering[NumThreads];
 
+uint hash( uvec2 q ) {
+  const uint M1 = 1597334677U;
+  const uint M2 = 3812015801U;
 
-void dbgSliceCount() {
-  if(slicesTotal>=64)
-    imageStore(result, fragCoord, vec4(1,0,0,1));
-  else if(slicesTotal>=32)
-    imageStore(result, fragCoord, vec4(1,1,0,1));
-  else if(slicesTotal>=16)
-    imageStore(result, fragCoord, vec4(0,1,0,1));
-  else if(slicesTotal>=8)
-    imageStore(result, fragCoord, vec4(0,1,1,1));
-  else if(slicesTotal>=4)
-    imageStore(result, fragCoord, vec4(0,0,1,1));
-  else
-    imageStore(result, fragCoord, vec4(0,0,0,1));
+  q *= uvec2(M1, M2);
+  uint n = (q.x ^ q.y) * M1;
+  return n;
   }
 
-vec2 sunPosition2d() {
-  vec3 sun = scene.sunDir;
-  sun = (scene.viewProject*vec4(sun,0)).xyz;
-  sun.xy /= sun.z;
-  return sun.xy;
+float hashF(uvec2 q) {
+  return hash(q) * (1.0/float(0xffffffffU));
   }
 
-vec2 rayOrigin() {
-  vec2 sun  = sunPosition2d();
-  vec2 rpos = vec2(fragCoord)/vec2(viewportSize);
-  rpos  = rpos*2.0 - 1.0;
-
-  vec2 dv  = rpos - sun;
-  vec2 ret = vec2(0);
-  {
-    float d = (dv.x<0 ? -1 : +1) - sun.x;
-    ret = sun + dv*abs(d/dv.x);
-    if(-1<=ret.y && ret.y<=1)
-      return ret;
-  }
-  {
-    float d = (dv.y<0 ? -1 : +1) - sun.y;
-    ret = sun + dv*abs(d/dv.y);
-    if(-1<=ret.x && ret.x<=1)
-      return ret;
-  }
-  return vec2(-1);
-  }
-
-uint sliceId() {
-  const vec2  src   = rayOrigin();
-  const vec2  uv    = src*0.5+0.5;
+vec2 rayPosition2d(uint rayId) {
   const float ratio = float(viewportSize.x)/float(viewportSize.x+viewportSize.y);
   const uint  hor   = int(0.5*ratio*NumSlices);
   const uint  vert  = int(NumSlices)/2 - hor;
 
-  uint rayId = 0;
-  if(src.x < src.y && src.x > -src.y) {
+  if(rayId<hor) {
     // bottom
-    dbgColor = vec4(0,1,0,0);
-    return rayId + uint(uv.x * hor);
+    dbgColor = vec4(0,1,0,0)*((rayId+0.5)/float(hor));
+    return vec2((rayId+0.5)/float(hor), float(viewportSize.y-0.5)/float(viewportSize.y));
     }
-  rayId += hor;
+  rayId -= hor;
 
-  if(src.x > src.y && src.x < -src.y) {
+  if(rayId<hor) {
     // top
-    dbgColor = vec4(1,0,0,0);
-    return rayId + uint(uv.x * hor);
+    dbgColor = vec4(1,0,0,0)*((rayId+0.5)/float(hor));
+    return vec2((rayId+0.5)/float(hor), float(0.5)/float(viewportSize.y));
     }
-  rayId += hor;
+  rayId -= hor;
 
-  if(src.x < src.y && src.x < -src.y) {
+  if(rayId<vert) {
     // left
-    dbgColor = vec4(0,0,1,0);
-    return rayId + uint(uv.y * vert);
+    dbgColor = vec4(0,0,1,0)*(rayId+0.5)/float(vert);
+    return vec2(float(0.5)/float(viewportSize.x), (rayId+0.5)/float(vert));
     }
-  rayId += vert;
+  rayId -= vert;
 
   // right
-  dbgColor = vec4(1,0,1,0);
-  return rayId + uint(uv.y * vert);
+  dbgColor = vec4(1,0,1,0)*(rayId+0.5)/float(vert);
+  return vec2(float(viewportSize.x-0.5)/float(viewportSize.x), (rayId+0.5)/float(vert));
   }
 
-void allocSlice(uint s) {
-  uint mask = 1u << (s%32);
-  uint v    = atomicOr(slicesBits[s/32], mask);
-  if((v & mask)!=0)
-    return;
-
-  const uint id = atomicAdd(slicesTotal, 1);
-  if(id<slices.length())
-    slices[id] = s;
+vec3 project(mat4 m, vec3 pos) {
+  vec4 p = m*vec4(pos,1);
+  return p.xyz/p.w;
   }
 
-vec3 screenToShadow(vec3 scr) {
-  //TODO: optimize
-  const vec4 pos   = scene.viewProjectLwcInv   *vec4(scr,1);
-  const vec4 shPos = scene.viewVirtualShadowLwc*pos;
-  return shPos.xyz/shPos.w;
-  }
+void pullShadowmap(const uint sliceId) {
+  const uint laneID = gl_LocalInvocationIndex;
 
-void pullShadowSamples(uint slice) {
-  const uint lane = gl_LocalInvocationIndex;
+  if(laneID<shadowSqrt.length())
+    shadowSqrt[laneID] = 0;
+  shadowMax = 0;
+  shadowMin = 0xFFFFFFFF;
+  barrier();
 
-  for(uint i=lane; i<slicesBits.length(); i+=NumThreads) {
-    shadowmap[i] = texelFetch(rayData, ivec2(i, slice), 0).x;
+  for(uint i=laneID; i<NumSamples; i+=NumThreads) {
+    float v = texelFetch(rayData, ivec2(i, sliceId), 0).x;
+    shadowData[i] = v;
+    if(v==0.0)
+      ;//continue; // no shadow-data in this trfragment
+    atomicMax(shadowSqrt[i/32], floatBitsToUint(v));
+
+    atomicMin(shadowMin, floatBitsToUint(v));
+    atomicMax(shadowMax, floatBitsToUint(v));
     }
   }
 
-void trace(const vec2 inPos, const float z, ivec2 pix, const uint sliceId) {
-  const int  steps  = 256;
-  const vec3 shPos0 = screenToShadow(vec3(inPos.xy,0));
-  const vec3 shPos1 = screenToShadow(vec3(inPos.xy,z));
-  // const vec3  ray      = pos1.xyz - pos0.xyz;
-  // const float dist     = length(ray)*0.01;       // meters
+float shadowTest(vec3 pos, Epipole epipole) {
+  const vec2  rayA   = epipole.rayOrig;
+  const vec2  rayDir = epipole.rayDir;
+  const float tMin   = epipole.tMin;
+  const float tMax   = epipole.tMax;
 
-  const Epipole e      = epipole[sliceId];
-  const float   tMin   = e.tMin;
-  const float   tMax   = e.tMax;
-  const vec2    rayA   = e.rayOrig;
-  const vec2    rayDir = e.rayDir;
+  //const vec4 shPos = scene.viewVirtualShadowLwc*vec4(pos,1);
+  const vec3 shPos = pos;
+  float shV        = dot(shPos.xy - rayA, rayDir) / (tMax-tMin);
 
-  //uint occlusion = 0;
-  float occlusion = 0;
-  [[dont_unroll]]
-  for(uint i=0; i<steps; ++i) {
-    float t      = (i+0.3)/float(steps);
+  //const uint sliceId = gl_GlobalInvocationID.y;
+  //float sh = texelFetch(rayData, ivec2(shV*NumSamples, sliceId), 0).x;
+
+  float sh = shadowData[int(shV*shadowData.length())];
+  return sh < shPos.z ? 1 : 0;
+  }
+
+shared uint altitudeMin, altitudeMax;
+
+void pullScattering(const vec3 src, const vec3 dst) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  altitudeMin = 0xFFFFFFFF;
+  altitudeMax = 0;
+  barrier();
+
+  const float altitudeKM0 = (length(src));
+  const float altitudeKM1 = (length(dst));
+
+  atomicMin(altitudeMin, floatBitsToUint(min(altitudeKM0, altitudeKM1)));
+  atomicMax(altitudeMax, floatBitsToUint(max(altitudeKM0, altitudeKM1)));
+  barrier();
+
+  const float clouds = textureLod(cloudsLUT, vec2(scene.isNight,0), 0).a;
+  const float t      = (laneID+0.5)/NumThreads;
+
+  const float altitudeKM = (mix(uintBitsToFloat(altitudeMin), uintBitsToFloat(altitudeMax), t) - RPlanet) / 1000.0;
+
+  ScatteringValues sc = scatteringValues(altitudeKM, clouds);
+  if(sc.extinction==vec3(0))
+    sc.extinction = vec3(1);
+  scattering[laneID] = sc;
+  }
+
+vec3 _raymarchScattering(ivec2 pix, const uint sliceId, vec3 pos, vec3 rayDir, vec3 sunDir, float tMax, vec3 smPos, float tSmMax) {
+  const int numScatteringSteps = 32;
+
+  pullScattering(pos, pos + tMax*rayDir);
+  barrier();
+
+  const Epipole ex     = epipole[sliceId];
+  const vec3    shPos0 = (scene.viewVirtualShadowLwc*vec4(smPos,1)).xyz;
+  const vec3    shPos1 = (scene.viewVirtualShadowLwc*vec4(smPos + tSmMax*rayDir*100.0,1)).xyz;
+
+  const float cosTheta      = dot(rayDir, sunDir);
+  const float noise         = hashF(pix)/numScatteringSteps;
+  //const float noise         = interleavedGradientNoise(gl_GlobalInvocationID.xy)/numScatteringSteps;
+
+  const float phaseMie      = miePhase(cosTheta);
+  const float phaseRayleigh = rayleighPhase(-cosTheta);
+  const float clouds        = textureLod(cloudsLUT, vec2(scene.isNight,0), 0).a;
+
+  const float altitudeKM0   = (length(pos              )-RPlanet) / 1000.0;
+  const float altitudeKM1   = (length(pos + tMax*rayDir)-RPlanet) / 1000.0;
+
+  const float at0 = (uintBitsToFloat(altitudeMin) - RPlanet) / 1000.0;
+  const float at1 = (uintBitsToFloat(altitudeMax) - RPlanet) / 1000.0;
+
+  vec3  scatteredLight = vec3(0.0);
+  vec3  transmittance  = vec3(1.0);
+
+  for(int i=0; i<numScatteringSteps; ++i) {
+    float t      = (float(i+0.3)/numScatteringSteps);
+    float dt     = tMax/numScatteringSteps;
+
+    const float visibility = shadowTest(mix(shPos0, shPos1, t+noise), ex);
+    const float altitudeKM = mix(altitudeKM0, altitudeKM1, t);
+
+    // const ScatteringValues sc = scatteringValues(newPos, clouds, rayleighScatteringScale);
+    // const ScatteringValues sc = scatteringValues(altitudeKM, clouds, rayleighScatteringScale);
+
+    const int id = int(((altitudeKM-at0)/(at1-at0))*scattering.length());
+    const ScatteringValues sc = scattering[clamp(0, scattering.length()-1, id)];
+
+    vec3 newPos           = pos + t*tMax*rayDir;
+    vec3 transmittanceSun = textureLUT(tLUT, newPos, sunDir);
+    //vec3 psiMS            = textureLUT(mLUT, newPos, sunDir);
+    vec3 transmittanceSmp = exp(-dt*sc.extinction);
+
+    vec3 scatteringSmp = vec3(0);
+    //scatteringSmp += psiMS * (sc.rayleighScattering + sc.mieScattering); // accounted in fog-voxels
+    scatteringSmp += sc.rayleighScattering * phaseRayleigh * transmittanceSun * visibility;
+    scatteringSmp += sc.mieScattering      * phaseMie      * transmittanceSun * visibility;
+
+    // Integrated scattering within path segment.
+    // See slide 28 at http://www.frostbite.com/2015/08/physically-based-unified-volumetric-rendering-in-frostbite/
+    vec3 scatteringIntegral = (scatteringSmp - scatteringSmp * transmittanceSmp) / sc.extinction;
+
+    scatteredLight += scatteringIntegral*transmittance;
+    transmittance  *= transmittanceSmp;
+    }
+
+  return vec3(scatteredLight);
+  }
+
+vec3 raymarchScattering(ivec2 pix, const uint sliceId, vec3 pos, vec3 rayDir, vec3 sunDir, float tMax, vec3 smPos, float tSmMax) {
+  pullScattering(pos, pos + tMax*rayDir);
+  barrier();
+
+  const Epipole ex     = epipole[sliceId];
+  const vec3    shPos0 = (scene.viewVirtualShadowLwc*vec4(smPos,1)).xyz;
+  const vec3    shPos1 = (scene.viewVirtualShadowLwc*vec4(smPos + tSmMax*rayDir*100.0,1)).xyz;
+
+  const float   z      = texelFetch(depth, pix, 0).x;
+  const float   d0     = linearDepth(dFogMin, scene.clipInfo);
+  const float   dZ     = linearDepth(z,       scene.clipInfo);
+
+  const float cosTheta      = dot(rayDir, sunDir);
+  const float phaseMie      = miePhase(cosTheta);
+  const float phaseRayleigh = rayleighPhase(-cosTheta);
+  const float clouds        = textureLod(cloudsLUT, vec2(scene.isNight,0), 0).a;
+
+  const float altitudeKM0   = (length(pos              )-RPlanet) / 1000.0;
+  const float altitudeKM1   = (length(pos + tMax*rayDir)-RPlanet) / 1000.0;
+
+  const float at0 = (uintBitsToFloat(altitudeMin) - RPlanet) / 1000.0;
+  const float at1 = (uintBitsToFloat(altitudeMax) - RPlanet) / 1000.0;
+
+  vec3 pos1             = pos + 0.5*tMax*rayDir;
+  vec3 transmittanceSun = textureLUT(tLUT, pos1, sunDir); //FIXME
+
+  if(uintBitsToFloat(shadowMin) > max(shPos0.z, shPos1.z)) {
+    // full dark
+    // return vec3(0,1,0);
+    return vec3(0);
+    }
+
+  bool fastPath = false;
+  if(uintBitsToFloat(shadowMax) < min(shPos0.z, shPos1.z)) {
+    // full lit
+    fastPath = true;
+    //return vec3(0,0,1);
+    }
+
+  const int   numScatteringSteps = 32; //fastPath ? 8 : 32;
+  const float noise              = hashF(pix)/numScatteringSteps;
+
+  vec3 scatteredLight = vec3(0.0);
+  for(int i=0; i<numScatteringSteps; ++i) {
+    float t      = float(i)/numScatteringSteps + noise;
+    float dt     = tMax/numScatteringSteps;
     vec3  shPos  = mix(shPos0, shPos1, t);
-    float shV    = dot(shPos.xy - rayA, rayDir) / (tMax-tMin);
 
-    float sh     = texelFetch(rayData, ivec2(shV*NumSamples, sliceId), 0).x;
-    bool  shadow = (sh < shPos.z);
+    const float visibility = shadowTest(shPos, ex);
+    if(visibility<=0.0)
+      continue;
 
-    //occlusion = occlusion | ((shadow ? 1u : 0u) << uint(i));
-    occlusion += (shadow ? 1u : 0u);
+    const float altitudeKM = mix(altitudeKM0, altitudeKM1, t);
+    const int   id         = int(((altitudeKM-at0)/(at1-at0))*(scattering.length()-1));
+    const ScatteringValues sc = scattering[id];
+
+    vec3 newPos           = pos + t*tMax*rayDir;
+    vec3 transmittanceSun = textureLUT(tLUT, newPos, sunDir);
+    vec3 transmittanceSmp = exp(-dt*sc.extinction);
+
+    vec3 scatteringSmp = vec3(0);
+    scatteringSmp += sc.rayleighScattering * phaseRayleigh;
+    scatteringSmp += sc.mieScattering      * phaseMie;
+
+    scatteringSmp *= transmittanceSun * visibility;
+
+    // Integrated scattering within path segment.
+    // See slide 28 at http://www.frostbite.com/2015/08/physically-based-unified-volumetric-rendering-in-frostbite/
+    vec3 scatteringIntegral = (scatteringSmp - scatteringSmp * transmittanceSmp) / sc.extinction;
+
+    const float transmittance = textureLod(fogLut, vec3(vec2(pix+0.5)/vec2(viewportSize), dZ*t), 0).w;
+    scatteredLight += scatteringIntegral*transmittance;
     }
 
-  imageStore(result, pix, vec4(occlusion/float(steps)));
+  return vec3(scatteredLight);
+  }
+
+vec3 raymarch(const vec2 src, const vec2 dst, const uint sliceId, const float fragId) {
+  const float DirectSunLux      = scene.GSunIntensity;
+  const vec3  viewOrigin        = vec3(0.0, RPlanet+scene.plPosY, 0.0);
+  const float viewDistanceScale = 50;
+
+  const float a   = fragId;
+  const ivec2 pix = ivec2(mix(src, dst, a)*viewportSize);
+  const float z   = texelFetch(depth, pix, 0).x;
+
+  const float noise = interleavedGradientNoise(pix);
+  // return vec4(noise,noise,noise,1);
+
+  const float dMin   = 0;
+  const float dMax   = min(z.x, dFogMax);
+  const bool  isSky  = (z==1.0);
+  const vec2  inPos  = mix(src, dst, a)*2.0-1.0;
+  const vec3  pos0   = project(scene.viewProjectLwcInv, vec3(inPos,dMin));
+  const vec3  pos1   = project(scene.viewProjectLwcInv, vec3(inPos,dMax));
+
+  const vec3  viewPos    = viewOrigin;
+  const vec3  rayDir     = normalize(pos1 - pos0);
+  const vec3  sunDir     = scene.sunDir;
+
+  // const float planetDist = rayIntersect(viewPos, rayDir, RPlanet);
+  const float atmoDist   = rayIntersect(viewPos, rayDir, RAtmos);
+  const float groundDist = length(pos1-pos0)*0.01;  // meters
+  const float tMax       = min(atmoDist, groundDist*viewDistanceScale);
+  const float tSmMax     = min(atmoDist, groundDist);
+
+  return raymarchScattering(pix, sliceId, viewPos, rayDir, sunDir, tMax, pos0, tSmMax);
   }
 
 void main() {
-  const bool valid  = all(lessThan(fragCoord, viewportSize));
-  const vec2 inPos  = (vec2(fragCoord)/vec2(viewportSize))*2.0 - 1.0;
-  const uint lane   = gl_LocalInvocationIndex;
+  const uint sliceId = gl_GlobalInvocationID.y;
+  const uint fragId  = gl_GlobalInvocationID.x;
+  const uint sqrtID  = fragId/32;
+  const vec2 rpos    = rayPosition2d(sliceId, viewportSize, NumSlices);
+        vec2 sun     = sunPosition2d(scene)*0.5+0.5;
 
-  slicesTotal = 0;
-  for(uint i=lane; i<slicesBits.length(); i+=NumThreads) {
-    slicesBits[i] = 0;
+  if(sun.x<0) {
+    vec2  dvec = sun - rpos;
+    float k    = (0 - rpos.x)/dvec.x;
+    sun = rpos + dvec*k;
     }
+  if(sun.x>1) {
+    vec2  dvec = sun - rpos;
+    float k    = (1 - rpos.x)/dvec.x;
+    sun = rpos + dvec*k;
+    }
+  if(sun.y<0) {
+    vec2  dvec = sun - rpos;
+    float k    = (0 - rpos.y)/dvec.y;
+    sun = rpos + dvec*k;
+    }
+  if(sun.y>1) {
+    vec2  dvec = sun - rpos;
+    float k    = (1 - rpos.y)/dvec.y;
+    sun = rpos + dvec*k;
+    }
+
+  pullShadowmap(sliceId);
   barrier();
 
-  const uint  slice = valid ? sliceId() : 0xFFFFFFFF;
-  const float z     = valid ? min(texelFetch(depth, fragCoord, 0).x, dFogMax) : 0;
-  if(valid)
-    allocSlice(slice);
-  barrier();
+  const vec3 v = raymarch(rpos, sun, sliceId, (fragId+0.5)/float(NumSamples));
+  imageStore(result, ivec2(fragId, sliceId), vec4(v,1));
 
-  for(uint i=0; i<slicesTotal; ++i) {
-    const uint sx = slices[i];
-    fragmentsTotal = 0;
-    barrier();
-
-    pullShadowSamples(sx);
-    barrier();
-    if(sx==slice)
-      trace(inPos, z, fragCoord, slice);
-    }
-
-  if(valid) {
-    //dbgSliceCount();
+  if(false && gl_GlobalInvocationID.x%2==0) {
+    const vec3 d = debugColors[hash(gl_GlobalInvocationID.xy)%debugColors.length()];
+    imageStore(result, ivec2(fragId, sliceId), vec4(d,1));
     }
   }

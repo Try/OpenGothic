@@ -26,8 +26,11 @@ class LightSource final {
     void                 setRange(float r);
     void                 setRange(const std::vector<float>& rangeAniScale, float base, float fps, bool smooth);
 
+    void                 setEnabled(bool e);
+
     void                 update(uint64_t time);
     bool                 isDynamic() const;
+    bool                 isEnabled() const;
     float                currentRange() const { return curRgn; }
     const Tempest::Vec3& currentColor() const { return curClr; }
 
@@ -53,5 +56,7 @@ class LightSource final {
 
     Tempest::Vec3      curClr;
     float              curRgn = 0;
+
+    bool               enable = true;
   };
 

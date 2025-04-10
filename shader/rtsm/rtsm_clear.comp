@@ -1,0 +1,43 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+#include "rtsm_common.glsl"
+#include "scene.glsl"
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(push_constant, std140) uniform Push {
+  uint hasOmni;
+  };
+layout(binding = 0, r32ui)  uniform uimage3D    pageTbl;
+layout(binding = 1, std430)         buffer Rt   { RtsmHeader header; uvec2 visList[]; } rtsm;
+layout(binding = 2, std430)         buffer Pos  { uint alloc; uint data[];            } pos;
+layout(binding = 3, std430)         buffer Cbuf { uvec4 cmd; uint tiles[];            } largeTile;
+layout(binding = 4, std430)         buffer Lbuf { uint  count;                        } visLights;
+
+void main() {
+  if(gl_GlobalInvocationID==ivec3(0)) {
+    rtsm.header.visCount = 0;
+    rtsm.header.one1     = 1;
+    rtsm.header.one2     = 1;
+
+    pos.alloc            = 32; // reserve 0, for nullptr and meshlet-counter
+    pos.data[0]          = 0;  // num meshelts
+
+    largeTile.cmd        = uvec4(0,1,1,0);
+
+    if(hasOmni!=0) {
+      visLights.count = 0;
+      }
+    }
+
+  const ivec3 at   = ivec3(gl_GlobalInvocationID);
+  const ivec3 size = imageSize(pageTbl);
+  if(any(greaterThanEqual(at, size)))
+    return;
+
+  imageStore(pageTbl, at, uvec4(0xFFFFFFFF));
+  }

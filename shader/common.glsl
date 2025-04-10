@@ -100,11 +100,14 @@ void decodeBits(float v, out bool flt, out bool atst, out bool water) {
   water = (x & (1 << 3))!=0;
   }
 
+bool isGBufFlat(float v) {
+  int x = int(v*255+0.5);
+  return (x & (1 << 1))!=0;
+  }
+
 bool isGBufWater(float v) {
-  bool dummy   = false;
-  bool isWater = false;
-  decodeBits(v,dummy,dummy,isWater);
-  return isWater;
+  int x = int(v*255+0.5);
+  return (x & (1 << 3))!=0;
   }
 
 float packHiZ(float z) {
@@ -268,6 +271,14 @@ vec3 unpackR11G11B10E4F(uint rgb) {
 
 uint packUint2x16(uvec2 v){
   return (v.x & 0xFFFF) | ((v.y & 0xFFFF) << 16);
+  }
+
+uvec2 unpackUInt2x16(uint v) {
+  //NOTE: correct spelling `packUint2x16` is reserved by extensions
+  uvec2 ret;
+  ret.x = v & 0xFFFF;
+  ret.y = v >> 16;
+  return ret;
   }
 
 uint packUint4x8(uvec4 v){

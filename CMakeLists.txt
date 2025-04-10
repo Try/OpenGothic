@@ -45,6 +45,8 @@ target_link_libraries(${PROJECT_NAME} ${CMAKE_SOURCE_DIR}/lib/libgamepad/libgame
 if(WIN32)
   if(MSVC)
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup" )
+  elseif(${CMAKE_CXX_COMPILER_ID} MATCHES "Clang")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mwindows -lpthread")
   else()
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mwindows -lstdc++fs")
   endif()

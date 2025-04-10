@@ -87,10 +87,10 @@ class Resources final {
 
     static const Tempest::Sampler&   shadowSampler();
 
-    static const GthFont&            dialogFont();
-    static const GthFont&            font();
-    static const GthFont&            font(FontType type);
-    static const GthFont&            font(std::string_view fname,FontType type = FontType::Normal);
+    static const GthFont&            dialogFont(const float scale);
+    static const GthFont&            font(const float scale);
+    static const GthFont&            font(FontType type, const float scale);
+    static const GthFont&            font(std::string_view fname, FontType type, const float scale);
 
     static const Tempest::Texture2d& fallbackTexture();
     static const Tempest::Texture2d& fallbackBlack();
@@ -119,8 +119,8 @@ class Resources final {
     template<class V>
     static Tempest::VertexBuffer<V>  vbo(const V* data,size_t sz){ return inst->dev.vbo(data,sz); }
 
-    template<class V>
-    static Tempest::IndexBuffer<V>   ibo(const V* data,size_t sz){ return inst->dev.ibo(data,sz); }
+    template<class I>
+    static Tempest::IndexBuffer<I>   ibo(const I* data,size_t sz){ return inst->dev.ibo(data,sz); }
 
     static Tempest::StorageBuffer    ssbo(const void* data, size_t size)         { return inst->dev.ssbo(data,size); }
     static Tempest::StorageBuffer    ssbo(Tempest::Uninitialized_t, size_t size) { return inst->dev.ssbo(Tempest::Uninitialized,size); }
@@ -136,17 +136,21 @@ class Resources final {
       }
 
     static void resetRecycled(uint8_t fId);
-    static void recycle(Tempest::DescriptorSet&& ds);
+    static void recycle(Tempest::DescriptorArray&& arr);
     static void recycle(Tempest::StorageBuffer&& ssbo);
+    static void recycle(Tempest::StorageImage&& img);
+    static void recycle(Tempest::AccelerationStructure&& rtas);
 
     static std::vector<uint8_t>      getFileData(std::string_view name);
     static bool                      getFileData(std::string_view name, std::vector<uint8_t>& dat);
     static std::unique_ptr<zenkit::Read> getFileBuffer(std::string_view name);
+    static auto                      openReader(std::string_view name, std::unique_ptr<zenkit::Read>& read) -> std::unique_ptr<zenkit::ReadArchive>;
     static bool                      hasFile    (std::string_view fname);
 
     static const zenkit::Vfs&        vdfsIndex();
 
     static const Tempest::VertexBuffer<VertexFsq>& fsqVbo();
+    static const Tempest::IndexBuffer<uint16_t>&   cubeIbo();
 
   private:
     static Resources* inst;
@@ -185,7 +189,7 @@ class Resources final {
     Tempest::Sound        implLoadSoundBuffer(std::string_view name);
     Dx8::PatternList      implLoadDxMusic(std::string_view name);
     DmSegment*            implLoadMusicSegment(char const* name);
-    GthFont&              implLoadFont(std::string_view fname, FontType type);
+    GthFont&              implLoadFont(std::string_view fname, FontType type, const float scale);
     PfxEmitterMesh*       implLoadEmiterMesh(std::string_view name);
     const VobTree*        implLoadVobBundle(std::string_view name);
 
@@ -195,7 +199,7 @@ class Resources final {
     Tempest::StorageImage fbImg, fbImg3d;
 
     using BindK  = std::tuple<const Skeleton*,const ProtoMesh*>;
-    using FontK  = std::pair<const std::string,FontType>;
+    using FontK  = std::tuple<const std::string,FontType,float>;
 
     struct Hash {
       size_t operator()(const BindK& b) const {
@@ -228,10 +232,13 @@ class Resources final {
 
     std::vector<uint8_t>              fBuff, ddsBuf;
     Tempest::VertexBuffer<VertexFsq>  fsq;
+    Tempest::IndexBuffer<uint16_t>    cube;
 
     struct DeleteQueue {
-      std::vector<Tempest::DescriptorSet> ds;
-      std::vector<Tempest::StorageBuffer> ssbo;
+      std::vector<Tempest::StorageBuffer>   ssbo;
+      std::vector<Tempest::StorageImage>    img;
+      std::vector<Tempest::DescriptorArray> arr;
+      std::vector<Tempest::AccelerationStructure> rtas;
       };
     DeleteQueue recycled[MaxFramesInFlight];
     uint8_t     recycledId = 0;

@@ -11,6 +11,7 @@
 #include "graphics/pfx/pfxobjects.h"
 #include "graphics/sky/sky.h"
 #include "lightsource.h"
+#include "lightgroup.h"
 #include "sceneglobals.h"
 #include "visualobjects.h"
 
@@ -26,53 +27,44 @@ class WorldView {
 
     const LightSource&        mainLight() const;
     const Tempest::Vec3&      ambientLight() const;
+    std::pair<Tempest::Vec3, Tempest::Vec3> bbox() const;
 
     bool isInPfxRange(const Tempest::Vec3& pos) const;
 
     void tick(uint64_t dt);
 
+    void resetRendering();
+
     void preFrameUpdate(const Camera& camera, uint64_t tickCount, uint8_t fId);
+    void postFrameupdate();
+
     void prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
 
     void setGbuffer(const Tempest::Texture2d& diffuse,
                     const Tempest::Texture2d& norm);
     void setShadowMaps (const Tempest::Texture2d* shadow[]);
     void setVirtualShadowMap(const Tempest::ZBuffer& pageData,
-                             const Tempest::StorageImage& pageDataCs,
                              const Tempest::StorageImage& pageTbl,
                              const Tempest::StorageImage& pageHiZ,
                              const Tempest::StorageBuffer& pageList);
-    void setVsmSkyShadows(const Tempest::StorageImage& skyShadows);
-    void setSwRenderingImage(const Tempest::StorageImage& mainView);
     void setHiZ(const Tempest::Texture2d& hiZ);
     void setSceneImages(const Tempest::Texture2d& clr, const Tempest::Texture2d& depthAux, const Tempest::ZBuffer& depthNative);
 
-    void prepareUniforms();
-    void postFrameupdate();
-
-    void dbgLights        (DbgPainter& p) const;
-    void prepareSky       (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void prepareFog       (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void prepareIrradiance(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void prepareExposure  (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void dbgLights      (DbgPainter& p) const;
 
     bool updateLights();
     bool updateRtScene();
 
-    void updateFrustrum  (const Frustrum fr[]);
-    void visibilityPass (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, int pass);
-    void visibilityVsm  (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId, uint8_t layer);
-    void drawVsm        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId);
-    void drawSwr        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId);
-    void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawSky        (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawSunMoon    (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawFog        (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawWater      (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
-    void drawLights     (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t frameId);
+    void updateFrustrum (const Frustrum fr[]);
+    void visibilityPass (Tempest::Encoder<Tempest::CommandBuffer>& cmd, int pass);
+    void visibilityVsm  (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+
+    void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId, uint8_t layer);
+    void drawVsm        (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId);
+    void drawWater      (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t frameId);
 
     MeshObjects::Mesh   addView      (std::string_view visual, int32_t headTex, int32_t teethTex, int32_t bodyColor);
     MeshObjects::Mesh   addView      (const ProtoMesh* visual);
@@ -89,12 +81,18 @@ class WorldView {
     const SceneGlobals& sceneGlobals() const { return sGlobal; }
     const Sky&          sky() const { return gSky; }
     const Landscape&    landscape() const { return land; }
+    const LightGroup&   lights() const { return gLights; }
+    const DrawClusters& clusters() const;
+    const DrawCommands& drawCommands() const;
+    const DrawBuckets&  drawBuckets() const;
+    auto                instanceSsbo() const -> const Tempest::StorageBuffer&;
 
   private:
     const World&  owner;
+    std::pair<Tempest::Vec3, Tempest::Vec3> aabb;
     SceneGlobals  sGlobal;
     Sky           gSky;
-    LightGroup    lights;
+    LightGroup    gLights;
     VisualObjects visuals;
 
     MeshObjects   objGroup;

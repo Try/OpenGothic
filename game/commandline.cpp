@@ -133,6 +133,12 @@ CommandLine::CommandLine(int argc, const char** argv) {
       if(i<argc)
         isVsm = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
       }
+    else if(arg=="-rtsm") {
+      // not to document - debug only
+      ++i;
+      if(i<argc)
+        isRtSm = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
+      }
     else {
       Log::i("unreacognized commandline option: \"", arg, "\"");
       }
@@ -158,7 +164,7 @@ CommandLine::CommandLine(int argc, const char** argv) {
   gscript   = nestedPath({u"_work",u"Data",u"Scripts",   u"_compiled"},Dir::FT_Dir);
   gcutscene = nestedPath({u"_work",u"Data",u"Scripts",   u"content",u"CUTSCENE"},Dir::FT_Dir);
 
-  gmod    = TextCodec::toUtf16(std::string(mod));
+  gmod    = TextCodec::toUtf16(mod);
   if(!gmod.empty())
     gmod = nestedPath({u"system",gmod.c_str()},Dir::FT_File);
 

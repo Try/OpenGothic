@@ -42,14 +42,15 @@ void ChapterScreen::paintEvent(Tempest::PaintEvent &e) {
   p.drawRect(x,y,width,height,
              0,0,back->w(),back->h());
 
+  const float scale = Gothic::interfaceScale(this);
   {
-  auto& fnt = Resources::font("font_old_20_white.tga",Resources::FontType::Normal);
+  auto& fnt = Resources::font("font_old_20_white.tga",Resources::FontType::Normal,scale);
   auto  sz  = fnt.textSize(title);
   fnt.drawText(p,x+(width-sz.w)/2,y+50+int(fnt.pixelSize()),title);
   }
 
   {
-  auto& fnt = Resources::font();
+  auto& fnt = Resources::font(scale);
   auto  sz  = fnt.textSize(subTitle);
   fnt.drawText(p,x+(width-sz.w)/2,y+height-50,subTitle);
   }

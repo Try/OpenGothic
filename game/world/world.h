@@ -62,6 +62,7 @@ class World final {
     const WayPoint*      findFreePoint(const Tempest::Vec3& pos, std::string_view name) const;
 
     const WayPoint*      findNextFreePoint(const Npc& pos, std::string_view name) const;
+    const WayPoint*      findNextWayPoint(const Npc &npc) const;
     const WayPoint*      findNextPoint(const WayPoint& pos) const;
 
     const WayPoint&      startPoint() const;
@@ -143,7 +144,7 @@ class World final {
 
     AiOuputPipe*         openDlgOuput(Npc &player, Npc &npc);
     void                 aiOutputSound(Npc &player, std::string_view msg);
-    bool                 aiIsDlgFinished();
+    bool                 isInDialog() const;
 
     bool                 isTargeted (Npc& npc);
     Npc*                 addNpc     (std::string_view name, std::string_view     at);
@@ -162,11 +163,13 @@ class World final {
     Bullet&              shootBullet(const Item &itmId, const Npc& npc, const Npc* target, const Interactive* inter);
     Bullet&              shootSpell(const Item &itm, const Npc &npc, const Npc *target);
 
-    void                 sendPassivePerc  (Npc& self, Npc& other, Npc& victum, int32_t perc);
-    void                 sendPassivePerc  (Npc& self, Npc& other, Npc& victum, Item& item, int32_t perc);
+    void                 sendPassivePerc  (Npc& self, Npc& other, int32_t perc);
+    void                 sendPassivePerc  (Npc& self, Npc& other, Npc& victim, int32_t perc);
+    void                 sendPassivePerc  (Npc& self, Npc& other, Item& item, int32_t perc);
+    void                 sendPassivePerc  (Npc& self, Npc& other, Npc& victim, Item& item, int32_t perc);
 
-    void                 sendImmediatePerc(Npc& self, Npc& other, Npc& victum, int32_t perc);
-    void                 sendImmediatePerc(Npc& self, Npc& other, Npc& victum, Item& item, int32_t perc);
+    void                 sendImmediatePerc(Npc& self, Npc& other, Npc& victim, int32_t perc);
+    void                 sendImmediatePerc(Npc& self, Npc& other, Npc& victim, Item& item, int32_t perc);
 
     bool                 isInSfxRange(const Tempest::Vec3& pos) const;
     bool                 isInPfxRange(const Tempest::Vec3& pos) const;

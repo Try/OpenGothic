@@ -1,0 +1,81 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+#include "virtual_shadow/vsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 1024) in;
+
+layout(binding = 0, std430) buffer Pages { VsmHeader header; uint  pageList[]; } vsm;
+layout(binding = 1, r32ui)  uniform uimage3D pageTbl;
+layout(binding = 2, std430) buffer Omni  { uint pageTblOmni[]; };
+layout(binding = 3, std430) buffer PTmp  { uint size; uint  pageList[]; } vsmTmp;
+
+layout(binding = 4, r32ui)  uniform uimage2D dbg;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+shared uint pageListSize;
+shared uint pageList[VSM_MAX_PAGES];
+
+shared uint bits[(NumThreads+31)/32];
+
+uint bitCountShared(uint till) {
+  uint n = till/32;
+  uint f = till%32;
+  uint r = 0;
+  for(uint i=0; i<n; ++i)
+    r += bitCount(bits[i]);
+  r += bitCount(bits[n] & ((1u << f)-1u));
+  return r;
+  }
+
+void listPages(const uvec2 sz) {
+  const uint  lane     = gl_GlobalInvocationID.x;
+  const uint  pageData = lane<vsm.header.pageCount ? vsm.pageList[lane] : 0;
+  const uvec2 size     = unpackVsmPageSize(pageData);
+
+  if(lane<bits.length())
+    bits[lane] = 0;
+  barrier();
+
+  const bool valid = (sz==size);
+  if(valid)
+    atomicOr(bits[lane/32], 1u<<(lane%32));
+  barrier();
+
+  if(valid) {
+    uint id = pageListSize + bitCountShared(lane);
+    pageList[id] = pageData;
+    }
+  barrier();
+
+  if(valid)
+    atomicAdd(pageListSize, 1);
+  barrier();
+  }
+
+void store() {
+  const uint lane = gl_LocalInvocationIndex;
+
+  for(uint i=lane; i<VSM_MAX_PAGES; i+=NumThreads) {
+    vsmTmp.pageList[i] = (i<pageListSize) ? pageList[i] : 0;
+    }
+  }
+
+void main() {
+  pageListSize = 0;
+  barrier();
+
+  listPages(uvec2(4));
+  // listPages(uvec2(1, 4));
+  listPages(uvec2(2));
+  // listPages(uvec2(1, 2));
+  listPages(uvec2(1));
+
+  store();
+  }

@@ -45,10 +45,10 @@ class MdlVisual final {
     void                           delOverlay(const Skeleton*  sk);
     void                           clearOverlays();
 
-    void                           setArmour     (Npc& npc, MeshObjects::Mesh&& armour);
+    void                           setArmor      (Npc& npc, MeshObjects::Mesh&& armor);
     void                           setBody       (Npc& npc, MeshObjects::Mesh&& body, const int32_t version);
     void                           setSword      (MeshObjects::Mesh&& sword);
-    void                           setRangeWeapon(MeshObjects::Mesh&& bow);
+    void                           setRangedWeapon(MeshObjects::Mesh&& bow);
     void                           setShield     (MeshObjects::Mesh&& shield);
     void                           setAmmoItem   (MeshObjects::Mesh&& ammo, std::string_view bone);
     void                           setSlotItem   (MeshObjects::Mesh&& itm,  std::string_view bone);
@@ -100,6 +100,7 @@ class MdlVisual final {
     bool                           hasAnim        (std::string_view scheme) const;
     void                           stopWalkAnim   (Npc &npc);
     void                           setAnimRotate  (Npc &npc, int dir);
+    void                           setAnimWhirl   (Npc &npc, int dir);
 
     void                           interrupt();
     WeaponState                    fightMode() const { return fgtMode; }

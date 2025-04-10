@@ -144,7 +144,7 @@ std::pair<uint32_t, uint32_t> VisualObjects::Item::meshSlice() const {
 
 
 VisualObjects::VisualObjects(const SceneGlobals& scene, const std::pair<Vec3, Vec3>& bbox)
-    : scene(scene), drawCmd(*this, bucketsMem, clusters, scene) {
+    : scene(scene), drawCmd(*this, bucketsMem, clustersMem, scene) {
   objectsMorph.reserve(1024);
   }
 
@@ -164,9 +164,9 @@ void VisualObjects::updateInstance(size_t id, Matrix4x4* pos) {
 
   auto cId  = obj.clusterId;
   auto npos = Vec3(obj.pos[3][0], obj.pos[3][1], obj.pos[3][2]);
-  if(clusters[cId].pos != npos) {
-    clusters[cId].pos = npos;
-    clusters.markClusters(cId);
+  if(clustersMem[cId].pos != npos) {
+    clustersMem[cId].pos = npos;
+    clustersMem.markClusters(cId);
     }
   }
 
@@ -224,7 +224,7 @@ VisualObjects::Item VisualObjects::get(const StaticMesh& mesh, const Material& m
     return Item(); // null command
 
   obj.objInstance = instanceMem.alloc(sizeof(InstanceDesc));
-  clusters[obj.clusterId].instanceId = obj.objInstance.offsetId<InstanceDesc>();
+  clustersMem[obj.clusterId].instanceId = obj.objInstance.offsetId<InstanceDesc>();
 
   if(type==DrawCommands::Morph) {
     obj.objMorphAnim = instanceMem.alloc(sizeof(MorphDesc)*Resources::MAX_MORPH_LAYERS);
@@ -268,7 +268,7 @@ VisualObjects::Item VisualObjects::get(const AnimMesh& mesh, const Material& mat
     return Item(); // null command
   obj.animPtr     = anim.offsetId<Matrix4x4>();
   obj.objInstance = instanceMem.alloc(sizeof(InstanceDesc));
-  clusters[obj.clusterId].instanceId = obj.objInstance.offsetId<InstanceDesc>();
+  clustersMem[obj.clusterId].instanceId = obj.objInstance.offsetId<InstanceDesc>();
 
   updateInstance(id);
   updateRtAs(id);
@@ -320,7 +320,7 @@ void VisualObjects::free(size_t id) {
   const uint32_t numCluster = (obj.type==DrawCommands::Landscape ? meshletCount : 1);
 
   drawCmd.addClusters(obj.cmdId, -meshletCount);
-  clusters.free(obj.clusterId, numCluster);
+  clustersMem.free(obj.clusterId, numCluster);
 
   if(obj.wind==zenkit::AnimationType::NONE)
     objectsWind.erase(id);
@@ -346,6 +346,10 @@ bool VisualObjects::realloc(InstanceStorage::Id& id, size_t size) {
   return instanceMem.realloc(id, size);
   }
 
+void VisualObjects::resetRendering() {
+  return drawCmd.resetRendering();
+  }
+
 const Tempest::StorageBuffer& VisualObjects::instanceSsbo() const {
   return instanceMem.ssbo();
   }
@@ -354,7 +358,7 @@ uint32_t VisualObjects::clusterId(const PackedMesh::Cluster* cx, size_t firstMes
   if(commandId==uint16_t(-1))
     return uint32_t(-1);
 
-  const auto ret = clusters.alloc(cx, firstMeshlet, meshletCount, bucketId, commandId);
+  const auto ret = clustersMem.alloc(cx, firstMeshlet, meshletCount, bucketId, commandId);
   drawCmd.addClusters(commandId, uint32_t(meshletCount));
   return uint32_t(ret);
   }
@@ -363,7 +367,7 @@ uint32_t VisualObjects::clusterId(const DrawBuckets::Bucket& bucket, size_t firs
   if(commandId==uint16_t(-1))
     return uint32_t(-1);
 
-  const auto ret = clusters.alloc(bucket, firstMeshlet, meshletCount, bucketId, commandId);
+  const auto ret = clustersMem.alloc(bucket, firstMeshlet, meshletCount, bucketId, commandId);
   drawCmd.addClusters(commandId, uint32_t(meshletCount));
   return uint32_t(ret);
   }
@@ -450,42 +454,26 @@ void VisualObjects::setAsGhost(size_t id, bool g) {
 
   const uint32_t numCluster = (obj.type==DrawCommands::Landscape ? meshletCount : 1);
   for(size_t i=0; i<numCluster; ++i) {
-    clusters[obj.clusterId + i].commandId = obj.cmdId;
-    clusters[obj.clusterId + i].bucketId  = obj.bucketId.toInt();
-    clusters.markClusters(obj.clusterId + i);
+    clustersMem[obj.clusterId + i].commandId = obj.cmdId;
+    clustersMem[obj.clusterId + i].bucketId  = obj.bucketId.toInt();
+    clustersMem.markClusters(obj.clusterId + i);
     }
   }
 
-void VisualObjects::prepareUniforms() {
-  drawCmd.updateTasksUniforms();
-  drawCmd.prepareUniforms();
-  }
-
-void VisualObjects::prepareLigtsUniforms() {
-  drawCmd.prepareLigtsUniforms();
-  }
-
 void VisualObjects::prepareGlobals(Encoder<CommandBuffer>& enc, uint8_t fId) {
-  bool mem = instanceMem.commit(enc, fId);
-  bool buk = bucketsMem.commit(enc, fId);
-  bool cs  = clusters.commit(enc, fId);
-  bool cmd = drawCmd.commit(enc, fId);
-
-  if(cs)
-    drawCmd.updateTasksUniforms();
-
-  if(mem || buk|| cmd)
-    drawCmd.prepareUniforms();
-
-  drawCmd.updateUniforms(fId);
+  instanceMem.commit(enc, fId);
+  clustersMem.commit(enc, fId);
+  drawCmd.commit(enc);
+  if(bucketsMem.commit(enc, fId))
+    drawCmd.updateBindlessArrays();
   }
 
-void VisualObjects::preFrameUpdate(uint8_t fId) {
-  preFrameUpdateWind(fId);
-  preFrameUpdateMorph(fId);
+void VisualObjects::preFrameUpdate() {
+  preFrameUpdateWind();
+  preFrameUpdateMorph();
   }
 
-void VisualObjects::preFrameUpdateWind(uint8_t fId) {
+void VisualObjects::preFrameUpdateWind() {
   if(!scene.zWindEnabled)
     return;
 
@@ -528,7 +516,7 @@ void VisualObjects::preFrameUpdateWind(uint8_t fId) {
     }
   }
 
-void VisualObjects::preFrameUpdateMorph(uint8_t fId) {
+void VisualObjects::preFrameUpdateMorph() {
   for(auto it=objectsMorph.begin(); it!=objectsMorph.end(); ) {
     auto& obj = objects[*it];
 
@@ -566,51 +554,47 @@ void VisualObjects::preFrameUpdateMorph(uint8_t fId) {
     }
   }
 
-void VisualObjects::visibilityPass(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId, int pass) {
-  drawCmd.visibilityPass(cmd, fId, pass);
+void VisualObjects::visibilityPass(Tempest::Encoder<Tempest::CommandBuffer> &cmd, int pass) {
+  drawCmd.visibilityPass(cmd, pass);
   }
 
-void VisualObjects::visibilityVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  drawCmd.visibilityVsm(cmd, fId);
+void VisualObjects::visibilityVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
+  drawCmd.visibilityVsm(cmd);
   }
 
-void VisualObjects::drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+void VisualObjects::drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   // return;
-  drawCmd.drawCommon(cmd, fId, SceneGlobals::V_Main, Material::Multiply);
-  drawCmd.drawCommon(cmd, fId, SceneGlobals::V_Main, Material::Multiply2);
-  drawCmd.drawCommon(cmd, fId, SceneGlobals::V_Main, Material::Ghost);
-  drawCmd.drawCommon(cmd, fId, SceneGlobals::V_Main, Material::AdditiveLight);
-  drawCmd.drawCommon(cmd, fId, SceneGlobals::V_Main, Material::Transparent);
+  drawCmd.drawCommon(cmd, SceneGlobals::V_Main, Material::Multiply);
+  drawCmd.drawCommon(cmd, SceneGlobals::V_Main, Material::Multiply2);
+  drawCmd.drawCommon(cmd, SceneGlobals::V_Main, Material::Ghost);
+  drawCmd.drawCommon(cmd, SceneGlobals::V_Main, Material::AdditiveLight);
+  drawCmd.drawCommon(cmd, SceneGlobals::V_Main, Material::Transparent);
   }
 
-void VisualObjects::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
+void VisualObjects::drawWater(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
   // return;
-  drawCmd.drawCommon(cmd, fId, SceneGlobals::V_Main, Material::Water);
+  drawCmd.drawCommon(cmd, SceneGlobals::V_Main, Material::Water);
   }
 
-void VisualObjects::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd, uint8_t fId) {
+void VisualObjects::drawGBuffer(Tempest::Encoder<CommandBuffer>& cmd) {
   // return;
-  drawCmd.drawCommon(cmd, fId, SceneGlobals::V_Main, Material::Solid);
-  drawCmd.drawCommon(cmd, fId, SceneGlobals::V_Main, Material::AlphaTest);
+  drawCmd.drawCommon(cmd, SceneGlobals::V_Main, Material::Solid);
+  drawCmd.drawCommon(cmd, SceneGlobals::V_Main, Material::AlphaTest);
   }
 
-void VisualObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer) {
+void VisualObjects::drawShadow(Tempest::Encoder<Tempest::CommandBuffer>& cmd, int layer) {
   // return;
   auto view = SceneGlobals::VisCamera(SceneGlobals::V_Shadow0 + layer);
-  drawCmd.drawCommon(cmd, fId, view, Material::Solid);
-  drawCmd.drawCommon(cmd, fId, view, Material::AlphaTest);
+  drawCmd.drawCommon(cmd, view, Material::Solid);
+  drawCmd.drawCommon(cmd, view, Material::AlphaTest);
   }
 
-void VisualObjects::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  drawCmd.drawVsm(cmd, fId);
+void VisualObjects::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
+  drawCmd.drawVsm(cmd);
   }
 
-void VisualObjects::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  drawCmd.drawSwr(cmd, fId);
-  }
-
-void VisualObjects::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId) {
-  drawCmd.drawHiZ(cmd, fId);
+void VisualObjects::drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
+  drawCmd.drawHiZ(cmd);
   }
 
 void VisualObjects::notifyTlas(const Material& m, RtScene::Category cat) {

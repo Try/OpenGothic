@@ -16,11 +16,14 @@
 #include "game/definitions/particlesdefinitions.h"
 
 #include "world/objects/npc.h"
+#include "graphics/shaders.h"
 
 #include "utils/fileutil.h"
 #include "utils/inifile.h"
+#include "utils/gthfont.h"
 
 #include "commandline.h"
+#include "mainwindow.h"
 
 using namespace Tempest;
 using namespace FileUtil;
@@ -31,8 +34,6 @@ static bool hasMeshShader() {
   const auto& p = Resources::device().properties();
   if(p.meshlets.meshShader && p.meshlets.taskShader)
     return true;
-  if(p.meshlets.meshShaderEmulated)
-    ;//return true;
   return false;
   }
 
@@ -53,7 +54,7 @@ Gothic::Gothic() {
   if(opts.cameraFov<1.f) {
     opts.cameraFov = 67.5;
     }
-  opts.interfaceScale = systemPackIniFile->getF("INTERFACE","Scale",0);
+  opts.interfaceScale = systemPackIniFile->getF("INTERFACE","Scale",1);
   if(opts.interfaceScale<=0) {
     opts.interfaceScale = 1;
     }
@@ -88,10 +89,12 @@ Gothic::Gothic() {
     opts.doBindless = CommandLine::inst().isBindless();
     }
 
-  if(gpu.compute.maxInvocations>=1024 && gpu.render.maxClipCullDistances>=4 &&
-    gpu.render.maxViewportSize.w>=8192 && gpu.render.maxViewportSize.h>=8192) {
+  if(Shaders::isVsmSupported()) {
     opts.doVirtualShadow = CommandLine::inst().isVirtualShadow();
-    opts.doVirtualFog    = opts.doVirtualShadow;
+    }
+
+  if(Shaders::isRtsmSupported()) {
+    opts.doSoftwareShadow = CommandLine::inst().isSoftwareShadow();
     }
 
   opts.aaPreset = CommandLine::inst().aaPreset();
@@ -117,6 +120,7 @@ Gothic::Gothic() {
   // switch related language options
   defaults->set("GAME", "language", -1);
   defaults->set("GAME", "voice",    -1);
+  defaults->set("GAME", "scaleVideos", 1);
 
   defaults->set("SKY_OUTDOOR", "zSunName",   "unsun5.tga");
   defaults->set("SKY_OUTDOOR", "zSunSize",   200);
@@ -138,8 +142,8 @@ Gothic::Gothic() {
   defaults->set("SOUND", "musicVolume",   0.5f);
   defaults->set("SOUND", "soundVolume",   0.5f);
 
-  defaults->set("ENGINE", "zEnvMappingEnabled", 0);
-  defaults->set("ENGINE", "zCloudShadowScale",  0);
+  //defaults->set("ENGINE", "zEnvMappingEnabled", 0);
+  //defaults->set("ENGINE", "zCloudShadowScale",  0);
   defaults->set("ENGINE", "zWindEnabled",       1);
   defaults->set("ENGINE", "zWindCycleTime",     4);
   defaults->set("ENGINE", "zWindCycleTimeVar",  6);
@@ -188,7 +192,7 @@ Gothic::Gothic() {
     gameDatDef = modFile->getS("FILES","GAME");
     ouDef      = modFile->getS("FILES","OUTPUTUNITS");
 
-    std::u16string vdf = TextCodec::toUtf16(std::string(modFile->getS("FILES","VDF")));
+    std::u16string vdf = TextCodec::toUtf16(modFile->getS("FILES","VDF"));
     modFilter = modFile->has("FILES","VDF");
     for(size_t start = 0, split = 0; split != std::string::npos; start = split+1) {
       split = vdf.find(' ', start);
@@ -447,6 +451,19 @@ void Gothic::setMarvinEnabled(bool m) {
   isMarvin = m;
   }
 
+float Gothic::interfaceScale(const Tempest::Widget* w) {
+  float mul = 1;
+  if(instance->opts.interfaceScale>0.0)
+    mul = instance->opts.interfaceScale;
+
+  while(w->owner()!=nullptr) {
+    w = w->owner();
+    }
+  if(auto window = dynamic_cast<const MainWindow*>(w))
+    return window->uiScale() * mul;
+  return mul;
+  }
+
 const Gothic::Options& Gothic::options() {
   return instance->opts;
   }
@@ -550,7 +567,7 @@ void Gothic::cancelLoading() {
 
 void Gothic::tick(uint64_t dt) {
   if(pendingChapter){
-    if(aiIsDlgFinished()) {
+    if(!isInDialog()) {
       onIntroChapter(chapter);
       pendingChapter=false;
       }
@@ -593,10 +610,12 @@ void Gothic::openDialogPipe(Npc &player, Npc &npc, AiOuputPipe *&pipe) {
   onDialogPipe(player,npc,pipe);
   }
 
-bool Gothic::aiIsDlgFinished() {
-  bool v=true;
-  isDialogClose(v);
-  return v;
+bool Gothic::isNpcInDialog(const Npc& npc) const {
+  return isNpcInDialogFn(&npc);
+  }
+
+bool Gothic::isInDialog() const {
+  return isNpcInDialogFn(nullptr);
   }
 
 const FightAi& Gothic::fai() {
@@ -959,12 +978,12 @@ bool Gothic::playvideoex(std::string_view name, bool, bool) {
   }
 
 bool Gothic::printscreen(std::string_view msg, int posx, int posy, std::string_view font, int timesec) {
-  onPrintScreen(msg,posx,posy,timesec,Resources::font(font));
+  onPrintScreen(msg,posx,posy,timesec,Resources::font(font, Resources::FontType::Normal, 1));
   return false;
   }
 
 bool Gothic::printdialog(int, std::string_view msg, int posx, int posy, std::string_view font, int timesec) {
-  onPrintScreen(msg,posx,posy,timesec,Resources::font(font));
+  onPrintScreen(msg,posx,posy,timesec,Resources::font(font, Resources::FontType::Normal, 1));
   return false;
   }
 

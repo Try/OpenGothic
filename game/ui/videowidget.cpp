@@ -4,6 +4,7 @@
 #include <Tempest/TextCodec>
 #include <Tempest/Log>
 #include <Tempest/Application>
+#include <Tempest/Platform>
 
 #include "bink/video.h"
 #include "utils/fileutil.h"
@@ -170,6 +171,9 @@ VideoWidget::~VideoWidget() {
   }
 
 void VideoWidget::pushVideo(std::string_view filename) {
+  const int scaleVideos = Gothic::settingsGetI("GAME", "scaleVideos");
+  if(scaleVideos<0)
+    return;
   std::lock_guard<std::mutex> guard(syncVideo);
   pendingVideo.emplace(filename);
   hasPendingVideo.store(true);
@@ -230,6 +234,16 @@ void VideoWidget::keyDownEvent(KeyEvent& event) {
   }
 
 void VideoWidget::keyUpEvent(KeyEvent&) {
+  }
+
+void VideoWidget::mouseDownEvent(Tempest::MouseEvent& event) {
+  if(!active) {
+    event.ignore();
+    return;
+    }
+#if defined(__MOBILE_PLATFORM__)
+  stopVideo();
+#endif
   }
 
 void VideoWidget::stopVideo() {

@@ -163,6 +163,7 @@ void MenuRoot::keyRepeatEvent(Tempest::KeyEvent &e) {
   }
 
 void MenuRoot::keyDownEvent(KeyEvent &e) {
+  const float scale = Gothic::interfaceScale(this);
   size_t sz = std::extent_v<decltype(cheatCode)>;
   for(size_t i=1; i<sz; ++i)
     cheatCode[i-1] = cheatCode[i];
@@ -174,14 +175,14 @@ void MenuRoot::keyDownEvent(KeyEvent &e) {
      cheatCode[4]==Event::K_I &&
      cheatCode[5]==Event::K_N) {
     Gothic::inst().setMarvinEnabled(true);
-    auto& fnt = Resources::font();
+    auto& fnt = Resources::font(scale);
     Gothic::inst().onPrintScreen("MARVIN-MODE",2,4, 1,fnt);
     }
 
   if(cheatCode[sz-2]==Event::K_4 &&
      cheatCode[sz-1]==Event::K_2) {
     Gothic::inst().setMarvinEnabled(false);
-    auto& fnt = Resources::font();
+    auto& fnt = Resources::font(scale);
     Gothic::inst().onPrintScreen("WHAT WAS THE QUESTION?",2,4, 1,fnt);
     }
 

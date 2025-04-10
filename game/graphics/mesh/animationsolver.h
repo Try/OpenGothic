@@ -28,6 +28,8 @@ class AnimationSolver final {
       MoveR,
       RotL,
       RotR,
+      WhirlL,
+      WhirlR,
       Fall,
       FallDeep,
       FallDeepA,
@@ -68,6 +70,12 @@ class AnimationSolver final {
       ItmDrop,
 
       MagNoMana
+      };
+
+    enum TurnType : uint8_t {
+      Std = 0,
+      None,
+      Whirl,
       };
 
     struct Overlay final {

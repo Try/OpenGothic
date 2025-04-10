@@ -133,7 +133,6 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     dataGpu = device.ssbo(BufferHeap::Device,Tempest::Uninitialized,dataSize);
     dataGpu.update(dataCpu);
     std::memset(durty.data(), 0, durty.size()*sizeof(uint32_t));
-    prepareUniforms();
     return true;
     }
 
@@ -187,11 +186,9 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
     }
   std::memcpy(patchCpu.data(), patchBlock.data(), headerSize);
 
-  auto& d    = desc[fId];
   auto& path = patchGpu[fId];
   if(path.byteSize() < headerSize + payloadSize) {
-    path  = device.ssbo(BufferHeap::Upload, Uninitialized, headerSize + payloadSize);
-    prepareUniforms();
+    path = device.ssbo(BufferHeap::Upload, Uninitialized, headerSize + payloadSize);
     }
 
   {
@@ -202,7 +199,9 @@ bool InstanceStorage::commit(Encoder<CommandBuffer>& cmd, uint8_t fId) {
   //path.update(patchCpu);
 
   cmd.setFramebuffer({});
-  cmd.setUniforms(Shaders::inst().patch, d);
+  cmd.setBinding(0, dataGpu);
+  cmd.setBinding(1, path);
+  cmd.setPipeline(Shaders::inst().patch);
   cmd.dispatch(patchBlock.size());
   return false;
   }
@@ -316,22 +315,5 @@ void InstanceStorage::uploadMain() {
 
     patchGpu[uploadFId].update(patchCpu);
     uploadFId = -1;
-    }
-  }
-
-void InstanceStorage::prepareUniforms() {
-  auto& device = Resources::device();
-
-  for(uint8_t i=0; i<Resources::MaxFramesInFlight; ++i) {
-    auto& d     = desc[i];
-    auto& path  = patchGpu[i];
-    Resources::recycle(std::move(d));
-
-    if(dataGpu.isEmpty() || path.isEmpty())
-      continue;
-
-    d = device.descriptors(Shaders::inst().patch);
-    d.set(0, dataGpu);
-    d.set(1, path);
     }
   }

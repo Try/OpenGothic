@@ -10,6 +10,8 @@ struct SceneDesc {
   mat4  viewShadowLwc[2];
   mat4  viewVirtualShadow;
   mat4  viewVirtualShadowLwc;
+  mat4  viewProject2VirtualShadow;
+  vec4  vsmDdx, vsmDdy;
   mat4  view;
   mat4  project;
   mat4  projectInv;
@@ -31,7 +33,7 @@ struct SceneDesc {
   vec3  pfxTop;
   float luminanceMed; // for debugging
   vec3  pfxDepth;
-  //float padd3; // WORKAROUND: spirv-cross
+  float plPosY;
   ivec2 hiZTileSize;
   ivec2 screenRes;
   vec4  cloudsDir;
@@ -75,6 +77,11 @@ struct Cluster {
   uint  instanceId;
   };
 
+const uint BK_SOLID = 0x1;
+const uint BK_SKIN  = 0x2;
+const uint BK_MORPH = 0x4;
+const uint BK_WATER = 0x8;
+
 struct Bucket {
   vec4  bbox[2];
   ivec2 texAniMapDirPeriod;
@@ -82,6 +89,7 @@ struct Bucket {
   float waveMaxAmplitude;
   float alphaWeight;
   float envMapping;
+  uint  flags;
   };
 
 #endif

@@ -58,7 +58,6 @@ class InstanceStorage {
   private:
     void free(const Range& r);
     void uploadMain();
-    void prepareUniforms();
 
     struct Path {
       uint32_t dst;
@@ -76,8 +75,6 @@ class InstanceStorage {
 
     Tempest::StorageBuffer  dataGpu;
     std::vector<uint8_t>    dataCpu;
-
-    Tempest::DescriptorSet  desc[Resources::MaxFramesInFlight];
 
     std::thread             uploadTh;
     std::mutex              sync;

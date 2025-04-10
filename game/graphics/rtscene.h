@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Tempest/AccelerationStructure>
+#include <Tempest/DescriptorArray>
 #include <Tempest/StorageBuffer>
 #include <Tempest/Texture2d>
 
@@ -34,11 +35,10 @@ class RtScene {
     void buildTlas();
 
     Tempest::AccelerationStructure             tlas;
-    // Tempest::AccelerationStructure             tlasLand;
 
-    std::vector<const Tempest::Texture2d*>     tex;
-    std::vector<const Tempest::StorageBuffer*> vbo;
-    std::vector<const Tempest::StorageBuffer*> ibo;
+    Tempest::DescriptorArray                   tex;
+    Tempest::DescriptorArray                   vbo;
+    Tempest::DescriptorArray                   ibo;
     Tempest::StorageBuffer                     rtDesc;
 
   private:

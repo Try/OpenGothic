@@ -65,22 +65,25 @@ class VisualObjects final {
     bool                realloc(InstanceStorage::Id& id, size_t size);
     auto                instanceSsbo() const -> const Tempest::StorageBuffer&;
 
-    void prepareUniforms();
-    void prepareLigtsUniforms();
-    void preFrameUpdate (uint8_t fId);
+    const DrawClusters& clusters()     const { return clustersMem; }
+    const DrawCommands& drawCommands() const { return drawCmd; }
+    const DrawBuckets&  drawBuckets()  const { return bucketsMem; };
+
+    void resetRendering();
+
+    void preFrameUpdate ();
     void prepareGlobals (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
     void postFrameupdate();
 
-    void visibilityPass (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId, int pass);
-    void visibilityVsm  (Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
+    void visibilityPass (Tempest::Encoder<Tempest::CommandBuffer>& cmd, int pass);
+    void visibilityVsm  (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 
-    void drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void drawWater      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer);
-    void drawVsm        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void drawSwr        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawWater      (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawShadow     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, int layer);
+    void drawVsm        (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void drawHiZ        (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 
     bool updateRtScene(RtScene& out);
 
@@ -122,8 +125,8 @@ class VisualObjects final {
       bool                isGhost       = false;
       };
 
-    void     preFrameUpdateWind(uint8_t fId);
-    void     preFrameUpdateMorph(uint8_t fId);
+    void     preFrameUpdateWind();
+    void     preFrameUpdateMorph();
 
     size_t   implAlloc();
     void     free(size_t id);
@@ -145,7 +148,7 @@ class VisualObjects final {
 
     InstanceStorage            instanceMem;
     DrawBuckets                bucketsMem;
-    DrawClusters               clusters;
+    DrawClusters               clustersMem;
     DrawCommands               drawCmd;
 
     std::vector<Object>        objects;

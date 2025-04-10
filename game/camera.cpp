@@ -79,7 +79,7 @@ void Camera::changeZoom(int delta) {
   }
 
 void Camera::setViewport(uint32_t w, uint32_t h) {
-  const float fov = Gothic::inst().options().cameraFov;
+  const float fov = Gothic::options().cameraFov;
   proj.perspective(fov, float(w)/float(h), zNear(), zFar());
 
   // NOTE: usually depth bouds are from 0.95 to 1.0, resilting into ~805675 discrete values
@@ -879,7 +879,7 @@ void Camera::debugDraw(DbgPainter& p) {
     p.drawLine(src.target-ln, src.target+ln);
     }
 
-  auto& fnt = Resources::font();
+  auto& fnt = Resources::font(1.0);
   int   y   = 300+fnt.pixelSize();
 
   string_frm buf("RaysCasted: ",raysCasted);

@@ -13,21 +13,24 @@ layout(binding = 1) uniform sampler2D tLUT;
 layout(binding = 2) uniform sampler2D mLUT;
 layout(binding = 3) uniform sampler2D skyLUT;
 layout(binding = 4) uniform sampler3D fogLut;
+#if defined(SEPARABLE)
+layout(binding = 5) uniform sampler3D fogLutMs;
+#endif
 
-layout(binding = 5) uniform sampler2D textureDayL0;
-layout(binding = 6) uniform sampler2D textureDayL1;
-layout(binding = 7) uniform sampler2D textureNightL0;
-layout(binding = 8) uniform sampler2D textureNightL1;
+layout(binding = 6) uniform sampler2D textureDayL0;
+layout(binding = 7) uniform sampler2D textureDayL1;
+layout(binding = 8) uniform sampler2D textureNightL0;
+layout(binding = 9) uniform sampler2D textureNightL1;
 
-layout(location = 0) in  vec2 inPos;
 layout(location = 0) out vec4 outColor;
 
-/*
- * Final output basically looks up the value from the skyLUT, and then adds a sun on top,
- * does some tonemapping.
- */
+vec3 inverse(vec3 pos) {
+  vec4 ret = scene.viewProjectLwcInv*vec4(pos,1.0);
+  return (ret.xyz/ret.w)/100.f;
+  }
+
 vec3 atmosphere(vec3 view, vec3 sunDir) {
-  const vec3  viewPos = vec3(0.0, RPlanet + push.plPosY, 0.0);
+  const vec3  viewPos = vec3(0.0, RPlanet + scene.plPosY, 0.0);
   return textureSkyLUT(skyLUT, viewPos, view, sunDir);
   }
 
@@ -43,12 +46,8 @@ vec3 transmittance(vec3 pos0, vec3 pos1) {
     float dt     = dist/steps;
     vec3  newPos = pos0 + t*dir + vec3(0,RPlanet,0);
 
-    vec3  rayleighScattering = vec3(0);
-    vec3  extinction         = vec3(0);
-    float mieScattering      = float(0);
-    scatteringValues(newPos, 0, rayleighScattering, mieScattering, extinction);
-
-    transmittance *= exp(-dt*extinction);
+    const ScatteringValues sc = scatteringValues(newPos, 0);
+    transmittance *= exp(-dt*sc.extinction);
     }
   return transmittance;
   }
@@ -56,18 +55,16 @@ vec3 transmittance(vec3 pos0, vec3 pos1) {
 vec3 transmittanceAprox(in vec3 pos0, in vec3 pos1) {
   vec3 dir = pos1-pos0;
 
-  vec3  rayleighScattering = vec3(0);
-  float mieScattering      = float(0);
-  vec3  extinction0        = vec3(0);
-  vec3  extinction1        = vec3(0);
-  scatteringValues(pos0 + vec3(0,RPlanet,0), 0, rayleighScattering, mieScattering, extinction0);
-  scatteringValues(pos1 + vec3(0,RPlanet,0), 0, rayleighScattering, mieScattering, extinction1);
+  const ScatteringValues sc0 = scatteringValues(pos0 + vec3(0,RPlanet,0), 0);
+  const ScatteringValues sc1 = scatteringValues(pos1 + vec3(0,RPlanet,0), 0);
 
-  vec3  extinction         = extinction1;//-extinction0;
-  return exp(-length(dir)*extinction);
+  vec3  extinction = sc1.extinction;//-extinction0;
+  return exp(-length(dir)*sc0.extinction);
   }
 
 vec3 sky(vec2 uv, vec3 sunDir) {
+  const vec2 inPos  = (2.0*gl_FragCoord.xy)*scene.screenResInv - 1.0;
+
   vec3  pos  = vec3(0,RPlanet,0);
   vec3  pos1 = inverse(vec3(inPos,1.0));
   vec3  pos0 = inverse(vec3(inPos,0));
@@ -78,8 +75,10 @@ vec3 sky(vec2 uv, vec3 sunDir) {
   }
 
 vec3 applyClouds(vec3 skyColor) {
+  const vec2 inPos = (2.0*gl_FragCoord.xy)*scene.screenResInv - 1.0;
+
   float night    = scene.isNight;
-  vec3  plPos    = vec3(0,RPlanet+push.plPosY,0);
+  vec3  plPos    = vec3(0, RPlanet + scene.plPosY, 0);
   vec3  pos1     = inverse(vec3(inPos,1.0));
   vec3  viewDir  = normalize(pos1);
   return applyClouds(skyColor, skyLUT, plPos, scene.sunDir, viewDir, night,
@@ -88,12 +87,17 @@ vec3 applyClouds(vec3 skyColor) {
   }
 
 void main() {
-  vec2 uv      = inPos*vec2(0.5)+vec2(0.5);
+  const vec2 uv    = gl_FragCoord.xy*scene.screenResInv;
+  const vec2 inPos = (2.0*gl_FragCoord.xy)*scene.screenResInv - 1.0;
+
   vec3 view    = normalize(inverse(vec3(inPos,1.0)));
   vec3 sunDir  = scene.sunDir;
 
   // accounted in additive fog later
   vec3  maxFog = textureLod(fogLut, vec3(uv, textureSize(fogLut,0).z-1), 0).rgb;
+#if defined(SEPARABLE)
+  maxFog += textureLod(fogLutMs, vec3(uv, textureSize(fogLut,0).z-1), 0).rgb;
+#endif
   // Sky
   vec3  lum = sky(uv, sunDir) - maxFog;
   float tr  = 1.0;

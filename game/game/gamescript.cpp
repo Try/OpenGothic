@@ -50,7 +50,7 @@ bool GameScript::GlobalOutput::outputOv(Npc &npc, std::string_view text) {
   }
 
 bool GameScript::GlobalOutput::printScr(Npc& npc, int time, std::string_view msg, int x, int y, std::string_view font) {
-  auto& f = Resources::font(font);
+  auto& f = Resources::font(font, Resources::FontType::Normal, 1.0);
   Gothic::inst().onPrintScreen(msg,x,y,time,f);
   return true;
   }
@@ -159,6 +159,7 @@ void GameScript::initCommon() {
   bindExternal("npc_hasitems",                   &GameScript::npc_hasitems);
   bindExternal("npc_hasspell",                   &GameScript::npc_hasspell);
   bindExternal("npc_getinvitem",                 &GameScript::npc_getinvitem);
+  bindExternal("npc_getinvitembyslot",           &GameScript::npc_getinvitembyslot);
   bindExternal("npc_removeinvitem",              &GameScript::npc_removeinvitem);
   bindExternal("npc_removeinvitems",             &GameScript::npc_removeinvitems);
   bindExternal("npc_getbodystate",               &GameScript::npc_getbodystate);
@@ -169,6 +170,7 @@ void GameScript::initCommon() {
   bindExternal("npc_percenable",                 &GameScript::npc_percenable);
   bindExternal("npc_percdisable",                &GameScript::npc_percdisable);
   bindExternal("npc_getnearestwp",               &GameScript::npc_getnearestwp);
+  bindExternal("npc_getnextwp",                  &GameScript::npc_getnextwp);
   bindExternal("npc_clearaiqueue",               &GameScript::npc_clearaiqueue);
   bindExternal("npc_isplayer",                   &GameScript::npc_isplayer);
   bindExternal("npc_getstatetime",               &GameScript::npc_getstatetime);
@@ -195,6 +197,7 @@ void GameScript::initCommon() {
   bindExternal("npc_gettarget",                  &GameScript::npc_gettarget);
   bindExternal("npc_getnexttarget",              &GameScript::npc_getnexttarget);
   bindExternal("npc_sendpassiveperc",            &GameScript::npc_sendpassiveperc);
+  bindExternal("npc_sendsingleperc",             &GameScript::npc_sendsingleperc);
   bindExternal("npc_checkinfo",                  &GameScript::npc_checkinfo);
   bindExternal("npc_getportalguild",             &GameScript::npc_getportalguild);
   bindExternal("npc_isinplayersroom",            &GameScript::npc_isinplayersroom);
@@ -223,6 +226,7 @@ void GameScript::initCommon() {
   bindExternal("npc_isdetectedmobownedbyguild",  &GameScript::npc_isdetectedmobownedbyguild);
   bindExternal("npc_ownedbynpc",                 &GameScript::npc_ownedbynpc);
   bindExternal("npc_canseesource",               &GameScript::npc_canseesource);
+  bindExternal("npc_isincutscene",               &GameScript::npc_isincutscene);
   bindExternal("npc_getdisttoitem",              &GameScript::npc_getdisttoitem);
   bindExternal("npc_getheighttoitem",            &GameScript::npc_getheighttoitem);
   bindExternal("npc_getdisttoplayer",            &GameScript::npc_getdisttoplayer);
@@ -238,7 +242,9 @@ void GameScript::initCommon() {
   bindExternal("ai_lookatnpc",                   &GameScript::ai_lookatnpc);
   bindExternal("ai_removeweapon",                &GameScript::ai_removeweapon);
   bindExternal("ai_unreadyspell",                &GameScript::ai_unreadyspell);
+  bindExternal("ai_turnaway",                    &GameScript::ai_turnaway);
   bindExternal("ai_turntonpc",                   &GameScript::ai_turntonpc);
+  bindExternal("ai_whirlaround",                 &GameScript::ai_whirlaround);
   bindExternal("ai_outputsvm",                   &GameScript::ai_outputsvm);
   bindExternal("ai_outputsvm_overlay",           &GameScript::ai_outputsvm_overlay);
   bindExternal("ai_startstate",                  &GameScript::ai_startstate);
@@ -437,20 +443,25 @@ void GameScript::initDialogs() {
   }
 
 void GameScript::loadDialogOU() {
-  std::string prefix = std::string(Gothic::inst().defaultOutputUnits());
-  std::vector<std::string> names = {prefix + ".DAT", prefix + ".BIN"};
+  const std::string prefix = std::string(Gothic::inst().defaultOutputUnits());
+  const std::array<std::string,2> names = {prefix + ".DAT", prefix + ".BIN"};
 
-  for(auto OU:names) {
+  const auto version = Gothic::inst().version().game==1 ? zenkit::GameVersion::GOTHIC_1
+                                                        : zenkit::GameVersion::GOTHIC_2;
+
+  for(auto& OU:names) {
     if(Resources::hasFile(OU)) {
-      auto buf = Resources::getFileBuffer(OU);
-      dialogs.load(buf.get());
+      std::unique_ptr<zenkit::Read> read;
+      auto zen = Resources::openReader(OU, read);
+      dialogs = std::move(*zen->read_object<zenkit::CutsceneLibrary>(version));
       return;
       }
 
     const size_t segment = OU.find_last_of("\\/");
     if(segment!=std::string::npos && Resources::hasFile(OU.substr(segment+1))) {
-      auto buf = Resources::getFileBuffer(OU.substr(segment+1));
-      dialogs.load(buf.get());
+      std::unique_ptr<zenkit::Read> read;
+      auto zen = Resources::openReader(OU.substr(segment+1), read);
+      dialogs = std::move(*zen->read_object<zenkit::CutsceneLibrary>(version));
       return;
       }
 
@@ -467,7 +478,13 @@ void GameScript::loadDialogOU() {
 
     try {
       auto buf = zenkit::Read::from(full);
-      dialogs.load(buf.get());
+      if(buf==nullptr)
+        continue;
+      auto zen = zenkit::ReadArchive::from(buf.get());
+      if(zen==nullptr)
+        continue;
+      // auto zen = Resources::openReader(full);
+      dialogs = std::move(*zen->read_object<zenkit::CutsceneLibrary>(version));
       return;
       }
     catch(...){
@@ -959,48 +976,65 @@ void GameScript::printCannotBuyError(Npc &npc) {
 
 void GameScript::printMobMissingItem(Npc &npc) {
   auto id = vm.find_symbol_by_name("player_mob_missing_item");
-  if(id==nullptr)
+  if(id==nullptr) {
+    if(owner.version().game==1)
+      owner.player()->playAnimByName("T_DONTKNOW", BS_NONE);
     return;
+    }
   ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id);
   }
 
 void GameScript::printMobMissingKey(Npc& npc) {
   auto id = vm.find_symbol_by_name("player_mob_missing_key");
-  if(id==nullptr)
+  if(id==nullptr) {
+    if(owner.version().game==1)
+      owner.player()->playAnimByName("T_DONTKNOW", BS_NONE);
     return;
+    }
   ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id);
   }
 
 void GameScript::printMobAnotherIsUsing(Npc &npc) {
   auto id = vm.find_symbol_by_name("player_mob_another_is_using");
-  if(id==nullptr)
+  if(id==nullptr) {
+    if(owner.version().game==1)
+      owner.player()->playAnimByName("T_DONTKNOW", BS_NONE);
     return;
+    }
   ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id);
   }
 
 void GameScript::printMobMissingKeyOrLockpick(Npc& npc) {
   auto id = vm.find_symbol_by_name("player_mob_missing_key_or_lockpick");
-  if(id==nullptr)
+  if(id==nullptr) {
+    if(owner.version().game==1)
+      owner.player()->playAnimByName("T_DONTKNOW", BS_NONE);
     return;
+    }
   ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id);
   }
 
 void GameScript::printMobMissingLockpick(Npc& npc) {
   auto id = vm.find_symbol_by_name("player_mob_missing_lockpick");
-  if(id==nullptr)
+  if(id==nullptr) {
+    if(owner.version().game==1)
+      owner.player()->playAnimByName("T_DONTKNOW", BS_NONE);
     return;
+    }
   ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id);
   }
 
 void GameScript::printMobTooFar(Npc& npc) {
   auto id = vm.find_symbol_by_name("player_mob_too_far_away");
-  if(id==nullptr)
+  if(id==nullptr) {
+    owner.player()->playAnimByName("T_DONTKNOW", BS_NONE);
     return;
+    }
   ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(id);
   }
@@ -1021,8 +1055,9 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
   if(oth==nullptr){
     // oth=npc; //FIXME: PC_Levelinspektor?
     }
-  if(vic==nullptr)
-    vic=owner.player();
+  if(vic==nullptr){
+    // vic=owner.player();
+    }
 
   if(fn==ZS_Talk){
     if(oth==nullptr || !oth->isPlayer()) {
@@ -1033,7 +1068,7 @@ int GameScript::invokeState(Npc* npc, Npc* oth, Npc* vic, ScriptFn fn) {
 
   ScopeVar self  (*vm.global_self(),   npc != nullptr ? npc->handlePtr() : nullptr);
   ScopeVar other (*vm.global_other(),  oth != nullptr ? oth->handlePtr() : nullptr);
-  ScopeVar victum(*vm.global_victim(), vic != nullptr ? vic->handlePtr() : nullptr);
+  ScopeVar victim(*vm.global_victim(), vic != nullptr ? vic->handlePtr() : nullptr);
 
   auto* sym = vm.find_symbol_by_index(uint32_t(fn.ptr));
   int   ret = 0;
@@ -1132,7 +1167,7 @@ void GameScript::invokePickLock(Npc& npc, int bSuccess, int bBrokenOpen) {
   }
 
 void GameScript::invokeRefreshAtInsert(Npc& npc) {
-  if(B_RefreshAtInsert==nullptr)
+  if(B_RefreshAtInsert==nullptr || owner.version().game!=2)
     return;
   ScopeVar self(*vm.global_self(), npc.handlePtr());
   vm.call_function<void>(B_RefreshAtInsert);
@@ -1155,10 +1190,28 @@ CollideMask GameScript::canNpcCollideWithSpell(Npc& npc, Npc* shooter, int32_t s
   return CollideMask(vm.call_function<int>(fn, spellId));
   }
 
+// Gothic 1 only differentiates between the two worldmap types with and
+// without the orc addition and does this inside the code, not the script
+int GameScript::playerHotKeyScreenMap_G1(Npc& pl) {
+  size_t map = findSymbolIndex("itwrworldmap_orc");
+  if(map==size_t(-1) || pl.itemCount(map)<1)
+    map = findSymbolIndex("itwrworldmap");
+
+  if(map==size_t(-1) || pl.itemCount(map)<1)
+    return -1;
+
+  pl.useItem(map);
+
+  return int(map);
+  }
+
 int GameScript::playerHotKeyScreenMap(Npc& pl) {
   auto fn   = vm.find_symbol_by_name("player_hotkey_screen_map");
-  if(fn==nullptr)
+  if(fn==nullptr) {
+    if(owner.version().game==1)
+      return playerHotKeyScreenMap_G1(pl);
     return -1;
+    }
 
   ScopeVar self(*vm.global_self(), pl.handlePtr());
   int map = vm.call_function<int>(fn);
@@ -1242,12 +1295,13 @@ std::string_view GameScript::messageFromSvm(std::string_view id, int voice) cons
   }
 
 std::string_view GameScript::messageByName(std::string_view id) const {
-  auto* blk = dialogs.block_by_name(id);
-  if(blk == nullptr){
-    static std::string empty {};
-    return empty;
-    }
-  return blk->message.text;
+  auto blk = dialogs.block_by_name(id);
+  if(blk == nullptr)
+    return "";
+  auto msg = blk->get_message();
+  if(msg == nullptr)
+    return "";
+  return msg->text;
   }
 
 uint32_t GameScript::messageTime(std::string_view id) const {
@@ -1272,8 +1326,11 @@ uint32_t GameScript::messageTime(std::string_view id) const {
 
 void GameScript::printNothingToGet() {
   auto id = vm.find_symbol_by_name("player_plunder_is_empty");
-  if(id==nullptr)
+  if(id==nullptr) {
+    if(owner.version().game==1)
+      owner.player()->playAnimByName("T_DONTKNOW", BS_NONE);
     return;
+    }
   ScopeVar self(*vm.global_self(), owner.player()->handlePtr());
   vm.call_function<void>(id);
   }
@@ -1313,7 +1370,7 @@ Attitude GameScript::personAttitude(const Npc &p0, const Npc &p1) const {
   }
 
 bool GameScript::isFriendlyFire(const Npc& src, const Npc& dst) const {
-  static const int AIV_PARTYMEMBER = 15;
+  static const int AIV_PARTYMEMBER = (owner.version().game==2) ? 15 : 36;
   if(src.isPlayer())
     return false;
   if(src.isFriend())
@@ -2041,6 +2098,59 @@ int GameScript::npc_getinvitem(std::shared_ptr<zenkit::INpc> npcRef, int itemId)
   return -1;
   }
 
+// This seems specific to Gothic 1, where the inventory was grouped into categories.
+// In the shared inventory, these categories are just following one after the other.
+// So we should transform this to iterate over the different categories in the
+// shared inventory
+int GameScript::npc_getinvitembyslot(std::shared_ptr<zenkit::INpc> npcRef, int cat, int slotnr) {
+  auto npc = findNpc(npcRef);
+  if(npc==nullptr) {
+    storeItem(nullptr);
+    return 0;
+    }
+
+  // The category flag names were global, but for the scripts, only npc_getinvitembyslot
+  // ever used them, so as long as nobody implements the Gothic 1 inventory, they can
+  // be limited to the comments below.
+  ItmFlags f = ITM_CAT_NONE;
+  switch(cat) {
+    case 1: // INV_WEAPON
+      f = ItmFlags(ITM_CAT_NF|ITM_CAT_FF|ITM_CAT_MUN);
+      break;
+    case 2: // INV_ARMOR
+      f = ITM_CAT_ARMOR;
+      break;
+    case 3: // INV_RUNE
+      f = ITM_CAT_RUNE;
+      break;
+    case 4: // INV_MAGIC
+      f = ITM_CAT_MAGIC;
+      break;
+    case 5: // INV_FOOD
+      f = ITM_CAT_FOOD;
+      break;
+    case 6: // INV_POTION
+      f = ITM_CAT_POTION;
+      break;
+    case 7: // INV_DOC
+      f = ITM_CAT_DOCS;
+      break;
+    case 8: // INV_MISC
+      f = ItmFlags(ITM_CAT_LIGHT|ITM_CAT_NONE);
+      break;
+    default:
+      Log::e("Unknown item category ", cat);
+      storeItem(nullptr);
+      return 0;
+    }
+
+  auto itm = npc==nullptr ? nullptr : npc->inventory().findByFlags(f, uint32_t(slotnr));
+  // Store the found item in the global item var
+  storeItem(itm);
+
+  return itm!=nullptr ? int(itm->count()) : 0;
+  }
+
 int GameScript::npc_removeinvitem(std::shared_ptr<zenkit::INpc> npcRef, int itemId) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
@@ -2085,7 +2195,7 @@ int GameScript::npc_getdisttonpc(std::shared_ptr<zenkit::INpc> aRef, std::shared
 
 bool GameScript::npc_hasequippedarmor(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
-  return npc!=nullptr && npc->currentArmour()!=nullptr;
+  return npc!=nullptr && npc->currentArmor()!=nullptr;
   }
 
 void GameScript::npc_setperctime(std::shared_ptr<zenkit::INpc> npcRef, float sec) {
@@ -2109,6 +2219,14 @@ void GameScript::npc_percdisable(std::shared_ptr<zenkit::INpc> npcRef, int pr) {
 std::string GameScript::npc_getnearestwp(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   auto wp  = npc ? world().findWayPoint(npc->position()) : nullptr;
+  if(wp)
+    return wp->name;
+  return "";
+  }
+
+std::string GameScript::npc_getnextwp(std::shared_ptr<zenkit::INpc> npcRef) {
+  auto npc = findNpc(npcRef);
+  auto wp  = npc ? world().findNextWayPoint(*npc) : nullptr;
   if(wp)
     return wp->name;
   return "";
@@ -2174,16 +2292,16 @@ std::shared_ptr<zenkit::IItem> GameScript::npc_getequippedmeleeweapon(std::share
 
 std::shared_ptr<zenkit::IItem> GameScript::npc_getequippedrangedweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
-  if(npc!=nullptr && npc->currentRangeWeapon() != nullptr){
-    return npc->currentRangeWeapon()->handlePtr();
+  if(npc!=nullptr && npc->currentRangedWeapon() != nullptr) {
+    return npc->currentRangedWeapon()->handlePtr();
     }
   return nullptr;
   }
 
 std::shared_ptr<zenkit::IItem> GameScript::npc_getequippedarmor(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
-  if(npc!=nullptr && npc->currentArmour()!=nullptr){
-    return npc->currentArmour()->handlePtr();
+  if(npc!=nullptr && npc->currentArmor()!=nullptr) {
+    return npc->currentArmor()->handlePtr();
     }
   return nullptr;
   }
@@ -2224,7 +2342,7 @@ bool GameScript::npc_hasequippedweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   return (npc!=nullptr &&
      (npc->currentMeleeWeapon()!=nullptr ||
-      npc->currentRangeWeapon()!=nullptr));
+      npc->currentRangedWeapon()!=nullptr));
   }
 
 bool GameScript::npc_hasequippedmeleeweapon(std::shared_ptr<zenkit::INpc> npcRef) {
@@ -2234,7 +2352,7 @@ bool GameScript::npc_hasequippedmeleeweapon(std::shared_ptr<zenkit::INpc> npcRef
 
 bool GameScript::npc_hasequippedrangedweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
-  return npc!=nullptr && npc->currentRangeWeapon()!=nullptr;
+  return npc!=nullptr && npc->currentRangedWeapon()!=nullptr;
   }
 
 int GameScript::npc_getactivespell(std::shared_ptr<zenkit::INpc> npcRef) {
@@ -2350,12 +2468,22 @@ bool GameScript::npc_getnexttarget(std::shared_ptr<zenkit::INpc> npcRef) {
   }
 
 void GameScript::npc_sendpassiveperc(std::shared_ptr<zenkit::INpc> npcRef, int id, std::shared_ptr<zenkit::INpc> victimRef, std::shared_ptr<zenkit::INpc> otherRef) {
+  auto npc    = findNpc(npcRef);
   auto other  = findNpc(otherRef);
-  auto victum = findNpc(victimRef);
+  auto victim = findNpc(victimRef);
+
+  if(npc && other && victim)
+    world().sendPassivePerc(*npc,*other,*victim,id);
+  else if(npc && other)
+    world().sendPassivePerc(*npc,*other,id);
+  }
+
+void GameScript::npc_sendsingleperc(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::INpc> otherRef, int id) {
+  auto other  = findNpc(otherRef);
   auto npc    = findNpc(npcRef);
 
-  if(npc && other && victum)
-    world().sendPassivePerc(*npc,*other,*victum,id);
+  if(npc && other)
+    other->perceptionProcess(*npc,nullptr,0,PercType(id));
   }
 
 bool GameScript::npc_checkinfo(std::shared_ptr<zenkit::INpc> npcRef, int imp) {
@@ -2631,6 +2759,19 @@ bool GameScript::npc_canseesource(std::shared_ptr<zenkit::INpc> npcRef) {
   return self->canSeeSource();
   }
 
+// Used (only?) in Gothic 1 in B_AssessEnemy, to prevent attacks during cutscenes.
+bool GameScript::npc_isincutscene(std::shared_ptr<zenkit::INpc> npcRef) {
+  auto npc = findNpc(npcRef);
+  auto w = Gothic::inst().world();
+  if(w==nullptr)
+    return false;
+
+  if(npc!=nullptr && owner.isNpcInDialog(*npc))
+    return true;
+
+  return false;
+  }
+
 int GameScript::npc_getdisttoitem(std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::IItem> itmRef) {
   auto itm = findItem(itmRef.get());
   auto npc = findNpc(npcRef);
@@ -2774,11 +2915,25 @@ void GameScript::ai_unreadyspell(std::shared_ptr<zenkit::INpc> npcRef) {
     npc->aiPush(AiQueue::aiRemoveWeapon());
   }
 
+void GameScript::ai_turnaway(std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> npcRef) {
+  auto npc  = findNpc(npcRef);
+  auto self = findNpc(selfRef);
+  if(self!=nullptr)
+    self->aiPush(AiQueue::aiTurnAway(npc));
+  }
+
 void GameScript::ai_turntonpc(std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc  = findNpc(npcRef);
   auto self = findNpc(selfRef);
   if(self!=nullptr)
     self->aiPush(AiQueue::aiTurnToNpc(npc));
+  }
+
+void GameScript::ai_whirlaround(std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> npcRef) {
+  auto npc  = findNpc(npcRef);
+  auto self = findNpc(selfRef);
+  if(self!=nullptr)
+    self->aiPush(AiQueue::aiWhirlToNpc(npc));
   }
 
 void GameScript::ai_outputsvm(std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> targetRef, std::string_view name) {
@@ -2903,7 +3058,7 @@ int GameScript::ai_equipbestmeleeweapon(std::shared_ptr<zenkit::INpc> npcRef) {
 int GameScript::ai_equipbestrangedweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
-    npc->aiPush(AiQueue::aiEquipBestRangeWeapon());
+    npc->aiPush(AiQueue::aiEquipBestRangedWeapon());
   return 0;
   }
 
@@ -2942,7 +3097,7 @@ void GameScript::ai_readymeleeweapon(std::shared_ptr<zenkit::INpc> npcRef) {
 void GameScript::ai_readyrangedweapon(std::shared_ptr<zenkit::INpc> npcRef) {
   auto npc = findNpc(npcRef);
   if(npc!=nullptr)
-    npc->aiPush(AiQueue::aiReadyRangeWeapon());
+    npc->aiPush(AiQueue::aiReadyRangedWeapon());
   }
 
 void GameScript::ai_readyspell(std::shared_ptr<zenkit::INpc> npcRef, int spell, int mana) {
@@ -3058,7 +3213,7 @@ int GameScript::ai_printscreen(std::string_view msg, int posx, int posy, std::st
   if(npc==nullptr)
     npc = owner.player();
   if(npc==nullptr) {
-    Gothic::inst().onPrintScreen(msg,posx,posy,timesec,Resources::font(font));
+    Gothic::inst().onPrintScreen(msg,posx,posy,timesec,Resources::font(font,Resources::FontType::Normal,1.0));
     return 0;
     }
   npc->aiPush(AiQueue::aiPrintScreen(timesec,font,posx,posy,msg));
@@ -3181,7 +3336,7 @@ void GameScript::info_clearchoices(int infoInstance) {
   }
 
 bool GameScript::infomanager_hasfinished() {
-  return owner.aiIsDlgFinished();
+  return !owner.isInDialog();
   }
 
 void GameScript::snd_play(std::string_view fileS) {

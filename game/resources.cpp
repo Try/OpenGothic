@@ -62,6 +62,16 @@ Resources::Resources(Tempest::Device &device)
    }};
   fsq = Resources::vbo(fsqBuf.data(),fsqBuf.size());
 
+  static const uint16_t index[] = {
+      0, 1, 2, 0, 2, 3,
+      4, 6, 5, 4, 7, 6,
+      1, 5, 2, 2, 5, 6,
+      4, 0, 7, 7, 0, 3,
+      3, 2, 7, 7, 2, 6,
+      4, 5, 0, 0, 5, 1
+    };
+  cube = device.ibo(index, sizeof(index)/sizeof(index[0]));
+
   //sp = sphere(3,1.f);
 
   dxMusic.reset(new Dx8::DirectMusic());
@@ -217,6 +227,20 @@ std::unique_ptr<zenkit::Read> Resources::getFileBuffer(std::string_view name) {
   return entry->open_read();
   }
 
+std::unique_ptr<zenkit::ReadArchive> Resources::openReader(std::string_view name, std::unique_ptr<zenkit::Read>& read) {
+  const auto* entry = Resources::vdfsIndex().find(name);
+  if(entry == nullptr)
+    throw std::runtime_error("failed to open resource: " + std::string{name});
+  auto buf = entry->open_read();
+  if(buf == nullptr)
+    throw std::runtime_error("failed to open resource: " + std::string{name});
+  auto zen = zenkit::ReadArchive::from(buf.get());
+  if(zen == nullptr)
+    throw std::runtime_error("failed to open resource: " + std::string{name});
+  read = std::move(buf);
+  return zen;
+  }
+
 const char* Resources::renderer() {
   return inst->dev.properties().name;
   }
@@ -260,22 +284,22 @@ void Resources::detectVdf(std::vector<Archive>& ret, const std::u16string &root)
     });
   }
 
-const GthFont& Resources::dialogFont() {
-  return font("font_old_10_white.tga",FontType::Normal);
+const GthFont& Resources::dialogFont(const float scale) {
+  return font("font_old_10_white.tga",FontType::Normal,scale);
   }
 
-const GthFont& Resources::font() {
-  return font("font_old_10_white.tga",FontType::Normal);
+const GthFont& Resources::font(const float scale) {
+  return font("font_old_10_white.tga",FontType::Normal,scale);
   }
 
-const GthFont& Resources::font(Resources::FontType type) {
-  return font("font_old_10_white.tga",type);
+const GthFont& Resources::font(Resources::FontType type, const float scale) {
+  return font("font_old_10_white.tga",type,scale);
   }
 
-const GthFont& Resources::font(std::string_view fname, FontType type) {
+const GthFont& Resources::font(std::string_view fname, FontType type, const float scale) {
   if(fname.empty())
-    return font();
-  return inst->implLoadFont(fname,type);
+    return font(scale);
+  return inst->implLoadFont(fname, type, scale);
   }
 
 const Texture2d& Resources::fallbackTexture() {
@@ -300,6 +324,10 @@ const zenkit::Vfs& Resources::vdfsIndex() {
 
 const Tempest::VertexBuffer<Resources::VertexFsq> &Resources::fsqVbo() {
   return inst->fsq;
+  }
+
+const Tempest::IndexBuffer<uint16_t>& Resources::cubeIbo() {
+  return inst->cube;
   }
 
 int64_t Resources::vdfTimestamp(const std::u16string& name) {
@@ -478,28 +506,42 @@ std::unique_ptr<ProtoMesh> Resources::implLoadMeshMain(std::string name) {
       mdhName = name;
     FileExt::assignExt(mdhName,"MDH");
 
-    const auto* entry = Resources::vdfsIndex().find(mdhName);
-    if(entry==nullptr)
-      throw std::runtime_error("failed to open resource: " + mdhName);
+    if(const auto* entryMdh = Resources::vdfsIndex().find(mdhName)) {
+      // Find a MDH hirarchy file and separate mesh
+      zenkit::ModelHierarchy mdh;
+      auto reader = entryMdh->open_read();
+      mdh.load(reader.get());
 
-    zenkit::ModelHierarchy mdh;
-    auto reader = entry->open_read();
-    mdh.load(reader.get());
+      std::unique_ptr<Skeleton> sk{new Skeleton(mdh,anim,name)};
+      std::unique_ptr<ProtoMesh> t;
 
-    std::unique_ptr<Skeleton> sk{new Skeleton(mdh,anim,name)};
-    std::unique_ptr<ProtoMesh> t;
+      if(const auto* entry = Resources::vdfsIndex().find(mesh)) {
+        auto reader = entry->open_read();
 
-    if(const auto* entry = Resources::vdfsIndex().find(mesh)) {
-      auto reader = entry->open_read();
+        zenkit::ModelMesh mdm {};
+        mdm.load(reader.get());
+        t.reset(new ProtoMesh(mdm,std::move(sk),name));
+        }
+      else
+        t.reset(new ProtoMesh(mdh,std::move(sk),name));
 
-      zenkit::ModelMesh mdm {};
-      mdm.load(reader.get());
-      t.reset(new ProtoMesh(mdm,std::move(sk),name));
+      return t;
       }
-    else
-      t.reset(new ProtoMesh(mdh,std::move(sk),name));
 
-    return t;
+    // MDL files contain both the hirarchy and mesh, try to find one as a fallback
+    FileExt::exchangeExt(mdhName,"MDH","MDL");
+    if(const auto* entryMdl = Resources::vdfsIndex().find(mdhName)) {
+      if(entryMdl==nullptr)
+        throw std::runtime_error("failed to open resource: " + mdhName);
+
+      zenkit::Model mdm;
+      auto reader = entryMdl->open_read();
+      mdm.load(reader.get());
+
+      std::unique_ptr<Skeleton> sk{new Skeleton(mdm.hierarchy,anim,name)};
+      std::unique_ptr<ProtoMesh> t{new ProtoMesh(mdm,std::move(sk),name)};
+      return t;
+      }
     }
 
   if(FileExt::hasExt(name,"MDM") || FileExt::hasExt(name,"ASC")) {
@@ -652,7 +694,7 @@ std::unique_ptr<Animation> Resources::implLoadAnimation(std::string name) {
   }
 
 Dx8::PatternList Resources::implLoadDxMusic(std::string_view name) {
-  auto u = Tempest::TextCodec::toUtf16(std::string(name));
+  auto u = Tempest::TextCodec::toUtf16(name);
   return dxMusic->load(u.c_str());
   }
 
@@ -683,11 +725,11 @@ Tempest::Sound Resources::implLoadSoundBuffer(std::string_view name) {
     }
   }
 
-GthFont &Resources::implLoadFont(std::string_view name, FontType type) {
+GthFont &Resources::implLoadFont(std::string_view name, FontType type, const float scale) {
   std::lock_guard<std::recursive_mutex> g(inst->syncFont);
 
-  auto cname = std::string(name);
-  auto it    = gothicFnt.find(std::make_pair(cname,type));
+  auto key   = FontK(std::string(name), type, scale);
+  auto it    = gothicFnt.find(key);
   if(it!=gothicFnt.end())
     return *(*it).second;
 
@@ -738,14 +780,14 @@ GthFont &Resources::implLoadFont(std::string_view name, FontType type) {
     // throw std::runtime_error("failed to open resource: " + std::string{fnt});
     auto ptr   = std::make_unique<GthFont>();
     GthFont* f = ptr.get();
-    gothicFnt[std::make_pair(std::move(cname),type)] = std::move(ptr);
+    gothicFnt[key] = std::move(ptr);
     return *f;
     }
 
   auto ptr   = std::make_unique<GthFont>(*entry->open_read(),tex,color);
-  ptr->setScale(Gothic::options().interfaceScale);
   GthFont* f = ptr.get();
-  gothicFnt[std::make_pair(std::move(cname),type)] = std::move(ptr);
+  f->setScale(scale);
+  gothicFnt[key] = std::move(ptr);
   return *f;
   }
 
@@ -904,15 +946,17 @@ const Resources::VobTree* Resources::loadVobBundle(std::string_view name) {
 void Resources::resetRecycled(uint8_t fId) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   inst->recycledId = fId;
-  inst->recycled[fId].ds.clear();
   inst->recycled[fId].ssbo.clear();
+  inst->recycled[fId].img.clear();
+  inst->recycled[fId].arr.clear();
+  inst->recycled[fId].rtas.clear();
   }
 
-void Resources::recycle(Tempest::DescriptorSet&& ds) {
-  if(ds.isEmpty())
+void Resources::recycle(Tempest::DescriptorArray &&arr) {
+  if(arr.isEmpty())
     return;
   std::lock_guard<std::recursive_mutex> g(inst->sync);
-  inst->recycled[inst->recycledId].ds.emplace_back(std::move(ds));
+  inst->recycled[inst->recycledId].arr.emplace_back(std::move(arr));
   }
 
 void Resources::recycle(Tempest::StorageBuffer&& ssbo) {
@@ -920,6 +964,20 @@ void Resources::recycle(Tempest::StorageBuffer&& ssbo) {
     return;
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   inst->recycled[inst->recycledId].ssbo.emplace_back(std::move(ssbo));
+  }
+
+void Resources::recycle(Tempest::StorageImage&& img) {
+  if(img.isEmpty())
+    return;
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  inst->recycled[inst->recycledId].img.emplace_back(std::move(img));
+  }
+
+void Resources::recycle(Tempest::AccelerationStructure&& rtas) {
+  if(rtas.isEmpty())
+    return;
+  std::lock_guard<std::recursive_mutex> g(inst->sync);
+  inst->recycled[inst->recycledId].rtas.emplace_back(std::move(rtas));
   }
 
 const Resources::VobTree* Resources::implLoadVobBundle(std::string_view filename) {

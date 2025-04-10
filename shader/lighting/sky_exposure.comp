@@ -84,7 +84,7 @@ vec3 skyIrradiance() {
   }
 
 void main() {
-  minSkyLuminance = 0;
+  minSkyLuminance = 0xFFFFFFFF;
   maxSkyLuminance = 0;
   barrier();
 

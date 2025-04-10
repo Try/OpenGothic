@@ -18,7 +18,7 @@ class AiQueue {
     struct AiAction final {
       Action            act   =AI_None;
       Npc*              target=nullptr;
-      Npc*              victum=nullptr;
+      Npc*              victim=nullptr;
       const WayPoint*   point =nullptr;
       Item*             item  =nullptr;
       ScriptFn          func  =0;
@@ -46,10 +46,12 @@ class AiQueue {
     static AiAction aiLookAtNpc(Npc* other);
     static AiAction aiStopLookAt();
     static AiAction aiRemoveWeapon();
+    static AiAction aiTurnAway (Npc *other);
     static AiAction aiTurnToNpc(Npc *other);
+    static AiAction aiWhirlToNpc(Npc *other);
     static AiAction aiGoToNpc  (Npc *other);
     static AiAction aiGoToNextFp(std::string_view fp);
-    static AiAction aiStartState(ScriptFn stateFn, int behavior, Npc *other, Npc* victum, std::string_view wp);
+    static AiAction aiStartState(ScriptFn stateFn, int behavior, Npc *other, Npc* victim, std::string_view wp);
     static AiAction aiPlayAnim(std::string_view ani);
     static AiAction aiPlayAnimBs(std::string_view ani, BodyState bs);
     static AiAction aiWait(uint64_t dt);
@@ -59,14 +61,14 @@ class AiQueue {
     static AiAction aiEquipArmor(int32_t id);
     static AiAction aiEquipBestArmor();
     static AiAction aiEquipBestMeleeWeapon();
-    static AiAction aiEquipBestRangeWeapon();
+    static AiAction aiEquipBestRangedWeapon();
     static AiAction aiUseMob(std::string_view name,int st);
     static AiAction aiUseItem(int32_t id);
     static AiAction aiUseItemToState(int32_t id, int32_t state);
     static AiAction aiTeleport(const WayPoint& to);
     static AiAction aiDrawWeapon();
     static AiAction aiReadyMeleeWeapon();
-    static AiAction aiReadyRangeWeapon();
+    static AiAction aiReadyRangedWeapon();
     static AiAction aiReadySpell(int32_t spell, int32_t mana);
     static AiAction aiAttack();
     static AiAction aiFlee();

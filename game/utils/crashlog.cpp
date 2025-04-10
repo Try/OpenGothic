@@ -69,6 +69,9 @@ static void terminateHandler() {
       std::snprintf(msg,sizeof(msg),"DeviceLostException(%s)",e.what());
       extGpuLog = e.log();
       }
+    catch (Tempest::BadTextureCastException& e) {
+      std::snprintf(msg,sizeof(msg),"BadTextureCastException(%s)",e.what());
+      }
     catch (std::system_error& e) {
       std::snprintf(msg,sizeof(msg),"std::system_error(%s)",e.what());
       }
@@ -80,6 +83,9 @@ static void terminateHandler() {
       }
     catch (std::bad_alloc& e) {
       std::snprintf(msg,sizeof(msg),"std::bad_alloc(%s)",e.what());
+      }
+    catch (std::exception& e) {
+      std::snprintf(msg,sizeof(msg),"std::exception(%s)",e.what());
       }
     catch (...) {
       }

@@ -22,8 +22,10 @@ class Shaders {
       };
 
     static Shaders& inst();
+    static bool isVsmSupported();
+    static bool isRtsmSupported();
 
-    Tempest::RenderPipeline  lights, lightsRq;
+    Tempest::RenderPipeline  lights, lightsRq, lightsVsm;
     Tempest::RenderPipeline  directLight,  directLightSh, directLightRq;
     Tempest::RenderPipeline  ambientLight, ambientLightSsao;
 
@@ -39,12 +41,12 @@ class Shaders {
 
     // Scalable and Production Ready Sky and Atmosphere
     Tempest::RenderPipeline  skyTransmittance, skyMultiScattering;
-    Tempest::RenderPipeline  skyViewLut, skyViewCldLut, sky;
+    Tempest::RenderPipeline  skyViewLut, skyViewCldLut, sky, skySep;
     Tempest::RenderPipeline  fog;
     Tempest::RenderPipeline  fog3dHQ;
     Tempest::RenderPipeline  sun;
     Tempest::ComputePipeline cloudsLut, fogOcclusion;
-    Tempest::ComputePipeline fogViewLut3d;
+    Tempest::ComputePipeline fogViewLut3d, fogViewLutSep;
     Tempest::ComputePipeline skyExposure;
 
     Tempest::RenderPipeline  skyPathTrace;
@@ -61,11 +63,10 @@ class Shaders {
 
     // HiZ
     Tempest::ComputePipeline hiZPot, hiZMip;
-    Tempest::RenderPipeline  hiZReproj;
 
     // Cluster
     Tempest::ComputePipeline clusterInit, clusterPatch;
-    Tempest::ComputePipeline clusterTaskSh, clusterTaskHiZ, clusterTaskHiZCr;
+    Tempest::ComputePipeline visibilityPassSh, visibilityPassHiZ, visibilityPassHiZCr;
 
     // GI
     Tempest::RenderPipeline  probeDbg, probeHitDbg;
@@ -75,15 +76,28 @@ class Shaders {
     Tempest::RenderPipeline  probeAmbient;
 
     // Virtual shadow
-    Tempest::ComputePipeline vsmClusterTask;
-    Tempest::ComputePipeline vsmClear, vsmClearPages, vsmMarkPages;
-    Tempest::ComputePipeline vsmTrimPages, vsmListPages, vsmClumpPages, vsmAllocPages, vsmMergePages;
+    Tempest::ComputePipeline vsmVisibilityPass;
+    Tempest::ComputePipeline vsmClear, vsmClearOmni, vsmCullLights, vsmMarkPages, vsmMarkOmniPages, vsmPostprocessOmni;
+    Tempest::ComputePipeline vsmTrimPages, vsmSortPages, vsmListPages, vsmClumpPages, vsmAllocPages, vsmAlloc2Pages, vsmMergePages;
     Tempest::ComputePipeline vsmPackDraw0, vsmPackDraw1;
     Tempest::ComputePipeline vsmFogEpipolar, vsmFogPages, vsmFogShadow, vsmFogSample, vsmFogTrace;
+    Tempest::RenderPipeline  vsmFog;
     Tempest::RenderPipeline  vsmDirectLight;
     Tempest::RenderPipeline  vsmDbg;
 
     Tempest::ComputePipeline vsmRendering;
+
+    // RTSM (Experimental)
+    Tempest::ComputePipeline rtsmClear, rtsmPages, rtsmHiZ;
+    Tempest::ComputePipeline rtsmCullLights;
+    Tempest::ComputePipeline rtsmCulling, rtsmPosition;
+    Tempest::ComputePipeline rtsmMeshletCull, rtsmMeshletComplex, rtsmSampleCull, rtsmPrimCull;
+    Tempest::ComputePipeline rtsmRaster;
+
+    Tempest::RenderPipeline  rtsmDirectLight;
+
+    Tempest::ComputePipeline rtsmRendering; //reference
+    Tempest::RenderPipeline  rtsmDbg;
 
     // Software rendering
     Tempest::ComputePipeline swRendering;
@@ -105,6 +119,7 @@ class Shaders {
       };
 
     Tempest::RenderPipeline  postEffect(std::string_view name);
+    Tempest::RenderPipeline  postEffect(std::string_view name, Tempest::RenderState::ZTestMode ztest);
     Tempest::RenderPipeline  postEffect(std::string_view vs, std::string_view fs, Tempest::RenderState::ZTestMode ztest = Tempest::RenderState::ZTestMode::LEqual);
     Tempest::ComputePipeline computeShader(std::string_view name);
     Tempest::RenderPipeline  fogShader (std::string_view name);

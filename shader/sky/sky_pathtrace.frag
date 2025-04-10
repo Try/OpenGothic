@@ -20,7 +20,7 @@ layout(binding  = 5) uniform sampler2D textureSm1;
 layout(location = 0) out vec4 outColor;
 
 const int  numScatteringSteps = 32;
-vec3       viewOrigin         = vec3(0.0, RPlanet + push.plPosY, 0.0);
+vec3       viewOrigin         = vec3(0.0, RPlanet + scene.plPosY, 0.0);
 
 float interleavedGradientNoise() {
   return interleavedGradientNoise(gl_FragCoord.xy);
@@ -78,23 +78,20 @@ vec4 raymarchScattering(vec3 pos, vec3 rayDir, vec3 sunDir, float tMax, vec3 smP
     float tSm        = (float(i+noise)/numScatteringSteps)*tSmMax;
     float visibility = shadowTest(smPos + tSm*rayDir*100.0);
 
-    vec3  rayleighScattering;
-    float mieScattering;
-    vec3  extinction;
-    scatteringValues(newPos, clouds, rayleighScattering, mieScattering, extinction);
+    const ScatteringValues sc = scatteringValues(newPos, clouds);
 
-    vec3 transmittanceSmp = exp(-dt*extinction);
+    vec3 transmittanceSmp = exp(-dt*sc.extinction);
     vec3 transmittanceSun = textureLUT(tLUT, newPos, sunDir);
     vec3 psiMS            = textureLUT(mLUT, newPos, sunDir);
 
     vec3 scatteringSmp = vec3(0);
-    scatteringSmp += psiMS * (rayleighScattering + mieScattering);
-    scatteringSmp += rayleighScattering * phaseRayleigh * transmittanceSun * visibility;
-    scatteringSmp += mieScattering      * phaseMie      * transmittanceSun * visibility;
+    scatteringSmp += psiMS * (sc.rayleighScattering + sc.mieScattering);
+    scatteringSmp += sc.rayleighScattering * phaseRayleigh * transmittanceSun * visibility;
+    scatteringSmp += sc.mieScattering      * phaseMie      * transmittanceSun * visibility;
 
     // Integrated scattering within path segment.
     // See slide 28 at http://www.frostbite.com/2015/08/physically-based-unified-volumetric-rendering-in-frostbite/
-    vec3 scatteringIntegral = (scatteringSmp - scatteringSmp * transmittanceSmp) / extinction;
+    vec3 scatteringIntegral = (scatteringSmp - scatteringSmp * transmittanceSmp) / sc.extinction;
 
     scatteredLight += scatteringIntegral*transmittance;
     transmittance  *= transmittanceSmp;

@@ -1,0 +1,417 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+// bindless
+#extension GL_EXT_nonuniform_qualifier : enable
+
+#include "rtsm/rtsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 64) in;
+
+const uint MAX_MORPH_LAYERS = 4;
+
+struct VertexS {
+  vec3 normal;
+  vec3 pos;
+  uint uv;
+  };
+
+struct VertexA {
+  vec3  normal;
+  uint  uv;
+  vec3  pos0;
+  vec3  pos1;
+  vec3  pos2;
+  vec3  pos3;
+  uvec4 boneId;
+  vec4  weight;
+  };
+
+layout(binding = 0, std430)          buffer Pos { uint       alloc;  uint  data[];    } pos;
+layout(binding = 1, std140) uniform  UboScene   { SceneDesc  scene;                   };
+layout(binding = 2, std430) readonly buffer Rt  { RtsmHeader header; uvec2 visList[]; } rtsm;
+
+layout(binding = 5, std430) readonly buffer Cbo { Cluster clusters[];    };
+layout(binding = 6, std430) readonly buffer Mem { uint    instanceMem[]; };
+layout(binding = 7, std140) readonly buffer Bbo { Bucket  bucket[];      };
+layout(binding = 8, std430) readonly buffer Ibo { uint    indexes [];    } ibo[];
+layout(binding = 9, std430) readonly buffer Vbo { float   vertices[];    } vbo[];
+
+layout(binding = 10, std430) readonly buffer MId  { int   index[];       } morphId[];
+layout(binding = 11, std430) readonly buffer MSmp { vec4  samples[];     } morph[];
+
+#include "rtsm/rtsm_scratch.glsl"
+
+shared uint   posPtr;
+shared uint   maxPrim;
+shared uvec3  primitiveIndices[MaxPrim];
+shared Vertex meshVertices    [MaxVert];
+shared uint   activeVert      [(MaxVert+32-1)/32];
+
+shared uvec4  meshBbox;
+shared uint   meshMaxDepth;
+
+bool isVertexEnabled(uint i) {
+  return (activeVert[i/32] & (1u << i%32))!=0;
+  }
+
+void enableVertex(uint i) {
+  atomicOr(activeVert[i/32], 1u << (i%32));
+  }
+
+uint remapIndex(uint id) {
+  uint n = id/32;
+  uint f = id%32;
+  uint r = 0;
+  for(uint i=0; i<n; ++i)
+    r += bitCount(activeVert[i]);
+  r += bitCount(activeVert[n] & ((1u << f)-1u));
+  return r;
+  }
+
+uint vertexCount() {
+  return MaxVert;
+
+  uint r = 0;
+  for(uint i=0; i<activeVert.length(); ++i)
+    r += bitCount(activeVert[i]);
+  return r;
+  }
+
+Instance pullInstance(uint i) {
+  i *= 16;
+  Instance ret;
+  ret.mat[0][0] = uintBitsToFloat(instanceMem[i+0]);
+  ret.mat[0][1] = uintBitsToFloat(instanceMem[i+1]);
+  ret.mat[0][2] = uintBitsToFloat(instanceMem[i+2]);
+  ret.mat[1][0] = uintBitsToFloat(instanceMem[i+3]);
+  ret.mat[1][1] = uintBitsToFloat(instanceMem[i+4]);
+  ret.mat[1][2] = uintBitsToFloat(instanceMem[i+5]);
+  ret.mat[2][0] = uintBitsToFloat(instanceMem[i+6]);
+  ret.mat[2][1] = uintBitsToFloat(instanceMem[i+7]);
+  ret.mat[2][2] = uintBitsToFloat(instanceMem[i+8]);
+  ret.mat[3][0] = uintBitsToFloat(instanceMem[i+9]);
+  ret.mat[3][1] = uintBitsToFloat(instanceMem[i+10]);
+  ret.mat[3][2] = uintBitsToFloat(instanceMem[i+11]);
+  ret.fatness   = uintBitsToFloat(instanceMem[i+12]);
+  ret.animPtr   = instanceMem[i+13];
+  return ret;
+  }
+
+mat4 pullMatrix(uint i) {
+  i *= 16;
+  mat4 ret;
+  ret[0][0] = uintBitsToFloat(instanceMem[i+0]);
+  ret[0][1] = uintBitsToFloat(instanceMem[i+1]);
+  ret[0][2] = uintBitsToFloat(instanceMem[i+2]);
+  ret[0][3] = uintBitsToFloat(instanceMem[i+3]);
+  ret[1][0] = uintBitsToFloat(instanceMem[i+4]);
+  ret[1][1] = uintBitsToFloat(instanceMem[i+5]);
+  ret[1][2] = uintBitsToFloat(instanceMem[i+6]);
+  ret[1][3] = uintBitsToFloat(instanceMem[i+7]);
+  ret[2][0] = uintBitsToFloat(instanceMem[i+8]);
+  ret[2][1] = uintBitsToFloat(instanceMem[i+9]);
+  ret[2][2] = uintBitsToFloat(instanceMem[i+10]);
+  ret[2][3] = uintBitsToFloat(instanceMem[i+11]);
+  ret[3][0] = uintBitsToFloat(instanceMem[i+12]);
+  ret[3][1] = uintBitsToFloat(instanceMem[i+13]);
+  ret[3][2] = uintBitsToFloat(instanceMem[i+14]);
+  ret[3][3] = uintBitsToFloat(instanceMem[i+15]);
+  return ret;
+  }
+
+MorphDesc pullMorphDesc(uint i) {
+  i *= 4;
+  MorphDesc ret;
+  ret.indexOffset         = instanceMem[i+0];
+  ret.sample0             = instanceMem[i+1];
+  ret.sample1             = instanceMem[i+2];
+  ret.alpha16_intensity16 = instanceMem[i+3];
+  return ret;
+  }
+
+vec3 pullMorphOffset(const uint meshletId, const uint bucketId, const uint laneId, const uint animPtr) {
+  nonuniformEXT uint bId = bucketId;
+  uint vboOffset = meshletId * MaxVert + laneId;
+
+  MorphDesc md        = pullMorphDesc(animPtr);
+  vec2      ai        = unpackUnorm2x16(md.alpha16_intensity16);
+  float     alpha     = ai.x;
+  float     intensity = ai.y;
+  if(intensity<=0)
+    return vec3(0);
+
+  uint  vId   = vboOffset + md.indexOffset;
+  int   index = morphId[bId].index[vId];
+  if(index<0)
+    return vec3(0);
+
+  uint  f0 = md.sample0;
+  uint  f1 = md.sample1;
+  vec3  a  = morph[bId].samples[f0 + index].xyz;
+  vec3  b  = morph[bId].samples[f1 + index].xyz;
+
+  return mix(a,b,alpha) * intensity;
+  }
+
+uvec2 pullMeshlet(const uint meshletId, const uint bucketId) {
+  nonuniformEXT uint bId = bucketId;
+
+  const uint iboOffset = meshletId * MaxPrim + MaxPrim - 1;
+  const uint bits      = ibo[bId].indexes[iboOffset];
+  uvec4 prim;
+  prim.x = ((bits >>  0) & 0xFF);
+  prim.y = ((bits >>  8) & 0xFF);
+
+  uint vertCount = MaxVert;
+  uint primCount = MaxPrim;
+  if(prim.x==prim.y) {
+    // last dummy triangle encodes primitive count
+    prim.z = ((bits >> 16) & 0xFF);
+    prim.w = ((bits >> 24) & 0xFF);
+
+    primCount = prim.z;
+    vertCount = prim.w;
+    }
+  return uvec2(vertCount, primCount);
+  }
+
+uvec3 pullPrimitive(const uint meshletId, const uint bucketId, const uint laneId) {
+  nonuniformEXT uint bId = bucketId;
+
+  const uint iboOffset = meshletId * MaxPrim + laneId;
+  const uint bits      = ibo[bId].indexes[iboOffset];
+  uvec3 prim;
+  prim.x = ((bits >>  0) & 0xFF);
+  prim.y = ((bits >>  8) & 0xFF);
+  prim.z = ((bits >> 16) & 0xFF);
+  return prim;
+  }
+
+VertexA pullVertexA(const uint meshletId, const uint bucketId, const uint laneId) {
+  nonuniformEXT uint bId = bucketId;
+  uint vboOffset = meshletId * MaxVert + laneId;
+
+  // animated geometry
+  const uint id = vboOffset * 23;
+
+  VertexA ret;
+  ret.normal = vec3(vbo[bId].vertices[id + 0], vbo[bId].vertices[id + 1], vbo[bId].vertices[id + 2]);
+  ret.uv     = packHalf2x16(vec2(vbo[bId].vertices[id + 3], vbo[bId].vertices[id + 4]));
+  // ret.color  = floatBitsToUint(vbo[vi].vertices[id + 5]);
+  ret.pos0   = vec3(vbo[bId].vertices[id +  6], vbo[bId].vertices[id +  7], vbo[bId].vertices[id +  8]);
+  ret.pos1   = vec3(vbo[bId].vertices[id +  9], vbo[bId].vertices[id + 10], vbo[bId].vertices[id + 11]);
+  ret.pos2   = vec3(vbo[bId].vertices[id + 12], vbo[bId].vertices[id + 13], vbo[bId].vertices[id + 14]);
+  ret.pos3   = vec3(vbo[bId].vertices[id + 15], vbo[bId].vertices[id + 16], vbo[bId].vertices[id + 17]);
+  ret.boneId = unpackUint4x8(floatBitsToUint(vbo[bId].vertices[id + 18]));
+  ret.weight = vec4(vbo[bId].vertices[id + 19], vbo[bId].vertices[id + 20], vbo[bId].vertices[id + 21], vbo[bId].vertices[id + 22]);
+  return ret;
+  }
+
+VertexS pullVertexS(const uint meshletId, const uint bucketId, const uint laneId) {
+  nonuniformEXT uint bId = bucketId;
+  uint vboOffset = meshletId * MaxVert + laneId;
+
+  // static geometry
+  const uint id     = vboOffset * 9;
+  const vec3 pos    = vec3(vbo[bId].vertices[id + 0], vbo[bId].vertices[id + 1], vbo[bId].vertices[id + 2]);
+  const uint uv     = packHalf2x16(vec2(vbo[bId].vertices[id + 6], vbo[bId].vertices[id + 7]));
+  const vec3 normal = vec3(vbo[bId].vertices[id + 3], vbo[bId].vertices[id + 4], vbo[bId].vertices[id + 5]);
+
+  VertexS ret;
+  ret.normal = normal;
+  ret.pos    = pos;
+  ret.uv     = uv;
+  return ret;
+  }
+
+uint packTri(uvec3 v, uint flags) {
+  // assume v is in 0..255 range
+  v.x = v.x << 0;
+  v.y = v.y << 8;
+  v.z = v.z << 16;
+  flags = flags << 24;
+  return v.x | v.y | v.z | flags;
+  }
+
+void updateMeshBbox(uint vertCount) {
+  meshMaxDepth = 0;
+  meshBbox     = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
+  barrier();
+
+  const uint laneID = gl_LocalInvocationIndex;
+  if(laneID<vertCount && isVertexEnabled(laneID)) {
+    const vec3 vert = meshVertices[laneID].pos;
+
+    atomicMin(meshBbox.x,   floatToOrderedUint(vert.x));
+    atomicMin(meshBbox.y,   floatToOrderedUint(vert.y));
+    atomicMax(meshBbox.z,   floatToOrderedUint(vert.x));
+    atomicMax(meshBbox.w,   floatToOrderedUint(vert.y));
+
+    atomicMax(meshMaxDepth, floatToOrderedUint(vert.z));
+    }
+  }
+
+Vertex processVertexA(const Cluster cluster, const uint meshletId, const uint bucketId, const uint laneId) {
+  VertexA  v   = pullVertexA(meshletId, bucketId, laneId);
+  Instance obj = pullInstance(cluster.instanceId);
+
+  const uvec4 boneId = v.boneId + uvec4(obj.animPtr);
+
+  const vec3  t0 = (pullMatrix(boneId.x)*vec4(v.pos0,1.0)).xyz;
+  const vec3  t1 = (pullMatrix(boneId.y)*vec4(v.pos1,1.0)).xyz;
+  const vec3  t2 = (pullMatrix(boneId.z)*vec4(v.pos2,1.0)).xyz;
+  const vec3  t3 = (pullMatrix(boneId.w)*vec4(v.pos3,1.0)).xyz;
+
+  const vec3  dpos = v.normal*obj.fatness;
+
+  Vertex ret;
+  ret.pos = (t0*v.weight.x + t1*v.weight.y + t2*v.weight.z + t3*v.weight.w) + dpos;
+  ret.uv  = v.uv;
+  return ret;
+  }
+
+Vertex processVertexM(const Cluster cluster, const uint meshletId, const uint bucketId, const uint laneId) {
+  VertexS  v   = pullVertexS(meshletId, bucketId, laneId);
+  Instance obj = pullInstance(cluster.instanceId);
+
+  for(int i=0; i<MAX_MORPH_LAYERS; ++i)
+    v.pos += pullMorphOffset(meshletId, bucketId, laneId, obj.animPtr+i);
+
+  vec3 dpos = v.normal*obj.fatness;
+  v.pos = obj.mat*vec4(v.pos,1.0) + dpos;
+
+  Vertex ret;
+  ret.pos = v.pos;
+  ret.uv  = v.uv;
+  return ret;
+  }
+
+Vertex processVertex(const Cluster cluster, const uint meshletId, const uint bucketId, const uint laneId) {
+  VertexS v = pullVertexS(meshletId, bucketId, laneId);
+  if(cluster.instanceId!=0xFFFFFFFF) {
+    Instance obj = pullInstance(cluster.instanceId);
+    vec3 dpos = v.normal*obj.fatness;
+    v.pos = obj.mat*vec4(v.pos,1.0) + dpos;
+    }
+
+  Vertex ret;
+  ret.pos = v.pos;
+  ret.uv  = v.uv;
+  return ret;
+  }
+
+void main() {
+  const uint laneId = gl_LocalInvocationIndex;
+
+  maxPrim = 0;
+  if(laneId<activeVert.length())
+    activeVert[laneId] = 0;
+  barrier();
+
+  const uvec2   visId    = rtsm.visList[gl_WorkGroupID.x];
+  const Cluster cluster  = clusters[visId.x];
+
+  const uint  meshletId  = visId.y;
+  const uint  bucketId   = cluster.bucketId_commandId>>16;
+
+  const uvec2 mesh       = pullMeshlet(meshletId, bucketId);
+  const uint  primCount  = mesh.y;
+  const uint  bucketFlg  = bucket[bucketId].flags;
+
+  if(laneId<MaxVert) {
+    Vertex v;
+    if((bucketFlg & BK_SKIN)!=0)
+      v = processVertexA(cluster, meshletId, bucketId, laneId);
+    else if((bucketFlg & BK_MORPH)!=0)
+      v = processVertexM(cluster, meshletId, bucketId, laneId);
+    else
+      v = processVertex (cluster, meshletId, bucketId, laneId);
+
+    const vec4 pos4 = (scene.viewVirtualShadow * vec4(v.pos,1));
+    // v.pos = pos4.xyz;/pos4.w;
+    v.pos = pos4.xyz;
+    meshVertices[laneId] = v;
+    }
+  barrier();
+
+  if(laneId<primCount) {
+    const uvec3 tri = pullPrimitive(meshletId, bucketId, laneId);
+    const vec3  a   = meshVertices[tri.x].pos.xyz;
+    const vec3  b   = meshVertices[tri.y].pos.xyz;
+    const vec3  c   = meshVertices[tri.z].pos.xyz;
+
+    const float area = edgeFunction(a.xy, b.xy, c.xy);
+    if(area>0) {
+      uint id = atomicAdd(maxPrim, 1);
+      primitiveIndices[id] = tri;
+
+      enableVertex(tri.x);
+      enableVertex(tri.y);
+      enableVertex(tri.z);
+      }
+    }
+  barrier();
+
+  updateMeshBbox(MaxVert);
+  barrier();
+
+  if(maxPrim==0 || (bucketFlg & BK_WATER)==BK_WATER) {
+    // water shadows - maybe in future, but TODO for now
+    // fully backfaced
+    return;
+    }
+
+  const uint vertCount = vertexCount();
+  const uint size      = MeshletHeaderSize + MaxPrim + vertCount*4;
+  if(laneId==0) {
+    posPtr = atomicAdd(pos.alloc, size);
+    }
+  barrier();
+
+  if(posPtr+size>=pos.data.length()) {
+    // out of memory
+    return;
+    }
+  if(laneId==0) {
+    const uint id = atomicAdd(pos.data[0], 1);
+    pos.data[id+1] = posPtr;
+    }
+
+  if(laneId==0) {
+    vec4  aabb     = vec4(0);
+    float depthMax = 1;
+    aabb.x   = orderedUintToFloat(meshBbox.x);
+    aabb.y   = orderedUintToFloat(meshBbox.y);
+    aabb.z   = orderedUintToFloat(meshBbox.z);
+    aabb.w   = orderedUintToFloat(meshBbox.w);
+    depthMax = orderedUintToFloat(meshMaxDepth);
+
+    const uint i = posPtr;
+    pos.data[i+0] = floatBitsToUint(aabb.x);
+    pos.data[i+1] = floatBitsToUint(aabb.y);
+    pos.data[i+2] = floatBitsToUint(aabb.z);
+    pos.data[i+3] = floatBitsToUint(aabb.w);
+    pos.data[i+4] = floatBitsToUint(depthMax);
+    pos.data[i+5] = packMeshHeader(bucketId, maxPrim);
+    }
+  if(laneId<maxPrim) {
+    const uint i = posPtr + MeshletHeaderSize + laneId;
+    uvec3 p = primitiveIndices[laneId];
+    p.x = remapIndex(p.x);
+    p.y = remapIndex(p.y);
+    p.z = remapIndex(p.z);
+    pos.data[i] = packTri(p, bucketFlg);
+    }
+  if(laneId<MaxVert && isVertexEnabled(laneId)) {
+    const uint v = remapIndex(laneId);
+    const uint i = posPtr + MeshletHeaderSize + MaxPrim + v*4;
+    pos.data[i+0] = floatBitsToUint(meshVertices[laneId].pos.x);
+    pos.data[i+1] = floatBitsToUint(meshVertices[laneId].pos.y);
+    pos.data[i+2] = floatBitsToUint(meshVertices[laneId].pos.z);
+    pos.data[i+3] = meshVertices[laneId].uv;
+    }
+  }

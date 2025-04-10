@@ -1,0 +1,20 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+
+#include "virtual_shadow/vsm_common.glsl"
+#include "scene.glsl"
+
+layout(local_size_x = 64) in;
+
+layout(binding = 0, std430) buffer Omni { uint pageTblOmni[]; };
+layout(binding = 1, std430) buffer VId  { uint visLightCount; uvec4 visLights[]; };
+
+void main() {
+  if(gl_GlobalInvocationID.x<pageTblOmni.length()) {
+    pageTblOmni[gl_GlobalInvocationID.x] = 0;
+    }
+  if(gl_GlobalInvocationID.x==0)
+    visLightCount = 0;
+  }

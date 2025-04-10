@@ -25,6 +25,8 @@ class LightGroup final {
         void     setPosition(float x, float y, float z);
         void     setPosition(const Tempest::Vec3& p);
 
+        void     setEnabled(bool e);
+
         void     setRange (float r);
         void     setColor (const Tempest::Vec3& c);
         void     setColor (const std::vector<Tempest::Vec3>& c, float fps, bool smooth);
@@ -43,6 +45,7 @@ class LightGroup final {
     Light  add(const zenkit::LightPreset& vob);
     Light  add(const zenkit::VLight& vob);
     Light  add(std::string_view preset);
+    size_t size() const { return lightSourceData.size(); }
 
     void   tick(uint64_t time);
     bool   updateLights();
@@ -50,10 +53,6 @@ class LightGroup final {
 
     void   preFrameUpdate(uint8_t fId);
     void   prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
-    void   prepareUniforms();
-    void   prepareRtUniforms();
-
-    void   draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
 
     void   dbgLights(DbgPainter& p) const;
 
@@ -73,15 +72,16 @@ class LightGroup final {
       float         pading = 0;
       };
 
+    struct VsmSsbo {
+      uint32_t mask[6];
+      };
+
     size_t                     alloc(bool dynamic);
     void                       free(size_t id);
 
     void                       markAsDurty(size_t id);
     void                       markAsDurtyNoSync(size_t id);
     void                       resetDurty();
-
-    Tempest::RenderPipeline&   shader() const;
-    void                       allocDescriptorSet();
 
     const zenkit::LightPreset& findPreset(std::string_view preset) const;
 
@@ -94,12 +94,8 @@ class LightGroup final {
     std::vector<LightSsbo>           lightSourceData;
     std::unordered_set<size_t>       animatedLights;
     std::vector<uint32_t>            duryBit;
+
     Tempest::StorageBuffer           lightSourceSsbo;
-    Tempest::DescriptorSet           desc;
-
     Tempest::StorageBuffer           patchSsbo[Resources::MaxFramesInFlight];
-    Tempest::DescriptorSet           descPatch[Resources::MaxFramesInFlight];
-
-    Tempest::IndexBuffer<uint16_t>   ibo;
   };
 

@@ -250,7 +250,7 @@ bool Item::isRing() const {
   return flg & ITM_RING;
   }
 
-bool Item::isArmour() const {
+bool Item::isArmor() const {
   auto flg = ItmFlags(mainFlag());
   return flg & ITM_CAT_ARMOR;
   }

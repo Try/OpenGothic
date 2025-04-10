@@ -6,7 +6,7 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wconversion"
 #pragma GCC diagnostic ignored "-Wfloat-conversion"
-#if defined(__OSX__) || defined(__IOS__)
+#if defined(__clang__)
 #pragma GCC diagnostic ignored "-Wunknown-warning-option"
 #pragma GCC diagnostic ignored "-Wargument-outside-range"
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"

@@ -47,6 +47,8 @@ class MainWindow : public Tempest::Window {
     explicit MainWindow(Tempest::Device& device);
     ~MainWindow() override;
 
+    float uiScale() const;
+
   private:
     void paintEvent     (Tempest::PaintEvent& event) override;
     void resizeEvent    (Tempest::SizeEvent & event) override;

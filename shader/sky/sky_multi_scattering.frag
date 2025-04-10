@@ -4,7 +4,9 @@
 
 #include "sky_common.glsl"
 
-layout(location = 0) in  vec2 inPos;
+layout(std140, push_constant) uniform Push {
+  vec2 viewportSize;
+  };
 layout(location = 0) out vec4 outColor;
 
 layout(binding  = 0) uniform sampler2D tLUT;
@@ -51,28 +53,25 @@ void mulScattValues(vec3 pos, vec3 sunDir, out vec3 lumTotal, out vec3 fms) {
 
         vec3 newPos = pos + t*rayDir;
 
-        vec3  rayleighScattering;
-        vec3  extinction;
-        float mieScattering;
-        scatteringValues(newPos, 0, rayleighScattering, mieScattering, extinction);
+        const ScatteringValues sc = scatteringValues(newPos, 0);
 
-        vec3 sampleTransmittance = exp(-dt*extinction);
+        vec3 sampleTransmittance = exp(-dt*sc.extinction);
 
         // Integrate within each segment.
-        vec3 scatteringNoPhase = rayleighScattering + mieScattering;
-        vec3 scatteringF = (scatteringNoPhase - scatteringNoPhase * sampleTransmittance) / extinction;
+        vec3 scatteringNoPhase = sc.rayleighScattering + sc.mieScattering;
+        vec3 scatteringF = (scatteringNoPhase - scatteringNoPhase * sampleTransmittance) / sc.extinction;
         lumFactor += transmittance*scatteringF;
 
         // This is slightly different from the paper, but I think the paper has a mistake?
         // In equation (6), I think S(x,w_s) should be S(x-tv,w_s).
         vec3 sunTransmittance = textureLUT(tLUT, newPos, sunDir);
 
-        vec3  rayleighInScattering = rayleighScattering*rayleighPhaseValue;
-        float mieInScattering      = mieScattering*miePhaseValue;
+        vec3  rayleighInScattering = sc.rayleighScattering*rayleighPhaseValue;
+        float mieInScattering      = sc.mieScattering     *miePhaseValue;
         vec3  inScattering         = (rayleighInScattering + mieInScattering)*sunTransmittance;
 
         // Integrated scattering within path segment.
-        vec3 scatteringIntegral = (inScattering - inScattering * sampleTransmittance) / extinction;
+        vec3 scatteringIntegral = (inScattering - inScattering * sampleTransmittance) / sc.extinction;
 
         lum += scatteringIntegral*transmittance;
         transmittance *= sampleTransmittance;
@@ -93,10 +92,10 @@ void mulScattValues(vec3 pos, vec3 sunDir, out vec3 lumTotal, out vec3 fms) {
   }
 
 void main() {
-  vec2  uv          = inPos*vec2(0.5)+vec2(0.5);
-  float sunCosTheta = 2.0*uv.x - 1.0;
-  float sunTheta    = safeacos(sunCosTheta);
-  float height      = mix(RPlanet, RAtmos, uv.y);
+  const vec2  uv          = vec2(gl_FragCoord.xy)/vec2(viewportSize);
+  const float sunCosTheta = 2.0*uv.x - 1.0;
+  const float sunTheta    = safeacos(sunCosTheta);
+  const float height      = mix(RPlanet, RAtmos, uv.y);
 
   vec3 pos    = vec3(0.0, height, 0.0);
   vec3 sunDir = normalize(vec3(0.0, sunCosTheta, -sin(sunTheta)));

@@ -29,35 +29,37 @@ Shaders::Shaders() {
 
   stash   = postEffect("stash");
 
-  clusterInit      = computeShader("cluster_init.comp.sprv");
-  clusterPatch     = computeShader("cluster_patch.comp.sprv");
-  clusterTaskSh    = computeShader("cluster_task.comp.sprv");
-  clusterTaskHiZ   = computeShader("cluster_task_hiz.comp.sprv");
-  clusterTaskHiZCr = computeShader("cluster_task_hiz_cr.comp.sprv");
+  clusterInit         = computeShader("cluster_init.comp.sprv");
+  clusterPatch        = computeShader("cluster_patch.comp.sprv");
+  visibilityPassSh    = computeShader("visibility_pass.comp.sprv");
+  visibilityPassHiZ   = computeShader("visibility_pass_hiz.comp.sprv");
+  visibilityPassHiZCr = computeShader("visibility_pass_hiz_cr.comp.sprv");
 
-  ssao             = computeShader("ssao.comp.sprv");
-  ssaoBlur         = computeShader("ssao_blur.comp.sprv");
+  ssao                = computeShader("ssao.comp.sprv");
+  ssaoBlur            = computeShader("ssao_blur.comp.sprv");
 
-  directLight      = postEffect("direct_light", "direct_light",    RenderState::ZTestMode::NoEqual);
-  directLightSh    = postEffect("direct_light", "direct_light_sh", RenderState::ZTestMode::NoEqual);
-  if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing)
-    directLightRq  = postEffect("direct_light", "direct_light_rq", RenderState::ZTestMode::NoEqual);
+  directLight      = postEffect("direct_light",    RenderState::ZTestMode::NoEqual);
+  directLightSh    = postEffect("direct_light_sh", RenderState::ZTestMode::NoEqual);
+  if(Gothic::options().doRayQuery && device.properties().descriptors.nonUniformIndexing)
+    directLightRq  = postEffect("direct_light_rq", RenderState::ZTestMode::NoEqual);
 
-  ambientLight     = ambientLightShader("ambient_light");
-  ambientLightSsao = ambientLightShader("ambient_light_ssao");
+  ambientLight       = ambientLightShader("ambient_light");
+  ambientLightSsao   = ambientLightShader("ambient_light_ssao");
 
   irradiance         = computeShader("irradiance.comp.sprv");
   cloudsLut          = computeShader("clouds_lut.comp.sprv");
-  skyTransmittance   = postEffect("sky", "sky_transmittance");
-  skyMultiScattering = postEffect("sky", "sky_multi_scattering");
-  skyViewLut         = postEffect("sky", "sky_view_lut");
-  skyViewCldLut      = postEffect("sky", "sky_view_clouds_lut");
+  skyTransmittance   = postEffect("sky_transmittance");
+  skyMultiScattering = postEffect("sky_multi_scattering");
+  skyViewLut         = postEffect("sky_view_lut");
+  skyViewCldLut      = postEffect("sky_view_clouds_lut");
 
   fogViewLut3d       = computeShader("fog_view_lut.comp.sprv");
+  fogViewLutSep      = computeShader("fog_view_lut_sep.comp.sprv");
   fogOcclusion       = computeShader("fog3d.comp.sprv");
 
   skyExposure        = computeShader("sky_exposure.comp.sprv");
   sky                = postEffect("sky");
+  skySep             = postEffect("sky_sep");
   fog                = fogShader ("fog");
   fog3dHQ            = fogShader ("fog3d_hq");
 
@@ -69,7 +71,7 @@ Shaders::Shaders() {
     state.setZTestMode    (RenderState::ZTestMode::Always);
     state.setZWriteEnabled(false);
 
-    auto sh      = GothicShader::get("sky.vert.sprv");
+    auto sh      = GothicShader::get("copy.vert.sprv");
     auto vsLight = device.shader(sh.data,sh.len);
     sh           = GothicShader::get("sky_pathtrace.frag.sprv");
     auto fsLight = device.shader(sh.data,sh.len);
@@ -120,10 +122,15 @@ Shaders::Shaders() {
       }
     lightsRq = device.pipeline(Triangles, state, vsLight, fsLight);
     }
+  if(Shaders::isVsmSupported()) {
+    sh      = GothicShader::get("light_vsm.frag.sprv");
+    fsLight = device.shader(sh.data,sh.len);
+    lightsVsm = device.pipeline(Triangles, state, vsLight, fsLight);
+    }
   }
 
-  tonemapping        = postEffect("tonemapping", "tonemapping",    RenderState::ZTestMode::Always);
-  tonemappingUpscale = postEffect("tonemapping", "tonemapping_up", RenderState::ZTestMode::Always);
+  tonemapping        = postEffect("copy_uv", "tonemapping",    RenderState::ZTestMode::Always);
+  tonemappingUpscale = postEffect("copy_uv", "tonemapping_up", RenderState::ZTestMode::Always);
 
   cmaa2EdgeColor2x2Presets[uint32_t(AaPreset::OFF)]    = Tempest::ComputePipeline();
   cmaa2EdgeColor2x2Presets[uint32_t(AaPreset::MEDIUM)] = computeShader("cmaa2_edges_color2x2_quality_0.comp.sprv");
@@ -140,18 +147,6 @@ Shaders::Shaders() {
 
   hiZPot = computeShader("hiz_pot.comp.sprv");
   hiZMip = computeShader("hiz_mip.comp.sprv");
-
-  if(meshlets && device.properties().meshlets.maxGroupSize.x>=256) {
-    RenderState state;
-    state.setCullFaceMode(RenderState::CullMode::Front);
-    state.setZTestMode   (RenderState::ZTestMode::Greater);
-
-    auto sh = GothicShader::get("hiz_reproject.mesh.sprv");
-    auto ms = device.shader(sh.data,sh.len);
-    sh = GothicShader::get("hiz_reproject.frag.sprv");
-    auto fs = device.shader(sh.data,sh.len);
-    hiZReproj = device.pipeline(state,Shader(),ms,fs);
-    }
 
   if(Gothic::options().doRayQuery) {
     RenderState state;
@@ -191,28 +186,53 @@ Shaders::Shaders() {
     probeAmbient = device.pipeline(Triangles,state,vs,fs);
     }
 
-  if(Gothic::options().doVirtualShadow) {
-    vsmClusterTask = computeShader("vsm_cluster_task.comp.sprv");
-    // vsmClusterTask = computeShader("vsm_cluster_task2.comp.sprv");
-    vsmClear        = computeShader("vsm_clear.comp.sprv");
-    vsmClearPages   = computeShader("vsm_clear_pages.comp.sprv");
-    vsmMarkPages    = computeShader("vsm_mark_pages.comp.sprv");
-    vsmTrimPages    = computeShader("vsm_trim_pages.comp.sprv");
-    vsmClumpPages   = computeShader("vsm_clump_pages.comp.sprv");
-    vsmListPages    = computeShader("vsm_list_pages.comp.sprv");
-    vsmAllocPages   = computeShader("vsm_alloc_pages.comp.sprv");
-    vsmMergePages   = computeShader("vsm_merge_pages.comp.sprv");
-    vsmPackDraw0    = computeShader("vsm_pack_draws0.comp.sprv");
-    vsmPackDraw1    = computeShader("vsm_pack_draws1.comp.sprv");
-    vsmFogEpipolar  = computeShader("vsm_fog_epipolar.comp.sprv");
-    vsmFogPages     = computeShader("vsm_fog_mark_pages.comp.sprv");
-    vsmFogShadow    = computeShader("vsm_fog_shadow.comp.sprv");
-    vsmFogSample    = computeShader("vsm_fog_sample.comp.sprv");
-    vsmFogTrace     = computeShader("vsm_fog_trace.comp.sprv");
+  if(Shaders::isVsmSupported()) {
+    vsmVisibilityPass  = computeShader("vsm_visibility_pass.comp.sprv");
+    vsmClear           = computeShader("vsm_clear.comp.sprv");
+    vsmClearOmni       = computeShader("vsm_clear_omni.comp.sprv");
+    vsmCullLights      = computeShader("vsm_cull_lights.comp.sprv");
+    vsmMarkPages       = computeShader("vsm_mark_pages.comp.sprv");
+    vsmMarkOmniPages   = computeShader("vsm_mark_omni_pages.comp.sprv");
+    vsmPostprocessOmni = computeShader("vsm_postprocess_omni.comp.sprv");
+    vsmTrimPages       = computeShader("vsm_trim_pages.comp.sprv");
+    vsmClumpPages      = computeShader("vsm_clump_pages.comp.sprv");
+    vsmListPages       = computeShader("vsm_list_pages.comp.sprv");
+    vsmSortPages       = computeShader("vsm_sort_pages.comp.sprv");
+    vsmAllocPages      = computeShader("vsm_alloc_pages.comp.sprv");
+    vsmAlloc2Pages     = computeShader("vsm_alloc_pages2.comp.sprv");
+    vsmMergePages      = computeShader("vsm_merge_pages.comp.sprv");
+    vsmPackDraw0       = computeShader("vsm_pack_draws0.comp.sprv");
+    vsmPackDraw1       = computeShader("vsm_pack_draws1.comp.sprv");
+    vsmFogEpipolar     = computeShader("vsm_fog_epipolar.comp.sprv");
+    vsmFogPages        = computeShader("vsm_fog_mark_pages.comp.sprv");
+    vsmFogShadow       = computeShader("vsm_fog_shadow.comp.sprv");
+    vsmFogSample       = computeShader("vsm_fog_sample.comp.sprv");
+    vsmFogTrace        = computeShader("vsm_fog_trace.comp.sprv");
+    vsmFog             = fogShader("fog_epipolar");
 
-    vsmDirectLight  = postEffect("copy", "direct_light_vsm", RenderState::ZTestMode::NoEqual);
-    vsmDbg          = postEffect("copy", "vsm_dbg", RenderState::ZTestMode::Always);
-    vsmRendering    = computeShader("vsm_rendering.comp.sprv");
+    vsmDirectLight     = postEffect("direct_light_vsm", RenderState::ZTestMode::NoEqual);
+    vsmDbg             = postEffect("vsm_dbg", RenderState::ZTestMode::Always);
+    vsmRendering       = computeShader("vsm_rendering.comp.sprv");
+    }
+
+  if(Shaders::isRtsmSupported()) {
+    rtsmClear       = computeShader("rtsm_clear.comp.sprv");
+    rtsmPages       = computeShader("rtsm_mark_pages.comp.sprv");
+    rtsmHiZ         = computeShader("rtsm_hiz_pages.comp.sprv");
+    rtsmCulling     = computeShader("rtsm_culling.comp.sprv");
+    rtsmCullLights  = computeShader("rtsm_cull_lights.comp.sprv");
+    rtsmPosition    = computeShader("rtsm_position.comp.sprv");
+
+    rtsmMeshletCull    = computeShader("rtsm_meshlet_cull.comp.sprv");
+    rtsmMeshletComplex = computeShader("rtsm_meshlet_complex.comp.sprv");
+    rtsmSampleCull     = computeShader("rtsm_sample_cull.comp.sprv");
+    rtsmPrimCull       = computeShader("rtsm_primitive_cull.comp.sprv");
+
+    rtsmRaster      = computeShader("rtsm_raster.comp.sprv");
+    rtsmDirectLight = postEffect("rtsm_direct_light", RenderState::ZTestMode::NoEqual);
+
+    rtsmRendering   = computeShader("rtsm_rendering.comp.sprv");
+    rtsmDbg         = postEffect("rtsm_dbg", RenderState::ZTestMode::Always);
     }
 
   if(Gothic::options().swRenderingPreset>0) {
@@ -227,7 +247,7 @@ Shaders::Shaders() {
         swRendering = computeShader("sw_light.comp.sprv");
         break;
       }
-    swRenderingDbg = postEffect("copy", "vbuffer_blit", RenderState::ZTestMode::Always);
+    swRenderingDbg = postEffect("vbuffer_blit", RenderState::ZTestMode::Always);
     }
 
   {
@@ -249,6 +269,26 @@ Shaders::~Shaders() {
 
 Shaders& Shaders::inst() {
   return *instance;
+  }
+
+bool Shaders::isVsmSupported() {
+  auto& gpu = Resources::device().properties();
+  if(gpu.compute.maxInvocations>=1024 && gpu.render.maxClipCullDistances>=4 &&
+     gpu.render.maxViewportSize.w>=8192 && gpu.render.maxViewportSize.h>=8192) {
+    return true;
+    }
+  return false;
+  }
+
+bool Shaders::isRtsmSupported() {
+  if(!Gothic::options().doBindless) {
+    return false;
+    }
+  auto& gpu = Resources::device().properties();
+  if(gpu.compute.maxInvocations>=1024 && gpu.descriptors.nonUniformIndexing) {
+    return true;
+    }
+  return false;
   }
 
 const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommands::Type t, PipelineType pt, bool bl) const {
@@ -467,7 +507,11 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
   }
 
 RenderPipeline Shaders::postEffect(std::string_view name) {
-  return postEffect(name,name);
+  return postEffect("copy",name);
+  }
+
+RenderPipeline Shaders::postEffect(std::string_view name, Tempest::RenderState::ZTestMode ztest) {
+  return postEffect("copy",name,ztest);
   }
 
 RenderPipeline Shaders::postEffect(std::string_view vsName, std::string_view fsName, Tempest::RenderState::ZTestMode ztest) {
@@ -504,7 +548,7 @@ RenderPipeline Shaders::fogShader(std::string_view name) {
     state.setBlendDest(RenderState::BlendMode::OneMinusSrcAlpha);
     }
 
-  auto sh = GothicShader::get("sky.vert.sprv");
+  auto sh = GothicShader::get("copy.vert.sprv");
   auto vs = device.shader(sh.data,sh.len);
 
   sh      = GothicShader::get(string_frm(name,".frag.sprv"));
@@ -527,7 +571,7 @@ RenderPipeline Shaders::inWaterShader(std::string_view name, bool isScattering) 
     state.setBlendDest  (RenderState::BlendMode::SrcColor);
     }
 
-  auto sh = GothicShader::get("underwater.vert.sprv");
+  auto sh = GothicShader::get("copy.vert.sprv");
   auto vs = device.shader(sh.data,sh.len);
 
   sh      = GothicShader::get(string_frm(name,".frag.sprv"));
@@ -545,7 +589,7 @@ RenderPipeline Shaders::reflectionShader(std::string_view name, bool hasMeshlets
   state.setBlendSource  (RenderState::BlendMode::One);
   state.setBlendDest    (RenderState::BlendMode::One);
 
-  auto sh = GothicShader::get("water_reflection.vert.sprv");
+  auto sh = GothicShader::get("copy.vert.sprv");
   auto vs = device.shader(sh.data,sh.len);
   sh      = GothicShader::get(name);
   auto fs = device.shader(sh.data,sh.len);
@@ -568,7 +612,7 @@ RenderPipeline Shaders::ambientLightShader(std::string_view name) {
   state.setZTestMode    (RenderState::ZTestMode::NoEqual);
   state.setZWriteEnabled(false);
 
-  auto sh = GothicShader::get("ambient_light.vert.sprv");
+  auto sh = GothicShader::get("copy.vert.sprv");
   auto vs = device.shader(sh.data,sh.len);
   sh      = GothicShader::get(string_frm(name,".frag.sprv"));
   auto fs = device.shader(sh.data,sh.len);

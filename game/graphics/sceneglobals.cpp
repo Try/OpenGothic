@@ -34,19 +34,13 @@ SceneGlobals::SceneGlobals() {
   vsmPageHiZ  = &Resources::fallbackImage3d();
   vsmDbg      = device.image2d(Tempest::TextureFormat::R32U, 64, 64);
 
-  skyShadows  = &Resources::fallbackImage();
-
   for(uint8_t lay=0; lay<V_Count; ++lay) {
     uboGlobal[lay] = device.ssbo(nullptr,sizeof(UboGlobal));
     }
 
-  auto& copy = Shaders::inst().copyBuf;
   for(uint8_t fId=0; fId<Resources::MaxFramesInFlight; ++fId)
     for(uint8_t lay=0; lay<V_Count; ++lay) {
       uboGlobalPf[fId][lay] = device.ubo(UboGlobal());
-      uboCopy[fId][lay] = device.descriptors(copy);
-      uboCopy[fId][lay].set(0, uboGlobal[lay]);
-      uboCopy[fId][lay].set(1, uboGlobalPf[fId][lay]);
       }
   }
 
@@ -137,6 +131,18 @@ void SceneGlobals::setViewLwc(const Tempest::Matrix4x4& view, const Tempest::Mat
 void SceneGlobals::setViewVsm(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& viewLwc) {
   uboGlobalCpu.viewVirtualShadow    = view;
   uboGlobalCpu.viewVirtualShadowLwc = viewLwc;
+
+  auto vsmMat = uboGlobalCpu.viewVirtualShadowLwc;
+  vsmMat.mul(uboGlobalCpu.viewProjectLwcInv);
+
+  //shPos += scene.viewVirtualShadowLwc * (scene.viewProjectLwcInv * vec4(off,0,0));
+  auto s = uboGlobalCpu.screenResInv*Tempest::Vec2(2);
+  uboGlobalCpu.vsmDdx = Tempest::Vec4(s.x,    0, 0,0);
+  uboGlobalCpu.vsmDdy = Tempest::Vec4(   0, s.y, 0,0);
+  vsmMat.project(uboGlobalCpu.vsmDdx);
+  vsmMat.project(uboGlobalCpu.vsmDdy);
+
+  uboGlobalCpu.viewProject2VirtualShadow = vsmMat;
   }
 
 void SceneGlobals::setSky(const Sky& s) {
@@ -148,6 +154,16 @@ void SceneGlobals::setSky(const Sky& s) {
   uboGlobalCpu.cloudsDir[1]  = s.cloudsOffset(1);
   uboGlobalCpu.isNight       = s.isNight();
   uboGlobalCpu.exposure      = 1;
+  }
+
+void SceneGlobals::setWorld(const WorldView &wview) {
+  float minY  = wview.bbox().first.y;
+  Tempest::Vec3 plPos = Tempest::Vec3(0,0,0);
+  uboGlobalCpu.viewProjectInv.project(plPos);
+  uboGlobalCpu.plPosY = plPos.y/100.f; //meters
+  // NOTE: minZ is garbage in KoM
+  uboGlobalCpu.plPosY += (-minY)/100.f;
+  uboGlobalCpu.plPosY  = std::clamp(uboGlobalCpu.plPosY, 0.f, 1000.f);
   }
 
 void SceneGlobals::setUnderWater(bool w) {
@@ -189,7 +205,9 @@ void SceneGlobals::prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer>& cmd,
   cmd.setDebugMarker("Update globals");
   auto& pso = Shaders::inst().copyBuf;
   for(uint8_t lay=0; lay<V_Count; ++lay) {
-    cmd.setUniforms(pso, uboCopy[fId][lay]);
+    cmd.setBinding(0, uboGlobal[lay]);
+    cmd.setBinding(1, uboGlobalPf[fId][lay]);
+    cmd.setPipeline(pso);
     cmd.dispatchThreads(sizeof(UboGlobal)/sizeof(uint32_t));
     }
   }
@@ -219,23 +237,13 @@ void SceneGlobals::setShadowMap(const Tempest::Texture2d* tex[]) {
   }
 
 void SceneGlobals::setVirtualShadowMap(const Tempest::ZBuffer&       pageData,
-                                       const Tempest::StorageImage&  pageDataCs,
                                        const Tempest::StorageImage&  pageTbl,
                                        const Tempest::StorageImage&  pageHiZ,
                                        const Tempest::StorageBuffer& pageList) {
   vsmPageData   = &Tempest::textureCast<const Tempest::Texture2d&>(pageData);
-  vsmPageDataCs = &pageDataCs;
   vsmPageTbl    = &pageTbl;
   vsmPageHiZ    = &pageHiZ;
   vsmPageList   = &pageList;
-  }
-
-void SceneGlobals::setVsmSkyShadows(const Tempest::StorageImage& sh) {
-  skyShadows = &sh;
-  }
-
-void SceneGlobals::setSwRenderingImage(const Tempest::StorageImage& mainView) {
-  swMainImage = &mainView;
   }
 
 const Tempest::Matrix4x4& SceneGlobals::viewProject() const {

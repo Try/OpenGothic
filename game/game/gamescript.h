@@ -130,7 +130,7 @@ class GameScript final {
     void  printMobTooFar              (Npc &npc);
 
     void invokeState(const std::shared_ptr<zenkit::INpc>& hnpc, const std::shared_ptr<zenkit::INpc>& hother, const char* name);
-    int  invokeState(Npc* npc, Npc* other, Npc *victum, ScriptFn fn);
+    int  invokeState(Npc* npc, Npc* other, Npc *victim, ScriptFn fn);
     void invokeItem (Npc* npc, ScriptFn fn);
     int  invokeMana (Npc& npc, Npc* target, int mana);
     int  invokeManaRelease (Npc& npc, Npc* target, int mana);
@@ -140,6 +140,7 @@ class GameScript final {
     void invokeRefreshAtInsert(Npc& npc);
     auto canNpcCollideWithSpell(Npc& npc, Npc* shooter, int32_t spellId) -> CollideMask;
 
+    int  playerHotKeyScreenMap_G1(Npc& pl);
     int  playerHotKeyScreenMap(Npc& pl);
     void playerHotLamePotion(Npc& pl);
     void playerHotLameHeal(Npc& pl);
@@ -290,6 +291,7 @@ class GameScript final {
     int  npc_hasitems        (std::shared_ptr<zenkit::INpc> npcRef, int itemId);
     bool npc_hasspell        (std::shared_ptr<zenkit::INpc> npcRef, int splId);
     int  npc_getinvitem      (std::shared_ptr<zenkit::INpc> npcRef, int itemId);
+    int  npc_getinvitembyslot(std::shared_ptr<zenkit::INpc> npcRef, int cat, int slotnr);
     int  npc_removeinvitem   (std::shared_ptr<zenkit::INpc> npcRef, int itemId);
     int  npc_removeinvitems  (std::shared_ptr<zenkit::INpc> npcRef, int itemId, int amount);
     int  npc_getbodystate    (std::shared_ptr<zenkit::INpc> npcRef);
@@ -300,6 +302,7 @@ class GameScript final {
     void npc_percenable      (std::shared_ptr<zenkit::INpc> npcRef, int pr, int fn);
     void npc_percdisable     (std::shared_ptr<zenkit::INpc> npcRef, int pr);
     std::string npc_getnearestwp    (std::shared_ptr<zenkit::INpc> npcRef);
+    std::string npc_getnextwp(std::shared_ptr<zenkit::INpc> npcRef);
     void npc_clearaiqueue    (std::shared_ptr<zenkit::INpc> npcRef);
     bool npc_isplayer        (std::shared_ptr<zenkit::INpc> npcRef);
     int  npc_getstatetime    (std::shared_ptr<zenkit::INpc> npcRef);
@@ -326,6 +329,7 @@ class GameScript final {
     bool npc_gettarget       (std::shared_ptr<zenkit::INpc> npcRef);
     bool npc_getnexttarget   (std::shared_ptr<zenkit::INpc> npcRef);
     void npc_sendpassiveperc (std::shared_ptr<zenkit::INpc> npcRef, int id, std::shared_ptr<zenkit::INpc> victimRef, std::shared_ptr<zenkit::INpc> otherRef);
+    void npc_sendsingleperc  (std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::INpc> otherRef, int id);
     bool npc_checkinfo       (std::shared_ptr<zenkit::INpc> npcRef, int imp);
     int  npc_getportalguild  (std::shared_ptr<zenkit::INpc> npcRef);
     bool npc_isinplayersroom (std::shared_ptr<zenkit::INpc> npcRef);
@@ -353,6 +357,7 @@ class GameScript final {
     std::string npc_getdetectedmob  (std::shared_ptr<zenkit::INpc> npcRef);
     bool npc_ownedbynpc      (std::shared_ptr<zenkit::IItem> itmRef, std::shared_ptr<zenkit::INpc> npcRef);
     bool npc_canseesource    (std::shared_ptr<zenkit::INpc> npcRef);
+    bool npc_isincutscene    (std::shared_ptr<zenkit::INpc> npcRef);
     int  npc_getdisttoitem   (std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::IItem> itmRef);
     int  npc_getheighttoitem (std::shared_ptr<zenkit::INpc> npcRef, std::shared_ptr<zenkit::IItem> itmRef);
     int  npc_getdisttoplayer (std::shared_ptr<zenkit::INpc> npcRef);
@@ -369,7 +374,9 @@ class GameScript final {
     void ai_lookatnpc        (std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> npcRef);
     void ai_removeweapon     (std::shared_ptr<zenkit::INpc> npcRef);
     void ai_unreadyspell     (std::shared_ptr<zenkit::INpc> npcRef);
+    void ai_turnaway         (std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> npcRef);
     void ai_turntonpc        (std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> npcRef);
+    void ai_whirlaround      (std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> npcRef);
     void ai_outputsvm        (std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> targetRef, std::string_view name);
     void ai_outputsvm_overlay(std::shared_ptr<zenkit::INpc> selfRef, std::shared_ptr<zenkit::INpc> targetRef, std::string_view name);
     void ai_startstate       (std::shared_ptr<zenkit::INpc> selfRef, int func, int state, std::string_view wp);

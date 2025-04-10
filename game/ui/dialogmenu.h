@@ -29,8 +29,8 @@ class DialogMenu : public Tempest::Widget {
     void dialogCamera(Camera& camera);
 
     void openPipe(Npc &player, Npc& npc, AiOuputPipe*& out);
+    bool isNpcInDialog(const Npc* npc) const;
 
-    void aiIsClose(bool& ret);
     bool isActive() const;
     bool hasContent() const;
 

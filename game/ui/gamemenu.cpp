@@ -379,6 +379,8 @@ void GameMenu::initItems() {
   }
 
 void GameMenu::paintEvent(PaintEvent &e) {
+  const float scale = Gothic::interfaceScale(this);
+
   Painter p(e);
   p.setScissor(-x(),-y(),owner.w(),owner.h());
 
@@ -395,10 +397,9 @@ void GameMenu::paintEvent(PaintEvent &e) {
     if(auto sel=selectedItem()) {
       auto& item = sel->handle;
       if(item->text->size()>0) {
-        auto             fnt   = Resources::font();
+        auto             fnt   = Resources::font(scale);
         std::string_view txt   = item->text[1];
         int              tw    = fnt.textSize(txt).w;
-        const float      scale = Gothic::options().interfaceScale;
 
         fnt.drawText(p,(w()-tw)/2,h()-int(7*scale),txt);
         }
@@ -406,8 +407,7 @@ void GameMenu::paintEvent(PaintEvent &e) {
     }
 
   if(owner.hasVersionLine()) {
-    auto&       fnt   = Resources::font();
-    const float scale = Gothic::options().interfaceScale;
+    auto&       fnt   = Resources::font(scale);
     fnt.drawText(p, w()-fnt.textSize(appBuild).w-int(25*scale), h()-int(25*scale), appBuild);
     }
   }
@@ -542,6 +542,7 @@ void GameMenu::drawQuestList(Painter& p, Item& it, int x, int y, int w, int h,
   int32_t listBegin = it.scroll;
   int32_t listEnd   = listLen;
 
+  const float scale = Gothic::interfaceScale(this);
   for(size_t i=0; i<log.questCount(); i++) {
     auto& quest = log.quest(log.questCount()-i-1);
     if(!isCompatible(quest,st))
@@ -554,7 +555,7 @@ void GameMenu::drawQuestList(Painter& p, Item& it, int x, int y, int w, int h,
     if(listId==it.value && selectedItem()==&it)
       ft = Resources::FontType::Hi;
 
-    auto& fnt = Resources::font(it.handle->fontname,ft);
+    auto& fnt = Resources::font(it.handle->fontname,ft,scale);
     auto sz  = fnt.textSize(w,quest.name);
     if(itY+sz.h>h+y) {
       listEnd = listId;
@@ -632,7 +633,7 @@ void GameMenu::onTick() {
   const float wx = float(owner.w());
   const float wy = float(owner.h());
 
-  const float scale = Gothic::options().interfaceScale;
+  const float scale = Gothic::interfaceScale(this);
   Size size = {0, 0};
   if(menu->flags & zenkit::MenuFlag::DONT_SCALE_DIMENSION) {
     size = {int(float(menu->dim_x)*fx*scale/scriptDiv),int(float(menu->dim_y)*fy*scale/scriptDiv)};
@@ -732,12 +733,13 @@ void GameMenu::getText(const Item& it, std::vector<char> &out) {
   }
 
 const GthFont& GameMenu::getTextFont(const GameMenu::Item &it) {
+  const float scale = Gothic::interfaceScale(this);
   GthFont ret;
   if(!isEnabled(it.handle))
-    return Resources::font(it.handle->fontname,Resources::FontType::Disabled);
+    return Resources::font(it.handle->fontname, Resources::FontType::Disabled, scale);
   if(&it==selectedItem())
-    return Resources::font(it.handle->fontname,Resources::FontType::Hi);
-  return Resources::font(it.handle->fontname);
+    return Resources::font(it.handle->fontname, Resources::FontType::Hi, scale);
+  return Resources::font(it.handle->fontname, Resources::FontType::Normal, scale);
   }
 
 bool GameMenu::isSelectable(const std::shared_ptr<zenkit::IMenuItem>& item) {

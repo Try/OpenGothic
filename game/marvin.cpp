@@ -145,6 +145,8 @@ Marvin::Marvin() {
     {"insert %c",                  C_Insert},
 
     {"toggle gi",                  C_ToggleGI},
+    {"toggle vsm",                 C_ToggleVsm},
+    {"toggle rtsm",                C_ToggleRtsm},
     };
   }
 
@@ -265,7 +267,7 @@ bool Marvin::exec(std::string_view v) {
       return true;
       }
     case C_CheatGod: {
-      auto& fnt = Resources::font();
+      auto& fnt = Resources::font(1.0);
       if(Gothic::inst().isGodMode()) {
         Gothic::inst().setGodMode(false);
         Gothic::inst().onPrintScreen("Godmode off",2,4,1,fnt);
@@ -423,6 +425,12 @@ bool Marvin::exec(std::string_view v) {
 
     case C_ToggleGI:
       Gothic::inst().toggleGi();
+      return true;
+    case C_ToggleVsm:
+      Gothic::inst().toggleVsm();
+      return true;
+    case C_ToggleRtsm:
+      Gothic::inst().toggleRtsm();
       return true;
     }
 

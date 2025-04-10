@@ -55,12 +55,10 @@ class PfxBucket {
 
     bool                        isEmpty() const;
 
-    void                        prepareUniforms(const SceneGlobals& scene);
-
     void                        preFrameUpdate(const SceneGlobals& scene, uint8_t fId);
-    void                        drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void                        drawShadow     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int layer);
-    void                        drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void                        drawGBuffer    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const SceneGlobals &scene, uint8_t fId);
+    void                        drawShadow     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const SceneGlobals &scene, uint8_t fId, int layer);
+    void                        drawTranslucent(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const SceneGlobals &scene, uint8_t fId);
 
     size_t                      allocEmitter();
     void                        freeEmitter(size_t& id);
@@ -116,17 +114,14 @@ class PfxBucket {
       const Tempest::RenderPipeline* pMain   = nullptr;
       const Tempest::RenderPipeline* pShadow = nullptr;
 
-      Tempest::DescriptorSet         ubo[SceneGlobals::V_Count];
       Tempest::StorageBuffer         pfxGpu;
       uint64_t                       timeShift = 0;
 
-      bool                      isEmpty() const;
-      void                      prepareUniforms(const SceneGlobals& scene, const Material& mat);
-      void                      preFrameUpdate(const SceneGlobals& scene, const Material& mat);
-      void                      setPfxData(const Tempest::StorageBuffer& ssbo);
+      bool                           isEmpty() const;
       };
 
-    void                        drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const Draw& itm, SceneGlobals::VisCamera view, Material::AlphaFunc func);
+    void                        drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const SceneGlobals &scene, const Draw& itm,
+                                           SceneGlobals::VisCamera view, Material::AlphaFunc func, bool trl);
 
     void                        tickEmit(Block& p, ImplEmitter& emitter, uint64_t emited);
     bool                        shrink();

@@ -74,7 +74,7 @@ class Npc final {
 
     using Anim = AnimationSolver::Anim;
 
-    Npc(World &owner, size_t instance, std::string_view waypoint);
+    Npc(World &owner, size_t instance, std::string_view waypoint, ProcessPolicy aiPolicy = AiNormal);
     Npc(const Npc&)=delete;
     ~Npc();
 
@@ -151,9 +151,9 @@ class Npc final {
     void       setVisualBody (int32_t headTexNr, int32_t teethTexNr,
                               int32_t bodyVer, int32_t bodyColor,
                               std::string_view body, std::string_view head);
-    void       updateArmour  ();
+    void       updateArmor   ();
     void       setSword      (MeshObjects::Mesh&& sword);
-    void       setRangeWeapon(MeshObjects::Mesh&& bow);
+    void       setRangedWeapon(MeshObjects::Mesh&& bow);
     void       setShield     (MeshObjects::Mesh&& shield);
     void       setMagicWeapon(Effect&& spell);
     void       setSlotItem   (MeshObjects::Mesh&& itm, std::string_view slot);
@@ -213,6 +213,7 @@ class Npc final {
     uint32_t   instanceSymbol() const;
     uint32_t   guild() const;
     bool       isMonster() const;
+    bool       isHuman() const;
     void       setTrueGuild(int32_t g);
     int32_t    trueGuild() const;
     int32_t    magicCyrcle() const;
@@ -287,7 +288,7 @@ class Npc final {
     void      setPerceptionDisable(PercType t);
 
     bool      perceptionProcess(Npc& pl);
-    bool      perceptionProcess(Npc& pl, Npc *victum, float quadDist, PercType perc);
+    bool      perceptionProcess(Npc& pl, Npc *victim, float quadDist, PercType perc);
     bool      hasPerc(PercType perc) const;
     uint64_t  percNextTime() const;
 
@@ -347,15 +348,16 @@ class Npc final {
     void      buyItem    (size_t id, Npc& from,          size_t count=1);
     void      dropItem   (size_t id,                     size_t count=1);
     void      clearInventory();
-    Item*     currentArmour();
+    Item*     currentArmor();
     Item*     currentMeleeWeapon();
-    Item*     currentRangeWeapon();
+    Item*     currentRangedWeapon();
     auto      mapWeaponBone() const -> Tempest::Vec3;
     auto      mapHeadBone() const -> Tempest::Vec3;
     auto      mapBone(std::string_view bone) const -> Tempest::Vec3;
 
     bool      turnTo  (float dx, float dz, bool noAnim, uint64_t dt);
-    bool      rotateTo(float dx, float dz, float speed, bool anim, uint64_t dt);
+    bool      rotateTo(float dx, float dz, float speed, AnimationSolver::TurnType anim, uint64_t dt);
+    bool      whirlTo(float dx, float dz, float step, uint64_t dt);
     bool      isRotationAllowed() const;
     auto      playAnimByName(std::string_view name, BodyState bs) -> const Animation::Sequence*;
 
@@ -387,7 +389,7 @@ class Npc final {
     int32_t   lastHitSpellId() const { return lastHitSpell; }
 
     void      setOther(Npc* ot);
-    void      setVictum(Npc* ot);
+    void      setVictim(Npc* ot);
 
     bool      haveOutput() const;
     void      setAiOutputBarrier(uint64_t dt, bool overlay);
@@ -470,9 +472,11 @@ class Npc final {
     bool      implLookAtWp(uint64_t dt);
     bool      implLookAtNpc(uint64_t dt);
     bool      implLookAt (float dx, float dy, float dz, uint64_t dt);
+    bool      implTurnAway(const Npc& oth, uint64_t dt);
     bool      implTurnTo (const Npc& oth, uint64_t dt);
-    bool      implTurnTo (const Npc& oth, bool noAnim, uint64_t dt);
-    bool      implTurnTo (float dx, float dz, bool noAnim, uint64_t dt);
+    bool      implTurnTo (const Npc& oth, AnimationSolver::TurnType anim, uint64_t dt);
+    bool      implTurnTo (float dx, float dz, AnimationSolver::TurnType anim, uint64_t dt);
+    bool      implWhirlTo(const Npc& oth, uint64_t dt);
     bool      implGoTo   (uint64_t dt);
     bool      implGoTo   (uint64_t dt, float destDist);
     bool      implAttack  (uint64_t dt);
@@ -494,6 +498,7 @@ class Npc final {
     bool      checkHealth(bool onChange, bool forceKill);
     void      onNoHealth(bool death, HitSound sndMask);
     bool      hasAutoroll() const;
+    bool      prepareTurn();
     void      stopWalkAnimation();
     void      takeDamage(Npc& other, const Bullet* b, const CollideMask bMask, int32_t splId, bool isSpell);
     void      takeFallDamage(const Tempest::Vec3& fallSpeed);
@@ -509,6 +514,7 @@ class Npc final {
     static float angleDir(float x,float z);
 
     uint8_t   calcAniComb() const;
+    uint64_t  perceptionTimeClampt() const;
 
     bool               isAlignedToGround() const;
     Tempest::Vec3      groundNormal() const;
@@ -588,7 +594,7 @@ class Npc final {
 
     Interactive*                   currentInteract=nullptr;
     Npc*                           currentOther   =nullptr;
-    Npc*                           currentVictum  =nullptr;
+    Npc*                           currentVictim  =nullptr;
 
     const WayPoint*                currentLookAt=nullptr;
     Npc*                           currentLookAtNpc=nullptr;

@@ -4,10 +4,11 @@
 #include <Tempest/Vec>
 
 #include "graphics/dynamic/frustrum.h"
-#include "lightgroup.h"
 #include "rtscene.h"
+#include "resources.h"
 
 class Sky;
+class WorldView;
 
 class SceneGlobals final {
   public:
@@ -32,6 +33,7 @@ class SceneGlobals final {
     void setViewLwc(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& proj, const Tempest::Matrix4x4 *sh);
     void setViewVsm(const Tempest::Matrix4x4& view, const Tempest::Matrix4x4& viewLwc);
     void setSky(const Sky& s);
+    void setWorld(const WorldView& wview);
     void setUnderWater(bool w);
 
     void setTime(uint64_t time);
@@ -43,12 +45,9 @@ class SceneGlobals final {
     void setShadowMap(const Tempest::Texture2d* tex[]);
 
     void setVirtualShadowMap(const Tempest::ZBuffer&       vsmPageData,
-                             const Tempest::StorageImage&  vsmPageDataCs,
                              const Tempest::StorageImage&  pageTbl,
                              const Tempest::StorageImage&  pageHiZ,
                              const Tempest::StorageBuffer& vsmPageList);
-    void setVsmSkyShadows(const Tempest::StorageImage& skyShadows);
-    void setSwRenderingImage(const Tempest::StorageImage& mainView);
 
     const Tempest::Matrix4x4& viewProject() const;
     const Tempest::Matrix4x4& viewProjectInv() const;
@@ -74,20 +73,14 @@ class SceneGlobals final {
     const Tempest::Texture2d*         gbufNormals  = &Resources::fallbackBlack();
 
     const Tempest::Texture2d*         hiZ          = &Resources::fallbackTexture();
-    const Tempest::Texture2d*         skyLut       = &Resources::fallbackTexture();
 
-    const Tempest::StorageBuffer*     lights       = nullptr;
+    const Tempest::StorageBuffer*     lights        = nullptr;
 
     const Tempest::Texture2d*         vsmPageData   = nullptr;
-    const Tempest::StorageImage*      vsmPageDataCs = nullptr;
     const Tempest::StorageImage*      vsmPageTbl    = nullptr;
     const Tempest::StorageImage*      vsmPageHiZ    = nullptr;
     const Tempest::StorageBuffer*     vsmPageList   = nullptr;
     Tempest::StorageImage             vsmDbg;
-
-    const Tempest::StorageImage*      swMainImage   = nullptr;
-    const Tempest::StorageImage*      skyShadows    = nullptr;
-
 
     struct UboGlobal final {
       Tempest::Matrix4x4              viewProject;
@@ -97,6 +90,8 @@ class SceneGlobals final {
       Tempest::Matrix4x4              viewShadowLwc[Resources::ShadowLayers];
       Tempest::Matrix4x4              viewVirtualShadow;
       Tempest::Matrix4x4              viewVirtualShadowLwc;
+      Tempest::Matrix4x4              viewProject2VirtualShadow;
+      Tempest::Vec4                   vsmDdx, vsmDdy;
       Tempest::Matrix4x4              view, project, projectInv;
       Tempest::Vec3                   sunDir        = {0,0,1};
       float                           waveAnim      = 0;
@@ -117,7 +112,7 @@ class SceneGlobals final {
       Tempest::Vec3                   pfxTop   = {};
       float                           padd2 = 0;
       Tempest::Vec3                   pfxDepth = {};
-      float                           padd3 = 0;
+      float                           plPosY = {};
       Tempest::Point                  hiZTileSize = {};
       Tempest::Point                  screenRes = {};
       Tempest::Vec2                   cloudsDir[2] = {};
@@ -138,6 +133,5 @@ class SceneGlobals final {
     void                              initSettings();
 
     UboGlobal                         uboGlobalCpu;
-    Tempest::DescriptorSet            uboCopy[Resources::MaxFramesInFlight][V_Count];
   };
 

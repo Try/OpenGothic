@@ -9,6 +9,10 @@
 #include <processthreadsapi.h>
 #endif
 
+#if defined(__GNUC__)
+#include <pthread.h>
+#endif
+
 #if defined(_MSC_VER)
 void Workers::setThreadName(const char* threadName) {
   const DWORD MS_VC_EXCEPTION = 0x406D1388;

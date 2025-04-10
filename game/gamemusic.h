@@ -2,7 +2,6 @@
 
 #include <zenkit/addon/daedalus.hh>
 
-#include <memory>
 #include <Tempest/SoundDevice>
 #include <Tempest/SoundEffect>
 
@@ -44,7 +43,12 @@ class GameMusic final {
 
     static GameMusic* instance;
 
-    int                  provider = 0;
+    struct {
+      zenkit::IMusicTheme theme = {};
+      Tags                tags  = Tags::Std;
+      } currentMusic;
+
+    int                  provider = -1;
     Tempest::SoundDevice device;
     Tempest::SoundEffect sound;
     MusicProvider*       impl = nullptr;

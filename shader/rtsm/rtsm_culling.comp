@@ -1,0 +1,114 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+#include "rtsm/rtsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 64) in;
+
+layout(push_constant, std430) uniform UboPush {
+  int meshletCount;
+  } push;
+layout(binding = 0, r32ui)  uniform  uimage3D   pageTbl;
+layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene;                    };
+layout(binding = 3)         uniform  utexture2D gbufNormal;
+layout(binding = 4)         uniform  texture2D  depth;
+layout(binding = 5, std430) readonly buffer Cbo { Cluster clusters[];                 };
+layout(binding = 6, std430)          buffer Rt  { RtsmHeader header; uvec2 visList[]; } rtsm;
+layout(binding = 7, std430)          buffer Pos { uint       alloc;  uint  data[];    } pos;
+
+bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMax) {
+  const vec3  c = (scene.viewVirtualShadow * vec4(sphere.xyz, 1)).xyz;
+  const float R = sphere.w;
+
+  const float smWidthInv = 1.0/(1024.0); // NOTE: from camera.cpp
+  const float zScale     = 1.0/(10*5120.0);
+
+  float Rz = R * zScale;
+  if(c.z - Rz > 1 || c.z + Rz < 0)
+    return false;
+
+  float Rx = R * smWidthInv;
+  float Ry = R * smWidthInv;
+  aabb     = vec4(c.xy-vec2(Rx,Ry), c.xy+vec2(Rx,Ry));
+  depthMax = c.z + Rz;
+  // aabb = c.xyxy;
+  return true;
+  }
+
+bool projectCluster(const Cluster cluster, out vec4 aabb, out float depthMax) {
+  if(cluster.instanceId==0xFFFFFFFF)
+    return projectSphere(cluster.sphere, aabb, depthMax);
+  return projectSphere(cluster.sphere, aabb, depthMax);
+  }
+
+bool pageHiZTest(ivec4 iaabb, float depthMax, int mip) {
+  for(int x=iaabb.x; x<iaabb.z; ++x)
+    for(int y=iaabb.y; y<iaabb.w; ++y) {
+      const uint  p = imageLoad(pageTbl, ivec3(x,y,mip)).x;
+      const float f = orderedUintToFloat(p);
+
+      // if(p!=0xFFFFFFFF)
+      //   return true;
+      if(f<=depthMax)
+        return true;
+      }
+
+  return false;
+  }
+
+int mipBySize(const vec2  sz) {
+  //const vec2  sz   = (aabb.zw-aabb.xy)*RTSM_PAGE_TBL_SIZE;
+  const int   size = int(ceil(max(sz.x, sz.y)));
+  const int   mip  = findMSB(size)+1;
+  return mip;
+  }
+
+int mipByPos(const vec4 aabb) {
+  const float x   = max(abs(aabb.x), abs(aabb.z));
+  const float y   = max(abs(aabb.y), abs(aabb.y));
+  const int   at  = int(ceil(max(x, y)));
+  const int   mip = findMSB(at)+1;
+  return mip;
+  }
+
+void main() {
+  const uint clusterId = gl_GlobalInvocationID.x;
+  if(clusterId>=push.meshletCount)
+    return;
+
+  const Cluster cluster = clusters[clusterId];
+  if(cluster.sphere.w<=0.f)
+    return; // disabled or deleted
+
+  vec4  aabb     = vec4(0);
+  float depthMax = 1;
+  if(!projectCluster(cluster, aabb, depthMax))
+    return;
+
+  const int   mipSz  = mipBySize((aabb.zw-aabb.xy)*RTSM_PAGE_TBL_SIZE);
+  const int   mipPos = mipByPos (aabb);
+  const int   mip    = max(mipSz, mipPos);
+  if(mip>=RTSM_PAGE_MIPS)
+    return;
+
+  aabb /= (1u << mip);
+  aabb = aabb*0.5+0.5; // [0..1]
+  aabb = aabb*RTSM_PAGE_TBL_SIZE;
+
+  ivec4 iaabb = ivec4(ivec2(aabb.xy), ivec2(aabb.zw)+1);
+  iaabb.xy = max(iaabb.xy, ivec2(0));
+  iaabb.zw = min(iaabb.zw, ivec2(RTSM_PAGE_TBL_SIZE));
+
+  if(!pageHiZTest(iaabb, depthMax, mip))
+    return;
+
+  const uint id = atomicAdd(rtsm.header.visCount, cluster.meshletCount);
+  for(int i=0; i<cluster.meshletCount; ++i) {
+    rtsm.visList[id+i] = uvec2(clusterId, cluster.firstMeshlet+i);
+    atomicAdd(pos.alloc, 1); //reserve memory for position shader
+    }
+  }

@@ -1,0 +1,38 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+
+#include "virtual_shadow/vsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 64) in;
+
+layout(push_constant, std140) uniform Push {
+  uint lightsTotal;
+  };
+layout(binding = 0, std430) buffer Omni { uint pageTblOmni[]; };
+
+bool hasPages(uint id) {
+  for(uint i=0; i<6; ++i) {
+    if(pageTblOmni[id+i]>1)
+      return true;
+    }
+  return false;
+  }
+
+void main() {
+  const uint id = gl_GlobalInvocationID.x;
+  if(id >= lightsTotal)
+    return;
+
+  if(!hasPages(id*6))
+    return;
+
+  for(uint i=0; i<6; ++i) {
+    uint v  = pageTblOmni[id*6+i];
+    uint pg = v>0 ? max(v-1, 1) : 0;
+    pageTblOmni[id*6+i] = pg;
+    }
+  }

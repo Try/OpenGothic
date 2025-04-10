@@ -16,53 +16,87 @@ static constexpr uint16_t SAMPLE_RATE = 44100;
 struct GameMusic::MusicProvider : Tempest::SoundProducer {
   using Tempest::SoundProducer::SoundProducer;
 
-  virtual void playTheme(const zenkit::IMusicTheme &theme, GameMusic::Tags tags) = 0;
+  public:
+    virtual void stopTheme() {
+      std::lock_guard<std::recursive_mutex> guard(pendingSync);
+      pendingMusic.reset();
+      }
 
-  virtual void stopTheme() = 0;
+    void setEnabled(bool b) {
+      if(enable == b)
+        return;
 
-  virtual void setEnabled(bool enable) = 0;
+      std::lock_guard<std::recursive_mutex> guard(pendingSync);
+      if(b) {
+        hasPending = true;
+        reloadTheme = true;
+        enable.store(true);
+        } else {
+        stopTheme();
+        }
+      }
 
-  virtual bool isEnabled() const = 0;
+    bool isEnabled() const {
+      return enable.load();
+      }
 
-  virtual const std::optional<zenkit::IMusicTheme> getPlayingTheme() const = 0;
-};
+    void playTheme(const zenkit::IMusicTheme &theme, GameMusic::Tags tags) {
+      std::lock_guard<std::recursive_mutex> guard(pendingSync);
+      reloadTheme  = !pendingMusic || pendingMusic->file != theme.file;
+      pendingMusic = theme;
+      pendingTags  = tags;
+      hasPending   = true;
+      }
+
+  protected:
+    bool updateTheme(zenkit::IMusicTheme& theme, Tags& tags) {
+      bool reloadTheme = false;
+
+      std::lock_guard<std::recursive_mutex> guard(pendingSync);
+      if(hasPending && pendingMusic && enable.load()) {
+        hasPending  = false;
+        reloadTheme = this->reloadTheme;
+        theme       = this->pendingMusic.value();
+        tags        = this->pendingTags;
+        }
+
+      this->reloadTheme = false;
+      return reloadTheme;
+      }
+
+  private:
+    std::atomic_bool     enable{true};
+
+    std::recursive_mutex pendingSync;
+    bool                 hasPending  = false;
+    bool                 reloadTheme = false;
+    Tags                 pendingTags = Tags::Day;
+    std::optional<zenkit::IMusicTheme> pendingMusic;
+
+  protected:
+    Tags                 currentTags = Tags::Day;
+  };
 
 struct GameMusic::OpenGothicMusicProvider : GameMusic::MusicProvider {
   using GameMusic::MusicProvider::MusicProvider;
 
   void renderSound(int16_t *out, size_t n) override {
-    if (!enable.load()) {
+    if(!isEnabled()) {
       std::memset(out, 0, n * sizeof(int32_t) * 2);
       return;
-    }
-
+      }
     updateTheme();
     mix.mix(out, n);
-  }
+    }
 
   void updateTheme() {
     zenkit::IMusicTheme theme;
-    bool updateTheme = false;
-    bool reloadTheme = false;
-    Tags tags = Tags::Day;
-
-    {
-      std::lock_guard<std::mutex> guard(pendingSync);
-      if (hasPending && enable.load()) {
-        hasPending = false;
-        updateTheme = true;
-        reloadTheme = this->reloadTheme;
-        theme = *pendingMusic;
-        tags = pendingTags;
-      }
-    }
-
-    if (!updateTheme)
+    Tags                tags;
+    if(!GameMusic::MusicProvider::updateTheme(theme, tags))
       return;
-    updateTheme = false;
 
     try {
-      if (reloadTheme) {
+      if(/*reloadTheme*/true) {
         Dx8::PatternList p = Resources::loadDxMusic(theme.file);
 
         Dx8::Music m;
@@ -72,78 +106,42 @@ struct GameMusic::OpenGothicMusicProvider : GameMusic::MusicProvider {
         const int next = tags & (Tags::Std | Tags::Fgt | Tags::Thr);
 
         Dx8::DMUS_EMBELLISHT_TYPES em = Dx8::DMUS_EMBELLISHT_END;
-        if (next == Tags::Std) {
-          if (cur != Tags::Std)
+        if(next == Tags::Std) {
+          if(cur != Tags::Std)
             em = Dx8::DMUS_EMBELLISHT_BREAK;
-        } else if (next == Tags::Fgt) {
-          if (cur == Tags::Thr)
+          }
+        else if(next == Tags::Fgt) {
+          if(cur == Tags::Thr)
             em = Dx8::DMUS_EMBELLISHT_FILL;
-        } else if (next == Tags::Thr) {
-          if (cur == Tags::Fgt)
+          }
+        else if(next == Tags::Thr) {
+          if(cur == Tags::Fgt)
             em = Dx8::DMUS_EMBELLISHT_NORMAL;
-        }
+          }
 
         mix.setMusic(m, em);
         currentTags = tags;
-      }
+        }
       mix.setMusicVolume(theme.vol);
-    }
+      }
     catch (std::runtime_error &) {
       Log::e("unable to load sound: \"", theme.file, "\"");
       stopTheme();
-    }
+      }
     catch (std::bad_alloc &) {
       Log::e("out of memory for sound: \"", theme.file, "\"");
       stopTheme();
+      }
     }
-  }
-
-  void playTheme(const zenkit::IMusicTheme &theme, GameMusic::Tags tags) override {
-    std::lock_guard<std::mutex> guard(pendingSync);
-    reloadTheme = !pendingMusic || pendingMusic->file != theme.file;
-    pendingMusic = theme;
-    pendingTags = tags;
-    hasPending = true;
-  }
 
   void stopTheme() override {
-    enable.store(false);
+    GameMusic::MusicProvider::stopTheme();
     mix.setMusic(Dx8::Music());
-    pendingMusic.reset();
-  }
-
-  void setEnabled(bool b) override {
-    if (enable == b) return;
-
-    std::lock_guard<std::mutex> guard(pendingSync);
-    if (b) {
-      hasPending = true;
-      reloadTheme = true;
-      enable.store(true);
-    } else {
-      stopTheme();
     }
-  }
 
-  bool isEnabled() const override {
-    return enable.load();
-  }
-
-  const std::optional<zenkit::IMusicTheme> getPlayingTheme() const override {
-    return pendingMusic;
-  }
-
-private:
-  Dx8::Mixer mix;
-
-  std::mutex pendingSync;
-  std::atomic_bool enable{true};
-  bool hasPending = false;
-  bool reloadTheme = false;
-  std::optional<zenkit::IMusicTheme> pendingMusic;
-  Tags pendingTags = Tags::Day;
-  Tags currentTags = Tags::Day;
-};
+  private:
+    Dx8::Mixer mix;
+  };
 
 static std::pair<DmTiming, DmEmbellishmentType> getThemeEmbellishmentAndTiming(const zenkit::IMusicTheme &theme) {
   DmEmbellishmentType embellishment = DmEmbellishment_NONE;
@@ -192,73 +190,53 @@ static std::pair<DmTiming, DmEmbellishmentType> getThemeEmbellishmentAndTiming(c
 struct GameMusic::GothicKitMusicProvider : GameMusic::MusicProvider {
   GothicKitMusicProvider(uint16_t rate, uint16_t channels) : GameMusic::MusicProvider(rate, channels) {
     DmResult rv = DmPerformance_create(&performance, rate);
-    if (rv != DmResult_SUCCESS) {
+    if(rv != DmResult_SUCCESS) {
       Log::e("Unable to create DmPerformance object. Out of memory?");
+      }
     }
-  }
 
   ~GothicKitMusicProvider() override {
     DmPerformance_release(performance);
-  }
-
-  void renderSound(int16_t *out, size_t n) override {
-    if (!enabled.load()) {
-      std::memset(out, 0, n * sizeof(int32_t) * 2);
-      return;
     }
 
+  void renderSound(int16_t *out, size_t n) override {
+    if(!isEnabled()) {
+      std::memset(out, 0, n * sizeof(int32_t) * 2);
+      return;
+      }
+    updateTheme();
     DmPerformance_renderPcm(performance, out, n * 2, static_cast<DmRenderOptions>(DmRender_SHORT | DmRender_STEREO));
-  }
+    }
 
-  void playTheme(const zenkit::IMusicTheme &theme, GameMusic::Tags tags) override {
-    (void) tags;
-
-    if (!isEnabled()) return;
-    if (playingTheme && theme.symbol_index() == playingTheme->symbol_index()) return;
+  void updateTheme() {
+    zenkit::IMusicTheme theme;
+    Tags                tags;
+    if(!GameMusic::MusicProvider::updateTheme(theme, tags))
+      return;
 
     DmSegment *sgt = Resources::loadMusicSegment(theme.file.c_str());
     auto [timing, embellishment] = getThemeEmbellishmentAndTiming(theme);
 
     DmResult rv = DmPerformance_playTransition(performance, sgt, embellishment, timing);
-    if (rv != DmResult_SUCCESS) {
+    if(rv != DmResult_SUCCESS) {
       Log::e("Failed to play theme: ", theme.file);
       stopTheme();
-    }
+      }
 
     DmPerformance_setVolume(performance, theme.vol);
-
     DmSegment_release(sgt);
-    playingTheme = theme;
-  }
+    }
 
   void stopTheme() override {
+    GameMusic::MusicProvider::stopTheme();
     DmPerformance_playTransition(performance, nullptr, DmEmbellishment_NONE, DmTiming_INSTANT);
-  }
-
-  void setEnabled(bool enable) override {
-    enabled.store(enable);
-
-    if (enable && playingTheme) {
-      playTheme(*playingTheme, Tags::Std);
-    } else {
-      stopTheme();
     }
-  }
 
-  bool isEnabled() const override {
-    return enabled.load() && performance != nullptr;
-  }
+  private:
+    DmPerformance *performance = nullptr;
+  };
 
-  const std::optional<zenkit::IMusicTheme> getPlayingTheme() const override {
-    return playingTheme;
-  }
-
-private:
-  DmPerformance *performance = nullptr;
-  std::atomic_bool enabled{true};
-  std::optional<zenkit::IMusicTheme> playingTheme;
-};
-
+static constexpr int PROVIDER_UNINITIALIZED = -1;
 static constexpr int PROVIDER_OPENGOTHIC = 0;
 // static constexpr int PROVIDER_GOTHICKIT = 1;
 
@@ -266,20 +244,14 @@ GameMusic *GameMusic::instance = nullptr;
 
 GameMusic::GameMusic() {
   instance = this;
-
-  std::unique_ptr<MusicProvider> p = std::make_unique<OpenGothicMusicProvider>(SAMPLE_RATE, 2);
-  impl = p.get();
-  provider = PROVIDER_OPENGOTHIC;
-
-  sound = device.load(std::move(p));
-  sound.play();
-  sound.setVolume(0.5);
+  provider = PROVIDER_UNINITIALIZED;
 
   Gothic::inst().onSettingsChanged.bind(this, &GameMusic::setupSettings);
   setupSettings();
   }
 
 GameMusic::~GameMusic() {
+  sound = SoundEffect();
   instance = nullptr;
   Gothic::inst().onSettingsChanged.ubind(this, &GameMusic::setupSettings);
   }
@@ -312,7 +284,9 @@ void GameMusic::setMusic(GameMusic::Music m) {
   }
 
 void GameMusic::setMusic(const zenkit::IMusicTheme &theme, Tags tags) {
-  impl->playTheme(theme, tags);
+  currentMusic.theme = theme;
+  currentMusic.tags  = tags;
+  impl->playTheme(currentMusic.theme, currentMusic.tags);
   }
 
 void GameMusic::stopMusic() {
@@ -326,25 +300,18 @@ void GameMusic::setupSettings() {
 
   if(providerIndex != provider) {
     Log::i("Switching music provider to ", providerIndex == PROVIDER_OPENGOTHIC ? "'OpenGothic'" : "'GothicKit'");
-
-    auto playingTheme = impl->getPlayingTheme();
-    impl->stopTheme();
-    sound.pause();
+    sound = SoundEffect();
 
     std::unique_ptr<MusicProvider> p;
-
     if(providerIndex == PROVIDER_OPENGOTHIC) {
       p = std::make_unique<OpenGothicMusicProvider>(SAMPLE_RATE, 2);
       } else {
       p = std::make_unique<GothicKitMusicProvider>(SAMPLE_RATE, 2);
       }
 
-    impl = p.get();
     provider = providerIndex;
-
-    if(playingTheme) {
-      impl->playTheme(*playingTheme, Tags::Std);
-      }
+    impl = p.get();
+    impl->playTheme(currentMusic.theme, currentMusic.tags);
 
     sound = device.load(std::move(p));
     sound.play();

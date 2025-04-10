@@ -3,14 +3,14 @@
 #include <limits>
 #include "game/serialize.h"
 
-AiQueue::AiQueue() {  
+AiQueue::AiQueue() {
   }
 
 void AiQueue::save(Serialize& fout) const {
   fout.write(uint32_t(aiActions.size()));
   for(auto& i:aiActions){
     fout.write(uint32_t(i.act));
-    fout.write(i.target,i.victum);
+    fout.write(i.target,i.victim);
     fout.write(i.point,i.func,i.i0,i.i1,i.s0);
     if(i.act==AI_PrintScreen)
       fout.write(i.i2,i.s1);
@@ -23,7 +23,7 @@ void AiQueue::load(Serialize& fin) {
   aiActions.resize(size);
   for(auto& i:aiActions){
     fin.read(reinterpret_cast<uint32_t&>(i.act));
-    fin.read(i.target,i.victum);
+    fin.read(i.target,i.victim);
     fin.read(i.point,i.func,i.i0,i.i1,i.s0);
     if(i.act==AI_PrintScreen)
       fin.read(i.i2,i.s1);
@@ -98,9 +98,23 @@ AiQueue::AiAction AiQueue::aiRemoveWeapon() {
   return a;
   }
 
+AiQueue::AiAction AiQueue::aiTurnAway(Npc *other) {
+  AiAction a;
+  a.act    = AI_TurnAway;
+  a.target = other;
+  return a;
+  }
+
 AiQueue::AiAction AiQueue::aiTurnToNpc(Npc *other) {
   AiAction a;
   a.act    = AI_TurnToNpc;
+  a.target = other;
+  return a;
+  }
+
+AiQueue::AiAction AiQueue::aiWhirlToNpc(Npc *other) {
+  AiAction a;
+  a.act    = AI_WhirlToNpc;
   a.target = other;
   return a;
   }
@@ -119,14 +133,14 @@ AiQueue::AiAction AiQueue::aiGoToNextFp(std::string_view fp) {
   return a;
   }
 
-AiQueue::AiAction AiQueue::aiStartState(ScriptFn stateFn, int behavior, Npc* other, Npc* victum, std::string_view wp) {
+AiQueue::AiAction AiQueue::aiStartState(ScriptFn stateFn, int behavior, Npc* other, Npc* victim, std::string_view wp) {
   AiAction a;
   a.act    = AI_StartState;
   a.func   = stateFn;
   a.i0     = behavior;
   a.s0     = wp;
   a.target = other;
-  a.victum = victum;
+  a.victim = victim;
   return a;
   }
 
@@ -190,7 +204,7 @@ AiQueue::AiAction AiQueue::aiEquipBestMeleeWeapon() {
   return a;
   }
 
-AiQueue::AiAction AiQueue::aiEquipBestRangeWeapon() {
+AiQueue::AiAction AiQueue::aiEquipBestRangedWeapon() {
   AiAction a;
   a.act = AI_EquipRange;
   return a;
@@ -238,7 +252,7 @@ AiQueue::AiAction AiQueue::aiReadyMeleeWeapon() {
   return a;
   }
 
-AiQueue::AiAction AiQueue::aiReadyRangeWeapon() {
+AiQueue::AiAction AiQueue::aiReadyRangedWeapon() {
   AiAction a;
   a.act = AI_DrawWeaponRange;
   return a;

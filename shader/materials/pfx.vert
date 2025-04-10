@@ -5,9 +5,9 @@
 
 #include "materials_common.glsl"
 
-#define PfxOrientationNone       0
-#define PfxOrientationVelocity   1
-#define PfxOrientationVelocity3d 2
+const int PfxOrientationNone       = 0;
+const int PfxOrientationVelocity   = 1;
+const int PfxOrientationVelocity3d = 2;
 
 struct Particle {
   vec3  pos;
@@ -16,22 +16,6 @@ struct Particle {
   uint  bits0;
   vec3  dir;
   uint  colorB;
-  };
-
-struct VaryingsPfx {
-#if defined(MAT_UV)
-  vec2 uv;
-#endif
-#if !defined(DEPTH_ONLY)
-  vec3 normal;
-#endif
-#if defined(FORWARD)
-  vec3 pos;
-#endif
-#if defined(MAT_COLOR)
-  vec4 color;
-#endif
-  float d;
   };
 
 layout(binding = L_Pfx, std430) readonly buffer PfxBuf {

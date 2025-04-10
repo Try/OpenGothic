@@ -25,7 +25,7 @@ environment:
 
 install:
 - ps: >-
-    $VK_SDK = '1.3.231.1'
+    $VK_SDK = '1.4.304.0'
 
     if($IsLinux) {
       sudo apt-get update
@@ -34,9 +34,9 @@ install:
       $env:VULKAN_SDK      = "$env:APPVEYOR_BUILD_FOLDER/VulkanSDK/$VK_SDK/x86_64"
       $env:VK_LAYER_PATH   = "$env:VULKAN_SDK/etc/vulkan/explicit_layers.d"
       $env:LD_LIBRARY_PATH = "$env:VULKAN_SDK/lib"
-      Invoke-WebRequest -Uri https://sdk.lunarg.com/sdk/download/$VK_SDK/linux/vulkansdk-linux-x86_64-$VK_SDK.tar.gz -OutFile VulkanSDK.tar.gz
+      Invoke-WebRequest -Uri https://sdk.lunarg.com/sdk/download/$VK_SDK/linux/vulkansdk-linux-x86_64-$VK_SDK.tar.xz -OutFile VulkanSDK.tar.xz
       mkdir VulkanSDK
-      tar -xzf VulkanSDK.tar.gz -C ./VulkanSDK
+      tar -xJf VulkanSDK.tar.xz -C ./VulkanSDK
       }
 
     if($IsWindows) {
@@ -153,11 +153,11 @@ deploy:
   description: 'no release description'
   provider: GitHub
   auth_token:
-    secure: YLdtUMsAcc8FUr3kgwhQW7nkl5jDpLKbelvzWzzTWUfAiDd92Kd15rjlDJVEEFzo
+    secure: XkKdx4YECrADRtnQrWhLsk+3sgMIvfm1mHKX82P5ovMW7qRvm0cfso2Aznmevw3ac7xkvAOq8oAHezd6d8ZENHkE5imUBlhGS+lR9I5hXNYqEOIIueNbZ+lZ7ipNQA2o
   artifact: /archive.*/
   draft: true
   force_update: false
   prerelease: true
   tag: opengothic-v${APPVEYOR_BUILD_VERSION}
   on:
-    appveyor_repo_tag: true       # deploy on tag push only
+    APPVEYOR_REPO_TAG: true       # deploy on tag push only

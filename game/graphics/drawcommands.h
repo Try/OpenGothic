@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Tempest/RenderPipeline>
-#include <Tempest/DescriptorSet>
 #include <Tempest/StorageBuffer>
 #include <vector>
 
@@ -33,12 +32,8 @@ class DrawCommands {
       uint32_t                       firstPayload = 0;
       uint32_t                       maxPayload   = 0;
 
-      // bindless only
-      Tempest::DescriptorSet         desc[SceneGlobals::V_Count];
-
       // bindfull only
       uint32_t                       bucketId     = 0;
-      Tempest::DescriptorSet         descFr[Resources::MaxFramesInFlight][SceneGlobals::V_Count];
 
       bool                           isForwardShading() const;
       bool                           isShadowmapRequired() const;
@@ -52,25 +47,23 @@ class DrawCommands {
     ~DrawCommands();
 
     const DrawCmd& operator[](size_t i) const { return cmd[i]; }
+    size_t   maxMeshlets() const { return maxPayload; }
 
-    bool     commit(Tempest::Encoder<Tempest::CommandBuffer>& enc, uint8_t fId);
+    void     commit(Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     uint16_t commandId(const Material& m, Type type, uint32_t bucketId);
     void     addClusters(uint16_t cmdId, uint32_t meshletCount);
 
-    void     prepareUniforms();
-    void     prepareLigtsUniforms();
+    void     resetRendering();
 
-    void     updateUniforms(uint8_t fId);
-    void     updateTasksUniforms();
+    void     updateBindlessArrays();
 
-    void     visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, int pass);
-    void     visibilityVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void     visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, int pass);
+    void     visibilityVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 
-    void     drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void     drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, SceneGlobals::VisCamera viewId, Material::AlphaFunc func);
+    void     drawHiZ(Tempest::Encoder<Tempest::CommandBuffer>& cmd);
+    void     drawCommon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, SceneGlobals::VisCamera viewId, Material::AlphaFunc func);
 
-    void     drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
-    void     drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void     drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 
   private:
     enum TaskLinkpackage : uint8_t {
@@ -80,9 +73,10 @@ class DrawCommands {
       T_Bucket     = 3,
       T_Indirect   = 4,
       T_Clusters   = 5,
-      T_HiZ        = 6,
-      T_VsmPages   = 7,
-      T_CmdOffsets = 8,
+      T_Lights     = 6,
+      T_HiZ        = 7,
+      T_VsmPages   = 8,
+      T_CmdOffsets = 9,
       };
 
     enum UboLinkpackage : uint8_t {
@@ -103,8 +97,7 @@ class DrawCommands {
       L_GDepth     = 13,
       L_CmdOffsets = 14,
       L_VsmPages   = L_Shadow0,
-      L_VsmTbl     = L_Shadow1,
-      L_VsmData    = 15,
+      L_Lights     = L_Shadow1,
       };
 
     struct IndirectCmd {
@@ -115,40 +108,33 @@ class DrawCommands {
       uint32_t writeOffset   = 0;
       };
 
-    struct TaskCmd {
-      SceneGlobals::VisCamera viewport = SceneGlobals::V_Main;
-      Tempest::DescriptorSet  desc;
-      };
-
     struct View {
       SceneGlobals::VisCamera viewport = SceneGlobals::V_Main;
-      Tempest::DescriptorSet  descInit;
       Tempest::StorageBuffer  visClusters, indirectCmd;
-
-      Tempest::DescriptorSet  descPackDraw0;
-      Tempest::DescriptorSet  descPackDraw1;
       Tempest::StorageBuffer  vsmClusters;
-
-      bool                    isEnabled() const;
       };
 
-    void                     updateCommandUniforms();
-    void                     updateVsmUniforms();
+    bool                     isViewEnabled(SceneGlobals::VisCamera v) const;
+
+    void                     setBindings(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const DrawCmd& cx, SceneGlobals::VisCamera viewId);
 
     VisualObjects&           owner;
     DrawBuckets&             buckets;
     DrawClusters&            clusters;
     const SceneGlobals&      scene;
+    size_t                   maxPayload = 0;
 
-    std::vector<TaskCmd>     tasks;
+    Tempest::DescriptorArray tex;
+    Tempest::DescriptorArray vbo;
+    Tempest::DescriptorArray ibo;
+    Tempest::DescriptorArray morphId;
+    Tempest::DescriptorArray morph;
+
     std::vector<DrawCmd>     cmd;
     std::vector<DrawCmd*>    ord;
-    Tempest::DescriptorSet   swrDesc;
     bool                     cmdDurtyBit = false;
-
     View                     views[SceneGlobals::V_Count];
 
+    const bool               vsmSupported;
     Tempest::StorageBuffer   vsmIndirectCmd;
-    // Tempest::StorageImage    vsmSwrImage;
-    Tempest::DescriptorSet   vsmDesc;
   };

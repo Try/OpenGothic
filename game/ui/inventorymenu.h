@@ -50,7 +50,7 @@ class InventoryMenu : public Tempest::Widget {
     void  onWorldChanged();
 
     void  tick(uint64_t dt);
-    void  draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId);
+    void  draw(Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void  paintNumOverlay(Tempest::PaintEvent& e);
 
     void  keyDownEvent  (Tempest::KeyEvent&   e) override;

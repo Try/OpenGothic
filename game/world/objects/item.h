@@ -60,7 +60,7 @@ class Item : public Vob {
     bool                is2H() const;
     bool                isCrossbow() const;
     bool                isRing() const;
-    bool                isArmour() const;
+    bool                isArmor() const;
     bool                isSpellShoot() const;
     bool                isSpellOrRune() const;
     bool                isSpell() const;

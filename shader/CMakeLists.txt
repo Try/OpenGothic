@@ -56,11 +56,18 @@ function(add_shader OUTPUT SOURCE)
     list(APPEND VARS "-DWORKGROUP_SIZE=64")
   endif()
 
+  # debug info in shaders
+  if(${CMAKE_BUILD_TYPE} MATCHES "Debug")
+    list(APPEND VARS "-g")
+  else()
+    list(APPEND VARS "-g")
+  endif()
+
   add_custom_command(
     OUTPUT     ${OUTPUT_FILE}
     DEPENDS    ${SOURCE_FILE} ${GLSL_SOURCES}
     COMMAND    ${CMAKE_COMMAND} -E make_directory "${PROJECT_BINARY_DIR}/sprv/"
-    COMMAND    ${GLSLANGVALIDATOR} -V -g ${VARS} -I"${CMAKE_SOURCE_DIR}/shader" "${SOURCE_FILE}" -o ${OUTPUT_FILE}
+    COMMAND    ${GLSLANGVALIDATOR} -V ${VARS} -I"${CMAKE_SOURCE_DIR}/shader" "${SOURCE_FILE}" -o ${OUTPUT_FILE}
     )
 endfunction(add_shader)
 
@@ -96,11 +103,11 @@ function(add_frag_shader OUTPUT)
 endfunction(add_frag_shader)
 
 # cluster culling
-add_shader(cluster_init.comp         materials/cluster_init.comp)
-add_shader(cluster_patch.comp        materials/cluster_patch.comp)
-add_shader(cluster_task.comp         materials/cluster_task.comp)
-add_shader(cluster_task_hiz.comp     materials/cluster_task.comp -DMAIN_VIEW -DHIZ)
-add_shader(cluster_task_hiz_cr.comp  materials/cluster_task.comp -DMAIN_VIEW -DHIZ -DLARGE)
+add_shader(cluster_init.comp            materials/cluster_init.comp)
+add_shader(cluster_patch.comp           materials/cluster_patch.comp)
+add_shader(visibility_pass.comp         materials/visibility_pass.comp)
+add_shader(visibility_pass_hiz.comp     materials/visibility_pass.comp -DMAIN_VIEW -DHIZ)
+add_shader(visibility_pass_hiz_cr.comp  materials/visibility_pass.comp -DMAIN_VIEW -DHIZ -DLARGE)
 
 # mesh & vertex
 add_geom_shader(main_lnd       "-DMESH_TYPE=0" -DFLAT_NORMAL)
@@ -164,12 +171,12 @@ add_frag_shader(main_obj_v     -DDEPTH_ONLY -DVIRTUAL_SHADOW)
 add_frag_shader(main_obj_v_at  -DDEPTH_ONLY -DVIRTUAL_SHADOW -DATEST)
 
 # pfx geometry
-add_shader(main_pfx.vert       materials/pfx.vert   -DVT_COLOR)
-add_shader(main_pfx_f.vert     materials/pfx.vert   -DFORWARD    -DVT_COLOR)
-add_shader(main_pfx_d.vert     materials/pfx.vert   -DDEPTH_ONLY -DVT_COLOR)
-add_shader(main_pfx_d_at.vert  materials/pfx.vert   -DDEPTH_ONLY -DVT_COLOR -DATEST)
-add_shader(main_pfx_v.vert     materials/pfx.vert   -DDEPTH_ONLY -DVIRTUAL_SHADOW -DVT_COLOR)
-add_shader(main_pfx_v_at.vert  materials/pfx.vert   -DDEPTH_ONLY -DVIRTUAL_SHADOW -DVT_COLOR -DATEST)
+add_shader(main_pfx.vert       materials/pfx.vert   "-DMESH_TYPE=4" -DVT_COLOR)
+add_shader(main_pfx_f.vert     materials/pfx.vert   "-DMESH_TYPE=4" -DFORWARD    -DVT_COLOR)
+add_shader(main_pfx_d.vert     materials/pfx.vert   "-DMESH_TYPE=4" -DDEPTH_ONLY -DVT_COLOR)
+add_shader(main_pfx_d_at.vert  materials/pfx.vert   "-DMESH_TYPE=4" -DDEPTH_ONLY -DVT_COLOR -DATEST)
+add_shader(main_pfx_v.vert     materials/pfx.vert   "-DMESH_TYPE=4" -DDEPTH_ONLY -DVIRTUAL_SHADOW -DVT_COLOR)
+add_shader(main_pfx_v_at.vert  materials/pfx.vert   "-DMESH_TYPE=4" -DDEPTH_ONLY -DVIRTUAL_SHADOW -DVT_COLOR -DATEST)
 # materials pfx
 add_shader(main_pfx_g.frag     materials/main.frag  "-DMESH_TYPE=4" -DGBUFFER    -DVT_COLOR)
 add_shader(main_pfx_g_at.frag  materials/main.frag  "-DMESH_TYPE=4" -DGBUFFER    -DVT_COLOR -DATEST)
@@ -188,15 +195,13 @@ add_shader(main_pfx_v_at.frag  materials/main.frag  "-DMESH_TYPE=4" -DDEPTH_ONLY
 add_shader(item.vert                 inventory/item.vert)
 add_shader(item.frag                 inventory/item.frag)
 
-add_shader(stash.vert                copy.vert)
 add_shader(stash.frag                stash.frag)
 
-add_shader(direct_light.vert         copy.vert)
 add_shader(direct_light.frag         lighting/direct_light.frag)
 add_shader(direct_light_sh.frag      lighting/direct_light.frag -DSHADOW_MAP)
 add_shader(direct_light_rq.frag      lighting/direct_light.frag -DSHADOW_MAP -DRAY_QUERY -DRAY_QUERY_AT)
+add_shader(direct_light_vsm.frag     virtual_shadow/vsm_direct_light.frag)
 
-add_shader(ambient_light.vert        copy.vert -DHAS_UV)
 add_shader(ambient_light.frag        lighting/ambient_light.frag)
 add_shader(ambient_light_ssao.frag   lighting/ambient_light.frag -DSSAO)
 
@@ -204,40 +209,39 @@ add_shader(light.vert                lighting/light.vert)
 add_shader(light.frag                lighting/light.frag)
 add_shader(light_rq.frag             lighting/light.frag -DRAY_QUERY)
 add_shader(light_rq_at.frag          lighting/light.frag -DRAY_QUERY -DRAY_QUERY_AT)
+add_shader(light_vsm.frag            lighting/light.frag -DVIRTUAL_SHADOW)
 
 add_shader(irradiance.comp           lighting/irradiance.comp)
 add_shader(sky_exposure.comp         lighting/sky_exposure.comp)
 
-add_shader(tonemapping.vert          copy.vert -DHAS_UV)
 add_shader(tonemapping.frag          lighting/tonemapping.frag)
 add_shader(tonemapping_up.frag       lighting/tonemapping.frag -DUPSCALE)
 
-add_shader(water_reflection.vert     copy.vert)
 add_shader(water_reflection.mesh     water/water_reflection.mesh)
 add_shader(water_reflection.frag     water/water_reflection.frag)
 add_shader(water_reflection_ssr.frag water/water_reflection.frag -DSSR)
 
-add_shader(underwater.vert           copy.vert "")
 add_shader(underwater_t.frag         water/underwater.frag "")
 add_shader(underwater_s.frag         water/underwater.frag -DSCATTERING)
 
 # Based on Scalable and Production Ready Sky and Atmosphere
 # https://sebh.github.io/publications/egsr2020.pdf
 # https://www.shadertoy.com/view/slSXRW
-add_shader(sky.vert                  sky/sky.vert)
-
 add_shader(sky_transmittance.frag    sky/sky_transmittance.frag)
 add_shader(sky_multi_scattering.frag sky/sky_multi_scattering.frag)
 add_shader(sky_view_lut.frag         sky/sky_view_lut.frag)
 add_shader(sky_view_clouds_lut.frag  sky/sky_view_clouds_lut.frag)
 
 add_shader(clouds_lut.comp           sky/clouds_lut.comp)
-add_shader(fog_view_lut.comp         sky/fog_view_lut.comp)
+add_shader(fog_view_lut.comp         sky/fog_view_lut.comp -DSUN_SCATTERING -DMULTI_SCATTERING)
+add_shader(fog_view_lut_sep.comp     sky/fog_view_lut.comp -DSUN_SCATTERING -DMULTI_SCATTERING -DSEPARABLE)
 
 add_shader(fog3d.comp                sky/fog.frag -S comp -DVOLUMETRIC)
 add_shader(fog3d_hq.frag             sky/fog.frag -DVOLUMETRIC)
+add_shader(fog_epipolar.frag         sky/fog_epipolar.frag)
 add_shader(fog.frag                  sky/fog.frag)
 add_shader(sky.frag                  sky/sky.frag)
+add_shader(sky_sep.frag              sky/sky.frag -DSEPARABLE)
 
 add_shader(sky_pathtrace.frag        sky/sky_pathtrace.frag)
 
@@ -245,7 +249,8 @@ add_shader(sun.vert                  sky/sun.vert)
 add_shader(sun.frag                  sky/sun.frag)
 
 # copy/edit
-add_shader(copy.vert                 copy.vert -DHAS_UV)
+add_shader(copy_uv.vert              copy.vert -DHAS_UV)
+add_shader(copy.vert                 copy.vert)
 add_shader(copy.frag                 copy.frag)
 add_shader(copy.comp                 copy.comp)
 add_shader(copy_img.comp             copy_img.comp)
@@ -261,9 +266,6 @@ else()
   add_shader(hiz_mip.comp            hiz/hiz_mip.comp)
 endif()
 add_shader(hiz_pot.comp              hiz/hiz_pot.comp)
-
-add_shader(hiz_reproject.mesh        hiz/hiz_reproject.mesh)
-add_shader(hiz_reproject.frag        hiz/hiz_reproject.frag)
 
 # Global illumination
 add_shader(probe_dbg.vert            lighting/rt/probe_dbg.vert)
@@ -294,20 +296,24 @@ add_shader(cmaa2_deferred_color_apply_2x2.vert     antialiasing/cmaa2/deferred_c
 add_shader(cmaa2_deferred_color_apply_2x2.frag     antialiasing/cmaa2/deferred_color_apply_2x2.frag)
 
 # virtual shadows
-add_shader(direct_light_vsm.frag     virtual_shadow/vsm_direct_light.frag)
-add_shader(vsm_reproject_sm.frag     virtual_shadow/vsm_reproject_sm.frag)
 add_shader(vsm_dbg.frag              virtual_shadow/vsm_direct_light.frag -DDEBUG)
 add_shader(vsm_mark_pages.comp       virtual_shadow/vsm_mark_pages.comp)
 add_shader(vsm_clear.comp            virtual_shadow/vsm_clear.comp)
-add_shader(vsm_clear_pages.comp      virtual_shadow/vsm_clear_pages.comp)
+add_shader(vsm_clear_omni.comp       virtual_shadow/vsm_clear_omni.comp)
 add_shader(vsm_trim_pages.comp       virtual_shadow/vsm_trim_pages.comp)
 add_shader(vsm_clump_pages.comp      virtual_shadow/vsm_clump_pages.comp)
 add_shader(vsm_list_pages.comp       virtual_shadow/vsm_list_pages.comp)
+add_shader(vsm_sort_pages.comp       virtual_shadow/vsm_sort_pages.comp)
 add_shader(vsm_alloc_pages.comp      virtual_shadow/vsm_alloc_pages.comp)
+add_shader(vsm_alloc_pages2.comp     virtual_shadow/vsm_alloc_pages2.comp)
 add_shader(vsm_merge_pages.comp      virtual_shadow/vsm_merge_pages.comp)
 add_shader(vsm_pack_draws0.comp      virtual_shadow/vsm_pack_draws.comp   -DPASS0)
 add_shader(vsm_pack_draws1.comp      virtual_shadow/vsm_pack_draws.comp   -DPASS1)
-add_shader(vsm_cluster_task.comp     virtual_shadow/vsm_cluster_task.comp -DVIRTUAL_SHADOW)
+add_shader(vsm_visibility_pass.comp  virtual_shadow/vsm_visibility_pass.comp -DVIRTUAL_SHADOW)
+# virtual shadows: omni lights
+add_shader(vsm_cull_lights.comp      virtual_shadow/vsm_cull_lights.comp)
+add_shader(vsm_mark_omni_pages.comp  virtual_shadow/vsm_mark_omni_pages.comp)
+add_shader(vsm_postprocess_omni.comp virtual_shadow/vsm_postprocess_omni.comp)
 # virtual shadows: fog
 add_shader(vsm_fog_epipolar.comp     virtual_shadow/vsm_fog_epipolar.comp)
 add_shader(vsm_fog_shadow.comp       virtual_shadow/vsm_fog_shadow.comp)
@@ -316,6 +322,25 @@ add_shader(vsm_fog_sample.comp       virtual_shadow/vsm_fog_sample.comp)
 add_shader(vsm_fog_trace.comp        virtual_shadow/vsm_fog_trace.comp)
 
 add_shader(vsm_rendering.comp        virtual_shadow/vsm_rendering.comp)
+
+# software meshlet rt
+add_shader(rtsm_clear.comp           rtsm/rtsm_clear.comp)
+add_shader(rtsm_mark_pages.comp      rtsm/rtsm_mark_pages.comp)
+add_shader(rtsm_hiz_pages.comp       rtsm/rtsm_hiz_pages.comp)
+add_shader(rtsm_cull_lights.comp     rtsm/rtsm_cull_lights.comp)
+add_shader(rtsm_culling.comp         rtsm/rtsm_culling.comp)
+add_shader(rtsm_position.comp        rtsm/rtsm_position.comp)
+
+add_shader(rtsm_meshlet_cull.comp    rtsm/rtsm_meshlet_cull.comp)
+add_shader(rtsm_meshlet_complex.comp rtsm/rtsm_meshlet_complex.comp)
+add_shader(rtsm_sample_cull.comp     rtsm/rtsm_sample_cull.comp)
+add_shader(rtsm_primitive_cull.comp  rtsm/rtsm_primitive_cull.comp)
+
+add_shader(rtsm_raster.comp          rtsm/rtsm_raster.comp)
+add_shader(rtsm_direct_light.frag    rtsm/rtsm_direct_light.frag)
+
+add_shader(rtsm_rendering.comp       rtsm/rtsm_rendering.comp)
+add_shader(rtsm_dbg.frag             rtsm/rtsm_dbg.frag)
 
 # software rendering
 add_shader(sw_rendering_imm.comp  software_rendering/sw_rendering_imm.comp)

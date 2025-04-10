@@ -21,6 +21,8 @@ class VideoWidget : public Tempest::Widget {
     void keyDownEvent(Tempest::KeyEvent&   event) override;
     void keyUpEvent  (Tempest::KeyEvent&   event) override;
 
+    void mouseDownEvent(Tempest::MouseEvent& event) override;
+
   private:
     struct Input;
     struct Sound;

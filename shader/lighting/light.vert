@@ -23,6 +23,7 @@ layout(binding = 4, std140) readonly buffer SsboLighting {
 
 layout(location = 0) out vec4 cenPosition;
 layout(location = 1) out vec3 color;
+layout(location = 2) out flat uint lightId;
 
 vec3 v[] = {
   {-1,-1,-1},
@@ -82,4 +83,5 @@ void main(void) {
   gl_Position = pos;
   cenPosition = vec4(light.pos,light.range);
   color       = light.color;
+  lightId     = gl_InstanceIndex;
   }
