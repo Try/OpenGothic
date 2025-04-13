@@ -1093,6 +1093,7 @@ void Renderer::drawRTSM(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     if(rtsm.pages.isEmpty()) {
       rtsm.pages = device.image3d(TextureFormat::R32U, 32, 32, 16);
       }
+
     const auto tiles = tileCount(scene.zbuffer->size(), RTSM_SMALL_TILE);
     if(rtsm.tiles.size()!=tiles) {
       Resources::recycle(std::move(rtsm.tiles));

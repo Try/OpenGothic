@@ -42,7 +42,8 @@ shared uint  depthMin, depthMax;
 
 // visible meshlets and ray-samples
 shared uint numPrimitives;
-shared uint primitives[2000]; // primitive and samples, no reinterpret case unfortenatly
+//shared uint primitives[2000]; // primitive and samples, no reinterpret case unfortenatly
+shared uint primitives[128]; // primitive and samples, no reinterpret case unfortenatly
 
 shared uint primListPtr;
 
@@ -137,32 +138,8 @@ void traceTile(const uint tilePtr, const uint visCount, bool primary) {
     }
   }
 
-void storeResultPrim(uint tilePtr, uint visCount) {
+void storeResultSharedMem() {
   const uint laneID = gl_LocalInvocationIndex;
-  const uint badBit = (1u << 31);
-
-  if(laneID==0)
-    primListPtr = allocScratch(numPrimitives);
-  barrier();
-
-  imageDbg(numPrimitives);
-  if(primListPtr==NULL && numPrimitives>0) {
-    // out of memory
-    imageStore(primitiveBins, ivec2(gl_WorkGroupID.xy), uvec4(primListPtr, badBit, 0,0));
-    return;
-    }
-  imageStore(primitiveBins, ivec2(gl_WorkGroupID.xy), uvec4(primListPtr, numPrimitives, 0,0));
-
-  if(numPrimitives>primitives.length()) {
-    barrier();
-
-    numPrimitives = 0;
-    barrier();
-
-    traceTile(tilePtr, visCount, false);
-    return;
-    }
-
   for(uint i=laneID; i<numPrimitives; i+=NumThreads)
     pos.data[primListPtr + i] = primitives[i];
   }
@@ -204,7 +181,7 @@ void processFragment(const ivec2 fragCoord) {
 
   const float d0    = uintBitsToFloat(depthMin);
   const float d1    = uintBitsToFloat(depthMax);
-  const uint  slice = uint(((z-d0)/(d1-d0))*DepthSlices);
+  const uint  slice = uint(((z-d0)/(d1-d0))*(DepthSlices-1));
   const vec3  ray   = rayOrigin(fragCoord.xy, z);
 
   atomicOr(numSlices, 1u << slice);
@@ -283,5 +260,29 @@ void main() {
   traceTile(tilePtr, visCount, true);
   barrier();
 
-  storeResultPrim(tilePtr, visCount);
+  if(laneID==0)
+    primListPtr = allocScratch(numPrimitives);
+  barrier();
+
+  imageDbg(numPrimitives);
+  if(primListPtr==NULL && numPrimitives>0) {
+    // out of memory
+    const uint badBit = (1u << 31);
+    imageStore(primitiveBins, ivec2(gl_WorkGroupID.xy), uvec4(primListPtr, badBit, 0,0));
+    return;
+    }
+
+  // short list in shared memory
+  imageStore(primitiveBins, ivec2(gl_WorkGroupID.xy), uvec4(primListPtr, numPrimitives, 0,0));
+  if(numPrimitives<=primitives.length()) {
+    storeResultSharedMem();
+    return;
+    }
+  barrier();
+
+  // replay cullng - out of shared memory
+  numPrimitives = 0;
+  barrier();
+
+  traceTile(tilePtr, visCount, false);
   }
