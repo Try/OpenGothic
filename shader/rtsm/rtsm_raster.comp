@@ -6,6 +6,7 @@
 #extension GL_EXT_control_flow_attributes : enable
 // bindless
 #extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_float16 : enable
 // #extension GL_KHR_memory_scope_semantics : enable
 
 #include "common.glsl"
@@ -44,17 +45,20 @@ const float minOpacity = 0.49/255.0;
 
 uint primCnt = 0;
 
-float sampleAlpha(const uint bucketId, vec3 bc, float areaInv, vec2 a, vec2 b, vec2 c, float lodBias) {
-  const float u = dot(vec3(a.x,b.x,c.x), bc)*areaInv;
-  const float v = dot(vec3(a.y,b.y,c.y), bc)*areaInv;
-
-  //TODO: find optimal lod
-  return textureLod(sampler2D(textureMain[nonuniformEXT(bucketId)], samplerMain), vec2(u,v), lodBias).a;
+vec2 interpolateUV(vec3 bc, f16vec2 a, f16vec2 b, f16vec2 c) {
+  const float u = dot(vec3(a.x,b.x,c.x), bc);
+  const float v = dot(vec3(a.y,b.y,c.y), bc);
+  return vec2(u, v);
   }
 
-float sampleAlpha(const uint bucketId, vec3 bc, float areaInv, uint a, uint b, uint c, float lodBias) {
-  return sampleAlpha(bucketId, bc, areaInv, unpackHalf2x16(a), unpackHalf2x16(b), unpackHalf2x16(c), lodBias);
+vec2 interpolateUV(vec3 bc, uint a, uint b, uint c) {
+  return interpolateUV(bc, unpackFloat2x16(a), unpackFloat2x16(b), unpackFloat2x16(c));
   }
+
+float sampleAlpha(const uint bucketId, vec2 uv, float lodBias) {
+  return textureLod(sampler2D(textureMain[nonuniformEXT(bucketId)], samplerMain), uv, lodBias).a;
+  }
+
 
 // utility
 shared uvec4 rayBbox;
@@ -85,17 +89,6 @@ vec4 worldPos(ivec2 frag, float depth) {
   return scene.viewProjectLwcInv * scr;
   }
 
-// pagging
-float shadowLod(vec2 dx, vec2 dy) {
-  float px     = dot(dx, dx);
-  float py     = dot(dy, dy);
-  float maxLod = 0.5 * log2(max(px, py)); // log2(sqrt()) = 0.5*log2()
-  float minLod = 0.5 * log2(min(px, py));
-
-  const float bias = 0;
-  return max(0, minLod + bias);
-  }
-
 // ray managment
 vec3 rayOrigin(const vec4 wpos) {
   vec4 shPos = scene.viewVirtualShadowLwc * wpos;
@@ -103,16 +96,10 @@ vec3 rayOrigin(const vec4 wpos) {
   return shPos.xyz;
   }
 
-vec3 rayOrigin(const vec4 wpos, const vec4 offset) {
-  vec4 shPos = scene.viewVirtualShadowLwc * wpos + offset;
-  shPos.xyz /= shPos.w;
-  return shPos.xyz;
-  }
-
 // meshlet-data. should be around
 // 2kb for occupancy in 8x8 mode
 // 8kb for 16x16
-const  uint    MaxChunk = 128;
+const  uint    MaxChunk = NumThreads/2;
 shared VertexF meshVertices    [MaxChunk*3];
 shared uint    primitiveBucket [MaxChunk];
 shared float   primitiveAreaInv[MaxChunk];
@@ -153,14 +140,14 @@ void pullPrimitives(const uint pkg) {
     return;
     }
 
+  const uint id = atomicAdd(numLocalPrim, 1);
   const uint bucketId = pullMeshBucketId(ptr);
 
-  const uint id = atomicAdd(numLocalPrim, 1);
   meshVertices[id*3+0] = a;
   meshVertices[id*3+1] = b;
   meshVertices[id*3+2] = c;
   primitiveAreaInv[id] = 1.0/edgeFunction(a.pos.xy, b.pos.xy, c.pos.xy);
-  primitiveBucket [id] = packUint2x16(uvec2(bucketId,tri.w));
+  primitiveBucket [id] = packUint2x16(uvec2(tri.w, bucketId));
   }
 
 shared uint inactiveRays;
@@ -182,27 +169,28 @@ float rasterBatch(const vec3 ray, float opacity) {
       continue;
 
     const float areaInv = primitiveAreaInv[id];
-    const vec3  bc      = vec3(w0,w1,w2);
+    const vec3  bc      = vec3(w0,w1,w2) * areaInv;
     const float aZ      = meshVertices[id*3+0].z;
     const float bZ      = meshVertices[id*3+1].z;
     const float cZ      = meshVertices[id*3+2].z;
-    const float depth   = dot(vec3(aZ,bZ,cZ), bc)*areaInv;
+    const float depth   = dot(vec3(aZ,bZ,cZ), bc);
     if(depth <= ray.z)
       continue;
 
 #if TRANSLUCENCY
-    const uint flags = primitiveBucket[id] >> 16;
-    if((flags & BK_SOLID)==0) {
-      const float lodBias  = log2((depth - ray.z)*128);
-      const uint  bucketId = primitiveBucket[id] & 0xFFFF;
-      const float alpha    = sampleAlpha(bucketId, bc, areaInv, meshVertices[id*3+0].uv, meshVertices[id*3+1].uv, meshVertices[id*3+2].uv, lodBias);
-      opacity *= (1.0-alpha);
-      if(opacity<=minOpacity)
-        break;
-      } else {
+    const uint flags = primitiveBucket[id];
+    if((flags & BK_SOLID)!=0) {
       opacity = 0;
       break;
       }
+
+    const vec2  uv       = interpolateUV(bc, meshVertices[id*3+0].uv, meshVertices[id*3+1].uv, meshVertices[id*3+2].uv);
+    const float lodBias  = log2((depth - ray.z)*128);
+    const uint  bucketId = primitiveBucket[id] >> 16;
+    const float alpha    = sampleAlpha(bucketId, uv, lodBias);
+    opacity *= (1.0-alpha);
+    if(opacity<=minOpacity)
+      break;
 #else
     opacity = 0;
     break;
@@ -227,13 +215,13 @@ float tracePacket(const uvec2 tileHeader, const vec3 ray, float opacity) {
     atomicAdd(inactiveRays, 1);
   barrier();
 
-  for(uint s=0; s<steps; ++s) {
+  for(uint s=0; s<numPrimitives; s+=int(MaxChunk)) {
     if(earlyOut())
       break;
 
     numLocalPrim = 0;
     barrier();
-    const uint i = s*MaxChunk + laneID;
+    const uint i = s + laneID;
     if(i<numPrimitives && laneID<MaxChunk)
       pullPrimitives(pos.data[tileHeader.x + i]);
     barrier();
@@ -276,7 +264,7 @@ void main() {
   barrier();
 
   const float opacity = tracePacket(tileHeader, ray, lamb);
-  if(opacity!=lamb)
+  if(valid && opacity!=lamb)
     imageStore(outputImage, fragCoord, vec4(opacity));
 
   imageDbg(primCnt);
