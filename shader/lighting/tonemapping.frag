@@ -10,6 +10,8 @@
 
 #include "upscale/lanczos.glsl"
 
+#define DITHER_TARGET_BITS 8 // hardcoded for now -> adjust in future for HDR support or 6 bit monitors
+
 layout(push_constant, std140) uniform PushConstant {
   VideoSettings settings;
   } push;
@@ -75,12 +77,12 @@ vec3 purkinjeShift(vec3 rgbLightHdr) {
         0.01724063, 0.60147464, 0.40056206);
 
   const mat3 matRgbFromLmsGain = mat3(
-        4.57829597, -4.48749114,  0.31554848,
+         4.57829597, -4.48749114,  0.31554848,
         -0.63342362,  2.03236026, -0.36183302,
         -0.05749394, -0.09275939,  1.90172089);
 
   vec4 lmsr    = rgbLightHdr * matLmsrFromRgb;
-  vec3 lmsGain = 1.0/sqrt(1.0 + lmsr.xyz);
+  vec3 lmsGain = 1.0 / sqrt(1.0 + lmsr.xyz);
   return (lmsGain * matRgbFromLmsGain) * lmsr.w;
   }
 
@@ -104,40 +106,70 @@ vec3 colorTemperatureToRGB(const in float temperature){
              vec3(    0.55995389139931482,     0.70381203140554553,     1.8993753891711275));
     }
   return mix(clamp(vec3(m[0] / (vec3(clamp(temperature, 1000.0, 40000.0)) + m[1]) + m[2]), vec3(0.0), vec3(1.0)), vec3(1.0), smoothstep(1000.0, 0.0, temperature));
-  }
+}
 
-void main() {
-  float exposure   = scene.exposure;
+// PCG3D
+// https://www.jcgt.org/published/0009/03/02/
+// https://www.shadertoy.com/view/XlGcRh
+uvec3 pcg3d(uvec3 v) {
+
+    v = v * 1664525u + 1013904223u;
+
+    v.x += v.y*v.z;
+    v.y += v.z*v.x;
+    v.z += v.x*v.y;
+
+    v ^= v >> 16u;
+
+    v.x += v.y*v.z;
+    v.y += v.z*v.x;
+    v.z += v.x*v.y;
+
+    return v;
+}
+
+vec3 dither()
+{
+    // separate noise per channel had subjectively better visuals than single PCG
+    vec3 nrnd = fract(pcg3d(uvec3(gl_FragCoord.xyy)) / float(1 << (DITHER_TARGET_BITS + 4)));
+    // vec3 nrnd = interleavedGradientNoise(gl_FragCoord.xy).xxx;
+    return (nrnd * 2.0 - 1.0) / float((1 << DITHER_TARGET_BITS) - 1);
+}
+
+void main()
+{
+    float exposure = scene.exposure;
 
 #if defined(UPSCALE)
-  vec3  color      = lanczosUpscale(textureD, uv).rgb;
+    vec3 color = lanczosUpscale(textureD, uv).rgb;
 #else
-  vec3  color      = textureLod(textureD, uv, 0).rgb;
+    vec3 color = textureLod(textureD, uv, 0).rgb;
 #endif
 
-  {
-    // outColor = vec4(srgbEncode(color), 1);
-    // outColor = vec4(color, 1);
-    // return;
-  }
+    {
+        // outColor = vec4(srgbEncode(color), 1);
+        // outColor = vec4(color, 1);
+        // return;
+    }
 
-  {
-    // outColor = vec4(vec3(luminance(color/exposure)/100000.0), 1);
-    // return;
-  }
+    {
+        // outColor = vec4(vec3(luminance(color/exposure)/100000.0), 1);
+        // return;
+    }
 
-  {
-    // outColor = vec4(colorTemperatureToRGB(luminance(color) / push.exposure), 1);
-    // return;
-  }
+    {
+        // outColor = vec4(colorTemperatureToRGB(luminance(color) / push.exposure), 1);
+        // return;
+    }
 
-  {
-    // night shift
-    // const vec3 shift = purkinjeShift(color/exposure)*exposure;
-    // color += shift;
-    // color += vec3(0,0, shift.b);
-  }
+    {
+        // night shift
+        // const vec3 shift = purkinjeShift(color/exposure)*exposure;
+        // color += shift;
+        // color += vec3(0,0, shift.b);
+    }
 
-  color = gameTonemap(color, push.settings);
-  outColor = vec4(color, 1.0);
-  }
+    color    = gameTonemap(color, push.settings);
+    color   += dither(); 
+    outColor = vec4(color, 1.0);
+}
