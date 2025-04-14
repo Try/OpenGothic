@@ -10,7 +10,7 @@
 
 #include "upscale/lanczos.glsl"
 
-#define TONEMAP_DITHER_TARGET_BITS uvec3(8, 8, 8) // hardcoded for now -> adjust in future for HDR support or 6 bit monitors
+// const uvec3 TONEMAP_DITHER_TARGET_BITS =  uvec3(8, 8, 8) // hardcoded for now -> adjust in future for HDR support or 6 bit monitors
 
 layout(push_constant, std140) uniform PushConstant {
   VideoSettings settings;

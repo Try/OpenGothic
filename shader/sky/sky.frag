@@ -6,7 +6,7 @@
 #include "scene.glsl"
 #include "clouds.glsl"
 
-#define SKY_DITHER_TARGET_BITS uvec3(11, 11, 10) // hardcoded for now -> adjust in future for HDR support or 6 bit monitors
+const uvec3 SKY_DITHER_TARGET_BITS = uvec3(11, 11, 10); // hardcoded for now -> adjust in future for HDR support or 6 bit monitors
 
 layout(binding  = 0, std140) uniform UboScene {
   SceneDesc scene;
