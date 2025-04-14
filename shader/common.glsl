@@ -362,7 +362,7 @@ vec3 dither(vec2 fragCoords, uvec3 targetBits)
                               float((1 << targetBits.z) - 1));
     // separate noise per channel had subjectively better visuals than single IGN
     // PCG3D can also be used in case multiple dithers need to be layered
-    // vec3 nrnd = fract(pcg3d(uvec3(fragCoords.xyy)) / float(1 << (DITHER_TARGET_BITS + 4)));
+    // vec3 nrnd = fract(pcg3d(uvec3(fragCoords.xyy)) / divisionSteps);
     vec3 nrnd = interleavedGradientNoise(fragCoords.xy).xxx;
     return (nrnd * 2.0 - 1) / divisionSteps;
 }
