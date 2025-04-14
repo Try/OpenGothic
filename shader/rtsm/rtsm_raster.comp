@@ -120,22 +120,25 @@ uvec2 pullPrimitiveList() {
   return texelFetch(primitiveBins, ivec2(tileCoord), 0).xy;
   }
 
+float triangleArea(const vec2 da, const vec2 db) {
+  return db.x*da.y - db.y*da.x;
+  }
+
 void pullPrimitives(const uint pkg) {
-  const uint  laneID  = gl_LocalInvocationIndex;
+  const uint  laneID = gl_LocalInvocationIndex;
 
-  const uint  ptr = (pkg >> 8);
-  const uint  pId = pkg & 0xFF;
-
-  const uvec4 tri      = pullPrimitiveFull(ptr+MeshletHeaderSize, pId);
-  const uint  ptrV     = ptr + MeshletHeaderSize + MaxPrim;
+  const uint  ptr  = (pkg >> 8);
+  const uint  pId  = pkg & 0xFF;
+  const uvec4 tri  = pullPrimitiveFull(ptr+MeshletHeaderSize, pId);
+  const uint  ptrV = ptr + MeshletHeaderSize + MaxPrim;
 
   //FIXME: register pressure
-  VertexF a    = pullVertexFull(ptrV, tri.x);
-  VertexF b    = pullVertexFull(ptrV, tri.y);
-  VertexF c    = pullVertexFull(ptrV, tri.z);
+  const vec3  a    = pullVertex(ptrV, tri.x);
+  const vec3  b    = pullVertex(ptrV, tri.y);
+  const vec3  c    = pullVertex(ptrV, tri.z);
 
-  const vec4  tbb = bboxOf(a.pos.xy, b.pos.xy, c.pos.xy);
-  const float rz  = max(a.z, max(b.z, c.z));
+  const vec4  tbb  = bboxOf(a.xy, b.xy, c.xy);
+  const float rz   = max(a.z, max(b.z, c.z));
   if(!isPrimitiveVisible(tbb, rz)) {
     return;
     }
@@ -146,18 +149,18 @@ void pullPrimitives(const uint pkg) {
   meshVertexZ [id*3+0] = a.z;
   meshVertexZ [id*3+1] = b.z;
   meshVertexZ [id*3+2] = c.z;
-  meshVertexUV[id*3+0] = a.uv;
-  meshVertexUV[id*3+1] = b.uv;
-  meshVertexUV[id*3+2] = c.uv;
+  meshVertexUV[id*3+0] = pullVertexUV(ptrV, tri.x);
+  meshVertexUV[id*3+1] = pullVertexUV(ptrV, tri.y);
+  meshVertexUV[id*3+2] = pullVertexUV(ptrV, tri.z);
   primitiveBucket [id] = packUint2x16(uvec2(tri.w, bucketId));
 
-  const float areaInv  = 1.0/edgeFunction(a.pos.xy, b.pos.xy, c.pos.xy);
-  a.pos -= c.pos; a.pos *= areaInv;
-  b.pos -= c.pos; b.pos *= areaInv;
+  const vec2 da = a.xy - c.xy;
+  const vec2 db = b.xy - c.xy;
 
-  meshVertices[id*3+0] = a.pos;
-  meshVertices[id*3+1] = b.pos;
-  meshVertices[id*3+2] = c.pos;
+  const float areaInv  = 1.0/triangleArea(da, db);
+  meshVertices[id*3+0] = da * areaInv;
+  meshVertices[id*3+1] = db * areaInv;
+  meshVertices[id*3+2] = c.xy;
   }
 
 shared uint inactiveRays;
@@ -167,9 +170,9 @@ float rasterBatch(const vec3 ray, float opacity) {
     return opacity;
 
   for(uint id=0; id<numLocalPrim; ++id) {
-    vec2  a  = meshVertices[id*3+0];
-    vec2  b  = meshVertices[id*3+1];
-    vec2  c  = meshVertices[id*3+2];
+    const vec2  a    = meshVertices[id*3+0];
+    const vec2  b    = meshVertices[id*3+1];
+    const vec2  c    = meshVertices[id*3+2];
 
     const vec2  rayC = vec2(c.y - ray.y, ray.x - c.x);
     const float w0   = -dot(b, rayC);

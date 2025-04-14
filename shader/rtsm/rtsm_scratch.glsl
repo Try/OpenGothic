@@ -105,13 +105,13 @@ uint pullVertexUV(uint ptr, const uint laneId) {
   return pos.data[ptr+3];
   }
 
-VertexF pullVertexFull(uint ptr, const uint laneId) {
+Vertex pullVertexFull(uint ptr, const uint laneId) {
   ptr += 4*laneId;
 
-  VertexF ret;
+  Vertex ret;
   ret.pos.x = uintBitsToFloat(pos.data[ptr+0]);
   ret.pos.y = uintBitsToFloat(pos.data[ptr+1]);
-  ret.z     = uintBitsToFloat(pos.data[ptr+2]);
+  ret.pos.z = uintBitsToFloat(pos.data[ptr+2]);
   ret.uv    = pos.data[ptr+3];
   return ret;
   }
