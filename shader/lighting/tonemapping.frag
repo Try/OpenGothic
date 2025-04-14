@@ -10,7 +10,7 @@
 
 #include "upscale/lanczos.glsl"
 
-#define DITHER_TARGET_BITS 8 // hardcoded for now -> adjust in future for HDR support or 6 bit monitors
+#define TONEMAP_DITHER_TARGET_BITS uvec3(8, 8, 8) // hardcoded for now -> adjust in future for HDR support or 6 bit monitors
 
 layout(push_constant, std140) uniform PushConstant {
   VideoSettings settings;
@@ -108,34 +108,6 @@ vec3 colorTemperatureToRGB(const in float temperature){
   return mix(clamp(vec3(m[0] / (vec3(clamp(temperature, 1000.0, 40000.0)) + m[1]) + m[2]), vec3(0.0), vec3(1.0)), vec3(1.0), smoothstep(1000.0, 0.0, temperature));
 }
 
-// PCG3D
-// https://www.jcgt.org/published/0009/03/02/
-// https://www.shadertoy.com/view/XlGcRh
-uvec3 pcg3d(uvec3 v) {
-
-    v = v * 1664525u + 1013904223u;
-
-    v.x += v.y*v.z;
-    v.y += v.z*v.x;
-    v.z += v.x*v.y;
-
-    v ^= v >> 16u;
-
-    v.x += v.y*v.z;
-    v.y += v.z*v.x;
-    v.z += v.x*v.y;
-
-    return v;
-}
-
-vec3 dither()
-{
-    // separate noise per channel had subjectively better visuals than single PCG
-    vec3 nrnd = fract(pcg3d(uvec3(gl_FragCoord.xyy)) / float(1 << (DITHER_TARGET_BITS + 4)));
-    // vec3 nrnd = interleavedGradientNoise(gl_FragCoord.xy).xxx;
-    return (nrnd * 2.0 - 1.0) / float((1 << DITHER_TARGET_BITS) - 1);
-}
-
 void main()
 {
     float exposure = scene.exposure;
@@ -170,6 +142,6 @@ void main()
     }
 
     color    = gameTonemap(color, push.settings);
-    color   += dither(); 
+    color   += dither(gl_FragCoord.xy, TONEMAP_DITHER_TARGET_BITS); 
     outColor = vec4(color, 1.0);
 }
