@@ -42,8 +42,7 @@ shared uint  depthMin, depthMax;
 
 // visible meshlets and ray-samples
 shared uint numPrimitives;
-//shared uint primitives[2000]; // primitive and samples, no reinterpret case unfortenatly
-shared uint primitives[128]; // primitive and samples, no reinterpret case unfortenatly
+shared uint primitives[2000];
 
 shared uint primListPtr;
 
