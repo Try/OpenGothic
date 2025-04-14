@@ -6,7 +6,7 @@
 #extension GL_EXT_control_flow_attributes : enable
 // bindless
 #extension GL_EXT_nonuniform_qualifier : enable
-#extension GL_EXT_shader_explicit_arithmetic_types_float16 : enable
+// #extension GL_EXT_shader_explicit_arithmetic_types_float16 : enable
 // #extension GL_KHR_memory_scope_semantics : enable
 
 #include "common.glsl"
@@ -45,14 +45,14 @@ const float minOpacity = 0.49/255.0;
 
 uint primCnt = 0;
 
-vec2 interpolateUV(vec3 bc, f16vec2 a, f16vec2 b, f16vec2 c) {
+vec2 interpolateUV(vec3 bc, vec2 a, vec2 b, vec2 c) {
   const float u = dot(vec3(a.x,b.x,c.x), bc);
   const float v = dot(vec3(a.y,b.y,c.y), bc);
   return vec2(u, v);
   }
 
 vec2 interpolateUV(vec3 bc, uint a, uint b, uint c) {
-  return interpolateUV(bc, unpackFloat2x16(a), unpackFloat2x16(b), unpackFloat2x16(c));
+  return interpolateUV(bc, unpackHalf2x16(a), unpackHalf2x16(b), unpackHalf2x16(c));
   }
 
 float sampleAlpha(const uint bucketId, vec2 uv, float lodBias) {
@@ -144,15 +144,15 @@ void pullPrimitives(const uint pkg) {
     }
 
   const uint  id       = atomicAdd(numLocalPrim, 1);
-  const uint  bucketId = pullMeshBucketId(ptr);
+  primitiveBucket[id]  = packUint2x16(uvec2(tri.w, pullMeshBucketId(ptr)));
 
   meshVertexZ [id*3+0] = a.z;
   meshVertexZ [id*3+1] = b.z;
   meshVertexZ [id*3+2] = c.z;
+
   meshVertexUV[id*3+0] = pullVertexUV(ptrV, tri.x);
   meshVertexUV[id*3+1] = pullVertexUV(ptrV, tri.y);
   meshVertexUV[id*3+2] = pullVertexUV(ptrV, tri.z);
-  primitiveBucket [id] = packUint2x16(uvec2(tri.w, bucketId));
 
   const vec2 da = a.xy - c.xy;
   const vec2 db = b.xy - c.xy;
@@ -228,7 +228,7 @@ float tracePacket(const uvec2 tileHeader, const vec3 ray, float opacity) {
     atomicAdd(inactiveRays, 1);
   barrier();
 
-  for(uint s=0; s<numPrimitives; s+=int(MaxChunk)) {
+  for(uint s=0; s<numPrimitives; s+=MaxChunk) {
     if(earlyOut())
       break;
 

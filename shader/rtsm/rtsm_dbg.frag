@@ -44,7 +44,7 @@ void main() {
   uint v = texelFetch(dbgImage, tileId, 0).r;
 
   if(v>0 && drawInt(gl_FragCoord.xy-tileId*tileSz-ivec2(tileSz.x,10), int(v))>0) {
-    if(v<=64)
+    if(v<=128)
       outColor = vec4(0, 0.9, 0, 1);
     else if(v<=256)
       outColor = vec4(0.9);

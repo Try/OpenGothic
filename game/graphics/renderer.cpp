@@ -564,7 +564,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   drawShadowMap(cmd,fId,*wview);
   drawVsm(cmd, *wview);
   drawSwr(cmd, *wview);
-  drawRTSM(cmd, *wview);
+  drawRtsm(cmd, *wview);
 
   prepareIrradiance(cmd,*wview);
   prepareExposure(cmd,*wview);
@@ -1067,7 +1067,7 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
   wview.drawVsm(cmd);
   }
 
-void Renderer::drawRTSM(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
+void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
   if(!settings.rtsmEnabled)
     return;
 
@@ -1270,11 +1270,8 @@ void Renderer::drawRTSM(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     cmd.setBinding(9, rtsm.dbg);
 
     // primitives
-    cmd.setPipeline(shaders.rtsmPrimCull2);
+    cmd.setPipeline(shaders.rtsmPrimCull);
     cmd.dispatch(rtsm.primBins.size());
-
-    // cmd.setPipeline(shaders.rtsmPrimCull);
-    // cmd.dispatch(rtsm.primBins.size());
 
     // raster
     cmd.setBinding(9, rtsm.dbg16);

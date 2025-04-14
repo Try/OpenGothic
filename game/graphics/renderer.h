@@ -55,7 +55,7 @@ class Renderer final {
     void drawHiZ          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);
     void buildHiZ         (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawVsm          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);
-    void drawRTSM         (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);
+    void drawRtsm         (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);
     void drawSwr          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);
     void drawGBuffer      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawGWater       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);
@@ -217,7 +217,6 @@ class Renderer final {
       Tempest::StorageBuffer    visList;
       Tempest::StorageBuffer    posList;
       Tempest::StorageBuffer    complexTiles;
-      Tempest::StorageBuffer    pthScratch;
 
       Tempest::StorageImage     tiles, smpTiles;
       Tempest::StorageImage     primBins, primBins8;
