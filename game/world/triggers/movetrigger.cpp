@@ -134,7 +134,8 @@ void MoveTrigger::processTrigger(const TriggerEvent& e, bool onTrigger) {
   if(moverKeyFrames.size()==0)
     return;
   if(state!=Idle) {
-    world.triggerEvent(e);
+    // can lead to infinite amount of events if multiple movers with same name exist
+    // world.triggerEvent(e);
     return;
     }
 
