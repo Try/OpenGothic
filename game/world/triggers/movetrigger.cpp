@@ -142,16 +142,16 @@ void MoveTrigger::processTrigger(const TriggerEvent& e, bool onTrigger) {
   switch(behavior) {
     case zenkit::MoverBehavior::TOGGLE: {
       if(frame==0) {
-        state = Close;
-        } else {
         state = Open;
+        } else {
+        state = Close;
         }
       break;
       }
     case zenkit::MoverBehavior::TRIGGER_CONTROL: {
       if(onTrigger)
-        state = Close; else
-        state = Open;
+        state = Open; else
+        state = Close;
       break;
       }
     case zenkit::MoverBehavior::OPEN_TIME: {
@@ -206,7 +206,7 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
         }
       return;
       }
-    case Close:{
+    case Open: {
       dt = dt<maxTicks ? dt : maxTicks;
       for(f0=0; f0+1<keyframes.size(); ++f0) {
         if(dt<keyframes[f0].ticks)
@@ -219,7 +219,7 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
       finished = f0==maxFr;
       break;
       }
-    case Open: {
+    case Close: {
       dt = dt<maxTicks ? maxTicks - dt : 0;
       for(f0=0; f0+1<keyframes.size(); ++f0) {
         if(dt<=keyframes[f0].ticks)
@@ -270,9 +270,9 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
       world.triggerEvent(e);
       }
 
-    std::string_view snd = sfxOpenEnd;
-    if(prev==Close)
-      snd = sfxCloseEnd;
+    std::string_view snd = sfxCloseEnd;
+    if(prev==Open)
+      snd = sfxOpenEnd;
     if(prev==NextKey)
       snd = "";
     if(behavior==zenkit::MoverBehavior::OPEN_TIME && prev==Open) {
