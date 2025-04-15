@@ -134,7 +134,8 @@ void MoveTrigger::processTrigger(const TriggerEvent& e, bool onTrigger) {
   if(moverKeyFrames.size()==0)
     return;
   if(state!=Idle) {
-    world.triggerEvent(e);
+    // can lead to infinite amount of events if multiple movers with same name exist
+    // world.triggerEvent(e);
     return;
     }
 
@@ -155,7 +156,7 @@ void MoveTrigger::processTrigger(const TriggerEvent& e, bool onTrigger) {
       break;
       }
     case zenkit::MoverBehavior::OPEN_TIME: {
-      state = Open;
+      state = Close;
       break;
       }
     case zenkit::MoverBehavior::LOOP: {
@@ -201,7 +202,7 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
       break;
     case OpenTimed: {
       if(sAnim+uint64_t(stayOpenTimeSec*1000)<world.tickCount()) {
-        state = Close;
+        state = Open;
         sAnim = world.tickCount();
         }
       return;
@@ -275,7 +276,7 @@ void MoveTrigger::tick(uint64_t /*dt*/) {
       snd = sfxCloseEnd;
     if(prev==NextKey)
       snd = "";
-    if(behavior==zenkit::MoverBehavior::OPEN_TIME && prev==Open) {
+    if(behavior==zenkit::MoverBehavior::OPEN_TIME && prev==Close) {
       state = OpenTimed;
       sAnim = world.tickCount();
       // override view
