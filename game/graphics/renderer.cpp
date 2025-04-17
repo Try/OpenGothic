@@ -862,7 +862,11 @@ void Renderer::drawRtsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   cmd.setDebugMarker("RTSM-dbg");
-  cmd.setBinding(0, rtsm.dbg);
+  // cmd.setBinding(0, rtsm.dbg);
+  // cmd.setBinding(0, rtsm.tiles);
+  cmd.setBinding(0, rtsm.primBins);
+  cmd.setBinding(1, rtsm.posList);
+  cmd.setBinding(2, rtsm.pages);
   cmd.setPipeline(shaders.rtsmDbg);
   cmd.draw(Resources::fsqVbo());
   }

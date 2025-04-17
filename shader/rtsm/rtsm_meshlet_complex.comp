@@ -159,19 +159,19 @@ void traceMeshlets(const uint tilePtr, const uint visCount) {
 void storeMeshList(ivec2 tileId) {
   const uint laneID = gl_LocalInvocationIndex;
 
-  // store pointer to meshlets list and the list
-  if(laneID==0) {
-    meshListPtr = numMeshlets==0 ? NULL : atomicAdd(pos.alloc, numMeshlets);
-    if(meshListPtr+numMeshlets>pos.data.length()) {
-      // out of memory
-      meshListPtr = NULL;
-      numMeshlets = 0;
-      }
-    imageStore(tileBins, tileId, uvec4(meshListPtr, numMeshlets, 0, 0));
-    imageDbg(tileId, numMeshlets);
-    }
+  if(laneID==0)
+    meshListPtr = allocScratch(numMeshlets);
   barrier();
 
+  imageDbg(tileId, numMeshlets);
+  if(meshListPtr==NULL && numMeshlets>0) {
+    // out of memory
+    imageStore(tileBins, tileId, uvec4(NULL, 0, 0, 0));
+    return;
+    }
+
+  // store pointer to meshlets list and the list
+  imageStore(tileBins, tileId, uvec4(meshListPtr, numMeshlets, 0, 0));
   for(uint i=laneID; i<numMeshlets; i+=NumThreads)
     pos.data[meshListPtr + i] = meshletsId[i];
   }

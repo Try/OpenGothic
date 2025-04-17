@@ -24,8 +24,8 @@ void main() {
     rtsm.header.one1     = 1;
     rtsm.header.one2     = 1;
 
-    pos.alloc            = 32; // reserve 0, for nullptr and meshlet-counter
-    pos.data[0]          = 0;  // num meshelts
+    pos.alloc            = 1; // reserve 0, for nullptr and meshlet-counter
+    pos.data[0]          = 0; // num meshelts
 
     largeTile.cmd        = uvec4(0,1,1,0);
 

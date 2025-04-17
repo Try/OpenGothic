@@ -51,16 +51,6 @@ uvec2 pullMeshList() {
   return texelFetch(tileBins, ivec2((gl_WorkGroupID.xy*RTSM_BIN_SIZE)/RTSM_SMALL_TILE), 0).xy;
   }
 
-// utility
-uint depthSlice(const float z) {
-  float dZ   = linearDepth(z,      scene.clipInfo);
-  float d0   = linearDepth(0,      scene.clipInfo);
-  float d1   = linearDepth(0.9999, scene.clipInfo);
-  float d    = (dZ-d0)/(d1-d0);
-
-  return min(uint(d*MaxSlices), MaxSlices-1);
-  }
-
 uint packPrimitiveId(uint meshlet, uint prim) {
   return (meshlet << 8) | prim;
   }

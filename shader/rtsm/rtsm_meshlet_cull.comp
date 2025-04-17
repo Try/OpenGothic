@@ -75,28 +75,48 @@ void storeEmptyList() {
     }
   }
 
+void storeGlobList(ivec2 tileId) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  if(laneID==0)
+    meshListPtr = allocScratch(numMeshletsGlob);
+  barrier();
+
+  imageDbg(tileId, numMeshletsGlob);
+  if(meshListPtr==NULL && numMeshletsGlob>0) {
+    // out of memory
+    imageStore(tileBins, tileId, uvec4(NULL, 0, 0, 0));
+    return;
+    }
+
+  // store pointer to meshlets list and list-data
+  imageStore(tileBins, tileId, uvec4(meshListPtr, numMeshletsGlob, 0, 0));
+  for(uint i=laneID; i<numMeshletsGlob; i+=NumThreads)
+    pos.data[meshListPtr + i] = meshletsIdGlob[i];
+  }
+
 void storeMeshList(ivec2 tileId) {
   const uint laneID = gl_LocalInvocationIndex;
 
   if(numMeshlets>=meshletsId.length()) {
-    if(laneID==0)
-      storeFullList(tileId);
+    storeGlobList(tileId);
     return;
     }
 
-  if(laneID==0) {
-    meshListPtr = numMeshlets==0 ? NULL : atomicAdd(pos.alloc, numMeshlets);
-    if(meshListPtr+numMeshlets>pos.data.length()) {
-      // out of memory
-      meshListPtr = NULL;
-      numMeshlets = 0;
-      }
-    imageStore(tileBins, tileId, uvec4(meshListPtr, numMeshlets, 0, 0));
-    imageDbg(tileId, numMeshlets);
-    }
+  if(laneID==0)
+    meshListPtr = allocScratch(numMeshlets);
   barrier();
 
+  imageDbg(tileId, numMeshlets);
+  //imageDbg(tileId, pos.data.length()/(1024*1024));
+  if(meshListPtr==NULL && numMeshlets>0) {
+    // out of memory
+    imageStore(tileBins, tileId, uvec4(NULL, 0, 0, 0));
+    return;
+    }
+
   // store pointer to meshlets list and list-data
+  imageStore(tileBins, tileId, uvec4(meshListPtr, numMeshlets, 0, 0));
   for(uint i=laneID; i<numMeshlets; i+=NumThreads)
     pos.data[meshListPtr + i] = meshletsId[i];
   }

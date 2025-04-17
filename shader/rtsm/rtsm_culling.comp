@@ -109,6 +109,6 @@ void main() {
   const uint id = atomicAdd(rtsm.header.visCount, cluster.meshletCount);
   for(int i=0; i<cluster.meshletCount; ++i) {
     rtsm.visList[id+i] = uvec2(clusterId, cluster.firstMeshlet+i);
-    atomicAdd(pos.alloc, 1); //reserve memory for position shader
     }
+  atomicAdd(pos.alloc, cluster.meshletCount); //reserve memory for position shader
   }
