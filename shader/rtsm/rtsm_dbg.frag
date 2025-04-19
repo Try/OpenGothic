@@ -9,8 +9,8 @@
 #include "scene.glsl"
 
 layout(binding = 0)         uniform  utexture2D                 dbgImage;
-layout(binding = 1, std430) readonly buffer Pos { uint alloc; uint data[]; } pos;
-layout(binding = 2)         uniform  utexture3D                 pageTbl;
+// layout(binding = 1, std430) readonly buffer Pos { uint alloc; uint data[]; } pos;
+// layout(binding = 2)         uniform  utexture3D                 pageTbl;
 
 layout(location = 0) out vec4 outColor;
 
@@ -43,8 +43,8 @@ void main() {
   ivec2 tileSz    = ivec2(RTSM_BIN_SIZE);
   ivec2 tileId    = ivec2(gl_FragCoord.xy)/tileSz;
 
-#if 0
-  uint v = texelFetch(dbgImage, tileId, 0).y;
+#if 1
+  uint v = texelFetch(dbgImage, tileId, 0).x;
   if(v>0 && drawInt(gl_FragCoord.xy-tileId*tileSz-ivec2(tileSz.x,10), int(v))>0) {
     if(v<=128)
       outColor = vec4(0, 0.9, 0, 1);
