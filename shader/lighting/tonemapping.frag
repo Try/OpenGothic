@@ -10,6 +10,8 @@
 
 #include "upscale/lanczos.glsl"
 
+// const uvec3 TONEMAP_DITHER_TARGET_BITS =  uvec3(8, 8, 8) // hardcoded for now -> adjust in future for HDR support or 6 bit monitors
+
 layout(push_constant, std140) uniform PushConstant {
   VideoSettings settings;
   } push;
@@ -75,12 +77,12 @@ vec3 purkinjeShift(vec3 rgbLightHdr) {
         0.01724063, 0.60147464, 0.40056206);
 
   const mat3 matRgbFromLmsGain = mat3(
-        4.57829597, -4.48749114,  0.31554848,
+         4.57829597, -4.48749114,  0.31554848,
         -0.63342362,  2.03236026, -0.36183302,
         -0.05749394, -0.09275939,  1.90172089);
 
   vec4 lmsr    = rgbLightHdr * matLmsrFromRgb;
-  vec3 lmsGain = 1.0/sqrt(1.0 + lmsr.xyz);
+  vec3 lmsGain = 1.0 / sqrt(1.0 + lmsr.xyz);
   return (lmsGain * matRgbFromLmsGain) * lmsr.w;
   }
 
@@ -104,15 +106,16 @@ vec3 colorTemperatureToRGB(const in float temperature){
              vec3(    0.55995389139931482,     0.70381203140554553,     1.8993753891711275));
     }
   return mix(clamp(vec3(m[0] / (vec3(clamp(temperature, 1000.0, 40000.0)) + m[1]) + m[2]), vec3(0.0), vec3(1.0)), vec3(1.0), smoothstep(1000.0, 0.0, temperature));
-  }
+}
 
-void main() {
-  float exposure   = scene.exposure;
+void main()
+{
+  float exposure = scene.exposure;
 
 #if defined(UPSCALE)
-  vec3  color      = lanczosUpscale(textureD, uv).rgb;
+  vec3 color = lanczosUpscale(textureD, uv).rgb;
 #else
-  vec3  color      = textureLod(textureD, uv, 0).rgb;
+  vec3 color = textureLod(textureD, uv, 0.0).rgb;
 #endif
 
   {
@@ -138,6 +141,7 @@ void main() {
     // color += vec3(0,0, shift.b);
   }
 
-  color = gameTonemap(color, push.settings);
+  color    = gameTonemap(color, push.settings);
+  // color   += dither(gl_FragCoord.xy, TONEMAP_DITHER_TARGET_BITS); 
   outColor = vec4(color, 1.0);
-  }
+}
