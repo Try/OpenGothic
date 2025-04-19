@@ -110,38 +110,38 @@ vec3 colorTemperatureToRGB(const in float temperature){
 
 void main()
 {
-    float exposure = scene.exposure;
+  float exposure = scene.exposure;
 
 #if defined(UPSCALE)
-    vec3 color = lanczosUpscale(textureD, uv).rgb;
+  vec3 color = lanczosUpscale(textureD, uv).rgb;
 #else
-    vec3 color = textureLod(textureD, uv, 0).rgb;
+  vec3 color = textureLod(textureD, uv, 0.0).rgb;
 #endif
 
-    {
-        // outColor = vec4(srgbEncode(color), 1);
-        // outColor = vec4(color, 1);
-        // return;
-    }
+  {
+    // outColor = vec4(srgbEncode(color), 1);
+    // outColor = vec4(color, 1);
+    // return;
+  }
 
-    {
-        // outColor = vec4(vec3(luminance(color/exposure)/100000.0), 1);
-        // return;
-    }
+  {
+    // outColor = vec4(vec3(luminance(color/exposure)/100000.0), 1);
+    // return;
+  }
 
-    {
-        // outColor = vec4(colorTemperatureToRGB(luminance(color) / push.exposure), 1);
-        // return;
-    }
+  {
+    // outColor = vec4(colorTemperatureToRGB(luminance(color) / push.exposure), 1);
+    // return;
+  }
 
-    {
-        // night shift
-        // const vec3 shift = purkinjeShift(color/exposure)*exposure;
-        // color += shift;
-        // color += vec3(0,0, shift.b);
-    }
+  {
+    // night shift
+    // const vec3 shift = purkinjeShift(color/exposure)*exposure;
+    // color += shift;
+    // color += vec3(0,0, shift.b);
+  }
 
-    color    = gameTonemap(color, push.settings);
-    // color   += dither(gl_FragCoord.xy, TONEMAP_DITHER_TARGET_BITS); 
-    outColor = vec4(color, 1.0);
+  color    = gameTonemap(color, push.settings);
+  // color   += dither(gl_FragCoord.xy, TONEMAP_DITHER_TARGET_BITS); 
+  outColor = vec4(color, 1.0);
 }
