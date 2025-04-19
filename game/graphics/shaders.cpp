@@ -227,7 +227,6 @@ Shaders::Shaders() {
     rtsmMeshletComplex = computeShader("rtsm_meshlet_complex.comp.sprv");
     rtsmSampleCull     = computeShader("rtsm_sample_cull.comp.sprv");
     rtsmPrimCull       = computeShader("rtsm_primitive_cull.comp.sprv");
-    rtsmPrimCull2      = computeShader("rtsm_primitive_cull2.comp.sprv");
 
     rtsmRaster      = computeShader("rtsm_raster.comp.sprv");
     rtsmDirectLight = postEffect("rtsm_direct_light", RenderState::ZTestMode::NoEqual);
@@ -286,9 +285,11 @@ bool Shaders::isRtsmSupported() {
     return false;
     }
   auto& gpu = Resources::device().properties();
-  if(gpu.compute.maxInvocations>=1024 && gpu.descriptors.nonUniformIndexing) {
+  if(gpu.compute.maxInvocations>=512 && gpu.compute.maxSharedMemory>=32*1024 && gpu.descriptors.nonUniformIndexing) {
     return true;
     }
+  if(!gpu.hasStorageFormat(TextureFormat::RG32U))
+    return false;
   return false;
   }
 

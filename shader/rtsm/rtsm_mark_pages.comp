@@ -18,6 +18,9 @@ layout(binding = 7, r32ui)  uniform coherent uimage3D    pageTbl;
 
 ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
 
+ivec3 pageId;
+uint  hiZ = 0xFFFFFFFF;
+
 shared uint pageHiZ[128];
 
 uint pageIdHash7(ivec3 src) {
@@ -28,42 +31,43 @@ uint pageIdHash7(ivec3 src) {
   }
 
 void storeHiZValue(uint v) {
+  if(v==0xFFFFFFFF)
+    return;
   uvec4 dx = unpack565_16(v);
   ivec3 at = ivec3(dx.xyz);
-  //uint  iz = floatBitsToUint(dx.w/float(0xFFFF));
   uint  iz = (dx.w << 16);
   imageAtomicMin(pageTbl, at, iz);
   }
 
-void setupHiZ() {
+void storeHiZ() {
   const uint lane = gl_LocalInvocationIndex;
-  pageHiZ[lane] = 0xFFFFFFFF;
-  }
 
-void flushHiZ() {
-  const uint lane = gl_LocalInvocationIndex;
-  if(lane >= pageHiZ.length())
-    return;
-  const uint v = pageHiZ[lane];
-  if(v==0xFFFFFFFF)
-    return;
-  storeHiZValue(v);
+  if(lane<pageHiZ.length())
+    pageHiZ[lane] = 0xFFFFFFFF;
+  barrier();
+
+  if(hiZ!=0xFFFFFFFF) {
+    ivec3 at  = pageId;
+    uint  iz  = hiZ >> 16;
+    uint  cur = pack565_16(at,iz);
+    uint  id  = pageIdHash7(at) % pageHiZ.length();
+
+    uint  v   = atomicMin(pageHiZ[id], cur);
+    if((v&0xFFFF0000)!=(cur&0xFFFF0000))
+      storeHiZValue(v);
+    }
+  barrier();
+
+  if(lane<pageHiZ.length()) {
+    storeHiZValue(pageHiZ[lane]);
+    }
   }
 
 void markPage(ivec3 at, float z) {
   if(z<0 || z>=1)
     return;
-
-  uint iz  = floatBitsToUint(z) >> 16;
-  uint cur = pack565_16(at,iz);
-  uint id  = pageIdHash7(at) % pageHiZ.length();
-
-  uint v   = atomicMin(pageHiZ[id], cur);
-  if(v==0xFFFFFFFF)
-    return; // clean insert
-  if((v&0xFFFF0000)==(cur&0xFFFF0000))
-    return; // update same entry
-  storeHiZValue(v);
+  pageId = at;
+  hiZ    = floatBitsToUint(z);
   }
 
 vec4 worldPos(ivec2 frag, float depth) {
@@ -123,13 +127,8 @@ float markPages() {
   }
 
 void main() {
-  setupHiZ();
-  barrier();
-
   const float val = markPages();
-  barrier();
-
-  flushHiZ();
+  storeHiZ();
 
   const ivec2 size   = textureSize(depth, 0);
   const bool  valid  = all(lessThan(fragCoord, size));
