@@ -285,9 +285,11 @@ bool Shaders::isRtsmSupported() {
     return false;
     }
   auto& gpu = Resources::device().properties();
-  if(gpu.compute.maxInvocations>=1024 && gpu.descriptors.nonUniformIndexing) {
+  if(gpu.compute.maxInvocations>=512 && gpu.compute.maxSharedMemory>=32*1024 && gpu.descriptors.nonUniformIndexing) {
     return true;
     }
+  if(!gpu.hasStorageFormat(TextureFormat::RG32U))
+    return false;
   return false;
   }
 

@@ -564,7 +564,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   drawShadowMap(cmd,fId,*wview);
   drawVsm(cmd, *wview);
   drawSwr(cmd, *wview);
-  drawRTSM(cmd, *wview);
+  drawRtsm(cmd, *wview);
 
   prepareIrradiance(cmd,*wview);
   prepareExposure(cmd,*wview);
@@ -862,7 +862,13 @@ void Renderer::drawRtsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   cmd.setDebugMarker("RTSM-dbg");
+#if 1
   cmd.setBinding(0, rtsm.dbg);
+#else
+  cmd.setBinding(0, rtsm.primBins);
+  cmd.setBinding(1, rtsm.posList);
+  cmd.setBinding(2, rtsm.pages);
+#endif
   cmd.setPipeline(shaders.rtsmDbg);
   cmd.draw(Resources::fsqVbo());
   }
@@ -1067,7 +1073,7 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
   wview.drawVsm(cmd);
   }
 
-void Renderer::drawRTSM(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
+void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
   if(!settings.rtsmEnabled)
     return;
 
@@ -1093,6 +1099,7 @@ void Renderer::drawRTSM(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     if(rtsm.pages.isEmpty()) {
       rtsm.pages = device.image3d(TextureFormat::R32U, 32, 32, 16);
       }
+
     const auto tiles = tileCount(scene.zbuffer->size(), RTSM_SMALL_TILE);
     if(rtsm.tiles.size()!=tiles) {
       Resources::recycle(std::move(rtsm.tiles));
@@ -1233,8 +1240,8 @@ void Renderer::drawRTSM(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
 
   {
     // tile hirarchy
-    const auto largetTiles = tileCount(scene.zbuffer->size(), RTSM_LARGE_TILE);
-    const auto smallTiles  = tileCount(scene.zbuffer->size(), RTSM_SMALL_TILE);
+    const auto largeTiles = tileCount(scene.zbuffer->size(), RTSM_LARGE_TILE);
+    const auto smallTiles = tileCount(scene.zbuffer->size(), RTSM_SMALL_TILE);
 
     cmd.setBinding(0, rtsm.outputImage);
     cmd.setBinding(1, sceneUbo);
@@ -1246,7 +1253,7 @@ void Renderer::drawRTSM(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     cmd.setBinding(9, rtsm.dbg);
 
     cmd.setPipeline(shaders.rtsmMeshletCull);
-    cmd.dispatch(largetTiles);
+    cmd.dispatch(largeTiles);
 
     cmd.setPipeline(shaders.rtsmMeshletComplex);
     cmd.dispatchIndirect(rtsm.complexTiles, 0);
@@ -1273,7 +1280,7 @@ void Renderer::drawRTSM(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     cmd.dispatch(rtsm.primBins.size());
 
     // raster
-    cmd.setBinding(9, rtsm.dbg8);
+    cmd.setBinding(9, rtsm.dbg16);
     cmd.setPipeline(shaders.rtsmRaster);
     cmd.dispatchThreads(rtsm.outputImage.size());
   }

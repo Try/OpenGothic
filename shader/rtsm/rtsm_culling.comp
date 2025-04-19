@@ -46,14 +46,13 @@ bool projectCluster(const Cluster cluster, out vec4 aabb, out float depthMax) {
   }
 
 bool pageHiZTest(ivec4 iaabb, float depthMax, int mip) {
+  const uint depthU = floatBitsToUint(depthMax);
+  // const uint depthU = floatToOrderedUint(depthMax);
+
   for(int x=iaabb.x; x<iaabb.z; ++x)
     for(int y=iaabb.y; y<iaabb.w; ++y) {
       const uint  p = imageLoad(pageTbl, ivec3(x,y,mip)).x;
-      const float f = orderedUintToFloat(p);
-
-      // if(p!=0xFFFFFFFF)
-      //   return true;
-      if(f<=depthMax)
+      if(p<=depthU)
         return true;
       }
 
@@ -109,6 +108,6 @@ void main() {
   const uint id = atomicAdd(rtsm.header.visCount, cluster.meshletCount);
   for(int i=0; i<cluster.meshletCount; ++i) {
     rtsm.visList[id+i] = uvec2(clusterId, cluster.firstMeshlet+i);
-    atomicAdd(pos.alloc, 1); //reserve memory for position shader
     }
+  atomicAdd(pos.alloc, cluster.meshletCount); //reserve memory for position shader
   }

@@ -6,9 +6,11 @@
 
 #include "marvin.h"
 
+class MainWindow;
+
 class ConsoleWidget : public Tempest::Widget {
   public:
-    ConsoleWidget();
+    ConsoleWidget(const MainWindow& owner);
     ~ConsoleWidget();
 
     void close();
@@ -26,6 +28,7 @@ class ConsoleWidget : public Tempest::Widget {
   private:
     struct Overlay;
 
+    const MainWindow&         mainWindow;
     Tempest::UiOverlay*       overlay    = nullptr;
     const Tempest::Texture2d* background = nullptr;
     Tempest::Shortcut         closeSk;

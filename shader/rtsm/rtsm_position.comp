@@ -73,8 +73,7 @@ uint remapIndex(uint id) {
   }
 
 uint vertexCount() {
-  return MaxVert;
-
+  // return MaxVert;
   uint r = 0;
   for(uint i=0; i<activeVert.length(); ++i)
     r += bitCount(activeVert[i]);
@@ -367,12 +366,11 @@ void main() {
 
   const uint vertCount = vertexCount();
   const uint size      = MeshletHeaderSize + MaxPrim + vertCount*4;
-  if(laneId==0) {
-    posPtr = atomicAdd(pos.alloc, size);
-    }
+  if(laneId==0)
+    posPtr = allocScratch(size);
   barrier();
 
-  if(posPtr+size>=pos.data.length()) {
+  if(posPtr==NULL) {
     // out of memory
     return;
     }

@@ -2,7 +2,9 @@
 
 #if !defined(CONST_SCRATCH)
 uint allocScratch(uint size) {
-  uint ptr = size==0 ? NULL : atomicAdd(pos.alloc, size);
+  if(size==0)
+    return NULL;
+  uint ptr = atomicAdd(pos.alloc, size);
   if(ptr+size>pos.data.length()) {
     // out of memory
     return NULL;
@@ -39,6 +41,12 @@ uint pullPrimitiveCount(uint ptr) {
 struct Vertex {
   vec3 pos;
   uint uv;
+  };
+
+struct VertexF {
+  vec2  pos;
+  float z;
+  uint  uv;
   };
 
 uint pullPrimitivePkg(const uint ptr, const uint laneId) {

@@ -33,32 +33,22 @@ void imageDbg(uint info) {
 // counter
 uint numMeshletsAll = 0;
 
-//
-shared uvec4 rayTileBbox[MaxSlices];
-shared uint  rayDepthMin[MaxSlices];
+// 92 bytes
+const  uint  DepthSlices = 4;
+shared uvec4 rayTileBbox[DepthSlices];
+shared uint  rayDepthMin[DepthSlices];
 shared uint  numSlices;
-
 shared uint  depthMin, depthMax;
+shared float depthScale;
 
-// visible meshlets and ray-samples
+// visible primitives
 shared uint numPrimitives;
-shared uint numRays;
-shared uint primitives[4*1024]; // primitive and samples, no reinterpret case unfortenatly
+shared uint primitives[2000];
 
 shared uint primListPtr;
 
 uvec2 pullMeshList() {
   return texelFetch(tileBins, ivec2((gl_WorkGroupID.xy*RTSM_BIN_SIZE)/RTSM_SMALL_TILE), 0).xy;
-  }
-
-// utility
-uint depthSlice(const float z) {
-  float dZ   = linearDepth(z,      scene.clipInfo);
-  float d0   = linearDepth(0,      scene.clipInfo);
-  float d1   = linearDepth(0.9999, scene.clipInfo);
-  float d    = (dZ-d0)/(d1-d0);
-
-  return min(uint(d*MaxSlices), MaxSlices-1);
   }
 
 uint packPrimitiveId(uint meshlet, uint prim) {
@@ -93,66 +83,75 @@ bool isAabbVisible(const vec4 aabb, const float depthMax) {
   }
 
 // primitive-trace
-void processMeshletPrimitives(const uint ptr, const uint primCount, const uint laneID) {
-  if(laneID<primCount) {
-    uint ptrM = ptr;
+bool isPrimitiveVisible(const uint ptr, const uint primId) {
+  uint ptrM = ptr;
 
-    ptrM += MeshletHeaderSize;
-    const uvec3 tri = pullPrimitive(ptrM, laneID);
+  ptrM += MeshletHeaderSize;
+  const uvec3 tri = pullPrimitive(ptrM, primId);
 
-    ptrM += MaxPrim;
-    const vec3  a   = pullVertex(ptrM, tri.x);
-    const vec3  b   = pullVertex(ptrM, tri.y);
-    const vec3  c   = pullVertex(ptrM, tri.z);
-    const vec4  tbb = bboxOf(a.xy, b.xy, c.xy);
-    const float d   = max(a.z, max(b.z, c.z));
+  ptrM += MaxPrim;
+  const vec3  a   = pullVertex(ptrM, tri.x);
+  const vec3  b   = pullVertex(ptrM, tri.y);
+  const vec3  c   = pullVertex(ptrM, tri.z);
+  const vec4  tbb = bboxOf(a.xy, b.xy, c.xy);
+  const float d   = max(a.z, max(b.z, c.z));
 
-    if(!isAabbVisible(tbb, d))
-      return;
-
-    const uint id = atomicAdd(numPrimitives, 1);
-    if(id<primitives.length())
-      primitives[id] = packPrimitiveId(ptr, laneID);
-    }
+  return isAabbVisible(tbb, d);
   }
 
-void traceTile(const uint tilePtr, const uint visCount) {
-  const uint  laneID      = gl_LocalInvocationIndex;
-  const uint  meshPerStep = NumThreads / MaxPrim;
+void processMeshletPrimitives(const uint ptr, const uint primCount, const uint primId, bool primary) {
+  if(primId>=primCount)
+    return;
 
-  for(uint i=(laneID/MaxPrim); i<visCount; i+=meshPerStep) {
-    const uint laneMs  = laneID % MaxPrim;
+  if(!isPrimitiveVisible(ptr, primId))
+    return;
+
+  const uint id = atomicAdd(numPrimitives, 1);
+  if(primary && id<primitives.length())
+    primitives[id] = packPrimitiveId(ptr, primId);
+  else if(!primary)
+    pos.data[primListPtr + id] = packPrimitiveId(ptr, primId);
+  }
+
+void traceTile(const uint tilePtr, const uint visCount, bool primary) {
+  const uint  laneID      = gl_LocalInvocationIndex;
+  const uint  primPerStep = 32;
+  const uint  meshPerStep = NumThreads / primPerStep;
+
+  for(uint i=(laneID/primPerStep); i<visCount; i+=meshPerStep) {
+    const uint laneMs  = laneID % primPerStep;
     const uint ptr     = pos.data[tilePtr + i].x;
     const uint primCnt = pullPrimitiveCount(ptr);
-    processMeshletPrimitives(ptr, primCnt, laneMs);
+
+    for(uint r=laneMs; r<MaxPrim; r+=primPerStep)
+      processMeshletPrimitives(ptr, primCnt, r, primary);
     }
   }
 
-void storeResultPrim() {
+void storeResultSharedMem() {
   const uint laneID = gl_LocalInvocationIndex;
-  const uint badBit = (1u << 31);
-
-  if(numPrimitives>primitives.length()) {
-    imageStore(primitiveBins, ivec2(gl_WorkGroupID.xy), uvec4(NULL, badBit, 0,0));
-    imageDbg(numPrimitives);
-    return;
-    }
-
-  if(laneID==0) {
-    primListPtr = allocScratch(numPrimitives);
-    }
-  barrier();
-
-  imageDbg(numPrimitives);
-  if(primListPtr==NULL && numPrimitives>0) {
-    // out of memory
-    imageStore(primitiveBins, ivec2(gl_WorkGroupID.xy), uvec4(primListPtr, badBit, 0,0));
-    return;
-    }
-
-  imageStore(primitiveBins, ivec2(gl_WorkGroupID.xy), uvec4(primListPtr, numPrimitives, 0,0));
   for(uint i=laneID; i<numPrimitives; i+=NumThreads)
     pos.data[primListPtr + i] = primitives[i];
+  }
+
+void processDepth(const ivec2 fragCoord) {
+  const ivec2 size   = textureSize(depth, 0);
+  const bool  valid  = all(lessThan(fragCoord, size));
+  if(!valid)
+    return;
+
+  const float lamb   = imageLoad(outputImage, fragCoord).x;
+  const bool  actRay = !(lamb==0);
+  if(!actRay)
+    return;
+
+  const float z = texelFetch(depth, fragCoord, 0).x;
+  if(z==1.0)
+    return;
+
+  const uint iz = floatBitsToUint(z);
+  atomicMin(depthMin, iz);
+  atomicMax(depthMax, iz);
   }
 
 void processFragment(const ivec2 fragCoord) {
@@ -170,10 +169,16 @@ void processFragment(const ivec2 fragCoord) {
   if(z==1.0)
     return;
 
-  // const vec3 ray = rayOrigin(fragCoord.xy, z);
-  const uint id = atomicAdd(numRays, 1);
-  primitives[id*2+0] = floatBitsToUint(z);
-  primitives[id*2+1] = packUint2x16(uvec2(fragCoord));
+  const float d0    = uintBitsToFloat(depthMin);
+  const uint  slice = uint((z-d0)*depthScale);
+  const vec3  ray   = rayOrigin(fragCoord.xy, z);
+
+  atomicOr(numSlices, 1u << slice);
+  atomicMin(rayTileBbox[slice].x, floatToOrderedUint(ray.x));
+  atomicMin(rayTileBbox[slice].y, floatToOrderedUint(ray.y));
+  atomicMax(rayTileBbox[slice].z, floatToOrderedUint(ray.x));
+  atomicMax(rayTileBbox[slice].w, floatToOrderedUint(ray.y));
+  atomicMin(rayDepthMin[slice],   floatToOrderedUint(ray.z));
   }
 
 void tileBbox() {
@@ -185,33 +190,24 @@ void tileBbox() {
   for(int x=xy0.x; x<tileSz.x; x+=int(gl_WorkGroupSize.x)) {
     for(int y=xy0.y; y<tileSz.y; y+=int(gl_WorkGroupSize.y)) {
       ivec2 at = at0 + ivec2(x,y);
-      processFragment(at);
+      processDepth(at);
       }
     }
   barrier();
 
-  for(uint i=laneID; i<numRays; i+=NumThreads) {
-    const uint iz = primitives[i*2+0];
-    atomicMin(depthMin, iz);
-    atomicMax(depthMax, iz);
+  if(laneID==0) {
+    const float d0    = uintBitsToFloat(depthMin);
+    const float d1    = uintBitsToFloat(depthMax);
+    const float range = (d1-d0);
+    depthScale = (depthMax>depthMin) ? (DepthSlices-1)/range : 0;
     }
   barrier();
 
-  for(uint i=laneID; i<numRays; i+=NumThreads) {
-    const float z         = uintBitsToFloat(primitives[i*2+0]);
-    const ivec2 fragCoord = ivec2(unpackUInt2x16(primitives[i*2+1]));
-
-    const float d0    = uintBitsToFloat(depthMin);
-    const float d1    = uintBitsToFloat(depthMax);
-    const uint  slice = uint(((z-d0)/(d1-d0))*4);
-    const vec3  ray   = rayOrigin(fragCoord.xy, z);
-
-    atomicOr(numSlices, 1u << slice);
-    atomicMin(rayTileBbox[slice].x, floatToOrderedUint(ray.x));
-    atomicMin(rayTileBbox[slice].y, floatToOrderedUint(ray.y));
-    atomicMax(rayTileBbox[slice].z, floatToOrderedUint(ray.x));
-    atomicMax(rayTileBbox[slice].w, floatToOrderedUint(ray.y));
-    atomicMin(rayDepthMin[slice],   floatToOrderedUint(ray.z));
+  for(int x=xy0.x; x<tileSz.x; x+=int(gl_WorkGroupSize.x)) {
+    for(int y=xy0.y; y<tileSz.y; y+=int(gl_WorkGroupSize.y)) {
+      ivec2 at = at0 + ivec2(x,y);
+      processFragment(at);
+      }
     }
   barrier();
 
@@ -244,7 +240,6 @@ void main() {
     return;
     }
 
-  numRays        = 0;
   numPrimitives  = 0;
   numMeshletsAll = 0;
   numSlices      = 0;
@@ -259,8 +254,32 @@ void main() {
   tileBbox();
   barrier();
 
-  traceTile(tilePtr, visCount);
+  traceTile(tilePtr, visCount, true);
   barrier();
 
-  storeResultPrim();
+  if(laneID==0)
+    primListPtr = allocScratch(numPrimitives);
+  barrier();
+
+  imageDbg(numPrimitives);
+  if(primListPtr==NULL && numPrimitives>0) {
+    // out of memory
+    const uint badBit = (1u << 31);
+    imageStore(primitiveBins, ivec2(gl_WorkGroupID.xy), uvec4(primListPtr, badBit, 0,0));
+    return;
+    }
+
+  // short list in shared memory
+  imageStore(primitiveBins, ivec2(gl_WorkGroupID.xy), uvec4(primListPtr, numPrimitives, 0,0));
+  if(numPrimitives<=primitives.length()) {
+    storeResultSharedMem();
+    return;
+    }
+  barrier();
+
+  // replay cullng - out of shared memory
+  numPrimitives = 0;
+  barrier();
+
+  traceTile(tilePtr, visCount, false);
   }
