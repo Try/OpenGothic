@@ -32,6 +32,7 @@ struct GameMusic::MusicProvider : Tempest::SoundProducer {
         reloadTheme = true;
         enable.store(true);
         } else {
+        enable.store(false);
         stopTheme();
         }
       }
