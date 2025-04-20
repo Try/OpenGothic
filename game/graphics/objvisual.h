@@ -22,6 +22,8 @@ class ObjVisual {
     void setVisual(const zenkit::VirtualObject& visual, World& world, bool staticDraw);
     void setObjMatrix(const Tempest::Matrix4x4& obj);
 
+    void setSlotItem(MeshObjects::Mesh&& itm, std::string_view slot);
+
     void setInteractive(Interactive* it);
 
     const Animation::Sequence* startAnimAndGet(std::string_view name, uint64_t tickCount, bool force = false);

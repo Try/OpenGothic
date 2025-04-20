@@ -2009,6 +2009,7 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
     return a.time<b.time;
     });
 
+  // https://auronen.cokoliv.eu/gmc/zengin/anims/events/
   for(auto& i:ev.timed) {
     switch(i.def) {
       case zenkit::MdsEventType::ITEM_CREATE: {
@@ -2026,8 +2027,11 @@ void Npc::tickTimedEvt(Animation::EvCount& ev) {
         invent.clearSlot(*this, "", i.def != zenkit::MdsEventType::ITEM_REMOVE);
         break;
         }
-      case zenkit::MdsEventType::ITEM_PLACE:
+      case zenkit::MdsEventType::ITEM_PLACE: {
+        if(currentInteract!=nullptr)
+          Inventory::moveItem(*this, invent, *currentInteract);
         break;
+        }
       case zenkit::MdsEventType::ITEM_EXCHANGE: {
         if(!invent.clearSlot(*this,i.slot[0],true)) {
           // fallback for cooking animations
@@ -2125,8 +2129,6 @@ void Npc::tickAnimationTags() {
   }
 
 void Npc::tick(uint64_t dt) {
-  // if(!isPlayer() && hnpc->id!=323)
-  //   return;
   static bool dbg = false;
   static int  kId = -1;
   if(dbg && !isPlayer() && hnpc->id!=kId)

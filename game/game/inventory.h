@@ -118,6 +118,8 @@ class Inventory final {
     void   putAmmunition   (Npc& owner, size_t cls, std::string_view slot);
     bool   putState        (Npc& owner, size_t cls, int state);
 
+    static void moveItem(Npc& owner, Inventory& invNpc, Interactive& mobsi);
+
     void   setCurrentItem(size_t cls);
     void   setStateItem  (size_t cls);
 

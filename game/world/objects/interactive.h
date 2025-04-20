@@ -66,6 +66,7 @@ class Interactive : public Vob {
     bool                needToLockpick(const Npc& pl) const;
 
     Inventory&          inventory();
+    void                setSlotItem(MeshObjects::Mesh&& itm, std::string_view slot);
 
     uint32_t            stateMask() const;
 

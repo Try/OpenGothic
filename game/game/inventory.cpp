@@ -4,6 +4,7 @@
 
 #include "world/objects/item.h"
 #include "world/objects/npc.h"
+#include "world/objects/interactive.h"
 #include "world/world.h"
 #include "game/gamescript.h"
 #include "serialize.h"
@@ -778,6 +779,30 @@ bool Inventory::putState(Npc& owner, size_t cls, int state) {
   setCurrentItem(0);
   setStateItem(cls);
   return true;
+  }
+
+void Inventory::moveItem(Npc& owner, Inventory& invNpc, Interactive& mobsi) {
+  if(owner.inventory().mdlSlots.empty())
+    return;
+
+  // DEF_PLACE_ITEM has no slot parameter, so assume ZS_SLOT, based on testing
+  std::string_view zsSlot = "ZS_SLOT";
+
+  auto& world = owner.world();
+  auto& slot  = invNpc.mdlSlots.back();
+
+  auto  vbody  = world.addView(slot.item->handle());
+  mobsi.setSlotItem(std::move(vbody), zsSlot);
+
+  mobsi.inventory().mdlSlots.resize(1);
+  MdlSlot& sl = mobsi.inventory().mdlSlots.back();
+  sl.slot = zsSlot;
+  sl.item = slot.item;
+
+  auto itm = slot.item;
+  owner.clearSlotItem(slot.slot);
+  invNpc.mdlSlots.pop_back();
+  invNpc.delItem(itm,1,owner);
   }
 
 void Inventory::setCurrentItem(size_t cls) {

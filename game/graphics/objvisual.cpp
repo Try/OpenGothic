@@ -232,6 +232,11 @@ void ObjVisual::setObjMatrix(const Tempest::Matrix4x4& obj) {
     }
   }
 
+void ObjVisual::setSlotItem(MeshObjects::Mesh&& itm, std::string_view slot) {
+  if(type==M_Mdl)
+    mdl.view.setSlotItem(std::move(itm), slot);
+  }
+
 void ObjVisual::setInteractive(Interactive* it) {
   switch(type) {
     case M_None:

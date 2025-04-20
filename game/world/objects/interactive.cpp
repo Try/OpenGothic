@@ -514,6 +514,10 @@ Inventory &Interactive::inventory()  {
   return invent;
   }
 
+void Interactive::setSlotItem(MeshObjects::Mesh&& itm, std::string_view slot) {
+  visual.setSlotItem(std::move(itm),slot);
+  }
+
 uint32_t Interactive::stateMask() const {
   std::string_view s = schemeName();
   return world.script().schemeToBodystate(s);
