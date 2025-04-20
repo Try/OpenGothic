@@ -40,6 +40,7 @@ class Renderer final {
       PathTrace,
       };
     Tempest::Size internalResolution() const;
+    float         internalResolutionScale() const;
     void updateCamera(const Camera &camera);
 
     void prepareUniforms();

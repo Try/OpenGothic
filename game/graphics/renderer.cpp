@@ -780,8 +780,9 @@ void Renderer::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
   const float GSunIntensity  = wview.sky().sunIntensity();
   const float GMoonIntensity = wview.sky().moonIntensity();
 
-  const float sunSize        = settings.sunSize;
-  const float moonSize       = settings.moonSize;
+  const float scale          = internalResolutionScale();
+  const float sunSize        = settings.sunSize  * scale;
+  const float moonSize       = settings.moonSize * scale;
 
   push.size          *= isSun ? sunSize : (moonSize*0.25f);
   push.GSunIntensity  = isSun ? (GSunIntensity*intencity) : (GMoonIntensity*intencity);
@@ -1923,6 +1924,14 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   pm.save("zbuffer.hdr");
 
   return img;
+  }
+
+float Renderer::internalResolutionScale() const {
+  if(settings.vidResIndex==0)
+    return 1;
+  if(settings.vidResIndex==1)
+    return 0.75;
+  return 0.5;
   }
 
 Size Renderer::internalResolution() const {
