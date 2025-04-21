@@ -22,6 +22,8 @@ layout(binding  = 1) uniform sampler2D textureD;
 layout(location = 0) in  vec2 uv;
 layout(location = 0) out vec4 outColor;
 
+const uvec3 TONEMAP_DITHER_TARGET_BITS =  uvec3(8, 8, 8); // hardcoded for now -> adjust in future for HDR support or 6 bit monitors
+
 // https://advances.realtimerendering.com/s2021/jpatry_advances2021/index.html
 // https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.40.9608&rep=rep1&type=pdf
 vec4 rgb2lmsr(vec3 c) {
@@ -138,6 +140,7 @@ void main() {
     // color += vec3(0,0, shift.b);
   }
 
-  color = gameTonemap(color, push.settings);
+  color    = gameTonemap(color, push.settings);
+  color   += dither(gl_FragCoord.xy, TONEMAP_DITHER_TARGET_BITS); 
   outColor = vec4(color, 1.0);
   }

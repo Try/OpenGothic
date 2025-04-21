@@ -331,4 +331,48 @@ vec3 normalFetch(in utexture2D gbufNormal, ivec2 p) {
   return decodeNormal(n);
   }
 
+// PCG3D
+// https://www.jcgt.org/published/0009/03/02/
+// https://www.shadertoy.com/view/XlGcRh
+// Produces three random unsigned integers using
+// a seed of three unsigned integers
+uvec3 pcg3d(uvec3 v) {
+  v = v * 1664525u + 1013904223u;
+
+  v.x += v.y * v.z;
+  v.y += v.z * v.x;
+  v.z += v.x * v.y;
+
+  v ^= v >> 16u;
+
+  v.x += v.y * v.z;
+  v.y += v.z * v.x;
+  v.z += v.x * v.y;
+
+  return v;
+  }
+
+// fragCoords: 2D integer pixel position
+// the bit depth of the R,G & B output channels
+vec3 dither(vec2 fragCoords, uvec3 targetBits) {
+  // NOTE: Separate noise per channel can have better visuals
+  //       than single channel. When applied to multiple shaders, 
+  //       same fragCoords result in same noise output. Possible
+  //       to use PCG3D + coordinate offsets.
+
+  // uvec3 irnd = pcg3d(uvec3(fragCoords.xyy));
+  // vec3 nrnd;
+  // nrnd.r = uintBitsToFloat((irnd.r & 0x007FFFFF) |  (0x3F800000));
+  // nrnd.g = uintBitsToFloat((irnd.g & 0x007FFFFF) |  (0x3F800000));
+  // nrnd.b = uintBitsToFloat((irnd.b & 0x007FFFFF) |  (0x3F800000));
+  // nrnd = nrnd - 1;
+  vec3 nrnd          = interleavedGradientNoise(fragCoords.xy).xxx;
+
+  nrnd               = (nrnd * 2.0 - 1);
+  vec3 divisionSteps = vec3(float((1 << targetBits.r) - 1),
+                            float((1 << targetBits.g) - 1),
+                            float((1 << targetBits.b) - 1));
+  return  nrnd / divisionSteps;
+  }
+
 #endif
