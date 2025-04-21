@@ -359,11 +359,17 @@ vec3 dither(vec2 fragCoords, uvec3 targetBits)
 {
     // NOTE: Separate noise per channel can have better visuals
     //       than single channel. When applied to multiple shaders, 
-    //       same fragCoords result in same noise output. Probably better
+    //       same fragCoords result in same noise output. Possible
     //       to use PCG3D + coordinate offsets.
 
-    // vec3 nrnd = fract(pcg3d(uvec3(fragCoords.xyy)) / divisionSteps);
+    // uvec3 irnd = pcg3d(uvec3(fragCoords.xyy));
+    // vec3 nrnd;
+    // nrnd.r = uintBitsToFloat((irnd.r & 0x007FFFFF) |  (0x3F800000));
+    // nrnd.g = uintBitsToFloat((irnd.g & 0x007FFFFF) |  (0x3F800000));
+    // nrnd.b = uintBitsToFloat((irnd.b & 0x007FFFFF) |  (0x3F800000));
+    // nrnd = nrnd - 1;
     vec3 nrnd          = interleavedGradientNoise(fragCoords.xy).xxx;
+
     nrnd               = (nrnd * 2.0 - 1);
     vec3 divisionSteps = vec3(float((1 << targetBits.r) - 1),
                               float((1 << targetBits.g) - 1),
