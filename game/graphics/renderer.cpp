@@ -1434,6 +1434,8 @@ void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, const WorldView& w
   auto& scene = wview.sceneGlobals();
   cmd.setDebugMarker(settings.vsmEnabled ? "DirectSunLight-VSM" : "DirectSunLight");
 
+  auto originLwc = scene.originLwc;
+  cmd.setPushData(&originLwc, sizeof(originLwc));
   cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
   cmd.setBinding(2, gbufNormal,  Sampler::nearest());
@@ -1448,7 +1450,7 @@ void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, const WorldView& w
     for(size_t r=0; r<Resources::ShadowLayers; ++r) {
       if(shadowMap[r].isEmpty())
         continue;
-      cmd.setBinding(4+r, shadowMap[r]);
+      cmd.setBinding(4+r, shadowMap[r], Resources::shadowSampler());
       }
     cmd.setBinding(6, scene.rtScene.tlas);
     cmd.setBinding(7, Sampler::bilinear());
@@ -1464,7 +1466,7 @@ void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, const WorldView& w
     for(size_t r=0; r<Resources::ShadowLayers; ++r) {
       if(shadowMap[r].isEmpty())
         continue;
-      cmd.setBinding(4+r, shadowMap[r]);
+      cmd.setBinding(4+r, shadowMap[r], Resources::shadowSampler());
       }
     }
 

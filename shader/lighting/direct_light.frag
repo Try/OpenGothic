@@ -13,6 +13,10 @@
 
 layout(location = 0) out vec4 outColor;
 
+layout(push_constant, std430) uniform UboPush {
+  vec3  originLwc;
+  } push;
+
 layout(binding = 0, std140) uniform UboScene {
   SceneDesc scene;
   };
@@ -26,44 +30,49 @@ layout(binding = 4) uniform sampler2D textureSm0;
 layout(binding = 5) uniform sampler2D textureSm1;
 #endif
 
-float lambert(vec3 normal) {
-  return max(0.0, dot(scene.sunDir,normal));
+bool planetOcclusion(float viewPos, vec3 sunDir) {
+  const float y = RPlanet + max(viewPos*0.1, 0);
+  if(rayIntersect(vec3(0,y,0), sunDir, RPlanet)>=0)
+    return true;
+  return false;
   }
 
-vec4 worldPos(ivec2 frag, float depth) {
+vec4 worldPos(vec2 frag, float depth) {
   const vec2 fragCoord = (frag.xy*scene.screenResInv)*2.0 - vec2(1.0);
   const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
   return scene.viewProjectInv * scr;
   }
 
-vec4 worldPosLwc(ivec2 frag, float depth) {
+vec4 worldPosLwc(vec2 frag, float depth) {
   const vec2 fragCoord = (frag.xy*scene.screenResInv)*2.0 - vec2(1.0);
   const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
   return scene.viewProjectLwcInv * scr;
   }
 
 vec4 worldPos(float depth) {
-  return worldPos(ivec2(gl_FragCoord.xy),depth);
+  return worldPos(gl_FragCoord.xy,depth);
   }
 
 #if defined(SHADOW_MAP)
-float calcShadow(vec4 pos4, float bias) {
-  return calcShadow(pos4, bias, scene, textureSm0, textureSm1);
+float calcShadow(vec3 pos, const vec3 normal) {
+  return calcShadow(pos, normal, scene, textureSm0, textureSm1);
   }
 #else
-float calcShadow(vec4 pos4, float bias) { return 1.0; }
+float calcShadow(vec3 pos, const vec3 normal) { return 1.0; }
 #endif
 
 #if defined(RAY_QUERY)
 bool rayTest(vec3 pos, vec3  rayDirection, float tMin, float tMax, out float rayT) {
 #if defined(RAY_QUERY_AT)
-  uint flags = gl_RayFlagsCullBackFacingTrianglesEXT;
+  const uint flags = gl_RayFlagsCullBackFacingTrianglesEXT;
 #else
-  uint flags = gl_RayFlagsOpaqueEXT;
+  const uint flags = gl_RayFlagsCullBackFacingTrianglesEXT | gl_RayFlagsOpaqueEXT;
 #endif
 
+  const uint cullMask = CM_Opaque | CM_Transparent;
+
   rayQueryEXT rayQuery;
-  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
+  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, cullMask,
                         pos, tMin, rayDirection, tMax);
   rayQueryProceedShadow(rayQuery);
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true)==gl_RayQueryCommittedIntersectionNoneEXT)
@@ -77,36 +86,39 @@ bool rayTest(vec3 pos, float tMin, float tMax) {
   return rayTest(pos, scene.sunDir, tMin, tMax, t);
   }
 
-float calcRayShadow(vec4 pos4, vec3 normal, float depth) {
-  vec4 sp = scene.viewShadow[1]*pos4;
+float calcRayShadow(vec3 pos, vec3 normal, float depth) {
+  vec4 sp = scene.viewShadowLwc[1]*vec4(pos,1);
   if(all(lessThan(abs(sp.xy/sp.w), vec2(0.999))))
     return 1.0;
 
   // NOTE: shadow is still leaking! Need to develop pso.depthClampEnable to fix it.
-  vec4 cam4 = worldPos(0.1);
-  vec3 cam  = cam4.xyz/cam4.w;
-  vec3 pos  = pos4.xyz/pos4.w;
-
-  // fine depth. 32F depth almost works, but still has self hadowing artifacts
-  float fineDepth = 0;
-  vec3  view      = pos - cam;
-  float viewL     = length(view);
-  rayTest(cam, view/viewL, max(viewL-200.0, 0), viewL+1000.0, fineDepth);
-
-  pos = cam + view*(fineDepth/viewL);
-
-  // float tMin = 50; // bias?
-  if(!rayTest(pos, 0.01, 10000))
+  const float tMin = 50;
+  if(!rayTest(pos + push.originLwc, tMin, 5000*100))
     return 1.0;
   return 0.0;
   }
 #endif
 
-vec3 flatNormal(vec4 pos4) {
-  vec3 pos = pos4.xyz/pos4.w;
-  vec3 dx  = dFdx(pos);
-  vec3 dy  = dFdy(pos);
-  return (cross(dx,dy));
+float shadowFactor(const float depth, const vec3 normal, bool isFlat) {
+  float light  = (isFlat ? 0 : dot(scene.sunDir,normal));
+  if(light<=0)
+    return 0;
+
+  const vec4  wpos4 = worldPosLwc(gl_FragCoord.xy, depth);
+  const vec3  wpos  = wpos4.xyz/wpos4.w;
+
+  if(planetOcclusion(wpos.y, scene.sunDir))
+    return 0;
+
+  light *= calcShadow(wpos, normal);
+
+#if defined(RAY_QUERY)
+    if(light>0.001) {
+      light *= calcRayShadow(wpos, normal, depth);
+      }
+#endif
+
+  return light;
   }
 
 void main(void) {
@@ -120,32 +132,8 @@ void main(void) {
   const vec4  diff   = texelFetch(gbufDiffuse, fragCoord, 0);
   const vec3  normal = normalFetch(gbufNormal, fragCoord);
 
-  bool isFlat  = false;
-  bool isATest = false;
-  bool isWater = false;
-  decodeBits(diff.a, isFlat, isATest, isWater);
-
-  const float light  = (isFlat ? 0 : lambert(normal));
-
-  float shadow = 1;
-  if(light>0) {
-    if(dot(scene.sunDir,normal)<=0)
-      shadow = 0;
-
-#if defined(LWC)
-    const vec4 wpos  = worldPosLwc(ivec2(gl_FragCoord.xy),d);
-#else
-    const vec4 wpos  = worldPos(d);
-#endif
-
-    shadow = calcShadow(wpos,(isATest ? 8 : -1));
-#if defined(RAY_QUERY)
-    if(shadow>0.01 && scene.isNight<1.0) {
-      const vec4 wpos = worldPos(d);
-      shadow *= calcRayShadow(wpos,normal,d);
-      }
-#endif
-    }
+  const bool  isFlat = isGBufFlat(diff.a);
+  const float light  = shadowFactor(d, normal, isFlat);
 
 #if defined(SHADOW_MAP)
   /*
@@ -161,10 +149,10 @@ void main(void) {
   */
 #endif
 
-  const vec3  illuminance = scene.sunColor * light * shadow;
-  const vec3  linear      = textureAlbedo(diff.rgb);
+  const vec3 illuminance = scene.sunColor * light;
+  const vec3 linear      = textureAlbedo(diff.rgb);
 
-  const vec3 luminance    = linear * Fd_Lambert * illuminance;
+  const vec3 luminance   = linear * Fd_Lambert * illuminance;
 
   outColor = vec4(luminance * scene.exposure, 0.0);
 

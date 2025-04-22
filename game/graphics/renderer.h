@@ -74,10 +74,10 @@ class Renderer final {
     void drawSunMoon      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawSunMoon      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview, bool isSun);
 
-    void drawProbesDbg    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
-    void drawProbesHitDbg (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void stashSceneAux    (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 
+    void drawProbesDbg    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
+    void drawProbesHitDbg (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
     void drawVsmDbg       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawSwrDbg       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawRtsmDbg      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);

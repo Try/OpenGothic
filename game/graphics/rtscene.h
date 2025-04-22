@@ -21,6 +21,13 @@ class RtScene {
       Movable,
       };
 
+    enum CullMask : uint32_t {
+      CM_Opaque      = 0x1,
+      CM_Transparent = 0x2,
+      CM_Water       = 0x4,
+      CM_Unknown     = 0x80,
+      };
+
     struct RtObjectDesc {
       uint32_t instanceId;
       uint32_t firstPrimitive : 24;

@@ -65,6 +65,21 @@ float calcShadow(in SceneDesc scene,
   return 1.0;
   }
 
+float calcShadow(in vec3 pos, const vec3 normal, in SceneDesc scene, in sampler2D shadowMap0, in sampler2D shadowMap1) {
+  vec4 shadowPos[2];
+#if defined(LWC)
+  shadowPos[0] = scene.viewShadowLwc[0]*vec4(pos + normal*5,  1.0);
+  shadowPos[1] = scene.viewShadowLwc[1]*vec4(pos + normal*25, 1.0);
+#else
+  shadowPos[0] = scene.viewShadow   [0]*vec4(pos + normal*5, 1.0);
+  shadowPos[1] = scene.viewShadow   [1]*vec4(pos + normal*25, 1.0);
+#endif
+
+  vec3 shPos0  = (shadowPos[0].xyz)/shadowPos[0].w;
+  vec3 shPos1  = (shadowPos[1].xyz)/shadowPos[1].w;
+  return calcShadow(scene, shadowMap0,shPos0, shadowMap1,shPos1);
+  }
+
 float calcShadow(in vec4 pos4, in float bias, in SceneDesc scene, in sampler2D shadowMap0, in sampler2D shadowMap1) {
   vec4 shadowPos[2];
   vec3 offset = bias*scene.sunDir*pos4.w;

@@ -58,16 +58,21 @@ void RtScene::addInstance(const Matrix4x4& pos, const AccelerationStructure& bla
   ix.id   = uint32_t(build.rtDesc.size());
   ix.blas = &blas;
   if(mat.alpha==Material::Water)
-    ix.flags = RtInstanceFlags::Opaque | RtInstanceFlags::CullDisable;
+    ix.flags = RtInstanceFlags::Opaque;
   else if(mat.alpha!=Material::Solid)
     ix.flags = RtInstanceFlags::NonOpaque;
   else
-    ix.flags = RtInstanceFlags::Opaque | RtInstanceFlags::CullDisable;
+    ix.flags = RtInstanceFlags::Opaque;
   ix.flags = ix.flags | RtInstanceFlags::CullFlip;
 
-  ix.mask = 0x1;
-  if(mat.alpha==Material::Water)
-    ix.mask |= 0x2;
+  if(mat.alpha==Material::Solid)
+    ix.mask = CullMask::CM_Opaque;
+  else if(mat.alpha==Material::AlphaTest)
+    ix.mask = CullMask::CM_Transparent;
+  else if(mat.alpha==Material::Water)
+    ix.mask = CullMask::CM_Water;
+  else
+    ix.mask = CullMask::CM_Unknown;
 
   if(mat.alpha==Material::Solid && (cat==Landscape /*|| cat==Static*/)) {
     build.staticOpaque.geom  .push_back({mesh.vbo, mesh.ibo, firstIndex, iboLength});
@@ -101,7 +106,7 @@ void RtScene::addInstance(const BuildBlas& ctx, Tempest::AccelerationStructure& 
 void RtScene::buildTlas() {
   needToUpdate = false;
 
-  addInstance(build.staticOpaque, blasStaticOpaque, Tempest::RtInstanceFlags::Opaque | RtInstanceFlags::CullDisable);
+  addInstance(build.staticOpaque, blasStaticOpaque, Tempest::RtInstanceFlags::Opaque);
   addInstance(build.staticAt, blasStaticAt, Tempest::RtInstanceFlags::NonOpaque);
 
   Resources::recycle(std::move(tex));

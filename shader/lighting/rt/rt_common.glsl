@@ -14,6 +14,10 @@
 layout(binding  = 6) uniform accelerationStructureEXT topLevelAS;
 #endif
 
+const uint CM_Opaque      = 0x1;
+const uint CM_Transparent = 0x2;
+const uint CM_Water       = 0x4;
+
 struct HitDesc {
   uint instanceId;
   uint primitiveId;
