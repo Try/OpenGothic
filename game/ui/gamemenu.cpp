@@ -852,12 +852,16 @@ void GameMenu::execSingle(Item &it, int slideDx, KeyCodec::Action hint) {
       case zenkit::MenuItemSelectAction::CLOSE:
         Gothic::inst().emitGlobalSound(Gothic::inst().loadSoundFx("MENU_ESC"));
 
-        if(onSelAction_S[i]=="NEW_GAME")
+        if(onSelAction_S[i]=="NEW_GAME") {
           Gothic::inst().onStartGame(Gothic::inst().defaultWorld());
-        else if(onSelAction_S[i]=="LEAVE_GAME")
+          }
+        else if(onSelAction_S[i]=="LEAVE_GAME") {
+          Log::i("Exiting, by item action (`LEAVE_GAME`)");
           Tempest::SystemApi::exit();
-        else if(onSelAction_S[i]=="SAVEGAME_SAVE")
+          }
+        else if(onSelAction_S[i]=="SAVEGAME_SAVE") {
           execSaveGame(it);
+          }
         else if(onSelAction_S[i]=="SAVEGAME_LOAD"){
           if (!execLoadGame(it)){
             break;

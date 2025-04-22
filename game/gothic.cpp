@@ -1121,6 +1121,7 @@ void Gothic::doc_setlevelcoords(int handle, int left, int top, int right, int bo
   }
 
 void Gothic::exitgame() {
+  Log::i("Exiting, by script call (`exitgame`)");
   Tempest::SystemApi::exit();
   }
 
