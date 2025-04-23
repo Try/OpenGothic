@@ -14,9 +14,15 @@
 layout(binding  = 6) uniform accelerationStructureEXT topLevelAS;
 #endif
 
-const uint CM_Opaque      = 0x1;
-const uint CM_Transparent = 0x2;
-const uint CM_Water       = 0x4;
+const uint CM_Opaque       = 0x1;
+const uint CM_Transparent  = 0x2;
+const uint CM_Water        = 0x4;
+
+const uint CM_ShadowCaster = CM_Opaque | CM_Transparent;
+
+#if defined(RAY_QUERY)
+const uint RayFlagsShadow = gl_RayFlagsCullBackFacingTrianglesEXT | gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsSkipAABBEXT;
+#endif
 
 struct HitDesc {
   uint instanceId;

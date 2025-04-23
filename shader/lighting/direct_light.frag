@@ -63,16 +63,13 @@ float calcShadow(vec3 pos, const vec3 normal) { return 1.0; }
 
 #if defined(RAY_QUERY)
 bool rayTest(vec3 pos, vec3  rayDirection, float tMin, float tMax, out float rayT) {
-#if defined(RAY_QUERY_AT)
-  const uint flags = gl_RayFlagsCullBackFacingTrianglesEXT;
-#else
-  const uint flags = gl_RayFlagsCullBackFacingTrianglesEXT | gl_RayFlagsOpaqueEXT;
+  uint flags = RayFlagsShadow;
+#if !defined(RAY_QUERY_AT)
+  flags |= gl_RayFlagsOpaqueEXT;
 #endif
 
-  const uint cullMask = CM_Opaque | CM_Transparent;
-
   rayQueryEXT rayQuery;
-  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, cullMask,
+  rayQueryInitializeEXT(rayQuery, topLevelAS, flags, CM_ShadowCaster,
                         pos, tMin, rayDirection, tMax);
   rayQueryProceedShadow(rayQuery);
   if(rayQueryGetIntersectionTypeEXT(rayQuery, true)==gl_RayQueryCommittedIntersectionNoneEXT)

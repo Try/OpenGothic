@@ -37,20 +37,20 @@ layout(location = 2) in flat uint lightId;
 bool isShadow(vec3 rayOrigin, vec3 direction, float R) {
 #if defined(RAY_QUERY)
   {
-    vec3  rayDirection = normalize(direction);
-    float rayDistance  = length(direction)-3.0;
-    float tMin         = 30;
-    if(rayDistance<=tMin)
+    const float dirLength    = length(direction);
+    const vec3  rayDirection = -direction/dirLength;
+    const float rayDistance  = dirLength - 30; //NOTE: padding of 30cm, in case if light inside wall
+    if(rayDistance<=0)
       return false;
 
-    uint flags = gl_RayFlagsTerminateOnFirstHitEXT;
+    uint flags = RayFlagsShadow;
 #if !defined(RAY_QUERY_AT)
-    flags |= gl_RayFlagsCullNoOpaqueEXT;
+    flags |= gl_RayFlagsOpaqueEXT;
 #endif
 
     rayQueryEXT rayQuery;
-    rayQueryInitializeEXT(rayQuery, topLevelAS, flags, 0xFF,
-                          rayOrigin, tMin, rayDirection, rayDistance);
+    rayQueryInitializeEXT(rayQuery, topLevelAS, flags, CM_ShadowCaster,
+                          rayOrigin, 0.0, rayDirection, rayDistance);
     rayQueryProceedShadow(rayQuery);
     if(rayQueryGetIntersectionTypeEXT(rayQuery, true) == gl_RayQueryCommittedIntersectionNoneEXT)
       return false;
@@ -109,9 +109,8 @@ void main() {
   if(light<=0.0)
     discard;
 
-  pos.xyz = pos.xyz + 1.0*normal; //bias
-  ldir    = pos.xyz - cenPosition.xyz;
-  if(isShadow(cenPosition.xyz, ldir, cenPosition.w))
+  pos.xyz = pos.xyz + 2.0*normal; //bias
+  if(isShadow(pos.xyz, pos.xyz-cenPosition.xyz, cenPosition.w))
     discard;
 
   //outColor     = vec4(0.5,0.5,0.5,1);
