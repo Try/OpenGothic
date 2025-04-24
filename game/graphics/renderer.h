@@ -52,6 +52,7 @@ class Renderer final {
     void prepareIrradiance(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
     void prepareGi        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
     void prepareExposure  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
+    void prepareEpipolar  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
 
     void drawHiZ          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);
     void buildHiZ         (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
@@ -188,8 +189,12 @@ class Renderer final {
       bool                      fisrtFrame = false;
       } gi;
 
-    const int32_t VSM_PAGE_SIZE = 128;
+    struct {
+      Tempest::StorageBuffer    epipoles;
+      Tempest::StorageImage     epTrace;
+      } epipolar;
 
+    const int32_t VSM_PAGE_SIZE = 128;
     struct {
       Tempest::StorageImage     pageTbl;
       Tempest::StorageImage     pageHiZ;
@@ -198,10 +203,6 @@ class Renderer final {
       Tempest::StorageBuffer    pageListTmp;
       Tempest::StorageBuffer    pageTblOmni;
       Tempest::StorageBuffer    visibleLights;
-
-      Tempest::StorageImage     ssTrace;
-      Tempest::StorageImage     epTrace;
-      Tempest::StorageBuffer    epipoles;
 
       Tempest::StorageImage     fogDbg;
       Tempest::StorageImage     vsmDbg;

@@ -1,0 +1,53 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+#include "epipolar/epipolar_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 128) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+layout(binding = 0, rgba8)  uniform image2D rayData;
+layout(binding = 1, std140) uniform UboScene {
+  SceneDesc scene;
+  };
+layout(binding = 2, std430) readonly buffer Ep0 { Epipole epipole[]; };
+layout(binding = 3) uniform sampler2D textureSm1;
+
+
+uint  NumSamples = imageSize(rayData).x;
+uint  NumSlices  = imageSize(rayData).y;
+
+float shadowTexelFetch(vec2 shPos0) {
+  return textureLod(textureSm1, shPos0, 0).r;
+  }
+
+void main() {
+  const uint i       = gl_GlobalInvocationID.x;
+  const uint sliceId = gl_GlobalInvocationID.y;
+
+  if(i>=NumSamples)
+    return;
+
+  vec2  rayOrig = epipole[sliceId].rayOrig;
+  vec2  rayDir  = epipole[sliceId].rayDir;
+  float tMin    = epipole[sliceId].tMin;
+  float tMax    = epipole[sliceId].tMax;
+  float dBegin  = epipole[sliceId].dBegin;
+  float dEnd    = epipole[sliceId].dEnd;
+
+  const float a     = (i+0.5)/float(NumSamples);
+  const float t     = tMin    + a*(tMax-tMin);
+  const float depth = min(dBegin, dEnd);
+  const vec2  shPos = rayOrig + t*rayDir;
+
+  const float sh    = shadowTexelFetch(shPos);
+  imageStore(rayData, ivec2(i, sliceId), vec4(sh<depth ? 0 : sh));
+  }
+

@@ -5,8 +5,7 @@
 #extension GL_EXT_samplerless_texture_functions : enable
 #extension GL_EXT_control_flow_attributes : enable
 
-#include "virtual_shadow/vsm_common.glsl"
-#include "virtual_shadow/epipolar_common.glsl"
+#include "epipolar/epipolar_common.glsl"
 #include "sky/sky_common.glsl"
 #include "scene.glsl"
 #include "common.glsl"
@@ -15,7 +14,7 @@ layout(local_size_x = 256) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
-layout(binding = 0, r32ui) uniform uimage2D   result;
+//layout(binding = 0, r32ui) uniform uimage2D   result;
 //layout(binding = 0, rgba8)  uniform image2D   result;
 layout(binding = 1, rgba8)  uniform image2D   rayData;
 layout(binding = 2, std140) uniform UboScene {
@@ -23,8 +22,6 @@ layout(binding = 2, std140) uniform UboScene {
   };
 layout(binding = 3, std430) buffer Ep0 { Epipole epipole[]; };
 layout(binding = 4)         uniform texture2D  depth;
-layout(binding = 5)         uniform utexture3D pageTbl;
-layout(binding = 6)         uniform texture2D  pageData;
 
 uint  NumSamples   = imageSize(rayData).x;
 uint  NumSlices    = imageSize(rayData).y;
@@ -37,15 +34,29 @@ shared uint dBeginUint, dEndUint;
 shared uint tDbg;
 
 vec3 screenToShadow(vec3 scr) {
+#if defined(VSM)
   //TODO: optimize
   const vec4  pos   = scene.viewProjectLwcInv   *vec4(scr,1);
   const vec4  shPos = scene.viewVirtualShadowLwc*pos;
   return shPos.xyz/shPos.w;
+#elif defined(SM)
+  const vec4  pos   = scene.viewProjectLwcInv*vec4(scr,1);
+  const vec4  shPos = scene.viewShadowLwc[1] *pos;
+  return shPos.xyz/shPos.w;
+#else
+#error "epipole type is not provided"
+#endif
   }
 
 vec3 wrldToShadow(vec3 pos) {
+#if defined(VSM)
   const vec4  shPos = scene.viewVirtualShadow*vec4(pos,1);
   return shPos.xyz/shPos.w;
+#elif defined(SM)
+  const vec4  shPos = scene.viewShadowLwc[1] *vec4(pos,1);
+  return shPos.xyz/shPos.w;
+#else
+#endif
   }
 
 void minMaxRayT(const vec3 rposIn) {
@@ -58,8 +69,6 @@ void minMaxRayT(const vec3 rposIn) {
 
   atomicMax(tMaxUint, floatBitsToUint(t));
   atomicMin(tMinUint, floatBitsToUint(t));
-  //float d = abs(dot(normalize(rpos), rayDir));
-  //atomicMin(tDbg, floatBitsToUint(d));
   }
 
 void trace(const vec2 src, const vec2 dst) {
@@ -71,7 +80,6 @@ void trace(const vec2 src, const vec2 dst) {
   if(lane==0) {
     tMinUint = 0xFFFFFFFF;
     tMaxUint = floatBitsToUint(0);
-    //tDbg     = floatBitsToUint(1);
 
     const vec2 inPos  = src*2.0-1.0;
     const vec3 camPos = wrldToShadow(scene.camPos);

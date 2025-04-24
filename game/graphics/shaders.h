@@ -75,12 +75,17 @@ class Shaders {
     Tempest::ComputePipeline probeTrace, probeLighting;
     Tempest::RenderPipeline  probeAmbient;
 
+    // Epipolar
+    Tempest::ComputePipeline fogEpipolarSm, fogEpipolarVsm;
+    Tempest::ComputePipeline fogShadowSample;
+    Tempest::ComputePipeline fogEpipolarOcclusion;
+
     // Virtual shadow
     Tempest::ComputePipeline vsmVisibilityPass;
     Tempest::ComputePipeline vsmClear, vsmClearOmni, vsmCullLights, vsmMarkPages, vsmMarkOmniPages, vsmPostprocessOmni;
     Tempest::ComputePipeline vsmTrimPages, vsmSortPages, vsmListPages, vsmClumpPages, vsmAllocPages, vsmAlloc2Pages, vsmMergePages;
     Tempest::ComputePipeline vsmPackDraw0, vsmPackDraw1;
-    Tempest::ComputePipeline vsmFogEpipolar, vsmFogPages, vsmFogShadow, vsmFogSample, vsmFogTrace;
+    Tempest::ComputePipeline vsmFogPages, vsmFogShadow, vsmFogTrace;
     Tempest::RenderPipeline  vsmFog;
     Tempest::RenderPipeline  vsmDirectLight;
     Tempest::RenderPipeline  vsmDbg;

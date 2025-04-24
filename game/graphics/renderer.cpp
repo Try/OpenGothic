@@ -189,16 +189,17 @@ void Renderer::resetSwapchain() {
   ssao.ssaoBlur = device.image2d(ssao.aoFormat, w, h);
 
   if(settings.vsmEnabled) {
+    epipolar.epTrace  = device.image2d(TextureFormat::R16,  1024, 2*1024);
+    epipolar.epipoles = device.ssbo(nullptr, shaders.fogEpipolarVsm.sizeofBuffer(3, size_t(epipolar.epTrace.h())));
+    }
+
+  if(settings.vsmEnabled) {
     vsm.pageTbl  = device.image3d(TextureFormat::R32U, 32, 32, 16);
     vsm.pageHiZ  = device.image3d(TextureFormat::R32U, 32, 32, 16);
     vsm.pageData = device.zbuffer(shadowFormat, 8192, 8192);
     vsm.vsmDbg   = device.image2d(TextureFormat::R32U, uint32_t(zbuffer.w()), uint32_t(zbuffer.h()));
 
-    // vsm.ssTrace  = device.image2d(TextureFormat::RGBA8, w, h);
-    vsm.ssTrace  = device.image2d(TextureFormat::R32U, w, h);
-    vsm.epTrace  = device.image2d(TextureFormat::R16,  1024, 2*1024);
     vsm.fogDbg   = device.image2d(sky.lutRGBFormat,    1024, 2*1024);
-    vsm.epipoles = device.ssbo(nullptr, shaders.vsmFogEpipolar.sizeofBuffer(3, size_t(vsm.epTrace.h())));
 
     auto pageCount    = uint32_t(vsm.pageData.w()/VSM_PAGE_SIZE) * uint32_t(vsm.pageData.h()/VSM_PAGE_SIZE);
     auto pageSsboSize = shaders.vsmClear.sizeofBuffer(0, pageCount);
@@ -497,8 +498,7 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   //tex.push_back(&textureCast(hiz.hiZSm1));
   //tex.push_back(&textureCast(shadowMap[1]));
   //tex.push_back(&textureCast<const Texture2d&>(shadowMap[0]));
-  //tex.push_back(&textureCast<const Texture2d&>(vsm.pageData));
-  tex.push_back(&textureCast<const Texture2d&>(vsm.ssTrace));
+  tex.push_back(&textureCast<const Texture2d&>(vsm.pageData));
 
   static int size = 400;
   int left = 10;
@@ -562,6 +562,8 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   drawGBuffer(cmd,fId,*wview);
 
   drawShadowMap(cmd,fId,*wview);
+  prepareEpipolar(cmd, *wview);
+
   drawVsm(cmd, *wview);
   drawSwr(cmd, *wview);
   drawRtsm(cmd, *wview);
@@ -730,7 +732,7 @@ void Renderer::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const Worl
       cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
       cmd.setBinding(1, zbuffer,        Sampler::nearest());
       cmd.setBinding(2, vsm.fogDbg,     Sampler::bilinear(ClampMode::ClampToEdge));
-      cmd.setBinding(3, vsm.epipoles);
+      cmd.setBinding(3, epipolar.epipoles);
       cmd.setBinding(4, sky.fogLut3DMs, Sampler::bilinear(ClampMode::ClampToEdge));
       cmd.setPipeline(shaders.vsmFog);
       break;
@@ -1006,34 +1008,18 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
 
   // sky&fog
   if(doVirtualFog) {
-    cmd.setDebugMarker("VSM-epipolar");
-    cmd.setBinding(0, sky.occlusionLut);
-    cmd.setBinding(1, vsm.epTrace);
-    cmd.setBinding(2, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(3, vsm.epipoles);
-    cmd.setBinding(4, zbuffer);
-    cmd.setBinding(5, vsm.pageTbl);
-    cmd.setBinding(6, vsm.pageData);
-    cmd.setPipeline(shaders.vsmFogEpipolar);
-    cmd.dispatch(uint32_t(vsm.epTrace.h()));
-
-    cmd.setBinding(0, vsm.epTrace);
+    cmd.setDebugMarker("VSM-pages-epipolar");
+    cmd.setBinding(0, epipolar.epTrace);
     cmd.setBinding(1, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(2, vsm.epipoles);
+    cmd.setBinding(2, epipolar.epipoles);
     cmd.setBinding(3, vsm.pageTbl);
     cmd.setBinding(4, vsm.pageHiZ);
     cmd.setPipeline(shaders.vsmFogPages);
-    cmd.dispatchThreads(vsm.epTrace.size());
+    cmd.dispatchThreads(epipolar.epTrace.size());
     }
 
   cmd.setDebugMarker("VSM-pages-alloc");
   if(true) {
-    // trimming
-    // cmd.setBinding(0, vsm.pageList);
-    // cmd.setBinding(1, vsm.pageTbl);
-    // cmd.setPipeline(shaders.vsmTrimPages);
-    // cmd.dispatch(1);
-
     // clump
     cmd.setBinding(0, vsm.pageList);
     cmd.setBinding(1, vsm.pageTbl);
@@ -1578,7 +1564,7 @@ void Renderer::prepareSSAO(Encoder<CommandBuffer>& cmd, WorldView& wview) {
 void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
   auto& scene = wview.sceneGlobals();
 
-  cmd.setDebugMarker("Fog LUTs");
+  cmd.setDebugMarker("Fog-LUTs");
   if(sky.quality!=PathTrace) {
     auto& shader = sky.quality==VolumetricLQ ? shaders.fogViewLut3d : shaders.fogViewLutSep;
     cmd.setFramebuffer({});
@@ -1596,14 +1582,27 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview
   if(settings.vsmEnabled && (sky.quality==VolumetricHQ || sky.quality==Epipolar)) {
     cmd.setFramebuffer({});
     cmd.setDebugMarker("VSM-epipolar-fog");
-    cmd.setBinding(0, vsm.epTrace);
+    cmd.setBinding(0, epipolar.epTrace);
     cmd.setBinding(1, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(2, vsm.epipoles);
+    cmd.setBinding(2, epipolar.epipoles);
     cmd.setBinding(3, vsm.pageTbl);
     cmd.setBinding(4, vsm.pageData);
     cmd.setPipeline(shaders.vsmFogShadow);
-    cmd.dispatchThreads(vsm.epTrace.size());
+    cmd.dispatchThreads(epipolar.epTrace.size());
     }
+
+  /*
+  if(sky.quality==VolumetricHQ && !settings.vsmEnabled) {
+    cmd.setFramebuffer({});
+    cmd.setDebugMarker("SM-epipolar-fog");
+    cmd.setBinding(0, epipolar.epTrace);
+    cmd.setBinding(1, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(2, epipolar.epipoles);
+    cmd.setBinding(3, shadowMap[1], Resources::shadowSampler());
+    cmd.setPipeline(shaders.fogShadowSample);
+    cmd.dispatchThreads(epipolar.epTrace.size());
+    }
+  */
 
   switch(sky.quality) {
     case None:
@@ -1613,11 +1612,11 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview
       if(settings.vsmEnabled) {
         cmd.setFramebuffer({});
         cmd.setBinding(0, sky.occlusionLut);
-        cmd.setBinding(1, vsm.epTrace);
+        cmd.setBinding(1, epipolar.epTrace);
         cmd.setBinding(2, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-        cmd.setBinding(3, vsm.epipoles);
+        cmd.setBinding(3, epipolar.epipoles);
         cmd.setBinding(4, zbuffer);
-        cmd.setPipeline(shaders.vsmFogSample);
+        cmd.setPipeline(shaders.fogEpipolarOcclusion);
         cmd.dispatchThreads(zbuffer.size());
         } else {
         cmd.setFramebuffer({});
@@ -1635,21 +1634,41 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview
       cmd.setFramebuffer({});
       cmd.setDebugMarker("VSM-trace");
       cmd.setBinding(0, vsm.fogDbg);
-      cmd.setBinding(1, vsm.epTrace);
+      cmd.setBinding(1, epipolar.epTrace);
       cmd.setBinding(2, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-      cmd.setBinding(3, vsm.epipoles);
+      cmd.setBinding(3, epipolar.epipoles);
       cmd.setBinding(4, zbuffer);
       cmd.setBinding(5, sky.transLut,   Sampler::bilinear(ClampMode::ClampToEdge));
       cmd.setBinding(6, sky.cloudsLut,  Sampler::bilinear(ClampMode::ClampToEdge));
       cmd.setBinding(7, sky.fogLut3DMs, Sampler::bilinear(ClampMode::ClampToEdge));
       cmd.setPipeline(shaders.vsmFogTrace);
-      cmd.dispatchThreads(vsm.epTrace.size());
+      cmd.dispatchThreads(epipolar.epTrace.size());
       break;
       }
     case PathTrace: {
       break;
       }
     }
+  }
+
+void Renderer::prepareEpipolar(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
+  const bool doVolumetricFog = sky.quality!=VolumetricLQ && sky.quality!=PathTrace;
+  if(!doVolumetricFog || !settings.vsmEnabled)
+    return;
+
+  auto& scene = wview.sceneGlobals();
+
+  cmd.setDebugMarker("Fog-epipolar");
+  cmd.setFramebuffer({});
+  cmd.setBinding(0, sky.occlusionLut);
+  cmd.setBinding(1, epipolar.epTrace);
+  cmd.setBinding(2, scene.uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(3, epipolar.epipoles);
+  cmd.setBinding(4, zbuffer);
+  if(settings.vsmEnabled)
+    cmd.setPipeline(shaders.fogEpipolarVsm); else
+    cmd.setPipeline(shaders.fogEpipolarSm);
+  cmd.dispatch(uint32_t(epipolar.epTrace.h()));
   }
 
 void Renderer::prepareIrradiance(Encoder<CommandBuffer>& cmd, WorldView& wview) {

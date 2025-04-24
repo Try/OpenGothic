@@ -27,15 +27,6 @@ struct VsmHeader {
   uint  pageOmniCount;
   };
 
-struct Epipole {
-  vec2  rayOrig;
-  vec2  rayDir;
-  float tMin;
-  float tMax;
-  float dBegin;
-  float dEnd;
-  };
-
 uint packVsmPageInfo(ivec3 at, ivec2 size) {
   // 1 : 8 : 8 : 7 : 4 : 4
   return ((at.x & 0xFF) << 1) | ((at.y & 0xFF) << 9) | ((at.z & 0x7F) << 17) | ((size.x & 0xF) << 24) | ((size.y & 0xF) << 28);

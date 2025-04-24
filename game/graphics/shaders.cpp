@@ -186,6 +186,14 @@ Shaders::Shaders() {
     probeAmbient = device.pipeline(Triangles,state,vs,fs);
     }
 
+  if(true) {
+    fogEpipolarOcclusion = computeShader("fog_epipolar_occlusion.comp.sprv");
+    fogShadowSample      = computeShader("fog_shadow_sample.comp.sprv");
+    fogEpipolarSm        = computeShader("fog_epipolar_sm.comp.sprv");
+    if(Shaders::isVsmSupported())
+      fogEpipolarVsm  = computeShader("fog_epipolar_vsm.comp.sprv");
+    }
+
   if(Shaders::isVsmSupported()) {
     vsmVisibilityPass  = computeShader("vsm_visibility_pass.comp.sprv");
     vsmClear           = computeShader("vsm_clear.comp.sprv");
@@ -203,10 +211,8 @@ Shaders::Shaders() {
     vsmMergePages      = computeShader("vsm_merge_pages.comp.sprv");
     vsmPackDraw0       = computeShader("vsm_pack_draws0.comp.sprv");
     vsmPackDraw1       = computeShader("vsm_pack_draws1.comp.sprv");
-    vsmFogEpipolar     = computeShader("vsm_fog_epipolar.comp.sprv");
     vsmFogPages        = computeShader("vsm_fog_mark_pages.comp.sprv");
     vsmFogShadow       = computeShader("vsm_fog_shadow.comp.sprv");
-    vsmFogSample       = computeShader("vsm_fog_sample.comp.sprv");
     vsmFogTrace        = computeShader("vsm_fog_trace.comp.sprv");
     vsmFog             = fogShader("fog_epipolar");
 

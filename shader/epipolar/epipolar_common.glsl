@@ -5,6 +5,15 @@
 
 #include "scene.glsl"
 
+struct Epipole {
+  vec2  rayOrig;
+  vec2  rayDir;
+  float tMin;
+  float tMax;
+  float dBegin;
+  float dEnd;
+  };
+
 //TODO: remove/hide
 vec4 dbgColor = vec4(0);
 

@@ -6,6 +6,7 @@
 #extension GL_EXT_control_flow_attributes : enable
 
 #include "virtual_shadow/vsm_common.glsl"
+#include "epipolar/epipolar_common.glsl"
 #include "scene.glsl"
 #include "common.glsl"
 
