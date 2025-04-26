@@ -1,6 +1,7 @@
 #include "cscamera.h"
 
 #include <Tempest/Log>
+#include <cassert>
 
 #include "gothic.h"
 

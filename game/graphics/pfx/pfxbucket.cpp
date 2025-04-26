@@ -1,10 +1,11 @@
 #include "pfxbucket.h"
 
+#include <cassert>
+
 #include "graphics/mesh/submesh/pfxemittermesh.h"
 #include "graphics/shaders.h"
 #include "pfxobjects.h"
 #include "particlefx.h"
-
 #include "world/objects/npc.h"
 
 using namespace Tempest;

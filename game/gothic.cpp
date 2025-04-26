@@ -5,6 +5,7 @@
 
 #include <cstring>
 #include <cctype>
+#include <cassert>
 
 #include <zenkit/addon/daedalus.hh>
 
@@ -20,7 +21,6 @@
 
 #include "utils/fileutil.h"
 #include "utils/inifile.h"
-#include "utils/gthfont.h"
 
 #include "commandline.h"
 #include "mainwindow.h"

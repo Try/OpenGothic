@@ -3,6 +3,7 @@
 #include <Tempest/Painter>
 #include <Tempest/Log>
 #include <algorithm>
+#include <cassert>
 
 #include "utils/gthfont.h"
 #include "utils/string_frm.h"

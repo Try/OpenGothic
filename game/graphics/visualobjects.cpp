@@ -1,6 +1,7 @@
 #include "visualobjects.h"
 
 #include <Tempest/Log>
+#include <cassert>
 
 #include "graphics/mesh/submesh/animmesh.h"
 #include "gothic.h"

@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cassert>
 
 #include "graphics/mesh/submesh/packedmesh.h"
 #include "world/objects/item.h"

@@ -36,7 +36,7 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, const zenkit::VMover& mover,
     //float angle     = float(std::acos(std::clamp(glm::dot(f1.rotation, f0.rotation), -1.f, 1.f))*180.0/M_PI);
     //float angle     = float((glm::yaw(f1.rotation) - glm::yaw(f0.rotation))*180.0/M_PI);
 
-    float theta = 2.f*std::pow(glm::dot(f1.rotation, f0.rotation), 2.f) - 1.f;
+    float theta = 2.f*std::pow(f1.rotation.x*f0.rotation.x + f1.rotation.y*f0.rotation.y + f1.rotation.z*f0.rotation.z + f1.rotation.w*f0.rotation.w, 2.f) - 1.f;
     float angle = float(std::acos(std::clamp(theta, -1.f, 1.f))*180.0/M_PI);
 
     float positionA = Vec3(dx,dy,dz).length();

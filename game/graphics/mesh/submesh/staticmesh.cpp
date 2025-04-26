@@ -1,5 +1,7 @@
 #include "staticmesh.h"
 
+#include <cassert>
+
 #include "graphics/mesh/submesh/packedmesh.h"
 #include "gothic.h"
 

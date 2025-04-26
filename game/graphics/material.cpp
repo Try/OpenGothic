@@ -5,7 +5,7 @@
 
 using namespace Tempest;
 
-static Tempest::Color toColor(glm::u8vec4 v) {
+static Tempest::Color toColor(zenkit::Color v) {
   Tempest::Color c(float(v.r)/255.f, float(v.g)/255.f, float(v.b)/255.f, float(v.a)/255.f);
   return c;
   }

@@ -4,14 +4,13 @@
 #include <Tempest/Fence>
 #include <Tempest/Log>
 #include <Tempest/StorageImage>
+#include <cassert>
 
 #include "ui/inventorymenu.h"
+#include "ui/videowidget.h"
 #include "camera.h"
 #include "gothic.h"
-#include "ui/videowidget.h"
 #include "utils/string_frm.h"
-
-#include <ui/videowidget.h>
 
 using namespace Tempest;
 

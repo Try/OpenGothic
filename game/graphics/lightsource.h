@@ -2,8 +2,7 @@
 
 #include <Tempest/Point>
 #include <vector>
-
-#include <glm/vec4.hpp>
+#include <zenkit/Misc.hh>
 
 class LightSource final {
   public:
@@ -16,7 +15,7 @@ class LightSource final {
     const Tempest::Vec3& color() const { return clr; }
     void                 setColor(const Tempest::Vec3& cl);
     void                 setColor(const std::vector<uint32_t>&      cl, float fps, bool smooth);
-    void                 setColor(const std::vector<glm::u8vec4>&   cl, float fps, bool smooth);
+    void                 setColor(const std::vector<zenkit::Color>& cl, float fps, bool smooth);
     void                 setColor(const std::vector<Tempest::Vec3>& cl, float fps, bool smooth);
 
     void                 setPosition(const Tempest::Vec3& p) { pos = p; }

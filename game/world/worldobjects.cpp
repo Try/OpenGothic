@@ -19,8 +19,6 @@
 #include <Tempest/Application>
 #include <Tempest/Log>
 
-#include <glm/gtc/type_ptr.hpp>
-
 using namespace Tempest;
 
 int32_t WorldObjects::MobStates::stateByTime(gtime t) const {
@@ -586,11 +584,10 @@ Item* WorldObjects::addItem(const zenkit::VItem& vob) {
   Item*  it   = addItem(inst,"");
   if(it==nullptr)
     return nullptr;
-
-  glm::mat4x4 worldMatrix = vob.rotation;
-  worldMatrix[3] = glm::vec4(vob.position, 1);
-
-  Matrix4x4 m { glm::value_ptr(worldMatrix) };
+  auto m = Tempest::Matrix4x4(vob.rotation.columns[0].x, vob.rotation.columns[1].x, vob.rotation.columns[2].x, vob.position.x,
+                              vob.rotation.columns[0].y, vob.rotation.columns[1].y, vob.rotation.columns[2].y, vob.position.y,
+                              vob.rotation.columns[0].z, vob.rotation.columns[1].z, vob.rotation.columns[2].z, vob.position.z,
+                              0, 0, 0, 1);
   it->setObjMatrix(m);
   return it;
   }
