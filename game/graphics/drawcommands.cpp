@@ -41,7 +41,7 @@ bool DrawCommands::DrawCmd::isMeshShader() const {
   auto& opt = Gothic::inst().options();
   if(!opt.doMeshShading)
     return false;
-  if(Material::isTesselated(alpha) && Resources::device().properties().tesselationShader)
+  if(Material::isTesselated(alpha) && type==DrawCommands::Landscape && Resources::device().properties().tesselationShader)
     return false;
   return true;
   }
