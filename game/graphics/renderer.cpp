@@ -1089,8 +1089,7 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     const auto tiles = tileCount(scene.zbuffer->size(), RTSM_SMALL_TILE);
     if(rtsm.tiles.size()!=tiles) {
       Resources::recycle(std::move(rtsm.tiles));
-      rtsm.tiles    = device.image2d(TextureFormat::RG32U, tiles);
-      rtsm.smpTiles = device.image2d(TextureFormat::R32U, tiles);
+      rtsm.tiles = device.image2d(TextureFormat::RG32U, tiles);
       }
     if(rtsm.complexTiles.byteSize()!=shaders.rtsmClear.sizeofBuffer(3, size_t(tiles.w*tiles.h))) {
       const size_t sz = shaders.rtsmClear.sizeofBuffer(3, size_t(tiles.w*tiles.h));
@@ -1235,7 +1234,6 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     cmd.setBinding(3, rtsm.posList);
     cmd.setBinding(4, rtsm.complexTiles);
     cmd.setBinding(5, rtsm.tiles);
-    cmd.setBinding(6, rtsm.smpTiles);
     cmd.setBinding(9, rtsm.dbg);
 
     cmd.setPipeline(shaders.rtsmMeshletCull);

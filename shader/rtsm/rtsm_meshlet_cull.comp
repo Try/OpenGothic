@@ -16,7 +16,6 @@ layout(binding = 2)         uniform texture2D   depth;
 layout(binding = 3, std430)         buffer Pos  { uint  alloc; uint data[];  } pos;
 layout(binding = 4, std430)         buffer CB   { uvec4 cmd;   uint tiles[]; } largeTile;
 layout(binding = 5, rg32ui) uniform writeonly uimage2D tileBins;
-layout(binding = 6, r32ui)  uniform writeonly uimage2D tileSmp;
 
 layout(binding = 9, r32ui)  uniform uimage2D           dbgImage;
 
@@ -196,11 +195,6 @@ void main() {
 
   tileBboxes(ivec2(gl_WorkGroupID.xy), RTSM_LARGE_TILE);
   barrier();
-
-  if(laneID<16) {
-    const ivec2 at = ivec2(gl_WorkGroupID.xy)*4 + ivec2(laneID%4, laneID/4);
-    imageStore(tileSmp, at, uvec4(numSlices[laneID+1]));
-    }
 
   if(numSlices[0]==0) {
     storeEmptyList();

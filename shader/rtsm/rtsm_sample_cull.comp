@@ -13,10 +13,9 @@ const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z
 layout(binding = 0)         uniform texture2D   outputImage;
 layout(binding = 1, std140) uniform UboScene    { SceneDesc scene;       };
 layout(binding = 2)         uniform texture2D   depth;
-layout(binding = 3, std430)         buffer Pos  { uint alloc; uint data[]; } pos;
+layout(binding = 3, std430) coherent buffer Pos  { uint alloc; uint data[]; } pos;
 
 layout(binding = 5, rg32ui) uniform uimage2D    tileBins;
-layout(binding = 6)         uniform utexture2D  tileSmp;
 
 layout(binding = 9, r32ui)  uniform uimage2D    dbgImage;
 
@@ -28,10 +27,8 @@ void imageDbg(ivec2 at, uint info) {
 
 #include "rtsm/rtsm_scratch.glsl"
 
-shared vec2  rays[RTSM_SMALL_TILE*RTSM_SMALL_TILE];
+shared vec2  rays[RTSM_SMALL_TILE*RTSM_SMALL_TILE]; //8kb
 shared uint  numRays;
-
-shared uint  meshletsId[4*1024];
 shared uint  numMeshlets;
 
 // ray related
@@ -86,31 +83,42 @@ bool isMeshletVisible(vec4 aabb, float depthMax) {
   return false;
   }
 
-void traceMeshlets(const uint tilePtr, const uint visCount) {
-  const uint  laneID = gl_LocalInvocationIndex;
+uint traceMeshlet(const uint i, const uint tilePtr, const uint visCount) {
+  if(i>=visCount)
+    return NULL;
 
-  for(uint i=laneID; i<visCount; i+=NumThreads) {
-    const uint  ptr      = pos.data[tilePtr + i];
-    const float depthMax = pullMeshDepthMax(ptr);
-    const vec4  aabb     = pullMeshAabb(ptr);
-    if(!isMeshletVisible(aabb, depthMax))
-      continue;
-
-    const uint id = atomicAdd(numMeshlets, 1);
-    if(id<meshletsId.length())
-      meshletsId[id] = ptr;
-    }
+  const uint  ptr      = pos.data[tilePtr + i];
+  const float depthMax = pullMeshDepthMax(ptr);
+  const vec4  aabb     = pullMeshAabb(ptr);
+  if(!isMeshletVisible(aabb, depthMax))
+    return NULL;
+  return ptr;
   }
 
-void storeMeshList(ivec2 tileId, uvec2 bin) {
-  const uint laneID = gl_LocalInvocationIndex;
+void traceMeshlets(ivec2 tileId, const uint tilePtr, const uint visCount) {
+  const uint  laneID = gl_LocalInvocationIndex;
+  const uint  steps  = (visCount + NumThreads - 1)/NumThreads;
 
-  const uint meshListPtr = bin.x;
+  if(steps!=2)
+    ;//return;
+
+  numMeshlets = 0;
+  barrier();
+
+  for(uint s=0; s<steps; ++s) {
+    const uint i   = s*NumThreads + laneID;
+    const uint ptr = traceMeshlet(i, tilePtr, visCount);
+    barrier();
+
+    if(ptr!=NULL) {
+      const uint id = atomicAdd(numMeshlets, 1);
+      pos.data[tilePtr + id] = ptr;
+      }
+    barrier();
+    }
+
   if(laneID==0)
-    imageStore(tileBins, tileId, uvec4(meshListPtr, numMeshlets, 0, 0));
-
-  for(uint i=laneID; i<numMeshlets; i+=NumThreads)
-    pos.data[meshListPtr + i] = meshletsId[i];
+    imageStore(tileBins, tileId, uvec4(tilePtr, numMeshlets, 0, 0));
   }
 
 void main() {
@@ -118,11 +126,7 @@ void main() {
   numMeshlets = 0;
   barrier();
 
-  const ivec2 tile    = ivec2(gl_WorkGroupID.xy);
-  const uint  tilecls = texelFetch(tileSmp, tile, 0).x;
-  if(tilecls<2)
-    return; // heuristic
-
+  const ivec2 tile = ivec2(gl_WorkGroupID.xy);
   const uvec2 bin  = imageLoad(tileBins, tile).xy;
   if(bin.y==0)
     return;
@@ -132,10 +136,7 @@ void main() {
   pullRaySamples(tile);
   barrier();
 
-  traceMeshlets(bin.x, bin.y);
-  barrier();
-
-  storeMeshList(tile, bin);
+  traceMeshlets(tile, bin.x, bin.y);
 
   imageDbg(tile, numMeshlets);
   }
