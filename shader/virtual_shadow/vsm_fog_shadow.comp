@@ -68,12 +68,17 @@ void flushCache() {
   const uint lane = gl_LocalInvocationIndex;
   const uint cur  = pageHit[lane];
 
-  bool provoking = true;
+  bool provoking = cur!=0xFFFFFFFF;
   if(lane>1) {
-    uint prev = pageHit[lane-1];
-    if((prev&0xFFFF0000)==(cur&0xFFFF0000)) {
-      provoking = false;
-      //pageHit[lane] = 0xFFFFFFFF;
+    uint other = pageHit[lane-1];
+    if((other&0xFFFF0000)==(cur&0xFFFF0000)) {
+      provoking = (other&0x0000FFFF) <= (cur&0x0000FFFF);
+      }
+    }
+  if(lane+1<pageHit.length()) {
+    uint other = pageHit[lane+1];
+    if((other&0xFFFF0000)==(cur&0xFFFF0000)) {
+      provoking = (other&0x0000FFFF) <  (cur&0x0000FFFF);
       }
     }
   barrier();
