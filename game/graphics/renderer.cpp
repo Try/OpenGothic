@@ -1517,7 +1517,7 @@ void Renderer::drawSky(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
   cmd.setBinding(3, sky.viewLut,      Sampler::bilinear(ClampMode::ClampToEdge));
   cmd.setBinding(4, sky.fogLut3D);
   if(sky.quality!=VolumetricLQ)
-    cmd.setBinding(5, sky.fogLut3DMs);
+    cmd.setBinding(5, sky.fogLut3DMs, Sampler::bilinear(ClampMode::ClampToEdge));
   cmd.setBinding(6, *wview.sky().cloudsDay()  .lay[0], Sampler::trillinear());
   cmd.setBinding(7, *wview.sky().cloudsDay()  .lay[1], Sampler::trillinear());
   cmd.setBinding(8, *wview.sky().cloudsNight().lay[0], Sampler::trillinear());
@@ -1571,7 +1571,7 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview
     cmd.setBinding(3, sky.cloudsLut,    Sampler::bilinear(ClampMode::ClampToEdge));
     cmd.setBinding(4, sky.fogLut3D);
     if(sky.quality==VolumetricHQ || sky.quality==Epipolar)
-      cmd.setBinding(5, sky.fogLut3DMs);
+      cmd.setBinding(5, sky.fogLut3DMs, Sampler::bilinear(ClampMode::ClampToEdge));
     cmd.setPipeline(shader);
     cmd.dispatchThreads(uint32_t(sky.fogLut3D.w()), uint32_t(sky.fogLut3D.h()));
     }
