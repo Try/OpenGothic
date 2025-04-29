@@ -938,10 +938,10 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
 
   const size_t numOmniPages = wview.lights().size()*6;
 
-  if(omniLights && vsm.pageTblOmni.isEmpty()) {
+  if(omniLights && vsm.pageTblOmni.byteSize()!=shaders.vsmClearOmni.sizeofBuffer(0, numOmniPages)) {
     Resources::recycle(std::move(vsm.pageTblOmni));
     Resources::recycle(std::move(vsm.visibleLights));
-    vsm.pageTblOmni   = device.ssbo(nullptr, shaders.vsmClearOmni.sizeofBuffer(0, wview.lights().size()*6));
+    vsm.pageTblOmni   = device.ssbo(nullptr, shaders.vsmClearOmni.sizeofBuffer(0, numOmniPages));
     vsm.visibleLights = device.ssbo(nullptr, shaders.vsmClearOmni.sizeofBuffer(1, wview.lights().size()));
     }
 
