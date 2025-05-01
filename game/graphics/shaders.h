@@ -76,8 +76,7 @@ class Shaders {
     Tempest::RenderPipeline  probeAmbient;
 
     // Epipolar
-    Tempest::ComputePipeline fogEpipolarSm, fogEpipolarVsm;
-    Tempest::ComputePipeline fogShadowSample;
+    Tempest::ComputePipeline fogEpipolarVsm;
     Tempest::ComputePipeline fogEpipolarOcclusion;
 
     // Virtual shadow
@@ -93,7 +92,7 @@ class Shaders {
     Tempest::ComputePipeline vsmRendering;
 
     // RTSM (Experimental)
-    Tempest::ComputePipeline rtsmClear, rtsmPages, rtsmHiZ;
+    Tempest::ComputePipeline rtsmClear, rtsmPages, rtsmFogPages, rtsmHiZ;
     Tempest::ComputePipeline rtsmCullLights;
     Tempest::ComputePipeline rtsmCulling, rtsmPosition;
     Tempest::ComputePipeline rtsmMeshletCull, rtsmMeshletComplex, rtsmSampleCull, rtsmPrimCull;

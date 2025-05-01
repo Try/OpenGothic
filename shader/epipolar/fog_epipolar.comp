@@ -14,9 +14,7 @@ layout(local_size_x = 256) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
-//layout(binding = 0, r32ui) uniform uimage2D   result;
-//layout(binding = 0, rgba8)  uniform image2D   result;
-layout(binding = 1, rgba8)  uniform image2D   rayData;
+layout(binding = 1, rgba8)  uniform readonly image2D rayData;
 layout(binding = 2, std140) uniform UboScene {
   SceneDesc scene;
   };
@@ -34,33 +32,17 @@ shared uint dBeginUint, dEndUint;
 shared uint tDbg;
 
 vec3 screenToShadow(vec3 scr) {
-#if defined(VSM)
-  //TODO: optimize
-  const vec4  pos   = scene.viewProjectLwcInv   *vec4(scr,1);
-  const vec4  shPos = scene.viewVirtualShadowLwc*pos;
+  const vec4 shPos = scene.viewProject2VirtualShadow * vec4(scr,1);
   return shPos.xyz/shPos.w;
-#elif defined(SM)
-  const vec4  pos   = scene.viewProjectLwcInv*vec4(scr,1);
-  const vec4  shPos = scene.viewShadowLwc[1] *pos;
-  return shPos.xyz/shPos.w;
-#else
-#error "epipole type is not provided"
-#endif
   }
 
 vec3 wrldToShadow(vec3 pos) {
-#if defined(VSM)
   const vec4  shPos = scene.viewVirtualShadow*vec4(pos,1);
   return shPos.xyz/shPos.w;
-#elif defined(SM)
-  const vec4  shPos = scene.viewShadowLwc[1] *vec4(pos,1);
-  return shPos.xyz/shPos.w;
-#else
-#endif
   }
 
-void minMaxRayT(const vec3 rposIn) {
-  const vec2  rpos = rposIn.xy - rayOrig;
+void minMaxRayT(const vec2 rposIn) {
+  const vec2  rpos = rposIn - rayOrig;
   const float t    = dot(rpos, rayDir);
   if(t<0) {
     // atomicAdd(tDbg, 1);
@@ -99,8 +81,8 @@ void trace(const vec2 src, const vec2 dst) {
     const vec3  shPos0 = screenToShadow(vec3(inPos, 0));
     const vec3  shPos1 = screenToShadow(vec3(inPos, z));
 
-    minMaxRayT(shPos0);
-    minMaxRayT(shPos1);
+    minMaxRayT(shPos0.xy);
+    minMaxRayT(shPos1.xy);
 
     atomicMin(dBeginUint, floatBitsToUint(shPos0.z));
     atomicMin(dEndUint,   floatBitsToUint(shPos1.z));

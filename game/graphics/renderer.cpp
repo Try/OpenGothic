@@ -151,7 +151,7 @@ void Renderer::resetSwapchain() {
 
   if(smSize>0) {
     for(int i=0; i<Resources::ShadowLayers; ++i) {
-      if(settings.vsmEnabled && !(settings.giEnabled && i==1) && !(sky.quality==PathTrace && i==1))
+      if(settings.vsmEnabled && !(settings.giEnabled && i==1) && !(sky.quality==PathTrace && i==1) && !(settings.rtsmEnabled && i==1))
         continue; //TODO: support vsm in gi code
       if(settings.rtsmEnabled && !(settings.giEnabled && i==1) && !(sky.quality!=None && i==1))
         continue; //TODO: support vsm in gi code
@@ -187,9 +187,17 @@ void Renderer::resetSwapchain() {
   ssao.ssaoBuf  = device.image2d(ssao.aoFormat, w, h);
   ssao.ssaoBlur = device.image2d(ssao.aoFormat, w, h);
 
-  if(settings.vsmEnabled) {
+  if(settings.vsmEnabled && sky.quality==VolumetricHQ) {
     epipolar.epTrace  = device.image2d(TextureFormat::R16,  1024, 2*1024);
     epipolar.epipoles = device.ssbo(nullptr, shaders.fogEpipolarVsm.sizeofBuffer(3, size_t(epipolar.epTrace.h())));
+    }
+  else if(settings.rtsmEnabled && sky.quality==VolumetricHQ) {
+    epipolar.epTrace  = device.image2d(TextureFormat::R16,  1024, 2*1024);
+    epipolar.epipoles = device.ssbo(nullptr, shaders.fogEpipolarVsm.sizeofBuffer(3, size_t(epipolar.epTrace.h())));
+    }
+  else {
+    Resources::recycle(std::move(epipolar.epTrace));
+    Resources::recycle(std::move(epipolar.epipoles));
     }
 
   if(settings.vsmEnabled) {
@@ -931,7 +939,8 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
     return;
 
   static bool omniLights = true;
-  const bool doVirtualFog = sky.quality!=VolumetricLQ && sky.quality!=PathTrace && settings.vsmEnabled;
+  const bool directLight  = !settings.rtsmEnabled;
+  const bool doVirtualFog = directLight && sky.quality!=VolumetricLQ && sky.quality!=PathTrace && settings.vsmEnabled;
 
   auto& device  = Resources::device();
   auto& scene   = wview.sceneGlobals();
@@ -971,15 +980,17 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
     cmd.dispatchThreads(wview.lights().size());
     }
 
-  cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
-  cmd.setBinding(2, gbufNormal,  Sampler::nearest());
-  cmd.setBinding(3, zbuffer,     Sampler::nearest());
-  cmd.setBinding(4, vsm.pageTbl);
-  cmd.setBinding(5, vsm.pageHiZ);
-  cmd.setPushData(settings.vsmMipBias);
-  cmd.setPipeline(shaders.vsmMarkPages);
-  cmd.dispatchThreads(zbuffer.size());
+  if(directLight) {
+    cmd.setBinding(0, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
+    cmd.setBinding(1, gbufDiffuse, Sampler::nearest());
+    cmd.setBinding(2, gbufNormal,  Sampler::nearest());
+    cmd.setBinding(3, zbuffer,     Sampler::nearest());
+    cmd.setBinding(4, vsm.pageTbl);
+    cmd.setBinding(5, vsm.pageHiZ);
+    cmd.setPushData(settings.vsmMipBias);
+    cmd.setPipeline(shaders.vsmMarkPages);
+    cmd.dispatchThreads(zbuffer.size());
+    }
 
   if(omniLights) {
     struct Push { Vec3 originLwc; float znear; float vsmMipBias; } push = {};
@@ -1036,13 +1047,6 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
   if(omniLights)
     cmd.dispatch(size_t(vsm.pageTbl.d() + 1)); else
     cmd.dispatch(size_t(vsm.pageTbl.d()));
-
-  // cmd.setPipeline(shaders.vsmSortPages);
-  // cmd.dispatch(1);
-
-  // alloc
-  // cmd.setPipeline(shaders.vsmAlloc2Pages);
-  // cmd.dispatchThreads(size_t(vsm.pageData.w()/VSM_PAGE_SIZE), size_t(vsm.pageData.h()/VSM_PAGE_SIZE));
 
   cmd.setPipeline(shaders.vsmAllocPages);
   cmd.dispatch(1);
@@ -1183,6 +1187,15 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     struct Push { uint32_t meshletCount; } push = {};
     push.meshletCount = uint32_t(clusters.size());
     cmd.setPushData(push);
+
+    if(sky.quality==VolumetricHQ) {
+      cmd.setBinding(0, epipolar.epTrace);
+      cmd.setBinding(1, sceneUbo);
+      cmd.setBinding(2, epipolar.epipoles);
+      cmd.setBinding(3, rtsm.pages);
+      cmd.setPipeline(shaders.rtsmFogPages);
+      cmd.dispatchThreads(epipolar.epTrace.size());
+      }
 
     cmd.setBinding(0, rtsm.outputImage);
     cmd.setBinding(1, sceneUbo);
@@ -1588,25 +1601,12 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview
     cmd.dispatchThreads(epipolar.epTrace.size());
     }
 
-  /*
-  if(sky.quality==VolumetricHQ && !settings.vsmEnabled) {
-    cmd.setFramebuffer({});
-    cmd.setDebugMarker("SM-epipolar-fog");
-    cmd.setBinding(0, epipolar.epTrace);
-    cmd.setBinding(1, wview.sceneGlobals().uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(2, epipolar.epipoles);
-    cmd.setBinding(3, shadowMap[1], Resources::shadowSampler());
-    cmd.setPipeline(shaders.fogShadowSample);
-    cmd.dispatchThreads(epipolar.epTrace.size());
-    }
-  */
-
   switch(sky.quality) {
     case None:
     case VolumetricLQ:
       break;
     case VolumetricHQ: {
-      if(settings.vsmEnabled) {
+      if(settings.vsmEnabled && !settings.rtsmEnabled) {
         cmd.setFramebuffer({});
         cmd.setBinding(0, sky.occlusionLut);
         cmd.setBinding(1, epipolar.epTrace);
@@ -1663,8 +1663,9 @@ void Renderer::prepareEpipolar(Tempest::Encoder<Tempest::CommandBuffer>& cmd, Wo
   cmd.setBinding(3, epipolar.epipoles);
   cmd.setBinding(4, zbuffer);
   if(settings.vsmEnabled)
-    cmd.setPipeline(shaders.fogEpipolarVsm); else
-    cmd.setPipeline(shaders.fogEpipolarSm);
+    cmd.setPipeline(shaders.fogEpipolarVsm);
+  else if(settings.rtsmEnabled)
+    cmd.setPipeline(shaders.fogEpipolarVsm);
   cmd.dispatch(uint32_t(epipolar.epTrace.h()));
   }
 

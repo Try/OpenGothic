@@ -34,9 +34,7 @@ vec3 project(mat4 m, vec3 pos) {
   }
 
 vec3 screenToShadow(vec3 scr) {
-  //TODO: optimize
-  const vec4 pos   = scene.viewProjectLwcInv   *vec4(scr,1);
-  const vec4 shPos = scene.viewVirtualShadowLwc*pos;
+  const vec4 shPos = scene.viewProject2VirtualShadow * vec4(scr,1);
   return shPos.xyz/shPos.w;
   }
 

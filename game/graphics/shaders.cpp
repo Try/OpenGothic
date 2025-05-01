@@ -186,12 +186,9 @@ Shaders::Shaders() {
     probeAmbient = device.pipeline(Triangles,state,vs,fs);
     }
 
-  if(true) {
+  if(Shaders::isVsmSupported()) {
     fogEpipolarOcclusion = computeShader("fog_epipolar_occlusion.comp.sprv");
-    fogShadowSample      = computeShader("fog_shadow_sample.comp.sprv");
-    fogEpipolarSm        = computeShader("fog_epipolar_sm.comp.sprv");
-    if(Shaders::isVsmSupported())
-      fogEpipolarVsm  = computeShader("fog_epipolar_vsm.comp.sprv");
+    fogEpipolarVsm       = computeShader("fog_epipolar_vsm.comp.sprv");
     }
 
   if(Shaders::isVsmSupported()) {
@@ -224,6 +221,7 @@ Shaders::Shaders() {
   if(Shaders::isRtsmSupported()) {
     rtsmClear       = computeShader("rtsm_clear.comp.sprv");
     rtsmPages       = computeShader("rtsm_mark_pages.comp.sprv");
+    rtsmFogPages    = computeShader("rtsm_mark_fog_pages.comp.sprv");
     rtsmHiZ         = computeShader("rtsm_hiz_pages.comp.sprv");
     rtsmCulling     = computeShader("rtsm_culling.comp.sprv");
     rtsmCullLights  = computeShader("rtsm_cull_lights.comp.sprv");
