@@ -224,7 +224,6 @@ Shaders::Shaders() {
     rtsmFogPages    = computeShader("rtsm_mark_fog_pages.comp.sprv");
     rtsmHiZ         = computeShader("rtsm_hiz_pages.comp.sprv");
     rtsmCulling     = computeShader("rtsm_culling.comp.sprv");
-    rtsmCullLights  = computeShader("rtsm_cull_lights.comp.sprv");
     rtsmPosition    = computeShader("rtsm_position.comp.sprv");
 
     rtsmMeshletCull    = computeShader("rtsm_meshlet_cull.comp.sprv");
@@ -234,6 +233,12 @@ Shaders::Shaders() {
 
     rtsmRaster      = computeShader("rtsm_raster.comp.sprv");
     rtsmDirectLight = postEffect("rtsm_direct_light", RenderState::ZTestMode::NoEqual);
+
+    rtsmClearOmni   = computeShader("rtsm_clear_omni.comp.sprv");
+    rtsmCullLights  = computeShader("rtsm_cull_lights.comp.sprv");
+    rtsmCullingOmni = computeShader("rtsm_culling_omni.comp.sprv");
+    rtsmPositionOmni= computeShader("rtsm_position_omni.comp.sprv");
+    rtsmLightTiles  = computeShader("rtsm_light_tiles.comp.sprv");
 
     rtsmRendering   = computeShader("rtsm_rendering.comp.sprv");
     rtsmDbg         = postEffect("rtsm_dbg", RenderState::ZTestMode::Always);

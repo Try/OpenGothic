@@ -1,0 +1,64 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+#include "rtsm/rtsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 128) in;
+
+layout(push_constant, std430) uniform Push {
+  float znear;
+  uint  lightsTotal;
+  uint  meshletCount;
+  } push;
+layout(binding = 0, std140) uniform  UboScene   { SceneDesc   scene;                    };
+layout(binding = 1, std430) readonly buffer Lbo { LightSource lights[];                 };
+layout(binding = 2, std430)          buffer VId { uint        count;   uvec4 data[];    } vLights;
+layout(binding = 3, std430)          buffer Rt  { RtsmHeader  header;  uvec2 visList[]; } rtsm;
+
+layout(binding = 5, std430) readonly buffer Cbo { Cluster     clusters[];               };
+layout(binding = 6, std430)          buffer Pos { uint        alloc;  uint  data[];     } pos;
+
+bool isClusterVisible(const Cluster cluster) {
+  bool ret = false;
+  for(uint i=0; i<vLights.count; ++i) {
+    const uint        id = vLights.data[i].x;
+    const LightSource lx = lights[id];
+
+    const vec3  dvec = cluster.sphere.xyz - lx.pos;
+    const float dist = cluster.sphere.w   + lx.range;
+    if(dot(dvec, dvec) < dist*dist) {
+      atomicAdd(vLights.data[i].w, 1);
+      ret = true;
+      }
+    }
+  return ret;
+  }
+
+void mainCulling() {
+  const uint clusterId = gl_GlobalInvocationID.x;
+  if(clusterId>=push.meshletCount)
+    return;
+
+  const Cluster cluster = clusters[clusterId];
+  if(cluster.sphere.w<=0.f)
+    return; // disabled or deleted
+
+  if(!isClusterVisible(cluster))
+    return;
+
+  const uint id = atomicAdd(rtsm.header.visCount, cluster.meshletCount);
+  for(int i=0; i<cluster.meshletCount; ++i) {
+    rtsm.visList[id+i] = uvec2(clusterId, cluster.firstMeshlet+i);
+    }
+  atomicAdd(pos.alloc, cluster.meshletCount); //reserve memory for position shader
+  }
+
+void main() {
+  if(vLights.count==0)
+    return;
+  mainCulling();
+  }

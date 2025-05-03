@@ -329,7 +329,6 @@ add_shader(rtsm_clear.comp           rtsm/rtsm_clear.comp)
 add_shader(rtsm_mark_pages.comp      rtsm/rtsm_mark_pages.comp)
 add_shader(rtsm_mark_fog_pages.comp  rtsm/rtsm_mark_fog_pages.comp)
 add_shader(rtsm_hiz_pages.comp       rtsm/rtsm_hiz_pages.comp)
-add_shader(rtsm_cull_lights.comp     rtsm/rtsm_cull_lights.comp)
 add_shader(rtsm_culling.comp         rtsm/rtsm_culling.comp)
 add_shader(rtsm_position.comp        rtsm/rtsm_position.comp)
 
@@ -343,6 +342,12 @@ add_shader(rtsm_direct_light.frag    rtsm/rtsm_direct_light.frag)
 
 add_shader(rtsm_rendering.comp       rtsm/rtsm_rendering.comp)
 add_shader(rtsm_dbg.frag             rtsm/rtsm_dbg.frag)
+
+add_shader(rtsm_clear_omni.comp      rtsm/rtsm_clear_omni.comp)
+add_shader(rtsm_cull_lights.comp     rtsm/rtsm_cull_lights.comp)
+add_shader(rtsm_culling_omni.comp    rtsm/rtsm_culling_omni.comp)
+add_shader(rtsm_position_omni.comp   rtsm/rtsm_position.comp -DOMNI)
+add_shader(rtsm_light_tiles.comp     rtsm/rtsm_light_tiles.comp)
 
 # software rendering
 add_shader(sw_rendering_imm.comp  software_rendering/sw_rendering_imm.comp)

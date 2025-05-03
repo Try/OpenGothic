@@ -14,11 +14,13 @@ layout(local_size_x = 64) in;
 layout(push_constant, std140) uniform Push {
   float znear;
   uint  lightsTotal;
+  uint  meshletCount;
   };
 layout(binding = 0, std140) uniform UboScene    { SceneDesc   scene;    };
 layout(binding = 1, std430) readonly buffer Lbo { LightSource lights[]; };
 layout(binding = 2, std430) buffer VId          { uint visLightCount; uvec4 visLights[]; };
-layout(binding = 3)         uniform sampler2D hiZ;
+//
+layout(binding = 4)         uniform sampler2D hiZ;
 
 float hiZFetch(in sampler2D hiZ, in ivec2 ibbox[2]) {
   if(ibbox[0]==ibbox[1])

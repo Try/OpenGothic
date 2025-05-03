@@ -574,6 +574,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   drawVsm(cmd, *wview);
   drawSwr(cmd, *wview);
   drawRtsm(cmd, *wview);
+  drawRtsmOmni(cmd, *wview);
 
   prepareIrradiance(cmd,*wview);
   prepareExposure(cmd,*wview);
@@ -1067,8 +1068,6 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
   if(!settings.rtsmEnabled)
     return;
 
-  static bool omniLights = true;
-
   const int RTSM_BIN_SIZE   = 32;
   const int RTSM_SMALL_TILE = 32;
   const int RTSM_LARGE_TILE = 128;
@@ -1085,11 +1084,14 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
   auto& sceneUbo = scene.uboGlobal[SceneGlobals::V_Vsm];
 
   {
+    if(rtsm.posList.isEmpty()) {
+      rtsm.posList = device.ssbo(Tempest::Uninitialized, 64*1024*1024); // arbitrary
+      }
+
     // alloc resources
     if(rtsm.pages.isEmpty()) {
       rtsm.pages = device.image3d(TextureFormat::R32U, 32, 32, 16);
       }
-
     const auto tiles = tileCount(scene.zbuffer->size(), RTSM_SMALL_TILE);
     if(rtsm.tiles.size()!=tiles) {
       Resources::recycle(std::move(rtsm.tiles));
@@ -1138,49 +1140,21 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
       Resources::recycle(std::move(rtsm.visList));
       rtsm.visList = device.ssbo(nullptr, clusterSz);
       }
-
-    if(rtsm.posList.isEmpty()) {
-      rtsm.posList = device.ssbo(Tempest::Uninitialized, 64*1024*1024); // arbitrary
-      }
   }
-
-  if(omniLights) {
-    // alloc resources, for omni-lights
-    if(rtsm.visibleLights.byteSize()!=shaders.vsmClearOmni.sizeofBuffer(1, wview.lights().size())) {
-      Resources::recycle(std::move(rtsm.visibleLights));
-      rtsm.visibleLights = device.ssbo(nullptr, shaders.vsmClearOmni.sizeofBuffer(1, wview.lights().size()));
-      }
-    }
 
   cmd.setDebugMarker("RTSM-rendering");
   cmd.setFramebuffer({});
 
   {
     // clear
-    struct Push { uint32_t omni; } push = {omniLights ? 1u : 0u};
     cmd.setBinding(0, rtsm.pages);
     cmd.setBinding(1, rtsm.visList);
     cmd.setBinding(2, rtsm.posList);
     cmd.setBinding(3, rtsm.complexTiles);
-    cmd.setBinding(4, rtsm.visibleLights);
-    cmd.setPushData(push);
 
     cmd.setPipeline(shaders.rtsmClear);
     cmd.dispatchThreads(size_t(rtsm.pages.w()), size_t(rtsm.pages.h()), size_t(rtsm.pages.d()));
   }
-
-  if(omniLights) {
-    struct Push { float znear; uint32_t lightsTotal; } push = {};
-    push.znear       = scene.znear;
-    push.lightsTotal = uint32_t(wview.lights().size());
-    cmd.setBinding(0, scene.uboGlobal[SceneGlobals::V_Main]);
-    cmd.setBinding(1, wview.lights().lightsSsbo());
-    cmd.setBinding(2, rtsm.visibleLights);
-    cmd.setBinding(3, hiz.hiZ);
-    cmd.setPushData(push);
-    cmd.setPipeline(shaders.rtsmCullLights);
-    cmd.dispatchThreads(wview.lights().size());
-    }
 
   {
     // global cull
@@ -1281,26 +1255,86 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     cmd.setPipeline(shaders.rtsmRaster);
     cmd.dispatchThreads(rtsm.outputImage.size());
   }
+  }
 
-  if(false) {
-    struct Push { uint32_t meshletCount; } push = {};
+void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
+  if(!settings.rtsmEnabled)
+    return;
+
+  static bool omniLights = false;
+  if(!omniLights)
+    return;
+
+  auto& device   = Resources::device();
+  auto& shaders  = Shaders::inst();
+
+  const auto& scene        = wview.sceneGlobals();
+  const auto& sceneUbo     = scene.uboGlobal[SceneGlobals::V_Main];
+  const auto& clusters     = wview.clusters();
+  const auto& buckets      = wview.drawBuckets();
+  const auto& instanceSsbo = wview.instanceSsbo();
+
+  {
+    // alloc resources, for omni-lights
+    if(rtsm.visibleLights.byteSize()!=shaders.rtsmClearOmni.sizeofBuffer(1, wview.lights().size())) {
+      Resources::recycle(std::move(rtsm.visibleLights));
+      rtsm.visibleLights = device.ssbo(nullptr, shaders.rtsmClearOmni.sizeofBuffer(1, wview.lights().size()));
+      }
+    }
+
+  cmd.setDebugMarker("RTSM-rendering-omni");
+  cmd.setFramebuffer({});
+  {
+    // clear
+    cmd.setBinding(0, rtsm.posList);
+    cmd.setBinding(1, rtsm.visibleLights);
+    cmd.setBinding(2, rtsm.visList);
+    cmd.setPipeline(shaders.rtsmClearOmni);
+    cmd.dispatchThreads(1);
+  }
+
+  {
+    // cull lights
+    struct Push { float znear; uint32_t lightsTotal; uint32_t meshletCount; } push = {};
+    push.znear        = scene.znear;
+    push.lightsTotal  = uint32_t(wview.lights().size());
     push.meshletCount = uint32_t(clusters.size());
 
-    cmd.setFramebuffer({});
-    cmd.setBinding(0, *scene.vsmPageData);
-    cmd.setBinding(1, scene.uboGlobal[SceneGlobals::V_Vsm]);
-    cmd.setBinding(2, *scene.vsmPageList);
-    cmd.setBinding(3, clusters.ssbo());
-    cmd.setBinding(4, instanceSsbo);
-    cmd.setBinding(5, buckets.ibo());
-    cmd.setBinding(6, buckets.vbo());
-    cmd.setBinding(7, buckets.textures());
-    cmd.setBinding(8, Sampler::bilinear());
-    cmd.setPushData(&push, sizeof(push));
-    cmd.setPipeline(Shaders::inst().vsmRendering);
-    // const auto sz = Shaders::inst().vsmRendering.workGroupSize();
-    cmd.dispatch(1024u);
+    cmd.setPushData(push);
+    cmd.setBinding(0, sceneUbo);
+    cmd.setBinding(1, wview.lights().lightsSsbo());
+    cmd.setBinding(2, rtsm.visibleLights);
+    cmd.setBinding(3, rtsm.visList);
+    cmd.setBinding(4, hiz.hiZ);
+    cmd.setBinding(5, clusters.ssbo());
+    cmd.setBinding(6, rtsm.posList);
+
+    cmd.setPipeline(shaders.rtsmCullLights);
+    cmd.dispatchThreads(wview.lights().size());
+
+    cmd.setPipeline(shaders.rtsmCullingOmni);
+    cmd.dispatchThreads(push.meshletCount);
+
+    // cmd.setPipeline(shaders.rtsmLightTiles);
     }
+
+  {
+    // position
+    cmd.setBinding(0, rtsm.posList);
+    cmd.setBinding(1, sceneUbo);
+    cmd.setBinding(2, rtsm.visList);
+
+    cmd.setBinding(5,  clusters.ssbo());
+    cmd.setBinding(6,  instanceSsbo);
+    cmd.setBinding(7,  buckets.ssbo());
+    cmd.setBinding(8,  buckets.ibo());
+    cmd.setBinding(9,  buckets.vbo());
+    cmd.setBinding(10, buckets.morphId());
+    cmd.setBinding(11, buckets.morph());
+
+    cmd.setPipeline(shaders.rtsmPosition);
+    cmd.dispatchIndirect(rtsm.visList, 0);
+  }
   }
 
 void Renderer::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {

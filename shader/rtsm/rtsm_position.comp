@@ -55,7 +55,11 @@ shared uvec4  meshBbox;
 shared uint   meshMaxDepth;
 
 bool isVertexEnabled(uint i) {
+#if defined(OMNI)
+  return true;
+    #else
   return (activeVert[i/32] & (1u << i%32))!=0;
+#endif
   }
 
 void enableVertex(uint i) {
@@ -329,10 +333,10 @@ void main() {
       v = processVertexM(cluster, meshletId, bucketId, laneId);
     else
       v = processVertex (cluster, meshletId, bucketId, laneId);
-
+#if !defined(OMNI)
     const vec4 pos4 = (scene.viewVirtualShadow * vec4(v.pos,1));
-    // v.pos = pos4.xyz;/pos4.w;
     v.pos = pos4.xyz;
+#endif
     meshVertices[laneId] = v;
     }
   barrier();
@@ -343,6 +347,12 @@ void main() {
     const vec3  b   = meshVertices[tri.y].pos.xyz;
     const vec3  c   = meshVertices[tri.z].pos.xyz;
 
+#if defined(OMNI)
+    {
+      uint id = atomicAdd(maxPrim, 1);
+      primitiveIndices[id] = tri;
+    }
+#else
     const float area = edgeFunction(a.xy, b.xy, c.xy);
     if(area>0) {
       uint id = atomicAdd(maxPrim, 1);
@@ -352,6 +362,7 @@ void main() {
       enableVertex(tri.y);
       enableVertex(tri.z);
       }
+#endif
     }
   barrier();
 
