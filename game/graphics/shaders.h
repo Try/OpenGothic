@@ -100,6 +100,7 @@ class Shaders {
     Tempest::ComputePipeline rtsmClearOmni;
     Tempest::ComputePipeline rtsmCullLights, rtsmCullingOmni, rtsmLightTiles;
     Tempest::ComputePipeline rtsmPositionOmni;
+    Tempest::ComputePipeline rtsmLightPrefix;
 
     Tempest::RenderPipeline  rtsmDirectLight;
 

@@ -1,0 +1,49 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+#include "rtsm/rtsm_common.glsl"
+
+layout(local_size_x = 256) in;
+
+layout(binding = 0, std430) buffer Pos  { uint  alloc;         uint    data[];      } pos;
+layout(binding = 1, std430) buffer VId  { uint  visLightCount; LightId visLights[]; };
+layout(binding = 2, std430) buffer VBin { uvec2 bins[]; };
+
+#include "rtsm/rtsm_scratch.glsl"
+
+shared uint partialSumm[gl_WorkGroupSize.x];
+
+void main() {
+  uint index = gl_LocalInvocationID.x;
+  uint len   = visLightCount;
+
+  const uint b = ((index+0)*len)/gl_WorkGroupSize.x;
+  const uint e = ((index+1)*len)/gl_WorkGroupSize.x;
+
+  uint sumIbo = 0;
+  [[loop]]
+  for(uint i=b; i<e; ++i) {
+    sumIbo += visLights[i].numMeshlets;
+    }
+  partialSumm[index] = sumIbo;
+
+  barrier();
+
+  uint prefixIbo = 0;
+  for(uint i=0; i<index; ++i)
+    prefixIbo += partialSumm[i];
+  barrier();
+
+  [[loop]]
+  for(uint i=b; i<e; ++i) {
+    uint numMeshlets = visLights[i].numMeshlets;
+    //uint firstIndex  = numMeshlets>0 ? prefixIbo : 0;
+    uint ptr         = allocScratch(numMeshlets);
+
+    prefixIbo += numMeshlets;
+    bins[i] = uvec2(ptr, ptr!=NULL ? numMeshlets : 0);
+    visLights[i].numMeshlets = 0;
+    }
+  }

@@ -27,6 +27,13 @@ struct RtsmHeader {
   uint one2;
   };
 
+struct LightId {
+  uint id;
+  uint aabb_low;
+  uint aabb_high;
+  uint numMeshlets;
+  };
+
 // utility
 uint floatToOrderedUint(float value) {
   uint uvalue = floatBitsToUint(value);

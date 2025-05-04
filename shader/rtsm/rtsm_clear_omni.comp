@@ -10,7 +10,7 @@
 layout(local_size_x = 1) in;
 
 layout(binding = 0, std430) buffer Pos  { uint       alloc;  uint data[];     } pos;
-layout(binding = 1, std430) buffer VId  { uint       count;  uvec4 data[];    } vLights;
+layout(binding = 1, std430) buffer VId  { uint       count;  LightId data[];  } vLights;
 layout(binding = 2, std430) buffer Rt   { RtsmHeader header; uvec2 visList[]; } rtsm;
 
 void main() {

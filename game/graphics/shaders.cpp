@@ -239,6 +239,7 @@ Shaders::Shaders() {
     rtsmCullingOmni = computeShader("rtsm_culling_omni.comp.sprv");
     rtsmPositionOmni= computeShader("rtsm_position_omni.comp.sprv");
     rtsmLightTiles  = computeShader("rtsm_light_tiles.comp.sprv");
+    rtsmLightPrefix = computeShader("rtsm_light_prefix.comp.sprv");
 
     rtsmRendering   = computeShader("rtsm_rendering.comp.sprv");
     rtsmDbg         = postEffect("rtsm_dbg", RenderState::ZTestMode::Always);
