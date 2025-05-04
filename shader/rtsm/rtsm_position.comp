@@ -353,8 +353,9 @@ void main() {
       primitiveIndices[id] = tri;
     }
 #else
-    const float area = edgeFunction(a.xy, b.xy, c.xy);
-    if(area>0) {
+    // need to be consistent with raster
+    const float area = triangleArea(a.xy-c.xy, b.xy-c.xy);
+    if(area>0.0) {
       uint id = atomicAdd(maxPrim, 1);
       primitiveIndices[id] = tri;
 
