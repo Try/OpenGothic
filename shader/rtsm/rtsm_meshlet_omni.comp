@@ -1,0 +1,64 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+// #define PASS0
+// #define PASS1
+
+#include "rtsm/rtsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 512) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+layout(binding = 0, std140) uniform  UboScene    { SceneDesc   scene;                    };
+layout(binding = 1, std430) readonly buffer Lbo  { LightSource lights[];                 };
+layout(binding = 2, std430)          buffer VId  { uvec4       count;   LightId data[];  } vLights;
+layout(binding = 3, std430) readonly buffer Rt   { RtsmHeader  header;  uvec2 visList[]; } rtsm;
+// layout(binding = 4, std430)
+layout(binding = 5, std430) readonly buffer Cbo  { Cluster     clusters[];               };
+layout(binding = 6, std430)          buffer Pos  { uint        alloc;  uint  data[];     } pos;
+
+shared uint meshletsId[2048];
+shared uint numMeshlets;
+
+vec4 pullMeshSphere(uint ptr) {
+  vec4  sphere;
+  sphere.x   = uintBitsToFloat(pos.data[ptr+0]);
+  sphere.y   = uintBitsToFloat(pos.data[ptr+1]);
+  sphere.z   = uintBitsToFloat(pos.data[ptr+2]);
+  sphere.w   = uintBitsToFloat(pos.data[ptr+3]);
+  return sphere;
+  }
+
+bool isMeshletVisible(uint ptr, const LightSource lx) {
+  const vec4  sphere = pullMeshSphere(ptr);
+  const vec3  dv     = lx.pos - sphere.xyz;
+  const float r      = lx.range + sphere.w;
+  return dot(dv, dv) <= r*r;
+  }
+
+void traceMeshlets(uint listPtr, uint visCount, const LightSource lx) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  numMeshlets = 0;
+  barrier();
+
+  for(uint i=laneID; i<visCount; i+=NumThreads) {
+    const uint ptr = pos.data[listPtr + i];
+    if(!isMeshletVisible(ptr, lx))
+      continue;
+    atomicAdd(numMeshlets, 1);
+    }
+  barrier();
+
+  vLights.data[gl_WorkGroupID.x].numMeshlets = numMeshlets;
+  }
+
+void main() {
+  const LightSource lx = lights[vLights.data[gl_WorkGroupID.x].id];
+  traceMeshlets(1, pos.data[0], lx);
+  }

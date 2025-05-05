@@ -1271,10 +1271,7 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     // alloc resources, for omni-lights
     if(rtsm.visibleLights.byteSize()!=shaders.rtsmClearOmni.sizeofBuffer(1, wview.lights().size())) {
       Resources::recycle(std::move(rtsm.visibleLights));
-      Resources::recycle(std::move(rtsm.lightsBins));
-
       rtsm.visibleLights = device.ssbo(nullptr, shaders.rtsmClearOmni.sizeofBuffer(1, wview.lights().size()));
-      rtsm.lightsBins    = device.ssbo(nullptr, 2*sizeof(uint32_t)*wview.lights().size());
       }
   }
 
@@ -1310,8 +1307,6 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
 
     cmd.setPipeline(shaders.rtsmCullingOmni);
     cmd.dispatchThreads(push.meshletCount);
-
-    // cmd.setPipeline(shaders.rtsmLightTiles);
   }
 
   {
@@ -1328,18 +1323,23 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.setBinding(10, buckets.morphId());
     cmd.setBinding(11, buckets.morph());
 
-    cmd.setPipeline(shaders.rtsmPosition);
+    cmd.setPipeline(shaders.rtsmPositionOmni);
     cmd.dispatchIndirect(rtsm.visList, 0);
   }
 
   {
-    cmd.setBinding(0, rtsm.posList);
-    cmd.setBinding(1, rtsm.visibleLights);
-    cmd.setBinding(2, rtsm.lightsBins);
-    cmd.setPipeline(shaders.rtsmLightPrefix);
-    cmd.dispatch(1);
-  }
+    // per-light meshlets
+    cmd.setBinding(0, sceneUbo);
+    cmd.setBinding(1, wview.lights().lightsSsbo());
+    cmd.setBinding(2, rtsm.visibleLights);
+    cmd.setBinding(3, rtsm.visList);
+    // cmd.setBinding(4, hiz.hiZ);
+    cmd.setBinding(5, clusters.ssbo());
+    cmd.setBinding(6, rtsm.posList);
 
+    cmd.setPipeline(shaders.rtsmMeshletOmni);
+    cmd.dispatchIndirect(rtsm.visibleLights, 0);
+  }
   }
 
 void Renderer::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {

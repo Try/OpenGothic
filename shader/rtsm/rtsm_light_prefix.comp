@@ -7,9 +7,9 @@
 
 layout(local_size_x = 256) in;
 
-layout(binding = 0, std430) buffer Pos  { uint  alloc;         uint    data[];      } pos;
-layout(binding = 1, std430) buffer VId  { uint  visLightCount; LightId visLights[]; };
-layout(binding = 2, std430) buffer VBin { uvec2 bins[]; };
+layout(binding = 2, std430) buffer VId  { uint  visLightCount; LightId visLights[]; };
+layout(binding = 4, std430) buffer VBin { uvec2 bins[]; };
+layout(binding = 6, std430) buffer Pos  { uint  alloc;         uint    data[];      } pos;
 
 #include "rtsm/rtsm_scratch.glsl"
 
@@ -39,7 +39,6 @@ void main() {
   [[loop]]
   for(uint i=b; i<e; ++i) {
     uint numMeshlets = visLights[i].numMeshlets;
-    //uint firstIndex  = numMeshlets>0 ? prefixIbo : 0;
     uint ptr         = allocScratch(numMeshlets);
 
     prefixIbo += numMeshlets;

@@ -49,10 +49,19 @@ shared uint   posPtr;
 shared uint   maxPrim;
 shared uvec3  primitiveIndices[MaxPrim];
 shared Vertex meshVertices    [MaxVert];
+#if !defined(OMNI)
 shared uint   activeVert      [(MaxVert+32-1)/32];
+#endif
 
+#if defined(OMNI)
+shared uvec3  meshBboxMin;
+shared uvec3  meshBboxMax;
+shared vec3   spherePos;
+shared uint   sphereRadius;
+#else
 shared uvec4  meshBbox;
 shared uint   meshMaxDepth;
+#endif
 
 bool isVertexEnabled(uint i) {
 #if defined(OMNI)
@@ -62,11 +71,16 @@ bool isVertexEnabled(uint i) {
 #endif
   }
 
+#if !defined(OMNI)
 void enableVertex(uint i) {
   atomicOr(activeVert[i/32], 1u << (i%32));
   }
+#endif
 
 uint remapIndex(uint id) {
+#if defined(OMNI)
+  return id;
+#else
   uint n = id/32;
   uint f = id%32;
   uint r = 0;
@@ -74,14 +88,18 @@ uint remapIndex(uint id) {
     r += bitCount(activeVert[i]);
   r += bitCount(activeVert[n] & ((1u << f)-1u));
   return r;
+#endif
   }
 
-uint vertexCount() {
-  // return MaxVert;
+uint vertexCount(uint vertCountMeshlet) {
+#if defined(OMNI)
+  return vertCountMeshlet;
+#else
   uint r = 0;
   for(uint i=0; i<activeVert.length(); ++i)
     r += bitCount(activeVert[i]);
   return r;
+#endif
   }
 
 Instance pullInstance(uint i) {
@@ -240,6 +258,7 @@ uint packTri(uvec3 v, uint flags) {
   return v.x | v.y | v.z | flags;
   }
 
+#if !defined(OMNI)
 void updateMeshBbox(uint vertCount) {
   meshMaxDepth = 0;
   meshBbox     = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
@@ -257,6 +276,43 @@ void updateMeshBbox(uint vertCount) {
     atomicMax(meshMaxDepth, floatToOrderedUint(vert.z));
     }
   }
+#endif
+
+#if defined(OMNI)
+void updateMeshBSphere(uint vertCount) {
+  sphereRadius = 0;
+  meshBboxMin  = uvec3(0xFFFFFFFF);
+  meshBboxMax  = uvec3(0);
+  barrier();
+
+  const uint laneID = gl_LocalInvocationIndex;
+  if(laneID<vertCount) {
+    const vec3 vert = meshVertices[laneID].pos;
+
+    atomicMin(meshBboxMin.x, floatToOrderedUint(vert.x));
+    atomicMin(meshBboxMin.y, floatToOrderedUint(vert.y));
+    atomicMin(meshBboxMin.z, floatToOrderedUint(vert.z));
+    atomicMax(meshBboxMax.x, floatToOrderedUint(vert.x));
+    atomicMax(meshBboxMax.y, floatToOrderedUint(vert.y));
+    atomicMax(meshBboxMax.z, floatToOrderedUint(vert.z));
+    }
+  barrier();
+
+  if(laneID==0) {
+    const vec3 a = orderedUintToFloat(meshBboxMin);
+    const vec3 b = orderedUintToFloat(meshBboxMax);
+    spherePos = (a-b)*0.5;
+    }
+  barrier();
+
+  if(laneID<vertCount) {
+    const vec3 vert = meshVertices[laneID].pos;
+    const vec3 dist = vert - spherePos;
+    atomicMax(sphereRadius, floatBitsToUint(length(dist)));
+    }
+  }
+#endif
+
 
 Vertex processVertexA(const Cluster cluster, const uint meshletId, const uint bucketId, const uint laneId) {
   VertexA  v   = pullVertexA(meshletId, bucketId, laneId);
@@ -315,8 +371,10 @@ void main() {
   const uint laneId = gl_LocalInvocationIndex;
 
   maxPrim = 0;
+#if !defined(OMNI)
   if(laneId<activeVert.length())
     activeVert[laneId] = 0;
+#endif
   barrier();
 
   const uvec2   visId    = rtsm.visList[gl_WorkGroupID.x];
@@ -326,10 +384,11 @@ void main() {
   const uint  bucketId   = cluster.bucketId_commandId>>16;
 
   const uvec2 mesh       = pullMeshlet(meshletId, bucketId);
+  const uint  vertCount  = mesh.x;
   const uint  primCount  = mesh.y;
   const uint  bucketFlg  = bucket[bucketId].flags;
 
-  if(laneId<MaxVert) {
+  if(laneId<vertCount) {
     Vertex v;
     if((bucketFlg & BK_SKIN)!=0)
       v = processVertexA(cluster, meshletId, bucketId, laneId);
@@ -352,10 +411,8 @@ void main() {
     const vec3  c   = meshVertices[tri.z].pos.xyz;
 
 #if defined(OMNI)
-    {
-      uint id = atomicAdd(maxPrim, 1);
-      primitiveIndices[id] = tri;
-    }
+    maxPrim = primCount;
+    primitiveIndices[laneId] = tri;
 #else
     // need to be consistent with raster
     const float area = triangleArea(a.xy-c.xy, b.xy-c.xy);
@@ -371,7 +428,11 @@ void main() {
     }
   barrier();
 
-  updateMeshBbox(MaxVert);
+#if defined(OMNI)
+  updateMeshBSphere(vertCount);
+#else
+  updateMeshBbox(vertCount);
+#endif
   barrier();
 
   if(maxPrim==0 || (bucketFlg & BK_WATER)==BK_WATER) {
@@ -380,8 +441,8 @@ void main() {
     return;
     }
 
-  const uint vertCount = vertexCount();
-  const uint size      = MeshletHeaderSize + MaxPrim + vertCount*4;
+  const uint visVertCount = vertexCount(vertCount);
+  const uint size         = MeshletHeaderSize + MaxPrim + visVertCount*4;
   if(laneId==0)
     posPtr = allocScratch(size);
   barrier();
@@ -396,6 +457,14 @@ void main() {
     }
 
   if(laneId==0) {
+    const uint i = posPtr;
+#if defined(OMNI)
+    pos.data[i+0] = floatBitsToUint(spherePos.x);
+    pos.data[i+1] = floatBitsToUint(spherePos.y);
+    pos.data[i+2] = floatBitsToUint(spherePos.z);
+    pos.data[i+3] = sphereRadius;
+    pos.data[i+4] = 0;
+#else
     vec4  aabb     = vec4(0);
     float depthMax = 1;
     aabb.x   = orderedUintToFloat(meshBbox.x);
@@ -404,12 +473,12 @@ void main() {
     aabb.w   = orderedUintToFloat(meshBbox.w);
     depthMax = orderedUintToFloat(meshMaxDepth);
 
-    const uint i = posPtr;
     pos.data[i+0] = floatBitsToUint(aabb.x);
     pos.data[i+1] = floatBitsToUint(aabb.y);
     pos.data[i+2] = floatBitsToUint(aabb.z);
     pos.data[i+3] = floatBitsToUint(aabb.w);
     pos.data[i+4] = floatBitsToUint(depthMax);
+#endif
     pos.data[i+5] = packMeshHeader(bucketId, maxPrim);
     }
   if(laneId<maxPrim) {
@@ -420,7 +489,7 @@ void main() {
     p.z = remapIndex(p.z);
     pos.data[i] = packTri(p, bucketFlg);
     }
-  if(laneId<MaxVert && isVertexEnabled(laneId)) {
+  if(laneId<vertCount && isVertexEnabled(laneId)) {
     const uint v = remapIndex(laneId);
     const uint i = posPtr + MeshletHeaderSize + MaxPrim + v*4;
     pos.data[i+0] = floatBitsToUint(meshVertices[laneId].pos.x);

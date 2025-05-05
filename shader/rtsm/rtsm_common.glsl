@@ -46,6 +46,14 @@ float orderedUintToFloat(uint value) {
   return uintBitsToFloat(value ^ mask);
   }
 
+vec3 orderedUintToFloat(uvec3 value) {
+  vec3 r;
+  r.x = orderedUintToFloat(value.x);
+  r.y = orderedUintToFloat(value.y);
+  r.z = orderedUintToFloat(value.z);
+  return r;
+  }
+
 vec4 orderedUintToFloat(uvec4 value) {
   vec4 r;
   r.x = orderedUintToFloat(value.x);
