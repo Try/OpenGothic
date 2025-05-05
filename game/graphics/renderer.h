@@ -215,6 +215,7 @@ class Renderer final {
 
     struct {
       Tempest::StorageImage     outputImage;
+      Tempest::StorageImage     outputImageClr;
 
       Tempest::StorageImage     pages;
       Tempest::StorageBuffer    visList;

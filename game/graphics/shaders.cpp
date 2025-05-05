@@ -240,6 +240,7 @@ Shaders::Shaders() {
     rtsmPositionOmni = computeShader("rtsm_position_omni.comp.sprv");
 
     rtsmMeshletOmni  = computeShader("rtsm_meshlet_omni.comp.sprv");
+    rtsmRasterOmni   = computeShader("rtsm_raster_omni.comp.sprv");
 
     rtsmRendering    = computeShader("rtsm_rendering.comp.sprv");
     rtsmDbg          = postEffect("rtsm_dbg", RenderState::ZTestMode::Always);

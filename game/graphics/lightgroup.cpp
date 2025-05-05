@@ -107,8 +107,7 @@ uint64_t LightGroup::Light::effectPrefferedTime() const {
   return data.effectPrefferedTime();
   }
 
-LightGroup::LightGroup(const SceneGlobals& scene)
-  :scene(scene) {
+LightGroup::LightGroup(const SceneGlobals& scene) {
   try {
     auto filename = Gothic::nestedPath({u"_work", u"Data", u"Presets", u"LIGHTPRESETS.ZEN"}, Dir::FT_File);
     auto buf = zenkit::Read::from(filename);

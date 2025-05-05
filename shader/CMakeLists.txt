@@ -348,6 +348,7 @@ add_shader(rtsm_cull_lights.comp     rtsm/rtsm_cull_lights.comp)
 add_shader(rtsm_culling_omni.comp    rtsm/rtsm_culling_omni.comp)
 add_shader(rtsm_position_omni.comp   rtsm/rtsm_position.comp -DOMNI)
 add_shader(rtsm_meshlet_omni.comp    rtsm/rtsm_meshlet_omni.comp)
+add_shader(rtsm_raster_omni.comp     rtsm/rtsm_raster_omni.comp)
 
 # software rendering
 add_shader(sw_rendering_imm.comp  software_rendering/sw_rendering_imm.comp)

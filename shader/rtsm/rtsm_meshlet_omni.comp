@@ -17,13 +17,16 @@ const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z
 layout(binding = 0, std140) uniform  UboScene    { SceneDesc   scene;                    };
 layout(binding = 1, std430) readonly buffer Lbo  { LightSource lights[];                 };
 layout(binding = 2, std430)          buffer VId  { uvec4       count;   LightId data[];  } vLights;
-layout(binding = 3, std430) readonly buffer Rt   { RtsmHeader  header;  uvec2 visList[]; } rtsm;
+// layout(binding = 3, std430) readonly buffer Rt   { RtsmHeader  header;  uvec2 visList[]; } rtsm;
 // layout(binding = 4, std430)
 layout(binding = 5, std430) readonly buffer Cbo  { Cluster     clusters[];               };
 layout(binding = 6, std430)          buffer Pos  { uint        alloc;  uint  data[];     } pos;
 
+#include "rtsm/rtsm_scratch.glsl"
+
 shared uint meshletsId[2048];
 shared uint numMeshlets;
+shared uint meshListPtr;
 
 vec4 pullMeshSphere(uint ptr) {
   vec4  sphere;
@@ -51,14 +54,40 @@ void traceMeshlets(uint listPtr, uint visCount, const LightSource lx) {
     const uint ptr = pos.data[listPtr + i];
     if(!isMeshletVisible(ptr, lx))
       continue;
-    atomicAdd(numMeshlets, 1);
+
+    const uint id = atomicAdd(numMeshlets, 1);
+    if(id<meshletsId.length())
+      meshletsId[id] = i;
     }
+  }
+
+void store(uint lightId) {
+  const uint laneID = gl_LocalInvocationIndex;
+  if(laneID==0)
+    meshListPtr = allocScratch(numMeshlets+1);
   barrier();
 
-  vLights.data[gl_WorkGroupID.x].numMeshlets = numMeshlets;
+  if(meshListPtr==NULL) {
+    vLights.data[lightId].numMeshlets = NULL;
+    return;
+    }
+
+  vLights.data[lightId].numMeshlets = meshListPtr;
+  pos.data[meshListPtr] = numMeshlets;
+  for(uint i=laneID; i<numMeshlets; i+=NumThreads) {
+    pos.data[meshListPtr + i + 1] = meshletsId[i];
+    }
   }
 
 void main() {
   const LightSource lx = lights[vLights.data[gl_WorkGroupID.x].id];
+
   traceMeshlets(1, pos.data[0], lx);
+  barrier();
+
+  if(numMeshlets>=meshletsId.length()) {
+    vLights.data[gl_WorkGroupID.x].numMeshlets = 0;
+    return;
+    }
+  store(gl_WorkGroupID.x);
   }

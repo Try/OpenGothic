@@ -51,7 +51,6 @@ class LightGroup final {
     bool   updateLights();
     auto&  lightsSsbo() const { return lightSourceSsbo; }
 
-    void   preFrameUpdate(uint8_t fId);
     void   prepareGlobals(Tempest::Encoder<Tempest::CommandBuffer> &cmd, uint8_t fId);
 
     void   dbgLights(DbgPainter& p) const;
@@ -85,7 +84,6 @@ class LightGroup final {
 
     const zenkit::LightPreset& findPreset(std::string_view preset) const;
 
-    const SceneGlobals&              scene;
     std::vector<zenkit::LightPreset> presets;
 
     std::mutex                       sync;

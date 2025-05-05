@@ -463,7 +463,7 @@ void main() {
     pos.data[i+1] = floatBitsToUint(spherePos.y);
     pos.data[i+2] = floatBitsToUint(spherePos.z);
     pos.data[i+3] = sphereRadius;
-    pos.data[i+4] = 0;
+    pos.data[i+4] = vertCount;
 #else
     vec4  aabb     = vec4(0);
     float depthMax = 1;
