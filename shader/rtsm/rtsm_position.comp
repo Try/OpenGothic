@@ -307,6 +307,10 @@ Vertex processVertex(const Cluster cluster, const uint meshletId, const uint buc
   return ret;
   }
 
+float triangleArea(const vec2 da, const vec2 db) {
+  return db.x*da.y - db.y*da.x;
+  }
+
 void main() {
   const uint laneId = gl_LocalInvocationIndex;
 
