@@ -47,6 +47,9 @@ void mainCulling() {
   if(cluster.sphere.w<=0.f)
     return; // disabled or deleted
 
+  //if(cluster.instanceId!=0xFFFFFFFF)
+  //  return;
+
   if(!isClusterVisible(cluster, clusterId))
     return;
 

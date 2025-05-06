@@ -15,6 +15,7 @@ layout(binding = 1)         uniform texture2D   gbufDiffuse;
 layout(binding = 2)         uniform utexture2D  gbufNormal;
 layout(binding = 3)         uniform texture2D   depth;
 layout(binding = 4)         uniform texture2D   shadowmask;
+layout(binding = 5)         uniform texture2D   directLight;
 
 layout(location = 0) out vec4 outColor;
 
@@ -29,11 +30,14 @@ void main() {
 
   const vec4  diff        = texelFetch(gbufDiffuse, fragCoord, 0);
   const float shadow      = texelFetch(shadowmask, fragCoord, 0).r;
+  const vec3  localLights = texelFetch(directLight, fragCoord, 0).rgb;
   const float light       = 1;
 
   const vec3  illuminance = scene.sunColor * light * shadow;
   const vec3  linear      = textureAlbedo(diff.rgb);
   const vec3  luminance   = linear * Fd_Lambert * illuminance;
 
-  outColor = vec4(luminance * scene.exposure, 1);
+  const vec3  local       = linear * localLights;
+
+  outColor = vec4(luminance * scene.exposure + local, 1);
   }

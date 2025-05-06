@@ -25,6 +25,15 @@ vec4 pullMeshAabb(uint ptr) {
   return aabb;
   }
 
+vec4 pullMeshSphere(uint ptr) {
+  vec4  sphere;
+  sphere.x   = uintBitsToFloat(pos.data[ptr+0]);
+  sphere.y   = uintBitsToFloat(pos.data[ptr+1]);
+  sphere.z   = uintBitsToFloat(pos.data[ptr+2]);
+  sphere.w   = uintBitsToFloat(pos.data[ptr+3]);
+  return sphere;
+  }
+
 float pullMeshDepthMax(uint ptr) {
   return uintBitsToFloat(pos.data[ptr+4]);
   }

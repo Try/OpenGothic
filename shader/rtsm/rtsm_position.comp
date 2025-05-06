@@ -301,7 +301,7 @@ void updateMeshBSphere(uint vertCount) {
   if(laneID==0) {
     const vec3 a = orderedUintToFloat(meshBboxMin);
     const vec3 b = orderedUintToFloat(meshBboxMax);
-    spherePos = (a-b)*0.5;
+    spherePos = (a+b)*0.5;
     }
   barrier();
 

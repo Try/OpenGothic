@@ -109,8 +109,10 @@ void main() {
   if(id>=lightsTotal)
     return;
 
-  //if(id+1!=lightsTotal)
-  //  return;
+#if 1
+  if(id+1!=lightsTotal)
+    return;
+#endif
 
   const vec4 light = vec4(lights[id].pos, lights[id].range);
   if(!frustrumTest(light))

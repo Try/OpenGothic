@@ -221,8 +221,8 @@ void Renderer::resetSwapchain() {
     }
 
   if(settings.rtsmEnabled) {
-    rtsm.outputImage    = device.image2d(TextureFormat::R8,    w, h);
-    rtsm.outputImageClr = device.image2d(TextureFormat::RGBA8, w, h);
+    rtsm.outputImage    = device.image2d(TextureFormat::R8,          w, h);
+    //rtsm.outputImageClr = device.image2d(TextureFormat::R11G11B10UF, w, h);
     }
 
   resetSkyFog();
@@ -1254,8 +1254,8 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   if(!settings.rtsmEnabled)
     return;
 
-  static bool omniLights = false;
-  if(!omniLights)
+  static bool omniLights = true;
+  if(!omniLights || rtsm.outputImageClr.isEmpty())
     return;
 
   auto& device   = Resources::device();
@@ -1513,6 +1513,7 @@ void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, const WorldView& w
     }
   else if(shadow.directLightPso==&shaders.rtsmDirectLight) {
     cmd.setBinding(4, rtsm.outputImage);
+    cmd.setBinding(5, rtsm.outputImageClr.isEmpty() ? Resources::fallbackBlack() : textureCast<Texture2d&>(rtsm.outputImageClr));
     }
   else {
     for(size_t r=0; r<Resources::ShadowLayers; ++r) {
@@ -1533,6 +1534,9 @@ void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, const WorldView& w
 void Renderer::drawLights(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
   static bool light = true;
   if(!light)
+    return;
+
+  if(settings.rtsmEnabled && !rtsm.outputImageClr.isEmpty())
     return;
 
   auto& scene   = wview.sceneGlobals();
