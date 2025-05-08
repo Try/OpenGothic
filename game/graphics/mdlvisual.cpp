@@ -463,6 +463,12 @@ void MdlVisual::setTorch(bool t, World& owner) {
   torch.view.reset(new ObjVisual());
   torch.view->setVisual(*hitem,owner,false);
   torch.boneId = (skeleton==nullptr ? size_t(-1) : skeleton->findNode("ZS_LEFTHAND"));
+
+  auto& pose = *skInst;
+  auto  p    = pos;
+  if(torch.boneId<pose.boneCount())
+    p = pose.bone(torch.boneId);
+  torch.view->setObjMatrix(p);
   }
 
 bool MdlVisual::isUsingTorch() const {
