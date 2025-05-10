@@ -222,7 +222,7 @@ void Renderer::resetSwapchain() {
 
   if(settings.rtsmEnabled) {
     rtsm.outputImage    = device.image2d(TextureFormat::R8,          w, h);
-    //rtsm.outputImageClr = device.image2d(TextureFormat::R11G11B10UF, w, h);
+    rtsm.outputImageClr = device.image2d(TextureFormat::R11G11B10UF, w, h);
     }
 
   resetSkyFog();
@@ -1272,6 +1272,12 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     if(rtsm.visibleLights.byteSize()!=shaders.rtsmClearOmni.sizeofBuffer(1, wview.lights().size())) {
       Resources::recycle(std::move(rtsm.visibleLights));
       rtsm.visibleLights = device.ssbo(nullptr, shaders.rtsmClearOmni.sizeofBuffer(1, wview.lights().size()));
+
+      Resources::recycle(std::move(rtsm.meshBinsOmni));
+      rtsm.meshBinsOmni = device.image2d(TextureFormat::R32U, uint32_t(wview.lights().size()), 1u);
+
+      Resources::recycle(std::move(rtsm.primBinsOmni));
+      rtsm.primBinsOmni = device.image2d(TextureFormat::R32U, uint32_t(wview.lights().size()), 1u);
       }
   }
 
@@ -1332,12 +1338,15 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.setBinding(0, sceneUbo);
     cmd.setBinding(1, wview.lights().lightsSsbo());
     cmd.setBinding(2, rtsm.visibleLights);
-    // cmd.setBinding(3, rtsm.visList);
-    // cmd.setBinding(4, hiz.hiZ);
+    cmd.setBinding(3, rtsm.meshBinsOmni);
+    cmd.setBinding(4, rtsm.primBinsOmni);
     cmd.setBinding(5, clusters.ssbo());
     cmd.setBinding(6, rtsm.posList);
 
     cmd.setPipeline(shaders.rtsmMeshletOmni);
+    cmd.dispatchIndirect(rtsm.visibleLights, 0);
+
+    cmd.setPipeline(shaders.rtsmPrimOmni);
     cmd.dispatchIndirect(rtsm.visibleLights, 0);
   }
 
@@ -1353,10 +1362,31 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.setBinding(4, rtsm.posList);
     cmd.setBinding(5, wview.lights().lightsSsbo());
     cmd.setBinding(6, rtsm.visibleLights);
+    cmd.setBinding(7, rtsm.primBinsOmni);
+    //cmd.setBinding(8, rtsm.dbg);
+    cmd.setBinding(9, rtsm.dbg);
 
     cmd.setPipeline(shaders.rtsmRasterOmni);
     cmd.dispatchThreads(rtsm.outputImageClr.size());
   }
+
+  if(0) {
+    // raster (ref)
+    struct Push { Vec3 originLwc; } push = {};
+    push.originLwc  = scene.originLwc;
+    cmd.setPushData(push);
+    cmd.setBinding(0, rtsm.outputImageClr);
+    cmd.setBinding(1, sceneUbo);
+    cmd.setBinding(2, gbufNormal);
+    cmd.setBinding(3, zbuffer);
+    cmd.setBinding(4, rtsm.posList);
+    cmd.setBinding(5, wview.lights().lightsSsbo());
+    cmd.setBinding(6, rtsm.visibleLights);
+    cmd.setBinding(7, rtsm.meshBinsOmni);
+
+    cmd.setPipeline(shaders.rtsmRenderingOmni);
+    cmd.dispatchThreads(rtsm.outputImageClr.size());
+    }
   }
 
 void Renderer::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {

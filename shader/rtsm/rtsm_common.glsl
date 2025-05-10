@@ -31,7 +31,7 @@ struct LightId {
   uint id;
   uint aabb_low;
   uint aabb_high;
-  uint numMeshlets;
+  uint ptr;
   };
 
 // utility

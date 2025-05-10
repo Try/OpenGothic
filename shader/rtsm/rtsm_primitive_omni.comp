@@ -1,0 +1,112 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+#include "rtsm/rtsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 512) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+layout(binding = 0, std140) uniform  UboScene    { SceneDesc   scene;                    };
+layout(binding = 1, std430) readonly buffer Lbo  { LightSource lights[];                 };
+layout(binding = 2, std430)          buffer VId  { uvec4       count;   LightId data[];  } vLights;
+layout(binding = 3)         uniform  utexture2D  meshBinsOmni;
+layout(binding = 4, rg32ui) uniform  uimage2D    primBinsOmni;
+layout(binding = 5, std430) readonly buffer Cbo  { Cluster     clusters[];               };
+layout(binding = 6, std430)          buffer Pos  { uint        alloc;  uint  data[];     } pos;
+
+#include "rtsm/rtsm_scratch.glsl"
+
+shared uint numPrimitives;
+shared uint primListPtr;
+
+void storeBin(uint lightId, uint ptr, uint num) {
+  if(gl_LocalInvocationIndex!=0)
+    return;
+  if(ptr==NULL)
+    num = 0;
+  vLights.data[lightId].ptr = ptr;
+  imageStore(primBinsOmni, ivec2(lightId,0), ivec4(num,0,0,0));
+  }
+
+uint packPrimitiveId(uint meshlet, uint prim) {
+  return (meshlet << 8) | prim;
+  }
+
+bool isPrimitiveVisible(const uint ptr, const uint primId, const LightSource lx) {
+  uint ptrM = ptr;
+
+  ptrM += MeshletHeaderSize;
+  const uvec3 tri = pullPrimitive(ptrM, primId);
+
+  ptrM += MaxPrim;
+  const vec3  a   = pullVertex(ptrM, tri.x);
+  const vec3  b   = pullVertex(ptrM, tri.y);
+  const vec3  c   = pullVertex(ptrM, tri.z);
+
+  vec4 plane;
+  plane.xyz = normalize(cross(b - a, c - a));
+  plane.w   = dot(plane.xyz, a);
+
+  if(dot(plane, vec4(lx.pos,-1))<0)
+    return false;
+  return true;
+  }
+
+void processMeshletPrimitives(const uint ptr, const uint primCount, const uint primId, const LightSource lx, const bool counting) {
+  if(primId>=primCount)
+    return;
+
+  if(!isPrimitiveVisible(ptr, primId, lx))
+    return;
+
+  const uint id = atomicAdd(numPrimitives, 1);
+  if(!counting)
+    pos.data[primListPtr + id] = packPrimitiveId(ptr, primId);
+  }
+
+void traceBin(const uint tilePtr, const uint visCount, const LightSource lx, bool counting) {
+  const uint  laneID      = gl_LocalInvocationIndex;
+  const uint  primPerStep = 32;
+  const uint  meshPerStep = NumThreads / primPerStep;
+
+  numPrimitives = 0;
+  barrier();
+
+  for(uint i=(laneID/primPerStep); i<visCount; i+=meshPerStep) {
+    const uint laneMs  = laneID % primPerStep;
+    const uint ptr     = pos.data[tilePtr + i];
+    const uint primCnt = pullPrimitiveCount(ptr);
+
+    for(uint r=laneMs; r<MaxPrim; r+=primPerStep)
+      processMeshletPrimitives(ptr, primCnt, r, lx, counting);
+    }
+  }
+
+void main() {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  const LightId     lId = vLights.data[gl_WorkGroupID.x];
+  const LightSource lx  = lights[lId.id];
+
+  const uint ptr         = lId.ptr;
+  const uint numMeshlets = texelFetch(meshBinsOmni, ivec2(gl_WorkGroupID.x,0), 0).x;
+
+  traceBin(ptr, numMeshlets, lx, true);
+  barrier();
+
+  if(laneID==0)
+    primListPtr = allocScratch(numPrimitives);
+  barrier();
+
+  storeBin(gl_WorkGroupID.x, primListPtr, numPrimitives);
+  if(primListPtr==NULL)
+    return; //OOM
+
+  traceBin(ptr, numMeshlets, lx, false);
+  }

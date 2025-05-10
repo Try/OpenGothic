@@ -226,6 +226,8 @@ class Renderer final {
       Tempest::StorageImage     primBins;
 
       Tempest::StorageBuffer    visibleLights;
+      Tempest::StorageImage     meshBinsOmni;
+      Tempest::StorageImage     primBinsOmni;
 
       Tempest::StorageImage     dbg, dbg16, dbg8;
       } rtsm;
