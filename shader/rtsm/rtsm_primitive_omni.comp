@@ -58,6 +58,37 @@ bool isPrimitiveVisible(const uint ptr, const uint primId, const LightSource lx)
   return true;
   }
 
+uint checkFlatPlane(float a, float b, float c) {
+  uint ret = 0;
+  if(a<0 || b<0 || c<0)
+    ret |= 0x1;
+  if(a>0 || b>0 || c>0)
+    ret |= 0x2;
+  return ret;
+  }
+
+uint primitiveVisibilityBits(const vec3 a, const vec3 b, const vec3 c) {
+  uint ret = 0;
+  ret |= checkFlatPlane(a.x, b.x, c.x) << 0;
+  ret |= checkFlatPlane(a.y, b.y, c.y) << 2;
+  ret |= checkFlatPlane(a.z, b.z, c.z) << 4;
+  return ret;
+  }
+
+uint primitiveVisibilityBits(const uint ptr, const uint primId, const LightSource lx) {
+  uint ptrM = ptr;
+
+  ptrM += MeshletHeaderSize;
+  const uvec3 tri = pullPrimitive(ptrM, primId);
+
+  ptrM += MaxPrim;
+  const vec3  a   = pullVertex(ptrM, tri.x);
+  const vec3  b   = pullVertex(ptrM, tri.y);
+  const vec3  c   = pullVertex(ptrM, tri.z);
+
+  return primitiveVisibilityBits(a - lx.pos, b - lx.pos, c - lx.pos);
+  }
+
 void processMeshletPrimitives(const uint ptr, const uint primCount, const uint primId, const LightSource lx, const bool counting) {
   if(primId>=primCount)
     return;
@@ -66,8 +97,10 @@ void processMeshletPrimitives(const uint ptr, const uint primCount, const uint p
     return;
 
   const uint id = atomicAdd(numPrimitives, 1);
-  if(!counting)
-    pos.data[primListPtr + id] = packPrimitiveId(ptr, primId);
+  if(!counting) {
+    pos.data[primListPtr + id*2 + 0] = primitiveVisibilityBits(ptr, primId, lx);
+    pos.data[primListPtr + id*2 + 1] = packPrimitiveId(ptr, primId);
+    }
   }
 
 void traceBin(const uint tilePtr, const uint visCount, const LightSource lx, bool counting) {
@@ -101,7 +134,7 @@ void main() {
   barrier();
 
   if(laneID==0)
-    primListPtr = allocScratch(numPrimitives);
+    primListPtr = allocScratch(numPrimitives*2);
   barrier();
 
   storeBin(gl_WorkGroupID.x, primListPtr, numPrimitives);

@@ -874,7 +874,7 @@ void Renderer::drawRtsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   cmd.setDebugMarker("RTSM-dbg");
 #if 1
-  cmd.setBinding(0, rtsm.dbg);
+  cmd.setBinding(0, rtsm.dbg16);
 #else
   cmd.setBinding(0, rtsm.primBins);
   cmd.setBinding(1, rtsm.posList);
@@ -1364,7 +1364,7 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.setBinding(6, rtsm.visibleLights);
     cmd.setBinding(7, rtsm.primBinsOmni);
     //cmd.setBinding(8, rtsm.dbg);
-    cmd.setBinding(9, rtsm.dbg);
+    cmd.setBinding(9, rtsm.dbg16);
 
     cmd.setPipeline(shaders.rtsmRasterOmni);
     cmd.dispatchThreads(rtsm.outputImageClr.size());

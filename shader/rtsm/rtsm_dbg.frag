@@ -40,7 +40,7 @@ float drawInt(in vec2 where, in int n) {
 
 void main() {
   ivec2 fragCoord = ivec2(gl_FragCoord.xy);
-  ivec2 tileSz    = ivec2(RTSM_BIN_SIZE);
+  ivec2 tileSz    = ivec2(16);
   ivec2 tileId    = ivec2(gl_FragCoord.xy)/tileSz;
 
 #if 1

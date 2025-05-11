@@ -49,6 +49,25 @@ vec3  light     = vec3(0);
 
 uint primCnt = 0; //counter
 
+shared uint visBits;
+
+uint checkFlatPlane(float a) {
+  uint ret = 0;
+  if(a<0)
+    ret |= 0x1;
+  if(a>0)
+    ret |= 0x2;
+  return ret;
+  }
+
+uint primitiveVisibilityBits(const vec3 a) {
+  uint ret = 0;
+  ret |= checkFlatPlane(a.x) << 0;
+  ret |= checkFlatPlane(a.y) << 2;
+  ret |= checkFlatPlane(a.z) << 4;
+  return ret;
+  }
+
 vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 v0, const vec3 v1, const vec3 v2) {
   const vec3  e1    = v1 - v0;
   const vec3  e2    = v2 - v0;
@@ -146,10 +165,12 @@ float tracePacket(const uvec2 tileHeader, const vec3 origin, const vec3 dir, con
   const uint  steps         = (numPrimitives + MaxChunk - 1)/MaxChunk;
 
   inactiveRays = 0;
+  visBits      = 0;
   barrier();
 
   if(opacity<=minOpacity)
-    atomicAdd(inactiveRays, 1);
+    atomicAdd(inactiveRays, 1); else
+    atomicOr(visBits, primitiveVisibilityBits(dir));
   barrier();
 
   for(uint s=0; s<numPrimitives; s+=MaxChunk) {
@@ -159,8 +180,12 @@ float tracePacket(const uvec2 tileHeader, const vec3 origin, const vec3 dir, con
     numLocalPrim = 0;
     barrier();
     const uint i = s + laneID;
-    if(i<numPrimitives && laneID<MaxChunk)
-      pullPrimitives(pos.data[tileHeader.x + i]);
+    if(i<numPrimitives && laneID<MaxChunk) {
+      const uint mask = pos.data[tileHeader.x + i*2 + 0];
+      const uint ptr  = pos.data[tileHeader.x + i*2 + 1];
+      if((mask & visBits)!=0)
+        pullPrimitives(ptr);
+      }
     barrier();
 
     primCnt += numLocalPrim;
