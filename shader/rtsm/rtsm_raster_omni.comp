@@ -49,30 +49,11 @@ vec3  light     = vec3(0);
 
 uint primCnt = 0; //counter
 
-shared uint visBits;
-
-uint checkFlatPlane(float a) {
-  uint ret = 0;
-  if(a<0)
-    ret |= 0x1;
-  if(a>0)
-    ret |= 0x2;
-  return ret;
-  }
-
-uint primitiveVisibilityBits(const vec3 a) {
-  uint ret = 0;
-  ret |= checkFlatPlane(a.x) << 0;
-  ret |= checkFlatPlane(a.y) << 2;
-  ret |= checkFlatPlane(a.z) << 4;
-  return ret;
-  }
-
 vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 v0, const vec3 v1, const vec3 v2) {
   const vec3  e1    = v1 - v0;
   const vec3  e2    = v2 - v0;
   const vec3  s1    = cross(raydir, e2 );
-  const float denom = dot( s1, e1 );
+  const float denom = dot(s1, e1);
 
   if(denom <= 0.0)
     return vec3(-1);    // This ray is parallel to this triangle.
@@ -94,6 +75,27 @@ vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 v0, const 
   return vec3(t0, b);
   }
 
+vec4 rayTriangleIntersect(const vec3 origin, const vec3 raydir, const vec3 v0, const vec3 v1, const vec3 v2) {
+  const vec3  e1    = v1 - v0;
+  const vec3  e2    = v2 - v0;
+  const vec3  s1    = cross(raydir, e2 );
+  const float denom = dot(s1, e1);
+
+  if(denom <= 0.0)
+    return vec4(-1);    // This ray is parallel to this triangle.
+
+  const float invDemom = 1.0 / denom;
+  const vec3  d = origin - v0;
+  vec2  b;
+  b.x = dot( d, s1 ) * invDemom;
+
+  vec3 s2 = cross( d, e1 );
+  b.y     = dot(raydir, s2 ) * invDemom;
+
+  float t0 = dot(e2, s2) * invDemom;
+  return vec4(t0, b, denom);
+  }
+
 float lightIntensity(const vec3 normal, const float distance, const vec3 ldir, const float lrange) {
   const float distanceSquare = (distance * distance);
   const float factor         = distanceSquare / (lrange * lrange);
@@ -106,13 +108,126 @@ float lightIntensity(const vec3 normal, const float distance, const vec3 ldir, c
   return lx * Fd_Lambert * 0.1;
   }
 
+uint rayToFace(vec3 d) {
+  const vec3 ad = abs(d);
+  if(ad.x > ad.y && ad.x > ad.z)
+    return d.x>=0 ? 0 : 1;
+  if(ad.y > ad.x && ad.y > ad.z)
+    return d.y>=0 ? 2 : 3;
+  if(ad.z > ad.x && ad.z > ad.y)
+    return d.z>=0 ? 4 : 5;
+  return 0;
+  }
+
+vec3 rayToFace(vec3 pos, uint face) {
+  // cubemap-face
+  switch(face) {
+    case 0: pos = vec3(pos.yz, +pos.x); break;
+    case 1: pos = vec3(pos.zy, -pos.x); break;
+    case 2: pos = vec3(pos.zx, +pos.y); break;
+    case 3: pos = vec3(pos.xz, -pos.y); break;
+    case 4: pos = vec3(pos.xy, +pos.z); break;
+    case 5: pos = vec3(pos.yx, -pos.z); break;
+    }
+  return pos;
+  }
+
+vec3 faceToRay(vec2 f, uint face) {
+  vec3 pos = vec3(f.xy, sqrt(1.0 - dot(f.xy, f.xy)));
+  switch(face) {
+    case 0: pos = vec3(+pos.z, pos.xy); break;
+    case 1: pos = vec3(-pos.z, pos.yx); break;
+    case 2: pos = vec3(pos.y, +pos.z, pos.x); break;
+    case 3: pos = vec3(pos.x, -pos.z, pos.y); break;
+    case 4: pos = vec3(pos.xy, +pos.z); break;
+    case 5: pos = vec3(pos.yx, -pos.z); break;
+    }
+  return pos;
+  }
+
+shared uint  cubeFaces;
+shared uvec4 bbox[6];
+void rayBboxses(const vec3 ray, bool activeRay) {
+  const uint  laneID = gl_LocalInvocationIndex;
+
+  cubeFaces = 0;
+  if(laneID<bbox.length())
+    bbox[laneID] = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
+  barrier();
+
+  const uint face = rayToFace(ray);
+  if(activeRay)
+    atomicOr(cubeFaces, 1u<<face);
+  barrier();
+
+  if(activeRay) {
+    const uint id = face;
+    const vec3 rf = rayToFace(ray, face);
+#if 1
+    atomicMin(bbox[id].x, floatToOrderedUint(rf.x));
+    atomicMin(bbox[id].y, floatToOrderedUint(rf.y));
+    atomicMax(bbox[id].z, floatToOrderedUint(rf.x));
+    atomicMax(bbox[id].w, floatToOrderedUint(rf.y));
+#else
+    atomicMin(bbox[id].x, floatToOrderedUint(-1));
+    atomicMin(bbox[id].y, floatToOrderedUint(-1));
+    atomicMax(bbox[id].z, floatToOrderedUint(+1));
+    atomicMax(bbox[id].w, floatToOrderedUint(+1));
+#endif
+    }
+  barrier();
+
+  if(laneID<bbox.length() && (cubeFaces & (1 << laneID))!=0)
+    bbox[laneID] = floatBitsToUint(orderedUintToFloat(bbox[laneID]));
+  }
+
+bool isPrimitiveVisible(const vec3 origin, vec3 a, vec3 b, vec3 c, uint face) {
+  const vec4 aabb = uintBitsToFloat(bbox[face]);
+
+  vec4 fa = rayTriangleIntersect(origin, faceToRay(vec2(aabb.xy), face), a, b, c);
+  vec4 fb = rayTriangleIntersect(origin, faceToRay(vec2(aabb.zy), face), a, b, c);
+  vec4 fc = rayTriangleIntersect(origin, faceToRay(vec2(aabb.xw), face), a, b, c);
+  vec4 fd = rayTriangleIntersect(origin, faceToRay(vec2(aabb.zw), face), a, b, c);
+
+  if(fa.y < 0.0 && fb.y < 0.0 && fc.y < 0.0 && fd.y < 0.0)
+    return false;
+
+  if(fa.z < 0.0 && fb.z < 0.0 && fc.z < 0.0 && fd.z < 0.0)
+    return false;
+
+  fa.y += fa.z;
+  fb.y += fb.z;
+  fc.y += fc.z;
+  fd.y += fd.z;
+
+  if((fa.y > 1.0) && (fb.y  > 1.0) && (fc.y > 1.0) && (fd.y > 1.0))
+    return false;
+
+  float mindist = min(min(fa.x, fb.x), min(fc.x, fd.x));
+  return mindist > 0.0 ? true : false;
+  return true;
+  }
+
+bool isPrimitiveVisible(const vec3 origin, vec3 a, vec3 b, vec3 c) {
+  if(cubeFaces==0)
+    return false;
+
+  for(uint face=0; face<bbox.length(); ++face) {
+    if((cubeFaces & (1u << face))==0)
+      continue;
+    if(isPrimitiveVisible(origin, a, b, c, face))
+      return true;
+    }
+  return false;
+  }
+
 const  uint  MaxChunk = NumThreads/2;
 shared vec3  meshVertices   [MaxChunk*3];
 shared uint  meshVertexUV   [MaxChunk*3];
 shared uint  primitiveBucket[MaxChunk];
 shared uint  numLocalPrim;
 
-void pullPrimitives(const uint pkg) {
+void pullPrimitives(const vec3 origin, const uint pkg) {
   const uint  laneID = gl_LocalInvocationIndex;
 
   const uint  ptr  = (pkg >> 8);
@@ -120,13 +235,20 @@ void pullPrimitives(const uint pkg) {
   const uvec4 tri  = pullPrimitiveFull(ptr+MeshletHeaderSize, pId);
   const uint  ptrV = ptr + MeshletHeaderSize + MaxPrim;
 
+  //FIXME: register pressure
+  const vec3 a = pullVertex(ptrV, tri.x);
+  const vec3 b = pullVertex(ptrV, tri.y);
+  const vec3 c = pullVertex(ptrV, tri.z);
+
+  if(!isPrimitiveVisible(origin,a,b,c))
+    return;
+
   const uint  id       = atomicAdd(numLocalPrim, 1);
   primitiveBucket[id]  = packUint2x16(uvec2(tri.w, pullMeshBucketId(ptr)));
 
-  //FIXME: register pressure
-  meshVertices[id*3+0] = pullVertex(ptrV, tri.x);
-  meshVertices[id*3+1] = pullVertex(ptrV, tri.y);
-  meshVertices[id*3+2] = pullVertex(ptrV, tri.z);
+  meshVertices[id*3+0] = a;
+  meshVertices[id*3+1] = b;
+  meshVertices[id*3+2] = c;
 
   meshVertexUV[id*3+0] = pullVertexUV(ptrV, tri.x);
   meshVertexUV[id*3+1] = pullVertexUV(ptrV, tri.y);
@@ -145,8 +267,8 @@ float rasterBatch(const vec3 origin, const vec3 dir, const float tMax, float opa
     const vec3  a = meshVertices[id*3+0];
     const vec3  b = meshVertices[id*3+1];
     const vec3  c = meshVertices[id*3+2];
-    const vec3  t = rayTriangleTest(origin, dir, a, b, c);
-    if(!(tMin<t.x && t.x<tMax))
+    const float t = rayTriangleTest(origin, dir, a, b, c).x;
+    if(!(tMin<t && t<tMax))
       continue;
     opacity = 0;
     break;
@@ -165,12 +287,11 @@ float tracePacket(const uvec2 tileHeader, const vec3 origin, const vec3 dir, con
   const uint  steps         = (numPrimitives + MaxChunk - 1)/MaxChunk;
 
   inactiveRays = 0;
-  visBits      = 0;
+  rayBboxses(dir, !(opacity<=minOpacity));
   barrier();
 
   if(opacity<=minOpacity)
-    atomicAdd(inactiveRays, 1); else
-    atomicOr(visBits, primitiveVisibilityBits(dir));
+    atomicAdd(inactiveRays, 1);
   barrier();
 
   for(uint s=0; s<numPrimitives; s+=MaxChunk) {
@@ -179,12 +300,11 @@ float tracePacket(const uvec2 tileHeader, const vec3 origin, const vec3 dir, con
 
     numLocalPrim = 0;
     barrier();
+
     const uint i = s + laneID;
     if(i<numPrimitives && laneID<MaxChunk) {
-      const uint mask = pos.data[tileHeader.x + i*2 + 0];
-      const uint ptr  = pos.data[tileHeader.x + i*2 + 1];
-      if((mask & visBits)!=0)
-        pullPrimitives(ptr);
+      const uint ptr  = pos.data[tileHeader.x + i];
+      pullPrimitives(origin, ptr);
       }
     barrier();
 
@@ -193,21 +313,29 @@ float tracePacket(const uvec2 tileHeader, const vec3 origin, const vec3 dir, con
     barrier();
     }
 
+  // primCnt = visBits;
+
   if(opacity<=minOpacity)
     return 0;
   return opacity;
   }
 
-void processLight(const vec3 origin, const vec3 normal, const LightId lId, const uint numMeshlets) {
+void processLight(const vec3 wpos, const vec3 normal, const LightId lId, const uint numMeshlets) {
   const LightSource src      = lights[lId.id];
   const uint        tilePtr  = lId.ptr;
-  const vec3        distance = origin-src.pos;
+  const vec3        distance = wpos-src.pos;
 
   const float       tMax     = length(distance);
   const vec3        ldir     = distance/tMax;
   float             lpow     = lightIntensity(normal, tMax, ldir, src.range);
 
   lpow = tracePacket(uvec2(tilePtr, numMeshlets), src.pos, ldir, tMax-1, lpow);
+
+  const uint face = rayToFace(ldir);
+  if(false) {
+    light = lpow * vec3(0,1,0);
+    return;
+    }
 
   light += vec3(lpow * src.color);
   }
