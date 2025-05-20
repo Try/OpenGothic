@@ -48,7 +48,7 @@ void mainCulling() {
     return; // disabled or deleted
 
   if(cluster.instanceId==0xFFFFFFFF)
-    return;
+    ;//return;
 
   if(!isClusterVisible(cluster, clusterId))
     return;

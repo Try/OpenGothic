@@ -15,7 +15,7 @@
 
 #define TRANSLUCENCY 1
 
-layout(local_size_x = 16, local_size_y = 16) in;
+layout(local_size_x = 32, local_size_y = 32) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
@@ -52,48 +52,25 @@ uint primCnt = 0; //counter
 vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 v0, const vec3 v1, const vec3 v2) {
   const vec3  e1    = v1 - v0;
   const vec3  e2    = v2 - v0;
-  const vec3  s1    = cross(raydir, e2 );
+  const vec3  s1    = cross(raydir, e2);
   const float denom = dot(s1, e1);
 
   if(denom <= 0.0)
-    return vec3(-1);    // This ray is parallel to this triangle.
+    return vec3(-1);
 
   const float invDemom = 1.0 / denom;
-  const vec3  d = origin - v0;
-  vec2  b;
-  b.x = dot( d, s1 ) * invDemom;
+  const vec3  d        = origin - v0;
+  const vec3  s2       = cross(d, e1);
 
-  vec3 s2 = cross( d, e1 );
-  b.y     = dot(raydir, s2 ) * invDemom;
+  const float u = dot(d,      s1) * invDemom;
+  const float v = dot(raydir, s2) * invDemom;
 
-  float t0 = dot(e2, s2) * invDemom;
-
-  if(( b.x < 0.0f ) || ( b.x > 1.0f ) || ( b.y < 0.0f ) || ( b.x + b.y > 1.0f )) {
+  if(( u < 0.0f ) || ( u > 1.0f ) || ( v < 0.0f ) || ( u + v > 1.0f )) {
     return vec3(-1);
     }
 
-  return vec3(t0, b);
-  }
-
-vec4 rayTriangleIntersect(const vec3 origin, const vec3 raydir, const vec3 v0, const vec3 v1, const vec3 v2) {
-  const vec3  e1    = v1 - v0;
-  const vec3  e2    = v2 - v0;
-  const vec3  s1    = cross(raydir, e2 );
-  const float denom = dot(s1, e1);
-
-  if(denom <= 0.0)
-    return vec4(-1);    // This ray is parallel to this triangle.
-
-  const float invDemom = 1.0 / denom;
-  const vec3  d = origin - v0;
-  vec2  b;
-  b.x = dot( d, s1 ) * invDemom;
-
-  vec3 s2 = cross( d, e1 );
-  b.y     = dot(raydir, s2 ) * invDemom;
-
   float t0 = dot(e2, s2) * invDemom;
-  return vec4(t0, b, denom);
+  return vec3(t0, u, v);
   }
 
 float lightIntensity(const vec3 normal, const float distance, const vec3 ldir, const float lrange) {
@@ -129,11 +106,13 @@ vec3 rayToFace(vec3 pos, uint face) {
     case 4: pos = vec3(pos.xy, +pos.z); break;
     case 5: pos = vec3(pos.yx, -pos.z); break;
     }
+  pos.xy /= pos.z;
   return pos;
   }
 
-vec3 faceToRay(vec2 f, uint face) {
-  vec3 pos = vec3(f.xy, sqrt(1.0 - dot(f.xy, f.xy)));
+vec3 faceToRay(vec2 xy, uint face) {
+  //vec3 pos = vec3(xy, sqrt(1.0 - dot(xy, xy)));
+  vec3 pos = normalize(vec3(xy, 1.0));
   switch(face) {
     case 0: pos = vec3(+pos.z, pos.xy); break;
     case 1: pos = vec3(-pos.z, pos.yx); break;
@@ -181,37 +160,58 @@ void rayBboxses(const vec3 ray, bool activeRay) {
     bbox[laneID] = floatBitsToUint(orderedUintToFloat(bbox[laneID]));
   }
 
+vec4 rayTriangleIntersect(const vec3 origin, const vec3 raydir, const vec3 v0, const vec3 v1, const vec3 v2) {
+  const vec3  e1    = v1 - v0;
+  const vec3  e2    = v2 - v0;
+  const vec3  s1    = cross(raydir, e2);
+  const float denom = dot(s1, e1);
+
+  if(denom < 0.0)
+    return vec4(-1);
+
+  if(abs(denom) < 0.00001)
+    return vec4(0); // This ray is parallel to this triangle.
+
+  const float invDemom = 1.0 / denom;
+  const vec3  d        = origin - v0;
+  const vec3  s2       = cross(d, e1);
+
+  const float u = dot(d,      s1) * invDemom;
+  const float v = dot(raydir, s2) * invDemom;
+
+  float t0 = dot(e2, s2) * invDemom;
+  return vec4(t0, u, v, denom);
+  }
+
 bool isPrimitiveVisible(const vec3 origin, vec3 a, vec3 b, vec3 c, uint face) {
+  a -= origin;
+  b -= origin;
+  c -= origin;
+
   const vec4 aabb = uintBitsToFloat(bbox[face]);
+  const vec3 fa = faceToRay(vec2(aabb.xy), face);
+  const vec3 fb = faceToRay(vec2(aabb.zy), face);
+  const vec3 fc = faceToRay(vec2(aabb.zw), face);
+  const vec3 fd = faceToRay(vec2(aabb.xw), face);
 
-  vec4 fa = rayTriangleIntersect(origin, faceToRay(vec2(aabb.xy), face), a, b, c);
-  vec4 fb = rayTriangleIntersect(origin, faceToRay(vec2(aabb.zy), face), a, b, c);
-  vec4 fc = rayTriangleIntersect(origin, faceToRay(vec2(aabb.xw), face), a, b, c);
-  vec4 fd = rayTriangleIntersect(origin, faceToRay(vec2(aabb.zw), face), a, b, c);
+  const vec3 p0 = cross(fa, fb);
+  const vec3 p1 = cross(fb, fc);
+  const vec3 p2 = cross(fc, fd);
+  const vec3 p3 = cross(fd, fa);
 
-  if(fa.y < 0.0 && fb.y < 0.0 && fc.y < 0.0 && fd.y < 0.0)
+  if(dot(a, p0)<0 && dot(b, p0)<0 && dot(c, p0)<0)
+    return false;
+  if(dot(a, p1)<0 && dot(b, p1)<0 && dot(c, p1)<0)
+    return false;
+  if(dot(a, p2)<0 && dot(b, p2)<0 && dot(c, p2)<0)
+    return false;
+  if(dot(a, p3)<0 && dot(b, p3)<0 && dot(c, p3)<0)
     return false;
 
-  if(fa.z < 0.0 && fb.z < 0.0 && fc.z < 0.0 && fd.z < 0.0)
-    return false;
-
-  fa.y += fa.z;
-  fb.y += fb.z;
-  fc.y += fc.z;
-  fd.y += fd.z;
-
-  if((fa.y > 1.0) && (fb.y  > 1.0) && (fc.y > 1.0) && (fd.y > 1.0))
-    return false;
-
-  float mindist = min(min(fa.x, fb.x), min(fc.x, fd.x));
-  return mindist > 0.0 ? true : false;
   return true;
   }
 
 bool isPrimitiveVisible(const vec3 origin, vec3 a, vec3 b, vec3 c) {
-  if(cubeFaces==0)
-    return false;
-
   for(uint face=0; face<bbox.length(); ++face) {
     if((cubeFaces & (1u << face))==0)
       continue;
@@ -287,8 +287,11 @@ float tracePacket(const uvec2 tileHeader, const vec3 origin, const vec3 dir, con
   const uint  steps         = (numPrimitives + MaxChunk - 1)/MaxChunk;
 
   inactiveRays = 0;
-  rayBboxses(dir, !(opacity<=minOpacity));
+  rayBboxses(dir, opacity>0);
   barrier();
+
+  if(cubeFaces==0)
+    return opacity;
 
   if(opacity<=minOpacity)
     atomicAdd(inactiveRays, 1);
@@ -333,7 +336,8 @@ void processLight(const vec3 wpos, const vec3 normal, const LightId lId, const u
 
   const uint face = rayToFace(ldir);
   if(false) {
-    light = lpow * vec3(0,1,0);
+    //light = lpow * debugColors[ldir.y>0 ? 2 : 1];
+    light = lpow * debugColors[face];
     return;
     }
 

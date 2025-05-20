@@ -1353,7 +1353,7 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   {
     // raster
     struct Push { Vec3 originLwc; } push = {};
-    push.originLwc  = scene.originLwc;
+    push.originLwc = scene.originLwc;
     cmd.setPushData(push);
     cmd.setBinding(0, rtsm.outputImageClr);
     cmd.setBinding(1, sceneUbo);
@@ -1364,7 +1364,7 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.setBinding(6, rtsm.visibleLights);
     cmd.setBinding(7, rtsm.primBinsOmni);
     //cmd.setBinding(8, rtsm.dbg);
-    cmd.setBinding(9, rtsm.dbg16);
+    cmd.setBinding(9, rtsm.dbg);
 
     cmd.setPipeline(shaders.rtsmRasterOmni);
     cmd.dispatchThreads(rtsm.outputImageClr.size());
