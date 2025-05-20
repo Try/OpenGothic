@@ -156,31 +156,15 @@ void rayBboxses(const vec3 ray, bool activeRay) {
     }
   barrier();
 
-  if(laneID<bbox.length() && (cubeFaces & (1 << laneID))!=0)
-    bbox[laneID] = floatBitsToUint(orderedUintToFloat(bbox[laneID]));
-  }
-
-vec4 rayTriangleIntersect(const vec3 origin, const vec3 raydir, const vec3 v0, const vec3 v1, const vec3 v2) {
-  const vec3  e1    = v1 - v0;
-  const vec3  e2    = v2 - v0;
-  const vec3  s1    = cross(raydir, e2);
-  const float denom = dot(s1, e1);
-
-  if(denom < 0.0)
-    return vec4(-1);
-
-  if(abs(denom) < 0.00001)
-    return vec4(0); // This ray is parallel to this triangle.
-
-  const float invDemom = 1.0 / denom;
-  const vec3  d        = origin - v0;
-  const vec3  s2       = cross(d, e1);
-
-  const float u = dot(d,      s1) * invDemom;
-  const float v = dot(raydir, s2) * invDemom;
-
-  float t0 = dot(e2, s2) * invDemom;
-  return vec4(t0, u, v, denom);
+  if(laneID<bbox.length() && (cubeFaces & (1 << laneID))!=0) {
+    uvec4 aabb = bbox[laneID];
+    if(aabb.x==aabb.z || aabb.y==aabb.w) {
+      // degenerated bbox
+      atomicAnd(cubeFaces, ~(1 << laneID));
+      } else {
+      bbox[laneID] = floatBitsToUint(orderedUintToFloat(aabb));
+      }
+    }
   }
 
 bool isPrimitiveVisible(const vec3 origin, vec3 a, vec3 b, vec3 c, uint face) {

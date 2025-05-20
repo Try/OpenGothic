@@ -874,7 +874,7 @@ void Renderer::drawRtsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
   cmd.setFramebuffer({{sceneLinear, Tempest::Preserve, Tempest::Preserve}});
   cmd.setDebugMarker("RTSM-dbg");
 #if 1
-  cmd.setBinding(0, rtsm.dbg16);
+  cmd.setBinding(0, rtsm.dbg);
 #else
   cmd.setBinding(0, rtsm.primBins);
   cmd.setBinding(1, rtsm.posList);
