@@ -238,6 +238,8 @@ Shaders::Shaders() {
     rtsmCullLights   = computeShader("rtsm_cull_lights.comp.sprv");
     rtsmCullingOmni  = computeShader("rtsm_culling_omni.comp.sprv");
     rtsmPositionOmni = computeShader("rtsm_position_omni.comp.sprv");
+    rtsmLightTiles   = computeShader("rtsm_light_tiles.comp.sprv");
+    rtsmPrimTiles    = computeShader("rtsm_prim_tiles.comp.sprv");
 
     rtsmMeshletOmni  = computeShader("rtsm_meshlet_omni.comp.sprv");
     rtsmPrimOmni     = computeShader("rtsm_primitive_omni.comp.sprv");

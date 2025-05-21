@@ -1,0 +1,181 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_EXT_control_flow_attributes : enable
+// bindless
+#extension GL_EXT_nonuniform_qualifier : enable
+// #extension GL_EXT_shader_explicit_arithmetic_types_float16 : enable
+// #extension GL_KHR_memory_scope_semantics : enable
+
+#include "common.glsl"
+#include "scene.glsl"
+#include "rtsm/rtsm_common.glsl"
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+layout(push_constant, std430) uniform UboPush {
+  vec3  originLwc;
+  float znear;
+  } push;
+layout(binding = 0, rg32ui) uniform  uimage2D   lightTiles;
+layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
+layout(binding = 2)         uniform  utexture2D gbufNormal;
+layout(binding = 3)         uniform  texture2D  depth;
+layout(binding = 4, std430)          buffer Pos { uint  alloc; uint    data[]; } pos;
+layout(binding = 5, std430) readonly buffer Lbo { LightSource lights[];        };
+layout(binding = 6, std430) readonly buffer VId { uvec4 count; LightId data[]; } vLights;
+
+#if defined(DEBUG_IMG)
+layout(binding = 9, r32ui)  uniform  uimage2D   dbgImage;
+#endif
+
+void imageDbg(uint info) {
+#if defined(DEBUG_IMG)
+  imageStore(dbgImage, ivec2(gl_WorkGroupID.xy), uvec4(info));
+#endif
+  }
+
+#include "rtsm/rtsm_scratch.glsl"
+
+shared uint  tileDepthMin, tileDepthMax;
+shared uint  lightCount;
+shared uint  lightId[NumThreads];
+shared uint  lightListPtr;
+
+const uint RTSM_LIGHT_TILE = 64;
+
+ivec2 fragCoord    = ivec2(gl_GlobalInvocationID.xy);
+ivec2 viewportSize = textureSize(depth, 0);
+const ivec2 TileSize = ivec2(RTSM_LIGHT_TILE);
+
+
+vec3 worldPos(ivec2 frag, float depth) {
+  const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
+  const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
+  const vec4 wpos      = scene.viewProjectLwcInv * scr;
+  return wpos.xyz/wpos.w;
+  }
+
+void hiTile() {
+  const ivec2 begin    = ivec2(gl_WorkGroupID.xy * TileSize);
+  const ivec2 end      = min(ivec2(gl_WorkGroupID.xy * TileSize + TileSize), viewportSize);
+
+  for(int y=begin.y; y<end.y; y+=int(gl_WorkGroupSize.y))
+    for(int x=begin.x; x<end.x; x+=int(gl_WorkGroupSize.x)) {
+      const float depth = texelFetch(depth, ivec2(x,y), 0).x;
+      if(depth>=1)
+        continue;
+      uint d = floatBitsToUint(depth);
+      atomicMax(tileDepthMax, d);
+      atomicMin(tileDepthMin, d);
+      }
+  }
+
+bool projectSphere(const vec4 sphere, out float depthMin, out float depthMax) {
+  const vec3  c     = (scene.view * vec4(sphere.xyz, 1)).xyz;
+  const float R     = sphere.w;
+
+  depthMin  = scene.project[3][2]/max(c.z - R, push.znear) + scene.project[2][2];
+  depthMax  = scene.project[3][2]/max(c.z + R, push.znear) + scene.project[2][2];
+  if(c.z - R < push.znear) {
+    return true;
+    }
+  if(c.z + R < push.znear) {
+    return false;
+    }
+  return true;
+  }
+
+void storeBin(ivec2 at, uint ptr, uint num) {
+  if(gl_LocalInvocationIndex!=0)
+    return;
+  if(ptr==NULL)
+    num = 0;
+  imageStore(lightTiles, at, ivec4(ptr,num,0,0));
+  }
+
+bool isLightVisibleHiZ(const LightId lx) {
+  float depthMin = 0;
+  float depthMax = 0;
+
+  const uint i = lx.id;
+  if(!projectSphere(vec4(lights[i].pos, lights[i].range), depthMin, depthMax))
+    return false;
+  if(depthMin>uintBitsToFloat(tileDepthMax))
+    return false;
+  if(depthMax<uintBitsToFloat(tileDepthMin))
+    return false;
+  return true;
+  }
+
+bool isLightVisibleAabb(const LightId lx, const ivec2 begin, const ivec2 end) {
+  vec4 aabb;
+  aabb.xy = unpackUInt2x16(lx.aabb_low);
+  aabb.zw = unpackUInt2x16(lx.aabb_high);
+  if(aabb.z<begin.x || end.x<=aabb.x ||
+     aabb.w<begin.y || end.y<=aabb.y)
+    return false;
+  return true;
+  }
+
+void processLights(bool counting) {
+  const uint  laneID   = gl_LocalInvocationIndex;
+  const ivec2 begin    = ivec2(gl_WorkGroupID.xy * TileSize);
+  const ivec2 end      = min(ivec2(gl_WorkGroupID.xy * TileSize + TileSize), viewportSize);
+
+  for(uint i=laneID; i<vLights.count.x; i+=NumThreads) {
+    const LightId light = vLights.data[i];
+
+    if(!isLightVisibleAabb(light, begin, end))
+      continue;
+
+    if(!isLightVisibleHiZ(light))
+      continue; //optimize: pipeline?
+
+    const uint id = atomicAdd(lightCount, 1);
+    if(!counting) {
+      pos.data[lightListPtr + id] = i;
+      }
+    }
+  }
+
+void main() {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  if(vLights.count.x==0) {
+    imageDbg(0);
+    storeBin(ivec2(gl_WorkGroupID.xy), NULL, 0);
+    return;
+    }
+
+  lightCount   = 0;
+  tileDepthMin = 0xFFFFFFFF;
+  tileDepthMax = 0;
+  barrier();
+
+  hiTile();
+  barrier();
+
+  if(tileDepthMin>=tileDepthMax) {
+    imageDbg(0);
+    storeBin(ivec2(gl_WorkGroupID.xy), NULL, 0);
+    return;
+    }
+
+  processLights(true);
+  barrier();
+
+  if(laneID==0)
+    lightListPtr = allocScratch(lightCount);
+  barrier();
+
+  imageDbg(lightCount);
+  storeBin(ivec2(gl_WorkGroupID.xy), lightListPtr, lightCount);
+  if(lightListPtr==NULL)
+    return; //OOM
+  processLights(false);
+  }

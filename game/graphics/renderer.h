@@ -226,10 +226,11 @@ class Renderer final {
       Tempest::StorageImage     primBins;
 
       Tempest::StorageBuffer    visibleLights;
+      Tempest::StorageImage     lightTiles;
       Tempest::StorageImage     meshBinsOmni;
       Tempest::StorageImage     primBinsOmni;
 
-      Tempest::StorageImage     dbg, dbg16, dbg8;
+      Tempest::StorageImage     dbg64, dbg, dbg16, dbg8;
       } rtsm;
 
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::Depth16;
