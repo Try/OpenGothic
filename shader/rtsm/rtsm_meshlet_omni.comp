@@ -41,18 +41,6 @@ bool isMeshletVisible(uint ptr, const LightSource lx) {
   return dot(dv, dv) <= r*r;
   }
 
-bool frustrumOmniTest(vec3 pos, float r) {
-  const vec3  plane[] = {vec3(0,-1,1),  vec3(0,+1,1), vec3(-1,0,1), vec3(+1,0,1)};
-  const float scale   = 1.41421356237; //sqrt(2);
-
-  [[unroll]]
-  for(int i=0; i<4; ++i) {
-    if(dot(pos, plane[i]) < -r*scale)
-      return false;
-    }
-  return true;
-  }
-
 void traceMeshlets(uint listPtr, uint visCount, const LightSource lx) {
   const uint laneID = gl_LocalInvocationIndex;
 

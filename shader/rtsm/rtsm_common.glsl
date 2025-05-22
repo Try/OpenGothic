@@ -13,6 +13,7 @@ const int  RTSM_PAGE_MIPS     = 16;
 const int  RTSM_LARGE_TILE    = 128;
 const int  RTSM_SMALL_TILE    = 32;
 const int  RTSM_BIN_SIZE      = 32;
+const int  RTSM_LIGHT_TILE    = 64;
 
 const uint MaxSlices          = 16;
 const uint MaxVert            = 64;
@@ -110,6 +111,45 @@ uint unpackPrimitiveCount(uint v) {
 
 uint unpackBucketId(uint v) {
   return v >> 8;
+  }
+
+// omni-lights
+uint rayToFace(vec3 d) {
+  const vec3 ad = abs(d);
+  if(ad.x > ad.y && ad.x > ad.z)
+    return d.x>=0 ? 0 : 1;
+  if(ad.y > ad.x && ad.y > ad.z)
+    return d.y>=0 ? 2 : 3;
+  if(ad.z > ad.x && ad.z > ad.y)
+    return d.z>=0 ? 4 : 5;
+  return 0;
+  }
+
+vec3 rayToFace(vec3 pos, uint face) {
+  // cubemap-face
+  switch(face) {
+    case 0: pos = vec3(pos.yz, +pos.x); break;
+    case 1: pos = vec3(pos.zy, -pos.x); break;
+    case 2: pos = vec3(pos.zx, +pos.y); break;
+    case 3: pos = vec3(pos.xz, -pos.y); break;
+    case 4: pos = vec3(pos.xy, +pos.z); break;
+    case 5: pos = vec3(pos.yx, -pos.z); break;
+    }
+  pos.xy /= pos.z;
+  return pos;
+  }
+
+vec3 faceToRay(vec2 xy, uint face) {
+  vec3 pos = normalize(vec3(xy, 1.0));
+  switch(face) {
+    case 0: pos = vec3(+pos.z, pos.xy); break;
+    case 1: pos = vec3(-pos.z, pos.yx); break;
+    case 2: pos = vec3(pos.y, +pos.z, pos.x); break;
+    case 3: pos = vec3(pos.x, -pos.z, pos.y); break;
+    case 4: pos = vec3(pos.xy, +pos.z); break;
+    case 5: pos = vec3(pos.yx, -pos.z); break;
+    }
+  return pos;
   }
 
 #endif

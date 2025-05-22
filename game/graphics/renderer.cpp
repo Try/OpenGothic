@@ -1265,7 +1265,7 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   if(!omniLights || rtsm.outputImageClr.isEmpty())
     return;
 
-  //const uint32_t RTSM_SMALL_TILE = 32;
+  const uint32_t RTSM_SMALL_TILE = 32;
   const uint32_t RTSM_LIGHT_TILE = 64;
 
   auto& device   = Resources::device();
@@ -1292,8 +1292,13 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
 
     const auto tiles = tileCount(zbuffer.size(), RTSM_LIGHT_TILE);
     if(rtsm.lightTiles.size()!=tiles) {
-      Resources::recycle(std::move(rtsm.tiles));
+      Resources::recycle(std::move(rtsm.lightTiles));
       rtsm.lightTiles = device.image2d(TextureFormat::RG32U, tiles);
+      }
+    const auto ptiles = tileCount(zbuffer.size(), RTSM_SMALL_TILE);
+    if(rtsm.primTiles.size()!=ptiles) {
+      Resources::recycle(std::move(rtsm.primTiles));
+      rtsm.primTiles = device.image2d(TextureFormat::RG32U, ptiles);
       }
   }
 
@@ -1380,10 +1385,16 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.setBinding(4, rtsm.posList);
     cmd.setBinding(5, wview.lights().lightsSsbo());
     cmd.setBinding(6, rtsm.visibleLights);
+    cmd.setBinding(7, rtsm.meshBinsOmni);
+    cmd.setBinding(8, rtsm.primTiles);
     cmd.setBinding(9, rtsm.dbg64);
 
     cmd.setPipeline(shaders.rtsmLightTiles);
     cmd.dispatch(rtsm.lightTiles.size());
+
+    cmd.setBinding(9, rtsm.dbg);
+    cmd.setPipeline(shaders.rtsmPrimTiles);
+    cmd.dispatch(rtsm.primTiles.size());
   }
 
   {

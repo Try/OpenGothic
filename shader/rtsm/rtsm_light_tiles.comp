@@ -46,8 +46,6 @@ shared uint  lightCount;
 shared uint  lightId[NumThreads];
 shared uint  lightListPtr;
 
-const uint RTSM_LIGHT_TILE = 64;
-
 ivec2 fragCoord    = ivec2(gl_GlobalInvocationID.xy);
 ivec2 viewportSize = textureSize(depth, 0);
 const ivec2 TileSize = ivec2(RTSM_LIGHT_TILE);
