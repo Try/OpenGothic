@@ -91,18 +91,22 @@ vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 v0, const 
 
 // culling
 shared uint  cubeFaces;
+shared uint  shTMax;
 shared uvec4 bbox[6];
-void rayBboxses(const vec3 ray, bool activeRay) {
+void rayBboxses(const vec3 ray, const float tMax, bool activeRay) {
   const uint  laneID = gl_LocalInvocationIndex;
 
+  shTMax    = 0;
   cubeFaces = 0;
   if(laneID<bbox.length())
     bbox[laneID] = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
   barrier();
 
   const uint face = rayToFace(ray);
-  if(activeRay)
+  if(activeRay) {
     atomicOr(cubeFaces, 1u<<face);
+    atomicMax(shTMax, floatBitsToUint(tMax));
+    }
   barrier();
 
   if(activeRay) {
@@ -262,7 +266,7 @@ void enqueueMeshlets(const uint tilePtr, const vec3 origin, const uint first, co
   meshletsIds[i] = ptr;
   }
 
-void enqueuePrimitives(const vec3 origin) {
+void enqueuePrimitives(const vec3 origin, const float range) {
   const uint  laneID = gl_LocalInvocationIndex;
   const bool  act    = laneID<primitiveCnt;
   const uvec4 prim   = act ? primitiveIds[laneID] : uvec4(0);
@@ -273,7 +277,19 @@ void enqueuePrimitives(const vec3 origin) {
 
   if(!act)
     return;
-  if(!isPrimitiveVisible(origin, meshVertices[prim.x], meshVertices[prim.y], meshVertices[prim.z]))
+
+  const vec3 a = meshVertices[prim.x];
+  const vec3 b = meshVertices[prim.y];
+  const vec3 c = meshVertices[prim.z];
+
+  vec4 plane;
+  plane.xyz = normalize(cross(b - a, c - a));
+  plane.w   = dot(plane.xyz, a);
+  const float dist = dot(plane, vec4(origin,-1));
+  if(dist<0 || dist>range)
+    return;
+
+  if(!isPrimitiveVisible(origin, a, b, c))
     return;
 
   atomicAdd(dbgCount, 1);
@@ -290,7 +306,7 @@ void processLight(const vec3 wpos, const vec3 normal, const LightId lId, const u
   const vec3        ldir     = distance/tMax;
   const float       lpow     = lightIntensity(normal, tMax, ldir, src.range);
 
-  rayBboxses(ldir, lpow>0);
+  rayBboxses(ldir, tMax, lpow>0);
   barrier();
 
   if(cubeFaces==0)
@@ -312,7 +328,7 @@ void processLight(const vec3 wpos, const vec3 normal, const LightId lId, const u
       pullMeshlet(ptr);
       barrier();
 
-      enqueuePrimitives(src.pos);
+      enqueuePrimitives(src.pos, uintBitsToFloat(shTMax));
       barrier();
 
       if(!shadow)
