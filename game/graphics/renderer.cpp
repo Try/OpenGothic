@@ -1430,6 +1430,7 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.setBinding(5, wview.lights().lightsSsbo());
     cmd.setBinding(6, rtsm.visibleLights);
     cmd.setBinding(7, rtsm.meshBinsOmni);
+    cmd.setBinding(9, rtsm.dbg16);
 
     cmd.setPipeline(shaders.rtsmRenderingOmni);
     cmd.dispatchThreads(rtsm.outputImageClr.size());

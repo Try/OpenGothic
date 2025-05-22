@@ -31,11 +31,21 @@ layout(binding = 5, std430) readonly buffer Lbo { LightSource lights[];        }
 layout(binding = 6, std430) readonly buffer VId { uvec4 count; LightId data[]; } vLights;
 layout(binding = 7)         uniform  utexture2D meshBinsOmni;
 
+layout(binding = 9, r32ui)  uniform  uimage2D   dbgImage;
+
+void imageDbg(uint info) {
+#if defined(DEBUG_IMG)
+  imageStore(dbgImage, ivec2(gl_WorkGroupID.xy), uvec4(info));
+#endif
+  }
+
 #define CONST_SCRATCH 1
 #include "rtsm/rtsm_scratch.glsl"
 
 ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
 vec3  light     = vec3(0);
+
+shared uint dbgCount;
 
 float raySphereTest(const vec3 origin, const vec3 dir, const vec4 sphere) {
   float R  = sphere.w;
@@ -58,27 +68,136 @@ float raySphereTest(const vec3 origin, const vec3 dir, const vec4 sphere) {
 vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 v0, const vec3 v1, const vec3 v2) {
   const vec3  e1    = v1 - v0;
   const vec3  e2    = v2 - v0;
-  const vec3  s1    = cross(raydir, e2 );
-  const float denom = dot( s1, e1 );
+  const vec3  s1    = cross(raydir, e2);
+  const float denom = dot(s1, e1);
 
   if(denom <= 0.0)
-    return vec3(-1);    // This ray is parallel to this triangle.
+    return vec3(-1);
 
   const float invDemom = 1.0 / denom;
-  const vec3  d = origin - v0;
-  vec2  b;
-  b.x = dot( d, s1 ) * invDemom;
+  const vec3  d        = origin - v0;
+  const vec3  s2       = cross(d, e1);
 
-  vec3 s2 = cross( d, e1 );
-  b.y     = dot(raydir, s2 ) * invDemom;
+  const float u = dot(d,      s1) * invDemom;
+  const float v = dot(raydir, s2) * invDemom;
 
-  float t0 = dot(e2, s2) * invDemom;
-
-  if(( b.x < 0.0f ) || ( b.x > 1.0f ) || ( b.y < 0.0f ) || ( b.x + b.y > 1.0f )) {
+  if(( u < 0.0f ) || ( u > 1.0f ) || ( v < 0.0f ) || ( u + v > 1.0f )) {
     return vec3(-1);
     }
 
-  return vec3(t0, b);
+  float t0 = dot(e2, s2) * invDemom;
+  return vec3(t0, u, v);
+  }
+
+// culling
+shared uint  cubeFaces;
+shared uvec4 bbox[6];
+void rayBboxses(const vec3 ray, bool activeRay) {
+  const uint  laneID = gl_LocalInvocationIndex;
+
+  cubeFaces = 0;
+  if(laneID<bbox.length())
+    bbox[laneID] = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
+  barrier();
+
+  const uint face = rayToFace(ray);
+  if(activeRay)
+    atomicOr(cubeFaces, 1u<<face);
+  barrier();
+
+  if(activeRay) {
+    const uint id = face;
+    const vec3 rf = rayToFace(ray, face);
+    atomicMin(bbox[id].x, floatToOrderedUint(rf.x));
+    atomicMin(bbox[id].y, floatToOrderedUint(rf.y));
+    atomicMax(bbox[id].z, floatToOrderedUint(rf.x));
+    atomicMax(bbox[id].w, floatToOrderedUint(rf.y));
+    }
+  barrier();
+
+  if(laneID<bbox.length() && (cubeFaces & (1 << laneID))!=0) {
+    uvec4 aabb = bbox[laneID];
+    if(aabb.x==aabb.z || aabb.y==aabb.w) {
+      // degenerated bbox
+      atomicAnd(cubeFaces, ~(1 << laneID));
+      } else {
+      bbox[laneID] = floatBitsToUint(orderedUintToFloat(aabb));
+      }
+    }
+  }
+
+bool isPrimitiveVisible(const vec3 origin, const vec4 sphere, uint face) {
+  const vec4 aabb = uintBitsToFloat(bbox[face]);
+  const vec3 fa = faceToRay(vec2(aabb.xy), face);
+  const vec3 fb = faceToRay(vec2(aabb.zy), face);
+  const vec3 fc = faceToRay(vec2(aabb.zw), face);
+  const vec3 fd = faceToRay(vec2(aabb.xw), face);
+
+  const vec3 p0 = cross(fa, fb);
+  const vec3 p1 = cross(fb, fc);
+  const vec3 p2 = cross(fc, fd);
+  const vec3 p3 = cross(fd, fa);
+  const float R = sphere.w;
+
+  if(dot(sphere.xyz, p0) < -R)
+    return false;
+  if(dot(sphere.xyz, p1) < -R)
+    return false;
+  if(dot(sphere.xyz, p2) < -R)
+    return false;
+  if(dot(sphere.xyz, p3) < -R)
+    return false;
+  return true;
+  }
+
+bool isPrimitiveVisible(const vec3 origin, vec3 a, vec3 b, vec3 c, uint face) {
+  const vec4 aabb = uintBitsToFloat(bbox[face]);
+  const vec3 fa = faceToRay(vec2(aabb.xy), face);
+  const vec3 fb = faceToRay(vec2(aabb.zy), face);
+  const vec3 fc = faceToRay(vec2(aabb.zw), face);
+  const vec3 fd = faceToRay(vec2(aabb.xw), face);
+
+  const vec3 p0 = cross(fa, fb);
+  const vec3 p1 = cross(fb, fc);
+  const vec3 p2 = cross(fc, fd);
+  const vec3 p3 = cross(fd, fa);
+
+  if(dot(a, p0)<0 && dot(b, p0)<0 && dot(c, p0)<0)
+    return false;
+  if(dot(a, p1)<0 && dot(b, p1)<0 && dot(c, p1)<0)
+    return false;
+  if(dot(a, p2)<0 && dot(b, p2)<0 && dot(c, p2)<0)
+    return false;
+  if(dot(a, p3)<0 && dot(b, p3)<0 && dot(c, p3)<0)
+    return false;
+
+  return true;
+  }
+
+bool isPrimitiveVisible(const vec3 origin, vec4 sphere) {
+  sphere.xyz -= origin;
+
+  for(uint face=0; face<bbox.length(); ++face) {
+    if((cubeFaces & (1u << face))==0)
+      continue;
+    if(isPrimitiveVisible(origin, sphere, face))
+      return true;
+    }
+  return false;
+  }
+
+bool isPrimitiveVisible(const vec3 origin, vec3 a, vec3 b, vec3 c) {
+  a -= origin;
+  b -= origin;
+  c -= origin;
+
+  for(uint face=0; face<bbox.length(); ++face) {
+    if((cubeFaces & (1u << face))==0)
+      continue;
+    if(isPrimitiveVisible(origin, a, b, c, face))
+      return true;
+    }
+  return false;
   }
 
 shared uint  primitiveCnt;
@@ -125,19 +244,86 @@ float lightIntensity(const vec3 normal, const float distance, const vec3 ldir, c
   return lx * Fd_Lambert * 0.1;
   }
 
-void processLight(const vec3 origin, const vec3 normal, const LightId lId, const uint numMeshlets) {
+shared uint meshletsIds[NumThreads];
+shared uint numMeshlets;
+
+void enqueueMeshlets(const uint tilePtr, const vec3 origin, const uint first, const uint maxMeshlets) {
+  const uint laneID = gl_LocalInvocationIndex;
+  if(first+laneID>=maxMeshlets)
+    return;
+
+  const uint ptr = pos.data[tilePtr+first+laneID];
+  const vec4 sp  = pullMeshSphere(ptr);
+  if(!isPrimitiveVisible(origin, sp))
+    return;
+
+  //atomicAdd(dbgCount, 1);
+  const uint i = atomicAdd(numMeshlets, 1);
+  meshletsIds[i] = ptr;
+  }
+
+void enqueuePrimitives(const vec3 origin) {
+  const uint  laneID = gl_LocalInvocationIndex;
+  const bool  act    = laneID<primitiveCnt;
+  const uvec4 prim   = act ? primitiveIds[laneID] : uvec4(0);
+  barrier();
+
+  primitiveCnt = 0;
+  barrier();
+
+  if(!act)
+    return;
+  if(!isPrimitiveVisible(origin, meshVertices[prim.x], meshVertices[prim.y], meshVertices[prim.z]))
+    return;
+
+  atomicAdd(dbgCount, 1);
+  const uint id = atomicAdd(primitiveCnt, 1);
+  primitiveIds[id] = prim;
+  }
+
+void processLight(const vec3 wpos, const vec3 normal, const LightId lId, const uint maxMeshlets) {
   const LightSource src      = lights[lId.id];
   const uint        tilePtr  = lId.ptr;
-  const vec3        distance = origin-src.pos;
+  const vec3        distance = wpos-src.pos;
 
   const float       tMax     = length(distance);
   const vec3        ldir     = distance/tMax;
   const float       lpow     = lightIntensity(normal, tMax, ldir, src.range);
 
+  rayBboxses(ldir, lpow>0);
+  barrier();
+
+  if(cubeFaces==0)
+    return;
+
   bool shadow = (lpow<=0.0);
+
 #if 1
-  // const uint numMeshlets = texelFetch(tileBins, ivec2(lId.id), 0);
-  for(uint i=0; i<numMeshlets; ++i) {
+  const uint steps = (maxMeshlets + NumThreads - 1)/NumThreads;
+  for(uint s=0; s<steps; ++s) {
+    numMeshlets = 0;
+    barrier();
+
+    enqueueMeshlets(tilePtr, src.pos, s*NumThreads, maxMeshlets);
+    barrier();
+
+    for(uint i=0; i<numMeshlets; ++i) {
+      const uint ptr = meshletsIds[i];
+      pullMeshlet(ptr);
+      barrier();
+
+      enqueuePrimitives(src.pos);
+      barrier();
+
+      if(!shadow)
+        shadow = rayMeshletTest(src.pos, ldir, tMax-1);
+      barrier();
+      }
+    }
+#endif
+
+#if 0
+  for(uint i=0; i<maxMeshlets; ++i) {
     const uint ptr = pos.data[tilePtr+i];
     const vec4 sp  = pullMeshSphere(ptr);
 
@@ -153,6 +339,7 @@ void processLight(const vec3 origin, const vec3 normal, const LightId lId, const
     barrier();
     }
 #endif
+
   if(shadow)
     return;
   light += vec3(lpow * src.color);
@@ -173,6 +360,8 @@ void main() {
   const float z      = valid ? texelFetch(depth, fragCoord, 0).x  : 1.0;
 
   const vec3  origin = worldPos(fragCoord.xy, z) + (normal*NormalBias) + push.originLwc;
+  dbgCount = 0;
+  barrier();
 
   if(vLights.count.x>0) {
     //TODO: many lights
@@ -182,4 +371,5 @@ void main() {
 
   if(valid)
     imageStore(outputImage, ivec2(fragCoord), vec4(light, 1));
+  imageDbg(dbgCount);
   }
