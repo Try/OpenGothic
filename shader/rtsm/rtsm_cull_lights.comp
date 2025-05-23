@@ -109,7 +109,8 @@ void main() {
   if(id>=lightsTotal)
     return;
 
-#if 1
+#if 0
+  // debug
   if(id+1!=lightsTotal)
     return;
 #endif
@@ -126,8 +127,15 @@ void main() {
   if(!hiZTest(aabb, depthMin))
     return;
 
-  aabb *= vec4(scene.screenRes, scene.screenRes);
+  ivec4 iaabb = ivec4(aabb * vec4(scene.screenRes, scene.screenRes));
+  iaabb = max(ivec4(0), iaabb);
+  iaabb.zw = ivec2(0xFFFF);
 
   const uint ix = atomicAdd(vLights.count.x, 1);
-  vLights.data[ix] = LightId(id, packUint2x16(uvec2(aabb.xy)), packUint2x16(uvec2(aabb.zw)), 0);
+  LightId ret;
+  ret.id        = id;
+  ret.aabb_low  = packUint2x16(uvec2(iaabb.xy));
+  ret.aabb_high = packUint2x16(uvec2(iaabb.zw));
+  ret.ptr       = NULL;
+  vLights.data[ix] = ret;
   }

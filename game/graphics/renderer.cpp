@@ -1367,8 +1367,8 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.setPipeline(shaders.rtsmMeshletOmni);
     cmd.dispatchIndirect(rtsm.visibleLights, 0);
 
-    cmd.setPipeline(shaders.rtsmPrimOmni);
-    cmd.dispatchIndirect(rtsm.visibleLights, 0);
+    //cmd.setPipeline(shaders.rtsmPrimOmni);
+    //cmd.dispatchIndirect(rtsm.visibleLights, 0);
   }
 
   {
@@ -1409,9 +1409,9 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.setBinding(4, rtsm.posList);
     cmd.setBinding(5, wview.lights().lightsSsbo());
     cmd.setBinding(6, rtsm.visibleLights);
-    cmd.setBinding(7, rtsm.primBinsOmni);
-    //cmd.setBinding(8, rtsm.dbg);
-    cmd.setBinding(9, rtsm.dbg);
+    //cmd.setBinding(7, rtsm.primBinsOmni);
+    cmd.setBinding(8, rtsm.primTiles);
+    cmd.setBinding(9, rtsm.dbg16);
 
     cmd.setPipeline(shaders.rtsmRasterOmni);
     cmd.dispatchThreads(rtsm.outputImageClr.size());

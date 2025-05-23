@@ -43,24 +43,17 @@ void imageDbg(uint info) {
 
 shared uint  tileDepthMin, tileDepthMax;
 shared uint  lightCount;
-shared uint  lightId[NumThreads];
+// shared uint  lightId[NumThreads];
 shared uint  lightListPtr;
 
 ivec2 fragCoord    = ivec2(gl_GlobalInvocationID.xy);
 ivec2 viewportSize = textureSize(depth, 0);
 const ivec2 TileSize = ivec2(RTSM_LIGHT_TILE);
 
-
-vec3 worldPos(ivec2 frag, float depth) {
-  const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
-  const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
-  const vec4 wpos      = scene.viewProjectLwcInv * scr;
-  return wpos.xyz/wpos.w;
-  }
-
 void hiTile() {
-  const ivec2 begin    = ivec2(gl_WorkGroupID.xy * TileSize);
-  const ivec2 end      = min(ivec2(gl_WorkGroupID.xy * TileSize + TileSize), viewportSize);
+  const ivec2 xy0   = ivec2(gl_LocalInvocationID.xy);
+  const ivec2 begin = ivec2(gl_WorkGroupID.xy * TileSize) + xy0;
+  const ivec2 end   = min(ivec2(gl_WorkGroupID.xy * TileSize + TileSize), viewportSize);
 
   for(int y=begin.y; y<end.y; y+=int(gl_WorkGroupSize.y))
     for(int x=begin.x; x<end.x; x+=int(gl_WorkGroupSize.x)) {
@@ -111,7 +104,7 @@ bool isLightVisibleHiZ(const LightId lx) {
   }
 
 bool isLightVisibleAabb(const LightId lx, const ivec2 begin, const ivec2 end) {
-  vec4 aabb;
+  uvec4 aabb;
   aabb.xy = unpackUInt2x16(lx.aabb_low);
   aabb.zw = unpackUInt2x16(lx.aabb_high);
   if(aabb.z<begin.x || end.x<=aabb.x ||
@@ -167,12 +160,14 @@ void main() {
   processLights(true);
   barrier();
 
-  if(laneID==0)
+  if(laneID==0) {
     lightListPtr = allocScratch(lightCount);
+    storeBin(ivec2(gl_WorkGroupID.xy), lightListPtr, lightCount);
+    imageDbg(lightCount);
+    lightCount = 0;
+    }
   barrier();
 
-  imageDbg(lightCount);
-  storeBin(ivec2(gl_WorkGroupID.xy), lightListPtr, lightCount);
   if(lightListPtr==NULL)
     return; //OOM
   processLights(false);
