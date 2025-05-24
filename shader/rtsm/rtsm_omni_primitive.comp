@@ -71,16 +71,13 @@ uint packPrimitiveId(uint meshlet, uint prim) {
   return (meshlet << 8) | prim;
   }
 
-float lightIntensity(const vec3 normal, const float distance, const vec3 ldir, const float lrange) {
+bool lightIntensity(const vec3 normal, const float distance, const vec3 ldir, const float lrange) {
   const float distanceSquare = (distance * distance);
-  const float factor         = distanceSquare / (lrange * lrange);
-  const float smoothFactor   = max(1.0 - factor * factor, 0.0);
-  if(factor>1.0)
-    return 0;
-
-  float lambert = max(0.0,-dot(ldir,normal));
-  float lx      = (lambert/max(factor, 0.05)) * (smoothFactor*smoothFactor);
-  return lx * Fd_Lambert * 0.1;
+  if(distanceSquare >= lrange * lrange)
+    return false;
+  if(-dot(ldir,normal) <= 0)
+    return false;
+  return true;
   }
 
 bool isPrimitiveVisible(const uint ptr, const uint primId, const LightSource src) {
@@ -122,7 +119,24 @@ void processMeshletPrimitives(const uint ptr, const uint primCount, const uint p
     }
   }
 
-void processPrimitives(const uint tilePtr, const uint numMeshlets, const LightSource src) {
+shared uint meshletsIds[NumThreads];
+shared uint numMeshlets;
+void enqueueMeshlets(const uint tilePtr, const vec3 origin, const uint first, const uint maxMeshlets) {
+  const uint laneID = gl_LocalInvocationIndex;
+  if(first+laneID>=maxMeshlets)
+    return;
+
+  const uint ptr = pos.data[tilePtr+first+laneID];
+  const vec4 sp  = pullMeshSphere(ptr);
+  if(!isPrimitiveVisible(origin, vec4(sp.xyz, sp.w)))
+    return;
+
+  //atomicAdd(dbgCounter, 1);
+  const uint i = atomicAdd(numMeshlets, 1);
+  meshletsIds[i] = ptr;
+  }
+
+void processPrimitives(const uint tilePtr, const uint maxMeshlets, const LightSource src) {
   const uint  laneID      = gl_LocalInvocationIndex;
   const uint  primPerStep = 32;
   const uint  meshPerStep = NumThreads / primPerStep;
@@ -130,14 +144,40 @@ void processPrimitives(const uint tilePtr, const uint numMeshlets, const LightSo
   numPrimitives = 0;
   barrier();
 
-  for(uint i=(laneID/primPerStep); i<numMeshlets; i+=meshPerStep) {
+#if 0
+  const uint steps = (maxMeshlets + NumThreads - 1)/NumThreads;
+  for(uint s=0; s<steps; ++s) {
+    numMeshlets = 0;
+    barrier();
+
+    enqueueMeshlets(tilePtr, src.pos, s*NumThreads, maxMeshlets);
+    barrier();
+
+    for(uint i=(laneID/primPerStep); i<numMeshlets; i+=meshPerStep) {
+      const uint laneMs  = laneID % primPerStep;
+      const uint ptr     = meshletsIds[i];
+      const uint primCnt = pullPrimitiveCount(ptr);
+      const vec4 sp      = pullMeshSphere(ptr);
+
+      for(uint r=laneMs; r<MaxPrim; r+=primPerStep)
+        processMeshletPrimitives(ptr, primCnt, r, src);
+      }
+    barrier();
+    }
+#else
+  for(uint i=(laneID/primPerStep); i<maxMeshlets; i+=meshPerStep) {
     const uint laneMs  = laneID % primPerStep;
     const uint ptr     = pos.data[tilePtr + i];
     const uint primCnt = pullPrimitiveCount(ptr);
+    const vec4 sp      = pullMeshSphere(ptr);
+
+    if(!isPrimitiveVisible(src.pos, sp))
+      continue;
 
     for(uint r=laneMs; r<MaxPrim; r+=primPerStep)
       processMeshletPrimitives(ptr, primCnt, r, src);
     }
+#endif
   }
 
 void processLight(const vec3 wpos, const vec3 normal, const LightId lId, const uint numMeshlets) {
@@ -149,9 +189,9 @@ void processLight(const vec3 wpos, const vec3 normal, const LightId lId, const u
 
   const float       tMax     = length(distance);
   const vec3        ldir     = distance/tMax;
-  float             lpow     = lightIntensity(normal, tMax, ldir, src.range);
+  bool              lpow     = lightIntensity(normal, tMax, ldir, src.range);
 
-  rayBboxses(ldir, lpow>0);
+  rayBboxses(ldir, lpow);
   barrier();
 
   if(cubeFaces==0)
@@ -214,4 +254,5 @@ void main() {
 
   storeBin(ivec2(gl_WorkGroupID.xy), lightsBinPtr, numLights);
   imageDbg(dbgCounter);
+  //imageDbg(numLights);
   }

@@ -87,7 +87,7 @@ float lightIntensity(const vec3 normal, const float distance, const vec3 ldir, c
     return 0;
 
   float lambert = max(0.0,-dot(ldir,normal));
-  float lx      = (lambert/max(factor, 0.05)) * (smoothFactor*smoothFactor);
+  float lx      = (lambert/max(factor, 0.01)) * (smoothFactor*smoothFactor);
   return lx * Fd_Lambert * 0.1;
   }
 

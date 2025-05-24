@@ -234,19 +234,18 @@ Shaders::Shaders() {
     rtsmRaster      = computeShader("rtsm_raster.comp.sprv");
     rtsmDirectLight = postEffect("rtsm_direct_light", RenderState::ZTestMode::NoEqual);
 
-    rtsmClearOmni    = computeShader("rtsm_clear_omni.comp.sprv");
+    rtsmClearOmni    = computeShader("rtsm_omni_clear.comp.sprv");
     rtsmCullLights   = computeShader("rtsm_cull_lights.comp.sprv");
-    rtsmCullingOmni  = computeShader("rtsm_culling_omni.comp.sprv");
-    rtsmPositionOmni = computeShader("rtsm_position_omni.comp.sprv");
     rtsmLightTiles   = computeShader("rtsm_light_tiles.comp.sprv");
-    rtsmPrimTiles    = computeShader("rtsm_prim_tiles.comp.sprv");
+    rtsmCullingOmni  = computeShader("rtsm_omni_culling.comp.sprv");
+    rtsmPositionOmni = computeShader("rtsm_omni_position.comp.sprv");
 
-    rtsmMeshletOmni  = computeShader("rtsm_meshlet_omni.comp.sprv");
-    rtsmPrimOmni     = computeShader("rtsm_primitive_omni.comp.sprv");
-    rtsmRasterOmni   = computeShader("rtsm_raster_omni.comp.sprv");
+    rtsmMeshletOmni  = computeShader("rtsm_omni_meshlet.comp.sprv");
+    rtsmPrimOmni     = computeShader("rtsm_omni_primitive.comp.sprv");
+    rtsmRasterOmni   = computeShader("rtsm_omni_raster.comp.sprv");
 
     rtsmRendering    = computeShader("rtsm_rendering.comp.sprv");
-    rtsmRenderingOmni= computeShader("rtsm_rendering_omni.comp.sprv");
+    rtsmRenderingOmni= computeShader("rtsm_omni_rendering.comp.sprv");
     rtsmDbg          = postEffect("rtsm_dbg", RenderState::ZTestMode::Always);
     }
 
