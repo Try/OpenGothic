@@ -341,7 +341,7 @@ add_shader(rtsm_raster.comp          rtsm/rtsm_raster.comp)
 add_shader(rtsm_direct_light.frag    rtsm/rtsm_direct_light.frag)
 
 add_shader(rtsm_rendering.comp       rtsm/rtsm_rendering.comp)
-add_shader(rtsm_rendering_omni.comp  rtsm/rtsm_rendering_omni.comp)
+add_shader(rtsm_omni_rendering.comp  rtsm/rtsm_rendering.comp)
 add_shader(rtsm_dbg.frag             rtsm/rtsm_dbg.frag)
 
 add_shader(rtsm_omni_clear.comp      rtsm/rtsm_omni_clear.comp)
