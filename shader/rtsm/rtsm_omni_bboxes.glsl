@@ -45,7 +45,7 @@ void rayBboxses(const vec3 ray, bool activeRay) {
     }
   }
 
-bool isPrimitiveVisible(const vec3 origin, vec3 a, vec3 b, vec3 c, uint face) {
+bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c, uint face) {
   const vec4 aabb = uintBitsToFloat(bbox[face]);
   const vec3 fa = faceToRay(vec2(aabb.xy), face);
   const vec3 fb = faceToRay(vec2(aabb.zy), face);
@@ -70,17 +70,17 @@ bool isPrimitiveVisible(const vec3 origin, vec3 a, vec3 b, vec3 c, uint face) {
   }
 
 bool isPrimitiveVisible(const vec3 origin, const vec4 sphere, uint face) {
-  const vec4 aabb = uintBitsToFloat(bbox[face]);
-  const vec3 fa = faceToRay(vec2(aabb.xy), face);
-  const vec3 fb = faceToRay(vec2(aabb.zy), face);
-  const vec3 fc = faceToRay(vec2(aabb.zw), face);
-  const vec3 fd = faceToRay(vec2(aabb.xw), face);
+  const vec4  aabb = uintBitsToFloat(bbox[face]);
+  const vec3  fa = faceToRay(vec2(aabb.xy), face);
+  const vec3  fb = faceToRay(vec2(aabb.zy), face);
+  const vec3  fc = faceToRay(vec2(aabb.zw), face);
+  const vec3  fd = faceToRay(vec2(aabb.xw), face);
 
-  const vec3 p0 = cross(fa, fb);
-  const vec3 p1 = cross(fb, fc);
-  const vec3 p2 = cross(fc, fd);
-  const vec3 p3 = cross(fd, fa);
-  const float R = sphere.w;
+  const vec3  p0 = cross(fa, fb);
+  const vec3  p1 = cross(fb, fc);
+  const vec3  p2 = cross(fc, fd);
+  const vec3  p3 = cross(fd, fa);
+  const float R  = sphere.w;
 
   if(dot(sphere.xyz, p0) < -R)
     return false;
@@ -113,7 +113,7 @@ bool isPrimitiveVisible(const vec3 origin, vec3 a, vec3 b, vec3 c) {
   for(uint face=0; face<bbox.length(); ++face) {
     if((cubeFaces & (1u << face))==0)
       continue;
-    if(isPrimitiveVisible(origin, a, b, c, face))
+    if(isPrimitiveVisible(a, b, c, face))
       return true;
     }
   return false;

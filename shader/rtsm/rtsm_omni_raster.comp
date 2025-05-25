@@ -152,6 +152,9 @@ bool earlyOut() {
   }
 
 float tracePacket(const uvec2 tileHeader, const vec3 origin, const vec3 dir, const float tMax, float opacity) {
+  if(tileHeader.x==NULL)
+    return opacity;
+
   const uint  laneID        = gl_LocalInvocationIndex;
   const uint  numPrimitives = tileHeader.y & 0xFFFF;
   const uint  steps         = (numPrimitives + MaxChunk - 1)/MaxChunk;

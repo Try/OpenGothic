@@ -14,7 +14,7 @@ layout(local_size_x = 128) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
-layout(binding = 0, rgba8)  uniform image2D rayData;
+layout(binding = 0, r16)    uniform image2D rayData;
 layout(binding = 1, std140) uniform UboScene { SceneDesc scene; };
 layout(binding = 2, std430) readonly buffer Ep0 { Epipole epipole[]; };
 layout(binding = 3, r32ui)  uniform uimage3D pageTbl;

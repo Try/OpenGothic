@@ -1366,9 +1366,6 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
 
     cmd.setPipeline(shaders.rtsmMeshletOmni);
     cmd.dispatchIndirect(rtsm.visibleLights, 0);
-
-    //cmd.setPipeline(shaders.rtsmPrimOmni);
-    //cmd.dispatchIndirect(rtsm.visibleLights, 0);
   }
 
   {

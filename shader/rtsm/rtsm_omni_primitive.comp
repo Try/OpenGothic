@@ -60,10 +60,6 @@ uvec2 pullTileData() {
 void storeBin(ivec2 at, uint ptr, uint num) {
   if(gl_LocalInvocationIndex!=0)
     return;
-  if(ptr==NULL)
-    num = 0;
-  else if(num==NULL)
-    ptr = 0;
   imageStore(primTiles, at, uvec4(ptr,num,0,0));
   }
 
@@ -180,7 +176,7 @@ void processPrimitives(const uint tilePtr, const uint maxMeshlets, const LightSo
 #endif
   }
 
-void processLight(const vec3 wpos, const vec3 normal, const LightId lId, const uint numMeshlets) {
+void processLight(const vec3 wpos, const vec3 normal, const LightId lId, const uint maxMeshlets) {
   const uint laneID = gl_LocalInvocationIndex;
 
   const LightSource src      = lights[lId.id];
@@ -197,7 +193,7 @@ void processLight(const vec3 wpos, const vec3 normal, const LightId lId, const u
   if(cubeFaces==0)
     return;
 
-  processPrimitives(tilePtr, numMeshlets, src);
+  processPrimitives(tilePtr, maxMeshlets, src);
   barrier();
 
   if(laneID==0) {
