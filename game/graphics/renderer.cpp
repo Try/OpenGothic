@@ -1390,8 +1390,12 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.dispatch(rtsm.lightTiles.size());
 
     cmd.setBinding(9, rtsm.dbg);
-    cmd.setPipeline(shaders.rtsmPrimOmni);
+    cmd.setPipeline(shaders.rtsmPrim2Omni);
     cmd.dispatch(rtsm.primTiles.size());
+
+    cmd.setBinding(9, rtsm.dbg);
+    cmd.setPipeline(shaders.rtsmPrimOmni);
+    //cmd.dispatch(rtsm.primTiles.size());
   }
 
   {

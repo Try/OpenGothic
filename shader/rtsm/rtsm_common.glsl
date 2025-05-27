@@ -140,7 +140,7 @@ vec3 rayToFace(vec3 pos, uint face) {
   }
 
 vec3 faceToRay(vec2 xy, uint face) {
-  vec3 pos = normalize(vec3(xy, 1.0));
+  vec3 pos = /*normalize*/(vec3(xy, 1.0));
   switch(face) {
     case 0: pos = vec3(+pos.z, pos.xy); break;
     case 1: pos = vec3(-pos.z, pos.yx); break;

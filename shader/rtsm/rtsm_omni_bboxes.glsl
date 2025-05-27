@@ -10,6 +10,7 @@ vec3 rayOrigin(ivec2 frag, float depth) {
 // visibility
 shared uint  cubeFaces;
 shared uvec4 bbox[6];
+shared vec3  frustum[6][4];
 
 void rayBboxses(const vec3 ray, bool activeRay) {
   const uint laneID = gl_LocalInvocationIndex;
@@ -40,12 +41,27 @@ void rayBboxses(const vec3 ray, bool activeRay) {
       // degenerated bbox
       atomicAnd(cubeFaces, ~(1 << laneID));
       } else {
-      bbox[laneID] = floatBitsToUint(orderedUintToFloat(aabb));
+      const vec4 aabb = orderedUintToFloat(aabb);
+      bbox[laneID] = floatBitsToUint(aabb);
+#if 1
+      const uint face = laneID;
+
+      const vec3 fa = faceToRay(vec2(aabb.xy), face);
+      const vec3 fb = faceToRay(vec2(aabb.zy), face);
+      const vec3 fc = faceToRay(vec2(aabb.zw), face);
+      const vec3 fd = faceToRay(vec2(aabb.xw), face);
+
+      frustum[face][0] = cross(fa, fb);
+      frustum[face][1] = cross(fb, fc);
+      frustum[face][2] = cross(fc, fd);
+      frustum[face][3] = cross(fd, fa);
+#endif
       }
     }
   }
 
 bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c, uint face) {
+#if 0
   const vec4 aabb = uintBitsToFloat(bbox[face]);
   const vec3 fa = faceToRay(vec2(aabb.xy), face);
   const vec3 fb = faceToRay(vec2(aabb.zy), face);
@@ -56,6 +72,12 @@ bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c, uint face) {
   const vec3 p1 = cross(fb, fc);
   const vec3 p2 = cross(fc, fd);
   const vec3 p3 = cross(fd, fa);
+#else
+  const vec3 p0 = frustum[face][0];
+  const vec3 p1 = frustum[face][1];
+  const vec3 p2 = frustum[face][2];
+  const vec3 p3 = frustum[face][3];
+#endif
 
   if(dot(a, p0)<0 && dot(b, p0)<0 && dot(c, p0)<0)
     return false;
@@ -70,6 +92,7 @@ bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c, uint face) {
   }
 
 bool isPrimitiveVisible(const vec3 origin, const vec4 sphere, uint face) {
+#if 0
   const vec4  aabb = uintBitsToFloat(bbox[face]);
   const vec3  fa = faceToRay(vec2(aabb.xy), face);
   const vec3  fb = faceToRay(vec2(aabb.zy), face);
@@ -80,6 +103,12 @@ bool isPrimitiveVisible(const vec3 origin, const vec4 sphere, uint face) {
   const vec3  p1 = cross(fb, fc);
   const vec3  p2 = cross(fc, fd);
   const vec3  p3 = cross(fd, fa);
+#else
+  const vec3 p0 = frustum[face][0];
+  const vec3 p1 = frustum[face][1];
+  const vec3 p2 = frustum[face][2];
+  const vec3 p3 = frustum[face][3];
+#endif
   const float R  = sphere.w;
 
   if(dot(sphere.xyz, p0) < -R)
