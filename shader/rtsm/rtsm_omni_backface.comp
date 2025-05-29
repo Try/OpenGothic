@@ -15,10 +15,9 @@ const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z
 layout(binding = 0, std140) uniform  UboScene    { SceneDesc   scene;                    };
 layout(binding = 1, std430) readonly buffer Lbo  { LightSource lights[];                 };
 layout(binding = 2, std430)          buffer VId  { uvec4       count;   LightId data[];  } vLights;
-layout(binding = 3, r32ui)  uniform  uimage2D    meshBinsOmni;
-//
-layout(binding = 5, std430) readonly buffer Cbo  { Cluster     clusters[];               };
-layout(binding = 6, std430)          buffer Pos  { uint        alloc;  uint  data[];     } pos;
+layout(binding = 3, r32ui)  uniform  uimage2D    lightBins;
+layout(binding = 4, std430) readonly buffer Cbo  { Cluster     clusters[];               };
+layout(binding = 5, std430)          buffer Pos  { uint        alloc;  uint  data[];     } pos;
 
 #include "rtsm/rtsm_scratch.glsl"
 
@@ -31,7 +30,7 @@ void storeBin(uint lightId, uint ptr, uint num) {
   if(ptr==NULL)
     num = 0;
   vLights.data[lightId].ptr = ptr;
-  imageStore(meshBinsOmni, ivec2(lightId,0), ivec4(num,0,0,0));
+  imageStore(lightBins, ivec2(lightId,0), ivec4(num,0,0,0));
   }
 
 uint packPrimitiveId(uint meshlet, uint prim) {
@@ -97,7 +96,7 @@ void main() {
   const LightSource lx  = lights[lId.id];
 
   const uint ptr         = lId.ptr;
-  const uint numMeshlets = imageLoad(meshBinsOmni, ivec2(gl_WorkGroupID.x,0)).x;
+  const uint numMeshlets = imageLoad(lightBins, ivec2(gl_WorkGroupID.x,0)).x;
 
   traceBin(ptr, numMeshlets, lx, true);
   barrier();

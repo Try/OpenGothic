@@ -52,7 +52,7 @@ vec3  light     = vec3(0);
 uint primCnt = 0; //counter
 
 uvec2 pullTileData() {
-  return texelFetch(primTiles, ivec2((gl_GlobalInvocationID.xy)/64), 0).xy;
+  return texelFetch(primTiles, ivec2((gl_GlobalInvocationID.xy)/RTSM_LIGHT_TILE), 0).xy;
   }
 
 vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 v0, const vec3 v1, const vec3 v2) {
