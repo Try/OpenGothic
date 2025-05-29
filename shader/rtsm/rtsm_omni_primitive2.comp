@@ -28,7 +28,7 @@ layout(binding = 3)         uniform  texture2D  depth;
 layout(binding = 4, std430)          buffer Pos { uint  alloc; uint    data[]; } pos;
 layout(binding = 5, std430) readonly buffer Lbo { LightSource lights[];        };
 layout(binding = 6, std430) readonly buffer VId { uvec4 count; LightId data[]; } vLights;
-layout(binding = 7)         uniform  utexture2D meshBinsOmni;
+layout(binding = 7)         uniform  utexture2D primBinsOmni;
 layout(binding = 8, rg32ui) uniform  uimage2D   primTiles;
 
 #if defined(DEBUG_IMG)
@@ -53,10 +53,11 @@ shared uint lightsBinPtr, primListPtr;
 
 ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
 
-const ivec2 TileSize = ivec2(32);
+//const ivec2 TileSize = ivec2(RTSM_SMALL_TILE);
+const ivec2 TileSize = ivec2(64);
 
 uvec2 pullTileData() {
-  return texelFetch(lightTiles, ivec2((gl_WorkGroupID.xy*RTSM_SMALL_TILE)/RTSM_LIGHT_TILE), 0).xy;
+  return texelFetch(lightTiles, ivec2((gl_WorkGroupID.xy*TileSize)/RTSM_LIGHT_TILE), 0).xy;
   }
 
 void storeBin(ivec2 at, uint ptr, uint num) {
@@ -203,56 +204,34 @@ bool isPrimitiveVisible(const uint ptr, const uint primId, const LightSource src
   const vec3  b   = pullVertex(ptrM, tri.y) - src.pos;
   const vec3  c   = pullVertex(ptrM, tri.z) - src.pos;
 
-  vec4 plane;
-  plane.xyz = /*normalize*/(cross(b - a, c - a));
-  plane.w   = dot(plane.xyz, a);
-
-  const float dist = -plane.w;
-  if(dist<0)
-    return false;
-  if(dist*dist>src.range*src.range*dot(plane.xyz,plane.xyz))
-    return false;
-
   if(!isPrimitiveVisible(a, b, c, light))
     return false;
-
   return true;
   }
 
-void processMeshletPrimitives(const uint ptr, const uint primCount, const uint primId, const LightSource src, const uint light) {
-  if(primId>=primCount)
-    return;
-
-  if(!isPrimitiveVisible(ptr, primId, src, light))
-    return;
-
-  atomicAdd(dbgCounter, 1);
-  const uint id = atomicAdd(numPrimitives, 1);
-  if(id<primitives.length()) {
-    primitives[id] = packPrimitiveId(ptr, primId);
-    }
-  }
-
-void processPrimitives(const uint tilePtr, const uint maxMeshlets, const LightSource src, const uint light) {
-  const uint  laneID      = gl_LocalInvocationIndex;
-  const uint  primPerStep = 32;
-  const uint  meshPerStep = NumThreads / primPerStep;
+void processPrimitives(const uint tilePtr, const uint inPrimitives, const LightSource src, const uint light) {
+  const uint laneID = gl_LocalInvocationIndex;
 
   numPrimitives = 0;
   barrier();
 
-  for(uint i=(laneID/primPerStep); i<maxMeshlets; i+=meshPerStep) {
-    const uint laneMs  = laneID % primPerStep;
-    const uint ptr     = pos.data[tilePtr + i];
-    const uint primCnt = pullPrimitiveCount(ptr);
-    const vec4 sp      = pullMeshSphere(ptr);
+  for(uint i=laneID; i<inPrimitives; i+=NumThreads) {
+    const uint  pkg    = pos.data[tilePtr + i];
+    const uint  ptr    = (pkg >> 8);
+    const uint  primId = pkg & 0xFF;
 
-    for(uint r=laneMs; r<MaxPrim; r+=primPerStep)
-      processMeshletPrimitives(ptr, primCnt, r, src, light);
+    if(!isPrimitiveVisible(ptr, primId, src, light))
+      continue;
+
+    atomicAdd(dbgCounter, 1);
+    const uint id = atomicAdd(numPrimitives, 1);
+    if(id<primitives.length()) {
+      primitives[id] = packPrimitiveId(ptr, primId);
+      }
     }
   }
 
-void processLight(const vec3 wpos, const vec3 normal, const LightId lId, const uint light, const uint maxMeshlets) {
+void processLight(const vec3 wpos, const vec3 normal, const LightId lId, const uint light, const uint inPrimitives) {
   const uint laneID = gl_LocalInvocationIndex;
 
   if(cubeFaces[light]==0)
@@ -266,7 +245,7 @@ void processLight(const vec3 wpos, const vec3 normal, const LightId lId, const u
   const vec3        ldir     = distance/tMax;
   bool              lpow     = lightIntensity(normal, tMax, ldir, src.range);
 
-  processPrimitives(tilePtr, maxMeshlets, src, light);
+  processPrimitives(tilePtr, inPrimitives, src, light);
   barrier();
 
   if(laneID==0) {
@@ -318,10 +297,10 @@ void main() {
   const vec3  origin = rayOrigin(fragCoord.xy, z) + (normal*NormalBias) + push.originLwc;
 
   for(uint i=0; i<cubeFaces.length() && i<nLights; ++i) {
-    const uint id          = pos.data[lptr + i];
-    const uint numMeshlets = texelFetch(meshBinsOmni, ivec2(id,0), 0).x;
+    const uint id           = pos.data[lptr + i];
+    const uint inPrimitives = texelFetch(primBinsOmni, ivec2(id,0), 0).x;
 
-    processLight(origin, normal, vLights.data[id], i, numMeshlets);
+    processLight(origin, normal, vLights.data[id], i, inPrimitives);
     barrier(); //NOTE: no need
     }
 

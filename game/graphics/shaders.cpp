@@ -241,6 +241,7 @@ Shaders::Shaders() {
     rtsmPositionOmni = computeShader("rtsm_omni_position.comp.sprv");
 
     rtsmMeshletOmni  = computeShader("rtsm_omni_meshlet.comp.sprv");
+    rtsmBackfaceOmni = computeShader("rtsm_omni_backface.comp.sprv");
     rtsmPrimOmni     = computeShader("rtsm_omni_primitive.comp.sprv");
     rtsmPrim2Omni    = computeShader("rtsm_omni_primitive2.comp.sprv");
     rtsmRasterOmni   = computeShader("rtsm_omni_raster.comp.sprv");
