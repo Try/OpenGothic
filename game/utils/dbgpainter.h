@@ -11,6 +11,7 @@ class DbgPainter {
     void setPen  (const Tempest::Pen&   pen);
 
     void drawText(int x, int y, std::string_view txt);
+    void drawText(const Tempest::Vec3& a, std::string_view txt);
     void drawLine(const Tempest::Vec3& a, const Tempest::Vec3& b);
     void drawPoint();
 

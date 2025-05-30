@@ -37,7 +37,14 @@ class LightSource final {
 
     uint64_t             effectPrefferedTime() const;
 
+    void                 setDebugName(std::string_view hint);
+    std::string_view     debugName() const;
+
   private:
+#ifndef NDEBUG
+    std::string        dbgHint;
+#endif
+
     Tempest::Vec3      ldir;
     Tempest::Vec3      clr;
     Tempest::Vec3      pos;

@@ -117,7 +117,7 @@ void rayBboxes(const uint lptr, const uint nLights) {
       const float z         = texelFetch(depth, fragCoord, 0).x;
       const vec3  wpos      = rayOrigin(fragCoord.xy, z) + (normal*NormalBias) + push.originLwc;
 
-      for(uint i=0; i<nLights; ++i) {
+      for(uint i=0; i<cubeFaces.length() && i<nLights; ++i) {
         const uint id              = pos.data[lptr + i];
         const LightId     lId      = vLights.data[id];
         const LightSource src      = lights[lId.id];
@@ -204,6 +204,20 @@ bool isPrimitiveVisible(const uint ptr, const uint primId, const LightSource src
   const vec3  b   = pullVertex(ptrM, tri.y) - src.pos;
   const vec3  c   = pullVertex(ptrM, tri.z) - src.pos;
 
+  /*
+  //TODO: tMax culling
+  vec4 plane;
+  // plane.xyz = normalize(cross(b - a, c - a));
+  plane.xyz = cross(b - a, c - a);
+  plane.w   = dot(plane.xyz, a);
+
+  const float dist = -plane.w;
+  // if(dist<0)
+  //   return false;
+  if(dist*dist>(src.range*src.range)*dot(plane.xyz,plane.xyz))
+    return false;
+  */
+
   if(!isPrimitiveVisible(a, b, c, light))
     return false;
   return true;
@@ -231,7 +245,7 @@ void processPrimitives(const uint tilePtr, const uint inPrimitives, const LightS
     }
   }
 
-void processLight(const vec3 wpos, const vec3 normal, const LightId lId, const uint light, const uint inPrimitives) {
+void processLight(const LightId lId, const uint light, const uint inPrimitives) {
   const uint laneID = gl_LocalInvocationIndex;
 
   if(cubeFaces[light]==0)
@@ -239,19 +253,17 @@ void processLight(const vec3 wpos, const vec3 normal, const LightId lId, const u
 
   const LightSource src      = lights[lId.id];
   const uint        tilePtr  = lId.ptr;
-  const vec3        distance = wpos-src.pos;
-
-  const float       tMax     = length(distance);
-  const vec3        ldir     = distance/tMax;
-  bool              lpow     = lightIntensity(normal, tMax, ldir, src.range);
 
   processPrimitives(tilePtr, inPrimitives, src, light);
   barrier();
 
   if(laneID==0) {
-    if(numPrimitives>=primitives.length())
-      numPrimitives = 0;
-    primListPtr = allocScratch(numPrimitives);
+    if(numPrimitives<primitives.length()) {
+      primListPtr   = allocScratch(numPrimitives);
+      } else {
+      primListPtr   = NULL;
+      numPrimitives = BIN_BAD_BIT;
+      }
 
     const uint idx = atomicAdd(numLights, 1);
     pos.data[lightsBinPtr + idx*4 + 0] = lId.id;
@@ -286,21 +298,21 @@ void main() {
   numPrimitives = 0; //debug
   barrier();
 
+  if(lightsBinPtr==NULL || nLights>=cubeFaces.length()) {
+    storeBin(ivec2(gl_WorkGroupID.xy), NULL, BIN_BAD_BIT);
+    imageDbg(0);
+    return;
+    }
+
   rayBboxes(lptr, nLights);
+  barrier();
   //return;
-
-  const ivec2 size   = textureSize(depth, 0);
-  const bool  valid  = all(lessThan(fragCoord, size));
-
-  const vec3  normal = valid ? normalFetch(gbufNormal, fragCoord) : vec3(0);
-  const float z      = valid ? texelFetch(depth, fragCoord, 0).x  : 1.0;
-  const vec3  origin = rayOrigin(fragCoord.xy, z) + (normal*NormalBias) + push.originLwc;
 
   for(uint i=0; i<cubeFaces.length() && i<nLights; ++i) {
     const uint id           = pos.data[lptr + i];
     const uint inPrimitives = texelFetch(lightBins, ivec2(id,0), 0).x;
 
-    processLight(origin, normal, vLights.data[id], i, inPrimitives);
+    processLight(vLights.data[id], i, inPrimitives);
     barrier(); //NOTE: no need
     }
 

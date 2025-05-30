@@ -152,18 +152,23 @@ bool earlyOut() {
   }
 
 float tracePacket(const uvec2 tileHeader, const vec3 origin, const vec3 dir, const float tMax, float opacity) {
-  if(tileHeader.x==NULL)
-    return opacity;
-
   const uint  laneID        = gl_LocalInvocationIndex;
   const uint  numPrimitives = tileHeader.y & 0xFFFF;
-  const uint  steps         = (numPrimitives + MaxChunk - 1)/MaxChunk;
+
+  if((tileHeader.y&BIN_BAD_BIT)!=0) {
+    // error - emit 4x4 grid to display
+    ivec2 tile    = fragCoord/4;
+    return (tile.x+tile.y)%2==0 ? 1.0 : 0.0;
+    }
+
+  if(tileHeader.x==NULL || numPrimitives==0)
+    return opacity;
 
   inactiveRays = 0;
   rayBboxses(dir, opacity>0);
   barrier();
 
-  if(cubeFaces==0)
+  if(numPlanes==0)
     return opacity;
 
   if(opacity<=minOpacity)
@@ -214,25 +219,39 @@ void processLight(const vec3 wpos, const vec3 normal, const LightSource src, con
   light += vec3(lpow * src.color);
   }
 
-void main() {
-  const uint  laneID  = gl_LocalInvocationIndex;
-  const uvec2 tile    = pullTileData();
-  const uint  lptr    = tile.x;
-  const uint  nLights = tile.y;
+void processAllLights(const uvec2 tileHeader, const bool valid) {
+  if((tileHeader.y&BIN_BAD_BIT)!=0) {
+    // error - emit 4x4 grid to display
+    ivec2 tile = fragCoord/4;
+    light = (tile.x+tile.y)%2==0 ? vec3(0,0,1) : vec3(0);
+    return;
+    }
 
-  const ivec2 size   = textureSize(depth, 0);
-  const bool  valid  = all(lessThan(fragCoord, size));
+  if(tileHeader.x==NULL) {
+    light = vec3(0.0);
+    return;
+    }
 
   const vec3  normal = valid ? normalFetch(gbufNormal, fragCoord) : vec3(0);
   const float z      = valid ? texelFetch(depth, fragCoord, 0).x  : 1.0;
   const vec3  origin = rayOrigin(fragCoord.xy, z) + (normal*NormalBias) + push.originLwc;
 
+  const uint lptr    = tileHeader.x;
+  const uint nLights = tileHeader.y & 0xFFFF;
   for(uint i=0; i<nLights; ++i) {
     const uint lid           = pos.data[lptr + i*4 + 0];
     const uint ptr           = pos.data[lptr + i*4 + 1];
     const uint numPrimitives = pos.data[lptr + i*4 + 2];
     processLight(origin, normal, lights[lid], ptr, numPrimitives);
     }
+  }
+
+void main() {
+  const ivec2 size   = textureSize(depth, 0);
+  const bool  valid  = all(lessThan(fragCoord, size));
+
+  const uvec2 tile   = pullTileData();
+  processAllLights(tile, valid);
 
   if(valid)
     imageStore(outputImage, ivec2(fragCoord), vec4(light, 1));

@@ -8,14 +8,14 @@ vec3 rayOrigin(ivec2 frag, float depth) {
   }
 
 // visibility
-shared uint  cubeFaces;
+shared uint  numPlanes;
 shared uvec4 bbox[6];
 shared vec3  frustum[6][4];
 
 void rayBboxses(const vec3 ray, bool activeRay) {
   const uint laneID = gl_LocalInvocationIndex;
 
-  cubeFaces = 0;
+  numPlanes = 0;
   if(laneID<bbox.length())
     bbox[laneID] = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
   barrier();
@@ -23,7 +23,6 @@ void rayBboxses(const vec3 ray, bool activeRay) {
   if(activeRay) {
     const uint face = rayToFace(ray);
     const vec3 rf   = rayToFace(ray, face);
-    atomicOr(cubeFaces, 1u<<face);
     atomicMin(bbox[face].x, floatToOrderedUint(rf.x));
     atomicMin(bbox[face].y, floatToOrderedUint(rf.y));
     atomicMax(bbox[face].z, floatToOrderedUint(rf.x));
@@ -31,49 +30,32 @@ void rayBboxses(const vec3 ray, bool activeRay) {
     }
   barrier();
 
-  if(laneID<bbox.length() && (cubeFaces & (1 << laneID))!=0) {
-    uvec4 aabb = bbox[laneID];
-    if(aabb.x==aabb.z || aabb.y==aabb.w) {
+  if(laneID<bbox.length()) {
+    const uint  face  = laneID;
+    const uvec4 iaabb = bbox[face];
+    if(iaabb.x>=iaabb.z || iaabb.y>=iaabb.w) {
       // degenerated bbox
-      atomicAnd(cubeFaces, ~(1 << laneID));
-      } else {
-      const vec4 aabb = orderedUintToFloat(aabb);
-      bbox[laneID] = floatBitsToUint(aabb);
-#if 1
-      const uint face = laneID;
-
-      const vec3 fa = faceToRay(vec2(aabb.xy), face);
-      const vec3 fb = faceToRay(vec2(aabb.zy), face);
-      const vec3 fc = faceToRay(vec2(aabb.zw), face);
-      const vec3 fd = faceToRay(vec2(aabb.xw), face);
-
-      frustum[face][0] = cross(fa, fb);
-      frustum[face][1] = cross(fb, fc);
-      frustum[face][2] = cross(fc, fd);
-      frustum[face][3] = cross(fd, fa);
-#endif
+      return;
       }
+    const vec4 aabb = orderedUintToFloat(iaabb);
+    const vec3 fa   = faceToRay(vec2(aabb.xy), face);
+    const vec3 fb   = faceToRay(vec2(aabb.zy), face);
+    const vec3 fc   = faceToRay(vec2(aabb.zw), face);
+    const vec3 fd   = faceToRay(vec2(aabb.xw), face);
+
+    const uint id = atomicAdd(numPlanes, 1);
+    frustum[id][0] = cross(fa, fb);
+    frustum[id][1] = cross(fb, fc);
+    frustum[id][2] = cross(fc, fd);
+    frustum[id][3] = cross(fd, fa);
     }
   }
 
 bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c, uint face) {
-#if 0
-  const vec4 aabb = uintBitsToFloat(bbox[face]);
-  const vec3 fa = faceToRay(vec2(aabb.xy), face);
-  const vec3 fb = faceToRay(vec2(aabb.zy), face);
-  const vec3 fc = faceToRay(vec2(aabb.zw), face);
-  const vec3 fd = faceToRay(vec2(aabb.xw), face);
-
-  const vec3 p0 = cross(fa, fb);
-  const vec3 p1 = cross(fb, fc);
-  const vec3 p2 = cross(fc, fd);
-  const vec3 p3 = cross(fd, fa);
-#else
   const vec3 p0 = frustum[face][0];
   const vec3 p1 = frustum[face][1];
   const vec3 p2 = frustum[face][2];
   const vec3 p3 = frustum[face][3];
-#endif
 
   if(dot(a, p0)<0 && dot(b, p0)<0 && dot(c, p0)<0)
     return false;
@@ -88,25 +70,12 @@ bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c, uint face) {
   }
 
 bool isPrimitiveVisible(const vec3 origin, const vec4 sphere, uint face) {
-#if 0
-  const vec4  aabb = uintBitsToFloat(bbox[face]);
-  const vec3  fa = faceToRay(vec2(aabb.xy), face);
-  const vec3  fb = faceToRay(vec2(aabb.zy), face);
-  const vec3  fc = faceToRay(vec2(aabb.zw), face);
-  const vec3  fd = faceToRay(vec2(aabb.xw), face);
-
-  const vec3  p0 = cross(fa, fb);
-  const vec3  p1 = cross(fb, fc);
-  const vec3  p2 = cross(fc, fd);
-  const vec3  p3 = cross(fd, fa);
-#else
   const vec3 p0 = frustum[face][0];
   const vec3 p1 = frustum[face][1];
   const vec3 p2 = frustum[face][2];
   const vec3 p3 = frustum[face][3];
-#endif
-  const float R  = sphere.w;
 
+  const float R  = sphere.w;
   if(dot(sphere.xyz, p0) < -R)
     return false;
   if(dot(sphere.xyz, p1) < -R)
@@ -120,11 +89,8 @@ bool isPrimitiveVisible(const vec3 origin, const vec4 sphere, uint face) {
 
 bool isPrimitiveVisible(const vec3 origin, vec4 sphere) {
   sphere.xyz -= origin;
-
-  for(uint face=0; face<bbox.length(); ++face) {
-    if((cubeFaces & (1u << face))==0)
-      continue;
-    if(isPrimitiveVisible(origin, sphere, face))
+  for(uint i=0; i<numPlanes; ++i) {
+    if(isPrimitiveVisible(origin, sphere, i))
       return true;
     }
   return false;
@@ -135,10 +101,8 @@ bool isPrimitiveVisible(const vec3 origin, vec3 a, vec3 b, vec3 c) {
   b -= origin;
   c -= origin;
 
-  for(uint face=0; face<bbox.length(); ++face) {
-    if((cubeFaces & (1u << face))==0)
-      continue;
-    if(isPrimitiveVisible(a, b, c, face))
+  for(uint i=0; i<numPlanes; ++i) {
+    if(isPrimitiveVisible(a, b, c, i))
       return true;
     }
   return false;

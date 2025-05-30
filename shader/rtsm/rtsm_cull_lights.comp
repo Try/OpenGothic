@@ -94,7 +94,7 @@ bool projectSphere(const vec4 sphere, out vec4 aabb, out float depthMin, out flo
   }
 
 bool frustrumTest(const vec4 sphere) {
-  if(sphere.w<0.f)
+  if(sphere.w<=0.f)
     return false;
   for(int i=0; i<6; ++i) {
     if(dot(vec4(sphere.xyz,1.0), scene.frustrum[i]) <= -sphere.w) {

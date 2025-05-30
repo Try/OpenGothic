@@ -153,3 +153,19 @@ uint64_t LightSource::effectPrefferedTime() const {
   uint64_t t1 = rangeAniScale.size()*rangeAniFPSInv;
   return std::max(t0,t1);
   }
+
+void LightSource::setDebugName(std::string_view hint) {
+#ifndef NDEBUG
+  dbgHint = hint;
+#else
+  (void)hint;
+#endif
+  }
+
+std::string_view LightSource::debugName() const {
+#ifndef NDEBUG
+  return dbgHint;
+#else
+  return "";
+#endif
+  }

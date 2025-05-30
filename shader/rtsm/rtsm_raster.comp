@@ -254,7 +254,7 @@ void main() {
   if(tileHeader.y==0)
     return;
 
-  if((tileHeader.y & (1u<<31))!=0) {
+  if((tileHeader.y & BIN_BAD_BIT)!=0) {
     // error - emit 4x4 grid to display
     ivec2 tile    = fragCoord/4;
     float opacity = (tile.x+tile.y)%2==0 ? 1.0 : 0.0;

@@ -136,6 +136,7 @@ LightGroup::LightGroup(const SceneGlobals& scene) {
 LightGroup::Light LightGroup::add(const zenkit::LightPreset& vob) {
   LightSource l;
   l.setPosition(Vec3(0, 0, 0));
+  l.setDebugName(vob.preset);
 
   if(!vob.range_animation_scale.empty()) {
     l.setRange(vob.range_animation_scale,vob.range,vob.range_animation_fps,vob.range_animation_smooth);
@@ -176,12 +177,17 @@ LightGroup::Light LightGroup::add(std::string_view preset) {
   }
 
 void LightGroup::dbgLights(DbgPainter& p) const {
-  int cnt = 0;
-  //p.setBrush(Color(1,0,0,0.01f));
-  p.setBrush(Color(1,0,0,1.f));
+  static bool ddraw=false;
+  if(!ddraw)
+    return;
+
+  //p.setPen(Color(1,0,0,0.01f));
+  p.setPen(Color(1,0,0,1.f));
 
   for(auto& i:lightSourceDesc) {
     auto pt = i.position();
+    p.drawText(pt, i.debugName());
+
     float l = 10;
     p.drawLine(pt-Vec3(l,0,0),pt+Vec3(l,0,0));
     p.drawLine(pt-Vec3(0,l,0),pt+Vec3(0,l,0));
@@ -237,7 +243,7 @@ void LightGroup::dbgLights(DbgPainter& p) const {
     */
     }
 
-  string_frm name("light count = ",cnt);
+  string_frm name("light count = ", lightSourceDesc.size());
   p.drawText(10,50,name);
   }
 
