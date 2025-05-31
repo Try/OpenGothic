@@ -2,6 +2,7 @@
 
 #include <Tempest/Point>
 #include <vector>
+#include <string>
 #include <zenkit/Misc.hh>
 
 class LightSource final {
