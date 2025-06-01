@@ -16,6 +16,7 @@
 layout(local_size_x = 32, local_size_y = 16) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+const uint sizeof_Light = 1 + 4*6;
 
 layout(push_constant, std430) uniform UboPush {
   vec3  originLwc;
@@ -90,87 +91,48 @@ vec3 rayOrigin(ivec2 frag, float depth) {
   }
 
 // visibility
-shared uint  cubeFaces[32];
-shared uvec4 bbox[32][6];
-shared vec3  frustum[32][6][4];
-void rayBboxes(const uint lptr, const uint nLights) {
+shared uint  numPlanes;
+shared uvec4 bbox[6];
+shared vec3  frustum[6][4];
+void rayBboxes(const uint lptr) {
   const uint laneID = gl_LocalInvocationIndex;
 
-  const ivec2 viewportSize = textureSize(depth, 0);
-  const ivec2 xy0   = ivec2(gl_LocalInvocationID.xy);
-  const ivec2 begin = ivec2(gl_WorkGroupID.xy * TileSize) + xy0;
-  const ivec2 end   = min(ivec2(gl_WorkGroupID.xy * TileSize + TileSize), viewportSize);
-
-  if(laneID<cubeFaces.length())
-    cubeFaces[laneID] = 0;
-  if(laneID<bbox.length()*6) {
-    const uint lId  = laneID/6;
-    const uint face = laneID%6;
-    bbox[lId][face] = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
-    }
+  numPlanes = 0;
   barrier();
 
-  for(int y=begin.y; y<end.y; y+=int(gl_WorkGroupSize.y))
-    for(int x=begin.x; x<end.x; x+=int(gl_WorkGroupSize.x)) {
-      const ivec2 fragCoord = ivec2(x,y);
-      const vec3  normal    = normalFetch(gbufNormal, fragCoord);
-      const float z         = texelFetch(depth, fragCoord, 0).x;
-      const vec3  wpos      = rayOrigin(fragCoord.xy, z) + (normal*NormalBias) + push.originLwc;
+  if(laneID<6) {
+    const uint  face  = laneID;
+    const uint  fptr  = lptr + 1 + face*4;
 
-      for(uint i=0; i<cubeFaces.length() && i<nLights; ++i) {
-        const uint id              = pos.data[lptr + i];
-        const LightId     lId      = vLights.data[id];
-        const LightSource src      = lights[lId.id];
-        const vec3        distance = wpos-src.pos;
-        const float       tMax     = length(distance);
-        const vec3        ldir     = distance/tMax;
+    uvec4 iaabb;
+    iaabb.x = pos.data[fptr+0];
+    iaabb.y = pos.data[fptr+1];
+    iaabb.z = pos.data[fptr+2];
+    iaabb.w = pos.data[fptr+3];
 
-        const bool activeRay = z<1.0 && tMax<src.range;
-        if(activeRay) {
-          const uint face = rayToFace(ldir);
-          const vec3 rf   = rayToFace(ldir, face);
-          atomicOr(cubeFaces[i], 1u<<face);
-          atomicMin(bbox[i][face].x, floatToOrderedUint(rf.x));
-          atomicMin(bbox[i][face].y, floatToOrderedUint(rf.y));
-          atomicMax(bbox[i][face].z, floatToOrderedUint(rf.x));
-          atomicMax(bbox[i][face].w, floatToOrderedUint(rf.y));
-          }
-        }
+    if(iaabb.x>=iaabb.z || iaabb.y>=iaabb.w) {
+      // degenerated bbox
+      return;
       }
-  barrier();
+    const vec4 aabb = orderedUintToFloat(iaabb);
+    const vec3 fa   = faceToRay(vec2(aabb.xy), face);
+    const vec3 fb   = faceToRay(vec2(aabb.zy), face);
+    const vec3 fc   = faceToRay(vec2(aabb.zw), face);
+    const vec3 fd   = faceToRay(vec2(aabb.xw), face);
 
-  if(laneID<bbox.length()*6) {
-    const uint lId  = laneID/6;
-    const uint face = laneID%6;
-
-    if((cubeFaces[lId] & (1 << face))!=0) {
-      const uvec4 aabb = bbox[lId][face];
-      if(aabb.x==aabb.z || aabb.y==aabb.w) {
-        // degenerated bbox
-        atomicAnd(cubeFaces[lId], ~(1 << face));
-        } else {
-        const vec4 aabb = orderedUintToFloat(aabb);
-        bbox[lId][face] = floatBitsToUint(aabb);
-
-        const vec3 fa   = faceToRay(vec2(aabb.xy), face);
-        const vec3 fb   = faceToRay(vec2(aabb.zy), face);
-        const vec3 fc   = faceToRay(vec2(aabb.zw), face);
-        const vec3 fd   = faceToRay(vec2(aabb.xw), face);
-
-        frustum[lId][face][0] = cross(fa, fb);
-        frustum[lId][face][1] = cross(fb, fc);
-        frustum[lId][face][2] = cross(fc, fd);
-        frustum[lId][face][3] = cross(fd, fa);
-        }
-      }
+    const uint id = atomicAdd(numPlanes, 1);
+    frustum[id][0] = cross(fa, fb);
+    frustum[id][1] = cross(fb, fc);
+    frustum[id][2] = cross(fc, fd);
+    frustum[id][3] = cross(fd, fa);
     }
   }
 
-bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c, uint light, uint face) {
-  const vec3 p0 = frustum[light][face][0];
-  const vec3 p1 = frustum[light][face][1];
-  const vec3 p2 = frustum[light][face][2];
-  const vec3 p3 = frustum[light][face][3];
+bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c, uint face) {
+  const vec3 p0 = frustum[face][0];
+  const vec3 p1 = frustum[face][1];
+  const vec3 p2 = frustum[face][2];
+  const vec3 p3 = frustum[face][3];
 
   if(dot(a, p0)<0 && dot(b, p0)<0 && dot(c, p0)<0)
     return false;
@@ -183,17 +145,16 @@ bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c, uint light, uint face) {
   return true;
   }
 
-bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c, uint light) {
-  for(uint face=0; face<6; ++face) {
-    if((cubeFaces[light] & (1u << face))==0)
-      continue;
-    if(isPrimitiveVisible(a, b, c, light, face))
+bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c) {
+  const uint num = numPlanes;
+  for(uint face=0; face<num; ++face) {
+    if(isPrimitiveVisible(a, b, c, face))
       return true;
     }
   return false;
   }
 
-bool isPrimitiveVisible(const uint ptr, const uint primId, const LightSource src, const uint light) {
+bool isPrimitiveVisible(const uint ptr, const uint primId, const LightSource src) {
   uint ptrM = ptr;
 
   ptrM += MeshletHeaderSize;
@@ -218,12 +179,12 @@ bool isPrimitiveVisible(const uint ptr, const uint primId, const LightSource src
     return false;
   */
 
-  if(!isPrimitiveVisible(a, b, c, light))
+  if(!isPrimitiveVisible(a, b, c))
     return false;
   return true;
   }
 
-void processPrimitives(const uint tilePtr, const uint inPrimitives, const LightSource src, const uint light) {
+void processPrimitives(const uint tilePtr, const uint inPrimitives, const LightSource src) {
   const uint laneID = gl_LocalInvocationIndex;
 
   numPrimitives = 0;
@@ -234,7 +195,7 @@ void processPrimitives(const uint tilePtr, const uint inPrimitives, const LightS
     const uint  ptr    = (pkg >> 8);
     const uint  primId = pkg & 0xFF;
 
-    if(!isPrimitiveVisible(ptr, primId, src, light))
+    if(!isPrimitiveVisible(ptr, primId, src))
       continue;
 
     atomicAdd(dbgCounter, 1);
@@ -245,16 +206,13 @@ void processPrimitives(const uint tilePtr, const uint inPrimitives, const LightS
     }
   }
 
-void processLight(const LightId lId, const uint light, const uint inPrimitives) {
+void processLight(const LightId lId, const uint inPrimitives) {
   const uint laneID = gl_LocalInvocationIndex;
-
-  if(cubeFaces[light]==0)
-    return;
 
   const LightSource src      = lights[lId.id];
   const uint        tilePtr  = lId.ptr;
 
-  processPrimitives(tilePtr, inPrimitives, src, light);
+  processPrimitives(tilePtr, inPrimitives, src);
   barrier();
 
   if(laneID==0) {
@@ -298,22 +256,22 @@ void main() {
   numPrimitives = 0; //debug
   barrier();
 
-  if(lightsBinPtr==NULL || nLights>=cubeFaces.length()) {
+  if(lightsBinPtr==NULL) {
     storeBin(ivec2(gl_WorkGroupID.xy), NULL, BIN_BAD_BIT);
     imageDbg(0);
     return;
     }
 
-  rayBboxes(lptr, nLights);
-  barrier();
-  //return;
-
-  for(uint i=0; i<cubeFaces.length() && i<nLights; ++i) {
-    const uint id           = pos.data[lptr + i];
+  for(uint i=0; i<nLights; ++i) {
+    const uint id           = pos.data[lptr + i*sizeof_Light];
     const uint inPrimitives = texelFetch(lightBins, ivec2(id,0), 0).x;
 
-    processLight(vLights.data[id], i, inPrimitives);
-    barrier(); //NOTE: no need
+    rayBboxes(lptr + i*sizeof_Light);
+    barrier();
+
+    if(numPlanes>0)
+      processLight(vLights.data[id], inPrimitives);
+    barrier();
     }
 
   storeBin(ivec2(gl_WorkGroupID.xy), lightsBinPtr, numLights);

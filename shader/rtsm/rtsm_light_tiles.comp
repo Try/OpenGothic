@@ -16,6 +16,7 @@
 layout(local_size_x = 16, local_size_y = 16) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+const uint sizeof_Light = 1 + 4*6;
 
 layout(push_constant, std430) uniform UboPush {
   vec3  originLwc;
@@ -43,7 +44,6 @@ void imageDbg(uint info) {
 
 shared uint  tileDepthMin, tileDepthMax;
 shared uint  lightCount;
-// shared uint  lightId[NumThreads];
 shared uint  lightListPtr;
 
 ivec2 fragCoord    = ivec2(gl_GlobalInvocationID.xy);
@@ -79,6 +79,14 @@ bool projectSphere(const vec4 sphere, out float depthMin, out float depthMax) {
     return false;
     }
   return true;
+  }
+
+// ray related
+vec3 rayOrigin(ivec2 frag, float depth) {
+  const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
+  const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
+  const vec4 wpos      = scene.viewProjectLwcInv * scr;
+  return wpos.xyz/wpos.w;
   }
 
 void storeBin(ivec2 at, uint ptr, uint num) {
@@ -129,9 +137,55 @@ void processLights(bool counting) {
 
     const uint id = atomicAdd(lightCount, 1);
     if(!counting) {
-      pos.data[lightListPtr + id] = i;
+      uint ptr = lightListPtr + id*sizeof_Light;
+      pos.data[ptr + 0] = i;
+      for(uint r=0; r<6; ++r) {
+        pos.data[ptr + 1] = 0xFFFFFFFF;
+        pos.data[ptr + 2] = 0xFFFFFFFF;
+        pos.data[ptr + 3] = 0;
+        pos.data[ptr + 4] = 0;
+        ptr += 4;
+        }
       }
     }
+  }
+
+void rayBboxes(const uint lptr, const uint nLights) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  const ivec2 viewportSize = textureSize(depth, 0);
+  const ivec2 xy0   = ivec2(gl_LocalInvocationID.xy);
+  const ivec2 begin = ivec2(gl_WorkGroupID.xy * TileSize) + xy0;
+  const ivec2 end   = min(ivec2(gl_WorkGroupID.xy * TileSize + TileSize), viewportSize);
+
+  for(int y=begin.y; y<end.y; y+=int(gl_WorkGroupSize.y))
+    for(int x=begin.x; x<end.x; x+=int(gl_WorkGroupSize.x)) {
+      const ivec2 fragCoord = ivec2(x,y);
+      const vec3  normal    = normalFetch(gbufNormal, fragCoord);
+      const float z         = texelFetch(depth, fragCoord, 0).x;
+      const vec3  wpos      = rayOrigin(fragCoord.xy, z) + (normal*NormalBias) + push.originLwc;
+
+      for(uint i=0; i<nLights; ++i) {
+        const uint        ptr      = lptr + i*sizeof_Light;
+        const uint        id       = pos.data[ptr];
+        const LightId     lId      = vLights.data[id];
+        const LightSource src      = lights[lId.id];
+        const vec3        distance = wpos-src.pos;
+        const float       tMax     = length(distance);
+        const vec3        ldir     = distance/tMax;
+
+        const bool activeRay = z<1.0 && tMax<src.range && dot(normal, ldir)<0;
+        if(activeRay) {
+          const uint face = rayToFace(ldir);
+          const vec3 rf   = rayToFace(ldir, face);
+          const uint fptr = ptr + face*4 + 1;
+          atomicMin(pos.data[fptr+0], floatToOrderedUint(rf.x));
+          atomicMin(pos.data[fptr+1], floatToOrderedUint(rf.y));
+          atomicMax(pos.data[fptr+2], floatToOrderedUint(rf.x));
+          atomicMax(pos.data[fptr+3], floatToOrderedUint(rf.y));
+          }
+        }
+      }
   }
 
 void main() {
@@ -161,7 +215,7 @@ void main() {
   barrier();
 
   if(laneID==0) {
-    lightListPtr = allocScratch(lightCount);
+    lightListPtr = allocScratch(lightCount*sizeof_Light);
     storeBin(ivec2(gl_WorkGroupID.xy), lightListPtr, lightCount);
     imageDbg(lightCount);
     lightCount = 0;
@@ -171,4 +225,7 @@ void main() {
   if(lightListPtr==NULL)
     return; //OOM
   processLights(false);
+  barrier();
+
+  rayBboxes(lightListPtr, lightCount);
   }
