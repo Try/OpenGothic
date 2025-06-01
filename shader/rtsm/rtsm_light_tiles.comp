@@ -225,6 +225,7 @@ void main() {
   if(lightListPtr==NULL)
     return; //OOM
   processLights(false);
+  memoryBarrierBuffer();
   barrier();
 
   rayBboxes(lightListPtr, lightCount);
