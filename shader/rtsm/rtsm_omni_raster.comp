@@ -29,6 +29,8 @@ layout(binding = 3)         uniform  texture2D  depth;
 layout(binding = 4, std430) readonly buffer Pos { uint  alloc; uint    data[]; } pos;
 layout(binding = 5, std430) readonly buffer Lbo { LightSource lights[];        };
 layout(binding = 6)         uniform  utexture2D primTiles;
+layout(binding = 7)         uniform  texture2D  textureMain[];
+layout(binding = 8)         uniform  sampler    samplerMain;
 
 layout(binding = 9, r32ui)  uniform  uimage2D   dbgImage;
 
@@ -51,6 +53,20 @@ uint primCnt = 0; //counter
 
 uvec2 pullTileData() {
   return texelFetch(primTiles, ivec2((gl_GlobalInvocationID.xy)/RTSM_LIGHT_TILE), 0).xy;
+  }
+
+vec2 interpolateUV(vec3 bc, vec2 a, vec2 b, vec2 c) {
+  const float u = dot(vec3(a.x,b.x,c.x), bc);
+  const float v = dot(vec3(a.y,b.y,c.y), bc);
+  return vec2(u, v);
+  }
+
+vec2 interpolateUV(vec3 bc, uint a, uint b, uint c) {
+  return interpolateUV(bc, unpackHalf2x16(a), unpackHalf2x16(b), unpackHalf2x16(c));
+  }
+
+float sampleAlpha(const uint bucketId, vec2 uv, float lodBias) {
+  return textureLod(sampler2D(textureMain[nonuniformEXT(bucketId)], samplerMain), uv, lodBias).a;
   }
 
 vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 v0, const vec3 v1, const vec3 v2) {
@@ -140,14 +156,31 @@ float rasterBatch(const vec3 origin, const vec3 dir, const float tMax, float opa
     return opacity;
 
   for(uint id=0; id<numLocalPrim; ++id) {
-    const vec3  a = meshVertices[id*3+0];
-    const vec3  b = meshVertices[id*3+1];
-    const vec3  c = meshVertices[id*3+2];
-    const float t = rayTriangleTest(origin, dir, a, b, c).x;
+    const vec3  a  = meshVertices[id*3+0];
+    const vec3  b  = meshVertices[id*3+1];
+    const vec3  c  = meshVertices[id*3+2];
+    const vec3  rt = rayTriangleTest(origin, dir, a, b, c);
+    const float t  = rt.x;
     if(!(tMin<t && t<tMax))
       continue;
+#if TRANSLUCENCY
+    const uint flags = primitiveBucket[id];
+    if((flags & BK_SOLID)!=0) {
+      opacity = 0;
+      break;
+      }
+    const vec3  bc       = vec3(1-rt.y-rt.z, rt.y, rt.z);
+    const vec2  uv       = interpolateUV(bc, meshVertexUV[id*3+0], meshVertexUV[id*3+1], meshVertexUV[id*3+2]);
+    const float lodBias  = 0;
+    const uint  bucketId = primitiveBucket[id] >> 16;
+    const float alpha    = sampleAlpha(bucketId, uv, lodBias);
+    opacity *= (1.0-alpha);
+    if(opacity<=minOpacity)
+      break;
+#else
     opacity = 0;
     break;
+#endif
     }
 
   return opacity;
