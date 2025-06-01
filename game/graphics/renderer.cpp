@@ -1385,7 +1385,7 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.setBinding(8, rtsm.primTiles);
     cmd.setBinding(9, rtsm.dbg64);
 
-    cmd.setPipeline(shaders.rtsmLightTiles);
+    cmd.setPipeline(shaders.rtsmLightsOmni);
     cmd.dispatch(rtsm.lightTiles.size());
 
     cmd.setPipeline(shaders.rtsmCompactOmni);
@@ -1406,9 +1406,9 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.setBinding(3, zbuffer);
     cmd.setBinding(4, rtsm.posList);
     cmd.setBinding(5, wview.lights().lightsSsbo());
-    cmd.setBinding(6, rtsm.visibleLights);
-    //cmd.setBinding(7, rtsm.primBinsOmni);
-    cmd.setBinding(8, rtsm.primTiles);
+    cmd.setBinding(6, rtsm.primTiles);
+    cmd.setBinding(7, buckets.textures());
+    cmd.setBinding(8, Sampler::trillinear());
     cmd.setBinding(9, rtsm.dbg16);
 
     cmd.setPipeline(shaders.rtsmRasterOmni);

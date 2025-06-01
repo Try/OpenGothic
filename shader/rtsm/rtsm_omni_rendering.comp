@@ -361,11 +361,11 @@ void processLight(const vec3 wpos, const vec3 normal, const LightId lId, const u
   light += vec3(lpow * src.color);
   }
 
-vec3 worldPos(ivec2 frag, float depth) {
+vec3 rayOrigin(ivec2 frag, float depth, vec3 normal) {
   const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
   const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
   const vec4 wpos      = scene.viewProjectLwcInv * scr;
-  return wpos.xyz/wpos.w;
+  return (wpos.xyz + normal*NormalBias)/wpos.w;
   }
 
 void main() {
@@ -375,7 +375,7 @@ void main() {
   const vec3  normal = valid ? normalFetch(gbufNormal, fragCoord) : vec3(0);
   const float z      = valid ? texelFetch(depth, fragCoord, 0).x  : 1.0;
 
-  const vec3  origin = worldPos(fragCoord.xy, z) + (normal*NormalBias) + push.originLwc;
+  const vec3  origin = rayOrigin(fragCoord.xy, z, normal) + push.originLwc;
   dbgCount = 0;
   barrier();
 

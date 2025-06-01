@@ -346,7 +346,7 @@ add_shader(rtsm_dbg.frag             rtsm/rtsm_dbg.frag)
 
 add_shader(rtsm_omni_clear.comp      rtsm/rtsm_omni_clear.comp)
 add_shader(rtsm_cull_lights.comp     rtsm/rtsm_cull_lights.comp)
-add_shader(rtsm_light_tiles.comp     rtsm/rtsm_light_tiles.comp)
+add_shader(rtsm_omni_lights.comp     rtsm/rtsm_omni_lights.comp)
 add_shader(rtsm_omni_culling.comp    rtsm/rtsm_omni_culling.comp)
 add_shader(rtsm_omni_position.comp   rtsm/rtsm_position.comp -DOMNI)
 add_shader(rtsm_omni_meshlet.comp    rtsm/rtsm_omni_meshlet.comp)

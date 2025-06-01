@@ -1,12 +1,4 @@
 
-// ray related
-vec3 rayOrigin(ivec2 frag, float depth) {
-  const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
-  const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
-  const vec4 wpos      = scene.viewProjectLwcInv * scr;
-  return wpos.xyz/wpos.w;
-  }
-
 // visibility
 shared uint  numPlanes;
 shared uvec4 bbox[6];

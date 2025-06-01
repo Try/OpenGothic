@@ -28,9 +28,7 @@ layout(binding = 2)         uniform  utexture2D gbufNormal;
 layout(binding = 3)         uniform  texture2D  depth;
 layout(binding = 4, std430) readonly buffer Pos { uint  alloc; uint    data[]; } pos;
 layout(binding = 5, std430) readonly buffer Lbo { LightSource lights[];        };
-//layout(binding = 6, std430) readonly buffer VId { uvec4 count; LightId data[]; } vLights;
-//layout(binding = 7)         uniform  utexture2D primBinsOmni;
-layout(binding = 8)         uniform  utexture2D primTiles;
+layout(binding = 6)         uniform  utexture2D primTiles;
 
 layout(binding = 9, r32ui)  uniform  uimage2D   dbgImage;
 
@@ -79,6 +77,14 @@ vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 v0, const 
   return vec3(t0, u, v);
   }
 
+// ray related
+vec3 rayOrigin(ivec2 frag, float depth, vec3 normal) {
+  const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
+  const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
+  const vec4 wpos      = scene.viewProjectLwcInv * scr;
+  return (wpos.xyz + normal*NormalBias)/wpos.w;
+  }
+
 float lightIntensity(const vec3 normal, const float distance, const vec3 ldir, const float lrange) {
   const float distanceSquare = (distance * distance);
   const float factor         = distanceSquare / (lrange * lrange);
@@ -87,7 +93,7 @@ float lightIntensity(const vec3 normal, const float distance, const vec3 ldir, c
     return 0;
 
   float lambert = max(0.0,-dot(ldir,normal));
-  float lx      = (lambert/max(factor, 0.01)) * (smoothFactor*smoothFactor);
+  float lx      = (lambert/max(factor, 0.05)) * (smoothFactor*smoothFactor);
   return lx * Fd_Lambert * 0.1;
   }
 
@@ -127,7 +133,7 @@ void pullPrimitives(const vec3 origin, const uint pkg) {
 
 shared uint inactiveRays;
 float rasterBatch(const vec3 origin, const vec3 dir, const float tMax, float opacity) {
-  const float tMin = 15;
+  const float tMin = 30;
 
   const uint laneID = gl_LocalInvocationIndex;
   if(opacity<=minOpacity)
@@ -207,7 +213,7 @@ void processLight(const vec3 wpos, const vec3 normal, const LightSource src, con
   const vec3  ldir     = distance/tMax;
   float       lpow     = lightIntensity(normal, tMax, ldir, src.range);
 
-  lpow = tracePacket(uvec2(tilePtr, numPrimitives), src.pos, ldir, tMax-1, lpow);
+  lpow = tracePacket(uvec2(tilePtr, numPrimitives), src.pos, ldir, tMax, lpow);
 
   const uint face = rayToFace(ldir);
   if(false) {
@@ -234,7 +240,7 @@ void processAllLights(const uvec2 tileHeader, const bool valid) {
 
   const vec3  normal = valid ? normalFetch(gbufNormal, fragCoord) : vec3(0);
   const float z      = valid ? texelFetch(depth, fragCoord, 0).x  : 1.0;
-  const vec3  origin = rayOrigin(fragCoord.xy, z) + (normal*NormalBias) + push.originLwc;
+  const vec3  origin = rayOrigin(fragCoord.xy, z, normal) + push.originLwc;
 
   const uint lptr    = tileHeader.x;
   const uint nLights = tileHeader.y & 0xFFFF;

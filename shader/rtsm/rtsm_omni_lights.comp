@@ -82,11 +82,11 @@ bool projectSphere(const vec4 sphere, out float depthMin, out float depthMax) {
   }
 
 // ray related
-vec3 rayOrigin(ivec2 frag, float depth) {
+vec3 rayOrigin(ivec2 frag, float depth, vec3 normal) {
   const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
   const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
   const vec4 wpos      = scene.viewProjectLwcInv * scr;
-  return wpos.xyz/wpos.w;
+  return (wpos.xyz + normal*NormalBias)/wpos.w;
   }
 
 void storeBin(ivec2 at, uint ptr, uint num) {
@@ -163,7 +163,7 @@ void rayBboxes(const uint lptr, const uint nLights) {
       const ivec2 fragCoord = ivec2(x,y);
       const vec3  normal    = normalFetch(gbufNormal, fragCoord);
       const float z         = texelFetch(depth, fragCoord, 0).x;
-      const vec3  wpos      = rayOrigin(fragCoord.xy, z) + (normal*NormalBias) + push.originLwc;
+      const vec3  wpos      = rayOrigin(fragCoord.xy, z, normal) + push.originLwc;
 
       for(uint i=0; i<nLights; ++i) {
         const uint        ptr      = lptr + i*sizeof_Light;

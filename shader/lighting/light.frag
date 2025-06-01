@@ -109,7 +109,8 @@ void main() {
   if(light<=0.0)
     discard;
 
-  pos.xyz = pos.xyz + 2.0*normal; //bias
+  const float NormalBias = 2.0;
+  pos.xyz = pos.xyz + NormalBias*normal; //bias
   if(isShadow(pos.xyz, pos.xyz-cenPosition.xyz, cenPosition.w))
     discard;
 
