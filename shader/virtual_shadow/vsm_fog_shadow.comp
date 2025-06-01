@@ -14,7 +14,7 @@ layout(local_size_x = 128) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
-layout(binding = 0, rgba8)  uniform image2D rayData;
+layout(binding = 0, r16)    uniform image2D rayData;
 layout(binding = 1, std140) uniform UboScene {
   SceneDesc scene;
   };

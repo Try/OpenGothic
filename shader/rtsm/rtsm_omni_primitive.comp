@@ -40,7 +40,6 @@ void imageDbg(uint info) {
   }
 
 #include "rtsm/rtsm_scratch.glsl"
-// #include "rtsm/rtsm_omni_bboxes.glsl"
 
 shared uint numLights;
 shared uint numPrimitives;
