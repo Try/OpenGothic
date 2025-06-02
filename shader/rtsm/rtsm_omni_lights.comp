@@ -134,7 +134,7 @@ void processLights(bool counting) {
     const uint id = atomicAdd(lightCount, 1);
     if(!counting) {
       uint ptr = lightListPtr + id*sizeof_Light;
-      pos.data[ptr + 0] = i;
+      pos.data[ptr + 0] = light.id;
       for(uint r=0; r<6; ++r) {
         pos.data[ptr + 1] = 0xFFFFFFFF;
         pos.data[ptr + 2] = 0xFFFFFFFF;
@@ -163,9 +163,8 @@ void rayBboxes(const uint lptr, const uint nLights) {
 
       for(uint i=0; i<nLights; ++i) {
         const uint        ptr      = lptr + i*sizeof_Light;
-        const uint        id       = pos.data[ptr];
-        const LightId     lId      = vLights.data[id];
-        const LightSource src      = lights[lId.id];
+        const uint        lId      = pos.data[ptr];
+        const LightSource src      = lights[lId];
         const vec3        distance = wpos-src.pos;
         const float       tMax     = length(distance);
         const vec3        ldir     = distance/tMax;

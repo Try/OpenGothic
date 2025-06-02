@@ -33,7 +33,7 @@ struct LightId {
   uint id;
   uint aabb_low;
   uint aabb_high;
-  uint ptr;
+  uint padd0;
   };
 
 // utility

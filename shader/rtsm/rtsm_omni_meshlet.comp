@@ -15,7 +15,7 @@ const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z
 layout(binding = 0, std140) uniform  UboScene    { SceneDesc   scene;                    };
 layout(binding = 1, std430) readonly buffer Lbo  { LightSource lights[];                 };
 layout(binding = 2, std430)          buffer VId  { uvec4       count;   LightId data[];  } vLights;
-layout(binding = 3, r32ui)  uniform  uimage2D    lightBins;
+layout(binding = 3, rg32ui) uniform  uimage2D    lightBins;
 layout(binding = 4, std430) readonly buffer Cbo  { Cluster     clusters[];               };
 layout(binding = 5, std430)          buffer Pos  { uint        alloc;  uint  data[];     } pos;
 
@@ -29,8 +29,7 @@ shared uint meshListPtr;
 void storeBin(uint lightId, uint ptr, uint num) {
   if(gl_LocalInvocationIndex!=0)
     return;
-  vLights.data[lightId].ptr = ptr;
-  imageStore(lightBins, ivec2(lightId,0), ivec4(num,0,0,0));
+  imageStore(lightBins, ivec2(lightId,0), ivec4(ptr,num,0,0));
   }
 
 bool isMeshletVisible(uint ptr, const LightSource lx) {
@@ -75,15 +74,16 @@ void store(uint lightId) {
   }
 
 void main() {
-  const LightSource lx = lights[vLights.data[gl_WorkGroupID.x].id];
+  const uint        lightId = vLights.data[gl_WorkGroupID.x].id;
+  const LightSource lx      = lights[lightId];
 
   traceMeshlets(1, pos.data[0], lx);
   barrier();
 
   if(numMeshlets < meshletsId.length()) {
-    store(gl_WorkGroupID.x);
+    store(lightId);
     return;
     }
   //TODO: 2-pass
-  storeBin(gl_WorkGroupID.x, NULL, 0);
+  storeBin(lightId, NULL, 0);
   }

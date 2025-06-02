@@ -1284,7 +1284,7 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
       rtsm.visibleLights = device.ssbo(nullptr, shaders.rtsmClearOmni.sizeofBuffer(1, wview.lights().size()));
 
       Resources::recycle(std::move(rtsm.lightBins));
-      rtsm.lightBins = device.image2d(TextureFormat::R32U, uint32_t(wview.lights().size()), 1u);
+      rtsm.lightBins = device.image2d(TextureFormat::RG32U, uint32_t(wview.lights().size()), 1u);
       }
 
     const auto tiles = tileCount(zbuffer.size(), RTSM_LIGHT_TILE);

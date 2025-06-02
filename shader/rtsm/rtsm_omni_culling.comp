@@ -31,7 +31,6 @@ bool isClusterVisible(const Cluster cluster, const uint clusterId) {
     const vec3  dvec = cluster.sphere.xyz - lx.pos;
     const float dist = cluster.sphere.w   + lx.range;
     if(dot(dvec, dvec) < dist*dist) {
-      atomicAdd(vLights.data[i].ptr, cluster.meshletCount);
       ret = true;
       }
     }

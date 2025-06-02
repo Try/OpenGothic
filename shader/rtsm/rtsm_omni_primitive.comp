@@ -24,7 +24,7 @@ layout(binding = 2)         uniform  utexture2D gbufNormal;
 layout(binding = 3)         uniform  texture2D  depth;
 layout(binding = 4, std430)          buffer Pos { uint  alloc; uint    data[]; } pos;
 layout(binding = 5, std430) readonly buffer Lbo { LightSource lights[];        };
-layout(binding = 6, std430) readonly buffer VId { uvec4 count; LightId data[]; } vLights;
+// layout(binding = 6, std430)
 layout(binding = 7)         uniform  utexture2D lightBins;
 layout(binding = 8, rg32ui) uniform  uimage2D   primTiles;
 
@@ -70,7 +70,6 @@ uint packPrimitiveId(uint meshlet, uint prim) {
 
 // visibility
 shared uint  numPlanes;
-shared uvec4 bbox[6];
 shared vec3  frustum[6][4];
 void rayBboxes(const uint lptr) {
   const uint laneID = gl_LocalInvocationIndex;
@@ -184,11 +183,10 @@ void processPrimitives(const uint tilePtr, const uint inPrimitives, const LightS
     }
   }
 
-void processLight(const LightId lId, const uint inPrimitives) {
+void processLight(const uint lightId, const uint tilePtr, const uint inPrimitives) {
   const uint laneID = gl_LocalInvocationIndex;
 
-  const LightSource src      = lights[lId.id];
-  const uint        tilePtr  = lId.ptr;
+  const LightSource src = lights[lightId];
 
   processPrimitives(tilePtr, inPrimitives, src);
   barrier();
@@ -202,7 +200,7 @@ void processLight(const LightId lId, const uint inPrimitives) {
       }
 
     const uint idx = atomicAdd(numLights, 1);
-    pos.data[lightsBinPtr + idx*4 + 0] = lId.id;
+    pos.data[lightsBinPtr + idx*4 + 0] = lightId;
     pos.data[lightsBinPtr + idx*4 + 1] = primListPtr;
     pos.data[lightsBinPtr + idx*4 + 2] = numPrimitives;
     }
@@ -241,14 +239,15 @@ void main() {
     }
 
   for(uint i=0; i<nLights; ++i) {
-    const uint id           = pos.data[lptr + i*sizeof_Light];
-    const uint inPrimitives = texelFetch(lightBins, ivec2(id,0), 0).x;
+    const uint  lId   = pos.data[lptr + i*sizeof_Light];
+    const uvec2 lTile = texelFetch(lightBins, ivec2(lId,0), 0).xy;
 
     rayBboxes(lptr + i*sizeof_Light);
     barrier();
 
-    if(numPlanes>0)
-      processLight(vLights.data[id], inPrimitives);
+    if(numPlanes>0) {
+      processLight(lId, lTile.x, lTile.y);
+      }
     barrier();
     }
 
