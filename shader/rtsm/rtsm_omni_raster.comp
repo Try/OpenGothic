@@ -69,7 +69,7 @@ float sampleAlpha(const uint bucketId, vec2 uv, float lodBias) {
   return textureLod(sampler2D(textureMain[nonuniformEXT(bucketId)], samplerMain), uv, lodBias).a;
   }
 
-vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 v0, const vec3 v1, const vec3 v2) {
+vec3 _rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 v0, const vec3 v1, const vec3 v2) {
   const vec3  e1    = v1 - v0;
   const vec3  e2    = v2 - v0;
   const vec3  s1    = cross(raydir, e2);
@@ -93,6 +93,33 @@ vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 v0, const 
   return vec3(t0, u, v);
   }
 
+vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 gu, const vec3 gv, const vec3 n, const float f2) {
+  float f1 = -dot(n, raydir);
+  if(f1<=0.0)
+    return vec3(-1);
+
+  float f1Inv = 1.0/f1;
+  float t     = f2 * f1Inv;
+  float u     = dot(raydir, gu) * f1Inv;
+  float v     = dot(raydir, gv) * f1Inv;
+
+  if(u<0.0 || v<0.0 || u+v > 1.0)
+    return vec3(-1);
+  return vec3(t, u, v);
+  }
+
+vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 v0, const vec3 v1, const vec3 v2) {
+  const vec3  e1 = v1 - v0;
+  const vec3  e2 = v2 - v0;
+  const vec3  s  = origin - v0;
+  //
+  const vec3  gu = -cross(s, e2);
+  const vec3  gv = +cross(s, e1);
+  const vec3  n  = cross(e1, e2);
+  const float f2 = dot(n ,s);
+  return rayTriangleTest(origin,raydir, gu, gv, n, f2);
+  }
+
 // ray related
 vec3 rayOrigin(ivec2 frag, float depth, vec3 normal) {
   const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
@@ -109,13 +136,14 @@ float lightIntensity(const vec3 normal, const float distance, const vec3 ldir, c
     return 0;
 
   float lambert = max(0.0,-dot(ldir,normal));
-  float lx      = (lambert/max(factor, 0.05)) * (smoothFactor*smoothFactor);
+  float lx      = (lambert/max(factor, 0.005)) * (smoothFactor*smoothFactor);
   return lx * Fd_Lambert * 0.1;
   }
 
 const  uint  MaxChunk = NumThreads/2;
-shared vec3  meshVertices   [MaxChunk*3];
-shared uint  meshVertexUV   [MaxChunk*3];
+shared float meshVertices   [MaxChunk][3][3];
+shared float meshVerticesF2 [MaxChunk];
+shared uint  meshVertexUV   [MaxChunk][3];
 shared uint  primitiveBucket[MaxChunk];
 shared uint  numLocalPrim;
 
@@ -138,13 +166,28 @@ void pullPrimitives(const vec3 origin, const uint pkg) {
   const uint  id       = atomicAdd(numLocalPrim, 1);
   primitiveBucket[id]  = packUint2x16(uvec2(tri.w, pullMeshBucketId(ptr)));
 
-  meshVertices[id*3+0] = a;
-  meshVertices[id*3+1] = b;
-  meshVertices[id*3+2] = c;
+  const vec3  e1    = b - a;
+  const vec3  e2    = c - a;
+  const vec3  s     = origin - a;
+  const vec3  gu    = -cross(s, e2);
+  const vec3  gv    = +cross(s, e1);
+  const vec3  n     = cross(e1, e2);
+  const float f2    = dot(n ,s);
 
-  meshVertexUV[id*3+0] = pullVertexUV(ptrV, tri.x);
-  meshVertexUV[id*3+1] = pullVertexUV(ptrV, tri.y);
-  meshVertexUV[id*3+2] = pullVertexUV(ptrV, tri.z);
+  meshVertices[id][0][0] = gu.x;
+  meshVertices[id][0][1] = gu.y;
+  meshVertices[id][0][2] = gu.z;
+  meshVertices[id][1][0] = gv.x;
+  meshVertices[id][1][1] = gv.y;
+  meshVertices[id][1][2] = gv.z;
+  meshVertices[id][2][0] = n.x;
+  meshVertices[id][2][1] = n.y;
+  meshVertices[id][2][2] = n.z;
+  meshVerticesF2[id]     = f2;
+
+  meshVertexUV[id][0] = pullVertexUV(ptrV, tri.x);
+  meshVertexUV[id][1] = pullVertexUV(ptrV, tri.y);
+  meshVertexUV[id][2] = pullVertexUV(ptrV, tri.z);
   }
 
 shared uint inactiveRays;
@@ -156,10 +199,12 @@ float rasterBatch(const vec3 origin, const vec3 dir, const float tMax, float opa
     return opacity;
 
   for(uint id=0; id<numLocalPrim; ++id) {
-    const vec3  a  = meshVertices[id*3+0];
-    const vec3  b  = meshVertices[id*3+1];
-    const vec3  c  = meshVertices[id*3+2];
-    const vec3  rt = rayTriangleTest(origin, dir, a, b, c);
+    const vec3  gu = vec3(meshVertices[id][0][0], meshVertices[id][0][1], meshVertices[id][0][2]);
+    const vec3  gv = vec3(meshVertices[id][1][0], meshVertices[id][1][1], meshVertices[id][1][2]);
+    const vec3  n  = vec3(meshVertices[id][2][0], meshVertices[id][2][1], meshVertices[id][2][2]);
+    const float f2 = meshVerticesF2[id];
+    const vec3  rt = rayTriangleTest(origin, dir, gu, gv, n, f2);
+
     const float t  = rt.x;
     if(!(tMin<t && t<tMax))
       continue;
@@ -170,7 +215,7 @@ float rasterBatch(const vec3 origin, const vec3 dir, const float tMax, float opa
       break;
       }
     const vec3  bc       = vec3(1-rt.y-rt.z, rt.y, rt.z);
-    const vec2  uv       = interpolateUV(bc, meshVertexUV[id*3+0], meshVertexUV[id*3+1], meshVertexUV[id*3+2]);
+    const vec2  uv       = interpolateUV(bc, meshVertexUV[id][0], meshVertexUV[id][1], meshVertexUV[id][2]);
     const float lodBias  = 0;
     const uint  bucketId = primitiveBucket[id] >> 16;
     const float alpha    = sampleAlpha(bucketId, uv, lodBias);
@@ -248,8 +293,8 @@ void processLight(const vec3 wpos, const vec3 normal, const LightSource src, con
 
   lpow = tracePacket(uvec2(tilePtr, numPrimitives), src.pos, ldir, tMax, lpow);
 
-  const uint face = rayToFace(ldir);
   if(false) {
+    const uint face = rayToFace(ldir);
     //light = lpow * debugColors[ldir.y>0 ? 2 : 1];
     light = lpow * debugColors[face];
     return;

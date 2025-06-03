@@ -302,12 +302,12 @@ bool Shaders::isRtsmSupported() {
     return false;
     }
   auto& gpu = Resources::device().properties();
-  if(gpu.compute.maxInvocations>=512 && gpu.compute.maxSharedMemory>=32*1024 && gpu.descriptors.nonUniformIndexing) {
-    return true;
-    }
-  if(!gpu.hasStorageFormat(TextureFormat::RG32U))
+  if(!gpu.hasStorageFormat(TextureFormat::RG32U) || !gpu.hasStorageFormat(TextureFormat::R11G11B10UF))
     return false;
-  return false;
+  if(gpu.compute.maxInvocations<512 || gpu.compute.maxSharedMemory<32*1024 || !gpu.descriptors.nonUniformIndexing) {
+    return false;
+    }
+  return true;
   }
 
 const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommands::Type t, PipelineType pt, bool bl) const {
