@@ -1388,6 +1388,9 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.setPipeline(shaders.rtsmLightsOmni);
     cmd.dispatch(rtsm.lightTiles.size());
 
+    cmd.setPipeline(shaders.rtsmBboxesOmni);
+    cmd.dispatchThreads(zbuffer.size());
+
     cmd.setPipeline(shaders.rtsmCompactOmni);
     cmd.dispatch(rtsm.lightTiles.size());
 
