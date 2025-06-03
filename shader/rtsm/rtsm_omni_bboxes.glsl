@@ -14,7 +14,7 @@ void rayBboxses(const vec3 ray, bool activeRay) {
 
   if(activeRay) {
     const uint face = rayToFace(ray);
-    const vec3 rf   = rayToFace(ray, face);
+    const vec2 rf   = rayToFace(ray, face);
     atomicMin(bbox[face].x, floatToOrderedUint(rf.x));
     atomicMin(bbox[face].y, floatToOrderedUint(rf.y));
     atomicMax(bbox[face].z, floatToOrderedUint(rf.x));

@@ -126,7 +126,7 @@ uint rayToFace(vec3 d) {
   return 0;
   }
 
-vec3 rayToFace(vec3 pos, uint face) {
+vec2 rayToFace(vec3 pos, uint face) {
   // cubemap-face
   switch(face) {
     case 0: pos = vec3(pos.yz, +pos.x); break;
@@ -136,8 +136,7 @@ vec3 rayToFace(vec3 pos, uint face) {
     case 4: pos = vec3(pos.xy, +pos.z); break;
     case 5: pos = vec3(pos.yx, -pos.z); break;
     }
-  pos.xy /= pos.z;
-  return pos;
+  return pos.xy/pos.z;
   }
 
 vec3 faceToRay(vec2 xy, uint face) {
