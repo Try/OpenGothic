@@ -39,7 +39,7 @@ bool isMeshletVisible(uint ptr, const LightSource lx) {
   return dot(dv, dv) <= r*r;
   }
 
-void traceMeshlets(uint listPtr, uint visCount, const LightSource lx) {
+void traceMeshlets(uint listPtr, uint visCount, const LightSource lx, bool counting) {
   const uint laneID = gl_LocalInvocationIndex;
 
   numMeshlets = 0;
@@ -51,39 +51,41 @@ void traceMeshlets(uint listPtr, uint visCount, const LightSource lx) {
       continue;
 
     const uint id = atomicAdd(numMeshlets, 1);
-    if(id<meshletsId.length())
+    if(counting && id<meshletsId.length())
       meshletsId[id] = ptr;
+    else if(!counting)
+      pos.data[meshListPtr + id] = ptr;
     }
   }
 
 void store(uint lightId) {
   const uint laneID = gl_LocalInvocationIndex;
-  if(laneID==0)
-    meshListPtr = allocScratch(numMeshlets);
-  barrier();
-
-  if(meshListPtr==NULL) {
-    storeBin(lightId, NULL, 0);
-    return;
-    }
-
-  storeBin(lightId, meshListPtr, numMeshlets);
   for(uint i=laneID; i<numMeshlets; i+=NumThreads) {
     pos.data[meshListPtr + i] = meshletsId[i];
     }
   }
 
 void main() {
+  const uint        laneID  = gl_LocalInvocationIndex;
   const uint        lightId = vLights.data[gl_WorkGroupID.x].id;
   const LightSource lx      = lights[lightId];
 
-  traceMeshlets(1, pos.data[0], lx);
+  traceMeshlets(1, pos.data[0], lx, true);
   barrier();
 
+  if(laneID==0) {
+    meshListPtr = allocScratch(numMeshlets);
+    storeBin(lightId, meshListPtr, numMeshlets);
+    }
+  barrier();
+
+  if(meshListPtr==NULL)
+    return; // OOM
   if(numMeshlets < meshletsId.length()) {
     store(lightId);
     return;
     }
-  //TODO: 2-pass
-  storeBin(lightId, NULL, 0);
+  barrier();
+
+  traceMeshlets(1, pos.data[0], lx, false);
   }

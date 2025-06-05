@@ -292,14 +292,6 @@ void processLight(const vec3 wpos, const vec3 normal, const LightSource src, con
   float       lpow     = lightIntensity(normal, tMax, ldir, src.range);
 
   lpow = tracePacket(uvec2(tilePtr, numPrimitives), src.pos, ldir, tMax, lpow);
-
-  if(false) {
-    const uint face = rayToFace(ldir);
-    //light = lpow * debugColors[ldir.y>0 ? 2 : 1];
-    light = lpow * debugColors[face];
-    return;
-    }
-
   light += vec3(lpow * src.color);
   }
 

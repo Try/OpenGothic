@@ -145,42 +145,6 @@ void processLights(bool counting) {
     }
   }
 
-void rayBboxes(const uint lptr, const uint nLights) {
-  const uint laneID = gl_LocalInvocationIndex;
-
-  const ivec2 viewportSize = textureSize(depth, 0);
-  const ivec2 xy0   = ivec2(gl_LocalInvocationID.xy);
-  const ivec2 begin = ivec2(gl_WorkGroupID.xy * TileSize) + xy0;
-  const ivec2 end   = min(ivec2(gl_WorkGroupID.xy * TileSize + TileSize), viewportSize);
-
-  for(int y=begin.y; y<end.y; y+=int(gl_WorkGroupSize.y))
-    for(int x=begin.x; x<end.x; x+=int(gl_WorkGroupSize.x)) {
-      const ivec2 fragCoord = ivec2(x,y);
-      const vec3  normal    = normalFetch(gbufNormal, fragCoord);
-      const float z         = texelFetch(depth, fragCoord, 0).x;
-      const vec3  wpos      = rayOrigin(fragCoord.xy, z, normal) + push.originLwc;
-
-      for(uint i=0; i<nLights; ++i) {
-        const uint        ptr      = lptr + i*sizeof_Light;
-        const uint        lId      = pos.data[ptr];
-        const LightSource src      = lights[lId];
-        const vec3        distance = wpos-src.pos;
-        const float       tMaxQ    = dot(distance,distance);
-
-        const bool activeRay = z<1.0 && tMaxQ<src.range*src.range && dot(normal, distance)<0;
-        if(activeRay) {
-          const uint face = rayToFace(distance);
-          const vec2 rf   = rayToFace(distance, face);
-          const uint fptr = ptr + face*4 + 1;
-          atomicMin(pos.data[fptr+0], floatToOrderedUint(rf.x));
-          atomicMin(pos.data[fptr+1], floatToOrderedUint(rf.y));
-          atomicMax(pos.data[fptr+2], floatToOrderedUint(rf.x));
-          atomicMax(pos.data[fptr+3], floatToOrderedUint(rf.y));
-          }
-        }
-      }
-  }
-
 void main() {
   const uint laneID = gl_LocalInvocationIndex;
 
@@ -218,10 +182,4 @@ void main() {
   if(lightListPtr==NULL)
     return; //OOM
   processLights(false);
-  /*
-  memoryBarrierBuffer();
-  barrier();
-
-  rayBboxes(lightListPtr, lightCount);
-  */
   }
