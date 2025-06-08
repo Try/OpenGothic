@@ -1352,22 +1352,6 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   }
 
   {
-    // per-light meshlets, primitives
-    cmd.setBinding(0, sceneUbo);
-    cmd.setBinding(1, wview.lights().lightsSsbo());
-    cmd.setBinding(2, rtsm.visibleLights);
-    cmd.setBinding(3, rtsm.lightBins);
-    cmd.setBinding(4, clusters.ssbo());
-    cmd.setBinding(5, rtsm.posList);
-
-    cmd.setPipeline(shaders.rtsmMeshletOmni);
-    cmd.dispatchIndirect(rtsm.visibleLights, 0);
-
-    cmd.setPipeline(shaders.rtsmBackfaceOmni);
-    cmd.dispatchIndirect(rtsm.visibleLights, 0);
-  }
-
-  {
     // lights
     struct Push { Vec3 originLwc; float znear; } push = {};
     push.originLwc   = scene.originLwc;
@@ -1393,6 +1377,44 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
 
     cmd.setPipeline(shaders.rtsmCompactOmni);
     cmd.dispatch(rtsm.lightTiles.size());
+  }
+
+  {
+    // per-light meshlets, primitives
+    struct Push { Vec3 originLwc; float znear; } push = {};
+    push.originLwc   = scene.originLwc;
+    push.znear       = scene.znear;
+
+    cmd.setBinding(0, sceneUbo);
+    cmd.setBinding(1, wview.lights().lightsSsbo());
+    cmd.setBinding(2, rtsm.visibleLights);
+    cmd.setBinding(3, rtsm.lightBins);
+    cmd.setBinding(4, clusters.ssbo());
+    cmd.setBinding(5, rtsm.posList);
+
+    cmd.setPipeline(shaders.rtsmMeshletOmni);
+    cmd.dispatchIndirect(rtsm.visibleLights, 0);
+
+    cmd.setPipeline(shaders.rtsmBackfaceOmni);
+    cmd.dispatchIndirect(rtsm.visibleLights, 0);
+  }
+
+  {
+    // in tile primitives
+    struct Push { Vec3 originLwc; float znear; } push = {};
+    push.originLwc   = scene.originLwc;
+    push.znear       = scene.znear;
+    cmd.setPushData(push);
+    cmd.setBinding(0, rtsm.lightTiles);
+    cmd.setBinding(1, sceneUbo);
+    cmd.setBinding(2, gbufNormal);
+    cmd.setBinding(3, zbuffer);
+    cmd.setBinding(4, rtsm.posList);
+    cmd.setBinding(5, wview.lights().lightsSsbo());
+    cmd.setBinding(6, rtsm.visibleLights);
+    cmd.setBinding(7, rtsm.lightBins);
+    cmd.setBinding(8, rtsm.primTiles);
+    cmd.setBinding(9, rtsm.dbg64);
 
     cmd.setPipeline(shaders.rtsmPrimOmni);
     cmd.dispatch(rtsm.primTiles.size());

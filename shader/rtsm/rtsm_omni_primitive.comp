@@ -159,7 +159,7 @@ bool isPrimitiveVisible(const uint ptr, const uint primId, const LightSource src
   return true;
   }
 
-void processPrimitives(const uint tilePtr, const uint inPrimitives, const LightSource src) {
+void processPrimitives(const uint tilePtr, const uint inPrimitives, const LightSource src, bool counting) {
   const uint laneID = gl_LocalInvocationIndex;
 
   numPrimitives = 0;
@@ -170,13 +170,16 @@ void processPrimitives(const uint tilePtr, const uint inPrimitives, const LightS
     const uint  ptr    = (pkg >> 8);
     const uint  primId = pkg & 0xFF;
 
-    if(false || !isPrimitiveVisible(ptr, primId, src))
+    if(!isPrimitiveVisible(ptr, primId, src))
       continue;
 
     atomicAdd(dbgCounter, 1);
     const uint id = atomicAdd(numPrimitives, 1);
-    if(id<primitives.length()) {
+    if(counting && id<primitives.length()) {
       primitives[id] = packPrimitiveId(ptr, primId);
+      }
+    else if(!counting) {
+      pos.data[primListPtr + id + 4] = packPrimitiveId(ptr, primId);
       }
     }
   }
@@ -190,16 +193,11 @@ void processLight(const uint lightId, const uint tilePtr, const uint inPrimitive
   const uint prevNum = numPrimitives;
   barrier();
 
-  processPrimitives(tilePtr, inPrimitives, src);
+  processPrimitives(tilePtr, inPrimitives, src, true);
   barrier();
 
   if(laneID==0) {
-    if(numPrimitives<primitives.length()) {
-      primListPtr   = allocScratch(numPrimitives+4+5);
-      } else {
-      primListPtr   = NULL;
-      numPrimitives = BIN_BAD_BIT;
-      }
+    primListPtr   = allocScratch(numPrimitives+4+5);
     if(primListPtr!=NULL) {
       uint ptr = primListPtr;
       pos.data[ptr + 0] = floatBitsToUint(src.pos.x);
@@ -219,10 +217,20 @@ void processLight(const uint lightId, const uint tilePtr, const uint inPrimitive
     }
   barrier();
 
-  if(primListPtr==NULL)
+  if(primListPtr==NULL) {
+    // OOM
+    numPrimitives = BIN_BAD_BIT;
     return;
-  for(uint i=laneID; i<numPrimitives; i+=NumThreads)
-    pos.data[primListPtr + i + 4] = primitives[i];
+    }
+
+  if(numPrimitives<primitives.length()) {
+    for(uint i=laneID; i<numPrimitives; i+=NumThreads)
+      pos.data[primListPtr + i + 4] = primitives[i];
+    return;
+    }
+  barrier();
+
+  processPrimitives(tilePtr, inPrimitives, src, false);
   }
 
 void main() {
