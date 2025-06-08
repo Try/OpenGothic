@@ -259,9 +259,14 @@ float tracePacket(const uvec2 tileHeader, const vec3 origin, const vec3 dir, con
     atomicAdd(inactiveRays, 1);
   barrier();
 
-  for(uint s=0; s<numPrimitives; s+=MaxChunk) {
+  for(uint s=0; ; s+=MaxChunk) {
     if(earlyOut())
+      s = 0xFFFFFFFF;
+
+    if(s >= numPrimitives) {
+
       break;
+      }
 
     numLocalPrim = 0;
     barrier();
@@ -322,12 +327,112 @@ void processAllLights(const uvec2 tileHeader, const bool valid) {
     }
   }
 
+void setupLight(uint ptr, const vec3 wpos, const vec3 normal, out vec3 origin, out float lightPower) {
+  vec4 src;
+  src.x = uintBitsToFloat(pos.data[ptr + 0]);
+  src.y = uintBitsToFloat(pos.data[ptr + 1]);
+  src.z = uintBitsToFloat(pos.data[ptr + 2]);
+  src.w = uintBitsToFloat(pos.data[ptr + 3]);
+
+  const vec3  distance = wpos - src.xyz;
+  const float tMax     = length(distance);
+  const vec3  ldir     = distance/tMax;
+  lightPower           = lightIntensity(normal, tMax, ldir, src.w);
+  origin               = src.xyz;
+
+  inactiveRays = 0;
+  rayBboxses(ldir, lightPower>0);
+  barrier();
+
+  if(lightPower<=minOpacity)
+    atomicAdd(inactiveRays, 1);
+  barrier();
+  }
+
+void resolveLight(uint ptr, const float lightPower) {
+  if(lightPower<minOpacity)
+    return;
+  vec3 clr;
+  clr.r = uintBitsToFloat(pos.data[ptr + 0]);
+  clr.g = uintBitsToFloat(pos.data[ptr + 1]);
+  clr.b = uintBitsToFloat(pos.data[ptr + 2]);
+  light += clr*lightPower;
+  }
+
+void processAll(const uvec2 tileHeader, const bool valid) {
+  if((tileHeader.y&BIN_BAD_BIT)!=0) {
+    // error - emit 4x4 grid to display
+    ivec2 tile = fragCoord/4;
+    light = (tile.x+tile.y)%2==0 ? vec3(0,0,1) : vec3(0);
+    return;
+    }
+
+  if(tileHeader.x==NULL) {
+    light = vec3(0.0);
+    return;
+    }
+
+  const uint  laneID = gl_LocalInvocationIndex;
+  const vec3  normal = valid ? normalFetch(gbufNormal, fragCoord) : vec3(0); //6
+  const float z      = valid ? texelFetch(depth, fragCoord, 0).x  : 1.0;
+  const vec3  wpos   = rayOrigin(fragCoord.xy, z, normal) + push.originLwc;
+
+  light               = vec3(0);
+  vec3  origin        = vec3(0); //4
+  float lightPower    = 0;
+  setupLight(tileHeader.x, wpos, normal, origin, lightPower);
+  uint  chunkPtr      = tileHeader.x + 4; //2
+  uint  numPrimitives = tileHeader.y;
+
+  for(uint s=0;;) {
+    if(earlyOut())
+      s = 0xFFFFFFFF;
+
+    if(s >= numPrimitives) {
+      chunkPtr += numPrimitives;
+      resolveLight(chunkPtr, lightPower);
+
+      const uint nextPtr  = pos.data[chunkPtr + 3];
+      const uint nextPrim = pos.data[chunkPtr + 4];
+      if(nextPtr==NULL)
+        break;
+      setupLight(nextPtr, wpos, normal, origin, lightPower);
+      chunkPtr      = nextPtr + 4;
+      numPrimitives = nextPrim;
+      s             = 0;
+      continue;
+      // break;
+      }
+
+    numLocalPrim = 0;
+    barrier();
+
+    const uint i = s + laneID;
+    if(i<numPrimitives && laneID<MaxChunk) {
+      const uint ptr  = pos.data[chunkPtr + i];
+      pullPrimitives(origin, ptr);
+      }
+    barrier();
+
+    primCnt += numLocalPrim;
+
+    const vec3  distance = wpos - origin;
+    const float tMax     = length(distance);
+    const vec3  ldir     = distance/tMax;
+    lightPower = rasterBatch(origin, ldir, tMax, lightPower);
+    barrier();
+
+    s+=MaxChunk;
+    }
+  }
+
 void main() {
   const ivec2 size   = textureSize(depth, 0);
   const bool  valid  = all(lessThan(fragCoord, size));
 
   const uvec2 tile   = pullTileData();
-  processAllLights(tile, valid);
+  //processAllLights(tile, valid);
+  processAll(tile, valid);
 
   if(valid)
     imageStore(outputImage, ivec2(fragCoord), vec4(light, 1));

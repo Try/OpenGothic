@@ -45,7 +45,7 @@ shared uint numLights;
 shared uint numPrimitives;
 shared uint primitives[2048];
 
-shared uint lightsBinPtr, primListPtr;
+shared uint primListPtr;
 
 ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
 
@@ -59,8 +59,6 @@ uvec2 pullTileData() {
 void storeBin(ivec2 at, uint ptr, uint num) {
   if(gl_LocalInvocationIndex!=0)
     return;
-  if(num==0)
-    ptr = NULL;
   imageStore(primTiles, at, uvec4(ptr,num,0,0));
   }
 
@@ -172,7 +170,7 @@ void processPrimitives(const uint tilePtr, const uint inPrimitives, const LightS
     const uint  ptr    = (pkg >> 8);
     const uint  primId = pkg & 0xFF;
 
-    if(!isPrimitiveVisible(ptr, primId, src))
+    if(false || !isPrimitiveVisible(ptr, primId, src))
       continue;
 
     atomicAdd(dbgCounter, 1);
@@ -188,28 +186,43 @@ void processLight(const uint lightId, const uint tilePtr, const uint inPrimitive
 
   const LightSource src = lights[lightId];
 
+  const uint prevPtr = primListPtr;
+  const uint prevNum = numPrimitives;
+  barrier();
+
   processPrimitives(tilePtr, inPrimitives, src);
   barrier();
 
   if(laneID==0) {
     if(numPrimitives<primitives.length()) {
-      primListPtr   = allocScratch(numPrimitives);
+      primListPtr   = allocScratch(numPrimitives+4+5);
       } else {
       primListPtr   = NULL;
       numPrimitives = BIN_BAD_BIT;
       }
+    if(primListPtr!=NULL) {
+      uint ptr = primListPtr;
+      pos.data[ptr + 0] = floatBitsToUint(src.pos.x);
+      pos.data[ptr + 1] = floatBitsToUint(src.pos.y);
+      pos.data[ptr + 2] = floatBitsToUint(src.pos.z);
+      pos.data[ptr + 3] = floatBitsToUint(src.range);
 
-    const uint idx = atomicAdd(numLights, 1);
-    pos.data[lightsBinPtr + idx*4 + 0] = lightId;
-    pos.data[lightsBinPtr + idx*4 + 1] = primListPtr;
-    pos.data[lightsBinPtr + idx*4 + 2] = numPrimitives;
+      ptr += 4;
+      ptr += numPrimitives;
+      pos.data[ptr + 0] = floatBitsToUint(src.color.r);
+      pos.data[ptr + 1] = floatBitsToUint(src.color.g);
+      pos.data[ptr + 2] = floatBitsToUint(src.color.b);
+      pos.data[ptr + 3] = prevPtr;
+      pos.data[ptr + 4] = prevNum;
+      }
+    atomicAdd(numLights, 1);
     }
   barrier();
 
   if(primListPtr==NULL)
     return;
   for(uint i=laneID; i<numPrimitives; i+=NumThreads)
-    pos.data[primListPtr + i] = primitives[i];
+    pos.data[primListPtr + i + 4] = primitives[i];
   }
 
 void main() {
@@ -224,19 +237,12 @@ void main() {
     return;
     }
 
-  if(laneID==0)
-    lightsBinPtr = allocScratch(nLights*4);
-
   dbgCounter = 0;
   numLights  = 0;
-  numPrimitives = 0; //debug
-  barrier();
 
-  if(lightsBinPtr==NULL) {
-    storeBin(ivec2(gl_WorkGroupID.xy), NULL, BIN_BAD_BIT);
-    imageDbg(0);
-    return;
-    }
+  primListPtr   = NULL;
+  numPrimitives = 0;
+  barrier();
 
   for(uint i=0; i<nLights; ++i) {
     const uint  lId   = pos.data[lptr + i*sizeof_Light];
@@ -251,7 +257,7 @@ void main() {
     barrier();
     }
 
-  storeBin(ivec2(gl_WorkGroupID.xy), lightsBinPtr, numLights);
+  storeBin(ivec2(gl_WorkGroupID.xy), primListPtr, numPrimitives);
   imageDbg(dbgCounter);
   //imageDbg(numLights);
   }
