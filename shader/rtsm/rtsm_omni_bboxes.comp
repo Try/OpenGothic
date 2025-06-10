@@ -9,7 +9,10 @@
 #include "scene.glsl"
 #include "rtsm/rtsm_common.glsl"
 
-layout(local_size_x = 8, local_size_y = 8) in;
+layout(local_size_x = 16, local_size_y = 16) in;
+
+#define LCACHE 1
+#define WCACHE 1
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 const uint sizeof_Light = 1 + 4*6;
@@ -40,6 +43,15 @@ void imageDbg(uint info) {
 
 ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
 
+const uint MaxLight = 64;
+#if defined(WCACHE)
+shared uvec4 bboxLocal  [MaxLight*6];
+#endif
+
+#if defined(LCACHE)
+shared vec4  lightsLocal[MaxLight];
+#endif
+
 uvec2 pullTileData() {
   return texelFetch(lightTiles, ivec2((gl_GlobalInvocationID.xy)/RTSM_LIGHT_TILE), 0).xy;
   }
@@ -52,34 +64,35 @@ vec3 rayOrigin(ivec2 frag, float depth, vec3 normal) {
   return (wpos.xyz + normal*NormalBias)/wpos.w;
   }
 
-void processLight(const vec3 lpos, const float range, const uint ptr, const vec3 wpos, const vec3 normal, const float z) {
+void processLight(const vec3 lpos, const float range, const uint ptr, const vec3 wpos, const vec3 normal) {
   const vec3        distance = wpos-lpos;
   const float       tMaxQ    = dot(distance,distance);
   const float       rangeQ   = range*range;
 
   const bool activeRay = tMaxQ<rangeQ && dot(normal, distance)<0;
-  if(activeRay) {
-    const uint face = rayToFace(distance);
-    const vec2 rf   = rayToFace(distance, face);
-    const uint fptr = ptr + face*4 + 1;
-    atomicMin(pos.data[fptr+0], floatToOrderedUint(rf.x));
-    atomicMin(pos.data[fptr+1], floatToOrderedUint(rf.y));
-    atomicMax(pos.data[fptr+2], floatToOrderedUint(rf.x));
-    atomicMax(pos.data[fptr+3], floatToOrderedUint(rf.y));
-    }
+  if(!activeRay)
+    return;
+
+  const uint face = rayToFace(distance);
+  const vec2 rf   = rayToFace(distance, face);
+#if defined(WCACHE)
+  const uint fptr = ptr*6 + face;
+  atomicMin(bboxLocal[fptr].x, floatToOrderedUint(rf.x));
+  atomicMin(bboxLocal[fptr].y, floatToOrderedUint(rf.y));
+  atomicMax(bboxLocal[fptr].z, floatToOrderedUint(rf.x));
+  atomicMax(bboxLocal[fptr].w, floatToOrderedUint(rf.y));
+#else
+  const uint fptr = ptr + face*4 + 1;
+  atomicMin(pos.data[fptr+0], floatToOrderedUint(rf.x));
+  atomicMin(pos.data[fptr+1], floatToOrderedUint(rf.y));
+  atomicMax(pos.data[fptr+2], floatToOrderedUint(rf.x));
+  atomicMax(pos.data[fptr+3], floatToOrderedUint(rf.y));
+#endif
   }
 
-void main() {
-  //const uint  laneID  = gl_LocalInvocationIndex;
-  const uvec2 tile    = pullTileData();
-  const uint  lptr    = tile.x;
-  const uint  nLights = tile.y;
-
-  if(nLights==0) {
-    //imageDbg(0);
-    return;
-    }
-
+void processBboxes(const uvec2 tile) {
+  const uint  lptr      = tile.x;
+  const uint  nLights   = tile.y;
   const ivec2 size      = textureSize(depth, 0);
   const bool  valid     = all(lessThan(fragCoord, size));
   if(!valid)
@@ -93,9 +106,72 @@ void main() {
   const vec3  wpos      = rayOrigin(fragCoord.xy, z, normal) + push.originLwc;
 
   for(uint i=0; i<nLights; ++i) {
+#if defined(LCACHE) && defined(WCACHE)
+    const vec4 lx  = lightsLocal[i];
+    processLight(lx.xyz, lx.w, i, wpos, normal);
+#elif defined(LCACHE)
+    const uint ptr = lptr + i*sizeof_Light;
+    const vec4 lx = lightsLocal[i];
+    processLight(lx.xyz, lx.w, ptr, wpos, normal);
+#elif defined(WCACHE)
     const uint        ptr = lptr + i*sizeof_Light;
     const uint        lId = pos.data[ptr];
     const LightSource src = lights[lId];
-    processLight(src.pos, src.range, ptr, wpos, normal, z);
+    processLight(src.pos, src.range, i, wpos, normal);
+#else
+    const uint        ptr = lptr + i*sizeof_Light;
+    const uint        lId = pos.data[ptr];
+    const LightSource src = lights[lId];
+    processLight(src.pos, src.range, ptr, wpos, normal);
+#endif
     }
+  }
+
+void main() {
+  const uint  laneID  = gl_LocalInvocationIndex;
+  const uvec2 tile    = pullTileData();
+  const uint  lptr    = tile.x;
+  const uint  nLights = tile.y;
+
+  if(nLights==0 || nLights>=MaxLight) {
+    //imageDbg(0);
+    return;
+    }
+
+#if defined(WCACHE)
+  for(uint id=laneID; id<nLights*6; id+=NumThreads) {
+    bboxLocal[id] = uvec4(0xFFFFFFFF,0xFFFFFFFF,0,0);
+    }
+#endif
+
+#if defined(LCACHE)
+  if(laneID<nLights) {
+    const uint        ptr = lptr + laneID*sizeof_Light;
+    const uint        lId = pos.data[ptr];
+    const LightSource src = lights[lId];
+    lightsLocal[laneID] = vec4(src.pos, src.range);
+    }
+#endif
+  barrier();
+
+  processBboxes(tile);
+#if defined(WCACHE)
+  barrier();
+
+  for(uint id=laneID; id<nLights*6; id+=NumThreads) {
+    const uvec4 rf = bboxLocal[id];
+    if(rf.x==0xFFFFFFFF)
+      continue;
+
+    const uint i    = id/6;
+    const uint face = id%6;
+    const uint ptr  = lptr + i*sizeof_Light;
+    const uint fptr = ptr + face*4 + 1;
+
+    atomicMin(pos.data[fptr+0], rf.x);
+    atomicMin(pos.data[fptr+1], rf.y);
+    atomicMax(pos.data[fptr+2], rf.z);
+    atomicMax(pos.data[fptr+3], rf.w);
+    }
+#endif
   }
