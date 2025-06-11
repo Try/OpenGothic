@@ -124,21 +124,20 @@ void main() {
 
     if(laneID<nFaces) {
       const uvec4 rf = bboxLocal[laneID];
-      if(rf.x==0xFFFFFFFF)
-        continue;
+      if(rf.x!=0xFFFFFFFF) {
+        const uint i    = s*MaxLight + laneID/6;
+        const uint face = laneID%6;
+        const uint ptr  = lptr + i*sizeof_Light;
+        const uint fptr = ptr + face*4 + 1;
 
-      const uint i    = s*MaxLight + laneID/6;
-      const uint face = laneID%6;
-      const uint ptr  = lptr + i*sizeof_Light;
-      const uint fptr = ptr + face*4 + 1;
-
-      atomicMin(pos.data[fptr+0], rf.x);
-      atomicMin(pos.data[fptr+1], rf.y);
-      atomicMax(pos.data[fptr+2], rf.z);
-      atomicMax(pos.data[fptr+3], rf.w);
+        atomicMin(pos.data[fptr+0], rf.x);
+        atomicMin(pos.data[fptr+1], rf.y);
+        atomicMax(pos.data[fptr+2], rf.z);
+        atomicMax(pos.data[fptr+3], rf.w);
+        }
       }
-    // if(s+1>=steps)
-    //   break;
+    if(s+1>=steps)
+      break;
     barrier();
     }
   }
