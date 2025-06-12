@@ -105,7 +105,7 @@ void main() {
   const vec3 normal = normalFetch(gbufNormal, ivec2(gl_FragCoord.xy));
 
   float lambert = max(0.0,-dot(normalize(ldir),normal));
-  float light   = (lambert/max(factor, 0.05)) * (smoothFactor*smoothFactor);
+  float light   = (lambert/max(factor, 0.005)) * (smoothFactor*smoothFactor);
   if(light<=0.0)
     discard;
 
