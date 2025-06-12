@@ -1334,28 +1334,10 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   }
 
   {
-    // position
-    cmd.setBinding(0, rtsm.posList);
-    cmd.setBinding(1, sceneUbo);
-    cmd.setBinding(2, rtsm.visList);
-
-    cmd.setBinding(5,  clusters.ssbo());
-    cmd.setBinding(6,  instanceSsbo);
-    cmd.setBinding(7,  buckets.ssbo());
-    cmd.setBinding(8,  buckets.ibo());
-    cmd.setBinding(9,  buckets.vbo());
-    cmd.setBinding(10, buckets.morphId());
-    cmd.setBinding(11, buckets.morph());
-
-    cmd.setPipeline(shaders.rtsmPositionOmni);
-    cmd.dispatchIndirect(rtsm.visList, 0);
-  }
-
-  {
     // lights
     struct Push { Vec3 originLwc; float znear; } push = {};
-    push.originLwc   = scene.originLwc;
-    push.znear       = scene.znear;
+    push.originLwc = scene.originLwc;
+    push.znear     = scene.znear;
 
     cmd.setPushData(push);
     cmd.setBinding(0, rtsm.lightTiles);
@@ -1380,10 +1362,28 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   }
 
   {
+    // position
+    cmd.setBinding(0, rtsm.posList);
+    cmd.setBinding(1, sceneUbo);
+    cmd.setBinding(2, rtsm.visList);
+
+    cmd.setBinding(5,  clusters.ssbo());
+    cmd.setBinding(6,  instanceSsbo);
+    cmd.setBinding(7,  buckets.ssbo());
+    cmd.setBinding(8,  buckets.ibo());
+    cmd.setBinding(9,  buckets.vbo());
+    cmd.setBinding(10, buckets.morphId());
+    cmd.setBinding(11, buckets.morph());
+
+    cmd.setPipeline(shaders.rtsmPositionOmni);
+    cmd.dispatchIndirect(rtsm.visList, 0);
+  }
+
+  {
     // per-light meshlets, primitives
     struct Push { Vec3 originLwc; float znear; } push = {};
-    push.originLwc   = scene.originLwc;
-    push.znear       = scene.znear;
+    push.originLwc = scene.originLwc;
+    push.znear     = scene.znear;
 
     cmd.setBinding(0, sceneUbo);
     cmd.setBinding(1, wview.lights().lightsSsbo());
@@ -1402,8 +1402,8 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   {
     // in tile primitives
     struct Push { Vec3 originLwc; float znear; } push = {};
-    push.originLwc   = scene.originLwc;
-    push.znear       = scene.znear;
+    push.originLwc = scene.originLwc;
+    push.znear     = scene.znear;
     cmd.setPushData(push);
     cmd.setBinding(0, rtsm.lightTiles);
     cmd.setBinding(1, sceneUbo);
