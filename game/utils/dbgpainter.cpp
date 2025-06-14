@@ -22,10 +22,28 @@ void DbgPainter::drawText(int x, int y, std::string_view txt) {
   fnt.drawText(painter,x,y,txt);
   }
 
+void DbgPainter::drawText(const Tempest::Vec3& a, std::string_view txt) {
+  Vec3 pa = a; float wa = 1;
+  mvp.project(pa.x,pa.y,pa.z, wa);
+  if(wa<0.001f)
+    return;
+  pa /= wa;
+  int x0 = int((pa.x+1.f)*0.5f*float(w));
+  int y0 = int((pa.y+1.f)*0.5f*float(h));
+  drawText(x0, y0, txt);
+  }
+
 void DbgPainter::drawLine(const Vec3& a, const Vec3& b) {
-  Vec3 pa = a, pb = b;
-  mvp.project(pa.x,pa.y,pa.z);
-  mvp.project(pb.x,pb.y,pb.z);
+  Vec3  pa = a, pb = b;
+  float wa = 1, wb = 1;
+  mvp.project(pa.x,pa.y,pa.z,wa);
+  mvp.project(pb.x,pb.y,pb.z,wb);
+
+  if(wa<0.001f || wb<0.001f)
+    return;
+
+  pa /= wa;
+  pb /= wb;
 
   int x0 = int((pa.x+1.f)*0.5f*float(w));
   int y0 = int((pa.y+1.f)*0.5f*float(h));

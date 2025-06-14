@@ -105,11 +105,12 @@ void main() {
   const vec3 normal = normalFetch(gbufNormal, ivec2(gl_FragCoord.xy));
 
   float lambert = max(0.0,-dot(normalize(ldir),normal));
-  float light   = (lambert/max(factor, 0.05)) * (smoothFactor*smoothFactor);
+  float light   = (lambert/max(factor, 0.005)) * (smoothFactor*smoothFactor);
   if(light<=0.0)
     discard;
 
-  pos.xyz = pos.xyz + 2.0*normal; //bias
+  const float NormalBias = 2.0;
+  pos.xyz = pos.xyz + NormalBias*normal; //bias
   if(isShadow(pos.xyz, pos.xyz-cenPosition.xyz, cenPosition.w))
     discard;
 

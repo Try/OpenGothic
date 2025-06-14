@@ -1,0 +1,142 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+#include "common.glsl"
+#include "scene.glsl"
+#include "rtsm/rtsm_common.glsl"
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+const uint sizeof_Light = 1 + 4*6;
+
+layout(push_constant, std430) uniform UboPush {
+  vec3  originLwc;
+  float znear;
+  } push;
+layout(binding = 0)         uniform  utexture2D lightTiles;
+layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
+layout(binding = 2)         uniform  utexture2D gbufNormal;
+layout(binding = 3)         uniform  texture2D  depth;
+layout(binding = 4, std430)          buffer Pos { uint  alloc; uint    data[]; } pos;
+layout(binding = 5, std430) readonly buffer Lbo { LightSource lights[];        };
+
+#if defined(DEBUG_IMG)
+layout(binding = 9, r32ui)  uniform  uimage2D   dbgImage;
+#endif
+
+void imageDbg(uint info) {
+#if defined(DEBUG_IMG)
+  imageStore(dbgImage, ivec2(gl_WorkGroupID.xy), uvec4(info));
+#endif
+  }
+
+#include "rtsm/rtsm_scratch.glsl"
+
+ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
+
+const uint MaxLight = NumThreads/6; // 42
+
+shared uvec4 bboxLocal  [MaxLight*6];
+shared vec4  lightsLocal[MaxLight];
+
+uvec2 pullTileData() {
+  return texelFetch(lightTiles, ivec2((gl_GlobalInvocationID.xy)/RTSM_LIGHT_TILE), 0).xy;
+  }
+
+// ray related
+vec3 rayOrigin(ivec2 frag, float depth, vec3 normal) {
+  const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
+  const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
+  const vec4 wpos      = scene.viewProjectLwcInv * scr;
+  return (wpos.xyz + normal*NormalBias)/wpos.w;
+  }
+
+void processLight(const vec3 lpos, const float range, const uint ptr, const vec3 wpos, const vec3 normal) {
+  const vec3        distance = wpos-lpos;
+  const float       tMaxQ    = dot(distance,distance);
+  const float       rangeQ   = range*range;
+
+  const bool activeRay = tMaxQ<rangeQ && dot(normal, distance)<0;
+  if(!activeRay)
+    return;
+
+  const uint face = rayToFace(distance);
+  const vec2 rf   = rayToFace(distance, face);
+  const uint fptr = ptr*6 + face;
+
+  atomicMin(bboxLocal[fptr].x, floatToOrderedUint(rf.x));
+  atomicMin(bboxLocal[fptr].y, floatToOrderedUint(rf.y));
+  atomicMax(bboxLocal[fptr].z, floatToOrderedUint(rf.x));
+  atomicMax(bboxLocal[fptr].w, floatToOrderedUint(rf.y));
+  }
+
+void processBboxes(const uint chunkSz) {
+  const ivec2 size      = textureSize(depth, 0);
+  const bool  valid     = all(lessThan(fragCoord, size));
+  if(!valid)
+    return;
+
+  const float z         = texelFetch(depth, fragCoord, 0).x;
+  if(z>=1.0)
+    return;
+
+  const vec3  normal    = normalFetch(gbufNormal, fragCoord);
+  const vec3  wpos      = rayOrigin(fragCoord.xy, z, normal) + push.originLwc;
+  for(uint i=0; i<chunkSz; ++i) {
+    const vec4 lx  = lightsLocal[i];
+    processLight(lx.xyz, lx.w, i, wpos, normal);
+    }
+  }
+
+void main() {
+  const uint  laneID  = gl_LocalInvocationIndex;
+  const uvec2 tile    = pullTileData();
+  const uint  lptr    = tile.x;
+  const uint  nLights = tile.y;
+
+  if(nLights==0)
+    return;
+
+  const uint steps = (nLights+MaxLight-1)/MaxLight;
+  for(uint s=0; s<steps; ++s) {
+    const uint chunkSz = min(nLights-s*MaxLight, MaxLight);
+    const uint nFaces  = chunkSz*6;
+
+    if(laneID<nFaces)
+      bboxLocal[laneID] = uvec4(0xFFFFFFFF,0xFFFFFFFF,0,0);
+    if(laneID<chunkSz) {
+      const uint        i   = s*MaxLight + laneID;
+      const uint        ptr = lptr + i*sizeof_Light;
+      const uint        lId = pos.data[ptr];
+      const LightSource src = lights[lId];
+      lightsLocal[laneID] = vec4(src.pos, src.range);
+      }
+    barrier();
+
+    processBboxes(chunkSz);
+    barrier();
+
+    if(laneID<nFaces) {
+      const uvec4 rf = bboxLocal[laneID];
+      if(rf.x!=0xFFFFFFFF) {
+        const uint i    = s*MaxLight + laneID/6;
+        const uint face = laneID%6;
+        const uint ptr  = lptr + i*sizeof_Light;
+        const uint fptr = ptr + face*4 + 1;
+
+        atomicMin(pos.data[fptr+0], rf.x);
+        atomicMin(pos.data[fptr+1], rf.y);
+        atomicMax(pos.data[fptr+2], rf.z);
+        atomicMax(pos.data[fptr+3], rf.w);
+        }
+      }
+    if(s+1>=steps)
+      break;
+    barrier();
+    }
+  }

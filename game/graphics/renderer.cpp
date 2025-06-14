@@ -222,7 +222,7 @@ void Renderer::resetSwapchain() {
 
   if(settings.rtsmEnabled) {
     rtsm.outputImage    = device.image2d(TextureFormat::R8,          w, h);
-    //rtsm.outputImageClr = device.image2d(TextureFormat::R11G11B10UF, w, h);
+    rtsm.outputImageClr = device.image2d(TextureFormat::R11G11B10UF, w, h);
     }
 
   resetSkyFog();
@@ -1092,7 +1092,7 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     if(rtsm.pages.isEmpty()) {
       rtsm.pages = device.image3d(TextureFormat::R32U, 32, 32, 16);
       }
-    const auto tiles = tileCount(scene.zbuffer->size(), RTSM_SMALL_TILE);
+    const auto tiles = tileCount(zbuffer.size(), RTSM_SMALL_TILE);
     if(rtsm.tiles.size()!=tiles) {
       Resources::recycle(std::move(rtsm.tiles));
       rtsm.tiles = device.image2d(TextureFormat::RG32U, tiles);
@@ -1103,26 +1103,33 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
       rtsm.complexTiles = device.ssbo(nullptr, sz);
       }
 
-    if(rtsm.primBins.size()!=tileCount(scene.zbuffer->size(), RTSM_BIN_SIZE)) {
-      auto sz = tileCount(scene.zbuffer->size(), RTSM_BIN_SIZE);
+    if(rtsm.primBins.size()!=tileCount(zbuffer.size(), RTSM_BIN_SIZE)) {
+      auto sz = tileCount(zbuffer.size(), RTSM_BIN_SIZE);
       Resources::recycle(std::move(rtsm.primBins));
       // NOTE: need to improve engine api to accept size
       rtsm.primBins = device.image2d(TextureFormat::RG32U, sz);
       }
-    if(rtsm.dbg.size()!=tileCount(scene.zbuffer->size(), 32)) {
-      auto sz = tileCount(scene.zbuffer->size(), 32);
+
+    if(rtsm.dbg64.size()!=tileCount(zbuffer.size(), 64)) {
+      auto sz = tileCount(zbuffer.size(), 64);
+      Resources::recycle(std::move(rtsm.dbg));
+      rtsm.dbg64 = device.image2d(TextureFormat::R32U, sz);
+      }
+
+    if(rtsm.dbg.size()!=tileCount(zbuffer.size(), 32)) {
+      auto sz = tileCount(zbuffer.size(), 32);
       Resources::recycle(std::move(rtsm.dbg));
       rtsm.dbg = device.image2d(TextureFormat::R32U, sz);
       }
 
-    if(rtsm.dbg16.size()!=tileCount(scene.zbuffer->size(), 16)) {
-      auto sz = tileCount(scene.zbuffer->size(), 16);
+    if(rtsm.dbg16.size()!=tileCount(zbuffer.size(), 16)) {
+      auto sz = tileCount(zbuffer.size(), 16);
       Resources::recycle(std::move(rtsm.dbg16));
       rtsm.dbg16 = device.image2d(TextureFormat::R32U, sz);
       }
 
-    if(rtsm.dbg8.size()!=tileCount(scene.zbuffer->size(), 8)) {
-      auto sz = tileCount(scene.zbuffer->size(), 8);
+    if(rtsm.dbg8.size()!=tileCount(zbuffer.size(), 8)) {
+      auto sz = tileCount(zbuffer.size(), 8);
       Resources::recycle(std::move(rtsm.dbg8));
       rtsm.dbg8 = device.image2d(TextureFormat::R32U, sz);
       }
@@ -1258,6 +1265,9 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   if(!omniLights || rtsm.outputImageClr.isEmpty())
     return;
 
+  //const uint32_t RTSM_SMALL_TILE = 32;
+  const uint32_t RTSM_LIGHT_TILE = 64;
+
   auto& device   = Resources::device();
   auto& shaders  = Shaders::inst();
 
@@ -1272,6 +1282,20 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     if(rtsm.visibleLights.byteSize()!=shaders.rtsmClearOmni.sizeofBuffer(1, wview.lights().size())) {
       Resources::recycle(std::move(rtsm.visibleLights));
       rtsm.visibleLights = device.ssbo(nullptr, shaders.rtsmClearOmni.sizeofBuffer(1, wview.lights().size()));
+
+      Resources::recycle(std::move(rtsm.lightBins));
+      rtsm.lightBins = device.image2d(TextureFormat::RG32U, uint32_t(wview.lights().size()), 1u);
+      }
+
+    const auto tiles = tileCount(zbuffer.size(), RTSM_LIGHT_TILE);
+    if(rtsm.lightTiles.size()!=tiles) {
+      Resources::recycle(std::move(rtsm.lightTiles));
+      rtsm.lightTiles = device.image2d(TextureFormat::RG32U, tiles);
+      }
+    const auto ptiles = tileCount(zbuffer.size(), RTSM_LIGHT_TILE);
+    if(rtsm.primTiles.size()!=ptiles) {
+      Resources::recycle(std::move(rtsm.primTiles));
+      rtsm.primTiles = device.image2d(TextureFormat::RG32U, ptiles);
       }
   }
 
@@ -1310,6 +1334,34 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   }
 
   {
+    // lights
+    struct Push { Vec3 originLwc; float znear; } push = {};
+    push.originLwc = scene.originLwc;
+    push.znear     = scene.znear;
+
+    cmd.setPushData(push);
+    cmd.setBinding(0, rtsm.lightTiles);
+    cmd.setBinding(1, sceneUbo);
+    cmd.setBinding(2, gbufNormal);
+    cmd.setBinding(3, zbuffer);
+    cmd.setBinding(4, rtsm.posList);
+    cmd.setBinding(5, wview.lights().lightsSsbo());
+    cmd.setBinding(6, rtsm.visibleLights);
+    cmd.setBinding(7, rtsm.lightBins);
+    cmd.setBinding(8, rtsm.primTiles);
+    cmd.setBinding(9, rtsm.dbg64);
+
+    cmd.setPipeline(shaders.rtsmLightsOmni);
+    cmd.dispatch(rtsm.lightTiles.size());
+
+    cmd.setPipeline(shaders.rtsmBboxesOmni);
+    cmd.dispatchThreads(zbuffer.size());
+
+    cmd.setPipeline(shaders.rtsmCompactOmni);
+    cmd.dispatch(rtsm.lightTiles.size());
+  }
+
+  {
     // position
     cmd.setBinding(0, rtsm.posList);
     cmd.setBinding(1, sceneUbo);
@@ -1328,21 +1380,68 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   }
 
   {
-    // per-light meshlets
+    // per-light meshlets, primitives
+    struct Push { Vec3 originLwc; float znear; } push = {};
+    push.originLwc = scene.originLwc;
+    push.znear     = scene.znear;
+
     cmd.setBinding(0, sceneUbo);
     cmd.setBinding(1, wview.lights().lightsSsbo());
     cmd.setBinding(2, rtsm.visibleLights);
-    // cmd.setBinding(3, rtsm.visList);
-    // cmd.setBinding(4, hiz.hiZ);
-    cmd.setBinding(5, clusters.ssbo());
-    cmd.setBinding(6, rtsm.posList);
+    cmd.setBinding(3, rtsm.lightBins);
+    cmd.setBinding(4, clusters.ssbo());
+    cmd.setBinding(5, rtsm.posList);
 
     cmd.setPipeline(shaders.rtsmMeshletOmni);
+    cmd.dispatchIndirect(rtsm.visibleLights, 0);
+
+    cmd.setPipeline(shaders.rtsmBackfaceOmni);
     cmd.dispatchIndirect(rtsm.visibleLights, 0);
   }
 
   {
+    // in tile primitives
+    struct Push { Vec3 originLwc; float znear; } push = {};
+    push.originLwc = scene.originLwc;
+    push.znear     = scene.znear;
+    cmd.setPushData(push);
+    cmd.setBinding(0, rtsm.lightTiles);
+    cmd.setBinding(1, sceneUbo);
+    cmd.setBinding(2, gbufNormal);
+    cmd.setBinding(3, zbuffer);
+    cmd.setBinding(4, rtsm.posList);
+    cmd.setBinding(5, wview.lights().lightsSsbo());
+    cmd.setBinding(6, rtsm.visibleLights);
+    cmd.setBinding(7, rtsm.lightBins);
+    cmd.setBinding(8, rtsm.primTiles);
+    cmd.setBinding(9, rtsm.dbg64);
+
+    cmd.setPipeline(shaders.rtsmPrimOmni);
+    cmd.dispatch(rtsm.primTiles.size());
+  }
+
+  {
     // raster
+    struct Push { Vec3 originLwc; } push = {};
+    push.originLwc = scene.originLwc;
+    cmd.setPushData(push);
+    cmd.setBinding(0, rtsm.outputImageClr);
+    cmd.setBinding(1, sceneUbo);
+    cmd.setBinding(2, gbufNormal);
+    cmd.setBinding(3, zbuffer);
+    cmd.setBinding(4, rtsm.posList);
+    cmd.setBinding(5, wview.lights().lightsSsbo());
+    cmd.setBinding(6, rtsm.primTiles);
+    cmd.setBinding(7, buckets.textures());
+    cmd.setBinding(8, Sampler::trillinear());
+    cmd.setBinding(9, rtsm.dbg16);
+
+    cmd.setPipeline(shaders.rtsmRasterOmni);
+    cmd.dispatchThreads(rtsm.outputImageClr.size());
+  }
+
+  if(0) {
+    // raster (ref)
     struct Push { Vec3 originLwc; } push = {};
     push.originLwc  = scene.originLwc;
     cmd.setPushData(push);
@@ -1353,10 +1452,12 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.setBinding(4, rtsm.posList);
     cmd.setBinding(5, wview.lights().lightsSsbo());
     cmd.setBinding(6, rtsm.visibleLights);
+    cmd.setBinding(7, rtsm.lightBins);
+    cmd.setBinding(9, rtsm.dbg16);
 
-    cmd.setPipeline(shaders.rtsmRasterOmni);
+    cmd.setPipeline(shaders.rtsmRenderingOmni);
     cmd.dispatchThreads(rtsm.outputImageClr.size());
-  }
+    }
   }
 
 void Renderer::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {

@@ -88,8 +88,7 @@ float calcRayShadow(vec3 pos, vec3 normal, float depth) {
   if(all(lessThan(abs(sp.xy/sp.w), vec2(0.999))))
     return 1.0;
 
-  // NOTE: shadow is still leaking! Need to develop pso.depthClampEnable to fix it.
-  const float tMin = 50;
+  const float tMin = 5;
   if(!rayTest(pos + push.originLwc, tMin, 5000*100))
     return 1.0;
   return 0.0;
@@ -101,7 +100,8 @@ float shadowFactor(const float depth, const vec3 normal, bool isFlat) {
   if(light<=0)
     return 0;
 
-  const vec4  wpos4 = worldPosLwc(gl_FragCoord.xy, depth);
+  const float NormalBias = 0.0015;
+  const vec4  wpos4 = worldPosLwc(gl_FragCoord.xy, depth) + vec4(normal*NormalBias, 0);
   const vec3  wpos  = wpos4.xyz/wpos4.w;
 
   if(planetOcclusion(wpos.y, scene.sunDir))

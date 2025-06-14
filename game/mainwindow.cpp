@@ -253,9 +253,8 @@ void MainWindow::paintEvent(PaintEvent& event) {
     if(world!=nullptr) {
       world->marchPoints(dbg);
       world->marchInteractives(dbg);
+      world->view()->dbgLights(dbg);
       }
-
-    // world->view()->dbgLights(dbg);
     }
 
   renderer.dbgDraw(p);

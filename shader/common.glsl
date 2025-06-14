@@ -274,7 +274,7 @@ uint packUint2x16(uvec2 v){
   }
 
 uvec2 unpackUInt2x16(uint v) {
-  //NOTE: correct spelling `packUint2x16` is reserved by extensions
+  //NOTE: correct spelling `unpackUint2x16` is reserved by extensions
   uvec2 ret;
   ret.x = v & 0xFFFF;
   ret.y = v >> 16;

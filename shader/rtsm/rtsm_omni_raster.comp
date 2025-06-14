@@ -1,0 +1,311 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_EXT_control_flow_attributes : enable
+// bindless
+#extension GL_EXT_nonuniform_qualifier : enable
+// #extension GL_EXT_shader_explicit_arithmetic_types_float16 : enable
+// #extension GL_KHR_memory_scope_semantics : enable
+
+#include "common.glsl"
+#include "scene.glsl"
+#include "rtsm/rtsm_common.glsl"
+
+#define TRANSLUCENCY 1
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+layout(push_constant, std430) uniform UboPush {
+  vec3  originLwc;
+  } push;
+layout(binding = 0)         uniform  writeonly image2D outputImage;
+layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
+layout(binding = 2)         uniform  utexture2D gbufNormal;
+layout(binding = 3)         uniform  texture2D  depth;
+layout(binding = 4, std430) readonly buffer Pos { uint  alloc; uint    data[]; } pos;
+layout(binding = 5, std430) readonly buffer Lbo { LightSource lights[];        };
+layout(binding = 6)         uniform  utexture2D primTiles;
+layout(binding = 7)         uniform  texture2D  textureMain[];
+layout(binding = 8)         uniform  sampler    samplerMain;
+
+layout(binding = 9, r32ui)  uniform  uimage2D   dbgImage;
+
+void imageDbg(uint info) {
+#if defined(DEBUG_IMG)
+  imageStore(dbgImage, ivec2(gl_WorkGroupID.xy), uvec4(info));
+#endif
+  }
+
+#define CONST_SCRATCH 1
+#include "rtsm/rtsm_scratch.glsl"
+#include "rtsm/rtsm_omni_bboxes.glsl"
+
+const float minOpacity = 0.49/255.0;
+
+ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
+vec3  light     = vec3(0);
+
+uint primCnt = 0; //counter
+
+uvec2 pullTileData() {
+  return texelFetch(primTiles, ivec2((gl_GlobalInvocationID.xy)/RTSM_LIGHT_TILE), 0).xy;
+  }
+
+vec2 interpolateUV(vec3 bc, vec2 a, vec2 b, vec2 c) {
+  const float u = dot(vec3(a.x,b.x,c.x), bc);
+  const float v = dot(vec3(a.y,b.y,c.y), bc);
+  return vec2(u, v);
+  }
+
+vec2 interpolateUV(vec3 bc, uint a, uint b, uint c) {
+  return interpolateUV(bc, unpackHalf2x16(a), unpackHalf2x16(b), unpackHalf2x16(c));
+  }
+
+vec2 interpolateUV(vec3 bc, float a, float b, float c) {
+  return interpolateUV(bc, floatBitsToUint(a), floatBitsToUint(b), floatBitsToUint(c));
+  }
+
+float sampleAlpha(const uint bucketId, vec2 uv, float lodBias) {
+  return textureLod(sampler2D(textureMain[nonuniformEXT(bucketId)], samplerMain), uv, lodBias).a;
+  }
+
+vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 v0, const vec3 e1, const vec3 e2) {
+  const vec3  s1    = cross(raydir, e2);
+  const float denom = dot(s1, e1);
+
+  if(denom <= 0.0)
+    return vec3(-1);
+
+  const float invDemom = 1.0 / denom;
+  const vec3  d        = origin - v0;
+  const vec3  s2       = cross(d, e1);
+
+  const float u = dot(d,      s1) * invDemom;
+  const float v = dot(raydir, s2) * invDemom;
+
+  if(( u < 0.0f ) || ( u > 1.0f ) || ( v < 0.0f ) || ( u + v > 1.0f )) {
+    return vec3(-1);
+    }
+
+  float t0 = dot(e2, s2) * invDemom;
+  return vec3(t0, u, v);
+  }
+
+// ray related
+vec3 rayOrigin(ivec2 frag, float depth, vec3 normal) {
+  const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
+  const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
+  const vec4 wpos      = scene.viewProjectLwcInv * scr;
+  return (wpos.xyz + normal*NormalBias)/wpos.w;
+  }
+
+float lightIntensity(const vec3 normal, const float distance, const vec3 ldir, const float lrange) {
+  const float distanceSquare = (distance * distance);
+  const float factor         = distanceSquare / (lrange * lrange);
+  const float smoothFactor   = max(1.0 - factor * factor, 0.0);
+  if(factor>1.0)
+    return 0;
+
+  float lambert = max(0.0,-dot(ldir,normal));
+  float lx      = (lambert/max(factor, 0.005)) * (smoothFactor*smoothFactor);
+  return lx * Fd_Lambert * 0.1;
+  }
+
+const  uint  MaxChunk = NumThreads/2;
+shared vec4  meshVertices   [MaxChunk][3];
+shared uint  primitiveBucket[MaxChunk];
+shared uint  numLocalPrim;
+void pullPrimitives(const vec3 origin, const uint pkg) {
+  const uint  laneID = gl_LocalInvocationIndex;
+
+  const uint  ptr  = (pkg >> 8);
+  const uint  pId  = pkg & 0xFF;
+  const uvec4 tri  = pullPrimitiveFull(ptr+MeshletHeaderSize, pId);
+  const uint  bkg  = packUint2x16(uvec2(tri.w, pullMeshBucketId(ptr)));
+  const uint  ptrV = ptr + MeshletHeaderSize + MaxPrim;
+
+  //FIXME: register pressure
+  const vec3 a = pullVertex(ptrV, tri.x);
+  const vec3 b = pullVertex(ptrV, tri.y);
+  const vec3 c = pullVertex(ptrV, tri.z);
+
+  if(!isPrimitiveVisible(origin,a,b,c))
+    return;
+
+  const uint  id       = atomicAdd(numLocalPrim, 1);
+  primitiveBucket[id]  = bkg;
+
+  meshVertices[id][0].xyz = a;
+  meshVertices[id][1].xyz = b - a;
+  meshVertices[id][2].xyz = c - a;
+
+#if TRANSLUCENCY
+  //NOTE: use vec4 to WA on https://github.com/KhronosGroup/SPIRV-Cross/issues/2494
+  meshVertices[id][0].w  = uintBitsToFloat(pullVertexUV(ptrV, tri.x));
+  meshVertices[id][1].w  = uintBitsToFloat(pullVertexUV(ptrV, tri.y));
+  meshVertices[id][2].w  = uintBitsToFloat(pullVertexUV(ptrV, tri.z));
+#endif
+  }
+
+shared uint inactiveRays;
+float rasterBatch(const vec3 origin, const vec3 dir, const float tMax, float opacity) {
+  const float tMin = 30;
+
+  const uint laneID = gl_LocalInvocationIndex;
+  if(opacity<=minOpacity)
+    return opacity;
+
+  for(uint id=0; id<numLocalPrim; ++id) {
+    const vec3  a  = meshVertices[id][0].xyz;
+    const vec3  e1 = meshVertices[id][1].xyz;
+    const vec3  e2 = meshVertices[id][2].xyz;
+    const vec3  rt = rayTriangleTest(origin, dir, a, e1, e2);
+
+    const float t  = rt.x;
+    if(!(tMin<t && t<tMax))
+      continue;
+#if TRANSLUCENCY
+    const uint flags = primitiveBucket[id];
+    if((flags & BK_SOLID)!=0) {
+      opacity = 0;
+      break;
+      }
+    const vec3  bc       = vec3(1-rt.y-rt.z, rt.y, rt.z);
+    const vec2  uv       = interpolateUV(bc, meshVertices[id][0].w, meshVertices[id][1].w, meshVertices[id][2].w);
+    const float lodBias  = 0;
+    const uint  bucketId = primitiveBucket[id] >> 16;
+    const float alpha    = sampleAlpha(bucketId, uv, lodBias);
+    opacity *= (1.0-alpha);
+    if(opacity<=minOpacity)
+      break;
+#else
+    opacity = 0;
+    break;
+#endif
+    }
+
+  return opacity;
+  }
+
+bool earlyOut() {
+  return inactiveRays==NumThreads;
+  }
+
+void setupLight(uint ptr, const vec3 wpos, const vec3 normal, out vec3 origin, out float lightPower) {
+  vec4 src;
+  src.x = uintBitsToFloat(pos.data[ptr + 0]);
+  src.y = uintBitsToFloat(pos.data[ptr + 1]);
+  src.z = uintBitsToFloat(pos.data[ptr + 2]);
+  src.w = uintBitsToFloat(pos.data[ptr + 3]);
+
+  const vec3  distance = wpos - src.xyz;
+  const float tMax     = length(distance);
+  const vec3  ldir     = distance/tMax;
+  lightPower           = lightIntensity(normal, tMax, ldir, src.w);
+  origin               = src.xyz;
+
+  inactiveRays = 0;
+  rayBboxses(ldir, lightPower>0);
+  barrier();
+
+  if(lightPower<=minOpacity)
+    atomicAdd(inactiveRays, 1);
+  }
+
+void resolveLight(uint ptr, const float lightPower) {
+  if(lightPower<minOpacity)
+    return;
+  vec3 clr;
+  clr.r = uintBitsToFloat(pos.data[ptr + 0]);
+  clr.g = uintBitsToFloat(pos.data[ptr + 1]);
+  clr.b = uintBitsToFloat(pos.data[ptr + 2]);
+  light += clr*lightPower;
+  }
+
+void processAll(const uvec2 tileHeader, const bool valid) {
+  if((tileHeader.y&BIN_BAD_BIT)!=0) {
+    // error - emit 4x4 grid to display
+    ivec2 tile = fragCoord/4;
+    light = (tile.x+tile.y)%2==0 ? vec3(0,0,1) : vec3(0);
+    return;
+    }
+
+  if(tileHeader.x==NULL) {
+    light = vec3(0.0);
+    return;
+    }
+
+  const uint  laneID = gl_LocalInvocationIndex;
+  const vec3  normal = valid ? normalFetch(gbufNormal, fragCoord) : vec3(0); //6
+  const float z      = valid ? texelFetch(depth, fragCoord, 0).x  : 1.0;
+  const vec3  wpos   = rayOrigin(fragCoord.xy, z, normal) + push.originLwc;
+
+  light               = vec3(0);
+  vec3  origin        = vec3(0); //4
+  float lightPower    = 0;
+  setupLight(tileHeader.x, wpos, normal, origin, lightPower);
+  barrier();
+
+  uint  chunkPtr      = tileHeader.x + 4; //2
+  uint  numPrimitives = tileHeader.y;
+
+  for(uint s=0;;) {
+    if(s >= numPrimitives || earlyOut()) {
+      chunkPtr += numPrimitives;
+      resolveLight(chunkPtr, lightPower);
+
+      const uint nextPtr  = pos.data[chunkPtr + 3];
+      const uint nextPrim = pos.data[chunkPtr + 4];
+      if(nextPtr==NULL)
+        break;
+
+      barrier(); // make sure that `inactiveRays` can be reset
+
+      setupLight(nextPtr, wpos, normal, origin, lightPower);
+      barrier();
+
+      chunkPtr      = nextPtr + 4;
+      numPrimitives = nextPrim & 0xFFFF;
+      s             = 0;
+      continue;
+      // break;
+      }
+
+    numLocalPrim = 0;
+    barrier();
+
+    const uint i = s + laneID;
+    if(i<numPrimitives && laneID<MaxChunk) {
+      const uint ptr  = pos.data[chunkPtr + i];
+      pullPrimitives(origin, ptr);
+      }
+    barrier();
+
+    primCnt += numLocalPrim;
+
+    const vec3  distance = wpos - origin;
+    const float tMax     = length(distance);
+    const vec3  ldir     = distance/tMax;
+    lightPower = rasterBatch(origin, ldir, tMax, lightPower);
+    barrier();
+
+    s+=MaxChunk;
+    }
+  }
+
+void main() {
+  const ivec2 size   = textureSize(depth, 0);
+  const bool  valid  = all(lessThan(fragCoord, size));
+
+  const uvec2 tile   = pullTileData();
+  //processAllLights(tile, valid);
+  processAll(tile, valid);
+
+  if(valid)
+    imageStore(outputImage, ivec2(fragCoord), vec4(light, 1));
+  imageDbg(primCnt);
+  }

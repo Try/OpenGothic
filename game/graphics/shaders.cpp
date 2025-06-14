@@ -234,15 +234,21 @@ Shaders::Shaders() {
     rtsmRaster      = computeShader("rtsm_raster.comp.sprv");
     rtsmDirectLight = postEffect("rtsm_direct_light", RenderState::ZTestMode::NoEqual);
 
-    rtsmClearOmni    = computeShader("rtsm_clear_omni.comp.sprv");
+    rtsmClearOmni    = computeShader("rtsm_omni_clear.comp.sprv");
     rtsmCullLights   = computeShader("rtsm_cull_lights.comp.sprv");
-    rtsmCullingOmni  = computeShader("rtsm_culling_omni.comp.sprv");
-    rtsmPositionOmni = computeShader("rtsm_position_omni.comp.sprv");
+    rtsmLightsOmni   = computeShader("rtsm_omni_lights.comp.sprv");
+    rtsmBboxesOmni   = computeShader("rtsm_omni_bboxes.comp.sprv");
+    rtsmCullingOmni  = computeShader("rtsm_omni_culling.comp.sprv");
+    rtsmPositionOmni = computeShader("rtsm_omni_position.comp.sprv");
 
-    rtsmMeshletOmni  = computeShader("rtsm_meshlet_omni.comp.sprv");
-    rtsmRasterOmni   = computeShader("rtsm_raster_omni.comp.sprv");
+    rtsmMeshletOmni  = computeShader("rtsm_omni_meshlet.comp.sprv");
+    rtsmBackfaceOmni = computeShader("rtsm_omni_backface.comp.sprv");
+    rtsmCompactOmni  = computeShader("rtsm_omni_compact.comp.sprv");
+    rtsmPrimOmni     = computeShader("rtsm_omni_primitive.comp.sprv");
+    rtsmRasterOmni   = computeShader("rtsm_omni_raster.comp.sprv");
 
     rtsmRendering    = computeShader("rtsm_rendering.comp.sprv");
+    rtsmRenderingOmni= computeShader("rtsm_omni_rendering.comp.sprv");
     rtsmDbg          = postEffect("rtsm_dbg", RenderState::ZTestMode::Always);
     }
 
@@ -296,12 +302,12 @@ bool Shaders::isRtsmSupported() {
     return false;
     }
   auto& gpu = Resources::device().properties();
-  if(gpu.compute.maxInvocations>=512 && gpu.compute.maxSharedMemory>=32*1024 && gpu.descriptors.nonUniformIndexing) {
-    return true;
-    }
-  if(!gpu.hasStorageFormat(TextureFormat::RG32U))
+  if(!gpu.hasStorageFormat(TextureFormat::RG32U) || !gpu.hasStorageFormat(TextureFormat::R11G11B10UF))
     return false;
-  return false;
+  if(gpu.compute.maxInvocations<512 || gpu.compute.maxSharedMemory<32*1024 || !gpu.descriptors.nonUniformIndexing) {
+    return false;
+    }
+  return true;
   }
 
 const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommands::Type t, PipelineType pt, bool bl) const {

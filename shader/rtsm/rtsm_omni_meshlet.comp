@@ -2,9 +2,7 @@
 
 #extension GL_GOOGLE_include_directive    : enable
 #extension GL_EXT_samplerless_texture_functions : enable
-
-// #define PASS0
-// #define PASS1
+#extension GL_EXT_control_flow_attributes : enable
 
 #include "rtsm/rtsm_common.glsl"
 #include "scene.glsl"
@@ -17,16 +15,22 @@ const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z
 layout(binding = 0, std140) uniform  UboScene    { SceneDesc   scene;                    };
 layout(binding = 1, std430) readonly buffer Lbo  { LightSource lights[];                 };
 layout(binding = 2, std430)          buffer VId  { uvec4       count;   LightId data[];  } vLights;
-// layout(binding = 3, std430)
-// layout(binding = 4, std430)
-layout(binding = 5, std430) readonly buffer Cbo  { Cluster     clusters[];               };
-layout(binding = 6, std430)          buffer Pos  { uint        alloc;  uint  data[];     } pos;
+layout(binding = 3, rg32ui) uniform  uimage2D    lightBins;
+layout(binding = 4, std430) readonly buffer Cbo  { Cluster     clusters[];               };
+layout(binding = 5, std430)          buffer Pos  { uint        alloc;  uint  data[];     } pos;
 
 #include "rtsm/rtsm_scratch.glsl"
 
 shared uint meshletsId[2048];
 shared uint numMeshlets;
+
 shared uint meshListPtr;
+
+void storeBin(uint lightId, uint ptr, uint num) {
+  if(gl_LocalInvocationIndex!=0)
+    return;
+  imageStore(lightBins, ivec2(lightId,0), ivec4(ptr,num,0,0));
+  }
 
 bool isMeshletVisible(uint ptr, const LightSource lx) {
   const vec4  sphere = pullMeshSphere(ptr);
@@ -35,7 +39,7 @@ bool isMeshletVisible(uint ptr, const LightSource lx) {
   return dot(dv, dv) <= r*r;
   }
 
-void traceMeshlets(uint listPtr, uint visCount, const LightSource lx) {
+void traceMeshlets(uint listPtr, uint visCount, const LightSource lx, bool counting) {
   const uint laneID = gl_LocalInvocationIndex;
 
   numMeshlets = 0;
@@ -47,40 +51,41 @@ void traceMeshlets(uint listPtr, uint visCount, const LightSource lx) {
       continue;
 
     const uint id = atomicAdd(numMeshlets, 1);
-    if(id<meshletsId.length())
+    if(counting && id<meshletsId.length())
       meshletsId[id] = ptr;
+    else if(!counting)
+      pos.data[meshListPtr + id] = ptr;
     }
   }
 
 void store(uint lightId) {
   const uint laneID = gl_LocalInvocationIndex;
-  if(laneID==0)
-    meshListPtr = allocScratch(numMeshlets+1);
-  barrier();
-
-  if(meshListPtr==NULL) {
-    vLights.data[lightId].numMeshlets = NULL;
-    return;
-    }
-  // vLights.data[lightId].numMeshlets = numMeshlets;
-  // return;
-
-  vLights.data[lightId].numMeshlets = meshListPtr;
-  pos.data[meshListPtr] = numMeshlets;
   for(uint i=laneID; i<numMeshlets; i+=NumThreads) {
-    pos.data[meshListPtr + i + 1] = meshletsId[i];
+    pos.data[meshListPtr + i] = meshletsId[i];
     }
   }
 
 void main() {
-  const LightSource lx = lights[vLights.data[gl_WorkGroupID.x].id];
+  const uint        laneID  = gl_LocalInvocationIndex;
+  const uint        lightId = vLights.data[gl_WorkGroupID.x].id;
+  const LightSource lx      = lights[lightId];
 
-  traceMeshlets(1, pos.data[0], lx);
+  traceMeshlets(1, pos.data[0], lx, true);
   barrier();
 
-  if(numMeshlets>=meshletsId.length()) {
-    vLights.data[gl_WorkGroupID.x].numMeshlets = 0;
+  if(laneID==0) {
+    meshListPtr = allocScratch(numMeshlets);
+    storeBin(lightId, meshListPtr, numMeshlets);
+    }
+  barrier();
+
+  if(meshListPtr==NULL)
+    return; // OOM
+  if(numMeshlets < meshletsId.length()) {
+    store(lightId);
     return;
     }
-  store(gl_WorkGroupID.x);
+  barrier();
+
+  traceMeshlets(1, pos.data[0], lx, false);
   }
