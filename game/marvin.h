@@ -24,6 +24,7 @@ class Marvin {
 
       // gdb-like
       C_PrintVar,
+      C_SetVar,
 
       // rendering
       C_ToggleFrame,
@@ -83,6 +84,7 @@ class Marvin {
 
     bool   addItemOrNpcBySymbolName(World* world, std::string_view name, const Tempest::Vec3& at);
     bool   printVariable           (World* world, std::string_view name);
+    bool   setVariable             (World* world, std::string_view name, std::string_view value);
     bool   setTime                 (World& world, std::string_view hh, std::string_view mm);
     bool   goToVob                 (World& world, Npc& player, Camera& c, std::string_view name, size_t n);
 

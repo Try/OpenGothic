@@ -59,6 +59,8 @@ Marvin::Marvin() {
   cmd = std::vector<Cmd>{
     // gdb-like commands
     {"p %v",                       C_PrintVar},
+    // similar to "Marvin Helper" https://steamcommunity.com/sharedfiles/filedetails/?id=2847617433
+    {"set var %v %s",              C_SetVar},
 
     // animation
     {"play ani %s",                C_Invalid},
@@ -134,7 +136,6 @@ Marvin::Marvin() {
     {"goto pos %f %f %f",          C_GoToPos},
     {"goto vob %c %d",             C_GoToVob},
     {"goto camera",                C_GoToCamera},
-
 
     {"camera autoswitch",          C_CamAutoswitch},
     {"camera mode",                C_CamMode},
@@ -423,6 +424,14 @@ bool Marvin::exec(std::string_view v) {
       return printVariable(world, ret.argv[0]);
       }
 
+    case C_SetVar: {
+      World* world  = Gothic::inst().world();
+      Npc*   player = Gothic::inst().player();
+      if(world==nullptr || player==nullptr)
+        return false;
+      return setVariable(world, ret.argv[0], ret.argv[1]);
+      }
+
     case C_ToggleGI:
       Gothic::inst().toggleGi();
       return true;
@@ -488,6 +497,39 @@ bool Marvin::printVariable(World* world, std::string_view name) {
       break;
     }
   print(buf);
+  return true;
+  }
+
+bool Marvin::setVariable(World* world, std::string_view name, std::string_view value) {s
+  auto&  sc  = world->script();
+  auto*  sym = sc.findSymbol(name);
+  if(sym==nullptr)
+    return false;
+  switch(sym->type()) {
+    case zenkit::DaedalusDataType::INT: {
+      int32_t valueI = 0;
+      if(!fromString(value, valueI))
+        return false;
+      sym->set_int(valueI);
+      break;
+      }
+    case zenkit::DaedalusDataType::FLOAT: {
+      float valueF = 0;
+      if(!fromString(value, valueF))
+        return false;
+      sym->set_float(valueF);
+      break;
+      }
+    case zenkit::DaedalusDataType::STRING:
+      sym->set_string(value);
+      break;
+    case zenkit::DaedalusDataType::INSTANCE:
+      print("unable to override instance variable");
+      break;
+    default:
+      return false;
+    }
+  printVariable(world, name);
   return true;
   }
 
