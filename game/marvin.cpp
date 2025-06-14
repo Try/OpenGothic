@@ -500,7 +500,7 @@ bool Marvin::printVariable(World* world, std::string_view name) {
   return true;
   }
 
-bool Marvin::setVariable(World* world, std::string_view name, std::string_view value) {s
+bool Marvin::setVariable(World* world, std::string_view name, std::string_view value) {
   auto&  sc  = world->script();
   auto*  sym = sc.findSymbol(name);
   if(sym==nullptr)
