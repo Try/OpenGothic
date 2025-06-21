@@ -45,6 +45,9 @@ class Marvin {
       C_ToggleInertia,
       C_ZToggleTimeDemo,
 
+      C_ZTrigger,
+      C_ZUntrigger,
+
       C_AiGoTo,
       C_GoToPos,
       C_GoToVob,
