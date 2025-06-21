@@ -124,8 +124,8 @@ Marvin::Marvin() {
     {"ztimer realtime",            C_TimeRealtime},
     {"ztoggle helpervisuals",      C_Invalid},
     {"ztoggle showzones",          C_Invalid},
-    {"ztrigger %s",                C_Invalid},
-    {"zuntrigger %s",              C_Invalid},
+    {"ztrigger %s",                C_ZTrigger},
+    {"zuntrigger %s",              C_ZUntrigger},
 
     {"cheat full",                 C_CheatFull},
     {"cheat god",                  C_CheatGod},
@@ -401,6 +401,22 @@ bool Marvin::exec(std::string_view v) {
       }
     case C_ToggleDesktop: {
       Gothic::inst().toggleDesktop();
+      return true;
+      }
+    case C_ZTrigger: {
+      World* world = Gothic::inst().world();
+      if(world==nullptr)
+        return false;
+      const TriggerEvent evt(std::string(ret.argv[0]),"",world->tickCount(),TriggerEvent::T_Trigger);
+      world->triggerEvent(evt);
+      return true;
+      }
+    case C_ZUntrigger: {
+      World* world = Gothic::inst().world();
+      if(world==nullptr)
+        return false;
+      const TriggerEvent evt(std::string(ret.argv[0]),"",world->tickCount(),TriggerEvent::T_Untrigger);
+      world->triggerEvent(evt);
       return true;
       }
     case C_Insert: {
