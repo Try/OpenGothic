@@ -10,6 +10,10 @@
 #include <fstream>
 #include <cstring>
 
+#if defined(__cpp_lib_stacktrace)
+#include <stacktrace>
+#endif
+
 #if defined(__LINUX__) || defined(__APPLE__)
 #include <execinfo.h> // backtrace
 #include <dlfcn.h>    // dladdr
@@ -114,7 +118,7 @@ void CrashLog::setGpu(std::string_view name) {
   }
 
 void CrashLog::dumpStack(const char *sig, const char *extGpuLog) {
-#ifdef __WINDOWS__
+#if !defined(__cpp_lib_stacktrace) && defined(__WINDOWS__)
   dbg::symdb          db;
   dbg::call_stack<64> traceback;
 #endif
@@ -125,7 +129,9 @@ void CrashLog::dumpStack(const char *sig, const char *extGpuLog) {
   std::cout << std::endl << "---crashlog(" <<  sig   << ")---" << std::endl;
   writeSysInfo(std::cout);
   tracebackGpu(std::cout, extGpuLog);
-#ifdef __WINDOWS__
+#if defined(__cpp_lib_stacktrace)
+  tracebackStd(std::cout);
+#elif defined(__WINDOWS__)
   traceback.collect(0);
   traceback.log(db, std::cout);
 #elif defined(__LINUX__) || defined(__APPLE__)
@@ -138,12 +144,26 @@ void CrashLog::dumpStack(const char *sig, const char *extGpuLog) {
   fout << "---crashlog(" <<  sig << ")---" << std::endl;
   writeSysInfo(fout);
   tracebackGpu(std::cout, extGpuLog);
-#ifdef __WINDOWS__
+#if defined(__cpp_lib_stacktrace)
+  tracebackStd(fout);
+#elif defined(__WINDOWS__)
   traceback.log(db, fout);
 #elif defined(__LINUX__) || defined(__APPLE__)
   tracebackLinux(fout);
 #endif
   fout.flush();
+  }
+
+void CrashLog::tracebackStd(std::ostream &out) {
+#if defined(__cpp_lib_stacktrace)
+  auto trace = std::stacktrace::current();
+
+  uint32_t frameId = 0;
+  for (auto& i : trace) {
+    out << " #" << frameId  << "\t" << i.description() << ":" << i.source_line() << " in " << i.source_file() << std::endl;
+    ++frameId;
+    }
+#endif
   }
 
 void CrashLog::tracebackLinux(std::ostream &out) {

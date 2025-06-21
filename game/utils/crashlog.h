@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <ostream>
 
 class CrashLog final {
@@ -11,6 +10,7 @@ class CrashLog final {
     static void dumpStack(const char* sig, const char* extGpuLog);
 
   private:
+    static void tracebackStd(std::ostream& out);
     static void tracebackLinux(std::ostream &out);
     static void tracebackGpu(std::ostream &out, const char* extGpuLog);
     static void writeSysInfo(std::ostream& fout);
