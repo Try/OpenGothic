@@ -24,7 +24,13 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, const zenkit::VMover& mover,
       physic = PhysicMesh(*mesh,*world.physic(),true);
     }
 
-  const float speed = mover.speed;
+  // rotation only movers don't provide a clear way to translate speed attribute into actual movement speed
+  // assume speed is given as rotations/s and scale movers which would move extremely slow compared to vanilla
+  float       speed  = mover.speed;
+  const float factor = 300.f;
+  if(vobName=="EVT_ADDON_LSTTEMP_DOOR_LEFT_01" || vobName=="EVT_RIGHT_WHEEL_01" || vobName=="EVT_LEFT_WHEEL_02" ||
+    vobName=="EVT_RINGMAIN_LEFT_01" || vobName=="EVT_RINGMAIN_RIGHT_01" || vobName=="EVT_TROLL_GRAVE_MOVER_01")
+    speed *= factor;
   keyframes.resize(mover.keyframes.size());
   for(size_t i=0; i<mover.keyframes.size(); ++i) {
     auto& f0 = mover.keyframes[i];
@@ -33,29 +39,19 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, const zenkit::VMover& mover,
     auto  dy = (f1.position.y-f0.position.y);
     auto  dz = (f1.position.z-f0.position.z);
 
-    //float angle     = float(std::acos(std::clamp(glm::dot(f1.rotation, f0.rotation), -1.f, 1.f))*180.0/M_PI);
-    //float angle     = float((glm::yaw(f1.rotation) - glm::yaw(f0.rotation))*180.0/M_PI);
-
     float theta = 2.f*std::pow(f1.rotation.x*f0.rotation.x + f1.rotation.y*f0.rotation.y + f1.rotation.z*f0.rotation.z + f1.rotation.w*f0.rotation.w, 2.f) - 1.f;
     float angle = float(std::acos(std::clamp(theta, -1.f, 1.f))*180.0/M_PI);
+    float len   = Vec3(dx,dy,dz).length();
 
-    float positionA = Vec3(dx,dy,dz).length();
-    float positionB = float(angle) * 1.f;
-
-    uint64_t ticksA = speed>0.0001f ? uint64_t(positionA/speed) : 0;
-    uint64_t ticksB = speed>0.0001f ? uint64_t(positionB/speed) : 0;
-    if(speed==0.001f) {
-      // ring door in Halls of Irdorath. Possibly 0.001 is some magic value.
-      ticksB = 1000;
+    if(speed>0) {
+      uint64_t ticks = 0;
+      if(len>0)
+        ticks = uint64_t(len/speed); else
+        ticks = uint64_t((angle/360.f) * 1000.f/speed);
+      keyframes[i].ticks = std::max<uint64_t>(1,ticks);
       }
-
-    keyframes[i].ticks = std::max(ticksA, ticksB);
     }
 
-  if(!mover.keyframes.empty()) {
-    state = Idle;
-    frame = 0; //uint32_t(mover.keyframes.size()-1);
-    }
   auto tr = transform();
   if(frame<mover.keyframes.size())
     tr = mkMatrix(mover.keyframes[frame]);
