@@ -33,29 +33,19 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, const zenkit::VMover& mover,
     auto  dy = (f1.position.y-f0.position.y);
     auto  dz = (f1.position.z-f0.position.z);
 
-    //float angle     = float(std::acos(std::clamp(glm::dot(f1.rotation, f0.rotation), -1.f, 1.f))*180.0/M_PI);
-    //float angle     = float((glm::yaw(f1.rotation) - glm::yaw(f0.rotation))*180.0/M_PI);
-
     float theta = 2.f*std::pow(f1.rotation.x*f0.rotation.x + f1.rotation.y*f0.rotation.y + f1.rotation.z*f0.rotation.z + f1.rotation.w*f0.rotation.w, 2.f) - 1.f;
     float angle = float(std::acos(std::clamp(theta, -1.f, 1.f))*180.0/M_PI);
+    float len   = Vec3(dx,dy,dz).length();
 
-    float positionA = Vec3(dx,dy,dz).length();
-    float positionB = float(angle) * 1.f;
-
-    uint64_t ticksA = speed>0.0001f ? uint64_t(positionA/speed) : 0;
-    uint64_t ticksB = speed>0.0001f ? uint64_t(positionB/speed) : 0;
-    if(speed==0.001f) {
-      // ring door in Halls of Irdorath. Possibly 0.001 is some magic value.
-      ticksB = 1000;
+    if(speed>0) {
+      uint64_t ticks = 0;
+      if(len>0)
+        ticks = uint64_t(len/speed); else
+        ticks = uint64_t((angle/360.f) * 1000.f/scaleRotSpeed(speed));
+      keyframes[i].ticks = std::max<uint64_t>(1,ticks);
       }
-
-    keyframes[i].ticks = std::max(ticksA, ticksB);
     }
 
-  if(!mover.keyframes.empty()) {
-    state = Idle;
-    frame = 0; //uint32_t(mover.keyframes.size()-1);
-    }
   auto tr = transform();
   if(frame<mover.keyframes.size())
     tr = mkMatrix(mover.keyframes[frame]);
@@ -79,6 +69,42 @@ void MoveTrigger::load(Serialize& fin) {
     invalidateView();
     enableTicks();
     }
+  }
+
+float MoveTrigger::scaleRotSpeed(float speed) const {
+  // Measurements for rotation only movers show contradictory values without a clear path to translate speed attribute into actual movement speed.
+  // Assume speed is given as rotations/s and scale movers which would move extremely slow compared to vanilla.
+  // first column : time measured needed for one rotation
+  // second column: speed attribute
+  // third column : tells us how much faster this mover is compared to a mover that would take speed as rot/s.
+
+  //                                 time    speed    1/(time*speed)
+  // Newworld
+  // NW_MISC_WINDMILL_ROTOR_01        44.40  0.02       1.13
+  // NW_HARBOUR_BOAT_03              271.04  0.0005     7.38
+  // EVT_TROLL_GRAVE_MOVER_01         19.20  0.0001   520.83
+  // EVT_CITY_REICH03_01               4.48  0.005     44.67
+
+  // Irdorath
+  // EVT_RINGMAIN_LEFT_01              3.40  0.001    294.12
+  // EVT_RIGHT_WHEEL_01                5.00  0.00068  294.12
+  // EVT_RIGHT_WHEEL_02                5.00  0.2        1.00
+  // EVT_RIGHT_ROOM_01_SPAWN_ROT_02    2.8   0.001    357.14
+  // EVT_LEFT_ROOM_02_SPAWN_ROT_02     2.56  0.0005   781.25
+
+  // Addonworld Adanos temple door
+  // EVT_ADDON_LSTTEMP_DOOR_LEFT_01   16.66  0.00028  214.42
+  // EVT_ADDON_LSTTEMP_DOOR_RIGHT_01  16.97  0.2        0.29
+
+  // Use a general scaling factor and specialize for boats only where low speed is intended.
+  const float sFactor     = 300;
+  const float sFactorBoat = 7;
+  const float lowSpeed    = 0.006f;
+  if(world.name()=="newworld.zen" && vobName.starts_with("NW_HARBOUR_BOAT_"))
+    return sFactorBoat*speed;
+  if(speed<lowSpeed)
+    return sFactor*speed;
+  return speed;
   }
 
 void MoveTrigger::setView(MeshObjects::Mesh &&m) {

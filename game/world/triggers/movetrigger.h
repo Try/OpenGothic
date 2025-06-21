@@ -20,14 +20,15 @@ class MoveTrigger : public AbstractTrigger {
     void tick(uint64_t dt) override;
 
   private:
-    void moveEvent() override;
-    void processTrigger(const TriggerEvent& evt, bool onTrigger);
+    void  moveEvent() override;
+    void  processTrigger(const TriggerEvent& evt, bool onTrigger);
 
-    void setView     (MeshObjects::Mesh&& m);
-    void emitSound   (std::string_view snd, bool freeSlot=true);
-    void advanceAnim (uint32_t f0, uint32_t f1, float alpha);
+    void  setView    (MeshObjects::Mesh&& m);
+    void  emitSound  (std::string_view snd, bool freeSlot=true);
+    void  advanceAnim(uint32_t f0, uint32_t f1, float alpha);
+    float scaleRotSpeed (float speed) const;
 
-    void invalidateView();
+    void  invalidateView();
 
     enum State : int32_t {
       Idle         = 0,
