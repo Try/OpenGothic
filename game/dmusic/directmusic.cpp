@@ -1,6 +1,5 @@
 #include "directmusic.h"
 
-#include <fstream>
 #include <stdexcept>
 
 #include <Tempest/File>
@@ -18,9 +17,9 @@ PatternList DirectMusic::load(const Segment &s) {
 PatternList DirectMusic::load(const char16_t *fsgt) {
   Tempest::RFile fin = implOpen(fsgt);
   std::vector<uint8_t> v(size_t(fin.size()));
-  fin.read(&v[0],v.size());
+  fin.read(v.data(), v.size());
 
-  auto r   = Dx8::Riff(v.data(),v.size());
+  auto r   = Dx8::Riff(v.data(), v.size());
   auto sgt = Dx8::Segment(r);
   return load(sgt);
   }
