@@ -4,6 +4,8 @@
 
 #include <Tempest/File>
 #include <utils/fileutil.h>
+#include <system_error>
+#include <stdexcept>
 
 using namespace Dx8;
 
