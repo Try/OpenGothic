@@ -405,7 +405,10 @@ PackedMesh::PackedMesh(const zenkit::Mesh& mesh, PkgType type) {
 
 PackedMesh::PackedMesh(const zenkit::MultiResolutionMesh& mesh, PkgType type) {
   subMeshes.resize(mesh.sub_meshes.size());
-  isUsingAlphaTest = mesh.alpha_test;
+  /* NOTE: some mods do have corrupted content description,
+   * using alpha_test==0, for some of vegetation
+   */
+  isUsingAlphaTest = true || mesh.alpha_test;
   {
   auto bbox = mesh.bbox;
   mBbox[0] = Vec3(bbox.min.x,bbox.min.y,bbox.min.z);
@@ -434,6 +437,14 @@ PackedMesh::PackedMesh(const zenkit::SoftSkinMesh& skinned) {
       vert.boneIndices[j]    = weight.node_index;
       vert.localPositions[j] = {weight.position.x, weight.position.y, weight.position.z};
       vert.weights[j]        = weight.weight;
+      }
+    // MODS: renormalize weights. Found issue with not 1.0 summ in gold-remaster mod.
+    const float sum = (vert.weights[0] + vert.weights[1] + vert.weights[2] + vert.weights[3]);
+    if(sum>std::numeric_limits<float>::min()) {
+      vert.weights[0] /= sum;
+      vert.weights[1] /= sum;
+      vert.weights[2] /= sum;
+      vert.weights[3] /= sum;
       }
     }
 
