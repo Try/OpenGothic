@@ -12,9 +12,13 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, const zenkit::VMover& mover,
   :AbstractTrigger(parent,world,mover,flags) {
   moverKeyFrames  = mover.keyframes;
   behavior        = mover.behavior;
+  speedType       = mover.speed_mode;
+  lerpType        = mover.lerp_mode;
+  autoRotate      = mover.auto_rotate;
   sfxOpenStart    = mover.sfx_open_start;
-  stayOpenTimeSec = mover.stay_open_time_sec;
+  stayOpenTimeSec = uint64_t(mover.stay_open_time_sec * 1000.f);
   sfxOpenEnd      = mover.sfx_open_end;
+  sfxCloseStart   = mover.sfx_close_start;
   sfxCloseEnd     = mover.sfx_close_end;
   sfxMoving       = mover.sfx_transitioning;
   visualName      = mover.visual->name;
@@ -24,7 +28,13 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, const zenkit::VMover& mover,
       physic = PhysicMesh(*mesh,*world.physic(),true);
     }
 
-  const float speed = mover.speed;
+  // rotation only movers don't provide a clear way to translate speed attribute into actual movement speed
+  // assume speed is given as rotations/s and scale movers which would move extremely slow compared to vanilla
+  float       speed  = mover.speed;
+  const float factor = 300.f;
+  if(vobName=="EVT_ADDON_LSTTEMP_DOOR_LEFT_01" || vobName=="EVT_RIGHT_WHEEL_01" || vobName=="EVT_LEFT_WHEEL_02" ||
+    vobName=="EVT_RINGMAIN_LEFT_01" || vobName=="EVT_RINGMAIN_RIGHT_01" || vobName=="EVT_TROLL_GRAVE_MOVER_01")
+    speed *= factor;
   keyframes.resize(mover.keyframes.size());
   for(size_t i=0; i<mover.keyframes.size(); ++i) {
     auto& f0 = mover.keyframes[i];
@@ -33,29 +43,19 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, const zenkit::VMover& mover,
     auto  dy = (f1.position.y-f0.position.y);
     auto  dz = (f1.position.z-f0.position.z);
 
-    //float angle     = float(std::acos(std::clamp(glm::dot(f1.rotation, f0.rotation), -1.f, 1.f))*180.0/M_PI);
-    //float angle     = float((glm::yaw(f1.rotation) - glm::yaw(f0.rotation))*180.0/M_PI);
-
     float theta = 2.f*std::pow(f1.rotation.x*f0.rotation.x + f1.rotation.y*f0.rotation.y + f1.rotation.z*f0.rotation.z + f1.rotation.w*f0.rotation.w, 2.f) - 1.f;
     float angle = float(std::acos(std::clamp(theta, -1.f, 1.f))*180.0/M_PI);
+    float len   = Vec3(dx,dy,dz).length();
 
-    float positionA = Vec3(dx,dy,dz).length();
-    float positionB = float(angle) * 1.f;
-
-    uint64_t ticksA = speed>0.0001f ? uint64_t(positionA/speed) : 0;
-    uint64_t ticksB = speed>0.0001f ? uint64_t(positionB/speed) : 0;
-    if(speed==0.001f) {
-      // ring door in Halls of Irdorath. Possibly 0.001 is some magic value.
-      ticksB = 1000;
+    const float min = 0.001f;
+    if(speed>0) {
+      if(len>min)
+        keyframes[i].ticks = uint64_t(len/speed);
+      else if(angle>min)
+        keyframes[i].ticks = uint64_t((angle/360.f) * 1000.f/speed);
       }
-
-    keyframes[i].ticks = std::max(ticksA, ticksB);
     }
 
-  if(!mover.keyframes.empty()) {
-    state = Idle;
-    frame = 0; //uint32_t(mover.keyframes.size()-1);
-    }
   auto tr = transform();
   if(frame<mover.keyframes.size())
     tr = mkMatrix(mover.keyframes[frame]);
@@ -69,12 +69,12 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, const zenkit::VMover& mover,
 
 void MoveTrigger::save(Serialize& fout) const {
   AbstractTrigger::save(fout);
-  fout.write(pos0,uint8_t(state),sAnim,frame);
+  fout.write(pos0,uint8_t(state),time,frame);
   }
 
 void MoveTrigger::load(Serialize& fin) {
   AbstractTrigger::load(fin);
-  fin.read(pos0,reinterpret_cast<uint8_t&>(state),sAnim,frame);
+  fin.read(pos0,reinterpret_cast<uint8_t&>(state),time,frame);
   if(state!=Idle) {
     invalidateView();
     enableTicks();
@@ -85,18 +85,10 @@ void MoveTrigger::setView(MeshObjects::Mesh &&m) {
   view = std::move(m);
   }
 
-void MoveTrigger::emitSound(std::string_view snd,bool freeSlot) {
+void MoveTrigger::emitSound(std::string_view snd,bool freeSlot) const {
   auto p   = position();
   auto sfx = ::Sound(world,::Sound::T_Regular,snd,p,0,freeSlot);
   sfx.play();
-  }
-
-void MoveTrigger::advanceAnim(uint32_t f0, uint32_t f1, float alpha) {
-  alpha    = std::max(0.f,std::min(alpha,1.f));
-  auto fr  = mix(moverKeyFrames[f0],moverKeyFrames[f1],alpha);
-  auto mat = pos0;
-  mat.mul(mkMatrix(fr));
-  setLocalTransform(mat);
   }
 
 void MoveTrigger::invalidateView() {
@@ -116,49 +108,26 @@ void MoveTrigger::moveEvent() {
   }
 
 void MoveTrigger::onTrigger(const TriggerEvent& e) {
-  processTrigger(e,true);
-  }
-
-void MoveTrigger::onUntrigger(const TriggerEvent& e) {
-  if(behavior==zenkit::MoverBehavior::TRIGGER_CONTROL)
-    processTrigger(e,false);
-  }
-
-void MoveTrigger::onGotoMsg(const TriggerEvent& evt) {
-  if(evt.move.key<0 || moverKeyFrames.size()<size_t(evt.move.key))
+  if(moverKeyFrames.size()<2)
     return;
-  Log::e("TODO: MoveTrigger::onGotoMsg");
-  }
 
-void MoveTrigger::processTrigger(const TriggerEvent& e, bool onTrigger) {
-  if(moverKeyFrames.size()==0)
-    return;
-  if(state==Loop)
-    return;
-  if(state!=Idle) {
-    // FIXME: can lead to infinite amount of events if multiple movers with same name exist
-    world.triggerEvent(e);
-    return;
-    }
-
-  std::string_view snd = sfxOpenStart;
+  auto prev = state;
   switch(behavior) {
     case zenkit::MoverBehavior::TOGGLE: {
-      if(frame==0) {
-        state = Open;
-        } else {
-        state = Close;
-        }
-      break;
-      }
-    case zenkit::MoverBehavior::TRIGGER_CONTROL: {
-      if(onTrigger)
+      if((frame==0 && state==Idle) || state==Close)
         state = Open; else
         state = Close;
       break;
       }
+    case zenkit::MoverBehavior::TRIGGER_CONTROL: {
+      if(frame==0 && state==Idle)
+        state = Open;
+      break;
+      }
     case zenkit::MoverBehavior::OPEN_TIME: {
-      state = Open;
+      if(state==OpenTimed)
+        time  = 0; else
+        state = Open;
       break;
       }
     case zenkit::MoverBehavior::LOOP: {
@@ -166,127 +135,234 @@ void MoveTrigger::processTrigger(const TriggerEvent& e, bool onTrigger) {
       break;
       }
     case zenkit::MoverBehavior::SINGLE_KEYS: {
-      state = NextKey;
-      break;
+      return;
       }
     }
-
-  sAnim = world.tickCount();
-  enableTicks();
-  // override view
-  invalidateView();
-  emitSound(snd);
+  preProcessTrigger(prev);
   }
 
-void MoveTrigger::tick(uint64_t /*dt*/) {
-  if(state==Idle || keyframes.size()==0)
+void MoveTrigger::onUntrigger(const TriggerEvent& e) {
+  if(keyframes.size()<2)
     return;
-
-  uint32_t keySz = uint32_t(moverKeyFrames.size());
-  uint32_t maxFr = uint32_t(moverKeyFrames.size()-1);
-
-  uint64_t maxTicks = 0;
-  for(size_t i=0; ; ++i) {
-    if(i>=keyframes.size())
-      break;
-    if(i+1>=keyframes.size() && state!=Loop && state!=NextKey)
-      break;
-    maxTicks += keyframes[i].ticks;
+  if(behavior!=zenkit::MoverBehavior::TRIGGER_CONTROL)
+    return;
+  if(frame>0 && state==Idle) {
+    state = Close;
+    preProcessTrigger();
     }
+  }
 
-  uint64_t dt = world.tickCount()-sAnim, ticks = 0;
-  float    a  = 0;
-  uint32_t f0 = 0, f1 = 0;
+void MoveTrigger::onGotoMsg(const TriggerEvent& evt) {
+  if(keyframes.size()<2)
+    return;
+  if(evt.move.key<0 || keyframes.size()<size_t(evt.move.key))
+    return;
+  if(behavior!=zenkit::MoverBehavior::SINGLE_KEYS)
+    return;
+  if(state!=Idle)
+    return;
+  if(evt.move.msg==zenkit::MoverMessageType::NEXT) {
+    state = NextKey;
+    preProcessTrigger();
+    } else {
+    Log::e("TODO: MoveTrigger::onGotoMsg");
+    }
+  }
 
-  bool finished = false;
+void MoveTrigger::preProcessTrigger(State prev) {
+  if(prev==state || state==Idle)
+    return;
+  if(state==Open) {
+    emitSound(sfxOpenStart);
+    if(prev==Close) {
+      time  = keyframes[frame].ticks - time;
+      frame = nextFrame(frame);
+      return;
+      }
+    }
+  else if(state==Close) {
+    emitSound(sfxCloseStart);
+    if(prev==Open) {
+      frame = prevFrame(frame);
+      time  = keyframes[frame].ticks - time;
+      return;
+      }
+    }
+  time = 0;
+  invalidateView();
+  enableTicks();
+  }
+
+void MoveTrigger::postProcessTrigger() {
+  if(!target.empty()) {
+    TriggerEvent e(target,vobName,TriggerEvent::T_Trigger);
+    world.triggerEvent(e);
+    }
+  if(state==Open)
+    emitSound(sfxOpenEnd);
+  if(state==Close)
+    emitSound(sfxCloseEnd);
+  if(behavior==zenkit::MoverBehavior::OPEN_TIME && state==Open) {
+    state = OpenTimed;
+    time  = 0;
+    return;
+    }
+  state = Idle;
+  invalidateView();
+  disableTicks();
+  }
+
+uint32_t MoveTrigger::nextFrame(uint32_t i) const {
+  uint32_t size = uint32_t(keyframes.size());
+  return (i+1)%size;
+  }
+
+uint32_t MoveTrigger::prevFrame(uint32_t i) const {
+  uint32_t size = uint32_t(keyframes.size());
+  return (i+size-1)%size;
+  }
+
+float MoveTrigger::advanceKey() {
+  float a = 0;
+  if(state==Close) {
+    float ticks = float(keyframes[prevFrame(frame)].ticks);
+    a = ticks>0 ? 1 - float(time)/ticks : 0.f;
+    if(a<=0) {
+      frame = prevFrame(frame);
+      a = 1;
+      time = 0;
+      }
+    } else {
+    float ticks = float(keyframes[frame].ticks);
+    a = ticks>0 ? float(time)/ticks : 1.f;
+    if(a>=1) {
+      frame = nextFrame(frame);
+      a = 0;
+      time = 0;
+      }
+    }
+  return a;
+  }
+
+void MoveTrigger::tick(uint64_t dt) {
+  bool  finished = false;
+  float a        = 0;
+  time += dt;
   switch(state) {
     case Idle:
-      break;
+      return;
     case OpenTimed: {
-      if(sAnim+uint64_t(stayOpenTimeSec*1000)<world.tickCount()) {
+      if(time>=stayOpenTimeSec) {
         state = Close;
-        sAnim = world.tickCount();
+        time  = 0;
         }
       return;
       }
-    case Open: {
-      dt = dt<maxTicks ? dt : maxTicks;
-      for(f0=0; f0+1<keyframes.size(); ++f0) {
-        if(dt<keyframes[f0].ticks)
-          break;
-        dt -= keyframes[f0].ticks;
-        }
-      f1       = std::min(f0+1,maxFr);
-      ticks    = keyframes[f0].ticks;
-      a        = ticks>0 ? float(dt)/float(ticks) : 1.f;
-      finished = f0==maxFr;
+   case Open: {
+      a        = advanceKey();
+      finished = (frame==moverKeyFrames.size()-1);
       break;
       }
     case Close: {
-      dt = dt<maxTicks ? maxTicks - dt : 0;
-      for(f0=0; f0+1<keyframes.size(); ++f0) {
-        if(dt<=keyframes[f0].ticks)
-          break;
-        dt -= keyframes[f0].ticks;
-        }
-      f1       = std::min(f0+1,maxFr);
-      ticks    = keyframes[f0].ticks;
-      a        = ticks>0 ? float(dt)/float(ticks) : 1.f;
-      finished = (f0==0 && dt==0);
+      a        = advanceKey();
+      finished = (frame==0);
       break;
       }
     case Loop: {
-      if(maxTicks>0)
-        dt %= maxTicks;
-      for(f0=0; f0+1<keyframes.size(); ++f0) {
-        if(dt<=keyframes[f0].ticks)
-          break;
-        dt -= keyframes[f0].ticks;
-        }
-      f1       = uint32_t(f0+1)%keySz;
-      ticks    = keyframes[f0].ticks;
-      a        = ticks>0 ? float(dt)/float(ticks) : 1.f;
+      a = advanceKey();
       break;
       }
     case NextKey: {
-      f0       = frame;
-      f1       = uint32_t(f0+1)%uint32_t(moverKeyFrames.size());
-      ticks    = keyframes[f0].ticks;
-      a        = ticks>0 ? float(dt)/float(ticks) : 1.f;
-      a        = std::min(1.f,a);
-      finished = dt>keyframes[f0].ticks;
+      uint32_t f = frame;
+      a        = advanceKey();
+      finished = (frame==nextFrame(f));
       break;
       }
     }
 
-  advanceAnim(f0,f1,a);
-
-  if(finished) {
-    auto prev = state;
-    state = Idle;
-    frame = f0;
-    invalidateView();
-    disableTicks();
-
-    if(!target.empty()) {
-      TriggerEvent e(target,vobName,TriggerEvent::T_Trigger);
-      world.triggerEvent(e);
-      }
-
-    std::string_view snd = sfxCloseEnd;
-    if(prev==Open)
-      snd = sfxOpenEnd;
-    if(prev==NextKey)
-      snd = "";
-    if(behavior==zenkit::MoverBehavior::OPEN_TIME && prev==Open) {
-      state = OpenTimed;
-      sAnim = world.tickCount();
-      // override view
-      invalidateView();
-      enableTicks();
-      }
-    emitSound(snd);
-    } else {
+  advanceAnim(a);
+  if(finished)
+    postProcessTrigger(); else
     emitSound(sfxMoving);
+  }
+
+ void MoveTrigger::advanceAnim(float a) {
+  uint32_t f1 = (state==Close) ? prevFrame(frame) : frame;
+  uint32_t f2 = nextFrame(f1);
+  a = applyMotionScaling(f1,f2,a);
+  auto   m   = calculateTransform(f1,f2,a);
+  auto   mat = pos0;
+  mat.mul(m);
+  setLocalTransform(mat);
+  }
+
+float MoveTrigger::applyMotionScaling(uint32_t f1, uint32_t f2, float a) const {
+  bool start = (f1==0 && state!=Loop);
+  bool end   = (f2==moverKeyFrames.size()-1 && state!=Loop);
+  switch(speedType) {
+    case zenkit::MoverSpeedType::CONSTANT:
+      break;
+    case zenkit::MoverSpeedType::SLOW_START_END:
+    case zenkit::MoverSpeedType::SEGMENT_SLOW_START_END:
+      if((start && end) || speedType==zenkit::MoverSpeedType::SEGMENT_SLOW_START_END)
+        a = (3 - 2*a) * a*a;
+      else if(start)
+        a = (2 - a) * a*a;
+      else if(end)
+        a = ((1 - a)*a + 1)*a;
+      break;
+    case zenkit::MoverSpeedType::SLOW_START:
+    case zenkit::MoverSpeedType::SEGMENT_SLOW_START:
+      if(start || speedType==zenkit::MoverSpeedType::SEGMENT_SLOW_START)
+        a = (2 - a) * a*a;
+      break;
+    case zenkit::MoverSpeedType::SLOW_END:
+    case zenkit::MoverSpeedType::SEGMENT_SLOW_END:
+      if(end || speedType==zenkit::MoverSpeedType::SEGMENT_SLOW_END)
+        a = ((1 - a)*a + 1)*a;
+      break;
     }
+  return std::clamp(a,0.f,1.f);
+  }
+
+Matrix4x4 MoveTrigger::calculateTransform(uint32_t f1, uint32_t f2, float a) const {
+  zenkit::AnimationSample fr      = {};
+  Vec3                    forward = {};
+  if(lerpType==zenkit::MoverLerpType::LINEAR) {
+    auto& pos1 = moverKeyFrames[f1].position;
+    auto& pos2 = moverKeyFrames[f2].position;
+    fr      = mix(moverKeyFrames[f1],moverKeyFrames[f2],a);
+    forward = {pos2.x-pos1.x,pos2.y-pos1.y,pos2.z-pos1.z};
+    } else {
+    auto& kF0 = moverKeyFrames[prevFrame(f1)].position;
+    auto& kF1 = moverKeyFrames[f1].position;
+    auto& kF2 = moverKeyFrames[f2].position;
+    auto& kF3 = moverKeyFrames[nextFrame(f2)].position;
+    Vec3  p0  = {kF0.x,kF0.y,kF0.z};
+    Vec3  p1  = {kF1.x,kF1.y,kF1.z};
+    Vec3  p2  = {kF2.x,kF2.y,kF2.z};
+    Vec3  p3  = {kF3.x,kF3.y,kF3.z};
+    Vec3  b1  =  -p0 +   p1 - p2 + p3;
+    Vec3  b2  = 2*p0 - 2*p1 + p2 - p3;
+    Vec3  b3  =  -p0        + p2;
+    Vec3  pos = ((b1*a + b2)*a + b3)*a + p1;
+    forward       = (3*b1*a + 2*b2)*a + b3;
+    fr.position.x = pos.x;
+    fr.position.y = pos.y;
+    fr.position.z = pos.z;
+    fr.rotation   = slerp(moverKeyFrames[f1].rotation,moverKeyFrames[f2].rotation,a);
+    }
+
+  if(!autoRotate)
+    return mkMatrix(fr);
+  Vec3 z  = Vec3::normalize(forward);
+  Vec3 up = std::abs(z.y)<0.999f ? Vec3(0,1,0) : Vec3(1,0,0);
+  Vec3 x  = Vec3::normalize(Vec3::crossProduct(up,z));
+  Vec3 y  = Vec3::crossProduct(z,x);
+  return {
+         x.x, y.x, z.x, fr.position.x,
+         x.y, y.y, z.y, fr.position.y,
+         x.z, y.z, z.z, fr.position.z,
+         0,   0,   0,   1
+         };
   }
