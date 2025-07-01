@@ -2,8 +2,6 @@
 
 #include <Tempest/Matrix4x4>
 #include <vector>
-#include <mutex>
-#include <memory>
 
 #include "game/constants.h"
 #include "animation.h"
