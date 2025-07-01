@@ -465,8 +465,7 @@ void VisualObjects::prepareGlobals(Encoder<CommandBuffer>& enc, uint8_t fId) {
   instanceMem.commit(enc, fId);
   clustersMem.commit(enc, fId);
   drawCmd.commit(enc);
-  if(bucketsMem.commit(enc, fId))
-    drawCmd.updateBindlessArrays();
+  bucketsMem.commit(enc, fId);
   }
 
 void VisualObjects::preFrameUpdate() {

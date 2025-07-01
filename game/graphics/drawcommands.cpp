@@ -88,8 +88,8 @@ void DrawCommands::setBindings(Tempest::Encoder<CommandBuffer>& cmd, const DrawC
   cmd.setBinding(L_Bucket,   buckets.ssbo());
 
   if(cx.isBindless()) {
-    cmd.setBinding(L_Ibo, ibo);
-    cmd.setBinding(L_Vbo, vbo);
+    cmd.setBinding(L_Ibo, buckets.ibo());
+    cmd.setBinding(L_Vbo, buckets.vbo());
     }
   else if(bx.staticMesh!=nullptr) {
     cmd.setBinding(L_Ibo, bx.staticMesh->ibo8);
@@ -102,7 +102,7 @@ void DrawCommands::setBindings(Tempest::Encoder<CommandBuffer>& cmd, const DrawC
 
   if(v==SceneGlobals::V_Main || cx.isTextureInShadowPass()) {
     if(cx.isBindless()) {
-      cmd.setBinding(L_Diffuse, tex);
+      cmd.setBinding(L_Diffuse, buckets.textures());
       }
     else if(bx.mat.hasFrameAnimation()) {
       uint64_t timeShift = 0;
@@ -123,8 +123,8 @@ void DrawCommands::setBindings(Tempest::Encoder<CommandBuffer>& cmd, const DrawC
     }
 
   if(cx.type==Morph && cx.isBindless()) {
-    cmd.setBinding(L_MorphId,  morphId);
-    cmd.setBinding(L_Morph,    morph);
+    cmd.setBinding(L_MorphId,  buckets.morphId());
+    cmd.setBinding(L_Morph,    buckets.morph());
     }
   else if(cx.type==Morph && bx.staticMesh!=nullptr) {
     cmd.setBinding(L_MorphId,  *bx.staticMesh->morph.index);
@@ -265,42 +265,6 @@ void DrawCommands::commit(Encoder<CommandBuffer>& enc) {
     }
   }
 
-void DrawCommands::updateBindlessArrays() {
-  if(!Gothic::inst().options().doBindless)
-    return;
-
-  std::vector<const Tempest::Texture2d*>     tex;
-  std::vector<const Tempest::StorageBuffer*> vbo, ibo;
-  std::vector<const Tempest::StorageBuffer*> morphId, morph;
-  for(auto& i:buckets.buckets()) {
-    tex.push_back(i.mat.tex);
-    if(i.staticMesh!=nullptr) {
-      ibo    .push_back(&i.staticMesh->ibo8);
-      vbo    .push_back(&i.staticMesh->vbo);
-      morphId.push_back(i.staticMesh->morph.index);
-      morph  .push_back(i.staticMesh->morph.samples);
-      } else {
-      ibo    .push_back(&i.animMesh->ibo8);
-      vbo    .push_back(&i.animMesh->vbo);
-      morphId.push_back(nullptr);
-      morph  .push_back(nullptr);
-      }
-    }
-
-  Resources::recycle(std::move(this->tex));
-  Resources::recycle(std::move(this->vbo));
-  Resources::recycle(std::move(this->ibo));
-  Resources::recycle(std::move(this->morphId));
-  Resources::recycle(std::move(this->morph));
-
-  auto& device = Resources::device();
-  this->tex     = device.descriptors(tex);
-  this->vbo     = device.descriptors(vbo);
-  this->ibo     = device.descriptors(ibo);
-  this->morphId = device.descriptors(morphId);
-  this->morph   = device.descriptors(morph);
-  }
-
 void DrawCommands::visibilityPass(Encoder<CommandBuffer>& cmd, int pass) {
   static bool freeze = false;
   if(freeze)
@@ -430,9 +394,9 @@ void DrawCommands::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd) {
     cmd.setBinding(2, *scene.vsmPageList);
     cmd.setBinding(3, clusters.ssbo());
     cmd.setBinding(4, owner.instanceSsbo());
-    cmd.setBinding(5, ibo);
-    cmd.setBinding(6, vbo);
-    cmd.setBinding(7, tex);
+    cmd.setBinding(5, buckets.ibo());
+    cmd.setBinding(6, buckets.vbo());
+    cmd.setBinding(7, buckets.textures());
     cmd.setBinding(8, Sampler::bilinear());
     cmd.setPushData(&push, sizeof(push));
     cmd.setPipeline(Shaders::inst().vsmRendering);

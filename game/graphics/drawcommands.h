@@ -55,8 +55,6 @@ class DrawCommands {
 
     void     resetRendering();
 
-    void     updateBindlessArrays();
-
     void     visibilityPass(Tempest::Encoder<Tempest::CommandBuffer>& cmd, int pass);
     void     visibilityVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 
@@ -123,12 +121,6 @@ class DrawCommands {
     DrawClusters&            clusters;
     const SceneGlobals&      scene;
     size_t                   maxPayload = 0;
-
-    Tempest::DescriptorArray tex;
-    Tempest::DescriptorArray vbo;
-    Tempest::DescriptorArray ibo;
-    Tempest::DescriptorArray morphId;
-    Tempest::DescriptorArray morph;
 
     std::vector<DrawCmd>     cmd;
     std::vector<DrawCmd*>    ord;

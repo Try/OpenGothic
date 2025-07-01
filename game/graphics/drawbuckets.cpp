@@ -9,6 +9,13 @@
 
 using namespace Tempest;
 
+static size_t roundup(size_t i) {
+  const size_t rounding = 1024;
+  if(i%rounding!=0)
+    i += rounding-i%rounding;
+  return i;
+  };
+
 DrawBuckets::Id::Id(DrawBuckets* owner, size_t id):owner(owner), id(uint16_t(id)) {
   }
 
@@ -87,6 +94,13 @@ void DrawBuckets::updateBindlessArrays() {
       morph  .push_back(nullptr);
       }
     }
+
+  // avoid shader linking stutter in vulkan
+  tex    .resize(roundup(tex.size()));
+  vbo    .resize(roundup(vbo.size()));
+  ibo    .resize(roundup(ibo.size()));
+  morphId.resize(roundup(morphId.size()));
+  morph  .resize(roundup(morph.size()));
 
   Resources::recycle(std::move(desc.tex));
   Resources::recycle(std::move(desc.vbo));
