@@ -6,7 +6,7 @@ static float mix(float x,float y,float a){
   return x+(y-x)*a;
   }
 
-static zenkit::Quat slerp(const zenkit::Quat& x, const zenkit::Quat& y, float a) {
+zenkit::Quat slerp(const zenkit::Quat& x, const zenkit::Quat& y, float a) {
   zenkit::Quat z = y;
 
   float cosTheta = x.x*y.x +x.y*y.y + x.z*y.z + x.w*y.w;
