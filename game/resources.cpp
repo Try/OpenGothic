@@ -178,7 +178,7 @@ void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs, bool modFil
       }
     }
 
-  //for(auto& i:gothicAssets.getKnownFiles())
+  //for(auto& i:inst->gothicAssets.getKnownFiles())
   //  Log::i(i);
 
   // auto v = getFileData("DRAGONISLAND.ZEN");

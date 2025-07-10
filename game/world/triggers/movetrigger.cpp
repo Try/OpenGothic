@@ -29,10 +29,10 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, const zenkit::VMover& mover,
     }
 
   const float speed = mover.speed;
-  keyframes.resize(mover.keyframes.size());
-  for(size_t i=0; i<mover.keyframes.size(); ++i) {
-    auto& f0 = mover.keyframes[i];
-    auto& f1 = mover.keyframes[(i+1)%mover.keyframes.size()];
+  keyframes.resize(moverKeyFrames.size());
+  for(size_t i=0; i<moverKeyFrames.size(); ++i) {
+    auto& f0 = moverKeyFrames[i];
+    auto& f1 = moverKeyFrames[(i+1)%moverKeyFrames.size()];
     auto  dx = (f1.position.x-f0.position.x);
     auto  dy = (f1.position.y-f0.position.y);
     auto  dz = (f1.position.z-f0.position.z);
@@ -51,8 +51,8 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, const zenkit::VMover& mover,
     }
 
   auto tr = transform();
-  if(frame<mover.keyframes.size())
-    tr = mkMatrix(mover.keyframes[frame]);
+  if(frame<moverKeyFrames.size())
+    tr = mkMatrix(moverKeyFrames[frame]);
   tr.inverse();
   pos0 = localTransform();
   pos0.mul(tr);
@@ -174,7 +174,7 @@ void MoveTrigger::onTrigger(const TriggerEvent& e) {
   }
 
 void MoveTrigger::onUntrigger(const TriggerEvent& e) {
-  if(moverKeyFrames.size()<2 || keyframes[0].ticks==0)
+  if(keyframes.size()<2 || keyframes[0].ticks==0)
     return;
   if(behavior!=zenkit::MoverBehavior::TRIGGER_CONTROL)
     return;
@@ -186,7 +186,7 @@ void MoveTrigger::onUntrigger(const TriggerEvent& e) {
   }
 
 void MoveTrigger::onGotoMsg(const TriggerEvent& evt) {
-  if(moverKeyFrames.size()<2 || keyframes[0].ticks==0)
+  if(keyframes.size()<2 || keyframes[0].ticks==0)
     return;
   if(evt.move.key<0 || keyframes.size()<size_t(evt.move.key))
     return;
@@ -206,9 +206,9 @@ void MoveTrigger::onGotoMsg(const TriggerEvent& evt) {
     case zenkit::MoverMessageType::FIXED_ORDER:
       targetFrame = uint32_t(evt.move.key);
       break;
-      }
-    preProcessTrigger();
     }
+  preProcessTrigger();
+  }
 
 void MoveTrigger::preProcessTrigger(State prev) {
   if(prev==state || state==Idle)

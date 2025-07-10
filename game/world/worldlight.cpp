@@ -25,7 +25,7 @@ WorldLight::WorldLight(Vob* parent, World& world, const zenkit::VLight& vob, Fla
     light.setEnabled(false);
     }
   if(vob.is_static && vob.preset.find("_STATIC")!=std::string::npos) {
-    light.setEnabled(false);
+    //light.setEnabled(false);
     }
   if(vob.is_static && vob.preset=="SCHMUTZ") {
     light.setEnabled(false);

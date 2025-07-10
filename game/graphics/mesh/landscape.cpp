@@ -4,7 +4,6 @@
 #include <cstddef>
 
 #include "graphics/mesh/submesh/packedmesh.h"
-#include "graphics/shaders.h"
 #include "gothic.h"
 
 using namespace Tempest;
