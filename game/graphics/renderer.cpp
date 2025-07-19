@@ -434,14 +434,14 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldVi
     cmd.setBinding(8, *wview.sky().cloudsNight().lay[1], Sampler::trillinear());
     cmd.setPushData(&sz, sizeof(sz));
     cmd.setPipeline(shaders.skyTransmittance);
-    cmd.draw(Resources::fsqVbo());
+    cmd.draw(nullptr, 0, 3);
 
     sz = Vec2(float(sky.multiScatLut.w()), float(sky.multiScatLut.h()));
     cmd.setFramebuffer({{sky.multiScatLut, Tempest::Discard, Tempest::Preserve}});
     cmd.setBinding(0, sky.transLut, Sampler::bilinear(ClampMode::ClampToEdge));
     cmd.setPushData(&sz, sizeof(sz));
     cmd.setPipeline(shaders.skyMultiScattering);
-    cmd.draw(Resources::fsqVbo());
+    cmd.draw(nullptr, 0, 3);
     }
 
   auto sz = Vec2(float(sky.viewLut.w()), float(sky.viewLut.h()));
@@ -452,7 +452,7 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldVi
   cmd.setBinding(3, sky.cloudsLut,    Sampler::bilinear(ClampMode::ClampToEdge));
   cmd.setPushData(&sz, sizeof(sz));
   cmd.setPipeline(shaders.skyViewLut);
-  cmd.draw(Resources::fsqVbo());
+  cmd.draw(nullptr, 0, 3);
 
   sz = Vec2(float(sky.viewCldLut.w()), float(sky.viewCldLut.h()));
   cmd.setFramebuffer({{sky.viewCldLut, Tempest::Discard, Tempest::Preserve}});
@@ -464,7 +464,7 @@ void Renderer::prepareSky(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldVi
   cmd.setBinding(5, *wview.sky().cloudsNight().lay[1], Sampler::trillinear());
   cmd.setPushData(&sz, sizeof(sz));
   cmd.setPipeline(shaders.skyViewCldLut);
-  cmd.draw(Resources::fsqVbo());
+  cmd.draw(nullptr, 0, 3);
   }
 
 void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
@@ -649,6 +649,7 @@ void Renderer::drawTonemapping(Attachment& result, Encoder<CommandBuffer>& cmd, 
   cmd.setPushData(p);
   cmd.setPipeline(pso);
   cmd.draw(Resources::fsqVbo());
+  cmd.draw(nullptr, 0, 3);
   }
 
 void Renderer::drawCMAA2(Tempest::Attachment& result, Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
@@ -699,7 +700,7 @@ void Renderer::drawCMAA2(Tempest::Attachment& result, Tempest::Encoder<Tempest::
   cmd.setBinding(1, sceneLinear, Sampler::nearest());
   cmd.setPushData(&p, sizeof(p));
   cmd.setPipeline(psoTone);
-  cmd.draw(Resources::fsqVbo());
+  cmd.draw(nullptr, 0, 3);
 
   cmd.setBinding(0, sceneLinear);
   cmd.setBinding(1, cmaa2.workingEdges);
@@ -748,7 +749,7 @@ void Renderer::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const Worl
     case PathTrace:
       return;
     }
-  cmd.draw(Resources::fsqVbo());
+  cmd.draw(nullptr, 0, 3);
   }
 
 void Renderer::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
@@ -827,7 +828,7 @@ void Renderer::stashSceneAux(Encoder<CommandBuffer>& cmd) {
   cmd.setBinding(0, sceneLinear,Sampler::nearest());
   cmd.setBinding(1, zbuffer,    Sampler::nearest());
   cmd.setPipeline(shaders.stash);
-  cmd.draw(Resources::fsqVbo());
+  cmd.draw(nullptr, 0, 3);
   }
 
 void Renderer::drawVsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
@@ -847,7 +848,7 @@ void Renderer::drawVsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const W
   cmd.setBinding(8, wview.sceneGlobals().vsmDbg);
   cmd.setPushData(&settings.vsmMipBias, sizeof(settings.vsmMipBias));
   cmd.setPipeline(shaders.vsmDbg);
-  cmd.draw(Resources::fsqVbo());
+  cmd.draw(nullptr, 0, 3);
   }
 
 void Renderer::drawSwrDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
@@ -863,7 +864,7 @@ void Renderer::drawSwrDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const W
   cmd.setBinding(3, gbufNormal,  Sampler::nearest());
   cmd.setBinding(4, zbuffer,     Sampler::nearest());
   cmd.setPipeline(shaders.swRenderingDbg);
-  cmd.draw(Resources::fsqVbo());
+  cmd.draw(nullptr, 0, 3);
   }
 
 void Renderer::drawRtsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
@@ -881,7 +882,7 @@ void Renderer::drawRtsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
   cmd.setBinding(2, rtsm.pages);
 #endif
   cmd.setPipeline(shaders.rtsmDbg);
-  cmd.draw(Resources::fsqVbo());
+  cmd.draw(nullptr, 0, 3);
   }
 
 void Renderer::initGiData() {
@@ -1554,7 +1555,7 @@ void Renderer::drawReflections(Encoder<CommandBuffer>& cmd, const WorldView& wvi
   if(Gothic::options().doMeshShading) {
     cmd.dispatchMeshThreads(gbufDiffuse.size());
     } else {
-    cmd.draw(Resources::fsqVbo());
+    cmd.draw(nullptr, 0, 3);
     }
   }
 
@@ -1563,9 +1564,9 @@ void Renderer::drawUnderwater(Encoder<CommandBuffer>& cmd, const WorldView& wvie
   cmd.setBinding(1, zbuffer);
 
   cmd.setPipeline(shaders.underwaterT);
-  cmd.draw(Resources::fsqVbo());
+  cmd.draw(nullptr, 0, 3);
   cmd.setPipeline(shaders.underwaterS);
-  cmd.draw(Resources::fsqVbo());
+  cmd.draw(nullptr, 0, 3);
   }
 
 void Renderer::drawShadowMap(Encoder<CommandBuffer>& cmd, uint8_t fId, WorldView& view) {
@@ -1629,7 +1630,7 @@ void Renderer::drawShadowResolve(Encoder<CommandBuffer>& cmd, const WorldView& w
     cmd.setPushData(settings.vsmMipBias);
     cmd.setPipeline(*shadow.directLightPso);
     }
-  cmd.draw(Resources::fsqVbo());
+  cmd.draw(nullptr, 0, 3);
   }
 
 void Renderer::drawLights(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
@@ -1680,7 +1681,7 @@ void Renderer::drawSky(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
     cmd.setBinding(4, zbuffer, Sampler::nearest());
     cmd.setBinding(5, shadowMap[1], Resources::shadowSampler());
     cmd.setPipeline(shaders.skyPathTrace);
-    cmd.draw(Resources::fsqVbo());
+    cmd.draw(nullptr, 0, 3);
     return;
     }
 
@@ -1697,7 +1698,7 @@ void Renderer::drawSky(Encoder<CommandBuffer>& cmd, const WorldView& wview) {
   cmd.setBinding(8, *wview.sky().cloudsNight().lay[0], Sampler::trillinear());
   cmd.setBinding(9, *wview.sky().cloudsNight().lay[1], Sampler::trillinear());
   cmd.setPipeline(skyShader);
-  cmd.draw(Resources::fsqVbo());
+  cmd.draw(nullptr, 0, 3);
   }
 
 void Renderer::prepareSSAO(Encoder<CommandBuffer>& cmd, WorldView& wview) {
@@ -2036,7 +2037,7 @@ void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {
     cmd.setBinding(6, gi.hashTable);
     cmd.setBinding(7, gi.probes);
     cmd.setPipeline(shaders.probeAmbient);
-    cmd.draw(Resources::fsqVbo());
+    cmd.draw(nullptr, 0, 3);
     return;
     }
 
@@ -2051,7 +2052,7 @@ void Renderer::drawAmbient(Encoder<CommandBuffer>& cmd, const WorldView& view) {
     } else {
     cmd.setPipeline(shaders.ambientLight);
     }
-  cmd.draw(Resources::fsqVbo());
+  cmd.draw(nullptr, 0, 3);
   }
 
 Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
@@ -2082,7 +2083,7 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   enc.setFramebuffer({{normals,Tempest::Discard,Tempest::Preserve}});
   enc.setBinding(0, gbufNormal, Sampler::nearest());
   enc.setPipeline(shaders.copy);
-  enc.draw(Resources::fsqVbo());
+  enc.draw(nullptr, 0, 3);
   }
   device.submit(cmd,sync);
   sync.wait();
@@ -2092,7 +2093,7 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   enc.setFramebuffer({{d16,Tempest::Discard,Tempest::Preserve}});
   enc.setBinding(0,zbuffer,Sampler::nearest());
   enc.setPipeline(shaders.copy);
-  enc.draw(Resources::fsqVbo());
+  enc.draw(nullptr, 0, 3);
   }
   device.submit(cmd,sync);
   sync.wait();

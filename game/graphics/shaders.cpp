@@ -71,7 +71,7 @@ Shaders::Shaders() {
     state.setZTestMode    (RenderState::ZTestMode::Always);
     state.setZWriteEnabled(false);
 
-    auto sh      = GothicShader::get("copy.vert.sprv");
+    auto sh      = GothicShader::get("triangle.vert.sprv");
     auto vsLight = device.shader(sh.data,sh.len);
     sh           = GothicShader::get("sky_pathtrace.frag.sprv");
     auto fsLight = device.shader(sh.data,sh.len);
@@ -129,8 +129,8 @@ Shaders::Shaders() {
     }
   }
 
-  tonemapping        = postEffect("copy_uv", "tonemapping",    RenderState::ZTestMode::Always);
-  tonemappingUpscale = postEffect("copy_uv", "tonemapping_up", RenderState::ZTestMode::Always);
+  tonemapping        = postEffect("triangle_uv", "tonemapping",    RenderState::ZTestMode::Always);
+  tonemappingUpscale = postEffect("triangle_uv", "tonemapping_up", RenderState::ZTestMode::Always);
 
   cmaa2EdgeColor2x2Presets[uint32_t(AaPreset::OFF)]    = Tempest::ComputePipeline();
   cmaa2EdgeColor2x2Presets[uint32_t(AaPreset::MEDIUM)] = computeShader("cmaa2_edges_color2x2_quality_0.comp.sprv");
@@ -526,18 +526,17 @@ const RenderPipeline* Shaders::materialPipeline(const Material& mat, DrawCommand
   }
 
 RenderPipeline Shaders::postEffect(std::string_view name) {
-  return postEffect("copy",name);
+  return postEffect("triangle",name);
   }
 
 RenderPipeline Shaders::postEffect(std::string_view name, Tempest::RenderState::ZTestMode ztest) {
-  return postEffect("copy",name,ztest);
+  return postEffect("triangle",name,ztest);
   }
 
 RenderPipeline Shaders::postEffect(std::string_view vsName, std::string_view fsName, Tempest::RenderState::ZTestMode ztest) {
   auto& device = Resources::device();
 
   RenderState stateFsq;
-  stateFsq.setCullFaceMode (RenderState::CullMode::Front);
   stateFsq.setZTestMode    (ztest);
   stateFsq.setZWriteEnabled(false);
 
@@ -561,13 +560,12 @@ RenderPipeline Shaders::fogShader(std::string_view name) {
 
   RenderState state;
   state.setZWriteEnabled(false);
-  state.setCullFaceMode (RenderState::CullMode::Front);
   state.setBlendSource  (RenderState::BlendMode::One);
   if(!fogDbg) {
     state.setBlendDest(RenderState::BlendMode::OneMinusSrcAlpha);
     }
 
-  auto sh = GothicShader::get("copy.vert.sprv");
+  auto sh = GothicShader::get("triangle.vert.sprv");
   auto vs = device.shader(sh.data,sh.len);
 
   sh      = GothicShader::get(string_frm(name,".frag.sprv"));
@@ -580,7 +578,6 @@ RenderPipeline Shaders::inWaterShader(std::string_view name, bool isScattering) 
 
   RenderState state;
   state.setZWriteEnabled(false);
-  state.setCullFaceMode(RenderState::CullMode::Front);
 
   if(isScattering) {
     state.setBlendSource(RenderState::BlendMode::One);
@@ -590,7 +587,7 @@ RenderPipeline Shaders::inWaterShader(std::string_view name, bool isScattering) 
     state.setBlendDest  (RenderState::BlendMode::SrcColor);
     }
 
-  auto sh = GothicShader::get("copy.vert.sprv");
+  auto sh = GothicShader::get("triangle.vert.sprv");
   auto vs = device.shader(sh.data,sh.len);
 
   sh      = GothicShader::get(string_frm(name,".frag.sprv"));
@@ -602,13 +599,12 @@ RenderPipeline Shaders::reflectionShader(std::string_view name, bool hasMeshlets
   auto& device = Resources::device();
 
   RenderState state;
-  state.setCullFaceMode (RenderState::CullMode::Front);
   state.setZTestMode    (RenderState::ZTestMode::LEqual);
   state.setZWriteEnabled(false);
   state.setBlendSource  (RenderState::BlendMode::One);
   state.setBlendDest    (RenderState::BlendMode::One);
 
-  auto sh = GothicShader::get("copy.vert.sprv");
+  auto sh = GothicShader::get("triangle.vert.sprv");
   auto vs = device.shader(sh.data,sh.len);
   sh      = GothicShader::get(name);
   auto fs = device.shader(sh.data,sh.len);
@@ -625,13 +621,12 @@ RenderPipeline Shaders::ambientLightShader(std::string_view name) {
   auto& device = Resources::device();
 
   RenderState state;
-  state.setCullFaceMode (RenderState::CullMode::Front);
   state.setBlendSource  (RenderState::BlendMode::One);
   state.setBlendDest    (RenderState::BlendMode::SrcAlpha); // debug
   state.setZTestMode    (RenderState::ZTestMode::NoEqual);
   state.setZWriteEnabled(false);
 
-  auto sh = GothicShader::get("copy.vert.sprv");
+  auto sh = GothicShader::get("triangle.vert.sprv");
   auto vs = device.shader(sh.data,sh.len);
   sh      = GothicShader::get(string_frm(name,".frag.sprv"));
   auto fs = device.shader(sh.data,sh.len);

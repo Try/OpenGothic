@@ -252,8 +252,8 @@ add_shader(sun.vert                  sky/sun.vert)
 add_shader(sun.frag                  sky/sun.frag)
 
 # copy/edit
-add_shader(copy_uv.vert              copy.vert -DHAS_UV)
-add_shader(copy.vert                 copy.vert)
+add_shader(triangle.vert             triangle.vert)
+add_shader(triangle_uv.vert          triangle.vert -DHAS_UV)
 add_shader(copy.frag                 copy.frag)
 add_shader(copy.comp                 copy.comp)
 add_shader(copy_img.comp             copy_img.comp)
@@ -287,7 +287,7 @@ add_shader(probe_allocation.comp     lighting/rt/probe_allocation.comp -DALLOC)
 add_shader(probe_trace.comp          lighting/rt/probe_trace.comp      -DRAY_QUERY -DRAY_QUERY_AT)
 add_shader(probe_lighting.comp       lighting/rt/probe_lighting.comp)
 
-add_shader(probe_ambient.vert        copy.vert)
+add_shader(probe_ambient.vert        triangle.vert)
 add_shader(probe_ambient.frag        lighting/rt/probe_ambient.frag)
 
 # CMAA2

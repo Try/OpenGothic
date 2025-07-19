@@ -39,9 +39,9 @@ void main() {
     const vec2 at    = 2.0*(gl_GlobalInvocationID.xy/size) - vec2(1);
 
     gl_MeshVerticesEXT[0].gl_Position = vec4(vec2(      0,       0) + at, 0, 1);
-    gl_MeshVerticesEXT[1].gl_Position = vec4(vec2(      0, tsize.y) + at, 0, 1);
+    gl_MeshVerticesEXT[1].gl_Position = vec4(vec2(tsize.x,       0) + at, 0, 1);
     gl_MeshVerticesEXT[2].gl_Position = vec4(vec2(tsize.x, tsize.y) + at, 0, 1);
-    gl_MeshVerticesEXT[3].gl_Position = vec4(vec2(tsize.x,       0) + at, 0, 1);
+    gl_MeshVerticesEXT[3].gl_Position = vec4(vec2(      0, tsize.y) + at, 0, 1);
 
     gl_PrimitiveTriangleIndicesEXT[0] = uvec3(0,1,2);
     gl_PrimitiveTriangleIndicesEXT[1] = uvec3(0,2,3);
