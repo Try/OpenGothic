@@ -55,13 +55,6 @@ Resources::Resources(Tempest::Device &device)
   : dev(device) {
   inst=this;
 
-  static std::array<VertexFsq,6> fsqBuf =
-   {{
-      {-1,-1},{ 1,1},{1,-1},
-      {-1,-1},{-1,1},{1, 1}
-   }};
-  fsq = Resources::vbo(fsqBuf.data(),fsqBuf.size());
-
   static const uint16_t index[] = {
       0, 1, 2, 0, 2, 3,
       4, 6, 5, 4, 7, 6,
@@ -320,10 +313,6 @@ const Tempest::StorageImage& Resources::fallbackImage3d() {
 
 const zenkit::Vfs& Resources::vdfsIndex() {
   return inst->gothicAssets;
-  }
-
-const Tempest::VertexBuffer<Resources::VertexFsq> &Resources::fsqVbo() {
-  return inst->fsq;
   }
 
 const Tempest::IndexBuffer<uint16_t>& Resources::cubeIbo() {
