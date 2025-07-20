@@ -648,7 +648,6 @@ void Renderer::drawTonemapping(Attachment& result, Encoder<CommandBuffer>& cmd, 
   cmd.setBinding(1, sceneLinear, Sampler::nearest(ClampMode::ClampToEdge)); // Lanczos upscale requires nearest sampling
   cmd.setPushData(p);
   cmd.setPipeline(pso);
-  cmd.draw(Resources::fsqVbo());
   cmd.draw(nullptr, 0, 3);
   }
 
