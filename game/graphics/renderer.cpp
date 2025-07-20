@@ -357,6 +357,17 @@ void Renderer::updateCamera(const Camera& camera) {
   clipInfo.z  = zFar;
   }
 
+bool Renderer::requiresTlas() const {
+  if(!Gothic::options().doRayQuery)
+    return false;
+
+  if(settings.giEnabled)
+    return true;
+  if(!(settings.rtsmEnabled || settings.vsmEnabled))
+    return true;
+  return false;
+  }
+
 void Renderer::prepareUniforms() {
   auto wview = Gothic::inst().worldView();
   if(wview==nullptr)
@@ -536,7 +547,8 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
     return;
     }
 
-  wview->updateRtScene();
+  if(requiresTlas())
+    wview->updateRtScene();
   wview->updateLights();
 
   updateCamera(*camera);

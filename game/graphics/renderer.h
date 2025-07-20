@@ -43,6 +43,8 @@ class Renderer final {
     float         internalResolutionScale() const;
     void updateCamera(const Camera &camera);
 
+    bool requiresTlas() const;
+
     void prepareUniforms();
     void resetSkyFog();
 
