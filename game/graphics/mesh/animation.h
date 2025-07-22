@@ -8,6 +8,7 @@
 
 class Npc;
 class MdlVisual;
+class Interactive;
 class World;
 
 class Animation final {
@@ -88,7 +89,7 @@ class Animation final {
       bool                                   isAttackAnim() const;
       bool                                   isPrehit(uint64_t sTime, uint64_t now) const;
       void                                   processEvents(uint64_t barrier, uint64_t sTime, uint64_t now, EvCount& ev) const;
-      void                                   processSfx   (uint64_t barrier, uint64_t sTime, uint64_t now, Npc &npc) const;
+      void                                   processSfx   (uint64_t barrier, uint64_t sTime, uint64_t now, Npc* npc, Interactive* mob) const;
       void                                   processPfx   (uint64_t barrier, uint64_t sTime, uint64_t now, MdlVisual& visual, World& world) const;
 
       Tempest::Vec3                          speed(uint64_t at, uint64_t dt) const;

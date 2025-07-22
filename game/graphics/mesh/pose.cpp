@@ -465,7 +465,7 @@ const Animation::Sequence* Pose::solveNext(const AnimationSolver &solver, const 
   auto sq = lay.seq;
 
   if((lay.bs & BS_ITEMINTERACT)==BS_ITEMINTERACT && itemUseSt!=itemUseDestSt) {
-    int sA = itemUseSt, sB = itemUseSt, nextState = itemUseSt;
+    int sA = itemUseSt, sB = itemUseSt, nextState = 0;
     if(itemUseSt<itemUseDestSt) {
       sB++;
       nextState = itemUseSt+1;
@@ -556,7 +556,12 @@ bool Pose::hasLayerEvents(const Pose::Layer& l) {
 
 void Pose::processSfx(Npc &npc, uint64_t tickCount) {
   for(auto& i:lay)
-    i.seq->processSfx(lastUpdate,i.sAnim,tickCount,npc);
+    i.seq->processSfx(lastUpdate,i.sAnim,tickCount,&npc,nullptr);
+  }
+
+void Pose::processSfx(Interactive& mob, uint64_t tickCount) {
+  for(auto& i:lay)
+    i.seq->processSfx(lastUpdate,i.sAnim,tickCount,nullptr,&mob);
   }
 
 void Pose::processPfx(MdlVisual& visual, World& world, uint64_t tickCount) {

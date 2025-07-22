@@ -3,9 +3,11 @@
 #include <Tempest/Log>
 #include <cctype>
 
-#include "utils/string_frm.h"
 #include "world/objects/npc.h"
+#include "world/objects/interactive.h"
 #include "world/world.h"
+
+#include "utils/string_frm.h"
 #include "resources.h"
 
 using namespace Tempest;
@@ -331,7 +333,7 @@ bool Animation::Sequence::extractFrames(uint64_t& frameA,uint64_t& frameB,bool& 
   return true;
   }
 
-void Animation::Sequence::processSfx(uint64_t barrier, uint64_t sTime, uint64_t now, Npc& npc) const {
+void Animation::Sequence::processSfx(uint64_t barrier, uint64_t sTime, uint64_t now, Npc* npc, Interactive* mob) const {
   uint64_t frameA=0,frameB=0;
   bool     invert=false;
   if(!extractFrames(frameA,frameB,invert,barrier,sTime,now))
@@ -340,15 +342,18 @@ void Animation::Sequence::processSfx(uint64_t barrier, uint64_t sTime, uint64_t 
   auto& d = *data;
   for(auto& i:d.sfx) {
     uint64_t fr = frameClamp(i.frame,d.firstFrame,d.numFrames,d.lastFrame);
-    if(((frameA<=fr && fr<frameB) ^ invert) ||
-       i.frame==int32_t(d.lastFrame))
-      npc.emitSoundEffect(i.name,i.range,i.empty_slot);
+    if(((frameA<=fr && fr<frameB) ^ invert) || i.frame==int32_t(d.lastFrame)) {
+      if(npc!=nullptr)
+        npc->emitSoundEffect(i.name,i.range,i.empty_slot);
+      if(mob!=nullptr)
+        mob->emitSoundEffect(i.name,i.range,i.empty_slot);
+      }
     }
-  if(!npc.isInAir()) {
+  if(npc!=nullptr && !npc->isInAir()) {
     for(auto& i:d.gfx){
       uint64_t fr = frameClamp(i.frame,d.firstFrame,d.numFrames,d.lastFrame);
       if((frameA<=fr && fr<frameB) ^ invert)
-        npc.emitSoundGround(i.name, i.range, i.empty_slot);
+        npc->emitSoundGround(i.name, i.range, i.empty_slot);
       }
     }
   }

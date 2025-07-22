@@ -4453,7 +4453,7 @@ void Npc::updateAnimation(uint64_t dt) {
     durtyTranform = 0;
     }
 
-  bool syncAtt = visual.updateAnimation(this,owner,dt);
+  bool syncAtt = visual.updateAnimation(this,nullptr,owner,dt);
   if(syncAtt)
     visual.syncAttaches();
   }

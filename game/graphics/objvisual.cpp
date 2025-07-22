@@ -7,7 +7,6 @@
 #include "graphics/mesh/pose.h"
 #include "graphics/mesh/skeleton.h"
 #include "utils/fileext.h"
-#include "gothic.h"
 
 ObjVisual::ObjVisual() {
   }
@@ -267,9 +266,9 @@ bool ObjVisual::isAnimExist(std::string_view name) const {
   return false;
   }
 
-bool ObjVisual::updateAnimation(Npc* npc, World& world, uint64_t dt) {
+bool ObjVisual::updateAnimation(Npc* npc, Interactive* mobsi, World& world, uint64_t dt) {
   if(type==M_Mdl) {
-    bool ret = mdl.view.updateAnimation(npc,world,dt);
+    bool ret = mdl.view.updateAnimation(npc,mobsi,world,dt);
     if(ret)
       mdl.view.syncAttaches();
     return ret;

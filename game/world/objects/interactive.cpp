@@ -204,7 +204,7 @@ void Interactive::setVisual(const zenkit::VirtualObject& vob) {
   }
 
 void Interactive::updateAnimation(uint64_t dt) {
-  if(visual.updateAnimation(nullptr,world,dt))
+  if(visual.updateAnimation(nullptr,this,world,dt))
     animChanged = true;
   }
 
@@ -465,6 +465,11 @@ void Interactive::emitTriggerEvent(TriggerEvent::Type type) const {
     return;
   const TriggerEvent evt(triggerTarget,vobName,type);
   world.triggerEvent(evt);
+  }
+
+void Interactive::emitSoundEffect(std::string_view sound, float range, bool freeSlot) {
+  auto sfx = ::Sound(world,::Sound::T_Regular,sound,position(),range,freeSlot);
+  sfx.play();
   }
 
 std::string_view Interactive::schemeName() const {
