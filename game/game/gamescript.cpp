@@ -1908,7 +1908,7 @@ void GameScript::mdl_setmodelscale(std::shared_ptr<zenkit::INpc> npcRef, float x
 
 void GameScript::mdl_startfaceani(std::shared_ptr<zenkit::INpc> npcRef, std::string_view ani, float intensity, float time) {
   if(npcRef!=nullptr)
-    findNpc(npcRef.get())->startFaceAnim(ani, intensity, uint64_t(time * 36.9f)); //1000.f to 333.f (for better lip sync)
+    findNpc(npcRef.get())->startFaceAnim(ani, intensity, uint64_t(time * 333.f)); //1000.f to 333.f (for better lip sync)
   }
 
 void GameScript::mdl_applyrandomani(std::shared_ptr<zenkit::INpc> npcRef, std::string_view s1, std::string_view s0) {
