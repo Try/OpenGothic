@@ -1031,12 +1031,8 @@ void PlayerControl::quitPicklock(Npc& pl) {
   }
 
 void PlayerControl::assignRunAngle(Npc& pl, float rotation, uint64_t dt) {
-  //Only assign run angle if player is running (to prevent weird angles when stationary)
+  //Assign again and return before setting assignRunAngle At line 661 it doesn't override, hence line 661 is useless.
   if(pl.isInState(ScriptFn()) && pl.isAttackAnim() && !pl.isFinishingMove()) {
-    runAngleDest = 0;
-    return;
-  }
-  if (pl.animMoveSpeed(0).x < 0 || pl.animMoveSpeed(0).z < 0) {
     runAngleDest = 0;
     return;
   }
