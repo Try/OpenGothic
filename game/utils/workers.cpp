@@ -1,8 +1,3 @@
-// Required by pthread_setname_np()
-#if defined(__GNUC__) && !defined(_GNU_SOURCE)
-#define _GNU_SOURCE
-#endif
-
 #include "workers.h"
 #include "utils/string_frm.h"
 
@@ -15,6 +10,11 @@
 #endif
 
 #if defined(__GNUC__)
+// Required by pthread_setname_np()
+#if !defined(_GNU_SOURCE)
+#define _GNU_SOURCE
+#endif
+
 #include <pthread.h>
 #endif
 
