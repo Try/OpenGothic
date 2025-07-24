@@ -572,17 +572,19 @@ bool PlayerControl::tickMove(uint64_t dt) {
     const float speed = 35.f;
     if(runAngle<runAngleDest) {
       runAngle+=speed*dtF;
-      if(runAngle>runAngleDest)
+      if(runAngle>runAngleDest) {
         runAngle = runAngleDest;
-      pl->setRunAngle(runAngle);
       }
+      pl->setRunAngle(runAngle);
+    }
     else if(runAngle>runAngleDest) {
       runAngle-=speed*dtF;
-      if(runAngle<runAngleDest)
+      if(runAngle<runAngleDest) {
         runAngle = runAngleDest;
-      pl->setRunAngle(runAngle);
       }
+      pl->setRunAngle(runAngle);
     }
+  }
 
   rotMouseY = 0;
   return true;
