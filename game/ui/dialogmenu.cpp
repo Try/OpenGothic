@@ -379,12 +379,14 @@ void DialogMenu::startTrade() {
 
 void DialogMenu::skipPhrase() {
   if(current.time>0) {
-    if(pl!=nullptr)
-      pl->setAiOutputBarrier(0,false);
+    if (pl != nullptr) {
+      pl->setAiOutputBarrier(0, false);
       pl->stopDlgAnim(); //skip pl-dialog phrase
-    if(other!=nullptr)
-      other->setAiOutputBarrier(0,false);
-      other->stopDlgAnim(); //skip npc-dialog phrase
+    }
+    if (other != nullptr) {
+      other->setAiOutputBarrier(0, false);
+      other->stopDlgAnim(); //skip other-dialog phrase
+    }
     currentSnd   = SoundEffect();
     current.time = 1;
     }
