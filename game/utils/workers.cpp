@@ -63,6 +63,10 @@ void Workers::setThreadName(const char* threadName) {
 void Workers::setThreadName(const char* threadName){
   pthread_setname_np(pthread_self(), threadName);
   }
+#elif defined(__OSX__)
+void Workers::setThreadName(const char* threadName){
+  pthread_setname_np(threadName);
+  }
 #else
 void Workers::setThreadName(const char* threadName) { (void)threadName; }
 #endif
