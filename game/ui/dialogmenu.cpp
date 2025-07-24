@@ -381,7 +381,7 @@ void DialogMenu::skipPhrase() {
   if(current.time>0) {
     if(pl!=nullptr)
       pl->setAiOutputBarrier(0,false);
-	  pl->stopDlgAnim(); //skip pl-dialog phrase
+      pl->stopDlgAnim(); //skip pl-dialog phrase
     if(other!=nullptr)
       other->setAiOutputBarrier(0,false);
       other->stopDlgAnim(); //skip npc-dialog phrase
