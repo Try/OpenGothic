@@ -1031,7 +1031,7 @@ void PlayerControl::quitPicklock(Npc& pl) {
   }
 
 void PlayerControl::assignRunAngle(Npc& pl, float rotation, uint64_t dt) {
-  //Only assign run angle if player is running (to prevent weird angles when stationary)
+  //Only assign run angle if player is running. (to prevent weird angles when stationary)
   if(pl.isInState(ScriptFn()) && pl.isAttackAnim() && !pl.isFinishingMove()) {
     runAngleDest = 0;
     return;
