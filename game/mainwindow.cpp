@@ -790,7 +790,8 @@ void MainWindow::onMarvinKey() {
     case Event::K_F6:
       if(Gothic::inst().isMarvinEnabled() && !dialogs.isActive()) {
         auto camera = Gothic::inst().camera();
-        auto inter  = Gothic::inst().player()->interactive();
+        auto pl     = Gothic::inst().player();
+        auto inter  = pl!=nullptr ? pl->interactive() : nullptr;
         if(camera!=nullptr && inter==nullptr)
           camera->setMarvinMode(Camera::M_Free);
         }
