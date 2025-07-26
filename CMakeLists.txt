@@ -32,6 +32,10 @@ if(NOT MSVC)
     # -rdynamic is needed to allow obtaining meaningful backtraces
     target_link_options(${PROJECT_NAME} PRIVATE -rdynamic)
   endif()
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU") # gcc
+    # required by pthread_setname_np()
+    add_definitions(-D_GNU_SOURCE)
+  endif()
 endif()
 
 if(WIN32)
