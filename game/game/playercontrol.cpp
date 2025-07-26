@@ -1031,6 +1031,12 @@ void PlayerControl::quitPicklock(Npc& pl) {
   }
 
 void PlayerControl::assignRunAngle(Npc& pl, float rotation, uint64_t dt) {
+  //Assign again and return before setting assignRunAngle At line 661 it doesn't override, hence line 661 is useless.
+  if(pl.isInState(ScriptFn()) && pl.isAttackAnim() && !pl.isFinishingMove()) {
+    runAngleDest = 0;
+    return;
+  }
+  
   float dtF    = (float(dt)/1000.f);
   float angle  = pl.rotation();
   float dangle = (rotation-angle)/dtF;
