@@ -2973,15 +2973,13 @@ const Npc::Routine& Npc::currentRoutine() const {
   auto time = owner.time();
   time = gtime(int32_t(time.hour()),int32_t(time.minute()));
   for(auto& i:routines) {
-    if(i.point==nullptr)
-      continue;
     if(i.end<i.start && (time<i.end || i.start<=time))
       return i;
     if(i.start<=time && time<i.end)
       return i;
     }
 
-  // take previous routine
+  // take a previous routine if none was found for current time
   const auto     day   = gtime(24,0).toInt();
   const Routine* prevR = nullptr;
   int64_t        delta = std::numeric_limits<int64_t>::max();
@@ -2990,7 +2988,7 @@ const Npc::Routine& Npc::currentRoutine() const {
     int64_t d = time.toInt() - i.end.toInt();
     if(d<0)
       d += day;
-    if(i.point && d<=delta && d>0) {
+    if(d<=delta && d>0) {
       prevR = &i;
       delta = d;
       }

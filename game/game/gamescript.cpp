@@ -3226,7 +3226,7 @@ int GameScript::mob_hasitems(std::string_view tag, int item) {
 
 void GameScript::ta_min(std::shared_ptr<zenkit::INpc> npcRef, int start_h, int start_m, int stop_h, int stop_m, int action, std::string_view waypoint) {
   auto npc = findNpc(npcRef);
-  auto at  = world().findPoint(waypoint);
+  auto at  = world().findPoint(waypoint,false);
 
   if(npc!=nullptr)
     npc->addRoutine(gtime(start_h,start_m),gtime(stop_h,stop_m),uint32_t(action),at);
