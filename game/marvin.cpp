@@ -610,7 +610,7 @@ std::string_view Marvin::completeInstanceName(std::string_view inp, bool& fullwo
       }
     if(name.size()>match.size())
       name = name.substr(0,match.size());
-    for(size_t i=0; i<match.size(); ++i) {
+    for(size_t i=0; i<name.size(); ++i) {
       int n = std::tolower(name [i]);
       int m = std::tolower(match[i]);
       if(m!=n) {
