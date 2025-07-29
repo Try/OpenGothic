@@ -5,7 +5,6 @@
 #include <limits>
 
 #include "utils/dbgpainter.h"
-#include "utils/versioninfo.h"
 #include "world/objects/interactive.h"
 #include "world.h"
 
@@ -13,12 +12,6 @@ using namespace Tempest;
 
 WayMatrix::WayMatrix(World &world, const zenkit::WayNet& dat)
   :world(world) {
-  // scripting doc says 20m, but number seems to be incorrect
-  if(world.version().game==2) {
-    // Vatras requires at least 8 meters
-    // Abuyin requires less than 10 meters
-    distanceThreshold = 9.f*100.f;
-    }
 
   wayPoints.resize(dat.waypoints.size());
   for(size_t i=0;i<wayPoints.size();++i){
@@ -91,7 +84,7 @@ const WayPoint *WayMatrix::findNextPoint(const Vec3& at) const {
     auto  dp = w.position()-at;
     float l  = dp.quadLength();
 
-    if(l<dist && dp.z*dp.z<300*300 && !w.isLocked()){
+    if(l<dist && !w.isLocked()) {
       ret  = &w;
       dist = l;
       }
@@ -272,7 +265,7 @@ const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const FpInde
     float dy = w.y-y;
     float dz = w.z-z;
     float l  = dx*dx+dy*dy+dz*dz;
-    if(l>dist || dz*dz>300*300)
+    if(l>dist)
       continue;
     if(!filter(w))
       continue;
