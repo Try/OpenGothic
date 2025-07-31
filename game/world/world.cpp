@@ -876,6 +876,16 @@ const WayPoint* World::findWayPoint(const Tempest::Vec3& pos, const std::functio
   return wmatrix->findWayPoint(pos,f);
   }
 
+const WayPoint* World::findWayPoint(const Tempest::Vec3& pos, std::string_view name) const {
+  return wmatrix->findWayPoint(pos,[name](const WayPoint& wp) -> bool {
+    if(wp.isLocked())
+      return false;
+    if(!wp.checkName(name))
+      return false;
+    return true;
+    });
+  }
+
 const WayPoint *World::findFreePoint(const Npc &npc, std::string_view name) const {
   if(auto p = npc.currentWayPoint()){
     if(p->isFreePoint() && p->checkName(name)) {

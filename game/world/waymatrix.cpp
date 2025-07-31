@@ -133,7 +133,7 @@ const WayPoint* WayMatrix::findPoint(std::string_view name, bool inexact) const 
       return &sp;
     }
   auto it = std::lower_bound(indexPoints.begin(),indexPoints.end(),name,[](const WayPoint* a, std::string_view b){
-      return a->name<b;
+    return a->name<b;
     });
   if(it!=indexPoints.end() && name==(*it)->name)
     return *it;
@@ -150,7 +150,7 @@ void WayMatrix::marchPoints(DbgPainter &p) const {
   if(!ddraw)
     return;
   static bool fp = true;
-  static bool sp = true;
+  static bool sp = false;
   auto *ppoints = &wayPoints;
   if (fp)
     ppoints = &freePoints;
