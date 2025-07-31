@@ -284,6 +284,11 @@ void Interactive::implTick(Pos& p) {
   if(p.user==nullptr)
     return;
 
+  static bool dbg = false;
+  static int  kId = -1;
+  if(dbg && !p.user->isPlayer() && p.user->handle().id!=kId)
+    return;
+
   Npc&       npc    = *p.user;
   const bool attach = (p.attachMode^reverseState);
 
