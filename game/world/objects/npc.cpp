@@ -2320,9 +2320,9 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
       break;
     case AI_StartState:
-      // only daily routine states have a scheduled end time
-      // assigning finite end-time to ZS_TALK/ZS_ATTACK can cause bugs, when dialog or combat is interrupted by time-table routine
-      if(startState(act.func,act.s0,gtime::endOfTime(),act.i0==0)) {
+      // NOTE: a new state can be stater within a daly routiine, such as TA_Sleep, with: ZS_GotoBed -> ZS_Sleep.
+      // In such cases it's important to preserve aiState.eTime.
+      if(startState(act.func,act.s0,aiState.eTime,act.i0==0)) {
         setOther(act.target);
         setVictim(act.victim);
         }
@@ -2776,8 +2776,11 @@ void Npc::tickRoutine() {
         loop = owner.version().hasZSStateLoop() ? 1 : 0;
         }
 
-      if(aiState.eTime<=owner.time())
-        loop = LOOP_END;
+      if(aiState.eTime<=owner.time()) {
+        // Avoid interruption of ZS_TALK/ZS_ATTACK
+        if(currentTarget==nullptr && outputPipe->isFinished())
+          loop = LOOP_END;
+        }
 
       if(loop!=LOOP_CONTINUE) {
         clearState(false);

@@ -36,7 +36,11 @@ class WayMatrix final {
 
   private:
     World&                 world;
-    float                  distanceThreshold = 20.f*100.f;
+    // scripting doc says 20m, but number seems to be incorrect
+    // Vatras requires at least 8 meters
+    // Abuyin requires less than 10 meters
+    // Gothic 1 range is identical
+    float                  distanceThreshold = 900.f;
 
     std::vector<zenkit::WayEdge> edges;
 
