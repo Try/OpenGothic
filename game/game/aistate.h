@@ -1,19 +1,19 @@
 #pragma once
 
 #include <cstdlib>
-#include <string>
 
 class GameScript;
 
 class AiState final {
   public:
-    AiState(GameScript &owner, size_t id);
+    AiState(GameScript &owner, size_t id, bool g2);
 
-    size_t funcIni =0;
-    size_t funcLoop=0;
-    size_t funcEnd =0;
+    size_t funcIni       = 0;
+    size_t funcLoop      = 0;
+    size_t funcEnd       = 0;
+    bool   playerEnabled = false;
 
     const char* name() const { return mname; }
   private:
-    const char* mname=""; //for debugging
+    const char* mname = ""; //for debugging
   };

@@ -2719,6 +2719,11 @@ bool Npc::startState(ScriptFn id, std::string_view wp, gtime endTime, bool noFin
     }
 
   auto& st = owner.script().aiState(id);
+  // allowed player states are hard-coded
+  // https://forum.worldofplayers.de/forum/threads/1533803-G1-AI_StartState-hardcoded-ZS-states-for-Player?p=26034737&viewfull=1#post26034737
+  if(isPlayer() && !st.playerEnabled)
+    return false;
+
   aiState.started      = false;
   aiState.funcIni      = st.funcIni;
   aiState.funcLoop     = st.funcLoop;
