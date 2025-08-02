@@ -3,7 +3,6 @@
 #include <Tempest/Application>
 
 #include "graphics/mesh/submesh/packedmesh.h"
-#include "world/objects/npc.h"
 #include "world/world.h"
 #include "gothic.h"
 

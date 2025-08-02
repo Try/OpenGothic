@@ -27,10 +27,18 @@ zenkit::IFightAi FightAi::loadAi(zenkit::DaedalusVm& vm, std::string_view name) 
   auto id = vm.find_symbol_by_name(name);
   if(id==nullptr)
     return {};
+  auto* move = vm.find_symbol_by_name("C_FIGHTAI.MOVE");
+  if(move==nullptr)
+    return {};
 
   try {
-    auto fai = vm.init_instance<zenkit::IFightAi>(id);
-    return *fai;
+    auto fai = vm.init_opaque_instance(id);
+    zenkit::IFightAi ret = {};
+    // Note: any excessive move will be discarded
+    for(size_t i=0; i<zenkit::IFightAi::move_count && i<move->count(); ++i) {
+      ret.move[i] = zenkit::FightAiMove(move->get_int(uint16_t(i), fai.get()));
+      }
+    return ret;
     }
   catch(const zenkit::DaedalusScriptError&) {
     // There was an error during initialization. Ignore it.

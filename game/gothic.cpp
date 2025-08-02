@@ -674,7 +674,7 @@ std::string_view Gothic::defaultOutputUnits() const {
 
 std::unique_ptr<zenkit::DaedalusVm> Gothic::createPhoenixVm(std::string_view datFile, const ScriptLang lang) {
   auto sc = loadScript(datFile, lang);
-  zenkit::register_all_script_classes(sc);
+  setupCommonScriptClasses(sc);
 
   auto vm = std::make_unique<zenkit::DaedalusVm>(std::move(sc), zenkit::DaedalusVmExecutionFlag::ALLOW_NULL_INSTANCE_ACCESS);
   setupVmCommonApi(*vm);
@@ -720,6 +720,43 @@ zenkit::DaedalusScript Gothic::loadScript(std::string_view datFile, const Script
   zenkit::DaedalusScript script;
   script.load(buf.get());
   return script;
+  }
+
+void Gothic::setupCommonScriptClasses(zenkit::DaedalusScript& sc) {
+  // Use customized setup, instead of zenkit::register_all_script_classes
+  auto registerIfExists = [&](std::string_view sym, auto d) {
+    if(sc.find_symbol_by_name(sym) != nullptr) {
+      d(sc);
+      }
+    };
+
+  auto registerOpaque = [&](std::string_view sym){
+    if(auto ptr = sc.find_symbol_by_name(sym)) {
+      sc.register_as_opaque(ptr);
+      }
+    };
+
+  registerIfExists("C_GILVALUES",    zenkit::IGuildValues::register_);
+  registerIfExists("C_NPC",          zenkit::INpc::register_);
+  registerIfExists("C_MISSION",      zenkit::IMission::register_);
+  registerIfExists("C_ITEM",         zenkit::IItem::register_);
+  registerIfExists("C_FOCUS",        zenkit::IFocus::register_);
+  registerIfExists("C_INFO",         zenkit::IInfo::register_);
+  registerIfExists("C_ITEMREACT",    zenkit::IItemReact::register_);
+  registerIfExists("C_SPELL",        zenkit::ISpell::register_);
+  registerOpaque  ("C_SVM"); // structure is very customizable, so better to use type-less mapping
+  registerIfExists("C_MENU",         zenkit::IMenu::register_);
+  registerIfExists("C_MENU_ITEM",    zenkit::IMenuItem::register_);
+  registerIfExists("CCAMSYS",        zenkit::ICamera::register_);
+  registerIfExists("C_MUSICSYS_CFG", zenkit::IMusicSystem::register_);
+  registerIfExists("C_MUSICTHEME",   zenkit::IMusicTheme::register_);
+  registerIfExists("C_MUSICJINGLE",  zenkit::IMusicJingle::register_);
+  registerIfExists("C_PARTICLEFX",   zenkit::IParticleEffect::register_);
+  registerIfExists("CFX_BASE",       zenkit::IEffectBase::register_);
+  registerIfExists("C_PARTICLEFXEMITKEY", zenkit::IParticleEffectEmitKey::register_);
+  registerOpaque  ("C_FIGHTAI"); // many mods get it wrong/corrupted. Opaque binding is one is a way to get around it
+  registerIfExists("C_SFX",          zenkit::ISoundEffect::register_);
+  registerIfExists("C_SNDSYS_CFG",   zenkit::ISoundSystem::register_);
   }
 
 bool Gothic::settingsHasSection(std::string_view sec) {
@@ -880,7 +917,9 @@ std::u16string Gothic::nestedPath(const std::initializer_list<const char16_t*> &
 void Gothic::setupVmCommonApi(zenkit::DaedalusVm& vm) {
   vm.register_default_external([](std::string_view name) { notImplementedRoutine(std::string {name}); });
 
-  if (auto sym = vm.find_symbol_by_name("C_SVM"))
+  if(auto sym = vm.find_symbol_by_name("C_SVM"))
+    vm.register_as_opaque(sym);
+  if(auto sym = vm.find_symbol_by_name("C_FIGHTAI"))
     vm.register_as_opaque(sym);
 
   vm.register_external("concatstrings", [](std::string_view a, std::string_view b) { return Gothic::concatstrings(a, b);});
