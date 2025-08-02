@@ -432,6 +432,9 @@ PackedMesh::PackedMesh(const zenkit::SoftSkinMesh& skinned) {
   auto& stream = skinned.weights;
   for(size_t i=0; i<vertices.size(); ++i) {
     auto& vert = vertices[i];
+    if(stream.size()<=i) {
+      continue;
+      }
     for(size_t j=0; j<stream[i].size(); j++) {
       auto& weight = stream[i][j];
       vert.boneIndices[j]    = weight.node_index;

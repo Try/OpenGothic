@@ -258,7 +258,10 @@ ProtoMesh::ProtoMesh(const zenkit::ModelMesh& library, std::unique_ptr<Skeleton>
     }
   submeshId.resize(subCount);
 
-  for(const auto &i : library.meshes){
+  for(const auto &i : library.meshes) {
+    if(i.weights.size()<=i.mesh.positions.size()){
+      Log::e("Vertex stream for skin-mesh \"", fname, "\" is too small");
+      }
     PackedMesh pkg(i);
     skined.emplace_back(pkg);
     }
