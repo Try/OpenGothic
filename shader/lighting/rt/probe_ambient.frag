@@ -47,7 +47,7 @@ int probeGridComputeLod() {
 
   // must be exactly same as in allocation !
   const float z = texelFetch(depth,fragCoord,0).x;
-  return probeGridComputeLod(fragCoord, screenSize, z, scene.viewProjectInv);
+  return probeGridComputeLod(fragCoord, screenSize, z, scene.viewProjectInv, scene.probeGridBias);
   }
 
 float texLinearDepth(vec2 uv) {

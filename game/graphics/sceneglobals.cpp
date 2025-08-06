@@ -225,6 +225,8 @@ void SceneGlobals::setResolution(uint32_t w, uint32_t h) {
 
     uboGlobalCpu.hiZTileSize = Tempest::Point(int(hw)/hiZ->w(),int(hh)/hiZ->h());
     }
+
+  uboGlobalCpu.probeGridBias = 4 + std::max(std::log2(float(w*h)/float(1920*1080)), 0.f);
   }
 
 void SceneGlobals::setHiZ(const Tempest::Texture2d& t) {

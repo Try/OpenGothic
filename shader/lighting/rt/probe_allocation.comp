@@ -37,7 +37,7 @@ vec3 unprojectDepth(const float z) {
 
 int probeGridComputeLod() {
   const float z = texelFetch(depth,fragCoord,0).x;
-  return probeGridComputeLod(fragCoord, screenSize, z, scene.viewProjectInv);
+  return probeGridComputeLod(fragCoord, screenSize, z, scene.viewProjectInv, scene.probeGridBias);
   }
 
 uint allocProbe() {

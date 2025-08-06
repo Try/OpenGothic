@@ -68,7 +68,7 @@ vec3 probeReadAmbient(in sampler2D irradiance, uint id, vec3 nx, vec3 probeNorm)
   return ret;
   }
 
-int probeGridComputeLod(ivec2 fragCoord, ivec2 screenSize, float z, mat4 viewProjectInv) {
+int probeGridComputeLod(ivec2 fragCoord, ivec2 screenSize, float z, mat4 viewProjectInv, float bias) {
   const vec2  inPosL = vec2(2*(fragCoord+ivec2(-1,0))+ivec2(1,1))/vec2(screenSize) - vec2(1,1);
   const vec2  inPosR = vec2(2*(fragCoord+ivec2(+1,0))+ivec2(1,1))/vec2(screenSize) - vec2(1,1);
 
@@ -77,7 +77,7 @@ int probeGridComputeLod(ivec2 fragCoord, ivec2 screenSize, float z, mat4 viewPro
 
   const float dp     = distance(posL.xyz/posL.w, posR.xyz/posR.w)/probeGridStep;
 
-  const int ilog     = max(0, 3+int(log2(dp)));
+  const int ilog     = max(0, int(bias + log2(dp)));
   return int(ilog);
   }
 

@@ -37,6 +37,7 @@ struct SceneDesc {
   ivec2 hiZTileSize;
   ivec2 screenRes;
   vec4  cloudsDir;
+  float probeGridBias;
   };
 
 struct LightSource {

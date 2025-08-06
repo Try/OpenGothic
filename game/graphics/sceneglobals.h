@@ -110,12 +110,14 @@ class SceneGlobals final {
       Tempest::Vec3                   pfxLeft  = {};
       uint32_t                        underWater = 0;
       Tempest::Vec3                   pfxTop   = {};
-      float                           padd2 = 0;
+      float                           luminanceMed = 0;
       Tempest::Vec3                   pfxDepth = {};
       float                           plPosY = {};
       Tempest::Point                  hiZTileSize = {};
       Tempest::Point                  screenRes = {};
       Tempest::Vec2                   cloudsDir[2] = {};
+
+      float                           probeGridBias = 3;
       };
 
     Tempest::UniformBuffer<UboGlobal> uboGlobalPf[Resources::MaxFramesInFlight][V_Count];
