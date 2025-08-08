@@ -2965,15 +2965,9 @@ void GameScript::ai_outputsvm_overlay(std::shared_ptr<zenkit::INpc> selfRef, std
 void GameScript::ai_startstate(std::shared_ptr<zenkit::INpc> selfRef, int func, int state, std::string_view wp) {
   auto self = findNpc(selfRef);
   if(self!=nullptr && func>0) {
-    Npc* oth = findNpc(vm.global_other());
-    Npc* vic = findNpc(vm.global_victim());
-    if(!self->isInState(ScriptFn()) && self->isPlayer()) {
-      // avoid issue with B_StopMagicFreeze
-      self->aiPush(AiQueue::aiStandup());
-      return;
-      }
-
-    auto& st = aiState(size_t(func));
+    Npc*  oth = findNpc(vm.global_other());
+    Npc*  vic = findNpc(vm.global_victim());
+    auto& st  = aiState(size_t(func));
     self->aiPush(AiQueue::aiStartState(st.funcIni,state,oth,vic,wp));
     }
   }

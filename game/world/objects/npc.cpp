@@ -2719,6 +2719,11 @@ bool Npc::startState(ScriptFn id, std::string_view wp, gtime endTime, bool noFin
     }
 
   auto& st = owner.script().aiState(id);
+  // allowed player states are hard-coded
+  // https://forum.worldofplayers.de/forum/threads/1533803-G1-AI_StartState-hardcoded-ZS-states-for-Player?p=26034737&viewfull=1#post26034737
+  if(isPlayer() && !isPlayerEnabledState(st))
+    return false;
+
   aiState.started      = false;
   aiState.funcIni      = st.funcIni;
   aiState.funcLoop     = st.funcLoop;
@@ -2741,6 +2746,21 @@ void Npc::clearState(bool noFinalize) {
     visual.stopItemStateAnim(*this);
     }
   aiState = AiState();
+  }
+
+bool Npc::isPlayerEnabledState(const ::AiState& st) const {
+  static std::array playerEnabledStates = {
+    "ZS_DEAD",   "ZS_UNCONSCIOUS", "ZS_MAGICFREEZE",
+    "ZS_PYRO",   "ZS_ASSESSMAGIC", "ZS_ASSESSSTOPMAGIC",
+    "ZS_ZAPPED", "ZS_SHORTZAPPED", "ZS_MAGICSLEEP",
+    owner.version().game==2 ? "ZS_WHIRLWIND" :
+                              "ZS_MAGICFEAR"
+    };
+
+  for(auto* pState:playerEnabledStates)
+    if(std::strcmp(pState,st.name())==0)
+      return true;
+  return false;
   }
 
 void Npc::tickRoutine() {
