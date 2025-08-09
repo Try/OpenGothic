@@ -5,13 +5,15 @@
 #include <Tempest/UniformBuffer>
 
 #include "graphics/visualobjects.h"
-#include "graphics/meshobjects.h"
+#include "graphics/mesh/submesh/staticmesh.h"
 
 class PackedMesh;
 
 class Landscape final {
   public:
     Landscape(VisualObjects& visual, const PackedMesh& wmesh);
+
+    const Tempest::StorageBuffer& bvh() const { return bvhNodes; }
 
   private:
     using Item = VisualObjects::Item;
@@ -23,4 +25,5 @@ class Landscape final {
     std::vector<Block>     blocks;
     StaticMesh             mesh;
     Tempest::StorageBuffer meshletDesc;
+    Tempest::StorageBuffer bvhNodes;
   };

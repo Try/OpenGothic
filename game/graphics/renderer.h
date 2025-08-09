@@ -78,6 +78,8 @@ class Renderer final {
     void drawSunMoon      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawSunMoon      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview, bool isSun);
 
+    void drawSwRT         (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
+
     void stashSceneAux    (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 
     void drawProbesDbg    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
@@ -97,6 +99,7 @@ class Renderer final {
       bool           vsmEnabled         = false;
       bool           rtsmEnabled        = false;
       bool           swrEnabled         = false;
+      bool           swrtEnabled        = false;
 
       bool           zEnvMappingEnabled = false;
       bool           zCloudShadowScale  = false;
@@ -234,6 +237,10 @@ class Renderer final {
 
       Tempest::StorageImage     dbg64, dbg, dbg16, dbg8;
       } rtsm;
+
+    struct {
+      Tempest::StorageImage     outputImage;
+      } swrt;
 
     Tempest::TextureFormat    shadowFormat  = Tempest::TextureFormat::Depth16;
     Tempest::TextureFormat    zBufferFormat = Tempest::TextureFormat::Depth16;

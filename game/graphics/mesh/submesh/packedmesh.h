@@ -42,6 +42,23 @@ class PackedMesh {
       float         r = 0;
       };
 
+    enum BVH_NodeType : uint32_t {
+      BVH_NullNode = 0x00000000,
+      BVH_BoxNode  = 0x10000000,
+      BVH_Tri1Node = 0x20000000,
+      BVH_Tri2Node = 0x30000000,
+      };
+
+    struct BVHNode {
+      // Alternative 64-byte BVH node layout, which specifies the bounds of
+      // the children rather than the node itself. This layout is used by
+      // Aila and Laine in their seminal GPU ray tracing paper.
+      Tempest::Vec3 lmin; uint32_t left;
+      Tempest::Vec3 lmax; uint32_t right;
+      Tempest::Vec3 rmin; uint32_t padd0;
+      Tempest::Vec3 rmax; uint32_t padd1;
+      };
+
     std::vector<Vertex>   vertices;
     std::vector<VertexA>  verticesA;
     std::vector<uint32_t> indices;
@@ -52,6 +69,9 @@ class PackedMesh {
 
     std::vector<uint32_t> verticesId; // only for morph meshes
     bool                  isUsingAlphaTest = true;
+
+    // sw-raytracing
+    std::vector<BVHNode>  bvhNodes;
 
     PackedMesh(const zenkit::MultiResolutionMesh& mesh, PkgType type);
     PackedMesh(const zenkit::Mesh& mesh, PkgType type);
@@ -106,9 +126,20 @@ class PackedMesh {
       void    merge(const Meshlet& other);
       };
 
+    struct Fragment {
+      Tempest::Vec3 centroid;
+      Tempest::Vec3 bbmin, bbmax;
+      uint32_t      primId = 0;
+      uint32_t      mat    = 0;
+      };
+
     bool   addTriangle(Meshlet& dest, const zenkit::Mesh* mesh, const zenkit::SubMesh* proto_mesh, size_t id);
 
     void   packPhysics(const zenkit::Mesh& mesh, PkgType type);
+    void   packBVH(const zenkit::Mesh& mesh);
+    uint32_t packBVH(const zenkit::Mesh& mesh, std::vector<BVHNode>& nodes, Tempest::Vec3& bbmin, Tempest::Vec3& bbmax, Fragment* frag, size_t size);
+    uint32_t packPrimNode(const zenkit::Mesh& mesh, std::vector<BVHNode>& nodes, Fragment* frag, size_t size);
+
     void   packMeshletsLnd(const zenkit::Mesh& mesh);
     void   packMeshletsObj(const zenkit::MultiResolutionMesh& mesh, PkgType type,
                            const std::vector<SkeletalData>* skeletal);

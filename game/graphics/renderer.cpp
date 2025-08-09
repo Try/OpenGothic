@@ -225,6 +225,10 @@ void Renderer::resetSwapchain() {
     rtsm.outputImageClr = device.image2d(TextureFormat::R11G11B10UF, w, h);
     }
 
+  if(settings.swrtEnabled) {
+    swrt.outputImage = device.image2d(TextureFormat::RGBA8, w, h);
+    }
+
   resetSkyFog();
   initGiData();
   prepareUniforms();
@@ -516,7 +520,8 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   //tex.push_back(&textureCast(hiz.hiZSm1));
   //tex.push_back(&textureCast(shadowMap[1]));
   //tex.push_back(&textureCast<const Texture2d&>(shadowMap[0]));
-  tex.push_back(&textureCast<const Texture2d&>(vsm.pageData));
+  //tex.push_back(&textureCast<const Texture2d&>(vsm.pageData));
+  tex.push_back(&textureCast<const Texture2d&>(swrt.outputImage));
 
   static int size = 400;
   int left = 10;
@@ -587,6 +592,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   drawSwr(cmd, *wview);
   drawRtsm(cmd, *wview);
   drawRtsmOmni(cmd, *wview);
+  drawSwRT(cmd, *wview);
 
   prepareIrradiance(cmd,*wview);
   prepareExposure(cmd,*wview);
@@ -828,6 +834,26 @@ void Renderer::drawSunMoon(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
   cmd.setPushData(push);
   cmd.setPipeline(shaders.sun);
   cmd.draw(nullptr, 0, 6);
+  }
+
+void Renderer::drawSwRT(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
+  if(!settings.swrtEnabled)
+    return;
+
+  const auto& scene = wview.sceneGlobals();
+  const auto& bvh   = wview.landscape().bvh();
+
+  cmd.setFramebuffer({});
+  cmd.setDebugMarker("Raytracing");
+  cmd.setPipeline(shaders.swRaytracing);
+  cmd.setBinding(0, swrt.outputImage);
+  cmd.setBinding(1, scene.uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(2, gbufDiffuse);
+  cmd.setBinding(3, gbufNormal);
+  cmd.setBinding(4, zbuffer);
+  cmd.setBinding(5, bvh);
+
+  cmd.dispatchThreads(swrt.outputImage.size());
   }
 
 void Renderer::stashSceneAux(Encoder<CommandBuffer>& cmd) {

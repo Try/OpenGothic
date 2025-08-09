@@ -109,6 +109,8 @@ class Shaders {
     Tempest::ComputePipeline rtsmRendering, rtsmRenderingOmni; //reference
     Tempest::RenderPipeline  rtsmDbg;
 
+    Tempest::ComputePipeline swRaytracing;
+
     // Software rendering
     Tempest::ComputePipeline swRendering;
     Tempest::RenderPipeline  swRenderingDbg;

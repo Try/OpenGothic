@@ -1,0 +1,109 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_KHR_shader_subgroup_vote : enable
+#extension GL_KHR_shader_subgroup_arithmetic : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+//#define DEBUG 1
+#define UNIFORM_TRAVERSE 1
+#include "bvh_common.glsl"
+
+#include "scene.glsl"
+
+layout(local_size_x = 8, local_size_y = 4) in;
+
+layout(binding = 0, rgba8)  uniform  image2D    outImage;
+layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
+layout(binding = 2)         uniform  texture2D  gbufDiffuse;
+layout(binding = 3)         uniform  utexture2D gbufNormal;
+layout(binding = 4)         uniform  texture2D  depth;
+layout(binding = 5, std430) readonly buffer BVH { BVHNode node[];  } nodeData;
+
+uvec2 bvhIntersectBox(const Ray ray, const BVHNode n, const float tMax) {
+  const vec4    lmin = n.lmin, lmax = n.lmax;
+  const vec4    rmin = n.rmin, rmax = n.rmax;
+
+  float dist1 = rayBoxTest(ray, lmin.xyz, lmax.xyz, tMax);
+  float dist2 = rayBoxTest(ray, rmin.xyz, rmax.xyz, tMax);
+  uint  left  = dist1 != TMax ? floatBitsToUint(lmin.w) : BVH_NullNode;
+  uint  right = dist2 != TMax ? floatBitsToUint(lmax.w) : BVH_NullNode;
+#if defined(UNIFORM_TRAVERSE)
+  left  = subgroupOr(left);
+  right = subgroupOr(right);
+  if(subgroupAll(dist1 > dist2))
+    return uvec2(right, left);
+  return uvec2(left, right);
+#else
+  if(dist1 > dist2)
+    return uvec2(right, left);
+  return uvec2(left, right);
+#endif
+  }
+
+#if defined(UNIFORM_TRAVERSE)
+shared uint stack[64];
+#else
+       uint stack[64];
+#endif
+
+vec3 traverseBVH2(const Ray ray, const float tMax) {
+  // traverse BVH
+  vec3 hit;
+  hit.x = tMax;
+  uint stackPtr = 0;
+
+  uint node = 0 | BVH_BoxNode;
+  while(true) {
+    const uint    type = bvhGetNodeType(node);
+    const BVHNode n    = nodeData.node[node & 0x0FFFFFFF];
+
+    if(type==BVH_BoxNode) {
+      const uvec2 ret = bvhIntersectBox(ray, n, hit.x);
+      if(ret.y!=BVH_NullNode)
+        stack[stackPtr++] = ret.y;
+      if(ret.x!=BVH_NullNode) {
+        node = ret.x;
+        continue;
+        }
+      }
+    else if(type==BVH_Tri1Node || type==BVH_Tri2Node) {
+      bvhIntersectTri(ray, n, type, hit);
+      }
+
+    if(stackPtr == 0)
+      break;
+    node = stack[--stackPtr];
+    }
+
+  return hit;
+  }
+
+void main() {
+  const mat4 inv = scene.viewProjectInv;
+  const vec2 uv  = vec2(gl_GlobalInvocationID.xy+0.5)/vec2(imageSize(outImage));
+  const vec4 s   = inv*vec4(uv * 2.0 - 1.0, 0.0, 1);
+  const vec4 e   = inv*vec4(uv * 2.0 - 1.0, 1.0, 1);
+
+  Ray r;
+  r.origin = s.xyz/s.w;
+  r.dir    = normalize(e.xyz/e.w - r.origin);
+  r.invDir = 1.0/r.dir;
+  r.oriDir = -(r.origin * r.invDir);
+
+  // trace
+  vec4 outColor = vec4(0);
+
+  vec3 hit = traverseBVH2(r, TMax);
+  if(hit.x!=TMax) {
+    outColor = vec4(hit.yz, 1.0-hit.y-hit.z, 1);
+    // outColor = vec4(hit.rgb, 1);
+    }
+
+  //outColor = vec4(numTri/float(255));
+  //outColor = vec4(numBox/float(255));
+
+  if(all(lessThan(gl_GlobalInvocationID.xy, imageSize(outImage)))) {
+    imageStore(outImage, ivec2(gl_GlobalInvocationID.xy), outColor);
+    }
+  }

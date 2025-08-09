@@ -356,6 +356,9 @@ add_shader(rtsm_omni_compact.comp    rtsm/rtsm_omni_compact.comp)
 add_shader(rtsm_omni_primitive.comp  rtsm/rtsm_omni_primitive.comp)
 add_shader(rtsm_omni_raster.comp     rtsm/rtsm_omni_raster.comp)
 
+# software ray-tracing
+add_shader(sw_raytracing.comp swrt/sw_raytracing.comp "--target-env" "spirv1.3")
+
 # software rendering
 add_shader(sw_rendering_imm.comp  software_rendering/sw_rendering_imm.comp)
 add_shader(sw_rendering_tbr.comp  software_rendering/sw_rendering_tbr.comp)

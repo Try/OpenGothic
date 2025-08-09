@@ -2,6 +2,7 @@
 
 #include <Tempest/Application>
 #include <Tempest/Log>
+#include <cassert>
 #include <fstream>
 #include <algorithm>
 
@@ -390,7 +391,12 @@ void PackedMesh::Meshlet::merge(const Meshlet& other) {
   vertSz = uint8_t(vertSz+other.vertSz);
   }
 
+
 PackedMesh::PackedMesh(const zenkit::Mesh& mesh, PkgType type) {
+  if(type==PK_VisualLnd) {
+    packBVH(mesh);
+    }
+
   if(type==PK_VisualLnd || type==PK_Visual) {
     packMeshletsLnd(mesh);
     computeBbox();
@@ -528,6 +534,115 @@ void PackedMesh::packPhysics(const zenkit::Mesh& mesh, PkgType type) {
     if(sub.iboLength>0)
       subMeshes.emplace_back(std::move(sub));
     }
+  }
+
+void PackedMesh::packBVH(const zenkit::Mesh& mesh) {
+  auto& ibo  = mesh.polygons.vertex_indices;
+  //auto& feat = mesh.polygons.feature_indices;
+  auto& mid  = mesh.polygons.material_indices;
+
+  auto pullVert = [&](uint32_t i) {
+    auto v = mesh.vertices[i];
+    return Tempest::Vec3(v.x, v.y, v.z);
+    };
+
+  std::vector<Fragment> frag;
+  frag.reserve(mid.size());
+  for(size_t i=0; i<mid.size(); ++i) {
+    Fragment p;
+    p.primId   = uint32_t(i*3);
+    p.mat      = mid[i];
+
+    auto a = pullVert(ibo[p.primId+0]);
+    auto b = pullVert(ibo[p.primId+1]);
+    auto c = pullVert(ibo[p.primId+2]);
+
+    p.centroid = (a + b + c)/3.f;
+    p.bbmin.x  = std::min(a.x, std::min(b.x, c.x));
+    p.bbmin.y  = std::min(a.y, std::min(b.y, c.y));
+    p.bbmin.z  = std::min(a.z, std::min(b.z, c.z));
+    p.bbmax.x  = std::max(a.x, std::max(b.x, c.x));
+    p.bbmax.y  = std::max(a.y, std::max(b.y, c.y));
+    p.bbmax.z  = std::max(a.z, std::max(b.z, c.z));
+    frag.push_back(p);
+    }
+
+  std::vector<BVHNode> nodes;
+  Vec3 bbox[2] = {};
+  packBVH(mesh, nodes, bbox[0], bbox[1], frag.data(), frag.size());
+  //TODO: first node has to be box node
+  bvhNodes = std::move(nodes);
+  }
+
+uint32_t PackedMesh::packBVH(const zenkit::Mesh& mesh, std::vector<BVHNode>& nodes,
+                             Tempest::Vec3& bbmin, Tempest::Vec3& bbmax, Fragment* frag, size_t size) {
+
+  if(size==0) {
+    assert(0);
+    return BVH_NullNode;
+    }
+
+  bbmin = frag[0].bbmin;
+  bbmax = frag[0].bbmax;
+  for(size_t i=1; i<size; ++i) {
+    auto& f = frag[i];
+    bbmin.x = std::min(bbmin.x, f.bbmin.x);
+    bbmin.y = std::min(bbmin.y, f.bbmin.y);
+    bbmin.z = std::min(bbmin.z, f.bbmin.z);
+
+    bbmax.x = std::max(bbmax.x, f.bbmax.x);
+    bbmax.y = std::max(bbmax.y, f.bbmax.y);
+    bbmax.z = std::max(bbmax.z, f.bbmax.z);
+    }
+
+  if(size<=1) {
+    const uint32_t nId = packPrimNode(mesh, nodes, frag, size);
+    if(nId!=BVH_NullNode)
+      return nId;
+    }
+
+  const Vec3 sz = bbmax - bbmin;
+  if(sz.x>sz.y && sz.x>sz.z) {
+    std::sort(frag, frag+size, [](const Fragment& l, const Fragment& r){ return l.centroid.x < r.centroid.x; });
+    }
+  else if(sz.y>sz.x && sz.y>sz.z) {
+    std::sort(frag, frag+size, [](const Fragment& l, const Fragment& r){ return l.centroid.y < r.centroid.y; });
+    }
+  else {
+    std::sort(frag, frag+size, [](const Fragment& l, const Fragment& r){ return l.centroid.z < r.centroid.z; });
+    }
+
+  const size_t nId = nodes.size();
+  nodes.emplace_back(); //reserve memory
+
+  BVHNode node = {};
+  // median split
+  node.left  = packBVH(mesh,nodes, node.lmin, node.lmax, frag,        size/2);
+  node.right = packBVH(mesh,nodes, node.rmin, node.rmax, frag+size/2, size-size/2);
+  nodes[nId] = node;
+  return uint32_t(nId | BVH_BoxNode);
+  }
+
+uint32_t PackedMesh::packPrimNode(const zenkit::Mesh& mesh, std::vector<BVHNode>& nodes, Fragment* frag, size_t size) {
+  auto pullVert = [&](uint32_t i) {
+    auto v = mesh.vertices[i];
+    return Tempest::Vec3(v.x, v.y, v.z);
+    };
+
+  const auto&    ibo  = mesh.polygons.vertex_indices;
+  const uint32_t prim = frag[0].primId;
+
+  BVHNode node = {};
+  node.lmin     = pullVert(ibo[prim+0]);
+  node.lmax     = pullVert(ibo[prim+2]);
+  node.rmin     = pullVert(ibo[prim+1]);
+
+  node.lmax    -= node.lmin;
+  node.rmin    -= node.lmin;
+
+  const size_t nId = nodes.size();
+  nodes.emplace_back(node);
+  return uint32_t(nId | BVH_Tri1Node);
   }
 
 void PackedMesh::packMeshletsLnd(const zenkit::Mesh& mesh) {
