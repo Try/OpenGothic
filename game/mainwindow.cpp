@@ -50,7 +50,7 @@ MainWindow::MainWindow(Device& device)
   if(!CommandLine::inst().isWindowMode())
     setFullscreen(true);
 
-  renderer.resetSwapchain();
+  //renderer.resetSwapchain();
   setupUi();
 
   barBack    = Resources::loadTexture("BAR_BACK.TGA");
@@ -1003,7 +1003,7 @@ void MainWindow::startGame(std::string_view slot) {
 
   if(Gothic::inst().checkLoading()==Gothic::LoadState::Idle){
     setGameImpl(nullptr);
-    onWorldLoaded();
+    // onWorldLoaded();
     }
 
   Gothic::inst().startLoad("LOADING.TGA",[slot=std::string(slot)](std::unique_ptr<GameSession>&& game){
@@ -1017,7 +1017,7 @@ void MainWindow::startGame(std::string_view slot) {
 void MainWindow::loadGame(std::string_view slot) {
   if(Gothic::inst().checkLoading()==Gothic::LoadState::Idle){
     setGameImpl(nullptr);
-    onWorldLoaded();
+    // onWorldLoaded();
     }
 
   Gothic::inst().startLoad("LOADING.TGA",[slot=std::string(slot)](std::unique_ptr<GameSession>&& game){

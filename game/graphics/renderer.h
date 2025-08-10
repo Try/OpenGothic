@@ -46,7 +46,9 @@ class Renderer final {
     bool requiresTlas() const;
 
     void prepareUniforms();
+    void resetShadowmap();
     void resetSkyFog();
+    void resetGiData();
 
     void prepareSky       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
     void prepareSSAO      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
@@ -89,7 +91,6 @@ class Renderer final {
     void drawRtsmDbg      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
 
     void setupSettings();
-    void initGiData();
     void toggleGi();
     void toggleVsm();
     void toggleRtsm();

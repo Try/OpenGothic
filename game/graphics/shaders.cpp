@@ -1,5 +1,6 @@
 #include "shaders.h"
 
+#include <Tempest/Application>
 #include <Tempest/Device>
 #include <Tempest/Log>
 
@@ -11,12 +12,35 @@
 
 using namespace Tempest;
 
-//static constexpr uint32_t defaultWg = 64;
-
 Shaders* Shaders::instance = nullptr;
 
 Shaders::Shaders() {
   instance = this;
+  deferredCompilation = std::async(std::launch::async, [this]() {
+    Workers::setThreadName("Shader compilation");
+    auto time = Application::tickCount();
+    compileShaders();
+    time = Application::tickCount() - time;
+    if(time>1000)
+      Log::i("Shader compilation took: ",time/1000," seconds");
+    });
+  }
+
+Shaders::~Shaders() {
+  deferredCompilation.wait();
+  instance = nullptr;
+  }
+
+void Shaders::waitCompiler() {
+  deferredCompilation.wait();
+  }
+
+Shaders& Shaders::inst() {
+  instance->waitCompiler();
+  return *instance;
+  }
+
+void Shaders::compileShaders() {
   auto& device = Resources::device();
 
   const bool meshlets = Gothic::options().doMeshShading;
@@ -280,14 +304,6 @@ Shaders::Shaders() {
     auto fs = device.shader(sh.data,sh.len);
     inventory = device.pipeline(Triangles,state,vs,fs);
   }
-  }
-
-Shaders::~Shaders() {
-  instance = nullptr;
-  }
-
-Shaders& Shaders::inst() {
-  return *instance;
   }
 
 bool Shaders::isVsmSupported() {

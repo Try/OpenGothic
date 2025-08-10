@@ -108,11 +108,11 @@ Renderer::~Renderer() {
 void Renderer::resetSwapchain() {
   auto& device = Resources::device();
   device.waitIdle();
+  shaders.waitCompiler();
 
   const auto     res    = internalResolution();
   const uint32_t w      = uint32_t(res.w);
   const uint32_t h      = uint32_t(res.h);
-  const uint32_t smSize = settings.shadowResolution;
 
   sceneLinear = device.attachment(TextureFormat::R11G11B10UF,w,h);
 
@@ -126,7 +126,7 @@ void Renderer::resetSwapchain() {
     cmaa2.indirectBuffer             = device.ssbo(nullptr, sizeof(DispatchIndirectCommand) + sizeof(DrawIndirectCommand));
     }
 
-  zbuffer        = device.zbuffer(zBufferFormat,w,h);
+  zbuffer = device.zbuffer(zBufferFormat,w,h);
   if(w!=swapchain.w() || h!=swapchain.h())
     zbufferUi = device.zbuffer(zBufferFormat, swapchain.w(), swapchain.h()); else
     zbufferUi = ZBuffer();
@@ -149,88 +149,43 @@ void Renderer::resetSwapchain() {
     hiz.counterBuf = device.ssbo(Tempest::Uninitialized, std::max(hw/4, 1u)*std::max(hh/4, 1u)*sizeof(uint32_t));
     }
 
-  if(smSize>0) {
-    for(int i=0; i<Resources::ShadowLayers; ++i) {
-      if(settings.vsmEnabled && !(settings.giEnabled && i==1) && !(sky.quality==PathTrace && i==1) && !(settings.rtsmEnabled && i==1))
-        continue; //TODO: support vsm in gi code
-      if(settings.rtsmEnabled && !(settings.giEnabled && i==1) && !(sky.quality!=None && i==1))
-        continue; //TODO: support vsm in gi code
-      shadowMap[i] = device.zbuffer(shadowFormat,smSize,smSize);
-      }
-    }
+  sceneOpaque   = device.attachment(TextureFormat::R11G11B10UF,w,h);
+  sceneDepth    = device.attachment(TextureFormat::R32F,       w,h);
 
-  sceneOpaque = device.attachment(TextureFormat::R11G11B10UF,w,h);
-  sceneDepth  = device.attachment(TextureFormat::R32F,       w,h);
-
-  gbufDiffuse = device.attachment(TextureFormat::RGBA8,w,h);
-  gbufNormal  = device.attachment(TextureFormat::R32U, w,h);
-
-  if(settings.rtsmEnabled)
-    shadow.directLightPso = &shaders.rtsmDirectLight;
-  else if(settings.vsmEnabled)
-    shadow.directLightPso = &shaders.vsmDirectLight; //TODO: naming
-  else if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing &&
-     settings.shadowResolution>0)
-    shadow.directLightPso = &shaders.directLightRq;
-  else if(settings.shadowResolution>0)
-    shadow.directLightPso = &shaders.directLightSh;
-  else
-    shadow.directLightPso = &shaders.directLight;
-
-  if(settings.vsmEnabled)
-    lights.directLightPso = &shaders.lightsVsm;
-  else if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing)
-    lights.directLightPso = &shaders.lightsRq;
-  else
-    lights.directLightPso = &shaders.lights;
+  gbufDiffuse   = device.attachment(TextureFormat::RGBA8,w,h);
+  gbufNormal    = device.attachment(TextureFormat::R32U, w,h);
 
   ssao.ssaoBuf  = device.image2d(ssao.aoFormat, w, h);
   ssao.ssaoBlur = device.image2d(ssao.aoFormat, w, h);
 
-  if(settings.vsmEnabled && sky.quality==VolumetricHQ) {
-    epipolar.epTrace  = device.image2d(TextureFormat::R16,  1024, 2*1024);
-    epipolar.epipoles = device.ssbo(nullptr, shaders.fogEpipolarVsm.sizeofBuffer(3, size_t(epipolar.epTrace.h())));
-    }
-  else if(settings.rtsmEnabled && sky.quality==VolumetricHQ) {
-    epipolar.epTrace  = device.image2d(TextureFormat::R16,  1024, 2*1024);
-    epipolar.epipoles = device.ssbo(nullptr, shaders.fogEpipolarVsm.sizeofBuffer(3, size_t(epipolar.epTrace.h())));
-    }
-  else {
-    Resources::recycle(std::move(epipolar.epTrace));
-    Resources::recycle(std::move(epipolar.epipoles));
-    }
+  epipolar.epTrace  = StorageImage();
+  epipolar.epipoles = StorageBuffer();
 
-  if(settings.vsmEnabled) {
+  // virtual shadow
+  {
+    vsm.pageTbl     = StorageImage();
+    vsm.pageHiZ     = StorageImage();
+    vsm.pageData    = ZBuffer();
+    vsm.vsmDbg      = StorageImage();
+    vsm.fogDbg      = StorageImage();
+    vsm.pageList    = StorageBuffer();
+    vsm.pageListTmp = StorageBuffer();
+
+    //FIXME: used internally by DrawCommands
     vsm.pageTbl  = device.image3d(TextureFormat::R32U, 32, 32, 16);
-    vsm.pageHiZ  = device.image3d(TextureFormat::R32U, 32, 32, 16);
-    vsm.pageData = device.zbuffer(shadowFormat, 8192, 8192);
-    vsm.vsmDbg   = device.image2d(TextureFormat::R32U, uint32_t(zbuffer.w()), uint32_t(zbuffer.h()));
+  }
 
-    vsm.fogDbg   = device.image2d(sky.lutRGBFormat,    1024, 2*1024);
+  // rtsm
+  rtsm.outputImage    = StorageImage();
+  rtsm.outputImageClr = StorageImage();
 
-    auto pageCount    = uint32_t(vsm.pageData.w()/VSM_PAGE_SIZE) * uint32_t(vsm.pageData.h()/VSM_PAGE_SIZE);
-    auto pageSsboSize = shaders.vsmClear.sizeofBuffer(0, pageCount);
+  // software renderer
+  swr.outputImage = StorageImage();
 
-    vsm.pageList      = device.ssbo(nullptr, pageSsboSize);
-    vsm.pageListTmp   = device.ssbo(nullptr, shaders.vsmAllocPages.sizeofBuffer(3, pageCount));
-    }
-
-  if(settings.swrEnabled) {
-    //swr.outputImage = device.image2d(Tempest::RGBA8, w, h);
-    swr.outputImage = device.image2d(Tempest::R32U, w, h);
-    }
-
-  if(settings.rtsmEnabled) {
-    rtsm.outputImage    = device.image2d(TextureFormat::R8,          w, h);
-    rtsm.outputImageClr = device.image2d(TextureFormat::R11G11B10UF, w, h);
-    }
-
-  if(settings.swrtEnabled) {
-    swrt.outputImage = device.image2d(TextureFormat::RGBA8, w, h);
-    }
+  // swrt
+  swrt.outputImage = StorageImage();
 
   resetSkyFog();
-  initGiData();
   prepareUniforms();
   }
 
@@ -254,27 +209,34 @@ void Renderer::setupSettings() {
   settings.vidResIndex = Gothic::inst().settingsGetF("INTERNAL","vidResIndex");
   settings.aaEnabled = (Gothic::options().aaPreset>0) && (settings.vidResIndex==0);
 
-  {
-    auto q = Quality::VolumetricLQ;
-    if(!settings.zFogRadial) {
-      q = Quality::VolumetricLQ;
-      } else {
-      q = Quality::VolumetricHQ;
-      // q = Quality::Epipolar;
-      }
+  // direct lighting
+  if(settings.rtsmEnabled)
+    shadow.directLightPso = &shaders.rtsmDirectLight;
+  else if(settings.vsmEnabled)
+    shadow.directLightPso = &shaders.vsmDirectLight; //TODO: naming
+  else if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing &&
+           settings.shadowResolution>0)
+    shadow.directLightPso = &shaders.directLightRq;
+  else if(settings.shadowResolution>0)
+    shadow.directLightPso = &shaders.directLightSh;
+  else
+    shadow.directLightPso = &shaders.directLight;
 
-    if(skyPathTrace)
-      q = PathTrace;
-
-    if(sky.quality!=q) {
-      sky.quality = q;
-      resetSkyFog();
-      }
-  }
+  // point-lights
+  if(settings.vsmEnabled)
+    lights.directLightPso = &shaders.lightsVsm;
+  else if(Gothic::options().doRayQuery && Resources::device().properties().descriptors.nonUniformIndexing)
+    lights.directLightPso = &shaders.lightsRq;
+  else
+    lights.directLightPso = &shaders.lights;
 
   if(prevVidResIndex!=settings.vidResIndex) {
     resetSwapchain();
     }
+  resetSkyFog();
+  resetShadowmap();
+
+  prepareUniforms();
   }
 
 void Renderer::toggleGi() {
@@ -293,11 +255,11 @@ void Renderer::toggleGi() {
   if(auto wview  = Gothic::inst().worldView()) {
     wview->resetRendering();
     }
-  if(settings.giEnabled && settings.vsmEnabled) {
+  if(settings.giEnabled) {
     // need a projective shadow, for gi to
-    resetSwapchain();
+    resetShadowmap();
     }
-  initGiData();
+  resetGiData();
   prepareUniforms();
   }
 
@@ -310,13 +272,11 @@ void Renderer::toggleVsm() {
   auto& device = Resources::device();
   device.waitIdle();
 
-  for(int i=0; i<Resources::ShadowLayers; ++i)
-    shadowMap[i] = Tempest::ZBuffer();
-
+  setupSettings();
+  resetSwapchain();
   if(auto wview  = Gothic::inst().worldView()) {
     wview->resetRendering();
     }
-  resetSwapchain();
   }
 
 void Renderer::toggleRtsm() {
@@ -328,17 +288,19 @@ void Renderer::toggleRtsm() {
   auto& device = Resources::device();
   device.waitIdle();
 
-  for(int i=0; i<Resources::ShadowLayers; ++i)
-    shadowMap[i] = Tempest::ZBuffer();
-
+  setupSettings();
+  resetSwapchain();
   if(auto wview  = Gothic::inst().worldView()) {
     wview->resetRendering();
     }
-  resetSwapchain();
   }
 
 void Renderer::onWorldChanged() {
   gi.fisrtFrame = true;
+  sky.lutIsInitialized = false;
+  shaders.waitCompiler();
+
+  resetSwapchain();
   resetSkyFog();
   prepareUniforms();
   }
@@ -390,12 +352,46 @@ void Renderer::prepareUniforms() {
   wview->setSceneImages(textureCast<const Texture2d&>(sceneOpaque), textureCast<const Texture2d&>(sceneDepth), zbuffer);
   }
 
+void Renderer::resetShadowmap() {
+  auto& device = Resources::device();
+
+  for(int i=0; i<Resources::ShadowLayers; ++i)
+    Resources::recycle(std::move(shadowMap[i]));
+
+  for(int i=0; i<Resources::ShadowLayers; ++i) {
+    if(settings.vsmEnabled && !(settings.giEnabled && i==1) && !(sky.quality==PathTrace && i==1) && !(settings.rtsmEnabled && i==1))
+      continue; //TODO: support vsm in gi code
+    if(settings.rtsmEnabled && !(settings.giEnabled && i==1) && !(sky.quality!=None && i==1))
+      continue; //TODO: support vsm in gi code
+    shadowMap[i] = device.zbuffer(shadowFormat, settings.shadowResolution, settings.shadowResolution);
+    }
+  }
+
 void Renderer::resetSkyFog() {
   auto& device = Resources::device();
 
   const auto     res = internalResolution();
   const uint32_t w   = uint32_t(res.w);
   const uint32_t h   = uint32_t(res.h);
+
+  {
+    auto q = Quality::VolumetricLQ;
+    if(!settings.zFogRadial) {
+      q = Quality::VolumetricLQ;
+      } else {
+      q = Quality::VolumetricHQ;
+      // q = Quality::Epipolar;
+      }
+
+    if(skyPathTrace)
+      q = PathTrace;
+
+    if(sky.quality==q && (sky.occlusionLut.isEmpty() || sky.occlusionLut.size()==res)) {
+      return;
+      }
+
+    sky.quality = q;
+  }
 
   Resources::recycle(std::move(sky.fogLut3D));
   Resources::recycle(std::move(sky.fogLut3DMs));
@@ -732,7 +728,7 @@ void Renderer::drawCMAA2(Tempest::Attachment& result, Tempest::Encoder<Tempest::
   }
 
 void Renderer::drawFog(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
-  auto& scene = wview.sceneGlobals();
+  auto& scene  = wview.sceneGlobals();
 
   switch(sky.quality) {
     case None:
@@ -844,6 +840,11 @@ void Renderer::drawSwRT(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const Wor
   const auto& bvh       = wview.landscape().bvh();
   const auto  originLwc = scene.originLwc;
 
+  if(swrt.outputImage.isEmpty()) {
+    auto& device = Resources::device();
+    swrt.outputImage = device.image2d(TextureFormat::RGBA8, zbuffer.size());
+    }
+
   cmd.setFramebuffer({});
   cmd.setDebugMarker("Raytracing");
   cmd.setPipeline(shaders.swRaytracing);
@@ -924,7 +925,7 @@ void Renderer::drawRtsmDbg(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const 
   cmd.draw(nullptr, 0, 3);
   }
 
-void Renderer::initGiData() {
+void Renderer::resetGiData() {
   if(!settings.giEnabled)
     return;
   if(!gi.hashTable.isEmpty())
@@ -981,19 +982,36 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
 
   static bool omniLights = true;
   const bool directLight  = !settings.rtsmEnabled;
-  const bool doVirtualFog = directLight && sky.quality!=VolumetricLQ && sky.quality!=PathTrace && settings.vsmEnabled;
+  const bool doVirtualFog = directLight && sky.quality!=VolumetricLQ && sky.quality!=PathTrace;
 
   auto& device  = Resources::device();
   auto& scene   = wview.sceneGlobals();
 
-  const size_t numOmniPages = wview.lights().size()*6;
+  if(vsm.vsmDbg.size()!=zbuffer.size()) {
+    vsm.vsmDbg = device.image2d(TextureFormat::R32U, uint32_t(zbuffer.w()), uint32_t(zbuffer.h()));
+    }
 
+  if(vsm.pageList.isEmpty()) {
+    vsm.pageTbl  = device.image3d(TextureFormat::R32U, 32, 32, 16);
+    vsm.pageHiZ  = device.image3d(TextureFormat::R32U, 32, 32, 16);
+    vsm.pageData = device.zbuffer(shadowFormat,        8192, 8192);
+
+    auto pageCount    = uint32_t(vsm.pageData.w()/VSM_PAGE_SIZE) * uint32_t(vsm.pageData.h()/VSM_PAGE_SIZE);
+    auto pageSsboSize = shaders.vsmClear.sizeofBuffer(0, pageCount);
+
+    vsm.pageList    = device.ssbo(nullptr, pageSsboSize);
+    vsm.pageListTmp = device.ssbo(nullptr, shaders.vsmAllocPages.sizeofBuffer(3, pageCount));
+    }
+
+  const size_t numOmniPages = wview.lights().size()*6;
   if(omniLights && vsm.pageTblOmni.byteSize()!=shaders.vsmClearOmni.sizeofBuffer(0, numOmniPages)) {
     Resources::recycle(std::move(vsm.pageTblOmni));
     Resources::recycle(std::move(vsm.visibleLights));
     vsm.pageTblOmni   = device.ssbo(nullptr, shaders.vsmClearOmni.sizeofBuffer(0, numOmniPages));
     vsm.visibleLights = device.ssbo(nullptr, shaders.vsmClearOmni.sizeofBuffer(1, wview.lights().size()));
     }
+
+  wview.setVirtualShadowMap(vsm.pageData, vsm.pageTbl, vsm.pageHiZ, vsm.pageList);
 
   cmd.setFramebuffer({});
   cmd.setDebugMarker("VSM-pages");
@@ -1122,6 +1140,10 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
   const auto& instanceSsbo = wview.instanceSsbo();
 
   auto& sceneUbo = scene.uboGlobal[SceneGlobals::V_Vsm];
+
+  if(rtsm.outputImage.isEmpty()) {
+    rtsm.outputImage = device.image2d(TextureFormat::R8,          zbuffer.size());
+    }
 
   {
     if(rtsm.posList.isEmpty()) {
@@ -1302,7 +1324,7 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     return;
 
   static bool omniLights = true;
-  if(!omniLights || rtsm.outputImageClr.isEmpty())
+  if(!omniLights)
     return;
 
   //const uint32_t RTSM_SMALL_TILE = 32;
@@ -1316,6 +1338,10 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   const auto& clusters     = wview.clusters();
   const auto& buckets      = wview.drawBuckets();
   const auto& instanceSsbo = wview.instanceSsbo();
+
+  if(rtsm.outputImageClr.isEmpty()) {
+    rtsm.outputImageClr = device.image2d(TextureFormat::R11G11B10UF, zbuffer.size());
+    }
 
   {
     // alloc resources, for omni-lights
@@ -1508,6 +1534,12 @@ void Renderer::drawSwr(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
   const auto& clusters     = wview.clusters();
   const auto& buckets      = wview.drawBuckets();
   const auto& instanceSsbo = wview.instanceSsbo();
+
+  if(swr.outputImage.isEmpty()) {
+    auto& device = Resources::device();
+    //swr.outputImage = device.image2d(Tempest::RGBA8, zbuffer.size());
+    swr.outputImage = device.image2d(Tempest::R32U, zbuffer.size());
+    }
 
   cmd.setFramebuffer({});
   cmd.setDebugMarker("SW-rendering");
@@ -1773,7 +1805,8 @@ void Renderer::prepareSSAO(Encoder<CommandBuffer>& cmd, WorldView& wview) {
   }
 
 void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
-  auto& scene = wview.sceneGlobals();
+  auto& scene  = wview.sceneGlobals();
+  auto& device = Resources::device();
 
   cmd.setDebugMarker("Fog-LUTs");
   if(sky.quality!=PathTrace) {
@@ -1829,6 +1862,8 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview
       }
     case Epipolar:{
       // experimental
+      if(vsm.fogDbg.isEmpty())
+        vsm.fogDbg   = device.image2d(sky.lutRGBFormat,    1024, 2*1024);
       cmd.setFramebuffer({});
       cmd.setDebugMarker("VSM-trace");
       cmd.setBinding(0, vsm.fogDbg);
@@ -1851,10 +1886,16 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview
 
 void Renderer::prepareEpipolar(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
   const bool doVolumetricFog = sky.quality!=VolumetricLQ && sky.quality!=PathTrace;
-  if(!doVolumetricFog || !settings.vsmEnabled)
+  if(!doVolumetricFog || (!settings.vsmEnabled && !settings.rtsmEnabled))
     return;
 
-  auto& scene = wview.sceneGlobals();
+  auto& scene  = wview.sceneGlobals();
+  auto& device = Resources::device();
+
+  if(epipolar.epTrace.isEmpty()) {
+    epipolar.epTrace  = device.image2d(TextureFormat::R16,  1024, 2*1024);
+    epipolar.epipoles = device.ssbo(nullptr, shaders.fogEpipolarVsm.sizeofBuffer(3, size_t(epipolar.epTrace.h())));
+    }
 
   cmd.setDebugMarker("Fog-epipolar");
   cmd.setFramebuffer({});

@@ -3,6 +3,7 @@
 #include <Tempest/RenderPipeline>
 #include <Tempest/Shader>
 #include <Tempest/Device>
+#include <future>
 #include <list>
 
 #include "graphics/drawcommands.h"
@@ -13,6 +14,8 @@ class Shaders {
   public:
     Shaders();
     ~Shaders();
+
+    void waitCompiler();
 
     enum PipelineType: uint8_t {
       T_Depth,
@@ -130,6 +133,8 @@ class Shaders {
       bool                    trivial      = false;
       };
 
+    void                     compileShaders();
+
     Tempest::RenderPipeline  postEffect(std::string_view name);
     Tempest::RenderPipeline  postEffect(std::string_view name, Tempest::RenderState::ZTestMode ztest);
     Tempest::RenderPipeline  postEffect(std::string_view vs, std::string_view fs, Tempest::RenderState::ZTestMode ztest = Tempest::RenderState::ZTestMode::LEqual);
@@ -141,5 +146,6 @@ class Shaders {
 
     static Shaders* instance;
 
+    std::future<void>        deferredCompilation;
     mutable std::list<Entry> materials;
   };

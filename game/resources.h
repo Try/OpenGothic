@@ -139,6 +139,7 @@ class Resources final {
     static void recycle(Tempest::DescriptorArray&& arr);
     static void recycle(Tempest::StorageBuffer&& ssbo);
     static void recycle(Tempest::StorageImage&& img);
+    static void recycle(Tempest::ZBuffer&& img);
     static void recycle(Tempest::AccelerationStructure&& rtas);
 
     static std::vector<uint8_t>      getFileData(std::string_view name);
@@ -235,6 +236,7 @@ class Resources final {
     struct DeleteQueue {
       std::vector<Tempest::StorageBuffer>   ssbo;
       std::vector<Tempest::StorageImage>    img;
+      std::vector<Tempest::ZBuffer>         zb;
       std::vector<Tempest::DescriptorArray> arr;
       std::vector<Tempest::AccelerationStructure> rtas;
       };
