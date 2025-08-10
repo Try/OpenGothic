@@ -840,12 +840,14 @@ void Renderer::drawSwRT(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const Wor
   if(!settings.swrtEnabled)
     return;
 
-  const auto& scene = wview.sceneGlobals();
-  const auto& bvh   = wview.landscape().bvh();
+  const auto& scene     = wview.sceneGlobals();
+  const auto& bvh       = wview.landscape().bvh();
+  const auto  originLwc = scene.originLwc;
 
   cmd.setFramebuffer({});
   cmd.setDebugMarker("Raytracing");
   cmd.setPipeline(shaders.swRaytracing);
+  cmd.setPushData(&originLwc, sizeof(originLwc));
   cmd.setBinding(0, swrt.outputImage);
   cmd.setBinding(1, scene.uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(2, gbufDiffuse);

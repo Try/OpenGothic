@@ -252,7 +252,7 @@ Shaders::Shaders() {
     rtsmDbg          = postEffect("rtsm_dbg", RenderState::ZTestMode::Always);
     }
 
-  //swRaytracing    = computeShader("sw_raytracing.comp.sprv");
+  swRaytracing    = computeShader("sw_raytracing.comp.sprv");
 
   if(Gothic::options().swRenderingPreset>0) {
     switch(Gothic::options().swRenderingPreset) {

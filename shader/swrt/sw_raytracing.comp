@@ -1,18 +1,26 @@
 #version 450
 
+//#define UNIFORM_TRAVERSE 1
+//#define ANY_HIT 1
+#define DEBUG 1
+
 #extension GL_GOOGLE_include_directive : enable
-#extension GL_KHR_shader_subgroup_vote : enable
-#extension GL_KHR_shader_subgroup_arithmetic : enable
-#extension GL_EXT_control_flow_attributes : enable
+#extension GL_EXT_samplerless_texture_functions : enable
 
-//#define DEBUG 1
-#define UNIFORM_TRAVERSE 1
+#if defined(UNIFORM_TRAVERSE)
+#  extension GL_KHR_shader_subgroup_vote : enable
+#  extension GL_KHR_shader_subgroup_arithmetic : enable
+#endif
+
 #include "bvh_common.glsl"
-
 #include "scene.glsl"
+#include "common.glsl"
 
-layout(local_size_x = 8, local_size_y = 4) in;
+layout(local_size_x = 8, local_size_y = 8) in;
 
+layout(push_constant, std430) uniform UboPush {
+  vec3  originLwc;
+  } push;
 layout(binding = 0, rgba8)  uniform  image2D    outImage;
 layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
 layout(binding = 2)         uniform  texture2D  gbufDiffuse;
@@ -49,7 +57,7 @@ shared uint stack[64];
 
 vec3 traverseBVH2(const Ray ray, const float tMax) {
   // traverse BVH
-  vec3 hit;
+  vec3 hit = vec3(0);
   hit.x = tMax;
   uint stackPtr = 0;
 
@@ -69,6 +77,10 @@ vec3 traverseBVH2(const Ray ray, const float tMax) {
       }
     else if(type==BVH_Tri1Node || type==BVH_Tri2Node) {
       bvhIntersectTri(ray, n, type, hit);
+#if defined(ANY_HIT)
+      if(hit.x!=tMax)
+        break;
+#endif
       }
 
     if(stackPtr == 0)
@@ -79,7 +91,55 @@ vec3 traverseBVH2(const Ray ray, const float tMax) {
   return hit;
   }
 
+vec3 rayTest(vec3 pos, vec3 rayDirection, float tMin, float tMax) {
+  Ray r;
+  r.origin = pos;
+  r.dir    = rayDirection;
+  r.invDir = 1.0/r.dir;
+  r.oriDir = -(r.origin * r.invDir);
+
+  // trace
+  vec3 hit = traverseBVH2(r, tMax);
+  return hit;
+  }
+
+vec4 worldPosLwc(vec2 frag, float depth) {
+  const vec2 fragCoord = (frag.xy*scene.screenResInv)*2.0 - vec2(1.0);
+  const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
+  return scene.viewProjectLwcInv * scr;
+  }
+
+vec4 shadowMain(ivec2 fragCoord) {
+  const float d      = texelFetch(depth, fragCoord, 0).r;
+  const vec3  normal = normalFetch(gbufNormal, fragCoord);
+  if(d==1.0)
+    return vec4(0);
+
+  if(dot(normal, scene.sunDir)<=0)
+    return vec4(0);
+
+  const float NormalBias = 0.0015;
+  const vec4  wpos4      = worldPosLwc(vec2(fragCoord+0.5), d) + vec4(normal*NormalBias, 0);
+  const vec3  wpos       = wpos4.xyz/wpos4.w + push.originLwc;
+
+  const float tMin = 5;
+  const float tMax = TMax; //5000*100;
+  const vec3  hit  = rayTest(wpos, scene.sunDir, tMin, tMax);
+  if(hit.x!=tMax)
+    return vec4(hit.yz, 1.0-hit.y-hit.z, 1);
+  return vec4(0);
+  }
+
 void main() {
+#if 1
+  vec4 outColor = shadowMain(ivec2(gl_GlobalInvocationID.xy));
+  //outColor = vec4(numTri/float(255));
+  outColor = vec4(numBox/float(255));
+
+  if(all(lessThan(gl_GlobalInvocationID.xy, imageSize(outImage)))) {
+    imageStore(outImage, ivec2(gl_GlobalInvocationID.xy), outColor.xyzz);
+    }
+#else
   const mat4 inv = scene.viewProjectInv;
   const vec2 uv  = vec2(gl_GlobalInvocationID.xy+0.5)/vec2(imageSize(outImage));
   const vec4 s   = inv*vec4(uv * 2.0 - 1.0, 0.0, 1);
@@ -106,4 +166,5 @@ void main() {
   if(all(lessThan(gl_GlobalInvocationID.xy, imageSize(outImage)))) {
     imageStore(outImage, ivec2(gl_GlobalInvocationID.xy), outColor);
     }
+#endif
   }

@@ -27,10 +27,6 @@ struct Ray {
   vec3 oriDir;
   };
 
-uint bvhGetNodeType(uint ptr) {
-  return ptr & 0xF0000000;
-  }
-
 vec3 rayTriangleTest(const Ray ray, const vec3 v0, const vec3 e1, const vec3 e2) {
 #if defined(DEBUG)
   numTri++;
@@ -71,6 +67,10 @@ float rayBoxTest(const Ray ray, const vec3 boxMin, const vec3 boxMax, float hitT
   float tFar  = min(hitT, min(min(t2.x, t2.y), t2.z));
 
   return tNear > tFar ? TMax : tNear;
+  }
+
+uint bvhGetNodeType(uint ptr) {
+  return ptr & 0xF0000000;
   }
 
 void bvhIntersectTri(const Ray ray, const BVHNode n, const uint type, inout vec3 hit) {
