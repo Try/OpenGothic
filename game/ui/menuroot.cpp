@@ -152,6 +152,11 @@ void MenuRoot::mouseWheelEvent(MouseEvent &event) {
   }
 
 void MenuRoot::keyRepeatEvent(Tempest::KeyEvent &e) {
+  if(current==nullptr) {
+    e.ignore();
+    return;
+    }
+
   if(e.key == Event::K_A || e.key == Event::K_Left)
     current->onKeyboard(KeyCodec::Left);
   else if(e.key == Event::K_D || e.key == Event::K_Right)
