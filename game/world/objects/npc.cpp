@@ -2749,16 +2749,26 @@ void Npc::clearState(bool noFinalize) {
   }
 
 bool Npc::isPlayerEnabledState(const ::AiState& st) const {
-  static std::array playerEnabledStates = {
+  static const std::array playerEnabledStatesG1 = {
     "ZS_DEAD",   "ZS_UNCONSCIOUS", "ZS_MAGICFREEZE",
     "ZS_PYRO",   "ZS_ASSESSMAGIC", "ZS_ASSESSSTOPMAGIC",
     "ZS_ZAPPED", "ZS_SHORTZAPPED", "ZS_MAGICSLEEP",
-    owner.version().game==2 ? "ZS_WHIRLWIND" :
-                              "ZS_MAGICFEAR"
+    "ZS_MAGICFEAR"
+    };
+  static const std::array playerEnabledStatesG2 = {
+    "ZS_DEAD",   "ZS_UNCONSCIOUS", "ZS_MAGICFREEZE",
+    "ZS_PYRO",   "ZS_ASSESSMAGIC", "ZS_ASSESSSTOPMAGIC",
+    "ZS_ZAPPED", "ZS_SHORTZAPPED", "ZS_MAGICSLEEP",
+    "ZS_WHIRLWIND"
     };
 
+  const auto* sym = owner.script().findSymbol(st.funcIni);
+  if(sym==nullptr)
+    return false;
+
+  const auto& playerEnabledStates = (owner.version().game==2 ? playerEnabledStatesG2 : playerEnabledStatesG1);
   for(auto* pState:playerEnabledStates)
-    if(std::strcmp(pState,st.name())==0)
+    if(sym->name()==pState)
       return true;
   return false;
   }
