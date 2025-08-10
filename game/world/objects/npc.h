@@ -490,6 +490,7 @@ class Npc final {
 
     bool      setGoToLadder();
 
+    bool      isPlayerEnabledState(const ::AiState& st) const;
     void      tickRoutine();
     void      nextAiAction(AiQueue& queue, uint64_t dt);
     void      commitDamage();
