@@ -2,6 +2,7 @@
 
 //#define UNIFORM_TRAVERSE 1
 //#define ANY_HIT 1
+#define SHARED_STACK 1
 #define DEBUG 1
 
 #extension GL_GOOGLE_include_directive : enable
@@ -22,6 +23,7 @@ layout(push_constant, std430) uniform UboPush {
   vec3  originLwc;
   } push;
 layout(binding = 0, rgba8)  uniform  image2D    outImage;
+//layout(binding = 0, r32ui)  uniform  uimage2D   outImage;
 layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
 layout(binding = 2)         uniform  texture2D  gbufDiffuse;
 layout(binding = 3)         uniform  utexture2D gbufNormal;
@@ -49,7 +51,7 @@ uvec2 bvhIntersectBox(const Ray ray, const BVHNode n, const float tMax) {
 #endif
   }
 
-#if defined(UNIFORM_TRAVERSE)
+#if defined(UNIFORM_TRAVERSE) && defined(SHARED_STACK)
 shared uint stack[64];
 #else
        uint stack[64];
@@ -134,10 +136,11 @@ void main() {
 #if 1
   vec4 outColor = shadowMain(ivec2(gl_GlobalInvocationID.xy));
   //outColor = vec4(numTri/float(255));
-  outColor = vec4(numBox/float(255));
+  //outColor = vec4(numBox/float(255));
 
   if(all(lessThan(gl_GlobalInvocationID.xy, imageSize(outImage)))) {
     imageStore(outImage, ivec2(gl_GlobalInvocationID.xy), outColor.xyzz);
+    //imageStore(outImage, ivec2(gl_GlobalInvocationID.xy), uvec4(numBox));
     }
 #else
   const mat4 inv = scene.viewProjectInv;

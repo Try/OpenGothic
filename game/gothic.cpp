@@ -96,6 +96,7 @@ Gothic::Gothic() {
   if(Shaders::isRtsmSupported()) {
     opts.doSoftwareShadow = CommandLine::inst().isSoftwareShadow();
     }
+  opts.doSoftwareRT = false;
 
   opts.aaPreset = CommandLine::inst().aaPreset();
 
