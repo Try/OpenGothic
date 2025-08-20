@@ -215,7 +215,7 @@ class Gothic final {
     std::unique_ptr<IniFile>                modFile;
     std::unique_ptr<IniFile>                systemPackIniFile;
 
-    const Tempest::Texture2d*               loadTex=nullptr;
+    Tempest::Texture2d                      loadTex;
     Tempest::Texture2d                      saveTex;
     std::atomic_int                         loadProgress{0};
     std::thread                             loaderTh;

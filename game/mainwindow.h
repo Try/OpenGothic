@@ -125,8 +125,7 @@ class MainWindow : public Tempest::Window {
     Tempest::CommandBuffer commands[Resources::MaxFramesInFlight];
     uint8_t                cmdId = 0;
 
-
-    const Tempest::Texture2d* background=nullptr;
+    Tempest::Texture2d        background;
     const Tempest::Texture2d* loadBox=nullptr;
     const Tempest::Texture2d* loadVal=nullptr;
 
