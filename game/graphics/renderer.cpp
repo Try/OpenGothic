@@ -172,7 +172,8 @@ void Renderer::resetSwapchain() {
     vsm.pageListTmp = StorageBuffer();
 
     //FIXME: used internally by DrawCommands
-    vsm.pageTbl  = device.image3d(TextureFormat::R32U, 32, 32, 16);
+    if(settings.vsmEnabled && Shaders::isVsmSupported())
+      vsm.pageTbl  = device.image3d(TextureFormat::R32U, 32, 32, 16);
   }
 
   // rtsm
