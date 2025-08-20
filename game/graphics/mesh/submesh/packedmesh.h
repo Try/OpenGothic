@@ -136,8 +136,10 @@ class PackedMesh {
     bool   addTriangle(Meshlet& dest, const zenkit::Mesh* mesh, const zenkit::SubMesh* proto_mesh, size_t id);
 
     void   packPhysics(const zenkit::Mesh& mesh, PkgType type);
-    void   packBVH(const zenkit::Mesh& mesh);
+
+    void     packBVH(const zenkit::Mesh& mesh);
     uint32_t packBVH(const zenkit::Mesh& mesh, std::vector<BVHNode>& nodes, Tempest::Vec3& bbmin, Tempest::Vec3& bbmax, Fragment* frag, size_t size);
+    auto     findNodeSplit(Tempest::Vec3 bbmin, Tempest::Vec3 bbmax, const Fragment* frag, size_t size) ->  std::pair<uint32_t,bool>;
     uint32_t packPrimNode(const zenkit::Mesh& mesh, std::vector<BVHNode>& nodes, Fragment* frag, size_t size);
 
     void   packMeshletsLnd(const zenkit::Mesh& mesh);

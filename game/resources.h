@@ -96,6 +96,7 @@ class Resources final {
     static const Tempest::Texture2d& fallbackBlack();
     static auto                      fallbackImage() -> const Tempest::StorageImage&;
     static auto                      fallbackImage3d() -> const Tempest::StorageImage&;
+    static Tempest::Texture2d        loadTextureUncached(std::string_view name, bool forceMips = false);
     static const Tempest::Texture2d* loadTexture(std::string_view name, bool forceMips = false);
     static const Tempest::Texture2d* loadTexture(Tempest::Color color);
     static const Tempest::Texture2d* loadTexture(std::string_view name, int32_t v, int32_t c);
@@ -181,7 +182,8 @@ class Resources final {
     void                  detectVdf(std::vector<Archive>& ret, const std::u16string& root);
 
     Tempest::Texture2d*   implLoadTexture(std::string_view cname, bool forceMips);
-    Tempest::Texture2d*   implLoadTexture(std::string &&name, zenkit::Read& data, bool forceMips);
+    Tempest::Texture2d    implLoadTextureUncached(std::string_view name, bool forceMips);
+    Tempest::Texture2d    implLoadTextureUncached(std::string_view name, zenkit::Read& data, bool forceMips);
     ProtoMesh*            implLoadMesh(std::string_view name);
     std::unique_ptr<ProtoMesh> implLoadMeshMain(std::string name);
     std::unique_ptr<Animation> implLoadAnimation(std::string name);

@@ -60,7 +60,7 @@ MainWindow::MainWindow(Device& device)
 
   focusImg   = Resources::loadTexture("FOCUS_HIGHLIGHT.TGA");
 
-  background = Resources::loadTexture("STARTSCREEN.TGA");
+  background = Resources::loadTextureUncached("STARTSCREEN.TGA");
   loadBox    = Resources::loadTexture("PROGRESS.TGA");
   loadVal    = Resources::loadTexture("PROGRESS_BAR.TGA");
 
@@ -167,14 +167,14 @@ void MainWindow::paintEvent(PaintEvent& event) {
 
   std::string_view info;
 
-  if(world==nullptr && background!=nullptr) {
+  if(world==nullptr && !background.isEmpty()) {
     p.setBrush(Color(0.0));
     p.drawRect(0,0,w(),h());
 
     if(st==Gothic::LoadState::Idle) {
-      p.setBrush(Brush(*background,Painter::NoBlend));
+      p.setBrush(Brush(background,Painter::NoBlend));
       p.drawRect(0,0,w(),h(),
-                 0,0,background->w(),background->h());
+                 0,0,background.w(),background.h());
       }
     }
 
@@ -1003,7 +1003,6 @@ void MainWindow::startGame(std::string_view slot) {
 
   if(Gothic::inst().checkLoading()==Gothic::LoadState::Idle){
     setGameImpl(nullptr);
-    // onWorldLoaded();
     }
 
   Gothic::inst().startLoad("LOADING.TGA",[slot=std::string(slot)](std::unique_ptr<GameSession>&& game){
@@ -1011,13 +1010,14 @@ void MainWindow::startGame(std::string_view slot) {
     std::unique_ptr<GameSession> w(new GameSession(slot));
     return w;
     });
+
+  background = Texture2d();
   update();
   }
 
 void MainWindow::loadGame(std::string_view slot) {
   if(Gothic::inst().checkLoading()==Gothic::LoadState::Idle){
     setGameImpl(nullptr);
-    // onWorldLoaded();
     }
 
   Gothic::inst().startLoad("LOADING.TGA",[slot=std::string(slot)](std::unique_ptr<GameSession>&& game){
@@ -1028,6 +1028,7 @@ void MainWindow::loadGame(std::string_view slot) {
     return w;
     });
 
+  background = Texture2d();
   update();
   }
 

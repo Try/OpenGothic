@@ -48,6 +48,7 @@ class Gothic final {
       bool     doBindless        = false;
       bool     doVirtualShadow   = false;
       bool     doSoftwareShadow  = false;
+      bool     doSoftwareRT      = false;
       uint32_t swRenderingPreset = 0;
 
       uint32_t aaPreset          = 0;
@@ -214,7 +215,7 @@ class Gothic final {
     std::unique_ptr<IniFile>                modFile;
     std::unique_ptr<IniFile>                systemPackIniFile;
 
-    const Tempest::Texture2d*               loadTex=nullptr;
+    Tempest::Texture2d                      loadTex;
     Tempest::Texture2d                      saveTex;
     std::atomic_int                         loadProgress{0};
     std::thread                             loaderTh;

@@ -96,6 +96,7 @@ Gothic::Gothic() {
   if(Shaders::isRtsmSupported()) {
     opts.doSoftwareShadow = CommandLine::inst().isSoftwareShadow();
     }
+  opts.doSoftwareRT = false;
 
   opts.aaPreset = CommandLine::inst().aaPreset();
 
@@ -319,8 +320,8 @@ void Gothic::setLoadingProgress(int v) {
   loadProgress.store(v);
   }
 
-const Tempest::Texture2d *Gothic::loadingBanner() const {
-  return loadTex;
+const Tempest::Texture2d* Gothic::loadingBanner() const {
+  return loadTex.isEmpty() ? &saveTex : &loadTex;
   }
 
 SoundFx *Gothic::loadSoundFx(std::string_view name) {
@@ -481,6 +482,7 @@ bool Gothic::finishLoading() {
     if(pendingGame!=nullptr)
       game = std::move(pendingGame);
     saveTex = Texture2d();
+    loadTex = Texture2d();
     onWorldLoaded();
     return true;
     }
@@ -501,7 +503,7 @@ void Gothic::startLoad(std::string_view banner,
 void Gothic::implStartLoadSave(std::string_view banner,
                                bool load,
                                const std::function<std::unique_ptr<GameSession>(std::unique_ptr<GameSession>&&)> f) {
-  loadTex = banner.empty() ? &saveTex : Resources::loadTexture(banner);
+  loadTex = banner.empty() ? Texture2d() : Resources::loadTextureUncached(banner);
   loadProgress.store(0);
 
   auto zero=LoadState::Idle;

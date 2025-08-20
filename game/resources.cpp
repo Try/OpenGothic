@@ -346,20 +346,33 @@ Tempest::Texture2d* Resources::implLoadTexture(std::string_view cname, bool forc
   if(cname.empty())
     return nullptr;
 
+  //TODO: __cpp_lib_generic_unordered_lookup
   std::string name = std::string(cname);
   auto it=texCache.find(name);
   if(it!=texCache.end())
     return it->second.get();
 
+  auto tex = implLoadTextureUncached(cname, forceMips);
+  if(!tex.isEmpty()) {
+    std::unique_ptr<Texture2d> t{new Texture2d(std::move(tex))};
+    Texture2d* ret=t.get();
+    texCache[std::move(name)] = std::move(t);
+    return ret;
+    }
+  texCache[std::move(name)] = nullptr;
+  return nullptr;
+  }
+
+Texture2d Resources::implLoadTextureUncached(std::string_view name, bool forceMips) {
+  if(name.empty())
+    return Texture2d();
+
   if(FileExt::hasExt(name,"TGA")) {
-    name.resize(name.size() + 2);
-    std::memcpy(&name[0]+name.size()-6,"-C.TEX",6);
+    auto nameAlt = std::string(name);
+    nameAlt.resize(nameAlt.size() + 2);
+    std::memcpy(&nameAlt[0]+nameAlt.size()-6, "-C.TEX", 6);
 
-    it=texCache.find(name);
-    if(it!=texCache.end())
-      return it->second.get();
-
-    if(const auto* entry = Resources::vdfsIndex().find(name)) {
+    if(const auto* entry = Resources::vdfsIndex().find(nameAlt)) {
       zenkit::Texture tex;
 
       auto reader = entry->open_read();
@@ -373,20 +386,14 @@ Tempest::Texture2d* Resources::implLoadTexture(std::string_view cname, bool forc
         auto dds = zenkit::to_dds(tex);
         auto ddsRead = zenkit::Read::from(dds);
 
-        auto t = implLoadTexture(std::string(cname), *ddsRead, forceMips);
-        if(t!=nullptr)
-          return t;
+        return implLoadTextureUncached(name, *ddsRead, forceMips);
         } else {
         auto rgba = tex.as_rgba8(0);
 
         try {
           Tempest::Pixmap    pm(tex.width(), tex.height(), TextureFormat::RGBA8);
           std::memcpy(pm.data(), rgba.data(), rgba.size());
-
-          std::unique_ptr<Texture2d> t{new Texture2d(dev.texture(pm))};
-          Texture2d* ret=t.get();
-          texCache[std::move(name)] = std::move(t);
-          return ret;
+          return dev.texture(pm);
           }
         catch (...) {
           }
@@ -394,16 +401,14 @@ Tempest::Texture2d* Resources::implLoadTexture(std::string_view cname, bool forc
       }
     }
 
-  if(auto* entry = Resources::vdfsIndex().find(cname)) {
+  if(auto* entry = Resources::vdfsIndex().find(name)) {
     auto reader = entry->open_read();
-    return implLoadTexture(std::string(cname), *reader, forceMips);
+    return implLoadTextureUncached(name, *reader, forceMips);
     }
-
-  texCache[name]=nullptr;
-  return nullptr;
+  return Texture2d();
   }
 
-Texture2d *Resources::implLoadTexture(std::string&& name, zenkit::Read& data, bool forceMips) {
+Texture2d Resources::implLoadTextureUncached(std::string_view name, zenkit::Read& data, bool forceMips) {
   try {
     std::vector<uint8_t> raw;
     data.seek(0, zenkit::Whence::END);
@@ -415,13 +420,10 @@ Texture2d *Resources::implLoadTexture(std::string&& name, zenkit::Read& data, bo
     Tempest::Pixmap    pm(rd);
 
     const bool useMipmap = forceMips || (pm.mipCount()>1); // do not generate mips, if original texture has has none
-    std::unique_ptr<Texture2d> t{new Texture2d(dev.texture(pm, useMipmap))};
-    Texture2d* ret=t.get();
-    texCache[std::move(name)] = std::move(t);
-    return ret;
+    return dev.texture(pm, useMipmap);
     }
   catch(...){
-    return nullptr;
+    return Texture2d();
     }
   }
 
@@ -780,7 +782,11 @@ GthFont &Resources::implLoadFont(std::string_view name, FontType type, const flo
   return *f;
   }
 
-const Texture2d *Resources::loadTexture(std::string_view name, bool forceMips) {
+Texture2d Resources::loadTextureUncached(std::string_view name, bool forceMips) {
+  return inst->implLoadTextureUncached(name, forceMips);
+  }
+
+const Texture2d* Resources::loadTexture(std::string_view name, bool forceMips) {
   std::lock_guard<std::recursive_mutex> g(inst->sync);
   return inst->implLoadTexture(name,forceMips);
   }

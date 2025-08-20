@@ -90,6 +90,7 @@ Renderer::Renderer(Tempest::Swapchain& swapchain)
   settings.vsmEnabled  = Gothic::options().doVirtualShadow;
   settings.rtsmEnabled = Gothic::options().doSoftwareShadow;
   settings.swrEnabled  = Gothic::options().swRenderingPreset>0;
+  settings.swrtEnabled = Gothic::options().doSoftwareRT;
 
   sky.cloudsLut     = device.image2d   (sky.lutRGBAFormat,  2,  1);
   sky.transLut      = device.attachment(sky.lutRGBFormat, 256, 64);
@@ -843,6 +844,7 @@ void Renderer::drawSwRT(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const Wor
 
   if(swrt.outputImage.isEmpty()) {
     auto& device = Resources::device();
+    // swrt.outputImage = device.image2d(TextureFormat::R32U, zbuffer.size());
     swrt.outputImage = device.image2d(TextureFormat::RGBA8, zbuffer.size());
     }
 
