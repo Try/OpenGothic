@@ -27,6 +27,15 @@ struct Ray {
   vec3 oriDir;
   };
 
+//NOTE: GL_AMD_shader_trinary_minmax
+float bvhMax3(float a, float b, float c) {
+  return max(a, max(b, c));
+  }
+
+float bvhMin3(float a, float b, float c) {
+  return min(a, min(b, c));
+  }
+
 vec3 rayTriangleTest(const Ray ray, const vec3 v0, const vec3 e1, const vec3 e2) {
 #if defined(DEBUG)
   numTri++;
@@ -63,8 +72,13 @@ float rayBoxTest(const Ray ray, const vec3 boxMin, const vec3 boxMax, float hitT
   vec3  t1    = min(tMin, tMax);
   vec3  t2    = max(tMin, tMax);
 
-  float tNear = max(0,    max(max(t1.x, t1.y), t1.z));
-  float tFar  = min(hitT, min(min(t2.x, t2.y), t2.z));
+#if 0
+  float tNear = max(0,    bvhMax3(t1.x, t1.y, t1.z));
+  float tFar  = min(hitT, bvhMin3(t2.x, t2.y, t2.z));
+#else
+  float tNear = bvhMax3(t1.x, t1.y, t1.z);
+  float tFar  = bvhMin3(t2.x, t2.y, t2.z);
+#endif
 
   return tNear > tFar ? TMax : tNear;
   }
