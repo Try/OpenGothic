@@ -29,9 +29,9 @@ SceneGlobals::SceneGlobals() {
   for(auto& i:shadowMap)
     i = &Resources::fallbackBlack();
 
-  vsmPageData = &Resources::fallbackBlack();
-  vsmPageTbl  = &Resources::fallbackImage3d();
-  vsmPageHiZ  = &Resources::fallbackImage3d();
+  vsmPageData = nullptr;
+  vsmPageTbl  = nullptr;
+  vsmPageHiZ  = nullptr;
   vsmDbg      = device.image2d(Tempest::TextureFormat::R32U, 64, 64);
 
   for(uint8_t lay=0; lay<V_Count; ++lay) {
@@ -238,14 +238,23 @@ void SceneGlobals::setShadowMap(const Tempest::Texture2d* tex[]) {
     shadowMap[i] = tex[i];
   }
 
-void SceneGlobals::setVirtualShadowMap(const Tempest::ZBuffer&       pageData,
+void SceneGlobals::setVirtualShadowMap(bool enabled,
+                                       const Tempest::ZBuffer&       pageData,
                                        const Tempest::StorageImage&  pageTbl,
                                        const Tempest::StorageImage&  pageHiZ,
                                        const Tempest::StorageBuffer& pageList) {
-  vsmPageData   = &Tempest::textureCast<const Tempest::Texture2d&>(pageData);
-  vsmPageTbl    = &pageTbl;
-  vsmPageHiZ    = &pageHiZ;
-  vsmPageList   = &pageList;
+  vsmEnabled = enabled;
+  if(enabled) {
+    vsmPageData   = &Tempest::textureCast<const Tempest::Texture2d&>(pageData);
+    vsmPageTbl    = &pageTbl;
+    vsmPageHiZ    = &pageHiZ;
+    vsmPageList   = &pageList;
+    } else {
+    vsmPageData   = nullptr;
+    vsmPageTbl    = nullptr;
+    vsmPageHiZ    = nullptr;
+    vsmPageList   = nullptr;
+    }
   }
 
 const Tempest::Matrix4x4& SceneGlobals::viewProject() const {

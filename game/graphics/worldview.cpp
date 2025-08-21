@@ -91,11 +91,12 @@ void WorldView::setShadowMaps(const Tempest::Texture2d* sh[]) {
   sGlobal.setShadowMap(shadow);
   }
 
-void WorldView::setVirtualShadowMap(const Tempest::ZBuffer&       pageData,
+void WorldView::setVirtualShadowMap(bool enabled,
+                                    const Tempest::ZBuffer&       pageData,
                                     const Tempest::StorageImage&  pageTbl,
                                     const Tempest::StorageImage&  pageHiZ,
                                     const Tempest::StorageBuffer& pageList)  {
-  sGlobal.setVirtualShadowMap(pageData, pageTbl, pageHiZ, pageList);
+  sGlobal.setVirtualShadowMap(enabled, pageData, pageTbl, pageHiZ, pageList);
   }
 
 void WorldView::setHiZ(const Tempest::Texture2d& hiZ) {

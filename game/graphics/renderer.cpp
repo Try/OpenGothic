@@ -171,9 +171,6 @@ void Renderer::resetSwapchain() {
     vsm.fogDbg      = StorageImage();
     vsm.pageList    = StorageBuffer();
     vsm.pageListTmp = StorageBuffer();
-
-    //FIXME: used internally by DrawCommands
-    vsm.pageTbl  = device.image3d(TextureFormat::R32U, 32, 32, 16);
   }
 
   // rtsm
@@ -346,7 +343,7 @@ void Renderer::prepareUniforms() {
       sh[i] = &textureCast<const Texture2d&>(shadowMap[i]);
       }
   wview->setShadowMaps(sh);
-  wview->setVirtualShadowMap(vsm.pageData, vsm.pageTbl, vsm.pageHiZ, vsm.pageList);
+  wview->setVirtualShadowMap(settings.vsmEnabled, vsm.pageData, vsm.pageTbl, vsm.pageHiZ, vsm.pageList);
 
   wview->setHiZ(textureCast<const Texture2d&>(hiz.hiZ));
   wview->setGbuffer(textureCast<const Texture2d&>(gbufDiffuse), textureCast<const Texture2d&>(gbufNormal));
@@ -1013,7 +1010,7 @@ void Renderer::drawVsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView&
     vsm.visibleLights = device.ssbo(nullptr, shaders.vsmClearOmni.sizeofBuffer(1, wview.lights().size()));
     }
 
-  wview.setVirtualShadowMap(vsm.pageData, vsm.pageTbl, vsm.pageHiZ, vsm.pageList);
+  wview.setVirtualShadowMap(true, vsm.pageData, vsm.pageTbl, vsm.pageHiZ, vsm.pageList);
 
   cmd.setFramebuffer({});
   cmd.setDebugMarker("VSM-pages");
