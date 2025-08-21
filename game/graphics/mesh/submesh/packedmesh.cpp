@@ -690,7 +690,6 @@ uint32_t PackedMesh::packPrimNode(const zenkit::Mesh& mesh, std::vector<BVHNode>
     };
 
   const auto& ibo = mesh.polygons.vertex_indices;
-  const Vec3 sunDir = {-0.41136685f, 0.568427563f, -0.712507844f};
 
   if(size<=1) {
     const uint32_t prim = frag[0].primId;
