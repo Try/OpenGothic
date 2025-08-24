@@ -56,41 +56,9 @@ CsCamera::KbSpline::KbSpline(const std::vector<std::shared_ptr<zenkit::VCameraTr
   if(keyframe.back().time!=duration) {
     Log::e("CsCamera: \"", vobName, "\" - invalid sequence duration");
     }
-
-  const float slow   = 0;
-  const float linear = duration;
-  const float fast   = 2 * duration;
-
-  const zenkit::CameraMotion mType0 = frames.front()->motion_type;
-  const zenkit::CameraMotion mType1 = frames.back() ->motion_type;
-
-  float d0 = slow;
-  float d1 = slow;
-  if(mType0!=zenkit::CameraMotion::SLOW && mType1!=zenkit::CameraMotion::SLOW) {
-    d0 = linear;
-    d1 = linear;
-    }
-  else if(mType0==zenkit::CameraMotion::SLOW && mType1!=zenkit::CameraMotion::SLOW) {
-    d0 = slow;
-    d1 = fast;
-    }
-  else if(mType0!=zenkit::CameraMotion::SLOW && mType1==zenkit::CameraMotion::SLOW) {
-    d0 = fast;
-    d1 = slow;
-    }
-
-  this->c[0] = -2*duration +   d0 + d1;
-  this->c[1] =  3*duration - 2*d0 - d1;
-  this->c[2] = d0;
-  }
-
-float CsCamera::KbSpline::applyMotionScaling(uint64_t time) const {
-  const float t = (float(time)/1000.f)/keyframe.back().time;
-  return std::min(((c[0]*t + c[1])*t + c[2])*t, keyframe.back().time);
   }
 
 Vec3 CsCamera::KbSpline::position(const uint64_t time) const {
-  // const float t = applyMotionScaling(time);
   const float t = float(time)/1000.f;
 
   //TODO: lower bound

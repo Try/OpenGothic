@@ -29,11 +29,9 @@ class CsCamera : public AbstractTrigger {
       KbSpline() = default;
       KbSpline(const std::vector<std::shared_ptr<zenkit::VCameraTrajectoryFrame>>& frames, const float duration, std::string_view vobName);
 
-      float                 c[3] = {};
       std::vector<KeyFrame> keyframe;
       size_t                size() const { return keyframe.size(); }
       auto                  position(const uint64_t time) const -> Tempest::Vec3;
-      float                 applyMotionScaling(uint64_t t) const;
       };
 
     void onTrigger(const TriggerEvent& evt) override;
