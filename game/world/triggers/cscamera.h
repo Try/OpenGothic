@@ -5,6 +5,7 @@
 #include "abstracttrigger.h"
 
 class World;
+class DbgPainter;
 
 class CsCamera : public AbstractTrigger {
   public:
@@ -12,10 +13,13 @@ class CsCamera : public AbstractTrigger {
 
     bool isPlayerMovable() const;
 
+    void debugDraw(DbgPainter& p) const;
+
   private:
     struct KeyFrame {
       float         time = 0;
       Tempest::Vec3 c[4] = {};
+      zenkit::CameraMotion motionType = zenkit::CameraMotion::LINEAR;
 
       auto          position(float u) const -> Tempest::Vec3;
       float         arcLength() const;
@@ -28,8 +32,8 @@ class CsCamera : public AbstractTrigger {
       float                 c[3] = {};
       std::vector<KeyFrame> keyframe;
       size_t                size() const { return keyframe.size(); }
-      auto                  position(float time) const -> Tempest::Vec3;
-      float                 applyMotionScaling(float t) const;
+      auto                  position(const uint64_t time) const -> Tempest::Vec3;
+      float                 applyMotionScaling(uint64_t t) const;
       };
 
     void onTrigger(const TriggerEvent& evt) override;
@@ -44,10 +48,9 @@ class CsCamera : public AbstractTrigger {
 
     uint64_t duration      = 0;
     uint64_t delay         = 0;
-    uint64_t time          = 0;
+    uint64_t timeTrigger   = 0;
 
     bool     active        = false;
-    bool     godMode       = false;
     bool     playerMovable = false;
     bool     autoUntrigger = false;
   };

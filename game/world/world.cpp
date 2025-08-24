@@ -567,6 +567,10 @@ void World::marchPoints(DbgPainter& p) const {
   wmatrix->marchPoints(p);
   }
 
+void World::marchCsCameras(DbgPainter& p) const {
+  wobj.marchCsCameras(p);
+  }
+
 AiOuputPipe *World::openDlgOuput(Npc &player, Npc &npc) {
   return game.openDlgOuput(player,npc);
   }
