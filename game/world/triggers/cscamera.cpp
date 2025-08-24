@@ -35,13 +35,21 @@ CsCamera::KbSpline::KbSpline(const std::vector<std::shared_ptr<zenkit::VCameraTr
 
   const size_t size = keyframe.size();
   for(size_t i=0; i+1<size; ++i) {
+    auto& kF0 = i==0 ? keyframe[i+0] : keyframe[i-1];
+    auto& kF1 = keyframe[i+0];
+    auto& kF2 = keyframe[i+1];
+    auto& kF3 = i+2==size ? kF2 : keyframe[i+2];
+
+    auto& p0  = kF0.c[3];
+    auto& p1  = kF1.c[3];
+    auto& p2  = kF2.c[3];
+    auto& p3  = kF3.c[3];
+
+    float dt  = kF2.time-kF1.time;
+    Vec3  dd  = (p2-p0) * dt/(kF2.time-kF0.time);
+    Vec3  sd  = (p3-p1) * dt/(kF3.time-kF1.time);
+
     auto& kF  = keyframe[i];
-    Vec3  p0  = i==0 ? kF.c[3] : keyframe[i-1].c[3];
-    Vec3  p1  = kF.c[3];
-    Vec3  p2  = keyframe[i+1].c[3];
-    Vec3  p3  = i+2==size ? kF.c[3] : keyframe[i+2].c[3];
-    Vec3  dd  = (p2-p0)*0.5f;
-    Vec3  sd  = (p3-p1)*0.5f;
     kF.c[0] =  2 * p1 - 2*p2 +   dd + sd;
     kF.c[1] = -3 * p1 + 3*p2 - 2*dd - sd;
     kF.c[2] = std::move(dd);
