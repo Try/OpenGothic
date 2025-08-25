@@ -72,7 +72,7 @@ float rayBoxTest(const Ray ray, const vec3 boxMin, const vec3 boxMax, float hitT
   vec3  t1    = min(tMin, tMax);
   vec3  t2    = max(tMin, tMax);
 
-#if 0
+#if 1
   float tNear = max(0,    bvhMax3(t1.x, t1.y, t1.z));
   float tFar  = min(hitT, bvhMin3(t2.x, t2.y, t2.z));
 #else
