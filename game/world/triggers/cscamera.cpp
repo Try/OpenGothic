@@ -2,14 +2,101 @@
 
 #include <Tempest/Log>
 #include <cassert>
-
+#include "utils/dbgpainter.h"
 #include "gothic.h"
 
 using namespace Tempest;
 
+Vec3 CsCamera::KeyFrame::position(float u) const {
+  return ((c[0]*u + c[1])*u + c[2])*u + c[3];
+  }
+
+float CsCamera::KeyFrame::arcLength() const {
+  float len  = 0;
+  Vec3  prev = c[3];
+  for(int i=1; i<=100; ++i) {
+    Vec3 at = position(float(i)/100.f);
+    len += (at-prev).length();
+    prev = at;
+    }
+  return len;
+  }
+
+
+CsCamera::KbSpline::KbSpline(const std::vector<std::shared_ptr<zenkit::VCameraTrajectoryFrame>>& frames, const float duration, std::string_view vobName) {
+  keyframe.reserve(frames.size());
+  for(auto& f : frames) {
+    KeyFrame kF;
+    kF.c[3]  = Vec3(f->original_pose[3][0],f->original_pose[3][1],f->original_pose[3][2]);
+    kF.time  = f->time;
+    kF.motionType = f->motion_type;
+    keyframe.push_back(kF);
+    }
+
+  const size_t size = keyframe.size();
+  for(size_t i=0; i+1<size; ++i) {
+    auto& kF0 = i==0 ? keyframe[i+0] : keyframe[i-1];
+    auto& kF1 = keyframe[i+0];
+    auto& kF2 = keyframe[i+1];
+    auto& kF3 = i+2==size ? kF2 : keyframe[i+2];
+
+    auto& p0  = kF0.c[3];
+    auto& p1  = kF1.c[3];
+    auto& p2  = kF2.c[3];
+    auto& p3  = kF3.c[3];
+
+    float dt  = kF2.time-kF1.time;
+    Vec3  dd  = (p2-p0) * dt/(kF2.time-kF0.time);
+    Vec3  sd  = (p3-p1) * dt/(kF3.time-kF1.time);
+
+    auto& kF  = keyframe[i];
+    kF.c[0] =  2 * p1 - 2*p2 +   dd + sd;
+    kF.c[1] = -3 * p1 + 3*p2 - 2*dd - sd;
+    kF.c[2] = std::move(dd);
+    }
+
+  if(size<2)
+    return;
+
+  if(keyframe.front().time!=0) {
+    Log::e("CsCamera: \"", vobName, "\" - invalid first frame");
+    }
+  if(keyframe.back().time!=duration) {
+    Log::e("CsCamera: \"", vobName, "\" - invalid sequence duration");
+    }
+  }
+
+Vec3 CsCamera::KbSpline::position(const uint64_t time) const {
+  const float t = float(time)/1000.f;
+
+  //TODO: lower bound
+  uint32_t n = 0;
+  while(n+1<keyframe.size() && t>=keyframe[n+1].time) {
+    ++n;
+    }
+
+  auto& kF0 = keyframe[n];
+  auto& kF1 = keyframe[n+1];
+  float u   = (t - kF0.time) / (kF1.time - kF0.time);
+
+  const float k = 1.005f;
+  if(kF0.motionType==zenkit::CameraMotion::SLOW && kF1.motionType!=zenkit::CameraMotion::SLOW) {
+    // slow -> non-slow = accelerate
+    u = std::pow(u, k);
+    }
+  else if(kF0.motionType!=zenkit::CameraMotion::SLOW && kF1.motionType==zenkit::CameraMotion::SLOW) {
+    // non-slow -> slow = deccelerate
+    u = std::pow(u, 1.f/k);
+    }
+
+  assert(0<=u && u<=1);
+  return keyframe[n].position(u);
+  }
+
+
 CsCamera::CsCamera(Vob* parent, World& world, const zenkit::VCutsceneCamera& cam, Flags flags)
   :AbstractTrigger(parent,world,cam,flags) {
-  if(cam.position_count<1 || cam.total_duration<0)
+  if(cam.position_count<1 || cam.total_duration<=0)
     return;
 
   if(cam.trajectory_for==zenkit::CameraCoordinateReference::OBJECT || cam.target_trajectory_for==zenkit::CameraCoordinateReference::OBJECT) {
@@ -17,91 +104,48 @@ CsCamera::CsCamera(Vob* parent, World& world, const zenkit::VCutsceneCamera& cam
     return;
     }
 
-  durationF     = cam.total_duration;
   duration      = uint64_t(cam.total_duration * 1000.f);
   delay         = uint64_t(cam.auto_untrigger_last_delay * 1000.f);
   autoUntrigger = cam.auto_untrigger_last;
   playerMovable = cam.auto_player_movable;
 
-  for(auto& f : cam.trajectory_frames) {
-    KeyFrame kF;
-    kF.c[3]  = Vec3(f->original_pose[3][0],f->original_pose[3][1],f->original_pose[3][2]);
-    kF.time  = f->time;
-    posSpline.keyframe.push_back(kF);
-    }
-
-  for(auto& f : cam.target_frames) {
-    KeyFrame kF;
-    kF.c[3]  = Vec3(f->original_pose[3][0],f->original_pose[3][1],f->original_pose[3][2]);
-    kF.time  = f->time;
-    targetSpline.keyframe.push_back(kF);
-    }
-
-  for(auto spl : {&posSpline,&targetSpline}) {
-    uint32_t size = uint32_t(spl->size());
-    for(uint32_t i=0;i+1<size;++i) {
-      auto& kF  = spl->keyframe[i];
-      Vec3  p0  = i==0 ? kF.c[3] : spl->keyframe[i-1].c[3];
-      Vec3  p1  = kF.c[3];
-      Vec3  p2  = spl->keyframe[i+1].c[3];
-      Vec3  p3  = i+2==size ? kF.c[3] : spl->keyframe[i+2].c[3];
-      Vec3  dd  = (p2-p0)*0.5f;
-      Vec3  sd  = (p3-p1)*0.5f;
-      kF.c[0] =  2 * p1 - 2*p2 +   dd + sd;
-      kF.c[1] = -3 * p1 + 3*p2 - 2*dd - sd;
-      kF.c[2] = std::move(dd);
-      }
-
-    if(size<2)
-      continue;
-
-    if(spl->keyframe.front().time!=0) {
-      Log::e("CsCamera: \"",cam.vob_name,"\" - invalid first frame");
-      }
-    if(spl->keyframe.back().time!=durationF) {
-      Log::e("CsCamera: \"",cam.vob_name,"\" - invalid sequence duration");
-      }
-
-    const float slow   = 0;
-    const float linear = durationF;
-    const float fast   = 2 * durationF;
-
-    zenkit::CameraMotion mType0, mType1;
-    if(spl == &posSpline) {
-      mType0 = cam.trajectory_frames[0]->motion_type;
-      mType1 = cam.trajectory_frames.back()->motion_type;
-      } else {
-      mType0 = cam.target_frames[0]->motion_type;
-      mType1 = cam.target_frames.back()->motion_type;
-      }
-
-    float d0 = slow;
-    float d1 = slow;
-    if(mType0!=zenkit::CameraMotion::SLOW && mType1!=zenkit::CameraMotion::SLOW) {
-      d0 = linear;
-      d1 = linear;
-      }
-    else if(mType0==zenkit::CameraMotion::SLOW && mType1!=zenkit::CameraMotion::SLOW) {
-      d0 = slow;
-      d1 = fast;
-      }
-    else if(mType0!=zenkit::CameraMotion::SLOW && mType1==zenkit::CameraMotion::SLOW) {
-      d0 = fast;
-      d1 = slow;
-      }
-
-    spl->c[0] = -2*durationF +   d0 + d1;
-    spl->c[1] =  3*durationF - 2*d0 - d1;
-    spl->c[2] = d0;
-    }
+  posSpline    = KbSpline(cam.trajectory_frames, cam.total_duration, cam.vob_name);
+  targetSpline = KbSpline(cam.target_frames, cam.total_duration, cam.vob_name);
   }
 
 bool CsCamera::isPlayerMovable() const {
   return playerMovable;
   }
 
+void CsCamera::debugDraw(DbgPainter& p) const {
+  static bool dbg = false;
+  if(!dbg)
+    return;
+
+  if(posSpline.size()<=1)
+    return;
+
+  auto at = posSpline.keyframe[0].position(0);
+  for(size_t i=1; i<posSpline.size(); ++i) {
+    auto& k   = posSpline.keyframe[i];
+    p.setPen(Color(0,0,1));
+    for(size_t r=0; r<100; ++r) {
+      auto  pos = k.position(float(r)/100.f);
+      p.drawLine(at, pos);
+      at = pos;
+      }
+
+    auto  pt = k.position(0);
+    float l  = 30;
+    p.setPen(Color(1,0,1));
+    p.drawLine(pt-Vec3(l,0,0),pt+Vec3(l,0,0));
+    p.drawLine(pt-Vec3(0,l,0),pt+Vec3(0,l,0));
+    p.drawLine(pt-Vec3(0,0,l),pt+Vec3(0,0,l));
+    }
+  }
+
 void CsCamera::onTrigger(const TriggerEvent& evt) {
-  if(active || posSpline.size()==0)
+  if(hasTicksEnabled() || posSpline.size()==0)
     return;
 
   if(auto cs = world.currentCs())
@@ -113,35 +157,27 @@ void CsCamera::onTrigger(const TriggerEvent& evt) {
     camera.setMode(Camera::Mode::Cutscene);
     }
 
-  active               = true;
-  time                 = 0;
-  posSpline.splTime    = 0;
-  targetSpline.splTime = 0;
-  godMode              = Gothic::inst().isGodMode();
-  Gothic::inst().setGodMode(true);
+  timeTrigger = world.tickCount();
   world.setCurrentCs(this);
   enableTicks();
   }
 
 void CsCamera::onUntrigger(const TriggerEvent& evt) {
-  if(!active)
+  if(!hasTicksEnabled())
     return;
-  active = false;
   disableTicks();
+
   if(world.currentCs()!=this)
     return;
 
   world.setCurrentCs(nullptr);
-  Gothic::inst().setGodMode(godMode);
-
   auto& camera = world.gameSession().camera();
   camera.setMode(Camera::Mode::Normal);
   camera.reset();
   }
 
-void CsCamera::tick(uint64_t dt) {
-  time += dt;
-
+void CsCamera::tick(uint64_t /*dt*/) {
+  const uint64_t time = world.tickCount() - timeTrigger;
   if(time>duration+delay && (autoUntrigger || vobName=="TIMEDEMO")) {
     TriggerEvent e("","",TriggerEvent::T_Untrigger);
     onUntrigger(e);
@@ -153,7 +189,7 @@ void CsCamera::tick(uint64_t dt) {
 
   auto& camera = world.gameSession().camera();
   if(camera.isCutscene()) {
-    auto cPos   = position();
+    auto cPos = position();
     camera.setPosition(cPos);
     camera.setSpin(spin(cPos));
     }
@@ -164,8 +200,8 @@ Vec3 CsCamera::position() {
   if(posSpline.size()==1) {
     pos = posSpline.keyframe[0].c[3];
     } else {
-    posSpline.setSplTime(float(time)/float(duration));
-    pos = posSpline.position();
+    const uint64_t time = std::min(world.tickCount() - timeTrigger, duration);
+    pos = posSpline.position(time);
     }
   return pos;
   }
@@ -176,8 +212,8 @@ PointF CsCamera::spin(Tempest::Vec3& d) {
   else if(targetSpline.size()==1)
     d = targetSpline.keyframe[0].c[3] - d;
   else if(targetSpline.size()>1) {
-    targetSpline.setSplTime(float(time)/float(duration));
-    d = targetSpline.position() - d;
+    const uint64_t time = std::min(world.tickCount() - timeTrigger, duration);
+    d = targetSpline.position(time) - d;
     }
 
   float k     = 180.f/float(M_PI);
@@ -186,32 +222,4 @@ PointF CsCamera::spin(Tempest::Vec3& d) {
   if(d.x!=0.f || d.z!=0.f)
     spinY = 90 + k * std::atan2(d.z,d.x);
   return {-spinX,spinY};
-  }
-
-void CsCamera::KbSpline::setSplTime(float time) {
-  float    t   = applyMotionScaling(time);
-  uint32_t n   = uint32_t(splTime);
-  auto     kF0 = &keyframe[n];
-  auto     kF1 = &keyframe[n+1];
-  if(t>kF1->time) {
-    splTime = std::ceil(splTime);
-    n       = uint32_t(splTime);
-    kF0     = kF1;
-    kF1     = &keyframe[n+1];
-    }
-  assert(n<size());
-  float u = (t - kF0->time) / (kF1->time - kF0->time);
-  assert(u>=0 && u<=1);
-  splTime = float(n) + u;
-  }
-
-Vec3 CsCamera::KbSpline::position() const {
-  float n;
-  float t  = std::modf(splTime,&n);
-  auto& kF = keyframe[uint32_t(n)];
-  return ((kF.c[0]*t + kF.c[1])*t + kF.c[2])*t + kF.c[3];
-  }
-
-float CsCamera::KbSpline::applyMotionScaling(float t) const {
-  return std::min(((c[0]*t + c[1])*t + c[2])*t,keyframe.back().time);
   }

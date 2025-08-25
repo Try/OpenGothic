@@ -1164,6 +1164,8 @@ void Npc::changeAttribute(Attribute a, int32_t val, bool allowUnconscious) {
   if(val<0 && a==ATR_HITPOINTS) {
     if(isPlayer() && Gothic::inst().isGodMode())
       return;
+    if(isPlayer() && owner.currentCs()!=nullptr)
+      return;
     if(isImmortal())
       return;
     }

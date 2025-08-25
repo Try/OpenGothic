@@ -72,6 +72,7 @@ class AbstractTrigger : public Vob {
     virtual void                 onGotoMsg(const TriggerEvent& evt);
     void                         moveEvent() override;
 
+    bool                         hasTicksEnabled() const;
     void                         enableTicks();
     void                         disableTicks();
     const std::vector<Npc*>&     intersections() const;

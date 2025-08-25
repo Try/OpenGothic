@@ -7,6 +7,7 @@
 #include "world/objects/interactive.h"
 #include "world/objects/vob.h"
 #include "world/collisionzone.h"
+#include "world/triggers/cscamera.h"
 #include "world/triggers/pfxcontroller.h"
 #include "world/triggers/triggerworldstart.h"
 #include "world/triggers/abstracttrigger.h"
@@ -818,6 +819,13 @@ void WorldObjects::marchInteractives(DbgPainter &p) const {
 
     i->marchInteractives(p);
     }
+  }
+
+void WorldObjects::marchCsCameras(DbgPainter& p) const {
+  for(auto& i:triggers)
+    if(auto c = dynamic_cast<CsCamera*>(i)) {
+      c->debugDraw(p);
+      }
   }
 
 Interactive *WorldObjects::availableMob(const Npc &pl, std::string_view dest) {
