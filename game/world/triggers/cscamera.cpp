@@ -145,7 +145,7 @@ void CsCamera::debugDraw(DbgPainter& p) const {
   }
 
 void CsCamera::onTrigger(const TriggerEvent& evt) {
-  if(active || posSpline.size()==0)
+  if(hasTicksEnabled() || posSpline.size()==0)
     return;
 
   if(auto cs = world.currentCs())
@@ -157,22 +157,20 @@ void CsCamera::onTrigger(const TriggerEvent& evt) {
     camera.setMode(Camera::Mode::Cutscene);
     }
 
-  active      = true;
   timeTrigger = world.tickCount();
   world.setCurrentCs(this);
   enableTicks();
   }
 
 void CsCamera::onUntrigger(const TriggerEvent& evt) {
-  if(!active)
+  if(!hasTicksEnabled())
     return;
-  active = false;
   disableTicks();
+
   if(world.currentCs()!=this)
     return;
 
   world.setCurrentCs(nullptr);
-
   auto& camera = world.gameSession().camera();
   camera.setMode(Camera::Mode::Normal);
   camera.reset();

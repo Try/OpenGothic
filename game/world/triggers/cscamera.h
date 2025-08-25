@@ -48,7 +48,6 @@ class CsCamera : public AbstractTrigger {
     uint64_t delay         = 0;
     uint64_t timeTrigger   = 0;
 
-    bool     active        = false;
     bool     playerMovable = false;
     bool     autoUntrigger = false;
   };
