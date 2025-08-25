@@ -142,6 +142,7 @@ class World final {
 
     void                 marchInteractives(DbgPainter& p) const;
     void                 marchPoints      (DbgPainter& p) const;
+    void                 marchCsCameras   (DbgPainter& p) const;
 
     AiOuputPipe*         openDlgOuput(Npc &player, Npc &npc);
     void                 aiOutputSound(Npc &player, std::string_view msg);

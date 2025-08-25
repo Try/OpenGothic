@@ -126,6 +126,7 @@ class WorldObjects final {
     Item*          findItem       (const Npc& pl, Item* def, const SearchOpt& opt);
 
     void           marchInteractives(DbgPainter& p) const;
+    void           marchCsCameras(DbgPainter& p) const;
 
     Interactive*   availableMob(const Npc& pl, std::string_view name);
     void           setMobRoutine(gtime time, std::string_view scheme, int32_t state);
