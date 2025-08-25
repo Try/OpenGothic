@@ -140,6 +140,10 @@ void AbstractTrigger::moveEvent() {
   boxNpc.setPosition(position()+bboxOrigin);
   }
 
+bool AbstractTrigger::hasTicksEnabled() const {
+  return ticksEnabled;
+  }
+
 void AbstractTrigger::onIntersect(Npc& n) {
   if(vobType==zenkit::VirtualObjectType::zCMover || vobType==zenkit::VirtualObjectType::zCCSCamera)
     return;

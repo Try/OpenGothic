@@ -254,6 +254,7 @@ void MainWindow::paintEvent(PaintEvent& event) {
       world->marchPoints(dbg);
       world->marchInteractives(dbg);
       world->view()->dbgLights(dbg);
+      world->marchCsCameras(dbg);
       }
     }
 
