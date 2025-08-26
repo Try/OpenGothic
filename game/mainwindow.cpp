@@ -1129,7 +1129,6 @@ void MainWindow::onBenchmarkFinished() {
   Log::i(str.c_str());
   console.printLine(str);
 
-  console.resize(w(),h());
   console.setFocus(true);
   console.exec();
   }
