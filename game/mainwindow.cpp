@@ -16,6 +16,7 @@
 
 #include "utils/mouseutil.h"
 #include "utils/string_frm.h"
+#include "world/triggers/abstracttrigger.h"
 #include "world/objects/npc.h"
 #include "game/serialize.h"
 #include "game/globaleffects.h"
@@ -73,6 +74,8 @@ MainWindow::MainWindow(Device& device)
   Gothic::inst().onSessionExit .bind(this,&MainWindow::onSessionExit);
 
   Gothic::inst().onVideo       .bind(this,&MainWindow::onVideo);
+
+  Gothic::inst().onBenchmarkFinished.bind(this,&MainWindow::onBenchmarkFinished);
 
   if(!Gothic::inst().defaultSave().empty()){
     Gothic::inst().load(Gothic::inst().defaultSave());
@@ -907,15 +910,15 @@ void MainWindow::updateAnimation(uint64_t dt) {
 void MainWindow::tickCamera(uint64_t dt) {
   auto pcamera = Gothic::inst().camera();
   auto pl      = Gothic::inst().player();
-  if(pcamera==nullptr || pl==nullptr)
+  if(pcamera==nullptr)
     return;
 
   auto&      camera       = *pcamera;
-  const auto ws           = pl->weaponState();
+  const auto ws           = pl!=nullptr ? pl->weaponState() : WeaponState::NoWeapon;
   const bool meleeFocus   = (ws==WeaponState::Fist ||
                              ws==WeaponState::W1H  ||
                              ws==WeaponState::W2H);
-  auto       pos          = pl->cameraBone(camera.isFirstPerson());
+  auto       pos          = pl!=nullptr ? pl->cameraBone(camera.isFirstPerson()) : Vec3();
 
   if(!camera.isCutscene()) {
     const bool fs = SystemApi::isFullscreen(hwnd());
@@ -929,13 +932,13 @@ void MainWindow::tickCamera(uint64_t dt) {
     else if(inventory.isActive()) {
       camera.setDestPosition(pos);
       }
-    else if(player.focus().npc!=nullptr && meleeFocus) {
+    else if(player.focus().npc!=nullptr && meleeFocus && pl!=nullptr) {
       auto spin = camera.destSpin();
       spin.y = pl->rotation();
       camera.setDestSpin(spin);
       camera.setDestPosition(pos);
       }
-    else {
+    else if(pl!=nullptr) {
       auto spin = camera.destSpin();
       if(pl->interactive()==nullptr && !pl->isDown())
         spin.y = pl->rotation();
@@ -1021,6 +1024,7 @@ void MainWindow::loadGame(std::string_view slot) {
     setGameImpl(nullptr);
     }
 
+  Gothic::inst().setBenchmarkMode(false);
   Gothic::inst().startLoad("LOADING.TGA",[slot=std::string(slot)](std::unique_ptr<GameSession>&& game){
     game = nullptr; // clear world-memory now
     Tempest::RFile file(slot);
@@ -1059,6 +1063,8 @@ void MainWindow::saveGame(std::string_view slot, std::string_view name) {
   }
 
 void MainWindow::onVideo(std::string_view fname) {
+  if(Gothic::inst().isBenchmarkMode())
+    return;
   video.pushVideo(fname);
   }
 
@@ -1070,6 +1076,14 @@ void MainWindow::onStartLoading() {
 
 void MainWindow::onWorldLoaded() {
   dMouse = Point();
+
+  if(Gothic::inst().isBenchmarkMode()) {
+    if(auto world = Gothic::inst().world()) {
+      const TriggerEvent evt("TIMEDEMO","",world->tickCount(),TriggerEvent::T_Trigger);
+      world->execTriggerEvent(evt);
+      }
+    benchmark.clear();
+    }
 
   player   .clearInput();
   inventory.onWorldChanged();
@@ -1092,6 +1106,32 @@ void MainWindow::onWorldLoaded() {
 
 void MainWindow::onSessionExit() {
   rootMenu.setMainMenu();
+  }
+
+void MainWindow::onBenchmarkFinished() {
+  if(benchmark.numFrames==0)
+    return;
+
+  double fps  = benchmark.fpsSum/double(benchmark.numFrames);
+  double low1 = 0;
+  size_t num1 = 0;
+  for(size_t i=0; i<benchmark.low1procent.size(); ++i) {
+    auto v = benchmark.low1procent[i];
+    if(v<=0)
+      continue;
+    low1 += 1000.0/double(v);
+    num1 += 1;
+    }
+  low1 = num1>0 ? low1/double(num1) : 0.0;
+  benchmark.clear();
+
+  string_frm str("Benchmark: low 1% = ", low1, " fps = ", fps);
+  Log::i(str.c_str());
+  console.printLine(str);
+
+  console.resize(w(),h());
+  console.setFocus(true);
+  console.exec();
   }
 
 void MainWindow::setGameImpl(std::unique_ptr<GameSession> &&w) {
@@ -1171,6 +1211,8 @@ void MainWindow::render(){
       t += delay;
       }
     fps.push(t-time);
+    if(Gothic::inst().isBenchmarkMode() && Gothic::inst().world()!=nullptr && Gothic::inst().world()->currentCs()!=nullptr)
+      benchmark.push(t-time);
     time = t;
     }
   catch(const Tempest::SwapchainSuboptimal&) {
@@ -1198,4 +1240,19 @@ void MainWindow::Fps::push(uint64_t t) {
   for(size_t i=9;i>0;--i)
     dt[i]=dt[i-1];
   dt[0]=t;
+  }
+
+void MainWindow::Benchmark::push(uint64_t t) {
+  fpsSum += t>0 ? (1000.0/double((t))) : 60.0;
+  numFrames++;
+  auto at = std::lower_bound(low1procent.begin(), low1procent.end(), t, std::greater<uint64_t>());
+  low1procent.insert(at, t);
+  low1procent.resize(std::min(low1procent.size(), (numFrames+99)/100));
+  }
+
+void MainWindow::Benchmark::clear() {
+  low1procent.reserve(128);
+  low1procent.clear();
+  numFrames = 0;
+  fpsSum = 0;
   }

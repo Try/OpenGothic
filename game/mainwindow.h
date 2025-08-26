@@ -83,6 +83,7 @@ class MainWindow : public Tempest::Window {
     void onStartLoading();
     void onWorldLoaded();
     void onSessionExit();
+    void onBenchmarkFinished();
     void setGameImpl(std::unique_ptr<GameSession>&& w);
     void clearInput();
     void setFullscreen(bool fs);
@@ -162,11 +163,19 @@ class MainWindow : public Tempest::Window {
     Tempest::Shortcut         funcKey[11];
     Tempest::Shortcut         displayPos;
 
+    struct Benchmark {
+      std::vector<uint64_t> low1procent;
+      size_t                numFrames = 0;
+      double                fpsSum = 0;
+      void                  push(uint64_t t);
+      void                  clear();
+      };
     struct Fps {
       uint64_t dt[10]={};
       double   get() const;
       void     push(uint64_t t);
       };
     Fps        fps;
+    Benchmark  benchmark;
     uint64_t   maxFpsInv = 0;
   };

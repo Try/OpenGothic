@@ -3,6 +3,7 @@
 #include <Tempest/Log>
 #include <cassert>
 #include "utils/dbgpainter.h"
+#include "commandline.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -151,15 +152,17 @@ void CsCamera::onTrigger(const TriggerEvent& evt) {
   if(auto cs = world.currentCs())
     cs->onUntrigger(evt);
 
-  auto& camera = world.gameSession().camera();
-  if(!camera.isCutscene()) {
-    camera.reset();
-    camera.setMode(Camera::Mode::Cutscene);
-    }
-
   timeTrigger = world.tickCount();
   world.setCurrentCs(this);
   enableTicks();
+
+  auto& camera = world.gameSession().camera();
+  if(!camera.isCutscene()) {
+    auto cPos = position();
+    camera.setMode(Camera::Mode::Cutscene);
+    camera.setPosition(cPos);
+    camera.setSpin(spin(cPos));
+    }
   }
 
 void CsCamera::onUntrigger(const TriggerEvent& evt) {
@@ -171,9 +174,16 @@ void CsCamera::onUntrigger(const TriggerEvent& evt) {
     return;
 
   world.setCurrentCs(nullptr);
+
   auto& camera = world.gameSession().camera();
   camera.setMode(Camera::Mode::Normal);
-  camera.reset();
+
+  if(auto pl = Gothic::inst().player()) {
+    camera.reset(pl);
+    }
+
+  if(Gothic::inst().isBenchmarkMode())
+    Gothic::inst().onBenchmarkFinished();
   }
 
 void CsCamera::tick(uint64_t /*dt*/) {

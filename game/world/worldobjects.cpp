@@ -179,11 +179,16 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
       }
     }
 
+  for(CollisionZone* z:collisionZn)
+    z->tick(dt);
+
   for(auto& i:interactiveObj)
     i->tick(dt);
 
   for(auto i:triggersTk)
     i->tick(dt);
+
+  tickTriggers(dt);
 
   bullets.remove_if([](Bullet& b){
     return b.isFinished();
@@ -223,9 +228,6 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
       }
     }
   tickNear(dt);
-  for(CollisionZone* z:collisionZn)
-    z->tick(dt);
-  tickTriggers(dt);
 
   for(auto& ptr:npcNear) {
     Npc& i = *ptr;

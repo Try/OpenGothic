@@ -205,10 +205,13 @@ void ConsoleWidget::keyDownEvent(KeyEvent& e) {
     }
   if(e.key==Event::K_Return) {
     if(log.back().size()>0) {
-      cmdHist.emplace_back(log.back());
-      if(!marvin.exec(log.back()))
-        log.back() = "Unknown command : " + log.back();
-      log.emplace_back("");
+      const auto   cmd   = log.back();
+      const size_t cmdId = log.size()-1;
+      cmdHist.emplace_back(cmd);
+      log.push_back("");
+      if(!marvin.exec(cmd) && cmdId<log.size()) {
+        log[cmdId] = "Unknown command : " + cmd;
+        }
       cursPos = 0;
       currCmd = "";
       histPos = size_t(-1);
@@ -231,7 +234,9 @@ void ConsoleWidget::keyRepeatEvent(KeyEvent& e) {
   }
 
 void ConsoleWidget::printLine(std::string_view s) {
-  log.emplace_back(s);
+  auto cmd = std::move(log.back());
+  log.back() = s;
+  log.emplace_back(std::move(cmd));
   }
 
 void ConsoleWidget::updateSizeHint() {

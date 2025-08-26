@@ -13,6 +13,7 @@ class ConsoleWidget : public Tempest::Widget {
     ConsoleWidget(const MainWindow& owner);
     ~ConsoleWidget();
 
+    void printLine(std::string_view s);
     void close();
     int  exec();
 
@@ -22,7 +23,6 @@ class ConsoleWidget : public Tempest::Widget {
     void keyRepeatEvent(Tempest::KeyEvent&   e) override;
     using Tempest::Widget::keyUpEvent;
 
-    void printLine(std::string_view s);
     void updateSizeHint();
 
   private:

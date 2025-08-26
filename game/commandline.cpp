@@ -77,7 +77,10 @@ CommandLine::CommandLine(int argc, const char** argv) {
       isWindow = true;
       }
     else if(arg=="-nomenu") {
-      noMenu   = true;
+      noMenu = true;
+      }
+    else if(arg=="-benchmark") {
+      isBenchmark = true;
       }
     else if(arg=="-g1") {
       forceG1 = true;

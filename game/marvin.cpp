@@ -434,8 +434,7 @@ bool Marvin::exec(std::string_view v) {
       }
     case C_PrintVar: {
       World* world  = Gothic::inst().world();
-      Npc*   player = Gothic::inst().player();
-      if(world==nullptr || player==nullptr)
+      if(world==nullptr)
         return false;
       return printVariable(world, ret.argv[0]);
       }

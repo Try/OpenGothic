@@ -100,7 +100,8 @@ GameSession::GameSession(std::string file) {
   //std::string_view hero = "Waran";
   //std::string_view hero = "Bloodfly";
   //std::string_view hero = "Gobbo_Skeleton";
-  wrld->createPlayer(hero);
+  if(!Gothic::inst().isBenchmarkMode())
+    wrld->createPlayer(hero);
   wrld->postInit();
 
   if(!testMode)

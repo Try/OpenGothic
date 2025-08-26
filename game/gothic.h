@@ -131,6 +131,9 @@ class Gothic final {
     bool         doClock() const { return showTime; }
     void         setClock(bool t) { showTime = t; }
 
+    bool         isBenchmarkMode() const;
+    void         setBenchmarkMode(bool b);
+
     Tempest::Signal<void()> toggleGi, toggleVsm, toggleRtsm;
 
     LoadState    checkLoading() const;
@@ -172,6 +175,8 @@ class Gothic final {
     Tempest::Signal<void()>                                             onSessionExit;
     Tempest::Signal<void()>                                             onSettingsChanged;
 
+    Tempest::Signal<void()>                                             onBenchmarkFinished;
+
     std::string_view                      messageFromSvm(std::string_view id, int voice) const;
     std::string_view                      messageByName (std::string_view id) const;
     uint32_t                              messageTime   (std::string_view id) const;
@@ -206,6 +211,7 @@ class Gothic final {
     bool                                    desktop        = false;
     bool                                    showFpsCounter = false;
     bool                                    showTime       = false;
+    bool                                    isBenchmark    = false;
 
     std::string                             wrldDef, plDef, gameDatDef, ouDef;
 

@@ -73,7 +73,9 @@ Gothic::Gothic() {
   setFRate(true);
 #else
   setMarvinEnabled(CommandLine::inst().isDevMode());
+  setFRate(CommandLine::inst().isBenchmarkMode());
 #endif
+  setBenchmarkMode(CommandLine::inst().isBenchmarkMode());
 
   auto& gpu = Resources::device().properties();
   if(gpu.raytracing.rayQuery) {
@@ -463,6 +465,14 @@ float Gothic::interfaceScale(const Tempest::Widget* w) {
   if(auto window = dynamic_cast<const MainWindow*>(w))
     return window->uiScale() * mul;
   return mul;
+  }
+
+bool Gothic::isBenchmarkMode() const {
+  return isBenchmark;
+  }
+
+void Gothic::setBenchmarkMode(bool b) {
+  isBenchmark = b;
   }
 
 const Gothic::Options& Gothic::options() {

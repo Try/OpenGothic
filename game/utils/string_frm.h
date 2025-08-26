@@ -147,6 +147,12 @@ class alignas(64) string_frm {
       implWrite(out, maxSz, at, buf);
       }
 
+    void implWrite(char* out, size_t maxSz, size_t& at, double arg) {
+      char buf[20] = {};
+      std::snprintf(buf,sizeof(buf),"%f",arg);
+      implWrite(out, maxSz, at, buf);
+      }
+
     void implWrite(char* out, size_t maxSz, size_t& at, const void* arg) {
       char buf[20] = {};
       std::snprintf(buf,sizeof(buf),"%p",arg);
