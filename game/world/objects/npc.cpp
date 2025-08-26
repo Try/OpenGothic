@@ -2798,7 +2798,7 @@ void Npc::tickRoutine() {
 
   if(aiState.started) {
     if(aiState.loopNextTime<=owner.tickCount()) {
-      aiState.loopNextTime+=1000; // one tick per second?
+      aiState.loopNextTime = owner.tickCount()+1000; // one tick per second?
       int loop = LOOP_CONTINUE;
       if(aiState.funcLoop.isValid()) {
         loop = owner.script().invokeState(this,currentOther,currentVictim,aiState.funcLoop);
@@ -2821,7 +2821,8 @@ void Npc::tickRoutine() {
         }
       }
     } else {
-    aiState.started=true;
+    aiState.started      = true;
+    aiState.loopNextTime = owner.tickCount() + owner.script().rand(1000);
     owner.script().invokeState(this,currentOther,currentVictim,aiState.funcIni);
     }
   }
