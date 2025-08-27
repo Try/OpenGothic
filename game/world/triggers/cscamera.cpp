@@ -2,8 +2,8 @@
 
 #include <Tempest/Log>
 #include <cassert>
+#include "game/definitions/cameradefinitions.h"
 #include "utils/dbgpainter.h"
-#include "commandline.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -177,9 +177,10 @@ void CsCamera::onUntrigger(const TriggerEvent& evt) {
 
   auto& camera = world.gameSession().camera();
   camera.setMode(Camera::Mode::Normal);
-
   if(auto pl = Gothic::inst().player()) {
     camera.reset(pl);
+    } else {
+    camera.setMarvinMode(Camera::M_Free);
     }
 
   if(Gothic::inst().isBenchmarkMode())
@@ -231,5 +232,7 @@ PointF CsCamera::spin(Tempest::Vec3& d) {
   float spinY = -90;
   if(d.x!=0.f || d.z!=0.f)
     spinY = 90 + k * std::atan2(d.z,d.x);
-  return {-spinX,spinY};
+
+  auto& def = Gothic::cameraDef().stdCam();
+  return {-spinX + def.rot_offset_x, spinY + def.rot_offset_y};
   }

@@ -543,7 +543,7 @@ void Camera::implMove(Tempest::Event::KeyType key, uint64_t dt) {
   }
 
 void Camera::setPosition(const Tempest::Vec3& pos) {
-  setDestPosition(pos);
+  dst.target = pos;
   src.target = dst.target;
   cameraPos  = dst.target;
   }
@@ -689,15 +689,14 @@ void Camera::calcControlPoints(float dtF) {
     rotBest      = Vec3();
     //spin.y += def.bestAzimuth;
     }
-  if(Gothic::inst().player()==nullptr) {
+  if(isCutscene()) {
+    rotOffset    = rotOffsetDef;
     range        = 0;
-    rotOffset    = Vec3();
-    rotOffsetDef = Vec3();
     }
 
   followAng(src.spin,  dst.spin+rotBest, dtF);
   if(!isMarvin())
-    followAng(rotOffset, rotOffsetDef,     dtF);
+    followAng(rotOffset, rotOffsetDef, dtF);
 
   Matrix4x4 rotOffsetMat;
   rotOffsetMat.identity();
@@ -715,8 +714,7 @@ void Camera::calcControlPoints(float dtF) {
   followCamera(cameraPos,src.target,dtF);
 
   origin = cameraPos - dir*range;
-  auto world = Gothic::inst().world();
-  if(camMarvinMod==M_Free || (world!=nullptr && world->currentCs()!=nullptr)) {
+  if(camMarvinMod==M_Free || isCutscene()) {
     return;
     }
 

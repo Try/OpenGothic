@@ -767,9 +767,11 @@ void MainWindow::onMarvinKey() {
       break;
     case Event::K_F4:
       if(Gothic::inst().isMarvinEnabled()) {
-        if(auto camera = Gothic::inst().camera()) {
+        auto camera = Gothic::inst().camera();
+        auto pl = Gothic::inst().player();
+        if(camera!=nullptr && pl!=nullptr) {
           camera->setMarvinMode(Camera::M_Normal);
-          camera->reset();
+          camera->reset(pl);
           }
         }
       break;
