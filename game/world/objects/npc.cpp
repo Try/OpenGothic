@@ -2822,7 +2822,7 @@ void Npc::tickRoutine() {
       }
     } else {
     aiState.started      = true;
-    aiState.loopNextTime = owner.tickCount() + owner.script().rand(1000);
+    aiState.loopNextTime = owner.tickCount();
     owner.script().invokeState(this,currentOther,currentVictim,aiState.funcIni);
     }
   }

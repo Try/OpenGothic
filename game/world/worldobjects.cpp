@@ -205,15 +205,13 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
       }
     }
 
-  if(pl==nullptr)
-    return;
-
   npcNear.clear();
   //const int   PERC_DIST_INTERMEDIAT = 1000;
   const float nearDist              = 3000*3000;
   const float farDist               = 6000*6000;
 
-  auto plPos = pl->position();
+  auto cpos  = camera!=nullptr ? camera->destPosition() : Vec3();
+  auto plPos = pl!=nullptr ? pl->position() : cpos;
   for(auto& i:npcArr) {
     float dist = (i->position()-plPos).quadLength();
     if(dist<nearDist){
@@ -228,6 +226,9 @@ void WorldObjects::tick(uint64_t dt, uint64_t dtPlayer) {
       }
     }
   tickNear(dt);
+
+  if(pl==nullptr)
+    return;
 
   for(auto& ptr:npcNear) {
     Npc& i = *ptr;
