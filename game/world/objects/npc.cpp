@@ -2404,9 +2404,15 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         queue.pushFront(std::move(act));
         break;
         }*/
+
       auto inter = owner.availableMob(*this,act.s0);
       if(inter==nullptr) {
-        queue.pushFront(std::move(act));
+        /* in L`Hiver, version 1.3 there is a typo: "COOL" instead of "BSCOOL"
+         * maybe 'scheme' need to be checked loosely, or maybe ignored.
+         *
+         * For now, if no mob found - discard command, to avoid npc soft-lock.
+         */
+        // queue.pushFront(std::move(act));
         break;
         }
 
