@@ -1,0 +1,239 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+
+#include "scene.glsl"
+#include "common.glsl"
+
+const float TMax         = 1e30f;
+const uint  BVH_NullNode = 0x00000000;
+const uint  BVH_BoxNode  = 0x10000000;
+const uint  BVH_Tri1Node = 0x20000000;
+const uint  BVH_Tri2Node = 0x30000000;
+
+struct BVHLeaf {
+  vec4 bbmin; // uint32_t ptr;
+  vec4 bbmax; // uint32_t padd0;
+  };
+
+struct BVHNode64 {
+  BVHLeaf leaf[64];
+  };
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(push_constant, std430) uniform UboPush {
+  vec3  originLwc;
+  } push;
+layout(binding = 0, rgba8)  uniform  image2D    outImage;
+//layout(binding = 0, r32ui)  uniform  uimage2D   outImage;
+layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
+layout(binding = 2)         uniform  texture2D  gbufDiffuse;
+layout(binding = 3)         uniform  utexture2D gbufNormal;
+layout(binding = 4)         uniform  texture2D  depth;
+layout(binding = 5, std430) readonly buffer BVH { BVHNode64 node[];  } bvh;
+layout(binding = 6, std430) readonly buffer IBO { uint      ibo[];   };
+layout(binding = 7, std430) readonly buffer VBO { float     vbo[];   };
+
+uint  laneID    = gl_LocalInvocationIndex;
+ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
+
+shared uvec4 rayTileBbox;
+shared uint  rayDepthMin;
+
+// utility
+uint floatToOrderedUint(float value) {
+  uint uvalue = floatBitsToUint(value);
+  uint mask = -int(uvalue >> 31) | 0x80000000;
+  return uvalue ^ mask;
+  }
+
+float orderedUintToFloat(uint value) {
+  uint mask = ((value >> 31) - 1) | 0x80000000;
+  return uintBitsToFloat(value ^ mask);
+  }
+
+vec3 orderedUintToFloat(uvec3 value) {
+  vec3 r;
+  r.x = orderedUintToFloat(value.x);
+  r.y = orderedUintToFloat(value.y);
+  r.z = orderedUintToFloat(value.z);
+  return r;
+  }
+
+vec4 orderedUintToFloat(uvec4 value) {
+  vec4 r;
+  r.x = orderedUintToFloat(value.x);
+  r.y = orderedUintToFloat(value.y);
+  r.z = orderedUintToFloat(value.z);
+  r.w = orderedUintToFloat(value.w);
+  return r;
+  }
+
+bool bboxIntersect(vec4 a, vec4 b) {
+  if(b.z < a.x || b.x > a.z)
+    return false;
+  if(b.w < a.y || b.y > a.w)
+    return false;
+  return true;
+  }
+
+uint bvhGetNodeType(uint ptr) {
+  return ptr & 0xF0000000;
+  }
+
+// transform
+vec4 worldPosLwc(vec2 frag, float depth) {
+  const vec2 fragCoord = (frag.xy*scene.screenResInv)*2.0 - vec2(1.0);
+  const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
+  return scene.viewProjectLwcInv * scr;
+  }
+
+void rayBbox(const vec3 ray, bool actRay) {
+  if(!actRay)
+    return;
+  //FIXME: XZY order is for testing
+  atomicMin(rayTileBbox.x, floatToOrderedUint(ray.x));
+  atomicMin(rayTileBbox.y, floatToOrderedUint(ray.z));
+  atomicMax(rayTileBbox.z, floatToOrderedUint(ray.x));
+  atomicMax(rayTileBbox.w, floatToOrderedUint(ray.z));
+
+  atomicMin(rayDepthMin,   floatToOrderedUint(ray.y));
+  }
+
+//
+vec3 pullVertex(uint i){
+  i*=3;
+  return vec3(vbo[i+0], vbo[i+1], vbo[i+2]);
+  }
+
+vec3 rayTriangleTest(const vec3 origin, const vec3 dir, const vec3 v0, const vec3 e1, const vec3 e2) {
+  const vec3  s1    = cross(dir, e2);
+  const float denom = dot(s1, e1);
+
+  if(denom <= 0.0)
+    return vec3(TMax);
+
+  const float invDemom = 1.0 / denom;
+  const vec3  d        = origin - v0;
+  const vec3  s2       = cross(d, e1);
+
+  const float u = dot(d,   s1) * invDemom;
+  const float v = dot(dir, s2) * invDemom;
+
+  if(( u < 0.0f ) || ( u > 1.0f ) || ( v < 0.0f ) || ( u + v > 1.0f )) {
+    return vec3(TMax);
+    }
+
+  float t0 = dot(e2, s2) * invDemom;
+  return vec3(t0, u, v);
+  }
+
+vec3 rayTriangleTest(vec3 ray, bool actRay, uint primId) {
+  if(!actRay)
+    return vec3(TMax);
+  const vec3 a = pullVertex(ibo[primId+0]);
+  const vec3 b = pullVertex(ibo[primId+1]);
+  const vec3 c = pullVertex(ibo[primId+2]);
+  return rayTriangleTest(ray, vec3(0,1,0), a, b-a, c-a);
+  }
+
+shared uint numBox, numTri;
+shared uint stack[256], stackSize;
+vec3 traceRay(const vec3 ray, bool actRay) {
+  numBox    = 0;
+  numTri    = 0;
+  stackSize = 1;
+  stack[0]  = uint(0 | BVH_BoxNode);
+  barrier();
+
+  if(rayTileBbox.x==0xFFFFFFFF)
+    return vec3(0); // empty packet
+
+  vec3 ret = vec3(TMax);
+
+  const vec4 rbb = uintBitsToFloat(rayTileBbox);
+  int i = 0;
+  for(; i<256; ++i) {
+    if(stackSize==0)
+      break;
+
+    const uint nodeId = stack[stackSize-1];
+    barrier();
+
+    if(laneID==0)
+      stackSize--;
+    barrier();
+
+    const uint type = bvhGetNodeType(nodeId);
+
+    if(type==BVH_Tri1Node) {
+      if(laneID==0)
+        numTri += 1;
+      const uint primId = nodeId & 0x0FFFFFFF;
+      const vec3 hit    = rayTriangleTest(ray, actRay, primId);
+      if(hit.x<ret.x)
+        ret = hit;
+      //ret = vec3(1);
+      }
+    else if(type==BVH_BoxNode) {
+      const BVHLeaf leaf = bvh.node[nodeId & 0x0FFFFFFF].leaf[laneID];
+      const uint    ptr  = floatBitsToUint(leaf.bbmin.w);
+      if(ptr!=0 && bboxIntersect(rbb, vec4(leaf.bbmin.xz, leaf.bbmax.xz))) {
+        atomicAdd(numBox, 1);
+        const uint ins = atomicAdd(stackSize, 1);
+        stack[ins] = ptr;
+        }
+      }
+    barrier();
+    }
+
+  if(i==256)
+    return vec3(1,0,0);
+
+  //return vec3(float(i)/255.0);
+  //return vec3(float(numTri)/255.0);
+  //return vec3(float(numBox)/255.0);
+
+  if(ret.x!=TMax)
+    return vec3(ret.yz, 1.0-ret.y-ret.z);
+  return vec3(0);
+  }
+
+void main() {
+  rayTileBbox = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
+  rayDepthMin = 0xFFFFFFFF;
+  barrier();
+
+  const bool  valid     = all(lessThan(fragCoord, imageSize(outImage)));
+
+  const float d      = valid ? texelFetch(depth, fragCoord, 0).r  : 0.0;
+  const vec3  normal = valid ? normalFetch(gbufNormal, fragCoord) : vec3(0.0);
+  const float lamb   = dot(normal, scene.sunDir);
+  const bool  actRay = (d<1.0) && (lamb>0);
+
+  const float NormalBias = 0.0015;
+  const vec4  wpos4      = worldPosLwc(vec2(fragCoord+0.5), d) + vec4(normal*NormalBias, 0);
+  const vec3  wpos       = wpos4.xyz/wpos4.w + push.originLwc;
+
+  rayBbox(wpos, actRay);
+  barrier();
+
+  if(laneID==0 && rayTileBbox.x!=0xFFFFFFFF) {
+    vec4  rbb  = orderedUintToFloat(rayTileBbox);
+    float rayD = orderedUintToFloat(rayDepthMin);
+    rayTileBbox = floatBitsToUint(rbb);
+    rayDepthMin = floatBitsToUint(rayD);
+    }
+  barrier();
+
+  vec3 outColor = traceRay(wpos, actRay);
+  //outColor = vec4(numTri/float(255));
+  //outColor = vec4(numBox/float(255));
+
+  if(valid) {
+    imageStore(outImage, ivec2(gl_GlobalInvocationID.xy), outColor.xyzz);
+    //imageStore(outImage, ivec2(gl_GlobalInvocationID.xy), uvec4(numBox));
+    }
+  }

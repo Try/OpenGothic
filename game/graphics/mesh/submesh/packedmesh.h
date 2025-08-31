@@ -59,6 +59,15 @@ class PackedMesh {
       Tempest::Vec3 rmax; uint32_t padd1;
       };
 
+    struct Leaf64 {
+      Tempest::Vec3 lmin; uint32_t ptr;
+      Tempest::Vec3 lmax; uint32_t padd0;
+      };
+
+    struct BVHNode64 {
+      Leaf64 leaf[64];
+      };
+
     std::vector<Vertex>   vertices;
     std::vector<VertexA>  verticesA;
     std::vector<uint32_t> indices;
@@ -71,7 +80,10 @@ class PackedMesh {
     bool                  isUsingAlphaTest = true;
 
     // sw-raytracing
-    std::vector<BVHNode>  bvhNodes;
+    std::vector<BVHNode>   bvhNodes;
+    std::vector<BVHNode64> bvhNodes64;
+    std::vector<uint32_t>  bvh64Ibo;
+    std::vector<float>     bvh64Vbo;
 
     PackedMesh(const zenkit::MultiResolutionMesh& mesh, PkgType type);
     PackedMesh(const zenkit::Mesh& mesh, PkgType type);
@@ -139,8 +151,13 @@ class PackedMesh {
 
     void     packBVH(const zenkit::Mesh& mesh);
     uint32_t packBVH(const zenkit::Mesh& mesh, std::vector<BVHNode>& nodes, Tempest::Vec3& bbmin, Tempest::Vec3& bbmax, Fragment* frag, size_t size);
+    auto     findNodeSplit(const Fragment* frag, size_t size, const bool useSah) ->  std::pair<uint32_t,float>;
     auto     findNodeSplit(Tempest::Vec3 bbmin, Tempest::Vec3 bbmax, const Fragment* frag, size_t size) ->  std::pair<uint32_t,bool>;
     uint32_t packPrimNode(const zenkit::Mesh& mesh, std::vector<BVHNode>& nodes, Fragment* frag, size_t size);
+
+    uint32_t packBVH64(const zenkit::Mesh& mesh, std::vector<BVHNode64>& nodes, Fragment* frag, size_t size);
+    void     packNode64(BVHNode64& out, uint32_t& outSz, const zenkit::Mesh& mesh, std::vector<BVHNode64>& nodes, Fragment* frag, size_t size, uint8_t depth);
+    void     packPrim64(BVHNode64& out, const zenkit::Mesh& mesh, Fragment* frag, size_t size);
 
     void   packMeshletsLnd(const zenkit::Mesh& mesh);
     void   packMeshletsObj(const zenkit::MultiResolutionMesh& mesh, PkgType type,

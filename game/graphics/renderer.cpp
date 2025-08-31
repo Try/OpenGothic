@@ -586,7 +586,8 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   drawSwr(cmd, *wview);
   drawRtsm(cmd, *wview);
   drawRtsmOmni(cmd, *wview);
-  drawSwRT(cmd, *wview);
+  // drawSwRT(cmd, *wview);
+  drawSwRT64(cmd, *wview);
 
   prepareIrradiance(cmd,*wview);
   prepareExposure(cmd,*wview);
@@ -854,6 +855,36 @@ void Renderer::drawSwRT(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const Wor
   cmd.setBinding(3, gbufNormal);
   cmd.setBinding(4, zbuffer);
   cmd.setBinding(5, bvh);
+
+  cmd.dispatchThreads(swrt.outputImage.size());
+  }
+
+void Renderer::drawSwRT64(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
+  if(!settings.swrtEnabled)
+    return;
+
+  const auto& scene     = wview.sceneGlobals();
+  const auto& bvh       = wview.landscape().bvh64();
+  const auto  originLwc = scene.originLwc;
+
+  if(swrt.outputImage.isEmpty()) {
+    auto& device = Resources::device();
+    // swrt.outputImage = device.image2d(TextureFormat::R32U, zbuffer.size());
+    swrt.outputImage = device.image2d(TextureFormat::RGBA8, zbuffer.size());
+    }
+
+  cmd.setFramebuffer({});
+  cmd.setDebugMarker("Raytracing");
+  cmd.setPipeline(shaders.swRaytracing64);
+  cmd.setPushData(&originLwc, sizeof(originLwc));
+  cmd.setBinding(0, swrt.outputImage);
+  cmd.setBinding(1, scene.uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(2, gbufDiffuse);
+  cmd.setBinding(3, gbufNormal);
+  cmd.setBinding(4, zbuffer);
+  cmd.setBinding(5, bvh);
+  cmd.setBinding(6, wview.landscape().bvh64Ibo);
+  cmd.setBinding(7, wview.landscape().bvh64Vbo);
 
   cmd.dispatchThreads(swrt.outputImage.size());
   }
@@ -1217,8 +1248,8 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     cmd.dispatchThreads(size_t(rtsm.pages.w()), size_t(rtsm.pages.h()), size_t(rtsm.pages.d()));
   }
 
+  // global cull
   {
-    // global cull
     struct Push { uint32_t meshletCount; } push = {};
     push.meshletCount = uint32_t(clusters.size());
     cmd.setPushData(push);
@@ -1253,8 +1284,8 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     cmd.dispatchThreads(push.meshletCount);
   }
 
+  // position
   {
-    // position
     cmd.setBinding(0, rtsm.posList);
     cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, rtsm.visList);
@@ -1271,8 +1302,8 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     cmd.dispatchIndirect(rtsm.visList,0);
   }
 
+  // tile hirarchy
   {
-    // tile hirarchy
     const auto largeTiles = tileCount(scene.zbuffer->size(), RTSM_LARGE_TILE);
     const auto smallTiles = tileCount(scene.zbuffer->size(), RTSM_SMALL_TILE);
 
@@ -1294,8 +1325,8 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     cmd.dispatch(smallTiles);
   }
 
+  // in-tile
   {
-    // in-tile
     cmd.setBinding(0, rtsm.outputImage);
     cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, gbufNormal);
@@ -1342,8 +1373,8 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     rtsm.outputImageClr = device.image2d(TextureFormat::R11G11B10UF, zbuffer.size());
     }
 
+  // alloc resources, for omni-lights
   {
-    // alloc resources, for omni-lights
     if(rtsm.visibleLights.byteSize()!=shaders.rtsmClearOmni.sizeofBuffer(1, wview.lights().size())) {
       Resources::recycle(std::move(rtsm.visibleLights));
       rtsm.visibleLights = device.ssbo(nullptr, shaders.rtsmClearOmni.sizeofBuffer(1, wview.lights().size()));
@@ -1366,8 +1397,8 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
 
   cmd.setDebugMarker("RTSM-rendering-omni");
   cmd.setFramebuffer({});
+  // clear
   {
-    // clear
     cmd.setBinding(0, rtsm.posList);
     cmd.setBinding(1, rtsm.visibleLights);
     cmd.setBinding(2, rtsm.visList);
@@ -1375,8 +1406,8 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.dispatchThreads(1);
   }
 
+  // cull lights
   {
-    // cull lights
     struct Push { float znear; uint32_t lightsTotal; uint32_t meshletCount; } push = {};
     push.znear        = scene.znear;
     push.lightsTotal  = uint32_t(wview.lights().size());
@@ -1398,8 +1429,8 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.dispatchThreads(push.meshletCount);
   }
 
+  // lights
   {
-    // lights
     struct Push { Vec3 originLwc; float znear; } push = {};
     push.originLwc = scene.originLwc;
     push.znear     = scene.znear;
@@ -1426,8 +1457,8 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.dispatch(rtsm.lightTiles.size());
   }
 
+  // position
   {
-    // position
     cmd.setBinding(0, rtsm.posList);
     cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, rtsm.visList);
@@ -1444,8 +1475,8 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.dispatchIndirect(rtsm.visList, 0);
   }
 
+  // per-light meshlets, primitives
   {
-    // per-light meshlets, primitives
     struct Push { Vec3 originLwc; float znear; } push = {};
     push.originLwc = scene.originLwc;
     push.znear     = scene.znear;
@@ -1464,8 +1495,8 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.dispatchIndirect(rtsm.visibleLights, 0);
   }
 
+  // in tile primitives
   {
-    // in tile primitives
     struct Push { Vec3 originLwc; float znear; } push = {};
     push.originLwc = scene.originLwc;
     push.znear     = scene.znear;
@@ -1485,8 +1516,8 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.dispatch(rtsm.primTiles.size());
   }
 
+  // raster
   {
-    // raster
     struct Push { Vec3 originLwc; } push = {};
     push.originLwc = scene.originLwc;
     cmd.setPushData(push);

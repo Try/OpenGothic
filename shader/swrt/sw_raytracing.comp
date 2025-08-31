@@ -112,6 +112,9 @@ vec4 worldPosLwc(vec2 frag, float depth) {
   }
 
 vec4 shadowMain(ivec2 fragCoord) {
+  if(any(greaterThanEqual(gl_GlobalInvocationID.xy, imageSize(outImage))))
+    return vec4(0);
+
   const float d      = texelFetch(depth, fragCoord, 0).r;
   const vec3  normal = normalFetch(gbufNormal, fragCoord);
   if(d==1.0)

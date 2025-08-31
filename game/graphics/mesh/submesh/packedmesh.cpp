@@ -552,6 +552,7 @@ void PackedMesh::packBVH(const zenkit::Mesh& mesh) {
     };
 
   std::vector<Fragment> frag;
+  std::vector<Vec4>     vert;
   frag.reserve(mid.size());
   for(size_t i=0; i<mid.size(); ++i) {
     Fragment p;
@@ -577,11 +578,17 @@ void PackedMesh::packBVH(const zenkit::Mesh& mesh) {
   packBVH(mesh, nodes, bbox[0], bbox[1], frag.data(), frag.size());
   //TODO: first node has to be box node
   bvhNodes = std::move(nodes);
+
+  std::vector<BVHNode64> nodes64;
+  packBVH64(mesh, nodes64, frag.data(), frag.size());
+  bvhNodes64 = std::move(nodes64);
+  bvh64Ibo   = ibo;
+  bvh64Vbo.resize(mesh.vertices.size()*3);
+  std::memcpy(bvh64Vbo.data(), mesh.vertices.data(), mesh.vertices.size()*sizeof(mesh.vertices[0]));
   }
 
 uint32_t PackedMesh::packBVH(const zenkit::Mesh& mesh, std::vector<BVHNode>& nodes,
                              Tempest::Vec3& bbmin, Tempest::Vec3& bbmax, Fragment* frag, size_t size) {
-
   if(size==0) {
     assert(0);
     return BVH_NullNode;
@@ -630,10 +637,9 @@ uint32_t PackedMesh::packBVH(const zenkit::Mesh& mesh, std::vector<BVHNode>& nod
   return uint32_t(nId | BVH_BoxNode);
   }
 
-std::pair<uint32_t, bool> PackedMesh::findNodeSplit(Tempest::Vec3 bbmin, Tempest::Vec3 bbmax, const Fragment* frag, size_t size) {
-  const bool useSah = true;
+std::pair<uint32_t,float> PackedMesh::findNodeSplit(const Fragment* frag, size_t size, const bool useSah) {
   if(!useSah)
-    return std::make_pair(size/2, true); // median split
+    return std::make_pair(size/2, 0); // median split
 
   size_t split    = size/2;
   float  bestCost = std::numeric_limits<float>::max();
@@ -675,6 +681,18 @@ std::pair<uint32_t, bool> PackedMesh::findNodeSplit(Tempest::Vec3 bbmin, Tempest
       split    = i+1;
       }
     }
+
+  return std::make_pair(uint32_t(split), bestCost);
+  }
+
+std::pair<uint32_t, bool> PackedMesh::findNodeSplit(Tempest::Vec3 bbmin, Tempest::Vec3 bbmax, const Fragment* frag, size_t size) {
+  const bool useSah = true;
+  if(!useSah)
+    return std::make_pair(size/2, 0); // median split
+
+  const auto     ret      = findNodeSplit(frag, size, useSah);
+  const uint32_t split    = ret.first;
+  const float    bestCost = ret.second;
 
   if(bestCost >= areaOf(bbmax, bbmin)*float(size)) {
     //Log::e("size: ", size);
@@ -760,6 +778,87 @@ uint32_t PackedMesh::packPrimNode(const zenkit::Mesh& mesh, std::vector<BVHNode>
     }
 
   return BVH_NullNode;
+  }
+
+uint32_t PackedMesh::packBVH64(const zenkit::Mesh& mesh, std::vector<BVHNode64>& nodes, Fragment* frag, size_t size) {
+  if(size==0) {
+    assert(0);
+    return BVH_NullNode;
+    }
+
+  if(size<=64) {
+    BVHNode64 node = {};
+    packPrim64(node, mesh, frag, size);
+    const size_t nId = nodes.size();
+    nodes.push_back(node);
+    return uint32_t(nId | BVH_BoxNode);
+    }
+
+  size_t nId = nodes.size();
+  nodes.emplace_back();
+
+  BVHNode64 node   = {};
+  uint32_t  nodeSz = 0;
+  packNode64(node, nodeSz, mesh, nodes, frag, size, 0);
+  nodes[nId] = node;
+
+  return uint32_t(nId | BVH_BoxNode);
+  }
+
+void PackedMesh::packNode64(BVHNode64& out, uint32_t& outSz, const zenkit::Mesh& mesh, std::vector<BVHNode64>& nodes, Fragment* frag, size_t size, uint8_t depth) {
+  Tempest::Vec3 bbmin = {}, bbmax = {};
+  bbmin = frag[0].bbmin;
+  bbmax = frag[0].bbmax;
+  for(size_t i=1; i<size; ++i) {
+    auto& f = frag[i];
+    bbmin.x = std::min(bbmin.x, f.bbmin.x);
+    bbmin.y = std::min(bbmin.y, f.bbmin.y);
+    bbmin.z = std::min(bbmin.z, f.bbmin.z);
+
+    bbmax.x = std::max(bbmax.x, f.bbmax.x);
+    bbmax.y = std::max(bbmax.y, f.bbmax.y);
+    bbmax.z = std::max(bbmax.z, f.bbmax.z);
+    }
+
+  if(depth>=3) {
+    out.leaf[outSz].lmin  = bbmin;
+    out.leaf[outSz].ptr   = packBVH64(mesh, nodes, frag, size);
+    out.leaf[outSz].lmax  = bbmax;
+    out.leaf[outSz].padd0 = 0;
+    outSz++;
+    return;
+    }
+
+  const Vec3 sz = bbmax - bbmin;
+  if(sz.x>sz.y && sz.x>sz.z) {
+    std::sort(frag, frag+size, [](const Fragment& l, const Fragment& r){ return l.centroid.x < r.centroid.x; });
+    }
+  else if(sz.y>sz.x && sz.y>sz.z) {
+    std::sort(frag, frag+size, [](const Fragment& l, const Fragment& r){ return l.centroid.y < r.centroid.y; });
+    }
+  else {
+    std::sort(frag, frag+size, [](const Fragment& l, const Fragment& r){ return l.centroid.z < r.centroid.z; });
+    }
+
+  const bool useSah = false;
+  const auto splitB = findNodeSplit(frag,        size,        useSah).first;
+  const auto splitA = findNodeSplit(frag,        splitB,      useSah).first;
+  const auto splitC = findNodeSplit(frag+splitB, size-splitB, useSah).first + splitB;
+
+  packNode64(out, outSz, mesh, nodes, frag,        splitA,        depth+1);
+  packNode64(out, outSz, mesh, nodes, frag+splitA, splitB-splitA, depth+1);
+  packNode64(out, outSz, mesh, nodes, frag+splitB, splitC-splitB, depth+1);
+  packNode64(out, outSz, mesh, nodes, frag+splitC, size  -splitC, depth+1);
+  }
+
+void PackedMesh::packPrim64(BVHNode64& out, const zenkit::Mesh& mesh, Fragment* frag, size_t size) {
+  assert(size<=64);
+  for(size_t i=0; i<size; ++i) {
+    auto& l = out.leaf[i];
+    l.lmin = frag->bbmin;
+    l.lmax = frag->bbmax;
+    l.ptr  = uint32_t(frag->primId | BVH_Tri1Node);
+    }
   }
 
 void PackedMesh::packMeshletsLnd(const zenkit::Mesh& mesh) {
