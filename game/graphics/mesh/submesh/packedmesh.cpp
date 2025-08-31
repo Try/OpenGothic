@@ -701,7 +701,7 @@ std::pair<uint32_t, bool> PackedMesh::findNodeSplit(Tempest::Vec3 bbmin, Tempest
   return std::make_pair(split, true);
   }
 
-uint32_t PackedMesh::packPrimNode(const zenkit::Mesh& mesh, std::vector<BVHNode>& nodes, Fragment* frag, size_t size) {
+uint32_t PackedMesh::packPrimNode(const zenkit::Mesh& mesh, std::vector<BVHNode>& nodes, const Fragment* frag, size_t size) {
   auto pullVert = [&](uint32_t i) {
     auto v = mesh.vertices[i];
     return Tempest::Vec3(v.x, v.y, v.z);
@@ -801,6 +801,7 @@ uint32_t PackedMesh::packBVH64(const zenkit::Mesh& mesh, std::vector<BVHNode64>&
   uint32_t  nodeSz = 0;
   packNode64(node, nodeSz, mesh, nodes, frag, size, 0);
   nodes[nId] = node;
+  assert(nodeSz<=64);
 
   return uint32_t(nId | BVH_BoxNode);
   }
@@ -821,9 +822,9 @@ void PackedMesh::packNode64(BVHNode64& out, uint32_t& outSz, const zenkit::Mesh&
     }
 
   if(depth>=3) {
-    out.leaf[outSz].lmin  = bbmin;
+    out.leaf[outSz].bbmin = bbmin;
     out.leaf[outSz].ptr   = packBVH64(mesh, nodes, frag, size);
-    out.leaf[outSz].lmax  = bbmax;
+    out.leaf[outSz].bbmax = bbmax;
     out.leaf[outSz].padd0 = 0;
     outSz++;
     return;
@@ -855,9 +856,9 @@ void PackedMesh::packPrim64(BVHNode64& out, const zenkit::Mesh& mesh, Fragment* 
   assert(size<=64);
   for(size_t i=0; i<size; ++i) {
     auto& l = out.leaf[i];
-    l.lmin = frag->bbmin;
-    l.lmax = frag->bbmax;
-    l.ptr  = uint32_t(frag->primId | BVH_Tri1Node);
+    l.bbmin = frag[i].bbmin;
+    l.bbmax = frag[i].bbmax;
+    l.ptr   = uint32_t(frag[i].primId | BVH_Tri1Node);
     }
   }
 
