@@ -841,6 +841,11 @@ void PackedMesh::packNode64(BVHNode64& out, uint32_t& outSz, const zenkit::Mesh&
     std::sort(frag, frag+size, [](const Fragment& l, const Fragment& r){ return l.centroid.z < r.centroid.z; });
     }
 
+  if(depth==0) {
+    out.self.bbmin = bbmin;
+    out.self.bbmax = bbmax;
+    }
+
   const bool useSah = false;
   const auto splitB = findNodeSplit(frag,        size,        useSah).first;
   const auto splitA = findNodeSplit(frag,        splitB,      useSah).first;
@@ -860,6 +865,22 @@ void PackedMesh::packPrim64(BVHNode64& out, const zenkit::Mesh& mesh, Fragment* 
     l.bbmax = frag[i].bbmax;
     l.ptr   = uint32_t(frag[i].primId | BVH_Tri1Node);
     }
+
+  Tempest::Vec3 bbmin = {}, bbmax = {};
+  bbmin = frag[0].bbmin;
+  bbmax = frag[0].bbmax;
+  for(size_t i=1; i<size; ++i) {
+    auto& f = frag[i];
+    bbmin.x = std::min(bbmin.x, f.bbmin.x);
+    bbmin.y = std::min(bbmin.y, f.bbmin.y);
+    bbmin.z = std::min(bbmin.z, f.bbmin.z);
+
+    bbmax.x = std::max(bbmax.x, f.bbmax.x);
+    bbmax.y = std::max(bbmax.y, f.bbmax.y);
+    bbmax.z = std::max(bbmax.z, f.bbmax.z);
+    }
+  out.self.bbmin = bbmin;
+  out.self.bbmax = bbmax;
   }
 
 void PackedMesh::packMeshletsLnd(const zenkit::Mesh& mesh) {

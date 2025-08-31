@@ -19,6 +19,7 @@ struct BVHLeaf {
   };
 
 struct BVHNode64 {
+  BVHLeaf self;
   BVHLeaf leaf[64];
   };
 
@@ -39,9 +40,6 @@ layout(binding = 7, std430) readonly buffer VBO { float     vbo[];   };
 
 uint  laneID    = gl_LocalInvocationIndex;
 ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
-
-shared uvec4 rayTileBbox;
-shared uint  rayDepthMin;
 
 // utility
 uint floatToOrderedUint(float value) {
@@ -80,6 +78,14 @@ bool bboxIntersect(vec4 a, vec4 b) {
   return true;
   }
 
+bool bboxIntersect(vec2 ray, vec4 b) {
+  if(ray.x < b.x || b.z < ray.x)
+    return false;
+  if(ray.y < b.y || b.w < ray.y)
+    return false;
+  return true;
+  }
+
 uint bvhGetNodeType(uint ptr) {
   return ptr & 0xF0000000;
   }
@@ -89,18 +95,6 @@ vec4 worldPosLwc(vec2 frag, float depth) {
   const vec2 fragCoord = (frag.xy*scene.screenResInv)*2.0 - vec2(1.0);
   const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
   return scene.viewProjectLwcInv * scr;
-  }
-
-void rayBbox(const vec3 ray, bool actRay) {
-  if(!actRay)
-    return;
-  //FIXME: XZY order is for testing
-  atomicMin(rayTileBbox.x, floatToOrderedUint(ray.x));
-  atomicMin(rayTileBbox.y, floatToOrderedUint(ray.z));
-  atomicMax(rayTileBbox.z, floatToOrderedUint(ray.x));
-  atomicMax(rayTileBbox.w, floatToOrderedUint(ray.z));
-
-  atomicMin(rayDepthMin,   floatToOrderedUint(ray.y));
   }
 
 //
@@ -148,17 +142,67 @@ uint popStack(){
 
   if(laneID==0)
     stackSize--;
-  barrier();
   return nodeId;
   }
 
-vec3 processTriNode(const uint nodeId, const vec3 ray, bool actRay) {
+void processTriNode(inout vec3 ret, const uint nodeId, const vec3 ray, bool actRay) {
   if(laneID==0)
     numTri += 1;
   if(!actRay)
-    return vec3(TMax);
+    return;
   const uint primId = nodeId & 0x0FFFFFFF;
-  return rayTriangleTest(ray, primId);
+  const vec3 hit    = rayTriangleTest(ray, primId);
+  if(hit.x>ret.x)
+    return;
+  ret = hit;
+  }
+
+shared uvec4 rayTileBbox;
+shared uint  rayDepthMin;
+void processBoxNode(const uint nodeId, const vec3 ray) {
+  rayTileBbox = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
+  rayDepthMin = 0xFFFFFFFF;
+  barrier();
+
+  const BVHLeaf self = bvh.node[nodeId & 0x0FFFFFFF].self;
+  if(bboxIntersect(ray.xz, vec4(self.bbmin.xz, self.bbmax.xz))) {
+    //FIXME: XZY order is for testing
+    atomicMin(rayTileBbox.x, floatToOrderedUint(ray.x));
+    atomicMin(rayTileBbox.y, floatToOrderedUint(ray.z));
+    atomicMax(rayTileBbox.z, floatToOrderedUint(ray.x));
+    atomicMax(rayTileBbox.w, floatToOrderedUint(ray.z));
+
+    atomicMin(rayDepthMin,   floatToOrderedUint(ray.y));
+    }
+  barrier();
+
+  if(rayTileBbox.x==0xFFFFFFFF)
+    return; // empty packet
+
+  if(laneID==0) {
+    vec4  rbb  = orderedUintToFloat(rayTileBbox);
+    float rayD = orderedUintToFloat(rayDepthMin);
+    rayTileBbox = floatBitsToUint(rbb);
+    rayDepthMin = floatBitsToUint(rayD);
+    }
+  barrier();
+
+  const BVHLeaf leaf = bvh.node[nodeId & 0x0FFFFFFF].leaf[laneID];
+  const uint    ptr  = floatBitsToUint(leaf.bbmin.w);
+  if(ptr==0)
+    return;
+
+  const vec4  rbb   = uintBitsToFloat(rayTileBbox);
+  const float rdMin = uintBitsToFloat(rayDepthMin);
+
+  if(leaf.bbmax.y<rdMin)
+    return;
+  if(!bboxIntersect(rbb, vec4(leaf.bbmin.xz, leaf.bbmax.xz)))
+    return;
+
+  atomicAdd(numBox, 1);
+  const uint ins = atomicAdd(stackSize, 1);
+  stack[ins] = ptr;
   }
 
 vec3 traceRay(const vec3 ray, bool actRay) {
@@ -168,12 +212,7 @@ vec3 traceRay(const vec3 ray, bool actRay) {
   stack[0]  = uint(0 | BVH_BoxNode);
   barrier();
 
-  if(rayTileBbox.x==0xFFFFFFFF)
-    return vec3(0); // empty packet
-
   vec3 ret = vec3(TMax);
-
-  const vec4 rbb = uintBitsToFloat(rayTileBbox);
   int i = 0;
   for(; i<MaxLoop; ++i) {
     if(stackSize==0)
@@ -181,22 +220,13 @@ vec3 traceRay(const vec3 ray, bool actRay) {
 
     const uint nodeId = popStack();
     const uint type   = bvhGetNodeType(nodeId);
+    barrier();
 
     if(type==BVH_Tri1Node) {
-      const vec3 hit = processTriNode(nodeId, ray, actRay);
-      if(actRay && hit.x<ret.x) {
-        ret = hit;
-        }
-      //ret = vec3(1);
+      processTriNode(ret, nodeId, ray, actRay);
       }
     else if(type==BVH_BoxNode) {
-      const BVHLeaf leaf = bvh.node[nodeId & 0x0FFFFFFF].leaf[laneID];
-      const uint    ptr  = floatBitsToUint(leaf.bbmin.w);
-      if(ptr!=0 && bboxIntersect(rbb, vec4(leaf.bbmin.xz, leaf.bbmax.xz))) {
-        atomicAdd(numBox, 1);
-        const uint ins = atomicAdd(stackSize, 1);
-        stack[ins] = ptr;
-        }
+      processBoxNode(nodeId, ray);
       }
     barrier();
     }
@@ -214,11 +244,7 @@ vec3 traceRay(const vec3 ray, bool actRay) {
   }
 
 void main() {
-  rayTileBbox = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
-  rayDepthMin = 0xFFFFFFFF;
-  barrier();
-
-  const bool  valid     = all(lessThan(fragCoord, imageSize(outImage)));
+  const bool  valid  = all(lessThan(fragCoord, imageSize(outImage)));
 
   const float d      = valid ? texelFetch(depth, fragCoord, 0).r  : 0.0;
   const vec3  normal = valid ? normalFetch(gbufNormal, fragCoord) : vec3(0.0);
@@ -229,17 +255,6 @@ void main() {
   const float NormalBias = 0.0015;
   const vec4  wpos4      = worldPosLwc(vec2(fragCoord+0.5), d) + vec4(normal*NormalBias, 0);
   const vec3  wpos       = wpos4.xyz/wpos4.w + push.originLwc;
-
-  rayBbox(wpos, actRay);
-  barrier();
-
-  if(laneID==0 && rayTileBbox.x!=0xFFFFFFFF) {
-    vec4  rbb  = orderedUintToFloat(rayTileBbox);
-    float rayD = orderedUintToFloat(rayDepthMin);
-    rayTileBbox = floatBitsToUint(rbb);
-    rayDepthMin = floatBitsToUint(rayD);
-    }
-  barrier();
 
   vec3 outColor = traceRay(wpos, actRay);
   //outColor = vec3(numTri/float(255));

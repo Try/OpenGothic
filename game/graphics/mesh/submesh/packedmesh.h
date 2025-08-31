@@ -65,6 +65,7 @@ class PackedMesh {
       };
 
     struct BVHNode64 {
+      Leaf64 self;
       Leaf64 leaf[64];
       };
 
