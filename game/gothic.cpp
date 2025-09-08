@@ -204,6 +204,7 @@ Gothic::Gothic() {
         modvdfs.emplace_back(std::move(mod));
       }
     }
+  Resources::mountWork(Gothic::nestedPath({u"_work"}, Dir::FT_Dir));
   Resources::loadVdfs(modvdfs, modFilter);
 
   if(wrldDef.empty()) {

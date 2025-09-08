@@ -100,8 +100,6 @@ Resources::Resources(Tempest::Device &device)
     Log::e("Failed to created DmLoader object. Out of memory?");
     }
 
-  gothicAssets.mkdir("/_work/data/music");
-  gothicAssets.mount_host(Gothic::nestedPath({u"_work",u"Data",u"Music"}, Dir::FT_Dir), "/_work/data/music", zenkit::VfsOverwriteBehavior::ALL);
   DmLoader_addResolver(dmLoader, [](void* ctx, char const* name, size_t* len) -> void* {
       auto* slf = reinterpret_cast<Resources*>(ctx);
       auto* node = slf->gothicAssets.find(name);
@@ -121,6 +119,11 @@ Resources::Resources(Tempest::Device &device)
 
       return bytes;
   }, this);
+  }
+
+void Resources::mountWork(const std::filesystem::path& path) {
+  inst->gothicAssets.mkdir("/_work");
+  inst->gothicAssets.mount_host(path, "/_work", zenkit::VfsOverwriteBehavior::ALL);
   }
 
 void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs, bool modFilter) {

@@ -7,33 +7,30 @@
 #include <Tempest/Platform>
 
 #include "bink/video.h"
-#include "utils/fileutil.h"
 #include "gamemusic.h"
 #include "gothic.h"
 
 using namespace Tempest;
 
 struct VideoWidget::Input : Bink::Video::Input {
-  Input(Tempest::RFile& fin):fin(fin) {}
+  Input(zenkit::Read& fin):fin(fin) {}
 
   void read(void *dest, size_t count) override {
     if(fin.read(dest,count)!=count)
       throw std::runtime_error("i/o error");
-    at+=count;
+    at += count;
     }
   void skip(size_t count) override {
-    fin.seek(count);
-    at+=count;
+    fin.seek(ssize_t(count), zenkit::Whence::CUR);
+    at += count;
     }
   void seek(size_t pos) override {
-    if(pos<at)
-      fin.unget(at-pos); else
-      fin.seek (pos-at);
+    fin.seek(ssize_t(pos), zenkit::Whence::BEG);
     at = pos;
     }
 
-  Tempest::RFile& fin;
-  size_t          at=0;
+  zenkit::Read&   fin;
+  size_t          at = 0;
   };
 
 struct VideoWidget::Sound : Tempest::SoundProducer {
@@ -87,7 +84,7 @@ void VideoWidget::Sound::renderSound(int16_t *out, size_t n) {
   }
 
 struct VideoWidget::Context {
-  Context(const std::u16string& path) : fin(path), input(fin), vid(&input) {
+  Context(std::unique_ptr<zenkit::Read>&& f) : fin(std::move(f)), input(*fin), vid(&input) {
     sndCtx.resize(vid.audioCount());
     for(size_t i=0; i<sndCtx.size(); ++i) {
       auto& aud = vid.audio(uint8_t(i));
@@ -153,13 +150,13 @@ struct VideoWidget::Context {
     return vid.currentFrame()>=vid.frameCount();
     }
 
-  Tempest::RFile       fin;
-  Input                input;
-  Bink::Video          vid;
-  Pixmap               pm;
-  uint64_t             frameTime = 0;
+  std::unique_ptr<zenkit::Read> fin;
+  Input                         input;
+  Bink::Video                   vid;
+  Pixmap                        pm;
+  uint64_t                      frameTime = 0;
 
-  Tempest::SoundDevice      sndDev;
+  Tempest::SoundDevice          sndDev;
   std::vector<std::unique_ptr<SoundContext>> sndCtx;
   };
 
@@ -205,16 +202,22 @@ void VideoWidget::tick() {
     hasPendingVideo.store(false);
   }
 
-  auto path  = Gothic::nestedPath({u"_work",u"Data",u"Video"},Dir::FT_Dir);
-  auto fname = TextCodec::toUtf16(filename.c_str());
-  auto f     = FileUtil::caseInsensitiveSegment(path,fname.c_str(),Dir::FT_File);
-  if(!FileUtil::exists(f)) {
+  std::unique_ptr<zenkit::Read> read;
+  if(auto* entry = Resources::vdfsIndex().find(filename)) {
+    read = entry->open_read();
+    }
+  else if(auto* entry = Resources::vdfsIndex().find(filename+".bik")) {
     // some api-calls are missing extension
-    f = FileUtil::caseInsensitiveSegment(path,(fname+u".bik").c_str(),Dir::FT_File);
+    read = entry->open_read();
+    }
+  else {
+    Log::e("unable to locate video file: \"",filename,"\"");
+    stopVideo();
+    return;
     }
 
   try {
-    ctx.reset(new Context(f));
+    ctx.reset(new Context(std::move(read)));
     if(!active) {
       active       = true;
       restoreMusic = GameMusic::inst().isEnabled();
