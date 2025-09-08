@@ -443,8 +443,10 @@ void GameScript::initDialogs() {
   }
 
 void GameScript::loadDialogOU() {
+  // Based on https://github.com/auronen/Gothic-2-localization mod,
+  // at least in G2 .BIN should have a priority
   const std::string prefix = std::string(Gothic::inst().defaultOutputUnits());
-  const std::array<std::string,2> names = {prefix + ".DAT", prefix + ".BIN"};
+  const std::array<std::string,2> names = {prefix + ".BIN", prefix + ".DAT"};
 
   const auto version = Gothic::inst().version().game==1 ? zenkit::GameVersion::GOTHIC_1
                                                         : zenkit::GameVersion::GOTHIC_2;
