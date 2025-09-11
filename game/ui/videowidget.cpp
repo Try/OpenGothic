@@ -6,6 +6,8 @@
 #include <Tempest/Application>
 #include <Tempest/Platform>
 
+#include <cstddef>
+
 #include "bink/video.h"
 #include "gamemusic.h"
 #include "gothic.h"
@@ -21,11 +23,11 @@ struct VideoWidget::Input : Bink::Video::Input {
     at += count;
     }
   void skip(size_t count) override {
-    fin.seek(ssize_t(count), zenkit::Whence::CUR);
+    fin.seek(ptrdiff_t(count), zenkit::Whence::CUR);
     at += count;
     }
   void seek(size_t pos) override {
-    fin.seek(ssize_t(pos), zenkit::Whence::BEG);
+    fin.seek(ptrdiff_t(pos), zenkit::Whence::BEG);
     at = pos;
     }
 
