@@ -113,6 +113,7 @@ class Shaders {
     Tempest::RenderPipeline  rtsmDbg;
 
     Tempest::ComputePipeline swRaytracing, swRaytracing64;
+    Tempest::ComputePipeline swRaytracing8;
 
     // Software rendering
     Tempest::ComputePipeline swRendering;

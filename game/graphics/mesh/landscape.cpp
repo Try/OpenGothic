@@ -14,9 +14,12 @@ Landscape::Landscape(VisualObjects& visual, const PackedMesh &packed)
 
   meshletDesc = Resources::ssbo(packed.meshletBounds.data(),packed.meshletBounds.size()*sizeof(packed.meshletBounds[0]));
   bvhNodes    = Resources::ssbo(packed.bvhNodes.data(),packed.bvhNodes.size()*sizeof(packed.bvhNodes[0]));
-  bvhNodes64  = Resources::ssbo(packed.bvhNodes64.data(),packed.bvhNodes64.size()*sizeof(packed.bvhNodes64[0]));
-  bvh64Ibo    = Resources::device().ssbo(packed.bvh64Ibo);
-  bvh64Vbo    = Resources::device().ssbo(packed.bvh64Vbo);
+
+  // bvhNodes64  = Resources::ssbo(packed.bvhNodes64.data(),packed.bvhNodes64.size()*sizeof(packed.bvhNodes64[0]));
+  // bvh64Ibo    = Resources::device().ssbo(packed.bvh64Ibo);
+  // bvh64Vbo    = Resources::device().ssbo(packed.bvh64Vbo);
+
+  bvh8Nodes = Resources::ssbo(packed.bvh8Nodes.data(), packed.bvh8Nodes.size()*sizeof(packed.bvh8Nodes[0]));
 
   blocks.reserve(packed.subMeshes.size());
   for(size_t i=0; i<packed.subMeshes.size(); ++i) {

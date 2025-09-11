@@ -277,6 +277,7 @@ void Shaders::compileShaders() {
     }
 
   swRaytracing    = computeShader("sw_raytracing.comp.sprv");
+  swRaytracing8   = computeShader("sw_raytracing8.comp.sprv");
   swRaytracing64  = computeShader("sw_raytracing64.comp.sprv");
 
   if(Gothic::options().swRenderingPreset>0) {

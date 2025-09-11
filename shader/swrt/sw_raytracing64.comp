@@ -6,7 +6,7 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-const uint  MaxLoop      = 128;
+const uint  MaxLoop      = 255;
 const float TMax         = 1e30f;
 const uint  BVH_NullNode = 0x00000000;
 const uint  BVH_BoxNode  = 0x10000000;
@@ -23,7 +23,7 @@ struct BVHNode64 {
   BVHLeaf leaf[64];
   };
 
-layout(local_size_x = 8, local_size_y = 8) in;
+layout(local_size_x = 16, local_size_y = 16) in;
 
 layout(push_constant, std430) uniform UboPush {
   vec3  originLwc;
@@ -187,6 +187,9 @@ void processBoxNode(const uint nodeId, const vec3 ray) {
     }
   barrier();
 
+  if(laneID>=64)
+    return;
+
   const BVHLeaf leaf = bvh.node[nodeId & 0x0FFFFFFF].leaf[laneID];
   const uint    ptr  = floatBitsToUint(leaf.bbmin.w);
   if(ptr==0)
@@ -232,7 +235,7 @@ vec3 traceRay(const vec3 ray, bool actRay) {
     }
 
   if(i==MaxLoop)
-    return vec3(1,0,0);
+    return vec3(1);
 
   //return vec3(float(i)/255.0);
   //return vec3(float(numTri)/255.0);
