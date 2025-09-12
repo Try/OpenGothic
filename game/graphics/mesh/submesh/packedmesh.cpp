@@ -592,7 +592,7 @@ void PackedMesh::packBVH(const zenkit::Mesh& mesh) {
 
   std::vector<UVec4> nodes8(sizeof(CWBVH8)/sizeof(UVec4));
   auto root = packCWBVH8(mesh, nodes8, ibo, frag.data(), frag.size());
-  std::memcpy(nodes8.data(), &root, sizeof(root));
+  std::memcpy(static_cast<void*>(nodes8.data()), static_cast<const void*>(&root), sizeof(root));
   bvh8Nodes = std::move(nodes8);
   }
 
