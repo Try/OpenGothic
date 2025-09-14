@@ -1262,6 +1262,13 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
       Resources::recycle(std::move(rtsm.visList));
       rtsm.visList = device.ssbo(nullptr, clusterSz);
       }
+
+    if(rtsm.bvh.isEmpty()) {
+      //TODO: etimate memory requirements
+      rtsm.bvh    = device.ssbo(nullptr, 1024*1024*8);
+      rtsm.ibo    = device.ssbo(nullptr, clusterCnt*sizeof(uint32_t));
+      rtsm.bvhDbg = device.ssbo(nullptr, 1024);
+      }
   }
 
   cmd.setDebugMarker("RTSM-rendering");
@@ -1330,6 +1337,17 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
 
     cmd.setPipeline(shaders.rtsmPosition);
     cmd.dispatchIndirect(rtsm.visList,0);
+  }
+
+  // bvh
+  {
+    cmd.setBinding(0, rtsm.bvh);
+    cmd.setBinding(1, rtsm.ibo);
+    cmd.setBinding(2, rtsm.posList);
+
+    cmd.setBinding(9, rtsm.bvhDbg);
+    cmd.setPipeline(shaders.rtsmBvhBuild);
+    cmd.dispatch(1);
   }
 
   // tile hirarchy

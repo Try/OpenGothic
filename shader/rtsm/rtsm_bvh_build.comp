@@ -1,0 +1,213 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive : enable
+
+#include "rtsm/rtsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 512) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+struct BVHNode {
+  vec4 aabb [4];
+  uint count[4];
+  };
+
+layout(binding = 0, std430)          buffer Bvh { BVHNode nodes[1];  } bvh;
+layout(binding = 1, std430)          buffer Ibo { uint    indices[]; } ibo;
+layout(binding = 2, std430) readonly buffer Pos { uint    alloc; uint data[]; } pos;
+
+layout(binding = 9, std430)          buffer Dbg { vec4  aabb;  uint bins[32]; vec3 split; } dbg;
+
+#define CONST_SCRATCH 1
+#include "rtsm/rtsm_scratch.glsl"
+
+shared uvec4 unodeAabb;
+shared uint  sahBins[32];
+shared uvec4 binAabb[32];
+
+shared uvec3 band;
+shared uint  wrCount[4];
+
+int bindIdOf(vec2 cen, int axis, float base, float size) {
+  int bin = 0;
+  if(axis==0)
+    bin = int((sahBins.length()*(cen.x-base))/size);
+  else if(axis==1)
+    bin = int((sahBins.length()*(cen.y-base))/size);
+  return clamp(bin, 0, sahBins.length()-1);
+  }
+
+void bboxGlobal(const uint visPtr, const uint visCount) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  unodeAabb = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
+  if(laneID<sahBins.length())
+    sahBins[laneID] = 0;
+  barrier();
+
+  for(uint i=laneID; i<visCount; i+=NumThreads) {
+    const uint ptr  = pos.data[visPtr + i];
+    const vec4 aabb = pullMeshAabb(ptr);
+
+    const uvec4 uaabb = floatToOrderedUint(aabb);
+    atomicMin(unodeAabb.x, uaabb.x);
+    atomicMin(unodeAabb.y, uaabb.y);
+    atomicMax(unodeAabb.z, uaabb.z);
+    atomicMax(unodeAabb.w, uaabb.w);
+    }
+  }
+
+void storeIndexList(const uint visPtr, const uint visCount, int axis, float base, float size) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  for(uint i=laneID; i<visCount; i+=NumThreads) {
+    const uint ptr  = pos.data[visPtr + i];
+    const vec4 aabb = pullMeshAabb(ptr);
+    const vec2 cen  = (aabb.xy + aabb.zw)*0.5;
+    const int  bin  = bindIdOf(cen, axis, base, size);
+
+    uint idx = 0;
+    if(bin<band.x)
+      idx = 0;
+    else if(bin<band.y)
+      idx = 1;
+    else if(bin<band.z)
+      idx = 2;
+    else
+      idx = 3;
+    const uint wId = atomicAdd(wrCount[idx], 1);
+    ibo.indices[wId] = i;
+    }
+  }
+
+void processBinning(const uint visPtr, const uint visCount, int axis, float base, float size) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  for(uint i=laneID; i<visCount; i+=NumThreads) {
+    const uint ptr  = pos.data[visPtr + i];
+    const vec4 aabb = pullMeshAabb(ptr);
+    const vec2 cen  = (aabb.xy + aabb.zw)*0.5;
+    const int  bin  = bindIdOf(cen, axis, base, size);
+
+    atomicAdd(sahBins[bin], 1);
+    const uvec4 uaabb = floatToOrderedUint(aabb);
+    atomicMin(binAabb[bin].x, uaabb.x);
+    atomicMin(binAabb[bin].y, uaabb.y);
+    atomicMax(binAabb[bin].z, uaabb.z);
+    atomicMax(binAabb[bin].w, uaabb.w);
+    }
+  }
+
+void processBinning(const uint visPtr, const uint visCount) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  if(laneID<sahBins.length()) {
+    sahBins[laneID] = 0;
+    binAabb[laneID] = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
+    }
+  barrier();
+
+  const vec4 nodeAabb = orderedUintToFloat(unodeAabb);
+  const vec2 sz       = nodeAabb.zw - nodeAabb.xy;
+  const int  axis     = (sz.x>=sz.y) ? 0 : 1;
+
+  // binning
+  if(axis==0)
+    processBinning(visPtr, visCount, axis, nodeAabb.x, sz.x); else
+    processBinning(visPtr, visCount, axis, nodeAabb.y, sz.y);
+  barrier();
+
+  // prefix sum
+  for(int i=1; i<sahBins.length(); i*=2) {
+    const bool act = i<=laneID && laneID < sahBins.length();
+    const uint sum = act ? sahBins[laneID] + sahBins[laneID-i] : 0;
+    barrier();
+
+    if(act) sahBins[laneID] = sum;
+    barrier();
+    }
+
+  // split-id
+  const uint split0 = visCount/4;
+  const uint split1 = visCount/2;
+  const uint split2 = split1 + (visCount-split1)/2;
+  if(laneID<sahBins.length()) {
+    if((laneID==0 || sahBins[laneID-1]<split0) && split0<=sahBins[laneID])
+      band.x = laneID;
+    if((laneID==0 || sahBins[laneID-1]<split1) && split1<=sahBins[laneID])
+      band.y = laneID;
+    if((laneID==0 || sahBins[laneID-1]<split2) && split2<=sahBins[laneID])
+      band.z = laneID;
+    }
+  barrier();
+
+  if(laneID<sahBins.length()) {
+    uint idx = 0;
+    if(laneID<band.x)
+      idx = 0;
+    else if(laneID<band.y)
+      idx = band.x;
+    else if(laneID<band.z)
+      idx = band.y;
+    else
+      idx = band.z;
+    uvec4 bbox = binAabb[laneID];
+    atomicMin(binAabb[idx].x, bbox.x);
+    atomicMin(binAabb[idx].y, bbox.y);
+    atomicMax(binAabb[idx].z, bbox.z);
+    atomicMax(binAabb[idx].w, bbox.w);
+    }
+  barrier();
+
+  bvh.nodes[0].aabb[0]  = orderedUintToFloat(binAabb[0]);
+  bvh.nodes[0].aabb[1]  = orderedUintToFloat(binAabb[band.x]);
+  bvh.nodes[0].aabb[2]  = orderedUintToFloat(binAabb[band.y]);
+  bvh.nodes[0].aabb[3]  = orderedUintToFloat(binAabb[band.z]);
+
+  bvh.nodes[0].count[0] = sahBins[band.x];
+  bvh.nodes[0].count[1] = sahBins[band.y] - sahBins[band.x];
+  bvh.nodes[0].count[2] = sahBins[band.z] - sahBins[band.y];
+  bvh.nodes[0].count[3] = visCount - sahBins[band.z];
+
+  wrCount[0] = 0;
+  wrCount[1] = sahBins[band.x];
+  wrCount[2] = sahBins[band.y];
+  wrCount[3] = sahBins[band.z];
+  barrier();
+
+  // store
+  if(axis==0)
+    storeIndexList(visPtr, visCount, axis, nodeAabb.x, sz.x); else
+    storeIndexList(visPtr, visCount, axis, nodeAabb.y, sz.y);
+
+  // split
+  const vec2  edge  = (axis==0) ? nodeAabb.xz : nodeAabb.yw;
+  const float splitX = mix(edge.x, edge.y, float(band.x+1)/float(sahBins.length()));
+  const float splitY = mix(edge.x, edge.y, float(band.y+1)/float(sahBins.length()));
+  const float splitZ = mix(edge.x, edge.y, float(band.z+1)/float(sahBins.length()));
+  dbg.split = vec3(splitX, splitY, splitZ);
+  // dbg.split = vec3(band);
+  }
+
+void processMeshlets(const uint visPtr, const uint visCount) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  processBinning(visPtr, visCount);
+
+  // debug
+  if(laneID<sahBins.length())
+    dbg.bins[laneID] = sahBins[laneID];
+  dbg.aabb = orderedUintToFloat(unodeAabb);
+  }
+
+void main() {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  bboxGlobal(1, pos.data[0]);
+  barrier();
+
+  processMeshlets(1, pos.data[0]);
+  }
