@@ -249,9 +249,6 @@ vec4 traverseCWBVH8(const Ray ray, const float tMax) {
     //break;
     }
 
-  //return vec4(numLoop/255.0);
-  //return vec4(numTri /255.0);
-  //return vec4(numBox /255.0);
   return vec4(hit.x, hit.yz, 1.0-hit.y-hit.z);
   }
 
@@ -264,6 +261,9 @@ vec4 rayTest(vec3 pos, vec3 rayDirection, float tMin, float tMax) {
 
   // trace
   vec4 hit = traverseCWBVH8(r, tMax);
+  //return vec4(numLoop/255.0);
+  //return vec4(numTri /255.0);
+  //return vec4(numBox /255.0);
   return hit;
   }
 
