@@ -587,7 +587,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   drawRtsm(cmd, *wview);
   drawRtsmOmni(cmd, *wview);
   // drawSwRT(cmd, *wview);
-  drawSwRT8(cmd, *wview);
+  // drawSwRT8(cmd, *wview);
   // drawSwRT64(cmd, *wview);
 
   prepareIrradiance(cmd,*wview);
@@ -1267,7 +1267,7 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
       //TODO: etimate memory requirements
       rtsm.bvh    = device.ssbo(nullptr, 1024*1024*8);
       rtsm.ibo    = device.ssbo(nullptr, clusterCnt*sizeof(uint32_t));
-      rtsm.bvhDbg = device.ssbo(nullptr, 1024);
+      rtsm.bvhDbg = device.ssbo(nullptr, 1024*1024);
       }
   }
 
