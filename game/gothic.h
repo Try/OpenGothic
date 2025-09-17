@@ -132,7 +132,8 @@ class Gothic final {
     void         setClock(bool t) { showTime = t; }
 
     bool         isBenchmarkMode() const;
-    void         setBenchmarkMode(bool b);
+    bool         isBenchmarkModeCi() const;
+    void         setBenchmarkMode(Benchmark b);
 
     Tempest::Signal<void()> toggleGi, toggleVsm, toggleRtsm;
 
@@ -211,7 +212,7 @@ class Gothic final {
     bool                                    desktop        = false;
     bool                                    showFpsCounter = false;
     bool                                    showTime       = false;
-    bool                                    isBenchmark    = false;
+    Benchmark                               isBenchmark    = Benchmark::None;
 
     std::string                             wrldDef, plDef, gameDatDef, ouDef;
 

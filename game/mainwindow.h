@@ -163,7 +163,7 @@ class MainWindow : public Tempest::Window {
     Tempest::Shortcut         funcKey[11];
     Tempest::Shortcut         displayPos;
 
-    struct Benchmark {
+    struct BenchmarkData {
       std::vector<uint64_t> low1procent;
       size_t                numFrames = 0;
       double                fpsSum = 0;
@@ -175,7 +175,7 @@ class MainWindow : public Tempest::Window {
       double   get() const;
       void     push(uint64_t t);
       };
-    Fps        fps;
-    Benchmark  benchmark;
-    uint64_t   maxFpsInv = 0;
+    Fps           fps;
+    BenchmarkData benchmark;
+    uint64_t      maxFpsInv = 0;
   };

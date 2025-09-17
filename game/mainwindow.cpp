@@ -1026,7 +1026,7 @@ void MainWindow::loadGame(std::string_view slot) {
     setGameImpl(nullptr);
     }
 
-  Gothic::inst().setBenchmarkMode(false);
+  Gothic::inst().setBenchmarkMode(Benchmark::None);
   Gothic::inst().startLoad("LOADING.TGA",[slot=std::string(slot)](std::unique_ptr<GameSession>&& game){
     game = nullptr; // clear world-memory now
     Tempest::RFile file(slot);
@@ -1131,6 +1131,12 @@ void MainWindow::onBenchmarkFinished() {
   Log::i(str.c_str());
   console.printLine(str);
 
+  if(Gothic::inst().isBenchmarkModeCi()) {
+    Log::i("Exiting benchmark");
+    Tempest::SystemApi::exit();
+    return;
+    }
+
   console.setFocus(true);
   console.exec();
   }
@@ -1156,6 +1162,14 @@ void MainWindow::render(){
     if(once) {
       Gothic::inst().emitGlobalSoundWav("GAMESTART.WAV");
       once=false;
+      }
+
+    if(T_UNLIKELY(Gothic::inst().isBenchmarkModeCi())) {
+      const auto st = Gothic::inst().checkLoading();
+      if(st==Gothic::LoadState::Loading) {
+        // skip loading frames in benchmark-ci mode, for sake of easier tooling
+        return;
+        }
       }
 
     /*
@@ -1243,7 +1257,7 @@ void MainWindow::Fps::push(uint64_t t) {
   dt[0]=t;
   }
 
-void MainWindow::Benchmark::push(uint64_t t) {
+void MainWindow::BenchmarkData::push(uint64_t t) {
   fpsSum += t>0 ? (1000.0/double((t))) : 60.0;
   numFrames++;
   auto at = std::lower_bound(low1procent.begin(), low1procent.end(), t, std::greater<uint64_t>());
@@ -1251,7 +1265,7 @@ void MainWindow::Benchmark::push(uint64_t t) {
   low1procent.resize(std::min(low1procent.size(), (numFrames+99)/100));
   }
 
-void MainWindow::Benchmark::clear() {
+void MainWindow::BenchmarkData::clear() {
   low1procent.reserve(128);
   low1procent.clear();
   numFrames = 0;

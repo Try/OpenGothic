@@ -36,6 +36,10 @@ static const char16_t* toString(ScriptLang lang) {
   return u"Scripts";
   }
 
+static bool boolArg(std::string_view v) {
+  return std::string_view(v)!="0" && std::string_view(v)!="false";
+  }
+
 CommandLine::CommandLine(int argc, const char** argv) {
   instance = this;
   if(argc<1)
@@ -80,7 +84,11 @@ CommandLine::CommandLine(int argc, const char** argv) {
       noMenu = true;
       }
     else if(arg=="-benchmark") {
-      isBenchmark = true;
+      isBenchmark = Benchmark::Normal;
+      if(i+1<argc && argv[i+1][0]!='-') {
+        ++i;
+        isBenchmark = std::string_view(argv[i])=="ci" ? Benchmark::CiTooling : isBenchmark;
+        }
       }
     else if(arg=="-g1") {
       forceG1 = true;
@@ -100,7 +108,7 @@ CommandLine::CommandLine(int argc, const char** argv) {
     else if(arg=="-rt") {
       ++i;
       if(i<argc)
-        isRQuery = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
+        isRQuery = boolArg(argv[i]);
       }
     else if(arg=="-aa") {
       ++i;
@@ -117,30 +125,30 @@ CommandLine::CommandLine(int argc, const char** argv) {
     else if(arg=="-gi") {
       ++i;
       if(i<argc)
-        isGi = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
+        isGi = boolArg(argv[i]);
       }
     else if(arg=="-ms") {
       ++i;
       if(i<argc)
-        isMeshSh = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
+        isMeshSh = boolArg(argv[i]);
       }
     else if(arg=="-bl") {
       // not to document - debug only
       ++i;
       if(i<argc)
-        isBindlessSh = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
+        isBindlessSh = boolArg(argv[i]);
       }
     else if(arg=="-vsm") {
       // not to document - debug only
       ++i;
       if(i<argc)
-        isVsm = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
+        isVsm = boolArg(argv[i]);
       }
     else if(arg=="-rtsm") {
       // not to document - debug only
       ++i;
       if(i<argc)
-        isRtSm = (std::string_view(argv[i])!="0" && std::string_view(argv[i])!="false");
+        isRtSm = boolArg(argv[i]);
       }
     else {
       Log::i("unreacognized commandline option: \"", arg, "\"");

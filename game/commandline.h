@@ -42,7 +42,7 @@ class CommandLine {
     bool                isVirtualShadow()  const { return isVsm;        }
     bool                isSoftwareShadow() const { return isRtSm;       }
     bool                doStartMenu()      const { return !noMenu;      }
-    bool                isBenchmarkMode()  const { return isBenchmark;  }
+    Benchmark           isBenchmarkMode()  const { return isBenchmark;  }
     bool                doForceG1()        const { return forceG1;      }
     bool                doForceG2()        const { return forceG2;      }
     bool                doForceG2NR()      const { return forceG2NR;    }
@@ -61,7 +61,7 @@ class CommandLine {
     std::string         saveDef;
     bool                devmode      = false;
     bool                noMenu       = false;
-    bool                isBenchmark  = false;
+    Benchmark           isBenchmark  = Benchmark::None;
     bool                isWindow     = false;
     bool                isDebug      = false;
 #if defined(__OSX__)

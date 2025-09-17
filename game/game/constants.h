@@ -521,3 +521,9 @@ enum class AaPreset : uint32_t {
   ULTRA,
   PRESETS_COUNT
   };
+
+enum class Benchmark : uint8_t {
+  None,
+  Normal,
+  CiTooling
+  };
