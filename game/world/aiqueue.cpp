@@ -79,6 +79,13 @@ AiQueue::AiAction AiQueue::aiLookAt(const WayPoint* to) {
   return a;
   }
 
+AiQueue::AiAction AiQueue::aiQuickLook(Npc* other) {
+  AiAction a;
+  a.act    = AI_QuickLook;
+  a.target = other;
+  return a;
+  }
+
 AiQueue::AiAction AiQueue::aiLookAtNpc(Npc* other) {
   AiAction a;
   a.act    = AI_LookAtNpc;
