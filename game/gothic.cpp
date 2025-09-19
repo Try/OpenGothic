@@ -73,7 +73,7 @@ Gothic::Gothic() {
   setFRate(true);
 #else
   setMarvinEnabled(CommandLine::inst().isDevMode());
-  setFRate(CommandLine::inst().isBenchmarkMode());
+  setFRate(CommandLine::inst().isBenchmarkMode()!=Benchmark::None);
 #endif
   setBenchmarkMode(CommandLine::inst().isBenchmarkMode());
 
