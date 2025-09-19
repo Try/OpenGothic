@@ -90,6 +90,7 @@ void MenuRoot::popMenu() {
   removeAllWidgets();
   addWidget(w);
   current=w;
+  current->onTick();
 
   menuStack.pop_back();
   }
