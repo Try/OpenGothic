@@ -266,6 +266,7 @@ void Shaders::compileShaders() {
     rtsmPositionOmni = computeShader("rtsm_omni_position.comp.sprv");
 
     rtsmBvhBuild     = computeShader("rtsm_bvh_build.comp.sprv");
+    rtsmBvhCull      = computeShader("rtsm_meshlet_cull_bvh.comp.sprv");
 
     rtsmMeshletOmni  = computeShader("rtsm_omni_meshlet.comp.sprv");
     rtsmBackfaceOmni = computeShader("rtsm_omni_backface.comp.sprv");

@@ -10,235 +10,181 @@ layout(local_size_x = 512) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
-const int BVH_BINS = 32;
+const uint  BVH_NullNode = 0x00000000;
+const uint  BVH_BoxNode  = 0x10000000;
+const uint  BVH_MeshNode = 0x20000000;
 
 struct BVHNode {
   vec4 self;
-  vec4 aabb [4];
-  uint count[4];
+  vec4 aabb[64];
+  uint ptr [64];
   };
 
-layout(binding = 0, std430)          buffer Bvh { BVHNode nodes[1];  } bvh;
-layout(binding = 1, std430)          buffer Ibo { uint    indices[]; } ibo;
-layout(binding = 2, std430) readonly buffer Pos { uint    alloc; uint data[]; } pos;
+layout(binding = 0, std430) buffer Bvh { BVHNode nodes[1+64]; } bvh;
+layout(binding = 1, std430) buffer Pos { uint    alloc; uint data[]; } pos;
 
-layout(binding = 9, std430)          buffer Dbg { vec4  aabb; uint bins[BVH_BINS*4]; uvec3 bin0; vec4 l0Aabb[4]; } dbg;
+layout(binding = 9, r32ui)  uniform  uimage2D dbg;
 
-#define CONST_SCRATCH 1
 #include "rtsm/rtsm_scratch.glsl"
 
-shared uvec4 unodeAabb;
-shared uint  sahBins[BVH_BINS * 4];
-shared uvec4 binAabb[BVH_BINS * 4];
+const ivec2 SLICE_SIZE = ivec2(16);
 
-shared uvec3 l0Bins;
-shared uvec4 l0Aabb[4];
-
-int binIdOf(vec2 cen, int axis, float base, float size) {
-  int bin = 0;
-  if(axis==0)
-    bin = int((BVH_BINS*(cen.x-base))/size);
-  else if(axis==1)
-    bin = int((BVH_BINS*(cen.y-base))/size);
-  return clamp(bin, 0, int(BVH_BINS-1));
-  }
-
-int binIdOf(vec2 cen, vec4 aabb) {
-  const vec2 xy   = aabb.xy;
-  const vec2 size = aabb.zw - xy;
-  const int  axis = (size.x>=size.y) ? 0 : 1;
-
-  int bin = 0;
-  if(axis==0)
-    bin = int((BVH_BINS*(cen.x-xy.x))/size.x);
-  else if(axis==1)
-    bin = int((BVH_BINS*(cen.y-xy.y))/size.x);
-
-  return clamp(bin, 0, BVH_BINS-1);
-  }
+shared uvec4 sceneBbox;
+shared uint  nodeBins[SLICE_SIZE.x][SLICE_SIZE.y];
+shared uint  nodePtr [SLICE_SIZE.x][SLICE_SIZE.y];
+shared uvec4 nodeBbox[SLICE_SIZE.x][SLICE_SIZE.y];
 
 void bboxGlobal(const uint visPtr, const uint visCount) {
   const uint laneID = gl_LocalInvocationIndex;
 
-  unodeAabb = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
-  barrier();
-
   for(uint i=laneID; i<visCount; i+=NumThreads) {
     const uint ptr  = pos.data[visPtr + i];
     const vec4 aabb = pullMeshAabb(ptr);
 
     const uvec4 uaabb = floatToOrderedUint(aabb);
-    atomicMin(unodeAabb.x, uaabb.x);
-    atomicMin(unodeAabb.y, uaabb.y);
-    atomicMax(unodeAabb.z, uaabb.z);
-    atomicMax(unodeAabb.w, uaabb.w);
+    atomicMin(sceneBbox.x, uaabb.x);
+    atomicMin(sceneBbox.y, uaabb.y);
+    atomicMax(sceneBbox.z, uaabb.z);
+    atomicMax(sceneBbox.w, uaabb.w);
+    }
+  barrier();
+
+  if(laneID==0) {
+    const vec4 aabb = orderedUintToFloat(sceneBbox);
+    sceneBbox = floatBitsToUint(aabb);
     }
   }
 
-void clearBinning() {
+ivec2 binIdOf(vec2 cen, const vec4 nodeAabb) {
+  vec2  norm = (cen-nodeAabb.xy)/(nodeAabb.zw-nodeAabb.xy);
+  ivec2 id   = ivec2(norm*vec2(64));
+  id = min(id, ivec2(64-1));
+
+  return id - ivec2(gl_WorkGroupID.xy)*SLICE_SIZE;
+  }
+
+void processBinning(const uint visPtr, const uint visCount) {
   const uint laneID = gl_LocalInvocationIndex;
 
-  if(laneID<sahBins.length()) {
-    sahBins[laneID] = 0;
-    binAabb[laneID] = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
-    }
-  }
-
-void processBinning(const vec4 nodeAabb, const uint depth, const uint visPtr, const uint visCount) {
-  const uint  laneID = gl_LocalInvocationIndex;
-
-  const vec2  sz     = nodeAabb.zw - nodeAabb.xy;
-  const int   axis   = (sz.x>=sz.y) ? 0 : 1;
-  const float base   = axis==0 ? nodeAabb.x : nodeAabb.y;
-  const float size   = axis==0 ? sz.x : sz.y;
-
+  const vec4 gAabb = uintBitsToFloat(sceneBbox);
   for(uint i=laneID; i<visCount; i+=NumThreads) {
-    const uint ptr  = pos.data[visPtr + i];
-    const vec4 aabb = pullMeshAabb(ptr);
-    const vec2 cen  = (aabb.xy + aabb.zw)*0.5;
+    const uint  ptr  = pos.data[visPtr + i];
+    const vec4  aabb = pullMeshAabb(ptr);
+    const vec2  cen  = (aabb.xy + aabb.zw)*0.5;
 
-    int bin = binIdOf(cen, axis, base, size);
-    if(depth>0) {
-      if(bin<=l0Bins.x)
-        bin = binIdOf(cen, uintBitsToFloat(l0Aabb[0])) + 0;
-      else if(bin<=l0Bins.y)
-        bin = binIdOf(cen, uintBitsToFloat(l0Aabb[1])) + BVH_BINS;
-      else if(bin<=l0Bins.z)
-        bin = binIdOf(cen, uintBitsToFloat(l0Aabb[2])) + BVH_BINS*2;
-      else
-        bin = binIdOf(cen, uintBitsToFloat(l0Aabb[3])) + BVH_BINS*3;
-      }
+    const ivec2 bin  = binIdOf(cen, gAabb);
+    if(bin.x<0 || bin.y<0 || bin.x>=SLICE_SIZE.x || bin.y>=SLICE_SIZE.y)
+      continue;
 
-    const uvec4 uaabb = floatToOrderedUint(aabb);
-    atomicAdd(sahBins[bin], 1);
-    atomicMin(binAabb[bin].x, uaabb.x);
-    atomicMin(binAabb[bin].y, uaabb.y);
-    atomicMax(binAabb[bin].z, uaabb.z);
-    atomicMax(binAabb[bin].w, uaabb.w);
+    atomicAdd(nodeBins[bin.x][bin.y],   1);
+    atomicMin(nodeBbox[bin.x][bin.y].x, floatToOrderedUint(aabb.x));
+    atomicMin(nodeBbox[bin.x][bin.y].y, floatToOrderedUint(aabb.y));
+    atomicMax(nodeBbox[bin.x][bin.y].z, floatToOrderedUint(aabb.z));
+    atomicMax(nodeBbox[bin.x][bin.y].w, floatToOrderedUint(aabb.w));
     }
   }
 
-void prefixSum() {
+void processStore(const uint visPtr, const uint visCount) {
   const uint laneID = gl_LocalInvocationIndex;
 
-  const uint binId  = laneID/BVH_BINS;
-  const uint eltId  = binId<4 ? laneID%BVH_BINS : BVH_BINS;
+  const vec4 gAabb = uintBitsToFloat(sceneBbox);
+  for(uint i=laneID; i<visCount; i+=NumThreads) {
+    const uint  ptr  = pos.data[visPtr + i];
+    const vec4  aabb = pullMeshAabb(ptr);
+    const vec2  cen  = (aabb.xy + aabb.zw)*0.5;
 
-  for(int i=1; i<BVH_BINS; i*=2) {
-    const bool act = i<=eltId && eltId < BVH_BINS;
-    const uint sum = act ? sahBins[laneID] + sahBins[laneID-i] : 0;
-    barrier();
+    const ivec2 bin  = binIdOf(cen, gAabb);
+    if(bin.x<0 || bin.y<0 || bin.x>=SLICE_SIZE.x || bin.y>=SLICE_SIZE.y)
+      continue;
 
-    if(act) sahBins[laneID] = sum;
-    barrier();
+    if(nodePtr[bin.x][bin.y]==NULL)
+      continue; //OOM
+
+    const uint at = atomicAdd(nodeBins[bin.x][bin.y], 1) + nodePtr[bin.x][bin.y];
+    pos.data[at] = ptr;
     }
   }
 
-void processSlice(const vec4 nodeAabb, const uint depth, const uint visPtr, const uint visCount) {
-  // init
-  clearBinning();
-  barrier();
-
-  // binning
-  processBinning(nodeAabb, depth, visPtr, visCount);
-  barrier();
-
-  // prefix sum
-  prefixSum();
-  }
-
-void splitL0(const uint visPtr, const uint visCount) {
+void processMeshlets(const int visPtr, const uint visCount) {
   const uint laneID = gl_LocalInvocationIndex;
 
-  const uint split0 = visCount/4;
-  const uint split1 = visCount/2;
-  const uint split2 = split1 + (visCount-split1)/2;
-
-  if(laneID<BVH_BINS) {
-    if((laneID==0 || sahBins[laneID-1]<split0) && split0<=sahBins[laneID])
-      l0Bins.x = laneID;
-    if((laneID==0 || sahBins[laneID-1]<split1) && split1<=sahBins[laneID])
-      l0Bins.y = laneID;
-    if((laneID==0 || sahBins[laneID-1]<split2) && split2<=sahBins[laneID])
-      l0Bins.z = laneID;
-    }
-
-  if(laneID<4)
-    l0Aabb[laneID] = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
-  barrier();
-
-  if(laneID<sahBins.length()) {
-    uint idx = 0;
-    if(laneID<=l0Bins.x)
-      idx = 0;
-    else if(laneID<=l0Bins.y)
-      idx = 1;
-    else if(laneID<=l0Bins.z)
-      idx = 2;
-    else
-      idx = 3;
-    uvec4 bbox = binAabb[laneID];
-    atomicMin(l0Aabb[idx].x, bbox.x);
-    atomicMin(l0Aabb[idx].y, bbox.y);
-    atomicMax(l0Aabb[idx].z, bbox.z);
-    atomicMax(l0Aabb[idx].w, bbox.w);
-    }
-  barrier();
-
-  if(laneID<4) {
-    const vec4 aabb = orderedUintToFloat(l0Aabb[laneID]);
-    l0Aabb[laneID] = floatBitsToUint(aabb);
-    }
-  }
-
-void splitL1(const uint visPtr, const uint visCount) {
-  const uint laneID = gl_LocalInvocationIndex;
-
-  const uint split0 = visCount/4;
-  const uint split1 = visCount/2;
-  const uint split2 = split1 + (visCount-split1)/2;
-
-  if(laneID<BVH_BINS) {
-    if((laneID==0 || sahBins[laneID-1]<split0) && split0<=sahBins[laneID])
-      l0Bins.x = laneID;
-    if((laneID==0 || sahBins[laneID-1]<split1) && split1<=sahBins[laneID])
-      l0Bins.y = laneID;
-    if((laneID==0 || sahBins[laneID-1]<split2) && split2<=sahBins[laneID])
-      l0Bins.z = laneID;
-    }
-  }
-
-void processMeshlets(const uint visPtr, const uint visCount) {
-  const uint laneID = gl_LocalInvocationIndex;
-
+  if(gl_WorkGroupID.xy!=ivec2(1,1))
+    ;//return;
   bboxGlobal(visPtr, visCount);
   barrier();
 
-  const vec4 nodeAabb = orderedUintToFloat(unodeAabb);
-  processSlice(nodeAabb, 0, visPtr, visCount);
+  processBinning(visPtr, visCount);
   barrier();
 
-  // split-id
-  splitL0(visPtr, visCount);
+  const uint SLICE_SZ = SLICE_SIZE.x*SLICE_SIZE.y;
+  for(uint i=laneID; i<SLICE_SZ; i+=NumThreads) {
+    ivec2 at = ivec2(i%SLICE_SIZE.x, i/SLICE_SIZE.x);
+    const uint  size = nodeBins[i%SLICE_SIZE.x][i/SLICE_SIZE.x];
+    const uvec4 aabb = nodeBbox[at.x][at.y];
+
+    at += ivec2(gl_WorkGroupID.xy)*SLICE_SIZE;
+
+    const uint  ptr = allocScratch(size);
+    const ivec2 l0  = at/8;
+    const ivec2 l1  = at%8;
+    bvh.nodes[1+(l0.x + l0.y*8)].aabb[l1.x + l1.y*8] = orderedUintToFloat(aabb);
+    bvh.nodes[1+(l0.x + l0.y*8)].ptr [l1.x + l1.y*8] = ptr;
+
+    nodeBins[i%SLICE_SIZE.x][i/SLICE_SIZE.x] = 0;
+    nodePtr [i%SLICE_SIZE.x][i/SLICE_SIZE.x] = ptr;
+    }
   barrier();
 
-  processSlice(nodeAabb, 1, visPtr, visCount);
+  for(uint i=laneID; i<SLICE_SZ; i+=NumThreads) {
+    uvec2 at = uvec2(i%SLICE_SIZE.x, i/SLICE_SIZE.x);
+    const uvec4 aabb = nodeBbox[at.x][at.y];
+
+    at &= uint(~7u);
+    atomicMin(nodeBbox[at.x][at.y].x, aabb.x);
+    atomicMin(nodeBbox[at.x][at.y].y, aabb.y);
+    atomicMax(nodeBbox[at.x][at.y].z, aabb.z);
+    atomicMax(nodeBbox[at.x][at.y].w, aabb.w);
+    }
   barrier();
 
-  // split-id
-  // splitL1(visPtr, visCount);
+  for(uint i=laneID; i<SLICE_SZ; i+=NumThreads) {
+    ivec2 at = ivec2(i%SLICE_SIZE.x, i/SLICE_SIZE.x);
+    if(at.x%8!=0 || at.y%8!=0)
+      continue;
 
-  // debug
-  if(laneID<sahBins.length() && laneID/BVH_BINS==0)
-    ;//dbg.bins[laneID%BVH_BINS] = sahBins[laneID];
-  if(laneID<sahBins.length())
-    dbg.bins[laneID] = sahBins[laneID];
-  dbg.aabb = orderedUintToFloat(unodeAabb);
-  dbg.bin0 = l0Bins;
-  if(laneID<4)
-    dbg.l0Aabb[laneID] = uintBitsToFloat(l0Aabb[laneID]);
+    const uvec4 aabb = nodeBbox[at.x][at.y];
+    at += ivec2(gl_WorkGroupID.xy)*SLICE_SIZE;
+    const ivec2 l0 = at/8;
+
+    bvh.nodes[1+(l0.x + l0.y*8)].self = orderedUintToFloat(aabb);
+    bvh.nodes[0].aabb[l0.x + l0.y*8]  = orderedUintToFloat(aabb);
+    bvh.nodes[0].ptr [l0.x + l0.y*8]  = aabb.z==0 ? 0 : ((l0.x + l0.y*8 + 1) | BVH_BoxNode);
+    }
+
+  if(gl_GlobalInvocationID.xy==uvec2(0))
+    bvh.nodes[0].self = uintBitsToFloat(sceneBbox);
   }
 
 void main() {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  const uint SLICE_SZ = SLICE_SIZE.x*SLICE_SIZE.y;
+  for(uint i=laneID; i<SLICE_SZ; i+=NumThreads) {
+    nodeBins[i%SLICE_SIZE.x][i/SLICE_SIZE.x] = 0;
+    nodeBbox[i%SLICE_SIZE.x][i/SLICE_SIZE.x] = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
+    }
+  sceneBbox = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
+  barrier();
+
   processMeshlets(1, pos.data[0]);
+  barrier();
+
+  processStore(1, pos.data[0]);
+  //barrier();
+
+  const ivec2 offset = ivec2(gl_WorkGroupID.xy)*SLICE_SIZE;
+  for(uint i=laneID; i<SLICE_SZ; i+=NumThreads) {
+    const uint v = nodeBins[i%SLICE_SIZE.x][i/SLICE_SIZE.x];
+    imageStore(dbg, offset+ivec2(i%SLICE_SIZE.x, i/SLICE_SIZE.x), uvec4(v));
+    }
   }

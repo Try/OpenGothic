@@ -1264,10 +1264,8 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
       }
 
     if(rtsm.bvh.isEmpty()) {
-      //TODO: etimate memory requirements
-      rtsm.bvh    = device.ssbo(nullptr, 1024*1024*8);
-      rtsm.ibo    = device.ssbo(nullptr, clusterCnt*sizeof(uint32_t));
-      rtsm.bvhDbg = device.ssbo(nullptr, 1024*1024);
+      rtsm.bvh    = device.ssbo(nullptr, shaders.rtsmBvhBuild.sizeofBuffer(0));
+      rtsm.bvhDbg = device.image2d(TextureFormat::R32U, 64, 64);
       }
   }
 
@@ -1342,12 +1340,24 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
   // bvh
   {
     cmd.setBinding(0, rtsm.bvh);
-    cmd.setBinding(1, rtsm.ibo);
-    cmd.setBinding(2, rtsm.posList);
+    cmd.setBinding(1, rtsm.posList);
 
     cmd.setBinding(9, rtsm.bvhDbg);
     cmd.setPipeline(shaders.rtsmBvhBuild);
-    cmd.dispatch(1);
+    cmd.dispatch(4, 4);
+  }
+
+  // bvh-trace
+  {
+    cmd.setBinding(0, rtsm.outputImage);
+    cmd.setBinding(1, sceneUbo);
+    cmd.setBinding(2, zbuffer);
+    cmd.setBinding(3, rtsm.posList);
+    cmd.setBinding(4, rtsm.bvh);
+
+    cmd.setBinding(9, rtsm.dbg16);
+    cmd.setPipeline(shaders.rtsmBvhCull);
+    cmd.dispatchThreads(rtsm.outputImage.size());
   }
 
   // tile hirarchy
