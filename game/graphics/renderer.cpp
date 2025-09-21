@@ -1265,7 +1265,7 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
 
     if(rtsm.bvh.isEmpty()) {
       rtsm.bvh    = device.ssbo(nullptr, shaders.rtsmBvhBuild.sizeofBuffer(0));
-      rtsm.bvhDbg = device.image2d(TextureFormat::R32U, 64, 64);
+      rtsm.bvhDbg = device.image2d(TextureFormat::R32U, 16, 16);
       }
   }
 
@@ -1344,7 +1344,7 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
 
     cmd.setBinding(9, rtsm.bvhDbg);
     cmd.setPipeline(shaders.rtsmBvhBuild);
-    cmd.dispatch(4, 4);
+    cmd.dispatch(1);
   }
 
   // bvh-trace
