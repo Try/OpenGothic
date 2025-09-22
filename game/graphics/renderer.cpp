@@ -1202,7 +1202,7 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
   auto& sceneUbo = scene.uboGlobal[SceneGlobals::V_Vsm];
 
   if(rtsm.outputImage.isEmpty()) {
-    rtsm.outputImage = device.image2d(TextureFormat::R8,          zbuffer.size());
+    rtsm.outputImage = device.image2d(TextureFormat::R8, zbuffer.size());
     }
 
   {
@@ -1265,7 +1265,7 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
 
     if(rtsm.bvh.isEmpty()) {
       rtsm.bvh    = device.ssbo(nullptr, shaders.rtsmBvhBuild.sizeofBuffer(0));
-      rtsm.bvhDbg = device.image2d(TextureFormat::R32U, 16, 16);
+      rtsm.bvhDbg = device.image2d(TextureFormat::R32U, 32, 32);
       }
   }
 
@@ -1337,29 +1337,27 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     cmd.dispatchIndirect(rtsm.visList,0);
   }
 
-  // bvh
-  {
-    cmd.setBinding(0, rtsm.bvh);
-    cmd.setBinding(1, rtsm.posList);
-
-    cmd.setBinding(9, rtsm.bvhDbg);
-    cmd.setPipeline(shaders.rtsmBvhBuild);
-    cmd.dispatch(1);
-  }
-
   // bvh-trace
   {
+    const auto largeTiles = tileCount(scene.zbuffer->size(), RTSM_LARGE_TILE);
+    const auto smallTiles = tileCount(scene.zbuffer->size(), RTSM_SMALL_TILE);
+
     cmd.setBinding(0, rtsm.outputImage);
     cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, zbuffer);
     cmd.setBinding(3, rtsm.posList);
-    cmd.setBinding(4, rtsm.bvh);
+    //cmd.setBinding(4, rtsm.complexTiles);
+    cmd.setBinding(5, rtsm.tiles);
+    cmd.setBinding(9, rtsm.dbg);
 
     cmd.setBinding(9, rtsm.dbg16);
     cmd.setPipeline(shaders.rtsmBvhCull);
-    cmd.dispatchThreads(rtsm.outputImage.size());
-  }
+    cmd.dispatch(largeTiles);
 
+    cmd.setPipeline(shaders.rtsmSampleCull);
+    cmd.dispatch(smallTiles);
+  }
+/*
   // tile hirarchy
   {
     const auto largeTiles = tileCount(scene.zbuffer->size(), RTSM_LARGE_TILE);
@@ -1382,6 +1380,7 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     cmd.setPipeline(shaders.rtsmSampleCull);
     cmd.dispatch(smallTiles);
   }
+*/
 
   // in-tile
   {
