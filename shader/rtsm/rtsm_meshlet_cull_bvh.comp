@@ -55,6 +55,90 @@ void traceMeshlets(const uint tilePtr, const uint visCount, const int boxId, con
     }
   }
 
+void traceMeshletsFine(const uint tilePtr, const uint visCount, const bool count) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  for(uint i=laneID; i<visCount; i+=NumThreads) {
+    const uint  ptr      = pos.data[tilePtr + i];
+    const vec4  aabb     = pullMeshAabb(ptr);
+    const float depthMax = pullMeshDepthMax(ptr);
+
+    for(int r=0; r<16; ++r) {
+      if(!isAabbVisible(aabb, depthMax, r+1))
+        continue;
+      const uint id = atomicAdd(numMeshlets2[r], 1);
+      if(!count)
+        pos.data[id] = ptr;
+      }
+    }
+  }
+
+void traceMeshletsFine(const uint visCount) {
+  const uint laneID = gl_LocalInvocationIndex;
+  const bool valid  = (laneID<visCount);
+  const uint ptr    = valid ? meshletsId[laneID] : 0;
+
+  uint mask = 0;
+  if(valid) {
+    const vec4  aabb     = pullMeshAabb(ptr);
+    const float depthMax = pullMeshDepthMax(ptr);
+    for(int r=0; r<16; ++r) {
+      if(!isAabbVisible(aabb, depthMax, r+1))
+        continue;
+      const uint id = atomicAdd(numMeshlets2[r], 1);
+      mask |= (1u << r);
+      }
+    }
+  barrier();
+
+  if(laneID<16) {
+    const uint size = numMeshlets2[laneID];
+    const uint ptr  = allocScratch(size);
+    numMeshlets2[laneID] = ptr;
+
+    ivec2 tileId  = ivec2(gl_WorkGroupID.xy)*4 + ivec2(laneID%4, laneID/4);
+    imageStore(tileBins, tileId, uvec4(ptr, size, 0, 0));
+    imageDbg(tileId, size); // debug
+    }
+  barrier();
+
+  for(int r=0; r<16; ++r) {
+    if((mask & (1u<<r))!=0) {
+      const uint id = atomicAdd(numMeshlets2[r], 1);
+      pos.data[id] = ptr;
+      }
+    }
+  }
+
+void processFineTiling(const uint tilePtr, const uint visCount) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  if(laneID<16)
+    numMeshlets2[laneID] = 0;
+  barrier();
+
+  if(visCount<=NumThreads) {
+    traceMeshletsFine(visCount);
+    return;
+    }
+
+  traceMeshletsFine(tilePtr, visCount, true);
+  barrier();
+
+  if(laneID<16) {
+    const uint size = numMeshlets2[laneID];
+    const uint ptr  = allocScratch(size);
+    numMeshlets2[laneID] = ptr;
+
+    ivec2 tileId  = ivec2(gl_WorkGroupID.xy)*4 + ivec2(laneID%4, laneID/4);
+    imageStore(tileBins, tileId, uvec4(ptr, size, 0, 0));
+    imageDbg(tileId, size); // debug
+    }
+  barrier();
+
+  traceMeshletsFine(tilePtr, visCount, false);
+  }
+
 void processTiling(const uint tilePtr, const uint visCount, const int boxId) {
   const uint laneID = gl_LocalInvocationIndex;
 
@@ -82,48 +166,6 @@ void processTiling(const uint tilePtr, const uint visCount, const int boxId) {
     }
   }
 
-void traceMeshlets2(const uint tilePtr, const uint visCount, const bool count) {
-  const uint laneID = gl_LocalInvocationIndex;
-
-  for(uint i=laneID; i<visCount; i+=NumThreads) {
-    const uint  ptr      = pos.data[tilePtr + i];
-    const vec4  aabb     = pullMeshAabb(ptr);
-    const float depthMax = pullMeshDepthMax(ptr);
-
-    for(int r=0; r<16; ++r) {
-      if(!isAabbVisible(aabb, depthMax, r+1))
-        continue;
-      const uint id = atomicAdd(numMeshlets2[r], 1);
-      if(!count)
-        pos.data[id] = ptr;
-      }
-    }
-  }
-
-void processTiling2(const uint tilePtr, const uint visCount) {
-  const uint laneID = gl_LocalInvocationIndex;
-
-  if(laneID<16)
-    numMeshlets2[laneID] = 0;
-  barrier();
-
-  traceMeshlets2(tilePtr, visCount, true);
-  barrier();
-
-  if(laneID<16) {
-    const uint size = numMeshlets2[laneID];
-    const uint ptr  = allocScratch(size);
-    numMeshlets2[laneID] = ptr;
-
-    ivec2 tileId  = ivec2(gl_WorkGroupID.xy)*4 + ivec2(laneID%4, laneID/4);
-    imageStore(tileBins, tileId, uvec4(ptr, size, 0, 0));
-    imageDbg(tileId, size); // debug
-    }
-  barrier();
-
-  traceMeshlets2(tilePtr, visCount, false);
-  }
-
 void main() {
   const uint laneID = gl_LocalInvocationIndex;
 
@@ -147,16 +189,5 @@ void main() {
   const uint meshListPtrGlob = meshListPtr;
   barrier();
 
-  processTiling2(meshListPtrGlob, numMeshletsGlob);
-
-  /*
-  for(int i=0; i<16; ++i) {
-    barrier();
-
-    processTiling(meshListPtrGlob, numMeshletsGlob, 1+i);
-
-    ivec2 tileId  = ivec2(gl_WorkGroupID.xy)*4 + ivec2(i%4, i/4);
-    imageStore(tileBins, tileId, uvec4(meshListPtr, numMeshlets, 0, 0));
-    imageDbg(tileId, numMeshlets); // debug
-    }*/
+  processFineTiling(meshListPtrGlob, numMeshletsGlob);
   }
