@@ -1350,14 +1350,14 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     cmd.setBinding(5, rtsm.tiles);
     cmd.setBinding(9, rtsm.dbg);
 
-    cmd.setBinding(9, rtsm.dbg16);
     cmd.setPipeline(shaders.rtsmBvhCull);
     cmd.dispatch(largeTiles);
 
     cmd.setPipeline(shaders.rtsmSampleCull);
     cmd.dispatch(smallTiles);
   }
-/*
+
+#if 0
   // tile hirarchy
   {
     const auto largeTiles = tileCount(scene.zbuffer->size(), RTSM_LARGE_TILE);
@@ -1380,7 +1380,7 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     cmd.setPipeline(shaders.rtsmSampleCull);
     cmd.dispatch(smallTiles);
   }
-*/
+#endif
 
   // in-tile
   {
