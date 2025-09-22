@@ -6,203 +6,100 @@
 #include "scene.glsl"
 #include "common.glsl"
 
-layout(local_size_x = 16, local_size_y = 16) in;
+layout(local_size_x = 32, local_size_y = 16) in;
 
-const uint  NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
-      float FLT_MAX    = uintBitsToFloat(2139095039u);
-const float TMax       = 1e30f;
-const uint  MaxLoop    = 255;
-
-const uint  BVH_NullNode = 0x00000000;
-const uint  BVH_BoxNode  = 0x10000000;
-const uint  BVH_MeshNode = 0x20000000;
-
-struct BVHNode {
-  vec4  self;
-  vec4  aabb[256];
-  float zmax[256];
-  uint  size[256];
-  uint  ptr [256];
-  };
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
 layout(binding = 0)         uniform texture2D   outputImage;
-layout(binding = 1, std140) uniform UboScene    { SceneDesc scene;       };
+layout(binding = 1, std140) uniform UboScene    { SceneDesc scene;   };
 layout(binding = 2)         uniform texture2D   depth;
-layout(binding = 3, std430) coherent buffer Pos  { uint alloc; uint data[]; } pos;
-layout(binding = 4, std430) readonly buffer Bvh  { BVHNode node[1+64];      } bvh;
+layout(binding = 3, std430)         buffer Pos  { uint  alloc; uint data[];  } pos;
 
-//layout(binding = 5, rg32ui) uniform uimage2D    tileBins;
+layout(binding = 5, rg32ui) uniform writeonly uimage2D tileBins;
 
-layout(binding = 9, r32ui)  uniform uimage2D    dbgImage;
+layout(binding = 9, r32ui)  uniform uimage2D           dbgImage;
 
 void imageDbg(ivec2 at, uint info) {
-#if defined(DEBUG_IMG)
+//#if defined(DEBUG_IMG)
   imageStore(dbgImage, at, uvec4(info));
-#endif
+//#endif
   }
 
 #include "rtsm/rtsm_scratch.glsl"
 
-shared uint numBox;
-shared uint numMeshlets;
+// tiles: 128 -> 32, 5'576 bytes
+#include "rtsm/rtsm_tile_bboxes.glsl"
 
-// ray related
-vec3 rayOrigin(ivec2 frag, float depth) {
-  const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
-  const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
+shared uint  numMeshlets[16];
+shared uint  meshListPtr[16];
 
-  const vec4 shPos = scene.viewProject2VirtualShadow * scr;
-  return shPos.xyz/shPos.w;
-  }
+shared uint  meshletsId [NumThreads*2];
 
-uint bvhGetNodeType(uint ptr) {
-  return ptr & 0xF0000000;
-  }
-
-//
-shared uint  stackSize;
-shared uint  stack[128];
-uint popStack(){
-  const uint nodeId = stack[stackSize-1];
-  barrier();
-
-  if(gl_LocalInvocationIndex==0)
-    stackSize--;
-  return nodeId;
-  }
-
-shared uvec4 rayTileBbox;
-shared uint  rayDepthMin;
-void processBoxNode(const vec3 ray, bool actRay, const uint nodeId) {
+void traceMeshlets(const uint tilePtr, const uint visCount, const bool count) {
   const uint laneID = gl_LocalInvocationIndex;
-  const uint nptr   = nodeId & 0x0FFFFFFF;
-  const vec4 aabb   = bvh.node[nptr].self;
 
-#if 1
-  rayTileBbox = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
-  rayDepthMin = 0xFFFFFFFF;
-  barrier();
+  for(uint i=laneID; i<visCount; i+=NumThreads) {
+    const uint  ptr      = pos.data[tilePtr + i];
+    const vec4  aabb     = pullMeshAabb(ptr);
+    const float depthMax = pullMeshDepthMax(ptr);
+    if(!isAabbVisible(aabb, depthMax, 0))
+      continue;
 
-  if(actRay && bboxIncludes(aabb, ray.xy)) {
-    atomicMin(rayTileBbox.x, floatToOrderedUint(ray.x));
-    atomicMin(rayTileBbox.y, floatToOrderedUint(ray.y));
-    atomicMax(rayTileBbox.z, floatToOrderedUint(ray.x));
-    atomicMax(rayTileBbox.w, floatToOrderedUint(ray.y));
+    for(int r=0; r<16; ++r) {
+      if(!isAabbVisible(aabb, depthMax, r+1))
+        continue;
 
-    atomicMin(rayDepthMin,   floatToOrderedUint(ray.z));
+      const uint id = atomicAdd(numMeshlets[r], 1);
+      if(!count && meshListPtr[r]!=NULL)
+        pos.data[meshListPtr[r] + id] = ptr;
+      }
     }
-  barrier();
-
-  if(rayTileBbox.x==0xFFFFFFFF)
-    return; // empty packet
-
-  if(laneID==0) {
-    vec4  rbb  = orderedUintToFloat(rayTileBbox);
-    float rayD = orderedUintToFloat(rayDepthMin);
-    rayTileBbox = floatBitsToUint(rbb);
-    rayDepthMin = floatBitsToUint(rayD);
-    }
-  barrier();
-#endif
-
-  if(laneID>=bvh.node[0].aabb.length())
-    return;
-
-  const vec4  leaf = bvh.node[nptr].aabb[laneID];
-  const float zmax = bvh.node[nptr].zmax[laneID];
-  const uint  size = bvh.node[nptr].size[laneID];
-  const uint  ptr  = bvh.node[nptr].ptr [laneID];
-  if(size==0)
-    return;
-
-  const vec4  rbb   = uintBitsToFloat(rayTileBbox);
-  const float rdMin = uintBitsToFloat(rayDepthMin);
-
-  if(zmax<rdMin)
-    return;
-  if(!bboxIntersect(rbb, vec4(leaf)))
-    return;
-
-  atomicAdd(numBox, 1);
-  atomicAdd(numMeshlets, size);
-  // const uint ins = atomicAdd(stackSize, 1);
-  // stack[ins] = ptr;
   }
 
-vec3 trace(const vec3 ray, bool actRay) {
-  stackSize = 1;
-  stack[0]  = uint(0 | BVH_BoxNode);
-  barrier();
+void alloc() {
+  const uint laneID = gl_LocalInvocationIndex;
 
-  vec3 ret = vec3(TMax);
-  int i = 0;
-  for(; i<MaxLoop; ++i) {
-    if(stackSize==0)
-      break;
-
-    const uint nodeId = popStack();
-    const uint type   = bvhGetNodeType(nodeId);
-    barrier();
-
-    if(type==BVH_MeshNode) {
-      // processTriNode(ret, nodeId, ray, actRay);
-      }
-    else if(type==BVH_BoxNode) {
-      processBoxNode(ray, actRay, nodeId);
-      }
-    barrier();
+  if(laneID<numMeshlets.length()) {
+    const uint size = numMeshlets[laneID];
+    meshListPtr[laneID] = allocScratch(size);
+    numMeshlets[laneID] = 0;
     }
-
-  return ret;
-  }
-
-// fragment
-vec3 processFragment(ivec2 fragCoord) {
-  const uint  laneID = gl_LocalInvocationIndex;
-  const bool  valid  = all(lessThan(fragCoord, textureSize(outputImage,0)));
-  const float lamb   = valid ? texelFetch(outputImage, fragCoord, 0).x : 0;
-  const bool  actRay = lamb>0;
-  const float z      = actRay ? texelFetch(depth, fragCoord, 0).x : 1.0;
-  const vec3  ray    = actRay ? rayOrigin(fragCoord, z)           : vec3(FLT_MAX);
-
-#if 0
-  rayTileBbox = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
-  rayDepthMin = 0xFFFFFFFF;
-  barrier();
-
-  if(actRay) {
-    atomicMin(rayTileBbox.x, floatToOrderedUint(ray.x));
-    atomicMin(rayTileBbox.y, floatToOrderedUint(ray.y));
-    atomicMax(rayTileBbox.z, floatToOrderedUint(ray.x));
-    atomicMax(rayTileBbox.w, floatToOrderedUint(ray.y));
-
-    atomicMin(rayDepthMin,   floatToOrderedUint(ray.z));
-    }
-  barrier();
-
-  if(rayTileBbox.x==0xFFFFFFFF)
-    return vec3(0); // empty packet
-
-  if(laneID==0) {
-    vec4  rbb  = orderedUintToFloat(rayTileBbox);
-    float rayD = orderedUintToFloat(rayDepthMin);
-    rayTileBbox = floatBitsToUint(rbb);
-    rayDepthMin = floatBitsToUint(rayD);
-    }
-  barrier();
-#endif
-
-  return trace(ray, actRay);
   }
 
 void main() {
-  numBox      = 0;
-  numMeshlets = 0;
+  const uint laneID = gl_LocalInvocationIndex;
+
+  tileBboxes(ivec2(gl_WorkGroupID.xy), RTSM_LARGE_TILE);
+  if(laneID<numMeshlets.length())
+    numMeshlets[laneID] = 0;
   barrier();
 
-  const ivec2 tile = ivec2(gl_WorkGroupID.xy);
-  processFragment(ivec2(gl_GlobalInvocationID.xy));
+  if(numSlices[0]==0) {
+    for(int i=0; i<16; ++i) {
+      ivec2 tileId  = ivec2(gl_WorkGroupID.xy)*4 + ivec2(i%4, i/4);
+      imageStore(tileBins, tileId, uvec4(0));
+      }
+    return;
+    }
 
-  //imageDbg(tile, numBox);
-  imageDbg(tile, numMeshlets);
+  traceMeshlets(1, pos.data[0], true);
+  barrier();
+
+  alloc();
+  barrier();
+
+  traceMeshlets(1, pos.data[0], false);
+  barrier();
+
+  for(int i=0; i<16; ++i) {
+    ivec2 tileId  = ivec2(gl_WorkGroupID.xy)*4 + ivec2(i%4, i/4);
+    imageStore(tileBins, tileId, uvec4(meshListPtr[i], numMeshlets[i], 0, 0));
+    }
+
+  // debug
+  barrier();
+  for(int i=0; i<16; ++i) {
+    ivec2 at  = ivec2(gl_WorkGroupID.xy)*4 + ivec2(i%4, i/4);
+    imageDbg(at, numMeshlets[i]);
+    }
   }
