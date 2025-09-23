@@ -30,11 +30,15 @@ void imageDbg(ivec2 at, uint info) {
 // tiles: 128 -> 32, 5'576 bytes
 #include "rtsm/rtsm_tile_bboxes.glsl"
 
-shared uint  numMeshlets;
-shared uint  meshListPtr;
+shared uint  numMeshlets[16];
+shared uint  meshListPtr[16];
 
 shared uint  meshletsId[2048];
-shared uint  numMeshlets2[16];
+
+void storeTile(ivec2 tileId, uint ptr, uint size) {
+  imageStore(tileBins, tileId, uvec4(ptr, size, 0, 0));
+  imageDbg(tileId, size); // debug
+  }
 
 void traceMeshlets(const uint tilePtr, const uint visCount, const int boxId, const bool count) {
   const uint laneID = gl_LocalInvocationIndex;
@@ -47,11 +51,11 @@ void traceMeshlets(const uint tilePtr, const uint visCount, const int boxId, con
     if(!isAabbVisible(aabb, depthMax, boxId))
       continue;
 
-    const uint id = atomicAdd(numMeshlets, 1);
+    const uint id = atomicAdd(numMeshlets[0], 1);
     if(count && id<meshletsId.length())
       meshletsId[id] = ptr;
     else if(!count)
-      pos.data[meshListPtr + id] = ptr;
+      pos.data[meshListPtr[0] + id] = ptr;
     }
   }
 
@@ -66,46 +70,9 @@ void traceMeshletsFine(const uint tilePtr, const uint visCount, const bool count
     for(int r=0; r<16; ++r) {
       if(!isAabbVisible(aabb, depthMax, r+1))
         continue;
-      const uint id = atomicAdd(numMeshlets2[r], 1);
-      if(!count)
-        pos.data[id] = ptr;
-      }
-    }
-  }
-
-void traceMeshletsFine(const uint visCount) {
-  const uint laneID = gl_LocalInvocationIndex;
-  const bool valid  = (laneID<visCount);
-  const uint ptr    = valid ? meshletsId[laneID] : 0;
-
-  uint mask = 0;
-  if(valid) {
-    const vec4  aabb     = pullMeshAabb(ptr);
-    const float depthMax = pullMeshDepthMax(ptr);
-    for(int r=0; r<16; ++r) {
-      if(!isAabbVisible(aabb, depthMax, r+1))
-        continue;
-      const uint id = atomicAdd(numMeshlets2[r], 1);
-      mask |= (1u << r);
-      }
-    }
-  barrier();
-
-  if(laneID<16) {
-    const uint size = numMeshlets2[laneID];
-    const uint ptr  = allocScratch(size);
-    numMeshlets2[laneID] = ptr;
-
-    ivec2 tileId  = ivec2(gl_WorkGroupID.xy)*4 + ivec2(laneID%4, laneID/4);
-    imageStore(tileBins, tileId, uvec4(ptr, size, 0, 0));
-    imageDbg(tileId, size); // debug
-    }
-  barrier();
-
-  for(int r=0; r<16; ++r) {
-    if((mask & (1u<<r))!=0) {
-      const uint id = atomicAdd(numMeshlets2[r], 1);
-      pos.data[id] = ptr;
+      const uint id = atomicAdd(numMeshlets[r], 1);
+      if(!count && meshListPtr[r]!=NULL)
+        pos.data[meshListPtr[r] + id] = ptr;
       }
     }
   }
@@ -114,25 +81,20 @@ void processFineTiling(const uint tilePtr, const uint visCount) {
   const uint laneID = gl_LocalInvocationIndex;
 
   if(laneID<16)
-    numMeshlets2[laneID] = 0;
+    numMeshlets[laneID] = 0;
   barrier();
-
-  if(visCount<=NumThreads) {
-    traceMeshletsFine(visCount);
-    return;
-    }
 
   traceMeshletsFine(tilePtr, visCount, true);
   barrier();
 
   if(laneID<16) {
-    const uint size = numMeshlets2[laneID];
+    const uint size = numMeshlets[laneID];
     const uint ptr  = allocScratch(size);
-    numMeshlets2[laneID] = ptr;
+    numMeshlets[laneID] = 0;
+    meshListPtr[laneID] = ptr;
 
-    ivec2 tileId  = ivec2(gl_WorkGroupID.xy)*4 + ivec2(laneID%4, laneID/4);
-    imageStore(tileBins, tileId, uvec4(ptr, size, 0, 0));
-    imageDbg(tileId, size); // debug
+    const ivec2 tileId = ivec2(gl_WorkGroupID.xy)*4 + ivec2(laneID%4, laneID/4);
+    storeTile(tileId, ptr, size);
     }
   barrier();
 
@@ -142,27 +104,29 @@ void processFineTiling(const uint tilePtr, const uint visCount) {
 void processTiling(const uint tilePtr, const uint visCount, const int boxId) {
   const uint laneID = gl_LocalInvocationIndex;
 
-  numMeshlets = 0;
+  numMeshlets[0] = 0;
   barrier();
 
   traceMeshlets(tilePtr, visCount, boxId, true);
   barrier();
 
-  const bool secondPass = (numMeshlets > meshletsId.length());
+  const bool secondPass = (numMeshlets[0] > meshletsId.length());
   if(laneID==0)
-    meshListPtr = allocScratch(numMeshlets);
+    meshListPtr[0] = allocScratch(numMeshlets[0]);
   barrier();
 
   if(secondPass) {
-    numMeshlets = 0;
+    numMeshlets[0] = 0;
     barrier();
 
     traceMeshlets(tilePtr, visCount, boxId, false);
     return;
     }
 
-  for(uint i=laneID; i<numMeshlets; i+=NumThreads) {
-    pos.data[meshListPtr + i] = meshletsId[i];
+  const uint numMeshletsGlob = numMeshlets[0];
+  const uint meshListPtrGlob = meshListPtr[0];
+  for(uint i=laneID; i<numMeshletsGlob; i+=NumThreads) {
+    pos.data[meshListPtrGlob + i] = meshletsId[i];
     }
   }
 
@@ -174,9 +138,8 @@ void main() {
 
   if(numSlices[0]==0) {
     for(int i=0; i<16; ++i) {
-      ivec2 tileId  = ivec2(gl_WorkGroupID.xy)*4 + ivec2(i%4, i/4);
-      imageStore(tileBins, tileId, uvec4(0));
-      imageDbg(tileId, 0); // debug
+      ivec2 tileId = ivec2(gl_WorkGroupID.xy)*4 + ivec2(i%4, i/4);
+      storeTile(tileId, NULL, 0);
       }
     return;
     }
@@ -185,8 +148,8 @@ void main() {
   memoryBarrierBuffer();
   barrier();
 
-  const uint numMeshletsGlob = numMeshlets;
-  const uint meshListPtrGlob = meshListPtr;
+  const uint numMeshletsGlob = numMeshlets[0];
+  const uint meshListPtrGlob = meshListPtr[0];
   barrier();
 
   processFineTiling(meshListPtrGlob, numMeshletsGlob);
