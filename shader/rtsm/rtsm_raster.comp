@@ -269,9 +269,9 @@ void main() {
   const ivec2 size   = textureSize(depth, 0);
   const bool  valid  = all(lessThan(fragCoord, size));
 
-  const vec3  normal = valid ? normalFetch(gbufNormal, fragCoord) : vec3(0);
-  const float z      = valid ? texelFetch(depth, fragCoord, 0).x  : 1.0;
-  const float lamb   = imageLoad(outputImage, fragCoord).x;
+  const vec3  normal = valid ? normalFetch(gbufNormal, fragCoord)  : vec3(0);
+  const float z      = valid ? texelFetch(depth, fragCoord, 0).x   : 1.0;
+  const float lamb   = valid ? imageLoad(outputImage, fragCoord).x : 0.0;
   const vec3  ray    = rayOrigin(fragCoord.xy, z, normal);
 
   inactiveRays = 0;

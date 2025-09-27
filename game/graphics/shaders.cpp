@@ -243,18 +243,18 @@ void Shaders::compileShaders() {
     }
 
   if(Shaders::isRtsmSupported()) {
+    rtsmDirectLight = postEffect("rtsm_direct_light", RenderState::ZTestMode::NoEqual);
+
     rtsmClear       = computeShader("rtsm_clear.comp.sprv");
     rtsmPages       = computeShader("rtsm_mark_pages.comp.sprv");
     rtsmFogPages    = computeShader("rtsm_mark_fog_pages.comp.sprv");
     rtsmHiZ         = computeShader("rtsm_hiz_pages.comp.sprv");
+
     rtsmCulling     = computeShader("rtsm_culling.comp.sprv");
     rtsmPosition    = computeShader("rtsm_position.comp.sprv");
-
     rtsmMeshletCull = computeShader("rtsm_meshlet_cull.comp.sprv");
     rtsmPrimCull    = computeShader("rtsm_primitive_cull.comp.sprv");
-
     rtsmRaster      = computeShader("rtsm_raster.comp.sprv");
-    rtsmDirectLight = postEffect("rtsm_direct_light", RenderState::ZTestMode::NoEqual);
 
     rtsmClearOmni    = computeShader("rtsm_omni_clear.comp.sprv");
     rtsmCullLights   = computeShader("rtsm_cull_lights.comp.sprv");
@@ -262,9 +262,6 @@ void Shaders::compileShaders() {
     rtsmBboxesOmni   = computeShader("rtsm_omni_bboxes.comp.sprv");
     rtsmCullingOmni  = computeShader("rtsm_omni_culling.comp.sprv");
     rtsmPositionOmni = computeShader("rtsm_omni_position.comp.sprv");
-
-    rtsmBvhCull      = computeShader("rtsm_meshlet_cull_bvh.comp.sprv");
-    rtsmTileBvh      = computeShader("rtsm_tile_bvh.comp.sprv");
 
     rtsmMeshletOmni  = computeShader("rtsm_omni_meshlet.comp.sprv");
     rtsmBackfaceOmni = computeShader("rtsm_omni_backface.comp.sprv");

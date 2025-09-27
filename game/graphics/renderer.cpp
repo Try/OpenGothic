@@ -1215,9 +1215,9 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
       rtsm.pages = device.image3d(TextureFormat::R32U, 32, 32, 16);
       }
     const auto tiles = tileCount(zbuffer.size(), RTSM_SMALL_TILE);
-    if(rtsm.tiles.size()!=tiles) {
-      Resources::recycle(std::move(rtsm.tiles));
-      rtsm.tiles = device.image2d(TextureFormat::RG32U, tiles);
+    if(rtsm.meshTiles.size()!=tiles) {
+      Resources::recycle(std::move(rtsm.meshTiles));
+      rtsm.meshTiles = device.image2d(TextureFormat::RG32U, tiles);
       }
 
     if(rtsm.primBins.size()!=tileCount(zbuffer.size(), RTSM_BIN_SIZE)) {
@@ -1256,11 +1256,6 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     if(rtsm.visList.byteSize()!=clusterSz) {
       Resources::recycle(std::move(rtsm.visList));
       rtsm.visList = device.ssbo(nullptr, clusterSz);
-      }
-
-    const size_t tileSz  =shaders.rtsmTileBvh.sizeofBuffer(4, size_t(tiles.w*tiles.h*17));
-    if(tileSz!=rtsm.tileBvh.byteSize()) {
-      rtsm.tileBvh = device.ssbo(nullptr, tileSz);
       }
   }
 
@@ -1331,22 +1326,6 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     cmd.dispatchIndirect(rtsm.visList,0);
   }
 
-  if(false)
-  {
-    const auto largeTiles = tileCount(scene.zbuffer->size(), RTSM_LARGE_TILE);
-    cmd.setBinding(0, rtsm.outputImage);
-    cmd.setBinding(1, sceneUbo);
-    cmd.setBinding(2, zbuffer);
-    cmd.setBinding(3, rtsm.posList);
-    cmd.setBinding(4, rtsm.tileBvh);
-    //cmd.setBinding(5, rtsm.tiles);
-    cmd.setBinding(9, rtsm.dbg);
-    cmd.setPushData(largeTiles);
-
-    cmd.setPipeline(shaders.rtsmTileBvh);
-    cmd.dispatch(largeTiles);
-  }
-
   // binning
   {
     const auto largeTiles = tileCount(scene.zbuffer->size(), RTSM_LARGE_TILE);
@@ -1357,7 +1336,7 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     cmd.setBinding(2, gbufNormal);
     cmd.setBinding(3, zbuffer);
     cmd.setBinding(4, rtsm.posList);
-    cmd.setBinding(5, rtsm.tiles);
+    cmd.setBinding(5, rtsm.meshTiles);
     cmd.setBinding(6, rtsm.primBins);
     cmd.setBinding(9, rtsm.dbg);
 
@@ -1377,7 +1356,7 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     cmd.setBinding(2, gbufNormal);
     cmd.setBinding(3, zbuffer);
     cmd.setBinding(4, rtsm.posList);
-    cmd.setBinding(5, rtsm.tiles);
+    cmd.setBinding(5, rtsm.meshTiles);
     cmd.setBinding(6, rtsm.primBins);
     cmd.setBinding(7, buckets.textures());
     cmd.setBinding(8, Sampler::trillinear());

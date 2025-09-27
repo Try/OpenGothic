@@ -229,9 +229,7 @@ class Renderer final {
       Tempest::StorageBuffer    visList;
       Tempest::StorageBuffer    posList;
 
-      Tempest::StorageBuffer    tileBvh;
-
-      Tempest::StorageImage     tiles;
+      Tempest::StorageImage     meshTiles;
       Tempest::StorageImage     primBins;
 
       Tempest::StorageBuffer    visibleLights;
