@@ -250,10 +250,8 @@ void Shaders::compileShaders() {
     rtsmCulling     = computeShader("rtsm_culling.comp.sprv");
     rtsmPosition    = computeShader("rtsm_position.comp.sprv");
 
-    rtsmMeshletCull    = computeShader("rtsm_meshlet_cull.comp.sprv");
-    rtsmMeshletComplex = computeShader("rtsm_meshlet_complex.comp.sprv");
-    rtsmSampleCull     = computeShader("rtsm_sample_cull.comp.sprv");
-    rtsmPrimCull       = computeShader("rtsm_primitive_cull.comp.sprv");
+    rtsmMeshletCull = computeShader("rtsm_meshlet_cull.comp.sprv");
+    rtsmPrimCull    = computeShader("rtsm_primitive_cull.comp.sprv");
 
     rtsmRaster      = computeShader("rtsm_raster.comp.sprv");
     rtsmDirectLight = postEffect("rtsm_direct_light", RenderState::ZTestMode::NoEqual);
@@ -265,8 +263,8 @@ void Shaders::compileShaders() {
     rtsmCullingOmni  = computeShader("rtsm_omni_culling.comp.sprv");
     rtsmPositionOmni = computeShader("rtsm_omni_position.comp.sprv");
 
-    rtsmBvhBuild     = computeShader("rtsm_bvh_build.comp.sprv");
     rtsmBvhCull      = computeShader("rtsm_meshlet_cull_bvh.comp.sprv");
+    rtsmTileBvh      = computeShader("rtsm_tile_bvh.comp.sprv");
 
     rtsmMeshletOmni  = computeShader("rtsm_omni_meshlet.comp.sprv");
     rtsmBackfaceOmni = computeShader("rtsm_omni_backface.comp.sprv");

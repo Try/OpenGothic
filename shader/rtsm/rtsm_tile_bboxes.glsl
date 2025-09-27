@@ -5,6 +5,7 @@ const uint NumSubTilesX = 4;
 shared uvec4 rayTileBbox[(1+NumSubTiles)*MaxSlices];
 shared uint  rayDepthMin[(1+NumSubTiles)*MaxSlices];
 shared uint  numSlices  [(1+NumSubTiles)];
+shared uint  numSubtiles;
 
 // visibility
 bool isAabbVisible(const vec4 aabb, const float depthMax, const uint id) {
@@ -24,6 +25,7 @@ bool isAabbVisible(const vec4 aabb, const float depthMax, const uint id) {
   }
 
 // ray related
+// FIXME: normal bias
 vec3 rayOrigin(ivec2 frag, float depth) {
   const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
   const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
@@ -75,6 +77,7 @@ void tileBboxes(const ivec2 tileId, const uint tileSz) {
     }
   if(laneID<numSlices.length())
     numSlices[laneID] = 0;
+  numSubtiles = 0;
   barrier();
 
   const uvec2 srcSz = textureSize(depth,0);
@@ -119,6 +122,10 @@ void tileBboxes(const ivec2 tileId, const uint tileSz) {
     }
   barrier();
 
-  if(laneID<numSlices.length())
-    numSlices[laneID] = bitCount(numSlices[laneID]);
+  if(laneID<numSlices.length()) {
+    const uint num = bitCount(numSlices[laneID]);
+    numSlices[laneID] = num;
+    if(num>0)
+      atomicOr(numSubtiles, 1u<<laneID);
+    }
   }

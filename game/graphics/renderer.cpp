@@ -1219,11 +1219,6 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
       Resources::recycle(std::move(rtsm.tiles));
       rtsm.tiles = device.image2d(TextureFormat::RG32U, tiles);
       }
-    if(rtsm.complexTiles.byteSize()!=shaders.rtsmClear.sizeofBuffer(3, size_t(tiles.w*tiles.h))) {
-      const size_t sz = shaders.rtsmClear.sizeofBuffer(3, size_t(tiles.w*tiles.h));
-      Resources::recycle(std::move(rtsm.complexTiles));
-      rtsm.complexTiles = device.ssbo(nullptr, sz);
-      }
 
     if(rtsm.primBins.size()!=tileCount(zbuffer.size(), RTSM_BIN_SIZE)) {
       auto sz = tileCount(zbuffer.size(), RTSM_BIN_SIZE);
@@ -1263,21 +1258,20 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
       rtsm.visList = device.ssbo(nullptr, clusterSz);
       }
 
-    if(rtsm.bvh.isEmpty()) {
-      rtsm.bvh    = device.ssbo(nullptr, shaders.rtsmBvhBuild.sizeofBuffer(0));
-      rtsm.bvhDbg = device.image2d(TextureFormat::R32U, 32, 32);
+    const size_t tileSz  =shaders.rtsmTileBvh.sizeofBuffer(4, size_t(tiles.w*tiles.h*17));
+    if(tileSz!=rtsm.tileBvh.byteSize()) {
+      rtsm.tileBvh = device.ssbo(nullptr, tileSz);
       }
   }
 
   cmd.setDebugMarker("RTSM-rendering");
   cmd.setFramebuffer({});
 
+  // clear
   {
-    // clear
     cmd.setBinding(0, rtsm.pages);
     cmd.setBinding(1, rtsm.visList);
     cmd.setBinding(2, rtsm.posList);
-    cmd.setBinding(3, rtsm.complexTiles);
 
     cmd.setPipeline(shaders.rtsmClear);
     cmd.dispatchThreads(size_t(rtsm.pages.w()), size_t(rtsm.pages.h()), size_t(rtsm.pages.d()));
@@ -1337,52 +1331,46 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     cmd.dispatchIndirect(rtsm.visList,0);
   }
 
-  // bvh-trace
+  if(false)
   {
     const auto largeTiles = tileCount(scene.zbuffer->size(), RTSM_LARGE_TILE);
-    const auto smallTiles = tileCount(scene.zbuffer->size(), RTSM_SMALL_TILE);
-
     cmd.setBinding(0, rtsm.outputImage);
     cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, zbuffer);
     cmd.setBinding(3, rtsm.posList);
-    //cmd.setBinding(4, rtsm.complexTiles);
-    cmd.setBinding(5, rtsm.tiles);
+    cmd.setBinding(4, rtsm.tileBvh);
+    //cmd.setBinding(5, rtsm.tiles);
     cmd.setBinding(9, rtsm.dbg);
+    cmd.setPushData(largeTiles);
 
-    cmd.setPipeline(shaders.rtsmBvhCull);
+    cmd.setPipeline(shaders.rtsmTileBvh);
     cmd.dispatch(largeTiles);
-
-    cmd.setPipeline(shaders.rtsmSampleCull);
-    cmd.dispatch(smallTiles);
   }
 
-#if 0
-  // tile hirarchy
+  // binning
   {
     const auto largeTiles = tileCount(scene.zbuffer->size(), RTSM_LARGE_TILE);
     const auto smallTiles = tileCount(scene.zbuffer->size(), RTSM_SMALL_TILE);
 
     cmd.setBinding(0, rtsm.outputImage);
     cmd.setBinding(1, sceneUbo);
-    cmd.setBinding(2, zbuffer);
-    cmd.setBinding(3, rtsm.posList);
-    cmd.setBinding(4, rtsm.complexTiles);
+    cmd.setBinding(2, gbufNormal);
+    cmd.setBinding(3, zbuffer);
+    cmd.setBinding(4, rtsm.posList);
     cmd.setBinding(5, rtsm.tiles);
+    cmd.setBinding(6, rtsm.primBins);
     cmd.setBinding(9, rtsm.dbg);
 
+    // meshlets
     cmd.setPipeline(shaders.rtsmMeshletCull);
     cmd.dispatch(largeTiles);
 
-    cmd.setPipeline(shaders.rtsmMeshletComplex);
-    cmd.dispatchIndirect(rtsm.complexTiles, 0);
-
-    cmd.setPipeline(shaders.rtsmSampleCull);
+    // primitives
+    cmd.setPipeline(shaders.rtsmPrimCull);
     cmd.dispatch(smallTiles);
   }
-#endif
 
-  // in-tile
+  // raster
   {
     cmd.setBinding(0, rtsm.outputImage);
     cmd.setBinding(1, sceneUbo);
@@ -1393,14 +1381,8 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
     cmd.setBinding(6, rtsm.primBins);
     cmd.setBinding(7, buckets.textures());
     cmd.setBinding(8, Sampler::trillinear());
-    cmd.setBinding(9, rtsm.dbg);
-
-    // primitives
-    cmd.setPipeline(shaders.rtsmPrimCull);
-    cmd.dispatch(rtsm.primBins.size());
-
-    // raster
     cmd.setBinding(9, rtsm.dbg16);
+
     cmd.setPipeline(shaders.rtsmRaster);
     cmd.dispatchThreads(rtsm.outputImage.size());
   }
@@ -1483,7 +1465,7 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.dispatchThreads(wview.lights().size());
 
     cmd.setPipeline(shaders.rtsmCullingOmni);
-    cmd.dispatchThreads(push.meshletCount);
+    cmd.dispatchThreads(push.meshletCount); //TODO: fine grained cull
   }
 
   // lights
