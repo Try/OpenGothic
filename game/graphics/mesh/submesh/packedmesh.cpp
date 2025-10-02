@@ -561,10 +561,18 @@ void PackedMesh::packBVH(const zenkit::Mesh& mesh) {
   // https://www.highperformancegraphics.org/posters23/Fast_Triangle_Pairing_for_Ray_Tracing.pdf
   std::vector<HalfEdge> edgeFrag;
   for(size_t i=0; i<mid.size(); ++i) {
+    const auto primId = uint32_t(i*3);
+    uint32_t ib[3] = {};
+    ib[0] = ibo[primId+0];
+    ib[1] = ibo[primId+1];
+    ib[2] = ibo[primId+2];
+
+    if(ib[0]==ib[1] || ib[0]==ib[2] || ib[1]==ib[2])
+      continue;
+
     for(size_t r=0; r<3; ++r) {
-      auto primId = uint32_t(i*3);
-      auto i0     = ibo[primId+(r  )  ];
-      auto i1     = ibo[primId+(r+1)%3];
+      auto i0     = ib[(r  )  ];
+      auto i1     = ib[(r+1)%3];
       auto bbox   = pullVert(i0) - pullVert(i1);
       bbox.x = std::abs(bbox.x);
       bbox.y = std::abs(bbox.y);
@@ -575,6 +583,7 @@ void PackedMesh::packBVH(const zenkit::Mesh& mesh) {
       f.iMin = std::min(i0, i1);
       f.iMax = std::max(i0, i1);
       f.prim = uint32_t(i);
+      f.wnd  = i0==f.iMin;
       edgeFrag.push_back(f);
       }
     }
@@ -610,7 +619,7 @@ void PackedMesh::packBVH(const zenkit::Mesh& mesh) {
 
     Fragment f;
     //FIXME: winding
-    if(i+1<edgeFrag.size() && a.iMin==b.iMin && a.iMax==b.iMax) {
+    if(i+1<edgeFrag.size() && a.iMin==b.iMin && a.iMax==b.iMax && a.wnd!=b.wnd) {
       pairings[a.prim] = true;
       pairings[b.prim] = true;
       f.primId  = storePrim(uint32_t(a.prim*3), a.iMin, a.iMax);

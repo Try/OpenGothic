@@ -149,6 +149,7 @@ class PackedMesh {
       uint32_t      iMax = 0;
       uint32_t      iMin = 0;
       uint32_t      prim = 0;
+      bool          wnd  = false;
       };
 
     struct Fragment {
