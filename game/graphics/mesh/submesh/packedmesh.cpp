@@ -582,7 +582,7 @@ void PackedMesh::packBVH(const zenkit::Mesh& mesh) {
     return std::tie(l.sah, l.iMin, l.iMax, l.prim) > std::tie(r.sah, r.iMin, r.iMax, r.prim);
     });
 
-  std::vector<uint32_t> ibo2  = mesh.polygons.vertex_indices;
+  std::vector<uint32_t> ibo2 = mesh.polygons.vertex_indices;
   std::vector<bool>     pairings(mid.size());
   std::vector<Fragment> frag;
 
@@ -609,6 +609,7 @@ void PackedMesh::packBVH(const zenkit::Mesh& mesh) {
       continue;
 
     Fragment f;
+    //FIXME: winding
     if(i+1<edgeFrag.size() && a.iMin==b.iMin && a.iMax==b.iMax) {
       pairings[a.prim] = true;
       pairings[b.prim] = true;
@@ -659,6 +660,9 @@ void PackedMesh::packBVH(const zenkit::Mesh& mesh) {
   std::vector<BVHNode> nodes;
   Vec3 bbox[2] = {};
   packBVH(mesh, ibo2, nodes, bbox[0], bbox[1], frag.data(), frag.size());
+
+  annotateBvh(nodes.data(), BVH_BoxNode);
+
   //TODO: ensure, that first node is a box node
   bvhNodes = std::move(nodes);
   }
@@ -734,6 +738,113 @@ uint32_t PackedMesh::packBVH(const zenkit::Mesh& mesh, std::vector<uint32_t>& ib
   node.right = packBVH(mesh, ibo, nodes, node.rmin, node.rmax, frag+split, size-split);
   nodes[nId] = node;
   return uint32_t(nId | BVH_BoxNode);
+  }
+
+uint32_t PackedMesh::annotateBvh(BVHNode* nodes, uint32_t ptr) {
+  const uint32_t type = ptr & 0xF0000000;
+  auto& node = nodes[ptr & 0x0FFFFFFF];
+
+  if(type==BVH_BoxNode) {
+    const uint32_t lcnt = annotateBvh(nodes, node.left );
+    const uint32_t rcnt = annotateBvh(nodes, node.right);
+
+    const uint32_t threshold = 32;
+    if(lcnt+rcnt>=threshold) {
+      if(lcnt<=threshold) {
+        computeCone(nodes, node.left);
+        }
+      if(rcnt<=threshold) {
+        computeCone(nodes, node.right);
+        }
+      }
+    return lcnt+rcnt;
+    }
+
+  if(type==BVH_Tri1Node)
+    return 1;
+  if(type==BVH_Tri2Node)
+    return 2;
+  return 0;
+  }
+
+void PackedMesh::avgNormal(BVHNode* nodes, uint32_t ptr, Tempest::Vec3& normal) {
+  const uint32_t type = ptr & 0xF0000000;
+  auto& node = nodes[ptr & 0x0FFFFFFF];
+
+  if(type==BVH_BoxNode) {
+    avgNormal(nodes, node.left,  normal);
+    avgNormal(nodes, node.right, normal);
+    return;
+    }
+
+  if(type==BVH_Tri1Node || type==BVH_Tri2Node) {
+    const Vec3 e1 = node.lmax;
+    const Vec3 e2 = node.rmin;
+    const Vec3 nr = Vec3::normalize(Vec3::crossProduct(e1, e2));
+    normal += nr;
+    }
+  if(type==BVH_Tri2Node) {
+    const Vec3 e2 = node.rmin;
+    const Vec3 e3 = node.rmax;
+    const Vec3 nr = Vec3::normalize(Vec3::crossProduct(e2, e3));
+    normal += nr;
+    }
+  }
+
+void PackedMesh::computeCone(BVHNode* nodes, uint32_t ptr) {
+  auto packUnorm4x8 = [](float x, float y, float z, float w) {
+    int32_t ix = int32_t((x+1.f)*0.5f*255.f) & 0xFF;
+    int32_t iy = int32_t((y+1.f)*0.5f*255.f) & 0xFF;
+    int32_t iz = int32_t((z+1.f)*0.5f*255.f) & 0xFF;
+    int32_t iw = int32_t((w+1.f)*0.5f*255.f) & 0xFF;
+    return uint32_t(ix | (iy << 8) | (iz << 16) | (iw << 24));
+    };
+
+  Vec3 normal;
+  avgNormal(nodes, ptr, normal);
+
+  normal = Vec3::normalize(normal);
+
+  normal = (normal*127.f);
+  normal.x = std::round(normal.x);
+  normal.y = std::round(normal.y);
+  normal.z = std::round(normal.z);
+  normal = normal/127.f;
+
+  float a = 1;
+  computeCone(nodes, ptr, normal, a);
+  a = std::max(-1.f, a-1.f);
+  const int32_t ia = int32_t((a+1.f)*0.5f*255.f);
+  a = (float(ia)/255.f)*2.f - 1.f;
+
+  auto& node = nodes[ptr & 0x0FFFFFFF];
+  node.padd0 = a<=-0.9 ? 0 : packUnorm4x8(normal.x, normal.y, normal.z, a);
+  if(node.padd0==0)
+    Log::d("");
+  }
+
+void PackedMesh::computeCone(BVHNode* nodes, uint32_t ptr, const Tempest::Vec3 normal, float& a) {
+  const uint32_t type = ptr & 0xF0000000;
+  auto& node = nodes[ptr & 0x0FFFFFFF];
+
+  if(type==BVH_BoxNode) {
+    computeCone(nodes, node.left,  normal, a);
+    computeCone(nodes, node.right, normal, a);
+    return;
+    }
+
+  if(type==BVH_Tri1Node || type==BVH_Tri2Node) {
+    const Vec3 e1 = node.lmax;
+    const Vec3 e2 = node.rmin;
+    const Vec3 nr = Vec3::normalize(Vec3::crossProduct(e1, e2));
+    a = std::min(a, Vec3::dotProduct(nr, normal));
+    }
+  if(type==BVH_Tri2Node) {
+    const Vec3 e2 = node.rmin;
+    const Vec3 e3 = node.rmax;
+    const Vec3 nr = Vec3::normalize(Vec3::crossProduct(e2, e3));
+    a = std::min(a, Vec3::dotProduct(nr, normal));
+    }
   }
 
 std::pair<uint32_t,float> PackedMesh::findNodeSplit(const Fragment* frag, size_t size, const bool useSah) {

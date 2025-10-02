@@ -194,6 +194,10 @@ class PackedMesh {
     auto     findNodeSplit(const Fragment* frag, size_t size, const bool useSah) ->  std::pair<uint32_t,float>;
     auto     findNodeSplit(Tempest::Vec3 bbmin, Tempest::Vec3 bbmax, const Fragment* frag, size_t size) ->  std::pair<uint32_t,bool>;
     uint32_t packPrimNode(const zenkit::Mesh& mesh, std::vector<BVHNode>& nodes, const Fragment* frag, size_t size);
+    uint32_t annotateBvh(BVHNode* nodes, uint32_t ptr);
+    void     avgNormal(BVHNode* nodes, uint32_t ptr, Tempest::Vec3& normal);
+    void     computeCone(BVHNode* nodes, uint32_t ptr);
+    void     computeCone(BVHNode* nodes, uint32_t ptr, const Tempest::Vec3 normal, float& a);
 
     uint32_t packBVH64(const zenkit::Mesh& mesh, std::vector<BVHNode64>& nodes, Fragment* frag, size_t size);
     void     packNode64(BVHNode64& out, uint32_t& outSz, const zenkit::Mesh& mesh, std::vector<BVHNode64>& nodes, Fragment* frag, size_t size, uint8_t depth);
