@@ -83,11 +83,13 @@ class PackedMesh {
 
     // sw-raytracing
     std::vector<BVHNode>   bvhNodes;
+
+    /*
     std::vector<BVHNode64> bvhNodes64;
     std::vector<uint32_t>  bvh64Ibo;
     std::vector<float>     bvh64Vbo;
-
     std::vector<UVec4>     bvh8Nodes;
+    */
 
     PackedMesh(const zenkit::MultiResolutionMesh& mesh, PkgType type);
     PackedMesh(const zenkit::Mesh& mesh, PkgType type);
@@ -142,11 +144,19 @@ class PackedMesh {
       void    merge(const Meshlet& other);
       };
 
+    struct HalfEdge {
+      float         sah  = 0;
+      uint32_t      iMax = 0;
+      uint32_t      iMin = 0;
+      uint32_t      prim = 0;
+      };
+
     struct Fragment {
       Tempest::Vec3 centroid;
       Tempest::Vec3 bbmin, bbmax;
-      uint32_t      primId = 0;
-      uint32_t      mat    = 0;
+      uint32_t      primId  = 0;
+      uint32_t      primId1 = 0;
+      uint32_t      mat     = 0;
       };
 
     struct CWBblock {
@@ -179,7 +189,8 @@ class PackedMesh {
 
     void     packBVH(const zenkit::Mesh& mesh);
 
-    uint32_t packBVH(const zenkit::Mesh& mesh, std::vector<BVHNode>& nodes, Tempest::Vec3& bbmin, Tempest::Vec3& bbmax, Fragment* frag, size_t size);
+    uint32_t packBVH(const zenkit::Mesh& mesh, std::vector<uint32_t>& ibo, std::vector<BVHNode>& nodes,
+                     Tempest::Vec3& bbmin, Tempest::Vec3& bbmax, Fragment* frag, size_t size);
     auto     findNodeSplit(const Fragment* frag, size_t size, const bool useSah) ->  std::pair<uint32_t,float>;
     auto     findNodeSplit(Tempest::Vec3 bbmin, Tempest::Vec3 bbmax, const Fragment* frag, size_t size) ->  std::pair<uint32_t,bool>;
     uint32_t packPrimNode(const zenkit::Mesh& mesh, std::vector<BVHNode>& nodes, const Fragment* frag, size_t size);

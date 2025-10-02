@@ -44,7 +44,7 @@ vec3 rayTriangleTest(const Ray ray, const vec3 v0, const vec3 e1, const vec3 e2)
   const vec3  s1    = cross(ray.dir, e2);
   const float denom = dot(s1, e1);
 
-  if(denom <= 0.0)
+  if(denom >= 0.0)
     return vec3(TMax);
 
   const float invDemom = 1.0 / denom;

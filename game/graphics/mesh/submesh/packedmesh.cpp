@@ -554,50 +554,122 @@ void PackedMesh::packBVH(const zenkit::Mesh& mesh) {
     auto v = mesh.vertices[i];
     return Tempest::Vec3(v.x, v.y, v.z);
     };
+  auto areaOf = [](const Vec3 sz) {
+    return 2*(sz.x*sz.y + sz.x*sz.z + sz.y*sz.z);
+    };
 
-  std::vector<Fragment> frag;
-  std::vector<Vec4>     vert;
-  frag.reserve(mid.size());
+  // https://www.highperformancegraphics.org/posters23/Fast_Triangle_Pairing_for_Ray_Tracing.pdf
+  std::vector<HalfEdge> edgeFrag;
   for(size_t i=0; i<mid.size(); ++i) {
-    Fragment p;
-    p.primId   = uint32_t(i*3);
-    p.mat      = mid[i];
+    for(size_t r=0; r<3; ++r) {
+      auto primId = uint32_t(i*3);
+      auto i0     = ibo[primId+(r  )  ];
+      auto i1     = ibo[primId+(r+1)%3];
+      auto bbox   = pullVert(i0) - pullVert(i1);
+      bbox.x = std::abs(bbox.x);
+      bbox.y = std::abs(bbox.y);
+      bbox.z = std::abs(bbox.z);
 
-    auto a = pullVert(ibo[p.primId+0]);
-    auto b = pullVert(ibo[p.primId+1]);
-    auto c = pullVert(ibo[p.primId+2]);
+      HalfEdge f;
+      f.sah  = areaOf(bbox);
+      f.iMin = std::min(i0, i1);
+      f.iMax = std::max(i0, i1);
+      f.prim = uint32_t(i);
+      edgeFrag.push_back(f);
+      }
+    }
+  std::sort(edgeFrag.begin(), edgeFrag.end(), [](const HalfEdge& l, const HalfEdge& r){
+    return std::tie(l.sah, l.iMin, l.iMax, l.prim) > std::tie(r.sah, r.iMin, r.iMax, r.prim);
+    });
 
-    p.centroid = (a + b + c)/3.f;
-    p.bbmin.x  = std::min(a.x, std::min(b.x, c.x));
-    p.bbmin.y  = std::min(a.y, std::min(b.y, c.y));
-    p.bbmin.z  = std::min(a.z, std::min(b.z, c.z));
-    p.bbmax.x  = std::max(a.x, std::max(b.x, c.x));
-    p.bbmax.y  = std::max(a.y, std::max(b.y, c.y));
-    p.bbmax.z  = std::max(a.z, std::max(b.z, c.z));
-    frag.push_back(p);
+  std::vector<uint32_t> ibo2  = mesh.polygons.vertex_indices;
+  std::vector<bool>     pairings(mid.size());
+  std::vector<Fragment> frag;
+
+  auto storePrim = [&](uint32_t prim, uint32_t iMin, uint32_t iMax) -> uint32_t {
+    auto i0 = ibo[prim+0];
+    auto i1 = ibo[prim+1];
+    auto i2 = ibo[prim+2];
+    while(i1==iMin || i1==iMax) {
+      auto t = i0;
+      i0 = i1;
+      i1 = i2;
+      i2 = t;
+      }
+    ibo2[prim+0] = i0;
+    ibo2[prim+1] = i1;
+    ibo2[prim+2] = i2;
+    return prim;
+    };
+
+  for(size_t i=0; i<edgeFrag.size(); ++i) {
+    const auto& a = edgeFrag[i+0];
+    const auto& b = (i+1<edgeFrag.size()) ? edgeFrag[i+1] : a;
+    if(pairings[a.prim] || pairings[b.prim])
+      continue;
+
+    Fragment f;
+    if(i+1<edgeFrag.size() && a.iMin==b.iMin && a.iMax==b.iMax) {
+      pairings[a.prim] = true;
+      pairings[b.prim] = true;
+      f.primId  = storePrim(uint32_t(a.prim*3), a.iMin, a.iMax);
+      f.primId1 = storePrim(uint32_t(b.prim*3), a.iMin, a.iMax);
+      frag.push_back(f);
+      ++i;
+      continue;
+      }
+    }
+
+  for(size_t i=0; i<pairings.size(); ++i) {
+    if(pairings[i])
+      continue;
+    Fragment f;
+    f.primId  = storePrim(uint32_t(i*3), 0xFFFFFFFF, 0xFFFFFFFF);
+    f.primId1 = 0xFFFFFFFF;
+    frag.push_back(f);
+    }
+
+  for(auto& f:frag) {
+    Vec3 bbmin, bbmax;
+    for(auto i:{f.primId, f.primId1}) {
+      if(i==0xFFFFFFFF)
+        continue;
+      for(size_t r=0; r<3; ++r) {
+        auto index = ibo[i+r];
+        Vec3 vec = pullVert(index);
+        if(r==0 && i==f.primId) {
+          bbmin = vec;
+          bbmax = vec;
+          continue;
+          }
+        bbmin.x = std::min(bbmin.x, vec.x);
+        bbmin.y = std::min(bbmin.y, vec.y);
+        bbmin.z = std::min(bbmin.z, vec.z);
+
+        bbmax.x = std::max(bbmax.x, vec.x);
+        bbmax.y = std::max(bbmax.y, vec.y);
+        bbmax.z = std::max(bbmax.z, vec.z);
+        }
+      }
+    f.centroid = (bbmin+bbmax)/2.f;
+    f.bbmin    = bbmin;
+    f.bbmax    = bbmax;
     }
 
   std::vector<BVHNode> nodes;
   Vec3 bbox[2] = {};
-  packBVH(mesh, nodes, bbox[0], bbox[1], frag.data(), frag.size());
-  //TODO: first node has to be box node
+  packBVH(mesh, ibo2, nodes, bbox[0], bbox[1], frag.data(), frag.size());
+  //TODO: ensure, that first node is a box node
   bvhNodes = std::move(nodes);
-
-  std::vector<BVHNode64> nodes64;
-  packBVH64(mesh, nodes64, frag.data(), frag.size());
-  bvhNodes64 = std::move(nodes64);
-  bvh64Ibo   = ibo;
-  bvh64Vbo.resize(mesh.vertices.size()*3);
-  std::memcpy(bvh64Vbo.data(), mesh.vertices.data(), mesh.vertices.size()*sizeof(mesh.vertices[0]));
-
-  std::vector<UVec4> nodes8(sizeof(CWBVH8)/sizeof(UVec4));
-  auto root = packCWBVH8(mesh, nodes8, ibo, frag.data(), frag.size());
-  std::memcpy(static_cast<void*>(nodes8.data()), static_cast<const void*>(&root), sizeof(root));
-  bvh8Nodes = std::move(nodes8);
   }
 
-uint32_t PackedMesh::packBVH(const zenkit::Mesh& mesh, std::vector<BVHNode>& nodes,
+uint32_t PackedMesh::packBVH(const zenkit::Mesh& mesh, std::vector<uint32_t>& ibo, std::vector<BVHNode>& nodes,
                              Tempest::Vec3& bbmin, Tempest::Vec3& bbmax, Fragment* frag, size_t size) {
+  auto pullVert = [&](uint32_t i) {
+    auto v = mesh.vertices[i];
+    return Tempest::Vec3(v.x, v.y, v.z);
+    };
+
   if(size==0) {
     assert(0);
     return BVH_NullNode;
@@ -616,10 +688,28 @@ uint32_t PackedMesh::packBVH(const zenkit::Mesh& mesh, std::vector<BVHNode>& nod
     bbmax.z = std::max(bbmax.z, f.bbmax.z);
     }
 
-  if(size<=2) {
-    const uint32_t nId = packPrimNode(mesh, nodes, frag, size);
-    if(nId!=BVH_NullNode)
-      return nId;
+  if(size<=1) {
+    const uint32_t primId0 = frag[0].primId;
+    BVHNode node = {};
+    node.padd0  = 0;
+    node.padd1  = primId0;
+    node.lmin   = pullVert(ibo[primId0+0]);
+    node.lmax   = pullVert(ibo[primId0+1]);
+    node.rmin   = pullVert(ibo[primId0+2]);
+    node.lmax  -= node.lmin;
+    node.rmin  -= node.lmin;
+
+    const size_t nId = nodes.size();
+    if(true && frag[0].primId1!=0xFFFFFFFF) {
+      const uint32_t primId1 = frag[0].primId1;
+      node.rmax  = pullVert(ibo[primId1+1]);
+      node.rmax -= node.lmin;
+      nodes.emplace_back(node);
+      return uint32_t(nId | BVH_Tri2Node);
+      }
+
+    nodes.emplace_back(node);
+    return uint32_t(nId | BVH_Tri1Node);
     }
 
   const Vec3 sz = bbmax - bbmin;
@@ -640,8 +730,8 @@ uint32_t PackedMesh::packBVH(const zenkit::Mesh& mesh, std::vector<BVHNode>& nod
   nodes.emplace_back(); //reserve memory
 
   BVHNode node = {};
-  node.left  = packBVH(mesh,nodes, node.lmin, node.lmax, frag,       split);
-  node.right = packBVH(mesh,nodes, node.rmin, node.rmax, frag+split, size-split);
+  node.left  = packBVH(mesh, ibo, nodes, node.lmin, node.lmax, frag,       split);
+  node.right = packBVH(mesh, ibo, nodes, node.rmin, node.rmax, frag+split, size-split);
   nodes[nId] = node;
   return uint32_t(nId | BVH_BoxNode);
   }
