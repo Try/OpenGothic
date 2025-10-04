@@ -2788,48 +2788,48 @@ void Npc::tickRoutine() {
       if(r.point!=nullptr)
         hnpc->wp = r.point->name;
       auto t = endTime(r);
-      startState(r.callback,r.point ? r.point->name : "",t,false);
+      startState(r.callback, r.point ? r.point->name : "", t, false);
       }
     else if(hnpc->start_aistate!=0) {
-      startState(uint32_t(hnpc->start_aistate),"");
+      auto endTime = owner.time();
+      endTime.addMilis(uint64_t(gtime(1, 0).toInt()));
+      startState(uint32_t(hnpc->start_aistate), "", endTime, false);
       }
     }
 
   if(!aiState.funcIni.isValid())
     return;
 
-  /*HACK: don't process far away Npc*/
-  if(aiPolicy==Npc::ProcessPolicy::AiFar2 && routines.size()==0)
-    return;
-
-  if(aiState.started) {
-    if(aiState.loopNextTime<=owner.tickCount()) {
-      aiState.loopNextTime = owner.tickCount()+1000; // one tick per second?
-      int loop = LOOP_CONTINUE;
-      if(aiState.funcLoop.isValid()) {
-        loop = owner.script().invokeState(this,currentOther,currentVictim,aiState.funcLoop);
-        } else {
-        // ZS_DEATH   have no loop-function, in G1, G2-classic
-        // ZS_GETMEAT have no loop-function, in G2-notr
-        loop = owner.version().hasZSStateLoop() ? 1 : 0;
-        }
-
-      if(aiState.eTime<=owner.time()) {
-        // Avoid interruption of ZS_TALK/ZS_ATTACK
-        if(currentTarget==nullptr && outputPipe->isFinished())
-          loop = LOOP_END;
-        }
-
-      if(loop!=LOOP_CONTINUE) {
-        clearState(false);
-        currentOther  = nullptr;
-        currentVictim = nullptr;
-        }
-      }
-    } else {
+  if(!aiState.started) {
     aiState.started      = true;
     aiState.loopNextTime = owner.tickCount();
     owner.script().invokeState(this,currentOther,currentVictim,aiState.funcIni);
+    return;
+    }
+
+  const bool fastPath = (aiPolicy==Npc::ProcessPolicy::AiFar2); //HACK: don't process far away Npc
+  if(aiState.loopNextTime<=owner.tickCount()) {
+    aiState.loopNextTime = owner.tickCount() + 1000; // one tick per second?
+    int loop = LOOP_CONTINUE;
+    if(aiState.funcLoop.isValid()) {
+      loop = fastPath ? LOOP_CONTINUE : owner.script().invokeState(this,currentOther,currentVictim,aiState.funcLoop);
+      } else {
+      // ZS_DEATH   have no loop-function, in G1, G2-classic
+      // ZS_GETMEAT have no loop-function, in G2-notr
+      loop = owner.version().hasZSStateLoop() ? 1 : 0;
+      }
+
+    if(aiState.eTime<=owner.time()) {
+      // Avoid interruption of ZS_TALK/ZS_ATTACK
+      if(currentTarget==nullptr && outputPipe->isFinished())
+        loop = LOOP_END;
+      }
+
+    if(loop!=LOOP_CONTINUE) {
+      clearState(false);
+      currentOther  = nullptr;
+      currentVictim = nullptr;
+      }
     }
   }
 
