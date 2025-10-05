@@ -263,6 +263,9 @@ void Shaders::compileShaders() {
     rtsmCullingOmni  = computeShader("rtsm_omni_culling.comp.sprv");
     rtsmPositionOmni = computeShader("rtsm_omni_position.comp.sprv");
 
+    rtsmMeshletCullOmni   = computeShader("rtsm_omni_meshlet_cull.comp.sprv");
+    rtsmPrimitiveCullOmni = computeShader("rtsm_omni_primitive_cull.comp.sprv");
+
     rtsmMeshletOmni  = computeShader("rtsm_omni_meshlet.comp.sprv");
     rtsmBackfaceOmni = computeShader("rtsm_omni_backface.comp.sprv");
     rtsmCompactOmni  = computeShader("rtsm_omni_compact.comp.sprv");

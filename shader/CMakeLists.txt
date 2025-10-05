@@ -354,6 +354,10 @@ add_shader(rtsm_omni_compact.comp    rtsm/rtsm_omni_compact.comp)
 add_shader(rtsm_omni_primitive.comp  rtsm/rtsm_omni_primitive.comp)
 add_shader(rtsm_omni_raster.comp     rtsm/rtsm_omni_raster.comp)
 
+# v2
+add_shader(rtsm_omni_meshlet_cull.comp   rtsm/rtsm_omni_meshlet_cull.comp)
+add_shader(rtsm_omni_primitive_cull.comp rtsm/rtsm_omni_primitive_cull.comp)
+
 # software ray-tracing
 #add_shader(sw_raytracing.comp swrt/sw_raytracing.comp -DANY_HIT -DUNIFORM_TRAVERSE "--target-env" "spirv1.3")
 add_shader(sw_raytracing.comp   swrt/sw_raytracing.comp  -DANY_HIT)

@@ -63,6 +63,7 @@ class Renderer final {
     void drawVsm          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);
     void drawRtsm         (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);
     void drawRtsmOmni     (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);
+    void drawRtsmOmni2    (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);
     void drawSwr          (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);
     void drawGBuffer      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, uint8_t fId, WorldView& view);
     void drawGWater       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& view);
@@ -234,8 +235,8 @@ class Renderer final {
 
       Tempest::StorageBuffer    visibleLights;
       Tempest::StorageImage     lightTiles;
-      Tempest::StorageImage     lightBins;
-      Tempest::StorageImage     primTiles;
+      Tempest::StorageImage     lightBins, primTiles;
+      Tempest::StorageImage     meshTilesOmni, primTilesOmni;
 
       Tempest::StorageImage     dbg64, dbg, dbg16, dbg8;
       } rtsm;

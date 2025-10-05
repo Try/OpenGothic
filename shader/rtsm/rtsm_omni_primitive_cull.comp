@@ -1,0 +1,276 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+#include "common.glsl"
+#include "scene.glsl"
+#include "rtsm/rtsm_common.glsl"
+
+layout(local_size_x = 512) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+const uint sizeof_Light = 1 + 4*6;
+
+layout(push_constant, std430) uniform UboPush {
+  vec3  originLwc;
+  float znear;
+  } push;
+//layout(binding = 0)         uniform texture2D   outputImage;
+layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
+layout(binding = 2)         uniform  utexture2D gbufNormal;
+layout(binding = 3)         uniform  texture2D  depth;
+layout(binding = 4, std430)          buffer Pos { uint  alloc; uint    data[]; } pos;
+layout(binding = 5, std430) readonly buffer Lbo { LightSource lights[];        };
+layout(binding = 6)         uniform  utexture2D lightBins;
+
+layout(binding = 7)         uniform  utexture2D meshBins;
+layout(binding = 8, rg32ui) uniform writeonly uimage2D primBins;
+
+#if defined(DEBUG_IMG)
+layout(binding = 9, r32ui)  uniform  uimage2D   dbgImage;
+#endif
+
+shared uint dbgCounter;
+void imageDbg(uint info) {
+#if defined(DEBUG_IMG)
+  imageStore(dbgImage, ivec2(gl_WorkGroupID.xy), uvec4(info));
+#endif
+  }
+
+#include "rtsm/rtsm_scratch.glsl"
+
+shared uint numLights;
+shared uint numPrimitives;
+shared uint primitives[2048];
+
+shared uint primListPtr;
+
+ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
+
+//const ivec2 TileSize = ivec2(RTSM_SMALL_TILE);
+const ivec2 TileSize = ivec2(RTSM_LIGHT_TILE);
+
+uvec2 pullTileData() {
+  return texelFetch(lightBins, ivec2((gl_WorkGroupID.xy*TileSize)/RTSM_LIGHT_TILE), 0).xy;
+  }
+
+uvec2 pullMeshData() {
+  return texelFetch(meshBins, ivec2((gl_WorkGroupID.xy*TileSize)/RTSM_LIGHT_TILE), 0).xy;
+  }
+
+void storeBin(ivec2 at, uint ptr, uint num) {
+  if(gl_LocalInvocationIndex!=0)
+    return;
+  imageStore(primBins, at, uvec4(ptr,num,0,0));
+  }
+
+uint packPrimitiveId(uint meshlet, uint prim) {
+  return (meshlet << 8) | prim;
+  }
+
+// visibility
+shared uint  numPlanes;
+shared vec3  frustum[6][4];
+void rayBboxes(const uint lptr) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  numPlanes = 0;
+  barrier();
+
+  if(laneID<6) {
+    const uint  face  = laneID;
+    const uint  fptr  = lptr + 1 + face*4;
+
+    uvec4 iaabb;
+    iaabb.x = pos.data[fptr+0];
+    iaabb.y = pos.data[fptr+1];
+    iaabb.z = pos.data[fptr+2];
+    iaabb.w = pos.data[fptr+3];
+
+    if(iaabb.x>=iaabb.z || iaabb.y>=iaabb.w) {
+      // degenerated bbox
+      return;
+      }
+    const vec4 aabb = orderedUintToFloat(iaabb);
+    const vec3 fa   = faceToRay(vec2(aabb.xy), face);
+    const vec3 fb   = faceToRay(vec2(aabb.zy), face);
+    const vec3 fc   = faceToRay(vec2(aabb.zw), face);
+    const vec3 fd   = faceToRay(vec2(aabb.xw), face);
+
+    const uint id = atomicAdd(numPlanes, 1);
+    frustum[id][0] = cross(fa, fb);
+    frustum[id][1] = cross(fb, fc);
+    frustum[id][2] = cross(fc, fd);
+    frustum[id][3] = cross(fd, fa);
+    }
+  }
+
+bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c, uint face) {
+  const vec3 p0 = frustum[face][0];
+  const vec3 p1 = frustum[face][1];
+  const vec3 p2 = frustum[face][2];
+  const vec3 p3 = frustum[face][3];
+
+  if(dot(a, p0)<0 && dot(b, p0)<0 && dot(c, p0)<0)
+    return false;
+  if(dot(a, p1)<0 && dot(b, p1)<0 && dot(c, p1)<0)
+    return false;
+  if(dot(a, p2)<0 && dot(b, p2)<0 && dot(c, p2)<0)
+    return false;
+  if(dot(a, p3)<0 && dot(b, p3)<0 && dot(c, p3)<0)
+    return false;
+  return true;
+  }
+
+bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c) {
+  const uint num = numPlanes;
+  for(uint face=0; face<num; ++face) {
+    if(isPrimitiveVisible(a, b, c, face))
+      return true;
+    }
+  return false;
+  }
+
+bool isPrimitiveVisible(const uint ptr, const uint primId, const LightSource src) {
+  uint ptrM = ptr;
+
+  ptrM += MeshletHeaderSize;
+  const uvec3 tri = pullPrimitive(ptrM, primId);
+
+  ptrM += MaxPrim;
+  const vec3  a   = pullVertex(ptrM, tri.x) - src.pos;
+  const vec3  b   = pullVertex(ptrM, tri.y) - src.pos;
+  const vec3  c   = pullVertex(ptrM, tri.z) - src.pos;
+
+  /*
+  //TODO: tMax culling
+  vec4 plane;
+  // plane.xyz = normalize(cross(b - a, c - a));
+  plane.xyz = cross(b - a, c - a);
+  plane.w   = dot(plane.xyz, a);
+
+  const float dist = -plane.w;
+  // if(dist<0)
+  //   return false;
+  if(dist*dist>(src.range*src.range)*dot(plane.xyz,plane.xyz))
+    return false;
+  */
+
+  if(!isPrimitiveVisible(a, b, c))
+    return false;
+  return true;
+  }
+
+void processPrimitives(const uint tilePtr, const uint inPrimitives, const LightSource src, bool counting) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  numPrimitives = 0;
+  barrier();
+
+  for(uint i=laneID; i<inPrimitives; i+=NumThreads) {
+    const uint  pkg    = pos.data[tilePtr + i];
+    const uint  ptr    = (pkg >> 8);
+    const uint  primId = pkg & 0xFF;
+
+    if(!isPrimitiveVisible(ptr, primId, src))
+      continue;
+
+    atomicAdd(dbgCounter, 1);
+    const uint id = atomicAdd(numPrimitives, 1);
+    if(counting && id<primitives.length()) {
+      primitives[id] = packPrimitiveId(ptr, primId);
+      }
+    else if(!counting) {
+      pos.data[primListPtr + id + 4] = packPrimitiveId(ptr, primId);
+      }
+    }
+  }
+
+void processLight(const uint lightId, const uint tilePtr, const uint inPrimitives) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  const LightSource src = lights[lightId];
+
+  const uint prevPtr = primListPtr;
+  const uint prevNum = numPrimitives;
+  barrier();
+
+  processPrimitives(tilePtr, inPrimitives, src, true);
+  barrier();
+
+  if(laneID==0) {
+    primListPtr   = allocScratch(numPrimitives+4+5);
+    if(primListPtr!=NULL) {
+      uint ptr = primListPtr;
+      pos.data[ptr + 0] = floatBitsToUint(src.pos.x);
+      pos.data[ptr + 1] = floatBitsToUint(src.pos.y);
+      pos.data[ptr + 2] = floatBitsToUint(src.pos.z);
+      pos.data[ptr + 3] = floatBitsToUint(src.range);
+
+      ptr += 4;
+      ptr += numPrimitives;
+      pos.data[ptr + 0] = floatBitsToUint(src.color.r);
+      pos.data[ptr + 1] = floatBitsToUint(src.color.g);
+      pos.data[ptr + 2] = floatBitsToUint(src.color.b);
+      pos.data[ptr + 3] = prevPtr;
+      pos.data[ptr + 4] = prevNum;
+      }
+    atomicAdd(numLights, 1);
+    }
+  barrier();
+
+  if(primListPtr==NULL) {
+    // OOM
+    numPrimitives = BIN_BAD_BIT;
+    return;
+    }
+
+  if(numPrimitives<primitives.length()) {
+    for(uint i=laneID; i<numPrimitives; i+=NumThreads)
+      pos.data[primListPtr + i + 4] = primitives[i];
+    return;
+    }
+  barrier();
+
+  processPrimitives(tilePtr, inPrimitives, src, false);
+  }
+
+void main() {
+  const uint  laneID  = gl_LocalInvocationIndex;
+  const uvec2 tile    = pullTileData();
+  const uint  lptr    = tile.x;
+  const uint  nLights = tile.y;
+
+  if(nLights==0) {
+    storeBin(ivec2(gl_WorkGroupID.xy), NULL, 0);
+    imageDbg(0);
+    return;
+    }
+
+  dbgCounter = 0;
+  numLights  = 0;
+
+  primListPtr   = NULL;
+  numPrimitives = 0;
+  barrier();
+
+  const uvec2 lTile = pullMeshData();
+  for(uint i=0; i<nLights; ++i) {
+    const uint  lId   = pos.data[lptr + i*sizeof_Light];
+
+    rayBboxes(lptr + i*sizeof_Light);
+    barrier();
+
+    if(numPlanes>0) {
+      processLight(lId, lTile.x, lTile.y);
+      }
+    barrier();
+    }
+
+  storeBin(ivec2(gl_WorkGroupID.xy), primListPtr, numPrimitives);
+  imageDbg(dbgCounter);
+  //imageDbg(numLights);
+  }

@@ -12,7 +12,7 @@ const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z
 
 layout(binding = 0)         uniform texture2D   outputImage;
 layout(binding = 1, std140) uniform UboScene    { SceneDesc scene;   };
-layout(binding = 2)         uniform  utexture2D gbufNormal;
+layout(binding = 2)         uniform utexture2D  gbufNormal;
 layout(binding = 3)         uniform texture2D   depth;
 layout(binding = 4, std430)         buffer Pos  { uint  alloc; uint data[];  } pos;
 layout(binding = 5, rg32ui) uniform writeonly uimage2D tileBins;

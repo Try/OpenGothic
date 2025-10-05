@@ -109,6 +109,8 @@ class Shaders {
     Tempest::ComputePipeline rtsmLightsOmni, rtsmBboxesOmni, rtsmCompactOmni;
     Tempest::ComputePipeline rtsmPrimOmni, rtsmRasterOmni;
 
+    Tempest::ComputePipeline rtsmMeshletCullOmni, rtsmPrimitiveCullOmni;
+
     Tempest::ComputePipeline rtsmRendering, rtsmRenderingOmni; //reference
     Tempest::RenderPipeline  rtsmDbg;
 

@@ -1,0 +1,217 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive : enable
+
+#include "rtsm/rtsm_common.glsl"
+#include "scene.glsl"
+#include "common.glsl"
+
+layout(local_size_x = 32, local_size_y = 16) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+const uint sizeof_Light = 1 + 4*6;
+
+//layout(binding = 0)         uniform texture2D   outputImage;
+layout(binding = 1, std140) uniform UboScene    { SceneDesc scene;   };
+layout(binding = 2)         uniform utexture2D  gbufNormal;
+layout(binding = 3)         uniform texture2D   depth;
+layout(binding = 4, std430)         buffer Pos  { uint  alloc; uint data[];  } pos;
+layout(binding = 5, std430) readonly buffer Lbo { LightSource lights[];        };
+layout(binding = 6)         uniform utexture2D  lightTiles;
+layout(binding = 7, rg32ui) uniform writeonly uimage2D meshBins;
+//layout(binding = 8, rg32ui) uniform writeonly uimage2D primBins;
+
+layout(binding = 9, r32ui)  uniform uimage2D           dbgImage;
+
+void imageDbg(ivec2 at, uint info) {
+#if defined(DEBUG_IMG)
+  imageStore(dbgImage, at, uvec4(info));
+#endif
+  }
+
+#include "rtsm/rtsm_scratch.glsl"
+
+shared uint  numPrimitives;
+shared uint  numMeshlets;
+shared uint  meshListPtr;
+
+shared uint  meshletsId[2048];
+
+uvec2 pullTileData() {
+  return texelFetch(lightTiles, ivec2(gl_WorkGroupID.xy), 0).xy;
+  }
+
+void storeTile(uint ptr, uint size) {
+  const ivec2 tileId = ivec2(gl_WorkGroupID.xy);
+  imageStore(meshBins, tileId, uvec4(ptr, size, 0, 0));
+  imageDbg(tileId, size); // debug
+  }
+
+uint packPrimitiveId(uint meshlet, uint prim) {
+  return (meshlet << 8) | prim;
+  }
+
+bool isPrimitiveVisible(const uint ptr, const uint primId, const uvec2 lightTile) {
+  uint ptrM = ptr;
+
+  ptrM += MeshletHeaderSize;
+  const uvec3 tri = pullPrimitive(ptrM, primId);
+
+  ptrM += MaxPrim;
+  const vec3  a   = pullVertex(ptrM, tri.x);
+  const vec3  b   = pullVertex(ptrM, tri.y);
+  const vec3  c   = pullVertex(ptrM, tri.z);
+
+  vec4 plane;
+  plane.xyz = normalize(cross(b - a, c - a));
+  plane.w   = dot(plane.xyz, a);
+
+  const uint  lptr    = lightTile.x;
+  const uint  nLights = lightTile.y;
+  for(uint i=0; i<nLights; ++i) {
+    const uint        lId = pos.data[lptr + i*sizeof_Light];
+    const LightSource src = lights[lId];
+
+    const float dist = dot(plane, vec4(src.pos,-1));
+    if(dist>=0 && dist<=src.range)
+      return true;
+    }
+  return false;
+  }
+
+bool isSphereVisible(const vec4 sphere, const vec3 p0, const vec3 p1, const vec3 p2, const vec3 p3) {
+  const float R = sphere.w;
+  if(dot(sphere.xyz, p0) < -R)
+    return false;
+  if(dot(sphere.xyz, p1) < -R)
+    return false;
+  if(dot(sphere.xyz, p2) < -R)
+    return false;
+  if(dot(sphere.xyz, p3) < -R)
+    return false;
+  return true;
+  }
+
+bool isSphereVisible(vec4 sphere, const uint lptr) {
+  const uint        lId = pos.data[lptr + 0];
+  const LightSource src = lights[lId];
+
+  sphere.xyz -= src.pos;
+  float R = sphere.w + src.range;
+  if(dot(sphere.xyz,sphere.xyz) > R*R)
+    return false;
+  //return true;
+
+  for(uint face=0; face<6; ++face) {
+    const uint  fptr  = lptr + 1 + face*4;
+
+    uvec4 iaabb;
+    iaabb.x = pos.data[fptr+0];
+    iaabb.y = pos.data[fptr+1];
+    iaabb.z = pos.data[fptr+2];
+    iaabb.w = pos.data[fptr+3];
+
+    if(iaabb.x>=iaabb.z || iaabb.y>=iaabb.w) {
+      // degenerated bbox
+      continue;
+      }
+
+    const vec4 aabb = orderedUintToFloat(iaabb);
+    const vec3 fa   = faceToRay(vec2(aabb.xy), face);
+    const vec3 fb   = faceToRay(vec2(aabb.zy), face);
+    const vec3 fc   = faceToRay(vec2(aabb.zw), face);
+    const vec3 fd   = faceToRay(vec2(aabb.xw), face);
+
+    const vec3 p0 = cross(fa, fb);
+    const vec3 p1 = cross(fb, fc);
+    const vec3 p2 = cross(fc, fd);
+    const vec3 p3 = cross(fd, fa);
+
+    if(isSphereVisible(sphere, p0, p1, p2, p3))
+      return true;
+    }
+  return false;
+  }
+
+bool isAabbVisible(const vec4 sphere, const uvec2 lightTile) {
+  const uint  lptr    = lightTile.x;
+  const uint  nLights = lightTile.y;
+  for(uint i=0; i<nLights; ++i) {
+    if(isSphereVisible(sphere, lptr + i*sizeof_Light))
+      return true;
+    }
+  return false;
+  }
+
+void traceMeshlets(const uint tilePtr, const uint visCount, const uvec2 lightTile, const bool count) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  for(uint i=laneID; i<visCount; i+=NumThreads) {
+    const uint  ptr    = pos.data[tilePtr + i];
+    const vec4  sphere = pullMeshSphere(ptr);
+
+    if(!isAabbVisible(sphere, lightTile))
+      continue;
+
+    const uint prim = pullPrimitiveCount(ptr);
+    atomicAdd(numPrimitives, prim);
+
+    const uint id = atomicAdd(numMeshlets, 1);
+    if(count && id<meshletsId.length())
+      meshletsId[id] = ptr;
+    else if(!count)
+      pos.data[meshListPtr + id] = ptr;
+    }
+  }
+
+void processTiling(const uint tilePtr, const uint visCount, const uvec2 lightTile) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  numMeshlets   = 0;
+  numPrimitives = 0;
+  barrier();
+
+  traceMeshlets(tilePtr, visCount, lightTile, true);
+  barrier();
+
+  if(laneID==0) {
+    meshListPtr = allocScratch(numPrimitives);
+    numPrimitives = 0;
+    }
+  barrier();
+
+  for(uint i=laneID; i<numMeshlets; i+=NumThreads) {
+    const uint ptr  = meshletsId[i];
+    const uint prim = pullPrimitiveCount(ptr);
+    // const uint at   = meshListPtr + atomicAdd(numPrimitives, prim);
+
+    for(uint r=0; r<prim; ++r) {
+      if(!isPrimitiveVisible(ptr, r, lightTile))
+        continue;
+      const uint at = meshListPtr + atomicAdd(numPrimitives, 1);
+      pos.data[at] = packPrimitiveId(ptr, r);
+      }
+    // pos.data[meshListPtr + i] = meshletsId[i];
+    }
+
+  storeTile(meshListPtr, numPrimitives);
+  }
+
+void main() {
+  const uint  laneID  = gl_LocalInvocationIndex;
+
+  const uvec2 tile    = pullTileData();
+  const uint  lptr    = tile.x;
+  const uint  nLights = tile.y;
+
+  if(nLights==0) {
+    storeTile(NULL, 0);
+    return;
+    }
+
+  processTiling(1, pos.data[0], tile);
+  barrier();
+
+  //memoryBarrierBuffer();
+  //barrier();
+  }
