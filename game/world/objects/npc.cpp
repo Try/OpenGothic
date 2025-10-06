@@ -162,6 +162,7 @@ Npc::Npc(World &owner, size_t instance, std::string_view waypoint, ProcessPolicy
 
   hnpc = std::make_shared<zenkit::INpc>();
   hnpc->user_ptr        = this;
+  hnpc->id              = isPlayer() ? 0 : int32_t(instance & 0x7FFFFFFF);
 
   if(instance==size_t(-1))
     return;
