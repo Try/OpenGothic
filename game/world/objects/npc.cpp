@@ -161,8 +161,8 @@ Npc::Npc(World &owner, size_t instance, std::string_view waypoint, ProcessPolicy
   outputPipe          = owner.script().openAiOuput();
 
   hnpc = std::make_shared<zenkit::INpc>();
-  hnpc->user_ptr        = this;
-  hnpc->id              = isPlayer() ? 0 : int32_t(instance & 0x7FFFFFFF);
+  hnpc->user_ptr = this;
+  hnpc->id       = int32_t(instance & 0x7FFFFFFF);
 
   if(instance==size_t(-1))
     return;
