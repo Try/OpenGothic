@@ -627,18 +627,18 @@ void GameMenu::onKeyboard(KeyCodec::Action key) {
 void GameMenu::onTick() {
   update();
 
-  const float fx = 640.0f;
-  const float fy = 480.0f;
+  const float scale = Gothic::interfaceScale(this);
+  const float fx    = 640.0f * scale;
+  const float fy    = 480.0f * scale;
 
   const float wx = float(owner.w());
   const float wy = float(owner.h());
 
-  const float scale = Gothic::interfaceScale(this);
   Size size = {0, 0};
   if(menu->flags & zenkit::MenuFlag::DONT_SCALE_DIMENSION) {
-    size = {int(float(menu->dim_x)*fx*scale/scriptDiv),int(float(menu->dim_y)*fy*scale/scriptDiv)};
+    size = {int(float(menu->dim_x)*fx/scriptDiv),int(float(menu->dim_y)*fy/scriptDiv)};
     } else {
-    size = {int(float(menu->dim_x)*wx*scale/scriptDiv),int(float(menu->dim_y)*wy*scale/scriptDiv)};
+    size = {int(float(menu->dim_x)*wx/scriptDiv),int(float(menu->dim_y)*wy/scriptDiv)};
     }
   resize(size);
 
