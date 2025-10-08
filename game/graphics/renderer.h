@@ -53,6 +53,7 @@ class Renderer final {
     void prepareSky       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
     void prepareSSAO      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
     void prepareFog       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
+    void prepareFog2      (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
     void prepareIrradiance(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
     void prepareGi        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
     void prepareExposure  (Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview);
@@ -159,6 +160,8 @@ class Renderer final {
       Tempest::Attachment    transLut, multiScatLut, viewLut, viewCldLut;
       Tempest::StorageImage  cloudsLut, fogLut3D, fogLut3DMs;
       Tempest::StorageImage  occlusionLut, irradianceLut;
+
+      Tempest::StorageImage  swFog;
       } sky;
 
     struct SSAO {

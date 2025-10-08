@@ -281,6 +281,8 @@ void Shaders::compileShaders() {
   swRaytracing8   = computeShader("sw_raytracing8.comp.sprv");
   swRaytracing64  = computeShader("sw_raytracing64.comp.sprv");
 
+  swFog = computeShader("fog.comp.sprv");
+
   if(Gothic::options().swRenderingPreset>0) {
     switch(Gothic::options().swRenderingPreset) {
       case 1:

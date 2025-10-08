@@ -503,7 +503,7 @@ void Renderer::draw(Encoder<CommandBuffer>& cmd, uint8_t cmdId, size_t imgId,
   }
 
 void Renderer::dbgDraw(Tempest::Painter& p) {
-  static bool dbg = false;
+  static bool dbg = true;
   if(!dbg)
     return;
 
@@ -515,7 +515,8 @@ void Renderer::dbgDraw(Tempest::Painter& p) {
   //tex.push_back(&textureCast(shadowMap[1]));
   //tex.push_back(&textureCast<const Texture2d&>(shadowMap[0]));
   //tex.push_back(&textureCast<const Texture2d&>(vsm.pageData));
-  tex.push_back(&textureCast<const Texture2d&>(swrt.outputImage));
+  //tex.push_back(&textureCast<const Texture2d&>(swrt.outputImage));
+  tex.push_back(&textureCast<const Texture2d&>(sky.swFog));
 
   static int size = 400;
   int left = 10;
@@ -594,6 +595,7 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   prepareIrradiance(cmd,*wview);
   prepareExposure(cmd,*wview);
   prepareSSAO(cmd,*wview);
+  prepareFog2(cmd,*wview);
   prepareFog (cmd,*wview);
   prepareGi  (cmd,*wview);
 
@@ -2125,6 +2127,76 @@ void Renderer::prepareFog(Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview
       break;
       }
     }
+  }
+
+void Renderer::prepareFog2(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {
+  auto& scene  = wview.sceneGlobals();
+  auto& device = Resources::device();
+
+  const int32_t NumThreads = shaders.swFog.workGroupSize().x;
+
+  auto sunPosition2d = [&](){
+    float w = 0;
+    auto sun = wview.sky().sunLight().dir();
+    scene.viewProject().project(sun.x, sun.y, sun.z, w);
+    sun.x /= sun.z;
+    sun.y /= sun.z;
+    return Vec2(sun.x, sun.y);
+    };
+
+  auto mix = [](Vec2 x, Vec2 y, float a) {
+    return x*(1.f-a) + y*a;
+    };
+
+  auto countBands = [&](IVec2 isun, Vec2 sunPosition2d, int32_t viewportSize) -> size_t {
+    int    bandId  = 0;
+    size_t numRays = 0;
+
+    while(true) {
+      if(isun.x <= NumThreads*bandId)
+        return numRays;
+      ++bandId;
+      const float a   = float(isun.x - NumThreads*bandId)/float(isun.x);
+      const Vec2  top = mix(Vec2(0,0), sunPosition2d, a);
+      const Vec2  bot = mix(Vec2(0,1), sunPosition2d, a);
+
+      int iTop = int(top.y*float(viewportSize));
+      int iBot = int(bot.y*float(viewportSize));
+      if(iTop>iBot || iBot<0)
+        continue;
+
+      int num = iBot - iTop;
+      numRays += size_t(num);
+      }
+
+    return 0;
+    };
+
+  const auto    sun   = sunPosition2d()*0.5 + 0.5;
+  const int32_t isunX = int(sun.x*float(zbuffer.w()));
+  const int32_t isunY = int(sun.y*float(zbuffer.h()));
+  (void)isunX;
+  (void)isunY;
+
+  auto v = countBands(IVec2(isunX, isunY), sun, zbuffer.h());
+  (void)v;
+
+  cmd.setDebugMarker("Fog-EXT");
+  if(sky.swFog.size()!=zbuffer.size()) {
+    Resources::recycle(std::move(sky.swFog));
+    sky.swFog = device.image2d(Tempest::RGBA8, zbuffer.size());
+    }
+
+  struct Push { Vec2 sunPosition2d; } push;
+  push.sunPosition2d = sun;
+
+  cmd.setPushData(push);
+  cmd.setBinding(0, sky.swFog);
+  cmd.setBinding(1, scene.uboGlobal[SceneGlobals::V_Main]);
+  cmd.setBinding(2, zbuffer);
+  // cmd.dispatchThreads(zbuffer.size());
+  cmd.setPipeline(shaders.swFog);
+  cmd.dispatch(v);
   }
 
 void Renderer::prepareEpipolar(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView& wview) {

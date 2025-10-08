@@ -1,0 +1,67 @@
+#version 450
+
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+#include "scene.glsl"
+
+layout(push_constant, std430) uniform UboPush {
+  vec2 sunPosition2d;
+  } push;
+layout(binding = 0, rgba8)  uniform image2D   outImage;
+layout(binding = 1, std140) uniform UboScene  { SceneDesc scene;     };
+layout(binding = 2)         uniform texture2D depth;
+
+layout(local_size_x = 64) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+ivec2 findBand(const ivec2 isun, int rayID, int viewportSize) {
+  int bandId = 0;
+
+  while(true) {
+    if(bandId>100)
+      break;
+    if(isun.x <= NumThreads*bandId)
+      return ivec2(bandId, rayID);
+    ++bandId;
+
+    const float a   = float(isun.x - int(NumThreads)*bandId)/float(isun.x);
+    const vec2  top = mix(vec2(0,0), push.sunPosition2d, a);
+    const vec2  bot = mix(vec2(0,1), push.sunPosition2d, a);
+
+    int iTop = int(top.y*viewportSize);
+    int iBot = int(bot.y*viewportSize);
+    if(iTop>iBot || iBot<0)
+      continue;
+
+    int num   = iBot - iTop;
+    if(rayID<num)
+      return ivec2(bandId, rayID);
+    rayID -= num;
+    }
+  return ivec2(bandId, -1);
+  }
+
+void main() {
+  const uint  laneID       = gl_LocalInvocationIndex;
+  const ivec2 viewportSize = textureSize(depth,0);
+
+  const ivec2 isun   = ivec2(push.sunPosition2d * viewportSize);
+  const ivec2 pkg    = findBand(isun, int(gl_WorkGroupID.x), viewportSize.y);
+  const int   bandId = pkg.x;
+  const int   rayID  = pkg.y;
+  if(rayID<0)
+    return;
+
+  const float aS  = float(isun.x - NumThreads*bandId)/float(isun.x);
+  const vec2  atS = mix(vec2(0), push.sunPosition2d, aS) + vec2(0, rayID)/vec2(viewportSize);
+
+  const float a   = float(laneID)/float(NumThreads*bandId);
+  const ivec2 iat = ivec2(mix(atS, push.sunPosition2d, a) * viewportSize);
+
+  if(iat.x<0 || iat.y<0 || iat.x>=viewportSize.x || iat.y>=viewportSize.y)
+    return;
+  imageStore(outImage, iat, vec4(float(laneID)/64.0, float(rayID%32)/32.0, float(bandId)/32.0, 0));
+  }
