@@ -370,7 +370,9 @@ void MainWindow::tickMouse() {
   }
 
 void MainWindow::onSettings() {
-  auto zMaxFps = Gothic::inst().settingsGetI("ENGINE","zMaxFps");
+  auto zMaxFps = Gothic::options().fpsLimit;
+  if(zMaxFps<=0)
+    zMaxFps = Gothic::inst().settingsGetI("ENGINE", "zMaxFps");
   if(zMaxFps>0)
     maxFpsInv = 1000u/uint64_t(zMaxFps); else
     maxFpsInv = 0;

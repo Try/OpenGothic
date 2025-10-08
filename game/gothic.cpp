@@ -51,6 +51,7 @@ Gothic::Gothic() {
   showFpsCounter = systemPackIniFile->getI("DEBUG","Show_FPS_Counter");
   opts.hideFocus = systemPackIniFile->getI("PARAMETERS","HideFocus");
   opts.cameraFov = systemPackIniFile->getF("PARAMETERS","VerticalFOV");
+  opts.fpsLimit  = std::max(0, systemPackIniFile->getI("PARAMETERS", "FPS_Limit", 0));
   if(opts.cameraFov<1.f) {
     opts.cameraFov = 67.5;
     }

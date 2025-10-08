@@ -55,6 +55,7 @@ class Gothic final {
 
       bool     hideFocus         = false;
       float    cameraFov         = 67.5f;
+      int      fpsLimit          = 0;
       float    interfaceScale    = 1;
       int      inventoryCellSize = 70;
 
