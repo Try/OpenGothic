@@ -7,7 +7,8 @@
 #include "scene.glsl"
 
 layout(push_constant, std430) uniform UboPush {
-  vec2 sunPosition2d;
+  ivec4 sectors;
+  vec2  sunPosition2d;
   } push;
 layout(binding = 0, rgba8)  uniform image2D   outImage;
 layout(binding = 1, std140) uniform UboScene  { SceneDesc scene;     };
@@ -17,22 +18,26 @@ layout(local_size_x = 64) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
-ivec2 findBand(const ivec2 isun, int rayID, int viewportSize) {
+vec4 dbgColor = vec4(0);
+
+ivec2 findBand(const vec2 sun2d, const ivec2 isun, const ivec2 viewportSize, int rayID) {
   int bandId = 0;
+  if(isun.x>viewportSize.x)
+    bandId = (isun.x-viewportSize.x)/int(NumThreads);
 
   while(true) {
     if(bandId>100)
-      break;
+      ;//break;
     if(isun.x <= NumThreads*bandId)
       return ivec2(bandId, rayID);
     ++bandId;
 
     const float a   = float(isun.x - int(NumThreads)*bandId)/float(isun.x);
-    const vec2  top = mix(vec2(0,0), push.sunPosition2d, a);
-    const vec2  bot = mix(vec2(0,1), push.sunPosition2d, a);
+    const vec2  top = mix(vec2(0,0), sun2d, a);
+    const vec2  bot = mix(vec2(0,1), sun2d, a);
 
-    int iTop = int(top.y*viewportSize);
-    int iBot = int(bot.y*viewportSize);
+    int iTop = int(top.y*viewportSize.y);
+    int iBot = int(bot.y*viewportSize.y);
     if(iTop>iBot || iBot<0)
       continue;
 
@@ -44,24 +49,79 @@ ivec2 findBand(const ivec2 isun, int rayID, int viewportSize) {
   return ivec2(bandId, -1);
   }
 
-void main() {
-  const uint  laneID       = gl_LocalInvocationIndex;
-  const ivec2 viewportSize = textureSize(depth,0);
+ivec2 findFragCoord(const vec2 sun, const ivec2 viewportSize, int iRayID) {
+  const uint  laneID = gl_LocalInvocationIndex;
 
-  const ivec2 isun   = ivec2(push.sunPosition2d * viewportSize);
-  const ivec2 pkg    = findBand(isun, int(gl_WorkGroupID.x), viewportSize.y);
+  const vec2  sun2d  = sun*0.5 + 0.5;
+  const ivec2 isun   = ivec2(sun2d * viewportSize);
+
+  const ivec2 pkg    = findBand(sun2d, isun, viewportSize, iRayID);
   const int   bandId = pkg.x;
   const int   rayID  = pkg.y;
   if(rayID<0)
-    return;
+    return ivec2(-1);
 
-  const float aS  = float(isun.x - NumThreads*bandId)/float(isun.x);
-  const vec2  atS = mix(vec2(0), push.sunPosition2d, aS) + vec2(0, rayID)/vec2(viewportSize);
+  dbgColor = vec4(float(laneID)/64.0, float(rayID%64)/64.0, float(bandId%64)/64.0, 0);
 
-  const float a   = float(laneID)/float(NumThreads*bandId);
-  const ivec2 iat = ivec2(mix(atS, push.sunPosition2d, a) * viewportSize);
+  const float aS   = float(isun.x - int(NumThreads)*bandId)/float(isun.x);
+  const vec2  atS  = mix(vec2(0,0), sun2d, aS) + vec2(0, rayID)/vec2(viewportSize);
+
+  const float a    = float(laneID)/float(NumThreads*bandId);
+  const ivec2 iat  = ivec2(mix(atS, sun2d, a) * viewportSize);
+
+  return iat;
+  }
+
+ivec2 findFragCoord(const vec2 sun2d, const ivec2 viewportSize, const ivec4 sectors) {
+  int rayID = int(gl_WorkGroupID.x);
+
+  if(rayID<sectors.x) {
+    // left
+    ivec2 at = findFragCoord(vec2(+sun2d.x, sun2d.y), viewportSize, rayID);
+    // return ivec2(-1);
+    return at;
+    }
+  rayID -= sectors.x;
+
+  if(rayID<sectors.y) {
+    // bottom
+    ivec2 at = findFragCoord(vec2(-sun2d.y, sun2d.x), viewportSize.yx, rayID).yx;
+    at.y = viewportSize.y - at.y;
+    // return ivec2(-1);
+    return at;
+    }
+  rayID -= sectors.y;
+
+  if(rayID<sectors.z) {
+    // right
+    ivec2 at = findFragCoord(vec2(-sun2d.x, -sun2d.y), viewportSize, rayID);
+    at.x = viewportSize.x - at.x;
+    at.y = viewportSize.y - at.y;
+    // return ivec2(-1);
+    return at;
+    }
+  rayID -= sectors.z;
+
+  if(rayID<sectors.w) {
+    // top
+    ivec2 at = findFragCoord(vec2(sun2d.y, -sun2d.x), viewportSize.yx, rayID).yx;
+    at.x = viewportSize.x - at.x;
+    return at;
+    }
+
+  // unreachable
+  return ivec2(-1);
+  }
+
+void main() {
+  if(int(gl_WorkGroupID.x) >= push.sectors.x)
+    ;//return;
+
+  const vec2  sun2d        = push.sunPosition2d;
+  const ivec2 viewportSize = textureSize(depth,0);
+  const ivec2 iat          = findFragCoord(sun2d, viewportSize, push.sectors);
 
   if(iat.x<0 || iat.y<0 || iat.x>=viewportSize.x || iat.y>=viewportSize.y)
     return;
-  imageStore(outImage, iat, vec4(float(laneID)/64.0, float(rayID%32)/32.0, float(bandId)/32.0, 0));
+  imageStore(outImage, iat, dbgColor);
   }
