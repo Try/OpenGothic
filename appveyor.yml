@@ -3,7 +3,7 @@ configuration:
 
 environment:
   matrix:
-    - APPVEYOR_BUILD_WORKER_IMAGE: Previous Visual Studio 2015  # used as mingw
+    - APPVEYOR_BUILD_WORKER_IMAGE: Previous Visual Studio 2019  # used as mingw
       GENERATOR:  "Ninja"
       RELEASABLE: true
       CC:         C:/msys64/mingw64/bin/gcc.exe
