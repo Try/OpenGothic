@@ -142,5 +142,6 @@ class DialogMenu : public Tempest::Widget {
     uint64_t                            remPrint=0;
 
     bool                                dlgAnimation   = true;
+    bool                                showSubtitles  = true;
     uint64_t                            choiceAnimTime = 0;
   };
