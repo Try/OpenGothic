@@ -2203,11 +2203,12 @@ void Renderer::prepareFog2(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldV
   push.sectors.w     = int(numTop);
 
   cmd.setPushData(push);
-  // cmd.setBinding(0, sky.swFog);
   cmd.setBinding(0, sky.occlusionLut);
   cmd.setBinding(1, scene.uboGlobal[SceneGlobals::V_Main]);
   cmd.setBinding(2, zbuffer);
   cmd.setBinding(3, shadowMap[1], Resources::shadowSampler());
+  cmd.setBinding(9, sky.swFog);
+
   cmd.setPipeline(shaders.swFog);
   cmd.dispatch(numLeft + numBottom + numRight + numTop);
   }
