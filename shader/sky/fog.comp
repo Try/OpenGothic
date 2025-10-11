@@ -4,15 +4,18 @@
 #extension GL_GOOGLE_include_directive    : enable
 #extension GL_EXT_control_flow_attributes : enable
 
+#include "sky/sky_common.glsl"
 #include "scene.glsl"
 
 layout(push_constant, std430) uniform UboPush {
   ivec4 sectors;
   vec2  sunPosition2d;
   } push;
-layout(binding = 0, rgba8)  uniform image2D   outImage;
-layout(binding = 1, std140) uniform UboScene  { SceneDesc scene;     };
+// layout(binding = 0, rgba8)  uniform image2D   outImage;
+layout(binding = 0, r32ui)  uniform uimage2D  outImage;
+layout(binding = 1, std140) uniform UboScene  { SceneDesc scene; };
 layout(binding = 2)         uniform texture2D depth;
+layout(binding = 3)         uniform sampler2D textureSm1;
 
 layout(local_size_x = 64) in;
 
@@ -113,15 +116,98 @@ ivec2 findFragCoord(const vec2 sun2d, const ivec2 viewportSize, const ivec4 sect
   return ivec2(-1);
   }
 
+shared uint  hiZ;
+shared float shadowSamples[1024];
+
+vec3 project(mat4 m, vec3 pos) {
+  vec4 p = m*vec4(pos,1);
+  return p.xyz/p.w;
+  }
+
+float shadowSample(in sampler2D shadowMap, vec2 shPos, float w) {
+  if(abs(shPos.x)>=w || abs(shPos.y)>=w)
+    return 0;
+  shPos.xy = (shPos.xy/w)*vec2(0.5)+vec2(0.5);
+  return textureLod(shadowMap,shPos,0).r;
+  }
+
+bool shadowFactor(in sampler2D shadowMap, vec4 shPos) {
+  if(abs(shPos.x)>=shPos.w || abs(shPos.y)>=shPos.w)
+    return true;
+  vec3 sh = shPos.xyz/shPos.w;
+  sh.xy = (sh.xy)*vec2(0.5)+vec2(0.5);
+  return textureLod(shadowMap,sh.xy,0).r < sh.z;
+  }
+
+void processFrag(ivec2 fragCoord, bool valid, ivec2 viewportSize) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  hiZ = floatBitsToUint(0.0);
+  barrier();
+
+  float z = 0;
+  if(valid) {
+    z = min(texelFetch(depth, fragCoord, 0).r, dFogMax);
+    atomicMax(hiZ, floatBitsToUint(z));
+    }
+  barrier();
+
+  vec2 inPos = vec2(fragCoord.xy+vec2(0.5))/vec2(viewportSize);
+  inPos = inPos*2.0 - vec2(1.0);
+
+  const float hZ    = uintBitsToFloat(hiZ);
+  const vec3  pos0  = project(scene.viewProjectLwcInv, vec3(inPos, dFogMin));
+  const vec3  pos1  = project(scene.viewProjectLwcInv, vec3(inPos, dFogMax));
+  const vec3  posh  = project(scene.viewProjectLwcInv, vec3(inPos, hZ));
+  const vec3  posz  = project(scene.viewProjectLwcInv, vec3(inPos, z));
+
+  const vec4  shPos0 = scene.viewShadowLwc[1]*vec4(pos0, 1);
+  const vec4  shPos1 = scene.viewShadowLwc[1]*vec4(pos1, 1);
+  const vec4  shPosH = scene.viewShadowLwc[1]*vec4(posh, 1);
+  const vec4  shPosZ = scene.viewShadowLwc[1]*vec4(posz, 1);
+
+  for(uint i=laneID; i<shadowSamples.length(); i+=NumThreads) {
+    const float t     = (i+0.5)/float(shadowSamples.length());
+    const vec4  shPos = mix(shPos0, shPosH, t);
+
+    shadowSamples[i] = shadowSample(textureSm1, shPos.xy, shPos.w);
+    }
+  barrier();
+
+  const int   steps    = 32;
+  const float noise    = interleavedGradientNoise(fragCoord)/steps;
+
+  uint occlusion = 0;
+  [[dont_unroll]]
+  for(uint i=0; i<steps; ++i) {
+    float t      = (i+0.3)/float(steps);
+    vec4  shPos  = mix(shPos0, shPosZ, t+noise);
+
+    float k      = (t*z)/hZ;
+    int   sz     = shadowSamples.length();
+    float shVal  = shadowSamples[min(int(k*sz), sz-1)];
+
+    bool  shadow = shVal < shPos.z/shPos.w;
+    occlusion = occlusion | ((shadow ? 1u : 0u) << uint(i));
+    }
+
+  if(valid) {
+    //imageStore(outImage, fragCoord, vec4(hZ));
+    imageStore(outImage, fragCoord, uvec4(occlusion));
+    }
+  }
+
 void main() {
   if(int(gl_WorkGroupID.x) >= push.sectors.x)
     ;//return;
 
   const vec2  sun2d        = push.sunPosition2d;
   const ivec2 viewportSize = textureSize(depth,0);
-  const ivec2 iat          = findFragCoord(sun2d, viewportSize, push.sectors);
+  const ivec2 at           = findFragCoord(sun2d, viewportSize, push.sectors);
+  const bool  valid        = (0<=at.x && 0<=at.y && at.x<viewportSize.x && at.y<viewportSize.y);
 
-  if(iat.x<0 || iat.y<0 || iat.x>=viewportSize.x || iat.y>=viewportSize.y)
-    return;
-  imageStore(outImage, iat, dbgColor);
+  processFrag(at, valid, viewportSize);
+
+  if(valid)
+    ;//imageStore(outImage, at, dbgColor);
   }
