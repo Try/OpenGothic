@@ -11,11 +11,13 @@ layout(push_constant, std430) uniform UboPush {
   ivec4 sectors;
   vec2  sunPosition2d;
   } push;
-// layout(binding = 0, rgba8)  uniform image2D   outImage;
+
 layout(binding = 0, r32ui)  uniform uimage2D  outImage;
 layout(binding = 1, std140) uniform UboScene  { SceneDesc scene; };
 layout(binding = 2)         uniform texture2D depth;
 layout(binding = 3)         uniform sampler2D textureSm1;
+
+layout(binding = 9, rgba8)  uniform image2D   dbgImage;
 
 layout(local_size_x = 64) in;
 
@@ -168,22 +170,23 @@ void processFrag(ivec2 fragCoord, bool valid, ivec2 viewportSize) {
 
   for(uint i=laneID; i<shadowSamples.length(); i+=NumThreads) {
     const float t     = (i+0.5)/float(shadowSamples.length());
-    const vec4  shPos = mix(shPos0, shPosH, t);
+    const vec4  shPos = mix(shPos0, shPos1, t);
 
     shadowSamples[i] = shadowSample(textureSm1, shPos.xy, shPos.w);
     }
   barrier();
 
+  const float maxTr    = length((shPosZ-shPos0).xyw)/length((shPos1-shPos0).xyw);
   const int   steps    = 32;
-  const float noise    = interleavedGradientNoise(fragCoord)/steps;
+  // const float noise    = interleavedGradientNoise(fragCoord)/steps;
+  const float noise    = 0;
 
   uint occlusion = 0;
-  [[dont_unroll]]
   for(uint i=0; i<steps; ++i) {
     float t      = (i+0.3)/float(steps);
     vec4  shPos  = mix(shPos0, shPosZ, t+noise);
 
-    float k      = (t*z)/hZ;
+    float k      = t*maxTr;
     int   sz     = shadowSamples.length();
     float shVal  = shadowSamples[min(int(k*sz), sz-1)];
 
@@ -191,8 +194,23 @@ void processFrag(ivec2 fragCoord, bool valid, ivec2 viewportSize) {
     occlusion = occlusion | ((shadow ? 1u : 0u) << uint(i));
     }
 
+  const uint refStp = 256;
+  float refOcclusion = 0;
+  for(uint i=0; i<refStp; ++i) {
+    float t      = (i+0.3)/float(refStp);
+    vec4  shPos  = mix(shPos0, shPosZ, t+0);
+
+    float k      = t*maxTr;
+    int   sz     = shadowSamples.length();
+    float shVal  = shadowSamples[min(int(k*sz), sz-1)];
+    //float shVal  = shadowSample(textureSm1, shPos.xy, shPos.w);
+
+    bool  shadow = shVal < shPos.z/shPos.w;
+    refOcclusion += shadow ? 0 : 1;
+    }
+
   if(valid) {
-    //imageStore(outImage, fragCoord, vec4(hZ));
+    imageStore(dbgImage, fragCoord, vec4(refOcclusion/refStp));
     imageStore(outImage, fragCoord, uvec4(occlusion));
     }
   }
