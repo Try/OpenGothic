@@ -6,8 +6,8 @@ environment:
     - APPVEYOR_BUILD_WORKER_IMAGE: Previous Visual Studio 2019  # used as mingw
       GENERATOR:  "Ninja"
       RELEASABLE: true
-      CC:         C:/msys64/mingw64/bin/gcc.exe
-      CXX:        C:/msys64/mingw64/bin/g++.exe
+      CC:         C:/ProgramData/mingw64/mingw64/bin/gcc.exe
+      CXX:        C:/ProgramData/mingw64/mingw64/bin/g++.exe
 
     - APPVEYOR_BUILD_WORKER_IMAGE: macos-sonoma
       GENERATOR:  "Ninja"
@@ -46,7 +46,7 @@ install:
       # Vulkan SDK
       $env:VULKAN_SDK = "C:/VulkanSDK/$VK_SDK"
       Invoke-WebRequest -Uri https://sdk.lunarg.com/sdk/download/$VK_SDK/windows/VulkanSDK-$VK_SDK-Installer.exe -OutFile VulkanSDK.exe
-      ./VulkanSDK.exe --accept-licenses --default-answer --confirm-command install
+      ./VulkanSDK.exe --accept-licenses --default-answer --confirm-command install 1>$null
       }
 
     if($IsLinux) {
@@ -79,7 +79,9 @@ before_build:
     mkdir build
 
     if($IsWindows) {
-      $env:PATH += ";C:/msys64/mingw64/bin;C:/Qt/Tools/QtCreator/bin"
+      # $env:PATH += ";C:/msys64/mingw64/bin"
+      $env:PATH += ";C:/ProgramData/mingw64/mingw64/bin"
+      choco install mingw --version 14.2.0 --force
       }
 
     echo '#pragma once'                                                               | Out-File "game/build.h" -Encoding utf8
@@ -107,9 +109,9 @@ after_build:
 
     if($IsWindows) {
       echo gothic-win64-v$env:APPVEYOR_BUILD_VERSION | Out-File "VERSION" -Encoding utf8
-      cp "C:\msys64\mingw64\bin\libgcc_s_seh-1.dll"   "libgcc_s_seh-1.dll"
-      cp "C:\msys64\mingw64\bin\libstdc++-6.dll"      "libstdc++-6.dll"
-      cp "C:\msys64\mingw64\bin\libwinpthread-1.dll"  "libwinpthread-1.dll"
+      cp "C:\ProgramData\mingw64\mingw64\bin\libgcc_s_seh-1.dll"   "libgcc_s_seh-1.dll"
+      cp "C:\ProgramData\mingw64\mingw64\bin\libstdc++-6.dll"      "libstdc++-6.dll"
+      cp "C:\ProgramData\mingw64\mingw64\bin\libwinpthread-1.dll"  "libwinpthread-1.dll"
 
       $NAME = $BASE_NAME + '_win.zip'
       7z a $NAME    VERSION
