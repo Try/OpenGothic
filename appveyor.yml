@@ -81,7 +81,7 @@ before_build:
     if($IsWindows) {
       # $env:PATH += ";C:/msys64/mingw64/bin"
       $env:PATH += ";C:/ProgramData/mingw64/mingw64/bin"
-      choco install mingw --version 14.2.0 --force
+      choco install mingw --version 14.2.0 --force --no-progress
       }
 
     echo '#pragma once'                                                               | Out-File "game/build.h" -Encoding utf8
