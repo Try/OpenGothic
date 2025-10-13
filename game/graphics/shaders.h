@@ -95,20 +95,19 @@ class Shaders {
     Tempest::ComputePipeline vsmRendering;
 
     // RTSM (Experimental)
+    Tempest::RenderPipeline  rtsmDirectLight;
+
     Tempest::ComputePipeline rtsmClear, rtsmPages, rtsmFogPages, rtsmHiZ;
     Tempest::ComputePipeline rtsmCulling, rtsmPosition;
-    Tempest::ComputePipeline rtsmMeshletCull, rtsmMeshletComplex, rtsmSampleCull, rtsmPrimCull;
+    Tempest::ComputePipeline rtsmMeshletCull, rtsmPrimCull;
     Tempest::ComputePipeline rtsmRaster;
 
     Tempest::ComputePipeline rtsmClearOmni;
     Tempest::ComputePipeline rtsmCullLights, rtsmCullingOmni;
     Tempest::ComputePipeline rtsmPositionOmni;
-    Tempest::ComputePipeline rtsmBvhBuild;
     Tempest::ComputePipeline rtsmMeshletOmni, rtsmBackfaceOmni;
     Tempest::ComputePipeline rtsmLightsOmni, rtsmBboxesOmni, rtsmCompactOmni;
     Tempest::ComputePipeline rtsmPrimOmni, rtsmRasterOmni;
-
-    Tempest::RenderPipeline  rtsmDirectLight;
 
     Tempest::ComputePipeline rtsmRendering, rtsmRenderingOmni; //reference
     Tempest::RenderPipeline  rtsmDbg;

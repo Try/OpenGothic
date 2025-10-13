@@ -12,9 +12,9 @@ const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z
 
 layout(binding = 0)         uniform texture2D   outputImage;
 layout(binding = 1, std140) uniform UboScene    { SceneDesc scene;   };
-layout(binding = 2)         uniform texture2D   depth;
-layout(binding = 3, std430)         buffer Pos  { uint  alloc; uint data[];  } pos;
-layout(binding = 4, std430)         buffer CB   { uvec4 cmd;   uint tiles[]; } largeTile;
+layout(binding = 2)         uniform utexture2D  gbufNormal;
+layout(binding = 3)         uniform texture2D   depth;
+layout(binding = 4, std430)         buffer Pos  { uint  alloc; uint data[];  } pos;
 layout(binding = 5, rg32ui) uniform writeonly uimage2D tileBins;
 
 layout(binding = 9, r32ui)  uniform uimage2D           dbgImage;
@@ -30,163 +30,103 @@ void imageDbg(ivec2 at, uint info) {
 // tiles: 128 -> 32, 5'576 bytes
 #include "rtsm/rtsm_tile_bboxes.glsl"
 
-// + ~10kb for lists
-shared uint  meshletsIdGlob[2048];
-shared uint  numMeshletsGlob;
+shared uint  numMeshlets[16];
+shared uint  meshListPtr[16];
 
-shared uint  meshletsId[256];
-shared uint  numMeshlets;
+shared uint  meshletsId[2048];
 
-shared uint  meshListPtr;
-
-void storeFullList(ivec2 tileId) {
-  if(any(greaterThanEqual(tileId, imageSize(tileBins))))
-    return;
-
-  const uvec2 l = uvec2(1, pos.data[0]);
-  imageStore(tileBins, tileId, uvec4(l, 0, 0));
-  imageDbg(tileId, l.y);
-
-  const uint id = atomicAdd(largeTile.cmd.x, 1);
-  largeTile.tiles[id] = packUint2x16(tileId);
+void storeTile(ivec2 tileId, uint ptr, uint size) {
+  imageStore(tileBins, tileId, uvec4(ptr, size, 0, 0));
+  imageDbg(tileId, size); // debug
   }
 
-void storeEmptyList(ivec2 tileId) {
-  if(all(lessThan(tileId, imageSize(tileBins)))) {
-    imageStore(tileBins, tileId, uvec4(NULL));
-    imageDbg(tileId, 0);
-    }
-  }
-
-void storeFullList() {
+void traceMeshlets(const uint tilePtr, const uint visCount, const int boxId, const bool count) {
   const uint laneID = gl_LocalInvocationIndex;
-  if(laneID<16) {
-    const ivec2 at = ivec2(gl_WorkGroupID.xy)*4 + ivec2(laneID%4, laneID/4);
-    storeFullList(at);
-    }
-  }
-
-void storeEmptyList() {
-  const uint laneID = gl_LocalInvocationIndex;
-  if(laneID<16) {
-    const ivec2 at = ivec2(gl_WorkGroupID.xy)*4 + ivec2(laneID%4, laneID/4);
-    storeEmptyList(at);
-    }
-  }
-
-void storeGlobList(ivec2 tileId) {
-  const uint laneID = gl_LocalInvocationIndex;
-
-  if(laneID==0)
-    meshListPtr = allocScratch(numMeshletsGlob);
-  barrier();
-
-  imageDbg(tileId, numMeshletsGlob);
-  if(meshListPtr==NULL && numMeshletsGlob>0) {
-    // out of memory
-    imageStore(tileBins, tileId, uvec4(NULL, 0, 0, 0));
-    return;
-    }
-
-  // store pointer to meshlets list and list-data
-  imageStore(tileBins, tileId, uvec4(meshListPtr, numMeshletsGlob, 0, 0));
-  for(uint i=laneID; i<numMeshletsGlob; i+=NumThreads)
-    pos.data[meshListPtr + i] = meshletsIdGlob[i];
-  }
-
-void storeMeshList(ivec2 tileId) {
-  const uint laneID = gl_LocalInvocationIndex;
-
-  if(numMeshlets>=meshletsId.length()) {
-    storeGlobList(tileId);
-    return;
-    }
-
-  if(laneID==0)
-    meshListPtr = allocScratch(numMeshlets);
-  barrier();
-
-  imageDbg(tileId, numMeshlets);
-  //imageDbg(tileId, pos.data.length()/(1024*1024));
-  if(meshListPtr==NULL && numMeshlets>0) {
-    // out of memory
-    imageStore(tileBins, tileId, uvec4(NULL, 0, 0, 0));
-    return;
-    }
-
-  // store pointer to meshlets list and list-data
-  imageStore(tileBins, tileId, uvec4(meshListPtr, numMeshlets, 0, 0));
-  for(uint i=laneID; i<numMeshlets; i+=NumThreads)
-    pos.data[meshListPtr + i] = meshletsId[i];
-  }
-
-bool isMeshletVisible(uint ptr, const uint tileId) {
-  vec4  aabb     = pullMeshAabb(ptr);
-  float depthMax = pullMeshDepthMax(ptr);
-  return isAabbVisible(aabb, depthMax, tileId+1);
-  }
-
-bool isMeshletVisible(uint ptr) {
-  // global
-  vec4  aabb     = pullMeshAabb(ptr);
-  float depthMax = pullMeshDepthMax(ptr);
-  return isAabbVisible(aabb, depthMax, 0);
-  }
-
-void traceMeshlets(const uint tileId) {
-  const uint laneID = gl_LocalInvocationIndex;
-
-  numMeshlets = 0;
-  barrier();
-
-  for(uint i=laneID; i<numMeshletsGlob; i+=NumThreads) {
-    const uint ptr = meshletsIdGlob[i];
-    if(!isMeshletVisible(ptr, tileId))
-      continue;
-    const uint id = atomicAdd(numMeshlets,1);
-    if(id>=meshletsId.length())
-      continue; //overflow
-    meshletsId[id] = ptr;
-    }
-  }
-
-void traceMeshlets(const uint tilePtr, const uint visCount) {
-  const uint laneID = gl_LocalInvocationIndex;
-
-  numMeshletsGlob = 0;
-  barrier();
 
   for(uint i=laneID; i<visCount; i+=NumThreads) {
-    const uint ptr = pos.data[tilePtr + i];
-    if(!isMeshletVisible(ptr))
+    const uint  ptr      = pos.data[tilePtr + i];
+    const vec4  aabb     = pullMeshAabb(ptr);
+    const float depthMax = pullMeshDepthMax(ptr);
+
+    if(!isAabbVisible(aabb, depthMax, boxId))
       continue;
 
-    const uint id = atomicAdd(numMeshletsGlob,1);
-    if(id>=meshletsIdGlob.length())
-      break; // slow-path, with indirect dispatch
-    meshletsIdGlob[id] = ptr;
+    const uint id = atomicAdd(numMeshlets[0], 1);
+    if(count && id<meshletsId.length())
+      meshletsId[id] = ptr;
+    else if(!count)
+      pos.data[meshListPtr[0] + id] = ptr;
+    }
+  }
+
+void traceMeshletsFine(const uint tilePtr, const uint visCount, const bool count) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  for(uint i=laneID; i<visCount; i+=NumThreads) {
+    const uint  ptr      = pos.data[tilePtr + i];
+    const vec4  aabb     = pullMeshAabb(ptr);
+    const float depthMax = pullMeshDepthMax(ptr);
+
+    for(int r=0; r<16; ++r) {
+      if(!isAabbVisible(aabb, depthMax, r+1))
+        continue;
+      const uint id = atomicAdd(numMeshlets[r], 1);
+      if(!count && meshListPtr[r]!=NULL)
+        pos.data[meshListPtr[r] + id] = ptr;
+      }
+    }
+  }
+
+void processFineTiling(const uint tilePtr, const uint visCount) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  if(laneID<16)
+    numMeshlets[laneID] = 0;
+  barrier();
+
+  traceMeshletsFine(tilePtr, visCount, true);
+  barrier();
+
+  if(laneID<16) {
+    const uint size = numMeshlets[laneID];
+    const uint ptr  = allocScratch(size);
+    numMeshlets[laneID] = 0;
+    meshListPtr[laneID] = ptr;
+
+    const ivec2 tileId = ivec2(gl_WorkGroupID.xy)*4 + ivec2(laneID%4, laneID/4);
+    storeTile(tileId, ptr, size);
     }
   barrier();
 
-  if(numMeshletsGlob>meshletsIdGlob.length()) {
-    storeFullList();
+  traceMeshletsFine(tilePtr, visCount, false);
+  }
+
+void processTiling(const uint tilePtr, const uint visCount, const int boxId) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  numMeshlets[0] = 0;
+  barrier();
+
+  traceMeshlets(tilePtr, visCount, boxId, true);
+  barrier();
+
+  const bool secondPass = (numMeshlets[0] > meshletsId.length());
+  if(laneID==0)
+    meshListPtr[0] = allocScratch(numMeshlets[0]);
+  barrier();
+
+  if(secondPass) {
+    numMeshlets[0] = 0;
+    barrier();
+
+    traceMeshlets(tilePtr, visCount, boxId, false);
     return;
     }
 
-  for(int i=0; i<16; ++i) {
-    const ivec2 at  = ivec2(gl_WorkGroupID.xy)*4 + ivec2(i%4, i/4);
-    const uint  tid = 1 + i;
-    if(numSlices[tid]==0) {
-      storeEmptyList(at);
-      continue;
-      }
-
-    traceMeshlets(i);
-    barrier();
-
-    storeMeshList(at);
-    barrier();
-    // imageStore(tileBins, at, uvec4(NULL, numMeshlets, 0, 0));
+  const uint numMeshletsGlob = numMeshlets[0];
+  const uint meshListPtrGlob = meshListPtr[0];
+  for(uint i=laneID; i<numMeshletsGlob; i+=NumThreads) {
+    pos.data[meshListPtrGlob + i] = meshletsId[i];
     }
   }
 
@@ -197,17 +137,20 @@ void main() {
   barrier();
 
   if(numSlices[0]==0) {
-    storeEmptyList();
+    for(int i=0; i<16; ++i) {
+      ivec2 tileId = ivec2(gl_WorkGroupID.xy)*4 + ivec2(i%4, i/4);
+      storeTile(tileId, NULL, 0);
+      }
     return;
     }
 
-  traceMeshlets(1, pos.data[0]);
-  return;
-
-  // debug
+  processTiling(1, pos.data[0], 0);
+  memoryBarrierBuffer();
   barrier();
-  for(int i=0; i<16; ++i) {
-    ivec2 at = ivec2(gl_WorkGroupID.xy)*4 + ivec2(i%4, i/4);
-    imageStore(tileBins, at, uvec4(numMeshletsGlob));
-    }
+
+  const uint numMeshletsGlob = numMeshlets[0];
+  const uint meshListPtrGlob = meshListPtr[0];
+  barrier();
+
+  processFineTiling(meshListPtrGlob, numMeshletsGlob);
   }

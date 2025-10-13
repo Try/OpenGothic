@@ -332,11 +332,7 @@ add_shader(rtsm_hiz_pages.comp       rtsm/rtsm_hiz_pages.comp)
 add_shader(rtsm_culling.comp         rtsm/rtsm_culling.comp)
 add_shader(rtsm_position.comp        rtsm/rtsm_position.comp)
 
-add_shader(rtsm_bvh_build.comp       rtsm/rtsm_bvh_build.comp)
-
 add_shader(rtsm_meshlet_cull.comp    rtsm/rtsm_meshlet_cull.comp)
-add_shader(rtsm_meshlet_complex.comp rtsm/rtsm_meshlet_complex.comp)
-add_shader(rtsm_sample_cull.comp     rtsm/rtsm_sample_cull.comp)
 add_shader(rtsm_primitive_cull.comp  rtsm/rtsm_primitive_cull.comp)
 
 add_shader(rtsm_raster.comp          rtsm/rtsm_raster.comp)

@@ -24,12 +24,14 @@ bool isAabbVisible(const vec4 aabb, const float depthMax, const uint id) {
   }
 
 // ray related
-vec3 rayOrigin(ivec2 frag, float depth) {
+vec3 rayOrigin(ivec2 frag, float depth, const vec3 normal) {
   const vec2 fragCoord = ((frag.xy+0.5)*scene.screenResInv)*2.0 - vec2(1.0);
   const vec4 scr       = vec4(fragCoord.x, fragCoord.y, depth, 1.0);
+  const vec4 wpos      = scene.viewProjectLwcInv * scr + vec4(normal*NormalBias, 0);
 
-  const vec4 shPos = scene.viewProject2VirtualShadow * scr;
-  return shPos.xyz/shPos.w;
+  vec4 shPos = scene.viewVirtualShadowLwc * wpos;
+  shPos.xyz /= shPos.w;
+  return shPos.xyz;
   }
 
 uint depthSlice(const float z) {
@@ -52,10 +54,12 @@ void processFragment(const ivec2 fragCoord, const ivec2 subTile) {
   if(z==1.0)
     return;
 
-  const uint slice = depthSlice(z);
-  const vec3 ray   = rayOrigin(fragCoord, z);
-  const uint bin   = (1 + subTile.x + subTile.y*NumSubTilesX);
-  const uint tid   = bin*MaxSlices + slice;
+  const vec3 normal = normalFetch(gbufNormal, fragCoord);
+  const vec3 ray    = rayOrigin(fragCoord, z, normal);
+
+  const uint slice  = depthSlice(z);
+  const uint bin    = (1 + subTile.x + subTile.y*NumSubTilesX);
+  const uint tid    = bin*MaxSlices + slice;
 
   atomicMin(rayTileBbox[tid].x, floatToOrderedUint(ray.x));
   atomicMin(rayTileBbox[tid].y, floatToOrderedUint(ray.y));
@@ -119,6 +123,8 @@ void tileBboxes(const ivec2 tileId, const uint tileSz) {
     }
   barrier();
 
-  if(laneID<numSlices.length())
-    numSlices[laneID] = bitCount(numSlices[laneID]);
+  if(laneID<numSlices.length()) {
+    const uint num = bitCount(numSlices[laneID]);
+    numSlices[laneID] = num;
+    }
   }

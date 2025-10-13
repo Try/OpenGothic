@@ -228,17 +228,13 @@ class Renderer final {
       Tempest::StorageImage     pages;
       Tempest::StorageBuffer    visList;
       Tempest::StorageBuffer    posList;
-      Tempest::StorageBuffer    complexTiles;
 
-      Tempest::StorageBuffer    bvh, ibo, bvhDbg;
-
-      Tempest::StorageImage     tiles;
-      Tempest::StorageImage     primBins;
+      Tempest::StorageImage     meshTiles;
+      Tempest::StorageImage     primTiles;
 
       Tempest::StorageBuffer    visibleLights;
       Tempest::StorageImage     lightTiles;
-      Tempest::StorageImage     lightBins;
-      Tempest::StorageImage     primTiles;
+      Tempest::StorageImage     lightBins, primTilesOmni;
 
       Tempest::StorageImage     dbg64, dbg, dbg16, dbg8;
       } rtsm;
