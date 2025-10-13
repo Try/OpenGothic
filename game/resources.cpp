@@ -123,7 +123,7 @@ Resources::Resources(Tempest::Device &device)
 
 void Resources::mountWork(const std::filesystem::path& path) {
   inst->gothicAssets.mkdir("/_work");
-  inst->gothicAssets.mount_host(path, "/_work", zenkit::VfsOverwriteBehavior::ALL);
+  inst->gothicAssets.mount_host(path, "/_work", zenkit::VfsOverwriteBehavior::NONE);
   }
 
 void Resources::loadVdfs(const std::vector<std::u16string>& modvdfs, bool modFilter) {

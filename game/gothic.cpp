@@ -205,8 +205,13 @@ Gothic::Gothic() {
         modvdfs.emplace_back(std::move(mod));
       }
     }
-  Resources::mountWork(Gothic::nestedPath({u"_work"}, Dir::FT_Dir));
+  /*
+   '/work' seem to have lowest priority
+   load it last with zenkit::VfsOverwriteBehavior::NONE
+   any other order will interact with time-stamp based override, resulting in inconsistent behaviour
+  */
   Resources::loadVdfs(modvdfs, modFilter);
+  Resources::mountWork(Gothic::nestedPath({u"_work"}, Dir::FT_Dir));
 
   if(wrldDef.empty()) {
     if(version().game==2)
