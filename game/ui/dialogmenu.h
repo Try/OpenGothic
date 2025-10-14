@@ -110,7 +110,7 @@ class DialogMenu : public Tempest::Widget {
 
     bool haveToWaitOutput() const;
     bool hasPrintMsg() const;
-    bool isShowingSubtitles() const;
+    bool haveToShowSubtitles(bool isPl) const;
 
     void drawTextMultiline(Tempest::Painter& p, int x, int y, int w, int h, std::string_view txt, bool isPl);
     Tempest::Size processTextMultiline(Tempest::Painter* p, int x, int y, int w, int h, std::string_view txt, bool isPl);

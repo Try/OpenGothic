@@ -373,9 +373,9 @@ bool DialogMenu::haveToWaitOutput() const {
   return false;
   }
 
-bool DialogMenu::isShowingSubtitles() const {
-  return showSubtitles && (showSubtitlesPlayer || !curentIsPl);
-}
+bool DialogMenu::haveToShowSubtitles(bool isPl) const {
+  return showSubtitles && (showSubtitlesPlayer || !isPl);
+  }
 
 void DialogMenu::startTrade() {
   if(pl!=nullptr && other!=nullptr)
@@ -414,7 +414,7 @@ void DialogMenu::paintEvent(Tempest::PaintEvent &e) {
   const int      dw = std::min(w(),int(600*scale));
   const int      dh = int(100*scale);
 
-  if(current.time>0 && trade.isOpen()==InventoryMenu::State::Closed && isShowingSubtitles()) {
+  if(current.time>0 && trade.isOpen()==InventoryMenu::State::Closed && haveToShowSubtitles(curentIsPl)) {
     if(ambient!=nullptr) {
       int dlgW = dw;
       int dlgH = dh;
