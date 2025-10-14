@@ -82,7 +82,6 @@ class Renderer final {
 
     void drawSwRT         (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
     void drawSwRT8        (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
-    void drawSwRT64       (Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview);
 
     void stashSceneAux    (Tempest::Encoder<Tempest::CommandBuffer>& cmd);
 

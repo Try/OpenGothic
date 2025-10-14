@@ -2,7 +2,8 @@
 
 //#define UNIFORM_TRAVERSE 1
 //#define ANY_HIT 1
-#define SHARED_STACK 1
+//#define SHARED_STACK 1
+#define CONE_TEST 1
 #define DEBUG 1
 
 #extension GL_GOOGLE_include_directive : enable
@@ -31,8 +32,19 @@ layout(binding = 4)         uniform  texture2D  depth;
 layout(binding = 5, std430) readonly buffer BVH { BVHNode node[];  } nodeData;
 
 uvec2 bvhIntersectBox(const Ray ray, const BVHNode n, const float tMax) {
-  const vec4    lmin = n.lmin, lmax = n.lmax;
-  const vec4    rmin = n.rmin, rmax = n.rmax;
+  const vec4 lmin = n.lmin, lmax = n.lmax;
+  const vec4 rmin = n.rmin, rmax = n.rmax;
+
+#if defined(CONE_TEST)
+  if(n.rmin.w!=0) {
+    const uint conebit = floatBitsToUint(n.rmin.w);
+    const vec4 cone    = unpackUnorm4x8(conebit)*2.0 - 1.0;
+    // if(dot(vec3(0,-1,0), cone.xyz) < cone.a)
+    //   return uvec2(BVH_NullNode);
+    if(dot(ray.dir, cone.xyz) < cone.a)
+      return uvec2(BVH_NullNode);
+    }
+#endif
 
   float dist1 = rayBoxTest(ray, lmin.xyz, lmax.xyz, tMax);
   float dist2 = rayBoxTest(ray, rmin.xyz, rmax.xyz, tMax);
@@ -93,7 +105,7 @@ vec3 traverseBVH2(const Ray ray, const float tMax) {
   return hit;
   }
 
-vec3 rayTest(vec3 pos, vec3 rayDirection, float tMin, float tMax) {
+vec3 rayTest(vec3 pos, vec3 rayDirection, float tMax) {
   Ray r;
   r.origin = pos;
   r.dir    = rayDirection;
@@ -127,9 +139,8 @@ vec4 shadowMain(ivec2 fragCoord) {
   const vec4  wpos4      = worldPosLwc(vec2(fragCoord+0.5), d) + vec4(normal*NormalBias, 0);
   const vec3  wpos       = wpos4.xyz/wpos4.w + push.originLwc;
 
-  const float tMin = 5;
   const float tMax = TMax; //5000*100;
-  const vec3  hit  = rayTest(wpos, scene.sunDir, tMin, tMax);
+  const vec3  hit  = rayTest(wpos, scene.sunDir, tMax);
   if(hit.x!=tMax)
     return vec4(hit.yz, 1.0-hit.y-hit.z, 1);
   return vec4(0);

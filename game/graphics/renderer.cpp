@@ -586,9 +586,8 @@ void Renderer::draw(Tempest::Attachment& result, Encoder<CommandBuffer>& cmd, ui
   drawSwr(cmd, *wview);
   drawRtsm(cmd, *wview);
   drawRtsmOmni(cmd, *wview);
-  // drawSwRT(cmd, *wview);
-  // drawSwRT8(cmd, *wview);
-  // drawSwRT64(cmd, *wview);
+
+  drawSwRT(cmd, *wview);
 
   prepareIrradiance(cmd,*wview);
   prepareExposure(cmd,*wview);
@@ -840,7 +839,8 @@ void Renderer::drawSwRT(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const Wor
   const auto& bvh       = wview.landscape().bvh();
   const auto  originLwc = scene.originLwc;
 
-  if(swrt.outputImage.isEmpty()) {
+  if(swrt.outputImage.size()!=zbuffer.size()) {
+    Resources::recycle(std::move(swrt.outputImage));
     auto& device = Resources::device();
     // swrt.outputImage = device.image2d(TextureFormat::R32U, zbuffer.size());
     swrt.outputImage = device.image2d(TextureFormat::RGBA8, zbuffer.size());
@@ -865,10 +865,11 @@ void Renderer::drawSwRT8(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const Wo
     return;
 
   const auto& scene     = wview.sceneGlobals();
-  const auto& bvh       = wview.landscape().bvh8();
+  const auto& bvh       = wview.landscape().bvh();
   const auto  originLwc = scene.originLwc;
 
-  if(swrt.outputImage.isEmpty()) {
+  if(swrt.outputImage.size()!=zbuffer.size()) {
+    Resources::recycle(std::move(swrt.outputImage));
     auto& device = Resources::device();
     // swrt.outputImage = device.image2d(TextureFormat::R32U, zbuffer.size());
     swrt.outputImage = device.image2d(TextureFormat::RGBA8, zbuffer.size());
@@ -886,37 +887,6 @@ void Renderer::drawSwRT8(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const Wo
   cmd.setBinding(5, bvh);
 
   cmd.dispatchThreads(swrt.outputImage.size());
-  }
-
-void Renderer::drawSwRT64(Tempest::Encoder<Tempest::CommandBuffer>& cmd, const WorldView& wview) {
-  if(!settings.swrtEnabled)
-    return;
-/*
-  const auto& scene     = wview.sceneGlobals();
-  const auto& bvh       = wview.landscape().bvh64();
-  const auto  originLwc = scene.originLwc;
-
-  if(swrt.outputImage.isEmpty()) {
-    auto& device = Resources::device();
-    // swrt.outputImage = device.image2d(TextureFormat::R32U, zbuffer.size());
-    swrt.outputImage = device.image2d(TextureFormat::RGBA8, zbuffer.size());
-    }
-
-  cmd.setFramebuffer({});
-  cmd.setDebugMarker("Raytracing");
-  cmd.setPipeline(shaders.swRaytracing64);
-  cmd.setPushData(&originLwc, sizeof(originLwc));
-  cmd.setBinding(0, swrt.outputImage);
-  cmd.setBinding(1, scene.uboGlobal[SceneGlobals::V_Main]);
-  cmd.setBinding(2, gbufDiffuse);
-  cmd.setBinding(3, gbufNormal);
-  cmd.setBinding(4, zbuffer);
-  cmd.setBinding(5, bvh);
-  cmd.setBinding(6, wview.landscape().bvh64Ibo);
-  cmd.setBinding(7, wview.landscape().bvh64Vbo);
-
-  cmd.dispatchThreads(swrt.outputImage.size());
-  */
   }
 
 void Renderer::stashSceneAux(Encoder<CommandBuffer>& cmd) {

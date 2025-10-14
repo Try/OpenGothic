@@ -65,11 +65,6 @@ class PackedMesh {
       };
     using UVec4 = Tempest::BasicPoint<uint32_t,4>;
 
-    struct BVHNode64 {
-      Leaf64 self;
-      Leaf64 leaf[64];
-      };
-
     std::vector<Vertex>   vertices;
     std::vector<VertexA>  verticesA;
     std::vector<uint32_t> indices;
@@ -82,12 +77,7 @@ class PackedMesh {
     bool                  isUsingAlphaTest = true;
 
     // sw-raytracing
-    std::vector<BVHNode>   bvhNodes;
-    std::vector<BVHNode64> bvhNodes64;
-    std::vector<uint32_t>  bvh64Ibo;
-    std::vector<float>     bvh64Vbo;
-
-    std::vector<UVec4>     bvh8Nodes;
+    std::vector<BVHNode>  bvhNodes;
 
     PackedMesh(const zenkit::MultiResolutionMesh& mesh, PkgType type);
     PackedMesh(const zenkit::Mesh& mesh, PkgType type);
@@ -142,11 +132,20 @@ class PackedMesh {
       void    merge(const Meshlet& other);
       };
 
+    struct HalfEdge {
+      float         sah  = 0;
+      uint32_t      iMax = 0;
+      uint32_t      iMin = 0;
+      uint32_t      prim = 0;
+      bool          wnd  = false;
+      };
+
     struct Fragment {
       Tempest::Vec3 centroid;
       Tempest::Vec3 bbmin, bbmax;
-      uint32_t      primId = 0;
-      uint32_t      mat    = 0;
+      uint32_t      primId  = 0;
+      uint32_t      primId1 = 0;
+      uint32_t      mat     = 0;
       };
 
     struct CWBblock {
@@ -179,15 +178,17 @@ class PackedMesh {
 
     void     packBVH(const zenkit::Mesh& mesh);
 
-    uint32_t packBVH(const zenkit::Mesh& mesh, std::vector<BVHNode>& nodes, Tempest::Vec3& bbmin, Tempest::Vec3& bbmax, Fragment* frag, size_t size);
+    // bvh2
+    uint32_t packBVH(const zenkit::Mesh& mesh, std::vector<uint32_t>& ibo, std::vector<BVHNode>& nodes,
+                     Tempest::Vec3& bbmin, Tempest::Vec3& bbmax, Fragment* frag, size_t size);
     auto     findNodeSplit(const Fragment* frag, size_t size, const bool useSah) ->  std::pair<uint32_t,float>;
     auto     findNodeSplit(Tempest::Vec3 bbmin, Tempest::Vec3 bbmax, const Fragment* frag, size_t size) ->  std::pair<uint32_t,bool>;
-    uint32_t packPrimNode(const zenkit::Mesh& mesh, std::vector<BVHNode>& nodes, const Fragment* frag, size_t size);
+    uint32_t annotateBvh(BVHNode* nodes, uint32_t ptr);
+    void     avgNormal(BVHNode* nodes, uint32_t ptr, Tempest::Vec3& normal);
+    void     computeCone(BVHNode* nodes, uint32_t ptr);
+    void     computeCone(BVHNode* nodes, uint32_t ptr, const Tempest::Vec3 normal, float& a);
 
-    uint32_t packBVH64(const zenkit::Mesh& mesh, std::vector<BVHNode64>& nodes, Fragment* frag, size_t size);
-    void     packNode64(BVHNode64& out, uint32_t& outSz, const zenkit::Mesh& mesh, std::vector<BVHNode64>& nodes, Fragment* frag, size_t size, uint8_t depth);
-    void     packPrim64(BVHNode64& out, const zenkit::Mesh& mesh, Fragment* frag, size_t size);
-
+    // cwbvh8
     CWBVH8   packCWBVH8(const zenkit::Mesh& mesh, std::vector<UVec4>& nodes,
                         const std::vector<uint32_t>& ibo, Fragment* frag, size_t size);
     void     packCW8Blocks(CWBblock* out, uint32_t& outSz, const zenkit::Mesh& mesh, std::vector<UVec4>& nodes,
