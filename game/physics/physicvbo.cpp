@@ -84,7 +84,7 @@ const char* PhysicVbo::sectorName(size_t segment) const {
   }
 
 bool PhysicVbo::useQuantization() const {
-  constexpr int maxParts = (1<<MAX_NUM_PARTS_IN_BITS);
+  constexpr int maxParts = (1 << MAX_NUM_PARTS_IN_BITS);
   constexpr int maxTri   = (1 << (31 - MAX_NUM_PARTS_IN_BITS));
   if(segments.size()>maxParts)
     return false;
