@@ -110,6 +110,7 @@ class DialogMenu : public Tempest::Widget {
 
     bool haveToWaitOutput() const;
     bool hasPrintMsg() const;
+    bool haveToShowSubtitles(bool isPl) const;
 
     void drawTextMultiline(Tempest::Painter& p, int x, int y, int w, int h, std::string_view txt, bool isPl);
     Tempest::Size processTextMultiline(Tempest::Painter* p, int x, int y, int w, int h, std::string_view txt, bool isPl);
@@ -141,7 +142,8 @@ class DialogMenu : public Tempest::Widget {
     PScreen                             printMsg[MAX_PRINT];
     uint64_t                            remPrint=0;
 
-    bool                                dlgAnimation   = true;
-    bool                                showSubtitles  = true;
-    uint64_t                            choiceAnimTime = 0;
+    bool                                dlgAnimation        = true;
+    bool                                showSubtitles       = true;
+    bool                                showSubtitlesPlayer = true;
+    uint64_t                            choiceAnimTime      = 0;
   };
