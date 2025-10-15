@@ -68,7 +68,8 @@ uint packPrimitiveId(uint meshlet, uint prim) {
 
 // visibility
 shared uint  numPlanes;
-shared vec3  frustum[6][4];
+shared uint  planeFace[6];
+shared vec4  planeBbox[6];
 void rayBboxes(const uint lptr) {
   const uint laneID = gl_LocalInvocationIndex;
 
@@ -89,33 +90,24 @@ void rayBboxes(const uint lptr) {
       // degenerated bbox
       return;
       }
-    const vec4 aabb = orderedUintToFloat(iaabb);
-    const vec3 fa   = faceToRay(vec2(aabb.xy), face);
-    const vec3 fb   = faceToRay(vec2(aabb.zy), face);
-    const vec3 fc   = faceToRay(vec2(aabb.zw), face);
-    const vec3 fd   = faceToRay(vec2(aabb.xw), face);
 
     const uint id = atomicAdd(numPlanes, 1);
-    frustum[id][0] = cross(fa, fb);
-    frustum[id][1] = cross(fb, fc);
-    frustum[id][2] = cross(fc, fd);
-    frustum[id][3] = cross(fd, fa);
+    planeBbox[id] = orderedUintToFloat(iaabb);
+    planeFace[id] = laneID;
     }
   }
 
-bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c, uint face) {
-  const vec3 p0 = frustum[face][0];
-  const vec3 p1 = frustum[face][1];
-  const vec3 p2 = frustum[face][2];
-  const vec3 p3 = frustum[face][3];
-
-  if(dot(a, p0)<0 && dot(b, p0)<0 && dot(c, p0)<0)
+bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c, const vec4 aabb, uint face) {
+  a = vecToFace(a, face);
+  b = vecToFace(b, face);
+  c = vecToFace(c, face);
+  if(a.x < aabb.x*a.z && b.x < aabb.x*b.z && c.x < aabb.x*c.z)
     return false;
-  if(dot(a, p1)<0 && dot(b, p1)<0 && dot(c, p1)<0)
+  if(a.x > aabb.z*a.z && b.x > aabb.z*b.z && c.x > aabb.z*c.z)
     return false;
-  if(dot(a, p2)<0 && dot(b, p2)<0 && dot(c, p2)<0)
+  if(a.y < aabb.y*a.z && b.y < aabb.y*b.z && c.y < aabb.y*c.z)
     return false;
-  if(dot(a, p3)<0 && dot(b, p3)<0 && dot(c, p3)<0)
+  if(a.y > aabb.w*a.z && b.y > aabb.w*b.z && c.y > aabb.w*c.z)
     return false;
   return true;
   }
@@ -123,7 +115,7 @@ bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c, uint face) {
 bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c) {
   const uint num = numPlanes;
   for(uint face=0; face<num; ++face) {
-    if(isPrimitiveVisible(a, b, c, face))
+    if(isPrimitiveVisible(a, b, c, planeBbox[face], planeFace[face]))
       return true;
     }
   return false;

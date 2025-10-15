@@ -29,7 +29,7 @@ layout(binding = 3)         uniform  texture2D  depth;
 layout(binding = 4, std430) readonly buffer Pos { uint  alloc; uint    data[]; } pos;
 layout(binding = 5, std430) readonly buffer Lbo { LightSource lights[];        };
 layout(binding = 6, std430) readonly buffer VId { uvec4 count; LightId data[]; } vLights;
-layout(binding = 7)         uniform  utexture2D meshBinsOmni;
+// layout(binding = 7)         uniform  utexture2D lightBins;
 
 layout(binding = 9, r32ui)  uniform  uimage2D   dbgImage;
 
@@ -156,25 +156,17 @@ bool isPrimitiveVisible(const vec3 origin, const vec4 sphere, uint face) {
 
 bool isPrimitiveVisible(const vec3 origin, vec3 a, vec3 b, vec3 c, uint face) {
   const vec4 aabb = uintBitsToFloat(bbox[face]);
-  const vec3 fa = faceToRay(vec2(aabb.xy), face);
-  const vec3 fb = faceToRay(vec2(aabb.zy), face);
-  const vec3 fc = faceToRay(vec2(aabb.zw), face);
-  const vec3 fd = faceToRay(vec2(aabb.xw), face);
-
-  const vec3 p0 = cross(fa, fb);
-  const vec3 p1 = cross(fb, fc);
-  const vec3 p2 = cross(fc, fd);
-  const vec3 p3 = cross(fd, fa);
-
-  if(dot(a, p0)<0 && dot(b, p0)<0 && dot(c, p0)<0)
+  a = vecToFace(a, face);
+  b = vecToFace(b, face);
+  c = vecToFace(c, face);
+  if(a.x < aabb.x*a.z && b.x < aabb.x*b.z && c.x < aabb.x*c.z)
     return false;
-  if(dot(a, p1)<0 && dot(b, p1)<0 && dot(c, p1)<0)
+  if(a.x > aabb.z*a.z && b.x > aabb.z*b.z && c.x > aabb.z*c.z)
     return false;
-  if(dot(a, p2)<0 && dot(b, p2)<0 && dot(c, p2)<0)
+  if(a.y < aabb.y*a.z && b.y < aabb.y*b.z && c.y < aabb.y*c.z)
     return false;
-  if(dot(a, p3)<0 && dot(b, p3)<0 && dot(c, p3)<0)
+  if(a.y > aabb.w*a.z && b.y > aabb.w*b.z && c.y > aabb.w*c.z)
     return false;
-
   return true;
   }
 
@@ -297,9 +289,11 @@ void enqueuePrimitives(const vec3 origin, const float range) {
   primitiveIds[id] = prim;
   }
 
-void processLight(const vec3 wpos, const vec3 normal, const LightId lId, const uint maxMeshlets) {
+void processLight(const vec3 wpos, const vec3 normal, const LightId lId) {
+  const uint        tilePtr     = 1;
+  const uint        maxMeshlets = pos.data[0];
+
   const LightSource src      = lights[lId.id];
-  const uint        tilePtr  = lId.ptr;
   const vec3        distance = wpos-src.pos;
 
   const float       tMax     = length(distance);
@@ -381,8 +375,7 @@ void main() {
 
   if(vLights.count.x>0) {
     //TODO: many lights
-    const uint numMeshlets = texelFetch(meshBinsOmni, ivec2(0,0), 0).x;
-    processLight(origin, normal, vLights.data[0], numMeshlets);
+    processLight(origin, normal, vLights.data[0]);
     }
 
   if(valid)
