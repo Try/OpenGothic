@@ -230,12 +230,13 @@ void Interactive::tick(uint64_t dt) {
     // Note: oCMobInter::rewind, oCMobInter with killed user has to go back to state=-1
     // All other cases, oCMobFire, oCMobDoor in particular - preserve old state
     const int destSt = -1;
-    if(destSt!=state && (vobType==zenkit::VirtualObjectType::oCMobInter || rewind)) {
-      if(!setAnim(nullptr,Anim::Out))
-        return;
-      auto prev = state;
-      setState(state-1);
-      loopState = (prev==state);
+    for(auto& i:attPos) {
+      if(destSt!=state && i.started==Quit) {
+        if(!setAnim(nullptr,Anim::Out))
+          return;
+        setState(state-1);
+        i.started = NonStarted;
+        }
       }
     return;
     }
@@ -800,6 +801,7 @@ bool Interactive::detach(Npc &npc, bool quick) {
             return false;
           }
         i.user       = nullptr;
+        i.started    = Quit;
         i.attachMode = false;
         loopState    = false;
         npc.quitInteraction();
@@ -937,9 +939,9 @@ const Animation::Sequence* Interactive::setAnim(Interactive::Anim t) {
   }
 
 bool Interactive::setAnim(Npc* npc, Anim dir) {
-  const Npc::Anim            dest = toNpcAnim(dir);
-  const Animation::Sequence* sqNpc=nullptr;
-  const Animation::Sequence* sqMob=nullptr;
+  const Npc::Anim            dest  = toNpcAnim(dir);
+  const Animation::Sequence* sqNpc = nullptr;
+  const Animation::Sequence* sqMob = nullptr;
 
   if(npc!=nullptr) {
     sqNpc = npc->setAnimAngGet(dest);
