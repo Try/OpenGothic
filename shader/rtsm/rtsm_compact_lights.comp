@@ -57,7 +57,7 @@ void processTiles() {
   uint  num  = size.x*size.y;
 
   for(uint i=laneID; i<num; i+=NumThreads) {
-    processTile(ivec2(i%size.x, i/size.y));
+    processTile(ivec2(i%size.x, i/size.x));
     }
   }
 
@@ -65,8 +65,8 @@ void main() {
   const uint laneID = gl_LocalInvocationIndex;
 
   numLights = 0;
-  for(uint i=laneID; i<bits.length(); i+=NumThreads)
-    bits[i] = 0;
+  if(laneID<bits.length())
+    bits[laneID] = 0;
   barrier();
 
   processTiles();
@@ -83,9 +83,10 @@ void main() {
   for(uint i=laneID; i<bits.length()*32; i+=NumThreads) {
     if((bits[i/32] & (1u <<(i%32)))==0)
       continue;
-    uint at = atomicAdd(wPtr, 1);
+    const uint at  = atomicAdd(wPtr, 1);
+    const uint lId = i + firstLight;
 
-    pLights.data[at].id        = i + firstLight;
+    pLights.data[at].id        = lId;
     pLights.data[at].aabb_low  = 0;
     pLights.data[at].aabb_high = 0;
     }
