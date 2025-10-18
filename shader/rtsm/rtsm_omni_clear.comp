@@ -9,9 +9,13 @@
 
 layout(local_size_x = 1) in;
 
+layout(push_constant, std430) uniform UboPush {
+  uint meshletCount;
+  } push;
 layout(binding = 0, std430) buffer Pos  { uint       alloc;  uint data[];     } pos;
-layout(binding = 1, std430) buffer VId  { uvec4      count;  LightId data[];  } vLights;
-layout(binding = 2, std430) buffer Rt   { RtsmHeader header; uvec2 visList[]; } rtsm;
+layout(binding = 1, std430) buffer Rt   { RtsmHeader header; uvec2 visList[]; } rtsm;
+layout(binding = 2, std430) buffer VId  { uvec4      count;  LightId data[];  } vLights;
+layout(binding = 3, std430) buffer PId  { uvec4      count;  LightId data[];  } pLights;
 
 void main() {
   if(gl_GlobalInvocationID==ivec3(0)) {
@@ -19,8 +23,9 @@ void main() {
     rtsm.header.one1     = 1;
     rtsm.header.one2     = 1;
 
-    pos.alloc     = 1; // reserve 0, for nullptr and meshlet-counter
+    pos.alloc     = 1 + push.meshletCount; // reserve 0, for nullptr and meshlet-counter
     pos.data[0]   = 0; // num meshelts
     vLights.count = uvec4(0,1,1,0);
+    pLights.count = uvec4(0,1,1,0);
     }
   }

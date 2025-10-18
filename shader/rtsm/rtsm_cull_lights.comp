@@ -14,7 +14,6 @@ layout(local_size_x = 64) in;
 layout(push_constant, std140) uniform Push {
   float znear;
   uint  lightsTotal;
-  uint  meshletCount;
   };
 layout(binding = 0, std140) uniform UboScene    { SceneDesc   scene;    };
 layout(binding = 1, std430) readonly buffer Lbo { LightSource lights[]; };
