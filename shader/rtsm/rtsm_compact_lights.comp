@@ -22,11 +22,10 @@ layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
 
 layout(binding = 4, std430)          buffer Pos { uint  alloc; uint    data[]; } pos;
 layout(binding = 5, std430) readonly buffer Lbo { LightSource lights[];        };
-layout(binding = 6, std430) readonly buffer VId { uvec4 count; LightId data[]; } vLights;
-layout(binding = 7, std430)          buffer PId { uvec4 count; LightId data[]; } pLights;
+layout(binding = 6, std430)          buffer VId { uvec4 count; LightId data[]; } vLights;
 
 
-shared uint bits[NumThreads/32];
+shared uint planeBits[NumThreads];
 shared uint numLights, wPtr;
 
 uint firstLight = gl_WorkGroupID.x*NumThreads;
@@ -42,11 +41,10 @@ void processTile(ivec2 at) {
 
   for(uint i=0; i<nLights; ++i) {
     const uint lId = pos.data[lptr + i*sizeof_Light + 0];
-    // const uint  planeBits = pos.data[lptr + i*sizeof_Light + 1];
-    if(!(firstLight<=lId && lId<firstLight+bits.length()*32))
+    if(!(firstLight<=lId && lId<firstLight+planeBits.length()))
       continue;
-    const uint bit = lId - firstLight;
-    atomicOr(bits[bit/32], 1u << (bit%32));
+    const uint bits  = pos.data[lptr + i*sizeof_Light + 1];
+    atomicOr(planeBits[lId-firstLight], bits);
     }
   }
 
@@ -65,29 +63,28 @@ void main() {
   const uint laneID = gl_LocalInvocationIndex;
 
   numLights = 0;
-  if(laneID<bits.length())
-    bits[laneID] = 0;
+  if(laneID<planeBits.length())
+    planeBits[laneID] = 0;
   barrier();
 
   processTiles();
   barrier();
 
-  if(laneID<bits.length())
-    atomicAdd(numLights, bitCount(bits[laneID]));
+  if(laneID<planeBits.length() && planeBits[laneID]!=0)
+    atomicAdd(numLights, 1);
   barrier();
 
   if(laneID==0)
-    wPtr = atomicAdd(pLights.count.x, numLights);
+    wPtr = atomicAdd(vLights.count.x, numLights);
   barrier();
 
-  for(uint i=laneID; i<bits.length()*32; i+=NumThreads) {
-    if((bits[i/32] & (1u <<(i%32)))==0)
-      continue;
+  if(laneID<planeBits.length() && planeBits[laneID]!=0) {
     const uint at  = atomicAdd(wPtr, 1);
-    const uint lId = i + firstLight;
+    const uint lId = firstLight + laneID;
 
-    pLights.data[at].id        = lId;
-    pLights.data[at].aabb_low  = 0;
-    pLights.data[at].aabb_high = 0;
+    vLights.data[at].id        = lId;
+    vLights.data[at].aabb_low  = 0;
+    vLights.data[at].aabb_high = 0;
+    vLights.data[at].planeBits = planeBits[laneID];
     }
   }

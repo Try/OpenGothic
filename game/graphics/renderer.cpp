@@ -1367,9 +1367,6 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
       Resources::recycle(std::move(rtsm.visibleLights));
       rtsm.visibleLights = device.ssbo(nullptr, shaders.rtsmClearOmni.sizeofBuffer(1, wview.lights().size()));
 
-      Resources::recycle(std::move(rtsm.visibleLightsPkg));
-      rtsm.visibleLightsPkg = device.ssbo(nullptr, rtsm.visibleLights.byteSize());
-
       Resources::recycle(std::move(rtsm.lightBins));
       rtsm.lightBins = device.image2d(TextureFormat::RG32U, uint32_t(wview.lights().size()), 1u);
       }
@@ -1397,7 +1394,6 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.setBinding(0, rtsm.posList);
     cmd.setBinding(1, rtsm.visList);
     cmd.setBinding(2, rtsm.visibleLights);
-    cmd.setBinding(3, rtsm.visibleLightsPkg);
     cmd.setPipeline(shaders.rtsmClearOmni);
     cmd.dispatchThreads(1);
   }
@@ -1435,7 +1431,6 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.setBinding(4, rtsm.posList);
     cmd.setBinding(5, wview.lights().lightsSsbo());
     cmd.setBinding(6, rtsm.visibleLights);
-    cmd.setBinding(7, rtsm.visibleLightsPkg);
     //
     cmd.setBinding(9, rtsm.dbg64);
 
@@ -1463,7 +1458,7 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, rtsm.visList);
     cmd.setBinding(3, wview.lights().lightsSsbo());
-    cmd.setBinding(4, rtsm.visibleLightsPkg);
+    cmd.setBinding(4, rtsm.visibleLights);
     cmd.setBinding(5, clusters.ssbo());
 
     cmd.setPipeline(shaders.rtsmCullingOmni);
@@ -1496,16 +1491,16 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
 
     cmd.setBinding(0, sceneUbo);
     cmd.setBinding(1, wview.lights().lightsSsbo());
-    cmd.setBinding(2, rtsm.visibleLightsPkg);
+    cmd.setBinding(2, rtsm.visibleLights);
     cmd.setBinding(3, rtsm.lightBins);
     cmd.setBinding(4, clusters.ssbo());
     cmd.setBinding(5, rtsm.posList);
 
     cmd.setPipeline(shaders.rtsmMeshletOmni);
-    cmd.dispatchIndirect(rtsm.visibleLightsPkg, 0);
+    cmd.dispatchIndirect(rtsm.visibleLights, 0);
 
     cmd.setPipeline(shaders.rtsmBackfaceOmni);
-    cmd.dispatchIndirect(rtsm.visibleLightsPkg, 0);
+    cmd.dispatchIndirect(rtsm.visibleLights, 0);
   }
 
   // in tile primitives

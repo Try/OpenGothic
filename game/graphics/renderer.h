@@ -231,7 +231,7 @@ class Renderer final {
       Tempest::StorageImage     meshTiles;
       Tempest::StorageImage     primTiles;
 
-      Tempest::StorageBuffer    visibleLights, visibleLightsPkg;
+      Tempest::StorageBuffer    visibleLights;
       Tempest::StorageImage     lightTiles;
       Tempest::StorageImage     lightBins, primTilesOmni;
 

@@ -23,6 +23,7 @@ layout(binding = 2)         uniform  utexture2D gbufNormal;
 layout(binding = 3)         uniform  texture2D  depth;
 layout(binding = 4, std430)          buffer Pos { uint  alloc; uint    data[]; } pos;
 layout(binding = 5, std430) readonly buffer Lbo { LightSource lights[];        };
+layout(binding = 6, std430)          buffer VId { uvec4 count; LightId data[]; } vLights;
 
 #if defined(DEBUG_IMG)
 layout(binding = 9, r32ui)  uniform  uimage2D   dbgImage;
@@ -123,6 +124,11 @@ void processFilering(const uint lptr, const uint nLights) {
   }
 
 void main() {
+  if(gl_GlobalInvocationID==ivec3(0)) {
+    // cleanup for next stage
+    vLights.count = uvec4(0,1,1,0);
+    }
+
   const uvec2 tile    = pullTileData();
   const uint  lptr    = tile.x;
   const uint  nLights = tile.y;

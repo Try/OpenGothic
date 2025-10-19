@@ -35,7 +35,7 @@ struct LightId {
   uint id;
   uint aabb_low;
   uint aabb_high;
-  uint padd0;
+  uint planeBits;
   };
 
 // utility

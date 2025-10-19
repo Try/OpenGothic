@@ -135,6 +135,6 @@ void main() {
   ret.id        = id;
   ret.aabb_low  = packUint2x16(uvec2(iaabb.xy));
   ret.aabb_high = packUint2x16(uvec2(iaabb.zw));
-  ret.padd0     = 0;
+  ret.planeBits = 0;
   vLights.data[ix] = ret;
   }
