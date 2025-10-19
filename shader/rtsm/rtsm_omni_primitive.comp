@@ -12,7 +12,6 @@
 layout(local_size_x = 512) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
-const uint sizeof_Light = 1 + 4*6;
 
 layout(push_constant, std430) uniform UboPush {
   vec3  originLwc;
@@ -24,9 +23,8 @@ layout(binding = 2)         uniform  utexture2D gbufNormal;
 layout(binding = 3)         uniform  texture2D  depth;
 layout(binding = 4, std430)          buffer Pos { uint  alloc; uint    data[]; } pos;
 layout(binding = 5, std430) readonly buffer Lbo { LightSource lights[];        };
-// layout(binding = 6, std430)
-layout(binding = 7)         uniform  utexture2D lightBins;
-layout(binding = 8, rg32ui) uniform  uimage2D   primTiles;
+layout(binding = 6)         uniform  utexture2D lightBins;
+layout(binding = 7, rg32ui) uniform  uimage2D   primTiles;
 
 #if defined(DEBUG_IMG)
 layout(binding = 9, r32ui)  uniform  uimage2D   dbgImage;
@@ -67,33 +65,23 @@ uint packPrimitiveId(uint meshlet, uint prim) {
   }
 
 // visibility
-shared uint  numPlanes;
-shared uint  planeFace[6];
+shared uint  planeBits;
 shared vec4  planeBbox[6];
 void rayBboxes(const uint lptr) {
   const uint laneID = gl_LocalInvocationIndex;
 
-  numPlanes = 0;
-  barrier();
+  planeBits = pos.data[lptr + 1];
 
   if(laneID<6) {
     const uint  face  = laneID;
-    const uint  fptr  = lptr + 1 + face*4;
+    const uint  fptr  = lptr + 2 + face*4;
 
     uvec4 iaabb;
     iaabb.x = pos.data[fptr+0];
     iaabb.y = pos.data[fptr+1];
     iaabb.z = pos.data[fptr+2];
     iaabb.w = pos.data[fptr+3];
-
-    if(iaabb.x>=iaabb.z || iaabb.y>=iaabb.w) {
-      // degenerated bbox
-      return;
-      }
-
-    const uint id = atomicAdd(numPlanes, 1);
-    planeBbox[id] = orderedUintToFloat(iaabb);
-    planeFace[id] = laneID;
+    planeBbox[laneID] = uintBitsToFloat(iaabb);
     }
   }
 
@@ -113,10 +101,12 @@ bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c, const vec4 aabb, uint face) {
   }
 
 bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c) {
-  const uint num = numPlanes;
-  for(uint face=0; face<num; ++face) {
-    if(isPrimitiveVisible(a, b, c, planeBbox[face], planeFace[face]))
+  uint bits = planeBits;
+  while(bits!=0) {
+    uint i = findLSB(bits);
+    if(isPrimitiveVisible(a, b, c, planeBbox[i], i))
       return true;
+    bits ^= 1u<<i;
     }
   return false;
   }
@@ -251,9 +241,7 @@ void main() {
     rayBboxes(lptr + i*sizeof_Light);
     barrier();
 
-    if(numPlanes>0) {
-      processLight(lId, lTile.x, lTile.y);
-      }
+    processLight(lId, lTile.x, lTile.y);
     barrier();
     }
 

@@ -14,7 +14,6 @@ layout(local_size_x = 64) in;
 layout(push_constant, std140) uniform Push {
   float znear;
   uint  lightsTotal;
-  uint  meshletCount;
   };
 layout(binding = 0, std140) uniform UboScene    { SceneDesc   scene;    };
 layout(binding = 1, std430) readonly buffer Lbo { LightSource lights[]; };
@@ -136,6 +135,6 @@ void main() {
   ret.id        = id;
   ret.aabb_low  = packUint2x16(uvec2(iaabb.xy));
   ret.aabb_high = packUint2x16(uvec2(iaabb.zw));
-  ret.padd0     = 0;
+  ret.planeBits = 0;
   vLights.data[ix] = ret;
   }

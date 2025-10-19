@@ -1,0 +1,90 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+#include "common.glsl"
+#include "scene.glsl"
+#include "rtsm/rtsm_common.glsl"
+
+layout(local_size_x = 512) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+layout(push_constant, std430) uniform UboPush {
+  vec3  originLwc;
+  float znear;
+  } push;
+layout(binding = 0)         uniform  utexture2D lightTiles;
+layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
+
+layout(binding = 4, std430)          buffer Pos { uint  alloc; uint    data[]; } pos;
+layout(binding = 5, std430) readonly buffer Lbo { LightSource lights[];        };
+layout(binding = 6, std430)          buffer VId { uvec4 count; LightId data[]; } vLights;
+
+
+shared uint planeBits[NumThreads];
+shared uint numLights, wPtr;
+
+uint firstLight = gl_WorkGroupID.x*NumThreads;
+
+uvec2 pullTileData(ivec2 at) {
+  return texelFetch(lightTiles, at, 0).xy;
+  }
+
+void processTile(ivec2 at) {
+  const uvec2 tile    = pullTileData(at);
+  const uint  lptr    = tile.x;
+  const uint  nLights = tile.y;
+
+  for(uint i=0; i<nLights; ++i) {
+    const uint lId = pos.data[lptr + i*sizeof_Light + 0];
+    if(!(firstLight<=lId && lId<firstLight+planeBits.length()))
+      continue;
+    const uint bits  = pos.data[lptr + i*sizeof_Light + 1];
+    atomicOr(planeBits[lId-firstLight], bits);
+    }
+  }
+
+void processTiles() {
+  const uint  laneID  = gl_LocalInvocationIndex;
+
+  ivec2 size = textureSize(lightTiles, 0);
+  uint  num  = size.x*size.y;
+
+  for(uint i=laneID; i<num; i+=NumThreads) {
+    processTile(ivec2(i%size.x, i/size.x));
+    }
+  }
+
+void main() {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  numLights = 0;
+  if(laneID<planeBits.length())
+    planeBits[laneID] = 0;
+  barrier();
+
+  processTiles();
+  barrier();
+
+  if(laneID<planeBits.length() && planeBits[laneID]!=0)
+    atomicAdd(numLights, 1);
+  barrier();
+
+  if(laneID==0)
+    wPtr = atomicAdd(vLights.count.x, numLights);
+  barrier();
+
+  if(laneID<planeBits.length() && planeBits[laneID]!=0) {
+    const uint at  = atomicAdd(wPtr, 1);
+    const uint lId = firstLight + laneID;
+
+    vLights.data[at].id        = lId;
+    vLights.data[at].aabb_low  = 0;
+    vLights.data[at].aabb_high = 0;
+    vLights.data[at].planeBits = planeBits[laneID];
+    }
+  }

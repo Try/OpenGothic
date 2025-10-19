@@ -12,7 +12,6 @@
 layout(local_size_x = 16, local_size_y = 16) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
-const uint sizeof_Light = 1 + 4*6;
 
 layout(push_constant, std430) uniform UboPush {
   vec3  originLwc;
@@ -134,11 +133,12 @@ void processLights(bool counting) {
     if(!counting) {
       uint ptr = lightListPtr + id*sizeof_Light;
       pos.data[ptr + 0] = light.id;
+      ptr+=2;
       for(uint r=0; r<6; ++r) {
+        pos.data[ptr + 0] = 0xFFFFFFFF;
         pos.data[ptr + 1] = 0xFFFFFFFF;
-        pos.data[ptr + 2] = 0xFFFFFFFF;
+        pos.data[ptr + 2] = 0;
         pos.data[ptr + 3] = 0;
-        pos.data[ptr + 4] = 0;
         ptr += 4;
         }
       }

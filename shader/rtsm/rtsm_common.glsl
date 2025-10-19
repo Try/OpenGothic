@@ -23,6 +23,8 @@ const uint MaxInd             = (MaxPrim*3);
 const float NormalBias        = 0.0015;
 const uint  BIN_BAD_BIT       = 0x80000000;
 
+const uint  sizeof_Light      = 2 + 4*6;
+
 struct RtsmHeader {
   uint visCount;
   uint one1;
@@ -33,7 +35,7 @@ struct LightId {
   uint id;
   uint aabb_low;
   uint aabb_high;
-  uint padd0;
+  uint planeBits;
   };
 
 // utility

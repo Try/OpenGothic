@@ -12,7 +12,6 @@
 layout(local_size_x = 32) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
-const uint sizeof_Light = 1 + 4*6;
 
 layout(push_constant, std430) uniform UboPush {
   vec3  originLwc;
@@ -24,6 +23,7 @@ layout(binding = 2)         uniform  utexture2D gbufNormal;
 layout(binding = 3)         uniform  texture2D  depth;
 layout(binding = 4, std430)          buffer Pos { uint  alloc; uint    data[]; } pos;
 layout(binding = 5, std430) readonly buffer Lbo { LightSource lights[];        };
+layout(binding = 6, std430)          buffer VId { uvec4 count; LightId data[]; } vLights;
 
 #if defined(DEBUG_IMG)
 layout(binding = 9, r32ui)  uniform  uimage2D   dbgImage;
@@ -42,6 +42,7 @@ shared uint numLights;
 
 struct Light {
   uint  id;
+  // uint  mask;
   uvec4 iaabb[6];
   };
 
@@ -57,38 +58,43 @@ void storeBin(ivec2 at, uint ptr, uint num) {
   imageStore(lightTiles, at, uvec4(ptr,num,0,0));
   }
 
-bool isDegenerated(const Light light) {
-  //return false;
+uint lightAabbMask(const Light light) {
+  uint ret = 0;
   for(uint i=0; i<6; ++i) {
     uvec4 iaabb = light.iaabb[i];
     if(iaabb.x>=iaabb.z || iaabb.y>=iaabb.w) {
       // degenerated bbox
       continue;
       }
-    return false;
+    ret |= (1u << i);
     }
-  return true;
+  return ret;
   }
 
-void storeLight(uint ptr, const Light light) {
+void storeLight(uint ptr, const Light light, const uint aabbMask) {
   pos.data[ptr+0] = light.id;
+  pos.data[ptr+1] = aabbMask;
+  ptr+=2;
   for(uint i=0; i<6; ++i) {
     uvec4 iaabb = light.iaabb[i];
-    pos.data[ptr+1] = iaabb.x;
-    pos.data[ptr+2] = iaabb.y;
-    pos.data[ptr+3] = iaabb.z;
-    pos.data[ptr+4] = iaabb.w;
+    iaabb = floatBitsToUint(orderedUintToFloat(iaabb));
+
+    pos.data[ptr+0] = iaabb.x;
+    pos.data[ptr+1] = iaabb.y;
+    pos.data[ptr+2] = iaabb.z;
+    pos.data[ptr+3] = iaabb.w;
     ptr+=4;
     }
   }
 
 void loadLight(uint ptr, out Light light) {
   light.id = pos.data[ptr+0];
+  ptr+=2;
   for(uint i=0; i<6; ++i) {
-    light.iaabb[i].x = pos.data[ptr+1];
-    light.iaabb[i].y = pos.data[ptr+2];
-    light.iaabb[i].z = pos.data[ptr+3];
-    light.iaabb[i].w = pos.data[ptr+4];
+    light.iaabb[i].x = pos.data[ptr+0];
+    light.iaabb[i].y = pos.data[ptr+1];
+    light.iaabb[i].z = pos.data[ptr+2];
+    light.iaabb[i].w = pos.data[ptr+3];
     ptr+=4;
     }
   }
@@ -106,15 +112,23 @@ void processFilering(const uint lptr, const uint nLights) {
       loadLight(lptr + i*sizeof_Light, light);
     barrier();
 
-    if(i<nLights && !isDegenerated(light)) {
-      const uint id = atomicAdd(numLights, 1);
-      storeLight(lptr + id*sizeof_Light, light);
+    if(i<nLights) {
+      const uint mask = lightAabbMask(light);
+      if(mask!=0) {
+        const uint id = atomicAdd(numLights, 1);
+        storeLight(lptr + id*sizeof_Light, light, mask);
+        }
       }
     barrier();
     }
   }
 
 void main() {
+  if(gl_GlobalInvocationID==ivec3(0)) {
+    // cleanup for next stage
+    vLights.count = uvec4(0,1,1,0);
+    }
+
   const uvec2 tile    = pullTileData();
   const uint  lptr    = tile.x;
   const uint  nLights = tile.y;

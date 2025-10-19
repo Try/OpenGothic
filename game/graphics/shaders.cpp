@@ -258,6 +258,7 @@ void Shaders::compileShaders() {
 
     rtsmClearOmni    = computeShader("rtsm_omni_clear.comp.sprv");
     rtsmCullLights   = computeShader("rtsm_cull_lights.comp.sprv");
+    rtsmCompactLights = computeShader("rtsm_compact_lights.comp.sprv");
     rtsmLightsOmni   = computeShader("rtsm_omni_lights.comp.sprv");
     rtsmBboxesOmni   = computeShader("rtsm_omni_bboxes.comp.sprv");
     rtsmCullingOmni  = computeShader("rtsm_omni_culling.comp.sprv");

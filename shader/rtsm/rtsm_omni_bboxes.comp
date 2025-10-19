@@ -12,7 +12,6 @@
 layout(local_size_x = 16, local_size_y = 16) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
-const uint sizeof_Light = 1 + 4*6;
 
 layout(push_constant, std430) uniform UboPush {
   vec3  originLwc;
@@ -127,7 +126,7 @@ void main() {
         const uint i    = s*MaxLight + laneID/6;
         const uint face = laneID%6;
         const uint ptr  = lptr + i*sizeof_Light;
-        const uint fptr = ptr + face*4 + 1;
+        const uint fptr = ptr + face*4 + 2;
 
         atomicMin(pos.data[fptr+0], rf.x);
         atomicMin(pos.data[fptr+1], rf.y);
