@@ -82,7 +82,7 @@ class Interactive : public Vob {
     bool                detach(Npc& npc,bool quick);
     bool                isAttached(const Npc& to);
 
-    auto                animNpc(const AnimationSolver &solver, Anim t) -> const Animation::Sequence*;
+    auto                animNpc(const AnimationSolver &solver, Anim t) const -> const Animation::Sequence*;
     void                marchInteractives(DbgPainter& p) const;
 
   protected:
@@ -93,7 +93,7 @@ class Interactive : public Vob {
 
   private:
     enum Phase : uint8_t {
-      NonStarted = 0,
+      NotStarted = 0,
       Started    = 1,
       Quit       = 2,
       };
@@ -101,7 +101,7 @@ class Interactive : public Vob {
     struct Pos final {
       std::string         name;
       Npc*                user       = nullptr;
-      Phase               started    = NonStarted;
+      Phase               started    = NotStarted;
       bool                attachMode = false;
 
       size_t              node=0;

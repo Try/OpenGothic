@@ -121,7 +121,7 @@ void Interactive::load(Serialize &fin) {
     std::string name;
     Npc*        user       = nullptr;
     bool        attachMode = false;
-    Phase       started    = NonStarted;
+    Phase       started    = NotStarted;
 
     fin.read(name,user,attachMode,reinterpret_cast<uint8_t&>(started));
 
@@ -235,7 +235,7 @@ void Interactive::tick(uint64_t dt) {
         if(!setAnim(nullptr,Anim::Out))
           return;
         setState(state-1);
-        i.started = NonStarted;
+        i.started = NotStarted;
         }
       }
     return;
@@ -293,7 +293,7 @@ void Interactive::implTick(Pos& p) {
   Npc&       npc    = *p.user;
   const bool attach = (p.attachMode^reverseState);
 
-  if(p.started==NonStarted) {
+  if(p.started==NotStarted) {
     const bool omit = (!isLadder() && reverseState && state>0);
     if(omit) {
       loopState = false;
@@ -321,7 +321,7 @@ void Interactive::implTick(Pos& p) {
     npc.quitInteraction();
     loopState = false;
     p.user    = nullptr;
-    p.started = NonStarted;
+    p.started = NotStarted;
     return;
     }
 
@@ -715,6 +715,7 @@ bool Interactive::canQuitAtState(const Npc& npc, int32_t state) const {
     anim = string_frm("T_",scheme,"_S",state,"_2_STAND"); else
     anim = string_frm("T_",scheme,"_",pos,"_S",state,"_2_STAND");
 
+  // should match with this->animNpc(npc,Interactive::ToStand);
   if(npc.hasAnim(anim))
     return true;
   return state==stateNum && reverseState;
@@ -766,7 +767,7 @@ bool Interactive::attach(Npc& npc, Interactive::Pos& to) {
     }
 
   to.user       = &npc;
-  to.started    = NonStarted;
+  to.started    = NotStarted;
   to.attachMode = true;
   return true;
   }
@@ -801,7 +802,7 @@ bool Interactive::detach(Npc &npc, bool quick) {
             return false;
           }
         i.user       = nullptr;
-        i.started    = Quit;
+        i.started    = (canQuitAtState(npc,state) || !quick) ? NotStarted : Quit;
         i.attachMode = false;
         loopState    = false;
         npc.quitInteraction();
@@ -972,7 +973,7 @@ void Interactive::setState(int st) {
   onStateChanged();
   }
 
-const Animation::Sequence* Interactive::animNpc(const AnimationSolver &solver, Anim t) {
+const Animation::Sequence* Interactive::animNpc(const AnimationSolver &solver, Anim t) const {
   std::string_view tag      = schemeName();
   int              st[]     = {state,state+t};
   string_frm<12>   ss[2]    = {};
@@ -984,7 +985,7 @@ const Animation::Sequence* Interactive::animNpc(const AnimationSolver &solver, A
     st[1] = state<1 ? 0 : stateNum - 1;
     }
   else if(t==Anim::ToStand) {
-    st[0] = state<1 ? 0 : stateNum - 1;
+    st[0] = state<1 ? 0 : state;
     st[1] = -1;
     }
 
