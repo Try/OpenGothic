@@ -120,7 +120,6 @@ vec4 fog(vec2 uv, float z) {
   [[dont_unroll]]
   for(uint i=0; i<steps; ++i) {
     float t      = (i+0.3)/float(steps);
-    float dd     = (t*distZ)/(dist);
     vec4  shPos  = mix(shPos0,shPos1,t+noise);
     bool  shadow = shadowFactor(shPos);
     occlusion = occlusion | ((shadow ? 1u : 0u) << uint(i));
@@ -141,7 +140,7 @@ vec4 fog(vec2 uv, float z) {
   [[dont_unroll]]
   for(int i=0; i<steps; i++) {
     bool  bit    = bitfieldExtract(occlusion,i,1)!=0;
-    float shadow = bit ? 1.0 : 0.05;
+    float shadow = bit ? 1.0 : 0.0;
 
     {
       // scan for consecutive range of same bits
