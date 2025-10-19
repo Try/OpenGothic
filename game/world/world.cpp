@@ -109,7 +109,7 @@ World::World(GameSession& game, std::string_view file, bool startup, std::functi
     loadProgress(70);
 
     globFx.reset(new GlobalEffects(*this));
-    wmatrix.reset(new WayMatrix(*this,world.world_way_net));
+    wmatrix.reset(new WayMatrix(*this, *world.way_net));
     for(auto& vob:world.world_vobs)
       wobj.addRoot(vob,startup);
 

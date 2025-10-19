@@ -35,6 +35,11 @@ class WayMatrix final {
     WayPath         wayTo(const WayPoint** begin, size_t beginSz, const Tempest::Vec3 exactBegin, const WayPoint& end) const;
 
   private:
+    struct WayEdge {
+      size_t a = 0;
+      size_t b = 0;
+      };
+
     World&                 world;
     // scripting doc says 20m, but number seems to be incorrect
     // Vatras requires at least 8 meters
@@ -42,7 +47,7 @@ class WayMatrix final {
     // Gothic 1 range is identical
     float                  distanceThreshold = 900.f;
 
-    std::vector<zenkit::WayEdge> edges;
+    std::vector<WayEdge>   edges;
 
     std::vector<WayPoint>  wayPoints;
     std::vector<WayPoint>  freePoints, startPoints;

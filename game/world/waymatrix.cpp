@@ -13,12 +13,19 @@ using namespace Tempest;
 WayMatrix::WayMatrix(World &world, const zenkit::WayNet& dat)
   :world(world) {
 
-  wayPoints.resize(dat.waypoints.size());
-  for(size_t i=0;i<wayPoints.size();++i){
-    wayPoints[i] = WayPoint(dat.waypoints[i]);
+  wayPoints.resize(dat.points.size());
+  for(size_t i=0; i<wayPoints.size(); ++i){
+    wayPoints[i] = WayPoint(*dat.points[i]);
     }
 
-  edges = dat.edges;
+  edges.resize(dat.edges.size());
+  for(size_t i=0; i<edges.size(); ++i){
+    WayEdge e = {};
+    e.a = size_t(std::distance(dat.points.begin(), std::find(dat.points.begin(), dat.points.end(), dat.edges[i].first )));
+    e.b = size_t(std::distance(dat.points.begin(), std::find(dat.points.begin(), dat.points.end(), dat.edges[i].second)));
+    edges[i] = e;
+    }
+
   stk[0].reserve(256);
   stk[1].reserve(256);
   }
