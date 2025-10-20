@@ -1527,6 +1527,10 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.dispatch(1);
 
     cmd.setPipeline(shaders.rtsmPrimOmni2);
+    cmd.dispatchIndirect(rtsm.drawTasks, 0);
+
+    //cmd.setPipeline(shaders.rtsmPrimOmni);
+    //cmd.dispatch(rtsm.primTilesOmni.size());
   }
 
   // raster
