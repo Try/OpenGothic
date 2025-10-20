@@ -352,7 +352,9 @@ add_shader(rtsm_omni_position.comp   rtsm/rtsm_position.comp -DOMNI)
 add_shader(rtsm_omni_meshlet.comp    rtsm/rtsm_omni_meshlet.comp)
 add_shader(rtsm_omni_backface.comp   rtsm/rtsm_omni_backface.comp)
 add_shader(rtsm_omni_compact.comp    rtsm/rtsm_omni_compact.comp)
+add_shader(rtsm_omni_task.comp       rtsm/rtsm_omni_task.comp)
 add_shader(rtsm_omni_primitive.comp  rtsm/rtsm_omni_primitive.comp)
+add_shader(rtsm_omni_primitive2.comp  rtsm/rtsm_omni_primitive2.comp)
 add_shader(rtsm_omni_raster.comp     rtsm/rtsm_omni_raster.comp)
 
 # software ray-tracing
