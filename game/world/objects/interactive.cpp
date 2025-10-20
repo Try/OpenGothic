@@ -55,16 +55,18 @@ Interactive::Interactive(Vob* parent, World &world, const zenkit::VMovableObject
 
   if(vobType==zenkit::VirtualObjectType::oCMobDoor) {
     auto& door = reinterpret_cast<const zenkit::VDoor&>(vob);
-    locked      = door.locked;
-    keyInstance = door.key;
-    pickLockStr = door.pick_string;
+    locked        = door.locked;
+    keyInstance   = door.key;
+    pickLockStr   = door.pick_string;
+    isLockCracked = !door.locked;
     }
 
   if(isContainer() && (flags&Flags::Startup)==Flags::Startup) {
     auto& container = reinterpret_cast<const zenkit::VContainer&>(vob);
-    locked      = container.locked;
-    keyInstance = container.key;
-    pickLockStr = container.pick_string;
+    locked        = container.locked;
+    keyInstance   = container.key;
+    pickLockStr   = container.pick_string;
+    isLockCracked = !container.locked;
 
     auto items  = std::move(container.contents);
     if(items.size()>0) {
@@ -614,10 +616,13 @@ bool Interactive::checkUseConditions(Npc& npc) {
     const size_t           keyInst        = keyInstance.empty() ? size_t(-1) : world.script().findSymbolIndex(keyInstance);
     const bool             needToPicklock = (pickLockStr.size()>0);
 
-    if(keyInst!=size_t(-1) && npc.itemCount(keyInst)>0)
+    if(keyInst!=size_t(-1) && (isLockCracked || npc.itemCount(keyInst)>0)) {
+      isLockCracked = true;
       return true;
-    if((canLockPick || isLockCracked) && needToPicklock)
+      }
+    if(needToPicklock && (isLockCracked || canLockPick)) {
       return true;
+      }
 
     if(keyInst!=size_t(-1) && needToPicklock) { // key+lockpick
       sc.printMobMissingKeyOrLockpick(npc);
