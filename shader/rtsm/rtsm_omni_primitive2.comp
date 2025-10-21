@@ -9,7 +9,7 @@
 #include "scene.glsl"
 #include "rtsm/rtsm_common.glsl"
 
-layout(local_size_x = 512) in;
+layout(local_size_x = 256) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
@@ -42,7 +42,7 @@ void imageDbg(ivec2 at, uint info) {
 #include "rtsm/rtsm_scratch.glsl"
 
 shared uint numPrimitives;
-shared uint primitives[2048];
+shared uint primitives[1536];
 
 shared uint primListPtr;
 
