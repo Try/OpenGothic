@@ -1672,6 +1672,8 @@ bool Npc::implAttack(uint64_t dt) {
   }
 
 void Npc::adjustAttackRotation(uint64_t dt) {
+  if(!fghAlgo.hasInstructions())
+    return;
   if(currentTarget!=nullptr && !currentTarget->isDown()) {
     auto ws = weaponState();
     if(ws!=WeaponState::NoWeapon) {
