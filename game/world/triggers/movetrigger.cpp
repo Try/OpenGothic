@@ -43,7 +43,7 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, const zenkit::VMover& mover,
 
     if(speed>0) {
       uint64_t ticks = 0;
-      if(len>0)
+      if(len>0.01f)
         ticks = uint64_t(len/speed); else
         ticks = uint64_t((angle/360.f) * 1000.f/scaleRotSpeed(speed));
       keyframes[i].ticks = std::max<uint64_t>(1,ticks);
