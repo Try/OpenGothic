@@ -1674,6 +1674,8 @@ bool Npc::implAttack(uint64_t dt) {
   }
 
 void Npc::adjustAttackRotation(uint64_t dt) {
+  if(go2.flag==GT_Flee)
+    return;
   if(currentTarget!=nullptr && !currentTarget->isDown()) {
     auto ws = weaponState();
     if(ws!=WeaponState::NoWeapon) {
