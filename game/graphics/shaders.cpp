@@ -269,7 +269,6 @@ void Shaders::compileShaders() {
     rtsmCompactOmni  = computeShader("rtsm_omni_compact.comp.sprv");
     rtsmTaskOmni     = computeShader("rtsm_omni_task.comp.sprv");
     rtsmPrimOmni     = computeShader("rtsm_omni_primitive.comp.sprv");
-    rtsmPrimOmni2    = computeShader("rtsm_omni_primitive2.comp.sprv");
     rtsmRasterOmni   = computeShader("rtsm_omni_raster.comp.sprv");
 
     rtsmRendering    = computeShader("rtsm_rendering.comp.sprv");
