@@ -184,8 +184,12 @@ void processLight(const LightSource src, const uint tilePtr, const uint inPrimit
 
 void insertToList(const LightSource src, ivec2 at) {
   const uint laneID = gl_LocalInvocationIndex;
-  if(laneID!=0 || primListPtr==NULL)
+  if(laneID!=0)
     return;
+  if(primListPtr==NULL) {
+    imageAtomicExchange(primTiles, at, BIN_BAD_BIT);
+    return;
+    }
 
   const uint prevPtr = imageAtomicExchange(primTiles, at, primListPtr);
 
