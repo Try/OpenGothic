@@ -172,9 +172,9 @@ float lightIntensity(const vec3 normal, const float distance, const vec3 ldir, c
   }
 
 const  uint  MaxChunk = NumThreads/2;
-shared vec4  meshVertices   [MaxChunk][3];
+shared vec4  meshVertices   [MaxChunk*3];
 shared uint  primitiveBucket[MaxChunk];
-shared uint  numLocalPrim;
+shared uint  numLocalPrimM3;
 void pullPrimitives(const vec3 origin, const uint pkg) {
   const uint  laneID = gl_LocalInvocationIndex;
 
@@ -192,21 +192,21 @@ void pullPrimitives(const vec3 origin, const uint pkg) {
   if(!isPrimitiveVisible(a,b,c))
     return;
 
-  const uint  id       = atomicAdd(numLocalPrim, 1);
-  primitiveBucket[id]  = bkg;
+  const uint id         = atomicAdd(numLocalPrimM3, 3);
+  primitiveBucket[id/3] = bkg;
 
-  meshVertices[id][0].xyz = a;
-  meshVertices[id][1].xyz = b - a;
-  meshVertices[id][2].xyz = c - a;
+  meshVertices[id+0].xyz = a;
+  meshVertices[id+1].xyz = b - a;
+  meshVertices[id+2].xyz = c - a;
 
 #if TRANSLUCENCY
   if((bkg & BK_SOLID)!=0) {
     return;
     }
   //NOTE: use vec4 to WA on https://github.com/KhronosGroup/SPIRV-Cross/issues/2494
-  meshVertices[id][0].w  = uintBitsToFloat(pullVertexUV(ptrV, tri.x));
-  meshVertices[id][1].w  = uintBitsToFloat(pullVertexUV(ptrV, tri.y));
-  meshVertices[id][2].w  = uintBitsToFloat(pullVertexUV(ptrV, tri.z));
+  meshVertices[id+0].w  = uintBitsToFloat(pullVertexUV(ptrV, tri.x));
+  meshVertices[id+1].w  = uintBitsToFloat(pullVertexUV(ptrV, tri.y));
+  meshVertices[id+2].w  = uintBitsToFloat(pullVertexUV(ptrV, tri.z));
 #endif
   }
 
@@ -217,25 +217,25 @@ float rasterBatch(const vec3 dir, const float tMax, float opacity) {
   if(opacity<=minOpacity)
     return opacity;
 
-  for(uint id=0; id<numLocalPrim; ++id) {
-    const vec3  a  = meshVertices[id][0].xyz;
-    const vec3  e1 = meshVertices[id][1].xyz;
-    const vec3  e2 = meshVertices[id][2].xyz;
+  for(uint id=0; id<numLocalPrimM3; id+=3) {
+    const vec3  a  = meshVertices[id+0].xyz;
+    const vec3  e1 = meshVertices[id+1].xyz;
+    const vec3  e2 = meshVertices[id+2].xyz;
     const vec3  rt = rayTriangleTest(dir, a, e1, e2);
 
     const float t  = rt.x;
     if(!(tMin<t && t<tMax))
       continue;
 #if TRANSLUCENCY
-    const uint flags = primitiveBucket[id];
+    const uint flags = primitiveBucket[id/3];
     if((flags & BK_SOLID)!=0) {
       opacity = 0;
       break;
       }
     const vec3  bc       = vec3(1-rt.y-rt.z, rt.y, rt.z);
-    const vec2  uv       = interpolateUV(bc, meshVertices[id][0].w, meshVertices[id][1].w, meshVertices[id][2].w);
+    const vec2  uv       = interpolateUV(bc, meshVertices[id+0].w, meshVertices[id+1].w, meshVertices[id+2].w);
     const float lodBias  = 0;
-    const uint  bucketId = primitiveBucket[id] >> 16;
+    const uint  bucketId = flags >> 16;
     const float alpha    = sampleAlpha(bucketId, uv, lodBias);
     opacity *= (1.0-alpha);
     if(opacity<=minOpacity)
@@ -331,7 +331,7 @@ void processAll(const uint tilePtr, const bool valid) {
       // break;
       }
 
-    numLocalPrim = 0;
+    numLocalPrimM3 = 0;
     barrier();
 
     const uint i = s + laneID;
@@ -341,7 +341,7 @@ void processAll(const uint tilePtr, const bool valid) {
       }
     barrier();
 
-    primCnt += numLocalPrim;
+    primCnt += numLocalPrimM3/3;
 
     const vec3  distance = wpos - lightOrigin;
     const float tMax     = length(distance);

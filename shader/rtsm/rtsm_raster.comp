@@ -108,7 +108,7 @@ shared vec2    meshVertices    [MaxChunk*3];
 shared float   meshVertexZ     [MaxChunk*3];
 shared uint    meshVertexUV    [MaxChunk*3];
 shared uint    primitiveBucket [MaxChunk];
-shared uint    numLocalPrim;
+shared uint    numLocalPrimM3;
 
 bool isPrimitiveVisible(const vec4 aabb, const float depthMax) {
   const vec4 rbbox = uintBitsToFloat(rayBbox);
@@ -147,24 +147,24 @@ void pullPrimitives(const uint pkg) {
     return;
     }
 
-  const uint  id       = atomicAdd(numLocalPrim, 1);
-  primitiveBucket[id]  = packUint2x16(uvec2(tri.w, pullMeshBucketId(ptr)));
+  const uint  id        = atomicAdd(numLocalPrimM3, 3);
+  primitiveBucket[id/3] = packUint2x16(uvec2(tri.w, pullMeshBucketId(ptr)));
 
-  meshVertexZ [id*3+0] = a.z;
-  meshVertexZ [id*3+1] = b.z;
-  meshVertexZ [id*3+2] = c.z;
+  meshVertexZ [id+0] = a.z;
+  meshVertexZ [id+1] = b.z;
+  meshVertexZ [id+2] = c.z;
 
-  meshVertexUV[id*3+0] = pullVertexUV(ptrV, tri.x);
-  meshVertexUV[id*3+1] = pullVertexUV(ptrV, tri.y);
-  meshVertexUV[id*3+2] = pullVertexUV(ptrV, tri.z);
+  meshVertexUV[id+0] = pullVertexUV(ptrV, tri.x);
+  meshVertexUV[id+1] = pullVertexUV(ptrV, tri.y);
+  meshVertexUV[id+2] = pullVertexUV(ptrV, tri.z);
 
   const vec2 da = a.xy - c.xy;
   const vec2 db = b.xy - c.xy;
 
   const float areaInv  = 1.0/triangleArea(da, db);
-  meshVertices[id*3+0] = da * areaInv;
-  meshVertices[id*3+1] = db * areaInv;
-  meshVertices[id*3+2] = c.xy;
+  meshVertices[id+0] = da * areaInv;
+  meshVertices[id+1] = db * areaInv;
+  meshVertices[id+2] = c.xy;
   }
 
 shared uint inactiveRays;
@@ -173,10 +173,10 @@ float rasterBatch(const vec3 ray, float opacity) {
   if(opacity<=minOpacity)
     return opacity;
 
-  for(uint id=0; id<numLocalPrim; ++id) {
-    const vec2  a    = meshVertices[id*3+0];
-    const vec2  b    = meshVertices[id*3+1];
-    const vec2  c    = meshVertices[id*3+2];
+  for(uint id=0; id<numLocalPrimM3; id+=3) {
+    const vec2  a    = meshVertices[id+0];
+    const vec2  b    = meshVertices[id+1];
+    const vec2  c    = meshVertices[id+2];
 
     const vec2  rayC = vec2(c.y - ray.y, ray.x - c.x);
     const float w0   = -dot(b, rayC);
@@ -187,23 +187,23 @@ float rasterBatch(const vec3 ray, float opacity) {
       continue;
 
     const vec3  bc      = vec3(w0,w1,w2);
-    const float aZ      = meshVertexZ[id*3+0];
-    const float bZ      = meshVertexZ[id*3+1];
-    const float cZ      = meshVertexZ[id*3+2];
+    const float aZ      = meshVertexZ[id+0];
+    const float bZ      = meshVertexZ[id+1];
+    const float cZ      = meshVertexZ[id+2];
     const float depth   = dot(vec3(aZ,bZ,cZ), bc);
     if(depth <= ray.z)
       continue;
 
 #if TRANSLUCENCY
-    const uint flags = primitiveBucket[id];
+    const uint flags = primitiveBucket[id/3];
     if((flags & BK_SOLID)!=0) {
       opacity = 0;
       break;
       }
 
-    const vec2  uv       = interpolateUV(bc, meshVertexUV[id*3+0], meshVertexUV[id*3+1], meshVertexUV[id*3+2]);
+    const vec2  uv       = interpolateUV(bc, meshVertexUV[id+0], meshVertexUV[id+1], meshVertexUV[id+2]);
     const float lodBias  = log2((depth - ray.z)*128);
-    const uint  bucketId = primitiveBucket[id] >> 16;
+    const uint  bucketId = flags >> 16;
     const float alpha    = sampleAlpha(bucketId, uv, lodBias);
     opacity *= (1.0-alpha);
     if(opacity<=minOpacity)
@@ -236,14 +236,14 @@ float tracePacket(const uvec2 tileHeader, const vec3 ray, float opacity) {
     if(earlyOut())
       break;
 
-    numLocalPrim = 0;
+    numLocalPrimM3 = 0;
     barrier();
     const uint i = s + laneID;
     if(i<numPrimitives && laneID<MaxChunk)
       pullPrimitives(pos.data[tileHeader.x + i]);
     barrier();
 
-    primCnt += numLocalPrim;
+    primCnt += numLocalPrimM3/3;
     opacity = rasterBatch(ray, opacity);
     barrier();
     }
