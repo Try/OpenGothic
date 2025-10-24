@@ -45,6 +45,11 @@ const float minOpacity = 0.49/255.0;
 
 uint primCnt = 0;
 
+uvec2 pullPrimitiveList() {
+  ivec2 tileCoord = (fragCoord/RTSM_BIN_SIZE);
+  return texelFetch(primitiveBins, ivec2(tileCoord), 0).xy;
+  }
+
 vec2 interpolateUV(vec3 bc, vec2 a, vec2 b, vec2 c) {
   const float u = dot(vec3(a.x,b.x,c.x), bc);
   const float v = dot(vec3(a.y,b.y,c.y), bc);
@@ -117,11 +122,6 @@ bool isPrimitiveVisible(const vec4 aabb, const float depthMax) {
   if(!bboxIntersect(aabb, rbbox))
     return false;
   return true;
-  }
-
-uvec2 pullPrimitiveList() {
-  ivec2 tileCoord = (fragCoord/RTSM_BIN_SIZE);
-  return texelFetch(primitiveBins, ivec2(tileCoord), 0).xy;
   }
 
 float triangleArea(const vec2 da, const vec2 db) {

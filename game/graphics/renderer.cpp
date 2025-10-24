@@ -1280,6 +1280,10 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
 
   // position
   {
+    struct Push { Vec3 originLwc; } push = {};
+    push.originLwc = scene.originLwc;
+
+    cmd.setPushData(push);
     cmd.setBinding(0, rtsm.posList);
     cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, rtsm.visList);
@@ -1470,6 +1474,10 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
 
   // position
   {
+    struct Push { Vec3 originLwc; } push = {};
+    push.originLwc = scene.originLwc;
+
+    cmd.setPushData(push);
     cmd.setBinding(0, rtsm.posList);
     cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, rtsm.visList);
@@ -1534,6 +1542,7 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   {
     struct Push { Vec3 originLwc; } push = {};
     push.originLwc = scene.originLwc;
+
     cmd.setPushData(push);
     cmd.setBinding(0, rtsm.outputImageClr);
     cmd.setBinding(1, sceneUbo);

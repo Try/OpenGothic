@@ -15,7 +15,6 @@ const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z
 
 layout(push_constant, std430) uniform UboPush {
   vec3  originLwc;
-  float znear;
   } push;
 layout(binding = 0)         uniform  utexture2D lightTiles;
 layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };

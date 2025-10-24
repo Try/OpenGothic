@@ -301,7 +301,7 @@ void processAll(const uint tilePtr, const bool valid) {
   const uint  laneID = gl_LocalInvocationIndex;
   const vec3  normal = valid ? normalFetch(gbufNormal, fragCoord) : vec3(0); //6
   const float z      = valid ? texelFetch(depth, fragCoord, 0).x  : 1.0;
-  const vec3  wpos   = rayOrigin(fragCoord.xy, z, normal) + push.originLwc;
+  const vec3  wpos   = rayOrigin(fragCoord.xy, z, normal);
 
   float lightPower    = 0;
   setupLight(tilePtr, wpos, normal, lightPower);
