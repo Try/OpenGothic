@@ -56,6 +56,7 @@ class MdlVisual final {
     void                           clearSlotItem (std::string_view bone);
     bool                           setFightMode  (zenkit::MdsFightMode mode);
     void                           dropWeapon    (Npc& owner);
+    void                           dropShield    (Npc& owner);
 
     void                           setMagicWeapon(Effect&& spell, World& owner);
     void                           setMagicWeaponKey(World& owner, SpellFxKey key, int32_t keyLvl=0);

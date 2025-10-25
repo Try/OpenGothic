@@ -297,6 +297,27 @@ void MdlVisual::dropWeapon(Npc& npc) {
   npc.delItem(itm->clsId(),1);
   }
 
+void MdlVisual::dropShield(Npc& npc) {
+  MeshAttach* att  = &sword;
+  auto&       pose = *skInst;
+
+  if(fgtMode!=WeaponState::W1H && fgtMode!=WeaponState::W2H)
+    return;
+
+  auto p = pos;
+  if(att->boneId<pose.boneCount())
+    p = pose.bone(att->boneId);
+
+  Item* itm = npc.currentShield();
+  if(itm==nullptr)
+    return;
+
+  auto it = npc.world().addItemDyn(itm->clsId(),p,npc.handle().symbol_index());
+  it->setCount(1);
+
+  npc.delItem(itm->clsId(),1);
+  }
+
 void MdlVisual::startEffect(World& owner, Effect&& vfx, int32_t slot, bool noSlot) {
   uint64_t timeUntil = vfx.effectPrefferedTime();
   if(timeUntil!=0)

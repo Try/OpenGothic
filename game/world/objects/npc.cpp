@@ -554,6 +554,7 @@ bool Npc::checkHealth(bool onChange, bool allowUnconscious) {
 void Npc::onNoHealth(bool death, HitSound sndMask) {
   invent.switchActiveWeapon(*this,Item::NSLOT);
   visual.dropWeapon(*this);
+  visual.dropShield(*this);
   dropTorch();
   visual.setToFightMode(WeaponState::NoWeapon);
   updateWeaponSkeleton();
@@ -1162,6 +1163,7 @@ int32_t Npc::attribute(Attribute a) const {
 void Npc::changeAttribute(Attribute a, int32_t val, bool allowUnconscious) {
   if(a>=ATR_MAX || val==0)
     return;
+
   if(val<0 && a==ATR_HITPOINTS) {
     if(isPlayer() && Gothic::inst().isGodMode())
       return;
@@ -3272,16 +3274,20 @@ void Npc::clearInventory() {
   invent.clear(owner.script(),*this);
   }
 
-Item *Npc::currentArmor() {
+Item* Npc::currentArmor() {
   return invent.currentArmor();
   }
 
-Item *Npc::currentMeleeWeapon() {
+Item* Npc::currentMeleeWeapon() {
   return invent.currentMeleeWeapon();
   }
 
-Item *Npc::currentRangedWeapon() {
+Item* Npc::currentRangedWeapon() {
   return invent.currentRangedWeapon();
+  }
+
+Item* Npc::currentShield() {
+  return invent.currentShield();
   }
 
 Vec3 Npc::mapWeaponBone() const {

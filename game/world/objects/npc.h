@@ -351,6 +351,7 @@ class Npc final {
     Item*     currentArmor();
     Item*     currentMeleeWeapon();
     Item*     currentRangedWeapon();
+    Item*     currentShield();
     auto      mapWeaponBone() const -> Tempest::Vec3;
     auto      mapHeadBone() const -> Tempest::Vec3;
     auto      mapBone(std::string_view bone) const -> Tempest::Vec3;

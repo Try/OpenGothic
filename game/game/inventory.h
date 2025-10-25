@@ -105,6 +105,7 @@ class Inventory final {
     Item*  currentArmor()          { return armor;      }
     Item*  currentMeleeWeapon()    { return melee;      }
     Item*  currentRangedWeapon()   { return range;      }
+    Item*  currentShield()         { return shield;     }
     Item*  currentSpell(uint8_t s) { return numslot[s]; }
     const Item*  currentSpell(uint8_t s) const { return numslot[s]; }
     Item*  findByFlags(ItmFlags f, uint32_t num) const;
