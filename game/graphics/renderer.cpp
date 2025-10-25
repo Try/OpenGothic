@@ -1280,6 +1280,10 @@ void Renderer::drawRtsm(Tempest::Encoder<Tempest::CommandBuffer>& cmd, WorldView
 
   // position
   {
+    struct Push { Vec3 originLwc; } push = {};
+    push.originLwc = scene.originLwc;
+
+    cmd.setPushData(push);
     cmd.setBinding(0, rtsm.posList);
     cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, rtsm.visList);
@@ -1379,8 +1383,11 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     const auto ptiles = tileCount(zbuffer.size(), RTSM_LIGHT_TILE);
     if(rtsm.primTilesOmni.size()!=ptiles) {
       Resources::recycle(std::move(rtsm.primTilesOmni));
-      rtsm.primTilesOmni = device.image2d(TextureFormat::RG32U, ptiles);
+      rtsm.primTilesOmni = device.image2d(TextureFormat::R32U, ptiles);
       }
+
+    if(rtsm.drawTasks.isEmpty())
+      rtsm.drawTasks = device.ssbo(nullptr, 4*sizeof(uint32_t));
   }
 
   cmd.setDebugMarker("RTSM-rendering-omni");
@@ -1467,6 +1474,10 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
 
   // position
   {
+    struct Push { Vec3 originLwc; } push = {};
+    push.originLwc = scene.originLwc;
+
+    cmd.setPushData(push);
     cmd.setBinding(0, rtsm.posList);
     cmd.setBinding(1, sceneUbo);
     cmd.setBinding(2, rtsm.visList);
@@ -1517,16 +1528,21 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.setBinding(5, wview.lights().lightsSsbo());
     cmd.setBinding(6, rtsm.lightBins);
     cmd.setBinding(7, rtsm.primTilesOmni);
+    cmd.setBinding(8, rtsm.drawTasks);
     cmd.setBinding(9, rtsm.dbg64);
 
+    cmd.setPipeline(shaders.rtsmTaskOmni);
+    cmd.dispatch(1);
+
     cmd.setPipeline(shaders.rtsmPrimOmni);
-    cmd.dispatch(rtsm.primTilesOmni.size());
+    cmd.dispatchIndirect(rtsm.drawTasks, 0);
   }
 
   // raster
   {
     struct Push { Vec3 originLwc; } push = {};
     push.originLwc = scene.originLwc;
+
     cmd.setPushData(push);
     cmd.setBinding(0, rtsm.outputImageClr);
     cmd.setBinding(1, sceneUbo);

@@ -9,7 +9,7 @@
 #include "scene.glsl"
 #include "rtsm/rtsm_common.glsl"
 
-layout(local_size_x = 512) in;
+layout(local_size_x = 256) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
 
@@ -24,24 +24,25 @@ layout(binding = 3)         uniform  texture2D  depth;
 layout(binding = 4, std430)          buffer Pos { uint  alloc; uint    data[]; } pos;
 layout(binding = 5, std430) readonly buffer Lbo { LightSource lights[];        };
 layout(binding = 6)         uniform  utexture2D lightBins;
-layout(binding = 7, rg32ui) uniform  uimage2D   primTiles;
+layout(binding = 7, r32ui)  uniform  uimage2D   primTiles;
+layout(binding = 8, std430) readonly buffer Dr  { uvec4 drawTasks;             };
 
 #if defined(DEBUG_IMG)
 layout(binding = 9, r32ui)  uniform  uimage2D   dbgImage;
 #endif
 
 shared uint dbgCounter;
-void imageDbg(uint info) {
+
+void imageDbg(ivec2 at, uint info) {
 #if defined(DEBUG_IMG)
-  imageStore(dbgImage, ivec2(gl_WorkGroupID.xy), uvec4(info));
+  imageStore(dbgImage, at, uvec4(info));
 #endif
   }
 
 #include "rtsm/rtsm_scratch.glsl"
 
-shared uint numLights;
 shared uint numPrimitives;
-shared uint primitives[2048];
+shared uint primitives[1536];
 
 shared uint primListPtr;
 
@@ -49,16 +50,6 @@ ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
 
 //const ivec2 TileSize = ivec2(RTSM_SMALL_TILE);
 const ivec2 TileSize = ivec2(RTSM_LIGHT_TILE);
-
-uvec2 pullTileData() {
-  return texelFetch(lightTiles, ivec2((gl_WorkGroupID.xy*TileSize)/RTSM_LIGHT_TILE), 0).xy;
-  }
-
-void storeBin(ivec2 at, uint ptr, uint num) {
-  if(gl_LocalInvocationIndex!=0)
-    return;
-  imageStore(primTiles, at, uvec4(ptr,num,0,0));
-  }
 
 uint packPrimitiveId(uint meshlet, uint prim) {
   return (meshlet << 8) | prim;
@@ -166,48 +157,24 @@ void processPrimitives(const uint tilePtr, const uint inPrimitives, const LightS
     }
   }
 
-void processLight(const uint lightId, const uint tilePtr, const uint inPrimitives) {
+void processLight(const LightSource src, const uint tilePtr, const uint inPrimitives) {
   const uint laneID = gl_LocalInvocationIndex;
-
-  const LightSource src = lights[lightId];
-
-  const uint prevPtr = primListPtr;
-  const uint prevNum = numPrimitives;
-  barrier();
 
   processPrimitives(tilePtr, inPrimitives, src, true);
   barrier();
 
-  if(laneID==0) {
-    primListPtr   = allocScratch(numPrimitives+4+5);
-    if(primListPtr!=NULL) {
-      uint ptr = primListPtr;
-      pos.data[ptr + 0] = floatBitsToUint(src.pos.x);
-      pos.data[ptr + 1] = floatBitsToUint(src.pos.y);
-      pos.data[ptr + 2] = floatBitsToUint(src.pos.z);
-      pos.data[ptr + 3] = floatBitsToUint(src.range);
-
-      ptr += 4;
-      ptr += numPrimitives;
-      pos.data[ptr + 0] = floatBitsToUint(src.color.r);
-      pos.data[ptr + 1] = floatBitsToUint(src.color.g);
-      pos.data[ptr + 2] = floatBitsToUint(src.color.b);
-      pos.data[ptr + 3] = prevPtr;
-      pos.data[ptr + 4] = prevNum;
-      }
-    atomicAdd(numLights, 1);
-    }
+  if(laneID==0)
+    primListPtr = allocScratch(numPrimitives+5+4);
   barrier();
 
   if(primListPtr==NULL) {
     // OOM
-    numPrimitives = BIN_BAD_BIT;
     return;
     }
 
   if(numPrimitives<primitives.length()) {
     for(uint i=laneID; i<numPrimitives; i+=NumThreads)
-      pos.data[primListPtr + i + 4] = primitives[i];
+      pos.data[primListPtr + i + 5] = primitives[i];
     return;
     }
   barrier();
@@ -215,37 +182,50 @@ void processLight(const uint lightId, const uint tilePtr, const uint inPrimitive
   processPrimitives(tilePtr, inPrimitives, src, false);
   }
 
-void main() {
-  const uint  laneID  = gl_LocalInvocationIndex;
-  const uvec2 tile    = pullTileData();
-  const uint  lptr    = tile.x;
-  const uint  nLights = tile.y;
-
-  if(nLights==0) {
-    storeBin(ivec2(gl_WorkGroupID.xy), NULL, 0);
-    imageDbg(0);
+void insertToList(const LightSource src, ivec2 at) {
+  const uint laneID = gl_LocalInvocationIndex;
+  if(laneID!=0)
+    return;
+  if(primListPtr==NULL) {
+    imageAtomicExchange(primTiles, at, BIN_BAD_BIT);
     return;
     }
 
-  dbgCounter = 0;
-  numLights  = 0;
+  const uint prevPtr = imageAtomicExchange(primTiles, at, primListPtr);
 
-  primListPtr   = NULL;
-  numPrimitives = 0;
+  uint ptr = primListPtr;
+  pos.data[ptr + 0] = floatBitsToUint(src.pos.x);
+  pos.data[ptr + 1] = floatBitsToUint(src.pos.y);
+  pos.data[ptr + 2] = floatBitsToUint(src.pos.z);
+  pos.data[ptr + 3] = floatBitsToUint(src.range);
+  pos.data[ptr + 4] = numPrimitives;
+
+  ptr += 5;
+  ptr += numPrimitives;
+  pos.data[ptr + 0] = floatBitsToUint(src.color.r);
+  pos.data[ptr + 1] = floatBitsToUint(src.color.g);
+  pos.data[ptr + 2] = floatBitsToUint(src.color.b);
+  pos.data[ptr + 3] = prevPtr;
+  }
+
+void main() {
+  const uint  laneID  = gl_LocalInvocationIndex;
+  const uint  taskPtr = drawTasks.w + gl_WorkGroupID.x*2;
+
+  const ivec2 tile    = ivec2(unpackUInt2x16(pos.data[taskPtr + 0]));
+  const uint  lptr    = pos.data[taskPtr + 1];
+  const uint  lId     = pos.data[lptr];
+  const uvec2 lTile   = texelFetch(lightBins, ivec2(lId,0), 0).xy;
+
+  rayBboxes(lptr);
   barrier();
 
-  for(uint i=0; i<nLights; ++i) {
-    const uint  lId   = pos.data[lptr + i*sizeof_Light];
-    const uvec2 lTile = texelFetch(lightBins, ivec2(lId,0), 0).xy;
+  LightSource src = lights[lId];
+  src.pos -= push.originLwc;
 
-    rayBboxes(lptr + i*sizeof_Light);
-    barrier();
+  processLight(src, lTile.x, lTile.y);
+  barrier();
 
-    processLight(lId, lTile.x, lTile.y);
-    barrier();
-    }
-
-  storeBin(ivec2(gl_WorkGroupID.xy), primListPtr, numPrimitives);
-  imageDbg(dbgCounter);
-  //imageDbg(numLights);
+  insertToList(src, ivec2(tile));
+  imageDbg(tile, numPrimitives);
   }

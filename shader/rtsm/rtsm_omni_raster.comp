@@ -42,19 +42,15 @@ void imageDbg(uint info) {
 
 #define CONST_SCRATCH 1
 #include "rtsm/rtsm_scratch.glsl"
-#include "rtsm/rtsm_omni_bboxes.glsl"
 
 const float minOpacity = 0.49/255.0;
 
-ivec2 fragCoord = ivec2(gl_GlobalInvocationID.xy);
-vec3  light     = vec3(0);
+ivec2 fragCoord  = ivec2(gl_GlobalInvocationID.xy);
+vec3  lightTotal = vec3(0);
 
 uint primCnt = 0; //counter
 
-uvec2 pullTileData() {
-  return texelFetch(primTiles, ivec2((gl_GlobalInvocationID.xy)/RTSM_LIGHT_TILE), 0).xy;
-  }
-
+//
 vec2 interpolateUV(vec3 bc, vec2 a, vec2 b, vec2 c) {
   const float u = dot(vec3(a.x,b.x,c.x), bc);
   const float v = dot(vec3(a.y,b.y,c.y), bc);
@@ -73,7 +69,7 @@ float sampleAlpha(const uint bucketId, vec2 uv, float lodBias) {
   return textureLod(sampler2D(textureMain[nonuniformEXT(bucketId)], samplerMain), uv, lodBias).a;
   }
 
-vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 v0, const vec3 e1, const vec3 e2) {
+vec3 rayTriangleTest(const vec3 raydir, const vec3 v0, const vec3 e1, const vec3 e2) {
   const vec3  s1    = cross(raydir, e2);
   const float denom = dot(s1, e1);
 
@@ -81,7 +77,7 @@ vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 v0, const 
     return vec3(-1);
 
   const float invDemom = 1.0 / denom;
-  const vec3  d        = origin - v0;
+  const vec3  d        = -v0;
   const vec3  s2       = cross(d, e1);
 
   const float u = dot(d,      s1) * invDemom;
@@ -93,6 +89,66 @@ vec3 rayTriangleTest(const vec3 origin, const vec3 raydir, const vec3 v0, const 
 
   float t0 = dot(e2, s2) * invDemom;
   return vec3(t0, u, v);
+  }
+
+// primitive culling
+shared uint  numPlanes;
+shared uint  planeFace[6];
+shared uvec4 planeBbox[6];
+
+void rayBboxses(const vec3 ray, bool activeRay) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  numPlanes = 0;
+  if(laneID<planeBbox.length())
+    planeBbox[laneID] = uvec4(0xFFFFFFFF, 0xFFFFFFFF, 0, 0);
+  barrier();
+
+  if(activeRay) {
+    const uint face = rayToFace(ray);
+    const vec2 rf   = rayToFace(ray, face);
+    atomicMin(planeBbox[face].x, floatToOrderedUint(rf.x));
+    atomicMin(planeBbox[face].y, floatToOrderedUint(rf.y));
+    atomicMax(planeBbox[face].z, floatToOrderedUint(rf.x));
+    atomicMax(planeBbox[face].w, floatToOrderedUint(rf.y));
+    }
+  barrier();
+
+  if(laneID<planeBbox.length()) {
+    const uint  face  = laneID;
+    const uvec4 iaabb = planeBbox[face];
+    if(iaabb.x>=iaabb.z || iaabb.y>=iaabb.w) {
+      // degenerated bbox
+      return;
+      }
+    const vec4 aabb = orderedUintToFloat(iaabb);
+    const uint id = atomicAdd(numPlanes, 1);
+    planeBbox[id] = floatBitsToUint(aabb);
+    planeFace[id] = laneID;
+    }
+  }
+
+bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c, const vec4 aabb, uint face) {
+  a = vecToFace(a, face);
+  b = vecToFace(b, face);
+  c = vecToFace(c, face);
+  if(a.x < aabb.x*a.z && b.x < aabb.x*b.z && c.x < aabb.x*c.z)
+    return false;
+  if(a.x > aabb.z*a.z && b.x > aabb.z*b.z && c.x > aabb.z*c.z)
+    return false;
+  if(a.y < aabb.y*a.z && b.y < aabb.y*b.z && c.y < aabb.y*c.z)
+    return false;
+  if(a.y > aabb.w*a.z && b.y > aabb.w*b.z && c.y > aabb.w*c.z)
+    return false;
+  return true;
+  }
+
+bool isPrimitiveVisible(vec3 a, vec3 b, vec3 c) {
+  for(uint i=0; i<numPlanes; ++i) {
+    if(isPrimitiveVisible(a, b, c, uintBitsToFloat(planeBbox[i]), planeFace[i]))
+      return true;
+    }
+  return false;
   }
 
 // ray related
@@ -116,9 +172,9 @@ float lightIntensity(const vec3 normal, const float distance, const vec3 ldir, c
   }
 
 const  uint  MaxChunk = NumThreads/2;
-shared vec4  meshVertices   [MaxChunk][3];
+shared vec4  meshVertices   [MaxChunk*3];
 shared uint  primitiveBucket[MaxChunk];
-shared uint  numLocalPrim;
+shared uint  numLocalPrimM3;
 void pullPrimitives(const vec3 origin, const uint pkg) {
   const uint  laneID = gl_LocalInvocationIndex;
 
@@ -129,55 +185,57 @@ void pullPrimitives(const vec3 origin, const uint pkg) {
   const uint  ptrV = ptr + MeshletHeaderSize + MaxPrim;
 
   //FIXME: register pressure
-  const vec3 a = pullVertex(ptrV, tri.x);
-  const vec3 b = pullVertex(ptrV, tri.y);
-  const vec3 c = pullVertex(ptrV, tri.z);
+  const vec3 a = pullVertex(ptrV, tri.x) - origin;
+  const vec3 b = pullVertex(ptrV, tri.y) - origin;
+  const vec3 c = pullVertex(ptrV, tri.z) - origin;
 
-  if(!isPrimitiveVisible(origin,a,b,c))
+  if(!isPrimitiveVisible(a,b,c))
     return;
 
-  const uint  id       = atomicAdd(numLocalPrim, 1);
-  primitiveBucket[id]  = bkg;
+  const uint id         = atomicAdd(numLocalPrimM3, 3);
+  primitiveBucket[id/3] = bkg;
 
-  meshVertices[id][0].xyz = a;
-  meshVertices[id][1].xyz = b - a;
-  meshVertices[id][2].xyz = c - a;
+  meshVertices[id+0].xyz = a;
+  meshVertices[id+1].xyz = b - a;
+  meshVertices[id+2].xyz = c - a;
 
 #if TRANSLUCENCY
+  if((bkg & BK_SOLID)!=0) {
+    return;
+    }
   //NOTE: use vec4 to WA on https://github.com/KhronosGroup/SPIRV-Cross/issues/2494
-  meshVertices[id][0].w  = uintBitsToFloat(pullVertexUV(ptrV, tri.x));
-  meshVertices[id][1].w  = uintBitsToFloat(pullVertexUV(ptrV, tri.y));
-  meshVertices[id][2].w  = uintBitsToFloat(pullVertexUV(ptrV, tri.z));
+  meshVertices[id+0].w  = uintBitsToFloat(pullVertexUV(ptrV, tri.x));
+  meshVertices[id+1].w  = uintBitsToFloat(pullVertexUV(ptrV, tri.y));
+  meshVertices[id+2].w  = uintBitsToFloat(pullVertexUV(ptrV, tri.z));
 #endif
   }
 
-shared uint inactiveRays;
-float rasterBatch(const vec3 origin, const vec3 dir, const float tMax, float opacity) {
+float rasterBatch(const vec3 dir, const float tMax, float opacity) {
   const float tMin = 30;
 
   const uint laneID = gl_LocalInvocationIndex;
   if(opacity<=minOpacity)
     return opacity;
 
-  for(uint id=0; id<numLocalPrim; ++id) {
-    const vec3  a  = meshVertices[id][0].xyz;
-    const vec3  e1 = meshVertices[id][1].xyz;
-    const vec3  e2 = meshVertices[id][2].xyz;
-    const vec3  rt = rayTriangleTest(origin, dir, a, e1, e2);
+  for(uint id=0; id<numLocalPrimM3; id+=3) {
+    const vec3  a  = meshVertices[id+0].xyz;
+    const vec3  e1 = meshVertices[id+1].xyz;
+    const vec3  e2 = meshVertices[id+2].xyz;
+    const vec3  rt = rayTriangleTest(dir, a, e1, e2);
 
     const float t  = rt.x;
     if(!(tMin<t && t<tMax))
       continue;
 #if TRANSLUCENCY
-    const uint flags = primitiveBucket[id];
+    const uint flags = primitiveBucket[id/3];
     if((flags & BK_SOLID)!=0) {
       opacity = 0;
       break;
       }
     const vec3  bc       = vec3(1-rt.y-rt.z, rt.y, rt.z);
-    const vec2  uv       = interpolateUV(bc, meshVertices[id][0].w, meshVertices[id][1].w, meshVertices[id][2].w);
+    const vec2  uv       = interpolateUV(bc, meshVertices[id+0].w, meshVertices[id+1].w, meshVertices[id+2].w);
     const float lodBias  = 0;
-    const uint  bucketId = primitiveBucket[id] >> 16;
+    const uint  bucketId = flags >> 16;
     const float alpha    = sampleAlpha(bucketId, uv, lodBias);
     opacity *= (1.0-alpha);
     if(opacity<=minOpacity)
@@ -191,11 +249,13 @@ float rasterBatch(const vec3 origin, const vec3 dir, const float tMax, float opa
   return opacity;
   }
 
+shared uint inactiveRays;
 bool earlyOut() {
   return inactiveRays==NumThreads;
   }
 
-void setupLight(uint ptr, const vec3 wpos, const vec3 normal, out vec3 origin, out float lightPower) {
+shared vec3 lightOrigin;
+void setupLight(uint ptr, const vec3 wpos, const vec3 normal, out float lightPower) {
   vec4 src;
   src.x = uintBitsToFloat(pos.data[ptr + 0]);
   src.y = uintBitsToFloat(pos.data[ptr + 1]);
@@ -206,7 +266,7 @@ void setupLight(uint ptr, const vec3 wpos, const vec3 normal, out vec3 origin, o
   const float tMax     = length(distance);
   const vec3  ldir     = distance/tMax;
   lightPower           = lightIntensity(normal, tMax, ldir, src.w);
-  origin               = src.xyz;
+  lightOrigin          = src.xyz;
 
   inactiveRays = 0;
   rayBboxses(ldir, lightPower>0);
@@ -223,35 +283,32 @@ void resolveLight(uint ptr, const float lightPower) {
   clr.r = uintBitsToFloat(pos.data[ptr + 0]);
   clr.g = uintBitsToFloat(pos.data[ptr + 1]);
   clr.b = uintBitsToFloat(pos.data[ptr + 2]);
-  light += clr*lightPower;
+  lightTotal += clr*lightPower;
   }
 
-void processAll(const uvec2 tileHeader, const bool valid) {
-  if((tileHeader.y&BIN_BAD_BIT)!=0) {
+void processAll(const uint tilePtr, const bool valid) {
+  if((tilePtr&BIN_BAD_BIT)!=0) {
     // error - emit 4x4 grid to display
     ivec2 tile = fragCoord/4;
-    light = (tile.x+tile.y)%2==0 ? vec3(0,0,1) : vec3(0);
+    lightTotal = (tile.x+tile.y)%2==0 ? vec3(0,0,1) : vec3(0);
     return;
     }
 
-  if(tileHeader.x==NULL) {
-    light = vec3(0.0);
+  if(tilePtr==NULL) {
     return;
     }
 
   const uint  laneID = gl_LocalInvocationIndex;
   const vec3  normal = valid ? normalFetch(gbufNormal, fragCoord) : vec3(0); //6
   const float z      = valid ? texelFetch(depth, fragCoord, 0).x  : 1.0;
-  const vec3  wpos   = rayOrigin(fragCoord.xy, z, normal) + push.originLwc;
+  const vec3  wpos   = rayOrigin(fragCoord.xy, z, normal);
 
-  light               = vec3(0);
-  vec3  origin        = vec3(0); //4
   float lightPower    = 0;
-  setupLight(tileHeader.x, wpos, normal, origin, lightPower);
+  setupLight(tilePtr, wpos, normal, lightPower);
   barrier();
 
-  uint  chunkPtr      = tileHeader.x + 4; //2
-  uint  numPrimitives = tileHeader.y;
+  uint  numPrimitives = pos.data[tilePtr + 4] & 0xFFFF;
+  uint  chunkPtr      = tilePtr + 5;
 
   for(uint s=0;;) {
     if(s >= numPrimitives || earlyOut()) {
@@ -259,53 +316,55 @@ void processAll(const uvec2 tileHeader, const bool valid) {
       resolveLight(chunkPtr, lightPower);
 
       const uint nextPtr  = pos.data[chunkPtr + 3];
-      const uint nextPrim = pos.data[chunkPtr + 4];
       if(nextPtr==NULL)
         break;
 
       barrier(); // make sure that `inactiveRays` can be reset
 
-      setupLight(nextPtr, wpos, normal, origin, lightPower);
+      setupLight(nextPtr, wpos, normal, lightPower);
       barrier();
 
-      chunkPtr      = nextPtr + 4;
-      numPrimitives = nextPrim & 0xFFFF;
+      numPrimitives = pos.data[nextPtr + 4] & 0xFFFF;
+      chunkPtr      = nextPtr + 5;
       s             = 0;
       continue;
       // break;
       }
 
-    numLocalPrim = 0;
+    numLocalPrimM3 = 0;
     barrier();
 
     const uint i = s + laneID;
     if(i<numPrimitives && laneID<MaxChunk) {
       const uint ptr  = pos.data[chunkPtr + i];
-      pullPrimitives(origin, ptr);
+      pullPrimitives(lightOrigin, ptr);
       }
     barrier();
 
-    primCnt += numLocalPrim;
+    primCnt += numLocalPrimM3/3;
 
-    const vec3  distance = wpos - origin;
+    const vec3  distance = wpos - lightOrigin;
     const float tMax     = length(distance);
     const vec3  ldir     = distance/tMax;
-    lightPower = rasterBatch(origin, ldir, tMax, lightPower);
+    lightPower = rasterBatch(ldir, tMax, lightPower);
     barrier();
 
     s+=MaxChunk;
     }
   }
 
-void main() {
-  const ivec2 size   = textureSize(depth, 0);
-  const bool  valid  = all(lessThan(fragCoord, size));
+uint pullTileData() {
+  return texelFetch(primTiles, ivec2((gl_GlobalInvocationID.xy)/RTSM_LIGHT_TILE), 0).x;
+  }
 
-  const uvec2 tile   = pullTileData();
-  //processAllLights(tile, valid);
+void main() {
+  const ivec2 size  = textureSize(depth, 0);
+  const bool  valid = all(lessThan(fragCoord, size));
+  const uint  tile  = pullTileData();
+
   processAll(tile, valid);
 
   if(valid)
-    imageStore(outputImage, ivec2(fragCoord), vec4(light, 1));
+    imageStore(outputImage, ivec2(fragCoord), vec4(lightTotal, 1));
   imageDbg(primCnt);
   }

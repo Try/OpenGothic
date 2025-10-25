@@ -15,12 +15,11 @@ const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z
 
 layout(push_constant, std430) uniform UboPush {
   vec3  originLwc;
-  float znear;
   } push;
 layout(binding = 0)         uniform  utexture2D lightTiles;
 layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
 
-layout(binding = 4, std430)          buffer Pos { uint  alloc; uint    data[]; } pos;
+layout(binding = 4, std430) readonly buffer Pos { uint  alloc; uint    data[]; } pos;
 layout(binding = 5, std430) readonly buffer Lbo { LightSource lights[];        };
 layout(binding = 6, std430)          buffer VId { uvec4 count; LightId data[]; } vLights;
 

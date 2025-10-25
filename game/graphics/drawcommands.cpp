@@ -65,7 +65,7 @@ DrawCommands::~DrawCommands() {
   }
 
 bool DrawCommands::isViewEnabled(SceneGlobals::VisCamera viewport) const {
-  if(viewport==SceneGlobals::V_Vsm && !(vsmSupported || scene.vsmEnabled))
+  if(viewport==SceneGlobals::V_Vsm && !(vsmSupported && scene.vsmEnabled))
     return false;
   if(viewport==SceneGlobals::V_Shadow0 && scene.shadowMap[0]->size()==Size(1,1))
     return false;

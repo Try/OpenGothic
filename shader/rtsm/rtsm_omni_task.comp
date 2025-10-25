@@ -1,0 +1,99 @@
+#version 450
+
+#extension GL_GOOGLE_include_directive    : enable
+#extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_EXT_control_flow_attributes : enable
+
+#include "common.glsl"
+#include "scene.glsl"
+#include "rtsm/rtsm_common.glsl"
+
+layout(local_size_x = 512) in;
+
+const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+
+layout(binding = 0)         uniform  utexture2D lightTiles;
+layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
+//
+layout(binding = 4, std430)          buffer Pos { uint  alloc; uint    data[]; } pos;
+layout(binding = 5, std430) readonly buffer Lbo { LightSource lights[];        };
+//
+layout(binding = 7, r32ui)  uniform  uimage2D   primTiles;
+layout(binding = 8, std430)          buffer Dr  { uvec4 drawTasks; };
+
+#include "rtsm/rtsm_scratch.glsl"
+
+uint firstLight = gl_WorkGroupID.x*NumThreads;
+
+shared uint numTasks;
+shared uint wPtr;
+
+uvec2 pullTileData(ivec2 at) {
+  return texelFetch(lightTiles, at, 0).xy;
+  }
+
+void processTile(ivec2 at, bool count) {
+  const uvec2 tile    = pullTileData(at);
+  const uint  lptr    = tile.x;
+  const uint  nLights = tile.y;
+
+  if(count) {
+    atomicAdd(numTasks, nLights);
+    return;
+    }
+
+  const uint ptr = wPtr + atomicAdd(numTasks, nLights)*2;
+  for(uint i=0; i<nLights; ++i) {
+    pos.data[ptr + i*2 + 0] = packUint2x16(at);
+    pos.data[ptr + i*2 + 1] = lptr + i*sizeof_Light;
+    }
+  }
+
+void processTiles(bool count) {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  ivec2 size = textureSize(lightTiles, 0);
+  uint  num  = size.x*size.y;
+
+  for(uint i=laneID; i<num; i+=NumThreads) {
+    processTile(ivec2(i%size.x, i/size.x), count);
+    }
+  }
+
+void clearPrimTiles() {
+  const uint laneID = gl_LocalInvocationIndex;
+  ivec2 size = textureSize(lightTiles, 0);
+  uint  num  = size.x*size.y;
+
+  for(uint i=laneID; i<num; i+=NumThreads) {
+    imageStore(primTiles, ivec2(i%size.x, i/size.x), uvec4(0));
+    }
+  }
+
+void main() {
+  const uint laneID = gl_LocalInvocationIndex;
+
+  numTasks = 0;
+  clearPrimTiles();
+  barrier();
+
+  processTiles(true);
+  barrier();
+
+  if(laneID==0) {
+    wPtr     = allocScratch(numTasks*2);
+    numTasks = 0;
+    }
+  barrier();
+
+  if(wPtr==NULL) {
+    drawTasks = uvec4(0, 1, 1, NULL);
+    return;
+    }
+
+  processTiles(false);
+  barrier();
+
+  drawTasks = uvec4(numTasks, 1, 1, wPtr);
+  }
