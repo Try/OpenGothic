@@ -233,7 +233,7 @@ void Interactive::tick(uint64_t dt) {
     // All other cases, oCMobFire, oCMobDoor in particular - preserve old state
     const int destSt = -1;
     for(auto& i:attPos) {
-      if(destSt!=state && i.started==Quit) {
+      if(destSt!=state && (i.started==Quit || rewind)) {
         if(!setAnim(nullptr,Anim::Out))
           return;
         setState(state-1);
