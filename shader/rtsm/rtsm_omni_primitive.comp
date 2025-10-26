@@ -152,7 +152,7 @@ void processPrimitives(const uint tilePtr, const uint inPrimitives, const LightS
       primitives[id] = packPrimitiveId(ptr, primId);
       }
     else if(!counting) {
-      pos.data[primListPtr + id + 4] = packPrimitiveId(ptr, primId);
+      pos.data[primListPtr + id + 5] = packPrimitiveId(ptr, primId);
       }
     }
   }
