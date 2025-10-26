@@ -42,8 +42,15 @@ MoveTrigger::MoveTrigger(Vob* parent, World& world, const zenkit::VMover& mover,
     float len   = Vec3(dx,dy,dz).length();
 
     if(speed>0) {
+      /*
+       * Distance between keyframe positions doesn't have to be exactly zero to use rotation speed,
+       * it seem there is some small threshold.
+       * Otherwise the boat close to Lares in L'Hiver mod would jump between two keyframes.
+       */
+      static const float rotationThreshold = 0.01f;
+
       uint64_t ticks = 0;
-      if(len>0)
+      if(len>rotationThreshold)
         ticks = uint64_t(len/speed); else
         ticks = uint64_t((angle/360.f) * 1000.f/scaleRotSpeed(speed));
       keyframes[i].ticks = std::max<uint64_t>(1,ticks);
