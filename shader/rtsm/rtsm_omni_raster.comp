@@ -210,8 +210,8 @@ void pullPrimitives(const vec3 origin, const uint pkg) {
 #endif
   }
 
-float rasterBatch(const vec3 dir, const float tMax, float opacity) {
-  const float tMin = 30;
+float rasterBatch(const vec3 dir, const float tMin, const float tMax, float opacity) {
+  //const float tMin = 0.15*tMax;
 
   const uint laneID = gl_LocalInvocationIndex;
   if(opacity<=minOpacity)
@@ -254,7 +254,7 @@ bool earlyOut() {
   return inactiveRays==NumThreads;
   }
 
-shared vec3 lightOrigin;
+shared vec4 lightOrigin;
 void setupLight(uint ptr, const vec3 wpos, const vec3 normal, out float lightPower) {
   vec4 src;
   src.x = uintBitsToFloat(pos.data[ptr + 0]);
@@ -266,7 +266,7 @@ void setupLight(uint ptr, const vec3 wpos, const vec3 normal, out float lightPow
   const float tMax     = length(distance);
   const vec3  ldir     = distance/tMax;
   lightPower           = lightIntensity(normal, tMax, ldir, src.w);
-  lightOrigin          = src.xyz;
+  lightOrigin          = src.xyzw;
 
   inactiveRays = 0;
   rayBboxses(ldir, lightPower>0);
@@ -337,16 +337,17 @@ void processAll(const uint tilePtr, const bool valid) {
     const uint i = s + laneID;
     if(i<numPrimitives && laneID<MaxChunk) {
       const uint ptr  = pos.data[chunkPtr + i];
-      pullPrimitives(lightOrigin, ptr);
+      pullPrimitives(lightOrigin.xyz, ptr);
       }
     barrier();
 
     primCnt += numLocalPrimM3/3;
 
-    const vec3  distance = wpos - lightOrigin;
+    const vec3  distance = wpos - lightOrigin.xyz;
+    const float tMin     = lightOrigin.w*0.04;
     const float tMax     = length(distance);
     const vec3  ldir     = distance/tMax;
-    lightPower = rasterBatch(ldir, tMax, lightPower);
+    lightPower = rasterBatch(ldir, tMin, tMax, lightPower);
     barrier();
 
     s+=MaxChunk;
