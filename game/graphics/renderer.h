@@ -45,6 +45,13 @@ class Renderer final {
 
     bool requiresTlas() const;
 
+    Tempest::StorageImage&  usesImage2d(Tempest::StorageImage& ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h, bool mips = false);
+    Tempest::StorageImage&  usesImage2d(Tempest::StorageImage& ret, Tempest::TextureFormat frm, Tempest::Size sz, bool mips = false);
+    Tempest::StorageImage&  usesImage3d(Tempest::StorageImage& ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h, uint32_t d, bool mips = false);
+    Tempest::ZBuffer&       usesZBuffer(Tempest::ZBuffer&      ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h);
+    Tempest::StorageBuffer& usesSsbo(Tempest::StorageBuffer& ret, size_t size);
+    Tempest::StorageBuffer& usesScratch(Tempest::StorageBuffer& ret, size_t size);
+
     void prepareUniforms();
     void resetShadowmap();
     void resetSkyFog();
@@ -218,10 +225,6 @@ class Renderer final {
 
     struct {
       Tempest::StorageImage     outputImage;
-      } swr;
-
-    struct {
-      Tempest::StorageImage     outputImage;
       Tempest::StorageImage     outputImageClr;
 
       Tempest::StorageImage     pages;
@@ -236,8 +239,12 @@ class Renderer final {
       Tempest::StorageImage     lightTiles;
       Tempest::StorageImage     lightBins, primTilesOmni;
 
-      Tempest::StorageImage     dbg64, dbg, dbg16, dbg8;
+      Tempest::StorageImage     dbg64, dbg32, dbg16, dbg8;
       } rtsm;
+
+    struct {
+      Tempest::StorageImage     outputImage;
+      } swr;
 
     struct {
       Tempest::StorageImage     outputImage;
