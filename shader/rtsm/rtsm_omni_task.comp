@@ -12,6 +12,7 @@
 layout(local_size_x = 512) in;
 
 const uint NumThreads = gl_WorkGroupSize.x*gl_WorkGroupSize.y*gl_WorkGroupSize.z;
+const uint sizeof_Task = 2;
 
 layout(binding = 0)         uniform  utexture2D lightTiles;
 layout(binding = 1, std140) uniform  UboScene   { SceneDesc scene; };
@@ -43,10 +44,10 @@ void processTile(ivec2 at, bool count) {
     return;
     }
 
-  const uint ptr = wPtr + atomicAdd(numTasks, nLights)*2;
+  const uint ptr = wPtr + atomicAdd(numTasks, nLights)*sizeof_Task;
   for(uint i=0; i<nLights; ++i) {
-    pos.data[ptr + i*2 + 0] = packUint2x16(at);
-    pos.data[ptr + i*2 + 1] = lptr + i*sizeof_Light;
+    pos.data[ptr + i*sizeof_Task + 0] = packUint2x16(at);
+    pos.data[ptr + i*sizeof_Task + 1] = lptr + i*sizeof_Light;
     }
   }
 
@@ -82,7 +83,7 @@ void main() {
   barrier();
 
   if(laneID==0) {
-    wPtr     = allocScratch(numTasks*2);
+    wPtr     = allocScratch(numTasks*sizeof_Task);
     numTasks = 0;
     }
   barrier();

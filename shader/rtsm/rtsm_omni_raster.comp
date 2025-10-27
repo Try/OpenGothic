@@ -266,7 +266,7 @@ void setupLight(uint ptr, const vec3 wpos, const vec3 normal, out float lightPow
   const float tMax     = length(distance);
   const vec3  ldir     = distance/tMax;
   lightPower           = lightIntensity(normal, tMax, ldir, src.w);
-  lightOrigin          = src.xyzw;
+  lightOrigin          = vec4(src.xyz, src.w*0.0375); // position and tMin
 
   inactiveRays = 0;
   rayBboxses(ldir, lightPower>0);
@@ -344,7 +344,7 @@ void processAll(const uint tilePtr, const bool valid) {
     primCnt += numLocalPrimM3/3;
 
     const vec3  distance = wpos - lightOrigin.xyz;
-    const float tMin     = lightOrigin.w*0.04;
+    const float tMin     = lightOrigin.w;
     const float tMax     = length(distance);
     const vec3  ldir     = distance/tMax;
     lightPower = rasterBatch(ldir, tMin, tMax, lightPower);
