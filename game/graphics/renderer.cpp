@@ -319,7 +319,7 @@ bool Renderer::requiresTlas() const {
   }
 
 StorageImage& Renderer::usesImage3d(Tempest::StorageImage& ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h, uint32_t d, bool mips) {
-  if(ret.format()==frm && ret.w()==w && ret.h()==h && ret.d()==d && (ret.mipCount()>1)==mips)
+  if(ret.format()==frm && uint32_t(ret.w())==w && uint32_t(ret.h())==h && uint32_t(ret.d())==d && bool(ret.mipCount()>1)==mips)
     return ret;
   Resources::recycle(std::move(ret));
   ret = Resources::device().image3d(frm, w, h, d, mips);
@@ -327,7 +327,7 @@ StorageImage& Renderer::usesImage3d(Tempest::StorageImage& ret, Tempest::Texture
   }
 
 StorageImage& Renderer::usesImage2d(Tempest::StorageImage& ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h, bool mips) {
-  if(ret.format()==frm && ret.w()==w && ret.h()==h && ret.d()==1 && (ret.mipCount()>1)==mips)
+  if(ret.format()==frm && uint32_t(ret.w())==w && uint32_t(ret.h())==h && ret.d()==1 && bool(ret.mipCount()>1)==mips)
     return ret;
   Resources::recycle(std::move(ret));
   ret = Resources::device().image2d(frm, w, h, mips);
@@ -343,7 +343,7 @@ StorageImage& Renderer::usesImage2d(Tempest::StorageImage& ret, Tempest::Texture
   }
 
 ZBuffer& Renderer::usesZBuffer(Tempest::ZBuffer& ret, Tempest::TextureFormat frm, uint32_t w, uint32_t h) {
-  if(textureCast<Texture2d&>(ret).format()==frm && ret.w()==w && ret.h()==h)
+  if(textureCast<Texture2d&>(ret).format()==frm && uint32_t(ret.w())==w && uint32_t(ret.h())==h)
     return ret;
   Resources::recycle(std::move(ret));
   ret = Resources::device().zbuffer(frm, w, h);
