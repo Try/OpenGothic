@@ -1337,16 +1337,17 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   const auto& instanceSsbo = wview.instanceSsbo();
   const auto& lightsSsbo   = wview.lights().lightsSsbo();
   const auto  maxMeshlets  = drawCmd.maxMeshlets();
+  const auto  lightsTotal  = uint32_t(wview.lights().size());
 
   // alloc resources, for omni-lights
   auto& posList        = usesScratch(rtsm.posList,        64*1024*1024); // arbitrary
   auto& outputImageClr = usesImage2d(rtsm.outputImageClr, TextureFormat::R11G11B10UF, zbuffer.size());
   auto& lightTiles     = usesImage2d(rtsm.lightTiles,     TextureFormat::RG32U, tileCount(scene.zbuffer->size(), RTSM_LIGHT_TILE));
-  auto& visibleLights  = usesSsbo   (rtsm.visibleLights,  shaders.rtsmClearOmni.sizeofBuffer(1, wview.lights().size()));
-  auto& lightBins      = usesImage2d(rtsm.lightBins,      TextureFormat::RG32U, uint32_t(wview.lights().size()), 1u);
+  auto& lightBins      = usesImage2d(rtsm.lightBins,      TextureFormat::RG32U, lightsTotal, 1u);
   auto& primTilesOmni  = usesImage2d(rtsm.primTilesOmni,  TextureFormat::R32U, tileCount(zbuffer.size(), RTSM_LIGHT_TILE));
   auto& drawTasks      = usesSsbo   (rtsm.drawTasks,      4*sizeof(uint32_t));
-  auto& visList        = usesSsbo   (rtsm.visList, shaders.rtsmClear.sizeofBuffer(1, maxMeshlets));
+  auto& visList        = usesSsbo   (rtsm.visList,        shaders.rtsmClearOmni.sizeofBuffer(1, maxMeshlets));
+  auto& visibleLights  = usesSsbo   (rtsm.visibleLights,  shaders.rtsmClearOmni.sizeofBuffer(2, lightsTotal));
 
   auto& dbg64          = usesImage2d(rtsm.dbg64, TextureFormat::R32U, tileCount(zbuffer.size(), 64));
   auto& dbg16          = usesImage2d(rtsm.dbg16, TextureFormat::R32U, tileCount(zbuffer.size(), 16));
@@ -1370,7 +1371,7 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
   {
     struct Push { float znear; uint32_t lightsTotal; } push = {};
     push.znear       = scene.znear;
-    push.lightsTotal = uint32_t(wview.lights().size());
+    push.lightsTotal = lightsTotal;
 
     cmd.setPushData(push);
     cmd.setBinding(0, sceneUbo);
@@ -1382,7 +1383,7 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.setBinding(6, posList);
 
     cmd.setPipeline(shaders.rtsmCullLights);
-    cmd.dispatchThreads(wview.lights().size());
+    cmd.dispatchThreads(lightsTotal);
   }
 
   // lights
@@ -1412,7 +1413,7 @@ void Renderer::drawRtsmOmni(Tempest::Encoder<Tempest::CommandBuffer>& cmd, World
     cmd.dispatch(lightTiles.size());
 
     cmd.setPipeline(shaders.rtsmCompactLights);
-    cmd.dispatchThreads(wview.lights().size());
+    cmd.dispatchThreads(lightsTotal);
   }
 
   // meshlet culling
