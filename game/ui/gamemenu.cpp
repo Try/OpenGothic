@@ -1238,7 +1238,8 @@ void GameMenu::setPlayer(const Npc &pl) {
   set("MENU_ITEM_ATTRIBUTE_3", pl.attribute(ATR_MANA),      pl.attribute(ATR_MANAMAX));
   set("MENU_ITEM_ATTRIBUTE_4", pl.attribute(ATR_HITPOINTS), pl.attribute(ATR_HITPOINTSMAX));
 
-  set("MENU_ITEM_ARMOR_1",     pl.protection(PROT_EDGE));
+  set("MENU_ITEM_ARMOR_11",    pl.protection(PROT_EDGE));
+  set("MENU_ITEM_ARMOR_1",     pl.protection(PROT_BLUNT));
   set("MENU_ITEM_ARMOR_2",     pl.protection(PROT_POINT)); // not sure about it
   set("MENU_ITEM_ARMOR_3",     pl.protection(PROT_FIRE));
   set("MENU_ITEM_ARMOR_4",     pl.protection(PROT_MAGIC));
