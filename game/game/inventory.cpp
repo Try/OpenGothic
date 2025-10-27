@@ -552,8 +552,9 @@ void Inventory::equipBestRangedWeapon(Npc &owner) {
   }
 
 void Inventory::unequipWeapons(GameScript &, Npc &owner) {
-  setSlot(melee,nullptr,owner,false);
-  setSlot(range,nullptr,owner,false);
+  setSlot(melee, nullptr,owner,false);
+  setSlot(range, nullptr,owner,false);
+  setSlot(shield,nullptr,owner,false);
   }
 
 void Inventory::unequipArmor(GameScript &, Npc &owner) {
