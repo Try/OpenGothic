@@ -16,6 +16,7 @@ Shaders* Shaders::instance = nullptr;
 
 Shaders::Shaders() {
   instance = this;
+  compileKeyShaders();
   deferredCompilation = std::async(std::launch::async, [this]() {
     Workers::setThreadName("Shader compilation");
     auto time = Application::tickCount();
@@ -38,6 +39,10 @@ void Shaders::waitCompiler() {
 Shaders& Shaders::inst() {
   instance->waitCompiler();
   return *instance;
+  }
+
+void Shaders::compileKeyShaders() {
+  bink = postEffect("bink");
   }
 
 void Shaders::compileShaders() {

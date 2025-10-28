@@ -59,6 +59,7 @@ class Video final {
 
     const FrameRate& fps() const { return fRate; }
 
+    const Frame& frame(uint8_t i) const { return frames[i];  };
     size_t       audioCount()     const { return aud.size(); }
     const Audio& audio(uint8_t i) const { return audProp[i]; }
 

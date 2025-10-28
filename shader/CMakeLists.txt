@@ -196,6 +196,7 @@ add_shader(item.vert                 inventory/item.vert)
 add_shader(item.frag                 inventory/item.frag)
 
 add_shader(stash.frag                stash.frag)
+add_shader(bink.frag                 bink/bink.frag)
 
 add_shader(direct_light.frag         lighting/direct_light.frag)
 add_shader(direct_light_sh.frag      lighting/direct_light.frag -DSHADOW_MAP)

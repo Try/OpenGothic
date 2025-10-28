@@ -37,6 +37,7 @@ class Shaders {
     Tempest::ComputePipeline patch;
     Tempest::RenderPipeline  copy;
     Tempest::RenderPipeline  stash;
+    Tempest::RenderPipeline  bink;
 
     Tempest::ComputePipeline ssao, ssaoBlur;
 
@@ -134,6 +135,7 @@ class Shaders {
       bool                    trivial      = false;
       };
 
+    void                     compileKeyShaders();
     void                     compileShaders();
 
     Tempest::RenderPipeline  postEffect(std::string_view name);
