@@ -390,6 +390,7 @@ enum Action:uint32_t {
 
 
 enum PercType : uint8_t {
+  PERC_None               = 0,
   // active perceptions
   PERC_ASSESSPLAYER       = 1,
   PERC_ASSESSENEMY        = 2,

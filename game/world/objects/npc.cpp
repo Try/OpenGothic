@@ -2718,7 +2718,7 @@ bool Npc::startState(ScriptFn id, std::string_view wp, gtime endTime, bool noFin
 
   {
     // ZS_GotoBed -> ZS_Sleep relie on clean state
-    for(size_t i=0;i<PERC_Count;++i)
+    for(size_t i=0; i<PERC_Count; ++i)
       setPerceptionDisable(PercType(i));
   }
 
