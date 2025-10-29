@@ -244,9 +244,9 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
   //   }
 
   // Disable some high-level functions, until basic stuff is done
-  vm.override_function("STOPALLSOUNDS", [](){});
-  vm.override_function("GETMASTERVOLUMESOUNDS", [](){ return 0; });
-  vm.override_function("R_DEFAULTINIT", [](){});
+  //vm.override_function("STOPALLSOUNDS", [](){});
+  //vm.override_function("GETMASTERVOLUMESOUNDS", [](){ return 0; });
+  //vm.override_function("R_DEFAULTINIT", [](){});
   }
 
 bool Ikarus::isRequired(zenkit::DaedalusScript& vm) {
@@ -525,7 +525,7 @@ int Ikarus::_takeref(int symbol) {
     }
   if(sym==nullptr)
     Log::e("Ikarus: _takeref - unable to resolve symbol"); else
-    Log::e("Ikarus: _takeref - unable to resolve addres");
+    Log::e("Ikarus: _takeref - unable to resolve address");
   return 0xBAD1000;
   }
 
