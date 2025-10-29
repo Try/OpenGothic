@@ -63,14 +63,15 @@ Mem32::ptr32_t Mem32::alloc(ptr32_t address, uint32_t size, const char* comment)
   return 0;
   }
 
-Mem32::ptr32_t Mem32::alloc(uint32_t size) {
+Mem32::ptr32_t Mem32::alloc(uint32_t size, const char* comment) {
   if(auto rgn = implAlloc(size)) {
     rgn->real = std::calloc(size,1);
     if(rgn->real==nullptr) {
       compactage();
       return 0;
       }
-    rgn->status = S_Allocated;
+    rgn->status  = S_Allocated;
+    rgn->comment = comment;
     return rgn->address;
     }
   return 0;
@@ -89,6 +90,20 @@ void Mem32::free(ptr32_t address) {
     return;
     }
   Log::e("mem_free: heap block wan't allocated by script: ", reinterpret_cast<void*>(uint64_t(address)));
+  }
+
+void* Mem32::deref(ptr32_t address, uint32_t size) {
+  auto rgn = translate(address);
+  if(rgn==nullptr) {
+    Log::e("deref: address translation failure: ", reinterpret_cast<void*>(uint64_t(address)));
+    return nullptr;
+    }
+  if(rgn->address+rgn->size < address+size) {
+    Log::e("deref: memmory block is too small: ", reinterpret_cast<void*>(uint64_t(address)), " ", size);
+    return nullptr;
+    }
+  address -= rgn->address;
+  return reinterpret_cast<uint8_t*>(rgn->real)+address;
   }
 
 void Mem32::compactage() {

@@ -1,8 +1,6 @@
 #pragma once
 
-#include <functional>
 #include <vector>
-#include <memory>
 
 class Mem32 {
   public:
@@ -15,12 +13,17 @@ class Mem32 {
     ptr32_t pin  (void* mem, ptr32_t address, uint32_t size, const char* comment = nullptr);
     ptr32_t pin  (void* mem, uint32_t size, const char* comment = nullptr);
 
-    ptr32_t alloc(uint32_t size);
+    ptr32_t alloc(uint32_t size, const char* comment = nullptr);
     ptr32_t alloc(ptr32_t address, uint32_t size, const char* comment = nullptr);
 
     void    free (ptr32_t at);
 
     ptr32_t realloc(ptr32_t address, uint32_t size);
+
+    void*   deref(ptr32_t address, uint32_t size);
+
+    template<class T>
+    T*      deref(ptr32_t address) { return reinterpret_cast<T*>(deref(address, sizeof(T))); }
 
     void    writeInt (ptr32_t address, int32_t v);
     int32_t readInt  (ptr32_t address);

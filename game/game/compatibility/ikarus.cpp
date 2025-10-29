@@ -25,6 +25,7 @@ enum {
   MEMINT_gameMan_Pointer_Address      = 9185624,  //0x8C2958
 
   MEMINT_SENDTOSPY_IMPLEMENTATION_ZERR_G2 = 9231568,
+  INV_MAX_ITEMS_ADDR = 8635508,
 
   OCNPC__ENABLE_EQUIPBESTWEAPONS = 7626662, //0x745FA6
   };
@@ -76,13 +77,22 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
 
   // built-in data with assumed address
   versionHint = 504628679; // G2
-  allocator.pin(&versionHint,   GothicFirstInstructionAddress, 4, "MEMINT_ReportVersionCheck");
-  allocator.pin(&oGame_Pointer, MEMINT_oGame_Pointer_Address,  4, "oGame*");
-  allocator.pin(&parserProxy,   ContentParserAddress,          sizeof(parserProxy), "zCParser proxy");
+  allocator.pin(&versionHint,   GothicFirstInstructionAddress,  4, "MEMINT_ReportVersionCheck");
+  allocator.pin(&oGame_Pointer, MEMINT_oGame_Pointer_Address,   4, "oGame*");
+  allocator.pin(&gameman_Ptr,   MEMINT_gameMan_Pointer_Address, 4, "GameMan*");
+  allocator.pin(&zTimer,        MEMINT_zTimer_Address,          sizeof(zTimer), "zTimer");
+  allocator.pin(&parserProxy,   ContentParserAddress,           sizeof(parserProxy), "zCParser proxy");
+  allocator.pin(&invMaxItems,   INV_MAX_ITEMS_ADDR,             4, "INV_MAX_ITEMS"); //TODO: callback memory
 
   // built-in data without assumed address
-  oGame_Pointer = allocator.pin(&gameProxy, sizeof(gameProxy), "oGame");
-  gameProxy._ZCSESSION_WORLD = allocator.alloc(148);
+  oGame_Pointer = allocator.pin(&memGame, sizeof(memGame), "oGame");
+  memGame._ZCSESSION_WORLD = allocator.alloc(sizeof(oWorld));
+  memGame.WLDTIMER         = 0x1235;
+
+  auto& mem_world = *allocator.deref<oWorld>(memGame._ZCSESSION_WORLD);
+  mem_world.WAYNET = 0x1234; //TODO: add implement some proxy to waynet
+
+  gameman_Ptr   = allocator.alloc(sizeof(GameMgr));
 
   symbolsPtr    = allocator.alloc(uint32_t(vm.symbols().size() * sizeof(zenkit::DaedalusSymbol)));
 
@@ -110,6 +120,15 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
   vm.override_function("ASM_Run",               [](int){});
   vm.override_function("ASM_RunOnce",           [](){});
 
+  // Floats
+  vm.override_function("MKF",    [](int i) { return mkf(i); });
+  vm.override_function("TRUNCF", [](int i) { return truncf(i); });
+  vm.override_function("ROUNDF", [](int i) { return roundf(i); });
+  vm.override_function("ADDF",   [](int a, int b) { return addf(a,b); });
+  vm.override_function("SUBF",   [](int a, int b) { return subf(a,b); });
+  vm.override_function("MULF",   [](int a, int b) { return mulf(a,b); });
+  vm.override_function("DIVF",   [](int a, int b) { return divf(a,b); });
+
   vm.override_function("MEMINT_SetupExceptionHandler", [this](){ mem_setupexceptionhandler(); });
   vm.override_function("MEMINT_ReplaceSlowFunctions",  [    ](){ });
   vm.override_function("MEM_GetAddress_Init",          [this](){ mem_getaddress_init(); });
@@ -136,12 +155,14 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
   vm.override_function("MEM_GetCommandLine",           [this](){ return mem_getcommandline(); });
 
   // ## Basic zCParser related functions ##
-  vm.override_function("MEM_GetIntAddress",   [this](int val)              { return _takeref(val);      });
   vm.override_function("MEM_PtrToInst",       [this](int address)          { return mem_ptrtoinst(ptr32_t(address)); });
-  vm.override_function("_@",                  [this](int val)              { return _takeref(val);     });
-  vm.override_function("_@s",                 [this](std::string_view val) { return _takeref_s(val);   });
-  vm.override_function("_@f",                 [this](float val)            { return _takeref_f(val);   });
   vm.override_function("_^",                  [this](int address)          { return mem_ptrtoinst(ptr32_t(address)); });
+  vm.override_function("MEM_GetIntAddress",   [this](int val)              { return _takeref(val);      });
+  vm.override_function("_@",                  [this](int val)              { return _takeref(val);     });
+  vm.override_function("MEM_GetStringAddress",[this](std::string_view val) { return _takeref_s(val);   });
+  vm.override_function("_@s",                 [this](std::string_view val) { return _takeref_s(val);   });
+  vm.override_function("MEM_GetFloatAddress", [this](float val)            { return _takeref_f(val);   });
+  vm.override_function("_@f",                 [this](float val)            { return _takeref_f(val);   });
 
   // ## MEM_Alloc and MEM_Free ##
   vm.override_function("MEM_Alloc",   [this](int amount )                      { return mem_alloc(amount);               });
@@ -167,9 +188,11 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
   vm.override_function("MEM_ModOptExists",         [this](std::string_view sec, std::string_view opt) { return mem_modoptexists(sec,opt);     });
   vm.override_function("MEM_SetGothOpt",           [this](std::string_view sec, std::string_view opt, std::string_view v) { return mem_setgothopt(sec,opt,v); });
 
-  vm.override_function("CALL__stdcall",  [this](int address){ call__stdcall(address); });
+  vm.override_function("CALL__thiscall", [this](int thisptr, int address){ call__thiscall(ptr32_t(thisptr), ptr32_t(address)); });
+  vm.override_function("CALL__stdcall",  [this](int address){ call__stdcall(ptr32_t(address)); });
   vm.override_function("HASH",           [this](int v){ return hash(v); });
 
+  // windows utilities
   vm.override_function("LoadLibrary", [](std::string_view name){
     Log::d("suppress LoadLibrary: ",name);
     return 0x1;
@@ -177,6 +200,24 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
   vm.override_function("GetProcAddress", [    ](int hmodule, std::string_view name){
     Log::d("suppress GetProcAddress: ",name);
     return 0x1;
+    });
+  vm.override_function("FindKernelDllFunction", [](std::string_view name){
+    Log::d("suppress FindKernelDllFunction: ",name);
+    return 0x1;
+    });
+  vm.override_function("VirtualProtect", [](int lpAddress, int dwSize, int flNewProtect){
+    return lpAddress;
+    });
+  vm.override_function("MEM_MessageBox", [](std::string_view txt, std::string_view caption, int type){
+    //TODO: real message box
+    Log::i("MEM_MessageBox: ", caption);
+    Log::i("  ", txt);
+    Log::i("====");
+    return 0;
+    });
+  vm.override_function("MEM_InfoBox", [](std::string_view txt){
+    //TODO: real message box
+    Log::i("MEM_InfoBox: ", txt);
     });
 
   // ## ZSpy ##
@@ -201,6 +242,11 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
   // if(auto fn = vm.find_symbol_by_name("SETINITIALTIMEINWORLD")) {
   //   fn->set_access_trap_enable(true);
   //   }
+
+  // Disable some high-level functions, until basic stuff is done
+  vm.override_function("STOPALLSOUNDS", [](){});
+  vm.override_function("GETMASTERVOLUMESOUNDS", [](){ return 0; });
+  vm.override_function("R_DEFAULTINIT", [](){});
   }
 
 bool Ikarus::isRequired(zenkit::DaedalusScript& vm) {
@@ -223,6 +269,51 @@ std::string Ikarus::mem_getcommandline() {
 
 void Ikarus::mem_sendtospy(int cat, std::string_view msg) {
   Log::d("[zpy]: ", msg);
+  }
+
+int Ikarus::mkf(int v) {
+  float f = float(v);
+  return *reinterpret_cast<int32_t*>(&f);
+  }
+
+int Ikarus::truncf(int v) {
+  float& f = *reinterpret_cast<float*>(&v);
+  f = std::truncf(f);
+  return *reinterpret_cast<int32_t*>(&f);
+  }
+
+int Ikarus::roundf(int v) {
+  float& f = *reinterpret_cast<float*>(&v);
+  f = std::roundf(f);
+  return *reinterpret_cast<int32_t*>(&f);
+  }
+
+int Ikarus::addf(int a, int b) {
+  float& fa = *reinterpret_cast<float*>(&a);
+  float& fb = *reinterpret_cast<float*>(&b);
+  float  f  = fa+fb;
+  return *reinterpret_cast<int32_t*>(&f);
+  }
+
+int Ikarus::subf(int a, int b) {
+  float& fa = *reinterpret_cast<float*>(&a);
+  float& fb = *reinterpret_cast<float*>(&b);
+  float  f  = fa-fb;
+  return *reinterpret_cast<int32_t*>(&f);
+  }
+
+int Ikarus::mulf(int a, int b) {
+  float& fa = *reinterpret_cast<float*>(&a);
+  float& fb = *reinterpret_cast<float*>(&b);
+  float  f  = fa*fb;
+  return *reinterpret_cast<int32_t*>(&f);
+  }
+
+int Ikarus::divf(int a, int b) {
+  float& fa = *reinterpret_cast<float*>(&a);
+  float& fb = *reinterpret_cast<float*>(&b);
+  float  f  = fa/fb;
+  return *reinterpret_cast<int32_t*>(&f);
   }
 
 void Ikarus::mem_getaddress_init() { /* nop */ }
@@ -273,7 +364,7 @@ int Ikarus::mem_getfuncid(zenkit::DaedalusFunction func) {
 void Ikarus::mem_callbyid(int symbId) {
   auto* sym = vm.find_symbol_by_index(uint32_t(symbId));
   if(sym==nullptr) {
-    Log::e("MEM_CallByID: Provided symbol is not callable (not function, prototype or instance): ", sym->name());
+    Log::e("MEM_CallByID: Provided symbol is not callable (not function, prototype or instance): ", symbId);
     return;
     }
   vm.call_function(sym);
@@ -373,6 +464,10 @@ bool Ikarus::mem_gothoptaectionexists(std::string_view section) {
   }
 
 bool Ikarus::mem_gothoptexists(std::string_view section, std::string_view option) {
+  if(section=="INTERNAL" && option=="UnionActivated") {
+    // Fake Union, so ikarus won't setup crazy workarounds for unpatched G2.
+    return true;
+    }
   Log::e("TODO: mem_gothoptexists(", section, ", ", option, ")");
   return false;
   }
@@ -391,29 +486,59 @@ void Ikarus::mem_setgothopt(std::string_view section, std::string_view option, s
   Log::e("TODO: mem_setgothopt(", section, ", ", option, ", ", value, ")");
   }
 
-void Ikarus::call__stdcall(int address) {
-  (void)address;
+void Ikarus::call__thiscall(ptr32_t pthis, ptr32_t func) {
+  (void)pthis;
+  call__stdcall(func);
+  }
+
+void Ikarus::call__stdcall(ptr32_t func) {
+  static std::unordered_set<ptr32_t> once;
+  if(!once.insert(func).second)
+    return;
+
+  for(auto& i:vm.symbols()) {
+    if(!i.is_const() || i.is_member())
+      continue;
+    if(i.type()!=zenkit::DaedalusDataType::INT)// && i.type() != zenkit::DaedalusDataType::FUNCTION)
+      continue;
+    if(ptr32_t(i.get_int())!=func)
+      continue;
+    Log::d("Ikarus: call__stdcall(", i.name(), ")");
+    return;
+    }
+  Log::d("Ikarus: call__stdcall(", func, ")");
   }
 
 int Ikarus::hash(int x) {
-  // original ikrus has uses pointe to stack, so it get's dicy
+  // original ikrus has uses pointer to stack, so it get's dicy
   // TODO: CRC32 to match behaviour
   return int(std::hash<int>()(x));
   }
 
-int Ikarus::_takeref(int val) {
-  (void)val;
-  return 0x1;
+int Ikarus::_takeref(int symbol) {
+  auto sym = vm.find_symbol_by_index(uint32_t(symbol));
+  if(sym!=nullptr && sym->type()==zenkit::DaedalusDataType::INSTANCE) {
+    auto inst = sym->get_instance().get();
+    if(auto d = dynamic_cast<memory_instance*>(inst)) {
+      return int32_t(d->address);
+      }
+    }
+  if(sym==nullptr)
+    Log::e("Ikarus: _takeref - unable to resolve symbol"); else
+    Log::e("Ikarus: _takeref - unable to resolve addres");
+  return 0xBAD1000;
   }
 
 int Ikarus::_takeref_s(std::string_view val) {
+  Log::e("Ikarus: _takeref_s - unimplemented");
   (void)val;
-  return 0x1;
+  return 0xBAD2000;
   }
 
 int Ikarus::_takeref_f(float val) {
+  Log::e("Ikarus: _takeref_f - unimplemented");
   (void)val;
-  return 0x1;
+  return 0xBAD3000;
   }
 
 int Ikarus::mem_alloc(int amount) {
@@ -422,6 +547,15 @@ int Ikarus::mem_alloc(int amount) {
     return 0;
     }
   auto ptr = allocator.alloc(uint32_t(amount));
+  return int32_t(ptr);
+  }
+
+int Ikarus::mem_alloc(int amount, const char* comment) {
+  if(amount==0) {
+    Log::d("alocation zero bytes");
+    return 0;
+    }
+  auto ptr = allocator.alloc(uint32_t(amount), comment);
   return int32_t(ptr);
   }
 
