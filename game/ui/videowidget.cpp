@@ -128,7 +128,7 @@ struct VideoWidget::Context {
     }
 
   void yuvToRgba(const Bink::Frame& f, Tempest::Device& device, uint8_t fId) {
-    if(frameImg.w()!=f.width() || frameImg.h()!=f.height()) {
+    if(uint32_t(frameImg.w())!=f.width() || uint32_t(frameImg.h())!=f.height()) {
       Resources::recycle(std::move(frameImg));
       frameImg = device.attachment(Tempest::RGBA8, f.width(), f.height());
       }
