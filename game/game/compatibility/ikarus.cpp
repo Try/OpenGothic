@@ -85,7 +85,10 @@ const std::string& Ikarus::memory_instance::get_string(const zenkit::DaedalusSym
 
 
 Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
-  Log::i("DMA mod detected: Ikarus");
+  if(auto v = vm.find_symbol_by_name("Ikarus_Version")) {
+    const int version = v->type()==zenkit::DaedalusDataType::INT ? v->get_int() : 0;
+    Log::i("DMA mod detected: Ikarus v", version);
+    }
 
   // built-in data with assumed address
   versionHint = 504628679; // G2
@@ -113,11 +116,6 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
 
   // ## Builtin instances
   allocator.alloc(MEMINT_SENDTOSPY_IMPLEMENTATION_ZERR_G2, 64, "ZERROR");
-
-  allocator.alloc(0x723ee2, 6,  "unknown, pick-lock related"); // CoM: INIT_RANDOMIZEPICKLOCKS_GAMESTART
-  allocator.alloc(0x70b6bc, 4,  "unknown"); // CoM: INIT_ARMORUNLOCKINNPCOVERRIDE
-  allocator.alloc(0x70af4b, 20, "unknown");
-  allocator.alloc(OCNPC__ENABLE_EQUIPBESTWEAPONS, 18, "OCNPC__ENABLE_EQUIPBESTWEAPONS");
 
   // Note: no inline asm
   // TODO: Make sure this actually works!
@@ -200,11 +198,12 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
   vm.override_function("MEM_ModOptExists",         [this](std::string_view sec, std::string_view opt) { return mem_modoptexists(sec,opt);     });
   vm.override_function("MEM_SetGothOpt",           [this](std::string_view sec, std::string_view opt, std::string_view v) { return mem_setgothopt(sec,opt,v); });
 
+  // ##
   vm.override_function("CALL__thiscall", [this](int thisptr, int address){ call__thiscall(ptr32_t(thisptr), ptr32_t(address)); });
   vm.override_function("CALL__stdcall",  [this](int address){ call__stdcall(ptr32_t(address)); });
   vm.override_function("HASH",           [this](int v){ return hash(v); });
 
-  // windows utilities
+  // ## Windows utilities
   vm.override_function("LoadLibrary", [](std::string_view name){
     Log::d("suppress LoadLibrary: ",name);
     return 0x1;
@@ -256,13 +255,26 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
   //   }
 
   // Disable some high-level functions, until basic stuff is done
-  //vm.override_function("STOPALLSOUNDS", [](){});
-  //vm.override_function("GETMASTERVOLUMESOUNDS", [](){ return 0; });
-  //vm.override_function("R_DEFAULTINIT", [](){});
+  auto dummyfy = [&](std::string_view name, auto hook) {
+    auto f = vm.find_symbol_by_name(name);
+    if(f==nullptr || f->type()!=zenkit::DaedalusDataType::FUNCTION)
+      return;
+    vm.override_function(name, hook);
+    };
+  // CoM
+  allocator.alloc(0x723ee2, 6,  "unknown, pick-lock related"); // CoM: INIT_RANDOMIZEPICKLOCKS_GAMESTART
+  allocator.alloc(0x70b6bc, 4,  "unknown"); // CoM: INIT_ARMORUNLOCKINNPCOVERRIDE
+  allocator.alloc(0x70af4b, 20, "unknown");
+  allocator.alloc(OCNPC__ENABLE_EQUIPBESTWEAPONS, 18, "OCNPC__ENABLE_EQUIPBESTWEAPONS");
+  // Atariar
+  dummyfy("STOPALLSOUNDS", [](){});
+  dummyfy("GETMASTERVOLUMESOUNDS", [](){ return 0; });
+  dummyfy("R_DEFAULTINIT", [](){});
   }
 
 bool Ikarus::isRequired(zenkit::DaedalusScript& vm) {
   return
+      vm.find_symbol_by_name("Ikarus_Version") != nullptr &&
       vm.find_symbol_by_name("MEM_InitAll") != nullptr &&
       vm.find_symbol_by_name("MEM_ReadInt") != nullptr &&
       vm.find_symbol_by_name("MEM_WriteInt") != nullptr &&
@@ -345,7 +357,7 @@ void Ikarus::mem_assigninst(int index, int ptr) {
   if(sym==nullptr) {
     Log::e("MEM_AssignInst: Invalid instance: ",index);
     return;
-  }
+    }
   sym->set_instance(std::make_shared<memory_instance>(*this, ptr32_t(ptr)));
   }
 

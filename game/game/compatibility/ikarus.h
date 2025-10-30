@@ -73,9 +73,9 @@ class Ikarus : public ScriptPlugin {
       int32_t LOAD_SCREEN;
       int32_t SAVE_SCREEN;
       int32_t PAUSE_SCREEN;
-      int32_t HPBAR;
-      int32_t SWIMBAR;
-      int32_t MANABAR;
+      ptr32_t HPBAR;
+      ptr32_t SWIMBAR;
+      ptr32_t MANABAR;
       int32_t FOCUSBAR;
       int32_t SHOWPLAYERSTATUS;
       int32_t GAME_DRAWALL;
@@ -268,8 +268,8 @@ class Ikarus : public ScriptPlugin {
       };
 
     struct GameMgr {
-
       };
+
     struct zCTimer {
       int32_t FACTORMOTION;
       int32_t FRAMETIMEFLOAT;
@@ -379,5 +379,7 @@ class Ikarus : public ScriptPlugin {
     ptr32_t      symbolsPtr = 0;
 
     int32_t      invMaxItems = 9;
+
+  friend class LeGo;
   };
 

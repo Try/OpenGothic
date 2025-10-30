@@ -3,9 +3,9 @@
 #include <zenkit/DaedalusVm.hh>
 
 #include "scriptplugin.h"
+#include "ikarus.h"
 
 class GameScript;
-class Ikarus;
 
 class LeGo : public ScriptPlugin {
   public:
@@ -16,6 +16,9 @@ class LeGo : public ScriptPlugin {
   private:
     int  create(int inst);
     void tick(uint64_t dt) override;
+
+    using ptr32_t = Ikarus::ptr32_t;
+    using zString = Ikarus::zString;
 
     // ## FRAMEFUNCTIONS
     void _FF_Create   (zenkit::DaedalusFunction function, int delay, int cycles, int hasData, int data, bool gametime);
@@ -33,6 +36,11 @@ class LeGo : public ScriptPlugin {
       bool     hasData  = 0;
       bool     gametime = 0;
       };
+
+    // ## UI
+    struct zCView;
+    void        viewPtr_CreateIntoPtr(int ptr, int x1, int y1, int x2, int y2);
+    void        viewPtr_Resize(int ptr, int x, int y);
 
     GameScript&         owner;
     Ikarus&             ikarus;
