@@ -58,14 +58,14 @@ float Ikarus::memory_instance::get_float(const zenkit::DaedalusSymbol& sym, uint
 void Ikarus::memory_instance::set_string(const zenkit::DaedalusSymbol& sym, uint16_t index, std::string_view value) {
   ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index*sym.class_size());
   (void)addr;
-  Log::d("memory_instance: ", sym.name());
+  Log::d("TODO: memory_instance::set_string ", sym.name());
   // allocator.writeInt(addr, 0);
   }
 
 const std::string& Ikarus::memory_instance::get_string(const zenkit::DaedalusSymbol& sym, uint16_t index) const {
   ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index*sym.class_size());
 
-  Log::d("memory_instance: ", sym.name());
+  Log::d("TODO: memory_instance::get_string ", sym.name());
   (void)addr;
   static std::string empty;
   return empty;
@@ -272,26 +272,29 @@ void Ikarus::mem_sendtospy(int cat, std::string_view msg) {
   }
 
 int Ikarus::mkf(int v) {
-  float f = float(v);
-  return *reinterpret_cast<int32_t*>(&f);
+  float ret = 0;
+  ret = float(v);
+  return *reinterpret_cast<int32_t*>(&ret);
   }
 
 int Ikarus::truncf(int v) {
-  float& f = *reinterpret_cast<float*>(&v);
-  f = std::truncf(f);
-  return *reinterpret_cast<int32_t*>(&f);
+  float ret = 0;
+  ret = *reinterpret_cast<float*>(&v);
+  ret = std::truncf(ret);
+  return *reinterpret_cast<int32_t*>(&ret);
   }
 
 int Ikarus::roundf(int v) {
-  float& f = *reinterpret_cast<float*>(&v);
-  f = std::roundf(f);
-  return *reinterpret_cast<int32_t*>(&f);
+  float ret = 0;
+  ret = *reinterpret_cast<float*>(&v);
+  ret = std::roundf(ret);
+  return *reinterpret_cast<int32_t*>(&ret);
   }
 
 int Ikarus::addf(int a, int b) {
-  float& fa = *reinterpret_cast<float*>(&a);
-  float& fb = *reinterpret_cast<float*>(&b);
-  float  f  = fa+fb;
+  float fa = *reinterpret_cast<float*>(&a);
+  float fb = *reinterpret_cast<float*>(&b);
+  float f  = fa+fb;
   return *reinterpret_cast<int32_t*>(&f);
   }
 
