@@ -12,6 +12,18 @@
 
 using namespace Tempest;
 
+static int32_t floatBitsToInt(float f) {
+  int32_t i = 0;
+  std::memcpy(&i, &f, sizeof(i));
+  return i;
+  }
+
+static float intBitsToFloat(int32_t i) {
+  float f = 0;
+  std::memcpy(&f, &i, sizeof(f));
+  return f;
+  }
+
 enum {
   GothicFirstInstructionAddress =  4198400,  // 0x401000
   ContentParserAddress          = 11223232,  // 0xAB40C0
@@ -272,51 +284,43 @@ void Ikarus::mem_sendtospy(int cat, std::string_view msg) {
   }
 
 int Ikarus::mkf(int v) {
-  float ret = 0;
-  ret = float(v);
-  return *reinterpret_cast<int32_t*>(&ret);
+  return floatBitsToInt(float(v));
   }
 
 int Ikarus::truncf(int v) {
-  float ret = 0;
-  ret = *reinterpret_cast<float*>(&v);
+  float ret = intBitsToFloat(v);
   ret = std::truncf(ret);
-  return *reinterpret_cast<int32_t*>(&ret);
+  return floatBitsToInt(ret);
   }
 
 int Ikarus::roundf(int v) {
-  float ret = 0;
-  ret = *reinterpret_cast<float*>(&v);
+  float ret = intBitsToFloat(v);
   ret = std::roundf(ret);
-  return *reinterpret_cast<int32_t*>(&ret);
+  return floatBitsToInt(ret);
   }
 
-int Ikarus::addf(int a, int b) {
-  float fa = *reinterpret_cast<float*>(&a);
-  float fb = *reinterpret_cast<float*>(&b);
-  float f  = fa+fb;
-  return *reinterpret_cast<int32_t*>(&f);
+int Ikarus::addf(int ia, int ib) {
+  float a = intBitsToFloat(ia);
+  float b = intBitsToFloat(ib);
+  return floatBitsToInt(a+b);
   }
 
-int Ikarus::subf(int a, int b) {
-  float& fa = *reinterpret_cast<float*>(&a);
-  float& fb = *reinterpret_cast<float*>(&b);
-  float  f  = fa-fb;
-  return *reinterpret_cast<int32_t*>(&f);
+int Ikarus::subf(int ia, int ib) {
+  float a = intBitsToFloat(ia);
+  float b = intBitsToFloat(ib);
+  return floatBitsToInt(a-b);
   }
 
-int Ikarus::mulf(int a, int b) {
-  float& fa = *reinterpret_cast<float*>(&a);
-  float& fb = *reinterpret_cast<float*>(&b);
-  float  f  = fa*fb;
-  return *reinterpret_cast<int32_t*>(&f);
+int Ikarus::mulf(int ia, int ib) {
+  float a = intBitsToFloat(ia);
+  float b = intBitsToFloat(ib);
+  return floatBitsToInt(a*b);
   }
 
-int Ikarus::divf(int a, int b) {
-  float& fa = *reinterpret_cast<float*>(&a);
-  float& fb = *reinterpret_cast<float*>(&b);
-  float  f  = fa/fb;
-  return *reinterpret_cast<int32_t*>(&f);
+int Ikarus::divf(int ia, int ib) {
+  float a = intBitsToFloat(ia);
+  float b = intBitsToFloat(ib);
+  return floatBitsToInt(a/b);
   }
 
 void Ikarus::mem_getaddress_init() { /* nop */ }
