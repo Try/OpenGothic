@@ -3017,12 +3017,20 @@ void Npc::commitSpell() {
 const Npc::Routine& Npc::currentRoutine() const {
   auto time = owner.time();
   time = gtime(int32_t(time.hour()),int32_t(time.minute()));
+
+  const Routine* rtn = nullptr;
   for(auto& i:routines) {
-    if(i.end<i.start && (time<i.end || i.start<=time))
-      return i;
-    if(i.start<=time && time<i.end)
-      return i;
+    if(i.end<i.start && (time<i.end || i.start<=time)) {
+      rtn = &i;
+      break;
+      }
+    if(i.start<=time && time<i.end) {
+      rtn = &i;
+      break;
+      }
     }
+  if(rtn!=nullptr && rtn->point!=nullptr)
+    return *rtn;
 
   // take a previous routine if none was found for current time
   const auto     day   = gtime(24,0).toInt();
@@ -3033,7 +3041,7 @@ const Npc::Routine& Npc::currentRoutine() const {
     int64_t d = time.toInt() - i.end.toInt();
     if(d<0)
       d += day;
-    if(d<=delta && d>0) {
+    if(i.point!=nullptr && d<=delta) {
       prevR = &i;
       delta = d;
       }
@@ -3041,6 +3049,8 @@ const Npc::Routine& Npc::currentRoutine() const {
 
   if(prevR!=nullptr)
     return *prevR;
+  if(rtn!=nullptr)
+    return *rtn;
 
   static Routine r;
   return r;
