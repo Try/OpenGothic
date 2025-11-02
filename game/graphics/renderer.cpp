@@ -2158,8 +2158,7 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   draw(img,enc,frameId);
   }
 
-  Fence sync = device.fence();
-  device.submit(cmd,sync);
+  auto sync = device.submit(cmd);
   sync.wait();
   return img;
 
@@ -2173,18 +2172,13 @@ Tempest::Attachment Renderer::screenshoot(uint8_t frameId) {
   enc.setBinding(0, gbufNormal, Sampler::nearest());
   enc.setPipeline(shaders.copy);
   enc.draw(nullptr, 0, 3);
-  }
-  device.submit(cmd,sync);
-  sync.wait();
 
-  {
-  auto enc = cmd.startEncoding(device);
   enc.setFramebuffer({{d16,Tempest::Discard,Tempest::Preserve}});
   enc.setBinding(0,zbuffer,Sampler::nearest());
   enc.setPipeline(shaders.copy);
   enc.draw(nullptr, 0, 3);
   }
-  device.submit(cmd,sync);
+  sync = device.submit(cmd);
   sync.wait();
 
   auto pm  = device.readPixels(textureCast<const Texture2d&>(normals));

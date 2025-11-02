@@ -101,8 +101,7 @@ struct VideoWidget::Context {
       sndCtx[i]->play();
 
     for(size_t i=0; i<Resources::MaxFramesInFlight; ++i) {
-      cmd [i] = Resources::device().commandBuffer();
-      sync[i] = Resources::device().fence();
+      cmd[i] = Resources::device().commandBuffer();
       }
 
     frameTime = Application::tickCount();
@@ -173,7 +172,7 @@ struct VideoWidget::Context {
       cmd.setPipeline(Shaders::inst().bink);
       cmd.draw(nullptr, 0, 3);
     }
-    device.submit(this->cmd[fId], sync[fId]);
+    sync[fId] = device.submit(this->cmd[fId]);
     }
 
   [[deprecated]]

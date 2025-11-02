@@ -38,9 +38,6 @@ MainWindow::MainWindow(Device& device)
     mobileUi(player),
 #endif
     player(dialogs,inventory) {
-  for(uint8_t i=0;i<Resources::MaxFramesInFlight;++i)
-    fence[i] = device.fence();
-
   Gothic::inst().onSettingsChanged.bind(this,&MainWindow::onSettings);
   onSettings();
 
@@ -1176,7 +1173,7 @@ void MainWindow::render(){
 
     /*
       Note: game update goes first
-      once player position is updated, animation bones(cameraBone in particular) ca be updated
+      once player position is updated, animation bones(cameraBone in particular) can be updated
       lastly - camera position
       */
     const uint64_t dt = tick();
@@ -1184,11 +1181,16 @@ void MainWindow::render(){
     tickCamera(dt);
 
     auto& sync = fence[cmdId];
+#if 1
+    //TODO: polish frame phasing for low-end gpu's
+    sync.wait();
+#else
     if(!sync.wait(0)) {
       // GPU rendering is not done, pass to next frame
       std::this_thread::yield();
       return;
       }
+#endif
     Resources::resetRecycled(cmdId);
 
     if(video.isActive()) {
@@ -1212,7 +1214,7 @@ void MainWindow::render(){
     auto enc = cmd.startEncoding(device);
     renderer.draw(enc,cmdId,swapchain.currentImage(),uiMesh[cmdId],numMesh[cmdId],inventory,video);
     }
-    device.submit(cmd,sync);
+    sync = device.submit(cmd);
     device.present(swapchain);
     cmdId = (cmdId+1u)%Resources::MaxFramesInFlight;
 
