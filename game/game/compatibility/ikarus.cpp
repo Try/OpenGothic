@@ -2,10 +2,11 @@
 
 #include <Tempest/Application>
 #include <Tempest/Log>
+#include <zenkit/vobs/Misc.hh>
 
 #include <charconv>
 #include <cstddef>
-#include <zenkit/vobs/Misc.hh>
+#include <cassert>
 
 #include "game/gamescript.h"
 #include "gothic.h"
@@ -199,8 +200,11 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
   vm.override_function("MEM_SetGothOpt",           [this](std::string_view sec, std::string_view opt, std::string_view v) { return mem_setgothopt(sec,opt,v); });
 
   // ##
-  vm.override_function("CALL__thiscall", [this](int thisptr, int address){ call__thiscall(ptr32_t(thisptr), ptr32_t(address)); });
-  vm.override_function("CALL__stdcall",  [this](int address){ call__stdcall(ptr32_t(address)); });
+  vm.override_function("CALL_zstringptrparam", [this](std::string_view p) { call_zstringptrparam(p); });
+  vm.override_function("CALL_intparam",        [this](int p) { call_intparam(p); });
+  vm.override_function("CALL__thiscall",       [this](int thisptr, int address){ call__thiscall(thisptr, ptr32_t(address)); });
+  vm.override_function("CALL__stdcall",        [this](int address){ call__stdcall(ptr32_t(address)); });
+
   vm.override_function("HASH",           [this](int v){ return hash(v); });
 
   // ## Windows utilities
@@ -505,12 +509,30 @@ void Ikarus::mem_setgothopt(std::string_view section, std::string_view option, s
   Log::e("TODO: mem_setgothopt(", section, ", ", option, ", ", value, ")");
   }
 
-void Ikarus::call__thiscall(ptr32_t pthis, ptr32_t func) {
-  (void)pthis;
+void Ikarus::call_zstringptrparam(std::string_view prm) {
+  call.sprm.push_back(std::string(prm));
+  }
+
+void Ikarus::call_intparam(int prm) {
+  call.iprm.push_back(prm);
+  }
+
+void Ikarus::call__thiscall(int32_t pthis, ptr32_t func) {
+  call.iprm.push_back(pthis);
   call__stdcall(func);
   }
 
 void Ikarus::call__stdcall(ptr32_t func) {
+  auto fn = stdcall_overrides.find(func);
+  if(fn!=stdcall_overrides.end()) {
+    fn->second(*this);
+    assert(call.iprm.size()==0); // not nesseserly true, but usefull for debug
+    assert(call.sprm.size()==0); // not nesseserly true, but usefull for debug
+    return;
+    }
+
+  call.iprm.clear();
+  call.sprm.clear();
   static std::unordered_set<ptr32_t> once;
   if(!once.insert(func).second)
     return;
@@ -585,6 +607,10 @@ void Ikarus::mem_free(int ptr) {
 int Ikarus::mem_realloc(int address, int oldsz, int size) {
   auto ptr = allocator.realloc(Mem32::ptr32_t(address), uint32_t(size));
   return int32_t(ptr);
+  }
+
+void Ikarus::register_stdcall_inner(ptr32_t addr, std::function<void(Ikarus& ikarus)> f) {
+  stdcall_overrides[addr] = std::move(f);
   }
 
 std::shared_ptr<zenkit::DaedalusInstance> Ikarus::mem_ptrtoinst(ptr32_t address) {
@@ -667,3 +693,4 @@ void Ikarus::loop_out(zenkit::DaedalusVm& vm) {
       }
     }
   }
+

@@ -37,6 +37,18 @@ class Ikarus : public ScriptPlugin {
     void mem_free   (int address);
     int  mem_realloc(int address, int oldsz, int size);
 
+    template<class R, class...Args>
+    void register_stdcall(ptr32_t addr, const std::function<R(Args...)>& callback) {
+      register_stdcall_inner(addr, [callback](Ikarus& ikarus) {
+        auto v = std::make_tuple(ikarus.call.pop<Args>()...);
+        std::apply(callback, std::move(v));
+        });
+      }
+    template <typename T>
+    void register_stdcall(ptr32_t addr, const T& cb) {
+      register_stdcall(addr, std::function {cb});
+      }
+
   private:
     struct zString {
       int32_t _VTBL;
@@ -59,7 +71,7 @@ class Ikarus : public ScriptPlugin {
       ptr32_t _ZCSESSION_CAMERA = 0;
       int32_t _ZCSESSION_AICAM;
       int32_t _ZCSESSION_CAMVOB;
-      int32_t _ZCSESSION_VIEWPORT;
+      ptr32_t _ZCSESSION_VIEWPORT;
       int32_t CLIPRANGE;
       int32_t FOGRANGE;
       int32_t INSCRIPTSTARTUP;
@@ -352,8 +364,12 @@ class Ikarus : public ScriptPlugin {
     void                      loop_trap(zenkit::DaedalusSymbol* i);
     void                      loop_out (zenkit::DaedalusVm& vm);
 
-    void call__thiscall(ptr32_t pthis, ptr32_t func);
+    void call_zstringptrparam(std::string_view ptr);
+    void call_intparam(int p);
+    void call__thiscall(int32_t pthis, ptr32_t func);
     void call__stdcall(ptr32_t func);
+    void register_stdcall_inner(ptr32_t addr, std::function<void(Ikarus&)> f);
+
     int  hash(int x);
 
     zenkit::DaedalusVm& vm;
@@ -365,6 +381,43 @@ class Ikarus : public ScriptPlugin {
       int32_t                 loopLen = 0;
       };
     std::vector<Loop> loop_start;
+
+    struct Call {
+      std::vector<int>         iprm;
+      std::vector<std::string> sprm;
+
+      template<class T>
+      T pop();
+
+      template<>
+      int pop<int>() {
+        if(iprm.size()==0)
+          return 0;
+        auto ret = iprm.back();
+        iprm.pop_back();
+        return ret;
+        }
+
+      template<>
+      ptr32_t pop<ptr32_t>() {
+        if(iprm.size()==0)
+          return 0;
+        auto ret = iprm.back();
+        iprm.pop_back();
+        return ptr32_t(ret);
+        }
+
+      template<>
+      std::string pop<std::string>() {
+        if(sprm.size()==0)
+          return 0;
+        auto ret = std::move(sprm.back());
+        sprm.pop_back();
+        return std::string(ret);
+        }
+      };
+    Call         call;
+    std::unordered_map<ptr32_t, std::function<void(Ikarus&)>> stdcall_overrides;
 
     uint32_t     versionHint   = 0;
     zCParser     parserProxy;

@@ -39,8 +39,11 @@ class LeGo : public ScriptPlugin {
 
     // ## UI
     struct zCView;
-    void        viewPtr_CreateIntoPtr(int ptr, int x1, int y1, int x2, int y2);
-    void        viewPtr_Resize(int ptr, int x, int y);
+    void        zCView__zCView(ptr32_t ptr, int x1, int y1, int x2, int y2);
+    void        zCView__SetSize(ptr32_t ptr, int w, int h);
+    void        zCView__Move(ptr32_t ptr, int x, int y);
+
+    void        zCFontMan__Load(ptr32_t ptr, std::string_view font);
 
     GameScript&         owner;
     Ikarus&             ikarus;

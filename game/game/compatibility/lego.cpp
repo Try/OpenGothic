@@ -129,19 +129,37 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
   // https://github.com/Lehona/LeGo/blob/dev/View.d
 
   // NOTE: implement call__* instead?
-  vm.override_function("_ViewPtr_CreateIntoPtr", [this](int ptr, int x1, int y1, int x2, int y2) {
-    viewPtr_CreateIntoPtr(ptr, x1, y1, x2, y2);
+  const int ZCVIEW__ZCVIEW  = 8017664;
+  const int ZCVIEW__SETSIZE = 8026016;
+  const int zCVIEW__MOVE    = 8025824;
+  ikarus.register_stdcall(ZCVIEW__ZCVIEW, [this](ptr32_t ptr, int x1, int y1, int x2, int y2, int arg) {
+    zCView__zCView(ptr, x1, y1, x2, y2);
     });
-  vm.override_function("ViewPtr_Resize", [this](int ptr, int x, int y) {
-    viewPtr_Resize(ptr, x, y);
+  ikarus.register_stdcall(ZCVIEW__SETSIZE, [this](ptr32_t ptr, int x, int y) {
+    zCView__SetSize(ptr, x, y);
+    });
+  ikarus.register_stdcall(zCVIEW__MOVE, [this](ptr32_t ptr, int x, int y) {
+    zCView__Move(ptr, x, y);
     });
 
   // ## UI data
   auto& memGame   = ikarus.memGame;
   auto& allocator = ikarus.allocator;
 
-  memGame.HPBAR   = allocator.alloc(sizeof(zCView));
-  memGame.MANABAR = allocator.alloc(sizeof(zCView));
+  memGame.HPBAR               = allocator.alloc(sizeof(zCView));
+  memGame.MANABAR             = allocator.alloc(sizeof(zCView));
+  memGame._ZCSESSION_VIEWPORT = allocator.alloc(sizeof(zCView));
+  if(auto ptr = allocator.deref<zCView>(memGame._ZCSESSION_VIEWPORT)) {
+    // Dummy window size, for now!
+    ptr->PSIZEX = 800;
+    ptr->PSIZEY = 600;
+    }
+
+  // ## Font
+  const int ZCFONTMAN__LOAD = 7897808;
+  ikarus.register_stdcall(ZCFONTMAN__LOAD, [this](ptr32_t ptr, std::string font) {
+    zCFontMan__Load(ptr, font);
+    });
   }
 
 bool LeGo::isRequired(zenkit::DaedalusVm& vm) {
@@ -280,12 +298,10 @@ bool LeGo::FF_Active(zenkit::DaedalusFunction func) {
   return false;
   }
 
-void LeGo::viewPtr_CreateIntoPtr(int ptr, int x1, int y1, int x2, int y2) {
-  auto& allocator = ikarus.allocator;
-
-  auto view = allocator.deref<zCView>(ptr32_t(ptr));
+void LeGo::zCView__zCView(ptr32_t ptr, int x1, int y1, int x2, int y2) {
+  auto view = ikarus.allocator.deref<zCView>(ptr);
   if(view==nullptr) {
-    Log::e("Ikarus: viewPtr_CreateIntoPtr - unable to resolve address");
+    Log::e("LeGo: zCView__zCView - unable to resolve address");
     return;
     }
 
@@ -293,28 +309,31 @@ void LeGo::viewPtr_CreateIntoPtr(int ptr, int x1, int y1, int x2, int y2) {
   view->VPOSY  = y1;
   view->VSIZEX = x2-x1;
   view->VSIZEY = y2-y1;
-
-  view->FXOPEN  = 0;
-  view->FXCLOSE = 0;
   }
 
-void LeGo::viewPtr_Resize(int ptr, int x, int y) {
-  auto& allocator = ikarus.allocator;
-
-  auto view = allocator.deref<zCView>(ptr32_t(ptr));
+void LeGo::zCView__SetSize(ptr32_t ptr, int x, int y) {
+  auto view = ikarus.allocator.deref<zCView>(ptr);
   if(view==nullptr) {
-    Log::e("Ikarus: viewPtr_CreateIntoPtr - unable to resolve address");
+    Log::e("LeGo: zCView__SetSize - unable to resolve address");
     return;
     }
 
-  if(x<0)
-    x = view->VSIZEX;
-  if(y<0)
-    y = view->VSIZEY;
   view->VSIZEX = x;
   view->VSIZEY = y;
-  // view->psizex = Print_ToPixel(view->vsizex, PS_X);
-  // view->psizey = Print_ToPixel(view->vsizey, PS_Y);
+  }
+
+void LeGo::zCView__Move(ptr32_t ptr, int x, int y) {
+  auto view = ikarus.allocator.deref<zCView>(ptr);
+  if(view==nullptr) {
+    Log::e("LeGo: zCView__Move - unable to resolve address");
+    return;
+    }
+  view->VPOSX  = x;
+  view->VPOSY  = y;
+  }
+
+void LeGo::zCFontMan__Load(ptr32_t ptr, std::string_view font) {
+  Log::e("LeGo: zCFontMan__Load");
   }
 
 
