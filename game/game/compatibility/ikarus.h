@@ -374,7 +374,7 @@ class Ikarus : public ScriptPlugin {
 
     zenkit::DaedalusVm& vm;
     Mem32               allocator;
-    
+
     struct Loop {
       uint32_t                pc = 0;
       zenkit::DaedalusSymbol* i  = nullptr;
@@ -388,34 +388,8 @@ class Ikarus : public ScriptPlugin {
 
       template<class T>
       T pop();
-
-      template<>
-      int pop<int>() {
-        if(iprm.size()==0)
-          return 0;
-        auto ret = iprm.back();
-        iprm.pop_back();
-        return ret;
-        }
-
-      template<>
-      ptr32_t pop<ptr32_t>() {
-        if(iprm.size()==0)
-          return 0;
-        auto ret = iprm.back();
-        iprm.pop_back();
-        return ptr32_t(ret);
-        }
-
-      template<>
-      std::string pop<std::string>() {
-        if(sprm.size()==0)
-          return 0;
-        auto ret = std::move(sprm.back());
-        sprm.pop_back();
-        return std::string(ret);
-        }
       };
+
     Call         call;
     std::unordered_map<ptr32_t, std::function<void(Ikarus&)>> stdcall_overrides;
 
@@ -436,3 +410,29 @@ class Ikarus : public ScriptPlugin {
   friend class LeGo;
   };
 
+template<>
+inline int Ikarus::Call::pop<int>() {
+  if(iprm.size()==0)
+    return 0;
+  auto ret = iprm.back();
+  iprm.pop_back();
+  return ret;
+}
+
+template<>
+inline Ikarus::ptr32_t Ikarus::Call::pop<Ikarus::ptr32_t>() {
+  if(iprm.size()==0)
+    return 0;
+  auto ret = iprm.back();
+  iprm.pop_back();
+  return Ikarus::ptr32_t(ret);
+}
+
+template<>
+inline std::string Ikarus::Call::pop<std::string>() {
+  if(sprm.size()==0)
+    return "";
+  auto ret = std::move(sprm.back());
+  sprm.pop_back();
+  return ret;
+}
