@@ -83,7 +83,7 @@ class Ikarus : public ScriptPlugin {
       int32_t INSCRIPTSTARTUP;
       int32_t INLOADSAVEGAME;
       int32_t INLEVELCHANGE;
-      int32_t ARRAY_VIEW[6];
+      ptr32_t ARRAY_VIEW[6];
       int32_t ARRAY_VIEW_VISIBLE[6];
       int32_t ARRAY_VIEW_ENABLED[6];
       int32_t SAVEGAMEMANAGER;
@@ -346,6 +346,7 @@ class Ikarus : public ScriptPlugin {
     zenkit::DaedalusNakedCall mem_readstatarr(zenkit::DaedalusVm& vm);
     // pointers
     std::shared_ptr<zenkit::DaedalusInstance> mem_ptrtoinst(ptr32_t address);
+    int         mem_insttoptr(int index);
 
     // ## Basic zCParser related functions ##
     int         _takeref    (int val);
@@ -377,11 +378,15 @@ class Ikarus : public ScriptPlugin {
     void call_intparam(int p);
     void call_floatparam(int p);
     int  call_retvalasint();
+    int  call_retvalasptr();
     void call__thiscall(int32_t pthis, ptr32_t func);
     void call__stdcall(ptr32_t func);
+    void call__cdecl(ptr32_t func);
     void register_stdcall_inner(ptr32_t addr, std::function<void(Ikarus&)> f);
 
     int  hash(int x);
+
+    std::string_view demangleAddress(ptr32_t addr);
 
     zenkit::DaedalusVm& vm;
     Mem32               allocator;
@@ -408,16 +413,16 @@ class Ikarus : public ScriptPlugin {
     std::unordered_map<ptr32_t, std::function<void(Ikarus&)>> stdcall_overrides;
 
     uint32_t     versionHint   = 0;
-    zCParser     parserProxy;
+    zCParser     parserProxy = {};
 
     zCTimer      zTimer = {};
 
     ptr32_t      oGame_Pointer = 0;
-    oGame        memGame;
+    oGame        memGame = {};
 
-    ptr32_t      gameman_Ptr = 0;
-
-    ptr32_t      symbolsPtr = 0;
+    ptr32_t      gameman_Ptr  = 0;
+    ptr32_t      symbolsPtr   = 0;
+    ptr32_t      zFactory_Ptr = 0;
 
     int32_t      invMaxItems = 9;
 

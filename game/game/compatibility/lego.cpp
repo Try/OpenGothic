@@ -163,6 +163,8 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
     ptr->PSIZEX = 800;
     ptr->PSIZEY = 600;
     }
+  // needed during initialization in PRINT_EXT
+  memGame.ARRAY_VIEW[0] = allocator.alloc(sizeof(zCView));
 
   // ## Font
   const int ZCFONTMAN__LOAD    = 7897808;
@@ -177,6 +179,15 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
   const int ZFONTMAN = 11221460;
   fontMan_Ptr = allocator.alloc(sizeof(zCFontMan));
   allocator.pin(&fontMan_Ptr, ZFONTMAN, sizeof(fontMan_Ptr), "zCFontMan*");
+
+  // ##
+  const int ZCOBJECTFACTORY__CREATEWORLD = 5947120;
+  ikarus.register_stdcall(ZCOBJECTFACTORY__CREATEWORLD, [this](ptr32_t ptr) {
+    // CALL__THISCALL(MEM_READINT(ZFACTORY), ZCOBJECTFACTORY__CREATEWORLD);
+    // QS_RENDERWORLD = CALL_RETVALASPTR();
+    Log::e("LeGo: zCObjectFactory__CreateWorld");
+    return int(this->ikarus.memGame._ZCSESSION_WORLD);
+    });
   }
 
 bool LeGo::isRequired(zenkit::DaedalusVm& vm) {
