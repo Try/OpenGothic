@@ -2172,7 +2172,7 @@ void Npc::tick(uint64_t dt) {
     }
 
   if(waitTime>=owner.tickCount() || aniWaitTime>=owner.tickCount() || outWaitTime>owner.tickCount()) {
-    if(!isPlayer() && faiWaitTime<owner.tickCount())
+    if(!isPlayer() && go2.flag!=GT_Flee && faiWaitTime<owner.tickCount())
       adjustAttackRotation(dt);
     mvAlgo.tick(dt,MoveAlgo::WaitMove);
     return;
