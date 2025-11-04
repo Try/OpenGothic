@@ -215,6 +215,12 @@ struct GameMusic::GothicKitMusicProvider : GameMusic::MusicProvider {
     if(!GameMusic::MusicProvider::updateTheme(theme, tags))
       return;
 
+    if(theme.file.empty()) {
+      stopTheme();
+      DmPerformance_setVolume(performance, theme.vol);
+      return;
+      }
+
     DmSegment *sgt = Resources::loadMusicSegment(theme.file.c_str());
     auto [timing, embellishment] = getThemeEmbellishmentAndTiming(theme);
 
