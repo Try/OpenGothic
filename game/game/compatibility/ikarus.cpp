@@ -162,6 +162,7 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
   vm.override_function("MEM_WriteInt",                 [this](int address, int val){ mem_writeint(address, val);          });
   vm.override_function("MEM_CopyBytes",                [this](int src, int dst, int size){ mem_copybytes(src, dst, size); });
   vm.override_function("MEM_ReadString",               [this](int sym){ return mem_readstring(sym);           });
+  vm.override_function("MEM_ReadStatArr",              [this](zenkit::DaedalusVm& vm){ return mem_readstatarr(vm); });
 
   vm.override_function("MEM_GetCommandLine",           [this](){ return mem_getcommandline(); });
 
@@ -180,6 +181,7 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
   vm.override_function("MEM_Free",    [this](int address)                      { mem_free(address);                      });
   vm.override_function("MEM_Realloc", [this](int address, int oldsz, int size) { return mem_realloc(address,oldsz,size); });
 
+
   // ## Control-flow ##
   vm.override_function("repeat", [this](zenkit::DaedalusVm& vm) { return repeat(vm);    });
   vm.override_function("while",  [this](zenkit::DaedalusVm& vm) { return while_(vm);    });
@@ -187,8 +189,9 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
 
   // ## Strings
   vm.override_function("STR_SubStr", [this](std::string_view str, int start, int count){ return str_substr(str,start,count); });
-  vm.override_function("STR_Len",    [this](std::string_view str){ return str_len(str); });
+  vm.override_function("STR_Len",    [this](std::string_view str){ return str_len(str);   });
   vm.override_function("STR_ToInt",  [this](std::string_view str){ return str_toint(str); });
+  vm.override_function("STR_Upper",  [this](std::string_view str){ return str_upper(str); });
 
   // ## Ini-file
   vm.override_function("MEM_GetGothOpt",           [this](std::string_view sec, std::string_view opt) { return mem_getgothopt(sec,opt);       });
@@ -202,6 +205,9 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
   // ##
   vm.override_function("CALL_zstringptrparam", [this](std::string_view p) { call_zstringptrparam(p); });
   vm.override_function("CALL_intparam",        [this](int p) { call_intparam(p); });
+  vm.override_function("CALL_floatparam",      [this](int p) { call_floatparam(p); });
+
+  vm.override_function("CALL_retvalasint",     [this]() { return call_retvalasint(); });
   vm.override_function("CALL__thiscall",       [this](int thisptr, int address){ call__thiscall(thisptr, ptr32_t(address)); });
   vm.override_function("CALL__stdcall",        [this](int address){ call__stdcall(ptr32_t(address)); });
 
@@ -274,6 +280,7 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
   dummyfy("STOPALLSOUNDS", [](){});
   dummyfy("GETMASTERVOLUMESOUNDS", [](){ return 0; });
   dummyfy("R_DEFAULTINIT", [](){});
+  dummyfy("PLAYER_RANGED_NO_AMMO_INIT", [](){}); // inline asm
   }
 
 bool Ikarus::isRequired(zenkit::DaedalusScript& vm) {
@@ -424,6 +431,20 @@ std::string Ikarus::mem_readstring(int address) {
   return s.name();
   }
 
+zenkit::DaedalusNakedCall Ikarus::mem_readstatarr(zenkit::DaedalusVm& vm) {
+  const int  index = vm.pop_int();
+  auto [ref, idx, context] = vm.pop_reference();
+
+  const int ret = vm.get_int(context, ref, uint16_t(idx+index));
+
+  vm.push_int(ret);
+  return zenkit::DaedalusNakedCall();
+  }
+
+int Ikarus::_mem_readstatarr(int address, int off) {
+  return allocator.readInt(ptr32_t(address) + ptr32_t(off)*sizeof(int32_t));
+  }
+
 int Ikarus::mem_searchvobbyname(std::string_view name) {
   // see ZS_STAND_PEDRO_LOOP in VarusBikerEdition mod
   (void)name;
@@ -472,6 +493,13 @@ int Ikarus::str_toint(std::string_view str) {
   return 0;
   }
 
+std::string Ikarus::str_upper(std::string_view str) {
+  std::string s = std::string(str);
+  for(auto& c:s)
+    c = char(std::toupper(c));
+  return s;
+  }
+
 std::string Ikarus::mem_getgothopt(std::string_view section, std::string_view option) {
   return std::string(Gothic::inst().settingsGetS(section, option));
   }
@@ -515,6 +543,17 @@ void Ikarus::call_zstringptrparam(std::string_view prm) {
 
 void Ikarus::call_intparam(int prm) {
   call.iprm.push_back(prm);
+  }
+
+void Ikarus::call_floatparam(int p) {
+  Log::e("TODO: call_floatparam");
+  }
+
+int Ikarus::call_retvalasint() {
+  if(!call.hasEax)
+    Log::e("Ikarus: call_retvalasint: EAX wasn't initialized");
+  call.hasEax = false;
+  return call.eax;
   }
 
 void Ikarus::call__thiscall(int32_t pthis, ptr32_t func) {

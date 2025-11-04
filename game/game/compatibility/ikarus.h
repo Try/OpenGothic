@@ -41,7 +41,13 @@ class Ikarus : public ScriptPlugin {
     void register_stdcall(ptr32_t addr, const std::function<R(Args...)>& callback) {
       register_stdcall_inner(addr, [callback](Ikarus& ikarus) {
         auto v = std::make_tuple(ikarus.call.pop<Args>()...);
-        std::apply(callback, std::move(v));
+        if constexpr(std::is_same<void,R>::value) {
+          std::apply(callback, std::move(v));
+          } else {
+          auto r = std::apply(callback, std::move(v));
+          ikarus.call.eax    = r;
+          ikarus.call.hasEax = true;
+          }
         });
       }
     template <typename T>
@@ -336,6 +342,8 @@ class Ikarus : public ScriptPlugin {
     void        mem_writeint      (int address, int val);
     void        mem_copybytes     (int src, int dst, int size);
     std::string mem_readstring    (int address);
+    int         _mem_readstatarr   (int address, int off);
+    zenkit::DaedalusNakedCall mem_readstatarr(zenkit::DaedalusVm& vm);
     // pointers
     std::shared_ptr<zenkit::DaedalusInstance> mem_ptrtoinst(ptr32_t address);
 
@@ -348,6 +356,7 @@ class Ikarus : public ScriptPlugin {
     std::string str_substr(std::string_view str, int start, int count);
     int         str_len   (std::string_view str);
     int         str_toint (std::string_view str);
+    std::string str_upper (std::string_view str);
 
     // ## ini-file
     std::string mem_getgothopt          (std::string_view section, std::string_view option);
@@ -366,6 +375,8 @@ class Ikarus : public ScriptPlugin {
 
     void call_zstringptrparam(std::string_view ptr);
     void call_intparam(int p);
+    void call_floatparam(int p);
+    int  call_retvalasint();
     void call__thiscall(int32_t pthis, ptr32_t func);
     void call__stdcall(ptr32_t func);
     void register_stdcall_inner(ptr32_t addr, std::function<void(Ikarus&)> f);
@@ -385,6 +396,9 @@ class Ikarus : public ScriptPlugin {
     struct Call {
       std::vector<int>         iprm;
       std::vector<std::string> sprm;
+
+      int32_t                  eax = {};
+      bool                     hasEax = false;
 
       template<class T>
       T pop();
@@ -417,7 +431,7 @@ inline int Ikarus::Call::pop<int>() {
   auto ret = iprm.back();
   iprm.pop_back();
   return ret;
-}
+  }
 
 template<>
 inline Ikarus::ptr32_t Ikarus::Call::pop<Ikarus::ptr32_t>() {
@@ -426,7 +440,7 @@ inline Ikarus::ptr32_t Ikarus::Call::pop<Ikarus::ptr32_t>() {
   auto ret = iprm.back();
   iprm.pop_back();
   return Ikarus::ptr32_t(ret);
-}
+  }
 
 template<>
 inline std::string Ikarus::Call::pop<std::string>() {
@@ -435,4 +449,4 @@ inline std::string Ikarus::Call::pop<std::string>() {
   auto ret = std::move(sprm.back());
   sprm.pop_back();
   return ret;
-}
+  }

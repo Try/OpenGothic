@@ -67,6 +67,9 @@ struct LeGo::zCView {
   int32_t POSOPENCLOSE_1[2];
   };
 
+struct LeGo::zCFontMan {
+  };
+
 LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(owner), ikarus(ikarus), vm(vm_) {
   if(auto v = vm.find_symbol_by_name("LeGo_Version")) {
     const char* version = v->type()==zenkit::DaedalusDataType::STRING ? v->get_string().c_str() : "LeGo";
@@ -101,6 +104,10 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
     Log::e("not implemented call [HookEngineI] (", reinterpret_cast<void*>(uint64_t(address)),
            " -> ", name, ")");
     });
+  vm.override_function("HookEngine", [](int address, int oldInstr, std::string_view function){
+    Log::e("not implemented call [HookEngine] (", reinterpret_cast<void*>(uint64_t(address)),
+           " -> ", function, ")");
+    });
 
   // console commands
   vm.override_function("CC_Register", [](zenkit::DaedalusFunction func, std::string_view prefix, std::string_view desc){
@@ -127,11 +134,10 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
 
   // ## UI
   // https://github.com/Lehona/LeGo/blob/dev/View.d
-
-  // NOTE: implement call__* instead?
-  const int ZCVIEW__ZCVIEW  = 8017664;
-  const int ZCVIEW__SETSIZE = 8026016;
-  const int zCVIEW__MOVE    = 8025824;
+  const int ZCVIEW__ZCVIEW     = 8017664;
+  const int ZCVIEW__SETSIZE    = 8026016;
+  const int zCVIEW__MOVE       = 8025824;
+  const int ZCVIEW__INSERTBACK = 8020272;
   ikarus.register_stdcall(ZCVIEW__ZCVIEW, [this](ptr32_t ptr, int x1, int y1, int x2, int y2, int arg) {
     zCView__zCView(ptr, x1, y1, x2, y2);
     });
@@ -140,6 +146,9 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
     });
   ikarus.register_stdcall(zCVIEW__MOVE, [this](ptr32_t ptr, int x, int y) {
     zCView__Move(ptr, x, y);
+    });
+  ikarus.register_stdcall(ZCVIEW__INSERTBACK, [this](ptr32_t ptr, std::string img) {
+    zCView__InsertBack(ptr, img);
     });
 
   // ## UI data
@@ -156,10 +165,18 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
     }
 
   // ## Font
-  const int ZCFONTMAN__LOAD = 7897808;
+  const int ZCFONTMAN__LOAD    = 7897808;
+  const int ZCFONTMAN__GETFONT = 7898288;
   ikarus.register_stdcall(ZCFONTMAN__LOAD, [this](ptr32_t ptr, std::string font) {
-    zCFontMan__Load(ptr, font);
+    return zCFontMan__Load(ptr, font);
     });
+  ikarus.register_stdcall(ZCFONTMAN__GETFONT, [this](ptr32_t ptr, int handle) {
+    return zCFontMan__GetFont(ptr, handle);
+    });
+
+  const int ZFONTMAN = 11221460;
+  fontMan_Ptr = allocator.alloc(sizeof(zCFontMan));
+  allocator.pin(&fontMan_Ptr, ZFONTMAN, sizeof(fontMan_Ptr), "zCFontMan*");
   }
 
 bool LeGo::isRequired(zenkit::DaedalusVm& vm) {
@@ -332,8 +349,23 @@ void LeGo::zCView__Move(ptr32_t ptr, int x, int y) {
   view->VPOSY  = y;
   }
 
-void LeGo::zCFontMan__Load(ptr32_t ptr, std::string_view font) {
+void LeGo::zCView__InsertBack(ptr32_t ptr, std::string_view img) {
+  auto view = ikarus.allocator.deref<zCView>(ptr);
+  if(view==nullptr) {
+    Log::e("LeGo: zCView__InsertBack - unable to resolve address");
+    return;
+    }
+  Log::e("LeGo: zCView__InsertBack: ", img);
+  }
+
+int LeGo::zCFontMan__Load(ptr32_t ptr, std::string_view font) {
   Log::e("LeGo: zCFontMan__Load");
+  return 1234;
+  }
+
+int LeGo::zCFontMan__GetFont(ptr32_t ptr, int handle) {
+  Log::e("LeGo: zCFontMan__GetFont");
+  return handle;
   }
 
 

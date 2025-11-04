@@ -42,13 +42,18 @@ class LeGo : public ScriptPlugin {
     void        zCView__zCView(ptr32_t ptr, int x1, int y1, int x2, int y2);
     void        zCView__SetSize(ptr32_t ptr, int w, int h);
     void        zCView__Move(ptr32_t ptr, int x, int y);
+    void        zCView__InsertBack(ptr32_t ptr, std::string_view img);
 
-    void        zCFontMan__Load(ptr32_t ptr, std::string_view font);
+    // ## Font
+    struct zCFontMan;
+    int         zCFontMan__Load(ptr32_t ptr, std::string_view font);
+    int         zCFontMan__GetFont(ptr32_t ptr, int handle);
 
     GameScript&         owner;
     Ikarus&             ikarus;
     zenkit::DaedalusVm& vm;
 
+    ptr32_t             fontMan_Ptr = 0;
     std::vector<FFItem> frameFunc;
   };
 
