@@ -40,6 +40,9 @@ class LeGo : public ScriptPlugin {
     // ## UI
     struct zCView;
     void        zCView__zCView(ptr32_t ptr, int x1, int y1, int x2, int y2);
+    void        zCView__Open(ptr32_t ptr);
+    void        zCView__Close(ptr32_t ptr);
+    void        zCView__Top(ptr32_t ptr);
     void        zCView__SetSize(ptr32_t ptr, int w, int h);
     void        zCView__Move(ptr32_t ptr, int x, int y);
     void        zCView__InsertBack(ptr32_t ptr, std::string_view img);

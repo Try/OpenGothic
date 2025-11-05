@@ -310,6 +310,8 @@ class Ikarus : public ScriptPlugin {
       ptr32_t  stack_stackPtr = 0;            // 76
       };
 
+    void        setupEngineMemory();
+
     std::string mem_getcommandline();
     void        mem_sendtospy(int cat, std::string_view msg);
 
@@ -398,6 +400,7 @@ class Ikarus : public ScriptPlugin {
 
     std::string_view demangleAddress(ptr32_t addr);
 
+    GameScript&         gameScript;
     zenkit::DaedalusVm& vm;
     Mem32               allocator;
 
@@ -422,7 +425,8 @@ class Ikarus : public ScriptPlugin {
     Call         call;
     std::unordered_map<ptr32_t, std::function<void(Ikarus&)>> stdcall_overrides;
 
-    uint32_t     versionHint   = 0;
+    uint32_t     versionHint     = 0;
+    ptr32_t      MEMINT_StackPos = 0;
     zCParser     parserProxy = {};
 
     zCTimer      zTimer = {};
@@ -433,6 +437,7 @@ class Ikarus : public ScriptPlugin {
     ptr32_t      gameman_Ptr  = 0;
     ptr32_t      symbolsPtr   = 0;
     ptr32_t      zFactory_Ptr = 0;
+    ptr32_t      focusList[6] = {};
 
     int32_t      invMaxItems = 9;
 

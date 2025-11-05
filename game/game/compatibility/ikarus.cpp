@@ -32,15 +32,9 @@ enum {
   menuParserPointerAddress      =  9248360,  // 0x8D1E68
   pfxParserPointerAddress       =  9278004,  // 0x8D9234
 
-  MEMINT_oGame_Pointer_Address        = 11208836, //0xAB0884
-  MEMINT_zTimer_Address               = 10073044, //0x99B3D4
-  MEMINT_oCInformationManager_Address = 11191384, //0xAAC458
-  MEMINT_gameMan_Pointer_Address      = 9185624,  //0x8C2958
-
   MEMINT_SENDTOSPY_IMPLEMENTATION_ZERR_G2 = 9231568,
-  INV_MAX_ITEMS_ADDR = 8635508,
-
-  OCNPC__ENABLE_EQUIPBESTWEAPONS = 7626662, //0x745FA6
+  INV_MAX_ITEMS_ADDR                      = 8635508,
+  OCNPC__ENABLE_EQUIPBESTWEAPONS          = 7626662, //0x745FA6
   };
 
 void Ikarus::memory_instance::set_int(const zenkit::DaedalusSymbol& sym, uint16_t index, int32_t value) {
@@ -85,41 +79,13 @@ const std::string& Ikarus::memory_instance::get_string(const zenkit::DaedalusSym
   }
 
 
-Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
+Ikarus::Ikarus(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), vm(vm) {
   if(auto v = vm.find_symbol_by_name("Ikarus_Version")) {
     const int version = v->type()==zenkit::DaedalusDataType::INT ? v->get_int() : 0;
     Log::i("DMA mod detected: Ikarus v", version);
     }
 
-  // built-in data with assumed address
-  const int ZFACTORY = 9276912;
-
-  versionHint = 504628679; // G2
-  allocator.pin(&versionHint,   GothicFirstInstructionAddress,  4, "MEMINT_ReportVersionCheck");
-  allocator.pin(&oGame_Pointer, MEMINT_oGame_Pointer_Address,   4, "oGame*");
-  allocator.pin(&gameman_Ptr,   MEMINT_gameMan_Pointer_Address, 4, "GameMan*");
-  allocator.pin(&zTimer,        MEMINT_zTimer_Address,          sizeof(zTimer), "zTimer");
-  allocator.pin(&parserProxy,   ContentParserAddress,           sizeof(parserProxy), "zCParser proxy");
-  allocator.pin(&invMaxItems,   INV_MAX_ITEMS_ADDR,             4, "INV_MAX_ITEMS"); //TODO: callback memory
-  allocator.pin(&zFactory_Ptr,  ZFACTORY,                       4, "zFactory*");
-
-  // built-in data without assumed address
-  oGame_Pointer = allocator.pin(&memGame, sizeof(memGame), "oGame");
-  memGame._ZCSESSION_WORLD = allocator.alloc(sizeof(oWorld));
-  memGame.WLDTIMER         = 0x1235;
-
-  auto& mem_world = *allocator.deref<oWorld>(memGame._ZCSESSION_WORLD);
-  mem_world.WAYNET = 0x1234; //TODO: add implement some proxy to waynet
-
-  gameman_Ptr   = allocator.alloc(sizeof(GameMgr));
-
-  symbolsPtr    = allocator.alloc(uint32_t(vm.symbols().size() * sizeof(zenkit::DaedalusSymbol)));
-
-  parserProxy.symtab_table.numInArray = int32_t(vm.symbols().size());
-  parserProxy.symtab_table.numAlloc   = 0;//parserProxy.symtab_table.numInArray;
-
-  // ## Builtin instances
-  allocator.alloc(MEMINT_SENDTOSPY_IMPLEMENTATION_ZERR_G2, 64, "ZERROR");
+  setupEngineMemory();
 
   // Note: no inline asm
   // TODO: Make sure this actually works!
@@ -279,10 +245,6 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
     continue_->set_access_trap_enable(true);
     }
 
-  // if(auto fn = vm.find_symbol_by_name("SETINITIALTIMEINWORLD")) {
-  //   fn->set_access_trap_enable(true);
-  //   }
-
   // Disable some high-level functions, until basic stuff is done
   auto dummyfy = [&](std::string_view name, auto hook) {
     auto f = vm.find_symbol_by_name(name);
@@ -300,6 +262,10 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
   dummyfy("GETMASTERVOLUMESOUNDS", [](){ return 0; });
   dummyfy("R_DEFAULTINIT", [](){});
   dummyfy("PLAYER_RANGED_NO_AMMO_INIT", [](){}); // inline asm
+  if(auto v = vm.find_symbol_by_name("PRINT_BARVALUES")) {
+    //TESTING for bar UI!
+    v->set_int(1);
+    }
   }
 
 bool Ikarus::isRequired(zenkit::DaedalusScript& vm) {
@@ -310,6 +276,56 @@ bool Ikarus::isRequired(zenkit::DaedalusScript& vm) {
       vm.find_symbol_by_name("MEM_WriteInt") != nullptr &&
       vm.find_symbol_by_name("_@") != nullptr &&
       vm.find_symbol_by_name("_^") != nullptr;
+  }
+
+void Ikarus::setupEngineMemory() {
+  const int BAD_BUILTIN_PTR = 0xBAD4000;
+  // built-in data with assumed address
+  const int ZFACTORY = 9276912;
+  const int MEMINT_oGame_Pointer_Address        = 11208836; //0xAB0884
+  const int MEMINT_zTimer_Address               = 10073044; //0x99B3D4
+  // const int MEMINT_oCInformationManager_Address = 11191384; //0xAAC458
+  const int MEMINT_gameMan_Pointer_Address      = 9185624;  //0x8C2958
+
+  versionHint = 504628679; // G2
+  allocator.pin(&versionHint,   GothicFirstInstructionAddress,  4, "MEMINT_ReportVersionCheck");
+  allocator.pin(&oGame_Pointer, MEMINT_oGame_Pointer_Address,   4, "oGame*");
+  allocator.pin(&gameman_Ptr,   MEMINT_gameMan_Pointer_Address, 4, "GameMan*");
+  allocator.pin(&zTimer,        MEMINT_zTimer_Address,          sizeof(zTimer), "zTimer");
+  allocator.pin(&invMaxItems,   INV_MAX_ITEMS_ADDR,             4, "INV_MAX_ITEMS"); //TODO: callback memory
+  allocator.pin(&zFactory_Ptr,  ZFACTORY,                       4, "zFactory*");
+
+  // const int zCParser_symtab_table_array_offset        = 24; //0x18
+  // const int zCParser_sorted_symtab_table_array_offset = 36; //0x24
+  // const int zCParser_stack_offset                     = 72; //0x48
+  // const int zCParser_stack_stackPtr_offset            = 76; //0x4C
+  allocator.pin(&parserProxy,     ContentParserAddress, sizeof(parserProxy), "zCParser proxy");
+  //allocator.pin(&MEMINT_StackPos, ContentParserAddress + zCParser_stack_stackPtr_offset);
+
+  const int OCNPCFOCUS__FOCUSLIST_G2 = 11208440;
+  allocator.pin(&focusList, OCNPCFOCUS__FOCUSLIST_G2, sizeof(focusList), "OCNPCFOCUS__FOCUSLIST_G2");
+
+  // built-in data without assumed address
+  oGame_Pointer = allocator.pin(&memGame, sizeof(memGame), "oGame");
+  memGame._ZCSESSION_WORLD = allocator.alloc(sizeof(oWorld));
+  memGame.WLDTIMER         = BAD_BUILTIN_PTR;
+
+  auto& mem_world = *allocator.deref<oWorld>(memGame._ZCSESSION_WORLD);
+  mem_world.WAYNET = BAD_BUILTIN_PTR; //TODO: add implement some proxy to waynet
+
+  gameman_Ptr   = allocator.alloc(sizeof(GameMgr));
+  symbolsPtr    = allocator.alloc(uint32_t(vm.symbols().size() * sizeof(zenkit::DaedalusSymbol)));
+
+  parserProxy.symtab_table.numInArray = int32_t(vm.symbols().size());
+  parserProxy.symtab_table.numAlloc   = 0;//parserProxy.symtab_table.numInArray;
+
+  // ## Builtin instances in dynamic memory
+  allocator.alloc(MEMINT_SENDTOSPY_IMPLEMENTATION_ZERR_G2, 64, "ZERROR");
+
+  if(auto p = allocator.deref<std::array<ptr32_t,6>>(OCNPCFOCUS__FOCUSLIST_G2)) {
+    gameScript.focusMage();
+    (*p)[5] = BAD_BUILTIN_PTR;
+    }
   }
 
 void Ikarus::mem_setupexceptionhandler() {

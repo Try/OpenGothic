@@ -135,11 +135,23 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
   // ## UI
   // https://github.com/Lehona/LeGo/blob/dev/View.d
   const int ZCVIEW__ZCVIEW     = 8017664;
+  const int ZCVIEW__OPEN       = 8023040;
+  const int ZCVIEW__CLOSE      = 8023600;
+  const int ZCVIEW_TOP         = 8021904;
   const int ZCVIEW__SETSIZE    = 8026016;
   const int zCVIEW__MOVE       = 8025824;
   const int ZCVIEW__INSERTBACK = 8020272;
   ikarus.register_stdcall(ZCVIEW__ZCVIEW, [this](ptr32_t ptr, int x1, int y1, int x2, int y2, int arg) {
     zCView__zCView(ptr, x1, y1, x2, y2);
+    });
+  ikarus.register_stdcall(ZCVIEW__OPEN, [this](ptr32_t ptr) {
+    zCView__Open(ptr);
+    });
+  ikarus.register_stdcall(ZCVIEW__CLOSE, [this](ptr32_t ptr) {
+    zCView__Close(ptr);
+    });
+  ikarus.register_stdcall(ZCVIEW_TOP, [this](ptr32_t ptr) {
+    zCView__Top(ptr);
     });
   ikarus.register_stdcall(ZCVIEW__SETSIZE, [this](ptr32_t ptr, int x, int y) {
     zCView__SetSize(ptr, x, y);
@@ -337,6 +349,31 @@ void LeGo::zCView__zCView(ptr32_t ptr, int x1, int y1, int x2, int y2) {
   view->VPOSY  = y1;
   view->VSIZEX = x2-x1;
   view->VSIZEY = y2-y1;
+  }
+
+void LeGo::zCView__Open(ptr32_t ptr) {
+  auto view = ikarus.allocator.deref<zCView>(ptr);
+  if(view==nullptr) {
+    Log::e("LeGo: zCView__Open - unable to resolve address");
+    return;
+    }
+  Log::e("LeGo: zCView__Open");
+  }
+
+void LeGo::zCView__Close(ptr32_t ptr) {
+  auto view = ikarus.allocator.deref<zCView>(ptr);
+  if(view==nullptr) {
+    Log::e("LeGo: zCView__Close - unable to resolve address");
+    return;
+    }
+  }
+
+void LeGo::zCView__Top(ptr32_t ptr) {
+  auto view = ikarus.allocator.deref<zCView>(ptr);
+  if(view==nullptr) {
+    Log::e("LeGo: zCView__Top - unable to resolve address");
+    return;
+    }
   }
 
 void LeGo::zCView__SetSize(ptr32_t ptr, int x, int y) {
