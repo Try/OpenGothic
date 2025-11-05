@@ -128,7 +128,7 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
   vm.override_function("ASMINT_MyExternal",     [](){});
   vm.override_function("ASMINT_CallMyExternal", [](){});
   vm.override_function("ASMINT_Init",           [](){});
-  vm.override_function("ASM_Open",              [](int){});
+  vm.override_function("ASM_Open",              [this](int len){ ASM_Open(len); });
   vm.override_function("ASM_Close",             []() -> int { return 0; });
   vm.override_function("ASM",                   [](int,int){});
   vm.override_function("ASM_Run",               [](int){});
@@ -212,16 +212,16 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
   vm.override_function("MEM_SetGothOpt",           [this](std::string_view sec, std::string_view opt, std::string_view v) { return mem_setgothopt(sec,opt,v); });
 
   // ##
-  vm.override_function("CALL_zstringptrparam", [this](std::string_view p) { call_zstringptrparam(p); });
+  CALLINT_numParams = vm.find_symbol_by_name("CALLINT_numParams");
   vm.override_function("CALL_intparam",        [this](int p) { call_intparam(p); });
   vm.override_function("CALL_ptrparam",        [this](int p) { call_ptrparam(p); });
   vm.override_function("CALL_floatparam",      [this](int p) { call_floatparam(p); });
-
+  vm.override_function("CALL_zstringptrparam", [this](std::string_view p) { call_zstringptrparam(p); });
+  vm.override_function("CALL_cstringptrparam", [this](std::string_view p) { call_cstringptrparam(p); });
   vm.override_function("CALL_retvalasint",     [this]() { return call_retvalasint(); });
   vm.override_function("CALL_retvalasptr",     [this]() { return call_retvalasptr(); });
   vm.override_function("CALL__thiscall",       [this](int thisptr, int address){ call__thiscall(thisptr, ptr32_t(address)); });
-  vm.override_function("CALL__stdcall",        [this](int address){ call__stdcall(ptr32_t(address)); });
-  vm.override_function("CALL__cdecl",          [this](int address){ call__cdecl(ptr32_t(address)); });
+  vm.override_function("CALLINT_makecall",     [this](int address, int clr){ callint_makecall(ptr32_t(address), clr); } );
 
   vm.override_function("HASH",           [this](int v){ return hash(v); });
 
@@ -363,6 +363,10 @@ int Ikarus::divf(int ia, int ib) {
   float a = intBitsToFloat(ia);
   float b = intBitsToFloat(ib);
   return floatBitsToInt(a/b);
+  }
+
+void Ikarus::ASM_Open(int) {
+  Log::e("Ikarus: ASM_Open not implemented");
   }
 
 void Ikarus::mem_getaddress_init() { /* nop */ }
@@ -584,20 +588,29 @@ int Ikarus::getusernamea(ptr32_t lpBuffer, ptr32_t pcbBuffer) {
   return 1;
   }
 
-void Ikarus::call_zstringptrparam(std::string_view prm) {
-  call.sprm.push_back(std::string(prm));
-  }
-
 void Ikarus::call_intparam(int prm) {
+  //TODO: implement inline asm instead?!
   call.iprm.push_back(prm);
+  if(CALLINT_numParams!=nullptr && CALLINT_numParams->type()==zenkit::DaedalusDataType::INT)
+    CALLINT_numParams->set_int(CALLINT_numParams->get_int()+1);
   }
 
 void Ikarus::call_ptrparam(int prm) {
-  call.iprm.push_back(prm);
+  call_intparam(prm);
   }
 
-void Ikarus::call_floatparam(int p) {
-  Log::e("TODO: call_floatparam");
+void Ikarus::call_floatparam(int prm) {
+  call_intparam(prm);
+  }
+
+void Ikarus::call_zstringptrparam(std::string_view prm) {
+  //NOTE: asm-based version has much more quirks and requires _@ operator
+  call.sprm.push_back(std::string(prm));
+  }
+
+void Ikarus::call_cstringptrparam(std::string_view prm) {
+  //NOTE: asm-based version has much more quirks and requires _@ operator
+  call.sprm.push_back(std::string(prm));
   }
 
 int Ikarus::call_retvalasint() {
@@ -613,10 +626,14 @@ int Ikarus::call_retvalasptr() {
 
 void Ikarus::call__thiscall(int32_t pthis, ptr32_t func) {
   call.iprm.push_back(pthis);
-  call__stdcall(func);
+  callint_makecall(func, false);
   }
 
-void Ikarus::call__stdcall(ptr32_t func) {
+void Ikarus::callint_makecall(ptr32_t func, bool cleanStk) {
+  if(CALLINT_numParams!=nullptr && CALLINT_numParams->type()==zenkit::DaedalusDataType::INT) {
+    //Log::d("argc = ", CALLINT_numParams->get_int());
+    CALLINT_numParams->set_int(0);
+    }
   auto fn = stdcall_overrides.find(func);
   if(fn!=stdcall_overrides.end()) {
     fn->second(*this);
@@ -624,7 +641,6 @@ void Ikarus::call__stdcall(ptr32_t func) {
     assert(call.sprm.size()==0); // not nesseserly true, but usefull for debug
     return;
     }
-
   call.iprm.clear();
   call.sprm.clear();
   static std::unordered_set<ptr32_t> once;
@@ -633,18 +649,8 @@ void Ikarus::call__stdcall(ptr32_t func) {
 
   auto str = demangleAddress(func);
   if(!str.empty())
-    Log::d("Ikarus: call__stdcall(", str, ")"); else
-    Log::d("Ikarus: call__stdcall(", func, ")");
-  }
-
-void Ikarus::call__cdecl(ptr32_t func) {
-  static std::unordered_set<ptr32_t> once;
-  if(!once.insert(func).second)
-    return;
-  auto str = demangleAddress(func);
-  if(!str.empty())
-    Log::d("Ikarus: TODO: call__cdecl(", str, ")"); else
-    Log::d("Ikarus: TODO: call__cdecl(", func, ")");
+    Log::d("Ikarus: callint_makecall(", str, ")"); else
+    Log::d("Ikarus: callint_makecall(", func, ")");
   }
 
 int Ikarus::hash(int x) {

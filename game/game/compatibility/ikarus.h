@@ -321,6 +321,8 @@ class Ikarus : public ScriptPlugin {
     static int  mulf(int a, int b);
     static int  divf(int a, int b);
 
+    void        ASM_Open(int);
+
     void        mem_setupexceptionhandler         ();
     void        mem_getaddress_init               ();
     void        mem_printstacktrace_implementation();
@@ -378,15 +380,18 @@ class Ikarus : public ScriptPlugin {
     void                      loop_trap(zenkit::DaedalusSymbol* i);
     void                      loop_out (zenkit::DaedalusVm& vm);
 
-    void call_zstringptrparam(std::string_view ptr);
+    zenkit::DaedalusSymbol* CALLINT_numParams = nullptr;
     void call_intparam(int p);
     void call_ptrparam(int p);
     void call_floatparam(int p);
+    void call_zstringptrparam(std::string_view ptr);
+    void call_cstringptrparam(std::string_view ptr);
     int  call_retvalasint();
     int  call_retvalasptr();
+
     void call__thiscall(int32_t pthis, ptr32_t func);
-    void call__stdcall(ptr32_t func);
-    void call__cdecl(ptr32_t func);
+    void callint_makecall(ptr32_t func, bool cleanStk);
+
     void register_stdcall_inner(ptr32_t addr, std::function<void(Ikarus&)> f);
 
     int  hash(int x);
