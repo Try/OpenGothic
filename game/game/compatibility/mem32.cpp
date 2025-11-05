@@ -106,6 +106,17 @@ void* Mem32::deref(ptr32_t address, uint32_t size) {
   return reinterpret_cast<uint8_t*>(rgn->real)+address;
   }
 
+auto Mem32::deref(ptr32_t address) -> std::tuple<void*, uint32_t> {
+  auto rgn = translate(address);
+  if(rgn==nullptr) {
+    Log::e("deref: address translation failure: ", reinterpret_cast<void*>(uint64_t(address)));
+    return {nullptr,0};
+    }
+  address -= rgn->address;
+  uint32_t size = rgn->size-address;
+  return {reinterpret_cast<uint8_t*>(rgn->real)+address, size};
+  }
+
 void Mem32::compactage() {
   for(size_t i=0; i+1<region.size(); ) {
     auto& a = region[i+0];

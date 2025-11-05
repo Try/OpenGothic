@@ -358,6 +358,7 @@ class Ikarus : public ScriptPlugin {
     int         str_len   (std::string_view str);
     int         str_toint (std::string_view str);
     std::string str_upper (std::string_view str);
+    std::string str_fromchar(int ptr);
 
     // ## ini-file
     std::string mem_getgothopt          (std::string_view section, std::string_view option);
@@ -368,6 +369,9 @@ class Ikarus : public ScriptPlugin {
     bool        mem_modoptexists        (std::string_view section, std::string_view option);
     void        mem_setgothopt          (std::string_view section, std::string_view option, std::string_view value);
 
+    // ## Windows api (basic)
+    int        getusernamea(ptr32_t lpBuffer, ptr32_t pcbBuffer);
+
     // control-flow
     zenkit::DaedalusNakedCall repeat   (zenkit::DaedalusVm& vm);
     zenkit::DaedalusNakedCall while_   (zenkit::DaedalusVm& vm);
@@ -376,6 +380,7 @@ class Ikarus : public ScriptPlugin {
 
     void call_zstringptrparam(std::string_view ptr);
     void call_intparam(int p);
+    void call_ptrparam(int p);
     void call_floatparam(int p);
     int  call_retvalasint();
     int  call_retvalasptr();

@@ -196,10 +196,11 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
   vm.register_access_trap([this](zenkit::DaedalusSymbol& i)     { return loop_trap(&i); });
 
   // ## Strings
-  vm.override_function("STR_SubStr", [this](std::string_view str, int start, int count){ return str_substr(str,start,count); });
-  vm.override_function("STR_Len",    [this](std::string_view str){ return str_len(str);   });
-  vm.override_function("STR_ToInt",  [this](std::string_view str){ return str_toint(str); });
-  vm.override_function("STR_Upper",  [this](std::string_view str){ return str_upper(str); });
+  vm.override_function("STR_SubStr",   [this](std::string_view str, int start, int count){ return str_substr(str,start,count); });
+  vm.override_function("STR_Len",      [this](std::string_view str){ return str_len(str);   });
+  vm.override_function("STR_ToInt",    [this](std::string_view str){ return str_toint(str); });
+  vm.override_function("STR_Upper",    [this](std::string_view str){ return str_upper(str); });
+  vm.override_function("STR_FromChar", [this](int ptr){ return str_fromchar(ptr); });
 
   // ## Ini-file
   vm.override_function("MEM_GetGothOpt",           [this](std::string_view sec, std::string_view opt) { return mem_getgothopt(sec,opt);       });
@@ -213,6 +214,7 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
   // ##
   vm.override_function("CALL_zstringptrparam", [this](std::string_view p) { call_zstringptrparam(p); });
   vm.override_function("CALL_intparam",        [this](int p) { call_intparam(p); });
+  vm.override_function("CALL_ptrparam",        [this](int p) { call_ptrparam(p); });
   vm.override_function("CALL_floatparam",      [this](int p) { call_floatparam(p); });
 
   vm.override_function("CALL_retvalasint",     [this]() { return call_retvalasint(); });
@@ -249,6 +251,13 @@ Ikarus::Ikarus(GameScript& /*owner*/, zenkit::DaedalusVm& vm) : vm(vm) {
   vm.override_function("MEM_InfoBox", [](std::string_view txt){
     //TODO: real message box
     Log::i("MEM_InfoBox: ", txt);
+    });
+
+  // ## Windows api (basic)
+  const int GETUSERNAMEA = 8080162;
+  //const int GETLOCALTIME = 8079184;
+  register_stdcall(GETUSERNAMEA, [this](ptr32_t lpBuffer, ptr32_t pcbBuffer){
+    getusernamea(lpBuffer, pcbBuffer);
     });
 
   // ## ZSpy ##
@@ -373,6 +382,10 @@ void Ikarus::mem_replacefunc(zenkit::DaedalusFunction dest, zenkit::DaedalusFunc
   }
 
 int Ikarus::mem_getfuncidbyoffset(int off) {
+  if(off==0) {
+    // MEM_INITALL
+    return 0;
+    }
   Log::e("TODO: mem_getfuncidbyoffset ", off);
   return 0;
   }
@@ -514,6 +527,17 @@ std::string Ikarus::str_upper(std::string_view str) {
   return s;
   }
 
+std::string Ikarus::str_fromchar(int iptr) {
+  auto [ptr, size] = allocator.deref(ptr32_t(iptr));
+  const char* chr = reinterpret_cast<const char*>(ptr);
+  if(chr==nullptr || size==0)
+    return "";
+  size_t strsz = 0;
+  while(chr[strsz] && strsz<size)
+    ++strsz;
+  return std::string(chr, strsz);
+  }
+
 std::string Ikarus::mem_getgothopt(std::string_view section, std::string_view option) {
   return std::string(Gothic::inst().settingsGetS(section, option));
   }
@@ -551,11 +575,24 @@ void Ikarus::mem_setgothopt(std::string_view section, std::string_view option, s
   Log::e("TODO: mem_setgothopt(", section, ", ", option, ", ", value, ")");
   }
 
+int Ikarus::getusernamea(ptr32_t lpBuffer, ptr32_t pcbBuffer) {
+  //NOTE: max is broken, as _@ is not implemented for local variables in script
+  int max = allocator.readInt(pcbBuffer); (void)max;
+  if(auto ptr = allocator.deref(lpBuffer, 16)) {
+    std::strncpy(reinterpret_cast<char*>(ptr), "OpenGothic", 16);
+    }
+  return 1;
+  }
+
 void Ikarus::call_zstringptrparam(std::string_view prm) {
   call.sprm.push_back(std::string(prm));
   }
 
 void Ikarus::call_intparam(int prm) {
+  call.iprm.push_back(prm);
+  }
+
+void Ikarus::call_ptrparam(int prm) {
   call.iprm.push_back(prm);
   }
 

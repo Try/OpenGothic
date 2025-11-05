@@ -238,9 +238,9 @@ void LeGo::tick(uint64_t dt) {
 
     if(auto* sym = vm.find_symbol_by_index(i.fncID)) {
       try {
-      if(i.hasData)
-        vm.call_function(sym, i.data); else
-        vm.call_function(sym);
+        if(i.hasData)
+          vm.call_function(sym, i.data); else
+          vm.call_function(sym);
         }
       catch(const std::exception& e){
         Tempest::Log::e("exception in \"", sym->name(), "\": ",e.what());

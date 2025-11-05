@@ -22,6 +22,7 @@ class Mem32 {
     ptr32_t realloc(ptr32_t address, uint32_t size);
 
     void*   deref(ptr32_t address, uint32_t size);
+    auto    deref(ptr32_t address) -> std::tuple<void*, uint32_t>;
 
     template<class T>
     T*      deref(ptr32_t address) { return reinterpret_cast<T*>(deref(address, sizeof(T))); }
