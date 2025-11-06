@@ -12,6 +12,7 @@
 #include "gothic.h"
 
 using namespace Tempest;
+using namespace Compatibility;
 
 static int32_t floatBitsToInt(float f) {
   int32_t i = 0;
@@ -140,15 +141,15 @@ Ikarus::Ikarus(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), v
   vm.override_function("MEM_GetCommandLine",           [this](){ return mem_getcommandline(); });
 
   // ## Basic zCParser related functions ##
-  vm.override_function("MEM_PtrToInst",       [this](int address)          { return mem_ptrtoinst(ptr32_t(address)); });
-  vm.override_function("_^",                  [this](int address)          { return mem_ptrtoinst(ptr32_t(address)); });
-  vm.override_function("MEM_InstToPtr",       [this](int index)            { return mem_insttoptr(index); });
-  vm.override_function("MEM_GetIntAddress",   [this](int val)              { return _takeref(val);      });
-  vm.override_function("_@",                  [this](int val)              { return _takeref(val);     });
-  vm.override_function("MEM_GetStringAddress",[this](std::string_view val) { return _takeref_s(val);   });
-  vm.override_function("_@s",                 [this](std::string_view val) { return _takeref_s(val);   });
-  vm.override_function("MEM_GetFloatAddress", [this](float val)            { return _takeref_f(val);   });
-  vm.override_function("_@f",                 [this](float val)            { return _takeref_f(val);   });
+  vm.override_function("MEM_PtrToInst",        [this](int address)           { return mem_ptrtoinst(ptr32_t(address)); });
+  vm.override_function("_^",                   [this](int address)           { return mem_ptrtoinst(ptr32_t(address)); });
+  vm.override_function("MEM_InstToPtr",        [this](int index)             { return mem_insttoptr(index); });
+  vm.override_function("MEM_GetIntAddress",    [this](int val)               { return _takeref(val);        });
+  vm.override_function("_@",                   [this](int val)               { return _takeref(val);        });
+  vm.override_function("MEM_GetStringAddress", [this](zenkit::DaedalusVm& vm){ return _takeref_s(vm);       });
+  vm.override_function("_@s",                  [this](zenkit::DaedalusVm& vm){ return _takeref_s(vm);       });
+  vm.override_function("MEM_GetFloatAddress",  [this](zenkit::DaedalusVm& vm){ return _takeref_s(vm);       });
+  vm.override_function("_@f",                  [this](zenkit::DaedalusVm& vm){ return _takeref_s(vm);       });
 
   // ## MEM_Alloc and MEM_Free ##
   vm.override_function("MEM_Alloc",   [this](int amount )                      { return mem_alloc(amount);               });
@@ -162,11 +163,14 @@ Ikarus::Ikarus(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), v
   vm.register_access_trap([this](zenkit::DaedalusSymbol& i)     { return loop_trap(&i); });
 
   // ## Strings
-  vm.override_function("STR_SubStr",   [this](std::string_view str, int start, int count){ return str_substr(str,start,count); });
-  vm.override_function("STR_Len",      [this](std::string_view str){ return str_len(str);   });
-  vm.override_function("STR_ToInt",    [this](std::string_view str){ return str_toint(str); });
-  vm.override_function("STR_Upper",    [this](std::string_view str){ return str_upper(str); });
+  // vm.override_function("STR_ToInt",    [this](std::string_view str){ return str_toint(str); });
+  // vm.override_function("STR_Upper",    [this](std::string_view str){ return str_upper(str); });
   vm.override_function("STR_FromChar", [this](int ptr){ return str_fromchar(ptr); });
+  vm.override_function("STR_SubStr",   [this](std::string_view str, int start, int count){ return str_substr(str,start,count); });
+  // STR_Compare - needs ASM working
+  // STR_ToInt - needs jumps
+  // TODO: STR_IndexOf, STR_Split
+  // STR_Upper, STR_Lower - needs ASM working
 
   // ## Ini-file
   vm.override_function("MEM_GetGothOpt",           [this](std::string_view sec, std::string_view opt) { return mem_getgothopt(sec,opt);       });
@@ -287,20 +291,36 @@ void Ikarus::setupEngineMemory() {
   // const int MEMINT_oCInformationManager_Address = 11191384; //0xAAC458
   const int MEMINT_gameMan_Pointer_Address      = 9185624;  //0x8C2958
 
+  allocator.memoryCallback = [this](Mem32::Type type, void* ptr, size_t size, ptr32_t address, std::memory_order ord) {
+    switch(type) {
+      case Mem32::Type::plain:
+        assert(false);
+      case Mem32::Type::zCParser:
+        return memoryCallbackParser(ptr, size, ord);
+      case Mem32::Type::ZCParer_variables:
+        return memoryCallbackParserVar(ptr, size, address, ord);
+      case Mem32::Type::maxItems:
+        return memoryCallbackVar(ptr, &invMaxItems, size, ord);
+      }
+    assert(false);
+    };
+
   versionHint = 504628679; // G2
   allocator.pin(&versionHint,   GothicFirstInstructionAddress,  4, "MEMINT_ReportVersionCheck");
   allocator.pin(&oGame_Pointer, MEMINT_oGame_Pointer_Address,   4, "oGame*");
   allocator.pin(&gameman_Ptr,   MEMINT_gameMan_Pointer_Address, 4, "GameMan*");
   allocator.pin(&zTimer,        MEMINT_zTimer_Address,          sizeof(zTimer), "zTimer");
-  allocator.pin(&invMaxItems,   INV_MAX_ITEMS_ADDR,             4, "INV_MAX_ITEMS"); //TODO: callback memory
   allocator.pin(&zFactory_Ptr,  ZFACTORY,                       4, "zFactory*");
+
+  //allocator.pin(&invMaxItems,   INV_MAX_ITEMS_ADDR,             4, "INV_MAX_ITEMS"); //TODO: callback memory
+  allocator.pin(INV_MAX_ITEMS_ADDR, sizeof(invMaxItems), Mem32::Type::maxItems);
 
   // const int zCParser_symtab_table_array_offset        = 24; //0x18
   // const int zCParser_sorted_symtab_table_array_offset = 36; //0x24
   // const int zCParser_stack_offset                     = 72; //0x48
   // const int zCParser_stack_stackPtr_offset            = 76; //0x4C
-  allocator.pin(&parserProxy,     ContentParserAddress, sizeof(parserProxy), "zCParser proxy");
-  //allocator.pin(&MEMINT_StackPos, ContentParserAddress + zCParser_stack_stackPtr_offset);
+  // allocator.pin(&parserProxy,     ContentParserAddress, sizeof(parserProxy), "zCParser proxy");
+  allocator.pin(ContentParserAddress, sizeof(zCParser), Mem32::Type::zCParser);
 
   const int OCNPCFOCUS__FOCUSLIST_G2 = 11208440;
   allocator.pin(&focusList, OCNPCFOCUS__FOCUSLIST_G2, sizeof(focusList), "OCNPCFOCUS__FOCUSLIST_G2");
@@ -316,8 +336,8 @@ void Ikarus::setupEngineMemory() {
   gameman_Ptr   = allocator.alloc(sizeof(GameMgr));
   symbolsPtr    = allocator.alloc(uint32_t(vm.symbols().size() * sizeof(zenkit::DaedalusSymbol)));
 
-  parserProxy.symtab_table.numInArray = int32_t(vm.symbols().size());
-  parserProxy.symtab_table.numAlloc   = 0;//parserProxy.symtab_table.numInArray;
+  // Storage for local variables, so script may address them thru pointers
+  scriptVariables = allocator.alloc(uint32_t(vm.symbols().size() * sizeof(ScriptVar)), Mem32::Type::ZCParer_variables);
 
   // ## Builtin instances in dynamic memory
   allocator.alloc(MEMINT_SENDTOSPY_IMPLEMENTATION_ZERR_G2, 64, "ZERROR");
@@ -326,6 +346,84 @@ void Ikarus::setupEngineMemory() {
     gameScript.focusMage();
     (*p)[5] = BAD_BUILTIN_PTR;
     }
+  }
+
+void Ikarus::memoryCallbackParser(void* ptr, size_t, std::memory_order ord) {
+  if(vm.pc()==0x286a)
+    Log::d("MEM_ARRAYINDEXOF dbg");
+
+  auto& p = *reinterpret_cast<zCParser*>(ptr);
+  if(ord==std::memory_order::seq_cst) {
+    p.symtab_table.numInArray = int32_t(vm.symbols().size());
+    p.symtab_table.numAlloc   = 0;//parserProxy.symtab_table.numInArray;
+    p.stack_stackPtr          = vm.pc();
+    }
+
+  if(ord==std::memory_order::acquire) {
+    p.stack_stackPtr = vm.pc();
+    }
+  else {
+    // vm.unsafe_jump(p.stack_stackPtr);
+    }
+  }
+
+void Ikarus::memoryCallbackParserVar(void* vptr, size_t, ptr32_t address, std::memory_order ord) {
+  ScriptVar* ptr = reinterpret_cast<ScriptVar*>(vptr);
+  const uint32_t sid = address/sizeof(ScriptVar);
+  if(sid>vm.symbols().size()) {
+    // should never happend
+    Log::d("ikarus: symbol table is corrupted");
+    assert(false);
+    return;
+    }
+
+  auto& str = ptr[sid].data;
+  auto& sym = vm.symbols()[sid];
+  if(sym.is_member()) {
+    Log::e("Ikarus: accessing member symbol (\"", sym.name(), "\")");
+    return;
+    }
+
+  switch (sym.type()) {
+    case zenkit::DaedalusDataType::FLOAT: {
+      auto val = sym.get_float();
+      str._VTBL = floatBitsToInt(val); // first 4 bytes
+      Log::d("VAR: ", sym.name(), " -> ", val);
+      break;
+      }
+    case zenkit::DaedalusDataType::INT: {
+      auto val = sym.get_int();
+      str._VTBL = val; // first 4 bytes
+      Log::d("VAR: ", sym.name(), " -> ", val);
+      break;
+      }
+    case zenkit::DaedalusDataType::STRING: {
+      auto  cstr = sym.get_string();
+      //str.ptr = allocator.realloc(str.ptr, uint32_t(cstr.size()));
+      allocator.free(str.ptr);
+      str.ptr = allocator.alloc(uint32_t(cstr.size()+1));
+      str.len = int32_t(cstr.size());
+
+      auto* chr  = reinterpret_cast<char*>(allocator.deref(str.ptr, uint32_t(str.len)));
+      std::memcpy(chr, cstr.c_str(), cstr.length());
+      chr[str.len] = '\0';
+
+      Log::d("VAR: ", sym.name(), " -> ", chr);
+      break;
+      }
+    default:
+      Log::e("Ikarus: unable to map symbol (\"", sym.name(), "\") to virtual memory");
+      break;
+    }
+
+  }
+
+void Ikarus::memoryCallbackVar(void* ptr, void* var, size_t sz, std::memory_order ord) {
+  if(sz!=4)
+    return;
+  if(ord==std::memory_order::acquire)
+    std::memcpy(ptr, var, sz); else
+    std::memcpy(var, ptr, sz);
   }
 
 void Ikarus::mem_setupexceptionhandler() {
@@ -444,6 +542,10 @@ void Ikarus::mem_callbyid(int symbId) {
     Log::e("MEM_CallByID: Provided symbol is not callable (not function, prototype or instance): ", symbId);
     return;
     }
+  if(sym->has_return() || sym->count()!=0) {
+    Log::e("MEM_CallByID: only trivial calls are implemented: ", sym->name());
+    return;
+    }
   vm.call_function(sym);
   }
 
@@ -495,6 +597,7 @@ int Ikarus::_mem_readstatarr(int address, int off) {
 int Ikarus::mem_searchvobbyname(std::string_view name) {
   // see ZS_STAND_PEDRO_LOOP in VarusBikerEdition mod
   (void)name;
+  Log::e("TODO: mem_searchvobbyname");
   return 0; // NULL-like
   }
 
@@ -514,6 +617,7 @@ int Ikarus::mem_getsystemtime() {
   }
 
 std::string Ikarus::str_substr(std::string_view str, int start, int count) {
+  // TODO: allow writes to mapped memory
   if(start < 0 || (count < 0)) {
     Log::e("STR_SubStr: start and count may not be negative.");
     return "";
@@ -525,10 +629,6 @@ std::string Ikarus::str_substr(std::string_view str, int start, int count) {
     };
 
   return std::string(str.substr(size_t(start), size_t(count)));
-  }
-
-int Ikarus::str_len(std::string_view str) {
-  return int(str.length());
   }
 
 int Ikarus::str_toint(std::string_view str) {
@@ -548,6 +648,7 @@ std::string Ikarus::str_upper(std::string_view str) {
   }
 
 std::string Ikarus::str_fromchar(int iptr) {
+  // TODO: do coherency maintanace for STR_FromChar
   auto [ptr, size] = allocator.deref(ptr32_t(iptr));
   const char* chr = reinterpret_cast<const char*>(ptr);
   if(chr==nullptr || size==0)
@@ -702,16 +803,17 @@ int Ikarus::_takeref(int symbol) {
   return 0xBAD1000;
   }
 
-int Ikarus::_takeref_s(std::string_view val) {
-  Log::e("Ikarus: _takeref_s - unimplemented");
-  (void)val;
-  return 0xBAD2000;
-  }
-
-int Ikarus::_takeref_f(float val) {
-  Log::e("Ikarus: _takeref_f - unimplemented");
-  (void)val;
-  return 0xBAD3000;
+zenkit::DaedalusNakedCall Ikarus::_takeref_s(zenkit::DaedalusVm& vm) {
+  auto [ref, idx, context] = vm.pop_reference();
+  if(ref==nullptr) {
+    Log::e("Ikarus: MEM_Get*Address - invalid symbol");
+    vm.push_int(0);
+    return zenkit::DaedalusNakedCall();
+    }
+  const uint32_t id  = ref->index();
+  const ptr32_t  ptr = scriptVariables + id*sizeof(ScriptVar);
+  vm.push_int(int32_t(ptr));
+  return zenkit::DaedalusNakedCall();
   }
 
 int Ikarus::mem_alloc(int amount) {

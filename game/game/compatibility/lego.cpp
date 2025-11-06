@@ -6,7 +6,7 @@
 #include <Tempest/Log>
 
 using namespace Tempest;
-
+using namespace Compatibility;
 
 struct LeGo::zCView {
   int32_t _VTBL;

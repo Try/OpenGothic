@@ -8,6 +8,30 @@
 
 using namespace Tempest;
 
+Mem32::Mapping::Mapping(Mem32& owner, Region& rgn) : owner(&owner), rgn(&rgn) {
+  }
+
+Mem32::Mapping::Mapping(Mapping&& other)
+  :owner(other.owner), rgn(other.rgn) {
+  other.owner = nullptr;
+  other.rgn   = nullptr;
+  }
+
+Mem32::Mapping& Mem32::Mapping::operator = (Mapping&& other) {
+  std::swap(owner, other.owner);
+  std::swap(rgn,   other.rgn);
+  return *this;
+  }
+
+Mem32::Mapping::~Mapping() {
+  if(rgn==nullptr)
+    return;
+  if(rgn->status==S_Callback) {
+    owner->memoryCallback(rgn->type, rgn->real, rgn->size, 0, std::memory_order::release);
+    }
+  }
+
+
 Mem32::Mem32() {
   /*
    *  [0x00001000 .. 0x80000000] - (2GB) user space
@@ -34,7 +58,7 @@ Mem32::ptr32_t Mem32::pin(void* mem, ptr32_t address, uint32_t size, const char*
     rgn->comment = comment;
     return address;
     }
-  return 0;
+  throw std::bad_alloc();
   }
 
 Mem32::ptr32_t Mem32::pin(void* mem, uint32_t size, const char* comment) {
@@ -45,7 +69,18 @@ Mem32::ptr32_t Mem32::pin(void* mem, uint32_t size, const char* comment) {
     rgn->comment = comment;
     return rgn->address;
     }
-  return 0;
+  throw std::bad_alloc();
+  }
+
+Mem32::ptr32_t Mem32::pin(ptr32_t address, uint32_t size, Type type) {
+  if(auto rgn = implAllocAt(address,size)) {
+    rgn->type   = type;
+    rgn->size   = size;
+    rgn->real   = nullptr; // allocated on demand
+    rgn->status = S_Callback;
+    return address;
+    }
+  throw std::bad_alloc();
   }
 
 Mem32::ptr32_t Mem32::alloc(ptr32_t address, uint32_t size, const char* comment) {
@@ -71,6 +106,16 @@ Mem32::ptr32_t Mem32::alloc(uint32_t size, const char* comment) {
       return 0;
       }
     rgn->status  = S_Allocated;
+    rgn->comment = comment;
+    return rgn->address;
+    }
+  return 0;
+  }
+
+Mem32::ptr32_t Mem32::alloc(uint32_t size, Type type, const char* comment) {
+  if(auto rgn = implAlloc(size)) {
+    rgn->type    = type;
+    rgn->status  = S_Callback;
     rgn->comment = comment;
     return rgn->address;
     }
@@ -132,18 +177,22 @@ void Mem32::compactage() {
   }
 
 void Mem32::writeInt(ptr32_t address, int32_t v) {
-  auto rgn = translate(address);
+  auto rgn = map(address);
   if(rgn==nullptr) {
     Log::e("mem_writeint: address translation failure: ", reinterpret_cast<void*>(uint64_t(address)));
     return;
     }
-  address -= rgn->address;
-  auto ptr = reinterpret_cast<uint8_t*>(rgn->real)+address;
+  if(rgn.rgn->status==S_Callback) {
+    Log::e("mem_writeint: unable to write to mapped memory: ", reinterpret_cast<void*>(uint64_t(address)));
+    return;
+    }
+  address -= rgn.rgn->address;
+  auto ptr = reinterpret_cast<uint8_t*>(rgn.rgn->real)+address;
   std::memcpy(ptr,&v,4);
   }
 
 int32_t Mem32::readInt(ptr32_t address) {
-  auto rgn = translate(address);
+  const auto rgn = translate(address);
   if(rgn==nullptr) {
     Log::e("mem_readint:  address translation failure: ", reinterpret_cast<void*>(uint64_t(address)));
     return 0;
@@ -187,7 +236,10 @@ Mem32::Region* Mem32::implAlloc(uint32_t size) {
   size = ((size+memAlign-1)/memAlign)*memAlign;
 
   for(size_t i=0; i<region.size(); ++i) {
-    if(region[i].status!=S_Unused || region[i].size<size)
+    if(region[i].status!=S_Unused)
+      continue;
+    const uint32_t off = region[i].address % memAlign;
+    if(region[i].size<size+off)
       continue;
     if(size!=region[i].size) {
       auto p2 = region[i];
@@ -312,11 +364,45 @@ bool Mem32::implRealloc(ptr32_t address, uint32_t nsize) {
   return false;
   }
 
-Mem32::Region* Mem32::translate(ptr32_t address) {
+Mem32::Region* Mem32::implTranslate(ptr32_t address) {
   // TODO: binary-search
   for(auto& rgn:region) {
     if(rgn.address<=address && address<rgn.address+rgn.size && rgn.status!=S_Unused)
       return &rgn;
     }
   return nullptr;
+  }
+
+Mem32::Mapping Mem32::map(ptr32_t address) {
+  auto ret = implTranslate(address);
+  if(ret==nullptr)
+    return Mapping();
+
+  auto& rgn = *ret;
+  if(rgn.status==S_Callback) {
+    if(rgn.real==nullptr) {
+      rgn.real = std::malloc(rgn.size);
+      if(rgn.real==nullptr)
+        throw std::bad_alloc();
+      }
+    memoryCallback(rgn.type, rgn.real, rgn.size, address-rgn.address, std::memory_order::seq_cst);
+    }
+  return Mapping(*this, *ret);
+  }
+
+Mem32::Region* Mem32::translate(ptr32_t address) {
+  auto ret = implTranslate(address);
+  if(ret==nullptr)
+    return nullptr;
+
+  auto& rgn = *ret;
+  if(rgn.status==S_Callback) {
+    if(rgn.real==nullptr) {
+      rgn.real = std::malloc(rgn.size);
+      if(rgn.real==nullptr)
+        throw std::bad_alloc();
+      }
+    memoryCallback(rgn.type, rgn.real, rgn.size, address-rgn.address, std::memory_order::seq_cst);
+    }
+  return ret;
   }

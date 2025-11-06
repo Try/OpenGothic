@@ -3,6 +3,7 @@
 #include <zenkit/DaedalusVm.hh>
 
 #include "scriptplugin.h"
+#include "mem32instances.h"
 #include "ikarus.h"
 
 class GameScript;
@@ -17,8 +18,8 @@ class LeGo : public ScriptPlugin {
     int  create(int inst);
     void tick(uint64_t dt) override;
 
-    using ptr32_t = Ikarus::ptr32_t;
-    using zString = Ikarus::zString;
+    using ptr32_t = Compatibility::ptr32_t;
+    using zString = Compatibility::zString;
 
     // ## FRAMEFUNCTIONS
     void _FF_Create   (zenkit::DaedalusFunction function, int delay, int cycles, int hasData, int data, bool gametime);
