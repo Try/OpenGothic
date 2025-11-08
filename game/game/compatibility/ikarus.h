@@ -63,9 +63,9 @@ class Ikarus : public ScriptPlugin {
 
   private:
     void        setupEngineMemory();
+    void        setupEngineText();
     void        memoryCallbackParser   (void* ptr, size_t, std::memory_order ord);
     void        memoryCallbackParserVar(void* ptr, size_t, ptr32_t address, std::memory_order ord);
-    void        memoryCallbackVar      (void* ptr, void* var, size_t, std::memory_order ord);
 
     std::string mem_getcommandline();
     void        mem_sendtospy(int cat, std::string_view msg);
@@ -108,8 +108,7 @@ class Ikarus : public ScriptPlugin {
     int         mem_insttoptr(int index);
 
     // ## Basic zCParser related functions ##
-    int         _takeref    (int val);
-    zenkit::DaedalusNakedCall _takeref_s(zenkit::DaedalusVm& vm);
+    auto        _takeref(zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
 
     // ## strings
     std::string str_fromchar(int ptr);

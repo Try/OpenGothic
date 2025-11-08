@@ -85,7 +85,7 @@ Mem32::ptr32_t Mem32::pin(ptr32_t address, uint32_t size, Type type) {
 
 Mem32::ptr32_t Mem32::alloc(ptr32_t address, uint32_t size, const char* comment) {
   if(auto rgn = implAllocAt(address,size)) {
-    rgn->real = std::calloc(size,1);
+    rgn->real = std::calloc(rgn->size,1);
     if(rgn->real==nullptr) {
       compactage();
       return 0;
@@ -95,12 +95,12 @@ Mem32::ptr32_t Mem32::alloc(ptr32_t address, uint32_t size, const char* comment)
     rgn->comment = comment;
     return address;
     }
-  return 0;
+  throw std::bad_alloc();
   }
 
 Mem32::ptr32_t Mem32::alloc(uint32_t size, const char* comment) {
   if(auto rgn = implAlloc(size)) {
-    rgn->real = std::calloc(size,1);
+    rgn->real = std::calloc(rgn->size,1);
     if(rgn->real==nullptr) {
       compactage();
       return 0;
@@ -141,6 +141,10 @@ void* Mem32::deref(ptr32_t address, uint32_t size) {
   auto rgn = translate(address);
   if(rgn==nullptr) {
     Log::e("deref: address translation failure: ", reinterpret_cast<void*>(uint64_t(address)));
+    return nullptr;
+    }
+  if(rgn->status==S_Callback) {
+    Log::e("deref: unable to deref callback-memory: ", reinterpret_cast<void*>(uint64_t(address)));
     return nullptr;
     }
   if(rgn->address+rgn->size < address+size) {
@@ -211,7 +215,7 @@ void Mem32::copyBytes(ptr32_t psrc, ptr32_t pdst, uint32_t size) {
     Log::e("mem_copybytes: address translation failure: ", reinterpret_cast<void*>(uint64_t(psrc)));
     return;
     }
-  if(dst==nullptr || dst->status==S_Unused) {
+  if(dst==nullptr || dst->status==S_Unused || dst->status==S_Callback) {
     Log::e("mem_copybytes: address translation failure: ", reinterpret_cast<void*>(uint64_t(pdst)));
     return;
     }

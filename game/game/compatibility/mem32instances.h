@@ -54,7 +54,7 @@ struct oGame {
   ptr32_t HPBAR;
   ptr32_t SWIMBAR;
   ptr32_t MANABAR;
-  int32_t FOCUSBAR;
+  ptr32_t FOCUSBAR;
   int32_t SHOWPLAYERSTATUS;
   int32_t GAME_DRAWALL;
   int32_t GAME_FRAMEINFO;
@@ -241,7 +241,7 @@ struct oWorld {
   zString WORLDFILENAME;
   zString WORLDNAME;
   int32_t VOBLIST;
-  int32_t VOBLIST_NPCS;
+  ptr32_t VOBLIST_NPCS;
   int32_t VOBLIST_ITEMS;
   };
 

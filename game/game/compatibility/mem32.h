@@ -18,7 +18,6 @@ class Mem32 {
       plain,
       zCParser,
       ZCParer_variables,
-      maxItems,
       };
 
     class Mapping {

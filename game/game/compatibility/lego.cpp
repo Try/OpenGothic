@@ -123,6 +123,9 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
   vm.override_function("PRINT_FIXPS", [](){
     // function patches asm code of zCView::PrintTimed* to fix text coloring - we can ignore it
     });
+  vm.override_function("SB_TOSTRING", [this](){
+    return SB_toString();
+    });
 
   // ## PermMem
   vm.override_function("CREATE", [this](int inst) { return create(inst); });
@@ -169,6 +172,7 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
 
   memGame.HPBAR               = allocator.alloc(sizeof(zCView));
   memGame.MANABAR             = allocator.alloc(sizeof(zCView));
+  memGame.FOCUSBAR            = allocator.alloc(sizeof(zCView));
   memGame._ZCSESSION_VIEWPORT = allocator.alloc(sizeof(zCView));
   if(auto ptr = allocator.deref<zCView>(memGame._ZCSESSION_VIEWPORT)) {
     // Dummy window size, for now!
@@ -177,6 +181,13 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
     }
   // needed during initialization in PRINT_EXT
   memGame.ARRAY_VIEW[0] = allocator.alloc(sizeof(zCView));
+
+  // ## Textures
+  const int ZCTEXTURE__LOAD = 6239904;
+  ikarus.register_stdcall(ZCTEXTURE__LOAD, [this](std::string font, int flag) {
+    return zCTexture__Load(font, flag);
+    });
+
 
   // ## Font
   const int ZCFONTMAN__LOAD    = 7897808;
@@ -338,6 +349,24 @@ bool LeGo::FF_Active(zenkit::DaedalusFunction func) {
   return false;
   }
 
+std::string LeGo::SB_toString() {
+  // LeGo immplementation requires 'rw' access to 'callback memory'
+  struct StringBuilder {
+    ptr32_t ptr;
+    int     cln;
+    int     CAL;
+    };
+  const auto _SB_CURRENT = vm.find_symbol_by_name("_SB_CURRENT");
+  if(_SB_CURRENT==nullptr || _SB_CURRENT->type()!=zenkit::DaedalusDataType::INT)
+    return "";
+
+  auto text = ikarus.allocator.deref<StringBuilder>(ptr32_t(_SB_CURRENT->get_int()));
+  if(text->cln<=0 || text->ptr==0)
+    return "";
+  auto cstr = reinterpret_cast<const char*>(ikarus.allocator.deref(text->ptr, uint32_t(text->cln)));
+  return std::string(cstr, size_t(text->cln));
+  }
+
 void LeGo::zCView__zCView(ptr32_t ptr, int x1, int y1, int x2, int y2) {
   auto view = ikarus.allocator.deref<zCView>(ptr);
   if(view==nullptr) {
@@ -404,6 +433,11 @@ void LeGo::zCView__InsertBack(ptr32_t ptr, std::string_view img) {
     return;
     }
   Log::e("LeGo: zCView__InsertBack: ", img);
+  }
+
+int LeGo::zCTexture__Load(std::string_view img, int flag) {
+  Log::e("LeGo: zCTexture__Load: ", img);
+  return 0;
   }
 
 int LeGo::zCFontMan__Load(ptr32_t ptr, std::string_view font) {

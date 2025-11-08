@@ -38,6 +38,8 @@ class LeGo : public ScriptPlugin {
       bool     gametime = 0;
       };
 
+    std::string SB_toString();
+
     // ## UI
     struct zCView;
     void        zCView__zCView(ptr32_t ptr, int x1, int y1, int x2, int y2);
@@ -47,6 +49,9 @@ class LeGo : public ScriptPlugin {
     void        zCView__SetSize(ptr32_t ptr, int w, int h);
     void        zCView__Move(ptr32_t ptr, int x, int y);
     void        zCView__InsertBack(ptr32_t ptr, std::string_view img);
+
+    // ## Textures
+    int         zCTexture__Load(std::string_view img, int flag);
 
     // ## Font
     struct zCFontMan;
