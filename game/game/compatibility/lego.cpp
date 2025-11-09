@@ -144,25 +144,25 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
   const int ZCVIEW__SETSIZE    = 8026016;
   const int zCVIEW__MOVE       = 8025824;
   const int ZCVIEW__INSERTBACK = 8020272;
-  ikarus.register_stdcall(ZCVIEW__ZCVIEW, [this](ptr32_t ptr, int x1, int y1, int x2, int y2, int arg) {
+  ikarus.cpu.register_thiscall(ZCVIEW__ZCVIEW, [this](ptr32_t ptr, int x1, int y1, int x2, int y2, int arg) {
     zCView__zCView(ptr, x1, y1, x2, y2);
     });
-  ikarus.register_stdcall(ZCVIEW__OPEN, [this](ptr32_t ptr) {
+  ikarus.cpu.register_thiscall(ZCVIEW__OPEN, [this](ptr32_t ptr) {
     zCView__Open(ptr);
     });
-  ikarus.register_stdcall(ZCVIEW__CLOSE, [this](ptr32_t ptr) {
+  ikarus.cpu.register_thiscall(ZCVIEW__CLOSE, [this](ptr32_t ptr) {
     zCView__Close(ptr);
     });
-  ikarus.register_stdcall(ZCVIEW_TOP, [this](ptr32_t ptr) {
+  ikarus.cpu.register_thiscall(ZCVIEW_TOP, [this](ptr32_t ptr) {
     zCView__Top(ptr);
     });
-  ikarus.register_stdcall(ZCVIEW__SETSIZE, [this](ptr32_t ptr, int x, int y) {
+  ikarus.cpu.register_thiscall(ZCVIEW__SETSIZE, [this](ptr32_t ptr, int x, int y) {
     zCView__SetSize(ptr, x, y);
     });
-  ikarus.register_stdcall(zCVIEW__MOVE, [this](ptr32_t ptr, int x, int y) {
+  ikarus.cpu.register_thiscall(zCVIEW__MOVE, [this](ptr32_t ptr, int x, int y) {
     zCView__Move(ptr, x, y);
     });
-  ikarus.register_stdcall(ZCVIEW__INSERTBACK, [this](ptr32_t ptr, std::string img) {
+  ikarus.cpu.register_thiscall(ZCVIEW__INSERTBACK, [this](ptr32_t ptr, std::string img) {
     zCView__InsertBack(ptr, img);
     });
 
@@ -192,10 +192,10 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
   // ## Font
   const int ZCFONTMAN__LOAD    = 7897808;
   const int ZCFONTMAN__GETFONT = 7898288;
-  ikarus.register_stdcall(ZCFONTMAN__LOAD, [this](ptr32_t ptr, std::string font) {
+  ikarus.cpu.register_thiscall(ZCFONTMAN__LOAD, [this](ptr32_t ptr, std::string font) {
     return zCFontMan__Load(ptr, font);
     });
-  ikarus.register_stdcall(ZCFONTMAN__GETFONT, [this](ptr32_t ptr, int handle) {
+  ikarus.cpu.register_thiscall(ZCFONTMAN__GETFONT, [this](ptr32_t ptr, int handle) {
     return zCFontMan__GetFont(ptr, handle);
     });
 
@@ -205,7 +205,7 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
 
   // ##
   const int ZCOBJECTFACTORY__CREATEWORLD = 5947120;
-  ikarus.register_stdcall(ZCOBJECTFACTORY__CREATEWORLD, [this](ptr32_t ptr) {
+  ikarus.cpu.register_thiscall(ZCOBJECTFACTORY__CREATEWORLD, [this](ptr32_t ptr) {
     // CALL__THISCALL(MEM_READINT(ZFACTORY), ZCOBJECTFACTORY__CREATEWORLD);
     // QS_RENDERWORLD = CALL_RETVALASPTR();
     Log::e("LeGo: zCObjectFactory__CreateWorld");

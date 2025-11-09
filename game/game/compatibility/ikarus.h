@@ -5,6 +5,7 @@
 #include "scriptplugin.h"
 #include "mem32instances.h"
 #include "mem32.h"
+#include "cpu32.h"
 
 class GameScript;
 
@@ -42,23 +43,14 @@ class Ikarus : public ScriptPlugin {
     void mem_free   (int address);
     int  mem_realloc(int address, int oldsz, int size);
 
-    template<class R, class...Args>
-    void register_stdcall(ptr32_t addr, const std::function<R(Args...)>& callback) {
-      register_stdcall_inner(addr, [callback](Ikarus& ikarus) {
-        auto v = std::make_tuple(ikarus.call.pop<Args>()...);
-        if constexpr(std::is_same<void,R>::value) {
-          std::apply(callback, std::move(v));
-          } else {
-          auto r = std::apply(callback, std::move(v));
-          ikarus.call.eax    = r;
-          ikarus.call.hasEax = true;
-          }
-        });
+    template <typename T>
+    void register_stdcall(ptr32_t addr, const T& cb) {
+      cpu.register_stdcall(addr, std::function {cb});
       }
 
     template <typename T>
-    void register_stdcall(ptr32_t addr, const T& cb) {
-      register_stdcall(addr, std::function {cb});
+    void register_thiscall(ptr32_t addr, const T& cb) {
+      cpu.register_thiscall(addr, std::function {cb});
       }
 
   private:
@@ -106,9 +98,12 @@ class Ikarus : public ScriptPlugin {
     // pointers
     auto        mem_ptrtoinst(ptr32_t address) -> std::shared_ptr<zenkit::DaedalusInstance>;
     int         mem_insttoptr(int index);
-
-    // ## Basic zCParser related functions ##
     auto        _takeref(zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
+
+    ptr32_t     ASMINT_InternalStack = 0;
+    ptr32_t     ASMINT_CallTarget    = 0;
+    void        ASMINT_Init();
+    void        ASMINT_CallMyExternal();
 
     // ## strings
     std::string str_fromchar(int ptr);
@@ -127,26 +122,13 @@ class Ikarus : public ScriptPlugin {
 
     // ## Windows api (basic)
     int        getusernamea(ptr32_t lpBuffer, ptr32_t pcbBuffer);
+    void       getlocaltime(ptr32_t lpSystemTime);
 
     // control-flow
     zenkit::DaedalusNakedCall repeat   (zenkit::DaedalusVm& vm);
     zenkit::DaedalusNakedCall while_   (zenkit::DaedalusVm& vm);
     void                      loop_trap(zenkit::DaedalusSymbol* i);
     void                      loop_out (zenkit::DaedalusVm& vm);
-
-    zenkit::DaedalusSymbol* CALLINT_numParams = nullptr;
-    void call_intparam(int p);
-    void call_ptrparam(int p);
-    void call_floatparam(int p);
-    void call_zstringptrparam(std::string_view ptr);
-    void call_cstringptrparam(std::string_view ptr);
-    int  call_retvalasint();
-    int  call_retvalasptr();
-
-    void call__thiscall(int32_t pthis, ptr32_t func);
-    void callint_makecall(ptr32_t func, bool cleanStk);
-
-    void register_stdcall_inner(ptr32_t addr, std::function<void(Ikarus&)> f);
 
     int  hash(int x);
 
@@ -155,6 +137,7 @@ class Ikarus : public ScriptPlugin {
     GameScript&         gameScript;
     zenkit::DaedalusVm& vm;
     Mem32               allocator;
+    Cpu32               cpu;
 
     struct Loop {
       uint32_t                pc = 0;
@@ -163,23 +146,9 @@ class Ikarus : public ScriptPlugin {
       };
     std::vector<Loop> loop_start;
 
-    struct Call {
-      std::vector<int>         iprm;
-      std::vector<std::string> sprm;
-
-      int32_t                  eax = {};
-      bool                     hasEax = false;
-
-      template<class T>
-      T pop();
-      };
-
     struct ScriptVar {
       Compatibility::zString data = {};
       };
-
-    Call         call;
-    std::unordered_map<ptr32_t, std::function<void(Ikarus&)>> stdcall_overrides;
 
     uint32_t     versionHint     = 0;
     ptr32_t      MEMINT_StackPos = 0;
@@ -196,31 +165,5 @@ class Ikarus : public ScriptPlugin {
     ptr32_t      scriptVariables = 0;
 
   friend class LeGo;
+  friend class Cpu32;
   };
-
-template<>
-inline int Ikarus::Call::pop<int>() {
-  if(iprm.size()==0)
-    return 0;
-  auto ret = iprm.back();
-  iprm.pop_back();
-  return ret;
-  }
-
-template<>
-inline Ikarus::ptr32_t Ikarus::Call::pop<Ikarus::ptr32_t>() {
-  if(iprm.size()==0)
-    return 0;
-  auto ret = iprm.back();
-  iprm.pop_back();
-  return Ikarus::ptr32_t(ret);
-  }
-
-template<>
-inline std::string Ikarus::Call::pop<std::string>() {
-  if(sprm.size()==0)
-    return "";
-  auto ret = std::move(sprm.back());
-  sprm.pop_back();
-  return ret;
-  }

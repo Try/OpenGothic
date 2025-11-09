@@ -3,6 +3,7 @@
 #include <vector>
 #include <cstdint>
 #include <functional>
+#include <type_traits>
 
 #include "game/compatibility/mem32instances.h"
 
@@ -57,11 +58,19 @@ class Mem32 {
     ptr32_t realloc(ptr32_t address, uint32_t size);
 
     Mapping map(ptr32_t address);
-    void*   deref(ptr32_t address, uint32_t size);
     auto    deref(ptr32_t address) -> std::tuple<void*, uint32_t>;
 
+    const void* deref(ptr32_t address, uint32_t size);
+    void*       derefv(ptr32_t address, uint32_t size);
+
     template<class T>
-    T*      deref(ptr32_t address) { return reinterpret_cast<T*>(deref(address, sizeof(T))); }
+    T*          deref(ptr32_t address) {
+      if constexpr(std::is_const<T>::value) {
+        return reinterpret_cast<const T*>(deref(address, sizeof(T)));
+        } else {
+        return reinterpret_cast<T*>(derefv(address, sizeof(T)));
+        }
+      }
 
     void    writeInt (ptr32_t address, int32_t v);
     int32_t readInt  (ptr32_t address);

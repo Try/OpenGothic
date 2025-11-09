@@ -78,7 +78,7 @@ const std::string& Ikarus::memory_instance::get_string(const zenkit::DaedalusSym
   }
 
 
-Ikarus::Ikarus(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), vm(vm) {
+Ikarus::Ikarus(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), vm(vm), cpu(*this, allocator) {
   if(auto v = vm.find_symbol_by_name("Ikarus_Version")) {
     const int version = v->type()==zenkit::DaedalusDataType::INT ? v->get_int() : 0;
     Log::i("DMA mod detected: Ikarus v", version);
@@ -87,18 +87,10 @@ Ikarus::Ikarus(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), v
   setupEngineText();
   setupEngineMemory();
 
-  // Note: no inline asm
-  // TODO: Make sure this actually works!
-  vm.override_function("ASMINT_Push",           [](int){});
-  vm.override_function("ASMINT_Pop",            []() -> int { return 0; });
+  // Inline ASM
+  vm.override_function("ASMINT_Init",           [this]() { ASMINT_Init(); });
   vm.override_function("ASMINT_MyExternal",     [](){});
-  vm.override_function("ASMINT_CallMyExternal", [](){});
-  vm.override_function("ASMINT_Init",           [](){});
-  vm.override_function("ASM_Open",              [this](int len){ ASM_Open(len); });
-  vm.override_function("ASM_Close",             []() -> int { return 0; });
-  vm.override_function("ASM",                   [](int,int){});
-  vm.override_function("ASM_Run",               [](int){});
-  vm.override_function("ASM_RunOnce",           [](){});
+  vm.override_function("ASMINT_CallMyExternal", [this]() { ASMINT_CallMyExternal(); });
 
   // Floats
   vm.override_function("MKF",    [](int i) { return mkf(i); });
@@ -180,19 +172,9 @@ Ikarus::Ikarus(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), v
   vm.override_function("MEM_ModOptExists",         [this](std::string_view sec, std::string_view opt) { return mem_modoptexists(sec,opt);     });
   vm.override_function("MEM_SetGothOpt",           [this](std::string_view sec, std::string_view opt, std::string_view v) { return mem_setgothopt(sec,opt,v); });
 
-  // ##
-  CALLINT_numParams = vm.find_symbol_by_name("CALLINT_numParams");
-  vm.override_function("CALL_intparam",        [this](int p) { call_intparam(p); });
-  vm.override_function("CALL_ptrparam",        [this](int p) { call_ptrparam(p); });
-  vm.override_function("CALL_floatparam",      [this](int p) { call_floatparam(p); });
-  vm.override_function("CALL_zstringptrparam", [this](std::string_view p) { call_zstringptrparam(p); });
-  vm.override_function("CALL_cstringptrparam", [this](std::string_view p) { call_cstringptrparam(p); });
-  vm.override_function("CALL_retvalasint",     [this]() { return call_retvalasint(); });
-  vm.override_function("CALL_retvalasptr",     [this]() { return call_retvalasptr(); });
-  vm.override_function("CALL__thiscall",       [this](int thisptr, int address){ call__thiscall(thisptr, ptr32_t(address)); });
-  vm.override_function("CALLINT_makecall",     [this](int address, int clr){ callint_makecall(ptr32_t(address), clr); } );
-
   vm.override_function("HASH",           [this](int v){ return hash(v); });
+  //const int GETBUFFERCRC32_G2 = 6265360;
+  //cpu.register_stdcall(GETBUFFERCRC32_G2, [](){});
 
   // ## Windows utilities
   vm.override_function("LoadLibrary", [](std::string_view name){
@@ -224,10 +206,9 @@ Ikarus::Ikarus(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), v
 
   // ## Windows api (basic)
   const int GETUSERNAMEA = 8080162;
-  //const int GETLOCALTIME = 8079184;
-  register_stdcall(GETUSERNAMEA, [this](ptr32_t lpBuffer, ptr32_t pcbBuffer){
-    getusernamea(lpBuffer, pcbBuffer);
-    });
+  const int GETLOCALTIME = 8079184;
+  register_stdcall(GETUSERNAMEA, [this](ptr32_t lpBuffer, ptr32_t pcbBuffer){ getusernamea(lpBuffer, pcbBuffer); });
+  register_stdcall(GETLOCALTIME, [this](ptr32_t lpSystemTime)               { getlocaltime(lpSystemTime);        });
 
   // ## ZSpy ##
   vm.override_function("MEM_SendToSpy", [this](int cat, std::string_view msg){ return mem_sendtospy(cat,msg); });
@@ -417,7 +398,7 @@ void Ikarus::memoryCallbackParser(void* ptr, size_t, std::memory_order ord) {
 void Ikarus::memoryCallbackParserVar(void* vptr, size_t, ptr32_t address, std::memory_order ord) {
   ScriptVar* ptr = reinterpret_cast<ScriptVar*>(vptr);
   const uint32_t sid = address/sizeof(ScriptVar);
-  if(sid>vm.symbols().size()) {
+  if(sid>=vm.symbols().size()) {
     // should never happend
     Log::d("ikarus: symbol table is corrupted");
     assert(false);
@@ -425,7 +406,7 @@ void Ikarus::memoryCallbackParserVar(void* vptr, size_t, ptr32_t address, std::m
     }
 
   auto& str = ptr[sid].data;
-  auto& sym = vm.symbols()[sid];
+  auto& sym = *vm.find_symbol_by_index(sid);
   if(sym.is_member()) {
     Log::e("Ikarus: accessing member symbol (\"", sym.name(), "\")");
     return;
@@ -433,29 +414,41 @@ void Ikarus::memoryCallbackParserVar(void* vptr, size_t, ptr32_t address, std::m
 
   switch (sym.type()) {
     case zenkit::DaedalusDataType::FLOAT: {
-      auto val = sym.get_float();
-      str._VTBL = floatBitsToInt(val); // first 4 bytes
-      Log::d("VAR: ", sym.name(), " -> ", val);
+      if(ord==std::memory_order::release) {
+        //TODO
+        Log::e("Ikarus: unable to write to mapped symbol (\"", sym.name(), "\")");
+        } else {
+        auto val = sym.get_float();
+        str._VTBL = floatBitsToInt(val); // first 4 bytes
+        Log::d("VAR: ", sym.name(), " -> ", val);
+        }
       break;
       }
     case zenkit::DaedalusDataType::INT: {
-      auto val = sym.get_int();
-      str._VTBL = val; // first 4 bytes
-      // Log::d("VAR: ", sym.name(), " -> ", val);
+      if(ord==std::memory_order::release) {
+        sym.set_int(str._VTBL);
+        } else {
+        auto val = sym.get_int();
+        str._VTBL = val; // first 4 bytes
+        }
       break;
       }
     case zenkit::DaedalusDataType::STRING: {
-      auto  cstr = sym.get_string();
-      //str.ptr = allocator.realloc(str.ptr, uint32_t(cstr.size()));
-      allocator.free(str.ptr);
-      str.ptr = allocator.alloc(uint32_t(cstr.size()+1));
-      str.len = int32_t(cstr.size());
+      if(ord==std::memory_order::release) {
+        Log::e("Ikarus: unable to write to mapped symbol (\"", sym.name(), "\")");
+        } else {
+        auto  cstr = sym.get_string();
+        //str.ptr = allocator.realloc(str.ptr, uint32_t(cstr.size()));
+        allocator.free(str.ptr);
+        str.ptr = allocator.alloc(uint32_t(cstr.size()+1));
+        str.len = int32_t(cstr.size());
 
-      auto* chr  = reinterpret_cast<char*>(allocator.deref(str.ptr, uint32_t(str.len)));
-      std::memcpy(chr, cstr.c_str(), cstr.length());
-      chr[str.len] = '\0';
+        auto* chr  = reinterpret_cast<char*>(allocator.derefv(str.ptr, uint32_t(str.len)));
+        std::memcpy(chr, cstr.c_str(), cstr.length());
+        chr[str.len] = '\0';
 
-      // Log::d("VAR: ", sym.name(), " -> ", chr);
+        // Log::d("VAR: ", sym.name(), " -> ", chr);
+        }
       break;
       }
     default:
@@ -735,76 +728,48 @@ void Ikarus::mem_setgothopt(std::string_view section, std::string_view option, s
   }
 
 int Ikarus::getusernamea(ptr32_t lpBuffer, ptr32_t pcbBuffer) {
-  const uint32_t max = uint32_t(allocator.readInt(pcbBuffer));
-  if(auto ptr = allocator.deref(lpBuffer, max)) {
-    std::strncpy(reinterpret_cast<char*>(ptr), "OpenGothic", max);
+  std::string_view uname = "OpenGothic";
+
+  const uint32_t max = pcbBuffer ? uint32_t(allocator.readInt(pcbBuffer)) : 0;
+  if(auto ptr = reinterpret_cast<char*>(allocator.derefv(lpBuffer, max))) {
+    if(max>=uname.size()) {
+      std::strncpy(reinterpret_cast<char*>(ptr), "OpenGothic", max);
+      ptr[uname.size()] = '\0';
+      return 1;
+      }
     }
-  return 1;
+  // buffer is too small
+  allocator.writeInt(pcbBuffer, int32_t(uname.size()+1));
+  return -1;
   }
 
-void Ikarus::call_intparam(int prm) {
-  //TODO: implement inline asm instead?!
-  call.iprm.push_back(prm);
-  if(CALLINT_numParams!=nullptr && CALLINT_numParams->type()==zenkit::DaedalusDataType::INT)
-    CALLINT_numParams->set_int(CALLINT_numParams->get_int()+1);
-  }
+void Ikarus::getlocaltime(ptr32_t lpSystemTime) {
+  struct SystemTime {
+    uint16_t wYear;
+    uint16_t wMonth;
+    uint16_t wDayOfWeek;
+    uint16_t wDay;
+    uint16_t wHour;
+    uint16_t wMinute;
+    uint16_t wSecond;
+    uint16_t wMilliseconds;
+    };
 
-void Ikarus::call_ptrparam(int prm) {
-  call_intparam(prm);
-  }
+  if(auto ptr = allocator.deref<SystemTime>(lpSystemTime)) {
+    const auto        timePoint = std::chrono::system_clock::now();
+    const std::time_t time      = std::chrono::system_clock::to_time_t(timePoint);
+    const auto        t         = std::localtime(&time);
+    const auto        ms        = std::chrono::time_point_cast<std::chrono::milliseconds>(timePoint);
 
-void Ikarus::call_floatparam(int prm) {
-  call_intparam(prm);
-  }
-
-void Ikarus::call_zstringptrparam(std::string_view prm) {
-  //NOTE: asm-based version has much more quirks and requires _@ operator
-  call.sprm.push_back(std::string(prm));
-  }
-
-void Ikarus::call_cstringptrparam(std::string_view prm) {
-  //NOTE: asm-based version has much more quirks and requires _@ operator
-  call.sprm.push_back(std::string(prm));
-  }
-
-int Ikarus::call_retvalasint() {
-  if(!call.hasEax)
-    Log::e("Ikarus: call_retvalasint: EAX wasn't initialized");
-  call.hasEax = false;
-  return call.eax;
-  }
-
-int Ikarus::call_retvalasptr() {
-  return call_retvalasint();
-  }
-
-void Ikarus::call__thiscall(int32_t pthis, ptr32_t func) {
-  call.iprm.push_back(pthis);
-  callint_makecall(func, false);
-  }
-
-void Ikarus::callint_makecall(ptr32_t func, bool cleanStk) {
-  if(CALLINT_numParams!=nullptr && CALLINT_numParams->type()==zenkit::DaedalusDataType::INT) {
-    //Log::d("argc = ", CALLINT_numParams->get_int());
-    CALLINT_numParams->set_int(0);
+    ptr->wYear         = uint16_t(t->tm_year + 1900);
+    ptr->wMonth        = uint16_t(t->tm_mon);
+    ptr->wDayOfWeek    = uint16_t(t->tm_wday);
+    ptr->wDay          = uint16_t(t->tm_mday);
+    ptr->wHour         = uint16_t(t->tm_hour);
+    ptr->wMinute       = uint16_t(t->tm_min);
+    ptr->wSecond       = uint16_t(t->tm_sec);
+    ptr->wMilliseconds = uint16_t(ms.time_since_epoch().count()%1000);
     }
-  auto fn = stdcall_overrides.find(func);
-  if(fn!=stdcall_overrides.end()) {
-    fn->second(*this);
-    assert(call.iprm.size()==0); // not nesseserly true, but usefull for debug
-    assert(call.sprm.size()==0); // not nesseserly true, but usefull for debug
-    return;
-    }
-  call.iprm.clear();
-  call.sprm.clear();
-  static std::unordered_set<ptr32_t> once;
-  if(!once.insert(func).second)
-    return;
-
-  auto str = demangleAddress(func);
-  if(!str.empty())
-    Log::d("Ikarus: callint_makecall(", str, ")"); else
-    Log::d("Ikarus: callint_makecall(", func, ")");
   }
 
 int Ikarus::hash(int x) {
@@ -862,6 +827,31 @@ auto Ikarus::_takeref(zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall {
   return zenkit::DaedalusNakedCall();
   }
 
+void Ikarus::ASMINT_Init() {
+  const int ASMINT_InternalStackSize = 1024;
+
+  if(!ASMINT_InternalStack) {
+    ASMINT_InternalStack = allocator.alloc(4 * ASMINT_InternalStackSize);
+    }
+  if(auto sym = vm.find_symbol_by_name("ASMINT_InternalStack")) {
+    if(sym->type()==zenkit::DaedalusDataType::INT)
+      sym->set_int(int32_t(ASMINT_InternalStack));
+    }
+
+  auto p = allocator.pin(&ASMINT_CallTarget, sizeof(ASMINT_CallTarget), "ASMINT_CallTarget");
+  if(auto sym = vm.find_symbol_by_name("ASMINT_CallTarget")) {
+    if(sym->type()==zenkit::DaedalusDataType::INT)
+      sym->set_int(int32_t(p));
+    }
+  }
+
+void Ikarus::ASMINT_CallMyExternal() {
+  auto mem = allocator.deref(ASMINT_CallTarget);
+  auto ins = reinterpret_cast<const uint8_t*>(std::get<0>(mem));
+  auto len = std::get<1>(mem);
+
+  cpu.exec(ASMINT_CallTarget, ins, len);
+  }
 
 int Ikarus::mem_alloc(int amount) {
   if(amount==0) {
@@ -888,10 +878,6 @@ void Ikarus::mem_free(int ptr) {
 int Ikarus::mem_realloc(int address, int oldsz, int size) {
   auto ptr = allocator.realloc(Mem32::ptr32_t(address), uint32_t(size));
   return int32_t(ptr);
-  }
-
-void Ikarus::register_stdcall_inner(ptr32_t addr, std::function<void(Ikarus& ikarus)> f) {
-  stdcall_overrides[addr] = std::move(f);
   }
 
 std::shared_ptr<zenkit::DaedalusInstance> Ikarus::mem_ptrtoinst(ptr32_t address) {

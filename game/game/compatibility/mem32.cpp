@@ -137,18 +137,32 @@ void Mem32::free(ptr32_t address) {
   Log::e("mem_free: heap block wan't allocated by script: ", reinterpret_cast<void*>(uint64_t(address)));
   }
 
-void* Mem32::deref(ptr32_t address, uint32_t size) {
+const void* Mem32::deref(ptr32_t address, uint32_t size) {
   auto rgn = translate(address);
   if(rgn==nullptr) {
     Log::e("deref: address translation failure: ", reinterpret_cast<void*>(uint64_t(address)));
     return nullptr;
     }
-  if(rgn->status==S_Callback) {
-    Log::e("deref: unable to deref callback-memory: ", reinterpret_cast<void*>(uint64_t(address)));
+  if(rgn->address+rgn->size < address+size) {
+    Log::e("deref: memmory block is too small: ", reinterpret_cast<void*>(uint64_t(address)), " ", size);
+    return nullptr;
+    }
+  address -= rgn->address;
+  return reinterpret_cast<uint8_t*>(rgn->real)+address;
+  }
+
+void* Mem32::derefv(ptr32_t address, uint32_t size) {
+  auto rgn = translate(address);
+  if(rgn==nullptr) {
+    Log::e("deref: address translation failure: ", reinterpret_cast<void*>(uint64_t(address)));
     return nullptr;
     }
   if(rgn->address+rgn->size < address+size) {
     Log::e("deref: memmory block is too small: ", reinterpret_cast<void*>(uint64_t(address)), " ", size);
+    return nullptr;
+    }
+  if(rgn->status==S_Callback) {
+    Log::e("deref: unable to deref callback-memory: ", reinterpret_cast<void*>(uint64_t(address)));
     return nullptr;
     }
   address -= rgn->address;
@@ -181,18 +195,24 @@ void Mem32::compactage() {
   }
 
 void Mem32::writeInt(ptr32_t address, int32_t v) {
-  auto rgn = map(address);
+  auto rgn = translate(address);
   if(rgn==nullptr) {
     Log::e("mem_writeint: address translation failure: ", reinterpret_cast<void*>(uint64_t(address)));
     return;
     }
-  if(rgn.rgn->status==S_Callback) {
+
+  address -= rgn->address;
+  auto ptr = reinterpret_cast<uint8_t*>(rgn->real)+address;
+  std::memcpy(ptr,&v,4);
+
+  if(rgn->status==S_Callback && rgn->type==Type::ZCParer_variables) {
+    memoryCallback(rgn->type, rgn->real, rgn->size, address, std::memory_order::release);
+    return;
+    }
+  if(rgn->status==S_Callback) {
     Log::e("mem_writeint: unable to write to mapped memory: ", reinterpret_cast<void*>(uint64_t(address)));
     return;
     }
-  address -= rgn.rgn->address;
-  auto ptr = reinterpret_cast<uint8_t*>(rgn.rgn->real)+address;
-  std::memcpy(ptr,&v,4);
   }
 
 int32_t Mem32::readInt(ptr32_t address) {
