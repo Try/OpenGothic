@@ -54,10 +54,12 @@ class Ikarus : public ScriptPlugin {
       }
 
   private:
+    struct ScriptVar;
+
     void        setupEngineMemory();
     void        setupEngineText();
-    void        memoryCallbackParser   (void* ptr, size_t, std::memory_order ord);
-    void        memoryCallbackParserVar(void* ptr, size_t, ptr32_t address, std::memory_order ord);
+    void        memoryCallbackParser   (zCParser& p, std::memory_order ord);
+    void        memoryCallbackParserVar(ScriptVar& v, uint32_t index, std::memory_order ord);
 
     std::string mem_getcommandline();
     void        mem_sendtospy(int cat, std::string_view msg);

@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <vector>
 #include <functional>
+#include <string>
 
 #include "mem32instances.h"
 

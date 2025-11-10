@@ -267,22 +267,19 @@ void Ikarus::setupEngineMemory() {
   const uint32_t BAD_BUILTIN_PTR = 0xBAD40000;
   // built-in data with assumed address
   const int ZFACTORY = 9276912;
-  const int MEMINT_oGame_Pointer_Address        = 11208836; //0xAB0884
-  const int MEMINT_zTimer_Address               = 10073044; //0x99B3D4
-  // const int MEMINT_oCInformationManager_Address = 11191384; //0xAAC458
-  const int MEMINT_gameMan_Pointer_Address      = 9185624;  //0x8C2958
+  const int MEMINT_oGame_Pointer_Address   = 11208836; //0xAB0884
+  const int MEMINT_zTimer_Address          = 10073044; //0x99B3D4
+  const int MEMINT_gameMan_Pointer_Address = 9185624;  //0x8C2958
 
-  allocator.memoryCallback = [this](Mem32::Type type, void* ptr, size_t size, ptr32_t address, std::memory_order ord) {
-    switch(type) {
-      case Mem32::Type::plain:
-        assert(false);
-      case Mem32::Type::zCParser:
-        return memoryCallbackParser(ptr, size, ord);
-      case Mem32::Type::ZCParer_variables:
-        return memoryCallbackParserVar(ptr, size, address, ord);
-      }
-    assert(false);
-    };
+  allocator.setCallbackR(Mem32::Type::zCParser, [this](zCParser& p, uint32_t){ memoryCallbackParser(p, std::memory_order::acquire); });
+  allocator.setCallbackW(Mem32::Type::zCParser, [this](zCParser& p, uint32_t){ memoryCallbackParser(p, std::memory_order::release); });
+
+  allocator.setCallbackR(Mem32::Type::ZCParer_variables, [this](ScriptVar& v, uint32_t id) {
+    memoryCallbackParserVar(v, id, std::memory_order::acquire);
+    });
+  allocator.setCallbackW(Mem32::Type::ZCParer_variables, [this](ScriptVar& v, uint32_t id) {
+    memoryCallbackParserVar(v, id, std::memory_order::release);
+    });
 
   versionHint = 504628679; // G2
   allocator.pin(&versionHint,   GothicFirstInstructionAddress,  4, "MEMINT_ReportVersionCheck");
@@ -376,37 +373,30 @@ void Ikarus::setupEngineText() {
   allocator.alloc(OCAIHUMAN__CHANGECAMMODEBYSITUATION_SWITCHMOBCAM, 8, ".text");
   }
 
-void Ikarus::memoryCallbackParser(void* ptr, size_t, std::memory_order ord) {
+void Ikarus::memoryCallbackParser(zCParser& p, std::memory_order ord) {
   if(vm.pc()==0x286a)
     Log::d("MEM_ARRAYINDEXOF dbg");
 
-  auto& p = *reinterpret_cast<zCParser*>(ptr);
-  if(ord==std::memory_order::seq_cst) {
+  if(ord==std::memory_order::acquire) {
     p.symtab_table.numInArray = int32_t(vm.symbols().size());
     p.symtab_table.numAlloc   = 0;//parserProxy.symtab_table.numInArray;
     p.stack_stackPtr          = vm.pc();
-    }
-
-  if(ord==std::memory_order::acquire) {
-    p.stack_stackPtr = vm.pc();
     }
   else {
     // vm.unsafe_jump(p.stack_stackPtr);
     }
   }
 
-void Ikarus::memoryCallbackParserVar(void* vptr, size_t, ptr32_t address, std::memory_order ord) {
-  ScriptVar* ptr = reinterpret_cast<ScriptVar*>(vptr);
-  const uint32_t sid = address/sizeof(ScriptVar);
-  if(sid>=vm.symbols().size()) {
+void Ikarus::memoryCallbackParserVar(ScriptVar& v, uint32_t index, std::memory_order ord) {
+  if(index>=vm.symbols().size()) {
     // should never happend
     Log::d("ikarus: symbol table is corrupted");
     assert(false);
     return;
     }
 
-  auto& str = ptr[sid].data;
-  auto& sym = *vm.find_symbol_by_index(sid);
+  auto& str = v.data;
+  auto& sym = *vm.find_symbol_by_index(index);
   if(sym.is_member()) {
     Log::e("Ikarus: accessing member symbol (\"", sym.name(), "\")");
     return;

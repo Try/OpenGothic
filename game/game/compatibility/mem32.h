@@ -5,6 +5,8 @@
 #include <functional>
 #include <type_traits>
 
+#include <Tempest/Log>
+
 #include "game/compatibility/mem32instances.h"
 
 class Mem32 {
@@ -21,29 +23,28 @@ class Mem32 {
       ZCParer_variables,
       };
 
-    class Mapping {
-      public:
-        Mapping() = default;
-        Mapping(Mem32& owner, Region& rgn);
-        Mapping(Mapping&& other);
-        ~Mapping();
-
-        Mapping& operator = (Mapping&& other);
-
-        bool operator == (std::nullptr_t) const { return rgn==nullptr; }
-        bool operator != (std::nullptr_t) const { return rgn!=nullptr; }
-
-      private:
-        Mem32*  owner = nullptr;
-        Region* rgn   = nullptr;
-
-      friend class Mem32;
-      };
-
     using                     ptr32_t  = Compatibility::ptr32_t;
     static constexpr uint32_t memAlign = 8;
 
-    std::function<void(Type,void*,size_t,ptr32_t,std::memory_order)> memoryCallback;
+    template<class T>
+    void    setCallbackR(Type t, const T& fn) { setCallbackR(t, std::function{fn}); }
+
+    template<class T>
+    void    setCallbackW(Type t, const T& fn) { setCallbackW(t, std::function{fn}); }
+
+    template<class T>
+    void    setCallbackR(Type t, std::function<void(T& t, uint32_t)> fn) {
+      implSetCallbackR(t, [f = std::move(fn)](void* ptr, uint32_t id) {
+        f(*reinterpret_cast<T*>(ptr), id);
+        }, sizeof(T));
+      }
+
+    template<class T>
+    void    setCallbackW(Type t, std::function<void(T& t, uint32_t)> fn) {
+      implSetCallbackW(t, [f = std::move(fn)](void* ptr, uint32_t id) {
+        f(*reinterpret_cast<T*>(ptr), id);
+        }, sizeof(T));
+      }
 
     ptr32_t pin  (void* mem, ptr32_t address, uint32_t size, const char* comment = nullptr);
     ptr32_t pin  (void* mem, uint32_t size, const char* comment = nullptr);
@@ -57,10 +58,8 @@ class Mem32 {
 
     ptr32_t realloc(ptr32_t address, uint32_t size);
 
-    Mapping map(ptr32_t address);
-    auto    deref(ptr32_t address) -> std::tuple<void*, uint32_t>;
-
-    const void* deref(ptr32_t address, uint32_t size);
+    auto        deref (ptr32_t address) -> std::tuple<void*, uint32_t>;
+    const void* deref (ptr32_t address, uint32_t size);
     void*       derefv(ptr32_t address, uint32_t size);
 
     template<class T>
@@ -96,6 +95,15 @@ class Mem32 {
       Status      status  = S_Unused;
       };
 
+    struct Callback {
+      std::function<void(void*,uint32_t)> read;
+      std::function<void(void*,uint32_t)> write;
+      ptr32_t                             elementSize = 0;
+      };
+
+    void     implSetCallbackR(Type t, std::function<void (void*, uint32_t)> fn, size_t elt);
+    void     implSetCallbackW(Type t, std::function<void (void*, uint32_t)> fn, size_t elt);
+
     Region*  implAlloc(uint32_t size);
     Region*  implAllocAt(ptr32_t address, uint32_t size);
     bool     implRealloc(ptr32_t address, uint32_t size);
@@ -103,6 +111,13 @@ class Mem32 {
     Region*  translate(ptr32_t address);
     void     compactage();
 
+    void     memSyncRead(Type       t, const Region& rgn, ptr32_t address, uint32_t size);
+    void     memSyncRead(Callback& cb, const Region& rgn, ptr32_t address, uint32_t size);
+
+    void     memSyncWrite(Type       t, const Region& rgn, ptr32_t address, uint32_t size);
+    void     memSyncWrite(Callback& cb, const Region& rgn, ptr32_t address, uint32_t size);
+
     std::vector<Region> region;
+    std::unordered_map<Type, Callback> memMap;
   };
 

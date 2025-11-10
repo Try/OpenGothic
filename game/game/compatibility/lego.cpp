@@ -92,6 +92,8 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
     });
 
   // HookEngine
+  // requires for complex ai-logic in lego
+  const int OCNPC__EV_PLAYANI = 7699121; (void)OCNPC__EV_PLAYANI;
   vm.override_function("HookEngineF", [](int address, int oldInstr, zenkit::DaedalusFunction function) {
     auto sym  = function.value;
     auto name = sym==nullptr ? "" : sym->name().c_str();
