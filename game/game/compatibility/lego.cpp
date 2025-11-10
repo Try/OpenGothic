@@ -280,6 +280,12 @@ void LeGo::tick(uint64_t dt) {
     }
   }
 
+void LeGo::eventPlayAni(std::string_view ani) {
+  if(ani.find("CALL ")!=0)
+    return;
+  Log::d("LeGo::eventPlayAni", ani);
+  }
+
 void LeGo::_FF_Create(zenkit::DaedalusFunction func, int delay, int cycles, int hasData, int data, bool gametime) {
   FFItem itm;
   itm.fncID    = func.value->index();

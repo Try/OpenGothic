@@ -169,6 +169,8 @@ class GameScript final {
     void      onWldItemRemoved(const Item& itm);
     void      fixNpcPosition(Npc& npc, float angle0, float distBias);
 
+    void      eventPlayAni(Npc& npc, std::string_view ani);
+
   private:
     template<typename T>
     struct DetermineSignature {

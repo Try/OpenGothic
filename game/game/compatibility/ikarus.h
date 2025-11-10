@@ -58,6 +58,7 @@ class Ikarus : public ScriptPlugin {
 
     void        setupEngineMemory();
     void        setupEngineText();
+
     void        memoryCallbackParser   (zCParser& p, std::memory_order ord);
     void        memoryCallbackParserVar(ScriptVar& v, uint32_t index, std::memory_order ord);
 

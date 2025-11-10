@@ -283,19 +283,27 @@ Mem32::ptr32_t Mem32::realloc(ptr32_t address, uint32_t size) {
 
   auto src = translate(address);
   if(src==nullptr) {
-    if(address!=0)
+    if(address!=0) {
       Log::e("realloc: address translation failure: ", reinterpret_cast<void*>(uint64_t(address)));
-    return next->address;
+      compactage();
+      return 0;
+      }
     }
 
-  next->status  = S_Allocated;
-  next->real    = src->real;
-  next->comment = src->comment;
-
-  src->real     = nullptr;
-  src->status   = S_Unused;
-
   auto ret = next->address;
+  next->status = S_Allocated;
+
+  if(src!=nullptr) {
+    next->type    = src->type;
+    next->real    = std::realloc(src->real, next->size);
+    next->comment = src->comment;
+
+    src->real     = nullptr;
+    src->status   = S_Unused;
+    } else {
+    next->real    = std::calloc(next->size, 1);
+    }
+
   compactage();
   return ret;
   }
@@ -346,7 +354,7 @@ bool Mem32::implRealloc(ptr32_t address, uint32_t nsize) {
   for(size_t i=0; i<region.size(); ++i) {
     auto& rgn = region[i];
     if(rgn.address!=address)
-      continue;
+      continue; //TODO: binary-search
 
     if(nsize==rgn.size)
       return true;

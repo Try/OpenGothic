@@ -778,6 +778,11 @@ void GameScript::fixNpcPosition(Npc& npc, float angle0, float distBias) {
   npc.setPosition(pos0);
   }
 
+void GameScript::eventPlayAni(Npc& npc, std::string_view ani) {
+  for(auto& i:plugins)
+    i->eventPlayAni(ani);
+  }
+
 const World &GameScript::world() const {
   return *owner.world();
   }

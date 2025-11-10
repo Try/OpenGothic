@@ -383,6 +383,8 @@ void Ikarus::memoryCallbackParser(zCParser& p, std::memory_order ord) {
     p.stack_stackPtr          = vm.pc();
     }
   else {
+    //TODO: some form of jumps
+    assert(p.stack_stackPtr ==vm.pc());
     // vm.unsafe_jump(p.stack_stackPtr);
     }
   }
@@ -427,17 +429,15 @@ void Ikarus::memoryCallbackParserVar(ScriptVar& v, uint32_t index, std::memory_o
       if(ord==std::memory_order::release) {
         Log::e("Ikarus: unable to write to mapped symbol (\"", sym.name(), "\")");
         } else {
-        auto  cstr = sym.get_string();
-        //str.ptr = allocator.realloc(str.ptr, uint32_t(cstr.size()));
-        allocator.free(str.ptr);
-        str.ptr = allocator.alloc(uint32_t(cstr.size()+1));
+        auto& cstr = sym.get_string();
+        str.ptr = allocator.realloc(str.ptr, uint32_t(cstr.size()+1));
         str.len = int32_t(cstr.size());
 
         auto* chr  = reinterpret_cast<char*>(allocator.derefv(str.ptr, uint32_t(str.len)));
         std::memcpy(chr, cstr.c_str(), cstr.length());
         chr[str.len] = '\0';
 
-        // Log::d("VAR: ", sym.name(), " -> ", chr);
+        // Log::d("VAR: ", sym.name(), " {", str.ptr, "} -> ", chr);
         }
       break;
       }
@@ -752,7 +752,7 @@ void Ikarus::getlocaltime(ptr32_t lpSystemTime) {
     const auto        ms        = std::chrono::time_point_cast<std::chrono::milliseconds>(timePoint);
 
     ptr->wYear         = uint16_t(t->tm_year + 1900);
-    ptr->wMonth        = uint16_t(t->tm_mon);
+    ptr->wMonth        = uint16_t(t->tm_mon + 1);
     ptr->wDayOfWeek    = uint16_t(t->tm_wday);
     ptr->wDay          = uint16_t(t->tm_mday);
     ptr->wHour         = uint16_t(t->tm_hour);
@@ -782,7 +782,7 @@ std::string_view Ikarus::demangleAddress(ptr32_t addr) {
   }
 
 auto Ikarus::_takeref(zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall {
-  if (vm.top_is_reference()) {
+  if(vm.top_is_reference()) {
     auto [ref, idx, context] = vm.pop_reference();
     if(idx!=0) {
       Log::e("Ikarus: _takeref - unable take reference to array element");
@@ -790,7 +790,7 @@ auto Ikarus::_takeref(zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall {
       return zenkit::DaedalusNakedCall();
       }
     const uint32_t id  = ref->index();
-    const ptr32_t  ptr = scriptVariables + id*sizeof(ScriptVar);
+    const ptr32_t  ptr = scriptVariables + id*ptr32_t(sizeof(ScriptVar));
     vm.push_int(int32_t(ptr));
     return zenkit::DaedalusNakedCall();
     }
@@ -908,7 +908,9 @@ zenkit::DaedalusNakedCall Ikarus::while_(zenkit::DaedalusVm& vm) {
   const int cond = vm.pop_int();
   // Log::i("while: ", cond);
   if(cond !=0) {
-    loop_start.push_back({vm.pc() - 5*2, nullptr});
+    const int PUSHVsize = 5;
+    const int LTsize    = 1;
+    loop_start.push_back({vm.pc() - PUSHVsize*2 - LTsize, nullptr});
     return zenkit::DaedalusNakedCall();
     }
   loop_out(vm);

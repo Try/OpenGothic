@@ -17,6 +17,7 @@ class LeGo : public ScriptPlugin {
   private:
     int  create(int inst);
     void tick(uint64_t dt) override;
+    void eventPlayAni(std::string_view ani) override;
 
     using ptr32_t = Compatibility::ptr32_t;
     using zString = Compatibility::zString;
