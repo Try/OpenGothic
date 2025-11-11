@@ -244,8 +244,8 @@ void Mem32::copyBytes(ptr32_t psrc, ptr32_t pdst, uint32_t size) {
     sz = std::min(dst.size-dOff,sz);
     }
   memSyncRead(src.type, src, ptr32_t(src.address+sOff), uint32_t(sz));
-  std::memcpy(reinterpret_cast<uint8_t*>(dst.real)+sOff,
-              reinterpret_cast<uint8_t*>(src.real)+dOff,
+  std::memcpy(reinterpret_cast<uint8_t*>(dst.real)+dOff,
+              reinterpret_cast<uint8_t*>(src.real)+sOff,
               sz);
   memSyncWrite(dst.type, dst, ptr32_t(dst.address+dOff), uint32_t(sz));
   }

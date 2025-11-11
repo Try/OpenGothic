@@ -317,7 +317,7 @@ void Ikarus::setupEngineMemory() {
 
   auto& mem_world = *allocator.deref<oWorld>(memGame._ZCSESSION_WORLD);
   mem_world.WAYNET       = BAD_BUILTIN_PTR; //TODO: add implement some proxy to waynet
-  mem_world.VOBLIST_NPCS = BAD_BUILTIN_PTR;
+  mem_world.VOBLIST_NPCS = 0; //BAD_BUILTIN_PTR; // zCListSort*
 
   gameman_Ptr   = allocator.alloc(sizeof(GameMgr));
   symbolsPtr    = allocator.alloc(uint32_t(vm.symbols().size() * sizeof(zenkit::DaedalusSymbol)));

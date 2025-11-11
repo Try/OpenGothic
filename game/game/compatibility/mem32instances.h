@@ -21,6 +21,12 @@ struct zCArray {
   int32_t numInArray = 0;
   };
 
+struct zCListSort {
+  ptr32_t compareFunc = 0;
+  ptr32_t data = 0;
+  ptr32_t next = 0;
+  };
+
 struct zCParser {
   uint8_t  padd0[24] = {};
   zCArray  symtab_table;                  // 24

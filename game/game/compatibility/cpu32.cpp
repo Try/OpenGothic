@@ -2,6 +2,7 @@
 
 #include <Tempest/Log>
 #include <unordered_set>
+#include <cstring>
 
 #include "ikarus.h"
 
