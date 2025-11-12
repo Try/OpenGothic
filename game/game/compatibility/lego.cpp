@@ -4,6 +4,7 @@
 #include "game/gamescript.h"
 
 #include <Tempest/Log>
+#include <charconv>
 
 using namespace Tempest;
 using namespace Compatibility;
@@ -65,6 +66,21 @@ struct LeGo::zCView {
   int32_t POSCURRENT_1[2];
   int32_t POSOPENCLOSE_0[2];
   int32_t POSOPENCLOSE_1[2];
+  };
+
+struct LeGo::oCViewStatusBar : zCView {
+  int32_t MINLOW;
+  int32_t MAXHIGH;
+  int32_t LOW;
+  int32_t HIGH;
+  int32_t PREVIEWVALUE;
+  int32_t CURRENTVALUE;
+  int32_t SCALE;
+  ptr32_t RANGE_BAR;
+  ptr32_t VALUE_BAR;
+  Compatibility::zString TEXVIEW;
+  Compatibility::zString TEXRANGE;
+  Compatibility::zString TEXVALUE;
   };
 
 struct LeGo::zCFontMan {
@@ -134,7 +150,7 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
 
   vm.override_function("LOCALS", [](){
     //NOTE: push local-variables to in-flight memory and restore at function end
-    Log::e("TODO: LeGo-LOCALS.");
+    //Log::e("TODO: LeGo-LOCALS.");
     });
 
   // ## UI
@@ -172,9 +188,15 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
   auto& memGame   = ikarus.memGame;
   auto& allocator = ikarus.allocator;
 
-  memGame.HPBAR               = allocator.alloc(sizeof(zCView));
-  memGame.MANABAR             = allocator.alloc(sizeof(zCView));
-  memGame.FOCUSBAR            = allocator.alloc(sizeof(zCView));
+  memGame.HPBAR               = allocator.alloc(sizeof(oCViewStatusBar));
+  memGame.MANABAR             = allocator.alloc(sizeof(oCViewStatusBar));
+  memGame.FOCUSBAR            = allocator.alloc(sizeof(oCViewStatusBar));
+
+  allocator.deref<oCViewStatusBar>(memGame.HPBAR)->RANGE_BAR = allocator.alloc(sizeof(zCView));
+  allocator.deref<oCViewStatusBar>(memGame.HPBAR)->VALUE_BAR = allocator.alloc(sizeof(zCView));
+  allocator.deref<oCViewStatusBar>(memGame.FOCUSBAR)->RANGE_BAR = allocator.alloc(sizeof(zCView));
+  allocator.deref<oCViewStatusBar>(memGame.FOCUSBAR)->VALUE_BAR = allocator.alloc(sizeof(zCView));
+
   memGame._ZCSESSION_VIEWPORT = allocator.alloc(sizeof(zCView));
   if(auto ptr = allocator.deref<zCView>(memGame._ZCSESSION_VIEWPORT)) {
     // Dummy window size, for now!
@@ -230,7 +252,7 @@ int LeGo::create(int instId) {
     cls = vm.find_symbol_by_index(sym->parent());
     }
 
-  if(cls == nullptr) {
+  if(sym==nullptr || cls == nullptr) {
     Log::e("LeGo::create invalid symbold id (", instId, ")");
     return 0;
     }
@@ -240,17 +262,27 @@ int LeGo::create(int instId) {
   auto inst = std::make_shared<Ikarus::memory_instance>(ikarus, ptr);
 
   auto self = vm.find_symbol_by_name("SELF");
-  auto prev = self != nullptr ? self->get_instance() : nullptr;
+  auto prevSelf = self != nullptr ? self->get_instance() : nullptr;
+  auto prevGi   = vm.unsafe_get_gi();
   if(self!=nullptr)
     self->set_instance(inst);
+
+  vm.unsafe_set_gi(inst);
   vm.unsafe_call(sym);
+
+  vm.unsafe_set_gi(prevGi);
   if(self!=nullptr)
-    self->set_instance(prev);
+    self->set_instance(prevSelf);
+
+  sym->set_instance(inst);
   return ptr;
   }
 
 void LeGo::tick(uint64_t dt) {
   auto time = owner.tickCount();
+
+  //TODO: implement robust version of `repeat` loops
+  ikarus.loop_start.clear();
 
   auto ff = std::move(frameFunc);
   frameFunc.clear();
@@ -283,7 +315,19 @@ void LeGo::tick(uint64_t dt) {
 void LeGo::eventPlayAni(std::string_view ani) {
   if(ani.find("CALL ")!=0)
     return;
-  Log::d("LeGo::eventPlayAni", ani);
+  Log::d("LeGo::eventPlayAni: ", ani);
+
+  if(5<ani.size()) {
+    if(std::isdigit(ani[5])) {
+      uint32_t fncID = 0;
+      auto err = std::from_chars(ani.data()+5, ani.data()+ani.size(), fncID).ec;
+      if(err!=std::errc())
+        return;
+      if(auto* sym = vm.find_symbol_by_index(fncID)) {
+        vm.call_function(sym);
+        }
+      }
+    }
   }
 
 void LeGo::_FF_Create(zenkit::DaedalusFunction func, int delay, int cycles, int hasData, int data, bool gametime) {
@@ -300,16 +344,17 @@ void LeGo::_FF_Create(zenkit::DaedalusFunction func, int delay, int cycles, int 
     itm.next = owner.tickCount(); // Timer() + itm.delay;
     };
 
-  itm.cycles = std::max(itm.cycles, 0); // disable repetable callbacks for now
-  frameFunc.emplace_back(itm);
+  // itm.cycles = std::max(itm.cycles, 0); // disable repetable callbacks for now
+  itm.hint = func.value->name().c_str();
+  frameFunc.emplace_back(itm); //NOTE: QUESTSEVENTSMANAGER in CoM
   }
 
 void LeGo::FF_Remove(zenkit::DaedalusFunction function) {
-
+  Log::e("FF_Remove: TODO");
   }
 
 void LeGo::FF_RemoveAll(zenkit::DaedalusFunction function) {
-
+  Log::e("FF_RemoveAll: TODO");
   }
 
 void LeGo::FF_RemoveData(zenkit::DaedalusFunction func, int data) {

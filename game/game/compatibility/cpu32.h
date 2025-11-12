@@ -34,6 +34,13 @@ class Cpu32 {
         });
       }
 
+    template<class R, class...Args>
+    void register_cdecl(ptr32_t addr, const std::function<R(Args...)>& callback) {
+      register_stdcall_inner(addr, [callback](Cpu32& cpu32) {
+        cpu32.callExternal<R,Args...>(callback);
+        });
+      }
+
     template <typename T>
     void register_stdcall(ptr32_t addr, const T& cb) {
       register_stdcall(addr, std::function {cb});
@@ -42,6 +49,11 @@ class Cpu32 {
     template <typename T>
     void register_thiscall(ptr32_t addr, const T& cb) {
       register_thiscall(addr, std::function {cb});
+      }
+
+    template <typename T>
+    void register_cdecl(ptr32_t addr, const T& cb) {
+      register_cdecl(addr, std::function {cb});
       }
 
   private:

@@ -112,6 +112,7 @@ Ikarus::Ikarus(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), v
   vm.override_function("MEM_GetFuncOffset",            [this](zenkit::DaedalusFunction func){ return mem_getfuncoffset(func); });
   vm.override_function("MEM_GetFuncID",                [this](zenkit::DaedalusFunction sym) { return mem_getfuncid(sym);      });
   vm.override_function("MEM_CallByID",                 [this](int sym) { return mem_callbyid(sym);       });
+  vm.override_function("MEM_CallByPtr",                [this](zenkit::DaedalusVm& vm) { return mem_callbyptr(vm);      });
   vm.override_function("MEM_GetFuncPtr",               [this](int sym) { return mem_getfuncptr(sym);     });
   vm.override_function("MEM_ReplaceFunc",              [this](zenkit::DaedalusFunction dest, zenkit::DaedalusFunction func){ mem_replacefunc(dest, func); });
   vm.override_function("MEM_GetFuncIdByOffset",        [this](int off) { return mem_getfuncidbyoffset(off); });
@@ -147,7 +148,6 @@ Ikarus::Ikarus(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), v
   vm.override_function("MEM_Free",    [this](int address)                      { mem_free(address);                      });
   vm.override_function("MEM_Realloc", [this](int address, int oldsz, int size) { return mem_realloc(address,oldsz,size); });
 
-
   // ## Control-flow ##
   vm.override_function("repeat", [this](zenkit::DaedalusVm& vm) { return repeat(vm);    });
   vm.override_function("while",  [this](zenkit::DaedalusVm& vm) { return while_(vm);    });
@@ -172,9 +172,25 @@ Ikarus::Ikarus(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), v
   vm.override_function("MEM_ModOptExists",         [this](std::string_view sec, std::string_view opt) { return mem_modoptexists(sec,opt);     });
   vm.override_function("MEM_SetGothOpt",           [this](std::string_view sec, std::string_view opt, std::string_view v) { return mem_setgothopt(sec,opt,v); });
 
+  const int SYSGETTIMEPTR_G2 = 5264000;
+  cpu.register_cdecl(SYSGETTIMEPTR_G2, [this](){
+    return uint32_t(gameScript.tickCount());
+    });
+  const int ZERROR__SETTARGET = 4513616;
+  cpu.register_thiscall(ZERROR__SETTARGET, [](ptr32_t,int){ Log::d("TODO: ZERROR__SETTARGET"); });
+
+  const int NPC_GETSLOTITEM = 7544720;
+  cpu.register_thiscall(NPC_GETSLOTITEM, [](ptr32_t, std::string slot){
+    Log::d("TODO: NPC_GETSLOTITEM (\"", slot, "\")");
+    return 0;
+    });
+
   vm.override_function("HASH",           [this](int v){ return hash(v); });
   //const int GETBUFFERCRC32_G2 = 6265360;
   //cpu.register_stdcall(GETBUFFERCRC32_G2, [](){});
+
+  // TODO: original code of _PM_INSTNAME, from LeGo requires symbol table to be mapped
+  vm.override_function("_PM_INSTNAME", [this](int inst) { return _pm_instName(inst); });
 
   // ## Windows utilities
   vm.override_function("LoadLibrary", [](std::string_view name){
@@ -314,6 +330,7 @@ void Ikarus::setupEngineMemory() {
   oGame_Pointer = allocator.pin(&memGame, sizeof(memGame), "oGame");
   memGame._ZCSESSION_WORLD = allocator.alloc(sizeof(oWorld));
   memGame.WLDTIMER         = BAD_BUILTIN_PTR;
+  memGame.TIMESTEP         = 1; // used as boolend in anim8
 
   auto& mem_world = *allocator.deref<oWorld>(memGame._ZCSESSION_WORLD);
   mem_world.WAYNET       = BAD_BUILTIN_PTR; //TODO: add implement some proxy to waynet
@@ -383,9 +400,10 @@ void Ikarus::memoryCallbackParser(zCParser& p, std::memory_order ord) {
     p.stack_stackPtr          = vm.pc();
     }
   else {
-    //TODO: some form of jumps
-    assert(p.stack_stackPtr ==vm.pc());
-    // vm.unsafe_jump(p.stack_stackPtr);
+    //TODO: some form of 'safe' jumps, before shipping it
+    //assert(p.stack_stackPtr ==vm.pc());
+    Log::d("FIXME: unsafe jump");
+    vm.unsafe_jump(p.stack_stackPtr);
     }
   }
 
@@ -500,10 +518,6 @@ int Ikarus::divf(int ia, int ib) {
   return floatBitsToInt(a/b);
   }
 
-void Ikarus::ASM_Open(int) {
-  Log::e("Ikarus: ASM_Open not implemented");
-  }
-
 void Ikarus::mem_getaddress_init() { /* nop */ }
 
 void Ikarus::mem_replacefunc(zenkit::DaedalusFunction dest, zenkit::DaedalusFunction func) {
@@ -568,6 +582,24 @@ void Ikarus::mem_callbyid(int symbId) {
     return;
     }
   vm.call_function(sym);
+  }
+
+zenkit::DaedalusNakedCall Ikarus::mem_callbyptr(zenkit::DaedalusVm& vm) {
+  auto address = vm.pop_int();
+  //FIXME: map function into memory for real!
+  uint32_t symbId = uint32_t(address);
+  auto* sym = vm.find_symbol_by_index(uint32_t(symbId));
+  if(sym==nullptr || sym->type()!=zenkit::DaedalusDataType::FUNCTION) {
+    Log::e("MEM_CallByPtr: Provided symbol is not callable (not function, prototype or instance): ", symbId);
+    return zenkit::DaedalusNakedCall();
+    }
+  if(false && (sym->has_return() || sym->count()!=0)) {
+    Log::e("MEM_CallByPtr: only trivial calls are implemented: ", sym->name());
+    return zenkit::DaedalusNakedCall();
+    }
+  //vm.call_function(sym);
+  vm.unsafe_call(sym);
+  return zenkit::DaedalusNakedCall();
   }
 
 int Ikarus::mem_getfuncptr(int func) {
@@ -843,6 +875,13 @@ void Ikarus::ASMINT_CallMyExternal() {
   cpu.exec(ASMINT_CallTarget, ins, len);
   }
 
+std::string Ikarus::_pm_instName(int inst) {
+  if(auto sym = vm.find_symbol_by_index(uint32_t(inst))) {
+    return sym->name();
+    }
+  return "";
+  }
+
 int Ikarus::mem_alloc(int amount) {
   if(amount==0) {
     Log::d("alocation zero bytes");
@@ -895,12 +934,14 @@ int Ikarus::mem_insttoptr(int index) {
 zenkit::DaedalusNakedCall Ikarus::repeat(zenkit::DaedalusVm& vm) {
   const int               len = vm.pop_int();
   zenkit::DaedalusSymbol* i   = std::get<zenkit::DaedalusSymbol*>(vm.pop_reference());
-  // Log::i("repeat: ", i->get_int(), " < ", len);
-  if(i->get_int() < len) {
-    loop_start.push_back({vm.pc(), i, len});
+  if(len==0 || i==nullptr) {
+    loop_out(vm);
     return zenkit::DaedalusNakedCall();
     }
-  loop_out(vm);
+  // Log::i("repeat: ", i->get_int(), " < ", len);
+  i->set_int(0);
+  auto rp = vm.instruction_at(vm.pc());
+  loop_start.push_back({vm.pc()+rp.size, i, len});
   return zenkit::DaedalusNakedCall();
   }
 
@@ -929,15 +970,23 @@ void Ikarus::loop_trap(zenkit::DaedalusSymbol* i) {
     }
 
   const auto ret = loop_start.back();
-  loop_start.pop_back();
   if(ret.i!=nullptr) {
-    ret.i->set_int(ret.i->get_int()+1);
-    vm.push_reference(ret.i);
-    vm.push_int(ret.loopLen);
+    // repeat
+    const int32_t i = ret.i->get_int();
+    ret.i->set_int(i+1);
+    if(i+1 < ret.loopLen) {
+      auto trap = vm.instruction_at(vm.pc());
+      vm.unsafe_jump(ret.pc-trap.size);
+      } else {
+      loop_start.pop_back();
+      }
+    } else {
+    // while
+    loop_start.pop_back();
+    auto trap = vm.instruction_at(vm.pc());
+    vm.unsafe_jump(ret.pc-trap.size);
     }
 
-  auto trap = vm.instruction_at(vm.pc());
-  vm.unsafe_jump(ret.pc-trap.size);
   }
 
 void Ikarus::loop_out(zenkit::DaedalusVm& vm) {

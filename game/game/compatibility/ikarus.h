@@ -53,6 +53,11 @@ class Ikarus : public ScriptPlugin {
       cpu.register_thiscall(addr, std::function {cb});
       }
 
+    template <typename T>
+    void register_cdecl(ptr32_t addr, const T& cb) {
+      cpu.register_cdecl(addr, std::function {cb});
+      }
+
   private:
     struct ScriptVar;
 
@@ -73,14 +78,13 @@ class Ikarus : public ScriptPlugin {
     static int  mulf(int a, int b);
     static int  divf(int a, int b);
 
-    void        ASM_Open(int);
-
     void        mem_setupexceptionhandler         ();
     void        mem_getaddress_init               ();
     void        mem_printstacktrace_implementation();
     int         mem_getfuncoffset                 (zenkit::DaedalusFunction func);
     int         mem_getfuncid                     (zenkit::DaedalusFunction func);
     void        mem_callbyid                      (int symbId);
+    auto        mem_callbyptr                     (zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
     int         mem_getfuncptr                    (int symbId);
     void        mem_replacefunc                   (zenkit::DaedalusFunction dest, zenkit::DaedalusFunction func);
     int         mem_getfuncidbyoffset             (int off);
@@ -107,6 +111,8 @@ class Ikarus : public ScriptPlugin {
     ptr32_t     ASMINT_CallTarget    = 0;
     void        ASMINT_Init();
     void        ASMINT_CallMyExternal();
+
+    std::string _pm_instName(int inst);
 
     // ## strings
     std::string str_fromchar(int ptr);

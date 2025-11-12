@@ -37,12 +37,16 @@ class LeGo : public ScriptPlugin {
       int      data     = 0;
       bool     hasData  = 0;
       bool     gametime = 0;
+
+      const char* hint = nullptr;
       };
 
     std::string SB_toString();
 
     // ## UI
     struct zCView;
+    struct oCViewStatusBar;
+
     void        zCView__zCView(ptr32_t ptr, int x1, int y1, int x2, int y2);
     void        zCView__Open(ptr32_t ptr);
     void        zCView__Close(ptr32_t ptr);

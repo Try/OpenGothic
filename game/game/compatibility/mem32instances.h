@@ -29,7 +29,7 @@ struct zCListSort {
 
 struct zCParser {
   uint8_t  padd0[24] = {};
-  zCArray  symtab_table;                  // 24
+  zCArray  symtab_table;                  // array of pointers
   ptr32_t  sorted_symtab_table_array = 0; // 36
   uint8_t  padd2[32] = {};
   ptr32_t  stack = 0;                     // 72
