@@ -12,7 +12,7 @@
 
 #include <windows.h>
 
-#if !defined(_M_AMD64) && !defined(_M_IX86)
+#if !defined(_M_AMD64) && !defined(_M_IX86) && !defined(_M_ARM64)
 #   error "unsupported architecture :("
 #endif
 
@@ -30,7 +30,7 @@ namespace dbg
         context.ContextFlags = CONTEXT_FULL;
 
         // RtlCaptureContext() crashes with heavy optimizations on MinGW 4.7.
-#if defined(__MINGW32__) && !defined(_M_AMD64)
+#if defined(__MINGW32__) && !defined(_M_AMD64) && !defined(_M_ARM64)
         DWORD eip_val = 0;
         DWORD esp_val = 0;
         DWORD ebp_val = 0;
@@ -62,6 +62,15 @@ namespace dbg
         frame.AddrFrame.Mode = AddrModeFlat;
 
         const DWORD machine = 0x8664; // IMAGE_FILE_MACHINE_AMD64;
+#elif defined(_M_ARM64)
+        frame.AddrPC.Offset = context.Pc;
+        frame.AddrPC.Mode = AddrModeFlat;
+        frame.AddrStack.Offset = context.Sp;
+        frame.AddrStack.Mode = AddrModeFlat;
+        frame.AddrFrame.Offset = context.Fp;
+        frame.AddrFrame.Mode = AddrModeFlat;
+
+        const DWORD machine = 0xAA64; // IMAGE_FILE_MACHINE_ARM64;
 #else
         frame.AddrPC.Offset = context.Eip;
         frame.AddrPC.Mode = AddrModeFlat;
