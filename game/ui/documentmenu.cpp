@@ -94,7 +94,7 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
     fnt->drawText(p,x+mgr.left,
                   y+mgr.top+fnt->pixelSize(),
                   w - mgr.xMargin(),
-                  back->h() - mgr.yMargin(),
+                  h - mgr.yMargin(),
                   i.text, Tempest::AlignLeft);
 
     if(document.showPlayer && cursor!=nullptr && pl!=nullptr) {
@@ -104,7 +104,7 @@ void DocumentMenu::paintEvent(PaintEvent &e) {
 
       p.setBrush(*cursor);
       int cx = x+int(wx*float(w));
-      int cy = y+int(wy*float(back->h()));
+      int cy = y+int(wy*float(h));
 
       p.pushState();
       p.translate(cx,cy);
