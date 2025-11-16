@@ -36,6 +36,23 @@ struct zCParser {
   ptr32_t  stack_stackPtr = 0;            // 76
   };
 
+struct zCPar_Symbol {
+  zString name;
+  ptr32_t next;
+
+  int32_t content;
+  int32_t offset;
+
+  int32_t bitfield;
+  int32_t filenr;
+  int32_t line;
+  int32_t line_anz;
+  int32_t pos_beg;
+  int32_t pos_anz;
+
+  ptr32_t parent;
+  };
+
 struct oGame {
   int32_t _VTBL;
   ptr32_t _ZCSESSION_CSMAN  = 0;

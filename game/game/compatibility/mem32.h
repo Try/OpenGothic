@@ -20,7 +20,8 @@ class Mem32 {
     enum class Type : uint32_t {
       plain,
       zCParser,
-      ZCParer_variables,
+      ZCParser_variables,
+      zCPar_Symbol
       };
 
     using                     ptr32_t  = Compatibility::ptr32_t;

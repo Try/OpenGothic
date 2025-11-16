@@ -26,6 +26,17 @@ static float intBitsToFloat(int32_t i) {
   return f;
   }
 
+static uint32_t nextPot(uint32_t x) {
+  x--;
+  x |= x >> 1;
+  x |= x >> 2;
+  x |= x >> 4;
+  x |= x >> 8;
+  x |= x >> 16;
+  x++;
+  return x;
+  }
+
 enum {
   GothicFirstInstructionAddress =  4198400,  // 0x401000
   ContentParserAddress          = 11223232,  // 0xAB40C0
@@ -71,6 +82,12 @@ void Ikarus::memory_instance::set_string(const zenkit::DaedalusSymbol& sym, uint
 const std::string& Ikarus::memory_instance::get_string(const zenkit::DaedalusSymbol& sym, uint16_t index) const {
   ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index*sym.class_size());
 
+  if(auto zs = owner.allocator.deref<const zString>(addr)) {
+    static std::string ret;
+    owner.memFromString(ret, *zs);
+    return ret;
+    }
+
   Log::d("TODO: memory_instance::get_string ", sym.name());
   (void)addr;
   static std::string empty;
@@ -84,6 +101,8 @@ Ikarus::Ikarus(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), v
     Log::i("DMA mod detected: Ikarus v", version);
     }
 
+  setupFunctionTable();
+  setupIkarusLoops();
   setupEngineText();
   setupEngineMemory();
 
@@ -111,7 +130,7 @@ Ikarus::Ikarus(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), v
   vm.override_function("MEM_PrintStackTrace",          [this](){ mem_printstacktrace_implementation();   });
   vm.override_function("MEM_GetFuncOffset",            [this](zenkit::DaedalusFunction func){ return mem_getfuncoffset(func); });
   vm.override_function("MEM_GetFuncID",                [this](zenkit::DaedalusFunction sym) { return mem_getfuncid(sym);      });
-  vm.override_function("MEM_CallByID",                 [this](int sym) { return mem_callbyid(sym);       });
+  vm.override_function("MEM_CallByID",                 [this](zenkit::DaedalusVm& vm) { return mem_callbyid(vm);       });
   vm.override_function("MEM_CallByPtr",                [this](zenkit::DaedalusVm& vm) { return mem_callbyptr(vm);      });
   vm.override_function("MEM_GetFuncPtr",               [this](int sym) { return mem_getfuncptr(sym);     });
   vm.override_function("MEM_ReplaceFunc",              [this](zenkit::DaedalusFunction dest, zenkit::DaedalusFunction func){ mem_replacefunc(dest, func); });
@@ -148,11 +167,6 @@ Ikarus::Ikarus(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), v
   vm.override_function("MEM_Free",    [this](int address)                      { mem_free(address);                      });
   vm.override_function("MEM_Realloc", [this](int address, int oldsz, int size) { return mem_realloc(address,oldsz,size); });
 
-  // ## Control-flow ##
-  vm.override_function("repeat", [this](zenkit::DaedalusVm& vm) { return repeat(vm);    });
-  vm.override_function("while",  [this](zenkit::DaedalusVm& vm) { return while_(vm);    });
-  vm.register_access_trap([this](zenkit::DaedalusSymbol& i)     { return loop_trap(&i); });
-
   // ## Strings
   vm.override_function("STR_ToInt",    [this](std::string_view str){ return str_toint(str); });
   vm.override_function("STR_Upper",    [this](std::string_view str){ return str_upper(str); });
@@ -185,12 +199,17 @@ Ikarus::Ikarus(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), v
     return 0;
     });
 
+  const int ZCPARSER__GETINDEX_G2 = 7943280;
+  cpu.register_thiscall(ZCPARSER__GETINDEX_G2, [this](ptr32_t, std::string name){
+    return parserGetIndex(name);
+    });
+
   vm.override_function("HASH",           [this](int v){ return hash(v); });
   //const int GETBUFFERCRC32_G2 = 6265360;
   //cpu.register_stdcall(GETBUFFERCRC32_G2, [](){});
 
   // TODO: original code of _PM_INSTNAME, from LeGo requires symbol table to be mapped
-  vm.override_function("_PM_INSTNAME", [this](int inst) { return _pm_instName(inst); });
+  // vm.override_function("_PM_INSTNAME", [this](int inst) { return _pm_instName(inst); });
 
   // ## Windows utilities
   vm.override_function("LoadLibrary", [](std::string_view name){
@@ -234,16 +253,8 @@ Ikarus::Ikarus(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), v
     v->set_int(int(vm.symbols().size()));
     }
 
-  // ## Traps
-  if(auto end = vm.find_symbol_by_name("END")) {
-    end->set_access_trap_enable(true);
-    }
-  if(auto break_ = vm.find_symbol_by_name("BREAK")) {
-    break_->set_access_trap_enable(true);
-    }
-  if(auto continue_ = vm.find_symbol_by_name("CONTINUE")) {
-    continue_->set_access_trap_enable(true);
-    }
+  vm.override_function("memint_stackpushint",  [this](zenkit::DaedalusVm& vm){ return memint_stackpushint(vm);  });
+  vm.override_function("memint_stackpushinst", [this](zenkit::DaedalusVm& vm){ return memint_stackpushinst(vm); });
 
   // Disable some high-level functions, until basic stuff is done
   auto dummyfy = [&](std::string_view name, auto hook) {
@@ -265,7 +276,8 @@ Ikarus::Ikarus(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), v
   dummyfy("PLAYER_RANGED_NO_AMMO_INIT", [](){}); // inline asm
   if(auto v = vm.find_symbol_by_name("PRINT_BARVALUES")) {
     //TESTING for bar UI!
-    v->set_int(1);
+    //v->set_int(1);
+    (void)v;
     }
   }
 
@@ -287,14 +299,20 @@ void Ikarus::setupEngineMemory() {
   const int MEMINT_zTimer_Address          = 10073044; //0x99B3D4
   const int MEMINT_gameMan_Pointer_Address = 9185624;  //0x8C2958
 
-  allocator.setCallbackR(Mem32::Type::zCParser, [this](zCParser& p, uint32_t){ memoryCallbackParser(p, std::memory_order::acquire); });
-  allocator.setCallbackW(Mem32::Type::zCParser, [this](zCParser& p, uint32_t){ memoryCallbackParser(p, std::memory_order::release); });
+  allocator.setCallbackR(Mem32::Type::zCParser, [this](zCParser& p, uint32_t){ memoryCallback(p, std::memory_order::acquire); });
+  allocator.setCallbackW(Mem32::Type::zCParser, [this](zCParser& p, uint32_t){ memoryCallback(p, std::memory_order::release); });
 
-  allocator.setCallbackR(Mem32::Type::ZCParer_variables, [this](ScriptVar& v, uint32_t id) {
-    memoryCallbackParserVar(v, id, std::memory_order::acquire);
+  allocator.setCallbackR(Mem32::Type::ZCParser_variables, [this](ScriptVar& v, uint32_t id) {
+    memoryCallback(v, id, std::memory_order::acquire);
     });
-  allocator.setCallbackW(Mem32::Type::ZCParer_variables, [this](ScriptVar& v, uint32_t id) {
-    memoryCallbackParserVar(v, id, std::memory_order::release);
+  allocator.setCallbackW(Mem32::Type::ZCParser_variables, [this](ScriptVar& v, uint32_t id) {
+    memoryCallback(v, id, std::memory_order::release);
+    });
+  allocator.setCallbackR(Mem32::Type::zCPar_Symbol, [this](zCPar_Symbol& p, uint32_t id){
+    memoryCallback(p, id, std::memory_order::acquire);
+    });
+  allocator.setCallbackW(Mem32::Type::zCPar_Symbol, [this](zCPar_Symbol& p, uint32_t id){
+    memoryCallback(p, id, std::memory_order::release);
     });
 
   versionHint = 504628679; // G2
@@ -340,7 +358,8 @@ void Ikarus::setupEngineMemory() {
   symbolsPtr    = allocator.alloc(uint32_t(vm.symbols().size() * sizeof(zenkit::DaedalusSymbol)));
 
   // Storage for local variables, so script may address them thru pointers
-  scriptVariables = allocator.alloc(uint32_t(vm.symbols().size() * sizeof(ScriptVar)), Mem32::Type::ZCParer_variables);
+  scriptVariables = allocator.alloc(uint32_t(vm.symbols().size() * sizeof(ScriptVar)),    Mem32::Type::ZCParser_variables);
+  scriptSymbols   = allocator.alloc(uint32_t(vm.symbols().size() * sizeof(zCPar_Symbol)), Mem32::Type::zCPar_Symbol);
 
   // ## Builtin instances in dynamic memory
   allocator.alloc(MEMINT_SENDTOSPY_IMPLEMENTATION_ZERR_G2, 64, "ZERROR");
@@ -390,24 +409,43 @@ void Ikarus::setupEngineText() {
   allocator.alloc(OCAIHUMAN__CHANGECAMMODEBYSITUATION_SWITCHMOBCAM, 8, ".text");
   }
 
-void Ikarus::memoryCallbackParser(zCParser& p, std::memory_order ord) {
+void Ikarus::memoryCallback(zCParser& p, std::memory_order ord) {
   if(vm.pc()==0x286a)
     Log::d("MEM_ARRAYINDEXOF dbg");
 
   if(ord==std::memory_order::acquire) {
-    p.symtab_table.numInArray = int32_t(vm.symbols().size());
-    p.symtab_table.numAlloc   = 0;//parserProxy.symtab_table.numInArray;
-    p.stack_stackPtr          = vm.pc();
+    if(p.symtab_table.ptr==0) {
+      //NOTE: initialize once
+      p.symtab_table.numInArray = int32_t(vm.symbols().size());
+      p.symtab_table.numAlloc   = int32_t(nextPot(uint32_t(p.symtab_table.numInArray)));
+      p.symtab_table.ptr        = allocator.realloc(p.symtab_table.ptr, uint32_t(p.symtab_table.numAlloc)*uint32_t(sizeof(uint32_t)));
+
+      auto v = allocator.deref<ptr32_t>(p.symtab_table.ptr);
+      for(int32_t i=0; i<p.symtab_table.numInArray; ++i) {
+        v[i] = scriptSymbols + uint32_t(i)*uint32_t(sizeof(zCPar_Symbol));
+        }
+      }
+
+    auto trap = vm.instruction_at(vm.pc());
+    p.stack_stackPtr = vm.pc() + trap.size;
     }
   else {
-    //TODO: some form of 'safe' jumps, before shipping it
-    //assert(p.stack_stackPtr ==vm.pc());
-    Log::d("FIXME: unsafe jump");
-    vm.unsafe_jump(p.stack_stackPtr);
+    auto instr = vm.instruction_at(vm.pc());
+
+    auto src = findSymbolByAddress(vm.pc() - instr.size);
+    auto dst = findSymbolByAddress(p.stack_stackPtr);
+
+    if(src!=dst || dst==nullptr) {
+      if(src!=nullptr && dst!=nullptr)
+        Log::e("FIXME: unsafe jump: `\"", src->name(), "\" -> \"", dst->name(), "\""); else
+        Log::e("FIXME: unsafe jump!");
+      return;
+      }
+    vm.unsafe_jump(p.stack_stackPtr - instr.size);
     }
   }
 
-void Ikarus::memoryCallbackParserVar(ScriptVar& v, uint32_t index, std::memory_order ord) {
+void Ikarus::memoryCallback(ScriptVar& v, uint32_t index, std::memory_order ord) {
   if(index>=vm.symbols().size()) {
     // should never happend
     Log::d("ikarus: symbol table is corrupted");
@@ -448,13 +486,7 @@ void Ikarus::memoryCallbackParserVar(ScriptVar& v, uint32_t index, std::memory_o
         Log::e("Ikarus: unable to write to mapped symbol (\"", sym.name(), "\")");
         } else {
         auto& cstr = sym.get_string();
-        str.ptr = allocator.realloc(str.ptr, uint32_t(cstr.size()+1));
-        str.len = int32_t(cstr.size());
-
-        auto* chr  = reinterpret_cast<char*>(allocator.derefv(str.ptr, uint32_t(str.len)));
-        std::memcpy(chr, cstr.c_str(), cstr.length());
-        chr[str.len] = '\0';
-
+        memAssignString(str, cstr);
         // Log::d("VAR: ", sym.name(), " {", str.ptr, "} -> ", chr);
         }
       break;
@@ -463,6 +495,74 @@ void Ikarus::memoryCallbackParserVar(ScriptVar& v, uint32_t index, std::memory_o
       Log::e("Ikarus: unable to map symbol (\"", sym.name(), "\") to virtual memory");
       break;
     }
+  }
+
+void Ikarus::memoryCallback(zCPar_Symbol& s, uint32_t index, std::memory_order ord) {
+  if(index>=vm.symbols().size()) {
+    // should never happend
+    Log::e("ikarus: symbol table is corrupted");
+    assert(false);
+    return;
+    }
+
+  if(ord!=std::memory_order::acquire) {
+    Log::e("ikarus: writes to symbol table is not implemented");
+    return;
+    }
+
+  auto& sym = *vm.find_symbol_by_index(index);
+  memAssignString(s.name, sym.name());
+  s.next     = scriptSymbols + uint32_t(index+1)*uint32_t(sizeof(zCPar_Symbol)); // ???
+  //---
+  s.content  = 0; // TODO
+  s.offset   = 0; // pointer to value
+  //---
+  s.bitfield = 0;
+  s.filenr   = int32_t(sym.file_index());
+  s.line     = int32_t(sym.line_start());
+  s.line_anz = int32_t(sym.line_count());
+  s.pos_beg  = int32_t(sym.char_start());
+  s.pos_anz  = int32_t(sym.char_count());
+  //---
+  s.parent   = scriptSymbols + uint32_t(sym.parent())*uint32_t(sizeof(zCPar_Symbol));
+
+  int32_t bitfield = 0;
+  if(sym.is_const())
+    bitfield |= zenkit::DaedalusSymbolFlag::CONST;
+  if(sym.has_return())
+    bitfield |= zenkit::DaedalusSymbolFlag::RETURN;
+  if(sym.is_member())
+    bitfield |= zenkit::DaedalusSymbolFlag::MEMBER;
+  if(sym.is_external())
+    bitfield |= zenkit::DaedalusSymbolFlag::EXTERNAL;
+  if(sym.is_merged())
+    bitfield |= zenkit::DaedalusSymbolFlag::MERGED;
+
+  s.bitfield = 0;
+  s.bitfield |= (int32_t(sym.type()) << 12);
+  s.bitfield |= (bitfield << 16);
+  // other flags are internal
+  // Log::d("Ikarus: accessing symbol (\"", sym.name(), "\")");
+  }
+
+void Ikarus::memAssignString(zString& str, std::string_view cstr) {
+  str.ptr = allocator.realloc(str.ptr, uint32_t(cstr.size()+1));
+  str.len = int32_t(cstr.size());
+
+  auto* chr  = reinterpret_cast<char*>(allocator.derefv(str.ptr, uint32_t(str.len)));
+  std::memcpy(chr, cstr.data(), cstr.length());
+  chr[str.len] = '\0';
+  }
+
+void Ikarus::memFromString(std::string& dst, const zString& str) {
+  if(str.len<=0) {
+    dst.clear();
+    return;
+    }
+
+  const char* chr = reinterpret_cast<const char*>(allocator.deref(str.ptr, uint32_t(str.len)));
+  dst.resize(size_t(str.len));
+  std::memcpy(dst.data(), chr, dst.size());
   }
 
 void Ikarus::mem_setupexceptionhandler() {
@@ -553,6 +653,9 @@ void Ikarus::mem_assigninst(int index, int ptr) {
   }
 
 void Ikarus::mem_printstacktrace_implementation() {
+  static bool enable = true;
+  if(!enable)
+    return;
   Log::e("[start of stacktrace]");
   vm.print_stack_trace();
   Log::e("[end of stacktrace]");
@@ -571,17 +674,15 @@ int Ikarus::mem_getfuncid(zenkit::DaedalusFunction func) {
   return int(func.value->index());
   }
 
-void Ikarus::mem_callbyid(int symbId) {
-  auto* sym = vm.find_symbol_by_index(uint32_t(symbId));
-  if(sym==nullptr) {
+zenkit::DaedalusNakedCall Ikarus::mem_callbyid(zenkit::DaedalusVm& vm) {
+  const uint32_t symbId = uint32_t(vm.pop_int());
+  auto* sym = vm.find_symbol_by_index(symbId);
+  if(sym==nullptr || sym->type()!=zenkit::DaedalusDataType::FUNCTION) {
     Log::e("MEM_CallByID: Provided symbol is not callable (not function, prototype or instance): ", symbId);
-    return;
+    return zenkit::DaedalusNakedCall();
     }
-  if(sym->has_return() || sym->count()!=0) {
-    Log::e("MEM_CallByID: only trivial calls are implemented: ", sym->name());
-    return;
-    }
-  vm.call_function(sym);
+  directCall(vm, *sym);
+  return zenkit::DaedalusNakedCall();
   }
 
 zenkit::DaedalusNakedCall Ikarus::mem_callbyptr(zenkit::DaedalusVm& vm) {
@@ -593,12 +694,7 @@ zenkit::DaedalusNakedCall Ikarus::mem_callbyptr(zenkit::DaedalusVm& vm) {
     Log::e("MEM_CallByPtr: Provided symbol is not callable (not function, prototype or instance): ", symbId);
     return zenkit::DaedalusNakedCall();
     }
-  if(false && (sym->has_return() || sym->count()!=0)) {
-    Log::e("MEM_CallByPtr: only trivial calls are implemented: ", sym->name());
-    return zenkit::DaedalusNakedCall();
-    }
-  //vm.call_function(sym);
-  vm.unsafe_call(sym);
+  directCall(vm, *sym);
   return zenkit::DaedalusNakedCall();
   }
 
@@ -882,6 +978,42 @@ std::string Ikarus::_pm_instName(int inst) {
   return "";
   }
 
+int Ikarus::parserGetIndex(std::string name) {
+  if(auto sym = vm.find_symbol_by_name(name)) {
+    return int(sym->index());
+    }
+  return -1;
+  }
+
+auto Ikarus::memint_stackpushint(zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall {
+  return zenkit::DaedalusNakedCall();
+  }
+
+auto Ikarus::memint_stackpushinst(zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall {
+  int id = vm.pop_int();
+  auto sym = vm.find_symbol_by_index(uint32_t(id));
+  if(sym!=nullptr && sym->type()==zenkit::DaedalusDataType::INSTANCE) {
+    vm.push_instance(sym->get_instance());
+    return zenkit::DaedalusNakedCall();
+    }
+  vm.push_instance(nullptr);
+  return zenkit::DaedalusNakedCall();
+  }
+
+void Ikarus::directCall(zenkit::DaedalusVm& vm, zenkit::DaedalusSymbol& func) {
+  if(func.type()!=zenkit::DaedalusDataType::FUNCTION) {
+    Log::e("Bas unsafe function call");
+    return;
+    }
+
+  std::vector<zenkit::DaedalusSymbol*> params = vm.find_parameters_for_function(&func);
+  if(params.size()>0)
+    Log::d("");
+  //vm.call_function(sym);
+  //zenkit::StackGuard guard {&vm, func.rtype()};
+  vm.unsafe_call(&func);
+  }
+
 int Ikarus::mem_alloc(int amount) {
   if(amount==0) {
     Log::d("alocation zero bytes");
@@ -934,27 +1066,31 @@ int Ikarus::mem_insttoptr(int index) {
 zenkit::DaedalusNakedCall Ikarus::repeat(zenkit::DaedalusVm& vm) {
   const int               len = vm.pop_int();
   zenkit::DaedalusSymbol* i   = std::get<zenkit::DaedalusSymbol*>(vm.pop_reference());
+
+  auto rp = vm.instruction_at(vm.pc());
   if(len==0 || i==nullptr) {
-    loop_out(vm);
+    auto jmp = loopBacktrack[vm.pc()];
+    vm.unsafe_jump(jmp-rp.size);
     return zenkit::DaedalusNakedCall();
     }
   // Log::i("repeat: ", i->get_int(), " < ", len);
+  auto& pl = loopPayload[vm.pc()];
+  pl.i   = i;
+  pl.len = len;
+
   i->set_int(0);
-  auto rp = vm.instruction_at(vm.pc());
-  loop_start.push_back({vm.pc()+rp.size, i, len});
   return zenkit::DaedalusNakedCall();
   }
 
 zenkit::DaedalusNakedCall Ikarus::while_(zenkit::DaedalusVm& vm) {
   const int cond = vm.pop_int();
   // Log::i("while: ", cond);
-  if(cond !=0) {
-    const int PUSHVsize = 5;
-    const int LTsize    = 1;
-    loop_start.push_back({vm.pc() - PUSHVsize*2 - LTsize, nullptr});
+  if(cond!=0) {
     return zenkit::DaedalusNakedCall();
     }
-  loop_out(vm);
+  auto rp  = vm.instruction_at(vm.pc());
+  auto jmp = loopBacktrack[vm.pc()];
+  vm.unsafe_jump(jmp-rp.size);
   return zenkit::DaedalusNakedCall();
   }
 
@@ -963,58 +1099,202 @@ void Ikarus::loop_trap(zenkit::DaedalusSymbol* i) {
   if(instr.op != zenkit::DaedalusOpcode::PUSHV)
     return; // Ikarus keywords are always use pushv
 
-  // Log::i("end");
-  if(loop_start.size()==0) {
-    Log::e("bad loop end");
+  auto end = vm.find_symbol_by_name("END");
+  if(end!=nullptr && instr.symbol==end->index()) {
+    auto bt = loopBacktrack[vm.pc()];
+
+    if(loopPayload.find(bt)==loopPayload.end()) {
+      // while
+      vm.unsafe_jump(bt-instr.size);
+      return;
+      }
+
+    auto& pl = loopPayload[bt];
+    if(pl.i==nullptr) {
+      Log::e("bad loop end");
+      assert(0);
+      return;
+      }
+    const int32_t i = pl.i->get_int();
+    pl.i->set_int(i+1);
+    if(i+1 < pl.len) {
+      const uint32_t BLsize = 5;
+      vm.unsafe_jump(bt-instr.size+BLsize);
+      } else {
+      loopPayload.erase(bt);
+      }
     return;
     }
-
-  const auto ret = loop_start.back();
-  if(ret.i!=nullptr) {
-    // repeat
-    const int32_t i = ret.i->get_int();
-    ret.i->set_int(i+1);
-    if(i+1 < ret.loopLen) {
-      auto trap = vm.instruction_at(vm.pc());
-      vm.unsafe_jump(ret.pc-trap.size);
-      } else {
-      loop_start.pop_back();
-      }
-    } else {
-    // while
-    loop_start.pop_back();
-    auto trap = vm.instruction_at(vm.pc());
-    vm.unsafe_jump(ret.pc-trap.size);
-    }
-
+  Log::e("bad loop trap");
+  assert(0);
   }
 
-void Ikarus::loop_out(zenkit::DaedalusVm& vm) {
-  auto end = vm.find_symbol_by_name("END");
-  auto rep = vm.find_symbol_by_name("REPEAT");
-  auto whl = vm.find_symbol_by_name("WHILE");
+void Ikarus::setupIkarusLoops() {
+  // ## Traps
+  if(auto end = vm.find_symbol_by_name("END")) {
+    end->set_access_trap_enable(true);
+    }
+  if(auto break_ = vm.find_symbol_by_name("BREAK")) {
+    break_->set_access_trap_enable(true);
+    }
+  if(auto continue_ = vm.find_symbol_by_name("CONTINUE")) {
+    continue_->set_access_trap_enable(true);
+    }
 
-  uint32_t repAddr = (rep!=nullptr ? rep->address() : uint32_t(-1));
-  uint32_t whlAddr = (whl!=nullptr ? whl->address() : uint32_t(-1));
+  auto end       = vm.find_symbol_by_name("END");
+  auto rep       = vm.find_symbol_by_name("REPEAT");
+  auto whl       = vm.find_symbol_by_name("WHILE");
+  auto continue_ = vm.find_symbol_by_name("CONTINUE");
 
-  int depth = 0;
-  for(uint32_t i=vm.pc(); i<vm.size(); ) {
-    const auto inst = vm.instruction_at(i);
-    if(inst.op==zenkit::DaedalusOpcode::PUSHV && vm.find_symbol_by_index(inst.symbol)==end) {
-      depth--;
+  uint32_t endIdx  = (end!=nullptr       ? end->index()       : uint32_t(-1));
+  uint32_t cntIdx  = (continue_!=nullptr ? continue_->index() : uint32_t(-1));
+  uint32_t repAddr = (rep!=nullptr       ? rep->address()     : uint32_t(-1));
+  uint32_t whlAddr = (whl!=nullptr       ? whl->address()     : uint32_t(-1));
+
+  // auto cont = vm.find_symbol_by_name("CONTINUE");
+
+  // ## Control-flow ##
+  vm.override_function("repeat", [this](zenkit::DaedalusVm& vm) { return repeat(vm);    });
+  vm.override_function("while",  [this](zenkit::DaedalusVm& vm) { return while_(vm);    });
+  vm.register_access_trap([this](zenkit::DaedalusSymbol& i)     { return loop_trap(&i); });
+
+  for(auto& i:vm.symbols()) {
+    if(i.type()!=zenkit::DaedalusDataType::FUNCTION)
+      continue;
+    }
+
+  struct LoopDecr {
+    uint32_t pc      = 0;
+    uint32_t backJmp = 0;
+    };
+
+  std::vector<LoopDecr> loopStk;
+  for(uint32_t i=0; i<vm.size();) {
+    const auto pc = i;
+    auto instr = vm.instruction_at(i);
+    i += instr.size;
+
+    if(instr.op==zenkit::DaedalusOpcode::PUSHV && instr.symbol==endIdx) {
+      auto loop = loopStk.back();
+      loopBacktrack[loop.pc] = i; // loop exit
+      loopBacktrack[pc]      = loop.backJmp;
+      loopStk.pop_back();
       }
-    else if(inst.op==zenkit::DaedalusOpcode::BL && inst.address==repAddr) {
-      depth++;
+    else if(instr.op==zenkit::DaedalusOpcode::PUSHV && instr.symbol==cntIdx) {
+      if(!loopStk.empty()) {
+        auto func = findSymbolByAddress(pc); (void)func;
+        auto loop = loopStk.back();
+        loopBacktrack[pc] = loop.pc;
+        }
       }
-    else if(inst.op==zenkit::DaedalusOpcode::BL && inst.address==whlAddr) {
-      depth++;
-      }
-    i += inst.size;
-    if(depth==0) {
-      auto trap = vm.instruction_at(vm.pc());
-      vm.unsafe_jump(i-trap.size);
-      break;
+    else if(instr.op==zenkit::DaedalusOpcode::BL && (instr.address==repAddr || instr.address==whlAddr)) {
+      LoopDecr d;
+      if(instr.address==whlAddr) {
+        d.backJmp = traceBackExpression(vm, pc);
+        d.pc      = pc;
+        }
+      else if(instr.address==repAddr) {
+        d.pc      = pc;
+        d.backJmp = pc;
+        }
+      loopStk.push_back(d);
       }
     }
   }
 
+uint32_t Ikarus::traceBackExpression(zenkit::DaedalusVm& vm, uint32_t pc) {
+  /*
+   NOTE: can be expression based 'while';
+   while(var){}
+     PUSHV @var
+     BL @while
+
+   while(i < l) {}
+     PUSHV @l
+     PUSHV @i
+     LT
+     BL
+
+    handles by MEMINT_TraceParameter in ikarus
+  */
+
+  auto func = findSymbolByAddress(pc);
+  if(func==nullptr)
+    return uint32_t(-1); //error
+
+  std::vector<zenkit::DaedalusInstruction> icodes;
+  for(uint32_t i=func->address(); i<pc && i<vm.size();) {
+    auto instr = vm.instruction_at(i);
+    i += instr.size;
+    icodes.push_back(instr);
+    }
+
+  if(icodes.empty())
+    return uint32_t(-1); //error
+
+  int paramsNeeded = 1;
+  size_t at = icodes.size();
+  while(paramsNeeded>0 && at>0) {
+    --at;
+    const auto instr = icodes[at];
+    if(zenkit::DaedalusOpcode::ADD <= instr.op && instr.op <= zenkit::DaedalusOpcode::DIVMOVI)
+      paramsNeeded += 1;
+    else if(instr.op==zenkit::DaedalusOpcode::PUSHI || instr.op==zenkit::DaedalusOpcode::PUSHV ||
+            instr.op==zenkit::DaedalusOpcode::PUSHVI) {
+      paramsNeeded -= 1;
+      }
+    else if(instr.op==zenkit::DaedalusOpcode::BL) {
+      auto sym = vm.find_symbol_by_address(instr.address);
+      if(sym==nullptr)
+        return uint32_t(-1); //error
+
+      paramsNeeded += sym->count();
+      if(sym->has_return())
+        paramsNeeded -= 1;
+      }
+    else {
+      // non handled
+      return uint32_t(-1); //error
+      }
+    }
+
+  if(paramsNeeded!=0)
+    return uint32_t(-1); //error
+
+  pc = func->address();
+  for(uint32_t i=0; i<at; ++i) {
+    auto instr = vm.instruction_at(pc);
+    pc += instr.size;
+    }
+
+  return pc;
+  }
+
+void Ikarus::setupFunctionTable() {
+  for(auto& i:vm.symbols()) {
+    if(i.type()!=zenkit::DaedalusDataType::FUNCTION)
+      continue;
+    if(i.address()==0)
+      continue;
+    symbolsByAddress.push_back(&i);
+    }
+
+  std::sort(symbolsByAddress.begin(), symbolsByAddress.end(), [](const zenkit::DaedalusSymbol* l, const zenkit::DaedalusSymbol* r){
+    return l->address() < r->address();
+    });
+  }
+
+const zenkit::DaedalusSymbol* Ikarus::findSymbolByAddress(uint32_t addr) {
+  auto fn = std::lower_bound(symbolsByAddress.begin(), symbolsByAddress.end(), addr, [](const zenkit::DaedalusSymbol* l, uint32_t r){
+    return l->address()<r;
+    });
+  //auto id = std::distance(symbolsByAddress.begin(), fn); (void)id;
+  if(fn==symbolsByAddress.end())
+    return symbolsByAddress.back();
+  if((*fn)->address()==addr)
+    return *fn;
+  if(fn==symbolsByAddress.begin())
+    return nullptr;
+  --fn;
+  return *fn;
+  }

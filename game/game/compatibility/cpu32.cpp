@@ -30,6 +30,7 @@ void Cpu32::exec(const ptr32_t basePc, const uint8_t* ins, size_t len) {
       return;
       }
     }
+  stack.clear();
   }
 
 bool Cpu32::exec1Byte(const ptr32_t basePc, ptr32_t& pc, const uint8_t* ins, size_t len) {

@@ -15,11 +15,12 @@ class Ikarus : public ScriptPlugin {
 
     static bool isRequired(zenkit::DaedalusScript& vm);
 
-    using ptr32_t  = Compatibility::ptr32_t;
-    using zCParser = Compatibility::zCParser;
-    using zCTimer  = Compatibility::zCTimer;
-    using oGame    = Compatibility::oGame;
-    using zString  = Compatibility::zString;
+    using ptr32_t      = Compatibility::ptr32_t;
+    using zCParser     = Compatibility::zCParser;
+    using zCPar_Symbol = Compatibility::zCPar_Symbol;
+    using zCTimer      = Compatibility::zCTimer;
+    using oGame        = Compatibility::oGame;
+    using zString      = Compatibility::zString;
 
     struct memory_instance : public zenkit::DaedalusTransientInstance {
       explicit memory_instance(Ikarus &owner, ptr32_t address) : owner(owner), address(address) {}
@@ -64,8 +65,12 @@ class Ikarus : public ScriptPlugin {
     void        setupEngineMemory();
     void        setupEngineText();
 
-    void        memoryCallbackParser   (zCParser& p, std::memory_order ord);
-    void        memoryCallbackParserVar(ScriptVar& v, uint32_t index, std::memory_order ord);
+    void        memoryCallback(zCParser& p, std::memory_order ord);
+    void        memoryCallback(ScriptVar& v, uint32_t index, std::memory_order ord);
+    void        memoryCallback(zCPar_Symbol& s, uint32_t index, std::memory_order ord);
+
+    void        memAssignString(zString& str, std::string_view cstr);
+    void        memFromString  (std::string& dst, const zString& str);
 
     std::string mem_getcommandline();
     void        mem_sendtospy(int cat, std::string_view msg);
@@ -83,7 +88,7 @@ class Ikarus : public ScriptPlugin {
     void        mem_printstacktrace_implementation();
     int         mem_getfuncoffset                 (zenkit::DaedalusFunction func);
     int         mem_getfuncid                     (zenkit::DaedalusFunction func);
-    void        mem_callbyid                      (int symbId);
+    auto        mem_callbyid                      (zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
     auto        mem_callbyptr                     (zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
     int         mem_getfuncptr                    (int symbId);
     void        mem_replacefunc                   (zenkit::DaedalusFunction dest, zenkit::DaedalusFunction func);
@@ -113,6 +118,12 @@ class Ikarus : public ScriptPlugin {
     void        ASMINT_CallMyExternal();
 
     std::string _pm_instName(int inst);
+    int         parserGetIndex(std::string name);
+
+    // ## Direct calls by id/ptr
+    auto        memint_stackpushint (zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
+    auto        memint_stackpushinst(zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
+    void        directCall(zenkit::DaedalusVm& vm, zenkit::DaedalusSymbol& func);
 
     // ## strings
     std::string str_fromchar(int ptr);
@@ -137,7 +148,10 @@ class Ikarus : public ScriptPlugin {
     zenkit::DaedalusNakedCall repeat   (zenkit::DaedalusVm& vm);
     zenkit::DaedalusNakedCall while_   (zenkit::DaedalusVm& vm);
     void                      loop_trap(zenkit::DaedalusSymbol* i);
-    void                      loop_out (zenkit::DaedalusVm& vm);
+    uint32_t                  traceBackExpression(zenkit::DaedalusVm& vm, uint32_t pc);
+    void                      setupIkarusLoops();
+    void                      setupFunctionTable();
+    const zenkit::DaedalusSymbol* findSymbolByAddress(uint32_t addr);
 
     int  hash(int x);
 
@@ -148,12 +162,14 @@ class Ikarus : public ScriptPlugin {
     Mem32               allocator;
     Cpu32               cpu;
 
-    struct Loop {
-      uint32_t                pc = 0;
-      zenkit::DaedalusSymbol* i  = nullptr;
-      int32_t                 loopLen = 0;
+    struct LPayload {
+      zenkit::DaedalusSymbol* i   = nullptr;
+      int32_t                 len = 0;
       };
-    std::vector<Loop> loop_start;
+    std::unordered_map<uint32_t,LPayload> loopPayload;
+    std::unordered_map<uint32_t,uint32_t> loopBacktrack;
+
+    std::vector<const zenkit::DaedalusSymbol*> symbolsByAddress;
 
     struct ScriptVar {
       Compatibility::zString data = {};
@@ -172,6 +188,7 @@ class Ikarus : public ScriptPlugin {
     ptr32_t      focusList[6] = {};
 
     ptr32_t      scriptVariables = 0;
+    ptr32_t      scriptSymbols   = 0;
 
   friend class LeGo;
   friend class Cpu32;

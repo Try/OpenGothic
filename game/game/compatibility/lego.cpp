@@ -281,9 +281,6 @@ int LeGo::create(int instId) {
 void LeGo::tick(uint64_t dt) {
   auto time = owner.tickCount();
 
-  //TODO: implement robust version of `repeat` loops
-  ikarus.loop_start.clear();
-
   auto ff = std::move(frameFunc);
   frameFunc.clear();
 
