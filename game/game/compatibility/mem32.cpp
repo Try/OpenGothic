@@ -297,14 +297,15 @@ Mem32::ptr32_t Mem32::realloc(ptr32_t address, uint32_t size) {
     next->type    = src->type;
     next->real    = std::realloc(src->real, next->size);
     next->comment = src->comment;
+    std::memset(reinterpret_cast<uint8_t*>(next->real)+src->size, 0, size-src->size);
 
     src->real     = nullptr;
     src->status   = S_Unused;
+    compactage();
     } else {
     next->real    = std::calloc(next->size, 1);
     }
 
-  compactage();
   return ret;
   }
 
@@ -350,6 +351,8 @@ Mem32::Region* Mem32::implAllocAt(ptr32_t address, uint32_t size) {
   }
 
 bool Mem32::implRealloc(ptr32_t address, uint32_t nsize) {
+  if(address==0)
+    return false;
   // NOTE: in place only
   for(size_t i=0; i<region.size(); ++i) {
     auto& rgn = region[i];
@@ -360,8 +363,10 @@ bool Mem32::implRealloc(ptr32_t address, uint32_t nsize) {
       return true;
 
     if(nsize<rgn.size) {
-      if(auto next = std::realloc(rgn.real, nsize))
-        rgn.real = next;
+      auto next = std::realloc(rgn.real, nsize);
+      if(next==nullptr)
+        return false;
+      rgn.real = next;
       Region frgn(address+nsize, rgn.size-nsize);
       rgn.size = nsize;
       region.insert(region.begin() + intptr_t(i + 1), frgn);
@@ -371,16 +376,17 @@ bool Mem32::implRealloc(ptr32_t address, uint32_t nsize) {
     if(i+1==region.size())
       return false; // can't expand
 
-    auto& rgn2 = region[i+1];
-    if(rgn2.status==S_Unused && rgn.size + rgn2.size>=nsize) {
+    auto& rgn1 = region[i+1];
+    if(rgn1.status==S_Unused && rgn.size + rgn1.size>=nsize) {
       auto next = std::realloc(rgn.real, nsize);
       if(next==nullptr)
         return false;
-      rgn2.address += (nsize-rgn.size);
-      rgn2.size    -= (nsize-rgn.size);
+      std::memset(reinterpret_cast<uint8_t*>(next)+rgn.size, 0, nsize-rgn.size);
+      rgn1.address += (nsize-rgn.size);
+      rgn1.size    -= (nsize-rgn.size);
       rgn.real      = next;
       rgn.size      = nsize;
-      if(rgn2.size==0)
+      if(rgn1.size==0)
         compactage();
       return true;
       }
@@ -412,8 +418,6 @@ Mem32::Region* Mem32::translate(ptr32_t address) {
     rgn.real = std::calloc(rgn.size, 1);
     if(rgn.real==nullptr)
       throw std::bad_alloc();
-    // memSyncRead(rgn.type, rgn, rgn.address, rgn.size);
-    // return implTranslate(address); // sync may call allocatemore blocks internally
     }
   return ret;
   }
