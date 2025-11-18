@@ -22,7 +22,7 @@ class WayPoint final {
     bool isFreePoint() const;
 
     uint32_t useCounter() const { return useCount; }
-    bool checkName(std::string_view name) const;
+    bool checkName(std::string_view name, bool inexact = true) const;
 
     Tempest::Vec3 position() const;
 

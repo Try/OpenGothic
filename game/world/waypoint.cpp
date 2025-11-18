@@ -28,25 +28,13 @@ bool WayPoint::isFreePoint() const {
   return conn.size()<1;
   }
 
-bool WayPoint::checkName(std::string_view n) const {
-  auto src = std::string_view(name);
-
-  if(src.starts_with(n))
+bool WayPoint::checkName(std::string_view n, bool inexact) const {
+  if(n.empty())
+    return false;
+  if(name==n)
     return true;
-
-  for(size_t i=0, i0=0; ; ++i) {
-    if(i==name.size() || src[i]=='_') {
-      const size_t len2 = i-i0;
-      auto sb = src.substr(i0, len2);
-      // if(sb==n)
-      if(sb.starts_with(n))
-        return true;
-      i0=i+1;
-      }
-    if(i==name.size())
-      break;
-    }
-
+  if(inexact && name.find(n)!=std::string::npos)
+    return true;
   return false;
   }
 
