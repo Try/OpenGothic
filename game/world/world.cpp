@@ -884,7 +884,7 @@ const WayPoint* World::findWayPoint(const Tempest::Vec3& pos, std::string_view n
   return wmatrix->findWayPoint(pos,[name](const WayPoint& wp) -> bool {
     if(wp.isLocked())
       return false;
-    if(!wp.checkName(name))
+    if(!wp.checkName(name,false))
       return false;
     return true;
     });
