@@ -476,11 +476,12 @@ class Npc final {
     bool      implTurnAway(const Npc& oth, uint64_t dt);
     bool      implTurnTo (const Npc& oth, uint64_t dt);
     bool      implTurnTo (const Npc& oth, AnimationSolver::TurnType anim, uint64_t dt);
+    bool      implTurnTo (const WayPoint* wp, AnimationSolver::TurnType anim, uint64_t dt);
     bool      implTurnTo (float dx, float dz, AnimationSolver::TurnType anim, uint64_t dt);
     bool      implWhirlTo(const Npc& oth, uint64_t dt);
     bool      implGoTo   (uint64_t dt);
     bool      implGoTo   (uint64_t dt, float destDist);
-    bool      implAttack  (uint64_t dt);
+    bool      implAttack (uint64_t dt);
     void      adjustAttackRotation(uint64_t dt);
     bool      implAiTick (uint64_t dt);
     void      implAiWait (uint64_t dt);
