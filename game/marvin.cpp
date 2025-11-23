@@ -471,7 +471,7 @@ bool Marvin::addItemOrNpcBySymbolName(World* world, std::string_view name, const
   if(sym==nullptr || sym->parent()==uint32_t(-1))
     return false;
 
-  if(sym->type()!=zenkit::DaedalusDataType::INSTANCE)
+  if(sym->type()!=zenkit::DaedalusDataType::INSTANCE || sym->address()==0)
     return false;
 
   const auto* cls = sym;
@@ -479,7 +479,7 @@ bool Marvin::addItemOrNpcBySymbolName(World* world, std::string_view name, const
     cls = sc.findSymbol(cls->parent());
     }
 
-  if (cls==nullptr)
+  if(cls==nullptr)
     return false;
 
   if(cls->name()=="C_NPC")
