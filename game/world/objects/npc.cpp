@@ -1362,6 +1362,12 @@ bool Npc::implTurnTo(const Npc& oth, AnimationSolver::TurnType anim, uint64_t dt
   return implTurnTo(dx,dz,anim,dt);
   }
 
+bool Npc::implTurnTo(const WayPoint* wp, AnimationSolver::TurnType anim, uint64_t dt) {
+  if(wp==nullptr)
+    return true;
+  return implTurnTo(wp->dirX,wp->dirZ,anim,dt);
+  }
+
 bool Npc::implTurnTo(float dx, float dz, AnimationSolver::TurnType anim, uint64_t dt) {
   auto  gl   = guild();
   float step = float(owner.script().guildVal().turn_speed[gl]);
@@ -1417,7 +1423,7 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
         }
       }
     if(finished) {
-      if(go2.flag==Npc::GT_NextFp && implTurnTo(go2.wp->dirX,go2.wp->dirZ,AnimationSolver::TurnType::Std,dt))
+      if(go2.flag==Npc::GT_NextFp && implTurnTo(go2.wp,AnimationSolver::TurnType::Std,dt))
         return true;
       clearGoTo();
       }
