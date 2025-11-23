@@ -3019,8 +3019,10 @@ void GameScript::ai_gotowp(std::shared_ptr<zenkit::INpc> npcRef, std::string_vie
     return;
 
   auto to = world().findWayPoint(npc->position(), waypoint);
-  if(to!=nullptr)
+  if(to!=nullptr) {
     npc->aiPush(AiQueue::aiGoToPoint(*to));
+    return;
+    }
 
   // in vanilla 'ai_gotowp' sometimes is used incorrectly, so we need to check all other points
   to = world().findPoint(waypoint, false);

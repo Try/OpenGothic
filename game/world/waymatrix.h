@@ -45,6 +45,7 @@ class WayMatrix final {
     // Vatras requires at least 8 meters
     // Abuyin requires less than 10 meters
     // Gothic 1 range is identical
+    // Vanilla is buggy here as Vatras can't reach his praying spot from teaching location
     float                  distanceThreshold = 900.f;
 
     std::vector<WayEdge>   edges;
