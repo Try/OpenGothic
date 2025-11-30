@@ -98,14 +98,12 @@ class Ikarus : public ScriptPlugin {
     int         mem_searchvobbyname               (std::string_view name);
     int         mem_getsymbolindex                (std::string_view name);
     int         mem_getsymbolbyindex              (int index);
-    int         mem_getsystemtime();
 
     // ## Basic Read Write ##
     int         mem_readint       (int address);
     void        mem_writeint      (int address, int val);
     void        mem_copybytes     (int src, int dst, int size);
     std::string mem_readstring    (int address);
-    int         _mem_readstatarr  (int address, int off);
     zenkit::DaedalusNakedCall mem_readstatarr(zenkit::DaedalusVm& vm);
     // pointers
     auto        mem_ptrtoinst(ptr32_t address) -> std::shared_ptr<zenkit::DaedalusInstance>;
@@ -119,10 +117,16 @@ class Ikarus : public ScriptPlugin {
 
     std::string _pm_instName(int inst);
     int         parserGetIndex(std::string name);
+    int         parserCreateInst(int inst, ptr32_t ptr);
 
     // ## Direct calls by id/ptr
     auto        memint_stackpushint (zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
+    //TODO: MEMINT_StackPushString
     auto        memint_stackpushinst(zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
+    //---
+    auto        mem_popintresult   (zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
+    auto        mem_popstringresult(zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
+    auto        mem_popinstresult  (zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
     void        directCall(zenkit::DaedalusVm& vm, zenkit::DaedalusSymbol& func);
 
     // ## strings
@@ -141,13 +145,15 @@ class Ikarus : public ScriptPlugin {
     void        mem_setgothopt          (std::string_view section, std::string_view option, std::string_view value);
 
     // ## Windows api (basic)
-    int        getusernamea(ptr32_t lpBuffer, ptr32_t pcbBuffer);
-    void       getlocaltime(ptr32_t lpSystemTime);
+    int         getusernamea(ptr32_t lpBuffer, ptr32_t pcbBuffer);
+    void        getlocaltime(ptr32_t lpSystemTime);
 
     // control-flow
     zenkit::DaedalusNakedCall repeat   (zenkit::DaedalusVm& vm);
     zenkit::DaedalusNakedCall while_   (zenkit::DaedalusVm& vm);
     void                      loop_trap(zenkit::DaedalusSymbol* i);
+    zenkit::DaedalusNakedCall mem_goto (zenkit::DaedalusVm& vm);
+
     uint32_t                  traceBackExpression(zenkit::DaedalusVm& vm, uint32_t pc);
     void                      setupIkarusLoops();
     void                      setupFunctionTable();
@@ -179,7 +185,10 @@ class Ikarus : public ScriptPlugin {
     ptr32_t      MEMINT_StackPos = 0;
     int32_t      invMaxItems     = 9;
     zCTimer      zTimer          = {};
-    oGame        memGame = {};
+    oGame        memGame         = {};
+
+    char         menuName[10]    = {}; //TODO: connect it to the game
+    float        spawnRange      = 1000; // 10 meters, for now
 
     ptr32_t      oGame_Pointer = 0;
     ptr32_t      gameman_Ptr  = 0;

@@ -406,6 +406,9 @@ Mem32::Region* Mem32::implTranslate(ptr32_t address) {
   }
 
 Mem32::Region* Mem32::translate(ptr32_t address) {
+  if(address==0)
+    return nullptr;
+
   auto ret = implTranslate(address);
   if(ret==nullptr)
     return nullptr;
