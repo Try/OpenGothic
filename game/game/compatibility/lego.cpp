@@ -4,9 +4,10 @@
 #include "game/gamescript.h"
 
 #include <Tempest/Log>
+#include <charconv>
 
 using namespace Tempest;
-
+using namespace Compatibility;
 
 struct LeGo::zCView {
   int32_t _VTBL;
@@ -67,6 +68,21 @@ struct LeGo::zCView {
   int32_t POSOPENCLOSE_1[2];
   };
 
+struct LeGo::oCViewStatusBar : zCView {
+  int32_t MINLOW;
+  int32_t MAXHIGH;
+  int32_t LOW;
+  int32_t HIGH;
+  int32_t PREVIEWVALUE;
+  int32_t CURRENTVALUE;
+  int32_t SCALE;
+  ptr32_t RANGE_BAR;
+  ptr32_t VALUE_BAR;
+  Compatibility::zString TEXVIEW;
+  Compatibility::zString TEXRANGE;
+  Compatibility::zString TEXVALUE;
+  };
+
 struct LeGo::zCFontMan {
   };
 
@@ -76,22 +92,9 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
     Log::i("DMA mod detected: ", version);
     }
 
-  // ## FrameFunctions
-  vm.override_function("_FF_Create", [this](zenkit::DaedalusFunction function, int delay, int cycles,
-                                            int hasData, int data, bool gametime) {
-    return _FF_Create(function, delay, cycles, hasData, data, gametime);
-    });
-  vm.override_function("FF_RemoveData", [this](zenkit::DaedalusFunction function, int data){
-    return FF_RemoveData(function, data);
-    });
-  vm.override_function("FF_ActiveData", [this](zenkit::DaedalusFunction function, int data){
-    return FF_ActiveData(function, data);
-    });
-  vm.override_function("FF_Active", [this](zenkit::DaedalusFunction function){
-    return FF_Active(function);
-    });
-
   // HookEngine
+  // requires for complex ai-logic in lego
+  const int OCNPC__EV_PLAYANI = 7699121; (void)OCNPC__EV_PLAYANI;
   vm.override_function("HookEngineF", [](int address, int oldInstr, zenkit::DaedalusFunction function) {
     auto sym  = function.value;
     auto name = sym==nullptr ? "" : sym->name().c_str();
@@ -109,7 +112,7 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
            " -> ", function, ")");
     });
 
-  // console commands
+  // HookEngine: console commands
   vm.override_function("CC_Register", [](zenkit::DaedalusFunction func, std::string_view prefix, std::string_view desc){
     auto sym  = func.value;
     auto name = sym==nullptr ? "" : sym->name().c_str();
@@ -123,31 +126,52 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
   vm.override_function("PRINT_FIXPS", [](){
     // function patches asm code of zCView::PrintTimed* to fix text coloring - we can ignore it
     });
+  vm.override_function("SB_TOSTRING", [this](){
+    return SB_toString();
+    });
 
   // ## PermMem
-  vm.override_function("CREATE", [this](int inst) { return create(inst); });
-
-  vm.override_function("LOCALS", [](){
-    //NOTE: push local-variables to in-flight memory and restore at function end
-    Log::e("TODO: LeGo-LOCALS.");
+  vm.override_function("LOCALS", [this](zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall {
+    auto sym = this->ikarus.findSymbolByAddress(vm.pc());
+    if(sym!=nullptr) {
+      auto sx = vm.find_symbol_by_index(sym->index());
+      sx->set_local_variables_enable(true);
+      }
+    return zenkit::DaedalusNakedCall();
+    });
+  vm.override_function("FINAL", []() {
+    Log::e("LeGo: 'final' is not implemented");
+    return 0;
     });
 
   // ## UI
   // https://github.com/Lehona/LeGo/blob/dev/View.d
   const int ZCVIEW__ZCVIEW     = 8017664;
+  const int ZCVIEW__OPEN       = 8023040;
+  const int ZCVIEW__CLOSE      = 8023600;
+  const int ZCVIEW_TOP         = 8021904;
   const int ZCVIEW__SETSIZE    = 8026016;
   const int zCVIEW__MOVE       = 8025824;
   const int ZCVIEW__INSERTBACK = 8020272;
-  ikarus.register_stdcall(ZCVIEW__ZCVIEW, [this](ptr32_t ptr, int x1, int y1, int x2, int y2, int arg) {
+  ikarus.cpu.register_thiscall(ZCVIEW__ZCVIEW, [this](ptr32_t ptr, int x1, int y1, int x2, int y2, int arg) {
     zCView__zCView(ptr, x1, y1, x2, y2);
     });
-  ikarus.register_stdcall(ZCVIEW__SETSIZE, [this](ptr32_t ptr, int x, int y) {
+  ikarus.cpu.register_thiscall(ZCVIEW__OPEN, [this](ptr32_t ptr) {
+    zCView__Open(ptr);
+    });
+  ikarus.cpu.register_thiscall(ZCVIEW__CLOSE, [this](ptr32_t ptr) {
+    zCView__Close(ptr);
+    });
+  ikarus.cpu.register_thiscall(ZCVIEW_TOP, [this](ptr32_t ptr) {
+    zCView__Top(ptr);
+    });
+  ikarus.cpu.register_thiscall(ZCVIEW__SETSIZE, [this](ptr32_t ptr, int x, int y) {
     zCView__SetSize(ptr, x, y);
     });
-  ikarus.register_stdcall(zCVIEW__MOVE, [this](ptr32_t ptr, int x, int y) {
+  ikarus.cpu.register_thiscall(zCVIEW__MOVE, [this](ptr32_t ptr, int x, int y) {
     zCView__Move(ptr, x, y);
     });
-  ikarus.register_stdcall(ZCVIEW__INSERTBACK, [this](ptr32_t ptr, std::string img) {
+  ikarus.cpu.register_thiscall(ZCVIEW__INSERTBACK, [this](ptr32_t ptr, std::string img) {
     zCView__InsertBack(ptr, img);
     });
 
@@ -155,8 +179,15 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
   auto& memGame   = ikarus.memGame;
   auto& allocator = ikarus.allocator;
 
-  memGame.HPBAR               = allocator.alloc(sizeof(zCView));
-  memGame.MANABAR             = allocator.alloc(sizeof(zCView));
+  memGame.HPBAR               = allocator.alloc(sizeof(oCViewStatusBar));
+  memGame.MANABAR             = allocator.alloc(sizeof(oCViewStatusBar));
+  memGame.FOCUSBAR            = allocator.alloc(sizeof(oCViewStatusBar));
+
+  allocator.deref<oCViewStatusBar>(memGame.HPBAR)->RANGE_BAR = allocator.alloc(sizeof(zCView));
+  allocator.deref<oCViewStatusBar>(memGame.HPBAR)->VALUE_BAR = allocator.alloc(sizeof(zCView));
+  allocator.deref<oCViewStatusBar>(memGame.FOCUSBAR)->RANGE_BAR = allocator.alloc(sizeof(zCView));
+  allocator.deref<oCViewStatusBar>(memGame.FOCUSBAR)->VALUE_BAR = allocator.alloc(sizeof(zCView));
+
   memGame._ZCSESSION_VIEWPORT = allocator.alloc(sizeof(zCView));
   if(auto ptr = allocator.deref<zCView>(memGame._ZCSESSION_VIEWPORT)) {
     // Dummy window size, for now!
@@ -166,13 +197,20 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
   // needed during initialization in PRINT_EXT
   memGame.ARRAY_VIEW[0] = allocator.alloc(sizeof(zCView));
 
+  // ## Textures
+  const int ZCTEXTURE__LOAD = 6239904;
+  ikarus.register_stdcall(ZCTEXTURE__LOAD, [this](std::string font, int flag) {
+    return zCTexture__Load(font, flag);
+    });
+
+
   // ## Font
   const int ZCFONTMAN__LOAD    = 7897808;
   const int ZCFONTMAN__GETFONT = 7898288;
-  ikarus.register_stdcall(ZCFONTMAN__LOAD, [this](ptr32_t ptr, std::string font) {
+  ikarus.cpu.register_thiscall(ZCFONTMAN__LOAD, [this](ptr32_t ptr, std::string font) {
     return zCFontMan__Load(ptr, font);
     });
-  ikarus.register_stdcall(ZCFONTMAN__GETFONT, [this](ptr32_t ptr, int handle) {
+  ikarus.cpu.register_thiscall(ZCFONTMAN__GETFONT, [this](ptr32_t ptr, int handle) {
     return zCFontMan__GetFont(ptr, handle);
     });
 
@@ -182,7 +220,7 @@ LeGo::LeGo(GameScript& owner, Ikarus& ikarus, zenkit::DaedalusVm& vm_) : owner(o
 
   // ##
   const int ZCOBJECTFACTORY__CREATEWORLD = 5947120;
-  ikarus.register_stdcall(ZCOBJECTFACTORY__CREATEWORLD, [this](ptr32_t ptr) {
+  ikarus.cpu.register_thiscall(ZCOBJECTFACTORY__CREATEWORLD, [this](ptr32_t ptr) {
     // CALL__THISCALL(MEM_READINT(ZFACTORY), ZCOBJECTFACTORY__CREATEWORLD);
     // QS_RENDERWORLD = CALL_RETVALASPTR();
     Log::e("LeGo: zCObjectFactory__CreateWorld");
@@ -198,132 +236,48 @@ bool LeGo::isRequired(zenkit::DaedalusVm& vm) {
       Ikarus::isRequired(vm);
   }
 
-int LeGo::create(int instId) {
-  auto *sym = vm.find_symbol_by_index(uint32_t(instId));
-  auto *cls = sym;
-  if(sym != nullptr && sym->type() == zenkit::DaedalusDataType::INSTANCE) {
-    cls = vm.find_symbol_by_index(sym->parent());
-    }
-
-  if(cls == nullptr) {
-    Log::e("LeGo::create invalid symbold id (", instId, ")");
-    return 0;
-    }
-
-  auto sz   = cls->class_size();
-  auto ptr  = ikarus.mem_alloc(int32_t(sz), cls->name().c_str());
-  auto inst = std::make_shared<Ikarus::memory_instance>(ikarus, ptr);
-
-  auto self = vm.find_symbol_by_name("SELF");
-  auto prev = self != nullptr ? self->get_instance() : nullptr;
-  if(self!=nullptr)
-    self->set_instance(inst);
-  vm.unsafe_call(sym);
-  if(self!=nullptr)
-    self->set_instance(prev);
-  return ptr;
-  }
-
 void LeGo::tick(uint64_t dt) {
-  auto time = owner.tickCount();
-
-  auto ff = std::move(frameFunc);
-  frameFunc.clear();
-
-  for(auto& i:ff) {
-    if(i.next>time) {
-      frameFunc.push_back(i);
-      continue;
-      }
-
-    if(auto* sym = vm.find_symbol_by_index(i.fncID)) {
-      try {
-      if(i.hasData)
-        vm.call_function(sym, i.data); else
-        vm.call_function(sym);
-        }
-      catch(const std::exception& e){
-        Tempest::Log::e("exception in \"", sym->name(), "\": ",e.what());
-        }
-      if(i.cycles>0)
-        i.cycles--;
-      if(i.cycles==0)
-        continue;
-      i.next += uint64_t(i.delay);
-      frameFunc.push_back(i);
-      }
-    }
-  }
-
-void LeGo::_FF_Create(zenkit::DaedalusFunction func, int delay, int cycles, int hasData, int data, bool gametime) {
-  FFItem itm;
-  itm.fncID    = func.value->index();
-  itm.cycles   = cycles;
-  itm.delay    = std::max(delay, 0);
-  itm.data     = data;
-  itm.hasData  = hasData;
-  itm.gametime = gametime;
-  if(gametime) {
-    itm.next = owner.tickCount() + uint64_t(delay);
-    } else {
-    itm.next = owner.tickCount(); // Timer() + itm.delay;
-    };
-
-  itm.cycles = std::max(itm.cycles, 0); // disable repetable callbacks for now
-  frameFunc.emplace_back(itm);
-  }
-
-void LeGo::FF_Remove(zenkit::DaedalusFunction function) {
-
-  }
-
-void LeGo::FF_RemoveAll(zenkit::DaedalusFunction function) {
-
-  }
-
-void LeGo::FF_RemoveData(zenkit::DaedalusFunction func, int data) {
-  auto* sym = func.value;
-  if(sym == nullptr) {
-    Log::e("FF_RemoveData: invalid function ptr");
+  //TODO: propper hook-engine
+  if(auto* sym = vm.find_symbol_by_name("_FF_Hook")) {
+    vm.call_function(sym);
     return;
     }
-
-  size_t nsz = 0;
-  for(size_t i=0; i<frameFunc.size(); ++i) {
-    if(frameFunc[i].fncID==sym->index() && frameFunc[i].data==data)
-      continue;
-    frameFunc[nsz] = frameFunc[i];
-    ++nsz;
-    }
-  frameFunc.resize(nsz);
   }
 
-bool LeGo::FF_ActiveData(zenkit::DaedalusFunction func, int data) {
-  auto* sym = func.value;
-  if(sym == nullptr) {
-    Log::e("FF_ActiveData: invalid function ptr");
-    return false;
-    }
+void LeGo::eventPlayAni(std::string_view ani) {
+  if(ani.find("CALL ")!=0)
+    return;
+  Log::d("LeGo::eventPlayAni: ", ani);
 
-  for(auto& f:frameFunc) {
-    if(f.fncID==sym->index() && f.data==data)
-      return true;
+  if(5<ani.size()) {
+    if(std::isdigit(ani[5])) {
+      uint32_t fncID = 0;
+      auto err = std::from_chars(ani.data()+5, ani.data()+ani.size(), fncID).ec;
+      if(err!=std::errc())
+        return;
+      if(auto* sym = vm.find_symbol_by_index(fncID)) {
+        vm.call_function(sym);
+        }
+      }
     }
-  return false;
   }
 
-bool LeGo::FF_Active(zenkit::DaedalusFunction func) {
-  auto* sym = func.value;
-  if(sym == nullptr) {
-    Log::e("FF_Active: invalid function ptr");
-    return false;
-    }
+std::string LeGo::SB_toString() {
+  // LeGo immplementation requires 'rw' access to 'callback memory'
+  struct StringBuilder {
+    ptr32_t ptr;
+    int     cln;
+    int     CAL;
+    };
+  const auto _SB_CURRENT = vm.find_symbol_by_name("_SB_CURRENT");
+  if(_SB_CURRENT==nullptr || _SB_CURRENT->type()!=zenkit::DaedalusDataType::INT)
+    return "";
 
-  for(auto& f:frameFunc) {
-    if(f.fncID==sym->index())
-      return true;
-    }
-  return false;
+  auto text = ikarus.allocator.deref<StringBuilder>(ptr32_t(_SB_CURRENT->get_int()));
+  if(text->cln<=0 || text->ptr==0)
+    return "";
+  auto cstr = reinterpret_cast<const char*>(ikarus.allocator.deref(text->ptr, uint32_t(text->cln)));
+  return std::string(cstr, size_t(text->cln));
   }
 
 void LeGo::zCView__zCView(ptr32_t ptr, int x1, int y1, int x2, int y2) {
@@ -337,6 +291,31 @@ void LeGo::zCView__zCView(ptr32_t ptr, int x1, int y1, int x2, int y2) {
   view->VPOSY  = y1;
   view->VSIZEX = x2-x1;
   view->VSIZEY = y2-y1;
+  }
+
+void LeGo::zCView__Open(ptr32_t ptr) {
+  auto view = ikarus.allocator.deref<zCView>(ptr);
+  if(view==nullptr) {
+    Log::e("LeGo: zCView__Open - unable to resolve address");
+    return;
+    }
+  Log::e("LeGo: zCView__Open");
+  }
+
+void LeGo::zCView__Close(ptr32_t ptr) {
+  auto view = ikarus.allocator.deref<zCView>(ptr);
+  if(view==nullptr) {
+    Log::e("LeGo: zCView__Close - unable to resolve address");
+    return;
+    }
+  }
+
+void LeGo::zCView__Top(ptr32_t ptr) {
+  auto view = ikarus.allocator.deref<zCView>(ptr);
+  if(view==nullptr) {
+    Log::e("LeGo: zCView__Top - unable to resolve address");
+    return;
+    }
   }
 
 void LeGo::zCView__SetSize(ptr32_t ptr, int x, int y) {
@@ -367,6 +346,11 @@ void LeGo::zCView__InsertBack(ptr32_t ptr, std::string_view img) {
     return;
     }
   Log::e("LeGo: zCView__InsertBack: ", img);
+  }
+
+int LeGo::zCTexture__Load(std::string_view img, int flag) {
+  Log::e("LeGo: zCTexture__Load: ", img);
+  return 0;
   }
 
 int LeGo::zCFontMan__Load(ptr32_t ptr, std::string_view font) {

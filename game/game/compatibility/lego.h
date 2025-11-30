@@ -3,6 +3,7 @@
 #include <zenkit/DaedalusVm.hh>
 
 #include "scriptplugin.h"
+#include "mem32instances.h"
 #include "ikarus.h"
 
 class GameScript;
@@ -14,35 +15,28 @@ class LeGo : public ScriptPlugin {
     static bool isRequired(zenkit::DaedalusVm& vm);
 
   private:
-    int  create(int inst);
     void tick(uint64_t dt) override;
+    void eventPlayAni(std::string_view ani) override;
 
-    using ptr32_t = Ikarus::ptr32_t;
-    using zString = Ikarus::zString;
+    using ptr32_t = Compatibility::ptr32_t;
+    using zString = Compatibility::zString;
 
-    // ## FRAMEFUNCTIONS
-    void _FF_Create   (zenkit::DaedalusFunction function, int delay, int cycles, int hasData, int data, bool gametime);
-    void FF_Remove    (zenkit::DaedalusFunction function);
-    void FF_RemoveAll (zenkit::DaedalusFunction function);
-    void FF_RemoveData(zenkit::DaedalusFunction function, int data);
-    bool FF_ActiveData(zenkit::DaedalusFunction function, int data);
-    bool FF_Active    (zenkit::DaedalusFunction function);
-    struct FFItem {
-      uint32_t fncID    = 0;
-      uint64_t next     = 0;
-      int      delay    = 0;
-      int      cycles   = 0;
-      int      data     = 0;
-      bool     hasData  = 0;
-      bool     gametime = 0;
-      };
+    std::string SB_toString();
 
     // ## UI
     struct zCView;
+    struct oCViewStatusBar;
+
     void        zCView__zCView(ptr32_t ptr, int x1, int y1, int x2, int y2);
+    void        zCView__Open(ptr32_t ptr);
+    void        zCView__Close(ptr32_t ptr);
+    void        zCView__Top(ptr32_t ptr);
     void        zCView__SetSize(ptr32_t ptr, int w, int h);
     void        zCView__Move(ptr32_t ptr, int x, int y);
     void        zCView__InsertBack(ptr32_t ptr, std::string_view img);
+
+    // ## Textures
+    int         zCTexture__Load(std::string_view img, int flag);
 
     // ## Font
     struct zCFontMan;
@@ -54,6 +48,5 @@ class LeGo : public ScriptPlugin {
     zenkit::DaedalusVm& vm;
 
     ptr32_t             fontMan_Ptr = 0;
-    std::vector<FFItem> frameFunc;
   };
 
