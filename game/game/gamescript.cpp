@@ -5,6 +5,7 @@
 
 #include <cctype>
 
+#include "game/compatibility/directmemory.h"
 #include "game/definitions/spelldefinitions.h"
 #include "game/serialize.h"
 #include "game/compatibility/ikarus.h"
@@ -413,15 +414,8 @@ void GameScript::initCommon() {
       }
     }
 
-  Ikarus* ikarus = nullptr;
-  if(Ikarus::isRequired(vm) || LeGo::isRequired(vm)) {
-    auto ik = std::make_unique<Ikarus>(*this,vm);
-    ikarus = ik.get();
-    plugins.emplace_back(std::move(ik));
-    }
-  if(LeGo::isRequired(vm)) {
-    plugins.emplace_back(std::make_unique<LeGo>(*this,*ikarus,vm));
-    }
+  if(DirectMemory::isRequired(vm))
+    dma.reset(new DirectMemory(*this, vm));
   }
 
 void GameScript::initSettings() {
@@ -779,8 +773,8 @@ void GameScript::fixNpcPosition(Npc& npc, float angle0, float distBias) {
   }
 
 void GameScript::eventPlayAni(Npc& npc, std::string_view ani) {
-  for(auto& i:plugins)
-    i->eventPlayAni(ani);
+  if(dma!=nullptr)
+    dma->eventPlayAni(ani);
   }
 
 const World &GameScript::world() const {
@@ -1451,8 +1445,8 @@ uint64_t GameScript::tickCount() const {
   }
 
 void GameScript::tick(uint64_t dt) {
-  for(auto& i:plugins)
-    i->tick(dt);
+  if(dma!=nullptr)
+    dma->tick(dt);
   }
 
 uint32_t GameScript::rand(uint32_t max) {

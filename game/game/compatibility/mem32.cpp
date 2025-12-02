@@ -195,6 +195,7 @@ void Mem32::writeInt(ptr32_t address, int32_t v) {
     return;
     }
 
+  memSyncRead(rgn->type, *rgn, address, 4); // memory hazzards othwerwise!
   const ptr32_t dAddr = address-rgn->address;
   auto ptr = reinterpret_cast<uint8_t*>(rgn->real)+dAddr;
   std::memcpy(ptr,&v,4);
@@ -244,6 +245,7 @@ void Mem32::copyBytes(ptr32_t psrc, ptr32_t pdst, uint32_t size) {
     sz = std::min(dst.size-dOff,sz);
     }
   memSyncRead(src.type, src, ptr32_t(src.address+sOff), uint32_t(sz));
+  memSyncRead(dst.type, dst, ptr32_t(dst.address+dOff), uint32_t(sz));
   std::memcpy(reinterpret_cast<uint8_t*>(dst.real)+dOff,
               reinterpret_cast<uint8_t*>(src.real)+sOff,
               sz);
@@ -297,7 +299,8 @@ Mem32::ptr32_t Mem32::realloc(ptr32_t address, uint32_t size) {
     next->type    = src->type;
     next->real    = std::realloc(src->real, next->size);
     next->comment = src->comment;
-    std::memset(reinterpret_cast<uint8_t*>(next->real)+src->size, 0, size-src->size);
+    if(size>src->size)
+      std::memset(reinterpret_cast<uint8_t*>(next->real)+src->size, 0, size-src->size);
 
     src->real     = nullptr;
     src->status   = S_Unused;

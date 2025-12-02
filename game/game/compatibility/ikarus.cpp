@@ -94,7 +94,7 @@ const std::string& Ikarus::memory_instance::get_string(const zenkit::DaedalusSym
   }
 
 
-Ikarus::Ikarus(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), vm(vm), cpu(*this, allocator) {
+Ikarus::Ikarus(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), vm(vm), cpu(nullptr, allocator) {
   if(auto v = vm.find_symbol_by_name("Ikarus_Version")) {
     const int version = v->type()==zenkit::DaedalusDataType::INT ? v->get_int() : 0;
     Log::i("DMA mod detected: Ikarus v", version);
@@ -127,6 +127,7 @@ Ikarus::Ikarus(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), v
 
   vm.override_function("MEM_GetAddress_Init",          [this](){ mem_getaddress_init(); });
   vm.override_function("MEM_PrintStackTrace",          [this](){ mem_printstacktrace_implementation();   });
+
   vm.override_function("MEM_GetFuncOffset",            [this](zenkit::DaedalusFunction func){ return mem_getfuncoffset(func); });
   vm.override_function("MEM_GetFuncID",                [this](zenkit::DaedalusFunction sym) { return mem_getfuncid(sym);      });
   vm.override_function("MEM_CallByID",                 [this](zenkit::DaedalusVm& vm) { return mem_callbyid(vm);       });
@@ -309,10 +310,10 @@ void Ikarus::setupEngineMemory() {
   allocator.setCallbackR(Mem32::Type::zCParser, [this](zCParser& p, uint32_t){ memoryCallback(p, std::memory_order::acquire); });
   allocator.setCallbackW(Mem32::Type::zCParser, [this](zCParser& p, uint32_t){ memoryCallback(p, std::memory_order::release); });
 
-  allocator.setCallbackR(Mem32::Type::ZCParser_variables, [this](ScriptVar& v, uint32_t id) {
+  allocator.setCallbackR(Mem32::Type::zCParser_variables, [this](ScriptVar& v, uint32_t id) {
     memoryCallback(v, id, std::memory_order::acquire);
     });
-  allocator.setCallbackW(Mem32::Type::ZCParser_variables, [this](ScriptVar& v, uint32_t id) {
+  allocator.setCallbackW(Mem32::Type::zCParser_variables, [this](ScriptVar& v, uint32_t id) {
     memoryCallback(v, id, std::memory_order::release);
     });
   allocator.setCallbackR(Mem32::Type::zCPar_Symbol, [this](zCPar_Symbol& p, uint32_t id) {
@@ -345,7 +346,6 @@ void Ikarus::setupEngineMemory() {
   // const int zCParser_sorted_symtab_table_array_offset = 36; //0x24
   // const int zCParser_stack_offset                     = 72; //0x48
   // const int zCParser_stack_stackPtr_offset            = 76; //0x4C
-  // allocator.pin(&parserProxy,     ContentParserAddress, sizeof(parserProxy), "zCParser proxy");
   const int ContentParserAddress      = 11223232; //0xAB40C0;
   allocator.pin(ContentParserAddress, sizeof(zCParser), Mem32::Type::zCParser);
 
@@ -374,7 +374,7 @@ void Ikarus::setupEngineMemory() {
   symbolsPtr    = allocator.alloc(uint32_t(vm.symbols().size() * sizeof(zenkit::DaedalusSymbol)));
 
   // Storage for local variables, so script may address them thru pointers
-  scriptVariables = allocator.alloc(uint32_t(vm.symbols().size() * sizeof(ScriptVar)),    Mem32::Type::ZCParser_variables);
+  scriptVariables = allocator.alloc(uint32_t(vm.symbols().size() * sizeof(ScriptVar)),    Mem32::Type::zCParser_variables);
   scriptSymbols   = allocator.alloc(uint32_t(vm.symbols().size() * sizeof(zCPar_Symbol)), Mem32::Type::zCPar_Symbol);
 
   // ## Builtin instances in dynamic memory
@@ -426,9 +426,6 @@ void Ikarus::setupEngineText() {
   }
 
 void Ikarus::memoryCallback(zCParser& p, std::memory_order ord) {
-  if(vm.pc()==0x286a)
-    Log::d("MEM_ARRAYINDEXOF dbg");
-
   if(ord==std::memory_order::acquire) {
     if(p.symtab_table.ptr==0) {
       //NOTE: initialize once
@@ -443,13 +440,13 @@ void Ikarus::memoryCallback(zCParser& p, std::memory_order ord) {
       }
 
     auto trap = vm.instruction_at(vm.pc());
-    p.stack_stackPtr = vm.pc() + trap.size;
+    p.stack_stackptr = vm.pc() + trap.size;
     }
   else {
     auto instr = vm.instruction_at(vm.pc());
 
     auto src = findSymbolByAddress(vm.pc() - instr.size);
-    auto dst = findSymbolByAddress(p.stack_stackPtr);
+    auto dst = findSymbolByAddress(p.stack_stackptr);
 
     if(src!=dst || dst==nullptr) {
       if(src!=nullptr && dst!=nullptr)
@@ -457,7 +454,7 @@ void Ikarus::memoryCallback(zCParser& p, std::memory_order ord) {
         Log::e("FIXME: unsafe jump!");
       return;
       }
-    vm.unsafe_jump(p.stack_stackPtr - instr.size);
+    vm.unsafe_jump(p.stack_stackptr - instr.size);
     }
   }
 

@@ -21,6 +21,13 @@ struct zCArray {
   int32_t numInArray = 0;
   };
 
+struct zCArraySort {
+  ptr32_t ptr = 0;
+  int32_t numAlloc   = 0;
+  int32_t numInArray = 0;
+  ptr32_t compare = 0;
+  };
+
 struct zCListSort {
   ptr32_t compareFunc = 0;
   ptr32_t data = 0;
@@ -28,12 +35,36 @@ struct zCListSort {
   };
 
 struct zCParser {
-  uint8_t  padd0[24] = {};
-  zCArray  symtab_table;                  // array of pointers
-  ptr32_t  sorted_symtab_table_array = 0; // 36
-  uint8_t  padd2[32] = {};
-  ptr32_t  stack = 0;                     // 72
-  ptr32_t  stack_stackPtr = 0;            // 76
+  int32_t msgfunc;
+
+  int32_t file_array;                             //0x0004 zCPar_File**
+  int32_t file_numAlloc;                          //0x0008 int
+  int32_t file_numInArray;                        //0x000C int
+
+  int32_t symtab_preAllocatedSymbols;             //0x0010 zCPar_Symbol*
+  int32_t symtab_nextPreAllocated;                //0x0014 int
+
+  zCArray  symtab_table;                          // array of pointers
+  zCArraySort sorted_symtab_table;
+
+  int32_t lastsym;                                //0x0034 zCPar_Symbol*
+  int32_t firstsym;                               //0x0038 zCPar_Symbol*
+
+  int32_t stringtab_array_array;
+  int32_t stringtab_array_numAlloc;
+  int32_t stringtab_array_numInArray;
+
+  //zCPar_Stack               stack;
+  ptr32_t stack_stack;
+  ptr32_t stack_stackptr;
+  int32_t stack_stacklast;
+  int32_t stack_stacksize;
+
+  //zCPar_DataStack           datastack;
+  int32_t datastack_stack[2048];
+  int32_t datastack_sptr;
+
+  //NOTE: incomplete
   };
 
 struct zCPar_Symbol {
@@ -271,6 +302,20 @@ struct oWorld {
 struct GameMgr {
   };
 
+struct zError {
+  int32_t _VTBL;
+  int32_t ONEXIT;
+  zString FILTER_AUTHORS;
+  int32_t FILTER_FLAG;
+  int32_t FILTER_LEVEL;
+  int32_t TARGET;
+  int32_t ACK_TYPE;
+  int32_t LOG_FILE;
+  int32_t INDENT_DEPTH;
+  int32_t SPYHANDLE;
+  int32_t SPYMUTEX;
+  };
+
 struct zCTimer {
   int32_t FACTORMOTION;
   int32_t FRAMETIMEFLOAT;
@@ -282,5 +327,67 @@ struct zCTimer {
   int32_t TOTALTIME;
   int32_t MINFRAMETIME;
   int32_t FORCEDMAXFRAMETIME;
+  };
+
+struct zCView {
+  int32_t _VTBL;
+  int32_t _ZCINPUTCALLBACK_VTBL;
+  int32_t M_BFILLZ;
+  int32_t NEXT;
+  int32_t VIEWID;
+  int32_t FLAGS;
+  int32_t INTFLAGS;
+  int32_t ONDESK;
+  int32_t ALPHAFUNC;
+  int32_t COLOR;
+  int32_t ALPHA;
+  int32_t CHILDS_COMPARE;
+  int32_t CHILDS_COUNT;
+  int32_t CHILDS_LAST;
+  int32_t CHILDS_WURZEL;
+  int32_t OWNER;
+  int32_t BACKTEX;
+  int32_t VPOSX;
+  int32_t VPOSY;
+  int32_t VSIZEX;
+  int32_t VSIZEY;
+  int32_t PPOSX;
+  int32_t PPOSY;
+  int32_t PSIZEX;
+  int32_t PSIZEY;
+  int32_t FONT;
+  int32_t FONTCOLOR;
+  int32_t PX1;
+  int32_t PY1;
+  int32_t PX2;
+  int32_t PY2;
+  int32_t WINX;
+  int32_t WINY;
+  int32_t TEXTLINES_DATA;
+  int32_t TEXTLINES_NEXT;
+  int32_t SCROLLMAXTIME;
+  int32_t SCROLLTIMER;
+  int32_t FXOPEN;
+  int32_t FXCLOSE;
+  int32_t TIMEDIALOG;
+  int32_t TIMEOPEN;
+  int32_t TIMECLOSE;
+  int32_t SPEEDOPEN;
+  int32_t SPEEDCLOSE;
+  int32_t ISOPEN;
+  int32_t ISCLOSED;
+  int32_t CONTINUEOPEN;
+  int32_t CONTINUECLOSE;
+  int32_t REMOVEONCLOSE;
+  int32_t RESIZEONOPEN;
+  int32_t MAXTEXTLENGTH;
+  zString TEXTMAXLENGTH;
+  int32_t POSCURRENT_0[2];
+  int32_t POSCURRENT_1[2];
+  int32_t POSOPENCLOSE_0[2];
+  int32_t POSOPENCLOSE_1[2];
+  };
+
+struct zCFontMan {
   };
 }

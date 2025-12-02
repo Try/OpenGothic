@@ -21,6 +21,7 @@
 class GameSession;
 class World;
 class ScriptPlugin;
+class DirectMemory;
 class Npc;
 class Item;
 class VisualFx;
@@ -456,7 +457,7 @@ class GameScript final {
     int32_t                                                     vmLang = -1;
     std::mt19937                                                randGen;
 
-    std::vector<std::unique_ptr<ScriptPlugin>>                  plugins;
+    std::unique_ptr<DirectMemory>                               dma;
 
     std::unique_ptr<SpellDefinitions>                           spells;
     std::unique_ptr<SvmDefinitions>                             svm;

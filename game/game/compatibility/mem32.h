@@ -20,7 +20,7 @@ class Mem32 {
     enum class Type : uint32_t {
       plain,
       zCParser,
-      ZCParser_variables,
+      zCParser_variables,
       zCPar_Symbol
       };
 

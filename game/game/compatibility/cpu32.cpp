@@ -4,12 +4,12 @@
 #include <unordered_set>
 #include <cstring>
 
-#include "ikarus.h"
+#include "directmemory.h"
 
 using namespace Tempest;
 using namespace Compatibility;
 
-Cpu32::Cpu32(Ikarus& ikarus, Mem32& mem32):ikarus(ikarus), mem32(mem32){
+Cpu32::Cpu32(DirectMemory* ikarus, Mem32& mem32):ikarus(ikarus), mem32(mem32){
   stack.reserve(1024);
   }
 
@@ -247,7 +247,7 @@ void Cpu32::callFunction(ptr32_t func) {
   if(!once.insert(func).second)
     return;
 
-  auto str = ikarus.demangleAddress(func);
+  auto str = ikarus!=nullptr ? ikarus->demangleAddress(func) : "";
   if(!str.empty())
     Log::d("ASMINT_OP_call: unknown external function: \"", str, "\"");else
     Log::d("ASMINT_OP_call: unknown external function: ", func);
