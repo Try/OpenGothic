@@ -8,8 +8,6 @@
 #include "game/compatibility/directmemory.h"
 #include "game/definitions/spelldefinitions.h"
 #include "game/serialize.h"
-#include "game/compatibility/ikarus.h"
-#include "game/compatibility/lego.h"
 #include "utils/string_frm.h"
 #include "world/objects/npc.h"
 #include "world/objects/item.h"
@@ -1430,7 +1428,7 @@ zenkit::DaedalusVm GameScript::createVm(Gothic& gothic) {
   auto lang   = gothic.settingsGetI("GAME", "language");
   auto script = gothic.loadScript(gothic.defaultGameDatFile(), ScriptLang(lang));
   auto exef   = zenkit::DaedalusVmExecutionFlag::ALLOW_NULL_INSTANCE_ACCESS;
-  if(Ikarus::isRequired(script)) {
+  if(DirectMemory::isRequired(script)) {
     exef |= zenkit::DaedalusVmExecutionFlag::IGNORE_CONST_SPECIFIER;
     }
   return zenkit::DaedalusVm(std::move(script), exef);

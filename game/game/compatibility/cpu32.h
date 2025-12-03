@@ -8,7 +8,6 @@
 
 #include "mem32instances.h"
 
-class Ikarus;
 class DirectMemory;
 class Mem32;
 
@@ -16,7 +15,7 @@ class Cpu32 {
   public:
     using ptr32_t = Compatibility::ptr32_t;
 
-    Cpu32(DirectMemory* ikarus, Mem32& mem32);
+    Cpu32(DirectMemory& owner, Mem32& mem32);
 
     void exec(const ptr32_t basePc, const uint8_t* code, size_t len);
 
@@ -58,7 +57,7 @@ class Cpu32 {
       }
 
   private:
-    DirectMemory*         ikarus = nullptr;
+    DirectMemory&         owner;
     Mem32&                mem32;
     std::vector<uint32_t> stack;
     uint32_t              eax = 0;

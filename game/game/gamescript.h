@@ -20,7 +20,6 @@
 
 class GameSession;
 class World;
-class ScriptPlugin;
 class DirectMemory;
 class Npc;
 class Item;

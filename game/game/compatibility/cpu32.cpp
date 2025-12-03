@@ -9,7 +9,7 @@
 using namespace Tempest;
 using namespace Compatibility;
 
-Cpu32::Cpu32(DirectMemory* ikarus, Mem32& mem32):ikarus(ikarus), mem32(mem32){
+Cpu32::Cpu32(DirectMemory& owner, Mem32& mem32):owner(owner), mem32(mem32){
   stack.reserve(1024);
   }
 
@@ -247,7 +247,7 @@ void Cpu32::callFunction(ptr32_t func) {
   if(!once.insert(func).second)
     return;
 
-  auto str = ikarus!=nullptr ? ikarus->demangleAddress(func) : "";
+  auto str = owner.demangleAddress(func);
   if(!str.empty())
     Log::d("ASMINT_OP_call: unknown external function: \"", str, "\"");else
     Log::d("ASMINT_OP_call: unknown external function: ", func);

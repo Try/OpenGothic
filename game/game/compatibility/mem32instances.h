@@ -388,6 +388,21 @@ struct zCView {
   int32_t POSOPENCLOSE_1[2];
   };
 
+struct oCViewStatusBar : zCView {
+  int32_t MINLOW;
+  int32_t MAXHIGH;
+  int32_t LOW;
+  int32_t HIGH;
+  int32_t PREVIEWVALUE;
+  int32_t CURRENTVALUE;
+  int32_t SCALE;
+  ptr32_t RANGE_BAR;
+  ptr32_t VALUE_BAR;
+  zString TEXVIEW;
+  zString TEXRANGE;
+  zString TEXVALUE;
+  };
+
 struct zCFontMan {
   };
 }

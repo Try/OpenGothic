@@ -44,8 +44,6 @@ void DirectMemory::memory_instance::set_int(const zenkit::DaedalusSymbol& sym, u
 int32_t DirectMemory::memory_instance::get_int(const zenkit::DaedalusSymbol& sym, uint16_t index) const {
   ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index * sym.class_size());
   int32_t v = owner.mem32.readInt(addr);
-  if(sym.name()=="ZCARRAY.NUMINARRAY" && v>1024)
-    Log::d("");
   return v;
   }
 
@@ -86,7 +84,7 @@ const std::string& DirectMemory::memory_instance::get_string(const zenkit::Daeda
   }
 
 
-DirectMemory::DirectMemory(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), vm(vm), cpu(this, mem32) {
+DirectMemory::DirectMemory(GameScript& owner, zenkit::DaedalusVm& vm) : gameScript(owner), vm(vm), cpu(*this, mem32) {
   if(auto v = vm.find_symbol_by_name("Ikarus_Version")) {
     const int version = v->type()==zenkit::DaedalusDataType::INT ? v->get_int() : 0;
     Log::i("DMA mod detected: Ikarus v", version);
@@ -95,7 +93,6 @@ DirectMemory::DirectMemory(GameScript& owner, zenkit::DaedalusVm& vm) : gameScri
     const char* version = v->type()==zenkit::DaedalusDataType::STRING ? v->get_string().c_str() : "LeGo";
     Log::i("DMA mod detected: ", version);
     }
-  (void)gameScript;
 
   setupFunctionTable();
   setupIkarusLoops();
@@ -322,27 +319,6 @@ void DirectMemory::setupEngineMemory() {
   mem32.pin(ContentParserAddress, sizeof(zCParser), Mem32::Type::zCParser);
   mem32.pin(&focusList, OCNPCFOCUS__FOCUSLIST_G2, sizeof(focusList), "OCNPCFOCUS__FOCUSLIST_G2");
 
-  // built-in data without assumed address
-  oGame_Pointer = mem32.pin(&memGame, sizeof(memGame), "oGame");
-  memGame._ZCSESSION_WORLD = mem32.alloc(sizeof(oWorld));
-  memGame.WLDTIMER         = BAD_BUILTIN_PTR;
-  memGame.TIMESTEP         = 1; // used as boolend in anim8
-
-  auto& mem_world = *mem32.deref<oWorld>(memGame._ZCSESSION_WORLD);
-  mem_world.WAYNET       = BAD_BUILTIN_PTR; //TODO: add implement some proxy to waynet
-  mem_world.VOBLIST_NPCS = 0; //BAD_BUILTIN_PTR; // zCListSort*
-
-  // Storage for local variables, so script may address them thru pointers
-  scriptVariables = mem32.alloc(uint32_t(vm.symbols().size() * sizeof(ScriptVar)),    Mem32::Type::zCParser_variables);
-  scriptSymbols   = mem32.alloc(uint32_t(vm.symbols().size() * sizeof(zCPar_Symbol)), Mem32::Type::zCPar_Symbol);
-
-  gameman_Ptr     = mem32.alloc(sizeof(GameMgr));
-  if(auto v = vm.find_symbol_by_name("CurrSymbolTableLength")) {
-    v->set_int(int(vm.symbols().size()));
-    }
-
-  fontMan_Ptr = mem32.alloc(sizeof(zCFontMan));
-
   const ptr32_t INGAME_MENU_INSTANCE = 8980576;
   mem32.pin(menuName, INGAME_MENU_INSTANCE, sizeof(menuName), "MENU_NAME");
   std::strncpy(menuName, "MENU_MAIN", sizeof(menuName));
@@ -363,6 +339,41 @@ void DirectMemory::setupEngineMemory() {
     gameScript.focusMage();
     (*p)[5] = BAD_BUILTIN_PTR; //TODO: pick-lock spells
     }
+
+  // Trialog: need to implement reinterpret_cast to avoid in script-exception
+  //const ptr32_t SPAWN_INSERTRANGE = 9153744;
+  //mem32.pin(&spawnRange, SPAWN_INSERTRANGE, sizeof(spawnRange), "spawnRange");
+
+  // Storage for local variables, so script may address them thru pointers
+  scriptVariables = mem32.alloc(uint32_t(vm.symbols().size() * sizeof(ScriptVar)),    Mem32::Type::zCParser_variables);
+  scriptSymbols   = mem32.alloc(uint32_t(vm.symbols().size() * sizeof(zCPar_Symbol)), Mem32::Type::zCPar_Symbol);
+
+  // Built-in data without assumed address
+  oGame_Pointer = mem32.pin(&memGame, sizeof(memGame), "oGame");
+  memGame._ZCSESSION_WORLD = mem32.alloc(sizeof(oWorld));
+  memGame.WLDTIMER         = BAD_BUILTIN_PTR;
+  memGame.TIMESTEP         = 1; // used as boolean in anim8
+
+  auto& mem_world = *mem32.deref<oWorld>(memGame._ZCSESSION_WORLD);
+  mem_world.WAYNET       = BAD_BUILTIN_PTR; //TODO: add implement some proxy to waynet
+  mem_world.VOBLIST_NPCS = 0; //BAD_BUILTIN_PTR; // zCListSort*
+
+  gameman_Ptr = mem32.alloc(sizeof(GameMgr));
+  if(auto v = vm.find_symbol_by_name("CurrSymbolTableLength")) {
+    v->set_int(int(vm.symbols().size()));
+    }
+
+  fontMan_Ptr = mem32.alloc(sizeof(zCFontMan));
+
+  // ## UI data
+  memGame.HPBAR    = mem32.alloc(sizeof(oCViewStatusBar));
+  memGame.MANABAR  = mem32.alloc(sizeof(oCViewStatusBar));
+  memGame.FOCUSBAR = mem32.alloc(sizeof(oCViewStatusBar));
+
+  mem32.deref<oCViewStatusBar>(memGame.HPBAR)   ->RANGE_BAR = mem32.alloc(sizeof(zCView));
+  mem32.deref<oCViewStatusBar>(memGame.HPBAR)   ->VALUE_BAR = mem32.alloc(sizeof(zCView));
+  mem32.deref<oCViewStatusBar>(memGame.FOCUSBAR)->RANGE_BAR = mem32.alloc(sizeof(zCView));
+  mem32.deref<oCViewStatusBar>(memGame.FOCUSBAR)->VALUE_BAR = mem32.alloc(sizeof(zCView));
   }
 
 void DirectMemory::setupEngineText() {

@@ -56,7 +56,8 @@ class DirectMemory {
     //int32_t     invMaxItems     = 9;
     zCTimer     zTimer          = {};
     oGame       memGame         = {};
-    char        menuName[10]    = {}; //TODO: connect it to the game
+    char        menuName[10]    = {};   //TODO: connect it to the game
+    float       spawnRange      = 1000; // 10 meters, for now
 
     ptr32_t     oGame_Pointer   = 0;
     ptr32_t     gameman_Ptr     = 0;
