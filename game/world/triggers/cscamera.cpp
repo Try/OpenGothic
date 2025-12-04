@@ -31,6 +31,9 @@ CsCamera::KbSpline::KbSpline(const std::vector<std::shared_ptr<zenkit::VCameraTr
     kF.c[3]  = Vec3(f->original_pose[3][0],f->original_pose[3][1],f->original_pose[3][2]);
     kF.time  = f->time;
     kF.motionType = f->motion_type;
+    if(kF.time<0) {
+      Log::e("CsCamera: \"", vobName, "\" - negative frame duration");
+      }
     keyframe.push_back(kF);
     }
 
@@ -62,13 +65,15 @@ CsCamera::KbSpline::KbSpline(const std::vector<std::shared_ptr<zenkit::VCameraTr
   if(keyframe.front().time!=0) {
     Log::e("CsCamera: \"", vobName, "\" - invalid first frame");
     }
-  if(keyframe.back().time!=duration) {
-    Log::e("CsCamera: \"", vobName, "\" - invalid sequence duration");
-    }
   }
 
 Vec3 CsCamera::KbSpline::position(const uint64_t time) const {
   const float t = float(time)/1000.f;
+
+  if(t>=keyframe.back().time) {
+    // duration may be longer then keyframe sequence
+    return keyframe.back().position(1.f);
+    }
 
   //TODO: lower bound
   uint32_t n = 0;
