@@ -1348,7 +1348,7 @@ bool Npc::implTurnAway(const Npc &oth, uint64_t dt) {
 
 bool Npc::implTurnTo(const Npc &oth, uint64_t dt) {
   if(&oth==this)
-    return true;
+    return false;
   auto dx = oth.x-x;
   auto dz = oth.z-z;
   return implTurnTo(dx,dz,AnimationSolver::TurnType::Std,dt);
@@ -1356,7 +1356,7 @@ bool Npc::implTurnTo(const Npc &oth, uint64_t dt) {
 
 bool Npc::implTurnTo(const Npc& oth, AnimationSolver::TurnType anim, uint64_t dt) {
   if(&oth==this)
-    return true;
+    return false;
   auto dx = oth.x-x;
   auto dz = oth.z-z;
   return implTurnTo(dx,dz,anim,dt);
@@ -1364,7 +1364,7 @@ bool Npc::implTurnTo(const Npc& oth, AnimationSolver::TurnType anim, uint64_t dt
 
 bool Npc::implTurnTo(const WayPoint* wp, AnimationSolver::TurnType anim, uint64_t dt) {
   if(wp==nullptr)
-    return true;
+    return false;
   return implTurnTo(wp->dirX,wp->dirZ,anim,dt);
   }
 
@@ -2214,7 +2214,7 @@ bool Npc::prepareTurn() {
     visual.stopDlgAnim(*this);
     }
   return true;
-}
+  }
 
 void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
   if(isInAir())
