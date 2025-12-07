@@ -55,6 +55,7 @@ class World final {
     Item*                itmById(uint32_t id);
 
     const WayPoint*      findPoint(std::string_view name, bool inexact=true) const;
+    const WayPoint*      findWayPoint(std::string_view name) const;
     const WayPoint*      findWayPoint(const Tempest::Vec3& pos) const;
     const WayPoint*      findWayPoint(const Tempest::Vec3& pos, const std::function<bool(const WayPoint&)>& f) const;
     const WayPoint*      findWayPoint(const Tempest::Vec3& pos, std::string_view name) const;

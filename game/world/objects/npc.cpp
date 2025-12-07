@@ -483,7 +483,7 @@ bool Npc::resetPositionToTA() {
       at=p;
     }
   setPosition (at->x, at->y, at->z);
-  setDirection(at->dirX,at->dirY,at->dirZ);
+  setDirection(at->dir.x,at->dir.y,at->dir.z);
   owner.script().fixNpcPosition(*this,0,0);
 
   if(!isDead) {
@@ -1365,7 +1365,7 @@ bool Npc::implTurnTo(const Npc& oth, AnimationSolver::TurnType anim, uint64_t dt
 bool Npc::implTurnTo(const WayPoint* wp, AnimationSolver::TurnType anim, uint64_t dt) {
   if(wp==nullptr)
     return false;
-  return implTurnTo(wp->dirX,wp->dirZ,anim,dt);
+  return implTurnTo(wp->dir.x,wp->dir.z,anim,dt);
   }
 
 bool Npc::implTurnTo(float dx, float dz, AnimationSolver::TurnType anim, uint64_t dt) {
@@ -2477,7 +2477,7 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
       break;
     case AI_Teleport: {
       setPosition(act.point->x,act.point->y,act.point->z);
-      setDirection(act.point->dirX,act.point->dirY,act.point->dirZ);
+      setDirection(act.point->dir.x,act.point->dir.y,act.point->dir.z);
       if(isPlayer()) {
         updateTransform();
         Gothic::inst().camera()->reset(this);
@@ -2613,8 +2613,8 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
     case AI_AlignToWp:
     case AI_AlignToFp:{
       if(auto fp = currentFp){
-        if(fp->dirX!=0.f || fp->dirZ!=0.f){
-          if(implTurnTo(fp->dirX,fp->dirZ,AnimationSolver::TurnType::Std,dt))
+        if(fp->dir.x!=0.f || fp->dir.z!=0.f){
+          if(implTurnTo(fp->dir.x,fp->dir.z,AnimationSolver::TurnType::Std,dt))
             queue.pushFront(std::move(act));
           }
         }

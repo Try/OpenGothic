@@ -13,13 +13,14 @@ class WayPoint final {
     WayPoint();
     WayPoint(const zenkit::WayPoint& dat);
     WayPoint(const Tempest::Vec3& pos, std::string_view name);
-    WayPoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name);
+    WayPoint(const Tempest::Vec3& pos, const Tempest::Vec3& dir, std::string_view name, bool isFp);
     WayPoint(const WayPoint&)=default;
     WayPoint(WayPoint&&)=default;
 
     WayPoint& operator = (WayPoint&&)=default;
     bool isLocked() const { return useCount!=0; }
     bool isFreePoint() const;
+    bool isConnected() const;
 
     uint32_t useCounter() const { return useCount; }
     bool checkName(std::string_view name, bool inexact = true) const;
@@ -30,11 +31,10 @@ class WayPoint final {
     float y=0;
     float z=0;
 
-    float dirX=0;
-    float dirY=0;
-    float dirZ=0;
+    Tempest::Vec3 dir;
 
     bool  underWater = false;
+    bool  freePoint  = false;
 
     std::string name;
 

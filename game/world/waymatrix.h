@@ -29,6 +29,7 @@ class WayMatrix final {
     const WayPoint& deadPoint() const;
     void            buildIndex();
 
+    const WayPoint* findWayPoint(std::string_view name) const;
     const WayPoint* findPoint(std::string_view name, bool inexact) const;
     void            marchPoints(DbgPainter& p) const;
 

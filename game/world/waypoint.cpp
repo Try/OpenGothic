@@ -11,20 +11,24 @@ WayPoint::WayPoint() {
 
 WayPoint::WayPoint(const zenkit::WayPoint &dat)
   : x(dat.position.x),y(dat.position.y),z(dat.position.z),
-    dirX(dat.direction.x),dirY(dat.direction.y),dirZ(dat.direction.z),
+    dir(dat.direction.x, dat.direction.y, dat.direction.z),
     underWater(dat.under_water),
     name(upcaseof(dat.name)) {
   }
 
 WayPoint::WayPoint(const Vec3& pos, std::string_view name)
-  :x(pos.x),y(pos.y),z(pos.z),name(upcaseof(name)){
+  :x(pos.x),y(pos.y),z(pos.z),freePoint(true),name(upcaseof(name)){
   }
 
-WayPoint::WayPoint(const Vec3& pos, const Vec3& dir, std::string_view name)
-  :x(pos.x),y(pos.y),z(pos.z),dirX(dir.x),dirY(dir.y),dirZ(dir.z),name(upcaseof(name)){
+WayPoint::WayPoint(const Vec3& pos, const Vec3& dir, std::string_view name, bool isFp)
+  :x(pos.x), y(pos.y), z(pos.z), dir(dir), freePoint(isFp), name(upcaseof(name)){
   }
 
 bool WayPoint::isFreePoint() const {
+  return freePoint;
+  }
+
+bool WayPoint::isConnected() const {
   return conn.size()<1;
   }
 

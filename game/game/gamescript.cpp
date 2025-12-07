@@ -2005,7 +2005,8 @@ bool GameScript::npc_wasinstate(std::shared_ptr<zenkit::INpc> npcRef, int stateF
 
 int GameScript::npc_getdisttowp(std::shared_ptr<zenkit::INpc> npcRef, std::string_view wpname) {
   auto  npc = findNpc(npcRef);
-  auto* wp  = world().findPoint(wpname, false);
+  //NOTE: in CoM, some way-point and free-points share same name - need to be precise
+  auto* wp  = world().findWayPoint(wpname);
 
   if(npc!=nullptr && wp!=nullptr){
     float ret = std::sqrt(npc->qDistTo(wp));

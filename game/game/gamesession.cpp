@@ -54,7 +54,7 @@ void GameSession::HeroStorage::putToWorld(World& owner, std::string_view wayPoin
   if(auto pl = owner.player()) {
     if(auto pos = pl->currentWayPoint()) {
       pl->setPosition  (pos->x,pos->y,pos->z);
-      pl->setDirection (pos->dirX,pos->dirY,pos->dirZ);
+      pl->setDirection (pos->dir.x, pos->dir.y, pos->dir.z);
       }
     if(pl->isInAir()) {
       pl->stopAnim("");

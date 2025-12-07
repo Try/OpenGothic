@@ -100,11 +100,11 @@ const WayPoint *WayMatrix::findNextPoint(const Vec3& at) const {
   }
 
 void WayMatrix::addFreePoint(const Vec3& pos, const Vec3& dir, std::string_view name) {
-  freePoints.emplace_back(pos,dir,name);
+  freePoints.emplace_back(pos,dir,name,true);
   }
 
 void WayMatrix::addStartPoint(const Vec3& pos, const Vec3& dir, std::string_view name) {
-  startPoints.emplace_back(pos,dir,name);
+  startPoints.emplace_back(pos,dir,name,true);
   }
 
 const WayPoint &WayMatrix::startPoint() const {
@@ -129,6 +129,15 @@ const WayPoint& WayMatrix::deadPoint() const {
       return *i;
   static WayPoint p(Vec3(-1000,-1000,-1000),"TOT");
   return p;
+  }
+
+const WayPoint* WayMatrix::findWayPoint(std::string_view name) const {
+  auto it = std::lower_bound(indexPoints.begin(),indexPoints.end(),name,[](const WayPoint* a, std::string_view b){
+    return a->name<b;
+    });
+  if(it!=indexPoints.end() && !(*it)->isFreePoint() && name==(*it)->name)
+    return *it;
+  return nullptr;
   }
 
 const WayPoint* WayMatrix::findPoint(std::string_view name, bool inexact) const {

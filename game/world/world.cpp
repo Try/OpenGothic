@@ -872,6 +872,10 @@ const WayPoint *World::findPoint(std::string_view name, bool inexact) const {
   return wmatrix->findPoint(name,inexact);
   }
 
+const WayPoint* World::findWayPoint(std::string_view name) const {
+  return wmatrix->findWayPoint(name);
+  }
+
 const WayPoint* World::findWayPoint(const Tempest::Vec3& pos) const {
   return wmatrix->findWayPoint(pos,[](const WayPoint&){ return true; });
   }
@@ -981,7 +985,7 @@ WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
   if(begin==&end && MoveAlgo::isClose(npc.position(),end)) {
     return WayPath();
     }
-  if(begin && !begin->isFreePoint() && MoveAlgo::isClose(npc.position(),*begin)) {
+  if(begin && begin->isConnected() && MoveAlgo::isClose(npc.position(),*begin)) {
     return wmatrix->wayTo(&begin,1,p,end);
     }
   auto near = wmatrix->findWayPoint(p, [&npc](const WayPoint &wp) {
