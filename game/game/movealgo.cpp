@@ -697,7 +697,7 @@ bool MoveAlgo::isClose(float x, float y, float z, const WayPoint &p) {
   }
 
 bool MoveAlgo::isClose(float x, float /*y*/, float z, const WayPoint &p, float dist) {
-  float len = p.qDistTo(x,p.y,z);
+  float len = p.qDistTo(x,p.pos.y,z);
   return (len<dist*dist);
   }
 

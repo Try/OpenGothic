@@ -850,7 +850,7 @@ void Interactive::setDir(Npc &npc, const Tempest::Matrix4x4 &mat) {
   mat.project(x0,y0,z0);
   mat.project(x1,y1,z1);
 
-  npc.setDirection(x1-x0,y1-y0,z1-z0);
+  npc.setDirection(Tempest::Vec3(x1-x0, y1-y0, z1-z0));
   }
 
 float Interactive::qDistanceTo(const Npc &npc, const Interactive::Pos &to) const {

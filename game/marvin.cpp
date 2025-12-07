@@ -319,7 +319,7 @@ bool Marvin::exec(std::string_view v) {
       auto wpoint = world->findPoint(ret.argv[0]);
       if(wpoint==nullptr)
         return false;
-      player->setPosition(wpoint->x,wpoint->y,wpoint->z);
+      player->setPosition(wpoint->position());
       player->updateTransform();
       Gothic::inst().camera()->reset(player);
       return true;

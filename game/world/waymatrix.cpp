@@ -43,7 +43,7 @@ void WayMatrix::buildIndex() {
     fpInd.push_back(&i);
 
   std::sort(fpInd.begin(),fpInd.end(),[](const WayPoint* a,const WayPoint* b){
-    return a->x<b->x;
+    return a->pos.x < b->pos.x;
     });
 
   for(auto& i:edges) {
@@ -176,7 +176,7 @@ void WayMatrix::marchPoints(DbgPainter &p) const {
   auto &points = *ppoints;
   int id = 0;
   for(auto& i:points) {
-    float x = i.x, y = i.y, z = i.z;
+    float x = i.pos.x, y = i.pos.y, z = i.pos.z;
     p.mvp.project(x,y,z);
     if(z<0.f || z>1.f)
       continue;
@@ -196,7 +196,7 @@ void WayMatrix::adjustWaypoints(std::vector<WayPoint> &wp) {
   for(auto& w:wp) {
     auto ray = world.physic()->landRay(w.position());
     if(ray.hasCol)
-      w.y = ray.v.y;
+      w.pos.y = ray.v.y;
     indexPoints.push_back(&w);
     }
   }
@@ -255,7 +255,7 @@ const WayMatrix::FpIndex &WayMatrix::findFpIndex(std::string_view name) const {
     }
   // TODO: good index, not sort by 'x' :)
   std::sort(id.index.begin(),id.index.end(),[](const WayPoint* a,const WayPoint* b){
-    return a->x<b->x;
+    return a->pos.x < b->pos.x;
     });
 
   it = fpIndex.insert(it,std::move(id));
@@ -266,10 +266,10 @@ const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const FpInde
                                          const std::function<bool(const WayPoint&)>& filter) const {
   float R = distanceThreshold;
   auto b = std::lower_bound(ind.index.begin(),ind.index.end(), x-R ,[](const WayPoint *a, float b){
-    return a->x<b;
+    return a->pos.x < b;
     });
   auto e = std::upper_bound(ind.index.begin(),ind.index.end(), x+R ,[](float a,const WayPoint *b){
-    return a<b->x;
+    return a < b->pos.x;
     });
 
   const WayPoint* ret=nullptr;
@@ -277,9 +277,9 @@ const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const FpInde
   float dist  = R*R;
   for(auto i=b;i!=e;++i){
     auto& w  = **i;
-    float dx = w.x-x;
-    float dy = w.y-y;
-    float dz = w.z-z;
+    float dx = w.pos.x-x;
+    float dy = w.pos.y-y;
+    float dz = w.pos.z-z;
     float l  = dx*dx+dy*dy+dz*dz;
     if(l>dist)
       continue;

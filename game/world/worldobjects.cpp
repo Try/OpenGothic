@@ -298,8 +298,8 @@ Npc* WorldObjects::addNpc(size_t npcInstance, std::string_view at) {
       pos = p;
     if(pos==nullptr)
       pos = &owner.deadPoint();
-    npc->setPosition  (pos->x,pos->y,pos->z);
-    npc->setDirection (pos->dir.x,pos->dir.y,pos->dir.z);
+    npc->setPosition  (pos->position() );
+    npc->setDirection (pos->direction());
     npc->attachToPoint(pos);
     npc->updateTransform();
     npcArr.emplace_back(npc);
@@ -343,8 +343,8 @@ Npc* WorldObjects::insertPlayer(std::unique_ptr<Npc> &&npc, std::string_view at)
     if(p)
       pos=p;
     }
-  npc->setPosition  (pos->x,pos->y,pos->z);
-  npc->setDirection (pos->dir.x,pos->dir.y,pos->dir.z);
+  npc->setPosition  (pos->position() );
+  npc->setDirection (pos->direction());
   npc->attachToPoint(pos);
   npc->updateTransform();
   npcArr.emplace_back(std::move(npc));
@@ -648,8 +648,8 @@ Item *WorldObjects::addItem(size_t itemInstance, std::string_view at) {
   const WayPoint* waypoint = owner.findPoint(at);
 
   if(waypoint != nullptr) {
-    pos = {waypoint->x, waypoint->y, waypoint->z};
-    dir = waypoint->dir;
+    pos = waypoint->position();
+    dir = waypoint->direction();
     }
 
   item = addItem(itemInstance, pos, dir);

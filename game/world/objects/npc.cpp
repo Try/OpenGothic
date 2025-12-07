@@ -34,7 +34,7 @@ Vec3 Npc::GoTo::target() const {
   if(npc!=nullptr)
     return npc->position();
   if(wp!=nullptr)
-    return Vec3(wp->x,wp->y,wp->z);
+    return wp->position();
   return pos;
   }
 
@@ -412,8 +412,8 @@ bool Npc::performOutput(const AiQueue::AiAction &act) {
   return false;
   }
 
-void Npc::setDirection(float x, float /*y*/, float z) {
-  float a=angleDir(x,z);
+void Npc::setDirection(const Tempest::Vec3& pos) {
+  float a = angleDir(pos.x, pos.z);
   setDirection(a);
   }
 
@@ -482,8 +482,8 @@ bool Npc::resetPositionToTA() {
     if(p!=nullptr)
       at=p;
     }
-  setPosition (at->x, at->y, at->z);
-  setDirection(at->dir.x,at->dir.y,at->dir.z);
+  setPosition (at->position() );
+  setDirection(at->direction());
   owner.script().fixNpcPosition(*this,0,0);
 
   if(!isDead) {
@@ -693,7 +693,7 @@ float Npc::qDistTo(const Tempest::Vec3 pos) const {
 float Npc::qDistTo(const WayPoint *f) const {
   if(f==nullptr)
     return 0.f;
-  return qDistTo(f->x,f->y,f->z);
+  return qDistTo(f->position());
   }
 
 float Npc::qDistTo(const Npc &p) const {
@@ -1786,8 +1786,8 @@ bool Npc::implAiFlee(uint64_t dt) {
     if(implTurnTo(-dx,-dz,anim,dt))
       return (go2.flag==GT_Flee);
     } else {
-    auto  dx  = wp->x-x;
-    auto  dz  = wp->z-z;
+    auto  dx  = wp->pos.x-x;
+    auto  dz  = wp->pos.z-z;
     if(implTurnTo(dx,dz,anim,dt))
       return (go2.flag==GT_Flee);
     }
@@ -2476,8 +2476,8 @@ void Npc::nextAiAction(AiQueue& queue, uint64_t dt) {
         }
       break;
     case AI_Teleport: {
-      setPosition(act.point->x,act.point->y,act.point->z);
-      setDirection(act.point->dir.x,act.point->dir.y,act.point->dir.z);
+      setPosition (act.point->position() );
+      setDirection(act.point->direction());
       if(isPlayer()) {
         updateTransform();
         Gothic::inst().camera()->reset(this);

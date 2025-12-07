@@ -25,20 +25,15 @@ class WayPoint final {
     uint32_t useCounter() const { return useCount; }
     bool checkName(std::string_view name, bool inexact = true) const;
 
-    Tempest::Vec3 position() const;
+    Tempest::Vec3 position () const;
+    Tempest::Vec3 direction() const;
 
-    float x=0;
-    float y=0;
-    float z=0;
-
+    Tempest::Vec3 pos;
     Tempest::Vec3 dir;
-
-    bool  underWater = false;
-    bool  freePoint  = false;
-
-    std::string name;
-
-    Interactive* ladder = nullptr;
+    bool          underWater = false;
+    bool          freePoint  = false;
+    std::string   name;
+    Interactive*  ladder = nullptr;
 
     struct Conn final {
       WayPoint* point=nullptr;
@@ -46,8 +41,8 @@ class WayPoint final {
       };
 
     // TODO: beautify
-    mutable int32_t  pathLen=std::numeric_limits<int32_t>::max();
-    mutable uint16_t pathGen=0;
+    mutable int32_t  pathLen = std::numeric_limits<int32_t>::max();
+    mutable uint16_t pathGen = 0;
 
     float qDistTo(float x,float y,float z) const;
 
@@ -59,8 +54,6 @@ class WayPoint final {
     mutable uint32_t useCount=0;
 
     std::vector<Conn> conn;
-
-    static std::string upcaseof(std::string_view src);
 
   friend class FpLock;
   };
