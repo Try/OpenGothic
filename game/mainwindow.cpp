@@ -508,18 +508,19 @@ void MainWindow::keyUpEvent(KeyEvent &event) {
       return;
     }
 
-  const char* menuEv=nullptr;
 
-  auto act = keycodec.tr(event);
+  auto act     = keycodec.tr(event);
   auto mapping = keycodec.mapping(event);
-  if(act==KeyCodec::Escape)
-    menuEv="MENU_MAIN";
-  else if(act==KeyCodec::Log)
-    menuEv="MENU_LOG";
-  else if(act==KeyCodec::Status)
-    menuEv="MENU_STATUS";
 
-  if(menuEv!=nullptr) {
+  std::string_view menuEv;
+  if(act==KeyCodec::Escape)
+    menuEv = Gothic::inst().menuMain();
+  else if(act==KeyCodec::Log)
+    menuEv = "MENU_LOG";
+  else if(act==KeyCodec::Status)
+    menuEv = "MENU_STATUS";
+
+  if(!menuEv.empty()) {
     rootMenu.setMenu(menuEv,act);
     rootMenu.showVersion(act==KeyCodec::Escape);
     if(auto pl = Gothic::inst().player())

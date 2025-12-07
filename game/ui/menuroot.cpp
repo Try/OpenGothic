@@ -45,11 +45,11 @@ void MenuRoot::initSettings() {
   }
 
 void MenuRoot::setMainMenu() {
-  setMenu("MENU_MAIN");
+  setMenu(Gothic::inst().menuMain());
   showVersion(true);
   }
 
-void MenuRoot::setMenu(const char* menuEv, KeyCodec::Action key) {
+void MenuRoot::setMenu(std::string_view menuEv, KeyCodec::Action key) {
   if(vm->find_symbol_by_name(menuEv) == nullptr){
     Log::e("invalid menu-id: ",menuEv);
     return;

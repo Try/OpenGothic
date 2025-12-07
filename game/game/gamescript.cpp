@@ -1585,6 +1585,12 @@ uint32_t GameScript::lockPickId() const {
   return ItKE_lockpick!=nullptr ? ItKE_lockpick->index() : 0;
   }
 
+std::string_view GameScript::menuMain() const {
+  if(dma!=nullptr)
+    return dma->menuMain();
+  return ::menuMain;
+  }
+
 bool GameScript::game_initgerman() {
   return true;
   }

@@ -1,6 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include <string_view>
+
+inline std::string_view menuMain = "MENU_MAIN";
 
 enum Guild: uint32_t {
   GIL_NONE                    = 0,  // (keine)

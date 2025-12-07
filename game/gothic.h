@@ -77,6 +77,8 @@ class Gothic final {
     std::string_view defaultGameDatFile() const;
     std::string_view defaultOutputUnits() const;
 
+    std::string_view menuMain() const;
+
     void         setGame(std::unique_ptr<GameSession> &&w);
     auto         clearGame() -> std::unique_ptr<GameSession>;
 

@@ -695,6 +695,12 @@ std::string_view Gothic::defaultOutputUnits() const {
   return ouDef;
   }
 
+std::string_view Gothic::menuMain() const {
+  if(game && game->script())
+    return game->script()->menuMain();
+  return ::menuMain;
+  }
+
 std::unique_ptr<zenkit::DaedalusVm> Gothic::createPhoenixVm(std::string_view datFile, const ScriptLang lang) {
   auto sc = loadScript(datFile, lang);
   setupCommonScriptClasses(sc);

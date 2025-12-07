@@ -16,7 +16,7 @@ class MenuRoot : public Tempest::Widget {
     ~MenuRoot() override;
 
     void setMainMenu();
-    void setMenu(const char* menu, KeyCodec::Action key = KeyCodec::Escape);
+    void setMenu(std::string_view menu, KeyCodec::Action key = KeyCodec::Escape);
     void setMenu(GameMenu* w);
     void pushMenu(GameMenu* w);
     void popMenu();

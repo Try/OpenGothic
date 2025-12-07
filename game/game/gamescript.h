@@ -106,14 +106,16 @@ class GameScript final {
     const zenkit::IFocus&       focusMage()  const { return cFocusMage;  }
     const zenkit::IGuildValues& guildVal()   const { return *cGuildVal;  }
 
-    zenkit::DaedalusSymbol*      findSymbol(std::string_view s);
-    zenkit::DaedalusSymbol*      findSymbol(const size_t s);
-    size_t                       findSymbolIndex(std::string_view s);
-    size_t                       symbolsCount() const;
+    std::string_view            menuMain() const;
 
-    const AiState&               aiState  (ScriptFn id);
-    const zenkit::ISpell&        spellDesc(int32_t splId);
-    const VisualFx*              spellVfx (int32_t splId);
+    zenkit::DaedalusSymbol*     findSymbol(std::string_view s);
+    zenkit::DaedalusSymbol*     findSymbol(const size_t s);
+    size_t                      findSymbolIndex(std::string_view s);
+    size_t                      symbolsCount() const;
+
+    const AiState&              aiState  (ScriptFn id);
+    const zenkit::ISpell&       spellDesc(int32_t splId);
+    const VisualFx*             spellVfx (int32_t splId);
 
     auto dialogChoices(std::shared_ptr<zenkit::INpc> self, std::shared_ptr<zenkit::INpc> npc, const std::vector<uint32_t> &except, bool includeImp) -> std::vector<DlgChoice>;
     auto updateDialog (const GameScript::DlgChoice &dlg, Npc &player, Npc &npc) -> std::vector<GameScript::DlgChoice>;

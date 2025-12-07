@@ -15,6 +15,9 @@ class DirectMemory {
 
     auto        demangleAddress(uint32_t addr) -> std::string_view;
 
+    //
+    auto        menuMain() const -> std::string_view;
+
     // hooks
     void        tick(uint64_t dt);
     void        eventPlayAni(std::string_view ani);
@@ -56,7 +59,7 @@ class DirectMemory {
     //int32_t     invMaxItems     = 9;
     zCTimer     zTimer          = {};
     oGame       memGame         = {};
-    char        menuName[10]    = {};   //TODO: connect it to the game
+    char        menuName[17]    = {};   // 16 bytes for script + null-charater, invisible to the script
     float       spawnRange      = 1000; // 10 meters, for now
 
     ptr32_t     oGame_Pointer   = 0;
@@ -167,4 +170,4 @@ class DirectMemory {
     //
     void        setupNpcFunctions();
     void        setupWorldFunctions();
-};
+  };

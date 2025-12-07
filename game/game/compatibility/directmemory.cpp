@@ -382,8 +382,8 @@ void DirectMemory::setupEngineMemory() {
   mem32.pin(&focusList, OCNPCFOCUS__FOCUSLIST_G2, sizeof(focusList), "OCNPCFOCUS__FOCUSLIST_G2");
 
   const ptr32_t INGAME_MENU_INSTANCE = 8980576;
-  mem32.pin(menuName, INGAME_MENU_INSTANCE, sizeof(menuName), "MENU_NAME");
-  std::strncpy(menuName, "MENU_MAIN", sizeof(menuName));
+  mem32.pin(menuName, INGAME_MENU_INSTANCE, sizeof(menuName)-1, "MENU_NAME");
+  std::strncpy(menuName, ::menuMain.data(), std::min(sizeof(menuName), ::menuMain.size()));
 
   const ptr32_t ZERRPTR = 9231568;
   mem32.alloc(ZERRPTR, sizeof(zError));
@@ -681,6 +681,10 @@ std::string_view DirectMemory::demangleAddress(uint32_t addr){
     return i.name();
     }
   return "";
+  }
+
+std::string_view DirectMemory::menuMain() const {
+  return menuName;
   }
 
 void DirectMemory::memoryCallback(zCParser& p, std::memory_order ord) {
