@@ -115,7 +115,8 @@ class DirectMemory {
     void        mem_writeint      (int address, int val);
     void        mem_copybytes     (int src, int dst, int size);
     std::string mem_readstring    (int address);
-    auto        mem_readstatarr(  zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
+    auto        mem_readstatarr   (zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
+    auto        mem_writestatarr  (zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
     // pointers: MEM_Alloc and MEM_Free ##
     int         mem_alloc  (int amount);
     int         mem_alloc  (int amount, const char* comment);
@@ -134,6 +135,9 @@ class DirectMemory {
     auto        memint_stackpushint (zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
     //TODO: MEMINT_StackPushString
     auto        memint_stackpushinst(zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
+    auto        memint_stackpushvar (zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
+    //
+    auto        memint_popstring    (zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
     //---
     auto        mem_popintresult   (zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
     auto        mem_popstringresult(zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall;
@@ -162,4 +166,5 @@ class DirectMemory {
     void        setupFontFunctions();
     //
     void        setupNpcFunctions();
+    void        setupWorldFunctions();
 };

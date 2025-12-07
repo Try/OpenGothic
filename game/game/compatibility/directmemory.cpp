@@ -6,6 +6,7 @@
 #include <cassert>
 #include <charconv>
 
+#include "world/objects/npc.h"
 #include "gothic.h"
 
 using namespace Tempest;
@@ -126,6 +127,7 @@ DirectMemory::DirectMemory(GameScript& owner, zenkit::DaedalusVm& vm) : gameScri
   setupUiFunctions();
   setupFontFunctions();
   setupNpcFunctions();
+  setupWorldFunctions();
 
   // various
   vm.override_function("MEM_PrintStackTrace", [this](){ memPrintstacktraceImplementation(); });
@@ -145,6 +147,21 @@ DirectMemory::DirectMemory(GameScript& owner, zenkit::DaedalusVm& vm) : gameScri
     });
   vm.override_function("PRINT_FIXPS", [](){
     // function patches asm code of zCView::PrintTimed* to fix text coloring - we can ignore it
+    });
+
+  // override for now: need to expose way-net system and provide dma-access for npc
+  vm.override_function("TELEPORTNPCTOWP", [this](int npcId, std::string_view wpName){
+    auto wp = gameScript.world().findPoint(wpName,false);
+    if(wp==nullptr) {
+      Log::d("TeleportNpcToWP: invalid waypoint: ", wpName);
+      return;
+      }
+    auto npcRef = this->vm.find_symbol_by_index(uint32_t(npcId))->get_instance();
+    if(npcRef==nullptr || npcRef->user_ptr==nullptr)
+      return;
+    auto& npc = *reinterpret_cast<Npc*>(npcRef->user_ptr);
+    npc.setPosition (wp->position());
+    npc.setDirection(wp->direction());
     });
 
   // Disable some high-level functions, until basic stuff is done
@@ -178,21 +195,66 @@ void DirectMemory::tick(uint64_t dt) {
   }
 
 void DirectMemory::eventPlayAni(std::string_view ani) {
+  // oCNPC__EV_PlayAni -> _AI_FUNCTION_EVENT
+  //TODO: propper hook-engine
   if(ani.find("CALL ")!=0)
     return;
-  Log::d("LeGo::eventPlayAni: ", ani);
+  //Log::d("LeGo::eventPlayAni: ", ani);
+#if 0
 
-  if(5<ani.size()) {
-    if(std::isdigit(ani[5])) {
-      uint32_t fncID = 0;
-      auto err = std::from_chars(ani.data()+5, ani.data()+ani.size(), fncID).ec;
-      if(err!=std::errc())
-        return;
-      if(auto* sym = vm.find_symbol_by_index(fncID)) {
-        vm.call_function(sym);
-        }
-      }
+  if(auto* sym = vm.find_symbol_by_name("_AI_FUNCTION_EVENT")) {
+    vm.push_string(ani);
+    vm.call_function(sym);
+    // vm.unsafe_jump(sym->address()+0x1b); // jump over asm-related stuff
+    return;
     }
+  return;
+#endif
+
+  auto toInt = [](std::string_view ss) {
+    int32_t i  = 0;
+    auto err = std::from_chars(ss.data(), ss.data()+ss.size(), i).ec;
+    if(err!=std::errc())
+      return 0;
+    return i;
+    };
+
+  auto v   = ani.substr(5);
+  auto tok = v.substr(0, v.find(' '));
+  v = v.substr(v.find(' ')+1);
+
+  std::string_view args[10];
+  for(int i=0; i<10; ++i) {
+    size_t n = v.find(' ');
+    args[i] = v.substr(0, n);
+    if(n==std::string_view::npos)
+      break;
+    v = v.substr(n+1);
+    }
+
+  if(tok.size()>0 && std::isdigit(tok[0])) {
+    auto fncID = toInt(args[0]);
+    if(auto* sym = vm.find_symbol_by_index(uint32_t(fncID))) {
+      vm.call_function(sym);
+      }
+    return;
+    }
+  if(tok=="I") {
+    auto fncID = toInt(args[1]);
+    if(auto* sym = vm.find_symbol_by_index(uint32_t(fncID))) {
+      vm.call_function(sym, toInt(args[0]));
+      }
+    return;
+    }
+  if(tok=="SS") { // NSII
+    auto fncID = toInt(args[2]);
+    if(auto* sym = vm.find_symbol_by_index(uint32_t(fncID))) {
+      vm.call_function(sym, args[0], args[1]);
+      }
+    return;
+    }
+
+  Log::d("Ikarus: skip ai-call: ", ani);
   }
 
 void DirectMemory::setupFunctionTable() {
@@ -341,8 +403,10 @@ void DirectMemory::setupEngineMemory() {
     }
 
   // Trialog: need to implement reinterpret_cast to avoid in script-exception
-  //const ptr32_t SPAWN_INSERTRANGE = 9153744;
-  //mem32.pin(&spawnRange, SPAWN_INSERTRANGE, sizeof(spawnRange), "spawnRange");
+#if 1
+  const ptr32_t SPAWN_INSERTRANGE = 9153744;
+  mem32.pin(&spawnRange, SPAWN_INSERTRANGE, sizeof(spawnRange), "spawnRange");
+#endif
 
   // Storage for local variables, so script may address them thru pointers
   scriptVariables = mem32.alloc(uint32_t(vm.symbols().size() * sizeof(ScriptVar)),    Mem32::Type::zCParser_variables);
@@ -896,6 +960,7 @@ void DirectMemory::setupMemoryFunctions() {
   vm.override_function("MEM_CopyBytes",        [this](int src, int dst, int size){ mem_copybytes(src, dst, size); });
   vm.override_function("MEM_ReadString",       [this](int sym){ return mem_readstring(sym);           });
   vm.override_function("MEM_ReadStatArr",      [this](zenkit::DaedalusVm& vm){ return mem_readstatarr(vm); });
+  vm.override_function("MEM_WriteStatArr",     [this](zenkit::DaedalusVm& vm){ return mem_writestatarr(vm); });
 
   // ## MEM_Alloc and MEM_Free ##
   vm.override_function("MEM_Alloc",   [this](int amount )                      { return mem_alloc(amount);               });
@@ -913,6 +978,11 @@ auto DirectMemory::_takeref(zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall
       }
     const uint32_t id  = ref->index();
     const ptr32_t  ptr = scriptVariables + id*ptr32_t(sizeof(ScriptVar));
+    if(false && ref->type()==zenkit::DaedalusDataType::STRING) {
+      if(auto* s = mem32.deref<zString>(ptr))
+        memAssignString(*s, ref->get_string(0));
+      ref->set_instance(std::make_shared<memory_instance>(*this, ptr));
+      }
     vm.push_int(int32_t(ptr));
     return zenkit::DaedalusNakedCall();
     }
@@ -932,6 +1002,18 @@ auto DirectMemory::_takeref(zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall
       vm.push_int(int32_t(ptr));
       return zenkit::DaedalusNakedCall();
       }
+    else if(inst!=nullptr) {
+      // HACK: ScriptVar doesn't really have any backing of data
+      const ptr32_t ptr = scriptVariables + inst->symbol_index()*ptr32_t(sizeof(ScriptVar));
+      vm.push_int(int32_t(ptr));
+      return zenkit::DaedalusNakedCall();
+      }
+    }
+
+  if(sym->type()==zenkit::DaedalusDataType::STRING) {
+    Log::e("Ikarus: _takeref - not a memory-instance: ", sym->name());
+    vm.push_int(int32_t(0xBAD20000));
+    return zenkit::DaedalusNakedCall();
     }
 
   Log::e("Ikarus: _takeref - not a memory-instance: ", sym->name());
@@ -942,6 +1024,13 @@ auto DirectMemory::_takeref(zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall
 std::shared_ptr<zenkit::DaedalusInstance> DirectMemory::mem_ptrtoinst(ptr32_t address) {
   if(address==0)
     Log::d("mem_ptrtoinst: address is null");
+  if(scriptVariables<=address && address<scriptVariables + ptr32_t(vm.symbols().size())*ptr32_t(sizeof(ScriptVar))) {
+    // HACK: need to be consistent with _takeref
+    uint32_t sId = (address-scriptVariables)/ptr32_t(sizeof(ScriptVar));
+    auto     sym = vm.find_symbol_by_index(sId);
+    if(sym!=nullptr && sym->type()==zenkit::DaedalusDataType::INSTANCE)
+      return sym->get_instance();
+    }
   return std::make_shared<memory_instance>(*this, address);
   }
 
@@ -957,8 +1046,10 @@ int DirectMemory::mem_insttoptr(int index) {
     return int32_t(mem->address);
     }
 
-  Log::d("MEM_InstToPtr: not a memory instance");
-  return 0;
+  // Log::d("MEM_InstToPtr: not a memory instance");
+  // HACK: ScriptVar doesn't really have any backing of data
+  const ptr32_t ptr = scriptVariables + inst->symbol_index()*ptr32_t(sizeof(ScriptVar));
+  return int32_t(ptr);
   }
 
 int DirectMemory::mem_readint(int address) {
@@ -989,6 +1080,15 @@ zenkit::DaedalusNakedCall DirectMemory::mem_readstatarr(zenkit::DaedalusVm& vm) 
   const int ret = vm.get_int(context, ref, uint16_t(idx+index));
 
   vm.push_int(ret);
+  return zenkit::DaedalusNakedCall();
+  }
+
+auto DirectMemory::mem_writestatarr(zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall {
+  const int  value = vm.pop_int();
+  const int  index = vm.pop_int();
+  auto [ref, idx, context] = vm.pop_reference();
+
+  vm.set_int(context, ref, uint16_t(idx+index), value);
   return zenkit::DaedalusNakedCall();
   }
 
@@ -1027,8 +1127,11 @@ void DirectMemory::setupDirectFunctions() {
   vm.override_function("MEM_CallByID",          [this](zenkit::DaedalusVm& vm) { return mem_callbyid(vm);         });
   vm.override_function("MEM_CallByPtr",         [this](zenkit::DaedalusVm& vm) { return mem_callbyptr(vm);        });
 
-  vm.override_function("memint_stackpushint",   [this](zenkit::DaedalusVm& vm) { return memint_stackpushint(vm);  });
+  vm.override_function("memint_stackpushint",   [this](zenkit::DaedalusVm& vm) { return memint_stackpushint (vm); });
   vm.override_function("memint_stackpushinst",  [this](zenkit::DaedalusVm& vm) { return memint_stackpushinst(vm); });
+  vm.override_function("memint_stackpushvar",   [this](zenkit::DaedalusVm& vm) { return memint_stackpushvar (vm); });
+
+  vm.override_function("memint_popstring",      [this](zenkit::DaedalusVm& vm) { return memint_popstring(vm);     });
 
   vm.override_function("mem_popintresult",      [this](zenkit::DaedalusVm& vm) { return mem_popintresult(vm);     });
   vm.override_function("mem_popstringresult",   [this](zenkit::DaedalusVm& vm) { return mem_popstringresult(vm);  });
@@ -1104,6 +1207,17 @@ auto DirectMemory::memint_stackpushinst(zenkit::DaedalusVm& vm) -> zenkit::Daeda
     return zenkit::DaedalusNakedCall();
     }
   vm.push_instance(nullptr);
+  return zenkit::DaedalusNakedCall();
+  }
+
+auto DirectMemory::memint_stackpushvar(zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall {
+  //NOTE: works by accident with _AI_FUNCTION_EVENT for now
+  const int ptr = vm.pop_int(); (void)ptr;
+  Log::d("TODO: memint_stackpushvar");
+  return zenkit::DaedalusNakedCall();
+  }
+
+auto DirectMemory::memint_popstring(zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall {
   return zenkit::DaedalusNakedCall();
   }
 
@@ -1343,6 +1457,11 @@ void DirectMemory::setupUtilityFunctions() {
     return int32_t(c ^ 0xFFFFFFFF);
     });
 
+  const ptr32_t QSORT_G2 = 8195951;
+  cpu.register_thiscall(QSORT_G2, [](ptr32_t base, int numElt, int eltSize, ptr32_t pCmp) {
+    Log::e("LeGo: TODO: QSORT_G2(...)");
+    });
+
   const ptr32_t ZERROR__SETTARGET = 4513616;
   cpu.register_thiscall(ZERROR__SETTARGET, [](ptr32_t, int) {
     // nop
@@ -1564,5 +1683,22 @@ void DirectMemory::setupNpcFunctions() {
   cpu.register_thiscall(OCNPC__GETSLOTITEM, [](ptr32_t pHero, std::string slot) {
     Log::e("LeGo: OCNPC__GETSLOTITEM(", slot, ")");
     return 0x0;
+    });
+
+  const ptr32_t OCNPC__EQUIPWEAPON = 7577648;
+  cpu.register_thiscall(OCNPC__EQUIPWEAPON, [](ptr32_t pHero, ptr32_t pItem) {
+    Log::e("LeGo: OCNPC__EQUIPWEAPON(", pItem, ")");
+    });
+  }
+
+void DirectMemory::setupWorldFunctions() {
+  const ptr32_t OCWORLD__SEARCHVOBBYNAME_G2 = 7865872;
+  cpu.register_thiscall(OCWORLD__SEARCHVOBBYNAME_G2, [](ptr32_t pWorld, std::string vob) {
+    Log::e("LeGo: OCWORLD__SEARCHVOBBYNAME_G2(", vob, ")");
+    });
+
+  const ptr32_t OCWORLD__SEARCHVOBLISTBYNAME_G2 = 7866048;
+  cpu.register_thiscall(OCWORLD__SEARCHVOBLISTBYNAME_G2, [](ptr32_t pWorld, std::string vob, ptr32_t pOutArr) {
+    Log::e("LeGo: OCWORLD__SEARCHVOBLISTBYNAME_G2(", vob, ")");
     });
   }
