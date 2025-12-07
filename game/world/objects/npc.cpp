@@ -158,17 +158,17 @@ struct Npc::TransformBack {
 
 Npc::Npc(World &owner, size_t instance, std::string_view waypoint, ProcessPolicy aiPolicy)
   :owner(owner),aiPolicy(aiPolicy),mvAlgo(*this) {
-  outputPipe          = owner.script().openAiOuput();
+  outputPipe     = owner.script().openAiOuput();
 
-  hnpc = std::make_shared<zenkit::INpc>();
+  hnpc           = std::make_shared<zenkit::INpc>();
   hnpc->user_ptr = this;
   hnpc->id       = int32_t(instance & 0x7FFFFFFF);
+  hnpc->wp       = std::string(waypoint);
 
   if(instance==size_t(-1))
     return;
 
   owner.script().initializeInstanceNpc(hnpc, instance);
-  hnpc->wp       = std::string(waypoint);
 
   // vanilla behavior: equip best weapon and set non-zero damage type
   if(!isPlayer())
