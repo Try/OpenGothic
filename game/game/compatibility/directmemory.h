@@ -167,6 +167,7 @@ class DirectMemory {
     // gothic-ui
     void        setupUiFunctions();
     void        setupFontFunctions();
+    void        tickUi(uint64_t dt);
     //
     void        setupNpcFunctions();
     void        setupWorldFunctions();

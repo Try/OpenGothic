@@ -28,6 +28,11 @@ struct zCArraySort {
   ptr32_t compare = 0;
   };
 
+struct zCList {
+  ptr32_t data = 0;
+  ptr32_t next = 0;
+  };
+
 struct zCListSort {
   ptr32_t compareFunc = 0;
   ptr32_t data = 0;
@@ -364,7 +369,7 @@ struct zCView {
   int32_t WINX;
   int32_t WINY;
   int32_t TEXTLINES_DATA;
-  int32_t TEXTLINES_NEXT;
+  ptr32_t TEXTLINES_NEXT;
   int32_t SCROLLMAXTIME;
   int32_t SCROLLTIMER;
   int32_t FXOPEN;
@@ -401,6 +406,22 @@ struct oCViewStatusBar : zCView {
   zString TEXVIEW;
   zString TEXRANGE;
   zString TEXVALUE;
+  };
+
+struct zCViewText {
+  ptr32_t _vtbl;
+
+  int32_t posx;
+  int32_t posy;
+
+  zString text;
+  int32_t font;
+  int32_t timer;
+  int32_t inPrintWin;
+
+  int32_t color; //zCOLOR
+  int32_t timed;
+  int32_t colored;
   };
 
 struct zCFontMan {

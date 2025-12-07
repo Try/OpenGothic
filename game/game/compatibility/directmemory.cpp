@@ -64,9 +64,8 @@ float DirectMemory::memory_instance::get_float(const zenkit::DaedalusSymbol& sym
 
 void DirectMemory::memory_instance::set_string(const zenkit::DaedalusSymbol& sym, uint16_t index, std::string_view value) {
   ptr32_t addr = address + ptr32_t(sym.offset_as_member()) + ptr32_t(index*sym.class_size());
-  (void)addr;
-  Log::d("TODO: memory_instance::set_string ", sym.name());
-  // allocator.writeInt(addr, 0);
+  if(auto* s = owner.mem32.deref<zString>(addr))
+    owner.memAssignString(*s, value);
   }
 
 const std::string& DirectMemory::memory_instance::get_string(const zenkit::DaedalusSymbol& sym, uint16_t index) const {
@@ -163,6 +162,11 @@ DirectMemory::DirectMemory(GameScript& owner, zenkit::DaedalusVm& vm) : gameScri
     npc.setPosition (wp->position());
     npc.setDirection(wp->direction());
     });
+  //
+  vm.override_function("LOG_MOVETOTOP", [](std::string_view topic) {
+    // need to have a projection of 'OCLOGMANAGER_PTR' into mem32
+    Log::e("not implemented call [LOG_MOVETOTOP]");
+    });
 
   // Disable some high-level functions, until basic stuff is done
   auto dummyfy = [&](std::string_view name, auto hook) {
@@ -190,8 +194,9 @@ void DirectMemory::tick(uint64_t dt) {
   //TODO: propper hook-engine
   if(auto* sym = vm.find_symbol_by_name("_FF_Hook")) {
     vm.call_function(sym);
-    return;
     }
+
+  tickUi(dt);
   }
 
 void DirectMemory::eventPlayAni(std::string_view ani) {
@@ -403,10 +408,8 @@ void DirectMemory::setupEngineMemory() {
     }
 
   // Trialog: need to implement reinterpret_cast to avoid in script-exception
-#if 1
   const ptr32_t SPAWN_INSERTRANGE = 9153744;
   mem32.pin(&spawnRange, SPAWN_INSERTRANGE, sizeof(spawnRange), "spawnRange");
-#endif
 
   // Storage for local variables, so script may address them thru pointers
   scriptVariables = mem32.alloc(uint32_t(vm.symbols().size() * sizeof(ScriptVar)),    Mem32::Type::zCParser_variables);
@@ -433,6 +436,8 @@ void DirectMemory::setupEngineMemory() {
   memGame.HPBAR    = mem32.alloc(sizeof(oCViewStatusBar));
   memGame.MANABAR  = mem32.alloc(sizeof(oCViewStatusBar));
   memGame.FOCUSBAR = mem32.alloc(sizeof(oCViewStatusBar));
+
+  memGame.ARRAY_VIEW[0] = mem32.alloc(sizeof(zCView));
 
   mem32.deref<oCViewStatusBar>(memGame.HPBAR)   ->RANGE_BAR = mem32.alloc(sizeof(zCView));
   mem32.deref<oCViewStatusBar>(memGame.HPBAR)   ->VALUE_BAR = mem32.alloc(sizeof(zCView));
@@ -607,6 +612,9 @@ uint32_t DirectMemory::traceBackExpression(zenkit::DaedalusVm& vm, uint32_t pc) 
   if(func==nullptr)
     return uint32_t(-1); //error
 
+  // if(func->name()=="LIST_END")
+  //   Log::d("");
+
   std::vector<zenkit::DaedalusInstruction> icodes;
   for(uint32_t i=func->address(); i<pc && i<vm.size();) {
     auto instr = vm.instruction_at(i);
@@ -618,15 +626,24 @@ uint32_t DirectMemory::traceBackExpression(zenkit::DaedalusVm& vm, uint32_t pc) 
     return uint32_t(-1); //error
 
   int paramsNeeded = 1;
+  int instancesNeed = 0;
   size_t at = icodes.size();
-  while(paramsNeeded>0 && at>0) {
+  while((paramsNeeded>0 || instancesNeed>0) && at>0) {
     --at;
     const auto instr = icodes[at];
     if(zenkit::DaedalusOpcode::ADD <= instr.op && instr.op <= zenkit::DaedalusOpcode::DIVMOVI)
       paramsNeeded += 1;
-    else if(instr.op==zenkit::DaedalusOpcode::PUSHI || instr.op==zenkit::DaedalusOpcode::PUSHV ||
-            instr.op==zenkit::DaedalusOpcode::PUSHVI) {
+    else if(instr.op==zenkit::DaedalusOpcode::PUSHI) {
       paramsNeeded -= 1;
+      }
+    else if(instr.op==zenkit::DaedalusOpcode::PUSHV || instr.op==zenkit::DaedalusOpcode::PUSHVI) {
+      auto* sym = vm.find_symbol_by_index(instr.symbol);
+      if(sym!=nullptr && sym->is_member())
+        instancesNeed = 1; // need instance to be set
+      paramsNeeded -= 1;
+      }
+    else if(instr.op==zenkit::DaedalusOpcode::GMOVI) {
+      instancesNeed = 0;
       }
     else if(instr.op==zenkit::DaedalusOpcode::BL) {
       auto sym = vm.find_symbol_by_address(instr.address);
@@ -980,6 +997,18 @@ auto DirectMemory::_takeref(zenkit::DaedalusVm& vm) -> zenkit::DaedalusNakedCall
       vm.push_int(int32_t(0xBAD10000));
       return zenkit::DaedalusNakedCall();
       }
+
+    if(ref->is_member()) {
+      if(auto d = dynamic_cast<memory_instance*>(context.get())) {
+        const ptr32_t ptr = d->address;
+        vm.push_int(int32_t(ptr + ref->offset_as_member()));
+        return zenkit::DaedalusNakedCall();
+        }
+      Log::e("Ikarus: _takeref - unable take reference to struct element");
+      vm.push_int(int32_t(0xBAD10000));
+      return zenkit::DaedalusNakedCall();
+      }
+
     const uint32_t id  = ref->index();
     const ptr32_t  ptr = scriptVariables + id*ptr32_t(sizeof(ScriptVar));
     if(false && ref->type()==zenkit::DaedalusDataType::STRING) {
@@ -1680,6 +1709,23 @@ void DirectMemory::setupFontFunctions() {
     Log::e("LeGo: zCFontMan__GetFont");
     return handle;
     });
+  }
+
+void DirectMemory::tickUi(uint64_t dt) {
+  if(memGame.ARRAY_VIEW[0]==0)
+    return;
+  //NOTE: PRINT_EXT
+  if(auto* vPrint = mem32.deref<const zCView>(memGame.ARRAY_VIEW[0])) {
+    auto* vList = vPrint->TEXTLINES_NEXT!=0 ? mem32.deref<const zCList>(vPrint->TEXTLINES_NEXT) : nullptr;
+    while(vList!=nullptr) {
+      if(auto* textView = mem32.deref<const zCViewText>(vList->data)) {
+        std::string dst; //TODO: avoid reallocations
+        memFromString(dst, textView->text);
+        Log::i("zCViewText: ", dst);
+        }
+      vList = vList->next!=0 ? mem32.deref<const zCList>(vList->next) : 0;
+      }
+    }
   }
 
 void DirectMemory::setupNpcFunctions() {
