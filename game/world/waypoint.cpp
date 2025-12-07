@@ -36,7 +36,7 @@ bool WayPoint::isFreePoint() const {
   }
 
 bool WayPoint::isConnected() const {
-  return conn.size()<1;
+  return conn.size()>0;
   }
 
 bool WayPoint::checkName(std::string_view n, bool inexact) const {
