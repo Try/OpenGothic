@@ -195,8 +195,10 @@ void WayMatrix::marchPoints(DbgPainter &p) const {
 void WayMatrix::adjustWaypoints(std::vector<WayPoint> &wp) {
   for(auto& w:wp) {
     auto ray = world.physic()->landRay(w.position());
-    if(ray.hasCol)
+    if(ray.hasCol) {
+      //NOTE: probably doesn't match original game and need to be removed
       w.pos.y = ray.v.y;
+      }
     indexPoints.push_back(&w);
     }
   }

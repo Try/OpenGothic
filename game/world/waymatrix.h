@@ -44,6 +44,7 @@ class WayMatrix final {
     World&                 world;
     // scripting doc says 20m, but number seems to be incorrect
     // Vatras requires at least 8 meters
+    // Harry(CoM) requires less(!) than 8 meters
     // Abuyin requires less than 10 meters
     // Gothic 1 range is identical
     // Vanilla is buggy here as Vatras can't reach his praying spot from teaching location

@@ -1712,11 +1712,12 @@ bool GameScript::wld_isnextfpavailable(std::shared_ptr<zenkit::INpc> self, std::
   }
 
 bool GameScript::wld_ismobavailable(std::shared_ptr<zenkit::INpc> self, std::string_view name) {
-  if(self==nullptr){
+  auto npc = findNpc(self);
+  if(npc==nullptr) {
     return false;
     }
 
-  auto wp = world().availableMob(*findNpc(self.get()),name);
+  auto wp = world().availableMob(*npc, name);
   return wp != nullptr;
   }
 
