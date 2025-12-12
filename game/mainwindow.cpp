@@ -1182,16 +1182,11 @@ void MainWindow::render(){
     tickCamera(dt);
 
     auto& sync = fence[cmdId];
-#if 1
-    //TODO: polish frame phasing for low-end gpu's
-    sync.wait();
-#else
     if(!sync.wait(0)) {
       // GPU rendering is not done, pass to next frame
       std::this_thread::yield();
       return;
       }
-#endif
     Resources::resetRecycled(cmdId);
 
     if(video.isActive()) {
