@@ -61,7 +61,7 @@ vec2 interpolateUV(vec3 bc, uint a, uint b, uint c) {
   }
 
 float sampleAlpha(const uint bucketId, vec2 uv, float lodBias) {
-  return textureLod(sampler2D(textureMain[nonuniformEXT(bucketId)], samplerMain), uv, lodBias).a;
+  return textureLod(sampler2D(textureMain[bucketId], samplerMain), uv, lodBias).a;
   }
 
 
