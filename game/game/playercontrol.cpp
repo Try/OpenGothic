@@ -831,7 +831,13 @@ void PlayerControl::implMove(uint64_t dt) {
       }
     }
 
-  if(this->wantsToMoveForward()) {
+  if(this->wantsToStrafeLeft()) {
+    ani = Npc::Anim::MoveL;
+    }
+  else if(this->wantsToStrafeRight()) {
+    ani = Npc::Anim::MoveR;
+    }
+  else if(this->wantsToMoveForward()) {
     if((pl.walkMode()&WalkBit::WM_Dive)!=WalkBit::WM_Dive) {
       ani = Npc::Anim::Move;
       }
@@ -848,12 +854,7 @@ void PlayerControl::implMove(uint64_t dt) {
       return;
       }
     }
-  else if(this->wantsToStrafeLeft()) {
-    ani = Npc::Anim::MoveL;
-    }
-  else if(this->wantsToStrafeRight()) {
-    ani = Npc::Anim::MoveR;
-    }
+
 
   if(ctrl[Action::Jump]) {
     if(pl.bodyStateMasked()==BS_JUMP) {
