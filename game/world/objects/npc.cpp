@@ -458,8 +458,12 @@ bool Npc::resetPositionToTA() {
   if(!isPlayer())
     setInteraction(nullptr,true);
 
-  if(routines.size()==0)
-    return true;
+  if(routines.size()==0) {
+    if(hnpc->wp.empty())
+      return false; else
+      return true;
+    }
+  hnpc->wp = "";
 
   attachToPoint(nullptr);
   clearAiQueue();
@@ -472,15 +476,18 @@ bool Npc::resetPositionToTA() {
   if(isPlayer())
     return true;
 
-  auto& rot = currentRoutine();
-  auto  at  = rot.point;
-  if(at==nullptr)
-    return false;
+  auto& rtn = currentRoutine();
+  auto  at  = rtn.point;
+  if(at==nullptr) {
+    at = findPreviousRoutine().point;
+    if(at==nullptr)
+      return false;
+    }
 
-  if(at->isLocked() && !isDead){
+  if(at->isLocked() && !isDead) {
     auto p = owner.findNextPoint(*at);
     if(p!=nullptr)
-      at=p;
+      at = p;
     }
   setPosition (at->position() );
   setDirection(at->direction());
@@ -3030,24 +3037,31 @@ const Npc::Routine& Npc::currentRoutine() const {
     if(i.start<=time && time<i.end)
       return i;
     }
+  return findPreviousRoutine(false);
+  }
 
-  // take a previous routine if none was found for current time
-  const auto     day   = gtime(24,0).toInt();
-  const Routine* prevR = nullptr;
-  int64_t        delta = std::numeric_limits<int64_t>::max();
+const Npc::Routine& Npc::findPreviousRoutine(bool validWp) const {
+  auto time = owner.time();
+  time = gtime(int32_t(time.hour()),int32_t(time.minute()));
   time = time.timeInDay();
+  const auto     day   = gtime(24,0).toInt();
+  const Routine* rtn   = nullptr;
+  int64_t        delta = std::numeric_limits<int64_t>::max();
+
   for(auto& i:routines) {
     int64_t d = time.toInt() - i.end.toInt();
+    if(validWp && i.point==nullptr)
+      continue;
     if(d<0)
       d += day;
-    if(d<=delta && d>0) {
-      prevR = &i;
+    if(d<=delta) {
+      rtn   = &i;
       delta = d;
       }
     }
 
-  if(prevR!=nullptr)
-    return *prevR;
+  if(rtn!=nullptr)
+    return *rtn;
 
   static Routine r;
   return r;

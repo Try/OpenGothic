@@ -74,12 +74,24 @@ void WorldObjects::load(Serialize &fin) {
   itemArr.clear();
   items.clear();
 
-  uint32_t sz = fin.directorySize("worlds/",fin.worldName(),"/npc/");
+  uint32_t sz = 0;
+  if(fin.version()>50)
+    fin.read(sz); else
+    sz = fin.directorySize("worlds/",fin.worldName(),"/npc/");
   npcArr.resize(sz);
-  for(size_t i=0; i<sz; ++i)
+  for(size_t i=0; i<npcArr.size(); ++i)
     npcArr[i] = std::make_unique<Npc>(owner,size_t(-1),"");
   for(size_t i=0; i<npcArr.size(); ++i) {
     npcArr[i]->load(fin,i);
+    }
+
+  if(fin.version()>50) {
+    uint32_t szInv = fin.directorySize("worlds/",fin.worldName(),"/npc/") - sz;
+    npcInvalid.resize(szInv);
+    for(size_t i=0; i<npcInvalid.size(); ++i)
+      npcInvalid[i] = std::make_unique<Npc>(owner,size_t(-1),"");
+    for(size_t i=0; i<npcInvalid.size(); ++i)
+      npcInvalid[i]->load(fin,i+sz);
     }
 
   fin.setEntry("worlds/",fin.worldName(),"/items");
@@ -115,13 +127,14 @@ void WorldObjects::save(Serialize &fout) {
   fout.setEntry("worlds/",fout.worldName(),"/version");
   fout.write(Serialize::Version::Current);
 
-  for(size_t i=0; i<npcArr.size(); ++i) {
+  fout.write(uint32_t(npcArr.size()));
+  for(size_t i=0; i<npcArr.size(); ++i)
     npcArr[i]->save(fout,i);
-    }
+  for(size_t i=0; i<npcInvalid.size(); ++i)
+    npcInvalid[i]->save(fout,i+npcArr.size());
 
   fout.setEntry("worlds/",fout.worldName(),"/items");
-  uint32_t sz = uint32_t(itemArr.size());
-  fout.write(sz);
+  fout.write(uint32_t(itemArr.size()));
   for(auto& i:itemArr)
     i->save(fout);
 
@@ -275,10 +288,7 @@ uint32_t WorldObjects::mobsiId(const void* ptr) const {
 
 Npc* WorldObjects::addNpc(size_t npcInstance, std::string_view at) {
   auto pos = owner.findPoint(at);
-  if(pos==nullptr)
-    Log::e("addNpc: invalid waypoint");
-
-  Npc* npc = new Npc(owner,npcInstance,at);
+  Npc* npc = new Npc(owner,npcInstance,pos!=nullptr ? at : "");
   if(pos!=nullptr && pos->isLocked()){
     auto p = owner.findNextPoint(*pos);
     if(p)
@@ -952,7 +962,9 @@ void WorldObjects::resetPositionToTA() {
     r.curState = 0;
 
   for(auto& i:npcInvalid)
-    npcArr.push_back(std::move(i));
+    if(i->handlePtr().use_count()>1)
+      npcArr.push_back(std::move(i)); else
+      npcRemoved.push_back(std::move(i));
   npcInvalid.clear();
 
   for(size_t i=0;i<npcArr.size();) {

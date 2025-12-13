@@ -467,6 +467,7 @@ class Npc final {
     bool      performOutput(const AiQueue::AiAction &ai);
 
     auto      currentRoutine() const -> const Routine&;
+    auto      findPreviousRoutine(bool validWp = true) const -> const Routine&;
     gtime     endTime(const Routine& r) const;
 
     bool      implPointAt(const Tempest::Vec3& to);
