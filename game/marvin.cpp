@@ -63,7 +63,7 @@ Marvin::Marvin() {
     {"set var %v %s",              C_SetVar},
 
     // animation
-    {"play ani %s",                C_Invalid},
+    {"play ani %s",                C_PlayAni},
     {"play faceani %s",            C_Invalid},
     {"remove overlaymds %s",       C_Invalid},
     {"toggle aniinfo",             C_Invalid},
@@ -445,6 +445,13 @@ bool Marvin::exec(std::string_view v) {
       if(world==nullptr || player==nullptr)
         return false;
       return setVariable(world, ret.argv[0], ret.argv[1]);
+      }
+
+    case C_PlayAni: {
+      Npc*   player = Gothic::inst().player();
+      if(player==nullptr)
+        return false;
+      return player->playAnimByName(ret.argv[0], BS_NONE) != nullptr;
       }
 
     case C_ToggleGI:
