@@ -57,6 +57,7 @@ class Marvin {
       C_SetTime,
 
       C_Insert,
+      C_PlayAni,
 
       // opengothic specific
       C_ToggleGI,
