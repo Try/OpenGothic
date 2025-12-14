@@ -262,12 +262,16 @@ void MoveTrigger::postProcessTrigger() {
 
 uint32_t MoveTrigger::nextFrame(uint32_t i) const {
   uint32_t size = uint32_t(keyframes.size());
-  return (i+1)%size;
+  if(behavior==zenkit::MoverBehavior::LOOP)
+    return (i+1)%size;
+  return std::min<uint32_t>(i+1, size-1);
   }
 
 uint32_t MoveTrigger::prevFrame(uint32_t i) const {
   uint32_t size = uint32_t(keyframes.size());
-  return (i+size-1)%size;
+  if(behavior==zenkit::MoverBehavior::LOOP)
+    return (i+size-1)%size;
+  return std::max<uint32_t>(i, 1) - 1;
   }
 
 void MoveTrigger::tick(uint64_t dt) {
@@ -280,11 +284,13 @@ void MoveTrigger::tick(uint64_t dt) {
     targetFrame = 0;
     frameTime  -= stayOpenTime;
     }
+  if(frame==targetFrame) {
+    postProcessTrigger();
+    return;
+    }
   advanceAnim();
   updateFrame();
-  if(frame==targetFrame)
-    postProcessTrigger(); else
-    emitSound(sfxMoving);
+  emitSound(sfxMoving);
   }
 
 void MoveTrigger::updateFrame() {
@@ -309,6 +315,7 @@ void MoveTrigger::updateFrame() {
 
 float MoveTrigger::calcProgress(uint32_t f1, uint32_t f2) const {
   float a = float(frameTime)/float(keyframes[f1].ticks);
+  a = std::clamp(a,0.f,1.f);
   if(state==Close)
     a = 1 - a;
   bool start = (f1==0 && state!=Loop);
