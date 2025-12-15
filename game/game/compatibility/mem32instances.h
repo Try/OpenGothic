@@ -358,8 +358,8 @@ struct zCView {
   int32_t VSIZEY;
   int32_t PPOSX;
   int32_t PPOSY;
-  int32_t PSIZEX;
-  int32_t PSIZEY;
+  float   PSIZEX;
+  float   PSIZEY;
   int32_t FONT;
   int32_t FONTCOLOR;
   int32_t PX1;

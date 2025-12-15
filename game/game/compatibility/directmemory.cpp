@@ -231,6 +231,22 @@ void DirectMemory::eventPlayAni(std::string_view ani) {
     return i;
     };
 
+  auto toStr = [](std::string_view ss) {
+    std::string ret;
+    ret.reserve(ss.size());
+    for(size_t i=0; i<ss.size(); ++i) {
+      if(ss[i]=='\\' && i+1<ss.size()) {
+        ++i;
+        if(ss[i]=='_') {
+          ret.push_back(' ');
+          continue;
+          }
+        }
+      ret.push_back(ss[i]);
+      }
+    return ret;
+    };
+
   auto v   = ani.substr(5);
   auto tok = v.substr(0, v.find(' '));
   v = v.substr(v.find(' ')+1);
@@ -258,10 +274,33 @@ void DirectMemory::eventPlayAni(std::string_view ani) {
       }
     return;
     }
-  if(tok=="SS") { // NSII
+  if(tok=="S") {
+    auto fncID = toInt(args[1]);
+    if(auto* sym = vm.find_symbol_by_index(uint32_t(fncID))) {
+      //NOTE: need support in ZenKit, to use call_function with string&&
+      std::string arg0 = toStr(args[0]);
+      vm.call_function(sym, std::string_view(arg0));
+      }
+    return;
+    }
+  if(tok=="SS") {
     auto fncID = toInt(args[2]);
     if(auto* sym = vm.find_symbol_by_index(uint32_t(fncID))) {
-      vm.call_function(sym, args[0], args[1]);
+      std::string arg0 = toStr(args[0]);
+      std::string arg1 = toStr(args[1]);
+      vm.call_function(sym, std::string_view(arg0), std::string_view(arg1));
+      }
+    return;
+    }
+  if(tok=="NSII") {
+    auto fncID = toInt(args[4]);
+    auto npcID = toInt(args[0]);
+    auto npcS  = vm.find_symbol_by_index(uint32_t(npcID));
+    auto inst  = (npcS!=nullptr && npcS->type()==zenkit::DaedalusDataType::INSTANCE) ? npcS->get_instance() : nullptr;
+    if(auto* sym = vm.find_symbol_by_index(uint32_t(fncID))) {
+      (void)sym;
+      //NOTE: need support in ZenKit, to use call_function for externals
+      // vm.call_function(sym, inst, args[1], float(toInt(args[2])), float(toInt(args[3])));
       }
     return;
     }
