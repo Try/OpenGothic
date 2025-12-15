@@ -140,16 +140,23 @@ DirectMemory::DirectMemory(GameScript& owner, zenkit::DaedalusVm& vm) : gameScri
   vm.override_function("MEM_InitRepeat",                 [](){ });
   vm.override_function("MEM_GetCommandLine",             [](){ return std::string(""); });
 
-  vm.override_function("_RENDER_INIT", []() {
+  auto safeOverrideFunction = [&](std::string_view name, auto hook) {
+    auto f = vm.find_symbol_by_name(name);
+    if(f==nullptr || f->type()!=zenkit::DaedalusDataType::FUNCTION)
+      return;
+    vm.override_function(name, hook);
+    };
+
+  safeOverrideFunction("_RENDER_INIT", []() {
     // unclear how exactly it should behave - need to find testing sample
     Log::e("not implemented call [_RENDER_INIT]");
     });
-  vm.override_function("PRINT_FIXPS", [](){
+  safeOverrideFunction("PRINT_FIXPS", [](){
     // function patches asm code of zCView::PrintTimed* to fix text coloring - we can ignore it
     });
 
   // override for now: need to expose way-net system and provide dma-access for npc
-  vm.override_function("TELEPORTNPCTOWP", [this](int npcId, std::string_view wpName){
+  safeOverrideFunction("TELEPORTNPCTOWP", [this](int npcId, std::string_view wpName){
     auto wp = gameScript.world().findPoint(wpName,false);
     if(wp==nullptr) {
       Log::d("TeleportNpcToWP: invalid waypoint: ", wpName);
@@ -163,7 +170,7 @@ DirectMemory::DirectMemory(GameScript& owner, zenkit::DaedalusVm& vm) : gameScri
     npc.setDirection(wp->direction());
     });
   //
-  vm.override_function("LOG_MOVETOTOP", [](std::string_view topic) {
+  safeOverrideFunction("LOG_MOVETOTOP", [](std::string_view topic) {
     // need to have a projection of 'OCLOGMANAGER_PTR' into mem32
     Log::e("not implemented call [LOG_MOVETOTOP]");
     });
@@ -810,7 +817,8 @@ void DirectMemory::memoryCallback(zCPar_Symbol& s, uint32_t index, std::memory_o
     }
 
   if(ord!=std::memory_order::acquire) {
-    Log::e("ikarus: write to symbol table is not implemented");
+    auto& sym = *vm.find_symbol_by_index(index);
+    Log::e("ikarus: write to symbol ", sym.name()," table is not implemented");
     return;
     }
 
@@ -1289,7 +1297,7 @@ int DirectMemory::truncf(int v) {
 int DirectMemory::roundf(int v) {
   float ret = intBitsToFloat(v);
   ret = std::roundf(ret);
-  return floatBitsToInt(ret);
+  return int(ret); //floatBitsToInt(ret);
   }
 
 int DirectMemory::addf(int ia, int ib) {
@@ -1721,7 +1729,7 @@ void DirectMemory::tickUi(uint64_t dt) {
       if(auto* textView = mem32.deref<const zCViewText>(vList->data)) {
         std::string dst; //TODO: avoid reallocations
         memFromString(dst, textView->text);
-        Log::i("zCViewText: ", dst);
+        // Log::i("zCViewText: ", dst);
         }
       vList = vList->next!=0 ? mem32.deref<const zCList>(vList->next) : 0;
       }
