@@ -62,6 +62,9 @@ Gothic::Gothic() {
   opts.inventoryCellSize = systemPackIniFile->getI("INTERFACE","InventoryCellSize",opts.inventoryCellSize);
   opts.inventoryCellSize = std::max(opts.inventoryCellSize, 10);
 
+  opts.newChapterSize.w    = systemPackIniFile->getI("INTERFACE","NewChapterSizeX",opts.newChapterSize.w);
+  opts.newChapterSize.h    = systemPackIniFile->getI("INTERFACE","NewChapterSizeY",opts.newChapterSize.h);
+
   opts.saveGameImageSize.w = systemPackIniFile->getI("INTERFACE","SaveGameImageSizeX",opts.saveGameImageSize.w);
   opts.saveGameImageSize.h = systemPackIniFile->getI("INTERFACE","SaveGameImageSizeY",opts.saveGameImageSize.h);
 

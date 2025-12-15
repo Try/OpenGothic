@@ -30,10 +30,10 @@ void ChapterScreen::paintEvent(Tempest::PaintEvent &e) {
   if(!active || !back)
     return;
 
-  enum {
-    width  = 800,
-    height = 600
-    };
+  const float   scale  = Gothic::interfaceScale(this);
+  const int32_t width  = int32_t(float(Gothic::options().newChapterSize.w)*scale);
+  const int32_t height = int32_t(float(Gothic::options().newChapterSize.h)*scale);
+  const int32_t offset = int32_t(50*scale);
 
   Painter p(e);
   int x = (w()-width )/2;
@@ -42,17 +42,16 @@ void ChapterScreen::paintEvent(Tempest::PaintEvent &e) {
   p.drawRect(x,y,width,height,
              0,0,back->w(),back->h());
 
-  const float scale = Gothic::interfaceScale(this);
   {
   auto& fnt = Resources::font("font_old_20_white.tga",Resources::FontType::Normal,scale);
   auto  sz  = fnt.textSize(title);
-  fnt.drawText(p,x+(width-sz.w)/2,y+50+int(fnt.pixelSize()),title);
+  fnt.drawText(p,x+(width-sz.w)/2,y+offset+int(fnt.pixelSize()),title);
   }
 
   {
   auto& fnt = Resources::font(scale);
   auto  sz  = fnt.textSize(subTitle);
-  fnt.drawText(p,x+(width-sz.w)/2,y+height-50,subTitle);
+  fnt.drawText(p,x+(width-sz.w)/2,y+height-offset,subTitle);
   }
   }
 
