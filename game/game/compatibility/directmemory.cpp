@@ -444,6 +444,7 @@ void DirectMemory::setupEngineMemory() {
   memGame.MANABAR  = mem32.alloc(sizeof(oCViewStatusBar));
   memGame.FOCUSBAR = mem32.alloc(sizeof(oCViewStatusBar));
 
+  memGame._ZCSESSION_VIEWPORT = mem32.alloc(sizeof(zCView));
   memGame.ARRAY_VIEW[0] = mem32.alloc(sizeof(zCView));
 
   mem32.deref<oCViewStatusBar>(memGame.HPBAR)   ->RANGE_BAR = mem32.alloc(sizeof(zCView));
@@ -1720,8 +1721,12 @@ void DirectMemory::setupFontFunctions() {
   }
 
 void DirectMemory::tickUi(uint64_t dt) {
-  if(memGame.ARRAY_VIEW[0]==0)
-    return;
+  if(auto* vScreen = mem32.deref<zCView>(memGame._ZCSESSION_VIEWPORT)) {
+    //TODO: report correct screen size
+    vScreen->PSIZEX = 800;
+    vScreen->PSIZEY = 600;
+    }
+
   //NOTE: PRINT_EXT
   if(auto* vPrint = mem32.deref<const zCView>(memGame.ARRAY_VIEW[0])) {
     auto* vList = vPrint->TEXTLINES_NEXT!=0 ? mem32.deref<const zCList>(vPrint->TEXTLINES_NEXT) : nullptr;
