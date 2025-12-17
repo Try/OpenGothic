@@ -155,7 +155,7 @@ deploy:
   description: 'no release description'
   provider: GitHub
   auth_token:
-    secure: XkKdx4YECrADRtnQrWhLsk+3sgMIvfm1mHKX82P5ovMW7qRvm0cfso2Aznmevw3ac7xkvAOq8oAHezd6d8ZENHkE5imUBlhGS+lR9I5hXNYqEOIIueNbZ+lZ7ipNQA2o
+    secure: XkKdx4YECrADRtnQrWhLsm9Uhj3P7Vc/X4gN8UcZNCfbwvI2tJbsQVMzxwbCF25tgKpUr09nGi7HTmnwCc9BtD4EWAzNLstVOCZ8qV0/3N+iV0RN86WuzX3jVspc4LTS
   artifact: /archive.*/
   draft: true
   force_update: false
