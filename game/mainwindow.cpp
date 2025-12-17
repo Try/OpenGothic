@@ -58,7 +58,6 @@ MainWindow::MainWindow(Device& device)
 
   focusImg   = Resources::loadTexture("FOCUS_HIGHLIGHT.TGA");
 
-  background = Resources::loadTextureUncached("STARTSCREEN.TGA");
   loadBox    = Resources::loadTexture("PROGRESS.TGA");
   loadVal    = Resources::loadTexture("PROGRESS_BAR.TGA");
 
@@ -165,7 +164,9 @@ void MainWindow::paintEvent(PaintEvent& event) {
   auto world = Gothic::inst().world();
   auto st    = Gothic::inst().checkLoading();
 
-  std::string_view info;
+  if(!Gothic::inst().isInGame() && st==Gothic::LoadState::Idle && background.isEmpty()) {
+    background = Resources::loadTextureUncached("STARTSCREEN.TGA");
+    }
 
   if(world==nullptr && !background.isEmpty()) {
     p.setBrush(Color(0.0));
@@ -238,13 +239,6 @@ void MainWindow::paintEvent(PaintEvent& event) {
           }
         }
       }
-
-    if(world && world->player()) {
-      if(world->player()->hasCollision())
-        info = "[c]";
-      else
-        info = world->roomAt(world->player()->position());
-      }
     }
 
   if(auto c = Gothic::inst().camera()) {
@@ -264,7 +258,6 @@ void MainWindow::paintEvent(PaintEvent& event) {
   if(Gothic::inst().doFrate() && !Gothic::inst().isDesktop()) {
     char fpsT[64]={};
     std::snprintf(fpsT,sizeof(fpsT),"fps = %.2f",fps.get());
-    //string_frm fpsT("fps = ", fps.get(), " ", info);
 
     auto& fnt = Resources::font(scale);
     fnt.drawText(p,5,fnt.pixelSize()+5,fpsT);
