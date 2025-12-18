@@ -279,6 +279,8 @@ const WayPoint *WayMatrix::findFreePoint(float x, float y, float z, const FpInde
   float dist  = R*R;
   for(auto i=b;i!=e;++i){
     auto& w  = **i;
+    if(!w.isFreePoint())
+      continue;
     float dx = w.pos.x-x;
     float dy = w.pos.y-y;
     float dz = w.pos.z-z;
@@ -299,7 +301,8 @@ WayPath WayMatrix::wayTo(const WayPoint** begin, size_t beginSz, const Tempest::
 
   intptr_t endId = std::distance<const WayPoint*>(&wayPoints[0],&end);
   if(endId<0 || size_t(endId)>=wayPoints.size()){
-    if(end.name.find("FP_")==0) {
+    if(!end.isConnected()) {
+      // free-point
       WayPath ret;
       ret.add(end);
       return ret;

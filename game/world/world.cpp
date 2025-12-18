@@ -985,6 +985,11 @@ WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
   if(begin==&end && MoveAlgo::isClose(npc.position(),end)) {
     return WayPath();
     }
+  if(begin==&end && !end.isConnected() && npc.canRayHitPoint(end.position()+Tempest::Vec3(0,10,0))) {
+    WayPath ret;
+    ret.add(end);
+    return ret;
+    }
   if(begin && begin->isConnected() && MoveAlgo::isClose(npc.position(),*begin)) {
     return wmatrix->wayTo(&begin,1,p,end);
     }
