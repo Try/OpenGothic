@@ -78,8 +78,8 @@ class Npc final {
     Npc(const Npc&)=delete;
     ~Npc();
 
-    void       save(Serialize& fout, size_t id);
-    void       load(Serialize& fout, size_t id);
+    void       save(Serialize& fout, size_t id, std::string_view directory = "/npc/");
+    void       load(Serialize& fout, size_t id, std::string_view directory = "/npc/");
     void       postValidate();
 
     bool       setPosition (float x,float y,float z);
@@ -369,6 +369,7 @@ class Npc final {
     void      clearAiQueue();
 
     auto      currentWayPoint() const -> const WayPoint* { return currentFp; }
+    auto      currentTaPoint() const -> const WayPoint*;
     void      attachToPoint(const WayPoint* p);
     GoToHint  moveHint() const { return go2.flag; }
     void      clearGoTo();
@@ -414,7 +415,7 @@ class Npc final {
       gtime           start;
       gtime           end;
       ScriptFn        callback;
-      const WayPoint* point=nullptr;
+      const WayPoint* point = nullptr;
       };
 
     enum TransformBit : uint8_t {
@@ -466,7 +467,7 @@ class Npc final {
     int       aiOutputOrderId() const;
     bool      performOutput(const AiQueue::AiAction &ai);
 
-    auto      currentRoutine() const -> const Routine&;
+    auto      currentRoutine(bool assertWp = false) const -> const Routine&;
     gtime     endTime(const Routine& r) const;
 
     bool      implPointAt(const Tempest::Vec3& to);

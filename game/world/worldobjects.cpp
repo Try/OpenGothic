@@ -82,6 +82,15 @@ void WorldObjects::load(Serialize &fin) {
     npcArr[i]->load(fin,i);
     }
 
+  if(fin.version()>50) {
+    sz = fin.directorySize("worlds/",fin.worldName(),"/npc_invalid/");
+    npcInvalid.resize(sz);
+    for(size_t i=0; i<npcInvalid.size(); ++i)
+      npcInvalid[i] = std::make_unique<Npc>(owner,size_t(-1),"");
+    for(size_t i=0; i<npcInvalid.size(); ++i)
+      npcInvalid[i]->load(fin,i,"/npc_invalid/");
+    }
+
   fin.setEntry("worlds/",fin.worldName(),"/items");
   fin.read(sz);
   for(size_t i=0; i<sz; ++i) {
@@ -115,13 +124,13 @@ void WorldObjects::save(Serialize &fout) {
   fout.setEntry("worlds/",fout.worldName(),"/version");
   fout.write(Serialize::Version::Current);
 
-  for(size_t i=0; i<npcArr.size(); ++i) {
+  for(size_t i=0; i<npcArr.size(); ++i)
     npcArr[i]->save(fout,i);
-    }
+  for(size_t i=0; i<npcInvalid.size(); ++i)
+    npcInvalid[i]->save(fout,i,"/npc_invalid/");
 
   fout.setEntry("worlds/",fout.worldName(),"/items");
-  uint32_t sz = uint32_t(itemArr.size());
-  fout.write(sz);
+  fout.write(uint32_t(itemArr.size()));
   for(auto& i:itemArr)
     i->save(fout);
 
@@ -274,36 +283,21 @@ uint32_t WorldObjects::mobsiId(const void* ptr) const {
   }
 
 Npc* WorldObjects::addNpc(size_t npcInstance, std::string_view at) {
-  auto pos = owner.findPoint(at);
-  if(pos==nullptr)
-    Log::e("addNpc: invalid waypoint");
-
   Npc* npc = new Npc(owner,npcInstance,at);
-  if(pos!=nullptr && pos->isLocked()){
-    auto p = owner.findNextPoint(*pos);
-    if(p)
-      pos=p;
-    }
-
-  bool valid = false;
-  if(pos!=nullptr) {
-    valid = true;
-    }
-  if(npc->resetPositionToTA()) {
-    valid = true;
-    }
-
-  if(valid) {
-    if(auto p = npc->currentWayPoint())
-      pos = p;
-    if(pos==nullptr)
-      pos = &owner.deadPoint();
+  if(auto pos = npc->currentTaPoint()) {
+    if(pos->isLocked()) {
+      auto p = owner.findNextPoint(*pos);
+      if(p!=nullptr)
+        pos = p;
+      }
     npc->setPosition  (pos->position() );
     npc->setDirection (pos->direction());
     npc->attachToPoint(pos);
     npc->updateTransform();
+    owner.script().invokeRefreshAtInsert(*npc);
     npcArr.emplace_back(npc);
     } else {
+    Log::e("addNpc: ", npcInstance, " has invalid spawnpoint");
     auto& point = owner.deadPoint();
     npc->attachToPoint(nullptr);
     npc->setPosition(point.position());
@@ -952,7 +946,9 @@ void WorldObjects::resetPositionToTA() {
     r.curState = 0;
 
   for(auto& i:npcInvalid)
-    npcArr.push_back(std::move(i));
+    if(i->handlePtr().use_count()>1)
+      npcArr.push_back(std::move(i)); else
+      npcRemoved.push_back(std::move(i));
   npcInvalid.clear();
 
   for(size_t i=0;i<npcArr.size();) {

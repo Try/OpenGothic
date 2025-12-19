@@ -184,8 +184,8 @@ Npc::~Npc(){
     currentInteract->detach(*this,true);
   }
 
-void Npc::save(Serialize &fout, size_t id) {
-  fout.setEntry("worlds/",fout.worldName(),"/npc/",id,"/data");
+void Npc::save(Serialize &fout, size_t id, std::string_view directory) {
+  fout.setEntry("worlds/",fout.worldName(),directory,id,"/data");
   fout.write(*hnpc);
   fout.write(body,head,vHead,vTeeth,bdColor,vColor,bdFatness);
   fout.write(x,y,z,angle,sz);
@@ -222,16 +222,16 @@ void Npc::save(Serialize &fout, size_t id) {
   Vec3 phyPos = physic.position();
   fout.write(phyPos);
 
-  fout.setEntry("worlds/",fout.worldName(),"/npc/",id,"/visual");
+  fout.setEntry("worlds/",fout.worldName(),directory,id,"/visual");
   visual.save(fout,*this);
 
-  fout.setEntry("worlds/",fout.worldName(),"/npc/",id,"/inventory");
+  fout.setEntry("worlds/",fout.worldName(),directory,id,"/inventory");
   if(!invent.isEmpty() || id==size_t(-1))
     invent.save(fout);
   }
 
-void Npc::load(Serialize &fin, size_t id) {
-  fin.setEntry("worlds/",fin.worldName(),"/npc/",id,"/data");
+void Npc::load(Serialize &fin, size_t id, std::string_view directory) {
+  fin.setEntry("worlds/",fin.worldName(),directory,id,"/data");
 
   hnpc = std::make_shared<zenkit::INpc>();
   hnpc->user_ptr        = this;
@@ -287,13 +287,13 @@ void Npc::load(Serialize &fin, size_t id) {
   Vec3 phyPos = {};
   fin.read(phyPos);
 
-  fin.setEntry("worlds/",fin.worldName(),"/npc/",id,"/visual");
+  fin.setEntry("worlds/",fin.worldName(),directory,id,"/visual");
   visual.load(fin,*this);
   physic.setPosition(phyPos);
 
   setVisualBody(vHead,vTeeth,vColor,bdColor,body,head);
 
-  if(fin.setEntry("worlds/",fin.worldName(),"/npc/",id,"/inventory"))
+  if(fin.setEntry("worlds/",fin.worldName(),directory,id,"/inventory"))
     invent.load(fin,*this);
 
   // post-alignment
@@ -458,8 +458,8 @@ bool Npc::resetPositionToTA() {
   if(!isPlayer())
     setInteraction(nullptr,true);
 
-  if(routines.size()==0)
-    return true;
+  if(routines.empty() && !isPlayer())
+    return currentTaPoint()!=nullptr;
 
   attachToPoint(nullptr);
   clearAiQueue();
@@ -472,15 +472,14 @@ bool Npc::resetPositionToTA() {
   if(isPlayer())
     return true;
 
-  auto& rot = currentRoutine();
-  auto  at  = rot.point;
+  auto at = currentTaPoint();
   if(at==nullptr)
     return false;
 
-  if(at->isLocked() && !isDead){
+  if(at->isLocked() && !isDead) {
     auto p = owner.findNextPoint(*at);
     if(p!=nullptr)
-      at=p;
+      at = p;
     }
   setPosition (at->position() );
   setDirection(at->direction());
@@ -2798,7 +2797,8 @@ void Npc::tickRoutine() {
       if(r.point!=nullptr)
         hnpc->wp = r.point->name;
       auto t = endTime(r);
-      startState(r.callback, r.point ? r.point->name : "", t, false);
+      // TODO: vanilla passes the actual waypoint name here given in ta_min
+      startState(r.callback, r.point ? r.point->name : "XXX", t, false);
       }
     else if(hnpc->start_aistate!=0) {
       auto endTime = owner.time();
@@ -3021,41 +3021,50 @@ void Npc::commitSpell() {
     }
   }
 
-const Npc::Routine& Npc::currentRoutine() const {
-  auto time = owner.time();
-  time = gtime(int32_t(time.hour()),int32_t(time.minute()));
+const Npc::Routine& Npc::currentRoutine(bool assertWp) const {
+  // find routine for current time
+  // if there is no such routine search counter clock-wise until one is found
+  auto time = owner.time().timeInDay();
   for(auto& i:routines) {
+    if(assertWp && i.point==nullptr)
+      continue;
     if(i.end<i.start && (time<i.end || i.start<=time))
       return i;
     if(i.start<=time && time<i.end)
       return i;
     }
 
-  // take a previous routine if none was found for current time
   const auto     day   = gtime(24,0).toInt();
-  const Routine* prevR = nullptr;
+  const Routine* rtn   = nullptr;
   int64_t        delta = std::numeric_limits<int64_t>::max();
-  time = time.timeInDay();
   for(auto& i:routines) {
+    if(assertWp && i.point==nullptr)
+      continue;
     int64_t d = time.toInt() - i.end.toInt();
     if(d<0)
       d += day;
-    if(d<=delta && d>0) {
-      prevR = &i;
+    // take the last one if multiple with same end time exist
+    if(d<=delta) {
+      rtn   = &i;
       delta = d;
       }
     }
 
-  if(prevR!=nullptr)
-    return *prevR;
-
+  if(rtn!=nullptr)
+    return *rtn;
   static Routine r;
   return r;
   }
 
+const WayPoint* Npc::currentTaPoint() const {
+  if(routines.empty())
+    return owner.findPoint(hnpc->wp,false);
+  return currentRoutine(true).point;
+  }
+
 gtime Npc::endTime(const Npc::Routine &r) const {
   auto wtime = owner.time();
-  auto time  = gtime(int32_t(wtime.hour()),int32_t(wtime.minute()));
+  auto time  = wtime.timeInDay();
 
   if(r.end<r.start) {
     if(time<r.end)
@@ -3153,7 +3162,7 @@ void Npc::resumeAiRoutine() {
   auto& r = currentRoutine();
   auto  t = endTime(r);
   if(r.callback.isValid())
-    startState(r.callback,r.point ? r.point->name : "",t,false);
+    startState(r.callback,r.point ? r.point->name : "XXX",t,false);
   }
 
 Item* Npc::addItem(const size_t item, size_t count) {
@@ -4094,6 +4103,10 @@ void Npc::addRoutine(gtime s, gtime e, uint32_t callback, const WayPoint *point)
   r.callback = callback;
   r.point    = point;
   routines.push_back(r);
+
+  std::stable_sort(routines.begin(), routines.end(), [](const Routine& l, const Npc::Routine& r) {
+    return l.start < r.start;
+    });
   }
 
 void Npc::excRoutine(size_t callback) {
