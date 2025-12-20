@@ -412,13 +412,13 @@ class Npc final {
 
   private:
     struct Routine final {
-      gtime           start;
-      gtime           end;
-      ScriptFn        callback;
-      const WayPoint* point = nullptr;
-      std::string     fallbackName;
+      gtime            start;
+      gtime            end;
+      ScriptFn         callback;
+      const WayPoint*  point = nullptr;
+      std::string      fallbackName;
 
-      auto            wayPointName() const;
+      std::string_view wayPointName() const;
       };
 
     enum TransformBit : uint8_t {

@@ -22,7 +22,7 @@ using namespace Tempest;
 
 static std::string_view humansTorchOverlay = "_TORCH.MDS";
 
-auto Npc::Routine::wayPointName() const {
+std::string_view Npc::Routine::wayPointName() const {
   return point!=nullptr ? point->name : fallbackName;
   }
 
@@ -3164,7 +3164,7 @@ void Npc::resumeAiRoutine() {
   auto& r = currentRoutine();
   auto  t = endTime(r);
   if(r.callback.isValid())
-    startState(r.callback,r.point ? r.point->name : "XXX",t,false);
+    startState(r.callback,r.wayPointName(),t,false);
   }
 
 Item* Npc::addItem(const size_t item, size_t count) {
