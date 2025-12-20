@@ -27,7 +27,7 @@ void GameSession::HeroStorage::save(Npc& npc) {
   Serialize          sr{wr};
   sr.setEntry("hero");
 
-  npc.save(sr,0);
+  npc.save(sr,0,"/npc/");
   }
 
 void GameSession::HeroStorage::putToWorld(World& owner, std::string_view wayPoint) const {
@@ -38,7 +38,7 @@ void GameSession::HeroStorage::putToWorld(World& owner, std::string_view wayPoin
   sr.setEntry("hero");
 
   if(auto pl = owner.player()) {
-    pl->load(sr,0);
+    pl->load(sr,0,"/npc/");
     auto pos = owner.findPoint(wayPoint);
     if(pos==nullptr) {
        // freemine.zen
@@ -47,7 +47,7 @@ void GameSession::HeroStorage::putToWorld(World& owner, std::string_view wayPoin
     pl->attachToPoint(pos);
     } else {
     auto ptr = std::make_unique<Npc>(owner,-1,wayPoint);
-    ptr->load(sr,0);
+    ptr->load(sr,0,"/npc/");
     owner.insertPlayer(std::move(ptr),wayPoint);
     }
 
