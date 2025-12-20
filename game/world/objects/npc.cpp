@@ -22,6 +22,11 @@ using namespace Tempest;
 
 static std::string_view humansTorchOverlay = "_TORCH.MDS";
 
+auto Npc::Routine::wayPointName() const {
+  return point!=nullptr ? point->name : fallbackName;
+  }
+
+
 void Npc::GoTo::save(Serialize& fout) const {
   fout.write(npc, uint8_t(flag), wp, pos);
   }
@@ -320,7 +325,7 @@ void Npc::saveAiState(Serialize& fout) const {
 
   fout.write(uint32_t(routines.size()));
   for(auto& i:routines) {
-    fout.write(i.start,i.end,i.callback,i.point);
+    fout.write(i.start,i.end,i.callback,i.wayPointName());
     }
   }
 
@@ -2794,11 +2799,8 @@ void Npc::tickRoutine() {
   if(!aiState.funcIni.isValid() && !isPlayer()) {
     auto r = currentRoutine();
     if(r.callback.isValid()) {
-      if(r.point!=nullptr)
-        hnpc->wp = r.point->name;
       auto t = endTime(r);
-      // TODO: vanilla passes the actual waypoint name here given in ta_min
-      startState(r.callback, r.point ? r.point->name : "XXX", t, false);
+      startState(r.callback, r.wayPointName(), t, false);
       }
     else if(hnpc->start_aistate!=0) {
       auto endTime = owner.time();
@@ -4096,12 +4098,16 @@ void Npc::setStateTime(int64_t time) {
   aiState.sTime = owner.tickCount()-uint64_t(time);
   }
 
-void Npc::addRoutine(gtime s, gtime e, uint32_t callback, const WayPoint *point) {
+void Npc::addRoutine(gtime s, gtime e, uint32_t callback, std::string_view point) {
+  auto wp = world().findPoint(point,false);
+
   Routine r;
   r.start    = s;
   r.end      = e;
   r.callback = callback;
-  r.point    = point;
+  r.point    = wp;
+  if(wp==nullptr)
+    r.fallbackName = point;
   routines.push_back(r);
 
   std::stable_sort(routines.begin(), routines.end(), [](const Routine& l, const Npc::Routine& r) {

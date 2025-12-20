@@ -78,8 +78,8 @@ class Npc final {
     Npc(const Npc&)=delete;
     ~Npc();
 
-    void       save(Serialize& fout, size_t id, std::string_view directory = "/npc/");
-    void       load(Serialize& fout, size_t id, std::string_view directory = "/npc/");
+    void       save(Serialize& fout, size_t id, std::string_view directory);
+    void       load(Serialize& fout, size_t id, std::string_view directory);
     void       postValidate();
 
     bool       setPosition (float x,float y,float z);
@@ -306,7 +306,7 @@ class Npc final {
     uint64_t  stateTime() const;
     void      setStateTime(int64_t time);
 
-    void      addRoutine(gtime s, gtime e, uint32_t callback, const WayPoint* point);
+    void      addRoutine(gtime s, gtime e, uint32_t callback, std::string_view point);
     void      excRoutine(size_t callback);
     void      multSpeed(float s);
 
@@ -416,6 +416,9 @@ class Npc final {
       gtime           end;
       ScriptFn        callback;
       const WayPoint* point = nullptr;
+      std::string     fallbackName;
+
+      auto            wayPointName() const;
       };
 
     enum TransformBit : uint8_t {
