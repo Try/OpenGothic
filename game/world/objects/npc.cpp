@@ -325,7 +325,7 @@ void Npc::saveAiState(Serialize& fout) const {
 
   fout.write(uint32_t(routines.size()));
   for(auto& i:routines) {
-    fout.write(i.start,i.end,i.callback,i.wayPointName());
+    fout.write(i.start,i.end,i.callback,i.point,i.fallbackName);
     }
   }
 
@@ -349,8 +349,11 @@ void Npc::loadAiState(Serialize& fin) {
   uint32_t size=0;
   fin.read(size);
   routines.resize(size);
-  for(auto& i:routines)
+  for(auto& i:routines) {
     fin.read(i.start,i.end,i.callback,i.point);
+    if(fin.version()>51)
+      fin.read(i.fallbackName);
+    }
   }
 
 void Npc::saveTrState(Serialize& fout) const {
