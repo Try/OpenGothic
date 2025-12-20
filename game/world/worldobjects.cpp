@@ -79,7 +79,7 @@ void WorldObjects::load(Serialize &fin) {
   for(size_t i=0; i<sz; ++i)
     npcArr[i] = std::make_unique<Npc>(owner,size_t(-1),"");
   for(size_t i=0; i<npcArr.size(); ++i) {
-    npcArr[i]->load(fin,i);
+    npcArr[i]->load(fin,i,"/npc/");
     }
 
   if(fin.version()>50) {
@@ -125,7 +125,7 @@ void WorldObjects::save(Serialize &fout) {
   fout.write(Serialize::Version::Current);
 
   for(size_t i=0; i<npcArr.size(); ++i)
-    npcArr[i]->save(fout,i);
+    npcArr[i]->save(fout,i,"/npc/");
   for(size_t i=0; i<npcInvalid.size(); ++i)
     npcInvalid[i]->save(fout,i,"/npc_invalid/");
 
