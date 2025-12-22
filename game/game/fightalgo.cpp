@@ -37,7 +37,7 @@ void FightAlgo::fillQueue(Npc &npc, Npc &tg, GameScript& owner) {
 
   const bool focus = isInFocusAngle(npc,tg);
 
-  if(tg.isPrehit() && isInWRange(tg,npc,owner) && isInFocusAngle(tg,npc)){
+  if(tg.isPrehit() && isInWRange(tg,npc,owner) && isInFocusAngle(tg,npc) && focus){
     if(tg.bodyStateMasked()==BS_RUN)
       if(fillQueue(owner,ai.enemy_stormprehit))
         return;

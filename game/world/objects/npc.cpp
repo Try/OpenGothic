@@ -1498,6 +1498,11 @@ bool Npc::implAttack(uint64_t dt) {
   FightAlgo::Action act = fghAlgo.nextFromQueue(*this,*currentTarget,owner.script());
 
   if(act==FightAlgo::MV_BLOCK) {
+    if(!fghAlgo.isInFocusAngle(*this, *currentTarget)) {
+      fghAlgo.consumeAction();
+      return true;
+      }
+
     switch(ws) {
       case WeaponState::Fist: {
         if(blockFist())
@@ -1623,6 +1628,20 @@ bool Npc::implAttack(uint64_t dt) {
     }
 
   if(act==FightAlgo::MV_JUMPBACK) {
+    if(isSwim()) {
+      fghAlgo.consumeAction();
+      return true;
+      }
+    if(bodyStateMasked()==BS_PARADE) {
+      fghAlgo.consumeAction();
+      return true;
+      }
+    if(!fghAlgo.isInFocusAngle(*this, *currentTarget)) {
+      //NOTE: jump-back is ultimate defence, so better to use it only if npc face player directly
+      fghAlgo.consumeAction();
+      aiState.loopNextTime = owner.tickCount(); // force ZS_MM_Attack_Loop call
+      return true;
+      }
     if(setAnim(Npc::Anim::MoveBack)) {
       implFaiWait(visual.pose().animationTotalTime());
       fghAlgo.consumeAction();
@@ -1834,10 +1853,11 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
     return;
 
   assert(b==nullptr || !b->isSpell());
-  const bool isJumpb = visual.pose().isJumpBack();
-  const bool isBlock = (!other.isMonster() || other.inventory().activeWeapon()!=nullptr) &&
-                       fghAlgo.isInFocusAngle(*this,other) &&
-                       visual.pose().isDefence(owner.tickCount());
+  const auto& pose    = visual.pose();
+  const bool  isJumpb = pose.isJumpBack() && !pose.isDefence(owner.tickCount());
+  const bool  isBlock = (!other.isMonster() || other.inventory().activeWeapon()!=nullptr) &&
+                         fghAlgo.isInFocusAngle(*this,other) &&
+                         pose.isDefence(owner.tickCount());
 
   lastHit = &other;
   if(!isPlayer())
