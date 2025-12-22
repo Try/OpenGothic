@@ -233,11 +233,11 @@ void WorldSound::tickSoundZone(Npc& player) {
       }
     }
 
-  gtime           time  = owner.time().timeInDay();
-  bool            isDay = (gtime(4,0)<=time && time<=gtime(21,0));
-  bool            isFgt = owner.isTargeted(player);
+  gtime time  = owner.time().timeInDay();
+  bool  isDay = (gtime(4,0)<=time && time<=gtime(21,0));
+  bool  isFgt = owner.isTargeted(player) || player.isDead();
 
-  GameMusic::Tags mode  = GameMusic::Std;
+  GameMusic::Tags mode = GameMusic::Std;
   if(isFgt) {
     if(player.weaponState()==WeaponState::NoWeapon) {
       mode  = GameMusic::Thr;
