@@ -689,15 +689,14 @@ int32_t MoveAlgo::diveTime() const {
   }
 
 bool MoveAlgo::isClose(const Tempest::Vec3& w, const WayPoint &p) {
-  return isClose(w.x,w.y,w.z,p);
+  float dist = closeToPointThreshold;
+  if(p.useCounter()>1)
+    dist += 100; // need
+  return isClose(w,p,dist);
   }
 
-bool MoveAlgo::isClose(float x, float y, float z, const WayPoint &p) {
-  return isClose(x,y,z,p,closeToPointThreshold);
-  }
-
-bool MoveAlgo::isClose(float x, float /*y*/, float z, const WayPoint &p, float dist) {
-  float len = p.qDistTo(x,p.pos.y,z);
+bool MoveAlgo::isClose(const Tempest::Vec3& w, const WayPoint& p, float dist) {
+  float len = p.qDistTo(w.x,p.pos.y,w.z);
   return (len<dist*dist);
   }
 

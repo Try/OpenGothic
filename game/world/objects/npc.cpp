@@ -1397,7 +1397,7 @@ bool Npc::implGoTo(uint64_t dt) {
     if(!mvAlgo.checkLastBounce())
       dist = MoveAlgo::closeToPointThreshold*1.5f;
     if(go2.wp!=nullptr && go2.wp->useCounter()>1)
-      dist += 100;
+      dist = float(MAX_AI_USE_DISTANCE);
     }
   return implGoTo(dt,dist);
   }

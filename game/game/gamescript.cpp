@@ -1700,7 +1700,7 @@ bool GameScript::wld_isfpavailable(std::shared_ptr<zenkit::INpc> self, std::stri
     }
 
   auto wp = world().findFreePoint(*findNpc(self.get()),name);
-  return wp != nullptr;
+  return wp!=nullptr;
   }
 
 bool GameScript::wld_isnextfpavailable(std::shared_ptr<zenkit::INpc> self, std::string_view name) {
@@ -2275,7 +2275,7 @@ bool GameScript::npc_isonfp(std::shared_ptr<zenkit::INpc> npcRef, std::string_vi
     return false;
 
   auto w = npc->currentWayPoint();
-  if(w==nullptr || !MoveAlgo::isClose(npc->position(),*w) || !w->checkName(val))
+  if(w==nullptr || !MoveAlgo::isClose(npc->position(),*w,MAX_AI_USE_DISTANCE) || !w->checkName(val))
     return false;
   return w->isFreePoint();
   }

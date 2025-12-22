@@ -35,8 +35,7 @@ class MoveAlgo final {
       };
 
     static bool isClose(const Tempest::Vec3& w, const WayPoint& p);
-    static bool isClose(float x,float y,float z,const WayPoint& p);
-    static bool isClose(float x,float y,float z,const WayPoint& p,float dist);
+    static bool isClose(const Tempest::Vec3& w, const WayPoint& p,float dist);
 
     void    load(Serialize& fin);
     void    save(Serialize& fout) const;
