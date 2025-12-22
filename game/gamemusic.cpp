@@ -65,6 +65,27 @@ struct GameMusic::MusicProvider : Tempest::SoundProducer {
       return reloadTheme;
       }
 
+    static zenkit::MusicTransitionEffect computeTransitionEffect(Tags nextTags, Tags currTags, zenkit::MusicTransitionEffect transtype) {
+      const int cur  = currTags & (Tags::Std | Tags::Fgt | Tags::Thr);
+      const int next = nextTags & (Tags::Std | Tags::Fgt | Tags::Thr);
+
+      zenkit::MusicTransitionEffect embellishment = transtype;
+      if(next == Tags::Std) {
+        if(cur != Tags::Std)
+          embellishment = zenkit::MusicTransitionEffect::BREAK;
+        }
+      else if(next == Tags::Fgt) {
+        if(cur == Tags::Thr)
+          embellishment = zenkit::MusicTransitionEffect::FILL;
+        }
+      else if(next == Tags::Thr) {
+        if(cur == Tags::Fgt)
+          embellishment = zenkit::MusicTransitionEffect::NONE;
+        }
+
+      return embellishment;
+      }
+
   private:
     std::atomic_bool     enable{true};
 
@@ -96,6 +117,11 @@ struct GameMusic::OpenGothicMusicProvider : GameMusic::MusicProvider {
     if(!GameMusic::MusicProvider::updateTheme(theme, tags))
       return;
 
+    if(theme.file.empty()) {
+      stopTheme();
+      return;
+      }
+
     try {
       if(/*reloadTheme*/true) {
         Dx8::PatternList p = Resources::loadDxMusic(theme.file);
@@ -103,23 +129,8 @@ struct GameMusic::OpenGothicMusicProvider : GameMusic::MusicProvider {
         Dx8::Music m;
         m.addPattern(p);
 
-        const int cur = currentTags & (Tags::Std | Tags::Fgt | Tags::Thr);
-        const int next = tags & (Tags::Std | Tags::Fgt | Tags::Thr);
-
-        Dx8::DMUS_EMBELLISHT_TYPES em = Dx8::DMUS_EMBELLISHT_END;
-        if(next == Tags::Std) {
-          if(cur != Tags::Std)
-            em = Dx8::DMUS_EMBELLISHT_BREAK;
-          }
-        else if(next == Tags::Fgt) {
-          if(cur == Tags::Thr)
-            em = Dx8::DMUS_EMBELLISHT_FILL;
-          }
-        else if(next == Tags::Thr) {
-          if(cur == Tags::Fgt)
-            em = Dx8::DMUS_EMBELLISHT_NORMAL;
-          }
-
+        auto effect = computeTransitionEffect(tags, currentTags, theme.transtype);
+        Dx8::DMUS_EMBELLISHT_TYPES em = computeEmbellishment(effect);
         mix.setMusic(m, em);
         currentTags = tags;
         }
@@ -140,13 +151,33 @@ struct GameMusic::OpenGothicMusicProvider : GameMusic::MusicProvider {
     mix.setMusic(Dx8::Music());
     }
 
+  static Dx8::DMUS_EMBELLISHT_TYPES computeEmbellishment(zenkit::MusicTransitionEffect ef) {
+    switch (ef) {
+      case zenkit::MusicTransitionEffect::UNKNOWN:
+      case zenkit::MusicTransitionEffect::NONE:
+        return Dx8::DMUS_EMBELLISHT_NORMAL;
+      case zenkit::MusicTransitionEffect::GROOVE:
+        return Dx8::DMUS_EMBELLISHT_NORMAL;
+      case zenkit::MusicTransitionEffect::FILL:
+        return Dx8::DMUS_EMBELLISHT_FILL;
+      case zenkit::MusicTransitionEffect::BREAK:
+        return Dx8::DMUS_EMBELLISHT_BREAK;
+      case zenkit::MusicTransitionEffect::INTRO:
+        return Dx8::DMUS_EMBELLISHT_INTRO;
+      case zenkit::MusicTransitionEffect::END:
+      case zenkit::MusicTransitionEffect::END_AND_INTO:
+        return Dx8::DMUS_EMBELLISHT_END;
+      }
+    return Dx8::DMUS_EMBELLISHT_NORMAL;
+    }
+
   private:
     Dx8::Mixer mix;
   };
 
-static std::pair<DmTiming, DmEmbellishmentType> getThemeEmbellishmentAndTiming(const zenkit::IMusicTheme &theme) {
+static std::pair<DmTiming, DmEmbellishmentType> computeEmbellishmentAndTiming(const zenkit::MusicTransitionEffect effect, const zenkit::MusicTransitionType type) {
   DmEmbellishmentType embellishment = DmEmbellishment_NONE;
-  switch (theme.transtype) {
+  switch (effect) {
     case zenkit::MusicTransitionEffect::UNKNOWN:
     case zenkit::MusicTransitionEffect::NONE:
       embellishment = DmEmbellishment_NONE;
@@ -172,7 +203,7 @@ static std::pair<DmTiming, DmEmbellishmentType> getThemeEmbellishmentAndTiming(c
   }
 
   DmTiming timing = DmTiming_MEASURE;
-  switch (theme.transsubtype) {
+  switch (type) {
     case zenkit::MusicTransitionType::UNKNOWN:
     case zenkit::MusicTransitionType::MEASURE:
       timing = DmTiming_MEASURE;
@@ -190,6 +221,12 @@ static std::pair<DmTiming, DmEmbellishmentType> getThemeEmbellishmentAndTiming(c
 
 struct GameMusic::GothicKitMusicProvider : GameMusic::MusicProvider {
   GothicKitMusicProvider(uint16_t rate, uint16_t channels) : GameMusic::MusicProvider(rate, channels) {
+    /*
+    Dm_setRandomNumberGenerator([](void*) -> uint32_t {
+      return 0;
+      }, nullptr);
+    */
+
     DmResult rv = DmPerformance_create(&performance, rate);
     if(rv != DmResult_SUCCESS) {
       Log::e("Unable to create DmPerformance object. Out of memory?");
@@ -206,7 +243,7 @@ struct GameMusic::GothicKitMusicProvider : GameMusic::MusicProvider {
       return;
       }
     updateTheme();
-    DmPerformance_renderPcm(performance, out, n * 2, static_cast<DmRenderOptions>(DmRender_SHORT | DmRender_STEREO));
+    DmPerformance_renderPcm(performance, out, n * 2, DmRenderOptions(DmRender_SHORT | DmRender_STEREO));
     }
 
   void updateTheme() {
@@ -217,13 +254,13 @@ struct GameMusic::GothicKitMusicProvider : GameMusic::MusicProvider {
 
     if(theme.file.empty()) {
       stopTheme();
-      DmPerformance_setVolume(performance, theme.vol);
       return;
       }
 
-    DmSegment *sgt = Resources::loadMusicSegment(theme.file.c_str());
-    auto [timing, embellishment] = getThemeEmbellishmentAndTiming(theme);
+    auto effect = computeTransitionEffect(tags, currentTags, theme.transtype);
+    auto [timing, embellishment] = computeEmbellishmentAndTiming(effect, theme.transsubtype);
 
+    DmSegment* sgt = Resources::loadMusicSegment(theme.file.c_str());
     DmResult rv = DmPerformance_playTransition(performance, sgt, embellishment, timing);
     if(rv != DmResult_SUCCESS) {
       Log::e("Failed to play theme: ", theme.file);
@@ -232,11 +269,58 @@ struct GameMusic::GothicKitMusicProvider : GameMusic::MusicProvider {
 
     DmPerformance_setVolume(performance, theme.vol);
     DmSegment_release(sgt);
+    currentTags = tags;
     }
 
   void stopTheme() override {
     GameMusic::MusicProvider::stopTheme();
     DmPerformance_playTransition(performance, nullptr, DmEmbellishment_NONE, DmTiming_INSTANT);
+    }
+
+  DmEmbellishmentType computeEmbellishment(Tags nextTags, Tags currTags, zenkit::MusicTransitionEffect transtype) const {
+    const int cur  = currTags & (Tags::Std | Tags::Fgt | Tags::Thr);
+    const int next = nextTags & (Tags::Std | Tags::Fgt | Tags::Thr);
+
+    DmEmbellishmentType embellishment = DmEmbellishment_NONE;
+    switch (transtype) {
+      case zenkit::MusicTransitionEffect::UNKNOWN:
+      case zenkit::MusicTransitionEffect::NONE:
+        embellishment = DmEmbellishment_NONE;
+        break;
+      case zenkit::MusicTransitionEffect::GROOVE:
+        embellishment = DmEmbellishment_GROOVE;
+        break;
+      case zenkit::MusicTransitionEffect::FILL:
+        embellishment = DmEmbellishment_FILL;
+        break;
+      case zenkit::MusicTransitionEffect::BREAK:
+        embellishment = DmEmbellishment_BREAK;
+        break;
+      case zenkit::MusicTransitionEffect::INTRO:
+        embellishment = DmEmbellishment_INTRO;
+        break;
+      case zenkit::MusicTransitionEffect::END:
+        embellishment = DmEmbellishment_END;
+        break;
+      case zenkit::MusicTransitionEffect::END_AND_INTO:
+        embellishment = DmEmbellishment_END_AND_INTRO;
+        break;
+      }
+
+    if(next == Tags::Std) {
+      if(cur != Tags::Std)
+        embellishment = DmEmbellishmentType::DmEmbellishment_BREAK;
+      }
+    else if(next == Tags::Fgt) {
+      if(cur == Tags::Thr)
+        embellishment = DmEmbellishmentType::DmEmbellishment_FILL;
+      }
+    else if(next == Tags::Thr) {
+      if(cur == Tags::Fgt)
+        embellishment = DmEmbellishmentType::DmEmbellishment_NONE;
+      }
+
+    return embellishment;
     }
 
   private:
