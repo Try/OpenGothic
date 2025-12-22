@@ -1854,7 +1854,7 @@ void Npc::takeDamage(Npc &other, const Bullet* b) {
 
   assert(b==nullptr || !b->isSpell());
   const auto& pose    = visual.pose();
-  const bool  isJumpb = pose.isJumpBack() && !pose.isDefence(owner.tickCount());
+  const bool  isJumpb = pose.isJumpBack();
   const bool  isBlock = (!other.isMonster() || other.inventory().activeWeapon()!=nullptr) &&
                          fghAlgo.isInFocusAngle(*this,other) &&
                          pose.isDefence(owner.tickCount());
