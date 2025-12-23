@@ -69,7 +69,8 @@ struct GameMusic::MusicProvider : Tempest::SoundProducer {
       const int cur  = currTags & (Tags::Std | Tags::Fgt | Tags::Thr);
       const int next = nextTags & (Tags::Std | Tags::Fgt | Tags::Thr);
 
-      zenkit::MusicTransitionEffect embellishment = transtype;
+      //zenkit::MusicTransitionEffect embellishment = transtype;
+      zenkit::MusicTransitionEffect embellishment = zenkit::MusicTransitionEffect::NONE;
       if(next == Tags::Std) {
         if(cur != Tags::Std)
           embellishment = zenkit::MusicTransitionEffect::BREAK;
