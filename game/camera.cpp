@@ -614,8 +614,8 @@ void Camera::followAng(Vec3& spin, Vec3 dest, float dtF) {
 
 void Camera::followAng(float& ang, float dest, float speed, float dtF) {
   float da    = angleMod(dest-ang);
-  float shift = da*std::min(1.f, speed*dtF*1.f);
-  if(std::abs(da)<0.01f || dtF<0.f) {
+  float shift = da*speed*std::min(1.f, dtF);
+  if(std::abs(da)<=0.0001f || dtF<0.f) {
     ang = dest;
     return;
     }
@@ -636,13 +636,13 @@ void Camera::tick(uint64_t dt) {
 
   const float dtF = float(dt)/1000.f;
 
-    {
+  {
     const auto& def = cameraDef();
     dst.range = def.min_range + (def.max_range-def.min_range)*userRange;
     const float zSpeed = 5.f;
     const float dz     = dst.range-src.range;
     src.range+=dz*std::min(1.f,2.f*zSpeed*dtF);
-    }
+  }
 
   auto prev = origin;
   calcControlPoints(dtF);
