@@ -605,15 +605,15 @@ void Interactive::autoDetachNpc() {
 bool Interactive::checkUseConditions(Npc& npc) {
   const bool isPlayer = npc.isPlayer();
 
-  auto& sc = npc.world().script();
+  auto& sc = world.script();
 
   if(isPlayer) {
     const bool             g1             = Gothic::inst().version().game==1;
-    const size_t           ItKE_lockpick  = world.script().lockPickId();
+    const size_t           ItKE_lockpick  = sc.lockPickId();
     const size_t           lockPickCnt    = npc.inventory().itemCount(ItKE_lockpick);
     const bool             canLockPick    = ((g1 || npc.talentSkill(TALENT_PICKLOCK)!=0) && lockPickCnt>0);
 
-    const size_t           keyInst        = keyInstance.empty() ? size_t(-1) : world.script().findSymbolIndex(keyInstance);
+    const size_t           keyInst        = keyInstance.empty() ? size_t(-1) : sc.findSymbolIndex(keyInstance);
     const bool             needToPicklock = (pickLockStr.size()>0);
 
     if(keyInst!=size_t(-1) && (isLockCracked || npc.itemCount(keyInst)>0)) {
@@ -644,7 +644,7 @@ bool Interactive::checkUseConditions(Npc& npc) {
       }
 
     if(!useWithItem.empty()) {
-      size_t it = world.script().findSymbolIndex(useWithItem);
+      size_t it = sc.findSymbolIndex(useWithItem);
       if(it!=size_t(-1) && npc.itemCount(it)==0) {
         sc.printMobMissingItem(npc);
         return false;
