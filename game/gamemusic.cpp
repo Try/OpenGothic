@@ -201,7 +201,7 @@ static std::pair<DmTiming, DmEmbellishmentType> computeEmbellishmentAndTiming(co
     case zenkit::MusicTransitionEffect::END_AND_INTO:
       embellishment = DmEmbellishment_END_AND_INTRO;
       break;
-  }
+    }
 
   DmTiming timing = DmTiming_MEASURE;
   switch (type) {
@@ -215,10 +215,10 @@ static std::pair<DmTiming, DmEmbellishmentType> computeEmbellishmentAndTiming(co
     case zenkit::MusicTransitionType::BEAT:
       timing = DmTiming_BEAT;
       break;
-  }
+    }
 
   return std::make_pair(timing, embellishment);
-}
+  }
 
 struct GameMusic::GothicKitMusicProvider : GameMusic::MusicProvider {
   GothicKitMusicProvider(uint16_t rate, uint16_t channels) : GameMusic::MusicProvider(rate, channels) {

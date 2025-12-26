@@ -1650,7 +1650,7 @@ bool Npc::implAttack(uint64_t dt) {
     }
 
   if(act==FightAlgo::MV_MOVEA || act==FightAlgo::MV_MOVEG ||
-      act==FightAlgo::MV_TURNA || act==FightAlgo::MV_TURNG) {
+     act==FightAlgo::MV_TURNA || act==FightAlgo::MV_TURNG) {
     if(!isAiQueueEmpty() && implAiTick(dt))
       return true;
     go2.set(currentTarget,(act==FightAlgo::MV_MOVEG || act==FightAlgo::MV_TURNG) ?
