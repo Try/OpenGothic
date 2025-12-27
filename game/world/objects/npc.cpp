@@ -686,15 +686,9 @@ std::string_view Npc::formerPortalName() {
   return mvAlgo.formerPortalName();
   }
 
-float Npc::qDistTo(float x1, float y1, float z1) const {
-  float dx=x-x1;
-  float dy=y+translateY()-y1;
-  float dz=z-z1;
-  return dx*dx+dy*dy+dz*dz;
-  }
-
-float Npc::qDistTo(const Tempest::Vec3 pos) const {
-  return qDistTo(pos.x,pos.y,pos.z);
+float Npc::qDistTo(const Vec3 pos) const {
+  auto dp = pos - Vec3(x,y+translateY(),z);
+  return dp.quadLength();
   }
 
 float Npc::qDistTo(const WayPoint *f) const {
@@ -704,7 +698,7 @@ float Npc::qDistTo(const WayPoint *f) const {
   }
 
 float Npc::qDistTo(const Npc &p) const {
-  return qDistTo(p.x,p.y+p.translateY(),p.z);
+  return qDistTo(Vec3(p.x,p.y+p.translateY(),p.z));
   }
 
 float Npc::qDistTo(const Interactive &p) const {

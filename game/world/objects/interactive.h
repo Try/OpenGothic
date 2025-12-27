@@ -136,7 +136,7 @@ class Interactive : public Vob {
     const Pos*          findFreePos() const;
     Pos*                findFreePos();
     auto                worldPos(const Pos &to) const -> Tempest::Vec3;
-    float               qDistanceTo(const Npc &npc, const Pos &to) const;
+    float               qDistTo(const Npc &npc, const Pos &to) const;
     Tempest::Matrix4x4  nodeTranform(const Npc &npc, const Pos &p) const;
     auto                nodePosition(const Npc &npc, const Pos &p) const -> Tempest::Vec3;
 

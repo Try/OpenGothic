@@ -565,7 +565,7 @@ P* Interactive::findNearest(Inter& in, const Npc& to) {
   for(auto& i:in.attPos) {
     if(i.user || !i.isAttachPoint())
       continue;
-    float d = in.qDistanceTo(to,i);
+    float d = in.qDistTo(to,i);
     if(d<dist || p==nullptr) {
       p    = &i;
       dist = d;
@@ -853,9 +853,9 @@ void Interactive::setDir(Npc &npc, const Tempest::Matrix4x4 &mat) {
   npc.setDirection(Tempest::Vec3(x1-x0, y1-y0, z1-z0));
   }
 
-float Interactive::qDistanceTo(const Npc &npc, const Interactive::Pos &to) const {
+float Interactive::qDistTo(const Npc &npc, const Interactive::Pos &to) const {
   auto p = worldPos(to);
-  return npc.qDistTo(p.x,p.y-npc.translateY(),p.z);
+  return npc.qDistTo(p);
   }
 
 Tempest::Matrix4x4 Interactive::nodeTranform(const Npc &npc, const Pos& p) const {

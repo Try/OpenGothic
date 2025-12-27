@@ -123,7 +123,6 @@ class Npc final {
     auto       portalName() -> std::string_view;
     auto       formerPortalName() -> std::string_view;
 
-    float      qDistTo(float x, float y, float z) const;
     float      qDistTo(const Tempest::Vec3 pos) const;
     float      qDistTo(const WayPoint* p) const;
     float      qDistTo(const Npc& p) const;
