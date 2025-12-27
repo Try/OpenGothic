@@ -3091,6 +3091,7 @@ gtime Npc::endTime(const Npc::Routine &r) const {
   auto wtime = owner.time();
   auto time  = wtime.timeInDay();
 
+  //NOTE: should we consider time extension for invalid routine sequences?
   if(r.end<r.start) {
     if(time<r.end)
       return gtime(wtime.day(),r.end.hour(),r.end.minute());
@@ -3100,6 +3101,10 @@ gtime Npc::endTime(const Npc::Routine &r) const {
     if(r.end.hour()==0 || r.end<time)
       return gtime(wtime.day()+1,r.end.hour(),r.end.minute()); else
       return gtime(wtime.day(),r.end.hour(),r.end.minute());
+    }
+  if(r.start==r.end && r.end.toInt()==0) {
+    // for example Rtn_Start_1081 in NTR is filled with zeros
+    return gtime(wtime.day()+1,r.end.hour(),r.end.minute());
     }
   // error - routine is not active now
   return wtime;

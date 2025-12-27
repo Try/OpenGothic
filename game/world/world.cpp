@@ -1015,7 +1015,7 @@ WayPath World::wayTo(const Npc &npc, const WayPoint &end) const {
   return wmatrix->wayTo(wpoint.data(),wpoint.size(),p,end);
   }
 
-GameScript &World::script() const {
+GameScript& World::script() const {
   return *game.script();
   }
 
