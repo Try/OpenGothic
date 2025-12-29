@@ -66,6 +66,7 @@ class DynamicWorld final {
       bool          npcCol  = false;
       bool          preFall = false;
       Interactive*  vob     = nullptr;
+      Npc*          npc     = nullptr;
       };
 
     struct NpcItem {

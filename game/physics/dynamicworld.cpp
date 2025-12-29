@@ -216,7 +216,7 @@ struct DynamicWorld::NpcBodyList final {
     return ret;
     }
 
-  bool hasCollision(const DynamicWorld::NpcItem& obj,Tempest::Vec3& normal) {
+  bool hasCollision(const DynamicWorld::NpcItem& obj, Tempest::Vec3& normal, Npc*& npc) {
     static bool disable=false;
     if(disable)
       return false;
@@ -227,18 +227,18 @@ struct DynamicWorld::NpcBodyList final {
     const NpcBody& n = *pn;
 
     if(srt){
-      if(hasCollision(n,frozen,normal,true))
+      if(hasCollision(n,frozen,normal,npc,true))
         return true;
-      return hasCollision(n,body,normal,false);
+      return hasCollision(n,body,normal,npc,false);
       } else {
-      if(hasCollision(n,body,normal,false))
+      if(hasCollision(n,body,normal,npc,false))
         return true;
       //adjustSort();
-      return hasCollision(n,frozen,normal,false);
+      return hasCollision(n,frozen,normal,npc,false);
       }
     }
 
-  bool hasCollision(const NpcBody& n,const std::vector<Record>& arr,Tempest::Vec3& normal, bool sorted) {
+  bool hasCollision(const NpcBody& n, const std::vector<Record>& arr, Tempest::Vec3& normal, Npc*& npc, bool sorted) {
     auto l = arr.begin();
     auto r = arr.end();
 
@@ -255,8 +255,10 @@ struct DynamicWorld::NpcBodyList final {
     bool ret=false;
     for(;l!=r;++l){
       auto& v = (*l);
-      if(v.body!=nullptr && v.body->enable && hasCollision(n,*v.body,normal))
+      if(v.body!=nullptr && v.body->enable && hasCollision(n,*v.body,normal)) {
+        npc = v.body->toNpc();
         ret = true;
+        }
       }
     return ret;
     }
@@ -881,7 +883,7 @@ std::string_view DynamicWorld::validateSectorName(std::string_view name) const {
   }
 
 bool DynamicWorld::hasCollision(const NpcItem& it, CollisionTest& out) {
-  if(npcList->hasCollision(it,out.normal)){
+  if(npcList->hasCollision(it,out.normal,out.npc)){
     out.normal /= out.normal.length();
     out.npcCol = true;
     return true;

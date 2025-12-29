@@ -1372,8 +1372,6 @@ bool GameScript::isFriendlyFire(const Npc& src, const Npc& dst) const {
   const int AIV_PARTYMEMBER = (owner.version().game==2) ? 15 : 36;
   if(src.isPlayer())
     return false;
-  if(src.isFriend())
-    return true;
   if(personAttitude(src, dst)==ATT_FRIENDLY)
     return true;
   if(src.handlePtr()->aivar[AIV_PARTYMEMBER]!=0 && dst.isPlayer())
@@ -1827,7 +1825,7 @@ void GameScript::wld_spawnnpcrange(std::shared_ptr<zenkit::INpc> npcRef, int cls
   (void)lifeTime;
   for(int32_t i=0;i<count;++i) {
     auto* npc = world().addNpc(size_t(clsId),at->position());
-    fixNpcPosition(*npc,at->rotation()-90,100);
+    fixNpcPosition(*npc,at->rotation()-90 + 360.f*float(i)/float(count),100);
     }
   }
 

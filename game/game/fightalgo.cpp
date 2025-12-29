@@ -8,6 +8,11 @@
 #include "gothic.h"
 #include "serialize.h"
 
+// According to Gothic1 scripts:
+// W  - Weapon Range (FIGHT_RANGE_FIST * 3)
+// G  - Walking range (3 * W). Buffer for ranged fighters in which they should switch to a melee weapon.
+// FK - Long-range combat range (30m)
+
 FightAlgo::FightAlgo() {
   }
 
@@ -257,8 +262,9 @@ bool FightAlgo::isInAttackRange(const Npc &npc,const Npc &tg, GameScript &owner)
   //  70 weapon range (Rusty Sword) is good to hit
   auto  dist   = npc.qDistTo(tg);
   auto  pd     = prefferedAttackDistance(npc,tg,owner);
+  static float padding = 0;
   if(npc.hasState(BS_RUN))
-    pd += 20; // padding, for wolf
+    pd += padding; // padding, for wolf
   return (dist<=pd*pd);
   }
 
@@ -277,7 +283,7 @@ bool FightAlgo::isInGRange(const Npc &npc, const Npc &tg, GameScript &owner) con
 bool FightAlgo::isInFocusAngle(const Npc &npc, const Npc &tg) const {
   static const float maxAngle = std::cos(float(30.0*M_PI/180.0));
 
-  const auto  dpos  = npc.position()-tg.position();
+  const auto  dpos  = npc.centerPosition()-tg.centerPosition();
   const float plAng = npc.rotationRad()+float(M_PI/2);
 
   const float da = plAng-std::atan2(dpos.z,dpos.x);

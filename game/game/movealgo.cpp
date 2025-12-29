@@ -691,7 +691,7 @@ int32_t MoveAlgo::diveTime() const {
 bool MoveAlgo::isClose(const Tempest::Vec3& w, const WayPoint &p) {
   float dist = closeToPointThreshold;
   if(p.useCounter()>1)
-    dist += 100; // need
+    dist += 100; // needed for some peasants on Onars farm
   return isClose(w,p,dist);
   }
 
@@ -892,8 +892,8 @@ bool MoveAlgo::isBackward(const Tempest::Vec3& dp) const {
   }
 
 void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::CollisionTest& info, uint64_t dt) {
-  static const float threshold = 0.4f;
-  static const float speed     = 360.f;
+  static float threshold = 0.4f;
+  static float speed     = 360.f;
 
   if(dp==Tempest::Vec3())
     return;
@@ -910,10 +910,13 @@ void MoveAlgo::onMoveFailed(const Tempest::Vec3& dp, const DynamicWorld::Collisi
       return;
     }
 
+  if(forward && !info.preFall && npc.currentTarget==info.npc && npc.bodyStateMasked()==BS_HIT)
+    return;
+
   if(npc.processPolicy()!=Npc::Player)
     lastBounce = npc.world().tickCount();
 
-  if(std::abs(val)>threshold && !info.preFall) {
+  if(std::abs(val)>=threshold && !info.preFall) {
     // emulate bouncing behaviour of original game
     Tempest::Vec3 corr;
     for(int i=5; i<=35; i+=5) {

@@ -1428,7 +1428,8 @@ bool Npc::implGoTo(uint64_t dt, float destDist) {
         return true;
       clearGoTo();
       }
-    } else {
+    }
+  else {
     if(setGoToLadder()) {
       mvAlgo.tick(dt);
       return true;
@@ -1462,9 +1463,6 @@ bool Npc::implAttack(uint64_t dt) {
     return false;
     }
 
-  if(!fghAlgo.hasInstructions())
-    return false;
-
   const auto bs = bodyStateMasked();
   if(bs==BS_LIE) {
     setAnim(Npc::Anim::Idle);
@@ -1476,20 +1474,23 @@ bool Npc::implAttack(uint64_t dt) {
     return true;
     }
 
-  if(faiWaitTime>=owner.tickCount()) {
+  if(faiWaitTime>=owner.tickCount() || waitTime>=owner.tickCount()) {
     adjustAttackRotation(dt);
     mvAlgo.tick(dt,MoveAlgo::FaiMove);
     return true;
     }
 
-  auto ws = weaponState();
+  if(!fghAlgo.hasInstructions())
+    return false;
+
+  const auto ws  = weaponState();
+  const auto act = fghAlgo.nextFromQueue(*this,*currentTarget,owner.script());
+
   // vanilla behavior, required for orcs in G1 orcgraveyard
   if(ws==WeaponState::NoWeapon && isAiQueueEmpty()) {
     if(drawWeaponMelee())
       return true;
     }
-
-  FightAlgo::Action act = fghAlgo.nextFromQueue(*this,*currentTarget,owner.script());
 
   if(act==FightAlgo::MV_BLOCK) {
     if(!fghAlgo.isInFocusAngle(*this, *currentTarget)) {
@@ -1532,7 +1533,6 @@ bool Npc::implAttack(uint64_t dt) {
       return true;
       }
 
-    auto ws = weaponState();
     if(ws==WeaponState::Bow || ws==WeaponState::CBow || ws==WeaponState::Mage) {
       bool obsticle = false;
       if(currentTarget!=nullptr) {
@@ -1576,23 +1576,24 @@ bool Npc::implAttack(uint64_t dt) {
           }
         }
       }
-    else if(ws==WeaponState::Fist) {
-      if(doAttack(Anim::Attack,BS_HIT) || mvAlgo.isSwim() || mvAlgo.isDive()) {
+    else if(ws==WeaponState::Fist || ws==WeaponState::W1H || ws==WeaponState::W2H) {
+      const auto atkType = (ws==WeaponState::Fist) ? Anim::Attack : ani[act-FightAlgo::MV_ATTACK];
+      const bool atk     = doAttack(atkType, BS_HIT);
+
+      if(atk || mvAlgo.isSwim() || mvAlgo.isDive()) {
         uint64_t aniTime = visual.pose().atkTotalTime()+1;
         implFaiWait(aniTime);
         if(bs==BS_RUN)
           implAniWait(aniTime);
         fghAlgo.consumeAction();
+        } else {
+        adjustAttackRotation(dt);
+        //mvAlgo.tick(dt,MoveAlgo::FaiMove);
         }
       }
     else {
-      if(doAttack(ani[act-FightAlgo::MV_ATTACK],BS_HIT)) {
-        uint64_t aniTime = visual.pose().atkTotalTime()+1;
-        implFaiWait(aniTime);
-        if(bs==BS_RUN)
-          implAniWait(aniTime);
-        fghAlgo.consumeAction();
-        }
+      // Attack action without any weapon. Can happend at weapon transition(orc shaman) - skip it.
+      fghAlgo.consumeAction();
       }
     return true;
     }
@@ -1645,8 +1646,6 @@ bool Npc::implAttack(uint64_t dt) {
 
   if(act==FightAlgo::MV_MOVEA || act==FightAlgo::MV_MOVEG ||
      act==FightAlgo::MV_TURNA || act==FightAlgo::MV_TURNG) {
-    if(!isAiQueueEmpty() && implAiTick(dt))
-      return true;
     go2.set(currentTarget,(act==FightAlgo::MV_MOVEG || act==FightAlgo::MV_TURNG) ?
                              GoToHint::GT_EnemyG : GoToHint::GT_EnemyA);
 
@@ -1655,44 +1654,51 @@ bool Npc::implAttack(uint64_t dt) {
       dist = fghAlgo.prefferedGDistance(*this,*go2.npc,owner.script()); else
       dist = fghAlgo.prefferedAttackDistance(*this,*go2.npc,owner.script());
 
-    static float padding = 10;
+    static float padding = 0;
     dist = std::max(dist-padding,0.f);
 
-    const bool isClose = (qDistTo(*currentTarget) < dist*dist);
-    if((!isClose && implGoTo(dt)) || implTurnTo(*currentTarget,dt)) {
+    if(!(mvAlgo.checkLastBounce() && implTurnTo(*currentTarget,dt)) && !implGoTo(dt)) {
+      if(act!=FightAlgo::MV_TURNA && act!=FightAlgo::MV_TURNG) {
+        stopWalkAnimation();
+        }
       go2.clear();
+      visual.setAnimRotate(*this, 0);
+      fghAlgo.consumeAction();
+      aiState.loopNextTime = owner.tickCount(); // force ZS_MM_Attack_Loop call
       implAiTick(dt);
       return true;
       }
 
-    if(act!=FightAlgo::MV_TURNA && act!=FightAlgo::MV_TURNG)
-      setAnim(Anim::Idle);
-    go2.clear();
-    fghAlgo.consumeAction();
-    aiState.loopNextTime = owner.tickCount(); // force ZS_MM_Attack_Loop call
-    implAiTick(dt);
+    const bool isClose = mvAlgo.isClose(currentTarget->centerPosition(), dist);
+    const bool canHit  = fghAlgo.isInFocusAngle(*this, *currentTarget);
+    if(isClose && canHit) {
+      fghAlgo.consumeAction();
+      aiState.loopNextTime = owner.tickCount(); // force ZS_MM_Attack_Loop call
+      implAiTick(dt);
+      return true;
+      }
 
-    //auto next = fghAlgo.nextFromQueue(*this,*currentTarget,owner.script());
+    implAiTick(dt);
     return true;
     }
 
   if(act==FightAlgo::MV_WAIT) {
     implFaiWait(200);
     fghAlgo.consumeAction();
-    setAnim(AnimationSolver::Idle);
+    stopWalkAnimation();
     return true;
     }
 
   if(act==FightAlgo::MV_WAITLONG) {
     implFaiWait(300);
     fghAlgo.consumeAction();
-    setAnim(AnimationSolver::Idle);
+    stopWalkAnimation();
     return true;
     }
 
   if(act==FightAlgo::MV_NULL) {
     fghAlgo.consumeAction();
-    setAnim(AnimationSolver::Idle);
+    stopWalkAnimation();
     return true;
     }
 
@@ -3591,7 +3597,7 @@ bool Npc::canFinish(Npc& oth) {
   }
 
 bool Npc::doAttack(Anim anim, BodyState bs) {
-  auto weaponSt=weaponState();
+  auto weaponSt = weaponState();
   if(weaponSt==WeaponState::NoWeapon || weaponSt==WeaponState::Mage)
     return false;
 

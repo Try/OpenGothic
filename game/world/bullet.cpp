@@ -139,7 +139,7 @@ void Bullet::onCollide(Npc& npc) {
 
   if(ow!=nullptr) {
     // no damage between ally npc's, only emit pfx effect
-    const bool friendlyFire = wrld->script().isFriendlyFire(*ow,npc);
+    const bool friendlyFire = wrld->script().isFriendlyFire(*ow, npc);
     if(!friendlyFire) {
       if(isSpell())
         npc.takeDamage(*ow,this,vfx.handle(),spellId()); else
