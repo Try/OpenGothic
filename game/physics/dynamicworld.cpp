@@ -555,6 +555,39 @@ DynamicWorld::RayWaterResult DynamicWorld::implWaterRay(const Tempest::Vec3& fro
   return ret;
   }
 
+DynamicWorld::RayCamResult DynamicWorld::cameraRay(const Tempest::Vec3& from, const Tempest::Vec3& to) const {
+  struct CallBack:btCollisionWorld::AllHitsRayResultCallback {
+    using AllHitsRayResultCallback::AllHitsRayResultCallback;
+
+    btScalar addSingleResult(btCollisionWorld::LocalRayResult& rayResult, bool normalInWorldSpace) override {
+      hits++;
+      return AllHitsRayResultCallback::addSingleResult(rayResult,normalInWorldSpace);
+      }
+
+    uint32_t hits = 0;
+    };
+
+  CallBack callback{CollisionWorld::toMeters(from), CollisionWorld::toMeters(to)};
+  callback.m_flags = btTriangleRaycastCallback::kF_KeepUnflippedNormal | btTriangleRaycastCallback::kF_FilterBackfaces;
+
+  if(waterBody!=nullptr) {
+    btTransform rayFromTrans,rayToTrans;
+    rayFromTrans.setIdentity();
+    rayFromTrans.setOrigin(callback.m_rayFromWorld);
+    rayToTrans.setIdentity();
+    rayToTrans.setOrigin(callback.m_rayToWorld);
+    world->rayTestSingle(rayFromTrans, rayToTrans,
+                         waterBody.get(),
+                         waterBody->getCollisionShape(),
+                         waterBody->getWorldTransform(),
+                         callback);
+    }
+
+  RayCamResult ret;
+  ret.waterCol = int(callback.m_collisionObjects.size());
+  return ret;
+  }
+
 DynamicWorld::RayLandResult DynamicWorld::ray(const Tempest::Vec3& from, const Tempest::Vec3& to) const {
   struct CallBack:btCollisionWorld::ClosestRayResultCallback {
     using ClosestRayResultCallback::ClosestRayResultCallback;

@@ -146,6 +146,10 @@ class DynamicWorld final {
       bool                hasCol = false;
       };
 
+    struct RayCamResult {
+      int                 waterCol = 0;
+      };
+
     struct RayQueryResult : RayLandResult{
       Npc* npcHit = nullptr;
       };
@@ -229,6 +233,7 @@ class DynamicWorld final {
     RayLandResult  landRay      (const Tempest::Vec3& from, float maxDy=0) const;
     RayWaterResult waterRay     (const Tempest::Vec3& from) const;
     RayWaterResult waterRay     (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
+    RayCamResult   cameraRay    (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
 
     RayLandResult  ray          (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
     RayQueryResult rayNpc       (const Tempest::Vec3& from, const Tempest::Vec3& to) const;
