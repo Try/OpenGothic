@@ -129,8 +129,6 @@ void Bullet::onCollide(zenkit::MaterialGroup matId) {
   vfx.setLooped(false);
   vfx.setPhysicsDisable();
   wrld->runEffect(std::move(vfx));
-  if(obj==nullptr || obj->hitCount()>3 || obj->isSpell())
-    onStop();
   }
 
 void Bullet::onCollide(Npc& npc) {
@@ -150,8 +148,6 @@ void Bullet::onCollide(Npc& npc) {
   vfx.setLooped(false);
   vfx.setPhysicsDisable();
   wrld->runEffect(std::move(vfx));
-
-  onStop();
   }
 
 void Bullet::updateMatrix() {

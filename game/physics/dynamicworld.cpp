@@ -805,10 +805,12 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
 
   world->rayCast(pos, to, callback);
 
+  bool stopBullet = false;
   if(callback.matId != zenkit::MaterialGroup::NONE) {
     if(isSpell){
       if(b.cb!=nullptr)
         b.cb->onCollide(callback.matId);
+      stopBullet = true;
       } else {
       if(callback.matId==zenkit::MaterialGroup::METAL ||
          callback.matId==zenkit::MaterialGroup::STONE) {
@@ -835,11 +837,13 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
         } else {
         float a = callback.m_closestHitFraction;
         b.move(pos + (to-pos)*a);
+        b.addPathLen((to-pos).length()*a);
+        b.addHit();
         if(b.cb!=nullptr)
           b.cb->onCollide(callback.matId);
+        stopBullet = true;
         }
       }
-    b.addHit();
     } else {
     if(auto ptr = npcList->rayTest(pos,to,b.targetRange())) {
       if(b.cb!=nullptr)
@@ -852,7 +856,10 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
     b.move(to);
     b.setDirection(d);
     b.addPathLen(l*dtF);
-    if(b.cb!=nullptr && b.pathLength()>10000)
+    }
+
+  if(stopBullet || b.hitCount()>3 || b.pathLength()>10000) {
+    if(b.cb!=nullptr)
       b.cb->onStop();
     }
   }
