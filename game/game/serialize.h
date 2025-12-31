@@ -33,7 +33,15 @@ class SaveGameHeader;
 class Serialize {
   public:
     enum Version : uint16_t {
-      Current = 52
+      Current    = 52,
+      MinVersion = 36,
+
+      Last_2025  = 52,
+      Last_2024  = 49,
+      Last_2023  = 46,
+      Last_2022  = 41,
+      Last_2021  = 36,
+      First      = 36, // first zip-based version
       };
     Serialize(Tempest::ODevice& fout);
     Serialize(Tempest::IDevice&  fin);
