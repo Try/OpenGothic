@@ -848,6 +848,7 @@ void DynamicWorld::moveBullet(BulletBody &b, const Tempest::Vec3& dir, uint64_t 
     if(auto ptr = npcList->rayTest(pos,to,b.targetRange())) {
       if(b.cb!=nullptr)
         b.cb->onCollide(*ptr->toNpc());
+      stopBullet = true;
       }
     const float l = b.speed();
     auto        d = b.direction();
