@@ -390,6 +390,7 @@ enum Action:uint32_t {
   AI_LookAt,
   AI_WhirlToNpc,
   AI_TurnAway,
+  AI_QuickLook,
   };
 
 

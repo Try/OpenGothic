@@ -602,6 +602,9 @@ class Npc final {
     Npc*                           currentOther   =nullptr;
     Npc*                           currentVictim  =nullptr;
 
+    Npc*                           quickLookNpc=nullptr;
+    uint64_t                       quickLookEnd=0;
+
     const WayPoint*                currentLookAt=nullptr;
     Npc*                           currentLookAtNpc=nullptr;
     Npc*                           currentTarget  =nullptr;
